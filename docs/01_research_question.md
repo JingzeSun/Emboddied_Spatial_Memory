@@ -1,112 +1,121 @@
-# 研究问题与贡献边界
+# 研究问题、假设与贡献边界
 
-## 1. 问题定义
+> 合同版本：v1.0
+> 状态：研究方向已接受；方法尚未实现；假设尚未验证
+> 上位蓝图：`09_integrated_direction_plan.md`
+
+## 1. 主问题
 
 机器人接收连续观测：
 
-\[
-o_t = (I_t, D_t, T^w_{c_t}, K, F_t^{obs}, \text{optional semantics})
-\]
+[
+o_t=(I_t,D_t,T^w_{c_t},K,a_{t-1},	ext{optional semantics/flow})
+]
 
-目标是把随视角变化的观测转换为长期世界状态：
+已有空间信念图 (B_{t-1}=(V,E))。本项目研究：
 
-\[
-\mathcal{M}_t = \{\mathcal{C}_t, \mathcal{S}^{persistent}_t, \mathcal{S}^{transient}_t\}
-\]
+> 能否通过当前位姿下的 structured innovation，预测新证据真正影响的节点、关系、操作符和传播停止边界，从而以最小充分的局部图修订形成新空间语境，并保持无关历史知识稳定？
 
-其中 `C` 是 Local Structural Charts，`S` 是 persistent world slots。记忆应抵抗相机自运动和短暂遮挡，同时在真实环境变化发生时适当更新。
+目标输出不是新帧摘要，而是：
+
+[
+Delta B_t=
+{	ext{operations},V_{	ext{affected}},E_{	ext{affected}},
+E_{	ext{stop}},	ext{confidence},	ext{provenance}}
+]
 
 ## 2. 中心假设
 
-**H1 — Viewpoint robustness**  
-世界坐标对齐的结构 slot 比固定 image patch 或仅按当前 VP 划分的记忆具有更高的跨视角一致性。
+### H1 — Structured innovation
 
-**H2 — Contamination resistance**  
-结合 ego-motion compensation、可见性和动态概率的 soft update，能减少行人和临时遮挡对长期静态记忆的污染。
+在相同 perception、pose 和 association 输入下，对象/关系/可见性级 structured innovation 比全局 feature residual 或单一 dynamic probability 更准确地区分 viewpoint、occlusion、new entity、relocation、reliable absence 和 sensor inconsistency。
 
-**H3 — Change responsiveness**  
-带生命周期和多时间尺度证据的 slot，能比简单冻结或固定 EMA 更好地区分 transient occlusion 与 persistent environmental change。
+### H2 — Affected-subgraph scope
 
-**H4 — Turning and topology**  
-允许多 Chart overlap 的局部结构记忆，能够利用转弯期间的共同可见区域建立更稳定的相对位姿和拓扑连接。
+显式预测 affected nodes/edges 与 propagation stop boundary，比 full recomputation、global EMA 和 local-slot-only update 获得更高的 delta precision/recall、传播完整性和无关子图保持率。
 
-## 3. 预期贡献
+### H3 — Factorized dynamics
 
-1. 一种 observation/world 分离的 pose-aware structural latent representation。
-2. 一种面向 region split/merge、遮挡和重现的 frame-to-world association 机制。
-3. 一种结合 ego-motion residual、可见性、位姿可靠度和时间持久性的 memory update 机制。
-4. 一套配对 clean/dynamic/true-change episode 与针对 memory contamination 的评测协议。
+将 entity mobility、current motion、persistence、visibility 和 change state 解耦，能降低长期静止 actor 被固化为结构的错误，并更好地区分椅子搬迁、旧址缺席与遮挡。
 
-## 4. 非目标
+### H4 — Efficient context revision
 
-- 不生成或修复 RGB 图像。
-- 不以稠密、照片级 3D reconstruction 为主要目标。
-- MVP 不同时追求导航、QA、规划三个任务的端到端最优。
-- MVP 不解决任意室外、非结构化和极端非 Manhattan 环境。
-- 不把 latent next-frame prediction 本身当作主要贡献。
+受影响子图上的版本化修订能在不牺牲 context query 正确率的情况下，降低每帧编辑节点比例、时延和峰值显存。
 
-## 5. 表述边界
+## 3. 候选论文贡献
 
-推荐表述：
+1. 一种 pose-aware structured innovation 表示，把旧 belief 的 expected observation 与新 ObservationGraph 在实体、几何、可见性和关系层对齐比较。
+2. 一种 causally scoped affected-subgraph revision 方法，联合预测编辑范围、typed operator 和传播停止边界，由确定性版本化执行器应用。
+3. 一套反事实 revision 评测合同，联合度量 necessary update、necessary propagation、unrelated preservation、revision latency 和 cost。
 
-> 本方法不存储或预测 RGB 像素，也不构建稠密外观模型；它通过深度、位姿和稀疏结构线索，把视觉 latent 关联到可查询的长期世界结构记忆。
+以上是待验证 claim，不得在实验前写成已经证明的贡献。Factorized state、provenance、Chart 和 context query 是使上述贡献可实现、可评测的支撑。
 
-避免表述：
+## 4. 冻结的 MVP 输入与输出
 
-> 本方法完全不需要重建或几何估计。
+### 输入
 
-## 6. 必须保留的模块
+- RGB；
+- metric depth 或明确来源的估计 depth；
+- camera intrinsics；
+- `T_world_camera` pose 及其来源/置信度；
+- timestamp；
+- 可选 flow、semantic、instance evidence。
 
-1. Observation Space 与 World Memory 的区别；
-2. Camera Pose / Ego-motion；
-3. Rotation / SE(3) 对齐；
-4. Ego-motion compensated optical flow；
-5. World structural directions，而不是固定 VP；
-6. Local Structural Charts；
-7. 转弯时多 Chart overlap；
-8. Static / Dynamic 双记忆视图；
-9. Soft confidence-based memory update；
-10. Frame-to-World association；
-11. Persistent world slots；
-12. Viewpoint / occlusion / turning / persistent-change robustness。
+### 图范围
 
-## 7. MVP 范围建议
+- node：object、surface/region、event；
+- edge：spatial、containment、visibility/occlusion、identity/track、event participation；
+- Chart/Place 只作为稳定锚点，不在 MVP 学习 split/merge。
 
-- 场景：有墙面、地板、门和拐角的室内走廊/相连房间。
-- 输入：RGB、depth、camera intrinsics、pose；optical flow 可在线估计。
-- 主评测：记忆保持、污染、重现关联和持久变化识别。
-- 次评测：结构查询或轻量导航，不在第一阶段训练大型端到端策略。
+### 输出
 
-## 8. 拟议研究升级：Online Spatial Context Revision
+- `StructuredInnovation`；
+- `ContextDelta`；
+- versioned `SceneBelief`；
+- task-conditioned `ActiveContext`；
+- 结构化 context query answer 与 evidence trace。
 
-导师建议指出，动态对象和短期出现不能只作为静态记忆的干扰，它们本身也应被学习和记录。基于这一意见，项目新增 D-008 提案：把动态从 soft write gate 的一个负向因素，升级为驱动 `SceneBelief` 与 `ActiveContext` 结构化修正的证据。
+## 5. 非目标
 
-候选主问题为：
+- 不生成或修复照片级 RGB；
+- 不把完整导航策略训练作为第一篇论文条件；
+- 不做人脸识别或长期生物身份追踪；
+- 不在 MVP 学习 Chart/Place split/merge；
+- 不以“更大 VLM”代替图修订算法；
+- 不允许 LLM 无 schema、无 operator 地自由改写 memory；
+- 不声称单目 depth/pose 是 ground truth。
 
-> 机器人能否根据新观测与已有空间信念之间的 pose-aware structured innovation，在考虑自运动、遮挡、动态实体、传感器不确定性和历史关系的条件下，对空间语境进行局部、可追溯且范围正确的修正？
+## 6. 关键不变量
 
-候选状态转换为：
+1. Observation、SceneBelief、ActiveContext 与 PersistentWorldMemory 不得混为同一状态。
+2. camera motion 必须通过 pose/geometry 解释，不能直接当成 scene change。
+3. 长期静止不能改变 actor ontology。
+4. `occluded/out_of_fov/reliably_absent` 必须可区分。
+5. 未知去向不能被写成虚构位置。
+6. 原始 evidence 不覆盖；修订使用版本和有效时间。
+7. 每个 edit 必须能追溯到 episode、frame、association、visibility 和 controller revision。
+8. 测试集不得用于阈值、prompt、baseline 或模型选择。
 
-\[
-B_t=\operatorname{Revise}(B_{t-1},o_t,a_{t-1},\mathcal M_{t-1})
-\]
+## 7. 主任务与次任务
 
-\[
-X_t(g_t)=\operatorname{SelectRelevantSubgraph}(B_t,g_t,T^w_{c_t})
-\]
+- 主任务：`affected_subgraph_revision`；
+- 第一验证任务：`structured_context_query`；
+- 次级鲁棒性：viewpoint、turning、pose/depth noise；
+- 后续外部效度：lightweight navigation。
 
-其中 `B_t` 是当前 SceneBelief，`X_t` 是任务相关 ActiveContext；二者均不等同于当前帧或完整长期记忆。
+## 8. 证伪条件
 
-该提案不废弃 H1–H4，而可能把 contamination resistance 重新定位为语境修正中的 `PRESERVE/ISOLATE` 子能力，同时增加 `UPDATE/PROPAGATE`。完整定义见 `08_dynamic_context_revision.md`。在 D-008 接受前，当前中心假设和 `03_experiment_contract.md` 继续有效。
+出现以下任一结果，应削弱或放弃核心 claim：
 
-## 9. 提议中的优先级重组
+- oracle affected-subgraph 不能明显优于 local-slot-only update；
+- structured innovation 不优于简单 residual/dynamic score；
+- scope 变小只带来漏改，propagation completeness 显著下降；
+- 方法通过“什么都不改”取得低 collateral revision；
+- stationary actor、relocation 和 reliable absence 无法同时正确处理；
+- 优势只在 oracle pose/depth 下存在；
+- full recomputation 在相同输入下准确率和成本均不差于本方法；
+- context query 不受修订质量影响。
 
-现有研究问题与 D-008 并非两个平行项目。建议的单一组织方式是：
+## 9. 论文一句话
 
-1. **候选核心问题**：新证据如何产生 pose-aware structured innovation，并触发范围正确的 affected-subgraph revision；
-2. **必要基础**：H1 的位姿/视角对齐和 H4 的局部 Chart 组织；
-3. **必要安全性质**：H2 的污染抑制对应 `PRESERVE/ISOLATE`；
-4. **必要适应性质**：H3 的真实变化响应扩展为节点、关系、事件和有效时间的 `UPDATE/RELINK/SUPERSEDE`；
-5. **首个验证任务**：结构化 context query，导航只作后续外部效度验证。
-
-完整迁移审计、哨兵场景和人工确认项见 `09_integrated_direction_plan.md`。以上仍为 `proposed`：未接受 D-008 前，不把候选优先级写进正式实验配置，也不声称原假设已被验证。
+> We study how pose-aware structured innovations should trigger minimal sufficient, evidence-traceable revisions of an embodied spatial belief graph, including where relational propagation must stop.

@@ -1,155 +1,218 @@
-# 实验合同
+# Affected-Subgraph Revision 实验合同
 
-本文件应在正式查看测试结果前冻结。任何改变都需记录在 `06_decision_log.md`，并说明是否使用了测试信息。
+> 合同版本：v1.0
+> 状态：accepted for pilot；正式成功阈值尚未冻结
+> 生效日期：2026-08-27
+> 旧合同：`archive/pre_d008/03_experiment_contract.md`
 
-## 1. 主问题
+本文件在查看正式 test 结果前冻结实验问题、条件、基线、指标和证伪规则。任何修改必须写入 `06_decision_log.md`，说明是否接触过 test 信息。
 
-完整方法是否在保持真实变化响应能力的同时，降低 viewpoint change、turning 和 transient occlusion 造成的静态记忆污染？
+## 1. 主实验问题
+
+Pose-Aware Affected-Subgraph Revision 是否能：
+
+1. 正确识别新观测相对于旧 belief 的结构化创新；
+2. 修改必要节点和关系；
+3. 完成必要关系传播并在无关边界停止；
+4. 区分 preserve、update 和 isolate；
+5. 以低于 full recomputation 的编辑与计算成本维持 context query 正确率？
 
 ## 2. 实验单元
 
-最重要的实验单元是 **counterfactual group**：
+最重要的实验单元是 **same-world counterfactual history group**：
 
 ```text
-同一 scene + 同一 camera/action trajectory + 同一初始状态
-├── clean
+same scene + same initial belief + aligned camera/action trajectory
+├── unchanged_visible
 ├── viewpoint_or_turning_only
 ├── transient_occlusion
-├── turning_plus_transient
-└── persistent_change
+├── stationary_actor_short
+├── stationary_actor_long
+├── relocation_visible_destination
+├── reliable_absence_unknown_destination
+├── out_of_fov
+├── irrelevant_innovation
+└── sensor_inconsistency
 ```
 
-除受控变量外，其余条件保持一致。所有 train/val/test split 按 scene identity 划分，不能让同一场景的不同动态种子跨 split。
+同一 group 的所有条件必须位于同一 split。除目标变量外，初始状态、轨迹和传感器设置保持一致。
 
-## 3. 基线阶梯
+## 3. 基线
 
-| ID | 基线 | 目的 |
+| ID | 方法 | 回答的问题 |
 |---|---|---|
-| B0 | Current frame only | 证明长期记忆是否有价值 |
-| B1 | Fixed ViT patch memory | 对照 image-centric fixed grid |
-| B2 | Single-VP perspective regions | 检验透视切分但无 world alignment |
-| B3 | Pose-warped regions | 检验 pose compensation 本身 |
-| B4 | World slots + fixed EMA | 检验结构 slot 但无动态更新机制 |
-| B5 | World slots + residual-flow gate | 检验基础动态抑制 |
-| B6 | Full method | association + charts + multi-evidence soft update |
+| B0 | Current observation only | 不使用旧 belief 的下限 |
+| B1 | Append-only memory | 只增加、不修订会怎样 |
+| B2 | Pose-warped global EMA | 对齐 + 全局软更新是否足够 |
+| B3 | Slot lifecycle only | candidate/transient/changed 状态机是否足够 |
+| B4 | Local matched-slot revision | 只改直接匹配 slot、不传播关系是否足够 |
+| B5 | Full graph recomputation | 准确但昂贵的全量参照 |
+| B6 | Oracle affected-subgraph + deterministic executor | 问题定义与 executor 的上限 |
+| B7 | Deterministic predicted scope | 可解释规则基线 |
+| B8 | Full proposed hybrid controller | 学习 scope/operator 的完整方法 |
 
-正式论文还应选择可复现的强基线，覆盖 image-centric compressed memory、3D/anchor memory 和 semantic-geometric map 三类，而不是只和弱 patch 基线比较。
+所有基线使用相同 perception、pose/depth、association 输入和初始 belief。若某公开方法无法满足相同传感器假设，必须单独披露，不混入主公平比较。
 
-## 4. 受控场景
+## 4. 分阶段实验
 
-- 原地旋转：0°、15°、30°、45°、60°、90°；
-- translation only；
-- rotation + translation；
-- pedestrian partial/full occlusion；
-- stationary pedestrian；
-- temporary obstacle；
-- door/chair 等真实 persistent change；
-- corner、T junction、room entry；
-- pose/depth noise sweep。
+### E0 — Oracle wiring
 
-角度和噪声等级在 pilot 后冻结，不根据测试结果挑选。
+- 输入：oracle graph、oracle delta、oracle scope；
+- 比较：expected graph vs executor output；
+- 指标：operation exact match、graph state exact match、version/provenance validity；
+- 目的：证明 schema、editor 和 metrics 没接错。
 
-## 5. 主指标
+### E1 — Structured innovation
 
-### 5.1 Static Memory Drift
+- 比较：feature residual、dynamic score、unstructured change classifier、structured innovation；
+- 指标：category macro-F1、per-class precision/recall、ECE/Brier、visibility confusion；
+- 目的：证明“新东西”被分解成可修订的证据类型。
 
-比较同一 counterfactual group 的 clean 与 disturbed trajectory 在对应静态 slot 上的状态差异。至少报告 latent、geometry 和 semantic 三部分，而不是只报告一个合成分数。
+### E2 — Affected-subgraph revision
 
-### 5.2 Dynamic Contamination Rate
+- 比较：B2–B8；
+- 指标：delta P/R、node/edge scope F1、operator accuracy、propagation completeness、collateral revision；
+- 目的：证明该改哪里和何处停止。
 
-动态事件发生后，被错误覆盖、错误改类、错误替换或错误退休的静态 slot 比例。阈值必须在 validation set 上冻结。
+### E3 — Stationary actor duration sweep
 
-### 5.3 Static Memory Retention
+- 条件：moving → stationary，按停留时长、遮挡比例和位置分层；
+- 指标：actor→structure error、door/background preservation、track continuity、leave recovery；
+- 目的：证明 motion state 不改变 ontology。
 
-遮挡或转弯后，仍可正确检索和投影的历史静态 slot 比例。
+### E4 — Relocation / absence / occlusion
 
-### 5.4 Reappearance Consistency
+- 条件：可见新位置、可靠旧址缺席、遮挡、out-of-FOV、removed-from-scene；
+- 指标：relation edit accuracy、unknown calibration、false invalidation、revision latency；
+- 目的：证明系统不会把“没看到”统一处理。
 
-`visible → occluded/out-of-view → visible` 后重新关联到原 slot 的准确率、IDF1 和重复建 slot 率。
+### E5 — Irrelevant innovation
 
-### 5.5 Viewpoint Consistency
+- 在空间上或关系上无关的局部注入新物体/事件；
+- 指标：control-subgraph preservation、collateral revision、query stability；
+- 目的：验证 propagation stop boundary。
 
-跨角度对应 slot 的 association accuracy、latent similarity 和几何误差。
+### E6 — Viewpoint and sensor robustness
 
-### 5.6 Structural Chart Consistency
+- 条件：旋转、转弯、回访、pose/depth noise；
+- 指标：false innovation、wrong global revision、association、calibration；
+- 目的：排除 camera motion 或传感器误差造成的伪创新。
 
-Chart assignment、Chart edge precision/recall、relative pose error 和重复 Chart 率。
+### E7 — Efficiency
 
-### 5.7 Transient-vs-Persistent Change
+- sweep：belief graph size、history length、affected-subgraph ratio；
+- 指标：latency、峰值显存、读取/编辑节点比例、存储增长；
+- 目的：验证不是隐式全图重算。
 
-对 transient、persistent、unknown 三类事件报告 precision、recall、F1、确认延迟和错误冻结率。
+### E8 — Structured context query
 
-## 6. 次指标
+- query：当前/历史位置、可见性、遮挡者、变化事件、新旧关系；
+- 指标：answer accuracy、evidence trace accuracy、temporal consistency；
+- 目的：验证图修订对下游语境读取有用。
 
-- memory size、每帧更新时延、峰值显存；
-- pose/depth noise calibration；
-- scene/slot retrieval accuracy；
-- 若接入导航：SR、SPL、collision rate、path efficiency；
-- 若接入 QA：结构/空间问题 accuracy，并区分可见与依赖记忆的问题。
+## 5. 主指标定义
 
-## 7. 核心消融
+设 oracle 必要编辑集合为 (G)，预测编辑集合为 (P)：
 
-1. 无 structure partition；
-2. 固定 VP vs world structural directions；
-3. 无 pose alignment；
-4. 无 depth；
-5. raw flow vs ego-motion residual；
-6. 无 semantic/instance evidence；
-7. hard update vs soft update；
-8. 二分类静/动态 vs lifecycle/multi-timescale；
-9. 单 Chart vs multi-Chart overlap；
-10. EMA latent vs bounded prototype set；
-11. oracle pose/depth vs estimated pose/depth；
-12. 不同 pose/depth 噪声等级。
+[
+	ext{DeltaPrecision}=|Pcap G|/|P|,qquad
+	ext{DeltaRecall}=|Pcap G|/|G|
+]
 
-## 8. MVP 成功标准（正式实验前冻结数值）
+[
+	ext{CollateralRevisionRate}=
+rac{|	ext{changed control nodes/edges}|}
+{|	ext{control nodes/edges}|}
+]
 
-暂不在这里虚构目标百分比。完成 pilot 后，仅使用 validation set 冻结以下门槛：
+[
+	ext{PropagationCompleteness}=
+rac{|	ext{required propagated edits completed}|}
+{|	ext{required propagated edits}|}
+]
 
-- B6 的 contamination 显著低于 B3/B4；
-- B6 的 persistent-change F1 不低于 B4，避免只靠冻结取得稳定性；
-- turning 条件下的 reappearance 和 chart consistency 优于 single-VP；
-- 在 pose/depth 合理噪声范围内优势仍存在；
-- 报告多个 scene seed 的均值、置信区间和失败案例。
+另报告：
 
-## 9. 可复现性要求
+- node/edge scope F1；
+- operator macro-F1；
+- preservation accuracy；
+- revision latency（关键证据出现到正确提交的帧数）；
+- innovation calibration；
+- context query accuracy；
+- edited-node ratio；
+- wall-clock latency、峰值显存和存储增长。
+
+空预测必须按预注册规则计分，不能通过“什么都不改”获得虚假的高 precision/preservation。
+
+## 6. 核心消融
+
+1. 无 pose-aware projection；
+2. 无 explicit visibility；
+3. structured innovation → scalar residual；
+4. 无 causal scores；
+5. affected-subgraph → matched-slot-only；
+6. 无 relation propagation；
+7. 无 stop-boundary objective；
+8. 无 preserve/control-subgraph loss；
+9. factorized dynamic state → binary static/dynamic；
+10. versioned operators → in-place overwrite；
+11. deterministic vs GNN vs graph Transformer vs hybrid；
+12. oracle association/scope vs predicted association/scope；
+13. normalized EMA vs bounded prototypes（只作为低层 state update）。
+
+## 7. 数据切分与调参
+
+- split 单位：scene family；
+- counterfactual group 不跨 split；
+- 同一资产/人物轨迹模板记录 asset split；
+- pilot 用于 schema/metric/debug，不报告最终 claim；
+- train 用于学习参数；
+- validation 用于阈值、loss 权重、模型和 prompt 选择；
+- test 只在合同、阈值和 checkpoint 冻结后运行；
+- 接触 test 后的任何改变都必须产生新 protocol version，不能覆盖原结果。
+
+## 8. Pilot 通过门
+
+在进入学习控制器前，必须满足：
+
+1. E0 oracle executor 对微型 fixtures 达到 exact graph match；
+2. B6 在必要传播上优于 B4；
+3. relocation、reliable absence、occlusion 三类 oracle delta 可区分；
+4. stationary actor 不改变 ontology；
+5. control subgraph 在 oracle scope 下无非预期修改；
+6. 所有结果可追溯到 config、dataset manifest、code revision 和 fixture。
+
+这里不预填论文百分比。正式数值门槛只用 validation 结果冻结。
+
+## 9. 核心 claim 的证伪
+
+- B4 与 B6 无差异：affected-subgraph 问题可能不必要；
+- B5 在准确率、成本和稳定性均不差：局部修订缺少价值；
+- B8 只减少编辑量但显著漏改：scope 方法失败；
+- E3/E4 不能同时做好：factorized semantics 或证据定义失败；
+- E5 collateral revision 不下降：停止边界没有作用；
+- E8 不随 delta 质量变化：下游任务或内部指标脱节；
+- estimated pose/depth 下优势消失：方法只适用于 oracle 传感器。
+
+## 10. 可复现性
 
 每次正式运行保存：
 
 ```text
 run_id
-code revision
-config snapshot
-dataset manifest + split version
-random seeds
-model/checkpoint identifiers
-hardware and runtime
-raw per-episode metrics
-aggregate metrics
-failure-case references
+code_revision
+contract_version
+config_snapshot
+dataset_manifest_hash
+split_version
+random_seeds
+model_and_checkpoint_ids
+sensor_sources
+hardware_and_runtime
+raw_per_episode_predictions
+raw_per_episode_metrics
+aggregate_metrics_and_confidence_intervals
+failure_case_refs
 ```
 
-## 10. 证伪条件
-
-出现以下任一情况，应重新审视核心假设：
-
-- 简单 pose-warped EMA 在主要指标上与完整方法无显著差异；
-- 降低动态污染只能通过冻结更新实现，并明显漏掉真实变化；
-- Chart 机制没有改善转弯/拓扑指标，却显著增加错误和计算量；
-- 方法优势只在 oracle pose/depth 下成立；
-- 结构分区不优于无结构 token memory。
-
-## 11. D-008 的 revision pilot 扩展门（proposed）
-
-本节不改变以上已冻结的旧合同。D-008 被接受前，只允许建立与旧结果并行的小型 pilot，不得用 pilot 或测试结果回填挑选旧合同阈值。
-
-revision pilot 至少比较 append-only、full recomputation、pose-warped EMA、slot lifecycle only、local slot revision、oracle affected-subgraph 和预测 affected-subgraph，并额外报告：
-
-- `Delta Precision / Recall`；
-- `Propagation Completeness`；
-- `Preservation Accuracy`；
-- `Collateral Revision Rate`；
-- `Revision Latency`；
-- 实际编辑节点比例、时延与峰值显存。
-
-哨兵场景必须分开统计：长时间静止的人、暂时遮挡的门、搬到可见新位置的椅子、旧位置可靠缺席但去向未知的椅子，以及与当前局部无关的新证据。pilot 的目的、人工 oracle 和迁移条件见 `09_integrated_direction_plan.md`。
+失败、中断、缺失数据和不支持假设的结果都必须记录。

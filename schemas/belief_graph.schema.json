@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/JingzeSun/Emboddied_Spatial_Memory/schemas/belief_graph.schema.json",
+  "title": "Versioned Spatial Belief Graph",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "graph_id",
+    "graph_version",
+    "timestamp",
+    "nodes",
+    "edges",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "graph_id": { "type": "string", "minLength": 1 },
+    "graph_version": { "type": "string", "minLength": 1 },
+    "base_graph_version": { "type": ["string", "null"] },
+    "timestamp": { "type": "number" },
+    "nodes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/node" }
+    },
+    "edges": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/edge" }
+    },
+    "provenance": { "type": "object", "additionalProperties": true }
+  },
+  "$defs": {
+    "validity": {
+      "type": "object",
+      "required": ["valid_from", "valid_to"],
+      "properties": {
+        "valid_from": { "type": "number" },
+        "valid_to": { "type": ["number", "null"] },
+        "supersedes": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "dynamicState": {
+      "type": "object",
+      "required": [
+        "entity_mobility",
+        "motion_state",
+        "persistence_state",
+        "change_state",
+        "visibility_state"
+      ],
+      "properties": {
+        "entity_mobility": { "enum": ["actor", "movable", "fixed", "unknown"] },
+        "motion_state": { "enum": ["moving", "stationary", "unknown"] },
+        "persistence_state": { "enum": ["transient", "recurrent", "persistent", "unknown"] },
+        "change_state": { "enum": ["unchanged", "candidate", "confirmed", "rejected"] },
+        "visibility_state": {
+          "enum": [
+            "visible",
+            "partially_occluded",
+            "occluded",
+            "out_of_fov",
+            "reliably_absent",
+            "unknown"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "node": {
+      "type": "object",
+      "required": [
+        "node_id",
+        "node_version_id",
+        "node_type",
+        "semantic_state",
+        "dynamic_state",
+        "validity",
+        "confidence",
+        "commit_status",
+        "provenance"
+      ],
+      "properties": {
+        "node_id": { "type": "string", "minLength": 1 },
+        "node_version_id": { "type": "string", "minLength": 1 },
+        "node_type": { "enum": ["object", "surface", "region", "event", "chart", "place"] },
+        "geometry_state": { "type": ["object", "null"], "additionalProperties": true },
+        "semantic_state": { "type": "object", "additionalProperties": true },
+        "latent_state": { "type": ["object", "null"], "additionalProperties": true },
+        "dynamic_state": { "$ref": "#/$defs/dynamicState" },
+        "validity": { "$ref": "#/$defs/validity" },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "commit_status": { "enum": ["candidate", "quarantined", "committed", "superseded", "invalidated"] },
+        "provenance": {
+          "type": "array",
+          "items": { "type": "object", "additionalProperties": true }
+        }
+      },
+      "additionalProperties": false
+    },
+    "edge": {
+      "type": "object",
+      "required": [
+        "edge_id",
+        "edge_version_id",
+        "source_id",
+        "target_id",
+        "relation_type",
+        "validity",
+        "confidence",
+        "commit_status",
+        "provenance"
+      ],
+      "properties": {
+        "edge_id": { "type": "string", "minLength": 1 },
+        "edge_version_id": { "type": "string", "minLength": 1 },
+        "source_id": { "type": "string", "minLength": 1 },
+        "target_id": { "type": "string", "minLength": 1 },
+        "relation_type": {
+          "enum": ["located_in", "contains", "supports", "near", "occludes", "participates_in", "same_track", "connects"]
+        },
+        "relation_state": { "type": ["object", "null"], "additionalProperties": true },
+        "validity": { "$ref": "#/$defs/validity" },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "commit_status": { "enum": ["candidate", "quarantined", "committed", "superseded", "invalidated"] },
+        "provenance": {
+          "type": "array",
+          "items": { "type": "object", "additionalProperties": true }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

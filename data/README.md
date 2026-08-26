@@ -1,14 +1,27 @@
 # Data
 
-此目录不保存大型原始数据。
+大型数据、生成缓存和训练产物不提交 Git。数据合同见 `docs/04_dataset_spec.md` 与 `schemas/episode.schema.json`。
 
-允许提交：
+仓库允许保存：
 
-- manifest 和 split 文件；
-- schema 示例；
-- 无版权问题的极小测试样本；
-- 数据生成与验证说明。
+- 无版权问题的 hand-authored micro fixtures；
+- 小型 manifest 示例；
+- split/ontology/operator 配置；
+- 数据生成和人工审计说明；
+- 文件 hash，不保存大型媒体本体。
 
-不要提交：RGB-D 视频、仿真场景包、第三方数据集、缓存特征或生成的大规模 episode。实际数据根目录应通过本机配置或任务专用环境变量提供。
+外部数据根目录建议：
 
-每份数据必须记录来源、许可证、版本、hash、scene split、counterfactual group 和生成代码版本。详细要求见 `docs/04_dataset_spec.md`。
+```text
+<external_data_root>/
+├── raw/
+├── interim/
+├── processed/
+├── manifests/
+├── oracle_graphs/
+├── context_deltas/
+├── queries/
+└── splits/
+```
+
+第一批数据不是视频数据集，而是可人工检查的 belief/observation/delta 微图；它们用于 executor 和 metrics，不得被称为论文规模数据。

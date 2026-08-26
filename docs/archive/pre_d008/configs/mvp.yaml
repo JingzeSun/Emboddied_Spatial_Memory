@@ -1,0 +1,90 @@
+# Contract-first MVP configuration. Values marked TODO must be frozen before formal runs.
+experiment:
+  name: corridor_turning_memory_mvp
+  stage: pilot
+  seed: 42
+  primary_task: memory_robustness
+  downstream_task: null  # TODO: structure_query or lightweight_navigation
+
+data:
+  manifest: null
+  split_version: null
+  required_conditions:
+    - clean
+    - turning_only
+    - transient_occlusion
+    - turning_plus_transient
+    - persistent_change
+  split_by_scene: true
+  keep_counterfactual_group_together: true
+
+inputs:
+  rgb: true
+  depth: true
+  pose: true
+  camera_intrinsics: true
+  optical_flow: estimated
+  semantics: optional
+
+features:
+  backbone: dinov2
+  frozen: true
+  pooling: normalized_weighted_mean
+  embedding_normalization: l2
+
+structure:
+  line_detection: true
+  plane_or_surface_cues: true
+  world_structural_directions: true
+  local_charts: true
+  allow_multi_chart_overlap: true
+
+geometry:
+  transform_convention: T_world_camera
+  pose_source: null  # TODO: ground_truth, visual_odometry, simulator, external_slam
+  depth_source: null
+  ego_motion_compensation: true
+
+association:
+  method: gated_assignment
+  signals:
+    - geometry
+    - reprojection
+    - latent
+    - semantics
+    - temporal_history
+  thresholds: null  # fit on validation only
+  support_split_merge: true
+
+dynamic_evidence:
+  residual_flow: true
+  semantics: optional
+  depth_occlusion: true
+  temporal_history: true
+  fusion: interpretable_weighted
+
+memory:
+  static_and_dynamic_views: true
+  lifecycle:
+    - candidate
+    - transient
+    - persistent
+    - changed
+    - retired
+  latent_state: normalized_ema  # ablate against bounded_prototypes
+  soft_update: true
+  transient_decay: exponential
+  store_provenance: true
+
+evaluation:
+  primary_metrics:
+    - static_memory_drift
+    - dynamic_contamination_rate
+    - static_memory_retention
+    - reappearance_consistency
+    - viewpoint_consistency
+    - chart_consistency
+    - transient_persistent_change_f1
+  report_efficiency: true
+  report_pose_depth_noise: true
+  confidence_intervals: true

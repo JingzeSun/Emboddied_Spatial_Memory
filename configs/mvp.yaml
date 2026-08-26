@@ -1,90 +1,162 @@
-# Contract-first MVP configuration. Values marked TODO must be frozen before formal runs.
+# Current D-008 MVP contract. TODO values must be frozen on validation before formal test runs.
+contract:
+  version: "1.0"
+  blueprint: docs/09_integrated_direction_plan.md
+  experiment_contract: docs/03_experiment_contract.md
+
 experiment:
-  name: corridor_turning_memory_mvp
+  name: affected_subgraph_revision_mvp
   stage: pilot
   seed: 42
-  primary_task: memory_robustness
-  downstream_task: null  # TODO: structure_query or lightweight_navigation
+  primary_task: affected_subgraph_revision
+  downstream_task: structured_context_query
 
 data:
   manifest: null
   split_version: null
-  required_conditions:
-    - clean
-    - turning_only
-    - transient_occlusion
-    - turning_plus_transient
-    - persistent_change
-  split_by_scene: true
+  split_by_scene_family: true
   keep_counterfactual_group_together: true
+  required_conditions:
+    - unchanged_visible
+    - viewpoint_or_turning_only
+    - transient_occlusion
+    - stationary_actor_short
+    - stationary_actor_long
+    - relocation_visible_destination
+    - reliable_absence_unknown_destination
+    - removed_from_scene
+    - out_of_fov
+    - irrelevant_innovation
+    - sensor_inconsistency
 
 inputs:
   rgb: true
   depth: true
   pose: true
   camera_intrinsics: true
-  optical_flow: estimated
+  optical_flow: optional
   semantics: optional
-
-features:
-  backbone: dinov2
-  frozen: true
-  pooling: normalized_weighted_mean
-  embedding_normalization: l2
-
-structure:
-  line_detection: true
-  plane_or_surface_cues: true
-  world_structural_directions: true
-  local_charts: true
-  allow_multi_chart_overlap: true
-
-geometry:
-  transform_convention: T_world_camera
-  pose_source: null  # TODO: ground_truth, visual_odometry, simulator, external_slam
+  pose_convention: T_world_camera
+  pose_source: null  # TODO: simulator, external_slam, visual_odometry
   depth_source: null
-  ego_motion_compensation: true
 
-association:
-  method: gated_assignment
-  signals:
-    - geometry
-    - reprojection
-    - latent
-    - semantics
-    - temporal_history
-  thresholds: null  # fit on validation only
-  support_split_merge: true
+graph:
+  node_types:
+    - object
+    - surface
+    - region
+    - event
+    - chart
+    - place
+  editable_node_types:
+    - object
+    - surface
+    - region
+    - event
+  editable_edge_types:
+    - located_in
+    - contains
+    - supports
+    - near
+    - occludes
+    - participates_in
+    - same_track
+  chart_place_split_merge: false
+  versioned: true
+  store_provenance: true
 
-dynamic_evidence:
-  residual_flow: true
-  semantics: optional
-  depth_occlusion: true
-  temporal_history: true
-  fusion: interpretable_weighted
+dynamic_state:
+  factorized: true
+  mobility_values: [actor, movable, fixed, unknown]
+  motion_values: [moving, stationary, unknown]
+  persistence_values: [transient, recurrent, persistent, unknown]
+  change_values: [unchanged, candidate, confirmed, rejected]
+  visibility_values:
+    - visible
+    - partially_occluded
+    - occluded
+    - out_of_fov
+    - reliably_absent
+    - unknown
+
+innovation:
+  pose_aware_projection: true
+  categories:
+    - matched
+    - new
+    - occluded
+    - out_of_fov
+    - reliably_absent
+    - conflict
+    - ambiguous
+    - sensor_inconsistent
+  reliable_absence_thresholds: null  # TODO: validation only
+
+revision:
+  controller: hybrid
+  candidate_generation: deterministic
+  learned_scope_backend: graph_transformer  # ablate against GNN
+  executor: deterministic_versioned
+  operators:
+    - REINFORCE
+    - ADD
+    - UPDATE_STATE
+    - RELINK
+    - INVALIDATE
+    - SUPERSEDE
+    - PRESERVE
+    - QUARANTINE
+  predict_stop_boundary: true
+  validate_control_subgraph: true
+  low_confidence_action: QUARANTINE
 
 memory:
-  static_and_dynamic_views: true
-  lifecycle:
-    - candidate
-    - transient
-    - persistent
-    - changed
-    - retired
-  latent_state: normalized_ema  # ablate against bounded_prototypes
-  soft_update: true
-  transient_decay: exponential
-  store_provenance: true
+  scene_belief_allows_hypotheses: true
+  consolidation: multi_evidence
+  latent_state: normalized_ema  # low-level baseline; ablate bounded_prototypes
+  active_context_selection: task_pose_conditioned
+  person_identity_scope: episode_track
+
+baselines:
+  - current_observation_only
+  - append_only
+  - pose_warped_global_ema
+  - slot_lifecycle_only
+  - local_matched_slot_revision
+  - full_graph_recomputation
+  - oracle_affected_subgraph
+  - deterministic_predicted_scope
 
 evaluation:
   primary_metrics:
-    - static_memory_drift
-    - dynamic_contamination_rate
-    - static_memory_retention
-    - reappearance_consistency
-    - viewpoint_consistency
-    - chart_consistency
-    - transient_persistent_change_f1
-  report_efficiency: true
-  report_pose_depth_noise: true
+    - innovation_macro_f1
+    - delta_precision
+    - delta_recall
+    - node_scope_f1
+    - edge_scope_f1
+    - operator_macro_f1
+    - propagation_completeness
+    - preservation_accuracy
+    - collateral_revision_rate
+    - revision_latency
+    - context_query_accuracy
+    - edited_node_ratio
+  calibration_metrics:
+    - expected_calibration_error
+    - brier_score
+  efficiency_metrics:
+    - wall_clock_latency
+    - peak_memory
+    - storage_growth
   confidence_intervals: true
+  report_oracle_and_estimated_sensors: true
+
+reproducibility:
+  save_config_snapshot: true
+  save_code_revision: true
+  save_dataset_manifest_hash: true
+  save_split_version: true
+  save_model_identifiers: true
+  save_raw_per_episode_outputs: true
+  save_failure_records: true
+  test_used_for_selection: false

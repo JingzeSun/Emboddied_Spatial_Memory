@@ -1,168 +1,270 @@
 {
   "meta": {
-    "title": "动态场景记忆：已有研究覆盖与创新性风险",
-    "subtitle": "从“抗遮挡 / 抗污染”到“显式动态实体与变化建模”的文献核查",
-    "date": "2026-08-25",
+    "title": "动态空间语境修订：论文方向与创新边界",
+    "subtitle": "从“抗污染记忆”收敛到“Structured Innovation + Affected-Subgraph Revision”",
+    "date": "2026-08-27",
     "author": "SCI research workspace"
   },
   "slides": {
     "thesis": {
-      "title": "先给结论：当前设想仍是“动态感知的静态记忆”",
+      "title": "先给结论：论文主线已经改变",
       "original": [
-        "行人被定义为动态干扰或遮挡者",
-        "长期库保存墙、门、地板与走廊拓扑",
-        "动态对象进入短期记忆，离开后衰减",
-        "主要成功标准是静态记忆不被覆盖"
+        "旧主线：动态 evidence 决定是否写入静态长期记忆",
+        "旧成功标准：降低 contamination，同时不冻结真实变化",
+        "问题：它只能解释为什么不写，不能解释该改什么、改多远",
+        "新主线：把新旧差异变成 typed graph delta，并显式预测修订范围"
       ],
-      "finding": "这能形成一个合理的鲁棒性问题，但不足以单独支撑“动态记忆创新”。",
-      "source": "本项目：prototype/d94b8f8b-74ab-4317-b876-f93e568bbbd8.png；docs/01_research_question.md；docs/03_experiment_contract.md"
+      "finding": "当前核心是 Pose-Aware Structured Innovation + Affected-Subgraph Revision；抗噪声、生命周期和 provenance 是必要支撑。",
+      "source": "docs/09_integrated_direction_plan.md；docs/01_research_question.md；docs/03_experiment_contract.md"
     },
     "taxonomy": {
-      "title": "先区分三种“动态”：现有材料混用了它们",
+      "title": "新方法必须同时回答三类决策",
       "items": [
-        {"label": "EGO", "name": "相机 / 机器人动态", "desc": "转弯、平移、位姿变化；需要 SE(3) 对齐与 ego-motion compensation。"},
-        {"label": "SCENE", "name": "场景实体动态", "desc": "人、推车、门、可移动物体的运动、停留、遮挡、重现和交互。"},
-        {"label": "MEM", "name": "记忆状态动态", "desc": "候选、确认、衰减、替换、退休；描述证据如何随时间演化。"}
+        {
+          "label": "KEEP",
+          "name": "PRESERVE / ISOLATE",
+          "desc": "遮挡、视野外、传感器冲突或无关证据不应改坏旧图。"
+        },
+        {
+          "label": "EDIT",
+          "name": "UPDATE / RELINK",
+          "desc": "真实状态和空间关系变化必须形成 typed、versioned edit。"
+        },
+        {
+          "label": "SCOPE",
+          "name": "PROPAGATE / STOP",
+          "desc": "必要关系必须传播，同时在无关边界停止。"
+        }
       ],
-      "finding": "老师要求加强的是 SCENE dynamics：动态实体本身必须可表示、可查询、可预测，而不只是静态写入的门控信号。"
+      "finding": "抗污染只覆盖 KEEP；论文新增量必须落在 EDIT 与 SCOPE 的统一预测和评测。"
     },
     "timeline": {
-      "title": "2023—2026：动态场景记忆的关键能力已逐步出现",
+      "title": "2022—2026：宽泛组件已有先例，claim 必须继续收紧",
       "events": [
-        {"year": "2023", "paper": "Scene Graph Memory", "claim": "部分可观测动态图\n对象位置预测"},
-        {"year": "2024", "paper": "Khronos", "claim": "短期动态窗口\n长期变化推理"},
-        {"year": "2024", "paper": "KARMA", "claim": "长期 3D scene graph\n短期对象状态"},
-        {"year": "2025", "paper": "Embodied VideoAgent", "claim": "持久对象记忆\n3D re-ID / 状态更新"},
-        {"year": "2025", "paper": "DYNEMO-SLAM", "claim": "动态实体不是 outlier\n联合优化实体运动"},
-        {"year": "2026", "paper": "R4DSG", "claim": "稳定锚点 + 动态对象\n相对变化记忆"}
+        {
+          "year": "2022",
+          "paper": "Hydra",
+          "claim": "在线分层场景图\n跨层纠正"
+        },
+        {
+          "year": "2023",
+          "paper": "Scene Graph Memory",
+          "claim": "部分可观测动态图\n位置预测"
+        },
+        {
+          "year": "2024",
+          "paper": "Khronos",
+          "claim": "短期动态窗口\n长期协调"
+        },
+        {
+          "year": "2025",
+          "paper": "Embodied VideoAgent",
+          "claim": "持久对象状态\n3D re-ID"
+        },
+        {
+          "year": "2025",
+          "paper": "3DLLM-Mem",
+          "claim": "选择性 attention\n读空间记忆"
+        },
+        {
+          "year": "2026",
+          "paper": "Concurrent preprints",
+          "claim": "metric anchors\nbelief evolution / correction"
+        }
       ],
-      "source": "Primary sources: arXiv 2305.17537, 2402.13817, 2409.14908, 2501.00358, 2503.02050, 2608.11017"
+      "source": "同行评审证据：literature/peer_review_audit.md；预印本只用于 novelty watch"
     },
     "karma": {
-      "title": "KARMA：长短期双记忆已经被明确提出",
-      "paper": "KARMA: Augmenting Embodied AI Agents with Long-and-short Term Memory Systems",
-      "year": "2024",
+      "title": "Hydra：图纠正和分层语境不是新意",
+      "paper": "Hydra: A Real-time Spatial Perception System for 3D Scene Graph Construction and Optimization",
+      "year": "RSS 2022",
       "proposed": [
-        "长期记忆：完整 3D scene graph，保存环境结构",
-        "短期记忆：动态记录对象位置与状态变化",
-        "短期内容采用自适应替换，保留任务相关信息",
-        "通过记忆增强提示服务复杂家庭任务规划"
+        "对象—Place—Room 多层 3D scene graph",
+        "在线增量构建",
+        "回环和全局优化后的跨层更新",
+        "结构化、可查询的机器人世界模型"
       ],
-      "overlap": ["长 / 短期分层", "对象状态更新", "3D 场景图", "规划读取"],
-      "boundary": "重点是 LLM 规划与记忆检索，不深入解决 ego-motion 下的视觉关联、遮挡解释和动态实体运动估计。",
-      "source": "https://arxiv.org/abs/2409.14908"
+      "overlap": [
+        "分层空间语境",
+        "图更新",
+        "Place / Room",
+        "在线系统"
+      ],
+      "boundary": "我们的增量必须是新观测触发的 structured innovation、affected scope 和 stop-boundary supervision，而不是泛称 graph correction。",
+      "source": "https://www.roboticsproceedings.org/rss18/p050.html"
     },
     "khronos": {
-      "title": "Khronos：短期动态与长期变化已经被统一建模",
+      "title": "Khronos：快慢记忆与长期变化协调已有直接先例",
       "paper": "Khronos: A Unified Approach for Spatio-Temporal Metric-Semantic SLAM in Dynamic Environments",
       "year": "RSS 2024",
       "proposed": [
-        "active temporal window 跟踪短期动态对象片段",
-        "global optimization 联合优化机器人与片段位姿",
-        "fragment reconciliation 将局部片段恢复为长期对象",
-        "同时维护静态背景与短期 / 长期场景变化"
+        "active temporal window 处理短期动态",
+        "fragment reconciliation 形成长期对象",
+        "统一静态背景、短期和长期变化",
+        "全局 metric-semantic 优化"
       ],
-      "overlap": ["快 / 慢过程", "动态对象片段", "长期变化", "背景保护"],
-      "boundary": "它是稠密 RGB-D metric-semantic SLAM；核心目标不是视觉 latent 的可查询认知记忆，但已覆盖“双时间尺度变化建模”的概念。",
-      "source": "https://arxiv.org/abs/2402.13817"
+      "overlap": [
+        "快慢状态",
+        "动态实体",
+        "长期变化",
+        "背景保护"
+      ],
+      "boundary": "不能把双时间尺度、背景保护或变化协调作为核心；必须转向认知 belief 图上的 typed edit scope 和 control-subgraph preservation。",
+      "source": "https://www.roboticsproceedings.org/rss20/p081.html"
     },
     "videoagent": {
-      "title": "Embodied VideoAgent：持久对象身份和状态更新已经出现",
+      "title": "Embodied VideoAgent：持久对象状态更新已经出现",
       "paper": "Embodied VideoAgent: Persistent Memory from Egocentric Videos and Embodied Sensors Enables Dynamic Scene Understanding",
       "year": "ICCV 2025",
       "proposed": [
-        "融合视频、深度与位姿构建 persistent object memory",
-        "对象条目保存 ID、STATE、关系、3D box 与视觉特征",
-        "使用 3D object re-ID 保持跨帧对象身份",
-        "通过 VLM 将动作或活动写回对象状态"
+        "pose/depth 驱动的 persistent object memory",
+        "3D object re-ID",
+        "对象状态和关系写入",
+        "动态场景问答"
       ],
-      "overlap": ["持久对象槽", "3D re-ID", "对象状态", "动态场景 QA"],
-      "boundary": "更新依赖动作语义和 VLM；几何与特征多采用匹配 / 移动平均，未系统评估位姿噪声、遮挡因果与静态污染。",
+      "overlap": [
+        "持久对象",
+        "状态更新",
+        "pose / depth",
+        "动态 query"
+      ],
+      "boundary": "我们的核心必须超越单对象 state update，显式预测 relation-level affected subgraph、必要传播和停止边界。",
       "source": "https://openaccess.thecvf.com/content/ICCV2025/html/Fan_Embodied_VideoAgent_Persistent_Memory_from_Egocentric_Videos_and_Embodied_Sensors_ICCV_2025_paper.html"
     },
     "dynemo": {
-      "title": "DYNEMO-SLAM：‘动态实体不是噪声’本身已是公开主张",
-      "paper": "DYNEMO-SLAM: Dynamic Entity and Motion-Aware 3D Scene Graph SLAM",
-      "year": "2025",
+      "title": "3DLLM-Mem：选择性读取不等于选择性修订",
+      "paper": "3DLLM-Mem: Long-Term Spatial-Temporal Memory for Embodied 3D Large Language Model",
+      "year": "NeurIPS 2025",
       "proposed": [
-        "反对把移动实体作为 outlier 丢弃",
-        "为动态 agent 和被移动物体维护持久实体 ID",
-        "联合优化机器人轨迹、实体位姿与环境结构",
-        "利用语义运动先验、关系约束和动态关键帧"
+        "working memory 查询 episodic memory",
+        "selective attention 融合相关历史",
+        "长期空间时间记忆服务 3D reasoning",
+        "避免把全部历史直接放入当前上下文"
       ],
-      "overlap": ["动态实体显式表示", "持久 landmark", "运动状态", "结构联合优化"],
-      "boundary": "主要贡献落在动态 SLAM 精度和图优化；没有把动态实体变成面向长期查询、行为预测或具身推理的 latent memory。",
-      "source": "https://arxiv.org/abs/2503.02050"
+      "overlap": [
+        "相关子图 / token",
+        "当前 context",
+        "长期记忆",
+        "attention"
+      ],
+      "boundary": "它主要回答 read；本项目必须回答 write/revise：哪些节点和边改变、影响传到哪里、在哪里停止。",
+      "source": "https://proceedings.neurips.cc/paper_files/paper/2025/hash/61f527a737e4ba61f3e10d6c3f0c4b55-Abstract-Conference.html"
     },
     "r4dsg": {
-      "title": "R4DSG：稳定锚点与动态对象分离已成为最新直接威胁",
-      "paper": "R4DSG: Relative 4D Scene Graph Memory for Object-Centric Question Answering in Long Egocentric Video",
-      "year": "2026-08-11",
+      "title": "最新预印本：宽泛的自纠正与动态 belief 已高度拥挤",
+      "paper": "SpatialMem · SpaMEM · ViSAGE · R4DSG · ChangingGrounding",
+      "year": "2026 novelty watch",
       "proposed": [
-        "把稳定 anchors 与 dynamic objects 显式分离",
-        "跨帧维护 persistent object identity",
-        "以 anchor-relative transition 表示对象状态变化",
-        "将时间、地点、对象和交互上下文压缩为可查询记忆"
+        "metric-aligned structural anchors",
+        "action-conditioned dynamic belief evolution",
+        "延迟证据反向纠正历史",
+        "stable anchor-relative object transition"
       ],
-      "overlap": ["稳定 / 动态分解", "持久身份", "相对变化", "时间化查询"],
-      "boundary": "面向 RGB-only 长视频 QA，采用相对 4D 图而非在线机器人世界坐标；但其概念与‘结构锚定动态对象记忆’高度接近。",
-      "source": "https://arxiv.org/abs/2608.11017"
+      "overlap": [
+        "metric memory",
+        "belief evolution",
+        "历史纠正",
+        "动态关系"
+      ],
+      "boundary": "这些工作目前不作为同行评审基石，但迫使我们将 claim 收敛到 operator、affected scope、stop boundary 和 joint preservation evaluation。",
+      "source": "literature/peer_review_audit.md；截至 2026-08-27 仍按 novelty_watch_only 管理"
     },
     "sgm": {
-      "title": "Scene Graph Memory：动态对象的长期变化规律也已被学习",
+      "title": "Scene Graph Memory：动态规律学习本身不是空白",
       "paper": "Modeling Dynamic Environments with Scene Graph Memory",
-      "year": "2023",
+      "year": "ICML 2023",
       "proposed": [
-        "把房间和对象表示为随时间变化的 scene graph",
-        "显式处理只观察到局部世界的 partial observability",
-        "Scene Graph Memory 累积环境特定历史",
-        "Node Edge Predictor 预测对象可能位于哪个位置"
+        "部分可观测动态 scene graph",
+        "环境特定历史累积",
+        "对象位置转移预测",
+        "面向动态环境的决策"
       ],
-      "overlap": ["动态图记忆", "对象位置变化", "历史累积", "位置预测"],
-      "boundary": "基于抽象图和模拟器，缺少真实视觉、pose/depth 误差与像素级遮挡；但‘人和物的变化规律值得学习’并不是空白。",
-      "source": "https://arxiv.org/abs/2305.17537"
+      "overlap": [
+        "动态图",
+        "历史 belief",
+        "位置变化",
+        "预测"
+      ],
+      "boundary": "我们的任务不是学习对象通常去哪，而是依据当前 pose/visibility evidence 生成具体、可审计的 belief graph delta。",
+      "source": "https://proceedings.mlr.press/v202/kurenkov23a.html"
     },
     "matrix": {
-      "title": "能力矩阵：原设想中的宽泛组件几乎都已有先例",
-      "columns": ["空间锚定", "显式动态实体", "长短期 / 历史", "持久身份", "状态 / 变化", "位置 / 未来预测", "规划 / QA"],
-      "rows": [
-        {"paper": "KARMA", "values": ["✓", "△", "✓", "△", "✓", "—", "✓"]},
-        {"paper": "Khronos", "values": ["✓", "✓", "✓", "✓", "✓", "—", "△"]},
-        {"paper": "Embodied VideoAgent", "values": ["✓", "✓", "✓", "✓", "✓", "—", "✓"]},
-        {"paper": "DYNEMO-SLAM", "values": ["✓", "✓", "△", "✓", "✓", "△", "—"]},
-        {"paper": "R4DSG", "values": ["△", "✓", "✓", "✓", "✓", "—", "✓"]},
-        {"paper": "Scene Graph Memory", "values": ["△", "✓", "✓", "△", "✓", "✓", "✓"]}
+      "title": "能力矩阵：真正稀缺的是修订范围与停止边界",
+      "columns": [
+        "Pose 投影",
+        "Structured innovation",
+        "Typed edit",
+        "Affected scope",
+        "传播停止",
+        "无关保持指标",
+        "版本证据"
       ],
-      "note": "✓：论文明确方法或任务；△：部分覆盖 / 间接实现；—：不是其主要能力。矩阵只判断宽泛概念覆盖，不表示这些系统完全等价。"
+      "rows": [
+        {
+          "paper": "Hydra",
+          "values": ["✓", "△", "✓", "△", "—", "—", "△"]
+        },
+        {
+          "paper": "Khronos",
+          "values": ["✓", "△", "✓", "△", "—", "△", "✓"]
+        },
+        {
+          "paper": "Embodied VideoAgent",
+          "values": ["✓", "△", "✓", "△", "—", "—", "△"]
+        },
+        {
+          "paper": "3DLLM-Mem",
+          "values": ["△", "—", "—", "读范围", "—", "—", "△"]
+        },
+        {
+          "paper": "Current proposal",
+          "values": ["✓", "✓", "✓", "✓", "✓", "✓", "✓"]
+        }
+      ],
+      "note": "✓/△/— 只表示论文公开方法是否显式覆盖该能力，不表示结果优劣；Current proposal 尚未实现或验证。"
     },
     "overlap": {
-      "title": "把原始构想逐项映射：问题不在‘没人做’，而在‘还不够具体’",
+      "title": "从宽泛组件转向可证伪的最小新增量",
       "mappings": [
-        {"idea": "静态长期库 + 动态短期库", "papers": "KARMA · Khronos"},
-        {"idea": "动态对象不覆盖静态背景", "papers": "Khronos · DYNEMO-SLAM"},
-        {"idea": "人为独立对象槽并保持身份", "papers": "Embodied VideoAgent · R4DSG"},
-        {"idea": "记录对象位置 / 状态变化", "papers": "KARMA · Embodied VideoAgent · SGM"},
-        {"idea": "稳定结构作为动态对象锚点", "papers": "R4DSG · 3D scene-graph 系列"},
-        {"idea": "短期动态与长期变化分离", "papers": "Khronos · KARMA"}
+        {
+          "idea": "空间图与层次记忆",
+          "papers": "Hydra · ConceptGraphs · HOV-SG"
+        },
+        {
+          "idea": "动态对象和长期变化",
+          "papers": "Scene Graph Memory · Khronos"
+        },
+        {
+          "idea": "持久对象与状态更新",
+          "papers": "KARMA · Embodied VideoAgent"
+        },
+        {
+          "idea": "选择性读取历史",
+          "papers": "3DLLM-Mem"
+        },
+        {
+          "idea": "metric anchors / belief correction",
+          "papers": "SpatialMem · SpaMEM · ViSAGE · R4DSG"
+        }
       ],
-      "finding": "这些论文任务、传感器和实现并不相同；但只把上述组件组合起来，已经不足以形成可信的概念级创新声明。"
+      "finding": "论文必须单独证明：structured innovation 如何 seed 图编辑、必要关系如何传播、无关边界如何停止。"
     },
     "close": {
-      "title": "本轮文献核查后的研究边界",
-      "headline": "“抗遮挡 + 双记忆 + 动态对象槽”可以作为系统基础，不能再作为核心新意。",
+      "title": "当前论文方向与下一步",
+      "headline": "核心：Pose-Aware Structured Innovation + Affected-Subgraph Revision",
       "cannot_claim": [
-        "首次将动态对象从静态地图中分离",
-        "首次使用长短期记忆处理动态环境",
-        "首次为动态对象保存持久身份或状态",
-        "首次学习动态对象的位置变化规律"
+        "首次构建结构化空间记忆",
+        "首次保存动态对象或使用长短期记忆",
+        "首次用新证据修正历史",
+        "首次只关注或更新一部分记忆"
       ],
       "next": [
-        "究竟要表示哪一种尚未解决的动态状态？",
-        "它支持什么必须依赖动态记忆的任务？",
-        "对应的学习目标和反事实评测是什么？",
-        "相对上述六项工作，失败模式上的新增量在哪里？"
+        "先实现 oracle ContextDelta 和版本化图执行器",
+        "用 stationary person / chair relocation 建 micro fixtures",
+        "证明 oracle affected-subgraph 优于 local-slot-only update",
+        "再实现 structured innovation 和 learned scope / stop"
       ],
-      "footer": "下一版应从一个具体动态现象与任务出发，而不是继续扩充通用模块清单。"
+      "footer": "论文成败取决于 scope、propagation、preservation 和 cost 的联合证据，而不是模块数量。"
     }
   }
 }

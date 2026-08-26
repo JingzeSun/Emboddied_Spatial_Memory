@@ -1,54 +1,42 @@
 # 文献工作流
 
-`library.csv` 是唯一文献索引；PDF 文件名不是知识管理系统。
+`library.csv` 是唯一机器文献索引；PDF 文件名不是知识管理系统。同行评审准入见 [`peer_review_audit.md`](peer_review_audit.md)。
 
-同行评审状态和正式引用边界见 [`peer_review_audit.md`](peer_review_audit.md)。论文写作时不得只看 `venue` 字符串，必须同时检查 `peer_review_status`、`venue_verification_url` 和 `related_work_usage`。
+## 两条独立状态
 
-## 添加论文
+- 阅读状态：inbox / skimmed / reading / noted / deep_read / implemented / excluded；
+- 同行评审状态：verified_peer_reviewed / preprint_only / submitted_not_accepted / submission_or_preprint / preprint_or_venue_unverified。
 
-1. 把合法获得的 PDF 放入 `papers/`；重点论文可继续保留在 `papers_detail/`，暂不移动历史文件。
-2. 在 `library.csv` 中登记 title、year、venue、topic、URL 和 local path，并从官方 proceedings、出版社页面或正式 OpenReview 接收页核实 `peer_review_status` 和 `venue_verification_url`。
-3. 从 `notes/TEMPLATE.md` 复制一份笔记，文件名使用稳定短名，例如 `spatialmem_2026.md`。
-4. 填写 memory coordinate、association、update、dynamic handling、data、metrics 和与本项目差异。
-5. 更新 `docs/05_related_work_matrix.md`。
-
-本地 PDF 目录被 `.gitignore` 排除。Git 只同步索引、笔记与合法公开链接，不同步论文 PDF。
-
-## 阅读状态
-
-- `inbox`：已收集，未筛选；
-- `skimmed`：已读摘要、方法图和实验表；
-- `reading`：正在精读；
-- `noted`：已有结构化笔记；
-- `implemented`：已复现或接入；
-- `deep_read`：已完成面向本项目的深读；
-- `excluded`：与主线无关，并在笔记中说明原因。
-
-不要依赖 `papers_detail` 目录名推断论文已经精读；只有存在笔记并填完核心问题才算 `noted`。
-
-阅读状态和同行评审状态是两条独立维度：`noted` 不等于已同行评审，`verified_peer_reviewed` 也不等于已精读。
-
-## 同行评审状态
-
-- `verified_peer_reviewed`：已从官方 proceedings、出版社或正式接收页核验；
-- `preprint_only`：目前只找到预印本；
-- `submitted_not_accepted`：官方页面仍显示投稿，未显示接收；
-- `submission_or_preprint`：存在投稿或预印本，但没有正式接收证据；
-- `preprint_or_venue_unverified`：有 venue 声明，但本轮没有在官方来源完成核验。
+`noted` 不代表已同行评审；`verified_peer_reviewed` 也不代表已精读。
 
 ## Related Work 用途
 
-- `foundation`：直接相关且同行评审已核验，可支撑核心论述；
-- `adjacent`：同行评审已核验，可用于邻近路线、数据或强基线；
-- `novelty_watch_only`：只做创新性预警，不作为已验证事实的基石；
-- `excluded`：离题或不进入主线。
+- `foundation`：已核验且直接相关，可支撑事实主干；
+- `adjacent`：已核验但侧重邻近任务/表示；
+- `novelty_watch_only`：只做查重、baseline 和 claim 收缩；
+- `excluded`：离题。
 
-没有官方证据时不得填 `foundation` 或 `adjacent`。作者主页、项目主页和社交媒体中的 venue 声明只能作为待核线索。
+没有官方 proceedings、出版社或正式接收页证据，不得升级为 foundation/adjacent。
 
-## 写作前检查
+## 当前精读问题
 
-1. Related Work 主干是否只依赖 `foundation` 与 `adjacent`；
-2. 预印本是否明确写成 preprint/submission，而非“已有研究已经证明”；
-3. venue 声明是否有官方 URL；
-4. 是否记录与本项目最小差异、反例和未覆盖条件；
-5. 是否在投稿前重新审计 `novelty_watch_only` 条目的状态。
+每篇论文除 memory coordinate、association、update、dynamic handling、data、metrics 外，还必须回答：
+
+1. 是否生成 structured innovation？
+2. 更新单位和 affected scope 是什么？
+3. 是否有 relation propagation？
+4. propagation 在哪里停止？
+5. 是否保留 history/provenance？
+6. 是否评测 necessary update 和 unrelated preservation？
+7. 是否隐式全图重算？
+8. 相对本项目的最小机制差异是什么？
+
+## 添加与更新
+
+1. 合法获得的 PDF 放 `papers/` 或 `papers_detail/`，这些目录不进 Git；
+2. 更新 `library.csv` 的官方 URL、状态和用途；
+3. 使用 `notes/TEMPLATE.md` 新建结构化笔记；
+4. 更新 `notes/00_cross_paper_synthesis.md` 与 `docs/05_related_work_matrix.md`；
+5. 投稿前重新审计 novelty-watch 状态。
+
+作者主页、项目页和社交媒体 venue 声明只能作线索，不能单独作为同行评审证据。

@@ -1,176 +1,129 @@
-# 视觉空间记忆文献综合记录
+# 文献综合：从 Memory Construction 到 Scoped Belief Revision
 
-## 1. 本轮阅读范围
+> 方向版本：D-008 accepted
+> 更新日期：2026-08-27
+> 旧综合：`../../docs/archive/pre_d008/literature/00_cross_paper_synthesis.md`
 
-普通通读：RoomTour3D、G²VLM、GR3D、HSGM、CoViS-Net，以及一篇相关性筛查后判定为非核心的绳结操作论文。
+## 1. 新的阅读问题
 
-重点精读：g3D-LF、MTU3D、DINO-WM。
+现在不再只问论文“怎样保存空间记忆”，而要逐篇回答：
 
-本记录不重复摘要，而是回答：各论文把什么当作世界状态，如何跨时间更新，在哪些条件下会失效，以及本项目怎样形成可检验的新意。
+1. 新观测到来时，旧状态如何被投影或检索？
+2. 差异是像素/feature residual，还是 entity/relation/visibility 级 innovation？
+3. 更新单位是 frame、token、voxel、object slot 还是 graph substructure？
+4. 方法是否显式决定 affected scope？
+5. 关系影响是否传播，在哪里停止？
+6. 是否保留历史版本和 evidence？
+7. 是否同时评测必要更新与无关保持？
+8. 每帧是否隐式重算完整历史？
 
-## 2. 方法总表
+## 2. 已有路线给出的答案
 
-| 工作 | 主要状态表示 | 跨帧/跨视图机制 | 更新规则 | 动态/遮挡 | 本项目中的角色 |
-|---|---|---|---|---|---|
-| RoomTour3D | 几何恢复的视频轨迹与指令 | 离线 COLMAP 重建 | 数据生成，不是在线记忆 | 未建模 | 真实视频数据、转向切片 |
-| G²VLM | 几何 token + 语义 token | 共享注意力融合 | 输入级推理，无长期状态 | 未建模 | 强几何/语义观测前端 |
-| GR3D | grounded region token + 单目 3D 框 | 区域与语言绑定 | 输入级 grounding | 未建模 | 可检查的语义证据接口 |
-| HSGM | 几何图 + 语义 BEV + 决策层 | 地图坐标聚合 | 面向导航的地图维护 | 无显式生命周期 | 结构化地图/规划 baseline |
-| CoViS-Net | 多机器人 embedding + BEV | 相对位姿和不确定性聚合 | learned aggregation | 未建模对象状态 | 位姿置信与融合参考 |
-| g3D-LF | 世界坐标中的语言特征点 | 深度/位姿投影 | 追加式集合并集 | 无显式机制 | feature-field baseline |
-| MTU3D | 对象 query memory bank | 3D 框 IoU 匹配 | mask 并集 + 计数平均 | 无显式机制 | 最直接 object-memory baseline |
-| DINO-WM | DINO patch 短历史 latent | 动作条件 Transformer | 下一 latent 预测 | 动力学中隐式吸收 | frozen patch 与短时模型参考 |
+| 路线 | 代表工作 | 已回答 | 对本项目仍留下的问题 |
+|---|---|---|---|
+| 增量空间构建 | ConceptGraphs、g3D-LF、MTU3D、3D-Mem | posed observation 如何聚合到 3D/对象/快照 | 冲突 evidence 如何形成 typed revision |
+| 分层场景图 | Hydra、HOV-SG、HSGM | object/place/room 等结构如何组织 | 哪些层和关系应因局部新证据被修改 |
+| 动态图/长期协调 | Scene Graph Memory、Khronos | 动态对象、fast/slow state、fragment reconciliation | operator scope 与无关保持没有统一监督 |
+| 持久对象状态 | KARMA、Embodied VideoAgent | 对象 identity、state 和短长期记忆 | relation-level propagation 与 stop boundary |
+| 选择性读取 | 3DLLM-Mem | task/current token 如何 attention 到相关历史 | 读取相关不等于写入时修改范围正确 |
+| latent dynamics | DINO-WM、Persistent Embodied World Models | action-conditioned future representation | 不直接维护可追溯 belief delta |
+| 变化场景预警 | SpatialMem、SpaMEM、ChangingGrounding、ViSAGE、R4DSG | metric anchors、belief evolution、历史纠正、changing-scene task | 必须用更窄、可评测的 scope/operator/stop claim 区分 |
 
-## 3. 四条已有路线
+## 3. 当前研究空白
 
-### 3.1 坐标化积累：g3D-LF
+已有工作足以否定宽泛主张：
 
-它简单、通用，天然支持 novel-view、panorama 和 BEV 读出。缺点是把“更多观测”近似等同于“更好记忆”。场景静态、位姿准确和深度可靠时很有效；对象移动、暂时遮挡、人物经过或位姿跳变时，追加式积累会保留互相冲突的世界版本。
+- 结构化/层次空间记忆不是空白；
+- 动态对象记忆不是空白；
+- 新证据更新历史不是空白；
+- selective attention/read 不是空白；
+- long/short-term memory 不是空白。
 
-### 3.2 对象化积累：MTU3D
+当前可检验空白是：
 
-它将世界状态从无身份点集推进到全局对象 query。核心问题随之变成“怎样判断是不是同一个对象”。三维框 IoU + 均值更新在干净静态场景够用，却不具备不确定性、可见性和变化推理。
+> 新旧 spatial belief 的 pose-aware structured innovation 如何成为局部图编辑的监督信号，以及如何显式预测必要关系传播和停止边界，同时保持 control subgraph 不变？
 
-### 3.3 预测式 latent：DINO-WM
+这个空白只有在以下条件同时成立时才有说服力：
 
-它关注动作之后画面表示如何变化，擅长短期动力学和目标图像规划。它保留 spatial patch，但没有把 patch 绑定到持久世界实体。它和本项目应是快、慢两种时间尺度的互补模块。
+- 方法输出 typed ContextDelta；
+- baseline 包含 local-slot 与 full recomputation；
+- 数据提供 affected/control/stop oracle；
+- 指标同时惩罚漏改和多改；
+- stationary actor、relocation、absence、occlusion、turning 使用同一机制。
 
-### 3.4 任务地图与 grounding：HSGM、GR3D、G²VLM
+## 4. 与最接近基石的差异
 
-这些工作说明几何、语义、区域证据和规划接口必须结构化。它们能提升空间问答和导航，但通常假设提供给推理器的状态已经正确，没有深入定义长期状态怎样维护。
+### Hydra
 
-## 4. 研究空白的精确定义
+Hydra 已做在线分层图构建和全局纠正。我们的差异不能是“图可以纠正”，而要落在每个新观测触发的 structured innovation、局部 scope 和 stop supervision。
 
-> 给定带噪声位姿的连续视觉观测，如何构建一个证据可追溯、结构可查询的世界状态，使其在视角变化和短时遮挡下保持实体与表面一致，同时能在真实持久变化发生后受控更新，而不被瞬时动态观测污染？
+### Khronos
 
-这一定义可直接落到模块：
+Khronos 已统一短期动态与长期变化。我们的差异不能是“快慢记忆”，而是认知 belief graph 上 typed relation edits、control-subgraph preservation 和 context query。
 
-- **证据可追溯**：槽位保存来源帧、区域、置信度和位姿。
-- **结构可查询**：表面、对象、拓扑，而不是只有全局向量。
-- **视角一致**：世界对齐 + 外观/几何联合关联。
-- **遮挡保持**：由可见性预测决定“没看到”是否构成反证。
-- **受控更新**：区分候选变化和已确认变化。
-- **抗动态污染**：短期缓冲与长期记忆分离。
+### Embodied VideoAgent
 
-## 5. 建议的方法骨架
+它已做持久对象 identity/state update。我们的差异是从 object update 扩展到显式 affected relation subgraph，并评测传播完整性和连带修改。
 
-### 5.1 两个时间尺度
+### 3DLLM-Mem
 
-```text
-Observation buffer B_t -> association/evidence -> persistent memory M_t
-快、可撤销                                      慢、需确认
-```
+它说明 task-conditioned selective reading 已存在。我们的核心必须是 selective revision，不能只换成 sparse attention。
 
-- `B_t` 保存最近观测和未确认实体，容纳路人、反光和检测抖动等瞬时事件。
-- `M_t` 只保存达到确认条件的结构/对象，以及经过确认的持久变化。
+### Scene Graph Memory
 
-### 5.2 三种结构单元
+它已学习环境特定动态规律。我们的任务不是预测对象通常在哪，而是根据当前可见性与位姿 evidence 修订具体 belief versions。
 
-1. **Surface chart**：墙、地、桌面等局部表面及其坐标系、边界和视觉原型。
-2. **Object slot**：对象身份、类别分布、外观原型、几何支持和生命周期。
-3. **Topological edge**：相邻、支撑、包含、可达、遮挡等关系。
+## 5. 预印本风险如何影响设计
 
-这能同时吸收 g3D-LF 的连续空间覆盖、MTU3D 的对象身份和 HSGM 的规划可用结构。
+- SpatialMem 迫使我们放弃“metric anchor/hierarchy”作为主 claim；
+- SpaMEM 迫使我们提供具体 operator、scope 和 stop，而不是只说 dynamic belief evolution；
+- ViSAGE 迫使我们放弃“历史可自我纠正”这一宽泛 claim；
+- R4DSG 迫使我们放弃“stable anchor + dynamic object transition”作为主 claim；
+- ChangingGrounding 迫使我们区分 belief revision 与 memory-guided active grounding。
 
-### 5.3 证据账本
+它们当前仍是 novelty watch，不支撑正式事实结论。
 
-每个长期槽位不只存平均特征，还保存压缩后的证据统计：
+## 6. 论文的四组 Related Work
 
-```text
-slot = {
-  identity, geometry, appearance_distribution, semantics,
-  observation_count, last_seen, visibility_state,
-  pose_confidence, dynamic_probability,
-  support_evidence, conflict_evidence
-}
-```
+1. Pose-aligned spatial memory construction；
+2. Persistent and dynamic scene memory；
+3. Selective context and historical correction；
+4. Changing-scene tasks and evaluation。
 
-“未观测到对象”只有在对象预计可见且当前感知可靠时，才算冲突证据。
+每一组末尾都回答同一问题：它是否显式预测 graph edit scope、relation propagation 和 stop boundary？
 
-### 5.4 关联与状态转移
+## 7. 必须复现的机制型基线
 
-先做几何可行性门控，再融合外观、语义、位姿和历史一致性。更新至少应包含：
+不以“复现所有大系统”为目标，先覆盖机制：
 
-```text
-candidate -> confirm -> visible / occluded / out_of_view
-                         |          |
-                         +-> relocate / retire / reactivate
-```
+1. append-only；
+2. pose-warped global EMA；
+3. slot lifecycle；
+4. local matched-slot revision；
+5. full graph recomputation；
+6. oracle affected-subgraph；
+7. deterministic predicted scope。
 
-这比只提出一个更复杂的 attention 模块更容易形成清楚、可证伪的贡献。
+公开方法作为横向外部比较；机制型基线承担核心因果消融。
 
-## 6. 四个核心假设
+## 8. 当前论文贡献上限
 
-### H1：结构槽位优于追加式点场
+若 E1、E2、E5 和 E7 全部成立，可以主张：
 
-在相同视觉骨干、深度和位姿下，结构槽位应降低重复实体率和内存增长，同时维持或提升新视角读出。
+- pose-aware structured innovation；
+- learned affected scope/operator/stop；
+- necessary propagation + unrelated preservation evaluation；
+- sparse versioned revision with lower cost than full recomputation。
 
-### H2：可见性推理优于“没看到即删除”和“永不删除”
+若只证明 E3/E4，则更像 factorized dynamic-state engineering；若只降低 contamination，则回到旧问题；若只提高 query，则无法证明 revision scope。
 
-在短期遮挡与真实移除的配对实验中，可见性感知更新应同时获得更低误删率和更低 stale memory。
+## 9. 下一轮精读优先级
 
-### H3：两阶段变化确认能抑制动态污染
+1. Hydra：跨层 correction 的实际触发和优化范围；
+2. Khronos：fragment reconciliation 的 scope 与长期 commit；
+3. Embodied VideoAgent：object-state update 与 relation handling；
+4. 3DLLM-Mem：selective attention 计算范围；
+5. Scene Graph Memory：transition supervision；
+6. SpatialMem/SpaMEM/ViSAGE/R4DSG：仅做 novelty-difference table，并持续核验同行评审状态。
 
-对路人经过、手持物短时进入等瞬态干扰，短期 buffer 应显著降低长期槽位污染；对物体真正搬动，又不应产生过长确认延迟。
-
-### H4：位姿置信门控能避免批量复制
-
-在转身和 pose jump 条件下，保存并使用 `C_pose` 应降低 duplicate slot rate；收益应在低噪声条件下较小，在高噪声条件下显著。
-
-## 7. 实验矩阵
-
-### 7.1 控制变量与基线
-
-固定视觉骨干、检测/分割器、深度、位姿输入、下游查询头和训练数据，只替换 memory representation/update。
-
-1. Latest-frame / no memory。
-2. Frame feature cache 或 DINO short-history。
-3. g3D-LF 风格 append-only feature field。
-4. MTU3D 风格 3D-IoU + count-average object memory。
-5. HSGM/BEV 类任务地图。
-6. 本项目完整结构生命周期记忆。
-
-### 7.2 场景条件
-
-| 条件 | 目的 |
-|---|---|
-| 静态重访 | 基本跨视角一致性 |
-| 90°/180° 转身 | 关联和位姿敏感性 |
-| 部分/完全遮挡 | object permanence |
-| 路人或临时物体经过 | transient contamination |
-| 对象持久移动/移除 | 更新延迟与 stale memory |
-| 相似对象并列/交换 | 错误合并和 ID switch |
-| 位姿高斯噪声/突跳 | confidence-aware writing |
-| 长轨迹与多次回环 | 内存增长和错误累积 |
-
-### 7.3 指标
-
-记忆本体：association precision/recall、ID switch、duplicate slot、incorrect merge、surface consistency、dynamic contamination、stale retention time、change detection delay、projected grounding IoU、memory size 和时延。
-
-下游任务：目标检索/空间问答准确率，ObjNav/VLN 的 SR、SPL、nDTW，以及失败归因中 perception、memory、policy 各自比例。
-
-## 8. 当前要避免的论述风险
-
-- 只说“比 feature field 更结构化”，却不给结构单元和状态转移的严格定义。
-- 把更强的 DINO、VLM 或深度模型收益误写成记忆机制收益。
-- 只在静态仿真场景做下游任务，无法支持动态鲁棒性主张。
-- 以 RGB-D 真值位姿训练，却宣称纯视觉或真实在线鲁棒。
-- 只报告 SR/SPL，不直接度量 ID、污染和过期记忆。
-- 把所有移动对象都删除；某些动态对象仍有长期身份，关键是建模状态而非简单过滤。
-
-## 9. 建议的近期执行顺序
-
-1. 实现 `MTU3D-IoU-Avg` 和 `AppendOnlyFeatureField` 两个最小基线。
-2. 在合成序列上只验证对象槽位生命周期，暂不接大模型。
-3. 加入表面 chart，证明结构不仅服务对象追踪，也稳定背景和支撑关系。
-4. 建立 static、occlusion、transient、persistent-change 四组最小对照。
-5. 最后接导航或问答，验证记忆改进能转化为任务收益。
-
-## 10. Related work 组织建议
-
-1. **3D feature fields and grounded spatial representations**：g3D-LF、G²VLM、GR3D。
-2. **Online object memories and semantic-geometric maps**：MTU3D、HSGM、CoViS-Net。
-3. **Latent world models and persistent memory distinction**：DINO-WM，明确短时预测与长期状态维护的差异。
-
-RoomTour3D 放到 data/real-world pretraining；绳结论文不进入核心 related work。
-
+每篇新笔记都使用 `TEMPLATE.md`，增加 `edit scope / propagation / stop / preservation metric` 四项。

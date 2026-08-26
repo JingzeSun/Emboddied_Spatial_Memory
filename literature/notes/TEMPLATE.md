@@ -1,13 +1,15 @@
 # Paper Note: <Title>
 
-## Metadata
+## Metadata and evidence status
 
 - Authors:
-- Year / Venue:
-- URL:
+- Year / claimed venue:
+- Official venue verification URL:
+- Peer-review status:
+- Related-work usage: foundation / adjacent / novelty_watch_only / excluded
+- Paper / project / code / data URLs:
 - Local PDF:
-- Code / Data:
-- Status:
+- Reading status:
 
 ## One-sentence contribution
 
@@ -15,42 +17,64 @@
 
 ## Problem and assumptions
 
+- Task:
 - Sensors:
-- Pose/depth source:
+- Pose/depth source and whether ground truth:
 - Training supervision:
-- Static/dynamic assumptions:
+- Static/dynamic/open-world assumptions:
 
 ## Representation
 
 - Memory coordinate system:
 - Memory unit:
+- Node/edge or token types:
 - Geometry/semantic/latent fields:
+- Version/history/provenance:
 - Storage and compute:
 
-## Association and update
+## Observation-to-memory mechanism
 
-- Creation:
+- Expected old state projection/retrieval:
 - Cross-frame association:
-- Occlusion handling:
-- Update/delete lifecycle:
+- Innovation/change representation:
+- Creation:
+- Update/invalidate/delete semantics:
+- Occlusion/out-of-FOV/absence handling:
 - Persistent-change handling:
+
+## Revision scope
+
+- Update unit: token / voxel / slot / object / graph:
+- How are affected nodes/edges selected?
+- Does relation change propagate?
+- Where and how does propagation stop?
+- Is an unchanged control subgraph supervised or evaluated?
+- Is the full history/graph recomputed or attended?
 
 ## Experiments
 
-- Datasets and splits:
+- Datasets and split unit:
+- Counterfactual/change conditions:
 - Baselines:
-- Primary metrics:
+- Direct memory/revision metrics:
+- Downstream metrics:
 - Key ablations:
-- Failure modes:
+- Efficiency:
+- Failure modes and negative results:
 
-## Relation to this project
+## Relation to current project
 
-- What we can reuse:
-- What overlaps with our claim:
-- What remains unsolved:
+- What is already covered by this work?
+- What can be reused as substrate/baseline?
+- What overlaps with structured innovation?
+- What overlaps with affected-subgraph/operator/stop?
+- What remains unsolved?
 - Required comparison/ablation:
+- Claim we must not make after reading this paper:
 
 ## Evidence pointers
 
 - Page/Figure/Table:
 - Exact implementation detail to verify:
+- Official status last checked:
+- Uncertainty or unresolved contradiction:
