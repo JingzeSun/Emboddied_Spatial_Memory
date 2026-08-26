@@ -3,6 +3,7 @@
 > 状态：`proposed`，尚未接受、尚未实现、尚未验证。  
 > 目的：把“动态信息作为静态记忆写入门控”升级为“新观测触发空间信念与活动语境的结构化修正”。  
 > 决策入口：`06_decision_log.md` 中的 D-008。D-008 接受前，本文件不替代 `01_research_question.md`、`03_experiment_contract.md` 或现有 schema。
+> 整合入口：`09_integrated_direction_plan.md` 统一记录与旧路线的冲突、优先级、技术栈、哨兵场景、实验和待确认项。
 
 ## 1. 为什么需要这个升级
 

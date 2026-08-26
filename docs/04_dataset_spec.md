@@ -138,3 +138,30 @@ Pilot 数量不是论文规模，正式规模在数据管线稳定后决定。
 ```
 
 仓库中的 `data/` 只保存 README、小型 manifest 示例和无版权问题的微型测试样本。
+
+## 10. Revision Pilot 的候选增量（proposed）
+
+D-008 接受前不修改正式 `episode.schema.json`。pilot 使用旁路标注验证以下字段是否可定义、可生成且能被人工抽检：
+
+```text
+oracle_scene_state_ref
+oracle_context_delta_ref
+affected_node_ids
+affected_edge_ids
+required_revision_operators
+unchanged_control_subgraph
+propagation_stop_boundary
+evidence_reliability
+valid_time
+```
+
+pilot 必须把以下条件做成独立样本或分层变量，而不是只放进统一的 `persistent_change` 桶：
+
+- actor 从 moving 变为长期 stationary，再离开；
+- actor 长期占据门口，但门及其结构身份不变；
+- 椅子从旧位置移动到可见新位置；
+- 椅子在旧位置可靠缺席但目的地未知；
+- 旧物体只是 occluded 或 out-of-FOV；
+- 新证据与目标受影响子图无关。
+
+模拟器状态可作为 oracle world state，但从状态差异到“正确图编辑”的映射仍需人工定义并抽检；自动模型评审不得称为 ground truth。

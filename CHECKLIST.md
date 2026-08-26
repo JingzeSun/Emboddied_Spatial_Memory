@@ -24,15 +24,20 @@
   - 产物：`literature/`、`configs/`、`schemas/` 及各目录 README。
   - 验收：原始 PDF 和图片未删除、未移动、未覆盖。
 
-- [ ] 创建第一次版本控制提交。
+- [x] 创建第一次版本控制提交。
   - 做什么：检查文件后创建 initial research-workspace commit。
   - 产物：可回退的基线版本。
   - 验收：工作树干净，提交不包含数据、模型权重或临时输出。
 
 ## P1 — 冻结论文问题（开始编码前）
 
+- [ ] 确认 D-008 方向迁移门。
+  - 做什么：确认候选主方向、MVP 图范围、缺席语义、控制器、delta 真值和首个下游；把结果写入 D-008/D-010。
+  - 产物：接受或拒绝的决策记录，以及不破坏旧合同的 revision pilot 配置。
+  - 验收：能明确区分已接受、pilot 中、计划中和已验证；正式 schema/config 不含未确认语义。
+
 - [ ] 确定论文主任务。
-  - 做什么：在 `structure_query` 和 `lightweight_navigation` 中选择一个下游任务；memory robustness 保持主任务。
+  - 做什么：若 D-008 接受，以 affected-subgraph revision 为主任务，在 `context_query` 和 `lightweight_navigation` 中选择首个下游；否则保持 memory robustness 主任务。
   - 产物：更新 D-006 和 `configs/mvp.yaml`。
   - 验收：一句话能说明主任务、输入、输出和成功指标。
 
@@ -62,6 +67,11 @@
   - 验收：说明存储量、更新公式、重现检索和冲突处理。
 
 ## P2 — 数据可行性与 Pilot
+
+- [ ] 建立 revision E0–E5 小型 pilot。
+  - 做什么：为长时间静止的人、暂时遮挡、椅子可见搬迁、旧址可靠缺席和无关新证据生成 oracle delta 与控制子图。
+  - 产物：旁路标注、人工抽检记录、oracle editor 和最弱可运行基线。
+  - 验收：同一输入能分别得到 preserve、update、isolate；未知去向不会被标成虚构新位置。
 
 - [ ] 核对候选数据集。
   - 做什么：逐个登记许可证、大小、RGB/depth/pose、动态 actor、scene mesh、任务协议和下载方式。
@@ -192,7 +202,7 @@
 ## P6 — 论文与发布
 
 - [ ] 冻结论文故事线。
-  - 做什么：围绕 viewpoint alignment、contamination resistance、persistent change 三个问题组织，不按模块流水账写作。
+  - 做什么：若 D-008 接受，围绕 structured innovation、affected-subgraph scope 和 preserve/update/isolate 组织；否则保留 viewpoint alignment、contamination resistance、persistent change 主线。
   - 产物：一页 paper outline。
   - 验收：每个 section 对应研究问题或实验结论。
 

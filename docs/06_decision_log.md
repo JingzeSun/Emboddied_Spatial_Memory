@@ -78,6 +78,18 @@
 - 影响：`literature/library.csv` 新增 `peer_review_status`、`venue_verification_url` 和 `related_work_usage`；正式写作前必须复核状态，预印本不得被表述为领域共识。
 - 验证方式：核对 `literature/peer_review_audit.md` 中的官方来源；投稿前重新审计全部 `novelty_watch_only` 条目。
 
+## D-010 — 动态语境方向的候选优先级与迁移门
+
+- 日期：2026-08-27
+- 状态：proposed
+- 背景：现有文档已覆盖“长时间静止的人”和“永久搬走的椅子”，但仍以抗污染、slot 生命周期和 soft update 为主线；若直接叠加 D-008，会形成多个互相竞争的主问题和无法对应实验的贡献列表。
+- 决策：候选核心方法收敛为 `Pose-aware Structured Innovation + Affected-Subgraph Revision`；抗污染、factorized dynamic state、版本记录和 provenance 作为必要支撑。先做对象/区域、关系、可见性和事件级 revision pilot，是否加入 Chart/Place split/merge、导航闭环和特定人物长期身份留待后续。
+- 备选方案：维持 memory robustness 为唯一主线；或同时实现完整地点拓扑修订与导航策略。
+- 原因：局部结构编辑同时覆盖“该改、该保持、该隔离”，能把抗噪声纳入更强问题；先限制图范围可降低标签、归因和系统复杂度。
+- 影响：D-006 需在 D-008 接受时改写；`01`–`04` 和 `07` 增加迁移说明，但正式 schema、配置和实验合同暂不改变。两个既有例子升级为跨方法、数据与实验的哨兵场景，并区分可见搬迁、可靠缺席和遮挡/视野外。
+- 验证方式：按 `09_integrated_direction_plan.md` 完成 E0–E5 pilot；比较全量重算、全局 EMA、slot lifecycle、local revision、oracle scope 和预测 scope，报告 delta、传播、无关保持、延迟和成本。
+- 待确认：D-008 是否升级为候选主方向、MVP 图范围、控制器路线、delta 真值映射、首个下游、身份粒度、缺席语义和成功门槛。
+
 ## 新决策模板
 
 ```text

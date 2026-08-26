@@ -278,3 +278,18 @@ src/
 ├── queries/          retrieval and projection interfaces
 └── evaluation/       memory and downstream metrics
 ```
+
+## 13. 向动态语境修订的接口迁移（proposed）
+
+若 D-008 接受，本文件中的几何、region、association、WorldSlot 和 Chart 不被推翻，而成为语境修订的感知与长期存储底座。需要新增：
+
+```text
+src/
+├── belief/            multi-hypothesis SceneBelief and version intervals
+├── innovation/        expected-observation projection and structured comparison
+├── revision/          affected-subgraph retrieval, controller and operators
+├── context/           task/pose-conditioned ActiveContext selection
+└── evaluation/        delta, propagation, preservation and collateral metrics
+```
+
+第 8 节的 EMA 只作为 `REINFORCE/UPDATE_STATE` 的低层数值操作，`(1-P_dynamic)` 不再作为所有动态证据的总决策。一个长期静止的人与一把被搬动后静止的椅子都说明：entity mobility、current motion、persistence、visibility 和 persistent change 必须解耦。完整接口流和迁移边界见 `09_integrated_direction_plan.md`。

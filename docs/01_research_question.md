@@ -98,3 +98,15 @@ X_t(g_t)=\operatorname{SelectRelevantSubgraph}(B_t,g_t,T^w_{c_t})
 其中 `B_t` 是当前 SceneBelief，`X_t` 是任务相关 ActiveContext；二者均不等同于当前帧或完整长期记忆。
 
 该提案不废弃 H1–H4，而可能把 contamination resistance 重新定位为语境修正中的 `PRESERVE/ISOLATE` 子能力，同时增加 `UPDATE/PROPAGATE`。完整定义见 `08_dynamic_context_revision.md`。在 D-008 接受前，当前中心假设和 `03_experiment_contract.md` 继续有效。
+
+## 9. 提议中的优先级重组
+
+现有研究问题与 D-008 并非两个平行项目。建议的单一组织方式是：
+
+1. **候选核心问题**：新证据如何产生 pose-aware structured innovation，并触发范围正确的 affected-subgraph revision；
+2. **必要基础**：H1 的位姿/视角对齐和 H4 的局部 Chart 组织；
+3. **必要安全性质**：H2 的污染抑制对应 `PRESERVE/ISOLATE`；
+4. **必要适应性质**：H3 的真实变化响应扩展为节点、关系、事件和有效时间的 `UPDATE/RELINK/SUPERSEDE`；
+5. **首个验证任务**：结构化 context query，导航只作后续外部效度验证。
+
+完整迁移审计、哨兵场景和人工确认项见 `09_integrated_direction_plan.md`。以上仍为 `proposed`：未接受 D-008 前，不把候选优先级写进正式实验配置，也不声称原假设已被验证。

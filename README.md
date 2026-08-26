@@ -20,7 +20,9 @@
 (Previous Scene Belief + Action/Pose + New Observation) -> Context Delta
 ```
 
-该方向当前状态为 `proposed`，尚未实现或验证，也尚未替代现有实验合同。完整定义、与抗噪声的区别、候选方法和评测见 [`docs/08_dynamic_context_revision.md`](docs/08_dynamic_context_revision.md)。
+该方向当前状态为 `proposed`，尚未实现或验证，也尚未替代现有实验合同。完整定义、与抗噪声的区别、候选方法和评测见 [`docs/08_dynamic_context_revision.md`](docs/08_dynamic_context_revision.md)；现有路线与新方向的冲突、优先级、技术流程、实验拆解和人工决策见 [`docs/09_integrated_direction_plan.md`](docs/09_integrated_direction_plan.md)。
+
+当前建议把 **Pose-aware Structured Innovation + Affected-Subgraph Revision** 作为候选核心算法，把抗污染、生命周期、版本记录和 provenance 作为使核心算法成立的必要支撑，而不是并列包装为多个主创新。这个优先级只有在 D-008 接受并通过 revision pilot 后才替代当前正式合同。
 
 ## 方法主线
 
@@ -66,6 +68,7 @@ RGB / Depth / Pose / Optical Flow
 7. [`docs/06_decision_log.md`](docs/06_decision_log.md)：已经接受和仍待决定的研究选择。
 8. [`docs/07_long_short_term_memory_block.md`](docs/07_long_short_term_memory_block.md)：地点级长短期记忆与动态工作区。
 9. [`docs/08_dynamic_context_revision.md`](docs/08_dynamic_context_revision.md)：拟议的 SceneBelief、ActiveContext 与局部语境修正方法。
+10. [`docs/09_integrated_direction_plan.md`](docs/09_integrated_direction_plan.md)：方向整合、优先级、技术栈、哨兵场景、实验和待确认问题。
 
 ## 工作区结构
 
@@ -87,6 +90,6 @@ embodied_spatial_memory/
 
 ## 当前阶段
 
-当前处于 **research contract / pre-implementation** 阶段。先冻结坐标约定、slot 生命周期、主任务、指标和数据切分，再开始模型实现。
+当前处于 **research contract / pre-implementation** 阶段。下一决策门是确认 D-008 的主方向、MVP 图范围和 delta 语义；随后先做 revision pilot，再决定是否迁移正式 schema、配置和实验合同。
 
-MVP 的最低完成条件是：在同场景、同轨迹的 clean/dynamic 配对 episode 上，完整方法相对 pose-warped 和普通 EMA 基线显著降低静态记忆污染，同时不牺牲对真实持久变化的响应能力。
+旧 MVP 的最低完成条件仍是：在同场景、同轨迹的 clean/dynamic 配对 episode 上，完整方法相对 pose-warped 和普通 EMA 基线显著降低静态记忆污染，同时不牺牲对真实持久变化的响应能力。候选 revision MVP 还必须证明：必要修改完整、无关子图保持稳定、传播范围正确，并且不是靠全图重算取得结果。

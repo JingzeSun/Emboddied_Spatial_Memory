@@ -138,3 +138,18 @@ failure-case references
 - Chart 机制没有改善转弯/拓扑指标，却显著增加错误和计算量；
 - 方法优势只在 oracle pose/depth 下成立；
 - 结构分区不优于无结构 token memory。
+
+## 11. D-008 的 revision pilot 扩展门（proposed）
+
+本节不改变以上已冻结的旧合同。D-008 被接受前，只允许建立与旧结果并行的小型 pilot，不得用 pilot 或测试结果回填挑选旧合同阈值。
+
+revision pilot 至少比较 append-only、full recomputation、pose-warped EMA、slot lifecycle only、local slot revision、oracle affected-subgraph 和预测 affected-subgraph，并额外报告：
+
+- `Delta Precision / Recall`；
+- `Propagation Completeness`；
+- `Preservation Accuracy`；
+- `Collateral Revision Rate`；
+- `Revision Latency`；
+- 实际编辑节点比例、时延与峰值显存。
+
+哨兵场景必须分开统计：长时间静止的人、暂时遮挡的门、搬到可见新位置的椅子、旧位置可靠缺席但去向未知的椅子，以及与当前局部无关的新证据。pilot 的目的、人工 oracle 和迁移条件见 `09_integrated_direction_plan.md`。
