@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/spatial-memory-slot.schema.json",
+  "title": "Persistent World Memory Slot",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "slot_id",
+    "slot_type",
+    "chart_ids",
+    "world_geometry",
+    "semantic_state",
+    "lifecycle",
+    "confidence",
+    "first_seen",
+    "last_seen",
+    "observation_count",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": { "type": "string" },
+    "slot_id": { "type": "string", "minLength": 1 },
+    "slot_type": { "enum": ["surface", "object", "portal", "topology", "dynamic"] },
+    "chart_ids": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "world_geometry": {
+      "type": "object",
+      "required": ["representation", "coordinate_frame"],
+      "properties": {
+        "representation": { "enum": ["plane", "polygon", "point", "box", "graph_edge", "unknown"] },
+        "coordinate_frame": { "const": "world" },
+        "parameters": { "type": "array", "items": { "type": "number" } },
+        "covariance": { "type": ["array", "null"], "items": { "type": "number" } }
+      },
+      "additionalProperties": true
+    },
+    "latent_state": {
+      "type": ["object", "null"],
+      "properties": {
+        "representation": { "enum": ["normalized_ema", "mean_covariance", "bounded_prototypes", "evidence_bank"] },
+        "dimension": { "type": "integer", "minimum": 1 },
+        "artifact_ref": { "type": ["string", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "semantic_state": {
+      "type": "object",
+      "properties": {
+        "labels": { "type": "array", "items": { "type": "string" } },
+        "probabilities": { "type": "array", "items": { "type": "number", "minimum": 0, "maximum": 1 } }
+      },
+      "additionalProperties": true
+    },
+    "visibility": { "enum": ["visible", "partially_occluded", "occluded", "out_of_fov", "unknown"] },
+    "lifecycle": { "enum": ["candidate", "transient", "persistent", "changed", "retired"] },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "static_confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "dynamic_probability": { "type": "number", "minimum": 0, "maximum": 1 },
+    "persistence_probability": { "type": "number", "minimum": 0, "maximum": 1 },
+    "pose_uncertainty": { "type": ["number", "null"], "minimum": 0 },
+    "first_seen": { "type": "number" },
+    "last_seen": { "type": "number" },
+    "observation_count": { "type": "integer", "minimum": 0 },
+    "provenance": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["episode_id", "frame_id", "region_id", "association_confidence", "update_weight"],
+        "properties": {
+          "episode_id": { "type": "string" },
+          "frame_id": { "type": "string" },
+          "region_id": { "type": "string" },
+          "association_confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+          "update_weight": { "type": "number", "minimum": 0, "maximum": 1 }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

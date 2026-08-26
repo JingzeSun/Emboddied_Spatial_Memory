@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/spatial-memory-episode.schema.json",
+  "title": "Spatial Memory Episode",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "episode_id",
+    "scene_id",
+    "split",
+    "counterfactual_group_id",
+    "condition",
+    "sensors",
+    "frames",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": { "type": "string" },
+    "episode_id": { "type": "string", "minLength": 1 },
+    "scene_id": { "type": "string", "minLength": 1 },
+    "scene_family_id": { "type": ["string", "null"] },
+    "split": { "enum": ["train", "validation", "test", "pilot"] },
+    "counterfactual_group_id": { "type": "string", "minLength": 1 },
+    "condition": {
+      "enum": [
+        "clean",
+        "turning_only",
+        "transient_occlusion",
+        "turning_plus_transient",
+        "persistent_change"
+      ]
+    },
+    "random_seed": { "type": ["integer", "null"] },
+    "coordinate_convention": { "const": "T_world_camera" },
+    "sensors": {
+      "type": "object",
+      "required": ["camera_intrinsics", "rgb"],
+      "properties": {
+        "rgb": { "type": "boolean" },
+        "depth": { "type": "boolean" },
+        "pose": { "type": "boolean" },
+        "optical_flow": { "type": "boolean" },
+        "camera_intrinsics": {
+          "type": "object",
+          "required": ["fx", "fy", "cx", "cy", "width", "height"],
+          "properties": {
+            "fx": { "type": "number", "exclusiveMinimum": 0 },
+            "fy": { "type": "number", "exclusiveMinimum": 0 },
+            "cx": { "type": "number" },
+            "cy": { "type": "number" },
+            "width": { "type": "integer", "minimum": 1 },
+            "height": { "type": "integer", "minimum": 1 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": true
+    },
+    "frames": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["frame_id", "timestamp", "rgb_path", "T_world_camera", "pose_source"],
+        "properties": {
+          "frame_id": { "type": "string" },
+          "timestamp": { "type": "number" },
+          "rgb_path": { "type": "string" },
+          "depth_path": { "type": ["string", "null"] },
+          "flow_path": { "type": ["string", "null"] },
+          "T_world_camera": {
+            "type": "array",
+            "minItems": 16,
+            "maxItems": 16,
+            "items": { "type": "number" }
+          },
+          "pose_source": { "type": "string" },
+          "pose_is_ground_truth": { "type": "boolean" },
+          "pose_confidence": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+          "depth_source": { "type": ["string", "null"] },
+          "depth_is_ground_truth": { "type": "boolean" },
+          "annotations": {
+            "type": "object",
+            "properties": {
+              "persistent_slot_ids": { "type": "array", "items": { "type": "string" } },
+              "dynamic_track_ids": { "type": "array", "items": { "type": "string" } },
+              "chart_ids": { "type": "array", "items": { "type": "string" } },
+              "visibility_path": { "type": ["string", "null"] },
+              "static_mask_path": { "type": ["string", "null"] },
+              "dynamic_mask_path": { "type": ["string", "null"] }
+            },
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["event_id", "event_type", "start_time", "end_time", "should_update_persistent_memory"],
+        "properties": {
+          "event_id": { "type": "string" },
+          "event_type": { "enum": ["transient_occlusion", "out_of_fov", "dynamic_motion", "persistent_change"] },
+          "start_time": { "type": "number" },
+          "end_time": { "type": "number" },
+          "affected_slot_ids": { "type": "array", "items": { "type": "string" } },
+          "should_update_persistent_memory": { "type": "boolean" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["source", "license", "manifest_version"],
+      "properties": {
+        "source": { "type": "string" },
+        "license": { "type": "string" },
+        "manifest_version": { "type": "string" },
+        "generator_revision": { "type": ["string", "null"] }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

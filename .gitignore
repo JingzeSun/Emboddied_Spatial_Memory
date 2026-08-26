@@ -1,0 +1,31 @@
+# Generated experiment outputs
+outputs/*
+!outputs/README.md
+prototype/*.pptx
+
+# Local datasets and model artifacts
+data/*
+!data/README.md
+*.ckpt
+*.pth
+*.pt
+*.safetensors
+
+# Locally acquired papers are indexed in literature/library.csv
+papers/
+papers_detail/
+literature/papers/
+literature/papers_detail/
+
+# Python/editor/OS artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
