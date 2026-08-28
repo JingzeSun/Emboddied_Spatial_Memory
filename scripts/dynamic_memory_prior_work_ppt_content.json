@@ -3,7 +3,7 @@
     "title": "动态空间语境修订：文献基础与方法蓝图",
     "subtitle": "新帧如何被判型，并有限、可解释、可追溯地改变旧空间信念",
     "date": "2026-08-28",
-    "author": "Embodied Spatial Memory · 汇报版 v0.6"
+    "author": "Embodied Spatial Memory · 汇报版 v0.7"
   },
   "slides": {
     "framing": {
@@ -362,163 +362,175 @@
       "status": "当前状态：planned / implementation not started / no experimental evidence。"
     },
     "experiment_matrix": {
-      "title": "E0–E4 不是五次堆功能，而是五次单独追问",
+      "title": "五个实验分别在问什么现实问题？",
       "items": [
         {
-          "id": "E0",
-          "name": "合同连通",
-          "fixtures": "R1–R6 / X1–X2",
-          "isolate": "只给 oracle graph、scope、delta",
-          "success": "执行结果 exact / invariant match",
-          "failure": "schema、executor 或 evaluator 没接通"
+          "id": "实验 0",
+          "name": "先检查“尺子”准不准",
+          "fixtures": "旧记忆 + 明确修改 + 正确新记忆",
+          "isolate": "不让系统自己猜，只要求它照答案执行",
+          "success": "修改正确，旧版本也保留",
+          "failure": "先修规则、执行或评分工具，不能训练"
         },
         {
-          "id": "E1",
-          "name": "单状态修订",
-          "fixtures": "R1 / R3 / R4",
-          "isolate": "搬迁、可靠缺席、遮挡只改一个因素",
-          "success": "三者走不同且正确的 operator",
-          "failure": "把没看到误当成消失，或旧事实未关闭"
+          "id": "实验 1",
+          "name": "椅子到底发生了什么？",
+          "fixtures": "搬到 B / 旧址真的空 / 只是被挡住",
+          "isolate": "旧记忆相同，只替换一种现场证据",
+          "success": "分别更新位置、判旧址失效、保留旧事实",
+          "failure": "把没看到当成消失，或搬走后仍保留旧位置"
         },
         {
-          "id": "E2",
-          "name": "传播与停止",
-          "fixtures": "R2 / R6",
-          "isolate": "有许可依赖 vs 无关变化",
-          "success": "必要关系全改，无关对象不动",
-          "failure": "local-slot 漏改或 full-graph 式污染"
+          "id": "实验 2",
+          "name": "该连带改谁，到哪里停？",
+          "fixtures": "推车带箱子移动；旁边花盆无关",
+          "isolate": "一边有明确依赖，另一边没有关系",
+          "success": "箱子随推车更新，花盆完全不动",
+          "failure": "只改推车漏掉箱子，或连花盆也被修改"
         },
         {
-          "id": "E3",
-          "name": "本体不变量",
-          "fixtures": "R5 duration / occlusion sweep",
-          "isolate": "只改变静止时长或遮挡",
-          "success": "人始终是 actor，门的身份和几何保持",
-          "failure": "把长期静止误当成固定结构"
+          "id": "实验 3",
+          "name": "人站久了还是不是人？",
+          "fixtures": "同一个人在门口站立不同时间",
+          "isolate": "只改变静止时间和是否挡住门",
+          "success": "人始终是人，门也没有被改写",
+          "failure": "把长期静止的人当成固定建筑结构"
         },
         {
-          "id": "E4",
-          "name": "边界路径",
-          "fixtures": "X1 corner / X2 two boxes",
-          "isolate": "扩图和查询语境，不是旧事实冲突",
-          "success": "新增可连接、候选可重排，世界图不被污染",
-          "failure": "扩图误关旧事实或 top-1 删除其他实例"
+          "id": "实验 4",
+          "name": "新增和查询会不会改坏旧记忆？",
+          "fixtures": "转角看到新区域；先后看到两个木箱",
+          "isolate": "只是补充新内容或改变先找哪个箱子",
+          "success": "新区域接上旧图；两个箱子都继续保留",
+          "failure": "补图时删旧事实，或只保留排第一的箱子"
         }
       ],
-      "rule": "每组 fixture 与单因素反事实成对：旧图相同，只改变一个证据条件，正确操作必须随之改变。"
+      "rule": "每次只改一个条件：这样结果变了，我们才知道究竟是哪条证据起作用，而不是靠猜。"
     },
     "baselines": {
-      "title": "基线的作用不是凑排名，而是暴露五种不同失败方式",
+      "title": "为什么要和这些“笨办法”比较？每个对照排除一种解释",
       "items": [
         {
-          "id": "B0",
-          "name": "Append-only",
-          "behavior": "只新增，不关闭旧事实",
-          "diagnoses": "检验动态修订是否真的必要"
+          "id": "1",
+          "name": "只加不删",
+          "alias": "Append-only",
+          "behavior": "发现椅子在 B，只新增 B，不删除旧位置 A",
+          "diagnoses": "看旧事实是否会一直残留"
         },
         {
-          "id": "B1",
-          "name": "Local matched-slot",
-          "behavior": "只改直接匹配到的对象",
-          "diagnoses": "检验关系传播是否会被漏掉"
+          "id": "2",
+          "name": "只改眼前对象",
+          "alias": "Local matched-slot",
+          "behavior": "推车动了只改推车，不管车上的箱子",
+          "diagnoses": "看关系后果是否会漏改"
         },
         {
-          "id": "B2",
-          "name": "Full-graph recompute",
-          "behavior": "每次重新协调整张图",
-          "diagnoses": "检验局部范围是否减少误改与成本"
+          "id": "3",
+          "name": "把整张记忆慢慢平均",
+          "alias": "Pose-warped global EMA",
+          "behavior": "对齐新旧观测后，让整张记忆逐渐向新观测靠近",
+          "diagnoses": "看抗噪平滑能否真正关闭旧事实"
         },
         {
-          "id": "B3",
-          "name": "Oracle affected-scope",
-          "behavior": "直接给正确受影响范围",
-          "diagnoses": "给出问题与 executor 的机制上限"
+          "id": "4",
+          "name": "每次整张图重做",
+          "alias": "Full-graph recompute",
+          "behavior": "有一点变化就重新处理所有对象和关系",
+          "diagnoses": "看局部修改能否少误改、少花时间"
         },
         {
-          "id": "B4",
-          "name": "Deterministic scope",
-          "behavior": "按人工规则预测 scope / stop",
-          "diagnoses": "提供可解释、可运行的非学习基线"
+          "id": "5",
+          "name": "直接告诉它该改谁",
+          "alias": "Oracle affected-scope",
+          "behavior": "人工给出正确修改范围，只检查能否执行",
+          "diagnoses": "确认方法本身最多能做到什么"
+        },
+        {
+          "id": "6",
+          "name": "用人工规则判断该改谁",
+          "alias": "Deterministic scope",
+          "behavior": "按照明确规则选择修改范围和停止位置",
+          "diagnoses": "看不训练模型能否先解决问题"
         }
       ],
-      "shared_input": "公平比较：所有方法共享同一旧图、当前观测、pose、visibility 和 association；只替换修订策略。",
-      "optional": "FARM-style fuse / merge 只作后续 stress baseline，检验对象融合在冲突场景中的污染风险；不作为本项目成立的文献证据。"
+      "shared_input": "公平比较：大家看到完全相同的旧记忆和现场证据，只允许“怎么修改记忆”这一点不同。",
+      "optional": "FARM 风格的对象融合只在后面补做：看它面对冲突时会不会把新旧对象错误合在一起。"
     },
     "metrics": {
-      "title": "不能只看任务准确率：成功必须同时满足“改对”和“别乱改”",
+      "title": "结果好不好，只看四件人能直接判断的事",
       "groups": [
         {
-          "name": "A 应改的改对",
-          "metrics": "target graph invariant accuracy\noperator accuracy\nrequired propagation recall",
-          "meaning": "目标事实和必要关系后果是否正确"
+          "name": "1 应该改的，改对了吗？",
+          "metrics": "椅子的新位置正确\n箱子随推车一起更新\n该失效的旧位置被关闭",
+          "meaning": "论文记录：目标图正确率、操作正确率、必要传播召回率"
         },
         {
-          "name": "B 不该改的守住",
-          "metrics": "control preservation\ncollateral revision rate ↓\nstop-edge accuracy",
-          "meaning": "无关事实是否被保护，传播是否及时停止"
+          "name": "2 不该改的，守住了吗？",
+          "metrics": "旁边花盆完全不动\n遮挡时不删除椅子\n传播在无关关系前停止",
+          "meaning": "论文记录：无关事实保持率、误改率、停止位置正确率"
         },
         {
-          "name": "C 历史可追溯",
-          "metrics": "version / provenance validity\ntransaction integrity\nfailure localization",
-          "meaning": "旧版本是否保留，失败是否能定位"
+          "name": "3 以后能解释为什么改吗？",
+          "metrics": "旧位置版本仍能查到\n新版本带着现场证据\n失败不会留下半改状态",
+          "meaning": "论文记录：版本有效性、证据链完整性、事务完整性"
         },
         {
-          "name": "D 局部性有价值",
-          "metrics": "edited-node ratio ↓\nlatency / peak memory ↓\nstorage growth",
-          "meaning": "局部修订是否比全图处理更省"
+          "name": "4 这样做真的更省吗？",
+          "metrics": "实际修改的对象更少\n运行时间和内存更低\n历史存储增长可接受",
+          "meaning": "论文记录：修改比例、延迟、峰值内存和存储增长"
         }
       ],
-      "summary": "核心判断：正确后果 ↑ + 无关保持 ↑ + 版本有效 + 修改与计算成本 ↓。",
-      "warning": "query accuracy 或 top-K recall 再高，也不能替代 revision scope、propagation 和 preservation 指标。"
+      "summary": "核心判断：该改的改对，不该改的别碰，改动有证据，而且确实比整图重做更省。",
+      "warning": "仅仅“最后找到了目标”还不够：中间如果删错旧事实、漏改关系或污染整张图，方法仍然失败。"
     },
     "experiment_gates": {
-      "title": "是否继续，不看一个漂亮总分：每个核心主张都有直接退出门",
+      "title": "什么结果会让我们承认：这个方向暂时不成立",
       "checks": [
         {
-          "comparison": "E0：oracle delta → expected graph",
-          "go": "全部 exact / invariant match",
-          "no_go": "先修 schema、executor 或 fixture，不训练"
+          "comparison": "给它明确答案，能否照着改完？",
+          "go": "所有场景都得到正确新记忆，旧版本可追溯",
+          "no_go": "先修规则、执行和评分工具，不能训练"
         },
         {
-          "comparison": "Oracle scope vs Local-slot",
-          "go": "必要传播更完整",
-          "no_go": "重审“关系传播”是否真是独立问题"
+          "comparison": "推车移动时，箱子是否必须连带更新？",
+          "go": "我们的方法比“只改推车”少漏箱子关系",
+          "no_go": "若没有差别，关系传播可能不是独立创新"
         },
         {
-          "comparison": "Oracle scope vs Full-graph",
-          "go": "无关修改更少，编辑与计算成本更低",
-          "no_go": "收缩局部性与效率主张"
+          "comparison": "局部修改是否优于每次整图重做？",
+          "go": "正确性相当，但无关修改、时间和内存更少",
+          "no_go": "若不更省，就不能主张局部修订有价值"
         },
         {
-          "comparison": "R3 reliable absence vs R4 occlusion",
-          "go": "分别触发 INVALIDATE 与 PRESERVE",
-          "no_go": "收紧 evidence rubric 或取消该区分"
+          "comparison": "旧址真的空与暂时被挡，能否分开？",
+          "go": "真的空才让旧位置失效；被挡时继续保留",
+          "no_go": "若分不开，就收紧证据标准或取消该主张"
         },
         {
-          "comparison": "R5 与 X1 / X2 不变量",
-          "go": "actor ontology、旧事实和非 top-1 实例均保持",
-          "no_go": "状态分层或边界定义失败"
+          "comparison": "人站久、转角扩图、查询箱子会不会改坏世界？",
+          "go": "人仍是人，旧事实和两个箱子都继续保留",
+          "no_go": "若被改坏，说明不同状态仍然混在一起"
         }
       ],
       "progression": [
-        "Oracle 全链",
-        "Deterministic routing / scope",
-        "Learned innovation / scope / operator / stop",
-        "真实 pose / depth / detector"
+        "答案全部由人工给出",
+        "改用明确规则自己判断",
+        "再让模型学习判断",
+        "最后接入真实视觉"
       ],
-      "principle": "每次只移除一类 oracle，沿用同一批 validation fixtures；这样失败才能归因到具体模块。"
+      "principle": "每次只增加一种困难，继续使用同一批验证场景；否则失败后不知道是视觉、判断还是修改机制出了错。"
     },
     "decisions": {
-      "title": "实验图可以先写，但真正运行前仍需冻结六项 ground truth 语义",
+      "title": "实验开始前，老师需要帮我们定六条“判题规则”",
       "items": [
-        "搬迁时 identity 在什么置信条件下延续？",
-        "哪些关系显式存储，哪些只在需要时派生？",
-        "不同 operator 允许沿哪些关系传播？",
-        "什么证据才足以称为 reliable absence？",
-        "多个最小 stop scope 是否都算正确，怎样判分？",
-        "候选歧义到什么代价时需要主动澄清？"
+        "椅子出现在 B，什么条件下算同一把椅子搬过去了？",
+        "推车移动后，箱子的哪些位置和关系必须跟着改？",
+        "修改传播到哪里必须停，哪些无关对象绝不能碰？",
+        "旧位置要看得多清楚、看几次，才算椅子真的不在那里？",
+        "如果有几种同样小且都正确的修改，是否都算对？",
+        "两个木箱都可能是目标时，什么情况下必须先问用户？"
       ],
-      "next": "确认后立即完成 R1–R6 / X1–X2 fixtures、schema 连通检查和 E0；否则只能展示实验设计，不能产生训练标签或性能结论。",
+      "next": "定完后立即把六个核心场景和两个边界场景写成可自动检查的样例，再先跑“照答案修改”的实验 0。",
       "status": "研究诚信：本 PPT 描述的是 accepted/proposed design，不是已实现结果，也不是性能结论。"
     }
   }

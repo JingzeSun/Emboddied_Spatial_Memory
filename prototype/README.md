@@ -31,7 +31,8 @@
 - `dynamic_spatial_revision_report_v0_3.pptx`：文献基础与方法蓝图初次重构版，由 `.gitignore` 忽略；
 - `dynamic_spatial_revision_report_v0_4.pptx`：加入 FARM 现实差异例子与论文式双层方法图的上一版，由 `.gitignore` 忽略；
 - `dynamic_spatial_revision_report_v0_5.pptx`：将方法图改为导师可顺讲的主链和六路状态解释，并移除汇报 WBS 页的上一版，由 `.gitignore` 忽略；
-- `dynamic_spatial_revision_report_v0_6.pptx`：新增 oracle pilot、E0–E4、机制基线、指标和 Go/No-Go 的当前验证实验版，由 `.gitignore` 忽略；
+- `dynamic_spatial_revision_report_v0_6.pptx`：新增 oracle pilot、E0–E4、机制基线、指标和 Go/No-Go 的上一版，由 `.gitignore` 忽略；
+- `dynamic_spatial_revision_report_v0_7.pptx`：将第 13–17 页和实验合同改为现实场景优先、人话解释优先的当前版，由 `.gitignore` 忽略；
 - [`dynamic_spatial_revision_report_speaker_guide.md`](dynamic_spatial_revision_report_speaker_guide.md)：术语、人话定义、WBS 执行动作、R1 示例和导师追问口头回答。
 
-汇报辅助材料是现行合同的解释层，不是新的研究合同；v0.6 的验证实验部分解释 `docs/03_pilot_protocol.md`，不代表已经实现或获得结果。D-016 六项人工语义确认前不能产生训练 ground truth。冲突时以 `EXECUTE.md` 与 `docs/01–05` 为准。
+汇报辅助材料是现行合同的解释层，不是新的研究合同；v0.7 与重写后的 `docs/03_pilot_protocol.md` 均先解释实验为什么做，再保留正式术语，不代表已经实现或获得结果。D-016 六条判题规则确认前不能产生训练 ground truth。冲突时以 `EXECUTE.md` 与 `docs/01–05` 为准。

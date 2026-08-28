@@ -19,7 +19,7 @@ scripts/
 powershell -ExecutionPolicy Bypass -File scripts/run_dynamic_memory_prior_work_ppt.ps1
 ```
 
-默认生成 `prototype/dynamic_spatial_revision_report_v0_6.pptx`。v0.6 在 v0.5 的方法主链之后新增六页验证实验：oracle 总策略、E0–E4、机制基线、四类指标、Go/No-Go 和人工语义门；v0.1/v0.3/v0.4/v0.5 作为旧版汇报留存，已删除的 v0.2 不恢复。PPTX 是本地生成产物并由 `.gitignore` 忽略；可复现源是 JSON 与 PowerShell 构建器。
+默认生成 `prototype/dynamic_spatial_revision_report_v0_7.pptx`。v0.7 保留第 12 页 oracle 总策略，把第 13–17 页全部改为现实问题和人话判断：椅子、推车与箱子、花盆、站立的人、转角扩图和两个木箱；正式术语只作为小字对应。v0.1/v0.3/v0.4/v0.5/v0.6 作为旧版汇报留存，已删除的 v0.2 不恢复。PPTX 是本地生成产物并由 `.gitignore` 忽略；可复现源是 JSON 与 PowerShell 构建器。
 
 `notes.txt` 是导师建议的 source artifact，不得覆盖或删除。
 

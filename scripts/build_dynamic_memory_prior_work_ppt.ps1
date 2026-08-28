@@ -1,6 +1,6 @@
 param(
     [string]$ContentPath = "scripts/dynamic_memory_prior_work_ppt_content.json",
-    [string]$OutputPath = "prototype/dynamic_spatial_revision_report_v0_6.pptx"
+    [string]$OutputPath = "prototype/dynamic_spatial_revision_report_v0_7.pptx"
 )
 
 $ErrorActionPreference = "Stop"
@@ -572,56 +572,54 @@ try {
 
     # 13 Experiment matrix
     $d = $data.slides.experiment_matrix
-    $slide = Add-SlideBase $presentation 13 $d.title "验证实验 · E0–E4"
-    [void](Add-Text $slide "实验 / fixture" 60 112 162 15 8.4 $C.Muted $true 1 $FontCN 1)
-    [void](Add-Text $slide "本轮只改变什么" 236 112 142 15 8.4 $C.Muted $true 1 $FontCN 1)
-    [void](Add-Text $slide "通过时应看到" 390 112 186 15 8.4 $C.Muted $true 1 $FontCN 1)
-    [void](Add-Text $slide "失败说明什么" 588 112 160 15 8.4 $C.Muted $true 1 $FontCN 1)
-    [void](Add-Text $slide "论文归属" 760 112 132 15 8.4 $C.Muted $true 1 $FontCN 1)
+    $slide = Add-SlideBase $presentation 13 $d.title "验证实验 · 现实问题"
+    [void](Add-Text $slide "实验在问什么" 60 112 250 15 8.4 $C.Muted $true 1 $FontCN 1)
+    [void](Add-Text $slide "怎么造这个场景" 330 112 230 15 8.4 $C.Muted $true 1 $FontCN 1)
+    [void](Add-Text $slide "正确时应该看到" 575 112 170 15 8.4 $C.Green $true 1 $FontCN 1)
+    [void](Add-Text $slide "失败意味着什么" 760 112 138 15 8.4 $C.Amber $true 1 $FontCN 1)
     $rowColors = @($C.Blue, $C.Amber, $C.Cyan, $C.Green, $C.Red)
     for ($i = 0; $i -lt $d.items.Count; $i++) {
         $item = $d.items[$i]
         $y = 132 + $i * 66
         [void](Add-Shape $slide 5 46 $y 868 58 $C.Card $C.Line)
         [void](Add-Shape $slide 1 46 $y 5 58 $rowColors[$i] $rowColors[$i])
-        Add-Pill $slide $item.id 60 ($y + 10) 42 $rowColors[$i] $C.White 8.8
-        [void](Add-Text $slide $item.name 110 ($y + 9) 112 18 9.8 $C.White $true 1 $FontCN 1)
-        [void](Add-Text $slide $item.fixtures 110 ($y + 31) 112 18 7.8 $C.Muted $false 1 $FontCN 1)
-        [void](Add-Text $slide $item.isolate 236 ($y + 10) 142 38 8.2 $C.Muted $false 1 $FontCN 1)
-        [void](Add-Text $slide $item.success 390 ($y + 10) 186 38 8.4 $C.Green $true 1 $FontCN 1)
-        [void](Add-Text $slide $item.failure 588 ($y + 10) 160 38 8.1 $C.Amber $false 1 $FontCN 1)
-        $claimScope = if ($i -eq 0) { "基础连通" } elseif ($i -eq 4) { "P1 边界" } else { "P0 核心" }
-        [void](Add-Text $slide $claimScope 760 ($y + 10) 138 38 8.6 $rowColors[$i] $true 1 $FontCN 1)
+        Add-Pill $slide $item.id 60 ($y + 10) 58 $rowColors[$i] $C.White 8.2
+        [void](Add-Text $slide $item.name 128 ($y + 8) 188 19 9.3 $C.White $true 1 $FontCN 1)
+        [void](Add-Text $slide $item.fixtures 128 ($y + 31) 188 18 7.6 $C.Muted $false 1 $FontCN 1)
+        [void](Add-Text $slide $item.isolate 330 ($y + 9) 230 39 8.2 $C.Muted $false 1 $FontCN 1)
+        [void](Add-Text $slide $item.success 575 ($y + 9) 170 39 8.2 $C.Green $true 1 $FontCN 1)
+        [void](Add-Text $slide $item.failure 760 ($y + 9) 138 39 7.8 $C.Amber $false 1 $FontCN 1)
     }
     [void](Add-Shape $slide 5 46 466 868 28 $C.Card2 $C.Cyan)
     [void](Add-Text $slide $d.rule 58 471 844 18 8.8 $C.Cyan $true 2 $FontCN 3)
-    Add-Footer $slide "E0 先排除接口错误；E1–E3 检验 P0 主张；E4 只验证边界不污染核心状态。"
+    Add-Footer $slide "五个实验的共同目的：发现方法究竟在哪一种具体情况下会犯错，而不是只给一个总分。"
 
     # 14 Mechanism baselines
     $d = $data.slides.baselines
-    $slide = Add-SlideBase $presentation 14 $d.title "验证实验 · 机制基线"
+    $slide = Add-SlideBase $presentation 14 $d.title "验证实验 · 为什么比较"
     $baselineXsTop = @(46, 345, 644)
-    $baselineXsBottom = @(195, 495)
-    $baselineColors = @($C.Red, $C.Amber, $C.Blue, $C.Green, $C.Cyan)
+    $baselineXsBottom = @(46, 345, 644)
+    $baselineColors = @($C.Red, $C.Amber, $C.Blue, $C.Cyan, $C.Green, $C.Cyan)
     for ($i = 0; $i -lt $d.items.Count; $i++) {
         $item = $d.items[$i]
         if ($i -lt 3) { $x = $baselineXsTop[$i]; $y = 122 } else { $x = $baselineXsBottom[$i - 3]; $y = 276 }
         [void](Add-Shape $slide 5 $x $y 270 132 $C.Card $baselineColors[$i])
         Add-Pill $slide $item.id ($x + 15) ($y + 13) 42 $baselineColors[$i] $C.White 8.8
-        [void](Add-Text $slide $item.name ($x + 68) ($y + 14) 184 20 10.8 $C.White $true 1 $FontCN 1)
-        [void](Add-Line $slide ($x + 16) ($y + 50) ($x + 254) ($y + 50) $C.Line 0.7 $false)
-        [void](Add-Text $slide ("做法：" + $item.behavior) ($x + 16) ($y + 61) 238 24 9.1 $C.Muted $false 1 $FontCN 1)
-        [void](Add-Text $slide ("追问：" + $item.diagnoses) ($x + 16) ($y + 94) 238 25 9.1 $baselineColors[$i] $true 1 $FontCN 1)
+        [void](Add-Text $slide $item.name ($x + 68) ($y + 11) 184 20 10.8 $C.White $true 1 $FontCN 1)
+        [void](Add-Text $slide ("论文名：" + $item.alias) ($x + 68) ($y + 36) 184 14 7.4 $C.Muted $false 1 $FontCN 1)
+        [void](Add-Line $slide ($x + 16) ($y + 56) ($x + 254) ($y + 56) $C.Line 0.7 $false)
+        [void](Add-Text $slide ("它会：" + $item.behavior) ($x + 16) ($y + 64) 238 31 8.5 $C.Muted $false 1 $FontCN 1)
+        [void](Add-Text $slide ("拿来检查：" + $item.diagnoses) ($x + 16) ($y + 101) 238 21 8.6 $baselineColors[$i] $true 1 $FontCN 1)
     }
     [void](Add-Shape $slide 5 46 424 868 31 $C.Card2 $C.Cyan)
     [void](Add-Text $slide $d.shared_input 58 430 844 19 9.3 $C.Cyan $true 2 $FontCN 3)
     [void](Add-Shape $slide 5 46 465 868 29 $C.Card2 $C.Amber)
     [void](Add-Text $slide $d.optional 58 470 844 18 8.3 $C.Amber $false 2 $FontCN 3)
-    Add-Footer $slide "真正关键的横向对照：local-slot 检验漏传播，full-graph 检验无关污染，oracle scope 给出机制上限。"
+    Add-Footer $slide "这些不是竞争模型名单；每个对照都故意犯一种错误，用来证明我们的方法到底解决了哪件事。"
 
     # 15 Metrics
     $d = $data.slides.metrics
-    $slide = Add-SlideBase $presentation 15 $d.title "验证实验 · 指标"
+    $slide = Add-SlideBase $presentation 15 $d.title "验证实验 · 怎么判好坏"
     [void](Add-Shape $slide 5 46 112 868 40 $C.Card2 $C.Cyan)
     [void](Add-Text $slide $d.summary 58 120 844 23 10.7 $C.Cyan $true 2 $FontCN 3)
     $metricXs = @(46, 490)
@@ -632,22 +630,22 @@ try {
         $x = $metricXs[$i % 2]
         $y = $metricYs[[int][Math]::Floor($i / 2)]
         [void](Add-Shape $slide 5 $x $y 424 130 $C.Card $metricColors[$i])
-        [void](Add-Text $slide $group.name ($x + 18) ($y + 13) 180 20 11.8 $metricColors[$i] $true 1 $FontCN 1)
-        [void](Add-Text $slide $group.metrics ($x + 18) ($y + 43) 170 67 9.4 $C.White $true 1 $FontMono 1)
-        [void](Add-Line $slide ($x + 205) ($y + 18) ($x + 205) ($y + 112) $C.Line 0.8 $false)
-        [void](Add-Text $slide "人话解释" ($x + 225) ($y + 20) 165 17 8.4 $C.Muted $true 1 $FontCN 1)
-        [void](Add-Text $slide $group.meaning ($x + 225) ($y + 48) 170 52 10.1 $C.White $true 1 $FontCN 1)
+        [void](Add-Text $slide $group.name ($x + 18) ($y + 13) 386 20 11.4 $metricColors[$i] $true 1 $FontCN 1)
+        [void](Add-Text $slide $group.metrics ($x + 18) ($y + 45) 192 65 9.4 $C.White $true 1 $FontCN 1)
+        [void](Add-Line $slide ($x + 220) ($y + 42) ($x + 220) ($y + 112) $C.Line 0.8 $false)
+        [void](Add-Text $slide "论文里怎么记录" ($x + 240) ($y + 46) 150 16 8.2 $C.Muted $true 1 $FontCN 1)
+        [void](Add-Text $slide $group.meaning ($x + 240) ($y + 69) 150 43 8.2 $C.Muted $false 1 $FontCN 1)
     }
     [void](Add-Shape $slide 5 46 465 868 29 $C.Card2 $C.Red)
     [void](Add-Text $slide $d.warning 58 470 844 18 8.8 $C.Red $true 2 $FontCN 3)
-    Add-Footer $slide "这套指标故意把漏改、多改、越界、历史丢失和高成本拆开，避免一个平均分掩盖失败。"
+    Add-Footer $slide "老师先看左边四个问题即可；右边小字只是以后写论文时对应的正式指标名称。"
 
     # 16 Go / No-Go and oracle removal
     $d = $data.slides.experiment_gates
-    $slide = Add-SlideBase $presentation 16 $d.title "验证实验 · Go / No-Go"
-    [void](Add-Text $slide "关键对照" 60 112 250 15 8.5 $C.Muted $true 1 $FontCN 1)
-    [void](Add-Text $slide "继续该主张的最低证据" 330 112 250 15 8.5 $C.Green $true 1 $FontCN 1)
-    [void](Add-Text $slide "不成立时立即做什么" 614 112 270 15 8.5 $C.Red $true 1 $FontCN 1)
+    $slide = Add-SlideBase $presentation 16 $d.title "验证实验 · 什么时候停止"
+    [void](Add-Text $slide "我们到底想证明什么" 60 112 250 15 8.5 $C.Muted $true 1 $FontCN 1)
+    [void](Add-Text $slide "至少要看到的现象" 330 112 250 15 8.5 $C.Green $true 1 $FontCN 1)
+    [void](Add-Text $slide "看不到就怎么办" 614 112 270 15 8.5 $C.Red $true 1 $FontCN 1)
     for ($i = 0; $i -lt $d.checks.Count; $i++) {
         $check = $d.checks[$i]
         $y = 133 + $i * 62
@@ -657,7 +655,7 @@ try {
         [void](Add-Text $slide $check.go 330 ($y + 9) 260 36 8.8 $C.Green $true 1 $FontCN 1)
         [void](Add-Text $slide $check.no_go 614 ($y + 9) 276 36 8.6 $C.Red $false 1 $FontCN 1)
     }
-    [void](Add-Text $slide "通过后逐层移除 oracle" 46 450 170 14 8.5 $C.Cyan $true 1 $FontCN 1)
+    [void](Add-Text $slide "前一关成立后，再逐步增加难度" 46 450 210 14 8.5 $C.Cyan $true 1 $FontCN 1)
     $progressXs = @(46, 264, 482, 700)
     for ($i = 0; $i -lt $d.progression.Count; $i++) {
         Add-Pill $slide $d.progression[$i] $progressXs[$i] 468 200 $C.Card2 $C.Cyan 8.1
@@ -667,19 +665,19 @@ try {
 
     # 17 Decisions before running fixtures
     $d = $data.slides.decisions
-    $slide = Add-SlideBase $presentation 17 $d.title "验证实验 · 人工确认门"
+    $slide = Add-SlideBase $presentation 17 $d.title "验证实验 · 判题规则"
     [void](Add-Shape $slide 5 46 122 498 330 $C.Card $C.Line)
-    [void](Add-Text $slide "需要导师 / 人工确认" 67 141 220 25 14 $C.Amber $true 1 $FontCN 1)
-    Add-Bullets $slide $d.items 67 181 449 44 11.2 $C.Amber $C.White
+    [void](Add-Text $slide "需要老师确认的六条规则" 67 141 280 25 14 $C.Amber $true 1 $FontCN 1)
+    Add-Bullets $slide $d.items 67 181 449 44 10.2 $C.Amber $C.White
     [void](Add-Shape $slide 5 570 122 344 156 $C.Bg2 $C.Cyan)
-    [void](Add-Text $slide "确认后立即执行" 591 142 290 23 13 $C.Cyan $true 1 $FontCN 1)
+    [void](Add-Text $slide "定完规则就能做" 591 142 290 23 13 $C.Cyan $true 1 $FontCN 1)
     [void](Add-Text $slide $d.next 591 180 298 79 11 $C.White $false 1 $FontCN 1)
     [void](Add-Shape $slide 5 570 299 344 153 $C.Card2 $C.Green)
     [void](Add-Text $slide "本轮状态" 591 319 290 23 13 $C.Green $true 1 $FontCN 1)
-    [void](Add-Text $slide "验证问题、E0–E4、基线、指标与退出门已经写成 PPT；尚未实现 fixture、executor 或产生任何实验数字。" 591 356 310 75 11 $C.White $false 1 $FontCN 1)
+    [void](Add-Text $slide "实验为什么做、每个场景看什么、和哪些笨办法比较、什么结果算失败，都已写清；尚未真正运行实验。" 591 356 310 75 11 $C.White $false 1 $FontCN 1)
     [void](Add-Shape $slide 5 46 466 868 29 $C.Card2 $C.Red)
     [void](Add-Text $slide $d.status 58 470 844 20 9.7 $C.Red $true 2 $FontCN 3)
-    Add-Footer $slide "D-016 未确认前，这些是可审查的实验设计，不是可用于监督训练的 ground truth。"
+    Add-Footer $slide "六条规则未确认前，只能讨论实验设计，不能声称已经有唯一正确答案或训练标签。"
 
     # Document properties and save
     $outDir = Split-Path -Parent $outputAbs
