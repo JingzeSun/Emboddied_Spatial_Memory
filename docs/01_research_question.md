@@ -1,6 +1,6 @@
 # 研究问题、假设与贡献边界
 
-> 合同版本：v1.0
+> 合同版本：v1.1
 > 状态：研究方向已接受；方法尚未实现；假设尚未验证
 > 上位蓝图：`09_integrated_direction_plan.md`
 
@@ -9,7 +9,7 @@
 机器人接收连续观测：
 
 [
-o_t=(I_t,D_t,T^w_{c_t},K,a_{t-1},	ext{optional semantics/flow})
+o_t=(I_t,D_t,T^w_{c_t},K,a_{t-1},\text{optional semantics/flow})
 ]
 
 已有空间信念图 (B_{t-1}=(V,E))。本项目研究：
@@ -20,8 +20,8 @@ o_t=(I_t,D_t,T^w_{c_t},K,a_{t-1},	ext{optional semantics/flow})
 
 [
 Delta B_t=
-{	ext{operations},V_{	ext{affected}},E_{	ext{affected}},
-E_{	ext{stop}},	ext{confidence},	ext{provenance}}
+{\text{operations},V_{\text{affected}},E_{\text{affected}},
+E_{\text{stop}},\text{confidence},\text{provenance}}
 ]
 
 ## 2. 中心假设
@@ -119,3 +119,22 @@ E_{	ext{stop}},	ext{confidence},	ext{provenance}}
 ## 9. 论文一句话
 
 > We study how pose-aware structured innovations should trigger minimal sufficient, evidence-traceable revisions of an embodied spatial belief graph, including where relational propagation must stop.
+
+## 10. v1.1 优先级与相邻问题
+
+当前论文的 P0 仍是动态 belief revision，而不是把所有空间语境问题同时包装成贡献：
+
+- P0：relocation、reliable absence、occlusion、relation cascade、irrelevant innovation；
+- P1 支撑：转弯后的 graph expansion attachment；
+- P1 下游：同类实例的 ActiveContext 排序、保留与澄清；
+- novelty boundary：FARM-style online object memory、soft relational ranking 和 top-K retrieval。
+
+三类问题采用不同写入对象：
+
+| 事件 | 写入对象 | 是否关闭旧世界事实 |
+|---|---|---|
+| graph expansion | `SceneBelief` 新节点/边与 attachment | 否，除非另有冲突证据 |
+| belief revision | `ContextDelta → SceneBelief` | 是，按 typed operator 和版本执行 |
+| route/dialogue focus | `ActiveContext` | 否 |
+
+场景定义和反证合同见 `12_use_case_and_fixture_contract.md`。

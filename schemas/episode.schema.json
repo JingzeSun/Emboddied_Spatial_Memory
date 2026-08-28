@@ -18,8 +18,8 @@
     "provenance"
   ],
   "properties": {
-    "schema_version": { "const": "1.0" },
-    "contract_version": { "const": "1.0" },
+    "schema_version": { "const": "1.1" },
+    "contract_version": { "const": "1.1" },
     "episode_id": { "type": "string", "minLength": 1 },
     "scene_id": { "type": "string", "minLength": 1 },
     "scene_family_id": { "type": "string", "minLength": 1 },
@@ -37,6 +37,8 @@
         "removed_from_scene",
         "out_of_fov",
         "irrelevant_innovation",
+        "graph_expansion_corner_reveal",
+        "same_category_discourse_shift",
         "sensor_inconsistency"
       ]
     },
@@ -119,11 +121,20 @@
               "why_preserved",
               "what_occludes",
               "previous_place",
-              "evidence_for"
+              "evidence_for",
+              "find_referent",
+              "resolve_ambiguous_referent"
             ]
           },
           "target_time": { "type": "number" },
-          "expected_answer_ref": { "type": "string" }
+          "expected_answer_ref": { "type": "string" },
+          "raw_text": { "type": ["string", "null"] },
+          "dialogue_history_ref": { "type": ["string", "null"] },
+          "route_history_ref": { "type": ["string", "null"] },
+          "active_context_ref": { "type": ["string", "null"] },
+          "intent_annotation_status": {
+            "enum": ["not_applicable", "unannotated", "human_annotated", "counterfactual_oracle"]
+          }
         },
         "additionalProperties": true
       }

@@ -1,0 +1,233 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/JingzeSun/Emboddied_Spatial_Memory/schemas/active_context.schema.json",
+  "title": "Task-Conditioned Active Context",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "context_id",
+    "belief_graph_id",
+    "belief_graph_version",
+    "timestamp",
+    "task",
+    "query",
+    "pose_context",
+    "candidate_referents",
+    "resolution",
+    "selection_effect",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.1" },
+    "context_id": { "type": "string", "minLength": 1 },
+    "belief_graph_id": { "type": "string", "minLength": 1 },
+    "belief_graph_version": { "type": "string", "minLength": 1 },
+    "timestamp": { "type": "number" },
+    "task": {
+      "type": "object",
+      "required": ["task_id", "task_type", "goal_text"],
+      "properties": {
+        "task_id": { "type": "string", "minLength": 1 },
+        "task_type": {
+          "enum": ["find_referent", "answer_spatial_query", "explain_revision"]
+        },
+        "goal_text": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "query": {
+      "type": "object",
+      "required": ["query_id", "raw_text", "target_description", "constraints"],
+      "properties": {
+        "query_id": { "type": "string", "minLength": 1 },
+        "raw_text": { "type": "string", "minLength": 1 },
+        "target_description": { "type": "string", "minLength": 1 },
+        "target_class": { "type": ["string", "null"] },
+        "dialogue_turn_id": { "type": ["string", "null"] },
+        "constraints": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/queryConstraint" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "pose_context": {
+      "type": "object",
+      "required": ["T_world_camera"],
+      "properties": {
+        "T_world_camera": {
+          "type": "array",
+          "minItems": 16,
+          "maxItems": 16,
+          "items": { "type": "number" }
+        },
+        "current_chart_id": { "type": ["string", "null"] },
+        "current_place_id": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "route_context": {
+      "type": ["object", "null"],
+      "properties": {
+        "route_id": { "type": "string" },
+        "recent_chart_ids": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "recent_transition_ids": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "last_turn": { "enum": ["left", "right", "straight", "unknown"] }
+      },
+      "additionalProperties": false
+    },
+    "candidate_referents": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/candidateReferent" }
+    },
+    "resolution": {
+      "type": "object",
+      "required": [
+        "state",
+        "selected_referent_id",
+        "clarification_question",
+        "candidate_distribution_retained"
+      ],
+      "properties": {
+        "state": {
+          "enum": ["resolved", "ranked_ambiguous", "clarification_required", "no_candidate"]
+        },
+        "selected_referent_id": { "type": ["string", "null"] },
+        "clarification_question": { "type": ["string", "null"] },
+        "candidate_distribution_retained": { "const": true },
+        "action_policy": {
+          "enum": ["act_on_top1", "ask_before_action", "return_ranked_candidates", "no_action"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "selection_effect": {
+      "type": "object",
+      "required": ["world_belief_unchanged", "persistent_memory_unchanged"],
+      "properties": {
+        "world_belief_unchanged": { "const": true },
+        "persistent_memory_unchanged": { "const": true }
+      },
+      "additionalProperties": false
+    },
+    "provenance": { "type": "object", "additionalProperties": true }
+  },
+  "$defs": {
+    "queryConstraint": {
+      "type": "object",
+      "required": [
+        "constraint_id",
+        "predicate",
+        "source",
+        "reference_frame",
+        "weight"
+      ],
+      "properties": {
+        "constraint_id": { "type": "string", "minLength": 1 },
+        "predicate": {
+          "enum": [
+            "near",
+            "on",
+            "above",
+            "below",
+            "next_to",
+            "between",
+            "inside",
+            "in_region",
+            "left_of",
+            "right_of",
+            "in_front_of",
+            "behind",
+            "closest",
+            "farthest",
+            "has_attribute",
+            "is_category",
+            "recently_mentioned",
+            "after_route_turn",
+            "in_current_place",
+            "recently_visible"
+          ]
+        },
+        "source": {
+          "enum": ["explicit_query", "discourse_inference", "route_context", "pose_context"]
+        },
+        "subject_variable": { "type": ["string", "null"] },
+        "object_description": { "type": ["string", "null"] },
+        "reference_frame": {
+          "type": "object",
+          "required": ["kind", "reference_id"],
+          "properties": {
+            "kind": {
+              "enum": ["world", "gravity", "chart", "entity", "camera_at_query", "route"]
+            },
+            "reference_id": { "type": ["string", "null"] }
+          },
+          "additionalProperties": false
+        },
+        "weight": { "type": "number", "minimum": 0, "maximum": 1 },
+        "provenance": { "type": "object", "additionalProperties": true }
+      },
+      "additionalProperties": false
+    },
+    "candidateReferent": {
+      "type": "object",
+      "required": [
+        "node_id",
+        "rank",
+        "score",
+        "score_factors",
+        "supporting_world_edge_ids",
+        "supporting_constraint_ids"
+      ],
+      "properties": {
+        "node_id": { "type": "string", "minLength": 1 },
+        "rank": { "type": "integer", "minimum": 1 },
+        "score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "score_factors": {
+          "type": "object",
+          "required": [
+            "semantic",
+            "explicit_relation",
+            "discourse_recency",
+            "route_alignment",
+            "current_place",
+            "recent_visibility",
+            "uncertainty_penalty"
+          ],
+          "properties": {
+            "semantic": { "type": "number", "minimum": 0, "maximum": 1 },
+            "explicit_relation": { "type": "number", "minimum": 0, "maximum": 1 },
+            "discourse_recency": { "type": "number", "minimum": 0, "maximum": 1 },
+            "route_alignment": { "type": "number", "minimum": 0, "maximum": 1 },
+            "current_place": { "type": "number", "minimum": 0, "maximum": 1 },
+            "recent_visibility": { "type": "number", "minimum": 0, "maximum": 1 },
+            "uncertainty_penalty": { "type": "number", "minimum": 0, "maximum": 1 }
+          },
+          "additionalProperties": false
+        },
+        "supporting_world_edge_ids": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true
+        },
+        "supporting_constraint_ids": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

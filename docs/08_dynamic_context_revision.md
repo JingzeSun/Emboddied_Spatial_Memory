@@ -38,14 +38,14 @@
 
 [
 delta_i=[
-delta_{	ext{geometry}},
-delta_{	ext{identity}},
-delta_{	ext{visibility}},
-delta_{	ext{motion}},
-delta_{	ext{relation}},
-C_{	ext{pose}},
-C_{	ext{measurement}},
-C_{	ext{association}}]
+delta_{\text{geometry}},
+delta_{\text{identity}},
+delta_{\text{visibility}},
+delta_{\text{motion}},
+delta_{\text{relation}},
+C_{\text{pose}},
+C_{\text{measurement}},
+C_{\text{association}}]
 ]
 
 所有 `delta` 都以 projected old belief 为参照，不能把 camera-coordinate 差异直接称为 world change。
@@ -187,17 +187,11 @@ copy-on-write 表示逻辑版本，不要求复制所有 tensor。实现可使�
 
 ## 10. Loss
 
-[
-mathcal L =
-mathcal L_{	ext{innovation}}
-+lambda_nmathcal L_{	ext{node-scope}}
-+lambda_emathcal L_{	ext{edge-scope}}
-+lambda_bmathcal L_{	ext{boundary}}
-+lambda_omathcal L_{	ext{operator}}
-+lambda_pmathcal L_{	ext{preserve}}
-+lambda_cmathcal L_{	ext{calibration}}
-+lambda_rmathcal L_{	ext{revision-cost}}
-]
+```text
+L_total = L_innovation + lambda_n L_node_scope + lambda_e L_edge_scope
+        + lambda_b L_boundary + lambda_o L_operator + lambda_p L_preserve
+        + lambda_c L_calibration + lambda_r L_revision_cost
+```
 
 Hard negatives 必须包含与 seed 相邻但不应修改的节点/边。
 
@@ -249,3 +243,35 @@ latency and memory cost
 8. learned controller。
 
 在 1–4 未通过前，不训练模型。
+
+## 13. v1.1 关系层与增长/修订边界
+
+关系按职责分层：
+
+| 层 | 例子 | 默认存储位置 | revision 语义 |
+|---|---|---|---|
+| structural | contains、supports、part_of、connects | SceneBelief | 可构成传播依赖 |
+| metric | near、above、below | SceneBelief 或几何派生 | 按 derivation 决定是否直接编辑 |
+| visibility | occludes、visible_from | Observation/SceneBelief state | 不自动等于存在性失效 |
+| temporal/version | same_track、supersedes、validity | SceneBelief | 不变量与追溯 |
+| query/discourse | current focus、route recency、camera left/right | ActiveContext | 不写入长期世界事实 |
+
+每条方向关系必须有 reference frame。camera-relative `left/right/front/behind` 默认不作为持久边。
+
+### Graph expansion
+
+`graph_expansion` 的 scope 是 created nodes/edges 与 attachment boundary；它不以关闭旧事实为目标。转弯后新表面/区域只有在 pose/chart 对齐和几何连续性证据充分时才提交 `continuation_of/adjacent_to/connects`。
+
+### Belief revision
+
+`belief_revision` 从旧 belief 的冲突 seed 出发，沿 operator-specific dependency 传播，输出 affected/control/stop 与版本化操作。
+
+### 停止规则的标注形式
+
+若存在多条等价的最小停止 cut，使用以下任一方式：
+
+1. 列出 accepted stop sets；
+2. 按 target graph invariant 和 collateral cost 判分；
+3. 把唯一性不足的样本标为 `ambiguous_scope`，不用于 hard-label 训练。
+
+关系语义未由 D-015 冻结前，R1B 只用于合同讨论，不计作已经拥有 ground truth。

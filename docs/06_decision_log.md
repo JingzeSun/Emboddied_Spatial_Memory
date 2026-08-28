@@ -99,6 +99,38 @@
 - 数据使用：迁移发生在 pre-implementation 阶段，没有使用 test 结果改变问题、阈值或成功门槛。
 - 影响：archive 为 superseded/只读；当前规范入口是 `09`、`03`、`configs/mvp.yaml` 和 `schemas/`。
 
+## D-013 — 图增长、世界修订与任务指代分层
+
+- 日期：2026-08-28
+- 状态：accepted
+- 用户确认：将转弯后新发现节点/关系、同类多实例与对话指代偏置落实到当前关系设想；导师推荐论文确认为 FARM，而非 ODIN。
+- 背景：新帧可能只是揭示此前未观测区域，也可能反证旧 belief；用户当前更想找哪个同类实例，还可能只改变任务语境。三者若共用一种“更新”，会把图增长误当纠错，或让对话偏好污染长期世界事实。
+- 决策：
+  1. `graph_expansion` 只新增可靠观测到的节点/边，并通过显式 attachment 连接既有 Chart/region/subgraph；未观测区域不预先写成虚构世界节点；
+  2. `belief_revision` 只在新证据支持冲突、状态变化或关系失效时关闭、重连或 supersede 旧版本；
+  3. `ActiveContext` 保存任务、位姿、路线和对话条件下的候选指代分布；排序变化不删除 `SceneBelief/PersistentWorldMemory` 中未被选中的同类实例；
+  4. world、observation/pose、temporal/version 与 query/discourse relation 分层；`left/right/front/behind` 必须带 reference frame，camera-relative 关系默认只在 ObservationGraph/ActiveContext 中派生；
+  5. 歧义较大且行动代价不等价时请求澄清，不把 top-1 猜测提交为世界事实。
+- FARM 影响：FARM 已覆盖在线对象级记忆、关系谓词检索、同类实例候选排序和 top-K 保留；这些能力只作接口、baseline 与 novelty boundary，不能单独作为本项目核心贡献。FARM 截至本日仅核验到 arXiv/项目页/代码，按 D-009 记为 novelty watch，不作为同行评审事实基石。
+- 合同影响：方法、实验、数据、配置、图 schema、ActiveContext schema、论文蓝图和文献定位升级到 v1.1；增加 corner reveal 与 two-box discourse fixtures/指标。
+- 是否接触 test 信息：否；项目仍为 pre-implementation，修改来自概念场景和文献核验。
+- 验证方式：手写 graph-expansion 与双木箱对话 fixtures；分别评测 attachment、candidate recall/ranking、clarification 与 world-belief preservation；主 revision claim 仍由 E1/E2/E4/E5/E7 证据决定。
+
+## D-014 — 渐进式研究阶段与门禁成为唯一执行主线
+
+- 日期：2026-08-28
+- 状态：accepted
+- 用户确认：现有信息过于散落；应按“问题/论文痛点 → 创新概念与定义 → 大场景 → WBS → 初步实验 → 分场景训练 → 正式评测/论文/复现”层进组织，并补齐初学者尚不熟悉的后续科研步骤。
+- 决策：
+  1. 根目录 `START_HERE.md` 成为唯一阶段入口，定义 S0–S8 和 G1–G8；
+  2. `09` 只保留论文级问题、核心方法、优先级与 claim-evidence 链；
+  3. `12` 负责 `claim → use case → scenario → fixture → work package`，每项含输入、产物、依赖、验收与反证；
+  4. 在 oracle/deterministic G3 通过前不训练 learned controller；训练按 innovation、scope/operator、association uncertainty、noisy perception 分阶段去掉 oracle；
+  5. verification（是否按合同实现）与 validation（是否解决预定动态场景）分别记录；正式 test 只在主张、配置、阈值和 checkpoint 冻结后运行。
+- 性质：研究治理与执行顺序调整，不改变 D-008/D-013 的核心方法主张。
+- 是否接触 test 信息：否；项目仍无正式实现或实验结果。
+- 影响：README、索引、蓝图、WBS、实现路线、检查清单、实验/数据合同和论文写作均按阶段门禁引用；旧合同仍在 archive/Git 中可追溯。
+
 ## 新决策模板
 
 ```text

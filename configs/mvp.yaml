@@ -1,6 +1,6 @@
-# Current D-008 MVP contract. TODO values must be frozen on validation before formal test runs.
+# Current D-013 MVP contract. TODO values must be frozen on validation before formal test runs.
 contract:
-  version: "1.0"
+  version: "1.1"
   blueprint: docs/09_integrated_direction_plan.md
   experiment_contract: docs/03_experiment_contract.md
 
@@ -27,6 +27,8 @@ data:
     - removed_from_scene
     - out_of_fov
     - irrelevant_innovation
+    - graph_expansion_corner_reveal
+    - same_category_discourse_shift
     - sensor_inconsistency
 
 inputs:
@@ -57,10 +59,24 @@ graph:
     - located_in
     - contains
     - supports
+    - adjacent_to
+    - connects
+    - part_of
+    - continuation_of
+    - overlaps
     - near
+    - above
+    - below
     - occludes
     - participates_in
     - same_track
+  observation_or_query_only_directional_relations:
+    - left_of
+    - right_of
+    - in_front_of
+    - behind
+  require_relation_reference_frame: true
+  forbid_camera_relative_edges_in_persistent_memory: true
   chart_place_split_merge: false
   versioned: true
   store_provenance: true
@@ -90,6 +106,13 @@ innovation:
     - conflict
     - ambiguous
     - sensor_inconsistent
+  modes:
+    - reinforcement
+    - graph_expansion
+    - belief_revision
+    - visibility_update
+    - association_ambiguity
+    - sensor_inconsistency
   reliable_absence_thresholds: null  # TODO: validation only
 
 revision:
@@ -115,6 +138,12 @@ memory:
   consolidation: multi_evidence
   latent_state: normalized_ema  # low-level baseline; ablate bounded_prototypes
   active_context_selection: task_pose_conditioned
+  active_context_schema: schemas/active_context.schema.json
+  preserve_nonselected_referents: true
+  query_relations_are_ephemeral: true
+  discourse_and_route_bias_world_belief: false
+  clarification_policy: ask_when_ambiguity_is_action_relevant
+  referent_resolution_thresholds: null  # TODO: validation only
   person_identity_scope: episode_track
 
 baselines:
@@ -126,6 +155,8 @@ baselines:
   - full_graph_recomputation
   - oracle_affected_subgraph
   - deterministic_predicted_scope
+  - farm_style_relational_retrieval
+  - farm_style_fuse_merge
 
 evaluation:
   primary_metrics:
@@ -139,7 +170,13 @@ evaluation:
     - preservation_accuracy
     - collateral_revision_rate
     - revision_latency
+    - graph_attachment_precision
+    - graph_attachment_recall
     - context_query_accuracy
+    - referent_candidate_recall_at_k
+    - referent_accuracy_at_1
+    - clarification_calibration
+    - nonselected_referent_preservation
     - edited_node_ratio
   calibration_metrics:
     - expected_calibration_error

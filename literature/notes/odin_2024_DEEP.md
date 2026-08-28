@@ -156,4 +156,4 @@ re-segment the selected multi-view set
 - Sec. 4.6：pose/depth 依赖、2D/3D 训练竞争和扩展限制。
 - Appendix A.4–A.5：context-view 数量曲线与 inference time。
 - Appendix B：随机帧间隔、分辨率、interpolation、depth hole filling 和 AI2THOR 数据采集。
-- 未解决歧义：用户转述为“Stanford 和 Berkeley 的 ODIN1”；截至 2026-08-28，本文官方作者单位为 CMU、Stanford、Microsoft。若导师指的是另一篇同名工作，应以导师原链接重新建条目，不把两者合并。
+- 歧义已解决：导师推荐的 Berkeley/Stanford 论文是 FARM，而不是 ODIN。本文仍保留为已同行评审的 cross-view perception 基石；两篇工作不得合并引用。

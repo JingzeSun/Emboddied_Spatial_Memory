@@ -1,6 +1,6 @@
 # 方法与接口规范
 
-> 合同版本：v1.0
+> 合同版本：v1.1
 > 状态：接口已冻结用于 MVP；尚未实现或验证
 > 上位蓝图：`09_integrated_direction_plan.md`
 
@@ -136,9 +136,9 @@ semantic + track + depth ordering ──> actor/occlusion evidence
 对 observation node (i) 和 projected belief node (j)：
 
 [
-s_{ij}=w_gs_{	ext{geometry}}+w_ps_{	ext{projection}}+
-w_zs_{	ext{latent}}+w_ss_{	ext{semantic}}+
-w_ts_{	ext{temporal}}
+s_{ij}=w_gs_{\text{geometry}}+w_ps_{\text{projection}}+
+w_zs_{\text{latent}}+w_ss_{\text{semantic}}+
+w_ts_{\text{temporal}}
 ]
 
 输出不只是最佳匹配，还包括：
@@ -283,16 +283,11 @@ Consolidation 失败不删除 belief candidate，而是保留原因。
 
 ## 12. 训练目标
 
-[
-mathcal L=
-mathcal L_{	ext{innovation}}
-+lambda_smathcal L_{	ext{scope}}
-+lambda_omathcal L_{	ext{operator}}
-+lambda_rmathcal L_{	ext{relation}}
-+lambda_kmathcal L_{	ext{preserve}}
-+lambda_cmathcal L_{	ext{calibration}}
-+lambda_{	ext{cost}}mathcal L_{	ext{revision-cost}}
-]
+```text
+L_total = L_innovation + lambda_s L_scope + lambda_o L_operator
+        + lambda_r L_relation + lambda_k L_preserve
+        + lambda_c L_calibration + lambda_cost L_revision_cost
+```
 
 `revision-cost` 不能单独优化，否则“不修改”会成为退化解。所有权重仅用 train/validation 数据选择。
 
@@ -326,3 +321,75 @@ src/
 - duplicate entity 与错误 merge；
 - full graph 被隐式重新编码；
 - controller 低置信时仍提交长期写入。
+
+## 15. v1.1 规范覆盖层
+
+本节覆盖前文中与 D-013 不一致或未展开的字段；其余基础算法合同继续有效。
+
+### 15.1 Innovation 双层类型
+
+`category` 描述 observation/belief 对齐证据，`innovation_mode` 描述应进入哪条状态路径：
+
+```text
+Innovation = {
+  innovation_id,
+  category,          # matched/new/occluded/reliably_absent/conflict/ambiguous/sensor_inconsistent
+  innovation_mode,   # reinforcement/graph_expansion/belief_revision/
+                     # visibility_update/association_ambiguity/sensor_inconsistency
+  observation_node_ids,
+  belief_node_ids,
+  geometry_delta,
+  identity_delta,
+  visibility_delta,
+  relation_deltas,
+  evidence_reliability,
+  causal_scores,
+  provenance
+}
+```
+
+`new` 不自动等于 `belief_revision`；它通常触发 `graph_expansion`。`reliably_absent/conflict` 才可能在证据充分时触发 revision。
+
+### 15.2 ContextDelta 增长字段
+
+除 affected/control/stop 外，v1.1 增加：
+
+```text
+created_node_ids
+created_edge_ids
+attachment_node_ids
+```
+
+graph expansion 主要使用 created/attachment；belief revision 主要使用 affected/stop/operators。一个复合帧可同时产生多种 innovation，但不同操作仍需可分解评测。
+
+### 15.3 Relation 与 reference frame
+
+`BeliefEdge` 必须包含：
+
+```text
+relation_family    # structural/metric/visibility/event/temporal
+reference_frame   # world/gravity/chart/entity + reference_id
+derivation         # stored_evidence/derived_from_geometry/aggregated_observation
+```
+
+`left_of/right_of/in_front_of/behind` 默认是 observation/query-time camera-relative relation，只能在 `ObservationGraph/ActiveContext` 中派生；若提交到世界 belief，必须转换到稳定 reference frame。`near/above/located_in` 是否存储或派生由 D-015 冻结。
+
+### 15.4 ActiveContext 输出
+
+```text
+ActiveContext = {
+  belief_version,
+  task_pose_route_dialogue_refs,
+  candidate_referents: [{entity_id, score, factor_breakdown, relation_evidence}],
+  selected_entity_id,
+  decision: select | keep_ranked | ask_clarification,
+  ambiguity,
+  provenance
+}
+```
+
+选择或排序不会触发 `INVALIDATE/SUPERSEDE`。双木箱中两个 entity 必须继续存在，除非另有世界证据。
+
+### 15.5 实现门禁
+
+先按 `12` 完成机器 fixture，再实现 deterministic executor。只有 oracle scope 同时优于 local-slot 的漏改和 full-graph 的多改，才训练 learned controller。

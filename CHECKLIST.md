@@ -1,158 +1,68 @@
-# Affected-Subgraph Revision 推进清单
+# 当前推进清单
 
-> 当前蓝图：`docs/09_integrated_direction_plan.md`
-> 实验合同：`docs/03_experiment_contract.md`
-> 旧清单：`docs/archive/pre_d008/CHECKLIST.md`
+> 阶段入口：[`START_HERE.md`](START_HERE.md)
+>
+> 论文蓝图：[`docs/09_integrated_direction_plan.md`](docs/09_integrated_direction_plan.md)
+>
+> 场景合同：[`docs/12_use_case_and_fixture_contract.md`](docs/12_use_case_and_fixture_contract.md)
 
-每项必须有“产物 + 验收”。不得因为模型训练更显眼而跳过 contract、oracle、executor 和 metrics。
+每项必须有“产物 + 验收”。状态只用：`[x] 已完成`、`[ ] 未完成`；计划不得写成已验证结果。
 
-## P0 — 方向与合同迁移
+## 当前：S1/S2 概念与场景合同
 
-- [x] 接受 D-008/D-010。
-  - 产物：决策日志、当前蓝图。
-  - 验收：项目不再同时存在两个现行主问题。
+- [x] 接受 Pose-Aware Structured Innovation + Affected-Subgraph Revision 主线。
+- [x] 区分 graph expansion、belief revision、visibility update、association ambiguity 与 ActiveContext update。
+- [x] 明确 FARM 是 novelty watch/接口/基线，不是核心创新来源。
+- [x] 建立渐进式研究阶段 S0–S8 与 G1–G8 门禁。
+- [x] 建立场景 WBS 和 fixture 通用字段。
+- [ ] 人工确认六项 ground-truth 语义。
+  - 产物：D-015 或后续决策日志。
+  - 验收：identity、relation derivation、propagation、absence、stop、clarification 均无歧义。
+- [ ] 写五个 P0 revision fixtures 和两个 P1 extension fixtures。
+  - 产物：`tests/fixtures/` 或先放 `data/pilot_fixtures/`。
+  - 验收：每项含正例、单因素反例、control、expected graph 与 falsifier。
+- [ ] 完成合同一致性复核。
+  - 产物：schema/config/docs link audit。
+  - 验收：v1.1 字段、枚举、文档职责无冲突。
 
-- [x] 归档 pre-D008 合同。
-  - 产物：`docs/archive/pre_d008/`。
-  - 验收：旧文件明确 superseded，source artifacts 未动。
+## 下一步：S3 无学习 pilot
 
-- [x] 重建现行 01–09 合同。
-  - 产物：研究、方法、实验、数据、Related Work、记忆边界与算法规范。
-  - 验收：所有文件以 affected-subgraph revision 为主线。
+- [ ] 建立 Python 工程、锁文件和 test/lint 命令。
+- [ ] 实现五类 schema-backed typed contracts。
+- [ ] 实现 immutable/versioned graph store。
+- [ ] 实现 typed deterministic delta executor。
+- [ ] 实现 fixture loader 与 exact/invariant evaluator。
+- [ ] 实现 scope/propagation/preservation/stop/cost 指标。
+- [ ] 跑 E0 schema/executor wiring。
+- [ ] 跑 E1 单点 relocation/absence/occlusion。
+- [ ] 跑 E2 relation cascade/irrelevant innovation。
+- [ ] 形成 G3 Go/No-Go 报告。
 
-- [x] 更新配置与 schema。
-  - 产物：`configs/mvp.yaml`、四个 current schemas。
-  - 验收：JSON 可解析，配置与合同枚举一致。
+G3 未通过时：修订概念、关系本体或 executor，不开始训练。
 
-- [x] 更新论文与文献综合。
-  - 产物：`docs/11_paper_blueprint.md`、current cross-paper synthesis、PPT content。
-  - 验收：不再把抗污染、双记忆或动态对象槽当主创新。
+## G3 通过后：S4 训练
 
-## P1 — Deterministic Vertical Slice
+- [ ] T1 innovation classifier/calibration。
+- [ ] T2 affected node/edge、operator、stop heads。
+- [ ] T3 association ambiguity/quarantine。
+- [ ] T4 noisy perception adapter。
+- [ ] T5 multi-scenario curriculum。
+- [ ] validation 上比较 deterministic/learned/hybrid。
 
-- [ ] 建立 Python 工程。
-  - 做什么：创建 package、lockfile、test/lint 命令。
-  - 产物：`pyproject.toml` 或等价环境文件。
-  - 验收：新环境一条命令运行 tests。
+## S5–S8 正式研究流程
 
-- [ ] 实现 schema-backed contracts。
-  - 做什么：BeliefGraph、ObservationGraph、ContextDelta typed records 与 JSON validation。
-  - 产物：`src/.../contracts/`。
-  - 验收：合法样例 round-trip；非法 version、ID、enum 被拒绝。
-
-- [ ] 实现版本化图执行器。
-  - 做什么：八个 typed operators、copy-on-write/transaction、invariants、quarantine。
-  - 产物：`src/.../revision/executor.*`。
-  - 验收：before/after/version/provenance exact match。
-
-- [ ] 建立四类 micro fixtures。
-  - 做什么：人遮挡门、长期静止的人、椅子可见搬迁、旧址可靠缺席。
-  - 产物：`tests/fixtures/`。
-  - 验收：preserve/update/isolate 均有正例与反例。
-
-- [ ] 实现 revision metrics。
-  - 做什么：delta P/R、scope F1、propagation、preservation、collateral、cost。
-  - 产物：`src/.../evaluation/` 与单元测试。
-  - 验收：故意漏改、多改、越界、空预测时相应指标恶化。
-
-- [ ] 跑 E0。
-  - 产物：oracle wiring 报告。
-  - 验收：micro fixtures exact graph match；控制子图无变化。
-
-## P2 — Geometry 与 Observation
-
-- [ ] 实现 SE(3)、projection、frustum 和 visibility。
-  - 验收：合成点/平面 round-trip；occluded/out-of-FOV/reliably-absent 可分。
-
-- [ ] 实现 ObservationGraph builder。
-  - 做什么：连接 RGB/depth/pose、region/object、latent、motion、visibility evidence。
-  - 验收：每个字段有 source/confidence，不把估计值称 ground truth。
-
-- [ ] 实现 expected-observation projection。
-  - 验收：只读取当前 frustum/Chart 候选，不扫描完整历史。
-
-- [ ] 实现 gated association。
-  - 验收：输出候选、歧义和 unmatched，不只输出一个 ID。
-
-## P3 — Structured Innovation
-
-- [ ] 实现 deterministic innovation。
-  - 验收：八类 innovation 在 micro/simulator fixtures 可触发。
-
-- [ ] 冻结 reliably-absent 证据政策。
-  - 做什么：人工定义证据类别，数值阈值只用 validation。
-  - 验收：unknown 不被写成 removal 或虚构位置。
-
-- [ ] 跑 E1。
-  - 验收：相同输入下与 feature residual/dynamic score 公平比较。
-
-## P4 — Affected Subgraph
-
-- [ ] 实现 deterministic seed/propagate/stop。
-  - 验收：operator-specific relation propagation 可视化。
-
-- [ ] 实现 B1–B7。
-  - 验收：共享输入、初始 belief、数据和指标。
-
-- [ ] 跑 E2/E5。
-  - 验收：oracle scope 优于 local slot；deterministic scope 有明确上限/失败。
-
-- [ ] 实现 graph-size/history-length sweep。
-  - 验收：能够识别隐式 full recomputation。
-
-## P5 — Simulator 与 Learned Controller
-
-- [ ] 选择 controlled synthetic 数据源。
-  - 验收：许可证、pose/depth、visibility、world state 和编程接口已核验。
-
-- [ ] 实现 state diff → ContextDelta mapper。
-  - 验收：映射有 revision ID、人工抽检和歧义记录。
-
-- [ ] 建 D1/D2 pilot。
-  - 验收：counterfactual group 不跨 split，所有 oracle 可重放。
-
-- [ ] 实现 GNN/graph Transformer controller。
-  - 验收：输出 node/edge scope、stop、operator、confidence。
-
-- [ ] 跑 E3/E4/E6。
-  - 验收：stationary actor、relocation/absence/occlusion 和 sensor noise 分层报告。
-
-## P6 — Query、正式合同与实验
-
-- [ ] 实现 structured context query。
-  - 验收：答案包含 belief version 与 evidence trace。
-
-- [ ] 冻结正式数据规模、阈值和成功门槛。
-  - 产物：experiment contract v1.1 或 v2.0、split hash。
-  - 验收：未查看 test 结果。
-
-- [ ] 跑 E0–E8、主基线和消融。
-  - 验收：保存 per-episode raw outputs、置信区间、失败和缺失数据。
-
-- [ ] 复核 novelty-watch 状态。
-  - 验收：Related Work 没有把预印本写成同行评审共识。
-
-## P7 — 论文
-
-- [ ] 生成主架构图。
-  - 验收：同时显示 projection、innovation、affected/control/stop、delta 和 revised belief。
-
-- [ ] 生成四张主表。
-  - 验收：claim—metric—baseline—ablation 一一对应。
-
-- [ ] 冻结 contributions。
-  - 验收：任何失败的 claim 被删除或降级。
-
-- [ ] 写失败与限制。
-  - 验收：报告 pose/depth、ontology、annotation、open-world unknown、Chart/Place deferred。
-
-- [ ] 发布前复现审计。
-  - 验收：新环境能重放至少一个完整 revision run 和对应图表。
+- [ ] 仿真、感知噪声、长序列、真实序列分层验证。
+- [ ] 接口公平时运行 FARM-style 外部基线。
+- [ ] 冻结 claim-evidence map、配置、split、阈值、种子和 checkpoint。
+- [ ] 正式 test 只按冻结协议运行；失败结果完整保存。
+- [ ] 写论文、局限、负结果和复现说明。
+- [ ] 干净环境重放关键实验。
+- [ ] 发布 schema、fixtures、配置、评测器与基线。
 
 ## 每周记录
 
 1. 本周关闭了哪个可证伪问题？
-2. 哪个结果支持或反驳哪个假设？
-3. 是否改变 contract/schema/split/threshold？
+2. 哪个结果支持或反驳哪条假设？
+3. 是否改变 contract/schema/split/threshold，原因是什么？
 4. 是否接触 test 信息？
 5. 下周最短可运行 vertical slice 是什么？

@@ -179,3 +179,34 @@ projection、structured innovation、relation propagation、stop boundary、vers
 - Related Work 状态复核；
 - 主图可以从真实 run log 自动生成；
 - contributions 每条都有预注册实验。
+
+## 13. v1.1 论文范围与写作门禁
+
+### 核心故事
+
+论文主线只围绕：
+
+```text
+pose-aware structured innovation
+  → affected relation scope/operator/stop
+  → deterministic versioned execution
+  → necessary propagation + unrelated preservation
+```
+
+graph expansion 和 ActiveContext 是系统边界/扩展实验，不与主贡献并列。若它们尚未达到 G5，可只作为 method interface、case study 或 future work。
+
+### FARM 边界
+
+FARM 已覆盖 online object memory、relational predicates、soft ranking 和 top-K candidate retention。因此论文不得把这些能力写成首创；FARM 当前只按 preprint/novelty watch 描述，投稿前重新核验同行评审状态。
+
+### 写作门禁
+
+| 阶段 | 允许写什么 |
+|---|---|
+| S1/S2 | problem formulation、concept contract、planned evaluation |
+| S3 | oracle/deterministic mechanism feasibility，不写学习性能 |
+| S4/S5 | validation 上的模型和系统结果，明确数据范围 |
+| S6 | 冻结后的正式 test claims |
+| S7 | 完整 limitations、negative results、reproducibility |
+
+每条 contribution 必须链接到冻结的 experiment、metric、baseline、ablation 和 falsifier。自动估计或模型评审不能称为 ground truth。

@@ -9,6 +9,9 @@
     "base_graph_version",
     "observation_graph_ref",
     "innovations",
+    "created_node_ids",
+    "created_edge_ids",
+    "attachment_node_ids",
     "affected_node_ids",
     "affected_edge_ids",
     "propagation_stop_edge_ids",
@@ -19,7 +22,7 @@
     "provenance"
   ],
   "properties": {
-    "schema_version": { "const": "1.0" },
+    "schema_version": { "const": "1.1" },
     "delta_id": { "type": "string", "minLength": 1 },
     "base_graph_version": { "type": "string", "minLength": 1 },
     "target_graph_version": { "type": ["string", "null"] },
@@ -28,6 +31,21 @@
       "type": "array",
       "minItems": 1,
       "items": { "$ref": "#/$defs/innovation" }
+    },
+    "created_node_ids": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "created_edge_ids": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "attachment_node_ids": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
     },
     "affected_node_ids": {
       "type": "array",
@@ -65,6 +83,7 @@
       "required": [
         "innovation_id",
         "category",
+        "innovation_mode",
         "observation_node_ids",
         "belief_node_ids",
         "evidence_reliability",
@@ -82,6 +101,16 @@
             "conflict",
             "ambiguous",
             "sensor_inconsistent"
+          ]
+        },
+        "innovation_mode": {
+          "enum": [
+            "reinforcement",
+            "graph_expansion",
+            "belief_revision",
+            "visibility_update",
+            "association_ambiguity",
+            "sensor_inconsistency"
           ]
         },
         "observation_node_ids": { "type": "array", "items": { "type": "string" } },

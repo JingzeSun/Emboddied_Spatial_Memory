@@ -1,6 +1,6 @@
 # 数据集、Episode 与 Oracle Delta 规范
 
-> 合同版本：v1.0
+> 合同版本：v1.1
 > 状态：accepted for pilot；正式数据规模待 pilot 后冻结
 > 机器契约：`schemas/episode.schema.json`
 
@@ -213,3 +213,56 @@ pilot 完成后才冻结规模、场景比例、noise sweep、query 数量和正
 ```
 
 仓库只保存 schema、生成/验证脚本、小型 manifest 与无版权问题的 micro fixtures。
+
+## 13. v1.1 数据与标注扩展
+
+### 13.1 新事件族
+
+在 counterfactual history group 中增加：
+
+- `graph_expansion_corner_reveal`；
+- `same_category_discourse_shift`。
+
+graph expansion 需要记录此前可见范围/已建图边界、新节点和 attachment oracle。双木箱场景需要记录 route event、dialogue history、current pose/place、两实例 world identity 以及人工/反事实 intent 标注状态。
+
+### 13.2 v1.1 Oracle Delta
+
+每个 delta 增加：
+
+```text
+innovation_mode
+created_node_ids
+created_edge_ids
+attachment_node_ids
+control_node_ids/control_edge_ids
+propagation_stop_edge_ids
+allowed_equivalence_class
+```
+
+`allowed_equivalence_class` 用于存在多个最小正确编辑集合时按 target invariant 判分，避免把研究者任意选择当唯一 ground truth。
+
+### 13.3 ActiveContext 标注
+
+ActiveContext 样本至少包含：
+
+```text
+query raw text
+candidate entity ids
+route/dialogue/current-place factors
+oracle or human intent annotation status
+expected ranking or accepted ranking set
+clarification-required label and action cost
+nonselected world entities that must remain preserved
+```
+
+用户意图不是 simulator world ground truth。除人工标注或严格控制的 counterfactual 指令外，只能称 annotation/estimate。
+
+### 13.4 Fixture 优先级
+
+正式大数据生成前先完成：
+
+- P0：R1A、R1B、R2A、R2B、R3A、R4A；
+- P1：X1A、X2A；
+- 每项至少一个正例、单因素反例和无关 control。
+
+完整字段与示例见 `12_use_case_and_fixture_contract.md`。只有 G2/G3 通过后才冻结 D1–D3 的样本规模。

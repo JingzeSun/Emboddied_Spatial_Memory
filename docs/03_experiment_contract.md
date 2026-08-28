@@ -1,6 +1,6 @@
 # Affected-Subgraph Revision 实验合同
 
-> 合同版本：v1.0
+> 合同版本：v1.1
 > 状态：accepted for pilot；正式成功阈值尚未冻结
 > 生效日期：2026-08-27
 > 旧合同：`archive/pre_d008/03_experiment_contract.md`
@@ -114,24 +114,12 @@ same scene + same initial belief + aligned camera/action trajectory
 
 设 oracle 必要编辑集合为 (G)，预测编辑集合为 (P)：
 
-[
-	ext{DeltaPrecision}=|Pcap G|/|P|,qquad
-	ext{DeltaRecall}=|Pcap G|/|G|
-]
-
-[
-	ext{CollateralRevisionRate}=
-rac{|	ext{changed control nodes/edges}|}
-{|	ext{control nodes/edges}|}
-]
-
-[
-	ext{PropagationCompleteness}=
-rac{|	ext{required propagated edits completed}|}
-{|	ext{required propagated edits}|}
-]
-
-另报告：
+```text
+DeltaPrecision = |P intersection G| / |P|
+DeltaRecall = |P intersection G| / |G|
+CollateralRevisionRate = |changed control nodes/edges| / |control nodes/edges|
+PropagationCompleteness = |required propagated edits completed| / |required propagated edits|
+```
 
 - node/edge scope F1；
 - operator macro-F1；
@@ -216,3 +204,69 @@ failure_case_refs
 ```
 
 失败、中断、缺失数据和不支持假设的结果都必须记录。
+
+## 11. v1.1 场景、基线与门禁扩展
+
+本节与 `START_HERE.md`、`12_use_case_and_fixture_contract.md` 共同构成当前 pilot 合同。旧 E0–E8 编号保留；以下内容为增量规范。
+
+### 11.1 新增 counterfactual conditions
+
+```text
+graph_expansion_corner_reveal
+same_category_discourse_shift
+```
+
+它们分别评测 graph attachment 与 ActiveContext，不并入 P0 revision 主指标，避免用扩展/检索表现替代动态修订证据。
+
+### 11.2 新增机制型基线
+
+| ID | 基线 | 用途 |
+|---|---|---|
+| B9 | FARM-style relational retrieval | 检查 relation predicate + soft top-K 是否已足够解决同类指代 |
+| B10 | FARM-style fuse/merge | 检查累积融合/合并在 relocation、absence 与错误 association 下的污染 |
+| B11 | Recency-only ActiveContext | 检查路线/对话因素是否优于简单最近出现 |
+
+FARM 当前为 `novelty_watch_only`；若官方代码不能在共同输入上公平运行，B9/B10 使用机制等价实现并明确披露，不伪称复现官方结果。
+
+### 11.3 E0–E8 的执行分层
+
+- **S3/G3 mechanism pilot**：E0、E2 的 oracle scope、E4 的人工图版本、E5；
+- **S4/G4 learnability**：E1、predicted E2、E3/E4 learned controller；
+- **S5/G5 system validation**：E6、E7、真实 perception 与长序列；
+- **下游扩展**：E8、graph expansion attachment、two-box ActiveContext。
+
+### 11.4 扩展指标
+
+graph expansion：
+
+- graph attachment precision/recall；
+- created-node/edge validity；
+- false revision rate。
+
+ActiveContext：
+
+- referent candidate recall@K；
+- referent accuracy@1；
+- clarification calibration / expected action cost；
+- nonselected-referent preservation；
+- factor/evidence trace accuracy。
+
+relation scope：
+
+- stop-edge precision/recall；
+- required propagation recall；
+- control-subgraph preservation；
+- outcome invariant accuracy（用于多种最小正确 delta）。
+
+### 11.5 G3 Go/No-Go
+
+进入学习阶段前，除第 8 节原条件外必须满足：
+
+1. 每个 P0 fixture 有正例、单因素反例和 control；
+2. relation derivation 与 stop truth 无未决语义，或已定义等价类评分；
+3. B6 比 B4 少漏必要关系，且比 B5 少无关修改；
+4. graph expansion 不触发无依据的旧事实失效；
+5. two-box query 的候选排序不删除任一 world entity；
+6. 失败可归因于 perception、association、innovation、scope 或 executor 中的具体模块。
+
+若 G3 失败，回到 S1/S2，不通过增加模型容量绕过。

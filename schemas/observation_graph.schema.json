@@ -14,7 +14,7 @@
     "provenance"
   ],
   "properties": {
-    "schema_version": { "const": "1.0" },
+    "schema_version": { "const": "1.1" },
     "episode_id": { "type": "string", "minLength": 1 },
     "frame_id": { "type": "string", "minLength": 1 },
     "timestamp": { "type": "number" },
@@ -60,13 +60,48 @@
     },
     "edge": {
       "type": "object",
-      "required": ["observation_edge_id", "source_id", "target_id", "relation_type", "confidence"],
+      "required": [
+        "observation_edge_id",
+        "source_id",
+        "target_id",
+        "relation_type",
+        "relation_family",
+        "reference_frame",
+        "confidence"
+      ],
       "properties": {
         "observation_edge_id": { "type": "string", "minLength": 1 },
         "source_id": { "type": "string", "minLength": 1 },
         "target_id": { "type": "string", "minLength": 1 },
         "relation_type": {
-          "enum": ["located_in", "contains", "supports", "near", "occludes", "participates_in", "same_track"]
+          "enum": [
+            "located_in",
+            "contains",
+            "supports",
+            "adjacent_to",
+            "continuation_of",
+            "near",
+            "above",
+            "below",
+            "left_of",
+            "right_of",
+            "in_front_of",
+            "behind",
+            "occludes",
+            "same_track"
+          ]
+        },
+        "relation_family": {
+          "enum": ["structural", "metric", "visibility", "temporal"]
+        },
+        "reference_frame": {
+          "type": "object",
+          "required": ["kind", "reference_id"],
+          "properties": {
+            "kind": { "enum": ["current_camera", "world", "gravity"] },
+            "reference_id": { "type": ["string", "null"] }
+          },
+          "additionalProperties": false
         },
         "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
         "evidence": { "type": "object", "additionalProperties": true }

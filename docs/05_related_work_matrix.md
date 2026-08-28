@@ -1,6 +1,6 @@
 # Related Work 与论文定位
 
-> 方向版本：D-008 accepted
+> 方向版本：D-013 accepted
 > 状态复核：2026-08-28
 > 准入规则：`literature/peer_review_audit.md`
 
@@ -153,3 +153,23 @@ ODIN 与本项目表面上都让新帧在共享 3D 空间中从旧视图取义�
 3. 每个贡献是否有对应 baseline、metric 和 ablation；
 4. 是否把 perception/backbone 收益与 revision mechanism 分开；
 5. 是否报告 concurrent work、失败案例和不支持假设的结果。
+
+## 10. FARM 精读后的定位修订
+
+截至 2026-08-28，FARM 只有 arXiv/项目页/代码/CoRR 条目，属于 `novelty_watch_only`，不是同行评审事实基石。
+
+| 维度 | FARM 已覆盖 | 本项目仍需单独证明 |
+|---|---|---|
+| 在线记忆 | detect/lift/associate/fuse、新 entity 初始化 | 冲突证据下的版本化 belief revision |
+| 关系 | 固定谓词和 query-time soft relation | operator-specific dependency propagation |
+| 同类实例 | semantic candidates、top-K、VLM rerank | world instances 保留与 ActiveContext 分层 |
+| 更新范围 | association/fusion 邻域 | affected/control/stop 监督和 collateral metric |
+| 方向关系 | 保存视图中的 camera-relative 判断 | reference frame 合同与长期写入约束 |
+| 失败恢复 | union-find merge 与累积融合 | ambiguity/quarantine/supersedes/reversible execution |
+
+因此新增两类使用方式：
+
+1. FARM-style mapper/retrieval 作为可替换接口和 E8 外部/机制基线；
+2. FARM-style fuse/merge 作为 relocation、absence、错误 merge 的污染对照。
+
+不得声称首次 online relational object memory、首次同类 top-K 或首次 soft predicate retrieval。完整精读见 `literature/notes/farm_2026_DEEP.md`。

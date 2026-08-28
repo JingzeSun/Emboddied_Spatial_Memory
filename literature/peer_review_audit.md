@@ -76,3 +76,17 @@
 
 更有机会的最小方法贡献应落在：**pose-aware structured innovation 如何触发可学习的局部图编辑，以及如何同时约束必要传播和无关保持**。需要把它实现为明确的 operator/gating/objective，而不是仅换一种存储结构，并用反事实测试区分抗噪声与真实语境修正。
 
+
+## 6. FARM 专项审计
+
+| 字段 | 结论 |
+|---|---|
+| 论文 | FARM: Find Anything using Relational Spatial Memory |
+| 单位 | UC Berkeley、Stanford University |
+| 当前来源 | arXiv v3、作者项目页、官方代码、DBLP CoRR |
+| 正式 venue | 截至 2026-08-28 未找到官方 proceedings/出版社/正式接收页 |
+| 当前用途 | `novelty_watch_only`；baseline/interface 设计 |
+
+FARM 已覆盖在线对象级记忆、关系谓词、同类候选 soft ranking 和 top-K 保留。因此这些能力不能单独作为本项目贡献。FARM 没有为 relocation、reliable absence、occlusion、unknown location 定义 typed revision protocol，也没有 affected/control/stop、版本链或任务语境不污染世界事实的执行合同。
+
+正式论文若提 FARM，必须明确称为 preprint，且不使用其数值作为“同行评审已证实”的论据。投稿前重新核验状态。精读证据见 `notes/farm_2026_DEEP.md`。

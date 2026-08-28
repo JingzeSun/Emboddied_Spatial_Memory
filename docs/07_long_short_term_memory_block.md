@@ -46,7 +46,7 @@ SceneBelief 是当前修订的直接对象：
 长期记忆仍由地点、内容、路线和版本历史组成：
 
 [
-M_{	ext{long}}=G_{	ext{place}}+S_{	ext{content}}+H_{	ext{route}}+H_{	ext{version}}
+M_{\text{long}}=G_{\text{place}}+S_{\text{content}}+H_{\text{route}}+H_{\text{version}}
 ]
 
 - `G_place`：Place、Chart、portal 和 transition；
@@ -192,3 +192,23 @@ MVP 至少支持：
 - `evidence_for(node_or_edge_version)`。
 
 答案必须附 belief version 和 evidence refs，不能只返回自然语言。
+
+## 13. v1.1 ActiveContext 保持不变量
+
+同类实例检索采用“读取视图变化，世界事实不变”的合同：
+
+```text
+PersistentWorldMemory: box_A, box_B
+SceneBelief:          both identities and versions
+ActiveContext:        route/dialogue/task-conditioned ranking
+```
+
+必须满足：
+
+1. 非 top-1 候选不会因未被选择而删除或失效；
+2. route/dialogue recency 不写入 world relation；
+3. camera-relative directional relation 只作派生证据；
+4. 歧义且行动代价不等价时允许 `ask_clarification`；
+5. ActiveContext 的证据轨迹指向 belief version 和 factor breakdown。
+
+图增长也不得绕过四层边界：新观测先进入 ObservationGraph，可靠 attachment 形成 candidate SceneBelief，巩固后才进入 PersistentWorldMemory。

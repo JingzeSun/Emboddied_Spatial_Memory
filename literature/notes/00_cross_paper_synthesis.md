@@ -1,6 +1,6 @@
 # 文献综合：从 Memory Construction 到 Scoped Belief Revision
 
-> 方向版本：D-008 accepted
+> 方向版本：D-013 accepted
 > 更新日期：2026-08-28
 > 旧综合：`../../docs/archive/pre_d008/literature/00_cross_paper_synthesis.md`
 
@@ -137,3 +137,23 @@ ODIN 已于 2026-08-28 完成精读；它被降位为 cross-view perception subs
 6. SpatialMem/SpaMEM/ViSAGE/R4DSG：仅做 novelty-difference table，并持续核验同行评审状态。
 
 每篇新笔记都使用 `TEMPLATE.md`，增加 `edit scope / propagation / stop / preservation metric` 四项。
+
+## 10. FARM 带来的最终收敛
+
+FARM 把“在线对象图 + 显式关系 query + 同类候选 top-K”变成了必须正面承认的 novelty boundary。它使项目进一步分成三条不同状态路径：
+
+```text
+first observation → graph expansion
+conflicting evidence → versioned belief revision
+task/route/dialogue shift → ActiveContext ranking
+```
+
+FARM 对第一条和第三条已有直接覆盖或强先例；本项目的论文肉应集中在第二条，并用第一/第三条作为接口和边界测试。
+
+新增机制基线：
+
+- FARM-style relational retrieval；
+- FARM-style fuse/merge；
+- recency-only ActiveContext。
+
+FARM 当前未核验为同行评审，只用于收紧主张和设计基线。精读见 `farm_2026_DEEP.md`。
