@@ -1,7 +1,7 @@
 # Related Work 与论文定位
 
 > 方向版本：D-008 accepted
-> 状态复核：2026-08-27
+> 状态复核：2026-08-28
 > 准入规则：`literature/peer_review_audit.md`
 
 ## 1. 引用规则
@@ -31,12 +31,33 @@
 | 动态图记忆 | [Scene Graph Memory](https://proceedings.mlr.press/v202/kurenkov23a.html), ICML 2023 | 部分可观测动态图、对象位置预测 | 动态规律学习不是空白 |
 | 开放词汇对象图 | [ConceptGraphs](https://ieeexplore.ieee.org/document/10610243), ICRA 2024 | posed RGB-D 多视角关联 | 对象级空间图不是创新本身 |
 | 短/长期协调 | [Khronos](https://www.roboticsproceedings.org/rss20/p081.html), RSS 2024 | active window、fragment reconciliation、长期变化 | 双时间尺度和变化协调已有直接先例 |
+| 跨视角 2D/3D 感知（邻近） | [ODIN](https://openaccess.thecvf.com/content/CVPR2024/html/Jain_ODIN_A_Single_Model_for_2D_and_3D_Segmentation_CVPR_2024_paper.html), CVPR 2024 Highlight | posed RGB-D、2D/3D 交替融合、3D kNN attention、统一 instance query | 不能声称首次让新帧在共享 3D 空间与旧视图交互；attention scope 不等于 revision scope |
 | 长短期任务记忆 | [KARMA](https://doi.org/10.1109/ICRA55743.2025.11128047), ICRA 2025 | 长期 scene graph、短期对象状态 | 长短期分库不能作为主贡献 |
 | 持久对象更新 | [Embodied VideoAgent](https://openaccess.thecvf.com/content/ICCV2025/html/Fan_Embodied_VideoAgent_Persistent_Memory_from_Egocentric_Videos_and_Embodied_Sensors_ICCV_2025_paper.html), ICCV 2025 | pose/depth、3D re-ID、对象状态更新 | persistent slot/state update 已有强基线 |
 | 选择性读取 | [3DLLM-Mem](https://proceedings.neurips.cc/paper_files/paper/2025/hash/61f527a737e4ba61f3e10d6c3f0c4b55-Abstract-Conference.html), NeurIPS 2025 | working memory selective attention to episodic memory | “新帧只关注一部分旧记忆”不能单独声称创新 |
 | 图像式增量记忆 | [3D-Mem](https://openaccess.thecvf.com/content/CVPR2025/html/Yang_3D-Mem_3D_Scene_Memory_for_Embodied_Exploration_and_Reasoning_CVPR_2025_paper.html), CVPR 2025 | snapshot context 与增量聚合 | 是非图编辑路线的强基线 |
 
-邻近且可引用的 g3D-LF、MTU3D、DINO-WM、Persistent Embodied World Models、G²VLM、GR3D、HSGM、AstraNav-Memory 负责建立 feature field、object query memory、latent dynamics、future generation、grounding 和导航背景；它们不能代替直接 revision baseline。
+邻近且可引用的 ODIN、g3D-LF、MTU3D、DINO-WM、Persistent Embodied World Models、G²VLM、GR3D、HSGM、AstraNav-Memory 负责建立 cross-view perception、feature field、object query memory、latent dynamics、future generation、grounding 和导航背景；它们不能代替直接 revision baseline。
+
+### 3.1 ODIN 精读后的准确边界
+
+ODIN 与本项目表面上都让新帧在共享 3D 空间中从旧视图取义，但两者的状态对象不同：
+
+| 维度 | ODIN | 本项目 |
+|---|---|---|
+| 目标 | 对所选多视图集合做 2D/3D instance/semantic segmentation | 用新 evidence 修订已有版本化 spatial belief |
+| 新帧进入方式 | depth/pose unprojection 后与所选帧共同 3D kNN attention | 投影 expected belief，生成 typed innovation，再检索 affected subgraph |
+| 计算范围 | 测试通常重跑整场景图像；具身集成处理最近 N 视图 | 计划只执行必要 node/edge/operator，并显式输出 stop boundary |
+| 长期状态 | learnable queries 属于当前 forward，不是 persistent object versions | SceneBelief + PersistentWorldMemory + provenance/supersedes |
+| 变化语义 | 无 relocation/absence/occlusion/unknown 的 revision protocol | 显式区分并用 typed operator 执行 |
+| 保持性 | 不评测无关旧知识是否被误改 | control-subgraph preservation 是核心指标 |
+
+因此 ODIN 应作为两类资产使用：
+
+1. 可选的 ObservationGraph/association 感知前端；
+2. `recent-N joint reparse` 诊断对照，用来回答“批量重算多帧是否已经足够”。
+
+所有 revision 方法的主比较仍必须共享同一个前端。几何 kNN attention 的邻域不应被当作 affected-subgraph 真值，因为几何邻近只定义读取信息的来源，不定义哪些旧关系必须修改或在哪里停止。完整证据见 `literature/notes/odin_2024_DEEP.md`。
 
 ## 4. 当前创新性预警
 

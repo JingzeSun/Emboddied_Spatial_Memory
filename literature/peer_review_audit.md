@@ -1,6 +1,6 @@
 # 同行评审与引用用途审计
 
-审计日期：2026-08-27。
+审计日期：2026-08-28。
 
 本文件回答两个不同问题：
 
@@ -38,6 +38,7 @@
 
 这些工作均有官方 proceedings 条目，但它们分别侧重数据、grounding、导航或未来生成。它们可以建立研究背景和强基线，不能直接证明本项目的 belief/context revision 有效。
 
+- ODIN（CVPR 2024 Highlight）：posed RGB-D 的 2D within-view / 3D cross-view 交替融合；它是跨视角实例感知基石，不维护持久 belief 或 revision delta；
 - RoomTour3D（CVPR 2025）：大规模几何轨迹与导航数据；
 - g3D-LF（CVPR 2025）：可在线构建的 3D-language feature field；
 - MTU3D（ICCV 2025）：无需显式重建的在线 query-based spatial memory 与主动探索；
@@ -67,6 +68,7 @@
 同行评审工作已经覆盖：层次场景图、长短期分层、持久对象身份、对象状态更新、动态图预测、图像/token 压缩记忆、attention 检索和持久 3D world model。因此下面这些都不能单独成为方法创新：
 
 - “加入空间语境”；
+- “用 posed RGB-D 和 3D attention 让新旧视图交互”；
 - “新帧查询旧记忆”；
 - “把动态物体和静态背景分开”；
 - “设置长短期记忆”；

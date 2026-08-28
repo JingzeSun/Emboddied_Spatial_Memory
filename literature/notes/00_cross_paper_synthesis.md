@@ -1,7 +1,7 @@
 # 文献综合：从 Memory Construction 到 Scoped Belief Revision
 
 > 方向版本：D-008 accepted
-> 更新日期：2026-08-27
+> 更新日期：2026-08-28
 > 旧综合：`../../docs/archive/pre_d008/literature/00_cross_paper_synthesis.md`
 
 ## 1. 新的阅读问题
@@ -22,6 +22,7 @@
 | 路线 | 代表工作 | 已回答 | 对本项目仍留下的问题 |
 |---|---|---|---|
 | 增量空间构建 | ConceptGraphs、g3D-LF、MTU3D、3D-Mem | posed observation 如何聚合到 3D/对象/快照 | 冲突 evidence 如何形成 typed revision |
+| 跨视角 2D/3D 感知 | ODIN | depth/pose 如何将多视图 token 放入共享 3D 坐标并通过 kNN attention 获得实例一致性 | 当前 forward 的局部读取如何变成跨时、版本化、可停止的 belief write |
 | 分层场景图 | Hydra、HOV-SG、HSGM | object/place/room 等结构如何组织 | 哪些层和关系应因局部新证据被修改 |
 | 动态图/长期协调 | Scene Graph Memory、Khronos | 动态对象、fast/slow state、fragment reconciliation | operator scope 与无关保持没有统一监督 |
 | 持久对象状态 | KARMA、Embodied VideoAgent | 对象 identity、state 和短长期记忆 | relation-level propagation 与 stop boundary |
@@ -52,6 +53,12 @@
 - stationary actor、relocation、absence、occlusion、turning 使用同一机制。
 
 ## 4. 与最接近基石的差异
+
+### ODIN
+
+ODIN 已证明 posed RGB-D token 在 2D within-view 与 3D cross-view 层之间交替融合能显著改善跨视角 instance consistency；其 3D kNN attention 是局部读取机制。它没有旧 belief projection、typed innovation、持久版本、关系编辑或 stop supervision，且测试通常对所选全部视图重新前向。因此我们不能以“新帧进入共享 3D 语境”或“局部 3D attention”为贡献，只能以 `innovation → affected write scope → operator/stop → versioned apply` 区分。
+
+ODIN 还要求主实验固定 perception front-end：否则更好的分割会同时提高 association 和下游 query，无法归因于 revision controller。它更适合做可替换前端和 `recent-N joint reparse` 诊断对照，而不是直接的 graph-revision baseline。
 
 ### Hydra
 
@@ -101,8 +108,9 @@ Khronos 已统一短期动态与长期变化。我们的差异不能是“快慢
 3. slot lifecycle；
 4. local matched-slot revision；
 5. full graph recomputation；
-6. oracle affected-subgraph；
-7. deterministic predicted scope。
+6. recent-N joint reparse（ODIN-style perception control；不将其误称为 persistent revision）；
+7. oracle affected-subgraph；
+8. deterministic predicted scope。
 
 公开方法作为横向外部比较；机制型基线承担核心因果消融。
 
@@ -118,6 +126,8 @@ Khronos 已统一短期动态与长期变化。我们的差异不能是“快慢
 若只证明 E3/E4，则更像 factorized dynamic-state engineering；若只降低 contamination，则回到旧问题；若只提高 query，则无法证明 revision scope。
 
 ## 9. 下一轮精读优先级
+
+ODIN 已于 2026-08-28 完成精读；它被降位为 cross-view perception substrate/diagnostic baseline，而不是 revision novelty threat。
 
 1. Hydra：跨层 correction 的实际触发和优化范围；
 2. Khronos：fragment reconciliation 的 scope 与长期 commit；

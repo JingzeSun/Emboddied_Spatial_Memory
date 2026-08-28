@@ -138,6 +138,8 @@ pose/depth noise、graph size、history length、latency、memory。
 
 projection、structured innovation、relation propagation、stop boundary、versioned executor、factorized state、learned controller。
 
+主 revision 对比必须共享同一 perception front-end。ODIN-style 2D/3D fusion 只进入 `front-end × revision controller` 二因素次级消融和 `recent-N joint reparse` 诊断对照，不能把 segmentation 增益归因为 revision 增益。
+
 ## 8. Claim—证据映射
 
 | Claim | 主表/实验 | 必要消融 | 失败时处理 |
@@ -152,7 +154,9 @@ projection、structured innovation、relation propagation、stop boundary、vers
 
 ## 9. Related Work 使用边界
 
-同行评审基石：Hydra、Scene Graph Memory、ConceptGraphs、Khronos、KARMA、3D-Mem、Embodied VideoAgent、3DLLM-Mem。
+同行评审直接基石：Hydra、Scene Graph Memory、ConceptGraphs、Khronos、KARMA、3D-Mem、Embodied VideoAgent、3DLLM-Mem。
+
+同行评审邻近基石：ODIN 等 pose-aligned perception 工作。ODIN 已证明 posed RGB-D 的跨视角 3D attention 与统一 instance query，但没有 persistent belief revision；只支撑感知背景、可替换前端和重算对照，不支撑本项目的 scope/operator/stop claim。
 
 并行预印本风险：SpatialMem、SpaMEM、ChangingGrounding、ViSAGE、R4DSG、DYNEMO-SLAM。它们只用于创新边界和实验设计；若投稿前获得正式接收，再更新引用角色。
 

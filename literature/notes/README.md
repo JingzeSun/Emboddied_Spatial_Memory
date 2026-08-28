@@ -6,6 +6,7 @@
 
 ## 精读笔记
 
+- [ODIN](odin_2024_DEEP.md)：posed RGB-D 的 2D/3D 交替融合，以及 cross-view attention 与 persistent revision 的边界
 - [g3D-LF](g3dlf_2024_DEEP.md)：追加式三维语言特征场及其动态更新空白
 - [MTU3D](mtu3d_2025_DEEP.md)：对象 query、3D IoU 关联、计数平均和 memory bank
 - [DINO-WM](dinowm_2025_DEEP.md)：DINO patch latent、动作预测及其与持久记忆的边界
