@@ -1,8 +1,11 @@
 # Current D-013 MVP contract. TODO values must be frozen on validation before formal test runs.
 contract:
   version: "1.1"
-  blueprint: docs/09_integrated_direction_plan.md
-  experiment_contract: docs/03_experiment_contract.md
+  research_contract: docs/01_research_contract.md
+  scenario_contract: docs/02_scenario_wbs.md
+  pilot_contract: docs/03_pilot_protocol.md
+  training_contract: docs/04_training_plan.md
+  formal_evaluation_contract: docs/05_formal_evaluation_and_paper.md
 
 experiment:
   name: affected_subgraph_revision_mvp

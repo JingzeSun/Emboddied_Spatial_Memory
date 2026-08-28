@@ -36,7 +36,7 @@
 1. 合法获得的 PDF 放 `papers/` 或 `papers_detail/`，这些目录不进 Git；
 2. 更新 `library.csv` 的官方 URL、状态和用途；
 3. 使用 `notes/TEMPLATE.md` 新建结构化笔记；
-4. 更新 `notes/00_cross_paper_synthesis.md` 与 `docs/05_related_work_matrix.md`；
+4. 更新 `notes/00_cross_paper_synthesis.md`、`peer_review_audit.md` 与 `docs/01_research_contract.md` 的创新边界；
 5. 投稿前重新审计 novelty-watch 状态。
 
 作者主页、项目页和社交媒体 venue 声明只能作线索，不能单独作为同行评审证据。

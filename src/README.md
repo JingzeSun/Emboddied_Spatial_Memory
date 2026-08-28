@@ -1,6 +1,6 @@
 # Source Layout
 
-当前实现服从 `docs/09_integrated_direction_plan.md`、`docs/02_method_spec.md` 和 `schemas/`。
+当前实现服从 `docs/01_research_contract.md`、`docs/03_pilot_protocol.md`、`configs/mvp.yaml` 和 `schemas/`。
 
 ## 目标目录
 
@@ -31,6 +31,6 @@ src/embodied_spatial_memory/
 9. learned controller；
 10. context query。
 
-第一个里程碑不依赖 GPU：手写 belief + observation + oracle delta 能执行并得到 exact graph match。详细工作包见 `docs/10_implementation_roadmap.md`。
+第一个里程碑不依赖 GPU：手写 belief + observation + oracle delta 能执行并得到 exact graph match。详细工作包见 `docs/03_pilot_protocol.md`。
 
 公开 API 必须使用 typed/schema-backed 对象；任何修改必须带 base version、evidence、confidence 和 controller revision。

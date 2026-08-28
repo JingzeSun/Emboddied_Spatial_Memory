@@ -1,6 +1,6 @@
 # Data
 
-大型数据、生成缓存和训练产物不提交 Git。数据合同见 `docs/04_dataset_spec.md` 与 `schemas/episode.schema.json`。
+大型数据、生成缓存和训练产物不提交 Git。场景/fixture 合同见 `docs/02_scenario_wbs.md`，训练切分见 `docs/04_training_plan.md`，机器 episode 合同见 `schemas/episode.schema.json`。
 
 仓库允许保存：
 

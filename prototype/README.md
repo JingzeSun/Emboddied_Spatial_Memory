@@ -10,7 +10,7 @@
 - `d94b8f8b-74ab-4317-b876-f93e568bbbd8.png`：动态行人干扰和双记忆更新；
 - `spatial_memory_dataset_plan.pdf`：旧数据、MVP、episode、指标和消融方案。
 
-这些材料记录构思演化，目前状态为 **pre-D008 source artifacts / superseded as active contract**。内容与现行 `docs/09_integrated_direction_plan.md` 冲突时，以 current blueprint 和实验合同为准。
+这些材料记录构思演化，目前状态为 **pre-D008 source artifacts / superseded as active contract**。内容与现行 `docs/01_research_contract.md` 或 `docs/03_pilot_protocol.md` 冲突时，以当前合同为准。
 
 ## 新架构图要求
 

@@ -15,7 +15,7 @@
         "新主线：把新旧差异变成 typed graph delta，并显式预测修订范围"
       ],
       "finding": "当前核心是 Pose-Aware Structured Innovation + Affected-Subgraph Revision；抗噪声、生命周期和 provenance 是必要支撑。",
-      "source": "docs/09_integrated_direction_plan.md；docs/01_research_question.md；docs/03_experiment_contract.md"
+      "source": "docs/01_research_contract.md；docs/02_scenario_wbs.md；docs/03_pilot_protocol.md"
     },
     "taxonomy": {
       "title": "新方法必须同时回答三类决策",
