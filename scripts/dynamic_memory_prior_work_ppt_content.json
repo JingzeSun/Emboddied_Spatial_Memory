@@ -1,245 +1,438 @@
 {
   "meta": {
-    "title": "动态空间语境修订：研究设想与实验路线",
-    "subtitle": "从新帧的结构化差异，到受影响子图的版本化修订",
+    "title": "动态空间语境修订：文献基础与方法蓝图",
+    "subtitle": "新帧如何被判型，并有限、可解释、可追溯地改变旧空间信念",
     "date": "2026-08-28",
-    "author": "Embodied Spatial Memory · 可讲解汇报版 v0.2"
+    "author": "Embodied Spatial Memory · 汇报版 v0.3"
   },
   "slides": {
-    "thesis": {
-      "title": "研究设想收敛：从‘记住变化’到‘可审计修订’",
-      "original": [
-        "问题：新证据与旧空间信念不一致时，不能只做融合或抗噪",
-        "对象：节点状态、关系依赖、历史版本与任务语境必须分层",
-        "输出：typed ContextDelta + affected/control/stop + provenance",
-        "目标：必要修改完整发生，无关事实保持，传播在证据边界停止"
+    "framing": {
+      "title": "这次只回答两件事：研究站在哪里，完整方法是什么",
+      "questions": [
+        {
+          "label": "Q1 文献基础",
+          "question": "哪些已评审工作可以作为论文基石？",
+          "answer": "用 6 篇正式论文说明建图、动态记忆、对象更新和选择性读取已经做到哪里。"
+        },
+        {
+          "label": "Q2 方法蓝图",
+          "question": "新帧怎样进入并改变空间语境？",
+          "answer": "把观测对齐、差异判型、局部传播、typed delta、版本执行和四层状态连成一条写入链。"
+        }
       ],
-      "finding": "当前主线：Pose-Aware Structured Innovation + Affected-Subgraph Revision；状态为已接受研究合同，尚未实现、尚未验证。",
-      "source": "项目合同：docs/01_research_contract.md；当前阶段：EXECUTE.md"
-    },
-    "taxonomy": {
-      "title": "核心概念：KEEP、EDIT 与 SCOPE 是三个不同问题",
-      "items": [
-        {"label": "KEEP", "name": "PRESERVE / QUARANTINE", "desc": "遮挡、视野外、传感器冲突或身份歧义时，不把不确定性写成错误世界事实。"},
-        {"label": "EDIT", "name": "ADD / SUPERSEDE / RELINK", "desc": "可靠新证据触发有类型、有时间区间、有来源的世界状态修改。"},
-        {"label": "SCOPE", "name": "PROPAGATE / STOP", "desc": "沿许可依赖补齐必要后果，同时用 control set 与 stop edge 限制越界修改。"}
-      ],
-      "finding": "抗噪声主要回答 KEEP；方法创新要同时可判定 EDIT 与 SCOPE，并用反事实场景分别验证。"
+      "boundary": "本版不展开具体场景与训练课程；先冻结概念、接口、WBS 和实验覆盖，再反推场景。",
+      "status": "当前状态：研究合同已接受；尚未实现，尚未验证。"
     },
     "timeline": {
-      "title": "已评审工作覆盖了‘建图—动态—读取’，但未闭合‘修订范围’",
+      "title": "已评审工作从“建图”走到“选择性读取”，但没有闭合受控写入链",
       "events": [
-        {"year": "2022", "paper": "Hydra · RSS", "claim": "在线分层图\n回环跨层纠正"},
-        {"year": "2023", "paper": "SGM · ICML", "claim": "部分可观测动态图\n对象位置预测"},
-        {"year": "2024", "paper": "Khronos · RSS", "claim": "短期动态窗口\n长期时空协调"},
-        {"year": "2025", "paper": "VideoAgent · ICCV", "claim": "持久对象状态\n3D re-ID 与更新"},
-        {"year": "2025", "paper": "3DLLM-Mem · NeurIPS", "claim": "工作记忆查询\n选择性读取历史"},
-        {"year": "2026", "paper": "FARM · arXiv", "claim": "关系谓词检索\nsoft ranking / top-K"}
+        {
+          "year": "2022",
+          "paper": "Hydra · RSS",
+          "claim": "在线分层场景图\n跨层几何纠正"
+        },
+        {
+          "year": "2023",
+          "paper": "SGM · ICML",
+          "claim": "部分可观测动态图\n对象位置预测"
+        },
+        {
+          "year": "2024",
+          "paper": "ODIN · CVPR",
+          "claim": "多视角 2D/3D 对齐\n开放词汇实例表示"
+        },
+        {
+          "year": "2024",
+          "paper": "Khronos · RSS",
+          "claim": "短期动态窗口\n长期 4D 协调"
+        },
+        {
+          "year": "2025",
+          "paper": "VideoAgent · ICCV",
+          "claim": "持久对象记忆\n3D re-ID 与状态更新"
+        },
+        {
+          "year": "2025",
+          "paper": "3DLLM-Mem · NeurIPS",
+          "claim": "工作记忆查询\n选择性读取历史"
+        }
       ],
-      "source": "正式基石均已在官方 proceedings 核验；FARM 截至 2026-08-28 仅按 preprint novelty watch 管理"
+      "source": "同行评审状态以官方 proceedings 核验；FARM 等预印本单独作为 novelty watch。"
     },
-    "karma": {
-      "title": "Hydra：分层场景图与跨层纠正已有成熟基石",
-      "paper": "Hydra: A Real-time Spatial Perception System for 3D Scene Graph Construction and Optimization",
-      "year": "RSS 2022 · peer-reviewed",
-      "proposed": ["对象—Place—Room—Building 的分层 3D scene graph", "从传感器流在线增量构图", "用层次描述子做 place recognition", "回环后通过 deformation graph 同步纠正各层"],
-      "strength": "实时系统链路完整；表示层次清楚；纠正能跨图层保持几何一致。",
-      "limitation": "纠正源于 SLAM 回环与几何优化，不给出语义冲突的 typed edit、affected/control/stop。",
-      "borrow": "借用 Chart/Place 作稳定锚点与传播边界；不能把‘层次图’本身当创新。",
-      "boundary": "本项目研究的是观测反证旧 belief 时的局部认知图修订，不是再做一个分层场景图或回环优化器。",
-      "source": "RSS 2022 official proceedings · DOI 10.15607/RSS.2022.XVIII.050"
+    "foundations_a": {
+      "title": "三篇基础工作给我们“看清、放稳、跟踪变化”的底座",
+      "items": [
+        {
+          "paper": "ODIN",
+          "venue": "CVPR 2024 · Highlight",
+          "method": "把多视角 2D 特征按 pose/depth 放进同一 3D 空间，并在 2D 与 3D 间交互。",
+          "borrow": "借鉴观测对齐与实例表征，作为 ObservationGraph 的感知前端。",
+          "gap": "解决当前场景理解，不维护可追溯的世界版本，也不决定旧图改哪里。"
+        },
+        {
+          "paper": "Hydra",
+          "venue": "RSS 2022",
+          "method": "在线构建对象—Place—Room 多层 3D 场景图，并用回环纠正跨层几何。",
+          "borrow": "借鉴分层图与 Chart/Place 稳定锚点，承载长期关系和传播边界。",
+          "gap": "纠正主要来自 SLAM 几何，不是语义证据触发的 typed belief revision。"
+        },
+        {
+          "paper": "Khronos",
+          "venue": "RSS 2024",
+          "method": "用短期动态窗口处理变化，再与长期 4D 地图做全局协调。",
+          "borrow": "借鉴快慢记忆、遮挡/缺席证据和长期协调思想。",
+          "gap": "重点是片段与地图协调，未显式监督 relation-level affected/control/stop。"
+        }
+      ],
+      "source": "可作为 Related Work 基石：ODIN（CVPR 2024）、Hydra（RSS 2022）、Khronos（RSS 2024）。"
     },
-    "khronos": {
-      "title": "Khronos：短期动态与长期变化的统一协调已经出现",
-      "paper": "Khronos: A Unified Approach for Spatio-Temporal Metric-Semantic SLAM in Dynamic Environments",
-      "year": "RSS 2024 · peer-reviewed · 精读",
-      "proposed": ["active temporal window 跟踪短期动态 fragments", "全局 factor/deformation graph 优化 pose 与 fragments", "几何验证 presence / absence / occlusion", "reconciliation 构造可回看历史的 4D 时空地图"],
-      "strength": "动态与长期变化统一；有真实机器人验证；论文明确讨论 absence 与 occlusion。",
-      "limitation": "fragment 关联依赖几何与 bbox centroid；不关联已移动 fragment；记忆随 fragments 持续增长。",
-      "borrow": "借用快慢过程、几何 absence 证据和时态评测；把关系级传播/停止作为新增量。",
-      "boundary": "Khronos 解决 metric-semantic map reconciliation；本项目要预测认知关系图中‘哪些边必须改、哪些必须保持’。",
-      "source": "RSS 2024 official proceedings · DOI 10.15607/RSS.2024.XX.081"
+    "foundations_b": {
+      "title": "另外三篇说明“动态预测、对象更新、选择性读取”已经不是空白",
+      "items": [
+        {
+          "paper": "Scene Graph Memory",
+          "venue": "ICML 2023",
+          "method": "累计部分可观测动态图历史，预测查询对象当前可能位于哪里。",
+          "borrow": "借鉴动态生成、部分可观测设定和 link-level 判分。",
+          "gap": "预测位置不等于执行并审计旧 belief 的结构化改写。"
+        },
+        {
+          "paper": "Embodied VideoAgent",
+          "venue": "ICCV 2025",
+          "method": "用 3D re-ID 维护持久对象，并依据交互动作更新对象状态与少量关系。",
+          "borrow": "借鉴 association/action evidence，作为对象级更新基线。",
+          "gap": "更新以对象为主，未定义必要关系传播、停止边界和完整版本链。"
+        },
+        {
+          "paper": "3DLLM-Mem",
+          "venue": "NeurIPS 2025",
+          "method": "当前 working-memory token 按任务选择性读取 episodic 时空记忆。",
+          "borrow": "借鉴 ActiveContext/read baseline，避免每次读取全部历史。",
+          "gap": "它解决读什么，不解决哪些世界事实被允许改写。"
+        }
+      ],
+      "source": "可作为 Related Work 基石：Scene Graph Memory、Embodied VideoAgent、3DLLM-Mem。"
     },
-    "videoagent": {
-      "title": "Embodied VideoAgent：对象身份、状态与关系更新已有强先例",
-      "paper": "Embodied VideoAgent: Persistent Memory from Egocentric Videos and Embodied Sensors Enables Dynamic Scene Understanding",
-      "year": "ICCV 2025 · peer-reviewed · 精读",
-      "proposed": ["RGB + depth + pose 构建 persistent object memory", "以几何、外观与尺寸做静态/动态 3D re-ID", "检测交互动作后用 VLM 锁定目标对象", "更新对象 STATE，并维护 on/in 等关系"],
-      "strength": "端到端任务闭环清晰；对象更新与具身传感器结合；动态问答与规划均有验证。",
-      "limitation": "状态集合与关系类型有限；关系按时刻更新，但未监督受影响子图、停止边界和无关保持。",
-      "borrow": "采用 3D re-ID / action evidence 作为可替换前端；主比较共享 association 输入。",
-      "boundary": "本项目不能只声称‘持久对象更新’；必须在 relation-level revision scope 与版本执行上给出新证据。",
-      "source": "ICCV 2025 CVF Open Access · pp. 6342–6352"
-    },
-    "dynemo": {
-      "title": "3DLLM-Mem：选择性读取历史，不等于选择性改写世界",
-      "paper": "3DLLM-Mem: Long-Term Spatial-Temporal Memory for Embodied 3D Large Language Model",
-      "year": "NeurIPS 2025 · peer-reviewed",
-      "proposed": ["working-memory tokens 表示当前观测", "以当前 token 查询 episodic spatial-temporal memory", "selective attention 融合任务相关历史", "3DMem-Bench 覆盖长时程具身任务"],
-      "strength": "直接回答新帧不必重算/读取全部历史；长时程 benchmark 与选择性融合结合。",
-      "limitation": "核心是 read path 与任务输出，不产生可执行的 world edit，也不评估 collateral revision。",
-      "borrow": "可作为 ActiveContext/read baseline；读取相关性不得直接充当修订范围真值。",
-      "boundary": "我们的 write path 必须输出节点、边、operator、stop 和版本；attention 权重只可作特征或基线。",
-      "source": "NeurIPS 2025 official proceedings · Main Conference Track"
-    },
-    "r4dsg": {
-      "title": "FARM 与近期预印本：能力重合要承认，证据等级要分开",
-      "paper": "FARM: Find Anything using Relational Spatial Memory · 及 2026 novelty watch",
-      "year": "arXiv 2606.15476v3 · not peer-reviewed",
-      "proposed": ["posed RGB-D 在线构建开放词汇对象级记忆", "16 类关系谓词与 target-anchor QueryGraph", "soft predicate ranking、top-K 保留与 VLM rerank", "同类实例的关系检索与闭环机器人演示"],
-      "strength": "系统规模、检索可解释性与候选分解强；是 X2 同类实例场景的重要接口/基线。",
-      "limitation": "未定义 relocation/absence/occlusion 的 typed revision、版本链、affected/control/stop。",
-      "borrow": "复用候选分数与 per-predicate breakdown；将 route/dialogue 只写入 ActiveContext。",
-      "boundary": "FARM 已覆盖‘关系检索’，本项目只保留‘新证据如何修订旧 world belief’作为核心；投稿前重查其 venue。",
-      "source": "arXiv v3 + project/code + DBLP CoRR；截至 2026-08-28 未核验到正式 proceedings"
-    },
-    "sgm": {
-      "title": "Scene Graph Memory：动态规律预测不是本项目的空白点",
-      "paper": "Modeling Dynamic Environments with Scene Graph Memory",
-      "year": "ICML 2023 · peer-reviewed · 精读",
-      "proposed": ["把任务定义为部分可观测动态图上的 link prediction", "SGM 累积节点、边、最近观测与变化频率", "Node Edge Predictor 估计 query object 的位置关系", "Dynamic House Simulator 生成多样家庭动态"],
-      "strength": "问题形式化清楚；将环境特定历史与先验结合；可做对象搜索决策。",
-      "limitation": "主要在符号图和半真实 2D iGridson；感知/导航被抽象；预测位置不等于执行并审计 belief delta。",
-      "borrow": "借用单因素动态生成、partial observability 与 link-level 指标；增加 revision/control 真值。",
-      "boundary": "我们不预测对象通常去哪，而是依据当前 pose/visibility/identity evidence 决定一个具体旧图如何被修订。",
-      "source": "ICML 2023 · PMLR 202:17976–17993"
+    "preprints": {
+      "title": "预印本只做创新性警戒：承认重合，但不拿它们支撑既有结论",
+      "farm": {
+        "paper": "FARM: Find Anything using Relational Spatial Memory",
+        "status": "arXiv 2606.15476v3 · 截至 2026-08-28 未核验正式 proceedings",
+        "covered": "已覆盖：在线对象记忆、16 类关系谓词、同类实例候选、soft ranking、top-K 和 VLM rerank。",
+        "difference": "本项目核心不是“根据关系找哪个对象”，而是“可靠新证据到来后，哪些旧事实必须改、传播到哪、哪些不能动、历史如何保留”。",
+        "use": "用途：关系检索接口、ActiveContext 基线、同类实例候选基线；不作为 Related Work 的性能事实基石。"
+      },
+      "watch": [
+        "SpatialMem：metric-aligned 层次空间记忆",
+        "SpaMEM：action-conditioned belief evolution",
+        "ViSAGE：延迟纠错与图记忆",
+        "R4DSG：anchor-relative 动态表示",
+        "ChangingGrounding：变化后的再探索与 grounding"
+      ],
+      "risk": "因此不能把“空间记忆、动态对象、关系检索、选择性读取”单独写成创新；贡献必须落到判型 + typed edit + scope/control/stop + version。"
     },
     "matrix": {
-      "title": "能力矩阵：稀缺组合是 typed edit + 必要传播 + 无关保持",
-      "columns": ["Pose/几何", "动态状态", "Typed edit", "Affected scope", "Stop boundary", "版本证据", "主要任务"],
+      "title": "能力矩阵：真正稀缺的是一条可执行、有限且可追溯的 write path",
+      "columns": [
+        "Pose/对齐",
+        "持久信念",
+        "差异判型",
+        "Typed edit",
+        "Affected / control",
+        "Stop",
+        "版本证据",
+        "主要任务"
+      ],
       "rows": [
-        {"paper": "Hydra", "values": ["✓", "△", "△", "△", "—", "△", "构图/回环"]},
-        {"paper": "Scene Graph Memory", "values": ["—", "✓", "—", "query", "—", "△", "位置预测"]},
-        {"paper": "Khronos", "values": ["✓", "✓", "✓", "△", "—", "✓", "4D 协调"]},
-        {"paper": "Embodied VideoAgent", "values": ["✓", "✓", "△", "对象级", "—", "△", "对象更新"]},
-        {"paper": "3DLLM-Mem", "values": ["△", "✓", "—", "读范围", "—", "△", "选择性读"]},
-        {"paper": "FARM (preprint)", "values": ["✓", "△", "—", "查询 top-K", "—", "—", "关系检索"]},
-        {"paper": "Current proposal", "values": ["✓", "✓", "✓", "✓", "✓", "✓", "局部修订"]}
+        {
+          "paper": "ODIN",
+          "values": ["✓", "—", "—", "—", "—", "—", "—", "3D 感知"]
+        },
+        {
+          "paper": "Hydra",
+          "values": ["✓", "△", "—", "△", "△", "—", "△", "构图/回环"]
+        },
+        {
+          "paper": "Scene Graph Memory",
+          "values": ["—", "✓", "△", "—", "query", "—", "△", "位置预测"]
+        },
+        {
+          "paper": "Khronos",
+          "values": ["✓", "✓", "△", "✓", "△", "—", "✓", "4D 协调"]
+        },
+        {
+          "paper": "Embodied VideoAgent",
+          "values": ["✓", "✓", "△", "△", "对象级", "—", "△", "对象更新"]
+        },
+        {
+          "paper": "3DLLM-Mem",
+          "values": ["△", "✓", "—", "—", "读范围", "—", "△", "选择性读"]
+        },
+        {
+          "paper": "FARM · preprint",
+          "values": ["✓", "△", "—", "—", "查询 top-K", "—", "—", "关系检索"]
+        },
+        {
+          "paper": "Current proposal",
+          "values": ["目标", "目标", "目标", "目标", "目标", "目标", "目标", "局部修订"]
+        }
       ],
-      "note": "✓/△/— 表示公开方法是否显式覆盖该能力，不表示性能优劣；Current proposal 目前只是 accepted contract，尚未实现或验证。"
+      "note": "✓/△/— 只表示公开方法是否显式覆盖，不代表性能优劣；“目标”表示研究合同中的计划能力，尚未实现或验证。"
     },
-    "overlap": {
-      "title": "项目差异：不是再建一种记忆，而是定义一条受控 write path",
-      "mappings": [
-        {"idea": "在线对象图 / 3D re-ID", "papers": "前端输入；不作为贡献"},
-        {"idea": "关系查询 / soft ranking / top-K", "papers": "ActiveContext；不改世界事实"},
-        {"idea": "动态对象 / 长短期协调", "papers": "状态组织；不等于 edit scope"},
-        {"idea": "新旧证据冲突", "papers": "Structured Innovation 分型"},
-        {"idea": "旧图如何改变", "papers": "typed delta + propagate + stop + version"}
+    "gap": {
+      "title": "现有四条路线都是组件；本项目要验证的是它们之间缺失的受控写入机制",
+      "routes": [
+        {
+          "name": "Construction",
+          "plain": "把观测放进图里",
+          "papers": "ODIN / Hydra"
+        },
+        {
+          "name": "Reconcile",
+          "plain": "协调动态对象与地图",
+          "papers": "Khronos / VideoAgent"
+        },
+        {
+          "name": "Predict",
+          "plain": "根据历史猜目标在哪",
+          "papers": "Scene Graph Memory"
+        },
+        {
+          "name": "Read / Query",
+          "plain": "选择性读历史或找候选",
+          "papers": "3DLLM-Mem / FARM"
+        }
       ],
-      "finding": "最小可证伪贡献：预测并执行受影响子图修订，同时提高必要传播召回、降低无关修改，并保留可追溯版本。"
+      "write_path": [
+        "pose-aware 比较",
+        "差异判型",
+        "typed delta",
+        "必要传播",
+        "无关保持",
+        "版本执行"
+      ],
+      "claim": "最小可证伪贡献：给定新证据，预测并执行正确的局部修订；比只改对象少漏必要关系，比全图重算少改无关事实，并保留版本证据。",
+      "not_claim": "不主张新建一种 3D mapper、关系检索器或更大的记忆模型。"
     },
-    "scenarios": {
-      "title": "场景 WBS：先用 6 个核心 fixture，把概念变成可判分问题",
+    "pipeline": {
+      "title": "完整方法不是一个判断器，而是一条从观测到版本提交的闭环",
+      "inputs": ["current frame", "depth", "T_world_camera"],
+      "observation": "ObservationGraph\n当前真正看到的证据",
+      "expected": "Expected Observation\nSceneBelief 按 pose 投影后应看到什么",
+      "innovation": "Structured Innovation\n证据类别 + 状态路径 + 可靠度",
+      "scope": ["affected seed", "allowed propagation", "stop boundary"],
+      "delta": "typed ContextDelta\noperator + target + before/after + evidence",
+      "executor": "deterministic\nversioned executor",
+      "new_belief": "new SceneBelief\n新版本，不覆盖旧历史",
+      "read": "ActiveContext：任务相关的读视图，只排序候选，不改世界事实",
+      "persist": "PersistentWorldMemory：通过验证后巩固版本与 provenance"
+    },
+    "routing": {
+      "title": "Structured Innovation 的职责：把“新东西”分流到六条不同状态路径",
+      "evidence": ["matched", "new", "occluded", "reliably absent", "conflict", "ambiguous", "sensor inconsistent"],
+      "modes": [
+        {
+          "name": "Reinforcement",
+          "plain": "证据与旧事实一致",
+          "output": "REINFORCE + provenance"
+        },
+        {
+          "name": "Graph expansion",
+          "plain": "确实是新的节点或区域",
+          "output": "ADD candidate + attachment"
+        },
+        {
+          "name": "Belief revision",
+          "plain": "可靠证据反驳旧状态",
+          "output": "SUPERSEDE / INVALIDATE / RELINK"
+        },
+        {
+          "name": "Visibility update",
+          "plain": "没看到，但原因是遮挡或视野外",
+          "output": "PRESERVE fact；只改 visibility"
+        },
+        {
+          "name": "Association ambiguity",
+          "plain": "身份或同类实例无法确定",
+          "output": "multi-hypothesis / QUARANTINE"
+        },
+        {
+          "name": "Sensor inconsistency",
+          "plain": "pose/depth/detector 自相矛盾",
+          "output": "defer / reject，禁止写长期事实"
+        }
+      ],
+      "context": "另一路：prompt/路线只改变 ActiveContext 候选排序，不属于 world revision。"
+    },
+    "states": {
+      "title": "四个状态容器必须分开：看到、相信、当前关注、长期巩固不是一回事",
       "items": [
-        {"id": "R1", "name": "椅子搬迁", "desc": "同一 ID：A 关闭、B 开启"},
-        {"id": "R2", "name": "推车—箱子联动", "desc": "必要关系传播，无关对象保持"},
-        {"id": "R3", "name": "可靠缺席", "desc": "旧址失效；新位置 unknown"},
-        {"id": "R4", "name": "遮挡对照", "desc": "只改 visibility，不改旧 belief"},
-        {"id": "R5", "name": "人长期站立", "desc": "静止不改变 actor ontology"},
-        {"id": "R6", "name": "无关变化", "desc": "无依赖则停止，control 不变"},
-        {"id": "X1", "name": "转弯补全新区域", "desc": "graph expansion + attachment"},
-        {"id": "X2", "name": "两个木箱", "desc": "排序/澄清；两个实例都保留"}
+        {
+          "name": "ObservationGraph",
+          "cn": "当前观测图",
+          "role": "frame/depth/pose 下真实观测到的对象、关系、可见性证据。",
+          "write": "只写当前证据；不能因没看到就宣告对象消失。"
+        },
+        {
+          "name": "SceneBelief",
+          "cn": "当前世界信念",
+          "role": "保存当前多假设和版本化事实，是 typed delta 的唯一目标。",
+          "write": "只能由 executor 提交合法 delta；不得原地覆盖历史。"
+        },
+        {
+          "name": "ActiveContext",
+          "cn": "任务语境",
+          "role": "根据 prompt、路线和最近交互选择当前优先读取的候选。",
+          "write": "只改排序/激活；不得删除 SceneBelief 中未选实例。"
+        },
+        {
+          "name": "PersistentWorldMemory",
+          "cn": "长期世界记忆",
+          "role": "巩固已验证版本、valid interval、supersedes 与 provenance。",
+          "write": "不接收未验证 top-1 猜测或自由文本图编辑。"
+        }
       ],
-      "finding": "R1–R6 是 P0 核心修订证据；X1/X2 是边界测试，分别验证 graph expansion 与 ActiveContext 不污染 world belief。"
+      "rule": "允许链路：ObservationGraph → proposal → typed executor → SceneBelief；SceneBelief → ActiveContext（只读视图）；验证后的版本 → PersistentWorldMemory。"
     },
-    "pilot": {
-      "title": "初步实验：先做 oracle vertical slice，不先训练大模型",
-      "phases": [
-        {"id": "E0", "name": "Contract wiring", "goal": "schema / executor / evaluator exact match"},
-        {"id": "E1", "name": "Single-state revision", "goal": "区分 relocation / absence / occlusion"},
-        {"id": "E2", "name": "Propagation & stop", "goal": "必要传播 + 无关保持同时成立"},
-        {"id": "E3", "name": "Ontology invariant", "goal": "静止时长不改变 actor 类型"},
-        {"id": "E4", "name": "Boundary tests", "goal": "expansion/context 不误写 world graph"}
-      ],
-      "baselines": "append-only · local-slot · full-graph recompute · oracle affected-subgraph · deterministic scope · FARM-style fuse/merge",
-      "metrics": "scope P/R/F1 · propagation recall · control preservation · collateral revision · graph invariant · version validity · latency / edit ratio",
-      "gate": "Go：oracle scope 比 local-slot 少漏关系、比 full-graph 少改无关事实；R3/R4 能由单因素证据触发不同 operator。"
-    },
-    "training": {
-      "title": "若 pilot 成功：逐层移除 oracle，避免端到端失败不可归因",
-      "stages": [
-        {"id": "T1", "name": "Innovation", "desc": "category / mode / reliability"},
-        {"id": "T2", "name": "Affected scope", "desc": "node / edge + control"},
-        {"id": "T3", "name": "Operator + stop", "desc": "typed args / stop edge"},
-        {"id": "T4", "name": "Association ambiguity", "desc": "multi-hypothesis / quarantine"},
-        {"id": "T5", "name": "Noisy perception", "desc": "pose / depth / detector adapter"},
-        {"id": "T6", "name": "Scenario curriculum", "desc": "组合场景与未见泛化"}
-      ],
-      "rule": "训练同时监督‘该改什么’和‘绝不能改什么’；test 不用于阈值、提示、checkpoint 或方法选择。",
-      "after": "正式阶段再接 detector / RGB-D / real trajectory，并报告校准、反例、失败类型与系统成本。"
-    },
-    "term_glossary": {
-      "title": "术语不用背公式：每个词只回答一个具体问题",
+    "contributions": {
+      "title": "创新点要落成六个可判错的模块，而不是一句“动态记忆”",
       "items": [
-        {"term": "Pose / 几何", "plain": "这次看到的东西，在世界坐标里到底在哪？", "scene": "机器人转身后，先把相机中的椅子投到房间坐标。"},
-        {"term": "Dynamic state", "plain": "对象现在的状态是否与过去不同？", "scene": "椅子从 A 到 B；门从 closed 变为 open。"},
-        {"term": "Typed edit", "plain": "不是说‘更新一下’，而是明确执行哪种操作。", "scene": "ADD、SUPERSEDE、INVALIDATE、PRESERVE、RELINK。"},
-        {"term": "Affected scope", "plain": "这次变化必然要修改哪些节点和边？", "scene": "推车移动时，它的位置和箱子的派生位置需要一起处理。"},
-        {"term": "Propagation", "plain": "一个变化沿哪些有依据的关系产生后果？", "scene": "箱子被推车支撑，推车搬走可能影响箱子的 located_in。"},
-        {"term": "Stop boundary", "plain": "传播到哪里必须停，不能继续猜？", "scene": "推车变化不能沿 room contains 改写房间里的所有物体。"},
-        {"term": "Version / provenance", "plain": "旧事实何时成立、被什么证据替换？", "scene": "chair@A 在 t1 失效，chair@B 从 t1 起成立，并链接证据帧。"},
-        {"term": "Control preservation", "plain": "哪些无关事实必须原封不动？", "scene": "椅子搬迁时，远处台灯和植物的节点、关系、版本都不变。"}
+        {
+          "name": "Pose-aware expected observation",
+          "question": "同一视角下本来应该看到什么？",
+          "output": "对齐后的 expected graph",
+          "prevents": "把相机移动误判为世界变化"
+        },
+        {
+          "name": "Structured Innovation",
+          "question": "差异究竟属于哪条状态路径？",
+          "output": "evidence + mode + reliability",
+          "prevents": "看到新东西就覆盖旧事实"
+        },
+        {
+          "name": "Affected / control scope",
+          "question": "哪些必须改，哪些绝不能改？",
+          "output": "affected set + control set",
+          "prevents": "只改对象或全图污染"
+        },
+        {
+          "name": "Propagation + stop",
+          "question": "后果沿什么依赖传播，到哪里停？",
+          "output": "allowed edges + stop edges",
+          "prevents": "关系漏改或无限扩散"
+        },
+        {
+          "name": "Typed ContextDelta",
+          "question": "到底执行哪一种明确操作？",
+          "output": "operator + typed args + evidence",
+          "prevents": "LLM 自由文本直接改图"
+        },
+        {
+          "name": "Versioned executor",
+          "question": "如何提交、追溯和拒绝非法更新？",
+          "output": "new version + provenance + invariant",
+          "prevents": "历史丢失与半提交状态"
+        }
       ],
-      "answer": "导师问定义时：先说它回答的问题，再说一个场景，最后说它怎样被实验判错。"
+      "finding": "只有六个模块一起成立，才构成“有限、可解释、可追溯地重组旧空间语境”。"
     },
-    "state_glossary": {
-      "title": "四个状态容器：‘看到什么’、‘相信什么’、‘现在找什么’不能混在一起",
+    "wbs": {
+      "title": "真正的 WBS：按可交付模块拆工作，不按椅子、木箱等场景拆",
+      "packages": [
+        {
+          "id": "W0",
+          "name": "Contract & ontology",
+          "deliverable": "冻结状态、关系、operator、invariant"
+        },
+        {
+          "id": "W1",
+          "name": "Observation & projection",
+          "deliverable": "ObservationGraph + expected projection"
+        },
+        {
+          "id": "W2",
+          "name": "Innovation router",
+          "deliverable": "7 类 evidence → 6 条 mode"
+        },
+        {
+          "id": "W3",
+          "name": "Scope controller",
+          "deliverable": "affected/control/propagate/stop"
+        },
+        {
+          "id": "W4",
+          "name": "Delta & version store",
+          "deliverable": "schema + executor + provenance"
+        },
+        {
+          "id": "W5",
+          "name": "Evaluator & baselines",
+          "deliverable": "指标、反例、机制基线、消融"
+        },
+        {
+          "id": "W6",
+          "name": "Perception adapter",
+          "deliverable": "pose/depth/detector 接入与噪声校准"
+        }
+      ],
+      "dependency": "W0 → W1 → W2 → W3 → W4 → W5；W6 在 oracle 链成立后接入。",
+      "definition": "场景 fixture 是各工作包的测试数据，不是 WBS 本身。"
+    },
+    "experiments": {
+      "title": "实验需要覆盖整条链：现有 E0–E4 只覆盖其中一部分",
+      "current_gap": "当前 pilot 强在 executor、局部传播和边界控制；弱在 pose 投影、完整六路判型、版本恢复与模块级归因。",
+      "tracks": [
+        {
+          "id": "C0",
+          "name": "Contract integrity",
+          "goal": "schema、事务、version invariant"
+        },
+        {
+          "id": "C1",
+          "name": "Expected observation",
+          "goal": "pose 投影与可见性预期是否正确"
+        },
+        {
+          "id": "C2",
+          "name": "Innovation routing",
+          "goal": "7 类 evidence 能否走对 6 条路径"
+        },
+        {
+          "id": "C3",
+          "name": "Operator correctness",
+          "goal": "mode 能否生成正确 typed delta"
+        },
+        {
+          "id": "C4",
+          "name": "Scope / propagate / stop",
+          "goal": "必要后果、无关保持、停止边界"
+        },
+        {
+          "id": "C5",
+          "name": "Version & recovery",
+          "goal": "valid interval、provenance、拒绝/回滚"
+        },
+        {
+          "id": "C6",
+          "name": "Cross-path & noise",
+          "goal": "expansion/context/ambiguity/noise 不污染 world belief"
+        }
+      ],
+      "gate": "每个模块都按 oracle → deterministic → learned 逐层移除标准答案；oracle 全链不成立时不训练端到端模型。",
+      "status": "这是对实验覆盖的建议重排，尚未改写 docs/03；待概念与人工语义确认后再正式更新实验合同。"
+    },
+    "decisions": {
+      "title": "进入场景设计前，需要先冻结六个会改变标准答案的人工决策",
       "items": [
-        {"name": "ObservationGraph", "cn": "当前观测图", "plain": "只记录这一帧/这一小段真正看到的对象、关系、pose 与可见性证据。", "example": "当前帧看到 box_B；没看到 box_A 不等于 box_A 消失。"},
-        {"name": "SceneBelief", "cn": "当前世界信念", "plain": "智能体目前认为世界是什么样，允许多假设，并为事实保存版本。", "example": "box_A 与 box_B 都存在；chair@A 已被 chair@B 取代。"},
-        {"name": "ActiveContext", "cn": "当前任务语境", "plain": "只改变这次任务优先读哪个候选，不修改世界本身。", "example": "刚右转看到 box_B，所以‘找木箱’先排 box_B，但 box_A 仍保留。"},
-        {"name": "PersistentWorldMemory", "cn": "长期世界记忆", "plain": "保存已经巩固的对象、历史版本和证据，供未来检索与追溯。", "example": "仍能回答椅子过去在 A、后来搬到 B。"}
+        "搬迁时 identity 在什么置信条件下延续？",
+        "哪些关系显式存储，哪些只在需要时派生？",
+        "不同 operator 允许沿哪些关系传播？",
+        "什么证据才足以称为 reliable absence？",
+        "多个最小 stop scope 是否都算正确，怎样判分？",
+        "候选歧义到什么代价时需要主动澄清？"
       ],
-      "rule": "一句判断：query 排名变化写 ActiveContext；可靠世界事实变化才写 SceneBelief；当前帧证据先留在 ObservationGraph。"
-    },
-    "wbs_explainer": {
-      "title": "WBS 到底让你做什么：先人工写‘标准答案’，再让代码复现",
-      "definition": "WBS = Work Breakdown Structure。这里不是让你收数据或训练模型，而是把一个研究概念拆成最小、可输入、可执行、可判分的测试任务。",
-      "steps": [
-        {"id": "1", "name": "画旧世界", "desc": "base_belief：变化前有哪些节点、关系和版本。"},
-        {"id": "2", "name": "写新观测", "desc": "observation_graph：当前真正看到了什么、pose/visibility 如何。"},
-        {"id": "3", "name": "人工判定差异", "desc": "innovation：这是新增、搬迁、缺席、遮挡还是身份歧义。"},
-        {"id": "4", "name": "圈修改范围", "desc": "oracle_delta：哪些要改、哪些要保持、沿哪条边传播、在哪停。"},
-        {"id": "5", "name": "画正确新世界", "desc": "expected_belief：操作完成后图和版本链应是什么样。"},
-        {"id": "6", "name": "只改一个条件", "desc": "counterfactual：例如可靠空缺改成遮挡，正确操作必须随之改变。"}
-      ],
-      "deliverables": "每个 fixture 最终是六个小文件：base_belief.json、observation_graph.json、oracle_delta.json、expected_belief.json、metadata.yaml、README.md。",
-      "not_now": "你现在不用采视频、不用训练、不用接大模型；先把 R1–R6 的人工标准答案写到任何人都能判对错。"
-    },
-    "fixture_walkthrough": {
-      "title": "R1 椅子搬迁：一个 fixture 从输入到判分到底长什么样",
-      "base": "旧图 v0：chair_1 located_in zone_A；table_1 与 plant_1 作为无关对照。",
-      "observation": "新观测：在 pose 对齐后的 zone_B 可靠匹配到同一个 chair_1；zone_A 同时可靠可见且为空。",
-      "innovation": "判定：belief_revision / relocation，不是 graph expansion，也不是 occlusion。",
-      "operations": [
-        "SUPERSEDE chair_1@zone_A：关闭旧位置的有效区间",
-        "ADD/OPEN chair_1@zone_B：建立新位置版本并链接证据",
-        "PRESERVE chair_1 identity：对象仍是同一把椅子",
-        "PRESERVE table_1、plant_1：无关节点和关系完全不变",
-        "STOP 于无依赖边：不得扩散到整间房"
-      ],
-      "expected": "正确输出 v1：chair_1 当前在 B；历史可追溯到 A；无关子图与 v0 一致。",
-      "counterfactual": "反事实只改 identity：若 B 中是新椅子 chair_2，则应 ADD chair_2，不得关闭 chair_1@A。",
-      "score": "判分：target graph 正确、version chain 合法、必要操作不漏、control 零改动。"
-    },
-    "qa": {
-      "title": "导师常见追问：先给结论，再用场景解释",
-      "items": [
-        {"q": "这不就是抗噪声吗？", "a": "不是。抗噪只决定信不信；我们还决定信了以后改什么关系、传播多远、哪些事实不许动。"},
-        {"q": "为什么一定要用图？", "a": "因为移动一个对象会影响它依赖的关系；slot 只能改对象自己，无法表达必要后果与停止边界。"},
-        {"q": "为什么不直接覆盖旧位置？", "a": "旧位置过去确实成立。版本链同时表达‘曾经在 A’和‘现在在 B’，还能追溯证据与撤销错误更新。"},
-        {"q": "Affected scope 和 attention 有什么区别？", "a": "attention 决定读哪些信息；affected scope 决定哪些世界事实被允许修改，后者必须经过 executor。"},
-        {"q": "为什么先做 oracle？", "a": "先人工提供正确 pose、identity、scope，隔离验证机制本身；若标准答案都执行不对，训练模型没有意义。"},
-        {"q": "WBS 做完证明了什么？", "a": "只证明问题能被精确定义和判分，不证明方法有效；方法有效要等 executor、oracle pilot 和正式实验。"}
-      ]
-    },
-    "close": {
-      "title": "本轮结论与需要导师确认的研究门",
-      "headline": "方向不是‘更会记’，而是‘新证据如何有限、可解释、可追溯地重组旧空间语境’",
-      "human_confirm": ["搬迁时 identity 是否延续", "哪些关系存储、哪些派生", "operator-specific 传播依赖", "reliable absence 证据标准", "多个最小 stop scope 如何判分", "歧义时澄清动作的成本"],
-      "next": ["冻结 D-016 六项语义", "写 R1–R6 + X1/X2 fixtures", "实现 schema + versioned executor", "跑 E0–E2 oracle pilot，再决定是否训练"],
-      "footer": "当前可写：we formulate / propose to evaluate；当前不可写：method is implemented / validated / state of the art。"
+      "next": "确认后，再把场景逐一映射到 mode、operator、scope、stop、version 和对应实验；否则场景只能是故事，不能形成 ground truth。",
+      "status": "研究诚信：本 PPT 描述的是 accepted/proposed design，不是已实现结果，也不是性能结论。"
     }
   }
 }
