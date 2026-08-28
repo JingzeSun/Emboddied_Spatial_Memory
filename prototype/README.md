@@ -24,3 +24,10 @@
 6. stationary person 与 chair relocation/absence 两类案例。
 
 新图使用新文件名和版本日期，不覆盖旧图。
+
+## 当前汇报辅助材料
+
+- `dynamic_spatial_revision_report_v0_2.pptx`：本地生成的可讲解汇报版，由 `.gitignore` 忽略；
+- [`dynamic_spatial_revision_report_speaker_guide.md`](dynamic_spatial_revision_report_speaker_guide.md)：术语、人话定义、WBS 执行动作、R1 示例和导师追问口头回答。
+
+汇报辅助材料是现行合同的解释层，不是新的研究合同；冲突时以 `EXECUTE.md` 与 `docs/01–05` 为准。

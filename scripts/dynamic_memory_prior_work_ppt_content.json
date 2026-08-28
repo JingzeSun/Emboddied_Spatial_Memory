@@ -3,7 +3,7 @@
     "title": "动态空间语境修订：研究设想与实验路线",
     "subtitle": "从新帧的结构化差异，到受影响子图的版本化修订",
     "date": "2026-08-28",
-    "author": "Embodied Spatial Memory · 初次汇报版 v0.1"
+    "author": "Embodied Spatial Memory · 可讲解汇报版 v0.2"
   },
   "slides": {
     "thesis": {
@@ -168,6 +168,71 @@
       ],
       "rule": "训练同时监督‘该改什么’和‘绝不能改什么’；test 不用于阈值、提示、checkpoint 或方法选择。",
       "after": "正式阶段再接 detector / RGB-D / real trajectory，并报告校准、反例、失败类型与系统成本。"
+    },
+    "term_glossary": {
+      "title": "术语不用背公式：每个词只回答一个具体问题",
+      "items": [
+        {"term": "Pose / 几何", "plain": "这次看到的东西，在世界坐标里到底在哪？", "scene": "机器人转身后，先把相机中的椅子投到房间坐标。"},
+        {"term": "Dynamic state", "plain": "对象现在的状态是否与过去不同？", "scene": "椅子从 A 到 B；门从 closed 变为 open。"},
+        {"term": "Typed edit", "plain": "不是说‘更新一下’，而是明确执行哪种操作。", "scene": "ADD、SUPERSEDE、INVALIDATE、PRESERVE、RELINK。"},
+        {"term": "Affected scope", "plain": "这次变化必然要修改哪些节点和边？", "scene": "推车移动时，它的位置和箱子的派生位置需要一起处理。"},
+        {"term": "Propagation", "plain": "一个变化沿哪些有依据的关系产生后果？", "scene": "箱子被推车支撑，推车搬走可能影响箱子的 located_in。"},
+        {"term": "Stop boundary", "plain": "传播到哪里必须停，不能继续猜？", "scene": "推车变化不能沿 room contains 改写房间里的所有物体。"},
+        {"term": "Version / provenance", "plain": "旧事实何时成立、被什么证据替换？", "scene": "chair@A 在 t1 失效，chair@B 从 t1 起成立，并链接证据帧。"},
+        {"term": "Control preservation", "plain": "哪些无关事实必须原封不动？", "scene": "椅子搬迁时，远处台灯和植物的节点、关系、版本都不变。"}
+      ],
+      "answer": "导师问定义时：先说它回答的问题，再说一个场景，最后说它怎样被实验判错。"
+    },
+    "state_glossary": {
+      "title": "四个状态容器：‘看到什么’、‘相信什么’、‘现在找什么’不能混在一起",
+      "items": [
+        {"name": "ObservationGraph", "cn": "当前观测图", "plain": "只记录这一帧/这一小段真正看到的对象、关系、pose 与可见性证据。", "example": "当前帧看到 box_B；没看到 box_A 不等于 box_A 消失。"},
+        {"name": "SceneBelief", "cn": "当前世界信念", "plain": "智能体目前认为世界是什么样，允许多假设，并为事实保存版本。", "example": "box_A 与 box_B 都存在；chair@A 已被 chair@B 取代。"},
+        {"name": "ActiveContext", "cn": "当前任务语境", "plain": "只改变这次任务优先读哪个候选，不修改世界本身。", "example": "刚右转看到 box_B，所以‘找木箱’先排 box_B，但 box_A 仍保留。"},
+        {"name": "PersistentWorldMemory", "cn": "长期世界记忆", "plain": "保存已经巩固的对象、历史版本和证据，供未来检索与追溯。", "example": "仍能回答椅子过去在 A、后来搬到 B。"}
+      ],
+      "rule": "一句判断：query 排名变化写 ActiveContext；可靠世界事实变化才写 SceneBelief；当前帧证据先留在 ObservationGraph。"
+    },
+    "wbs_explainer": {
+      "title": "WBS 到底让你做什么：先人工写‘标准答案’，再让代码复现",
+      "definition": "WBS = Work Breakdown Structure。这里不是让你收数据或训练模型，而是把一个研究概念拆成最小、可输入、可执行、可判分的测试任务。",
+      "steps": [
+        {"id": "1", "name": "画旧世界", "desc": "base_belief：变化前有哪些节点、关系和版本。"},
+        {"id": "2", "name": "写新观测", "desc": "observation_graph：当前真正看到了什么、pose/visibility 如何。"},
+        {"id": "3", "name": "人工判定差异", "desc": "innovation：这是新增、搬迁、缺席、遮挡还是身份歧义。"},
+        {"id": "4", "name": "圈修改范围", "desc": "oracle_delta：哪些要改、哪些要保持、沿哪条边传播、在哪停。"},
+        {"id": "5", "name": "画正确新世界", "desc": "expected_belief：操作完成后图和版本链应是什么样。"},
+        {"id": "6", "name": "只改一个条件", "desc": "counterfactual：例如可靠空缺改成遮挡，正确操作必须随之改变。"}
+      ],
+      "deliverables": "每个 fixture 最终是六个小文件：base_belief.json、observation_graph.json、oracle_delta.json、expected_belief.json、metadata.yaml、README.md。",
+      "not_now": "你现在不用采视频、不用训练、不用接大模型；先把 R1–R6 的人工标准答案写到任何人都能判对错。"
+    },
+    "fixture_walkthrough": {
+      "title": "R1 椅子搬迁：一个 fixture 从输入到判分到底长什么样",
+      "base": "旧图 v0：chair_1 located_in zone_A；table_1 与 plant_1 作为无关对照。",
+      "observation": "新观测：在 pose 对齐后的 zone_B 可靠匹配到同一个 chair_1；zone_A 同时可靠可见且为空。",
+      "innovation": "判定：belief_revision / relocation，不是 graph expansion，也不是 occlusion。",
+      "operations": [
+        "SUPERSEDE chair_1@zone_A：关闭旧位置的有效区间",
+        "ADD/OPEN chair_1@zone_B：建立新位置版本并链接证据",
+        "PRESERVE chair_1 identity：对象仍是同一把椅子",
+        "PRESERVE table_1、plant_1：无关节点和关系完全不变",
+        "STOP 于无依赖边：不得扩散到整间房"
+      ],
+      "expected": "正确输出 v1：chair_1 当前在 B；历史可追溯到 A；无关子图与 v0 一致。",
+      "counterfactual": "反事实只改 identity：若 B 中是新椅子 chair_2，则应 ADD chair_2，不得关闭 chair_1@A。",
+      "score": "判分：target graph 正确、version chain 合法、必要操作不漏、control 零改动。"
+    },
+    "qa": {
+      "title": "导师常见追问：先给结论，再用场景解释",
+      "items": [
+        {"q": "这不就是抗噪声吗？", "a": "不是。抗噪只决定信不信；我们还决定信了以后改什么关系、传播多远、哪些事实不许动。"},
+        {"q": "为什么一定要用图？", "a": "因为移动一个对象会影响它依赖的关系；slot 只能改对象自己，无法表达必要后果与停止边界。"},
+        {"q": "为什么不直接覆盖旧位置？", "a": "旧位置过去确实成立。版本链同时表达‘曾经在 A’和‘现在在 B’，还能追溯证据与撤销错误更新。"},
+        {"q": "Affected scope 和 attention 有什么区别？", "a": "attention 决定读哪些信息；affected scope 决定哪些世界事实被允许修改，后者必须经过 executor。"},
+        {"q": "为什么先做 oracle？", "a": "先人工提供正确 pose、identity、scope，隔离验证机制本身；若标准答案都执行不对，训练模型没有意义。"},
+        {"q": "WBS 做完证明了什么？", "a": "只证明问题能被精确定义和判分，不证明方法有效；方法有效要等 executor、oracle pilot 和正式实验。"}
+      ]
     },
     "close": {
       "title": "本轮结论与需要导师确认的研究门",

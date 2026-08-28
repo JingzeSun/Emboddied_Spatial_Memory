@@ -1,6 +1,6 @@
 param(
     [string]$ContentPath = "scripts/dynamic_memory_prior_work_ppt_content.json",
-    [string]$OutputPath = "prototype/dynamic_spatial_revision_report_v0_1.pptx"
+    [string]$OutputPath = "prototype/dynamic_spatial_revision_report_v0_2.pptx"
 )
 
 $ErrorActionPreference = "Stop"
@@ -103,7 +103,7 @@ function Add-SlideBase {
     $slide.Background.Fill.ForeColor.RGB = $C.Bg
     [void](Add-Shape $slide 1 0 0 10 $SlideH $C.Blue $C.Blue)
     [void](Add-Text $slide $Section 46 28 180 16 9 $C.Cyan $true 1 $FontCN 1)
-    [void](Add-Text $slide $Title 46 49 850 42 25 $C.White $true 1 $FontCN 1)
+    [void](Add-Text $slide $Title 46 49 868 42 25 $C.White $true 1 $FontCN 1)
     [void](Add-Line $slide 46 97 914 97 $C.Line 1 $false)
     [void](Add-Text $slide ("{0:D2}" -f $Index) 886 28 28 18 9 $C.Muted $true 2 $FontMono 1)
     return $slide
@@ -454,9 +454,112 @@ try {
     [void](Add-Text $slide $d.after 65 455 830 27 11.2 $C.Cyan $true 2 $FontCN 3)
     Add-Footer $slide "顺序：innovation → scope → operator/stop → association ambiguity → noisy perception → scenario generalization。"
 
-    # 16 Close
+    # 16 Term glossary
+    $d = $data.slides.term_glossary
+    $slide = Add-SlideBase $presentation 16 $d.title "答辩术语"
+    $termXs = @(46, 264, 482, 700)
+    $termYs = @(123, 274)
+    $termColors = @($C.Blue, $C.Cyan, $C.Amber, $C.Green, $C.Blue, $C.Cyan, $C.Amber, $C.Green)
+    for ($i = 0; $i -lt $d.items.Count; $i++) {
+        $item = $d.items[$i]
+        $x = $termXs[$i % 4]
+        $y = $termYs[[int][Math]::Floor($i / 4)]
+        [void](Add-Shape $slide 5 $x $y 200 132 $C.Card $C.Line)
+        [void](Add-Shape $slide 1 $x $y 6 132 $termColors[$i] $termColors[$i])
+        [void](Add-Text $slide $item.term ($x + 17) ($y + 14) 168 23 11.8 $termColors[$i] $true 1 $FontCN 1)
+        [void](Add-Text $slide $item.plain ($x + 17) ($y + 44) 180 39 9.2 $C.White $true 1 $FontCN 1)
+        [void](Add-Text $slide ("例：" + $item.scene) ($x + 17) ($y + 88) 168 34 8.8 $C.Muted $false 1 $FontCN 1)
+    }
+    [void](Add-Shape $slide 5 46 425 868 66 $C.Card2 $C.Cyan)
+    [void](Add-Text $slide $d.answer 68 440 824 37 12.2 $C.Cyan $true 2 $FontCN 3)
+    Add-Footer $slide "答题模板：它解决什么问题 → 举一个场景 → 说明怎样判错。"
+
+    # 17 State glossary
+    $d = $data.slides.state_glossary
+    $slide = Add-SlideBase $presentation 17 $d.title "状态分层"
+    $stateXs = @(46, 490)
+    $stateYs = @(124, 294)
+    $stateColors = @($C.Blue, $C.Cyan, $C.Amber, $C.Green)
+    for ($i = 0; $i -lt $d.items.Count; $i++) {
+        $item = $d.items[$i]
+        $x = $stateXs[$i % 2]
+        $y = $stateYs[[int][Math]::Floor($i / 2)]
+        [void](Add-Shape $slide 5 $x $y 424 153 $C.Card $C.Line)
+        Add-Pill $slide $item.name ($x + 18) ($y + 16) 165 $stateColors[$i] $C.White 10
+        [void](Add-Text $slide $item.cn ($x + 198) ($y + 18) 198 22 12 $stateColors[$i] $true 1 $FontCN 1)
+        [void](Add-Text $slide $item.plain ($x + 19) ($y + 57) 386 35 10.6 $C.White $false 1 $FontCN 1)
+        [void](Add-Text $slide ("场景：" + $item.example) ($x + 19) ($y + 101) 386 38 9.5 $C.Muted $false 1 $FontCN 1)
+    }
+    [void](Add-Shape $slide 5 46 462 868 30 $C.Card2 $C.Cyan)
+    [void](Add-Text $slide $d.rule 59 467 842 20 10.5 $C.Cyan $true 2 $FontCN 3)
+    Add-Footer $slide "核心边界：ActiveContext 的排序变化不得删除或覆盖 SceneBelief 中未选中的实例。"
+
+    # 18 WBS explainer
+    $d = $data.slides.wbs_explainer
+    $slide = Add-SlideBase $presentation 18 $d.title "WBS 执行动作"
+    [void](Add-Shape $slide 5 46 119 868 61 $C.Card2 $C.Cyan)
+    [void](Add-Text $slide $d.definition 65 130 830 39 11.2 $C.White $true 1 $FontCN 3)
+    $wbsXs = @(46, 340, 634)
+    $wbsYs = @(196, 306)
+    for ($i = 0; $i -lt $d.steps.Count; $i++) {
+        $step = $d.steps[$i]
+        $x = $wbsXs[$i % 3]
+        $y = $wbsYs[[int][Math]::Floor($i / 3)]
+        [void](Add-Shape $slide 5 $x $y 280 96 $C.Card $C.Line)
+        Add-CircleLabel $slide $step.id ($x + 14) ($y + 14) 34 $C.Blue 10
+        [void](Add-Text $slide $step.name ($x + 60) ($y + 15) 198 22 11.8 $C.White $true 1 $FontCN 1)
+        [void](Add-Text $slide $step.desc ($x + 18) ($y + 50) 260 34 9.6 $C.Muted $false 1 $FontCN 1)
+    }
+    [void](Add-Shape $slide 5 46 419 868 33 $C.Card2 $C.Amber)
+    [void](Add-Text $slide $d.deliverables 59 425 842 21 9.8 $C.Amber $true 2 $FontCN 3)
+    [void](Add-Shape $slide 5 46 460 868 32 $C.Card2 $C.Green)
+    [void](Add-Text $slide $d.not_now 59 466 842 20 10.3 $C.Green $true 2 $FontCN 3)
+    Add-Footer $slide "WBS 的验收：不看实现代码，只看 fixture 就能写出正确输出与反例。"
+
+    # 19 Fixture walkthrough
+    $d = $data.slides.fixture_walkthrough
+    $slide = Add-SlideBase $presentation 19 $d.title "R1 完整示例"
+    [void](Add-Shape $slide 5 46 121 410 254 $C.Card $C.Line)
+    [void](Add-Text $slide "1 旧世界" 66 139 92 20 12 $C.Blue $true 1 $FontCN 1)
+    [void](Add-Text $slide $d.base 165 136 267 43 10.5 $C.White $false 1 $FontCN 1)
+    [void](Add-Line $slide 66 190 432 190 $C.Line 0.8 $false)
+    [void](Add-Text $slide "2 新观测" 66 207 92 20 12 $C.Cyan $true 1 $FontCN 1)
+    [void](Add-Text $slide $d.observation 165 204 267 58 10.5 $C.White $false 1 $FontCN 1)
+    [void](Add-Line $slide 66 276 432 276 $C.Line 0.8 $false)
+    [void](Add-Text $slide "3 判类型" 66 293 92 20 12 $C.Amber $true 1 $FontCN 1)
+    [void](Add-Text $slide $d.innovation 165 290 267 58 10.5 $C.White $false 1 $FontCN 1)
+
+    [void](Add-Shape $slide 5 478 121 436 254 $C.Bg2 $C.Line)
+    [void](Add-Text $slide "4 人工标准答案：oracle_delta" 499 139 300 22 13 $C.Cyan $true 1 $FontCN 1)
+    Add-Bullets $slide $d.operations 499 176 385 37 10.5 $C.Cyan $C.White
+
+    [void](Add-Shape $slide 5 46 391 868 99 $C.Card2 $C.Green)
+    [void](Add-Text $slide "正确输出" 64 404 80 18 10.5 $C.Green $true 1 $FontCN 1)
+    [void](Add-Text $slide $d.expected 151 401 741 24 10.1 $C.White $false 1 $FontCN 1)
+    [void](Add-Text $slide "反事实" 64 434 80 18 10.5 $C.Amber $true 1 $FontCN 1)
+    [void](Add-Text $slide $d.counterfactual 151 431 741 24 10.1 $C.White $false 1 $FontCN 1)
+    [void](Add-Text $slide "判分" 64 464 80 18 10.5 $C.Cyan $true 1 $FontCN 1)
+    [void](Add-Text $slide $d.score 151 461 741 22 10.1 $C.White $false 1 $FontCN 1)
+    Add-Footer $slide "R1 的唯一关键变量是 identity；其它场景分别只改变 visibility、dependency、relevance 或 history。"
+
+    # 20 Common questions
+    $d = $data.slides.qa
+    $slide = Add-SlideBase $presentation 20 $d.title "口头回答"
+    $qaXs = @(46, 490)
+    $qaYs = @(121, 244, 367)
+    for ($i = 0; $i -lt $d.items.Count; $i++) {
+        $item = $d.items[$i]
+        $x = $qaXs[$i % 2]
+        $y = $qaYs[[int][Math]::Floor($i / 2)]
+        [void](Add-Shape $slide 5 $x $y 424 106 $C.Card $C.Line)
+        [void](Add-Text $slide ("Q  " + $item.q) ($x + 18) ($y + 13) 388 24 11.5 $C.Amber $true 1 $FontCN 1)
+        [void](Add-Text $slide ("A  " + $item.a) ($x + 18) ($y + 46) 388 50 10.2 $C.White $false 1 $FontCN 1)
+    }
+    Add-Footer $slide "回答时不要背缩写；先说现实失败案例，再说这个概念怎样阻止该失败。"
+
+    # 21 Close
     $d = $data.slides.close
-    $slide = Add-SlideBase $presentation 16 $d.title "结论"
+    $slide = Add-SlideBase $presentation 21 $d.title "结论"
     [void](Add-Shape $slide 5 46 121 868 73 $C.Card2 $C.Red)
     [void](Add-Text $slide $d.headline 70 135 820 44 16.5 $C.White $true 2 $FontCN 3)
     [void](Add-Shape $slide 5 46 216 410 244 $C.Card $C.Line)

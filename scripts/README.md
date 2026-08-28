@@ -19,7 +19,7 @@ scripts/
 powershell -ExecutionPolicy Bypass -File scripts/run_dynamic_memory_prior_work_ppt.ps1
 ```
 
-默认生成 `prototype/dynamic_spatial_revision_report_v0_1.pptx`。PPTX 是本地生成产物并由 `.gitignore` 忽略；可复现源是 JSON 与 PowerShell 构建器。
+默认生成 `prototype/dynamic_spatial_revision_report_v0_2.pptx`。v0.2 在研究设计之外增加术语人话定义、状态容器、WBS 实际动作、R1 完整 fixture 和导师追问页。PPTX 是本地生成产物并由 `.gitignore` 忽略；可复现源是 JSON 与 PowerShell 构建器。
 
 `notes.txt` 是导师建议的 source artifact，不得覆盖或删除。
 
