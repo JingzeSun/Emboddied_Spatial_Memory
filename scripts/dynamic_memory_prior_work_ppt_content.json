@@ -3,11 +3,11 @@
     "title": "动态空间语境修订：文献基础与方法蓝图",
     "subtitle": "新帧如何被判型，并有限、可解释、可追溯地改变旧空间信念",
     "date": "2026-08-28",
-    "author": "Embodied Spatial Memory · 汇报版 v0.5"
+    "author": "Embodied Spatial Memory · 汇报版 v0.6"
   },
   "slides": {
     "framing": {
-      "title": "这次只回答两件事：研究站在哪里，完整方法是什么",
+      "title": "先讲清研究位置和方法，再说明怎样用实验尝试推翻它",
       "questions": [
         {
           "label": "Q1 文献基础",
@@ -20,7 +20,7 @@
           "answer": "把观测对齐、差异判型、局部传播、typed delta、版本执行和四层状态连成一条写入链。"
         }
       ],
-      "boundary": "本版不展开具体场景与训练课程；先讲清概念、状态路径和实验覆盖，再反推场景。",
+      "boundary": "前半部分解释问题与方法；后半部分设计首轮 oracle 机制验证，不展开训练，也不把实验计划写成结果。",
       "status": "当前状态：研究合同已接受；尚未实现，尚未验证。"
     },
     "timeline": {
@@ -338,51 +338,178 @@
       ],
       "finding": "只有六个模块一起成立，才构成“有限、可解释、可追溯地重组旧空间语境”。"
     },
-    "experiments": {
-      "title": "实验需要覆盖整条链：现有 E0–E4 只覆盖其中一部分",
-      "current_gap": "当前 pilot 强在 executor、局部传播和边界控制；弱在 pose 投影、完整六路判型、版本恢复与模块级归因。",
-      "tracks": [
+    "experiment_strategy": {
+      "title": "第一轮不接视觉模型：先问机制在标准答案条件下能不能成立",
+      "question": "给定正确的观测解释和正确的修改意图，系统能否只改该改的部分，并留下正确的新版本？",
+      "inputs": [
+        "手写的旧版 SceneBelief",
+        "手写的当前 ObservationGraph",
+        "oracle pose / visibility / association",
+        "oracle 状态路径、scope 与 typed delta"
+      ],
+      "mechanism": [
+        "区分 relocation / absence / occlusion / expansion",
+        "执行必要关系传播并在无关处停止",
+        "按明确操作生成新版本，拒绝非法或半提交更新"
+      ],
+      "outputs": [
+        "新 SceneBelief 与期望图是否一致",
+        "漏改、多改和越界传播发生在哪里",
+        "旧版本、证据与修改原因能否追溯",
+        "修改范围、延迟和存储成本"
+      ],
+      "principle": "若标准答案都无法被正确执行，加入 detector、VLM 或 learned controller 只会掩盖机制错误。",
+      "status": "当前状态：planned / implementation not started / no experimental evidence。"
+    },
+    "experiment_matrix": {
+      "title": "E0–E4 不是五次堆功能，而是五次单独追问",
+      "items": [
         {
-          "id": "C0",
-          "name": "Contract integrity",
-          "goal": "schema、事务、version invariant"
+          "id": "E0",
+          "name": "合同连通",
+          "fixtures": "R1–R6 / X1–X2",
+          "isolate": "只给 oracle graph、scope、delta",
+          "success": "执行结果 exact / invariant match",
+          "failure": "schema、executor 或 evaluator 没接通"
         },
         {
-          "id": "C1",
-          "name": "Expected observation",
-          "goal": "pose 投影与可见性预期是否正确"
+          "id": "E1",
+          "name": "单状态修订",
+          "fixtures": "R1 / R3 / R4",
+          "isolate": "搬迁、可靠缺席、遮挡只改一个因素",
+          "success": "三者走不同且正确的 operator",
+          "failure": "把没看到误当成消失，或旧事实未关闭"
         },
         {
-          "id": "C2",
-          "name": "Innovation routing",
-          "goal": "7 类 evidence 能否走对 6 条路径"
+          "id": "E2",
+          "name": "传播与停止",
+          "fixtures": "R2 / R6",
+          "isolate": "有许可依赖 vs 无关变化",
+          "success": "必要关系全改，无关对象不动",
+          "failure": "local-slot 漏改或 full-graph 式污染"
         },
         {
-          "id": "C3",
-          "name": "Operator correctness",
-          "goal": "mode 能否生成正确 typed delta"
+          "id": "E3",
+          "name": "本体不变量",
+          "fixtures": "R5 duration / occlusion sweep",
+          "isolate": "只改变静止时长或遮挡",
+          "success": "人始终是 actor，门的身份和几何保持",
+          "failure": "把长期静止误当成固定结构"
         },
         {
-          "id": "C4",
-          "name": "Scope / propagate / stop",
-          "goal": "必要后果、无关保持、停止边界"
-        },
-        {
-          "id": "C5",
-          "name": "Version & recovery",
-          "goal": "valid interval、provenance、拒绝/回滚"
-        },
-        {
-          "id": "C6",
-          "name": "Cross-path & noise",
-          "goal": "expansion/context/ambiguity/noise 不污染 world belief"
+          "id": "E4",
+          "name": "边界路径",
+          "fixtures": "X1 corner / X2 two boxes",
+          "isolate": "扩图和查询语境，不是旧事实冲突",
+          "success": "新增可连接、候选可重排，世界图不被污染",
+          "failure": "扩图误关旧事实或 top-1 删除其他实例"
         }
       ],
-      "gate": "每个模块都按 oracle → deterministic → learned 逐层移除标准答案；oracle 全链不成立时不训练端到端模型。",
-      "status": "这是对实验覆盖的建议重排，尚未改写 docs/03；待概念与人工语义确认后再正式更新实验合同。"
+      "rule": "每组 fixture 与单因素反事实成对：旧图相同，只改变一个证据条件，正确操作必须随之改变。"
+    },
+    "baselines": {
+      "title": "基线的作用不是凑排名，而是暴露五种不同失败方式",
+      "items": [
+        {
+          "id": "B0",
+          "name": "Append-only",
+          "behavior": "只新增，不关闭旧事实",
+          "diagnoses": "检验动态修订是否真的必要"
+        },
+        {
+          "id": "B1",
+          "name": "Local matched-slot",
+          "behavior": "只改直接匹配到的对象",
+          "diagnoses": "检验关系传播是否会被漏掉"
+        },
+        {
+          "id": "B2",
+          "name": "Full-graph recompute",
+          "behavior": "每次重新协调整张图",
+          "diagnoses": "检验局部范围是否减少误改与成本"
+        },
+        {
+          "id": "B3",
+          "name": "Oracle affected-scope",
+          "behavior": "直接给正确受影响范围",
+          "diagnoses": "给出问题与 executor 的机制上限"
+        },
+        {
+          "id": "B4",
+          "name": "Deterministic scope",
+          "behavior": "按人工规则预测 scope / stop",
+          "diagnoses": "提供可解释、可运行的非学习基线"
+        }
+      ],
+      "shared_input": "公平比较：所有方法共享同一旧图、当前观测、pose、visibility 和 association；只替换修订策略。",
+      "optional": "FARM-style fuse / merge 只作后续 stress baseline，检验对象融合在冲突场景中的污染风险；不作为本项目成立的文献证据。"
+    },
+    "metrics": {
+      "title": "不能只看任务准确率：成功必须同时满足“改对”和“别乱改”",
+      "groups": [
+        {
+          "name": "A 应改的改对",
+          "metrics": "target graph invariant accuracy\noperator accuracy\nrequired propagation recall",
+          "meaning": "目标事实和必要关系后果是否正确"
+        },
+        {
+          "name": "B 不该改的守住",
+          "metrics": "control preservation\ncollateral revision rate ↓\nstop-edge accuracy",
+          "meaning": "无关事实是否被保护，传播是否及时停止"
+        },
+        {
+          "name": "C 历史可追溯",
+          "metrics": "version / provenance validity\ntransaction integrity\nfailure localization",
+          "meaning": "旧版本是否保留，失败是否能定位"
+        },
+        {
+          "name": "D 局部性有价值",
+          "metrics": "edited-node ratio ↓\nlatency / peak memory ↓\nstorage growth",
+          "meaning": "局部修订是否比全图处理更省"
+        }
+      ],
+      "summary": "核心判断：正确后果 ↑ + 无关保持 ↑ + 版本有效 + 修改与计算成本 ↓。",
+      "warning": "query accuracy 或 top-K recall 再高，也不能替代 revision scope、propagation 和 preservation 指标。"
+    },
+    "experiment_gates": {
+      "title": "是否继续，不看一个漂亮总分：每个核心主张都有直接退出门",
+      "checks": [
+        {
+          "comparison": "E0：oracle delta → expected graph",
+          "go": "全部 exact / invariant match",
+          "no_go": "先修 schema、executor 或 fixture，不训练"
+        },
+        {
+          "comparison": "Oracle scope vs Local-slot",
+          "go": "必要传播更完整",
+          "no_go": "重审“关系传播”是否真是独立问题"
+        },
+        {
+          "comparison": "Oracle scope vs Full-graph",
+          "go": "无关修改更少，编辑与计算成本更低",
+          "no_go": "收缩局部性与效率主张"
+        },
+        {
+          "comparison": "R3 reliable absence vs R4 occlusion",
+          "go": "分别触发 INVALIDATE 与 PRESERVE",
+          "no_go": "收紧 evidence rubric 或取消该区分"
+        },
+        {
+          "comparison": "R5 与 X1 / X2 不变量",
+          "go": "actor ontology、旧事实和非 top-1 实例均保持",
+          "no_go": "状态分层或边界定义失败"
+        }
+      ],
+      "progression": [
+        "Oracle 全链",
+        "Deterministic routing / scope",
+        "Learned innovation / scope / operator / stop",
+        "真实 pose / depth / detector"
+      ],
+      "principle": "每次只移除一类 oracle，沿用同一批 validation fixtures；这样失败才能归因到具体模块。"
     },
     "decisions": {
-      "title": "进入场景设计前，需要先冻结六个会改变标准答案的人工决策",
+      "title": "实验图可以先写，但真正运行前仍需冻结六项 ground truth 语义",
       "items": [
         "搬迁时 identity 在什么置信条件下延续？",
         "哪些关系显式存储，哪些只在需要时派生？",
@@ -391,7 +518,7 @@
         "多个最小 stop scope 是否都算正确，怎样判分？",
         "候选歧义到什么代价时需要主动澄清？"
       ],
-      "next": "确认后，再把场景逐一映射到 mode、operator、scope、stop、version 和对应实验；否则场景只能是故事，不能形成 ground truth。",
+      "next": "确认后立即完成 R1–R6 / X1–X2 fixtures、schema 连通检查和 E0；否则只能展示实验设计，不能产生训练标签或性能结论。",
       "status": "研究诚信：本 PPT 描述的是 accepted/proposed design，不是已实现结果，也不是性能结论。"
     }
   }

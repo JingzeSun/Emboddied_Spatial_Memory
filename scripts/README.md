@@ -2,7 +2,7 @@
 
 ## 当前汇报脚本
 
-当前研究设想汇报 PPT 保留一个入口、一个构建器和一个现行内容文件。脚本名沿用早期 prior-work 命名以避免新增第二套入口。当前版聚焦两部分：精简后的同行评审文献基础，以及面向导师解释的方法主链、状态分流和实验覆盖审计；具体场景与训练课程暂不展开。
+当前研究设想汇报 PPT 保留一个入口、一个构建器和一个现行内容文件。脚本名沿用早期 prior-work 命名以避免新增第二套入口。当前版聚焦三部分：精简后的同行评审文献基础、面向导师解释的方法主链与状态分流，以及首轮 oracle 机制验证；不包含正式训练和实验结果。
 
 ```text
 scripts/
@@ -19,7 +19,7 @@ scripts/
 powershell -ExecutionPolicy Bypass -File scripts/run_dynamic_memory_prior_work_ppt.ps1
 ```
 
-默认生成 `prototype/dynamic_spatial_revision_report_v0_5.pptx`。v0.5 把第 9 页改成可顺讲的端到端主链，把第 10 页改成“两道判断门 + 六条状态路径”，并移除汇报中的 WBS 页；v0.1/v0.3/v0.4 作为旧版汇报留存，已删除的 v0.2 不恢复。PPTX 是本地生成产物并由 `.gitignore` 忽略；可复现源是 JSON 与 PowerShell 构建器。
+默认生成 `prototype/dynamic_spatial_revision_report_v0_6.pptx`。v0.6 在 v0.5 的方法主链之后新增六页验证实验：oracle 总策略、E0–E4、机制基线、四类指标、Go/No-Go 和人工语义门；v0.1/v0.3/v0.4/v0.5 作为旧版汇报留存，已删除的 v0.2 不恢复。PPTX 是本地生成产物并由 `.gitignore` 忽略；可复现源是 JSON 与 PowerShell 构建器。
 
 `notes.txt` 是导师建议的 source artifact，不得覆盖或删除。
 
