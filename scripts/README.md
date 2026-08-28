@@ -2,7 +2,7 @@
 
 ## 当前汇报脚本
 
-动态记忆 prior-work PPT 保留一个入口、一个构建器和一个现行内容文件：
+当前研究设想汇报 PPT 保留一个入口、一个构建器和一个现行内容文件。脚本名沿用早期 prior-work 命名以避免新增第二套入口，内容已扩展为研究问题、同行评审精读、FARM 预印本边界、场景 WBS、pilot 与训练路线：
 
 ```text
 scripts/
@@ -18,6 +18,8 @@ scripts/
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/run_dynamic_memory_prior_work_ppt.ps1
 ```
+
+默认生成 `prototype/dynamic_spatial_revision_report_v0_1.pptx`。PPTX 是本地生成产物并由 `.gitignore` 忽略；可复现源是 JSON 与 PowerShell 构建器。
 
 `notes.txt` 是导师建议的 source artifact，不得覆盖或删除。
 

@@ -6,6 +6,9 @@
 
 ## 精读笔记
 
+- [Scene Graph Memory](scene_graph_memory_2023_DEEP.md)：部分可观测动态图位置预测，以及它与具体 belief delta 的边界
+- [Khronos](khronos_2024_DEEP.md)：短期动态、长期变化和 4D reconciliation，以及它与关系级修订范围的边界
+- [Embodied VideoAgent](embodied_videoagent_2025_DEEP.md)：3D re-ID、对象状态更新，以及它与 affected-subgraph revision 的边界
 - [FARM](farm_2026_DEEP.md)：在线关系空间记忆、同类候选检索，以及它与版本化 affected-subgraph revision 的边界
 - [ODIN](odin_2024_DEEP.md)：posed RGB-D 的 2D/3D 交替融合，以及 cross-view attention 与 persistent revision 的边界
 - [g3D-LF](g3dlf_2024_DEEP.md)：追加式三维语言特征场及其动态更新空白
@@ -26,4 +29,3 @@
 - `*_DEEP.md`：精读到方法状态、更新公式、实验论据、失败模式和可复现基线。
 - 普通笔记：记录论文角色、主要机制、关键差异和采用方式。
 - 笔记中的数字用于研究定位；正式写作前应回到 PDF 表格逐项核对输入设置、数据划分和指标方向。
-

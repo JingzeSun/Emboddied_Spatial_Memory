@@ -1,6 +1,6 @@
 param(
     [string]$ContentPath = "scripts/dynamic_memory_prior_work_ppt_content.json",
-    [string]$OutputPath = "prototype/dynamic_memory_prior_work_review_zh.pptx"
+    [string]$OutputPath = "prototype/dynamic_spatial_revision_report_v0_1.pptx"
 )
 
 $ErrorActionPreference = "Stop"
@@ -64,6 +64,10 @@ function Add-Text {
     $tf.TextRange.Font.Bold = $(if ($Bold) { -1 } else { 0 })
     $tf.TextRange.Font.Fill.ForeColor.RGB = $Color
     $tf.TextRange.ParagraphFormat.Alignment = $Align
+    # PowerPoint may shrink a newly created textbox back to one line after assigning text.
+    # Re-assert the requested bounds so multi-line Chinese content is not clipped.
+    $shape.Width = $W
+    $shape.Height = $H
     return $shape
 }
 
@@ -145,18 +149,23 @@ function Add-Node {
 
 function Add-PaperCommon {
     param($Presentation, [int]$Index, $Data, [string]$Code, [scriptblock]$Diagram)
-    $slide = Add-SlideBase $Presentation $Index $Data.title "近邻工作"
-    Add-Pill $slide $Data.year 46 109 98 $C.Blue $C.White 11
-    [void](Add-Text $slide $Data.paper 158 107 728 32 11.5 $C.Muted $false 1 $FontCN 3)
+    $slide = Add-SlideBase $Presentation $Index $Data.title "结构化文献梳理"
+    Add-Pill $slide $Data.year 46 109 210 $C.Blue $C.White 10
+    [void](Add-Text $slide $Data.paper 270 107 616 32 10.8 $C.Muted $false 1 $FontCN 3)
 
     [void](Add-Shape $slide 5 46 151 425 244 $C.Card $C.Line)
     [void](Add-Text $slide "它已经提出" 66 168 180 25 14 $C.Cyan $true 1 $FontCN 1)
     Add-Bullets $slide $Data.proposed 66 204 380 44 13.2 $C.Cyan $C.White
 
     [void](Add-Shape $slide 5 492 151 422 244 $C.Bg2 $C.Line)
-    & $Diagram $slide
-    [void](Add-Text $slide "对原设想的直接覆盖" 515 333 200 18 11 $C.Muted $true 1 $FontCN 1)
-    Add-TagRow $slide $Data.overlap 515 358 376
+    [void](Add-Text $slide "优势" 515 169 55 20 12 $C.Cyan $true 1 $FontCN 1)
+    [void](Add-Text $slide $Data.strength 577 166 309 55 11.2 $C.White $false 1 $FontCN 1)
+    [void](Add-Line $slide 515 228 890 228 $C.Line 0.8 $false)
+    [void](Add-Text $slide "局限" 515 245 55 20 12 $C.Red $true 1 $FontCN 1)
+    [void](Add-Text $slide $Data.limitation 577 242 309 64 11.2 $C.White $false 1 $FontCN 1)
+    [void](Add-Line $slide 515 312 890 312 $C.Line 0.8 $false)
+    [void](Add-Text $slide "借鉴" 515 329 55 20 12 $C.Amber $true 1 $FontCN 1)
+    [void](Add-Text $slide $Data.borrow 577 326 309 55 11.2 $C.White $false 1 $FontCN 1)
 
     [void](Add-Shape $slide 5 46 414 868 76 $C.Card $C.Line)
     [void](Add-Text $slide "边界" 66 428 54 20 12 $C.Amber $true 1 $FontCN 1)
@@ -186,13 +195,13 @@ try {
     [void](Add-Shape $slide 9 664 -110 420 420 $C.Blue $C.Blue 0 84)
     [void](Add-Shape $slide 9 740 208 300 300 $C.Cyan $C.Cyan 0 90)
     [void](Add-Shape $slide 1 0 0 12 $SlideH $C.Blue $C.Blue)
-    [void](Add-Text $slide "文献核查 · 2023—2026" 62 70 300 24 12 $C.Cyan $true 1 $FontCN 1)
+    [void](Add-Text $slide "研究设想 · 文献精读 · 实验落地" 62 70 360 24 12 $C.Cyan $true 1 $FontCN 1)
     [void](Add-Text $slide $data.meta.title 62 113 720 112 34 $C.White $true 1 $FontCN 1)
     [void](Add-Text $slide $data.meta.subtitle 64 242 680 48 16 $C.Muted $false 1 $FontCN 1)
     [void](Add-Shape $slide 5 62 322 515 72 $C.Card $C.Line)
     [void](Add-Text $slide "目的" 80 338 62 22 12 $C.Amber $true 1 $FontCN 1)
-    [void](Add-Text $slide "先证明哪些概念已经被提出，再决定还能从哪里形成真正的新问题。" 143 334 410 40 14 $C.White $true 1 $FontCN 3)
-    $papers = @("KARMA", "Khronos", "Embodied VideoAgent", "DYNEMO-SLAM", "R4DSG", "Scene Graph Memory")
+    [void](Add-Text $slide "收敛研究问题，核验同行评审边界，并给出可直接启动的 oracle pilot。" 143 334 410 40 14 $C.White $true 1 $FontCN 3)
+    $papers = @("Hydra", "Scene Graph Memory", "Khronos", "Embodied VideoAgent", "3DLLM-Mem", "FARM · preprint")
     $px = 62
     foreach ($p in $papers) {
         $pw = 24 + $p.Length * 8.2
@@ -206,7 +215,7 @@ try {
     $d = $data.slides.thesis
     $slide = Add-SlideBase $presentation 2 $d.title "原始设想复盘"
     [void](Add-Shape $slide 5 46 119 544 276 $C.Card $C.Line)
-    [void](Add-Text $slide "当前动态模块的实际职责" 68 140 260 25 15 $C.Cyan $true 1 $FontCN 1)
+    [void](Add-Text $slide "本次汇报完成的收敛" 68 140 260 25 15 $C.Cyan $true 1 $FontCN 1)
     Add-Bullets $slide $d.original 68 181 485 44 13.8 $C.Cyan $C.White
     [void](Add-Shape $slide 5 46 416 544 68 $C.Card2 $C.Amber)
     [void](Add-Text $slide $d.finding 67 429 500 40 14 $C.Amber $true 1 $FontCN 3)
@@ -225,8 +234,8 @@ try {
         $it = $d.items[$i]
         [void](Add-Shape $slide 5 $xs[$i] 132 268 245 $C.Card $C.Line)
         Add-CircleLabel $slide $it.label ($xs[$i] + 22) 153 48 $accents[$i] 12
-        [void](Add-Text $slide $it.name ($xs[$i] + 22) 216 220 30 17 $C.White $true 1 $FontCN 1)
-        [void](Add-Text $slide $it.desc ($xs[$i] + 22) 264 222 89 13.2 $C.Muted $false 1 $FontCN 1)
+        [void](Add-Text $slide $it.name ($xs[$i] + 22) 216 220 43 15 $C.White $true 1 $FontCN 1)
+        [void](Add-Text $slide $it.desc ($xs[$i] + 22) 270 232 82 13.2 $C.Muted $false 1 $FontCN 1)
     }
     [void](Add-Shape $slide 5 46 407 868 76 $C.Card2 $C.Cyan)
     [void](Add-Text $slide $d.finding 70 420 820 48 15 $C.Cyan $true 1 $FontCN 3)
@@ -341,7 +350,7 @@ try {
     $colW = 98.8
     $y0 = 132
     $headerH = 58
-    [void](Add-Shape $slide 5 $x0 $y0 868 339 $C.Card $C.Line)
+    [void](Add-Shape $slide 5 $x0 $y0 868 314 $C.Card $C.Line)
     [void](Add-Text $slide "工作" ($x0 + 10) ($y0 + 17) ($rowNameW - 20) 24 11.5 $C.Muted $true 1 $FontCN 3)
     for ($j = 0; $j -lt $d.columns.Count; $j++) {
         $cx = $x0 + $rowNameW + $j * $colW
@@ -349,7 +358,7 @@ try {
         if ($j -ge 0) { [void](Add-Line $slide $cx $y0 $cx ($y0 + 300) $C.Line 0.7 $false) }
     }
     [void](Add-Line $slide $x0 ($y0 + $headerH) ($x0 + 868) ($y0 + $headerH) $C.Line 1 $false)
-    $rowH = 40
+    $rowH = 35
     for ($i = 0; $i -lt $d.rows.Count; $i++) {
         $row = $d.rows[$i]
         $ry = $y0 + $headerH + $i * $rowH
@@ -363,14 +372,14 @@ try {
         }
         [void](Add-Line $slide $x0 ($ry + $rowH) ($x0 + 868) ($ry + $rowH) $C.Line 0.45 $false)
     }
-    [void](Add-Text $slide $d.note 56 445 846 36 9.2 $C.Muted $false 1 $FontCN 1)
-    Add-Footer $slide "矩阵依据六篇论文原文；只比较本次审查涉及的宽泛动态记忆能力。"
+    [void](Add-Text $slide $d.note 56 457 846 32 9.2 $C.Muted $false 1 $FontCN 1)
+    Add-Footer $slide "矩阵依据 5 篇已评审论文与 FARM 预印本；证据等级分开标注。"
 
     # 12 Overlap
     $d = $data.slides.overlap
     $slide = Add-SlideBase $presentation 12 $d.title "创新性风险"
-    [void](Add-Text $slide "原始构想" 65 119 180 24 13 $C.Muted $true 1 $FontCN 1)
-    [void](Add-Text $slide "已有直接覆盖" 610 119 190 24 13 $C.Muted $true 1 $FontCN 1)
+    [void](Add-Text $slide "已有能力 / 输入" 65 119 180 24 13 $C.Muted $true 1 $FontCN 1)
+    [void](Add-Text $slide "在本项目中的位置" 610 119 190 24 13 $C.Muted $true 1 $FontCN 1)
     $colors = @($C.Blue, $C.Cyan, $C.Amber, $C.Green, $C.Blue, $C.Cyan)
     for ($i = 0; $i -lt $d.mappings.Count; $i++) {
         $m = $d.mappings[$i]
@@ -381,21 +390,83 @@ try {
     }
     [void](Add-Shape $slide 5 54 451 852 42 $C.Card2 $C.Red)
     [void](Add-Text $slide $d.finding 70 458 820 28 12 $C.Red $true 2 $FontCN 3)
-    Add-Footer $slide "结论是概念级新颖性不足，不等价于这些论文已经解决本项目的全部技术问题。"
+    Add-Footer $slide "区分 read / construction / revision 三条路径，避免把已有组件重新包装成方法创新。"
 
-    # 13 Close
+    # 13 Scenarios
+    $d = $data.slides.scenarios
+    $slide = Add-SlideBase $presentation 13 $d.title "场景与 WBS"
+    $scenarioXs = @(46, 264, 482, 700)
+    $scenarioYs = @(128, 278)
+    $scenarioColors = @($C.Blue, $C.Cyan, $C.Amber, $C.Green, $C.Blue, $C.Cyan, $C.Amber, $C.Green)
+    for ($i = 0; $i -lt $d.items.Count; $i++) {
+        $item = $d.items[$i]
+        $x = $scenarioXs[$i % 4]
+        $y = $scenarioYs[[int][Math]::Floor($i / 4)]
+        [void](Add-Shape $slide 5 $x $y 200 124 $C.Card $C.Line)
+        Add-CircleLabel $slide $item.id ($x + 14) ($y + 14) 38 $scenarioColors[$i] 11
+        [void](Add-Text $slide $item.name ($x + 61) ($y + 16) 123 26 12.5 $C.White $true 1 $FontCN 1)
+        [void](Add-Text $slide $item.desc ($x + 18) ($y + 61) 164 45 11 $C.Muted $false 1 $FontCN 1)
+    }
+    [void](Add-Shape $slide 5 46 422 868 69 $C.Card2 $C.Cyan)
+    [void](Add-Text $slide $d.finding 68 435 824 43 12.3 $C.Cyan $true 1 $FontCN 3)
+    Add-Footer $slide "每个 fixture：base graph + observation + oracle delta + expected graph + counterfactual + provenance。"
+
+    # 14 Oracle pilot
+    $d = $data.slides.pilot
+    $slide = Add-SlideBase $presentation 14 $d.title "实验方案"
+    [void](Add-Shape $slide 5 46 123 500 359 $C.Card $C.Line)
+    [void](Add-Text $slide "实验顺序" 67 140 140 24 14 $C.Cyan $true 1 $FontCN 1)
+    for ($i = 0; $i -lt $d.phases.Count; $i++) {
+        $phase = $d.phases[$i]
+        $yy = 177 + $i * 57
+        Add-CircleLabel $slide $phase.id 67 $yy 34 $C.Blue 10
+        [void](Add-Text $slide $phase.name 114 ($yy - 1) 165 20 11.7 $C.White $true 1 $FontCN 1)
+        [void](Add-Text $slide $phase.goal 285 ($yy - 1) 235 35 10.5 $C.Muted $false 1 $FontCN 1)
+    }
+    [void](Add-Shape $slide 5 570 123 344 101 $C.Bg2 $C.Line)
+    [void](Add-Text $slide "机制基线" 590 139 100 20 12 $C.Amber $true 1 $FontCN 1)
+    [void](Add-Text $slide $d.baselines 590 168 304 44 10.4 $C.White $false 1 $FontCN 1)
+    [void](Add-Shape $slide 5 570 238 344 112 $C.Bg2 $C.Line)
+    [void](Add-Text $slide "核心指标" 590 254 100 20 12 $C.Cyan $true 1 $FontCN 1)
+    [void](Add-Text $slide $d.metrics 590 283 304 53 10.4 $C.White $false 1 $FontCN 1)
+    [void](Add-Shape $slide 5 570 365 344 117 $C.Card2 $C.Green)
+    [void](Add-Text $slide "Go / No-Go" 590 381 120 20 12 $C.Green $true 1 $FontCN 1)
+    [void](Add-Text $slide $d.gate 590 409 304 58 10.7 $C.White $false 1 $FontCN 1)
+    Add-Footer $slide "若 oracle 输入下机制不成立：修合同/执行器或收缩 claim，不用训练掩盖问题。"
+
+    # 15 Training
+    $d = $data.slides.training
+    $slide = Add-SlideBase $presentation 15 $d.title "训练与正式评测"
+    $trainXs = @(46, 340, 634)
+    $trainYs = @(129, 265)
+    for ($i = 0; $i -lt $d.stages.Count; $i++) {
+        $stage = $d.stages[$i]
+        $x = $trainXs[$i % 3]
+        $y = $trainYs[[int][Math]::Floor($i / 3)]
+        [void](Add-Shape $slide 5 $x $y 280 105 $C.Card $C.Line)
+        Add-Pill $slide $stage.id ($x + 17) ($y + 15) 46 $C.Blue $C.White 10
+        [void](Add-Text $slide $stage.name ($x + 76) ($y + 16) 184 24 12.5 $C.White $true 1 $FontCN 1)
+        [void](Add-Text $slide $stage.desc ($x + 18) ($y + 57) 244 28 10.8 $C.Muted $false 1 $FontCN 1)
+    }
+    [void](Add-Shape $slide 5 46 391 868 45 $C.Card2 $C.Amber)
+    [void](Add-Text $slide $d.rule 65 400 830 28 11.4 $C.Amber $true 2 $FontCN 3)
+    [void](Add-Shape $slide 5 46 447 868 43 $C.Card2 $C.Cyan)
+    [void](Add-Text $slide $d.after 65 455 830 27 11.2 $C.Cyan $true 2 $FontCN 3)
+    Add-Footer $slide "顺序：innovation → scope → operator/stop → association ambiguity → noisy perception → scenario generalization。"
+
+    # 16 Close
     $d = $data.slides.close
-    $slide = Add-SlideBase $presentation 13 $d.title "结论"
+    $slide = Add-SlideBase $presentation 16 $d.title "结论"
     [void](Add-Shape $slide 5 46 121 868 73 $C.Card2 $C.Red)
-    [void](Add-Text $slide $d.headline 70 135 820 44 17 $C.White $true 2 $FontCN 3)
-    [void](Add-Shape $slide 5 46 216 410 232 $C.Card $C.Line)
-    [void](Add-Text $slide "不能再声称" 67 236 160 24 14 $C.Red $true 1 $FontCN 1)
-    Add-Bullets $slide $d.cannot_claim 67 278 360 41 12.4 $C.Red $C.White
-    [void](Add-Shape $slide 5 478 216 436 232 $C.Card $C.Line)
-    [void](Add-Text $slide "下一轮必须回答" 499 236 180 24 14 $C.Cyan $true 1 $FontCN 1)
-    Add-Bullets $slide $d.next 499 278 385 41 12.4 $C.Cyan $C.White
-    [void](Add-Text $slide $d.footer 46 469 868 25 12 $C.Amber $true 2 $FontCN 3)
-    Add-Footer $slide "Research integrity note: 已提出、未解决和计划中必须在后续稿件中明确区分。"
+    [void](Add-Text $slide $d.headline 70 135 820 44 16.5 $C.White $true 2 $FontCN 3)
+    [void](Add-Shape $slide 5 46 216 410 244 $C.Card $C.Line)
+    [void](Add-Text $slide "需要导师 / 人工确认" 67 234 210 24 14 $C.Amber $true 1 $FontCN 1)
+    Add-Bullets $slide $d.human_confirm 67 270 360 30 10.8 $C.Amber $C.White
+    [void](Add-Shape $slide 5 478 216 436 244 $C.Card $C.Line)
+    [void](Add-Text $slide "下一轮执行顺序" 499 234 180 24 14 $C.Cyan $true 1 $FontCN 1)
+    Add-Bullets $slide $d.next 499 278 385 42 12.1 $C.Cyan $C.White
+    [void](Add-Text $slide $d.footer 46 469 868 25 11.5 $C.Amber $true 2 $FontCN 3)
+    Add-Footer $slide "Research integrity：已接受合同 ≠ 已实现；oracle pilot ≠ 正式实验；preprint ≠ 同行评审基石。"
 
     # Document properties and save
     $outDir = Split-Path -Parent $outputAbs
