@@ -29,7 +29,8 @@
 
 - `dynamic_spatial_revision_report_v0_1.pptx`：旧版汇报留存，由 `.gitignore` 忽略；
 - `dynamic_spatial_revision_report_v0_3.pptx`：文献基础与方法蓝图初次重构版，由 `.gitignore` 忽略；
-- `dynamic_spatial_revision_report_v0_4.pptx`：加入 FARM 现实差异例子与论文式双层方法图的当前版，由 `.gitignore` 忽略；
+- `dynamic_spatial_revision_report_v0_4.pptx`：加入 FARM 现实差异例子与论文式双层方法图的上一版，由 `.gitignore` 忽略；
+- `dynamic_spatial_revision_report_v0_5.pptx`：将方法图改为导师可顺讲的主链和六路状态解释，并移除汇报 WBS 页的当前版，由 `.gitignore` 忽略；
 - [`dynamic_spatial_revision_report_speaker_guide.md`](dynamic_spatial_revision_report_speaker_guide.md)：术语、人话定义、WBS 执行动作、R1 示例和导师追问口头回答。
 
 汇报辅助材料是现行合同的解释层，不是新的研究合同；当前版中的实验覆盖重排仍是建议稿，确认后才能回写 `docs/03_pilot_protocol.md`。冲突时以 `EXECUTE.md` 与 `docs/01–05` 为准。

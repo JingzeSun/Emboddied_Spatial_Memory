@@ -3,7 +3,7 @@
     "title": "动态空间语境修订：文献基础与方法蓝图",
     "subtitle": "新帧如何被判型，并有限、可解释、可追溯地改变旧空间信念",
     "date": "2026-08-28",
-    "author": "Embodied Spatial Memory · 汇报版 v0.4"
+    "author": "Embodied Spatial Memory · 汇报版 v0.5"
   },
   "slides": {
     "framing": {
@@ -20,7 +20,7 @@
           "answer": "把观测对齐、差异判型、局部传播、typed delta、版本执行和四层状态连成一条写入链。"
         }
       ],
-      "boundary": "本版不展开具体场景与训练课程；先冻结概念、接口、WBS 和实验覆盖，再反推场景。",
+      "boundary": "本版不展开具体场景与训练课程；先讲清概念、状态路径和实验覆盖，再反推场景。",
       "status": "当前状态：研究合同已接受；尚未实现，尚未验证。"
     },
     "timeline": {
@@ -218,84 +218,83 @@
       "not_claim": "不主张新建一种 3D mapper、关系检索器或更大的记忆模型。"
     },
     "pipeline": {
-      "title": "系统总览：Structured Innovation 是判型模块，不是整个记忆系统",
-      "sensor": "RGB-D + T_world_camera",
-      "observation": "ObservationGraph  O_t\n当前证据：nodes · edges · pose · visibility",
-      "scene_belief": "SceneBelief  B_t\n当前多假设、版本化世界信念",
-      "projection": "ProjectExpectedObservation\npose transform + visibility reasoning",
-      "expected": "ExpectedObservation  Ô_t\n当前视角下本来应该看到什么",
-      "innovation": "Structured Innovation\nalign → typed discrepancy → decision heads",
-      "innovation_output": "InnovationRecord  I_t\nevidence · mode · reliability · seeds",
-      "controller": "Affected-Subgraph Controller\naffected/control · propagate · stop",
-      "delta": "typed ContextDelta  Δ_t\noperator · target · before/after · evidence",
-      "executor": "Versioned Executor\nvalidate · transact · provenance",
-      "active": "ActiveContext  A_t\nprompt/route 下的只读候选视图",
-      "persistent": "PersistentWorldMemory  M\n已验证版本、valid interval 与 provenance",
-      "guard": "唯一 world-write 路径：InnovationRecord → Controller → ContextDelta → Executor → SceneBelief；Structured Innovation 自身不改图。"
+      "title": "一张图讲明白：新帧怎样进入并改变旧空间语境",
+      "new_frame": "形成当前观测\n新 frame / depth / pose 只记录现在真正看到的内容",
+      "old_view": "让旧记忆站到当前视角\n把 SceneBelief 投影成“本来应该看到什么”",
+      "compare": "比较实际与预期\n先问：这是真变化、看不见，还是证据不可靠？",
+      "route": "选择一条状态路径\n一致 / 新增 / 冲突 / 遮挡 / 身份不清 / 传感器异常",
+      "world_edit": "需要改变世界事实\n进入受控写回",
+      "no_world": "不应改变世界事实\n保持、延后或隔离",
+      "scope": "圈定修改范围\n哪些必须改、哪些不能动、传播到哪里停",
+      "edit": "给出明确修改\n新增 / 关闭旧状态 / 换关系 / 保持",
+      "commit": "执行并保留历史\n产生新的 SceneBelief 版本；验证后进入长期记忆",
+      "active": "另一条线：prompt / 路线只改变 ActiveContext 的候选优先级，不改变世界事实",
+      "guard": "关键：新帧不能直接覆盖旧记忆；只有“判型 → 圈定范围 → 明确修改 → 版本执行”可以改变 SceneBelief。"
     },
     "routing": {
-      "title": "Structured Innovation 放大图：从对齐差异到可审计 InnovationRecord",
-      "inputs": [
+      "title": "看到差异后，不是一律更新：先过两道门，再分成四种可信情况",
+      "gates": [
         {
-          "symbol": "O_t",
-          "name": "ObservationGraph",
-          "fields": "observed nodes/edges · pose · visibility"
+          "name": "第一道门：证据可靠吗？",
+          "question": "pose、depth、detector 是否互相支持？",
+          "fail": "不可靠 → 传感器不一致"
         },
         {
-          "symbol": "Ô_t",
-          "name": "ExpectedObservation",
-          "fields": "expected nodes/relations · should-be-visible mask"
+          "name": "第二道门：身份清楚吗？",
+          "question": "是旧对象、新对象，还是两个候选？",
+          "fail": "不清楚 → 身份关联不清"
+        },
+        {
+          "name": "可信证据与旧信念是什么关系？",
+          "question": "一致、新增、反驳，还是暂时看不见？",
+          "fail": "分成下面四条路径"
         }
       ],
-      "stages": [
+      "paths": [
         {
-          "id": "S1",
-          "name": "Alignment & association",
-          "details": "pose transform · geometry match · identity hypotheses"
+          "name": "Sensor inconsistency",
+          "cn": "传感器不一致",
+          "when": "pose / depth / detector 相互矛盾",
+          "action": "暂缓或拒绝写入",
+          "example": "位姿突然跳变，椅子看起来瞬移"
         },
         {
-          "id": "S2",
-          "name": "Typed discrepancy encoder",
-          "details": "node-state residual · relation residual · absence/occlusion · sensor consistency"
+          "name": "Association ambiguity",
+          "cn": "身份关联不清",
+          "when": "两个同类实例无法确定谁是谁",
+          "action": "保留多假设，必要时询问",
+          "example": "两个木箱都可能是昨天那个箱子"
         },
         {
-          "id": "S3",
-          "name": "Decision heads",
-          "details": "evidence category · state mode · reliability/ambiguity"
+          "name": "Reinforcement",
+          "cn": "旧事实被再次确认",
+          "when": "新观测与旧信念一致",
+          "action": "增强证据，不改结构",
+          "example": "椅子仍在桌旁"
+        },
+        {
+          "name": "Graph expansion",
+          "cn": "扩充新区域或新节点",
+          "when": "看到了旧图中从未记录的新内容",
+          "action": "新增并连接，不关闭旧事实",
+          "example": "转弯后补齐此前隐藏的建筑"
+        },
+        {
+          "name": "Belief revision",
+          "cn": "可靠证据反驳旧事实",
+          "when": "同一对象状态改变，旧状态已不成立",
+          "action": "关闭旧状态，建立新状态并做必要传播",
+          "example": "同一把椅子从 A 搬到 B"
+        },
+        {
+          "name": "Visibility update",
+          "cn": "只是暂时看不见",
+          "when": "遮挡或视野外解释了缺失",
+          "action": "只更新可见性，保留世界事实",
+          "example": "人挡住椅子，不等于椅子消失"
         }
       ],
-      "output_fields": [
-        "evidence ∈ {matched, new, occluded, reliably_absent, conflict, ambiguous, sensor_inconsistent}",
-        "mode ∈ {reinforcement, expansion, revision, visibility, ambiguity, sensor_inconsistency}",
-        "reliability · matched_ids · candidate_seeds · association_hypotheses · provenance"
-      ],
-      "modes": [
-        {
-          "name": "reinforce",
-          "destination": "controller"
-        },
-        {
-          "name": "expand",
-          "destination": "controller"
-        },
-        {
-          "name": "revise",
-          "destination": "controller"
-        },
-        {
-          "name": "visibility",
-          "destination": "PRESERVE fact"
-        },
-        {
-          "name": "ambiguity",
-          "destination": "QUARANTINE"
-        },
-        {
-          "name": "sensor",
-          "destination": "defer/reject"
-        }
-      ],
-      "guard": "模块边界：这里只产生 InnovationRecord，不直接产生图修改；ActiveContext 也不参与 world-truth 判定。"
+      "guard": "只有证据可信、身份明确且真正反驳旧事实时，才进入 belief revision；“没看到”和“消失了”必须分开。"
     },
     "contributions": {
       "title": "创新点要落成六个可判错的模块，而不是一句“动态记忆”",
@@ -338,48 +337,6 @@
         }
       ],
       "finding": "只有六个模块一起成立，才构成“有限、可解释、可追溯地重组旧空间语境”。"
-    },
-    "wbs": {
-      "title": "真正的 WBS：按可交付模块拆工作，不按椅子、木箱等场景拆",
-      "packages": [
-        {
-          "id": "W0",
-          "name": "Contract & ontology",
-          "deliverable": "冻结状态、关系、operator、invariant"
-        },
-        {
-          "id": "W1",
-          "name": "Observation & projection",
-          "deliverable": "ObservationGraph + expected projection"
-        },
-        {
-          "id": "W2",
-          "name": "Innovation router",
-          "deliverable": "7 类 evidence → 6 条 mode"
-        },
-        {
-          "id": "W3",
-          "name": "Scope controller",
-          "deliverable": "affected/control/propagate/stop"
-        },
-        {
-          "id": "W4",
-          "name": "Delta & version store",
-          "deliverable": "schema + executor + provenance"
-        },
-        {
-          "id": "W5",
-          "name": "Evaluator & baselines",
-          "deliverable": "指标、反例、机制基线、消融"
-        },
-        {
-          "id": "W6",
-          "name": "Perception adapter",
-          "deliverable": "pose/depth/detector 接入与噪声校准"
-        }
-      ],
-      "dependency": "W0 → W1 → W2 → W3 → W4 → W5；W6 在 oracle 链成立后接入。",
-      "definition": "场景 fixture 是各工作包的测试数据，不是 WBS 本身。"
     },
     "experiments": {
       "title": "实验需要覆盖整条链：现有 E0–E4 只覆盖其中一部分",
