@@ -1,6 +1,6 @@
 param(
     [string]$ContentPath = "scripts/dynamic_memory_prior_work_ppt_content.json",
-    [string]$OutputPath = "prototype/dynamic_spatial_revision_report_v0_3.pptx"
+    [string]$OutputPath = "prototype/dynamic_spatial_revision_report_v0_4.pptx"
 )
 
 $ErrorActionPreference = "Stop"
@@ -325,12 +325,18 @@ try {
     [void](Add-Text $slide $d.farm.paper 68 174 504 28 10.8 $C.White $true 1 $FontCN 1)
     Add-Pill $slide "PREPRINT ONLY" 68 208 132 $C.Red $C.White 9
     [void](Add-Text $slide $d.farm.status 211 210 359 23 9.2 $C.Muted $false 1 $FontCN 1)
-    [void](Add-Text $slide "它已经覆盖" 68 252 92 20 10.5 $C.Amber $true 1 $FontCN 1)
-    [void](Add-Text $slide $d.farm.covered 168 249 402 49 10.5 $C.White $false 1 $FontCN 1)
-    [void](Add-Text $slide "我们的差异" 68 316 92 20 10.5 $C.Green $true 1 $FontCN 1)
-    [void](Add-Text $slide $d.farm.difference 168 313 402 64 10.5 $C.White $false 1 $FontCN 1)
-    [void](Add-Text $slide "如何使用" 68 397 92 20 10.5 $C.Cyan $true 1 $FontCN 1)
-    [void](Add-Text $slide $d.farm.use 168 394 402 55 10.3 $C.White $false 1 $FontCN 1)
+    [void](Add-Text $slide "已经覆盖" 68 249 82 20 10.2 $C.Amber $true 1 $FontCN 1)
+    [void](Add-Text $slide $d.farm.covered 157 246 424 37 9.6 $C.White $false 1 $FontCN 1)
+    [void](Add-Text $slide "同一现实场景" 68 289 82 20 10.2 $C.Green $true 1 $FontCN 1)
+    [void](Add-Text $slide $d.farm.scene 157 286 415 38 9.6 $C.White $false 1 $FontCN 1)
+    [void](Add-Shape $slide 5 68 333 230 78 $C.Bg2 $C.Cyan)
+    Add-Pill $slide "FARM · query/read" 80 343 136 $C.Cyan $C.Bg 8.5
+    [void](Add-Text $slide $d.farm.farm_action 80 374 206 29 8.8 $C.White $false 1 $FontCN 1)
+    [void](Add-Shape $slide 5 310 333 262 78 $C.Bg2 $C.Green)
+    Add-Pill $slide "OURS · world revision" 322 343 157 $C.Green $C.Bg 8.5
+    [void](Add-Text $slide $d.farm.ours_action 322 372 238 34 8.1 $C.White $false 1 $FontCN 1)
+    [void](Add-Shape $slide 5 68 422 504 46 $C.Card2 $C.Amber)
+    [void](Add-Text $slide $d.farm.difference 82 429 476 31 9.6 $C.Amber $true 2 $FontCN 3)
 
     [void](Add-Shape $slide 5 616 122 298 362 $C.Bg2 $C.Line)
     [void](Add-Text $slide "其它 novelty watch" 638 141 250 24 13 $C.Amber $true 1 $FontCN 1)
@@ -414,94 +420,122 @@ try {
     [void](Add-Text $slide $d.not_claim 46 468 868 23 10.2 $C.Amber $true 2 $FontCN 3)
     Add-Footer $slide "创新不是组件清单，而是可证伪的受控写入机制。"
 
-    # 09 Full pipeline
+    # 09 System-level academic figure
     $d = $data.slides.pipeline
-    $slide = Add-SlideBase $presentation 9 $d.title "核心方法"
-    $inputXs = @(260, 407, 554)
-    for ($i = 0; $i -lt $d.inputs.Count; $i++) {
-        Add-Pill $slide $d.inputs[$i] $inputXs[$i] 113 132 $C.Card2 $C.Blue 9.5
+    $slide = Add-SlideBase $presentation 9 $d.title "核心方法 · System View"
+    [void](Add-Text $slide "STATE INTERFACES" 46 112 150 15 8.5 $C.Muted $true 1 $FontMono 1)
+    $stateXs = @(46, 264, 482, 700)
+    $stateColors = @($C.Blue, $C.Cyan, $C.Amber, $C.Green)
+    $stateNames = @("ObservationGraph  O_t", "SceneBelief  B_t", "ActiveContext  A_t", "PersistentMemory  M")
+    $stateIO = @(
+        "write: perception  |  read: comparison",
+        "read: projection  |  write: executor",
+        "read-only ranking  |  no writeback",
+        "history input  |  validated commit"
+    )
+    for ($i = 0; $i -lt 4; $i++) {
+        [void](Add-Shape $slide 5 $stateXs[$i] 132 200 62 $C.Card $stateColors[$i])
+        [void](Add-Shape $slide 1 $stateXs[$i] 132 5 62 $stateColors[$i] $stateColors[$i])
+        [void](Add-Text $slide $stateNames[$i] ($stateXs[$i] + 13) 143 174 20 10.2 $stateColors[$i] $true 1 $FontCN 1)
+        [void](Add-Text $slide $stateIO[$i] ($stateXs[$i] + 13) 169 174 16 7.8 $C.Muted $false 1 $FontMono 1)
     }
-    [void](Add-Line $slide 480 141 480 160 $C.Line 1.8 $true)
-    Add-Node $slide $d.observation 123 166 292 56 $C.Blue 10.6
-    [void](Add-Text $slide "+" 461 176 38 35 22 $C.Amber $true 2 $FontCN 3)
-    Add-Node $slide $d.expected 545 166 292 56 $C.Cyan 10.2
-    [void](Add-Line $slide 269 224 424 249 $C.Line 1.6 $true)
-    [void](Add-Line $slide 691 224 536 249 $C.Line 1.6 $true)
-    Add-Node $slide $d.innovation 318 247 324 54 $C.Amber 11
-    [void](Add-Line $slide 480 302 480 321 $C.Line 1.8 $true)
-    $scopeXs = @(180, 390, 600)
-    for ($i = 0; $i -lt $d.scope.Count; $i++) {
-        Add-Node $slide $d.scope[$i] $scopeXs[$i] 326 180 44 $C.Cyan 9.8
-        if ($i -lt 2) {
-            [void](Add-Line $slide ($scopeXs[$i] + 181) 348 ($scopeXs[$i + 1] - 6) 348 $C.Cyan 1.5 $true)
-        }
-    }
-    [void](Add-Line $slide 480 372 190 390 $C.Line 1.8 $true)
-    Add-Node $slide $d.delta 46 393 288 58 $C.Blue 9.7
-    [void](Add-Line $slide 336 422 366 422 $C.Line 1.6 $true)
-    Add-Node $slide $d.executor 370 393 205 58 $C.Amber 10.2
-    [void](Add-Line $slide 577 422 607 422 $C.Line 1.6 $true)
-    Add-Node $slide $d.new_belief 611 393 303 58 $C.Green 10.3
-    [void](Add-Shape $slide 5 46 464 424 31 $C.Card $C.Line)
-    [void](Add-Text $slide $d.read 58 469 400 21 8.6 $C.Cyan $false 1 $FontCN 3)
-    [void](Add-Shape $slide 5 490 464 424 31 $C.Card $C.Line)
-    [void](Add-Text $slide $d.persist 502 469 400 21 8.6 $C.Green $false 1 $FontCN 3)
-    Add-Footer $slide "核心保护：未经 typed executor 的输出不能直接改 SceneBelief。"
 
-    # 10 Routing
+    Add-Pill $slide $d.sensor 46 211 186 $C.Card2 $C.Blue 8.8
+    Add-Node $slide $d.projection 68 258 214 60 $C.Cyan 8.8
+    Add-Node $slide $d.expected 310 258 180 60 $C.Blue 8.8
+    [void](Add-Line $slide 139 211 139 197 $C.Blue 1.4 $true)
+    [void](Add-Line $slide 365 195 176 255 $C.Cyan 1.4 $true)
+    [void](Add-Line $slide 147 195 517 245 $C.Blue 1.4 $true)
+    [void](Add-Line $slide 284 288 307 288 $C.Line 1.6 $true)
+
+    $siGroup = Add-Shape $slide 5 520 214 220 142 $C.Bg $C.Amber 92
+    $siGroup.Line.DashStyle = 4
+    $siGroup.Line.Weight = 1.6
+    [void](Add-Text $slide "STRUCTURED INNOVATION" 536 225 188 17 8.8 $C.Amber $true 2 $FontMono 1)
+    Add-Node $slide "Align & associate" 542 253 176 29 $C.Amber 8.5
+    Add-Node $slide "Typed discrepancy" 542 291 176 29 $C.Amber 8.5
+    Add-Node $slide "Evidence · mode · reliability" 542 329 176 21 $C.Amber 7.7
+    [void](Add-Line $slide 492 288 517 288 $C.Amber 1.8 $true)
+
+    Add-Node $slide $d.innovation_output 770 250 144 72 $C.Amber 8.2
+    [void](Add-Line $slide 742 286 767 286 $C.Amber 1.8 $true)
+
+    Add-Node $slide $d.controller 700 389 214 63 $C.Cyan 8.8
+    Add-Node $slide $d.delta 460 389 214 63 $C.Blue 8.6
+    Add-Node $slide $d.executor 220 389 214 63 $C.Green 8.8
+    [void](Add-Line $slide 842 324 807 386 $C.Line 1.6 $true)
+    [void](Add-Line $slide 698 421 677 421 $C.Cyan 1.7 $true)
+    [void](Add-Line $slide 458 421 437 421 $C.Blue 1.7 $true)
+    [void](Add-Line $slide 327 386 298 350 $C.Green 1.7 $false)
+    [void](Add-Line $slide 298 350 298 205 $C.Green 1.7 $false)
+    [void](Add-Line $slide 298 205 365 197 $C.Green 1.7 $true)
+    [void](Add-Text $slide "commit B_(t+1)" 302 330 112 16 7.8 $C.Green $true 1 $FontMono 1)
+    [void](Add-Shape $slide 5 46 389 146 63 $C.Card2 $C.Red)
+    [void](Add-Text $slide "NO DIRECT WRITE" 58 402 122 17 8.4 $C.Red $true 2 $FontMono 1)
+    [void](Add-Text $slide "SI 只输出 record" 58 427 122 14 8.1 $C.Muted $false 2 $FontCN 1)
+    [void](Add-Shape $slide 5 46 466 868 29 $C.Card2 $C.Cyan)
+    [void](Add-Text $slide $d.guard 58 470 844 20 8.9 $C.Cyan $true 2 $FontCN 3)
+    Add-Footer $slide "状态容器位于 Structured Innovation 外部：O_t/B_t 是输入接口，A_t 是只读视图，M 只接收验证后的版本。"
+
+    # 10 Structured Innovation zoom-in
     $d = $data.slides.routing
-    $slide = Add-SlideBase $presentation 10 $d.title "差异判型"
-    [void](Add-Shape $slide 5 46 113 868 38 $C.Card2 $C.Line)
-    [void](Add-Text $slide ("证据类别：  " + ($d.evidence -join "   ·   ")) 60 121 840 22 9.6 $C.Muted $true 2 $FontCN 3)
-    $modeXs = @(46, 340, 634)
-    $modeYs = @(166, 298)
+    $slide = Add-SlideBase $presentation 10 $d.title "核心方法 · Module View"
+    $outer = Add-Shape $slide 5 46 116 868 314 $C.Bg $C.Amber 94
+    $outer.Line.DashStyle = 4
+    $outer.Line.Weight = 1.8
+    [void](Add-Text $slide "STRUCTURED INNOVATION" 62 128 210 17 9 $C.Amber $true 1 $FontMono 1)
+
+    $inputYs = @(163, 278)
+    for ($i = 0; $i -lt 2; $i++) {
+        $input = $d.inputs[$i]
+        [void](Add-Shape $slide 5 66 $inputYs[$i] 138 84 $C.Card $C.Blue)
+        Add-Pill $slide $input.symbol 78 ($inputYs[$i] + 11) 42 $C.Blue $C.White 9
+        [void](Add-Text $slide $input.name 128 ($inputYs[$i] + 13) 64 28 9.2 $C.White $true 1 $FontCN 1)
+        [void](Add-Text $slide $input.fields 78 ($inputYs[$i] + 48) 114 27 7.9 $C.Muted $false 1 $FontCN 1)
+    }
+
+    $stageXs = @(230, 400, 580)
+    $stageWs = @(145, 155, 155)
+    for ($i = 0; $i -lt 3; $i++) {
+        $stage = $d.stages[$i]
+        [void](Add-Shape $slide 5 $stageXs[$i] 151 $stageWs[$i] 226 $C.Card $C.Line)
+        Add-CircleLabel $slide $stage.id ($stageXs[$i] + 12) 163 34 $C.Amber 9
+        [void](Add-Text $slide $stage.name ($stageXs[$i] + 54) 164 ($stageWs[$i] - 64) 37 9.5 $C.White $true 1 $FontCN 1)
+        [void](Add-Line $slide ($stageXs[$i] + 14) 210 ($stageXs[$i] + $stageWs[$i] - 14) 210 $C.Line 0.7 $false)
+        [void](Add-Text $slide $stage.details ($stageXs[$i] + 14) 226 ($stageWs[$i] - 28) 130 8.5 $C.Muted $false 1 $FontCN 1)
+    }
+    [void](Add-Line $slide 206 205 227 205 $C.Blue 1.6 $true)
+    [void](Add-Line $slide 206 320 227 320 $C.Blue 1.6 $true)
+    [void](Add-Line $slide 377 264 397 264 $C.Amber 1.7 $true)
+    [void](Add-Line $slide 557 264 577 264 $C.Amber 1.7 $true)
+
+    [void](Add-Shape $slide 5 760 151 134 226 $C.Card2 $C.Cyan)
+    [void](Add-Text $slide "InnovationRecord  I_t" 773 165 108 31 10.1 $C.Cyan $true 2 $FontCN 1)
+    [void](Add-Line $slide 773 205 881 205 $C.Line 0.7 $false)
+    $fieldY = 218
+    foreach ($field in $d.output_fields) {
+        [void](Add-Shape $slide 9 774 ($fieldY + 5) 7 7 $C.Cyan $C.Cyan)
+        [void](Add-Text $slide $field 788 $fieldY 100 48 7.1 $C.White $false 1 $FontCN 1)
+        $fieldY += 51
+    }
+    [void](Add-Line $slide 737 264 757 264 $C.Cyan 1.8 $true)
+
     $modeColors = @($C.Blue, $C.Green, $C.Red, $C.Cyan, $C.Amber, $C.Muted)
+    $modeX = 46
     for ($i = 0; $i -lt $d.modes.Count; $i++) {
         $mode = $d.modes[$i]
-        $x = $modeXs[$i % 3]
-        $y = $modeYs[[int][Math]::Floor($i / 3)]
-        [void](Add-Shape $slide 5 $x $y 280 114 $C.Card $C.Line)
-        [void](Add-Shape $slide 1 $x $y 6 114 $modeColors[$i] $modeColors[$i])
-        [void](Add-Text $slide $mode.name ($x + 18) ($y + 13) 244 22 12.2 $modeColors[$i] $true 1 $FontCN 1)
-        [void](Add-Text $slide $mode.plain ($x + 18) ($y + 43) 244 25 10.2 $C.White $false 1 $FontCN 1)
-        [void](Add-Text $slide ("输出：" + $mode.output) ($x + 18) ($y + 76) 244 26 9.5 $C.Muted $false 1 $FontCN 1)
+        [void](Add-Shape $slide 5 $modeX 444 132 36 $C.Card2 $modeColors[$i])
+        [void](Add-Text $slide $mode.name ($modeX + 7) 449 54 13 8.3 $modeColors[$i] $true 1 $FontMono 1)
+        [void](Add-Text $slide ("→ " + $mode.destination) ($modeX + 62) 449 63 24 7.3 $C.Muted $false 1 $FontCN 1)
+        $modeX += 145
     }
-    [void](Add-Shape $slide 5 46 430 868 61 $C.Card2 $C.Amber)
-    [void](Add-Text $slide $d.context 66 442 828 37 11.5 $C.Amber $true 2 $FontCN 3)
-    Add-Footer $slide "“看到新东西”不是单一路径：新增、修订、遮挡、歧义和传感器异常必须产生不同操作。"
+    [void](Add-Shape $slide 5 46 486 868 17 $C.Card2 $C.Red)
+    [void](Add-Text $slide $d.guard 55 487 850 15 8.2 $C.Red $true 2 $FontCN 3)
+    Add-Footer $slide "论文图式：输入张量/图 → 分阶段模块 → 显式输出结构；虚线框之外才执行 scope、delta 与 world write。"
 
-    # 11 Four state containers
-    $d = $data.slides.states
-    $slide = Add-SlideBase $presentation 11 $d.title "状态分层"
-    $statePositions = @(
-        @{X = 46; Y = 138; W = 224; H = 140; C = $C.Blue},
-        @{X = 368; Y = 138; W = 224; H = 140; C = $C.Cyan},
-        @{X = 690; Y = 138; W = 224; H = 140; C = $C.Amber},
-        @{X = 368; Y = 324; W = 224; H = 125; C = $C.Green}
-    )
-    for ($i = 0; $i -lt $d.items.Count; $i++) {
-        $item = $d.items[$i]
-        $pos = $statePositions[$i]
-        [void](Add-Shape $slide 5 $pos.X $pos.Y $pos.W $pos.H $C.Card $C.Line)
-        [void](Add-Shape $slide 1 $pos.X $pos.Y 6 $pos.H $pos.C $pos.C)
-        [void](Add-Text $slide $item.name ($pos.X + 16) ($pos.Y + 13) ($pos.W - 30) 22 11.5 $pos.C $true 1 $FontCN 1)
-        [void](Add-Text $slide $item.cn ($pos.X + 16) ($pos.Y + 40) ($pos.W - 30) 20 10 $C.White $true 1 $FontCN 1)
-        [void](Add-Text $slide $item.role ($pos.X + 16) ($pos.Y + 67) ($pos.W - 22) 39 8.9 $C.Muted $false 1 $FontCN 1)
-        [void](Add-Text $slide $item.write ($pos.X + 16) ($pos.Y + 108) ($pos.W - 22) ($pos.H - 115) 8.1 $C.Amber $false 1 $FontCN 1)
-    }
-    [void](Add-Line $slide 271 208 365 208 $C.Blue 2 $true)
-    [void](Add-Text $slide "proposal + executor" 276 184 83 16 7.8 $C.Muted $false 2 $FontMono 1)
-    [void](Add-Line $slide 593 208 687 208 $C.Amber 2 $true)
-    [void](Add-Text $slide "read-only view" 598 184 83 16 7.8 $C.Muted $false 2 $FontMono 1)
-    [void](Add-Line $slide 480 280 480 321 $C.Green 2 $true)
-    [void](Add-Text $slide "validated commit" 490 291 92 16 7.8 $C.Muted $false 1 $FontMono 1)
-    [void](Add-Shape $slide 5 46 463 868 31 $C.Card2 $C.Cyan)
-    [void](Add-Text $slide $d.rule 58 468 844 21 9.4 $C.Cyan $true 2 $FontCN 3)
-    Add-Footer $slide "ActiveContext 的排序变化不得反向删除 SceneBelief；长期记忆只接收已验证版本。"
-
-    # 12 Contribution modules
+    # 11 Contribution modules
     $d = $data.slides.contributions
-    $slide = Add-SlideBase $presentation 12 $d.title "方法贡献"
+    $slide = Add-SlideBase $presentation 11 $d.title "方法贡献"
     $moduleXs = @(46, 490)
     $moduleYs = @(120, 232, 344)
     $moduleColors = @($C.Blue, $C.Amber, $C.Cyan, $C.Green, $C.Red, $C.Blue)
@@ -520,9 +554,9 @@ try {
     [void](Add-Text $slide $d.finding 58 467 844 21 10.2 $C.Cyan $true 2 $FontCN 3)
     Add-Footer $slide "每个模块都必须有自己的输入、输出、反例和指标，才能做模块级归因。"
 
-    # 13 WBS
+    # 12 WBS
     $d = $data.slides.wbs
-    $slide = Add-SlideBase $presentation 13 $d.title "Work Breakdown Structure"
+    $slide = Add-SlideBase $presentation 12 $d.title "Work Breakdown Structure"
     $topXs = @(46, 268, 490, 712)
     $bottomXs = @(157, 379, 601)
     $wbsColors = @($C.Blue, $C.Cyan, $C.Amber, $C.Green, $C.Blue, $C.Cyan, $C.Amber)
@@ -555,9 +589,9 @@ try {
     [void](Add-Text $slide $d.definition 58 468 844 20 10.2 $C.Amber $true 2 $FontCN 3)
     Add-Footer $slide "WBS 的对象是工作包和可交付物；椅子、木箱、转角等属于后续 fixture 设计。"
 
-    # 14 Experiment coverage
+    # 13 Experiment coverage
     $d = $data.slides.experiments
-    $slide = Add-SlideBase $presentation 14 $d.title "实验设计审计"
+    $slide = Add-SlideBase $presentation 13 $d.title "实验设计审计"
     [void](Add-Shape $slide 5 46 112 868 48 $C.Card2 $C.Red)
     [void](Add-Text $slide $d.current_gap 62 121 836 30 10.5 $C.White $true 2 $FontCN 3)
     $experimentXs = @(46, 264, 482, 700)
@@ -583,9 +617,9 @@ try {
     [void](Add-Text $slide $d.status 60 463 840 24 9.5 $C.Amber $true 2 $FontCN 3)
     Add-Footer $slide "建议覆盖：对齐 → 判型 → operator → scope/stop → version → cross-path/noise；不是只测局部子图。"
 
-    # 15 Decisions before scenarios
+    # 14 Decisions before scenarios
     $d = $data.slides.decisions
-    $slide = Add-SlideBase $presentation 15 $d.title "下一步研究门"
+    $slide = Add-SlideBase $presentation 14 $d.title "下一步研究门"
     [void](Add-Shape $slide 5 46 122 498 330 $C.Card $C.Line)
     [void](Add-Text $slide "需要导师 / 人工确认" 67 141 220 25 14 $C.Amber $true 1 $FontCN 1)
     Add-Bullets $slide $d.items 67 181 449 44 11.2 $C.Amber $C.White

@@ -3,7 +3,7 @@
     "title": "动态空间语境修订：文献基础与方法蓝图",
     "subtitle": "新帧如何被判型，并有限、可解释、可追溯地改变旧空间信念",
     "date": "2026-08-28",
-    "author": "Embodied Spatial Memory · 汇报版 v0.3"
+    "author": "Embodied Spatial Memory · 汇报版 v0.4"
   },
   "slides": {
     "framing": {
@@ -119,7 +119,10 @@
         "paper": "FARM: Find Anything using Relational Spatial Memory",
         "status": "arXiv 2606.15476v3 · 截至 2026-08-28 未核验正式 proceedings",
         "covered": "已覆盖：在线对象记忆、16 类关系谓词、同类实例候选、soft ranking、top-K 和 VLM rerank。",
-        "difference": "本项目核心不是“根据关系找哪个对象”，而是“可靠新证据到来后，哪些旧事实必须改、传播到哪、哪些不能动、历史如何保留”。",
+        "scene": "仓库机器人昨天记住 box_1 在 cart_1 上；今天在门旁地面重识别到同一 box_1，旧车面清楚可见且为空。",
+        "farm_action": "FARM：收到“找靠门的木箱”后，对候选做关系打分，把 box_1 排到 top-K 前列。",
+        "ours_action": "本项目：查询发生前就修订世界——关闭 on(box_1, cart_1)，新增 on(box_1, floor) / near(box_1, door)，只更新依赖关系，并保留 box_2 与旧版本。",
+        "difference": "一句话：FARM 回答“当前该找哪个候选”；本项目回答“这次证据应怎样改变世界事实”。",
         "use": "用途：关系检索接口、ActiveContext 基线、同类实例候选基线；不作为 Related Work 的性能事实基石。"
       },
       "watch": [
@@ -215,84 +218,84 @@
       "not_claim": "不主张新建一种 3D mapper、关系检索器或更大的记忆模型。"
     },
     "pipeline": {
-      "title": "完整方法不是一个判断器，而是一条从观测到版本提交的闭环",
-      "inputs": ["current frame", "depth", "T_world_camera"],
-      "observation": "ObservationGraph\n当前真正看到的证据",
-      "expected": "Expected Observation\nSceneBelief 按 pose 投影后应看到什么",
-      "innovation": "Structured Innovation\n证据类别 + 状态路径 + 可靠度",
-      "scope": ["affected seed", "allowed propagation", "stop boundary"],
-      "delta": "typed ContextDelta\noperator + target + before/after + evidence",
-      "executor": "deterministic\nversioned executor",
-      "new_belief": "new SceneBelief\n新版本，不覆盖旧历史",
-      "read": "ActiveContext：任务相关的读视图，只排序候选，不改世界事实",
-      "persist": "PersistentWorldMemory：通过验证后巩固版本与 provenance"
+      "title": "系统总览：Structured Innovation 是判型模块，不是整个记忆系统",
+      "sensor": "RGB-D + T_world_camera",
+      "observation": "ObservationGraph  O_t\n当前证据：nodes · edges · pose · visibility",
+      "scene_belief": "SceneBelief  B_t\n当前多假设、版本化世界信念",
+      "projection": "ProjectExpectedObservation\npose transform + visibility reasoning",
+      "expected": "ExpectedObservation  Ô_t\n当前视角下本来应该看到什么",
+      "innovation": "Structured Innovation\nalign → typed discrepancy → decision heads",
+      "innovation_output": "InnovationRecord  I_t\nevidence · mode · reliability · seeds",
+      "controller": "Affected-Subgraph Controller\naffected/control · propagate · stop",
+      "delta": "typed ContextDelta  Δ_t\noperator · target · before/after · evidence",
+      "executor": "Versioned Executor\nvalidate · transact · provenance",
+      "active": "ActiveContext  A_t\nprompt/route 下的只读候选视图",
+      "persistent": "PersistentWorldMemory  M\n已验证版本、valid interval 与 provenance",
+      "guard": "唯一 world-write 路径：InnovationRecord → Controller → ContextDelta → Executor → SceneBelief；Structured Innovation 自身不改图。"
     },
     "routing": {
-      "title": "Structured Innovation 的职责：把“新东西”分流到六条不同状态路径",
-      "evidence": ["matched", "new", "occluded", "reliably absent", "conflict", "ambiguous", "sensor inconsistent"],
+      "title": "Structured Innovation 放大图：从对齐差异到可审计 InnovationRecord",
+      "inputs": [
+        {
+          "symbol": "O_t",
+          "name": "ObservationGraph",
+          "fields": "observed nodes/edges · pose · visibility"
+        },
+        {
+          "symbol": "Ô_t",
+          "name": "ExpectedObservation",
+          "fields": "expected nodes/relations · should-be-visible mask"
+        }
+      ],
+      "stages": [
+        {
+          "id": "S1",
+          "name": "Alignment & association",
+          "details": "pose transform · geometry match · identity hypotheses"
+        },
+        {
+          "id": "S2",
+          "name": "Typed discrepancy encoder",
+          "details": "node-state residual · relation residual · absence/occlusion · sensor consistency"
+        },
+        {
+          "id": "S3",
+          "name": "Decision heads",
+          "details": "evidence category · state mode · reliability/ambiguity"
+        }
+      ],
+      "output_fields": [
+        "evidence ∈ {matched, new, occluded, reliably_absent, conflict, ambiguous, sensor_inconsistent}",
+        "mode ∈ {reinforcement, expansion, revision, visibility, ambiguity, sensor_inconsistency}",
+        "reliability · matched_ids · candidate_seeds · association_hypotheses · provenance"
+      ],
       "modes": [
         {
-          "name": "Reinforcement",
-          "plain": "证据与旧事实一致",
-          "output": "REINFORCE + provenance"
+          "name": "reinforce",
+          "destination": "controller"
         },
         {
-          "name": "Graph expansion",
-          "plain": "确实是新的节点或区域",
-          "output": "ADD candidate + attachment"
+          "name": "expand",
+          "destination": "controller"
         },
         {
-          "name": "Belief revision",
-          "plain": "可靠证据反驳旧状态",
-          "output": "SUPERSEDE / INVALIDATE / RELINK"
+          "name": "revise",
+          "destination": "controller"
         },
         {
-          "name": "Visibility update",
-          "plain": "没看到，但原因是遮挡或视野外",
-          "output": "PRESERVE fact；只改 visibility"
+          "name": "visibility",
+          "destination": "PRESERVE fact"
         },
         {
-          "name": "Association ambiguity",
-          "plain": "身份或同类实例无法确定",
-          "output": "multi-hypothesis / QUARANTINE"
+          "name": "ambiguity",
+          "destination": "QUARANTINE"
         },
         {
-          "name": "Sensor inconsistency",
-          "plain": "pose/depth/detector 自相矛盾",
-          "output": "defer / reject，禁止写长期事实"
+          "name": "sensor",
+          "destination": "defer/reject"
         }
       ],
-      "context": "另一路：prompt/路线只改变 ActiveContext 候选排序，不属于 world revision。"
-    },
-    "states": {
-      "title": "四个状态容器必须分开：看到、相信、当前关注、长期巩固不是一回事",
-      "items": [
-        {
-          "name": "ObservationGraph",
-          "cn": "当前观测图",
-          "role": "frame/depth/pose 下真实观测到的对象、关系、可见性证据。",
-          "write": "只写当前证据；不能因没看到就宣告对象消失。"
-        },
-        {
-          "name": "SceneBelief",
-          "cn": "当前世界信念",
-          "role": "保存当前多假设和版本化事实，是 typed delta 的唯一目标。",
-          "write": "只能由 executor 提交合法 delta；不得原地覆盖历史。"
-        },
-        {
-          "name": "ActiveContext",
-          "cn": "任务语境",
-          "role": "根据 prompt、路线和最近交互选择当前优先读取的候选。",
-          "write": "只改排序/激活；不得删除 SceneBelief 中未选实例。"
-        },
-        {
-          "name": "PersistentWorldMemory",
-          "cn": "长期世界记忆",
-          "role": "巩固已验证版本、valid interval、supersedes 与 provenance。",
-          "write": "不接收未验证 top-1 猜测或自由文本图编辑。"
-        }
-      ],
-      "rule": "允许链路：ObservationGraph → proposal → typed executor → SceneBelief；SceneBelief → ActiveContext（只读视图）；验证后的版本 → PersistentWorldMemory。"
+      "guard": "模块边界：这里只产生 InnovationRecord，不直接产生图修改；ActiveContext 也不参与 world-truth 判定。"
     },
     "contributions": {
       "title": "创新点要落成六个可判错的模块，而不是一句“动态记忆”",
