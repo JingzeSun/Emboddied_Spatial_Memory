@@ -1,0 +1,26 @@
+schema_version: "0.1.0"
+case_id: "S03_example_000"
+scenario_id: "S03"
+status: "planned"
+inputs:
+  observation_regions: "observation.json"
+  memory_before: "memory_before.json"
+  action:
+    type: "move_forward"
+  online_fields:
+    - rgb
+    - depth
+    - camera_pose
+oracle:
+  association:
+    region_007: "NEW"
+  transaction: "oracle_transaction.json"
+  memory_after: "memory_after.json"
+controls:
+  unchanged_node_ids:
+    - "surface_wall_001"
+corruptions:
+  - id: "pose_jump"
+    expected_behavior: "UNRESOLVED_OR_QUARANTINE"
+notes: "示例模板，不是已确认数据。"
+

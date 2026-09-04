@@ -1,18 +1,13 @@
-# Current Machine Contracts
+# Schema 索引
 
-这些 JSON Schema 对应 D-013 接受的 v1.1 状态分层，目前是合同草案，尚未通过实现验证：
+状态：v0.1 草案，待 HC-021–HC-030 后冻结。
 
-- `episode.schema.json`：counterfactual episode、传感器、oracle 与 query；
-- `observation_graph.schema.json`：单帧观测图和显式 reference frame；
-- `belief_graph.schema.json`：版本化 `SceneBelief/PersistentWorldMemory`；
-- `context_delta.schema.json`：graph expansion、affected/control/stop 与 typed operations；
-- `active_context.schema.json`：任务、路线、对话条件下的候选排序、证据分解与澄清决定。
+- `observation_region.schema.json`：单帧/短窗的结构 latent 区域。
+- `world_memory.schema.json`：持久世界节点、关系和版本事实。
+- `memory_transaction.schema.json`：唯一允许写入 memory 的操作合同。
+- `memory_update_case.schema.json`：实验 case、oracle 和控制项。
+- `evidence_event.schema.json`：证据来源、时间与可靠性。
+- `run_manifest.schema.json`：正式运行的可复现元数据。
 
-旧 `memory_slot.schema.json` 已移入 `docs/archive/pre_d008/schemas/`，不再是现行接口。所有 schema 使用 JSON Schema 2020-12。正式数据生成器必须记录 schema/contract version，并在写入后立即验证。
+最重要的不变量：observation region ID 不能冒充 world node ID；模型输出 transaction，executor 决定是否接受并执行。
 
-状态边界：
-
-- `ObservationGraph` 可含 camera-relative directional relations；
-- `SceneBelief` 的方向关系必须有稳定 reference frame，不能永久写入无参考系的 left/right；
-- `ContextDelta` 修改世界图；
-- `ActiveContext` 只改变候选显著性，不删除未选中的长期实例。

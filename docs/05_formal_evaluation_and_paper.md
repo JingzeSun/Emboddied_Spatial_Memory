@@ -1,131 +1,71 @@
-# 05 — 正式评测、论文与复现
+# 05 正式评价、论文证据与投稿路线
 
-> 状态：`future protocol / no formal results`
+## 正式表格
 
-本文件只在 pilot 和训练门通过后执行。
+### Table 1：统一前端下的在线 memory 主结果
 
-## 1. 系统集成顺序
+比较 patch memory、pose-warp map、IoU/appearance slots、lifecycle memory、recent-N 3D fusion、hierarchical graph、full recomputation、PSLM 与 oracle。报告 B/G/M/R/P/E 主指标，teacher-forced 与 online rollout 分列。
 
-逐层增加现实风险，不把所有噪声一次引入：
+### Table 2：表示与绑定
 
-1. oracle graph 的组合泛化；
-2. simulator RGB-D + known pose；
-3. estimated detector/depth；
-4. pose/depth/detection noise sweep；
-5. 长序列、回访和多次搬迁；
-6. 真实动态序列与人工审查；
-7. 接口公平时接入 FARM-style mapper/retrieval。
+fixed patches、VP-only regions、plane/surface superpoints、object-only、hybrid structural regions；无 project、geometry-only project、learned projective binding。报告 angle/overlap/pose-noise 曲线。
 
-分别报告 perception、association、revision 和 query 失败，不能用端到端准确率掩盖模块原因。
+### Table 3：增长与长期状态
 
-## 2. 正式实验包
+new-place、new-surface、portal、object birth、reactivation、split/merge、Chart attachment、memory budget sweep；同时报 coverage、false birth、duplicate、false merge 和 topology。
 
-| Experiment | 支持的 claim |
-|---|---|
-| F1 structured innovation | typed evidence 优于 scalar residual |
-| F2 affected scope | 必要修改范围可预测 |
-| F3 propagation/stop | 必要传播与无关保持同时成立 |
-| F4 semantic counterfactuals | relocation/absence/occlusion/unknown 可分 |
-| F5 stationary actor | motion 不改变 ontology |
-| F6 robustness | pose/depth/perception 噪声下仍可用 |
-| F7 efficiency | 局部修订不是隐式全图重算 |
-| F8 downstream query | 修订质量对任务读取有实际价值 |
+### Table 4：动态与修订
 
-X1/X2 作为 boundary/case study 单独报告，不代替 F2/F3。
+occlusion、out-of-FOV、stationary actor、relocation、reliable absence、late evidence、sensor inconsistency；报告 retention、contamination、transaction、protected controls、valid time、evidence 与 calibration。
 
-## 3. 主张冻结
+### Table 5：预测与任务
 
-正式 test 前建立：
+下一视角 visibility、region retrieval、attachment/frontier prediction，以及冻结 reader 的 temporal query、object retrieval、轻量 navigation/planning。若 prediction 不产生独立收益，不使用 world-model claim。
 
-```text
-claim
-  → experiment
-  → dataset/split
-  → baseline
-  → metric
-  → statistical test / confidence interval
-  → expected falsifier
-```
+### Table 6：OOD 与外部有效性
 
-冻结：
+unseen room/layout、turn geometry、object composition、occlusion pattern、history length、graph size、change rate、pose noise 分列；重扫/真实轨单列，不与 simulator 平均。
 
-- experiment contract version；
-- dataset manifest/split hash；
-- thresholds、prompt、loss 和 checkpoint；
-- random seeds；
-- model/code identifiers；
-- exclusions 和 missing-data policy。
+## 统计与报告
 
-## 4. Related Work 使用规则
+- 正式结论至少 5 个 seeds，逐 episode paired bootstrap 95% CI；
+- 报 effect size 与 raw numerator/denominator；
+- test 只在 ontology、metric、baseline、threshold 和 checkpoint 冻结后运行；
+- crash、silent skip、N/A、projection rejection、memory overflow 和无合法事务均计数；
+- 同一物理 episode 的相似裁剪不能跨 split；
+- 多 OOD 和多消融说明多重比较策略。
 
-- `verified_peer_reviewed + foundation/adjacent` 才能作为事实主干；
-- preprint/submission 只作 novelty watch，正文出现时明确状态；
-- FARM 投稿前重新核验 venue；
-- 不声称 first structured memory、first dynamic memory、first selective update 或 first relational retrieval；
-- perception/backbone 收益与 revision mechanism 分开归因。
+## Figure 计划
 
-权威清单：`literature/library.csv`、`literature/peer_review_audit.md` 和 `literature/notes/`。
+1. `predict-project → bind → transact` 方法图；
+2. 转弯时 Chart A/B overlap 与新节点确认序列；
+3. 遮挡、动态 actor、搬迁三种不同 transaction；
+4. 随历史长度的 identity/duplicate/latency 曲线；
+5. 成功和失败各至少两个 node-lineage 回放。
 
-## 5. 论文结构
+## 论文叙事
 
-```text
-1 Introduction
-  problem → gap → narrow claims → evidence summary
+1. observation-centric latent world models 缺少长期 world identity；
+2. 3D feature maps/scene graphs能构建世界，但常用 fuse/merge，缺少统一 birth-and-revision 学习目标；
+3. 定义在线 projective structural memory 任务与严格判尺；
+4. 提出 projective structural memory transducer；
+5. 在同前端下分离 representation、binding、growth、revision 与 prediction；
+6. 展示 OOD、真实失败和可证伪边界。
 
-2 Related Work
-  construction → dynamic/persistent memory → selective read → belief revision
+## 投稿判断
 
-3 Problem Formulation
-  four states → innovation → affected/control/stop → versioned delta
+- 强机器人会议/RA-L 质量：一个清楚的 memory transducer、可控 simulator、强基线、在线效率和至少有限真实序列；
+- T-RO/IJRR：在上述基础上需要真实机器人长序列、跨域、在线规模与更深机制/安全分析；
+- TPAMI/JMLR/AIJ 等通用 ML/AI 目标：必须把方法提升为跨环境/跨 schema 的通用结构学习机制，最好有 equivariance、structured inference、校准或 revision 性质，而不是只在一个机器人管线里集成模块。
 
-4 Method
-  projection → innovation → scope/propagation/stop → executor
+具体 venue 等结果形状再定，不以目标刊名反推夸大 claim。
 
-5 Experimental Protocol
-  counterfactual groups → baselines → metrics → split/test rules
+## 投稿前硬门
 
-6 Results
-  claim-by-claim, including failures
-
-7 Limitations and Ethics
-  sensor assumptions → ontology/annotation limits → open-world uncertainty
-```
-
-章节按 claim/evidence 组织，不按代码模块堆叠。
-
-## 6. 投稿前证据门
-
-- 每条 contribution 有 baseline、metric、ablation 和 falsifier；
-- 主表数字来自冻结正式协议；
-- confidence interval/统计方法明确；
-- negative result、反例、缺失和失败均记录；
-- 自动估计或模型评审没有称为 ground truth；
-- test 没有用于模型/阈值/prompt 选择；
-- 主图和表格可从 run artifacts 重建。
-
-## 7. 可复现产物
-
-发布或提供：
-
-- schema、config 和 version；
-- micro fixtures 与 evaluator；
-- deterministic baselines；
-- data generation/validation scripts；
-- environment/lockfile；
-- seed、data/split hash、code/model ID；
-- raw per-episode metrics 和失败引用；
-- 至少一个干净环境重放命令。
-
-大型数据、checkpoint、PDF 和运行输出不提交 Git，通过外部存储和 manifest 管理。
-
-## 8. 结论强度规则
-
-| 证据达到 | 最多能写 |
-|---|---|
-| 只有合同/fixtures | we formulate / propose to evaluate |
-| oracle pilot | mechanism is executable under oracle inputs |
-| validation model results | learned controller improves on validation scope |
-| frozen formal test | method supports正式论文 claim |
-| external/real replication | stronger generalization statement |
-
-不要让写作领先于证据阶段。
+- schema/executor/evaluator 经过 deliberate corruption；
+- 最强规则和 recent-N/full recomputation 基线公平；
+- 绑定、增长、保持/修订至少三类主指标联合改善；
+- action-conditioned prediction 有独立证据才称 world model；
+- simulator ID/OOD 完整且无 test 调参；
+- 至少一个外部/真实轨，或明确限定模拟器结论；
+- 代码、配置、manifest、失败与 lineage 可复现。

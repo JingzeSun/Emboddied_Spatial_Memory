@@ -1,0 +1,70 @@
+experiment_id: "brv_dev_oracle_001"
+status: "draft_not_run"
+research_contract: "D-022"
+protocol_version: "0.2-draft"
+
+code:
+  git_commit: "REQUIRED"
+  dirty_worktree: "REQUIRED"
+
+data:
+  counterfactual_group_hash: REQUIRED
+  generator_version: null
+  dataset: "hand_authored_fixtures"
+  dataset_version: "REQUIRED"
+  split: "development"
+  case_list_hash: "REQUIRED"
+
+upstream:
+  observation: "oracle"
+  identity: "oracle"
+  visibility: "oracle"
+  prediction: "fixed_fixture"
+  association: "fixed_fixture"
+  dependency_graph: "fixed_fixture"
+
+method:
+  architecture_id: null
+  parameter_count: null
+  updater_id: "bounded_revision"
+  implementation_version: "REQUIRED"
+  model_id: null
+  prompt_hash: null
+  random_seed: 20260904
+
+training:
+  train_split_hash: null
+  validation_split_hash: null
+  optimizer: null
+  scheduler: null
+  max_epochs: null
+  early_stopping_metric: null
+  hyperparameter_trial_budget: null
+  loss:
+    revision_nll: null
+    lambda_evidence: null
+    lambda_sparse: null
+  checkpoint_id: null
+  calibration_temperature: null
+
+frozen_decisions:
+  hc_013: "PENDING"
+  hc_015: "PENDING"
+  hc_016: "PENDING"
+  hc_017: "PENDING"
+  hc_018: PENDING
+
+thresholds:
+  commit: "PENDING_VALIDATION_ONLY"
+  stop: "PENDING_VALIDATION_ONLY"
+
+outputs:
+  calibration_metrics: REQUIRED_FOR_LEARNED
+  pair_consistency: REQUIRED
+  id_ood_breakdown: REQUIRED_FOR_FORMAL_TEST
+  per_case_operations: "REQUIRED"
+  evidence_paths: "REQUIRED"
+  touched_facts: "REQUIRED"
+  version_log: "REQUIRED"
+  failures: "REQUIRED"
+  aggregate_metrics: "REQUIRED"

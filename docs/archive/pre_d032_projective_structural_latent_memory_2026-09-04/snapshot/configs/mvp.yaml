@@ -1,0 +1,66 @@
+project: evidence_aware_sparse_graph_belief_updater
+status: design_only_not_implemented
+decision_ids: [D-024, D-025, D-026, D-027, D-028, D-029, D-030, D-031]
+pending_human_confirmations: [HC-002, HC-003, HC-004, HC-005, HC-013, HC-015, HC-016, HC-017, HC-019]
+
+problem:
+  prediction_targets: [edit_program, affected_mask, valid_time, evidence_set]
+  edit_operators: [KEEP, ASSERT, RETRACT, REPLACE, QUARANTINE]
+  fixed_upstream: [perception, identity, pose, visibility, candidate_retrieval, dependency_input]
+  temporal_fields: [observed_at, received_at]
+
+data:
+  tracks: [symbolic, ai2thor_oracle, ai2thor_frozen_perception, 3rscan_external]
+  split_axes: [room, object_composition, delay, conflict, change_rate, dependency_depth, registered_predicate]
+  test_access_before_freeze: false
+
+model:
+  name: ESGBU
+  size: tiny
+  temporal_encoder: transformer
+  hidden_dim: 128
+  temporal_layers: 2
+  graph_encoder: HGT
+  graph_layers: 2
+  task_to_fact_messages: false
+  predicate_encoder: schema_conditioned
+  predicate_specific_output_heads: false
+  predicate_id_only: ablation_only
+  arbitrary_natural_language_predicates: false
+
+loss:
+  edit: 1.0
+  affected_mask: 1.0
+  valid_time: 1.0
+  evidence_set: 0.5
+  state_auxiliary: disabled
+  preserve_auxiliary: disabled
+  constraint_auxiliary: disabled_hard_projection_used
+  task_auxiliary: disabled
+
+executor:
+  shared_across_methods: true
+  enforce_mutual_exclusion: true
+  enforce_typed_dependency_closure: true
+  protect_outside_closure: true
+  require_provenance_for_writes: true
+  enforce_valid_time: true
+  atomic_versions: true
+  log_rejections: true
+
+criteria:
+  version: draft_2026-09-04
+  thresholds_frozen: false
+  primary: [transaction_exact, necessary_update_recall, control_preservation]
+  secondary: [edit_macro_f1, collateral_edit_rate, valid_time, evidence_f1, ece, task_errors, latency]
+
+execution:
+  t0a_device: cpu
+  t0a_engineering_hard_cap_hours: 40
+  t0a_early_status_checkpoint_hours: 24
+  learned_device: cuda:0
+  cuda_verified: true
+  gpu_name: NVIDIA_GeForce_RTX_4070_Laptop_GPU
+  gpu_memory_mib: 8188
+  pytorch_version: 2.11.0+cu126
+  pytorch_cuda_runtime: '12.6'

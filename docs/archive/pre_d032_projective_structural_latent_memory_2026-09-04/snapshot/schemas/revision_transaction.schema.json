@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "revision_transaction.schema.json",
+  "title": "RevisionTransaction",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "transaction_id",
+    "prior_graph_version",
+    "operations",
+    "affected_seed",
+    "affected_closure",
+    "protected_controls",
+    "supporting_evidence_ids"
+  ],
+  "properties": {
+    "transaction_id": {"type": "string"},
+    "prior_graph_version": {"type": "integer", "minimum": 0},
+    "operations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["op", "target"],
+        "properties": {
+          "op": {"enum": ["KEEP", "ASSERT", "RETRACT", "REPLACE", "QUARANTINE"]},
+          "target": {"type": "string"},
+          "replacement": {"type": ["string", "null"]},
+          "valid_time": {"type": ["object", "null"]},
+          "evidence_ids": {
+            "type": "array",
+            "items": {"type": "string"},
+            "uniqueItems": true
+          }
+        }
+      }
+    },
+    "affected_seed": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "affected_closure": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "protected_controls": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "supporting_evidence_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "commit_probability": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+    "projection_status": {"enum": ["not_checked", "accepted", "repaired", "rejected"]},
+    "rejection_reasons": {"type": "array", "items": {"type": "string"}},
+    "rationale": {"type": "string"},
+    "task_delta": {"type": "array"},
+    "allowed_equivalence_class": {"type": "string"}
+  }
+}
+

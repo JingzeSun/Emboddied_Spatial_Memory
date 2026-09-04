@@ -1,6 +1,6 @@
 param(
-    [string]$ContentPath = "scripts/dynamic_memory_prior_work_ppt_content.json",
-    [string]$OutputPath = "prototype/dynamic_spatial_revision_report_v0_7.pptx"
+    [string]$ContentPath = "scripts/dynamic_world_model_ppt_content.json",
+    [string]$OutputPath = "prototype/dynamic_spatial_revision_report_v1_0.pptx"
 )
 
 $ErrorActionPreference = "Stop"
@@ -259,8 +259,9 @@ try {
     [void](Add-Text $slide $data.meta.subtitle 64 240 680 58 16 $C.Muted $false 1 $FontCN 1)
     [void](Add-Shape $slide 5 62 329 596 72 $C.Card $C.Line)
     [void](Add-Text $slide "本版范围" 80 344 80 20 11 $C.Amber $true 1 $FontCN 1)
-    [void](Add-Text $slide "文献基础、方法架构与首轮 oracle 机制验证；不包含实验结果和正式训练。" 169 340 463 42 13.2 $C.White $true 1 $FontCN 3)
-    $tags = @("Peer-reviewed foundations", "Controlled write path", "State routing", "Oracle mechanism pilot")
+    $scopeText = if ($null -ne $data.meta.scope) { [string]$data.meta.scope } else { "文献基础、方法架构与首轮 oracle 机制验证；不包含实验结果和正式训练。" }
+    [void](Add-Text $slide $scopeText 169 340 463 42 13.2 $C.White $true 1 $FontCN 3)
+    $tags = if ($null -ne $data.meta.tags -and $data.meta.tags.Count -eq 4) { @($data.meta.tags) } else { @("Peer-reviewed foundations", "Controlled write path", "State routing", "Oracle mechanism pilot") }
     $tagX = 62
     foreach ($tag in $tags) {
         Add-Pill $slide $tag $tagX 435 174 $C.Card2 $C.Cyan 9
@@ -423,7 +424,8 @@ try {
     # 09 Teacher-facing end-to-end explanation
     $d = $data.slides.pipeline
     $slide = Add-SlideBase $presentation 9 $d.title "核心方法 · 一条主链"
-    [void](Add-Text $slide "先把【现在看到什么】和【按旧记忆本来应看到什么】放到同一视角，再决定是否允许写回。" 46 107 868 19 10 $C.Muted $false 1 $FontCN 1)
+    $pipelineIntro = if ($null -ne $d.intro) { [string]$d.intro } else { "先把【现在看到什么】和【按旧记忆本来应看到什么】放到同一视角，再决定是否允许写回。" }
+    [void](Add-Text $slide $pipelineIntro 46 107 868 19 10 $C.Muted $false 1 $FontCN 1)
 
     [void](Add-Shape $slide 5 46 140 214 76 $C.Card $C.Blue)
     Add-CircleLabel $slide "1" 59 153 32 $C.Blue 9
@@ -452,7 +454,8 @@ try {
     [void](Add-Line $slide 722 210 755 178 $C.Green 1.7 $true)
     [void](Add-Line $slide 722 246 755 293 $C.Muted 1.7 $true)
 
-    [void](Add-Text $slide "只有路径 A 进入受控写回" 714 338 200 15 8.6 $C.Green $true 2 $FontCN 1)
+    $pathLabel = if ($null -ne $d.path_label) { [string]$d.path_label } else { "只有路径 A 进入受控写回" }
+    [void](Add-Text $slide $pathLabel 714 338 200 15 8.6 $C.Green $true 2 $FontCN 1)
     [void](Add-Shape $slide 5 718 370 196 76 $C.Card $C.Cyan)
     Add-CircleLabel $slide "5" 731 383 32 $C.Cyan 9
     [void](Add-Text $slide $d.scope 774 381 126 54 8.9 $C.White $false 1 $FontCN 1)
@@ -470,7 +473,8 @@ try {
     [void](Add-Line $slide 503 408 485 408 $C.Blue 1.7 $true)
 
     [void](Add-Shape $slide 5 46 370 210 76 $C.Card2 $C.Amber)
-    [void](Add-Text $slide "查询不是改世界" 60 383 180 18 10.2 $C.Amber $true 1 $FontCN 1)
+    $activeHeading = if ($null -ne $d.active_heading) { [string]$d.active_heading } else { "查询不是改世界" }
+    [void](Add-Text $slide $activeHeading 60 383 180 18 10.2 $C.Amber $true 1 $FontCN 1)
     [void](Add-Text $slide $d.active 60 407 180 30 8.5 $C.White $false 1 $FontCN 1)
     [void](Add-Shape $slide 5 46 463 868 33 $C.Card2 $C.Cyan)
     [void](Add-Text $slide $d.guard 58 469 844 20 9.2 $C.Cyan $true 2 $FontCN 3)
@@ -578,21 +582,37 @@ try {
     [void](Add-Text $slide "正确时应该看到" 575 112 170 15 8.4 $C.Green $true 1 $FontCN 1)
     [void](Add-Text $slide "失败意味着什么" 760 112 138 15 8.4 $C.Amber $true 1 $FontCN 1)
     $rowColors = @($C.Blue, $C.Amber, $C.Cyan, $C.Green, $C.Red)
+    $compactMatrix = $d.items.Count -gt 5
     for ($i = 0; $i -lt $d.items.Count; $i++) {
         $item = $d.items[$i]
-        $y = 132 + $i * 66
-        [void](Add-Shape $slide 5 46 $y 868 58 $C.Card $C.Line)
-        [void](Add-Shape $slide 1 46 $y 5 58 $rowColors[$i] $rowColors[$i])
-        Add-Pill $slide $item.id 60 ($y + 10) 58 $rowColors[$i] $C.White 8.2
-        [void](Add-Text $slide $item.name 128 ($y + 8) 188 19 9.3 $C.White $true 1 $FontCN 1)
-        [void](Add-Text $slide $item.fixtures 128 ($y + 31) 188 18 7.6 $C.Muted $false 1 $FontCN 1)
-        [void](Add-Text $slide $item.isolate 330 ($y + 9) 230 39 8.2 $C.Muted $false 1 $FontCN 1)
-        [void](Add-Text $slide $item.success 575 ($y + 9) 170 39 8.2 $C.Green $true 1 $FontCN 1)
-        [void](Add-Text $slide $item.failure 760 ($y + 9) 138 39 7.8 $C.Amber $false 1 $FontCN 1)
+        $rowColor = $rowColors[$i % $rowColors.Count]
+        if ($compactMatrix) {
+            $y = 132 + $i * 47
+            [void](Add-Shape $slide 5 46 $y 868 41 $C.Card $C.Line)
+            [void](Add-Shape $slide 1 46 $y 5 41 $rowColor $rowColor)
+            Add-Pill $slide $item.id 60 ($y + 8) 58 $rowColor $C.White 7.8
+            [void](Add-Text $slide $item.name 128 ($y + 4) 188 16 8.5 $C.White $true 1 $FontCN 1)
+            [void](Add-Text $slide $item.fixtures 128 ($y + 23) 188 14 6.9 $C.Muted $false 1 $FontCN 1)
+            [void](Add-Text $slide $item.isolate 330 ($y + 5) 230 31 7.3 $C.Muted $false 1 $FontCN 1)
+            [void](Add-Text $slide $item.success 575 ($y + 5) 170 31 7.3 $C.Green $true 1 $FontCN 1)
+            [void](Add-Text $slide $item.failure 760 ($y + 5) 138 31 7.0 $C.Amber $false 1 $FontCN 1)
+        }
+        else {
+            $y = 132 + $i * 66
+            [void](Add-Shape $slide 5 46 $y 868 58 $C.Card $C.Line)
+            [void](Add-Shape $slide 1 46 $y 5 58 $rowColor $rowColor)
+            Add-Pill $slide $item.id 60 ($y + 10) 58 $rowColor $C.White 8.2
+            [void](Add-Text $slide $item.name 128 ($y + 8) 188 19 9.3 $C.White $true 1 $FontCN 1)
+            [void](Add-Text $slide $item.fixtures 128 ($y + 31) 188 18 7.6 $C.Muted $false 1 $FontCN 1)
+            [void](Add-Text $slide $item.isolate 330 ($y + 9) 230 39 8.2 $C.Muted $false 1 $FontCN 1)
+            [void](Add-Text $slide $item.success 575 ($y + 9) 170 39 8.2 $C.Green $true 1 $FontCN 1)
+            [void](Add-Text $slide $item.failure 760 ($y + 9) 138 39 7.8 $C.Amber $false 1 $FontCN 1)
+        }
     }
     [void](Add-Shape $slide 5 46 466 868 28 $C.Card2 $C.Cyan)
     [void](Add-Text $slide $d.rule 58 471 844 18 8.8 $C.Cyan $true 2 $FontCN 3)
-    Add-Footer $slide "五个实验的共同目的：发现方法究竟在哪一种具体情况下会犯错，而不是只给一个总分。"
+    $experimentFooter = if ($compactMatrix) { "七个实验共同追问：预测、候选、主动观察和有限修订分别会在哪种具体情况下犯错。" } else { "五个实验的共同目的：发现方法究竟在哪一种具体情况下会犯错，而不是只给一个总分。" }
+    Add-Footer $slide $experimentFooter
 
     # 14 Mechanism baselines
     $d = $data.slides.baselines
@@ -625,6 +645,7 @@ try {
     $metricXs = @(46, 490)
     $metricYs = @(168, 316)
     $metricColors = @($C.Green, $C.Cyan, $C.Blue, $C.Amber)
+    $metricRightLabel = if ($null -ne $d.right_label) { [string]$d.right_label } else { "论文里怎么记录" }
     for ($i = 0; $i -lt $d.groups.Count; $i++) {
         $group = $d.groups[$i]
         $x = $metricXs[$i % 2]
@@ -633,7 +654,7 @@ try {
         [void](Add-Text $slide $group.name ($x + 18) ($y + 13) 386 20 11.4 $metricColors[$i] $true 1 $FontCN 1)
         [void](Add-Text $slide $group.metrics ($x + 18) ($y + 45) 192 65 9.4 $C.White $true 1 $FontCN 1)
         [void](Add-Line $slide ($x + 220) ($y + 42) ($x + 220) ($y + 112) $C.Line 0.8 $false)
-        [void](Add-Text $slide "论文里怎么记录" ($x + 240) ($y + 46) 150 16 8.2 $C.Muted $true 1 $FontCN 1)
+        [void](Add-Text $slide $metricRightLabel ($x + 240) ($y + 46) 150 16 8.2 $C.Muted $true 1 $FontCN 1)
         [void](Add-Text $slide $group.meaning ($x + 240) ($y + 69) 150 43 8.2 $C.Muted $false 1 $FontCN 1)
     }
     [void](Add-Shape $slide 5 46 465 868 29 $C.Card2 $C.Red)
@@ -666,23 +687,46 @@ try {
     # 17 Decisions before running fixtures
     $d = $data.slides.decisions
     $slide = Add-SlideBase $presentation 17 $d.title "验证实验 · 判题规则"
+    $decisionHeading = if ($null -ne $d.heading) { [string]$d.heading } else { "需要老师确认的六条规则" }
+    $nextHeading = if ($null -ne $d.next_heading) { [string]$d.next_heading } else { "定完规则就能做" }
+    $roundHeading = if ($null -ne $d.round_heading) { [string]$d.round_heading } else { "本轮状态" }
+    $roundStatus = if ($null -ne $d.round_status) { [string]$d.round_status } else { "实验为什么做、每个场景看什么、和哪些笨办法比较、什么结果算失败，都已写清；尚未真正运行实验。" }
+    $decisionFooter = if ($null -ne $d.footer) { [string]$d.footer } else { "六条规则未确认前，只能讨论实验设计，不能声称已经有唯一正确答案或训练标签。" }
     [void](Add-Shape $slide 5 46 122 498 330 $C.Card $C.Line)
-    [void](Add-Text $slide "需要老师确认的六条规则" 67 141 280 25 14 $C.Amber $true 1 $FontCN 1)
+    [void](Add-Text $slide $decisionHeading 67 141 420 25 13 $C.Amber $true 1 $FontCN 1)
     Add-Bullets $slide $d.items 67 181 449 44 10.2 $C.Amber $C.White
     [void](Add-Shape $slide 5 570 122 344 156 $C.Bg2 $C.Cyan)
-    [void](Add-Text $slide "定完规则就能做" 591 142 290 23 13 $C.Cyan $true 1 $FontCN 1)
+    [void](Add-Text $slide $nextHeading 591 142 290 23 13 $C.Cyan $true 1 $FontCN 1)
     [void](Add-Text $slide $d.next 591 180 298 79 11 $C.White $false 1 $FontCN 1)
     [void](Add-Shape $slide 5 570 299 344 153 $C.Card2 $C.Green)
-    [void](Add-Text $slide "本轮状态" 591 319 290 23 13 $C.Green $true 1 $FontCN 1)
-    [void](Add-Text $slide "实验为什么做、每个场景看什么、和哪些笨办法比较、什么结果算失败，都已写清；尚未真正运行实验。" 591 356 310 75 11 $C.White $false 1 $FontCN 1)
+    [void](Add-Text $slide $roundHeading 591 319 290 23 13 $C.Green $true 1 $FontCN 1)
+    [void](Add-Text $slide $roundStatus 591 356 310 75 11 $C.White $false 1 $FontCN 1)
     [void](Add-Shape $slide 5 46 466 868 29 $C.Card2 $C.Red)
     [void](Add-Text $slide $d.status 58 470 844 20 9.7 $C.Red $true 2 $FontCN 3)
-    Add-Footer $slide "六条规则未确认前，只能讨论实验设计，不能声称已经有唯一正确答案或训练标签。"
+    Add-Footer $slide $decisionFooter
 
     # Document properties and save
     $outDir = Split-Path -Parent $outputAbs
     if (-not (Test-Path -LiteralPath $outDir)) {
         New-Item -ItemType Directory -Path $outDir | Out-Null
+    }
+    if ($data.meta.deck_variant -eq "world_model_v1") {
+        # The world-model deck keeps the user's 15-slide rhythm: framing is folded
+        # into the cover, and the separate go/no-go page is folded into metrics.
+        if ($presentation.Slides.Count -ge 16) {
+            $presentation.Slides.Item(16).Delete()
+        }
+        if ($presentation.Slides.Count -ge 2) {
+            $presentation.Slides.Item(2).Delete()
+        }
+        for ($slideIndex = 2; $slideIndex -le $presentation.Slides.Count; $slideIndex++) {
+            $numberSlide = $presentation.Slides.Item($slideIndex)
+            foreach ($shape in @($numberSlide.Shapes)) {
+                if ([Math]::Abs($shape.Left - 886) -lt 1 -and [Math]::Abs($shape.Top - 28) -lt 1 -and $shape.HasTextFrame) {
+                    $shape.TextFrame2.TextRange.Text = ("{0:D2}" -f $slideIndex)
+                }
+            }
+        }
     }
     $presentation.SaveAs($outputAbs, 24)
     Write-Output $outputAbs

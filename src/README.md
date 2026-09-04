@@ -1,36 +1,15 @@
-# Source Layout
+# 实现边界
 
-当前实现服从 `docs/01_research_contract.md`、`docs/03_pilot_protocol.md`、`configs/mvp.yaml` 和 `schemas/`。
+当前状态：未实现。
 
-## 目标目录
+计划模块按数据流组织：
 
-```text
-src/embodied_spatial_memory/
-├── contracts/        schema-backed records and validation
-├── geometry/         SE(3), projection, frustum, ego flow
-├── perception/       latent, region, object, depth, motion evidence
-├── association/      observation-to-belief candidates
-├── belief/           graph versions, provenance, consolidation
-├── innovation/       expected observation and structured comparison
-├── revision/         scope retriever, controllers, typed executor
-├── context/          ActiveContext and evidence-trace queries
-├── baselines/        append, EMA, lifecycle, local, full recompute
-└── evaluation/       delta, propagation, preservation, query, cost
-```
+1. `tokenize`：从观测产生 projective structural latent regions。
+2. `predict_project`：从既有世界记忆和动作预测当前可见结构。
+3. `bind`：输出 BIND/NEW/REACTIVATE/SPLIT/MERGE/UNRESOLVED。
+4. `transact`：产生带 target、scope、valid time、evidence 的交易。
+5. `execute`：确定性检查硬约束并修改版本化 memory。
+6. `evaluate`：B/G/M/R/P/T/E 指标及 corruption 诊断。
 
-## 实现顺序
+实现前先完成相关 Human Confirmation。不能把临时代码、手工规则结果或模型评审称为已验证方法。
 
-1. contracts；
-2. versioned executor；
-3. micro fixtures；
-4. metrics；
-5. geometry/projection；
-6. structured innovation；
-7. deterministic scope；
-8. simulator mapper；
-9. learned controller；
-10. context query。
-
-第一个里程碑不依赖 GPU：手写 belief + observation + oracle delta 能执行并得到 exact graph match。详细工作包见 `docs/03_pilot_protocol.md`。
-
-公开 API 必须使用 typed/schema-backed 对象；任何修改必须带 base version、evidence、confidence 和 controller revision。

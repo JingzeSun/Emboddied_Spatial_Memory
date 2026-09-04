@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "run_manifest.schema.json",
+  "title": "RunManifest",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["run_id", "status", "decision_ids", "contracts", "code", "data", "method", "artifacts"],
+  "properties": {
+    "run_id": {"type": "string"},
+    "status": {"enum": ["planned", "running", "completed", "failed", "aborted", "planned_example"]},
+    "decision_ids": {"type": "array", "items": {"type": "string", "pattern": "^(D|HC)-[0-9]{3}$"}},
+    "contracts": {"type": "object"}, "code": {"type": "object"}, "data": {"type": "object"},
+    "method": {"type": "object"}, "training": {"type": "object"}, "hardware": {"type": "object"},
+    "artifacts": {"type": "object"}, "completion": {"type": "object"}
+  }
+}
+

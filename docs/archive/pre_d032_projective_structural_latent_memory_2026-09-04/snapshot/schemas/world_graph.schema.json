@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "world_graph.schema.json",
+  "title": "WorldGraph",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["graph_version", "entities", "facts", "dependencies"],
+  "properties": {
+    "graph_version": {"type": "integer", "minimum": 0},
+    "entities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["entity_id", "entity_type"],
+        "properties": {
+          "entity_id": {"type": "string"},
+          "entity_type": {"type": "string"}
+        }
+      }
+    },
+    "facts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "fact_id",
+          "predicate",
+          "arguments",
+          "status",
+          "valid_from",
+          "transaction_from",
+          "source_refs"
+        ],
+        "properties": {
+          "fact_id": {"type": "string"},
+          "predicate": {"type": "string"},
+          "arguments": {"type": "array", "items": {"type": "string"}},
+          "status": {"enum": ["candidate", "confirmed", "invalid", "quarantined", "unknown"]},
+          "valid_from": {"type": ["number", "null"]},
+          "valid_to": {"type": ["number", "null"]},
+          "transaction_from": {"type": "number"},
+          "transaction_to": {"type": ["number", "null"]},
+          "source_refs": {
+            "type": "array",
+            "items": {"type": "string"},
+            "uniqueItems": true
+          }
+        }
+      }
+    },
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["edge_id", "source", "edge_type", "target"],
+        "properties": {
+          "edge_id": {"type": "string"},
+          "source": {"type": "string"},
+          "edge_type": {"type": "string"},
+          "target": {"type": "string"}
+        }
+      }
+    }
+  }
+}
+

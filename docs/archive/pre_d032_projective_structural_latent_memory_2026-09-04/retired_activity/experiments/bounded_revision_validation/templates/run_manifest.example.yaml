@@ -1,0 +1,88 @@
+schema_version: esgbu.run.v0
+run_id: dev_symbolic_m0_tiny_seed17
+status: planned_example
+created_at: 2026-09-04T00:00:00+10:00
+decision_ids: [D-024, D-025, D-026, D-027, D-028, D-029, D-030, D-031]
+
+contracts:
+  experiment: experiments/bounded_revision_validation/PROTOCOL.md
+  criteria: experiments/bounded_revision_validation/CRITERIA.md
+  criteria_version: draft_2026-09-04
+  contract_hash: TBD
+
+criteria_snapshot:
+  dictionary: experiments/bounded_revision_validation/CRITERIA.md
+  version: draft_2026-09-04_d025
+  frozen: false
+  primary: [C2, C3, C5]
+  hard_gates:
+    oracle_evaluator: 1.0
+    necessary_update_recall: 0.95
+    control_preservation_rate: 0.995
+    transaction_exact: 0.80
+    post_projection_violation_rate: 0.0
+  report_raw_numerators_and_denominators: true
+  unavailable_criterion_value: NA_with_reason
+  t0a_applicability:
+    required_when_applicable: [C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, C13, C14]
+    interface_only: [C15]
+    not_applicable_without_model: [C11, C12]
+    composite_task_cost: NA_pending_HC_019
+    five_class_macro_requires_all_classes: true
+    exclude_na_from_denominator: true
+
+code:
+  commit: TBD
+  dirty: true
+  dirty_diff_hash: TBD
+  environment_lock_hash: TBD
+
+data:
+  track: symbolic
+  manifest_hash: TBD
+  generator_version: TBD
+  split_hash: TBD
+  test_accessed: false
+  candidate_retrieval_id: shared_oracle_v0
+  upstream_mode: oracle
+
+method:
+  id: M0_ESGBU_tiny
+  parameter_count: TBD
+  flops_per_transaction: TBD
+  shared_executor: deterministic_v0
+  projection_reporting: [pre, post]
+  seed: 17
+
+training:
+  max_steps: 50000
+  early_stop_metric: validation_transaction_exact
+  early_stop_patience: 8
+  optimizer: adamw
+  learning_rate: 0.0003
+  loss_weights:
+    edit: 1.0
+    mask: 1.0
+    time: 1.0
+    evidence: 0.5
+
+hardware:
+  device: cuda:0
+  gpu_name: NVIDIA GeForce RTX 4070 Laptop GPU
+  pytorch_version: 2.11.0+cu126
+  pytorch_cuda_runtime: '12.6'
+  peak_memory_mb: TBD
+  wall_clock_limit_hours: 6
+
+artifacts:
+  raw_predictions: outputs/TBD/raw_predictions.jsonl
+  projected_predictions: outputs/TBD/projected_predictions.jsonl
+  metrics: outputs/TBD/metrics.json
+  failures: outputs/TBD/failures.jsonl
+  checkpoint: external_not_in_git
+
+completion:
+  exit_code: null
+  failure_reason: null
+  missing_label_count: null
+  projection_rejection_count: null

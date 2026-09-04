@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.pslm/schemas/run_manifest.schema.json",
+  "title": "PSLM Run Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "run_id", "status", "code", "config", "data", "model", "random_seed", "hardware", "timing", "outputs", "failure"],
+  "properties": {
+    "schema_version": {"const": "0.1.0"},
+    "run_id": {"type": "string"},
+    "status": {"enum": ["planned", "running", "completed", "failed"]},
+    "code": {
+      "type": "object",
+      "required": ["commit", "dirty"],
+      "properties": {"commit": {"type": "string"}, "dirty": {"type": "boolean"}}
+    },
+    "config": {
+      "type": "object",
+      "required": ["path", "sha256"],
+      "properties": {"path": {"type": "string"}, "sha256": {"type": "string"}}
+    },
+    "data": {
+      "type": "object",
+      "required": ["name", "version", "split", "split_hash"],
+      "properties": {
+        "name": {"type": "string"}, "version": {"type": "string"},
+        "split": {"enum": ["train", "validation", "test", "fixture"]},
+        "split_hash": {"type": "string"}
+      }
+    },
+    "model": {
+      "type": "object",
+      "required": ["method", "backbone_id"],
+      "properties": {"method": {"type": "string"}, "backbone_id": {"type": "string"}, "checkpoint": {"type": ["string", "null"]}}
+    },
+    "random_seed": {"type": "integer"},
+    "hardware": {"type": "object"},
+    "timing": {"type": "object", "required": ["started_at"], "properties": {"started_at": {"type": "string"}, "finished_at": {"type": ["string", "null"]}}},
+    "outputs": {"type": "object", "required": ["directory"], "properties": {"directory": {"type": "string"}, "metrics_file": {"type": ["string", "null"]}}},
+    "failure": {"type": "object", "required": ["failed"], "properties": {"failed": {"type": "boolean"}, "message": {"type": ["string", "null"]}}},
+    "notes": {"type": "string"}
+  }
+}

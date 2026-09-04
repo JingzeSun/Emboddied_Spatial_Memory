@@ -1,0 +1,223 @@
+{
+  "meta": {
+    "title": "具身世界模型中的空间语境扩充与修订",
+    "subtitle": "机器人如何预测未见结构、主动验证，并有限、可追溯地改变已有世界信念",
+    "date": "2026-08-28",
+    "author": "孙靖泽 · v1.0",
+    "deck_variant": "world_model_v1",
+    "source_style": "human_edited_v0_1",
+    "scope": "文献基础、世界模型方法蓝图与首轮机制验证；不包含实验结果和正式训练。",
+    "tags": ["Peer-reviewed foundations", "Predictive world belief", "Active verification", "Versioned revision"]
+  },
+  "slides": {
+    "framing": {
+      "title": "先讲清研究位置和方法，再说明怎样用实验尝试推翻它",
+      "questions": [
+        {
+          "label": "Q1 文献基础",
+          "question": "哪些已评审工作可以作为论文基石？",
+          "answer": "用正式论文说明空间建图、持久记忆、动作条件预测和选择性读取已经做到哪里。"
+        },
+        {
+          "label": "Q2 方法蓝图",
+          "question": "机器人怎样扩充并修订自己的世界认识？",
+          "answer": "先预测行动后应看到什么，再用新观测确认、扩图、修订、保持或暂存候选。"
+        }
+      ],
+      "boundary": "前半部分解释问题与方法；后半部分设计首轮 oracle 机制验证，不展开训练，也不把实验计划写成结果。",
+      "status": "当前状态：方向和研究合同已更新；尚未实现，尚未验证。"
+    },
+    "timeline": {
+      "title": "已评审工作正从“建图与记忆”走向“可预测的持久世界表示”",
+      "events": [
+        {"year": "2022", "paper": "Hydra · RSS", "claim": "在线分层场景图\n跨层几何纠正"},
+        {"year": "2023", "paper": "SGM · ICML", "claim": "部分可观测动态图\n对象位置预测"},
+        {"year": "2024", "paper": "Khronos · RSS", "claim": "短期变化窗口\n长期 4D 协调"},
+        {"year": "2025", "paper": "DINO-WM · ICML", "claim": "从视觉与动作\n预测未来表征"},
+        {"year": "2025", "paper": "3D Persistent WM · NeurIPS", "claim": "持久 3D 世界状态\n动作条件预测"},
+        {"year": "2025", "paper": "3D-Mem · CVPR", "claim": "具身空间记忆\n长程任务更新"}
+      ],
+      "source": "同行评审状态以官方 proceedings 核验；FARM、SpaMEM 等预印本只做 novelty watch。"
+    },
+    "foundations_a": {
+      "title": "三篇基础工作给我们“表示世界、预测变化、长期保存”的底座",
+      "items": [
+        {"paper": "DINO-WM", "venue": "ICML 2025", "method": "从当前视觉表征和动作预测后续视觉表征，不要求先还原成像素。", "borrow": "借鉴动作条件预测：机器人走一步后，先产生“应该看到什么”的先验。", "gap": "擅长短程视觉预测，不负责长期结构候选、版本历史和有限图修订。"},
+        {"paper": "Persistent 3D World Models", "venue": "NeurIPS 2025", "method": "把历史观测整合成持久 3D 世界状态，并用动作预测后续观测。", "borrow": "借鉴持久三维状态与动作条件 rollout，支撑跨视角、跨时间的世界信念。", "gap": "未把候选何时成事实、何时主动验证、旧关系改到哪里停作为核心问题。"},
+        {"paper": "Hydra", "venue": "RSS 2022", "method": "在线构建对象—Place—Room 多层 3D 场景图，并通过回环修正几何。", "borrow": "借鉴分层图、Place/Room 锚点和拓扑连接，承载长期空间结构。", "gap": "主要纠正 SLAM 几何，不处理预测候选的生命周期和语义证据触发的局部修订。"}
+      ],
+      "source": "Related Work 基石：DINO-WM（ICML 2025）、Persistent 3D World Models（NeurIPS 2025）、Hydra（RSS 2022）。"
+    },
+    "foundations_b": {
+      "title": "另外三篇说明“动态记忆、长期协调、具身空间更新”已经不是空白",
+      "items": [
+        {"paper": "Scene Graph Memory", "venue": "ICML 2023", "method": "累计部分可观测动态图历史，预测查询对象当前可能位于哪里。", "borrow": "借鉴部分可观测设定和 link-level 预测，作为动态对象预测基线。", "gap": "重点是回答对象在哪，不是维护一套可审计的预测—验证—修订世界状态。"},
+        {"paper": "Khronos", "venue": "RSS 2024", "method": "用短期动态窗口处理变化，再与长期 4D 地图做全局协调。", "borrow": "借鉴快慢记忆、遮挡/缺席证据和长期协调思想。", "gap": "没有显式区分 confirmed 与 hypothesis，也未监督 relation-level stop boundary。"},
+        {"paper": "3D-Mem", "venue": "CVPR 2025", "method": "在长程具身任务中维护可更新的 3D 空间记忆，支持规划和目标交互。", "borrow": "借鉴在线空间记忆更新和面向任务的记忆读取。", "gap": "未把结构扩充候选、主动取证和版本化局部修订闭合成统一循环。"}
+      ],
+      "source": "Related Work 基石：Scene Graph Memory（ICML 2023）、Khronos（RSS 2024）、3D-Mem（CVPR 2025）。"
+    },
+    "preprints": {
+      "title": "预印本只做创新性警戒：承认重合，但不拿它们支撑既有结论",
+      "farm": {
+        "paper": "FARM: Find Anything using Relational Spatial Memory",
+        "status": "arXiv 2606.15476v3 · 截至 2026-08-28 未核验正式 proceedings",
+        "covered": "已覆盖：在线对象记忆、16 类关系谓词、同类实例候选、soft ranking、top-K 和 VLM rerank。",
+        "scene": "机器人在走廊先后看见两个木箱；用户转弯后再说“找木箱”。",
+        "farm_action": "FARM：结合关系和近期语境排序，优先返回转弯后看到的木箱，同时保留另一个候选。",
+        "ours_action": "本项目：预测转弯后的结构，把新走廊和木箱先作为候选；取到足够证据后再并入持久世界，并记录它与旧走廊的连接。",
+        "difference": "一句话：FARM 回答“先找哪个”；本项目还回答“行动后世界怎样展开、何时候选能成为事实”。",
+        "use": "用途：关系检索接口、ActiveContext 基线和同类实例候选基线；不作为性能事实基石。"
+      },
+      "watch": ["SpaMEM：action-conditioned belief evolution", "SpatialMem：metric-aligned 层次空间记忆", "ChangingGrounding：变化后的再探索与 grounding", "ViSAGE：延迟纠错与图记忆", "R4DSG：anchor-relative 动态表示"],
+      "risk": "因此不能把“空间记忆、预测、动态对象或检索”单独写成创新；贡献要落到候选生命周期 + 主动取证 + 有限修订 + 版本证据。"
+    },
+    "matrix": {
+      "title": "能力矩阵：目标是闭合一条“预测—验证—写回”的世界模型循环",
+      "columns": ["结构状态", "动作预测", "持久记忆", "多假设", "主动验证", "有限修订", "版本证据", "主要任务"],
+      "rows": [
+        {"paper": "Hydra", "values": ["✓", "—", "△", "—", "—", "△", "△", "构图/回环"]},
+        {"paper": "Scene Graph Memory", "values": ["△", "△", "✓", "△", "—", "—", "△", "位置预测"]},
+        {"paper": "Khronos", "values": ["✓", "—", "✓", "△", "—", "△", "✓", "4D 协调"]},
+        {"paper": "DINO-WM", "values": ["—", "✓", "△", "—", "—", "—", "—", "视觉预测"]},
+        {"paper": "Persistent 3D WM", "values": ["✓", "✓", "✓", "△", "△", "△", "△", "世界预测"]},
+        {"paper": "3D-Mem", "values": ["✓", "△", "✓", "—", "△", "△", "△", "具身记忆"]},
+        {"paper": "FARM · preprint", "values": ["△", "—", "✓", "✓", "—", "—", "—", "关系检索"]},
+        {"paper": "Current proposal", "values": ["目标", "目标", "目标", "目标", "目标", "目标", "目标", "信念演化"]}
+      ],
+      "note": "✓/△/— 只表示公开方法是否显式覆盖，不代表性能优劣；“目标”是计划能力，尚未实现或验证。"
+    },
+    "gap": {
+      "title": "一条重复走廊说明：创新不在“走一步，多加一个节点”",
+      "routes": [
+        {"name": "t0 · 已确认", "plain": "眼前是走廊 C1", "papers": "前方还没观察"},
+        {"name": "预测不是事实", "plain": "候选 H_forward", "papers": "先放进 HypothesisSet"},
+        {"name": "t1 · 新证据", "plain": "前方是墙，左侧为空", "papers": "否定直行，提出左转"},
+        {"name": "下一步动作", "plain": "向左观察或转向", "papers": "区分走廊 / 门 / 房间"}
+      ],
+      "write_path": ["确认 C1", "提出直行候选", "向前移动", "证据否定直行", "提出左转候选", "新视图再确认"],
+      "claim": "系统不是把“未知”直接补成走廊，而是保存多个可检验候选；新证据可以否定旧候选，也可以驱动下一步最有信息量的观察。",
+      "not_claim": "不主张“不断复制走廊节点”就是世界模型；没有预测误差、候选状态和主动验证，就只是地图增长。"
+    },
+    "pipeline": {
+      "title": "一张图讲明白：机器人怎样让自己的世界认识不断生长",
+      "intro": "先根据当前世界和动作预测“接下来可能看到什么”，再用真实观测确认、否定或保留候选。",
+      "new_frame": "现在相信什么？\nB_t 保存已确认结构、候选假设和版本历史",
+      "old_view": "准备做什么？\n动作、位姿和任务决定接下来可能看见什么",
+      "compare": "先做预测\n由 B_t 和动作产生 expected observation 与结构候选",
+      "route": "再看新证据\n比较实际观测和预测，判断它支持、反驳还是不足",
+      "world_edit": "证据足够\n确认扩图或修订旧事实",
+      "no_world": "证据不足\n保持旧信念或隔离候选",
+      "scope": "选择状态路径\n确认 / 扩充 / 修订 / 保持 / 暂存",
+      "edit": "更新候选生命周期\n提出、增强、否定或升格为事实",
+      "commit": "形成 B_t+1\n提交新版本并保留证据与旧历史",
+      "active": "主动观察只负责选下一步：哪一个动作最能区分候选、帮助任务，同时控制风险与成本。",
+      "active_heading": "另一条反馈线：主动观察",
+      "guard": "关键：预测可以大胆，写入必须谨慎；候选不能因为“模型觉得像”就自动变成世界事实。",
+      "path_label": "证据足够才提交后验"
+    },
+    "routing": {
+      "title": "新证据不是一律写入：先排除错误，再走五条状态路径",
+      "gates": [
+        {"name": "第一道门：感知与定位可靠吗？", "question": "pose、depth、detector 是否互相支持？", "fail": "不可靠 → 隔离，不更新世界"},
+        {"name": "第二道门：地点和身份清楚吗？", "question": "新走廊、旧地点回环，还是定位漂移？", "fail": "不清楚 → 保留多个候选"},
+        {"name": "可靠证据说明什么？", "question": "支持预测、发现新结构、反驳旧事实，还是暂时看不见？", "fail": "分别走下面的状态路径"}
+      ],
+      "paths": [
+        {"name": "Sensor / pose inconsistency", "cn": "传感器或定位不一致", "when": "深度、位姿或识别互相矛盾", "action": "隔离这次观测，等待复核", "example": "位姿跳变让走廊看起来突然变长"},
+        {"name": "Association / topology ambiguity", "cn": "地点或身份不清", "when": "新分支、旧地点和漂移都解释得通", "action": "保留多个候选并安排验证", "example": "相似走廊可能是新走廊，也可能是回环"},
+        {"name": "Confirmation", "cn": "预测被证实", "when": "新观测与某个候选一致", "action": "增强证据，满足规则后升格", "example": "左转后连续看到同一条走廊"},
+        {"name": "Hypothesis expansion", "cn": "出现新结构候选", "when": "局部证据支持未见区域继续展开", "action": "新增候选连接，不冒充事实", "example": "左侧深度为空，先提出左转走廊"},
+        {"name": "Belief revision", "cn": "旧事实被可靠反驳", "when": "视野揭示不足以解释差异", "action": "只改受影响子图并保留版本", "example": "固定椅子被永久搬走，旧址清楚为空"},
+        {"name": "Preserve / visibility", "cn": "旧事实继续保留", "when": "只是遮挡、视野外或证据不足", "action": "更新可见性，不改世界事实", "example": "人挡住椅子，不等于椅子消失"}
+      ],
+      "guard": "结构扩充和世界修订共用同一套门控：都先进入候选，只有可靠且可重复的证据才能改变 ConfirmedGraph。"
+    },
+    "contributions": {
+      "title": "六个模块合在一起，才是可检验的世界信念演化机制",
+      "items": [
+        {"name": "Structured world belief", "question": "系统到底把什么当事实，什么只是假设？", "output": "ConfirmedGraph + HypothesisSet + History", "prevents": "把预测直接写成世界事实"},
+        {"name": "Action-conditioned prediction", "question": "做完这个动作后，应该看到什么？", "output": "expected observation + structural candidates", "prevents": "只会被动追加观测"},
+        {"name": "Pose-aware assimilation", "question": "实际观测与预测如何在同一坐标比较？", "output": "aligned evidence + reliability", "prevents": "把相机运动误判为世界变化"},
+        {"name": "Hypothesis lifecycle", "question": "候选怎样提出、增强、否定和升格？", "output": "candidate state + support/contradiction", "prevents": "一次观察就下定论"},
+        {"name": "Affected-subgraph revision", "question": "旧事实真错了时，改谁并到哪里停？", "output": "typed edit + affected/control/stop", "prevents": "漏改关系或污染整张图"},
+        {"name": "Active evidence acquisition", "question": "下一步看哪里最能减少不确定性并帮助任务？", "output": "ranked action + expected information gain", "prevents": "盲目探索或只追逐最近目标"}
+      ],
+      "finding": "核心闭环：预测可以产生候选，观测负责检验，只有通过门控的证据才能有限写回；行动又由当前不确定性反向驱动。"
+    },
+    "experiment_strategy": {
+      "title": "第一轮先不用真实视觉：检查这套世界模型逻辑会不会自己犯错",
+      "question": "给定清楚的旧世界、动作和观测，系统能否保留多个合理解释，选对下一步验证动作，并只在证据足够时更新世界？",
+      "inputs": ["手写的初始世界 B_t", "手写的动作与后续观测", "oracle pose / depth / association", "每个场景允许的候选与正确后验"],
+      "mechanism": ["根据动作提出结构候选", "用观测增强、否定或保留候选", "必要时选择能区分候选的下一步动作", "证据足够后确认扩图或有限修订"],
+      "outputs": ["候选是否覆盖正确解释", "事实是否过早确认或错误删除", "主动动作是否真正减少歧义", "新版本与证据能否追溯"],
+      "principle": "如果在标准答案条件下仍会乱扩图、乱确认或乱改旧事实，接入 detector、VLM 和真实轨迹只会让错误更难定位。",
+      "status": "当前状态：planned / implementation not started / no experimental evidence。"
+    },
+    "experiment_matrix": {
+      "title": "七个实验分别在追问哪一种世界模型错误？",
+      "items": [
+        {"id": "E0", "name": "先检查“尺子”准不准", "fixtures": "给定旧世界、候选、动作和正确新世界", "isolate": "不让系统猜，只要求照标准答案更新", "success": "结果、版本和证据都正确", "failure": "先修规则或评分工具，不能训练"},
+        {"id": "E1", "name": "走廊该延伸还是转弯？", "fixtures": "重复纹理走廊；前墙与左侧空区", "isolate": "只改变一步动作后的深度证据", "success": "直行候选被否定，左转候选被提出", "failure": "机械复制走廊或一次观测就确认"},
+        {"id": "E2", "name": "新走廊、回环还是漂移？", "fixtures": "三种解释产生相似当前画面", "isolate": "改变历史锚点、位姿一致性或连接证据", "success": "保留正确候选并拒绝过早合并", "failure": "把漂移当扩图，或把新区域当旧地点"},
+        {"id": "E3", "name": "该去哪里再看一眼？", "fixtures": "左看、右看、前进的收益不同", "isolate": "只改变候选歧义和动作成本", "success": "选择最能区分候选且风险可控的动作", "failure": "只选最近或最便宜的动作"},
+        {"id": "E4", "name": "候选何时才能成为事实？", "fixtures": "一次弱证据与多次一致证据", "isolate": "保持结构不变，只增加独立支持", "success": "弱证据保留候选，充分证据才升格", "failure": "一次看见就写入，或永远不确认"},
+        {"id": "E5", "name": "椅子搬走还是只是被挡？", "fixtures": "永久搬走、可靠缺席、人物遮挡", "isolate": "旧世界相同，只替换一种现场解释", "success": "前两者修订；遮挡时保留旧事实", "failure": "把没看到当消失，或真实变化不更新"},
+        {"id": "E6", "name": "两个木箱会不会丢一个？", "fixtures": "转弯前后各有同类实例", "isolate": "只改变任务 prompt 和近期语境", "success": "排序可变，两个实例都留在世界中", "failure": "top-1 查询污染持久世界"}
+      ],
+      "rule": "每组只改变一个证据条件；这样失败时才能判断是预测、关联、确认、主动观察还是修订出了问题。"
+    },
+    "baselines": {
+      "title": "为什么和这些“直觉办法”比较？每个对照故意少一种能力",
+      "items": [
+        {"id": "1", "name": "只记录看见的内容", "alias": "Observed-only map", "behavior": "看见一段就加一段，从不预测未见结构", "diagnoses": "预测候选是否真的提高样本效率"},
+        {"id": "2", "name": "永远相信最可能的一个", "alias": "Greedy / Top-1", "behavior": "每次只保留分数最高的走廊或对象解释", "diagnoses": "多假设是否减少不可逆误判"},
+        {"id": "3", "name": "只往未知边界走", "alias": "Frontier-only", "behavior": "不看候选歧义，只选择最近的未探索区域", "diagnoses": "主动取证是否优于普通探索"},
+        {"id": "4", "name": "把新旧地图慢慢平均", "alias": "Pose-warped EMA", "behavior": "对齐后让整张状态向新观测平滑靠近", "diagnoses": "显式信念状态是否不只是抗噪"},
+        {"id": "5", "name": "只改眼前匹配对象", "alias": "Local matched-slot", "behavior": "对象变了只改对象，不处理关系后果", "diagnoses": "受影响子图是否避免漏改"},
+        {"id": "6", "name": "每次整张世界重做", "alias": "Full-graph recompute", "behavior": "一点变化就重新处理全部对象和关系", "diagnoses": "局部写回是否更省且少误改"}
+      ],
+      "shared_input": "公平比较：所有方法看到相同的旧世界、动作与观测，只允许预测、候选管理、选动作和写回方式不同。",
+      "optional": "FARM 风格排序作为查询基线：检查“先找哪个”是否会错误改变持久世界中的实例事实。"
+    },
+    "metrics": {
+      "title": "结果好不好，只看四件人能直接判断的事",
+      "groups": [
+        {"name": "1 正确解释有没有留下？", "metrics": "正确走廊或对象解释在候选中\n多种合理解释没有被过早删掉\n错误候选会随反证下降", "meaning": "论文记录：候选召回率、校准误差、假设存活与淘汰时间"},
+        {"name": "2 什么时候敢写成事实？", "metrics": "弱证据不会直接确认\n充分证据能及时升格\n遮挡不会变成世界消失", "meaning": "论文记录：误确认率、确认延迟、无关事实保持率"},
+        {"name": "3 下一步真的更会看了吗？", "metrics": "选择的动作能区分候选\n同时考虑任务、信息、风险和成本\n不是只走最近边界", "meaning": "论文记录：不确定性下降、任务成功率、路径成本与风险"},
+        {"name": "4 更新是否有限、可追溯？", "metrics": "只改受影响对象和关系\n旧版本、现场证据仍能查到\n失败不会留下半改状态", "meaning": "论文记录：误改率、修订规模、版本有效性、延迟与存储"}
+      ],
+      "summary": "核心判断：猜得到、知道自己没确定、会主动取证，而且证据足够后只改该改的部分。",
+      "warning": "仅仅“最后走到了目标”还不够：如果靠错误世界状态碰巧成功，方法仍然失败。",
+      "right_label": "论文记录 / 失败时处理"
+    },
+    "experiment_gates": {
+      "title": "什么结果会让我们承认：当前机制还不能进入训练",
+      "checks": [
+        {"comparison": "给出标准答案后能否正确执行？", "go": "后验、历史和证据全部一致", "no_go": "先修规则、执行器和评分工具"},
+        {"comparison": "候选是否比直接确认更稳？", "go": "减少错误扩图和错误合并", "no_go": "重写候选生命周期或收紧证据"},
+        {"comparison": "主动观察是否真的减少歧义？", "go": "比最近边界更快区分候选", "no_go": "重新定义信息价值与动作成本"},
+        {"comparison": "修订是否比整图重做更有限？", "go": "正确性相当且少误改、少计算", "no_go": "不能主张局部写回的必要性"},
+        {"comparison": "扩图、回环与漂移能否分开？", "go": "三类解释均可判错并追溯", "no_go": "先冻结判题语义，再设计训练"}
+      ],
+      "progression": ["答案全部由人工给出", "明确规则自己判断", "再让模型学习判断", "最后接入真实视觉"],
+      "principle": "本页只作为构建所需的备用停止规则；v1.0 汇报中并入指标页，不单独展示。"
+    },
+    "decisions": {
+      "title": "当前状态：方向已升级，下一步先冻结判题规则再写实验",
+      "heading": "所有人工确认统一写入 DECISIONS.md",
+      "items": [
+        "HC-007～HC-012：世界模型的事实晋升、拓扑歧义、视野揭示和主动观察效用。",
+        "HC-001～HC-006：旧版对象修订、传播和停止边界；仍作为冲突子模块的判题基础。",
+        "每条决定都必须映射到对应合同、实验文档、fixture 或运行日志，不能只留在聊天里。"
+      ],
+      "next_heading": "规则冻结后按这个顺序做",
+      "next": "先写 E0～E6 的最小可判错样例；再做 oracle 状态更新与主动观察；通过后才移除 oracle、接入 detector / RGB-D / real trajectory。",
+      "round_heading": "本轮状态",
+      "round_status": "方法蓝图和验证问题已经更新；schema、执行器和实验尚未实现，也没有性能结论。当前 PPT 只用于讨论“问题定义是否成立、实验是否能推翻它”。",
+      "status": "研究诚信：本 PPT 描述的是 accepted / proposed design，不是已实现结果，也不是性能结论。",
+      "footer": "人工确认的唯一入口：docs/DECISIONS.md；详细语义不在 PPT 重复维护，避免多个版本互相冲突。"
+    }
+  }
+}

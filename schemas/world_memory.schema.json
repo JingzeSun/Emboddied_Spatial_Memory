@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.pslm/schemas/world_memory.schema.json",
+  "title": "PSLM World Memory",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "memory_id", "revision", "created_at", "updated_at", "nodes", "edges", "facts", "quarantine"],
+  "properties": {
+    "schema_version": {"const": "0.1.0"},
+    "memory_id": {"type": "string", "minLength": 1},
+    "revision": {"type": "integer", "minimum": 0},
+    "created_at": {"type": "number"},
+    "updated_at": {"type": "number"},
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["node_id", "node_type", "lifecycle", "latent_state", "valid_time", "evidence_ids"],
+        "properties": {
+          "node_id": {"type": "string", "minLength": 1},
+          "node_type": {"enum": ["place", "chart", "persistent_slot", "transient_track"]},
+          "lifecycle": {"enum": ["candidate", "active", "occluded", "out_of_view", "inactive", "retired", "quarantined"]},
+          "parent_id": {"type": ["string", "null"]},
+          "latent_state": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["representation", "prototype_refs"],
+            "properties": {
+              "representation": {"enum": ["bounded_prototype_set", "single_vector", "distribution", "external"]},
+              "prototype_refs": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+              "capacity": {"type": ["integer", "null"], "minimum": 1}
+            }
+          },
+          "geometry_ref": {"type": ["string", "null"]},
+          "valid_time": {"$ref": "#/$defs/interval"},
+          "evidence_ids": {"type": "array", "items": {"type": "string"}, "minItems": 1, "uniqueItems": true},
+          "confidence": {"type": "number", "minimum": 0, "maximum": 1}
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["edge_id", "source_id", "target_id", "relation_type", "valid_time", "evidence_ids"],
+        "properties": {
+          "edge_id": {"type": "string"},
+          "source_id": {"type": "string"},
+          "target_id": {"type": "string"},
+          "relation_type": {"enum": ["contains", "adjacent", "supports", "connected_by", "occludes", "same_identity", "observed_from", "custom"]},
+          "valid_time": {"$ref": "#/$defs/interval"},
+          "evidence_ids": {"type": "array", "items": {"type": "string"}, "minItems": 1}
+        }
+      }
+    },
+    "facts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["fact_id", "subject_id", "predicate", "value", "valid_time", "version", "evidence_ids"],
+        "properties": {
+          "fact_id": {"type": "string"},
+          "subject_id": {"type": "string"},
+          "predicate": {"type": "string"},
+          "value": {},
+          "valid_time": {"$ref": "#/$defs/interval"},
+          "version": {"type": "integer", "minimum": 0},
+          "supersedes_fact_id": {"type": ["string", "null"]},
+          "evidence_ids": {"type": "array", "items": {"type": "string"}, "minItems": 1}
+        }
+      }
+    },
+    "quarantine": {"type": "array", "items": {"type": "object"}},
+    "last_transaction_id": {"type": ["string", "null"]}
+  },
+  "$defs": {
+    "interval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start"],
+      "properties": {
+        "start": {"type": "number"},
+        "end": {"type": ["number", "null"]}
+      }
+    }
+  }
+}
+

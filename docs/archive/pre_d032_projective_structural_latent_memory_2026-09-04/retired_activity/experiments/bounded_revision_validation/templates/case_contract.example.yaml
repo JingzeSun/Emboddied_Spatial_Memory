@@ -1,0 +1,125 @@
+schema_version: esgbu.case.v0
+case_id: S01_stale_arrival_001
+family_id: S01
+track: symbolic
+split: development
+status: design_example_not_ground_truth
+decision_ids: [D-024, D-025, D-026, D-027, D-028, D-029, D-030, D-031]
+
+factor_vector:
+  graph_fact_count: 25
+  actual_world_change: false
+  delay_seconds: 366.0
+  arrival_disorder_rate: 0.5
+  visibility: 0.91
+  source_reliability: 0.95
+  conflict_rate: 0.0
+  dependency_depth: 1
+  evidence_grouping: independent
+
+prior_graph:
+  graph_version: 17
+  entities:
+    - {entity_id: cart_7, entity_type: movable_asset}
+    - {entity_id: zone_B, entity_type: zone}
+    - {entity_id: door_2, entity_type: door}
+    - {entity_id: task_retrieve_B, entity_type: task}
+  facts:
+    - fact_id: f_cart_at_B
+      predicate: at
+      arguments: [cart_7, zone_B]
+      status: confirmed
+      valid_from: 720.0
+      valid_to: null
+      transaction_from: 721.0
+      transaction_to: null
+      source_refs: [ev_190]
+    - fact_id: f_door2_open
+      predicate: open
+      arguments: [door_2]
+      status: confirmed
+      valid_from: 100.0
+      valid_to: null
+      transaction_from: 101.0
+      transaction_to: null
+      source_refs: [ev_020]
+  dependencies:
+    - {edge_id: e_task_cart, source: task_retrieve_B, edge_type: depends_on, target: f_cart_at_B}
+
+events:
+  - evidence_id: ev_204
+    source_id: robot_2
+    observed_at: 602.0
+    received_at: 968.0
+    visibility: 0.91
+    predicate: at
+    subject: cart_7
+    object: zone_A
+    polarity: positive
+    confidence: 0.88
+    group_id: scan_91
+
+candidate_facts: [f_cart_at_A, f_cart_at_B, f_door2_open]
+
+oracle:
+  transaction_id: oracle_S01_stale_arrival_001
+  prior_graph_version: 17
+  operations:
+    - {op: KEEP, target: f_cart_at_B, replacement: null, valid_time: null, evidence_ids: [ev_204]}
+  affected_seed: []
+  affected_closure: []
+  protected_controls: [f_cart_at_B, f_door2_open]
+  supporting_evidence_ids: [ev_204]
+  commit_probability: 0.0
+  projection_status: accepted
+  rejection_reasons: []
+  rationale: 新到消息描述 602 秒的旧状态，不能覆盖 720 秒起已确认的 B 位置。
+  task_delta: []
+  allowed_equivalence_class: keep_no_write
+
+evaluation_contract:
+  - criterion: C2
+    applicability: required_when_applicable
+    local_meaning: 迟到旧证据必须产生等价的KEEP/no-write事务
+    calculation: exact_transaction_match
+    numerator_example: 1
+    denominator_example: 1
+    expected_example: 1.0
+    governed_by: HC-005
+  - criterion: C5
+    applicability: required_when_applicable
+    local_meaning: 当前位置和无关门状态都属于protected controls
+    calculation: unchanged_controls/all_controls
+    numerator_example: 2
+    denominator_example: 2
+    expected_example: 1.0
+    governed_by: HC-003
+  - criterion: C8
+    applicability: not_applicable
+    na_reason: KEEP事务不产生新的有效时间预测
+    local_meaning: observed_at=602不能覆盖valid_from=720的较新事实
+    calculation: absolute_valid_time_error_seconds
+    expected_example: not_applicable_for_keep
+    governed_by: HC-015
+  - criterion: C10
+    applicability: required_when_applicable
+    local_meaning: 决策必须能反查导致KEEP判断的迟到证据
+    calculation: evidence_set_f1
+    expected_example: 1.0
+    governed_by: HC-016
+  - criterion: C13
+    applicability: required_when_applicable
+    local_meaning: executor不得接受stale overwrite候选
+    calculation: post_projection_violation_rate
+    expected_example: 0.0
+    governed_by: HC-016
+
+forbidden_outcomes:
+  - {op: REPLACE, target: f_cart_at_B, replacement: f_cart_at_A, reason: stale_event_overwrite}
+  - {op: RETRACT, target: f_door2_open, reason: collateral_edit}
+
+review:
+  author: TBD
+  reviewer: TBD
+  reviewed_at: null
+  notes: 模板数字只说明字段，不是冻结阈值。

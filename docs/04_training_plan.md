@@ -1,124 +1,99 @@
-# 04 — 训练计划：逐层移除 Oracle
+# 04 训练计划：层级 memory transducer，而不是平行 loss 堆叠
 
-> 状态：`blocked by pilot gate / no model trained`
+## 训练样本
 
-只有 `03_pilot_protocol.md` 的 Go 条件全部满足后，本文件才生效。
-
-## 1. 训练单位
+每个样本是一段在线更新前缀，不是孤立图片或单次事实分类：
 
 ```text
-(base_belief, observation_graph, pose, visibility, history)
-    → innovation category/mode
-    → affected/control/stop
-    → typed operations or target invariant
-    → target belief version
+previous world memory S_(t-1)
+current RGB/depth/pose/action/time
+observation regions R_t
+projected expectation Rhat_t
+oracle association A_t
+oracle memory transaction U_t
+next observation / next world state labels when available
 ```
 
-必须监督“该改什么”和“绝不能改什么”。只监督最终 query answer 无法证明修订机制。
+训练时可以 teacher-force oracle prior memory；正式 online rollout 必须同时报告使用模型自身历史造成的误差累积。
 
-## 2. 分阶段训练
+## 层级因子化
 
-| Stage | 学习对象 | 仍保留的 oracle | 进入条件 | 退出条件 |
-|---|---|---|---|---|
-| T1 | innovation mode/reliability | pose、association、graph | pilot passed | 分类与校准超过规则基线 |
-| T2 | affected nodes/edges | perception、association | T1 frozen | scope + propagation/preservation 同时改善 |
-| T3 | operator + stop | perception、association | T2 stable | executor success，stop calibrated |
-| T4 | association ambiguity/quarantine | pose、object observations | T3 stable | ID switch/false merge 可控、可恢复 |
-| T5 | noisy perception adapter | fixture oracle 仅评测 | T4 stable | 噪声退化曲线可解释 |
-| T6 | multi-scenario curriculum | 无训练时 oracle | T5 stable | 未见场景组合泛化 |
+模型不宣称四个独立 head 等于联合后验。推荐显式因子化：
 
-不要端到端同时训练全部模块；每阶段只移除一层 oracle，方便失败归因。
+\[
+q(A,U\mid X)=q(A\mid X)
+q(g\mid A,X)
+q(M\mid g,A,X)
+q(\Delta,\tau,Z\mid M,g,A,X),
+\]
 
-## 3. 模型接口
+其中 `g` 表示 `bind/new/reactivate/split/merge/unresolved` gate，`M` 是允许写入范围，`Delta/tau/Z` 是创建或修订事务。不存在的分支不计算伪标签 loss。
 
-```text
-InnovationHead:
-  category, mode, reliability, causal factors
+## 核心目标
 
-ScopeHead:
-  affected_node_logits, affected_edge_logits
+\[
+L_{core}=L_{project}+\lambda_A L_{association}+\lambda_U L_{transaction}.
+\]
 
-StopHead:
-  stop_edge_logits
+- `L_project`：当前 pose/action 下 expected visibility、对应 region 与 structural latent 的预测；
+- `L_association`：带 dustbin/abstention 的 set matching，覆盖 bind/new/reactivate/split/merge；
+- `L_transaction`：层级 transaction NLL，内部条件化 birth/attachment/revision/scope/time/evidence，而不是把七个互相重复的 loss 并排相加。
 
-OperatorHead:
-  operator type + typed arguments
+identity contrastive、sparsity、calibration、task loss 只在诊断表明必要时加入，并必须有独立消融。executor legality、protected invariance 与版本无环是硬验证，不靠 soft loss 假装保证。
 
-CommitHead:
-  commit / quarantine / ask clarification
+## 课程顺序
+
+1. oracle regions + oracle pose 的一对一 binding；
+2. partial overlap、out-of-FOV 与 reappearance；
+3. new-node birth 和 delayed confirmation；
+4. region split/merge 与 perceptual aliasing；
+5. Chart attachment 与转弯 overlap；
+6. transient/occlusion/stationary actor；
+7. relocation/reliable absence/late evidence revision；
+8. pose/depth/region noise；
+9. action-conditioned next-view prediction；
+10. online self-rollout 与 simulator OOD。
+
+curriculum 只使用 train/validation；正式主表另跑无课程或统一预算对照。
+
+## 候选优化配置
+
+```yaml
+optimizer: AdamW
+learning_rate: [1e-4, 3e-4]
+weight_decay: [1e-4, 1e-2]
+sequence_length: [4, 8, 16]
+max_regions_per_frame: [32, 64]
+max_active_nodes: [128, 256]
+hidden_dim: [128, 256]
+dropout: [0.1, 0.2]
+gradient_clip_norm: 1.0
+precision: bf16_or_fp32
+formal_seeds: at_least_5_pending_HC_031
 ```
 
-GNN、graph Transformer 或其他模型只是可替换实现。论文贡献取决于输出合同和证据，不取决于 backbone 名称。
+这些是 validation 搜索空间，不是 accepted 最优值。
 
-## 4. 训练目标
+## checkpoint 规则
 
-```text
-L_total =
-    L_innovation
-  + lambda_node L_node_scope
-  + lambda_edge L_edge_scope
-  + lambda_stop L_stop_boundary
-  + lambda_op L_operator
-  + lambda_keep L_control_preservation
-  + lambda_cal L_calibration
-  + lambda_cost L_revision_cost
-```
+候选词典序：
 
-约束：
+1. 先满足 association recall、false merge、duplicate birth 与 protected-memory 硬门；
+2. 在满足者中最大化 transaction exact 和 attachment exact；
+3. 再比较 online rollout retention 与 calibration；
+4. 再并列时选 p95 latency/memory 更低者。
 
-- `L_cost` 不能单独优化，否则“不修改”成为退化解；
-- hard negatives 必须包含与 seed 相邻但不应修改的边；
-- 多种正确 scope 用 invariant/equivalence loss；
-- loss 权重只用 train/validation 选择。
+正式规则由 HC-031 在 test 解封前冻结。
 
-## 5. 数据课程
+## 公平训练
 
-```text
-single relocation
-  → absence vs occlusion
-  → one-hop dependency
-  → multi-hop with stop boundary
-  → irrelevant innovation
-  → identity ambiguity
-  → repeated relocation/version chain
-  → expansion + revision mixed frame
-  → ActiveContext boundary case
-```
+- 所有方法共享 frozen backbone、region proposals、depth/pose 和数据顺序；
+- representation ablation 只替换 tokenizer，update policy 保持一致；
+- update ablation 共享 tokenizer/projector；
+- 参数匹配、训练 step 匹配和 wall-clock 匹配分别报告；
+- candidate/binding recall 单独报告，不能让 PSLM 获得更强前端；
+- online rollout 与 teacher-forced 结果分列。
 
-## 6. 数据切分
+## 运行记录
 
-- 主 split 单位：`scene_family`；
-- 同一 counterfactual group 不跨 split；
-- 同一 base scene 的渲染变体和时间相邻片段不跨 split；
-- asset/trajectory template 记录独立 split；
-- train：学习参数；
-- validation：阈值、loss、prompt、model/checkpoint 选择；
-- test：合同全部冻结后只作正式报告。
-
-接触 test 后修改任何协议，必须建立新 protocol version 并保留旧结果。
-
-## 7. 验证矩阵
-
-每阶段同时报告：
-
-- 与 deterministic controller 比较；
-- 与 oracle 上限差距；
-- required propagation 与 control preservation；
-- calibration 与 abstention/quarantine；
-- graph size、history length 和 affected ratio sweep；
-- 失败按 perception/association/innovation/scope/operator/executor 分桶。
-
-## 8. 训练成功门
-
-学习方法必须在 validation 上：
-
-1. 超过 deterministic baseline；
-2. 不能靠减少编辑量换来明显漏改；
-3. stop/control 指标不能下降；
-4. 未见 scene family 保留主趋势；
-5. 置信度能支持 commit/quarantine 决策；
-6. 结果可由 config、seed、data hash、code/model ID 重放。
-
-失败时允许形成 deterministic 方法或收缩主张；不默认解释为“模型不够大”。
-
-通过后进入 [`05_formal_evaluation_and_paper.md`](05_formal_evaluation_and_paper.md)。
+每次 run 保存 raw/weighted losses、各条件分支样本数、梯度范数、region/node 数、birth/merge 分布、projection rejection、teacher-forced 与 rollout 指标、显存/延迟、缺失标签、崩溃与失败样本。

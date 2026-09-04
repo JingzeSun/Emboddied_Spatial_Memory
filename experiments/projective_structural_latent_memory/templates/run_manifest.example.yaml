@@ -1,0 +1,31 @@
+schema_version: "0.1.0"
+run_id: "planned_example"
+status: "planned"
+code:
+  commit: "TO_FILL"
+  dirty: true
+config:
+  path: "configs/mvp.yaml"
+  sha256: "TO_FILL"
+data:
+  name: "TO_FILL"
+  version: "TO_FILL"
+  split: "validation"
+  split_hash: "TO_FILL"
+model:
+  method: "PSLM"
+  backbone_id: "TO_FILL"
+  checkpoint: null
+random_seed: 0
+hardware:
+  device: "TO_FILL"
+timing:
+  started_at: "TO_FILL"
+  finished_at: null
+outputs:
+  directory: "outputs/TO_FILL"
+  metrics_file: null
+failure:
+  failed: false
+  message: null
+notes: "模板；不得把未运行字段伪装成结果。"

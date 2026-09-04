@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.pslm/schemas/evidence_event.schema.json",
+  "title": "PSLM Evidence Event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "evidence_id", "timestamp", "source_type", "source_ref", "reliability"],
+  "properties": {
+    "schema_version": {"const": "0.1.0"},
+    "evidence_id": {"type": "string", "minLength": 1},
+    "timestamp": {"type": "number"},
+    "source_type": {"enum": ["observation_region", "pose", "action", "relation", "absence", "human", "oracle"]},
+    "source_ref": {"type": "string", "minLength": 1},
+    "claim": {"type": ["string", "null"]},
+    "reliability": {"type": "number", "minimum": 0, "maximum": 1},
+    "online_available": {"type": "boolean", "default": true},
+    "corruption_id": {"type": ["string", "null"]},
+    "metadata": {"type": "object"}
+  }
+}
+

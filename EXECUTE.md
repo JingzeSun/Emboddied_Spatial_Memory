@@ -1,108 +1,65 @@
-# 当前执行页
+# EXECUTE：当前唯一执行入口
 
-> 这是项目唯一的日常执行入口。
->
-> 当前阶段：`A — 冻结可判分合同`
->
-> 当前状态：`in progress / no implementation / no experimental evidence`
+## 当前状态
 
-## 现在先做什么
+阶段：**P0，Projective Structural Latent Memory 的状态、oracle 与判尺冻结**。
 
-完成 A1–A3。完成前不搭大模型、不收大数据、不写论文结果。
+已完成：D-032 接受主线 supersession；旧 ESGBU 活动文件完成 72 文件快照并退役；新入口、合同和实验包正在按同一主线重建。
 
-### A1：人工冻结六项语义
+未完成：HC-020～HC-034；v0.1 schema 冻结、executor/evaluator；任何数据生成、模型实现、训练或验证。
 
-在 [`docs/DECISIONS.md`](docs/DECISIONS.md) 新增 D-016，明确：
+## 当前活动队列
 
-| 决策 | 推荐默认值 | 为什么必须人工确认 |
-|---|---|---|
-| 搬迁 identity | 高置信关联时保持同一 ID；低置信进入多假设 | 决定是 `SUPERSEDE` 还是 `ADD` |
-| 关系存储/派生 | `supports/contains` 存储；`near/above/located_in` 逐项决定 | 决定关系是否需要显式编辑 |
-| 传播依赖 | 只沿人工许可的 operator-specific relation | 决定 affected truth |
-| reliable absence | 旧址应可见、无可信遮挡、传感器可靠、多帧满足 | 决定 preserve 还是 invalidate |
-| stop truth | 接受满足 target invariant 的多个最小范围 | 避免伪造唯一 ground truth |
-| clarification | 候选歧义会导致不同且有代价的行动时询问 | 决定 ActiveContext 行为，不改变世界事实 |
+| ID | 状态 | 决策/工作 | 完成标志 |
+|---|---|---|---|
+| Q00 | DONE | D-032 主线与归档 | 旧方案可恢复，新主线唯一 |
+| Q01 | WAITING_USER | HC-020 第一批 smoke 路线 | 冻结12个序列还是 simulator-first |
+| Q02 | BLOCKED | HC-021 输入与 oracle 来源 | RGB/depth/pose/action/时间字段唯一 |
+| Q03 | BLOCKED | HC-022 structural tokenizer | region 定义、VP角色和等价分区可判 |
+| Q04 | BLOCKED | HC-023 memory hierarchy | Chart/Place/slot/track 的存储边界唯一 |
+| Q05 | BLOCKED | HC-024 binding identity | BIND/NEW/REACTIVATE/SPLIT/MERGE 真值可复核 |
+| Q06 | BLOCKED | HC-025 birth/confirmation | candidate 何时成为 persistent node 可复核 |
+| Q07 | BLOCKED | HC-026 Chart attachment | 新节点/新区域怎样连接旧 world graph 可复核 |
+| Q08 | BLOCKED | HC-027 lifecycle/visibility | transient、occluded、absent、removed 不混淆 |
+| Q09 | BLOCKED | HC-028 latent state/update | prototype、distribution、evidence bank 与写入规则冻结 |
+| Q10 | BLOCKED | HC-029 revision transaction | 旧 ESGBU 子模块的 operator/scope/stop 冻结 |
+| Q11 | BLOCKED | HC-030 time/provenance/quarantine | 破坏性提交和历史版本语义冻结 |
+| Q12 | BLOCKED | HC-031 metrics/gates | B/G/M/R/P/T/E 指标与硬门冻结 |
+| Q13 | BLOCKED | HC-032 baseline fairness | 同前端、同预算和 native-system 边界冻结 |
+| Q14 | BLOCKED | HC-033 datasets/splits | 场景、轨迹、房间与模板不泄漏 |
+| Q15 | BLOCKED | HC-034 downstream task | query、navigation 或 planning 的只读评估冻结 |
+| I01 | PLANNED | schema + deterministic executor | transaction 可原子执行和完整回放 |
+| I02 | PLANNED | evaluator + deliberate corruptions | oracle 全收、故意错误全拒绝 |
+| E01 | PLANNED | deterministic baselines | 验证任务不被简单几何/规则解决 |
+| E02 | PLANNED | learned binding/growth pilot | 学习超过强规则且不是只靠前端 |
+| E03 | PLANNED | full PSLM + ablations | project/bind/grow/revise 各自有证据 |
+| E04 | PLANNED | simulator ID/OOD | 多轴 OOD 与长期增长稳定 |
+| E05 | PLANNED | external/real sequence | 外部有效性与真实失败边界 |
 
-产物：D-016。验收：六项都能直接转成 fixture 字段或判分规则。
+## P0 必须冻结的对象
 
-### A2：写八个 micro fixtures
+- `ObservationRegion` 与 region equivalence；
+- persistent node identity、Chart/Place attachment 与 split/merge；
+- candidate/confirmed/transient/retired 生命周期；
+- `A_t` association 与 `U_t` transaction oracle；
+- projection、visibility、time、evidence 和 protected controls；
+- metric version、test access policy 和 baseline adapters。
 
-严格按 [`docs/02_scenario_wbs.md`](docs/02_scenario_wbs.md) 写：
+## P0 退出门
 
-```text
-P0 core revision
-├─ R1 chair relocation
-├─ R2 cart-box relation cascade
-├─ R3 reliable absence, destination unknown
-├─ R4 occlusion control
-├─ R5 stationary person remains actor
-└─ R6 irrelevant innovation / stop
+- 人能对同一短序列独立得到一致的 binding、birth、attachment 与 revision 标签；
+- oracle 事务可被 executor 100% 接受；
+- 单因素 deliberate corruption 均被 evaluator 拒绝并命中预期错误码；
+- 固定 patch、pose-warp、slot fusion 和 full recomputation 至少各暴露一个预期失败；
+- 未查看正式 test，下一阶段只有一个可执行合同。
 
-P1 boundary tests
-├─ X1 corner reveal / graph attachment
-└─ X2 two boxes / ActiveContext
-```
+## 当前禁止
 
-每个 fixture 必须包含：`base graph + observation + innovation + affected/control/stop + operations + expected graph + counterfactual`。
+- 把 DINO、VP、3D node、scene graph 或在线扩图本身写成创新；
+- 在 binding/birth oracle 未冻结前直接训练大模型；
+- 用导航成功率替代 memory identity、growth 和 revision 指标；
+- 把预测但未观测的 latent 直接写成 confirmed fact；
+- 把旧 `bounded_revision_validation` archive 与新实验包混用；
+- 宣称已实现、已验证或可投某刊。
 
-产物：`tests/fixtures/<fixture_id>/`。验收：人不看实现也能判断输出是否正确；无未决语义。
-
-### A3：做合同连通检查
-
-检查 fixture 字段能否落入：
-
-- `schemas/episode.schema.json`；
-- `schemas/observation_graph.schema.json`；
-- `schemas/belief_graph.schema.json`；
-- `schemas/context_delta.schema.json`；
-- `schemas/active_context.schema.json`。
-
-产物：合同检查记录。验收：合法样例均可表达，非法 version/ID/operator/reference frame 有明确拒绝规则。
-
-## A 阶段退出门
-
-只有同时满足以下条件才进入 B：
-
-- 六项人工语义已写入决策日志；
-- 六个 P0 fixture 全部有正例、单因素反例和 control；
-- X1/X2 明确标为边界测试，不冒充核心 revision 证据；
-- `unknown/absent/occluded/out_of_fov/removed` 不混用；
-- graph expansion、belief revision、ActiveContext 使用不同写入路径；
-- 所有计划仍明确标注为“未实现/未验证”。
-
-## 接下来做什么
-
-```text
-A 合同冻结
-  ↓ pass
-B 实现 schema + versioned executor + evaluator
-  ↓ pass
-C 运行 oracle mechanism pilot
-  ↓ core mechanism survives falsification
-D 分阶段训练 innovation/scope/operator/stop
-  ↓ validation success
-E 感知接入、正式测试、论文和复现
-```
-
-每阶段的具体合同：
-
-- A：[`docs/01_research_contract.md`](docs/01_research_contract.md) 与 [`docs/02_scenario_wbs.md`](docs/02_scenario_wbs.md)；
-- B/C：[`docs/03_pilot_protocol.md`](docs/03_pilot_protocol.md)；
-- D：[`docs/04_training_plan.md`](docs/04_training_plan.md)；
-- E：[`docs/05_formal_evaluation_and_paper.md`](docs/05_formal_evaluation_and_paper.md)。
-
-## 禁止跳级
-
-- oracle executor 不能 exact match：修合同/执行器，不训练；
-- oracle affected scope 不优于 local-slot：重审关系传播是否必要；
-- oracle scope 不优于 full-graph 的无关保持/成本：收缩局部修订主张；
-- validation 失败：不看 test 调参；
-- 正式 test 后改协议：建立新 protocol version，保留旧结果。
-
-## 每次工作结束只更新三处
-
-1. 本页的“当前阶段/当前任务”；
-2. `docs/DECISIONS.md` 中真正改变合同的决策；
-3. 对应阶段文档中的验收状态。
-
-不要再新建平行蓝图、个人清单或第二套实验合同。
+如果现在只做一件事：打开 [`HC-020`](docs/human_confirmation/HC-020.md)，冻结第一批可执行验证路线。

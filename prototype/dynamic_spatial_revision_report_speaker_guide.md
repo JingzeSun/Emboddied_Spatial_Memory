@@ -1,8 +1,8 @@
-# 动态空间语境修订汇报讲稿
+# v0.7 动态空间语境修订汇报讲稿（旧方向）
 
 > 用途：帮助第一次汇报时解释 PPT 术语、场景 WBS 和实验路线。
 >
-> 状态：`presentation aid / derived from current contract`。本文件不替代 `EXECUTE.md` 与 `docs/01–05`，不能把计划中内容讲成已实现或已验证。
+> 状态：`pre-D017 presentation aid / superseded`。本文件只用于回看旧版术语演化，不再代表当前世界模型主线；现行边界以 `EXECUTE.md`、`docs/01–05` 和 `docs/DECISIONS.md` 为准。
 
 ## 1. 先背这一段 30 秒主线
 

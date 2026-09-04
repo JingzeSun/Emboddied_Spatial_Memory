@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "revision_case.schema.json",
+  "title": "RevisionCase",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["case_id", "family_id", "track", "split", "decision_ids", "prior_graph", "events", "candidate_facts", "oracle", "factor_vector"],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "case_id": {"type": "string"}, "family_id": {"type": "string"},
+    "track": {"enum": ["hand_authored", "symbolic", "ai2thor_oracle", "ai2thor_frozen_perception", "3rscan_external"]},
+    "split": {"enum": ["development", "train", "validation", "id_test", "ood_test", "external_test"]},
+    "decision_ids": {"type": "array", "items": {"type": "string", "pattern": "^(D|HC)-[0-9]{3}$"}},
+    "prior_graph": {"$ref": "world_graph.schema.json"},
+    "events": {"type": "array", "items": {"$ref": "evidence_event.schema.json"}},
+    "candidate_facts": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "oracle": {"$ref": "revision_transaction.schema.json"},
+    "factor_vector": {"type": "object"},
+    "status": {"type": "string"},
+    "evaluation_contract": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["criterion", "applicability", "local_meaning", "calculation", "governed_by"],
+        "properties": {
+          "criterion": {"type": "string", "pattern": "^C([1-9]|1[0-5])$"},
+          "applicability": {"enum": ["required_when_applicable", "interface_only", "not_applicable"]},
+          "na_reason": {"type": ["string", "null"]},
+          "local_meaning": {"type": "string"},
+          "calculation": {"type": "string"},
+          "numerator_example": {},
+          "denominator_example": {},
+          "expected_example": {},
+          "governed_by": {"type": "string", "pattern": "^HC-[0-9]{3}$"}
+        },
+        "allOf": [
+          {
+            "if": {"properties": {"applicability": {"const": "not_applicable"}}, "required": ["applicability"]},
+            "then": {"required": ["na_reason"], "properties": {"na_reason": {"type": "string", "minLength": 1}}}
+          }
+        ]
+      }
+    },
+    "forbidden_outcomes": {"type": "array"},
+    "review": {"type": "object"}
+  }
+}

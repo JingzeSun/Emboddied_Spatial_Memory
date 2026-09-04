@@ -1,0 +1,202 @@
+# Current D-013 MVP contract. TODO values must be frozen on validation before formal test runs.
+contract:
+  version: "1.1"
+  research_contract: docs/01_research_contract.md
+  scenario_contract: docs/02_scenario_wbs.md
+  pilot_contract: docs/03_pilot_protocol.md
+  training_contract: docs/04_training_plan.md
+  formal_evaluation_contract: docs/05_formal_evaluation_and_paper.md
+
+experiment:
+  name: affected_subgraph_revision_mvp
+  stage: pilot
+  seed: 42
+  primary_task: affected_subgraph_revision
+  downstream_task: structured_context_query
+
+data:
+  manifest: null
+  split_version: null
+  split_by_scene_family: true
+  keep_counterfactual_group_together: true
+  required_conditions:
+    - unchanged_visible
+    - viewpoint_or_turning_only
+    - transient_occlusion
+    - stationary_actor_short
+    - stationary_actor_long
+    - relocation_visible_destination
+    - reliable_absence_unknown_destination
+    - removed_from_scene
+    - out_of_fov
+    - irrelevant_innovation
+    - graph_expansion_corner_reveal
+    - same_category_discourse_shift
+    - sensor_inconsistency
+
+inputs:
+  rgb: true
+  depth: true
+  pose: true
+  camera_intrinsics: true
+  optical_flow: optional
+  semantics: optional
+  pose_convention: T_world_camera
+  pose_source: null  # TODO: simulator, external_slam, visual_odometry
+  depth_source: null
+
+graph:
+  node_types:
+    - object
+    - surface
+    - region
+    - event
+    - chart
+    - place
+  editable_node_types:
+    - object
+    - surface
+    - region
+    - event
+  editable_edge_types:
+    - located_in
+    - contains
+    - supports
+    - adjacent_to
+    - connects
+    - part_of
+    - continuation_of
+    - overlaps
+    - near
+    - above
+    - below
+    - occludes
+    - participates_in
+    - same_track
+  observation_or_query_only_directional_relations:
+    - left_of
+    - right_of
+    - in_front_of
+    - behind
+  require_relation_reference_frame: true
+  forbid_camera_relative_edges_in_persistent_memory: true
+  chart_place_split_merge: false
+  versioned: true
+  store_provenance: true
+
+dynamic_state:
+  factorized: true
+  mobility_values: [actor, movable, fixed, unknown]
+  motion_values: [moving, stationary, unknown]
+  persistence_values: [transient, recurrent, persistent, unknown]
+  change_values: [unchanged, candidate, confirmed, rejected]
+  visibility_values:
+    - visible
+    - partially_occluded
+    - occluded
+    - out_of_fov
+    - reliably_absent
+    - unknown
+
+innovation:
+  pose_aware_projection: true
+  categories:
+    - matched
+    - new
+    - occluded
+    - out_of_fov
+    - reliably_absent
+    - conflict
+    - ambiguous
+    - sensor_inconsistent
+  modes:
+    - reinforcement
+    - graph_expansion
+    - belief_revision
+    - visibility_update
+    - association_ambiguity
+    - sensor_inconsistency
+  reliable_absence_thresholds: null  # TODO: validation only
+
+revision:
+  controller: hybrid
+  candidate_generation: deterministic
+  learned_scope_backend: graph_transformer  # ablate against GNN
+  executor: deterministic_versioned
+  operators:
+    - REINFORCE
+    - ADD
+    - UPDATE_STATE
+    - RELINK
+    - INVALIDATE
+    - SUPERSEDE
+    - PRESERVE
+    - QUARANTINE
+  predict_stop_boundary: true
+  validate_control_subgraph: true
+  low_confidence_action: QUARANTINE
+
+memory:
+  scene_belief_allows_hypotheses: true
+  consolidation: multi_evidence
+  latent_state: normalized_ema  # low-level baseline; ablate bounded_prototypes
+  active_context_selection: task_pose_conditioned
+  active_context_schema: schemas/active_context.schema.json
+  preserve_nonselected_referents: true
+  query_relations_are_ephemeral: true
+  discourse_and_route_bias_world_belief: false
+  clarification_policy: ask_when_ambiguity_is_action_relevant
+  referent_resolution_thresholds: null  # TODO: validation only
+  person_identity_scope: episode_track
+
+baselines:
+  - current_observation_only
+  - append_only
+  - pose_warped_global_ema
+  - slot_lifecycle_only
+  - local_matched_slot_revision
+  - full_graph_recomputation
+  - oracle_affected_subgraph
+  - deterministic_predicted_scope
+  - farm_style_relational_retrieval
+  - farm_style_fuse_merge
+
+evaluation:
+  primary_metrics:
+    - innovation_macro_f1
+    - delta_precision
+    - delta_recall
+    - node_scope_f1
+    - edge_scope_f1
+    - operator_macro_f1
+    - propagation_completeness
+    - preservation_accuracy
+    - collateral_revision_rate
+    - revision_latency
+    - graph_attachment_precision
+    - graph_attachment_recall
+    - context_query_accuracy
+    - referent_candidate_recall_at_k
+    - referent_accuracy_at_1
+    - clarification_calibration
+    - nonselected_referent_preservation
+    - edited_node_ratio
+  calibration_metrics:
+    - expected_calibration_error
+    - brier_score
+  efficiency_metrics:
+    - wall_clock_latency
+    - peak_memory
+    - storage_growth
+  confidence_intervals: true
+  report_oracle_and_estimated_sensors: true
+
+reproducibility:
+  save_config_snapshot: true
+  save_code_revision: true
+  save_dataset_manifest_hash: true
+  save_split_version: true
+  save_model_identifiers: true
+  save_raw_per_episode_outputs: true
+  save_failure_records: true
+  test_used_for_selection: false

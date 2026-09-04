@@ -1,0 +1,40 @@
+schema_version: "0.1.0"
+case_id: "S03_example_000"
+scenario_id: "S03"
+split: "fixture"
+inputs:
+  observation_refs:
+    - "observation.json"
+  memory_before_ref: "memory_before.json"
+  action_ref: "action.json"
+oracle:
+  association:
+    region_007: "NEW"
+  transaction_ref: "oracle_transaction.json"
+  memory_after_ref: "memory_after.json"
+  ambiguous_region_ids: []
+controls:
+  unchanged_node_ids:
+    - "surface_wall_001"
+  unchanged_fact_ids: []
+corruptions:
+  - corruption_id: "pose_jump"
+    category: "geometry"
+    parameters:
+      translation_m: 2.0
+    expected_behavior: "UNRESOLVED_OR_QUARANTINE"
+  - corruption_id: "duplicate_birth"
+    category: "temporal"
+    parameters:
+      force_second_create: true
+    expected_behavior: "REJECT_DUPLICATE_BIRTH"
+  - corruption_id: "wrong_parent"
+    category: "semantic"
+    parameters:
+      parent_id: "chart_unreachable"
+    expected_behavior: "REJECT_INVALID_ATTACHMENT"
+  - corruption_id: "occluded_as_removed"
+    category: "dynamic"
+    parameters:
+      forced_lifecycle: "retired"
+    expected_behavior: "REJECT_UNSUPPORTED_RETRACTION"

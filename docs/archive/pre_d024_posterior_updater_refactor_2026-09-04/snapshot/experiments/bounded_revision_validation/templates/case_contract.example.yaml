@@ -1,0 +1,64 @@
+schema_version: "0.2-draft"
+case_id: "r3_missing_destination_unknown_001"
+template_family: "R3"
+split: "development"
+status: "draft_not_gold"
+
+counterfactual_group_id: cf_r3_001
+generator:
+  version: null
+  seed: null
+  factors:
+    arrival_delay_steps: 0
+    dependency_depth: 0
+    graph_fact_count: 2
+
+prior:
+  version_id: "v10"
+  supported_at: 10.0
+  facts:
+    - {id: "f1", subject: "mug_7", predicate: "on", object: "table_2", source: "obs_010"}
+    - {id: "f2", subject: "lamp_1", predicate: "on", object: "desk_1", source: "obs_009"}
+
+new_evidence:
+  # recorded_at is retained for backward compatibility; received_at is the planned v0.2 name.
+  received_at: 14.3
+  transaction_recorded_at: 14.4
+  observed_at: 14.0
+  recorded_at: 14.3
+  evidence_groups:
+    - id: "eg_14a"
+      independent_group: true
+      source_id: camera_west
+      polarity: negative
+      assertions:
+        - {evidence_id: "ev_14a_01", kind: "reliable_absence", entity: "mug_7", region: "table_2", coverage: 0.99}
+  identity:
+    entity_id: "mug_7"
+    posterior: 0.98
+  visibility:
+    expected_visible_if_present: true
+    confidence: 0.99
+
+dependency_graph:
+  edges: []
+
+gold:
+  gate: commit
+  direct_target_fact_ids: [f1]
+  supporting_evidence_ids: [ev_14a_01]
+  change_type: "missing_destination_unknown"
+  operations:
+    - {op: "retract", fact_id: "f1", valid_time: {left_open: 10.0, right_closed: 14.0}}
+    - {op: "add", fact: {subject: "mug_7", predicate: "location", object: "unknown"}}
+  affected_fact_ids: ["f1"]
+  control_fact_ids: ["f2"]
+  forbidden_operations:
+    - {op: "add", subject: "mug_7", predicate: "on", object: "counter_1", reason: "destination unsupported"}
+  expected_stop: false
+  acceptable_outputs: []
+
+review:
+  annotator_ids: []
+  adjudicated: false
+  notes: "数字仅示例；未人工确认前不得作为 gold。"

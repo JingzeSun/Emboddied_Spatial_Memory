@@ -1,22 +1,23 @@
 # Outputs
 
-运行输出不提交 Git；只提交生成逻辑、schema 和必要的小型示例。
+运行输出、大型日志和 checkpoint 不提交 Git。本目录只保留说明与可选的小型汇总。
 
-正式 run 使用：
+每个正式 run 的外部目录至少包含：
 
 ```text
-outputs/<run_id>/
-├── config.yaml
-├── environment.json
-├── dataset_manifest.json
-├── predictions/
-├── revisions/
-├── metrics_per_episode.jsonl
-├── aggregate_metrics.json
-├── failures/
-└── run.log
+<run_id>/
+  manifest.yaml
+  config.yaml
+  environment.txt
+  observation_regions.jsonl
+  proposed_transactions.jsonl
+  executed_memory_versions.jsonl
+  metrics.json
+  failures.jsonl
+  logs/
+  checkpoints/      # external only
 ```
 
-每个 run 必须记录 code revision、contract version、split、seed、sensor/model IDs、完整失败信息。汇总表不能脱离 per-episode 原始输出存在。
+`manifest.yaml` 必须保存 decision IDs、contract/metric/data/split/code hash、seed、方法与 backbone ID、硬件、test access、退出码和失败信息。模板见 `experiments/projective_structural_latent_memory/templates/run_manifest.example.yaml`。
 
-oracle、deterministic 和 learned controller 使用不同 run tags；pilot/test 不得混写。
+必须同时保存模型提出的 transaction 与 executor 接受/拒绝后的 memory version，不能只保存最终图。当前没有正式运行输出。

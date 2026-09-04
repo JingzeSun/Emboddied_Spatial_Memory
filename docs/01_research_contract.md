@@ -1,143 +1,84 @@
-# 01 — 研究合同：问题、概念与论文边界
+# 01 研究合同：可投影、可增长、可修订的结构化视觉 latent 记忆
 
-> 状态：`accepted research contract / not implemented / not validated`
+## 研究问题
 
-本文只回答五件事：研究什么、为什么不是旧问题、核心概念是什么、论文能主张什么、怎样被反驳。
+给定连续具身观测、位姿与动作，如何把视角相关的视觉 latent 转换为世界坐标中的持久结构状态，并在每一步决定哪些 observation regions 应绑定旧节点、创建或重激活节点、扩充图结构、保持不变或修订历史？
 
-## 1. 研究问题
+\[
+R_t=\operatorname{Tokenize}(I_t,D_t,K,T_t),
+\qquad
+\hat R_t=\operatorname{PredictProject}(S_{t-1},a_{t-1},T_t,K),
+\]
 
-> 当当前观测与已有空间信念发生结构化差异时，智能体如何结合 pose、visibility 和 identity evidence，只修订真正受影响的节点与关系，完成必要传播，并在无关边界停止？
+\[
+q_\theta(A_t,U_t\mid R_t,\hat R_t,S_{t-1},a_{t-1},\Sigma),
+\qquad
+S_t=\operatorname{Execute}(S_{t-1},A_t,U_t).
+\]
 
-## 2. 现有工作的缺口
+### 随机变量与状态
 
-现有工作已经覆盖：
+- `R_t`：view-dependent projective structural tokens；每个 token 带 image support、latent、geometry、semantic、visibility、dynamic 与 uncertainty；
+- `S_{t-1}`：world-centric memory graph，含 Place、Chart、persistent slot、transient track、事实、关系、版本和证据；
+- `Rhat_t`：旧 memory 对当前视角的预期投影，包含 expected visibility 与 predicted structural latent；
+- `A_t`：region-to-world binding，包括 `BIND/NEW/REACTIVATE/SPLIT/MERGE/UNRESOLVED`；
+- `U_t`：统一 memory transaction，包括 node/edge birth、reinforce、state update、relink、retract、replace、preserve、quarantine，以及 scope/time/evidence；
+- `Sigma`：节点、关系、坐标、生命周期和执行约束 schema。
 
-- posed RGB-D 的在线对象/场景图构建；
-- 动态对象、长短期记忆和持久对象状态；
-- selective attention/read；
-- 关系谓词查询、同类候选 soft ranking 和 top-K；
-- 全局或片段级场景协调。
+## 中心可证伪假设
 
-它们不等于本项目要检验的四个问题：
+- **H1 Projective representation**：结构化 region tokens 比固定 image patches 更能在转弯、斜视与局部遮挡下保持可绑定性；
+- **H2 World binding**：显式 predict-project + binding 比 IoU/nearest/EMA 降低 identity switch、false merge 与 duplicate birth；
+- **H3 Controlled growth**：candidate confirmation 与 Chart attachment 能在不增加 hallucinated nodes 的条件下提高新结构覆盖；
+- **H4 Dynamic persistence**：transient/persistent 分层和 visibility reasoning 同时降低静态污染与真实变化漏检；
+- **H5 Unified revision**：同一 transducer 能区分 reveal、occlusion、sensor error 与 persistent change，并以局部事务保护无关状态；
+- **H6 Predictive utility**：action/pose-conditioned structural prediction 改善下一视角的 visibility/attachment 与只读任务，不靠 RGB reconstruction。
 
-1. 新证据应触发什么 typed world edit？
-2. 哪些旧关系必须随状态改变而更新？
-3. 哪些无关旧事实必须保持？
-4. 传播依据什么停止，旧版本如何追溯？
+任一假设若不优于对应强基线，就删除该 claim；总分提升不能替代逐机制证据。
 
-FARM 已覆盖 online object memory、relational retrieval 和 top-K，当前仅作 preprint novelty watch/基线；不能把这些能力包装成本项目创新。正式文献边界见 `literature/peer_review_audit.md` 和 `literature/notes/farm_2026_DEEP.md`。
+## 候选贡献层级
 
-## 3. 核心方法
+1. **问题与 benchmark**：首次揭示、重访、遮挡、动态干扰和真实改变共存时的在线 world-memory growth-and-revision；
+2. **表示**：view-dependent structural latent 与 world-centric versioned graph 的明确分层；
+3. **方法**：predict-project → bind → transact 的统一 memory transducer；
+4. **安全执行**：候选、多假设、protected scope、valid time、evidence 与原子版本；
+5. **评价**：同时衡量绑定、增长、保持、修订、预测、任务与效率。
 
-**Pose-Aware Structured Innovation + Affected-Subgraph Revision**
+第 1 项即使神经方法失败仍可能保留 benchmark 价值；第 2–5 项必须由对照、消融和真实失败案例支持。
 
-```text
-current frame/depth/pose
-        ↓
-ObservationGraph
-        +
-ProjectExpectedObservation(SceneBelief, pose)
-        ↓
-Structured Innovation
-        ↓
-affected seed → allowed dependency propagation → stop boundary
-        ↓
-typed ContextDelta
-        ↓
-deterministic versioned executor
-        ↓
-new SceneBelief version
-```
+## 第一篇论文边界
 
-### 3.1 Structured Innovation
+### 核心学习对象
 
-同时输出 observation evidence category 和状态路径：
+- structure-conditioned observation tokenization；
+- projected-memory/observation matching；
+- region-to-node association 与 abstention；
+- candidate node/edge birth 和局部 attachment；
+- memory transaction 的 scope/operator/time/evidence；
+- action/pose-conditioned structural prediction。
 
-- evidence：`matched/new/occluded/reliably_absent/conflict/ambiguous/sensor_inconsistent`；
-- mode：`reinforcement/graph_expansion/belief_revision/visibility_update/association_ambiguity/sensor_inconsistency`。
+### 固定或分阶段对象
 
-“看到新东西”不自动等于“纠正旧世界”。
+- 第一轮使用冻结 DINO 类视觉 backbone；
+- depth、intrinsics、pose 先使用 simulator/oracle 或同一冻结估计器；
+- Chart/Place split/merge 先用 oracle/确定性规则，再作为扩展消融；
+- navigation/planning 使用冻结 reader，不反向定义 memory truth。
 
-### 3.2 Affected-Subgraph Revision
+### 非目标
 
-控制器输出：
+- RGB/video reconstruction；
+- 新的 detector、SLAM 或任意开放词汇本体发现；
+- 完整端到端导航、社会规范规划或多机器人系统；
+- 把 VP、DINO、GNN、Transformer、scene graph 或节点扩充单独称为创新。
 
-- affected nodes/edges；
-- control nodes/edges；
-- typed operators；
-- propagation stop edges；
-- confidence、evidence 和 provenance。
+## “world model”使用条件
 
-executor 只执行合法 typed delta，不允许 LLM 自由文本直接改图。
+若方法只做 observation fusion 和长期存储，论文使用 `persistent spatial memory`。只有 action-conditioned transition 对未来 structural latent/visibility/attachment 有独立预测评测，并用于规划或反事实，才使用 `world model` 作为核心术语。
 
-## 4. 四个核心概念
+## 成功判据
 
-| 概念 | 操作性定义 | 核心指标 | 不解决什么 |
-|---|---|---|---|
-| 动态冲突修订 | 可靠新证据反驳旧状态时产生 typed delta | target graph correctness | 静态对象检索 |
-| 版本链 | 保存 valid interval、supersedes 和 evidence | version/provenance validity | top-K 历史 |
-| 受影响关系传播 | 沿许可依赖完成必要后果 | required propagation recall | attention 读取范围 |
-| 停止边界 | 显式限制无依据传播 | collateral revision/control preservation | token 数量压缩 |
+主结论不能只靠 query/navigation success。必须同时报告：association、ID switch、false merge、duplicate birth、birth/attachment、static retention、dynamic contamination、visibility state、revision transaction、protected controls、预测、效率及失败。
 
-## 5. 四层状态
+## 状态
 
-| 状态 | 只负责 | 禁止 |
-|---|---|---|
-| ObservationGraph | 当前帧及 camera-relative evidence | 充当长期事实 |
-| SceneBelief | 当前多假设、版本化世界信念 | 无证据原地覆盖历史 |
-| ActiveContext | 任务/路线/对话下的候选读取视图 | 删除未选世界实例 |
-| PersistentWorldMemory | 已巩固的长期版本 | 接收未验证 top-1 猜测 |
-
-graph expansion 写入新 candidate 和 attachment；belief revision 关闭/替换旧版本；ActiveContext 只改变候选排序。
-
-## 6. 论文范围
-
-### P0 核心
-
-- relocation；
-- reliable absence with unknown destination；
-- occlusion/out-of-FOV preservation；
-- operator-specific relation propagation；
-- irrelevant innovation 与 stop boundary；
-- versioned deterministic execution。
-
-### P1 边界/扩展
-
-- corner reveal 的 graph attachment；
-- two-box route/dialogue ActiveContext；
-- FARM-style mapper/retrieval interface。
-
-P1 可以验证系统边界，但不与 P0 并列为主贡献。
-
-### 暂不做
-
-- 完整导航闭环；
-- learned Chart/Place split/merge；
-- 跨人的生物身份 re-ID；
-- RGB reconstruction；
-- 无约束图编辑；
-- 以更大 backbone 代替机制验证。
-
-## 7. 可检验主张
-
-| Claim | 必须比较 | 支持证据 | 直接反证 |
-|---|---|---|---|
-| structured innovation 比标量变化分数更可修订 | scalar residual | 事件分型与校准 | 无稳定提升或标签不可区分 |
-| affected scope 完成必要关系后果 | local matched-slot | propagation recall | 与 local-slot 无差异 |
-| stop boundary 保护无关事实 | full graph | collateral/control preservation | 无关修改不下降 |
-| versioning 正确表达动态状态 | in-place overwrite | relocation/absence/occlusion invariant | 历史不可追溯或语义混淆 |
-| 局部修订有实际成本价值 | full recomputation | latency/memory/edit ratio | 全图同样便宜稳定 |
-
-任何失败 claim 都必须删除、降级或重新定义；不能只换模型继续保留原结论。
-
-## 8. 几何与关系不变量
-
-- pose 使用 `T_world_camera`，变换方向必须显式；
-- camera motion 与 world change 分开；
-- Vanishing Point 是观测线索，不是长期坐标；
-- Chart/Place 是稳定检索与传播边界；
-- 方向关系必须有 reference frame；camera-relative left/right 默认不持久化；
-- `unknown` 不得变成虚构位置；
-- 静止时长不改变 actor ontology。
-
-下一步只读 [`02_scenario_wbs.md`](02_scenario_wbs.md)。
+D-032 已接受本研究主线与文档 supersession；全部方法、schema、数据、evaluator、训练和实验结果仍为 proposed/not implemented/not validated。

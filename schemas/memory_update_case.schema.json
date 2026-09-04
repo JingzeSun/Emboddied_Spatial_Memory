@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.pslm/schemas/memory_update_case.schema.json",
+  "title": "PSLM Evaluation Case",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "case_id", "scenario_id", "split", "inputs", "oracle", "controls", "corruptions"],
+  "properties": {
+    "schema_version": {"const": "0.1.0"},
+    "case_id": {"type": "string"},
+    "scenario_id": {"pattern": "^S(0[0-9]|1[01])$"},
+    "split": {"enum": ["fixture", "train", "validation", "test"]},
+    "inputs": {
+      "type": "object",
+      "required": ["observation_refs", "memory_before_ref"],
+      "properties": {
+        "observation_refs": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+        "memory_before_ref": {"type": "string"},
+        "action_ref": {"type": ["string", "null"]}
+      }
+    },
+    "oracle": {
+      "type": "object",
+      "required": ["association", "transaction_ref", "memory_after_ref"],
+      "properties": {
+        "association": {"type": "object", "additionalProperties": {"type": "string"}},
+        "transaction_ref": {"type": "string"},
+        "memory_after_ref": {"type": "string"},
+        "ambiguous_region_ids": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "controls": {
+      "type": "object",
+      "required": ["unchanged_node_ids"],
+      "properties": {
+        "unchanged_node_ids": {"type": "array", "items": {"type": "string"}},
+        "unchanged_fact_ids": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "corruptions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["corruption_id", "category", "parameters", "expected_behavior"],
+        "properties": {
+          "corruption_id": {"type": "string"},
+          "category": {"enum": ["visual", "geometry", "temporal", "dynamic", "semantic"]},
+          "parameters": {"type": "object"},
+          "expected_behavior": {"type": "string"}
+        }
+      },
+      "minItems": 4
+    }
+  }
+}
+

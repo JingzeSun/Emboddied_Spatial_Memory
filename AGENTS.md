@@ -1,65 +1,65 @@
 # Project Instructions
 
-本文件约束该项目后续研究、代码和文档修改。
+本文件只约束 `embodied_spatial_memory`。D-032 后唯一活动主线是 **Projective Structural Latent Memory（PSLM，工作名）**：把视角相关的结构化视觉 latent 绑定到世界坐标中的持久节点，并用同一在线 transducer 处理绑定、节点出生、图扩充、动态隔离和版本化修订。
 
 ## 开始工作前
 
-1. 阅读根目录 `README.md`；
-2. 阅读 `EXECUTE.md`，确认当前阶段、任务和退出门；
-3. 只阅读当前任务对应的阶段文件：
-   - A：`docs/01_research_contract.md`、`docs/02_scenario_wbs.md`；
-   - B/C：`docs/03_pilot_protocol.md`；
-   - D：`docs/04_training_plan.md`；
-   - E：`docs/05_formal_evaluation_and_paper.md`；
-4. 阅读 `docs/DECISIONS.md`，不得静默改变 accepted 决策；
-5. 涉及方法/几何时阅读 `docs/source/full_technical_vision.txt`；
-6. `docs/archive/` 只作追溯，不得误用为现行合同。
+1. 读工作区根 `README.md`；
+2. 读本项目 `README.md`、`EXECUTE.md` 和 `docs/DECISIONS.md`；
+3. 按阶段读 `docs/01–05`；
+4. 实验细节只以 `experiments/projective_structural_latent_memory/` 为活动合同；
+5. `docs/archive/` 只作 provenance，不作现行要求。
 
 ## 文档治理
 
-- `EXECUTE.md` 是唯一日常入口；
-- 现行顺序合同只有 `docs/01–05`；
-- 不新建平行蓝图、第二清单或第二实验合同；
-- accepted 决策变化必须先追加 `docs/DECISIONS.md`；
-- superseded 合同进入带 provenance 的 archive；
-- 原始提示、导师 notes、PDF、原型图和 `docs/source/full_technical_vision.txt` 不覆盖、不删除。
+- `EXECUTE.md` 是唯一日常入口；活动顺序合同只有 `docs/01–05`；
+- 任何时刻只允许一个活动实验合同，不从 archive 拼接平行蓝图；
+- accepted 决策变化先追加 `docs/DECISIONS.md`，不得静默改写历史；
+- 用户明确授权文档重构时，先做逐文件快照、迁移说明和验证清单；
+- source artifacts、PDF、原型、人工标注来源和 `docs/source/full_technical_vision.txt` 不覆盖、不删除；
+- 待人工问题只在 `DECISIONS.md` 的确认中心登记，细节由同名 `docs/human_confirmation/HC-XXX.md` 展开。
 
-## 当前方法约束
+## 当前研究合同
 
-- 核心方法是 Pose-Aware Structured Innovation + Affected-Subgraph Revision；
-- 必须区分 ObservationGraph、SceneBelief、ActiveContext 与 PersistentWorldMemory；
-- 必须区分 graph expansion、belief revision、visibility update 和 association ambiguity；
-- 新证据输出 typed ContextDelta、affected/control set 和 propagation stop boundary；
-- selective reading/attention 不等于 selective revision；
-- typed edit 由确定性版本化 executor 执行，不允许无约束 LLM 直接改图；
-- 静止时长不能改变 actor ontology；
-- occluded、out-of-FOV、reliably absent、unknown location 和 removed-from-scene 必须区分；
-- unknown 不得写成虚构新位置；
-- Chart/Place 是 MVP 稳定底座，暂不学习 split/merge。
+每步输入为 RGB、depth、intrinsics、pose、时间、可选动作与冻结感知证据。系统先把 DINO 类 patch features 与表面、portal、对象、遮挡和透视线索组织为临时 `ObservationRegion`，再从持久世界记忆投影预期结构，最后学习：
 
-## 几何与关系约束
+\[
+q_\theta(A_t,U_t\mid R_t,\hat R_t,S_{t-1},a_{t-1},\Sigma),
+\qquad
+S_t=\operatorname{Execute}(S_{t-1},A_t,U_t).
+\]
 
-- camera pose 使用 `T_world_camera`，所有变换明确方向；
-- optical flow 先考虑 ego-motion compensation；
-- Vanishing Point 是观测线索，不是长期坐标；
-- 转弯是有效证据，不使用全局 freeze；
-- association 说明 pose/depth/geometry、置信度和歧义；
-- 方向关系带 reference frame；camera-relative left/right 默认不持久化；
-- 单目/估计 pose、depth、flow 不称为 ground truth。
+- `R_t`：当前视角的 projective structural latent tokens；
+- `\hat R_t`：由旧世界记忆、pose 与可选动作预测/投影的预期观测；
+- `A_t`：`BIND / NEW / REACTIVATE / SPLIT / MERGE / UNRESOLVED` association；
+- `U_t`：节点/边创建、强化、重连、失效、替换、隔离及其 scope/time/evidence；
+- `S_t`：含 Local Chart、Place、persistent slot、transient track、关系、版本和 provenance 的世界状态；
+- `Σ`：节点、关系、生命周期和执行约束 schema。
 
-## 工程与实验约束
+原 ESGBU 的 `Delta G/M/tau/Z` 只属于 `U_t` 的 revision 分支，不再代表完整方法。透视只组织 observation，不作为长期坐标；世界节点必须 pose-aware、geometry-aligned、versioned。
 
-- `src/` 与 `configs/mvp.yaml`、`schemas/`、`docs/03_pilot_protocol.md` 一致；
-- 第一里程碑是 deterministic oracle vertical slice，不先训练大模型；
-- schema、executor、version invariants、geometry、visibility 和 metrics 必须有测试；
-- 正式运行保存 config、contract、seed、data/split hash、code/model IDs、raw outputs 和失败；
-- 大型数据、checkpoint、PDF 和运行输出不提交 Git；
-- 文件和脚本不写死本机绝对数据路径。
+## 模型与执行器边界
+
+- 冻结视觉/深度/pose 前端用于第一轮归因；结构 tokenizer、projective matching、binding、birth/revision controller 是候选学习对象；
+- DINO latent 是表示底座，不是创新声明；VP、结构线和 near/mid/far 是可消融的观测线索，不是固定世界网格；
+- action-conditioned predict-project 只预测结构 latent、visibility 与候选 frontier，不生成 RGB；
+- deterministic executor 强制 ID 唯一、坐标系合法、版本无环、protected scope、原子提交和 provenance；
+- 不允许模型绕过 executor 直接覆盖 confirmed world state；
+- `occluded / out_of_fov / reliably_absent / unknown / removed` 必须区分。
+
+## 实验约束
+
+- 主比较固定 RGB/depth/pose 与基础感知，先隔离 memory transducer；强前端替换另作二因素实验；
+- baseline 必须覆盖 image-patch memory、pose-warped feature map、object-slot memory、recent-window 3D fusion、hierarchical graph construction、full recomputation 与 oracle；
+- 主表同时测 binding、错误 birth/merge、graph attachment、长期保持、动态污染、revision、预测、任务和效率；
+- symbolic/hand-authored、AI2-THOR/Habitat、3RScan/ScanNet 类重扫、真实机器人分轨报告；自动映射不自动称 ground truth；
+- train/validation/test 严格隔离；正式 run 保存配置、seed、数据/合同/code/model ID、原始输出、投影后输出、完整指标和失败；
+- 大型数据、权重、checkpoint 和运行输出不提交 Git。
 
 ## 研究诚信
 
-- 明确区分 accepted、implemented、validated 和 planned；
-- simulator world state 可称 oracle，自动映射/模型评审不能自动称 ground truth；
-- test 不用于阈值、prompt、baseline、checkpoint 或模型选择；
-- 同时报告漏改、多改、传播越界、失败、缺失数据和反例；
-- Related Work 主干只用官方核验的同行评审工作；preprint/submission 只作 novelty watch。
+- 明确区分 proposed、accepted、implemented、validated；
+- 不把 DINO/VP/节点/场景图/在线扩图等成熟组件单独宣称为创新；
+- 不用导航成功率掩盖 identity switch、duplicate birth、false merge、latent contamination 或 collateral revision；
+- 与 DINO-WM、ConceptFusion、ODIN、Hydra、Khronos、SuperMap 等工作重合时收缩 claim；
+- 论文只主张实验支持到的贡献梯级。
