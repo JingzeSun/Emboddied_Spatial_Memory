@@ -1,202 +1,147 @@
-# Current D-013 MVP contract. TODO values must be frozen on validation before formal test runs.
-contract:
-  version: "1.1"
-  research_contract: docs/01_research_contract.md
-  scenario_contract: docs/02_scenario_wbs.md
-  pilot_contract: docs/03_pilot_protocol.md
-  training_contract: docs/04_training_plan.md
-  formal_evaluation_contract: docs/05_formal_evaluation_and_paper.md
+contract_version: cpmt-0.2
+status: proposed
+stage: M0
 
-experiment:
-  name: affected_subgraph_revision_mvp
-  stage: pilot
-  seed: 42
-  primary_task: affected_subgraph_revision
-  downstream_task: structured_context_query
+method:
+  system_name: CPMT
+  learning_mechanism: CTL
+  domain: embodied_spatial_memory
+
+transaction:
+  intents: [PRESERVE, ASSOCIATE, EXPAND, REVISE]
+  templates: [NOOP, BIND, BIRTH, REACTIVATE, RELINK, RETRACT, SPLIT, MERGE, COMPOSITE]
+  identity_lifecycle: [candidate, confirmed, dormant, retracted, alias]
+  version_closure_field: valid_to
+  bind_target_lifecycle: [candidate, confirmed]
+  reactivate_target_lifecycle: [dormant]
+  retracted_reactivation_allowed: false
+  implicit_candidate_promotion: false
+  candidate_confirmation:
+    explicit_within_bind: true
+    minimum_unique_evidence: 2
+    independent_view_numeric_rule: pending_m2_validation
+  dormancy:
+    learned_transaction: false
+    inactivity_horizon: pending_validation
+    preserves_identity_latent_evidence_history: true
+  split:
+    old_identity: retracted
+    successor_lifecycle: candidate
+    evidence_partition: exact_once
+    inherit_conflated_latent: false
+  merge:
+    require_confirmed_source: true
+    canonical_rule: earliest_valid_from_then_lexicographic_node_id
+    noncanonical_lifecycle: alias
+    preserve_history: true
+  retract:
+    default_target: fact_version
+    node_retract_from_visible_empty: false
+    minimum_visible_empty_events: 2
+    distinct_key: [time_index, viewpoint_id]
+    require_pose_valid: true
+    require_depth_valid: true
+    forbid_intervening_positive: true
+    m0_oracle_reliability: 1.0
+    m2_reliability_threshold: pending_validation
+  replace:
+    components: [RETRACT, BIRTH, ADD_EDGE]
+    preserves_old_identity: true
+  composite_labels:
+    REPLACE: [RETRACT, BIRTH]
+  candidate_budget: 16
+  candidate_generator: deterministic
+  destructive_delete_allowed: false
+  default_on_invalid: reject
+  low_confidence_wrapper: QUARANTINE
+  quarantine_mutates_world: false
+  quarantine:
+    commit_probability: pending_validation
+    top_two_margin: pending_validation
+    relevant_opportunity_budget: pending_validation
+    raw_frame_ttl: null
+    unresolved_terminal_state: archived_unresolved
+    archive_deletes_evidence: false
+    searchable_states: [active_pending, archived_unresolved]
+    consume_requires_evidence_refs: true
+
+executor:
+  deterministic: true
+  immutable_base_version: true
+  atomic_rollback: true
+  enforce_protected_ids: true
+  require_provenance: true
+  require_idempotency: true
+  hash_algorithm: sha256
+
+representation:
+  name: Projective_Node_Orbit
+  backbone: frozen_dino_family
+  region_proposals: fixed
+  depth: fixed_input
+  pose: fixed_input
+  use_projective_transport: true
+  use_visibility: true
+  vp_is_world_coordinate: false
+
+counterfactual:
+  horizon: pending_validation
+  temperature: pending_validation
+  online_future_access: false
+  # D-026: agreed protocol only; online model/enforcement is not implemented.
+  online_decision_mode: immediate
+  fixed_lookahead_frames: 0
+  revise_after_observation_arrival: true
+  delayed_one_frame_comparison: deferred
+  energy:
+    now_weight: 1.0
+    future_weight: 1.0
+    edit_weight: pending_validation
+    growth_weight: pending_validation
+    collateral_weight: pending_validation
+    illegal_policy: mask_before_softmax
+  store_component_scores: true
+
+equivalence:
+  identity_correspondence: implemented_m0
+  unlisted_old_ids_fixed: true
+  declared_old_exchangeability: true
+  local_new_id_bijection: strict
+  new_to_old_mapping: forbidden
+  raw_latent_exact_match: false
+  comparison_mode: canonical_memory_state
+  future_projection_defines_equivalence: false
+  decision_relevant_fields: strict_after_canonicalization
+  audit_only_names: ignored_but_retained_in_source
+
+training:
+  trainable: [future_scorer, online_transaction_model]
+  frozen: [backbone, depth, pose, region_proposals, candidate_generator, executor]
+  label_fractions: [0.0, 0.01, 0.10, 1.0]
 
 data:
-  manifest: null
-  split_version: null
-  split_by_scene_family: true
-  keep_counterfactual_group_together: true
-  required_conditions:
-    - unchanged_visible
-    - viewpoint_or_turning_only
-    - transient_occlusion
-    - stationary_actor_short
-    - stationary_actor_long
-    - relocation_visible_destination
-    - reliable_absence_unknown_destination
-    - removed_from_scene
-    - out_of_fov
-    - irrelevant_innovation
-    - graph_expansion_corner_reveal
-    - same_category_discourse_shift
-    - sensor_inconsistency
-
-inputs:
-  rgb: true
-  depth: true
-  pose: true
-  camera_intrinsics: true
-  optical_flow: optional
-  semantics: optional
-  pose_convention: T_world_camera
-  pose_source: null  # TODO: simulator, external_slam, visual_odometry
-  depth_source: null
-
-graph:
-  node_types:
-    - object
-    - surface
-    - region
-    - event
-    - chart
-    - place
-  editable_node_types:
-    - object
-    - surface
-    - region
-    - event
-  editable_edge_types:
-    - located_in
-    - contains
-    - supports
-    - adjacent_to
-    - connects
-    - part_of
-    - continuation_of
-    - overlaps
-    - near
-    - above
-    - below
-    - occludes
-    - participates_in
-    - same_track
-  observation_or_query_only_directional_relations:
-    - left_of
-    - right_of
-    - in_front_of
-    - behind
-  require_relation_reference_frame: true
-  forbid_camera_relative_edges_in_persistent_memory: true
-  chart_place_split_merge: false
-  versioned: true
-  store_provenance: true
-
-dynamic_state:
-  factorized: true
-  mobility_values: [actor, movable, fixed, unknown]
-  motion_values: [moving, stationary, unknown]
-  persistence_values: [transient, recurrent, persistent, unknown]
-  change_values: [unchanged, candidate, confirmed, rejected]
-  visibility_values:
-    - visible
-    - partially_occluded
-    - occluded
-    - out_of_fov
-    - reliably_absent
-    - unknown
-
-innovation:
-  pose_aware_projection: true
-  categories:
-    - matched
-    - new
-    - occluded
-    - out_of_fov
-    - reliably_absent
-    - conflict
-    - ambiguous
-    - sensor_inconsistent
-  modes:
-    - reinforcement
-    - graph_expansion
-    - belief_revision
-    - visibility_update
-    - association_ambiguity
-    - sensor_inconsistency
-  reliable_absence_thresholds: null  # TODO: validation only
-
-revision:
-  controller: hybrid
-  candidate_generation: deterministic
-  learned_scope_backend: graph_transformer  # ablate against GNN
-  executor: deterministic_versioned
-  operators:
-    - REINFORCE
-    - ADD
-    - UPDATE_STATE
-    - RELINK
-    - INVALIDATE
-    - SUPERSEDE
-    - PRESERVE
-    - QUARANTINE
-  predict_stop_boundary: true
-  validate_control_subgraph: true
-  low_confidence_action: QUARANTINE
-
-memory:
-  scene_belief_allows_hypotheses: true
-  consolidation: multi_evidence
-  latent_state: normalized_ema  # low-level baseline; ablate bounded_prototypes
-  active_context_selection: task_pose_conditioned
-  active_context_schema: schemas/active_context.schema.json
-  preserve_nonselected_referents: true
-  query_relations_are_ephemeral: true
-  discourse_and_route_bias_world_belief: false
-  clarification_policy: ask_when_ambiguity_is_action_relevant
-  referent_resolution_thresholds: null  # TODO: validation only
-  person_identity_scope: episode_track
-
-baselines:
-  - current_observation_only
-  - append_only
-  - pose_warped_global_ema
-  - slot_lifecycle_only
-  - local_matched_slot_revision
-  - full_graph_recomputation
-  - oracle_affected_subgraph
-  - deterministic_predicted_scope
-  - farm_style_relational_retrieval
-  - farm_style_fuse_merge
+  dataset_version: unassigned
+  group_keys: [paired_group_id, world_seed, asset_family]
+  test_sealed: true
+  online_export_excludes: [future_evidence, oracle_equivalence, simulator_hidden_state]
 
 evaluation:
-  primary_metrics:
-    - innovation_macro_f1
-    - delta_precision
-    - delta_recall
-    - node_scope_f1
-    - edge_scope_f1
-    - operator_macro_f1
-    - propagation_completeness
-    - preservation_accuracy
-    - collateral_revision_rate
-    - revision_latency
-    - graph_attachment_precision
-    - graph_attachment_recall
-    - context_query_accuracy
-    - referent_candidate_recall_at_k
-    - referent_accuracy_at_1
-    - clarification_calibration
-    - nonselected_referent_preservation
-    - edited_node_ratio
-  calibration_metrics:
-    - expected_calibration_error
-    - brier_score
-  efficiency_metrics:
-    - wall_clock_latency
-    - peak_memory
-    - storage_growth
-  confidence_intervals: true
-  report_oracle_and_estimated_sensors: true
+  methods: [cpmt_ctl_core, direct_classifier, direct_future_loss, execute_current_only, future_no_execution, oracle]
+  primary_contrasts: [cpmt_ctl_core_vs_direct_future_loss, cpmt_ctl_core_vs_future_no_execution]
+  primary_metrics: [post_graph_correctness, memory_contamination, false_birth_growth, collateral_violation]
+  formal_seeds: 5
+  bootstrap_confidence: 0.95
+  numeric_gates: pending_before_test
 
-reproducibility:
-  save_config_snapshot: true
-  save_code_revision: true
-  save_dataset_manifest_hash: true
-  save_split_version: true
-  save_model_identifiers: true
-  save_raw_per_episode_outputs: true
-  save_failure_records: true
-  test_used_for_selection: false
+scope_lock:
+  active_disambiguation: excluded_first_paper
+  second_domain: excluded_first_paper
+  learned_candidate_generator: excluded_first_paper
+  end_to_end_backbone: excluded_first_paper
+  navigation: excluded_first_paper
+
+research_integrity:
+  current_human_decision: HC-003
+  claim_status: proposed
+  implementation_status: m0_contract_complete
+  validation_status: contract_tests_only

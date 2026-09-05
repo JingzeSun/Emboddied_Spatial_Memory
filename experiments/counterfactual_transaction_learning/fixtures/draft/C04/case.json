@@ -1,0 +1,26 @@
+{
+  "schema_version": "cpmt-0.2",
+  "case_id": "C04-split-conflation-001",
+  "case_family": "C04",
+  "paired_group_id": "pair-split-noop-001",
+  "world_seed": 104,
+  "split": "draft",
+  "decision_time": 5,
+  "prior_graph_ref": "world.json",
+  "current_observation_refs": [
+    "obs:C04:t5:left-object",
+    "obs:C04:t5:right-object"
+  ],
+  "candidate_transaction_refs": [
+    "transactions/noop.json",
+    "transactions/split.json"
+  ],
+  "oracle_equivalence": [["transactions/split.json"]],
+  "future_evidence_refs": [
+    "future:C04:t6:left-object-independent",
+    "future:C04:t7:right-object-independent"
+  ],
+  "protected_ids": ["wall-protected"],
+  "status": "human_draft",
+  "exclusion_reason": null
+}

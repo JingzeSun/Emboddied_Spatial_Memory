@@ -1,0 +1,41 @@
+{
+  "schema_version": "cpmt-0.2",
+  "transaction_id": "tx-C02-bind",
+  "intent": "ASSOCIATE",
+  "template": "BIND",
+  "base_graph_version": "v0",
+  "operations": [
+    {
+      "op_id": "assert-bindable",
+      "op_type": "ASSERT_PRECONDITION",
+      "arguments": {
+        "kind": "node_lifecycle",
+        "node_id": "mug-1",
+        "allowed": ["candidate", "confirmed"]
+      }
+    },
+    {
+      "op_id": "attach-wrong-evidence",
+      "op_type": "ATTACH_EVIDENCE",
+      "arguments": {
+        "target_kind": "node",
+        "target_id": "mug-1",
+        "evidence_ref": "obs:C02:t5:novel-object"
+      }
+    },
+    {
+      "op_id": "record-bind",
+      "op_type": "RECORD_PROVENANCE",
+      "arguments": {
+        "target_kind": "node",
+        "target_id": "mug-1",
+        "provenance_ref": "tx-C02-bind"
+      }
+    }
+  ],
+  "evidence_refs": ["obs:C02:t5:novel-object"],
+  "protected_ids": ["wall-protected"],
+  "declared_edit_cost": 0.25,
+  "declared_growth_cost": 0,
+  "proposer": "human_draft"
+}

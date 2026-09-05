@@ -1,0 +1,13 @@
+{
+  "schema_version": "cpmt-0.2",
+  "transaction_id": "tx-C10-noop-dynamic",
+  "intent": "PRESERVE",
+  "template": "NOOP",
+  "base_graph_version": "v0",
+  "operations": [],
+  "evidence_refs": ["obs:C10:t5:foreground-change"],
+  "protected_ids": ["table-protected"],
+  "declared_edit_cost": 0,
+  "declared_growth_cost": 0,
+  "proposer": "human_draft"
+}

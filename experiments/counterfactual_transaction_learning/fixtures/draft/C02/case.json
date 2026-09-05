@@ -1,0 +1,23 @@
+{
+  "schema_version": "cpmt-0.2",
+  "case_id": "C02-first-reveal-001",
+  "case_family": "C02",
+  "paired_group_id": "pair-bind-birth-001",
+  "world_seed": 102,
+  "split": "draft",
+  "decision_time": 5,
+  "prior_graph_ref": "world.json",
+  "current_observation_refs": ["obs:C02:t5:novel-object"],
+  "candidate_transaction_refs": [
+    "transactions/bind.json",
+    "transactions/birth.json"
+  ],
+  "oracle_equivalence": [["transactions/birth.json"]],
+  "future_evidence_refs": [
+    "future:C02:t6:old-object-still-visible",
+    "future:C02:t7:new-object-persistent"
+  ],
+  "protected_ids": ["wall-protected"],
+  "status": "human_draft",
+  "exclusion_reason": null
+}

@@ -1,0 +1,27 @@
+{
+  "schema_version": "cpmt-0.2",
+  "case_id": "C09-unresolved-pose-or-edit-001",
+  "case_family": "C09",
+  "paired_group_id": "pair-pose-edit-001",
+  "world_seed": 109,
+  "split": "draft",
+  "decision_time": 5,
+  "prior_graph_ref": "world.json",
+  "current_observation_refs": ["obs:C09:t5:chair-misaligned"],
+  "candidate_transaction_refs": [
+    "transactions/noop.json",
+    "transactions/relink.json"
+  ],
+  "oracle_equivalence": [],
+  "future_evidence_refs": [
+    "future:C09:unavailable-at-decision"
+  ],
+  "protected_ids": ["wall-protected"],
+  "oracle_commit_action": "QUARANTINE",
+  "commit_decision_ref": "commit/uncertain.json",
+  "pending_evidence_refs": [
+    "evidence/ambiguous-chair-t5.json"
+  ],
+  "status": "human_draft",
+  "exclusion_reason": null
+}

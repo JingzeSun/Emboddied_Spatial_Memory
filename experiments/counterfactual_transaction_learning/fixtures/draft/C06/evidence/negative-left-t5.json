@@ -1,0 +1,17 @@
+{
+  "schema_version": "cpmt-0.2",
+  "evidence_id": "ev:C06:negative-left-t5",
+  "episode_id": "episode:C06:001",
+  "time_index": 5,
+  "kind": "visible_empty",
+  "source_refs": ["obs:C06:t5:left-empty"],
+  "availability": "online",
+  "reliability": 1.0,
+  "claim_ref": "old-chair-location@v0",
+  "viewpoint_id": "view:C06:left-2",
+  "visibility": "visible_empty",
+  "pose_valid": true,
+  "depth_valid": true,
+  "verdict": "contradicts",
+  "notes": "Second independent time/view key."
+}

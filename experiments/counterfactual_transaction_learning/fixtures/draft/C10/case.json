@@ -1,0 +1,25 @@
+{
+  "schema_version": "cpmt-0.2",
+  "case_id": "C10-static-surface-evidence-001",
+  "case_family": "C10",
+  "paired_group_id": "pair-dynamic-static-001",
+  "world_seed": 110,
+  "split": "draft",
+  "decision_time": 5,
+  "prior_graph_ref": "world.json",
+  "current_observation_refs": ["obs:C10:t5:foreground-change"],
+  "candidate_transaction_refs": [
+    "transactions/noop.json",
+    "transactions/bind.json"
+  ],
+  "oracle_equivalence": [["transactions/bind.json"]],
+  "future_evidence_refs": [
+    "future:C10:t6:surface-change-persists"
+  ],
+  "protected_ids": ["table-protected"],
+  "oracle_commit_action": "COMMIT",
+  "commit_decision_ref": null,
+  "pending_evidence_refs": [],
+  "status": "human_draft",
+  "exclusion_reason": null
+}

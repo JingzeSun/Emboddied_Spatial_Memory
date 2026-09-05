@@ -1,0 +1,37 @@
+{
+  "schema_version": "cpmt-0.2",
+  "graph_id": "world-C02-001",
+  "graph_version": "v0",
+  "parent_version": null,
+  "nodes": [
+    {
+      "node_id": "mug-1",
+      "node_version_id": "mug-1@v0",
+      "node_type": "entity",
+      "lifecycle": "confirmed",
+      "valid_from": 0,
+      "valid_to": null,
+      "evidence_refs": ["obs:C02:t0:mug"],
+      "latent_refs": ["latent:C02:mug-1"],
+      "canonical_id": null,
+      "predecessor_ids": [],
+      "provenance": ["fixture:C02"]
+    },
+    {
+      "node_id": "wall-protected",
+      "node_version_id": "wall-protected@v0",
+      "node_type": "surface",
+      "lifecycle": "confirmed",
+      "valid_from": 0,
+      "valid_to": null,
+      "evidence_refs": ["map:C02:wall"],
+      "latent_refs": ["latent:C02:wall"],
+      "canonical_id": null,
+      "predecessor_ids": [],
+      "provenance": ["fixture:C02"]
+    }
+  ],
+  "edges": [],
+  "transaction_log": [],
+  "graph_hash": null
+}

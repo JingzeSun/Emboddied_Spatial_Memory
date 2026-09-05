@@ -1,0 +1,28 @@
+schema_version: cpmt-0.2
+run_id: m1_cpmt_ctl_core_seed0_draft
+stage: M1
+method: cpmt_ctl_core
+status: planned
+code:
+  commit: uncommitted
+  dirty: true
+data:
+  dataset_version: unassigned
+  manifest_hash: unassigned
+  split: fixture
+config:
+  path: configs/mvp.yaml
+  hash: unassigned
+seed: 0
+front_end:
+  backbone_id: symbolic
+  depth_id: symbolic
+  pose_source: simulator
+future_use_policy: hindsight_train_only
+decision_refs: [D-018, HC-001]
+timing:
+  started_at: 2026-09-04T00:00:00Z
+  ended_at: null
+metrics_ref: null
+failures: []
+hardware: unassigned

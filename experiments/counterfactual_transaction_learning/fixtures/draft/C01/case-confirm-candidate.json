@@ -1,0 +1,23 @@
+{
+  "schema_version": "cpmt-0.2",
+  "case_id": "C01-candidate-confirmation-001",
+  "case_family": "C01",
+  "paired_group_id": "pair-candidate-confirmation-001",
+  "world_seed": 111,
+  "split": "draft",
+  "decision_time": 5,
+  "prior_graph_ref": "world-candidate.json",
+  "current_observation_refs": ["obs:C01:t5:candidate-chair"],
+  "candidate_transaction_refs": [
+    "transactions/bind-confirm.json"
+  ],
+  "oracle_equivalence": [
+    ["transactions/bind-confirm.json"]
+  ],
+  "future_evidence_refs": [
+    "future:C01:t6:confirmed-orbit-consistent"
+  ],
+  "protected_ids": [],
+  "status": "human_draft",
+  "exclusion_reason": null
+}

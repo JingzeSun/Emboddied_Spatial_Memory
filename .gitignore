@@ -6,6 +6,12 @@ prototype/*.pptx
 # Local datasets and model artifacts
 data/*
 !data/README.md
+!data/manifests/
+!data/manifests/**
+!data/splits/
+!data/splits/**
+!data/fixtures/
+!data/fixtures/**
 *.ckpt
 *.pth
 *.pt
@@ -24,6 +30,13 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 .venv/
+.venv-wsl/
+.uv-cache/
+.uv-python/
+.uv-cache/
+.uv-python/
+.uv-cache/
+.uv-python/
 .vscode/
 .idea/
 .DS_Store

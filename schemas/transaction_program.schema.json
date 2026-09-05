@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/embodied-memory/transaction_program.schema.json",
+  "title": "CPMT Transaction Program",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "transaction_id", "intent", "template", "base_graph_version", "operations", "evidence_refs", "protected_ids"],
+  "properties": {
+    "schema_version": {"const": "cpmt-0.2"},
+    "transaction_id": {"type": "string", "minLength": 1},
+    "intent": {"enum": ["PRESERVE", "ASSOCIATE", "EXPAND", "REVISE"]},
+    "template": {"enum": ["NOOP", "BIND", "BIRTH", "REACTIVATE", "RELINK", "RETRACT", "SPLIT", "MERGE", "COMPOSITE"]},
+    "composition_label": {"enum": ["REPLACE", null]},
+    "component_templates": {
+      "type": "array",
+      "items": {"enum": ["BIND", "BIRTH", "REACTIVATE", "RELINK", "RETRACT", "SPLIT", "MERGE"]}
+    },
+    "base_graph_version": {"type": "string", "minLength": 1},
+    "operations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["op_id", "op_type", "arguments"],
+        "properties": {
+          "op_id": {"type": "string", "minLength": 1},
+          "op_type": {
+            "enum": ["ASSERT_PRECONDITION", "CREATE_NODE", "OPEN_NODE_VERSION", "CLOSE_NODE_VERSION", "ADD_EDGE", "CLOSE_EDGE_VERSION", "ATTACH_EVIDENCE", "MOVE_EVIDENCE", "SET_CANONICAL_ALIAS", "SET_LIFECYCLE", "RECORD_PROVENANCE"]
+          },
+          "arguments": {"type": "object"},
+          "precondition_refs": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "evidence_refs": {"type": "array", "items": {"type": "string"}},
+    "protected_ids": {"type": "array", "items": {"type": "string"}},
+    "retraction_target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "version_id"],
+      "properties": {
+        "kind": {"enum": ["node_version", "edge_version"]},
+        "version_id": {"type": "string", "minLength": 1}
+      }
+    },
+    "declared_edit_cost": {"type": "number", "minimum": 0},
+    "declared_growth_cost": {"type": "number", "minimum": 0},
+    "proposer": {"enum": ["oracle", "deterministic", "learned", "human_draft"]}
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "intent": {"const": "PRESERVE"},
+        "template": {"const": "NOOP"},
+        "operations": {"maxItems": 0}
+      }
+    },
+    {
+      "properties": {
+        "intent": {"const": "ASSOCIATE"},
+        "template": {"enum": ["BIND", "REACTIVATE"]}
+      }
+    },
+    {
+      "properties": {
+        "intent": {"const": "EXPAND"},
+        "template": {"const": "BIRTH"}
+      }
+    },
+    {
+      "properties": {
+        "intent": {"const": "REVISE"},
+        "template": {"enum": ["RELINK", "SPLIT", "MERGE"]}
+      }
+    },
+    {
+      "properties": {
+        "intent": {"const": "REVISE"},
+        "template": {"const": "RETRACT"}
+      },
+      "required": ["retraction_target"]
+    },
+    {
+      "properties": {
+        "intent": {"const": "REVISE"},
+        "template": {"const": "COMPOSITE"},
+        "composition_label": {"const": "REPLACE"},
+        "component_templates": {
+          "prefixItems": [{"const": "RETRACT"}, {"const": "BIRTH"}],
+          "minItems": 2,
+          "maxItems": 2
+        }
+      },
+      "required": ["composition_label", "component_templates", "retraction_target"]
+    }
+  ]
+}

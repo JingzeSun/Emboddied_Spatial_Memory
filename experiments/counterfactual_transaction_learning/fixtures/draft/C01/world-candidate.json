@@ -1,0 +1,24 @@
+{
+  "schema_version": "cpmt-0.2",
+  "graph_id": "world-C01-candidate-001",
+  "graph_version": "v0",
+  "parent_version": null,
+  "nodes": [
+    {
+      "node_id": "chair-candidate",
+      "node_version_id": "chair-candidate@v0",
+      "node_type": "entity",
+      "lifecycle": "candidate",
+      "valid_from": 0,
+      "valid_to": null,
+      "evidence_refs": ["obs:C01:t0:candidate-chair"],
+      "latent_refs": ["latent:C01:candidate-chair"],
+      "canonical_id": null,
+      "predecessor_ids": [],
+      "provenance": ["fixture:C01:candidate-confirmation"]
+    }
+  ],
+  "edges": [],
+  "transaction_log": [],
+  "graph_hash": null
+}

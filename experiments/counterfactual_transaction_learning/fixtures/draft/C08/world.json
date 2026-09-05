@@ -1,0 +1,76 @@
+{
+  "schema_version": "cpmt-0.2",
+  "graph_id": "world-C08-001",
+  "graph_version": "v0",
+  "parent_version": null,
+  "nodes": [
+    {
+      "node_id": "portal-1",
+      "node_version_id": "portal-1@v0",
+      "node_type": "place",
+      "lifecycle": "confirmed",
+      "valid_from": 0,
+      "valid_to": null,
+      "evidence_refs": ["map:C08:portal"],
+      "latent_refs": ["latent:C08:portal"],
+      "canonical_id": null,
+      "predecessor_ids": [],
+      "provenance": ["fixture:C08"]
+    },
+    {
+      "node_id": "corridor-open",
+      "node_version_id": "corridor-open@v0",
+      "node_type": "place",
+      "lifecycle": "confirmed",
+      "valid_from": 0,
+      "valid_to": null,
+      "evidence_refs": ["map:C08:corridor"],
+      "latent_refs": ["latent:C08:corridor"],
+      "canonical_id": null,
+      "predecessor_ids": [],
+      "provenance": ["fixture:C08"]
+    },
+    {
+      "node_id": "sealed-boundary",
+      "node_version_id": "sealed-boundary@v0",
+      "node_type": "place",
+      "lifecycle": "confirmed",
+      "valid_from": 0,
+      "valid_to": null,
+      "evidence_refs": ["map:C08:sealed"],
+      "latent_refs": ["latent:C08:sealed"],
+      "canonical_id": null,
+      "predecessor_ids": [],
+      "provenance": ["fixture:C08"]
+    },
+    {
+      "node_id": "wall-protected",
+      "node_version_id": "wall-protected@v0",
+      "node_type": "surface",
+      "lifecycle": "confirmed",
+      "valid_from": 0,
+      "valid_to": null,
+      "evidence_refs": ["map:C08:wall"],
+      "latent_refs": ["latent:C08:wall"],
+      "canonical_id": null,
+      "predecessor_ids": [],
+      "provenance": ["fixture:C08"]
+    }
+  ],
+  "edges": [
+    {
+      "edge_id": "portal-route",
+      "edge_version_id": "portal-route@v0",
+      "source": "portal-1",
+      "target": "corridor-open",
+      "relation": "leads_to",
+      "frame": "world",
+      "valid_from": 0,
+      "valid_to": null,
+      "evidence_refs": ["map:C08:route"],
+      "provenance": ["fixture:C08"]
+    }
+  ],
+  "transaction_log": [],
+  "graph_hash": null
+}

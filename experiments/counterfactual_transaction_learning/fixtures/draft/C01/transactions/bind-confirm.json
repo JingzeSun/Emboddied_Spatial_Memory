@@ -1,0 +1,50 @@
+{
+  "schema_version": "cpmt-0.2",
+  "transaction_id": "tx-C01-bind-confirm",
+  "intent": "ASSOCIATE",
+  "template": "BIND",
+  "base_graph_version": "v0",
+  "operations": [
+    {
+      "op_id": "assert-candidate",
+      "op_type": "ASSERT_PRECONDITION",
+      "arguments": {
+        "kind": "node_lifecycle",
+        "node_id": "chair-candidate",
+        "allowed": ["candidate"]
+      }
+    },
+    {
+      "op_id": "attach-second-evidence",
+      "op_type": "ATTACH_EVIDENCE",
+      "arguments": {
+        "target_kind": "node",
+        "target_id": "chair-candidate",
+        "evidence_ref": "obs:C01:t5:candidate-chair"
+      }
+    },
+    {
+      "op_id": "confirm-candidate",
+      "op_type": "SET_LIFECYCLE",
+      "arguments": {
+        "node_id": "chair-candidate",
+        "from": "candidate",
+        "to": "confirmed"
+      }
+    },
+    {
+      "op_id": "record-confirmation",
+      "op_type": "RECORD_PROVENANCE",
+      "arguments": {
+        "target_kind": "node",
+        "target_id": "chair-candidate",
+        "provenance_ref": "tx-C01-bind-confirm"
+      }
+    }
+  ],
+  "evidence_refs": ["obs:C01:t5:candidate-chair"],
+  "protected_ids": [],
+  "declared_edit_cost": 0.5,
+  "declared_growth_cost": 0,
+  "proposer": "human_draft"
+}

@@ -1,0 +1,59 @@
+{
+  "schema_version": "cpmt-0.2",
+  "transaction_id": "tx-C03-reactivate",
+  "intent": "ASSOCIATE",
+  "template": "REACTIVATE",
+  "base_graph_version": "v0",
+  "operations": [
+    {
+      "op_id": "assert-dormant",
+      "op_type": "ASSERT_PRECONDITION",
+      "arguments": {
+        "kind": "node_lifecycle",
+        "node_id": "chair-historical",
+        "allowed": ["dormant"]
+      }
+    },
+    {
+      "op_id": "close-dormant-version",
+      "op_type": "CLOSE_NODE_VERSION",
+      "arguments": {"node_id": "chair-historical", "at": 10}
+    },
+    {
+      "op_id": "record-closed-version",
+      "op_type": "RECORD_PROVENANCE",
+      "arguments": {
+        "target_kind": "node",
+        "node_version_id": "chair-historical@v0",
+        "provenance_ref": "tx-C03-reactivate"
+      }
+    },
+    {
+      "op_id": "open-confirmed-version",
+      "op_type": "OPEN_NODE_VERSION",
+      "arguments": {
+        "node": {
+          "node_id": "chair-historical",
+          "node_version_id": "chair-historical@v1",
+          "node_type": "entity",
+          "lifecycle": "confirmed",
+          "valid_from": 10,
+          "valid_to": null,
+          "evidence_refs": [
+            "obs:C03:t1:historical-chair",
+            "obs:C03:t10:chair"
+          ],
+          "latent_refs": ["latent:C03:historical-chair"],
+          "canonical_id": null,
+          "predecessor_ids": ["chair-historical@v0"],
+          "provenance": ["tx-C03-reactivate"]
+        }
+      }
+    }
+  ],
+  "evidence_refs": ["obs:C03:t10:chair"],
+  "protected_ids": ["wall-protected"],
+  "declared_edit_cost": 0.5,
+  "declared_growth_cost": 0,
+  "proposer": "human_draft"
+}

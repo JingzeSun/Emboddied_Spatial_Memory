@@ -1,0 +1,102 @@
+{
+  "protocol": "m1-hard-condition-v1",
+  "status": "frozen_pretest",
+  "stage": "M1",
+  "purpose": "Test whether post-edit executable hindsight supervision outperforms direct future loss and future scoring without execution for online embodied spatial-memory revision.",
+  "test_access": false,
+  "decision_refs": ["D-018", "D-025", "D-026", "D-027", "D-030", "D-031"],
+  "methods": [
+    {"id": "A", "name": "cpmt_ctl_core", "execute_candidates": true, "future_supervision": true, "post_edit_world": true},
+    {"id": "B", "name": "direct_classifier", "execute_candidates": false, "future_supervision": false, "post_edit_world": false},
+    {"id": "C", "name": "direct_future_loss", "execute_candidates": false, "future_supervision": true, "post_edit_world": false},
+    {"id": "D", "name": "execute_current_only", "execute_candidates": true, "future_supervision": false, "post_edit_world": true},
+    {"id": "E", "name": "future_no_execution", "execute_candidates": false, "future_supervision": true, "post_edit_world": false},
+    {"id": "F", "name": "oracle_candidate_program", "execute_candidates": true, "future_supervision": true, "post_edit_world": true}
+  ],
+  "data": {
+    "dataset_version": "m1-paired-latent-worlds-v1",
+    "generator": "controlled_embodied_spatial_worlds_v1",
+    "group_keys": ["paired_group_id", "world_seed", "asset_family"],
+    "paired_siblings_minimum": 2,
+    "groups_per_family": {"train": 1000, "validation": 200, "test": 200},
+    "scenario_families": ["C00", "C01", "C02", "C03", "C04", "C05", "C06", "C07", "C08", "C09", "C10", "C11"],
+    "minimum_test_support_per_family": 200,
+    "exclude_only": ["schema_invalid_before_method_execution", "generator_or_render_failure_independent_of_method"],
+    "retain_method_failures": true,
+    "test_release": "sealed_until_protocol_is_accepted_and_implementation_validation_passes",
+    "regeneration_rule": "new_dataset_version_and_manifest_hash"
+  },
+  "future": {
+    "source": "actual_executed_trajectory",
+    "primary_horizon": 3,
+    "reported_ablations": [1, 5],
+    "variable_horizon_mask": "score_only_observed_future_steps_with_valid_pose_and_visibility",
+    "episode_tail": "retain_with_mask_if_at_least_one_future_step; zero-future cases_are_online_only_diagnostics",
+    "visibility_policy": "score_visible_positive_and_reliably_visible_empty; mask_occluded_and_unobserved",
+    "online_export_excludes": ["future_evidence", "future_features", "oracle_equivalence", "simulator_hidden_state", "persistent_object_id"],
+    "precomputed_feature_boundary": "online_cache_uses_only_timestamps_at_or_before_decision_time; future_cache_is_separate_hindsight_only"
+  },
+  "candidates": {
+    "budget_k": 16,
+    "generator": "fixed_deterministic",
+    "templates": ["NOOP", "BIND", "BIRTH", "REACTIVATE", "RELINK", "RETRACT", "SPLIT", "MERGE"],
+    "replace": "RETRACT_plus_BIRTH_composite",
+    "quarantine": "deterministic_nonpersistent_wrapper",
+    "deduplicate": "canonical_memory_state_equivalence",
+    "illegal_policy": "retain_failure_record_and_mask_before_softmax",
+    "coverage_gate_overall": 0.98,
+    "coverage_gate_each_family": 0.95
+  },
+  "energy": {
+    "terms": ["now", "future", "edit", "growth", "collateral", "illegal"],
+    "weights": {"now": 1.0, "future": 1.0, "edit": 0.1, "growth": 0.25, "collateral": 10.0},
+    "illegal": "positive_infinity_mask",
+    "temperature": 0.25,
+    "store_per_candidate_components": true
+  },
+  "training": {
+    "main_label_fraction": 0.1,
+    "reported_label_fractions": [0.0, 0.01, 0.1, 1.0],
+    "formal_seeds": [7, 19, 31, 43, 59],
+    "same_online_encoder_A_to_E": true,
+    "same_student_updates_A_to_E": true,
+    "trainable_parameter_tolerance_fraction": 0.1,
+    "max_validation_trials_per_method": 6,
+    "direct_future_auxiliary_weights": [0.1, 1.0, 10.0],
+    "validation_only_selection": ["checkpoint", "learning_rate", "auxiliary_weight"],
+    "frozen": ["observation_front_end", "depth", "pose", "region_proposals", "candidate_generator", "executor"],
+    "test_selects_nothing": true
+  },
+  "evaluation": {
+    "application_rule": "all_methods_apply_their_selected_transaction_with_the_same_executor_before_graph_metrics",
+    "primary_contrasts": ["A_vs_C", "A_vs_E"],
+    "primary_metrics": {
+      "post_graph_correctness": "equivalence_correct_fraction",
+      "memory_contamination": "incorrect_open_facts_per_100_decisions_at_self_rollout_horizon",
+      "false_birth_growth": "excess_open_entity_nodes_per_100_decisions_at_self_rollout_horizon",
+      "collateral_violation": "protected_or_unrelated_mutations_per_100_decisions"
+    },
+    "self_rollout_horizon_decisions": 20,
+    "bootstrap": {"unit": "paired_group_id", "resamples": 10000, "confidence": 0.95, "stratify_by": "scenario_family"},
+    "multiple_comparisons": {"procedure": "Holm-Bonferroni", "familywise_alpha": 0.05, "family": ["A_vs_C", "A_vs_E"]},
+    "meaningful_effect": {
+      "post_graph_correctness_absolute": 0.03,
+      "memory_contamination_absolute_per_100": 2.0
+    },
+    "safety_noninferiority_margin_per_100": {"false_birth_growth": 1.0, "collateral_violation": 0.5},
+    "invariant_violation_gate": 0,
+    "go_rule": "both_primary_contrasts_meet_both_meaningful_effects_with_adjusted_95pct_CI_excluding_zero; safety_metrics_are_noninferior; invariant_violations_equal_zero",
+    "stop_rule": "if_A_fails_against_C_or_E_with_CI_excluding_the_registered_meaningful_effect_stop_model_expansion_and_do_not_enter_M2"
+  },
+  "error_decomposition": ["candidate_miss", "teacher_error", "amortization_error", "rollout_error"],
+  "logging": {
+    "required": ["config", "seed", "data_hash", "code_hash", "front_end_ids", "future_use_policy", "candidate_energies", "per_case_metrics", "all_failures", "wall_clock", "peak_vram", "p95_latency"],
+    "failed_runs_are_retained": true
+  },
+  "resources": {
+    "policy": "local_first_until_measured_peak_or_stability_requires_cloud",
+    "cloud_spend_authorized_aud": 0,
+    "formal_run_wall_time_limit_hours": 2,
+    "stop_on_new_host_bugcheck": true
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/embodied-memory/candidate_rollout.schema.json",
+  "title": "CPMT Candidate Rollout",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "case_id", "candidate_id", "transaction_ref", "base_graph_version", "execution", "prediction", "energy"],
+  "properties": {
+    "schema_version": {"const": "cpmt-0.2"},
+    "case_id": {"type": "string", "minLength": 1},
+    "candidate_id": {"type": "string", "minLength": 1},
+    "transaction_ref": {"type": "string", "minLength": 1},
+    "base_graph_version": {"type": "string", "minLength": 1},
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "legal", "result_graph_version", "result_graph_ref", "result_graph_hash", "violations"],
+      "properties": {
+        "status": {"enum": ["committed_in_sandbox", "rejected", "rolled_back", "failed"]},
+        "legal": {"type": "boolean"},
+        "result_graph_version": {"type": ["string", "null"]},
+        "result_graph_ref": {"type": ["string", "null"]},
+        "result_graph_hash": {"type": ["string", "null"]},
+        "violations": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "prediction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["current_latent_refs", "future_horizon", "future_latent_refs", "visibility_refs"],
+      "properties": {
+        "current_latent_refs": {"type": "array", "items": {"type": "string"}},
+        "future_horizon": {"type": "integer", "minimum": 1},
+        "future_latent_refs": {"type": "array", "items": {"type": "string"}},
+        "visibility_refs": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "energy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["now", "future", "edit", "growth", "collateral", "illegal", "total"],
+      "properties": {
+        "now": {"type": "number", "minimum": 0},
+        "future": {"type": "number", "minimum": 0},
+        "edit": {"type": "number", "minimum": 0},
+        "growth": {"type": "number", "minimum": 0},
+        "collateral": {"type": "number", "minimum": 0},
+        "illegal": {"type": "number", "minimum": 0},
+        "total": {"type": "number"}
+      }
+    },
+    "posterior_probability": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+    "rank": {"type": ["integer", "null"], "minimum": 1}
+  }
+}

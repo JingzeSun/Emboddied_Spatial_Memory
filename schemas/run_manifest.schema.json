@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/embodied-memory/run_manifest.schema.json",
+  "title": "CPMT Run Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "run_id", "stage", "method", "status", "code", "data", "config", "seed", "front_end", "future_use_policy", "decision_refs", "timing", "failures"],
+  "properties": {
+    "schema_version": {"const": "cpmt-0.2"},
+    "run_id": {"type": "string", "minLength": 1},
+    "stage": {"enum": ["M0", "M1", "M2", "M3"]},
+    "method": {"type": "string", "minLength": 1},
+    "status": {"enum": ["planned", "running", "complete", "failed", "invalidated"]},
+    "code": {
+      "type": "object",
+      "required": ["commit", "dirty"],
+      "properties": {
+        "commit": {"type": "string", "minLength": 1},
+        "dirty": {"type": "boolean"}
+      }
+    },
+    "data": {
+      "type": "object",
+      "required": ["dataset_version", "manifest_hash", "split"],
+      "properties": {
+        "dataset_version": {"type": "string", "minLength": 1},
+        "manifest_hash": {"type": "string", "minLength": 1},
+        "split": {"enum": ["train", "validation", "test", "external", "fixture"]}
+      }
+    },
+    "config": {
+      "type": "object",
+      "required": ["path", "hash"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "hash": {"type": "string", "minLength": 1}
+      }
+    },
+    "seed": {"type": "integer", "minimum": 0},
+    "front_end": {
+      "type": "object",
+      "required": ["backbone_id", "depth_id", "pose_source"],
+      "properties": {
+        "backbone_id": {"type": "string"},
+        "depth_id": {"type": "string"},
+        "pose_source": {"type": "string"}
+      }
+    },
+    "future_use_policy": {"enum": ["none", "hindsight_train_only", "evaluation_only"]},
+    "decision_refs": {"type": "array", "items": {"type": "string"}},
+    "timing": {
+      "type": "object",
+      "required": ["started_at"],
+      "properties": {
+        "started_at": {"type": "string", "format": "date-time"},
+        "ended_at": {"type": ["string", "null"], "format": "date-time"}
+      }
+    },
+    "metrics_ref": {"type": ["string", "null"]},
+    "failures": {"type": "array", "items": {"type": "string"}},
+    "hardware": {"type": "string"}
+  }
+}

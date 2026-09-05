@@ -1,0 +1,22 @@
+{
+  "schema_version": "cpmt-0.2",
+  "case_id": "C07-visible-empty-retract-001",
+  "case_family": "C07",
+  "paired_group_id": "pair-visible-empty-occluded-001",
+  "world_seed": 107,
+  "split": "draft",
+  "decision_time": 7,
+  "prior_graph_ref": "world.json",
+  "current_observation_refs": ["obs:C07:t7:left-empty"],
+  "candidate_transaction_refs": [
+    "transactions/noop.json",
+    "transactions/retract.json"
+  ],
+  "oracle_equivalence": [["transactions/retract.json"]],
+  "future_evidence_refs": [
+    "future:C07:t8:left-remains-visible-empty"
+  ],
+  "protected_ids": ["wall-protected"],
+  "status": "human_draft",
+  "exclusion_reason": null
+}

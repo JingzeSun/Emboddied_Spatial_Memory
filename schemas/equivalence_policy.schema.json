@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/embodied-memory/equivalence_policy.schema.json",
+  "title": "CPMT Identity Equivalence Policy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "policy_id",
+    "base_graph_version",
+    "fixed_identity_ids",
+    "exchangeable_identity_sets",
+    "externally_anchored_new_ids",
+    "raw_latent_exact_match",
+    "comparison_mode",
+    "future_projection_defines_equivalence"
+  ],
+  "properties": {
+    "schema_version": {"const": "cpmt-0.2"},
+    "policy_id": {"type": "string", "minLength": 1},
+    "base_graph_version": {"type": "string", "minLength": 1},
+    "fixed_identity_ids": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    },
+    "exchangeable_identity_sets": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "minItems": 2,
+        "items": {"type": "string", "minLength": 1},
+        "uniqueItems": true
+      }
+    },
+    "externally_anchored_new_ids": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    },
+    "raw_latent_exact_match": {"const": false},
+    "comparison_mode": {"const": "canonical_memory_state"},
+    "future_projection_defines_equivalence": {"const": false}
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "schema_version": "cpmt-0.2",
+  "transaction_id": "tx-C06-relink",
+  "intent": "REVISE",
+  "template": "RELINK",
+  "base_graph_version": "v0",
+  "operations": [
+    {
+      "op_id": "close-old-location",
+      "op_type": "CLOSE_EDGE_VERSION",
+      "arguments": {"edge_id": "old-chair-location", "at": 5}
+    },
+    {
+      "op_id": "record-old-location",
+      "op_type": "RECORD_PROVENANCE",
+      "arguments": {
+        "target_kind": "edge",
+        "edge_version_id": "old-chair-location@v0",
+        "provenance_ref": "tx-C06-relink"
+      }
+    },
+    {
+      "op_id": "open-right-location",
+      "op_type": "ADD_EDGE",
+      "arguments": {
+        "edge": {
+          "edge_id": "old-chair-location",
+          "edge_version_id": "old-chair-location@v1",
+          "source": "chair-old",
+          "target": "place-right",
+          "relation": "located_at",
+          "frame": "world",
+          "valid_from": 5,
+          "valid_to": null,
+          "evidence_refs": ["obs:C06:t5:new-chair-right"],
+          "provenance": ["tx-C06-relink"]
+        }
+      }
+    }
+  ],
+  "evidence_refs": ["ev:C06:new-chair-t5"],
+  "protected_ids": ["wall-protected"],
+  "declared_edit_cost": 1,
+  "declared_growth_cost": 0,
+  "proposer": "human_draft"
+}

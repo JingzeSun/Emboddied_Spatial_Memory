@@ -1,0 +1,50 @@
+{
+  "schema_version": "cpmt-0.2",
+  "graph_id": "world-C03-001",
+  "graph_version": "v0",
+  "parent_version": null,
+  "nodes": [
+    {
+      "node_id": "chair-active",
+      "node_version_id": "chair-active@v0",
+      "node_type": "entity",
+      "lifecycle": "confirmed",
+      "valid_from": 0,
+      "valid_to": null,
+      "evidence_refs": ["obs:C03:t8:active-chair"],
+      "latent_refs": ["latent:C03:active-chair"],
+      "canonical_id": null,
+      "predecessor_ids": [],
+      "provenance": ["fixture:C03"]
+    },
+    {
+      "node_id": "chair-historical",
+      "node_version_id": "chair-historical@v0",
+      "node_type": "entity",
+      "lifecycle": "dormant",
+      "valid_from": 0,
+      "valid_to": null,
+      "evidence_refs": ["obs:C03:t1:historical-chair"],
+      "latent_refs": ["latent:C03:historical-chair"],
+      "canonical_id": null,
+      "predecessor_ids": [],
+      "provenance": ["fixture:C03"]
+    },
+    {
+      "node_id": "wall-protected",
+      "node_version_id": "wall-protected@v0",
+      "node_type": "surface",
+      "lifecycle": "confirmed",
+      "valid_from": 0,
+      "valid_to": null,
+      "evidence_refs": ["map:C03:wall"],
+      "latent_refs": ["latent:C03:wall"],
+      "canonical_id": null,
+      "predecessor_ids": [],
+      "provenance": ["fixture:C03"]
+    }
+  ],
+  "edges": [],
+  "transaction_log": [],
+  "graph_hash": null
+}

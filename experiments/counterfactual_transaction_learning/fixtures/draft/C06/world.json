@@ -1,0 +1,76 @@
+{
+  "schema_version": "cpmt-0.2",
+  "graph_id": "world-C06-001",
+  "graph_version": "v0",
+  "parent_version": null,
+  "nodes": [
+    {
+      "node_id": "chair-old",
+      "node_version_id": "chair-old@v0",
+      "node_type": "entity",
+      "lifecycle": "confirmed",
+      "valid_from": 0,
+      "valid_to": null,
+      "evidence_refs": ["obs:C06:t0:old-chair"],
+      "latent_refs": ["latent:C06:old-chair"],
+      "canonical_id": null,
+      "predecessor_ids": [],
+      "provenance": ["fixture:C06"]
+    },
+    {
+      "node_id": "place-left",
+      "node_version_id": "place-left@v0",
+      "node_type": "place",
+      "lifecycle": "confirmed",
+      "valid_from": 0,
+      "valid_to": null,
+      "evidence_refs": ["map:C06:left"],
+      "latent_refs": ["latent:C06:left"],
+      "canonical_id": null,
+      "predecessor_ids": [],
+      "provenance": ["fixture:C06"]
+    },
+    {
+      "node_id": "place-right",
+      "node_version_id": "place-right@v0",
+      "node_type": "place",
+      "lifecycle": "confirmed",
+      "valid_from": 0,
+      "valid_to": null,
+      "evidence_refs": ["map:C06:right"],
+      "latent_refs": ["latent:C06:right"],
+      "canonical_id": null,
+      "predecessor_ids": [],
+      "provenance": ["fixture:C06"]
+    },
+    {
+      "node_id": "wall-protected",
+      "node_version_id": "wall-protected@v0",
+      "node_type": "surface",
+      "lifecycle": "confirmed",
+      "valid_from": 0,
+      "valid_to": null,
+      "evidence_refs": ["map:C06:wall"],
+      "latent_refs": ["latent:C06:wall"],
+      "canonical_id": null,
+      "predecessor_ids": [],
+      "provenance": ["fixture:C06"]
+    }
+  ],
+  "edges": [
+    {
+      "edge_id": "old-chair-location",
+      "edge_version_id": "old-chair-location@v0",
+      "source": "chair-old",
+      "target": "place-left",
+      "relation": "located_at",
+      "frame": "world",
+      "valid_from": 0,
+      "valid_to": null,
+      "evidence_refs": ["obs:C06:t0:old-chair"],
+      "provenance": ["fixture:C06"]
+    }
+  ],
+  "transaction_log": [],
+  "graph_hash": null
+}

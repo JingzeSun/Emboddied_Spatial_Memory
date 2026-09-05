@@ -1,0 +1,17 @@
+{
+  "schema_version": "cpmt-0.2",
+  "evidence_id": "ev:C06:new-chair-t5",
+  "episode_id": "episode:C06:001",
+  "time_index": 5,
+  "kind": "observation",
+  "source_refs": ["obs:C06:t5:new-chair-right"],
+  "availability": "online",
+  "reliability": 1.0,
+  "claim_ref": "candidate:chair-new",
+  "viewpoint_id": "view:C06:right-1",
+  "visibility": "visible",
+  "pose_valid": true,
+  "depth_valid": true,
+  "verdict": "supports",
+  "notes": "Positive evidence for the new identity, not for the old fact."
+}

@@ -1,0 +1,93 @@
+{
+  "schema_version": "cpmt-0.2",
+  "transaction_id": "tx-C04-split",
+  "intent": "REVISE",
+  "template": "SPLIT",
+  "base_graph_version": "v0",
+  "operations": [
+    {
+      "op_id": "assert-conflated-source",
+      "op_type": "ASSERT_PRECONDITION",
+      "arguments": {
+        "kind": "node_lifecycle",
+        "node_id": "conflated-1",
+        "allowed": ["confirmed"]
+      }
+    },
+    {
+      "op_id": "mark-source-retracted",
+      "op_type": "SET_LIFECYCLE",
+      "arguments": {
+        "node_id": "conflated-1",
+        "from": "confirmed",
+        "to": "retracted"
+      }
+    },
+    {
+      "op_id": "close-conflated-version",
+      "op_type": "CLOSE_NODE_VERSION",
+      "arguments": {"node_id": "conflated-1", "at": 5}
+    },
+    {
+      "op_id": "record-source-history",
+      "op_type": "RECORD_PROVENANCE",
+      "arguments": {
+        "target_kind": "node",
+        "node_version_id": "conflated-1@v0",
+        "provenance_ref": "tx-C04-split"
+      }
+    },
+    {
+      "op_id": "create-left-successor",
+      "op_type": "CREATE_NODE",
+      "arguments": {
+        "node": {
+          "node_id": "object-left",
+          "node_version_id": "object-left@v0",
+          "node_type": "entity",
+          "lifecycle": "candidate",
+          "valid_from": 5,
+          "valid_to": null,
+          "evidence_refs": [
+            "obs:C04:t0:left-object",
+            "obs:C04:t5:left-object"
+          ],
+          "latent_refs": ["latent:C04:left-successor"],
+          "canonical_id": null,
+          "predecessor_ids": ["conflated-1@v0"],
+          "provenance": ["tx-C04-split"]
+        }
+      }
+    },
+    {
+      "op_id": "create-right-successor",
+      "op_type": "CREATE_NODE",
+      "arguments": {
+        "node": {
+          "node_id": "object-right",
+          "node_version_id": "object-right@v0",
+          "node_type": "entity",
+          "lifecycle": "candidate",
+          "valid_from": 5,
+          "valid_to": null,
+          "evidence_refs": [
+            "obs:C04:t0:right-object",
+            "obs:C04:t5:right-object"
+          ],
+          "latent_refs": ["latent:C04:right-successor"],
+          "canonical_id": null,
+          "predecessor_ids": ["conflated-1@v0"],
+          "provenance": ["tx-C04-split"]
+        }
+      }
+    }
+  ],
+  "evidence_refs": [
+    "obs:C04:t5:left-object",
+    "obs:C04:t5:right-object"
+  ],
+  "protected_ids": ["wall-protected"],
+  "declared_edit_cost": 2,
+  "declared_growth_cost": 2,
+  "proposer": "human_draft"
+}

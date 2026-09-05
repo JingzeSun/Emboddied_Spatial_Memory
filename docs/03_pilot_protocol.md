@@ -1,262 +1,52 @@
-# 03 — 第一轮验证：先证明“改记忆”这件事本身成立
+# 03 CPMT 核心实验协议
 
-> 状态：planned / implementation not started / thresholds not frozen
+定位：正式 M1 所需比较与证据规格，不维护运行状态。实际结果与当前冻结情况见 [实验记录](../EXECUTE.md)；开发运行不能替代正式门槛。
 
-本文是第一版代码和实验的唯一合同。它先用现实问题解释实验，再在括号中保留论文和代码需要的正式名称。
+## M0 Oracle fixtures
 
-## 1. 这轮实验到底为了什么
+每个 fixture 输入 prior graph、current regions、candidate programs、oracle/equivalent programs、future evidence、expected post-graph 和 protected IDs。
 
-假设系统原来记得“椅子在 A”，现在看见椅子到了 B。我们真正想验证的不是“能不能检测到椅子”，而是：
+所有候选从同一 base version 执行。wrong version、missing precondition、illegal lifecycle、protected mutation、dangling edge 和 duplicate transaction 必须被拒绝且 base graph 不变。
 
-1. 系统会不会关闭“椅子在 A”这条已经失效的旧事实；
-2. 会不会建立“椅子在 B”的新事实；
-3. 会不会保留“它还是同一把椅子”；
-4. 会不会把旁边无关的桌子、花盆也一起改掉；
-5. 以后能不能查到它为什么改、什么时候改、旧版本是什么。
+## M1 六个必要对照
 
-第一轮暂时把视觉识别、位姿、遮挡判断和对象对应关系的正确答案直接给系统，只检查“怎样修改记忆”这条链是否成立。
+| ID | 方法 | 执行候选 | future supervision | post-edit world |
+|---|---|---:|---:|---:|
+| A | CPMT-CTL Core（M1 固定解析表征） | 是 | 是 | 是 |
+| B | Direct transaction classifier | 否 | 否 | 否 |
+| C | Direct + future auxiliary loss | 否 | 是 | 否 |
+| D | Execute + current-only | 是 | 否 | 是 |
+| E | Future scorer without execution | 否 | 是 | 否 |
+| F | Oracle candidates/program | 是 | 是 | 是 |
 
-这里的 **oracle** 只是“研究者直接提供当前暂不测试的正确答案”。它不是模型预测，也不是实验结果。
+只在 M1 通过后，M2 才增加一个强领域基线；不同时实现一长串弱比较。
 
-> 如果给出正确答案后，系统仍然改不对记忆，那么加入 detector、VLM、LLM 或更大的模型只会掩盖问题。因此 oracle 条件不通过时，不进入训练。
+命名边界：M1 的 A 只检验 executed post-world hindsight supervision，因此叫 CPMT-CTL Core。只有 M2 接入 Projective Node Orbit、真实 observation regions 和 canonical world-node latents 后，才使用 Full CPMT。白话：M1 先验证“怎样学会改档案”，M2 才补齐“不同视角下档案里的同一对象应该长什么样”；前者不是完整视觉系统。
 
-## 2. 第一轮给系统什么，让它做什么
+## 公平条件
 
-| 环节 | 人话说明 | 正式名称 |
-|---|---|---|
-| 旧记忆 | 修改前有哪些对象、关系和历史版本 | SceneBelief |
-| 当前现场 | 这一刻真正看见了什么 | ObservationGraph |
-| 已知解释 | 当前视角、是否遮挡、哪个新对象对应哪个旧对象 | oracle pose / visibility / association |
-| 正确修改意图 | 应该改谁、不能改谁、传播到哪里停、执行哪些修改 | oracle scope / stop / typed delta |
-| 系统工作 | 执行修改、拒绝非法更新、生成新版本 | versioned executor |
-| 检查结果 | 新记忆是否正确、旧事实是否保留、哪里漏改或多改 | evaluator |
+- A–E 使用相同数据、前端、可见字段、训练步数和合理参数预算；
+- A/D 使用相同 candidate budget；
+- C 获得独立合理调参；
+- F 明确标作 upper bound；
+- 所有方法报告 wall-clock、显存和失败 run；
+- paired group 与 world seed 不跨 split。
 
-第一版暂不接真实 detector、DINO、真实 RGB-D、导航或 learned controller。
+## 主要终点
 
-## 3. 五个实验各自在问什么
+1. post-execution graph correctness；
+2. long-horizon memory contamination；
+3. node growth/false birth；
+4. protected/collateral violation。
 
-### 实验 0（E0）— 先检查“尺子”准不准
+program exact match、template macro-F1、candidate coverage 和 latent error 是诊断指标。
 
-- 场景：给系统一份旧记忆、一条明确的正确修改和一份正确的新记忆；
-- 只检查：系统能否照着修改，并保留合法的版本历史；
-- 通过：输出与正确新记忆完全一致，或满足同一组明确不变量；
-- 失败说明：数据格式、修改执行器或评分工具本身有问题；
-- 失败后行动：先修合同、执行器或评分器，不训练模型。
+## 固定解释
 
-这一步覆盖全部 R1–R6、X1–X2 场景。
+- A≈C：未来监督有效，但 executable transaction learning 未成立；
+- A≈E：不需要 post-edit execution，CPMT 主机制未成立；
+- F coverage 低：candidate generator 失败；
+- teacher 好、online 差：amortization 失败；
+- 单步好、self-rollout 差：persistent-memory claim 失败。
 
-### 实验 1（E1）— 椅子到底是搬走、不在了，还是被挡住
-
-三组场景使用同一份旧记忆，只改变一种现场证据：
-
-| 场景 | 现场证据 | 正确处理 |
-|---|---|---|
-| 椅子搬迁（R1） | 确认是同一把椅子，并在 B 可靠出现 | 关闭 A 的旧位置，建立 B 的新位置 |
-| 旧址可靠为空（R3） | A 清楚可见、无遮挡、多次确认没有椅子 | 让“A 仍是当前位置”失效；新位置保持未知 |
-| 椅子被挡住（R4） | A 被人或其他物体遮挡 | 只记录暂时看不见，继续保留椅子在 A 的事实 |
-
-目的：证明系统能区分“搬走了”“真的不在那里”和“只是没看到”。
-
-若 R3 与 R4 得到相同处理，说明缺席证据定义不可靠，这个主张不能继续。
-
-### 实验 2（E2）— 推车带箱子移动，但不能把花盆也改掉
-
-- 旧记忆：推车托着箱子；旁边还有一盆无关的花；
-- 新现场：推车移动到新区域；
-- 应该连带修改：推车以及确实依赖推车的箱子状态；
-- 必须保持：花盆和其他没有依赖关系的对象；
-- 目的：同时检验“必要后果没有漏掉”和“修改在无关处停下”。
-
-这里比较两种典型错误：
-
-- 只改眼前对象：改了推车却漏掉箱子；
-- 每次整图重做：箱子可能改对，但无关对象也被重新处理。
-
-### 实验 3（E3）— 人站得再久也还是人
-
-- 场景：同一个人在门口站立不同时间，并可能挡住门；
-- 只改变：静止时长和遮挡程度；
-- 正确结果：人的类型始终是 actor；门的身份和几何不因遮挡而改变；
-- 目的：证明“运动状态”不会错误改写“它是什么东西”；
-- 失败说明：状态定义混在了一起。
-
-### 实验 4（E4）— 补充新内容和查询目标，不能改坏旧世界
-
-这一组只检查系统边界，不作为核心动态修订贡献。
-
-- 转角看到新区域（X1）：把新节点接到旧图上，但不能因为图扩大就关闭旧事实；
-- 两个木箱（X2）：路线和对话可以让第二个箱子排在前面，但两个箱子仍然都保留在世界记忆中。
-
-目的：证明“扩充地图”和“查询时优先看谁”没有被误写成“改变世界事实”。
-
-## 4. 为什么要和这些“笨办法”比较
-
-基线不是为了凑排行榜。每个对照都故意保留一种典型缺陷，帮助判断本项目到底解决了什么。
-
-| 对照 | 它怎么做 | 它暴露的问题 | 代码/论文名称 |
-|---|---|---|---|
-| 只加不删 | 看见椅子在 B 就新增 B，不关闭 A | 旧错误事实会不会一直残留 | Append-only |
-| 只改眼前对象 | 推车动了只改推车，不管箱子 | 必要关系会不会漏改 | Local matched-slot |
-| 把整张记忆慢慢平均 | 对齐新旧观测后，让整张记忆逐渐向新观测靠近 | 抗噪平滑能否真正关闭旧事实、表达明确变化 | Pose-warped global EMA |
-| 每次整张图重做 | 一点变化就重新处理所有对象和关系 | 是否造成无关修改和高成本 | Full-graph recomputation |
-| 直接告诉它该改谁 | 人工给出正确修改范围，只检查执行 | 方法与执行器最多能做到什么 | Oracle affected-subgraph |
-| 用人工规则判断该改谁 | 按明确规则选择修改范围和停止位置 | 不训练模型能否先解决问题 | Deterministic predicted scope |
-
-所有方法必须看到完全相同的旧记忆、当前现场、位姿、可见性和对象对应关系，只允许“怎样修改记忆”这一点不同。
-
-FARM 风格的 fuse/merge 只作为后续压力对照，检查对象融合在冲突场景中是否污染旧记忆；它不是本项目成立的同行评审证据。
-
-## 5. 怎么判断结果好不好
-
-### 5.1 应该改的，改对了吗
-
-人话检查：
-
-- 椅子的新位置是否正确；
-- 应失效的旧位置是否被关闭；
-- 箱子需要随推车变化的关系是否全部更新。
-
-论文记录：目标图不变量正确率、修改操作正确率、修改范围 precision/recall/F1、必要传播召回率。
-
-### 5.2 不应该改的，守住了吗
-
-人话检查：
-
-- 花盆和其他无关对象是否完全不变；
-- 遮挡时是否错误删除椅子；
-- 修改是否在无关关系前停止。
-
-论文记录：control-subgraph preservation、collateral revision rate、stop-edge accuracy。
-
-### 5.3 以后能解释为什么改吗
-
-人话检查：
-
-- 旧版本是否仍能查到；
-- 新版本是否保存现场证据和修改原因；
-- 一组修改失败时是否拒绝整组，而不是留下半改状态。
-
-论文记录：version/provenance validity、transaction integrity、failure localization。
-
-### 5.4 这样做真的更省吗
-
-人话检查：
-
-- 实际修改的对象和关系是否更少；
-- 运行时间、峰值内存是否低于整图重做；
-- 保存历史后的存储增长是否可接受。
-
-论文记录：edited-node ratio、latency、peak memory、storage growth。
-
-> query accuracy 或 top-K recall 再高，也不能替代上述检查。最后找对目标，不代表中间没有删错旧事实、漏改关系或污染整张图。
-
-## 6. 什么结果会让我们停止或收缩主张
-
-| 想证明的事 | 至少必须看到 | 看不到时怎么办 |
-|---|---|---|
-| 系统能执行明确修改 | 实验 0 全部得到正确新记忆，历史可追溯 | 修合同、执行器或评分器，不训练 |
-| 关系传播有独立价值 | 推车场景中，比“只改推车”少漏箱子后果 | 若没有差别，重审传播是否是独立问题 |
-| 局部修改有价值 | 与整图重做正确性相当，但误改和成本更低 | 若不更省，删除或收缩局部性/效率主张 |
-| 可靠缺席与遮挡可区分 | R3 让旧位置失效；R4 保留旧事实 | 收紧证据标准，仍不稳定则取消该主张 |
-| 状态分层没有互相污染 | 人仍是人；扩图不删旧事实；两个箱子都保留 | 重写状态边界后重新验证 |
-
-这些是 Go/No-Go 门，不使用一个漂亮的平均总分绕过去。
-
-## 7. 实现顺序
-
-实现顺序仍然严格，但先说明每一步是为了解决什么：
-
-| 顺序 | 人话任务 | 代码产物 | 通过条件 |
-|---|---|---|---|
-| B0 | 建立任何人都能运行的 Python 环境 | pyproject.toml、lock、test command | 干净环境可运行 |
-| B1 | 检查输入数据是否合法 | src/.../contracts/ | 合法 JSON 可往返，非法数据明确拒绝 |
-| B2 | 保存不可原地覆盖的历史版本 | src/.../belief/ | 旧版本不被覆盖，版本链无环 |
-| B3 | 实现八种明确修改 | src/.../revision/executor.* | 给定正确修改能产生正确新图 |
-| B4 | 读取八个最小场景 | tests/fixtures/ | R1–R6、X1、X2 都能重放 |
-| B5 | 把漏改、多改和越界分别算出来 | src/.../evaluation/ | 人工制造哪种错误，对应指标就恶化 |
-| B6 | 用明确规则自己判断状态和范围 | src/.../innovation/、revision/ | 规则决策可运行、可解释 |
-| B7 | 保存每次运行的配置、结果和失败 | runner、outputs manifest | 任一结果都能追溯到数据和代码 |
-
-依赖顺序：B0 → B1 → B2 → B3 → B4/B5 → B6 → B7。
-
-第一版目录：
-
-    src/embodied_spatial_memory/
-    ├─ contracts/
-    ├─ belief/
-    ├─ revision/
-    ├─ innovation/
-    ├─ context/
-    ├─ baselines/
-    └─ evaluation/
-
-    tests/
-    ├─ fixtures/
-    ├─ contracts/
-    ├─ revision/
-    └─ evaluation/
-
-## 8. 系统允许使用的八种修改
-
-每个英文词都对应一种有限、明确的动作，不允许 LLM 用自由文本直接改图。
-
-| 正式名称 | 人话含义 |
-|---|---|
-| REINFORCE | 新证据再次确认旧事实，只增强证据 |
-| ADD | 新增过去不存在的对象或关系 |
-| UPDATE_STATE | 更新对象的运动、可见性等状态 |
-| RELINK | 把对象与旧位置/关系断开，再连接到新位置/关系 |
-| INVALIDATE | 证据足够时，让某条旧事实失效 |
-| SUPERSEDE | 用有证据的新版本取代旧版本，但保留历史 |
-| PRESERVE | 明确保持旧事实，不因为没看到就删除 |
-| QUARANTINE | 身份或证据不清时暂不写入，保留多个可能 |
-
-每次修改必须记录：改谁、修改前后是什么、依据哪条证据、可信度、有效时间和来源。整组修改任一项非法时，整组拒绝，不允许只提交一半。
-
-## 9. 实验运行后必须保存什么
-
-    outputs/<run_id>/
-    ├─ config.yaml
-    ├─ environment.json
-    ├─ dataset_manifest.json
-    ├─ predictions/
-    ├─ revisions/
-    ├─ metrics_per_episode.jsonl
-    ├─ aggregate_metrics.json
-    ├─ failures/
-    └─ run.log
-
-这些文件分别保存配置、环境、数据版本、每个场景的修改、汇总指标和失败原因。正式运行还必须保存随机种子、代码版本和模型标识。
-
-## 10. 通过后怎样逐步增加难度
-
-    人工给出全部答案
-      ↓ 通过
-    用明确规则自己判断状态和修改范围
-      ↓ 通过
-    让模型学习状态判断、修改范围、操作和停止位置
-      ↓ 通过 validation
-    最后接入真实 pose、depth 和 detector
-
-每次只增加一种困难，并继续使用同一批 validation 场景。这样失败后才能判断是视觉、状态判断、修改范围还是执行出了问题。
-
-## 11. 真正运行前必须由研究者确定的六条判题规则
-
-1. 椅子出现在 B，什么条件下算同一把椅子搬过去了；
-2. 推车移动后，箱子的哪些位置和关系必须跟着改；
-3. 修改传播到哪里必须停，哪些无关对象绝不能碰；
-4. 旧位置要看得多清楚、看几次，才算对象真的不在那里；
-5. 如果有几种同样小且都正确的修改，是否都算对；
-6. 两个木箱都可能是目标时，什么情况下必须先询问用户。
-
-这些规则写入 docs/DECISIONS.md 的 D-016。确认前，场景只能用于讨论设计，不能称为训练 ground truth。
-
-## 12. 研究诚信边界
-
-- Pilot 只用于检查机制和调试代码，不作为最终论文数字；
-- 当前状态仍是未实现、未验证；
-- 不使用 test 场景调阈值、选择提示或筛方法；
-- 漏改、多改、越界、失败和不支持原假设的结果都必须保留并报告；
-- oracle、自动映射和模型评审不能混称为真实世界 ground truth。
-
-通过本协议的 Go/No-Go 门后，才进入 docs/04_training_plan.md。
+精确 effect threshold 和 CI 在正式 test 前冻结，不根据 test 重写。

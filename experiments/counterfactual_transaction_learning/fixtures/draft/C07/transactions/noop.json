@@ -1,0 +1,16 @@
+{
+  "schema_version": "cpmt-0.2",
+  "transaction_id": "tx-C07-noop-visible-empty",
+  "intent": "PRESERVE",
+  "template": "NOOP",
+  "base_graph_version": "v0",
+  "operations": [],
+  "evidence_refs": [
+    "ev:C07:negative-t5",
+    "ev:C07:negative-t7"
+  ],
+  "protected_ids": ["wall-protected"],
+  "declared_edit_cost": 0,
+  "declared_growth_cost": 0,
+  "proposer": "human_draft"
+}

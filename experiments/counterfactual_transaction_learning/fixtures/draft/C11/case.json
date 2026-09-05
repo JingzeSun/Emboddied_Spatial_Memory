@@ -1,0 +1,26 @@
+{
+  "schema_version": "cpmt-0.2",
+  "case_id": "C11-protected-collateral-001",
+  "case_family": "C11",
+  "paired_group_id": "pair-protected-collateral-001",
+  "world_seed": 111,
+  "split": "draft",
+  "decision_time": 5,
+  "prior_graph_ref": "world.json",
+  "current_observation_refs": ["obs:C11:t5:chair"],
+  "candidate_transaction_refs": [
+    "transactions/bind.json",
+    "transactions/bind-collateral.json"
+  ],
+  "oracle_equivalence": [["transactions/bind.json"]],
+  "future_evidence_refs": [
+    "future:C11:t6:chair-consistent",
+    "future:C11:t6:protected-wall-unchanged"
+  ],
+  "protected_ids": ["wall-protected"],
+  "oracle_commit_action": "COMMIT",
+  "commit_decision_ref": null,
+  "pending_evidence_refs": [],
+  "status": "human_draft",
+  "exclusion_reason": null
+}

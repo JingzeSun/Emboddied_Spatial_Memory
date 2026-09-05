@@ -1,0 +1,23 @@
+{
+  "schema_version": "cpmt-0.2",
+  "case_id": "C03-reactivation-001",
+  "case_family": "C03",
+  "paired_group_id": "pair-bind-reactivate-001",
+  "world_seed": 103,
+  "split": "draft",
+  "decision_time": 10,
+  "prior_graph_ref": "world.json",
+  "current_observation_refs": ["obs:C03:t10:chair"],
+  "candidate_transaction_refs": [
+    "transactions/bind-active.json",
+    "transactions/reactivate.json"
+  ],
+  "oracle_equivalence": [["transactions/reactivate.json"]],
+  "future_evidence_refs": [
+    "future:C03:t11:historical-orbit-consistent",
+    "future:C03:t12:active-node-distinct"
+  ],
+  "protected_ids": ["wall-protected"],
+  "status": "human_draft",
+  "exclusion_reason": null
+}

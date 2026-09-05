@@ -1,0 +1,41 @@
+{
+  "schema_version": "cpmt-0.2",
+  "transaction_id": "tx-C10-bind-static-surface",
+  "intent": "ASSOCIATE",
+  "template": "BIND",
+  "base_graph_version": "v0",
+  "operations": [
+    {
+      "op_id": "assert-wall-bindable",
+      "op_type": "ASSERT_PRECONDITION",
+      "arguments": {
+        "kind": "node_lifecycle",
+        "node_id": "wall-1",
+        "allowed": ["candidate", "confirmed"]
+      }
+    },
+    {
+      "op_id": "attach-surface-evidence",
+      "op_type": "ATTACH_EVIDENCE",
+      "arguments": {
+        "target_kind": "node",
+        "target_id": "wall-1",
+        "evidence_ref": "obs:C10:t5:foreground-change"
+      }
+    },
+    {
+      "op_id": "record-bind",
+      "op_type": "RECORD_PROVENANCE",
+      "arguments": {
+        "target_kind": "node",
+        "target_id": "wall-1",
+        "provenance_ref": "tx-C10-bind-static-surface"
+      }
+    }
+  ],
+  "evidence_refs": ["obs:C10:t5:foreground-change"],
+  "protected_ids": ["table-protected"],
+  "declared_edit_cost": 0.25,
+  "declared_growth_cost": 0,
+  "proposer": "human_draft"
+}

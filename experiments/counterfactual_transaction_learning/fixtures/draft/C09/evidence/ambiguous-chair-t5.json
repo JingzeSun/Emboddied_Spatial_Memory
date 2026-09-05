@@ -1,0 +1,17 @@
+{
+  "schema_version": "cpmt-0.2",
+  "evidence_id": "obs:C09:t5:chair-misaligned",
+  "episode_id": "episode:C09:001",
+  "time_index": 5,
+  "kind": "observation",
+  "source_refs": ["region:C09:t5:ambiguous-chair"],
+  "availability": "online",
+  "reliability": 0.08,
+  "claim_ref": null,
+  "viewpoint_id": "view:C09:uncertain-pose",
+  "visibility": "unknown",
+  "pose_valid": false,
+  "depth_valid": false,
+  "verdict": "neutral",
+  "notes": "Weak evidence remains retrievable but cannot safely choose NOOP or RELINK."
+}

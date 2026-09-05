@@ -1,0 +1,93 @@
+{
+  "schema_version": "cpmt-0.2",
+  "transaction_id": "tx-C06-replace",
+  "intent": "REVISE",
+  "template": "COMPOSITE",
+  "composition_label": "REPLACE",
+  "component_templates": ["RETRACT", "BIRTH"],
+  "retraction_target": {
+    "kind": "edge_version",
+    "version_id": "old-chair-location@v0"
+  },
+  "base_graph_version": "v0",
+  "operations": [
+    {
+      "op_id": "retract-old-location",
+      "op_type": "CLOSE_EDGE_VERSION",
+      "arguments": {"edge_id": "old-chair-location", "at": 5}
+    },
+    {
+      "op_id": "attach-negative-t3",
+      "op_type": "ATTACH_EVIDENCE",
+      "arguments": {
+        "target_kind": "edge",
+        "edge_version_id": "old-chair-location@v0",
+        "evidence_ref": "ev:C06:negative-left-t3"
+      }
+    },
+    {
+      "op_id": "attach-negative-t5",
+      "op_type": "ATTACH_EVIDENCE",
+      "arguments": {
+        "target_kind": "edge",
+        "edge_version_id": "old-chair-location@v0",
+        "evidence_ref": "ev:C06:negative-left-t5"
+      }
+    },
+    {
+      "op_id": "record-retraction",
+      "op_type": "RECORD_PROVENANCE",
+      "arguments": {
+        "target_kind": "edge",
+        "edge_version_id": "old-chair-location@v0",
+        "provenance_ref": "tx-C06-replace"
+      }
+    },
+    {
+      "op_id": "birth-new-chair",
+      "op_type": "CREATE_NODE",
+      "arguments": {
+        "node": {
+          "node_id": "chair-new",
+          "node_version_id": "chair-new@v0",
+          "node_type": "entity",
+          "lifecycle": "candidate",
+          "valid_from": 5,
+          "valid_to": null,
+          "evidence_refs": ["ev:C06:new-chair-t5"],
+          "latent_refs": ["latent:C06:new-chair"],
+          "canonical_id": null,
+          "predecessor_ids": [],
+          "provenance": ["tx-C06-replace"]
+        }
+      }
+    },
+    {
+      "op_id": "add-new-location",
+      "op_type": "ADD_EDGE",
+      "arguments": {
+        "edge": {
+          "edge_id": "new-chair-location",
+          "edge_version_id": "new-chair-location@v0",
+          "source": "chair-new",
+          "target": "place-right",
+          "relation": "located_at",
+          "frame": "world",
+          "valid_from": 5,
+          "valid_to": null,
+          "evidence_refs": ["ev:C06:new-chair-t5"],
+          "provenance": ["tx-C06-replace"]
+        }
+      }
+    }
+  ],
+  "evidence_refs": [
+    "ev:C06:negative-left-t3",
+    "ev:C06:negative-left-t5",
+    "ev:C06:new-chair-t5"
+  ],
+  "protected_ids": ["wall-protected"],
+  "declared_edit_cost": 2,
+  "declared_growth_cost": 1,
+  "proposer": "human_draft"
+}

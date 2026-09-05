@@ -1,0 +1,53 @@
+{
+  "schema_version": "cpmt-0.2",
+  "transaction_id": "tx-C07-retract-location",
+  "intent": "REVISE",
+  "template": "RETRACT",
+  "retraction_target": {
+    "kind": "edge_version",
+    "version_id": "chair-location@v0"
+  },
+  "base_graph_version": "v0",
+  "operations": [
+    {
+      "op_id": "close-old-location",
+      "op_type": "CLOSE_EDGE_VERSION",
+      "arguments": {"edge_id": "chair-location", "at": 7}
+    },
+    {
+      "op_id": "attach-negative-t5",
+      "op_type": "ATTACH_EVIDENCE",
+      "arguments": {
+        "target_kind": "edge",
+        "edge_version_id": "chair-location@v0",
+        "evidence_ref": "ev:C07:negative-t5"
+      }
+    },
+    {
+      "op_id": "attach-negative-t7",
+      "op_type": "ATTACH_EVIDENCE",
+      "arguments": {
+        "target_kind": "edge",
+        "edge_version_id": "chair-location@v0",
+        "evidence_ref": "ev:C07:negative-t7"
+      }
+    },
+    {
+      "op_id": "record-retraction",
+      "op_type": "RECORD_PROVENANCE",
+      "arguments": {
+        "target_kind": "edge",
+        "edge_version_id": "chair-location@v0",
+        "provenance_ref": "tx-C07-retract-location"
+      }
+    }
+  ],
+  "evidence_refs": [
+    "ev:C07:negative-t5",
+    "ev:C07:negative-t7"
+  ],
+  "protected_ids": ["wall-protected"],
+  "declared_edit_cost": 1,
+  "declared_growth_cost": 0,
+  "proposer": "human_draft"
+}

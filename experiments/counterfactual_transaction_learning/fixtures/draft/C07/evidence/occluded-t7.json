@@ -1,0 +1,17 @@
+{
+  "schema_version": "cpmt-0.2",
+  "evidence_id": "ev:C07:occluded-t7",
+  "episode_id": "episode:C07:001",
+  "time_index": 7,
+  "kind": "observation",
+  "source_refs": ["obs:C07:t7:left-occluded"],
+  "availability": "online",
+  "reliability": 1.0,
+  "claim_ref": "chair-location@v0",
+  "viewpoint_id": "view:C07:left-2",
+  "visibility": "occluded",
+  "pose_valid": true,
+  "depth_valid": true,
+  "verdict": "neutral",
+  "notes": "A second occluded view still cannot justify retraction."
+}

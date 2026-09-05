@@ -1,0 +1,26 @@
+{
+  "schema_version": "cpmt-0.2",
+  "case_id": "C08-permanent-topology-change-001",
+  "case_family": "C08",
+  "paired_group_id": "pair-topology-block-001",
+  "world_seed": 108,
+  "split": "draft",
+  "decision_time": 5,
+  "prior_graph_ref": "world.json",
+  "current_observation_refs": ["obs:C08:t5:portal-obstructed"],
+  "candidate_transaction_refs": [
+    "transactions/noop.json",
+    "transactions/relink.json"
+  ],
+  "oracle_equivalence": [["transactions/relink.json"]],
+  "future_evidence_refs": [
+    "future:C08:t6:boundary-persists",
+    "future:C08:t7:old-route-remains-closed"
+  ],
+  "protected_ids": ["wall-protected"],
+  "oracle_commit_action": "COMMIT",
+  "commit_decision_ref": null,
+  "pending_evidence_refs": [],
+  "status": "human_draft",
+  "exclusion_reason": null
+}

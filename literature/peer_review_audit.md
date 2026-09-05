@@ -1,5 +1,7 @@
 # 同行评审与引用用途审计
 
+> 2026-09-05 D-018 补充：第 5 节关于 affected-subgraph revision 的旧结论已被 CPMT/CTL 活动合同取代，保留为历史审计。当前创新边界见 notes/counterfactual_transaction_learning_landscape_2026.md；论文 venue 状态仍按本文的官方核验规则执行。
+
 审计日期：2026-08-28。
 
 本文件回答两个不同问题：

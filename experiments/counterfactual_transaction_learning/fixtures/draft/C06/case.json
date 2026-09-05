@@ -1,0 +1,23 @@
+{
+  "schema_version": "cpmt-0.2",
+  "case_id": "C06-replace-vs-relink-001",
+  "case_family": "C06",
+  "paired_group_id": "pair-relink-replace-001",
+  "world_seed": 106,
+  "split": "draft",
+  "decision_time": 5,
+  "prior_graph_ref": "world.json",
+  "current_observation_refs": ["obs:C06:t5:new-chair-right"],
+  "candidate_transaction_refs": [
+    "transactions/relink.json",
+    "transactions/replace.json"
+  ],
+  "oracle_equivalence": [["transactions/replace.json"]],
+  "future_evidence_refs": [
+    "future:C06:t6:new-identity-persists",
+    "future:C06:t7:old-identity-not-at-right"
+  ],
+  "protected_ids": ["wall-protected"],
+  "status": "human_draft",
+  "exclusion_reason": null
+}

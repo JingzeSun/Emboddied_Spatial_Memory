@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/embodied-memory/evidence_event.schema.json",
+  "title": "Evidence Event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "evidence_id", "episode_id", "time_index", "kind", "source_refs", "availability"],
+  "properties": {
+    "schema_version": {"const": "cpmt-0.2"},
+    "evidence_id": {"type": "string", "minLength": 1},
+    "episode_id": {"type": "string", "minLength": 1},
+    "time_index": {"type": "integer", "minimum": 0},
+    "kind": {"enum": ["observation", "visible_empty", "pose", "action", "annotation", "simulator_state"]},
+    "source_refs": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "availability": {"enum": ["online", "hindsight_train_only", "evaluation_only"]},
+    "reliability": {"type": "number", "minimum": 0, "maximum": 1},
+    "claim_ref": {"type": ["string", "null"]},
+    "viewpoint_id": {"type": ["string", "null"]},
+    "visibility": {
+      "enum": ["visible", "visible_empty", "occluded", "out_of_view", "unknown", null]
+    },
+    "pose_valid": {"type": ["boolean", "null"]},
+    "depth_valid": {"type": ["boolean", "null"]},
+    "verdict": {"enum": ["supports", "contradicts", "neutral", null]},
+    "notes": {"type": "string"}
+  }
+}

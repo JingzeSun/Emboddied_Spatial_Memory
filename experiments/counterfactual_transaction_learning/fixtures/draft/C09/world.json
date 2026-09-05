@@ -1,0 +1,76 @@
+{
+  "schema_version": "cpmt-0.2",
+  "graph_id": "world-C09-001",
+  "graph_version": "v0",
+  "parent_version": null,
+  "nodes": [
+    {
+      "node_id": "chair-1",
+      "node_version_id": "chair-1@v0",
+      "node_type": "entity",
+      "lifecycle": "confirmed",
+      "valid_from": 0,
+      "valid_to": null,
+      "evidence_refs": ["obs:C09:t0:chair-left"],
+      "latent_refs": ["latent:C09:chair"],
+      "canonical_id": null,
+      "predecessor_ids": [],
+      "provenance": ["fixture:C09"]
+    },
+    {
+      "node_id": "place-left",
+      "node_version_id": "place-left@v0",
+      "node_type": "place",
+      "lifecycle": "confirmed",
+      "valid_from": 0,
+      "valid_to": null,
+      "evidence_refs": ["map:C09:left"],
+      "latent_refs": ["latent:C09:left"],
+      "canonical_id": null,
+      "predecessor_ids": [],
+      "provenance": ["fixture:C09"]
+    },
+    {
+      "node_id": "place-right",
+      "node_version_id": "place-right@v0",
+      "node_type": "place",
+      "lifecycle": "confirmed",
+      "valid_from": 0,
+      "valid_to": null,
+      "evidence_refs": ["map:C09:right"],
+      "latent_refs": ["latent:C09:right"],
+      "canonical_id": null,
+      "predecessor_ids": [],
+      "provenance": ["fixture:C09"]
+    },
+    {
+      "node_id": "wall-protected",
+      "node_version_id": "wall-protected@v0",
+      "node_type": "surface",
+      "lifecycle": "confirmed",
+      "valid_from": 0,
+      "valid_to": null,
+      "evidence_refs": ["map:C09:wall"],
+      "latent_refs": ["latent:C09:wall"],
+      "canonical_id": null,
+      "predecessor_ids": [],
+      "provenance": ["fixture:C09"]
+    }
+  ],
+  "edges": [
+    {
+      "edge_id": "chair-location",
+      "edge_version_id": "chair-location@v0",
+      "source": "chair-1",
+      "target": "place-left",
+      "relation": "located_at",
+      "frame": "world",
+      "valid_from": 0,
+      "valid_to": null,
+      "evidence_refs": ["obs:C09:t0:chair-left"],
+      "provenance": ["fixture:C09"]
+    }
+  ],
+  "transaction_log": [],
+  "graph_hash": null
+}

@@ -1,0 +1,105 @@
+{
+  "schema_version": "cpmt-0.2",
+  "transaction_id": "tx-C05-merge",
+  "intent": "REVISE",
+  "template": "MERGE",
+  "base_graph_version": "v0",
+  "operations": [
+    {
+      "op_id": "assert-chair-a",
+      "op_type": "ASSERT_PRECONDITION",
+      "arguments": {
+        "kind": "node_lifecycle",
+        "node_id": "chair-a",
+        "allowed": ["confirmed"]
+      }
+    },
+    {
+      "op_id": "assert-chair-b",
+      "op_type": "ASSERT_PRECONDITION",
+      "arguments": {
+        "kind": "node_lifecycle",
+        "node_id": "chair-b",
+        "allowed": ["confirmed"]
+      }
+    },
+    {
+      "op_id": "close-chair-a",
+      "op_type": "CLOSE_NODE_VERSION",
+      "arguments": {"node_id": "chair-a", "at": 5}
+    },
+    {
+      "op_id": "record-chair-a",
+      "op_type": "RECORD_PROVENANCE",
+      "arguments": {
+        "target_kind": "node",
+        "node_version_id": "chair-a@v0",
+        "provenance_ref": "tx-C05-merge"
+      }
+    },
+    {
+      "op_id": "close-chair-b",
+      "op_type": "CLOSE_NODE_VERSION",
+      "arguments": {"node_id": "chair-b", "at": 5}
+    },
+    {
+      "op_id": "record-chair-b",
+      "op_type": "RECORD_PROVENANCE",
+      "arguments": {
+        "target_kind": "node",
+        "node_version_id": "chair-b@v0",
+        "provenance_ref": "tx-C05-merge"
+      }
+    },
+    {
+      "op_id": "open-canonical-chair-a",
+      "op_type": "OPEN_NODE_VERSION",
+      "arguments": {
+        "node": {
+          "node_id": "chair-a",
+          "node_version_id": "chair-a@v1",
+          "node_type": "entity",
+          "lifecycle": "confirmed",
+          "valid_from": 5,
+          "valid_to": null,
+          "evidence_refs": [
+            "obs:C05:t0:chair-a",
+            "obs:C05:t2:chair-b",
+            "obs:C05:t5:same-chair"
+          ],
+          "latent_refs": [
+            "latent:C05:chair-a",
+            "latent:C05:chair-b"
+          ],
+          "canonical_id": null,
+          "predecessor_ids": ["chair-a@v0", "chair-b@v0"],
+          "provenance": ["tx-C05-merge"]
+        }
+      }
+    },
+    {
+      "op_id": "open-chair-b-alias",
+      "op_type": "OPEN_NODE_VERSION",
+      "arguments": {
+        "node": {
+          "node_id": "chair-b",
+          "node_version_id": "chair-b@v1",
+          "node_type": "entity",
+          "lifecycle": "alias",
+          "valid_from": 5,
+          "valid_to": null,
+          "evidence_refs": [],
+          "latent_refs": [],
+          "canonical_id": "chair-a",
+          "predecessor_ids": ["chair-b@v0"],
+          "provenance": ["tx-C05-merge"]
+        }
+      }
+    }
+  ],
+  "evidence_refs": ["obs:C05:t5:same-chair"],
+  "protected_ids": ["wall-protected"],
+  "declared_edit_cost": 2,
+  "declared_growth_cost": 0,
+  "proposer": "human_draft"
+}

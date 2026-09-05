@@ -3,6 +3,8 @@
 ## 本轮综合
 
 - [跨论文综合与研究建议](00_cross_paper_synthesis.md)
+- [CPMT/CTL novelty landscape（updated 2026-09-05）](counterfactual_transaction_learning_landscape_2026.md)
+- [顶级论文的增量创新对照](top_venue_incremental_novelty_audit_2026.md)
 
 ## 精读笔记
 

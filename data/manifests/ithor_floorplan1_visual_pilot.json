@@ -1,0 +1,45 @@
+{
+  "schema_version": "cpmt-data-manifest-0.1",
+  "dataset_id": "ithor-floorplan1-visual-pilot",
+  "status": "development_interface_only",
+  "source": {
+    "name": "AI2-THOR iTHOR built-in scene",
+    "scene": "FloorPlan1",
+    "ai2thor_version": "5.0.0",
+    "build_platform": "Linux64",
+    "build_commit": "f0825767cd50d69f666c7f282e54abfe58f1e917"
+  },
+  "allowed_use": [
+    "M1-development render compatibility",
+    "single-room geometry and teacher interface audit"
+  ],
+  "formal_use_authorized": false,
+  "formal_use_blockers": [
+    "license review not yet recorded as complete",
+    "paired split is only a pre-test lock candidate and not frozen"
+  ],
+  "human_interface_review": {
+    "status": "accepted_for_protocol_design_only",
+    "date": "2026-09-06",
+    "scope": "three visual cases and BIND/BIRTH/RELINK semantics; not formal dataset authorization"
+  },
+  "test_access": false,
+  "online_future_access": false,
+  "successful_smoke_runs": [
+    "outputs/visual_pilot/visual-pilot-20260905T130051837230Z",
+    "outputs/visual_pilot/visual-pilot-20260905T132417551777Z"
+  ],
+  "known_failed_runs": [
+    "outputs/visual_pilot/visual-pilot-20260905T125312025514Z",
+    "outputs/visual_pilot/visual-pilot-20260905T132652101300Z",
+    "outputs/visual_pilot/visual-pilot-20260905T133032219967Z",
+    "outputs/visual_pilot/visual-pilot-20260905T133741461861Z"
+  ],
+  "successful_three_case_runs": [
+    "outputs/visual_pilot/visual-pilot-20260905T133934890249Z"
+  ],
+  "superseded_development_runs": [
+    "outputs/visual_pilot/visual-pilot-20260905T133154289338Z"
+  ],
+  "notes": "The CloudRendering/Vulkan attempt failed. Linux64/GLX rendered successfully. The superseded run exposed poor target framing and a redundant-RELINK legality gap; it remains retained as an audit artifact. Host crash diagnosis remains separate from data validity."
+}

@@ -1,0 +1,13 @@
+{
+  "schema_version": "cpmt-0.2",
+  "transaction_id": "tx-C09-noop-pose-fault",
+  "intent": "PRESERVE",
+  "template": "NOOP",
+  "base_graph_version": "v0",
+  "operations": [],
+  "evidence_refs": ["obs:C09:t5:chair-misaligned"],
+  "protected_ids": ["wall-protected"],
+  "declared_edit_cost": 0,
+  "declared_growth_cost": 0,
+  "proposer": "human_draft"
+}

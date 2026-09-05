@@ -1,5 +1,7 @@
 # 文献综合：从 Memory Construction 到 Scoped Belief Revision
 
+> D-018 状态说明（2026-09-05）：本文的文献事实与 prior-work 比较继续保留，但“Scoped Belief Revision / affected scope”不再是活动主方法。当前完整系统是 CPMT，核心学习机制 CTL；需额外审计 typed transaction、sandbox execution、post-edit future evaluation 和 online future leakage。
+
 > 方向版本：D-013 accepted
 > 更新日期：2026-08-28
 > 旧综合：`../../docs/archive/pre_d008/literature/00_cross_paper_synthesis.md`

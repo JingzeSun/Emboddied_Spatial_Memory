@@ -1,0 +1,19 @@
+schema_version: cpmt-0.2
+case_id: C01_example_draft
+case_family: C01
+paired_group_id: pair_reappearance_001
+world_seed: 1
+split: draft
+decision_time: 4
+prior_graph_ref: fixtures/C01_example/prior_graph.json
+current_observation_refs:
+  - fixtures/C01_example/observations/t004_region.json
+candidate_transaction_refs:
+  - fixtures/C01_example/transactions/bind.json
+  - fixtures/C01_example/transactions/birth.json
+oracle_equivalence: []
+future_evidence_refs:
+  - fixtures/C01_example/evidence/t005.json
+protected_ids: [node_room_unrelated]
+status: human_draft
+exclusion_reason: null

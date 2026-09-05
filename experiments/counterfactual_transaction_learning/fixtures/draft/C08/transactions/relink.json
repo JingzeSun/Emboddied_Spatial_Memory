@@ -1,0 +1,51 @@
+{
+  "schema_version": "cpmt-0.2",
+  "transaction_id": "tx-C08-relink-topology",
+  "intent": "REVISE",
+  "template": "RELINK",
+  "base_graph_version": "v0",
+  "operations": [
+    {
+      "op_id": "assert-old-route",
+      "op_type": "ASSERT_PRECONDITION",
+      "arguments": {"kind": "edge_exists", "edge_id": "portal-route"}
+    },
+    {
+      "op_id": "close-old-route",
+      "op_type": "CLOSE_EDGE_VERSION",
+      "arguments": {"edge_id": "portal-route", "at": 5}
+    },
+    {
+      "op_id": "record-old-route",
+      "op_type": "RECORD_PROVENANCE",
+      "arguments": {
+        "target_kind": "edge",
+        "edge_version_id": "portal-route@v0",
+        "provenance_ref": "tx-C08-relink-topology"
+      }
+    },
+    {
+      "op_id": "open-new-route",
+      "op_type": "ADD_EDGE",
+      "arguments": {
+        "edge": {
+          "edge_id": "portal-route",
+          "edge_version_id": "portal-route@v1",
+          "source": "portal-1",
+          "target": "sealed-boundary",
+          "relation": "leads_to",
+          "frame": "world",
+          "valid_from": 5,
+          "valid_to": null,
+          "evidence_refs": ["obs:C08:t5:portal-obstructed"],
+          "provenance": ["tx-C08-relink-topology"]
+        }
+      }
+    }
+  ],
+  "evidence_refs": ["obs:C08:t5:portal-obstructed"],
+  "protected_ids": ["wall-protected"],
+  "declared_edit_cost": 1,
+  "declared_growth_cost": 0,
+  "proposer": "human_draft"
+}

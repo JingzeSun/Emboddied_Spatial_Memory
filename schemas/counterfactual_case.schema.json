@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/embodied-memory/counterfactual_case.schema.json",
+  "title": "Counterfactual Case",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "case_id", "case_family", "paired_group_id", "world_seed", "split", "decision_time", "prior_graph_ref", "current_observation_refs", "candidate_transaction_refs", "oracle_equivalence", "future_evidence_refs", "protected_ids", "status"],
+  "properties": {
+    "schema_version": {"const": "cpmt-0.2"},
+    "case_id": {"type": "string", "minLength": 1},
+    "case_family": {"enum": ["C00", "C01", "C02", "C03", "C04", "C05", "C06", "C07", "C08", "C09", "C10", "C11"]},
+    "paired_group_id": {"type": "string", "minLength": 1},
+    "world_seed": {"type": "integer", "minimum": 0},
+    "split": {"enum": ["draft", "train", "validation", "test", "external"]},
+    "decision_time": {"type": "integer", "minimum": 0},
+    "prior_graph_ref": {"type": "string", "minLength": 1},
+    "current_observation_refs": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "candidate_transaction_refs": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "oracle_equivalence": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "minItems": 1,
+        "items": {"type": "string", "minLength": 1}
+      }
+    },
+    "future_evidence_refs": {"type": "array", "items": {"type": "string"}},
+    "protected_ids": {"type": "array", "items": {"type": "string"}},
+    "oracle_commit_action": {
+      "enum": ["COMMIT", "QUARANTINE", null]
+    },
+    "commit_decision_ref": {"type": ["string", "null"]},
+    "pending_evidence_refs": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "status": {"enum": ["human_draft", "confirmed_ground_truth", "ambiguous", "excluded"]},
+    "exclusion_reason": {"type": ["string", "null"]}
+  }
+}

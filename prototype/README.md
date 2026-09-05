@@ -1,38 +1,19 @@
-# Prototype Artifacts
+# Prototype and Source Artifacts
 
-本目录保存原型图与数据集方案 source artifacts，不覆盖、不删除。
+本目录中的原始图、PDF、旧汇报和导师材料记录研究演化，**不覆盖、不删除**。它们不是当前活动方法合同。
 
-## Pre-D008 原型
+已知来源包括早期透视结构/slot 图、动态行人干扰图、spatial_memory_dataset_plan.pdf、notes.txt，以及多版 dynamic_spatial_revision_report。旧版主要描述 pre-D008、PSLM 或 affected-subgraph revision；冲突时以根目录 EXECUTE.md 和 CPMT/CTL contract 为准。
 
-- `intro.png`：旧研究动机、核心思想和总体流程；
-- `tech_stack.png`：旧技术栈；
-- `faa2063f-3b17-42a4-b69a-06bed562b498.png`：透视结构区域与 slot 示例；
-- `d94b8f8b-74ab-4317-b876-f93e568bbbd8.png`：动态行人干扰和双记忆更新；
-- `spatial_memory_dataset_plan.pdf`：旧数据、MVP、episode、指标和消融方案。
+## 新图只允许新增
 
-这些材料记录构思演化，目前状态为 **pre-D008 source artifacts / superseded as active contract**。内容与现行 `docs/01_research_contract.md` 或 `docs/03_pilot_protocol.md` 冲突时，以当前合同为准。
+后续 CPMT 方法图应使用新文件名和日期，至少展示：
 
-## 新架构图要求
+1. observation regions 与 persistent world graph 分离；
+2. 两级 intent/template transaction candidates；
+3. 从同一 base version 分叉的 clone/execute；
+4. post-edit world 的 action-conditioned future projection；
+5. hindsight rank 与无未来 online updater；
+6. provenance/rollback 与 protected graph；
+7. A vs C 硬条件对比。
 
-后续图必须显示：
-
-1. ObservationGraph 与 projected old belief；
-2. pose-aware structured innovation；
-3. affected/control subgraph 与 propagation stop boundary；
-4. typed ContextDelta 和 versioned executor；
-5. SceneBelief、ActiveContext、PersistentWorldMemory；
-6. stationary person 与 chair relocation/absence 两类案例。
-
-新图使用新文件名和版本日期，不覆盖旧图。
-
-## 当前汇报辅助材料
-
-- `dynamic_spatial_revision_report_v0_1.pptx`：旧版汇报留存，由 `.gitignore` 忽略；
-- `dynamic_spatial_revision_report_v0_3.pptx`：文献基础与方法蓝图初次重构版，由 `.gitignore` 忽略；
-- `dynamic_spatial_revision_report_v0_4.pptx`：加入 FARM 现实差异例子与论文式双层方法图的上一版，由 `.gitignore` 忽略；
-- `dynamic_spatial_revision_report_v0_5.pptx`：将方法图改为导师可顺讲的主链和六路状态解释，并移除汇报 WBS 页的上一版，由 `.gitignore` 忽略；
-- `dynamic_spatial_revision_report_v0_6.pptx`：新增 oracle pilot、E0–E4、机制基线、指标和 Go/No-Go 的上一版，由 `.gitignore` 忽略；
-- `dynamic_spatial_revision_report_v0_7.pptx`：将第 13–17 页和实验合同改为现实场景优先、人话解释优先的当前版，由 `.gitignore` 忽略；
-- [`dynamic_spatial_revision_report_speaker_guide.md`](dynamic_spatial_revision_report_speaker_guide.md)：术语、人话定义、WBS 执行动作、R1 示例和导师追问口头回答。
-
-汇报辅助材料是现行合同的解释层，不是新的研究合同；v0.7 与重写后的 `docs/03_pilot_protocol.md` 均先解释实验为什么做，再保留正式术语，不代表已经实现或获得结果。D-016 六条判题规则确认前不能产生训练 ground truth。冲突时以 `EXECUTE.md` 与 `docs/01–05` 为准。
+PPT、PNG 和 PDF 是解释/汇报产物，不等同于实现或验证证据。

@@ -1,0 +1,23 @@
+{
+  "protocol": "m1-trainability-ladder-v1",
+  "stage": "M1-development",
+  "formal_run": false,
+  "test_access": false,
+  "seed": 7,
+  "max_train_paired_groups": 10,
+  "validation_paired_groups": 4,
+  "optimization_curve": [
+    {"train_paired_groups": 4, "student_steps": 1000},
+    {"train_paired_groups": 10, "student_steps": 60},
+    {"train_paired_groups": 10, "student_steps": 300},
+    {"train_paired_groups": 10, "student_steps": 1000}
+  ],
+  "label_rich_capacity": {
+    "method": "direct_classifier",
+    "train_paired_groups": 4,
+    "label_fraction": 1.0,
+    "student_steps": [60, 300, 1000, 3000],
+    "identifiable_accuracy_required": 0.99,
+    "ceiling_gap_allowed": 0.02
+  }
+}

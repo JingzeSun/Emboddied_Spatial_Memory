@@ -1,0 +1,25 @@
+{
+  "schema_version": "cpmt-0.2",
+  "case_id": "C09-pose-depth-fault-001",
+  "case_family": "C09",
+  "paired_group_id": "pair-pose-edit-001",
+  "world_seed": 109,
+  "split": "draft",
+  "decision_time": 5,
+  "prior_graph_ref": "world.json",
+  "current_observation_refs": ["obs:C09:t5:chair-misaligned"],
+  "candidate_transaction_refs": [
+    "transactions/noop.json",
+    "transactions/relink.json"
+  ],
+  "oracle_equivalence": [["transactions/noop.json"]],
+  "future_evidence_refs": [
+    "future:C09:t6:pose-recovery-restores-left"
+  ],
+  "protected_ids": ["wall-protected"],
+  "oracle_commit_action": "COMMIT",
+  "commit_decision_ref": null,
+  "pending_evidence_refs": [],
+  "status": "human_draft",
+  "exclusion_reason": null
+}

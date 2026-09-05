@@ -1,0 +1,13 @@
+{
+  "schema_version": "cpmt-0.2",
+  "transaction_id": "tx-C08-noop-temporary-block",
+  "intent": "PRESERVE",
+  "template": "NOOP",
+  "base_graph_version": "v0",
+  "operations": [],
+  "evidence_refs": ["obs:C08:t5:portal-obstructed"],
+  "protected_ids": ["wall-protected"],
+  "declared_edit_cost": 0,
+  "declared_growth_cost": 0,
+  "proposer": "human_draft"
+}

@@ -1,0 +1,17 @@
+{
+  "schema_version": "cpmt-0.2",
+  "evidence_id": "ev:C07:negative-t5",
+  "episode_id": "episode:C07:001",
+  "time_index": 5,
+  "kind": "visible_empty",
+  "source_refs": ["obs:C07:t5:left-empty"],
+  "availability": "online",
+  "reliability": 1.0,
+  "claim_ref": "chair-location@v0",
+  "viewpoint_id": "view:C07:left-1",
+  "visibility": "visible_empty",
+  "pose_valid": true,
+  "depth_valid": true,
+  "verdict": "contradicts",
+  "notes": "Oracle M0 visible-empty evidence; not a tuned threshold."
+}

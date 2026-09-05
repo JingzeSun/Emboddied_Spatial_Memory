@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/embodied-memory/pending_memory.schema.json",
+  "title": "CPMT Pending Memory",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "store_id", "store_version", "records"],
+  "properties": {
+    "schema_version": {"const": "cpmt-0.2"},
+    "store_id": {"type": "string", "minLength": 1},
+    "store_version": {"type": "integer", "minimum": 0},
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "pending_id",
+          "status",
+          "created_at",
+          "updated_at",
+          "evidence",
+          "retrieval",
+          "decision_history",
+          "relevant_opportunity_ids",
+          "opportunity_cycle",
+          "opportunity_history",
+          "archive_history",
+          "reactivation_count",
+          "effective_support",
+          "consumed_at",
+          "consumed_by_transaction",
+          "provenance"
+        ],
+        "properties": {
+          "pending_id": {"type": "string", "minLength": 1},
+          "status": {
+            "enum": ["active_pending", "archived_unresolved", "consumed"]
+          },
+          "created_at": {"type": "integer", "minimum": 0},
+          "updated_at": {"type": "integer", "minimum": 0},
+          "evidence": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "evidence_id",
+                "time_index",
+                "viewpoint_id",
+                "latent_ref",
+                "spatial_ref",
+                "semantic_hints",
+                "reliability",
+                "independence_weight",
+                "decision_weight",
+                "visibility",
+                "pose_valid",
+                "depth_valid"
+              ],
+              "properties": {
+                "evidence_id": {"type": "string", "minLength": 1},
+                "time_index": {"type": "integer", "minimum": 0},
+                "viewpoint_id": {"type": ["string", "null"]},
+                "latent_ref": {"type": ["string", "null"]},
+                "spatial_ref": {"type": ["string", "null"]},
+                "semantic_hints": {
+                  "type": "array",
+                  "items": {"type": "string", "minLength": 1},
+                  "uniqueItems": true
+                },
+                "reliability": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "independence_weight": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "decision_weight": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "visibility": {
+                  "enum": [
+                    "visible",
+                    "visible_empty",
+                    "occluded",
+                    "out_of_view",
+                    "unknown",
+                    null
+                  ]
+                },
+                "pose_valid": {"type": ["boolean", "null"]},
+                "depth_valid": {"type": ["boolean", "null"]}
+              }
+            }
+          },
+          "retrieval": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["latent_refs", "spatial_refs", "semantic_hints"],
+            "properties": {
+              "latent_refs": {
+                "type": "array",
+                "items": {"type": "string", "minLength": 1},
+                "uniqueItems": true
+              },
+              "spatial_refs": {
+                "type": "array",
+                "items": {"type": "string", "minLength": 1},
+                "uniqueItems": true
+              },
+              "semantic_hints": {
+                "type": "array",
+                "items": {"type": "string", "minLength": 1},
+                "uniqueItems": true
+              }
+            }
+          },
+          "decision_history": {
+            "type": "array",
+            "minItems": 1,
+            "items": {"type": "object"}
+          },
+          "relevant_opportunity_ids": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1},
+            "uniqueItems": true
+          },
+          "opportunity_cycle": {"type": "integer", "minimum": 0},
+          "opportunity_history": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["opportunity_id", "at", "cycle"],
+              "properties": {
+                "opportunity_id": {"type": "string", "minLength": 1},
+                "at": {"type": "integer", "minimum": 0},
+                "cycle": {"type": "integer", "minimum": 0}
+              }
+            }
+          },
+          "archive_history": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["at", "cycle", "reason"],
+              "properties": {
+                "at": {"type": "integer", "minimum": 0},
+                "cycle": {"type": "integer", "minimum": 0},
+                "reason": {"const": "opportunity_budget_exhausted"}
+              }
+            }
+          },
+          "reactivation_count": {"type": "integer", "minimum": 0},
+          "effective_support": {"type": "number", "minimum": 0},
+          "consumed_at": {"type": ["integer", "null"], "minimum": 0},
+          "consumed_by_transaction": {"type": ["string", "null"]},
+          "provenance": {
+            "type": "array",
+            "minItems": 1,
+            "items": {"type": "string", "minLength": 1}
+          }
+        }
+      }
+    }
+  }
+}

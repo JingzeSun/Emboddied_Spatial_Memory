@@ -1,5 +1,7 @@
 # 文献工作流
 
+> D-018 更新：完整方法是 embodied-first CPMT，核心学习机制是 CTL。每篇近邻工作必须核查：是否生成 typed transaction programs、是否在 cloned graph 上真实执行、是否用 future evidence 评价 post-edit world、是否保留版本/rollback、online inference 是否读取未来。详见 notes/counterfactual_transaction_learning_landscape_2026.md。
+
 `library.csv` 是唯一机器文献索引；PDF 文件名不是知识管理系统。同行评审准入见 [`peer_review_audit.md`](peer_review_audit.md)。
 
 ## 两条独立状态

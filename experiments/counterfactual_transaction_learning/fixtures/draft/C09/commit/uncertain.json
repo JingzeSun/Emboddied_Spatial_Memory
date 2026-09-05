@@ -1,0 +1,21 @@
+{
+  "schema_version": "cpmt-0.2",
+  "decision_id": "decision:C09:t5:uncertain",
+  "at": 5,
+  "candidate_posteriors": {
+    "transactions/noop.json": 0.52,
+    "transactions/relink.json": 0.48
+  },
+  "commit_probability": 0.7,
+  "margin_threshold": 0.15,
+  "action": "QUARANTINE",
+  "selected_candidate_id": null,
+  "top_candidate_id": "transactions/noop.json",
+  "top_probability": 0.52,
+  "runner_up_probability": 0.48,
+  "margin": 0.04,
+  "reasons": [
+    "top_probability_below_gate",
+    "top_two_margin_below_gate"
+  ]
+}

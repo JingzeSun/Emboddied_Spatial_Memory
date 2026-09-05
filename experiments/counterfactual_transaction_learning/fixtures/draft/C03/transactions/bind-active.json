@@ -1,0 +1,41 @@
+{
+  "schema_version": "cpmt-0.2",
+  "transaction_id": "tx-C03-bind-active",
+  "intent": "ASSOCIATE",
+  "template": "BIND",
+  "base_graph_version": "v0",
+  "operations": [
+    {
+      "op_id": "assert-active-bindable",
+      "op_type": "ASSERT_PRECONDITION",
+      "arguments": {
+        "kind": "node_lifecycle",
+        "node_id": "chair-active",
+        "allowed": ["candidate", "confirmed"]
+      }
+    },
+    {
+      "op_id": "attach-current-evidence",
+      "op_type": "ATTACH_EVIDENCE",
+      "arguments": {
+        "target_kind": "node",
+        "target_id": "chair-active",
+        "evidence_ref": "obs:C03:t10:chair"
+      }
+    },
+    {
+      "op_id": "record-bind",
+      "op_type": "RECORD_PROVENANCE",
+      "arguments": {
+        "target_kind": "node",
+        "target_id": "chair-active",
+        "provenance_ref": "tx-C03-bind-active"
+      }
+    }
+  ],
+  "evidence_refs": ["obs:C03:t10:chair"],
+  "protected_ids": ["wall-protected"],
+  "declared_edit_cost": 0.25,
+  "declared_growth_cost": 0,
+  "proposer": "human_draft"
+}

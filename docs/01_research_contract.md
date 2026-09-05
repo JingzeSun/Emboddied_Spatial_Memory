@@ -1,143 +1,65 @@
-# 01 — 研究合同：问题、概念与论文边界
+# 01 CPMT 研究合同
 
-> 状态：`accepted research contract / not implemented / not validated`
+定位：已确认的研究问题与拟验证假设，不维护实现进度；当前实现、实验结果与未完成项统一见 [实验记录](../EXECUTE.md)。
 
-本文只回答五件事：研究什么、为什么不是旧问题、核心概念是什么、论文能主张什么、怎样被反驳。
+## 研究问题
 
-## 1. 研究问题
+在部分可观测、视角持续改变且世界可能真实变化的环境中，机器人如何从序列本身学习：当前结构证据应当绑定已有节点、扩张世界，还是修订既有事实，同时避免视角、遮挡和位姿误差污染长期记忆？
 
-> 当当前观测与已有空间信念发生结构化差异时，智能体如何结合 pose、visibility 和 identity evidence，只修订真正受影响的节点与关系，完成必要传播，并在无关边界停止？
+## 唯一主假设
 
-## 2. 现有工作的缺口
+与直接预测 transaction label 或增加 future auxiliary loss 相比，先在同一旧图的版本副本上执行竞争性 transaction programs，再用当前与未来投影一致性评价执行后世界，能够产生更可靠的 hindsight supervision；由此蒸馏的 online updater 能减少长期 world-graph contamination。
 
-现有工作已经覆盖：
+## 方法角色
 
-- posed RGB-D 的在线对象/场景图构建；
-- 动态对象、长短期记忆和持久对象状态；
-- selective attention/read；
-- 关系谓词查询、同类候选 soft ranking 和 top-K；
-- 全局或片段级场景协调。
+- CPMT：完整具身空间记忆系统；
+- CTL：从 future-conditioned transaction posterior 蒸馏 online transaction policy 的核心学习机制；
+- Projective Node Orbit：使同一世界节点解释多视角 observation latents 的表征基础；
+- Versioned Deterministic Executor：使候选解释成为真实 graph interventions 的执行基础。
 
-它们不等于本项目要检验的四个问题：
+主创新只归于 CTL 的 executable counterfactual supervision。表征与 executor 是否构成额外贡献，必须由独立消融决定，不能预先宣称。
 
-1. 新证据应触发什么 typed world edit？
-2. 哪些旧关系必须随状态改变而更新？
-3. 哪些无关旧事实必须保持？
-4. 传播依据什么停止，旧版本如何追溯？
+## 拟议 claim
 
-FARM 已覆盖 online object memory、relational retrieval 和 top-K，当前仅作 preprint novelty watch/基线；不能把这些能力包装成本项目创新。正式文献边界见 `literature/peer_review_audit.md` 和 `literature/notes/farm_2026_DEEP.md`。
+> CPMT learns online persistent-memory revision from a hindsight posterior over executable world transactions, evaluated by current and future projective consistency under a minimal-world-change prior.
 
-## 3. 核心方法
+这里的 counterfactual 是对内部 memory state 的干预，不是物理世界因果效应。
 
-**Pose-Aware Structured Innovation + Affected-Subgraph Revision**
+## 事务范围
 
-```text
-current frame/depth/pose
-        ↓
-ObservationGraph
-        +
-ProjectExpectedObservation(SceneBelief, pose)
-        ↓
-Structured Innovation
-        ↓
-affected seed → allowed dependency propagation → stop boundary
-        ↓
-typed ContextDelta
-        ↓
-deterministic versioned executor
-        ↓
-new SceneBelief version
-```
+主要意图：
 
-### 3.1 Structured Innovation
+- PRESERVE：NOOP；
+- ASSOCIATE：BIND / REACTIVATE；
+- EXPAND：BIRTH；
+- REVISE：RELINK / RETRACT / SPLIT / MERGE。
 
-同时输出 observation evidence category 和状态路径：
+REPLACE 是 RETRACT+BIRTH 的复合程序。QUARANTINE 是低置信度 wrapper，不属于 world mutation。
 
-- evidence：`matched/new/occluded/reliably_absent/conflict/ambiguous/sensor_inconsistent`；
-- mode：`reinforcement/graph_expansion/belief_revision/visibility_update/association_ambiguity/sensor_inconsistency`。
+## 首篇边界
 
-“看到新东西”不自动等于“纠正旧世界”。
+固定 DINO-family backbone、depth、pose、region proposals 和 deterministic candidate generator。禁止把 active disambiguation、第二任务领域、learned proposer、端到端视觉训练或导航同时并入。
 
-### 3.2 Affected-Subgraph Revision
+## 成功条件
 
-控制器输出：
+1. M1 的 CPMT-CTL Core 在预注册 paired cases 上优于 direct+future-loss 与 no-execution future scorer；
+2. 改善落在 post-execution graph correctness 和 long-horizon contamination；
+3. growth、collateral edit、protected violation 和 illegal program 不恶化；
+4. candidate miss、hindsight teacher error、online amortization error 分开报告；
+5. SPLIT/MERGE/RETRACT 有正例并由同一 executor 处理；
+6. teacher 优势能部分保留到 online self-rollout。
 
-- affected nodes/edges；
-- control nodes/edges；
-- typed operators；
-- propagation stop edges；
-- confidence、evidence 和 provenance。
+## 失败解释
 
-executor 只执行合法 typed delta，不允许 LLM 自由文本直接改图。
+- Full≈direct+future：核心机制失败，不能称 CPMT 学习贡献；
+- Full≈no-execution：真实执行候选不是必要条件；
+- 只有 Node Orbit 有效：降级为 representation work；
+- 只有 oracle/executor 有效：降级为 deterministic memory system；
+- candidate coverage 低：先修候选，不评价 scorer；
+- 只有单步准确率改善：不能声称 persistent memory 改善。
 
-## 4. 四个核心概念
+## 证据顺序
 
-| 概念 | 操作性定义 | 核心指标 | 不解决什么 |
-|---|---|---|---|
-| 动态冲突修订 | 可靠新证据反驳旧状态时产生 typed delta | target graph correctness | 静态对象检索 |
-| 版本链 | 保存 valid interval、supersedes 和 evidence | version/provenance validity | top-K 历史 |
-| 受影响关系传播 | 沿许可依赖完成必要后果 | required propagation recall | attention 读取范围 |
-| 停止边界 | 显式限制无依据传播 | collateral revision/control preservation | token 数量压缩 |
+M0 executor fixtures → M1 hard-condition → M2 embodied visual self-rollout → M3 one external/real validation。
 
-## 5. 四层状态
-
-| 状态 | 只负责 | 禁止 |
-|---|---|---|
-| ObservationGraph | 当前帧及 camera-relative evidence | 充当长期事实 |
-| SceneBelief | 当前多假设、版本化世界信念 | 无证据原地覆盖历史 |
-| ActiveContext | 任务/路线/对话下的候选读取视图 | 删除未选世界实例 |
-| PersistentWorldMemory | 已巩固的长期版本 | 接收未验证 top-1 猜测 |
-
-graph expansion 写入新 candidate 和 attachment；belief revision 关闭/替换旧版本；ActiveContext 只改变候选排序。
-
-## 6. 论文范围
-
-### P0 核心
-
-- relocation；
-- reliable absence with unknown destination；
-- occlusion/out-of-FOV preservation；
-- operator-specific relation propagation；
-- irrelevant innovation 与 stop boundary；
-- versioned deterministic execution。
-
-### P1 边界/扩展
-
-- corner reveal 的 graph attachment；
-- two-box route/dialogue ActiveContext；
-- FARM-style mapper/retrieval interface。
-
-P1 可以验证系统边界，但不与 P0 并列为主贡献。
-
-### 暂不做
-
-- 完整导航闭环；
-- learned Chart/Place split/merge；
-- 跨人的生物身份 re-ID；
-- RGB reconstruction；
-- 无约束图编辑；
-- 以更大 backbone 代替机制验证。
-
-## 7. 可检验主张
-
-| Claim | 必须比较 | 支持证据 | 直接反证 |
-|---|---|---|---|
-| structured innovation 比标量变化分数更可修订 | scalar residual | 事件分型与校准 | 无稳定提升或标签不可区分 |
-| affected scope 完成必要关系后果 | local matched-slot | propagation recall | 与 local-slot 无差异 |
-| stop boundary 保护无关事实 | full graph | collateral/control preservation | 无关修改不下降 |
-| versioning 正确表达动态状态 | in-place overwrite | relocation/absence/occlusion invariant | 历史不可追溯或语义混淆 |
-| 局部修订有实际成本价值 | full recomputation | latency/memory/edit ratio | 全图同样便宜稳定 |
-
-任何失败 claim 都必须删除、降级或重新定义；不能只换模型继续保留原结论。
-
-## 8. 几何与关系不变量
-
-- pose 使用 `T_world_camera`，变换方向必须显式；
-- camera motion 与 world change 分开；
-- Vanishing Point 是观测线索，不是长期坐标；
-- Chart/Place 是稳定检索与传播边界；
-- 方向关系必须有 reference frame；camera-relative left/right 默认不持久化；
-- `unknown` 不得变成虚构位置；
-- 静止时长不改变 actor ontology。
-
-下一步只读 [`02_scenario_wbs.md`](02_scenario_wbs.md)。
+任何阶段均区分 planned、implemented、validated、failed。数值 gate 在正式 test 前冻结。

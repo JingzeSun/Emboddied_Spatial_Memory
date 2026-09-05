@@ -1,0 +1,24 @@
+{
+  "schema_version": "cpmt-0.2",
+  "case_id": "C00-ego-motion-001",
+  "case_family": "C00",
+  "paired_group_id": "pair-view-change-001",
+  "world_seed": 100,
+  "split": "draft",
+  "decision_time": 5,
+  "prior_graph_ref": "world.json",
+  "current_observation_refs": ["obs:C00:t5:chair"],
+  "candidate_transaction_refs": [
+    "transactions/noop.json",
+    "transactions/relink.json",
+    "transactions/birth.json"
+  ],
+  "oracle_equivalence": [["transactions/noop.json"]],
+  "future_evidence_refs": [
+    "future:C00:t6:same-left-anchor",
+    "future:C00:t7:parallax-consistent"
+  ],
+  "protected_ids": ["wall-protected"],
+  "status": "human_draft",
+  "exclusion_reason": null
+}

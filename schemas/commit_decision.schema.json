@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/embodied-memory/commit_decision.schema.json",
+  "title": "Deterministic Commit Decision",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "decision_id",
+    "at",
+    "candidate_posteriors",
+    "commit_probability",
+    "margin_threshold",
+    "action",
+    "selected_candidate_id",
+    "top_candidate_id",
+    "top_probability",
+    "runner_up_probability",
+    "margin",
+    "reasons"
+  ],
+  "properties": {
+    "schema_version": {"const": "cpmt-0.2"},
+    "decision_id": {"type": "string", "minLength": 1},
+    "at": {"type": "integer", "minimum": 0},
+    "candidate_posteriors": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1
+      }
+    },
+    "commit_probability": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "margin_threshold": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "action": {"enum": ["COMMIT", "QUARANTINE"]},
+    "selected_candidate_id": {"type": ["string", "null"]},
+    "top_candidate_id": {"type": "string", "minLength": 1},
+    "top_probability": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "runner_up_probability": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "margin": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "reasons": {
+      "type": "array",
+      "items": {
+        "enum": ["top_probability_below_gate", "top_two_margin_below_gate"]
+      },
+      "uniqueItems": true
+    }
+  }
+}

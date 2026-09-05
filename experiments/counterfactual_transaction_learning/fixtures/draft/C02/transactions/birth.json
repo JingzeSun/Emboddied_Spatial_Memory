@@ -1,0 +1,38 @@
+{
+  "schema_version": "cpmt-0.2",
+  "transaction_id": "tx-C02-birth",
+  "intent": "EXPAND",
+  "template": "BIRTH",
+  "base_graph_version": "v0",
+  "operations": [
+    {
+      "op_id": "assert-new-id",
+      "op_type": "ASSERT_PRECONDITION",
+      "arguments": {"kind": "node_absent", "node_id": "cup-2"}
+    },
+    {
+      "op_id": "create-cup-2",
+      "op_type": "CREATE_NODE",
+      "arguments": {
+        "node": {
+          "node_id": "cup-2",
+          "node_version_id": "cup-2@v0",
+          "node_type": "entity",
+          "lifecycle": "candidate",
+          "valid_from": 5,
+          "valid_to": null,
+          "evidence_refs": ["obs:C02:t5:novel-object"],
+          "latent_refs": ["latent:C02:novel-object"],
+          "canonical_id": null,
+          "predecessor_ids": [],
+          "provenance": ["tx-C02-birth"]
+        }
+      }
+    }
+  ],
+  "evidence_refs": ["obs:C02:t5:novel-object"],
+  "protected_ids": ["wall-protected"],
+  "declared_edit_cost": 1,
+  "declared_growth_cost": 1,
+  "proposer": "human_draft"
+}

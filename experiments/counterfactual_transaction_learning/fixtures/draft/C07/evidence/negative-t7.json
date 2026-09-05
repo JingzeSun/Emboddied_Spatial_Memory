@@ -1,0 +1,17 @@
+{
+  "schema_version": "cpmt-0.2",
+  "evidence_id": "ev:C07:negative-t7",
+  "episode_id": "episode:C07:001",
+  "time_index": 7,
+  "kind": "visible_empty",
+  "source_refs": ["obs:C07:t7:left-empty"],
+  "availability": "online",
+  "reliability": 1.0,
+  "claim_ref": "chair-location@v0",
+  "viewpoint_id": "view:C07:left-2",
+  "visibility": "visible_empty",
+  "pose_valid": true,
+  "depth_valid": true,
+  "verdict": "contradicts",
+  "notes": "Second independent M0 absence observation."
+}

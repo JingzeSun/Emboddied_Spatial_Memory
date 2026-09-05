@@ -1,0 +1,23 @@
+{
+  "schema_version": "cpmt-0.2",
+  "case_id": "C01-reappearance-001",
+  "case_family": "C01",
+  "paired_group_id": "pair-bind-birth-001",
+  "world_seed": 101,
+  "split": "draft",
+  "decision_time": 5,
+  "prior_graph_ref": "world.json",
+  "current_observation_refs": ["obs:C01:t5:chair"],
+  "candidate_transaction_refs": [
+    "transactions/bind.json",
+    "transactions/birth.json"
+  ],
+  "oracle_equivalence": [["transactions/bind.json"]],
+  "future_evidence_refs": [
+    "future:C01:t6:orbit-consistent",
+    "future:C01:t7:single-identity"
+  ],
+  "protected_ids": ["wall-protected"],
+  "status": "human_draft",
+  "exclusion_reason": null
+}

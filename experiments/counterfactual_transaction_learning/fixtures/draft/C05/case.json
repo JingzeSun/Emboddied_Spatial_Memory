@@ -1,0 +1,23 @@
+{
+  "schema_version": "cpmt-0.2",
+  "case_id": "C05-merge-duplicate-001",
+  "case_family": "C05",
+  "paired_group_id": "pair-merge-separate-001",
+  "world_seed": 105,
+  "split": "draft",
+  "decision_time": 5,
+  "prior_graph_ref": "world.json",
+  "current_observation_refs": ["obs:C05:t5:same-chair"],
+  "candidate_transaction_refs": [
+    "transactions/noop.json",
+    "transactions/merge.json"
+  ],
+  "oracle_equivalence": [["transactions/merge.json"]],
+  "future_evidence_refs": [
+    "future:C05:t6:single-identity",
+    "future:C05:t7:orbit-unifies-history"
+  ],
+  "protected_ids": ["wall-protected"],
+  "status": "human_draft",
+  "exclusion_reason": null
+}
