@@ -82,7 +82,7 @@ def main() -> None:
         "validation_decisions": config["paired_groups"]["validation"] * 2 * 20,
         "seeds": config["seeds"],
         "device": str(device),
-        "candidate_count": 3,
+        "candidate_count": int(hard_config["candidates"]["budget_k"]),
         "frozen_candidate_budget": hard_config["candidates"]["budget_k"],
     }
     print(json.dumps(preview, ensure_ascii=False), flush=True)
@@ -118,7 +118,7 @@ def main() -> None:
             "split": "validation",
             "test_generated": False,
             "formal_data_ready": False,
-            "candidate_count": 3,
+            "candidate_count": int(hard_config["candidates"]["budget_k"]),
         },
         "config": {
             "path": "m1_af_smoke.json",
@@ -198,9 +198,9 @@ def main() -> None:
             "audit_sha256": digests,
             "test_generated": False,
             "formal_data_ready": False,
-            "candidate_count": 3,
+            "candidate_count": int(hard_config["candidates"]["budget_k"]),
             "candidate_budget_k": hard_config["candidates"]["budget_k"],
-            "candidate_note": "three-candidate adapter smoke; not frozen K=16 coverage",
+            "candidate_note": "fixed deterministic K=16; nonformal train/validation smoke",
         })
 
         all_results = {}

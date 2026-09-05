@@ -28,6 +28,7 @@ from .dev_learning import (
 from .hashing import clone_json
 from .m1_metrics import graph_error_counts, rollout_graph_metrics
 from .m1_rollout import (
+    CANDIDATE_BUDGET,
     generate_m1_paired_rollout_split,
     materialize_rollout_step,
 )
@@ -136,8 +137,10 @@ def online_feature_vector(online: Mapping[str, Any]) -> np.ndarray:
     values.append(float(online["step_index"]) / 19.0)
 
     programs = online["candidate_programs"]
-    if len(programs) != 3:
-        raise ValueError("A-F smoke adapter currently requires exactly three candidates")
+    if len(programs) != CANDIDATE_BUDGET:
+        raise ValueError(
+            f"A-F adapter requires the frozen K={CANDIDATE_BUDGET} candidates"
+        )
     for program in programs:
         values.extend(_one_hot(_program_label(program), TEMPLATES))
         values.extend(_one_hot(str(program["intent"]), INTENTS))
@@ -332,7 +335,9 @@ def causal_rollout_metrics(
             materialized = materialize_rollout_step(audit, current, step_index)
             if oracle:
                 selected_index = int(stored["reference_program_index"])
-                probabilities = np.eye(3, dtype=np.float32)[selected_index]
+                probabilities = np.eye(
+                    len(materialized["executed_candidates"]), dtype=np.float32,
+                )[selected_index]
             else:
                 vector = online_feature_vector(materialized["online"])
                 started = time.perf_counter()
@@ -421,10 +426,11 @@ def run_af_seed(
     }
     for method in METHODS:
         if method == "oracle_candidate_program":
-            probabilities = np.eye(3, dtype=np.float32)[
+            candidate_count = int(validation["penalties"].shape[1])
+            probabilities = np.eye(candidate_count, dtype=np.float32)[
                 validation["y"].detach().cpu().numpy()
             ]
-            teacher = F.one_hot(validation["y"], 3).float()
+            teacher = F.one_hot(validation["y"], candidate_count).float()
             teacher_metrics = _teacher_forced_metrics(probabilities, validation, teacher)
             causal, causal_rows = causal_rollout_metrics(
                 None, validation_audits, smoke_config, oracle=True,

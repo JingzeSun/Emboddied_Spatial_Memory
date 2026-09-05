@@ -64,6 +64,12 @@ class TestM1TrainabilityLadder(unittest.TestCase):
         self.assertEqual(audit["candidate_reference_coverage"], 1.0)
         self.assertEqual(audit["candidate_miss_rate"], 0.0)
         self.assertEqual(audit["illegal_reference_rate"], 0.0)
+        self.assertEqual(audit["minimum_family_coverage"], 1.0)
+        self.assertEqual(audit["candidate_count_min"], 16)
+        self.assertEqual(audit["candidate_count_max"], 16)
+        self.assertEqual(
+            audit["candidate_generators"], ["fixed_deterministic_k16_v1"]
+        )
         self.assertAlmostEqual(observable_accuracy_ceiling(arrays), 0.975)
 
     def test_label_rich_capacity_point_runs_without_claiming_oracle(self):

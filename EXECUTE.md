@@ -4,19 +4,19 @@
 
 ## 当前看板
 
-最后更新：2026-09-06，LOG-011 Windows/SSD 稳定性诊断与 Git 备份。正式 M1 gate 未运行、未生成 test。
+最后更新：2026-09-06，LOG-012 K=16 候选实现与宿主中止。正式 M1 gate 未运行、未生成 test。
 
 | 项目 | 当前事实 |
 |---|---|
 | 方向 | CPMT 具身空间记忆；CTL 是主学习假设，用户希望面向 ML 研究 |
-| 已完成 | M0 合同；首轮 CTL 开发训练；单房间视觉接口；M1 v1 已冻结；C00–C11 paired generator/图指标；paired continuous 20-step rollout；A–F causal smoke；全标签容量/步数/数据量阶梯；123 个测试通过 |
+| 已完成 | M0 合同；首轮 CTL 开发训练；单房间视觉接口；M1 v1 已冻结；C00–C11 paired generator/图指标；candidate=3 的 paired continuous rollout、A–F causal smoke 与可学习性阶梯；固定 label-blind K=16 候选代码及单步执行通过。历史全套 123 tests 通过；K=16 全套尚未重跑 |
 | 阶段 | M1 frozen-pretest implementation；只开放 train/validation，正式 gate 未运行，不是 M2/Full CPMT |
 | 最近结果 | 全标签学生达到 paired 可观测上限 97.5%/可辨识 100%，排除“小 MLP 根本拟合不了”；10 groups 时 A 从 60→300→1000 steps 的 validation accuracy=75.0→85.63→88.75%，final=0→12.5→12.5%，仍非正式优势结论 |
-| 尚缺 | 去重、确定性的正式 K=16 candidate generator 与 coverage gate；正式数据规模、5 seeds、每方法 trials、10,000 次 paired bootstrap、资源/泄漏终审；正式 test 仍未生成；PNO 属 M2 |
+| 尚缺 | 把隐藏 reference 参数与候选参数排序彻底解耦；K=16 完整 20-step 验证与 train/validation coverage gate 实际 run；正式数据规模、5 seeds、每方法 trials、10,000 次 paired bootstrap、资源/泄漏终审；正式 test 仍未生成；PNO 属 M2 |
 | 数据/算力 | trainability 完整 run 仅 CPU，102.054 秒、约 75.0 MB；分片重试暴露两次 Windows `0xC0000005`，但固定 shard/point 均补齐。宿主有连续 Python access violation、两次 `0x3B` 蓝屏及 Samsung 990 PRO 链路 WHEA；服务器未租、云预算 AUD 0，正式长 run 暂停至稳定性处理完成 |
 | 当前决定 | D-031：M1 A=`CPMT-CTL Core`；Full CPMT 只用于 M2 的 PNO＋world graph＋executor＋CTL；协议 hash 已冻结 |
 | 人工待定 | 当前实现无立即阻塞项；正式 test 解封与任何云费用仍需单独事件/授权 |
-| Git 备份 | 当前应由 Git 管理的代码、合同、配置和 fixtures 已纳入 `origin/main`；outputs、数据、论文、虚拟环境等 ignore 内容不属于 Git 备份 |
+| Git 备份 | candidate=3 阶段代码、合同、配置和 fixtures 已以 `fa9606c` 纳入 `origin/main`；LOG-012 的 K=16 未完成改动尚在本地。outputs、数据、论文、虚拟环境等 ignore 内容不属于 Git 备份 |
 
 白话：M1 的考试规则已经冻结。新的容量诊断证明简单 MLP 在给足标签时能学到除不可辨歧义外的全部训练样本，所以先前低分主要不是“网络完全不会拟合”；增加更新步数后 A 的 validation 和长期图指标明显上升，而 B/C 上升较少。但这仍只有一个 seed、4 个 validation groups 和三个注入 reference 的候选，不能宣布 CTL 胜出，更不是带 PNO 的 Full CPMT。
 
@@ -254,6 +254,20 @@
 - 存储证据：过去一年有 9 次 WHEA corrected PCIe error，全部来自 Intel PCI Express Root Port #21 (`8086:7A44`)；其唯一子设备是 Samsung NVMe (`144D:A80C`)，即承载 C:/D:、Windows、项目和 Python 的 Samsung SSD 990 PRO 1TB。该盘基础状态为 Healthy/Online，但固件仅 `4B2QJXD7`；Samsung 官方后续 `7B2QJXD7` 明确修复间歇性无法识别和蓝屏，最新版 `8B2QJXD7` 继续改善读取稳定性。E: 是独立的 Kingston SNV2S2000G 2TB，不在该错误端口。
 - 风险边界：SSD 固件更新通常不格式化或改写 C:/D: 用户文件，但写固件期间断电、蓝屏或失败可能使整块系统盘不可识别。尚未下载安装 Samsung Magician，未更新 SSD/BIOS，未运行 SFC/DISM/chkdsk、压力测试或内存测试，未改注册表，未触发重启。电池读取为 100%；BitLocker 状态因当前进程无管理员权限而未能核验。
 - 判断/下一步：当前最强、但尚未最终证明的根因候选是旧版 990 PRO 固件/PCIe 存储链路；RAM、散热、BIOS 与系统驱动仍是备选。先完成 Git 源码备份，并由用户另行备份不可替代的 C:/D: 数据和确认 BitLocker 恢复密钥；获得明确确认后才安装官方工具、更新 990 PRO 固件并重启。重启后先检查新 WHEA/蓝屏，再做低负载、可中止的 Python 稳定性验证；验证前不启动正式 M1 长 run。
+
+<a id="log-012"></a>
+### LOG-012｜2026-09-06｜固定 K=16 候选实现与宿主中止
+
+- 类型/状态：M1-development 工程实现部分完成、运行验证被宿主 access violation 中止；`formal_run=false`、`test_access=false`，未生成 test、未训练 A–F、未运行 coverage gate。用户选择暂不更新 SSD 固件，并要求继续项目下一步；任何系统/固件高风险操作仍禁止自动执行。
+- 目的/白话：固定 K=16 candidate generator 解决“此前三个候选里 reference 是不是被直接塞进去”的问题。输入只能是当前 versioned world、当前证据标识、当前时刻和固定种子；输出最多 16 个可执行事务程序、非法失败与 canonical 去重审计。例如隐藏答案改成 BIRTH 或 RELINK 时，生成器仍应产生完全相同的候选列表，reference 必须另行执行后再按 memory state 匹配。它不等于 learned proposer、不读取未来，也不表示 coverage 已通过。
+- 实现：`m1_rollout.py` 新增 `fixed_deterministic_k16_v1`，候选覆盖 NOOP、BIND、BIRTH、REACTIVATE、RELINK、RETRACT、SPLIT、MERGE 与复合 REPLACE；候选事件先裁剪到六个允许字段，不复制 `primary_template`/`scenario_family`，每个候选从同一 base 交给 deterministic executor。合法 post-world 用 `canonicalize_memory_state` 去重，非法候选原样保留。事件 ID 改成不含事务类型的中性 step ID；paired pivot 显式选择不同语义的合法 contrast，不再随便取任意非 reference 下标。
+- Coverage 接口：新增 `audit_m1_candidate_coverage` 与 `scripts/audit_m1_candidates.py`。输入为 train/validation group 数，输出逐决策 reference canonical match、总体/逐 family support 与 coverage、candidate miss、K、去重和 gate 状态；不构造 future、不训练、不开放 test。`reference_candidate_audit` 与隔离 runner 同步增加逐 family coverage、candidate count min/max 和 generator ID。
+- 学习接线：`OnlineModel`、`OutcomeScorer`、one-hot、oracle、Brier 和 A–F causal adapter 从硬编码三类改为由 `penalties.shape[1]`/冻结 K 自动定维；旧 candidate=3 结果保持原样，不能被新代码重新标成 K=16 结果。对应测试与中英文职责说明已更新，但高负载验证没有执行。
+- 已通过验证：修改前后的相关文件曾做 `py_compile`，0.2 秒通过；随后只生成一个初始 world 的一个决策，得到 16 个候选、九类事务齐全、15 legal/1 protected illegal、canonical duplicate=0，0.3 秒完成。更改隐藏 `primary_template` 时候选字节级不变的测试已写入，但尚未运行测试类。
+- 失败：尝试一个单线程、CPU-only、内存内的 20-step validation sequence 时，3.8 秒后 Python 发生 fatal access violation 并退出，exit=1；faulthandler 栈位于 `hashing.py:clone_json` → `m1_rollout.py:_candidate_state_signature/generate_fixed_candidates/_candidate_programs/_generate_sequence`。新 dump 为 `%LOCALAPPDATA%/CrashDumps/python.exe.34644.dmp`，约 2.5 MB，时间 2026-09-06 03:27:55。Windows 没有蓝屏；没有生成 run 目录或科学结果。
+- 失败后的静态收敛：未重试 Python。只通过代码编辑去掉 candidate signature 中不必要的整图深拷贝，并让 hindsight counterfactual future 分支直接执行独立 hidden reference，而不是在每个未来步重复生成/匹配 16 个候选；这降低复制与执行量，但尚未运行验证。所有后续 Python/训练保持暂停。
+- 静态终审发现的 coverage 边界：生成器没有读取 `primary_template`/`scenario_family`，隐藏事务类型也在候选生成后另行构造；但受控 fixture 的隐藏 reference 参数（例如选哪条 edge、哪个 node）当前仍复用了 candidate generator 的 current-world 排序。因此当前 100% 只能证明“固定 16 类接口里能找回按同一排序构造的 reference”，不是独立标注真值下的正式 candidate coverage。summary 已显式记录 `reference_arguments_independent=false`；正式 coverage 前必须把 oracle node/edge/新 ID 参数与 proposer 排名解耦，否则不准过 gate。
+- 结论/下一步：K=16 的设计和单步执行有初步工程证据，但完整链、coverage@16 与动态 A–F 均未验证，不能标完成或用于新数值。恢复路径优先级不变：先解决宿主稳定性，或经用户明确批准后把代码放到稳定环境验证；在此之前只允许静态审查和 Git 备份，不运行正式 M1、test、PNO 或云资源。
 
 ## 后续条目模板
 

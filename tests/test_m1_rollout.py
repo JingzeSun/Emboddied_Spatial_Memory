@@ -1,5 +1,6 @@
 """Integrity tests for procedural, causally chained M1 rollouts."""
 from collections import Counter
+from copy import deepcopy
 import json
 from pathlib import Path
 import sys
@@ -12,8 +13,11 @@ from cpmt.hashing import canonical_json
 from cpmt.m1_data import validate_online_payload
 from cpmt.m1_metrics import rollout_graph_metrics
 from cpmt.m1_rollout import (
+    CANDIDATE_BUDGET,
     ROLLOUT_TEMPLATE_COUNTS,
+    audit_m1_candidate_coverage,
     execute_rollout_choices,
+    generate_fixed_candidates,
     generate_m1_paired_rollout_split,
     generate_m1_rollout_split,
     records_sha256,
@@ -76,8 +80,58 @@ class TestM1ContinuousRollout(unittest.TestCase):
                     candidate for candidate in step["executed_candidates"]
                     if not candidate["legal"]
                 ]
-                self.assertEqual(len(illegal), 1)
-                self.assertEqual(illegal[0]["failure"]["type"], "ProtectedMutationError")
+                self.assertGreaterEqual(len(illegal), 1)
+                self.assertIn(
+                    "ProtectedMutationError",
+                    {item["failure"]["type"] for item in illegal},
+                )
+
+    def test_fixed_k16_is_deduplicated_and_reference_blind(self):
+        step = self.audit[0]["steps"][0]
+        event = deepcopy(step["event_spec"])
+        base = step["online"]["prior_world"]
+        programs, _, generation = generate_fixed_candidates(base, event)
+        self.assertEqual(len(programs), CANDIDATE_BUDGET)
+        self.assertEqual(generation["budget_k"], 16)
+        self.assertEqual(generation["canonical_duplicates_removed"], 0)
+        self.assertFalse(generation["reference_fields_read"])
+        self.assertEqual(
+            {
+                "REPLACE" if item["template"] == "COMPOSITE"
+                else item["template"]
+                for item in programs
+            },
+            {
+                "NOOP", "BIND", "BIRTH", "REACTIVATE", "RELINK",
+                "RETRACT", "SPLIT", "MERGE", "REPLACE",
+            },
+        )
+        changed = deepcopy(event)
+        changed["primary_template"] = (
+            "BIRTH" if event["primary_template"] != "BIRTH" else "NOOP"
+        )
+        changed["scenario_family"] = "C11"
+        changed_programs, _, _ = generate_fixed_candidates(base, changed)
+        self.assertEqual(canonical_json(programs), canonical_json(changed_programs))
+
+    def test_candidate_coverage_has_family_gates_and_keeps_test_sealed(self):
+        rows, summary = audit_m1_candidate_coverage(
+            self.config, "validation", paired_groups=1,
+        )
+        self.assertEqual(len(rows), 20)
+        self.assertEqual(summary["candidate_budget_k"], 16)
+        self.assertEqual(summary["candidate_reference_coverage"], 1.0)
+        self.assertEqual(summary["minimum_family_coverage"], 1.0)
+        self.assertTrue(summary["coverage_thresholds_met"])
+        self.assertFalse(summary["reference_arguments_independent"])
+        self.assertFalse(summary["formal_gate_eligible"])
+        self.assertFalse(summary["coverage_gate_pass"])
+        self.assertFalse(summary["test_generated"])
+        self.assertFalse(summary["training_run"])
+        with self.assertRaisesRegex(ValueError, "test is sealed"):
+            audit_m1_candidate_coverage(
+                self.config, "test", paired_groups=1,
+            )
 
     def test_hindsight_uses_real_later_reference_states_and_masks_tail(self):
         sequence = self.audit[0]
@@ -201,6 +255,7 @@ class TestM1ContinuousRollout(unittest.TestCase):
         self.assertEqual(records_sha256(self.audit), records_sha256(repeated_audit))
         for online in self.online + train_online:
             validate_online_payload(online)
+            self.assertEqual(len(online["candidate_programs"]), CANDIDATE_BUDGET)
             self.assertNotIn("reference", canonical_json(online))
             self.assertNotIn("future", canonical_json(online))
         with self.assertRaisesRegex(ValueError, "test is sealed"):

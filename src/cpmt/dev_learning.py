@@ -26,11 +26,14 @@ METHODS = (
 
 
 class OnlineModel(nn.Module):
-    def __init__(self, input_dim: int, hidden: int, future_dim: int, horizon: int):
+    def __init__(
+        self, input_dim: int, hidden: int, future_dim: int, horizon: int,
+        num_candidates: int = 3,
+    ):
         super().__init__()
         self.encoder = nn.Sequential(nn.Linear(input_dim, hidden), nn.ReLU(),
                                      nn.Linear(hidden, hidden), nn.ReLU())
-        self.classifier = nn.Linear(hidden, 3)
+        self.classifier = nn.Linear(hidden, num_candidates)
         # Same head is allocated in every method; only C uses its gradients.
         self.future_head = nn.Sequential(nn.Linear(hidden + horizon, hidden),
                                          nn.ReLU(), nn.Linear(hidden, future_dim))
@@ -49,9 +52,12 @@ class OutcomeScorer(nn.Module):
 
     Its inputs never include post-world arrays or executable graph branches.
     """
-    def __init__(self, input_dim: int, hidden: int, future_dim: int, horizon: int):
+    def __init__(
+        self, input_dim: int, hidden: int, future_dim: int, horizon: int,
+        num_candidates: int = 3,
+    ):
         super().__init__()
-        self.net = nn.Sequential(nn.Linear(input_dim + 3 + horizon, hidden),
+        self.net = nn.Sequential(nn.Linear(input_dim + num_candidates + horizon, hidden),
                                  nn.ReLU(), nn.Linear(hidden, hidden), nn.ReLU(),
                                  nn.Linear(hidden, future_dim))
 
@@ -76,8 +82,12 @@ def _sync(device: torch.device) -> None:
 def train_outcome_scorer(train: dict, validation: dict, config: dict, seed: int,
                          device: torch.device) -> tuple[nn.Module, dict, list[dict]]:
     torch.manual_seed(seed + 10000)
+    num_candidates = int(train["penalties"].shape[1])
+    if int(validation["penalties"].shape[1]) != num_candidates:
+        raise ValueError("train/validation candidate dimensions differ")
     model = OutcomeScorer(train["x"].shape[1], config["hidden_dim"],
-                          train["future"].shape[1], config["horizon"]).to(device)
+                          train["future"].shape[1], config["horizon"],
+                          num_candidates=num_candidates).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=config["learning_rate"])
     labelled = train["labelled"].nonzero().flatten()
     if len(labelled) == 0:
@@ -85,8 +95,11 @@ def train_outcome_scorer(train: dict, validation: dict, config: dict, seed: int,
     trace = []
     for step in range(config["scorer_steps"]):
         batch = labelled[torch.randint(len(labelled), (config["batch_size"],), device=device)]
-        pred = model(train["x"][batch], F.one_hot(train["y"][batch], 3).float(),
-                     train["poses"][batch])
+        pred = model(
+            train["x"][batch],
+            F.one_hot(train["y"][batch], num_candidates).float(),
+            train["poses"][batch],
+        )
         loss = F.mse_loss(pred, train["future"][batch])
         if not torch.isfinite(loss):
             raise FloatingPointError("no-execution scorer loss is non-finite")
@@ -100,8 +113,10 @@ def train_outcome_scorer(train: dict, validation: dict, config: dict, seed: int,
     with torch.no_grad():
         for name, data in (("train", train), ("validation", validation)):
             energies = []
-            for candidate in range(3):
-                descriptors = torch.zeros((len(data["x"]), 3), device=device)
+            for candidate in range(num_candidates):
+                descriptors = torch.zeros(
+                    (len(data["x"]), num_candidates), device=device,
+                )
                 descriptors[:, candidate] = 1
                 prediction = model(data["x"], descriptors, data["poses"])
                 future_mse = ((prediction - data["future"]) ** 2).mean(-1)
@@ -116,8 +131,10 @@ def train_student(method: str, train: dict, teacher: torch.Tensor,
                   config: dict, seed: int, device: torch.device) -> tuple[nn.Module, list[dict]]:
     # Matched architecture, initial weights, batches, optimizer and update count.
     torch.manual_seed(seed)
+    num_candidates = int(train["penalties"].shape[1])
     model = OnlineModel(train["x"].shape[1], config["hidden_dim"],
-                        train["future"].shape[1], config["horizon"]).to(device)
+                        train["future"].shape[1], config["horizon"],
+                        num_candidates=num_candidates).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=config["learning_rate"])
     trace = []
     for step in range(config["student_steps"]):
@@ -181,13 +198,13 @@ def evaluate_probabilities(probs: np.ndarray, data: dict, config: dict,
         commit_coverage=mean(committed),
         committed_accuracy=mean(predicted == targets, committed),
         nll=float(-np.log(np.maximum(probs[rows, targets], 1e-12)).mean()),
-        brier=float(((probs - np.eye(3)[targets]) ** 2).sum(-1).mean()),
+        brier=float(((probs - np.eye(probs.shape[1])[targets]) ** 2).sum(-1).mean()),
         teacher_accuracy=mean(teacher_pred == targets),
         teacher_correct_student_wrong=mean((teacher_pred == targets) & (predicted != targets)),
         toy_location_fact_error=mean(facts),
         toy_excess_node_count=mean(growth),
         committed_toy_location_fact_error=mean(facts, committed),
-        uniform_expected_accuracy=1 / 3,
+        uniform_expected_accuracy=1 / probs.shape[1],
     )
     details = [dict(index=i, group=int(data["group"][i].cpu()), target=int(targets[i]),
                     predicted=int(predicted[i]), posterior=probs[i].tolist(),
@@ -208,7 +225,7 @@ def evaluate(model: nn.Module, data: dict, config: dict,
 def oracle_probabilities(data: dict) -> np.ndarray:
     """Return the in-budget oracle choice; this is an upper bound, not a model."""
     targets = data["y"].detach().cpu().numpy()
-    return np.eye(3, dtype=np.float32)[targets]
+    return np.eye(int(data["penalties"].shape[1]), dtype=np.float32)[targets]
 
 
 def run_seed(train_np: dict, validation_np: dict, config: dict, seed: int,
@@ -223,7 +240,10 @@ def run_seed(train_np: dict, validation_np: dict, config: dict, seed: int,
     results, records = {}, {}
     for method in METHODS:
         if method == "oracle_candidate_program":
-            teacher_validation = F.one_hot(validation["y"], 3).float()
+            candidate_count = int(validation["penalties"].shape[1])
+            teacher_validation = F.one_hot(
+                validation["y"], candidate_count,
+            ).float()
             metrics, details = evaluate_probabilities(
                 oracle_probabilities(validation), validation, config,
                 teacher_validation,
@@ -262,8 +282,10 @@ def run_seed(train_np: dict, validation_np: dict, config: dict, seed: int,
             teacher_train = train["pstar"]
             teacher_validation = validation["pstar"]
         torch.manual_seed(seed)
+        candidate_count = int(train["penalties"].shape[1])
         initial = OnlineModel(train["x"].shape[1], config["hidden_dim"],
-                              train["future"].shape[1], config["horizon"]).to(device)
+                              train["future"].shape[1], config["horizon"],
+                              num_candidates=candidate_count).to(device)
         initial_metrics, _ = evaluate(initial, validation, config, teacher_validation)
         del initial
         _sync(device)

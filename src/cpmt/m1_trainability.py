@@ -134,27 +134,48 @@ def subset_paired_array_groups(
 
 def reference_candidate_audit(
     audits: Sequence[Mapping[str, Any]],
-) -> dict[str, float]:
+) -> dict[str, Any]:
     """Report whether each stored reference exists and is legally executable."""
     total = 0
     covered = 0
     illegal_reference = 0
+    family_totals: dict[str, int] = {}
+    family_covered: dict[str, int] = {}
+    candidate_counts: list[int] = []
+    generators: set[str] = set()
     for audit in audits:
         for step in audit["steps"]:
             total += 1
+            family = str(step["scenario_family"])
+            family_totals[family] = family_totals.get(family, 0) + 1
+            candidate_counts.append(len(step["executed_candidates"]))
+            generation = step.get("candidate_generation", {})
+            if generation.get("generator"):
+                generators.add(str(generation["generator"]))
             index = int(step["reference_program_index"])
             candidates = step["executed_candidates"]
             if 0 <= index < len(candidates):
                 covered += 1
+                family_covered[family] = family_covered.get(family, 0) + 1
                 if not bool(candidates[index]["legal"]):
                     illegal_reference += 1
     if total == 0:
         raise ValueError("candidate audit requires at least one decision")
+    family_coverage = {
+        family: float(family_covered.get(family, 0) / count)
+        for family, count in sorted(family_totals.items())
+    }
     return {
         "decisions": float(total),
         "candidate_reference_coverage": float(covered / total),
         "candidate_miss_rate": float(1.0 - covered / total),
         "illegal_reference_rate": float(illegal_reference / total),
+        "coverage_by_family": family_coverage,
+        "support_by_family": dict(sorted(family_totals.items())),
+        "minimum_family_coverage": min(family_coverage.values()),
+        "candidate_count_min": min(candidate_counts),
+        "candidate_count_max": max(candidate_counts),
+        "candidate_generators": sorted(generators),
     }
 
 
@@ -175,7 +196,8 @@ def run_label_rich_capacity_point(
     config["student_steps"] = int(student_steps)
     device = torch.device(config["device"])
     train = tensors(labelled_arrays, device)
-    target_teacher = F.one_hot(train["y"], 3).float()
+    candidate_count = int(train["penalties"].shape[1])
+    target_teacher = F.one_hot(train["y"], candidate_count).float()
     model, trace = train_student(
         "direct_classifier", train, target_teacher, config, int(seed), device,
     )

@@ -55,6 +55,11 @@ def build_sharded_split(
     summaries = []
     attempt_log = []
     total_decisions = covered = illegal_reference = 0
+    family_totals = {}
+    family_covered = {}
+    candidate_count_min = None
+    candidate_count_max = None
+    candidate_generators = set()
     shard_root.mkdir(parents=True, exist_ok=True)
     worker = PROJECT / "scripts" / "generate_m1_trainability_shard.py"
     for group_index in range(paired_groups):
@@ -113,6 +118,20 @@ def build_sharded_split(
         illegal_reference += int(round(
             group_candidate["illegal_reference_rate"] * decisions
         ))
+        for family, support in group_candidate["support_by_family"].items():
+            family_totals[family] = family_totals.get(family, 0) + int(support)
+            family_covered[family] = family_covered.get(family, 0) + int(round(
+                float(group_candidate["coverage_by_family"][family]) * int(support)
+            ))
+        low = int(group_candidate["candidate_count_min"])
+        high = int(group_candidate["candidate_count_max"])
+        candidate_count_min = low if candidate_count_min is None else min(
+            candidate_count_min, low,
+        )
+        candidate_count_max = high if candidate_count_max is None else max(
+            candidate_count_max, high,
+        )
+        candidate_generators.update(group_candidate["candidate_generators"])
         digest.update(summary["audit_sha256"].encode("utf-8"))
         digest.update(b"\n")
         if group_index < keep_paired_groups:
@@ -162,7 +181,7 @@ def build_sharded_split(
             min(item["initial_node_count_range"][0] for item in summaries),
             max(item["initial_node_count_range"][1] for item in summaries),
         ],
-        "candidate_set_size": 3,
+        "candidate_set_size": int(summaries[0]["candidate_set_size"]),
         "test_generated": False,
         "formal_data_ready": False,
         "paired_latent_siblings_ready": True,
@@ -175,11 +194,21 @@ def build_sharded_split(
         "generation_mode": "one_paired_group_per_shard",
         "shard_attempts": attempt_log,
     }
+    family_coverage = {
+        family: float(family_covered.get(family, 0) / support)
+        for family, support in sorted(family_totals.items())
+    }
     candidate_audit = {
         "decisions": float(total_decisions),
         "candidate_reference_coverage": float(covered / total_decisions),
         "candidate_miss_rate": float(1.0 - covered / total_decisions),
         "illegal_reference_rate": float(illegal_reference / total_decisions),
+        "coverage_by_family": family_coverage,
+        "support_by_family": dict(sorted(family_totals.items())),
+        "minimum_family_coverage": min(family_coverage.values()),
+        "candidate_count_min": candidate_count_min,
+        "candidate_count_max": candidate_count_max,
+        "candidate_generators": sorted(candidate_generators),
     }
     return combined, kept_audits, summary, digest.hexdigest(), candidate_audit
 
@@ -261,7 +290,7 @@ def main() -> None:
         "validation_paired_groups": ladder["validation_paired_groups"],
         "optimization_curve": ladder["optimization_curve"],
         "label_rich_capacity": ladder["label_rich_capacity"],
-        "candidate_count": 3,
+        "candidate_count": int(hard_config["candidates"]["budget_k"]),
         "frozen_candidate_budget": hard_config["candidates"]["budget_k"],
         "device": base["device"],
     }
@@ -282,7 +311,7 @@ def main() -> None:
         "schema_version": "cpmt-0.2",
         "run_id": run_id,
         "stage": "M1",
-        "method": "trainability_ladder_before_K16_not_formal_gate",
+        "method": "trainability_ladder_with_fixed_K16_not_formal_gate",
         "status": "running",
         "code": {
             "commit": git_output("rev-parse", "HEAD"),
@@ -308,7 +337,7 @@ def main() -> None:
             "split": "validation",
             "test_generated": False,
             "formal_data_ready": False,
-            "candidate_count": 3,
+            "candidate_count": int(hard_config["candidates"]["budget_k"]),
         },
         "config": {
             "path": "m1_trainability_ladder.json",
@@ -400,9 +429,9 @@ def main() -> None:
             },
             "test_generated": False,
             "formal_data_ready": False,
-            "candidate_count": 3,
+            "candidate_count": int(hard_config["candidates"]["budget_k"]),
             "frozen_candidate_budget": hard_config["candidates"]["budget_k"],
-            "warning": "reference-injected three-candidate diagnostic, not K=16 coverage",
+            "warning": "fixed deterministic K=16; nonformal train/validation diagnostic",
         })
         print(
             f"data: train_cases={len(train_arrays['y'])} "

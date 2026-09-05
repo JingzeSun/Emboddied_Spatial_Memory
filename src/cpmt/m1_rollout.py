@@ -15,6 +15,7 @@ from typing import Any, Iterable, Mapping, Sequence
 import numpy as np
 
 from .errors import CPMTError
+from .equivalence import canonicalize_memory_state
 from .executor import execute_transaction, validate_graph
 from .hashing import canonical_json, clone_json, seal_graph
 from .m1_data import project_structural_observation, validate_online_payload
@@ -45,6 +46,11 @@ TEMPLATE_FAMILY = {
     "RETRACT": "C07",
     "RELINK": "C08",
 }
+CANDIDATE_BUDGET = 16
+CANDIDATE_EVENT_FIELDS = (
+    "event_id", "step_index", "decision_time", "candidate_seed",
+    "current_evidence_ref", "protected_id",
+)
 
 
 def _node(
@@ -102,6 +108,34 @@ def _open_edge(graph: Mapping[str, Any], edge_id: str) -> dict[str, Any]:
     if len(matches) != 1:
         raise ValueError(f"expected one open edge {edge_id!r}, found {len(matches)}")
     return matches[0]
+
+
+def _latest_node(graph: Mapping[str, Any], node_id: str) -> dict[str, Any]:
+    matches = [node for node in graph["nodes"] if node["node_id"] == node_id]
+    if not matches:
+        raise ValueError(f"expected a node lineage {node_id!r}")
+    return max(
+        matches,
+        key=lambda node: (
+            int(node.get("valid_from", 0)),
+            node.get("valid_to") is None,
+            str(node["node_version_id"]),
+        ),
+    )
+
+
+def _latest_edge(graph: Mapping[str, Any], edge_id: str) -> dict[str, Any]:
+    matches = [edge for edge in graph["edges"] if edge["edge_id"] == edge_id]
+    if not matches:
+        raise ValueError(f"expected an edge lineage {edge_id!r}")
+    return max(
+        matches,
+        key=lambda edge: (
+            int(edge.get("valid_from", 0)),
+            edge.get("valid_to") is None,
+            str(edge["edge_version_id"]),
+        ),
+    )
 
 
 def _initial_world(
@@ -240,7 +274,9 @@ def _event_plan(
     for step_index, template in enumerate(templates):
         ordinal = counters[template]
         counters[template] += 1
-        event_id = f"{namespace}:event:{template.lower()}:{ordinal}"
+        # The event identifier is deliberately neutral.  Candidate generation
+        # must not recover the hidden reference template from an ID string.
+        event_id = f"{namespace}:event:{step_index:02d}"
         event = {
             "event_id": event_id,
             "step_index": step_index,
@@ -362,7 +398,7 @@ def _birth_program(
 def _reactivate_program(
     graph: Mapping[str, Any], event: Mapping[str, Any],
 ) -> dict[str, Any]:
-    node = _open_node(graph, event["target_node_id"])
+    node = _latest_node(graph, event["target_node_id"])
     program = _program_header(
         graph, event, "REACTIVATE", suffix="reactivate", intent="ASSOCIATE",
     )
@@ -397,7 +433,7 @@ def _reactivate_program(
 def _relink_program(
     graph: Mapping[str, Any], event: Mapping[str, Any],
 ) -> dict[str, Any]:
-    edge = _open_edge(graph, event["target_edge_id"])
+    edge = _latest_edge(graph, event["target_edge_id"])
     target = event["new_target"]
     if target == edge["target"]:
         places = event["places"]
@@ -455,7 +491,7 @@ def _negative_events(
 def _retract_program(
     graph: Mapping[str, Any], event: Mapping[str, Any], *, suffix: str = "retract",
 ) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
-    edge = _open_edge(graph, event["target_edge_id"])
+    edge = _latest_edge(graph, event["target_edge_id"])
     evidence_ids, evidence = _negative_events(edge, event, suffix)
     program = _program_header(graph, event, "RETRACT", suffix=suffix, intent="REVISE")
     tx = program["transaction_id"]
@@ -484,7 +520,7 @@ def _retract_program(
 def _split_program(
     graph: Mapping[str, Any], event: Mapping[str, Any],
 ) -> dict[str, Any]:
-    source = _open_node(graph, event["target_node_id"])
+    source = _latest_node(graph, event["target_node_id"])
     left_new = f"{event['current_evidence_ref']}:left"
     right_new = f"{event['current_evidence_ref']}:right"
     program = _program_header(graph, event, "SPLIT", suffix="split", intent="REVISE")
@@ -529,7 +565,7 @@ def _split_program(
 def _merge_program(
     graph: Mapping[str, Any], event: Mapping[str, Any],
 ) -> dict[str, Any]:
-    sources = [_open_node(graph, node_id) for node_id in event["target_node_ids"]]
+    sources = [_latest_node(graph, node_id) for node_id in event["target_node_ids"]]
     canonical = min(sources, key=lambda item: (item["valid_from"], item["node_id"]))
     program = _program_header(graph, event, "MERGE", suffix="merge", intent="REVISE")
     tx = program["transaction_id"]
@@ -583,7 +619,7 @@ def _merge_program(
 def _replace_program(
     graph: Mapping[str, Any], event: Mapping[str, Any],
 ) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
-    edge = _open_edge(graph, event["target_edge_id"])
+    edge = _latest_edge(graph, event["target_edge_id"])
     evidence_ids, evidence = _negative_events(edge, event, "replace")
     birth_evidence = f"{event['current_evidence_ref']}:new-object"
     evidence[birth_evidence] = {
@@ -642,61 +678,499 @@ def _replace_program(
     return program, evidence
 
 
+def _ranked_ids(
+    records: Iterable[Mapping[str, Any]], event: Mapping[str, Any], *,
+    kind: str, id_key: str,
+) -> list[str]:
+    """Rank online-visible arguments without consulting the hidden label."""
+    seed = int(event["candidate_seed"])
+    return [
+        str(record[id_key])
+        for record in sorted(
+            records,
+            key=lambda record: hashlib.sha256(
+                f"{seed}|{kind}|{record[id_key]}".encode("utf-8")
+            ).hexdigest(),
+        )
+    ]
+
+
+def _repeat_to(values: Sequence[str], count: int, *, name: str) -> list[str]:
+    if not values:
+        raise ValueError(f"fixed candidate generator found no {name}")
+    return [str(values[index % len(values)]) for index in range(count)]
+
+
+def _event_variant(event: Mapping[str, Any], **updates: Any) -> dict[str, Any]:
+    variant = clone_json(dict(event))
+    variant.update(updates)
+    return variant
+
+
+def _proposal_context(
+    graph: Mapping[str, Any], event: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Build fixed argument ranks using only the current executable world.
+
+    The hidden ``primary_template`` and the audit-only scenario family are not
+    read here.  This makes it possible to mutate the reference label while
+    proving that the proposed candidate list remains byte-for-byte unchanged.
+    """
+    open_nodes = [
+        node for node in graph["nodes"] if node.get("valid_to") is None
+    ]
+    open_edges = [
+        edge for edge in graph["edges"] if edge.get("valid_to") is None
+    ]
+    latest_nodes = {
+        str(node["node_id"]): _latest_node(graph, str(node["node_id"]))
+        for node in graph["nodes"]
+    }
+    latest_edges = {
+        str(edge["edge_id"]): _latest_edge(graph, str(edge["edge_id"]))
+        for edge in graph["edges"]
+    }
+    bindable = _ranked_ids(
+        (
+            node for node in open_nodes
+            if node["node_type"] == "entity"
+            and node["lifecycle"] in {"candidate", "confirmed"}
+        ),
+        event, kind="bind", id_key="node_id",
+    )
+    confirmed = _ranked_ids(
+        (
+            node for node in open_nodes
+            if node["node_type"] == "entity"
+            and node["lifecycle"] == "confirmed"
+            and node.get("evidence_refs")
+        ),
+        event, kind="confirmed", id_key="node_id",
+    )
+    dormant = _ranked_ids(
+        (
+            node for node in open_nodes
+            if node["node_type"] == "entity"
+            and node["lifecycle"] == "dormant"
+        ),
+        event, kind="dormant", id_key="node_id",
+    )
+    fallback_entities = _ranked_ids(
+        (node for node in latest_nodes.values() if node["node_type"] == "entity"),
+        event, kind="fallback-entity", id_key="node_id",
+    )
+    if not bindable:
+        bindable = fallback_entities
+    if not confirmed:
+        confirmed = fallback_entities
+    edges = _ranked_ids(
+        open_edges or latest_edges.values(), event, kind="edge", id_key="edge_id",
+    )
+    open_places = [node for node in open_nodes if node["node_type"] == "place"]
+    places = _ranked_ids(
+        open_places or [
+            node for node in latest_nodes.values() if node["node_type"] == "place"
+        ],
+        event, kind="place", id_key="node_id",
+    )
+    bind_targets = _repeat_to(bindable, 2, name="bindable entity")
+    connected_ids = {
+        str(value)
+        for edge in open_edges
+        for value in (edge["source"], edge["target"])
+    }
+    split_pool = [value for value in confirmed if value not in connected_ids]
+    split_targets = _repeat_to(
+        split_pool or confirmed, 2, name="confirmed split source",
+    )
+    merge_targets = _repeat_to(confirmed, 4, name="confirmed merge source")
+    edge_targets = _repeat_to(edges, 6, name="open edge")
+    place_targets = _repeat_to(places, 4, name="open place")
+    return {
+        "bind_targets": bind_targets,
+        "reactivate_target": (dormant or bindable)[0],
+        "edge_targets": edge_targets,
+        "place_targets": place_targets,
+        "split_targets": split_targets,
+        "merge_pairs": [
+            [merge_targets[0], merge_targets[1]],
+            [merge_targets[2], merge_targets[3]],
+        ],
+        "birth_id": f"candidate:{event['current_evidence_ref']}:birth",
+        "split_successors": [
+            [
+                f"candidate:{event['current_evidence_ref']}:split:{slot}:left",
+                f"candidate:{event['current_evidence_ref']}:split:{slot}:right",
+            ]
+            for slot in range(2)
+        ],
+        "replace_id": f"candidate:{event['current_evidence_ref']}:replace",
+    }
+
+
+def _build_fixed_candidate_catalog(
+    graph: Mapping[str, Any], event: Mapping[str, Any],
+) -> tuple[list[dict[str, Any]], dict[str, dict[str, Any]]]:
+    """Create the sixteen fixed proposals without reading the reference."""
+    missing = set(CANDIDATE_EVENT_FIELDS) - set(event)
+    if missing:
+        raise ValueError(f"candidate event is missing fields {sorted(missing)}")
+    event = {key: event[key] for key in CANDIDATE_EVENT_FIELDS}
+    context = _proposal_context(graph, event)
+    evidence: dict[str, dict[str, Any]] = {}
+    programs: list[dict[str, Any]] = [_noop_program(graph, event)]
+    programs.extend(
+        _bind_program(graph, event, target, suffix=f"bind-{slot}")
+        for slot, target in enumerate(context["bind_targets"])
+    )
+    programs.append(_bind_program(
+        graph, event, str(event["protected_id"]),
+        suffix="bind-protected-illegal",
+    ))
+    programs.append(_birth_program(
+        graph, event, context["birth_id"], suffix="birth",
+    ))
+    reactivate_event = _event_variant(
+        event, target_node_id=context["reactivate_target"],
+    )
+    programs.append(_reactivate_program(graph, reactivate_event))
+    for slot in range(3):
+        relink_event = _event_variant(
+            event,
+            target_edge_id=context["edge_targets"][slot],
+            new_target=context["place_targets"][slot],
+            places=context["place_targets"],
+        )
+        program = _relink_program(graph, relink_event)
+        program["transaction_id"] = f"{program['transaction_id']}:slot-{slot}"
+        for operation in program["operations"]:
+            if operation["op_type"] == "RECORD_PROVENANCE":
+                operation["arguments"]["provenance_ref"] = program["transaction_id"]
+            elif operation["op_type"] == "ADD_EDGE":
+                operation["arguments"]["edge"]["provenance"] = [
+                    program["transaction_id"]
+                ]
+        programs.append(program)
+    for slot in range(2):
+        retract_event = _event_variant(
+            event, target_edge_id=context["edge_targets"][3 + slot],
+        )
+        program, records = _retract_program(
+            graph, retract_event, suffix=f"retract-{slot}",
+        )
+        programs.append(program)
+        evidence.update(records)
+    for slot in range(2):
+        split_event = _event_variant(
+            event,
+            target_node_id=context["split_targets"][slot],
+            successor_ids=context["split_successors"][slot],
+        )
+        program = _split_program(graph, split_event)
+        program["transaction_id"] = f"{program['transaction_id']}:slot-{slot}"
+        for operation in program["operations"]:
+            if operation["op_type"] == "RECORD_PROVENANCE":
+                operation["arguments"]["provenance_ref"] = program["transaction_id"]
+            elif operation["op_type"] == "CREATE_NODE":
+                operation["arguments"]["node"]["provenance"] = [
+                    program["transaction_id"]
+                ]
+        programs.append(program)
+    for slot, pair in enumerate(context["merge_pairs"]):
+        merge_event = _event_variant(event, target_node_ids=pair)
+        program = _merge_program(graph, merge_event)
+        program["transaction_id"] = f"{program['transaction_id']}:slot-{slot}"
+        for operation in program["operations"]:
+            if operation["op_type"] == "RECORD_PROVENANCE":
+                operation["arguments"]["provenance_ref"] = program["transaction_id"]
+            elif operation["op_type"] == "OPEN_NODE_VERSION":
+                operation["arguments"]["node"]["provenance"] = [
+                    program["transaction_id"]
+                ]
+        programs.append(program)
+    replace_event = _event_variant(
+        event,
+        target_edge_id=context["edge_targets"][5],
+        new_node_id=context["replace_id"],
+        new_target=context["place_targets"][3],
+    )
+    replace, records = _replace_program(graph, replace_event)
+    programs.append(replace)
+    evidence.update(records)
+    if len(programs) != CANDIDATE_BUDGET:
+        raise AssertionError("fixed candidate catalog must contain exactly K=16")
+    return programs, evidence
+
+
 def _primary_program(
     graph: Mapping[str, Any], event: Mapping[str, Any],
 ) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
-    template = event["primary_template"]
+    """Construct hidden truth independently from the exhaustive catalog."""
+    context = _proposal_context(graph, event)
+    template = str(event["primary_template"])
     if template == "NOOP":
         return _noop_program(graph, event), {}
     if template == "BIND":
-        return _bind_program(graph, event, event["bind_target"], suffix="bind"), {}
+        return _bind_program(
+            graph, event, context["bind_targets"][0], suffix="bind-0",
+        ), {}
     if template == "BIRTH":
-        return _birth_program(graph, event, event["new_node_id"], suffix="birth"), {}
+        return _birth_program(
+            graph, event, context["birth_id"], suffix="birth",
+        ), {}
     if template == "REACTIVATE":
-        return _reactivate_program(graph, event), {}
+        return _reactivate_program(graph, _event_variant(
+            event, target_node_id=context["reactivate_target"],
+        )), {}
     if template == "RELINK":
-        return _relink_program(graph, event), {}
+        relink_event = _event_variant(
+            event, target_edge_id=context["edge_targets"][0],
+            new_target=context["place_targets"][0],
+            places=context["place_targets"],
+        )
+        return _relink_program(graph, relink_event), {}
     if template == "RETRACT":
-        return _retract_program(graph, event)
+        return _retract_program(graph, _event_variant(
+            event, target_edge_id=context["edge_targets"][3],
+        ), suffix="retract-0")
     if template == "SPLIT":
-        return _split_program(graph, event), {}
+        return _split_program(graph, _event_variant(
+            event, target_node_id=context["split_targets"][0],
+            successor_ids=context["split_successors"][0],
+        )), {}
     if template == "MERGE":
-        return _merge_program(graph, event), {}
+        return _merge_program(graph, _event_variant(
+            event, target_node_ids=context["merge_pairs"][0],
+        )), {}
     if template == "REPLACE":
-        return _replace_program(graph, event)
+        return _replace_program(graph, _event_variant(
+            event, target_edge_id=context["edge_targets"][5],
+            new_node_id=context["replace_id"],
+            new_target=context["place_targets"][3],
+        ))
     raise ValueError(f"unsupported rollout template {template!r}")
+
+
+def _candidate_state_signature(
+    base: Mapping[str, Any], graph: Mapping[str, Any],
+    protected_ids: Iterable[str],
+) -> str:
+    identity_mapping = {
+        str(node["node_id"]): str(node["node_id"]) for node in graph["nodes"]
+    }
+    state = canonicalize_memory_state(
+        dict(base), dict(graph),
+        identity_mapping=identity_mapping,
+        protected_ids=frozenset(str(value) for value in protected_ids),
+    )
+    return canonical_json(state)
+
+
+def _prepare_fixed_candidates(
+    graph: Mapping[str, Any], event: Mapping[str, Any],
+) -> tuple[
+    list[dict[str, Any]], dict[str, dict[str, Any]], dict[str, Any],
+    list[str | None],
+]:
+    programs, evidence = _build_fixed_candidate_catalog(graph, event)
+    executions = _execute_candidates(graph, programs, evidence)
+    kept: list[dict[str, Any]] = []
+    kept_signatures: list[str | None] = []
+    signatures: set[str] = set()
+    duplicate_count = 0
+    legal_count = 0
+    illegal_count = 0
+    for program, execution in zip(programs, executions, strict=True):
+        if not execution["legal"]:
+            illegal_count += 1
+            kept.append(program)
+            kept_signatures.append(None)
+            continue
+        legal_count += 1
+        signature = _candidate_state_signature(
+            graph, execution["post_graph"], program.get("protected_ids", []),
+        )
+        if signature in signatures:
+            duplicate_count += 1
+            continue
+        signatures.add(signature)
+        kept.append(program)
+        kept_signatures.append(signature)
+    if len(kept) != CANDIDATE_BUDGET:
+        raise AssertionError(
+            "fixed K=16 catalog collapsed under canonical state deduplication: "
+            f"kept={len(kept)} duplicates={duplicate_count}"
+        )
+    permutation = np.random.default_rng(
+        int(event["candidate_seed"])
+    ).permutation(len(kept))
+    ordered = [kept[int(index)] for index in permutation]
+    ordered_signatures = [kept_signatures[int(index)] for index in permutation]
+    audit = {
+        "generator": "fixed_deterministic_k16_v1",
+        "budget_k": CANDIDATE_BUDGET,
+        "raw_programs": len(programs),
+        "deduplicated_programs": len(kept),
+        "legal_programs": legal_count,
+        "illegal_programs": illegal_count,
+        "canonical_duplicates_removed": duplicate_count,
+        "reference_fields_read": False,
+    }
+    return ordered, evidence, audit, ordered_signatures
+
+
+def generate_fixed_candidates(
+    graph: Mapping[str, Any], event: Mapping[str, Any],
+) -> tuple[list[dict[str, Any]], dict[str, dict[str, Any]], dict[str, Any]]:
+    """Execute, canonicalize and deduplicate the fixed K=16 proposal set.
+
+    Input is the current versioned world plus online event metadata.  Output is
+    an ordered candidate program list, evidence records and a generation audit.
+    The function does not decide which candidate is correct and does not read
+    the hidden template, future trace or reference graph.
+    """
+    programs, evidence, audit, _ = _prepare_fixed_candidates(graph, event)
+    return programs, evidence, audit
 
 
 def _candidate_programs(
     graph: Mapping[str, Any], event: Mapping[str, Any],
 ) -> tuple[list[dict[str, Any]], dict[str, dict[str, Any]], int]:
-    reference, evidence = _primary_program(graph, event)
-    template = event["primary_template"]
-    if template == "BIND":
-        contrast = _birth_program(
-            graph, event, event["contrast_birth_id"], suffix="contrast-birth",
-        )
-    elif template == "BIRTH":
-        contrast = _bind_program(
-            graph, event, event["bind_target"], suffix="contrast-bind",
-        )
-    elif template in {"REACTIVATE", "NOOP"}:
-        contrast = _bind_program(
-            graph, event, event["bind_target"], suffix="contrast-bind",
-        )
-    else:
-        contrast = _noop_program(graph, event)
-    illegal = _bind_program(
-        graph, event, event["protected_id"], suffix="illegal-protected-bind",
+    programs, evidence, _, candidate_signatures = _prepare_fixed_candidates(
+        graph, event,
     )
-    programs = [reference, contrast, illegal]
-    permutation = np.random.default_rng(event["candidate_seed"]).permutation(len(programs))
-    shuffled = [programs[int(index)] for index in permutation]
-    reference_index = next(
-        index for index, program in enumerate(shuffled)
-        if program["transaction_id"] == reference["transaction_id"]
+    reference, reference_evidence = _primary_program(graph, event)
+    combined_evidence = {**evidence, **reference_evidence}
+    reference_execution = _execute_candidates(
+        graph, [reference], combined_evidence,
+    )[0]
+    if not reference_execution["legal"]:
+        raise AssertionError(
+            f"hidden reference is illegal: {reference_execution['failure']}"
+        )
+    reference_signature = _candidate_state_signature(
+        graph, reference_execution["post_graph"], reference.get("protected_ids", []),
     )
-    return shuffled, evidence, reference_index
+    matches = [
+        index for index, signature in enumerate(candidate_signatures)
+        if signature == reference_signature
+    ]
+    if len(matches) != 1:
+        raise AssertionError(
+            "fixed candidate coverage requires exactly one canonical reference "
+            f"match, found {len(matches)} for {event['primary_template']}"
+        )
+    return programs, combined_evidence, matches[0]
+
+
+def audit_m1_candidate_coverage(
+    config: Mapping[str, Any], split: str, *, paired_groups: int,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Audit K=16 against independently executed hidden references.
+
+    This lightweight pre-training path advances the hidden reference world but
+    does not build future traces, learning arrays or test data.  A missing
+    canonical match is recorded as a candidate miss instead of being converted
+    into a scorer or student error.
+    """
+    validate_m1_protocol(config)
+    if split not in SPLIT_SEED_OFFSET:
+        raise ValueError("M1 candidate audit exposes train/validation only; test is sealed")
+    if paired_groups <= 0:
+        raise ValueError("candidate audit paired_groups must be positive")
+    rows: list[dict[str, Any]] = []
+    family_totals: dict[str, int] = {}
+    family_covered: dict[str, int] = {}
+    for group_index in range(paired_groups):
+        world_seed = 360_906 + SPLIT_SEED_OFFSET[split] + group_index
+        rng = np.random.default_rng(world_seed)
+        current, topology = _initial_world(split, group_index, rng)
+        events = _event_plan(topology, rng)
+        for event in events:
+            event["places"] = list(topology["special"]["places"])
+            programs, evidence, generation, candidate_signatures = (
+                _prepare_fixed_candidates(current, event)
+            )
+            reference, reference_evidence = _primary_program(current, event)
+            combined_evidence = {**evidence, **reference_evidence}
+            reference_execution = _execute_candidates(
+                current, [reference], combined_evidence,
+            )[0]
+            reference_signature = (
+                _candidate_state_signature(
+                    current, reference_execution["post_graph"],
+                    reference.get("protected_ids", []),
+                )
+                if reference_execution["legal"] else None
+            )
+            matches = [
+                index for index, signature in enumerate(candidate_signatures)
+                if reference_signature is not None and signature == reference_signature
+            ]
+            covered = bool(reference_execution["legal"] and len(matches) == 1)
+            family = str(event["scenario_family"])
+            family_totals[family] = family_totals.get(family, 0) + 1
+            family_covered[family] = family_covered.get(family, 0) + int(covered)
+            rows.append({
+                "split": split,
+                "paired_group_id": f"rollout-pair:{split}:{group_index:06d}",
+                "world_seed": world_seed,
+                "step_index": int(event["step_index"]),
+                "scenario_family": family,
+                "base_graph_hash": current["graph_hash"],
+                "reference_template": str(event["primary_template"]),
+                "reference_legal": bool(reference_execution["legal"]),
+                "reference_match_indices": matches,
+                "candidate_covered": covered,
+                "candidate_miss": not covered,
+                "candidate_count": len(programs),
+                "generation": generation,
+                "reference_failure": reference_execution["failure"],
+            })
+            if not reference_execution["legal"]:
+                raise AssertionError(
+                    "candidate audit hidden reference is illegal: "
+                    f"{reference_execution['failure']}"
+                )
+            current = reference_execution["post_graph"]
+    family_coverage = {
+        family: float(family_covered.get(family, 0) / support)
+        for family, support in sorted(family_totals.items())
+    }
+    overall = float(sum(family_covered.values()) / sum(family_totals.values()))
+    overall_gate = float(config["candidates"]["coverage_gate_overall"])
+    family_gate = float(config["candidates"]["coverage_gate_each_family"])
+    summary = {
+        "status": "candidate_coverage_audit_only_not_formal_gate",
+        "split": split,
+        "paired_groups": paired_groups,
+        "decisions": len(rows),
+        "candidate_budget_k": CANDIDATE_BUDGET,
+        "candidate_reference_coverage": overall,
+        "candidate_miss_rate": 1.0 - overall,
+        "coverage_by_family": family_coverage,
+        "support_by_family": dict(sorted(family_totals.items())),
+        "minimum_family_coverage": min(family_coverage.values()),
+        "coverage_gate_overall": overall_gate,
+        "coverage_gate_each_family": family_gate,
+        "coverage_thresholds_met": (
+            overall >= overall_gate
+            and min(family_coverage.values()) >= family_gate
+        ),
+        # The hidden template is separate from proposal generation, but this
+        # controlled fixture still derives its transaction arguments from the
+        # same current-world ranker.  A formal coverage audit must replace that
+        # coupling with independently annotated reference arguments.
+        "reference_template_independent": True,
+        "reference_arguments_independent": False,
+        "formal_gate_eligible": False,
+        "coverage_gate_pass": False,
+        "test_generated": False,
+        "formal_data_ready": False,
+        "future_scoring_run": False,
+        "training_run": False,
+    }
+    return rows, summary
 
 
 def _program_label(program: Mapping[str, Any]) -> str:
@@ -755,7 +1229,7 @@ def _teacher_posterior(
 def _counterfactual_trace(
     candidate_post: Mapping[str, Any], events: Sequence[Mapping[str, Any]],
     reference_states: Sequence[Mapping[str, Any]], step_index: int,
-    horizon: int, reference_indices: Sequence[int],
+    horizon: int,
 ) -> tuple[float, list[str]]:
     branch = clone_json(candidate_post)
     errors = []
@@ -763,9 +1237,10 @@ def _counterfactual_trace(
     final_index = min(len(events), step_index + horizon)
     for target_index in range(step_index, final_index):
         if target_index > step_index:
-            programs, evidence, _ = _candidate_programs(branch, events[target_index])
-            executions = _execute_candidates(branch, programs, evidence)
-            selected = executions[int(reference_indices[target_index])]
+            reference, evidence = _primary_program(
+                branch, events[target_index],
+            )
+            selected = _execute_candidates(branch, [reference], evidence)[0]
             if not selected["legal"] or selected["post_graph"] is None:
                 raise AssertionError(
                     "registered reference cannot execute on a counterfactual branch: "
@@ -852,7 +1327,6 @@ def _generate_sequence(
         labelled_group = sequence_index % reciprocal == 0
 
     reference_states = []
-    reference_indices = []
     step_material = []
     current = clone_json(initial)
     for event in events:
@@ -860,10 +1334,17 @@ def _generate_sequence(
         executions = _execute_candidates(current, programs, evidence)
         reference_index = primary_index
         if sibling_index == 1 and event["step_index"] == pivot_step:
+            contrast_template = (
+                "BIRTH" if event["primary_template"] == "BIND"
+                else "BIND" if event["primary_template"] in {
+                    "BIRTH", "REACTIVATE", "NOOP",
+                }
+                else "NOOP"
+            )
             reference_index = next(
                 item["candidate_index"]
                 for item in executions
-                if item["legal"] and item["candidate_index"] != primary_index
+                if item["legal"] and item["template"] == contrast_template
             )
         reference = executions[reference_index]
         if not reference["legal"] or reference["post_graph"] is None:
@@ -886,7 +1367,6 @@ def _generate_sequence(
         })
         current = reference["post_graph"]
         reference_states.append(current)
-        reference_indices.append(reference_index)
 
     weights = config["energy"]["weights"]
     temperature = float(config["energy"]["temperature"])
@@ -921,7 +1401,7 @@ def _generate_sequence(
             else:
                 future, branch_hashes = _counterfactual_trace(
                     execution["post_graph"], events, reference_states,
-                    step_index, hindsight_horizon, reference_indices,
+                    step_index, hindsight_horizon,
                 )
             terms = {
                 "now": 0.0 if program.get("evidence_refs") else 1.0,
@@ -967,6 +1447,20 @@ def _generate_sequence(
             "reference_post_graph_hash": reference_states[step_index]["graph_hash"],
             "transaction_label_available": labelled_group,
             "candidate_coverage_at_k": 1.0,
+            "candidate_generation": {
+                "generator": "fixed_deterministic_k16_v1",
+                "budget_k": CANDIDATE_BUDGET,
+                "raw_programs": CANDIDATE_BUDGET,
+                "deduplicated_programs": len(material["programs"]),
+                "legal_programs": sum(
+                    bool(item["legal"]) for item in material["executions"]
+                ),
+                "illegal_programs": sum(
+                    not bool(item["legal"]) for item in material["executions"]
+                ),
+                "reference_matching": "canonical_memory_state",
+                "reference_fields_read_by_generator": False,
+            },
             "executed_candidates": material["executions"],
             "candidate_energies": energies,
             "teacher_posterior": posterior,
@@ -1043,14 +1537,15 @@ def generate_m1_rollout_split(
             min(audit["topology"]["initial_node_count"] for audit in audits),
             max(audit["topology"]["initial_node_count"] for audit in audits),
         ],
-        "candidate_set_size": 3,
+        "candidate_set_size": CANDIDATE_BUDGET,
         "test_generated": False,
         "formal_data_ready": False,
         "paired_latent_siblings_ready": False,
         "front_end": "controlled_structural_token_projector_not_pno",
         "note": (
             "Each sequence is a real chained graph trajectory and supports predicted-state "
-            "replay. Formal paired latent siblings, visual PNO input, and A-F training remain pending."
+            "replay. Fixed deterministic K=16 candidates are active; formal-scale "
+            "coverage, visual PNO input, and A-F training remain pending."
         ),
     }
     return online_steps, audits, summary
@@ -1148,14 +1643,15 @@ def generate_m1_paired_rollout_split(
             min(audit["topology"]["initial_node_count"] for audit in group_representatives),
             max(audit["topology"]["initial_node_count"] for audit in group_representatives),
         ],
-        "candidate_set_size": 3,
+        "candidate_set_size": CANDIDATE_BUDGET,
         "test_generated": False,
         "formal_data_ready": False,
         "paired_latent_siblings_ready": True,
         "front_end": "controlled_structural_token_projector_not_pno",
         "note": (
             "Paired siblings now provide one exact same-online/different-reference pivot "
-            "inside a causal 20-step chain. K=16 and the A-F runner remain pending."
+            "inside a causal 20-step chain with fixed deterministic K=16 candidates. "
+            "Formal-scale coverage and A-F training remain pending."
         ),
     }
     return online_steps, audits, summary

@@ -81,7 +81,9 @@ class TestM1AFCausalRollout(unittest.TestCase):
         self.assertTrue(np.all(self.validation["pstar"].argmax(axis=1) == self.validation["y"]))
         self.assertTrue(np.all(np.isfinite(self.train["x"])))
         self.assertTrue(np.all(np.isfinite(self.train["future"])))
-        self.assertTrue(np.all((self.train["penalties"] >= 1_000_000).sum(axis=1) == 1))
+        self.assertTrue(np.all((self.train["penalties"] >= 1_000_000).sum(axis=1) >= 1))
+        self.assertEqual(self.train["penalties"].shape[1], 16)
+        self.assertEqual(self.validation["penalties"].shape[1], 16)
 
     def test_six_method_training_and_causal_oracle_smoke(self):
         config = deepcopy(self.config)
