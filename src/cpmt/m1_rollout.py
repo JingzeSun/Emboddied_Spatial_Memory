@@ -1356,11 +1356,30 @@ def _counterfactual_trace(
     final_index = min(len(events), step_index + horizon)
     for target_index in range(step_index, final_index):
         if target_index > step_index:
-            reference, evidence = _primary_program(
-                branch, events[target_index],
-            )
-            selected = _execute_candidates(branch, [reference], evidence)[0]
-            if not selected["legal"] or selected["post_graph"] is None:
+            try:
+                reference, evidence = _primary_program(
+                    branch, events[target_index],
+                )
+                selected = _execute_candidates(
+                    branch, [reference], evidence,
+                )[0]
+                failure = selected["failure"]
+            except (CPMTError, LookupError, ValueError) as error:
+                # A wrong earlier transaction can also make construction of a
+                # later oracle program impossible (for example, SPLIT after its
+                # source evidence was removed).  This is a causal branch
+                # failure, not permission to restore the reference world.
+                selected = None
+                failure = {
+                    "type": type(error).__name__,
+                    "message": str(error),
+                    "phase": "REFERENCE_PROGRAM_CONSTRUCTION",
+                }
+            if (
+                selected is None
+                or not selected["legal"]
+                or selected["post_graph"] is None
+            ):
                 # A previous wrong edit can remove a later oracle target.  The
                 # deterministic QUARANTINE fallback records that causal
                 # consequence and leaves persistent memory unchanged.
@@ -1369,7 +1388,7 @@ def _counterfactual_trace(
                     "reference_template": events[target_index][
                         "reference_spec"
                     ]["template"],
-                    "failure": selected["failure"],
+                    "failure": failure,
                     "fallback": "QUARANTINE_KEEP_CURRENT_WORLD",
                 })
             else:

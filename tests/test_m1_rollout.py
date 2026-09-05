@@ -170,6 +170,27 @@ class TestM1ContinuousRollout(unittest.TestCase):
             {"QUARANTINE_KEEP_CURRENT_WORLD"},
         )
 
+    def test_counterfactual_reference_construction_failure_is_quarantined(self):
+        _, audits, _ = generate_m1_paired_rollout_split(
+            self.config, "train", paired_groups=1, start_group_index=4,
+        )
+        failures = [
+            failure
+            for audit in audits
+            for step in audit["steps"]
+            for energy in step["candidate_energies"]
+            for failure in energy["counterfactual_rollout_failures"]
+        ]
+        self.assertTrue(any(
+            failure["failure"].get("phase")
+            == "REFERENCE_PROGRAM_CONSTRUCTION"
+            for failure in failures
+        ))
+        self.assertEqual(
+            {failure["fallback"] for failure in failures},
+            {"QUARANTINE_KEEP_CURRENT_WORLD"},
+        )
+
     def test_oracle_replay_rebuilds_on_previous_predicted_state(self):
         sequence = self.audit[0]
         reference_indices = [
