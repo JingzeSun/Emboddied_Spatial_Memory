@@ -46,7 +46,7 @@ def git_output(*args: str) -> str:
 def build_sharded_split(
     hard_config, hard_config_path: Path, split: str, paired_groups: int,
     future_hash_bins: int, shard_root: Path, *, keep_paired_groups: int,
-    max_attempts: int = 3,
+    max_attempts: int = 10,
 ):
     """Generate each paired group in a restartable isolated Python process."""
     array_parts = []
@@ -215,7 +215,7 @@ def build_sharded_split(
 
 def run_isolated_point(
     run_root: Path, name: str, mode: str, train_paired_groups: int,
-    student_steps: int, seed: int, *, max_attempts: int = 3,
+    student_steps: int, seed: int, *, max_attempts: int = 10,
 ):
     """Run one training/evaluation point in a restartable short process."""
     worker = PROJECT / "scripts" / "run_m1_trainability_point.py"
