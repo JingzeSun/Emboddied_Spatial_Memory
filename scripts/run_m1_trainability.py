@@ -37,6 +37,21 @@ def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def source_hash_matches(path: Path, expected: str | None) -> bool:
+    """Accept exact source bytes or a pure CRLF/LF checkout conversion."""
+    if expected is None:
+        return False
+    raw = path.read_bytes()
+    if hashlib.sha256(raw).hexdigest() == expected:
+        return True
+    lf = raw.replace(b"\r\n", b"\n")
+    crlf = lf.replace(b"\n", b"\r\n")
+    return expected in {
+        hashlib.sha256(lf).hexdigest(),
+        hashlib.sha256(crlf).hexdigest(),
+    }
+
+
 def git_output(*args: str) -> str:
     result = subprocess.run(
         ["git", "-c", f"safe.directory={PROJECT.parents[1].as_posix()}", *args],
@@ -532,9 +547,21 @@ def main() -> None:
         for name in ("method_adapter", "method_point_worker"):
             if name in previous_sources:
                 scientific_sources.add(name)
+        source_paths = {
+            "trainability": PROJECT / "src" / "cpmt" / "m1_trainability.py",
+            "af_adapter": PROJECT / "src" / "cpmt" / "m1_af_rollout.py",
+            "rollout_generator": PROJECT / "src" / "cpmt" / "m1_rollout.py",
+            "learning": PROJECT / "src" / "cpmt" / "dev_learning.py",
+            "executor": PROJECT / "src" / "cpmt" / "executor.py",
+            "shard_worker": PROJECT / "scripts" / "generate_m1_trainability_shard.py",
+            "point_worker": PROJECT / "scripts" / "run_m1_trainability_point.py",
+            "method_adapter": PROJECT / "src" / "cpmt" / "m1_af_method.py",
+            "method_point_worker": (
+                PROJECT / "scripts" / "run_m1_trainability_method.py"
+            ),
+        }
         if any(
-            previous_sources.get(name)
-            != manifest["code"]["source_sha256"].get(name)
+            not source_hash_matches(source_paths[name], previous_sources.get(name))
             for name in scientific_sources
         ):
             raise ValueError("resume scientific source hashes do not match")
@@ -548,6 +575,7 @@ def main() -> None:
             "previous_commit": previous_manifest.get("code", {}).get("commit"),
             "resumed_at": started.isoformat(),
             "reuse_requires_complete_json": True,
+            "source_match_policy": "exact_sha256_or_crlf_lf_only",
         }
     started_clock = time.perf_counter()
     metrics = {
