@@ -91,7 +91,7 @@ def resolve_trainability_ladder(
 def subset_paired_groups(
     arrays: Mapping[str, np.ndarray], audits: Sequence[Mapping[str, Any]],
     paired_groups: int,
-) -> tuple[dict[str, np.ndarray], list[dict[str, Any]]]:
+) -> tuple[dict[str, np.ndarray], list[Mapping[str, Any]]]:
     """Take a deterministic prefix of complete paired groups without splitting siblings."""
     names = sorted({str(audit["paired_group_id"]) for audit in audits})
     if paired_groups <= 0 or paired_groups > len(names):

@@ -10,7 +10,7 @@ test_m1_data.py 检查十二 family、八原子事务正例、同一 immutable b
 
 test_m1_metrics.py 用手算小例检查 graph correctness、contamination、missing fact、false birth、collateral/invalid 分开计数，20-step rollout 拒绝错误长度，并验证 bootstrap 不拆 paired group、效果方向和 Holm 校正。它不是统计显著性结果，也没有运行 A–F 模型。
 
-test_m1_rollout.py 计划检查程序化世界确实形成 20 个首尾相接的 graph versions、事件顺序和空间关系随 seed 变化、八种原子事务与 REPLACE 都有可执行正例、固定 K=16 不读取 reference 字段、canonical 去重、非法 protected 分支完整保留、H=3 尾部按 3/2/1 遮罩，以及 train/validation/test 边界。白话说，输入是一条生成序列和候选选择，输出是每一步真实执行后的预测图；改变隐藏 reference 标签时候选列表必须不变，oracle 选择必须精确重放 reference。新增 K=16 单步检查已通过，但完整 20-step 测试在宿主 Python `0xC0000005` 时中止，因此目前不得写成全套测试已通过，也不证明模型会选择正确候选或正式 M1 有效。
+test_m1_rollout.py 检查程序化世界确实形成 20 个首尾相接的 graph versions、事件顺序和空间关系随 seed 变化、八种原子事务与 REPLACE 都有可执行正例、固定 K=16 不读取 reference 字段、canonical 去重、非法 protected 分支完整保留、H=3 尾部按 3/2/1 遮罩，以及 train/validation/test 边界。白话说，输入是一条生成序列和候选选择，输出是每一步真实执行后的预测图；删掉完整 `reference_spec`、改变 audit family 后候选列表必须不变，匿名 proposal observation 也不能含对象/边身份字符串，oracle 选择则必须精确重放 reference。关键三项测试在开发中曾各自以独立进程通过；最终实际执行状态与中断只记录在 EXECUTE。这仍不证明模型会选择正确候选、正式 M1 有效或全部测试在同一进程通过。
 
 同一文件还检查 paired continuous siblings：pivot 之前和当步的 online payload 必须逐字节相同，reference program/post-world/future trace 必须不同，分叉后两个 oracle 必须各自重放到自己的正确终态。它解决的是相同当前信息存在多种合法 latent future 的数据条件，不等于整条 episode 都不可辨识，也不等于模型能超过信息上限。
 

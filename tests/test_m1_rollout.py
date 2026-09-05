@@ -106,10 +106,11 @@ class TestM1ContinuousRollout(unittest.TestCase):
                 "RETRACT", "SPLIT", "MERGE", "REPLACE",
             },
         )
-        changed = deepcopy(event)
-        changed["primary_template"] = (
-            "BIRTH" if event["primary_template"] != "BIRTH" else "NOOP"
+        self.assertNotIn(
+            "rollout:", canonical_json(event["proposal_observation"]),
         )
+        changed = deepcopy(event)
+        changed.pop("reference_spec")
         changed["scenario_family"] = "C11"
         changed_programs, _, _ = generate_fixed_candidates(base, changed)
         self.assertEqual(canonical_json(programs), canonical_json(changed_programs))
@@ -123,7 +124,7 @@ class TestM1ContinuousRollout(unittest.TestCase):
         self.assertEqual(summary["candidate_reference_coverage"], 1.0)
         self.assertEqual(summary["minimum_family_coverage"], 1.0)
         self.assertTrue(summary["coverage_thresholds_met"])
-        self.assertFalse(summary["reference_arguments_independent"])
+        self.assertTrue(summary["reference_arguments_independent"])
         self.assertFalse(summary["formal_gate_eligible"])
         self.assertFalse(summary["coverage_gate_pass"])
         self.assertFalse(summary["test_generated"])
@@ -157,6 +158,17 @@ class TestM1ContinuousRollout(unittest.TestCase):
                 )
                 if candidate["legal"] and candidate["candidate_index"] != reference_index
             ))
+        counterfactual_failures = [
+            failure
+            for step in sequence["steps"]
+            for energy in step["candidate_energies"]
+            for failure in energy["counterfactual_rollout_failures"]
+        ]
+        self.assertTrue(counterfactual_failures)
+        self.assertEqual(
+            {item["fallback"] for item in counterfactual_failures},
+            {"QUARANTINE_KEEP_CURRENT_WORLD"},
+        )
 
     def test_oracle_replay_rebuilds_on_previous_predicted_state(self):
         sequence = self.audit[0]

@@ -128,7 +128,8 @@ def train_outcome_scorer(train: dict, validation: dict, config: dict, seed: int,
 
 
 def train_student(method: str, train: dict, teacher: torch.Tensor,
-                  config: dict, seed: int, device: torch.device) -> tuple[nn.Module, list[dict]]:
+                  config: dict, seed: int,
+                  device: torch.device) -> tuple[OnlineModel, list[dict]]:
     # Matched architecture, initial weights, batches, optimizer and update count.
     torch.manual_seed(seed)
     num_candidates = int(train["penalties"].shape[1])
@@ -175,7 +176,10 @@ def evaluate_probabilities(probs: np.ndarray, data: dict, config: dict,
     their selected transaction is assessed with the same post-world metrics.
     """
     targets = data["y"].cpu().numpy()
-    ambiguous = data["ambiguous"].cpu().numpy()
+    ambiguous = np.asarray(
+        data["ambiguous"].cpu().numpy(), dtype=np.bool_,
+    )
+    identifiable = np.logical_not(ambiguous)
     predicted = probs.argmax(-1)
     teacher_pred = teacher.argmax(-1).cpu().numpy()
     rows = np.arange(len(probs))
@@ -185,16 +189,19 @@ def evaluate_probabilities(probs: np.ndarray, data: dict, config: dict,
         {str(k): float(v) for k, v in enumerate(p)}, decision_id=f"eval:{i}",
         at=2, commit_probability=config["commit_probability"],
         margin_threshold=config["margin_threshold"]) for i, p in enumerate(probs)]
-    committed = np.asarray([d["action"] == "COMMIT" for d in decisions])
+    committed = np.asarray(
+        [d["action"] == "COMMIT" for d in decisions], dtype=np.bool_,
+    )
+    quarantined = np.logical_not(committed)
     def mean(values: np.ndarray, mask: np.ndarray | None = None):
         selected = values if mask is None else values[mask]
         return float(selected.mean()) if len(selected) else None
     metrics = dict(
         accuracy=mean(predicted == targets),
-        identifiable_accuracy=mean(predicted == targets, ~ambiguous),
+        identifiable_accuracy=mean(predicted == targets, identifiable),
         indistinguishable_accuracy=mean(predicted == targets, ambiguous),
         indistinguishable_mean_confidence=mean(probs.max(-1), ambiguous),
-        indistinguishable_quarantine_rate=mean(~committed, ambiguous),
+        indistinguishable_quarantine_rate=mean(quarantined, ambiguous),
         commit_coverage=mean(committed),
         committed_accuracy=mean(predicted == targets, committed),
         nll=float(-np.log(np.maximum(probs[rows, targets], 1e-12)).mean()),

@@ -49,8 +49,12 @@ TEMPLATE_FAMILY = {
 CANDIDATE_BUDGET = 16
 CANDIDATE_EVENT_FIELDS = (
     "event_id", "step_index", "decision_time", "candidate_seed",
-    "current_evidence_ref", "protected_id",
+    "current_evidence_ref", "protected_id", "proposal_observation",
 )
+PROPOSAL_FEATURE_DIM = 16
+PROPOSAL_OBSERVATION_FIELDS = {
+    "node_query", "edge_query", "place_query", "merge_queries", "source",
+}
 
 
 def _node(
@@ -88,6 +92,19 @@ def _edge(
         "evidence_refs": evidence_refs,
         "provenance": [provenance],
     }
+
+
+def _stable_retrieval_feature(value: str) -> list[float]:
+    """Map an online identity signature to a fixed, nonlearned unit vector."""
+    raw = np.frombuffer(
+        hashlib.sha256(value.encode("utf-8")).digest()[:PROPOSAL_FEATURE_DIM],
+        dtype=np.uint8,
+    ).astype(np.float64)
+    vector = (raw - 127.5) / 127.5
+    norm = float(np.linalg.norm(vector))
+    if norm == 0.0:
+        raise AssertionError("stable retrieval feature unexpectedly has zero norm")
+    return (vector / norm).round(8).tolist()
 
 
 def _open_node(graph: Mapping[str, Any], node_id: str) -> dict[str, Any]:
@@ -252,6 +269,9 @@ def _initial_world(
         "filler_entity_count": filler_count,
         "initial_node_count": len(nodes),
         "initial_edge_count": len(edges),
+        "initial_edge_targets": {
+            str(edge["edge_id"]): str(edge["target"]) for edge in edges
+        },
         "special": special,
     }
     return graph, topology
@@ -277,41 +297,83 @@ def _event_plan(
         # The event identifier is deliberately neutral.  Candidate generation
         # must not recover the hidden reference template from an ID string.
         event_id = f"{namespace}:event:{step_index:02d}"
+        current_evidence_ref = f"obs:{event_id}:current"
+        candidate_seed = int(rng.integers(0, 2**31 - 1))
         event = {
             "event_id": event_id,
             "step_index": step_index,
             "decision_time": step_index + 1,
             "scenario_family": TEMPLATE_FAMILY[template],
-            "primary_template": template,
-            "candidate_seed": int(rng.integers(0, 2**31 - 1)),
+            "candidate_seed": candidate_seed,
             "pose_bucket": int(rng.integers(0, 8)),
             "cue_value": float(rng.choice([-1.0, -0.5, 0.5, 1.0])),
-            "current_evidence_ref": f"obs:{event_id}:current",
+            "current_evidence_ref": current_evidence_ref,
             "contrast_birth_id": f"{namespace}:entity:contrast-birth:{step_index}",
             "protected_id": special["protected_id"],
-            "bind_target": special["bind_target"],
         }
+        reference_spec: dict[str, Any] = {"template": template}
         if template == "BIRTH":
-            event["new_node_id"] = f"{namespace}:entity:birth:{ordinal}"
+            reference_spec["new_node_id"] = (
+                f"candidate:{current_evidence_ref}:birth"
+            )
         elif template == "REACTIVATE":
-            event["target_node_id"] = special["dormant_target"]
+            reference_spec["target_node_id"] = special["dormant_target"]
         elif template == "RELINK":
-            event["target_edge_id"] = special["mover_edges"][ordinal]
-            event["new_target"] = places[(ordinal + 2) % len(places)]
+            target_edge_id = special["mover_edges"][ordinal]
+            old_target = topology["initial_edge_targets"][target_edge_id]
+            old_index = places.index(old_target)
+            reference_spec.update({
+                "target_edge_id": target_edge_id,
+                "new_target": places[(old_index + ordinal + 1) % len(places)],
+                "places": list(places),
+            })
         elif template == "RETRACT":
-            event["target_edge_id"] = special["retract_edges"][ordinal]
+            reference_spec["target_edge_id"] = special["retract_edges"][ordinal]
         elif template == "SPLIT":
-            event["target_node_id"] = special["split_source"]
-            event["successor_ids"] = [
-                f"{namespace}:entity:split:left",
-                f"{namespace}:entity:split:right",
+            reference_spec["target_node_id"] = special["split_source"]
+            reference_spec["successor_ids"] = [
+                f"candidate:{current_evidence_ref}:split:0:left",
+                f"candidate:{current_evidence_ref}:split:0:right",
             ]
         elif template == "MERGE":
-            event["target_node_ids"] = [special["merge_a"], special["merge_b"]]
+            reference_spec["target_node_ids"] = [
+                special["merge_a"], special["merge_b"],
+            ]
         elif template == "REPLACE":
-            event["target_edge_id"] = special["replace_edge"]
-            event["new_node_id"] = f"{namespace}:entity:replace-new"
-            event["new_target"] = places[-1]
+            reference_spec.update({
+                "target_edge_id": special["replace_edge"],
+                "new_node_id": f"candidate:{current_evidence_ref}:replace",
+                "new_target": places[-1],
+            })
+        elif template == "BIND":
+            reference_spec["target_node_id"] = special["bind_target"]
+
+        node_observation_id = str(
+            reference_spec.get("target_node_id")
+            or next(iter(reference_spec.get("target_node_ids", [])),
+                    f"{event_id}:unmatched-node")
+        )
+        edge_observation_id = str(reference_spec.get(
+            "target_edge_id", f"{event_id}:unmatched-edge",
+        ))
+        place_observation_id = str(reference_spec.get(
+            "new_target", f"{event_id}:unmatched-place",
+        ))
+        merge_observation_ids = list(reference_spec.get(
+            "target_node_ids",
+            [f"{event_id}:merge-a", f"{event_id}:merge-b"],
+        ))
+        event["proposal_observation"] = {
+            "node_query": _stable_retrieval_feature(node_observation_id),
+            "edge_query": _stable_retrieval_feature(edge_observation_id),
+            "place_query": _stable_retrieval_feature(place_observation_id),
+            "merge_queries": [
+                _stable_retrieval_feature(str(value))
+                for value in merge_observation_ids
+            ],
+            "source": "controlled_anonymous_retrieval_features_v1",
+        }
+        event["reference_spec"] = reference_spec
         events.append(event)
     if counters != ROLLOUT_TEMPLATE_COUNTS:
         raise AssertionError("rollout event plan lost a registered template")
@@ -321,7 +383,7 @@ def _event_plan(
 def _ambiguity_pivot(events: Sequence[Mapping[str, Any]]) -> int:
     """Choose one middle decision whose legal contrast changes the world."""
     for step_index in range(5, min(15, len(events))):
-        if events[step_index]["primary_template"] != "NOOP":
+        if events[step_index]["reference_spec"]["template"] != "NOOP":
             return step_index
     raise ValueError("20-step event plan has no eligible ambiguity pivot")
 
@@ -701,6 +763,32 @@ def _repeat_to(values: Sequence[str], count: int, *, name: str) -> list[str]:
     return [str(values[index % len(values)]) for index in range(count)]
 
 
+def _rank_by_observation(
+    ranked: Sequence[str], query: Sequence[float],
+    event: Mapping[str, Any], *, kind: str,
+) -> list[str]:
+    """Rank current-world IDs by anonymous fixed observation similarity."""
+    query_vector = np.asarray(query, dtype=np.float64)
+    if query_vector.shape != (PROPOSAL_FEATURE_DIM,) or not np.isfinite(
+        query_vector
+    ).all():
+        raise ValueError("proposal observation query has invalid shape or values")
+    unique = list(dict.fromkeys(str(value) for value in ranked))
+    seed = int(event["candidate_seed"])
+    return sorted(
+        unique,
+        key=lambda value: (
+            -float(np.dot(
+                query_vector,
+                np.asarray(_stable_retrieval_feature(value), dtype=np.float64),
+            )),
+            hashlib.sha256(
+                f"{seed}|observation-tie|{kind}|{value}".encode("utf-8")
+            ).hexdigest(),
+        ),
+    )
+
+
 def _event_variant(event: Mapping[str, Any], **updates: Any) -> dict[str, Any]:
     variant = clone_json(dict(event))
     variant.update(updates)
@@ -712,8 +800,8 @@ def _proposal_context(
 ) -> dict[str, Any]:
     """Build fixed argument ranks using only the current executable world.
 
-    The hidden ``primary_template`` and the audit-only scenario family are not
-    read here.  This makes it possible to mutate the reference label while
+    The audit-only ``reference_spec`` and scenario family are not read here.
+    This makes it possible to mutate the complete reference transaction while
     proving that the proposed candidate list remains byte-for-byte unchanged.
     """
     open_nodes = [
@@ -730,15 +818,16 @@ def _proposal_context(
         str(edge["edge_id"]): _latest_edge(graph, str(edge["edge_id"]))
         for edge in graph["edges"]
     }
-    bindable = _ranked_ids(
+    observation = event["proposal_observation"]
+    bindable = _rank_by_observation(_ranked_ids(
         (
             node for node in open_nodes
             if node["node_type"] == "entity"
             and node["lifecycle"] in {"candidate", "confirmed"}
         ),
         event, kind="bind", id_key="node_id",
-    )
-    confirmed = _ranked_ids(
+    ), observation["node_query"], event, kind="bind")
+    confirmed = _rank_by_observation(_ranked_ids(
         (
             node for node in open_nodes
             if node["node_type"] == "entity"
@@ -746,33 +835,33 @@ def _proposal_context(
             and node.get("evidence_refs")
         ),
         event, kind="confirmed", id_key="node_id",
-    )
-    dormant = _ranked_ids(
+    ), observation["node_query"], event, kind="confirmed")
+    dormant = _rank_by_observation(_ranked_ids(
         (
             node for node in open_nodes
             if node["node_type"] == "entity"
             and node["lifecycle"] == "dormant"
         ),
         event, kind="dormant", id_key="node_id",
-    )
-    fallback_entities = _ranked_ids(
+    ), observation["node_query"], event, kind="dormant")
+    fallback_entities = _rank_by_observation(_ranked_ids(
         (node for node in latest_nodes.values() if node["node_type"] == "entity"),
         event, kind="fallback-entity", id_key="node_id",
-    )
+    ), observation["node_query"], event, kind="fallback-entity")
     if not bindable:
         bindable = fallback_entities
     if not confirmed:
         confirmed = fallback_entities
-    edges = _ranked_ids(
+    edges = _rank_by_observation(_ranked_ids(
         open_edges or latest_edges.values(), event, kind="edge", id_key="edge_id",
-    )
+    ), observation["edge_query"], event, kind="edge")
     open_places = [node for node in open_nodes if node["node_type"] == "place"]
-    places = _ranked_ids(
+    places = _rank_by_observation(_ranked_ids(
         open_places or [
             node for node in latest_nodes.values() if node["node_type"] == "place"
         ],
         event, kind="place", id_key="node_id",
-    )
+    ), observation["place_query"], event, kind="place")
     bind_targets = _repeat_to(bindable, 2, name="bindable entity")
     connected_ids = {
         str(value)
@@ -784,6 +873,29 @@ def _proposal_context(
         split_pool or confirmed, 2, name="confirmed split source",
     )
     merge_targets = _repeat_to(confirmed, 4, name="confirmed merge source")
+    merge_pairs: list[list[str]] = []
+    observed_pair = []
+    for slot, query in enumerate(observation["merge_queries"]):
+        ranking = _rank_by_observation(
+            confirmed, query, event, kind=f"merge-{slot}",
+        )
+        for value in ranking:
+            if value not in observed_pair:
+                observed_pair.append(value)
+                break
+        if len(observed_pair) == 2:
+            break
+    if len(observed_pair) == 2:
+        merge_pairs.append(observed_pair)
+    fallback_pairs = [
+        [merge_targets[0], merge_targets[1]],
+        [merge_targets[2], merge_targets[3]],
+    ]
+    for pair in fallback_pairs:
+        if pair[0] != pair[1] and set(pair) not in [set(item) for item in merge_pairs]:
+            merge_pairs.append(pair)
+    if len(merge_pairs) < 2:
+        raise ValueError("fixed candidate generator found fewer than two merge pairs")
     edge_targets = _repeat_to(edges, 6, name="open edge")
     place_targets = _repeat_to(places, 4, name="open place")
     return {
@@ -792,10 +904,7 @@ def _proposal_context(
         "edge_targets": edge_targets,
         "place_targets": place_targets,
         "split_targets": split_targets,
-        "merge_pairs": [
-            [merge_targets[0], merge_targets[1]],
-            [merge_targets[2], merge_targets[3]],
-        ],
+        "merge_pairs": merge_pairs[:2],
         "birth_id": f"candidate:{event['current_evidence_ref']}:birth",
         "split_successors": [
             [
@@ -816,6 +925,17 @@ def _build_fixed_candidate_catalog(
     if missing:
         raise ValueError(f"candidate event is missing fields {sorted(missing)}")
     event = {key: event[key] for key in CANDIDATE_EVENT_FIELDS}
+    observation = event["proposal_observation"]
+    if set(observation) != PROPOSAL_OBSERVATION_FIELDS:
+        raise ValueError(
+            "proposal_observation fields do not match the fixed generator contract"
+        )
+    if observation["source"] != (
+        "controlled_anonymous_retrieval_features_v1"
+    ):
+        raise ValueError("unsupported fixed proposal-observation source")
+    if len(observation["merge_queries"]) != 2:
+        raise ValueError("proposal observation requires two merge queries")
     context = _proposal_context(graph, event)
     evidence: dict[str, dict[str, Any]] = {}
     programs: list[dict[str, Any]] = [_noop_program(graph, event)]
@@ -853,7 +973,7 @@ def _build_fixed_candidate_catalog(
         programs.append(program)
     for slot in range(2):
         retract_event = _event_variant(
-            event, target_edge_id=context["edge_targets"][3 + slot],
+            event, target_edge_id=context["edge_targets"][slot],
         )
         program, records = _retract_program(
             graph, retract_event, suffix=f"retract-{slot}",
@@ -890,9 +1010,9 @@ def _build_fixed_candidate_catalog(
         programs.append(program)
     replace_event = _event_variant(
         event,
-        target_edge_id=context["edge_targets"][5],
+        target_edge_id=context["edge_targets"][0],
         new_node_id=context["replace_id"],
-        new_target=context["place_targets"][3],
+        new_target=context["place_targets"][0],
     )
     replace, records = _replace_program(graph, replace_event)
     programs.append(replace)
@@ -905,48 +1025,47 @@ def _build_fixed_candidate_catalog(
 def _primary_program(
     graph: Mapping[str, Any], event: Mapping[str, Any],
 ) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
-    """Construct hidden truth independently from the exhaustive catalog."""
-    context = _proposal_context(graph, event)
-    template = str(event["primary_template"])
+    """Construct the audit-only truth from its pre-frozen full transaction spec."""
+    spec = event["reference_spec"]
+    template = str(spec["template"])
     if template == "NOOP":
         return _noop_program(graph, event), {}
     if template == "BIND":
         return _bind_program(
-            graph, event, context["bind_targets"][0], suffix="bind-0",
+            graph, event, str(spec["target_node_id"]), suffix="bind-0",
         ), {}
     if template == "BIRTH":
         return _birth_program(
-            graph, event, context["birth_id"], suffix="birth",
+            graph, event, str(spec["new_node_id"]), suffix="birth",
         ), {}
     if template == "REACTIVATE":
         return _reactivate_program(graph, _event_variant(
-            event, target_node_id=context["reactivate_target"],
+            event, target_node_id=spec["target_node_id"],
         )), {}
     if template == "RELINK":
         relink_event = _event_variant(
-            event, target_edge_id=context["edge_targets"][0],
-            new_target=context["place_targets"][0],
-            places=context["place_targets"],
+            event, target_edge_id=spec["target_edge_id"],
+            new_target=spec["new_target"], places=spec["places"],
         )
         return _relink_program(graph, relink_event), {}
     if template == "RETRACT":
         return _retract_program(graph, _event_variant(
-            event, target_edge_id=context["edge_targets"][3],
+            event, target_edge_id=spec["target_edge_id"],
         ), suffix="retract-0")
     if template == "SPLIT":
         return _split_program(graph, _event_variant(
-            event, target_node_id=context["split_targets"][0],
-            successor_ids=context["split_successors"][0],
+            event, target_node_id=spec["target_node_id"],
+            successor_ids=spec["successor_ids"],
         )), {}
     if template == "MERGE":
         return _merge_program(graph, _event_variant(
-            event, target_node_ids=context["merge_pairs"][0],
+            event, target_node_ids=spec["target_node_ids"],
         )), {}
     if template == "REPLACE":
         return _replace_program(graph, _event_variant(
-            event, target_edge_id=context["edge_targets"][5],
-            new_node_id=context["replace_id"],
-            new_target=context["place_targets"][3],
+            event, target_edge_id=spec["target_edge_id"],
+            new_node_id=spec["new_node_id"],
+            new_target=spec["new_target"],
         ))
     raise ValueError(f"unsupported rollout template {template!r}")
 
@@ -1058,7 +1177,7 @@ def _candidate_programs(
     if len(matches) != 1:
         raise AssertionError(
             "fixed candidate coverage requires exactly one canonical reference "
-            f"match, found {len(matches)} for {event['primary_template']}"
+            f"match, found {len(matches)} for {event['reference_spec']['template']}"
         )
     return programs, combined_evidence, matches[0]
 
@@ -1118,7 +1237,7 @@ def audit_m1_candidate_coverage(
                 "step_index": int(event["step_index"]),
                 "scenario_family": family,
                 "base_graph_hash": current["graph_hash"],
-                "reference_template": str(event["primary_template"]),
+                "reference_template": str(event["reference_spec"]["template"]),
                 "reference_legal": bool(reference_execution["legal"]),
                 "reference_match_indices": matches,
                 "candidate_covered": covered,
@@ -1157,12 +1276,11 @@ def audit_m1_candidate_coverage(
             overall >= overall_gate
             and min(family_coverage.values()) >= family_gate
         ),
-        # The hidden template is separate from proposal generation, but this
-        # controlled fixture still derives its transaction arguments from the
-        # same current-world ranker.  A formal coverage audit must replace that
-        # coupling with independently annotated reference arguments.
+        # The complete hidden transaction is frozen under reference_spec and is
+        # never passed to the generator.  Anonymous proposal_observation vectors
+        # stand in for a frozen retriever in this controlled, nonvisual fixture.
         "reference_template_independent": True,
-        "reference_arguments_independent": False,
+        "reference_arguments_independent": True,
         "formal_gate_eligible": False,
         "coverage_gate_pass": False,
         "test_generated": False,
@@ -1230,10 +1348,11 @@ def _counterfactual_trace(
     candidate_post: Mapping[str, Any], events: Sequence[Mapping[str, Any]],
     reference_states: Sequence[Mapping[str, Any]], step_index: int,
     horizon: int,
-) -> tuple[float, list[str]]:
+) -> tuple[float, list[str], list[dict[str, Any]]]:
     branch = clone_json(candidate_post)
     errors = []
     hashes = []
+    failures: list[dict[str, Any]] = []
     final_index = min(len(events), step_index + horizon)
     for target_index in range(step_index, final_index):
         if target_index > step_index:
@@ -1242,17 +1361,25 @@ def _counterfactual_trace(
             )
             selected = _execute_candidates(branch, [reference], evidence)[0]
             if not selected["legal"] or selected["post_graph"] is None:
-                raise AssertionError(
-                    "registered reference cannot execute on a counterfactual branch: "
-                    f"step={target_index}, failure={selected['failure']}"
-                )
-            branch = selected["post_graph"]
+                # A previous wrong edit can remove a later oracle target.  The
+                # deterministic QUARANTINE fallback records that causal
+                # consequence and leaves persistent memory unchanged.
+                failures.append({
+                    "step_index": target_index,
+                    "reference_template": events[target_index][
+                        "reference_spec"
+                    ]["template"],
+                    "failure": selected["failure"],
+                    "fallback": "QUARANTINE_KEEP_CURRENT_WORLD",
+                })
+            else:
+                branch = selected["post_graph"]
         pose = int(events[target_index]["pose_bucket"])
         prediction = project_structural_observation(branch, pose)
         target = project_structural_observation(reference_states[target_index], pose)
         errors.append(float(len(prediction ^ target)))
         hashes.append(branch["graph_hash"])
-    return float(np.mean(errors)), hashes
+    return float(np.mean(errors)), hashes, failures
 
 
 def _online_step(
@@ -1334,9 +1461,10 @@ def _generate_sequence(
         executions = _execute_candidates(current, programs, evidence)
         reference_index = primary_index
         if sibling_index == 1 and event["step_index"] == pivot_step:
+            primary_template = str(event["reference_spec"]["template"])
             contrast_template = (
-                "BIRTH" if event["primary_template"] == "BIND"
-                else "BIND" if event["primary_template"] in {
+                "BIRTH" if primary_template == "BIND"
+                else "BIND" if primary_template in {
                     "BIRTH", "REACTIVATE", "NOOP",
                 }
                 else "NOOP"
@@ -1398,8 +1526,9 @@ def _generate_sequence(
             if execution["post_graph"] is None:
                 future = 0.0
                 branch_hashes: list[str] = []
+                branch_failures: list[dict[str, Any]] = []
             else:
-                future, branch_hashes = _counterfactual_trace(
+                future, branch_hashes, branch_failures = _counterfactual_trace(
                     execution["post_graph"], events, reference_states,
                     step_index, hindsight_horizon,
                 )
@@ -1419,6 +1548,7 @@ def _generate_sequence(
                 "total": total,
                 "masked": bool(illegal),
                 "counterfactual_rollout_hashes": branch_hashes,
+                "counterfactual_rollout_failures": branch_failures,
             })
         posterior = _teacher_posterior(energies, temperature)
         winner = int(np.argmax(posterior))
@@ -1478,7 +1608,9 @@ def _generate_sequence(
         "asset_family": asset_family,
         "initial_world": initial,
         "topology": topology,
-        "primary_event_order": [event["primary_template"] for event in events],
+        "primary_event_order": [
+            event["reference_spec"]["template"] for event in events
+        ],
         "event_order": [
             material["executions"][material["reference_index"]]["template"]
             for material in step_material
@@ -1666,7 +1798,7 @@ def materialize_rollout_step(
         raise ValueError("step index is outside the recorded sequence")
     stored = steps[step_index]
     event = stored["event_spec"]
-    programs, evidence, primary_index = _candidate_programs(base, event)
+    programs, evidence, _ = generate_fixed_candidates(base, event)
     executions = _execute_candidates(base, programs, evidence)
     source_online = stored["online"]
     online = _online_step(
@@ -1678,7 +1810,6 @@ def materialize_rollout_step(
         "step_index": step_index,
         "online": online,
         "executed_candidates": executions,
-        "primary_program_index": primary_index,
     }
 
 
@@ -1699,7 +1830,7 @@ def execute_rollout_choices(
     decisions = []
     for step, selected_index in zip(steps, selected_indices, strict=True):
         event = step["event_spec"]
-        programs, evidence, reference_index = _candidate_programs(current, event)
+        programs, evidence, _ = generate_fixed_candidates(current, event)
         executions = _execute_candidates(current, programs, evidence)
         if not 0 <= int(selected_index) < len(executions):
             raise ValueError("selected candidate index is outside the fixed budget")
@@ -1721,7 +1852,6 @@ def execute_rollout_choices(
             "selected_legal": selected["legal"],
             "committed": committed,
             "post_graph_hash": current["graph_hash"],
-            "reference_index_on_predicted_base": reference_index,
             "failure": selected["failure"],
         })
     return {"states": states, "base_states": bases, "decisions": decisions}
