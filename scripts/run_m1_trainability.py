@@ -64,7 +64,37 @@ def build_sharded_split(
     worker = PROJECT / "scripts" / "generate_m1_trainability_shard.py"
     for group_index in range(paired_groups):
         completed = None
-        for attempt in range(1, max_attempts + 1):
+        prefix = f"{split}_{group_index:06d}_attempt"
+        existing_attempts = sorted(
+            (
+                int(path.name.removeprefix(prefix)), path
+                for path in shard_root.glob(f"{prefix}*")
+                if path.is_dir()
+                and path.name.removeprefix(prefix).isdigit()
+            ),
+            key=lambda item: item[0],
+        )
+        for attempt, attempt_dir in existing_attempts:
+            complete_path = attempt_dir / "complete.json"
+            if complete_path.is_file():
+                completed = attempt_dir
+                attempt_log.append({
+                    "split": split,
+                    "group_index": group_index,
+                    "attempt": attempt,
+                    "returncode": 0,
+                    "stdout": "",
+                    "stderr": "",
+                    "output": str(attempt_dir.relative_to(shard_root.parent)),
+                    "reused_complete_attempt": True,
+                })
+                break
+        next_attempt = (
+            max((attempt for attempt, _ in existing_attempts), default=0) + 1
+        )
+        for attempt in range(next_attempt, next_attempt + max_attempts):
+            if completed is not None:
+                break
             attempt_dir = shard_root / (
                 f"{split}_{group_index:06d}_attempt{attempt}"
             )
@@ -222,7 +252,34 @@ def run_isolated_point(
     point_root = run_root / "points"
     point_root.mkdir(parents=True, exist_ok=True)
     attempts = []
-    for attempt in range(1, max_attempts + 1):
+    prefix = f"{name}_attempt"
+    existing_attempts = sorted(
+        (
+            int(path.name.removeprefix(prefix)), path
+            for path in point_root.glob(f"{prefix}*")
+            if path.is_dir() and path.name.removeprefix(prefix).isdigit()
+        ),
+        key=lambda item: item[0],
+    )
+    for attempt, attempt_dir in existing_attempts:
+        if (attempt_dir / "complete.json").is_file():
+            result = json.loads(
+                (attempt_dir / "result.json").read_text(encoding="utf-8")
+            )
+            attempts.append({
+                "name": name,
+                "attempt": attempt,
+                "returncode": 0,
+                "stdout": "",
+                "stderr": "",
+                "output": str(attempt_dir.relative_to(run_root)),
+                "reused_complete_attempt": True,
+            })
+            return result, attempts
+    next_attempt = max(
+        (attempt for attempt, _ in existing_attempts), default=0,
+    ) + 1
+    for attempt in range(next_attempt, next_attempt + max_attempts):
         attempt_dir = point_root / f"{name}_attempt{attempt}"
         command = [
             sys.executable, "-B", str(worker),
@@ -273,8 +330,17 @@ def main() -> None:
         default=PROJECT / "configs" / "m1_trainability_ladder.json",
     )
     parser.add_argument("--output", type=Path)
+    parser.add_argument(
+        "--resume-output", type=Path,
+        help=(
+            "Resume an existing failed/interrupted run using only shard or point "
+            "directories that contain complete.json."
+        ),
+    )
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
+    if args.output is not None and args.resume_output is not None:
+        raise ValueError("--output and --resume-output are mutually exclusive")
 
     hard_config = load_and_validate(args.hard_config)
     af_raw = json.loads(args.af_config.read_text(encoding="utf-8"))
@@ -302,11 +368,24 @@ def main() -> None:
     if device.type == "cuda" and not torch.cuda.is_available():
         raise RuntimeError("configured CUDA is unavailable; use CPU for this diagnostic")
     started = datetime.now(timezone.utc)
-    run_id = started.strftime("m1-trainability-%Y%m%dT%H%M%S%fZ")
-    output = (args.output or PROJECT / "outputs" / "m1_trainability" / run_id).resolve()
+    previous_manifest = None
+    if args.resume_output is not None:
+        output = args.resume_output.resolve()
+        if not output.is_dir() or not (output / "manifest.json").is_file():
+            raise ValueError("--resume-output must contain an existing manifest.json")
+        previous_manifest = json.loads(
+            (output / "manifest.json").read_text(encoding="utf-8")
+        )
+        run_id = str(previous_manifest["run_id"])
+    else:
+        run_id = started.strftime("m1-trainability-%Y%m%dT%H%M%S%fZ")
+        output = (
+            args.output or PROJECT / "outputs" / "m1_trainability" / run_id
+        ).resolve()
     if not output.is_relative_to((PROJECT / "outputs").resolve()):
         raise ValueError("output must be inside project outputs")
-    output.mkdir(parents=True, exist_ok=False)
+    if previous_manifest is None:
+        output.mkdir(parents=True, exist_ok=False)
     manifest = {
         "schema_version": "cpmt-0.2",
         "run_id": run_id,
@@ -357,10 +436,38 @@ def main() -> None:
         "future_use_policy": "hindsight_train_only",
         "decision_refs": ["D-030", "D-031"],
         "timing": {"started_at": started.isoformat()},
-        "failures": [],
+        "failures": (
+            list(previous_manifest.get("failures", []))
+            if previous_manifest is not None else []
+        ),
         "metrics_ref": "metrics.json",
         "hardware": str(device),
     }
+    if previous_manifest is not None:
+        scientific_sources = {
+            "trainability", "af_adapter", "rollout_generator", "learning",
+            "executor", "shard_worker", "point_worker",
+        }
+        previous_sources = previous_manifest.get("code", {}).get(
+            "source_sha256", {},
+        )
+        if any(
+            previous_sources.get(name)
+            != manifest["code"]["source_sha256"].get(name)
+            for name in scientific_sources
+        ):
+            raise ValueError("resume scientific source hashes do not match")
+        if previous_manifest.get("config") != manifest["config"]:
+            raise ValueError("resume configuration hashes do not match")
+        manifest["timing"]["original_started_at"] = previous_manifest.get(
+            "timing", {},
+        ).get("original_started_at", previous_manifest.get("timing", {}).get("started_at"))
+        manifest["resume"] = {
+            "previous_status": previous_manifest.get("status"),
+            "previous_commit": previous_manifest.get("code", {}).get("commit"),
+            "resumed_at": started.isoformat(),
+            "reuse_requires_complete_json": True,
+        }
     started_clock = time.perf_counter()
     metrics = {
         "status": "running",
