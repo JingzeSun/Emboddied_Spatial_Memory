@@ -25,26 +25,76 @@ METHODS = (
 )
 
 
+def split_online_features(
+    online_features: torch.Tensor, num_candidates: int, candidate_dim: int,
+) -> tuple[torch.Tensor, torch.Tensor | None]:
+    """Split the shared online vector into world context and candidate descriptors.
+
+    A zero candidate_dim keeps the legacy layout in which the whole vector is
+    context and the head predicts a slot index.
+    """
+    if candidate_dim <= 0:
+        return online_features, None
+    context_dim = online_features.shape[-1] - num_candidates * candidate_dim
+    if context_dim <= 0:
+        raise ValueError("online vector is too short for the declared candidate block")
+    context = online_features[..., :context_dim]
+    blocks = online_features[..., context_dim:].reshape(
+        *online_features.shape[:-1], num_candidates, candidate_dim
+    )
+    return context, blocks
+
+
 class OnlineModel(nn.Module):
+    """Score candidates from shared online input.
+
+    With a candidate block the head is a shared per-candidate scorer, so it is
+    permutation-equivariant and a slot index carries no learnable meaning.  The
+    candidate list is randomly permuted per decision, so an index-addressed head
+    can only memorize training worlds.
+    """
     def __init__(
         self, input_dim: int, hidden: int, future_dim: int, horizon: int,
-        num_candidates: int = 3,
+        num_candidates: int = 3, candidate_dim: int = 0,
     ):
         super().__init__()
-        self.encoder = nn.Sequential(nn.Linear(input_dim, hidden), nn.ReLU(),
+        self.num_candidates = int(num_candidates)
+        self.candidate_dim = int(candidate_dim)
+        self.context_dim = (
+            input_dim - self.num_candidates * self.candidate_dim
+            if self.candidate_dim else input_dim
+        )
+        if self.context_dim <= 0:
+            raise ValueError("online vector is too short for the declared candidate block")
+        self.encoder = nn.Sequential(nn.Linear(self.context_dim, hidden), nn.ReLU(),
                                      nn.Linear(hidden, hidden), nn.ReLU())
-        self.classifier = nn.Linear(hidden, num_candidates)
+        if self.candidate_dim:
+            self.candidate_scorer = nn.Sequential(
+                nn.Linear(hidden + self.candidate_dim, hidden), nn.ReLU(),
+                nn.Linear(hidden, 1))
+        else:
+            self.classifier = nn.Linear(hidden, num_candidates)
         # Same head is allocated in every method; only C uses its gradients.
         self.future_head = nn.Sequential(nn.Linear(hidden + horizon, hidden),
                                          nn.ReLU(), nn.Linear(hidden, future_dim))
 
     def forward(self, online_features: torch.Tensor) -> torch.Tensor:
-        return self.classifier(self.encoder(online_features))
+        context, blocks = split_online_features(
+            online_features, self.num_candidates, self.candidate_dim)
+        encoded = self.encoder(context)
+        if blocks is None:
+            return self.classifier(encoded)
+        expanded = encoded.unsqueeze(-2).expand(
+            *blocks.shape[:-1], encoded.shape[-1])
+        return self.candidate_scorer(
+            torch.cat((expanded, blocks), dim=-1)).squeeze(-1)
 
     def auxiliary_prediction(self, online_features: torch.Tensor,
                              actual_future_poses: torch.Tensor) -> torch.Tensor:
+        context, _ = split_online_features(
+            online_features, self.num_candidates, self.candidate_dim)
         return self.future_head(torch.cat(
-            (self.encoder(online_features), actual_future_poses), dim=-1))
+            (self.encoder(context), actual_future_poses), dim=-1))
 
 
 class OutcomeScorer(nn.Module):
@@ -54,16 +104,28 @@ class OutcomeScorer(nn.Module):
     """
     def __init__(
         self, input_dim: int, hidden: int, future_dim: int, horizon: int,
-        num_candidates: int = 3,
+        num_candidates: int = 3, candidate_dim: int = 0,
     ):
         super().__init__()
-        self.net = nn.Sequential(nn.Linear(input_dim + num_candidates + horizon, hidden),
-                                 nn.ReLU(), nn.Linear(hidden, hidden), nn.ReLU(),
-                                 nn.Linear(hidden, future_dim))
+        self.num_candidates = int(num_candidates)
+        self.candidate_dim = int(candidate_dim)
+        self.context_dim = (
+            input_dim - self.num_candidates * self.candidate_dim
+            if self.candidate_dim else input_dim
+        )
+        # A one-hot slot descriptor makes the scorer index-addressed, so its
+        # teacher cannot transfer to a world with a different permutation.
+        descriptor_dim = self.candidate_dim or self.num_candidates
+        self.net = nn.Sequential(
+            nn.Linear(self.context_dim + descriptor_dim + horizon, hidden),
+            nn.ReLU(), nn.Linear(hidden, hidden), nn.ReLU(),
+            nn.Linear(hidden, future_dim))
 
     def forward(self, x: torch.Tensor, descriptor: torch.Tensor,
                 poses: torch.Tensor) -> torch.Tensor:
-        return self.net(torch.cat((x, descriptor, poses), dim=-1))
+        context, _ = split_online_features(
+            x, self.num_candidates, self.candidate_dim)
+        return self.net(torch.cat((context, descriptor, poses), dim=-1))
 
 
 def tensors(data: dict, device: torch.device) -> dict[str, torch.Tensor]:
@@ -85,9 +147,21 @@ def train_outcome_scorer(train: dict, validation: dict, config: dict, seed: int,
     num_candidates = int(train["penalties"].shape[1])
     if int(validation["penalties"].shape[1]) != num_candidates:
         raise ValueError("train/validation candidate dimensions differ")
+    candidate_dim = int(config.get("candidate_feature_dim", 0))
     model = OutcomeScorer(train["x"].shape[1], config["hidden_dim"],
                           train["future"].shape[1], config["horizon"],
-                          num_candidates=num_candidates).to(device)
+                          num_candidates=num_candidates,
+                          candidate_dim=candidate_dim).to(device)
+
+    def descriptors_for(data: dict, index: torch.Tensor | None,
+                        candidate: torch.Tensor) -> torch.Tensor:
+        """Describe a candidate by its own features, never by its slot index."""
+        rows = data["x"] if index is None else data["x"][index]
+        _, blocks = split_online_features(rows, num_candidates, candidate_dim)
+        if blocks is None:
+            return F.one_hot(candidate, num_candidates).float()
+        return blocks[torch.arange(len(rows), device=rows.device), candidate]
+
     optimizer = torch.optim.Adam(model.parameters(), lr=config["learning_rate"])
     labelled = train["labelled"].nonzero().flatten()
     if len(labelled) == 0:
@@ -97,7 +171,7 @@ def train_outcome_scorer(train: dict, validation: dict, config: dict, seed: int,
         batch = labelled[torch.randint(len(labelled), (config["batch_size"],), device=device)]
         pred = model(
             train["x"][batch],
-            F.one_hot(train["y"][batch], num_candidates).float(),
+            descriptors_for(train, batch, train["y"][batch]),
             train["poses"][batch],
         )
         loss = F.mse_loss(pred, train["future"][batch])
@@ -114,11 +188,12 @@ def train_outcome_scorer(train: dict, validation: dict, config: dict, seed: int,
         for name, data in (("train", train), ("validation", validation)):
             energies = []
             for candidate in range(num_candidates):
-                descriptors = torch.zeros(
-                    (len(data["x"]), num_candidates), device=device,
+                column = torch.full(
+                    (len(data["x"]),), candidate, dtype=torch.long, device=device,
                 )
-                descriptors[:, candidate] = 1
-                prediction = model(data["x"], descriptors, data["poses"])
+                prediction = model(
+                    data["x"], descriptors_for(data, None, column), data["poses"],
+                )
                 future_mse = ((prediction - data["future"]) ** 2).mean(-1)
                 energies.append(config["energy_weights"]["future"] * future_mse
                                 + data["penalties"][:, candidate])
@@ -135,7 +210,9 @@ def train_student(method: str, train: dict, teacher: torch.Tensor,
     num_candidates = int(train["penalties"].shape[1])
     model = OnlineModel(train["x"].shape[1], config["hidden_dim"],
                         train["future"].shape[1], config["horizon"],
-                        num_candidates=num_candidates).to(device)
+                        num_candidates=num_candidates,
+                        candidate_dim=int(config.get("candidate_feature_dim", 0))
+                        ).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=config["learning_rate"])
     trace = []
     for step in range(config["student_steps"]):
@@ -292,7 +369,9 @@ def run_seed(train_np: dict, validation_np: dict, config: dict, seed: int,
         candidate_count = int(train["penalties"].shape[1])
         initial = OnlineModel(train["x"].shape[1], config["hidden_dim"],
                               train["future"].shape[1], config["horizon"],
-                              num_candidates=candidate_count).to(device)
+                              num_candidates=candidate_count,
+                              candidate_dim=int(config.get("candidate_feature_dim", 0))
+                              ).to(device)
         initial_metrics, _ = evaluate(initial, validation, config, teacher_validation)
         del initial
         _sync(device)

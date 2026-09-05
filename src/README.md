@@ -20,11 +20,12 @@ src/
     maintenance.py   非学习型 confirmed→dormant 版本维护
     pending.py       QUARANTINE gate、弱证据暂存、归档/检索/消费
     dev_data.py      合成配对场景、真实候选执行、解析投影和 hindsight 教师
-    dev_learning.py  无未来在线 MLP、未来辅助头、无执行结果评分器及训练/评估
+    dev_learning.py  无未来在线编码器与置换等变候选打分头、未来辅助头、无执行结果评分器及训练/评估
     m1_protocol.py   正式 M1 pre-test 配置完整性、泄漏边界与 A–F 语义校验
     m1_data.py       C00–C11 train/validation 配对生成、候选执行与 online/audit 隔离
     m1_rollout.py    程序化空间图、连续 20-decision 执行与预测状态回放
     m1_af_rollout.py A–F 共用在线特征、训练适配与 causal self-rollout 评估
+    m1_af_method.py A–F 单方法训练、评估与结果打包
     m1_trainability.py 全标签容量、数据/步数阶梯与三段误差诊断
     m1_metrics.py    分项图错误、真实顺序 rollout 接口与 paired bootstrap
 ~~~
@@ -35,11 +36,13 @@ src/
 
 其中的 fixed structural projector 解决“教师不要直接拿 candidate graph 对答案图”的问题：输入是执行后的 graph、future pose bucket 和 visibility mask，输出是固定哈希投影形成的结构 observation；reference world 只负责生成未来 observation，其他候选经同一投影后计算误差。例如 RELINK 和 BIRTH 留下的节点/边不同，会在未来结构 observation 上产生差异。它不是 PNO、RGB 特征或 learned dynamics，也不证明这种玩具表征足以支持 Full CPMT。
 
-`m1_rollout.py` 解决“20 个独立 case 不能冒充在线记忆连续运行”以及“候选不能由 reference 标签或参数临时拼出来”的问题：输入是当前 versioned world、当前证据、固定种子、train/validation split 和不含身份字符串的匿名 16 维 observation query，输出是 20-decision 世界链，以及每步固定 16 个、真实执行、canonical state 去重后的事务候选；paired mode 还在每组放入一个“当前完全相同、合法 reference 不同”的 ambiguity pivot。完整隐藏事务只存在 audit-only `reference_spec`，候选生成器用匿名 query 在当前 world 检索 node/edge/place，再按固定槽位枚举 NOOP/BIND/BIRTH/REACTIVATE/RELINK/RETRACT/SPLIT/MERGE 与复合 REPLACE；删除 `reference_spec` 不改变候选。它不读取 future、不使用 learned proposer，也不是 Projective Node Orbit（PNO）或正式规模数据。当前检索特征仍是受控、非学习的 SHA-256 固定向量，仅用于验证接口解耦，不能冒充真实视觉 proposal 或正式独立 coverage。
+`m1_rollout.py` 解决“20 个独立 case 不能冒充在线记忆连续运行”以及“候选不能由 reference 标签或参数临时拼出来”的问题：输入是当前 versioned world、当前证据、固定种子、train/validation split 和不含身份字符串的匿名 16 维 observation query，输出是 20-decision 世界链，以及每步固定 16 个、真实执行、canonical state 去重后的事务候选；paired mode 还在每组放入一个“当前完全相同、合法 reference 不同”的 ambiguity pivot。完整隐藏事务只存在 audit-only `reference_spec`，候选生成器用匿名 query 在当前 world 检索 node/edge/place，再按固定槽位枚举 NOOP/BIND/BIRTH/REACTIVATE/RELINK/RETRACT/SPLIT/MERGE 与复合 REPLACE；删除 `reference_spec` 不改变候选。它不读取 future、不使用 learned proposer，也不是 Projective Node Orbit（PNO）或正式规模数据。在线观测由执行中的世界生成：每个节点有固定外观描述符，观测是该描述符加噪声，并附带 `visibility`/`pose_valid`/`depth_valid`/`reliability` 与七项记忆比对量；正确模板因此可由证据推出，而不再由 `scenario_family` 标签直接给出——该标签已移出 online、只留 audit。歧义点改用遮挡实现，因为遮挡不是“事实为假”的证据，两个 sibling 的 online 输入天然逐字节相同。当前外观与检索特征仍是受控、非学习的 SHA-256 固定向量，仅用于验证接口，不能冒充真实视觉 proposal 或正式独立 coverage；`evidence_novel` 由生成器随传感器报告声明，尚未由每节点视角覆盖算出。
 
-`m1_af_rollout.py` 解决“六种方法不能只在单步数组上比较，必须用各自改出来的长期记忆继续”的问题：输入是 paired rollout 的 online records、仅训练期可见的 hindsight targets 和 A–F smoke 配置，输出是 A–E 同结构学生、E 的额外 outcome scorer、单步 teacher-forced 指标以及 20-step causal graph 指标。例如某学生第 6 步选择错误事务后，第 7 步 online feature 和 K=16 候选由它自己的错误图重新生成，而不是使用保存的 reference base。它不把 future 喂给 `forward`，不等于固定的 Projective Node Orbit（PNO）表征，也不是五 seeds、bootstrap 的正式 gate；K=16 的动态网络维度已接线但尚未完成运行验证。
+`m1_af_rollout.py` 解决“六种方法不能只在单步数组上比较，必须用各自改出来的长期记忆继续”的问题：输入是 paired rollout 的 online records、仅训练期可见的 hindsight targets 和 A–F smoke 配置，输出是 A–E 同结构学生、E 的额外 outcome scorer、单步 teacher-forced 指标以及 20-step causal graph 指标。例如某学生第 6 步选择错误事务后，第 7 步 online feature 和 K=16 候选由它自己的错误图重新生成，而不是使用保存的 reference base。在线向量分成世界上下文与每候选描述块，候选块含模板/意图/代价/操作计数与候选参数对 proposal query 的对齐度，因此同模板的多个候选不再编码成同一串数字。它不把 future 喂给 `forward`，不等于固定的 Projective Node Orbit（PNO）表征，也不是五 seeds、bootstrap 的正式 gate；数值只记录在 `EXECUTE.md`，不能冒充正式 gate。
 
-`m1_trainability.py` 解决“低准确率到底是网络根本学不会，还是数据/训练不足”的问题：输入是 paired arrays、全标签容量设置或不同 paired-group/更新步数组合，输出是可观测准确率上限、按 family 的 candidate coverage、teacher error、student-to-teacher amortization error 和 causal graph 指标。例如 exact ambiguous pair 的两个样本 online vector 相同而答案相反，所以确定性学生的总体上限是 97.5%、歧义点上限是 50%。既有数值来自旧 candidate=3 诊断；代码已改接 K=16，但未重跑，因此旧结果不能冒充 K=16 结果。它不是调正式 test、不是修改冻结 gate，也不把容量通过写成 CTL 已胜出。
+`m1_af_method.py` 解决“一个 A–F 方法的原生进程异常不能丢掉其余已完成方法，也不能把半成品混进比较”的问题：输入是同一 train/validation arrays、同一 seed、paired-group 数与更新步数，以及一个固定方法 ID；输出是该方法的一份完整 teacher-forced、causal rollout、误差分解和参数量结果。比如 A 已结束而 C 在 causal replay 中退出时，恢复流程只会重跑 C，A 的 `complete.json` 仍可复用。它不是把 A–F 拆开调参，不是从多个成功 attempt 中挑最好的一次，也不是新的学习方法；所有方法仍使用同一冻结点，只有完成的六项才能聚合。
+
+`m1_trainability.py` 解决“低准确率到底是网络根本学不会，还是数据/训练不足”的问题：输入是 paired arrays、全标签容量设置或不同 paired-group/更新步数组合，输出是可观测准确率上限、按 family 的 candidate coverage、teacher error、student-to-teacher amortization error 和 causal graph 指标。例如 exact ambiguous pair 的两个样本 online vector 相同而答案相反，所以确定性学生的总体上限是 97.5%、歧义点上限是 50%。K=16 的非正式开发阶梯已经重跑，结果只在 `EXECUTE.md`；旧 candidate=3 数值仍不得和它混报。它不是调正式 test、不是修改冻结 gate，也不把容量通过写成 CTL 已胜出。
 
 `m1_metrics.py` 解决“图错误和统计比较不能只剩一个 accuracy”的问题：输入是预测/参考/base graphs 或真实连续的状态序列，输出分别为 post-graph correctness、错误开放事实、缺失事实、false birth、collateral、invalid，以及保持 paired group 的分层 bootstrap CI。例如预测多建一个带错误位置边的对象，会同时记一个 false birth 和一个 contamination，不能互相抵消。rollout 接口要求恰好 20 个有顺序的状态，拒绝把 20 个独立样本冒充 self-rollout；`m1_af_rollout.py` 已在非正式 smoke 中用该接口评估 A–F，但正式 paired bootstrap/gate 仍未运行。
 

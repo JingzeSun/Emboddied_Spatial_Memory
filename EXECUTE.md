@@ -4,7 +4,9 @@
 
 ## 当前看板
 
-最后更新：2026-09-06，LOG-013 K=16 隐藏 reference 解耦与 validation 开发审计。正式 M1 gate 未运行、未生成 test。
+> **2026-09-06 更新（LOG-014）：** 固定 K=16 的 train/validation 开发阶梯已完成：400 个 train、160 个 validation 决策，未生成或读取 test。全标签 direct capacity 在可观察上限 97.5%（可辨识部分 100%）达到 97.5%，但 10% 标签下的 A=`CPMT-CTL Core` 在四个受控点只有 6.25%–9.38% teacher-forced accuracy、所有点 20-step final post-graph correctness 均为 0%。A 的 executed-hindsight teacher error 为 0，amortization error 为 90.63%–93.75%，所以目前失败点在“学生从在线输入摊销教师后验”，不是 candidate miss 或教师执行。A–E 的同参数量比较也尚未显示 CTL 优势；F=100% 只是将正确候选程序直接交给执行器的 oracle 上界。该 run 是一次非正式、单 seed、小规模开发诊断，不是 M1 gate，不能扩展到 M2、PNO 或 test。
+
+最后更新：2026-09-06，LOG-015 修复 K=16 在线接口并把模板决策改为证据驱动，正式 M1 gate 未运行、未生成 test。
 
 | 项目 | 当前事实 |
 |---|---|
@@ -12,7 +14,7 @@
 | 已完成 | M0 合同；首轮 CTL 开发训练；单房间视觉接口；M1 v1 已冻结；C00–C11 paired generator/图指标；candidate=3 的 paired continuous rollout、A–F causal smoke 与可学习性阶梯；固定 K=16 生成器已把 audit-only reference 与 proposer 输入/排序解耦，并完成 4 个 validation groups、80 decisions 的开发 coverage 审计。历史全套 123 tests 通过；本轮 K=16 相关测试以隔离进程通过，未重跑全套 |
 | 阶段 | M1 frozen-pretest implementation；只开放 train/validation，正式 gate 未运行，不是 M2/Full CPMT |
 | 最近结果 | K=16 validation 开发审计 4 paired groups、80 decisions：coverage=100%、candidate miss=0、C00–C08 各 family=100%，`reference_arguments_independent=true`；这是受控匿名检索接口闭环，`formal_gate_eligible=false`。旧 trainability 中全标签学生达到 paired 可观测上限 97.5%/可辨识 100%，仍非正式优势结论 |
-| 尚缺 | 将 K=16 coverage 扩到正式合同的全部 C00–C11、train/validation 正式规模与独立/视觉 observation；运行动态 K=16 A–F、5 seeds、每方法 trials、10,000 次 paired bootstrap、资源/泄漏终审；正式 test 仍未生成；PNO 属 M2 |
+| 尚缺 | 先审查 K=16 小规模诊断中 A 的高 amortization error，确认在线特征、目标与优化不存在可复现实质缺口；不以扩表征/任务寻找正结果。之后才可能重建 C00–C11 的正式 train/validation、独立视觉 observation、多 seed/trials 与 10,000 次 paired bootstrap；正式 test 仍未生成；PNO 属 M2 |
 | 数据/算力 | trainability 完整 run 仅 CPU，102.054 秒、约 75.0 MB；K=16 的 80-decision coverage audit 为 CPU 2.476 秒。既往 Windows `0xC0000005`、`0x3B` 和 SSD 链路 WHEA 继续作为运行风险如实保留，但不再作为项目开发优先级或普通验证前置条件；失败时保留记录并用独立进程重试。服务器未租、云预算 AUD 0 |
 | 当前决定 | D-031：M1 A=`CPMT-CTL Core`；Full CPMT 只用于 M2 的 PNO＋world graph＋executor＋CTL；协议 hash 已冻结 |
 | 人工待定 | 当前实现无立即阻塞项；正式 test 解封与任何云费用仍需单独事件/授权 |
@@ -33,7 +35,7 @@
 - [x] 为连续序列补 paired latent siblings，并把 A–F 接入非正式 train/validation causal smoke；完成 CPU 资源测量和首轮 leakage audit。
 - [x] 在扩 K=16 前完成全标签容量、4→10 paired groups、60→1000 updates 的可学习性阶梯；分开记录 candidate miss、teacher error 与 amortization error。
 - [x] 实现去重、确定性的 K=16 candidate generator，并完成 reference 参数解耦和 C00–C08 validation 开发 coverage 审计。
-- [ ] 将 coverage 扩到 C00–C11 与正式 train/validation 规模，运行动态 K=16 A–F、5 seeds、trials 和 paired bootstrap；通过正式开发审计后才申请 test 解封。
+- [ ] 在不进入 M2、不动 test 的前提下，先审查 K=16 小规模诊断中 A 的高 amortization error、确认在线特征/目标/优化是否存在可复现实质缺口；只有重建 M1 的正式 C00–C11 数据与多 seed 方案后，才可能运行正式 A–F、paired bootstrap 并申请 test 解封。
 
 具体试点（开发接口已执行，尚非正式实验）：
 
@@ -281,6 +283,35 @@
 - Run/结果：[m1-candidate-audit-20260905T180744201161Z](outputs/m1_candidate_audit/m1-candidate-audit-20260905T180744201161Z/) 使用系统 CPython 3.12.10、validation 4 paired groups/80 decisions，wall=2.476 秒、failures=0、candidate reference coverage=100%、miss=0、C00–C08 每 family=100%、`reference_template_independent=true`、`reference_arguments_independent=true`、`coverage_thresholds_met=true`、`test_generated=false`。一组 20-step 诊断也成功生成；错误候选分支共保留 9 次后续 reference 前置条件失败，没有将分支重置为 oracle world。
 - 验证/局限：三个关键 `test_m1_rollout` 用例在开发过程中曾分别以独立进程通过，覆盖删掉 reference 后候选不变、coverage/test seal、真实 later-reference hindsight 与 tail mask；最终复核时前两项通过，第三项连续三次在 `setUpClass` 生成数据期间被系统级 access violation 中止，均未进入测试断言，因此本轮只确认静态检查和前两项，不写成“全套通过”。按用户指示不另开稳定性优先工作流，只保留失败事实并在后续正常运行中隔离重试。当前审计只覆盖受控 C00–C08 和匿名固定检索，未覆盖 C09–C11、正式规模、独立视觉 observation、A–F 学习或统计置信区间，所以 `coverage_gate_pass=false`。
 - 结论/下一步：reference 类型和参数已与候选生成输入/排序解耦，K=16 开发 coverage 接口可以继续使用；100% 数值只证明当前受控检索闭环。下一步先补 C09–C11 并扩大 train/validation coverage 审计，再运行动态 K=16 A–F smoke；仍不开放 test、不进入 PNO/M2、不产生云费用。
+
+<a id="log-014"></a>
+### LOG-014—2026-09-06—固定 K=16 A–F 可学习性阶梯完成（非正式）
+
+- 类型/状态：M1-development，run complete；`formal_run=false`、`test_access=false`，不构成 M1 go/no-go，也不授权 M2/PNO、test 或云资源。
+- 目的/白话：确认 K=16 候选的 reference/排序解耦后，学生能否仅从当前在线向量，把“候选真实执行后再由 hindsight 形成”的教师选择学出来。输入是 10 个 train paired groups（400 decisions）和 4 个 validation paired groups（160 decisions）；输出是 A–F 的单步选择和用各自错误世界继续的 20-step causal rollout。比如 A 选错第 6 步后，第 7 步会在它的错误 world 上重新生成 K=16 候选；它不读取 reference、future 或 test。它不等于 Full CPMT，更不等于真实视觉 PNO 训练。
+- 改变/固定：使用 LOG-013 的 audit-only `reference_spec`、固定 deterministic K=16 generator 与同一版本 executor。为保留偶发原生进程崩溃下的有效结果，新增 `m1_af_method.py` 与 method worker，将同一曲线点的 A–F 分别在独立进程训练/causal replay；同一 data、seed、步数和方法只承认带 `complete.json` 的完整 attempt，六项齐全才聚合。它是恢复/保留机制，不改变科学协议或选择最优 attempt。
+- 配置/数据/版本/资源：run [`m1-trainability-20260905T184650400036Z`](outputs/m1_trainability/m1-trainability-20260905T184650400036Z/)；commit `c9eb18d365507ac6fc4cfae6d5bff3beb1cd5a22`、dirty=false、seed=7、CPU（WSL CPython 3.12.3、Torch 2.14.0+cpu、NumPy 2.5.2、2 threads）。训练点是 (4 groups,1000 steps)、(10,60)、(10,300)、(10,1000)；A–E 同为 46,003 参数，E 另有 41,827 参数 outcome scorer；future 只用于 hindsight training。数据 audit：train/validation candidate miss=0，K=16，C00–C08 在该小规模受控诊断中每 family coverage=100%；非正式数据仍未覆盖 C09–C11 或独立视觉输入。
+- Run/结果：[`metrics.json`](outputs/m1_trainability/m1-trainability-20260905T184650400036Z/metrics.json) 与 [`manifest.json`](outputs/m1_trainability/m1-trainability-20260905T184650400036Z/manifest.json) 保存逐方法、逐例、hash 与所有 attempt。全标签 capacity（B、4 groups）在 60/300/1000/3000 steps 都是 overall 97.5%、identifiable 100%，20-step final post-graph correctness 为 37.5%/37.5%/50.0%/50.0%。A 的四点依次为 teacher-forced 6.25%/6.88%/9.38%/6.25%，final post-graph correctness 全为 0%。在最大点 (10 groups,1000 steps) 上，A/B/C/D/E 的 teacher-forced accuracy 为 6.25%/2.50%/6.25%/8.12%/6.88%，其 final correctness 全为 0%；F 是 oracle candidate program，teacher-forced 与 final 都为 100%。
+- 验证/误差：A 的 executed-hindsight teacher error 四点均为 0，而 amortization error 为 93.75%/93.13%/90.63%/93.75%；candidate miss=0。这说明该受控数据中教师、候选覆盖与执行接口足以给出正确答案，但当前学生未把教师后验从 468 维 online feature 学到可泛化选择。它不是“CTL 已被 MLP 击败”：97.5% capacity 的 B 使用 100% 标签，而 A–E 曲线使用 10% 标签；同时 B 的 causal final 最高只有 50%，没有任何非 oracle 方法在这次小规模 self-rollout 成功。
+- 失败/局限：重试中保留 Windows/WSL 的 returncode `-11` 与少量解释器异常；例如 g10_s300 的 B 在第 11 次才完成，C/E/F 分别在第 8/5/3 次完成。完成产物均来自单独成功进程，失败 attempt 没有覆盖它们。run 只有一个 seed、4 个 validation paired groups、C00–C08 受控 fixture、固定结构向量前端，且无 confidence interval；不能作显著性、现实视觉、长期泛化或正式 M1 结论。
+- 结论/下一步：本次 K=16 开发诊断的容量检查通过，却没有支持 CTL 的学习效果；在没有解释高 amortization error 前，不扩模型、不进 M2、不用 test。下一项应是冻结本 run 后的可复现诊断，逐项核对在线特征对正确候选的可辨识信息、A 的目标/损失数值与优化更新；若这些诊断确认无误，按 M1 stop rule 不以增加表征或任务去寻找正结果。
+
+<a id="log-015"></a>
+### LOG-015—2026-09-06—修复 K=16 在线接口并把模板决策改为证据驱动（非正式）
+
+- 类型/状态：M1-development，代码改动与小规模诊断；`formal_run=false`、`test_access=false`，不构成 M1 go/no-go，也不授权 M2/PNO、test 或云资源。
+- 目的/白话：LOG-014 里 A 的 amortization error 高达 90%+，本轮先查清原因再决定是否继续。诊断在 LOG-014 冻结的 arrays 上进行，结论是任务本身坏了，不是方法输了。
+- 诊断（在 `m1-trainability-20260905T184650400036Z` 的 arrays 上，全标签）：
+  1. **head 是索引式的。** `Linear(hidden,16)` 预测的是槽位下标，而候选列表按 `candidate_seed` 随机置换，正确下标在世界间均匀分布。只把 head 换成共享逐候选打分器、特征一字未改，validation 从 10.0% 升到 65.6%，参数量 46,003 降到 24,228。
+  2. **同模板候选编码相同。** 16 个候选里平均 10.8 个特征块逐位相同；58.1% 的 validation 决策中正确候选与至少一个错误候选无法区分。当时特征的信息上限只有 68.5%，共享打分器已达 66.9%，即已吃满。
+  3. **参数那一半是查表。** `proposal_observation` 是真值参数 ID 的精确 SHA-256：136/136 个有参数的场合点积恒为 1.000，正确候选永远落在生成器的 slot-0 系列，从未出现 slot-1/slot-2。
+  4. **模板那一半是标签。** `scenario_family` 是 online 输入里的 12 维 one-hot，单独预测正确模板达 546/560=97.5%，缺口恰为 ambiguous pivot 比例。而 `anonymous_signature` 与 `cue_value` 经核对与事件完全无关，是独立随机数——输入里当时不存在任何合法证据通道。
+- 改变/固定：(a) `OnlineModel`/`OutcomeScorer` 改为置换等变的共享候选打分，旧的索引 head 仅在 candidate_dim=0 的 K=3 开发路径保留；(b) online 记录携带 proposal query，候选块加入参数对齐度，同模板候选不再同码；(c) 观测改由执行中的世界生成——节点有固定外观描述符，观测为描述符加噪声，附 `visibility`/`pose_valid`/`depth_valid`/`reliability`/`evidence_novel` 与七项记忆比对量，`scenario_family` 与随机 cue 移出 online 只留 audit，歧义点改用遮挡实现；(d) 新增 `observation` 协议段与校验（`occlusion_is_neutral` 必须为真），`dataset_version` 升到 `m1-paired-latent-worlds-v3`。语义取自 `docs/02_scenario_wbs.md`、C00–C11 fixture 的 evidence schema 与 `dev_data.py` 已有的 latent→render 因果链，未发明新语义。
+- Run/结果（10 train + 4 validation paired groups，全标签容量设置，单 seed）：索引 head train 97.5% / validation 12.5%；共享打分器 train 97.5% / **validation 90.0%**，参数 25,188。分解为 template 90.0%、argument-given-template 100%、identifiable 92.8%、ambiguous 37.5%（构造上限 50%）。随机基线 6.25%，可观测上限 97.5%，因此首次出现方法间可比较的空间。
+- 验证/对照：把那 14 维证据特征清零，validation 从 90.0% 掉到 48.1%，确认是生成的证据在起作用而非新捷径。九个模板的证据签名两两不同，且各自对应设计语义（MERGE margin=0.018、REACTIVATE dormant=0.822、RETRACT visible_empty、NOOP 三分之一带 pose/depth 故障）。
+- 失败/局限：全部为单 seed 且方差可见（消融中 “both zeroed” 61.3% 高于 “evidence zeroed” 48.1%，信息论上不可能，说明噪声有数个百分点），不能作方法结论。`evidence_novel` 由生成器随传感器报告声明，尚未由每节点视角覆盖算出，是本轮证据通道里派生程度最弱的一项。参数检索仍近乎 oracle：审计新增实测字段 `reference_argument_decided_by_query` 取代原先的布尔断言。测试方面 10/11 模块通过，`test_m1_rollout` 未取得干净整模块运行；逐测试隔离下该模块 5 项通过、3 项未通过，且所有失败均为 `TypeError: attribute name must be string, not 'type'`、`'list_iterator' object is not callable` 一类解释器内部类型错乱，没有一条可复现的断言失败，同一测试重试第 6 次即通过。
+- 环境风险：本机三天内三次内核态蓝屏（`0x3B`×2、`0x1E`，均为 `0xc0000005`），同类堆损坏在 Windows CPython 与 WSL Linux 下均出现，且一度有遗留进程长时间抢占资源。Windows 内存诊断标准模式通过，扩展模式待跑。**在机器判定稳定前，本轮及 LOG-014 的数值都应视为待复核。**
+- 结论/下一步：LOG-014 的 6.25% 不能作为 CTL 的负面证据——当时的任务两半都是查表，接口也拿不到必要信息。修复后 90% 与 97.5% 上限之间才有可比空间。下一步是机器稳定后补齐 `test_m1_rollout`、重跑多 seed A–F；仍不开放 test、不进入 PNO/M2、不产生云费用。
 
 ## 后续条目模板
 

@@ -42,3 +42,6 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
+
+# Local scratch scripts and intermediate arrays
+tmp/

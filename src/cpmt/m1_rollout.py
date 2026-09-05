@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import math
+from functools import lru_cache
 from typing import Any, Iterable, Mapping, Sequence
 
 import numpy as np
@@ -47,6 +48,7 @@ TEMPLATE_FAMILY = {
     "RELINK": "C08",
 }
 CANDIDATE_BUDGET = 16
+RELINK_RANK_PAIRS = ((0, 0), (1, 0), (0, 1))
 CANDIDATE_EVENT_FIELDS = (
     "event_id", "step_index", "decision_time", "candidate_seed",
     "current_evidence_ref", "protected_id", "proposal_observation",
@@ -54,6 +56,10 @@ CANDIDATE_EVENT_FIELDS = (
 PROPOSAL_FEATURE_DIM = 16
 PROPOSAL_OBSERVATION_FIELDS = {
     "node_query", "edge_query", "place_query", "merge_queries", "source",
+}
+PROPOSAL_RETRIEVAL_SOURCE = "controlled_noisy_retrieval_features_v2"
+PROPOSAL_RETRIEVAL_FIELDS = {
+    "source", "noise_sigma", "distractor_weight", "enumerated_ranks",
 }
 
 
@@ -94,8 +100,8 @@ def _edge(
     }
 
 
-def _stable_retrieval_feature(value: str) -> list[float]:
-    """Map an online identity signature to a fixed, nonlearned unit vector."""
+@lru_cache(maxsize=16_384)
+def _cached_retrieval_feature(value: str) -> tuple[float, ...]:
     raw = np.frombuffer(
         hashlib.sha256(value.encode("utf-8")).digest()[:PROPOSAL_FEATURE_DIM],
         dtype=np.uint8,
@@ -104,7 +110,15 @@ def _stable_retrieval_feature(value: str) -> list[float]:
     norm = float(np.linalg.norm(vector))
     if norm == 0.0:
         raise AssertionError("stable retrieval feature unexpectedly has zero norm")
-    return (vector / norm).round(8).tolist()
+    return tuple((vector / norm).round(8).tolist())
+
+
+def stable_retrieval_feature(value: str) -> list[float]:
+    """Map an online identity signature to a fixed, nonlearned unit vector."""
+    return list(_cached_retrieval_feature(value))
+
+
+_stable_retrieval_feature = stable_retrieval_feature
 
 
 def _open_node(graph: Mapping[str, Any], node_id: str) -> dict[str, Any]:
@@ -264,6 +278,8 @@ def _initial_world(
     validate_graph(graph)
     topology = {
         "namespace": namespace,
+        "appearance_dim": APPEARANCE_DIM,
+        "semantic_latents": _semantic_latents(special, rng),
         "place_count": place_count,
         "surface_count": surface_count,
         "filler_entity_count": filler_count,
@@ -277,8 +293,190 @@ def _initial_world(
     return graph, topology
 
 
+ARGUMENT_ID_KEYS = ("edge_id", "node_id", "node_version_id")
+APPEARANCE_DIM = PROPOSAL_FEATURE_DIM
+VISIBILITY_KINDS = ("visible", "visible_empty", "occluded")
+
+
+def _unit(vector: np.ndarray) -> np.ndarray:
+    norm = float(np.linalg.norm(vector))
+    if norm == 0.0:
+        raise AssertionError("appearance vector unexpectedly has zero norm")
+    return vector / norm
+
+
+def default_appearance(node_id: str) -> np.ndarray:
+    """Fixed appearance descriptor for a node with no semantic override.
+
+    Memory stores this descriptor when a node is created; an observation is the
+    same descriptor plus sensor noise.  Nodes created during a rollout get one
+    without any extra bookkeeping because it is a function of the identifier.
+    """
+    return _unit(np.asarray(
+        stable_retrieval_feature(str(node_id))[:APPEARANCE_DIM], dtype=np.float64,
+    ))
+
+
+def appearance_of(node_id: str, latents: Mapping[str, Any]) -> np.ndarray:
+    """Remembered appearance, honouring the world's semantic overrides."""
+    override = latents.get(str(node_id))
+    if override is None:
+        return default_appearance(node_id)
+    return _unit(np.asarray(override, dtype=np.float64))
+
+
+def _semantic_latents(
+    special: Mapping[str, Any], rng: np.random.Generator,
+) -> dict[str, list[float]]:
+    """Override appearances where a family's semantics require it.
+
+    C05 MERGE is "two records of one object", so its pair must look alike.  C04
+    SPLIT is "one record conflating two objects", so the stored appearance is a
+    mixture that matches either component only partially.
+    """
+    latents: dict[str, list[float]] = {}
+    merge_base = _unit(rng.normal(0.0, 1.0, APPEARANCE_DIM))
+    latents[str(special["merge_a"])] = merge_base.round(8).tolist()
+    latents[str(special["merge_b"])] = _unit(
+        merge_base + 0.08 * rng.normal(0.0, 1.0, APPEARANCE_DIM)
+    ).round(8).tolist()
+    left = _unit(rng.normal(0.0, 1.0, APPEARANCE_DIM))
+    right = _unit(rng.normal(0.0, 1.0, APPEARANCE_DIM))
+    latents[str(special["split_source"])] = _unit(left + right).round(8).tolist()
+    latents[f"{special['split_source']}::component:0"] = left.round(8).tolist()
+    latents[f"{special['split_source']}::component:1"] = right.round(8).tolist()
+    return latents
+
+
+def candidate_argument_ids(program: Mapping[str, Any]) -> list[str]:
+    """List the concrete world entities one candidate program touches."""
+    found: list[str] = []
+    for operation in program["operations"]:
+        arguments = operation["arguments"]
+        for key in ARGUMENT_ID_KEYS:
+            value = arguments.get(key)
+            if isinstance(value, str):
+                found.append(value.split("@")[0])
+        edge = arguments.get("edge")
+        if isinstance(edge, Mapping):
+            found.extend(str(edge[key]) for key in ("source", "target"))
+        node = arguments.get("node")
+        if isinstance(node, Mapping):
+            found.append(str(node["node_id"]))
+    return list(dict.fromkeys(found))
+
+
+def _query_decides_reference(
+    programs: Sequence[Mapping[str, Any]], observation: Mapping[str, Any],
+    reference_index: int,
+) -> bool:
+    """Would ranking candidates by query similarity alone give the reference?
+
+    A true answer here means the retrieval channel is an oracle pointer and the
+    remaining choice is a lookup, not an inference.
+    """
+    queries = [
+        np.asarray(observation[kind], dtype=np.float64)
+        for kind in ("node_query", "edge_query", "place_query")
+    ]
+    scores = []
+    for program in programs:
+        identifiers = candidate_argument_ids(program)
+        if not identifiers:
+            scores.append(-np.inf)
+            continue
+        vectors = np.asarray(
+            [stable_retrieval_feature(value) for value in identifiers],
+            dtype=np.float64,
+        )
+        scores.append(max(float((vectors @ query).max()) for query in queries))
+    best = float(np.max(scores))
+    winners = [i for i, value in enumerate(scores) if value == best]
+    return winners == [reference_index]
+
+
+def _proposal_query(
+    identifier: Any, distractors: Sequence[str], rng: np.random.Generator,
+    retrieval: Mapping[str, Any],
+) -> list[float]:
+    """Blend the proposer's target with a controlled distractor and noise.
+
+    An exact hash of the hidden argument makes retrieval a lookup: the true
+    argument always outranks every other entity, so the reference is always the
+    same generator slot and coverage is guaranteed for the wrong reason.  The
+    query stays informative here, but it is no longer decisive on its own.
+    """
+    vector = np.asarray(
+        stable_retrieval_feature(str(identifier)), dtype=np.float64,
+    )
+    pool = [
+        value for value in dict.fromkeys(str(item) for item in distractors)
+        if value != str(identifier)
+    ]
+    weight = float(retrieval["distractor_weight"])
+    if weight > 0.0 and pool:
+        choice = pool[int(rng.integers(0, len(pool)))]
+        vector = vector + weight * np.asarray(
+            stable_retrieval_feature(choice), dtype=np.float64,
+        )
+    sigma = float(retrieval["noise_sigma"])
+    if sigma > 0.0:
+        vector = vector + sigma * rng.normal(0.0, 1.0, PROPOSAL_FEATURE_DIM)
+    norm = float(np.linalg.norm(vector))
+    if norm == 0.0:
+        raise AssertionError("proposal query unexpectedly has zero norm")
+    return (vector / norm).round(8).tolist()
+
+
+OBSERVATION_MODEL_SOURCE = "world_generated_appearance_v1"
+OBSERVATION_MODEL_FIELDS = {
+    "source", "appearance_noise", "occlusion_is_neutral",
+}
+
+
+def validate_observation_model(observation: Mapping[str, Any]) -> dict[str, Any]:
+    """Reject an observation model that stops depending on the world."""
+    if set(observation) != OBSERVATION_MODEL_FIELDS:
+        raise ValueError(
+            f"observation must declare exactly {sorted(OBSERVATION_MODEL_FIELDS)}"
+        )
+    if observation["source"] != OBSERVATION_MODEL_SOURCE:
+        raise ValueError("unsupported observation model source")
+    noise = float(observation["appearance_noise"])
+    if not 0.0 <= noise <= 1.0:
+        raise ValueError("appearance noise must be within [0, 1]")
+    if observation["occlusion_is_neutral"] is not True:
+        raise ValueError("occlusion must stay neutral evidence, never a negative")
+    return dict(observation)
+
+
+def validate_proposal_retrieval(retrieval: Mapping[str, Any]) -> dict[str, Any]:
+    """Reject a retrieval spec that silently restores the oracle pointer."""
+    if set(retrieval) != PROPOSAL_RETRIEVAL_FIELDS:
+        raise ValueError(
+            "proposal_retrieval must declare exactly "
+            f"{sorted(PROPOSAL_RETRIEVAL_FIELDS)}"
+        )
+    if retrieval["source"] != PROPOSAL_RETRIEVAL_SOURCE:
+        raise ValueError("unsupported proposal retrieval source")
+    sigma = float(retrieval["noise_sigma"])
+    weight = float(retrieval["distractor_weight"])
+    if sigma < 0.0 or weight < 0.0:
+        raise ValueError("proposal retrieval noise and distractor weight must be >= 0")
+    if sigma == 0.0 and weight == 0.0:
+        raise ValueError(
+            "a noiseless, distractor-free query is an exact hash of the hidden "
+            "reference argument and makes candidate choice a lookup"
+        )
+    ranks = int(retrieval["enumerated_ranks"])
+    if not 1 <= ranks <= 3:
+        raise ValueError("enumerated_ranks must be between 1 and 3")
+    return dict(retrieval)
+
+
 def _event_plan(
     topology: Mapping[str, Any], rng: np.random.Generator,
+    retrieval: Mapping[str, Any], *, observation_noise: float = 0.0,
 ) -> list[dict[str, Any]]:
     namespace = topology["namespace"]
     special = topology["special"]
@@ -306,12 +504,14 @@ def _event_plan(
             "scenario_family": TEMPLATE_FAMILY[template],
             "candidate_seed": candidate_seed,
             "pose_bucket": int(rng.integers(0, 8)),
-            "cue_value": float(rng.choice([-1.0, -0.5, 0.5, 1.0])),
+            "observation_seed": int(rng.integers(0, 2**31 - 1)),
             "current_evidence_ref": current_evidence_ref,
             "contrast_birth_id": f"{namespace}:entity:contrast-birth:{step_index}",
             "protected_id": special["protected_id"],
         }
         reference_spec: dict[str, Any] = {"template": template}
+        if template == "NOOP":
+            reference_spec["noop_cause"] = ordinal % 3
         if template == "BIRTH":
             reference_spec["new_node_id"] = (
                 f"candidate:{current_evidence_ref}:birth"
@@ -363,21 +563,44 @@ def _event_plan(
             "target_node_ids",
             [f"{event_id}:merge-a", f"{event_id}:merge-b"],
         ))
+        node_pool = [
+            str(value) for key, value in special.items()
+            if key in {"bind_target", "dormant_target", "split_source",
+                       "merge_a", "merge_b", "replace_entity", "decoy_target"}
+        ] + [str(value) for value in special["mover_ids"] + special["retract_ids"]]
+        edge_pool = [str(value) for value in topology["initial_edge_targets"]]
         event["proposal_observation"] = {
-            "node_query": _stable_retrieval_feature(node_observation_id),
-            "edge_query": _stable_retrieval_feature(edge_observation_id),
-            "place_query": _stable_retrieval_feature(place_observation_id),
+            "node_query": _proposal_query(
+                node_observation_id, node_pool, rng, retrieval),
+            "edge_query": _proposal_query(
+                edge_observation_id, edge_pool, rng, retrieval),
+            "place_query": _proposal_query(
+                place_observation_id, places, rng, retrieval),
             "merge_queries": [
-                _stable_retrieval_feature(str(value))
+                _proposal_query(str(value), node_pool, rng, retrieval)
                 for value in merge_observation_ids
             ],
-            "source": "controlled_anonymous_retrieval_features_v1",
+            "source": PROPOSAL_RETRIEVAL_SOURCE,
         }
         event["reference_spec"] = reference_spec
+        # Generated from the world truth, so the observation is evidence about
+        # the decision instead of an independent random cue.
+        event["observation_spec"] = _observation_spec(
+            template, reference_spec, event, topology, ambiguous=False,
+        )
+        event["observation_noise"] = float(observation_noise)
         events.append(event)
     if counters != ROLLOUT_TEMPLATE_COUNTS:
         raise AssertionError("rollout event plan lost a registered template")
     return events
+
+
+def _mark_decision_ambiguous(event: dict[str, Any]) -> None:
+    """Occlude the decisive observation so both siblings see identical input."""
+    event["observation_spec"] = _observation_spec(
+        str(event["reference_spec"]["template"]), event["reference_spec"],
+        event, {"special": {}}, ambiguous=True,
+    )
 
 
 def _ambiguity_pivot(events: Sequence[Mapping[str, Any]]) -> int:
@@ -789,6 +1012,148 @@ def _rank_by_observation(
     )
 
 
+def _observation_spec(
+    template: str, reference_spec: Mapping[str, Any], event: Mapping[str, Any],
+    topology: Mapping[str, Any], *, ambiguous: bool,
+) -> dict[str, Any]:
+    """Describe what a sensor reports at this decision, given the world truth.
+
+    Each family is distinguished by observable evidence rather than by a label:
+    C01 sees a remembered appearance, C02 an unfamiliar one, C07 a reliably
+    empty place, C08 a known appearance where memory does not record it, and so
+    on.  An ambiguous decision reports occlusion, which is not evidence either
+    way, so both siblings receive byte-identical input.
+    """
+    special = topology["special"]
+    spec: dict[str, Any] = {
+        "visibility": "visible",
+        "pose_valid": True,
+        "depth_valid": True,
+        "reliability": 1.0,
+        "appearance_source": None,
+        "place_id": None,
+        "place_from_edge": None,
+        "place_from_entity": None,
+        "evidence_novel": True,
+    }
+    if ambiguous:
+        # Occlusion is not evidence that a fact is false; it carries nothing.
+        spec.update(visibility="occluded", reliability=0.0)
+        return spec
+    if template == "NOOP":
+        # C00 pure viewpoint change, C09 pose fault, and a depth fault: in all
+        # three the world did not change, so memory must be left alone.
+        target = str(special["bind_target"])
+        spec.update(appearance_source=target, place_from_entity=target,
+                    evidence_novel=False)
+        cause = int(reference_spec.get("noop_cause", 0))
+        if cause == 1:
+            spec.update(pose_valid=False, reliability=0.0)
+        elif cause == 2:
+            spec.update(depth_valid=False, reliability=0.0)
+    elif template == "BIND":
+        # C01 identity continuity: a known object, seen again from a new
+        # viewpoint, so there is fresh evidence worth attaching.
+        target = str(reference_spec["target_node_id"])
+        spec.update(appearance_source=target, place_from_entity=target)
+    elif template == "BIRTH":
+        # A newly revealed object: its appearance is in no memory record yet.
+        spec["appearance_source"] = str(reference_spec["new_node_id"])
+    elif template == "REACTIVATE":
+        target = str(reference_spec["target_node_id"])
+        spec.update(appearance_source=target, place_from_entity=target)
+    elif template == "SPLIT":
+        # One stored record conflates two objects; only one is seen now.
+        spec["appearance_source"] = f"{reference_spec['target_node_id']}::component:0"
+    elif template == "MERGE":
+        target = str(reference_spec["target_node_ids"][0])
+        spec.update(appearance_source=target, place_from_entity=target)
+    elif template == "RETRACT":
+        spec.update(visibility="visible_empty",
+                    place_from_edge=str(reference_spec["target_edge_id"]))
+    elif template == "RELINK":
+        spec["appearance_source"] = str(special["mover_ids"][
+            special["mover_edges"].index(str(reference_spec["target_edge_id"]))
+        ])
+        spec["place_id"] = str(reference_spec["new_target"])
+    elif template == "REPLACE":
+        # Identity discontinuity: a different object now occupies the place.
+        spec["appearance_source"] = str(reference_spec["new_node_id"])
+        spec["place_id"] = str(reference_spec["new_target"])
+    else:
+        raise ValueError(f"unsupported observation template {template!r}")
+    return spec
+
+
+def _observed_appearance(
+    spec: Mapping[str, Any], latents: Mapping[str, Any],
+    rng: np.random.Generator, noise: float,
+) -> list[float]:
+    source = spec["appearance_source"]
+    if spec["visibility"] != "visible" or source is None:
+        return [0.0] * APPEARANCE_DIM
+    observed = appearance_of(str(source), latents) + noise * rng.normal(
+        0.0, 1.0, APPEARANCE_DIM,
+    )
+    return _unit(observed).round(8).tolist()
+
+
+def _appearance_match(
+    graph: Mapping[str, Any], observed: Sequence[float],
+    spec: Mapping[str, Any], latents: Mapping[str, Any],
+) -> dict[str, float]:
+    """Compare the observation with what memory already stores.
+
+    This is a fixed analytic perception summary standing in for the M2
+    Projective Node Orbit, in the same controlled role as the retrieval
+    features; it is not a learned representation.
+    """
+    vector = np.asarray(observed, dtype=np.float64)
+    open_nodes = [
+        node for node in graph["nodes"]
+        if node.get("valid_to") is None and node["node_type"] == "entity"
+    ]
+    place_of: dict[str, str] = {
+        str(edge["source"]): str(edge["target"])
+        for edge in graph["edges"]
+        if edge.get("valid_to") is None and edge["relation"] == "located_at"
+    }
+    observed_place = spec.get("resolved_place")
+    scores: list[tuple[float, str]] = []
+    dormant: list[float] = []
+    for node in open_nodes:
+        node_id = str(node["node_id"])
+        similarity = float(appearance_of(node_id, latents) @ vector)
+        if node["lifecycle"] == "dormant":
+            dormant.append(similarity)
+        else:
+            scores.append((similarity, node_id))
+    scores.sort(reverse=True)
+    visible = spec["visibility"] == "visible" and float(np.linalg.norm(vector)) > 0.0
+    best, best_id = (scores[0] if scores else (0.0, ""))
+    second = scores[1][0] if len(scores) > 1 else 0.0
+    return {
+        "best": float(best) if visible else 0.0,
+        "second": float(second) if visible else 0.0,
+        "margin": float(best - second) if visible else 0.0,
+        "best_dormant": float(max(dormant)) if visible and dormant else 0.0,
+        "place_has_recorded_entity": float(
+            observed_place is not None
+            and observed_place in set(place_of.values())
+        ),
+        "best_match_recorded_here": float(
+            visible and observed_place is not None
+            and place_of.get(best_id) == observed_place
+        ),
+        # Memory puts this appearance somewhere else: the topology changed
+        # rather than the identity being new.
+        "best_match_recorded_elsewhere": float(
+            visible and observed_place is not None
+            and best_id in place_of and place_of[best_id] != observed_place
+        ),
+    }
+
+
 def _event_variant(event: Mapping[str, Any], **updates: Any) -> dict[str, Any]:
     variant = clone_json(dict(event))
     variant.update(updates)
@@ -898,7 +1263,25 @@ def _proposal_context(
         raise ValueError("fixed candidate generator found fewer than two merge pairs")
     edge_targets = _repeat_to(edges, 6, name="open edge")
     place_targets = _repeat_to(places, 4, name="open place")
+    # The three RELINK slots used to walk the diagonal (edge[i], place[i]).
+    # Under a noisy query the true edge and the true place need not share a
+    # rank, so a diagonal drops the reference pair; a small cross-product keeps
+    # it reachable without pinning it to one slot.  Relinking an edge to the
+    # place it already points at is a no-op that the canonical deduplication
+    # would collapse into NOOP, so each slot skips its own current target.
+    current_target = {
+        str(edge["edge_id"]): str(edge["target"]) for edge in open_edges
+    }
+    relink_pairs = []
+    for edge_rank, place_rank in RELINK_RANK_PAIRS:
+        target_edge = edge_targets[edge_rank]
+        options = [
+            place for place in place_targets
+            if place != current_target.get(target_edge)
+        ] or place_targets
+        relink_pairs.append([target_edge, options[place_rank % len(options)]])
     return {
+        "relink_pairs": relink_pairs,
         "bind_targets": bind_targets,
         "reactivate_target": (dormant or bindable)[0],
         "edge_targets": edge_targets,
@@ -930,9 +1313,7 @@ def _build_fixed_candidate_catalog(
         raise ValueError(
             "proposal_observation fields do not match the fixed generator contract"
         )
-    if observation["source"] != (
-        "controlled_anonymous_retrieval_features_v1"
-    ):
+    if observation["source"] != PROPOSAL_RETRIEVAL_SOURCE:
         raise ValueError("unsupported fixed proposal-observation source")
     if len(observation["merge_queries"]) != 2:
         raise ValueError("proposal observation requires two merge queries")
@@ -954,11 +1335,11 @@ def _build_fixed_candidate_catalog(
         event, target_node_id=context["reactivate_target"],
     )
     programs.append(_reactivate_program(graph, reactivate_event))
-    for slot in range(3):
+    for slot, (target_edge, new_place) in enumerate(context["relink_pairs"]):
         relink_event = _event_variant(
             event,
-            target_edge_id=context["edge_targets"][slot],
-            new_target=context["place_targets"][slot],
+            target_edge_id=target_edge,
+            new_target=new_place,
             places=context["place_targets"],
         )
         program = _relink_program(graph, relink_event)
@@ -1197,14 +1578,22 @@ def audit_m1_candidate_coverage(
         raise ValueError("M1 candidate audit exposes train/validation only; test is sealed")
     if paired_groups <= 0:
         raise ValueError("candidate audit paired_groups must be positive")
+    retrieval = validate_proposal_retrieval(
+        config["candidates"]["proposal_retrieval"]
+    )
+    observation = validate_observation_model(config["observation"])
     rows: list[dict[str, Any]] = []
     family_totals: dict[str, int] = {}
     family_covered: dict[str, int] = {}
+    query_decided: list[bool] = []
     for group_index in range(paired_groups):
         world_seed = 360_906 + SPLIT_SEED_OFFSET[split] + group_index
         rng = np.random.default_rng(world_seed)
         current, topology = _initial_world(split, group_index, rng)
-        events = _event_plan(topology, rng)
+        events = _event_plan(
+            topology, rng, retrieval,
+            observation_noise=float(observation["appearance_noise"]),
+        )
         for event in events:
             event["places"] = list(topology["special"]["places"])
             programs, evidence, generation, candidate_signatures = (
@@ -1246,6 +1635,10 @@ def audit_m1_candidate_coverage(
                 "generation": generation,
                 "reference_failure": reference_execution["failure"],
             })
+            if covered:
+                query_decided.append(_query_decides_reference(
+                    programs, event["proposal_observation"], matches[0],
+                ))
             if not reference_execution["legal"]:
                 raise AssertionError(
                     "candidate audit hidden reference is illegal: "
@@ -1277,10 +1670,16 @@ def audit_m1_candidate_coverage(
             and min(family_coverage.values()) >= family_gate
         ),
         # The complete hidden transaction is frozen under reference_spec and is
-        # never passed to the generator.  Anonymous proposal_observation vectors
-        # stand in for a frozen retriever in this controlled, nonvisual fixture.
+        # never passed to the generator.  The query is derived from the hidden
+        # argument, so it is only argument-independent once it carries noise or
+        # a distractor; the exact-hash form made it an oracle pointer.
         "reference_template_independent": True,
-        "reference_arguments_independent": True,
+        "proposal_retrieval": dict(retrieval),
+        # Measured, not asserted: how often ranking candidates by query
+        # similarity alone already returns the hidden reference.
+        "reference_argument_decided_by_query": (
+            float(sum(query_decided) / len(query_decided)) if query_decided else None
+        ),
         "formal_gate_eligible": False,
         "coverage_gate_pass": False,
         "test_generated": False,
@@ -1401,39 +1800,70 @@ def _counterfactual_trace(
     return float(np.mean(errors)), hashes, failures
 
 
+def _resolve_observed_place(
+    graph: Mapping[str, Any], spec: Mapping[str, Any],
+) -> str | None:
+    """Resolve where the sensor is looking against the world at this step."""
+    if spec.get("place_id"):
+        return str(spec["place_id"])
+    edge_id = spec.get("place_from_edge")
+    entity_id = spec.get("place_from_entity")
+    for edge in graph["edges"]:
+        if edge.get("valid_to") is not None or edge["relation"] != "located_at":
+            continue
+        if edge_id and str(edge["edge_id"]) == str(edge_id):
+            return str(edge["target"])
+        if entity_id and str(edge["source"]) == str(entity_id):
+            return str(edge["target"])
+    return None
+
+
 def _online_step(
     sequence_id: str, paired_group_id: str, split: str, world_seed: int,
     asset_family: str,
     base: Mapping[str, Any], event: Mapping[str, Any],
     programs: Sequence[Mapping[str, Any]],
+    latents: Mapping[str, Any],
 ) -> dict[str, Any]:
-    signature_rng = np.random.default_rng(world_seed + int(event["step_index"]) + 1)
+    observation_rng = np.random.default_rng(int(event["observation_seed"]))
+    spec = dict(event["observation_spec"])
+    spec["resolved_place"] = _resolve_observed_place(base, spec)
+    signature = _observed_appearance(
+        spec, latents, observation_rng, float(event["observation_noise"]),
+    )
+    match = _appearance_match(base, signature, spec, latents)
     record = {
         "schema_version": "cpmt-m1-rollout-online-v1",
         "sequence_id": sequence_id,
         "paired_group_id": paired_group_id,
         "step_index": event["step_index"],
         "decision_time": event["decision_time"],
-        "scenario_family": event["scenario_family"],
         "split": split,
         "world_seed": world_seed,
         "asset_family": asset_family,
         "prior_world": clone_json(base),
         "current_regions": [{
             "region_ref": event["current_evidence_ref"],
-            "anonymous_signature": signature_rng.normal(0.0, 1.0, 8).round(6).tolist(),
+            "anonymous_signature": signature,
+            "visibility": spec["visibility"],
+            "pose_valid": bool(spec["pose_valid"]),
+            "depth_valid": bool(spec["depth_valid"]),
+            "reliability": float(spec["reliability"]),
+            "evidence_novel": bool(spec["evidence_novel"]),
+            "appearance_match": {
+                key: float(value) for key, value in sorted(match.items())
+            },
         }],
-        "history_cues": {
-            "cue_name": "sequence_local_identity_and_geometry_consistency",
-            "value": event["cue_value"],
-            "reliability": 1.0,
-        },
         "pose_history": [{
             "time_index": event["decision_time"],
             "pose_bucket": event["pose_bucket"],
-            "valid": True,
+            "valid": bool(spec["pose_valid"]),
         }],
         "action_history": ["controlled_revisit"],
+        # The retrieval query the proposer was allowed to use.  Withholding it
+        # while the generator ranks candidates by it leaves the student unable
+        # to tell two same-template candidates apart.
+        "proposal_observation": clone_json(dict(event["proposal_observation"])),
         "candidate_programs": clone_json(list(programs)),
     }
     validate_online_payload(record)
@@ -1447,9 +1877,16 @@ def _generate_sequence(
     world_seed = 360_906 + SPLIT_SEED_OFFSET[split] + sequence_index
     rng = np.random.default_rng(world_seed)
     initial, topology = _initial_world(split, sequence_index, rng)
-    events = _event_plan(topology, rng)
+    observation = validate_observation_model(config["observation"])
+    events = _event_plan(
+        topology, rng,
+        validate_proposal_retrieval(config["candidates"]["proposal_retrieval"]),
+        observation_noise=float(observation["appearance_noise"]),
+    )
     if sibling_index is not None and pivot_step is None:
         pivot_step = _ambiguity_pivot(events)
+    if pivot_step is not None:
+        _mark_decision_ambiguous(events[pivot_step])
     for event in events:
         event["places"] = list(topology["special"]["places"])
     paired_group_id = f"rollout-pair:{split}:{sequence_index:06d}"
@@ -1501,7 +1938,7 @@ def _generate_sequence(
             )
         online = _online_step(
             online_sequence_id, paired_group_id, split, world_seed, asset_family,
-            current, event, programs,
+            current, event, programs, topology["semantic_latents"],
         )
         step_material.append({
             "event": clone_json(event),
@@ -1824,6 +2261,7 @@ def materialize_rollout_step(
         source_online["sequence_id"], source_online["paired_group_id"],
         source_online["split"], int(source_online["world_seed"]),
         source_online["asset_family"], base, event, programs,
+        audit_sequence["topology"]["semantic_latents"],
     )
     return {
         "step_index": step_index,

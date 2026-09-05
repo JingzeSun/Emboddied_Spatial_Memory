@@ -68,6 +68,24 @@ def validate_m1_protocol(config: Mapping[str, Any]) -> None:
              "required executable template coverage changed")
     _require(candidates["coverage_gate_overall"] >= candidates["coverage_gate_each_family"],
              "overall coverage gate cannot be below the family gate")
+    retrieval = candidates["proposal_retrieval"]
+    # An exact hash of the hidden argument is an oracle pointer: it forces the
+    # reference into a fixed generator slot and makes coverage meaningless.
+    _require(
+        float(retrieval["noise_sigma"]) > 0.0
+        or float(retrieval["distractor_weight"]) > 0.0,
+        "proposal retrieval must not be an exact hash of the hidden argument",
+    )
+
+    observation = config["observation"]
+    # The online observation must be generated from the world, otherwise the
+    # only template signal left is a scenario label naming the answer.
+    _require(observation["source"] == "world_generated_appearance_v1",
+             "online observation must be generated from the executed world")
+    _require(observation["occlusion_is_neutral"] is True,
+             "occlusion must stay neutral evidence, never a negative observation")
+    _require(0.0 <= float(observation["appearance_noise"]) <= 1.0,
+             "appearance noise must be within [0, 1]")
 
     energy = config["energy"]
     _require(set(energy["terms"]) == ENERGY_TERMS, "all six energy terms are required")

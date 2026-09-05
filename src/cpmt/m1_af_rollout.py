@@ -29,8 +29,13 @@ from .hashing import clone_json
 from .m1_metrics import graph_error_counts, rollout_graph_metrics
 from .m1_rollout import (
     CANDIDATE_BUDGET,
+    APPEARANCE_DIM,
+    PROPOSAL_FEATURE_DIM,
+    VISIBILITY_KINDS,
+    candidate_argument_ids,
     generate_m1_paired_rollout_split,
     materialize_rollout_step,
+    stable_retrieval_feature,
 )
 from .m1_protocol import validate_m1_protocol
 from .pending import decide_commit
@@ -47,6 +52,24 @@ OP_TYPES = (
     "ASSERT_PRECONDITION", "ATTACH_EVIDENCE", "CREATE_NODE",
     "OPEN_NODE_VERSION", "CLOSE_NODE_VERSION", "ADD_EDGE",
     "CLOSE_EDGE_VERSION", "SET_LIFECYCLE", "RECORD_PROVENANCE",
+)
+QUERY_KINDS = ("node_query", "edge_query", "place_query")
+MATCH_KEYS = (
+    "best", "second", "margin", "best_dormant",
+    "place_has_recorded_entity", "best_match_recorded_here",
+    "best_match_recorded_elsewhere",
+)
+# Per-candidate block: template, intent, three costs, op-type counts, the
+# protected-id flag, then two similarities per query plus an argument count.
+CANDIDATE_FEATURE_DIM = (
+    len(TEMPLATES) + len(INTENTS) + 3 + len(OP_TYPES) + 1
+    + 2 * len(QUERY_KINDS) + 1
+)
+# World summary, observed appearance, the evidence report that replaces the
+# scenario-family one-hot, pose, and step position.
+ONLINE_CONTEXT_DIM = (
+    len(NODE_TYPES) + len(LIFECYCLES) + 3 + 8 + APPEARANCE_DIM
+    + len(VISIBILITY_KINDS) + 4 + len(MATCH_KEYS) + 8 + 1
 )
 
 
@@ -74,6 +97,7 @@ def resolve_af_smoke_config(
             raise ValueError(f"invalid A-F smoke setting {name}")
     if not config["seeds"] or len(set(config["seeds"])) != len(config["seeds"]):
         raise ValueError("A-F smoke seeds must be nonempty and unique")
+    config["candidate_feature_dim"] = CANDIDATE_FEATURE_DIM
     config["horizon"] = int(hard_config["future"]["primary_horizon"])
     config["temperature"] = float(hard_config["energy"]["temperature"])
     config["energy_weights"] = deepcopy(hard_config["energy"]["weights"])
@@ -96,13 +120,37 @@ def _stable_bin(value: str, bins: int) -> int:
     return int(hashlib.sha256(value.encode("utf-8")).hexdigest()[:16], 16) % bins
 
 
+def _argument_features(
+    program: Mapping[str, Any], queries: Mapping[str, np.ndarray],
+) -> list[float]:
+    """Align a candidate's arguments to the proposer's retrieval query.
+
+    Without this the three RELINK candidates, and every other same-template
+    slot, encode to identical blocks and no scorer can separate them.  Only
+    anonymous similarities are exported, never an identity string.
+    """
+    identifiers = candidate_argument_ids(program)
+    vectors = (
+        np.asarray([stable_retrieval_feature(value) for value in identifiers],
+                   dtype=np.float64)
+        if identifiers else np.zeros((1, PROPOSAL_FEATURE_DIM), dtype=np.float64)
+    )
+    values: list[float] = []
+    for kind in QUERY_KINDS:
+        similarity = vectors @ queries[kind]
+        values.extend([float(similarity.max()), float(similarity.mean())])
+    values.append(len(identifiers) / 6.0)
+    return values
+
+
 def online_feature_vector(online: Mapping[str, Any]) -> np.ndarray:
     """Encode only one deployable online record; audit records are rejected."""
     required = {
         "schema_version", "sequence_id", "paired_group_id", "step_index",
-        "decision_time", "scenario_family", "split", "world_seed",
-        "asset_family", "prior_world", "current_regions", "history_cues",
-        "pose_history", "action_history", "candidate_programs",
+        "decision_time", "split", "world_seed",
+        "asset_family", "prior_world", "current_regions",
+        "pose_history", "action_history", "proposal_observation",
+        "candidate_programs",
     }
     if set(online) != required:
         raise ValueError("online feature encoder accepts exactly the rollout online schema")
@@ -124,27 +172,48 @@ def online_feature_vector(online: Mapping[str, Any]) -> np.ndarray:
     for edge in open_edges:
         relation_bins[_stable_bin(str(edge["relation"]), len(relation_bins))] += 1 / 16.0
     values.extend(relation_bins)
-    signature = online["current_regions"][0]["anonymous_signature"]
-    if len(signature) != 8:
-        raise ValueError("rollout online region signature must have length 8")
+    region = online["current_regions"][0]
+    signature = region["anonymous_signature"]
+    if len(signature) != APPEARANCE_DIM:
+        raise ValueError(
+            f"rollout online appearance must have length {APPEARANCE_DIM}"
+        )
     values.extend(float(item) for item in signature)
-    cue = online["history_cues"]
-    values.extend([float(cue["value"]), float(cue["reliability"])])
+    # Evidence about the decision, generated from the executed world.  This
+    # replaces a scenario-family one-hot that named the reference template.
+    values.extend(_one_hot(str(region["visibility"]), VISIBILITY_KINDS))
+    values.extend([
+        float(bool(region["pose_valid"])),
+        float(bool(region["depth_valid"])),
+        float(region["reliability"]),
+        float(bool(region["evidence_novel"])),
+    ])
+    match = region["appearance_match"]
+    values.extend(float(match[key]) for key in MATCH_KEYS)
     pose = int(online["pose_history"][-1]["pose_bucket"])
     values.extend(float(index == pose) for index in range(8))
-    family_index = int(str(online["scenario_family"])[1:])
-    values.extend(float(index == family_index) for index in range(12))
     values.append(float(online["step_index"]) / 19.0)
+    if len(values) != ONLINE_CONTEXT_DIM:
+        raise AssertionError("online context block changed size without a constant update")
 
+    observation = online["proposal_observation"]
+    queries = {
+        kind: np.asarray(observation[kind], dtype=np.float64)
+        for kind in QUERY_KINDS
+    }
+    for query in queries.values():
+        if query.shape != (PROPOSAL_FEATURE_DIM,) or not np.isfinite(query).all():
+            raise ValueError("online proposal query has invalid shape or values")
     programs = online["candidate_programs"]
     if len(programs) != CANDIDATE_BUDGET:
         raise ValueError(
             f"A-F adapter requires the frozen K={CANDIDATE_BUDGET} candidates"
         )
     for program in programs:
-        values.extend(_one_hot(_program_label(program), TEMPLATES))
-        values.extend(_one_hot(str(program["intent"]), INTENTS))
-        values.extend([
+        block: list[float] = []
+        block.extend(_one_hot(_program_label(program), TEMPLATES))
+        block.extend(_one_hot(str(program["intent"]), INTENTS))
+        block.extend([
             float(program.get("declared_edit_cost", 0.0)) / 2.0,
             float(program.get("declared_growth_cost", 0.0)) / 2.0,
             len(program["operations"]) / 10.0,
@@ -152,14 +221,20 @@ def online_feature_vector(online: Mapping[str, Any]) -> np.ndarray:
         operation_counts = Counter(
             operation["op_type"] for operation in program["operations"]
         )
-        values.extend(operation_counts[name] / 4.0 for name in OP_TYPES)
+        block.extend(operation_counts[name] / 4.0 for name in OP_TYPES)
         protected_text = str(program.get("protected_ids", []))
         operation_text = str(program["operations"])
-        values.append(float(any(
+        block.append(float(any(
             protected_id in operation_text
             for protected_id in program.get("protected_ids", [])
             if protected_id in protected_text
         )))
+        block.extend(_argument_features(program, queries))
+        if len(block) != CANDIDATE_FEATURE_DIM:
+            raise AssertionError(
+                "candidate block changed size without a constant update"
+            )
+        values.extend(block)
     vector = np.asarray(values, dtype=np.float32)
     if not np.isfinite(vector).all():
         raise ValueError("online feature vector contains a non-finite value")
@@ -290,12 +365,54 @@ def rollout_learning_arrays_from_audits(
                     item["false_birth_growth"] for item in candidate_metrics
                 ], dtype=np.float32),
                 "penalties": np.asarray(penalties, dtype=np.float32),
+                # Template index per candidate, so selection error can be split
+                # into a template part and an argument part.
+                "candidate_templates": np.asarray([
+                    TEMPLATES.index(_program_label(program))
+                    for program in step["online"]["candidate_programs"]
+                ], dtype=np.int64),
             })
     arrays = {
         key: np.asarray([row[key] for row in rows])
         for key in rows[0]
     }
     return arrays
+
+
+def selection_error_decomposition(
+    probabilities: np.ndarray, arrays: Mapping[str, np.ndarray],
+) -> dict[str, Any]:
+    """Split selection error into template, argument and ambiguous-pivot parts.
+
+    A model can fail because it picked the wrong kind of edit, or because it
+    picked the right kind and pointed it at the wrong node/edge/place.  These
+    have different causes and only the first is what hindsight supervision is
+    meant to improve, so reporting one accuracy hides the result.
+    """
+    templates = np.asarray(arrays["candidate_templates"])
+    target = np.asarray(arrays["y"])
+    ambiguous = np.asarray(arrays["ambiguous"], dtype=bool)
+    predicted = np.asarray(probabilities).argmax(axis=1)
+    rows = np.arange(len(target))
+    predicted_template = templates[rows, predicted]
+    target_template = templates[rows, target]
+    template_correct = predicted_template == target_template
+    correct = predicted == target
+
+    def mean(values: np.ndarray, mask: np.ndarray | None = None) -> float | None:
+        selected = values if mask is None else values[mask]
+        return float(selected.mean()) if len(selected) else None
+
+    return {
+        "accuracy": mean(correct),
+        "template_accuracy": mean(template_correct),
+        "argument_accuracy_given_template": mean(correct, template_correct),
+        "template_error": mean(~template_correct),
+        "argument_error_with_correct_template": mean(template_correct & ~correct),
+        "identifiable_accuracy": mean(correct, ~ambiguous),
+        "ambiguous_accuracy": mean(correct, ambiguous),
+        "ambiguous_fraction": mean(ambiguous),
+    }
 
 
 def _teacher_forced_metrics(
@@ -437,6 +554,8 @@ def run_af_seed(
             )
             results[method] = {
                 "teacher_forced": teacher_metrics,
+                "selection_error": selection_error_decomposition(
+                    probabilities, validation_np),
                 "causal_rollout": causal,
                 "student_parameters": 0,
                 "additional_scorer_parameters": 0,
@@ -469,6 +588,8 @@ def run_af_seed(
         )
         results[method] = {
             "teacher_forced": teacher_metrics,
+            "selection_error": selection_error_decomposition(
+                probabilities, validation_np),
             "causal_rollout": causal,
             "student_parameters": sum(
                 parameter.numel() for parameter in model.parameters()

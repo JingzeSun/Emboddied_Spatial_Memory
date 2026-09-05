@@ -14,7 +14,7 @@
     {"id": "F", "name": "oracle_candidate_program", "execute_candidates": true, "future_supervision": true, "post_edit_world": true}
   ],
   "data": {
-    "dataset_version": "m1-paired-latent-worlds-v1",
+    "dataset_version": "m1-paired-latent-worlds-v3",
     "generator": "controlled_embodied_spatial_worlds_v1",
     "group_keys": ["paired_group_id", "world_seed", "asset_family"],
     "paired_siblings_minimum": 2,
@@ -45,7 +45,18 @@
     "deduplicate": "canonical_memory_state_equivalence",
     "illegal_policy": "retain_failure_record_and_mask_before_softmax",
     "coverage_gate_overall": 0.98,
-    "coverage_gate_each_family": 0.95
+    "coverage_gate_each_family": 0.95,
+    "proposal_retrieval": {
+      "source": "controlled_noisy_retrieval_features_v2",
+      "noise_sigma": 0.02,
+      "distractor_weight": 0.05,
+      "enumerated_ranks": 3
+    }
+  },
+  "observation": {
+    "source": "world_generated_appearance_v1",
+    "appearance_noise": 0.15,
+    "occlusion_is_neutral": true
   },
   "energy": {
     "terms": ["now", "future", "edit", "growth", "collateral", "illegal"],

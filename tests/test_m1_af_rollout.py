@@ -12,10 +12,13 @@ sys.path.insert(0, str(PROJECT / "src"))
 
 from cpmt.dev_learning import METHODS
 from cpmt.m1_af_rollout import (
+    CANDIDATE_FEATURE_DIM,
+    ONLINE_CONTEXT_DIM,
     build_rollout_learning_arrays,
     online_feature_vector,
     resolve_af_smoke_config,
     run_af_seed,
+    selection_error_decomposition,
 )
 
 
@@ -53,6 +56,28 @@ class TestM1AFCausalRollout(unittest.TestCase):
         np.testing.assert_array_equal(before, after)
         with self.assertRaisesRegex(ValueError, "exactly"):
             online_feature_vector(step)
+
+    def test_same_template_candidates_are_separable_after_argument_features(self):
+        """Without query-aligned arguments the three RELINK slots encode alike."""
+        step = self.validation_audit[0]["steps"][0]
+        vector = online_feature_vector(step["online"])
+        blocks = vector[ONLINE_CONTEXT_DIM:].reshape(16, CANDIDATE_FEATURE_DIM)
+        self.assertEqual(
+            len(vector), ONLINE_CONTEXT_DIM + 16 * CANDIDATE_FEATURE_DIM
+        )
+        distinct = {tuple(np.round(block, 6)) for block in blocks}
+        self.assertEqual(len(distinct), 16)
+
+    def test_selection_error_splits_template_from_argument(self):
+        probabilities = np.eye(16, dtype=np.float32)[self.validation["y"]]
+        perfect = selection_error_decomposition(probabilities, self.validation)
+        self.assertEqual(perfect["accuracy"], 1.0)
+        self.assertEqual(perfect["template_accuracy"], 1.0)
+        self.assertEqual(perfect["argument_error_with_correct_template"], 0.0)
+        shifted = np.eye(16, dtype=np.float32)[(self.validation["y"] + 1) % 16]
+        degraded = selection_error_decomposition(shifted, self.validation)
+        self.assertEqual(degraded["accuracy"], 0.0)
+        self.assertLessEqual(degraded["template_accuracy"], 1.0)
 
     def test_arrays_keep_exact_ambiguous_pair_and_groupwise_labels(self):
         self.assertEqual(self.train["x"].shape[0], 80)

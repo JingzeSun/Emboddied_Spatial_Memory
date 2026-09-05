@@ -18,6 +18,7 @@ from .dev_learning import OnlineModel, train_student, tensors
 from .hashing import clone_json
 from .m1_af_rollout import (
     _teacher_forced_metrics,
+    selection_error_decomposition,
     causal_rollout_metrics,
     resolve_af_smoke_config,
     run_af_seed,
@@ -204,6 +205,7 @@ def run_label_rich_capacity_point(
     with torch.no_grad():
         probabilities = model(train["x"]).softmax(dim=1).cpu().numpy()
     teacher_forced = _teacher_forced_metrics(probabilities, train, target_teacher)
+    selection = selection_error_decomposition(probabilities, labelled_arrays)
     causal, causal_rows = causal_rollout_metrics(model, audits, config)
     ceiling = observable_accuracy_ceiling(labelled_arrays)
     metrics = {
@@ -212,6 +214,7 @@ def run_label_rich_capacity_point(
         "observable_accuracy_ceiling": ceiling,
         "ceiling_gap": float(ceiling - teacher_forced["accuracy"]),
         "teacher_forced": teacher_forced,
+        "selection_error": selection,
         "causal_rollout": causal,
         "student_parameters": sum(parameter.numel() for parameter in model.parameters()),
     }
