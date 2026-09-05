@@ -65,15 +65,12 @@ def build_sharded_split(
     for group_index in range(paired_groups):
         completed = None
         prefix = f"{split}_{group_index:06d}_attempt"
-        existing_attempts = sorted(
-            (
-                int(path.name.removeprefix(prefix)), path
-                for path in shard_root.glob(f"{prefix}*")
-                if path.is_dir()
-                and path.name.removeprefix(prefix).isdigit()
-            ),
-            key=lambda item: item[0],
-        )
+        existing_attempts = []
+        for path in shard_root.glob(f"{prefix}*"):
+            suffix = path.name.removeprefix(prefix)
+            if path.is_dir() and suffix.isdigit():
+                existing_attempts.append((int(suffix), path))
+        existing_attempts.sort(key=lambda item: item[0])
         for attempt, attempt_dir in existing_attempts:
             complete_path = attempt_dir / "complete.json"
             if complete_path.is_file():
@@ -132,6 +129,7 @@ def build_sharded_split(
             raise RuntimeError(
                 f"{split} group {group_index} failed all {max_attempts} isolated attempts"
             )
+        completed_attempt = int(completed.name.removeprefix(prefix))
         with np.load(completed / "arrays.npz", allow_pickle=False) as stored:
             arrays = {key: stored[key].copy() for key in stored.files}
         summary = json.loads(
@@ -171,7 +169,7 @@ def build_sharded_split(
                 kept_audits.extend(json.loads(line) for line in handle if line.strip())
         print(
             f"{split} shard={group_index + 1}/{paired_groups} "
-            f"cases={len(arrays['y'])} attempt={attempt}",
+            f"cases={len(arrays['y'])} attempt={completed_attempt}",
             flush=True,
         )
     combined = {
@@ -253,14 +251,12 @@ def run_isolated_point(
     point_root.mkdir(parents=True, exist_ok=True)
     attempts = []
     prefix = f"{name}_attempt"
-    existing_attempts = sorted(
-        (
-            int(path.name.removeprefix(prefix)), path
-            for path in point_root.glob(f"{prefix}*")
-            if path.is_dir() and path.name.removeprefix(prefix).isdigit()
-        ),
-        key=lambda item: item[0],
-    )
+    existing_attempts = []
+    for path in point_root.glob(f"{prefix}*"):
+        suffix = path.name.removeprefix(prefix)
+        if path.is_dir() and suffix.isdigit():
+            existing_attempts.append((int(suffix), path))
+    existing_attempts.sort(key=lambda item: item[0])
     for attempt, attempt_dir in existing_attempts:
         if (attempt_dir / "complete.json").is_file():
             result = json.loads(
@@ -521,8 +517,14 @@ def main() -> None:
                 sort_keys=True,
             ).encode("utf-8")
         ).hexdigest()
-        np.savez_compressed(output / "train_arrays.npz", **train_arrays)
-        np.savez_compressed(output / "validation_arrays.npz", **validation_arrays)
+        np.savez_compressed(
+            output / "train_arrays.npz",
+            **train_arrays,  # pyright: ignore[reportArgumentType]
+        )
+        np.savez_compressed(
+            output / "validation_arrays.npz",
+            **validation_arrays,  # pyright: ignore[reportArgumentType]
+        )
         write_json(output / "data_summary.json", {
             "train": train_summary,
             "validation": validation_summary,
