@@ -51,7 +51,7 @@ run_ctl_dev.py 用于 D-027 授权的 train/validation 开发训练，支持 --h
 
 `run_m1_trainability.py` 使用 `configs/m1_trainability_ladder.json` 做可学习性审计。输入是相同 train/validation paired 数据、全标签容量曲线和 4→10 group、60→1000 step 的受控点，输出是容量上限差、A–F 指标、candidate/teacher/amortization 误差分解、资源和完整重试记录。已有成功数值属于旧 candidate=3 诊断；runner 已改为读取冻结 K=16 动态维度，但新结果尚未运行，因此两者不能混报。它明确 `formal_run=false`、`test_access=false`，不是 checkpoint 选择或正式结论。
 
-`generate_m1_trainability_shard.py` 和 `run_m1_trainability_point.py` 是上述 runner 的隔离 worker：前者每次只生成一个完整 paired group，后者每次只训练/评估一个阶梯点；失败 attempt 原样保留，后续 attempt 不复用半成品。父 runner 可用显式 `--resume-output` 恢复中断 run，但只承认带 `complete.json` 的完整 shard/point，并要求训练、数据、generator、executor、worker 源码 hash 与全部配置 hash 不变；runner 自身可以只改变恢复机制并记录前后 commit。例如前九组完成、第十组进程退出时，恢复会从第十组的新 attempt 编号继续。它解决“偶发进程退出后不要重做全部成功组”的问题，输入是同一个失败/中断 run 目录，输出仍是同 seed、同数据的完整结果；它不等于跳过失败组、替换样本或断点续训模型参数。
+`generate_m1_trainability_shard.py`、`run_m1_trainability_point.py` 和 `run_m1_trainability_method.py` 是上述 runner 的隔离 worker：前者每次只生成一个完整 paired group，中者运行一个容量阶梯点，后者把同一 optimization point 的 A–F 各自在独立进程中训练和 causal replay；只有六个方法结果齐全且 A–E 参数量一致时才聚合。失败 attempt 原样保留，后续 attempt 不复用半成品。父 runner 可用显式 `--resume-output` 恢复中断 run，但只承认带 `complete.json` 的完整 shard/point，并要求相关科学源码 hash 与全部配置 hash 不变；runner 自身可以只改变恢复机制并记录前后 commit。例如 A、B 已完成而 C 进程退出时，恢复会复用 A/B 并只重试 C。它解决“偶发进程退出后不要抹掉完整结果”的问题，输入仍是同 seed、同数据和同训练预算，输出仍是一次完整 A–F point；它不等于拆开调参、跳过失败方法、替换样本或选择最佳 attempt。
 
 ## 项目内 Python 环境
 

@@ -18,8 +18,10 @@ sys.path.insert(0, str(PROJECT / "src"))
 import numpy as np
 import torch
 
+from cpmt.dev_learning import METHODS
 from cpmt.m1_protocol import load_and_validate, protocol_sha256
 from cpmt.m1_trainability import (
+    error_decomposition,
     resolve_trainability_ladder,
 )
 
@@ -311,6 +313,80 @@ def run_isolated_point(
     raise RuntimeError(f"trainability point {name} failed all isolated attempts")
 
 
+def run_isolated_method_point(
+    run_root: Path, name: str, method: str, train_paired_groups: int,
+    student_steps: int, seed: int, *, max_attempts: int = 10,
+):
+    """Run and persist one A-F method without sharing a failure domain."""
+    worker = PROJECT / "scripts" / "run_m1_trainability_method.py"
+    point_root = run_root / "points"
+    point_root.mkdir(parents=True, exist_ok=True)
+    attempts = []
+    prefix = f"{name}_{method}_attempt"
+    existing_attempts = []
+    for path in point_root.glob(f"{prefix}*"):
+        suffix = path.name.removeprefix(prefix)
+        if path.is_dir() and suffix.isdigit():
+            existing_attempts.append((int(suffix), path))
+    existing_attempts.sort(key=lambda item: item[0])
+    for attempt, attempt_dir in existing_attempts:
+        if (attempt_dir / "complete.json").is_file():
+            result = json.loads(
+                (attempt_dir / "result.json").read_text(encoding="utf-8")
+            )
+            attempts.append({
+                "name": name,
+                "method": method,
+                "attempt": attempt,
+                "returncode": 0,
+                "stdout": "",
+                "stderr": "",
+                "output": str(attempt_dir.relative_to(run_root)),
+                "reused_complete_attempt": True,
+            })
+            return result, attempts
+    next_attempt = max(
+        (attempt for attempt, _ in existing_attempts), default=0,
+    ) + 1
+    for attempt in range(next_attempt, next_attempt + max_attempts):
+        attempt_dir = point_root / f"{name}_{method}_attempt{attempt}"
+        command = [
+            sys.executable, "-B", str(worker),
+            "--run-root", str(run_root),
+            "--method", method,
+            "--train-paired-groups", str(train_paired_groups),
+            "--student-steps", str(student_steps),
+            "--seed", str(seed),
+            "--output", str(attempt_dir),
+        ]
+        completed = subprocess.run(
+            command, cwd=PROJECT, capture_output=True, text=True,
+        )
+        record = {
+            "name": name,
+            "method": method,
+            "attempt": attempt,
+            "returncode": completed.returncode,
+            "stdout": completed.stdout,
+            "stderr": completed.stderr,
+            "output": str(attempt_dir.relative_to(run_root)),
+        }
+        attempts.append(record)
+        if completed.returncode == 0 and (attempt_dir / "complete.json").is_file():
+            result = json.loads(
+                (attempt_dir / "result.json").read_text(encoding="utf-8")
+            )
+            return result, attempts
+        print(
+            f"point={name} method={method} attempt={attempt} failed "
+            f"returncode={completed.returncode}",
+            flush=True,
+        )
+    raise RuntimeError(
+        f"trainability point {name} method {method} failed all isolated attempts"
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -403,6 +479,12 @@ def main() -> None:
                 "point_worker": sha256(
                     PROJECT / "scripts" / "run_m1_trainability_point.py"
                 ),
+                "method_adapter": sha256(
+                    PROJECT / "src" / "cpmt" / "m1_af_method.py"
+                ),
+                "method_point_worker": sha256(
+                    PROJECT / "scripts" / "run_m1_trainability_method.py"
+                ),
                 "runner": sha256(Path(__file__)),
             },
         },
@@ -440,13 +522,16 @@ def main() -> None:
         "hardware": str(device),
     }
     if previous_manifest is not None:
+        previous_sources = previous_manifest.get("code", {}).get(
+            "source_sha256", {},
+        )
         scientific_sources = {
             "trainability", "af_adapter", "rollout_generator", "learning",
             "executor", "shard_worker", "point_worker",
         }
-        previous_sources = previous_manifest.get("code", {}).get(
-            "source_sha256", {},
-        )
+        for name in ("method_adapter", "method_point_worker"):
+            if name in previous_sources:
+                scientific_sources.add(name)
         if any(
             previous_sources.get(name)
             != manifest["code"]["source_sha256"].get(name)
@@ -571,13 +656,41 @@ def main() -> None:
             groups = int(spec["train_paired_groups"])
             steps = int(spec["student_steps"])
             name = f"g{groups}_s{steps}"
-            point, attempts = run_isolated_point(
-                output, name, "optimization", groups, steps,
-                int(ladder["seed"]),
-            )
+            method_results = {}
+            for method in METHODS:
+                method_result, attempts = run_isolated_method_point(
+                    output, name, method, groups, steps,
+                    int(ladder["seed"]),
+                )
+                method_results[method] = {
+                    key: value for key, value in method_result.items()
+                    if key not in {
+                        "method", "student_steps", "train_paired_groups",
+                        "train_decisions", "labelled_fraction",
+                    }
+                }
+                metrics["point_attempts"][f"{name}_{method}"] = attempts
+                write_json(output / "metrics.json", metrics)
+            parameter_counts = {
+                method_results[method]["student_parameters"]
+                for method in METHODS
+                if method != "oracle_candidate_program"
+            }
+            if len(parameter_counts) != 1:
+                raise AssertionError("A-E isolated students must have matched size")
+            point = {
+                "student_steps": steps,
+                "results": method_results,
+                "error_decomposition": error_decomposition(method_results),
+                "train_paired_groups": groups,
+                "train_decisions": groups * 2 * 20,
+                "labelled_fraction": float(
+                    train_arrays["labelled"][train_arrays["group"] < groups].mean()
+                ),
+                "execution_mode": "one_isolated_process_per_method",
+            }
             point["candidate_audit"] = validation_candidate_audit
             metrics["optimization_curve"][name] = point
-            metrics["point_attempts"][name] = attempts
             write_json(output / "metrics.json", metrics)
             a = point["results"]["cpmt_ctl_core"]
             print(
