@@ -16,7 +16,7 @@
 | 数据/算力 | trainability 完整 run 仅 CPU，102.054 秒、约 75.0 MB；分片重试暴露两次 Windows `0xC0000005`，但固定 shard/point 均补齐。宿主有连续 Python access violation、两次 `0x3B` 蓝屏及 Samsung 990 PRO 链路 WHEA；服务器未租、云预算 AUD 0，正式长 run 暂停至稳定性处理完成 |
 | 当前决定 | D-031：M1 A=`CPMT-CTL Core`；Full CPMT 只用于 M2 的 PNO＋world graph＋executor＋CTL；协议 hash 已冻结 |
 | 人工待定 | 当前实现无立即阻塞项；正式 test 解封与任何云费用仍需单独事件/授权 |
-| Git 备份 | candidate=3 阶段代码、合同、配置和 fixtures 已以 `fa9606c` 纳入 `origin/main`；LOG-012 的 K=16 未完成改动尚在本地。outputs、数据、论文、虚拟环境等 ignore 内容不属于 Git 备份 |
+| Git 备份 | candidate=3 稳定基线以 `fa9606c` 保留在 `origin/main`；LOG-012 的未验证 K=16 工作以 `1b9a078` 单独备份到 `origin/wip/k16-candidate-generator`。outputs、数据、论文、虚拟环境等 ignore 内容不属于 Git 备份 |
 
 白话：M1 的考试规则已经冻结。新的容量诊断证明简单 MLP 在给足标签时能学到除不可辨歧义外的全部训练样本，所以先前低分主要不是“网络完全不会拟合”；增加更新步数后 A 的 validation 和长期图指标明显上升，而 B/C 上升较少。但这仍只有一个 seed、4 个 validation groups 和三个注入 reference 的候选，不能宣布 CTL 胜出，更不是带 PNO 的 Full CPMT。
 
@@ -267,6 +267,7 @@
 - 失败：尝试一个单线程、CPU-only、内存内的 20-step validation sequence 时，3.8 秒后 Python 发生 fatal access violation 并退出，exit=1；faulthandler 栈位于 `hashing.py:clone_json` → `m1_rollout.py:_candidate_state_signature/generate_fixed_candidates/_candidate_programs/_generate_sequence`。新 dump 为 `%LOCALAPPDATA%/CrashDumps/python.exe.34644.dmp`，约 2.5 MB，时间 2026-09-06 03:27:55。Windows 没有蓝屏；没有生成 run 目录或科学结果。
 - 失败后的静态收敛：未重试 Python。只通过代码编辑去掉 candidate signature 中不必要的整图深拷贝，并让 hindsight counterfactual future 分支直接执行独立 hidden reference，而不是在每个未来步重复生成/匹配 16 个候选；这降低复制与执行量，但尚未运行验证。所有后续 Python/训练保持暂停。
 - 静态终审发现的 coverage 边界：生成器没有读取 `primary_template`/`scenario_family`，隐藏事务类型也在候选生成后另行构造；但受控 fixture 的隐藏 reference 参数（例如选哪条 edge、哪个 node）当前仍复用了 candidate generator 的 current-world 排序。因此当前 100% 只能证明“固定 16 类接口里能找回按同一排序构造的 reference”，不是独立标注真值下的正式 candidate coverage。summary 已显式记录 `reference_arguments_independent=false`；正式 coverage 前必须把 oracle node/edge/新 ID 参数与 proposer 排名解耦，否则不准过 gate。
+- Git 备份：上述未验证代码以 `1b9a078` 推送到 `origin/wip/k16-candidate-generator`，本地/远端 SHA 一致；`origin/main` 仍停在 candidate=3 的 `fa9606c`，没有把 access-violation 后未重跑的实现伪装成稳定主线。
 - 结论/下一步：K=16 的设计和单步执行有初步工程证据，但完整链、coverage@16 与动态 A–F 均未验证，不能标完成或用于新数值。恢复路径优先级不变：先解决宿主稳定性，或经用户明确批准后把代码放到稳定环境验证；在此之前只允许静态审查和 Git 备份，不运行正式 M1、test、PNO 或云资源。
 
 ## 后续条目模板
