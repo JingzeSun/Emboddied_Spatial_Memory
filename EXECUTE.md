@@ -4,21 +4,21 @@
 
 ## 当前看板
 
-> **2026-09-06 更新（LOG-025）：** D-036 与提交 `58b5d6f` 已关闭 S1/S2 消费 validation report 的治理问题：新增 scorer-only 的 train/inner-dev runner，只从 train paired groups 固定哈希留出约 1/5，报告 target/assembly/scorer 诊断，不读取 validation、不训练 student、不校准 gate。已查看的 4-group report 降为历史开发结果；S5 将登记不重叠的新 validation confirmation。下一步在 AutoDL 跑 144 项全测，并用现有 10-group train arrays 做 seed 7、60-step S1 诊断。
+> **2026-09-06 更新（LOG-026）：** 首份干净 train/inner-dev S1 报告已导回：10-group train 仅有 1 个 inner-dev group；target-only 均匀并列期望为 0.600，同组装 oracle=0.575、非法选择=0.375，而 60-step E scorer 在 fitting/inner-dev 上 teacher accuracy 均为 0.050。目标明显优于 K=16 随机地板，但现有证据同时指向 scorer 未收敛、target 大量二选一并列及 assembly legality 缺口。流程进入 S2 的 10/40 groups × 300/1000 scorer steps 二维曲线，不改 target，不读 validation/test。
 
-最后更新：2026-09-06，LOG-025 train/inner-dev scorer 入口待服务器验证；正式 M1 gate 未运行、未生成 test。
+最后更新：2026-09-06，LOG-026 S1 已闭环、S2 待服务器运行；正式 M1 gate 未运行、未生成 test。
 
 | 项目 | 当前事实 |
 |---|---|
 | 方向 | CPMT 具身空间记忆；CTL 是主学习假设，用户希望面向 ML 研究 |
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
 | 阶段 | M1-v2 `pretest_lock_candidate`；只开放 train/validation，尚未重新冻结，正式 gate 未运行，不是 M2/Full CPMT |
-| 最近结果 | 修正后 10/4、1-seed、60-update retest：数组 digest 与首次 smoke 一致，A–E 单步/因果读数逐项复现；校准分母为 40/120/8，gate 仍 `(0,0)`。relation-target oracle=80.83%、argument-given-template=100%，E scorer teacher=5%且 causal illegal selection=95%。observable final active=100%、designed recovery=100%；学习性能仍仅是 smoke |
-| 尚缺 | 在 AutoDL 对最新干净提交跑全测，并只用现有 train arrays 完成 60-step S1 scorer diagnostic；确认 fitting/inner-dev gap 后，按流程跑 scorer steps × train groups 的有界二维曲线。test 仍封存，PNO 与 Khronos 式全局慢路径属 M2 |
+| 最近结果 | 干净提交 `7518f99` 上的 10-group train/inner-dev S1：9 fitting groups/378 learning rows，1 inner-dev group/42 learning rows，其中 online=40；target-only reference coverage=95%、unique=25%、均匀并列期望=60%；assembled oracle=57.5%、illegal=37.5%；E scorer fitting/inner-dev BCE=0.2612/0.2706、teacher=5%/5%、illegal=45%/85%。旧 4-group validation report 的 oracle=80.83% 只保留为历史，不能与单个 train inner-dev group 混合作选择 |
+| 尚缺 | 在 AutoDL 生成一份 40-group train arrays，并由同一文件确定性截取 10/40 groups，完成 seed 7、scorer steps 300/1000 的 2×2；据共同 group 1 与 8-group aggregate 分开判断优化量、数据多样性及 legality/assembly 缺口。test 仍封存，PNO 与 Khronos 式全局慢路径属 M2 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
 | 当前决定 | D-034：M1-v1 保留为历史诊断；M1-v2 只加入有界、证据触发的局部补偿，E 不执行候选评分分支；全局 reconciliation、PNO 与 M2 顺序不变 |
 | 人工待定 | 正式 test 解封仍需单独事件；当前先完成服务器 validation，不读取 test |
-| Git 备份 | 修正实现 `318c5a1`、结果 `8460444`、流程 `d421d74`、S1 诊断 `89a7b3d`、独立 scorer 预算 `64d9ea2` 与 train/inner-dev 隔离 `58b5d6f` 已入库；outputs、数据、论文与虚拟环境等 ignore 内容不属于 Git 备份 |
+| Git 备份 | 修正实现 `318c5a1`、结果 `8460444`、流程 `d421d74`、S1 诊断 `89a7b3d`、独立 scorer 预算 `64d9ea2`、train/inner-dev 隔离 `58b5d6f` 与 S1 结果 `67f739d` 已入库；outputs、数据、论文与虚拟环境等 ignore 内容不属于 Git 备份 |
 
 白话：M1-v2 现在仍是“考前定卷”，不是已冻结或已通过。旧容量诊断证明简单 MLP 在给足标签时能拟合可见训练关系；新的 K=16 与恢复审计只证明候选、executor 和 active-world 评测路径可达。这些都不等于 CTL 已胜出，更不是带 PNO 的 Full CPMT。
 
@@ -440,6 +440,18 @@ M1-v2 的阶段顺序、转向条件和成功/失败终点见 [M1-v2 收口执�
 - 曲线/早停：S2 在 train/inner-dev 上做 scorer steps {300,1000} × total train groups {10,40}；若更大数据仍有收益，S3 在最大 group 点复扫两个 steps，避免顺序坐标搜索。early stopping 继续标 proposed，未固定 patience、最大步数和 checkpoint tie-break 前不启用。
 - 本地验证：新脚本 `py_compile` 与 `--help` 通过，合成 group 的 inner-dev 完整性检查通过。功能 smoke 因本机仅有旧 protocol 的 v2 arrays 而被 manifest guard 正确拒绝；不绕过哈希，留待 AutoDL 使用 `3820f5e0…` 的现有 train arrays。全套测试尚未在本机运行。
 - 下一步：AutoDL 对最新干净提交运行预计 144 项测试；通过后执行 seed 7、scorer 60 steps 的 train/inner-dev S1 run 并导回。根据 fitting/inner-dev BCE 和 teacher accuracy 进入 S2 或回到 assembly/target 分支。
+
+<a id="log-026"></a>
+
+### LOG-026—2026-09-06—S1 train/inner-dev 结果与 S2 可比性补强
+
+- 类型/状态：M1-development scorer-only 诊断完成；S1 关闭并进入 S2。结果文件为 `results/m1-v2-s1-innerdev-7518f99-20260906T120940Z.json`，结果提交 `67f739d`；`formal_run=false`、`test_generated=false`、`causal_complete=false`，不构成 M1 go/no-go。
+- 数据/provenance：复用 generation commit `318c5a1` 的 train arrays，digest=`483b389a94eb666d347bff472fdeb97180ca0d1291354beac9b0e52259e144e3`，协议 hash=`3820f5e06e27989dc87f3c887b147eefe3be0a6f7bb01a72bbbba708709b49bb`。训练和导出均来自干净提交 `7518f99`、source-tree hash=`679e89eb1364ab01bed43b89d9969efb58f5931cfbeda0470ca7ffdccac26d49`。报告明确 `validation_arrays_read=false`、`validation_report_partition_accessed=false`、`validation_trial_consumed=false`；没有训练 online student 或运行 causal。
+- 分母/设置：train 共 10 paired groups，固定哈希留出 group 1；fitting=9 groups/378 learning rows，inner-dev=1 group/42 learning rows，其中 online chain=40。seed=7，scorer=60 updates，耗时 1.13 秒。由于 inner-dev 的独立单位只有 1 个 paired group，本轮只决定后续诊断分支，不估计稳定泛化性能。
+- target/assembly：inner-dev target-only 的 reference-in-minimum=0.95、unique-reference-minimum=0.25、uniform-tie expected accuracy=0.60、mean/max minimum-set size=1.7/2；说明结构化关系目标通常能把 K=16 缩到一对，但多数行不能唯一决定正确候选。使用正式标准化与 no-execution penalties 后，relation oracle accuracy=0.575、identifiable=0.5789、ambiguous=0.5、argument-given-template=1.0；错误中 illegal wrong-template=0.375、legal wrong-template=0.05。旧 validation report 的 0.8083 与该单-group 0.575 暂不能解释为真实性能变化，只证明必须报告组间波动。
+- scorer：online fitting/inner-dev masked BCE=0.2612/0.2706，binary accuracy=0.9007/0.8925，teacher accuracy=0.05/0.05，raw illegal selection=0.45/0.85。接近的 BCE 与极差排序同时表明逐关系 binary accuracy 被负类占比主导，60 updates 尚未把关系预测转化为候选排序；但 assembled oracle 本身也有高 illegal rate，不能把 E 的全部缺口只归为优化不足。
+- 结论/分支：不重构 relation target；按既定 S2 跑 scorer steps {300,1000} × train groups {10,40}。进入下一次服务器 run 前，诊断 runner 增加 `--paired-groups`，使一份 40-group arrays 可确定性截取同源 10/40 规模，并增加 target/oracle/scorer 的逐 inner-dev-group 报告。它只提高开发曲线的可比性，不改 target、energy、loss、K、候选、protocol 或 test seal；共同 group 1 用于直接规模对照，40-group aggregate 的 8 个 held-out groups 用于观察组间波动。
+- 下一步：在本地只做语法、边界单测与 diff 审计；提交后由 AutoDL 先跑全测，再生成 40-group train arrays 并运行四个固定 S2 点。若 scorer 随 steps/groups 接近 oracle，则继续选定预算；若 scorer 已贴近仍低且高-illegal 的 oracle，则在 test 前回到 assembly/声明约束分支并重新登记任何公式变化。
 
 ## 后续条目模板
 

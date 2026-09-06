@@ -34,6 +34,7 @@ from cpmt.m1_af_rollout import (  # noqa: E402
     training_inner_dev_mask,
 )
 from cpmt.m1_protocol import load_and_validate, protocol_sha256  # noqa: E402
+from cpmt.m1_trainability import subset_paired_array_groups  # noqa: E402
 from cpmt.run_provenance import (  # noqa: E402
     arrays_sha256,
     capture_run_provenance,
@@ -98,6 +99,13 @@ def main() -> int:
                         default=PROJECT / "configs" / "m1_hard_condition.json")
     parser.add_argument("--seeds", type=int, nargs="+", default=[7])
     parser.add_argument("--scorer-steps", type=int, required=True)
+    parser.add_argument(
+        "--paired-groups", type=int, default=None,
+        help=(
+            "optional deterministic prefix of complete train paired groups; "
+            "use one larger array file for directly comparable size sweeps"
+        ),
+    )
     parser.add_argument("--threads", type=int, default=8)
     args = parser.parse_args()
     if args.scorer_steps <= 0:
@@ -110,6 +118,13 @@ def main() -> int:
         expected_protocol_sha256=active_protocol_sha256,
         expected_dataset_version=str(hard["data"]["dataset_version"]),
     )
+    available_groups = sorted(set(int(value) for value in train_np["group"]))
+    if args.paired_groups is not None:
+        train_np = subset_paired_array_groups(train_np, args.paired_groups)
+    selected_groups = sorted(set(int(value) for value in train_np["group"]))
+    train_input["available_paired_groups"] = len(available_groups)
+    train_input["selected_paired_groups"] = len(selected_groups)
+    train_input["selected_training_view_digest"] = arrays_sha256(train_np)
     inner_dev = training_inner_dev_mask(train_np)
     fitting_np = _subset_rows(train_np, ~inner_dev)
     inner_dev_np = _subset_rows(train_np, inner_dev)
@@ -150,6 +165,26 @@ def main() -> int:
     )
     _ambiguity_cap(relation_oracle)
     target_only = structured_relation_target_only_diagnostics(inner_online_np)
+    relation_oracle_by_group = {}
+    target_only_by_group = {}
+    for group_id in inner_groups:
+        group_np = _subset_rows(
+            inner_online_np,
+            np.asarray(inner_online_np["group"]) == group_id,
+        )
+        group_probabilities = structured_relation_oracle_probabilities(
+            group_np,
+            future_weight=float(hard["energy"]["weights"]["future"]),
+            temperature=float(hard["energy"]["temperature"]),
+        )
+        group_oracle = selection_error_decomposition(
+            group_probabilities, group_np,
+        )
+        _ambiguity_cap(group_oracle)
+        relation_oracle_by_group[str(group_id)] = group_oracle
+        target_only_by_group[str(group_id)] = (
+            structured_relation_target_only_diagnostics(group_np)
+        )
 
     fitting = tensors(fitting_np, device)
     held_out = tensors(inner_dev_np, device)
@@ -179,6 +214,18 @@ def main() -> int:
                 scorer, held_out, teachers["validation"],
                 row_mask=inner_online,
             ),
+            "inner_dev_online_by_group": {
+                str(group_id): outcome_scorer_diagnostics(
+                    scorer,
+                    held_out,
+                    teachers["validation"],
+                    row_mask=(
+                        inner_online
+                        & (np.asarray(inner_dev_np["group"]) == group_id)
+                    ),
+                )
+                for group_id in inner_groups
+            },
             "training_trace": trace,
             "wall_seconds": float(time.time() - started),
         }
@@ -210,6 +257,8 @@ def main() -> int:
         "partition": {
             "rule": "sha256(rollout-pair:train:{group_index:06d}) mod 5 == 0",
             "held_out_fraction_nominal": 0.2,
+            "available_train_groups": len(available_groups),
+            "selected_train_groups": len(selected_groups),
             "fitting_group_ids": fitting_groups,
             "inner_dev_group_ids": inner_groups,
             "fitting_learning_rows": int(len(fitting_np["y"])),
@@ -223,9 +272,12 @@ def main() -> int:
         "training_budget": {
             "online_students_trained": False,
             "outcome_scorer_steps": int(args.scorer_steps),
+            "total_train_groups": len(selected_groups),
         },
         "structured_relation_target_oracle": relation_oracle,
+        "structured_relation_target_oracle_by_group": relation_oracle_by_group,
         "structured_relation_target_only": target_only,
+        "structured_relation_target_only_by_group": target_only_by_group,
         "outcome_scorer_diagnostics": scorer_runs,
     }
     args.out_dir.mkdir(parents=True, exist_ok=True)
