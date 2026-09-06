@@ -16,15 +16,32 @@ def canonical_json(value: Any) -> str:
     )
 
 
+_JSON_SCALARS = (type(None), str, int, float, bool)
+
+
 def clone_json(value: Any) -> Any:
-    """Clone a schema-native JSON tree without copy.deepcopy memo state."""
+    """Clone a schema-native JSON tree without copy.deepcopy memo state.
+
+    Dispatching on the exact type avoids an isinstance chain on every one of
+    the millions of scalar leaves a rollout copies.
+    """
+    kind = type(value)
+    if kind is dict:
+        return {key: clone_json(item) for key, item in value.items()}
+    if kind is list:
+        return [clone_json(item) for item in value]
+    if kind in _JSON_SCALARS_SET:
+        return value
     if isinstance(value, dict):
         return {key: clone_json(item) for key, item in value.items()}
     if isinstance(value, list):
         return [clone_json(item) for item in value]
-    if value is None or isinstance(value, (str, int, float, bool)):
+    if value is None or isinstance(value, _JSON_SCALARS):
         return value
     raise TypeError(f"CPMT schema value is not JSON-native: {type(value).__name__}")
+
+
+_JSON_SCALARS_SET = frozenset(_JSON_SCALARS)
 
 
 def compute_graph_hash(graph: dict[str, Any]) -> str:

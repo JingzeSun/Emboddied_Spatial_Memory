@@ -44,6 +44,8 @@ src/
 
 `m1_trainability.py` 解决“低准确率到底是网络根本学不会，还是数据/训练不足”的问题：输入是 paired arrays、全标签容量设置或不同 paired-group/更新步数组合，输出是可观测准确率上限、按 family 的 candidate coverage、teacher error、student-to-teacher amortization error 和 causal graph 指标。例如 exact ambiguous pair 的两个样本 online vector 相同而答案相反，所以确定性学生的总体上限是 97.5%、歧义点上限是 50%。K=16 的非正式开发阶梯已经重跑，结果只在 `EXECUTE.md`；旧 candidate=3 数值仍不得和它混报。它不是调正式 test、不是修改冻结 gate，也不把容量通过写成 CTL 已胜出。
 
+性能说明：`hashing.clone_json` 按精确类型分派而非 isinstance 链，`executor.validate_graph` 以一次索引取代按 id 重复扫描的 O(n²) 检查，`m1_data._state_tokens` 对未变化的 node/edge 视图缓存其规范序列化。三者都保持输出逐字节不变（已用 paired rollout 的 SHA-256 对照验证），合计约 1.27× 加速；生成阶段的并行见 `scripts/generate_m1_parallel.py`。
+
 `m1_metrics.py` 解决“图错误和统计比较不能只剩一个 accuracy”的问题：输入是预测/参考/base graphs 或真实连续的状态序列，输出分别为 post-graph correctness、错误开放事实、缺失事实、false birth、collateral、invalid，以及保持 paired group 的分层 bootstrap CI。例如预测多建一个带错误位置边的对象，会同时记一个 false birth 和一个 contamination，不能互相抵消。rollout 接口要求恰好 20 个有顺序的状态，拒绝把 20 个独立样本冒充 self-rollout；`m1_af_rollout.py` 已在非正式 smoke 中用该接口评估 A–F，但正式 paired bootstrap/gate 仍未运行。
 
 当前 executor 实现 C00–C11 所需的 NOOP、BIND、BIRTH、REACTIVATE、RELINK、RETRACT、SPLIT、MERGE 和 COMPOSITE:REPLACE。pending manager 实现 D-023 的低置信度 gate、低权重证据、有效观察机会、可检索归档、重新激活与带 provenance 的消费。它仍是确定性支持机制，不是 CTL 模型。

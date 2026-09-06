@@ -136,6 +136,29 @@ def _materialize_archetype(
     }
 
 
+_TOKEN_CACHE: dict[tuple[Any, ...], str] = {}
+
+
+def _cached_token(prefix: str, view: dict[str, Any]) -> str:
+    """Serialise one node or edge view, reusing the result for repeat views.
+
+    A rollout projects the same unchanged nodes over and over across candidates
+    and future steps, and json.dumps dominates that work.  The key is the view's
+    own values, so the output is byte-identical to serialising every time.
+    """
+    key = (prefix,) + tuple(
+        tuple(value) if isinstance(value, list) else value
+        for value in view.values()
+    )
+    token = _TOKEN_CACHE.get(key)
+    if token is None:
+        if len(_TOKEN_CACHE) > 200_000:
+            _TOKEN_CACHE.clear()
+        token = prefix + canonical_json(view)
+        _TOKEN_CACHE[key] = token
+    return token
+
+
 def _state_tokens(graph: Mapping[str, Any]) -> set[str]:
     """Decision-relevant structural tokens for controlled future scoring."""
     tokens: set[str] = set()
@@ -148,7 +171,7 @@ def _state_tokens(graph: Mapping[str, Any]) -> set[str]:
                 "evidence_refs", "latent_refs",
             )
         }
-        tokens.add("node:" + canonical_json(view))
+        tokens.add(_cached_token("node:", view))
     for edge in graph["edges"]:
         view = {
             key: edge.get(key)
@@ -157,7 +180,7 @@ def _state_tokens(graph: Mapping[str, Any]) -> set[str]:
                 "frame", "valid_from", "valid_to", "evidence_refs",
             )
         }
-        tokens.add("edge:" + canonical_json(view))
+        tokens.add(_cached_token("edge:", view))
     return tokens
 
 

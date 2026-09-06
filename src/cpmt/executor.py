@@ -182,8 +182,16 @@ def validate_graph(
                 "alias node must name a canonical_id"
             )
 
-    for node_id in {node["node_id"] for node in graph["nodes"]}:
-        if len(_open_nodes(graph, node_id)) > 1:
+    # One pass instead of rescanning every node version per identifier.
+    open_node_counts: dict[str, int] = {}
+    open_node_ids: set[str] = set()
+    for node in graph["nodes"]:
+        if node.get("valid_to") is None:
+            identity = node["node_id"]
+            open_node_counts[identity] = open_node_counts.get(identity, 0) + 1
+            open_node_ids.add(identity)
+    for node_id, count in open_node_counts.items():
+        if count > 1:
             raise InvariantViolation(
                 f"node {node_id!r} has multiple open versions"
             )
@@ -206,11 +214,18 @@ def validate_graph(
                 "every edge version needs provenance"
             )
         if valid_to is None:
-            _open_node(graph, edge["source"])
-            _open_node(graph, edge["target"])
+            for endpoint in (edge["source"], edge["target"]):
+                if endpoint not in open_node_ids:
+                    # Reproduce the original error from the scanning helper.
+                    _open_node(graph, endpoint)
 
-    for edge_id in {edge["edge_id"] for edge in graph["edges"]}:
-        if len(_open_edges(graph, edge_id)) > 1:
+    open_edge_counts: dict[str, int] = {}
+    for edge in graph["edges"]:
+        if edge.get("valid_to") is None:
+            identity = edge["edge_id"]
+            open_edge_counts[identity] = open_edge_counts.get(identity, 0) + 1
+    for edge_id, count in open_edge_counts.items():
+        if count > 1:
             raise InvariantViolation(
                 f"edge {edge_id!r} has multiple open versions"
             )
