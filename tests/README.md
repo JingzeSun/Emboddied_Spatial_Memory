@@ -78,6 +78,8 @@ test_m1_trainability.py 检查诊断配置不能打开 test/冒充 formal、数�
 
 fixture/unit test 通过只证明合同实现，不证明 CTL 有效。
 
+M1-v2 新增反例覆盖：E 的 scorer penalty 不得含 executor 产生的百万非法惩罚；paired sibling 必须沿各自真实 primary/contrast future 前进；错误 RELINK 的下一次相关可见观察必须出现唯一可执行补偿；active world 恢复后 history 仍保持不一致；commit 网格必须含 K=16 未校准 softmax 可达到的阈值，且 report groups 不参与选择；observable oracle 对不可辨 sibling 必须共用同一决策。输入是小型受控 graph/arrays，输出是通过或明确失败；这些反例不是模型效果、恢复率或正式统计结论。
+
 运行：
 
 ```powershell

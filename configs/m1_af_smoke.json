@@ -1,5 +1,5 @@
 {
-  "protocol": "m1-af-causal-rollout-smoke-v1",
+  "protocol": "m1-af-causal-rollout-smoke-v2",
   "stage": "M1-development",
   "formal_run": false,
   "test_access": false,

@@ -29,7 +29,7 @@ def _require(condition: bool, message: str) -> None:
 
 def validate_m1_protocol(config: Mapping[str, Any]) -> None:
     """Reject incomplete, leaky, or silently weakened M1 protocol settings."""
-    _require(config.get("protocol") == "m1-hard-condition-v1", "wrong protocol")
+    _require(config.get("protocol") == "m1-hard-condition-v2", "wrong protocol")
     _require(config.get("stage") == "M1", "stage must be M1")
     _require(config.get("status") in {"pretest_lock_candidate", "frozen_pretest"},
              "protocol must be a pre-test candidate or frozen pre-test contract")
@@ -62,6 +62,16 @@ def validate_m1_protocol(config: Mapping[str, Any]) -> None:
     _require(future["source"] == "actual_executed_trajectory",
              "future poses must come from the executed trajectory")
     _require(future["primary_horizon"] > 0, "future horizon must be positive")
+    _require(
+        future.get("no_execution_target")
+        == "candidate_scoped_future_relations_v1",
+        "C/E must use the registered structured future-relation target",
+    )
+    _require(
+        future.get("no_execution_candidate_execution")
+        == "forbidden_for_candidate_scoring_and_target_construction;_selected_transaction_uses_shared_executor",
+        "E may not execute non-reference candidates while scoring",
+    )
     forbidden = set(future["online_export_excludes"])
     _require({"future_evidence", "oracle_equivalence", "simulator_hidden_state"}
              <= forbidden, "online export leakage denylist is incomplete")
@@ -91,6 +101,20 @@ def validate_m1_protocol(config: Mapping[str, Any]) -> None:
     _require(0.0 <= float(observation["appearance_noise"]) <= 1.0,
              "appearance noise must be within [0, 1]")
 
+    recovery = config["recovery"]
+    _require(
+        recovery["mode"] == "bounded_online_compensating_transaction_v1",
+        "M1-v2 requires the bounded online recovery path",
+    )
+    _require(recovery["trigger"] == "deterministic_relevant_visible_contradiction",
+             "recovery trigger must remain deterministic and evidence based")
+    _require(int(recovery["lookback_decisions"]) == 3,
+             "M1-v2 recovery lookback must stay fixed at three decisions")
+    _require(recovery["candidate_generator"] == "same_fixed_deterministic_k16",
+             "recovery must not introduce a learned or expanded proposer")
+    _require(recovery["global_async_reconciliation"] == "M2_only",
+             "global reconciliation cannot enter M1")
+
     energy = config["energy"]
     _require(set(energy["terms"]) == ENERGY_TERMS, "all six energy terms are required")
     _require(set(energy["weights"]) == ENERGY_TERMS - {"illegal"},
@@ -108,20 +132,50 @@ def validate_m1_protocol(config: Mapping[str, Any]) -> None:
              "A-E student update budgets must match")
     _require(training["test_selects_nothing"] is True,
              "test cannot select any setting")
+    calibration = training["commit_calibration"]
+    _require(calibration["shared_across_methods"] is True,
+             "A-E must share one calibrated commit rule")
+    _require(calibration["calibration_fraction"] == 0.5,
+             "validation calibration/report split must remain half-and-half")
+    _require(calibration["report_partition_selects_nothing"] is True,
+             "validation report partition cannot tune the commit rule")
+    _require(
+        calibration["partition"]
+        == "sha256_paired_group_id_even_calibration_odd_report",
+        "commit calibration partition rule changed",
+    )
+    for key in ("commit_probability_grid", "margin_threshold_grid"):
+        values = calibration[key]
+        _require(values and len(values) == len(set(values)),
+                 f"{key} must be nonempty and unique")
+    _require(
+        any(float(value) <= 1.0 / float(config["candidates"]["budget_k"])
+            for value in calibration["commit_probability_grid"]),
+        "commit grid must contain a threshold reachable by an uncalibrated "
+        "K-way softmax",
+    )
 
     evaluation = config["evaluation"]
     _require(evaluation["primary_contrasts"] == ["A_vs_C", "A_vs_E"],
              "primary contrasts must be A-C and A-E")
     _require(set(evaluation["primary_metrics"]) == {
-        "post_graph_correctness", "memory_contamination",
+        "active_graph_correctness", "memory_contamination",
         "false_birth_growth", "collateral_violation",
     }, "primary metrics changed")
+    _require(int(evaluation["recovery_window_decisions"])
+             == int(recovery["lookback_decisions"]),
+             "recovery metric window must match the registered lookback")
     _require(evaluation["bootstrap"]["unit"] == "paired_group_id",
              "bootstrap must preserve paired groups")
     _require(evaluation["bootstrap"]["confidence"] == 0.95,
              "confidence level must be 95%")
     _require(evaluation["invariant_violation_gate"] == 0,
              "invariant violations must have zero tolerance")
+    _require(
+        "active_graph_correctness_absolute"
+        in evaluation["meaningful_effect"],
+        "meaningful effect must follow the active-world primary metric",
+    )
     resources = config["resources"]
     # Cloud cost is controlled by the operator, who starts pay-as-you-go
     # instances by hand and schedules their shutdown, so the protocol records

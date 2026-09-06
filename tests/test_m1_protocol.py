@@ -44,6 +44,40 @@ class TestM1Protocol(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "paired groups"):
             validate_m1_protocol(changed)
 
+    def test_e_cannot_execute_candidate_branches(self):
+        changed = deepcopy(self.config)
+        changed["future"]["no_execution_candidate_execution"] = (
+            "allowed_during_training"
+        )
+        with self.assertRaisesRegex(ValueError, "may not execute"):
+            validate_m1_protocol(changed)
+
+    def test_recovery_stays_bounded_and_global_path_stays_in_m2(self):
+        changed = deepcopy(self.config)
+        changed["recovery"]["global_async_reconciliation"] = "M1"
+        with self.assertRaisesRegex(ValueError, "global reconciliation"):
+            validate_m1_protocol(changed)
+        changed = deepcopy(self.config)
+        changed["recovery"]["candidate_generator"] = "learned"
+        with self.assertRaisesRegex(ValueError, "learned or expanded"):
+            validate_m1_protocol(changed)
+
+    def test_commit_report_partition_cannot_tune(self):
+        changed = deepcopy(self.config)
+        changed["training"]["commit_calibration"][
+            "report_partition_selects_nothing"
+        ] = False
+        with self.assertRaisesRegex(ValueError, "cannot tune"):
+            validate_m1_protocol(changed)
+
+    def test_commit_grid_has_a_reachable_k_way_threshold(self):
+        changed = deepcopy(self.config)
+        changed["training"]["commit_calibration"][
+            "commit_probability_grid"
+        ] = [0.45, 0.55]
+        with self.assertRaisesRegex(ValueError, "K-way softmax"):
+            validate_m1_protocol(changed)
+
 
 if __name__ == "__main__":
     unittest.main()

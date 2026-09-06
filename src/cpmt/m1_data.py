@@ -199,6 +199,56 @@ def project_structural_observation(
     )
 
 
+def _active_state_tokens(
+    graph: Mapping[str, Any], *, include_evidence: bool,
+) -> set[str]:
+    """Current open-memory tokens, excluding closed version history."""
+    tokens: set[str] = set()
+    for node in graph["nodes"]:
+        if node.get("valid_to") is not None:
+            continue
+        keys = [
+            "node_id", "node_type", "lifecycle", "canonical_id", "latent_refs",
+        ]
+        if include_evidence:
+            keys.append("evidence_refs")
+        tokens.add(_cached_token(
+            "active-node:" if not include_evidence else "open-node:",
+            {key: node.get(key) for key in keys},
+        ))
+    for edge in graph["edges"]:
+        if edge.get("valid_to") is not None:
+            continue
+        keys = ["source", "target", "relation", "frame"]
+        if include_evidence:
+            keys.append("evidence_refs")
+        tokens.add(_cached_token(
+            "active-edge:" if not include_evidence else "open-edge:",
+            {key: edge.get(key) for key in keys},
+        ))
+    return tokens
+
+
+def project_active_structural_observation(
+    graph: Mapping[str, Any], pose_bucket: int,
+) -> frozenset[str]:
+    """Project current semantic world facts while ignoring retained history."""
+    return frozenset(
+        hashlib.sha256(f"{pose_bucket}|{token}".encode("utf-8")).hexdigest()
+        for token in _active_state_tokens(graph, include_evidence=False)
+    )
+
+
+def project_open_memory_observation(
+    graph: Mapping[str, Any], pose_bucket: int,
+) -> frozenset[str]:
+    """Project open records and their support, but not closed provenance."""
+    return frozenset(
+        hashlib.sha256(f"{pose_bucket}|{token}".encode("utf-8")).hexdigest()
+        for token in _active_state_tokens(graph, include_evidence=True)
+    )
+
+
 def _execute_candidates(materialized: Mapping[str, Any]) -> list[dict[str, Any]]:
     base = materialized["world"]
     before = canonical_json(base)

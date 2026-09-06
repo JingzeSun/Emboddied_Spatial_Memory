@@ -54,6 +54,14 @@ OP_TYPES = (
     "CLOSE_EDGE_VERSION", "SET_LIFECYCLE", "RECORD_PROVENANCE",
 )
 QUERY_KINDS = ("node_query", "edge_query", "place_query")
+FUTURE_RELATION_QUERIES = (
+    "added_edge_holds",
+    "closed_edge_absent",
+    "affected_node_active",
+    "requested_lifecycle_holds",
+    "candidate_evidence_associated",
+    "no_revision_needed_now",
+)
 MATCH_KEYS = (
     "best", "second", "margin", "best_dormant",
     "place_has_recorded_entity", "best_match_recorded_here",
@@ -80,7 +88,7 @@ def resolve_af_smoke_config(
     validate_m1_protocol(hard_config)
     config = deepcopy(dict(smoke_config))
     if (
-        config.get("protocol") != "m1-af-causal-rollout-smoke-v1"
+        config.get("protocol") != "m1-af-causal-rollout-smoke-v2"
         or config.get("stage") != "M1-development"
         or config.get("formal_run") is not False
         or config.get("test_access") is not False
@@ -119,6 +127,12 @@ def _one_hot(value: str, values: Sequence[str]) -> list[float]:
 
 def _stable_bin(value: str, bins: int) -> int:
     return int(hashlib.sha256(value.encode("utf-8")).hexdigest()[:16], 16) % bins
+
+
+def paired_group_is_calibration(paired_group_id: str) -> bool:
+    """Deterministically keep both siblings in one validation half."""
+    digest = hashlib.sha256(str(paired_group_id).encode("utf-8")).digest()
+    return int.from_bytes(digest[:8], "big") % 2 == 0
 
 
 def _argument_features(
@@ -281,6 +295,137 @@ def future_feature_vector(
     return np.concatenate([values.reshape(-1), mask])
 
 
+def candidate_future_relation_targets(
+    program: Mapping[str, Any], base: Mapping[str, Any],
+    future_states: Sequence[Mapping[str, Any]], *, horizon: int,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Build candidate-scoped relation queries from actual future worlds.
+
+    Each query asks whether a concrete effect named by the transaction program
+    is true later (for example, whether its proposed ``located_at`` edge holds).
+    The target is read from the real reference trajectory, not from executing
+    this candidate.  The desired vector says which queried effects the
+    candidate claims should hold.  This is the structured no-execution target
+    used by C and E; it is not a transaction label or a post-world embedding.
+    """
+    width = len(FUTURE_RELATION_QUERIES)
+    targets = np.zeros((horizon, width), dtype=np.float32)
+    masks = np.zeros((horizon, width), dtype=np.float32)
+    desired = np.zeros((horizon, width), dtype=np.float32)
+    operations = list(program["operations"])
+    added_edges = [
+        operation["arguments"]["edge"] for operation in operations
+        if operation["op_type"] == "ADD_EDGE"
+    ]
+    closed_edges = []
+    for operation in operations:
+        if operation["op_type"] != "CLOSE_EDGE_VERSION":
+            continue
+        edge_id = str(operation["arguments"]["edge_id"])
+        match = next((
+            edge for edge in base["edges"]
+            if str(edge["edge_id"]) == edge_id and edge.get("valid_to") is None
+        ), None)
+        if match is not None:
+            closed_edges.append(match)
+    affected_nodes = [
+        operation["arguments"]["node"] for operation in operations
+        if operation["op_type"] in {"CREATE_NODE", "OPEN_NODE_VERSION"}
+    ]
+    requested_lifecycles: list[tuple[str, str]] = []
+    for operation in operations:
+        if operation["op_type"] == "SET_LIFECYCLE":
+            requested_lifecycles.append((
+                str(operation["arguments"]["node_id"]),
+                str(operation["arguments"]["to"]),
+            ))
+        elif operation["op_type"] in {"CREATE_NODE", "OPEN_NODE_VERSION"}:
+            node = operation["arguments"]["node"]
+            requested_lifecycles.append((
+                str(node["node_id"]), str(node["lifecycle"]),
+            ))
+    evidence_queries: list[tuple[str, str | None, str | None, str]] = []
+    for operation in operations:
+        if operation["op_type"] != "ATTACH_EVIDENCE":
+            continue
+        arguments = operation["arguments"]
+        evidence_queries.append((
+            str(arguments["target_kind"]),
+            str(arguments["target_id"]) if "target_id" in arguments else None,
+            str(arguments.get("node_version_id") or arguments.get("edge_version_id"))
+            if (arguments.get("node_version_id") or arguments.get("edge_version_id"))
+            else None,
+            str(arguments["evidence_ref"]),
+        ))
+
+    def open_edges(graph: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+        return [edge for edge in graph["edges"] if edge.get("valid_to") is None]
+
+    def edge_holds(graph: Mapping[str, Any], query: Mapping[str, Any]) -> bool:
+        return any(
+            all(edge.get(key) == query.get(key) for key in (
+                "source", "target", "relation", "frame",
+            ))
+            for edge in open_edges(graph)
+        )
+
+    def evidence_holds(
+        graph: Mapping[str, Any], query: tuple[str, str | None, str | None, str],
+    ) -> bool:
+        kind, stable_id, version_id, evidence_ref = query
+        records = graph["nodes"] if kind == "node" else graph["edges"]
+        id_key = "node_id" if kind == "node" else "edge_id"
+        version_key = "node_version_id" if kind == "node" else "edge_version_id"
+        return any(
+            (stable_id is None or str(record[id_key]) == stable_id)
+            and (version_id is None or str(record[version_key]) == version_id)
+            and evidence_ref in record.get("evidence_refs", [])
+            for record in records
+        )
+
+    for time_index, graph in enumerate(future_states[:horizon]):
+        if added_edges:
+            masks[time_index, 0] = desired[time_index, 0] = 1.0
+            targets[time_index, 0] = float(all(
+                edge_holds(graph, edge) for edge in added_edges
+            ))
+        if closed_edges:
+            masks[time_index, 1] = desired[time_index, 1] = 1.0
+            targets[time_index, 1] = float(all(
+                not edge_holds(graph, edge) for edge in closed_edges
+            ))
+        if affected_nodes:
+            masks[time_index, 2] = desired[time_index, 2] = 1.0
+            targets[time_index, 2] = float(all(any(
+                str(node["node_id"]) == str(query["node_id"])
+                and node.get("valid_to") is None
+                for node in graph["nodes"]
+            ) for query in affected_nodes))
+        if requested_lifecycles:
+            masks[time_index, 3] = desired[time_index, 3] = 1.0
+            targets[time_index, 3] = float(all(any(
+                str(node["node_id"]) == node_id
+                and node.get("valid_to") is None
+                and str(node["lifecycle"]) == lifecycle
+                for node in graph["nodes"]
+            ) for node_id, lifecycle in requested_lifecycles))
+        if evidence_queries:
+            masks[time_index, 4] = desired[time_index, 4] = 1.0
+            targets[time_index, 4] = float(all(
+                evidence_holds(graph, query) for query in evidence_queries
+            ))
+    if _program_label(program) == "NOOP" and future_states:
+        masks[0, 5] = desired[0, 5] = 1.0
+        targets[0, 5] = graph_error_counts(
+            base, future_states[0], base, [],
+        )["open_memory_correct"]
+    if not masks.any():
+        raise ValueError(
+            f"candidate {_program_label(program)!r} produced no future relation query"
+        )
+    return targets.reshape(-1), masks.reshape(-1), desired.reshape(-1)
+
+
 def _posterior_from_current_energy(
     step: Mapping[str, Any], weights: Mapping[str, float], temperature: float,
 ) -> np.ndarray:
@@ -320,6 +465,7 @@ def build_rollout_learning_arrays(
         "learning_cases": len(arrays["y"]),
         "online_feature_dim": int(arrays["x"].shape[1]),
         "future_target_dim": int(arrays["future"].shape[1]),
+        "future_relation_target_dim": int(arrays["relation_targets"].shape[2]),
         "labelled_fraction": float(arrays["labelled"].mean()),
         "ambiguous_decision_fraction": float(arrays["ambiguous"].mean()),
     })
@@ -344,7 +490,11 @@ def rollout_learning_arrays_from_audits(
     horizon = int(hard_config["future"]["primary_horizon"])
     representation = str(hard_config["future"]["target_representation"])
     for audit in audits:
-        for step in audit["steps"]:
+        learning_steps = list(enumerate(audit["steps"])) + [
+            (int(step["source_step_index"]), step)
+            for step in audit.get("recovery_examples", [])
+        ]
+        for step_index, step in learning_steps:
             candidate_metrics = []
             base = step["online"]["prior_world"]
             reference = step["executed_candidates"][
@@ -356,6 +506,7 @@ def rollout_learning_arrays_from_audits(
                 candidate_metrics.append(
                     graph_error_counts(predicted, reference, base, protected)
                 )
+            base_metrics = graph_error_counts(base, reference, base, protected)
             penalties = []
             for energy in step["candidate_energies"]:
                 if energy["masked"]:
@@ -365,6 +516,36 @@ def rollout_learning_arrays_from_audits(
                         float(weights[key]) * float(energy[key])
                         for key in ("now", "edit", "growth", "collateral")
                     ))
+            no_execution_penalties = []
+            for program in step["online"]["candidate_programs"]:
+                operation_text = str(program["operations"])
+                protected_touch = float(any(
+                    str(protected_id) in operation_text
+                    for protected_id in program.get("protected_ids", [])
+                ))
+                no_execution_penalties.append(
+                    float(weights["now"])
+                    * (0.0 if program.get("evidence_refs") else 1.0)
+                    + float(weights["edit"])
+                    * float(program.get("declared_edit_cost", 0.0))
+                    + float(weights["growth"])
+                    * float(program.get("declared_growth_cost", 0.0))
+                    + float(weights["collateral"]) * protected_touch
+                )
+            future_states = [
+                audit["steps"][target_index]["executed_candidates"][
+                    audit["steps"][target_index]["reference_program_index"]
+                ]["post_graph"]
+                for target_index in range(
+                    step_index, min(len(audit["steps"]), step_index + horizon)
+                )
+            ]
+            relation_rows = [
+                candidate_future_relation_targets(
+                    program, base, future_states, horizon=horizon,
+                )
+                for program in step["online"]["candidate_programs"]
+            ]
             rows.append({
                 "x": online_feature_vector(step["online"]),
                 "future": future_feature_vector(
@@ -374,6 +555,15 @@ def rollout_learning_arrays_from_audits(
                 "poses": np.asarray([
                     item["pose_bucket"] / 7.0 for item in step["future_trace"]
                 ] + [0.0] * (horizon - len(step["future_trace"])), dtype=np.float32),
+                "relation_targets": np.asarray([
+                    item[0] for item in relation_rows
+                ], dtype=np.float32),
+                "relation_mask": np.asarray([
+                    item[1] for item in relation_rows
+                ], dtype=np.float32),
+                "relation_desired": np.asarray([
+                    item[2] for item in relation_rows
+                ], dtype=np.float32),
                 "y": int(step["reference_program_index"]),
                 "pstar": np.asarray(step["teacher_posterior"], dtype=np.float32),
                 "pstar_current": _posterior_from_current_energy(
@@ -381,15 +571,36 @@ def rollout_learning_arrays_from_audits(
                 ),
                 "labelled": bool(step["transaction_label_available"]),
                 "ambiguous": step["ambiguity"] == "epistemically_ambiguous_pivot",
+                "recovery": step["ambiguity"] == "counterfactual_recovery_training",
                 "group": group_ids[audit["paired_group_id"]],
+                "calibration": paired_group_is_calibration(
+                    str(audit["paired_group_id"])
+                ),
+                "candidate_legal": np.asarray([
+                    candidate["legal"] for candidate in step["executed_candidates"]
+                ], dtype=bool),
+                "active_correct": np.asarray([
+                    item["active_graph_correct"] for item in candidate_metrics
+                ], dtype=np.float32),
+                "base_active_correct": float(
+                    base_metrics["active_graph_correct"]
+                ),
                 "fact_errors": np.asarray([
                     item["memory_contamination"] + item["missing_open_facts"]
                     for item in candidate_metrics
                 ], dtype=np.float32),
+                "base_fact_errors": float(
+                    base_metrics["memory_contamination"]
+                    + base_metrics["missing_open_facts"]
+                ),
                 "excess_nodes": np.asarray([
                     item["false_birth_growth"] for item in candidate_metrics
                 ], dtype=np.float32),
+                "base_excess_nodes": float(base_metrics["false_birth_growth"]),
                 "penalties": np.asarray(penalties, dtype=np.float32),
+                "no_execution_penalties": np.asarray(
+                    no_execution_penalties, dtype=np.float32,
+                ),
                 # Template index per candidate, so selection error can be split
                 # into a template part and an argument part.
                 "candidate_templates": np.asarray([
@@ -417,12 +628,28 @@ def selection_error_decomposition(
     templates = np.asarray(arrays["candidate_templates"])
     target = np.asarray(arrays["y"])
     ambiguous = np.asarray(arrays["ambiguous"], dtype=bool)
+    recovery = np.asarray(
+        arrays.get("recovery", np.zeros(len(target), dtype=bool)), dtype=bool,
+    )
+    online_chain = ~recovery
+    identifiable = ~ambiguous & online_chain
     predicted = np.asarray(probabilities).argmax(axis=1)
     rows = np.arange(len(target))
     predicted_template = templates[rows, predicted]
     target_template = templates[rows, target]
     template_correct = predicted_template == target_template
     correct = predicted == target
+    pair_contains = np.zeros(len(target), dtype=bool)
+    ambiguous_groups = 0
+    for group in np.unique(np.asarray(arrays["group"])[ambiguous]):
+        mask = ambiguous & (np.asarray(arrays["group"]) == group)
+        legal_pair = set(int(value) for value in target[mask])
+        if len(legal_pair) != 2:
+            raise ValueError(
+                "each exact ambiguity group must expose two distinct references"
+            )
+        pair_contains[mask] = np.isin(predicted[mask], list(legal_pair))
+        ambiguous_groups += 1
 
     def mean(values: np.ndarray, mask: np.ndarray | None = None) -> float | None:
         selected = values if mask is None else values[mask]
@@ -430,13 +657,118 @@ def selection_error_decomposition(
 
     return {
         "accuracy": mean(correct),
+        "online_chain_accuracy": mean(correct, online_chain),
         "template_accuracy": mean(template_correct),
         "argument_accuracy_given_template": mean(correct, template_correct),
         "template_error": mean(~template_correct),
         "argument_error_with_correct_template": mean(template_correct & ~correct),
-        "identifiable_accuracy": mean(correct, ~ambiguous),
+        "identifiable_accuracy": mean(correct, identifiable),
         "ambiguous_accuracy": mean(correct, ambiguous),
-        "ambiguous_fraction": mean(ambiguous),
+        "recovery_accuracy": mean(correct, recovery),
+        "ambiguous_pair_containment": mean(pair_contains, ambiguous),
+        "ambiguous_paired_groups": ambiguous_groups,
+        "ambiguous_fraction": mean(ambiguous, online_chain),
+        "recovery_fraction": mean(recovery),
+    }
+
+
+def calibrate_shared_commit_rule(
+    probabilities_by_run: Mapping[str, np.ndarray],
+    arrays: Mapping[str, np.ndarray], hard_config: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Select one A-E commit rule on the sealed validation-calibration half.
+
+    The score is computed on independent one-step post-world outcomes so the
+    grid does not require hundreds of expensive causal replays.  Every model
+    and seed contributes equally, and the report half is never inspected.
+    """
+    if not probabilities_by_run:
+        raise ValueError("commit calibration requires model probabilities")
+    calibration = np.asarray(arrays["calibration"], dtype=bool)
+    if not calibration.any() or calibration.all():
+        raise ValueError("validation must contain both calibration and report groups")
+    candidate_legal = np.asarray(arrays["candidate_legal"], dtype=bool)
+    active_correct = np.asarray(arrays["active_correct"], dtype=np.float64)
+    base_active = np.asarray(arrays["base_active_correct"], dtype=np.float64)
+    fact_errors = np.asarray(arrays["fact_errors"], dtype=np.float64)
+    base_fact = np.asarray(arrays["base_fact_errors"], dtype=np.float64)
+    excess_nodes = np.asarray(arrays["excess_nodes"], dtype=np.float64)
+    base_excess = np.asarray(arrays["base_excess_nodes"], dtype=np.float64)
+    spec = hard_config["training"]["commit_calibration"]
+    trials = []
+    rows = np.arange(len(calibration))
+    for commit_probability in spec["commit_probability_grid"]:
+        for margin_threshold in spec["margin_threshold_grid"]:
+            run_scores = []
+            for run_name, raw_probabilities in sorted(
+                probabilities_by_run.items()
+            ):
+                probabilities = np.asarray(raw_probabilities, dtype=np.float64)
+                if probabilities.shape != candidate_legal.shape:
+                    raise ValueError(
+                        f"probability shape mismatch for calibration run {run_name}"
+                    )
+                predicted = probabilities.argmax(axis=1)
+                ordered = np.sort(probabilities, axis=1)
+                top = ordered[:, -1]
+                margin = np.round(top - ordered[:, -2], 12)
+                requested = (
+                    (top >= float(commit_probability))
+                    & (margin >= float(margin_threshold))
+                )
+                committed = requested & candidate_legal[rows, predicted]
+                selected_active = active_correct[rows, predicted]
+                selected_fact = fact_errors[rows, predicted]
+                selected_excess = excess_nodes[rows, predicted]
+                mask = calibration
+                run_scores.append({
+                    "active_correctness": float(np.mean(np.where(
+                        committed[mask], selected_active[mask], base_active[mask],
+                    ))),
+                    "fact_error": float(np.mean(np.where(
+                        committed[mask], selected_fact[mask], base_fact[mask],
+                    ))),
+                    "false_birth": float(np.mean(np.where(
+                        committed[mask], selected_excess[mask], base_excess[mask],
+                    ))),
+                    "commit_rate": float(np.mean(committed[mask])),
+                })
+            aggregate = {
+                key: float(np.mean([score[key] for score in run_scores]))
+                for key in run_scores[0]
+            }
+            trials.append({
+                "commit_probability": float(commit_probability),
+                "margin_threshold": float(margin_threshold),
+                **aggregate,
+            })
+    winner = max(
+        trials,
+        key=lambda item: (
+            item["active_correctness"],
+            -item["fact_error"],
+            -item["false_birth"],
+            item["commit_rate"],
+            -item["commit_probability"],
+            -item["margin_threshold"],
+        ),
+    )
+    return {
+        "partition_rule": spec["partition"],
+        "calibration_rows": int(calibration.sum()),
+        "report_rows": int((~calibration).sum()),
+        "runs": len(probabilities_by_run),
+        "selection": spec["selection"],
+        "selected": {
+            "commit_probability": winner["commit_probability"],
+            "margin_threshold": winner["margin_threshold"],
+        },
+        "selected_calibration_metrics": {
+            key: winner[key] for key in (
+                "active_correctness", "fact_error", "false_birth", "commit_rate",
+            )
+        },
+        "trials": trials,
     }
 
 
@@ -461,11 +793,31 @@ def _teacher_forced_metrics(
 def causal_rollout_metrics(
     model: OnlineModel | None, audits: Sequence[Mapping[str, Any]],
     smoke_config: Mapping[str, Any], *, oracle: bool = False,
+    observable_oracle: bool = False,
 ) -> tuple[dict[str, float], list[dict[str, Any]]]:
     """Evaluate a method causally on its own persistent predicted graph."""
+    if oracle and observable_oracle:
+        raise ValueError("full and observable oracle modes are mutually exclusive")
     device = torch.device(smoke_config["device"])
     sequence_rows = []
     forward_latencies_ms = []
+    ambiguity_choice_by_group: dict[str, int] = {}
+    if observable_oracle:
+        references_by_group: dict[str, set[int]] = {}
+        for audit in audits:
+            pivot = int(audit["ambiguity_pivot_step"])
+            references_by_group.setdefault(
+                str(audit["paired_group_id"]), set(),
+            ).add(int(audit["steps"][pivot]["reference_program_index"]))
+        for group, references in references_by_group.items():
+            if len(references) != 2:
+                raise ValueError(
+                    "observable oracle requires exact paired ambiguity references"
+                )
+            # Both indistinguishable siblings receive the same deterministic
+            # choice.  Independent coin flips could get both siblings right
+            # and would exceed the deployable information ceiling.
+            ambiguity_choice_by_group[group] = min(references)
     for audit in audits:
         current = clone_json(audit["initial_world"])
         predicted_states = []
@@ -475,8 +827,40 @@ def causal_rollout_metrics(
         protected = []
         for step_index, stored in enumerate(audit["steps"]):
             materialized = materialize_rollout_step(audit, current, step_index)
-            if oracle:
-                selected_index = int(stored["reference_program_index"])
+            reference_state = stored["executed_candidates"][
+                stored["reference_program_index"]
+            ]["post_graph"]
+            ambiguous = (
+                stored["ambiguity"] == "epistemically_ambiguous_pivot"
+            )
+            if oracle or observable_oracle:
+                if observable_oracle and ambiguous:
+                    selected_index = ambiguity_choice_by_group[
+                        str(audit["paired_group_id"])
+                    ]
+                elif observable_oracle:
+                    scored = []
+                    for candidate in materialized["executed_candidates"]:
+                        predicted = (
+                            candidate["post_graph"]
+                            if candidate["legal"] else current
+                        )
+                        errors = graph_error_counts(
+                            predicted, reference_state, current,
+                            [stored["event_spec"]["protected_id"]],
+                        )
+                        scored.append((
+                            -errors["active_graph_correct"],
+                            -errors["open_memory_correct"],
+                            errors["memory_contamination"]
+                            + errors["missing_open_facts"],
+                            errors["false_birth_growth"],
+                            not candidate["legal"],
+                            int(candidate["candidate_index"]),
+                        ))
+                    selected_index = int(min(scored)[-1])
+                else:
+                    selected_index = int(stored["reference_program_index"])
                 probabilities = np.eye(
                     len(materialized["executed_candidates"]), dtype=np.float32,
                 )[selected_index]
@@ -502,17 +886,43 @@ def causal_rollout_metrics(
             current = selected["post_graph"] if committed else clone_json(base)
             predicted_states.append(current)
             base_states.append(base)
-            reference = stored["executed_candidates"][
-                stored["reference_program_index"]
-            ]["post_graph"]
+            reference = reference_state
             references.append(reference)
             protected.append([stored["event_spec"]["protected_id"]])
+            match = materialized["online"]["current_regions"][0][
+                "appearance_match"
+            ]
+            revisit_opportunity = (
+                "delayed_contradiction_revisit"
+                in materialized["online"]["action_history"]
+            )
+            revisit_triggered = bool(
+                revisit_opportunity
+                and match["best_match_recorded_elsewhere"] > 0.5
+                and materialized["online"]["current_regions"][0]["reliability"]
+                > 0.0
+            )
+            active_correct_after = graph_error_counts(
+                current, reference, base,
+                [stored["event_spec"]["protected_id"]],
+            )["active_graph_correct"]
+            registered_correct = (
+                selected_index == int(stored["reference_program_index"])
+            )
             choices.append({
                 "step_index": step_index,
+                "scenario_family": stored["scenario_family"],
+                "ambiguity": stored["ambiguity"],
+                "reference_index": int(stored["reference_program_index"]),
                 "selected_index": selected_index,
                 "selected_template": selected["template"],
                 "selected_legal": selected["legal"],
                 "committed": committed,
+                "registered_selection_correct": registered_correct,
+                "committed_registered_correct": committed and registered_correct,
+                "revisit_opportunity": revisit_opportunity,
+                "revisit_triggered": revisit_triggered,
+                "active_correct_after": active_correct_after,
                 "probabilities": probabilities.tolist(),
                 "base_graph_hash": base["graph_hash"],
                 "post_graph_hash": current["graph_hash"],
@@ -528,19 +938,105 @@ def causal_rollout_metrics(
             "raw_invalid_selection_rate": float(np.mean([
                 not item["selected_legal"] for item in choices
             ])),
+            "registered_selection_accuracy": float(np.mean([
+                item["registered_selection_correct"] for item in choices
+            ])),
+            "committed_registered_accuracy": (
+                float(np.mean([
+                    item["registered_selection_correct"]
+                    for item in choices if item["committed"]
+                ])) if any(item["committed"] for item in choices) else 0.0
+            ),
+            "ambiguity_commit_rate": float(np.mean([
+                item["committed"] for item in choices
+                if item["ambiguity"] == "epistemically_ambiguous_pivot"
+            ])),
+            "identifiable_commit_rate": float(np.mean([
+                item["committed"] for item in choices
+                if item["ambiguity"] != "epistemically_ambiguous_pivot"
+            ])),
+            "first_registered_selection_error_step": float(next(
+                (
+                    item["step_index"] for item in choices
+                    if not item["registered_selection_correct"]
+                ),
+                -1,
+            )),
+            "triggered_revisit_count": float(sum(
+                item["revisit_triggered"] for item in choices
+            )),
+            "triggered_revisit_commit_rate": (
+                float(np.mean([
+                    item["committed"] for item in choices
+                    if item["revisit_triggered"]
+                ])) if any(item["revisit_triggered"] for item in choices)
+                else 0.0
+            ),
+            "triggered_revisit_active_resolution_rate": (
+                float(np.mean([
+                    item["active_correct_after"] for item in choices
+                    if item["revisit_triggered"]
+                ])) if any(item["revisit_triggered"] for item in choices)
+                else 0.0
+            ),
         })
         sequence_rows.append({"metrics": metrics, "choices": choices})
     metric_names = (
+        "mean_active_graph_correctness", "final_active_graph_correctness",
+        "mean_open_memory_correctness", "final_open_memory_correctness",
+        "mean_history_exactness", "final_history_exactness",
         "mean_post_graph_correctness", "final_post_graph_correctness",
         "memory_contamination_per_100", "missing_open_facts_per_100",
         "false_birth_growth_per_100", "collateral_violation_per_100",
-        "commit_rate", "raw_invalid_selection_rate",
+        "mean_memory_contamination",
+        "memory_contamination_auc_per_100_decisions",
+        "unresolved_active_error", "commit_rate", "raw_invalid_selection_rate",
+        "registered_selection_accuracy", "committed_registered_accuracy",
+        "ambiguity_commit_rate", "identifiable_commit_rate",
+        "triggered_revisit_count", "triggered_revisit_commit_rate",
+        "triggered_revisit_active_resolution_rate",
     )
     aggregate = {
         name: float(np.mean([row["metrics"][name] for row in sequence_rows]))
         for name in metric_names
     }
     aggregate["sequences"] = float(len(sequence_rows))
+    aggregate["commit_probability"] = float(smoke_config["commit_probability"])
+    aggregate["margin_threshold"] = float(smoke_config["margin_threshold"])
+    eligible = [
+        row["metrics"] for row in sequence_rows
+        if row["metrics"]["recovery_eligible"] > 0.0
+    ]
+    aggregate["recovery_eligible_sequences"] = float(len(eligible))
+    aggregate["recovery_rate_within_window"] = (
+        float(np.mean([row["recovered_within_window"] for row in eligible]))
+        if eligible else 0.0
+    )
+    triggered_choices = [
+        choice
+        for row in sequence_rows
+        for choice in row["choices"]
+        if choice["revisit_triggered"]
+    ]
+    # These are conditional rates. Sequences with no relevant contradiction
+    # are not failed recovery attempts and therefore cannot dilute them.
+    aggregate["triggered_revisit_count"] = float(len(triggered_choices))
+    aggregate["triggered_revisit_commit_rate"] = (
+        float(np.mean([choice["committed"] for choice in triggered_choices]))
+        if triggered_choices else 0.0
+    )
+    aggregate["triggered_revisit_active_resolution_rate"] = (
+        float(np.mean([
+            choice["active_correct_after"] for choice in triggered_choices
+        ])) if triggered_choices else 0.0
+    )
+    recovered = [
+        row["time_to_first_recovery"] for row in eligible
+        if row["time_to_first_recovery"] >= 0.0
+    ]
+    aggregate["mean_time_to_first_recovery"] = (
+        float(np.mean(recovered)) if recovered else -1.0
+    )
     aggregate["p95_forward_latency_ms"] = (
         float(np.quantile(forward_latencies_ms, 0.95))
         if forward_latencies_ms else 0.0

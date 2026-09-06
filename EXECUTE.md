@@ -4,21 +4,21 @@
 
 ## 当前看板
 
-> **2026-09-06 更新（LOG-014）：** 固定 K=16 的 train/validation 开发阶梯已完成：400 个 train、160 个 validation 决策，未生成或读取 test。全标签 direct capacity 在可观察上限 97.5%（可辨识部分 100%）达到 97.5%，但 10% 标签下的 A=`CPMT-CTL Core` 在四个受控点只有 6.25%–9.38% teacher-forced accuracy、所有点 20-step final post-graph correctness 均为 0%。A 的 executed-hindsight teacher error 为 0，amortization error 为 90.63%–93.75%，所以目前失败点在“学生从在线输入摊销教师后验”，不是 candidate miss 或教师执行。A–E 的同参数量比较也尚未显示 CTL 优势；F=100% 只是将正确候选程序直接交给执行器的 oracle 上界。该 run 是一次非正式、单 seed、小规模开发诊断，不是 M1 gate，不能扩展到 M2、PNO 或 test。
+> **2026-09-06 更新（LOG-019）：** D-034 已把活动协议升级为尚未重新冻结的 M1-v2：修正 paired sibling 的 future policy，加入可观测信息上限、一步后可见证据触发的局部补偿事务、active/open-memory/history 分层指标、validation calibration/report 隔离、E 的全 K=16 候选结构化关系监督，以及生成/训练/导出三阶段 provenance。2 train groups、4 validation groups、2 updates 的接线 smoke 中，observable oracle 在 report 半区达到 final active=1.0、mean active=0.975、recovery-within-3=1.0、time-to-recovery=1，而 final history=0.5，说明“当前世界恢复但旧错仍留档”的指标语义和候选路径已闭环；该小跑不能说明任何学习方法有效。test 仍未生成或读取，PNO 与全局 reconciliation 仍在 M2。
 
-最后更新：2026-09-06，LOG-018 正式规模 A–F teacher-forced 预演完成、causal rollout 未跑完；正式 M1 gate 未运行、未生成 test。
+最后更新：2026-09-06，LOG-019 M1-v2 接口与最小 causal smoke 完成；服务器完整验证/训练尚未运行，正式 M1 gate 未运行、未生成 test。
 
 | 项目 | 当前事实 |
 |---|---|
 | 方向 | CPMT 具身空间记忆；CTL 是主学习假设，用户希望面向 ML 研究 |
-| 已完成 | M0 合同；首轮 CTL 开发训练；单房间视觉接口；M1 v1 已冻结；C00–C11 paired generator/图指标；candidate=3 的 paired continuous rollout、A–F causal smoke 与可学习性阶梯；固定 K=16 生成器已把 audit-only reference 与 proposer 输入/排序解耦，并完成 4 个 validation groups、80 decisions 的开发 coverage 审计。历史全套 123 tests 通过；本轮 K=16 相关测试以隔离进程通过，未重跑全套 |
-| 阶段 | M1 frozen-pretest implementation；只开放 train/validation，正式 gate 未运行，不是 M2/Full CPMT |
-| 最近结果 | K=16 validation 开发审计 4 paired groups、80 decisions：coverage=100%、candidate miss=0、C00–C08 各 family=100%，`reference_arguments_independent=true`；这是受控匿名检索接口闭环，`formal_gate_eligible=false`。旧 trainability 中全标签学生达到 paired 可观测上限 97.5%/可辨识 100%，仍非正式优势结论 |
-| 尚缺 | 先审查 K=16 小规模诊断中 A 的高 amortization error，确认在线特征、目标与优化不存在可复现实质缺口；不以扩表征/任务寻找正结果。之后才可能重建 C00–C11 的正式 train/validation、独立视觉 observation、多 seed/trials 与 10,000 次 paired bootstrap；正式 test 仍未生成；PNO 属 M2 |
-| 数据/算力 | trainability 完整 run 仅 CPU，102.054 秒、约 75.0 MB；K=16 的 80-decision coverage audit 为 CPU 2.476 秒。既往 Windows `0xC0000005`、`0x3B` 和 SSD 链路 WHEA 继续作为运行风险如实保留，但不再作为项目开发优先级或普通验证前置条件；失败时保留记录并用独立进程重试。服务器未租、云预算 AUD 0 |
-| 当前决定 | D-031：M1 A=`CPMT-CTL Core`；Full CPMT 只用于 M2 的 PNO＋world graph＋executor＋CTL；协议 hash 已冻结 |
-| 人工待定 | 当前实现无立即阻塞项；正式 test 解封与任何云费用仍需单独事件/授权 |
-| Git 备份 | candidate=3 稳定基线以 `fa9606c` 保留在 `origin/main`；K=16 开发工作单独保存在 `origin/wip/k16-candidate-generator`。outputs、数据、论文、虚拟环境等 ignore 内容不属于 Git 备份 |
+| 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
+| 阶段 | M1-v2 `pretest_lock_candidate`；只开放 train/validation，尚未重新冻结，正式 gate 未运行，不是 M2/Full CPMT |
+| 最近结果 | M1-v2 极小接线 smoke（2 train groups、4 validation groups、1 seed、2 updates）：executed teacher/reference=100%；observable oracle final active=100%、mean active=97.5%、final history=50%、recovery-within-3=100%、平均 1 步恢复、final contamination=0。学习方法因仅 2 updates 均不可解释，不作比较结论 |
+| 尚缺 | 在 AutoDL 的干净提交上跑完整测试与足量 train/validation smoke；确认 E 相对 hashed/world-latent 旧靶的改善、共享 commit rule 的 report-half 结果和 learned recovery；修正/明报仍弱或冗余的 `now`、`collateral`；然后才决定是否重新冻结 M1-v2。test 仍封存，PNO 与 Khronos 式全局慢路径属 M2 |
+| 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
+| 当前决定 | D-034：M1-v1 保留为历史诊断；M1-v2 只加入有界、证据触发的局部补偿，E 不执行候选评分分支；全局 reconciliation、PNO 与 M2 顺序不变 |
+| 人工待定 | 正式 test 解封仍需单独事件；当前先完成服务器 validation，不读取 test |
+| Git 备份 | M1-v2 尚在未提交工作树；提交并推送后才允许服务器以 `git pull` 运行。outputs、数据、论文与虚拟环境等 ignore 内容不属于 Git 备份 |
 
 白话：M1 的考试规则已经冻结。旧容量诊断证明简单 MLP 在给足标签时能拟合可见训练关系；新的 K=16 审计又证明候选接口可在不向生成器传入隐藏事务或目标 ID 的情况下找回受控 reference。后者仍只是 C00–C08、4 个 validation groups 的匿名固定特征检索，不是独立视觉数据、不是正式 coverage gate，也没有比较 CTL 与 MLP，因而不能宣布 CTL 胜出，更不是带 PNO 的 Full CPMT。
 
@@ -35,11 +35,12 @@
 - [x] 为连续序列补 paired latent siblings，并把 A–F 接入非正式 train/validation causal smoke；完成 CPU 资源测量和首轮 leakage audit。
 - [x] 在扩 K=16 前完成全标签容量、4→10 paired groups、60→1000 updates 的可学习性阶梯；分开记录 candidate miss、teacher error 与 amortization error。
 - [x] 实现去重、确定性的 K=16 candidate generator，并完成 reference 参数解耦和 C00–C08 validation 开发 coverage 审计。
-- [ ] 在不进入 M2、不动 test 的前提下，先审查 K=16 小规模诊断中 A 的高 amortization error、确认在线特征/目标/优化是否存在可复现实质缺口；只有重建 M1 的正式 C00–C11 数据与多 seed 方案后，才可能运行正式 A–F、paired bootstrap 并申请 test 解封。
-- [ ] **(1) 强化 E 的 outcome scorer 目标空间。** 当前 future target 是 32 维哈希桶，哈希破坏了度量结构——相近的世界映射到无关的桶，MSE 因此几乎不携带信号。DINO-WM (ICML 2025) 在有几何意义的 latent 空间做 action-conditioned 预测。E 是 `A_vs_E` 的对照方，弱 E 会让该对比被判为稻草人；把 E 做强符合本项目利益。
-- [ ] **(2) 调 commit/quarantine 策略。** `commit_probability=0.45`、`margin_threshold=0.05` 是开发烟测随手填的，从未调过。不确定时隔离而非提交，可能显著改善 20-step final correctness。须对所有方法用同一组参数、在 validation 的调参半区上选择、在报告半区上汇报。对应 watch list 中的 "Move First, Commit Later"，投稿前需复核该 preprint。
+- [ ] 在不进入 M2、不动 test 的前提下，在 AutoDL 的干净提交上完成 M1-v2 全套测试与足量 train/validation 预演；根据 report 半区的 active、contamination、recovery 和 paired CI 决定是否重新冻结，再单独申请 test 解封。
+- [x] **(1) 强化 E 的 outcome scorer 目标空间与监督覆盖。** E 已改为候选作用域的未来关系查询；训练覆盖全部 K=16 候选，目标只读实际 reference future，不执行候选，也不复用 executor 导出的 illegal/collateral。C 使用同一关系目标作 direct auxiliary。当前只验证接线，E 是否真正变强须由服务器足量 run 回答。
+- [x] **(2) 校准 commit/quarantine 策略。** validation paired groups 已按固定 SHA-256 规则分成 calibration/report；预登记网格只在前者选择一组 A–E 共享阈值，后者只汇报。网格包含 K=16 未校准 softmax 可达到的低阈值，避免所有模型因烟测阈值不可达而机械地零提交。
 - [ ] **(3) 如实计算 `now` 与 `collateral` 能量项并报告哪些项真正在变化。** 协议声明 6 项，实际只有 `future`/`edit`/`growth` 变化：`now` 因 `_program_header` 给每个候选都写入 `evidence_refs` 而恒为 0；`collateral`（权重 10.0，全场最大）硬编码为 0，且因 `_check_protected` 把任何触碰受保护 ID 的操作判为非法而与 illegal mask 结构性冗余。须让实现与声明一致，并记录该冗余，避免审稿人误以为有 6 个有效项。
-- [ ] **(4) 引入回溯修正机制（M2+，需先立决策）。** executor 已支持 `CLOSE_NODE_VERSION`、`predecessor_ids`、`valid_to`，但 20-step rollout 一路向前、从不修正早期错误编辑，`final=0.2833` 主要由不可恢复的早期错误主导。Khronos 的 fragment reconciliation 与 HSGM 的 hierarchical revision 是同类机制。这是新方法而非修复，不得在 M1 内悄悄加入。
+- [x] **(4a) M1-v2 有界局部恢复。** 按 D-034，exact ambiguity 后固定安排一次相关可见证据重访；用同一 K=16 proposer 和 versioned executor 产生/提交补偿 RELINK，旧错不回填且 provenance 不删除。可观测 oracle 已证明候选路径能在 1 步内恢复 active world；learned recovery 尚待服务器验证。
+- [ ] **(4b) Khronos 式全局慢路径（M2）。** 全图、跨多对象、异步重访协调会改变系统时序与方法能力，仍不是 M1 的局部补偿修复；只有 M1-v2 hard condition 支持继续后才实现。
 
 具体试点（开发接口已执行，尚非正式实验）：
 
@@ -363,6 +364,18 @@
 - 读数注意：`identifiable_accuracy` 0.9868 高于 0.9750，并不矛盾——0.9750 是**总体**上限（`1−0.5×歧义比例`），identifiable 子集自身上限为 1.0、歧义子集为 0.5。报告时须分层给出，不得用子集准确率对比总体上限。另需注意**所有方法的歧义子集准确率均约 0.27，明显低于构造上限 0.50**，尚未解释。
 - 未完成：**20-step causal self-rollout 未跑完**，用户中止以改用服务器。该指标（`final/mean_post_graph_correctness` 与 contamination/missing/false-birth/collateral 分项）才是协议主指标族，单步准确率不能替代它支持"减少长期 world-graph 污染"的主张。已实现断点续跑：每个 (方法, seed) 结果单独落盘于 `outputs/m1_formal_dryrun/causal/`。
 - 结论/下一步：接口修复后 A 在正式规模仍领先且五 seed 区间不重叠，但**领先幅度远小于开发规模所示**，且尚无 causal rollout 与 paired bootstrap 置信区间，因此不构成任何 M1 结论。下一步在服务器上补跑 causal rollout 与 10,000 次 paired bootstrap；仍不开放 test、不进入 PNO/M2。
+
+<a id="log-019"></a>
+### LOG-019—2026-09-06—M1-v2 局部恢复、结构化 E 与评测语义闭环（非正式）
+
+- 类型/状态：D-034 对应的架构实质变化与 train/validation 接线验证；M1-v2 仍为 `pretest_lock_candidate`，不是正式 gate，`test_access=false`。
+- 目的/白话：旧 final 把“当前世界已经修好但历史留有错误版本”永久算错，也没有给模型一次真正可观察的改错机会；旧 E 又只看过正确候选的 descriptor。新接口让 exact ambiguity 后的下一次相关可见观察可以产生补偿 RELINK，并让 E 对全部 16 个候选回答“该候选声称的未来关系是否成立”。输入仍只有截至当前的 online world/observation/candidate program，输出分别是即时选择、当前 active world、证据支持、完整历史和恢复耗时；它不回填旧分数、不删除 provenance，也不是全图异步优化。
+- 改变/固定：paired future 按每个 sibling 实际 primary/contrast policy 前进；teacher future 用 `10×active semantic + 1×open-memory support`，closed history 只审计；每个 sibling 增加一个错误 pivot 分支上的 recovery 训练例，online causal 链在下一步使用同一固定 K=16 自然提供补偿候选。E 的 relation scorer 读取实际 reference future 为全部 K 构造稠密标签，但不读取候选 post-world、executor legality 或 collateral；C 共用目标作 direct future auxiliary。validation group 固定分 calibration/report，A–E 共用一个阈值；主终态改为 active correctness，history-exact 仅兼容诊断。生成、训练、导出分别记录 HEAD/dirty/diff/source tree、protocol 和数组 digest。
+- 配置/数据/版本：活动配置 `m1-hard-condition-v2`、dataset `m1-paired-latent-worlds-v4-recovery`；本机仅生成 2 train groups（84 行）和 4 validation groups（168 行），seed=7、student/scorer=2 updates，用于接线而非性能。test 未生成/读取。
+- 验证/结果：生成阶段 teacher/reference agreement 为 1.0；最小完整 causal smoke 的 report 半区含 3 paired groups/6 sequences。observable-information oracle 强制两个不可辨 sibling 作同一个 pivot 选择，结果 final active=1.0、mean active=0.975、final history=0.5、final contamination=0、recovery-within-3=1.0、平均 1 步恢复。这证明局部证据、补偿候选与 active/history 指标语义闭环；history=0.5 正是错误版本仍被保留，而不是被“洗白”。F oracle active/history 均为 1.0。仅 2 updates 的 A–E 全部 final active=0，按设计不解释为科学结果。
+- 测试/修复：相关 43-test 运行曾有 1 个旧断言失败；原因是该断言依赖“contrast sibling 被错误地按 primary future 前进”制造的伪 `REFERENCE_PROGRAM_CONSTRUCTION` 失败。改为正确分支 policy 后，测试现在验证真实 causal branch failure 仍统一 `QUARANTINE_KEEP_CURRENT_WORLD`，且伪构造失败不再出现。随后相关 2 tests 与不触发重生成的 18 个协议/指标/provenance tests 通过。用户提示本机 CPU 负载可能导致内存损坏，因此未在本机重跑全套；完整测试和足量训练改到 AutoDL。
+- 失败/局限：`now` 仍弱，`collateral` 仍与 protected/illegal 高度冗余；learned A–E 尚未证明能利用恢复例；validation 小样本的 hash 半区不保证正好 50/50；全局多对象 reconciliation 未实现。当前所有结果均来自 dirty 开发树，不能作为可复现实验数字。
+- 结论/下一步：可观测可达范围不再被 history-exact 错误压成零，E 的 15/16 候选零监督缺口也已从实现上关闭。下一步先提交干净树并推送，由 AutoDL `git pull` 后运行全套测试、足量 train/validation A–F、共享 commit calibration、20-step causal rollout 与 10,000 次 paired bootstrap；通过后才考虑重新冻结 M1-v2。仍不开放 test、不进入 PNO/M2。
 
 ## 后续条目模板
 

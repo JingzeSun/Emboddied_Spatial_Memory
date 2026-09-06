@@ -227,7 +227,7 @@ D-025 将 graph-equivalence 收紧为“同一时刻的规范化记忆状态相�
 
 - CPMT-CTL Core：M1 在固定解析表征上执行候选世界，再用未来评分；
 - direct classifier + future loss：直接预测事务，future 只是辅助 loss；
-- future scorer without execution：看未来，但不真正修改和比较世界。
+- future scorer without execution：训练时从实际后来轨迹学习“每个候选所声明的关系将来是否成立”，在线时只用当前信息给候选排序；构造目标和评分都不展开候选 post-world。最终选中的一个事务仍经共享 executor 落地。它不是在线偷看未来，也不是先执行 16 个候选再隐藏结果。
 
 白话说，这个实验要排除“只是多加一个 future loss”和“只是在候选上打分”两种解释。CPMT-CTL Core 如果不能优于它们，就停止主创新 claim，不继续用 PNO 扩成 Full CPMT。Full CPMT 特指后续同时包含 Projective Node Orbit、world graph、executor 和 CTL 的完整系统，不等于当前解析投影版本。
 
@@ -239,6 +239,9 @@ D-025 将 graph-equivalence 收紧为“同一时刻的规范化记忆状态相�
 - memory contamination：错误观测或错误关系进入长期世界；
 - false-birth growth：同一对象被反复创建成多个节点；
 - collateral violation：修一个局部问题时破坏了无关正确内容。
+- active-graph correctness：只比较当前仍开放、可供系统使用的语义世界；已关闭的旧错误版本不会让它永久为零。
+- history exactness：比较包括已关闭版本在内的完整档案；后来修正不会删除原错误，所以它可以在 active 已恢复时仍为零。
+- bounded recovery：后来相关可见证据到达后，在固定三步窗口和受影响子图内用同一候选器提交补偿事务；原错误步不回填。它不是全图慢速优化。
 
 白话说，最终不能只报一个 accuracy；必须说明错误发生在“没提出正确答案”“复盘判断错”还是“在线模型没学会”。
 

@@ -20,8 +20,13 @@ from .errors import CPMTError
 from .equivalence import canonicalize_memory_state
 from .executor import execute_transaction, validate_graph
 from .hashing import canonical_json, clone_json, seal_graph
-from .m1_data import project_structural_observation, validate_online_payload
-from .m1_metrics import protected_signature
+from .m1_data import (
+    project_active_structural_observation,
+    project_open_memory_observation,
+    project_structural_observation,
+    validate_online_payload,
+)
+from .m1_metrics import graph_error_counts, protected_signature
 from .m1_protocol import validate_m1_protocol
 
 
@@ -50,6 +55,8 @@ TEMPLATE_FAMILY = {
     "RELINK": "C08",
 }
 CANDIDATE_BUDGET = 16
+ACTIVE_FUTURE_ERROR_WEIGHT = 10.0
+OPEN_MEMORY_FUTURE_ERROR_WEIGHT = 1.0
 RELINK_RANK_PAIRS = ((0, 0), (1, 0), (0, 1))
 CANDIDATE_EVENT_FIELDS = (
     "event_id", "step_index", "decision_time", "candidate_seed",
@@ -606,11 +613,86 @@ def _mark_decision_ambiguous(event: dict[str, Any]) -> None:
 
 
 def _ambiguity_pivot(events: Sequence[Mapping[str, Any]]) -> int:
-    """Choose one middle decision whose legal contrast changes the world."""
+    """Choose a recoverable relocation whose contrast is to keep the old edge."""
     for step_index in range(5, min(15, len(events))):
-        if events[step_index]["reference_spec"]["template"] != "NOOP":
+        if events[step_index]["reference_spec"]["template"] == "RELINK":
             return step_index
-    raise ValueError("20-step event plan has no eligible ambiguity pivot")
+    for step_index, event in enumerate(events[:-1]):
+        if event["reference_spec"]["template"] == "RELINK":
+            return step_index
+    raise ValueError("20-step event plan has no recoverable RELINK ambiguity pivot")
+
+
+def _prepare_paired_recovery_revisit(
+    events: list[dict[str, Any]], topology: Mapping[str, Any],
+    rng: np.random.Generator, retrieval: Mapping[str, Any], *,
+    sibling_index: int, pivot_step: int,
+) -> int:
+    """Place a visible, branch-specific revisit immediately after ambiguity.
+
+    The online pivot remains identical.  At the next decision the real world
+    reveals whether the mover stayed at its old place or moved to the new one,
+    providing a causal opportunity to issue a compensating RELINK.
+    """
+    reveal_step = pivot_step + 1
+    bind_step = next(
+        index for index, event in enumerate(events)
+        if event["reference_spec"]["template"] == "BIND"
+        and index != pivot_step
+    )
+    if bind_step != reveal_step:
+        events[bind_step], events[reveal_step] = (
+            events[reveal_step], events[bind_step]
+        )
+    for step_index, event in enumerate(events):
+        event["step_index"] = step_index
+        event["decision_time"] = step_index + 1
+
+    pivot = events[pivot_step]
+    reveal = events[reveal_step]
+    edge_id = str(pivot["reference_spec"]["target_edge_id"])
+    mover_index = list(topology["special"]["mover_edges"]).index(edge_id)
+    mover_id = str(topology["special"]["mover_ids"][mover_index])
+    old_place = str(topology["initial_edge_targets"][edge_id])
+    new_place = str(pivot["reference_spec"]["new_target"])
+    actual_place = new_place if sibling_index == 0 else old_place
+    reveal["scenario_family"] = "C01"
+    reveal["reference_spec"] = {
+        "template": "BIND",
+        "target_node_id": mover_id,
+    }
+    node_pool = [
+        str(value) for key, value in topology["special"].items()
+        if key in {
+            "bind_target", "dormant_target", "split_source", "merge_a",
+            "merge_b", "replace_entity", "decoy_target",
+        }
+    ] + [
+        str(value) for value in (
+            topology["special"]["mover_ids"]
+            + topology["special"]["retract_ids"]
+        )
+    ]
+    edge_pool = [str(value) for value in topology["initial_edge_targets"]]
+    places = [str(value) for value in topology["special"]["places"]]
+    reveal["proposal_observation"] = {
+        "node_query": _proposal_query(mover_id, node_pool, rng, retrieval),
+        "edge_query": _proposal_query(edge_id, edge_pool, rng, retrieval),
+        "place_query": _proposal_query(actual_place, places, rng, retrieval),
+        "merge_queries": clone_json(
+            reveal["proposal_observation"]["merge_queries"]
+        ),
+        "source": PROPOSAL_RETRIEVAL_SOURCE,
+    }
+    reveal["observation_spec"] = _observation_spec(
+        "BIND", reveal["reference_spec"], reveal, topology, ambiguous=False,
+    )
+    # Sensor truth must not resolve its place from the possibly wrong memory.
+    reveal["observation_spec"]["place_id"] = actual_place
+    reveal["observation_spec"]["place_from_entity"] = None
+    reveal["revisit_of_step"] = pivot_step
+    reveal["can_disambiguate"] = True
+    return reveal_step
 
 
 def _program_header(
@@ -1022,13 +1104,19 @@ def project_world_latent(
 ) -> list[float]:
     """Continuous, pose-conditioned descriptor of one world state.
 
-    The hashed structural projection is exact but has no metric structure: two
-    worlds differing by one edge land in unrelated buckets, so a regression
-    target built from it carries almost no gradient about *how* wrong a
-    prediction is.  This keeps the same information in a space where distance
-    means something, which is what makes a learned outcome scorer a fair
-    baseline rather than a strawman.  It is still an analytic projector, not a
-    Projective Node Orbit.
+    Written to test whether the hashed target was handicapping the learned
+    scorer.  Measured, it is not: this descriptor scores 0.1562 against the
+    hashed target's 0.2102, and below the 0.1625 of using no future term at
+    all, so ``hashed_tokens`` remains the default.
+
+    The reason is worth keeping.  Pooling destroys locality: 32 of these 60
+    dimensions are means over open entities that barely move when one candidate
+    relinks one edge, and the edge block sums roughly twenty products, so the
+    part that separates candidates is a small perturbation buried in mostly
+    invariant dimensions.  This is the same failure DINO-WM's ablation shows
+    between patch tokens and a pooled CLS vector.  A spatially structured
+    descriptor, one slot per place rather than a sum, is untested; do not read
+    this result as "no continuous target helps".
     """
     pose_gate = np.asarray(
         appearance_of(f"pose-bucket:{int(pose_bucket)}", latents), dtype=np.float64,
@@ -1824,7 +1912,8 @@ def _teacher_posterior(
 
 def _counterfactual_trace(
     candidate_post: Mapping[str, Any], events: Sequence[Mapping[str, Any]],
-    reference_states: Sequence[Mapping[str, Any]], step_index: int,
+    reference_states: Sequence[Mapping[str, Any]],
+    reference_templates: Sequence[str], step_index: int,
     horizon: int,
 ) -> tuple[float, list[str], list[dict[str, Any]]]:
     branch = clone_json(candidate_post)
@@ -1835,14 +1924,28 @@ def _counterfactual_trace(
     for target_index in range(step_index, final_index):
         if target_index > step_index:
             try:
-                reference, evidence = _primary_program(
-                    branch, events[target_index],
-                )
-                selected = _execute_candidates(
-                    branch, [reference], evidence,
-                )[0]
+                event = events[target_index]
+                expected_template = str(reference_templates[target_index])
+                primary_template = str(event["reference_spec"]["template"])
+                if expected_template == primary_template:
+                    reference, evidence = _primary_program(branch, event)
+                    selected = _execute_candidates(
+                        branch, [reference], evidence,
+                    )[0]
+                else:
+                    # A paired sibling can take the registered contrast at its
+                    # ambiguity pivot.  Rebuild that same fixed-candidate
+                    # policy on this counterfactual branch; silently falling
+                    # back to the primary event scores against a future that
+                    # the branch never actually executed.
+                    programs, evidence, _ = generate_fixed_candidates(branch, event)
+                    executions = _execute_candidates(branch, programs, evidence)
+                    selected = next(
+                        item for item in executions
+                        if item["legal"] and item["template"] == expected_template
+                    )
                 failure = selected["failure"]
-            except (CPMTError, LookupError, ValueError) as error:
+            except (CPMTError, LookupError, StopIteration, ValueError) as error:
                 # A wrong earlier transaction can also make construction of a
                 # later oracle program impossible (for example, SPLIT after its
                 # source evidence was removed).  This is a causal branch
@@ -1863,18 +1966,24 @@ def _counterfactual_trace(
                 # consequence and leaves persistent memory unchanged.
                 failures.append({
                     "step_index": target_index,
-                    "reference_template": events[target_index][
-                        "reference_spec"
-                    ]["template"],
+                    "reference_template": reference_templates[target_index],
                     "failure": failure,
                     "fallback": "QUARANTINE_KEEP_CURRENT_WORLD",
                 })
             else:
                 branch = selected["post_graph"]
         pose = int(events[target_index]["pose_bucket"])
-        prediction = project_structural_observation(branch, pose)
-        target = project_structural_observation(reference_states[target_index], pose)
-        errors.append(float(len(prediction ^ target)))
+        active_prediction = project_active_structural_observation(branch, pose)
+        active_target = project_active_structural_observation(
+            reference_states[target_index], pose)
+        memory_prediction = project_open_memory_observation(branch, pose)
+        memory_target = project_open_memory_observation(
+            reference_states[target_index], pose)
+        errors.append(float(
+            ACTIVE_FUTURE_ERROR_WEIGHT * len(active_prediction ^ active_target)
+            + OPEN_MEMORY_FUTURE_ERROR_WEIGHT
+            * len(memory_prediction ^ memory_target)
+        ))
         hashes.append(branch["graph_hash"])
     return float(np.mean(errors)), hashes, failures
 
@@ -1938,7 +2047,10 @@ def _online_step(
             "pose_bucket": event["pose_bucket"],
             "valid": bool(spec["pose_valid"]),
         }],
-        "action_history": ["controlled_revisit"],
+        "action_history": (
+            ["controlled_revisit", "delayed_contradiction_revisit"]
+            if event.get("can_disambiguate") else ["controlled_revisit"]
+        ),
         # The retrieval query the proposer was allowed to use.  Withholding it
         # while the generator ranks candidates by it leaves the student unable
         # to tell two same-template candidates apart.
@@ -1964,6 +2076,15 @@ def _generate_sequence(
     )
     if sibling_index is not None and pivot_step is None:
         pivot_step = _ambiguity_pivot(events)
+    recovery_revisit_step = None
+    if sibling_index is not None and pivot_step is not None:
+        recovery_revisit_step = _prepare_paired_recovery_revisit(
+            events, topology, rng,
+            validate_proposal_retrieval(
+                config["candidates"]["proposal_retrieval"]
+            ),
+            sibling_index=sibling_index, pivot_step=pivot_step,
+        )
     if pivot_step is not None:
         _mark_decision_ambiguous(events[pivot_step])
     for event in events:
@@ -2034,6 +2155,10 @@ def _generate_sequence(
     weights = config["energy"]["weights"]
     temperature = float(config["energy"]["temperature"])
     hindsight_horizon = int(config["future"]["primary_horizon"])
+    reference_templates = [
+        str(material["executions"][material["reference_index"]]["template"])
+        for material in step_material
+    ]
     online_steps = []
     audit_steps = []
     for step_index, material in enumerate(step_material):
@@ -2055,6 +2180,14 @@ def _generate_sequence(
                 "world_latent": project_world_latent(
                     reference_states[target_index], pose,
                     topology["semantic_latents"]),
+                "active_structural_observation": sorted(
+                    project_active_structural_observation(
+                        reference_states[target_index], pose)
+                ),
+                "open_memory_observation": sorted(
+                    project_open_memory_observation(
+                        reference_states[target_index], pose)
+                ),
                 "structural_observation": sorted(
                     project_structural_observation(reference_states[target_index], pose)
                 ),
@@ -2068,7 +2201,7 @@ def _generate_sequence(
                 continue
             value, branch_hashes, branch_failures = _counterfactual_trace(
                 execution["post_graph"], events, reference_states,
-                step_index, hindsight_horizon,
+                reference_templates, step_index, hindsight_horizon,
             )
             raw_futures.append(value)
             traces.append((branch_hashes, branch_failures))
@@ -2120,9 +2253,9 @@ def _generate_sequence(
         # disagreement is measured rather than treated as a generator bug.  It
         # happens where two candidates are nearly tied on future consistency
         # and the minimal-change cost then decides, which is what the energy is
-        # for.  In the paired design it concentrates in the horizon-1 decisions
-        # before the ambiguity pivot of sibling 1, whose executed future already
-        # contains the contrast choice.  See docs/01_research_contract.md.
+        # for.  Paired sibling futures follow that sibling's actual registered
+        # primary/contrast policy; branch-policy mismatch is not an allowed
+        # source of teacher error.  See docs/01_research_contract.md.
         teacher_disagrees = winner != reference_index
         online_steps.append(material["online"])
         audit_steps.append({
@@ -2139,6 +2272,9 @@ def _generate_sequence(
             "ambiguity": (
                 "epistemically_ambiguous_pivot"
                 if sibling_index is not None and step_index == pivot_step
+                else "disambiguating_recovery_revisit"
+                if recovery_revisit_step is not None
+                and step_index == recovery_revisit_step
                 else "sequence_context"
             ),
             "reference_post_graph_hash": reference_states[step_index]["graph_hash"],
@@ -2164,12 +2300,138 @@ def _generate_sequence(
             "teacher_winner_index": winner,
             "future_trace": future_trace,
         })
+    recovery_examples: list[dict[str, Any]] = []
+    if (
+        sibling_index is not None
+        and pivot_step is not None
+        and recovery_revisit_step is not None
+    ):
+        pivot_material = step_material[pivot_step]
+        wrong_index = (
+            next(
+                item["candidate_index"]
+                for item in pivot_material["executions"]
+                if item["legal"] and item["template"] == "NOOP"
+            )
+            if sibling_index == 0 else int(pivot_material["primary_index"])
+        )
+        wrong_base = pivot_material["executions"][wrong_index]["post_graph"]
+        if wrong_base is None:
+            raise AssertionError("paired ambiguity contrast must be executable")
+        reveal_event = events[recovery_revisit_step]
+        recovery_programs, recovery_evidence, generation = (
+            generate_fixed_candidates(wrong_base, reveal_event)
+        )
+        recovery_executions = _execute_candidates(
+            wrong_base, recovery_programs, recovery_evidence,
+        )
+        target_state = reference_states[recovery_revisit_step]
+        correction_indices = [
+            item["candidate_index"]
+            for item in recovery_executions
+            if item["legal"] and item["post_graph"] is not None
+            and graph_error_counts(
+                item["post_graph"], target_state, wrong_base, [],
+            )["active_graph_correct"] == 1.0
+        ]
+        if len(correction_indices) != 1:
+            raise AssertionError(
+                "recovery revisit must expose exactly one active-world correction; "
+                f"found {correction_indices}"
+            )
+        correction_index = int(correction_indices[0])
+        raw_futures = []
+        recovery_traces = []
+        for execution in recovery_executions:
+            if execution["post_graph"] is None:
+                raw_futures.append(None)
+                recovery_traces.append(([], []))
+                continue
+            value, branch_hashes, branch_failures = _counterfactual_trace(
+                execution["post_graph"], events, reference_states,
+                reference_templates, recovery_revisit_step, hindsight_horizon,
+            )
+            raw_futures.append(value)
+            recovery_traces.append((branch_hashes, branch_failures))
+        scaled_futures = standardize_future_term(raw_futures)
+        recovery_online = _online_step(
+            online_sequence_id, paired_group_id, split, world_seed, asset_family,
+            wrong_base, reveal_event, recovery_programs,
+            topology["semantic_latents"],
+        )
+        recovery_energies = []
+        protected = [str(reveal_event["protected_id"])]
+        for index, (execution, program) in enumerate(zip(
+            recovery_executions, recovery_programs, strict=True,
+        )):
+            illegal = float(not execution["legal"])
+            post = execution["post_graph"]
+            collateral = 0.0 if post is None else float(
+                protected_signature(post, protected)
+                != protected_signature(wrong_base, protected)
+            )
+            terms = {
+                "now": 0.0 if program.get("evidence_refs") else 1.0,
+                "future": scaled_futures[index],
+                "edit": float(program.get("declared_edit_cost", 0.0)),
+                "growth": float(program.get("declared_growth_cost", 0.0)),
+                "collateral": collateral,
+                "illegal": illegal,
+            }
+            total = None if illegal else sum(
+                float(weights[key]) * terms[key] for key in weights
+            )
+            branch_hashes, branch_failures = recovery_traces[index]
+            recovery_energies.append({
+                **terms,
+                "future_raw": raw_futures[index],
+                "total": total,
+                "masked": bool(illegal),
+                "counterfactual_rollout_hashes": branch_hashes,
+                "counterfactual_rollout_failures": branch_failures,
+            })
+        recovery_posterior = _teacher_posterior(
+            recovery_energies, temperature,
+        )
+        recovery_winner = int(np.argmax(recovery_posterior))
+        recovery_examples.append({
+            "schema_version": "cpmt-m1-recovery-step-audit-v1",
+            "sequence_id": sequence_id,
+            "step_index": recovery_revisit_step,
+            "source_step_index": recovery_revisit_step,
+            "revisits_step_index": pivot_step,
+            "scenario_family": "RECOVERY_RELINK",
+            "event_spec": clone_json(reveal_event),
+            "online": recovery_online,
+            "reference_program_index": correction_index,
+            "teacher_winner_matches_reference": (
+                recovery_winner == correction_index
+            ),
+            "reference_template": recovery_executions[
+                correction_index
+            ]["template"],
+            "ambiguity": "counterfactual_recovery_training",
+            "reference_post_graph_hash": recovery_executions[
+                correction_index
+            ]["post_graph_hash"],
+            "transaction_label_available": labelled_group,
+            "candidate_coverage_at_k": 1.0,
+            "candidate_generation": generation,
+            "executed_candidates": recovery_executions,
+            "candidate_energies": recovery_energies,
+            "teacher_posterior": recovery_posterior,
+            "teacher_winner_index": recovery_winner,
+            "future_trace": clone_json(
+                audit_steps[recovery_revisit_step]["future_trace"]
+            ),
+        })
     return online_steps, {
         "schema_version": "cpmt-m1-rollout-audit-v1",
         "sequence_id": sequence_id,
         "paired_group_id": paired_group_id,
         "sibling_index": sibling_index,
         "ambiguity_pivot_step": pivot_step,
+        "recovery_revisit_step": recovery_revisit_step,
         "split": split,
         "world_seed": world_seed,
         "asset_family": asset_family,
@@ -2183,6 +2445,7 @@ def _generate_sequence(
             for material in step_material
         ],
         "steps": audit_steps,
+        "recovery_examples": recovery_examples,
         "final_reference_graph_hash": reference_states[-1]["graph_hash"],
     }
 

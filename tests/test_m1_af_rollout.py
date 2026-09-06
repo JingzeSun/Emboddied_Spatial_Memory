@@ -15,6 +15,8 @@ from cpmt.m1_af_rollout import (
     CANDIDATE_FEATURE_DIM,
     ONLINE_CONTEXT_DIM,
     build_rollout_learning_arrays,
+    calibrate_shared_commit_rule,
+    causal_rollout_metrics,
     online_feature_vector,
     resolve_af_smoke_config,
     run_af_seed,
@@ -74,20 +76,31 @@ class TestM1AFCausalRollout(unittest.TestCase):
         self.assertEqual(perfect["accuracy"], 1.0)
         self.assertEqual(perfect["template_accuracy"], 1.0)
         self.assertEqual(perfect["argument_error_with_correct_template"], 0.0)
+        self.assertEqual(perfect["ambiguous_pair_containment"], 1.0)
         shifted = np.eye(16, dtype=np.float32)[(self.validation["y"] + 1) % 16]
         degraded = selection_error_decomposition(shifted, self.validation)
         self.assertEqual(degraded["accuracy"], 0.0)
         self.assertLessEqual(degraded["template_accuracy"], 1.0)
 
+        outside = probabilities.copy()
+        ambiguous = np.asarray(self.validation["ambiguous"], dtype=bool)
+        group = int(self.validation["group"][ambiguous][0])
+        mask = ambiguous & (self.validation["group"] == group)
+        pair = set(int(value) for value in self.validation["y"][mask])
+        third = next(index for index in range(16) if index not in pair)
+        outside[mask] = np.eye(16, dtype=np.float32)[third]
+        diagnosed = selection_error_decomposition(outside, self.validation)
+        self.assertEqual(diagnosed["ambiguous_pair_containment"], 0.0)
+
     def test_arrays_keep_exact_ambiguous_pair_and_groupwise_labels(self):
-        self.assertEqual(self.train["x"].shape[0], 80)
-        self.assertEqual(self.validation["x"].shape[0], 40)
+        self.assertEqual(self.train["x"].shape[0], 84)
+        self.assertEqual(self.validation["x"].shape[0], 42)
         first = self.validation_audit[0]
         second = self.validation_audit[1]
         pivot = first["ambiguity_pivot_step"]
         self.assertEqual(pivot, second["ambiguity_pivot_step"])
         left_index = pivot
-        right_index = 20 + pivot
+        right_index = 21 + pivot
         np.testing.assert_array_equal(
             self.validation["x"][left_index], self.validation["x"][right_index]
         )
@@ -100,6 +113,12 @@ class TestM1AFCausalRollout(unittest.TestCase):
         for group in np.unique(self.train["group"]):
             labels = self.train["labelled"][self.train["group"] == group]
             self.assertEqual(len(set(labels.tolist())), 1)
+        self.assertEqual(int(self.validation["recovery"].sum()), 2)
+        for sequence in self.validation_audit:
+            recovery = sequence["recovery_examples"]
+            self.assertEqual(len(recovery), 1)
+            self.assertEqual(recovery[0]["reference_template"], "RELINK")
+            self.assertTrue(recovery[0]["teacher_winner_matches_reference"])
 
     def test_executed_teacher_covers_reference_and_illegal_is_masked(self):
         self.assertTrue(np.all(self.train["pstar"].argmax(axis=1) == self.train["y"]))
@@ -109,12 +128,33 @@ class TestM1AFCausalRollout(unittest.TestCase):
         self.assertTrue(np.all((self.train["penalties"] >= 1_000_000).sum(axis=1) >= 1))
         self.assertEqual(self.train["penalties"].shape[1], 16)
         self.assertEqual(self.validation["penalties"].shape[1], 16)
+        # E may use only transaction-declared costs at candidate-scoring time;
+        # executor-derived illegality/collateral remains unavailable to it.
+        self.assertEqual(self.train["no_execution_penalties"].shape, (84, 16))
+        self.assertTrue(np.all(np.isfinite(self.train["no_execution_penalties"])))
+        self.assertTrue(np.all(self.train["no_execution_penalties"] < 1_000_000))
+        relation_dim = 3 * 6
+        self.assertEqual(
+            self.train["relation_targets"].shape,
+            (84, 16, relation_dim),
+        )
+        self.assertEqual(
+            self.train["relation_mask"].shape,
+            self.train["relation_targets"].shape,
+        )
+        self.assertTrue(np.all(self.train["relation_mask"].sum(axis=2) > 0))
+        np.testing.assert_array_equal(
+            self.train["relation_desired"][self.train["relation_mask"] > 0],
+            np.ones_like(
+                self.train["relation_desired"][self.train["relation_mask"] > 0]
+            ),
+        )
 
     def test_six_method_training_and_causal_oracle_smoke(self):
         config = deepcopy(self.config)
         config["student_steps"] = 2
         config["scorer_steps"] = 2
-        results, _, _ = run_af_seed(
+        results, details, _ = run_af_seed(
             self.train, self.validation, self.validation_audit, config, 7,
         )
         self.assertEqual(set(results), set(METHODS))
@@ -129,6 +169,69 @@ class TestM1AFCausalRollout(unittest.TestCase):
             oracle["causal_rollout"]["final_post_graph_correctness"], 1.0
         )
         self.assertEqual(oracle["causal_rollout"]["memory_contamination_per_100"], 0.0)
+        self.assertIn(
+            "future_relation_bce", details["outcome_scorer_training"][0]
+        )
+
+    def test_observable_oracle_couples_the_ambiguous_pair(self):
+        metrics, rows = causal_rollout_metrics(
+            None, self.validation_audit, self.config, observable_oracle=True,
+        )
+        self.assertAlmostEqual(metrics["mean_active_graph_correctness"], 0.975)
+        self.assertEqual(metrics["final_active_graph_correctness"], 1.0)
+        self.assertEqual(metrics["final_history_exactness"], 0.5)
+        choices = []
+        for sequence in rows:
+            pivot = self.validation_audit[
+                int(sequence["metrics"]["sibling_index"])
+            ]["ambiguity_pivot_step"]
+            choices.append(sequence["choices"][pivot]["selected_index"])
+        self.assertEqual(len(set(choices)), 1)
+        revisit_choices = [
+            sequence["choices"][audit["recovery_revisit_step"]]
+            for sequence, audit in zip(rows, self.validation_audit, strict=True)
+        ]
+        corrected = [
+            choice for choice in revisit_choices
+            if choice["revisit_triggered"]
+        ]
+        self.assertEqual(len(corrected), 1)
+        self.assertEqual(corrected[0]["selected_template"], "RELINK")
+        self.assertEqual(corrected[0]["active_correct_after"], 1.0)
+        self.assertEqual(metrics["triggered_revisit_count"], 1.0)
+        self.assertEqual(metrics["triggered_revisit_commit_rate"], 1.0)
+        self.assertEqual(
+            metrics["triggered_revisit_active_resolution_rate"], 1.0,
+        )
+
+    def test_commit_calibration_uses_only_its_paired_group_half(self):
+        probabilities = np.asarray([
+            [0.6, 0.4], [0.6, 0.4], [0.6, 0.4], [0.99, 0.01],
+        ], dtype=np.float32)
+        arrays = {
+            "calibration": np.asarray([True, True, True, False]),
+            "candidate_legal": np.ones((4, 2), dtype=bool),
+            "active_correct": np.asarray([
+                [1, 0], [0, 1], [0, 1], [1, 0],
+            ], dtype=np.float32),
+            "base_active_correct": np.asarray([0, 1, 1, 0], dtype=np.float32),
+            "fact_errors": np.asarray([
+                [0, 1], [1, 0], [1, 0], [0, 1],
+            ], dtype=np.float32),
+            "base_fact_errors": np.asarray([1, 0, 0, 1], dtype=np.float32),
+            "excess_nodes": np.zeros((4, 2), dtype=np.float32),
+            "base_excess_nodes": np.zeros(4, dtype=np.float32),
+        }
+        first = calibrate_shared_commit_rule(
+            {"A:seed7": probabilities}, arrays, self.hard,
+        )
+        self.assertEqual(first["selected"]["commit_probability"], 0.65)
+        changed = deepcopy(arrays)
+        changed["active_correct"][-1] = [0, 1]
+        second = calibrate_shared_commit_rule(
+            {"A:seed7": probabilities}, changed, self.hard,
+        )
+        self.assertEqual(first["selected"], second["selected"])
 
     def test_config_cannot_claim_formal_or_open_test(self):
         raw = json.loads(

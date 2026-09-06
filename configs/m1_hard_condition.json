@@ -1,10 +1,10 @@
 {
-  "protocol": "m1-hard-condition-v1",
-  "status": "frozen_pretest",
+  "protocol": "m1-hard-condition-v2",
+  "status": "pretest_lock_candidate",
   "stage": "M1",
   "purpose": "Test whether post-edit executable hindsight supervision outperforms direct future loss and future scoring without execution for online embodied spatial-memory revision.",
   "test_access": false,
-  "decision_refs": ["D-018", "D-025", "D-026", "D-027", "D-030", "D-031"],
+  "decision_refs": ["D-018", "D-025", "D-026", "D-027", "D-030", "D-031", "D-034"],
   "methods": [
     {"id": "A", "name": "cpmt_ctl_core", "execute_candidates": true, "future_supervision": true, "post_edit_world": true},
     {"id": "B", "name": "direct_classifier", "execute_candidates": false, "future_supervision": false, "post_edit_world": false},
@@ -14,7 +14,7 @@
     {"id": "F", "name": "oracle_candidate_program", "execute_candidates": true, "future_supervision": true, "post_edit_world": true}
   ],
   "data": {
-    "dataset_version": "m1-paired-latent-worlds-v3",
+    "dataset_version": "m1-paired-latent-worlds-v4-recovery",
     "generator": "controlled_embodied_spatial_worlds_v1",
     "group_keys": ["paired_group_id", "world_seed", "asset_family"],
     "paired_siblings_minimum": 2,
@@ -29,14 +29,27 @@
   "future": {
     "source": "actual_executed_trajectory",
     "primary_horizon": 3,
-    "target_representation": "world_latent",
+    "target_representation": "hashed_tokens",
     "target_representation_options": ["world_latent", "hashed_tokens"],
     "reported_ablations": [1, 5],
     "variable_horizon_mask": "score_only_observed_future_steps_with_valid_pose_and_visibility",
     "episode_tail": "retain_with_mask_if_at_least_one_future_step; zero-future cases_are_online_only_diagnostics",
     "visibility_policy": "score_visible_positive_and_reliably_visible_empty; mask_occluded_and_unobserved",
     "online_export_excludes": ["future_evidence", "future_features", "oracle_equivalence", "simulator_hidden_state", "persistent_object_id"],
-    "precomputed_feature_boundary": "online_cache_uses_only_timestamps_at_or_before_decision_time; future_cache_is_separate_hindsight_only"
+    "precomputed_feature_boundary": "online_cache_uses_only_timestamps_at_or_before_decision_time; future_cache_is_separate_hindsight_only",
+    "executed_teacher_comparison": "10x_active_semantic_plus_1x_open_memory_support; closed_history_is_audit_only",
+    "no_execution_target": "candidate_scoped_future_relations_v1",
+    "no_execution_candidate_execution": "forbidden_for_candidate_scoring_and_target_construction;_selected_transaction_uses_shared_executor",
+    "no_execution_supervision": "dense_queries_for_all_k16_candidates_from_actual_reference_future"
+  },
+  "recovery": {
+    "mode": "bounded_online_compensating_transaction_v1",
+    "trigger": "deterministic_relevant_visible_contradiction",
+    "lookback_decisions": 3,
+    "scope": "evidence_affected_subgraph_only",
+    "candidate_generator": "same_fixed_deterministic_k16",
+    "credit": "record_correction_when_committed;_never_backfill_original_step",
+    "global_async_reconciliation": "M2_only"
   },
   "candidates": {
     "budget_k": 16,
@@ -77,6 +90,15 @@
     "max_validation_trials_per_method": 6,
     "direct_future_auxiliary_weights": [0.1, 1.0, 10.0],
     "validation_only_selection": ["checkpoint", "learning_rate", "auxiliary_weight"],
+    "commit_calibration": {
+      "partition": "sha256_paired_group_id_even_calibration_odd_report",
+      "calibration_fraction": 0.5,
+      "shared_across_methods": true,
+      "commit_probability_grid": [0.0, 0.1, 0.2, 0.35, 0.45, 0.55, 0.65, 0.75, 0.85],
+      "margin_threshold_grid": [0.0, 0.025, 0.05, 0.1, 0.15, 0.2],
+      "selection": "lexicographic_one_step_active_correctness_then_fact_error_then_false_birth_then_higher_commit_rate",
+      "report_partition_selects_nothing": true
+    },
     "frozen": ["observation_front_end", "depth", "pose", "region_proposals", "candidate_generator", "executor"],
     "test_selects_nothing": true
   },
@@ -84,16 +106,18 @@
     "application_rule": "all_methods_apply_their_selected_transaction_with_the_same_executor_before_graph_metrics",
     "primary_contrasts": ["A_vs_C", "A_vs_E"],
     "primary_metrics": {
-      "post_graph_correctness": "equivalence_correct_fraction",
+      "active_graph_correctness": "current_open_semantic_world_correct_fraction_without_retroactive_credit",
       "memory_contamination": "incorrect_open_facts_per_100_decisions_at_self_rollout_horizon",
       "false_birth_growth": "excess_open_entity_nodes_per_100_decisions_at_self_rollout_horizon",
       "collateral_violation": "protected_or_unrelated_mutations_per_100_decisions"
     },
     "self_rollout_horizon_decisions": 20,
+    "history_exactness": "reported_diagnostic_not_primary_deployable_final",
+    "recovery_window_decisions": 3,
     "bootstrap": {"unit": "paired_group_id", "resamples": 10000, "confidence": 0.95, "stratify_by": "scenario_family"},
     "multiple_comparisons": {"procedure": "Holm-Bonferroni", "familywise_alpha": 0.05, "family": ["A_vs_C", "A_vs_E"]},
     "meaningful_effect": {
-      "post_graph_correctness_absolute": 0.03,
+      "active_graph_correctness_absolute": 0.03,
       "memory_contamination_absolute_per_100": 2.0
     },
     "safety_noninferiority_margin_per_100": {"false_birth_growth": 1.0, "collateral_violation": 0.5},

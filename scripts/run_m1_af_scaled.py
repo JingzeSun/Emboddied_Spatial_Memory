@@ -33,11 +33,16 @@ from cpmt.dev_learning import (  # noqa: E402
     train_outcome_scorer, train_student, tensors,
 )
 from cpmt.m1_af_rollout import (  # noqa: E402
-    CANDIDATE_FEATURE_DIM, causal_rollout_metrics,
+    CANDIDATE_FEATURE_DIM, calibrate_shared_commit_rule,
+    causal_rollout_metrics, paired_group_is_calibration,
     rollout_learning_arrays_from_audits, selection_error_decomposition,
 )
 from cpmt.m1_protocol import load_and_validate, protocol_sha256  # noqa: E402
+from cpmt.m1_metrics import (  # noqa: E402
+    holm_bonferroni, paired_stratified_bootstrap,
+)
 from cpmt.m1_rollout import generate_m1_paired_rollout_split  # noqa: E402
+from cpmt.run_provenance import arrays_sha256, capture_run_provenance  # noqa: E402
 
 STUDENTS = ("cpmt_ctl_core", "direct_classifier", "direct_future_loss",
             "execute_current_only", "future_no_execution")
@@ -52,11 +57,36 @@ LABEL = {
 }
 
 
-def _load(path: Path) -> dict[str, np.ndarray]:
+def _load(
+    path: Path, *, expected_protocol_sha256: str,
+    expected_split: str, expected_dataset_version: str,
+) -> tuple[dict[str, np.ndarray], dict]:
     data = {k: v for k, v in np.load(path, allow_pickle=True).items()}
+    digest = arrays_sha256(data)
+    manifest_path = path.with_suffix(".manifest.json")
+    if not manifest_path.exists():
+        raise ValueError(f"generation manifest is required for {path}")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if manifest.get("arrays_digest") != digest:
+        raise ValueError(
+            f"array digest does not match generation manifest for {path}"
+        )
+    if manifest.get("protocol_sha256") != expected_protocol_sha256:
+        raise ValueError(
+            f"array protocol does not match active config for {path}"
+        )
+    if manifest.get("split") != expected_split:
+        raise ValueError(f"expected {expected_split} arrays at {path}")
+    if manifest.get("dataset_version") != expected_dataset_version:
+        raise ValueError(f"array dataset version does not match {path}")
     # Carried by the generator for reporting; not a model input.
     data.pop("teacher_matches_reference", None)
-    return data
+    return data, {
+        "path": str(path),
+        "arrays_digest": digest,
+        "manifest_path": str(manifest_path),
+        "manifest": manifest,
+    }
 
 
 def _teachers(train, learned, method):
@@ -65,6 +95,124 @@ def _teachers(train, learned, method):
     if method == "execute_current_only":
         return train["pstar_current"]
     return train["pstar"]
+
+
+def _subset_rows(data: dict[str, np.ndarray], mask: np.ndarray) -> dict[str, np.ndarray]:
+    return {
+        key: value[mask] if isinstance(value, np.ndarray)
+        and len(value) == len(mask) else value
+        for key, value in data.items()
+    }
+
+
+def _paired_causal_statistics(
+    payloads_by_method: dict[str, list[dict]], hard: dict,
+) -> dict:
+    """Compute registered paired-group contrasts from complete causal rows."""
+    indexed: dict[str, dict[tuple[int, str], dict]] = {}
+    for method, payloads in payloads_by_method.items():
+        indexed[method] = {}
+        for payload in payloads:
+            seed = int(payload["aggregate"]["seed"])
+            for sequence in payload["sequences"]:
+                metrics = sequence["metrics"]
+                key = (seed, str(metrics["sequence_id"]))
+                indexed[method][key] = metrics
+    if not indexed:
+        return {}
+    expected = set(indexed["cpmt_ctl_core"])
+    if any(set(rows) != expected for rows in indexed.values()):
+        raise ValueError("causal method results do not contain the same paired rows")
+    rows = []
+    for key in sorted(expected):
+        anchor = indexed["cpmt_ctl_core"][key]
+        rows.append({
+            # A 20-step endpoint contains the same registered mixed scenario
+            # schedule in every group, so there is one endpoint stratum; the
+            # paired group, both siblings, and all seeds remain indivisible.
+            "scenario_family": "mixed_registered_20_step_schedule",
+            "paired_group_id": str(anchor["paired_group_id"]),
+            **{method: method_rows[key] for method, method_rows in indexed.items()},
+        })
+    bootstrap = hard["evaluation"]["bootstrap"]
+    meaningful = hard["evaluation"]["meaningful_effect"]
+    safety = hard["evaluation"]["safety_noninferiority_margin_per_100"]
+    resamples = int(bootstrap["resamples"])
+    confidence = float(bootstrap["confidence"])
+    contrasts = {}
+    p_values = {}
+    for other, short in (
+        ("direct_future_loss", "A_vs_C"),
+        ("future_no_execution", "A_vs_E"),
+    ):
+        metrics = {
+            "active_graph_correctness": paired_stratified_bootstrap(
+                rows, "cpmt_ctl_core", other,
+                "final_active_graph_correctness", higher_is_better=True,
+                resamples=resamples, confidence=confidence,
+                minimum_effect=float(
+                    meaningful["active_graph_correctness_absolute"]),
+            ),
+            "memory_contamination": paired_stratified_bootstrap(
+                rows, "cpmt_ctl_core", other,
+                "memory_contamination_per_100", higher_is_better=False,
+                resamples=resamples, confidence=confidence,
+                minimum_effect=float(
+                    meaningful["memory_contamination_absolute_per_100"]),
+            ),
+            "false_birth_noninferiority": paired_stratified_bootstrap(
+                rows, "cpmt_ctl_core", other,
+                "false_birth_growth_per_100", higher_is_better=False,
+                resamples=resamples, confidence=confidence,
+                minimum_effect=-float(safety["false_birth_growth"]),
+            ),
+            "collateral_noninferiority": paired_stratified_bootstrap(
+                rows, "cpmt_ctl_core", other,
+                "collateral_violation_per_100", higher_is_better=False,
+                resamples=resamples, confidence=confidence,
+                minimum_effect=-float(safety["collateral_violation"]),
+            ),
+        }
+        # Both co-primary benefits are required. Their maximum one-sided p is
+        # the conservative intersection-union p for this contrast; Holm then
+        # corrects the registered A-C/A-E family.
+        p_values[short] = max(
+            metrics["active_graph_correctness"][
+                "one_sided_p_at_or_below_minimum"
+            ],
+            metrics["memory_contamination"][
+                "one_sided_p_at_or_below_minimum"
+            ],
+        )
+        contrasts[short] = metrics
+    adjusted = holm_bonferroni(p_values)
+    alpha = float(hard["evaluation"]["multiple_comparisons"][
+        "familywise_alpha"
+    ])
+    for name, metrics in contrasts.items():
+        metrics["intersection_union_p"] = p_values[name]
+        metrics["holm_adjusted_p"] = adjusted[name]
+        metrics["passes_registered_validation_checks"] = bool(
+            adjusted[name] <= alpha
+            and metrics["active_graph_correctness"]["ci_low"]
+            >= float(meaningful["active_graph_correctness_absolute"])
+            and metrics["memory_contamination"]["ci_low"]
+            >= float(meaningful["memory_contamination_absolute_per_100"])
+            and metrics["false_birth_noninferiority"]["ci_low"]
+            >= -float(safety["false_birth_growth"])
+            and metrics["collateral_noninferiority"]["ci_low"]
+            >= -float(safety["collateral_violation"])
+        )
+    return {
+        "scope": "validation_report_partition_not_formal_test_gate",
+        "stratification_note": (
+            "each endpoint spans the same mixed registered 20-step scenario "
+            "schedule; resampling keeps each paired_group_id intact"
+        ),
+        "sequence_seed_rows": len(rows),
+        "paired_groups": len({row["paired_group_id"] for row in rows}),
+        "contrasts": contrasts,
+    }
 
 
 def main() -> int:
@@ -85,6 +233,10 @@ def main() -> int:
     args = parser.parse_args()
 
     hard = load_and_validate(args.config)
+    training_provenance = capture_run_provenance(
+        PROJECT, component="m1_training_and_causal_evaluation",
+        entrypoint=Path(__file__),
+    )
     smoke = json.loads(
         (PROJECT / "configs" / "m1_af_smoke.json").read_text(encoding="utf-8"))
     seeds = args.seeds or list(hard["training"]["formal_seeds"])
@@ -93,7 +245,21 @@ def main() -> int:
     causal_dir = out_dir / "causal"
     causal_dir.mkdir(parents=True, exist_ok=True)
 
-    train_np, validation_np = _load(args.train), _load(args.validation)
+    active_protocol_sha256 = protocol_sha256(hard)
+    train_np, train_input = _load(
+        args.train, expected_protocol_sha256=active_protocol_sha256,
+        expected_split="train",
+        expected_dataset_version=str(hard["data"]["dataset_version"]),
+    )
+    validation_np, validation_input = _load(
+        args.validation, expected_protocol_sha256=active_protocol_sha256,
+        expected_split="validation",
+        expected_dataset_version=str(hard["data"]["dataset_version"]),
+    )
+    report_mask = ~np.asarray(validation_np["calibration"], dtype=bool)
+    recovery_mask = np.asarray(validation_np["recovery"], dtype=bool)
+    online_report_mask = report_mask & ~recovery_mask
+    validation_report_np = _subset_rows(validation_np, online_report_mask)
     device = torch.device("cpu")
     cfg = dict(smoke, hidden_dim=64, horizon=int(hard["future"]["primary_horizon"]),
                learning_rate=2e-3, batch_size=64, device="cpu",
@@ -111,7 +277,10 @@ def main() -> int:
     for name, data in (("train", train_np), ("validation", validation_np)):
         agree = float((np.asarray(data["pstar"]).argmax(1) == data["y"]).mean())
         print(f"  {name} teacher/reference agreement {agree:.6f}")
-    ceiling = 1 - 0.5 * float(validation_np["ambiguous"].mean())
+    online_validation = ~recovery_mask
+    ceiling = 1 - 0.5 * float(np.asarray(
+        validation_np["ambiguous"], dtype=bool,
+    )[online_validation].mean())
     print(f"  random floor {1/16:.4f}   observable ceiling {ceiling:.4f}", flush=True)
 
     val_audits = None
@@ -154,6 +323,7 @@ def main() -> int:
     T, V = tensors(train_np, device), tensors(validation_np, device)
     forced: dict[str, list[dict]] = {m: [] for m in STUDENTS}
     scorer_teacher: list[float] = []
+    calibration_probabilities: dict[str, np.ndarray] = {}
     # Train every seed first, so the single-step table and the primary contrasts
     # are on screen within minutes. The causal replay that follows takes orders
     # of magnitude longer, and its per-pair results are written as they land.
@@ -163,8 +333,10 @@ def main() -> int:
     for seed in seeds:
         began = time.time()
         _, learned, _ = train_outcome_scorer(T, V, cfg, seed, device)
-        scorer_teacher.append(float(
-            (learned["validation"].cpu().numpy().argmax(1) == validation_np["y"]).mean()))
+        scorer_teacher.append(float((
+            learned["validation"].cpu().numpy().argmax(1)[online_report_mask]
+            == validation_np["y"][online_report_mask]
+        ).mean()))
         models = {}
         for method in STUDENTS:
             model, _ = train_student(
@@ -172,12 +344,47 @@ def main() -> int:
             models[method] = model
             with torch.no_grad():
                 probs = model(V["x"]).softmax(1).cpu().numpy()
-            forced[method].append(selection_error_decomposition(probs, validation_np))
+            calibration_probabilities[f"{method}:seed{seed}"] = probs
+            forced[method].append(selection_error_decomposition(
+                probs[online_report_mask], validation_report_np,
+            ))
+            recovery_report = report_mask & recovery_mask
+            forced[method][-1]["recovery_accuracy"] = (
+                float(np.mean(
+                    probs.argmax(axis=1)[recovery_report]
+                    == validation_np["y"][recovery_report]
+                )) if recovery_report.any() else None
+            )
         trained[seed] = models
         print(f"  seed {seed} trained in {time.time()-began:.0f}s", flush=True)
 
-    print(f"\n{'method':<24}{'accuracy':>20}{'template':>10}{'identif.':>10}{'ambig.':>9}")
-    print("-" * 73)
+    commit_calibration = calibrate_shared_commit_rule(
+        calibration_probabilities, validation_np, hard,
+    )
+    cfg.update(commit_calibration["selected"])
+    print(
+        "selected shared commit rule on calibration groups: "
+        f"p={cfg['commit_probability']:.3f} "
+        f"margin={cfg['margin_threshold']:.3f}; "
+        f"report rows={commit_calibration['report_rows']}",
+        flush=True,
+    )
+    report_audits = (
+        [
+            audit for audit in val_audits
+            if not paired_group_is_calibration(str(audit["paired_group_id"]))
+        ] if val_audits is not None else None
+    )
+    if val_audits is not None and not report_audits:
+        raise ValueError("validation report partition contains no paired groups")
+    gate_tag = (
+        f"p{int(round(float(cfg['commit_probability']) * 1000)):03d}_"
+        f"m{int(round(float(cfg['margin_threshold']) * 1000)):03d}"
+    )
+
+    print(f"\n{'method':<24}{'accuracy':>20}{'template':>10}{'identif.':>10}"
+          f"{'ambig.':>9}{'recovery':>10}")
+    print("-" * 83)
     summary: dict[str, dict] = {}
     for method in sorted(STUDENTS, key=lambda m: -np.mean(
             [r["accuracy"] for r in forced[m]])):
@@ -189,10 +396,23 @@ def main() -> int:
             "identifiable": float(np.mean(
                 [r["identifiable_accuracy"] for r in forced[method]])),
             "ambiguous": float(np.mean([r["ambiguous_accuracy"] for r in forced[method]])),
+            "ambiguous_pair_containment": float(np.mean([
+                r["ambiguous_pair_containment"] for r in forced[method]
+            ])),
+            "recovery_accuracy": (
+                float(np.mean([
+                    r["recovery_accuracy"] for r in forced[method]
+                    if r["recovery_accuracy"] is not None
+                ])) if any(
+                    r["recovery_accuracy"] is not None for r in forced[method]
+                ) else None
+            ),
         }
         s = summary[method]
         print(f"{LABEL[method]:<24}{s['accuracy_mean']:>11.4f} +/- {s['accuracy_std']:.4f}"
-              f"{s['template']:>10.4f}{s['identifiable']:>10.4f}{s['ambiguous']:>9.4f}")
+              f"{s['template']:>10.4f}{s['identifiable']:>10.4f}"
+              f"{s['ambiguous']:>9.4f}"
+              f"{(s['recovery_accuracy'] or 0.0):>10.4f}")
 
     a = np.array(summary["cpmt_ctl_core"]["accuracy_seeds"])
     contrasts = {}
@@ -208,39 +428,75 @@ def main() -> int:
     if not args.skip_causal:
         pairs = len(seeds) * len(ALL_METHODS)
         print(f"\nstarting causal self-rollout: {pairs} (method, seed) pairs over "
-              f"{len(val_audits)} sequences; results land one file at a time",
+              f"{len(report_audits)} report-half sequences; results land one file at a time",
               flush=True)
         for seed in seeds:
             for method in ALL_METHODS:
-                target = causal_dir / f"{method}_seed{seed}.json"
+                target = causal_dir / f"{method}_seed{seed}_{gate_tag}_v2.json"
                 if target.exists():
                     continue
                 began = time.time()
                 oracle = method == "oracle_candidate_program"
-                metrics, _ = causal_rollout_metrics(
-                    None if oracle else trained[seed][method], val_audits, cfg,
+                metrics, sequence_rows = causal_rollout_metrics(
+                    None if oracle else trained[seed][method], report_audits, cfg,
                     oracle=oracle)
                 metrics.update(method=method, seed=seed,
                                seconds=time.time() - began)
-                target.write_text(json.dumps(metrics, indent=2), encoding="utf-8")
+                target.write_text(json.dumps({
+                    "schema_version": "cpmt-m1-causal-result-v2",
+                    "aggregate": metrics,
+                    "sequences": sequence_rows,
+                }, indent=2), encoding="utf-8")
                 print(f"  seed {seed} {method:<26} "
-                      f"final={metrics['final_post_graph_correctness']:.4f}"
-                      f"  mean={metrics['mean_post_graph_correctness']:.4f}"
+                      f"active={metrics['final_active_graph_correctness']:.4f}"
+                      f"  history={metrics['final_history_exactness']:.4f}"
                       f"  ({metrics['seconds']:.0f}s)", flush=True)
 
+        observable_path = causal_dir / f"observable_information_oracle_{gate_tag}_v2.json"
+        if not observable_path.exists():
+            began = time.time()
+            metrics, sequence_rows = causal_rollout_metrics(
+                None, report_audits, cfg, observable_oracle=True,
+            )
+            metrics.update(method="observable_information_oracle",
+                           seconds=time.time() - began)
+            observable_path.write_text(json.dumps({
+                "schema_version": "cpmt-m1-causal-result-v2",
+                "aggregate": metrics,
+                "sequences": sequence_rows,
+            }, indent=2), encoding="utf-8")
+            print("  observable information oracle "
+                  f"active={metrics['final_active_graph_correctness']:.4f} "
+                  f"history={metrics['final_history_exactness']:.4f}", flush=True)
+
     causal_summary: dict[str, dict] = {}
+    causal_payloads: dict[str, list[dict]] = {}
     if not args.skip_causal:
-        print(f"\n{'method':<24}{'final':>10}{'mean':>10}{'contam/100':>12}"
+        print(f"\n{'method':<24}{'active':>10}{'mean':>10}{'contam/100':>12}"
               f"{'missing/100':>13}{'falsebirth/100':>16}")
         print("-" * 85)
         for method in ALL_METHODS:
-            rows = [json.loads((causal_dir / f"{method}_seed{s}.json").read_text())
-                    for s in seeds if (causal_dir / f"{method}_seed{s}.json").exists()]
+            paths = [
+                causal_dir / f"{method}_seed{s}_{gate_tag}_v2.json" for s in seeds
+            ]
+            payloads = [json.loads(path.read_text())
+                        for path in paths if path.exists()]
+            rows = [payload["aggregate"] for payload in payloads]
             if not rows:
                 continue
+            causal_payloads[method] = payloads
             def col(key):
                 return float(np.mean([r[key] for r in rows]))
             causal_summary[method] = {
+                "final_active_graph_correctness": col(
+                    "final_active_graph_correctness"),
+                "active_final_std": float(np.std(
+                    [r["final_active_graph_correctness"] for r in rows])),
+                "mean_active_graph_correctness": col(
+                    "mean_active_graph_correctness"),
+                "final_open_memory_correctness": col(
+                    "final_open_memory_correctness"),
+                "final_history_exactness": col("final_history_exactness"),
                 "final_post_graph_correctness": col("final_post_graph_correctness"),
                 "final_std": float(np.std(
                     [r["final_post_graph_correctness"] for r in rows])),
@@ -249,37 +505,85 @@ def main() -> int:
                 "missing_open_facts_per_100": col("missing_open_facts_per_100"),
                 "false_birth_growth_per_100": col("false_birth_growth_per_100"),
                 "collateral_violation_per_100": col("collateral_violation_per_100"),
+                "memory_contamination_auc_per_100_decisions": col(
+                    "memory_contamination_auc_per_100_decisions"),
+                "recovery_rate_within_window": col(
+                    "recovery_rate_within_window"),
+                "unresolved_active_error": col("unresolved_active_error"),
+                # How often the method actually wrote its choice rather than
+                # quarantining it. Without this the commit policy cannot be
+                # tuned, and a method that looks accurate by refusing to act
+                # cannot be told apart from one that acts correctly.
+                "commit_rate": col("commit_rate"),
+                "raw_invalid_selection_rate": col("raw_invalid_selection_rate"),
+                "registered_selection_accuracy": col(
+                    "registered_selection_accuracy"),
+                "committed_registered_accuracy": col(
+                    "committed_registered_accuracy"),
+                "ambiguity_commit_rate": col("ambiguity_commit_rate"),
+                "identifiable_commit_rate": col("identifiable_commit_rate"),
+                "triggered_revisit_count": col("triggered_revisit_count"),
+                "triggered_revisit_commit_rate": col(
+                    "triggered_revisit_commit_rate"),
+                "triggered_revisit_active_resolution_rate": col(
+                    "triggered_revisit_active_resolution_rate"),
                 "seeds_completed": len(rows),
             }
             c = causal_summary[method]
-            print(f"{LABEL[method]:<24}{c['final_post_graph_correctness']:>10.4f}"
-                  f"{c['mean_post_graph_correctness']:>10.4f}"
+            print(f"{LABEL[method]:<24}{c['final_active_graph_correctness']:>10.4f}"
+                  f"{c['mean_active_graph_correctness']:>10.4f}"
                   f"{c['memory_contamination_per_100']:>12.3f}"
                   f"{c['missing_open_facts_per_100']:>13.3f}"
                   f"{c['false_birth_growth_per_100']:>16.3f}")
 
+    causal_complete = bool(causal_summary) and all(
+        method in causal_summary
+        and causal_summary[method]["seeds_completed"] == len(seeds)
+        for method in ALL_METHODS
+    )
+    paired_statistics = (
+        _paired_causal_statistics(causal_payloads, hard)
+        if causal_complete else None
+    )
     report = {
-        "runner": "run_m1_af_scaled",
+        "schema_version": "cpmt-m1-af-report-v2",
+        "runner": "run_m1_af_scaled_v2",
         "formal_run": False,
         "test_generated": False,
         "protocol_sha256": protocol_sha256(hard),
+        "training_provenance": training_provenance,
+        "input_arrays": {
+            "train": train_input,
+            "validation": validation_input,
+        },
         "dataset_version": hard["data"]["dataset_version"],
         "seeds": seeds,
         "train_decisions": int(len(train_np["y"])),
         "validation_decisions": int(len(validation_np["y"])),
+        "validation_online_chain_decisions": int(online_validation.sum()),
+        "validation_recovery_training_examples": int(recovery_mask.sum()),
         "observable_ceiling": ceiling,
         "teacher_reference_agreement": {
             "train": float((np.asarray(train_np["pstar"]).argmax(1)
                             == train_np["y"]).mean()),
-            "validation": float((np.asarray(validation_np["pstar"]).argmax(1)
-                                 == validation_np["y"]).mean()),
+            "validation_report": float((
+                np.asarray(validation_np["pstar"]).argmax(1)[online_report_mask]
+                == validation_np["y"][online_report_mask]
+            ).mean()),
         },
+        "commit_calibration": commit_calibration,
         "scorer_teacher_validation_accuracy": scorer_teacher,
         "teacher_forced": summary,
         "primary_contrasts": contrasts,
         "causal_rollout": causal_summary,
-        "causal_complete": bool(causal_summary) and all(
-            v["seeds_completed"] == len(seeds) for v in causal_summary.values()),
+        "paired_causal_statistics": paired_statistics,
+        "observable_information_oracle": (
+            json.loads(observable_path.read_text())[
+                "aggregate"
+            ] if not args.skip_causal and observable_path.exists()
+            else None
+        ),
+        "causal_complete": causal_complete,
     }
     (out_dir / "af_report.json").write_text(json.dumps(report, indent=2),
                                             encoding="utf-8")

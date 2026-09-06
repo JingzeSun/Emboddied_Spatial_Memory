@@ -48,15 +48,16 @@ D 诊断 future evidence；F 分解 candidate coverage 与 scorer error。
 命名边界：这里的 A 不是完整视觉 Full CPMT。它只包含 versioned world graph、候选真实执行、固定解析投影和 CTL；Projective Node Orbit 尚未接入。Full CPMT 这个名字保留给 M2 的“PNO＋world graph＋executor＋CTL”。
 
 
-## Frozen pre-test protocol v1（D-031 accepted，test 尚未生成）
+## M1-v2 pre-test lock candidate（D-034 accepted，尚未重新冻结）
 
-机器可读合同为 [`configs/m1_hard_condition.json`](../../configs/m1_hard_condition.json)。D-031 已将状态冻结为 `frozen_pretest`，但这不是已经产生论文结果的 formal run；配置中的 `test_access=false` 仍由校验器强制检查。生成器、指标和泄漏测试实现通过前不得生成或读取 test。
+机器可读合同为 [`configs/m1_hard_condition.json`](../../configs/m1_hard_condition.json)。D-031 冻结的 M1-v1 与既有数值作为历史诊断保留；D-034 接受 M1-v2 后，活动状态回到 `pretest_lock_candidate`。这不是 formal run，配置中的 `test_access=false` 仍由校验器强制检查；服务器完成实现验证并另行接受重新冻结前，不得生成或读取 test。
 
 ### 数据与 future
 
 - C00–C11 每个 family 计划生成 1000/200/200 个 train/validation/test paired groups；同一 `paired_group_id + world_seed + asset_family` 不跨 split，每个 family 的 test support 不低于 200。只排除在任何方法运行前就已确认的 schema 或生成/渲染失败；方法自身失败必须保留。
 - 主 future horizon 固定为实际已执行轨迹的 3 个后续决策点，H=1/5 只作报告型消融。变长 episode 只评分真实存在且 pose/visibility 有效的 future；至少有一步 future 的尾部样本保留并 mask 缺失步，零 future 样本只进 online 诊断，不训练 hindsight teacher。
 - 可见正证据与“可靠可见但为空”都进入评分；遮挡和未观察区域 mask。预计算 online feature 只允许时间戳不晚于当前决策，future cache 分目录保存。
+- exact ambiguity 固定为一对 online 字节相同、reference 分别为 RELINK/NOOP 的 sibling；下一步实际到达的相关可见证据构成一次有界 recovery revisit。revisit 只检查三步 lookback 内受影响子图，仍用同一 deterministic K=16，不能扩成全图异步搜索。
 
 白话：future policy 解决“老师到底能看哪几眼”的问题。输入是机器人后来真实走过并看到的帧、位姿与可见性，输出是哪些后续证据可给离线老师评分。例如三步后回看旧桌面且明确为空，可以反对仍保留旧位置的候选；被柜门挡住则不算空。它不等于在线模型预知未来，也不等于拿计划但未执行的动作当真实证据。
 
@@ -64,16 +65,17 @@ D 诊断 future evidence；F 分解 candidate coverage 与 scorer error。
 
 - A/D/F 共用 deterministic top-K，K=16；覆盖 NOOP、BIND、BIRTH、REACTIVATE、RELINK、RETRACT、SPLIT、MERGE，REPLACE 仍是 RETRACT+BIRTH，QUARANTINE 仍是不改 persistent world 的 wrapper。SPLIT/MERGE/RETRACT 必须有正例。
 - 每个候选从同一 immutable base 克隆执行，先按 canonical memory-state equivalence 去掉纯改名重复；非法候选不消失，保留 failure 后以正无穷 mask。
-- 教师逐候选保存 now/future/edit/growth/collateral/illegal。v1 权重固定为 1/1/0.1/0.25/10，illegal 用正无穷 mask，temperature=0.25；这些值沿用人工审阅过的单房间接口尺度，不能看正式 test 后重调。
+- 执行式教师逐候选保存 now/future/edit/growth/collateral/illegal。future 比较当前 active semantic world 与 open-memory evidence support，closed history 只作审计；权重为 1/1/0.1/0.25/10，illegal 用正无穷 mask，temperature=0.25，不能看正式 test 后重调。
 - A–E 共用 online encoder、输入字段、学生更新数和 split，训练参数量差异不超过 10%；每方法最多 6 次 validation trial。C 的 future auxiliary weight 可在 {0.1,1,10} 内独立选。E 的额外 scorer 参数、更新、耗时和显存单列，不能藏进共同预算。F 是 K=16 内 oracle upper bound，不是可部署模型。
-- B/C/E 在学习/打分时不执行全部反事实分支；但评价 persistent memory 时，所有方法选中的最终事务都由同一个 executor 应用，再算 post-graph 指标。
+- E 在目标构造和候选评分时都不执行非参考候选：它把每个 online candidate program 解析为“未来该关系/生命周期/证据关联是否成立”的查询，并从实际 reference future 为全部 K=16 产生稠密监督；不得读取 candidate post-world 或复用 executor 给出的 illegal/collateral。C 使用同一结构化关系目标作 direct auxiliary。评价 persistent memory 时，A–E 最终选中的单个事务仍由同一个 executor 应用。
+- validation paired groups 按 `paired_group_id` 的固定 SHA-256 奇偶拆成 calibration/report。只在 calibration 半区从登记网格选一组 A–E 共用的 commit probability/margin；report 半区只汇报，不能选阈值。
 
-白话：公平协议解决“CPMT 是否只是比对照多拿了答案或算力”的问题。输入是同一批 online 信息、同一候选语言和可核对的训练预算，输出是 A–F 可比的预测、运行成本与失败。例如 C 可以认真调 future loss 权重，但不能读 post-edit world；E 可多用一个结果预测器，但这部分参数和时间必须明报。它不等于强迫网络结构一模一样，也不等于把 F 的 oracle 成绩当实际系统成绩。
+白话：公平协议解决“CPMT 是否只是比对照多拿了答案或算力”的问题。输入是同一批 online 信息、同一候选语言和可核对的训练预算，输出是 A–F 可比的预测、运行成本与失败。例如 E 可以预测“RELINK 声称的新位置未来是否成立”，但不能先执行 16 个候选再偷看哪些合法；最终决定落地时仍和其他方法一样调用 executor。它不等于强迫网络结构一模一样，也不等于把 F 的 oracle 成绩当实际系统成绩。
 
 ### 指标、统计与 go/no-go
 
 - 主标签比例为 10%；0/1/10/100% 全部报告。正式优化种子固定为 7/19/31/43/59。
-- 主指标定义为：post-graph correctness（执行所选事务后，完整决策相关图与 reference/equivalence set 一致的比例）；memory contamination（20 个 self-rollout 决策后，每 100 次决策仍开放的错误事实数）；false-birth growth（同一时点每 100 次决策多出的 open entity 数）；collateral violation（每 100 次决策对 protected/无关状态的修改数）。
+- 主指标定义为：active-graph correctness（执行所选事务后，当前开放的语义世界与 reference 一致，不因已关闭的旧错永久判零）；memory contamination（20 个 self-rollout 决策后，每 100 次决策仍开放的错误事实数）；false-birth growth（同一时点每 100 次决策多出的 open entity 数）；collateral violation（每 100 次决策对 protected/无关状态的修改数）。open-memory support correctness、完整 history exactness、contamination AUC、recovery-within-3、time-to-recovery 与 unresolved error 同时报告；history 不是主部署终态。
 - primary contrasts 只有 A–C 和 A–E。按 `paired_group_id`、family 分层做 10,000 次 paired bootstrap，95% CI；两项主对比用 Holm–Bonferroni 控制 family-wise alpha=0.05。
 - 每个主对比都必须同时达到：graph correctness 绝对提高至少 3 percentage points；contamination 每 100 决策绝对减少至少 2，且校正后 95% CI 排除零。false-birth 每 100 决策非劣 margin=1，collateral margin=0.5；executor invariant violation 必须为 0。
 - candidate coverage@16 必须总体至少 98%、每 family 至少 95%；未通过时暂停 scorer/CTL 结论并归为 candidate miss。结果分别报告 candidate miss、teacher error、amortization error、rollout error。
@@ -83,8 +85,10 @@ D 诊断 future evidence；F 分解 candidate coverage 与 scorer error。
 
 白话：safety 非劣门槛解决“主指标变好是否靠制造更多错误节点或误改旁边对象”的问题。输入是 false-birth、collateral 和 invariant 计数，输出是是否仍在允许差值内。例如正确率提高但每 100 次多建 3 个假对象会失败。它不是额外奖励项，安全失败不能被平均准确率盖住。
 
+白话：有界恢复指标解决“后来看到反证时，系统能否把当前记忆修回来”。输入是歧义点的错误分支、下一次相关可见证据和固定 K=16 候选，输出是是否在三步内恢复、用了几步、最终 active world 是否正确，以及旧错误版本是否仍保留。例如先把杯子连到桌面、下一步看清它在水槽，可以关闭错边再 RELINK；原歧义步仍算错，history 也仍记录旧版本。它不是 retroactive credit，不是删除 provenance，也不是 Khronos 式全局慢路径。
+
 ### 计算边界
 
-先在本地做 generator/metric/unit validation，单个正式 run 上限 2 小时；发现新的宿主机 BugCheck 立即停止长 run。当前云预算授权为 AUD 0，不租服务器。是否需要云卡只依据实现后的实测峰值和稳定性另行决定。
+轻量静态/单元检查可在本地运行；用户已提示本机 CPU 负载可能诱发内存损坏，因此数据生成、完整测试、训练和 causal rollout 优先在 AutoDL 的干净 Git 提交上执行。单个 run 上限仍为 2 小时，云实例由操作者手动启停并设置定时关机；仓库只记录该控制方式，不自行启动或续费实例。
 
-白话：计算边界解决“什么时候真的需要租卡”。输入是本地实测 wall-clock、peak VRAM、缓存体积和稳定性，输出是继续本地或另行申请云预算；例如小型 M1 若低于 8 GiB 且两小时内完成，就不因显卡型号先租服务器。它不等于承诺 4070 Laptop 足够后续 M2，也不授权任何付费资源。
+白话：计算边界解决“在哪台机器安全地跑”。输入是本地稳定性记录、服务器 wall-clock/显存和干净提交哈希，输出是本地只做轻检查、AutoDL 承担重任务。例如服务器 `git pull` 到指定提交后生成 arrays，再把 output 汇总拉回本地分析。它不等于允许脚本自行购买资源，也不等于服务器跑完就自动解封 test。

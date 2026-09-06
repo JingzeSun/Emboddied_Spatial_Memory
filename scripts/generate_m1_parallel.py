@@ -27,6 +27,7 @@ from cpmt.hashing import canonical_json  # noqa: E402
 from cpmt.m1_af_rollout import rollout_learning_arrays_from_audits  # noqa: E402
 from cpmt.m1_protocol import load_and_validate, protocol_sha256  # noqa: E402
 from cpmt.m1_rollout import generate_m1_paired_rollout_split  # noqa: E402
+from cpmt.run_provenance import arrays_sha256, capture_run_provenance  # noqa: E402
 
 ARRAY_KEYS_ORDERED = None  # discovered from the first shard
 
@@ -43,7 +44,10 @@ def _shard(task: tuple[str, str, int, int, str]) -> tuple[int, str]:
     )
     # Carried through so a drop in teacher/reference agreement is visible in
     # the merged run rather than only inside a discarded per-group summary.
-    steps = [step for audit in audits for step in audit["steps"]]
+    steps = [
+        step for audit in audits
+        for step in audit["steps"] + audit.get("recovery_examples", [])
+    ]
     arrays["teacher_matches_reference"] = np.asarray(
         [bool(step["teacher_winner_matches_reference"]) for step in steps],
         dtype=bool,
@@ -93,15 +97,7 @@ def generate_parallel(
 
 
 def _digest(arrays: dict[str, np.ndarray]) -> str:
-    import hashlib
-    digest = hashlib.sha256()
-    for key in sorted(arrays):
-        value = np.asarray(arrays[key])
-        digest.update(key.encode("utf-8"))
-        digest.update(str(value.dtype).encode("utf-8"))
-        digest.update(str(value.shape).encode("utf-8"))
-        digest.update(np.ascontiguousarray(value).tobytes())
-    return digest.hexdigest()
+    return arrays_sha256(arrays)
 
 
 def main() -> int:
@@ -119,6 +115,9 @@ def main() -> int:
 
     config_path = Path(args.config)
     config = load_and_validate(config_path)
+    generation_provenance = capture_run_provenance(
+        PROJECT, component="m1_array_generation", entrypoint=Path(__file__),
+    )
     out = Path(args.out)
     shard_dir = Path(args.shard_dir) if args.shard_dir else out.parent / f"{out.stem}_shards"
     print(f"protocol sha256 {protocol_sha256(config)[:16]}  "
@@ -132,7 +131,10 @@ def main() -> int:
     out.parent.mkdir(parents=True, exist_ok=True)
     np.savez(out, **arrays)
     agree = np.asarray(arrays["teacher_matches_reference"], dtype=bool)
-    print(f"wrote {out}  decisions={len(arrays['y'])}  digest={_digest(arrays)[:16]}")
+    print(f"wrote {out}  learning_rows={len(arrays['y'])} "
+          f"(online={int((~arrays['recovery']).sum())}, "
+          f"recovery={int(arrays['recovery'].sum())})  "
+          f"digest={_digest(arrays)[:16]}")
     print(f"teacher/reference agreement {agree.mean():.6f}  "
           f"({int((~agree).sum())} disagreements of {len(agree)} decisions)")
 
@@ -145,6 +147,14 @@ def main() -> int:
         serial = rollout_learning_arrays_from_audits(
             config, audits, future_hash_bins=args.future_hash_bins,
         )
+        serial_steps = [
+            step for audit in audits
+            for step in audit["steps"] + audit.get("recovery_examples", [])
+        ]
+        serial["teacher_matches_reference"] = np.asarray([
+            bool(step["teacher_winner_matches_reference"])
+            for step in serial_steps
+        ], dtype=bool)
         serial_seconds = time.time() - started
         if _digest(serial) != _digest(arrays):
             differing = [
@@ -155,18 +165,24 @@ def main() -> int:
             return 1
         print(f"identical to serial ({serial_seconds:.1f}s serial)")
     manifest = {
-        "runner": "generate_m1_parallel",
+        "schema_version": "cpmt-m1-generation-manifest-v2",
+        "runner": "generate_m1_parallel_v2",
         "split": args.split,
         "paired_groups": args.paired_groups,
         "workers": args.workers,
         "protocol_sha256": protocol_sha256(config),
         "dataset_version": config["data"]["dataset_version"],
+        # ``decisions`` is retained for old readers; M1-v2 distinguishes the
+        # actual online chain from counterfactual recovery training rows.
         "decisions": int(len(arrays["y"])),
+        "online_chain_decisions": int((~arrays["recovery"]).sum()),
+        "recovery_training_examples": int(arrays["recovery"].sum()),
         "arrays_digest": _digest(arrays),
         "teacher_reference_agreement": float(agree.mean()),
         "teacher_disagreement_decisions": int((~agree).sum()),
         "formal_run": False,
         "test_generated": False,
+        "generation_provenance": generation_provenance,
     }
     (out.with_suffix(".manifest.json")).write_text(
         canonical_json(manifest), encoding="utf-8")

@@ -88,10 +88,45 @@ class TestM1Metrics(unittest.TestCase):
         bases = [record["online"]["prior_world"]] * 20
         metrics = rollout_graph_metrics(states, states, bases, [[]] * 20, horizon=20)
         self.assertEqual(metrics["final_post_graph_correctness"], 1.0)
+        self.assertEqual(metrics["final_active_graph_correctness"], 1.0)
+        self.assertEqual(metrics["final_history_exactness"], 1.0)
         self.assertEqual(metrics["memory_contamination_per_100"], 0.0)
         with self.assertRaisesRegex(ValueError, "ordered sequence"):
             rollout_graph_metrics(states[:19], states[:19], bases[:19], [[]] * 19,
                                   horizon=20)
+
+    def test_active_recovery_is_not_erased_by_retained_wrong_history(self):
+        record = self.audit[0]
+        reference = record["executed_candidates"][
+            record["reference_program_index"]
+        ]["post_graph"]
+        wrong = deepcopy(reference)
+        source = next(
+            edge for edge in wrong["edges"] if edge.get("valid_to") is None
+        )
+        extra = deepcopy(source)
+        extra["edge_id"] = "test:temporary-wrong-edge"
+        extra["edge_version_id"] = "test:temporary-wrong-edge@v0"
+        extra["evidence_refs"] = ["test:wrong-evidence"]
+        wrong["edges"].append(extra)
+        recovered = deepcopy(wrong)
+        recovered["edges"][-1]["valid_to"] = 7
+
+        single = graph_error_counts(recovered, reference, reference, [])
+        self.assertEqual(single["active_graph_correct"], 1.0)
+        self.assertEqual(single["open_memory_correct"], 1.0)
+        self.assertEqual(single["history_exact"], 0.0)
+
+        states = [reference] * 4 + [wrong, recovered] + [recovered] * 14
+        metrics = rollout_graph_metrics(
+            states, [reference] * 20, [reference] * 20, [[]] * 20,
+            horizon=20, recovery_window=3,
+        )
+        self.assertEqual(metrics["first_active_error_step"], 4.0)
+        self.assertEqual(metrics["time_to_first_recovery"], 1.0)
+        self.assertEqual(metrics["recovered_within_window"], 1.0)
+        self.assertEqual(metrics["final_active_graph_correctness"], 1.0)
+        self.assertEqual(metrics["final_history_exactness"], 0.0)
 
     def test_bootstrap_preserves_group_and_effect_direction(self):
         rows = []
@@ -116,6 +151,14 @@ class TestM1Metrics(unittest.TestCase):
         self.assertEqual(contamination["effect"], 2.0)
         self.assertEqual(correctness["paired_groups"], 6.0)
         self.assertGreater(correctness["ci_low"], 0)
+        thresholded = paired_stratified_bootstrap(
+            rows, "A", "C", "correct", higher_is_better=True,
+            resamples=200, minimum_effect=0.9, seed=7,
+        )
+        self.assertGreaterEqual(
+            thresholded["one_sided_p_at_or_below_minimum"],
+            correctness["one_sided_p_at_or_below_minimum"],
+        )
 
     def test_holm_adjustment_is_monotone(self):
         adjusted = holm_bonferroni({"A_vs_C": 0.01, "A_vs_E": 0.04})

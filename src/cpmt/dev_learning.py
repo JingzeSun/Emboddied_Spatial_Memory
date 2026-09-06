@@ -56,10 +56,12 @@ class OnlineModel(nn.Module):
     def __init__(
         self, input_dim: int, hidden: int, future_dim: int, horizon: int,
         num_candidates: int = 3, candidate_dim: int = 0,
+        relation_dim: int = 0,
     ):
         super().__init__()
         self.num_candidates = int(num_candidates)
         self.candidate_dim = int(candidate_dim)
+        self.relation_dim = int(relation_dim)
         self.context_dim = (
             input_dim - self.num_candidates * self.candidate_dim
             if self.candidate_dim else input_dim
@@ -77,6 +79,12 @@ class OnlineModel(nn.Module):
         # Same head is allocated in every method; only C uses its gradients.
         self.future_head = nn.Sequential(nn.Linear(hidden + horizon, hidden),
                                          nn.ReLU(), nn.Linear(hidden, future_dim))
+        if self.relation_dim:
+            descriptor_dim = self.candidate_dim or self.num_candidates
+            self.relation_head = nn.Sequential(
+                nn.Linear(hidden + descriptor_dim + horizon, hidden), nn.ReLU(),
+                nn.Linear(hidden, self.relation_dim),
+            )
 
     def forward(self, online_features: torch.Tensor) -> torch.Tensor:
         context, blocks = split_online_features(
@@ -95,6 +103,24 @@ class OnlineModel(nn.Module):
             online_features, self.num_candidates, self.candidate_dim)
         return self.future_head(torch.cat(
             (self.encoder(context), actual_future_poses), dim=-1))
+
+    def structured_relation_prediction(
+        self, online_features: torch.Tensor, actual_future_poses: torch.Tensor,
+    ) -> torch.Tensor:
+        """Predict every candidate-scoped future relation without execution."""
+        if not self.relation_dim:
+            raise ValueError("structured relation head is not configured")
+        context, blocks = split_online_features(
+            online_features, self.num_candidates, self.candidate_dim)
+        encoded = self.encoder(context)
+        if blocks is None:
+            blocks = torch.eye(
+                self.num_candidates, device=online_features.device,
+            ).expand(len(online_features), -1, -1)
+        expanded = encoded.unsqueeze(1).expand(-1, self.num_candidates, -1)
+        poses = actual_future_poses.unsqueeze(1).expand(
+            -1, self.num_candidates, -1)
+        return self.relation_head(torch.cat((expanded, blocks, poses), dim=-1))
 
 
 class OutcomeScorer(nn.Module):
@@ -139,7 +165,10 @@ class OutcomeScorer(nn.Module):
 def tensors(data: dict, device: torch.device) -> dict[str, torch.Tensor]:
     return {key: torch.as_tensor(value, device=device,
                                  dtype=torch.long if key in ("y", "group")
-                                 else torch.bool if key in ("labelled", "ambiguous")
+                                 else torch.bool if key in (
+                                     "labelled", "ambiguous", "recovery",
+                                     "calibration", "candidate_legal",
+                                 )
                                  else torch.float32)
             for key, value in data.items()}
 
@@ -156,9 +185,22 @@ def train_outcome_scorer(train: dict, validation: dict, config: dict, seed: int,
     if int(validation["penalties"].shape[1]) != num_candidates:
         raise ValueError("train/validation candidate dimensions differ")
     candidate_dim = int(config.get("candidate_feature_dim", 0))
+    structured = all(
+        key in train and key in validation
+        for key in ("relation_targets", "relation_mask", "relation_desired")
+    )
+    scorer_penalty_key = (
+        "no_execution_penalties" if structured else "penalties"
+    )
+    if scorer_penalty_key not in train or scorer_penalty_key not in validation:
+        raise ValueError("no-execution scorer penalty inputs are missing")
+    output_dim = (
+        int(train["relation_targets"].shape[-1])
+        if structured else int(train["future"].shape[1])
+    )
     model = OutcomeScorer(train["x"].shape[1],
                           int(config.get("scorer_hidden_dim", config["hidden_dim"])),
-                          train["future"].shape[1], config["horizon"],
+                          output_dim, config["horizon"],
                           num_candidates=num_candidates,
                           candidate_dim=candidate_dim,
                           dropout=float(config.get("scorer_dropout", 0.0))).to(device)
@@ -175,25 +217,53 @@ def train_outcome_scorer(train: dict, validation: dict, config: dict, seed: int,
     optimizer = torch.optim.Adam(
         model.parameters(), lr=config["learning_rate"],
         weight_decay=float(config.get("scorer_weight_decay", 0.0)))
-    labelled = train["labelled"].nonzero().flatten()
-    if len(labelled) == 0:
+    supervised_rows = (
+        torch.arange(len(train["x"]), device=device)
+        if structured else train["labelled"].nonzero().flatten()
+    )
+    if len(supervised_rows) == 0:
         raise ValueError("no labelled factual examples for no-execution scorer")
     trace = []
     for step in range(config["scorer_steps"]):
-        batch = labelled[torch.randint(len(labelled), (config["batch_size"],), device=device)]
-        pred = model(
-            train["x"][batch],
-            descriptors_for(train, batch, train["y"][batch]),
-            train["poses"][batch],
-        )
-        loss = F.mse_loss(pred, train["future"][batch])
+        batch = supervised_rows[torch.randint(
+            len(supervised_rows), (config["batch_size"],), device=device,
+        )]
+        if structured:
+            rows = train["x"][batch]
+            _, blocks = split_online_features(rows, num_candidates, candidate_dim)
+            if blocks is None:
+                blocks = torch.eye(num_candidates, device=device).expand(
+                    len(rows), -1, -1)
+            flat_rows = rows.unsqueeze(1).expand(
+                -1, num_candidates, -1).reshape(-1, rows.shape[-1])
+            flat_blocks = blocks.reshape(-1, blocks.shape[-1])
+            flat_poses = train["poses"][batch].unsqueeze(1).expand(
+                -1, num_candidates, -1).reshape(-1, train["poses"].shape[-1])
+            pred = model(flat_rows, flat_blocks, flat_poses).reshape(
+                len(rows), num_candidates, output_dim)
+            elementwise = F.binary_cross_entropy_with_logits(
+                pred, train["relation_targets"][batch], reduction="none",
+            )
+            mask = train["relation_mask"][batch]
+            loss = (elementwise * mask).sum() / mask.sum().clamp_min(1.0)
+        else:
+            pred = model(
+                train["x"][batch],
+                descriptors_for(train, batch, train["y"][batch]),
+                train["poses"][batch],
+            )
+            loss = F.mse_loss(pred, train["future"][batch])
         if not torch.isfinite(loss):
             raise FloatingPointError("no-execution scorer loss is non-finite")
         optimizer.zero_grad(set_to_none=True)
         loss.backward()
         optimizer.step()
         if step == 0 or (step + 1) % 50 == 0:
-            trace.append(dict(step=step + 1, future_mse=float(loss.detach().cpu())))
+            trace.append({
+                "step": step + 1,
+                "future_relation_bce" if structured else "future_mse":
+                    float(loss.detach().cpu()),
+            })
     # The shared energy weights are calibrated for a future term measured in
     # differing structural tokens.  This scorer reports a mean squared error
     # over hashed features, which is about three orders of magnitude smaller, so
@@ -212,17 +282,27 @@ def train_outcome_scorer(train: dict, validation: dict, config: dict, seed: int,
                 prediction = model(
                     data["x"], descriptors_for(data, None, column), data["poses"],
                 )
-                errors.append(((prediction - data["future"]) ** 2).mean(-1))
-            future_mse = torch.stack(errors, dim=1)
+                if structured:
+                    mask = data["relation_mask"][:, candidate]
+                    desired = data["relation_desired"][:, candidate]
+                    error = F.binary_cross_entropy_with_logits(
+                        prediction, desired, reduction="none",
+                    )
+                    errors.append(
+                        (error * mask).sum(-1) / mask.sum(-1).clamp_min(1.0)
+                    )
+                else:
+                    errors.append(((prediction - data["future"]) ** 2).mean(-1))
+            future_error = torch.stack(errors, dim=1)
             if normalize:
-                centre = future_mse.mean(dim=1, keepdim=True)
-                spread = future_mse.std(dim=1, keepdim=True)
-                future_mse = torch.where(
-                    spread > 0, (future_mse - centre) / spread,
-                    torch.zeros_like(future_mse),
+                centre = future_error.mean(dim=1, keepdim=True)
+                spread = future_error.std(dim=1, keepdim=True)
+                future_error = torch.where(
+                    spread > 0, (future_error - centre) / spread,
+                    torch.zeros_like(future_error),
                 )
-            energy = (config["energy_weights"]["future"] * future_mse
-                      + data["penalties"])
+            energy = (config["energy_weights"]["future"] * future_error
+                      + data[scorer_penalty_key])
             teachers[name] = torch.softmax(-energy / config["temperature"], dim=1).detach()
     return model, teachers, trace
 
@@ -236,7 +316,11 @@ def train_student(method: str, train: dict, teacher: torch.Tensor,
     model = OnlineModel(train["x"].shape[1], config["hidden_dim"],
                         train["future"].shape[1], config["horizon"],
                         num_candidates=num_candidates,
-                        candidate_dim=int(config.get("candidate_feature_dim", 0))
+                        candidate_dim=int(config.get("candidate_feature_dim", 0)),
+                        relation_dim=(
+                            int(train["relation_targets"].shape[-1])
+                            if "relation_targets" in train else 0
+                        ),
                         ).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=config["learning_rate"])
     trace = []
@@ -254,8 +338,20 @@ def train_student(method: str, train: dict, teacher: torch.Tensor,
                                  reduction="batchmean")
             loss = loss + config["distillation_weight"] * auxiliary
         elif method == "direct_future_loss":
-            auxiliary = F.mse_loss(model.auxiliary_prediction(x, train["poses"][batch]),
-                                   train["future"][batch])
+            if "relation_targets" in train:
+                prediction = model.structured_relation_prediction(
+                    x, train["poses"][batch])
+                mask = train["relation_mask"][batch]
+                elementwise = F.binary_cross_entropy_with_logits(
+                    prediction, train["relation_targets"][batch], reduction="none",
+                )
+                auxiliary = (
+                    (elementwise * mask).sum() / mask.sum().clamp_min(1.0)
+                )
+            else:
+                auxiliary = F.mse_loss(
+                    model.auxiliary_prediction(x, train["poses"][batch]),
+                    train["future"][batch])
             loss = loss + config["auxiliary_weight"] * auxiliary
         if not torch.isfinite(loss):
             raise FloatingPointError(f"{method} loss is non-finite")

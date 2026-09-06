@@ -11,7 +11,7 @@ sys.path.insert(0, str(PROJECT / "src"))
 
 from cpmt.hashing import canonical_json
 from cpmt.m1_data import validate_online_payload
-from cpmt.m1_metrics import rollout_graph_metrics
+from cpmt.m1_metrics import graph_error_counts, rollout_graph_metrics
 from cpmt.m1_rollout import (
     CANDIDATE_BUDGET,
     ROLLOUT_TEMPLATE_COUNTS,
@@ -20,6 +20,7 @@ from cpmt.m1_rollout import (
     generate_fixed_candidates,
     generate_m1_paired_rollout_split,
     generate_m1_rollout_split,
+    materialize_rollout_step,
     records_sha256,
 )
 
@@ -199,7 +200,7 @@ class TestM1ContinuousRollout(unittest.TestCase):
             {"QUARANTINE_KEEP_CURRENT_WORLD"},
         )
 
-    def test_counterfactual_reference_construction_failure_is_quarantined(self):
+    def test_counterfactual_branch_failure_is_quarantined(self):
         _, audits, _ = generate_m1_paired_rollout_split(
             self.config, "train", paired_groups=1, start_group_index=4,
         )
@@ -210,15 +211,19 @@ class TestM1ContinuousRollout(unittest.TestCase):
             for energy in step["candidate_energies"]
             for failure in energy["counterfactual_rollout_failures"]
         ]
-        self.assertTrue(any(
-            failure["failure"].get("phase")
-            == "REFERENCE_PROGRAM_CONSTRUCTION"
-            for failure in failures
-        ))
+        self.assertTrue(failures)
         self.assertEqual(
             {failure["fallback"] for failure in failures},
             {"QUARANTINE_KEEP_CURRENT_WORLD"},
         )
+        # The sibling's contrast policy must now be reconstructed directly.
+        # Treating that branch as the primary policy used to manufacture a
+        # REFERENCE_PROGRAM_CONSTRUCTION failure at this deterministic group.
+        self.assertFalse(any(
+            failure["failure"].get("phase")
+            == "REFERENCE_PROGRAM_CONSTRUCTION"
+            for failure in failures
+        ))
 
     def test_oracle_replay_rebuilds_on_previous_predicted_state(self):
         sequence = self.audit[0]
@@ -391,6 +396,48 @@ class TestM1PairedContinuousRollout(unittest.TestCase):
                 replay["states"][-1]["graph_hash"],
                 sequence["final_reference_graph_hash"],
             )
+
+    def test_each_sibling_hindsight_follows_its_actual_branch_policy(self):
+        for sequence in self.audit:
+            for step in sequence["steps"]:
+                reference_index = step["reference_program_index"]
+                self.assertEqual(
+                    step["candidate_energies"][reference_index]["future_raw"],
+                    0.0,
+                )
+
+    def test_delayed_revisit_exposes_one_executable_compensating_relink(self):
+        siblings = self._groups()
+        for left, right in siblings.values():
+            for sequence, other in ((left, right), (right, left)):
+                pivot = sequence["ambiguity_pivot_step"]
+                revisit = sequence["recovery_revisit_step"]
+                wrong_base = other["steps"][pivot]["executed_candidates"][
+                    other["steps"][pivot]["reference_program_index"]
+                ]["post_graph"]
+                materialized = materialize_rollout_step(
+                    sequence, wrong_base, revisit,
+                )
+                match = materialized["online"]["current_regions"][0][
+                    "appearance_match"
+                ]
+                self.assertEqual(match["best_match_recorded_elsewhere"], 1.0)
+                self.assertEqual(match["best_match_recorded_here"], 0.0)
+                self.assertIn(
+                    "delayed_contradiction_revisit",
+                    materialized["online"]["action_history"],
+                )
+                target = sequence["steps"][revisit]["executed_candidates"][
+                    sequence["steps"][revisit]["reference_program_index"]
+                ]["post_graph"]
+                corrections = [
+                    item for item in materialized["executed_candidates"]
+                    if item["legal"] and graph_error_counts(
+                        item["post_graph"], target, wrong_base, [],
+                    )["active_graph_correct"] == 1.0
+                ]
+                self.assertEqual(len(corrections), 1)
+                self.assertEqual(corrections[0]["template"], "RELINK")
 
     def test_paired_online_boundary_split_isolation_and_determinism(self):
         for online in self.online:

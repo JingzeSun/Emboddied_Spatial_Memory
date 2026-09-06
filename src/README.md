@@ -46,9 +46,13 @@ src/
 
 性能说明：`hashing.clone_json` 按精确类型分派而非 isinstance 链，`executor.validate_graph` 以一次索引取代按 id 重复扫描的 O(n²) 检查，`m1_data._state_tokens` 对未变化的 node/edge 视图缓存其规范序列化。三者都保持输出逐字节不变（已用 paired rollout 的 SHA-256 对照验证），合计约 1.27× 加速；生成阶段的并行见 `scripts/generate_m1_parallel.py`。
 
-能量与目标表征说明：协议声明六个能量项，实测只有 `future`/`edit`/`growth` 在变化——`now` 因 `_program_header` 给每个候选都写入 `evidence_refs` 而恒为 0；`collateral`（权重 10.0）因 `_check_protected` 把任何触碰受保护 ID 的操作判为非法而与 illegal mask 冗余，同样恒为 0。两项现在都如实计算而非硬编码，且每次生成都在 summary 的 `energy_term_variation` 里报告各项的非零比例与不同取值数。future 训练目标可在 `hashed_tokens` 与 `world_latent` 间切换：前者精确但无度量结构，后者是同一状态的连续描述子，用于让 E 成为公平基线。
+能量与目标表征说明：协议声明六个能量项，当前 `now` 仍弱，`collateral` 又因 protected 检查与 illegal mask 高度冗余；生成 summary 会在 `energy_term_variation` 如实报告每项的非零比例与不同取值数，不能把六个字段写成六个都有效的信号。M1-v2 的 C/E 不再以 `hashed_tokens` 或 `world_latent` 回归作为主要未来目标，而是预测候选所声明的具体未来关系；旧向量仍留作兼容审计和表征对照，不参与结构化 E 的候选评分。
 
-`m1_metrics.py` 解决“图错误和统计比较不能只剩一个 accuracy”的问题：输入是预测/参考/base graphs 或真实连续的状态序列，输出分别为 post-graph correctness、错误开放事实、缺失事实、false birth、collateral、invalid，以及保持 paired group 的分层 bootstrap CI。例如预测多建一个带错误位置边的对象，会同时记一个 false birth 和一个 contamination，不能互相抵消。rollout 接口要求恰好 20 个有顺序的状态，拒绝把 20 个独立样本冒充 self-rollout；`m1_af_rollout.py` 已在非正式 smoke 中用该接口评估 A–F，但正式 paired bootstrap/gate 仍未运行。
+`m1_metrics.py` 解决“当前世界是否正确、证据档案是否一致和历史是否无错不能混成一个 accuracy”的问题：输入是预测/参考/base graphs 或真实连续状态序列，输出分别包含 active semantic correctness、open-memory support correctness、history exactness、contamination、missing fact、false birth、collateral、recovery 及保持 paired group 的 bootstrap CI。例如错误 RELINK 的旧边版本被关闭、正确位置重新打开后，active 可恢复为 1，但 history 仍为 0，且原错误步不会被回填。它不物理删除 provenance，也不把后来修正说成当时已正确；rollout 接口仍要求恰好 20 个有序状态。
+
+`m1_af_rollout.py` 的候选作用域未来关系目标解决“E 只在正确候选上训练，却要给全部 16 个候选排序”的问题：输入是截至当前的 online 特征、每个候选程序声明的操作和实际后来到达的 reference future，输出是每个候选在三个未来时刻上的关系真假标签与 mask。例如 RELINK 候选提出“杯子位于水槽”，目标只查询真实未来是否存在该关系，不执行这个候选。它不是 post-world embedding、不是 transaction label，也不允许借用 executor 给出的 illegal/collateral；E 最终选中的单个事务仍须交给共享 executor 执行。
+
+同模块的有界恢复与 observable-information oracle 解决“错误是否有在线改正机会，以及可观察信息下最多能做到多少”的问题：输入是 exact ambiguity 后真正到达的一次相关可见证据和原固定 K=16 proposer，输出是补偿候选、active/history 分离结果与恢复耗时；例如遮挡时选错位置，下一步看清后以新 RELINK 关闭错边并打开正确边。oracle 在不可辨 sibling 上强制做同一个确定性选择，不能靠两次独立猜测抬高上限。它不是可部署模型、不是提前读取未来，也不是 Khronos 式全图异步 reconciliation。
 
 当前 executor 实现 C00–C11 所需的 NOOP、BIND、BIRTH、REACTIVATE、RELINK、RETRACT、SPLIT、MERGE 和 COMPOSITE:REPLACE。pending manager 实现 D-023 的低置信度 gate、低权重证据、有效观察机会、可检索归档、重新激活与带 provenance 的消费。它仍是确定性支持机制，不是 CTL 模型。
 

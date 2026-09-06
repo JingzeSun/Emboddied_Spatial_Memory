@@ -17,7 +17,6 @@ from __future__ import annotations
 import argparse
 import json
 import platform
-import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -25,14 +24,7 @@ from pathlib import Path
 PROJECT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT / "src"))
 
-
-def _git(*args: str) -> str | None:
-    try:
-        return subprocess.run(("git", *args), cwd=PROJECT, capture_output=True,
-                              text=True, check=True, timeout=20).stdout.strip()
-    except Exception:
-        return None
-
+from cpmt.run_provenance import capture_run_provenance  # noqa: E402
 
 def _environment() -> dict[str, object]:
     info: dict[str, object] = {
@@ -90,24 +82,32 @@ def main() -> int:
         (p.stem, _read(p)) for p in (out_dir / "causal").glob("*.json")
     ) if (out_dir / "causal").is_dir() else []
 
+    af_report = _read(out_dir / "af_report.json")
+    generation_manifests = {
+        path.name: _read(path)
+        for path in sorted(out_dir.glob("*.manifest.json"))
+    }
     report = {
+        "schema_version": "cpmt-exported-run-report-v2",
         "name": args.name,
         "exported_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "note": args.note,
         "formal_run": False,
         "test_generated": False,
-        "provenance": {
-            "git_commit": _git("rev-parse", "HEAD"),
-            "git_branch": _git("rev-parse", "--abbrev-ref", "HEAD"),
-            "git_dirty": bool(_git("status", "--porcelain")),
-            "environment": _environment(),
+        "pipeline_provenance": {
+            "generation": {
+                name: (value or {}).get("generation_provenance")
+                for name, value in generation_manifests.items()
+            },
+            "training": (af_report or {}).get("training_provenance"),
+            "export": capture_run_provenance(
+                PROJECT, component="result_export", entrypoint=Path(__file__),
+            ),
+            "export_environment": _environment(),
         },
-        "af_report": _read(out_dir / "af_report.json"),
+        "af_report": af_report,
         "teacher_forced_only": _read(out_dir / "af_teacher_forced.json"),
-        "generation_manifests": {
-            path.name: _read(path)
-            for path in sorted(out_dir.glob("*.manifest.json"))
-        },
+        "generation_manifests": generation_manifests,
         "causal_per_seed": {name: value for name, value in causal_rows},
         # Anything else a runner dropped here, so a new report does not need a
         # change in this script to travel back with the rest of the run.
@@ -128,9 +128,16 @@ def main() -> int:
                       encoding="utf-8")
     size = target.stat().st_size
     print(f"wrote {target}  ({size/1024:.1f} KB)")
-    if report["provenance"]["git_dirty"]:
-        print("WARNING: the working tree was dirty, so this report may not "
-              "correspond to the recorded commit")
+    stages = [
+        *(value for value in report["pipeline_provenance"]["generation"].values()),
+        report["pipeline_provenance"]["training"],
+        report["pipeline_provenance"]["export"],
+    ]
+    if any(stage is None for stage in stages):
+        print("WARNING: at least one pipeline stage has no provenance record")
+    if any((stage or {}).get("git_dirty") for stage in stages):
+        print("WARNING: at least one pipeline stage used a dirty working tree; "
+              "HEAD plus diff/source hashes were retained")
     complete = (report["af_report"] or {}).get("causal_complete")
     if complete is False:
         print("NOTE: causal_complete is false, so the protocol's primary "

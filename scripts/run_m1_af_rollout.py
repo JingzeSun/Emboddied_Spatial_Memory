@@ -26,6 +26,7 @@ from cpmt.m1_af_rollout import (
 )
 from cpmt.m1_protocol import load_and_validate, protocol_sha256
 from cpmt.m1_rollout import records_sha256
+from cpmt.run_provenance import capture_run_provenance
 
 
 def write_json(path: Path, value) -> None:
@@ -78,8 +79,8 @@ def main() -> None:
         "test_access": False,
         "methods": list(METHODS),
         "paired_groups": config["paired_groups"],
-        "train_decisions": config["paired_groups"]["train"] * 2 * 20,
-        "validation_decisions": config["paired_groups"]["validation"] * 2 * 20,
+        "train_decisions": config["paired_groups"]["train"] * 2 * 21,
+        "validation_decisions": config["paired_groups"]["validation"] * 2 * 21,
         "seeds": config["seeds"],
         "device": str(device),
         "candidate_count": int(hard_config["candidates"]["budget_k"]),
@@ -111,6 +112,10 @@ def main() -> None:
                 "executor": sha256(PROJECT / "src" / "cpmt" / "executor.py"),
                 "runner": sha256(Path(__file__)),
             },
+            "stage_provenance": capture_run_provenance(
+                PROJECT, component="m1_smoke_generation_training_evaluation",
+                entrypoint=Path(__file__),
+            ),
         },
         "data": {
             "dataset_version": hard_config["data"]["dataset_version"],
@@ -134,7 +139,7 @@ def main() -> None:
             "pose_source": "actual-executed-reference-sequence",
         },
         "future_use_policy": "hindsight_train_only",
-        "decision_refs": ["D-030", "D-031"],
+        "decision_refs": ["D-030", "D-031", "D-034"],
         "timing": {"started_at": started.isoformat()},
         "failures": [],
         "metrics_ref": "metrics.json",

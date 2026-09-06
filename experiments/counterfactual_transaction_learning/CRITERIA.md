@@ -2,7 +2,7 @@
 
 ## Primary
 
-1. post-execution graph correctness；
+1. final active-graph correctness（完整 history exactness 另列诊断）；
 2. long-horizon memory contamination；
 3. false birth / node growth；
 4. protected or collateral violation。
@@ -24,7 +24,7 @@
 - split/merge correctness；
 - edge/topology F1；
 - provenance/invariant survival；
-- recovery time、storage growth、p50/p95 latency。
+- recovery-within-3、recovery time、unresolved active error、storage growth、p50/p95 latency。
 
 ## Label efficiency
 
@@ -32,6 +32,6 @@
 
 ## Statistics
 
-formal evaluation 至少 5 seeds，case-level paired bootstrap 95% CI；A vs C/E 报 effect 与 CI。每个 template 报 support 和 numerator/denominator，失败 run 不丢弃。
+formal evaluation 至少 5 seeds，以 `paired_group_id` 为不可拆分单位做 10,000 次 paired bootstrap 95% CI；A vs C/E 报 effect、CI 与 Holm 校正。每个 template 报 support 和 numerator/denominator，失败 run 不丢弃。
 
 数值 gate 在 test 前冻结。safety/invariant 优先于 aggregate accuracy，禁止 composite score 掩盖 protected violations。
