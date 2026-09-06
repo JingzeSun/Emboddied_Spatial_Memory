@@ -29,6 +29,8 @@
   "future": {
     "source": "actual_executed_trajectory",
     "primary_horizon": 3,
+    "target_representation": "world_latent",
+    "target_representation_options": ["world_latent", "hashed_tokens"],
     "reported_ablations": [1, 5],
     "variable_horizon_mask": "score_only_observed_future_steps_with_valid_pose_and_visibility",
     "episode_tail": "retain_with_mask_if_at_least_one_future_step; zero-future cases_are_online_only_diagnostics",

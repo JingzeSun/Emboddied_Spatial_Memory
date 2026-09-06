@@ -55,6 +55,10 @@ def validate_m1_protocol(config: Mapping[str, Any]) -> None:
              "per-family test support is too small")
 
     future = config["future"]
+    # A hashed target has no metric structure, so a learned outcome scorer
+    # regressing towards it is a weakened baseline rather than a fair one.
+    _require(future["target_representation"] in future["target_representation_options"],
+             "future target representation must be one of the declared options")
     _require(future["source"] == "actual_executed_trajectory",
              "future poses must come from the executed trajectory")
     _require(future["primary_horizon"] > 0, "future horizon must be positive")

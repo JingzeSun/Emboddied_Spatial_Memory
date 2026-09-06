@@ -59,6 +59,11 @@ def _decision_state(graph: Mapping[str, Any]) -> str:
     })
 
 
+def protected_signature(graph: Mapping[str, Any], protected_ids: Iterable[str]) -> str:
+    """Canonical view of the protected subgraph, shared with the generator."""
+    return _protected_signature(graph, set(str(value) for value in protected_ids))
+
+
 def _protected_signature(graph: Mapping[str, Any], protected_ids: set[str]) -> str:
     nodes = [
         node for node in graph["nodes"]

@@ -51,6 +51,8 @@ run_ctl_dev.py 用于 D-027 授权的 train/validation 开发训练，支持 --h
 
 `run_m1_trainability.py` 使用 `configs/m1_trainability_ladder.json` 做可学习性审计。输入是相同 train/validation paired 数据、全标签容量曲线和 4→10 group、60→1000 step 的受控点，输出是容量上限差、A–F 指标、candidate/teacher/amortization 误差分解、资源和完整重试记录。K=16 的非正式开发结果仅记录在 `EXECUTE.md`；旧 candidate=3 数值不能与之混报。它明确 `formal_run=false`、`test_access=false`，不是 checkpoint 选择或正式结论。
 
+`compare_future_target.py` 解决“说 E 变强了必须是测量而非断言”的问题：其他一切固定，只切换 `future.target_representation`（`hashed_tokens` 对 `world_latent`），输出两种表征下 E 的 teacher 准确率、E/A 的学生准确率与 `A−E` 的变化。生成结果按表征缓存，中断可续。若 E 不因此变强，说明哈希目标不是它的限制、`A_vs_E` 可照原样成立；若变强，A 对 E 的优势必须对着更强的基线重新汇报。
+
 `export_run_report.py` 解决“在租用机器上跑出的数字带不回仓库分析”的问题：输入是一个 run 目录，输出是 `results/<name>.json` 一份 KB 量级的汇总，含 af_report、生成 manifest、逐 seed 的 causal 行，以及可查证的 provenance——git commit 与是否 dirty、协议 sha256、dataset version、Python/NumPy/PyTorch 版本、主机名与核数。数组仍留在 `outputs/` 且不进 Git。工作区 dirty 或 causal 未跑满时会显式警告，避免把不可比或缺主指标的结果当成结论。
 
 `run_m1_af_scaled.py` 解决“现有 A–F runner 自己按 smoke config 定规模并内部生成数据，接不上按协议规模预生成的数组”的问题：输入是 `generate_m1_parallel.py` 产出的 train/validation npz、validation 的 paired-group 数与 seed 列表，输出是 teacher-forced 分层准确率、A 对 C/E/B 的主对比及区间是否重叠、20-step causal self-rollout 的主指标族，以及一份带 `formal_run=false` 的 `af_report.json`。causal 阶段每个 (方法, seed) 单独落盘，中断后只补未完成的组合。它会校验 `--validation-groups` 与传入数组的决策数一致，避免用错规模的 audit 做回放；并在 causal 未跑满时显式打印“协议主指标未建立”。它不改协议、不训练 backbone，也不触碰封存的 test。

@@ -36,6 +36,10 @@
 - [x] 在扩 K=16 前完成全标签容量、4→10 paired groups、60→1000 updates 的可学习性阶梯；分开记录 candidate miss、teacher error 与 amortization error。
 - [x] 实现去重、确定性的 K=16 candidate generator，并完成 reference 参数解耦和 C00–C08 validation 开发 coverage 审计。
 - [ ] 在不进入 M2、不动 test 的前提下，先审查 K=16 小规模诊断中 A 的高 amortization error、确认在线特征/目标/优化是否存在可复现实质缺口；只有重建 M1 的正式 C00–C11 数据与多 seed 方案后，才可能运行正式 A–F、paired bootstrap 并申请 test 解封。
+- [ ] **(1) 强化 E 的 outcome scorer 目标空间。** 当前 future target 是 32 维哈希桶，哈希破坏了度量结构——相近的世界映射到无关的桶，MSE 因此几乎不携带信号。DINO-WM (ICML 2025) 在有几何意义的 latent 空间做 action-conditioned 预测。E 是 `A_vs_E` 的对照方，弱 E 会让该对比被判为稻草人；把 E 做强符合本项目利益。
+- [ ] **(2) 调 commit/quarantine 策略。** `commit_probability=0.45`、`margin_threshold=0.05` 是开发烟测随手填的，从未调过。不确定时隔离而非提交，可能显著改善 20-step final correctness。须对所有方法用同一组参数、在 validation 的调参半区上选择、在报告半区上汇报。对应 watch list 中的 "Move First, Commit Later"，投稿前需复核该 preprint。
+- [ ] **(3) 如实计算 `now` 与 `collateral` 能量项并报告哪些项真正在变化。** 协议声明 6 项，实际只有 `future`/`edit`/`growth` 变化：`now` 因 `_program_header` 给每个候选都写入 `evidence_refs` 而恒为 0；`collateral`（权重 10.0，全场最大）硬编码为 0，且因 `_check_protected` 把任何触碰受保护 ID 的操作判为非法而与 illegal mask 结构性冗余。须让实现与声明一致，并记录该冗余，避免审稿人误以为有 6 个有效项。
+- [ ] **(4) 引入回溯修正机制（M2+，需先立决策）。** executor 已支持 `CLOSE_NODE_VERSION`、`predecessor_ids`、`valid_to`，但 20-step rollout 一路向前、从不修正早期错误编辑，`final=0.2833` 主要由不可恢复的早期错误主导。Khronos 的 fragment reconciliation 与 HSGM 的 hierarchical revision 是同类机制。这是新方法而非修复，不得在 M1 内悄悄加入。
 
 具体试点（开发接口已执行，尚非正式实验）：
 

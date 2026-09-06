@@ -46,6 +46,8 @@ src/
 
 性能说明：`hashing.clone_json` 按精确类型分派而非 isinstance 链，`executor.validate_graph` 以一次索引取代按 id 重复扫描的 O(n²) 检查，`m1_data._state_tokens` 对未变化的 node/edge 视图缓存其规范序列化。三者都保持输出逐字节不变（已用 paired rollout 的 SHA-256 对照验证），合计约 1.27× 加速；生成阶段的并行见 `scripts/generate_m1_parallel.py`。
 
+能量与目标表征说明：协议声明六个能量项，实测只有 `future`/`edit`/`growth` 在变化——`now` 因 `_program_header` 给每个候选都写入 `evidence_refs` 而恒为 0；`collateral`（权重 10.0）因 `_check_protected` 把任何触碰受保护 ID 的操作判为非法而与 illegal mask 冗余，同样恒为 0。两项现在都如实计算而非硬编码，且每次生成都在 summary 的 `energy_term_variation` 里报告各项的非零比例与不同取值数。future 训练目标可在 `hashed_tokens` 与 `world_latent` 间切换：前者精确但无度量结构，后者是同一状态的连续描述子，用于让 E 成为公平基线。
+
 `m1_metrics.py` 解决“图错误和统计比较不能只剩一个 accuracy”的问题：输入是预测/参考/base graphs 或真实连续的状态序列，输出分别为 post-graph correctness、错误开放事实、缺失事实、false birth、collateral、invalid，以及保持 paired group 的分层 bootstrap CI。例如预测多建一个带错误位置边的对象，会同时记一个 false birth 和一个 contamination，不能互相抵消。rollout 接口要求恰好 20 个有顺序的状态，拒绝把 20 个独立样本冒充 self-rollout；`m1_af_rollout.py` 已在非正式 smoke 中用该接口评估 A–F，但正式 paired bootstrap/gate 仍未运行。
 
 当前 executor 实现 C00–C11 所需的 NOOP、BIND、BIRTH、REACTIVATE、RELINK、RETRACT、SPLIT、MERGE 和 COMPOSITE:REPLACE。pending manager 实现 D-023 的低置信度 gate、低权重证据、有效观察机会、可检索归档、重新激活与带 provenance 的消费。它仍是确定性支持机制，不是 CTL 模型。

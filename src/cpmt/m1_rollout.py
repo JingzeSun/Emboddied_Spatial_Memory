@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import math
 from functools import lru_cache
+from collections import Counter
 from typing import Any, Iterable, Mapping, Sequence
 
 import numpy as np
@@ -20,6 +21,7 @@ from .equivalence import canonicalize_memory_state
 from .executor import execute_transaction, validate_graph
 from .hashing import canonical_json, clone_json, seal_graph
 from .m1_data import project_structural_observation, validate_online_payload
+from .m1_metrics import protected_signature
 from .m1_protocol import validate_m1_protocol
 
 
@@ -1012,6 +1014,58 @@ def _rank_by_observation(
     )
 
 
+WORLD_LATENT_DIM = 3 * APPEARANCE_DIM + 12
+
+
+def project_world_latent(
+    graph: Mapping[str, Any], pose_bucket: int, latents: Mapping[str, Any],
+) -> list[float]:
+    """Continuous, pose-conditioned descriptor of one world state.
+
+    The hashed structural projection is exact but has no metric structure: two
+    worlds differing by one edge land in unrelated buckets, so a regression
+    target built from it carries almost no gradient about *how* wrong a
+    prediction is.  This keeps the same information in a space where distance
+    means something, which is what makes a learned outcome scorer a fair
+    baseline rather than a strawman.  It is still an analytic projector, not a
+    Projective Node Orbit.
+    """
+    pose_gate = np.asarray(
+        appearance_of(f"pose-bucket:{int(pose_bucket)}", latents), dtype=np.float64,
+    )
+    open_nodes = [n for n in graph["nodes"] if n.get("valid_to") is None]
+    open_edges = [e for e in graph["edges"] if e.get("valid_to") is None]
+    placement = np.zeros(APPEARANCE_DIM, dtype=np.float64)
+    for edge in open_edges:
+        if edge["relation"] != "located_at":
+            continue
+        placement += (appearance_of(str(edge["source"]), latents)
+                      * appearance_of(str(edge["target"]), latents))
+    placement *= pose_gate
+    confirmed, dormant = [], []
+    for node in open_nodes:
+        if node["node_type"] != "entity":
+            continue
+        (dormant if node["lifecycle"] == "dormant" else confirmed).append(
+            appearance_of(str(node["node_id"]), latents))
+    values: list[float] = list(placement)
+    for group in (confirmed, dormant):
+        mean = (np.mean(np.asarray(group, dtype=np.float64), axis=0)
+                if group else np.zeros(APPEARANCE_DIM))
+        values.extend(float(item) for item in mean)
+    counts = Counter(n["node_type"] for n in open_nodes)
+    values.extend(counts[name] / 32.0 for name in
+                  ("entity", "surface", "place", "chart", "region"))
+    lifecycles = Counter(n["lifecycle"] for n in graph["nodes"])
+    values.extend(lifecycles[name] / 32.0 for name in
+                  ("candidate", "confirmed", "dormant", "retracted", "alias"))
+    values.extend([len(open_edges) / 32.0,
+                   (len(graph["edges"]) - len(open_edges)) / 32.0])
+    if len(values) != WORLD_LATENT_DIM:
+        raise AssertionError("world latent changed size without a constant update")
+    return [round(float(item), 8) for item in values]
+
+
 def _observation_spec(
     template: str, reference_spec: Mapping[str, Any], event: Mapping[str, Any],
     topology: Mapping[str, Any], *, ambiguous: bool,
@@ -1995,6 +2049,12 @@ def _generate_sequence(
                 "pose_bucket": pose,
                 "pose_valid": True,
                 "visibility_valid": True,
+                # Same state in two representations: the exact token set the
+                # executed teacher compares, and a continuous descriptor a
+                # learned scorer can actually regress towards.
+                "world_latent": project_world_latent(
+                    reference_states[target_index], pose,
+                    topology["semantic_latents"]),
                 "structural_observation": sorted(
                     project_structural_observation(reference_states[target_index], pose)
                 ),
@@ -2020,12 +2080,26 @@ def _generate_sequence(
             illegal = float(not execution["legal"])
             future = scaled_futures[index]
             branch_hashes, branch_failures = traces[index]
+            protected = [str(event["protected_id"])]
+            # Both terms are computed rather than assumed, and the split summary
+            # reports how often each one is nonzero.  In this fixture both are
+            # structurally zero: _program_header gives every candidate an
+            # evidence_ref, and the executor raises ProtectedMutationError for
+            # any operation touching a protected id, so a collateral violation
+            # cannot survive as a legal candidate.  Leaving them hardcoded would
+            # imply the protocol's six energy terms are all active when three
+            # are, with the largest weight (collateral, 10.0) on a constant.
+            post = execution["post_graph"]
+            collateral = 0.0 if post is None else float(
+                protected_signature(post, protected)
+                != protected_signature(material["online"]["prior_world"], protected)
+            )
             terms = {
                 "now": 0.0 if program.get("evidence_refs") else 1.0,
                 "future": future,
                 "edit": float(program.get("declared_edit_cost", 0.0)),
                 "growth": float(program.get("declared_growth_cost", 0.0)),
-                "collateral": 0.0,
+                "collateral": collateral,
                 "illegal": illegal,
             }
             total = None if illegal else sum(
@@ -2256,6 +2330,24 @@ def generate_m1_paired_rollout_split(
         "template_counts_per_primary_sequence": ROLLOUT_TEMPLATE_COUNTS,
         "exact_ambiguous_decision_pairs": paired_groups,
         # Surfaced so a rise in teacher disagreement cannot pass unnoticed.
+        # Which declared energy terms actually vary. A term that is always the
+        # same value carries no signal no matter what weight the protocol gives
+        # it, and the reader should not have to guess which ones those are.
+        "energy_term_variation": {
+            term: {
+                "nonzero_fraction": float(np.mean([
+                    float(energy[term]) != 0.0
+                    for audit in audits for step in audit["steps"]
+                    for energy in step["candidate_energies"]
+                ])),
+                "distinct_values": len({
+                    round(float(energy[term]), 9)
+                    for audit in audits for step in audit["steps"]
+                    for energy in step["candidate_energies"]
+                }),
+            }
+            for term in ("now", "future", "edit", "growth", "collateral", "illegal")
+        },
         "teacher_reference_agreement": float(np.mean([
             bool(step["teacher_winner_matches_reference"])
             for audit in audits for step in audit["steps"]

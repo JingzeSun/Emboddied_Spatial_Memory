@@ -244,10 +244,32 @@ def online_feature_vector(online: Mapping[str, Any]) -> np.ndarray:
 
 def future_feature_vector(
     future_trace: Sequence[Mapping[str, Any]], *, horizon: int, bins: int,
+    representation: str = "hashed_tokens",
 ) -> np.ndarray:
-    """Hash audit-only structural observations into a fixed training target."""
+    """Build the training-time future target from audit-only observations.
+
+    ``hashed_tokens`` buckets the exact structural tokens, which is faithful but
+    metric-free: two worlds differing by one edge land in unrelated buckets, so
+    the regression error says almost nothing about how wrong a prediction is.
+    ``world_latent`` keeps the same state in a continuous space where distance
+    is meaningful, so a learned scorer is a fair baseline instead of one
+    handicapped by its target.
+    """
     if len(future_trace) > horizon:
         raise ValueError("future trace exceeds configured horizon")
+    if representation == "world_latent":
+        width = len(future_trace[0]["world_latent"]) if future_trace else 0
+        if width == 0:
+            raise ValueError("future trace carries no world_latent")
+        values = np.zeros((horizon, width), dtype=np.float32)
+        mask = np.zeros(horizon, dtype=np.float32)
+        for time_index, observation in enumerate(future_trace):
+            values[time_index] = np.asarray(
+                observation["world_latent"], dtype=np.float32)
+            mask[time_index] = 1.0
+        return np.concatenate([values.reshape(-1), mask])
+    if representation != "hashed_tokens":
+        raise ValueError(f"unsupported future target representation {representation!r}")
     values = np.zeros((horizon, bins), dtype=np.float32)
     mask = np.zeros(horizon, dtype=np.float32)
     for time_index, observation in enumerate(future_trace):
@@ -320,6 +342,7 @@ def rollout_learning_arrays_from_audits(
     weights = hard_config["energy"]["weights"]
     temperature = float(hard_config["energy"]["temperature"])
     horizon = int(hard_config["future"]["primary_horizon"])
+    representation = str(hard_config["future"]["target_representation"])
     for audit in audits:
         for step in audit["steps"]:
             candidate_metrics = []
@@ -346,6 +369,7 @@ def rollout_learning_arrays_from_audits(
                 "x": online_feature_vector(step["online"]),
                 "future": future_feature_vector(
                     step["future_trace"], horizon=horizon, bins=future_hash_bins,
+                    representation=representation,
                 ),
                 "poses": np.asarray([
                     item["pose_bucket"] / 7.0 for item in step["future_trace"]
