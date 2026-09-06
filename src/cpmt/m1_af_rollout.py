@@ -98,6 +98,7 @@ def resolve_af_smoke_config(
     if not config["seeds"] or len(set(config["seeds"])) != len(config["seeds"]):
         raise ValueError("A-F smoke seeds must be nonempty and unique")
     config["candidate_feature_dim"] = CANDIDATE_FEATURE_DIM
+    config["standardize_future_term"] = True
     config["horizon"] = int(hard_config["future"]["primary_horizon"])
     config["temperature"] = float(hard_config["energy"]["temperature"])
     config["energy_weights"] = deepcopy(hard_config["energy"]["weights"])

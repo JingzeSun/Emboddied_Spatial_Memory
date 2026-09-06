@@ -1727,6 +1727,31 @@ def _execute_candidates(
     return records
 
 
+def standardize_future_term(values: Sequence[float | None]) -> list[float]:
+    """Put a future term on a unit per-decision scale across candidates.
+
+    The energy weights are shared by every method, but each method measures
+    "future" in its own units: executed hindsight counts differing structural
+    tokens (tens to hundreds) while a learned scorer reports a mean squared
+    error over hashed features (about 1e-3).  One weight applied to both makes
+    the learned term numerically irrelevant, so the method that predicts the
+    future collapses onto the method that ignores it.  Dividing by the spread
+    across this decision's candidates makes the weight mean the same thing for
+    both, and preserves the ordering and the relative gaps within a decision.
+    """
+    present = [float(value) for value in values if value is not None]
+    if not present:
+        return [0.0 for _ in values]
+    centre = float(np.mean(present))
+    spread = float(np.std(present))
+    if spread == 0.0:
+        return [0.0 if value is None else 0.0 for value in values]
+    return [
+        0.0 if value is None else (float(value) - centre) / spread
+        for value in values
+    ]
+
+
 def _teacher_posterior(
     energies: Sequence[Mapping[str, Any]], temperature: float,
 ) -> list[float]:
@@ -1974,20 +1999,27 @@ def _generate_sequence(
                     project_structural_observation(reference_states[target_index], pose)
                 ),
             })
-        energies = []
-        for execution, program in zip(
-            material["executions"], material["programs"], strict=True,
-        ):
-            illegal = float(not execution["legal"])
+        raw_futures: list[float | None] = []
+        traces: list[tuple[list[str], list[dict[str, Any]]]] = []
+        for execution in material["executions"]:
             if execution["post_graph"] is None:
-                future = 0.0
-                branch_hashes: list[str] = []
-                branch_failures: list[dict[str, Any]] = []
-            else:
-                future, branch_hashes, branch_failures = _counterfactual_trace(
-                    execution["post_graph"], events, reference_states,
-                    step_index, hindsight_horizon,
-                )
+                raw_futures.append(None)
+                traces.append(([], []))
+                continue
+            value, branch_hashes, branch_failures = _counterfactual_trace(
+                execution["post_graph"], events, reference_states,
+                step_index, hindsight_horizon,
+            )
+            raw_futures.append(value)
+            traces.append((branch_hashes, branch_failures))
+        scaled_futures = standardize_future_term(raw_futures)
+        energies = []
+        for index, (execution, program) in enumerate(zip(
+            material["executions"], material["programs"], strict=True,
+        )):
+            illegal = float(not execution["legal"])
+            future = scaled_futures[index]
+            branch_hashes, branch_failures = traces[index]
             terms = {
                 "now": 0.0 if program.get("evidence_refs") else 1.0,
                 "future": future,
@@ -2001,6 +2033,7 @@ def _generate_sequence(
             )
             energies.append({
                 **terms,
+                "future_raw": raw_futures[index],
                 "total": total,
                 "masked": bool(illegal),
                 "counterfactual_rollout_hashes": branch_hashes,

@@ -153,14 +153,28 @@ class TestM1ContinuousRollout(unittest.TestCase):
         )
         for step in sequence["steps"]:
             reference_index = step["reference_program_index"]
-            self.assertEqual(step["candidate_energies"][reference_index]["future"], 0.0)
+            energies = step["candidate_energies"]
+            # The executed reference reproduces the actual future exactly, so
+            # its raw future error is zero. The scored "future" is standardised
+            # across candidates so the shared energy weight means the same for
+            # every method, which makes the best candidate negative, not zero.
+            self.assertEqual(energies[reference_index]["future_raw"], 0.0)
+            legal_future = [
+                energy["future"] for candidate, energy in zip(
+                    step["executed_candidates"], energies, strict=True,
+                )
+                if candidate["legal"]
+            ]
+            self.assertEqual(
+                energies[reference_index]["future"], min(legal_future),
+            )
             self.assertEqual(step["teacher_winner_index"], reference_index)
             self.assertTrue(all(
                 item["source"] == "actual_executed_reference_sequence"
                 for item in step["future_trace"]
             ))
             self.assertTrue(any(
-                energy["future"] > 0
+                energy["future_raw"] > 0
                 for candidate, energy in zip(
                     step["executed_candidates"],
                     step["candidate_energies"],

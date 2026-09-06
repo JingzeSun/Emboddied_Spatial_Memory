@@ -6,7 +6,7 @@
 
 > **2026-09-06 更新（LOG-014）：** 固定 K=16 的 train/validation 开发阶梯已完成：400 个 train、160 个 validation 决策，未生成或读取 test。全标签 direct capacity 在可观察上限 97.5%（可辨识部分 100%）达到 97.5%，但 10% 标签下的 A=`CPMT-CTL Core` 在四个受控点只有 6.25%–9.38% teacher-forced accuracy、所有点 20-step final post-graph correctness 均为 0%。A 的 executed-hindsight teacher error 为 0，amortization error 为 90.63%–93.75%，所以目前失败点在“学生从在线输入摊销教师后验”，不是 candidate miss 或教师执行。A–E 的同参数量比较也尚未显示 CTL 优势；F=100% 只是将正确候选程序直接交给执行器的 oracle 上界。该 run 是一次非正式、单 seed、小规模开发诊断，不是 M1 gate，不能扩展到 M2、PNO 或 test。
 
-最后更新：2026-09-06，LOG-015 修复 K=16 在线接口并把模板决策改为证据驱动，正式 M1 gate 未运行、未生成 test。
+最后更新：2026-09-06，LOG-016 A–F 预检与 future 项量纲修正，正式 A–F 与 M1 gate 均未运行、未生成 test。
 
 | 项目 | 当前事实 |
 |---|---|
@@ -312,6 +312,18 @@
 - 失败/局限：早期单 seed 消融中出现 “both zeroed” 61.3% 高于 “evidence zeroed” 48.1% 这一信息论上不可能的倒挂；五 seed 复核给出 evidence-zeroed 0.4738 ± 0.0315，与当初的 48.1% 一致，确认该倒挂是单次采样噪声而非数据缺陷。本轮只是全标签容量诊断，**尚未运行 A–F 方法比较**，因此不构成任何关于 CTL 的结论。`evidence_novel` 由生成器随传感器报告声明，尚未由每节点视角覆盖算出，是本轮证据通道里派生程度最弱的一项。参数检索仍近乎 oracle：审计新增实测字段 `reference_argument_decided_by_query` 取代原先的布尔断言。测试方面初次为 10/11，`test_m1_rollout` 取不到干净整模块运行；机器降频稳定后复跑，立刻暴露出一条被硬件损坏掩盖的真实缺陷——审计已把 `reference_arguments_independent` 布尔换成实测的 `reference_argument_decided_by_query`，但测试仍断言旧键（`KeyError`）。修正断言后该模块 15/15 通过，全套 11/11 全部一次通过。
 - 环境/硬件定位：本机三天内三次内核态蓝屏（`0x3B`×2、`0x1E`，均为 `0xc0000005`），同类堆损坏在 Windows CPython 与 WSL Linux 下均出现，14 天零 WHEA。内存为单条 Samsung DDR5-5600 SODIMM，跑在 JEDEC 标称频率与 1.1V，无 XMP 可关；Windows 内存诊断标准模式通过、扩展模式在第一项 21% 处挂死无结论。改用本仓库自身负载做量化探针（`tmp/stability_probe.py`，同 seed 须给出同一 digest，可捕获不崩溃的静默损坏）：Performance 模式 12 次中 10 次失败（83%），把 Armoury Crate 切到 Silent 后频率由约 3509MHz 降至约 3133MHz（−11%），16 次中仅 1 次失败（6%），Fisher 精确检验 p≈2e-5。**内存不会因 CPU 降频而好转，故定位为处理器封装侧而非该 DIMM**，与 i9-14900HX 所属 Intel 13/14 代 Vmin shift 退化一致；微码已是 `0x12B`（只阻止继续退化，不修复已退化硅），BIOS 为 G614JIR.320 (2024-10-24)。注意 Windows 电源计划的“最大处理器状态”在本机无效（实测限到 40% 频率不变），只有 Armoury Crate 能控频。后续所有实验一律在 Silent 模式下运行，6% 残余失败率意味着 digest 校验必须保留；**LOG-014 全部数值、以及本轮在切换前产生的数值，均须在 Silent 模式下复核。**
 - 结论/下一步：LOG-014 的 6.25% 不能作为 CTL 的负面证据——当时的任务两半都是查表，接口也拿不到必要信息。修复后 0.886 与 0.975 上限之间才有可比空间。`test_m1_rollout` 已补齐，全套 11/11 一次通过。下一步是在 Silent 模式下运行多 seed 的 A–F 比较（A 对 C、A 对 E），这是 D-031 的主对比；仍不开放 test、不进入 PNO/M2、不产生云费用。
+
+<a id="log-016"></a>
+### LOG-016—2026-09-06—A–F 预检：修正 future 项量纲，E 此前不可测（非正式）
+
+- 类型/状态：M1-development，A–F 正式比较**尚未运行**；`formal_run=false`、`test_access=false`。本条只记录预检与一处实现缺陷的修正。
+- 目的/白话：在跑 A–F 之前确认两件事——修好接口后还有没有方法间可比较的空间，以及 A–E 的控制是否真的只差监督信号。结论是空间有，但 `A_vs_E` 这个协议登记的主对比在修正前测不出任何东西。
+- 空间与基线调优（10% 标签、五 seed、teacher-forced，validation 160 决策）：B 只用标签得 0.6013 ± 0.0294，可观测上限 0.9750，空间充足。为避免稻草人，对 C/D/E 各扫 `auxiliary/distillation_weight ∈ {0.1,0.3,1.0,3.0}` 并在 validation 上取各自最优（这偏袒基线，A 固定用协议的 1.0）：C 在四个权重下都是 0.610–0.624，与 B 的 0.601 基本持平，说明**把 future 当辅助回归项对候选选择贡献接近零**；D/E 在任何权重下都停在 0.19–0.24，远低于 B。
+- 发现的实现缺陷：D/E 低于 B 的原因是 teacher 本身只有约 17% 正确，蒸馏把学生带偏。进一步核查发现 **E 的 teacher 与 D 逐位相同**，且把 scorer 的标签量从 40 加到 1600、步数从 1000 加到 3000 后数值**完全不变**。量纲测量给出根因：候选间 penalty 项跨度 0.700，而 `weights["future"] × 学到的 future MSE` 跨度只有 0.0032（比值 4.58e-03），直接验证 `argmax decided by penalties alone: True`。共享的 `energy.weights["future"]` 同时作用于两种量纲——A 的 future 是结构 token 计数（几十到几百），E 的是 32 维哈希特征上的 MSE（约 1e-3）——因此 E 静默退化成 D。这不是数据或训练不足，正式规模也修不好。
+- 改变/固定：新增 `standardize_future_term()`，在每次决策内对候选做 z 标准化后再乘权重，使权重对两种方法含义一致；保留原始值于 `future_raw` 供审计。A 的能量组装改为先收集全部候选 future 再标准化。E 的 teacher 同样处理，但以 `standardize_future_term` 配置项门控，仅在 K=16 rollout 路径开启，旧 K=3 `ctl_dev` 路径行为不变。
+- 修正后结果：E 与 D 的 argmax 一致率由 1.0000 降至 0.1330，E 不再是 D。A 的 teacher 仍为 1.0000（标准化保序，且其 future 项跨度仍约为 penalty 项的 3–5 倍，从 219 倍失衡变为合理量级差）。学生（10% 标签、五 seed）：A 0.8287 ± 0.0109、C 0.6162 ± 0.0318、B 0.6013 ± 0.0294、E 0.2175 ± 0.0269、D 0.2062 ± 0.0168。**A 由修正前的 0.8650 降至 0.8287，该降幅是修正量纲失衡的直接代价，说明此前 A 的部分优势来自 future 项的量级压制；正式报告一律使用修正后数字。**
+- E 的规模曲线（修正后重跑，三 seed；修正前该曲线全程恒定，未测到任何东西）：teacher validation 由 40 标签的 0.1469 升至 800 标签的 0.2958，二十倍数据带来 +0.1490。但 train 同期升至 0.52，train/val 差距持续扩大，1600 标签加到 3000 步 val 反而下降。**瓶颈是过拟合而非数据量**。
+- 结论/下一步：`A_vs_C` 可信且是实质结论。`A_vs_E` **在开发规模下不得报告**——修正前它测的是被淹没的 teacher，修正后仍是"完美 teacher 对不泛化的 scorer"，且 dev 规模低估 E 约一倍。运行正式 A–F 之前，E 的 scorer 需要正则化或容量调整，否则该对比是稻草人。测试：全套 11/11 一次通过（同时修正了测试统计脚本把 `NOPASS` 计为 `PASS` 的缺陷）。仍不开放 test、不进入 PNO/M2、不产生云费用。
 
 ## 后续条目模板
 

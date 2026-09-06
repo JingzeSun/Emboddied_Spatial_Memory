@@ -182,11 +182,17 @@ def train_outcome_scorer(train: dict, validation: dict, config: dict, seed: int,
         optimizer.step()
         if step == 0 or (step + 1) % 50 == 0:
             trace.append(dict(step=step + 1, future_mse=float(loss.detach().cpu())))
+    # The shared energy weights are calibrated for a future term measured in
+    # differing structural tokens.  This scorer reports a mean squared error
+    # over hashed features, which is about three orders of magnitude smaller, so
+    # without rescaling the penalty term decides the argmax and this method
+    # silently becomes execute_current_only.
+    normalize = bool(config.get("standardize_future_term", False))
     model.eval()
     teachers = {}
     with torch.no_grad():
         for name, data in (("train", train), ("validation", validation)):
-            energies = []
+            errors = []
             for candidate in range(num_candidates):
                 column = torch.full(
                     (len(data["x"]),), candidate, dtype=torch.long, device=device,
@@ -194,10 +200,17 @@ def train_outcome_scorer(train: dict, validation: dict, config: dict, seed: int,
                 prediction = model(
                     data["x"], descriptors_for(data, None, column), data["poses"],
                 )
-                future_mse = ((prediction - data["future"]) ** 2).mean(-1)
-                energies.append(config["energy_weights"]["future"] * future_mse
-                                + data["penalties"][:, candidate])
-            energy = torch.stack(energies, dim=1)
+                errors.append(((prediction - data["future"]) ** 2).mean(-1))
+            future_mse = torch.stack(errors, dim=1)
+            if normalize:
+                centre = future_mse.mean(dim=1, keepdim=True)
+                spread = future_mse.std(dim=1, keepdim=True)
+                future_mse = torch.where(
+                    spread > 0, (future_mse - centre) / spread,
+                    torch.zeros_like(future_mse),
+                )
+            energy = (config["energy_weights"]["future"] * future_mse
+                      + data["penalties"])
             teachers[name] = torch.softmax(-energy / config["temperature"], dim=1).detach()
     return model, teachers, trace
 
