@@ -109,6 +109,14 @@ def main() -> int:
             for path in sorted(out_dir.glob("*.manifest.json"))
         },
         "causal_per_seed": {name: value for name, value in causal_rows},
+        # Anything else a runner dropped here, so a new report does not need a
+        # change in this script to travel back with the rest of the run.
+        "other_reports": {
+            path.name: _read(path)
+            for path in sorted(out_dir.glob("*.json"))
+            if path.name not in {"af_report.json", "af_teacher_forced.json"}
+            and not path.name.endswith(".manifest.json")
+        },
     }
     if report["af_report"] is None and report["teacher_forced_only"] is None:
         print(f"no af_report.json or af_teacher_forced.json under {out_dir}")
