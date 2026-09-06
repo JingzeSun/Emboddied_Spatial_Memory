@@ -69,8 +69,11 @@ D 诊断 future evidence；F 分解 candidate coverage 与 scorer error。
 - A–E 共用 online encoder、输入字段、学生更新数和 split，训练参数量差异不超过 10%；每方法最多 6 次 validation trial。C 的 future auxiliary weight 可在 {0.1,1,10} 内独立选。E 的额外 scorer 参数、更新、耗时和显存单列，不能藏进共同预算。F 是 K=16 内 oracle upper bound，不是可部署模型。
 - E 在目标构造和候选评分时都不执行非参考候选：它把每个 online candidate program 解析为“未来该关系/生命周期/证据关联是否成立”的查询，并从实际 reference future 为全部 K=16 产生稠密监督；不得读取 candidate post-world 或复用 executor 给出的 illegal/collateral。C 使用同一结构化关系目标作 direct auxiliary。评价 persistent memory 时，A–E 最终选中的单个事务仍由同一个 executor 应用。
 - validation paired groups 按 `paired_group_id` 的固定 SHA-256 奇偶拆成 calibration/report。只在 calibration 半区的 online rows 从登记网格选一组 A–E 共用的 commit probability/margin；report 半区只汇报，不能选阈值。counterfactual recovery training rows 只用于学习，不参与 gate calibration 或 report 分母。
+- S1/S2 的 target/scorer 选择只使用 train 内按 paired-group 哈希固定留出的 inner-dev；整个 sibling 及其 recovery row 同进同出。它不消耗 validation trial，也不能用于最终效果报告。LOG-022 已查看过的 4-group validation report 只保留为历史开发结果，不再冒充 S5 的首次确认；S5 必须在 S4 登记后使用与它不重叠的新 validation confirmation groups。
 
 白话：公平协议解决“CPMT 是否只是比对照多拿了答案或算力”的问题。输入是同一批 online 信息、同一候选语言和可核对的训练预算，输出是 A–F 可比的预测、运行成本与失败。例如 E 可以预测“RELINK 声称的新位置未来是否成立”，但不能先执行 16 个候选再偷看哪些合法；最终决定落地时仍和其他方法一样调用 executor。它不等于强迫网络结构一模一样，也不等于把 F 的 oracle 成绩当实际系统成绩。
+
+白话：train/inner-dev（训练内开发留出）解决“需要调优化，但又不该提前消费 validation report”的问题。输入是原 train paired groups，输出是一组拟合 group 和一组只做 target/scorer 选择的留出 group；例如一对相同 online 输入、不同 future 的 siblings 必须一起被留出。它不是 test、不是正式 validation 成绩，也不允许把 inner-dev 调到最好后宣称方法已经泛化。
 
 白话：structured relation-target oracle（结构化关系目标上限）解决“E 没学好，究竟是目标没有信息，还是 scorer 没学会”的问题。输入是每个候选从程序文本提出的关系查询、真实 reference future 给出的查询真假和 E 可用的声明成本，输出是在完美知道这些关系真假时的候选排序准确率。例如，若 RELINK 声称“杯子未来在水槽”且真实 future 支持它，oracle 给该查询零不一致；错误位置得到不一致。它不执行 candidate post-world、不是可部署模型、不是 F 的 transaction oracle，也不能作为 E 的正式成绩。
 

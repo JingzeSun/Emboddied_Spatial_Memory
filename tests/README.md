@@ -80,6 +80,8 @@ fixture/unit test 通过只证明合同实现，不证明 CTL 有效。
 
 M1-v2 新增反例覆盖：E 的 scorer penalty 不得含 executor 产生的百万非法惩罚；paired sibling 必须沿各自真实 primary/contrast future 前进；错误 RELINK 的下一次相关可见观察必须出现唯一可执行补偿；active world 恢复后 history 仍保持不一致；commit 网格必须含 K=16 未校准 softmax 可达到的阈值，且 report groups 不参与选择；observable oracle 对不可辨 sibling 必须共用同一决策；target-only 诊断必须保留并列集合而不是依赖首索引，E 的 masked BCE 与候选排序必须分开报告，relation oracle 的合法性只能事后审计并拆成合法/非法 wrong-template，causal 汇总必须保留未受 rollout 漂移影响的 initial-step invalid rate。输入是小型受控 graph/arrays，输出是通过或明确失败；这些反例不是模型效果、恢复率或正式统计结论。
 
+S1/S2 还检查 train/inner-dev 的哈希分区不拆任何 paired sibling 或 recovery rows，专用 scorer runner 不读取 validation/test、不训练 online student、不校准 gate。白话说，它输入完整 train arrays，输出互斥的拟合集和开发留出集；通过只证明没有数据串组，不证明选出的 scorer 能在 validation 或 causal rollout 上工作。
+
 运行：
 
 ```powershell

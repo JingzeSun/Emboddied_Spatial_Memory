@@ -29,6 +29,7 @@ from cpmt.m1_af_rollout import (
     selection_error_decomposition,
     structured_relation_oracle_probabilities,
     structured_relation_target_only_diagnostics,
+    training_inner_dev_mask,
 )
 
 
@@ -153,6 +154,14 @@ class TestM1AFCausalRollout(unittest.TestCase):
             self.assertEqual(len(recovery), 1)
             self.assertEqual(recovery[0]["reference_template"], "RELINK")
             self.assertTrue(recovery[0]["teacher_winner_matches_reference"])
+
+    def test_train_inner_dev_partition_keeps_complete_groups(self):
+        mask = training_inner_dev_mask(self.train)
+        self.assertTrue(mask.any())
+        self.assertTrue((~mask).any())
+        for group in np.unique(self.train["group"]):
+            assignments = mask[self.train["group"] == group]
+            self.assertEqual(len(set(assignments.tolist())), 1)
 
     def test_executed_teacher_covers_reference_and_illegal_is_masked(self):
         self.assertTrue(np.all(self.train["pstar"].argmax(axis=1) == self.train["y"]))

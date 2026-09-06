@@ -136,6 +136,31 @@ def paired_group_is_calibration(paired_group_id: str) -> bool:
     return int.from_bytes(digest[:8], "big") % 2 == 0
 
 
+def training_inner_dev_mask(
+    arrays: Mapping[str, np.ndarray],
+) -> np.ndarray:
+    """Hold out a stable fifth of train groups for development diagnostics.
+
+    The canonical procedural paired-group name is reconstructed from the
+    stored group index and hashed. Every row in a sibling pair, including its
+    recovery examples, receives the same assignment. Validation is never read.
+    """
+    groups = np.asarray(arrays["group"], dtype=np.int64)
+    if groups.ndim != 1 or len(groups) == 0:
+        raise ValueError("train inner-dev partition requires a nonempty group vector")
+    assignments = {}
+    for group in np.unique(groups):
+        paired_group_id = f"rollout-pair:train:{int(group):06d}"
+        digest = hashlib.sha256(paired_group_id.encode("utf-8")).digest()
+        assignments[int(group)] = int.from_bytes(digest[:8], "big") % 5 == 0
+    mask = np.asarray([assignments[int(group)] for group in groups], dtype=bool)
+    if not mask.any() or mask.all():
+        raise ValueError(
+            "train inner-dev hash partition needs both fitting and held-out groups"
+        )
+    return mask
+
+
 def _argument_features(
     program: Mapping[str, Any], queries: Mapping[str, np.ndarray],
 ) -> list[float]:
