@@ -125,6 +125,10 @@ class TestM1Metrics(unittest.TestCase):
         self.assertEqual(metrics["first_active_error_step"], 4.0)
         self.assertEqual(metrics["time_to_first_recovery"], 1.0)
         self.assertEqual(metrics["recovered_within_window"], 1.0)
+        self.assertEqual(metrics["any_first_error_time_to_recovery"], 1.0)
+        self.assertEqual(
+            metrics["any_first_error_recovered_within_window"], 1.0,
+        )
         self.assertEqual(metrics["final_active_graph_correctness"], 1.0)
         self.assertEqual(metrics["final_history_exactness"], 0.0)
 

@@ -114,7 +114,7 @@
     "self_rollout_horizon_decisions": 20,
     "history_exactness": "reported_diagnostic_not_primary_deployable_final",
     "recovery_window_decisions": 3,
-    "bootstrap": {"unit": "paired_group_id", "resamples": 10000, "confidence": 0.95, "stratify_by": "scenario_family"},
+    "bootstrap": {"unit": "paired_group_id", "resamples": 10000, "confidence": 0.95, "stratify_by": "single_mixed_registered_20_step_endpoint_stratum"},
     "multiple_comparisons": {"procedure": "Holm-Bonferroni", "familywise_alpha": 0.05, "family": ["A_vs_C", "A_vs_E"]},
     "meaningful_effect": {
       "active_graph_correctness_absolute": 0.03,

@@ -167,6 +167,11 @@ def validate_m1_protocol(config: Mapping[str, Any]) -> None:
              "recovery metric window must match the registered lookback")
     _require(evaluation["bootstrap"]["unit"] == "paired_group_id",
              "bootstrap must preserve paired groups")
+    _require(
+        evaluation["bootstrap"]["stratify_by"]
+        == "single_mixed_registered_20_step_endpoint_stratum",
+        "20-step sequence endpoints form one mixed registered bootstrap stratum",
+    )
     _require(evaluation["bootstrap"]["confidence"] == 0.95,
              "confidence level must be 95%")
     _require(evaluation["invariant_violation_gate"] == 0,

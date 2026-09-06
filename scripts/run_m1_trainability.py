@@ -676,7 +676,7 @@ def main() -> None:
                 f"capacity steps={steps} accuracy="
                 f"{point['teacher_forced']['accuracy']:.4f} "
                 f"identifiable={point['teacher_forced']['identifiable_accuracy']:.4f} "
-                f"final={point['causal_rollout']['final_post_graph_correctness']:.4f}",
+                f"final_active={point['causal_rollout']['final_active_graph_correctness']:.4f}",
                 flush=True,
             )
 
@@ -684,6 +684,18 @@ def main() -> None:
             groups = int(spec["train_paired_groups"])
             steps = int(spec["student_steps"])
             name = f"g{groups}_s{steps}"
+            available_groups = sorted(set(
+                int(value) for value in train_arrays["group"]
+            ))
+            point_mask = np.isin(
+                train_arrays["group"], available_groups[:groups],
+            )
+            all_recovery_rows = np.asarray(
+                train_arrays.get(
+                    "recovery", np.zeros(len(train_arrays["y"])),
+                ),
+                dtype=bool,
+            )
             method_results = {}
             for method in METHODS:
                 method_result, attempts = run_isolated_method_point(
@@ -711,9 +723,13 @@ def main() -> None:
                 "results": method_results,
                 "error_decomposition": error_decomposition(method_results),
                 "train_paired_groups": groups,
-                "train_decisions": groups * 2 * 20,
+                "train_decisions": int(np.sum(point_mask & ~all_recovery_rows)),
+                "train_recovery_examples": int(np.sum(
+                    point_mask & all_recovery_rows
+                )),
+                "train_learning_rows": int(np.sum(point_mask)),
                 "labelled_fraction": float(
-                    train_arrays["labelled"][train_arrays["group"] < groups].mean()
+                    train_arrays["labelled"][point_mask].mean()
                 ),
                 "execution_mode": "one_isolated_process_per_method",
             }
@@ -723,7 +739,7 @@ def main() -> None:
             a = point["results"]["cpmt_ctl_core"]
             print(
                 f"curve {name}: A_accuracy={a['teacher_forced']['accuracy']:.4f} "
-                f"A_final={a['causal_rollout']['final_post_graph_correctness']:.4f}",
+                f"A_final_active={a['causal_rollout']['final_active_graph_correctness']:.4f}",
                 flush=True,
             )
 

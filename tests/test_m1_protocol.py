@@ -44,6 +44,12 @@ class TestM1Protocol(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "paired groups"):
             validate_m1_protocol(changed)
 
+    def test_endpoint_bootstrap_does_not_claim_family_strata(self):
+        changed = deepcopy(self.config)
+        changed["evaluation"]["bootstrap"]["stratify_by"] = "scenario_family"
+        with self.assertRaisesRegex(ValueError, "one mixed registered"):
+            validate_m1_protocol(changed)
+
     def test_e_cannot_execute_candidate_branches(self):
         changed = deepcopy(self.config)
         changed["future"]["no_execution_candidate_execution"] = (

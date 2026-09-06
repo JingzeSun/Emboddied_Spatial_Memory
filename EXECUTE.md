@@ -4,7 +4,7 @@
 
 ## 当前看板
 
-> **2026-09-06 更新（LOG-019）：** D-034 已把活动协议升级为尚未重新冻结的 M1-v2：修正 paired sibling 的 future policy，加入可观测信息上限、一步后可见证据触发的局部补偿事务、active/open-memory/history 分层指标、validation calibration/report 隔离、E 的全 K=16 候选结构化关系监督，以及生成/训练/导出三阶段 provenance。2 train groups、4 validation groups、2 updates 的接线 smoke 中，observable oracle 在 report 半区达到 final active=1.0、mean active=0.975、recovery-within-3=1.0、time-to-recovery=1，而 final history=0.5，说明“当前世界恢复但旧错仍留档”的指标语义和候选路径已闭环；该小跑不能说明任何学习方法有效。test 仍未生成或读取，PNO 与全局 reconciliation 仍在 M2。
+> **2026-09-06 更新（LOG-020）：** M1-v2 首次 AutoDL 全测在提交 `f0d3357` 上运行 139 tests、失败 3 项；根因均为 recovery row 加入后 trainability 仍硬编码每 sibling 20 行，不是方法结果。现已把 row accounting 改为数据推导，同时收紧 counterfactual reference 的状态签名唯一匹配、拆分 designed-pivot 与 arbitrary-first-error recovery、修正结构化 protected-touch，并把 endpoint bootstrap 明示为单一 mixed stratum。变更仅通过本地静态检查，等待干净提交上服务器全测；通过前不生成正式 v4 数据。test 仍未生成或读取，PNO 与全局 reconciliation 仍在 M2。
 
 最后更新：2026-09-06，LOG-019 M1-v2 接口与最小 causal smoke 完成；服务器完整验证/训练尚未运行，正式 M1 gate 未运行、未生成 test。
 
@@ -376,6 +376,15 @@
 - 测试/修复：相关 43-test 运行曾有 1 个旧断言失败；原因是该断言依赖“contrast sibling 被错误地按 primary future 前进”制造的伪 `REFERENCE_PROGRAM_CONSTRUCTION` 失败。改为正确分支 policy 后，测试现在验证真实 causal branch failure 仍统一 `QUARANTINE_KEEP_CURRENT_WORLD`，且伪构造失败不再出现。随后相关 2 tests 与不触发重生成的 18 个协议/指标/provenance tests 通过。用户提示本机 CPU 负载可能导致内存损坏，因此未在本机重跑全套；完整测试和足量训练改到 AutoDL。
 - 失败/局限：`now` 仍弱，`collateral` 仍与 protected/illegal 高度冗余；learned A–E 尚未证明能利用恢复例；validation 小样本的 hash 半区不保证正好 50/50；全局多对象 reconciliation 未实现。当前所有结果均来自 dirty 开发树，不能作为可复现实验数字。
 - 结论/下一步：可观测可达范围不再被 history-exact 错误压成零，E 的 15/16 候选零监督缺口也已从实现上关闭。下一步先提交干净树并推送，由 AutoDL `git pull` 后运行全套测试、足量 train/validation A–F、共享 commit calibration、20-step causal rollout 与 10,000 次 paired bootstrap；通过后才考虑重新冻结 M1-v2。仍不开放 test、不进入 PNO/M2。
+
+<a id="log-020"></a>
+### LOG-020—2026-09-06—M1-v2 首次服务器全测失败与预生成修正
+
+- 类型/状态：需要保留的服务器失败 run 与后续工程修正；不是方法负结果，不是 M1 gate，`test_access=false`。
+- 失败证据：AutoDL 在提交 `f0d3357` 上执行 `python -m unittest discover -s tests -v`，139 个测试中 3 个失败，均来自 `test_m1_trainability`。生成数据已由每个 sibling 20 个 online decision 加 1 个 recovery training example 变为 21 行，但 `subset_paired_array_groups` 仍断言 `paired_groups*2*20`；2 groups 实际 84 行、每 sibling 21 行、recovery 4 行，`relation_targets=(84,16,18)`。因此失败是行数合同没有同步，不是训练或 CTL 数字；昂贵 v4 数据尚未生成。
+- 修正：paired subset 与各 runner 的 online/recovery/learning-row 计数改为从数组和注册 horizon 推导，不再新增 `21` 魔数；counterfactual future 不再按 template 取第一个合法候选，而是重建 `primary`/`contrast_noop` 策略并按 canonical post-state signature 唯一匹配，未来若修改 pivot contrast 必须显式扩展；E 的 protected-touch penalty 改为复用 executor 同语义的结构化 ID 提取，不再在 operations repr 中做子串搜索；endpoint bootstrap 配置明示为一层 mixed 20-step stratum。
+- 指标澄清：注册的 `recovery_rate_within_window` 只以“pivot 后状态恰为另一个 sibling reference 所覆盖的错误状态”为 eligible；另报 designed trigger、out-of-scope pivot error，以及 arbitrary-first-error recovery，避免早期无关错误占掉恢复分母。当前 fixture 只验证预设重访到达后的改正，不声称学会触发检测，也不声称覆盖其余 14 个 pivot 候选。
+- 验证：本地仅做变更文件 `py_compile`、JSON 解析与 `git diff --check`，均通过；因本机原生稳定性风险，未运行全量测试。下一步把干净提交推到 AutoDL 重跑全套；通过前不生成正式 v4 arrays。A 的 `10×active/1×open-memory` 对 `1×/1×` 消融保留为全测通过后的低成本预注册消融，不在这次故障修复里改变主 teacher。
 
 ## 后续条目模板
 

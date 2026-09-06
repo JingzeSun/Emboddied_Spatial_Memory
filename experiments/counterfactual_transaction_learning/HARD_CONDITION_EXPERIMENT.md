@@ -76,7 +76,7 @@ D 诊断 future evidence；F 分解 candidate coverage 与 scorer error。
 
 - 主标签比例为 10%；0/1/10/100% 全部报告。正式优化种子固定为 7/19/31/43/59。
 - 主指标定义为：active-graph correctness（执行所选事务后，当前开放的语义世界与 reference 一致，不因已关闭的旧错永久判零）；memory contamination（20 个 self-rollout 决策后，每 100 次决策仍开放的错误事实数）；false-birth growth（同一时点每 100 次决策多出的 open entity 数）；collateral violation（每 100 次决策对 protected/无关状态的修改数）。open-memory support correctness、完整 history exactness、contamination AUC、recovery-within-3、time-to-recovery 与 unresolved error 同时报告；history 不是主部署终态。
-- primary contrasts 只有 A–C 和 A–E。按 `paired_group_id`、family 分层做 10,000 次 paired bootstrap，95% CI；两项主对比用 Holm–Bonferroni 控制 family-wise alpha=0.05。
+- primary contrasts 只有 A–C 和 A–E。每个 20-step endpoint 都横跨同一套 mixed registered schedule，因此 endpoint bootstrap 只有一个明示的 stratum；以 `paired_group_id` 为不可拆分单位做 10,000 次 paired bootstrap、95% CI。两项主对比用 Holm–Bonferroni 控制 family-wise alpha=0.05；逐步 family 结果另报，但不冒充 endpoint 分层。
 - 每个主对比都必须同时达到：graph correctness 绝对提高至少 3 percentage points；contamination 每 100 决策绝对减少至少 2，且校正后 95% CI 排除零。false-birth 每 100 决策非劣 margin=1，collateral margin=0.5；executor invariant violation 必须为 0。
 - candidate coverage@16 必须总体至少 98%、每 family 至少 95%；未通过时暂停 scorer/CTL 结论并归为 candidate miss。结果分别报告 candidate miss、teacher error、amortization error、rollout error。
 - A 对 C 或 E 的 CI 若排除了上述最小有意义收益，则停止扩模型，不进入 M2；不得靠 PNO、更大数据或第二任务找正结果。
@@ -85,7 +85,7 @@ D 诊断 future evidence；F 分解 candidate coverage 与 scorer error。
 
 白话：safety 非劣门槛解决“主指标变好是否靠制造更多错误节点或误改旁边对象”的问题。输入是 false-birth、collateral 和 invariant 计数，输出是是否仍在允许差值内。例如正确率提高但每 100 次多建 3 个假对象会失败。它不是额外奖励项，安全失败不能被平均准确率盖住。
 
-白话：有界恢复指标解决“后来看到反证时，系统能否把当前记忆修回来”。输入是歧义点的错误分支、下一次相关可见证据和固定 K=16 候选，输出是是否在三步内恢复、用了几步、最终 active world 是否正确，以及旧错误版本是否仍保留。例如先把杯子连到桌面、下一步看清它在水槽，可以关闭错边再 RELINK；原歧义步仍算错，history 也仍记录旧版本。它不是 retroactive credit，不是删除 provenance，也不是 Khronos 式全局慢路径。
+白话：有界恢复指标解决“后来看到反证时，系统能否把当前记忆修回来”。输入是歧义点落入**另一个 sibling reference 所代表的那条已构造错误状态**、下一次相关可见证据和固定 K=16 候选；输出分成 designed-pivot recovery-within-3、触发率、恢复耗时，以及另报的 arbitrary-first-error recovery。比如先在 RELINK/NOOP 二选一处走错，下一步看清杯子位置后关闭错边再 RELINK；原歧义步仍算错，history 也仍记录旧版本。若模型选了其余 14 个候选或更早已把世界改坏，该次错误会进入 out-of-scope 计数，不混入设计恢复分母。`delayed_contradiction_revisit` 只由生成器供评测定位且不进入 feature values，所以这里验证的是“给定这次预设重访后能否改正”，不是学习触发检测、retroactive credit、删除 provenance，也不是 Khronos 式全局慢路径。
 
 ### 计算边界
 

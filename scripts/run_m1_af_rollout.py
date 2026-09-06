@@ -73,14 +73,23 @@ def main() -> None:
     device = torch.device(config["device"])
     if device.type == "cuda" and not torch.cuda.is_available():
         raise RuntimeError("configured CUDA is unavailable; use CPU for this smoke")
+    horizon = int(hard_config["evaluation"]["self_rollout_horizon_decisions"])
+    train_sequences = int(config["paired_groups"]["train"]) * 2
+    validation_sequences = int(config["paired_groups"]["validation"]) * 2
     preview = {
         "protocol": config["protocol"],
         "formal_run": False,
         "test_access": False,
         "methods": list(METHODS),
         "paired_groups": config["paired_groups"],
-        "train_decisions": config["paired_groups"]["train"] * 2 * 21,
-        "validation_decisions": config["paired_groups"]["validation"] * 2 * 21,
+        "train_decisions": train_sequences * horizon,
+        "train_recovery_examples": train_sequences,
+        "train_learning_rows": train_sequences * horizon + train_sequences,
+        "validation_decisions": validation_sequences * horizon,
+        "validation_recovery_examples": validation_sequences,
+        "validation_learning_rows": (
+            validation_sequences * horizon + validation_sequences
+        ),
         "seeds": config["seeds"],
         "device": str(device),
         "candidate_count": int(hard_config["candidates"]["budget_k"]),

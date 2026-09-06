@@ -111,7 +111,9 @@ def main() -> None:
         )
         result.update({
             "train_paired_groups": args.train_paired_groups,
-            "train_decisions": int(len(point_train["y"])),
+            "train_decisions": int((~point_train["recovery"]).sum()),
+            "train_recovery_examples": int(point_train["recovery"].sum()),
+            "train_learning_rows": int(len(point_train["y"])),
             "labelled_fraction": float(point_train["labelled"].mean()),
         })
         write_json(output / "details.json", details)

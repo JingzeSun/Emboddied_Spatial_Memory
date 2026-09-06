@@ -97,7 +97,9 @@ def main() -> None:
         "method": args.method,
         "student_steps": args.student_steps,
         "train_paired_groups": args.train_paired_groups,
-        "train_decisions": int(len(train["y"])),
+        "train_decisions": int((~train["recovery"]).sum()),
+        "train_recovery_examples": int(train["recovery"].sum()),
+        "train_learning_rows": int(len(train["y"])),
         "labelled_fraction": float(train["labelled"].mean()),
     })
     write_json(output / "details.json", details)

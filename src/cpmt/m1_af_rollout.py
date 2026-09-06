@@ -26,6 +26,7 @@ from .dev_learning import (
     tensors,
 )
 from .hashing import clone_json
+from .executor import operation_argument_ids
 from .m1_metrics import graph_error_counts, rollout_graph_metrics
 from .m1_rollout import (
     CANDIDATE_BUDGET,
@@ -518,10 +519,14 @@ def rollout_learning_arrays_from_audits(
                     ))
             no_execution_penalties = []
             for program in step["online"]["candidate_programs"]:
-                operation_text = str(program["operations"])
-                protected_touch = float(any(
-                    str(protected_id) in operation_text
-                    for protected_id in program.get("protected_ids", [])
+                touched_ids = set().union(*(
+                    operation_argument_ids(operation.get("arguments", {}))
+                    for operation in program["operations"]
+                )) if program["operations"] else set()
+                protected_touch = float(bool(
+                    touched_ids & {
+                        str(value) for value in program.get("protected_ids", [])
+                    }
                 ))
                 no_execution_penalties.append(
                     float(weights["now"])
@@ -656,12 +661,17 @@ def selection_error_decomposition(
         return float(selected.mean()) if len(selected) else None
 
     return {
-        "accuracy": mean(correct),
+        "accuracy": mean(correct, online_chain),
+        "all_learning_rows_accuracy": mean(correct),
         "online_chain_accuracy": mean(correct, online_chain),
-        "template_accuracy": mean(template_correct),
-        "argument_accuracy_given_template": mean(correct, template_correct),
-        "template_error": mean(~template_correct),
-        "argument_error_with_correct_template": mean(template_correct & ~correct),
+        "template_accuracy": mean(template_correct, online_chain),
+        "argument_accuracy_given_template": mean(
+            correct, template_correct & online_chain,
+        ),
+        "template_error": mean(~template_correct, online_chain),
+        "argument_error_with_correct_template": mean(
+            template_correct & ~correct, online_chain,
+        ),
         "identifiable_accuracy": mean(correct, identifiable),
         "ambiguous_accuracy": mean(correct, ambiguous),
         "recovery_accuracy": mean(correct, recovery),
@@ -778,15 +788,25 @@ def _teacher_forced_metrics(
 ) -> dict[str, float]:
     target = data["y"].detach().cpu().numpy()
     ambiguous = data["ambiguous"].detach().cpu().numpy()
+    recovery = (
+        data["recovery"].detach().cpu().numpy()
+        if "recovery" in data else np.zeros(len(target), dtype=bool)
+    )
+    online = ~recovery
+    identifiable = ~ambiguous & online
     predicted = probabilities.argmax(axis=1)
     teacher_choice = teacher.argmax(dim=1).detach().cpu().numpy()
+    def mean(values: np.ndarray, mask: np.ndarray) -> float:
+        return float(np.mean(values[mask])) if mask.any() else 0.0
     return {
-        "accuracy": float(np.mean(predicted == target)),
-        "ambiguous_accuracy": float(np.mean(predicted[ambiguous] == target[ambiguous])),
-        "identifiable_accuracy": float(np.mean(predicted[~ambiguous] == target[~ambiguous])),
-        "teacher_accuracy": float(np.mean(teacher_choice == target)),
-        "amortization_error": float(np.mean(predicted != teacher_choice)),
-        "mean_confidence": float(np.mean(probabilities.max(axis=1))),
+        "accuracy": mean(predicted == target, online),
+        "all_learning_rows_accuracy": float(np.mean(predicted == target)),
+        "ambiguous_accuracy": mean(predicted == target, ambiguous),
+        "identifiable_accuracy": mean(predicted == target, identifiable),
+        "recovery_accuracy": mean(predicted == target, recovery),
+        "teacher_accuracy": mean(teacher_choice == target, online),
+        "amortization_error": mean(predicted != teacher_choice, online),
+        "mean_confidence": mean(probabilities.max(axis=1), online),
     }
 
 
@@ -802,6 +822,20 @@ def causal_rollout_metrics(
     sequence_rows = []
     forward_latencies_ms = []
     ambiguity_choice_by_group: dict[str, int] = {}
+    pivot_reference_hashes_by_group: dict[str, set[str]] = {}
+    for audit in audits:
+        pivot = int(audit["ambiguity_pivot_step"])
+        stored = audit["steps"][pivot]
+        reference = stored["executed_candidates"][
+            stored["reference_program_index"]
+        ]
+        pivot_reference_hashes_by_group.setdefault(
+            str(audit["paired_group_id"]), set(),
+        ).add(str(reference["post_graph_hash"]))
+    if any(len(hashes) != 2 for hashes in pivot_reference_hashes_by_group.values()):
+        raise ValueError(
+            "bounded recovery evaluation requires two distinct paired pivot states"
+        )
     if observable_oracle:
         references_by_group: dict[str, set[int]] = {}
         for audit in audits:
@@ -930,6 +964,31 @@ def causal_rollout_metrics(
         metrics = rollout_graph_metrics(
             predicted_states, references, base_states, protected, horizon=20,
         )
+        pivot_step = int(audit["ambiguity_pivot_step"])
+        revisit_step = int(audit["recovery_revisit_step"])
+        pivot_choice = choices[pivot_step]
+        revisit_choice = choices[revisit_step]
+        reference_pivot_hash = str(
+            audit["steps"][pivot_step]["executed_candidates"][
+                audit["steps"][pivot_step]["reference_program_index"]
+            ]["post_graph_hash"]
+        )
+        covered_wrong_hashes = (
+            pivot_reference_hashes_by_group[str(audit["paired_group_id"])]
+            - {reference_pivot_hash}
+        )
+        pivot_error = pivot_choice["active_correct_after"] == 0.0
+        bounded_pivot_error = bool(
+            pivot_error
+            and str(pivot_choice["post_graph_hash"]) in covered_wrong_hashes
+        )
+        designed_triggered = bool(
+            bounded_pivot_error and revisit_choice["revisit_triggered"]
+        )
+        designed_success = bool(
+            designed_triggered
+            and revisit_choice["active_correct_after"] == 1.0
+        )
         metrics.update({
             "paired_group_id": audit["paired_group_id"],
             "sequence_id": audit["sequence_id"],
@@ -979,6 +1038,16 @@ def causal_rollout_metrics(
                 ])) if any(item["revisit_triggered"] for item in choices)
                 else 0.0
             ),
+            "designed_pivot_error": float(pivot_error),
+            "designed_bounded_pivot_error": float(bounded_pivot_error),
+            "designed_pivot_error_out_of_scope": float(
+                pivot_error and not bounded_pivot_error
+            ),
+            "designed_revisit_triggered": float(designed_triggered),
+            "designed_recovery_success": float(designed_success),
+            "designed_recovery_time": (
+                float(revisit_step - pivot_step) if designed_success else -1.0
+            ),
         })
         sequence_rows.append({"metrics": metrics, "choices": choices})
     metric_names = (
@@ -995,6 +1064,9 @@ def causal_rollout_metrics(
         "ambiguity_commit_rate", "identifiable_commit_rate",
         "triggered_revisit_count", "triggered_revisit_commit_rate",
         "triggered_revisit_active_resolution_rate",
+        "designed_pivot_error", "designed_bounded_pivot_error",
+        "designed_pivot_error_out_of_scope", "designed_revisit_triggered",
+        "designed_recovery_success",
     )
     aggregate = {
         name: float(np.mean([row["metrics"][name] for row in sequence_rows]))
@@ -1003,15 +1075,44 @@ def causal_rollout_metrics(
     aggregate["sequences"] = float(len(sequence_rows))
     aggregate["commit_probability"] = float(smoke_config["commit_probability"])
     aggregate["margin_threshold"] = float(smoke_config["margin_threshold"])
-    eligible = [
+    generic_eligible = [
         row["metrics"] for row in sequence_rows
-        if row["metrics"]["recovery_eligible"] > 0.0
+        if row["metrics"]["any_first_error_recovery_eligible"] > 0.0
     ]
-    aggregate["recovery_eligible_sequences"] = float(len(eligible))
-    aggregate["recovery_rate_within_window"] = (
-        float(np.mean([row["recovered_within_window"] for row in eligible]))
-        if eligible else 0.0
+    aggregate["any_first_error_recovery_eligible_sequences"] = float(
+        len(generic_eligible)
     )
+    aggregate["any_first_error_recovery_rate_within_window"] = (
+        float(np.mean([
+            row["any_first_error_recovered_within_window"]
+            for row in generic_eligible
+        ])) if generic_eligible else 0.0
+    )
+    designed_eligible = [
+        row["metrics"] for row in sequence_rows
+        if row["metrics"]["designed_bounded_pivot_error"] > 0.0
+    ]
+    aggregate["designed_recovery_eligible_sequences"] = float(
+        len(designed_eligible)
+    )
+    aggregate["designed_recovery_trigger_rate"] = (
+        float(np.mean([
+            row["designed_revisit_triggered"] for row in designed_eligible
+        ])) if designed_eligible else 0.0
+    )
+    aggregate["designed_recovery_rate_within_window"] = (
+        float(np.mean([
+            row["designed_recovery_success"] for row in designed_eligible
+        ])) if designed_eligible else 0.0
+    )
+    # Registered name now refers specifically to the bounded pivot recovery;
+    # the arbitrary first-error diagnostic remains separately available.
+    aggregate["recovery_eligible_sequences"] = aggregate[
+        "designed_recovery_eligible_sequences"
+    ]
+    aggregate["recovery_rate_within_window"] = aggregate[
+        "designed_recovery_rate_within_window"
+    ]
     triggered_choices = [
         choice
         for row in sequence_rows
@@ -1030,12 +1131,19 @@ def causal_rollout_metrics(
             choice["active_correct_after"] for choice in triggered_choices
         ])) if triggered_choices else 0.0
     )
-    recovered = [
-        row["time_to_first_recovery"] for row in eligible
-        if row["time_to_first_recovery"] >= 0.0
+    generic_recovered = [
+        row["any_first_error_time_to_recovery"] for row in generic_eligible
+        if row["any_first_error_time_to_recovery"] >= 0.0
+    ]
+    aggregate["any_first_error_mean_time_to_recovery"] = (
+        float(np.mean(generic_recovered)) if generic_recovered else -1.0
+    )
+    designed_recovered = [
+        row["designed_recovery_time"] for row in designed_eligible
+        if row["designed_recovery_time"] >= 0.0
     ]
     aggregate["mean_time_to_first_recovery"] = (
-        float(np.mean(recovered)) if recovered else -1.0
+        float(np.mean(designed_recovered)) if designed_recovered else -1.0
     )
     aggregate["p95_forward_latency_ms"] = (
         float(np.quantile(forward_latencies_ms, 0.95))

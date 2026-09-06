@@ -203,6 +203,15 @@ class TestM1AFCausalRollout(unittest.TestCase):
         self.assertEqual(
             metrics["triggered_revisit_active_resolution_rate"], 1.0,
         )
+        self.assertEqual(metrics["designed_recovery_eligible_sequences"], 1.0)
+        self.assertEqual(metrics["designed_recovery_trigger_rate"], 1.0)
+        self.assertEqual(metrics["designed_recovery_rate_within_window"], 1.0)
+        self.assertEqual(
+            metrics["any_first_error_recovery_eligible_sequences"], 1.0,
+        )
+        self.assertEqual(
+            metrics["any_first_error_recovery_rate_within_window"], 1.0,
+        )
 
     def test_commit_calibration_uses_only_its_paired_group_half(self):
         probabilities = np.asarray([

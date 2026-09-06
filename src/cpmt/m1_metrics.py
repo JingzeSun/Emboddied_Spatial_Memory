@@ -261,12 +261,20 @@ def rollout_graph_metrics(
         "memory_contamination_auc_per_100_decisions": 100.0 * sum(
             row["memory_contamination"] for row in per_step
         ) / horizon,
-        "recovery_eligible": recovery_eligible,
-        "recovered_within_window": recovered_within_window,
+        "any_first_error_recovery_eligible": recovery_eligible,
+        "any_first_error_recovered_within_window": recovered_within_window,
         "unresolved_active_error": float(final["active_graph_correct"] == 0.0),
         "first_active_error_step": (
             float(first_error) if first_error is not None else -1.0
         ),
+        "any_first_error_time_to_recovery": (
+            float(first_recovery - first_error)
+            if first_recovery is not None and first_error is not None else -1.0
+        ),
+        # Compatibility aliases.  Causal M1-v2 aggregation no longer uses
+        # these generic first-error fields as its registered recovery metric.
+        "recovery_eligible": recovery_eligible,
+        "recovered_within_window": recovered_within_window,
         "time_to_first_recovery": (
             float(first_recovery - first_error)
             if first_recovery is not None and first_error is not None else -1.0

@@ -432,7 +432,7 @@ def main() -> int:
               flush=True)
         for seed in seeds:
             for method in ALL_METHODS:
-                target = causal_dir / f"{method}_seed{seed}_{gate_tag}_v2.json"
+                target = causal_dir / f"{method}_seed{seed}_{gate_tag}_v3.json"
                 if target.exists():
                     continue
                 began = time.time()
@@ -443,7 +443,7 @@ def main() -> int:
                 metrics.update(method=method, seed=seed,
                                seconds=time.time() - began)
                 target.write_text(json.dumps({
-                    "schema_version": "cpmt-m1-causal-result-v2",
+                    "schema_version": "cpmt-m1-causal-result-v3",
                     "aggregate": metrics,
                     "sequences": sequence_rows,
                 }, indent=2), encoding="utf-8")
@@ -452,7 +452,7 @@ def main() -> int:
                       f"  history={metrics['final_history_exactness']:.4f}"
                       f"  ({metrics['seconds']:.0f}s)", flush=True)
 
-        observable_path = causal_dir / f"observable_information_oracle_{gate_tag}_v2.json"
+        observable_path = causal_dir / f"observable_information_oracle_{gate_tag}_v3.json"
         if not observable_path.exists():
             began = time.time()
             metrics, sequence_rows = causal_rollout_metrics(
@@ -461,7 +461,7 @@ def main() -> int:
             metrics.update(method="observable_information_oracle",
                            seconds=time.time() - began)
             observable_path.write_text(json.dumps({
-                "schema_version": "cpmt-m1-causal-result-v2",
+                "schema_version": "cpmt-m1-causal-result-v3",
                 "aggregate": metrics,
                 "sequences": sequence_rows,
             }, indent=2), encoding="utf-8")
@@ -477,7 +477,7 @@ def main() -> int:
         print("-" * 85)
         for method in ALL_METHODS:
             paths = [
-                causal_dir / f"{method}_seed{s}_{gate_tag}_v2.json" for s in seeds
+                causal_dir / f"{method}_seed{s}_{gate_tag}_v3.json" for s in seeds
             ]
             payloads = [json.loads(path.read_text())
                         for path in paths if path.exists()]
@@ -509,6 +509,18 @@ def main() -> int:
                     "memory_contamination_auc_per_100_decisions"),
                 "recovery_rate_within_window": col(
                     "recovery_rate_within_window"),
+                "designed_recovery_eligible_sequences": col(
+                    "designed_recovery_eligible_sequences"),
+                "designed_recovery_trigger_rate": col(
+                    "designed_recovery_trigger_rate"),
+                "designed_recovery_rate_within_window": col(
+                    "designed_recovery_rate_within_window"),
+                "designed_pivot_error_out_of_scope": col(
+                    "designed_pivot_error_out_of_scope"),
+                "any_first_error_recovery_eligible_sequences": col(
+                    "any_first_error_recovery_eligible_sequences"),
+                "any_first_error_recovery_rate_within_window": col(
+                    "any_first_error_recovery_rate_within_window"),
                 "unresolved_active_error": col("unresolved_active_error"),
                 # How often the method actually wrote its choice rather than
                 # quarantining it. Without this the commit policy cannot be
@@ -558,8 +570,14 @@ def main() -> int:
         },
         "dataset_version": hard["data"]["dataset_version"],
         "seeds": seeds,
-        "train_decisions": int(len(train_np["y"])),
-        "validation_decisions": int(len(validation_np["y"])),
+        "train_decisions": int(np.sum(~np.asarray(train_np["recovery"], dtype=bool))),
+        "train_recovery_examples": int(np.sum(train_np["recovery"])),
+        "train_learning_rows": int(len(train_np["y"])),
+        "validation_decisions": int(np.sum(
+            ~np.asarray(validation_np["recovery"], dtype=bool)
+        )),
+        "validation_recovery_examples": int(np.sum(validation_np["recovery"])),
+        "validation_learning_rows": int(len(validation_np["y"])),
         "validation_online_chain_decisions": int(online_validation.sum()),
         "validation_recovery_training_examples": int(recovery_mask.sum()),
         "observable_ceiling": ceiling,

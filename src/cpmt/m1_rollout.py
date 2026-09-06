@@ -1913,7 +1913,7 @@ def _teacher_posterior(
 def _counterfactual_trace(
     candidate_post: Mapping[str, Any], events: Sequence[Mapping[str, Any]],
     reference_states: Sequence[Mapping[str, Any]],
-    reference_templates: Sequence[str], step_index: int,
+    reference_policies: Sequence[str], step_index: int,
     horizon: int,
 ) -> tuple[float, list[str], list[dict[str, Any]]]:
     branch = clone_json(candidate_post)
@@ -1925,25 +1925,53 @@ def _counterfactual_trace(
         if target_index > step_index:
             try:
                 event = events[target_index]
-                expected_template = str(reference_templates[target_index])
-                primary_template = str(event["reference_spec"]["template"])
-                if expected_template == primary_template:
-                    reference, evidence = _primary_program(branch, event)
-                    selected = _execute_candidates(
-                        branch, [reference], evidence,
-                    )[0]
+                policy = str(reference_policies[target_index])
+                if policy == "primary":
+                    reference, reference_evidence = _primary_program(branch, event)
+                elif policy == "contrast_noop":
+                    reference, reference_evidence = _noop_program(branch, event), {}
                 else:
-                    # A paired sibling can take the registered contrast at its
-                    # ambiguity pivot.  Rebuild that same fixed-candidate
-                    # policy on this counterfactual branch; silently falling
-                    # back to the primary event scores against a future that
-                    # the branch never actually executed.
-                    programs, evidence, _ = generate_fixed_candidates(branch, event)
-                    executions = _execute_candidates(branch, programs, evidence)
-                    selected = next(
-                        item for item in executions
-                        if item["legal"] and item["template"] == expected_template
+                    raise ValueError(f"unsupported counterfactual policy {policy!r}")
+
+                # Reconstruct the exact registered future policy on this
+                # branch.  Template-only lookup is insufficient because the
+                # fixed catalog deliberately contains several legal RELINK,
+                # RETRACT, BIND, SPLIT and MERGE programs.  The post-edit state
+                # signature includes the concrete arguments and therefore
+                # identifies the actual transaction rather than merely its
+                # template family.
+                programs, evidence, _, candidate_signatures = (
+                    _prepare_fixed_candidates(branch, event)
+                )
+                combined_evidence = {**evidence, **reference_evidence}
+                reference_execution = _execute_candidates(
+                    branch, [reference], combined_evidence,
+                )[0]
+                if not reference_execution["legal"]:
+                    selected = reference_execution
+                else:
+                    reference_signature = _candidate_state_signature(
+                        branch, reference_execution["post_graph"],
+                        reference.get("protected_ids", []),
                     )
+                    matches = [
+                        index for index, signature in enumerate(candidate_signatures)
+                        if signature == reference_signature
+                    ]
+                    if len(matches) > 1:
+                        raise AssertionError(
+                            "counterfactual reference policy matched multiple "
+                            "canonical candidate states"
+                        )
+                    if not matches:
+                        raise LookupError(
+                            "counterfactual reference policy is absent from the "
+                            "fixed candidate catalog on this branch"
+                        )
+                    executions = _execute_candidates(
+                        branch, programs, combined_evidence,
+                    )
+                    selected = executions[matches[0]]
                 failure = selected["failure"]
             except (CPMTError, LookupError, StopIteration, ValueError) as error:
                 # A wrong earlier transaction can also make construction of a
@@ -1966,7 +1994,7 @@ def _counterfactual_trace(
                 # consequence and leaves persistent memory unchanged.
                 failures.append({
                     "step_index": target_index,
-                    "reference_template": reference_templates[target_index],
+                    "reference_policy": reference_policies[target_index],
                     "failure": failure,
                     "fallback": "QUARANTINE_KEEP_CURRENT_WORLD",
                 })
@@ -2155,10 +2183,20 @@ def _generate_sequence(
     weights = config["energy"]["weights"]
     temperature = float(config["energy"]["temperature"])
     hindsight_horizon = int(config["future"]["primary_horizon"])
-    reference_templates = [
-        str(material["executions"][material["reference_index"]]["template"])
-        for material in step_material
-    ]
+    reference_policies = []
+    for material in step_material:
+        if int(material["reference_index"]) == int(material["primary_index"]):
+            reference_policies.append("primary")
+            continue
+        contrast_template = str(
+            material["executions"][material["reference_index"]]["template"]
+        )
+        if contrast_template != "NOOP":
+            raise AssertionError(
+                "counterfactual paired-policy reconstruction must be explicitly "
+                f"extended before using contrast template {contrast_template!r}"
+            )
+        reference_policies.append("contrast_noop")
     online_steps = []
     audit_steps = []
     for step_index, material in enumerate(step_material):
@@ -2201,7 +2239,7 @@ def _generate_sequence(
                 continue
             value, branch_hashes, branch_failures = _counterfactual_trace(
                 execution["post_graph"], events, reference_states,
-                reference_templates, step_index, hindsight_horizon,
+                reference_policies, step_index, hindsight_horizon,
             )
             raw_futures.append(value)
             traces.append((branch_hashes, branch_failures))
@@ -2349,7 +2387,7 @@ def _generate_sequence(
                 continue
             value, branch_hashes, branch_failures = _counterfactual_trace(
                 execution["post_graph"], events, reference_states,
-                reference_templates, recovery_revisit_step, hindsight_horizon,
+                reference_policies, recovery_revisit_step, hindsight_horizon,
             )
             raw_futures.append(value)
             recovery_traces.append((branch_hashes, branch_failures))

@@ -54,7 +54,8 @@ class TestM1TrainabilityLadder(unittest.TestCase):
     def test_subset_keeps_complete_siblings_and_rows(self):
         arrays, audits = subset_paired_groups(self.arrays, self.audits, 1)
         self.assertEqual(len(audits), 2)
-        self.assertEqual(len(arrays["y"]), 40)
+        self.assertEqual(len(arrays["y"]), 42)
+        self.assertEqual(int(arrays["recovery"].sum()), 2)
         self.assertEqual(set(arrays["group"].tolist()), {0})
         self.assertEqual({audit["sibling_index"] for audit in audits}, {0, 1})
 
@@ -81,7 +82,7 @@ class TestM1TrainabilityLadder(unittest.TestCase):
         self.assertEqual(metrics["label_fraction"], 1.0)
         self.assertEqual(metrics["observable_accuracy_ceiling"], 0.975)
         self.assertGreater(metrics["student_parameters"], 0)
-        self.assertIn("final_post_graph_correctness", metrics["causal_rollout"])
+        self.assertIn("final_active_graph_correctness", metrics["causal_rollout"])
 
 
 if __name__ == "__main__":

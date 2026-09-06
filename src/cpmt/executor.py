@@ -270,17 +270,18 @@ def _validate_program_header(program: dict[str, Any]) -> None:
         )
 
 
-def _operation_ids(
+def operation_argument_ids(
     value: Any,
     key: str | None = None,
 ) -> set[str]:
+    """Return exact structured identifiers touched by operation arguments."""
     ids: set[str] = set()
     if isinstance(value, dict):
         for child_key, child in value.items():
-            ids.update(_operation_ids(child, child_key))
+            ids.update(operation_argument_ids(child, child_key))
     elif isinstance(value, list):
         for child in value:
-            ids.update(_operation_ids(child, key))
+            ids.update(operation_argument_ids(child, key))
     elif isinstance(value, str) and key is not None and (
         key.endswith("_id")
         or key.endswith("_ids")
@@ -294,7 +295,7 @@ def _check_protected(
     operation: dict[str, Any],
     protected_ids: set[str],
 ) -> None:
-    touched = _operation_ids(operation.get("arguments", {}))
+    touched = operation_argument_ids(operation.get("arguments", {}))
     overlap = touched & protected_ids
     if overlap:
         raise ProtectedMutationError(

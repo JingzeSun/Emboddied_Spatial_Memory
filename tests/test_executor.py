@@ -21,7 +21,11 @@ from cpmt.errors import (  # noqa: E402
     UnsupportedTemplateError,
     VersionMismatchError,
 )
-from cpmt.executor import execute_transaction, validate_graph  # noqa: E402
+from cpmt.executor import (  # noqa: E402
+    execute_transaction,
+    operation_argument_ids,
+    validate_graph,
+)
 from cpmt.hashing import clone_json, compute_graph_hash, seal_graph  # noqa: E402
 from cpmt.maintenance import apply_dormancy_maintenance  # noqa: E402
 
@@ -122,6 +126,20 @@ class FixtureContractTests(unittest.TestCase):
 
 
 class DeterministicExecutorTests(unittest.TestCase):
+    def test_operation_argument_ids_use_structured_exact_fields(self) -> None:
+        touched = operation_argument_ids({
+            "target_id": "node-10",
+            "predecessor_ids": ["node-2@v0"],
+            "edge": {"source": "entity-3", "target": "place-4"},
+            "evidence_ref": "node-1:mentioned-only-in-evidence",
+            "note": "node-1",
+        })
+        self.assertEqual(
+            touched,
+            {"node-10", "node-2@v0", "entity-3", "place-4"},
+        )
+        self.assertNotIn("node-1", touched)
+
     def test_json_clone_is_independent_and_graph_hash_is_read_only(self) -> None:
         base = load_world("C00")
         before = deepcopy(base)

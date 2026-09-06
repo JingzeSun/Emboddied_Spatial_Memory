@@ -116,16 +116,48 @@ def subset_paired_array_groups(
     arrays: Mapping[str, np.ndarray], paired_groups: int,
 ) -> dict[str, np.ndarray]:
     """Take a deterministic prefix of complete tensor groups without audit objects."""
-    available_group_ids = sorted(set(int(value) for value in arrays["group"]))
+    groups = np.asarray(arrays["group"])
+    row_count = len(groups)
+    for key, value in arrays.items():
+        if len(np.asarray(value)) != row_count:
+            raise AssertionError(
+                f"paired-group tensor {key!r} has an inconsistent row count"
+            )
+    available_group_ids = sorted(set(int(value) for value in groups))
     if paired_groups <= 0 or paired_groups > len(available_group_ids):
         raise ValueError("paired-array subset is outside available data")
     selected_group_ids = set(available_group_ids[:paired_groups])
+    source_counts = {
+        group_id: int(np.sum(groups == group_id))
+        for group_id in available_group_ids
+    }
+    if len(set(source_counts.values())) != 1:
+        raise AssertionError("source paired groups have inconsistent row counts")
     mask = np.asarray([
-        int(group) in selected_group_ids for group in arrays["group"]
+        int(group) in selected_group_ids for group in groups
     ], dtype=bool)
     subset = {key: np.asarray(value)[mask].copy() for key, value in arrays.items()}
-    if len(subset["y"]) != paired_groups * 2 * 20:
-        raise AssertionError("paired-group tensor subset has an unexpected row count")
+    counts = [
+        int(np.sum(np.asarray(subset["group"]) == group_id))
+        for group_id in selected_group_ids
+    ]
+    if len(set(counts)) != 1:
+        raise AssertionError("paired-group tensor subset split a group")
+    if "recovery" in subset:
+        recovery = np.asarray(subset["recovery"], dtype=bool)
+        ambiguity = np.asarray(subset["ambiguity"], dtype=bool)
+        for group_id in selected_group_ids:
+            group_mask = np.asarray(subset["group"]) == group_id
+            ambiguity_rows = int(np.sum(group_mask & ambiguity & ~recovery))
+            recovery_rows = int(np.sum(group_mask & recovery))
+            if ambiguity_rows != 2:
+                raise AssertionError(
+                    "paired group must retain one online ambiguity pivot per sibling"
+                )
+            if recovery_rows != ambiguity_rows:
+                raise AssertionError(
+                    "paired group must retain one bounded recovery row per pivot"
+                )
     remap = {old: new for new, old in enumerate(sorted(selected_group_ids))}
     subset["group"] = np.asarray([
         remap[int(group)] for group in subset["group"]
@@ -182,7 +214,11 @@ def reference_candidate_audit(
 
 def observable_accuracy_ceiling(arrays: Mapping[str, np.ndarray]) -> float:
     """Return the deterministic ceiling induced by exact paired contradictions."""
-    ambiguous_fraction = float(np.asarray(arrays["ambiguous"], dtype=float).mean())
+    ambiguous = np.asarray(arrays["ambiguous"], dtype=float)
+    online = ~np.asarray(
+        arrays.get("recovery", np.zeros(len(ambiguous), dtype=bool)), dtype=bool,
+    )
+    ambiguous_fraction = float(ambiguous[online].mean())
     return 1.0 - 0.5 * ambiguous_fraction
 
 
@@ -206,13 +242,18 @@ def run_label_rich_capacity_point(
         probabilities = model(train["x"]).softmax(dim=1).cpu().numpy()
     teacher_forced = _teacher_forced_metrics(probabilities, train, target_teacher)
     selection = selection_error_decomposition(probabilities, labelled_arrays)
+    teacher_forced["online_chain_accuracy"] = float(
+        selection["online_chain_accuracy"]
+    )
     causal, causal_rows = causal_rollout_metrics(model, audits, config)
     ceiling = observable_accuracy_ceiling(labelled_arrays)
     metrics = {
         "student_steps": int(student_steps),
         "label_fraction": 1.0,
         "observable_accuracy_ceiling": ceiling,
-        "ceiling_gap": float(ceiling - teacher_forced["accuracy"]),
+        "ceiling_gap": float(
+            ceiling - teacher_forced["online_chain_accuracy"]
+        ),
         "teacher_forced": teacher_forced,
         "selection_error": selection,
         "causal_rollout": causal,
@@ -243,7 +284,9 @@ def error_decomposition(results: Mapping[str, Mapping[str, Any]]) -> dict[str, A
             ),
             "target_error": float(1.0 - teacher_forced["accuracy"]),
             "causal_final_error": float(
-                1.0 - result["causal_rollout"]["final_post_graph_correctness"]
+                1.0 - result["causal_rollout"][
+                    "final_active_graph_correctness"
+                ]
             ),
         }
     return rows
