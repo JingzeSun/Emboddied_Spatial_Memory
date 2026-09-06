@@ -51,6 +51,8 @@ run_ctl_dev.py 用于 D-027 授权的 train/validation 开发训练，支持 --h
 
 `run_m1_trainability.py` 使用 `configs/m1_trainability_ladder.json` 做可学习性审计。输入是相同 train/validation paired 数据、全标签容量曲线和 4→10 group、60→1000 step 的受控点，输出是容量上限差、A–F 指标、candidate/teacher/amortization 误差分解、资源和完整重试记录。K=16 的非正式开发结果仅记录在 `EXECUTE.md`；旧 candidate=3 数值不能与之混报。它明确 `formal_run=false`、`test_access=false`，不是 checkpoint 选择或正式结论。
 
+`run_m1_af_scaled.py` 解决“现有 A–F runner 自己按 smoke config 定规模并内部生成数据，接不上按协议规模预生成的数组”的问题：输入是 `generate_m1_parallel.py` 产出的 train/validation npz、validation 的 paired-group 数与 seed 列表，输出是 teacher-forced 分层准确率、A 对 C/E/B 的主对比及区间是否重叠、20-step causal self-rollout 的主指标族，以及一份带 `formal_run=false` 的 `af_report.json`。causal 阶段每个 (方法, seed) 单独落盘，中断后只补未完成的组合。它会校验 `--validation-groups` 与传入数组的决策数一致，避免用错规模的 audit 做回放；并在 causal 未跑满时显式打印“协议主指标未建立”。它不改协议、不训练 backbone，也不触碰封存的 test。
+
 `generate_m1_parallel.py` 解决“正式规模的数据生成是 CPU 上的墙钟瓶颈”的问题：输入是冻结 hard config、split 与 paired-group 数，输出是与串行逐字节相同的合并 arrays 加一份 manifest。每个 paired group 只依赖自己的种子，因此按组分发到进程、各自写 shard，父进程按组序合并并恢复串行的 group 编号；`--verify` 会额外跑一遍串行并要求数组完全相同，而不是假定相同。例如 8 个 validation 组在 6 个 worker 上从 29.7 秒降到 8.3 秒，digest 一致。它只是 runner，不改协议、不训练、不评估，也不触碰封存的 test。
 
 `generate_m1_trainability_shard.py`、`run_m1_trainability_point.py` 和 `run_m1_trainability_method.py` 是上述 runner 的隔离 worker：前者每次只生成一个完整 paired group，中者运行一个容量阶梯点，后者把同一 optimization point 的 A–F 各自在独立进程中训练和 causal replay；只有六个方法结果齐全且 A–E 参数量一致时才聚合。失败 attempt 原样保留，后续 attempt 不复用半成品。父 runner 可用显式 `--resume-output` 恢复中断 run，但只承认带 `complete.json` 的完整 shard/point，并要求相关科学源码与全部配置不变；跨 Windows/WSL worktree 时只额外允许可证明的 CRLF/LF 字节转换。runner 自身可以只改变恢复机制并记录前后 commit。例如 A、B 已完成而 C 进程退出时，恢复会复用 A/B 并只重试 C。它解决“偶发进程退出后不要抹掉完整结果”的问题，输入仍是同 seed、同数据和同训练预算，输出仍是一次完整 A–F point；它不等于拆开调参、跳过失败方法、替换样本或选择最佳 attempt。
