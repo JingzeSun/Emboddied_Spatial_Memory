@@ -1,0 +1,237 @@
+{
+  "schema_version": "cpmt-exported-run-report-v2",
+  "name": "m1-v2-s1-innerdev-7518f99-20260906T120940Z",
+  "exported_at": "2026-09-06T12:09:40+00:00",
+  "note": "M1-v2 S1 train-inner-dev scorer diagnostic, 10 total train groups, seed 7, 60 scorer steps; validation not read",
+  "formal_run": false,
+  "test_generated": false,
+  "pipeline_provenance": {
+    "generation": {},
+    "training": {
+      "schema_version": "cpmt-run-provenance-v1",
+      "component": "m1_train_inner_dev_scorer_diagnostic",
+      "git_commit": "7518f99dcf1f0868386b457efeff1f8f7014e80b",
+      "git_branch": "main",
+      "git_dirty": false,
+      "git_status": [],
+      "git_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_tree_sha256": "679e89eb1364ab01bed43b89d9969efb58f5931cfbeda0470ca7ffdccac26d49",
+      "entrypoint": "scripts/run_m1_scorer_diagnostics.py",
+      "entrypoint_sha256": "c884f09c7211b5a900ff231649cb8859a0d453e5266a82d3806a3008320015cd"
+    },
+    "export": {
+      "schema_version": "cpmt-run-provenance-v1",
+      "component": "result_export",
+      "git_commit": "7518f99dcf1f0868386b457efeff1f8f7014e80b",
+      "git_branch": "main",
+      "git_dirty": false,
+      "git_status": [],
+      "git_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_tree_sha256": "679e89eb1364ab01bed43b89d9969efb58f5931cfbeda0470ca7ffdccac26d49",
+      "entrypoint": "scripts/export_run_report.py",
+      "entrypoint_sha256": "7f462eb2bd2a040e7656274d1996edbe1ae4ea308a13c22fb1b267769e0c9a8e"
+    },
+    "export_environment": {
+      "python": "3.12.3",
+      "platform": "Linux-5.15.0-25-generic-x86_64-with-glibc2.35",
+      "machine": "x86_64",
+      "hostname": "autodl-container-ly15lrqpd4-2291ba43",
+      "cpu_count": 128,
+      "numpy": "2.3.2",
+      "torch": "2.8.0+cu128",
+      "cuda_available": true,
+      "cuda_device": "NVIDIA GeForce RTX 4080 SUPER"
+    }
+  },
+  "af_report": {
+    "schema_version": "cpmt-m1-scorer-diagnostic-v1",
+    "runner": "run_m1_scorer_diagnostics_v1",
+    "formal_run": false,
+    "test_generated": false,
+    "causal_complete": false,
+    "protocol_sha256": "3820f5e06e27989dc87f3c887b147eefe3be0a6f7bb01a72bbbba708709b49bb",
+    "dataset_version": "m1-paired-latent-worlds-v4-recovery",
+    "training_provenance": {
+      "schema_version": "cpmt-run-provenance-v1",
+      "component": "m1_train_inner_dev_scorer_diagnostic",
+      "git_commit": "7518f99dcf1f0868386b457efeff1f8f7014e80b",
+      "git_branch": "main",
+      "git_dirty": false,
+      "git_status": [],
+      "git_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_tree_sha256": "679e89eb1364ab01bed43b89d9969efb58f5931cfbeda0470ca7ffdccac26d49",
+      "entrypoint": "scripts/run_m1_scorer_diagnostics.py",
+      "entrypoint_sha256": "c884f09c7211b5a900ff231649cb8859a0d453e5266a82d3806a3008320015cd"
+    },
+    "input_arrays": {
+      "train": {
+        "path": "outputs/m1-v2-retest-318c5a1-20260906T105905Z/train.npz",
+        "arrays_digest": "483b389a94eb666d347bff472fdeb97180ca0d1291354beac9b0e52259e144e3",
+        "manifest_path": "outputs/m1-v2-retest-318c5a1-20260906T105905Z/train.manifest.json",
+        "manifest": {
+          "arrays_digest": "483b389a94eb666d347bff472fdeb97180ca0d1291354beac9b0e52259e144e3",
+          "dataset_version": "m1-paired-latent-worlds-v4-recovery",
+          "decisions": 420,
+          "formal_run": false,
+          "generation_provenance": {
+            "component": "m1_array_generation",
+            "entrypoint": "scripts/generate_m1_parallel.py",
+            "entrypoint_sha256": "d0b02e79a42b7263586fcbe9005f8518d40ca0568670a2bc578aaf2b70ae925a",
+            "git_branch": "main",
+            "git_commit": "318c5a17387abf57105760136625beba596e1a0b",
+            "git_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "git_dirty": false,
+            "git_status": [],
+            "schema_version": "cpmt-run-provenance-v1",
+            "source_tree_sha256": "880b1e741f613b709964ac6d1669da58ef4743713df7abdc03bcd9d30d8da9d7"
+          },
+          "online_chain_decisions": 400,
+          "paired_groups": 10,
+          "protocol_sha256": "3820f5e06e27989dc87f3c887b147eefe3be0a6f7bb01a72bbbba708709b49bb",
+          "recovery_training_examples": 20,
+          "runner": "generate_m1_parallel_v2",
+          "schema_version": "cpmt-m1-generation-manifest-v2",
+          "split": "train",
+          "teacher_disagreement_decisions": 0,
+          "teacher_reference_agreement": 1.0,
+          "test_generated": false,
+          "workers": 4
+        }
+      }
+    },
+    "partition": {
+      "rule": "sha256(rollout-pair:train:{group_index:06d}) mod 5 == 0",
+      "held_out_fraction_nominal": 0.2,
+      "fitting_group_ids": [
+        0,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "inner_dev_group_ids": [
+        1
+      ],
+      "fitting_learning_rows": 378,
+      "inner_dev_learning_rows": 42,
+      "inner_dev_online_rows": 40,
+      "validation_arrays_read": false,
+      "validation_report_partition_accessed": false,
+      "validation_trial_consumed": false
+    },
+    "seeds": [
+      7
+    ],
+    "training_budget": {
+      "online_students_trained": false,
+      "outcome_scorer_steps": 60
+    },
+    "structured_relation_target_oracle": {
+      "accuracy": 0.575,
+      "all_learning_rows_accuracy": 0.575,
+      "online_chain_accuracy": 0.575,
+      "template_accuracy": 0.575,
+      "argument_accuracy_given_template": 1.0,
+      "template_error": 0.425,
+      "argument_error_with_correct_template": 0.0,
+      "identifiable_accuracy": 0.5789473684210527,
+      "ambiguous_accuracy": 0.5,
+      "recovery_accuracy": null,
+      "raw_illegal_selection_rate": 0.375,
+      "illegal_wrong_template_rate": 0.375,
+      "legal_wrong_template_rate": 0.05,
+      "ambiguous_pair_containment": 0.5,
+      "ambiguous_paired_groups": 1,
+      "ambiguous_fraction": 0.05,
+      "recovery_fraction": 0.0,
+      "exact_ambiguity_capped_accuracy": 0.5750000000000001,
+      "exact_ambiguity_pair_cap": 0.5
+    },
+    "structured_relation_target_only": {
+      "ranking": "raw_masked_relation_mismatch_only",
+      "uses_penalties": false,
+      "uses_standardization": false,
+      "uses_executor_legality_for_selection": false,
+      "all": {
+        "rows": 40,
+        "reference_in_minimum_set_rate": 0.95,
+        "unique_reference_minimum_rate": 0.25,
+        "uniform_tie_break_expected_accuracy": 0.6,
+        "mean_minimum_set_size": 1.7,
+        "maximum_minimum_set_size": 2
+      },
+      "identifiable": {
+        "rows": 38,
+        "reference_in_minimum_set_rate": 0.9473684210526315,
+        "unique_reference_minimum_rate": 0.2631578947368421,
+        "uniform_tie_break_expected_accuracy": 0.6052631578947368,
+        "mean_minimum_set_size": 1.6842105263157894,
+        "maximum_minimum_set_size": 2
+      },
+      "ambiguous": {
+        "rows": 2,
+        "reference_in_minimum_set_rate": 1.0,
+        "unique_reference_minimum_rate": 0.0,
+        "uniform_tie_break_expected_accuracy": 0.5,
+        "mean_minimum_set_size": 2.0,
+        "maximum_minimum_set_size": 2
+      }
+    },
+    "outcome_scorer_diagnostics": [
+      {
+        "seed": 7,
+        "fitting_all_learning_rows": {
+          "rows": 378,
+          "supervised_relation_elements": 32778,
+          "masked_bce": 0.26832902431488037,
+          "masked_binary_accuracy": 0.8947769999504089,
+          "teacher_accuracy": 0.0476190485060215,
+          "raw_illegal_selection_rate": 0.4444444477558136
+        },
+        "fitting_online_chain": {
+          "rows": 360,
+          "supervised_relation_elements": 31140,
+          "masked_bce": 0.2611725628376007,
+          "masked_binary_accuracy": 0.9006744027137756,
+          "teacher_accuracy": 0.05000000074505806,
+          "raw_illegal_selection_rate": 0.44999998807907104
+        },
+        "inner_dev_all_learning_rows": {
+          "rows": 42,
+          "supervised_relation_elements": 3642,
+          "masked_bce": 0.2789453864097595,
+          "masked_binary_accuracy": 0.8863261938095093,
+          "teacher_accuracy": 0.0476190485060215,
+          "raw_illegal_selection_rate": 0.8571428656578064
+        },
+        "inner_dev_online_chain": {
+          "rows": 40,
+          "supervised_relation_elements": 3460,
+          "masked_bce": 0.2706296443939209,
+          "masked_binary_accuracy": 0.8924855589866638,
+          "teacher_accuracy": 0.05000000074505806,
+          "raw_illegal_selection_rate": 0.8500000238418579
+        },
+        "training_trace": [
+          {
+            "step": 1,
+            "future_relation_bce": 0.7071011662483215
+          },
+          {
+            "step": 50,
+            "future_relation_bce": 0.3002312481403351
+          }
+        ],
+        "wall_seconds": 1.1312119960784912
+      }
+    ]
+  },
+  "teacher_forced_only": null,
+  "generation_manifests": {},
+  "causal_per_seed": {},
+  "other_reports": {}
+}
