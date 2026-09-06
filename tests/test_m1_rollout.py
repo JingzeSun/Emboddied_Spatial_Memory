@@ -124,7 +124,17 @@ class TestM1ContinuousRollout(unittest.TestCase):
         self.assertEqual(summary["candidate_reference_coverage"], 1.0)
         self.assertEqual(summary["minimum_family_coverage"], 1.0)
         self.assertTrue(summary["coverage_thresholds_met"])
-        self.assertTrue(summary["reference_arguments_independent"])
+        # Independence is measured, not asserted: an exact hash of the hidden
+        # argument would let query similarity alone name the reference.
+        decided = summary["reference_argument_decided_by_query"]
+        self.assertIsNotNone(decided)
+        self.assertGreaterEqual(decided, 0.0)
+        self.assertLessEqual(decided, 1.0)
+        self.assertNotIn("reference_arguments_independent", summary)
+        self.assertEqual(
+            summary["proposal_retrieval"],
+            self.config["candidates"]["proposal_retrieval"],
+        )
         self.assertFalse(summary["formal_gate_eligible"])
         self.assertFalse(summary["coverage_gate_pass"])
         self.assertFalse(summary["test_generated"])
