@@ -4,9 +4,9 @@
 
 ## 当前看板
 
-> **2026-09-06 更新（LOG-022）：** 修正后的 M1-v2 pretest retest 已在干净提交 `318c5a1` 上完成并由 `8460444` 导回。calibration/report/recovery 分母正确为 40/120/8，共享 gate 仍选 `(0,0)`；relation-target assembled oracle=0.8083，而 E scorer teacher=0.0500，当前主要瓶颈由“目标是否有信息”缩小为 scorer 优化/泛化，目标仍有 19.17% 模板盲区。M1 的后续阶段、分支和终止口径改由独立的 [M1-v2 收口流程](experiments/counterfactual_transaction_learning/M1_V2_CLOSEOUT_FLOW.md) 持续维护；本文件继续只记 run 与结果。
+> **2026-09-06 更新（LOG-023）：** S1 诊断实现已提交为 `89a7b3d`：runner 现在分别报告 target-only 最小集合/并列上限、assembled relation oracle 的事后非法选择率，以及 E scorer 在 train/calibration/report 的 masked BCE、关系二分类和 teacher 候选准确率。它不改 E 的目标、能量、训练或在线选择。本地仅完成语法和纯函数检查；下一步在 AutoDL 跑全测，再复用同一 10/4 arrays 做 seed 7、60 updates、`--skip-causal` 的干净诊断 retest。
 
-最后更新：2026-09-06，LOG-022 校准分母修正与 relation-target oracle retest 完成；当前进入流程 S1 诊断闭环，正式 M1 gate 未运行、未生成 test。
+最后更新：2026-09-06，LOG-023 S1 诊断实现待服务器验证；正式 M1 gate 未运行、未生成 test。
 
 | 项目 | 当前事实 |
 |---|---|
@@ -14,11 +14,11 @@
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
 | 阶段 | M1-v2 `pretest_lock_candidate`；只开放 train/validation，尚未重新冻结，正式 gate 未运行，不是 M2/Full CPMT |
 | 最近结果 | 修正后 10/4、1-seed、60-update retest：数组 digest 与首次 smoke 一致，A–E 单步/因果读数逐项复现；校准分母为 40/120/8，gate 仍 `(0,0)`。relation-target oracle=80.83%、argument-given-template=100%，E scorer teacher=5%且 causal illegal selection=95%。observable final active=100%、designed recovery=100%；学习性能仍仅是 smoke |
-| 尚缺 | 按 [M1-v2 收口流程](experiments/counterfactual_transaction_learning/M1_V2_CLOSEOUT_FLOW.md) 从 S1 继续：先补 target-only/并列、E train-calibration BCE/accuracy 和 oracle illegal-rate，再跑固定数据的 5-seed 60/300/1000 teacher-forced 曲线。test 仍封存，PNO 与 Khronos 式全局慢路径属 M2 |
+| 尚缺 | 在 AutoDL 对 `89a7b3d` 跑全测并完成同数据 S1 diagnostic retest；确认 target/assembly/optimization/generalization 分支后，才跑固定数据的 5-seed 60/300/1000 teacher-forced 曲线。test 仍封存，PNO 与 Khronos 式全局慢路径属 M2 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
 | 当前决定 | D-034：M1-v1 保留为历史诊断；M1-v2 只加入有界、证据触发的局部补偿，E 不执行候选评分分支；全局 reconciliation、PNO 与 M2 顺序不变 |
 | 人工待定 | 正式 test 解封仍需单独事件；当前先完成服务器 validation，不读取 test |
-| Git 备份 | 修正实现 `318c5a1` 与结果 `8460444` 已入库；当前流程文件尚在本地工作树。outputs、数据、论文与虚拟环境等 ignore 内容不属于 Git 备份 |
+| Git 备份 | 修正实现 `318c5a1`、结果 `8460444`、流程 `d421d74` 与 S1 诊断实现 `89a7b3d` 已入库；outputs、数据、论文与虚拟环境等 ignore 内容不属于 Git 备份 |
 
 白话：M1-v2 现在仍是“考前定卷”，不是已冻结或已通过。旧容量诊断证明简单 MLP 在给足标签时能拟合可见训练关系；新的 K=16 与恢复审计只证明候选、executor 和 active-world 评测路径可达。这些都不等于 CTL 已胜出，更不是带 PNO 的 Full CPMT。
 
@@ -410,6 +410,15 @@ M1-v2 的阶段顺序、转向条件和成功/失败终点见 [M1-v2 收口执�
 - E 诊断：structured relation-target assembled oracle 在 120 个 online report rows 上为 0.8083，template=0.8083、argument-given-template=1.0；E scorer teacher=0.0500，E student=0.0667，causal raw-invalid selection=0.95。因此“目标完全没信息”已被排除；当前首要瓶颈是 scorer 优化/泛化，同时 target+组装仍有 19.17% 模板选择缺口。该 oracle 使用真实 future，其 ambiguous=0.8333 不是可部署在线上限。
 - 学习与 causal：A/B/C/D/E teacher-forced 为 0.4667/0.3750/0.3417/0.3250/0.0667，与 LOG-021 一致。A–E final active 均为 0；A mean active=0.0833、contamination=2.5，C/E contamination=18.33/32.5。paired report 只有 3 groups 且 active effect=0，不作性能结论；10,000 次 bootstrap 不会增加独立样本。observable oracle 仍为 final active=1、designed recovery=1、time-to-recovery=1 步。
 - 结论/下一步：校准泄漏已关闭，E 问题已缩小到可诊断范围。后续不再靠对话临时给顺序；按 [M1-v2 收口执行流程](experiments/counterfactual_transaction_learning/M1_V2_CLOSEOUT_FLOW.md) 从 S1 执行，先补 target-only/并列、E train/calibration BCE/accuracy 和 oracle illegal-rate，再进固定数据的 5-seed 优化曲线。
+
+<a id="log-023"></a>
+### LOG-023—2026-09-06—S1 target/assembly/scorer 诊断实现
+
+- 类型/状态：M1-development 诊断代码实质变化，提交 `89a7b3d`；服务器全测和干净 diagnostic retest 尚未运行，S1 未关闭。
+- 实现：新增 target-only relation diagnostic，只按 raw masked mismatch 报 reference-in-minimum、unique-reference、tie size 和 uniform-tie expected accuracy；不加 penalty、不标准化、不用 executor 合法性选候选。selection decomposition 新增 `raw_illegal_selection_rate`，合法性只事后审计。E scorer 新增 train-all、train-online、validation-calibration-online、validation-report-online 的 masked BCE、masked binary accuracy、teacher accuracy 和事后 illegal rate，并保留训练 trace。
+- 不变边界：没有修改 relation target、E 的 BCE 训练、标准化、能量权重、K=16、数据、candidate order、commit gate、主指标或效应门槛；没有生成或读取 test，也没有重复 causal rollout。
+- 本地轻量验证：四个改动 Python 文件通过 `py_compile`；两个新增纯诊断单测直接通过。读取现有 120 条 validation report rows 的非正式预览为 target-only reference-in-minimum=1.0000、unique-reference=0.6333、uniform-tie expected=0.8139、mean tie=1.3833、max tie=3；同一 assembled oracle 的事后 illegal-selection=0.1417。该预览不是干净提交上的导出报告，不用于关闭 S1。
+- 下一步：AutoDL 在干净提交上运行 143 个全套测试；通过后复用 `outputs/m1-v2-retest-318c5a1-20260906T105905Z/{train,validation}.npz`，只跑 seed 7、60 updates 的 teacher-forced diagnostic retest 并导回结果。依据 train/calibration BCE 与 teacher accuracy 决定进入 S2 还是先处理 target/assembly。
 
 ## 后续条目模板
 
