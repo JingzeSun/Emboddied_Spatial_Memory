@@ -386,6 +386,7 @@
 - 指标澄清：注册的 `recovery_rate_within_window` 只以“pivot 后状态恰为另一个 sibling reference 所覆盖的错误状态”为 eligible；另报 designed trigger、out-of-scope pivot error，以及 arbitrary-first-error recovery，避免早期无关错误占掉恢复分母。当前 fixture 只验证预设重访到达后的改正，不声称学会触发检测，也不声称覆盖其余 14 个 pivot 候选。
 - 验证：本地仅做变更文件 `py_compile`、JSON 解析与 `git diff --check`，均通过；因本机原生稳定性风险，未运行全量测试。下一步把干净提交推到 AutoDL 重跑全套；通过前不生成正式 v4 arrays。A 的 `10×active/1×open-memory` 对 `1×/1×` 消融保留为全测通过后的低成本预注册消融，不在这次故障修复里改变主 teacher。
 - 首次重跑补充：提交 `ee7eed2` 的全测在 executor 模块结束、进入 `TestM1AFCausalRollout.setUpClass` 后长时间无输出。原因不是死锁，而是该提交把 canonical signature catalog lookup 错误地用于每个 primary future step，使原本一次 reference execution 膨胀为反复 K=16 执行。随后的修正恢复 primary 的单事务直执行，只让真正的 paired contrast policy 做 K=16 signature 唯一匹配；该次被人工中止的 run 不产生测试通过结论。
+- 第二次重跑：性能修正提交 `f0097a0` 在 AutoDL 完整运行 141 tests、129.485 秒；其中 138 项通过，3 项在同一 trainability subset 路径报 `KeyError: 'ambiguity'`。根因是完整性检查误写字段名，数组合同实际使用 `ambiguous`；现改为正确字段，并在 recovery arrays 缺该必需标签时给出明确断言。这仍是单一工程错误，不是三种独立失败或方法结果。
 
 ## 后续条目模板
 

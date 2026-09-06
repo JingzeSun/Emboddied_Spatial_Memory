@@ -144,8 +144,12 @@ def subset_paired_array_groups(
     if len(set(counts)) != 1:
         raise AssertionError("paired-group tensor subset split a group")
     if "recovery" in subset:
+        if "ambiguous" not in subset:
+            raise AssertionError(
+                "recovery-aware paired arrays require the ambiguous row label"
+            )
         recovery = np.asarray(subset["recovery"], dtype=bool)
-        ambiguity = np.asarray(subset["ambiguity"], dtype=bool)
+        ambiguity = np.asarray(subset["ambiguous"], dtype=bool)
         for group_id in selected_group_ids:
             group_mask = np.asarray(subset["group"]) == group_id
             ambiguity_rows = int(np.sum(group_mask & ambiguity & ~recovery))
