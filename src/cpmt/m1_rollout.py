@@ -2042,11 +2042,14 @@ def _generate_sequence(
         posterior = _teacher_posterior(energies, temperature)
         winner = int(np.argmax(posterior))
         reference_index = int(material["reference_index"])
-        if winner != reference_index:
-            raise AssertionError(
-                f"teacher misranks {sequence_id} step {step_index}: "
-                f"expected {reference_index}, got {winner}"
-            )
+        # The teacher is allowed to disagree with the reference, and that
+        # disagreement is measured rather than treated as a generator bug.  It
+        # happens where two candidates are nearly tied on future consistency
+        # and the minimal-change cost then decides, which is what the energy is
+        # for.  In the paired design it concentrates in the horizon-1 decisions
+        # before the ambiguity pivot of sibling 1, whose executed future already
+        # contains the contrast choice.  See docs/01_research_contract.md.
+        teacher_disagrees = winner != reference_index
         online_steps.append(material["online"])
         audit_steps.append({
             "schema_version": "cpmt-m1-rollout-step-audit-v1",
@@ -2057,6 +2060,7 @@ def _generate_sequence(
             "online": material["online"],
             "primary_program_index": material["primary_index"],
             "reference_program_index": reference_index,
+            "teacher_winner_matches_reference": not teacher_disagrees,
             "reference_template": material["executions"][reference_index]["template"],
             "ambiguity": (
                 "epistemically_ambiguous_pivot"
@@ -2251,6 +2255,15 @@ def generate_m1_paired_rollout_split(
         "horizon_decisions": horizon,
         "template_counts_per_primary_sequence": ROLLOUT_TEMPLATE_COUNTS,
         "exact_ambiguous_decision_pairs": paired_groups,
+        # Surfaced so a rise in teacher disagreement cannot pass unnoticed.
+        "teacher_reference_agreement": float(np.mean([
+            bool(step["teacher_winner_matches_reference"])
+            for audit in audits for step in audit["steps"]
+        ])),
+        "teacher_disagreement_decisions": int(sum(
+            not step["teacher_winner_matches_reference"]
+            for audit in audits for step in audit["steps"]
+        )),
         "distinct_topology_and_order_signatures": len(topology_signatures),
         "place_count_range": [
             min(audit["topology"]["place_count"] for audit in group_representatives),

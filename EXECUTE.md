@@ -6,7 +6,7 @@
 
 > **2026-09-06 更新（LOG-014）：** 固定 K=16 的 train/validation 开发阶梯已完成：400 个 train、160 个 validation 决策，未生成或读取 test。全标签 direct capacity 在可观察上限 97.5%（可辨识部分 100%）达到 97.5%，但 10% 标签下的 A=`CPMT-CTL Core` 在四个受控点只有 6.25%–9.38% teacher-forced accuracy、所有点 20-step final post-graph correctness 均为 0%。A 的 executed-hindsight teacher error 为 0，amortization error 为 90.63%–93.75%，所以目前失败点在“学生从在线输入摊销教师后验”，不是 candidate miss 或教师执行。A–E 的同参数量比较也尚未显示 CTL 优势；F=100% 只是将正确候选程序直接交给执行器的 oracle 上界。该 run 是一次非正式、单 seed、小规模开发诊断，不是 M1 gate，不能扩展到 M2、PNO 或 test。
 
-最后更新：2026-09-06，LOG-017 确认 E 的 scorer 受限于标签量，正式 A–F 与 M1 gate 均未运行、未生成 test。
+最后更新：2026-09-06，LOG-018 正式规模 A–F teacher-forced 预演完成、causal rollout 未跑完；正式 M1 gate 未运行、未生成 test。
 
 | 项目 | 当前事实 |
 |---|---|
@@ -335,6 +335,30 @@
 - 结果：inner-dev 上最优配置**就是现有默认**（wd=0、dropout=0、hidden=64、steps=1000，0.2078），所有加正则化、缩容量或提前停止的变体都更差（次优 0.2047，第三 0.1922，依次下降）。以该配置在全部 train 上重拟合、五 seed 评 validation 得 **0.1256 ± 0.0135**，低于 D 的 0.1656，仅高于随机的 0.0625——学出来的 future 项相对于只用 penalty 项是有害的。
 - 根因更正：**瓶颈是标签量而非过拟合**，LOG-016 中"过拟合是binding constraint"的判断有误。核查确认 scorer 实际只见到 **160 个有标签决策**（协议 `main_label_fraction=0.1`），因为它只能在真值候选索引已知处训练。对照 LOG-016 的规模曲线：800 个标签时 teacher validation 为 0.2958，是本轮 160 标签下 0.1256 的两倍以上。
 - 结论/下一步：`A_vs_E` **在开发规模下无法解决，且不是调参能解决的**；协议的 10% 是比例而非绝对值，故 E 的标签数随数据集规模增长，补救办法是运行正式规模。`A_vs_C` 不受此影响（C 无 teacher，仅有辅助回归项），该对比在开发规模即成立。仍不开放 test、不进入 PNO/M2、不产生云费用。
+
+<a id="log-018"></a>
+### LOG-018—2026-09-06—正式规模 A–F teacher-forced 预演（非正式，causal 未完成）
+
+- 类型/状态：M1-development，**正式规模预演，不是正式 M1 gate**。仓库无正式运行入口（`resolve_af_smoke_config` 强制 `formal_run=false`），本条不消耗 gate、不触发 stop rule；`test_access=false`，未生成 test。
+- 目的/白话：用协议要求的规模和五个登记 seed 跑一遍 A–F，看接口修复后方法之间到底差多少，并检验开发规模下"E 不可测"的结论是不是规模假象。
+- 规模换算修正：按 `groups_per_family` 反推 paired group 数时，**每组实际只产出约 1.93 个稀有模板而非 2 个**——ambiguity pivot 会把 sibling 1 在该步的参考模板替换为对比模板，吃掉一个实例。首次按 500/100 组生成时 REPLACE 仅 963/1000 与 185/200，补到 540/120 组后全部达标。
+- 数据（`outputs/m1_formal_dryrun/`，outputs 不入版本库）：train 540 组 21,600 决策、validation 120 组 4,800 决策，x 维 588；标签 10.00%、歧义 5.00%、可观测上限 0.9750；最稀有模板 train 1,041 ≥1,000、validation 225 ≥200。生成耗时 278s 与 68s（16 workers、约 115 组/分钟）。
+- 教师一致率：train **0.999769**（21,600 中 5 次不同意）、validation **0.999792**（4,800 中 1 次）。断言已按 D-033 之外的设计决定改为记录，详见 `docs/01_research_contract.md` 新增小节；不同意集中在 sibling 1 的 pivot 前 horizon−1 窗口，且发生于两候选未来项近似打平、最小改动代价接管时。
+- Run/结果（teacher-forced，五 seed [7,19,31,43,59]，validation 4,800 决策）：
+
+  | 方法 | accuracy | template | identifiable | ambiguous |
+  |---|---|---|---|---|
+  | A CTL core | **0.9512 ± 0.0026** | 0.9537 | 0.9868 | 0.2758 |
+  | B labels only | 0.9206 ± 0.0125 | 0.9286 | 0.9550 | 0.2675 |
+  | C direct future loss | 0.9160 ± 0.0126 | 0.9243 | 0.9500 | 0.2700 |
+  | D execute current only | 0.8953 ± 0.0156 | 0.9004 | 0.9280 | 0.2742 |
+  | E learned scorer | 0.8827 ± 0.0133 | 0.8873 | 0.9148 | 0.2717 |
+
+  `A−C=+0.0352`、`A−E=+0.0685`、`A−B=+0.0306`，三者五 seed 区间均不重叠。F oracle 上界 1.0000，随机基线 0.0625。
+- 与开发规模的差异：LOG-016/017 的 A 0.8287 / B 0.6013 / E 0.2175 在正式规模变为 0.9512 / 0.9206 / 0.8827。数据由 400 增至 21,600 后**基线自身大幅提升，A 的领先由 +0.26 收窄至 +0.031**。E 的 scorer teacher 由 0.1256（160 标签）升至 **0.2616**（2,160 标签），学生由 0.2175 升至 0.8827，**确认开发规模下 E 的崩溃是标签量假象而非方法缺陷**；`A_vs_E` 至此才具备可报告性。A 的 seed 方差最小（±0.0026），与其教师覆盖全部 21,600 个决策、而 B/C 仅有 2,160 个标签一致。
+- 读数注意：`identifiable_accuracy` 0.9868 高于 0.9750，并不矛盾——0.9750 是**总体**上限（`1−0.5×歧义比例`），identifiable 子集自身上限为 1.0、歧义子集为 0.5。报告时须分层给出，不得用子集准确率对比总体上限。另需注意**所有方法的歧义子集准确率均约 0.27，明显低于构造上限 0.50**，尚未解释。
+- 未完成：**20-step causal self-rollout 未跑完**，用户中止以改用服务器。该指标（`final/mean_post_graph_correctness` 与 contamination/missing/false-birth/collateral 分项）才是协议主指标族，单步准确率不能替代它支持"减少长期 world-graph 污染"的主张。已实现断点续跑：每个 (方法, seed) 结果单独落盘于 `outputs/m1_formal_dryrun/causal/`。
+- 结论/下一步：接口修复后 A 在正式规模仍领先且五 seed 区间不重叠，但**领先幅度远小于开发规模所示**，且尚无 causal rollout 与 paired bootstrap 置信区间，因此不构成任何 M1 结论。下一步在服务器上补跑 causal rollout 与 10,000 次 paired bootstrap；仍不开放 test、不进入 PNO/M2。
 
 ## 后续条目模板
 

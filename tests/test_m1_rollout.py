@@ -168,7 +168,12 @@ class TestM1ContinuousRollout(unittest.TestCase):
             self.assertEqual(
                 energies[reference_index]["future"], min(legal_future),
             )
+            # The teacher may disagree with the reference where two candidates
+            # are nearly tied on future consistency and the minimal-change cost
+            # decides. It is recorded, not asserted away; here the reference
+            # reproduces the future exactly, so it must still win.
             self.assertEqual(step["teacher_winner_index"], reference_index)
+            self.assertTrue(step["teacher_winner_matches_reference"])
             self.assertTrue(all(
                 item["source"] == "actual_executed_reference_sequence"
                 for item in step["future_trace"]

@@ -19,6 +19,20 @@
 
 主创新只归于 CTL 的 executable counterfactual supervision。表征与 executor 是否构成额外贡献，必须由独立消融决定，不能预先宣称。
 
+### 教师可以不同意参考标签
+
+白话：教师不是答案本身，是一个**打分器**。它把每个候选真的执行一遍，再看"执行完的世界，和后来实际观测到的世界像不像"，同时对"改动越大越不划算"扣分。所以当两个候选对未来预测得**几乎一样好**时，便宜的那个会赢——哪怕它不是我们标注的参考答案。
+
+这是设计意图，不是缺陷。能量函数写的就是"未来一致性 + 最小改动代价"，把后半句去掉才是错的。
+
+一个已知且已量化的结构效应：hindsight 的视野是 3 步，而 paired 设计让两个 sibling 在 ambiguity pivot 那一步故意选不同的合法答案。于是 **pivot 前 1–2 步的教师，看到的"实际未来"里已经包含了这个分歧**，此时参考候选不再完美复现未来（`future_raw > 0`），就可能在近似打平中输给更便宜的候选。
+
+因此：
+
+- 教师与参考标签的一致率**记录为 `teacher_reference_agreement`**，不作为断言拦截；生成器不会因为教师不同意而失败。
+- 该比率若显著下降，属于需要解释的实验事实（可能是能量权重失衡或候选集问题），而不是可以静默修掉的 bug。
+- 报告 A 的表现时必须一并报告这个比率。历史上它曾恒为 1.0，但那是因为 future 项量级压倒成本项数百倍；量纲校正后它才反映真实的教师质量。
+
 ## 拟议 claim
 
 > CPMT learns online persistent-memory revision from a hindsight posterior over executable world transactions, evaluated by current and future projective consistency under a minimal-world-change prior.

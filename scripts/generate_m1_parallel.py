@@ -41,6 +41,13 @@ def _shard(task: tuple[str, str, int, int, str]) -> tuple[int, str]:
     arrays = rollout_learning_arrays_from_audits(
         config, audits, future_hash_bins=future_hash_bins,
     )
+    # Carried through so a drop in teacher/reference agreement is visible in
+    # the merged run rather than only inside a discarded per-group summary.
+    steps = [step for audit in audits for step in audit["steps"]]
+    arrays["teacher_matches_reference"] = np.asarray(
+        [bool(step["teacher_winner_matches_reference"]) for step in steps],
+        dtype=bool,
+    )
     # Every shard sees only its own group, so the local group column is all
     # zeros; the parent restores the serial numbering on merge.
     path = Path(out_dir) / f"{split}_{group_index:06d}.npz"
@@ -124,7 +131,10 @@ def main() -> int:
     )
     out.parent.mkdir(parents=True, exist_ok=True)
     np.savez(out, **arrays)
+    agree = np.asarray(arrays["teacher_matches_reference"], dtype=bool)
     print(f"wrote {out}  decisions={len(arrays['y'])}  digest={_digest(arrays)[:16]}")
+    print(f"teacher/reference agreement {agree.mean():.6f}  "
+          f"({int((~agree).sum())} disagreements of {len(agree)} decisions)")
 
     if args.verify:
         print("verifying against a serial run...", flush=True)
@@ -153,6 +163,8 @@ def main() -> int:
         "dataset_version": config["data"]["dataset_version"],
         "decisions": int(len(arrays["y"])),
         "arrays_digest": _digest(arrays),
+        "teacher_reference_agreement": float(agree.mean()),
+        "teacher_disagreement_decisions": int((~agree).sum()),
         "formal_run": False,
         "test_generated": False,
     }
