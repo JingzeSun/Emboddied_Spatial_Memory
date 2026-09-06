@@ -18,7 +18,7 @@
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
 | 当前决定 | D-034：M1-v2 只加入有界、证据触发的局部补偿，E 不执行候选评分分支；D-038：static preflight 是 A–E 共享 online mask，但不替代 executor illegal 或候选审计；全局 reconciliation、PNO 与 M2 顺序不变 |
 | 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 test。scorer loss 是否修改须等 v5 的 300/1000 五 seed 诊断，不能预先接受 |
-| Git 备份 | 至 `be7c967` 的旧结果已入库；D-038 合同/实现当前仍是本地未提交改动，尚未形成供服务器拉取的干净提交。outputs、数据、论文与虚拟环境等 ignore 内容不属于 Git 备份 |
+| Git 备份 | D-038 合同/实现已形成本地提交 `5939b16`，尚未 push；服务器在远端出现该提交前不得猜测或使用它。outputs、数据、论文与虚拟环境等 ignore 内容不属于 Git 备份 |
 
 白话：M1-v2 现在仍是“考前定卷”，不是已冻结或已通过。旧容量诊断证明简单 MLP 在给足标签时能拟合可见训练关系；新的 K=16 与恢复审计只证明候选、executor 和 active-world 评测路径可达。这些都不等于 CTL 已胜出，更不是带 PNO 的 Full CPMT。
 
@@ -497,7 +497,7 @@ M1-v2 的阶段顺序、转向条件和成功/失败终点见 [M1-v2 收口执�
 - 诊断/白话：新增 target-discriminative BCE、ranking-relevant BCE、互补分母，以及 reference 对最佳错误候选的 probability/log-probability margin。它解决总体 BCE 是否被容易而不区分候选的位置主导；输入是 relation logits、真实 reference future、候选声明和共享 mask，输出是分解损失与排序 margin。例如只有正确 RELINK 支持新位置的坐标进入判别性分母。它只读 train/inner-dev，不改 scorer loss、不用 reference index 训练，也不表示 listwise loss 已采纳或有效。
 - 不变量/报告：K=16 槽位不重排；reference 必须 pass、每行至少一个 admissible；`remaining_executor_illegal_candidates`、合法误拒、effective K 和 failure/template 分解常驻。`preflight pass` 明确不声称 executor legal；A/D/F 的执行后 illegal 正无穷 mask 与六项能量继续保留。scorer/AF 报告 schema 升到 v3，并明确 shared mask/illegal-retention 元数据。
 - 本地验证：`py_compile` 通过；protocol validator 和 11 个 protocol tests 通过；16 个 `test_m1_af_rollout` 通过；`test_ctl_dev`＋`test_m1_trainability` 共 15 个通过，总计 42 个不重复相关测试。测试中的既有小型 in-memory validation fixture 只验证接线，不读取已保存 validation arrays/report、不用于方法或预算选择，因此不消耗 validation trial。未运行全仓库测试、数据生成或训练。
-- provenance/边界：当前 HEAD=`be7c967` 且 working tree dirty；旧 v4 arrays/report 因 protocol hash 不匹配不能作为 D-038 后成绩。`test_access=false`，未生成或读取 formal test；未训练正式 student、未校准 gate、未跑正式 causal，未进入 S3/M2。
+- provenance/边界：D-038 合同/实现提交=`5939b16`；旧 v4 arrays/report 因 protocol hash 不匹配不能作为 D-038 后成绩。`test_access=false`，未生成或读取 formal test；未训练正式 student、未校准 gate、未跑正式 causal，未进入 S3/M2。
 - 下一步：先形成干净 Git 提交并在服务器跑全测；成功后只生成 v5 40-group train arrays，先以其 10-group prefix 跑 S1 60 steps/seed 7，再跑 40 groups × scorer steps {300,1000} × seeds {7,19,31,43,59}。主选择量是 shared-mask 后的 inner-dev candidate ranking，按 paired group 比较；1000−300 的 95% CI 下界大于 0 才选 1000，否则选 300。BCE/margin 只用于决定是否另立 scorer-loss decision。
 
 ## 后续条目模板
