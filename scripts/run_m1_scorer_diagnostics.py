@@ -27,8 +27,10 @@ from cpmt.dev_learning import (  # noqa: E402
     train_outcome_scorer,
 )
 from cpmt.m1_af_rollout import (  # noqa: E402
+    CANDIDATE_FAILURE_TYPES,
     CANDIDATE_FEATURE_DIM,
     selection_error_decomposition,
+    static_preflight_diagnostics,
     structured_relation_oracle_probabilities,
     structured_relation_target_only_diagnostics,
     training_inner_dev_mask,
@@ -91,6 +93,45 @@ def _ambiguity_cap(diagnostics: dict) -> None:
     diagnostics["exact_ambiguity_pair_cap"] = 0.5
 
 
+def _relation_diagnostics(
+    arrays: dict[str, np.ndarray], hard: dict, *,
+    use_static_preflight: bool,
+) -> dict:
+    preflight = (
+        np.asarray(arrays["candidate_static_preflight_pass"], dtype=bool)
+        if use_static_preflight else None
+    )
+    probabilities = structured_relation_oracle_probabilities(
+        arrays,
+        future_weight=float(hard["energy"]["weights"]["future"]),
+        temperature=float(hard["energy"]["temperature"]),
+        static_preflight_pass=preflight,
+    )
+    oracle = selection_error_decomposition(probabilities, arrays)
+    _ambiguity_cap(oracle)
+    return {
+        "scope_rows": int(len(arrays["y"])),
+        "uses_static_preflight_filter": use_static_preflight,
+        "target_only": structured_relation_target_only_diagnostics(
+            arrays, static_preflight_pass=preflight,
+        ),
+        "assembled_oracle": oracle,
+    }
+
+
+def _apply_static_preflight_to_probabilities(
+    probabilities: torch.Tensor, static_preflight_pass: torch.Tensor,
+) -> torch.Tensor:
+    """Post-hoc diagnostic mask; it does not alter scorer training or methods."""
+    if probabilities.shape != static_preflight_pass.shape:
+        raise ValueError("scorer probabilities and static preflight mask differ")
+    masked = probabilities * static_preflight_pass.to(probabilities.dtype)
+    denominator = masked.sum(dim=1, keepdim=True)
+    if torch.any(denominator <= 0):
+        raise ValueError("static preflight rejected every scorer candidate")
+    return masked / denominator
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--train", type=Path, required=True)
@@ -128,8 +169,10 @@ def main() -> int:
     inner_dev = training_inner_dev_mask(train_np)
     fitting_np = _subset_rows(train_np, ~inner_dev)
     inner_dev_np = _subset_rows(train_np, inner_dev)
+    selected_online = ~np.asarray(train_np["recovery"], dtype=bool)
     inner_online = ~np.asarray(inner_dev_np["recovery"], dtype=bool)
     fitting_online = ~np.asarray(fitting_np["recovery"], dtype=bool)
+    selected_online_np = _subset_rows(train_np, selected_online)
     inner_online_np = _subset_rows(inner_dev_np, inner_online)
     fitting_groups = sorted(set(int(value) for value in fitting_np["group"]))
     inner_groups = sorted(set(int(value) for value in inner_dev_np["group"]))
@@ -155,36 +198,46 @@ def main() -> int:
     torch.set_num_threads(args.threads)
     device = torch.device("cpu")
 
-    oracle_probabilities = structured_relation_oracle_probabilities(
-        inner_online_np,
-        future_weight=float(hard["energy"]["weights"]["future"]),
-        temperature=float(hard["energy"]["temperature"]),
+    all_train_relations = _relation_diagnostics(
+        selected_online_np, hard, use_static_preflight=False,
     )
-    relation_oracle = selection_error_decomposition(
-        oracle_probabilities, inner_online_np,
+    all_train_relations_filtered = _relation_diagnostics(
+        selected_online_np, hard, use_static_preflight=True,
     )
-    _ambiguity_cap(relation_oracle)
-    target_only = structured_relation_target_only_diagnostics(inner_online_np)
-    relation_oracle_by_group = {}
-    target_only_by_group = {}
+    inner_relations = _relation_diagnostics(
+        inner_online_np, hard, use_static_preflight=False,
+    )
+    inner_relations_filtered = _relation_diagnostics(
+        inner_online_np, hard, use_static_preflight=True,
+    )
+    all_train_relations_by_group = {}
+    for group_id in selected_groups:
+        group_np = _subset_rows(
+            selected_online_np,
+            np.asarray(selected_online_np["group"]) == group_id,
+        )
+        all_train_relations_by_group[str(group_id)] = {
+            "unfiltered": _relation_diagnostics(
+                group_np, hard, use_static_preflight=False,
+            ),
+            "static_preflight_filtered": _relation_diagnostics(
+                group_np, hard, use_static_preflight=True,
+            ),
+        }
+    inner_relations_by_group = {}
     for group_id in inner_groups:
         group_np = _subset_rows(
             inner_online_np,
             np.asarray(inner_online_np["group"]) == group_id,
         )
-        group_probabilities = structured_relation_oracle_probabilities(
-            group_np,
-            future_weight=float(hard["energy"]["weights"]["future"]),
-            temperature=float(hard["energy"]["temperature"]),
-        )
-        group_oracle = selection_error_decomposition(
-            group_probabilities, group_np,
-        )
-        _ambiguity_cap(group_oracle)
-        relation_oracle_by_group[str(group_id)] = group_oracle
-        target_only_by_group[str(group_id)] = (
-            structured_relation_target_only_diagnostics(group_np)
-        )
+        inner_relations_by_group[str(group_id)] = {
+            "unfiltered": _relation_diagnostics(
+                group_np, hard, use_static_preflight=False,
+            ),
+            "static_preflight_filtered": _relation_diagnostics(
+                group_np, hard, use_static_preflight=True,
+            ),
+        }
 
     fitting = tensors(fitting_np, device)
     held_out = tensors(inner_dev_np, device)
@@ -199,6 +252,13 @@ def main() -> int:
         scorer, teachers, trace = train_outcome_scorer(
             fitting, held_out, cfg, int(seed), device,
         )
+        fitting_teacher_filtered = _apply_static_preflight_to_probabilities(
+            teachers["train"], fitting["candidate_static_preflight_pass"],
+        )
+        inner_teacher_filtered = _apply_static_preflight_to_probabilities(
+            teachers["validation"],
+            held_out["candidate_static_preflight_pass"],
+        )
         diagnostics = {
             "seed": int(seed),
             "fitting_all_learning_rows": outcome_scorer_diagnostics(
@@ -207,6 +267,12 @@ def main() -> int:
             "fitting_online_chain": outcome_scorer_diagnostics(
                 scorer, fitting, teachers["train"], row_mask=fitting_online,
             ),
+            "fitting_online_chain_static_preflight_filtered": (
+                outcome_scorer_diagnostics(
+                    scorer, fitting, fitting_teacher_filtered,
+                    row_mask=fitting_online,
+                )
+            ),
             "inner_dev_all_learning_rows": outcome_scorer_diagnostics(
                 scorer, held_out, teachers["validation"],
             ),
@@ -214,11 +280,29 @@ def main() -> int:
                 scorer, held_out, teachers["validation"],
                 row_mask=inner_online,
             ),
+            "inner_dev_online_chain_static_preflight_filtered": (
+                outcome_scorer_diagnostics(
+                    scorer, held_out, inner_teacher_filtered,
+                    row_mask=inner_online,
+                )
+            ),
             "inner_dev_online_by_group": {
                 str(group_id): outcome_scorer_diagnostics(
                     scorer,
                     held_out,
                     teachers["validation"],
+                    row_mask=(
+                        inner_online
+                        & (np.asarray(inner_dev_np["group"]) == group_id)
+                    ),
+                )
+                for group_id in inner_groups
+            },
+            "inner_dev_online_by_group_static_preflight_filtered": {
+                str(group_id): outcome_scorer_diagnostics(
+                    scorer,
+                    held_out,
+                    inner_teacher_filtered,
                     row_mask=(
                         inner_online
                         & (np.asarray(inner_dev_np["group"]) == group_id)
@@ -241,8 +325,8 @@ def main() -> int:
         )
 
     report = {
-        "schema_version": "cpmt-m1-scorer-diagnostic-v1",
-        "runner": "run_m1_scorer_diagnostics_v1",
+        "schema_version": "cpmt-m1-scorer-diagnostic-v2",
+        "runner": "run_m1_scorer_diagnostics_v2",
         "formal_run": False,
         "test_generated": False,
         "causal_complete": False,
@@ -274,10 +358,41 @@ def main() -> int:
             "outcome_scorer_steps": int(args.scorer_steps),
             "total_train_groups": len(selected_groups),
         },
-        "structured_relation_target_oracle": relation_oracle,
-        "structured_relation_target_oracle_by_group": relation_oracle_by_group,
-        "structured_relation_target_only": target_only,
-        "structured_relation_target_only_by_group": target_only_by_group,
+        # Compatibility aliases retain the v1 meaning: unfiltered inner-dev.
+        "structured_relation_target_oracle": (
+            inner_relations["assembled_oracle"]
+        ),
+        "structured_relation_target_only": inner_relations["target_only"],
+        "structured_relation_diagnostics": {
+            "all_selected_train_online": {
+                "unfiltered": all_train_relations,
+                "static_preflight_filtered": all_train_relations_filtered,
+            },
+            "inner_dev_online": {
+                "unfiltered": inner_relations,
+                "static_preflight_filtered": inner_relations_filtered,
+            },
+            "all_selected_train_online_by_group": (
+                all_train_relations_by_group
+            ),
+            "inner_dev_online_by_group": inner_relations_by_group,
+        },
+        "static_preflight_diagnostics": {
+            "definition": (
+                "read-only header/base/template/protected checks; pass is "
+                "not proof that transaction execution will succeed"
+            ),
+            "candidate_failure_type_codebook": {
+                str(index): name
+                for index, name in enumerate(CANDIDATE_FAILURE_TYPES)
+            },
+            "all_selected_train_online": static_preflight_diagnostics(
+                selected_online_np,
+            ),
+            "inner_dev_online": static_preflight_diagnostics(
+                inner_online_np,
+            ),
+        },
         "outcome_scorer_diagnostics": scorer_runs,
     }
     args.out_dir.mkdir(parents=True, exist_ok=True)

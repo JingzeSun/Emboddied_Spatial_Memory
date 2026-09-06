@@ -416,6 +416,23 @@
 - 是否接触 test 信息：否；没有生成或读取 test。
 - 验证方式：inner-dev group 完整性单测、专用 runner source scan、干净提交上的全测；S1 报告必须明确 `validation_arrays_read=false`、`validation_report_partition_accessed=false` 和 `validation_trial_consumed=false`。
 
+## D-037 — S2 先审计只读静态预检，并补齐 60-step 同源锚点
+
+- 日期：2026-09-06。
+- 状态：accepted。
+- 用户确认：在看到“全 train oracle、静态合法性上界与 60-step 锚点应先于旧 S2 命令”的逐项审查后，用户回复“可以，开始吧”。
+- 背景：LOG-026 的 oracle 只统计 1 个 inner-dev paired group/40 个 online rows，不能稳定描述固定 relation target 与 assembly；外部 scratch probe 又提示 raw mismatch 的并列集合常被 executor 判定的非法候选撑大，但其 94.4% 数字直接使用了 `candidate_legal`，只能作为禁止部署的上界。原 S2 只扫 scorer steps {300,1000}，缺少同一份 40-group arrays 上的 60-step 锚点。另经当前 HEAD 核查，主 runner 已有独立 `--scorer-steps`，无需重复修复。
+- 决策：
+  1. 将 transaction static preflight（事务静态预检）实现为 executor 真正应用 operation 前的只读检查：输入仅为 immutable `prior_world`、candidate program、online evidence 与 protected IDs；输出只允许“已静态拒绝”或“预检通过但执行结果未知”。它检查 graph/header/base-version/duplicate transaction、template-level precondition 和 protected touch，不生成 `post_graph`，也不把“通过”声称为合法。
+  2. S2 生成数组同时保存 static-preflight pass/failure 与最终 executor failure；`candidate_legal` 只作为事后审计标签，比较非法召回、合法误拒、剩余非法、effective K、template/failure 分解，以及 relation 最小集合中非法成员的查询数与声明 penalty。当前不得把任何 legality mask 输入 A–E、改变候选选择或改写 teacher。
+  3. target-only 与 assembled relation oracle 在全部 selected train online rows 上报告 aggregate 和逐 paired-group 结果；scorer 的泛化指标仍严格分 fitting/inner-dev。inner-dev oracle 只作同范围参照，不再用单 group 数字描述固定 target 的总体质量。
+  4. S2 固定为同一份 40-group train arrays 的完整 2×3：train groups {10,40} × scorer steps {60,300,1000}，seed 7。60 是连接 S1 的锚点而非新增可选超参数；train/inner-dev scorer 曲线仍不消耗 validation trial。
+- 白话：静态预检解决“一个候选不改世界就已经能看出不合规，却仍被 E 当成便宜答案”的问题。输入是当前版本图、事务文本和此刻可见证据，输出是“现在就能拒绝”或“还不能判断”；例如 BIND 要修改受保护节点可立即拒绝，而 RELINK 指向不存在节点可能先通过、直到真正执行 ADD_EDGE 才失败。它不等于执行候选、不产生候选后世界、不等于 executor 的最终 `candidate_legal`，本轮也不把过滤后的数字冒充 E 成绩。
+- 后续边界：若干净 S2 报告证明静态预检有高非法召回、零/近零合法误拒且过滤上界显著改善，是否把它变成 A–E 共享 online admissibility mask 必须另立新 decision、更新方法合同和 protocol hash，并从 S1 重跑；D-037 本身不授权启用。
+- 影响：新增只读 executor API、generation audit 字段、全-train/逐 group 诊断与两个 60-step 训练点；不改 A–F、relation target、energy、loss、K、candidate generator、commit gate、recovery、主指标或成功门槛。
+- 是否接触 test 信息：否；`test_access=false`，不生成或读取 test，也不读取 validation/report。
+- 验证方式：静态预检不改变 base 的单测；protected 冲突应静态拒绝；至少一个 operation-time 失败应“预检通过、执行失败”，证明 pass 不是 legality；生成数组中合法候选不得被静态拒绝；过滤诊断只接收 static-preflight flag；干净提交上全测后才运行 S2。
+
 ## 新决策模板
 
 ```text

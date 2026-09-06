@@ -24,6 +24,7 @@ from cpmt.errors import (  # noqa: E402
 from cpmt.executor import (  # noqa: E402
     execute_transaction,
     operation_argument_ids,
+    preflight_transaction,
     validate_graph,
 )
 from cpmt.hashing import clone_json, compute_graph_hash, seal_graph  # noqa: E402
@@ -769,6 +770,31 @@ class DeterministicExecutorTests(unittest.TestCase):
         self.assertEqual(new["relation"], "leads_to")
         self.assertEqual(new["target"], "sealed-boundary")
         self.assertEqual(len(result["nodes"]), len(base["nodes"]))
+
+    def test_static_preflight_is_read_only_and_pass_is_not_execution(self) -> None:
+        base = load_world("C08")
+        before = deepcopy(base)
+        legal = load_program("C08", "relink.json")
+        self.assertIsNone(preflight_transaction(base, legal))
+        self.assertEqual(base, before)
+
+        protected = deepcopy(legal)
+        protected["protected_ids"].append("portal-route")
+        with self.assertRaises(ProtectedMutationError):
+            preflight_transaction(base, protected)
+        self.assertEqual(base, before)
+
+        pass_unknown = deepcopy(legal)
+        new_edge = next(
+            operation["arguments"]["edge"]
+            for operation in pass_unknown["operations"]
+            if operation["op_type"] == "ADD_EDGE"
+        )
+        new_edge["target"] = "unknown-static-target"
+        self.assertIsNone(preflight_transaction(base, pass_unknown))
+        with self.assertRaises(PreconditionError):
+            execute_transaction(base, pass_unknown)
+        self.assertEqual(base, before)
 
     def test_c09_pose_fault_noop_and_true_relink_are_both_executable(
         self,

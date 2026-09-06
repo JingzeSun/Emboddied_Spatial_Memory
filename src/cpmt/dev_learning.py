@@ -164,10 +164,15 @@ class OutcomeScorer(nn.Module):
 
 def tensors(data: dict, device: torch.device) -> dict[str, torch.Tensor]:
     return {key: torch.as_tensor(value, device=device,
-                                 dtype=torch.long if key in ("y", "group")
+                                 dtype=torch.long if key in (
+                                     "y", "group",
+                                     "candidate_execution_failure_code",
+                                     "candidate_static_preflight_failure_code",
+                                 )
                                  else torch.bool if key in (
                                      "labelled", "ambiguous", "recovery",
                                      "calibration", "candidate_legal",
+                                     "candidate_static_preflight_pass",
                                  )
                                  else torch.float32)
             for key, value in data.items()}

@@ -1237,20 +1237,21 @@ def _verify_touched_provenance(
             )
 
 
-def execute_transaction(
+def preflight_transaction(
     base_graph: dict[str, Any],
     program: dict[str, Any],
     *,
     protected_ids: Iterable[str] = (),
     evidence_by_id: Mapping[str, dict[str, Any]] | None = None,
     reliability_threshold: float = 1.0,
-) -> dict[str, Any]:
-    """Execute one program atomically and return a new graph snapshot.
+) -> None:
+    """Reject failures knowable before applying any transaction operation.
 
-    The input graph is never mutated. Invalid programs raise an explicit
-    CPMT exception and do not return a partial state.
+    This validates the immutable base, program header, template-level
+    preconditions and protected identifiers.  Passing preflight is not proof
+    that execution will succeed: operation ordering and post-state invariants
+    are deliberately left to ``execute_transaction``.
     """
-
     validate_graph(base_graph)
     _validate_program_header(program)
 
@@ -1279,6 +1280,30 @@ def execute_transaction(
     )
     for operation in program["operations"]:
         _check_protected(operation, combined_protected)
+
+
+def execute_transaction(
+    base_graph: dict[str, Any],
+    program: dict[str, Any],
+    *,
+    protected_ids: Iterable[str] = (),
+    evidence_by_id: Mapping[str, dict[str, Any]] | None = None,
+    reliability_threshold: float = 1.0,
+) -> dict[str, Any]:
+    """Execute one program atomically and return a new graph snapshot.
+
+    The input graph is never mutated. Invalid programs raise an explicit
+    CPMT exception and do not return a partial state.
+    """
+
+    preflight_transaction(
+        base_graph,
+        program,
+        protected_ids=protected_ids,
+        evidence_by_id=evidence_by_id,
+        reliability_threshold=reliability_threshold,
+    )
+    transaction_id = program["transaction_id"]
 
     if program["template"] == "NOOP":
         result = clone_json(base_graph)

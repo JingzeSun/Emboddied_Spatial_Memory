@@ -18,7 +18,7 @@ import numpy as np
 
 from .errors import CPMTError
 from .equivalence import canonicalize_memory_state
-from .executor import execute_transaction, validate_graph
+from .executor import execute_transaction, preflight_transaction, validate_graph
 from .hashing import canonical_json, clone_json, seal_graph
 from .m1_data import (
     project_active_structural_observation,
@@ -1847,6 +1847,15 @@ def _execute_candidates(
     for index, raw_program in enumerate(programs):
         program = clone_json(raw_program)
         try:
+            preflight_transaction(
+                base, program, evidence_by_id=evidence,
+            )
+            preflight_failure = None
+        except CPMTError as error:
+            preflight_failure = {
+                "type": type(error).__name__, "message": str(error),
+            }
+        try:
             post = execute_transaction(
                 clone_json(base), program, evidence_by_id=evidence,
             )
@@ -1854,6 +1863,10 @@ def _execute_candidates(
         except CPMTError as error:
             post = None
             failure = {"type": type(error).__name__, "message": str(error)}
+        if preflight_failure is not None and failure is None:
+            raise AssertionError(
+                "a transaction rejected by static preflight executed successfully"
+            )
         if canonical_json(base) != before:
             raise AssertionError("rollout candidate mutated its immutable base")
         records.append({
@@ -1861,6 +1874,8 @@ def _execute_candidates(
             "transaction_id": program["transaction_id"],
             "template": _program_label(program),
             "base_graph_hash": base["graph_hash"],
+            "static_preflight_pass": preflight_failure is None,
+            "static_preflight_failure": preflight_failure,
             "legal": failure is None,
             "post_graph": post,
             "post_graph_hash": post["graph_hash"] if post is not None else None,

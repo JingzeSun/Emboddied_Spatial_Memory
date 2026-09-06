@@ -48,6 +48,19 @@ TEMPLATES = (
     "NOOP", "BIND", "BIRTH", "REACTIVATE", "RELINK", "RETRACT",
     "SPLIT", "MERGE", "REPLACE",
 )
+CANDIDATE_FAILURE_TYPES = (
+    "NONE",
+    "ContractError",
+    "VersionMismatchError",
+    "DuplicateTransactionError",
+    "PreconditionError",
+    "ProtectedMutationError",
+    "UnsupportedTemplateError",
+    "InvariantViolation",
+)
+CANDIDATE_FAILURE_TYPE_TO_CODE = {
+    name: index for index, name in enumerate(CANDIDATE_FAILURE_TYPES)
+}
 INTENTS = ("PRESERVE", "ASSOCIATE", "EXPAND", "REVISE")
 OP_TYPES = (
     "ASSERT_PRECONDITION", "ATTACH_EVIDENCE", "CREATE_NODE",
@@ -194,6 +207,16 @@ def _program_touches_protected(program: Mapping[str, Any]) -> bool:
         str(value) for value in program.get("protected_ids", [])
     }
     return bool(touched_ids & protected_ids)
+
+
+def _candidate_failure_code(
+    candidate: Mapping[str, Any], key: str,
+) -> int:
+    failure = candidate.get(key)
+    name = "NONE" if failure is None else str(failure.get("type"))
+    if name not in CANDIDATE_FAILURE_TYPE_TO_CODE:
+        raise ValueError(f"unregistered candidate failure type {name!r}")
+    return CANDIDATE_FAILURE_TYPE_TO_CODE[name]
 
 
 def online_feature_vector(online: Mapping[str, Any]) -> np.ndarray:
@@ -607,6 +630,20 @@ def rollout_learning_arrays_from_audits(
                 "candidate_legal": np.asarray([
                     candidate["legal"] for candidate in step["executed_candidates"]
                 ], dtype=bool),
+                "candidate_static_preflight_pass": np.asarray([
+                    candidate["static_preflight_pass"]
+                    for candidate in step["executed_candidates"]
+                ], dtype=bool),
+                "candidate_execution_failure_code": np.asarray([
+                    _candidate_failure_code(candidate, "failure")
+                    for candidate in step["executed_candidates"]
+                ], dtype=np.int64),
+                "candidate_static_preflight_failure_code": np.asarray([
+                    _candidate_failure_code(
+                        candidate, "static_preflight_failure",
+                    )
+                    for candidate in step["executed_candidates"]
+                ], dtype=np.int64),
                 "active_correct": np.asarray([
                     item["active_graph_correct"] for item in candidate_metrics
                 ], dtype=np.float32),
@@ -730,6 +767,7 @@ def selection_error_decomposition(
 def structured_relation_oracle_probabilities(
     arrays: Mapping[str, np.ndarray], *, future_weight: float,
     temperature: float,
+    static_preflight_pass: np.ndarray | None = None,
 ) -> np.ndarray:
     """Rank candidates with perfect knowledge of the registered relation target.
 
@@ -766,6 +804,15 @@ def structured_relation_oracle_probabilities(
         out=np.zeros_like(mismatch), where=spread > 0.0,
     )
     energy = float(future_weight) * standardized + penalties
+    if static_preflight_pass is not None:
+        available = np.asarray(static_preflight_pass, dtype=bool)
+        if available.shape != energy.shape:
+            raise ValueError(
+                "static preflight mask and candidate energy must have equal shape"
+            )
+        if np.any(~available.any(axis=1)):
+            raise ValueError("static preflight rejected every candidate in a row")
+        energy = np.where(available, energy, np.inf)
     logits = -energy / float(temperature)
     logits -= logits.max(axis=1, keepdims=True)
     probabilities = np.exp(logits)
@@ -775,6 +822,7 @@ def structured_relation_oracle_probabilities(
 
 def structured_relation_target_only_diagnostics(
     arrays: Mapping[str, np.ndarray],
+    *, static_preflight_pass: np.ndarray | None = None,
 ) -> dict[str, Any]:
     """Measure what the relation target identifies before energy assembly.
 
@@ -799,6 +847,16 @@ def structured_relation_target_only_diagnostics(
     mismatch = (
         np.abs(targets - desired) * masks
     ).sum(axis=2) / denominators
+    available = np.ones_like(mismatch, dtype=bool)
+    if static_preflight_pass is not None:
+        available = np.asarray(static_preflight_pass, dtype=bool)
+        if available.shape != mismatch.shape:
+            raise ValueError(
+                "static preflight mask and relation mismatch must have equal shape"
+            )
+        if np.any(~available.any(axis=1)):
+            raise ValueError("static preflight rejected every candidate in a row")
+        mismatch = np.where(available, mismatch, np.inf)
     minima = mismatch.min(axis=1, keepdims=True)
     minimum_set = np.isclose(mismatch, minima, rtol=1e-9, atol=1e-12)
     tie_size = minimum_set.sum(axis=1)
@@ -834,10 +892,196 @@ def structured_relation_target_only_diagnostics(
         "uses_penalties": False,
         "uses_standardization": False,
         "uses_executor_legality_for_selection": False,
+        "uses_static_preflight_filter": static_preflight_pass is not None,
+        "mean_available_candidates": float(available.sum(axis=1).mean()),
+        "minimum_available_candidates": int(available.sum(axis=1).min()),
+        "maximum_available_candidates": int(available.sum(axis=1).max()),
         "all": summarize(all_rows),
         "identifiable": summarize(~ambiguous),
         "ambiguous": summarize(ambiguous),
     }
+
+
+def static_preflight_diagnostics(
+    arrays: Mapping[str, np.ndarray],
+) -> dict[str, Any]:
+    """Compare read-only rejection with executed legality after the fact.
+
+    The static flag is computed before any operation is applied.  Executor
+    legality is used here only as an audit label: it is never returned as an
+    online feature or substituted for the preflight flag.
+    """
+    required = (
+        "candidate_static_preflight_pass",
+        "candidate_legal",
+        "candidate_templates",
+        "candidate_execution_failure_code",
+        "candidate_static_preflight_failure_code",
+        "relation_targets",
+        "relation_mask",
+        "relation_desired",
+        "no_execution_penalties",
+        "y",
+    )
+    missing = [key for key in required if key not in arrays]
+    if missing:
+        raise ValueError(
+            f"static preflight diagnostics require arrays {missing}"
+        )
+    passed = np.asarray(
+        arrays["candidate_static_preflight_pass"], dtype=bool,
+    )
+    legal = np.asarray(arrays["candidate_legal"], dtype=bool)
+    templates = np.asarray(arrays["candidate_templates"], dtype=np.int64)
+    execution_failure = np.asarray(
+        arrays["candidate_execution_failure_code"], dtype=np.int64,
+    )
+    preflight_failure = np.asarray(
+        arrays["candidate_static_preflight_failure_code"], dtype=np.int64,
+    )
+    if not (
+        passed.shape == legal.shape == templates.shape
+        == execution_failure.shape == preflight_failure.shape
+    ):
+        raise ValueError("static preflight candidate arrays must have equal shape")
+    if passed.ndim != 2:
+        raise ValueError("static preflight candidate arrays must be row by candidate")
+    if not np.array_equal(execution_failure == 0, legal):
+        raise ValueError("execution failure codes disagree with candidate legality")
+    if not np.array_equal(preflight_failure == 0, passed):
+        raise ValueError("preflight failure codes disagree with preflight pass flags")
+    reference = np.asarray(arrays["y"], dtype=np.int64)
+    if len(reference) != len(passed):
+        raise ValueError("static preflight references have the wrong row count")
+    rows = np.arange(len(reference))
+    rejected = ~passed
+    illegal = ~legal
+    detected = rejected & illegal
+    false_reject = rejected & legal
+    remaining_illegal = passed & illegal
+    relation_targets = np.asarray(arrays["relation_targets"], dtype=np.float64)
+    relation_mask = np.asarray(arrays["relation_mask"], dtype=np.float64)
+    relation_desired = np.asarray(arrays["relation_desired"], dtype=np.float64)
+    no_execution_penalties = np.asarray(
+        arrays["no_execution_penalties"], dtype=np.float64,
+    )
+    if not (
+        relation_targets.shape == relation_mask.shape == relation_desired.shape
+        and relation_targets.shape[:2] == passed.shape
+        and no_execution_penalties.shape == passed.shape
+    ):
+        raise ValueError("relation tie audit arrays have incompatible shapes")
+    query_counts = relation_mask.sum(axis=2)
+    if np.any(query_counts <= 0.0):
+        raise ValueError("every candidate needs at least one relation query")
+    mismatch = (
+        np.abs(relation_targets - relation_desired) * relation_mask
+    ).sum(axis=2) / query_counts
+    minimum_set = np.isclose(
+        mismatch, mismatch.min(axis=1, keepdims=True),
+        rtol=1e-9, atol=1e-12,
+    )
+    illegal_minimum = minimum_set & illegal
+    legal_minimum = minimum_set & legal
+
+    def ratio(numerator: int, denominator: int) -> float | None:
+        return float(numerator / denominator) if denominator else None
+
+    def masked_mean(values: np.ndarray, mask: np.ndarray) -> float | None:
+        return float(values[mask].mean()) if mask.any() else None
+
+    def summarize(mask: np.ndarray) -> dict[str, Any]:
+        count = int(mask.sum())
+        illegal_count = int((mask & illegal).sum())
+        rejected_count = int((mask & rejected).sum())
+        detected_count = int((mask & detected).sum())
+        legal_count = int((mask & legal).sum())
+        false_reject_count = int((mask & false_reject).sum())
+        return {
+            "candidate_slots": count,
+            "executor_illegal_candidates": illegal_count,
+            "executor_illegal_fraction": ratio(illegal_count, count),
+            "static_rejected_candidates": rejected_count,
+            "static_reject_fraction": ratio(rejected_count, count),
+            "illegal_detected_by_static_preflight": detected_count,
+            "illegal_detection_recall": ratio(detected_count, illegal_count),
+            "legal_candidates": legal_count,
+            "legal_false_rejections": false_reject_count,
+            "legal_false_rejection_rate": ratio(
+                false_reject_count, legal_count,
+            ),
+        }
+
+    all_mask = np.ones_like(passed, dtype=bool)
+    result = summarize(all_mask)
+    result.update({
+        "rows": int(len(passed)),
+        "static_reject_precision": ratio(
+            int(detected.sum()), int(rejected.sum()),
+        ),
+        "remaining_executor_illegal_candidates": int(remaining_illegal.sum()),
+        "remaining_illegal_fraction_among_preflight_pass": ratio(
+            int(remaining_illegal.sum()), int(passed.sum()),
+        ),
+        "reference_static_preflight_pass_rate": float(
+            passed[rows, reference].mean()
+        ),
+        "mean_effective_candidate_count": float(passed.sum(axis=1).mean()),
+        "minimum_effective_candidate_count": int(passed.sum(axis=1).min()),
+        "maximum_effective_candidate_count": int(passed.sum(axis=1).max()),
+        "by_template": {
+            name: summarize(templates == index)
+            for index, name in enumerate(TEMPLATES)
+        },
+        "by_executor_failure_type": {
+            name: {
+                "candidates": int((execution_failure == code).sum()),
+                "static_rejected": int((
+                    (execution_failure == code) & rejected
+                ).sum()),
+                "static_reject_rate": ratio(
+                    int(((execution_failure == code) & rejected).sum()),
+                    int((execution_failure == code).sum()),
+                ),
+            }
+            for code, name in enumerate(CANDIDATE_FAILURE_TYPES)
+            if code != 0 and np.any(execution_failure == code)
+        },
+        "by_static_preflight_failure_type": {
+            name: int((preflight_failure == code).sum())
+            for code, name in enumerate(CANDIDATE_FAILURE_TYPES)
+            if code != 0 and np.any(preflight_failure == code)
+        },
+        "relation_tie_audit": {
+            "minimum_set_contains_executor_illegal_row_rate": float(
+                illegal_minimum.any(axis=1).mean()
+            ),
+            "minimum_set_executor_illegal_members": int(
+                illegal_minimum.sum()
+            ),
+            "minimum_set_legal_members": int(legal_minimum.sum()),
+            "static_preflight_recall_on_illegal_minimum_members": ratio(
+                int((illegal_minimum & rejected).sum()),
+                int(illegal_minimum.sum()),
+            ),
+            "mean_relation_queries_executor_illegal": masked_mean(
+                query_counts, illegal,
+            ),
+            "mean_relation_queries_executor_legal": masked_mean(
+                query_counts, legal,
+            ),
+            "mean_no_execution_penalty_illegal_minimum": masked_mean(
+                no_execution_penalties, illegal_minimum,
+            ),
+            "mean_no_execution_penalty_legal_minimum": masked_mean(
+                no_execution_penalties, legal_minimum,
+            ),
+        },
+        "executor_legality_used_as_audit_label_only": True,
+        "fed_to_online_model": False,
+        "filter_enabled_for_method_selection": False,
+    })
+    return result
 
 
 def calibrate_shared_commit_rule(

@@ -17,6 +17,7 @@ from cpmt.dev_learning import (
     outcome_scorer_diagnostics,
 )
 from cpmt.m1_af_rollout import (
+    CANDIDATE_FAILURE_TYPE_TO_CODE,
     CANDIDATE_FEATURE_DIM,
     ONLINE_CONTEXT_DIM,
     _program_touches_protected,
@@ -27,6 +28,7 @@ from cpmt.m1_af_rollout import (
     resolve_af_smoke_config,
     run_af_seed,
     selection_error_decomposition,
+    static_preflight_diagnostics,
     structured_relation_oracle_probabilities,
     structured_relation_target_only_diagnostics,
     training_inner_dev_mask,
@@ -176,6 +178,18 @@ class TestM1AFCausalRollout(unittest.TestCase):
         self.assertEqual(self.train["no_execution_penalties"].shape, (84, 16))
         self.assertTrue(np.all(np.isfinite(self.train["no_execution_penalties"])))
         self.assertTrue(np.all(self.train["no_execution_penalties"] < 1_000_000))
+        preflight = self.train["candidate_static_preflight_pass"]
+        legal = self.train["candidate_legal"]
+        self.assertEqual(preflight.shape, (84, 16))
+        self.assertFalse(np.any(~preflight & legal))
+        self.assertTrue(np.any(~preflight & ~legal))
+        self.assertTrue(np.all(
+            (self.train["candidate_execution_failure_code"] == 0) == legal
+        ))
+        self.assertTrue(np.all(
+            (self.train["candidate_static_preflight_failure_code"] == 0)
+            == preflight
+        ))
         relation_dim = 3 * 6
         self.assertEqual(
             self.train["relation_targets"].shape,
@@ -336,6 +350,68 @@ class TestM1AFCausalRollout(unittest.TestCase):
         )
         self.assertEqual(
             diagnostics["all"]["mean_minimum_set_size"], 1.5,
+        )
+
+    def test_static_preflight_diagnostic_filters_without_using_execution_mask(self):
+        protected_code = CANDIDATE_FAILURE_TYPE_TO_CODE[
+            "ProtectedMutationError"
+        ]
+        arrays = {
+            "relation_targets": np.asarray([[
+                [1.0], [1.0], [0.0],
+            ]]),
+            "relation_mask": np.ones((1, 3, 1), dtype=np.float32),
+            "relation_desired": np.ones((1, 3, 1), dtype=np.float32),
+            "no_execution_penalties": np.asarray([
+                [0.14, 0.05, 0.0],
+            ], dtype=np.float32),
+            "y": np.asarray([0]),
+            "ambiguous": np.asarray([False]),
+            "candidate_static_preflight_pass": np.asarray([[
+                True, False, True,
+            ]]),
+            "candidate_legal": np.asarray([[True, False, True]]),
+            "candidate_templates": np.asarray([[0, 1, 2]]),
+            "candidate_execution_failure_code": np.asarray([[
+                0, protected_code, 0,
+            ]]),
+            "candidate_static_preflight_failure_code": np.asarray([[
+                0, protected_code, 0,
+            ]]),
+        }
+        raw = structured_relation_target_only_diagnostics(arrays)
+        filtered = structured_relation_target_only_diagnostics(
+            arrays,
+            static_preflight_pass=arrays[
+                "candidate_static_preflight_pass"
+            ],
+        )
+        self.assertEqual(
+            raw["all"]["uniform_tie_break_expected_accuracy"], 0.5,
+        )
+        self.assertEqual(
+            filtered["all"]["uniform_tie_break_expected_accuracy"], 1.0,
+        )
+        unfiltered_oracle = structured_relation_oracle_probabilities(
+            arrays, future_weight=1.0, temperature=0.25,
+        )
+        filtered_oracle = structured_relation_oracle_probabilities(
+            arrays, future_weight=1.0, temperature=0.25,
+            static_preflight_pass=arrays[
+                "candidate_static_preflight_pass"
+            ],
+        )
+        self.assertEqual(int(unfiltered_oracle.argmax(axis=1)[0]), 1)
+        self.assertEqual(int(filtered_oracle.argmax(axis=1)[0]), 0)
+        audit = static_preflight_diagnostics(arrays)
+        self.assertEqual(audit["illegal_detection_recall"], 1.0)
+        self.assertEqual(audit["legal_false_rejection_rate"], 0.0)
+        self.assertEqual(audit["reference_static_preflight_pass_rate"], 1.0)
+        self.assertEqual(
+            audit["relation_tie_audit"][
+                "minimum_set_contains_executor_illegal_row_rate"
+            ],
+            1.0,
         )
 
     def test_outcome_scorer_diagnostics_separates_fit_and_ranking(self):
