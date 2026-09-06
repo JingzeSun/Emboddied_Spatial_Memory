@@ -4,9 +4,9 @@
 
 ## 当前看板
 
-> **2026-09-07 更新（LOG-029）：** 用户已接受 D-038，将只读 `transaction_static_preflight_v1` 设为 A–E 共享 online admissibility mask。合同、机器 config 和本地实现已更新：K=16 槽位/失败/provenance 不删除，拒绝项在训练归一化、softmax、calibration 和 commit selection 前不可选，executor 的独立 illegal 能量仍保留；新增判别性/排序相关 BCE 与 reference margin 诊断。新 dataset version 为 `m1-paired-latent-worlds-v5-shared-static-preflight`，protocol hash=`34f76fcbef7009ece83368109cfbe4b3c7fd5e0f7e4e61c52134170fa161787a`。本地 42 个相关测试通过；干净服务器全测、v5 train arrays 和 S1 重跑尚未执行。
+> **2026-09-07 更新（LOG-030）：** D-038 的运行前解释与诊断边界已收口：预登记 v5 的 A−E margin 预期缩小；随机地板改为逐行准入集合的均匀期望；NOOP 准入兜底由单测守住；ranking-relevant BCE 固定为 loss-mismatch 主 BCE 诊断；残余 executor-illegal 对 teacher 决策的潜在影响以严格行级上界常驻报告。方法、loss、预算、dataset version 和 protocol hash 不变。本地 44 个相关测试通过；干净服务器全测、v5 train arrays 和 S1 重跑尚未执行。
 
-最后更新：2026-09-07，LOG-029 D-038 合同与本地实现完成；正式 M1 gate 未运行、未生成或读取 test。
+最后更新：2026-09-07，LOG-030 D-038 运行前解释与诊断收口；正式 M1 gate 未运行、未生成或读取 test。
 
 | 项目 | 当前事实 |
 |---|---|
@@ -18,7 +18,7 @@
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
 | 当前决定 | D-034：M1-v2 只加入有界、证据触发的局部补偿，E 不执行候选评分分支；D-038：static preflight 是 A–E 共享 online mask，但不替代 executor illegal 或候选审计；全局 reconciliation、PNO 与 M2 顺序不变 |
 | 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 test。scorer loss 是否修改须等 v5 的 300/1000 五 seed 诊断，不能预先接受 |
-| Git 备份 | D-038 合同/实现已形成本地提交 `5939b16`，尚未 push；服务器在远端出现该提交前不得猜测或使用它。outputs、数据、论文与虚拟环境等 ignore 内容不属于 Git 备份 |
+| Git 备份 | D-038 合同/实现与运行前诊断已形成截至 `e344422` 的本地提交，尚未 push；服务器在远端出现该提交前不得猜测或使用它。outputs、数据、论文与虚拟环境等 ignore 内容不属于 Git 备份 |
 
 白话：M1-v2 现在仍是“考前定卷”，不是已冻结或已通过。旧容量诊断证明简单 MLP 在给足标签时能拟合可见训练关系；新的 K=16 与恢复审计只证明候选、executor 和 active-world 评测路径可达。这些都不等于 CTL 已胜出，更不是带 PNO 的 Full CPMT。
 
@@ -499,6 +499,17 @@ M1-v2 的阶段顺序、转向条件和成功/失败终点见 [M1-v2 收口执�
 - 本地验证：`py_compile` 通过；protocol validator 和 11 个 protocol tests 通过；16 个 `test_m1_af_rollout` 通过；`test_ctl_dev`＋`test_m1_trainability` 共 15 个通过，总计 42 个不重复相关测试。测试中的既有小型 in-memory validation fixture 只验证接线，不读取已保存 validation arrays/report、不用于方法或预算选择，因此不消耗 validation trial。未运行全仓库测试、数据生成或训练。
 - provenance/边界：D-038 合同/实现提交=`5939b16`；旧 v4 arrays/report 因 protocol hash 不匹配不能作为 D-038 后成绩。`test_access=false`，未生成或读取 formal test；未训练正式 student、未校准 gate、未跑正式 causal，未进入 S3/M2。
 - 下一步：先形成干净 Git 提交并在服务器跑全测；成功后只生成 v5 40-group train arrays，先以其 10-group prefix 跑 S1 60 steps/seed 7，再跑 40 groups × scorer steps {300,1000} × seeds {7,19,31,43,59}。主选择量是 shared-mask 后的 inner-dev candidate ranking，按 paired group 比较；1000−300 的 95% CI 下界大于 0 才选 1000，否则选 300。BCE/margin 只用于决定是否另立 scorer-loss decision。
+
+### LOG-030—2026-09-07—D-038 运行前解释、随机地板与残余影响上界收口
+
+- 类型/状态：M1-development 诊断与预登记补强，提交 `e344422`；不改变 D-038 方法边界、loss、预算、dataset version 或 protocol hash。干净服务器全测和任何 v5 数据/训练尚未运行，不构成性能结果。
+- 预登记方向：共享 mask 主要增强旧 E，因此在运行前明确预期 v5 的 A−E 单步与 causal margin 相对 v3/v4 历史读数缩小，主对比触发 stop rule 的概率上升。若 margin 不缩小或仍过门槛才是更强证据；结果出来后不得把任一方向事后改写成原假设。
+- 随机地板/白话：旧脚本的固定 `1/16` 已改为 admitted-uniform random accuracy。它解决每行有效候选数不同后随机基线失真的问题；输入是逐行 static-preflight mask，输出是先算每行 `1/K_i` 再求平均。例如两行分别剩 2 和 4 个候选时结果为 0.375。它不等于 `1/平均 K`，也不读取 reference 或 executor legality。scorer-only 与 scaled 报告均常驻该值。
+- NOOP 不变量：新增生成数据单测，要求每行至少含一个 NOOP 且所有 NOOP 通过 static preflight；这把“不会全部拒绝”从隐式生成器性质变成回归测试。mask helper 的全拒绝异常仍保留，避免静默产生无定义 softmax。
+- BCE 主次：报告新增 `scorer_diagnostic_policy`。预算唯一主选择量仍是 shared-mask inner-dev candidate-ranking accuracy；在解释 loss mismatch 时，`ranking_relevant_bce` 是主 BCE 诊断，`target_discriminative_bce` 是次级解释量。两者冲突不改预算规则；只有 ranking-relevant BCE、reference margin 与实际排序的多 seed 共变支持另立 loss decision。
+- 残余影响/白话：`maximum_teacher_decision_change_rate_due_to_residual_executor_illegal` 统计“至少含一个预检通过但执行失败候选”的决策行比例，是 executor illegal 通道最多能改变多少 teacher 选择的严格上界。例如 100 行只有 3 行含残余非法项，上界为 3%。没有直接构造所谓“A 去掉 illegal 的 teacher”，因为执行失败候选没有 post-edit world，其 future 能量未定义；硬设为 0 会虚构反事实。若以后该上界非零且实质，再以新 decision 定义额外对照。
+- 验证：修改文件通过 `py_compile` 与 `git diff --check`；`test_m1_af_rollout` 18 项、`test_m1_protocol` 11 项、`test_ctl_dev` 11 项和 `test_m1_trainability` 4 项，共 44 个不重复相关测试通过。未在本机跑全仓库测试、生成数据或训练；服务器全测按新增两项测试预期约 152 项，以服务器实际 discovery 数和最终 `OK` 为准。
+- 边界/下一步：`test_access=false`，未读取 validation report/test。推送截至本提交的干净 main 后，服务器先核对实际仓库路径和 commit，再单独运行全测；只有全测退出码 0 才生成 v5 train arrays 并重跑 S1。
 
 ## 后续条目模板
 
