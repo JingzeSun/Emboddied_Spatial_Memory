@@ -4,9 +4,9 @@
 
 ## 当前看板
 
-> **2026-09-06 更新（LOG-024）：** 根据新的只读 scratch probe，E scorer 在小数据上从 60 增至 600 updates 时 teacher 明显上升，但该探针没有仓库 provenance，只作为“优化预算不足”的线索。提交 `64d9ea2` 已解除 runner 中 scorer/student updates 的意外绑定，同时加入 exact-ambiguity capped oracle、合法/非法 wrong-template 分解和 causal 初始步非法率；early stopping 尚未登记或启用。下一步仍先在 AutoDL 全测并完成原定 60/60 S1 retest，随后在 6-trial 上限内执行 scorer updates × train groups 的二维曲线。
+> **2026-09-06 更新（LOG-025）：** D-036 与提交 `58b5d6f` 已关闭 S1/S2 消费 validation report 的治理问题：新增 scorer-only 的 train/inner-dev runner，只从 train paired groups 固定哈希留出约 1/5，报告 target/assembly/scorer 诊断，不读取 validation、不训练 student、不校准 gate。已查看的 4-group report 降为历史开发结果；S5 将登记不重叠的新 validation confirmation。下一步在 AutoDL 跑 144 项全测，并用现有 10-group train arrays 做 seed 7、60-step S1 诊断。
 
-最后更新：2026-09-06，LOG-024 S1 诊断与独立 scorer 预算接口待服务器验证；正式 M1 gate 未运行、未生成 test。
+最后更新：2026-09-06，LOG-025 train/inner-dev scorer 入口待服务器验证；正式 M1 gate 未运行、未生成 test。
 
 | 项目 | 当前事实 |
 |---|---|
@@ -14,11 +14,11 @@
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
 | 阶段 | M1-v2 `pretest_lock_candidate`；只开放 train/validation，尚未重新冻结，正式 gate 未运行，不是 M2/Full CPMT |
 | 最近结果 | 修正后 10/4、1-seed、60-update retest：数组 digest 与首次 smoke 一致，A–E 单步/因果读数逐项复现；校准分母为 40/120/8，gate 仍 `(0,0)`。relation-target oracle=80.83%、argument-given-template=100%，E scorer teacher=5%且 causal illegal selection=95%。observable final active=100%、designed recovery=100%；学习性能仍仅是 smoke |
-| 尚缺 | 在 AutoDL 对最新干净提交跑全测并完成同数据 60/60 S1 diagnostic retest；确认 train/calibration gap 后，按流程跑 scorer updates × train groups 的有界二维曲线。test 仍封存，PNO 与 Khronos 式全局慢路径属 M2 |
+| 尚缺 | 在 AutoDL 对最新干净提交跑全测，并只用现有 train arrays 完成 60-step S1 scorer diagnostic；确认 fitting/inner-dev gap 后，按流程跑 scorer steps × train groups 的有界二维曲线。test 仍封存，PNO 与 Khronos 式全局慢路径属 M2 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
 | 当前决定 | D-034：M1-v1 保留为历史诊断；M1-v2 只加入有界、证据触发的局部补偿，E 不执行候选评分分支；全局 reconciliation、PNO 与 M2 顺序不变 |
 | 人工待定 | 正式 test 解封仍需单独事件；当前先完成服务器 validation，不读取 test |
-| Git 备份 | 修正实现 `318c5a1`、结果 `8460444`、流程 `d421d74`、S1 诊断 `89a7b3d` 与独立 scorer 预算/分解 `64d9ea2` 已入库；outputs、数据、论文与虚拟环境等 ignore 内容不属于 Git 备份 |
+| Git 备份 | 修正实现 `318c5a1`、结果 `8460444`、流程 `d421d74`、S1 诊断 `89a7b3d`、独立 scorer 预算 `64d9ea2` 与 train/inner-dev 隔离 `58b5d6f` 已入库；outputs、数据、论文与虚拟环境等 ignore 内容不属于 Git 备份 |
 
 白话：M1-v2 现在仍是“考前定卷”，不是已冻结或已通过。旧容量诊断证明简单 MLP 在给足标签时能拟合可见训练关系；新的 K=16 与恢复审计只证明候选、executor 和 active-world 评测路径可达。这些都不等于 CTL 已胜出，更不是带 PNO 的 Full CPMT。
 
@@ -429,6 +429,17 @@ M1-v2 的阶段顺序、转向条件和成功/失败终点见 [M1-v2 收口执�
 - 新分解：relation oracle 报 `exact_ambiguity_capped_accuracy`，把不可辨 paired pivot 的 future-reading 成绩封顶为 0.5，但明确不称 E 严格理论上限；template error 拆成非法候选和合法但错模板。causal 指标新增 `initial_step_raw_invalid_selection_rate`，与全轨迹 invalid 并列，区分初始策略错误与 self-rollout 漂移后的复合失控。
 - 本地轻量预览：现有 120 report rows 上 relation oracle 的 19.17% template error 可拆为 14.17% 非法错模板与 5.00% 合法错模板；exact-ambiguity capped diagnostic=0.7917。语法、diff 和纯诊断测试通过；这些仍需干净服务器报告确认。
 - 流程调整：S2 改为 student=1000 固定，scorer steps {300,1000} × train groups {10,40} 的 teacher-forced 2×2，使用共同 validation 且只按 calibration/inner-dev 选择；连同既有 60-update smoke 累计不超过每方法 6 次 validation trial。held-out BCE early stopping 仍是 proposed，未写入训练协议前不得启用。
+
+<a id="log-025"></a>
+### LOG-025—2026-09-06—S1/S2 train/inner-dev 隔离与旧 report 退役
+
+- 类型/状态：M1-development 数据选择/runner 实质变化，D-036 accepted，提交 `58b5d6f`；尚待 AutoDL 全测和干净 S1 报告。
+- 问题：最初的 relation/target-only oracle 在 validation report rows 上计算，LOG-022 又据此决定继续优化 scorer，已经违反“report 不作选择”的意图；流程同时声称 S5 才首次查看 report，不再成立。此前也没有真正的 train/inner-dev 代码，若用 validation 扫 scorer steps × groups 会挤占 6-trial 预算。
+- 修正：新增 `training_inner_dev_mask`，按 canonical train paired-group ID 的 SHA-256 `mod 5 == 0` 固定留出完整 group，siblings 与 recovery rows 不拆。新增 `run_m1_scorer_diagnostics.py`，输入只有 train arrays；在 fitting groups 上训练 E scorer，在 inner-dev 上报告 target-only、assembled oracle、masked BCE、binary/teacher accuracy、非法选择分解和 trace。报告显式记录未读 validation、未消费 validation trial、未训练 student、未校准 gate、未跑 causal。
+- validation 状态：旧 4-group report 仍作为历史事实保留，但以后不再用于方法/checkpoint/S5 go-no-go。S4 必须在机器 config 中登记不重叠的新 validation confirmation group range，S5 才能对其 calibration/report 各执行相应的一次性职责。test 仍未生成或读取。
+- 曲线/早停：S2 在 train/inner-dev 上做 scorer steps {300,1000} × total train groups {10,40}；若更大数据仍有收益，S3 在最大 group 点复扫两个 steps，避免顺序坐标搜索。early stopping 继续标 proposed，未固定 patience、最大步数和 checkpoint tie-break 前不启用。
+- 本地验证：新脚本 `py_compile` 与 `--help` 通过，合成 group 的 inner-dev 完整性检查通过。功能 smoke 因本机仅有旧 protocol 的 v2 arrays 而被 manifest guard 正确拒绝；不绕过哈希，留待 AutoDL 使用 `3820f5e0…` 的现有 train arrays。全套测试尚未在本机运行。
+- 下一步：AutoDL 对最新干净提交运行预计 144 项测试；通过后执行 seed 7、scorer 60 steps 的 train/inner-dev S1 run 并导回。根据 fitting/inner-dev BCE 和 teacher accuracy 进入 S2 或回到 assembly/target 分支。
 
 ## 后续条目模板
 
