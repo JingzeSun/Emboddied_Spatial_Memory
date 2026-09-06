@@ -4,9 +4,9 @@
 
 ## 当前看板
 
-> **2026-09-06 更新（LOG-023）：** S1 诊断实现已提交为 `89a7b3d`：runner 现在分别报告 target-only 最小集合/并列上限、assembled relation oracle 的事后非法选择率，以及 E scorer 在 train/calibration/report 的 masked BCE、关系二分类和 teacher 候选准确率。它不改 E 的目标、能量、训练或在线选择。本地仅完成语法和纯函数检查；下一步在 AutoDL 跑全测，再复用同一 10/4 arrays 做 seed 7、60 updates、`--skip-causal` 的干净诊断 retest。
+> **2026-09-06 更新（LOG-024）：** 根据新的只读 scratch probe，E scorer 在小数据上从 60 增至 600 updates 时 teacher 明显上升，但该探针没有仓库 provenance，只作为“优化预算不足”的线索。提交 `64d9ea2` 已解除 runner 中 scorer/student updates 的意外绑定，同时加入 exact-ambiguity capped oracle、合法/非法 wrong-template 分解和 causal 初始步非法率；early stopping 尚未登记或启用。下一步仍先在 AutoDL 全测并完成原定 60/60 S1 retest，随后在 6-trial 上限内执行 scorer updates × train groups 的二维曲线。
 
-最后更新：2026-09-06，LOG-023 S1 诊断实现待服务器验证；正式 M1 gate 未运行、未生成 test。
+最后更新：2026-09-06，LOG-024 S1 诊断与独立 scorer 预算接口待服务器验证；正式 M1 gate 未运行、未生成 test。
 
 | 项目 | 当前事实 |
 |---|---|
@@ -14,11 +14,11 @@
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
 | 阶段 | M1-v2 `pretest_lock_candidate`；只开放 train/validation，尚未重新冻结，正式 gate 未运行，不是 M2/Full CPMT |
 | 最近结果 | 修正后 10/4、1-seed、60-update retest：数组 digest 与首次 smoke 一致，A–E 单步/因果读数逐项复现；校准分母为 40/120/8，gate 仍 `(0,0)`。relation-target oracle=80.83%、argument-given-template=100%，E scorer teacher=5%且 causal illegal selection=95%。observable final active=100%、designed recovery=100%；学习性能仍仅是 smoke |
-| 尚缺 | 在 AutoDL 对 `89a7b3d` 跑全测并完成同数据 S1 diagnostic retest；确认 target/assembly/optimization/generalization 分支后，才跑固定数据的 5-seed 60/300/1000 teacher-forced 曲线。test 仍封存，PNO 与 Khronos 式全局慢路径属 M2 |
+| 尚缺 | 在 AutoDL 对最新干净提交跑全测并完成同数据 60/60 S1 diagnostic retest；确认 train/calibration gap 后，按流程跑 scorer updates × train groups 的有界二维曲线。test 仍封存，PNO 与 Khronos 式全局慢路径属 M2 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
 | 当前决定 | D-034：M1-v1 保留为历史诊断；M1-v2 只加入有界、证据触发的局部补偿，E 不执行候选评分分支；全局 reconciliation、PNO 与 M2 顺序不变 |
 | 人工待定 | 正式 test 解封仍需单独事件；当前先完成服务器 validation，不读取 test |
-| Git 备份 | 修正实现 `318c5a1`、结果 `8460444`、流程 `d421d74` 与 S1 诊断实现 `89a7b3d` 已入库；outputs、数据、论文与虚拟环境等 ignore 内容不属于 Git 备份 |
+| Git 备份 | 修正实现 `318c5a1`、结果 `8460444`、流程 `d421d74`、S1 诊断 `89a7b3d` 与独立 scorer 预算/分解 `64d9ea2` 已入库；outputs、数据、论文与虚拟环境等 ignore 内容不属于 Git 备份 |
 
 白话：M1-v2 现在仍是“考前定卷”，不是已冻结或已通过。旧容量诊断证明简单 MLP 在给足标签时能拟合可见训练关系；新的 K=16 与恢复审计只证明候选、executor 和 active-world 评测路径可达。这些都不等于 CTL 已胜出，更不是带 PNO 的 Full CPMT。
 
@@ -419,6 +419,16 @@ M1-v2 的阶段顺序、转向条件和成功/失败终点见 [M1-v2 收口执�
 - 不变边界：没有修改 relation target、E 的 BCE 训练、标准化、能量权重、K=16、数据、candidate order、commit gate、主指标或效应门槛；没有生成或读取 test，也没有重复 causal rollout。
 - 本地轻量验证：四个改动 Python 文件通过 `py_compile`；两个新增纯诊断单测直接通过。读取现有 120 条 validation report rows 的非正式预览为 target-only reference-in-minimum=1.0000、unique-reference=0.6333、uniform-tie expected=0.8139、mean tie=1.3833、max tie=3；同一 assembled oracle 的事后 illegal-selection=0.1417。该预览不是干净提交上的导出报告，不用于关闭 S1。
 - 下一步：AutoDL 在干净提交上运行 143 个全套测试；通过后复用 `outputs/m1-v2-retest-318c5a1-20260906T105905Z/{train,validation}.npz`，只跑 seed 7、60 updates 的 teacher-forced diagnostic retest 并导回结果。依据 train/calibration BCE 与 teacher accuracy 决定进入 S2 还是先处理 target/assembly。
+
+<a id="log-024"></a>
+### LOG-024—2026-09-06—解除 E scorer/student 更新数绑定并细分 rollout 失效
+
+- 类型/状态：M1-development runner/诊断代码实质变化，提交 `64d9ea2`；尚待 AutoDL 全测和干净报告，不改变正式方法或 gate。
+- 新线索：外部只读 scratch probe 报告在 6 train/2 validation groups 上，E teacher 随 scorer steps 60/600/3000 为 0.0476/0.6190/0.5833。因其数据规模不同、未导出逐例结果和 provenance，本仓库不把它当正式证据；它只支持优先检验优化预算与数据量的交互，并撤回任何 K=3 与 K=16 smoke 的等规模性能比较。
+- 接口修正：`run_m1_af_scaled.py` 新增独立 `--scorer-steps`；`--student-steps` 继续对 A–E online student 完全一致，E 的额外 scorer updates 在报告 `training_budget` 中单列。省略新参数时仅为兼容旧命令沿用 student 值。合同原已允许 E 额外 scorer 更新、耗时和参数单列，因此没有改公平性定义。
+- 新分解：relation oracle 报 `exact_ambiguity_capped_accuracy`，把不可辨 paired pivot 的 future-reading 成绩封顶为 0.5，但明确不称 E 严格理论上限；template error 拆成非法候选和合法但错模板。causal 指标新增 `initial_step_raw_invalid_selection_rate`，与全轨迹 invalid 并列，区分初始策略错误与 self-rollout 漂移后的复合失控。
+- 本地轻量预览：现有 120 report rows 上 relation oracle 的 19.17% template error 可拆为 14.17% 非法错模板与 5.00% 合法错模板；exact-ambiguity capped diagnostic=0.7917。语法、diff 和纯诊断测试通过；这些仍需干净服务器报告确认。
+- 流程调整：S2 改为 student=1000 固定，scorer steps {300,1000} × train groups {10,40} 的 teacher-forced 2×2，使用共同 validation 且只按 calibration/inner-dev 选择；连同既有 60-update smoke 累计不超过每方法 6 次 validation trial。held-out BCE early stopping 仍是 proposed，未写入训练协议前不得启用。
 
 ## 后续条目模板
 
