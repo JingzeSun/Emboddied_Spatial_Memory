@@ -118,8 +118,18 @@ def validate_m1_protocol(config: Mapping[str, Any]) -> None:
              "confidence level must be 95%")
     _require(evaluation["invariant_violation_gate"] == 0,
              "invariant violations must have zero tolerance")
-    _require(config["resources"]["cloud_spend_authorized_aud"] == 0,
-             "cloud spend requires a separate user authorization")
+    resources = config["resources"]
+    # Cloud cost is controlled by the operator, who starts pay-as-you-go
+    # instances by hand and schedules their shutdown, so the protocol records
+    # the authorization rather than gating on it. A declared budget must still
+    # be a non-negative number; null means "operator controlled, no cap set".
+    budget = resources["cloud_spend_authorized_aud"]
+    _require(budget is None or (isinstance(budget, (int, float))
+                                and not isinstance(budget, bool) and budget >= 0),
+             "cloud spend authorization must be null or a non-negative amount")
+    _require(isinstance(resources.get("cloud_spend_control"), str)
+             and resources["cloud_spend_control"].strip() != "",
+             "resources must record how cloud spend is controlled")
 
 
 def load_and_validate(path: Path) -> dict[str, Any]:

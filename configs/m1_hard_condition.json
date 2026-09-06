@@ -105,8 +105,9 @@
     "failed_runs_are_retained": true
   },
   "resources": {
-    "policy": "local_first_until_measured_peak_or_stability_requires_cloud",
-    "cloud_spend_authorized_aud": 0,
+    "policy": "operator_controlled_cloud_instances",
+    "cloud_spend_authorized_aud": null,
+    "cloud_spend_control": "operator_starts_and_schedules_shutdown_of_pay_as_you_go_instances",
     "formal_run_wall_time_limit_hours": 2,
     "stop_on_new_host_bugcheck": true
   }
