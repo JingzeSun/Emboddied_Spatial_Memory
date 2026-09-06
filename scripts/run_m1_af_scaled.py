@@ -131,6 +131,10 @@ def main() -> int:
     T, V = tensors(train_np, device), tensors(validation_np, device)
     forced: dict[str, list[dict]] = {m: [] for m in STUDENTS}
     scorer_teacher: list[float] = []
+    # Train every seed first, so the single-step table and the primary contrasts
+    # are on screen within minutes. The causal replay that follows takes orders
+    # of magnitude longer, and its per-pair results are written as they land.
+    trained: dict[int, dict] = {}
     for seed in seeds:
         began = time.time()
         _, learned, _ = train_outcome_scorer(T, V, cfg, seed, device)
@@ -144,23 +148,8 @@ def main() -> int:
             with torch.no_grad():
                 probs = model(V["x"]).softmax(1).cpu().numpy()
             forced[method].append(selection_error_decomposition(probs, validation_np))
+        trained[seed] = models
         print(f"  seed {seed} trained in {time.time()-began:.0f}s", flush=True)
-
-        if args.skip_causal:
-            continue
-        for method in ALL_METHODS:
-            target = causal_dir / f"{method}_seed{seed}.json"
-            if target.exists():
-                continue
-            started = time.time()
-            oracle = method == "oracle_candidate_program"
-            metrics, _ = causal_rollout_metrics(
-                None if oracle else models[method], val_audits, cfg, oracle=oracle)
-            metrics.update(method=method, seed=seed, seconds=time.time() - started)
-            target.write_text(json.dumps(metrics, indent=2), encoding="utf-8")
-            print(f"    {method:<26} final={metrics['final_post_graph_correctness']:.4f}"
-                  f"  mean={metrics['mean_post_graph_correctness']:.4f}"
-                  f"  ({metrics['seconds']:.0f}s)", flush=True)
 
     print(f"\n{'method':<24}{'accuracy':>20}{'template':>10}{'identif.':>10}{'ambig.':>9}")
     print("-" * 73)
@@ -190,6 +179,29 @@ def main() -> int:
         }
         print(f"A - {LABEL[other]:<22}{a.mean()-o.mean():+.4f}   "
               f"ranges disjoint: {a.min() > o.max()}")
+
+    if not args.skip_causal:
+        pairs = len(seeds) * len(ALL_METHODS)
+        print(f"\nstarting causal self-rollout: {pairs} (method, seed) pairs over "
+              f"{len(val_audits)} sequences; results land one file at a time",
+              flush=True)
+        for seed in seeds:
+            for method in ALL_METHODS:
+                target = causal_dir / f"{method}_seed{seed}.json"
+                if target.exists():
+                    continue
+                began = time.time()
+                oracle = method == "oracle_candidate_program"
+                metrics, _ = causal_rollout_metrics(
+                    None if oracle else trained[seed][method], val_audits, cfg,
+                    oracle=oracle)
+                metrics.update(method=method, seed=seed,
+                               seconds=time.time() - began)
+                target.write_text(json.dumps(metrics, indent=2), encoding="utf-8")
+                print(f"  seed {seed} {method:<26} "
+                      f"final={metrics['final_post_graph_correctness']:.4f}"
+                      f"  mean={metrics['mean_post_graph_correctness']:.4f}"
+                      f"  ({metrics['seconds']:.0f}s)", flush=True)
 
     causal_summary: dict[str, dict] = {}
     if not args.skip_causal:
