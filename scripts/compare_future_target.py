@@ -35,7 +35,7 @@ from cpmt.dev_learning import (  # noqa: E402
 )
 from cpmt.m1_af_rollout import (  # noqa: E402
     CANDIDATE_FEATURE_DIM, build_rollout_learning_arrays,
-    selection_error_decomposition,
+    selection_error_decomposition, uniform_admissible_random_accuracy,
 )
 from cpmt.m1_protocol import load_and_validate  # noqa: E402
 
@@ -121,17 +121,22 @@ def main() -> int:
 
     d_teacher = float((np.asarray(validation["pstar_current"]).argmax(1)
                        == validation["y"]).mean())
+    random_floor = uniform_admissible_random_accuracy(
+        validation["candidate_static_preflight_pass"],
+        row_mask=~np.asarray(validation["recovery"], dtype=bool),
+    )
     hashed, latent = report["hashed_tokens"], report["world_latent"]
     report["comparison"] = {
         "d_teacher_validation_accuracy": d_teacher,
-        "random_floor": 1 / 16,
+        "random_floor": random_floor,
+        "admitted_uniform_random_accuracy": random_floor,
         "e_teacher_gain": latent["e_teacher_validation_accuracy"]
         - hashed["e_teacher_validation_accuracy"],
         "a_minus_e_change": latent["a_minus_e"] - hashed["a_minus_e"],
         "formal_run": False,
     }
     print(f"\nD teacher (no future term at all) {d_teacher:.4f}   "
-          f"random floor {1/16:.4f}")
+          f"admitted-uniform random floor {random_floor:.4f}")
     print(f"E teacher gain from the latent target "
           f"{report['comparison']['e_teacher_gain']:+.4f}")
     print(f"A's margin over E changes by "

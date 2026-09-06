@@ -21,7 +21,9 @@
 - 已完成：同一份 40-group v4 arrays 确定性截取 10/40 groups，运行 scorer steps {60,300,1000} × seed 7。40-group 全 train 上，static preflight 对 2,552/2,552 个 executor-illegal 候选全部静态拒绝、合法误拒 0；过滤后 target-only 均匀并列期望由 0.7729 升至 0.9698，assembled oracle accuracy 由 0.7438 升至 0.9525，其 exact-ambiguity capped 读数由 0.7275 升至 0.9275。D-038 已接受把同一只读预检变成 A–E 共享 mask；旧 v4 过滤数字仍只作采纳依据，不冒充 v5 方法成绩。
 - scorer 分支：40-group inner-dev 的未过滤/过滤后 teacher accuracy 在 steps 60/300/1000 分别为 0.0500/0.5688/0.5031 与 0.0625/0.7469/0.7094。1000 steps 虽将 held-out BCE 从 0.1016 降到 0.0744，候选排序却低于 300 steps；共同 group 1 在 10/40 groups、300/1000 steps 过滤后均为 0.875，也没有显示扩大到 S3 的明确数据收益。因此 300 steps 只是当前单 seed 候选，尚未固定。
 - 当前分支：D-038 已接受，dataset version 升为 `m1-paired-latent-worlds-v5-shared-static-preflight`，旧 arrays 因 protocol hash 不匹配不得复用为新成绩。下一步在干净提交上全测，只重新生成 train arrays，从 S1 的 10 groups/60 steps/seed 7 重跑；通过后在同一 40-group arrays 上比较 scorer steps {300,1000} × seeds {7,19,31,43,59}。不先进入 S3，也不同时修改 scorer loss。
+- 预登记方向：共享 mask 主要移除旧 E 会选而 A–D 已由执行信息避开的静态非法候选，因此预期 v5 的 `A_vs_E` 单步与 causal margin 相对 v3/v4 历史读数缩小，触发主对比 stop rule 的概率上升；若 margin 不缩小或仍通过门槛，才是更强证据。该方向在运行前固定，结果出来后不得把“缩小”或“不缩小”任一方向改写成预先支持 CTL。
 - scorer 选择规则：共享 mask 后的 inner-dev candidate-ranking accuracy 是主选择量，按共同 paired group 比较并跨登记 seeds 汇总；只有 1000−300 的 paired-group 95% CI 下界大于 0 才选 1000，否则选计算更省的 300。总体/判别性 BCE 与 reference ranking margin 只解释目标是否失配，不按 BCE 单独选预算。若多 seed 复现“总体 BCE 改善但判别性 BCE、margin 或排序下降”，另立 decision 后才可测试 future-derived listwise loss，不得直接用全量 reference index 监督。
+- BCE 分解判据：`ranking_relevant_bce` 是 loss-mismatch 的主 BCE 诊断，因为它直接筛出会改变 oracle mismatch 贡献、因而可能改变候选能量排序的位置；`target_discriminative_bce` 是次级解释量，只回答同一坐标在准入候选间是否同时出现真/假。两者不必是包含关系；发生冲突时，预算仍只按 candidate-ranking accuracy 的预登记置信区间选择，是否改 loss 以 ranking-relevant BCE、reference margin 与实际排序的多 seed 共变为主，且必须另立 decision。
 - 边界：`test_access=false`、`validation_arrays_read=false`、`validation_trial_consumed=false`；本轮不训练 student、不校准 gate、不跑 causal，不进入 PNO/M2 或全局 reconciliation。
 
 ## 总流程
@@ -72,6 +74,10 @@ target-only oracle（只看目标的上限）不加 penalty、不标准化，直
 | relation oracle illegal rate 高 | target/penalty 偏爱不可执行声明 | 在不执行候选的 E 边界内检查声明约束；不偷用 executor illegal mask |
 
 transaction static preflight（事务静态预检）已由 D-038 接受为 A–E 共享 online admissibility mask：它读取 immutable prior world、候选程序、在线证据和 protected IDs，输出“已能静态拒绝”或“预检通过但执行未知”。固定 K=16 槽位和失败审计仍完整，拒绝项只在训练归一化、softmax、calibration 和 commit selection 前不可选。例如候选直接触碰 protected node 会被拒绝，但需要应用操作后才暴露的坏引用仍可能通过。它不生成 post-edit world、不等于最终 executor legality；A/D/F 的执行后 illegal 能量和 `remaining_executor_illegal_candidates` 仍必须保留。
+
+admitted-uniform random accuracy（准入集合均匀随机准确率）解决 mask 后仍把随机地板写成固定 `1/16` 的问题。输入是每一行的 16 个预检布尔值，输出是逐行 `1/有效候选数` 再求平均；例如两行分别剩 2 和 4 个候选时，随机地板是 `(1/2+1/4)/2=0.375`，不是 `1/平均候选数`。它不等于模型准确率，也不使用 reference 或 executor legality。
+
+residual decision-impact upper bound（残余非法决策影响上界）解决只报残余候选总数却不知道最多影响多少决策的问题。输入是“预检通过但执行后非法”的行列 mask，输出是至少含一个此类候选的决策行比例；例如 100 行中有 3 行含残余非法项，则 executor illegal 通道最多改变 3% 的 teacher 决策。它是严格上界，不等于真的改变了 3%，也不为没有 post-edit world 的失败候选虚构 future 能量。
 
 E 的 scorer 与 A–E 的 online student 使用两个独立预算：student updates 仍对 A–E 完全一致，E 额外 scorer updates 单列并报告。60→600 的非仓库 scratch probe 只作为提出二维曲线的线索，不作为选择正式设置的证据；scorer 选择只看上述可追溯 train/inner-dev 曲线。held-out BCE 早停目前仅是候选方案，未登记 patience、最大步数和 checkpoint 规则前不启用。
 

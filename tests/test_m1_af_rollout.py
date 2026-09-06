@@ -14,6 +14,7 @@ sys.path.insert(0, str(PROJECT / "src"))
 from cpmt.dev_learning import (
     METHODS,
     OutcomeScorer,
+    SCORER_DIAGNOSTIC_POLICY,
     apply_candidate_admissibility_to_probabilities,
     masked_candidate_logits,
     masked_candidate_probabilities,
@@ -23,6 +24,7 @@ from cpmt.m1_af_rollout import (
     CANDIDATE_FAILURE_TYPE_TO_CODE,
     CANDIDATE_FEATURE_DIM,
     ONLINE_CONTEXT_DIM,
+    TEMPLATES,
     _program_touches_protected,
     build_rollout_learning_arrays,
     calibrate_shared_commit_rule,
@@ -35,6 +37,7 @@ from cpmt.m1_af_rollout import (
     structured_relation_oracle_probabilities,
     structured_relation_target_only_diagnostics,
     training_inner_dev_mask,
+    uniform_admissible_random_accuracy,
 )
 
 
@@ -211,6 +214,30 @@ class TestM1AFCausalRollout(unittest.TestCase):
             np.ones_like(
                 self.train["relation_desired"][self.train["relation_mask"] > 0]
             ),
+        )
+
+    def test_every_generated_row_has_an_admitted_noop_fallback(self):
+        noop_index = TEMPLATES.index("NOOP")
+        for arrays in (self.train, self.validation):
+            noop = arrays["candidate_templates"] == noop_index
+            self.assertTrue(np.all(noop.any(axis=1)))
+            self.assertTrue(np.all(arrays["candidate_static_preflight_pass"][noop]))
+            self.assertTrue(np.all(
+                (noop & arrays["candidate_static_preflight_pass"]).any(axis=1)
+            ))
+
+    def test_masked_random_floor_uses_each_rows_effective_k(self):
+        admitted = np.asarray([
+            [True, True, False, False],
+            [True, True, True, True],
+        ])
+        self.assertAlmostEqual(
+            uniform_admissible_random_accuracy(admitted),
+            (1 / 2 + 1 / 4) / 2,
+        )
+        self.assertEqual(
+            SCORER_DIAGNOSTIC_POLICY["primary_bce_mismatch_diagnostic"],
+            "ranking_relevant_bce",
         )
 
     def test_six_method_training_and_causal_oracle_smoke(self):
@@ -441,6 +468,26 @@ class TestM1AFCausalRollout(unittest.TestCase):
         self.assertEqual(audit["reference_static_preflight_pass_rate"], 1.0)
         self.assertTrue(audit["filter_enabled_for_method_selection"])
         self.assertFalse(audit["preflight_pass_claims_executor_legality"])
+        self.assertEqual(
+            audit[
+                "maximum_teacher_decision_change_rate_due_to_residual_executor_illegal"
+            ],
+            0.0,
+        )
+        residual = dict(arrays)
+        residual["candidate_static_preflight_pass"] = np.asarray([[
+            True, True, True,
+        ]])
+        residual["candidate_static_preflight_failure_code"] = np.asarray([[
+            0, 0, 0,
+        ]])
+        residual_audit = static_preflight_diagnostics(residual)
+        self.assertEqual(
+            residual_audit[
+                "maximum_teacher_decision_change_rate_due_to_residual_executor_illegal"
+            ],
+            1.0,
+        )
         self.assertEqual(
             audit["relation_tie_audit"][
                 "minimum_set_contains_executor_illegal_row_rate"

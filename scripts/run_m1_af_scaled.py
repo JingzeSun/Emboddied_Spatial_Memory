@@ -30,6 +30,7 @@ PROJECT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT / "src"))
 
 from cpmt.dev_learning import (  # noqa: E402
+    SCORER_DIAGNOSTIC_POLICY,
     apply_candidate_admissibility_to_probabilities,
     candidate_admissibility_mask, masked_candidate_probabilities,
     outcome_scorer_diagnostics, train_outcome_scorer, train_student, tensors,
@@ -41,6 +42,7 @@ from cpmt.m1_af_rollout import (  # noqa: E402
     static_preflight_diagnostics,
     structured_relation_oracle_probabilities,
     structured_relation_target_only_diagnostics,
+    uniform_admissible_random_accuracy,
 )
 from cpmt.m1_protocol import load_and_validate, protocol_sha256  # noqa: E402
 from cpmt.m1_metrics import (  # noqa: E402
@@ -301,7 +303,15 @@ def main() -> int:
     ceiling = 1 - 0.5 * float(np.asarray(
         validation_np["ambiguous"], dtype=bool,
     )[online_validation].mean())
-    print(f"  random floor {1/16:.4f}   observable ceiling {ceiling:.4f}", flush=True)
+    random_floor = uniform_admissible_random_accuracy(
+        validation_np["candidate_static_preflight_pass"],
+        row_mask=online_validation,
+    )
+    print(
+        f"  admitted-uniform random floor {random_floor:.4f}   "
+        f"observable ceiling {ceiling:.4f}",
+        flush=True,
+    )
     relation_oracle_probabilities = structured_relation_oracle_probabilities(
         validation_np,
         future_weight=float(hard["energy"]["weights"]["future"]),
@@ -683,6 +693,8 @@ def main() -> int:
             "candidate_slots_retained": True,
             "executor_illegal_energy_retained": True,
         },
+        "admitted_uniform_random_accuracy": random_floor,
+        "scorer_diagnostic_policy": dict(SCORER_DIAGNOSTIC_POLICY),
         "static_preflight_diagnostics": {
             "train_online": static_preflight_diagnostics(_subset_rows(
                 train_np,

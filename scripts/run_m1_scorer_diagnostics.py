@@ -22,6 +22,7 @@ PROJECT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT / "src"))
 
 from cpmt.dev_learning import (  # noqa: E402
+    SCORER_DIAGNOSTIC_POLICY,
     outcome_scorer_diagnostics,
     tensors,
     train_outcome_scorer,
@@ -366,6 +367,7 @@ def main() -> int:
             "candidate_slots_retained": True,
             "executor_illegal_energy_retained": True,
         },
+        "scorer_diagnostic_policy": dict(SCORER_DIAGNOSTIC_POLICY),
         # The compatibility aliases now report the registered shared-mask
         # method boundary. Explicit unfiltered values remain below solely for
         # before/after attribution.

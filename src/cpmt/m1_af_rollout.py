@@ -785,6 +785,28 @@ def selection_error_decomposition(
     }
 
 
+def uniform_admissible_random_accuracy(
+    static_preflight_pass: np.ndarray, *,
+    row_mask: np.ndarray | None = None,
+) -> float:
+    """Expected accuracy when sampling uniformly from each row's admitted set."""
+    admitted = np.asarray(static_preflight_pass, dtype=bool)
+    if admitted.ndim != 2:
+        raise ValueError("static preflight mask must be row by candidate")
+    counts = admitted.sum(axis=1)
+    if np.any(counts <= 0):
+        raise ValueError("static preflight rejected every candidate in a row")
+    if row_mask is None:
+        selected = np.ones(len(admitted), dtype=bool)
+    else:
+        selected = np.asarray(row_mask, dtype=bool)
+        if selected.ndim != 1 or len(selected) != len(admitted):
+            raise ValueError("random-floor row mask has the wrong shape")
+    if not selected.any():
+        raise ValueError("random-floor row mask is empty")
+    return float(np.mean(1.0 / counts[selected]))
+
+
 def structured_relation_oracle_probabilities(
     arrays: Mapping[str, np.ndarray], *, future_weight: float,
     temperature: float,
@@ -980,6 +1002,7 @@ def static_preflight_diagnostics(
     detected = rejected & illegal
     false_reject = rejected & legal
     remaining_illegal = passed & illegal
+    rows_with_remaining_illegal = remaining_illegal.any(axis=1)
     relation_targets = np.asarray(arrays["relation_targets"], dtype=np.float64)
     relation_mask = np.asarray(arrays["relation_mask"], dtype=np.float64)
     relation_desired = np.asarray(arrays["relation_desired"], dtype=np.float64)
@@ -1044,10 +1067,23 @@ def static_preflight_diagnostics(
         "remaining_illegal_fraction_among_preflight_pass": ratio(
             int(remaining_illegal.sum()), int(passed.sum()),
         ),
+        "rows_with_remaining_executor_illegal_candidates": int(
+            rows_with_remaining_illegal.sum()
+        ),
+        "maximum_teacher_decision_change_rate_due_to_residual_executor_illegal": (
+            float(rows_with_remaining_illegal.mean())
+        ),
+        "residual_decision_impact_semantics": (
+            "strict_rowwise_upper_bound; no counterfactual future is invented "
+            "for candidates that failed execution"
+        ),
         "reference_static_preflight_pass_rate": float(
             passed[rows, reference].mean()
         ),
         "mean_effective_candidate_count": float(passed.sum(axis=1).mean()),
+        "admitted_uniform_random_accuracy": (
+            uniform_admissible_random_accuracy(passed)
+        ),
         "minimum_effective_candidate_count": int(passed.sum(axis=1).min()),
         "maximum_effective_candidate_count": int(passed.sum(axis=1).max()),
         "by_template": {

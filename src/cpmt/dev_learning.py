@@ -24,6 +24,23 @@ METHODS = (
     "oracle_candidate_program",
 )
 
+SCORER_DIAGNOSTIC_POLICY = {
+    "budget_selection_metric": (
+        "shared_mask_inner_dev_candidate_ranking_accuracy"
+    ),
+    "budget_selection_rule": (
+        "select_1000_only_if_paired_group_95pct_ci_lower_bound_for_"
+        "1000_minus_300_is_above_zero_else_select_300"
+    ),
+    "primary_bce_mismatch_diagnostic": "ranking_relevant_bce",
+    "secondary_bce_explanation": "target_discriminative_bce",
+    "reference_ranking_diagnostics": [
+        "reference_probability_margin",
+        "reference_log_probability_margin",
+    ],
+    "loss_change_requires_new_decision": True,
+}
+
 
 def candidate_admissibility_mask(
     data: dict[str, torch.Tensor], candidate_values: torch.Tensor,
