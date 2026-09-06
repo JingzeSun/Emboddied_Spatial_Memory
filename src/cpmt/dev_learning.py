@@ -104,7 +104,7 @@ class OutcomeScorer(nn.Module):
     """
     def __init__(
         self, input_dim: int, hidden: int, future_dim: int, horizon: int,
-        num_candidates: int = 3, candidate_dim: int = 0,
+        num_candidates: int = 3, candidate_dim: int = 0, dropout: float = 0.0,
     ):
         super().__init__()
         self.num_candidates = int(num_candidates)
@@ -116,10 +116,18 @@ class OutcomeScorer(nn.Module):
         # A one-hot slot descriptor makes the scorer index-addressed, so its
         # teacher cannot transfer to a world with a different permutation.
         descriptor_dim = self.candidate_dim or self.num_candidates
-        self.net = nn.Sequential(
-            nn.Linear(self.context_dim + descriptor_dim + horizon, hidden),
-            nn.ReLU(), nn.Linear(hidden, hidden), nn.ReLU(),
-            nn.Linear(hidden, future_dim))
+        # Dropout and weight decay are available so this baseline can be given
+        # a fair chance; without them the scorer memorises its few labelled
+        # decisions and its teacher does not transfer to held-out worlds.
+        layers: list[nn.Module] = [
+            nn.Linear(self.context_dim + descriptor_dim + horizon, hidden), nn.ReLU()]
+        if dropout > 0.0:
+            layers.append(nn.Dropout(float(dropout)))
+        layers.extend([nn.Linear(hidden, hidden), nn.ReLU()])
+        if dropout > 0.0:
+            layers.append(nn.Dropout(float(dropout)))
+        layers.append(nn.Linear(hidden, future_dim))
+        self.net = nn.Sequential(*layers)
 
     def forward(self, x: torch.Tensor, descriptor: torch.Tensor,
                 poses: torch.Tensor) -> torch.Tensor:
@@ -148,10 +156,12 @@ def train_outcome_scorer(train: dict, validation: dict, config: dict, seed: int,
     if int(validation["penalties"].shape[1]) != num_candidates:
         raise ValueError("train/validation candidate dimensions differ")
     candidate_dim = int(config.get("candidate_feature_dim", 0))
-    model = OutcomeScorer(train["x"].shape[1], config["hidden_dim"],
+    model = OutcomeScorer(train["x"].shape[1],
+                          int(config.get("scorer_hidden_dim", config["hidden_dim"])),
                           train["future"].shape[1], config["horizon"],
                           num_candidates=num_candidates,
-                          candidate_dim=candidate_dim).to(device)
+                          candidate_dim=candidate_dim,
+                          dropout=float(config.get("scorer_dropout", 0.0))).to(device)
 
     def descriptors_for(data: dict, index: torch.Tensor | None,
                         candidate: torch.Tensor) -> torch.Tensor:
@@ -162,7 +172,9 @@ def train_outcome_scorer(train: dict, validation: dict, config: dict, seed: int,
             return F.one_hot(candidate, num_candidates).float()
         return blocks[torch.arange(len(rows), device=rows.device), candidate]
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=config["learning_rate"])
+    optimizer = torch.optim.Adam(
+        model.parameters(), lr=config["learning_rate"],
+        weight_decay=float(config.get("scorer_weight_decay", 0.0)))
     labelled = train["labelled"].nonzero().flatten()
     if len(labelled) == 0:
         raise ValueError("no labelled factual examples for no-execution scorer")
@@ -188,7 +200,7 @@ def train_outcome_scorer(train: dict, validation: dict, config: dict, seed: int,
     # without rescaling the penalty term decides the argmax and this method
     # silently becomes execute_current_only.
     normalize = bool(config.get("standardize_future_term", False))
-    model.eval()
+    model.eval()  # also disables dropout while the teacher is produced
     teachers = {}
     with torch.no_grad():
         for name, data in (("train", train), ("validation", validation)):

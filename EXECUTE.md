@@ -6,7 +6,7 @@
 
 > **2026-09-06 更新（LOG-014）：** 固定 K=16 的 train/validation 开发阶梯已完成：400 个 train、160 个 validation 决策，未生成或读取 test。全标签 direct capacity 在可观察上限 97.5%（可辨识部分 100%）达到 97.5%，但 10% 标签下的 A=`CPMT-CTL Core` 在四个受控点只有 6.25%–9.38% teacher-forced accuracy、所有点 20-step final post-graph correctness 均为 0%。A 的 executed-hindsight teacher error 为 0，amortization error 为 90.63%–93.75%，所以目前失败点在“学生从在线输入摊销教师后验”，不是 candidate miss 或教师执行。A–E 的同参数量比较也尚未显示 CTL 优势；F=100% 只是将正确候选程序直接交给执行器的 oracle 上界。该 run 是一次非正式、单 seed、小规模开发诊断，不是 M1 gate，不能扩展到 M2、PNO 或 test。
 
-最后更新：2026-09-06，LOG-016 A–F 预检与 future 项量纲修正，正式 A–F 与 M1 gate 均未运行、未生成 test。
+最后更新：2026-09-06，LOG-017 确认 E 的 scorer 受限于标签量，正式 A–F 与 M1 gate 均未运行、未生成 test。
 
 | 项目 | 当前事实 |
 |---|---|
@@ -324,6 +324,17 @@
 - 修正后结果：E 与 D 的 argmax 一致率由 1.0000 降至 0.1330，E 不再是 D。A 的 teacher 仍为 1.0000（标准化保序，且其 future 项跨度仍约为 penalty 项的 3–5 倍，从 219 倍失衡变为合理量级差）。学生（10% 标签、五 seed）：A 0.8287 ± 0.0109、C 0.6162 ± 0.0318、B 0.6013 ± 0.0294、E 0.2175 ± 0.0269、D 0.2062 ± 0.0168。**A 由修正前的 0.8650 降至 0.8287，该降幅是修正量纲失衡的直接代价，说明此前 A 的部分优势来自 future 项的量级压制；正式报告一律使用修正后数字。**
 - E 的规模曲线（修正后重跑，三 seed；修正前该曲线全程恒定，未测到任何东西）：teacher validation 由 40 标签的 0.1469 升至 800 标签的 0.2958，二十倍数据带来 +0.1490。但 train 同期升至 0.52，train/val 差距持续扩大，1600 标签加到 3000 步 val 反而下降。**瓶颈是过拟合而非数据量**。
 - 结论/下一步：`A_vs_C` 可信且是实质结论。`A_vs_E` **在开发规模下不得报告**——修正前它测的是被淹没的 teacher，修正后仍是"完美 teacher 对不泛化的 scorer"，且 dev 规模低估 E 约一倍。运行正式 A–F 之前，E 的 scorer 需要正则化或容量调整，否则该对比是稻草人。测试：全套 11/11 一次通过（同时修正了测试统计脚本把 `NOPASS` 计为 `PASS` 的缺陷）。仍不开放 test、不进入 PNO/M2、不产生云费用。
+
+<a id="log-017"></a>
+### LOG-017—2026-09-06—E 的 scorer 受限于标签量而非正则化（非正式）
+
+- 类型/状态：M1-development，A–F 正式比较仍未运行；`formal_run=false`、`test_access=false`。
+- 目的/白话：LOG-016 修好 future 项量纲后，E 的 teacher 出现 train 0.52 / validation 0.25 的明显过拟合。在跑正式 A–F 之前先确认这是实现未调优还是方法本身的限制，否则 `A_vs_E` 是稻草人对比。
+- 改变/固定：`OutcomeScorer` 增加可选 dropout，`train_outcome_scorer` 支持 `scorer_weight_decay`、`scorer_hidden_dim`、`scorer_dropout`，三者**默认值均为当前行为**，其他路径与历史结果不受影响；生成 teacher 时 `model.eval()` 关闭 dropout。这些是为正式规模预留的钩子，本轮未改变任何默认。
+- 方法：从 40 个 train paired group 中按 `group` 完整切出 8 组作 inner-dev（sibling 不拆开），在 inner-dev 上选参，**validation 全程不参与选择**，因此报出的 validation 数字未经选择。网格为 weight decay ∈ {0,1e-4,1e-3,1e-2} × dropout ∈ {0,0.2,0.4} × hidden ∈ {32,64} × steps ∈ {300,1000}，共 48 组、每组 2 seed。
+- 结果：inner-dev 上最优配置**就是现有默认**（wd=0、dropout=0、hidden=64、steps=1000，0.2078），所有加正则化、缩容量或提前停止的变体都更差（次优 0.2047，第三 0.1922，依次下降）。以该配置在全部 train 上重拟合、五 seed 评 validation 得 **0.1256 ± 0.0135**，低于 D 的 0.1656，仅高于随机的 0.0625——学出来的 future 项相对于只用 penalty 项是有害的。
+- 根因更正：**瓶颈是标签量而非过拟合**，LOG-016 中"过拟合是binding constraint"的判断有误。核查确认 scorer 实际只见到 **160 个有标签决策**（协议 `main_label_fraction=0.1`），因为它只能在真值候选索引已知处训练。对照 LOG-016 的规模曲线：800 个标签时 teacher validation 为 0.2958，是本轮 160 标签下 0.1256 的两倍以上。
+- 结论/下一步：`A_vs_E` **在开发规模下无法解决，且不是调参能解决的**；协议的 10% 是比例而非绝对值，故 E 的标签数随数据集规模增长，补救办法是运行正式规模。`A_vs_C` 不受此影响（C 无 teacher，仅有辅助回归项），该对比在开发规模即成立。仍不开放 test、不进入 PNO/M2、不产生云费用。
 
 ## 后续条目模板
 
