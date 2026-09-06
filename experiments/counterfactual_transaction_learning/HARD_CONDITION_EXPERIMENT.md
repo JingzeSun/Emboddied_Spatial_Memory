@@ -76,6 +76,8 @@ D 诊断 future evidence；F 分解 candidate coverage 与 scorer error。
 
 白话：target-only oracle（仅目标诊断上限）进一步把目标和能量组装拆开。输入仍是上述关系真假，但输出只按原始 masked mismatch 找到全部并列最小候选，并报告 reference 是否在其中、是否唯一、并列大小和均匀打破并列时的期望准确率。例如三个 RELINK 同分时记作三选一，而不是让数组里的第一个候选冒充正确。它不加 penalty、不标准化、不用 executor 合法性筛选，也不是新的 baseline。E scorer fit diagnostic（E 评分器拟合诊断）则分别在 train、validation calibration 和 report 上输出监督 masked BCE、关系二分类准确率和最终 teacher 候选准确率；它解决“训练没拟合”与“跨世界没泛化”的区分，不改变 E 的训练或推理。
 
+白话：exact-ambiguity capped diagnostic（精确歧义封顶诊断）把 relation oracle 在不可辨 sibling 上因读取真实 future 得到的成绩替换为成对最高 50%，其余 identifiable 行保持原 oracle 读数；它提醒读者 80.83% 的 future-reading oracle 不是部署目标，但不是 E 的严格理论上限。initial-step invalid rate（初始步非法选择率）只看尚未被自身错误污染的第 0 步，全轨迹 invalid rate 则保留错误复合后的失控程度；两者并报能区分“策略一开始就乱选”和“早期错误导致后续候选越来越不适用”，但都不把合法性喂回模型。
+
 ### 指标、统计与 go/no-go
 
 - 主标签比例为 10%；0/1/10/100% 全部报告。正式优化种子固定为 7/19/31/43/59。

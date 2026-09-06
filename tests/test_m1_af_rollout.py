@@ -123,6 +123,8 @@ class TestM1AFCausalRollout(unittest.TestCase):
             },
         )
         self.assertEqual(illegal["raw_illegal_selection_rate"], 1.0)
+        self.assertEqual(illegal["illegal_wrong_template_rate"], 1.0)
+        self.assertEqual(illegal["legal_wrong_template_rate"], 0.0)
 
     def test_arrays_keep_exact_ambiguous_pair_and_groupwise_labels(self):
         self.assertEqual(self.train["x"].shape[0], 84)
@@ -199,6 +201,10 @@ class TestM1AFCausalRollout(unittest.TestCase):
         self.assertEqual(oracle["teacher_forced"]["accuracy"], 1.0)
         self.assertEqual(
             oracle["causal_rollout"]["final_post_graph_correctness"], 1.0
+        )
+        self.assertIn(
+            "initial_step_raw_invalid_selection_rate",
+            oracle["causal_rollout"],
         )
         self.assertEqual(oracle["causal_rollout"]["memory_contamination_per_100"], 0.0)
         self.assertIn(

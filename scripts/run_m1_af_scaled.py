@@ -229,6 +229,11 @@ def main() -> int:
     parser.add_argument("--seeds", type=int, nargs="*", default=None,
                         help="defaults to the protocol's registered formal seeds")
     parser.add_argument("--student-steps", type=int, default=1000)
+    parser.add_argument(
+        "--scorer-steps", type=int, default=None,
+        help=("E's additional scorer updates; defaults to --student-steps for "
+              "backward compatibility and is always reported separately"),
+    )
     parser.add_argument("--threads", type=int, default=8)
     parser.add_argument("--skip-causal", action="store_true",
                         help="teacher-forced only; the primary metrics are then missing")
@@ -264,9 +269,14 @@ def main() -> int:
     calibration_online_mask = ~report_mask & ~recovery_mask
     validation_report_np = _subset_rows(validation_np, online_report_mask)
     device = torch.device("cpu")
+    scorer_steps = (
+        args.student_steps if args.scorer_steps is None else args.scorer_steps
+    )
+    if args.student_steps <= 0 or scorer_steps <= 0:
+        parser.error("--student-steps and --scorer-steps must be positive")
     cfg = dict(smoke, hidden_dim=64, horizon=int(hard["future"]["primary_horizon"]),
                learning_rate=2e-3, batch_size=64, device="cpu",
-               student_steps=args.student_steps, scorer_steps=args.student_steps,
+               student_steps=args.student_steps, scorer_steps=scorer_steps,
                distillation_weight=1.0, auxiliary_weight=1.0,
                candidate_feature_dim=CANDIDATE_FEATURE_DIM,
                standardize_future_term=True,
@@ -293,6 +303,13 @@ def main() -> int:
     relation_oracle = selection_error_decomposition(
         relation_oracle_probabilities[online_report_mask], validation_report_np,
     )
+    ambiguous_fraction = float(relation_oracle["ambiguous_fraction"])
+    relation_oracle["exact_ambiguity_capped_accuracy"] = float(
+        (1.0 - ambiguous_fraction)
+        * float(relation_oracle["identifiable_accuracy"])
+        + ambiguous_fraction * 0.5
+    )
+    relation_oracle["exact_ambiguity_pair_cap"] = 0.5
     target_only = structured_relation_target_only_diagnostics(
         validation_report_np,
     )
@@ -301,6 +318,8 @@ def main() -> int:
         f"accuracy={relation_oracle['accuracy']:.4f} "
         f"identifiable={relation_oracle['identifiable_accuracy']:.4f} "
         f"ambiguous={relation_oracle['ambiguous_accuracy']:.4f} "
+        f"ambiguity_capped="
+        f"{relation_oracle['exact_ambiguity_capped_accuracy']:.4f} "
         f"raw_illegal={relation_oracle['raw_illegal_selection_rate']:.4f}",
         flush=True,
     )
@@ -361,7 +380,9 @@ def main() -> int:
     # of magnitude longer, and its per-pair results are written as they land.
     trained: dict[int, dict] = {}
     print(f"\ntraining {len(seeds)} seeds x {len(STUDENTS)} students "
-          f"on {len(train_np['y'])} decisions", flush=True)
+          f"on {len(train_np['y'])} decisions; "
+          f"student_steps={args.student_steps} scorer_steps={scorer_steps}",
+          flush=True)
     for seed in seeds:
         began = time.time()
         scorer, learned, scorer_trace = train_outcome_scorer(
@@ -591,6 +612,8 @@ def main() -> int:
                 # cannot be told apart from one that acts correctly.
                 "commit_rate": col("commit_rate"),
                 "raw_invalid_selection_rate": col("raw_invalid_selection_rate"),
+                "initial_step_raw_invalid_selection_rate": col(
+                    "initial_step_raw_invalid_selection_rate"),
                 "registered_selection_accuracy": col(
                     "registered_selection_accuracy"),
                 "committed_registered_accuracy": col(
@@ -633,6 +656,11 @@ def main() -> int:
         },
         "dataset_version": hard["data"]["dataset_version"],
         "seeds": seeds,
+        "training_budget": {
+            "student_steps_per_method": int(args.student_steps),
+            "outcome_scorer_steps": int(scorer_steps),
+            "outcome_scorer_is_additional_for_E": True,
+        },
         "train_decisions": int(np.sum(~np.asarray(train_np["recovery"], dtype=bool))),
         "train_recovery_examples": int(np.sum(train_np["recovery"])),
         "train_learning_rows": int(len(train_np["y"])),

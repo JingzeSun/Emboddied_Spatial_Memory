@@ -18,7 +18,7 @@
 
 - 当前阶段：**S1 诊断闭环**。
 - 最近有效证据：[`results/m1-v2-retest-318c5a1-20260906T105905Z.json`](../../results/m1-v2-retest-318c5a1-20260906T105905Z.json)，详见 `EXECUTE.md` LOG-022。
-- 正在执行：在不改变数据和方法的前提下，为 runner 补 target-only oracle、E scorer train/calibration/report 诊断和 relation-oracle 事后 illegal-selection rate。服务器先跑全测，再复用相同 10/4 v4 arrays、seed 7、60 updates 做一次 `--skip-causal` 诊断 retest；本次不重复 causal rollout。
+- 正在执行：在不改变数据和方法的前提下，为 runner 补 target-only oracle、E scorer train/calibration/report 诊断和 relation-oracle 事后 illegal-selection rate。服务器先跑全测，再复用相同 10/4 v4 arrays、seed 7、student/scorer 各 60 updates 做一次 `--skip-causal` 诊断 retest；本次不重复 causal rollout。
 - 离开 S1 的条件：干净提交上全测通过且三类诊断完整；再按下方分支决定进入 S2、S3 或回到 test 前的 target/assembly 修订。
 - 边界：`test_access=false`；不生成或读取 test，不进入 PNO/M2，不实现全局 reconciliation。
 
@@ -48,8 +48,8 @@ S7 M1 成功 / no-go / 不确定收口
 |---|---|---|---|
 | S0 ✓ | 指标、恢复路径和 calibration 分母是否成立 | 10/4 groups、seed 7、60 updates 的 smoke | observable final active=1、恢复一步；calibration/report/recovery=40/120/8；干净 provenance |
 | S1 | E 低是 target、能量组装、优化还是泛化问题 | 在当前 v4 arrays 上补诊断，不改 A–F 主方法 | target-only 并列统计；assembled oracle illegal rate；E 的 train/calibration masked BCE 和 teacher accuracy；对应单测/边界扫描 |
-| S2 | 在不增加世界多样性时，更多优化是否有用 | 固定 10/4 arrays；5 seeds；shared updates 初始为 60/300/1000；teacher-forced only | 收敛曲线、A 的 amortization gap、E train/calibration gap、计算成本；只用 train/calibration 选下一设置 |
-| S3 | 剩余差距是否由世界数量/多样性限制 | 初始为 train groups 10/40/160，validation 至少 20 groups，5 seeds，固定 S2 选定 updates；teacher-forced only | 数据曲线和 train/calibration gap；判定扩数据是在改善泛化还是只增加记忆；累计 validation trial 不超过每方法 6 次 |
+| S2 | E 是优化不足、数据不足还是两者交互 | teacher-forced only；student 固定 1000 updates，E scorer 独立取 300/1000，train groups 取 10/40，形成 2×2；共用至少 20 validation groups，只用 calibration/inner-dev 选择；先 seed 7，再对选定点补齐 5 seeds | E 的 train/calibration BCE、teacher accuracy、非法选择与计算成本二维曲线；A–E 的 student 指标只作同步审计；累计 validation trial 连同 60-update smoke 不超过每方法 6 次 |
+| S3 | 40 groups 后是否仍明确受数据多样性限制 | 只在 S2 的 10→40 改善明确且 trial 预算仍允许时，预先登记一个更大 train-group 确认点；scorer/student updates 固定，5 seeds，teacher-forced only | 确认数据曲线仍上升，或判定已经饱和；不得同时再改 steps、容量或 target |
 | S4 | 正式 run 的分母、能量和终止规则是否唯一 | 解决 `groups_per_family` 名称与“每 family 最低决策实例数”的歧义；核查 now/collateral；报 A 的 10×/1× teacher 消融 | 唯一 train/validation/test paired-group 总数、每 family 最低 support、固定训练步数/门控选择法、不确定结果处理规则 |
 | S5 | 锁定设置在足量 train/validation 上是否值得进入 test | 生成满足 C00–C11 support 的 train/validation；5 seeds；10% labels 主设置；完整 20-step causal 和 10,000 paired bootstrap | coverage/invariant/provenance 全通过；calibration 选唯一共享 gate；report 半区仅报一次；没有触发明确 stop rule |
 | S6 | 封存后的未见数据是否支持 CTL 主张 | 记录 protocol/code/data/hyperparameter hash，单独人工解封 test；test 不选阈值、checkpoint 或方法 | 5 seeds 完整 A–F causal 结果、逐例指标、paired CI、所有失败和完整 provenance |
@@ -66,6 +66,8 @@ target-only oracle（只看目标的上限）不加 penalty、不标准化，直
 | target-only 低，或最小集合长期很大 | target 缺关系或只能缩小范围 | 在 test 前重构 target，升 dataset version，重跑 S1 |
 | E train 高、calibration 低 | 跨世界泛化问题 | 进 S3，优先数据多样性/正则化诊断 |
 | relation oracle illegal rate 高 | target/penalty 偏爱不可执行声明 | 在不执行候选的 E 边界内检查声明约束；不偷用 executor illegal mask |
+
+E 的 scorer 与 A–E 的 online student 从 S2 起使用两个独立预算：student updates 仍对 A–E 完全一致，E 额外 scorer updates 单列并报告。60→600 的非仓库 scratch probe 只作为提出二维曲线的线索，不作为选择正式设置的证据；正式选择只看上述可追溯 train/calibration 曲线。held-out BCE 早停目前仅是候选方案，未登记前不启用。
 
 ## 允许调整与必须重新冻结的边界
 

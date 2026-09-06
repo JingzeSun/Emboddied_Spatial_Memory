@@ -687,6 +687,14 @@ def selection_error_decomposition(
         "raw_illegal_selection_rate": (
             mean(raw_illegal, online_chain) if raw_illegal is not None else None
         ),
+        "illegal_wrong_template_rate": (
+            mean(raw_illegal & ~template_correct, online_chain)
+            if raw_illegal is not None else None
+        ),
+        "legal_wrong_template_rate": (
+            mean(~raw_illegal & ~template_correct, online_chain)
+            if raw_illegal is not None else None
+        ),
         "ambiguous_pair_containment": mean(pair_contains, ambiguous),
         "ambiguous_paired_groups": ambiguous_groups,
         "ambiguous_fraction": mean(ambiguous, online_chain),
@@ -1130,6 +1138,12 @@ def causal_rollout_metrics(
             "raw_invalid_selection_rate": float(np.mean([
                 not item["selected_legal"] for item in choices
             ])),
+            # Step zero starts from the registered initial world, before the
+            # method can create self-rollout drift. The all-step rate above
+            # intentionally retains the compounded failure signal.
+            "initial_step_raw_invalid_selection_rate": float(
+                not choices[0]["selected_legal"]
+            ),
             "registered_selection_accuracy": float(np.mean([
                 item["registered_selection_correct"] for item in choices
             ])),
@@ -1193,6 +1207,7 @@ def causal_rollout_metrics(
         "mean_memory_contamination",
         "memory_contamination_auc_per_100_decisions",
         "unresolved_active_error", "commit_rate", "raw_invalid_selection_rate",
+        "initial_step_raw_invalid_selection_rate",
         "registered_selection_accuracy", "committed_registered_accuracy",
         "ambiguity_commit_rate", "identifiable_commit_rate",
         "triggered_revisit_count", "triggered_revisit_commit_rate",
