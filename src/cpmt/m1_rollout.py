@@ -1928,50 +1928,50 @@ def _counterfactual_trace(
                 policy = str(reference_policies[target_index])
                 if policy == "primary":
                     reference, reference_evidence = _primary_program(branch, event)
+                    selected = _execute_candidates(
+                        branch, [reference], reference_evidence,
+                    )[0]
                 elif policy == "contrast_noop":
                     reference, reference_evidence = _noop_program(branch, event), {}
+                    # Only a non-primary paired policy needs catalog lookup.
+                    # Primary future steps already have a complete audit-only
+                    # transaction spec and can execute it directly.  Expanding
+                    # every primary step to K=16 here multiplies rollout cost
+                    # without resolving any ambiguity.
+                    programs, evidence, _, candidate_signatures = (
+                        _prepare_fixed_candidates(branch, event)
+                    )
+                    combined_evidence = {**evidence, **reference_evidence}
+                    reference_execution = _execute_candidates(
+                        branch, [reference], combined_evidence,
+                    )[0]
+                    if not reference_execution["legal"]:
+                        selected = reference_execution
+                    else:
+                        reference_signature = _candidate_state_signature(
+                            branch, reference_execution["post_graph"],
+                            reference.get("protected_ids", []),
+                        )
+                        matches = [
+                            index for index, signature
+                            in enumerate(candidate_signatures)
+                            if signature == reference_signature
+                        ]
+                        if len(matches) > 1:
+                            raise AssertionError(
+                                "counterfactual reference policy matched multiple "
+                                "canonical candidate states"
+                            )
+                        if not matches:
+                            raise LookupError(
+                                "counterfactual reference policy is absent from "
+                                "the fixed candidate catalog on this branch"
+                            )
+                        selected = _execute_candidates(
+                            branch, [programs[matches[0]]], combined_evidence,
+                        )[0]
                 else:
                     raise ValueError(f"unsupported counterfactual policy {policy!r}")
-
-                # Reconstruct the exact registered future policy on this
-                # branch.  Template-only lookup is insufficient because the
-                # fixed catalog deliberately contains several legal RELINK,
-                # RETRACT, BIND, SPLIT and MERGE programs.  The post-edit state
-                # signature includes the concrete arguments and therefore
-                # identifies the actual transaction rather than merely its
-                # template family.
-                programs, evidence, _, candidate_signatures = (
-                    _prepare_fixed_candidates(branch, event)
-                )
-                combined_evidence = {**evidence, **reference_evidence}
-                reference_execution = _execute_candidates(
-                    branch, [reference], combined_evidence,
-                )[0]
-                if not reference_execution["legal"]:
-                    selected = reference_execution
-                else:
-                    reference_signature = _candidate_state_signature(
-                        branch, reference_execution["post_graph"],
-                        reference.get("protected_ids", []),
-                    )
-                    matches = [
-                        index for index, signature in enumerate(candidate_signatures)
-                        if signature == reference_signature
-                    ]
-                    if len(matches) > 1:
-                        raise AssertionError(
-                            "counterfactual reference policy matched multiple "
-                            "canonical candidate states"
-                        )
-                    if not matches:
-                        raise LookupError(
-                            "counterfactual reference policy is absent from the "
-                            "fixed candidate catalog on this branch"
-                        )
-                    executions = _execute_candidates(
-                        branch, programs, combined_evidence,
-                    )
-                    selected = executions[matches[0]]
                 failure = selected["failure"]
             except (CPMTError, LookupError, StopIteration, ValueError) as error:
                 # A wrong earlier transaction can also make construction of a

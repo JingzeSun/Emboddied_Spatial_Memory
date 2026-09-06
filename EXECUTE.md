@@ -385,6 +385,7 @@
 - 修正：paired subset 与各 runner 的 online/recovery/learning-row 计数改为从数组和注册 horizon 推导，不再新增 `21` 魔数；counterfactual future 不再按 template 取第一个合法候选，而是重建 `primary`/`contrast_noop` 策略并按 canonical post-state signature 唯一匹配，未来若修改 pivot contrast 必须显式扩展；E 的 protected-touch penalty 改为复用 executor 同语义的结构化 ID 提取，不再在 operations repr 中做子串搜索；endpoint bootstrap 配置明示为一层 mixed 20-step stratum。
 - 指标澄清：注册的 `recovery_rate_within_window` 只以“pivot 后状态恰为另一个 sibling reference 所覆盖的错误状态”为 eligible；另报 designed trigger、out-of-scope pivot error，以及 arbitrary-first-error recovery，避免早期无关错误占掉恢复分母。当前 fixture 只验证预设重访到达后的改正，不声称学会触发检测，也不声称覆盖其余 14 个 pivot 候选。
 - 验证：本地仅做变更文件 `py_compile`、JSON 解析与 `git diff --check`，均通过；因本机原生稳定性风险，未运行全量测试。下一步把干净提交推到 AutoDL 重跑全套；通过前不生成正式 v4 arrays。A 的 `10×active/1×open-memory` 对 `1×/1×` 消融保留为全测通过后的低成本预注册消融，不在这次故障修复里改变主 teacher。
+- 首次重跑补充：提交 `ee7eed2` 的全测在 executor 模块结束、进入 `TestM1AFCausalRollout.setUpClass` 后长时间无输出。原因不是死锁，而是该提交把 canonical signature catalog lookup 错误地用于每个 primary future step，使原本一次 reference execution 膨胀为反复 K=16 执行。随后的修正恢复 primary 的单事务直执行，只让真正的 paired contrast policy 做 K=16 signature 唯一匹配；该次被人工中止的 run 不产生测试通过结论。
 
 ## 后续条目模板
 
