@@ -6,11 +6,16 @@ import sys
 import unittest
 
 import numpy as np
+import torch
 
 PROJECT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT / "src"))
 
-from cpmt.dev_learning import METHODS
+from cpmt.dev_learning import (
+    METHODS,
+    OutcomeScorer,
+    outcome_scorer_diagnostics,
+)
 from cpmt.m1_af_rollout import (
     CANDIDATE_FEATURE_DIM,
     ONLINE_CONTEXT_DIM,
@@ -23,6 +28,7 @@ from cpmt.m1_af_rollout import (
     run_af_seed,
     selection_error_decomposition,
     structured_relation_oracle_probabilities,
+    structured_relation_target_only_diagnostics,
 )
 
 
@@ -102,6 +108,21 @@ class TestM1AFCausalRollout(unittest.TestCase):
         outside[mask] = np.eye(16, dtype=np.float32)[third]
         diagnosed = selection_error_decomposition(outside, self.validation)
         self.assertEqual(diagnosed["ambiguous_pair_containment"], 0.0)
+
+        illegal = selection_error_decomposition(
+            np.asarray([[0.0, 1.0], [1.0, 0.0]], dtype=np.float32),
+            {
+                "candidate_templates": np.asarray([[0, 1], [0, 1]]),
+                "y": np.asarray([0, 1]),
+                "ambiguous": np.asarray([False, False]),
+                "recovery": np.asarray([False, False]),
+                "group": np.asarray([0, 1]),
+                "candidate_legal": np.asarray(
+                    [[True, False], [False, True]], dtype=bool,
+                ),
+            },
+        )
+        self.assertEqual(illegal["raw_illegal_selection_rate"], 1.0)
 
     def test_arrays_keep_exact_ambiguous_pair_and_groupwise_labels(self):
         self.assertEqual(self.train["x"].shape[0], 84)
@@ -277,6 +298,59 @@ class TestM1AFCausalRollout(unittest.TestCase):
         self.assertEqual(probabilities.shape, (1, 2))
         self.assertEqual(int(probabilities.argmax(axis=1)[0]), 0)
         self.assertAlmostEqual(float(probabilities.sum()), 1.0)
+
+    def test_target_only_relation_diagnostic_preserves_ties(self):
+        diagnostics = structured_relation_target_only_diagnostics({
+            "relation_targets": np.asarray([
+                [[1.0], [0.0], [0.0]],
+                [[1.0], [1.0], [0.0]],
+            ]),
+            "relation_mask": np.ones((2, 3, 1), dtype=np.float32),
+            "relation_desired": np.ones((2, 3, 1), dtype=np.float32),
+            "y": np.asarray([0, 1]),
+            "ambiguous": np.asarray([False, True]),
+        })
+        self.assertEqual(
+            diagnostics["all"]["reference_in_minimum_set_rate"], 1.0,
+        )
+        self.assertEqual(
+            diagnostics["all"]["unique_reference_minimum_rate"], 0.5,
+        )
+        self.assertEqual(
+            diagnostics["all"]["uniform_tie_break_expected_accuracy"], 0.75,
+        )
+        self.assertEqual(
+            diagnostics["all"]["mean_minimum_set_size"], 1.5,
+        )
+
+    def test_outcome_scorer_diagnostics_separates_fit_and_ranking(self):
+        model = OutcomeScorer(
+            input_dim=6, hidden=4, future_dim=1, horizon=1,
+            num_candidates=2, candidate_dim=2,
+        )
+        for parameter in model.parameters():
+            parameter.data.zero_()
+        data = {
+            "x": torch.zeros((2, 6), dtype=torch.float32),
+            "poses": torch.zeros((2, 1), dtype=torch.float32),
+            "relation_targets": torch.tensor([
+                [[1.0], [0.0]],
+                [[0.0], [0.0]],
+            ]),
+            "relation_mask": torch.ones((2, 2, 1), dtype=torch.float32),
+            "y": torch.tensor([0, 1], dtype=torch.long),
+            "candidate_legal": torch.tensor([
+                [True, True],
+                [True, False],
+            ]),
+        }
+        teacher = torch.tensor([[1.0, 0.0], [0.0, 1.0]])
+        diagnostics = outcome_scorer_diagnostics(model, data, teacher)
+        self.assertEqual(diagnostics["rows"], 2)
+        self.assertAlmostEqual(diagnostics["masked_bce"], np.log(2), places=6)
+        self.assertEqual(diagnostics["masked_binary_accuracy"], 0.25)
+        self.assertEqual(diagnostics["teacher_accuracy"], 1.0)
+        self.assertEqual(diagnostics["raw_illegal_selection_rate"], 0.5)
 
     def test_config_cannot_claim_formal_or_open_test(self):
         raw = json.loads(

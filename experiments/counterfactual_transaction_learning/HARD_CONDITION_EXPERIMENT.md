@@ -74,6 +74,8 @@ D 诊断 future evidence；F 分解 candidate coverage 与 scorer error。
 
 白话：structured relation-target oracle（结构化关系目标上限）解决“E 没学好，究竟是目标没有信息，还是 scorer 没学会”的问题。输入是每个候选从程序文本提出的关系查询、真实 reference future 给出的查询真假和 E 可用的声明成本，输出是在完美知道这些关系真假时的候选排序准确率。例如，若 RELINK 声称“杯子未来在水槽”且真实 future 支持它，oracle 给该查询零不一致；错误位置得到不一致。它不执行 candidate post-world、不是可部署模型、不是 F 的 transaction oracle，也不能作为 E 的正式成绩。
 
+白话：target-only oracle（仅目标诊断上限）进一步把目标和能量组装拆开。输入仍是上述关系真假，但输出只按原始 masked mismatch 找到全部并列最小候选，并报告 reference 是否在其中、是否唯一、并列大小和均匀打破并列时的期望准确率。例如三个 RELINK 同分时记作三选一，而不是让数组里的第一个候选冒充正确。它不加 penalty、不标准化、不用 executor 合法性筛选，也不是新的 baseline。E scorer fit diagnostic（E 评分器拟合诊断）则分别在 train、validation calibration 和 report 上输出监督 masked BCE、关系二分类准确率和最终 teacher 候选准确率；它解决“训练没拟合”与“跨世界没泛化”的区分，不改变 E 的训练或推理。
+
 ### 指标、统计与 go/no-go
 
 - 主标签比例为 10%；0/1/10/100% 全部报告。正式优化种子固定为 7/19/31/43/59。

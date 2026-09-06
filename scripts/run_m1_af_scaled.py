@@ -30,13 +30,14 @@ PROJECT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT / "src"))
 
 from cpmt.dev_learning import (  # noqa: E402
-    train_outcome_scorer, train_student, tensors,
+    outcome_scorer_diagnostics, train_outcome_scorer, train_student, tensors,
 )
 from cpmt.m1_af_rollout import (  # noqa: E402
     CANDIDATE_FEATURE_DIM, calibrate_shared_commit_rule,
     causal_rollout_metrics, paired_group_is_calibration,
     rollout_learning_arrays_from_audits, selection_error_decomposition,
     structured_relation_oracle_probabilities,
+    structured_relation_target_only_diagnostics,
 )
 from cpmt.m1_protocol import load_and_validate, protocol_sha256  # noqa: E402
 from cpmt.m1_metrics import (  # noqa: E402
@@ -260,6 +261,7 @@ def main() -> int:
     report_mask = ~np.asarray(validation_np["calibration"], dtype=bool)
     recovery_mask = np.asarray(validation_np["recovery"], dtype=bool)
     online_report_mask = report_mask & ~recovery_mask
+    calibration_online_mask = ~report_mask & ~recovery_mask
     validation_report_np = _subset_rows(validation_np, online_report_mask)
     device = torch.device("cpu")
     cfg = dict(smoke, hidden_dim=64, horizon=int(hard["future"]["primary_horizon"]),
@@ -291,11 +293,24 @@ def main() -> int:
     relation_oracle = selection_error_decomposition(
         relation_oracle_probabilities[online_report_mask], validation_report_np,
     )
+    target_only = structured_relation_target_only_diagnostics(
+        validation_report_np,
+    )
     print(
         "  structured relation-target oracle on report rows "
         f"accuracy={relation_oracle['accuracy']:.4f} "
         f"identifiable={relation_oracle['identifiable_accuracy']:.4f} "
-        f"ambiguous={relation_oracle['ambiguous_accuracy']:.4f}",
+        f"ambiguous={relation_oracle['ambiguous_accuracy']:.4f} "
+        f"raw_illegal={relation_oracle['raw_illegal_selection_rate']:.4f}",
+        flush=True,
+    )
+    print(
+        "  target-only relation diagnostic on report rows "
+        f"reference_in_min={target_only['all']['reference_in_minimum_set_rate']:.4f} "
+        f"unique_reference={target_only['all']['unique_reference_minimum_rate']:.4f} "
+        f"uniform_tie_expected="
+        f"{target_only['all']['uniform_tie_break_expected_accuracy']:.4f} "
+        f"mean_tie={target_only['all']['mean_minimum_set_size']:.3f}",
         flush=True,
     )
 
@@ -339,6 +354,7 @@ def main() -> int:
     T, V = tensors(train_np, device), tensors(validation_np, device)
     forced: dict[str, list[dict]] = {m: [] for m in STUDENTS}
     scorer_teacher: list[float] = []
+    scorer_diagnostics: list[dict] = []
     calibration_probabilities: dict[str, np.ndarray] = {}
     # Train every seed first, so the single-step table and the primary contrasts
     # are on screen within minutes. The causal replay that follows takes orders
@@ -348,11 +364,31 @@ def main() -> int:
           f"on {len(train_np['y'])} decisions", flush=True)
     for seed in seeds:
         began = time.time()
-        _, learned, _ = train_outcome_scorer(T, V, cfg, seed, device)
-        scorer_teacher.append(float((
-            learned["validation"].cpu().numpy().argmax(1)[online_report_mask]
-            == validation_np["y"][online_report_mask]
-        ).mean()))
+        scorer, learned, scorer_trace = train_outcome_scorer(
+            T, V, cfg, seed, device,
+        )
+        scorer_seed_diagnostics = {
+            "seed": int(seed),
+            "train_all_learning_rows": outcome_scorer_diagnostics(
+                scorer, T, learned["train"],
+            ),
+            "train_online_chain": outcome_scorer_diagnostics(
+                scorer, T, learned["train"],
+                row_mask=~np.asarray(train_np["recovery"], dtype=bool),
+            ),
+            "validation_calibration_online": outcome_scorer_diagnostics(
+                scorer, V, learned["validation"],
+                row_mask=calibration_online_mask,
+            ),
+            "validation_report_online": outcome_scorer_diagnostics(
+                scorer, V, learned["validation"],
+                row_mask=online_report_mask,
+            ),
+            "training_trace": scorer_trace,
+        }
+        scorer_diagnostics.append(scorer_seed_diagnostics)
+        report_diagnostic = scorer_seed_diagnostics["validation_report_online"]
+        scorer_teacher.append(report_diagnostic["teacher_accuracy"])
         models = {}
         for method in STUDENTS:
             model, _ = train_student(
@@ -372,7 +408,18 @@ def main() -> int:
                 )) if recovery_report.any() else None
             )
         trained[seed] = models
-        print(f"  seed {seed} trained in {time.time()-began:.0f}s", flush=True)
+        train_diagnostic = scorer_seed_diagnostics["train_online_chain"]
+        calibration_diagnostic = scorer_seed_diagnostics[
+            "validation_calibration_online"
+        ]
+        print(
+            f"  seed {seed} trained in {time.time()-began:.0f}s; "
+            f"E train BCE={train_diagnostic['masked_bce']:.4f} "
+            f"teacher={train_diagnostic['teacher_accuracy']:.4f}; "
+            f"calibration BCE={calibration_diagnostic['masked_bce']:.4f} "
+            f"teacher={calibration_diagnostic['teacher_accuracy']:.4f}",
+            flush=True,
+        )
 
     commit_calibration = calibrate_shared_commit_rule(
         calibration_probabilities, validation_np, hard,
@@ -606,8 +653,10 @@ def main() -> int:
             ).mean()),
         },
         "structured_relation_target_oracle": relation_oracle,
+        "structured_relation_target_only": target_only,
         "commit_calibration": commit_calibration,
         "scorer_teacher_validation_accuracy": scorer_teacher,
+        "outcome_scorer_diagnostics": scorer_diagnostics,
         "teacher_forced": summary,
         "primary_contrasts": contrasts,
         "causal_rollout": causal_summary,

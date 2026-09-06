@@ -307,6 +307,90 @@ def train_outcome_scorer(train: dict, validation: dict, config: dict, seed: int,
     return model, teachers, trace
 
 
+def outcome_scorer_diagnostics(
+    model: OutcomeScorer, data: dict, teacher: torch.Tensor, *,
+    row_mask: np.ndarray | torch.Tensor | None = None,
+) -> dict:
+    """Separate relation fitting from downstream candidate ranking.
+
+    Masked BCE is the scorer's actual supervised objective against future
+    relation truth. Teacher accuracy is the candidate choice after the
+    unchanged E energy assembly. Comparing train and held-out subsets therefore
+    distinguishes optimization failure from generalization or assembly failure
+    without changing what E sees or selects.
+    """
+    required = ("relation_targets", "relation_mask", "y")
+    if any(key not in data for key in required):
+        raise ValueError("structured scorer diagnostics require relation targets")
+    device = data["x"].device
+    if row_mask is None:
+        selected = torch.arange(len(data["x"]), device=device)
+    else:
+        mask = torch.as_tensor(row_mask, dtype=torch.bool, device=device)
+        if mask.ndim != 1 or len(mask) != len(data["x"]):
+            raise ValueError("scorer diagnostic row mask has the wrong shape")
+        selected = mask.nonzero().flatten()
+    if len(selected) == 0:
+        raise ValueError("scorer diagnostic subset is empty")
+
+    rows = data["x"][selected]
+    poses = data["poses"][selected]
+    _, blocks = split_online_features(
+        rows, model.num_candidates, model.candidate_dim,
+    )
+    if blocks is None:
+        blocks = torch.eye(model.num_candidates, device=device).expand(
+            len(rows), -1, -1,
+        )
+    flat_rows = rows.unsqueeze(1).expand(
+        -1, model.num_candidates, -1,
+    ).reshape(-1, rows.shape[-1])
+    flat_blocks = blocks.reshape(-1, blocks.shape[-1])
+    flat_poses = poses.unsqueeze(1).expand(
+        -1, model.num_candidates, -1,
+    ).reshape(-1, poses.shape[-1])
+    with torch.no_grad():
+        logits = model(flat_rows, flat_blocks, flat_poses).reshape(
+            len(rows), model.num_candidates, -1,
+        )
+        targets = data["relation_targets"][selected]
+        relation_mask = data["relation_mask"][selected]
+        elementwise = F.binary_cross_entropy_with_logits(
+            logits, targets, reduction="none",
+        )
+        supervised_elements = relation_mask.sum()
+        if supervised_elements <= 0:
+            raise ValueError(
+                "scorer diagnostic subset has no supervised relations"
+            )
+        masked_bce = (elementwise * relation_mask).sum() / supervised_elements
+        binary_correct = (
+            (logits.sigmoid() >= 0.5) == (targets >= 0.5)
+        ).float()
+        masked_binary_accuracy = (
+            binary_correct * relation_mask
+        ).sum() / supervised_elements
+        predicted = teacher[selected].argmax(dim=1)
+        reference = data["y"][selected]
+        teacher_accuracy = (predicted == reference).float().mean()
+        illegal_rate = None
+        if "candidate_legal" in data:
+            legal = data["candidate_legal"][selected]
+            illegal_rate = (~legal[
+                torch.arange(len(selected), device=device), predicted
+            ]).float().mean()
+    return {
+        "rows": int(len(selected)),
+        "supervised_relation_elements": int(supervised_elements.cpu()),
+        "masked_bce": float(masked_bce.cpu()),
+        "masked_binary_accuracy": float(masked_binary_accuracy.cpu()),
+        "teacher_accuracy": float(teacher_accuracy.cpu()),
+        "raw_illegal_selection_rate": (
+            float(illegal_rate.cpu()) if illegal_rate is not None else None
+        ),
+    }
+
+
 def train_student(method: str, train: dict, teacher: torch.Tensor,
                   config: dict, seed: int,
                   device: torch.device) -> tuple[OnlineModel, list[dict]]:

@@ -18,7 +18,8 @@
 
 - 当前阶段：**S1 诊断闭环**。
 - 最近有效证据：[`results/m1-v2-retest-318c5a1-20260906T105905Z.json`](../../results/m1-v2-retest-318c5a1-20260906T105905Z.json)，详见 `EXECUTE.md` LOG-022。
-- 立即下一步：补 target-only oracle、E scorer train/calibration 诊断和 relation-oracle illegal-selection rate；通过全测后进入 S2。
+- 正在执行：在不改变数据和方法的前提下，为 runner 补 target-only oracle、E scorer train/calibration/report 诊断和 relation-oracle 事后 illegal-selection rate。服务器先跑全测，再复用相同 10/4 v4 arrays、seed 7、60 updates 做一次 `--skip-causal` 诊断 retest；本次不重复 causal rollout。
+- 离开 S1 的条件：干净提交上全测通过且三类诊断完整；再按下方分支决定进入 S2、S3 或回到 test 前的 target/assembly 修订。
 - 边界：`test_access=false`；不生成或读取 test，不进入 PNO/M2，不实现全局 reconciliation。
 
 ## 总流程

@@ -642,6 +642,15 @@ def selection_error_decomposition(
     target_template = templates[rows, target]
     template_correct = predicted_template == target_template
     correct = predicted == target
+    candidate_legal = arrays.get("candidate_legal")
+    raw_illegal = None
+    if candidate_legal is not None:
+        candidate_legal = np.asarray(candidate_legal, dtype=bool)
+        if candidate_legal.shape != np.asarray(probabilities).shape:
+            raise ValueError(
+                "candidate legality and probabilities must have equal shape"
+            )
+        raw_illegal = ~candidate_legal[rows, predicted]
     pair_contains = np.zeros(len(target), dtype=bool)
     ambiguous_groups = 0
     for group in np.unique(np.asarray(arrays["group"])[ambiguous]):
@@ -673,6 +682,11 @@ def selection_error_decomposition(
         "identifiable_accuracy": mean(correct, identifiable),
         "ambiguous_accuracy": mean(correct, ambiguous),
         "recovery_accuracy": mean(correct, recovery),
+        # Legality audits the already selected candidate. It is never fed back
+        # into E or another online selector.
+        "raw_illegal_selection_rate": (
+            mean(raw_illegal, online_chain) if raw_illegal is not None else None
+        ),
         "ambiguous_pair_containment": mean(pair_contains, ambiguous),
         "ambiguous_paired_groups": ambiguous_groups,
         "ambiguous_fraction": mean(ambiguous, online_chain),
@@ -724,6 +738,73 @@ def structured_relation_oracle_probabilities(
     probabilities = np.exp(logits)
     probabilities /= probabilities.sum(axis=1, keepdims=True)
     return probabilities.astype(np.float32)
+
+
+def structured_relation_target_only_diagnostics(
+    arrays: Mapping[str, np.ndarray],
+) -> dict[str, Any]:
+    """Measure what the relation target identifies before energy assembly.
+
+    This diagnostic ranks candidates only by their raw masked relation
+    mismatch. It reports the entire minimum set instead of letting numpy's
+    first-index tie break look like information supplied by the target.
+    Penalties, standardization and executor legality never affect the ranking.
+    """
+    targets = np.asarray(arrays["relation_targets"], dtype=np.float64)
+    masks = np.asarray(arrays["relation_mask"], dtype=np.float64)
+    desired = np.asarray(arrays["relation_desired"], dtype=np.float64)
+    reference = np.asarray(arrays["y"], dtype=np.int64)
+    if targets.shape != masks.shape or targets.shape != desired.shape:
+        raise ValueError("structured relation target tensors must have equal shape")
+    if targets.ndim != 3 or len(reference) != targets.shape[0]:
+        raise ValueError(
+            "structured relation target-only diagnostic received incompatible shapes"
+        )
+    denominators = masks.sum(axis=2)
+    if np.any(denominators <= 0.0):
+        raise ValueError("every candidate needs at least one relation query")
+    mismatch = (
+        np.abs(targets - desired) * masks
+    ).sum(axis=2) / denominators
+    minima = mismatch.min(axis=1, keepdims=True)
+    minimum_set = np.isclose(mismatch, minima, rtol=1e-9, atol=1e-12)
+    tie_size = minimum_set.sum(axis=1)
+    rows = np.arange(len(reference))
+    reference_is_minimum = minimum_set[rows, reference]
+    expected_correct = reference_is_minimum / tie_size
+    ambiguous = np.asarray(
+        arrays.get("ambiguous", np.zeros(len(reference), dtype=bool)),
+        dtype=bool,
+    )
+
+    def summarize(row_mask: np.ndarray) -> dict[str, Any] | None:
+        if not row_mask.any():
+            return None
+        return {
+            "rows": int(row_mask.sum()),
+            "reference_in_minimum_set_rate": float(
+                reference_is_minimum[row_mask].mean()
+            ),
+            "unique_reference_minimum_rate": float((
+                reference_is_minimum[row_mask] & (tie_size[row_mask] == 1)
+            ).mean()),
+            "uniform_tie_break_expected_accuracy": float(
+                expected_correct[row_mask].mean()
+            ),
+            "mean_minimum_set_size": float(tie_size[row_mask].mean()),
+            "maximum_minimum_set_size": int(tie_size[row_mask].max()),
+        }
+
+    all_rows = np.ones(len(reference), dtype=bool)
+    return {
+        "ranking": "raw_masked_relation_mismatch_only",
+        "uses_penalties": False,
+        "uses_standardization": False,
+        "uses_executor_legality_for_selection": False,
+        "all": summarize(all_rows),
+        "identifiable": summarize(~ambiguous),
+        "ambiguous": summarize(ambiguous),
+    }
 
 
 def calibrate_shared_commit_rule(
