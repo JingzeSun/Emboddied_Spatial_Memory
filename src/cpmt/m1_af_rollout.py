@@ -21,6 +21,9 @@ from torch.nn import functional as F
 from .dev_learning import (
     METHODS,
     OnlineModel,
+    apply_candidate_admissibility_to_probabilities,
+    candidate_admissibility_mask,
+    masked_candidate_probabilities,
     train_outcome_scorer,
     train_student,
     tensors,
@@ -704,6 +707,18 @@ def selection_error_decomposition(
     target_template = templates[rows, target]
     template_correct = predicted_template == target_template
     correct = predicted == target
+    static_preflight_pass = np.asarray(
+        arrays.get(
+            "candidate_static_preflight_pass",
+            np.ones_like(probabilities, dtype=bool),
+        ),
+        dtype=bool,
+    )
+    if static_preflight_pass.shape != np.asarray(probabilities).shape:
+        raise ValueError(
+            "candidate preflight mask and probabilities must have equal shape"
+        )
+    raw_static_rejected = ~static_preflight_pass[rows, predicted]
     candidate_legal = arrays.get("candidate_legal")
     raw_illegal = None
     if candidate_legal is not None:
@@ -748,6 +763,12 @@ def selection_error_decomposition(
         # into E or another online selector.
         "raw_illegal_selection_rate": (
             mean(raw_illegal, online_chain) if raw_illegal is not None else None
+        ),
+        "raw_static_rejected_selection_rate": mean(
+            raw_static_rejected, online_chain,
+        ),
+        "mean_effective_candidate_count": mean(
+            static_preflight_pass.sum(axis=1), online_chain,
         ),
         "illegal_wrong_template_rate": (
             mean(raw_illegal & ~template_correct, online_chain)
@@ -1079,7 +1100,9 @@ def static_preflight_diagnostics(
         },
         "executor_legality_used_as_audit_label_only": True,
         "fed_to_online_model": False,
-        "filter_enabled_for_method_selection": False,
+        "filter_enabled_for_method_selection": True,
+        "shared_online_admissibility_methods": ["A", "B", "C", "D", "E"],
+        "preflight_pass_claims_executor_legality": False,
     })
     return result
 
@@ -1107,6 +1130,13 @@ def calibrate_shared_commit_rule(
     if not calibration.any() or not report.any():
         raise ValueError("validation must contain both calibration and report groups")
     candidate_legal = np.asarray(arrays["candidate_legal"], dtype=bool)
+    static_preflight_pass = arrays.get("candidate_static_preflight_pass")
+    if static_preflight_pass is not None:
+        static_preflight_pass = np.asarray(
+            static_preflight_pass, dtype=bool,
+        )
+        if static_preflight_pass.shape != candidate_legal.shape:
+            raise ValueError("calibration static-preflight mask shape differs")
     active_correct = np.asarray(arrays["active_correct"], dtype=np.float64)
     base_active = np.asarray(arrays["base_active_correct"], dtype=np.float64)
     fact_errors = np.asarray(arrays["fact_errors"], dtype=np.float64)
@@ -1126,6 +1156,14 @@ def calibrate_shared_commit_rule(
                 if probabilities.shape != candidate_legal.shape:
                     raise ValueError(
                         f"probability shape mismatch for calibration run {run_name}"
+                    )
+                if (
+                    static_preflight_pass is not None
+                    and np.any(probabilities[~static_preflight_pass] > 1e-8)
+                ):
+                    raise ValueError(
+                        f"calibration run {run_name} assigned probability to "
+                        "a static-preflight rejection"
                     )
                 predicted = probabilities.argmax(axis=1)
                 ordered = np.sort(probabilities, axis=1)
@@ -1204,6 +1242,19 @@ def _teacher_forced_metrics(
     )
     online = ~recovery
     identifiable = ~ambiguous & online
+    static_preflight_pass = data.get("candidate_static_preflight_pass")
+    if static_preflight_pass is None:
+        static_preflight_pass_np = np.ones_like(probabilities, dtype=bool)
+    else:
+        static_preflight_pass_np = (
+            static_preflight_pass.detach().cpu().numpy().astype(bool)
+        )
+    if static_preflight_pass_np.shape != probabilities.shape:
+        raise ValueError("teacher-forced static-preflight mask shape differs")
+    if np.any(probabilities[~static_preflight_pass_np] > 1e-8):
+        raise ValueError(
+            "teacher-forced probabilities include a preflight rejection"
+        )
     predicted = probabilities.argmax(axis=1)
     teacher_choice = teacher.argmax(dim=1).detach().cpu().numpy()
     def mean(values: np.ndarray, mask: np.ndarray) -> float:
@@ -1217,6 +1268,15 @@ def _teacher_forced_metrics(
         "teacher_accuracy": mean(teacher_choice == target, online),
         "amortization_error": mean(predicted != teacher_choice, online),
         "mean_confidence": mean(probabilities.max(axis=1), online),
+        "mean_effective_candidate_count": mean(
+            static_preflight_pass_np.sum(axis=1), online,
+        ),
+        "static_rejected_selection_rate": mean(
+            ~static_preflight_pass_np[
+                np.arange(len(predicted)), predicted
+            ],
+            online,
+        ),
     }
 
 
@@ -1299,6 +1359,7 @@ def causal_rollout_metrics(
                             errors["memory_contamination"]
                             + errors["missing_open_facts"],
                             errors["false_birth_growth"],
+                            not candidate["static_preflight_pass"],
                             not candidate["legal"],
                             int(candidate["candidate_index"]),
                         ))
@@ -1310,14 +1371,27 @@ def causal_rollout_metrics(
                 )[selected_index]
             else:
                 vector = online_feature_vector(materialized["online"])
+                static_preflight_pass = torch.as_tensor(
+                    [[
+                        candidate["static_preflight_pass"]
+                        for candidate in materialized["executed_candidates"]
+                    ]],
+                    dtype=torch.bool,
+                    device=device,
+                )
                 started = time.perf_counter()
                 with torch.no_grad():
-                    probabilities = model(
-                        torch.as_tensor(vector[None], device=device)
-                    ).softmax(dim=1).cpu().numpy()[0]
+                    logits = model(torch.as_tensor(vector[None], device=device))
+                    probabilities = masked_candidate_probabilities(
+                        logits, static_preflight_pass,
+                    ).cpu().numpy()[0]
                 forward_latencies_ms.append((time.perf_counter() - started) * 1000.0)
                 selected_index = int(np.argmax(probabilities))
             selected = materialized["executed_candidates"][selected_index]
+            if not selected["static_preflight_pass"]:
+                raise AssertionError(
+                    "online selection returned a static-preflight rejection"
+                )
             decision = decide_commit(
                 {str(index): float(value) for index, value in enumerate(probabilities)},
                 decision_id=f"{audit['sequence_id']}:{step_index}",
@@ -1360,7 +1434,14 @@ def causal_rollout_metrics(
                 "reference_index": int(stored["reference_program_index"]),
                 "selected_index": selected_index,
                 "selected_template": selected["template"],
+                "selected_static_preflight_pass": selected[
+                    "static_preflight_pass"
+                ],
                 "selected_legal": selected["legal"],
+                "effective_candidate_count": int(sum(
+                    candidate["static_preflight_pass"]
+                    for candidate in materialized["executed_candidates"]
+                )),
                 "committed": committed,
                 "registered_selection_correct": registered_correct,
                 "committed_registered_correct": committed and registered_correct,
@@ -1406,6 +1487,12 @@ def causal_rollout_metrics(
             "commit_rate": float(np.mean([item["committed"] for item in choices])),
             "raw_invalid_selection_rate": float(np.mean([
                 not item["selected_legal"] for item in choices
+            ])),
+            "raw_static_rejected_selection_rate": float(np.mean([
+                not item["selected_static_preflight_pass"] for item in choices
+            ])),
+            "mean_effective_candidate_count": float(np.mean([
+                item["effective_candidate_count"] for item in choices
             ])),
             # Step zero starts from the registered initial world, before the
             # method can create self-rollout drift. The all-step rate above
@@ -1476,6 +1563,7 @@ def causal_rollout_metrics(
         "mean_memory_contamination",
         "memory_contamination_auc_per_100_decisions",
         "unresolved_active_error", "commit_rate", "raw_invalid_selection_rate",
+        "raw_static_rejected_selection_rate", "mean_effective_candidate_count",
         "initial_step_raw_invalid_selection_rate",
         "registered_selection_accuracy", "committed_registered_accuracy",
         "ambiguity_commit_rate", "identifiable_commit_rate",
@@ -1619,13 +1707,26 @@ def run_af_seed(
         else:
             train_teacher = train["pstar"]
             validation_teacher = validation["pstar"]
+        train_teacher = apply_candidate_admissibility_to_probabilities(
+            train_teacher,
+            candidate_admissibility_mask(train, train["penalties"]),
+        )
+        validation_teacher = apply_candidate_admissibility_to_probabilities(
+            validation_teacher,
+            candidate_admissibility_mask(
+                validation, validation["penalties"],
+            ),
+        )
         started = time.perf_counter()
         model, trace = train_student(
             method, train, train_teacher, dict(smoke_config), seed, device,
         )
         seconds = time.perf_counter() - started
         with torch.no_grad():
-            probabilities = model(validation["x"]).softmax(dim=1).cpu().numpy()
+            logits = model(validation["x"])
+            probabilities = masked_candidate_probabilities(
+                logits, candidate_admissibility_mask(validation, logits),
+            ).cpu().numpy()
         teacher_metrics = _teacher_forced_metrics(
             probabilities, validation, validation_teacher,
         )

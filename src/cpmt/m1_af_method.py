@@ -16,6 +16,9 @@ from torch.nn import functional as F
 
 from .dev_learning import (
     METHODS,
+    apply_candidate_admissibility_to_probabilities,
+    candidate_admissibility_mask,
+    masked_candidate_probabilities,
     train_outcome_scorer,
     train_student,
     tensors,
@@ -86,6 +89,13 @@ def run_af_method(
     else:
         train_teacher = train["pstar"]
         validation_teacher = validation["pstar"]
+    train_teacher = apply_candidate_admissibility_to_probabilities(
+        train_teacher, candidate_admissibility_mask(train, train["penalties"]),
+    )
+    validation_teacher = apply_candidate_admissibility_to_probabilities(
+        validation_teacher,
+        candidate_admissibility_mask(validation, validation["penalties"]),
+    )
 
     started = time.perf_counter()
     model, trace = train_student(
@@ -93,7 +103,10 @@ def run_af_method(
     )
     seconds = time.perf_counter() - started
     with torch.no_grad():
-        probabilities = model(validation["x"]).softmax(dim=1).cpu().numpy()
+        logits = model(validation["x"])
+        probabilities = masked_candidate_probabilities(
+            logits, candidate_admissibility_mask(validation, logits),
+        ).cpu().numpy()
     teacher_metrics = _teacher_forced_metrics(
         probabilities, validation, validation_teacher,
     )

@@ -4,9 +4,9 @@
 
 ## 当前看板
 
-> **2026-09-06 更新（LOG-028）：** S2 seed-7 的 10/40 train groups × 60/300/1000 scorer steps 已在同一份 40-group arrays 上完成。只读 static preflight 对 2,552 个 executor-illegal 候选实现 100% 召回且合法误拒为 0；若仅作事后过滤诊断，assembled oracle accuracy 从 0.7438 升到 0.9525。40-group inner-dev 的过滤后 scorer teacher accuracy 在 300/1000 steps 为 0.7469/0.7094，未显示继续增大训练步数或立即扩大数据的明确收益。当前停在方法边界决策：是否把 static preflight 重新登记为 A–E 共享 online admissibility mask；在决策、合同和 protocol hash 更新前，它仍不是方法组件或 E 成绩。
+> **2026-09-07 更新（LOG-029）：** 用户已接受 D-038，将只读 `transaction_static_preflight_v1` 设为 A–E 共享 online admissibility mask。合同、机器 config 和本地实现已更新：K=16 槽位/失败/provenance 不删除，拒绝项在训练归一化、softmax、calibration 和 commit selection 前不可选，executor 的独立 illegal 能量仍保留；新增判别性/排序相关 BCE 与 reference margin 诊断。新 dataset version 为 `m1-paired-latent-worlds-v5-shared-static-preflight`，protocol hash=`34f76fcbef7009ece83368109cfbe4b3c7fd5e0f7e4e61c52134170fa161787a`。本地 42 个相关测试通过；干净服务器全测、v5 train arrays 和 S1 重跑尚未执行。
 
-最后更新：2026-09-06，LOG-028 S2 seed-7 曲线已完成并导回；正式 M1 gate 未运行、未生成或读取 test。
+最后更新：2026-09-07，LOG-029 D-038 合同与本地实现完成；正式 M1 gate 未运行、未生成或读取 test。
 
 | 项目 | 当前事实 |
 |---|---|
@@ -14,11 +14,11 @@
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
 | 阶段 | M1-v2 `pretest_lock_candidate`；只开放 train/validation，尚未重新冻结，正式 gate 未运行，不是 M2/Full CPMT |
 | 最近结果 | 结果提交 `ea25201` 的 S2 seed-7 2×3：同一份 40-group arrays（1,600 online + 80 recovery rows）确定性截取 10/40 groups。40-group static preflight 非法召回=1、合法误拒=0；target-only tie-expected 0.7729→0.9698，assembled oracle 0.7438→0.9525，exact-ambiguity capped 0.7275→0.9275。40-group inner-dev scorer 在 60/300/1000 steps 的未过滤 teacher=0.0500/0.5688/0.5031，过滤后=0.0625/0.7469/0.7094；1000 steps 的 BCE 更低但候选排序更差 |
-| 尚缺 | 先决定是否提出新 decision，将 static preflight 作为所有 A–E 共享的 online admissibility mask。若接受，修改方法合同与 protocol hash、从 S1 重跑并在 40 groups 上对 300/1000 steps 补齐登记 seeds；若拒绝，在未过滤边界内修 assembly/声明约束。完成该方法边界与多 seed 确认后才判断是否需要 S3。test 仍封存，PNO 与 Khronos 式全局慢路径属 M2 |
+| 尚缺 | 在干净服务器提交上跑全测；只重新生成 v5 train arrays，从 S1 的 10 groups/60 steps/seed 7 重跑，再在同一 40-group arrays 上完成 scorer steps {300,1000} × seeds {7,19,31,43,59}。按预登记 paired-group CI 规则选预算或另立 loss decision，之后才判断 S3。test 仍封存，PNO 与 Khronos 式全局慢路径属 M2 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
-| 当前决定 | D-034：M1-v2 只加入有界、证据触发的局部补偿，E 不执行候选评分分支；D-037：static preflight 当前只作审计和过滤上界，若要启用须另立 decision 并从 S1 重跑；全局 reconciliation、PNO 与 M2 顺序不变 |
-| 人工待定 | 是否接受 static preflight 作为 A–E 共享 online mask；正式 test 解封仍需以后单独事件，当前不读取 test |
-| Git 备份 | 修正实现 `318c5a1`、S1 结果 `67f739d`、S2 static-preflight 诊断 `742c2f4`、最终 S2 实现 `c4f5df4` 与六份结果 `ea25201` 已入库；outputs、数据、论文与虚拟环境等 ignore 内容不属于 Git 备份 |
+| 当前决定 | D-034：M1-v2 只加入有界、证据触发的局部补偿，E 不执行候选评分分支；D-038：static preflight 是 A–E 共享 online mask，但不替代 executor illegal 或候选审计；全局 reconciliation、PNO 与 M2 顺序不变 |
+| 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 test。scorer loss 是否修改须等 v5 的 300/1000 五 seed 诊断，不能预先接受 |
+| Git 备份 | 至 `be7c967` 的旧结果已入库；D-038 合同/实现当前仍是本地未提交改动，尚未形成供服务器拉取的干净提交。outputs、数据、论文与虚拟环境等 ignore 内容不属于 Git 备份 |
 
 白话：M1-v2 现在仍是“考前定卷”，不是已冻结或已通过。旧容量诊断证明简单 MLP 在给足标签时能拟合可见训练关系；新的 K=16 与恢复审计只证明候选、executor 和 active-world 评测路径可达。这些都不等于 CTL 已胜出，更不是带 PNO 的 Full CPMT。
 
@@ -487,6 +487,18 @@ M1-v2 的阶段顺序、转向条件和成功/失败终点见 [M1-v2 收口执�
 - 解释/不确定性：60→300 steps 明确解除欠优化；40 groups 上 300→1000 虽继续降低 held-out BCE，却降低候选级 teacher accuracy，表明逐关系 BCE 与最终候选排序并不完全一致，不能只按 BCE 选预算。共同 inner-dev group 1 在 10/40 groups、300/1000 steps 的 filtered teacher 均为 0.875，没有显示扩大训练数据的清晰收益；10-group 仅一个 inner-dev group，所有性能判断仍受单 seed 与组间波动限制。300 steps 只是进入多 seed 比较的候选，不是已冻结最优点。
 - 治理结论：D-037 的“高非法召回且零/近零合法误拒”触发条件已经满足，但 D-037 只授权审计。0.9525 是使用真值 relation target 加事后静态过滤的 oracle 诊断，不是 E、A 或 CTL 的成绩。不得在现有 protocol hash 下直接启用 mask，也不得据此进入 S3 或正式 causal。
 - 下一步/人工事项：先决定是否提出新 decision，将同一个只读 static preflight 作为 A–E 共享 online admissibility mask。若接受，须同时修改方法合同与 protocol hash、保持 test 封存并从 S1 重跑，然后在 40 groups 上对 300/1000 steps 补齐登记 seeds；若不接受，则留在未过滤方法边界内修复 assembly/声明约束。只有该边界闭合且多 seed 结果明确后，才按流程判断是否需要 S3。
+
+### LOG-029—2026-09-07—D-038 共享 static-preflight mask 合同与本地实现
+
+- 类型/状态：M1-development 方法边界与架构实质变化完成；D-038 accepted，本地相关测试通过，干净服务器全测和新协议实验尚未运行，不构成 M1 go/no-go 或 E 性能结果。
+- 目的/白话：共享 online admissibility mask 解决“事务在不改世界前就已能确定违反版本、前置条件或 protected state，却仍只让 no-execution baseline 为它分配概率”的不公平。输入是 immutable prior world、candidate program、截至当前证据和 protected IDs，输出是在原 K=16 槽位上的允许/拒绝值；例如 BIND 明写要碰 protected node 时，A–E 都在 softmax 前把它置零。它不执行候选、不产生 post-edit world、不保证 pass 项合法，也不删除 failure/provenance 或 executor illegal。
+- 决策/合同：`docs/DECISIONS.md` 追加 D-038；活动合同登记 A–E 在训练归一化、online softmax、共享 calibration 与 commit selection 共用 `transaction_static_preflight_v1`。机器 config 升为 dataset `m1-paired-latent-worlds-v5-shared-static-preflight`，protocol hash=`34f76fcbef7009ece83368109cfbe4b3c7fd5e0f7e4e61c52134170fa161787a`；K、target、energy weights、executor、recovery、主指标/门槛和 formal seeds 不变。
+- 实现：`dev_learning.py` 新增共享 mask/renormalization helper；E scorer 与 C relation auxiliary 的逐关系训练分母排除预检拒绝候选，A–E student 的有标签 CE、KL、inference probability 共用同一 mask。joint/isolated/scaled/trainability/历史 target-comparison 路径均改用 mask；causal rollout 从每一步重新 materialize 的候选读取只读 preflight flag，若选择被静态拒绝项立即失败。calibration 拒绝任何给预检失败候选非零概率的 run。
+- 诊断/白话：新增 target-discriminative BCE、ranking-relevant BCE、互补分母，以及 reference 对最佳错误候选的 probability/log-probability margin。它解决总体 BCE 是否被容易而不区分候选的位置主导；输入是 relation logits、真实 reference future、候选声明和共享 mask，输出是分解损失与排序 margin。例如只有正确 RELINK 支持新位置的坐标进入判别性分母。它只读 train/inner-dev，不改 scorer loss、不用 reference index 训练，也不表示 listwise loss 已采纳或有效。
+- 不变量/报告：K=16 槽位不重排；reference 必须 pass、每行至少一个 admissible；`remaining_executor_illegal_candidates`、合法误拒、effective K 和 failure/template 分解常驻。`preflight pass` 明确不声称 executor legal；A/D/F 的执行后 illegal 正无穷 mask 与六项能量继续保留。scorer/AF 报告 schema 升到 v3，并明确 shared mask/illegal-retention 元数据。
+- 本地验证：`py_compile` 通过；protocol validator 和 11 个 protocol tests 通过；16 个 `test_m1_af_rollout` 通过；`test_ctl_dev`＋`test_m1_trainability` 共 15 个通过，总计 42 个不重复相关测试。测试中的既有小型 in-memory validation fixture 只验证接线，不读取已保存 validation arrays/report、不用于方法或预算选择，因此不消耗 validation trial。未运行全仓库测试、数据生成或训练。
+- provenance/边界：当前 HEAD=`be7c967` 且 working tree dirty；旧 v4 arrays/report 因 protocol hash 不匹配不能作为 D-038 后成绩。`test_access=false`，未生成或读取 formal test；未训练正式 student、未校准 gate、未跑正式 causal，未进入 S3/M2。
+- 下一步：先形成干净 Git 提交并在服务器跑全测；成功后只生成 v5 40-group train arrays，先以其 10-group prefix 跑 S1 60 steps/seed 7，再跑 40 groups × scorer steps {300,1000} × seeds {7,19,31,43,59}。主选择量是 shared-mask 后的 inner-dev candidate ranking，按 paired group 比较；1000−300 的 95% CI 下界大于 0 才选 1000，否则选 300。BCE/margin 只用于决定是否另立 scorer-loss decision。
 
 ## 后续条目模板
 

@@ -14,6 +14,9 @@ sys.path.insert(0, str(PROJECT / "src"))
 from cpmt.dev_learning import (
     METHODS,
     OutcomeScorer,
+    apply_candidate_admissibility_to_probabilities,
+    masked_candidate_logits,
+    masked_candidate_probabilities,
     outcome_scorer_diagnostics,
 )
 from cpmt.m1_af_rollout import (
@@ -183,6 +186,9 @@ class TestM1AFCausalRollout(unittest.TestCase):
         self.assertEqual(preflight.shape, (84, 16))
         self.assertFalse(np.any(~preflight & legal))
         self.assertTrue(np.any(~preflight & ~legal))
+        rows = np.arange(len(self.train["y"]))
+        self.assertTrue(np.all(preflight[rows, self.train["y"]]))
+        self.assertTrue(np.all(preflight.any(axis=1)))
         self.assertTrue(np.all(
             (self.train["candidate_execution_failure_code"] == 0) == legal
         ))
@@ -229,10 +235,36 @@ class TestM1AFCausalRollout(unittest.TestCase):
             "initial_step_raw_invalid_selection_rate",
             oracle["causal_rollout"],
         )
-        self.assertEqual(oracle["causal_rollout"]["memory_contamination_per_100"], 0.0)
+        for method in METHODS:
+            causal = results[method]["causal_rollout"]
+            self.assertEqual(
+                causal["raw_static_rejected_selection_rate"], 0.0,
+            )
+        self.assertEqual(
+            oracle["causal_rollout"]["memory_contamination_per_100"], 0.0,
+        )
         self.assertIn(
             "future_relation_bce", details["outcome_scorer_training"][0]
         )
+
+    def test_shared_candidate_mask_keeps_slots_and_zeroes_rejections(self):
+        logits = torch.tensor([[0.0, 100.0, 1.0]], dtype=torch.float32)
+        admissible = torch.tensor([[True, False, True]])
+        masked_logits = masked_candidate_logits(logits, admissible)
+        self.assertEqual(tuple(masked_logits.shape), (1, 3))
+        self.assertTrue(torch.isneginf(masked_logits[0, 1]))
+        probabilities = masked_candidate_probabilities(logits, admissible)
+        self.assertEqual(float(probabilities[0, 1]), 0.0)
+        self.assertAlmostEqual(float(probabilities.sum()), 1.0, places=6)
+        existing = apply_candidate_admissibility_to_probabilities(
+            torch.tensor([[0.2, 0.7, 0.1]]), admissible,
+        )
+        self.assertEqual(float(existing[0, 1]), 0.0)
+        self.assertAlmostEqual(float(existing.sum()), 1.0, places=6)
+        with self.assertRaisesRegex(ValueError, "every candidate"):
+            masked_candidate_probabilities(
+                logits, torch.zeros_like(admissible),
+            )
 
     def test_observable_oracle_couples_the_ambiguous_pair(self):
         metrics, rows = causal_rollout_metrics(
@@ -407,6 +439,8 @@ class TestM1AFCausalRollout(unittest.TestCase):
         self.assertEqual(audit["illegal_detection_recall"], 1.0)
         self.assertEqual(audit["legal_false_rejection_rate"], 0.0)
         self.assertEqual(audit["reference_static_preflight_pass_rate"], 1.0)
+        self.assertTrue(audit["filter_enabled_for_method_selection"])
+        self.assertFalse(audit["preflight_pass_claims_executor_legality"])
         self.assertEqual(
             audit["relation_tie_audit"][
                 "minimum_set_contains_executor_illegal_row_rate"
@@ -429,7 +463,13 @@ class TestM1AFCausalRollout(unittest.TestCase):
                 [[0.0], [0.0]],
             ]),
             "relation_mask": torch.ones((2, 2, 1), dtype=torch.float32),
+            "relation_desired": torch.ones((2, 2, 1), dtype=torch.float32),
             "y": torch.tensor([0, 1], dtype=torch.long),
+            "penalties": torch.zeros((2, 2), dtype=torch.float32),
+            "candidate_static_preflight_pass": torch.tensor([
+                [True, True],
+                [True, True],
+            ]),
             "candidate_legal": torch.tensor([
                 [True, True],
                 [True, False],
@@ -442,6 +482,11 @@ class TestM1AFCausalRollout(unittest.TestCase):
         self.assertEqual(diagnostics["masked_binary_accuracy"], 0.25)
         self.assertEqual(diagnostics["teacher_accuracy"], 1.0)
         self.assertEqual(diagnostics["raw_illegal_selection_rate"], 0.5)
+        self.assertEqual(
+            diagnostics["target_discriminative_relation_elements"], 2,
+        )
+        self.assertEqual(diagnostics["ranking_relevant_relation_elements"], 2)
+        self.assertEqual(diagnostics["reference_positive_margin_rate"], 1.0)
 
     def test_config_cannot_claim_formal_or_open_test(self):
         raw = json.loads(

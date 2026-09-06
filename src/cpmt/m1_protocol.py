@@ -82,6 +82,27 @@ def validate_m1_protocol(config: Mapping[str, Any]) -> None:
              "required executable template coverage changed")
     _require(candidates["coverage_gate_overall"] >= candidates["coverage_gate_each_family"],
              "overall coverage gate cannot be below the family gate")
+    admissibility = candidates.get("online_admissibility_mask", {})
+    _require(
+        admissibility.get("name") == "transaction_static_preflight_v1",
+        "M1-v2 requires the registered transaction static-preflight mask",
+    )
+    _require(
+        admissibility.get("shared_methods") == ["A", "B", "C", "D", "E"],
+        "the online admissibility mask must be identical for A-E",
+    )
+    _require(
+        admissibility.get("pass_semantics")
+        == "preflight_pass_means_execution_outcome_unknown_not_legal",
+        "static preflight pass cannot claim executor legality",
+    )
+    for key in (
+        "reference_must_pass", "reject_all_candidates_forbidden",
+        "executor_illegal_energy_retained",
+        "remaining_executor_illegal_candidates_always_reported",
+    ):
+        _require(admissibility.get(key) is True,
+                 f"online admissibility contract weakened: {key}")
     retrieval = candidates["proposal_retrieval"]
     # An exact hash of the hidden argument is an oracle pointer: it forces the
     # reference into a fixed generator slot and makes coverage meaningless.

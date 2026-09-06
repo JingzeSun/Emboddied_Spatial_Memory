@@ -14,7 +14,13 @@ import numpy as np
 import torch
 from torch.nn import functional as F
 
-from .dev_learning import OnlineModel, train_student, tensors
+from .dev_learning import (
+    OnlineModel,
+    candidate_admissibility_mask,
+    masked_candidate_probabilities,
+    train_student,
+    tensors,
+)
 from .hashing import clone_json
 from .m1_af_rollout import (
     _teacher_forced_metrics,
@@ -243,7 +249,10 @@ def run_label_rich_capacity_point(
         "direct_classifier", train, target_teacher, config, int(seed), device,
     )
     with torch.no_grad():
-        probabilities = model(train["x"]).softmax(dim=1).cpu().numpy()
+        logits = model(train["x"])
+        probabilities = masked_candidate_probabilities(
+            logits, candidate_admissibility_mask(train, logits),
+        ).cpu().numpy()
     teacher_forced = _teacher_forced_metrics(probabilities, train, target_teacher)
     selection = selection_error_decomposition(probabilities, labelled_arrays)
     teacher_forced["online_chain_accuracy"] = float(

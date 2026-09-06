@@ -58,6 +58,26 @@ class TestM1Protocol(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "may not execute"):
             validate_m1_protocol(changed)
 
+    def test_static_preflight_is_shared_without_replacing_executor_illegal(self):
+        changed = deepcopy(self.config)
+        changed["candidates"]["online_admissibility_mask"][
+            "shared_methods"
+        ] = ["A", "E"]
+        with self.assertRaisesRegex(ValueError, "identical for A-E"):
+            validate_m1_protocol(changed)
+        changed = deepcopy(self.config)
+        changed["candidates"]["online_admissibility_mask"][
+            "executor_illegal_energy_retained"
+        ] = False
+        with self.assertRaisesRegex(ValueError, "illegal_energy_retained"):
+            validate_m1_protocol(changed)
+        changed = deepcopy(self.config)
+        changed["candidates"]["online_admissibility_mask"][
+            "pass_semantics"
+        ] = "preflight_pass_means_legal"
+        with self.assertRaisesRegex(ValueError, "cannot claim executor legality"):
+            validate_m1_protocol(changed)
+
     def test_recovery_stays_bounded_and_global_path_stays_in_m2(self):
         changed = deepcopy(self.config)
         changed["recovery"]["global_async_reconciliation"] = "M1"

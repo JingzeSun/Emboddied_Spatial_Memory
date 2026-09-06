@@ -30,12 +30,15 @@ PROJECT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT / "src"))
 
 from cpmt.dev_learning import (  # noqa: E402
+    apply_candidate_admissibility_to_probabilities,
+    candidate_admissibility_mask, masked_candidate_probabilities,
     outcome_scorer_diagnostics, train_outcome_scorer, train_student, tensors,
 )
 from cpmt.m1_af_rollout import (  # noqa: E402
     CANDIDATE_FEATURE_DIM, calibrate_shared_commit_rule,
     causal_rollout_metrics, paired_group_is_calibration,
     rollout_learning_arrays_from_audits, selection_error_decomposition,
+    static_preflight_diagnostics,
     structured_relation_oracle_probabilities,
     structured_relation_target_only_diagnostics,
 )
@@ -93,10 +96,14 @@ def _load(
 
 def _teachers(train, learned, method):
     if method == "future_no_execution":
-        return learned["train"]
-    if method == "execute_current_only":
-        return train["pstar_current"]
-    return train["pstar"]
+        teacher = learned["train"]
+    elif method == "execute_current_only":
+        teacher = train["pstar_current"]
+    else:
+        teacher = train["pstar"]
+    return apply_candidate_admissibility_to_probabilities(
+        teacher, candidate_admissibility_mask(train, train["penalties"]),
+    )
 
 
 def _subset_rows(data: dict[str, np.ndarray], mask: np.ndarray) -> dict[str, np.ndarray]:
@@ -299,6 +306,9 @@ def main() -> int:
         validation_np,
         future_weight=float(hard["energy"]["weights"]["future"]),
         temperature=float(hard["energy"]["temperature"]),
+        static_preflight_pass=validation_np[
+            "candidate_static_preflight_pass"
+        ],
     )
     relation_oracle = selection_error_decomposition(
         relation_oracle_probabilities[online_report_mask], validation_report_np,
@@ -312,6 +322,9 @@ def main() -> int:
     relation_oracle["exact_ambiguity_pair_cap"] = 0.5
     target_only = structured_relation_target_only_diagnostics(
         validation_report_np,
+        static_preflight_pass=validation_report_np[
+            "candidate_static_preflight_pass"
+        ],
     )
     print(
         "  structured relation-target oracle on report rows "
@@ -416,7 +429,10 @@ def main() -> int:
                 method, T, _teachers(T, learned, method), cfg, seed, device)
             models[method] = model
             with torch.no_grad():
-                probs = model(V["x"]).softmax(1).cpu().numpy()
+                logits = model(V["x"])
+                probs = masked_candidate_probabilities(
+                    logits, candidate_admissibility_mask(V, logits),
+                ).cpu().numpy()
             calibration_probabilities[f"{method}:seed{seed}"] = probs
             forced[method].append(selection_error_decomposition(
                 probs[online_report_mask], validation_report_np,
@@ -644,8 +660,8 @@ def main() -> int:
         if causal_complete else None
     )
     report = {
-        "schema_version": "cpmt-m1-af-report-v2",
-        "runner": "run_m1_af_scaled_v2",
+        "schema_version": "cpmt-m1-af-report-v3",
+        "runner": "run_m1_af_scaled_v3",
         "formal_run": False,
         "test_generated": False,
         "protocol_sha256": protocol_sha256(hard),
@@ -660,6 +676,22 @@ def main() -> int:
             "student_steps_per_method": int(args.student_steps),
             "outcome_scorer_steps": int(scorer_steps),
             "outcome_scorer_is_additional_for_E": True,
+        },
+        "online_admissibility_mask": {
+            "name": "transaction_static_preflight_v1",
+            "enabled_for_methods": ["A", "B", "C", "D", "E"],
+            "candidate_slots_retained": True,
+            "executor_illegal_energy_retained": True,
+        },
+        "static_preflight_diagnostics": {
+            "train_online": static_preflight_diagnostics(_subset_rows(
+                train_np,
+                ~np.asarray(train_np["recovery"], dtype=bool),
+            )),
+            "validation_online": static_preflight_diagnostics(_subset_rows(
+                validation_np,
+                ~np.asarray(validation_np["recovery"], dtype=bool),
+            )),
         },
         "train_decisions": int(np.sum(~np.asarray(train_np["recovery"], dtype=bool))),
         "train_recovery_examples": int(np.sum(train_np["recovery"])),

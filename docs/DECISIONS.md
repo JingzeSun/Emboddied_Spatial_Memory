@@ -38,6 +38,11 @@
 | D-030 | accepted by D-031 | M1 v1 数值合同获接受；命名由 D-031 澄清后冻结 |
 | D-031 | accepted | M1 A 改称 CPMT-CTL Core；Full CPMT 保留给接入 PNO 的完整系统；test 继续封存 |
 | D-033 | accepted | 云支出改为操作者控制，协议记录而不再以 `==0` 拦截；本地优先与 bugcheck 停止规则不变 |
+| D-034 | accepted | M1-v2 使用有界补偿恢复、结构化 E、active-world 主指标和共享 commit 校准 |
+| D-035 | accepted | `M1_V2_CLOSEOUT_FLOW.md` 是 M1-v2 唯一阶段流程文件 |
+| D-036 | accepted | S1/S2 只用 train/inner-dev，不再消费 validation report |
+| D-037 | accepted | S2 先审计只读 static preflight；启用前必须另立 decision |
+| D-038 | accepted | static preflight 成为 A–E 共享 online admissibility mask；保留 executor illegal 能量与完整候选审计 |
 
 ## D-015 — 单执行入口与五阶段合同
 
@@ -432,6 +437,24 @@
 - 影响：新增只读 executor API、generation audit 字段、全-train/逐 group 诊断与两个 60-step 训练点；不改 A–F、relation target、energy、loss、K、candidate generator、commit gate、recovery、主指标或成功门槛。
 - 是否接触 test 信息：否；`test_access=false`，不生成或读取 test，也不读取 validation/report。
 - 验证方式：静态预检不改变 base 的单测；protected 冲突应静态拒绝；至少一个 operation-time 失败应“预检通过、执行失败”，证明 pass 不是 legality；生成数组中合法候选不得被静态拒绝；过滤诊断只接收 static-preflight flag；干净提交上全测后才运行 S2。
+
+## D-038 — A–E 共享启用事务静态预检 online admissibility mask
+
+- 日期：2026-09-07。
+- 状态：accepted。
+- 用户确认：在核对 LOG-028 六点结果、外部复核意见和实现边界后，用户回复“可以，开始执行，接受”。
+- 背景：D-037 的 train-only 审计在 40-group、1,600 个 online decisions、25,600 个候选槽上，对 2,552 个 executor-illegal 候选实现静态拒绝召回 1.0、precision 1.0、合法误拒 0、reference pass 1.0。事后过滤使 assembled relation oracle 从 0.7438 升至 0.9525，说明 E 的旧比较被大量只看当前 world/program 就能排除的候选削弱。历史开发 causal 中 A/B/C/D 的非法选择率为 0，而 E 很高，因此该改变主要增强强制主对照 E、缩小而不是放大 A 的优势。
+- 决策：
+  1. `transaction_static_preflight_v1` 成为 A–E 共用的 online admissibility mask。它只读取 immutable prior world、candidate program、截至当前的 online evidence 和 protected IDs；不得读取 future、candidate post-world、executor failure 或 `candidate_legal`。
+  2. 固定 K=16 的槽位、顺序、程序、preflight failure、executor failure、post-world/provenance 审计全部保留，不删除或重排候选。预检拒绝项在 A–E 的训练归一化、online softmax、共享 calibration 与 commit selection 前不可选；reference 必须通过，任何一行不得全部拒绝。
+  3. executor 仍从同一 immutable base 真实尝试候选，并分别记录 now、future、edit、growth、collateral 和 illegal。A/D/F 的执行后 illegal 正无穷 mask 不删除；preflight pass 只表示“静态检查尚未拒绝”，不声称执行合法。
+  4. `remaining_executor_illegal_candidates`、合法误拒、reference pass、effective K 与 template/failure 分解成为每次 run 的常驻审计。若 residual 非零，必须区分 candidate-generator 缺陷与只能执行后发现的失败，不得把 executor truth 偷喂给 B/C/E。
+  5. E 的现有逐关系 masked binary cross-entropy（BCE）训练目标本 decision 不改。S1/S2 只增加判别性/非判别性 BCE 和 reference ranking margin 诊断；若多 seed 复现“总体 BCE 改善而排序变差”，另立 decision 后才能引入候选级排序目标。
+- 白话：共享 online admissibility mask 解决“候选不改世界就已经能看出违反版本、前置条件或 protected state，却仍让某个方法为它分配概率”的不公平。输入是当前记忆、事务文本、此刻证据和受保护 ID，输出是保留原 K=16 槽位的允许/拒绝布尔值；例如 BIND 明写要修改 protected node 时，A–E 都在 softmax 前拒绝它。它不等于执行候选、不产生 post-edit world、不保证通过项合法，也不删除失败记录或 provenance。
+- 白话：判别性 BCE 诊断解决“总体逐关系损失下降，是否只是学好了对所有候选都一样的容易位置”。输入是 scorer 的 relation logits、真实 reference future、relation mask 和共享预检 mask，输出是能区分候选的位置与其余位置各自的 BCE，以及正确候选相对最佳错误候选的 probability/log-probability margin；例如只有正确 RELINK 支持新位置的坐标属于判别性位置。它只是 planned train/inner-dev 诊断，不改变 loss、不读取 validation/test，也不等于候选级排序方法已经有效。
+- 协议影响：dataset version 升为 `m1-paired-latent-worlds-v5-shared-static-preflight`，机器 config 加入 D-038 和 mask 语义并产生新 protocol hash；旧 v4 arrays/report 只保留历史证据，不能冒充新方法结果。保持 target、energy weights、K、candidate generator、recovery、主指标、门槛和 formal seeds 不变。
+- 是否接触 test 信息：否；`test_access=false`，本 decision 不生成或读取 validation/test，不训练 student、不校准 gate、不跑 causal。
+- 验证方式：protocol validator 锁定 A–E 共享方法集合、pass 语义、reference/all-rejected/illegal-retention 条件；单测验证 mask 后拒绝项概率为 0、reference 通过、K=16 审计仍完整、causal 不会选择静态拒绝项、executor illegal 仍独立；随后在干净服务器提交上全测，重新生成 train arrays 并从 S1 重跑。
 
 ## 新决策模板
 

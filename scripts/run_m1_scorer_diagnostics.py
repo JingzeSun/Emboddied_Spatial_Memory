@@ -261,6 +261,8 @@ def main() -> int:
         )
         diagnostics = {
             "seed": int(seed),
+            "online_admissibility_mask": "transaction_static_preflight_v1",
+            "scorer_training_objective": "pointwise_masked_relation_bce",
             "fitting_all_learning_rows": outcome_scorer_diagnostics(
                 scorer, fitting, teachers["train"],
             ),
@@ -325,8 +327,8 @@ def main() -> int:
         )
 
     report = {
-        "schema_version": "cpmt-m1-scorer-diagnostic-v2",
-        "runner": "run_m1_scorer_diagnostics_v2",
+        "schema_version": "cpmt-m1-scorer-diagnostic-v3",
+        "runner": "run_m1_scorer_diagnostics_v3",
         "formal_run": False,
         "test_generated": False,
         "causal_complete": False,
@@ -358,11 +360,21 @@ def main() -> int:
             "outcome_scorer_steps": int(args.scorer_steps),
             "total_train_groups": len(selected_groups),
         },
-        # Compatibility aliases retain the v1 meaning: unfiltered inner-dev.
+        "online_admissibility_mask": {
+            "name": "transaction_static_preflight_v1",
+            "enabled_for_methods": ["A", "B", "C", "D", "E"],
+            "candidate_slots_retained": True,
+            "executor_illegal_energy_retained": True,
+        },
+        # The compatibility aliases now report the registered shared-mask
+        # method boundary. Explicit unfiltered values remain below solely for
+        # before/after attribution.
         "structured_relation_target_oracle": (
-            inner_relations["assembled_oracle"]
+            inner_relations_filtered["assembled_oracle"]
         ),
-        "structured_relation_target_only": inner_relations["target_only"],
+        "structured_relation_target_only": inner_relations_filtered[
+            "target_only"
+        ],
         "structured_relation_diagnostics": {
             "all_selected_train_online": {
                 "unfiltered": all_train_relations,

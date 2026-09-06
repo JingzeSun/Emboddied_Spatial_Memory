@@ -64,7 +64,8 @@ D 诊断 future evidence；F 分解 candidate coverage 与 scorer error。
 ### 候选、教师与六方法公平性
 
 - A/D/F 共用 deterministic top-K，K=16；覆盖 NOOP、BIND、BIRTH、REACTIVATE、RELINK、RETRACT、SPLIT、MERGE，REPLACE 仍是 RETRACT+BIRTH，QUARANTINE 仍是不改 persistent world 的 wrapper。SPLIT/MERGE/RETRACT 必须有正例。
-- 每个候选从同一 immutable base 克隆执行，先按 canonical memory-state equivalence 去掉纯改名重复；非法候选不消失，保留 failure 后以正无穷 mask。
+- 每个候选从同一 immutable base 克隆执行，先按 canonical memory-state equivalence 去掉纯改名重复；固定 K=16 槽位、顺序和失败审计不因预检改变。A–E 在训练归一化、online softmax、共享 calibration 和 commit selection 前共用 `transaction_static_preflight_v1` admissibility mask；预检拒绝项概率为 0，但不删除候选或 failure。
+- static preflight 只读 immutable prior world、candidate program、截至当前的 online evidence 和 protected IDs，不读 future、candidate post-world、executor failure 或 `candidate_legal`。reference 必须通过且每行至少保留一个候选；preflight pass 只表示执行结果未知。A/D/F 真实执行后的 illegal 正无穷 mask 和六项能量记录继续保留，`remaining_executor_illegal_candidates` 每次报告。
 - 执行式教师逐候选保存 now/future/edit/growth/collateral/illegal。future 比较当前 active semantic world 与 open-memory evidence support，closed history 只作审计；权重为 1/1/0.1/0.25/10，illegal 用正无穷 mask，temperature=0.25，不能看正式 test 后重调。
 - A–E 共用 online encoder、输入字段、学生更新数和 split，训练参数量差异不超过 10%；每方法最多 6 次 validation trial。C 的 future auxiliary weight 可在 {0.1,1,10} 内独立选。E 的额外 scorer 参数、更新、耗时和显存单列，不能藏进共同预算。F 是 K=16 内 oracle upper bound，不是可部署模型。
 - E 在目标构造和候选评分时都不执行非参考候选：它把每个 online candidate program 解析为“未来该关系/生命周期/证据关联是否成立”的查询，并从实际 reference future 为全部 K=16 产生稠密监督；不得读取 candidate post-world 或复用 executor 给出的 illegal/collateral。C 使用同一结构化关系目标作 direct auxiliary。评价 persistent memory 时，A–E 最终选中的单个事务仍由同一个 executor 应用。
@@ -73,11 +74,15 @@ D 诊断 future evidence；F 分解 candidate coverage 与 scorer error。
 
 白话：公平协议解决“CPMT 是否只是比对照多拿了答案或算力”的问题。输入是同一批 online 信息、同一候选语言和可核对的训练预算，输出是 A–F 可比的预测、运行成本与失败。例如 E 可以预测“RELINK 声称的新位置未来是否成立”，但不能先执行 16 个候选再偷看哪些合法；最终决定落地时仍和其他方法一样调用 executor。它不等于强迫网络结构一模一样，也不等于把 F 的 oracle 成绩当实际系统成绩。
 
+白话：共享 online admissibility mask 解决“一个候选在不改世界前就已违反版本、前置条件或 protected state，却只让执行式方法提前排除”的不公平。输入是当前记忆、事务文本、当前证据和 protected IDs，输出是在原 K=16 槽位上的允许/拒绝值；例如 BIND 明写要碰 protected node 时，A–E 都把它的 softmax 概率设为 0。它不等于执行候选、不产生 post-edit world、不保证通过项合法，也不删除 executor 的 illegal、failure 或 provenance。
+
 白话：train/inner-dev（训练内开发留出）解决“需要调优化，但又不该提前消费 validation report”的问题。输入是原 train paired groups，输出是一组拟合 group 和一组只做 target/scorer 选择的留出 group；例如一对相同 online 输入、不同 future 的 siblings 必须一起被留出。它不是 test、不是正式 validation 成绩，也不允许把 inner-dev 调到最好后宣称方法已经泛化。
 
 白话：structured relation-target oracle（结构化关系目标上限）解决“E 没学好，究竟是目标没有信息，还是 scorer 没学会”的问题。输入是每个候选从程序文本提出的关系查询、真实 reference future 给出的查询真假和 E 可用的声明成本，输出是在完美知道这些关系真假时的候选排序准确率。例如，若 RELINK 声称“杯子未来在水槽”且真实 future 支持它，oracle 给该查询零不一致；错误位置得到不一致。它不执行 candidate post-world、不是可部署模型、不是 F 的 transaction oracle，也不能作为 E 的正式成绩。
 
 白话：target-only oracle（仅目标诊断上限）进一步把目标和能量组装拆开。输入仍是上述关系真假，但输出只按原始 masked mismatch 找到全部并列最小候选，并报告 reference 是否在其中、是否唯一、并列大小和均匀打破并列时的期望准确率。例如三个 RELINK 同分时记作三选一，而不是让数组里的第一个候选冒充正确。它不加 penalty、不标准化、不用 executor 合法性筛选，也不是新的 baseline。E scorer fit diagnostic（E 评分器拟合诊断）则分别在 train、validation calibration 和 report 上输出监督 masked BCE、关系二分类准确率和最终 teacher 候选准确率；它解决“训练没拟合”与“跨世界没泛化”的区分，不改变 E 的训练或推理。
+
+白话：判别性/排序相关 BCE 诊断（planned）解决“总体 BCE 下降是否只来自对所有候选都一样的容易关系”。输入是 scorer relation logits、真实 reference future、relation/预检 mask 和候选声明，输出是 future truth 在候选间不同的位置、oracle mismatch 在候选间不同的位置各自的 BCE，以及 reference 对最佳错误候选的 probability/log-probability margin。例如只有正确 RELINK 支持新位置的坐标会进入判别性分母。它只用于 train/inner-dev 解释，不改变当前 pointwise BCE、不使用 reference index 训练，也不等于排序 loss 已被采纳或验证。
 
 白话：exact-ambiguity capped diagnostic（精确歧义封顶诊断）把 relation oracle 在不可辨 sibling 上因读取真实 future 得到的成绩替换为成对最高 50%，其余 identifiable 行保持原 oracle 读数；它提醒读者 80.83% 的 future-reading oracle 不是部署目标，但不是 E 的严格理论上限。initial-step invalid rate（初始步非法选择率）只看尚未被自身错误污染的第 0 步，全轨迹 invalid rate 则保留错误复合后的失控程度；两者并报能区分“策略一开始就乱选”和“早期错误导致后续候选越来越不适用”，但都不把合法性喂回模型。
 

@@ -25,6 +25,65 @@ METHODS = (
 )
 
 
+def candidate_admissibility_mask(
+    data: dict[str, torch.Tensor], candidate_values: torch.Tensor,
+) -> torch.Tensor:
+    """Return the shared online static-preflight mask for candidate values.
+
+    Older synthetic development fixtures predate transaction preflight and use
+    an all-true mask.  M1-v2 arrays always carry the explicit mask.
+    """
+    mask = data.get("candidate_static_preflight_pass")
+    if mask is None:
+        mask = torch.ones_like(candidate_values, dtype=torch.bool)
+    else:
+        mask = mask.to(device=candidate_values.device, dtype=torch.bool)
+    if mask.shape != candidate_values.shape:
+        raise ValueError("candidate admissibility mask has the wrong shape")
+    if torch.any(~mask.any(dim=-1)):
+        raise ValueError("static preflight rejected every candidate in a row")
+    return mask
+
+
+def masked_candidate_logits(
+    logits: torch.Tensor, static_preflight_pass: torch.Tensor,
+) -> torch.Tensor:
+    """Make statically rejected candidates unavailable without reindexing K."""
+    mask = static_preflight_pass.to(device=logits.device, dtype=torch.bool)
+    if logits.shape != mask.shape:
+        raise ValueError("candidate logits and admissibility mask differ")
+    if torch.any(~mask.any(dim=-1)):
+        raise ValueError("static preflight rejected every candidate in a row")
+    return logits.masked_fill(~mask, -torch.inf)
+
+
+def masked_candidate_probabilities(
+    logits: torch.Tensor, static_preflight_pass: torch.Tensor,
+) -> torch.Tensor:
+    """Softmax only over candidates admitted by the shared online preflight."""
+    return torch.softmax(
+        masked_candidate_logits(logits, static_preflight_pass), dim=-1,
+    )
+
+
+def apply_candidate_admissibility_to_probabilities(
+    probabilities: torch.Tensor, static_preflight_pass: torch.Tensor,
+) -> torch.Tensor:
+    """Apply and renormalize the shared mask to an existing distribution."""
+    mask = static_preflight_pass.to(
+        device=probabilities.device, dtype=torch.bool,
+    )
+    if probabilities.shape != mask.shape:
+        raise ValueError("candidate probabilities and admissibility mask differ")
+    if torch.any(~mask.any(dim=-1)):
+        raise ValueError("static preflight rejected every candidate in a row")
+    masked = probabilities * mask.to(probabilities.dtype)
+    denominator = masked.sum(dim=-1, keepdim=True)
+    if torch.any(denominator <= 0):
+        raise ValueError("admissibility mask removed all probability mass")
+    return masked / denominator
+
+
 def split_online_features(
     online_features: torch.Tensor, num_candidates: int, candidate_dim: int,
 ) -> tuple[torch.Tensor, torch.Tensor | None]:
@@ -249,7 +308,15 @@ def train_outcome_scorer(train: dict, validation: dict, config: dict, seed: int,
             elementwise = F.binary_cross_entropy_with_logits(
                 pred, train["relation_targets"][batch], reduction="none",
             )
-            mask = train["relation_mask"][batch]
+            candidate_mask = candidate_admissibility_mask(
+                train, train["penalties"],
+            )[batch]
+            mask = (
+                train["relation_mask"][batch]
+                * candidate_mask.unsqueeze(-1).to(
+                    train["relation_mask"].dtype,
+                )
+            )
             loss = (elementwise * mask).sum() / mask.sum().clamp_min(1.0)
         else:
             pred = model(
@@ -308,6 +375,8 @@ def train_outcome_scorer(train: dict, validation: dict, config: dict, seed: int,
                 )
             energy = (config["energy_weights"]["future"] * future_error
                       + data[scorer_penalty_key])
+            admissible = candidate_admissibility_mask(data, energy)
+            energy = energy.masked_fill(~admissible, torch.inf)
             teachers[name] = torch.softmax(-energy / config["temperature"], dim=1).detach()
     return model, teachers, trace
 
@@ -324,7 +393,7 @@ def outcome_scorer_diagnostics(
     distinguishes optimization failure from generalization or assembly failure
     without changing what E sees or selects.
     """
-    required = ("relation_targets", "relation_mask", "y")
+    required = ("relation_targets", "relation_mask", "relation_desired", "y")
     if any(key not in data for key in required):
         raise ValueError("structured scorer diagnostics require relation targets")
     device = data["x"].device
@@ -360,24 +429,99 @@ def outcome_scorer_diagnostics(
         )
         targets = data["relation_targets"][selected]
         relation_mask = data["relation_mask"][selected]
+        candidate_mask = candidate_admissibility_mask(
+            data, data["penalties"],
+        )[selected]
+        active_relation_mask = (
+            relation_mask.bool() & candidate_mask.unsqueeze(-1)
+        )
         elementwise = F.binary_cross_entropy_with_logits(
             logits, targets, reduction="none",
         )
-        supervised_elements = relation_mask.sum()
+        supervised_elements = active_relation_mask.sum()
         if supervised_elements <= 0:
             raise ValueError(
                 "scorer diagnostic subset has no supervised relations"
             )
-        masked_bce = (elementwise * relation_mask).sum() / supervised_elements
+        masked_bce = (
+            elementwise * active_relation_mask
+        ).sum() / supervised_elements
         binary_correct = (
             (logits.sigmoid() >= 0.5) == (targets >= 0.5)
         ).float()
         masked_binary_accuracy = (
-            binary_correct * relation_mask
+            binary_correct * active_relation_mask
         ).sum() / supervised_elements
+
+        # Two decompositions test the concrete hypothesis that easy relation
+        # elements can improve aggregate BCE while candidate ranking worsens.
+        # A target-discriminative coordinate contains both future truth values
+        # across admitted candidates.  A ranking-relevant coordinate makes a
+        # different oracle mismatch contribution for at least two candidates.
+        target_positive = (
+            (targets >= 0.5) & active_relation_mask
+        ).any(dim=1)
+        target_negative = (
+            (targets < 0.5) & active_relation_mask
+        ).any(dim=1)
+        coordinate_has_two = active_relation_mask.sum(dim=1) >= 2
+        target_discriminative_coordinate = (
+            coordinate_has_two & target_positive & target_negative
+        )
+        desired = data["relation_desired"][selected]
+        oracle_contribution = torch.abs(targets - desired)
+        contribution_min = oracle_contribution.masked_fill(
+            ~active_relation_mask, torch.inf,
+        ).min(dim=1).values
+        contribution_max = oracle_contribution.masked_fill(
+            ~active_relation_mask, -torch.inf,
+        ).max(dim=1).values
+        ranking_relevant_coordinate = (
+            coordinate_has_two
+            & ((contribution_max - contribution_min) > 1e-6)
+        )
+
+        def loss_slice(coordinate_mask: torch.Tensor) -> tuple[int, float | None]:
+            elements = (
+                active_relation_mask & coordinate_mask.unsqueeze(1)
+            )
+            count = int(elements.sum().cpu())
+            if count == 0:
+                return 0, None
+            value = (elementwise * elements).sum() / elements.sum()
+            return count, float(value.cpu())
+
+        target_disc_count, target_disc_bce = loss_slice(
+            target_discriminative_coordinate,
+        )
+        target_nondisc_count, target_nondisc_bce = loss_slice(
+            ~target_discriminative_coordinate,
+        )
+        ranking_count, ranking_bce = loss_slice(ranking_relevant_coordinate)
+        nonranking_count, nonranking_bce = loss_slice(
+            ~ranking_relevant_coordinate,
+        )
         predicted = teacher[selected].argmax(dim=1)
         reference = data["y"][selected]
+        static_rejected_selection_rate = (
+            ~candidate_mask[
+                torch.arange(len(selected), device=device), predicted
+            ]
+        ).float().mean()
         teacher_accuracy = (predicted == reference).float().mean()
+        reference_probability = teacher[selected][
+            torch.arange(len(selected), device=device), reference
+        ]
+        wrong_probability = teacher[selected].clone()
+        wrong_probability[
+            torch.arange(len(selected), device=device), reference
+        ] = -torch.inf
+        best_wrong_probability = wrong_probability.max(dim=1).values
+        probability_margin = reference_probability - best_wrong_probability
+        log_probability_margin = (
+            torch.log(reference_probability.clamp_min(1e-12))
+            - torch.log(best_wrong_probability.clamp_min(1e-12))
+        )
         illegal_rate = None
         if "candidate_legal" in data:
             legal = data["candidate_legal"][selected]
@@ -387,9 +531,38 @@ def outcome_scorer_diagnostics(
     return {
         "rows": int(len(selected)),
         "supervised_relation_elements": int(supervised_elements.cpu()),
+        "static_preflight_excluded_relation_elements": int((
+            relation_mask.bool() & ~candidate_mask.unsqueeze(-1)
+        ).sum().cpu()),
         "masked_bce": float(masked_bce.cpu()),
         "masked_binary_accuracy": float(masked_binary_accuracy.cpu()),
+        "target_discriminative_relation_elements": target_disc_count,
+        "target_discriminative_bce": target_disc_bce,
+        "target_nondiscriminative_relation_elements": target_nondisc_count,
+        "target_nondiscriminative_bce": target_nondisc_bce,
+        "ranking_relevant_relation_elements": ranking_count,
+        "ranking_relevant_bce": ranking_bce,
+        "ranking_irrelevant_relation_elements": nonranking_count,
+        "ranking_irrelevant_bce": nonranking_bce,
         "teacher_accuracy": float(teacher_accuracy.cpu()),
+        "mean_effective_candidate_count": float(
+            candidate_mask.sum(dim=1).float().mean().cpu()
+        ),
+        "raw_static_rejected_selection_rate": float(
+            static_rejected_selection_rate.cpu()
+        ),
+        "reference_probability_margin_mean": float(
+            probability_margin.mean().cpu()
+        ),
+        "reference_probability_margin_median": float(
+            probability_margin.median().cpu()
+        ),
+        "reference_log_probability_margin_mean": float(
+            log_probability_margin.mean().cpu()
+        ),
+        "reference_positive_margin_rate": float(
+            (probability_margin > 0).float().mean().cpu()
+        ),
         "raw_illegal_selection_rate": (
             float(illegal_rate.cpu()) if illegal_rate is not None else None
         ),
@@ -412,25 +585,50 @@ def train_student(method: str, train: dict, teacher: torch.Tensor,
                         ),
                         ).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=config["learning_rate"])
+    full_candidate_mask = candidate_admissibility_mask(
+        train, train["penalties"],
+    )
+    teacher = apply_candidate_admissibility_to_probabilities(
+        teacher, full_candidate_mask,
+    )
+    references = train["y"]
+    if torch.any(~full_candidate_mask[
+        torch.arange(len(references), device=device), references
+    ]):
+        raise ValueError("a reference transaction failed static preflight")
     trace = []
     for step in range(config["student_steps"]):
         batch = torch.randint(len(train["x"]), (config["batch_size"],), device=device)
         x = train["x"][batch]
-        logits = model(x)
+        candidate_mask = full_candidate_mask[batch]
+        raw_logits = model(x)
+        zero = raw_logits.sum() * 0
+        logits = masked_candidate_logits(raw_logits, candidate_mask)
         has_label = train["labelled"][batch]
         supervised = (F.cross_entropy(logits[has_label], train["y"][batch][has_label])
-                      if has_label.any() else logits.sum() * 0)
+                      if has_label.any() else zero)
         loss = supervised
-        auxiliary = logits.sum() * 0
+        auxiliary = zero
         if method in ("cpmt_ctl_core", "execute_current_only", "future_no_execution"):
-            auxiliary = F.kl_div(F.log_softmax(logits, dim=-1), teacher[batch],
-                                 reduction="batchmean")
+            log_probabilities = F.log_softmax(logits, dim=-1)
+            # Avoid the undefined 0 * -inf product on rejected candidates.
+            log_probabilities = log_probabilities.masked_fill(
+                ~candidate_mask, 0.0,
+            )
+            auxiliary = F.kl_div(
+                log_probabilities, teacher[batch], reduction="batchmean",
+            )
             loss = loss + config["distillation_weight"] * auxiliary
         elif method == "direct_future_loss":
             if "relation_targets" in train:
                 prediction = model.structured_relation_prediction(
                     x, train["poses"][batch])
-                mask = train["relation_mask"][batch]
+                mask = (
+                    train["relation_mask"][batch]
+                    * candidate_mask.unsqueeze(-1).to(
+                        train["relation_mask"].dtype,
+                    )
+                )
                 elementwise = F.binary_cross_entropy_with_logits(
                     prediction, train["relation_targets"][batch], reduction="none",
                 )
@@ -480,6 +678,13 @@ def evaluate_probabilities(probs: np.ndarray, data: dict, config: dict,
         [d["action"] == "COMMIT" for d in decisions], dtype=np.bool_,
     )
     quarantined = np.logical_not(committed)
+    static_mask_tensor = candidate_admissibility_mask(data, data["penalties"])
+    static_mask = static_mask_tensor.detach().cpu().numpy()
+    if np.any(probs[~static_mask] > 1e-8):
+        raise ValueError(
+            "evaluation probabilities include a static-preflight rejection"
+        )
+    effective_candidate_count = static_mask.sum(axis=1)
     def mean(values: np.ndarray, mask: np.ndarray | None = None):
         selected = values if mask is None else values[mask]
         return float(selected.mean()) if len(selected) else None
@@ -498,11 +703,15 @@ def evaluate_probabilities(probs: np.ndarray, data: dict, config: dict,
         toy_location_fact_error=mean(facts),
         toy_excess_node_count=mean(growth),
         committed_toy_location_fact_error=mean(facts, committed),
-        uniform_expected_accuracy=1 / probs.shape[1],
+        uniform_expected_accuracy=float(
+            np.mean(1.0 / effective_candidate_count)
+        ),
+        mean_effective_candidate_count=float(effective_candidate_count.mean()),
     )
     details = [dict(index=i, group=int(data["group"][i].cpu()), target=int(targets[i]),
                     predicted=int(predicted[i]), posterior=probs[i].tolist(),
                     teacher_posterior=teacher[i].cpu().tolist(),
+                    static_preflight_pass=static_mask[i].tolist(),
                     indistinguishable=bool(ambiguous[i]), decision=decisions[i],
                     toy_location_fact_error=float(facts[i]), toy_excess_nodes=float(growth[i]))
                for i in range(len(probs))]
@@ -512,13 +721,25 @@ def evaluate_probabilities(probs: np.ndarray, data: dict, config: dict,
 def evaluate(model: nn.Module, data: dict, config: dict,
              teacher: torch.Tensor) -> tuple[dict, list[dict]]:
     with torch.no_grad():
-        probs = model(data["x"]).softmax(-1).cpu().numpy()
+        logits = model(data["x"])
+        probs = masked_candidate_probabilities(
+            logits, candidate_admissibility_mask(data, logits),
+        ).cpu().numpy()
+    teacher = apply_candidate_admissibility_to_probabilities(
+        teacher,
+        candidate_admissibility_mask(data, data["penalties"]),
+    )
     return evaluate_probabilities(probs, data, config, teacher)
 
 
 def oracle_probabilities(data: dict) -> np.ndarray:
     """Return the in-budget oracle choice; this is an upper bound, not a model."""
     targets = data["y"].detach().cpu().numpy()
+    mask = candidate_admissibility_mask(data, data["penalties"])
+    if torch.any(~mask[
+        torch.arange(len(data["y"]), device=data["y"].device), data["y"]
+    ]):
+        raise ValueError("oracle reference transaction failed static preflight")
     return np.eye(int(data["penalties"].shape[1]), dtype=np.float32)[targets]
 
 

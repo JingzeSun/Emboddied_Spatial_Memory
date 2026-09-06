@@ -106,7 +106,7 @@ def main() -> None:
             "pose_source": "actual-executed-synthetic-trajectory",
         },
         "future_use_policy": "hindsight_train_only",
-        "decision_refs": ["D-030", "D-031"],
+        "decision_refs": list(config["decision_refs"]),
         "timing": {"started_at": started.isoformat()},
         "failures": [],
         "metrics_ref": "summary.json",

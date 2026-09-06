@@ -29,7 +29,10 @@ import torch
 PROJECT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT / "src"))
 
-from cpmt.dev_learning import train_outcome_scorer, train_student, tensors  # noqa: E402
+from cpmt.dev_learning import (  # noqa: E402
+    candidate_admissibility_mask, masked_candidate_probabilities,
+    train_outcome_scorer, train_student, tensors,
+)
 from cpmt.m1_af_rollout import (  # noqa: E402
     CANDIDATE_FEATURE_DIM, build_rollout_learning_arrays,
     selection_error_decomposition,
@@ -94,7 +97,10 @@ def main() -> int:
                           else T["pstar"])
                 model, _ = train_student(method, T, target, cfg, seed, device)
                 with torch.no_grad():
-                    probs = model(V["x"]).softmax(1).cpu().numpy()
+                    logits = model(V["x"])
+                    probs = masked_candidate_probabilities(
+                        logits, candidate_admissibility_mask(V, logits),
+                    ).cpu().numpy()
                 store.append(selection_error_decomposition(probs, validation)["accuracy"])
             print(f"  {representation} seed {seed} done", flush=True)
         report[representation] = {
