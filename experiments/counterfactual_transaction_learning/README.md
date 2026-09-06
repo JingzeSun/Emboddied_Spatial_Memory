@@ -1,6 +1,6 @@
 # CTL: Core Learning Experiment inside CPMT
 
-定位：CTL 方法与实验规格索引，不维护第二份进度；当前结果、未完成项和下一步统一见 [EXECUTE.md](../../EXECUTE.md)。
+定位：CTL 方法与实验规格索引。M1-v2 从当前状态走到结束的阶段、分支和终止条件见 [M1-v2 收口执行流程](M1_V2_CLOSEOUT_FLOW.md)；已发生的结果、失败和当前看板见 [EXECUTE.md](../../EXECUTE.md)。
 
 按需读 [开发合同](DEVELOPMENT.md) 和 [首轮结果快照](DEVELOPMENT_RESULTS.md)。开发实验的解析投影不等于 Projective Node Orbit，也不能当作正式 M1；新实验结果追加 EXECUTE，不自动新建结果 Markdown。
 
@@ -21,10 +21,11 @@ CPMT 是完整 embodied spatial memory 方法；本目录只验证其中唯一�
 3. COUNTERFACTUAL_EXECUTION.md；
 4. REPRESENTATION.md；
 5. HARD_CONDITION_EXPERIMENT.md；
-6. SCENARIOS.md、BASELINES.md、CRITERIA.md；
-7. DATASETS.md、TRAINING.md、PROTOCOL.md、PUBLICATION_GATES.md。
+6. M1_V2_CLOSEOUT_FLOW.md；
+7. SCENARIOS.md、BASELINES.md、CRITERIA.md；
+8. DATASETS.md、TRAINING.md、PROTOCOL.md、PUBLICATION_GATES.md。
 
-这些细粒度文件是同一实验的支持材料，不是平行工作流。日常任务只由根目录 EXECUTE.md 指定。
+这些细粒度文件是同一实验的支持材料，不是平行路线。流程文件指定“应该往哪走”，EXECUTE 只记“已经发生了什么”。
 
 ## 四关
 

@@ -4,25 +4,27 @@
 
 ## 当前看板
 
-> **2026-09-06 更新（LOG-021）：** 干净提交 `3104359` 上的首次 M1-v2 服务器 pretest smoke 已完成并导出。observable oracle 达到 final active=1.0、mean active=0.975、设计恢复率=1.0；但 60 updates 下 A–E 的 causal final active 均为 0，不构成性能结论。审计发现 commit calibration 错把 2 条 synthetic recovery row 混入 40 条 online calibration rows，因而本次阈值与 paired 结果无效。当前修复该分母、统一结构化 protected-touch，并加入只诊断 E 目标信息量的 relation-target oracle；全测通过后仅重跑同规模 smoke。test 仍未生成或读取，PNO 与全局 reconciliation 仍在 M2。
+> **2026-09-06 更新（LOG-022）：** 修正后的 M1-v2 pretest retest 已在干净提交 `318c5a1` 上完成并由 `8460444` 导回。calibration/report/recovery 分母正确为 40/120/8，共享 gate 仍选 `(0,0)`；relation-target assembled oracle=0.8083，而 E scorer teacher=0.0500，当前主要瓶颈由“目标是否有信息”缩小为 scorer 优化/泛化，目标仍有 19.17% 模板盲区。M1 的后续阶段、分支和终止口径改由独立的 [M1-v2 收口流程](experiments/counterfactual_transaction_learning/M1_V2_CLOSEOUT_FLOW.md) 持续维护；本文件继续只记 run 与结果。
 
-最后更新：2026-09-06，LOG-021 首次 M1-v2 服务器 pretest smoke 完成；校准分母问题已定位并待重跑，正式 M1 gate 未运行、未生成 test。
+最后更新：2026-09-06，LOG-022 校准分母修正与 relation-target oracle retest 完成；当前进入流程 S1 诊断闭环，正式 M1 gate 未运行、未生成 test。
 
 | 项目 | 当前事实 |
 |---|---|
 | 方向 | CPMT 具身空间记忆；CTL 是主学习假设，用户希望面向 ML 研究 |
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
 | 阶段 | M1-v2 `pretest_lock_candidate`；只开放 train/validation，尚未重新冻结，正式 gate 未运行，不是 M2/Full CPMT |
-| 最近结果 | M1-v2 pretest smoke（10 train groups、4 validation groups、1 seed、60 updates）：executed teacher/reference=100%；observable oracle final active=100%、mean active=97.5%、final contamination/missing=0、designed recovery=100%且平均 1 步。A–E causal final active 均为 0；A 的 mean active=8.33%且 contamination=2.5，但样本和更新数过小，不作科学结论。本次 calibration 混入 recovery rows，阈值及 paired 结果作废 |
-| 尚缺 | 先在 AutoDL 对 calibration/recovery 分母修复与 relation-target oracle 跑全套测试，再重跑相同 10/4 smoke；用 oracle 区分 E 是“目标缺信息”还是“scorer 没学会”。之后才进入足量 train/validation 预演、A 的 10×/1× 消融及 `now`/`collateral` 诊断。test 仍封存，PNO 与 Khronos 式全局慢路径属 M2 |
+| 最近结果 | 修正后 10/4、1-seed、60-update retest：数组 digest 与首次 smoke 一致，A–E 单步/因果读数逐项复现；校准分母为 40/120/8，gate 仍 `(0,0)`。relation-target oracle=80.83%、argument-given-template=100%，E scorer teacher=5%且 causal illegal selection=95%。observable final active=100%、designed recovery=100%；学习性能仍仅是 smoke |
+| 尚缺 | 按 [M1-v2 收口流程](experiments/counterfactual_transaction_learning/M1_V2_CLOSEOUT_FLOW.md) 从 S1 继续：先补 target-only/并列、E train-calibration BCE/accuracy 和 oracle illegal-rate，再跑固定数据的 5-seed 60/300/1000 teacher-forced 曲线。test 仍封存，PNO 与 Khronos 式全局慢路径属 M2 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
 | 当前决定 | D-034：M1-v1 保留为历史诊断；M1-v2 只加入有界、证据触发的局部补偿，E 不执行候选评分分支；全局 reconciliation、PNO 与 M2 顺序不变 |
 | 人工待定 | 正式 test 解封仍需单独事件；当前先完成服务器 validation，不读取 test |
-| Git 备份 | 首次 smoke 结果已由 `bc72d10` 入库；当前 calibration/oracle 修复尚在工作树，提交并推送后才允许服务器以 `git pull` 重跑。outputs、数据、论文与虚拟环境等 ignore 内容不属于 Git 备份 |
+| Git 备份 | 修正实现 `318c5a1` 与结果 `8460444` 已入库；当前流程文件尚在本地工作树。outputs、数据、论文与虚拟环境等 ignore 内容不属于 Git 备份 |
 
-白话：M1 的考试规则已经冻结。旧容量诊断证明简单 MLP 在给足标签时能拟合可见训练关系；新的 K=16 审计又证明候选接口可在不向生成器传入隐藏事务或目标 ID 的情况下找回受控 reference。后者仍只是 C00–C08、4 个 validation groups 的匿名固定特征检索，不是独立视觉数据、不是正式 coverage gate，也没有比较 CTL 与 MLP，因而不能宣布 CTL 胜出，更不是带 PNO 的 Full CPMT。
+白话：M1-v2 现在仍是“考前定卷”，不是已冻结或已通过。旧容量诊断证明简单 MLP 在给足标签时能拟合可见训练关系；新的 K=16 与恢复审计只证明候选、executor 和 active-world 评测路径可达。这些都不等于 CTL 已胜出，更不是带 PNO 的 Full CPMT。
 
 ## 当前任务清单
+
+M1-v2 的阶段顺序、转向条件和成功/失败终点见 [M1-v2 收口执行流程](experiments/counterfactual_transaction_learning/M1_V2_CLOSEOUT_FLOW.md)。下表只保留任务完成状态，不再承担流程解释。
 
 - [x] 首轮训练与结果审计：LOG-002。
 - [x] 收敛重复进度入口：LOG-004。
@@ -398,6 +400,16 @@
 - 学习读数：teacher-forced A/B/C/D/E 准确率分别为 0.4667/0.3750/0.3417/0.3250/0.0667，E scorer teacher=0.0500。causal A–E 的 final active 均为 0；A mean active=0.0833、contamination=2.5，C contamination=18.33，E contamination=32.5。这些数字只有 3 个 report groups、1 seed 和 60 updates，不支持方法比较。learned 方法的 designed eligible 均为 0、out-of-scope fraction=1，原因是它们在 pivot 前已偏离且 pivot 后状态不是有界 sibling error state；这不等于候选恢复路径失败。
 - 阻塞/无效项：commit calibration 报告 42 calibration learning rows，正确的 online 分母应为 40；多出的 2 条是 calibration groups 内的 synthetic recovery examples。因此选出的 probability=0、margin=0 以及依赖该阈值的 paired contrasts 均不可作为结论。
 - 修正/下一步：calibration 和 report 均排除 recovery-only training rows；online feature 与 E penalty 共用 executor-style 结构化 protected-ID 匹配。新增 structured relation-target oracle，在不执行候选的边界内检验 E 的目标本身是否足以排序；它不是 E 成绩或 F oracle。先在服务器跑全测，再重跑同一 10/4 smoke，不生成正式 v4/test。
+
+<a id="log-022"></a>
+### LOG-022—2026-09-06—M1-v2 corrected calibration 与 relation-target oracle retest
+
+- 类型/状态：M1-development 非正式 retest 完成；`formal_run=false`、`test_access=false`，不作 go/no-go。
+- 数据/provenance：生成、训练和导出均来自干净提交 `318c5a1`，source-tree hash 一致；结果为 `results/m1-v2-retest-318c5a1-20260906T105905Z.json`，提交 `8460444`。train=10 groups/400 online+20 recovery，validation=4 groups/160 online+8 recovery，seed=7，60 updates。train/validation arrays digest 与 LOG-021 逐位一致，证明该数据在两个干净代码版本上确定复现；protected-ID 修复未改变这批没有前缀碰撞的实例。
+- 校准：`calibration_rows=40`、`report_rows=120`、`excluded_recovery_training_rows=8`，正确排除所有 recovery-only rows。选出的共享 gate 仍为 probability=0、margin=0，calibration commit rate=0.90；这是现有小样本的有效重算，不是 formal gate。
+- E 诊断：structured relation-target assembled oracle 在 120 个 online report rows 上为 0.8083，template=0.8083、argument-given-template=1.0；E scorer teacher=0.0500，E student=0.0667，causal raw-invalid selection=0.95。因此“目标完全没信息”已被排除；当前首要瓶颈是 scorer 优化/泛化，同时 target+组装仍有 19.17% 模板选择缺口。该 oracle 使用真实 future，其 ambiguous=0.8333 不是可部署在线上限。
+- 学习与 causal：A/B/C/D/E teacher-forced 为 0.4667/0.3750/0.3417/0.3250/0.0667，与 LOG-021 一致。A–E final active 均为 0；A mean active=0.0833、contamination=2.5，C/E contamination=18.33/32.5。paired report 只有 3 groups 且 active effect=0，不作性能结论；10,000 次 bootstrap 不会增加独立样本。observable oracle 仍为 final active=1、designed recovery=1、time-to-recovery=1 步。
+- 结论/下一步：校准泄漏已关闭，E 问题已缩小到可诊断范围。后续不再靠对话临时给顺序；按 [M1-v2 收口执行流程](experiments/counterfactual_transaction_learning/M1_V2_CLOSEOUT_FLOW.md) 从 S1 执行，先补 target-only/并列、E train/calibration BCE/accuracy 和 oracle illegal-rate，再进固定数据的 5-seed 优化曲线。
 
 ## 后续条目模板
 

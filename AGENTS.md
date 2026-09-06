@@ -68,8 +68,8 @@ M1 失败时停止扩模型，不通过增加表征或任务寻找正结果。
 - 历史 PPT/脚本只作 provenance；冲突时以 README、EXECUTE 和活动实验合同为准。
 - 未实现内容只能标 planned；fixture/unit test 通过不等于方法有效。
 - accepted 方法变化必须追加 docs/DECISIONS.md。
-- 实验/架构进度只有 EXECUTE.md：顶部当前看板可更新；只有产生实验结果、架构代码实质变化或需要保留的失败 run 时才追加历史 LOG，新对话读取并续写同一文件。
-- 不按每个对话创建交接、STATUS、TODO、周报或结果 Markdown；不把同一进度复制到 README、人工确认首页或词典。
+- 实验/架构结果只记在 EXECUTE.md：顶部当前看板可更新；只有产生实验结果、架构代码实质变化或需要保留的失败 run 时才追加历史 LOG。M1-v2 的阶段顺序、当前指针、转向和终止条件只维护在 experiments/counterfactual_transaction_learning/M1_V2_CLOSEOUT_FLOW.md，它不复制实验结果。新对话先读流程当前指针，再读 EXECUTE 看板与最新 LOG。
+- 不按每个对话创建交接、STATUS、TODO、周报或结果 Markdown；M1_V2_CLOSEOUT_FLOW.md 是 D-035 明示批准的唯一阶段流程例外。不把同一进度复制到 README、人工确认首页或词典。
 - README 是稳定介绍，NEW_CHAT_HANDOFF_PROMPT 是固定跳转，human_confirmation 是表单索引；它们不再维护实时状态。
 - 普通讨论、状态问答和未形成结果的日常调试不要求追加 LOG，也不另建进度文件；若产生实验结果、架构变化或需保留的失败 run，只写 EXECUTE.md。实际改变重要方法、预算或流程才追加 DECISIONS，并按需修改对应合同；不要给每轮聊天分配 D 编号。
 - 新代码、测试、机器 run 产物仍按工程需要保存；配置/权重/逐例指标不塞进 Markdown。只有新内容确实无法归入既有职责，或用户明确要求独立交付时才新建文档。
