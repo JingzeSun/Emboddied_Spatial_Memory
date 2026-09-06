@@ -4,7 +4,7 @@
 
 ## 当前看板
 
-> **2026-09-06 更新（LOG-020）：** M1-v2 首次 AutoDL 全测在提交 `f0d3357` 上运行 139 tests、失败 3 项；根因均为 recovery row 加入后 trainability 仍硬编码每 sibling 20 行，不是方法结果。现已把 row accounting 改为数据推导，同时收紧 counterfactual reference 的状态签名唯一匹配、拆分 designed-pivot 与 arbitrary-first-error recovery、修正结构化 protected-touch，并把 endpoint bootstrap 明示为单一 mixed stratum。变更仅通过本地静态检查，等待干净提交上服务器全测；通过前不生成正式 v4 数据。test 仍未生成或读取，PNO 与全局 reconciliation 仍在 M2。
+> **2026-09-06 更新（LOG-020）：** M1-v2 的 row accounting、counterfactual policy 精确匹配、designed/arbitrary recovery 分解、结构化 protected-touch 与单一 mixed endpoint stratum 已完成修正。AutoDL 在干净提交 `aed1946` 上完整运行 141 tests 并全部通过；上一提交的性能回归和 `ambiguous` 字段拼写错误均已记录且关闭。下一步只生成小规模 train/validation v4 smoke arrays，验证 observable upper bound 与共享 commit calibration；通过前不生成正式规模数据。test 仍未生成或读取，PNO 与全局 reconciliation 仍在 M2。
 
 最后更新：2026-09-06，LOG-019 M1-v2 接口与最小 causal smoke 完成；服务器完整验证/训练尚未运行，正式 M1 gate 未运行、未生成 test。
 
@@ -387,6 +387,7 @@
 - 验证：本地仅做变更文件 `py_compile`、JSON 解析与 `git diff --check`，均通过；因本机原生稳定性风险，未运行全量测试。下一步把干净提交推到 AutoDL 重跑全套；通过前不生成正式 v4 arrays。A 的 `10×active/1×open-memory` 对 `1×/1×` 消融保留为全测通过后的低成本预注册消融，不在这次故障修复里改变主 teacher。
 - 首次重跑补充：提交 `ee7eed2` 的全测在 executor 模块结束、进入 `TestM1AFCausalRollout.setUpClass` 后长时间无输出。原因不是死锁，而是该提交把 canonical signature catalog lookup 错误地用于每个 primary future step，使原本一次 reference execution 膨胀为反复 K=16 执行。随后的修正恢复 primary 的单事务直执行，只让真正的 paired contrast policy 做 K=16 signature 唯一匹配；该次被人工中止的 run 不产生测试通过结论。
 - 第二次重跑：性能修正提交 `f0097a0` 在 AutoDL 完整运行 141 tests、129.485 秒；其中 138 项通过，3 项在同一 trainability subset 路径报 `KeyError: 'ambiguity'`。根因是完整性检查误写字段名，数组合同实际使用 `ambiguous`；现改为正确字段，并在 recovery arrays 缺该必需标签时给出明确断言。这仍是单一工程错误，不是三种独立失败或方法结果。
+- 最终验证：用户确认 AutoDL 在干净提交 `aed1946` 上全套测试全部通过；141 项中的 executor、M1-v2 rollout、A–F adapter、observable oracle、recovery 分母、protocol 与 trainability 路径均通过。该结果关闭实现阻塞，但仍只是工程验证，不构成 CTL 有效性或 M1 go/no-go 结果。
 
 ## 后续条目模板
 
