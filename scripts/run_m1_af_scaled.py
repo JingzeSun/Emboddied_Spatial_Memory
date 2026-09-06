@@ -116,17 +116,40 @@ def main() -> int:
 
     val_audits = None
     if not args.skip_causal:
+        # Causal replay needs the audits, which the array generator discards, so
+        # they are rebuilt here. That is the slowest silent stretch in the run,
+        # so it reports progress rather than sitting quiet for several minutes.
         started = time.time()
-        _, val_audits, _ = generate_m1_paired_rollout_split(
-            hard, "validation", paired_groups=args.validation_groups)
+        val_audits = []
+        expected = args.validation_groups * 2
+        chunk = max(1, min(10, args.validation_groups))
+        print(f"rebuilding {expected} validation sequences for causal replay "
+              f"(each paired group is generated from its own seed)", flush=True)
+        for start in range(0, args.validation_groups, chunk):
+            count = min(chunk, args.validation_groups - start)
+            _, part, _ = generate_m1_paired_rollout_split(
+                hard, "validation", paired_groups=count, start_group_index=start)
+            val_audits.extend(part)
+            elapsed = time.time() - started
+            rate = len(val_audits) / elapsed if elapsed else 0.0
+            remaining = (expected - len(val_audits)) / rate if rate else 0.0
+            print(f"  {len(val_audits)}/{expected} sequences  "
+                  f"{rate*60:.1f}/min  eta {remaining/60:.1f} min", flush=True)
         rebuilt = rollout_learning_arrays_from_audits(
             hard, val_audits, future_hash_bins=32)
+        # A mismatch means the replay would score against different worlds than
+        # the arrays were built from, which would look plausible and be wrong.
         if len(rebuilt["y"]) != len(validation_np["y"]):
             print("ERROR: --validation-groups does not match the validation arrays "
                   f"({len(rebuilt['y'])} vs {len(validation_np['y'])} decisions)")
             return 1
-        print(f"rebuilt {len(val_audits)} validation sequences for causal replay "
-              f"in {time.time()-started:.0f}s", flush=True)
+        if not np.array_equal(np.asarray(rebuilt["y"]),
+                              np.asarray(validation_np["y"])):
+            print("ERROR: rebuilt validation audits do not match the validation "
+                  "arrays; they were not produced by the same config or scale")
+            return 1
+        print(f"rebuilt {len(val_audits)} sequences in {time.time()-started:.0f}s "
+              f"and verified they match the validation arrays", flush=True)
 
     T, V = tensors(train_np, device), tensors(validation_np, device)
     forced: dict[str, list[dict]] = {m: [] for m in STUDENTS}
@@ -135,6 +158,8 @@ def main() -> int:
     # are on screen within minutes. The causal replay that follows takes orders
     # of magnitude longer, and its per-pair results are written as they land.
     trained: dict[int, dict] = {}
+    print(f"\ntraining {len(seeds)} seeds x {len(STUDENTS)} students "
+          f"on {len(train_np['y'])} decisions", flush=True)
     for seed in seeds:
         began = time.time()
         _, learned, _ = train_outcome_scorer(T, V, cfg, seed, device)
