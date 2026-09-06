@@ -25,8 +25,8 @@ from .dev_learning import (
     train_student,
     tensors,
 )
-from .hashing import clone_json
 from .executor import operation_argument_ids
+from .hashing import clone_json
 from .m1_metrics import graph_error_counts, rollout_graph_metrics
 from .m1_rollout import (
     CANDIDATE_BUDGET,
@@ -159,6 +159,18 @@ def _argument_features(
     return values
 
 
+def _program_touches_protected(program: Mapping[str, Any]) -> bool:
+    """Match protected IDs by executor-style structured fields, never substrings."""
+    touched_ids = set().union(*(
+        operation_argument_ids(operation.get("arguments", {}))
+        for operation in program["operations"]
+    )) if program["operations"] else set()
+    protected_ids = {
+        str(value) for value in program.get("protected_ids", [])
+    }
+    return bool(touched_ids & protected_ids)
+
+
 def online_feature_vector(online: Mapping[str, Any]) -> np.ndarray:
     """Encode only one deployable online record; audit records are rejected."""
     required = {
@@ -238,13 +250,7 @@ def online_feature_vector(online: Mapping[str, Any]) -> np.ndarray:
             operation["op_type"] for operation in program["operations"]
         )
         block.extend(operation_counts[name] / 4.0 for name in OP_TYPES)
-        protected_text = str(program.get("protected_ids", []))
-        operation_text = str(program["operations"])
-        block.append(float(any(
-            protected_id in operation_text
-            for protected_id in program.get("protected_ids", [])
-            if protected_id in protected_text
-        )))
+        block.append(float(_program_touches_protected(program)))
         block.extend(_argument_features(program, queries))
         if len(block) != CANDIDATE_FEATURE_DIM:
             raise AssertionError(
@@ -519,15 +525,7 @@ def rollout_learning_arrays_from_audits(
                     ))
             no_execution_penalties = []
             for program in step["online"]["candidate_programs"]:
-                touched_ids = set().union(*(
-                    operation_argument_ids(operation.get("arguments", {}))
-                    for operation in program["operations"]
-                )) if program["operations"] else set()
-                protected_touch = float(bool(
-                    touched_ids & {
-                        str(value) for value in program.get("protected_ids", [])
-                    }
-                ))
+                protected_touch = float(_program_touches_protected(program))
                 no_execution_penalties.append(
                     float(weights["now"])
                     * (0.0 if program.get("evidence_refs") else 1.0)
@@ -682,20 +680,73 @@ def selection_error_decomposition(
     }
 
 
+def structured_relation_oracle_probabilities(
+    arrays: Mapping[str, np.ndarray], *, future_weight: float,
+    temperature: float,
+) -> np.ndarray:
+    """Rank candidates with perfect knowledge of the registered relation target.
+
+    This diagnostic reads the audit-only truth of each candidate-scoped query,
+    compares it with the effect claimed by that candidate, and combines the
+    resulting mismatch with the same no-execution declaration penalty used by
+    E.  It never reads or executes a candidate post-world.  Its accuracy is an
+    information ceiling for the structured target, not a deployable method.
+    """
+    if temperature <= 0.0:
+        raise ValueError("relation oracle temperature must be positive")
+    targets = np.asarray(arrays["relation_targets"], dtype=np.float64)
+    masks = np.asarray(arrays["relation_mask"], dtype=np.float64)
+    desired = np.asarray(arrays["relation_desired"], dtype=np.float64)
+    penalties = np.asarray(
+        arrays["no_execution_penalties"], dtype=np.float64,
+    )
+    if targets.shape != masks.shape or targets.shape != desired.shape:
+        raise ValueError("structured relation target tensors must have equal shape")
+    if targets.ndim != 3 or penalties.shape != targets.shape[:2]:
+        raise ValueError("structured relation oracle received incompatible shapes")
+    denominators = masks.sum(axis=2)
+    if np.any(denominators <= 0.0):
+        raise ValueError("every candidate needs at least one relation query")
+    mismatch = (
+        np.abs(targets - desired) * masks
+    ).sum(axis=2) / denominators
+    centre = mismatch.mean(axis=1, keepdims=True)
+    # Match OutcomeScorer's torch.std default (sample standard deviation), so
+    # the diagnostic uses the same future/penalty scale as E.
+    spread = mismatch.std(axis=1, keepdims=True, ddof=1)
+    standardized = np.divide(
+        mismatch - centre, spread,
+        out=np.zeros_like(mismatch), where=spread > 0.0,
+    )
+    energy = float(future_weight) * standardized + penalties
+    logits = -energy / float(temperature)
+    logits -= logits.max(axis=1, keepdims=True)
+    probabilities = np.exp(logits)
+    probabilities /= probabilities.sum(axis=1, keepdims=True)
+    return probabilities.astype(np.float32)
+
+
 def calibrate_shared_commit_rule(
     probabilities_by_run: Mapping[str, np.ndarray],
     arrays: Mapping[str, np.ndarray], hard_config: Mapping[str, Any],
 ) -> dict[str, Any]:
     """Select one A-E commit rule on the sealed validation-calibration half.
 
-    The score is computed on independent one-step post-world outcomes so the
-    grid does not require hundreds of expensive causal replays.  Every model
-    and seed contributes equally, and the report half is never inspected.
+    The score is computed on independent one-step post-world outcomes from
+    online rows only, so the grid does not require hundreds of expensive causal
+    replays. Recovery-only training examples are excluded. Every model and seed
+    contributes equally, and the report half is never inspected.
     """
     if not probabilities_by_run:
         raise ValueError("commit calibration requires model probabilities")
-    calibration = np.asarray(arrays["calibration"], dtype=bool)
-    if not calibration.any() or calibration.all():
+    group_calibration = np.asarray(arrays["calibration"], dtype=bool)
+    recovery = np.asarray(
+        arrays.get("recovery", np.zeros(len(group_calibration), dtype=bool)),
+        dtype=bool,
+    )
+    calibration = group_calibration & ~recovery
+    report = ~group_calibration & ~recovery
+    if not calibration.any() or not report.any():
         raise ValueError("validation must contain both calibration and report groups")
     candidate_legal = np.asarray(arrays["candidate_legal"], dtype=bool)
     active_correct = np.asarray(arrays["active_correct"], dtype=np.float64)
@@ -766,7 +817,8 @@ def calibrate_shared_commit_rule(
     return {
         "partition_rule": spec["partition"],
         "calibration_rows": int(calibration.sum()),
-        "report_rows": int((~calibration).sum()),
+        "report_rows": int(report.sum()),
+        "excluded_recovery_training_rows": int(recovery.sum()),
         "runs": len(probabilities_by_run),
         "selection": spec["selection"],
         "selected": {

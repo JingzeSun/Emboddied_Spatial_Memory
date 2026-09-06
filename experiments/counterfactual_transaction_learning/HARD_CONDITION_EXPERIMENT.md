@@ -68,9 +68,11 @@ D 诊断 future evidence；F 分解 candidate coverage 与 scorer error。
 - 执行式教师逐候选保存 now/future/edit/growth/collateral/illegal。future 比较当前 active semantic world 与 open-memory evidence support，closed history 只作审计；权重为 1/1/0.1/0.25/10，illegal 用正无穷 mask，temperature=0.25，不能看正式 test 后重调。
 - A–E 共用 online encoder、输入字段、学生更新数和 split，训练参数量差异不超过 10%；每方法最多 6 次 validation trial。C 的 future auxiliary weight 可在 {0.1,1,10} 内独立选。E 的额外 scorer 参数、更新、耗时和显存单列，不能藏进共同预算。F 是 K=16 内 oracle upper bound，不是可部署模型。
 - E 在目标构造和候选评分时都不执行非参考候选：它把每个 online candidate program 解析为“未来该关系/生命周期/证据关联是否成立”的查询，并从实际 reference future 为全部 K=16 产生稠密监督；不得读取 candidate post-world 或复用 executor 给出的 illegal/collateral。C 使用同一结构化关系目标作 direct auxiliary。评价 persistent memory 时，A–E 最终选中的单个事务仍由同一个 executor 应用。
-- validation paired groups 按 `paired_group_id` 的固定 SHA-256 奇偶拆成 calibration/report。只在 calibration 半区从登记网格选一组 A–E 共用的 commit probability/margin；report 半区只汇报，不能选阈值。
+- validation paired groups 按 `paired_group_id` 的固定 SHA-256 奇偶拆成 calibration/report。只在 calibration 半区的 online rows 从登记网格选一组 A–E 共用的 commit probability/margin；report 半区只汇报，不能选阈值。counterfactual recovery training rows 只用于学习，不参与 gate calibration 或 report 分母。
 
 白话：公平协议解决“CPMT 是否只是比对照多拿了答案或算力”的问题。输入是同一批 online 信息、同一候选语言和可核对的训练预算，输出是 A–F 可比的预测、运行成本与失败。例如 E 可以预测“RELINK 声称的新位置未来是否成立”，但不能先执行 16 个候选再偷看哪些合法；最终决定落地时仍和其他方法一样调用 executor。它不等于强迫网络结构一模一样，也不等于把 F 的 oracle 成绩当实际系统成绩。
+
+白话：structured relation-target oracle（结构化关系目标上限）解决“E 没学好，究竟是目标没有信息，还是 scorer 没学会”的问题。输入是每个候选从程序文本提出的关系查询、真实 reference future 给出的查询真假和 E 可用的声明成本，输出是在完美知道这些关系真假时的候选排序准确率。例如，若 RELINK 声称“杯子未来在水槽”且真实 future 支持它，oracle 给该查询零不一致；错误位置得到不一致。它不执行 candidate post-world、不是可部署模型、不是 F 的 transaction oracle，也不能作为 E 的正式成绩。
 
 ### 指标、统计与 go/no-go
 

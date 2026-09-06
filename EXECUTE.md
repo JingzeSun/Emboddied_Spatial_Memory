@@ -4,21 +4,21 @@
 
 ## 当前看板
 
-> **2026-09-06 更新（LOG-020）：** M1-v2 的 row accounting、counterfactual policy 精确匹配、designed/arbitrary recovery 分解、结构化 protected-touch 与单一 mixed endpoint stratum 已完成修正。AutoDL 在干净提交 `aed1946` 上完整运行 141 tests 并全部通过；上一提交的性能回归和 `ambiguous` 字段拼写错误均已记录且关闭。下一步只生成小规模 train/validation v4 smoke arrays，验证 observable upper bound 与共享 commit calibration；通过前不生成正式规模数据。test 仍未生成或读取，PNO 与全局 reconciliation 仍在 M2。
+> **2026-09-06 更新（LOG-021）：** 干净提交 `3104359` 上的首次 M1-v2 服务器 pretest smoke 已完成并导出。observable oracle 达到 final active=1.0、mean active=0.975、设计恢复率=1.0；但 60 updates 下 A–E 的 causal final active 均为 0，不构成性能结论。审计发现 commit calibration 错把 2 条 synthetic recovery row 混入 40 条 online calibration rows，因而本次阈值与 paired 结果无效。当前修复该分母、统一结构化 protected-touch，并加入只诊断 E 目标信息量的 relation-target oracle；全测通过后仅重跑同规模 smoke。test 仍未生成或读取，PNO 与全局 reconciliation 仍在 M2。
 
-最后更新：2026-09-06，LOG-019 M1-v2 接口与最小 causal smoke 完成；服务器完整验证/训练尚未运行，正式 M1 gate 未运行、未生成 test。
+最后更新：2026-09-06，LOG-021 首次 M1-v2 服务器 pretest smoke 完成；校准分母问题已定位并待重跑，正式 M1 gate 未运行、未生成 test。
 
 | 项目 | 当前事实 |
 |---|---|
 | 方向 | CPMT 具身空间记忆；CTL 是主学习假设，用户希望面向 ML 研究 |
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
 | 阶段 | M1-v2 `pretest_lock_candidate`；只开放 train/validation，尚未重新冻结，正式 gate 未运行，不是 M2/Full CPMT |
-| 最近结果 | M1-v2 极小接线 smoke（2 train groups、4 validation groups、1 seed、2 updates）：executed teacher/reference=100%；observable oracle final active=100%、mean active=97.5%、final history=50%、recovery-within-3=100%、平均 1 步恢复、final contamination=0。学习方法因仅 2 updates 均不可解释，不作比较结论 |
-| 尚缺 | 在 AutoDL 的干净提交上跑完整测试与足量 train/validation smoke；确认 E 相对 hashed/world-latent 旧靶的改善、共享 commit rule 的 report-half 结果和 learned recovery；修正/明报仍弱或冗余的 `now`、`collateral`；然后才决定是否重新冻结 M1-v2。test 仍封存，PNO 与 Khronos 式全局慢路径属 M2 |
+| 最近结果 | M1-v2 pretest smoke（10 train groups、4 validation groups、1 seed、60 updates）：executed teacher/reference=100%；observable oracle final active=100%、mean active=97.5%、final contamination/missing=0、designed recovery=100%且平均 1 步。A–E causal final active 均为 0；A 的 mean active=8.33%且 contamination=2.5，但样本和更新数过小，不作科学结论。本次 calibration 混入 recovery rows，阈值及 paired 结果作废 |
+| 尚缺 | 先在 AutoDL 对 calibration/recovery 分母修复与 relation-target oracle 跑全套测试，再重跑相同 10/4 smoke；用 oracle 区分 E 是“目标缺信息”还是“scorer 没学会”。之后才进入足量 train/validation 预演、A 的 10×/1× 消融及 `now`/`collateral` 诊断。test 仍封存，PNO 与 Khronos 式全局慢路径属 M2 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
 | 当前决定 | D-034：M1-v1 保留为历史诊断；M1-v2 只加入有界、证据触发的局部补偿，E 不执行候选评分分支；全局 reconciliation、PNO 与 M2 顺序不变 |
 | 人工待定 | 正式 test 解封仍需单独事件；当前先完成服务器 validation，不读取 test |
-| Git 备份 | M1-v2 尚在未提交工作树；提交并推送后才允许服务器以 `git pull` 运行。outputs、数据、论文与虚拟环境等 ignore 内容不属于 Git 备份 |
+| Git 备份 | 首次 smoke 结果已由 `bc72d10` 入库；当前 calibration/oracle 修复尚在工作树，提交并推送后才允许服务器以 `git pull` 重跑。outputs、数据、论文与虚拟环境等 ignore 内容不属于 Git 备份 |
 
 白话：M1 的考试规则已经冻结。旧容量诊断证明简单 MLP 在给足标签时能拟合可见训练关系；新的 K=16 审计又证明候选接口可在不向生成器传入隐藏事务或目标 ID 的情况下找回受控 reference。后者仍只是 C00–C08、4 个 validation groups 的匿名固定特征检索，不是独立视觉数据、不是正式 coverage gate，也没有比较 CTL 与 MLP，因而不能宣布 CTL 胜出，更不是带 PNO 的 Full CPMT。
 
@@ -388,6 +388,16 @@
 - 首次重跑补充：提交 `ee7eed2` 的全测在 executor 模块结束、进入 `TestM1AFCausalRollout.setUpClass` 后长时间无输出。原因不是死锁，而是该提交把 canonical signature catalog lookup 错误地用于每个 primary future step，使原本一次 reference execution 膨胀为反复 K=16 执行。随后的修正恢复 primary 的单事务直执行，只让真正的 paired contrast policy 做 K=16 signature 唯一匹配；该次被人工中止的 run 不产生测试通过结论。
 - 第二次重跑：性能修正提交 `f0097a0` 在 AutoDL 完整运行 141 tests、129.485 秒；其中 138 项通过，3 项在同一 trainability subset 路径报 `KeyError: 'ambiguity'`。根因是完整性检查误写字段名，数组合同实际使用 `ambiguous`；现改为正确字段，并在 recovery arrays 缺该必需标签时给出明确断言。这仍是单一工程错误，不是三种独立失败或方法结果。
 - 最终验证：用户确认 AutoDL 在干净提交 `aed1946` 上全套测试全部通过；141 项中的 executor、M1-v2 rollout、A–F adapter、observable oracle、recovery 分母、protocol 与 trainability 路径均通过。该结果关闭实现阻塞，但仍只是工程验证，不构成 CTL 有效性或 M1 go/no-go 结果。
+
+<a id="log-021"></a>
+### LOG-021—2026-09-06—M1-v2 upper-bound/calibration pretest smoke
+
+- 类型/状态：M1-development 非正式 smoke；生成、训练、causal replay 与结果导出完整，`formal_run=false`、`test_access=false`，不作 go/no-go 判定。
+- 数据/provenance：生成与训练来自干净提交 `3104359`；train 10 paired groups = 400 online rows + 20 recovery rows，validation 4 groups = 160 online + 8 recovery，seed=7，student/scorer=60 updates。train/validation teacher-reference agreement 均为 1.0；导出结果为 `results/m1-v2-pretest-smoke-20260906T102332Z.json`，结果提交 `bc72d10`。
+- 上限与接线：report 半区含 3 paired groups/6 sequences。observable-information oracle 的 mean active=0.975、final active=1.0、final contamination/missing=0；designed eligible=3/6、recovery-within-window=1.0、平均 1 步，out-of-scope=0。final history/open-memory=0.5，说明旧错版本仍被保留而 active world 已修复。
+- 学习读数：teacher-forced A/B/C/D/E 准确率分别为 0.4667/0.3750/0.3417/0.3250/0.0667，E scorer teacher=0.0500。causal A–E 的 final active 均为 0；A mean active=0.0833、contamination=2.5，C contamination=18.33，E contamination=32.5。这些数字只有 3 个 report groups、1 seed 和 60 updates，不支持方法比较。learned 方法的 designed eligible 均为 0、out-of-scope fraction=1，原因是它们在 pivot 前已偏离且 pivot 后状态不是有界 sibling error state；这不等于候选恢复路径失败。
+- 阻塞/无效项：commit calibration 报告 42 calibration learning rows，正确的 online 分母应为 40；多出的 2 条是 calibration groups 内的 synthetic recovery examples。因此选出的 probability=0、margin=0 以及依赖该阈值的 paired contrasts 均不可作为结论。
+- 修正/下一步：calibration 和 report 均排除 recovery-only training rows；online feature 与 E penalty 共用 executor-style 结构化 protected-ID 匹配。新增 structured relation-target oracle，在不执行候选的边界内检验 E 的目标本身是否足以排序；它不是 E 成绩或 F oracle。先在服务器跑全测，再重跑同一 10/4 smoke，不生成正式 v4/test。
 
 ## 后续条目模板
 

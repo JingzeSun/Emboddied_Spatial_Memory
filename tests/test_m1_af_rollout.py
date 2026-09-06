@@ -14,6 +14,7 @@ from cpmt.dev_learning import METHODS
 from cpmt.m1_af_rollout import (
     CANDIDATE_FEATURE_DIM,
     ONLINE_CONTEXT_DIM,
+    _program_touches_protected,
     build_rollout_learning_arrays,
     calibrate_shared_commit_rule,
     causal_rollout_metrics,
@@ -21,6 +22,7 @@ from cpmt.m1_af_rollout import (
     resolve_af_smoke_config,
     run_af_seed,
     selection_error_decomposition,
+    structured_relation_oracle_probabilities,
 )
 
 
@@ -69,6 +71,15 @@ class TestM1AFCausalRollout(unittest.TestCase):
         )
         distinct = {tuple(np.round(block, 6)) for block in blocks}
         self.assertEqual(len(distinct), 16)
+
+    def test_protected_touch_matches_exact_structured_ids(self):
+        program = {
+            "protected_ids": ["node-1"],
+            "operations": [{"arguments": {"node_id": "node-10"}}],
+        }
+        self.assertFalse(_program_touches_protected(program))
+        program["operations"][0]["arguments"]["node_id"] = "node-1"
+        self.assertTrue(_program_touches_protected(program))
 
     def test_selection_error_splits_template_from_argument(self):
         probabilities = np.eye(16, dtype=np.float32)[self.validation["y"]]
@@ -216,31 +227,56 @@ class TestM1AFCausalRollout(unittest.TestCase):
     def test_commit_calibration_uses_only_its_paired_group_half(self):
         probabilities = np.asarray([
             [0.6, 0.4], [0.6, 0.4], [0.6, 0.4], [0.99, 0.01],
+            [0.99, 0.01],
         ], dtype=np.float32)
         arrays = {
-            "calibration": np.asarray([True, True, True, False]),
-            "candidate_legal": np.ones((4, 2), dtype=bool),
+            "calibration": np.asarray([True, True, True, False, True]),
+            "recovery": np.asarray([False, False, False, False, True]),
+            "candidate_legal": np.ones((5, 2), dtype=bool),
             "active_correct": np.asarray([
-                [1, 0], [0, 1], [0, 1], [1, 0],
+                [1, 0], [0, 1], [0, 1], [1, 0], [1, 0],
             ], dtype=np.float32),
-            "base_active_correct": np.asarray([0, 1, 1, 0], dtype=np.float32),
+            "base_active_correct": np.asarray([0, 1, 1, 0, 0], dtype=np.float32),
             "fact_errors": np.asarray([
-                [0, 1], [1, 0], [1, 0], [0, 1],
+                [0, 1], [1, 0], [1, 0], [0, 1], [0, 1],
             ], dtype=np.float32),
-            "base_fact_errors": np.asarray([1, 0, 0, 1], dtype=np.float32),
-            "excess_nodes": np.zeros((4, 2), dtype=np.float32),
-            "base_excess_nodes": np.zeros(4, dtype=np.float32),
+            "base_fact_errors": np.asarray([1, 0, 0, 1, 1], dtype=np.float32),
+            "excess_nodes": np.zeros((5, 2), dtype=np.float32),
+            "base_excess_nodes": np.zeros(5, dtype=np.float32),
         }
         first = calibrate_shared_commit_rule(
             {"A:seed7": probabilities}, arrays, self.hard,
         )
         self.assertEqual(first["selected"]["commit_probability"], 0.65)
+        self.assertEqual(first["calibration_rows"], 3)
+        self.assertEqual(first["report_rows"], 1)
+        self.assertEqual(first["excluded_recovery_training_rows"], 1)
         changed = deepcopy(arrays)
-        changed["active_correct"][-1] = [0, 1]
+        changed["active_correct"][3] = [0, 1]
         second = calibrate_shared_commit_rule(
             {"A:seed7": probabilities}, changed, self.hard,
         )
         self.assertEqual(first["selected"], second["selected"])
+        changed_recovery = deepcopy(arrays)
+        changed_recovery["active_correct"][4] = [0, 1]
+        third = calibrate_shared_commit_rule(
+            {"A:seed7": probabilities}, changed_recovery, self.hard,
+        )
+        self.assertEqual(first["selected"], third["selected"])
+
+    def test_structured_relation_oracle_prefers_the_true_claim(self):
+        arrays = {
+            "relation_targets": np.asarray([[[1.0], [0.0]]]),
+            "relation_mask": np.ones((1, 2, 1), dtype=np.float32),
+            "relation_desired": np.ones((1, 2, 1), dtype=np.float32),
+            "no_execution_penalties": np.zeros((1, 2), dtype=np.float32),
+        }
+        probabilities = structured_relation_oracle_probabilities(
+            arrays, future_weight=1.0, temperature=0.25,
+        )
+        self.assertEqual(probabilities.shape, (1, 2))
+        self.assertEqual(int(probabilities.argmax(axis=1)[0]), 0)
+        self.assertAlmostEqual(float(probabilities.sum()), 1.0)
 
     def test_config_cannot_claim_formal_or_open_test(self):
         raw = json.loads(

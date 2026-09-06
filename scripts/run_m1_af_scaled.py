@@ -36,6 +36,7 @@ from cpmt.m1_af_rollout import (  # noqa: E402
     CANDIDATE_FEATURE_DIM, calibrate_shared_commit_rule,
     causal_rollout_metrics, paired_group_is_calibration,
     rollout_learning_arrays_from_audits, selection_error_decomposition,
+    structured_relation_oracle_probabilities,
 )
 from cpmt.m1_protocol import load_and_validate, protocol_sha256  # noqa: E402
 from cpmt.m1_metrics import (  # noqa: E402
@@ -282,6 +283,21 @@ def main() -> int:
         validation_np["ambiguous"], dtype=bool,
     )[online_validation].mean())
     print(f"  random floor {1/16:.4f}   observable ceiling {ceiling:.4f}", flush=True)
+    relation_oracle_probabilities = structured_relation_oracle_probabilities(
+        validation_np,
+        future_weight=float(hard["energy"]["weights"]["future"]),
+        temperature=float(hard["energy"]["temperature"]),
+    )
+    relation_oracle = selection_error_decomposition(
+        relation_oracle_probabilities[online_report_mask], validation_report_np,
+    )
+    print(
+        "  structured relation-target oracle on report rows "
+        f"accuracy={relation_oracle['accuracy']:.4f} "
+        f"identifiable={relation_oracle['identifiable_accuracy']:.4f} "
+        f"ambiguous={relation_oracle['ambiguous_accuracy']:.4f}",
+        flush=True,
+    )
 
     val_audits = None
     if not args.skip_causal:
@@ -589,6 +605,7 @@ def main() -> int:
                 == validation_np["y"][online_report_mask]
             ).mean()),
         },
+        "structured_relation_target_oracle": relation_oracle,
         "commit_calibration": commit_calibration,
         "scorer_teacher_validation_accuracy": scorer_teacher,
         "teacher_forced": summary,
