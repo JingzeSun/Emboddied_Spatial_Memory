@@ -16,12 +16,12 @@
 
 ## 当前指针
 
-- 当前阶段：**S2 scorer 优化 × train 规模二维曲线**。
-- 最近有效证据：[`results/m1-v2-s1-innerdev-7518f99-20260906T120940Z.json`](../../results/m1-v2-s1-innerdev-7518f99-20260906T120940Z.json)，详见 `EXECUTE.md` LOG-026。
-- S1 分支结论：10-group train 只留出 1 个 inner-dev paired group。target-only 将 K=16 缩到至多 2 个，均匀打破并列的期望准确率为 0.600；同组装 relation oracle 为 0.575，明显高于 E scorer 的 0.050，但 oracle 的非法候选选择率为 0.375。故当前不改 relation target，进入 S2 检验优化量与数据量交互；同时把 legality/assembly 缺口保留为独立阻塞项，不能把 E 的全部失败只归因于训练步数。
-- 正在执行：按 D-037 先审计只读 static preflight，再在干净提交上生成一份 40-group train arrays；同一文件确定性截取前 10/40 groups，运行 scorer steps {60,300,1000} × train groups {10,40}、seed 7 的 2×3。target-only/assembled oracle 在全部 selected train online rows 上报告 aggregate 与逐 group 值；scorer 仍按既定 SHA-256 规则分 fitting/inner-dev，并以共同 group 1 作直接规模对照、以 40-group 的 8 个 held-out groups 观察泛化。该阶段不读 validation/report、不训练 student、不校准 gate、不跑 causal。
-- 离开 S2 的条件：先检查 static preflight 对 executor illegal 的召回、合法误拒和过滤前后 oracle，但不得把过滤上界当作 E 成绩；再判断 scorer 是否接近未过滤 assembled oracle并区分 steps、groups 及其交互。若静态预检高召回且零/近零误拒，先提出是否共享启用的新 decision；若 40 groups 仍随数据明确改善则进入 S3；若 scorer 已贴近低 oracle 则回到 test 前的 assembly/声明约束修订。不得用单个 inner-dev group 的 57.5% 或旧 validation report 的 80.83% 单独选方法。
-- 边界：`test_access=false`；不生成或读取 test，不进入 PNO/M2，不实现全局 reconciliation。
+- 当前阶段：**S2 方法边界决策点：seed-7 二维曲线已完成，static-preflight 是否成为共享 online mask 尚未接受**。
+- 最近有效证据：结果提交 `ea25201` 中六份 [`m1-v2-s2-*-c4f5df4-clean.json`](../../results/)，代表点为 [`g40-s300`](../../results/m1-v2-s2-g40-s300-c4f5df4-clean.json)；完整数字与 provenance 见 `EXECUTE.md` LOG-028。
+- 已完成：同一份 40-group arrays 确定性截取 10/40 groups，运行 scorer steps {60,300,1000} × seed 7。40-group 全 train 上，static preflight 对 2,552/2,552 个 executor-illegal 候选全部静态拒绝、合法误拒 0；过滤后 target-only 均匀并列期望由 0.7729 升至 0.9698，assembled oracle accuracy 由 0.7438 升至 0.9525，其 exact-ambiguity capped 读数由 0.7275 升至 0.9275。过滤结果仍是诊断上界，不是已经启用的方法成绩。
+- scorer 分支：40-group inner-dev 的未过滤/过滤后 teacher accuracy 在 steps 60/300/1000 分别为 0.0500/0.5688/0.5031 与 0.0625/0.7469/0.7094。1000 steps 虽将 held-out BCE 从 0.1016 降到 0.0744，候选排序却低于 300 steps；共同 group 1 在 10/40 groups、300/1000 steps 过滤后均为 0.875，也没有显示扩大到 S3 的明确数据收益。因此 300 steps 只是当前单 seed 候选，尚未固定。
+- 当前分支：D-037 的预登记触发条件已经满足，暂停直接进入 S3。下一步先由用户决定是否提出新 decision，将同一只读 static preflight 作为 A–E 共享 online admissibility mask；若接受，须更新方法合同和 protocol hash、保持 test 封存并从 S1 重跑，再在 40 groups 上对 300/1000 steps 补齐登记 seeds。若不接受，则继续在未过滤边界内处理 assembly/声明约束，不能把 0.9525 冒充 E。
+- 边界：`test_access=false`、`validation_arrays_read=false`、`validation_trial_consumed=false`；本轮不训练 student、不校准 gate、不跑 causal，不进入 PNO/M2 或全局 reconciliation。
 
 ## 总流程
 
@@ -30,7 +30,9 @@ S0 工程上限与校准闭环（已完成）
   ↓
 S1 E/target/scorer 诊断闭环（已完成）
   ↓
-S2 scorer 优化 × train 规模二维曲线（当前）
+S2 scorer 优化 × train 规模二维曲线（seed 7 已完成）
+  ↓
+S2 方法边界决策：是否共享启用 static preflight（当前）
   ↓
 S3 更大 train 规模交互确认（S2 显示需要时）
   ↓
@@ -49,7 +51,7 @@ S7 M1 成功 / no-go / 不确定收口
 |---|---|---|---|
 | S0 ✓ | 指标、恢复路径和 calibration 分母是否成立 | 10/4 groups、seed 7、60 updates 的 smoke | observable final active=1、恢复一步；calibration/report/recovery=40/120/8；干净 provenance |
 | S1 ✓ | E 低是 target、能量组装、优化还是泛化问题 | 10-group train arrays 按 SHA-256 留出完整 inner-dev group；scorer=60、seed=7；不读 validation | target-only expected=0.600；assembled oracle=0.575、illegal=0.375；E fitting/inner-dev teacher 均为 0.050；目标有信息，但单 group 不足以分开优化、组间波动和 assembly legality |
-| S2 | E 是优化不足、数据不足还是两者交互；非法并列能否被只读预检识别 | scorer-only；同一 40-group arrays 确定性截取前 10/40 groups，steps {60,300,1000} × total train groups {10,40} 的 2×3；先 seed 7，再对选定点补齐 5 seeds；不读 validation | 全-train 与逐 group 的 target/assembly；static-preflight 非法召回、合法误拒、failure/template 分解及过滤上界；E fitting/inner-dev BCE、teacher accuracy、非法选择与成本曲线；固定 scorer steps 或提出已登记早停规则 |
+| S2（seed 7 ✓） | E 是优化不足、数据不足还是两者交互；非法并列能否被只读预检识别 | scorer-only；同一 40-group arrays 确定性截取前 10/40 groups，steps {60,300,1000} × total train groups {10,40} 的 2×3；先 seed 7，再对选定点补齐登记 seeds；不读 validation | seed-7 曲线与 static audit 已齐；当前输出是 method-boundary decision。只有决定是否共享启用 static preflight、按需重跑 S1，并完成 300/1000 的多 seed 确认后才能完全离开 S2 |
 | S3 | 40 groups 后是否仍明确受数据多样性限制 | 若 10→40 仍明确改善，在一个更大 train-group 点上复扫 S2 的两个 scorer steps，而不是顺序固定旧最优；仍只用 train/inner-dev | 确认最优 steps 是否随数据规模改变，并判定数据曲线继续上升或已经饱和；不得同时改容量或 target |
 | S4 | 正式 run 的分母、能量和终止规则是否唯一 | 解决 `groups_per_family` 名称与“每 family 最低决策实例数”的歧义；核查 now/collateral；报 A 的 10×/1× teacher 消融 | 唯一 train/validation/test paired-group 总数、每 family 最低 support、固定训练步数/门控选择法、不确定结果处理规则 |
 | S5 | 锁定设置在足量 train/validation 上是否值得进入 test | 生成满足 C00–C11 support 的 train 和与已查看 4 groups 不重叠的新 validation confirmation；5 seeds；10% labels 主设置；完整 20-step causal 和 10,000 paired bootstrap | coverage/invariant/provenance 全通过；calibration 选唯一共享 gate；新的 report 半区仅报一次；没有触发明确 stop rule |

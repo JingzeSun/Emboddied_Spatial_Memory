@@ -4,21 +4,21 @@
 
 ## 当前看板
 
-> **2026-09-06 更新（LOG-027）：** S2 诊断已按 D-037 补强并提交：executor 新增只读 static preflight，generation 同时保存预检与最终执行失败，diagnostic 在全部 selected train rows 报告 target/assembly、非法召回与过滤上界；scorer 泛化仍只看 fitting/inner-dev。S2 固定使用同一份 40-group arrays，跑 10/40 groups × 60/300/1000 scorer steps 的 2×3。静态过滤尚未进入 E 或任何 A–E 选择路径，不改 target、loss、energy、protocol、validation/test。
+> **2026-09-06 更新（LOG-028）：** S2 seed-7 的 10/40 train groups × 60/300/1000 scorer steps 已在同一份 40-group arrays 上完成。只读 static preflight 对 2,552 个 executor-illegal 候选实现 100% 召回且合法误拒为 0；若仅作事后过滤诊断，assembled oracle accuracy 从 0.7438 升到 0.9525。40-group inner-dev 的过滤后 scorer teacher accuracy 在 300/1000 steps 为 0.7469/0.7094，未显示继续增大训练步数或立即扩大数据的明确收益。当前停在方法边界决策：是否把 static preflight 重新登记为 A–E 共享 online admissibility mask；在决策、合同和 protocol hash 更新前，它仍不是方法组件或 E 成绩。
 
-最后更新：2026-09-06，LOG-027 诊断实现已提交、S2 待 AutoDL 全测和运行；正式 M1 gate 未运行、未生成 test。
+最后更新：2026-09-06，LOG-028 S2 seed-7 曲线已完成并导回；正式 M1 gate 未运行、未生成或读取 test。
 
 | 项目 | 当前事实 |
 |---|---|
 | 方向 | CPMT 具身空间记忆；CTL 是主学习假设，用户希望面向 ML 研究 |
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
 | 阶段 | M1-v2 `pretest_lock_candidate`；只开放 train/validation，尚未重新冻结，正式 gate 未运行，不是 M2/Full CPMT |
-| 最近结果 | 干净提交 `7518f99` 上的 10-group train/inner-dev S1：9 fitting groups/378 learning rows，1 inner-dev group/42 learning rows，其中 online=40；target-only reference coverage=95%、unique=25%、均匀并列期望=60%；assembled oracle=57.5%、illegal=37.5%；E scorer fitting/inner-dev BCE=0.2612/0.2706、teacher=5%/5%、illegal=45%/85%。旧 4-group validation report 的 oracle=80.83% 只保留为历史，不能与单个 train inner-dev group 混合作选择 |
-| 尚缺 | 在 AutoDL 对 `742c2f4` 后续干净提交跑全测，生成一份含 static-preflight audit 字段的 40-group train arrays，并由同一文件确定性截取 10/40 groups，完成 seed 7、scorer steps 60/300/1000 的 2×3；据全-train oracle、静态非法召回、共同 group 1 与 8-group inner-dev aggregate 分开判断 assembly、优化量和数据多样性。test 仍封存，PNO 与 Khronos 式全局慢路径属 M2 |
+| 最近结果 | 结果提交 `ea25201` 的 S2 seed-7 2×3：同一份 40-group arrays（1,600 online + 80 recovery rows）确定性截取 10/40 groups。40-group static preflight 非法召回=1、合法误拒=0；target-only tie-expected 0.7729→0.9698，assembled oracle 0.7438→0.9525，exact-ambiguity capped 0.7275→0.9275。40-group inner-dev scorer 在 60/300/1000 steps 的未过滤 teacher=0.0500/0.5688/0.5031，过滤后=0.0625/0.7469/0.7094；1000 steps 的 BCE 更低但候选排序更差 |
+| 尚缺 | 先决定是否提出新 decision，将 static preflight 作为所有 A–E 共享的 online admissibility mask。若接受，修改方法合同与 protocol hash、从 S1 重跑并在 40 groups 上对 300/1000 steps 补齐登记 seeds；若拒绝，在未过滤边界内修 assembly/声明约束。完成该方法边界与多 seed 确认后才判断是否需要 S3。test 仍封存，PNO 与 Khronos 式全局慢路径属 M2 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
 | 当前决定 | D-034：M1-v2 只加入有界、证据触发的局部补偿，E 不执行候选评分分支；D-037：static preflight 当前只作审计和过滤上界，若要启用须另立 decision 并从 S1 重跑；全局 reconciliation、PNO 与 M2 顺序不变 |
-| 人工待定 | 正式 test 解封仍需单独事件；当前先完成服务器 validation，不读取 test |
-| Git 备份 | 修正实现 `318c5a1`、结果 `8460444`、流程 `d421d74`、S1 结果 `67f739d` 与 S2 static-preflight 诊断 `742c2f4` 已入库；outputs、数据、论文与虚拟环境等 ignore 内容不属于 Git 备份 |
+| 人工待定 | 是否接受 static preflight 作为 A–E 共享 online mask；正式 test 解封仍需以后单独事件，当前不读取 test |
+| Git 备份 | 修正实现 `318c5a1`、S1 结果 `67f739d`、S2 static-preflight 诊断 `742c2f4`、最终 S2 实现 `c4f5df4` 与六份结果 `ea25201` 已入库；outputs、数据、论文与虚拟环境等 ignore 内容不属于 Git 备份 |
 
 白话：M1-v2 现在仍是“考前定卷”，不是已冻结或已通过。旧容量诊断证明简单 MLP 在给足标签时能拟合可见训练关系；新的 K=16 与恢复审计只证明候选、executor 和 active-world 评测路径可达。这些都不等于 CTL 已胜出，更不是带 PNO 的 Full CPMT。
 
@@ -464,6 +464,29 @@ M1-v2 的阶段顺序、转向条件和成功/失败终点见 [M1-v2 收口执�
 - 本地验证：`py_compile`、`git diff --check`、静态预检只读/通过不等于执行成功的 executor 单测，以及生成数组/过滤诊断两个定向 M1 测试均通过；两个 M1 定向测试耗时 32.424 秒。依用户关于本机 CPU/内存风险的提示，未在本机跑全套测试或生成 40-group 数据；全测是 AutoDL 运行的前置 gate。
 - 局限/治理：外部 scratch 使用 executor `candidate_legal` 得到的 94.4% 仅是禁止部署的上界，不进入仓库正式结论。即使 static preflight 在 S2 中表现良好，启用它作为共享 online admissibility mask 仍须新 decision、修改方法合同/protocol hash 并从 S1 重跑；D-037 不授权事后打开过滤。
 - 下一步：在 AutoDL 拉取含本条记录的干净提交，先跑全套测试；通过后重新生成带新 audit 字段的 40-group train arrays，运行六个 S2 点并逐个导出 provenance 完整的 JSON。根据预先登记的分支表，先判断静态预检是否值得提出方法变更，再区分 scorer 优化不足、数据多样性不足或 assembly 上限不足。
+
+<a id="log-028"></a>
+
+### LOG-028—2026-09-06—S2 seed-7 scorer 二维曲线与静态预检触发
+
+- 类型/状态：M1-development、train-only、scorer-only 的 S2 诊断完成；六份结果由提交 `ea25201` 导回，代表文件为 `results/m1-v2-s2-g40-s300-c4f5df4-clean.json`。`formal_run=false`、`test_access=false`、`validation_arrays_read=false`、`validation_trial_consumed=false`、`causal_complete=false`；本轮不构成 M1 go/no-go。
+- 数据/provenance：AutoDL 在干净提交 `c4f5df4ba4a4b61ff7604736b5460f8497997a38` 生成、训练并导出；protocol hash=`3820f5e06e27989dc87f3c887b147eefe3be0a6f7bb01a72bbbba708709b49bb`，dataset=`m1-paired-latent-worlds-v4-recovery`，40-group arrays digest=`f68205b58a6d4a97f92e3432b0d1d3515a5b739a5b226994e4030515b930d7b0`，共 1,680 learning rows（1,600 online + 80 recovery）。六点均用 seed 7、16 threads，并从同一 arrays 确定性截取前 10/40 groups；10/40 视图 digest 分别为 `5e5ce0243d29e4cbda0c67cc6ec5d845205a9e6a11322addbd2111aac084d764`/`7a4c0ea1e336c4144fc6b8d6bb8cefe944c70bdbefdb425a61a9e5e4f5fd1683`。
+- static preflight 审计：40 groups 的 25,600 个 candidate slots 中，executor 判非法 2,552 个（9.96875%）；只读 preflight 拒绝 2,552 个，非法召回=1.0、precision=1.0、合法误拒=0、通过后剩余非法=0、reference pass=1.0，effective K 均值=14.405（范围 12–15）。非法来源为 BIND 1,600、REACTIVATE 770、RELINK 182；PreconditionError 770、ProtectedMutationError 1,782，均被召回。白话：这些候选在真正改图前，仅看当前世界和事务声明就能确定不合规；这不是执行候选得到的未来答案，也不代表所有未来非法情形都会被预检覆盖。
+- target/assembly：未过滤 target-only 的 reference coverage=0.99125、unique=0.55875、均匀并列期望=0.77292、平均并列数=1.445；静态过滤后 coverage 不变，unique=0.9525、均匀并列期望=0.96979、平均并列数=1.05125。正式能量组装的未过滤 accuracy=0.74375、illegal selection=0.20875、exact-ambiguity capped=0.7275；过滤诊断上界分别为 0.9525、0、0.9275。最小 relation 集合包含非法候选的行占 0.39375；非法并列成员的平均 penalty=0.05，低于合法并列成员的 0.14946，说明当前 assembly 会在关系 mismatch 并列时系统性偏爱声明更少的非法程序。
+- scorer 曲线：inner-dev 结果如下；“filtered teacher”只是在相同 scorer 输出上事后施加 static mask 的诊断，不是本轮 E 方法。
+
+| train groups | scorer steps | inner-dev BCE | teacher | illegal selection | filtered teacher |
+|---:|---:|---:|---:|---:|---:|
+| 10 | 60 | 0.2706 | 0.0500 | 0.8500 | 0.1000 |
+| 10 | 300 | 0.0996 | 0.3750 | 0.5500 | 0.8750 |
+| 10 | 1000 | 0.1517 | 0.6250 | 0.3000 | 0.8750 |
+| 40 | 60 | 0.2702 | 0.0500 | 0.4938 | 0.0625 |
+| 40 | 300 | 0.1016 | 0.5688 | 0.2406 | 0.7469 |
+| 40 | 1000 | 0.0744 | 0.5031 | 0.2625 | 0.7094 |
+
+- 解释/不确定性：60→300 steps 明确解除欠优化；40 groups 上 300→1000 虽继续降低 held-out BCE，却降低候选级 teacher accuracy，表明逐关系 BCE 与最终候选排序并不完全一致，不能只按 BCE 选预算。共同 inner-dev group 1 在 10/40 groups、300/1000 steps 的 filtered teacher 均为 0.875，没有显示扩大训练数据的清晰收益；10-group 仅一个 inner-dev group，所有性能判断仍受单 seed 与组间波动限制。300 steps 只是进入多 seed 比较的候选，不是已冻结最优点。
+- 治理结论：D-037 的“高非法召回且零/近零合法误拒”触发条件已经满足，但 D-037 只授权审计。0.9525 是使用真值 relation target 加事后静态过滤的 oracle 诊断，不是 E、A 或 CTL 的成绩。不得在现有 protocol hash 下直接启用 mask，也不得据此进入 S3 或正式 causal。
+- 下一步/人工事项：先决定是否提出新 decision，将同一个只读 static preflight 作为 A–E 共享 online admissibility mask。若接受，须同时修改方法合同与 protocol hash、保持 test 封存并从 S1 重跑，然后在 40 groups 上对 300/1000 steps 补齐登记 seeds；若不接受，则留在未过滤方法边界内修复 assembly/声明约束。只有该边界闭合且多 seed 结果明确后，才按流程判断是否需要 S3。
 
 ## 后续条目模板
 
