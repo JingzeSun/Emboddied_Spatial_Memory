@@ -220,6 +220,20 @@ class TestM1Protocol(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "interpretation"):
             validate_m1_protocol(changed)
 
+        changed = deepcopy(self.config)
+        changed["energy"]["posterior_influence_audit"][
+            "expected_now_activation_pattern"
+        ]["expected_zero_mean_tv_families"] = ["C09"]
+        with self.assertRaisesRegex(ValueError, "family activation pattern"):
+            validate_m1_protocol(changed)
+
+        changed = deepcopy(self.config)
+        changed["energy"]["posterior_influence_audit"][
+            "no_execution_comparison"
+        ] = "equal_weights_imply_equal_influence"
+        with self.assertRaisesRegex(ValueError, "current influence comparison"):
+            validate_m1_protocol(changed)
+
     def test_mechanism_slices_are_generator_defined_and_nonprimary(self):
         changed = deepcopy(self.config)
         changed["evaluation"]["mechanism_diagnostic_slices"][

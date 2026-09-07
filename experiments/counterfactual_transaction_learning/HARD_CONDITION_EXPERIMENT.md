@@ -72,6 +72,8 @@ D 诊断 future evidence；F 分解 candidate coverage 与 scorer error。
 - E 在目标构造和候选评分时都不执行非参考候选：它把每个 online candidate program 分别解析为 current/future 的关系、生命周期与证据关联查询。`candidate_scoped_current_relations_v1` 的输入是 immutable prior、当前在线观测与 program 声明，输出是“动作受证据支持、必要参数命中 query、区域可靠为空”三项监督；例如观察到可靠空区域且候选 RETRACT 的 edge query 命中时，当前关系支持该候选。argument cosine `0.8`、novel best `<0.6`、split best `[0.55,0.8)`、dormant/merge best/second `>=0.8` 均在运行前冻结。scorer 继续用 BCE 拟合 current/future relation truth；候选评分时，current 使用 `sigmoid(logit)` 与 desired bit 的平均绝对误差（固定 0–1），future 才做逐决策 z-score。它不等于事务标签，也不读取 candidate post-world、executor outcome/legality/collateral 或 future；future target 才从实际 reference future 产生稠密监督。C 使用同一结构化关系目标作 direct auxiliary。评价 persistent memory 时，A–E 最终选中的单个事务仍由同一个 executor 应用。
 - `current_now_comparability` 审计只在 proxy 与 executed-now 都定义的同一 online 行、同一 admitted+executor-legal 候选集合上，分别报告 reference-in-minimum、unique、uniform-tie expected 和 mean tie size；缺失行另报。exact-ambiguity siblings 的 current target、mask 与 desired 必须逐字节相同而 reference 不同，且向 online payload 注入 audit-only reference/future 字段不得改变 target。该审计不强迫 proxy 弱于 executed-now，也不把 executor legality提供给 E 的训练或在线推理。
 - `teacher_posterior_term_influence` 对 now/future/edit/growth/collateral 逐项做 leave-one-out，报告完整 posterior 的 total variation、KL、argmax 改变率和 reference 概率变化，并按 family 拆分。它以 CTL 真正蒸馏的概率分布为判据，不能只因第一名没变就宣称能量项无效，也不按影响大小调权重或设 gate。
+- executed-now 的逐 family 预期模式在生成前固定：C01/C02/C04/C06/C07/C08 的 leave-now-out mean total variation 预期非零，C00/C03/C05/C09/C10/C11 按机制预期为数值零。manifest 同时报告实测集合和双向偏离名单；`1e-6` 只吸收 float32 posterior 重构舍入，不是效果阈值。偏离不进 health gate，也不触发权重调整。
+- S1 对 E scorer 的 current 通道，在相同 fitting/inner-dev online 行、temperature 与 `now=1` 权重下，使用和 executed teacher 相同的 leave-current-out total variation、KL、argmax 与 reference 概率指标并排报告。C 共享 current relation auxiliary target，但没有单独组装 current-energy posterior，故不报告不存在的 C posterior 消融。两侧影响无需相等，结果不用于裁剪对照、调权或设 gate。
 - 五个机制切片按固定优先级互斥分配：exact ambiguity、C10 temporal underdetermination、C11 side-effect sensitive、C09 current unavailable、其余 family。每片同时写明预期行为并报告 selection/commit/active/collateral；切片由生成器机制而非实测准确率定义，只作描述，不能替代完整 mixed 20-step causal endpoint 主门。
 - 同一份 v8 arrays 运行两条预登记架构臂：主臂 `cross_candidate_set_transformer_v1`（model dim 128、4 heads、两层 Set Attention Block、FFN 256）让候选在打分前相互比较；次臂是既有 hidden 64、两层 `shared_candidate_mlp_v1`。每条臂都完整运行 A–F，同一臂内 A–E 共享 encoder/student updates 并满足 10% 参数量门槛；禁止看结果后在两架构间择优。v5 的 1000 scorer steps 对 v8 两架构均失效，须重新用 train/inner-dev 选择 scorer/student 预算。
 - validation paired groups 按 `paired_group_id` 的固定 SHA-256 奇偶拆成 calibration/report。只在 calibration 半区的 online rows 从登记网格选一组 A–E 共用的 commit probability/margin；report 半区只汇报，不能选阈值。counterfactual recovery training rows 只用于学习，不参与 gate calibration 或 report 分母。
@@ -90,6 +92,10 @@ D 诊断 future evidence；F 分解 candidate coverage 与 scorer error。
 白话：current fixed-range（当前项固定自然量程）解决“候选几乎全并列时，小误差被 z-score 吹大”的问题。输入是当前投影原始 mismatch 与该传感比较的理论最大范围，输出是 0–1 的 now；例如 appearance 误差 0.1 除以自然范围 2 得 0.05。它不删除 now、不靠观察同行候选决定缩放，也不改 future 的单位对齐。
 
 白话：posterior influence（后验影响）审计解决“第一名不变是否就等于能量项没用”的问题。输入是完整教师概率与去掉某一项后的概率，输出是 total variation、KL、argmax 和 reference 概率变化；例如正确候选仍排第一但概率从 0.4 升到 0.6，CTL 的软监督已经改变。它不等于新损失、不调权重，也不设置通过门槛。
+
+白话：now family 预期模式解决“本该有 current 区分力的 family 在大 run 中悄悄退化”的问题。输入是每个 family 的完整与 leave-now-out posterior，输出是预期/实测零非零及偏离名单；例如 C07 变零会被点名，而 C11 为零符合预期。它不要求所有 family 都激活，也不是效果门。
+
+白话：E/teacher 同尺 current 审计解决“相同权重不一定产生相同实际影响”的问题。输入是同一批 online 行及两侧各自的完整/去 current posterior，输出是并排的 TV、KL、赢家变化和 reference 概率变化；例如 E 影响比执行式 now 大或小都原样记录。它不强迫数值相等、不削弱基线，也不把 C 的辅助损失误称为候选 posterior。
 
 白话：机制切片解决“既要解释 C09/C10/C11 的特定预期，又不能看完准确率才挑 family”的问题。输入是生成器事先登记的 family/ambiguity，输出是五个互斥描述性分组及 selection/commit/active/collateral 指标；例如 C10 因构造上当前不可判定而入组，不因模型碰巧得 0.5 才入组。它不把 family 标签喂给模型、不替代混合 20-step 主指标，也不用于事后择优。
 

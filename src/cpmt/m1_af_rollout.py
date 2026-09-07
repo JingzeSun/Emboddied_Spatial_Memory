@@ -1101,6 +1101,7 @@ def posterior_term_influence_diagnostics(
     arrays: Mapping[str, np.ndarray], *, weights: Mapping[str, float],
     temperature: float, scenario_families: Sequence[str],
     terms: Sequence[str], total_variation_thresholds: Sequence[float],
+    expected_now_activation_pattern: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Measure each executed-teacher term through the full soft posterior.
 
@@ -1230,6 +1231,70 @@ def posterior_term_influence_diagnostics(
                 )
                 for family_index, family in enumerate(scenario_families)
             },
+        }
+    if expected_now_activation_pattern is not None:
+        if "now" not in result["terms"]:
+            raise ValueError(
+                "expected now activation pattern requires a now-term audit"
+            )
+        expected_nonzero = tuple(str(value) for value in
+                                 expected_now_activation_pattern[
+                                     "expected_nonzero_mean_tv_families"
+                                 ])
+        expected_zero = tuple(str(value) for value in
+                              expected_now_activation_pattern[
+                                  "expected_zero_mean_tv_families"
+                              ])
+        configured = tuple(str(value) for value in scenario_families)
+        if (
+            len(set(expected_nonzero)) != len(expected_nonzero)
+            or len(set(expected_zero)) != len(expected_zero)
+            or set(expected_nonzero) & set(expected_zero)
+            or set(expected_nonzero) | set(expected_zero) != set(configured)
+        ):
+            raise ValueError(
+                "expected now activation families must partition the protocol"
+            )
+        tolerance = float(expected_now_activation_pattern[
+            "numerical_zero_tolerance"
+        ])
+        if tolerance < 0.0:
+            raise ValueError("now activation numerical tolerance is negative")
+        by_family = result["terms"]["now"]["by_family"]
+        unobserved = sorted(
+            family for family in configured if by_family[family] is None
+        )
+        observed_zero = sorted(
+            family for family in configured
+            if by_family[family] is not None
+            and float(by_family[family]["total_variation"]["mean"])
+            <= tolerance
+        )
+        observed_nonzero = sorted(
+            family for family in configured
+            if by_family[family] is not None and family not in observed_zero
+        )
+        unexpected_zero = sorted(set(expected_nonzero) & set(observed_zero))
+        unexpected_nonzero = sorted(
+            set(expected_zero) & set(observed_nonzero)
+        )
+        result["expected_now_activation_pattern"] = {
+            "metric": "leave_now_out_posterior_mean_total_variation",
+            "numerical_zero_tolerance": tolerance,
+            "expected_nonzero_mean_tv_families": list(expected_nonzero),
+            "expected_zero_mean_tv_families": list(expected_zero),
+            "observed_nonzero_mean_tv_families": observed_nonzero,
+            "observed_zero_mean_tv_families": observed_zero,
+            "unobserved_families": unobserved,
+            "unexpected_zero_families": unexpected_zero,
+            "unexpected_nonzero_families": unexpected_nonzero,
+            "matches_expected_pattern": not (
+                unobserved or unexpected_zero or unexpected_nonzero
+            ),
+            "deviation_action": expected_now_activation_pattern[
+                "deviation_action"
+            ],
+            "primary_gate": False,
         }
     return result
 

@@ -378,6 +378,9 @@ class TestM1AFCausalRollout(unittest.TestCase):
             total_variation_thresholds=contract[
                 "total_variation_thresholds"
             ],
+            expected_now_activation_pattern=contract[
+                "expected_now_activation_pattern"
+            ],
         )
         self.assertEqual(influence["interpretation"],
                          "posterior_distribution_not_argmax_only")
@@ -385,6 +388,16 @@ class TestM1AFCausalRollout(unittest.TestCase):
         self.assertGreater(
             influence["terms"]["now"]["all"]["total_variation"]["mean"],
             0.0,
+        )
+        pattern = influence["expected_now_activation_pattern"]
+        self.assertFalse(pattern["primary_gate"])
+        self.assertTrue(pattern["matches_expected_pattern"])
+        self.assertEqual(pattern["unexpected_zero_families"], [])
+        self.assertEqual(pattern["unexpected_nonzero_families"], [])
+        self.assertEqual(
+            set(pattern["expected_nonzero_mean_tv_families"])
+            | set(pattern["expected_zero_mean_tv_families"]),
+            set(self.hard["data"]["scenario_families"]),
         )
 
     def test_mechanism_slices_are_complete_and_descriptive(self):
@@ -741,7 +754,7 @@ class TestM1AFCausalRollout(unittest.TestCase):
     def test_outcome_scorer_diagnostics_separates_fit_and_ranking(self):
         model = OutcomeScorer(
             input_dim=6, hidden=4, future_dim=1, horizon=1,
-            num_candidates=2, candidate_dim=2,
+            num_candidates=2, candidate_dim=2, current_relation_dim=1,
         )
         for parameter in model.parameters():
             parameter.data.zero_()
@@ -766,7 +779,10 @@ class TestM1AFCausalRollout(unittest.TestCase):
             ]),
         }
         teacher = torch.tensor([[1.0, 0.0], [0.0, 1.0]])
-        diagnostics = outcome_scorer_diagnostics(model, data, teacher)
+        diagnostics = outcome_scorer_diagnostics(
+            model, data, teacher,
+            energy_weights={"now": 1.0}, temperature=0.25,
+        )
         self.assertEqual(diagnostics["rows"], 2)
         self.assertAlmostEqual(diagnostics["masked_bce"], np.log(2), places=6)
         self.assertEqual(diagnostics["masked_binary_accuracy"], 0.25)
@@ -777,6 +793,14 @@ class TestM1AFCausalRollout(unittest.TestCase):
         )
         self.assertEqual(diagnostics["ranking_relevant_relation_elements"], 2)
         self.assertEqual(diagnostics["reference_positive_margin_rate"], 1.0)
+        influence = diagnostics[
+            "no_execution_current_posterior_influence"
+        ]
+        self.assertIsNotNone(influence)
+        self.assertTrue(influence[
+            "diagnostic_only_no_gate_or_weight_tuning"
+        ])
+        self.assertEqual(influence["rows"], 2)
 
     def test_config_cannot_claim_formal_or_open_test(self):
         raw = json.loads(

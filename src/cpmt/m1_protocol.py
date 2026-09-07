@@ -255,6 +255,28 @@ def validate_m1_protocol(config: Mapping[str, Any]) -> None:
         == "posterior_distribution_not_argmax_only",
         "posterior influence audit thresholds or interpretation changed",
     )
+    expected_now_pattern = posterior_audit.get(
+        "expected_now_activation_pattern", {}
+    )
+    _require(
+        expected_now_pattern.get("metric")
+        == "leave_now_out_posterior_mean_total_variation"
+        and expected_now_pattern.get("expected_nonzero_mean_tv_families")
+        == ["C01", "C02", "C04", "C06", "C07", "C08"]
+        and expected_now_pattern.get("expected_zero_mean_tv_families")
+        == ["C00", "C03", "C05", "C09", "C10", "C11"]
+        and float(expected_now_pattern.get(
+            "numerical_zero_tolerance", -1.0
+        )) == 1e-6
+        and expected_now_pattern.get("deviation_action")
+        == "report_family_names_without_gate_or_weight_tuning",
+        "expected executed-now family activation pattern changed",
+    )
+    _require(
+        posterior_audit.get("no_execution_comparison")
+        == "S1_reports_the_same_leave_current_out_posterior_metrics_for_E_on_the_same_rows;_C_shares_the_current_target_as_an_auxiliary_but_has_no_separately_assembled_current_energy_posterior;_report_only_without_gate_or_weight_tuning",
+        "S1 no-execution current influence comparison changed",
+    )
     _require(
         energy.get("collateral_semantics")
         == "binary_any_legal_preexisting_open_memory_mutation_outside_candidate_independent_current_online_evidence_scope",

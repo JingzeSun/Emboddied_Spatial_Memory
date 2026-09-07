@@ -626,6 +626,11 @@ def train_outcome_scorer(train: dict, validation: dict, config: dict, seed: int,
 def outcome_scorer_diagnostics(
     model: OutcomeScorer, data: dict, teacher: torch.Tensor, *,
     row_mask: np.ndarray | torch.Tensor | None = None,
+    energy_weights: dict[str, float] | None = None,
+    temperature: float | None = None,
+    total_variation_thresholds: tuple[float, ...] = (
+        0.001, 0.01, 0.05, 0.1,
+    ),
 ) -> dict:
     """Separate relation fitting from downstream candidate ranking.
 
@@ -651,6 +656,13 @@ def outcome_scorer_diagnostics(
 
     rows = data["x"][selected]
     poses = data["poses"][selected]
+    if (energy_weights is None) != (temperature is None):
+        raise ValueError(
+            "scorer posterior audit requires both weights and temperature"
+        )
+    if temperature is not None and temperature <= 0.0:
+        raise ValueError("scorer posterior audit temperature must be positive")
+    current_posterior_influence = None
     with torch.no_grad():
         logits = model.predict_candidates(rows, poses)
         targets = data["relation_targets"][selected]
@@ -773,6 +785,96 @@ def outcome_scorer_diagnostics(
             illegal_rate = (~legal[
                 torch.arange(len(selected), device=device), predicted
             ]).float().mean()
+        if energy_weights is not None and model.current_relation_dim > 0:
+            current_mask = relation_mask[:, :, :model.current_relation_dim]
+            current_error = (
+                (
+                    torch.abs(
+                        torch.sigmoid(
+                            logits[:, :, :model.current_relation_dim]
+                        )
+                        - desired[:, :, :model.current_relation_dim]
+                    )
+                    * current_mask
+                ).sum(dim=-1)
+                / current_mask.sum(dim=-1).clamp_min(1.0)
+            ).double()
+            full = teacher[selected].double()
+            if torch.any(torch.abs(full.sum(dim=1) - 1.0) > 1e-6):
+                raise ValueError("scorer teacher probabilities are not normalized")
+            if torch.any(full.masked_select(~candidate_mask) > 1e-8):
+                raise ValueError(
+                    "scorer teacher gives mass to a preflight-rejected candidate"
+                )
+            full_log = torch.where(
+                full > 0.0, torch.log(full),
+                torch.full_like(full, -torch.inf),
+            )
+            ablated_logits = full_log + (
+                float(energy_weights["now"]) * current_error
+                / float(temperature)
+            )
+            ablated_logits = ablated_logits.masked_fill(
+                ~candidate_mask, -torch.inf,
+            )
+            ablated = torch.softmax(ablated_logits, dim=1)
+            tv = 0.5 * torch.abs(full - ablated).sum(dim=1)
+            positive = full > 0.0
+            kl_element = torch.where(
+                positive,
+                full * (
+                    torch.where(positive, full_log, torch.zeros_like(full))
+                    - torch.log(ablated.clamp_min(
+                        torch.finfo(torch.float64).tiny
+                    ))
+                ),
+                torch.zeros_like(full),
+            )
+            reference_delta = full[
+                torch.arange(len(selected), device=device), reference
+            ] - ablated[
+                torch.arange(len(selected), device=device), reference
+            ]
+            thresholds = tuple(float(value) for value in
+                               total_variation_thresholds)
+            if any(value <= 0.0 for value in thresholds):
+                raise ValueError(
+                    "scorer posterior audit thresholds must be positive"
+                )
+            current_posterior_influence = {
+                "scope": "future_no_execution_scorer_selected_rows",
+                "term": "current",
+                "energy": (
+                    "mean_absolute_sigmoid_probability_error_bounded_0_1"
+                ),
+                "weight": float(energy_weights["now"]),
+                "temperature": float(temperature),
+                "rows": int(len(selected)),
+                "total_variation": {
+                    "mean": float(tv.mean().cpu()),
+                    "median": float(torch.quantile(tv, 0.5).cpu()),
+                    "p95": float(torch.quantile(tv, 0.95).cpu()),
+                    "maximum": float(tv.max().cpu()),
+                    "fraction_above": {
+                        format(threshold, ".6g"): float(
+                            (tv > threshold).double().mean().cpu()
+                        )
+                        for threshold in thresholds
+                    },
+                },
+                "argmax_change_rate": float((
+                    full.argmax(dim=1) != ablated.argmax(dim=1)
+                ).double().mean().cpu()),
+                "mean_kl_full_to_ablated": float(
+                    kl_element.sum(dim=1).mean().cpu()
+                ),
+                "full_minus_ablated_reference_probability": {
+                    "mean": float(reference_delta.mean().cpu()),
+                    "minimum": float(reference_delta.min().cpu()),
+                    "maximum": float(reference_delta.max().cpu()),
+                },
+                "diagnostic_only_no_gate_or_weight_tuning": True,
+            }
     return {
         "rows": int(len(selected)),
         "supervised_relation_elements": int(supervised_elements.cpu()),
@@ -814,6 +916,9 @@ def outcome_scorer_diagnostics(
         ),
         "raw_illegal_selection_rate": (
             float(illegal_rate.cpu()) if illegal_rate is not None else None
+        ),
+        "no_execution_current_posterior_influence": (
+            current_posterior_influence
         ),
     }
 

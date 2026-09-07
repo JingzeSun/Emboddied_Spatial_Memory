@@ -31,6 +31,7 @@ from cpmt.m1_af_rollout import (  # noqa: E402
     CANDIDATE_FAILURE_TYPES,
     CANDIDATE_FEATURE_DIM,
     CURRENT_RELATION_QUERIES,
+    posterior_term_influence_diagnostics,
     selection_error_decomposition,
     static_preflight_diagnostics,
     structured_relation_oracle_probabilities,
@@ -48,11 +49,11 @@ from cpmt.run_provenance import (  # noqa: E402
 def _load_train(
     path: Path, *, expected_protocol_sha256: str,
     expected_dataset_version: str,
-) -> tuple[dict[str, np.ndarray], dict]:
-    data = {key: value for key, value in np.load(
+) -> tuple[dict[str, np.ndarray], dict, dict[str, np.ndarray]]:
+    audit_data = {key: value for key, value in np.load(
         path, allow_pickle=True,
     ).items()}
-    digest = arrays_sha256(data)
+    digest = arrays_sha256(audit_data)
     manifest_path = path.with_suffix(".manifest.json")
     if not manifest_path.exists():
         raise ValueError(f"generation manifest is required for {path}")
@@ -65,6 +66,7 @@ def _load_train(
         raise ValueError("train arrays do not match the active dataset version")
     if manifest.get("split") != "train":
         raise ValueError("scorer diagnostics accept train arrays only")
+    data = dict(audit_data)
     for key in (
         "teacher_matches_reference", "scenario_family_index",
         "candidate_energy_now", "candidate_energy_future",
@@ -79,7 +81,7 @@ def _load_train(
         "arrays_digest": digest,
         "manifest_path": str(manifest_path),
         "manifest": manifest,
-    }
+    }, audit_data
 
 
 def _subset_rows(
@@ -175,7 +177,7 @@ def main() -> int:
 
     hard = load_and_validate(args.config)
     active_protocol_sha256 = protocol_sha256(hard)
-    train_np, train_input = _load_train(
+    train_np, train_input, train_audit_np = _load_train(
         args.train,
         expected_protocol_sha256=active_protocol_sha256,
         expected_dataset_version=str(hard["data"]["dataset_version"]),
@@ -188,6 +190,9 @@ def main() -> int:
     available_groups = sorted(set(int(value) for value in train_np["group"]))
     if args.paired_groups is not None:
         train_np = subset_paired_array_groups(train_np, args.paired_groups)
+        train_audit_np = subset_paired_array_groups(
+            train_audit_np, args.paired_groups,
+        )
     selected_groups = sorted(set(int(value) for value in train_np["group"]))
     train_input["available_paired_groups"] = len(available_groups)
     train_input["selected_paired_groups"] = len(selected_groups)
@@ -195,6 +200,8 @@ def main() -> int:
     inner_dev = training_inner_dev_mask(train_np)
     fitting_np = _subset_rows(train_np, ~inner_dev)
     inner_dev_np = _subset_rows(train_np, inner_dev)
+    fitting_audit_np = _subset_rows(train_audit_np, ~inner_dev)
+    inner_dev_audit_np = _subset_rows(train_audit_np, inner_dev)
     selected_online = ~np.asarray(train_np["recovery"], dtype=bool)
     inner_online = ~np.asarray(inner_dev_np["recovery"], dtype=bool)
     fitting_online = ~np.asarray(fitting_np["recovery"], dtype=bool)
@@ -237,6 +244,30 @@ def main() -> int:
     )
     torch.set_num_threads(args.threads)
     device = torch.device("cpu")
+    influence_contract = hard["energy"]["posterior_influence_audit"]
+    executed_current_influence = {
+        name: posterior_term_influence_diagnostics(
+            arrays,
+            weights=hard["energy"]["weights"],
+            temperature=float(hard["energy"]["temperature"]),
+            scenario_families=hard["data"]["scenario_families"],
+            terms=influence_contract["terms"],
+            total_variation_thresholds=influence_contract[
+                "total_variation_thresholds"
+            ],
+        )["terms"]["now"]["all"]
+        for name, arrays in (
+            ("fitting_online_chain", fitting_audit_np),
+            ("inner_dev_online_chain", inner_dev_audit_np),
+        )
+    }
+    scorer_influence_kwargs = {
+        "energy_weights": hard["energy"]["weights"],
+        "temperature": float(hard["energy"]["temperature"]),
+        "total_variation_thresholds": tuple(
+            influence_contract["total_variation_thresholds"]
+        ),
+    }
 
     all_train_relations = _relation_diagnostics(
         selected_online_np, hard, use_static_preflight=False,
@@ -305,27 +336,33 @@ def main() -> int:
             "scorer_training_objective": "pointwise_masked_relation_bce",
             "fitting_all_learning_rows": outcome_scorer_diagnostics(
                 scorer, fitting, teachers["train"],
+                **scorer_influence_kwargs,
             ),
             "fitting_online_chain": outcome_scorer_diagnostics(
                 scorer, fitting, teachers["train"], row_mask=fitting_online,
+                **scorer_influence_kwargs,
             ),
             "fitting_online_chain_static_preflight_filtered": (
                 outcome_scorer_diagnostics(
                     scorer, fitting, fitting_teacher_filtered,
                     row_mask=fitting_online,
+                    **scorer_influence_kwargs,
                 )
             ),
             "inner_dev_all_learning_rows": outcome_scorer_diagnostics(
                 scorer, held_out, teachers["validation"],
+                **scorer_influence_kwargs,
             ),
             "inner_dev_online_chain": outcome_scorer_diagnostics(
                 scorer, held_out, teachers["validation"],
                 row_mask=inner_online,
+                **scorer_influence_kwargs,
             ),
             "inner_dev_online_chain_static_preflight_filtered": (
                 outcome_scorer_diagnostics(
                     scorer, held_out, inner_teacher_filtered,
                     row_mask=inner_online,
+                    **scorer_influence_kwargs,
                 )
             ),
             "inner_dev_online_by_group": {
@@ -337,6 +374,7 @@ def main() -> int:
                         inner_online
                         & (np.asarray(inner_dev_np["group"]) == group_id)
                     ),
+                    **scorer_influence_kwargs,
                 )
                 for group_id in inner_groups
             },
@@ -349,6 +387,7 @@ def main() -> int:
                         inner_online
                         & (np.asarray(inner_dev_np["group"]) == group_id)
                     ),
+                    **scorer_influence_kwargs,
                 )
                 for group_id in inner_groups
             },
@@ -367,8 +406,8 @@ def main() -> int:
         )
 
     report = {
-        "schema_version": "cpmt-m1-scorer-diagnostic-v4",
-        "runner": "run_m1_scorer_diagnostics_v4",
+        "schema_version": "cpmt-m1-scorer-diagnostic-v5",
+        "runner": "run_m1_scorer_diagnostics_v5",
         "formal_run": False,
         "test_generated": False,
         "causal_complete": False,
@@ -408,6 +447,38 @@ def main() -> int:
             "executor_illegal_energy_retained": True,
         },
         "scorer_diagnostic_policy": dict(SCORER_DIAGNOSTIC_POLICY),
+        "current_channel_posterior_influence_comparison": {
+            "metric_suite": (
+                "leave_current_out_total_variation_KL_argmax_and_"
+                "reference_probability"
+            ),
+            "same_rows_same_temperature_same_now_weight": True,
+            "candidate_availability": (
+                "both_use_shared_static_preflight;_executed_teacher_also_"
+                "excludes_executor_illegal;_E_never_reads_executor_legality"
+            ),
+            "executed_hindsight_teacher": executed_current_influence,
+            "future_no_execution_scorer_by_seed": [
+                {
+                    "seed": item["seed"],
+                    "fitting_online_chain": item[
+                        "fitting_online_chain"
+                    ]["no_execution_current_posterior_influence"],
+                    "inner_dev_online_chain": item[
+                        "inner_dev_online_chain"
+                    ]["no_execution_current_posterior_influence"],
+                }
+                for item in scorer_runs
+            ],
+            "direct_future_loss_C_scope": (
+                "shares_the_same_current_relation_target_as_an_auxiliary_"
+                "but_has_no_separately_assembled_current_energy_posterior"
+            ),
+            "interpretation": (
+                "report_influence_scale_without_gate_weight_tuning_or_"
+                "baseline_clipping"
+            ),
+        },
         # The compatibility aliases now report the registered shared-mask
         # method boundary. Explicit unfiltered values remain below solely for
         # before/after attribution.

@@ -296,6 +296,9 @@ def main() -> int:
         total_variation_thresholds=influence_contract[
             "total_variation_thresholds"
         ],
+        expected_now_activation_pattern=influence_contract[
+            "expected_now_activation_pattern"
+        ],
     )
     family_mechanism_gate = {
         "all_configured_families_in_every_paired_group": all(

@@ -447,6 +447,15 @@ def main() -> int:
     # are on screen within minutes. The causal replay that follows takes orders
     # of magnitude longer, and its per-pair results are written as they land.
     trained: dict[int, dict] = {}
+    scorer_influence_kwargs = {
+        "energy_weights": hard["energy"]["weights"],
+        "temperature": float(hard["energy"]["temperature"]),
+        "total_variation_thresholds": tuple(
+            hard["energy"]["posterior_influence_audit"][
+                "total_variation_thresholds"
+            ]
+        ),
+    }
     print(f"\ntraining {len(seeds)} seeds x {len(STUDENTS)} students "
           f"on {len(train_np['y'])} decisions; "
           f"student_steps={args.student_steps} scorer_steps={scorer_steps}",
@@ -460,18 +469,22 @@ def main() -> int:
             "seed": int(seed),
             "train_all_learning_rows": outcome_scorer_diagnostics(
                 scorer, T, learned["train"],
+                **scorer_influence_kwargs,
             ),
             "train_online_chain": outcome_scorer_diagnostics(
                 scorer, T, learned["train"],
                 row_mask=~np.asarray(train_np["recovery"], dtype=bool),
+                **scorer_influence_kwargs,
             ),
             "validation_calibration_online": outcome_scorer_diagnostics(
                 scorer, V, learned["validation"],
                 row_mask=calibration_online_mask,
+                **scorer_influence_kwargs,
             ),
             "validation_report_online": outcome_scorer_diagnostics(
                 scorer, V, learned["validation"],
                 row_mask=online_report_mask,
+                **scorer_influence_kwargs,
             ),
             "training_trace": scorer_trace,
         }
@@ -787,8 +800,8 @@ def main() -> int:
         if causal_complete else None
     )
     report = {
-        "schema_version": "cpmt-m1-af-report-v4",
-        "runner": "run_m1_af_scaled_v4",
+        "schema_version": "cpmt-m1-af-report-v5",
+        "runner": "run_m1_af_scaled_v5",
         "formal_run": False,
         "test_generated": False,
         "protocol_sha256": protocol_sha256(hard),
