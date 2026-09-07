@@ -26,7 +26,7 @@ from .m1_data import (
     project_structural_observation,
     validate_online_payload,
 )
-from .m1_metrics import graph_error_counts, protected_signature
+from .m1_metrics import graph_error_counts
 from .m1_protocol import validate_m1_protocol
 
 
@@ -54,6 +54,7 @@ TEMPLATE_FAMILY = {
     "RETRACT": "C07",
     "RELINK": "C08",
 }
+SCENARIO_FAMILIES = tuple(f"C{index:02d}" for index in range(12))
 CANDIDATE_BUDGET = 16
 ACTIVE_FUTURE_ERROR_WEIGHT = 10.0
 OPEN_MEMORY_FUTURE_ERROR_WEIGHT = 1.0
@@ -506,11 +507,23 @@ def _event_plan(
         event_id = f"{namespace}:event:{step_index:02d}"
         current_evidence_ref = f"obs:{event_id}:current"
         candidate_seed = int(rng.integers(0, 2**31 - 1))
+        if template == "NOOP":
+            # The three NOOP instances separate pure viewpoint stability from
+            # invalid geometry.  Both pose and depth faults belong to C09.
+            scenario_family = "C00" if ordinal == 0 else "C09"
+        elif template == "BIND":
+            # Two ordinary identity-continuity examples remain C01.  The
+            # other two expose the registered dynamic/static-support and
+            # protected-context stress families without changing the hidden
+            # reference program available to the generator.
+            scenario_family = ("C01", "C10", "C11", "C01")[ordinal]
+        else:
+            scenario_family = TEMPLATE_FAMILY[template]
         event = {
             "event_id": event_id,
             "step_index": step_index,
             "decision_time": step_index + 1,
-            "scenario_family": TEMPLATE_FAMILY[template],
+            "scenario_family": scenario_family,
             "candidate_seed": candidate_seed,
             "pose_bucket": int(rng.integers(0, 8)),
             "observation_seed": int(rng.integers(0, 2**31 - 1)),
@@ -638,6 +651,7 @@ def _prepare_paired_recovery_revisit(
     bind_step = next(
         index for index, event in enumerate(events)
         if event["reference_spec"]["template"] == "BIND"
+        and event["scenario_family"] == "C01"
         and index != pivot_step
     )
     if bind_step != reveal_step:
@@ -1725,8 +1739,13 @@ def audit_m1_candidate_coverage(
     )
     observation = validate_observation_model(config["observation"])
     rows: list[dict[str, Any]] = []
-    family_totals: dict[str, int] = {}
-    family_covered: dict[str, int] = {}
+    configured_families = tuple(config["data"]["scenario_families"])
+    family_totals: dict[str, int] = {
+        family: 0 for family in configured_families
+    }
+    family_covered: dict[str, int] = {
+        family: 0 for family in configured_families
+    }
     query_decided: list[bool] = []
     for group_index in range(paired_groups):
         world_seed = 360_906 + SPLIT_SEED_OFFSET[split] + group_index
@@ -1759,8 +1778,10 @@ def audit_m1_candidate_coverage(
             ]
             covered = bool(reference_execution["legal"] and len(matches) == 1)
             family = str(event["scenario_family"])
-            family_totals[family] = family_totals.get(family, 0) + 1
-            family_covered[family] = family_covered.get(family, 0) + int(covered)
+            if family not in family_totals:
+                raise ValueError(f"rollout produced unconfigured family {family!r}")
+            family_totals[family] += 1
+            family_covered[family] += int(covered)
             rows.append({
                 "split": split,
                 "paired_group_id": f"rollout-pair:{split}:{group_index:06d}",
@@ -1788,7 +1809,9 @@ def audit_m1_candidate_coverage(
                 )
             current = reference_execution["post_graph"]
     family_coverage = {
-        family: float(family_covered.get(family, 0) / support)
+        family: (
+            float(family_covered[family] / support) if support else 0.0
+        )
         for family, support in sorted(family_totals.items())
     }
     overall = float(sum(family_covered.values()) / sum(family_totals.values()))
@@ -1884,8 +1907,10 @@ def _execute_candidates(
     return records
 
 
-def standardize_future_term(values: Sequence[float | None]) -> list[float]:
-    """Put a future term on a unit per-decision scale across candidates.
+def standardize_candidate_term(
+    values: Sequence[float | None], eligible: Sequence[bool] | None = None,
+) -> list[float]:
+    """Put one raw energy term on a unit per-decision candidate scale.
 
     The energy weights are shared by every method, but each method measures
     "future" in its own units: executed hindsight counts differing structural
@@ -1896,17 +1921,151 @@ def standardize_future_term(values: Sequence[float | None]) -> list[float]:
     across this decision's candidates makes the weight mean the same thing for
     both, and preserves the ordering and the relative gaps within a decision.
     """
-    present = [float(value) for value in values if value is not None]
+    if eligible is None:
+        eligible = [True] * len(values)
+    if len(eligible) != len(values):
+        raise ValueError("energy values and eligibility mask differ")
+    present = [
+        float(value) for value, keep in zip(values, eligible, strict=True)
+        if keep and value is not None
+    ]
     if not present:
         return [0.0 for _ in values]
     centre = float(np.mean(present))
     spread = float(np.std(present))
     if spread == 0.0:
-        return [0.0 if value is None else 0.0 for value in values]
+        return [0.0 for _ in values]
     return [
-        0.0 if value is None else (float(value) - centre) / spread
-        for value in values
+        0.0 if value is None or not keep else (float(value) - centre) / spread
+        for value, keep in zip(values, eligible, strict=True)
     ]
+
+
+def standardize_future_term(
+    values: Sequence[float | None], eligible: Sequence[bool] | None = None,
+) -> list[float]:
+    """Compatibility name for the shared now/future normalization."""
+    return standardize_candidate_term(values, eligible)
+
+
+def _projection_mismatch(
+    prediction: Mapping[str, Any], target: Mapping[str, Any], pose: int,
+) -> float:
+    """Compare active and open-memory projections in their registered ratio."""
+    active_prediction = project_active_structural_observation(prediction, pose)
+    active_target = project_active_structural_observation(target, pose)
+    memory_prediction = project_open_memory_observation(prediction, pose)
+    memory_target = project_open_memory_observation(target, pose)
+    return float(
+        ACTIVE_FUTURE_ERROR_WEIGHT * len(active_prediction ^ active_target)
+        + OPEN_MEMORY_FUTURE_ERROR_WEIGHT
+        * len(memory_prediction ^ memory_target)
+    )
+
+
+def _current_projection_mismatch(
+    candidate_post: Mapping[str, Any], current_target: Mapping[str, Any],
+    event: Mapping[str, Any],
+) -> float | None:
+    """Score a post-edit world only against a valid current sensor projection."""
+    observation = event["observation_spec"]
+    valid = (
+        observation.get("visibility") in {"visible", "visible_empty"}
+        and bool(observation.get("pose_valid"))
+        and bool(observation.get("depth_valid"))
+        and float(observation.get("reliability", 0.0)) > 0.0
+    )
+    if not valid:
+        return None
+    return _projection_mismatch(
+        candidate_post, current_target, int(event["pose_bucket"]),
+    )
+
+
+def _current_online_evidence_scope(
+    graph: Mapping[str, Any], event: Mapping[str, Any], *, ranks: int,
+) -> set[str]:
+    """Resolve one candidate-independent relevance scope from online queries."""
+    observation = event["proposal_observation"]
+    open_nodes = [
+        str(node["node_id"]) for node in graph["nodes"]
+        if node.get("valid_to") is None
+    ]
+    open_edges = [
+        edge for edge in graph["edges"] if edge.get("valid_to") is None
+    ]
+    edge_ids = [str(edge["edge_id"]) for edge in open_edges]
+    place_ids = [
+        str(node["node_id"]) for node in graph["nodes"]
+        if node.get("valid_to") is None and node["node_type"] == "place"
+    ]
+    selected = set(_rank_by_observation(
+        open_nodes, observation["node_query"], event, kind="node",
+    )[:ranks])
+    selected.update(_rank_by_observation(
+        edge_ids, observation["edge_query"], event, kind="edge",
+    )[:ranks])
+    selected.update(_rank_by_observation(
+        place_ids, observation["place_query"], event, kind="place",
+    )[:ranks])
+    # Include the one-hop open subgraph around the retrieved IDs.  This scope
+    # is fixed before any candidate executes and is identical for all K slots.
+    for edge in open_edges:
+        edge_ids_for_record = {
+            str(edge["edge_id"]), str(edge["source"]), str(edge["target"]),
+        }
+        if selected & edge_ids_for_record:
+            selected.update(edge_ids_for_record)
+    return selected
+
+
+def _preexisting_open_memory_outside_scope_signature(
+    graph: Mapping[str, Any], scope: set[str], *,
+    node_ids: set[str], edge_ids: set[str],
+) -> str:
+    """Fingerprint unrelated open facts that existed before execution.
+
+    Newly created facts are already charged by the registered growth term. If
+    they were also collateral, every correct BIRTH would receive a duplicate
+    penalty while a wrong NOOP would not.
+    """
+    nodes = [
+        node for node in graph["nodes"]
+        if node.get("valid_to") is None
+        and str(node["node_id"]) in node_ids
+        and str(node["node_id"]) not in scope
+    ]
+    edges = [
+        edge for edge in graph["edges"]
+        if edge.get("valid_to") is None
+        and str(edge["edge_id"]) in edge_ids
+        and not ({
+            str(edge["edge_id"]), str(edge["source"]), str(edge["target"]),
+        } & scope)
+    ]
+    return canonical_json({"nodes": nodes, "edges": edges})
+
+
+def _collateral_mutation(
+    base: Mapping[str, Any], post: Mapping[str, Any], scope: set[str],
+) -> float:
+    """Return one when a legal candidate changes unrelated pre-existing facts."""
+    node_ids = {
+        str(node["node_id"]) for node in base["nodes"]
+        if node.get("valid_to") is None
+    }
+    edge_ids = {
+        str(edge["edge_id"]) for edge in base["edges"]
+        if edge.get("valid_to") is None
+    }
+    return float(
+        _preexisting_open_memory_outside_scope_signature(
+            base, scope, node_ids=node_ids, edge_ids=edge_ids,
+        )
+        != _preexisting_open_memory_outside_scope_signature(
+            post, scope, node_ids=node_ids, edge_ids=edge_ids,
+        )
+    )
 
 
 def _teacher_posterior(
@@ -1930,105 +2089,96 @@ def _counterfactual_trace(
     reference_states: Sequence[Mapping[str, Any]],
     reference_policies: Sequence[str], step_index: int,
     horizon: int,
-) -> tuple[float, list[str], list[dict[str, Any]]]:
+) -> tuple[float | None, list[str], list[dict[str, Any]]]:
     branch = clone_json(candidate_post)
     errors = []
     hashes = []
     failures: list[dict[str, Any]] = []
-    final_index = min(len(events), step_index + horizon)
-    for target_index in range(step_index, final_index):
-        if target_index > step_index:
-            try:
-                event = events[target_index]
-                policy = str(reference_policies[target_index])
-                if policy == "primary":
-                    reference, reference_evidence = _primary_program(branch, event)
-                    selected = _execute_candidates(
-                        branch, [reference], reference_evidence,
-                    )[0]
-                elif policy == "contrast_noop":
-                    reference, reference_evidence = _noop_program(branch, event), {}
-                    # Only a non-primary paired policy needs catalog lookup.
-                    # Primary future steps already have a complete audit-only
-                    # transaction spec and can execute it directly.  Expanding
-                    # every primary step to K=16 here multiplies rollout cost
-                    # without resolving any ambiguity.
-                    programs, evidence, _, candidate_signatures = (
-                        _prepare_fixed_candidates(branch, event)
-                    )
-                    combined_evidence = {**evidence, **reference_evidence}
-                    reference_execution = _execute_candidates(
-                        branch, [reference], combined_evidence,
-                    )[0]
-                    if not reference_execution["legal"]:
-                        selected = reference_execution
-                    else:
-                        reference_signature = _candidate_state_signature(
-                            branch, reference_execution["post_graph"],
-                            reference.get("protected_ids", []),
-                        )
-                        matches = [
-                            index for index, signature
-                            in enumerate(candidate_signatures)
-                            if signature == reference_signature
-                        ]
-                        if len(matches) > 1:
-                            raise AssertionError(
-                                "counterfactual reference policy matched multiple "
-                                "canonical candidate states"
-                            )
-                        if not matches:
-                            raise LookupError(
-                                "counterfactual reference policy is absent from "
-                                "the fixed candidate catalog on this branch"
-                            )
-                        selected = _execute_candidates(
-                            branch, [programs[matches[0]]], combined_evidence,
-                        )[0]
+    final_index = min(len(events), step_index + 1 + horizon)
+    for target_index in range(step_index + 1, final_index):
+        try:
+            event = events[target_index]
+            policy = str(reference_policies[target_index])
+            if policy == "primary":
+                reference, reference_evidence = _primary_program(branch, event)
+                selected = _execute_candidates(
+                    branch, [reference], reference_evidence,
+                )[0]
+            elif policy == "contrast_noop":
+                reference, reference_evidence = _noop_program(branch, event), {}
+                # Only a non-primary paired policy needs catalog lookup.
+                # Primary future steps already have a complete audit-only
+                # transaction spec and can execute it directly.  Expanding
+                # every primary step to K=16 here multiplies rollout cost
+                # without resolving any ambiguity.
+                programs, evidence, _, candidate_signatures = (
+                    _prepare_fixed_candidates(branch, event)
+                )
+                combined_evidence = {**evidence, **reference_evidence}
+                reference_execution = _execute_candidates(
+                    branch, [reference], combined_evidence,
+                )[0]
+                if not reference_execution["legal"]:
+                    selected = reference_execution
                 else:
-                    raise ValueError(f"unsupported counterfactual policy {policy!r}")
-                failure = selected["failure"]
-            except (CPMTError, LookupError, StopIteration, ValueError) as error:
-                # A wrong earlier transaction can also make construction of a
-                # later oracle program impossible (for example, SPLIT after its
-                # source evidence was removed).  This is a causal branch
-                # failure, not permission to restore the reference world.
-                selected = None
-                failure = {
-                    "type": type(error).__name__,
-                    "message": str(error),
-                    "phase": "REFERENCE_PROGRAM_CONSTRUCTION",
-                }
-            if (
-                selected is None
-                or not selected["legal"]
-                or selected["post_graph"] is None
-            ):
-                # A previous wrong edit can remove a later oracle target.  The
-                # deterministic QUARANTINE fallback records that causal
-                # consequence and leaves persistent memory unchanged.
-                failures.append({
-                    "step_index": target_index,
-                    "reference_policy": reference_policies[target_index],
-                    "failure": failure,
-                    "fallback": "QUARANTINE_KEEP_CURRENT_WORLD",
-                })
+                    reference_signature = _candidate_state_signature(
+                        branch, reference_execution["post_graph"],
+                        reference.get("protected_ids", []),
+                    )
+                    matches = [
+                        index for index, signature
+                        in enumerate(candidate_signatures)
+                        if signature == reference_signature
+                    ]
+                    if len(matches) > 1:
+                        raise AssertionError(
+                            "counterfactual reference policy matched multiple "
+                            "canonical candidate states"
+                        )
+                    if not matches:
+                        raise LookupError(
+                            "counterfactual reference policy is absent from "
+                            "the fixed candidate catalog on this branch"
+                        )
+                    selected = _execute_candidates(
+                        branch, [programs[matches[0]]], combined_evidence,
+                    )[0]
             else:
-                branch = selected["post_graph"]
+                raise ValueError(f"unsupported counterfactual policy {policy!r}")
+            failure = selected["failure"]
+        except (CPMTError, LookupError, StopIteration, ValueError) as error:
+            # A wrong earlier transaction can also make construction of a
+            # later oracle program impossible (for example, SPLIT after its
+            # source evidence was removed).  This is a causal branch failure,
+            # not permission to restore the reference world.
+            selected = None
+            failure = {
+                "type": type(error).__name__,
+                "message": str(error),
+                "phase": "REFERENCE_PROGRAM_CONSTRUCTION",
+            }
+        if (
+            selected is None
+            or not selected["legal"]
+            or selected["post_graph"] is None
+        ):
+            # A previous wrong edit can remove a later oracle target.  The
+            # deterministic QUARANTINE fallback records that causal
+            # consequence and leaves persistent memory unchanged.
+            failures.append({
+                "step_index": target_index,
+                "reference_policy": reference_policies[target_index],
+                "failure": failure,
+                "fallback": "QUARANTINE_KEEP_CURRENT_WORLD",
+            })
+        else:
+            branch = selected["post_graph"]
         pose = int(events[target_index]["pose_bucket"])
-        active_prediction = project_active_structural_observation(branch, pose)
-        active_target = project_active_structural_observation(
-            reference_states[target_index], pose)
-        memory_prediction = project_open_memory_observation(branch, pose)
-        memory_target = project_open_memory_observation(
-            reference_states[target_index], pose)
-        errors.append(float(
-            ACTIVE_FUTURE_ERROR_WEIGHT * len(active_prediction ^ active_target)
-            + OPEN_MEMORY_FUTURE_ERROR_WEIGHT
-            * len(memory_prediction ^ memory_target)
+        errors.append(_projection_mismatch(
+            branch, reference_states[target_index], pose,
         ))
         hashes.append(branch["graph_hash"])
-    return float(np.mean(errors)), hashes, failures
+    return (float(np.mean(errors)) if errors else None), hashes, failures
 
 
 def _resolve_observed_place(
@@ -2216,9 +2366,30 @@ def _generate_sequence(
     audit_steps = []
     for step_index, material in enumerate(step_material):
         event = material["event"]
+        evidence_scope = _current_online_evidence_scope(
+            material["online"]["prior_world"], event,
+            ranks=int(config["candidates"]["proposal_retrieval"][
+                "enumerated_ranks"
+            ]),
+        )
+        energy_eligible = [
+            bool(execution["legal"] and execution["static_preflight_pass"])
+            for execution in material["executions"]
+        ]
+        raw_nows = [
+            (
+                None if execution["post_graph"] is None
+                else _current_projection_mismatch(
+                    execution["post_graph"], reference_states[step_index], event,
+                )
+            )
+            for execution in material["executions"]
+        ]
+        scaled_nows = standardize_candidate_term(raw_nows, energy_eligible)
         future_trace = []
         for target_index in range(
-            step_index, min(len(events), step_index + hindsight_horizon)
+            step_index + 1,
+            min(len(events), step_index + 1 + hindsight_horizon),
         ):
             pose = int(events[target_index]["pose_bucket"])
             future_trace.append({
@@ -2258,7 +2429,9 @@ def _generate_sequence(
             )
             raw_futures.append(value)
             traces.append((branch_hashes, branch_failures))
-        scaled_futures = standardize_future_term(raw_futures)
+        scaled_futures = standardize_future_term(
+            raw_futures, energy_eligible,
+        )
         energies = []
         for index, (execution, program) in enumerate(zip(
             material["executions"], material["programs"], strict=True,
@@ -2266,22 +2439,16 @@ def _generate_sequence(
             illegal = float(not execution["legal"])
             future = scaled_futures[index]
             branch_hashes, branch_failures = traces[index]
-            protected = [str(event["protected_id"])]
-            # Both terms are computed rather than assumed, and the split summary
-            # reports how often each one is nonzero.  In this fixture both are
-            # structurally zero: _program_header gives every candidate an
-            # evidence_ref, and the executor raises ProtectedMutationError for
-            # any operation touching a protected id, so a collateral violation
-            # cannot survive as a legal candidate.  Leaving them hardcoded would
-            # imply the protocol's six energy terms are all active when three
-            # are, with the largest weight (collateral, 10.0) on a constant.
+            # Both live terms use evidence defined before candidate execution:
+            # now compares current projections, while collateral checks one
+            # candidate-independent online relevance scope. Protected touches
+            # remain executor-illegal and never become a soft collateral cost.
             post = execution["post_graph"]
-            collateral = 0.0 if post is None else float(
-                protected_signature(post, protected)
-                != protected_signature(material["online"]["prior_world"], protected)
+            collateral = 0.0 if post is None else _collateral_mutation(
+                material["online"]["prior_world"], post, evidence_scope,
             )
             terms = {
-                "now": 0.0 if program.get("evidence_refs") else 1.0,
+                "now": scaled_nows[index],
                 "future": future,
                 "edit": float(program.get("declared_edit_cost", 0.0)),
                 "growth": float(program.get("declared_growth_cost", 0.0)),
@@ -2293,6 +2460,7 @@ def _generate_sequence(
             )
             energies.append({
                 **terms,
+                "now_raw": raw_nows[index],
                 "future_raw": raw_futures[index],
                 "total": total,
                 "masked": bool(illegal),
@@ -2349,6 +2517,7 @@ def _generate_sequence(
             },
             "executed_candidates": material["executions"],
             "candidate_energies": energies,
+            "current_evidence_scope_ids": sorted(evidence_scope),
             "teacher_posterior": posterior,
             "teacher_winner_index": winner,
             "future_trace": future_trace,
@@ -2393,6 +2562,28 @@ def _generate_sequence(
                 f"found {correction_indices}"
             )
         correction_index = int(correction_indices[0])
+        recovery_scope = _current_online_evidence_scope(
+            wrong_base, reveal_event,
+            ranks=int(config["candidates"]["proposal_retrieval"][
+                "enumerated_ranks"
+            ]),
+        )
+        recovery_eligible = [
+            bool(execution["legal"] and execution["static_preflight_pass"])
+            for execution in recovery_executions
+        ]
+        recovery_raw_nows = [
+            (
+                None if execution["post_graph"] is None
+                else _current_projection_mismatch(
+                    execution["post_graph"], target_state, reveal_event,
+                )
+            )
+            for execution in recovery_executions
+        ]
+        recovery_scaled_nows = standardize_candidate_term(
+            recovery_raw_nows, recovery_eligible,
+        )
         raw_futures = []
         recovery_traces = []
         for execution in recovery_executions:
@@ -2406,25 +2597,25 @@ def _generate_sequence(
             )
             raw_futures.append(value)
             recovery_traces.append((branch_hashes, branch_failures))
-        scaled_futures = standardize_future_term(raw_futures)
+        scaled_futures = standardize_future_term(
+            raw_futures, recovery_eligible,
+        )
         recovery_online = _online_step(
             online_sequence_id, paired_group_id, split, world_seed, asset_family,
             wrong_base, reveal_event, recovery_programs,
             topology["semantic_latents"],
         )
         recovery_energies = []
-        protected = [str(reveal_event["protected_id"])]
         for index, (execution, program) in enumerate(zip(
             recovery_executions, recovery_programs, strict=True,
         )):
             illegal = float(not execution["legal"])
             post = execution["post_graph"]
-            collateral = 0.0 if post is None else float(
-                protected_signature(post, protected)
-                != protected_signature(wrong_base, protected)
+            collateral = 0.0 if post is None else _collateral_mutation(
+                wrong_base, post, recovery_scope,
             )
             terms = {
-                "now": 0.0 if program.get("evidence_refs") else 1.0,
+                "now": recovery_scaled_nows[index],
                 "future": scaled_futures[index],
                 "edit": float(program.get("declared_edit_cost", 0.0)),
                 "growth": float(program.get("declared_growth_cost", 0.0)),
@@ -2437,6 +2628,7 @@ def _generate_sequence(
             branch_hashes, branch_failures = recovery_traces[index]
             recovery_energies.append({
                 **terms,
+                "now_raw": recovery_raw_nows[index],
                 "future_raw": raw_futures[index],
                 "total": total,
                 "masked": bool(illegal),
@@ -2472,6 +2664,7 @@ def _generate_sequence(
             "candidate_generation": generation,
             "executed_candidates": recovery_executions,
             "candidate_energies": recovery_energies,
+            "current_evidence_scope_ids": sorted(recovery_scope),
             "teacher_posterior": recovery_posterior,
             "teacher_winner_index": recovery_winner,
             "future_trace": clone_json(
@@ -2539,6 +2732,9 @@ def generate_m1_rollout_split(
         "decisions": len(online_steps),
         "horizon_decisions": horizon,
         "template_counts_per_sequence": ROLLOUT_TEMPLATE_COUNTS,
+        "scenario_family_counts_per_sequence": dict(sorted(Counter(
+            step["scenario_family"] for step in audits[0]["steps"]
+        ).items())),
         "distinct_topology_and_order_signatures": len(topology_signatures),
         "place_count_range": [
             min(audit["topology"]["place_count"] for audit in audits),
@@ -2634,6 +2830,59 @@ def generate_m1_paired_rollout_split(
         )
         for audit in group_representatives
     }
+    supervised_online_steps = [
+        step for audit in audits for step in audit["steps"]
+        if step["future_trace"]
+    ]
+    registered_families = list(config["data"]["scenario_families"])
+    teacher_agreement_by_family = {}
+    live_energy_activation_by_family = {}
+    for family in registered_families:
+        family_steps = [
+            step for step in supervised_online_steps
+            if step["scenario_family"] == family
+        ]
+        teacher_agreement_by_family[family] = {
+            "support": len(family_steps),
+            "reference_agreement": (
+                float(np.mean([
+                    bool(step["teacher_winner_matches_reference"])
+                    for step in family_steps
+                ])) if family_steps else None
+            ),
+        }
+        live_energy_activation_by_family[family] = {
+            term: {
+                "nonzero_fraction": (
+                    float(np.mean([
+                        float(energy[term]) != 0.0
+                        for step in family_steps
+                        for energy in step["candidate_energies"]
+                    ])) if family_steps else None
+                ),
+                "distinct_values": len({
+                    round(float(energy[term]), 9)
+                    for step in family_steps
+                    for energy in step["candidate_energies"]
+                }),
+            }
+            for term in ("now", "collateral")
+        }
+    teacher_agreement = float(np.mean([
+        bool(step["teacher_winner_matches_reference"])
+        for step in supervised_online_steps
+    ]))
+    health_contract = config["energy"]["teacher_health_gate"]
+    teacher_health_gate_pass = (
+        teacher_agreement
+        >= float(health_contract["reference_agreement_overall_minimum"])
+        and all(
+            item["support"] > 0
+            and item["reference_agreement"]
+            >= float(health_contract["reference_agreement_each_family_minimum"])
+            for item in teacher_agreement_by_family.values()
+        )
+    )
     summary = {
         "status": "paired_rollout_interface_validation_only",
         "split": split,
@@ -2644,6 +2893,9 @@ def generate_m1_paired_rollout_split(
         "decisions": len(online_steps),
         "horizon_decisions": horizon,
         "template_counts_per_primary_sequence": ROLLOUT_TEMPLATE_COUNTS,
+        "scenario_family_counts_per_primary_sequence": dict(sorted(Counter(
+            step["scenario_family"] for step in group_representatives[0]["steps"]
+        ).items())),
         "exact_ambiguous_decision_pairs": paired_groups,
         # Surfaced so a rise in teacher disagreement cannot pass unnoticed.
         # Which declared energy terms actually vary. A term that is always the
@@ -2653,25 +2905,25 @@ def generate_m1_paired_rollout_split(
             term: {
                 "nonzero_fraction": float(np.mean([
                     float(energy[term]) != 0.0
-                    for audit in audits for step in audit["steps"]
+                    for step in supervised_online_steps
                     for energy in step["candidate_energies"]
                 ])),
                 "distinct_values": len({
                     round(float(energy[term]), 9)
-                    for audit in audits for step in audit["steps"]
+                    for step in supervised_online_steps
                     for energy in step["candidate_energies"]
                 }),
             }
             for term in ("now", "future", "edit", "growth", "collateral", "illegal")
         },
-        "teacher_reference_agreement": float(np.mean([
-            bool(step["teacher_winner_matches_reference"])
-            for audit in audits for step in audit["steps"]
-        ])),
+        "live_energy_activation_by_family": live_energy_activation_by_family,
+        "teacher_reference_agreement": teacher_agreement,
         "teacher_disagreement_decisions": int(sum(
             not step["teacher_winner_matches_reference"]
-            for audit in audits for step in audit["steps"]
+            for step in supervised_online_steps
         )),
+        "teacher_reference_agreement_by_family": teacher_agreement_by_family,
+        "teacher_health_gate_pass": teacher_health_gate_pass,
         "distinct_topology_and_order_signatures": len(topology_signatures),
         "place_count_range": [
             min(audit["topology"]["place_count"] for audit in group_representatives),

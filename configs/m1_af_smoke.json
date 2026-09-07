@@ -6,6 +6,7 @@
   "paired_groups": {"train": 10, "validation": 4},
   "seeds": [7],
   "future_hash_bins": 32,
+  "architecture": "shared_candidate_mlp_v1",
   "hidden_dim": 64,
   "student_steps": 60,
   "scorer_steps": 60,

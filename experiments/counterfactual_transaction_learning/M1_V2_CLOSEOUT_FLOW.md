@@ -16,11 +16,11 @@
 
 ## 当前指针
 
-- 当前阶段：**S4 M1-v3 实现与健康检查：D-039 已接受，先完成 conformance/live-energy/两架构接线，再以小规模 v6 train-only benchmark 关闭实现风险**。
+- 当前阶段：**S4 M1-v3 服务器复核：conformance/live-energy/current-target/两架构接线与本地 train-only 健康探针已完成；下一步只跑干净提交的服务器完整测试**。
 - 最近有效证据：v5 S2 的 arrays/manifest/report 已验收；1000−300 的 paired-group 95% CI 为 `[+0.008750,+0.045000]`，按预登记规则选择 1000。10-group 同预算锚点中共同 group 1 的 40−10 平均差为 `+0.005000`、仅 `1/5` seed 严格为正，未达 S3 触发条件。完整数字与 provenance 见 `EXECUTE.md` LOG-032/033。
 - 已完成：同一份 40-group v4 arrays 确定性截取 10/40 groups，运行 scorer steps {60,300,1000} × seed 7。40-group 全 train 上，static preflight 对 2,552/2,552 个 executor-illegal 候选全部静态拒绝、合法误拒 0；过滤后 target-only 均匀并列期望由 0.7729 升至 0.9698，assembled oracle accuracy 由 0.7438 升至 0.9525，其 exact-ambiguity capped 读数由 0.7275 升至 0.9275。D-038 已接受把同一只读预检变成 A–E 共享 mask；旧 v4 过滤数字仍只作采纳依据，不冒充 v5 方法成绩。
 - scorer 分支：40-group inner-dev 的未过滤/过滤后 teacher accuracy 在 steps 60/300/1000 分别为 0.0500/0.5688/0.5031 与 0.0625/0.7469/0.7094。1000 steps 虽将 held-out BCE 从 0.1016 降到 0.0744，候选排序却低于 300 steps；共同 group 1 在 10/40 groups、300/1000 steps 过滤后均为 0.875，也没有显示扩大到 S3 的明确数据收益。因此 300 steps 只是当前单 seed 候选，尚未固定。
-- 当前分支：S4 v5 成本盘点已完成，见 `EXECUTE.md` LOG-034；D-039 已接受并把活动协议升为 `m1-hard-condition-v3`、dataset 升为 `m1-paired-latent-worlds-v6-conformant-live-energy`。下一步实现 C00–C11/per-family conformance、live now/collateral、E 对称 current target 与 Set Transformer/MLP 两架构全 A–F 接线；实现通过后先跑小规模 v6 train-only cost/teacher-health benchmark，再登记并重跑 S1/S2。旧 v5 的 1000-step 选择不迁移，validation/test 仍不读取。
+- 当前分支：D-039 实现与本地小规模 v6 train-only health probe 已完成，架构/实验事实见 `EXECUTE.md` LOG-035。版本化服务器入口分为两个可续跑阶段：先 `full_test`；仅当同一提交出现成功 marker 后再跑 `health_benchmark`。二者通过后登记并重跑 S1/S2；旧 v5 的 1000-step 选择不迁移，validation/test 仍不读取。
 - 成本边界：v5 40-group 参考为 42.5 秒、合并 arrays 11,977,314 bytes、分片 12,262,560 bytes；线性外推 16,800 formal groups 为 705,600 rows、11,289,600 candidate slots、约 4.685 GiB 合并 arrays/9.482 GiB 含分片、4.958 小时生成。它不是 v6 benchmark。按 D-039 不再设单 run 两小时硬上限，仍完整记录资源且保留 BugCheck 停止规则。
 - 数据量锚点判据（运行前固定）：只在 10-group 固定留出的共同 paired group 1 上，逐 seed 计算 `40 groups − 10 groups` 的 candidate-ranking accuracy。若五 seed 中至少 4 个严格为正，且五 seed 均值 `>= 0.025`（该 group 的 40 online decisions 中至少一个平均决策），才称“有明确继续增大 train diversity 的方向性信号”并进入 S3；否则 S3 不触发、进入 S4 预冻结审计。该锚点只有一个独立 group，故不报虚假的 CI、不重新选择 1000 steps、也不单独支持性能结论。
 - 预登记方向：共享 mask 主要移除旧 E 会选而 A–D 已由执行信息避开的静态非法候选，因此预期 v5 的 `A_vs_E` 单步与 causal margin 相对 v3/v4 历史读数缩小，触发主对比 stop rule 的概率上升；若 margin 不缩小或仍通过门槛，才是更强证据。该方向在运行前固定，结果出来后不得把“缩小”或“不缩小”任一方向改写成预先支持 CTL。

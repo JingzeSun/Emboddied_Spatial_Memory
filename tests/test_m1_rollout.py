@@ -56,6 +56,14 @@ class TestM1ContinuousRollout(unittest.TestCase):
         for sequence in self.audit:
             counts = Counter(sequence["event_order"])
             self.assertEqual(dict(counts), ROLLOUT_TEMPLATE_COUNTS)
+            family_counts = Counter(
+                step["event_spec"]["scenario_family"]
+                for step in sequence["steps"]
+            )
+            self.assertEqual(
+                set(family_counts), {f"C{index:02d}" for index in range(12)},
+            )
+            self.assertTrue(all(count > 0 for count in family_counts.values()))
             for step in sequence["steps"]:
                 reference = step["executed_candidates"][
                     step["reference_program_index"]
@@ -145,14 +153,32 @@ class TestM1ContinuousRollout(unittest.TestCase):
                 self.config, "test", paired_groups=1,
             )
 
+    def test_live_energy_terms_and_teacher_health_are_reported(self):
+        _, _, paired_summary = generate_m1_paired_rollout_split(
+            self.config, "validation", paired_groups=1,
+        )
+        variation = paired_summary["energy_term_variation"]
+        for term in ("now", "collateral"):
+            self.assertGreater(variation[term]["nonzero_fraction"], 0.0)
+            self.assertGreater(variation[term]["distinct_values"], 1)
+        self.assertEqual(
+            set(paired_summary["live_energy_activation_by_family"]),
+            {f"C{index:02d}" for index in range(12)},
+        )
+        self.assertEqual(
+            set(paired_summary["teacher_reference_agreement_by_family"]),
+            {f"C{index:02d}" for index in range(12)},
+        )
+        self.assertTrue(paired_summary["teacher_health_gate_pass"])
+
     def test_hindsight_uses_real_later_reference_states_and_masks_tail(self):
         sequence = self.audit[0]
-        expected_lengths = [3] * 18 + [2, 1]
+        expected_lengths = [3] * 17 + [2, 1, 0]
         self.assertEqual(
             [len(step["future_trace"]) for step in sequence["steps"]],
             expected_lengths,
         )
-        for step in sequence["steps"]:
+        for step in sequence["steps"][:-1]:
             reference_index = step["reference_program_index"]
             energies = step["candidate_energies"]
             # The executed reference reproduces the actual future exactly, so
@@ -188,6 +214,12 @@ class TestM1ContinuousRollout(unittest.TestCase):
                 )
                 if candidate["legal"] and candidate["candidate_index"] != reference_index
             ))
+        final_step = sequence["steps"][-1]
+        self.assertEqual(final_step["future_trace"], [])
+        self.assertTrue(all(
+            energy["future_raw"] is None
+            for energy in final_step["candidate_energies"]
+        ))
         counterfactual_failures = [
             failure
             for step in sequence["steps"]
@@ -399,12 +431,16 @@ class TestM1PairedContinuousRollout(unittest.TestCase):
 
     def test_each_sibling_hindsight_follows_its_actual_branch_policy(self):
         for sequence in self.audit:
-            for step in sequence["steps"]:
+            for step in sequence["steps"][:-1]:
                 reference_index = step["reference_program_index"]
                 self.assertEqual(
                     step["candidate_energies"][reference_index]["future_raw"],
                     0.0,
                 )
+            self.assertTrue(all(
+                energy["future_raw"] is None
+                for energy in sequence["steps"][-1]["candidate_energies"]
+            ))
 
     def test_delayed_revisit_exposes_one_executable_compensating_relink(self):
         siblings = self._groups()

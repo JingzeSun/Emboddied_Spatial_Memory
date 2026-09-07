@@ -101,6 +101,28 @@ def apply_candidate_admissibility_to_probabilities(
     return masked / denominator
 
 
+def masked_row_standardize(
+    values: torch.Tensor, mask: torch.Tensor,
+) -> torch.Tensor:
+    """Z-score each decision over candidates available to that method."""
+    active = mask.to(device=values.device, dtype=values.dtype)
+    if values.shape != active.shape:
+        raise ValueError("candidate values and standardization mask differ")
+    counts = active.sum(dim=1, keepdim=True)
+    if torch.any(counts <= 0):
+        raise ValueError("cannot standardize a decision with no candidates")
+    centre = (values * active).sum(dim=1, keepdim=True) / counts
+    variance = (((values - centre) ** 2) * active).sum(
+        dim=1, keepdim=True,
+    ) / counts
+    spread = variance.sqrt()
+    scaled = torch.where(
+        spread > 0, (values - centre) / spread.clamp_min(1e-12),
+        torch.zeros_like(values),
+    )
+    return scaled.masked_fill(~mask.bool(), 0.0)
+
+
 def split_online_features(
     online_features: torch.Tensor, num_candidates: int, candidate_dim: int,
 ) -> tuple[torch.Tensor, torch.Tensor | None]:
@@ -121,6 +143,43 @@ def split_online_features(
     return context, blocks
 
 
+class SetAttentionBlock(nn.Module):
+    """Permutation-equivariant self-attention over one candidate set.
+
+    The block receives all K candidate tokens for one decision and returns K
+    tokens in the same order.  It has no positional embedding, so permuting the
+    candidates only permutes the outputs; the model cannot learn slot IDs.
+    """
+
+    def __init__(
+        self, model_dim: int, attention_heads: int, feedforward_dim: int,
+        dropout: float,
+    ):
+        super().__init__()
+        self.attention = nn.MultiheadAttention(
+            model_dim, attention_heads, dropout=dropout, batch_first=True,
+        )
+        self.attention_dropout = nn.Dropout(dropout)
+        self.attention_norm = nn.LayerNorm(model_dim)
+        self.feedforward = nn.Sequential(
+            nn.Linear(model_dim, feedforward_dim), nn.ReLU(),
+            nn.Dropout(dropout), nn.Linear(feedforward_dim, model_dim),
+        )
+        self.feedforward_dropout = nn.Dropout(dropout)
+        self.feedforward_norm = nn.LayerNorm(model_dim)
+
+    def forward(self, tokens: torch.Tensor) -> torch.Tensor:
+        attended, _ = self.attention(
+            tokens, tokens, tokens, need_weights=False,
+        )
+        tokens = self.attention_norm(
+            tokens + self.attention_dropout(attended)
+        )
+        return self.feedforward_norm(
+            tokens + self.feedforward_dropout(self.feedforward(tokens))
+        )
+
+
 class OnlineModel(nn.Module):
     """Score candidates from shared online input.
 
@@ -132,12 +191,20 @@ class OnlineModel(nn.Module):
     def __init__(
         self, input_dim: int, hidden: int, future_dim: int, horizon: int,
         num_candidates: int = 3, candidate_dim: int = 0,
-        relation_dim: int = 0,
+        relation_dim: int = 0, *,
+        architecture: str = "shared_candidate_mlp_v1",
+        attention_heads: int = 4, set_attention_blocks: int = 2,
+        feedforward_dim: int = 256, dropout: float = 0.0,
     ):
         super().__init__()
+        if architecture not in (
+            "shared_candidate_mlp_v1", "cross_candidate_set_transformer_v1",
+        ):
+            raise ValueError(f"unknown online architecture {architecture!r}")
         self.num_candidates = int(num_candidates)
         self.candidate_dim = int(candidate_dim)
         self.relation_dim = int(relation_dim)
+        self.architecture = str(architecture)
         self.context_dim = (
             input_dim - self.num_candidates * self.candidate_dim
             if self.candidate_dim else input_dim
@@ -146,7 +213,22 @@ class OnlineModel(nn.Module):
             raise ValueError("online vector is too short for the declared candidate block")
         self.encoder = nn.Sequential(nn.Linear(self.context_dim, hidden), nn.ReLU(),
                                      nn.Linear(hidden, hidden), nn.ReLU())
-        if self.candidate_dim:
+        descriptor_dim = self.candidate_dim or self.num_candidates
+        if self.architecture == "cross_candidate_set_transformer_v1":
+            if hidden % int(attention_heads):
+                raise ValueError("model dimension must divide attention heads")
+            self.candidate_embedding = nn.Sequential(
+                nn.Linear(hidden + descriptor_dim, hidden), nn.ReLU(),
+            )
+            self.set_blocks = nn.ModuleList([
+                SetAttentionBlock(
+                    hidden, int(attention_heads), int(feedforward_dim),
+                    float(dropout),
+                )
+                for _ in range(int(set_attention_blocks))
+            ])
+            self.candidate_scorer = nn.Linear(hidden, 1)
+        elif self.candidate_dim:
             self.candidate_scorer = nn.Sequential(
                 nn.Linear(hidden + self.candidate_dim, hidden), nn.ReLU(),
                 nn.Linear(hidden, 1))
@@ -156,13 +238,37 @@ class OnlineModel(nn.Module):
         self.future_head = nn.Sequential(nn.Linear(hidden + horizon, hidden),
                                          nn.ReLU(), nn.Linear(hidden, future_dim))
         if self.relation_dim:
-            descriptor_dim = self.candidate_dim or self.num_candidates
+            relation_input_dim = (
+                hidden if self.architecture == "cross_candidate_set_transformer_v1"
+                else hidden + descriptor_dim
+            )
             self.relation_head = nn.Sequential(
-                nn.Linear(hidden + descriptor_dim + horizon, hidden), nn.ReLU(),
+                nn.Linear(relation_input_dim + horizon, hidden), nn.ReLU(),
                 nn.Linear(hidden, self.relation_dim),
             )
 
+    def candidate_tokens(self, online_features: torch.Tensor) -> torch.Tensor:
+        """Encode all candidates, including registered cross-candidate interaction."""
+        context, blocks = split_online_features(
+            online_features, self.num_candidates, self.candidate_dim,
+        )
+        if blocks is None:
+            blocks = torch.eye(
+                self.num_candidates, device=online_features.device,
+                dtype=online_features.dtype,
+            ).expand(len(online_features), -1, -1)
+        encoded = self.encoder(context)
+        expanded = encoded.unsqueeze(1).expand(-1, self.num_candidates, -1)
+        tokens = self.candidate_embedding(torch.cat((expanded, blocks), dim=-1))
+        for block in self.set_blocks:
+            tokens = block(tokens)
+        return tokens
+
     def forward(self, online_features: torch.Tensor) -> torch.Tensor:
+        if self.architecture == "cross_candidate_set_transformer_v1":
+            return self.candidate_scorer(
+                self.candidate_tokens(online_features)
+            ).squeeze(-1)
         context, blocks = split_online_features(
             online_features, self.num_candidates, self.candidate_dim)
         encoded = self.encoder(context)
@@ -189,14 +295,19 @@ class OnlineModel(nn.Module):
         context, blocks = split_online_features(
             online_features, self.num_candidates, self.candidate_dim)
         encoded = self.encoder(context)
-        if blocks is None:
-            blocks = torch.eye(
-                self.num_candidates, device=online_features.device,
-            ).expand(len(online_features), -1, -1)
-        expanded = encoded.unsqueeze(1).expand(-1, self.num_candidates, -1)
+        if self.architecture == "cross_candidate_set_transformer_v1":
+            candidate_inputs = self.candidate_tokens(online_features)
+        else:
+            if blocks is None:
+                blocks = torch.eye(
+                    self.num_candidates, device=online_features.device,
+                    dtype=online_features.dtype,
+                ).expand(len(online_features), -1, -1)
+            expanded = encoded.unsqueeze(1).expand(-1, self.num_candidates, -1)
+            candidate_inputs = torch.cat((expanded, blocks), dim=-1)
         poses = actual_future_poses.unsqueeze(1).expand(
             -1, self.num_candidates, -1)
-        return self.relation_head(torch.cat((expanded, blocks, poses), dim=-1))
+        return self.relation_head(torch.cat((candidate_inputs, poses), dim=-1))
 
 
 class OutcomeScorer(nn.Module):
@@ -207,10 +318,21 @@ class OutcomeScorer(nn.Module):
     def __init__(
         self, input_dim: int, hidden: int, future_dim: int, horizon: int,
         num_candidates: int = 3, candidate_dim: int = 0, dropout: float = 0.0,
+        *, architecture: str = "shared_candidate_mlp_v1",
+        attention_heads: int = 4, set_attention_blocks: int = 2,
+        feedforward_dim: int = 256, current_relation_dim: int = 0,
     ):
         super().__init__()
+        if architecture not in (
+            "shared_candidate_mlp_v1", "cross_candidate_set_transformer_v1",
+        ):
+            raise ValueError(f"unknown scorer architecture {architecture!r}")
         self.num_candidates = int(num_candidates)
         self.candidate_dim = int(candidate_dim)
+        self.architecture = str(architecture)
+        self.current_relation_dim = int(current_relation_dim)
+        if not 0 <= self.current_relation_dim <= int(future_dim):
+            raise ValueError("current relation dimension is out of range")
         self.context_dim = (
             input_dim - self.num_candidates * self.candidate_dim
             if self.candidate_dim else input_dim
@@ -218,24 +340,103 @@ class OutcomeScorer(nn.Module):
         # A one-hot slot descriptor makes the scorer index-addressed, so its
         # teacher cannot transfer to a world with a different permutation.
         descriptor_dim = self.candidate_dim or self.num_candidates
-        # Dropout and weight decay are available so this baseline can be given
-        # a fair chance; without them the scorer memorises its few labelled
-        # decisions and its teacher does not transfer to held-out worlds.
-        layers: list[nn.Module] = [
-            nn.Linear(self.context_dim + descriptor_dim + horizon, hidden), nn.ReLU()]
-        if dropout > 0.0:
-            layers.append(nn.Dropout(float(dropout)))
-        layers.extend([nn.Linear(hidden, hidden), nn.ReLU()])
-        if dropout > 0.0:
-            layers.append(nn.Dropout(float(dropout)))
-        layers.append(nn.Linear(hidden, future_dim))
-        self.net = nn.Sequential(*layers)
+        if self.architecture == "cross_candidate_set_transformer_v1":
+            if hidden % int(attention_heads):
+                raise ValueError("model dimension must divide attention heads")
+            self.context_encoder = nn.Sequential(
+                nn.Linear(self.context_dim, hidden), nn.ReLU(),
+                nn.Linear(hidden, hidden), nn.ReLU(),
+            )
+            self.candidate_embedding = nn.Sequential(
+                nn.Linear(hidden + descriptor_dim, hidden), nn.ReLU(),
+            )
+            self.set_blocks = nn.ModuleList([
+                SetAttentionBlock(
+                    hidden, int(attention_heads), int(feedforward_dim),
+                    float(dropout),
+                )
+                for _ in range(int(set_attention_blocks))
+            ])
+            self.relation_head = nn.Sequential(
+                nn.Linear(hidden + horizon, hidden), nn.ReLU(),
+                nn.Linear(hidden, future_dim),
+            )
+        else:
+            # Dropout and weight decay are available so this baseline can be
+            # regularized without changing its candidate-independent inputs.
+            layers: list[nn.Module] = [
+                nn.Linear(
+                    self.context_dim + descriptor_dim + horizon, hidden,
+                ), nn.ReLU(),
+            ]
+            if dropout > 0.0:
+                layers.append(nn.Dropout(float(dropout)))
+            layers.extend([nn.Linear(hidden, hidden), nn.ReLU()])
+            if dropout > 0.0:
+                layers.append(nn.Dropout(float(dropout)))
+            layers.append(nn.Linear(hidden, future_dim))
+            self.net = nn.Sequential(*layers)
 
     def forward(self, x: torch.Tensor, descriptor: torch.Tensor,
                 poses: torch.Tensor) -> torch.Tensor:
+        if self.architecture != "shared_candidate_mlp_v1":
+            raise ValueError(
+                "cross-candidate scorer requires predict_candidates"
+            )
         context, _ = split_online_features(
             x, self.num_candidates, self.candidate_dim)
         return self.net(torch.cat((context, descriptor, poses), dim=-1))
+
+    def predict_candidates(
+        self, x: torch.Tensor, poses: torch.Tensor,
+    ) -> torch.Tensor:
+        """Predict all K candidates together without executing any candidate."""
+        context, blocks = split_online_features(
+            x, self.num_candidates, self.candidate_dim,
+        )
+        if blocks is None:
+            blocks = torch.eye(
+                self.num_candidates, device=x.device, dtype=x.dtype,
+            ).expand(len(x), -1, -1)
+        if self.architecture == "cross_candidate_set_transformer_v1":
+            encoded = self.context_encoder(context)
+            expanded = encoded.unsqueeze(1).expand(
+                -1, self.num_candidates, -1,
+            )
+            tokens = self.candidate_embedding(
+                torch.cat((expanded, blocks), dim=-1)
+            )
+            for block in self.set_blocks:
+                tokens = block(tokens)
+            expanded_poses = poses.unsqueeze(1).expand(
+                -1, self.num_candidates, -1,
+            )
+            return self.relation_head(
+                torch.cat((tokens, expanded_poses), dim=-1)
+            )
+        flat_x = x.unsqueeze(1).expand(
+            -1, self.num_candidates, -1,
+        ).reshape(-1, x.shape[-1])
+        flat_blocks = blocks.reshape(-1, blocks.shape[-1])
+        flat_poses = poses.unsqueeze(1).expand(
+            -1, self.num_candidates, -1,
+        ).reshape(-1, poses.shape[-1])
+        return self(flat_x, flat_blocks, flat_poses).reshape(
+            len(x), self.num_candidates, -1,
+        )
+
+
+def architecture_kwargs(config: dict) -> dict:
+    """Extract the frozen candidate-interaction architecture settings."""
+    return {
+        "architecture": str(config.get(
+            "architecture", "shared_candidate_mlp_v1",
+        )),
+        "attention_heads": int(config.get("attention_heads", 4)),
+        "set_attention_blocks": int(config.get("set_attention_blocks", 2)),
+        "feedforward_dim": int(config.get("feedforward_dim", 256)),
+        "dropout": float(config.get("architecture_dropout", 0.0)),
+    }
 
 
 def tensors(data: dict, device: torch.device) -> dict[str, torch.Tensor]:
@@ -279,12 +480,19 @@ def train_outcome_scorer(train: dict, validation: dict, config: dict, seed: int,
         int(train["relation_targets"].shape[-1])
         if structured else int(train["future"].shape[1])
     )
+    scorer_architecture = architecture_kwargs(config)
+    scorer_architecture["dropout"] = float(config.get(
+        "scorer_dropout", scorer_architecture["dropout"],
+    ))
+    scorer_architecture["current_relation_dim"] = int(
+        config.get("current_relation_dim", 0)
+    )
     model = OutcomeScorer(train["x"].shape[1],
                           int(config.get("scorer_hidden_dim", config["hidden_dim"])),
                           output_dim, config["horizon"],
                           num_candidates=num_candidates,
                           candidate_dim=candidate_dim,
-                          dropout=float(config.get("scorer_dropout", 0.0))).to(device)
+                          **scorer_architecture).to(device)
 
     def descriptors_for(data: dict, index: torch.Tensor | None,
                         candidate: torch.Tensor) -> torch.Tensor:
@@ -311,17 +519,9 @@ def train_outcome_scorer(train: dict, validation: dict, config: dict, seed: int,
         )]
         if structured:
             rows = train["x"][batch]
-            _, blocks = split_online_features(rows, num_candidates, candidate_dim)
-            if blocks is None:
-                blocks = torch.eye(num_candidates, device=device).expand(
-                    len(rows), -1, -1)
-            flat_rows = rows.unsqueeze(1).expand(
-                -1, num_candidates, -1).reshape(-1, rows.shape[-1])
-            flat_blocks = blocks.reshape(-1, blocks.shape[-1])
-            flat_poses = train["poses"][batch].unsqueeze(1).expand(
-                -1, num_candidates, -1).reshape(-1, train["poses"].shape[-1])
-            pred = model(flat_rows, flat_blocks, flat_poses).reshape(
-                len(rows), num_candidates, output_dim)
+            pred = model.predict_candidates(
+                rows, train["poses"][batch],
+            )
             elementwise = F.binary_cross_entropy_with_logits(
                 pred, train["relation_targets"][batch], reduction="none",
             )
@@ -350,7 +550,7 @@ def train_outcome_scorer(train: dict, validation: dict, config: dict, seed: int,
         if step == 0 or (step + 1) % 50 == 0:
             trace.append({
                 "step": step + 1,
-                "future_relation_bce" if structured else "future_mse":
+                "current_future_relation_bce" if structured else "future_mse":
                     float(loss.detach().cpu()),
             })
     # The shared energy weights are calibrated for a future term measured in
@@ -363,36 +563,55 @@ def train_outcome_scorer(train: dict, validation: dict, config: dict, seed: int,
     teachers = {}
     with torch.no_grad():
         for name, data in (("train", train), ("validation", validation)):
-            errors = []
-            for candidate in range(num_candidates):
-                column = torch.full(
-                    (len(data["x"]),), candidate, dtype=torch.long, device=device,
+            if structured:
+                prediction = model.predict_candidates(
+                    data["x"], data["poses"],
                 )
-                prediction = model(
-                    data["x"], descriptors_for(data, None, column), data["poses"],
+                mask = data["relation_mask"]
+                desired = data["relation_desired"]
+                error = F.binary_cross_entropy_with_logits(
+                    prediction, desired, reduction="none",
                 )
-                if structured:
-                    mask = data["relation_mask"][:, candidate]
-                    desired = data["relation_desired"][:, candidate]
-                    error = F.binary_cross_entropy_with_logits(
-                        prediction, desired, reduction="none",
+                current_dim = int(config["current_relation_dim"])
+                current_mask = mask[:, :, :current_dim]
+                future_mask = mask[:, :, current_dim:]
+                current_error = (
+                    (error[:, :, :current_dim] * current_mask).sum(-1)
+                    / current_mask.sum(-1).clamp_min(1.0)
+                )
+                future_error = (
+                    (error[:, :, current_dim:] * future_mask).sum(-1)
+                    / future_mask.sum(-1).clamp_min(1.0)
+                )
+            else:
+                future_errors = []
+                for candidate in range(num_candidates):
+                    column = torch.full(
+                        (len(data["x"]),), candidate,
+                        dtype=torch.long, device=device,
                     )
-                    errors.append(
-                        (error * mask).sum(-1) / mask.sum(-1).clamp_min(1.0)
+                    prediction = model(
+                        data["x"], descriptors_for(data, None, column),
+                        data["poses"],
                     )
-                else:
-                    errors.append(((prediction - data["future"]) ** 2).mean(-1))
-            future_error = torch.stack(errors, dim=1)
+                    future_errors.append(
+                        ((prediction - data["future"]) ** 2).mean(-1)
+                    )
+                future_error = torch.stack(future_errors, dim=1)
+                current_error = torch.zeros_like(future_error)
+            admissible = candidate_admissibility_mask(data, future_error)
             if normalize:
-                centre = future_error.mean(dim=1, keepdim=True)
-                spread = future_error.std(dim=1, keepdim=True)
-                future_error = torch.where(
-                    spread > 0, (future_error - centre) / spread,
-                    torch.zeros_like(future_error),
+                future_error = masked_row_standardize(
+                    future_error, admissible,
                 )
-            energy = (config["energy_weights"]["future"] * future_error
-                      + data[scorer_penalty_key])
-            admissible = candidate_admissibility_mask(data, energy)
+                current_error = masked_row_standardize(
+                    current_error, admissible,
+                )
+            energy = (
+                config["energy_weights"]["now"] * current_error
+                + config["energy_weights"]["future"] * future_error
+                + data[scorer_penalty_key]
+            )
             energy = energy.masked_fill(~admissible, torch.inf)
             teachers[name] = torch.softmax(-energy / config["temperature"], dim=1).detach()
     return model, teachers, trace
@@ -426,24 +645,8 @@ def outcome_scorer_diagnostics(
 
     rows = data["x"][selected]
     poses = data["poses"][selected]
-    _, blocks = split_online_features(
-        rows, model.num_candidates, model.candidate_dim,
-    )
-    if blocks is None:
-        blocks = torch.eye(model.num_candidates, device=device).expand(
-            len(rows), -1, -1,
-        )
-    flat_rows = rows.unsqueeze(1).expand(
-        -1, model.num_candidates, -1,
-    ).reshape(-1, rows.shape[-1])
-    flat_blocks = blocks.reshape(-1, blocks.shape[-1])
-    flat_poses = poses.unsqueeze(1).expand(
-        -1, model.num_candidates, -1,
-    ).reshape(-1, poses.shape[-1])
     with torch.no_grad():
-        logits = model(flat_rows, flat_blocks, flat_poses).reshape(
-            len(rows), model.num_candidates, -1,
-        )
+        logits = model.predict_candidates(rows, poses)
         targets = data["relation_targets"][selected]
         relation_mask = data["relation_mask"][selected]
         candidate_mask = candidate_admissibility_mask(
@@ -469,6 +672,25 @@ def outcome_scorer_diagnostics(
         masked_binary_accuracy = (
             binary_correct * active_relation_mask
         ).sum() / supervised_elements
+
+        def dimension_slice(
+            start: int, stop: int,
+        ) -> tuple[int, float | None]:
+            selected_mask = active_relation_mask[:, :, start:stop]
+            count = int(selected_mask.sum().cpu())
+            if count == 0:
+                return 0, None
+            value = (
+                elementwise[:, :, start:stop] * selected_mask
+            ).sum() / selected_mask.sum()
+            return count, float(value.cpu())
+
+        current_count, current_bce = dimension_slice(
+            0, model.current_relation_dim,
+        )
+        future_count, future_bce = dimension_slice(
+            model.current_relation_dim, logits.shape[-1],
+        )
 
         # Two decompositions test the concrete hypothesis that easy relation
         # elements can improve aggregate BCE while candidate ranking worsens.
@@ -553,6 +775,10 @@ def outcome_scorer_diagnostics(
         ).sum().cpu()),
         "masked_bce": float(masked_bce.cpu()),
         "masked_binary_accuracy": float(masked_binary_accuracy.cpu()),
+        "current_relation_elements": current_count,
+        "current_relation_bce": current_bce,
+        "future_relation_elements": future_count,
+        "future_relation_bce": future_bce,
         "target_discriminative_relation_elements": target_disc_count,
         "target_discriminative_bce": target_disc_bce,
         "target_nondiscriminative_relation_elements": target_nondisc_count,
@@ -600,6 +826,7 @@ def train_student(method: str, train: dict, teacher: torch.Tensor,
                             int(train["relation_targets"].shape[-1])
                             if "relation_targets" in train else 0
                         ),
+                        **architecture_kwargs(config),
                         ).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=config["learning_rate"])
     full_candidate_mask = candidate_admissibility_mask(
@@ -818,7 +1045,8 @@ def run_seed(train_np: dict, validation_np: dict, config: dict, seed: int,
         initial = OnlineModel(train["x"].shape[1], config["hidden_dim"],
                               train["future"].shape[1], config["horizon"],
                               num_candidates=candidate_count,
-                              candidate_dim=int(config.get("candidate_feature_dim", 0))
+                              candidate_dim=int(config.get("candidate_feature_dim", 0)),
+                              **architecture_kwargs(config),
                               ).to(device)
         initial_metrics, _ = evaluate(initial, validation, config, teacher_validation)
         del initial

@@ -79,6 +79,11 @@ FUTURE_RELATION_QUERIES = (
     "candidate_evidence_associated",
     "no_revision_needed_now",
 )
+CURRENT_RELATION_QUERIES = (
+    "candidate_action_supported_by_current_evidence",
+    "candidate_required_arguments_match_current_query",
+    "current_region_is_reliably_empty",
+)
 MATCH_KEYS = (
     "best", "second", "margin", "best_dormant",
     "place_has_recorded_entity", "best_match_recorded_here",
@@ -122,7 +127,32 @@ def resolve_af_smoke_config(
             raise ValueError(f"invalid A-F smoke setting {name}")
     if not config["seeds"] or len(set(config["seeds"])) != len(config["seeds"]):
         raise ValueError("A-F smoke seeds must be nonempty and unique")
+    architecture = str(config.get(
+        "architecture", "shared_candidate_mlp_v1",
+    ))
+    architecture_contract = hard_config["architecture_evaluation"]
+    if architecture not in architecture_contract["registered"]:
+        raise ValueError(f"unregistered M1 architecture {architecture!r}")
+    architecture_spec = architecture_contract[architecture]
+    config["architecture"] = architecture
+    if architecture == "cross_candidate_set_transformer_v1":
+        config["hidden_dim"] = int(architecture_spec["model_dim"])
+        config["attention_heads"] = int(
+            architecture_spec["attention_heads"]
+        )
+        config["set_attention_blocks"] = int(
+            architecture_spec["set_attention_blocks"]
+        )
+        config["feedforward_dim"] = int(
+            architecture_spec["feedforward_dim"]
+        )
+        config["architecture_dropout"] = float(
+            architecture_spec["dropout"]
+        )
+    else:
+        config["hidden_dim"] = int(architecture_spec["hidden_dim"])
     config["candidate_feature_dim"] = CANDIDATE_FEATURE_DIM
+    config["current_relation_dim"] = len(CURRENT_RELATION_QUERIES)
     config["standardize_future_term"] = True
     config["horizon"] = int(hard_config["future"]["primary_horizon"])
     config["temperature"] = float(hard_config["energy"]["temperature"])
@@ -210,6 +240,113 @@ def _program_touches_protected(program: Mapping[str, Any]) -> bool:
         str(value) for value in program.get("protected_ids", [])
     }
     return bool(touched_ids & protected_ids)
+
+
+def candidate_current_relation_targets(
+    program: Mapping[str, Any], online: Mapping[str, Any],
+    policy: Mapping[str, float],
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Build current-evidence queries without executing the candidate.
+
+    Targets come only from the immutable online payload.  Desired values encode
+    what the program would need to be consistent with that evidence, so the
+    scorer can amortize a now term without receiving a post-world or legality
+    label.
+    """
+    region = online["current_regions"][0]
+    actionable = bool(
+        region["visibility"] in {"visible", "visible_empty"}
+        and region["pose_valid"]
+        and region["depth_valid"]
+        and float(region["reliability"]) > 0.0
+    )
+    reliably_empty = bool(actionable and region["visibility"] == "visible_empty")
+    label = _program_label(program)
+    identifiers = candidate_argument_ids(program)
+    queries = online["proposal_observation"]
+    vectors = [
+        np.asarray(stable_retrieval_feature(identifier), dtype=np.float64)
+        for identifier in identifiers
+    ]
+
+    def query_matches(query: Sequence[float]) -> bool:
+        target = np.asarray(query, dtype=np.float64)
+        return bool(vectors) and max(
+            float(np.dot(vector, target)) for vector in vectors
+        ) >= float(policy["argument_cosine_minimum"])
+
+    node_matches = query_matches(queries["node_query"])
+    edge_matches = query_matches(queries["edge_query"])
+    place_matches = query_matches(queries["place_query"])
+    merge_matches = all(
+        query_matches(query) for query in queries["merge_queries"]
+    )
+    required_arguments_match = {
+        "NOOP": True,
+        "BIND": node_matches,
+        "BIRTH": True,
+        "REACTIVATE": node_matches,
+        "RELINK": edge_matches and place_matches,
+        "RETRACT": edge_matches,
+        "SPLIT": node_matches,
+        "MERGE": merge_matches,
+        "REPLACE": place_matches,
+    }[label]
+    match = region["appearance_match"]
+    best = float(match["best"])
+    second = float(match["second"])
+    recorded_here = bool(match["best_match_recorded_here"])
+    recorded_elsewhere = bool(match["best_match_recorded_elsewhere"])
+    place_occupied = bool(match["place_has_recorded_entity"])
+    novel = bool(region["evidence_novel"])
+    action_supported = {
+        "NOOP": not novel and recorded_here,
+        "BIND": novel and recorded_here and node_matches,
+        "BIRTH": (
+            novel and best < float(policy["novel_entity_best_maximum"])
+            and float(match["best_dormant"])
+            < float(policy["dormant_match_minimum"])
+            and not place_occupied
+        ),
+        "REACTIVATE": (
+            novel and float(match["best_dormant"])
+            >= float(policy["dormant_match_minimum"]) and node_matches
+        ),
+        "RELINK": novel and recorded_elsewhere and required_arguments_match,
+        "RETRACT": reliably_empty and edge_matches,
+        "SPLIT": (
+            novel and not place_occupied
+            and float(policy["split_best_minimum"]) <= best
+            < float(policy["split_best_maximum"])
+            and node_matches
+        ),
+        "MERGE": (
+            novel and not place_occupied
+            and best >= float(policy["merge_best_minimum"])
+            and second >= float(policy["merge_second_minimum"])
+            and merge_matches
+        ),
+        "REPLACE": (
+            novel and place_occupied
+            and best < float(policy["novel_entity_best_maximum"])
+            and place_matches
+        ),
+    }[label]
+    targets = np.asarray([
+        float(action_supported), float(required_arguments_match),
+        float(reliably_empty),
+    ], dtype=np.float32)
+    masks = np.asarray([
+        float(actionable),
+        float(actionable and label not in {"NOOP", "BIRTH"}),
+        float(actionable),
+    ], dtype=np.float32)
+    desired = np.asarray([
+        1.0,
+        1.0,
+        float(label == "RETRACT"),
+    ], dtype=np.float32)
+    return targets, masks, desired
 
 
 def _candidate_failure_code(
@@ -523,7 +660,11 @@ def build_rollout_learning_arrays(
         "learning_cases": len(arrays["y"]),
         "online_feature_dim": int(arrays["x"].shape[1]),
         "future_target_dim": int(arrays["future"].shape[1]),
-        "future_relation_target_dim": int(arrays["relation_targets"].shape[2]),
+        "current_relation_target_dim": len(CURRENT_RELATION_QUERIES),
+        "future_relation_target_dim": (
+            int(arrays["relation_targets"].shape[2])
+            - len(CURRENT_RELATION_QUERIES)
+        ),
         "labelled_fraction": float(arrays["labelled"].mean()),
         "ambiguous_decision_fraction": float(arrays["ambiguous"].mean()),
     })
@@ -544,6 +685,10 @@ def rollout_learning_arrays_from_audits(
         }))
     }
     weights = hard_config["energy"]["weights"]
+    scenario_family_index = {
+        family: index
+        for index, family in enumerate(hard_config["data"]["scenario_families"])
+    }
     temperature = float(hard_config["energy"]["temperature"])
     horizon = int(hard_config["future"]["primary_horizon"])
     representation = str(hard_config["future"]["target_representation"])
@@ -553,6 +698,19 @@ def rollout_learning_arrays_from_audits(
             for step in audit.get("recovery_examples", [])
         ]
         for step_index, step in learning_steps:
+            future_states = [
+                audit["steps"][target_index]["executed_candidates"][
+                    audit["steps"][target_index]["reference_program_index"]
+                ]["post_graph"]
+                for target_index in range(
+                    step_index + 1,
+                    min(len(audit["steps"]), step_index + 1 + horizon),
+                )
+            ]
+            # The final online decision remains in the audit/causal sequence,
+            # but with no later observation it cannot train a hindsight term.
+            if not future_states:
+                continue
             candidate_metrics = []
             base = step["online"]["prior_world"]
             reference = step["executed_candidates"][
@@ -576,28 +734,26 @@ def rollout_learning_arrays_from_audits(
                     ))
             no_execution_penalties = []
             for program in step["online"]["candidate_programs"]:
-                protected_touch = float(_program_touches_protected(program))
                 no_execution_penalties.append(
-                    float(weights["now"])
-                    * (0.0 if program.get("evidence_refs") else 1.0)
-                    + float(weights["edit"])
+                    float(weights["edit"])
                     * float(program.get("declared_edit_cost", 0.0))
                     + float(weights["growth"])
                     * float(program.get("declared_growth_cost", 0.0))
-                    + float(weights["collateral"]) * protected_touch
                 )
-            future_states = [
-                audit["steps"][target_index]["executed_candidates"][
-                    audit["steps"][target_index]["reference_program_index"]
-                ]["post_graph"]
-                for target_index in range(
-                    step_index, min(len(audit["steps"]), step_index + horizon)
-                )
-            ]
             relation_rows = [
-                candidate_future_relation_targets(
-                    program, base, future_states, horizon=horizon,
-                )
+                tuple(np.concatenate((current, future)).astype(np.float32)
+                      for current, future in zip(
+                          candidate_current_relation_targets(
+                              program, step["online"],
+                              hard_config["future"][
+                                  "no_execution_now_target_policy"
+                              ],
+                          ),
+                          candidate_future_relation_targets(
+                              program, base, future_states, horizon=horizon,
+                          ),
+                          strict=True,
+                      ))
                 for program in step["online"]["candidate_programs"]
             ]
             rows.append({
@@ -620,6 +776,39 @@ def rollout_learning_arrays_from_audits(
                 ], dtype=np.float32),
                 "y": int(step["reference_program_index"]),
                 "pstar": np.asarray(step["teacher_posterior"], dtype=np.float32),
+                "teacher_matches_reference": bool(
+                    step["teacher_winner_matches_reference"]
+                ),
+                "scenario_family_index": int(scenario_family_index.get(
+                    str(step["scenario_family"]), -1,
+                )),
+                "candidate_energy_now": np.asarray([
+                    energy["now"] for energy in step["candidate_energies"]
+                ], dtype=np.float32),
+                "candidate_energy_future": np.asarray([
+                    energy["future"] for energy in step["candidate_energies"]
+                ], dtype=np.float32),
+                "candidate_energy_edit": np.asarray([
+                    energy["edit"] for energy in step["candidate_energies"]
+                ], dtype=np.float32),
+                "candidate_energy_growth": np.asarray([
+                    energy["growth"] for energy in step["candidate_energies"]
+                ], dtype=np.float32),
+                "candidate_energy_collateral": np.asarray([
+                    energy["collateral"]
+                    for energy in step["candidate_energies"]
+                ], dtype=np.float32),
+                "candidate_energy_illegal": np.asarray([
+                    energy["illegal"] for energy in step["candidate_energies"]
+                ], dtype=np.float32),
+                "candidate_energy_now_raw": np.asarray([
+                    np.nan if energy["now_raw"] is None else energy["now_raw"]
+                    for energy in step["candidate_energies"]
+                ], dtype=np.float32),
+                "candidate_energy_future_raw": np.asarray([
+                    np.nan if energy["future_raw"] is None else energy["future_raw"]
+                    for energy in step["candidate_energies"]
+                ], dtype=np.float32),
                 "pstar_current": _posterior_from_current_energy(
                     step, weights, temperature,
                 ),
@@ -811,6 +1000,7 @@ def structured_relation_oracle_probabilities(
     arrays: Mapping[str, np.ndarray], *, future_weight: float,
     temperature: float,
     static_preflight_pass: np.ndarray | None = None,
+    now_weight: float = 1.0, current_relation_dim: int = 0,
 ) -> np.ndarray:
     """Rank candidates with perfect knowledge of the registered relation target.
 
@@ -832,30 +1022,57 @@ def structured_relation_oracle_probabilities(
         raise ValueError("structured relation target tensors must have equal shape")
     if targets.ndim != 3 or penalties.shape != targets.shape[:2]:
         raise ValueError("structured relation oracle received incompatible shapes")
+    if not 0 <= int(current_relation_dim) <= targets.shape[2]:
+        raise ValueError("current relation dimension is out of range")
     denominators = masks.sum(axis=2)
     if np.any(denominators <= 0.0):
         raise ValueError("every candidate needs at least one relation query")
-    mismatch = (
-        np.abs(targets - desired) * masks
-    ).sum(axis=2) / denominators
-    centre = mismatch.mean(axis=1, keepdims=True)
-    # Match OutcomeScorer's torch.std default (sample standard deviation), so
-    # the diagnostic uses the same future/penalty scale as E.
-    spread = mismatch.std(axis=1, keepdims=True, ddof=1)
-    standardized = np.divide(
-        mismatch - centre, spread,
-        out=np.zeros_like(mismatch), where=spread > 0.0,
-    )
-    energy = float(future_weight) * standardized + penalties
+    available = np.ones_like(penalties, dtype=bool)
     if static_preflight_pass is not None:
         available = np.asarray(static_preflight_pass, dtype=bool)
-        if available.shape != energy.shape:
+        if available.shape != penalties.shape:
             raise ValueError(
                 "static preflight mask and candidate energy must have equal shape"
             )
         if np.any(~available.any(axis=1)):
             raise ValueError("static preflight rejected every candidate in a row")
-        energy = np.where(available, energy, np.inf)
+
+    def relation_mismatch(start: int, stop: int) -> np.ndarray:
+        selected_mask = masks[:, :, start:stop]
+        selected_error = np.abs(
+            targets[:, :, start:stop] - desired[:, :, start:stop]
+        ) * selected_mask
+        selected_denominator = selected_mask.sum(axis=2)
+        return np.divide(
+            selected_error.sum(axis=2), selected_denominator,
+            out=np.zeros_like(selected_denominator),
+            where=selected_denominator > 0.0,
+        )
+
+    def masked_standardize(values: np.ndarray) -> np.ndarray:
+        active = available.astype(np.float64)
+        counts = active.sum(axis=1, keepdims=True)
+        centre = (values * active).sum(axis=1, keepdims=True) / counts
+        variance = (((values - centre) ** 2) * active).sum(
+            axis=1, keepdims=True,
+        ) / counts
+        spread = np.sqrt(variance)
+        standardized = np.divide(
+            values - centre, spread,
+            out=np.zeros_like(values), where=spread > 0.0,
+        )
+        return np.where(available, standardized, 0.0)
+
+    current_mismatch = relation_mismatch(0, int(current_relation_dim))
+    future_mismatch = relation_mismatch(
+        int(current_relation_dim), targets.shape[2],
+    )
+    energy = (
+        float(now_weight) * masked_standardize(current_mismatch)
+        + float(future_weight) * masked_standardize(future_mismatch)
+        + penalties
+    )
+    energy = np.where(available, energy, np.inf)
     logits = -energy / float(temperature)
     logits -= logits.max(axis=1, keepdims=True)
     probabilities = np.exp(logits)

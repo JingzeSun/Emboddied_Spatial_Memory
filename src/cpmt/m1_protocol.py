@@ -20,6 +20,7 @@ GROUP_KEYS = {"paired_group_id", "world_seed", "asset_family"}
 REQUIRED_TEMPLATES = {
     "NOOP", "BIND", "BIRTH", "REACTIVATE", "RELINK", "RETRACT", "SPLIT", "MERGE"
 }
+EXPECTED_SCENARIO_FAMILIES = [f"C{index:02d}" for index in range(12)]
 
 
 def _require(condition: bool, message: str) -> None:
@@ -50,7 +51,8 @@ def validate_m1_protocol(config: Mapping[str, Any]) -> None:
     _require(set(data["group_keys"]) == GROUP_KEYS, "paired split keys are incomplete")
     _require(data["retain_method_failures"] is True, "method failures must be retained")
     _require("sealed" in data["test_release"], "test must remain sealed")
-    _require(len(data["scenario_families"]) == 12, "C00-C11 are required")
+    _require(data["scenario_families"] == EXPECTED_SCENARIO_FAMILIES,
+             "C00-C11 are required in canonical order")
     _require(
         data.get("continuous_rollout_required_families")
         == data["scenario_families"],
@@ -97,6 +99,19 @@ def validate_m1_protocol(config: Mapping[str, Any]) -> None:
             f"never_{forbidden_now_source}" in no_execution_now_inputs,
             "C/E current target may not use post-world, executor, legality, or future",
         )
+    _require(
+        future.get("no_execution_now_target_policy")
+        == {
+            "argument_cosine_minimum": 0.8,
+            "novel_entity_best_maximum": 0.6,
+            "split_best_minimum": 0.55,
+            "split_best_maximum": 0.8,
+            "dormant_match_minimum": 0.8,
+            "merge_best_minimum": 0.8,
+            "merge_second_minimum": 0.8,
+        },
+        "candidate-scoped current-relation policy changed",
+    )
     _require(
         future.get("no_execution_candidate_execution")
         == "forbidden_for_candidate_scoring_and_target_construction;_selected_transaction_uses_shared_executor",
@@ -187,7 +202,7 @@ def validate_m1_protocol(config: Mapping[str, Any]) -> None:
     )
     _require(
         energy.get("collateral_semantics")
-        == "binary_any_legal_open_memory_mutation_outside_candidate_declared_evidence_affected_subgraph",
+        == "binary_any_legal_preexisting_open_memory_mutation_outside_candidate_independent_current_online_evidence_scope",
         "collateral must measure legal unrelated open-memory churn",
     )
     _require(
@@ -232,6 +247,34 @@ def validate_m1_protocol(config: Mapping[str, Any]) -> None:
              "architecture results may not be used for post-hoc model selection")
     _require("full_A_to_F" in str(architecture.get("run_scope", "")),
              "each architecture arm must run the full A-F method table")
+    set_spec = architecture.get("cross_candidate_set_transformer_v1", {})
+    _require(
+        {
+            "model_dim": set_spec.get("model_dim"),
+            "attention_heads": set_spec.get("attention_heads"),
+            "set_attention_blocks": set_spec.get("set_attention_blocks"),
+            "feedforward_dim": set_spec.get("feedforward_dim"),
+            "dropout": set_spec.get("dropout"),
+            "candidate_output": set_spec.get("candidate_output"),
+        }
+        == {
+            "model_dim": 128,
+            "attention_heads": 4,
+            "set_attention_blocks": 2,
+            "feedforward_dim": 256,
+            "dropout": 0.0,
+            "candidate_output": "shared_equivariant_score_head",
+        },
+        "cross-candidate Set Transformer specification changed",
+    )
+    mlp_spec = architecture.get("shared_candidate_mlp_v1", {})
+    _require(
+        int(mlp_spec.get("hidden_dim", 0)) == 64
+        and mlp_spec.get("cross_candidate_interaction") is False
+        and mlp_spec.get("candidate_output")
+        == "shared_equivariant_score_head",
+        "shared-candidate MLP specification changed",
+    )
     calibration = training["commit_calibration"]
     _require(calibration["shared_across_methods"] is True,
              "A-E must share one calibrated commit rule")

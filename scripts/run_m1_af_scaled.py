@@ -36,7 +36,8 @@ from cpmt.dev_learning import (  # noqa: E402
     outcome_scorer_diagnostics, train_outcome_scorer, train_student, tensors,
 )
 from cpmt.m1_af_rollout import (  # noqa: E402
-    CANDIDATE_FEATURE_DIM, calibrate_shared_commit_rule,
+    CANDIDATE_FEATURE_DIM, CURRENT_RELATION_QUERIES,
+    calibrate_shared_commit_rule,
     causal_rollout_metrics, paired_group_is_calibration,
     rollout_learning_arrays_from_audits, selection_error_decomposition,
     static_preflight_diagnostics,
@@ -86,8 +87,15 @@ def _load(
         raise ValueError(f"expected {expected_split} arrays at {path}")
     if manifest.get("dataset_version") != expected_dataset_version:
         raise ValueError(f"array dataset version does not match {path}")
-    # Carried by the generator for reporting; not a model input.
-    data.pop("teacher_matches_reference", None)
+    # Carried by the generator/manifest for audit; none are model inputs.
+    for key in (
+        "teacher_matches_reference", "scenario_family_index",
+        "candidate_energy_now", "candidate_energy_future",
+        "candidate_energy_edit", "candidate_energy_growth",
+        "candidate_energy_collateral", "candidate_energy_illegal",
+        "candidate_energy_now_raw", "candidate_energy_future_raw",
+    ):
+        data.pop(key, None)
     return data, {
         "path": str(path),
         "arrays_digest": digest,
@@ -239,6 +247,15 @@ def main() -> int:
                         help="defaults to the protocol's registered formal seeds")
     parser.add_argument("--student-steps", type=int, default=1000)
     parser.add_argument(
+        "--architecture",
+        choices=(
+            "cross_candidate_set_transformer_v1",
+            "shared_candidate_mlp_v1",
+        ),
+        default=None,
+        help="defaults to the protocol's preregistered primary architecture",
+    )
+    parser.add_argument(
         "--scorer-steps", type=int, default=None,
         help=("E's additional scorer updates; defaults to --student-steps for "
               "backward compatibility and is always reported separately"),
@@ -272,6 +289,11 @@ def main() -> int:
         expected_split="validation",
         expected_dataset_version=str(hard["data"]["dataset_version"]),
     )
+    train_health = train_input["manifest"].get("teacher_health_gate")
+    if not train_health or train_health.get("pass") is not True:
+        raise ValueError(
+            "train arrays did not pass the preregistered teacher health gate"
+        )
     report_mask = ~np.asarray(validation_np["calibration"], dtype=bool)
     recovery_mask = np.asarray(validation_np["recovery"], dtype=bool)
     online_report_mask = report_mask & ~recovery_mask
@@ -283,17 +305,38 @@ def main() -> int:
     )
     if args.student_steps <= 0 or scorer_steps <= 0:
         parser.error("--student-steps and --scorer-steps must be positive")
-    cfg = dict(smoke, hidden_dim=64, horizon=int(hard["future"]["primary_horizon"]),
+    architecture = (
+        args.architecture or hard["architecture_evaluation"]["primary"]
+    )
+    architecture_spec = hard["architecture_evaluation"][architecture]
+    architecture_settings = {
+        "architecture": architecture,
+        "hidden_dim": int(architecture_spec.get(
+            "model_dim", architecture_spec.get("hidden_dim"),
+        )),
+        "attention_heads": int(architecture_spec.get("attention_heads", 4)),
+        "set_attention_blocks": int(
+            architecture_spec.get("set_attention_blocks", 2)
+        ),
+        "feedforward_dim": int(
+            architecture_spec.get("feedforward_dim", 256)
+        ),
+        "architecture_dropout": float(architecture_spec.get("dropout", 0.0)),
+    }
+    cfg = dict(smoke, horizon=int(hard["future"]["primary_horizon"]),
                learning_rate=2e-3, batch_size=64, device="cpu",
                student_steps=args.student_steps, scorer_steps=scorer_steps,
                distillation_weight=1.0, auxiliary_weight=1.0,
                candidate_feature_dim=CANDIDATE_FEATURE_DIM,
+               current_relation_dim=len(CURRENT_RELATION_QUERIES),
                standardize_future_term=True,
                energy_weights=hard["energy"]["weights"],
-               temperature=float(hard["energy"]["temperature"]))
+               temperature=float(hard["energy"]["temperature"]),
+               **architecture_settings)
 
     print(f"protocol {protocol_sha256(hard)[:16]}  "
-          f"dataset {hard['data']['dataset_version']}  seeds {seeds}")
+          f"dataset {hard['data']['dataset_version']}  seeds {seeds}  "
+          f"architecture {architecture}")
     print(f"train {len(train_np['y'])} decisions / "
           f"validation {len(validation_np['y'])} decisions", flush=True)
     for name, data in (("train", train_np), ("validation", validation_np)):
@@ -315,6 +358,8 @@ def main() -> int:
     relation_oracle_probabilities = structured_relation_oracle_probabilities(
         validation_np,
         future_weight=float(hard["energy"]["weights"]["future"]),
+        now_weight=float(hard["energy"]["weights"]["now"]),
+        current_relation_dim=len(CURRENT_RELATION_QUERIES),
         temperature=float(hard["energy"]["temperature"]),
         static_preflight_pass=validation_np[
             "candidate_static_preflight_pass"
@@ -681,6 +726,8 @@ def main() -> int:
             "validation": validation_input,
         },
         "dataset_version": hard["data"]["dataset_version"],
+        "architecture": architecture,
+        "architecture_settings": architecture_settings,
         "seeds": seeds,
         "training_budget": {
             "student_steps_per_method": int(args.student_steps),

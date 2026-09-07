@@ -54,7 +54,7 @@ class TestM1TrainabilityLadder(unittest.TestCase):
     def test_subset_keeps_complete_siblings_and_rows(self):
         arrays, audits = subset_paired_groups(self.arrays, self.audits, 1)
         self.assertEqual(len(audits), 2)
-        self.assertEqual(len(arrays["y"]), 42)
+        self.assertEqual(len(arrays["y"]), 40)
         self.assertEqual(int(arrays["recovery"].sum()), 2)
         self.assertEqual(set(arrays["group"].tolist()), {0})
         self.assertEqual({audit["sibling_index"] for audit in audits}, {0, 1})
@@ -71,7 +71,7 @@ class TestM1TrainabilityLadder(unittest.TestCase):
         self.assertEqual(
             audit["candidate_generators"], ["fixed_deterministic_k16_v1"]
         )
-        self.assertAlmostEqual(observable_accuracy_ceiling(arrays), 0.975)
+        self.assertAlmostEqual(observable_accuracy_ceiling(arrays), 37 / 38)
 
     def test_label_rich_capacity_point_runs_without_claiming_oracle(self):
         arrays, audits = subset_paired_groups(self.arrays, self.audits, 1)
@@ -80,7 +80,9 @@ class TestM1TrainabilityLadder(unittest.TestCase):
             arrays, audits, base, student_steps=2, seed=7,
         )
         self.assertEqual(metrics["label_fraction"], 1.0)
-        self.assertEqual(metrics["observable_accuracy_ceiling"], 0.975)
+        self.assertAlmostEqual(
+            metrics["observable_accuracy_ceiling"], 37 / 38,
+        )
         self.assertGreater(metrics["student_parameters"], 0)
         self.assertIn("final_active_graph_correctness", metrics["causal_rollout"])
 

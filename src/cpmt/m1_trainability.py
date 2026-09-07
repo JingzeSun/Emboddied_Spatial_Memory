@@ -29,6 +29,7 @@ from .m1_af_rollout import (
     resolve_af_smoke_config,
     run_af_seed,
 )
+from .m1_rollout import SCENARIO_FAMILIES
 
 
 TEACHER_SOURCES = {
@@ -182,15 +183,21 @@ def reference_candidate_audit(
     total = 0
     covered = 0
     illegal_reference = 0
-    family_totals: dict[str, int] = {}
-    family_covered: dict[str, int] = {}
+    family_totals: dict[str, int] = {
+        family: 0 for family in SCENARIO_FAMILIES
+    }
+    family_covered: dict[str, int] = {
+        family: 0 for family in SCENARIO_FAMILIES
+    }
     candidate_counts: list[int] = []
     generators: set[str] = set()
     for audit in audits:
         for step in audit["steps"]:
             total += 1
             family = str(step["scenario_family"])
-            family_totals[family] = family_totals.get(family, 0) + 1
+            if family not in family_totals:
+                raise ValueError(f"candidate audit saw unregistered family {family!r}")
+            family_totals[family] += 1
             candidate_counts.append(len(step["executed_candidates"]))
             generation = step.get("candidate_generation", {})
             if generation.get("generator"):
@@ -199,13 +206,13 @@ def reference_candidate_audit(
             candidates = step["executed_candidates"]
             if 0 <= index < len(candidates):
                 covered += 1
-                family_covered[family] = family_covered.get(family, 0) + 1
+                family_covered[family] += 1
                 if not bool(candidates[index]["legal"]):
                     illegal_reference += 1
     if total == 0:
         raise ValueError("candidate audit requires at least one decision")
     family_coverage = {
-        family: float(family_covered.get(family, 0) / count)
+        family: float(family_covered[family] / count) if count else 0.0
         for family, count in sorted(family_totals.items())
     }
     return {

@@ -4,17 +4,17 @@
 
 ## 当前看板
 
-> **2026-09-07 更新（LOG-034 / D-039）：** S4 对既有 v5 40-group train arrays 的只读成本盘点完成：正式每-family 分母对应三 split 共 16,800 paired groups，按旧结构线性参考约 9.482 GiB（合并 arrays＋保留分片）和 4.958 小时生成。盘点同时确认连续 rollout 缺 C09–C11、CLI 使用混合总数而非合同的 per-family 计数。D-039 已接受 v6 conformance/live-energy、Set Transformer 主臂＋MLP 次臂的同数组全 A–F 重跑，并废止单 run 两小时硬上限；当前仍在 S4 实现与 train-only 健康检查，test 封存。
+> **2026-09-07 更新（LOG-035 / D-039）：** M1-v3 的 v6 conformance、live-energy、C/E 对称 current target，以及 Set Transformer 主臂＋MLP 次臂的同数组 A–F 接线已实现。本地每-family=1 的 train-only 健康探针通过 teacher-health gate；这只是实现与成本探针，不是方法成绩。下一步先在服务器干净提交上跑完整测试，再单独跑同一 train-only health benchmark；test 继续封存。
 
-最后更新：2026-09-07，LOG-034 S4 成本盘点完成、D-039 accepted；正式 M1 gate 未运行、未生成或读取 test。
+最后更新：2026-09-07，LOG-035 M1-v3 实现与本地 train-only 健康探针完成；正式 M1 gate 未运行、未生成或读取 test。
 
 | 项目 | 当前事实 |
 |---|---|
 | 方向 | CPMT 具身空间记忆；CTL 是主学习假设，用户希望面向 ML 研究 |
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
 | 阶段 | M1-v3 `pretest_lock_candidate`；只开放 train/inner-dev 实现验证，尚未重新冻结，正式 gate 未运行，不是 M2/Full CPMT |
-| 最近结果 | v5 S1/S2 与 10-group 锚点仍作为 LOG-031–033 的历史诊断；S4 成本盘点确认 v5 40 groups=`1,680` rows/`26,880` candidate slots、42.5 秒，正式旧结构线性参考为 `16,800` groups/`705,600` rows/`11,289,600` slots、合并约 `4.685 GiB`、含分片约 `9.482 GiB`、生成约 `4.958 h`。该外推不是 v6 或 Set Transformer benchmark |
-| 尚缺 | 按 D-039 实现并测试 C00–C11/per-family gate、live now/collateral、E 对称 current target、Set Transformer 主臂与 MLP 次臂的同数组全 A–F；小规模 v6 train-only cost/teacher-health 通过后，分别重新登记和选择 scorer/student 预算。旧 v5 的 1000 steps 不迁移，test 仍封存 |
+| 最近结果 | 本地 v6 每-family=1、共 12 paired groups 的 train-only 实现探针生成 `480` learning rows，teacher/reference agreement=`1.0` 且各 C00–C11 family 均过健康门；`now`/`collateral` 活性已审计，C09 因当前观测无效按合同保持中性。Set/MLP 各 1-step scorer 只验证接线，不作性能比较 |
+| 尚缺 | 服务器完整测试与 v6 train-only 成本/teacher-health benchmark；通过后登记并重跑两架构各自的 S1/S2 scorer/student 有限预算网格。旧 v5 的 1000 steps 不迁移，test 仍封存 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
 | 当前决定 | D-039：M1-v3 修复 per-family/C00–C11 conformance，激活 now/collateral并给 C/E 对称 current target；Set Transformer 为唯一主架构、既有 MLP 为次级容量稳健性臂，每臂完整 A–F；仓库不再设两小时单-run 上限。全局 reconciliation、PNO 与 M2 顺序不变 |
 | 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 validation report/test。两架构各自的 scorer/student 有限预算网格须在小规模健康检查后、任何选择性 run 前登记 |
@@ -549,6 +549,16 @@ M1-v3 的阶段顺序、转向条件和成功/失败终点见 [M1-v3 收口执�
 - 决定：D-039 将 per-family/C00–C11 归为 conformance 修复；now/collateral、C/E 对称 current target 与 cross-candidate Set Transformer 归为方法/架构变化，活动协议/data hash 升级并从 S1/S2 重跑。Set Transformer 是主臂，旧 MLP 是同数组的次级容量稳健性臂，两者均完整跑 A–F，不能事后择优。旧 v5 的 1000 scorer steps 作废。
 - 资源边界：用户明确要求删除 `formal_run_wall_time_limit_hours=2`；活动配置改为只测量和报告实际 wall-clock，不设仓库固定上限。云实例仍由操作者手动启停/定时关机，BugCheck 停止规则保留。该调整不改变 test seal 或失败留存。
 - 下一步：完成 D-039 的 protocol/contract 锁定后实现 conformance、energy、target 和两架构接线；本地只跑轻量静态/协议测试。随后把版本化服务器入口改为全测，再做小规模 v6 train-only cost/teacher-health benchmark；门通过后才登记新的 S1/S2 scorer/student 预算网格。
+
+### LOG-035—2026-09-07—M1-v3 v6 实现与本地健康探针
+
+- 类型/状态：架构与实验实现完成；train-only 小规模健康/成本探针完成。不是正式训练结果、validation trial、test 或 M1 go/no-go。
+- 目的/白话：把 D-039 从合同变成可运行代码，并在付费服务器启动前检查数据、教师和两种模型入口是否连通。输入是每个 C00–C11 family 各 1 个 train paired group，输出是 v6 arrays、逐 family 教师健康、六项能量活性和 Set Transformer/MLP 的最短训练探针。例如 C09 当前证据无效时 `now` 保持中性，但该 family 仍必须出现在分母和健康报告里。它不等于每项能量在每个 family 都有判别力，也不等于模型已优于对照。
+- 改变/固定：生成器按 `groups_per_family` 实现 12-family 分母；final step 因没有下一时刻 future 不进入监督 rows；`now` 使用当前有效证据的执行后投影误差并在准入候选内标准化，`future` 从下一决策起算；`collateral` 记录合法事务对当前证据范围外既有开放事实的改变，新事实只计 growth。C/E 获得不执行候选的三维 current relation target。主架构是无位置编码、两层候选间 self-attention 的 Set Transformer，次臂保留共享候选 MLP，两者均接入 A–F。
+- Run/产物：本地 ignored `outputs/m1-v3-local-health-v2`；12 paired groups、480 rows、24 recovery rows、生成约 24.7 秒、合并 NPZ 3,955,902 bytes。Set/MLP 的 1-step scorer 探针分别只作 shape/训练路径检查。未生成或读取 validation/test。
+- 验证/结果：协议测试 19 项通过；A–F/可训练性/开发学习组合测试 36 项通过；本地数据 teacher/reference agreement 总体及各 family 均为 1.0，health gate 通过，C00–C11 均有支持。服务器完整测试仍待运行，故不能写成全套通过。
+- 局限：本地规模极小；C09 的 `now` 因无有效当前 evidence 结构性中性；1-step scorer 数值不是可比较成绩；正式规模时间/磁盘和新预算尚未选择。
+- 下一步：推送干净实现提交；服务器先单独执行 `full_test`，成功后再执行 `health_benchmark` 并导出带 provenance 的 JSON。两者通过后才登记新的 S1/S2 网格。
 
 ## 后续条目模板
 

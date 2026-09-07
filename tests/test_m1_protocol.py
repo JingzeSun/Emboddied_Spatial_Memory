@@ -118,12 +118,27 @@ class TestM1Protocol(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "every configured family"):
             validate_m1_protocol(changed)
 
+    def test_configured_families_cannot_be_duplicated_to_fake_twelve(self):
+        changed = deepcopy(self.config)
+        changed["data"]["scenario_families"][-1] = "C10"
+        changed["data"]["continuous_rollout_required_families"][-1] = "C10"
+        with self.assertRaisesRegex(ValueError, "canonical order"):
+            validate_m1_protocol(changed)
+
     def test_no_execution_now_target_cannot_use_post_world(self):
         changed = deepcopy(self.config)
         changed["future"]["no_execution_now_target_inputs"] = (
             "immutable_prior_world;_current_online_observation;_candidate_post_world"
         )
         with self.assertRaisesRegex(ValueError, "may not use post-world"):
+            validate_m1_protocol(changed)
+
+    def test_no_execution_now_target_policy_is_frozen(self):
+        changed = deepcopy(self.config)
+        changed["future"]["no_execution_now_target_policy"][
+            "argument_cosine_minimum"
+        ] = 0.7
+        with self.assertRaisesRegex(ValueError, "current-relation policy"):
             validate_m1_protocol(changed)
 
     def test_live_energy_semantics_cannot_regress_to_constant_proxies(self):

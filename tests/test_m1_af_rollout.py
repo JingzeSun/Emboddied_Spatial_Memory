@@ -13,6 +13,7 @@ sys.path.insert(0, str(PROJECT / "src"))
 
 from cpmt.dev_learning import (
     METHODS,
+    OnlineModel,
     OutcomeScorer,
     SCORER_DIAGNOSTIC_POLICY,
     apply_candidate_admissibility_to_probabilities,
@@ -87,6 +88,69 @@ class TestM1AFCausalRollout(unittest.TestCase):
         distinct = {tuple(np.round(block, 6)) for block in blocks}
         self.assertEqual(len(distinct), 16)
 
+    def test_set_transformer_is_candidate_permutation_equivariant(self):
+        torch.manual_seed(17)
+        batch, candidates, context_dim, candidate_dim = 2, 4, 5, 3
+        future_dim, horizon, relation_dim = 6, 2, 5
+        context = torch.randn(batch, context_dim)
+        blocks = torch.randn(batch, candidates, candidate_dim)
+        x = torch.cat((context, blocks.reshape(batch, -1)), dim=1)
+        poses = torch.randn(batch, horizon)
+        permutation = torch.tensor([2, 0, 3, 1])
+        permuted_x = torch.cat((
+            context, blocks[:, permutation].reshape(batch, -1),
+        ), dim=1)
+        model = OnlineModel(
+            x.shape[1], 8, future_dim, horizon,
+            num_candidates=candidates, candidate_dim=candidate_dim,
+            relation_dim=relation_dim,
+            architecture="cross_candidate_set_transformer_v1",
+            attention_heads=2, set_attention_blocks=2,
+            feedforward_dim=16, dropout=0.0,
+        ).eval()
+        scorer = OutcomeScorer(
+            x.shape[1], 8, relation_dim, horizon,
+            num_candidates=candidates, candidate_dim=candidate_dim,
+            architecture="cross_candidate_set_transformer_v1",
+            attention_heads=2, set_attention_blocks=2,
+            feedforward_dim=16, dropout=0.0,
+        ).eval()
+        with torch.no_grad():
+            torch.testing.assert_close(
+                model(permuted_x), model(x)[:, permutation],
+            )
+            torch.testing.assert_close(
+                model.structured_relation_prediction(permuted_x, poses),
+                model.structured_relation_prediction(x, poses)[:, permutation],
+            )
+            torch.testing.assert_close(
+                scorer.predict_candidates(permuted_x, poses),
+                scorer.predict_candidates(x, poses)[:, permutation],
+            )
+
+    def test_registered_primary_architecture_settings_are_resolved(self):
+        smoke = json.loads(
+            (PROJECT / "configs" / "m1_af_smoke.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        smoke["architecture"] = "cross_candidate_set_transformer_v1"
+        resolved = resolve_af_smoke_config(self.hard, smoke)
+        expected = self.hard["architecture_evaluation"][
+            "cross_candidate_set_transformer_v1"
+        ]
+        self.assertEqual(resolved["hidden_dim"], expected["model_dim"])
+        self.assertEqual(
+            resolved["attention_heads"], expected["attention_heads"],
+        )
+        self.assertEqual(
+            resolved["set_attention_blocks"],
+            expected["set_attention_blocks"],
+        )
+        smoke["architecture"] = "unregistered"
+        with self.assertRaisesRegex(ValueError, "unregistered"):
+            resolve_af_smoke_config(self.hard, smoke)
+
     def test_protected_touch_matches_exact_structured_ids(self):
         program = {
             "protected_ids": ["node-1"],
@@ -136,14 +200,14 @@ class TestM1AFCausalRollout(unittest.TestCase):
         self.assertEqual(illegal["legal_wrong_template_rate"], 0.0)
 
     def test_arrays_keep_exact_ambiguous_pair_and_groupwise_labels(self):
-        self.assertEqual(self.train["x"].shape[0], 84)
-        self.assertEqual(self.validation["x"].shape[0], 42)
+        self.assertEqual(self.train["x"].shape[0], 80)
+        self.assertEqual(self.validation["x"].shape[0], 40)
         first = self.validation_audit[0]
         second = self.validation_audit[1]
         pivot = first["ambiguity_pivot_step"]
         self.assertEqual(pivot, second["ambiguity_pivot_step"])
         left_index = pivot
-        right_index = 21 + pivot
+        right_index = 20 + pivot
         np.testing.assert_array_equal(
             self.validation["x"][left_index], self.validation["x"][right_index]
         )
@@ -172,8 +236,32 @@ class TestM1AFCausalRollout(unittest.TestCase):
             self.assertEqual(len(set(assignments.tolist())), 1)
 
     def test_executed_teacher_covers_reference_and_illegal_is_masked(self):
-        self.assertTrue(np.all(self.train["pstar"].argmax(axis=1) == self.train["y"]))
-        self.assertTrue(np.all(self.validation["pstar"].argmax(axis=1) == self.validation["y"]))
+        health_minimum = self.hard["energy"]["teacher_health_gate"][
+            "reference_agreement_overall_minimum"
+        ]
+        self.assertGreaterEqual(
+            float(np.mean(self.train["pstar"].argmax(axis=1) == self.train["y"])),
+            health_minimum,
+        )
+        self.assertGreaterEqual(
+            float(np.mean(
+                self.validation["pstar"].argmax(axis=1)
+                == self.validation["y"]
+            )),
+            health_minimum,
+        )
+        self.assertEqual(self.train["teacher_matches_reference"].shape, (80,))
+        self.assertEqual(self.train["scenario_family_index"].shape, (80,))
+        self.assertEqual(
+            set(self.train["scenario_family_index"]), set(range(12)) | {-1},
+        )
+        for term in (
+            "now", "future", "edit", "growth", "collateral", "illegal",
+            "now_raw", "future_raw",
+        ):
+            self.assertEqual(
+                self.train[f"candidate_energy_{term}"].shape, (80, 16),
+            )
         self.assertTrue(np.all(np.isfinite(self.train["x"])))
         self.assertTrue(np.all(np.isfinite(self.train["future"])))
         self.assertTrue(np.all((self.train["penalties"] >= 1_000_000).sum(axis=1) >= 1))
@@ -181,12 +269,12 @@ class TestM1AFCausalRollout(unittest.TestCase):
         self.assertEqual(self.validation["penalties"].shape[1], 16)
         # E may use only transaction-declared costs at candidate-scoring time;
         # executor-derived illegality/collateral remains unavailable to it.
-        self.assertEqual(self.train["no_execution_penalties"].shape, (84, 16))
+        self.assertEqual(self.train["no_execution_penalties"].shape, (80, 16))
         self.assertTrue(np.all(np.isfinite(self.train["no_execution_penalties"])))
         self.assertTrue(np.all(self.train["no_execution_penalties"] < 1_000_000))
         preflight = self.train["candidate_static_preflight_pass"]
         legal = self.train["candidate_legal"]
-        self.assertEqual(preflight.shape, (84, 16))
+        self.assertEqual(preflight.shape, (80, 16))
         self.assertFalse(np.any(~preflight & legal))
         self.assertTrue(np.any(~preflight & ~legal))
         rows = np.arange(len(self.train["y"]))
@@ -199,21 +287,32 @@ class TestM1AFCausalRollout(unittest.TestCase):
             (self.train["candidate_static_preflight_failure_code"] == 0)
             == preflight
         ))
-        relation_dim = 3 * 6
+        current_relation_dim = 3
+        relation_dim = current_relation_dim + 3 * 6
         self.assertEqual(
             self.train["relation_targets"].shape,
-            (84, 16, relation_dim),
+            (80, 16, relation_dim),
         )
         self.assertEqual(
             self.train["relation_mask"].shape,
             self.train["relation_targets"].shape,
         )
         self.assertTrue(np.all(self.train["relation_mask"].sum(axis=2) > 0))
+        active_desired = self.train["relation_desired"][
+            self.train["relation_mask"] > 0
+        ]
+        self.assertTrue(np.all(np.isin(active_desired, [0.0, 1.0])))
+        current_mask = self.train["relation_mask"][:, :, :current_relation_dim]
+        current_desired = self.train["relation_desired"][
+            :, :, :current_relation_dim
+        ][current_mask > 0]
+        self.assertTrue(np.any(current_desired == 0.0))
+        future_mask = self.train["relation_mask"][:, :, current_relation_dim:]
+        future_desired = self.train["relation_desired"][
+            :, :, current_relation_dim:
+        ][future_mask > 0]
         np.testing.assert_array_equal(
-            self.train["relation_desired"][self.train["relation_mask"] > 0],
-            np.ones_like(
-                self.train["relation_desired"][self.train["relation_mask"] > 0]
-            ),
+            future_desired, np.ones_like(future_desired),
         )
 
     def test_every_generated_row_has_an_admitted_noop_fallback(self):
@@ -271,8 +370,34 @@ class TestM1AFCausalRollout(unittest.TestCase):
             oracle["causal_rollout"]["memory_contamination_per_100"], 0.0,
         )
         self.assertIn(
-            "future_relation_bce", details["outcome_scorer_training"][0]
+            "current_future_relation_bce",
+            details["outcome_scorer_training"][0],
         )
+
+    def test_set_transformer_runs_full_a_to_f_with_matched_students(self):
+        raw = json.loads(
+            (PROJECT / "configs" / "m1_af_smoke.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        raw["architecture"] = "cross_candidate_set_transformer_v1"
+        config = resolve_af_smoke_config(self.hard, raw)
+        config.update(student_steps=1, scorer_steps=1, batch_size=8)
+        results, _, models = run_af_seed(
+            self.train, self.validation, self.validation_audit, config, 7,
+        )
+        self.assertEqual(set(results), set(METHODS))
+        counts = {
+            results[method]["student_parameters"]
+            for method in METHODS if method != "oracle_candidate_program"
+        }
+        self.assertEqual(len(counts), 1)
+        for method in METHODS:
+            if method != "oracle_candidate_program":
+                self.assertEqual(
+                    models[method].architecture,
+                    "cross_candidate_set_transformer_v1",
+                )
 
     def test_shared_candidate_mask_keeps_slots_and_zeroes_rejections(self):
         logits = torch.tensor([[0.0, 100.0, 1.0]], dtype=torch.float32)

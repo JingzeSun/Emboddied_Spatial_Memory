@@ -42,16 +42,6 @@ def _shard(task: tuple[str, str, int, int, str]) -> tuple[int, str]:
     arrays = rollout_learning_arrays_from_audits(
         config, audits, future_hash_bins=future_hash_bins,
     )
-    # Carried through so a drop in teacher/reference agreement is visible in
-    # the merged run rather than only inside a discarded per-group summary.
-    steps = [
-        step for audit in audits
-        for step in audit["steps"] + audit.get("recovery_examples", [])
-    ]
-    arrays["teacher_matches_reference"] = np.asarray(
-        [bool(step["teacher_winner_matches_reference"]) for step in steps],
-        dtype=bool,
-    )
     # Every shard sees only its own group, so the local group column is all
     # zeros; the parent restores the serial numbering on merge.
     path = Path(out_dir) / f"{split}_{group_index:06d}.npz"
@@ -104,7 +94,13 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", default=str(PROJECT / "configs" / "m1_hard_condition.json"))
     parser.add_argument("--split", choices=["train", "validation"], required=True)
-    parser.add_argument("--paired-groups", type=int, required=True)
+    parser.add_argument(
+        "--groups-per-family", type=int, required=True,
+        help=(
+            "paired groups for each configured C00-C11 family; the generated "
+            "mixed schedule therefore contains this value times 12 groups"
+        ),
+    )
     parser.add_argument("--future-hash-bins", type=int, default=32)
     parser.add_argument("--workers", type=int, default=max(1, mp.cpu_count() - 1))
     parser.add_argument("--out", required=True, help="output .npz path")
@@ -115,6 +111,11 @@ def main() -> int:
 
     config_path = Path(args.config)
     config = load_and_validate(config_path)
+    groups_per_family = int(args.groups_per_family)
+    if groups_per_family <= 0:
+        raise ValueError("groups-per-family must be positive")
+    configured_families = list(config["data"]["scenario_families"])
+    paired_groups_total = groups_per_family * len(configured_families)
     generation_provenance = capture_run_provenance(
         PROJECT, component="m1_array_generation", entrypoint=Path(__file__),
     )
@@ -123,38 +124,93 @@ def main() -> int:
     print(f"protocol sha256 {protocol_sha256(config)[:16]}  "
           f"dataset {config['data']['dataset_version']}", flush=True)
 
+    generation_started = time.time()
     arrays = generate_parallel(
-        config_path, args.split, args.paired_groups,
+        config_path, args.split, paired_groups_total,
         future_hash_bins=args.future_hash_bins, workers=args.workers,
         out_dir=shard_dir,
     )
     out.parent.mkdir(parents=True, exist_ok=True)
     np.savez(out, **arrays)
+    generation_seconds = time.time() - generation_started
     agree = np.asarray(arrays["teacher_matches_reference"], dtype=bool)
+    recovery = np.asarray(arrays["recovery"], dtype=bool)
+    online = ~recovery
+    family_indices = np.asarray(arrays["scenario_family_index"], dtype=np.int64)
+    family_health = {}
+    activation_by_family = {}
+    for family_index, family in enumerate(configured_families):
+        family_mask = online & (family_indices == family_index)
+        support = int(family_mask.sum())
+        family_health[family] = {
+            "support": support,
+            "reference_agreement": (
+                float(agree[family_mask].mean()) if support else None
+            ),
+        }
+        activation_by_family[family] = {
+            term: {
+                "nonzero_fraction": (
+                    float(np.mean(
+                        np.asarray(arrays[f"candidate_energy_{term}"])[family_mask]
+                        != 0.0
+                    )) if support else None
+                ),
+                "distinct_values": (
+                    int(len(np.unique(np.round(
+                        np.asarray(arrays[f"candidate_energy_{term}"])[family_mask],
+                        9,
+                    )))) if support else 0
+                ),
+            }
+            for term in ("now", "collateral")
+        }
+    health_contract = config["energy"]["teacher_health_gate"]
+    overall_agreement = float(agree[online].mean())
+    overall_pass = overall_agreement >= float(
+        health_contract["reference_agreement_overall_minimum"]
+    )
+    each_family_pass = all(
+        item["support"] > 0
+        and item["reference_agreement"]
+        >= float(health_contract["reference_agreement_each_family_minimum"])
+        for item in family_health.values()
+    )
+    teacher_health_gate = {
+        "applicable": args.split == "train",
+        "overall_reference_agreement": overall_agreement,
+        "overall_minimum": float(
+            health_contract["reference_agreement_overall_minimum"]
+        ),
+        "each_family_minimum": float(
+            health_contract["reference_agreement_each_family_minimum"]
+        ),
+        "by_family": family_health,
+        "pass": bool(overall_pass and each_family_pass),
+        "failure_action": health_contract["failure_action"],
+    }
     print(f"wrote {out}  learning_rows={len(arrays['y'])} "
           f"(online={int((~arrays['recovery']).sum())}, "
           f"recovery={int(arrays['recovery'].sum())})  "
           f"digest={_digest(arrays)[:16]}")
-    print(f"teacher/reference agreement {agree.mean():.6f}  "
-          f"({int((~agree).sum())} disagreements of {len(agree)} decisions)")
+    print(f"teacher/reference agreement {overall_agreement:.6f}  "
+          f"({int((~agree[online]).sum())} disagreements of "
+          f"{int(online.sum())} online learning rows)")
+    print(
+        "teacher health gate "
+        f"{'PASS' if teacher_health_gate['pass'] else 'FAIL'}",
+        flush=True,
+    )
 
     if args.verify:
         print("verifying against a serial run...", flush=True)
         started = time.time()
         _, audits, _ = generate_m1_paired_rollout_split(
-            config, args.split, paired_groups=args.paired_groups,
+            config, args.split, paired_groups=paired_groups_total,
         )
         serial = rollout_learning_arrays_from_audits(
             config, audits, future_hash_bins=args.future_hash_bins,
         )
-        serial_steps = [
-            step for audit in audits
-            for step in audit["steps"] + audit.get("recovery_examples", [])
-        ]
-        serial["teacher_matches_reference"] = np.asarray([
-            bool(step["teacher_winner_matches_reference"])
-            for step in serial_steps
-        ], dtype=bool)
         serial_seconds = time.time() - started
         if _digest(serial) != _digest(arrays):
             differing = [
@@ -165,11 +221,15 @@ def main() -> int:
             return 1
         print(f"identical to serial ({serial_seconds:.1f}s serial)")
     manifest = {
-        "schema_version": "cpmt-m1-generation-manifest-v2",
-        "runner": "generate_m1_parallel_v2",
+        "schema_version": "cpmt-m1-generation-manifest-v3",
+        "runner": "generate_m1_parallel_v3",
         "split": args.split,
-        "paired_groups": args.paired_groups,
+        "groups_per_family": groups_per_family,
+        "configured_scenario_families": configured_families,
+        "configured_family_count": len(configured_families),
+        "paired_groups_total": paired_groups_total,
         "workers": args.workers,
+        "generation_seconds": generation_seconds,
         "protocol_sha256": protocol_sha256(config),
         "dataset_version": config["data"]["dataset_version"],
         # ``decisions`` is retained for old readers; M1-v2 distinguishes the
@@ -178,14 +238,27 @@ def main() -> int:
         "online_chain_decisions": int((~arrays["recovery"]).sum()),
         "recovery_training_examples": int(arrays["recovery"].sum()),
         "arrays_digest": _digest(arrays),
-        "teacher_reference_agreement": float(agree.mean()),
-        "teacher_disagreement_decisions": int((~agree).sum()),
+        "merged_npz_bytes": int(out.stat().st_size),
+        "retained_shard_count": int(len(list(shard_dir.glob("*.npz")))),
+        "retained_shard_bytes": int(sum(
+            path.stat().st_size for path in shard_dir.glob("*.npz")
+        )),
+        "teacher_reference_agreement": overall_agreement,
+        "teacher_disagreement_decisions": int((~agree[online]).sum()),
+        "teacher_health_gate": teacher_health_gate,
+        "live_energy_activation_by_family": activation_by_family,
         "formal_run": False,
         "test_generated": False,
         "generation_provenance": generation_provenance,
     }
     (out.with_suffix(".manifest.json")).write_text(
         canonical_json(manifest), encoding="utf-8")
+    if args.split == "train" and not teacher_health_gate["pass"]:
+        print(
+            "ERROR: train teacher health gate failed; do not start training",
+            flush=True,
+        )
+        return 2
     return 0
 
 

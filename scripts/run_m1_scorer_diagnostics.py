@@ -30,6 +30,7 @@ from cpmt.dev_learning import (  # noqa: E402
 from cpmt.m1_af_rollout import (  # noqa: E402
     CANDIDATE_FAILURE_TYPES,
     CANDIDATE_FEATURE_DIM,
+    CURRENT_RELATION_QUERIES,
     selection_error_decomposition,
     static_preflight_diagnostics,
     structured_relation_oracle_probabilities,
@@ -64,7 +65,14 @@ def _load_train(
         raise ValueError("train arrays do not match the active dataset version")
     if manifest.get("split") != "train":
         raise ValueError("scorer diagnostics accept train arrays only")
-    data.pop("teacher_matches_reference", None)
+    for key in (
+        "teacher_matches_reference", "scenario_family_index",
+        "candidate_energy_now", "candidate_energy_future",
+        "candidate_energy_edit", "candidate_energy_growth",
+        "candidate_energy_collateral", "candidate_energy_illegal",
+        "candidate_energy_now_raw", "candidate_energy_future_raw",
+    ):
+        data.pop(key, None)
     return data, {
         "path": str(path),
         "arrays_digest": digest,
@@ -105,6 +113,8 @@ def _relation_diagnostics(
     probabilities = structured_relation_oracle_probabilities(
         arrays,
         future_weight=float(hard["energy"]["weights"]["future"]),
+        now_weight=float(hard["energy"]["weights"]["now"]),
+        current_relation_dim=len(CURRENT_RELATION_QUERIES),
         temperature=float(hard["energy"]["temperature"]),
         static_preflight_pass=preflight,
     )
@@ -142,6 +152,15 @@ def main() -> int:
     parser.add_argument("--seeds", type=int, nargs="+", default=[7])
     parser.add_argument("--scorer-steps", type=int, required=True)
     parser.add_argument(
+        "--architecture",
+        choices=(
+            "cross_candidate_set_transformer_v1",
+            "shared_candidate_mlp_v1",
+        ),
+        default=None,
+        help="defaults to the preregistered primary Set Transformer arm",
+    )
+    parser.add_argument(
         "--paired-groups", type=int, default=None,
         help=(
             "optional deterministic prefix of complete train paired groups; "
@@ -160,6 +179,11 @@ def main() -> int:
         expected_protocol_sha256=active_protocol_sha256,
         expected_dataset_version=str(hard["data"]["dataset_version"]),
     )
+    train_health = train_input["manifest"].get("teacher_health_gate")
+    if not train_health or train_health.get("pass") is not True:
+        raise ValueError(
+            "train arrays did not pass the preregistered teacher health gate"
+        )
     available_groups = sorted(set(int(value) for value in train_np["group"]))
     if args.paired_groups is not None:
         train_np = subset_paired_array_groups(train_np, args.paired_groups)
@@ -183,15 +207,29 @@ def main() -> int:
     smoke = json.loads(
         (PROJECT / "configs" / "m1_af_smoke.json").read_text(encoding="utf-8")
     )
+    architecture = (
+        args.architecture or hard["architecture_evaluation"]["primary"]
+    )
+    architecture_spec = hard["architecture_evaluation"][architecture]
     cfg = dict(
         smoke,
-        hidden_dim=64,
+        architecture=architecture,
+        hidden_dim=int(architecture_spec.get(
+            "model_dim", architecture_spec.get("hidden_dim"),
+        )),
+        attention_heads=int(architecture_spec.get("attention_heads", 4)),
+        set_attention_blocks=int(
+            architecture_spec.get("set_attention_blocks", 2)
+        ),
+        feedforward_dim=int(architecture_spec.get("feedforward_dim", 256)),
+        architecture_dropout=float(architecture_spec.get("dropout", 0.0)),
         horizon=int(hard["future"]["primary_horizon"]),
         learning_rate=2e-3,
         batch_size=64,
         device="cpu",
         scorer_steps=int(args.scorer_steps),
         candidate_feature_dim=CANDIDATE_FEATURE_DIM,
+        current_relation_dim=len(CURRENT_RELATION_QUERIES),
         standardize_future_term=True,
         energy_weights=hard["energy"]["weights"],
         temperature=float(hard["energy"]["temperature"]),
@@ -335,6 +373,7 @@ def main() -> int:
         "causal_complete": False,
         "protocol_sha256": active_protocol_sha256,
         "dataset_version": hard["data"]["dataset_version"],
+        "architecture": architecture,
         "training_provenance": capture_run_provenance(
             PROJECT,
             component="m1_train_inner_dev_scorer_diagnostic",

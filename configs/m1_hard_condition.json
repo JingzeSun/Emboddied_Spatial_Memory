@@ -46,6 +46,7 @@
     "no_execution_target": "candidate_scoped_future_relations_v1",
     "no_execution_now_target": "candidate_scoped_current_relations_v1",
     "no_execution_now_target_inputs": "immutable_prior_world;_current_online_observation;_candidate_program_declarations;_never_candidate_post_world;_never_executor_outcome;_never_legality;_never_future",
+    "no_execution_now_target_policy": {"argument_cosine_minimum": 0.8, "novel_entity_best_maximum": 0.6, "split_best_minimum": 0.55, "split_best_maximum": 0.8, "dormant_match_minimum": 0.8, "merge_best_minimum": 0.8, "merge_second_minimum": 0.8},
     "no_execution_candidate_execution": "forbidden_for_candidate_scoring_and_target_construction;_selected_transaction_uses_shared_executor",
     "no_execution_supervision": "dense_queries_for_all_k16_candidates_from_actual_reference_future"
   },
@@ -97,7 +98,7 @@
     "now_semantics": "post_edit_projection_mismatch_against_valid_current_online_observation",
     "now_normalization": "per_method_per_decision_zscore_over_available_admitted_candidates;_executed_teacher_excludes_executor_illegal;_store_raw_and_scaled",
     "future_normalization": "per_method_per_decision_zscore_over_available_admitted_candidates;_executed_teacher_excludes_executor_illegal;_store_raw_and_scaled",
-    "collateral_semantics": "binary_any_legal_open_memory_mutation_outside_candidate_declared_evidence_affected_subgraph",
+    "collateral_semantics": "binary_any_legal_preexisting_open_memory_mutation_outside_candidate_independent_current_online_evidence_scope",
     "protected_touch_semantics": "executor_illegal_not_collateral",
     "activation_audit": "report_nonzero_rate_and_distribution_for_now_and_collateral_overall_and_by_family",
     "teacher_health_gate": {"reference_agreement_overall_minimum": 0.95, "reference_agreement_each_family_minimum": 0.90, "failure_action": "stop_without_weight_tuning_and_open_new_pretest_decision"},
