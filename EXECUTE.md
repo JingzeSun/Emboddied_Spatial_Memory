@@ -4,7 +4,7 @@
 
 ## 当前看板
 
-> **2026-09-07 更新（LOG-033）：** v5 的 10-group × 1000-step × 五 seed 数据量锚点已完成。共同 inner-dev group 1 上，40−10 candidate-ranking accuracy 的五 seed 平均差为 `+0.005000`，仅 `1/5` seed 严格为正；未达到预登记的均值 `>=0.025` 且至少 `4/5` 为正，故 **S3 不触发**，1000-step 预算不变。锚点原始 report 尚待 exporter 导入 `results/`；之后进入 S4 预冻结审计，不训练 student、不跑 causal 或 test。
+> **2026-09-07 更新（LOG-033）：** v5 的 10-group × 1000-step × 五 seed 数据量锚点已完成并导入 `results/`。共同 inner-dev group 1 上，40−10 candidate-ranking accuracy 的五 seed 平均差为 `+0.005000`，仅 `1/5` seed 严格为正；未达到预登记的均值 `>=0.025` 且至少 `4/5` 为正，故 **S3 不触发**。当前进入 S4，只盘点现有 arrays 的时间/空间成本并外推每 family 正式规模；不生成数据、不训练、不读取 test，成本结果出来前不写 D-039。
 
 最后更新：2026-09-07，LOG-033 v5 S2 数据量锚点未触发 S3；正式 M1 gate 未运行、未生成或读取 test。
 
@@ -14,11 +14,11 @@
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
 | 阶段 | M1-v2 `pretest_lock_candidate`；只开放 train/validation，尚未重新冻结，正式 gate 未运行，不是 M2/Full CPMT |
 | 最近结果 | v5 S1 的 target/assembly 与 scorer 接线改善已由 LOG-031 记录；S2 五 seed 在 40 groups 上选择 1000 steps：300/1000 inner-dev teacher mean=`0.767500/0.794375`，总体 masked BCE mean=`0.086793/0.062483`，ranking-relevant BCE mean=`0.153600/0.102113`，reference margin mean=`0.379248/0.309308`。同预算 10-group 锚点的共同 group 1 teacher mean=`0.905000`，40-group 为 `0.910000`，40−10=`+0.005000`，仅 `1/5` seed 为正，故 S3 未触发。预算选择只依据 candidate-ranking accuracy 的预登记 CI，不把 BCE 或 margin 当选择量 |
-| 尚缺 | 先将 10-group 锚点 report 导入并提交 `results/`，随后执行 S4 正式规模/能量/分母的预冻结审计。S3 已因预登记方向判据失败而跳过；test 仍封存，PNO 与 Khronos 式全局慢路径属 M2 |
+| 尚缺 | S4 先完成现有 v5 40-group arrays 的成本盘点，再拟定 D-039：区分 C00–C11/per-family gate/now/collateral 的合同一致性修复与 cross-candidate attention、E 对称 now target 的方法变化；新协议必须重新选择 scorer/student 预算。S3 已跳过，test 仍封存 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
 | 当前决定 | D-034：M1-v2 只加入有界、证据触发的局部补偿，E 不执行候选评分分支；D-038：static preflight 是 A–E 共享 online mask，但不替代 executor illegal 或候选审计；全局 reconciliation、PNO 与 M2 顺序不变 |
 | 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 test。scorer loss 不因本轮 BCE 下降自动修改；1000 steps 已按 ranking CI 选定，S3 已由数据量锚点的预登记判据排除 |
-| Git 备份 | D-038 科学代码基线为 `72afa7d`；S2 report 已在提交 `ececefb` 导入 `results/`，服务器大产物仍位于 ignored `outputs/`。本轮起服务器操作只通过版本化的 `ops/run_next_server_step.sh` 交付，脚本所在提交仍须先 push、服务器再 pull |
+| Git 备份 | D-038 科学代码基线为 `72afa7d`；S2 40-group reports 已在提交 `ececefb`、10-group 锚点已在 `70355ac` 导入 `results/`，服务器大产物仍位于 ignored `outputs/`。服务器操作只通过版本化的 `ops/run_next_server_step.sh` 交付，脚本所在提交仍须先 push、服务器再 pull |
 
 白话：M1-v2 现在仍是“考前定卷”，不是已冻结或已通过。旧容量诊断证明简单 MLP 在给足标签时能拟合可见训练关系；新的 K=16 与恢复审计只证明候选、executor 和 active-world 评测路径可达。这些都不等于 CTL 已胜出，更不是带 PNO 的 Full CPMT。
 
@@ -532,11 +532,11 @@ M1-v2 的阶段顺序、转向条件和成功/失败终点见 [M1-v2 收口执�
 
 ### LOG-033—2026-09-07—v5 S2 10-group 同预算数据量锚点
 
-- 类型/状态：M1-development、train/inner-dev、scorer-only 的预登记锚点完成；服务器入口返回 `SERVER_STEP_OK stage=m1_v2_v5_s2_g10_s1000_five_seed_anchor`。原始 report 仍在服务器 ignored `outputs/`，尚待导出，故不构成 formal gate 或 CTL 结论。
+- 类型/状态：M1-development、train/inner-dev、scorer-only 的预登记锚点完成；服务器入口返回 `SERVER_STEP_OK stage=m1_v2_v5_s2_g10_s1000_five_seed_anchor`。原始 report 后续已导出至 `results/m1-v2-s2-g10-s1000-v5-72afa7d.json` 并在提交 `70355ac` 保存；它仍不构成 formal gate 或 CTL 结论。
 - 目的/固定：只回答在已选 1000 scorer steps 下，10→40 groups 是否显示足够明确的继续扩大 train diversity 信号。固定 v5 arrays、共同 inner-dev group 1、seeds `{7,19,31,43,59}`；不改 scorer loss，不重新选择预算，不读 validation/test。
 - 数据/provenance：输入 arrays digest=`f68205b58a6d4a97f92e3432b0d1d3515a5b739a5b226994e4030515b930d7b0`，protocol=`34f76fcbef7009ece83368109cfbe4b3c7fd5e0f7e4e61c52134170fa161787a`，dataset=`m1-paired-latent-worlds-v5-shared-static-preflight`；训练提交 `d8665d8068a55847bc6a5d38f8e52f2e34c2eca4` 干净。10-group 拟合/inner-dev group 划分为 `9/1`，并保持 `validation_arrays_read=false`、`validation_trial_consumed=false`、`test_generated=false`、`causal_complete=false`。
 - 结果/判据：10-group group 1 的逐 seed candidate-ranking accuracy 为 `{7:0.925,19:0.925,31:0.875,43:0.875,59:0.925}`；对应 40-group 为 `{7:0.925,19:0.925,31:0.850,43:0.925,59:0.925}`。40−10 差为 `{7:0,19:0,31:-0.025,43:+0.050,59:0}`，均值=`+0.005000`、严格正差=`1/5`。预登记触发条件为均值 `>=0.025` 且至少 `4/5` 严格为正；两项均未满足，故 **S3 不触发**。
-- 局限/决定：这仅有一个独立 group，不能构造可信 CI，也不支持“更多数据无效”的普遍结论；它只否定了继续投入 S3 的预登记必要条件。保持 1000 steps，不训练 student、不跑 causal、不生成或读取 test；下一步先导出该锚点 report，再进入 S4 预冻结审计。
+- 局限/决定：这仅有一个独立 group，不能构造可信 CI，也不支持“更多数据无效”的普遍结论；它只否定了继续投入 S3 的预登记必要条件。该 report 已导出；随后进入 S4 预冻结审计，不训练 student、不跑 causal、不生成或读取 test。
 
 ## 后续条目模板
 
