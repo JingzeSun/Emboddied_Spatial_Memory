@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Unique active CPMT server phase: validate the D-042 budget contract/runner.
+# Unique active CPMT server phase: validate the D-043 architecture/budget contract.
 #
 # Prerequisites:
 # - origin/main and the clean server checkout point to this handoff commit;
@@ -15,17 +15,17 @@
 
 set -uo pipefail
 
-CPMT_SERVER_STEP_ID="m1_v5_v8_d042_budget_contract_full_test"
-CPMT_PREREQUISITE_COMMIT="1de500d292ff90bcee889221203269df43c3515d"
-CPMT_EXPECTED_PROTOCOL="876709e3c5796cd3462e01d3706abef825073336b51d1dca538b13ee2f3b7e6a"
+CPMT_SERVER_STEP_ID="m1_v6_v8_d043_architecture_budget_full_test"
+CPMT_PREREQUISITE_COMMIT="1f5276d13653785de58677900a332097dc5fca63"
+CPMT_EXPECTED_PROTOCOL="73666cabb77b4884302d77ca621669bfdc77e86a44951b8a92b97208509c0eec"
 CPMT_EXPECTED_DATASET="m1-paired-latent-worlds-v8-fixed-range-current-energy"
-CPMT_EXPECTED_TESTS="181"
+CPMT_EXPECTED_TESTS="191"
 
 CPMT_SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)" || exit 2
 CPMT_REPO_DIR="$(git -C "$CPMT_SCRIPT_DIR" rev-parse --show-toplevel)" || exit 2
 CPMT_CURRENT_COMMIT="$(git -C "$CPMT_REPO_DIR" rev-parse HEAD)" || exit 2
 CPMT_SHORT_COMMIT="$(git -C "$CPMT_REPO_DIR" rev-parse --short=7 HEAD)" || exit 2
-CPMT_RUN_DIR="$CPMT_REPO_DIR/outputs/m1-v5-v8-d042-full-test-$CPMT_SHORT_COMMIT"
+CPMT_RUN_DIR="$CPMT_REPO_DIR/outputs/m1-v6-v8-d043-full-test-$CPMT_SHORT_COMMIT"
 CPMT_TEST_LOG="$CPMT_RUN_DIR/full_test.log"
 CPMT_OK_MARKER="$CPMT_RUN_DIR/full_test.ok.json"
 
@@ -41,7 +41,7 @@ command -v python >/dev/null 2>&1 || cpmt_fail "python_not_found"
 command -v git >/dev/null 2>&1 || cpmt_fail "git_not_found"
 git -C "$CPMT_REPO_DIR" merge-base --is-ancestor \
   "$CPMT_PREREQUISITE_COMMIT" "$CPMT_CURRENT_COMMIT" || \
-  cpmt_fail "v8_health_review_prerequisite_missing"
+  cpmt_fail "d042_budget_runner_prerequisite_missing"
 git -C "$CPMT_REPO_DIR" diff --quiet || cpmt_fail "tracked_changes_present"
 git -C "$CPMT_REPO_DIR" diff --cached --quiet || \
   cpmt_fail "staged_changes_present"
@@ -94,7 +94,7 @@ assert marker == {
 print("FULL_TEST_REUSED tests={}".format(marker["tests"]))
 PY
   printf "SERVER_STEP_OK id=%s\n" "$CPMT_SERVER_STEP_ID"
-  printf "NEXT=rewrite_entry_for_1000_group_train_generation\n"
+  printf "NEXT=rewrite_entry_for_12_group_v8_arrays_digest_invariance\n"
   exit 0
 fi
 
@@ -134,4 +134,4 @@ PY
 printf "FULL_TEST_LOG=%s\n" "$CPMT_TEST_LOG"
 printf "FULL_TEST_MARKER=%s\n" "$CPMT_OK_MARKER"
 printf "SERVER_STEP_OK id=%s\n" "$CPMT_SERVER_STEP_ID"
-printf "NEXT=rewrite_entry_for_1000_group_train_generation\n"
+printf "NEXT=rewrite_entry_for_12_group_v8_arrays_digest_invariance\n"

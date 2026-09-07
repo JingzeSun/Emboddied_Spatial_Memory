@@ -29,8 +29,8 @@ SCORER_DIAGNOSTIC_POLICY = {
         "shared_mask_inner_dev_candidate_ranking_accuracy"
     ),
     "budget_selection_rule": (
-        "per_architecture_registered_checkpoint_grid_highest_equal_seed_"
-        "and_complete_group_mean_with_exact_ties_to_fewer_updates"
+        "per_architecture_registered_lr_checkpoint_grid_highest_equal_seed_"
+        "and_complete_group_mean_with_exact_ties_to_fewer_updates_then_lr"
     ),
     "primary_bce_mismatch_diagnostic": "ranking_relevant_bce",
     "secondary_bce_explanation": "target_discriminative_bce",
@@ -151,6 +151,8 @@ class SetAttentionBlock(nn.Module):
     candidates only permutes the outputs; the model cannot learn slot IDs.
     """
 
+    normalization = "pre_layernorm_with_final_layernorm"
+
     def __init__(
         self, model_dim: int, attention_heads: int, feedforward_dim: int,
         dropout: float,
@@ -169,14 +171,14 @@ class SetAttentionBlock(nn.Module):
         self.feedforward_norm = nn.LayerNorm(model_dim)
 
     def forward(self, tokens: torch.Tensor) -> torch.Tensor:
+        attention_input = self.attention_norm(tokens)
         attended, _ = self.attention(
-            tokens, tokens, tokens, need_weights=False,
+            attention_input, attention_input, attention_input,
+            need_weights=False,
         )
-        tokens = self.attention_norm(
-            tokens + self.attention_dropout(attended)
-        )
-        return self.feedforward_norm(
-            tokens + self.feedforward_dropout(self.feedforward(tokens))
+        tokens = tokens + self.attention_dropout(attended)
+        return tokens + self.feedforward_dropout(
+            self.feedforward(self.feedforward_norm(tokens))
         )
 
 
@@ -227,6 +229,7 @@ class OnlineModel(nn.Module):
                 )
                 for _ in range(int(set_attention_blocks))
             ])
+            self.set_output_norm = nn.LayerNorm(hidden)
             self.candidate_scorer = nn.Linear(hidden, 1)
         elif self.candidate_dim:
             self.candidate_scorer = nn.Sequential(
@@ -262,7 +265,7 @@ class OnlineModel(nn.Module):
         tokens = self.candidate_embedding(torch.cat((expanded, blocks), dim=-1))
         for block in self.set_blocks:
             tokens = block(tokens)
-        return tokens
+        return self.set_output_norm(tokens)
 
     def forward(self, online_features: torch.Tensor) -> torch.Tensor:
         if self.architecture == "cross_candidate_set_transformer_v1":
@@ -357,6 +360,7 @@ class OutcomeScorer(nn.Module):
                 )
                 for _ in range(int(set_attention_blocks))
             ])
+            self.set_output_norm = nn.LayerNorm(hidden)
             self.relation_head = nn.Sequential(
                 nn.Linear(hidden + horizon, hidden), nn.ReLU(),
                 nn.Linear(hidden, future_dim),
@@ -408,6 +412,7 @@ class OutcomeScorer(nn.Module):
             )
             for block in self.set_blocks:
                 tokens = block(tokens)
+            tokens = self.set_output_norm(tokens)
             expanded_poses = poses.unsqueeze(1).expand(
                 -1, self.num_candidates, -1,
             )

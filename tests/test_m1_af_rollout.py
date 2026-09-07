@@ -16,6 +16,7 @@ from cpmt.dev_learning import (
     OnlineModel,
     OutcomeScorer,
     SCORER_DIAGNOSTIC_POLICY,
+    SetAttentionBlock,
     apply_candidate_admissibility_to_probabilities,
     masked_candidate_logits,
     masked_candidate_probabilities,
@@ -122,6 +123,12 @@ class TestM1AFCausalRollout(unittest.TestCase):
             attention_heads=2, set_attention_blocks=2,
             feedforward_dim=16, dropout=0.0,
         ).eval()
+        self.assertEqual(
+            SetAttentionBlock.normalization,
+            "pre_layernorm_with_final_layernorm",
+        )
+        self.assertIsInstance(model.set_output_norm, torch.nn.LayerNorm)
+        self.assertIsInstance(scorer.set_output_norm, torch.nn.LayerNorm)
         with torch.no_grad():
             torch.testing.assert_close(
                 model(permuted_x), model(x)[:, permutation],

@@ -30,7 +30,7 @@ def _require(condition: bool, message: str) -> None:
 
 def validate_m1_protocol(config: Mapping[str, Any]) -> None:
     """Reject incomplete, leaky, or silently weakened M1 protocol settings."""
-    _require(config.get("protocol") == "m1-hard-condition-v5", "wrong protocol")
+    _require(config.get("protocol") == "m1-hard-condition-v6", "wrong protocol")
     _require(config.get("stage") == "M1", "stage must be M1")
     _require(config.get("status") in {"pretest_lock_candidate", "frozen_pretest"},
              "protocol must be a pre-test candidate or frozen pre-test contract")
@@ -302,8 +302,12 @@ def validate_m1_protocol(config: Mapping[str, Any]) -> None:
              "five registered formal seeds changed")
     _require(training["same_online_encoder_A_to_E"] is True,
              "A-E must share the online encoder")
-    _require(training["same_student_updates_A_to_E"] is True,
-             "A-E student update budgets must match")
+    _require(
+        training.get("same_student_architecture_A_to_E") is True
+        and training.get("same_student_search_space_A_to_E") is True
+        and training.get("method_specific_student_hyperparameters") is True,
+        "A-E must share architecture/search space while selecting per-method optimization",
+    )
     _require(training["test_selects_nothing"] is True,
              "test cannot select any setting")
     _require(
@@ -328,13 +332,14 @@ def validate_m1_protocol(config: Mapping[str, Any]) -> None:
     )
     _require(
         budget.get("seeds") == training["formal_seeds"]
-        and float(budget.get("learning_rate", 0.0)) == 0.002
+        and budget.get("learning_rates") == [0.0002, 0.0006, 0.002]
         and int(budget.get("batch_size", 0)) == 64,
         "budget selection seeds or optimizer settings changed",
     )
     _require(
-        budget.get("scorer_update_checkpoints") == [300, 1000, 3000]
-        and budget.get("student_update_checkpoints") == [300, 1000, 3000]
+        budget.get("scorer_update_checkpoints") == [300, 1000, 3000, 10000]
+        and budget.get("student_update_checkpoints")
+        == [300, 1000, 3000, 10000]
         and budget.get("checkpoint_execution")
         == "one_identical_seeded_training_trajectory_to_maximum_and_evaluate_registered_prefix_checkpoints",
         "finite scorer/student checkpoint grids changed",
@@ -352,19 +357,53 @@ def validate_m1_protocol(config: Mapping[str, Any]) -> None:
             "cpmt_ctl_core", "direct_classifier", "direct_future_loss",
             "execute_current_only", "future_no_execution",
         ]
+        and budget.get("student_hyperparameters_selected_per_method") is True
         and budget.get("student_selection_metric")
-        == "inner_dev_online_student_argmax_matches_method_specific_teacher_argmax"
+        == "inner_dev_online_reference_candidate_ranking_accuracy"
         and budget.get("student_selection_aggregation")
-        == "equal_method_weight_then_equal_seed_and_complete_paired_group_weight",
-        "shared student budget selection metric changed",
+        == "within_each_method_equal_weight_mean_over_seed_and_complete_paired_group",
+        "per-method student budget selection metric changed",
     )
     _require(
         float(budget.get("direct_future_auxiliary_weight_anchor", -1.0)) == 1.0
         and budget.get("selection_rule")
-        == "highest_registered_aggregate_mean_with_exact_ties_to_fewer_updates"
+        == "highest_registered_lr_checkpoint_aggregate_mean_with_exact_ties_to_fewer_updates_then_lower_learning_rate"
+        and budget.get("upper_checkpoint_policy")
+        == "accept_registered_10000_and_report_budget_grid_ceiling_reached_without_posthoc_extension"
         and budget.get("selected_scorer_fixed_before_student_grid") is True
-        and budget.get("student_updates_shared_A_to_E_within_architecture") is True,
-        "budget ordering, tie break, or A-E fairness changed",
+        and budget.get(
+            "student_architecture_and_search_space_shared_A_to_E_within_architecture"
+        ) is True,
+        "budget ordering, ceiling policy, tie break, or A-E fairness changed",
+    )
+    _require(
+        budget.get("report_each_method_own_optimum_and_shared_anchor_gap") is True
+        and budget.get("shared_diagnostic_anchor")
+        == {"learning_rate": 0.0006, "student_updates": 3000},
+        "per-method optimum or shared-anchor diagnostic changed",
+    )
+    _require(
+        budget.get("dual_budget_readout")
+        == {
+            "method_specific": "each_method_at_its_own_selected_lr_and_checkpoint",
+            "shared": "one_cell_selected_by_equal_method_seed_and_complete_group_mean_reference_accuracy",
+            "cross": "A_at_E_selected_cell_and_E_at_A_selected_cell",
+            "selection_effect": "method_specific_cells_define_formal_training;_shared_and_cross_are_pre_registered_compute_sensitivity_diagnostics",
+            "grid_expansion_forbidden": True,
+        },
+        "method-specific, shared, or cross-budget readout changed",
+    )
+    _require(
+        budget.get("selection_uncertainty")
+        == {
+            "scope": "selected_minus_deterministic_runner_up",
+            "unit": "complete_paired_group_after_equal_seed_averaging",
+            "bootstrap_resamples": 10000,
+            "bootstrap_seed": 260907,
+            "confidence": 0.95,
+            "diagnostic_only_selection_rule_unchanged": True,
+        },
+        "budget-selection uncertainty diagnostic changed",
     )
     _require(
         budget.get("validation_arrays_read") is False
@@ -393,6 +432,11 @@ def validate_m1_protocol(config: Mapping[str, Any]) -> None:
         == "same_v8_arrays_and_full_A_to_F_within_each_architecture",
         "each architecture arm must run the full A-F method table on the same v8 arrays",
     )
+    _require(
+        architecture.get("fairness")
+        == "within_each_architecture_A_to_E_share_exact_online_architecture_input_and_hyperparameter_search_space_and_stay_within_registered_parameter_tolerance;_each_method_selects_its_own_lr_and_updates_by_the_same_train_inner_dev_rule",
+        "A-E architecture or symmetric hyperparameter-search fairness changed",
+    )
     set_spec = architecture.get("cross_candidate_set_transformer_v1", {})
     _require(
         {
@@ -401,6 +445,7 @@ def validate_m1_protocol(config: Mapping[str, Any]) -> None:
             "set_attention_blocks": set_spec.get("set_attention_blocks"),
             "feedforward_dim": set_spec.get("feedforward_dim"),
             "dropout": set_spec.get("dropout"),
+            "normalization": set_spec.get("normalization"),
             "candidate_output": set_spec.get("candidate_output"),
         }
         == {
@@ -409,6 +454,7 @@ def validate_m1_protocol(config: Mapping[str, Any]) -> None:
             "set_attention_blocks": 2,
             "feedforward_dim": 256,
             "dropout": 0.0,
+            "normalization": "pre_layernorm_with_final_layernorm",
             "candidate_output": "shared_equivariant_score_head",
         },
         "cross-candidate Set Transformer specification changed",

@@ -192,8 +192,13 @@ class TestM1Protocol(unittest.TestCase):
 
     def test_v8_budget_grid_is_finite_train_only_and_architecture_specific(self):
         budget = self.config["training"]["pretest_budget_selection"]
-        self.assertEqual(budget["scorer_update_checkpoints"], [300, 1000, 3000])
-        self.assertEqual(budget["student_update_checkpoints"], [300, 1000, 3000])
+        self.assertEqual(
+            budget["scorer_update_checkpoints"], [300, 1000, 3000, 10000]
+        )
+        self.assertEqual(
+            budget["student_update_checkpoints"], [300, 1000, 3000, 10000]
+        )
+        self.assertEqual(budget["learning_rates"], [0.0002, 0.0006, 0.002])
         self.assertEqual(budget["train_paired_groups"], 1000)
 
         changed = deepcopy(self.config)
@@ -215,6 +220,48 @@ class TestM1Protocol(unittest.TestCase):
             "architecture_result_selection_forbidden"
         ] = False
         with self.assertRaisesRegex(ValueError, "architecture arms"):
+            validate_m1_protocol(changed)
+
+        changed = deepcopy(self.config)
+        changed["training"]["same_student_architecture_A_to_E"] = False
+        with self.assertRaisesRegex(ValueError, "share architecture"):
+            validate_m1_protocol(changed)
+
+    def test_primary_set_transformer_is_pre_layernorm(self):
+        changed = deepcopy(self.config)
+        changed["architecture_evaluation"][
+            "cross_candidate_set_transformer_v1"
+        ]["normalization"] = "post_layernorm"
+        with self.assertRaisesRegex(ValueError, "specification changed"):
+            validate_m1_protocol(changed)
+
+    def test_budget_ceiling_policy_cannot_expand_after_results(self):
+        changed = deepcopy(self.config)
+        changed["training"]["pretest_budget_selection"][
+            "upper_checkpoint_policy"
+        ] = "add_more_steps_if_10000_wins"
+        with self.assertRaisesRegex(ValueError, "ceiling policy"):
+            validate_m1_protocol(changed)
+
+    def test_all_methods_keep_one_identical_grid_and_dual_readout(self):
+        changed = deepcopy(self.config)
+        changed["training"]["pretest_budget_selection"][
+            "dual_budget_readout"
+        ]["grid_expansion_forbidden"] = False
+        with self.assertRaisesRegex(ValueError, "cross-budget readout"):
+            validate_m1_protocol(changed)
+
+        changed = deepcopy(self.config)
+        changed["training"]["same_student_search_space_A_to_E"] = False
+        with self.assertRaisesRegex(ValueError, "share architecture"):
+            validate_m1_protocol(changed)
+
+    def test_selection_bootstrap_is_diagnostic_only(self):
+        changed = deepcopy(self.config)
+        changed["training"]["pretest_budget_selection"][
+            "selection_uncertainty"
+        ]["diagnostic_only_selection_rule_unchanged"] = False
+        with self.assertRaisesRegex(ValueError, "uncertainty diagnostic"):
             validate_m1_protocol(changed)
 
     def test_validation_no_longer_selects_scorer_or_student_updates(self):

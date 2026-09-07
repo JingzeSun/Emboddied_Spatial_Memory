@@ -46,7 +46,8 @@
 | D-039 | accepted as amended | live energy、两条候选架构臂和完整重跑；规模/机制/now 细节由 D-040/D-041 修订 |
 | D-040 | accepted | 1000/200/200 个总混合 groups；C10/C11 必须有真实行为机制与指纹 gate |
 | D-041 | accepted | current 固定自然量程、软后验逐项影响审计和五个预登记机制切片 |
-| D-042 | accepted | v8 双架构各自在 1000-group train/inner-dev 上选择有限 scorer/student 预算；禁止架构择优 |
+| D-042 | accepted; optimization details superseded by D-043 | v8 双架构 train/inner-dev 有限预算框架保留；具体网络归一化、网格和逐方法选择由 D-043 更新 |
+| D-043 | accepted | A–E 严格共用架构与 12 格搜索空间、各自按同一 reference 指标选预算；Pre-LN 主臂、共享/交叉预算读数与触顶纪律预登记 |
 
 ## D-015 — 单执行入口与五阶段合同
 
@@ -552,6 +553,32 @@
 - 影响：活动 protocol 名称和 dataset version 保持 v5/v8，但机器配置 hash 因预算合同加入而更新；旧 12-group health arrays 只保留为机制健康证据，正式 1000-group train arrays 必须按新 protocol hash 重生成。新增 train-only budget runner 和 checkpoint 审计回调；S5 validation 只保留 C weight 与 shared commit rule 的选择权。
 - 是否接触 test 信息：否；本 decision 只依据已入库的 train-only health 报告与既有合同，不生成或读取 validation/test。
 - 验证方式：协议负例锁住 1000 train groups、两架构、五 seed、两个 `{300,1000,3000}` 网格、选择量、平手规则和 validation/test=false；单测验证 checkpoint 回调落在真实训练前缀且平手选较小预算。随后在干净服务器提交上跑完整测试，再生成唯一 1000-group v8 train arrays，依次运行 Set Transformer 与 MLP 的预算报告。
+
+## D-043 — 严格架构控制下的对称逐方法优化
+
+- 日期：2026-09-07。
+- 状态：accepted；取代 D-042 的 Post-LN、单一 learning rate、3000-step 上界和 A–E 共享 student updates，保留其 train-only、双架构不择优和固定前缀训练框架。
+- 用户确认：用户明确要求“A–E 架构方面控制变量，可以 STEP 不一样选最优”，并接受同一搜索空间内逐方法选择、共享预算和交叉预算同时报告。
+- 背景：主臂有 341,732 个 student 参数，次臂有 26,148 个，但 D-042 把 MLP 时代的 `learning_rate=0.002` 同时固定给 Post-LN Set Transformer，且 3000 是没有触顶处理的上界。强制 A–E 共用一个 updates 点也会让不同监督目标的可拟合难度混入方法效果；反过来，若各方法用不同指标或不同网格调优，又会破坏控制变量。
+- 决策：
+  1. 活动协议升为 `m1-hard-condition-v6`，dataset 仍为 `m1-paired-latent-worlds-v8-fixed-range-current-energy`。本 decision 不改生成语义、A–F 定义、energy、K=16、split 或 test seal。
+  2. `cross_candidate_set_transformer_v1` 改为标准 Pre-LayerNorm 残差块，并在最后一个 attention block 后增加一次 LayerNorm；MLP 次臂不改。两层、model dim 128、4 heads、FFN 256、dropout 0、Adam、batch 64 均保持；不同时加入 warmup、scheduler、gradient clipping 或新 optimizer。
+  3. 每条架构臂的 scorer 和 A–E student 共用同一有限网格：learning rate `{0.0002,0.0006,0.002}` × checkpoints `{300,1000,3000,10000}` × seeds `{7,19,31,43,59}`。每个 learning rate/seed 只训练到 10000，一次记录四个真实前缀；五个方法必须恰好拥有相同 12 格，禁止为任何方法扩格。
+  4. 同一架构臂内 A–E 使用同一个 `OnlineModel` 类、完全相同的输入、K=16 槽位、candidate mask、参数模块与形状、batch 采样规则、optimizer、batch size 和 12 格搜索空间。所有方法都分配 relation head，只有 C 的 loss 使用其梯度。允许变化的独立变量是监督/loss；E 的额外 outcome scorer 参数和计算继续单列。
+  5. E scorer 先在 train 固定 inner-dev 上按 online reference-candidate ranking accuracy 选择自己的 `(learning rate, steps)`。scorer 固定后，A–E 各自在完全相同的 12 格中，按同一批 inner-dev online rows 的 reference-candidate selection accuracy 选择自己的 `(learning rate, steps)`；先在每个完整 paired group 内对五 seed 等权平均，再对 group 等权。最高均值胜；精确平手依次选择更少 updates、更小 learning rate。
+  6. 逐方法最优格定义后续正式训练配置。同时从已经计算的相同网格预登记两种算力敏感性读数：一是按 A–E、seed、完整 group 等权选择一个共享格并在该格重报 A−C/A−E；二是在 A 选中的格比较 A/E、并在 E 选中的格比较 A/E。它们只作诊断，不反向选择正式配置，不增加训练格。
+  7. scorer、每个方法和共享格的报告都保存“选中格减确定性第二名”的 paired-group bootstrap 95% CI：先对 seed 等权，完整 paired group 为唯一重采样单位，10,000 次，seed=`260907`。CI 只显示选择噪声，不把精确平手改成“统计平手”，也不改变确定性选择。
+  8. 若任一 scorer/student/shared 选择落在 10000，上限结果照实接受并标记 `budget_grid_ceiling_reached=true`；禁止看到触顶后追加新点。每个方法另报自己最优格相对固定共享锚点 `(0.0006,3000)` 的差值。
+  9. 主/次架构身份仍不可按结果交换：Set Transformer 是正式 go/no-go 主臂，MLP 是容量稳健性次臂，两臂均完整跑 A–F。C 的 budget run 暂用 `auxiliary_weight=1.0`；后续 validation 仍只在已登记 `{0.1,1,10}` 中选 C weight 与共享 commit rule，不得重选本 decision 的 learning rate 或 steps。
+  10. 服务器完整测试通过后，先单独重生成 12-group v8 health 并要求 arrays digest 逐位等于 `e924f96d4cf28179df010766e4275244cbb78cb9f9425ed514093bdbca3958c3`。protocol/manifest hash 预期改变，arrays digest 不应改变；不相等即视为训练合同意外耦合数据生成，先调查而不启动 1000-group arrays。
+- 白话：Pre-LayerNorm（预归一化残差）解决较大注意力模型在当前固定 optimizer 下可能比 MLP 更难优化的问题。输入仍是同一行 16 个候选 token，输出仍是 16 个候选分数；例如 attention 前先归一化候选表示，再把比较结果加回残差，最后统一归一化。它不增加候选、未来信息或新监督，也不保证 Set Transformer 一定胜过 MLP。
+- 白话：对称逐方法调优解决“某个监督目标只是因为共同步数不合适而没学会”的问题。输入是 A–E 完全相同的 12 个 `(learning rate, steps)` 格和同一 train/inner-dev reference 指标，输出是每个方法自己的一个最优格；例如 A 可选 10000、E 可选 1000，但两者都只能从同样 12 格中选择。它不等于给 A 更多试验机会、不允许换架构，也不读取 validation/test。
+- 白话：共享与交叉预算读数解决“A 只是多训练才赢”的质疑。输入是不额外训练、已经存在的 12 格结果，输出是所有方法同格比较，以及 A/E 在彼此所选格上的比较；例如即使 A 自选 10000、E 自选 1000，报告仍会显示 A 和 E 在 1000 那一格谁更好。它不替代逐方法正式选择，也不允许看完结果再增加格子。
+- 白话：paired-group bootstrap（配对组自助法）解决最优格与第二名差距可能只是少数序列波动的问题。输入是两格在同一批完整 causal groups 上、先跨 seed 平均后的差值，输出是 10,000 次按 group 重采样得到的 95% 区间；例如区间跨 0 只说明选择优势不稳定。它不改变“最高均值＋精确平手规则”，也不是最终 A−C/A−E 效应检验。
+- 备选：继续使用单一 `0.002` 与 Post-LN，被拒绝，因为它把未经本架构验证的优化设置固定在主臂；强制 A–E 共用 updates，被取代，因为各 teacher 的可拟合难度不同；按各自 teacher fidelity 逐方法选格，被拒绝，因为五个方法会优化不同选择量；看到 10000 胜出后扩网格，被禁止，因为是结果后调参。
+- 影响：更新 Set Transformer 架构、预算 runner、机器合同、测试和 S4 流程。架构变化要求追加 `EXECUTE.md` LOG，但在服务器预算结果产生前不宣称性能提升。旧 D-042 full-test handoff 作废；旧 v8 health 只可在新提交重生成且 arrays digest 相同后继承机制结论。
+- 是否接触 test 信息：否；设计只基于 train-only health、代码审计和预登记优化风险，validation/test 未读取。
+- 验证方式：本地轻量测试锁住 Pre-LN、最终 LayerNorm、三学习率、四 checkpoints、逐方法相同 12 格、双预算读数、确定性第二名、paired bootstrap 和触顶策略；服务器先跑完整测试，再单独做 12-group digest invariance，之后才允许生成 1000-group train arrays。
 
 ## 新决策模板
 
