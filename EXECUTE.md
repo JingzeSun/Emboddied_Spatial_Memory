@@ -4,7 +4,7 @@
 
 ## 当前看板
 
-> **2026-09-07 更新（LOG-040 / D-041）：** M1-v5/v8 的服务器完整测试与 12-group train-only health generation 均已通过。health 用时 17.744 秒，teacher agreement=`1.0`、now family 模式完全匹配。当前唯一入口只导出现有 health manifest/arrays 的 Git 可审查 JSON，不重跑生成、不训练、不读 validation/test。
+> **2026-09-07 更新（LOG-040 / D-041）：** M1-v5/v8 的服务器完整测试与 12-group train-only health generation 均已通过。health 用时 17.744 秒，teacher agreement=`1.0`、now family 模式完全匹配。当前唯一入口只校验、提交并 push 已导出的 health JSON；任何其他工作区变化都会拒绝，不重跑生成、不训练、不读 validation/test。
 
 最后更新：2026-09-07，LOG-040 M1-v5/v8 服务器 12-group health generation 通过；正式 M1 gate 未运行、未生成或读取 test。
 
@@ -14,7 +14,7 @@
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
 | 阶段 | M1-v5 `pretest_lock_candidate`；只开放 train/inner-dev 与小规模接口验证，尚未重新冻结，正式 gate 未运行，不是 M2/Full CPMT |
 | 最近结果 | 服务器 v8 train-only 12-group health 生成 480 learning rows（456 online＋24 recovery），16 workers 用时 17.744 秒；teacher/reference agreement=`1.0`、0/456 disagreement，teacher health PASS，逐 family now 冻结模式完全匹配，mean leave-now-out TV=`0.071170335`。合并 NPZ=`3,986,922` bytes、保留 shards=`4,098,264` bytes；这些是健康/成本证据，不是方法效果成绩 |
-| 尚缺 | 把现有 12-group health manifest/arrays 导出为 Git 可审查 JSON；随后登记并重跑两架构各自的 S1/S2 scorer/student 有限预算网格。旧 v5/v7 的预算不迁移，test 仍封存 |
+| 尚缺 | 将已导出的 12-group health JSON 单独提交/push 并在本地 pull 审查；随后登记并重跑两架构各自的 S1/S2 scorer/student 有限预算网格。旧 v5/v7 的预算不迁移，test 仍封存 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
 | 当前决定 | D-039 保留 live energy、C/E current target、Set Transformer 主臂＋MLP 次臂及每臂完整 A–F；D-040 固定总混合规模和真实 C10/C11；D-041 固定 current 自然量程、完整 posterior 审计、逐 family now 预期偏离和非主机制切片。E/teacher current 影响只同尺报告，不设门、不调权。仓库不设两小时单-run 上限；全局 reconciliation、PNO 与 M2 顺序不变 |
 | 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 validation report/test。两架构各自的 scorer/student 有限预算网格须在小规模健康检查后、任何选择性 run 前登记 |
