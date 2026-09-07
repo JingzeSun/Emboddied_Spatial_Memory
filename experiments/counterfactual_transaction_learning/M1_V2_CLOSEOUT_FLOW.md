@@ -16,7 +16,7 @@
 
 ## 当前指针
 
-- 当前阶段：**S4 M1-v6：D-044 已正式接受并实现评价协议的基础指标与一次性分支规则；下一步先在干净服务器全测，再运行固定 train-only endpoint probe，完整预算网格仍未启动**。
+- 当前阶段：**S4 M1-v6：D-044 基础指标与一次性分支规则已实现；指标层审计已登记为 endpoint probe 前的阻断待办。服务器 full test 可完成，但在审计待办形成 D-045 并实现/验证前，不运行 endpoint probe 或完整预算网格。**
 - 最近有效证据：v5 S2 的 arrays/manifest/report 已验收；1000−300 的 paired-group 95% CI 为 `[+0.008750,+0.045000]`，按预登记规则选择 1000。10-group 同预算锚点中共同 group 1 的 40−10 平均差为 `+0.005000`、仅 `1/5` seed 严格为正，未达 S3 触发条件。完整数字与 provenance 见 `EXECUTE.md` LOG-032/033。
 - 已完成：同一份 40-group v4 arrays 确定性截取 10/40 groups，运行 scorer steps {60,300,1000} × seed 7。40-group 全 train 上，static preflight 对 2,552/2,552 个 executor-illegal 候选全部静态拒绝、合法误拒 0；过滤后 target-only 均匀并列期望由 0.7729 升至 0.9698，assembled oracle accuracy 由 0.7438 升至 0.9525，其 exact-ambiguity capped 读数由 0.7275 升至 0.9275。D-038 已接受把同一只读预检变成 A–E 共享 mask；旧 v4 过滤数字仍只作采纳依据，不冒充 v5 方法成绩。
 - scorer 分支：40-group inner-dev 的未过滤/过滤后 teacher accuracy 在 steps 60/300/1000 分别为 0.0500/0.5688/0.5031 与 0.0625/0.7469/0.7094。1000 steps 虽将 held-out BCE 从 0.1016 降到 0.0744，候选排序却低于 300 steps；共同 group 1 在 10/40 groups、300/1000 steps 过滤后均为 0.875，也没有显示扩大到 S3 的明确数据收益。因此 300 steps 只是当前单 seed 候选，尚未固定。
@@ -28,6 +28,19 @@
 - BCE 分解判据：`ranking_relevant_bce` 是 loss-mismatch 的主 BCE 诊断，因为它直接筛出会改变 oracle mismatch 贡献、因而可能改变候选能量排序的位置；`target_discriminative_bce` 是次级解释量，只回答同一坐标在准入候选间是否同时出现真/假。两者不必是包含关系；发生冲突时，预算仍只按 candidate-ranking accuracy 的预登记置信区间选择，是否改 loss 以 ranking-relevant BCE、reference margin 与实际排序的多 seed 共变为主，且必须另立 decision。
 - D-043 预算边界：每种架构先选 E scorer，再让 A–E 从完全相同的 12 格中以同一 reference accuracy 各自选 `(lr,updates)`；精确平手取更少 updates、再取更小 lr。10000 触顶照实接受、不扩格；共享格与 A/E 交叉格只作算力敏感性诊断。架构之间禁止择优，C auxiliary weight 暂固定 1.0。`test_access=false`、`validation_arrays_read=false`、`validation_trial_consumed=false`；不校准 gate、不跑 causal，不进入 PNO/M2 或全局 reconciliation。
 - D-044 endpoint 边界：只在 Set Transformer 主臂以固定 `(lr=0.0006, updates=3000)` 跑 A/C/E、五 seed 和 F；201 个 inner-dev groups 内使用两折 cross-fitted shared gate。F 任一 semantic exact/graded、open-memory graded 或 node integrity 失败立即停止。semantic exact 的 A−C/A−E 均有至少 7 个非零 paired-group 差且 SD>0 时保留 exact；否则仅在 active graded 两对照均满足时一次切换，开关禁止读取赢家、效应方向和大小；open-memory graded 是固定 co-primary，也必须对两对照非退化。test N 取 selected semantic/open-memory × 两对照的 paired-SD 功效需求最大值。机制–指标矩阵另要求 C10 的相反 BIND/NOOP 被 evidence-support 通道看见、C11 指定对照被 unrelated collateral 看见；C10 单步仍按信息上限预期约 0.5，不宣称模型能预测未见未来。validation/test 仍封存。
+
+## 重开对话后的强制待办（指标层审计，尚未形成新 decision）
+
+依据：[2026-09-07 指标层审计](../../docs/reviews/2026-09-07_metric_layer_audit.md)。该文件是外部只读复核，不是 ground truth；以下事项是正式 endpoint probe/完整预算网格前必须逐项处理并在新 decision 中冻结的工程与统计待办。
+
+1. **污染构念对齐（阻断）**：当前 `memory_contamination` 实际是终点额外开放边错误，未区分主动错误写入与未及时撤销的 stale fact；对照原始愿景的 Dynamic Contamination Rate，需拆出 commission/omission（至少保留旧字段兼容 alias），并明确 M1 哪一项代表原始构念。
+2. **终点与时间负担（阻断）**：不能只用第 20 步终点代表 long-horizon contamination。并列登记 terminal burden 与时间积分/AUC burden；若仍把 contamination 作为 co-primary，endpoint probe 的功效规划必须纳入它，不能只按 semantic/open-memory 定 test N。
+3. **指标命名清理**：`post_graph_correct`/`history_exact` 的兼容别名、`unresolved_active_error` 的反极性冗余、exact/graded 的主次角色必须在正式报告中明确，避免把 retained history 当 active world。
+4. **统计/门修正**：空 recovery 分母必须返回 `None` 并报告 eligible denominator；`false_birth_growth` 不能用实体基数差抵消错误删除与错误新增；shared commit gate 的绝对阈值尺度和“一步指标选 gate、20 步 endpoint 评价”的错配必须先用 train-only 证据决定是否改为可比的预登记规则。
+5. **minimal-world-change 只作已审计正则项**：edit/growth posterior influence 很小是结果，不得为制造作用事后调权；若保留该措辞，论文只称其为注册 prior/regularizer，不称其为已验证主机制。
+6. **范围边界**：M1 只验证 CPMT/CTL 的受控 persistent-world revision；最初愿景中的独立 dynamic/transient memory、decay、static retention、reappearance/viewpoint consistency 留给 M2/M3，不能用 M1 指标宣称已经验证。
+
+待办完成顺序固定为：读取审计与原始愿景 → 建立 D-045（只冻结上述构念/统计选择，不看 validation/test）→ 更新机器 config、runner、报告 schema 与单测 → full test → 固定 endpoint probe → 再决定是否进入完整预算网格。A1/A2/A4 的 evidence/node/collateral 覆盖修复与 D-044 保持，不重复返工；C10 继续按信息上限约 0.5 解释，不宣称能预测未见未来。
 
 ## 总流程
 
