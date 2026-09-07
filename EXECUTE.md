@@ -647,7 +647,7 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 ### LOG-045—2026-09-07—D-043 运行时剖析入口服务器完整测试通过
 
 - 类型/状态：纯成本剖析入口的干净服务器工程复核通过；不是模型剖析本身、预算选择、validation trial、formal run 或方法效果结果。
-- 输入/provenance：server repo=`/root/Emboddied_Spatial_Memory`，commit=`8b304e39407371cb6be28c26ff38699da71d879a`，protocol SHA-256=`73666cabb77b4884302d77ca621669bfdc77e86a44951b8a92b97208509c0eec`，dataset=`m1-paired-latent-worlds-v8-fixed-range-current-energy`；generation/training/profiling/validation/test access 均为 false。
+- 输入/provenance：server repo=`/root/Emboddied_Spatial_Memory`，commit=`8b304e39403731bc6be28c26ff38699da71d879a`，protocol SHA-256=`73666cabb77b4884302d77ca621669bfdc77e86a44951b8a92b97208509c0eec`，dataset=`m1-paired-latent-worlds-v8-fixed-range-current-energy`；generation/training/profiling/validation/test access 均为 false。
 - 结果：`python -m unittest discover -s tests -p 'test_*.py'` 共运行 192 项，用时 323.186 秒，全部通过，`FULL_TEST_EXIT=0`。log=`outputs/m1-v6-v8-d043-profile-full-test-8b304e3/full_test.log`，匹配 commit/protocol/dataset/test count 的 marker=`full_test.ok.json`；唯一成功标志为 `SERVER_STEP_OK id=m1_v6_v8_d043_runtime_profile_full_test`。
 - 白话：本次 full test 回答“新增的计时路径能否与既有训练、executor 和审计代码共同通过自动检查”。输入是只增加剖析模式后的完整代码与测试，输出是 192 项通过和可复用 marker；例如下个入口必须先核对 marker 才能读取 1000-group train arrays。它没有训练模型、没有产生准确率，也不说明完整网格需要多久。
 - 下一步：用同一 train arrays、seed=7、lr=0.0006、steps=300 依次剖析 Set Transformer 和 MLP；每臂只运行一个 scorer 及 A–E 各一条路径。输出只含墙钟、参数量、显存及保守线性投影，不参与 D-043 的任何选择。
