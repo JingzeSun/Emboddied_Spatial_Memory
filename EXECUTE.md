@@ -4,21 +4,21 @@
 
 ## 当前看板
 
-> **2026-09-07 更新（LOG-030）：** D-038 的运行前解释与诊断边界已收口：预登记 v5 的 A−E margin 预期缩小；随机地板改为逐行准入集合的均匀期望；NOOP 准入兜底由单测守住；ranking-relevant BCE 固定为 loss-mismatch 主 BCE 诊断；残余 executor-illegal 对 teacher 决策的潜在影响以严格行级上界常驻报告。方法、loss、预算、dataset version 和 protocol hash 不变。本地 44 个相关测试通过；干净服务器全测、v5 train arrays 和 S1 重跑尚未执行。
+> **2026-09-07 更新（LOG-031）：** 干净服务器全测通过；提交 `72afa7d` 生成并验收 v5 40-group train arrays，随后完成 S1 的 10-group/60-step/seed-7 重跑。shared mask 保持 reference 全准入、合法误拒与残余 executor-illegal 均为 0；inner-dev target/oracle 均升至 0.95，E scorer teacher accuracy 从 v4 的 0.05 升至 0.20，但仍有负 reference margin，故只证明 S1 接线与目标上限改善，尚未证明 scorer 预算或 CTL 主张。当前进入 40-group 的 300/1000 steps × 5 seeds 预登记比较。
 
-最后更新：2026-09-07，LOG-030 D-038 运行前解释与诊断收口；正式 M1 gate 未运行、未生成或读取 test。
+最后更新：2026-09-07，LOG-031 v5 arrays 与 S1 shared-mask 重跑；正式 M1 gate 未运行、未生成或读取 test。
 
 | 项目 | 当前事实 |
 |---|---|
 | 方向 | CPMT 具身空间记忆；CTL 是主学习假设，用户希望面向 ML 研究 |
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
 | 阶段 | M1-v2 `pretest_lock_candidate`；只开放 train/validation，尚未重新冻结，正式 gate 未运行，不是 M2/Full CPMT |
-| 最近结果 | 结果提交 `ea25201` 的 S2 seed-7 2×3：同一份 40-group arrays（1,600 online + 80 recovery rows）确定性截取 10/40 groups。40-group static preflight 非法召回=1、合法误拒=0；target-only tie-expected 0.7729→0.9698，assembled oracle 0.7438→0.9525，exact-ambiguity capped 0.7275→0.9275。40-group inner-dev scorer 在 60/300/1000 steps 的未过滤 teacher=0.0500/0.5688/0.5031，过滤后=0.0625/0.7469/0.7094；1000 steps 的 BCE 更低但候选排序更差 |
-| 尚缺 | 在干净服务器提交上跑全测；只重新生成 v5 train arrays，从 S1 的 10 groups/60 steps/seed 7 重跑，再在同一 40-group arrays 上完成 scorer steps {300,1000} × seeds {7,19,31,43,59}。按预登记 paired-group CI 规则选预算或另立 loss decision，之后才判断 S3。test 仍封存，PNO 与 Khronos 式全局慢路径属 M2 |
+| 最近结果 | v5 S1 使用 10-group prefix、60 steps、seed 7：inner-dev target-only tie-expected 0.600→0.950，assembled oracle 0.575→0.950、illegal 0.375→0；E scorer fitting/inner-dev teacher=0.1361/0.2000，inner-dev BCE=0.2546、ranking-relevant BCE=0.4054、reference probability margin=-0.2385。服务器 arrays/report 尚未导回 `results/`，完整 provenance 与 digest 见 LOG-031 |
+| 尚缺 | 在同一 v5 40-group arrays 上完成 scorer steps {300,1000} × seeds {7,19,31,43,59}，按预登记 paired-group CI 规则选预算或另立 loss decision，之后才判断 S3。test 仍封存，PNO 与 Khronos 式全局慢路径属 M2 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
 | 当前决定 | D-034：M1-v2 只加入有界、证据触发的局部补偿，E 不执行候选评分分支；D-038：static preflight 是 A–E 共享 online mask，但不替代 executor illegal 或候选审计；全局 reconciliation、PNO 与 M2 顺序不变 |
 | 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 test。scorer loss 是否修改须等 v5 的 300/1000 五 seed 诊断，不能预先接受 |
-| Git 备份 | D-038 合同/实现与运行前诊断已形成截至 `e344422` 的本地提交，尚未 push；服务器在远端出现该提交前不得猜测或使用它。outputs、数据、论文与虚拟环境等 ignore 内容不属于 Git 备份 |
+| Git 备份 | D-038 科学代码截至 `72afa7d` 已与 `origin/main` 同步；服务器产物位于 ignored `outputs/`，尚未导出进 Git。本轮起服务器操作只通过版本化的 `ops/run_next_server_step.sh` 交付，脚本所在提交仍须先 push、服务器再 pull |
 
 白话：M1-v2 现在仍是“考前定卷”，不是已冻结或已通过。旧容量诊断证明简单 MLP 在给足标签时能拟合可见训练关系；新的 K=16 与恢复审计只证明候选、executor 和 active-world 评测路径可达。这些都不等于 CTL 已胜出，更不是带 PNO 的 Full CPMT。
 
@@ -510,6 +510,16 @@ M1-v2 的阶段顺序、转向条件和成功/失败终点见 [M1-v2 收口执�
 - 残余影响/白话：`maximum_teacher_decision_change_rate_due_to_residual_executor_illegal` 统计“至少含一个预检通过但执行失败候选”的决策行比例，是 executor illegal 通道最多能改变多少 teacher 选择的严格上界。例如 100 行只有 3 行含残余非法项，上界为 3%。没有直接构造所谓“A 去掉 illegal 的 teacher”，因为执行失败候选没有 post-edit world，其 future 能量未定义；硬设为 0 会虚构反事实。若以后该上界非零且实质，再以新 decision 定义额外对照。
 - 验证：修改文件通过 `py_compile` 与 `git diff --check`；`test_m1_af_rollout` 18 项、`test_m1_protocol` 11 项、`test_ctl_dev` 11 项和 `test_m1_trainability` 4 项，共 44 个不重复相关测试通过。未在本机跑全仓库测试、生成数据或训练；服务器全测按新增两项测试预期约 152 项，以服务器实际 discovery 数和最终 `OK` 为准。
 - 边界/下一步：`test_access=false`，未读取 validation report/test。推送截至本提交的干净 main 后，服务器先核对实际仓库路径和 commit，再单独运行全测；只有全测退出码 0 才生成 v5 train arrays 并重跑 S1。
+
+### LOG-031—2026-09-07—v5 train arrays 与 S1 shared-mask 重跑
+
+- 类型/状态：M1-development、train/inner-dev、scorer-only 的 v5 S1 重跑完成并通过产物验收；服务器全测先行通过。结果仍在服务器 ignored `outputs/`，尚未通过 exporter 导入 `results/`，因此本条记录使用服务器 manifest/report 的终端验收数字，不冒充正式 gate。
+- 数据/provenance：干净提交 `72afa7da33e0465e6e45d57e2a9675248ac65447`、protocol hash=`34f76fcbef7009ece83368109cfbe4b3c7fd5e0f7e4e61c52134170fa161787a`、dataset=`m1-paired-latent-worlds-v5-shared-static-preflight`。40 paired groups 共 1,680 learning rows（1,600 online + 80 recovery），teacher/reference agreement=1，arrays digest=`f68205b58a6d4a97f92e3432b0d1d3515a5b226994e4030515b930d7b0`。该 digest 与 v4 相同是因为 D-037 已把 preflight 审计字段写入数组，D-038 改的是 A–E 对字段的共享使用；v5 manifest/protocol 仍明确隔离新方法边界，旧 manifest 不能复用。
+- S1 设置/边界：从同一 40-group arrays 确定性截取前 10 groups；9 fitting groups/378 learning rows、1 inner-dev group/42 learning rows（40 online），scorer steps=60、seed=7。`validation_arrays_read=false`、`validation_trial_consumed=false`、`test_generated=false`；未训练 online student、未校准 gate、未跑 causal。
+- static preflight：400 个 selected online rows 共拒绝 632 个候选，mean effective K=14.42，admitted-uniform random accuracy=0.069473；reference pass=1、合法误拒=0、预检通过后 residual executor-illegal=0。shared mask 没有删除 K=16 槽位或替代 executor legality。
+- target/assembly：同一 inner-dev rows 上，target-only coverage 保持 0.95，unique-reference 与 uniform-tie expected accuracy 均由未过滤的 0.25/0.60 升至 shared-mask 的 0.95/0.95；assembled oracle accuracy 由 0.575 升至 0.95，raw illegal selection 由 0.375 降至 0，exact-ambiguity capped accuracy=0.925。这是 target/assembly 上限与 shared-mask 接线证据，不是 E 的可部署成绩。
+- scorer：fitting BCE/ranking-relevant BCE/teacher accuracy=`0.2526/0.4069/0.1361`；inner-dev=`0.2546/0.4054/0.2000`，target-discriminative BCE=0.4054，reference probability margin mean=-0.238502，positive-margin rate=0.20。相对 v4 S1 的 fitting/inner-dev teacher=`0.05/0.05` 与 BCE=`0.2612/0.2706` 是正面提升，但 E 仍远低于 0.95 oracle 且 margin 为负，60 steps 仍属欠优化诊断点。
+- 结论/下一步：S1 shared-mask 不变量、target/assembly 与 scorer 接线通过，按预登记进入同一 40-group arrays 上的 steps {300,1000} × seeds {7,19,31,43,59}。为避免把 5 seeds × 8 inner-dev groups 冒充 40 个独立样本，预算比较先在每个共同 paired group 内对五 seeds 求平均，再对 8 个 paired-group 差值做 10,000 次单层 bootstrap（95% percentile CI，固定 seed=260906）；只有 1000−300 的 CI 下界大于 0 才选 1000，否则选 300。BCE 与 margin 只作 loss-mismatch 解释，不能单独改预算或 loss。
 
 ## 后续条目模板
 

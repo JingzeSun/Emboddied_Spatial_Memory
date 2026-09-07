@@ -16,13 +16,13 @@
 
 ## 当前指针
 
-- 当前阶段：**D-038 已接受共享 static-preflight online mask；等待干净服务器全测、v5 train arrays 与 S1 重跑**。
-- 最近有效证据：结果提交 `ea25201` 中六份 [`m1-v2-s2-*-c4f5df4-clean.json`](../../results/)，代表点为 [`g40-s300`](../../results/m1-v2-s2-g40-s300-c4f5df4-clean.json)；完整数字与 provenance 见 `EXECUTE.md` LOG-028。
+- 当前阶段：**v5 S1 已通过；等待同一 40-group train arrays 上的 300/1000 steps × 5 seeds 比较**。
+- 最近有效证据：v5 S1 的服务器 arrays/manifest/report 已验收，尚未导回 `results/`；完整数字与 provenance 见 `EXECUTE.md` LOG-031。
 - 已完成：同一份 40-group v4 arrays 确定性截取 10/40 groups，运行 scorer steps {60,300,1000} × seed 7。40-group 全 train 上，static preflight 对 2,552/2,552 个 executor-illegal 候选全部静态拒绝、合法误拒 0；过滤后 target-only 均匀并列期望由 0.7729 升至 0.9698，assembled oracle accuracy 由 0.7438 升至 0.9525，其 exact-ambiguity capped 读数由 0.7275 升至 0.9275。D-038 已接受把同一只读预检变成 A–E 共享 mask；旧 v4 过滤数字仍只作采纳依据，不冒充 v5 方法成绩。
 - scorer 分支：40-group inner-dev 的未过滤/过滤后 teacher accuracy 在 steps 60/300/1000 分别为 0.0500/0.5688/0.5031 与 0.0625/0.7469/0.7094。1000 steps 虽将 held-out BCE 从 0.1016 降到 0.0744，候选排序却低于 300 steps；共同 group 1 在 10/40 groups、300/1000 steps 过滤后均为 0.875，也没有显示扩大到 S3 的明确数据收益。因此 300 steps 只是当前单 seed 候选，尚未固定。
-- 当前分支：D-038 已接受，dataset version 升为 `m1-paired-latent-worlds-v5-shared-static-preflight`，旧 arrays 因 protocol hash 不匹配不得复用为新成绩。下一步在干净提交上全测，只重新生成 train arrays，从 S1 的 10 groups/60 steps/seed 7 重跑；通过后在同一 40-group arrays 上比较 scorer steps {300,1000} × seeds {7,19,31,43,59}。不先进入 S3，也不同时修改 scorer loss。
+- 当前分支：D-038 已接受，dataset version 为 `m1-paired-latent-worlds-v5-shared-static-preflight`；服务器全测、v5 40-group train arrays 与 S1 的 10 groups/60 steps/seed 7 已通过。下一步只在同一 arrays 上比较 scorer steps {300,1000} × seeds {7,19,31,43,59}，不先进入 S3，也不同时修改 scorer loss。
 - 预登记方向：共享 mask 主要移除旧 E 会选而 A–D 已由执行信息避开的静态非法候选，因此预期 v5 的 `A_vs_E` 单步与 causal margin 相对 v3/v4 历史读数缩小，触发主对比 stop rule 的概率上升；若 margin 不缩小或仍通过门槛，才是更强证据。该方向在运行前固定，结果出来后不得把“缩小”或“不缩小”任一方向改写成预先支持 CTL。
-- scorer 选择规则：共享 mask 后的 inner-dev candidate-ranking accuracy 是主选择量，按共同 paired group 比较并跨登记 seeds 汇总；只有 1000−300 的 paired-group 95% CI 下界大于 0 才选 1000，否则选计算更省的 300。总体/判别性 BCE 与 reference ranking margin 只解释目标是否失配，不按 BCE 单独选预算。若多 seed 复现“总体 BCE 改善但判别性 BCE、margin 或排序下降”，另立 decision 后才可测试 future-derived listwise loss，不得直接用全量 reference index 监督。
+- scorer 选择规则：共享 mask 后的 inner-dev candidate-ranking accuracy 是主选择量；同一 paired group、同一 seed 的 1000−300 先配对，再在每个 group 内对五个登记 seed 求平均，最后对 8 个 group 差值用固定 seed=260906 做 10,000 次单层 paired-group bootstrap，取 95% percentile CI。只有 CI 下界大于 0 才选 1000，否则选计算更省的 300；不得把 5×8 格子当成 40 个独立样本。总体/判别性 BCE 与 reference ranking margin 只解释目标是否失配，不按 BCE 单独选预算。若多 seed 复现“总体 BCE 改善但判别性 BCE、margin 或排序下降”，另立 decision 后才可测试 future-derived listwise loss，不得直接用全量 reference index 监督。
 - BCE 分解判据：`ranking_relevant_bce` 是 loss-mismatch 的主 BCE 诊断，因为它直接筛出会改变 oracle mismatch 贡献、因而可能改变候选能量排序的位置；`target_discriminative_bce` 是次级解释量，只回答同一坐标在准入候选间是否同时出现真/假。两者不必是包含关系；发生冲突时，预算仍只按 candidate-ranking accuracy 的预登记置信区间选择，是否改 loss 以 ranking-relevant BCE、reference margin 与实际排序的多 seed 共变为主，且必须另立 decision。
 - 边界：`test_access=false`、`validation_arrays_read=false`、`validation_trial_consumed=false`；本轮不训练 student、不校准 gate、不跑 causal，不进入 PNO/M2 或全局 reconciliation。
 
@@ -35,7 +35,7 @@ S1 E/target/scorer 诊断闭环（已完成）
   ↓
 S2 scorer 优化 × train 规模二维曲线（seed 7 已完成）
   ↓
-S2 共享 static preflight 已接受；v5 S1 重跑＋300/1000 多 seed（当前）
+S2 共享 static preflight 已接受；v5 S1 已通过，300/1000 多 seed（当前）
   ↓
 S3 更大 train 规模交互确认（S2 显示需要时）
   ↓
@@ -53,8 +53,8 @@ S7 M1 成功 / no-go / 不确定收口
 | 阶段 | 要回答的问题 | 初始执行细节 | 离开该阶段前必须有的输出 |
 |---|---|---|---|
 | S0 ✓ | 指标、恢复路径和 calibration 分母是否成立 | 10/4 groups、seed 7、60 updates 的 smoke | observable final active=1、恢复一步；calibration/report/recovery=40/120/8；干净 provenance |
-| S1（v4 ✓；v5 待重跑） | E 低是 target、能量组装、优化还是泛化问题 | 10-group train arrays 按 SHA-256 留出完整 inner-dev group；scorer=60、seed=7；不读 validation | v4 历史为 target-only expected=0.600、assembled oracle=0.575、illegal=0.375、E fitting/inner-dev teacher=0.050；D-038 后须在 v5 复核 shared-mask 不变量、target/assembly 与 scorer 接线，不沿用旧 protocol 成绩 |
-| S2（v4 seed 7 ✓；v5 待重跑） | E 是优化不足、数据不足还是两者交互；逐关系 BCE 是否与候选排序失配 | D-038 后先以 10 groups/60 steps/seed 7 重跑 S1；再在同一 40-group v5 train arrays 上跑 steps {300,1000} × seeds {7,19,31,43,59}；加入判别性/排序相关 BCE 与 ranking margin，只用 train/inner-dev | shared-mask 不变量、v5 S1 与 300/1000 五 seed 完整；按预登记 paired-group CI 规则选唯一 scorer budget，或以新 decision 明确进入 loss 修订；之后才能判断 S3 |
+| S1（v4/v5 ✓） | E 低是 target、能量组装、优化还是泛化问题 | 10-group train arrays 按 SHA-256 留出完整 inner-dev group；scorer=60、seed=7；不读 validation | v5 shared-mask 不变量、target/assembly 与 scorer 接线已复核；结果见 `EXECUTE.md` LOG-031 |
+| S2（v4 seed 7 ✓；v5 S1 ✓、多 seed 待跑） | E 是优化不足、数据不足还是两者交互；逐关系 BCE 是否与候选排序失配 | D-038 后先以 10 groups/60 steps/seed 7 重跑 S1；再在同一 40-group v5 train arrays 上跑 steps {300,1000} × seeds {7,19,31,43,59}；加入判别性/排序相关 BCE 与 ranking margin，只用 train/inner-dev | shared-mask 不变量、v5 S1 与 300/1000 五 seed 完整；按预登记 paired-group CI 规则选唯一 scorer budget，或以新 decision 明确进入 loss 修订；之后才能判断 S3 |
 | S3 | 40 groups 后是否仍明确受数据多样性限制 | 若 10→40 仍明确改善，在一个更大 train-group 点上复扫 S2 的两个 scorer steps，而不是顺序固定旧最优；仍只用 train/inner-dev | 确认最优 steps 是否随数据规模改变，并判定数据曲线继续上升或已经饱和；不得同时改容量或 target |
 | S4 | 正式 run 的分母、能量和终止规则是否唯一 | 解决 `groups_per_family` 名称与“每 family 最低决策实例数”的歧义；核查 now/collateral；报 A 的 10×/1× teacher 消融 | 唯一 train/validation/test paired-group 总数、每 family 最低 support、固定训练步数/门控选择法、不确定结果处理规则 |
 | S5 | 锁定设置在足量 train/validation 上是否值得进入 test | 生成满足 C00–C11 support 的 train 和与已查看 4 groups 不重叠的新 validation confirmation；5 seeds；10% labels 主设置；完整 20-step causal 和 10,000 paired bootstrap | coverage/invariant/provenance 全通过；calibration 选唯一共享 gate；新的 report 半区仅报一次；没有触发明确 stop rule |
