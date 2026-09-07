@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Unique active CPMT server phase: full test of accepted D-044--D-046.
+# Unique active CPMT server phase: full test of accepted D-044--D-047.
 #
 # Prerequisites: clean checkout synchronized with origin/main; Python environment
 # already configured. Read boundary: tracked source/config/docs/tests and Git
@@ -10,7 +10,7 @@
 
 set -uo pipefail
 
-CPMT_SERVER_STEP_ID="m1_v6_v8_d046_persistent_auc_full_test"
+CPMT_SERVER_STEP_ID="m1_v6_v8_d047_claim_h1_scope_full_test"
 CPMT_EXPECTED_PROTOCOL="73666cabb77b4884302d77ca621669bfdc77e86a44951b8a92b97208509c0eec"
 CPMT_EXPECTED_DATASET="m1-paired-latent-worlds-v8-fixed-range-current-energy"
 CPMT_PROBE_CONFIG="configs/m1_endpoint_viability_probe.json"

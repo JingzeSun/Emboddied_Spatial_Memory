@@ -793,7 +793,7 @@ def main() -> int:
     parser.add_argument(
         "--overlay", type=Path,
         default=PROJECT / "configs" / "m1_endpoint_viability_probe.json",
-        help="accepted D-044--D-046 train-only evaluation/budget overlay",
+        help="accepted D-044--D-047 train-only evaluation/budget overlay",
     )
     parser.add_argument(
         "--architecture", required=True,

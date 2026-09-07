@@ -24,6 +24,7 @@ from cpmt.m1_rollout import (
     materialize_rollout_step,
     records_sha256,
     scale_current_candidate_term,
+    teacher_horizon_contrast,
 )
 
 
@@ -37,6 +38,11 @@ class TestM1ContinuousRollout(unittest.TestCase):
         )
         cls.online, cls.audit, cls.summary = generate_m1_rollout_split(
             cls.config, "validation", sequences=3,
+        )
+        _, cls.paired_audit, cls.paired_summary = (
+            generate_m1_paired_rollout_split(
+                cls.config, "validation", paired_groups=2,
+            )
         )
 
     def test_every_sequence_is_one_real_twenty_step_chain(self):
@@ -120,9 +126,7 @@ class TestM1ContinuousRollout(unittest.TestCase):
                     )
 
     def test_c10_c11_are_behavioral_families_not_renamed_bind_rows(self):
-        _, audits, summary = generate_m1_paired_rollout_split(
-            self.config, "validation", paired_groups=2,
-        )
+        audits, summary = self.paired_audit, self.paired_summary
         mechanism = summary["family_mechanism_audit"]
         self.assertTrue(mechanism["behavioral_fingerprints_unique"])
         self.assertEqual(mechanism["duplicate_behavioral_fingerprint_groups"], [])
@@ -335,6 +339,47 @@ class TestM1ContinuousRollout(unittest.TestCase):
             {item["fallback"] for item in counterfactual_failures},
             {"QUARANTINE_KEEP_CURRENT_WORLD"},
         )
+
+    def test_h1_teacher_contrast_changes_only_future_horizon(self):
+        before = canonical_json(self.paired_audit)
+        report = teacher_horizon_contrast(
+            self.config, self.paired_audit, contrast_horizon=1,
+        )
+        self.assertEqual(canonical_json(self.paired_audit), before)
+        self.assertEqual(report["primary_horizon"], 3)
+        self.assertEqual(report["contrast_horizon"], 1)
+        self.assertFalse(report["recovery_only_rows_included"])
+        self.assertEqual(report["selection_or_gate_role"], "none")
+        overall = report["overall"]
+        self.assertEqual(overall["rows"], 2 * 2 * 19)
+        self.assertEqual(overall["complete_paired_groups"], 2)
+        for horizon in ("H3", "H1"):
+            self.assertGreaterEqual(
+                overall[horizon]["teacher_reference_argmax_agreement"], 0.0,
+            )
+            self.assertLessEqual(
+                overall[horizon]["teacher_reference_argmax_agreement"], 1.0,
+            )
+        contrast = overall["H3_vs_H1"]
+        self.assertGreaterEqual(contrast["total_variation"]["mean"], 0.0)
+        self.assertLessEqual(
+            contrast["total_variation"]["pooled_row_maximum"], 1.0,
+        )
+        self.assertGreaterEqual(contrast["mean_KL_primary_to_contrast"], 0.0)
+        self.assertEqual(len(overall["per_complete_paired_group"]), 2)
+        self.assertEqual(
+            set(report["by_family"]), {f"C{index:02d}" for index in range(12)},
+        )
+
+        with self.assertRaisesRegex(ValueError, "shorter than primary"):
+            teacher_horizon_contrast(
+                self.config, self.paired_audit, contrast_horizon=3,
+            )
+
+        with self.assertRaisesRegex(ValueError, "complete paired groups"):
+            teacher_horizon_contrast(
+                self.config, self.paired_audit[:1], contrast_horizon=1,
+            )
 
     def test_counterfactual_branch_failure_is_quarantined(self):
         _, audits, _ = generate_m1_paired_rollout_split(

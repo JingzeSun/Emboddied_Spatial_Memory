@@ -1,4 +1,4 @@
-"""Lock the accepted D-044--D-046 train-only endpoint probe contract."""
+"""Lock the accepted D-044--D-047 train-only endpoint probe contract."""
 from __future__ import annotations
 
 import hashlib
@@ -191,6 +191,56 @@ class TestM1EndpointViabilityProtocol(unittest.TestCase):
             scope["minimal_world_change_interpretation"],
             "registered_prior_or_regularizer_only_not_a_validated_primary_mechanism",
         )
+
+    def test_h1_is_main_text_teacher_evidence_but_not_a_new_gate(self):
+        teacher = self.probe["teacher_disclosure"]
+        self.assertFalse(teacher["teacher_label_rewriting_claimed"])
+        horizon = self.probe["horizon_1_main_text_mechanism_analysis"]
+        self.assertEqual(horizon["primary_horizon"], 3)
+        self.assertEqual(horizon["contrast_horizon"], 1)
+        self.assertIn("main_paper_not_supplement_only", horizon["status"])
+        self.assertIn("same_201_complete_train_inner_dev", horizon["scope"])
+        self.assertIn("argmax_change_rate", horizon["report_h3_vs_h1"])
+        self.assertIn("mean_KL_H3_to_H1", horizon["report_h3_vs_h1"])
+        self.assertIn("not_a_co_primary", horizon["selection_or_gate_role"])
+        self.assertIn("report_without_retuning", horizon["weak_or_null_result_action"])
+        self.assertFalse(horizon["validation_arrays_read"])
+        self.assertFalse(horizon["test_access"])
+        self.assertTrue(
+            self.probe["output"][
+                "save_horizon_1_main_text_mechanism_analysis"
+            ]
+        )
+
+    def test_claim_execution_and_exogenous_trajectory_boundaries_are_locked(self):
+        scope = self.probe["naming_and_scope"]
+        self.assertIn(
+            "registered_regularizers", scope["claim_wording"],
+        )
+        self.assertIn(
+            "without_candidate_post_graphs_or_future",
+            scope["online_model_execution_boundary"],
+        )
+        self.assertIn(
+            "applies_only_the_selected_transaction",
+            scope["online_model_execution_boundary"],
+        )
+        self.assertIn(
+            "seeded_pregenerated_exogenous_inputs",
+            scope["m1_pose_trajectory_boundary"],
+        )
+        self.assertFalse(scope["active_navigation_or_action_policy_claimed"])
+
+        contract = (
+            PROJECT / "docs" / "01_research_contract.md"
+        ).read_text(encoding="utf-8")
+        self.assertNotIn(
+            "evaluated by current and future projective consistency under a "
+            "minimal-world-change prior",
+            contract,
+        )
+        self.assertIn("预生成的外生输入", contract)
+        self.assertIn("只执行最终选中的单个事务", contract)
 
     def test_graded_equivalence_node_safety_and_collateral_union_are_locked(self):
         graded = self.probe["endpoints"]["graded"]

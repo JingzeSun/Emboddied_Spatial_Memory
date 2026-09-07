@@ -591,12 +591,13 @@ def load_and_validate(path: Path) -> dict[str, Any]:
 def validate_m1_endpoint_probe(
     probe: Mapping[str, Any], source_protocol: Mapping[str, Any],
 ) -> None:
-    """Reject a leaky or semantically regressed D-044/D-046 overlay."""
+    """Reject a leaky or semantically regressed D-044--D-047 overlay."""
     _require(
-        probe.get("schema_version") == "m1-endpoint-viability-probe-v3",
+        probe.get("schema_version") == "m1-endpoint-viability-probe-v4",
         "wrong endpoint probe schema",
     )
-    _require(probe.get("decisions") == ["D-044", "D-045", "D-046"],
+    _require(
+        probe.get("decisions") == ["D-044", "D-045", "D-046", "D-047"],
              "endpoint probe decisions changed")
     source = probe.get("source_protocol", {})
     _require(source.get("protocol_sha256") == protocol_sha256(source_protocol),
@@ -784,10 +785,76 @@ def validate_m1_endpoint_probe(
         == "registered_prior_or_regularizer_only_not_a_validated_primary_mechanism",
         "minimal-world-change may only be described as a registered regularizer",
     )
+    teacher = probe.get("teacher_disclosure", {})
+    _require(
+        teacher.get("report_teacher_reference_argmax_agreement") is True
+        and teacher.get(
+            "report_top1_probability_mean_median_and_fraction_below_0.60"
+        ) is True
+        and teacher.get("report_posterior_entropy_and_uniform_entropy") is True
+        and teacher.get("retain_horizon_1_ablation") is True
+        and teacher.get("teacher_label_rewriting_claimed") is False,
+        "teacher agreement and soft-distribution scope must be disclosed",
+    )
+    horizon = probe.get("horizon_1_main_text_mechanism_analysis", {})
+    _require(
+        horizon.get("status")
+        == "required_in_endpoint_probe_report_and_main_paper_not_supplement_only"
+        and horizon.get("analysis_level")
+        == "executed_teacher_posterior_contrast_not_retrained_student_or_new_method"
+        and horizon.get("primary_horizon") == 3
+        and horizon.get("contrast_horizon") == 1
+        and "same_201_complete_train_inner_dev_paired_groups"
+        in horizon.get("scope", "")
+        and "exclude_recovery_only_rows" in horizon.get("scope", ""),
+        "H=1 must be a fixed main-text teacher mechanism contrast",
+    )
+    _require(
+        set(horizon.get("held_fixed", []))
+        == {
+            "immutable_base_world",
+            "candidate_programs_and_order",
+            "current_observation",
+            "registered_exogenous_pose_and_event_schedule",
+            "now_edit_growth_collateral_illegal_terms",
+            "energy_weights",
+            "temperature",
+        }
+        and "argmax_change_rate" in horizon.get("report_h3_vs_h1", [])
+        and "mean_KL_H3_to_H1" in horizon.get("report_h3_vs_h1", [])
+        and "complete_paired_group_first" in horizon.get("aggregation", "")
+        and "save_per_complete_paired_group_values"
+        in horizon.get("aggregation", "")
+        and horizon.get("validation_arrays_read") is False
+        and horizon.get("test_access") is False,
+        "H=1 contrast changed inputs, outputs, unit, or access boundary",
+    )
+    _require(
+        horizon.get("selection_or_gate_role")
+        == "none;_not_a_co_primary_not_used_for_endpoint_switch_test_N_hyperparameters_or_M1_pass_fail"
+        and "report_without_retuning"
+        in horizon.get("weak_or_null_result_action", "")
+        and "do_not_change_A_vs_C_or_A_vs_E_rules"
+        in horizon.get("weak_or_null_result_action", ""),
+        "H=1 mechanism evidence may not become a hidden success gate or tuning rule",
+    )
+    _require(
+        "minimal_world_change_terms_are_registered_regularizers"
+        in naming.get("claim_wording", "")
+        and "scores_candidates_without_candidate_post_graphs_or_future"
+        in naming.get("online_model_execution_boundary", "")
+        and "applies_only_the_selected_transaction"
+        in naming.get("online_model_execution_boundary", "")
+        and "seeded_pregenerated_exogenous_inputs"
+        in naming.get("m1_pose_trajectory_boundary", "")
+        and naming.get("active_navigation_or_action_policy_claimed") is False,
+        "claim, online execution, or exogenous-trajectory boundary regressed",
+    )
     output = probe.get("output", {})
     _require(
-        output.get("schema_version") == "m1-endpoint-viability-report-v3"
+        output.get("schema_version") == "m1-endpoint-viability-report-v4"
         and output.get("save_fixed_commit_rule") is True
+        and output.get("save_horizon_1_main_text_mechanism_analysis") is True
         and "save_cross_fitted_gate_by_fold" not in output,
         "wrong endpoint report schema",
     )

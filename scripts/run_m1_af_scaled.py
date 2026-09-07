@@ -261,7 +261,7 @@ def main() -> int:
     parser.add_argument(
         "--overlay", type=Path,
         default=PROJECT / "configs" / "m1_endpoint_viability_probe.json",
-        help="accepted D-044--D-046 evaluation overlay",
+        help="accepted D-044--D-047 evaluation overlay",
     )
     parser.add_argument("--train", type=Path, required=True)
     parser.add_argument("--validation", type=Path, required=True)

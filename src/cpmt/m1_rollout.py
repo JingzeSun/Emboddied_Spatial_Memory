@@ -3465,6 +3465,246 @@ def generate_m1_paired_rollout_split(
     return online_steps, audits, summary
 
 
+def teacher_horizon_contrast(
+    config: Mapping[str, Any], audits: Sequence[Mapping[str, Any]], *,
+    contrast_horizon: int = 1,
+) -> dict[str, Any]:
+    """Compare the registered H=3 teacher with a held-fixed shorter horizon.
+
+    This is an offline mechanism diagnostic, not a new student or success gate.
+    Every candidate is the already executed candidate from the same immutable
+    base; only its registered counterfactual future trace is truncated.  That
+    makes the result answer whether additional observed future context changes
+    the soft executable teacher distribution without changing the M1 methods.
+    """
+    if not audits:
+        raise ValueError("teacher horizon contrast requires rollout audits")
+    primary_horizon = int(config["future"]["primary_horizon"])
+    if contrast_horizon <= 0 or contrast_horizon >= primary_horizon:
+        raise ValueError(
+            "teacher horizon contrast must be positive and shorter than primary"
+        )
+    siblings_by_group: dict[str, set[int]] = {}
+    for audit in audits:
+        group_id = str(audit["paired_group_id"])
+        sibling = audit.get("sibling_index")
+        if sibling is None:
+            raise ValueError(
+                "teacher horizon contrast requires complete paired groups"
+            )
+        siblings_by_group.setdefault(group_id, set()).add(int(sibling))
+    if any(siblings != {0, 1} for siblings in siblings_by_group.values()):
+        raise ValueError("teacher horizon contrast requires complete paired groups")
+    weights = config["energy"]["weights"]
+    temperature = float(config["energy"]["temperature"])
+    rows: list[dict[str, Any]] = []
+    for audit in audits:
+        steps = list(audit["steps"])
+        events = [step["event_spec"] for step in steps]
+        reference_states = [
+            step["executed_candidates"][step["reference_program_index"]][
+                "post_graph"
+            ]
+            for step in steps
+        ]
+        reference_policies = []
+        for step in steps:
+            reference_index = int(step["reference_program_index"])
+            if reference_index == int(step["primary_program_index"]):
+                reference_policies.append("primary")
+                continue
+            reference_template = str(
+                step["executed_candidates"][reference_index]["template"]
+            )
+            if reference_template != "NOOP":
+                raise AssertionError(
+                    "teacher horizon contrast requires an explicitly supported "
+                    f"reference policy, found {reference_template!r}"
+                )
+            reference_policies.append("contrast_noop")
+        for step_index, step in enumerate(steps[:-1]):
+            eligible = [
+                bool(candidate["legal"] and candidate["static_preflight_pass"])
+                for candidate in step["executed_candidates"]
+            ]
+            raw_future: list[float | None] = []
+            for candidate in step["executed_candidates"]:
+                if candidate["post_graph"] is None:
+                    raw_future.append(None)
+                    continue
+                value, _, _ = _counterfactual_trace(
+                    candidate["post_graph"], events, reference_states,
+                    reference_policies, step_index, contrast_horizon,
+                )
+                raw_future.append(value)
+            scaled_future = standardize_future_term(raw_future, eligible)
+            contrast_energies = []
+            for original, future in zip(
+                step["candidate_energies"], scaled_future, strict=True,
+            ):
+                masked = bool(original["masked"])
+                terms = {
+                    "now": float(original["now"]),
+                    "future": float(future),
+                    "edit": float(original["edit"]),
+                    "growth": float(original["growth"]),
+                    "collateral": float(original["collateral"]),
+                    "illegal": float(original["illegal"]),
+                }
+                contrast_energies.append({
+                    **terms,
+                    "total": None if masked else sum(
+                        float(weights[key]) * terms[key] for key in weights
+                    ),
+                    "masked": masked,
+                })
+            primary = np.asarray(step["teacher_posterior"], dtype=np.float64)
+            contrast = np.asarray(
+                _teacher_posterior(contrast_energies, temperature),
+                dtype=np.float64,
+            )
+            rows.append({
+                "paired_group_id": str(audit["paired_group_id"]),
+                "scenario_family": str(step["scenario_family"]),
+                "reference_index": int(step["reference_program_index"]),
+                "uniform_candidate_count": int(sum(
+                    not bool(energy["masked"])
+                    for energy in step["candidate_energies"]
+                )),
+                "primary": primary,
+                "contrast": contrast,
+            })
+
+    def summarize(selected: Sequence[Mapping[str, Any]]) -> dict[str, Any] | None:
+        if not selected:
+            return None
+        primary = np.stack([row["primary"] for row in selected])
+        contrast = np.stack([row["contrast"] for row in selected])
+        reference = np.asarray(
+            [row["reference_index"] for row in selected], dtype=np.int64,
+        )
+        row_index = np.arange(len(selected))
+        epsilon = np.finfo(np.float64).tiny
+        group_labels = np.asarray([
+            str(row["paired_group_id"]) for row in selected
+        ])
+        uniform_candidate_count = np.asarray([
+            int(row["uniform_candidate_count"]) for row in selected
+        ], dtype=np.int64)
+        group_ids = sorted(set(group_labels.tolist()))
+
+        def group_first_mean(values: np.ndarray) -> float:
+            return float(np.mean([
+                np.mean(values[group_labels == group_id])
+                for group_id in group_ids
+            ]))
+
+        def distribution_summary(probabilities: np.ndarray) -> dict[str, Any]:
+            top1 = probabilities.max(axis=1)
+            entropy = -np.sum(
+                probabilities
+                * np.log(np.clip(probabilities, epsilon, 1.0)),
+                axis=1,
+            )
+            return {
+                "teacher_reference_argmax_agreement": group_first_mean(
+                    probabilities.argmax(axis=1) == reference
+                ),
+                "top1_probability": {
+                    "mean": group_first_mean(top1),
+                    "pooled_row_median": float(np.median(top1)),
+                    "fraction_below_0.60": group_first_mean(top1 < 0.60),
+                },
+                "posterior_entropy": {
+                    "mean": group_first_mean(entropy),
+                    "pooled_row_median": float(np.median(entropy)),
+                },
+                "uniform_entropy_mean": group_first_mean(
+                    np.log(uniform_candidate_count)
+                ),
+            }
+
+        total_variation = 0.5 * np.abs(primary - contrast).sum(axis=1)
+        kl_primary_to_contrast = np.sum(
+            primary * (
+                np.log(np.clip(primary, epsilon, 1.0))
+                - np.log(np.clip(contrast, epsilon, 1.0))
+            ),
+            axis=1,
+        )
+        reference_delta = (
+            primary[row_index, reference] - contrast[row_index, reference]
+        )
+        per_group = []
+        for group_id in group_ids:
+            mask = group_labels == group_id
+            per_group.append({
+                "paired_group_id": group_id,
+                f"H{primary_horizon}_reference_agreement": float(np.mean(
+                    primary[mask].argmax(axis=1) == reference[mask]
+                )),
+                f"H{contrast_horizon}_reference_agreement": float(np.mean(
+                    contrast[mask].argmax(axis=1) == reference[mask]
+                )),
+                "total_variation_mean": float(np.mean(total_variation[mask])),
+                "argmax_change_rate": float(np.mean(
+                    primary[mask].argmax(axis=1)
+                    != contrast[mask].argmax(axis=1)
+                )),
+                "KL_primary_to_contrast_mean": float(np.mean(
+                    kl_primary_to_contrast[mask]
+                )),
+                "primary_minus_contrast_reference_probability_mean": float(
+                    np.mean(reference_delta[mask])
+                ),
+            })
+        return {
+            "rows": len(selected),
+            "complete_paired_groups": len(group_ids),
+            f"H{primary_horizon}": distribution_summary(primary),
+            f"H{contrast_horizon}": distribution_summary(contrast),
+            f"H{primary_horizon}_vs_H{contrast_horizon}": {
+                "total_variation": {
+                    "mean": group_first_mean(total_variation),
+                    "pooled_row_median": float(np.median(total_variation)),
+                    "pooled_row_p95": float(np.quantile(total_variation, 0.95)),
+                    "pooled_row_maximum": float(np.max(total_variation)),
+                },
+                "argmax_change_rate": group_first_mean(
+                    primary.argmax(axis=1) != contrast.argmax(axis=1)
+                ),
+                "mean_KL_primary_to_contrast": group_first_mean(
+                    kl_primary_to_contrast
+                ),
+                "primary_minus_contrast_reference_probability": {
+                    "mean": group_first_mean(reference_delta),
+                    "pooled_row_minimum": float(np.min(reference_delta)),
+                    "pooled_row_maximum": float(np.max(reference_delta)),
+                },
+            },
+            "per_complete_paired_group": per_group,
+        }
+
+    families = list(config["data"]["scenario_families"])
+    return {
+        "schema_version": "cpmt-m1-teacher-horizon-contrast-v1",
+        "analysis_level": (
+            "executed_teacher_posterior_contrast_not_retrained_student_or_new_method"
+        ),
+        "primary_horizon": primary_horizon,
+        "contrast_horizon": contrast_horizon,
+        "recovery_only_rows_included": False,
+        "selection_or_gate_role": "none",
+        "overall": summarize(rows),
+        "by_family": {
+            family: summarize([
+                row for row in rows if row["scenario_family"] == family
+            ])
+            for family in families
+        },
+    }
+
+
 def materialize_rollout_step(
     audit_sequence: Mapping[str, Any], base: Mapping[str, Any], step_index: int,
 ) -> dict[str, Any]:

@@ -8,7 +8,7 @@
 
 ## 唯一主假设
 
-与直接预测 transaction label 或增加 future auxiliary loss 相比，先在同一旧图的版本副本上执行竞争性 transaction programs，再用当前与未来投影一致性评价执行后世界，能够产生更可靠的 hindsight supervision；由此蒸馏的 online updater 能减少长期 world-graph contamination。
+与直接预测 transaction label 或增加 future auxiliary loss 相比，先在同一旧图的版本副本上执行竞争性 transaction programs，再以执行后世界对当前证据及随后实际观测的投影不一致为主要依据，并仅以 edit/growth 等最小改动代价作为预登记正则，能够产生更可靠的 hindsight supervision；由此蒸馏的 online updater 能减少长期 persistent-world error burden。这里要检验的是“真实展开候选世界后形成的监督是否更可靠”，不是把 current、future 与 minimal-world-change 三项并列宣称为已经验证的创新机制。
 
 ## 方法角色
 
@@ -18,6 +18,10 @@
 - Versioned Deterministic Executor：使候选解释成为真实 graph interventions 的执行基础。
 
 主创新只归于 CTL 的 executable counterfactual supervision。表征与 executor 是否构成额外贡献，必须由独立消融决定，不能预先宣称。
+
+M1 的 online 网络只读取截至当前的世界、观测和候选程序并输出候选分数；它不读取 future 或候选 `post_graph`，也不在网络内部展开执行所有候选。CPMT 系统随后用所有方法共享的 deterministic executor 只执行最终选中的单个事务，记忆指标在这次应用之后计算。因此“online 模型不执行候选分支”不等于“部署系统不执行记忆修订”。
+
+M1 的 world events、观测顺序、pose buckets 与 controlled-revisit action history 都是由固定 seed 预生成的外生输入，不由模型根据当前记忆状态选择。例如某一步换到哪个 pose 在该方法开始决策前已经确定；模型只能决定如何修订记忆，不能决定去哪里看。该设置检验外生观测流下的 online memory revision，不等于 active navigation、主动消歧或 action-policy learning。
 
 ### 教师可以不同意参考标签
 
@@ -35,7 +39,7 @@ paired sibling 的反事实 rollout 必须沿该 sibling 实际登记的 primary
 
 ## 拟议 claim
 
-> CPMT learns online persistent-memory revision from a hindsight posterior over executable world transactions, evaluated by current and future projective consistency under a minimal-world-change prior.
+> CPMT learns online persistent-memory revision by distilling a hindsight posterior built from genuinely executed candidate world transactions. In M1, execution-conditioned current evidence and subsequently observed future evidence provide the principal scoring signal, while minimal-world-change costs remain registered regularizers rather than a separately validated mechanism.
 
 这里的 counterfactual 是对内部 memory state 的干预，不是物理世界因果效应。
 

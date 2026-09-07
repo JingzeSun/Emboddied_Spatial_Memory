@@ -49,6 +49,9 @@
 | D-042 | accepted; optimization details superseded by D-043 | v8 双架构 train/inner-dev 有限预算框架保留；具体网络归一化、网格和逐方法选择由 D-043 更新 |
 | D-043 | accepted | A–E 严格共用架构与 12 格搜索空间、各自按同一 reference 指标选预算；Pre-LN 主臂、共享/交叉预算读数与触顶纪律预登记 |
 | D-044 | accepted | test 前以固定 train-only anchor 一次判定 exact endpoint 是否退化；必要时切到同构 multiset-Jaccard，并把 open-memory/evidence、节点与完整 collateral 纳入覆盖、安全和检验力定样 |
+| D-045 | accepted; AUC effect values superseded by D-046 | 正名并分解 open-fact error；terminal/AUC 并报；固定无选择 gate、recovery 空分母和 false-birth 集合差 |
+| D-046 | accepted | AUC `40/80` 持续等价门、C train/inner-dev 顺序权重选择、纯 validation confirmation 与三种提交率 |
+| D-047 | accepted | 收紧 claim 与 online/executor/外生轨迹边界；H3-vs-H1 teacher 对照为主文必报机制证据但不进入成败门 |
 
 ## D-015 — 单执行入口与五阶段合同
 
@@ -650,6 +653,25 @@
 - 影响：D-045 的指标名称、extra/missing、新写入/stale、false-birth、recovery null、固定 gate 与范围声明保持；只 supersede AUC 效应门/功效值和 validation 选择职责。当前 endpoint probe 与完整预算网格继续阻断，先在干净服务器对 D-044–D-046 全部实现跑 full test。full test 成功后才改写唯一入口运行固定 train-only endpoint probe；若其通过，再运行含 C 顺序权重搜索的两臂预算网格。
 - 是否接触 test 信息：否。D-046 只使用代码/量纲审计、已登记公式、历史非正式 smoke 的尺度提醒和 D-043 planning-only runtime profile；未运行或读取 endpoint probe、validation/test，test 尚未生成。
 - 验证方式：schema validator 锁住 `40/80`、8/16 暴露、不得按 probe 回调、顺序选择与纯 confirmation；功效单测锁住最低 200/向上取整；预算 helper 单测锁住 group-first 聚合、锚点平手与两条附加路径；causal 单测锁住 attempt/commit/quarantine 恒等关系。完成 Python compile、JSON 解析、shell syntax、定向测试与 diff 检查后，唯一服务器入口只运行全仓库测试，不生成数据、不训练、不读 validation/test。
+
+## D-047 — M1 claim 边界与 H=1 主文 teacher 机制对照
+
+- 日期：2026-09-08。
+- 状态：accepted；在读取 endpoint probe、validation 或 test 结果前冻结，不改变 D-044–D-046 的方法、数据、候选、能量、co-primary、阈值或成败门。
+- 用户确认：用户询问遗留的 teacher agreement、claim、online execution 与外生轨迹问题是否被遗漏，并授权在确认对论文有益时补正。
+- 背景：M1-v8 health 的 `teacher_reference_agreement=1.0` 已按 D-044 披露为“软 executable hindsight distribution 的传播”，但 H=1 仍只是配置中的 `reported_ablations`/`retain_horizon_1_ablation`，没有固定比较量和主文职责；这会使“并非只传标签”的解释显得只靠免责措辞。研究合同的英文 claim 又继续把 `current and future projective consistency` 与 `minimal-world-change prior` 连在同一句中，容易把后者误读成与 future 同等级且已经验证的机制。另有两处系统边界需要拆开：online 网络评分时不展开候选 `post_graph`，但部署系统仍用共享 executor 应用最终选中的事务；M1 pose/trajectory 是生成器事先固定的外生观测流，不是机器人根据记忆主动选择的导航策略。
+- 决策：
+  1. 唯一 claim 改为：hindsight posterior 来自真实执行候选 world transactions；在 M1 中，执行条件下的当前证据和随后实际观测到的 future evidence 是主要评分信号，minimal-world-change 的 edit/growth cost 只称预登记正则，不称已验证主机制。中文主假设同步使用 persistent-world error burden，不再用 M1 的开放边代理泛称原始 Dynamic Contamination Rate。
+  2. 论文和合同必须区分网络与系统：online network 只读截至当前的 world/observation/candidate program 并输出分数，不读 future 或候选 `post_graph`，也不在网络内展开全部候选；CPMT system 随后用所有方法共享的 deterministic executor 只执行最终选中的一个事务，再计算记忆指标。它既不等于硬编码 online updater，也不等于部署时没有真实 memory mutation。
+  3. M1 的 world event、observation order、pose bucket 与 controlled-revisit action history 由固定 seed 在方法运行前预生成，并在所有方法间共享；它们不依赖 learned memory state 或模型分数。因此 M1 只检验外生观测流下的 online persistent-memory revision，不声称 active navigation、主动消歧或 action-policy learning。
+  4. endpoint probe 在同一 201 个完整 train/inner-dev paired groups 上必报 H3-vs-H1 **teacher horizon contrast（教师视野对照）**。每个候选仍从同一 immutable base 真实执行，H=1 只把之后实际登记且有效的 counterfactual trace 从最多三步截为下一步；candidate program/order、current evidence、外生 event/pose schedule、now/edit/growth/collateral/illegal、energy weights 和 temperature 全部固定。online learning rows 中最后一个零-future step 与 recovery-only rows 排除。
+  5. 两个 horizon 分别报告 teacher/reference argmax agreement、top-1 probability mean/median/fraction<0.60、posterior/uniform entropy；H3-vs-H1 报 total variation mean/median/p95/max、argmax change、`KL(H3||H1)` 与 H3−H1 reference probability，总体和逐 family 同报，完整 paired group 是独立单位。该结果必须进入论文主文而非只放 supplement。
+  6. H=1 是 teacher-level 机制诊断，不重训一个 H=1 student、不新增第七方法、co-primary、显著性门或 multiplicity family，也不参与 exact/graded switch、test N、超参数、validation/test 选择或 M1 pass/fail。若差异弱或为零，必须披露并收窄“多步 future context materially changes supervision”的机制叙述；不得调能量、隐藏结果或修改 A-vs-C/E 主比较。H=5 保留为次级报告扩展，不承担本条主文义务。
+- 白话：teacher horizon contrast 解决“老师第一名始终等于参考标签时，future 到底有没有改变监督”这一问题。输入是同一批已经执行的候选世界，H=3 看后面最多三次有效观测，H=1 只看下一次；输出是两份完整候选概率分布之间的 TV/KL、第一名变化和正确候选概率变化。例如第一名都还是 RELINK，但其概率从 0.35 变成 0.65，说明多步 future 改变了蒸馏信号。它不保证老师改写 hard label、不证明 A 已优于 C/E，也不新增一个必须“做出正结果”的门。
+- 论文影响：该补正减少过度主张并把潜在弱点前置为可审计证据，整体有利于可信度。可能出现的代价是 H3-vs-H1 为零时机制叙述必须变窄，但这是真实边界；把它留到结果后再决定是否报告，对论文风险更大。
+- 机器合同与版本：`configs/m1_endpoint_viability_probe.json` 升为 v4，endpoint report 升为 v4；新增可从重建的 train rollout audits 计算 H3-vs-H1 分布诊断的代码与单测。活动 `m1_hard_condition.json` 和既有 1000-group train arrays 内容/hash 不变；H=1 只在 train-only endpoint probe 重建 audit 时计算，不消费 validation/test，也不改变训练输入。
+- 是否接触 test 信息：否。未运行 endpoint probe，未读取 validation/test，test 尚未生成；本条只使用既有代码合同、train-only teacher health 事实和用户提供的只读审计意见。
+- 验证方式：validator 锁住 H=1 只改变 future horizon、201 complete groups、主文职责、固定输入、报告量和 no-gate/no-retune 边界；单测验证重算不修改 audit、排除零-future/recovery rows并输出有限分布指标；文档测试拒绝旧 claim，并要求 online/system 与外生轨迹说明存在。随后在干净服务器运行 D-044–D-047 full test，通过后才实现/运行唯一 endpoint probe 入口。
 
 ## 新决策模板
 

@@ -1,7 +1,7 @@
 {
-  "schema_version": "m1-endpoint-viability-probe-v3",
+  "schema_version": "m1-endpoint-viability-probe-v4",
   "status": "accepted_train_only_preregistration",
-  "decisions": ["D-044", "D-045", "D-046"],
+  "decisions": ["D-044", "D-045", "D-046", "D-047"],
   "source_protocol": {
     "protocol_version": "m1-hard-condition-v6",
     "dataset_version": "m1-paired-latent-worlds-v8-fixed-range-current-energy",
@@ -255,7 +255,42 @@
     "report_top1_probability_mean_median_and_fraction_below_0.60": true,
     "report_posterior_entropy_and_uniform_entropy": true,
     "interpretation": "M1_v8_tests_propagation_of_a_soft_executable_hindsight_distribution_whose_argmax_recovers_the_reference_in_the_health_fixture;_not_a_claim_that_every_fixture_decision_has_teacher_label_disagreement",
-    "retain_horizon_1_ablation": true
+    "retain_horizon_1_ablation": true,
+    "teacher_label_rewriting_claimed": false
+  },
+  "horizon_1_main_text_mechanism_analysis": {
+    "status": "required_in_endpoint_probe_report_and_main_paper_not_supplement_only",
+    "analysis_level": "executed_teacher_posterior_contrast_not_retrained_student_or_new_method",
+    "primary_horizon": 3,
+    "contrast_horizon": 1,
+    "scope": "same_201_complete_train_inner_dev_paired_groups_as_endpoint_probe;_online_learning_rows_with_at_least_one_future_observation_only;_exclude_recovery_only_rows",
+    "only_changed_factor": "truncate_each_executed_candidate_counterfactual_trace_from_the_next_three_registered_observed_decisions_to_the_next_one",
+    "held_fixed": [
+      "immutable_base_world",
+      "candidate_programs_and_order",
+      "current_observation",
+      "registered_exogenous_pose_and_event_schedule",
+      "now_edit_growth_collateral_illegal_terms",
+      "energy_weights",
+      "temperature"
+    ],
+    "report_for_each_horizon": [
+      "teacher_reference_argmax_agreement",
+      "top1_probability_mean_median_and_fraction_below_0.60",
+      "posterior_entropy_and_uniform_entropy"
+    ],
+    "report_h3_vs_h1": [
+      "total_variation_mean_median_p95_max",
+      "argmax_change_rate",
+      "mean_KL_H3_to_H1",
+      "H3_minus_H1_reference_probability_mean_min_max"
+    ],
+    "aggregation": "report_overall_and_by_registered_family;_means_and_rates_are_complete_paired_group_first;_medians_quantiles_and_extrema_are_labelled_pooled_row_descriptives;_save_per_complete_paired_group_values",
+    "paper_role": "main_text_mechanism_evidence_for_whether_additional_observed_future_context_changes_the_executed_teacher_distribution",
+    "selection_or_gate_role": "none;_not_a_co_primary_not_used_for_endpoint_switch_test_N_hyperparameters_or_M1_pass_fail",
+    "weak_or_null_result_action": "report_without_retuning_and_limit_any_claim_that_multi_step_future_context_materially_changes_the_teacher;_do_not_change_A_vs_C_or_A_vs_E_rules",
+    "validation_arrays_read": false,
+    "test_access": false
   },
   "naming_and_scope": {
     "formal_primary_table_excludes": [
@@ -288,6 +323,10 @@
       "both_reported": true
     },
     "minimal_world_change_interpretation": "registered_prior_or_regularizer_only_not_a_validated_primary_mechanism",
+    "claim_wording": "executed_candidate_worlds_are_scored_primarily_by_current_and_observed_future_projective_evidence;_minimal_world_change_terms_are_registered_regularizers_not_a_parallel_validated_mechanism",
+    "online_model_execution_boundary": "the_online_network_scores_candidates_without_candidate_post_graphs_or_future;_the_shared_system_executor_applies_only_the_selected_transaction_before_memory_metrics",
+    "m1_pose_trajectory_boundary": "world_events_observation_order_pose_buckets_and_controlled_revisit_history_are_seeded_pregenerated_exogenous_inputs_independent_of_the_learned_memory_state",
+    "active_navigation_or_action_policy_claimed": false,
     "m1_scope": "controlled_embodied_persistent_world_revision_only",
     "deferred_to_M2_M3": [
       "independent_dynamic_or_transient_memory",
@@ -299,9 +338,10 @@
     ]
   },
   "output": {
-    "schema_version": "m1-endpoint-viability-report-v3",
+    "schema_version": "m1-endpoint-viability-report-v4",
     "save_per_seed_method_sequence_rows": true,
     "save_fixed_commit_rule": true,
+    "save_horizon_1_main_text_mechanism_analysis": true,
     "save_failures_and_provenance": true,
     "formal_method_effect_claim": false
   }

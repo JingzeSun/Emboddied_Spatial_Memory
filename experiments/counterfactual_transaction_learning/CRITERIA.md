@@ -2,7 +2,7 @@
 
 ## Primary
 
-1. D-044–D-046 train-only 开关选定的 final active-world semantic correctness（exact 首选、同构 graded 仅在 exact 退化时一次 fallback；完整 history exactness 另列诊断）；
+1. D-044–D-047 train-only 开关选定的 final active-world semantic correctness（exact 首选、同构 graded 仅在 exact 退化时一次 fallback；完整 history exactness 另列诊断）；
 2. final graded open-memory support correctness；
 3. `open_fact_error_auc_per_100_decisions`（extra + missing 开放边状态的全过程负担，不互相抵消）。
 
