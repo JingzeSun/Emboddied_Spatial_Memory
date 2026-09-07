@@ -16,11 +16,11 @@
 
 ## 当前指针
 
-- 当前阶段：**v5 S2 预算比较已通过；等待两个 scorer report exporter 导出与结果提交**。
-- 最近有效证据：v5 S2 的服务器 arrays/manifest/report 已验收；1000−300 的 paired-group 95% CI 为 `[+0.008750,+0.045000]`，按预登记规则选择 1000。完整数字与 provenance 见 `EXECUTE.md` LOG-032；两个 report 尚未导回 `results/`。
+- 当前阶段：**v5 S2 预算比较与 report 导出已完成；等待数据量交互判断**。
+- 最近有效证据：v5 S2 的 arrays/manifest/report 已验收并导入 `results/`；1000−300 的 paired-group 95% CI 为 `[+0.008750,+0.045000]`，按预登记规则选择 1000。完整数字与 provenance 见 `EXECUTE.md` LOG-032。
 - 已完成：同一份 40-group v4 arrays 确定性截取 10/40 groups，运行 scorer steps {60,300,1000} × seed 7。40-group 全 train 上，static preflight 对 2,552/2,552 个 executor-illegal 候选全部静态拒绝、合法误拒 0；过滤后 target-only 均匀并列期望由 0.7729 升至 0.9698，assembled oracle accuracy 由 0.7438 升至 0.9525，其 exact-ambiguity capped 读数由 0.7275 升至 0.9275。D-038 已接受把同一只读预检变成 A–E 共享 mask；旧 v4 过滤数字仍只作采纳依据，不冒充 v5 方法成绩。
 - scorer 分支：40-group inner-dev 的未过滤/过滤后 teacher accuracy 在 steps 60/300/1000 分别为 0.0500/0.5688/0.5031 与 0.0625/0.7469/0.7094。1000 steps 虽将 held-out BCE 从 0.1016 降到 0.0744，候选排序却低于 300 steps；共同 group 1 在 10/40 groups、300/1000 steps 过滤后均为 0.875，也没有显示扩大到 S3 的明确数据收益。因此 300 steps 只是当前单 seed 候选，尚未固定。
-- 当前分支：D-038 已接受，dataset version 为 `m1-paired-latent-worlds-v5-shared-static-preflight`；服务器全测、v5 40-group train arrays、S1 与 S2 五 seed 比较均已通过。下一步只导出两个 S2 report 并提交 `results/`；导出后再依据可比的 10→40 数据量证据判断是否进入 S3，不修改 scorer loss，不读取 validation/test。
+- 当前分支：D-038 已接受，dataset version 为 `m1-paired-latent-worlds-v5-shared-static-preflight`；服务器全测、v5 40-group train arrays、S1、S2 五 seed 比较与两个 report 导出均已通过。下一步依据可比的 10→40 数据量证据判断是否进入 S3，不修改 scorer loss，不读取 validation/test。
 - 预登记方向：共享 mask 主要移除旧 E 会选而 A–D 已由执行信息避开的静态非法候选，因此预期 v5 的 `A_vs_E` 单步与 causal margin 相对 v3/v4 历史读数缩小，触发主对比 stop rule 的概率上升；若 margin 不缩小或仍通过门槛，才是更强证据。该方向在运行前固定，结果出来后不得把“缩小”或“不缩小”任一方向改写成预先支持 CTL。
 - scorer 选择规则：共享 mask 后的 inner-dev candidate-ranking accuracy 是主选择量；同一 paired group、同一 seed 的 1000−300 先配对，再在每个 group 内对五个登记 seed 求平均，最后对 8 个 group 差值用固定 seed=260906 做 10,000 次单层 paired-group bootstrap，取 95% percentile CI。只有 CI 下界大于 0 才选 1000，否则选计算更省的 300；不得把 5×8 格子当成 40 个独立样本。总体/判别性 BCE 与 reference ranking margin 只解释目标是否失配，不按 BCE 单独选预算。若多 seed 复现“总体 BCE 改善但判别性 BCE、margin 或排序下降”，另立 decision 后才可测试 future-derived listwise loss，不得直接用全量 reference index 监督。
 - BCE 分解判据：`ranking_relevant_bce` 是 loss-mismatch 的主 BCE 诊断，因为它直接筛出会改变 oracle mismatch 贡献、因而可能改变候选能量排序的位置；`target_discriminative_bce` 是次级解释量，只回答同一坐标在准入候选间是否同时出现真/假。两者不必是包含关系；发生冲突时，预算仍只按 candidate-ranking accuracy 的预登记置信区间选择，是否改 loss 以 ranking-relevant BCE、reference margin 与实际排序的多 seed 共变为主，且必须另立 decision。
