@@ -2080,6 +2080,44 @@ def standardize_candidate_term(
     ]
 
 
+def scale_current_candidate_term(
+    values: Sequence[float | None], natural_range: float,
+    eligible: Sequence[bool] | None = None,
+) -> list[float]:
+    """Scale current mismatch by its sensor-defined range, never candidate spread.
+
+    The same current observation defines one physical mismatch range for every
+    candidate in a decision: cosine appearance is 0--2, appearance plus place
+    is 0--4, and a reliably empty edge query is 0--1.  Dividing by that range
+    keeps a five-percent raw error a five-percent energy instead of inflating
+    it merely because the other candidates happen to tie almost exactly.
+    Missing or ineligible candidates remain neutral here and are masked by the
+    separate availability/illegal channels.
+    """
+    scale = float(natural_range)
+    if not math.isfinite(scale) or scale <= 0.0:
+        raise ValueError("current mismatch natural range must be positive")
+    if eligible is None:
+        eligible = [True] * len(values)
+    if len(eligible) != len(values):
+        raise ValueError("energy values and eligibility mask differ")
+    scaled = []
+    tolerance = 1e-9
+    for value, keep in zip(values, eligible, strict=True):
+        if value is None or not keep:
+            scaled.append(0.0)
+            continue
+        raw = float(value)
+        if not math.isfinite(raw):
+            raise ValueError("current mismatch must be finite when available")
+        if raw < -tolerance or raw > scale + tolerance:
+            raise ValueError(
+                f"current mismatch {raw} is outside natural range [0, {scale}]"
+            )
+        scaled.append(min(scale, max(0.0, raw)) / scale)
+    return scaled
+
+
 def standardize_future_term(
     values: Sequence[float | None], eligible: Sequence[bool] | None = None,
 ) -> list[float]:
@@ -2178,6 +2216,20 @@ def _current_projection_mismatch(
             (1.0 - appearance_scores[source]) + (1.0 - place_similarity)
         )
     return float(min(joint_errors, default=appearance_error + 2.0))
+
+
+def _current_projection_mismatch_scale(
+    online: Mapping[str, Any], event: Mapping[str, Any],
+) -> float:
+    """Return the frozen natural range for the current sensor comparison."""
+    visibility = str(online["current_regions"][0]["visibility"])
+    if visibility == "visible_empty":
+        return 1.0
+    if visibility == "visible":
+        return 2.0 if event["observation_spec"].get("place_id") is None else 4.0
+    # Invalid/occluded observations produce no raw now value, but retaining a
+    # deterministic scale keeps the audit schema total and avoids NaN scales.
+    return 1.0
 
 
 def _current_online_evidence_scope(
@@ -2588,7 +2640,12 @@ def _generate_sequence(
             )
             for execution in material["executions"]
         ]
-        scaled_nows = standardize_candidate_term(raw_nows, energy_eligible)
+        now_scale = _current_projection_mismatch_scale(
+            material["online"], event,
+        )
+        scaled_nows = scale_current_candidate_term(
+            raw_nows, now_scale, energy_eligible,
+        )
         future_trace = []
         for target_index in range(
             step_index + 1,
@@ -2664,6 +2721,7 @@ def _generate_sequence(
             energies.append({
                 **terms,
                 "now_raw": raw_nows[index],
+                "now_natural_range": now_scale,
                 "future_raw": raw_futures[index],
                 "total": total,
                 "masked": bool(illegal),
@@ -2790,8 +2848,11 @@ def _generate_sequence(
             )
             for execution in recovery_executions
         ]
-        recovery_scaled_nows = standardize_candidate_term(
-            recovery_raw_nows, recovery_eligible,
+        recovery_now_scale = _current_projection_mismatch_scale(
+            recovery_online, reveal_event,
+        )
+        recovery_scaled_nows = scale_current_candidate_term(
+            recovery_raw_nows, recovery_now_scale, recovery_eligible,
         )
         raw_futures = []
         recovery_traces = []
@@ -2833,6 +2894,7 @@ def _generate_sequence(
             recovery_energies.append({
                 **terms,
                 "now_raw": recovery_raw_nows[index],
+                "now_natural_range": recovery_now_scale,
                 "future_raw": raw_futures[index],
                 "total": total,
                 "masked": bool(illegal),

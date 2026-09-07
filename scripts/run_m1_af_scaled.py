@@ -39,6 +39,7 @@ from cpmt.m1_af_rollout import (  # noqa: E402
     CANDIDATE_FEATURE_DIM, CURRENT_RELATION_QUERIES,
     calibrate_shared_commit_rule,
     causal_rollout_metrics, paired_group_is_calibration,
+    mechanism_slice_selection_diagnostics,
     rollout_learning_arrays_from_audits, selection_error_decomposition,
     static_preflight_diagnostics,
     structured_relation_oracle_probabilities,
@@ -87,15 +88,8 @@ def _load(
         raise ValueError(f"expected {expected_split} arrays at {path}")
     if manifest.get("dataset_version") != expected_dataset_version:
         raise ValueError(f"array dataset version does not match {path}")
-    # Carried by the generator/manifest for audit; none are model inputs.
-    for key in (
-        "teacher_matches_reference", "scenario_family_index",
-        "candidate_energy_now", "candidate_energy_future",
-        "candidate_energy_edit", "candidate_energy_growth",
-        "candidate_energy_collateral", "candidate_energy_illegal",
-        "candidate_energy_now_raw", "candidate_energy_future_raw",
-    ):
-        data.pop(key, None)
+    # Energy/family arrays remain available for registered diagnostics. Model
+    # code consumes only named online/target tensors and never reads them.
     return data, {
         "path": str(path),
         "arrays_digest": digest,
@@ -332,6 +326,12 @@ def main() -> int:
                standardize_future_term=True,
                energy_weights=hard["energy"]["weights"],
                temperature=float(hard["energy"]["temperature"]),
+               mechanism_diagnostic_slices=hard["evaluation"][
+                   "mechanism_diagnostic_slices"
+               ],
+               current_evidence_scope_ranks=int(hard["candidates"][
+                   "proposal_retrieval"
+               ]["enumerated_ranks"]),
                **architecture_settings)
 
     print(f"protocol {protocol_sha256(hard)[:16]}  "
@@ -517,6 +517,32 @@ def main() -> int:
         calibration_probabilities, validation_np, hard,
     )
     cfg.update(commit_calibration["selected"])
+    mechanism_slice_reports: dict[str, list[dict]] = {}
+    for method in STUDENTS:
+        mechanism_slice_reports[method] = [
+            mechanism_slice_selection_diagnostics(
+                calibration_probabilities[f"{method}:seed{seed}"],
+                validation_np,
+                hard["evaluation"]["mechanism_diagnostic_slices"],
+                row_mask=online_report_mask,
+                commit_probability=float(cfg["commit_probability"]),
+                margin_threshold=float(cfg["margin_threshold"]),
+            )
+            for seed in seeds
+        ]
+    oracle_probabilities = np.eye(
+        int(validation_np["candidate_legal"].shape[1]), dtype=np.float32,
+    )[np.asarray(validation_np["y"], dtype=np.int64)]
+    mechanism_slice_reports["oracle_candidate_program"] = [
+        mechanism_slice_selection_diagnostics(
+            oracle_probabilities,
+            validation_np,
+            hard["evaluation"]["mechanism_diagnostic_slices"],
+            row_mask=online_report_mask,
+            commit_probability=float(cfg["commit_probability"]),
+            margin_threshold=float(cfg["margin_threshold"]),
+        )
+    ]
     print(
         "selected shared commit rule on calibration groups: "
         f"p={cfg['commit_probability']:.3f} "
@@ -587,7 +613,7 @@ def main() -> int:
               flush=True)
         for seed in seeds:
             for method in ALL_METHODS:
-                target = causal_dir / f"{method}_seed{seed}_{gate_tag}_v3.json"
+                target = causal_dir / f"{method}_seed{seed}_{gate_tag}_v4.json"
                 if target.exists():
                     continue
                 began = time.time()
@@ -598,7 +624,7 @@ def main() -> int:
                 metrics.update(method=method, seed=seed,
                                seconds=time.time() - began)
                 target.write_text(json.dumps({
-                    "schema_version": "cpmt-m1-causal-result-v3",
+                    "schema_version": "cpmt-m1-causal-result-v4",
                     "aggregate": metrics,
                     "sequences": sequence_rows,
                 }, indent=2), encoding="utf-8")
@@ -607,7 +633,7 @@ def main() -> int:
                       f"  history={metrics['final_history_exactness']:.4f}"
                       f"  ({metrics['seconds']:.0f}s)", flush=True)
 
-        observable_path = causal_dir / f"observable_information_oracle_{gate_tag}_v3.json"
+        observable_path = causal_dir / f"observable_information_oracle_{gate_tag}_v4.json"
         if not observable_path.exists():
             began = time.time()
             metrics, sequence_rows = causal_rollout_metrics(
@@ -616,7 +642,7 @@ def main() -> int:
             metrics.update(method="observable_information_oracle",
                            seconds=time.time() - began)
             observable_path.write_text(json.dumps({
-                "schema_version": "cpmt-m1-causal-result-v3",
+                "schema_version": "cpmt-m1-causal-result-v4",
                 "aggregate": metrics,
                 "sequences": sequence_rows,
             }, indent=2), encoding="utf-8")
@@ -632,7 +658,7 @@ def main() -> int:
         print("-" * 85)
         for method in ALL_METHODS:
             paths = [
-                causal_dir / f"{method}_seed{s}_{gate_tag}_v3.json" for s in seeds
+                causal_dir / f"{method}_seed{s}_{gate_tag}_v4.json" for s in seeds
             ]
             payloads = [json.loads(path.read_text())
                         for path in paths if path.exists()]
@@ -698,6 +724,52 @@ def main() -> int:
                     "triggered_revisit_active_resolution_rate"),
                 "seeds_completed": len(rows),
             }
+            if all("mechanism_diagnostic_slices" in row for row in rows):
+                slice_contract = hard["evaluation"][
+                    "mechanism_diagnostic_slices"
+                ]
+                causal_summary[method]["mechanism_diagnostic_slices"] = {
+                    "selection_rule": slice_contract["selection_rule"],
+                    "primary_gate": False,
+                    "full_mixed_20_step_causal_endpoint_remains_primary": True,
+                    "slices": {
+                        name: {
+                            "definition": slice_contract[name]["definition"],
+                            "expected_behavior": slice_contract[name][
+                                "expected_behavior"
+                            ],
+                            "decisions_per_seed": rows[0][
+                                "mechanism_diagnostic_slices"
+                            ]["slices"][name]["decisions"],
+                            **{
+                                metric: (
+                                    float(np.mean([
+                                        row["mechanism_diagnostic_slices"][
+                                            "slices"
+                                        ][name][metric]
+                                        for row in rows
+                                        if row["mechanism_diagnostic_slices"][
+                                            "slices"
+                                        ][name][metric] is not None
+                                    ]))
+                                    if any(
+                                        row["mechanism_diagnostic_slices"][
+                                            "slices"
+                                        ][name][metric] is not None
+                                        for row in rows
+                                    ) else None
+                                )
+                                for metric in (
+                                    "selection_accuracy", "commit_rate",
+                                    "committed_registered_accuracy",
+                                    "active_correctness_after_decision",
+                                    "selected_collateral_rate",
+                                )
+                            },
+                        }
+                        for name in slice_contract["precedence"]
+                    },
+                }
             c = causal_summary[method]
             print(f"{LABEL[method]:<24}{c['final_active_graph_correctness']:>10.4f}"
                   f"{c['mean_active_graph_correctness']:>10.4f}"
@@ -715,8 +787,8 @@ def main() -> int:
         if causal_complete else None
     )
     report = {
-        "schema_version": "cpmt-m1-af-report-v3",
-        "runner": "run_m1_af_scaled_v3",
+        "schema_version": "cpmt-m1-af-report-v4",
+        "runner": "run_m1_af_scaled_v4",
         "formal_run": False,
         "test_generated": False,
         "protocol_sha256": protocol_sha256(hard),
@@ -776,6 +848,7 @@ def main() -> int:
         "commit_calibration": commit_calibration,
         "scorer_teacher_validation_accuracy": scorer_teacher,
         "outcome_scorer_diagnostics": scorer_diagnostics,
+        "mechanism_diagnostic_slices_teacher_forced": mechanism_slice_reports,
         "teacher_forced": summary,
         "primary_contrasts": contrasts,
         "causal_rollout": causal_summary,

@@ -569,18 +569,24 @@ def train_outcome_scorer(train: dict, validation: dict, config: dict, seed: int,
                 )
                 mask = data["relation_mask"]
                 desired = data["relation_desired"]
-                error = F.binary_cross_entropy_with_logits(
+                bce_error = F.binary_cross_entropy_with_logits(
                     prediction, desired, reduction="none",
+                )
+                probability_error = torch.abs(
+                    torch.sigmoid(prediction) - desired
                 )
                 current_dim = int(config["current_relation_dim"])
                 current_mask = mask[:, :, :current_dim]
                 future_mask = mask[:, :, current_dim:]
                 current_error = (
-                    (error[:, :, :current_dim] * current_mask).sum(-1)
+                    (
+                        probability_error[:, :, :current_dim]
+                        * current_mask
+                    ).sum(-1)
                     / current_mask.sum(-1).clamp_min(1.0)
                 )
                 future_error = (
-                    (error[:, :, current_dim:] * future_mask).sum(-1)
+                    (bce_error[:, :, current_dim:] * future_mask).sum(-1)
                     / future_mask.sum(-1).clamp_min(1.0)
                 )
             else:
@@ -604,9 +610,9 @@ def train_outcome_scorer(train: dict, validation: dict, config: dict, seed: int,
                 future_error = masked_row_standardize(
                     future_error, admissible,
                 )
-                current_error = masked_row_standardize(
-                    current_error, admissible,
-                )
+            # Current relation probability error already has the fixed [0, 1]
+            # range. BCE remains the supervised fitting loss above, while this
+            # bounded inference energy avoids candidate-spread amplification.
             energy = (
                 config["energy_weights"]["now"] * current_error
                 + config["energy_weights"]["future"] * future_error

@@ -32,7 +32,9 @@ from cpmt.m1_af_rollout import (
     candidate_current_relation_targets,
     causal_rollout_metrics,
     current_now_comparability_diagnostics,
+    mechanism_slice_selection_diagnostics,
     online_feature_vector,
+    posterior_term_influence_diagnostics,
     resolve_af_smoke_config,
     run_af_seed,
     selection_error_decomposition,
@@ -297,7 +299,7 @@ class TestM1AFCausalRollout(unittest.TestCase):
         )
         for term in (
             "now", "future", "edit", "growth", "collateral", "illegal",
-            "now_raw", "future_raw",
+            "now_raw", "now_natural_range", "future_raw",
         ):
             self.assertEqual(
                 self.train[f"candidate_energy_{term}"].shape, (80, 16),
@@ -355,6 +357,57 @@ class TestM1AFCausalRollout(unittest.TestCase):
             future_desired, np.ones_like(future_desired),
         )
 
+    def test_fixed_current_scale_and_soft_posterior_influence_are_audited(self):
+        audit = current_now_comparability_diagnostics(
+            self.train, self.hard["data"]["scenario_families"],
+        )
+        scaling = audit["fixed_natural_range_scaling"]
+        self.assertTrue(scaling["all_available_values_within_0_1"])
+        self.assertLessEqual(
+            scaling["maximum_absolute_scaling_error"], 1e-6,
+        )
+        self.assertTrue(set(scaling["natural_ranges"]) <= {1.0, 2.0, 4.0})
+
+        contract = self.hard["energy"]["posterior_influence_audit"]
+        influence = posterior_term_influence_diagnostics(
+            self.train,
+            weights=self.hard["energy"]["weights"],
+            temperature=self.hard["energy"]["temperature"],
+            scenario_families=self.hard["data"]["scenario_families"],
+            terms=contract["terms"],
+            total_variation_thresholds=contract[
+                "total_variation_thresholds"
+            ],
+        )
+        self.assertEqual(influence["interpretation"],
+                         "posterior_distribution_not_argmax_only")
+        self.assertEqual(set(influence["terms"]), set(contract["terms"]))
+        self.assertGreater(
+            influence["terms"]["now"]["all"]["total_variation"]["mean"],
+            0.0,
+        )
+
+    def test_mechanism_slices_are_complete_and_descriptive(self):
+        report = mechanism_slice_selection_diagnostics(
+            self.train["pstar"], self.train,
+            self.hard["evaluation"]["mechanism_diagnostic_slices"],
+            commit_probability=0.0, margin_threshold=0.0,
+        )
+        self.assertFalse(report["primary_gate"])
+        self.assertEqual(
+            set(report["slices"]),
+            set(self.hard["evaluation"]["mechanism_diagnostic_slices"][
+                "precedence"
+            ]),
+        )
+        self.assertTrue(all(
+            item["rows"] > 0 for item in report["slices"].values()
+        ))
+        self.assertEqual(
+            report["slices"]["temporal_underdetermination"]["definition"],
+            "scenario_family_equals_C10",
+        )
+
     def test_every_generated_row_has_an_admitted_noop_fallback(self):
         noop_index = TEMPLATES.index("NOOP")
         for arrays in (self.train, self.validation):
@@ -405,6 +458,15 @@ class TestM1AFCausalRollout(unittest.TestCase):
             causal = results[method]["causal_rollout"]
             self.assertEqual(
                 causal["raw_static_rejected_selection_rate"], 0.0,
+            )
+            self.assertEqual(
+                set(causal["mechanism_diagnostic_slices"]["slices"]),
+                set(self.hard["evaluation"][
+                    "mechanism_diagnostic_slices"
+                ]["precedence"]),
+            )
+            self.assertFalse(
+                causal["mechanism_diagnostic_slices"]["primary_gate"]
             )
         self.assertEqual(
             oracle["causal_rollout"]["memory_contamination_per_100"], 0.0,
@@ -551,6 +613,22 @@ class TestM1AFCausalRollout(unittest.TestCase):
         self.assertEqual(probabilities.shape, (1, 2))
         self.assertEqual(int(probabilities.argmax(axis=1)[0]), 0)
         self.assertAlmostEqual(float(probabilities.sum()), 1.0)
+
+    def test_structured_current_energy_keeps_its_fixed_zero_to_one_scale(self):
+        arrays = {
+            "relation_targets": np.asarray([[[1.0], [0.9]]]),
+            "relation_mask": np.ones((1, 2, 1), dtype=np.float32),
+            "relation_desired": np.ones((1, 2, 1), dtype=np.float32),
+            "no_execution_penalties": np.zeros((1, 2), dtype=np.float32),
+        }
+        probabilities = structured_relation_oracle_probabilities(
+            arrays, future_weight=0.0, now_weight=1.0,
+            current_relation_dim=1, temperature=0.25,
+        )
+        expected_first = 1.0 / (1.0 + np.exp(-0.1 / 0.25))
+        self.assertAlmostEqual(
+            float(probabilities[0, 0]), float(expected_first), places=6,
+        )
 
     def test_target_only_relation_diagnostic_preserves_ties(self):
         diagnostics = structured_relation_target_only_diagnostics({

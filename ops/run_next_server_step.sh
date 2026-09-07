@@ -6,9 +6,9 @@
 set -uo pipefail
 
 CPMT_SERVER_PHASE="${1:-}"
-CPMT_REQUIRED_ANCESTOR="a8e8fd7"
-CPMT_EXPECTED_PROTOCOL="a75da2e23df8df3bcc9a436f3624dd934eea89053369ad1b92d3d1791fc81133"
-CPMT_EXPECTED_DATASET="m1-paired-latent-worlds-v7-semantic-family-mechanisms"
+CPMT_REQUIRED_ANCESTOR="9afa6ab"
+CPMT_EXPECTED_PROTOCOL="ccae7003a7d6e1087d348f4b1e9acae9991857ac0ecf64196dca5d2e8d31b0db"
+CPMT_EXPECTED_DATASET="m1-paired-latent-worlds-v8-fixed-range-current-energy"
 CPMT_HEALTH_PAIRED_GROUPS="12"
 CPMT_WORKERS="${CPMT_WORKERS:-16}"
 
@@ -16,12 +16,12 @@ CPMT_SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)" || exit
 CPMT_REPO_DIR="$(git -C "$CPMT_SCRIPT_DIR" rev-parse --show-toplevel)" || exit 2
 CPMT_CURRENT_COMMIT="$(git -C "$CPMT_REPO_DIR" rev-parse HEAD)" || exit 2
 CPMT_SHORT_COMMIT="$(git -C "$CPMT_REPO_DIR" rev-parse --short=7 HEAD)" || exit 2
-CPMT_PREFLIGHT_DIR="$CPMT_REPO_DIR/outputs/m1-v4-server-preflight"
+CPMT_PREFLIGHT_DIR="$CPMT_REPO_DIR/outputs/m1-v5-server-preflight"
 CPMT_TEST_MARKER="$CPMT_PREFLIGHT_DIR/full_test.ok"
-CPMT_HEALTH_DIR="$CPMT_REPO_DIR/outputs/m1-v4-v7-health-g12-$CPMT_SHORT_COMMIT"
+CPMT_HEALTH_DIR="$CPMT_REPO_DIR/outputs/m1-v5-v8-health-g12-$CPMT_SHORT_COMMIT"
 CPMT_HEALTH_ARRAYS="$CPMT_HEALTH_DIR/train.npz"
 CPMT_HEALTH_MANIFEST="$CPMT_HEALTH_DIR/train.manifest.json"
-CPMT_HEALTH_REPORT="$CPMT_REPO_DIR/results/m1_v4_s4_v7_health_benchmark.json"
+CPMT_HEALTH_REPORT="$CPMT_REPO_DIR/results/m1_v5_s4_v8_health_benchmark.json"
 
 cpmt_fail() {
   local CPMT_FAILURE_MESSAGE="$1"
@@ -65,6 +65,12 @@ assert config["data"]["generation_count_semantics"] == (
 )
 assert config["resources"]["formal_run_wall_time_policy"] == (
     "measure_and_report_without_repository_fixed_cap"
+)
+assert config["energy"]["now_normalization"].startswith(
+    "fixed_natural_range_without_candidate_spread_scaling"
+)
+assert config["energy"]["posterior_influence_audit"]["primary_interpretation"] == (
+    "posterior_distribution_not_argmax_only"
 )
 print("PROTOCOL_INPUT_OK sha256={}".format(sys.argv[2]))
 PY
@@ -135,6 +141,8 @@ expected_protocol = sys.argv[6]
 expected_dataset = sys.argv[7]
 
 manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+assert manifest["schema_version"] == "cpmt-m1-generation-manifest-v5"
+assert manifest["runner"] == "generate_m1_parallel_v5"
 assert manifest["protocol_sha256"] == expected_protocol
 assert manifest["dataset_version"] == expected_dataset
 assert manifest["split"] == "train"
@@ -162,6 +170,17 @@ assert manifest["family_mechanism_gate"][
 assert manifest["current_now_comparability"][
     "exact_ambiguity_current_target_identity_rate"
 ] == 1.0
+scaling = manifest["current_now_comparability"]["fixed_natural_range_scaling"]
+assert scaling["all_available_values_within_0_1"] is True
+assert scaling["maximum_absolute_scaling_error"] <= 1e-6
+assert set(scaling["natural_ranges"]).issubset({1.0, 2.0, 4.0})
+posterior_influence = manifest["teacher_posterior_term_influence"]
+assert posterior_influence["interpretation"] == (
+    "posterior_distribution_not_argmax_only"
+)
+assert set(posterior_influence["terms"]) == {
+    "now", "future", "edit", "growth", "collateral",
+}
 assert manifest["teacher_health_gate"]["pass"] is True
 assert manifest["test_generated"] is False
 assert manifest["formal_run"] is False
@@ -173,7 +192,7 @@ benchmark_groups = manifest["paired_groups_total"]
 train_scale = train_groups / benchmark_groups
 all_scale = all_groups / benchmark_groups
 report = {
-    "schema_version": "cpmt-m1-v4-health-benchmark-v1",
+    "schema_version": "cpmt-m1-v5-health-benchmark-v1",
     "status": "train_only_pretest_health_and_cost_benchmark",
     "formal_run": False,
     "test_access": False,
@@ -202,6 +221,7 @@ report = {
     "family_mechanism_audit": manifest["family_mechanism_audit"],
     "family_mechanism_gate": manifest["family_mechanism_gate"],
     "current_now_comparability": manifest["current_now_comparability"],
+    "teacher_posterior_term_influence": posterior_influence,
     "live_energy_activation_by_family": manifest[
         "live_energy_activation_by_family"
     ],
@@ -230,7 +250,8 @@ report = {
         },
     },
     "interpretation": (
-        "This benchmark validates v7 train-only family mechanisms and teacher health; "
+        "This benchmark validates v8 train-only fixed current scaling, posterior "
+        "influence, family mechanisms, and teacher health; "
         "linear storage/time projections are planning references, not fixed caps."
     ),
 }

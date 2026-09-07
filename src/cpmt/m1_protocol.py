@@ -30,7 +30,7 @@ def _require(condition: bool, message: str) -> None:
 
 def validate_m1_protocol(config: Mapping[str, Any]) -> None:
     """Reject incomplete, leaky, or silently weakened M1 protocol settings."""
-    _require(config.get("protocol") == "m1-hard-condition-v4", "wrong protocol")
+    _require(config.get("protocol") == "m1-hard-condition-v5", "wrong protocol")
     _require(config.get("stage") == "M1", "stage must be M1")
     _require(config.get("status") in {"pretest_lock_candidate", "frozen_pretest"},
              "protocol must be a pre-test candidate or frozen pre-test contract")
@@ -221,13 +221,39 @@ def validate_m1_protocol(config: Mapping[str, Any]) -> None:
     )
     _require(
         energy.get("now_normalization")
-        == "per_method_per_decision_zscore_over_available_admitted_candidates;_executed_teacher_excludes_executor_illegal;_store_raw_and_scaled",
-        "now must use the registered per-decision normalization",
+        == "fixed_natural_range_without_candidate_spread_scaling;_visible_appearance_divide_2;_visible_appearance_plus_place_divide_4;_visible_empty_divide_1;_candidate_relation_probability_absolute_error_bounded_0_1;_executed_teacher_excludes_executor_illegal;_store_raw_scale_and_scaled",
+        "now must use the registered fixed natural-range normalization",
     )
     _require(
         energy.get("future_normalization")
-        == energy.get("now_normalization"),
-        "now and future must use comparable normalization",
+        == "per_method_per_decision_zscore_over_available_admitted_candidates;_executed_teacher_excludes_executor_illegal;_store_raw_and_scaled",
+        "future must retain the registered per-decision normalization",
+    )
+    _require(
+        energy.get("no_execution_current_inference_energy")
+        == "mean_absolute_error_between_sigmoid_relation_probability_and_desired_bit_bounded_0_1;_BCE_remains_training_loss",
+        "no-execution current energy must be bounded probability error while BCE remains the training loss",
+    )
+    posterior_audit = energy.get("posterior_influence_audit", {})
+    _require(
+        posterior_audit.get("terms")
+        == ["now", "future", "edit", "growth", "collateral"],
+        "posterior influence audit must cover every finite teacher energy term",
+    )
+    _require(
+        posterior_audit.get("total_variation_thresholds")
+        == [0.001, 0.01, 0.05, 0.1]
+        and posterior_audit.get("metrics")
+        == [
+            "mean_median_p95_max_total_variation",
+            "fraction_above_each_threshold",
+            "argmax_change_rate",
+            "mean_KL_full_to_ablated",
+            "full_minus_ablated_reference_probability",
+        ]
+        and posterior_audit.get("primary_interpretation")
+        == "posterior_distribution_not_argmax_only",
+        "posterior influence audit thresholds or interpretation changed",
     )
     _require(
         energy.get("collateral_semantics")
@@ -276,8 +302,8 @@ def validate_m1_protocol(config: Mapping[str, Any]) -> None:
              "architecture results may not be used for post-hoc model selection")
     _require(
         architecture.get("run_scope")
-        == "same_v7_arrays_and_full_A_to_F_within_each_architecture",
-        "each architecture arm must run the full A-F method table on the same v7 arrays",
+        == "same_v8_arrays_and_full_A_to_F_within_each_architecture",
+        "each architecture arm must run the full A-F method table on the same v8 arrays",
     )
     set_spec = architecture.get("cross_candidate_set_transformer_v1", {})
     _require(
@@ -355,6 +381,51 @@ def validate_m1_protocol(config: Mapping[str, Any]) -> None:
         "active_graph_correctness_absolute"
         in evaluation["meaningful_effect"],
         "meaningful effect must follow the active-world primary metric",
+    )
+    slices = evaluation.get("mechanism_diagnostic_slices", {})
+    expected_slice_order = [
+        "exact_online_ambiguity",
+        "temporal_underdetermination",
+        "execution_side_effect_sensitive",
+        "current_sensor_unavailable",
+        "other_registered_mechanisms",
+    ]
+    _require(
+        slices.get("selection_rule")
+        == "pre_registered_generator_mechanism_only_never_empirical_accuracy_threshold",
+        "mechanism slices may not be selected from measured accuracy",
+    )
+    _require(
+        slices.get("precedence") == expected_slice_order,
+        "mechanism slice precedence changed",
+    )
+    _require(
+        slices.get("exact_online_ambiguity", {}).get("definition")
+        == "ambiguity_equals_epistemically_ambiguous_pivot"
+        and slices.get("temporal_underdetermination", {}).get("definition")
+        == "scenario_family_equals_C10"
+        and slices.get("execution_side_effect_sensitive", {}).get("definition")
+        == "scenario_family_equals_C11"
+        and slices.get("current_sensor_unavailable", {}).get("definition")
+        == "scenario_family_equals_C09"
+        and slices.get("other_registered_mechanisms", {}).get("definition")
+        == "all_remaining_online_rows",
+        "mechanism slice definitions changed",
+    )
+    _require(
+        slices.get("primary_gate") is False
+        and slices.get("full_mixed_20_step_causal_endpoint_remains_primary") is True,
+        "diagnostic mechanism slices may not replace the mixed causal gate",
+    )
+    _require(
+        slices.get("reported_metrics")
+        == [
+            "selection_accuracy", "commit_rate",
+            "committed_registered_accuracy",
+            "active_correctness_after_decision",
+            "selected_collateral_rate",
+        ],
+        "mechanism slice metrics changed",
     )
     resources = config["resources"]
     # Cloud cost is controlled by the operator, who starts pay-as-you-go

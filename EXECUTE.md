@@ -4,27 +4,27 @@
 
 ## 当前看板
 
-> **2026-09-07 更新（LOG-036 / D-040）：** M1-v4 的 v7 总混合组规模、真实 C10/C11 行为、只读当前传感观测的 executed-now，以及同分母 current-now 审计已实现；D-039 的 Set Transformer 主臂＋MLP 次臂保留。本地 2-group train-only 健康探针通过 teacher/family/current-now 三类门；这只是实现探针，不是方法成绩。下一步先在服务器干净提交上跑完整测试，再单独跑 12-group train-only health/cost benchmark；test 继续封存。
+> **2026-09-07 更新（LOG-037 / D-041）：** M1-v5/v8 已把 executed-now 改为传感器固定自然量程、C/E current inference 改为 0–1 probability error，并接入逐项软 posterior influence 与五个生成机制切片；D-040 的总混合组规模、真实 C10/C11 和 D-039 的 Set Transformer 主臂＋MLP 次臂保留。本地生成/训练报告接线探针通过，这只是实现验证而非方法成绩。下一步先在服务器干净提交上跑完整测试，再单独跑 12-group train-only health/cost benchmark；test 继续封存。
 
-最后更新：2026-09-07，LOG-036 M1-v4/v7 机制修复与本地 train-only 健康探针完成；正式 M1 gate 未运行、未生成或读取 test。
+最后更新：2026-09-07，LOG-037 M1-v5/v8 固定 current 量程与 posterior/机制切片审计完成本地接线；正式 M1 gate 未运行、未生成或读取 test。
 
 | 项目 | 当前事实 |
 |---|---|
 | 方向 | CPMT 具身空间记忆；CTL 是主学习假设，用户希望面向 ML 研究 |
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
-| 阶段 | M1-v4 `pretest_lock_candidate`；只开放 train/inner-dev 实现验证，尚未重新冻结，正式 gate 未运行，不是 M2/Full CPMT |
-| 最近结果 | 本地 v7 总计 2 个混合 paired groups 的 train-only 探针生成 `80` learning rows，teacher/reference agreement=`1.0` 且各 C00–C11 family 均过健康门；12 个行为指纹非重复，C10 同时出现 NOOP/BIND，C11 每行存在 legal collateral 对照，exact-ambiguity current target identity=`1.0`。同分母 now 审计有 64 行可比、12 行 executed-now 不可用，C10 proxy reference-in-minimum=`0.5` |
-| 尚缺 | 服务器完整测试与 v7 12-group train-only 成本/teacher-health benchmark；通过后登记并重跑两架构各自的 S1/S2 scorer/student 有限预算网格。旧 v5 的 1000 steps 不迁移，test 仍封存 |
+| 阶段 | M1-v5 `pretest_lock_candidate`；只开放 train/inner-dev 与小规模接口验证，尚未重新冻结，正式 gate 未运行，不是 M2/Full CPMT |
+| 最近结果 | 本地 v8 2-group train 探针生成 `80` learning rows，teacher/reference agreement=`1.0`，串并行 arrays 完全一致；976 个可用 candidate 的 fixed-range scaled now 全在 0–1 且 `raw/range` 最大误差为 0。leave-now-out 不改 argmax，但平均 posterior total variation=`0.075224`、完整教师相对消融的 reference 概率均差=`+0.075012`，证明 now 改变软监督而非制造赢家翻转。4-group validation 接口加 1-step A–F 报告验证了五切片全覆盖，仅作接线测试 |
+| 尚缺 | 服务器完整测试与 v8 12-group train-only 成本/teacher-health/posterior benchmark；通过后登记并重跑两架构各自的 S1/S2 scorer/student 有限预算网格。旧 v5/v7 的预算不迁移，test 仍封存 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
-| 当前决定 | D-039 保留 live energy、C/E current target、Set Transformer 主臂＋MLP 次臂及每臂完整 A–F；D-040 将规模修正为 1000/200/200 个总混合 paired groups，要求真实 C10/C11 行为指纹，并修复/常驻审计 current-now。仓库不设两小时单-run 上限；全局 reconciliation、PNO 与 M2 顺序不变 |
+| 当前决定 | D-039 保留 live energy、C/E current target、Set Transformer 主臂＋MLP 次臂及每臂完整 A–F；D-040 固定总混合规模和真实 C10/C11；D-041 固定 current 自然量程、以完整 posterior 判定能量影响并预登记非主机制切片。仓库不设两小时单-run 上限；全局 reconciliation、PNO 与 M2 顺序不变 |
 | 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 validation report/test。两架构各自的 scorer/student 有限预算网格须在小规模健康检查后、任何选择性 run 前登记 |
 | Git 备份 | D-038 科学代码基线为 `72afa7d`；S2 40-group reports 已在提交 `ececefb`、10-group 锚点已在 `70355ac` 导入 `results/`，服务器大产物仍位于 ignored `outputs/`。服务器操作只通过版本化的 `ops/run_next_server_step.sh` 交付，脚本所在提交仍须先 push、服务器再 pull |
 
-白话：M1-v3 现在仍是“考前定卷”，不是已冻结或已通过。旧容量诊断证明简单 MLP 在给足标签时能拟合可见训练关系；新的 K=16 与恢复审计只证明候选、executor 和 active-world 评测路径可达。这些都不等于 CTL 已胜出，更不是带 PNO 的 Full CPMT。
+白话：M1-v5 现在仍是“考前定卷”，不是已冻结或已通过。旧容量诊断证明简单 MLP 在给足标签时能拟合可见训练关系；新的 K=16、固定量程与恢复审计只证明候选、executor、teacher 和 active-world 评测路径可达。这些都不等于 CTL 已胜出，更不是带 PNO 的 Full CPMT。
 
 ## 当前任务清单
 
-M1-v3 的阶段顺序、转向条件和成功/失败终点见 [M1-v3 收口执行流程](experiments/counterfactual_transaction_learning/M1_V2_CLOSEOUT_FLOW.md)。文件名按 D-035 保留；下表只保留任务完成状态，不再承担流程解释。
+M1-v5 的阶段顺序、转向条件和成功/失败终点见 [M1-v5 收口执行流程](experiments/counterfactual_transaction_learning/M1_V2_CLOSEOUT_FLOW.md)。文件名按 D-035 保留；下表只保留任务完成状态，不再承担流程解释。
 
 - [x] 首轮训练与结果审计：LOG-002。
 - [x] 收敛重复进度入口：LOG-004。
@@ -570,6 +570,18 @@ M1-v3 的阶段顺序、转向条件和成功/失败终点见 [M1-v3 收口执�
 - now 数字：76 个 online learning rows 中共同可比 64、executed-now 不可用 12；2 个 exact-ambiguity pairs 的 current target/mask/desired identity rate=`1.0`。C10 的 proxy reference-in-minimum=`0.5`、uniform-tie expected=`0.5`；executed-now reference-in-minimum=`1.0`但约 14.5 个候选并列、uniform-tie expected=`0.06905`。这说明当前传感确实不能靠执行区分 C10 的持久性，future 才承担该信息；不能只看 reference-in-minimum 宣称任一通道更强。
 - 验证：协议 21 项、A–F/current-now 22 项、rollout 19 项，以及 data/metrics/trainability/dev-learning 32 项针对性测试均通过；Python 编译、服务器脚本 `bash -n` 与 `git diff --check` 通过。服务器完整测试尚未运行，故不写成全套通过。
 - 成本/下一步：LOG-035 的 v6 12-group 24.7 秒/3.96 MB 线性换算到当前 1400 总 groups 约 48 分钟/0.46 GB，仅作旧实现计划参考。推送干净提交后，服务器先单独跑 `full_test`；同一提交成功后才跑 12-group v7 `health_benchmark`，用其真实时间/体积登记新的 S1/S2 有限预算网格。test 继续封存。
+
+### LOG-037—2026-09-07—D-041 v8 固定 current 量程与软后验审计接线
+
+- 类型/状态：能量数值稳健性修复、审计与报告架构变化已完成本地接口验证；M1-development、非正式小规模 run。不是 validation trial、formal test 或 CTL 性能结论。
+- 目的/白话：消除同行候选近零方差把微小 current 误差吹成数个标准差的问题，同时用 CTL 实际蒸馏的完整概率分布判断能量项是否参与监督。输入是 executed current raw mismatch、传感器自然范围、完整 teacher posterior 和生成器机制标签；输出是 0–1 fixed-range now、逐项 leave-one-out posterior 距离和五个预登记描述性切片。例如第一名不变但正确候选概率从低置信变高置信时，posterior audit 会记录变化；它不调权重、不按结果挑 family，也不等于方法已经胜出。
+- 改变/固定：protocol=`m1-hard-condition-v5`，dataset=`m1-paired-latent-worlds-v8-fixed-range-current-energy`。executed appearance/appearance+place/visible-empty now 分别除以 2/4/1；future 继续逐决策 z-score。C/E 的 current scorer 训练仍用 BCE，推理能量改为 sigmoid probability 对 desired bit 的平均绝对误差且不再 z-score。权重、temperature、A–F、K=16、C10/C11、1000/200/200 总混合规模与两架构不变。
+- 审计/报告：generation manifest schema 升为 v5，常驻 now/future/edit/growth/collateral leave-one-out 的 total variation、KL、argmax 与 reference 概率变化，总体和逐 family 同报；fixed-range health 要求 scaled∈[0,1] 且等于 raw/natural-range。A–F report/causal schema 升为 v4，按固定优先级输出 exact ambiguity、C10 temporal underdetermination、C11 side-effect sensitive、C09 current unavailable 和 other 五个互斥切片；切片 `primary_gate=false`。
+- 本地 train Run/产物：ignored `outputs/review-v8-g2/train.npz`；2 个总混合 paired groups、80 learning rows（76 online＋4 recovery），2 workers 生成 11.2 秒，arrays digest 前缀=`613684ee14ca6532`，与 16.5 秒独立串行生成逐数组一致。teacher/reference agreement=`1.0`、C04=`1.0`、12-family/fingerprint/C10/C11/current health 全通过；未生成 test。
+- fixed-range/posterior 结果：976 个 admitted+legal 且 now 可用候选的 natural range 只取 `{1,2,4}`，scaled min/max=`0.011485/0.996704`，`raw/range` 最大绝对误差=`0`。leave-now-out 的 argmax change=`0`，但 mean posterior total variation=`0.075224`、full-minus-ablated reference probability mean=`+0.075012`；因此 fixed-range now 没有制造赢家翻转，却明确改变 KL 蒸馏的软监督。其余 mean TV 为 future=`0.676529`、edit=`0.022025`、growth=`0.021476`、collateral=`0.014206`；这些是小规模活性审计，不是效果门或权重选择依据。
+- 报告链路探针：另生成 ignored 4-group validation 接口数据（160 learning rows，152 online＋8 recovery，teacher agreement=`1.0`），用 1 scorer/student step 跑 Set Transformer A–F `--skip-causal`，只验证 report schema 和五切片覆盖；report-half 每方法各含 exact/C10/C11/C09/other=`6/6/6/12/84` rows。1-step 模型数值没有训练意义，不登记为方法成绩或 validation trial。
+- 验证：protocol/rollout/A–F 三组 69 项针对性测试通过；data/metrics/trainability 21 项与 CTL dev 11 项兼容测试通过；2-group train 串并行 digest 一致；4-group A–F report 可完整落盘；Python compile 与 `git diff --check` 通过。服务器 full test 尚未运行，故不写成全套通过。
+- 局限/下一步：小规模 posterior 数字只证明审计和能量通路活着，不预测正式 A–C/A–E 效应。推送干净提交后先在服务器运行独立 `full_test`；同一提交成功后才运行 12-group v8 train-only health/cost/posterior benchmark。两者通过后再登记两架构 S1/S2 有限预算网格；validation report 与 test 继续封存。
 
 ## 后续条目模板
 

@@ -23,6 +23,7 @@ from cpmt.m1_rollout import (
     generate_m1_rollout_split,
     materialize_rollout_step,
     records_sha256,
+    scale_current_candidate_term,
 )
 
 
@@ -228,6 +229,31 @@ class TestM1ContinuousRollout(unittest.TestCase):
             {f"C{index:02d}" for index in range(12)},
         )
         self.assertTrue(paired_summary["teacher_health_gate_pass"])
+
+    def test_current_energy_uses_sensor_range_not_candidate_spread(self):
+        scaled = scale_current_candidate_term(
+            [0.249, 0.249, 0.346, None], 2.0,
+            [True, True, True, True],
+        )
+        self.assertEqual(scaled[-1], 0.0)
+        self.assertAlmostEqual(scaled[0], 0.1245)
+        self.assertAlmostEqual(scaled[2], 0.173)
+        self.assertLess(max(scaled), 0.2)
+
+        for sequence in self.audit:
+            for step in sequence["steps"]:
+                for candidate, energy in zip(
+                    step["executed_candidates"],
+                    step["candidate_energies"], strict=True,
+                ):
+                    if not candidate["legal"] or energy["now_raw"] is None:
+                        continue
+                    self.assertGreaterEqual(energy["now"], 0.0)
+                    self.assertLessEqual(energy["now"], 1.0)
+                    self.assertAlmostEqual(
+                        energy["now"],
+                        energy["now_raw"] / energy["now_natural_range"],
+                    )
 
     def test_hindsight_uses_real_later_reference_states_and_masks_tail(self):
         sequence = self.audit[0]

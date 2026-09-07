@@ -36,6 +36,8 @@ from .m1_rollout import (
     APPEARANCE_DIM,
     PROPOSAL_FEATURE_DIM,
     VISIBILITY_KINDS,
+    _collateral_mutation,
+    _current_online_evidence_scope,
     candidate_argument_ids,
     generate_m1_paired_rollout_split,
     materialize_rollout_step,
@@ -157,6 +159,12 @@ def resolve_af_smoke_config(
     config["horizon"] = int(hard_config["future"]["primary_horizon"])
     config["temperature"] = float(hard_config["energy"]["temperature"])
     config["energy_weights"] = deepcopy(hard_config["energy"]["weights"])
+    config["mechanism_diagnostic_slices"] = deepcopy(
+        hard_config["evaluation"]["mechanism_diagnostic_slices"]
+    )
+    config["current_evidence_scope_ranks"] = int(
+        hard_config["candidates"]["proposal_retrieval"]["enumerated_ranks"]
+    )
     return config
 
 
@@ -805,6 +813,10 @@ def rollout_learning_arrays_from_audits(
                     np.nan if energy["now_raw"] is None else energy["now_raw"]
                     for energy in step["candidate_energies"]
                 ], dtype=np.float32),
+                "candidate_energy_now_natural_range": np.asarray([
+                    energy["now_natural_range"]
+                    for energy in step["candidate_energies"]
+                ], dtype=np.float32),
                 "candidate_energy_future_raw": np.asarray([
                     np.nan if energy["future_raw"] is None else energy["future_raw"]
                     for energy in step["candidate_energies"]
@@ -1067,8 +1079,13 @@ def structured_relation_oracle_probabilities(
     future_mismatch = relation_mismatch(
         int(current_relation_dim), targets.shape[2],
     )
+    # Current relation mismatch is already an absolute error between binary
+    # probabilities/targets, hence it has the fixed natural range [0, 1].
+    # Candidate-spread z-scoring would amplify nearly tied rows. Future query
+    # counts still need per-row standardization to match executed-future units.
+    scaled_current = np.where(available, current_mismatch, 0.0)
     energy = (
-        float(now_weight) * masked_standardize(current_mismatch)
+        float(now_weight) * scaled_current
         + float(future_weight) * masked_standardize(future_mismatch)
         + penalties
     )
@@ -1078,6 +1095,260 @@ def structured_relation_oracle_probabilities(
     probabilities = np.exp(logits)
     probabilities /= probabilities.sum(axis=1, keepdims=True)
     return probabilities.astype(np.float32)
+
+
+def posterior_term_influence_diagnostics(
+    arrays: Mapping[str, np.ndarray], *, weights: Mapping[str, float],
+    temperature: float, scenario_families: Sequence[str],
+    terms: Sequence[str], total_variation_thresholds: Sequence[float],
+) -> dict[str, Any]:
+    """Measure each executed-teacher term through the full soft posterior.
+
+    CTL distils the complete hindsight distribution, so an energy term can
+    materially change supervision without changing the winning candidate.
+    This audit removes one finite term at a time and reports total variation,
+    KL divergence, argmax changes, and the reference-probability shift.  It is
+    diagnostic only: it neither reweights the teacher nor selects a method.
+    """
+    if temperature <= 0.0:
+        raise ValueError("posterior influence temperature must be positive")
+    reference = np.asarray(arrays["y"], dtype=np.int64)
+    full = np.asarray(arrays["pstar"], dtype=np.float64)
+    recovery = np.asarray(
+        arrays.get("recovery", np.zeros(len(reference), dtype=bool)),
+        dtype=bool,
+    )
+    family_indices = np.asarray(
+        arrays["scenario_family_index"], dtype=np.int64,
+    )
+    illegal = np.asarray(
+        arrays["candidate_energy_illegal"], dtype=np.float64,
+    ) > 0.0
+    if full.ndim != 2 or illegal.shape != full.shape:
+        raise ValueError("posterior influence candidate arrays differ in shape")
+    if len(reference) != len(full) or len(family_indices) != len(full):
+        raise ValueError("posterior influence row arrays differ in shape")
+    finite_terms = tuple(str(term) for term in terms)
+    if any(term not in weights for term in finite_terms):
+        raise ValueError("posterior influence requested an unweighted term")
+    components = {
+        term: np.asarray(
+            arrays[f"candidate_energy_{term}"], dtype=np.float64,
+        )
+        for term in finite_terms
+    }
+    if any(value.shape != full.shape for value in components.values()):
+        raise ValueError("posterior influence energy arrays differ in shape")
+    total = np.zeros_like(full)
+    for term, values in components.items():
+        total += float(weights[term]) * values
+    total = np.where(illegal, np.inf, total)
+
+    def posterior(energy: np.ndarray) -> np.ndarray:
+        logits = -energy / float(temperature)
+        logits = np.where(np.isfinite(logits), logits, -np.inf)
+        row_max = np.max(logits, axis=1, keepdims=True)
+        raw = np.exp(logits - row_max)
+        raw = np.where(np.isfinite(raw), raw, 0.0)
+        denominator = raw.sum(axis=1, keepdims=True)
+        if np.any(denominator <= 0.0):
+            raise ValueError("posterior influence found a row with no legal candidate")
+        return raw / denominator
+
+    reconstructed = posterior(total)
+    if not np.allclose(reconstructed, full, rtol=1e-5, atol=1e-7):
+        raise ValueError("stored teacher posterior does not match energy components")
+    thresholds = tuple(float(value) for value in total_variation_thresholds)
+    if any(value <= 0.0 for value in thresholds):
+        raise ValueError("posterior influence thresholds must be positive")
+    online = ~recovery
+    rows = np.arange(len(reference))
+
+    def summarize(
+        ablated: np.ndarray, row_mask: np.ndarray,
+    ) -> dict[str, Any] | None:
+        selected = online & row_mask
+        if not selected.any():
+            return None
+        tv = 0.5 * np.abs(full - ablated).sum(axis=1)
+        epsilon = np.finfo(np.float64).tiny
+        kl = np.sum(
+            full * (
+                np.log(np.clip(full, epsilon, 1.0))
+                - np.log(np.clip(ablated, epsilon, 1.0))
+            ),
+            axis=1,
+        )
+        reference_delta = (
+            full[rows, reference] - ablated[rows, reference]
+        )
+        return {
+            "rows": int(selected.sum()),
+            "total_variation": {
+                "mean": float(tv[selected].mean()),
+                "median": float(np.median(tv[selected])),
+                "p95": float(np.quantile(tv[selected], 0.95)),
+                "maximum": float(tv[selected].max()),
+                "fraction_above": {
+                    format(threshold, ".6g"): float(
+                        np.mean(tv[selected] > threshold)
+                    )
+                    for threshold in thresholds
+                },
+            },
+            "argmax_change_rate": float(np.mean(
+                full[selected].argmax(axis=1)
+                != ablated[selected].argmax(axis=1)
+            )),
+            "mean_kl_full_to_ablated": float(kl[selected].mean()),
+            "full_minus_ablated_reference_probability": {
+                "mean": float(reference_delta[selected].mean()),
+                "minimum": float(reference_delta[selected].min()),
+                "maximum": float(reference_delta[selected].max()),
+            },
+        }
+
+    result: dict[str, Any] = {
+        "scope": "executed_hindsight_teacher_online_learning_rows",
+        "interpretation": "posterior_distribution_not_argmax_only",
+        "total_variation_thresholds": list(thresholds),
+        "terms": {},
+    }
+    all_rows = np.ones(len(reference), dtype=bool)
+    for term in finite_terms:
+        ablated_energy = total.copy()
+        legal = ~illegal
+        ablated_energy[legal] -= (
+            float(weights[term]) * components[term][legal]
+        )
+        ablated = posterior(ablated_energy)
+        result["terms"][term] = {
+            "all": summarize(ablated, all_rows),
+            "by_family": {
+                str(family): summarize(
+                    ablated, family_indices == family_index,
+                )
+                for family_index, family in enumerate(scenario_families)
+            },
+        }
+    return result
+
+
+def _mechanism_slice_name(
+    scenario_family: str, ambiguity: str | bool,
+    slice_contract: Mapping[str, Any],
+) -> str:
+    """Assign one pre-registered, generator-defined diagnostic slice."""
+    is_ambiguous = (
+        bool(ambiguity) if isinstance(ambiguity, (bool, np.bool_))
+        else str(ambiguity) == "epistemically_ambiguous_pivot"
+    )
+    conditions = {
+        "exact_online_ambiguity": is_ambiguous,
+        "temporal_underdetermination": str(scenario_family) == "C10",
+        "execution_side_effect_sensitive": str(scenario_family) == "C11",
+        "current_sensor_unavailable": str(scenario_family) == "C09",
+        "other_registered_mechanisms": True,
+    }
+    for name in slice_contract["precedence"]:
+        if conditions.get(str(name), False):
+            return str(name)
+    raise ValueError("mechanism slice contract did not cover an online row")
+
+
+def mechanism_slice_selection_diagnostics(
+    probabilities: np.ndarray, arrays: Mapping[str, np.ndarray],
+    slice_contract: Mapping[str, Any], *, row_mask: np.ndarray | None = None,
+    commit_probability: float | None = None,
+    margin_threshold: float | None = None,
+) -> dict[str, Any]:
+    """Report descriptive one-step behavior on fixed mechanism slices."""
+    probabilities = np.asarray(probabilities, dtype=np.float64)
+    reference = np.asarray(arrays["y"], dtype=np.int64)
+    recovery = np.asarray(arrays["recovery"], dtype=bool)
+    family_indices = np.asarray(arrays["scenario_family_index"], dtype=np.int64)
+    ambiguous = np.asarray(arrays["ambiguous"], dtype=bool)
+    if probabilities.ndim != 2 or len(probabilities) != len(reference):
+        raise ValueError("mechanism slice probabilities have the wrong shape")
+    selected_rows = ~recovery
+    if row_mask is not None:
+        requested = np.asarray(row_mask, dtype=bool)
+        if requested.shape != selected_rows.shape:
+            raise ValueError("mechanism slice row mask has the wrong shape")
+        selected_rows &= requested
+    family_names = [f"C{index:02d}" for index in family_indices]
+    names = np.asarray([
+        _mechanism_slice_name(family, is_ambiguous, slice_contract)
+        for family, is_ambiguous in zip(
+            family_names, ambiguous, strict=True,
+        )
+    ], dtype=object)
+    predicted = probabilities.argmax(axis=1)
+    rows = np.arange(len(reference))
+    calibrated = commit_probability is not None and margin_threshold is not None
+    if calibrated:
+        ordered = np.sort(probabilities, axis=1)
+        requested_commit = (
+            (ordered[:, -1] >= float(commit_probability))
+            & (
+                np.round(ordered[:, -1] - ordered[:, -2], 12)
+                >= float(margin_threshold)
+            )
+        )
+        legal = np.asarray(arrays["candidate_legal"], dtype=bool)
+        committed = requested_commit & legal[rows, predicted]
+        active = np.asarray(arrays["active_correct"], dtype=np.float64)
+        base_active = np.asarray(
+            arrays["base_active_correct"], dtype=np.float64,
+        )
+        active_after = np.where(
+            committed, active[rows, predicted], base_active,
+        )
+        collateral = np.asarray(
+            arrays["candidate_energy_collateral"], dtype=np.float64,
+        )
+        selected_collateral = np.where(
+            committed, collateral[rows, predicted], 0.0,
+        )
+    else:
+        committed = np.zeros(len(reference), dtype=bool)
+        active_after = np.full(len(reference), np.nan)
+        selected_collateral = np.full(len(reference), np.nan)
+    output = {
+        "selection_rule": slice_contract["selection_rule"],
+        "primary_gate": False,
+        "full_mixed_20_step_causal_endpoint_remains_primary": True,
+        "slices": {},
+    }
+    for name in slice_contract["precedence"]:
+        mask = selected_rows & (names == name)
+        item = {
+            "definition": slice_contract[name]["definition"],
+            "expected_behavior": slice_contract[name]["expected_behavior"],
+            "rows": int(mask.sum()),
+            "selection_accuracy": (
+                float(np.mean(predicted[mask] == reference[mask]))
+                if mask.any() else None
+            ),
+        }
+        if calibrated:
+            committed_mask = mask & committed
+            item.update({
+                "commit_rate": float(np.mean(committed[mask])) if mask.any() else None,
+                "committed_registered_accuracy": (
+                    float(np.mean(
+                        predicted[committed_mask] == reference[committed_mask]
+                    )) if committed_mask.any() else None
+                ),
+                "active_correctness_after_decision": (
+                    float(np.mean(active_after[mask])) if mask.any() else None
+                ),
+                "selected_collateral_rate": (
+                    float(np.mean(selected_collateral[mask])) if mask.any() else None
+                ),
+            })
+        output["slices"][str(name)] = item
+    return output
 
 
 def structured_relation_target_only_diagnostics(
@@ -1177,6 +1448,12 @@ def current_now_comparability_diagnostics(
     desired = np.asarray(arrays["relation_desired"], dtype=np.float64)
     reference = np.asarray(arrays["y"], dtype=np.int64)
     executed = np.asarray(arrays["candidate_energy_now_raw"], dtype=np.float64)
+    executed_scaled = np.asarray(
+        arrays["candidate_energy_now"], dtype=np.float64,
+    )
+    executed_natural_range = np.asarray(
+        arrays["candidate_energy_now_natural_range"], dtype=np.float64,
+    )
     admitted = np.asarray(
         arrays["candidate_static_preflight_pass"], dtype=bool,
     )
@@ -1184,8 +1461,15 @@ def current_now_comparability_diagnostics(
     recovery = np.asarray(arrays["recovery"], dtype=bool)
     if targets.shape != masks.shape or targets.shape != desired.shape:
         raise ValueError("current-now audit relation arrays differ in shape")
-    if targets.shape[:2] != executed.shape or admitted.shape != executed.shape:
+    if (
+        targets.shape[:2] != executed.shape
+        or admitted.shape != executed.shape
+        or executed_scaled.shape != executed.shape
+        or executed_natural_range.shape != executed.shape
+    ):
         raise ValueError("current-now audit candidate arrays differ in shape")
+    if np.any(executed_natural_range <= 0.0):
+        raise ValueError("current-now audit natural ranges must be positive")
     current_dim = len(CURRENT_RELATION_QUERIES)
     current_targets = targets[:, :, :current_dim]
     current_masks = masks[:, :, :current_dim]
@@ -1255,6 +1539,14 @@ def current_now_comparability_diagnostics(
             and np.array_equal(current_desired[left], current_desired[right])
         )
     all_rows = np.ones(len(reference), dtype=bool)
+    scale_available = admitted & legal & np.isfinite(executed)
+    expected_scaled = np.divide(
+        executed,
+        executed_natural_range,
+        out=np.zeros_like(executed),
+        where=scale_available,
+    )
+    scaling_error = np.abs(executed_scaled - expected_scaled)
     return {
         "online_rows": int((~recovery).sum()),
         "common_support_rows": int(common_rows.sum()),
@@ -1263,6 +1555,30 @@ def current_now_comparability_diagnostics(
         ).sum()),
         "proxy": summarize(proxy, all_rows),
         "executed_now_raw": summarize(executed, all_rows),
+        "fixed_natural_range_scaling": {
+            "available_candidates": int(scale_available.sum()),
+            "natural_ranges": sorted({
+                float(value) for value in executed_natural_range[
+                    scale_available
+                ]
+            }),
+            "scaled_minimum": (
+                float(executed_scaled[scale_available].min())
+                if scale_available.any() else None
+            ),
+            "scaled_maximum": (
+                float(executed_scaled[scale_available].max())
+                if scale_available.any() else None
+            ),
+            "maximum_absolute_scaling_error": (
+                float(scaling_error[scale_available].max())
+                if scale_available.any() else None
+            ),
+            "all_available_values_within_0_1": bool(
+                np.all(executed_scaled[scale_available] >= -1e-7)
+                and np.all(executed_scaled[scale_available] <= 1.0 + 1e-7)
+            ),
+        },
         "by_family": by_family,
         "exact_ambiguity_pairs": len(pair_checks),
         "exact_ambiguity_current_target_identity_rate": (
@@ -1769,6 +2085,14 @@ def causal_rollout_metrics(
             base = current
             committed = decision["action"] == "COMMIT" and selected["legal"]
             current = selected["post_graph"] if committed else clone_json(base)
+            evidence_scope = _current_online_evidence_scope(
+                base, stored["event_spec"],
+                ranks=int(smoke_config["current_evidence_scope_ranks"]),
+            )
+            selected_collateral = float(
+                committed
+                and _collateral_mutation(base, current, evidence_scope) > 0.0
+            )
             predicted_states.append(current)
             base_states.append(base)
             reference = reference_state
@@ -1815,6 +2139,7 @@ def causal_rollout_metrics(
                 "revisit_opportunity": revisit_opportunity,
                 "revisit_triggered": revisit_triggered,
                 "active_correct_after": active_correct_after,
+                "selected_collateral": selected_collateral,
                 "probabilities": probabilities.tolist(),
                 "base_graph_hash": base["graph_hash"],
                 "post_graph_hash": current["graph_hash"],
@@ -2021,6 +2346,59 @@ def causal_rollout_metrics(
         float(np.quantile(forward_latencies_ms, 0.95))
         if forward_latencies_ms else 0.0
     )
+    slice_contract = smoke_config.get("mechanism_diagnostic_slices")
+    if slice_contract is not None:
+        all_choices = [
+            choice for row in sequence_rows for choice in row["choices"]
+        ]
+        slice_report = {
+            "selection_rule": slice_contract["selection_rule"],
+            "primary_gate": False,
+            "full_mixed_20_step_causal_endpoint_remains_primary": True,
+            "slices": {},
+        }
+        for name in slice_contract["precedence"]:
+            selected = [
+                choice for choice in all_choices
+                if _mechanism_slice_name(
+                    choice["scenario_family"], choice["ambiguity"],
+                    slice_contract,
+                ) == name
+            ]
+            committed = [choice for choice in selected if choice["committed"]]
+            slice_report["slices"][name] = {
+                "definition": slice_contract[name]["definition"],
+                "expected_behavior": slice_contract[name]["expected_behavior"],
+                "decisions": len(selected),
+                "selection_accuracy": (
+                    float(np.mean([
+                        choice["registered_selection_correct"]
+                        for choice in selected
+                    ])) if selected else None
+                ),
+                "commit_rate": (
+                    float(np.mean([
+                        choice["committed"] for choice in selected
+                    ])) if selected else None
+                ),
+                "committed_registered_accuracy": (
+                    float(np.mean([
+                        choice["registered_selection_correct"]
+                        for choice in committed
+                    ])) if committed else None
+                ),
+                "active_correctness_after_decision": (
+                    float(np.mean([
+                        choice["active_correct_after"] for choice in selected
+                    ])) if selected else None
+                ),
+                "selected_collateral_rate": (
+                    float(np.mean([
+                        choice["selected_collateral"] for choice in selected
+                    ])) if selected else None
+                ),
+            }
+        aggregate["mechanism_diagnostic_slices"] = slice_report
     return aggregate, sequence_rows
 
 

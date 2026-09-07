@@ -29,6 +29,7 @@ from cpmt.hashing import canonical_json  # noqa: E402
 from cpmt.m1_af_rollout import (  # noqa: E402
     TEMPLATES,
     current_now_comparability_diagnostics,
+    posterior_term_influence_diagnostics,
     rollout_learning_arrays_from_audits,
 )
 from cpmt.m1_protocol import load_and_validate, protocol_sha256  # noqa: E402
@@ -285,6 +286,17 @@ def main() -> int:
     current_now_audit = current_now_comparability_diagnostics(
         arrays, configured_families,
     )
+    influence_contract = config["energy"]["posterior_influence_audit"]
+    posterior_influence = posterior_term_influence_diagnostics(
+        arrays,
+        weights=config["energy"]["weights"],
+        temperature=float(config["energy"]["temperature"]),
+        scenario_families=configured_families,
+        terms=influence_contract["terms"],
+        total_variation_thresholds=influence_contract[
+            "total_variation_thresholds"
+        ],
+    )
     family_mechanism_gate = {
         "all_configured_families_in_every_paired_group": all(
             int(value) == paired_groups_total
@@ -344,6 +356,12 @@ def main() -> int:
             and current_now_audit[
                 "exact_ambiguity_current_target_identity_rate"
             ] == 1.0
+            and current_now_audit["fixed_natural_range_scaling"][
+                "all_available_values_within_0_1"
+            ]
+            and current_now_audit["fixed_natural_range_scaling"][
+                "maximum_absolute_scaling_error"
+            ] <= 1e-6
         ),
         "failure_action": health_contract["failure_action"],
     }
@@ -379,8 +397,8 @@ def main() -> int:
             return 1
         print(f"identical to serial ({serial_seconds:.1f}s serial)")
     manifest = {
-        "schema_version": "cpmt-m1-generation-manifest-v4",
-        "runner": "generate_m1_parallel_v4",
+        "schema_version": "cpmt-m1-generation-manifest-v5",
+        "runner": "generate_m1_parallel_v5",
         "split": args.split,
         "configured_scenario_families": configured_families,
         "configured_family_count": len(configured_families),
@@ -419,6 +437,7 @@ def main() -> int:
         "family_mechanism_audit": family_mechanism_audit,
         "family_mechanism_gate": family_mechanism_gate,
         "current_now_comparability": current_now_audit,
+        "teacher_posterior_term_influence": posterior_influence,
         "live_energy_activation_by_family": activation_by_family,
         "formal_run": False,
         "test_generated": False,

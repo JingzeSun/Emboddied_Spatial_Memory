@@ -187,7 +187,52 @@ class TestM1Protocol(unittest.TestCase):
         changed["architecture_evaluation"]["run_scope"] = (
             "same_v6_arrays_and_full_A_to_F_within_each_architecture"
         )
-        with self.assertRaisesRegex(ValueError, "same v7 arrays"):
+        with self.assertRaisesRegex(ValueError, "same v8 arrays"):
+            validate_m1_protocol(changed)
+
+    def test_current_energy_uses_fixed_range_and_future_keeps_zscore(self):
+        changed = deepcopy(self.config)
+        changed["energy"]["now_normalization"] = changed["energy"][
+            "future_normalization"
+        ]
+        with self.assertRaisesRegex(ValueError, "fixed natural-range"):
+            validate_m1_protocol(changed)
+
+        changed = deepcopy(self.config)
+        changed["energy"]["future_normalization"] = changed["energy"][
+            "now_normalization"
+        ]
+        with self.assertRaisesRegex(ValueError, "future must retain"):
+            validate_m1_protocol(changed)
+
+        changed = deepcopy(self.config)
+        changed["energy"]["no_execution_current_inference_energy"] = (
+            "per_decision_zscore_of_BCE"
+        )
+        with self.assertRaisesRegex(ValueError, "bounded probability error"):
+            validate_m1_protocol(changed)
+
+    def test_posterior_influence_audit_cannot_be_reduced_to_argmax(self):
+        changed = deepcopy(self.config)
+        changed["energy"]["posterior_influence_audit"][
+            "primary_interpretation"
+        ] = "argmax_only"
+        with self.assertRaisesRegex(ValueError, "interpretation"):
+            validate_m1_protocol(changed)
+
+    def test_mechanism_slices_are_generator_defined_and_nonprimary(self):
+        changed = deepcopy(self.config)
+        changed["evaluation"]["mechanism_diagnostic_slices"][
+            "selection_rule"
+        ] = "empirical_proxy_accuracy_threshold"
+        with self.assertRaisesRegex(ValueError, "measured accuracy"):
+            validate_m1_protocol(changed)
+
+        changed = deepcopy(self.config)
+        changed["evaluation"]["mechanism_diagnostic_slices"][
+            "primary_gate"
+        ] = True
+        with self.assertRaisesRegex(ValueError, "may not replace"):
             validate_m1_protocol(changed)
 
     def test_fixed_formal_run_wall_time_cap_is_retired(self):

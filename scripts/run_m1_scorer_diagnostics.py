@@ -70,7 +70,8 @@ def _load_train(
         "candidate_energy_now", "candidate_energy_future",
         "candidate_energy_edit", "candidate_energy_growth",
         "candidate_energy_collateral", "candidate_energy_illegal",
-        "candidate_energy_now_raw", "candidate_energy_future_raw",
+        "candidate_energy_now_raw", "candidate_energy_now_natural_range",
+        "candidate_energy_future_raw",
     ):
         data.pop(key, None)
     return data, {
@@ -366,8 +367,8 @@ def main() -> int:
         )
 
     report = {
-        "schema_version": "cpmt-m1-scorer-diagnostic-v3",
-        "runner": "run_m1_scorer_diagnostics_v3",
+        "schema_version": "cpmt-m1-scorer-diagnostic-v4",
+        "runner": "run_m1_scorer_diagnostics_v4",
         "formal_run": False,
         "test_generated": False,
         "causal_complete": False,

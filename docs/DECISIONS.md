@@ -501,6 +501,28 @@
 - 是否接触 test 信息：否；只使用 train/validation 生成接口的本地小规模实现探针，未生成或读取正式 test。
 - 验证方式：协议负例锁住总混合规模、C10/C11 机制和 now target source；rollout 测试要求 12 个非重复行为指纹、C10 NOOP/BIND 双变体、C11 legal collateral 对照；数组测试要求同分母 now 指标、缺失计数、exact-ambiguity identity 和 audit-only reference/future mutation invariance。随后在干净服务器提交上全测，再单独跑 12-group v7 train-only health/cost benchmark。
 
+## D-041 — current-now 固定自然量程、软后验影响审计与机制切片
+
+- 日期：2026-09-07。
+- 状态：accepted；取代 D-039/D-040 中 now 与 future 共用逐决策 z-score 的条款，保留其余规模、family mechanism、架构和主门槛。
+- 用户确认：用户审阅退化 z-score、固定量程与“now 是否惰性”的两轮复核后回复“可以”，接受按 CTL 实际蒸馏的完整 posterior 而非只看 argmax 来判定能量项是否参与监督。
+- 背景：v7 train-only 探针显示，一行中多数候选的 `now_raw` 几乎完全相同时，逐行 z-score 会把一个很小的绝对偏差放大为数个标准差，并在 C04 抵消本来正确的 future 排序。固定自然量程消除了这类放大；虽然 leave-now-out 前后的 argmax 可以完全相同，完整 teacher posterior 仍发生系统变化。CTL 的主损失是对该软 posterior 的 KL 蒸馏，因此“第一名没变”不能推出“now 没有作用”。把 now 改成 audit-only 还会留下 C/E 独有的 current target，造成新的方法不对称。
+- 决策：
+  1. 活动协议升为 `m1-hard-condition-v5`，dataset 升为 `m1-paired-latent-worlds-v8-fixed-range-current-energy`，状态保持 `pretest_lock_candidate`。v7 arrays、训练预算和报告只保留为发现数值问题的诊断证据，不进入 v8 训练或成绩；S1/S2 仍须重新选择两架构预算。
+  2. executed `now` 不再按同行候选标准差归一化。可见匿名 appearance mismatch 的自然范围为 0–2，appearance 加 place 的联合 mismatch 为 0–4，可靠空观测的 edge mismatch 为 0–1；各自除以 2/4/1 后进入能量，保存 raw、natural range 与 scaled 值。无效/遮挡观测仍为 unavailable 并贡献中性 0，executor-illegal 仍由独立正无穷 mask 排除。`future` 继续逐方法、逐决策 z-score，因为执行式结构计数与 learned relation error 的原始单位不同。
+  3. C/E 的 current relation 推理能量使用 `sigmoid(logit)` 与 desired bit 的平均绝对误差，天然落在 0–1；逐关系 binary cross-entropy（BCE，二元交叉熵）仍是 scorer 的训练损失，不用 BCE 的无界数值直接充当 current 能量，也不再对 current error 做同行 z-score。A/D/F 与 C/E 继续使用同一个 `now=1` 权重，不能按某一方法的能力事后裁剪。
+  4. 每次 arrays 生成常驻 leave-one-term-out posterior influence audit：对 now、future、edit、growth、collateral 逐项移除后，比较完整 teacher posterior 与消融 posterior 的 total variation（总变差距离）、`KL(full||ablated)`、argmax 改变率、reference 概率变化，并报告 total variation 的 mean/median/p95/max 与超过 0.001/0.01/0.05/0.1 的比例；总体与逐 family 同报。argmax 只是其中一个诊断，不能单独宣告某项活跃或惰性；该 audit 不设效果门、不用于调权重。
+  5. 预登记五个互斥机制切片，按固定优先级分配：`exact_online_ambiguity`（生成器标记的歧义 pivot）、`temporal_underdetermination`（C10）、`execution_side_effect_sensitive`（C11）、`current_sensor_unavailable`（C09）和其余 `other_registered_mechanisms`。切片只由生成机制定义，禁止按实测 proxy/model accuracy 设阈值。每片描述性报告 selection accuracy、commit rate、已提交项正确率、决策后 active correctness 与 selected collateral；完整 mixed 20-step causal endpoint 仍是唯一 primary go/no-go 分母。
+  6. 预期行为随切片冻结：exact ambiguity 的同输入 sibling references 不同，成对在线单步上限为 0.5 且错误不能追溯抹去；C10 的 transient-NOOP/persistent-BIND 当前观测同分布，在线单步准确率预期约 0.5，主要看 teacher 是否由 future 解析及 causal endpoint；C11 每行应有 admitted+legal collateral contrast；C09 的 executed-now 按构造 unavailable，null now influence 是机制确认而非待补成绩；其余 family 不做事后挑选。
+  7. train health gate 新增固定量程审计：所有可用 executed-now scaled 值须在 0–1，且必须与 `raw/natural_range` 一致。posterior influence 的大小只报告不设通过阈值，避免又根据预跑数调出一个“必须有作用”的权重。原 teacher agreement、12-family fingerprint、C10/C11 与 exact-ambiguity 门保持不变。
+- 白话：固定自然量程解决“大家几乎打平时，一点点差异被标准差除法吹成巨大惩罚”的问题。输入是候选后世界对当前传感观测的原始误差，输出是按传感器理论范围缩到 0–1 的 now；例如 appearance 原始误差 0.10 除以 2 后就是 0.05，不会因另外 15 个候选恰好同分而变成 3 个标准差。它不等于删除 now、不等于调大 now 权重，也不改变 future 的跨方法单位对齐。
+- 白话：软后验影响审计解决“只看第一名，误以为第二到第十六名的概率变化不参与 CTL”的问题。输入是完整 teacher posterior 和逐项去掉某个能量后的 posterior，输出是两份概率分布的距离、第一名是否改变及正确候选概率变化；例如第一名都还是 SPLIT，但其概率从 0.35 变成 0.60，CTL 收到的蒸馏监督已经明显不同。它只是解释能量项，不等于新增训练损失、显著性检验或权重选择器。
+- 白话：机制切片解决“总体平均掩盖某种构造的预期行为，同时又避免看完结果才挑有利 family”的问题。输入是生成器事先写入的 family/ambiguity 机制，输出是五组固定诊断；例如 C10 只因它被定义为当前时刻不可判定而进入 temporal slice，不因某个模型恰好只得 0.5 才进入。它不等于把 family one-hot 喂给模型、不替代 20-step 主指标，也不允许某片的好结果补偿主门失败。
+- 备选方案：把 now 设为 M1 audit-only 并推迟到 M2；拒绝，因为固定量程后 now 对软 posterior 仍有可测影响，而且只删执行式 now 会让 C/E 独占 current 通道，连 C/E 一起删除又无必要削弱已登记的当前＋未来假设。用 clipping、MAD 或人为 std floor；拒绝，因为仍依赖同行候选分布并引入新的经验阈值。把 posterior influence 设硬门；拒绝，因为它会诱导按预跑数据调权重制造信号。
+- 影响：更新 energy assembly、C/E scorer inference、arrays/manifest、生成健康门、A–F 报告、协议/data/report schema、测试与 S4 流程；不改 raw current mismatch、future 语义、能量权重、temperature、A–F、K=16、C10/C11、正式规模、两架构、主指标或 test seal。
+- 是否接触 test 信息：否；只读取本地 train-only v7 探针及重新生成的小规模 train/validation 接口验证数据，未生成或解封正式 test。
+- 验证方式：协议负例分别锁住 current fixed range、future z-score、bounded probability current energy、posterior audit 和非主机制切片；单测验证 `raw/range==scaled`、scaled∈[0,1]、关系 current energy 不 z-score、posterior 重构/逐项消融、五切片全覆盖；随后在干净服务器提交上跑 full test，再单独跑 12-group v8 train-only health/cost benchmark，成功后才登记新 S1/S2。
+
 ## 新决策模板
 
 ```text

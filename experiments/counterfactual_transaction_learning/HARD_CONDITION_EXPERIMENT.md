@@ -48,9 +48,9 @@ D 诊断 future evidence；F 分解 candidate coverage 与 scorer error。
 命名边界：这里的 A 不是完整视觉 Full CPMT。它只包含 versioned world graph、候选真实执行、固定解析投影和 CTL；Projective Node Orbit 尚未接入。Full CPMT 这个名字保留给 M2 的“PNO＋world graph＋executor＋CTL”。
 
 
-## M1-v4 pre-test lock candidate（D-040 accepted，尚未重新冻结）
+## M1-v5 pre-test lock candidate（D-041 accepted，尚未重新冻结）
 
-机器可读合同为 [`configs/m1_hard_condition.json`](../../configs/m1_hard_condition.json)。D-031 冻结的 M1-v1、D-034/D-038 的 v2/v5 数值及被 D-040 否决的 v6 本地探针只作为历史诊断保留；D-039 的 live energy/两条架构臂与 D-040 的混合组规模、真实 C10/C11 机制和同分母 now 审计合并为活动 v7 实现，状态仍为 `pretest_lock_candidate`。这不是 formal run，配置中的 `test_access=false` 仍由校验器强制检查；完成实现验证并另行接受重新冻结前，不得生成或读取 test。
+机器可读合同为 [`configs/m1_hard_condition.json`](../../configs/m1_hard_condition.json)。D-031 冻结的 M1-v1、D-034/D-038 的 v2/v5 数值，以及被 D-040/D-041 取代的 v6/v7 本地探针只作为历史诊断保留；D-039 的 live energy/两条架构臂、D-040 的混合组规模与真实 C10/C11，以及 D-041 的 current fixed-range 与 posterior audit 合并为活动 v8 实现，状态仍为 `pretest_lock_candidate`。这不是 formal run，配置中的 `test_access=false` 仍由校验器强制检查；完成实现验证并另行接受重新冻结前，不得生成或读取 test。
 
 ### 数据与 future
 
@@ -67,11 +67,13 @@ D 诊断 future evidence；F 分解 candidate coverage 与 scorer error。
 - A/D/F 共用 deterministic top-K，K=16；覆盖 NOOP、BIND、BIRTH、REACTIVATE、RELINK、RETRACT、SPLIT、MERGE，REPLACE 仍是 RETRACT+BIRTH，QUARANTINE 仍是不改 persistent world 的 wrapper。SPLIT/MERGE/RETRACT 必须有正例。
 - 每个候选从同一 immutable base 克隆执行，先按 canonical memory-state equivalence 去掉纯改名重复；固定 K=16 槽位、顺序和失败审计不因预检改变。A–E 在训练归一化、online softmax、共享 calibration 和 commit selection 前共用 `transaction_static_preflight_v1` admissibility mask；预检拒绝项概率为 0，但不删除候选或 failure。
 - static preflight 只读 immutable prior world、candidate program、截至当前的 online evidence 和 protected IDs，不读 future、candidate post-world、executor failure 或 `candidate_legal`。reference 必须通过且每行至少保留一个候选；preflight pass 只表示执行结果未知。A/D/F 真实执行后的 illegal 正无穷 mask 和六项能量记录继续保留，`remaining_executor_illegal_candidates` 每次报告。
-- 执行式教师逐候选保存 now/future/edit/growth/collateral/illegal。`now` 只把候选执行后世界投影回**当前有效匿名在线传感观测**计算 mismatch，禁止以 reference post-world 为 target；`future` 比较 current active semantic world 与 open-memory evidence support。两者按每方法、每决策在该方法可用的 admitted 候选上分别做 z-score，执行式 teacher 另排除 executor-illegal，而 no-execution 方法不得借此读取 legality；raw/scaled 同时保存，closed history 只作审计。遮挡或 pose/depth 无效时 now 被 mask，所以几何故障 C09 上 now 为零是正确的中性处理，不代表六项能量在每个 family 都有信号。`collateral` 是合法事务是否改动由当前 online observation/retrieval 在执行任何候选前确定、且对同行候选相同的 evidence-relevant subgraph 之外、执行前已经存在的 open-memory 事实；候选不能用自己的操作声明扩大 scope，新建事实仍由 growth 单独计费，protected touch 仍直接 illegal。权重为 1/1/0.1/0.25/1，illegal 用正无穷 mask，temperature=0.25；train health gate 未过时不得现场调权重。
+- 执行式教师逐候选保存 now/future/edit/growth/collateral/illegal。`now` 只把候选执行后世界投影回**当前有效匿名在线传感观测**计算 mismatch，禁止以 reference post-world 为 target；其 raw 值按传感器理论范围固定缩放：appearance 除以 2、appearance+place 除以 4、可靠空观测除以 1，保存 raw/natural-range/scaled，不按同行候选 spread 做 z-score。`future` 比较 current active semantic world 与 open-memory evidence support，仍按每方法、每决策对可用 admitted 候选做 z-score，以对齐执行式结构计数和 learned relation error 的不同单位。执行式 teacher 另排除 executor-illegal，而 no-execution 方法不得借此读取 legality；closed history 只作审计。遮挡或 pose/depth 无效时 now 被 mask，所以几何故障 C09 上 now 为零是正确的中性处理，不代表六项能量在每个 family 都有信号。`collateral` 是合法事务是否改动由当前 online observation/retrieval 在执行任何候选前确定、且对同行候选相同的 evidence-relevant subgraph 之外、执行前已经存在的 open-memory 事实；候选不能用自己的操作声明扩大 scope，新建事实仍由 growth 单独计费，protected touch 仍直接 illegal。权重为 1/1/0.1/0.25/1，illegal 用正无穷 mask，temperature=0.25；train health gate 未过时不得现场调权重。
 - A–E 共用 online encoder、输入字段、学生更新数和 split，训练参数量差异不超过 10%；每方法最多 6 次 validation trial。C 的 future auxiliary weight 可在 {0.1,1,10} 内独立选。E 的额外 scorer 参数、更新、耗时和显存单列，不能藏进共同预算。F 是 K=16 内 oracle upper bound，不是可部署模型。
-- E 在目标构造和候选评分时都不执行非参考候选：它把每个 online candidate program 分别解析为 current/future 的关系、生命周期与证据关联查询。`candidate_scoped_current_relations_v1` 的输入是 immutable prior、当前在线观测与 program 声明，输出是“动作受证据支持、必要参数命中 query、区域可靠为空”三项监督；例如观察到可靠空区域且候选 RETRACT 的 edge query 命中时，当前关系支持该候选。argument cosine `0.8`、novel best `<0.6`、split best `[0.55,0.8)`、dormant/merge best/second `>=0.8` 均在运行前冻结。它不等于事务标签，也不读取 candidate post-world、executor outcome/legality/collateral 或 future；future target 才从实际 reference future 产生稠密监督。C 使用同一结构化关系目标作 direct auxiliary。评价 persistent memory 时，A–E 最终选中的单个事务仍由同一个 executor 应用。
+- E 在目标构造和候选评分时都不执行非参考候选：它把每个 online candidate program 分别解析为 current/future 的关系、生命周期与证据关联查询。`candidate_scoped_current_relations_v1` 的输入是 immutable prior、当前在线观测与 program 声明，输出是“动作受证据支持、必要参数命中 query、区域可靠为空”三项监督；例如观察到可靠空区域且候选 RETRACT 的 edge query 命中时，当前关系支持该候选。argument cosine `0.8`、novel best `<0.6`、split best `[0.55,0.8)`、dormant/merge best/second `>=0.8` 均在运行前冻结。scorer 继续用 BCE 拟合 current/future relation truth；候选评分时，current 使用 `sigmoid(logit)` 与 desired bit 的平均绝对误差（固定 0–1），future 才做逐决策 z-score。它不等于事务标签，也不读取 candidate post-world、executor outcome/legality/collateral 或 future；future target 才从实际 reference future 产生稠密监督。C 使用同一结构化关系目标作 direct auxiliary。评价 persistent memory 时，A–E 最终选中的单个事务仍由同一个 executor 应用。
 - `current_now_comparability` 审计只在 proxy 与 executed-now 都定义的同一 online 行、同一 admitted+executor-legal 候选集合上，分别报告 reference-in-minimum、unique、uniform-tie expected 和 mean tie size；缺失行另报。exact-ambiguity siblings 的 current target、mask 与 desired 必须逐字节相同而 reference 不同，且向 online payload 注入 audit-only reference/future 字段不得改变 target。该审计不强迫 proxy 弱于 executed-now，也不把 executor legality提供给 E 的训练或在线推理。
-- 同一份 v7 arrays 运行两条预登记架构臂：主臂 `cross_candidate_set_transformer_v1`（model dim 128、4 heads、两层 Set Attention Block、FFN 256）让候选在打分前相互比较；次臂是既有 hidden 64、两层 `shared_candidate_mlp_v1`。每条臂都完整运行 A–F，同一臂内 A–E 共享 encoder/student updates 并满足 10% 参数量门槛；禁止看结果后在两架构间择优。v5 的 1000 scorer steps 对 v7 两架构均失效，须重新用 train/inner-dev 选择 scorer/student 预算。
+- `teacher_posterior_term_influence` 对 now/future/edit/growth/collateral 逐项做 leave-one-out，报告完整 posterior 的 total variation、KL、argmax 改变率和 reference 概率变化，并按 family 拆分。它以 CTL 真正蒸馏的概率分布为判据，不能只因第一名没变就宣称能量项无效，也不按影响大小调权重或设 gate。
+- 五个机制切片按固定优先级互斥分配：exact ambiguity、C10 temporal underdetermination、C11 side-effect sensitive、C09 current unavailable、其余 family。每片同时写明预期行为并报告 selection/commit/active/collateral；切片由生成器机制而非实测准确率定义，只作描述，不能替代完整 mixed 20-step causal endpoint 主门。
+- 同一份 v8 arrays 运行两条预登记架构臂：主臂 `cross_candidate_set_transformer_v1`（model dim 128、4 heads、两层 Set Attention Block、FFN 256）让候选在打分前相互比较；次臂是既有 hidden 64、两层 `shared_candidate_mlp_v1`。每条臂都完整运行 A–F，同一臂内 A–E 共享 encoder/student updates 并满足 10% 参数量门槛；禁止看结果后在两架构间择优。v5 的 1000 scorer steps 对 v8 两架构均失效，须重新用 train/inner-dev 选择 scorer/student 预算。
 - validation paired groups 按 `paired_group_id` 的固定 SHA-256 奇偶拆成 calibration/report。只在 calibration 半区的 online rows 从登记网格选一组 A–E 共用的 commit probability/margin；report 半区只汇报，不能选阈值。counterfactual recovery training rows 只用于学习，不参与 gate calibration 或 report 分母。
 - S1/S2 的 target/scorer 选择只使用 train 内按 paired-group 哈希固定留出的 inner-dev；整个 sibling 及其 recovery row 同进同出。它不消耗 validation trial，也不能用于最终效果报告。LOG-022 已查看过的 4-group validation report 只保留为历史开发结果，不再冒充 S5 的首次确认；S5 必须在 S4 登记后使用与它不重叠的新 validation confirmation groups。
 
@@ -84,6 +86,12 @@ D 诊断 future evidence；F 分解 candidate coverage 与 scorer error。
 白话：行为指纹解决“把普通 BIND 改名成 C10/C11 也能通过覆盖门”的问题。输入是实际 reference 行为、当前观测状态和候选执行后的 legal/collateral 事实，输出是每个 family 可比较的机制摘要与重复列表；例如 C11 只有真的出现合法但连带改错无关记忆的候选才算覆盖。它不把 family 标签喂给模型，也不证明模型已经学会该机制。
 
 白话：同分母 now 审计解决“executed-now 缺失的行在一边算错、另一边算并列命中”的问题。输入是两条 now 通道共同可算的行和同一批审计候选，输出是覆盖、唯一性与均匀打破并列的期望准确率；例如 C09 几何无效时记 unavailable，不塞进任一方的胜负。它只是离线公平性审计，不是新的训练损失，也不会把合法性答案交给 no-execution 模型。
+
+白话：current fixed-range（当前项固定自然量程）解决“候选几乎全并列时，小误差被 z-score 吹大”的问题。输入是当前投影原始 mismatch 与该传感比较的理论最大范围，输出是 0–1 的 now；例如 appearance 误差 0.1 除以自然范围 2 得 0.05。它不删除 now、不靠观察同行候选决定缩放，也不改 future 的单位对齐。
+
+白话：posterior influence（后验影响）审计解决“第一名不变是否就等于能量项没用”的问题。输入是完整教师概率与去掉某一项后的概率，输出是 total variation、KL、argmax 和 reference 概率变化；例如正确候选仍排第一但概率从 0.4 升到 0.6，CTL 的软监督已经改变。它不等于新损失、不调权重，也不设置通过门槛。
+
+白话：机制切片解决“既要解释 C09/C10/C11 的特定预期，又不能看完准确率才挑 family”的问题。输入是生成器事先登记的 family/ambiguity，输出是五个互斥描述性分组及 selection/commit/active/collateral 指标；例如 C10 因构造上当前不可判定而入组，不因模型碰巧得 0.5 才入组。它不把 family 标签喂给模型、不替代混合 20-step 主指标，也不用于事后择优。
 
 白话：共享 online admissibility mask 解决“一个候选在不改世界前就已违反版本、前置条件或 protected state，却只让执行式方法提前排除”的不公平。输入是当前记忆、事务文本、当前证据和 protected IDs，输出是在原 K=16 槽位上的允许/拒绝值；例如 BIND 明写要碰 protected node 时，A–E 都把它的 softmax 概率设为 0。它不等于执行候选、不产生 post-edit world、不保证通过项合法，也不删除 executor 的 illegal、failure 或 provenance。
 
