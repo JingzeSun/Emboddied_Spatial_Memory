@@ -48,14 +48,14 @@ D 诊断 future evidence；F 分解 candidate coverage 与 scorer error。
 命名边界：这里的 A 不是完整视觉 Full CPMT。它只包含 versioned world graph、候选真实执行、固定解析投影和 CTL；Projective Node Orbit 尚未接入。Full CPMT 这个名字保留给 M2 的“PNO＋world graph＋executor＋CTL”。
 
 
-## M1-v2 pre-test lock candidate（D-034 accepted，尚未重新冻结）
+## M1-v3 pre-test lock candidate（D-039 accepted，尚未重新冻结）
 
-机器可读合同为 [`configs/m1_hard_condition.json`](../../configs/m1_hard_condition.json)。D-031 冻结的 M1-v1 与既有数值作为历史诊断保留；D-034 接受 M1-v2 后，活动状态回到 `pretest_lock_candidate`。这不是 formal run，配置中的 `test_access=false` 仍由校验器强制检查；服务器完成实现验证并另行接受重新冻结前，不得生成或读取 test。
+机器可读合同为 [`configs/m1_hard_condition.json`](../../configs/m1_hard_condition.json)。D-031 冻结的 M1-v1、D-034/D-038 的 v2/v5 数值只作为历史诊断保留；D-039 接受 conformance 修复、live energy 与两条架构臂后，活动状态仍为 `pretest_lock_candidate`。这不是 formal run，配置中的 `test_access=false` 仍由校验器强制检查；完成实现验证并另行接受重新冻结前，不得生成或读取 test。
 
 ### 数据与 future
 
-- C00–C11 每个 family 计划生成 1000/200/200 个 train/validation/test paired groups；同一 `paired_group_id + world_seed + asset_family` 不跨 split，每个 family 的 test support 不低于 200。只排除在任何方法运行前就已确认的 schema 或生成/渲染失败；方法自身失败必须保留。
-- 主 future horizon 固定为实际已执行轨迹的 3 个后续决策点，H=1/5 只作报告型消融。变长 episode 只评分真实存在且 pose/visibility 有效的 future；至少有一步 future 的尾部样本保留并 mask 缺失步，零 future 样本只进 online 诊断，不训练 hindsight teacher。
+- C00–C11 **每个 family**分别生成 1000/200/200 个 train/validation/test paired groups，即三个 split 总计 12,000/2,400/2,400 groups；CLI 不再把该值解释为混合总数。同一 `paired_group_id + world_seed + asset_family` 不跨 split，每个 family 的 test support 不低于 200。连续 rollout 必须实现配置里的全部 12 个 family，coverage gate 对缺失 family 直接失败。只排除在任何方法运行前就已确认的 schema 或生成/渲染失败；方法自身失败必须保留。
+- 主 future horizon 固定为实际已执行轨迹中**当前决策之后**的 3 个后续决策点，不能把 now 的当前步重复计入 future；H=1/5 只作报告型消融。变长 episode 只评分真实存在且 pose/visibility 有效的 future；至少有一步 future 的尾部样本保留并 mask 缺失步，零 future 样本只进 online 诊断，不训练 hindsight teacher。
 - 可见正证据与“可靠可见但为空”都进入评分；遮挡和未观察区域 mask。预计算 online feature 只允许时间戳不晚于当前决策，future cache 分目录保存。
 - exact ambiguity 固定为一对 online 字节相同、reference 分别为 RELINK/NOOP 的 sibling；下一步实际到达的相关可见证据构成一次有界 recovery revisit。revisit 只检查三步 lookback 内受影响子图，仍用同一 deterministic K=16，不能扩成全图异步搜索。
 
@@ -66,13 +66,18 @@ D 诊断 future evidence；F 分解 candidate coverage 与 scorer error。
 - A/D/F 共用 deterministic top-K，K=16；覆盖 NOOP、BIND、BIRTH、REACTIVATE、RELINK、RETRACT、SPLIT、MERGE，REPLACE 仍是 RETRACT+BIRTH，QUARANTINE 仍是不改 persistent world 的 wrapper。SPLIT/MERGE/RETRACT 必须有正例。
 - 每个候选从同一 immutable base 克隆执行，先按 canonical memory-state equivalence 去掉纯改名重复；固定 K=16 槽位、顺序和失败审计不因预检改变。A–E 在训练归一化、online softmax、共享 calibration 和 commit selection 前共用 `transaction_static_preflight_v1` admissibility mask；预检拒绝项概率为 0，但不删除候选或 failure。
 - static preflight 只读 immutable prior world、candidate program、截至当前的 online evidence 和 protected IDs，不读 future、candidate post-world、executor failure 或 `candidate_legal`。reference 必须通过且每行至少保留一个候选；preflight pass 只表示执行结果未知。A/D/F 真实执行后的 illegal 正无穷 mask 和六项能量记录继续保留，`remaining_executor_illegal_candidates` 每次报告。
-- 执行式教师逐候选保存 now/future/edit/growth/collateral/illegal。future 比较当前 active semantic world 与 open-memory evidence support，closed history 只作审计；权重为 1/1/0.1/0.25/10，illegal 用正无穷 mask，temperature=0.25，不能看正式 test 后重调。
+- 执行式教师逐候选保存 now/future/edit/growth/collateral/illegal。`now` 是候选执行后世界对当前有效在线观测的投影 mismatch，`future` 比较 current active semantic world 与 open-memory evidence support；两者按每方法、每决策在该方法可用的 admitted 候选上分别做 z-score，执行式 teacher 另排除 executor-illegal，而 no-execution 方法不得借此读取 legality；raw/scaled 同时保存，closed history 只作审计。`collateral` 是合法事务是否改动 candidate 声明 evidence-affected subgraph 之外的 open-memory 事实；protected touch 仍直接 illegal。权重为 1/1/0.1/0.25/1，illegal 用正无穷 mask，temperature=0.25；train health gate 未过时不得现场调权重。
 - A–E 共用 online encoder、输入字段、学生更新数和 split，训练参数量差异不超过 10%；每方法最多 6 次 validation trial。C 的 future auxiliary weight 可在 {0.1,1,10} 内独立选。E 的额外 scorer 参数、更新、耗时和显存单列，不能藏进共同预算。F 是 K=16 内 oracle upper bound，不是可部署模型。
-- E 在目标构造和候选评分时都不执行非参考候选：它把每个 online candidate program 解析为“未来该关系/生命周期/证据关联是否成立”的查询，并从实际 reference future 为全部 K=16 产生稠密监督；不得读取 candidate post-world 或复用 executor 给出的 illegal/collateral。C 使用同一结构化关系目标作 direct auxiliary。评价 persistent memory 时，A–E 最终选中的单个事务仍由同一个 executor 应用。
+- E 在目标构造和候选评分时都不执行非参考候选：它把每个 online candidate program 分别解析为 current/future 的关系、生命周期与证据关联查询；current target 只能读取 immutable prior、当前在线观测与 program 声明，future target 才从实际 reference future 产生稠密监督。两者都不得读取 candidate post-world 或复用 executor 给出的 outcome/legality/collateral。C 使用同一结构化关系目标作 direct auxiliary。评价 persistent memory 时，A–E 最终选中的单个事务仍由同一个 executor 应用。
+- 同一份 v6 arrays 运行两条预登记架构臂：主臂 `cross_candidate_set_transformer_v1`（model dim 128、4 heads、两层 Set Attention Block、FFN 256）让候选在打分前相互比较；次臂是既有 hidden 64、两层 `shared_candidate_mlp_v1`。每条臂都完整运行 A–F，同一臂内 A–E 共享 encoder/student updates 并满足 10% 参数量门槛；禁止看结果后在两架构间择优。v5 的 1000 scorer steps 对 v6 两架构均失效，须重新用 train/inner-dev 选择 scorer/student 预算。
 - validation paired groups 按 `paired_group_id` 的固定 SHA-256 奇偶拆成 calibration/report。只在 calibration 半区的 online rows 从登记网格选一组 A–E 共用的 commit probability/margin；report 半区只汇报，不能选阈值。counterfactual recovery training rows 只用于学习，不参与 gate calibration 或 report 分母。
 - S1/S2 的 target/scorer 选择只使用 train 内按 paired-group 哈希固定留出的 inner-dev；整个 sibling 及其 recovery row 同进同出。它不消耗 validation trial，也不能用于最终效果报告。LOG-022 已查看过的 4-group validation report 只保留为历史开发结果，不再冒充 S5 的首次确认；S5 必须在 S4 登记后使用与它不重叠的新 validation confirmation groups。
 
 白话：公平协议解决“CPMT 是否只是比对照多拿了答案或算力”的问题。输入是同一批 online 信息、同一候选语言和可核对的训练预算，输出是 A–F 可比的预测、运行成本与失败。例如 E 可以预测“RELINK 声称的新位置未来是否成立”，但不能先执行 16 个候选再偷看哪些合法；最终决定落地时仍和其他方法一样调用 executor。它不等于强迫网络结构一模一样，也不等于把 F 的 oracle 成绩当实际系统成绩。
+
+白话：cross-candidate Set Transformer（候选间集合 Transformer）解决“候选共同竞争却彼此看不见”的问题。输入是当前世界上下文和同一行 K=16 候选，输出是经过候选间注意力比较的 16 个分数；例如两个 RELINK 只差目标位置时，可以直接比较相对证据。它不等于生成新候选、不改变 executor，也不让 online inference 读取 future。
+
+白话：candidate-scoped current target（候选范围当前目标）解决 no-execution 对照缺少真实 now 信号的问题。输入是当前证据和候选声明，输出是候选声称的关系与当前观测是否一致；例如候选说杯子在桌上、可靠观测却显示桌面为空，就记 mismatch。它不执行候选、不读取 candidate post-world，也不等于 future target。
 
 白话：共享 online admissibility mask 解决“一个候选在不改世界前就已违反版本、前置条件或 protected state，却只让执行式方法提前排除”的不公平。输入是当前记忆、事务文本、当前证据和 protected IDs，输出是在原 K=16 槽位上的允许/拒绝值；例如 BIND 明写要碰 protected node 时，A–E 都把它的 softmax 概率设为 0。它不等于执行候选、不产生 post-edit world、不保证通过项合法，也不删除 executor 的 illegal、failure 或 provenance。
 
@@ -103,6 +108,6 @@ D 诊断 future evidence；F 分解 candidate coverage 与 scorer error。
 
 ### 计算边界
 
-轻量静态/单元检查可在本地运行；用户已提示本机 CPU 负载可能诱发内存损坏，因此数据生成、完整测试、训练和 causal rollout 优先在 AutoDL 的干净 Git 提交上执行。单个 run 上限仍为 2 小时，云实例由操作者手动启停并设置定时关机；仓库只记录该控制方式，不自行启动或续费实例。
+轻量静态/单元检查可在本地运行；用户已提示本机 CPU 负载可能诱发内存损坏，因此数据生成、完整测试、训练和 causal rollout 优先在 AutoDL 的干净 Git 提交上执行。仓库不设置固定单-run wall-clock 上限，只要求保存实际耗时、内存/显存、磁盘和失败；云实例由操作者手动启停并设置定时关机，仓库只记录该控制方式，不自行启动或续费实例。新宿主机发生 BugCheck 时仍停止长 run。
 
 白话：计算边界解决“在哪台机器安全地跑”。输入是本地稳定性记录、服务器 wall-clock/显存和干净提交哈希，输出是本地只做轻检查、AutoDL 承担重任务。例如服务器 `git pull` 到指定提交后生成 arrays，再把 output 汇总拉回本地分析。它不等于允许脚本自行购买资源，也不等于服务器跑完就自动解封 test。

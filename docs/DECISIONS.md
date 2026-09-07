@@ -456,6 +456,31 @@
 - 是否接触 test 信息：否；`test_access=false`，本 decision 不生成或读取 validation/test，不训练 student、不校准 gate、不跑 causal。
 - 验证方式：protocol validator 锁定 A–E 共享方法集合、pass 语义、reference/all-rejected/illegal-retention 条件；单测验证 mask 后拒绝项概率为 0、reference 通过、K=16 审计仍完整、causal 不会选择静态拒绝项、executor illegal 仍独立；随后在干净服务器提交上全测，重新生成 train arrays 并从 S1 重跑。
 
+## D-039 — M1-v3 合同一致性修复、候选交互架构与全量重跑
+
+- 日期：2026-09-07。
+- 状态：accepted。
+- 用户确认：用户明确表示“不怕重跑”，要求加入成熟模型重跑；在审阅外部复核对 per-family、C09–C11、now/collateral、E 对称目标、架构对照和成本的意见后回复“可以，开始吧”，并进一步要求删除单次正式运行 2 小时的仓库限制。
+- 背景：S4 只读盘点证明活动合同写的是**每个 family**分别生成 train/validation/test=`1000/200/200` paired groups，但现有 CLI 把 `--paired-groups` 当混合总数，连续 rollout 也只实现 C00–C08；coverage gate 又只遍历已出现 family，导致 C09–C11 缺失时仍可能静默通过。这两项是实现偏离既有合同的 conformance bug，不是为了结果而扩大任务。另有两个能量项虽已真实计算，却在当前 fixture 结构下恒为零：`now` 只检查是否有 evidence ref，`collateral` 只检查 protected mutation，而后者已先被 executor 判非法。现有共享候选 MLP 已是逐候选置换等变模型，但没有候选间信息通路；因此“加入成熟模型”的实质是加入 cross-candidate attention，而不是用任意更大网络替换 CTL。
+- 决策：
+  1. 活动协议升级为 `m1-hard-condition-v3`，dataset 升为 `m1-paired-latent-worlds-v6-conformant-live-energy`，状态保持 `pretest_lock_candidate`。旧 v5 arrays、1000-step 选择和全部报告只保留为历史诊断，不能带入 v6 成绩或预算选择；S1/S2 必须在 v6 上重跑。
+  2. `groups_per_family` 是唯一规模语义：train/validation/test 各为 `12×1000=12,000`、`12×200=2,400`、`12×200=2,400` paired groups。生成器必须逐 family 接收/报告计数，连续 20-step rollout 必须实现 C00–C11；coverage gate 的分母固定为配置中的全部 12 个 family，任何 family 缺失即失败。C09–C11 与 CLI 修复按 conformance bug 处理。
+  3. `now` 改为候选执行后世界对**当前**有效在线观测的投影 mismatch；无效 pose/depth、遮挡和未观察位置不入分母。`future` 从当前决策之后的下一步开始取 H=3，不能再把当前步重复算入 future。now/future 都按“每方法、每决策、该方法可用的 shared-preflight admitted 候选”分别做 z-score；执行式 teacher 另排除 executor-illegal，no-execution 方法不得借此读取 legality。raw 和 scaled 值同时保存；候选间 spread 为零时 scaled 为零但 raw 仍报告。
+  4. protected touch 继续是 executor-illegal，不降级成软惩罚。`collateral` 改为：合法事务是否修改了 candidate 声明的 evidence-affected subgraph 之外的 open-memory 事实，取二值 0/1；逐 family 报非零率与分布。teacher 权重预登记为 now/future/edit/growth/collateral=`1/1/0.1/0.25/1`，illegal 仍为正无穷 mask，temperature=`0.25`。旧 collateral=`10` 从未乘过活信号，不能直接迁移为已验证权重。
+  5. teacher health gate 在训练前固定为 reference agreement 总体至少 `0.95`、每 family 至少 `0.90`，并检查非退化 NOOP/事务分布、now/collateral 激活率和 A 的 `10× active semantic + 1× open-memory` 主比较及 `1×/1×` 报告型消融。未过时停止，不得现场调权重；只能把问题归为 fixture/energy mismatch，另立 pre-test decision。
+  6. E 与 C 新增 `candidate_scoped_current_relations_v1`。它只从 immutable prior world、当前在线观测和 candidate program 声明形成 now 关系目标；严禁读取 candidate post-world、executor outcome/legality 或 future。E 仍可用既有 candidate-scoped future 目标，但候选评分阶段不执行候选；最终选中的单个事务仍由共享 executor 应用。
+  7. 同一份 v6 arrays 预登记两条架构臂：主臂 `cross_candidate_set_transformer_v1` 使用两层 Set Attention Block、model dim 128、4 heads、FFN 256 和共享逐候选输出头；次臂保留 hidden 64、两层的 `shared_candidate_mlp_v1`。每条架构臂都完整运行 A–F，同一臂内 A–E 共享 online encoder/student updates 且参数量差不超过 10%；Set Transformer 是唯一正式 go/no-go 主臂，MLP 是容量稳健性诊断，禁止看结果后在两架构间择优。
+  8. scorer/student 的旧 1000-step 选择作废。实现与健康检查通过后，在 train/inner-dev 内为两条架构分别预登记有限预算网格和唯一选择规则，再进入 S5；validation report/test 不参与预算或架构选择。主对比仍只有 A–C、A–E，完整 A–F 和原 effect/safety/CI 门槛不变。
+  9. S4 v5 成本参考为：40 groups 生成 42.5 秒、合并数组 11,977,314 bytes、保留分片 12,262,560 bytes；按旧结构线性外推，三 split 共 16,800 groups、705,600 rows、11,289,600 candidate slots、合并数组约 4.685 GiB、含分片约 9.482 GiB、生成约 4.958 小时。这只是 v5 参考，不冒充 v6/Set Transformer benchmark；v6 实现后先跑小规模 train-only 实测再启动正式规模。
+  10. 废止 D-030 和 D-033 中的 `formal_run_wall_time_limit_hours=2`。仓库不再设置固定单-run 时长上限，只强制记录 wall-clock、显存/内存、磁盘和失败；云实例继续由操作者手动启停/定时关机，`stop_on_new_host_bugcheck=true` 保留。该变更不解封 test，也不授权脚本购买或续费资源。
+- 白话：cross-candidate attention（候选间注意力）解决“16 个候选在同一个 softmax 里竞争，却彼此看不见”的问题。输入是同一时刻的世界上下文和 16 个候选描述，输出是每个候选经过相互比较后的分数。例如两个 RELINK 只差目标位置时，模型可以直接比较它们与其余候选的相对证据。它不等于 learned candidate generator、不改变 K=16，也不把未来或执行结果喂给在线模型。
+- 白话：candidate-scoped current target（候选范围当前目标）解决 E 的 now 仍是残缺代理所造成的不公平。输入是当前能看到的证据和候选自己声明的关系，输出是“该声明与当前观测是否一致”的监督。例如候选声称杯子在桌上、当前可靠观测显示桌面为空，就产生 mismatch。它不执行候选、不查看候选后世界，也不等于 future target。
+- 白话：同尺度能量解决“一个 10.0 权重乘到从未非零的量，激活后可能突然压倒 future”的问题。输入是每个候选的原始 now/future mismatch，输出是同一决策内可比较的标准化数和完整 raw 审计。例如所有合法候选的 now 完全相同时，它们的 scaled now 都是 0，不凭空改变排序。它不等于把六项揉成不可解释的总分；六项仍分别保存。
+- 备选方案：只跑 Set Transformer、用跨版本 v5-MLP 作对照；拒绝，因为数据和能量同时改变，无法归因。也拒绝保持 collateral=10 后看结果再调，以及沿用旧 1000 steps；两者都把未验证权重或过期预算带进新协议。
+- 影响：这是 conformance 修复与预先接受的方法/架构变化的组合；protocol/dataset hash 必须改变，生成器、energy、C/E target、模型、runner、报告和测试全部需实现后从 S1 重跑。它不改变 CPMT/CTL 唯一主张、M1→M2 stop rule、K=16、executor、candidate language、formal seeds、主指标或 test seal。
+- 是否接触 test 信息：否；`test_access=false`，成本盘点只读既有 train arrays，没有生成或读取 validation/test。
+- 验证方式：protocol 负例先锁住 12-family 分母、对称 now target、live energy、两架构臂和无固定 wall-time cap；随后实现单测验证 C00–C11 皆可产生连续正例、now/collateral 可非零且 protected touch 仍非法、E target 无 post-world 来源、candidate permutation equivariance、A–E 参数量门槛。干净服务器全测与小规模 v6 train-only cost/health benchmark 通过后，才登记并运行新的 S1/S2。
+
 ## 新决策模板
 
 ```text

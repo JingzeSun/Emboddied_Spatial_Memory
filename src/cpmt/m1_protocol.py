@@ -29,7 +29,7 @@ def _require(condition: bool, message: str) -> None:
 
 def validate_m1_protocol(config: Mapping[str, Any]) -> None:
     """Reject incomplete, leaky, or silently weakened M1 protocol settings."""
-    _require(config.get("protocol") == "m1-hard-condition-v2", "wrong protocol")
+    _require(config.get("protocol") == "m1-hard-condition-v3", "wrong protocol")
     _require(config.get("stage") == "M1", "stage must be M1")
     _require(config.get("status") in {"pretest_lock_candidate", "frozen_pretest"},
              "protocol must be a pre-test candidate or frozen pre-test contract")
@@ -51,6 +51,21 @@ def validate_m1_protocol(config: Mapping[str, Any]) -> None:
     _require(data["retain_method_failures"] is True, "method failures must be retained")
     _require("sealed" in data["test_release"], "test must remain sealed")
     _require(len(data["scenario_families"]) == 12, "C00-C11 are required")
+    _require(
+        data.get("continuous_rollout_required_families")
+        == data["scenario_families"],
+        "continuous rollout must implement every configured family",
+    )
+    _require(
+        data.get("generation_count_semantics")
+        == "groups_per_family_not_total_mixed_groups",
+        "generation counts must be interpreted per family",
+    )
+    _require(
+        data.get("family_coverage_domain")
+        == "all_configured_families_missing_family_fails",
+        "coverage must fail when a configured family is absent",
+    )
     _require(data["minimum_test_support_per_family"] >= 100,
              "per-family test support is too small")
 
@@ -62,11 +77,26 @@ def validate_m1_protocol(config: Mapping[str, Any]) -> None:
     _require(future["source"] == "actual_executed_trajectory",
              "future poses must come from the executed trajectory")
     _require(future["primary_horizon"] > 0, "future horizon must be positive")
+    _require(int(future.get("start_offset_decisions", 0)) == 1,
+             "future must start after the current decision to avoid duplicating now")
     _require(
         future.get("no_execution_target")
         == "candidate_scoped_future_relations_v1",
         "C/E must use the registered structured future-relation target",
     )
+    _require(
+        future.get("no_execution_now_target")
+        == "candidate_scoped_current_relations_v1",
+        "C/E must receive the registered symmetric current-relation target",
+    )
+    no_execution_now_inputs = str(future.get("no_execution_now_target_inputs", ""))
+    for forbidden_now_source in (
+        "candidate_post_world", "executor_outcome", "legality", "future",
+    ):
+        _require(
+            f"never_{forbidden_now_source}" in no_execution_now_inputs,
+            "C/E current target may not use post-world, executor, legality, or future",
+        )
     _require(
         future.get("no_execution_candidate_execution")
         == "forbidden_for_candidate_scoring_and_target_construction;_selected_transaction_uses_shared_executor",
@@ -140,6 +170,37 @@ def validate_m1_protocol(config: Mapping[str, Any]) -> None:
     _require(set(energy["terms"]) == ENERGY_TERMS, "all six energy terms are required")
     _require(set(energy["weights"]) == ENERGY_TERMS - {"illegal"},
              "legal energy weights are incomplete")
+    _require(
+        energy.get("now_semantics")
+        == "post_edit_projection_mismatch_against_valid_current_online_observation",
+        "now must measure post-edit current projection consistency",
+    )
+    _require(
+        energy.get("now_normalization")
+        == "per_method_per_decision_zscore_over_available_admitted_candidates;_executed_teacher_excludes_executor_illegal;_store_raw_and_scaled",
+        "now must use the registered per-decision normalization",
+    )
+    _require(
+        energy.get("future_normalization")
+        == energy.get("now_normalization"),
+        "now and future must use comparable normalization",
+    )
+    _require(
+        energy.get("collateral_semantics")
+        == "binary_any_legal_open_memory_mutation_outside_candidate_declared_evidence_affected_subgraph",
+        "collateral must measure legal unrelated open-memory churn",
+    )
+    _require(
+        energy.get("protected_touch_semantics") == "executor_illegal_not_collateral",
+        "protected touches must remain executor-illegal",
+    )
+    _require(float(energy["weights"]["collateral"]) == 1.0,
+             "live normalized collateral weight must stay at the registered value")
+    health = energy.get("teacher_health_gate", {})
+    _require(float(health.get("reference_agreement_overall_minimum", 0.0)) == 0.95,
+             "teacher health gate overall threshold changed")
+    _require(float(health.get("reference_agreement_each_family_minimum", 0.0)) == 0.90,
+             "teacher health gate family threshold changed")
     _require(energy["illegal"] == "positive_infinity_mask",
              "illegal candidates must be masked")
     _require(energy["temperature"] > 0, "temperature must be positive")
@@ -153,6 +214,24 @@ def validate_m1_protocol(config: Mapping[str, Any]) -> None:
              "A-E student update budgets must match")
     _require(training["test_selects_nothing"] is True,
              "test cannot select any setting")
+    architecture = config.get("architecture_evaluation", {})
+    _require(
+        architecture.get("primary") == "cross_candidate_set_transformer_v1",
+        "the cross-candidate Set Transformer must remain the primary architecture",
+    )
+    _require(
+        architecture.get("secondary") == "shared_candidate_mlp_v1",
+        "the shared-candidate MLP must remain the secondary architecture control",
+    )
+    _require(
+        architecture.get("registered")
+        == ["cross_candidate_set_transformer_v1", "shared_candidate_mlp_v1"],
+        "both registered architecture arms are required",
+    )
+    _require("selection" in str(architecture.get("between_architecture_selection", "")),
+             "architecture results may not be used for post-hoc model selection")
+    _require("full_A_to_F" in str(architecture.get("run_scope", "")),
+             "each architecture arm must run the full A-F method table")
     calibration = training["commit_calibration"]
     _require(calibration["shared_across_methods"] is True,
              "A-E must share one calibrated commit rule")
@@ -214,6 +293,13 @@ def validate_m1_protocol(config: Mapping[str, Any]) -> None:
     _require(isinstance(resources.get("cloud_spend_control"), str)
              and resources["cloud_spend_control"].strip() != "",
              "resources must record how cloud spend is controlled")
+    _require("formal_run_wall_time_limit_hours" not in resources,
+             "the superseded fixed formal-run wall-time cap must not return")
+    _require(
+        resources.get("formal_run_wall_time_policy")
+        == "measure_and_report_without_repository_fixed_cap",
+        "formal run time must be measured without a repository fixed cap",
+    )
 
 
 def load_and_validate(path: Path) -> dict[str, Any]:

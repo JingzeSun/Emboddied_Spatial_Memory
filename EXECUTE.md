@@ -4,27 +4,27 @@
 
 ## 当前看板
 
-> **2026-09-07 更新（LOG-033）：** v5 的 10-group × 1000-step × 五 seed 数据量锚点已完成并导入 `results/`。共同 inner-dev group 1 上，40−10 candidate-ranking accuracy 的五 seed 平均差为 `+0.005000`，仅 `1/5` seed 严格为正；未达到预登记的均值 `>=0.025` 且至少 `4/5` 为正，故 **S3 不触发**。当前进入 S4，只盘点现有 arrays 的时间/空间成本并外推每 family 正式规模；不生成数据、不训练、不读取 test，成本结果出来前不写 D-039。
+> **2026-09-07 更新（LOG-034 / D-039）：** S4 对既有 v5 40-group train arrays 的只读成本盘点完成：正式每-family 分母对应三 split 共 16,800 paired groups，按旧结构线性参考约 9.482 GiB（合并 arrays＋保留分片）和 4.958 小时生成。盘点同时确认连续 rollout 缺 C09–C11、CLI 使用混合总数而非合同的 per-family 计数。D-039 已接受 v6 conformance/live-energy、Set Transformer 主臂＋MLP 次臂的同数组全 A–F 重跑，并废止单 run 两小时硬上限；当前仍在 S4 实现与 train-only 健康检查，test 封存。
 
-最后更新：2026-09-07，LOG-033 v5 S2 数据量锚点未触发 S3；正式 M1 gate 未运行、未生成或读取 test。
+最后更新：2026-09-07，LOG-034 S4 成本盘点完成、D-039 accepted；正式 M1 gate 未运行、未生成或读取 test。
 
 | 项目 | 当前事实 |
 |---|---|
 | 方向 | CPMT 具身空间记忆；CTL 是主学习假设，用户希望面向 ML 研究 |
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
-| 阶段 | M1-v2 `pretest_lock_candidate`；只开放 train/validation，尚未重新冻结，正式 gate 未运行，不是 M2/Full CPMT |
-| 最近结果 | v5 S1 的 target/assembly 与 scorer 接线改善已由 LOG-031 记录；S2 五 seed 在 40 groups 上选择 1000 steps：300/1000 inner-dev teacher mean=`0.767500/0.794375`，总体 masked BCE mean=`0.086793/0.062483`，ranking-relevant BCE mean=`0.153600/0.102113`，reference margin mean=`0.379248/0.309308`。同预算 10-group 锚点的共同 group 1 teacher mean=`0.905000`，40-group 为 `0.910000`，40−10=`+0.005000`，仅 `1/5` seed 为正，故 S3 未触发。预算选择只依据 candidate-ranking accuracy 的预登记 CI，不把 BCE 或 margin 当选择量 |
-| 尚缺 | S4 先完成现有 v5 40-group arrays 的成本盘点，再拟定 D-039：区分 C00–C11/per-family gate/now/collateral 的合同一致性修复与 cross-candidate attention、E 对称 now target 的方法变化；新协议必须重新选择 scorer/student 预算。S3 已跳过，test 仍封存 |
+| 阶段 | M1-v3 `pretest_lock_candidate`；只开放 train/inner-dev 实现验证，尚未重新冻结，正式 gate 未运行，不是 M2/Full CPMT |
+| 最近结果 | v5 S1/S2 与 10-group 锚点仍作为 LOG-031–033 的历史诊断；S4 成本盘点确认 v5 40 groups=`1,680` rows/`26,880` candidate slots、42.5 秒，正式旧结构线性参考为 `16,800` groups/`705,600` rows/`11,289,600` slots、合并约 `4.685 GiB`、含分片约 `9.482 GiB`、生成约 `4.958 h`。该外推不是 v6 或 Set Transformer benchmark |
+| 尚缺 | 按 D-039 实现并测试 C00–C11/per-family gate、live now/collateral、E 对称 current target、Set Transformer 主臂与 MLP 次臂的同数组全 A–F；小规模 v6 train-only cost/teacher-health 通过后，分别重新登记和选择 scorer/student 预算。旧 v5 的 1000 steps 不迁移，test 仍封存 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
-| 当前决定 | D-034：M1-v2 只加入有界、证据触发的局部补偿，E 不执行候选评分分支；D-038：static preflight 是 A–E 共享 online mask，但不替代 executor illegal 或候选审计；全局 reconciliation、PNO 与 M2 顺序不变 |
-| 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 test。scorer loss 不因本轮 BCE 下降自动修改；1000 steps 已按 ranking CI 选定，S3 已由数据量锚点的预登记判据排除 |
+| 当前决定 | D-039：M1-v3 修复 per-family/C00–C11 conformance，激活 now/collateral并给 C/E 对称 current target；Set Transformer 为唯一主架构、既有 MLP 为次级容量稳健性臂，每臂完整 A–F；仓库不再设两小时单-run 上限。全局 reconciliation、PNO 与 M2 顺序不变 |
+| 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 validation report/test。两架构各自的 scorer/student 有限预算网格须在小规模健康检查后、任何选择性 run 前登记 |
 | Git 备份 | D-038 科学代码基线为 `72afa7d`；S2 40-group reports 已在提交 `ececefb`、10-group 锚点已在 `70355ac` 导入 `results/`，服务器大产物仍位于 ignored `outputs/`。服务器操作只通过版本化的 `ops/run_next_server_step.sh` 交付，脚本所在提交仍须先 push、服务器再 pull |
 
-白话：M1-v2 现在仍是“考前定卷”，不是已冻结或已通过。旧容量诊断证明简单 MLP 在给足标签时能拟合可见训练关系；新的 K=16 与恢复审计只证明候选、executor 和 active-world 评测路径可达。这些都不等于 CTL 已胜出，更不是带 PNO 的 Full CPMT。
+白话：M1-v3 现在仍是“考前定卷”，不是已冻结或已通过。旧容量诊断证明简单 MLP 在给足标签时能拟合可见训练关系；新的 K=16 与恢复审计只证明候选、executor 和 active-world 评测路径可达。这些都不等于 CTL 已胜出，更不是带 PNO 的 Full CPMT。
 
 ## 当前任务清单
 
-M1-v2 的阶段顺序、转向条件和成功/失败终点见 [M1-v2 收口执行流程](experiments/counterfactual_transaction_learning/M1_V2_CLOSEOUT_FLOW.md)。下表只保留任务完成状态，不再承担流程解释。
+M1-v3 的阶段顺序、转向条件和成功/失败终点见 [M1-v3 收口执行流程](experiments/counterfactual_transaction_learning/M1_V2_CLOSEOUT_FLOW.md)。文件名按 D-035 保留；下表只保留任务完成状态，不再承担流程解释。
 
 - [x] 首轮训练与结果审计：LOG-002。
 - [x] 收敛重复进度入口：LOG-004。
@@ -37,7 +37,7 @@ M1-v2 的阶段顺序、转向条件和成功/失败终点见 [M1-v2 收口执�
 - [x] 为连续序列补 paired latent siblings，并把 A–F 接入非正式 train/validation causal smoke；完成 CPU 资源测量和首轮 leakage audit。
 - [x] 在扩 K=16 前完成全标签容量、4→10 paired groups、60→1000 updates 的可学习性阶梯；分开记录 candidate miss、teacher error 与 amortization error。
 - [x] 实现去重、确定性的 K=16 candidate generator，并完成 reference 参数解耦和 C00–C08 validation 开发 coverage 审计。
-- [ ] 在不进入 M2、不动 test 的前提下，在 AutoDL 的干净提交上完成 M1-v2 全套测试与足量 train/validation 预演；根据 report 半区的 active、contamination、recovery 和 paired CI 决定是否重新冻结，再单独申请 test 解封。
+- [ ] 在不进入 M2、不动 test 的前提下，在 AutoDL 的干净提交上完成 M1-v3 全套测试与足量 train/validation 预演；根据 report 半区的 active、contamination、recovery 和 paired CI 决定是否重新冻结，再单独申请 test 解封。
 - [x] **(1) 强化 E 的 outcome scorer 目标空间与监督覆盖。** E 已改为候选作用域的未来关系查询；训练覆盖全部 K=16 候选，目标只读实际 reference future，不执行候选，也不复用 executor 导出的 illegal/collateral。C 使用同一关系目标作 direct auxiliary。当前只验证接线，E 是否真正变强须由服务器足量 run 回答。
 - [x] **(2) 校准 commit/quarantine 策略。** validation paired groups 已按固定 SHA-256 规则分成 calibration/report；预登记网格只在前者选择一组 A–E 共享阈值，后者只汇报。网格包含 K=16 未校准 softmax 可达到的低阈值，避免所有模型因烟测阈值不可达而机械地零提交。
 - [ ] **(3) 如实计算 `now` 与 `collateral` 能量项并报告哪些项真正在变化。** 协议声明 6 项，实际只有 `future`/`edit`/`growth` 变化：`now` 因 `_program_header` 给每个候选都写入 `evidence_refs` 而恒为 0；`collateral`（权重 10.0，全场最大）硬编码为 0，且因 `_check_protected` 把任何触碰受保护 ID 的操作判为非法而与 illegal mask 结构性冗余。须让实现与声明一致，并记录该冗余，避免审稿人误以为有 6 个有效项。
@@ -537,6 +537,18 @@ M1-v2 的阶段顺序、转向条件和成功/失败终点见 [M1-v2 收口执�
 - 数据/provenance：输入 arrays digest=`f68205b58a6d4a97f92e3432b0d1d3515a5b739a5b226994e4030515b930d7b0`，protocol=`34f76fcbef7009ece83368109cfbe4b3c7fd5e0f7e4e61c52134170fa161787a`，dataset=`m1-paired-latent-worlds-v5-shared-static-preflight`；训练提交 `d8665d8068a55847bc6a5d38f8e52f2e34c2eca4` 干净。10-group 拟合/inner-dev group 划分为 `9/1`，并保持 `validation_arrays_read=false`、`validation_trial_consumed=false`、`test_generated=false`、`causal_complete=false`。
 - 结果/判据：10-group group 1 的逐 seed candidate-ranking accuracy 为 `{7:0.925,19:0.925,31:0.875,43:0.875,59:0.925}`；对应 40-group 为 `{7:0.925,19:0.925,31:0.850,43:0.925,59:0.925}`。40−10 差为 `{7:0,19:0,31:-0.025,43:+0.050,59:0}`，均值=`+0.005000`、严格正差=`1/5`。预登记触发条件为均值 `>=0.025` 且至少 `4/5` 严格为正；两项均未满足，故 **S3 不触发**。
 - 局限/决定：这仅有一个独立 group，不能构造可信 CI，也不支持“更多数据无效”的普遍结论；它只否定了继续投入 S3 的预登记必要条件。该 report 已导出；随后进入 S4 预冻结审计，不训练 student、不跑 causal、不生成或读取 test。
+
+### LOG-034—2026-09-07—S4 v5 成本盘点与 D-039 M1-v3 重启
+
+- 类型/状态：M1-development、train-only 的只读资源盘点完成；D-039 方法/架构/预算变化已接受，v6 实现尚未完成。本条不是训练结果、formal gate 或 CTL 性能结论。
+- 输入/provenance：服务器仓库 `/root/Emboddied_Spatial_Memory`，干净提交 `356ee23c54fe8e8bd0beb250b0afa3c54587be0c`；只读既有 v5 40-group `train.npz` 与 manifest，arrays digest=`f68205b58a6d4a97f92e3432b0d1d3515a5b739a5b226994e4030515b930d7b0`、protocol=`34f76fcbef7009ece83368109cfbe4b3c7fd5e0f7e4e61c52134170fa161787a`。`test_access=false`、`test_generated=false`；没有读取 validation/test、生成新数据或训练模型。
+- conformance 发现：合同的 `groups_per_family` 已明确为 train/validation/test=`1000/200/200` **每 family**，而现有 CLI `--paired-groups` 实现为跨 family 的混合总数；连续 rollout 模板映射只覆盖 C00–C08，C09–C11 缺失。由于旧 gate 只遍历实际出现 family，缺失 family 可静默通过。两者均是代码没有实现已冻结合同的 bug，不是新的规模或任务选择。
+- 观测成本：40 paired groups 共 1,680 learning rows（1,600 online＋80 recovery）和 26,880 candidate slots；合并 NPZ=`11,977,314` bytes，40 个保留分片=`12,262,560` bytes，加载后 RSS=`45,338,624` bytes、进程 peak RSS=`50,823,168` bytes。该次已成功生成任务的操作者终端记录为 42.5 秒；v5 manifest 本身未持久化该 wall-clock，因此标记为 operator-observed provenance。
+- 线性参考：按 v5 每 group 42 rows/672 slots 外推，train=`12,000` groups/`504,000` rows/`8,064,000` slots/约 `6.773 GiB`（合并＋分片）/`3.542 h`；validation 与 test 各=`2,400` groups/`100,800` rows/`1,612,800` slots/约 `1.355 GiB`/`0.708 h`。三 split 合计=`16,800` groups/`705,600` rows/`11,289,600` slots/约 `4.685 GiB` 合并、`9.482 GiB` 含分片、`4.958 h`。
+- 局限：这是旧 v5、8-worker 吞吐下的线性参考；C09–C11、live now/collateral、新 current target、Set Transformer 和训练成本都未包含。它证明当前规模在磁盘数量级上可行，不证明 v6 成本严格线性，也不是开始生成 test 的许可。
+- 决定：D-039 将 per-family/C00–C11 归为 conformance 修复；now/collateral、C/E 对称 current target 与 cross-candidate Set Transformer 归为方法/架构变化，活动协议/data hash 升级并从 S1/S2 重跑。Set Transformer 是主臂，旧 MLP 是同数组的次级容量稳健性臂，两者均完整跑 A–F，不能事后择优。旧 v5 的 1000 scorer steps 作废。
+- 资源边界：用户明确要求删除 `formal_run_wall_time_limit_hours=2`；活动配置改为只测量和报告实际 wall-clock，不设仓库固定上限。云实例仍由操作者手动启停/定时关机，BugCheck 停止规则保留。该调整不改变 test seal 或失败留存。
+- 下一步：完成 D-039 的 protocol/contract 锁定后实现 conformance、energy、target 和两架构接线；本地只跑轻量静态/协议测试。随后把版本化服务器入口改为全测，再做小规模 v6 train-only cost/teacher-health benchmark；门通过后才登记新的 S1/S2 scorer/student 预算网格。
 
 ## 后续条目模板
 

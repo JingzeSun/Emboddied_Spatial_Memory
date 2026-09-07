@@ -1,10 +1,10 @@
 {
-  "protocol": "m1-hard-condition-v2",
+  "protocol": "m1-hard-condition-v3",
   "status": "pretest_lock_candidate",
   "stage": "M1",
   "purpose": "Test whether post-edit executable hindsight supervision outperforms direct future loss and future scoring without execution for online embodied spatial-memory revision.",
   "test_access": false,
-  "decision_refs": ["D-018", "D-025", "D-026", "D-027", "D-030", "D-031", "D-034", "D-038"],
+  "decision_refs": ["D-018", "D-025", "D-026", "D-027", "D-030", "D-031", "D-034", "D-038", "D-039"],
   "methods": [
     {"id": "A", "name": "cpmt_ctl_core", "execute_candidates": true, "future_supervision": true, "post_edit_world": true},
     {"id": "B", "name": "direct_classifier", "execute_candidates": false, "future_supervision": false, "post_edit_world": false},
@@ -14,12 +14,15 @@
     {"id": "F", "name": "oracle_candidate_program", "execute_candidates": true, "future_supervision": true, "post_edit_world": true}
   ],
   "data": {
-    "dataset_version": "m1-paired-latent-worlds-v5-shared-static-preflight",
-    "generator": "controlled_embodied_spatial_worlds_v1",
+    "dataset_version": "m1-paired-latent-worlds-v6-conformant-live-energy",
+    "generator": "controlled_embodied_spatial_worlds_v2",
     "group_keys": ["paired_group_id", "world_seed", "asset_family"],
     "paired_siblings_minimum": 2,
     "groups_per_family": {"train": 1000, "validation": 200, "test": 200},
     "scenario_families": ["C00", "C01", "C02", "C03", "C04", "C05", "C06", "C07", "C08", "C09", "C10", "C11"],
+    "generation_count_semantics": "groups_per_family_not_total_mixed_groups",
+    "family_coverage_domain": "all_configured_families_missing_family_fails",
+    "continuous_rollout_required_families": ["C00", "C01", "C02", "C03", "C04", "C05", "C06", "C07", "C08", "C09", "C10", "C11"],
     "minimum_test_support_per_family": 200,
     "exclude_only": ["schema_invalid_before_method_execution", "generator_or_render_failure_independent_of_method"],
     "retain_method_failures": true,
@@ -29,6 +32,7 @@
   "future": {
     "source": "actual_executed_trajectory",
     "primary_horizon": 3,
+    "start_offset_decisions": 1,
     "target_representation": "hashed_tokens",
     "target_representation_options": ["world_latent", "hashed_tokens"],
     "reported_ablations": [1, 5],
@@ -38,7 +42,10 @@
     "online_export_excludes": ["future_evidence", "future_features", "oracle_equivalence", "simulator_hidden_state", "persistent_object_id"],
     "precomputed_feature_boundary": "online_cache_uses_only_timestamps_at_or_before_decision_time; future_cache_is_separate_hindsight_only",
     "executed_teacher_comparison": "10x_active_semantic_plus_1x_open_memory_support; closed_history_is_audit_only",
+    "executed_teacher_comparison_ablation": "1x_active_semantic_plus_1x_open_memory_support_report_only",
     "no_execution_target": "candidate_scoped_future_relations_v1",
+    "no_execution_now_target": "candidate_scoped_current_relations_v1",
+    "no_execution_now_target_inputs": "immutable_prior_world;_current_online_observation;_candidate_program_declarations;_never_candidate_post_world;_never_executor_outcome;_never_legality;_never_future",
     "no_execution_candidate_execution": "forbidden_for_candidate_scoring_and_target_construction;_selected_transaction_uses_shared_executor",
     "no_execution_supervision": "dense_queries_for_all_k16_candidates_from_actual_reference_future"
   },
@@ -86,7 +93,14 @@
   },
   "energy": {
     "terms": ["now", "future", "edit", "growth", "collateral", "illegal"],
-    "weights": {"now": 1.0, "future": 1.0, "edit": 0.1, "growth": 0.25, "collateral": 10.0},
+    "weights": {"now": 1.0, "future": 1.0, "edit": 0.1, "growth": 0.25, "collateral": 1.0},
+    "now_semantics": "post_edit_projection_mismatch_against_valid_current_online_observation",
+    "now_normalization": "per_method_per_decision_zscore_over_available_admitted_candidates;_executed_teacher_excludes_executor_illegal;_store_raw_and_scaled",
+    "future_normalization": "per_method_per_decision_zscore_over_available_admitted_candidates;_executed_teacher_excludes_executor_illegal;_store_raw_and_scaled",
+    "collateral_semantics": "binary_any_legal_open_memory_mutation_outside_candidate_declared_evidence_affected_subgraph",
+    "protected_touch_semantics": "executor_illegal_not_collateral",
+    "activation_audit": "report_nonzero_rate_and_distribution_for_now_and_collateral_overall_and_by_family",
+    "teacher_health_gate": {"reference_agreement_overall_minimum": 0.95, "reference_agreement_each_family_minimum": 0.90, "failure_action": "stop_without_weight_tuning_and_open_new_pretest_decision"},
     "illegal": "positive_infinity_mask",
     "temperature": 0.25,
     "store_per_candidate_components": true
@@ -112,6 +126,16 @@
     },
     "frozen": ["observation_front_end", "depth", "pose", "region_proposals", "candidate_generator", "executor"],
     "test_selects_nothing": true
+  },
+  "architecture_evaluation": {
+    "primary": "cross_candidate_set_transformer_v1",
+    "secondary": "shared_candidate_mlp_v1",
+    "registered": ["cross_candidate_set_transformer_v1", "shared_candidate_mlp_v1"],
+    "run_scope": "same_v6_arrays_and_full_A_to_F_within_each_architecture",
+    "between_architecture_selection": "posthoc_selection_forbidden;_set_transformer_is_primary_go_no_go_and_mlp_is_secondary_capacity_robustness",
+    "cross_candidate_set_transformer_v1": {"model_dim": 128, "attention_heads": 4, "set_attention_blocks": 2, "feedforward_dim": 256, "dropout": 0.0, "candidate_output": "shared_equivariant_score_head"},
+    "shared_candidate_mlp_v1": {"hidden_dim": 64, "context_encoder_layers": 2, "candidate_scorer_layers": 2, "cross_candidate_interaction": false, "candidate_output": "shared_equivariant_score_head"},
+    "fairness": "within_each_architecture_A_to_E_share_online_encoder_and_student_updates_and_stay_within_registered_parameter_tolerance"
   },
   "evaluation": {
     "application_rule": "all_methods_apply_their_selected_transaction_with_the_same_executor_before_graph_metrics",
@@ -145,7 +169,7 @@
     "policy": "operator_controlled_cloud_instances",
     "cloud_spend_authorized_aud": null,
     "cloud_spend_control": "operator_starts_and_schedules_shutdown_of_pay_as_you_go_instances",
-    "formal_run_wall_time_limit_hours": 2,
+    "formal_run_wall_time_policy": "measure_and_report_without_repository_fixed_cap",
     "stop_on_new_host_bugcheck": true
   }
 }

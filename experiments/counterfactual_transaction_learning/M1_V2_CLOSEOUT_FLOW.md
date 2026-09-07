@@ -1,6 +1,6 @@
-# M1-v2 收口执行流程
+# M1-v3 收口执行流程
 
-本文件是 M1-v2 从当前 pretest 走到结束的唯一流程大纲。它解决“下一步做什么、看到什么结果后走哪条分支”的问题；输入是已登记的 M1 合同和每阶段结果，输出是下一个有界任务。例如 E 的 target-only oracle 高、但 scorer train accuracy 低时，下一步是优化诊断，不是改 target。它不是实验结果日志、不是新的方法合同，也不代替机器可读配置。
+本文件沿用 D-035 批准的固定文件名，是 M1-v3 从当前 pretest 走到结束的唯一流程大纲。它解决“下一步做什么、看到什么结果后走哪条分支”的问题；输入是已登记的 M1 合同和每阶段结果，输出是下一个有界任务。例如 E 的 target-only oracle 高、但 scorer train accuracy 低时，下一步是优化诊断，不是改 target。它不是实验结果日志、不是新的方法合同，也不代替机器可读配置。
 
 ## 文件职责与优先级
 
@@ -16,11 +16,12 @@
 
 ## 当前指针
 
-- 当前阶段：**S4 预冻结审计：先盘点现有 v5 40-group arrays 的时间/空间成本，再拟定 D-039**。
+- 当前阶段：**S4 M1-v3 实现与健康检查：D-039 已接受，先完成 conformance/live-energy/两架构接线，再以小规模 v6 train-only benchmark 关闭实现风险**。
 - 最近有效证据：v5 S2 的 arrays/manifest/report 已验收；1000−300 的 paired-group 95% CI 为 `[+0.008750,+0.045000]`，按预登记规则选择 1000。10-group 同预算锚点中共同 group 1 的 40−10 平均差为 `+0.005000`、仅 `1/5` seed 严格为正，未达 S3 触发条件。完整数字与 provenance 见 `EXECUTE.md` LOG-032/033。
 - 已完成：同一份 40-group v4 arrays 确定性截取 10/40 groups，运行 scorer steps {60,300,1000} × seed 7。40-group 全 train 上，static preflight 对 2,552/2,552 个 executor-illegal 候选全部静态拒绝、合法误拒 0；过滤后 target-only 均匀并列期望由 0.7729 升至 0.9698，assembled oracle accuracy 由 0.7438 升至 0.9525，其 exact-ambiguity capped 读数由 0.7275 升至 0.9275。D-038 已接受把同一只读预检变成 A–E 共享 mask；旧 v4 过滤数字仍只作采纳依据，不冒充 v5 方法成绩。
 - scorer 分支：40-group inner-dev 的未过滤/过滤后 teacher accuracy 在 steps 60/300/1000 分别为 0.0500/0.5688/0.5031 与 0.0625/0.7469/0.7094。1000 steps 虽将 held-out BCE 从 0.1016 降到 0.0744，候选排序却低于 300 steps；共同 group 1 在 10/40 groups、300/1000 steps 过滤后均为 0.875，也没有显示扩大到 S3 的明确数据收益。因此 300 steps 只是当前单 seed 候选，尚未固定。
-- 当前分支：D-038 已接受，dataset version 为 `m1-paired-latent-worlds-v5-shared-static-preflight`；服务器全测、v5 40-group train arrays、S1、S2 五 seed 比较与三个 report 导出均已通过。10-group × 1000 steps × 五 seed 锚点未显示预登记要求的方向性信号，故 S3 跳过。S4 已识别 C09–C11/per-family gate、now/collateral、E 对称 now target、架构 2×3 与旧预算失效等冻结前事项；先只读量化资源，不读取 validation/test，成本证据齐全后才形成新 decision。
+- 当前分支：S4 v5 成本盘点已完成，见 `EXECUTE.md` LOG-034；D-039 已接受并把活动协议升为 `m1-hard-condition-v3`、dataset 升为 `m1-paired-latent-worlds-v6-conformant-live-energy`。下一步实现 C00–C11/per-family conformance、live now/collateral、E 对称 current target 与 Set Transformer/MLP 两架构全 A–F 接线；实现通过后先跑小规模 v6 train-only cost/teacher-health benchmark，再登记并重跑 S1/S2。旧 v5 的 1000-step 选择不迁移，validation/test 仍不读取。
+- 成本边界：v5 40-group 参考为 42.5 秒、合并 arrays 11,977,314 bytes、分片 12,262,560 bytes；线性外推 16,800 formal groups 为 705,600 rows、11,289,600 candidate slots、约 4.685 GiB 合并 arrays/9.482 GiB 含分片、4.958 小时生成。它不是 v6 benchmark。按 D-039 不再设单 run 两小时硬上限，仍完整记录资源且保留 BugCheck 停止规则。
 - 数据量锚点判据（运行前固定）：只在 10-group 固定留出的共同 paired group 1 上，逐 seed 计算 `40 groups − 10 groups` 的 candidate-ranking accuracy。若五 seed 中至少 4 个严格为正，且五 seed 均值 `>= 0.025`（该 group 的 40 online decisions 中至少一个平均决策），才称“有明确继续增大 train diversity 的方向性信号”并进入 S3；否则 S3 不触发、进入 S4 预冻结审计。该锚点只有一个独立 group，故不报虚假的 CI、不重新选择 1000 steps、也不单独支持性能结论。
 - 预登记方向：共享 mask 主要移除旧 E 会选而 A–D 已由执行信息避开的静态非法候选，因此预期 v5 的 `A_vs_E` 单步与 causal margin 相对 v3/v4 历史读数缩小，触发主对比 stop rule 的概率上升；若 margin 不缩小或仍通过门槛，才是更强证据。该方向在运行前固定，结果出来后不得把“缩小”或“不缩小”任一方向改写成预先支持 CTL。
 - scorer 选择规则：共享 mask 后的 inner-dev candidate-ranking accuracy 是主选择量；同一 paired group、同一 seed 的 1000−300 先配对，再在每个 group 内对五个登记 seed 求平均，最后对 8 个 group 差值用固定 seed=260906 做 10,000 次单层 paired-group bootstrap，取 95% percentile CI。只有 CI 下界大于 0 才选 1000，否则选计算更省的 300；不得把 5×8 格子当成 40 个独立样本。总体/判别性 BCE 与 reference ranking margin 只解释目标是否失配，不按 BCE 单独选预算。若多 seed 复现“总体 BCE 改善但判别性 BCE、margin 或排序下降”，另立 decision 后才可测试 future-derived listwise loss，不得直接用全量 reference index 监督。
@@ -41,6 +42,7 @@ S2 共享 static preflight 已接受；v5 1000-step 预算已选，10-group 同�
 S3 更大 train 规模交互确认（未触发，跳过）
   ↓
 S4 正式规模/能量/分母预冻结审计
+  ↓ D-039 实现完成后，以 v6 train/inner-dev 重跑 S1/S2 并重新选 scorer/student 预算
   ↓
 S5 train/validation 正式规模预演
   ↓
@@ -57,7 +59,7 @@ S7 M1 成功 / no-go / 不确定收口
 | S1（v4/v5 ✓） | E 低是 target、能量组装、优化还是泛化问题 | 10-group train arrays 按 SHA-256 留出完整 inner-dev group；scorer=60、seed=7；不读 validation | v5 shared-mask 不变量、target/assembly 与 scorer 接线已复核；结果见 `EXECUTE.md` LOG-031 |
 | S2（v4 seed 7 ✓；v5 ✓） | E 是优化不足、数据不足还是两者交互；逐关系 BCE 是否与候选排序失配 | D-038 后先以 10 groups/60 steps/seed 7 重跑 S1；再在同一 40-group v5 train arrays 上跑 steps {300,1000} × seeds {7,19,31,43,59}；已选 1000 后，补 10 groups × 1000 × 五 seed 的同预算共同-group 锚点；只用 train/inner-dev | shared-mask 不变量、v5 S1 与 300/1000 五 seed 完整；按 paired-group CI 规则已选择唯一 scorer budget=1000；锚点未满足预登记方向判据，故 S3 跳过，不据 BCE 单独改 loss |
 | S3 | 40 groups 后是否仍明确受数据多样性限制 | 仅在 S2 的 10→40 同预算锚点满足预登记方向判据后，在一个更大 train-group 点上复扫 S2 的两个 scorer steps，而不是顺序固定旧最优；仍只用 train/inner-dev | 确认最优 steps 是否随数据规模改变，并判定数据曲线继续上升或已经饱和；不得同时改容量或 target |
-| S4 | 正式 run 的分母、能量和终止规则是否唯一 | 解决 `groups_per_family` 名称与“每 family 最低决策实例数”的歧义；核查 now/collateral；报 A 的 10×/1× teacher 消融 | 唯一 train/validation/test paired-group 总数、每 family 最低 support、固定训练步数/门控选择法、不确定结果处理规则 |
+| S4 | 正式 run 的分母、能量、架构和终止规则是否唯一 | 按 D-039 修复 per-family/C00–C11 conformance，激活并审计 now/collateral，为 C/E 补对称 current target；在同一 v6 arrays 上接 Set Transformer 主臂与 MLP 次臂的完整 A–F；先做小规模 train-only cost/health benchmark | 12,000/2,400/2,400 groups 和全 12-family gate 已实现；teacher health 过门；两架构置换/参数公平性通过；两架构各自的 scorer/student 有限预算网格与唯一选择法在运行前登记 |
 | S5 | 锁定设置在足量 train/validation 上是否值得进入 test | 生成满足 C00–C11 support 的 train 和与已查看 4 groups 不重叠的新 validation confirmation；5 seeds；10% labels 主设置；完整 20-step causal 和 10,000 paired bootstrap | coverage/invariant/provenance 全通过；calibration 选唯一共享 gate；新的 report 半区仅报一次；没有触发明确 stop rule |
 | S6 | 封存后的未见数据是否支持 CTL 主张 | 记录 protocol/code/data/hyperparameter hash，单独人工解封 test；test 不选阈值、checkpoint 或方法 | 5 seeds 完整 A–F causal 结果、逐例指标、paired CI、所有失败和完整 provenance |
 | S7 | M1 是否成功且可以结束 | 严格按下方终止规则 | 唯一 pass/no-go/inconclusive 结论；更新 EXECUTE/DECISIONS/claim ledger；不再调 M1 |

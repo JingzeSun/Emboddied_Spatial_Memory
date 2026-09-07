@@ -38,6 +38,12 @@ class TestM1Protocol(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "executed trajectory"):
             validate_m1_protocol(changed)
 
+    def test_future_starts_after_current_now_term(self):
+        changed = deepcopy(self.config)
+        changed["future"]["start_offset_decisions"] = 0
+        with self.assertRaisesRegex(ValueError, "avoid duplicating now"):
+            validate_m1_protocol(changed)
+
     def test_paired_group_bootstrap_is_required(self):
         changed = deepcopy(self.config)
         changed["evaluation"]["bootstrap"]["unit"] = "case_id"
@@ -102,6 +108,44 @@ class TestM1Protocol(unittest.TestCase):
             "commit_probability_grid"
         ] = [0.45, 0.55]
         with self.assertRaisesRegex(ValueError, "K-way softmax"):
+            validate_m1_protocol(changed)
+
+    def test_every_configured_family_is_required_by_continuous_rollout(self):
+        changed = deepcopy(self.config)
+        changed["data"]["continuous_rollout_required_families"] = (
+            changed["data"]["continuous_rollout_required_families"][:-1]
+        )
+        with self.assertRaisesRegex(ValueError, "every configured family"):
+            validate_m1_protocol(changed)
+
+    def test_no_execution_now_target_cannot_use_post_world(self):
+        changed = deepcopy(self.config)
+        changed["future"]["no_execution_now_target_inputs"] = (
+            "immutable_prior_world;_current_online_observation;_candidate_post_world"
+        )
+        with self.assertRaisesRegex(ValueError, "may not use post-world"):
+            validate_m1_protocol(changed)
+
+    def test_live_energy_semantics_cannot_regress_to_constant_proxies(self):
+        changed = deepcopy(self.config)
+        changed["energy"]["now_semantics"] = "candidate_has_evidence_ref"
+        with self.assertRaisesRegex(ValueError, "current projection consistency"):
+            validate_m1_protocol(changed)
+        changed = deepcopy(self.config)
+        changed["energy"]["collateral_semantics"] = "protected_touch_only"
+        with self.assertRaisesRegex(ValueError, "unrelated open-memory churn"):
+            validate_m1_protocol(changed)
+
+    def test_both_architecture_arms_are_pre_registered(self):
+        changed = deepcopy(self.config)
+        changed["architecture_evaluation"]["secondary"] = None
+        with self.assertRaisesRegex(ValueError, "secondary architecture"):
+            validate_m1_protocol(changed)
+
+    def test_fixed_formal_run_wall_time_cap_is_retired(self):
+        changed = deepcopy(self.config)
+        changed["resources"]["formal_run_wall_time_limit_hours"] = 2
+        with self.assertRaisesRegex(ValueError, "wall-time cap"):
             validate_m1_protocol(changed)
 
 
