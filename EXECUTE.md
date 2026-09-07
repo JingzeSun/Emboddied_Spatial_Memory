@@ -4,7 +4,7 @@
 
 ## 当前看板
 
-> **2026-09-07 更新（LOG-031）：** 干净服务器全测通过；提交 `72afa7d` 生成并验收 v5 40-group train arrays，随后完成 S1 的 10-group/60-step/seed-7 重跑。shared mask 保持 reference 全准入、合法误拒与残余 executor-illegal 均为 0；inner-dev target/oracle 均升至 0.95，E scorer teacher accuracy 从 v4 的 0.05 升至 0.20，但仍有负 reference margin，故只证明 S1 接线与目标上限改善，尚未证明 scorer 预算或 CTL 主张。当前进入 40-group 的 300/1000 steps × 5 seeds 预登记比较。
+> **2026-09-07 更新（LOG-032）：** v5 40-group 的 scorer steps `{300,1000}` × seeds `{7,19,31,43,59}` 已在同一 arrays 上完成；以 8 个 paired inner-dev groups 为统计单位、每组先平均五 seed，1000−300 的 effect=`+0.026875`，95% CI=`[+0.008750,+0.045000]`，`p_nonpositive=0.000900`，故按预登记规则选择 1000 steps。结果尚在服务器，下一步只做 exporter 导出并提交 `results/`；不进入 S3、student、causal 或 test。
 
 最后更新：2026-09-07，LOG-031 v5 arrays 与 S1 shared-mask 重跑；正式 M1 gate 未运行、未生成或读取 test。
 
@@ -13,11 +13,11 @@
 | 方向 | CPMT 具身空间记忆；CTL 是主学习假设，用户希望面向 ML 研究 |
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
 | 阶段 | M1-v2 `pretest_lock_candidate`；只开放 train/validation，尚未重新冻结，正式 gate 未运行，不是 M2/Full CPMT |
-| 最近结果 | v5 S1 使用 10-group prefix、60 steps、seed 7：inner-dev target-only tie-expected 0.600→0.950，assembled oracle 0.575→0.950、illegal 0.375→0；E scorer fitting/inner-dev teacher=0.1361/0.2000，inner-dev BCE=0.2546、ranking-relevant BCE=0.4054、reference probability margin=-0.2385。服务器 arrays/report 尚未导回 `results/`，完整 provenance 与 digest 见 LOG-031 |
-| 尚缺 | 在同一 v5 40-group arrays 上完成 scorer steps {300,1000} × seeds {7,19,31,43,59}，按预登记 paired-group CI 规则选预算或另立 loss decision，之后才判断 S3。test 仍封存，PNO 与 Khronos 式全局慢路径属 M2 |
+| 最近结果 | v5 S1 的 target/assembly 与 scorer 接线改善已由 LOG-031 记录；S2 五 seed 在 40 groups 上选择 1000 steps：300/1000 inner-dev teacher mean=`0.767500/0.794375`，对应 BCE mean=`0.102113/0.062483`，reference margin mean=`0.379248/0.309308`。预算选择只依据 candidate-ranking accuracy 的预登记 CI，不把 BCE 或 margin 当选择量 |
+| 尚缺 | 用 exporter 将两个 S2 report 导入 `results/` 并单独提交；随后再依据可比的 10→40 数据量证据决定是否进入 S3。test 仍封存，PNO 与 Khronos 式全局慢路径属 M2 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
 | 当前决定 | D-034：M1-v2 只加入有界、证据触发的局部补偿，E 不执行候选评分分支；D-038：static preflight 是 A–E 共享 online mask，但不替代 executor illegal 或候选审计；全局 reconciliation、PNO 与 M2 顺序不变 |
-| 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 test。scorer loss 是否修改须等 v5 的 300/1000 五 seed 诊断，不能预先接受 |
+| 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 test。scorer loss 不因本轮 BCE 下降自动修改；1000 steps 已按 ranking CI 选定，S3 是否需要仍待数据量交互判断 |
 | Git 备份 | D-038 科学代码截至 `72afa7d` 已与 `origin/main` 同步；服务器产物位于 ignored `outputs/`，尚未导出进 Git。本轮起服务器操作只通过版本化的 `ops/run_next_server_step.sh` 交付，脚本所在提交仍须先 push、服务器再 pull |
 
 白话：M1-v2 现在仍是“考前定卷”，不是已冻结或已通过。旧容量诊断证明简单 MLP 在给足标签时能拟合可见训练关系；新的 K=16 与恢复审计只证明候选、executor 和 active-world 评测路径可达。这些都不等于 CTL 已胜出，更不是带 PNO 的 Full CPMT。
@@ -520,6 +520,15 @@ M1-v2 的阶段顺序、转向条件和成功/失败终点见 [M1-v2 收口执�
 - target/assembly：同一 inner-dev rows 上，target-only coverage 保持 0.95，unique-reference 与 uniform-tie expected accuracy 均由未过滤的 0.25/0.60 升至 shared-mask 的 0.95/0.95；assembled oracle accuracy 由 0.575 升至 0.95，raw illegal selection 由 0.375 降至 0，exact-ambiguity capped accuracy=0.925。这是 target/assembly 上限与 shared-mask 接线证据，不是 E 的可部署成绩。
 - scorer：fitting BCE/ranking-relevant BCE/teacher accuracy=`0.2526/0.4069/0.1361`；inner-dev=`0.2546/0.4054/0.2000`，target-discriminative BCE=0.4054，reference probability margin mean=-0.238502，positive-margin rate=0.20。相对 v4 S1 的 fitting/inner-dev teacher=`0.05/0.05` 与 BCE=`0.2612/0.2706` 是正面提升，但 E 仍远低于 0.95 oracle 且 margin 为负，60 steps 仍属欠优化诊断点。
 - 结论/下一步：S1 shared-mask 不变量、target/assembly 与 scorer 接线通过，按预登记进入同一 40-group arrays 上的 steps {300,1000} × seeds {7,19,31,43,59}。为避免把 5 seeds × 8 inner-dev groups 冒充 40 个独立样本，预算比较先在每个共同 paired group 内对五 seeds 求平均，再对 8 个 paired-group 差值做 10,000 次单层 bootstrap（95% percentile CI，固定 seed=260906）；只有 1000−300 的 CI 下界大于 0 才选 1000，否则选 300。BCE 与 margin 只作 loss-mismatch 解释，不能单独改预算或 loss。
+
+### LOG-032—2026-09-07—v5 S2 scorer budget comparison
+
+- 类型/状态：M1-development、train/inner-dev、scorer-only 的五 seed 预算比较完成；服务器脚本 `ops/run_next_server_step.sh` 返回 `SERVER_STEP_OK`。结果仍在服务器 ignored `outputs/`，尚未通过 exporter 导入 `results/`，因此本条记录不构成 formal gate 或 CTL 结论。
+- 数据/provenance：同一 v5 train arrays，digest=`f68205b58a6d4a97f92e3432b0d1d3515a5b226994e4030515b930d7b0`，40 paired groups、1,600 online + 80 recovery；训练提交 `d35434b410ebe473ae6400dedf9b6869c30b1cda`，protocol=`34f76fcbef7009ece83368109cfbe4b3c7fd5e0f7e4e61c52134170fa161787a`，dataset=`m1-paired-latent-worlds-v5-shared-static-preflight`。两点均 `validation_arrays_read=false`、`validation_trial_consumed=false`、`test_generated=false`、未训练 online student、未校准 gate、未跑 causal。
+- 设置/主结果：40 groups，固定 scorer 配置，steps `{300,1000}`，seeds `{7,19,31,43,59}`。inner-dev candidate-ranking teacher mean 为 `0.767500`（300）与 `0.794375`（1000）；BCE mean 为 `0.102113` 与 `0.062483`，reference probability margin mean 为 `0.379248` 与 `0.309308`。这些后两项是解释量，不是预算选择量。
+- 统计选择：每个共同 paired inner-dev group 先对五 seed 求均值，再对 8 个 group 差值做固定 seed=`260906`、10,000 次单层 paired bootstrap。1000−300 effect=`+0.026875`，95% percentile CI=`[+0.008750,+0.045000]`，`p_nonpositive=0.000900`；因为 CI 下界大于 0，唯一预登记预算选择为 **1000 scorer steps**。
+- 解释/边界：这支持“在当前 40-group train/inner-dev 诊断上，1000 比 300 的候选排序更好”，不支持 CTL 优越性、causal 泛化或正式 M1 通过。1000 的 margin 均值低于 300，说明 BCE/margin 与排序仍非同一选择量；不据此另立 loss decision。
+- 结论/下一步：先用仓库 exporter 导出两个 S2 JSON 到 `results/` 并单独提交；导出后再判断 10→40 是否仍有明确数据量收益，决定是否进入 S3。不得在导出前读取 validation、生成 test 或运行 student/causal。
 
 ## 后续条目模板
 
