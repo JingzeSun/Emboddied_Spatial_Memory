@@ -16,7 +16,7 @@
 
 ## 当前指针
 
-- 当前阶段：**S4 M1-v6：D-047 已在任何 endpoint probe/validation/test 结果前接受；除 D-046 的 AUC `40/80`、C 顺序权重、纯 validation confirmation 与三种提交率外，claim、online/executor、外生轨迹边界和 H=1 主文 teacher 机制对照也已冻结并本地接线。下一步只在干净服务器运行 D-044–D-047 full test。成功前不运行 endpoint probe 或完整预算网格；成功后另一次提交才把唯一服务器入口改写为固定 `(0,0)` gate、固定 C weight=1 anchor 且必报 H3-vs-H1 的 train-only endpoint probe。**
+- 当前阶段：**S4 M1-v6：D-044–D-047 full test 已由用户确认 `SERVER_OK`。当前唯一入口运行固定 `(0,0)` gate、C weight=1、Set Transformer A/C/E+F 的 train-only endpoint probe，并在同一 201 个 inner-dev groups 上报告 H3-vs-H1 teacher 机制对照。成功前不运行完整预算网格；validation/test 仍封存。**
 - 最近有效证据：v5 S2 的 arrays/manifest/report 已验收；1000−300 的 paired-group 95% CI 为 `[+0.008750,+0.045000]`，按预登记规则选择 1000。10-group 同预算锚点中共同 group 1 的 40−10 平均差为 `+0.005000`、仅 `1/5` seed 严格为正，未达 S3 触发条件。完整数字与 provenance 见 `EXECUTE.md` LOG-032/033。
 - 已完成：同一份 40-group v4 arrays 确定性截取 10/40 groups，运行 scorer steps {60,300,1000} × seed 7。40-group 全 train 上，static preflight 对 2,552/2,552 个 executor-illegal 候选全部静态拒绝、合法误拒 0；过滤后 target-only 均匀并列期望由 0.7729 升至 0.9698，assembled oracle accuracy 由 0.7438 升至 0.9525，其 exact-ambiguity capped 读数由 0.7275 升至 0.9275。D-038 已接受把同一只读预检变成 A–E 共享 mask；旧 v4 过滤数字仍只作采纳依据，不冒充 v5 方法成绩。
 - scorer 分支：40-group inner-dev 的未过滤/过滤后 teacher accuracy 在 steps 60/300/1000 分别为 0.0500/0.5688/0.5031 与 0.0625/0.7469/0.7094。1000 steps 虽将 held-out BCE 从 0.1016 降到 0.0744，候选排序却低于 300 steps；共同 group 1 在 10/40 groups、300/1000 steps 过滤后均为 0.875，也没有显示扩大到 S3 的明确数据收益。因此 300 steps 只是当前单 seed 候选，尚未固定。
