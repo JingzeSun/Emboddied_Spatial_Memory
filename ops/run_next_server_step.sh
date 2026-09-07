@@ -118,7 +118,7 @@ assert manifest["split"] == "train"
 assert manifest["paired_groups_total"] == 1000
 assert manifest["decisions"] == 40000
 assert manifest["online_chain_decisions"] == 38000
-assert manifest["recovery_decisions"] == 2000
+assert manifest["recovery_training_examples"] == 2000
 assert manifest["teacher_health_gate"]["pass"] is True
 assert manifest["teacher_reference_agreement"] == 1.0
 assert manifest["test_generated"] is False
