@@ -91,6 +91,7 @@ def main() -> int:
     ) if (out_dir / "causal").is_dir() else []
 
     af_report = _read(out_dir / "af_report.json")
+    endpoint_probe_report = _read(out_dir / "endpoint_probe_report.json")
     runtime_profiles = _runtime_profiles(out_dir)
     generation_manifests = {
         path.name: _read(path)
@@ -108,7 +109,10 @@ def main() -> int:
                 name: (value or {}).get("generation_provenance")
                 for name, value in generation_manifests.items()
             },
-            "training": (af_report or {}).get("training_provenance"),
+            "training": (
+                (af_report or {}).get("training_provenance")
+                or (endpoint_probe_report or {}).get("training_provenance")
+            ),
             "runtime_profiles": {
                 name: (value or {}).get("training_provenance")
                 for name, value in runtime_profiles.items()
@@ -119,6 +123,7 @@ def main() -> int:
             "export_environment": _environment(),
         },
         "af_report": af_report,
+        "endpoint_probe": endpoint_probe_report,
         "teacher_forced_only": _read(out_dir / "af_teacher_forced.json"),
         "runtime_profiles": runtime_profiles,
         "generation_manifests": generation_manifests,
@@ -128,12 +133,16 @@ def main() -> int:
         "other_reports": {
             path.name: _read(path)
             for path in sorted(out_dir.glob("*.json"))
-            if path.name not in {"af_report.json", "af_teacher_forced.json"}
+            if path.name not in {
+                "af_report.json", "af_teacher_forced.json",
+                "endpoint_probe_report.json",
+            }
             and not path.name.endswith(".manifest.json")
         },
     }
     if (
         report["af_report"] is None
+        and report["endpoint_probe"] is None
         and report["teacher_forced_only"] is None
         and not report["runtime_profiles"]
     ):
@@ -160,6 +169,10 @@ def main() -> int:
         print("WARNING: at least one pipeline stage used a dirty working tree; "
               "HEAD plus diff/source hashes were retained")
     complete = (report["af_report"] or {}).get("causal_complete")
+    endpoint_status = (report["endpoint_probe"] or {}).get("status")
+    if endpoint_status is not None:
+        print(f"endpoint_probe_status={endpoint_status} disposition="
+              f"{(report['endpoint_probe'] or {}).get('endpoint_assessment', {}).get('disposition')}")
     if complete is False:
         print("NOTE: causal_complete is false, so the protocol's primary "
               "metrics are not established by this run")
