@@ -4,17 +4,17 @@
 
 ## 当前看板
 
-> **2026-09-07 更新（LOG-039 / D-041）：** M1-v5/v8 的服务器完整测试已在干净提交 `c27e258` 上通过：175 项、323.357 秒、退出码 0。当前唯一入口已切换为 12-group train-only health/cost benchmark，复用该 full-test marker，不重跑测试、不训练、不读 validation/test。
+> **2026-09-07 更新（LOG-040 / D-041）：** M1-v5/v8 的服务器完整测试与 12-group train-only health generation 均已通过。health 用时 17.744 秒，teacher agreement=`1.0`、now family 模式完全匹配。当前唯一入口只导出现有 health manifest/arrays 的 Git 可审查 JSON，不重跑生成、不训练、不读 validation/test。
 
-最后更新：2026-09-07，LOG-039 M1-v5/v8 服务器 175 项完整测试通过；正式 M1 gate 未运行、未生成或读取 test。
+最后更新：2026-09-07，LOG-040 M1-v5/v8 服务器 12-group health generation 通过；正式 M1 gate 未运行、未生成或读取 test。
 
 | 项目 | 当前事实 |
 |---|---|
 | 方向 | CPMT 具身空间记忆；CTL 是主学习假设，用户希望面向 ML 研究 |
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
 | 阶段 | M1-v5 `pretest_lock_candidate`；只开放 train/inner-dev 与小规模接口验证，尚未重新冻结，正式 gate 未运行，不是 M2/Full CPMT |
-| 最近结果 | 服务器在 commit=`c27e2581b5ced881d0d9f8283ad8c1865fdc1342`、protocol=`1af46e526e94fb0f186166bf2e34a16c61468e2e70fe583b602341eead994189` 上运行完整测试，175 项用时 323.357 秒并全部通过，`FULL_TEST_EXIT=0`；成功 marker 已落入 ignored `outputs/m1-v5-server-preflight/`。这证明当前实现通过测试，不是方法效果成绩 |
-| 尚缺 | v8 12-group train-only 成本/teacher-health/posterior benchmark；通过后登记并重跑两架构各自的 S1/S2 scorer/student 有限预算网格。旧 v5/v7 的预算不迁移，test 仍封存 |
+| 最近结果 | 服务器 v8 train-only 12-group health 生成 480 learning rows（456 online＋24 recovery），16 workers 用时 17.744 秒；teacher/reference agreement=`1.0`、0/456 disagreement，teacher health PASS，逐 family now 冻结模式完全匹配，mean leave-now-out TV=`0.071170335`。合并 NPZ=`3,986,922` bytes、保留 shards=`4,098,264` bytes；这些是健康/成本证据，不是方法效果成绩 |
+| 尚缺 | 把现有 12-group health manifest/arrays 导出为 Git 可审查 JSON；随后登记并重跑两架构各自的 S1/S2 scorer/student 有限预算网格。旧 v5/v7 的预算不迁移，test 仍封存 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
 | 当前决定 | D-039 保留 live energy、C/E current target、Set Transformer 主臂＋MLP 次臂及每臂完整 A–F；D-040 固定总混合规模和真实 C10/C11；D-041 固定 current 自然量程、完整 posterior 审计、逐 family now 预期偏离和非主机制切片。E/teacher current 影响只同尺报告，不设门、不调权。仓库不设两小时单-run 上限；全局 reconciliation、PNO 与 M2 顺序不变 |
 | 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 validation report/test。两架构各自的 scorer/student 有限预算网格须在小规模健康检查后、任何选择性 run 前登记 |
@@ -600,6 +600,15 @@ M1-v5 的阶段顺序、转向条件和成功/失败终点见 [M1-v5 收口执�
 - 结果：`python -m unittest discover -s tests -p 'test_*.py'` 共运行 175 项，用时 323.357 秒，全部通过；`FULL_TEST_EXIT=0`。log 与匹配 commit/protocol/dataset 的成功 marker 已写入服务器 ignored `outputs/m1-v5-server-preflight/`。
 - 白话：本次 full test 回答“新审计和旧功能能否在同一干净版本上共同通过自动检查”。输入是冻结候选配置、科学代码和全套测试，输出是 175 项通过及可复用 marker；例如后续 health 脚本会先核对 marker 的 commit 和 protocol，避免为了换一份运维脚本再花 323 秒重跑。它不等于 teacher health 通过、不等于 CTL 优于对照，也没有生成或读取 test split。
 - 下一步：只运行 12-group v8 train-only health/cost benchmark，验证 teacher health、12-family mechanism、now 预期激活模式、posterior influence、产物体积与生成耗时；不训练、不读 validation/test。成功后先审查并导出报告，再登记新 S1/S2 有限预算。
+
+### LOG-040—2026-09-07—M1-v5/v8 服务器 12-group health generation 通过
+
+- 类型/状态：train-only 小规模 teacher-health、机制与成本 benchmark 通过；不是 scorer/student 训练、validation trial、formal run 或方法效果结果。
+- 输入/provenance：server repo=`/root/Emboddied_Spatial_Memory`，generation handoff commit=`d0dafc23d8ee618a7f4083601025bb53888c50d3`，科学代码仍为已全测 commit `c27e2581b5ced881d0d9f8283ad8c1865fdc1342`，protocol SHA-256=`1af46e526e94fb0f186166bf2e34a16c61468e2e70fe583b602341eead994189`，dataset=`m1-paired-latent-worlds-v8-fixed-range-current-energy`。split=train、总混合 paired groups=12、workers=16；validation/test access=false。
+- 结果：生成 480 learning rows（456 online＋24 recovery），用时 17.744 秒；teacher/reference agreement=`1.0`、0/456 disagreement，teacher health PASS。逐 family now 预期模式 `matches_expected_pattern=true`，leave-now-out posterior mean TV=`0.071170335`。arrays digest 前缀=`e924f96d4cf28179`；合并 NPZ=`3,986,922` bytes，保留 shards=`4,098,264` bytes。
+- 成本参考：按 12-group 实测线性外推，1000 个正式 train 总混合 groups 的生成约 24.6 分钟、合并 NPZ 约 332 MB；1400 个全部 split 合计约 34.5 分钟、合并 NPZ 约 465 MB。若同时保留 shards，1000 train 约 674 MB、全部 split 约 943 MB。这只是规划参考，不是固定时限或严格线性保证。
+- 白话：health generation 回答“正式生成前，v8 teacher、12 个 family、now 模式和产物规模是否健康”。输入是 12 个 train paired groups，输出是带完整逐候选能量与 provenance 的 arrays/manifest；例如本次 C01/C02/C04/C06/C07/C08 非零、其余六个数值零的模式全部吻合。它不训练 E 或在线 student、不比较 A/C/E，也不生成 validation/test。
+- 下一步：只从现有 ignored arrays/manifest 导出一份带 digest/provenance 的 `results/m1_v5_s4_v8_health_benchmark.json`，不重生成。导出后由服务器单独 commit/push，本地 pull 审查完整逐 family/逐能量结果，再登记 S1/S2 网格。
 
 ## 后续条目模板
 
