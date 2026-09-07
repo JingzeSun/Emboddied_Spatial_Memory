@@ -4,20 +4,20 @@
 
 ## 当前看板
 
-> **2026-09-07 更新（LOG-041 / D-043）：** M1-v6/v8 已实现 Pre-LN Set Transformer 主臂和严格 A–E 架构控制：同一架构内网络/输入/mask/参数形状/12 格搜索空间完全一致，各方法按同一 train/inner-dev reference 指标选自己的 `(lr,steps)`，并同时报告共享与 A/E 交叉预算读数。下一步先跑服务器完整测试，再单独重做 12-group arrays digest 不变性复核；不读 validation/test。
+> **2026-09-07 更新（LOG-042 / D-043）：** M1-v6/v8 的 D-043 提交已在服务器通过 191 项完整测试。下一步只重做 12-group train-only health，并要求 arrays digest 与 D-041 的 `e924f96d…` 逐位一致；通过后才生成 1000-group train，不读 validation/test。
 
-最后更新：2026-09-07，D-043 架构/预算合同与 runner 已实现、尚待服务器完整测试；正式 M1 gate 未运行、未生成或读取 test。
+最后更新：2026-09-07，D-043 服务器完整测试已通过、待 12-group arrays digest 不变性复核；正式 M1 gate 未运行、未生成或读取 test。
 
 | 项目 | 当前事实 |
 |---|---|
 | 方向 | CPMT 具身空间记忆；CTL 是主学习假设，用户希望面向 ML 研究 |
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
-| 阶段 | M1-v6 `pretest_lock_candidate`；D-043 架构/预算预登记已完成，待服务器完整测试、12-group digest 复核与 1000-group train/inner-dev 选择；尚未进入 S5 validation、重新冻结或 M2 |
+| 阶段 | M1-v6 `pretest_lock_candidate`；D-043 架构/预算预登记和服务器 full test 已完成，待 12-group digest 复核与 1000-group train/inner-dev 选择；尚未进入 S5 validation、重新冻结或 M2 |
 | 最近结果 | [`m1_v5_s4_v8_health_benchmark.json`](results/m1_v5_s4_v8_health_benchmark.json) 已于 `e47a7e4` 入库并本地复核：480 learning rows（456 online＋24 recovery），teacher agreement=`1.0`，12 个 family 各自 agreement 均为 `1.0`；posterior mean TV 为 future=`0.681108`、now=`0.071170`、growth=`0.025655`、edit=`0.022655`、collateral=`0.015360`，C11 collateral TV=`0.136628`。now 预期零/非零 family 完全匹配，无偏离 |
-| 尚缺 | 在新 protocol hash 上通过服务器完整测试；重生成 12-group v8 health 并确认 arrays digest 仍为 `e924f96d…`；之后生成 1000-group train arrays，依次得到 Set Transformer/MLP 的 scorer 与逐方法 student budget；validation/test 仍封存 |
+| 尚缺 | 重生成 12-group v8 health 并确认 arrays digest 仍为 `e924f96d…`；之后生成 1000-group train arrays，依次得到 Set Transformer/MLP 的 scorer 与逐方法 student budget；validation/test 仍封存 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
 | 当前决定 | D-039 保留 live energy、C/E current target、Set Transformer 主臂＋MLP 次臂及每臂完整 A–F；D-040 固定总混合规模和真实 C10/C11；D-041 固定 current 自然量程与 posterior 审计；D-043 固定 Pre-LN 主臂、A–E 相同 12 格与同指标逐方法选择、共享/交叉预算诊断及 10000 触顶纪律。架构间不择优；全局 reconciliation、PNO 与 M2 顺序不变 |
-| 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 validation report/test。D-043 无额外人工选择，服务器只按活动入口先做完整测试 |
+| 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 validation report/test。D-043 无额外人工选择，服务器只按活动入口做 12-group digest 复核 |
 | Git 备份 | D-038 科学代码基线为 `72afa7d`；S2 40-group reports 已在提交 `ececefb`、10-group 锚点已在 `70355ac` 导入 `results/`，服务器大产物仍位于 ignored `outputs/`。服务器操作只通过版本化的 `ops/run_next_server_step.sh` 交付，脚本所在提交仍须先 push、服务器再 pull |
 
 白话：M1-v6 现在仍是“考前定卷”，不是已冻结或已通过。Pre-LN 和逐方法对称调优只是在排除架构/优化混淆；新的 K=16、固定量程与恢复审计也只证明候选、executor、teacher 和 active-world 评测路径可达。这些都不等于 CTL 已胜出，更不是带 PNO 的 Full CPMT。
@@ -619,6 +619,14 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - 选择/报告：scorer 与各方法都按同一 train/inner-dev online reference-candidate accuracy、先跨 seed 后跨完整 paired group 等权选择；精确平手依次取更少 steps、更小 lr。每个选择同时保存确定性第二名和固定 seed=`260907`、10,000 次 paired-group bootstrap 95% CI，但 CI 不改选择规则。10000 胜出时接受并标 ceiling，不追加网格。逐方法最优定义正式配置；共享格及 A/E 在彼此所选格上的读数只作算力敏感性诊断。
 - 本地验证：预算/协议轻量测试与 Python 编译已通过；完整测试计数、服务器运行时间和新 protocol hash 待最终 diff 收口后复核。本地未运行重训练或全套测试，以遵守本机重负载边界。
 - 局限/下一步：本 LOG 只证明控制与报告路径被实现，不证明 Pre-LN 或 CTL 带来正向提升。下一步在干净服务器提交上只跑 full test；通过后另一次提交把活动入口改写为 12-group v8 health/digest invariance，arrays digest 必须等于 `e924f96d4cf28179df010766e4275244cbb78cb9f9425ed514093bdbca3958c3`，否则不启动 1000-group train。
+
+### LOG-042—2026-09-07—M1-v6/v8 D-043 服务器完整测试通过
+
+- 类型/状态：干净服务器工程复核通过；不是数据生成、训练、validation trial、formal test 或方法效果结果。
+- 输入/provenance：server repo=`/root/Emboddied_Spatial_Memory`，commit=`53539ce54320c8098f210c7a62eaee05f9ecd41f`，protocol SHA-256=`73666cabb77b4884302d77ca621669bfdc77e86a44951b8a92b97208509c0eec`，dataset=`m1-paired-latent-worlds-v8-fixed-range-current-energy`；generation/training/validation/test access 均为 false。
+- 结果：`python -m unittest discover -s tests -p 'test_*.py'` 共运行 191 项，用时 327.918 秒，全部通过，`FULL_TEST_EXIT=0`。log=`outputs/m1-v6-v8-d043-full-test-53539ce/full_test.log`，匹配 commit/protocol/dataset/test count 的 JSON marker=`full_test.ok.json`；唯一成功标志为 `SERVER_STEP_OK id=m1_v6_v8_d043_architecture_budget_full_test`。
+- 白话：本次 full test 回答“Pre-LN、逐方法 12 格选择、共享/交叉预算和旧 executor/rollout 能否在同一干净版本上共同通过自动检查”。输入是 D-043 的科学代码、合同和测试，输出是 191 项通过与可复用 marker；例如下一阶段会先核对 marker，避免仅因改运维入口而重跑五分多钟测试。它不等于数组内容未变、不等于模型已训练，也不证明 CTL 优于 C/E。
+- 下一步：只重生成 12-group v8 train-only health arrays，复核 teacher/family/now gate，并要求 arrays digest 逐位等于 D-041 的 `e924f96d4cf28179df010766e4275244cbb78cb9f9425ed514093bdbca3958c3`。通过后才登记 1000-group train generation；validation/test 继续封存。
 
 ## 后续条目模板
 
