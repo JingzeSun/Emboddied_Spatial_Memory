@@ -481,6 +481,26 @@
 - 是否接触 test 信息：否；`test_access=false`，成本盘点只读既有 train arrays，没有生成或读取 validation/test。
 - 验证方式：protocol 负例先锁住 12-family 分母、对称 now target、live energy、两架构臂和无固定 wall-time cap；随后实现单测验证 C00–C11 皆可产生连续正例、now/collateral 可非零且 protected touch 仍非法、E target 无 post-world 来源、candidate permutation equivariance、A–E 参数量门槛。干净服务器全测与小规模 v6 train-only cost/health benchmark 通过后，才登记并运行新的 S1/S2。
 
+## D-040 — 混合组规模、C10/C11 行为机制与同分母 now 审计
+
+- 日期：2026-09-07。
+- 状态：accepted；取代 D-039 的 per-family 乘 12 规模解释、v6 数据版本和仅按 family 名称计数即可通过的实现。
+- 用户确认：用户审阅外部逐代码复核后明确回复“可以”，并要求一定修改 C10/C11、审计指标和规模合同。
+- 背景：D-039 实现后的本地 12-group 探针揭示三点。(a) 一条 paired group 本身是覆盖 C00–C11 的混合 20-step schedule，故把 `1000/200/200` 再乘 12 没有独立 family-group 含义；真正约束是每个 family 至少获得 200 个独立 test group 支持。(b) C10/C11 只是把普通 BIND 事件重命名，候选和观测生成均不读取对应机制，计数 gate 会把克隆当作覆盖。(c) 首轮比较把不可用的 executed-now 行算作失败、却把 proxy 的同一行算作全候选并列成功，产生 `0.8509 vs 1.0` 的假性强弱差；进一步检查还发现 executed `now` 实际以 reference post-world 为 target，而不是当前传感观测。
+- 决策：
+  1. 活动协议升为 `m1-hard-condition-v4`，dataset 升为 `m1-paired-latent-worlds-v7-semantic-family-mechanisms`。正式规模固定为 train/validation/test=`1000/200/200` 个**总混合 paired groups**，三 split 合计 1400，不乘 family 数。每个 group 的 causal schedule 必须含全部 12 个 family；manifest 同时报 causal 独立 group support 与因末步无 future 而可能略少的 learning-row group support。test 的每-family 独立 group support 仍至少 200。
+  2. C10 必须实现两种平衡行为：暂态 dynamic actor 对应 NOOP，持久 background change 对应 BIND；两者使用相同的当前观测分布，差别只能由之后是否持续形成。C11 必须出现正确必要 BIND 与一个 shared-preflight admitted、executor-legal、确实修改证据范围外既有开放事实的 BIND+collateral 候选；reference 的 collateral=0，对照的 collateral=1。M0 中触碰 protected state 的 corruption 仍作为 illegal 语义测试，但不能冒充 live collateral。
+  3. family gate 不再信任标签本身。每次 health run 保存由实际 reference template、观测有效性模式和 legal collateral contrast 形成的行为 fingerprint；要求 C10 同时出现 NOOP/BIND、C11 每行出现 legal collateral contrast，且 12 个 family 的行为 fingerprint 不重复。`scenario_variant` 只作 provenance，不参与 fingerprint，防止再次靠改名通过。
+  4. executed `now` 只比较候选后世界与当前有效匿名传感观测，不得读取 reference post-world。可见对象按匿名 appearance、必要时按位置一致性评价；可靠空观测按仍开放的匿名 edge match 评价；无效 pose/depth 或遮挡继续缺失。SPLIT successor 的观测 latent 与 component 对齐，MERGE 的两个 query 都进入 candidate-independent evidence scope，避免正确组合事务被错误记为 now/collateral。
+  5. 新增 `current_now_comparability` 常驻审计：proxy 与 executed-now 只在两者均定义的同一行、同一 admitted+legal candidate 集合上分别报告 reference-in-minimum、unique、uniform-tie expected 和 mean tie size，并逐 family 拆分；缺失行单独计数。exact-ambiguity sibling 的 current target/mask/desired 必须完全一致且 reference 不同。该审计不规定“proxy 不得强于 executed now”，因为人为压低强基线会使 A–E 比较失真；它约束的是同分母、无 audit-only reference/future 输入和歧义对不可区分。
+  6. 首轮 v6 实测 12 groups/8 workers 为 24.7 秒、合并 arrays 3.96 MB；按旧 16,800 groups 约 9.6 小时/5.5 GB 合并 arrays，而本 decision 的 1400 总混合 groups 线性参考约 48 分钟/0.46 GB。它们是计划参考，不是固定时限；v7 仍先在服务器重新实测后才能登记正式 S1/S2 预算。
+- 白话：行为 fingerprint（行为指纹）解决“只把 C01 改名 C10/C11 就通过十二类覆盖”的问题。输入是实际执行后的 reference 类型、传感状态和候选的 legal/collateral 事实，输出是每个 family 的机制摘要及重复检测。例如 C11 必须真的有一个合法但误改无关记忆的候选；它不等于用 family 名称做 one-hot，也不证明模型已经学会避开该候选。
+- 白话：同分母 now 审计解决“缺失值在两种方法里被不同计分”的问题。输入是同一批可计算行和共同候选集合，输出是两条 now 通道各自的最小集合覆盖与并列准确率。例如 C09 没有合法几何时只计为 unavailable，不在 A 一侧算错、E 一侧算全并列命中。它不等于限制强基线必须输给 CTL，也不把 executor legality交给在线 E。
+- 备选方案：保留 12× 规模；拒绝，因为混合 schedule 已在每个 group 覆盖全部 family，只增加约 12 倍成本而不增加 family 下限。把 C10/C11 仅作统计标签或把 protected illegal 当 collateral；拒绝，因为两者都不能检验登记机制。用 `proxy<=executed` 作硬门；拒绝，因为这是按主方法能力裁剪对照。
+- 影响：D-039 的 Set Transformer/MLP 两架构、A–F、能量权重、formal seeds、主门槛和无固定 wall-time cap 保持；scale、family mechanism、now target source、manifest、协议/data hash 全部改变，旧 v6 arrays 不得用于 v7 训练或成绩。
+- 是否接触 test 信息：否；只使用 train/validation 生成接口的本地小规模实现探针，未生成或读取正式 test。
+- 验证方式：协议负例锁住总混合规模、C10/C11 机制和 now target source；rollout 测试要求 12 个非重复行为指纹、C10 NOOP/BIND 双变体、C11 legal collateral 对照；数组测试要求同分母 now 指标、缺失计数、exact-ambiguity identity 和 audit-only reference/future mutation invariance。随后在干净服务器提交上全测，再单独跑 12-group v7 train-only health/cost benchmark。
+
 ## 新决策模板
 
 ```text

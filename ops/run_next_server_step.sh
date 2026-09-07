@@ -6,22 +6,22 @@
 set -uo pipefail
 
 CPMT_SERVER_PHASE="${1:-}"
-CPMT_REQUIRED_ANCESTOR="eed32da"
-CPMT_EXPECTED_PROTOCOL="f498d6510142962e7f5b86057388718c686447a170342c137646d1b50e5efb53"
-CPMT_EXPECTED_DATASET="m1-paired-latent-worlds-v6-conformant-live-energy"
-CPMT_GROUPS_PER_FAMILY="1"
+CPMT_REQUIRED_ANCESTOR="a8e8fd7"
+CPMT_EXPECTED_PROTOCOL="a75da2e23df8df3bcc9a436f3624dd934eea89053369ad1b92d3d1791fc81133"
+CPMT_EXPECTED_DATASET="m1-paired-latent-worlds-v7-semantic-family-mechanisms"
+CPMT_HEALTH_PAIRED_GROUPS="12"
 CPMT_WORKERS="${CPMT_WORKERS:-16}"
 
 CPMT_SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)" || exit 2
 CPMT_REPO_DIR="$(git -C "$CPMT_SCRIPT_DIR" rev-parse --show-toplevel)" || exit 2
 CPMT_CURRENT_COMMIT="$(git -C "$CPMT_REPO_DIR" rev-parse HEAD)" || exit 2
 CPMT_SHORT_COMMIT="$(git -C "$CPMT_REPO_DIR" rev-parse --short=7 HEAD)" || exit 2
-CPMT_PREFLIGHT_DIR="$CPMT_REPO_DIR/outputs/m1-v3-server-preflight"
+CPMT_PREFLIGHT_DIR="$CPMT_REPO_DIR/outputs/m1-v4-server-preflight"
 CPMT_TEST_MARKER="$CPMT_PREFLIGHT_DIR/full_test.ok"
-CPMT_HEALTH_DIR="$CPMT_REPO_DIR/outputs/m1-v3-v6-health-gpf1-$CPMT_SHORT_COMMIT"
+CPMT_HEALTH_DIR="$CPMT_REPO_DIR/outputs/m1-v4-v7-health-g12-$CPMT_SHORT_COMMIT"
 CPMT_HEALTH_ARRAYS="$CPMT_HEALTH_DIR/train.npz"
 CPMT_HEALTH_MANIFEST="$CPMT_HEALTH_DIR/train.manifest.json"
-CPMT_HEALTH_REPORT="$CPMT_REPO_DIR/results/m1_v3_s4_v6_health_benchmark.json"
+CPMT_HEALTH_REPORT="$CPMT_REPO_DIR/results/m1_v4_s4_v7_health_benchmark.json"
 
 cpmt_fail() {
   local CPMT_FAILURE_MESSAGE="$1"
@@ -57,9 +57,12 @@ config = load_and_validate(repo / "configs" / "m1_hard_condition.json")
 assert protocol_sha256(config) == sys.argv[2]
 assert config["data"]["dataset_version"] == sys.argv[3]
 assert config["data"]["scenario_families"] == [f"C{i:02d}" for i in range(12)]
-assert config["data"]["groups_per_family"] == {
+assert config["data"]["paired_groups"] == {
     "train": 1000, "validation": 200, "test": 200,
 }
+assert config["data"]["generation_count_semantics"] == (
+    "total_mixed_paired_groups_each_group_contains_all_families"
+)
 assert config["resources"]["formal_run_wall_time_policy"] == (
     "measure_and_report_without_repository_fixed_cap"
 )
@@ -104,7 +107,7 @@ else
     python scripts/generate_m1_parallel.py \
       --config configs/m1_hard_condition.json \
       --split train \
-      --groups-per-family "$CPMT_GROUPS_PER_FAMILY" \
+      --paired-groups "$CPMT_HEALTH_PAIRED_GROUPS" \
       --future-hash-bins 32 \
       --workers "$CPMT_WORKERS" \
       --out "$CPMT_HEALTH_ARRAYS"
@@ -135,18 +138,42 @@ manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
 assert manifest["protocol_sha256"] == expected_protocol
 assert manifest["dataset_version"] == expected_dataset
 assert manifest["split"] == "train"
-assert manifest["groups_per_family"] == 1
 assert manifest["configured_scenario_families"] == [f"C{i:02d}" for i in range(12)]
 assert manifest["paired_groups_total"] == 12
+assert manifest["paired_group_count_semantics"] == (
+    "total_mixed_groups_each_group_contains_all_families"
+)
+assert set(manifest["causal_paired_group_support_by_family"].values()) == {12}
+assert manifest["family_mechanism_gate"][
+    "all_configured_families_in_every_paired_group"
+] is True
+assert manifest["family_mechanism_gate"][
+    "behavioral_fingerprints_unique"
+] is True
+assert manifest["family_mechanism_gate"][
+    "duplicate_behavioral_fingerprint_groups"
+] == []
+assert manifest["family_mechanism_gate"][
+    "c10_dynamic_static_variants_present"
+] is True
+assert manifest["family_mechanism_gate"][
+    "c11_legal_collateral_contrast_present_each_row"
+] is True
+assert manifest["current_now_comparability"][
+    "exact_ambiguity_current_target_identity_rate"
+] == 1.0
 assert manifest["teacher_health_gate"]["pass"] is True
 assert manifest["test_generated"] is False
 assert manifest["formal_run"] is False
 assert arrays_path.is_file()
 
-train_scale = 1000
-all_scale = 1400
+train_groups = 1000
+all_groups = 1400
+benchmark_groups = manifest["paired_groups_total"]
+train_scale = train_groups / benchmark_groups
+all_scale = all_groups / benchmark_groups
 report = {
-    "schema_version": "cpmt-m1-v3-health-benchmark-v1",
+    "schema_version": "cpmt-m1-v4-health-benchmark-v1",
     "status": "train_only_pretest_health_and_cost_benchmark",
     "formal_run": False,
     "test_access": False,
@@ -158,8 +185,10 @@ report = {
     "source_arrays": str(arrays_path),
     "arrays_digest": manifest["arrays_digest"],
     "benchmark": {
-        "groups_per_family": manifest["groups_per_family"],
         "paired_groups_total": manifest["paired_groups_total"],
+        "paired_group_count_semantics": manifest[
+            "paired_group_count_semantics"
+        ],
         "learning_rows": manifest["decisions"],
         "online_chain_decisions": manifest["online_chain_decisions"],
         "recovery_training_examples": manifest["recovery_training_examples"],
@@ -170,33 +199,38 @@ report = {
         "retained_shard_bytes": manifest["retained_shard_bytes"],
     },
     "teacher_health_gate": manifest["teacher_health_gate"],
+    "family_mechanism_audit": manifest["family_mechanism_audit"],
+    "family_mechanism_gate": manifest["family_mechanism_gate"],
+    "current_now_comparability": manifest["current_now_comparability"],
     "live_energy_activation_by_family": manifest[
         "live_energy_activation_by_family"
     ],
     "linear_cost_references_not_limits": {
-        "formal_train_1000_groups_per_family": {
-            "paired_groups_total": manifest["paired_groups_total"] * train_scale,
-            "learning_rows": manifest["decisions"] * train_scale,
-            "candidate_slots_k16": manifest["decisions"] * train_scale * 16,
+        "formal_train_1000_total_mixed_groups": {
+            "paired_groups_total": train_groups,
+            "learning_rows": round(manifest["decisions"] * train_scale),
+            "candidate_slots_k16": round(manifest["decisions"] * train_scale * 16),
             "generation_hours": manifest["generation_seconds"] * train_scale / 3600,
-            "merged_npz_bytes": manifest["merged_npz_bytes"] * train_scale,
+            "merged_npz_bytes": round(manifest["merged_npz_bytes"] * train_scale),
             "merged_plus_shards_bytes": (
-                manifest["merged_npz_bytes"] + manifest["retained_shard_bytes"]
-            ) * train_scale,
+                round((manifest["merged_npz_bytes"] + manifest["retained_shard_bytes"])
+                      * train_scale)
+            ),
         },
-        "all_splits_1400_groups_per_family": {
-            "paired_groups_total": manifest["paired_groups_total"] * all_scale,
-            "learning_rows": manifest["decisions"] * all_scale,
-            "candidate_slots_k16": manifest["decisions"] * all_scale * 16,
+        "all_splits_1400_total_mixed_groups": {
+            "paired_groups_total": all_groups,
+            "learning_rows": round(manifest["decisions"] * all_scale),
+            "candidate_slots_k16": round(manifest["decisions"] * all_scale * 16),
             "generation_hours": manifest["generation_seconds"] * all_scale / 3600,
-            "merged_npz_bytes": manifest["merged_npz_bytes"] * all_scale,
+            "merged_npz_bytes": round(manifest["merged_npz_bytes"] * all_scale),
             "merged_plus_shards_bytes": (
-                manifest["merged_npz_bytes"] + manifest["retained_shard_bytes"]
-            ) * all_scale,
+                round((manifest["merged_npz_bytes"] + manifest["retained_shard_bytes"])
+                      * all_scale)
+            ),
         },
     },
     "interpretation": (
-        "This benchmark validates v6 train-only conformance and teacher health; "
+        "This benchmark validates v7 train-only family mechanisms and teacher health; "
         "linear storage/time projections are planning references, not fixed caps."
     ),
 }

@@ -4,19 +4,19 @@
 
 ## 当前看板
 
-> **2026-09-07 更新（LOG-035 / D-039）：** M1-v3 的 v6 conformance、live-energy、C/E 对称 current target，以及 Set Transformer 主臂＋MLP 次臂的同数组 A–F 接线已实现。本地每-family=1 的 train-only 健康探针通过 teacher-health gate；这只是实现与成本探针，不是方法成绩。下一步先在服务器干净提交上跑完整测试，再单独跑同一 train-only health benchmark；test 继续封存。
+> **2026-09-07 更新（LOG-036 / D-040）：** M1-v4 的 v7 总混合组规模、真实 C10/C11 行为、只读当前传感观测的 executed-now，以及同分母 current-now 审计已实现；D-039 的 Set Transformer 主臂＋MLP 次臂保留。本地 2-group train-only 健康探针通过 teacher/family/current-now 三类门；这只是实现探针，不是方法成绩。下一步先在服务器干净提交上跑完整测试，再单独跑 12-group train-only health/cost benchmark；test 继续封存。
 
-最后更新：2026-09-07，LOG-035 M1-v3 实现与本地 train-only 健康探针完成；正式 M1 gate 未运行、未生成或读取 test。
+最后更新：2026-09-07，LOG-036 M1-v4/v7 机制修复与本地 train-only 健康探针完成；正式 M1 gate 未运行、未生成或读取 test。
 
 | 项目 | 当前事实 |
 |---|---|
 | 方向 | CPMT 具身空间记忆；CTL 是主学习假设，用户希望面向 ML 研究 |
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
-| 阶段 | M1-v3 `pretest_lock_candidate`；只开放 train/inner-dev 实现验证，尚未重新冻结，正式 gate 未运行，不是 M2/Full CPMT |
-| 最近结果 | 本地 v6 每-family=1、共 12 paired groups 的 train-only 实现探针生成 `480` learning rows，teacher/reference agreement=`1.0` 且各 C00–C11 family 均过健康门；`now`/`collateral` 活性已审计，C09 因当前观测无效按合同保持中性。Set/MLP 各 1-step scorer 只验证接线，不作性能比较 |
-| 尚缺 | 服务器完整测试与 v6 train-only 成本/teacher-health benchmark；通过后登记并重跑两架构各自的 S1/S2 scorer/student 有限预算网格。旧 v5 的 1000 steps 不迁移，test 仍封存 |
+| 阶段 | M1-v4 `pretest_lock_candidate`；只开放 train/inner-dev 实现验证，尚未重新冻结，正式 gate 未运行，不是 M2/Full CPMT |
+| 最近结果 | 本地 v7 总计 2 个混合 paired groups 的 train-only 探针生成 `80` learning rows，teacher/reference agreement=`1.0` 且各 C00–C11 family 均过健康门；12 个行为指纹非重复，C10 同时出现 NOOP/BIND，C11 每行存在 legal collateral 对照，exact-ambiguity current target identity=`1.0`。同分母 now 审计有 64 行可比、12 行 executed-now 不可用，C10 proxy reference-in-minimum=`0.5` |
+| 尚缺 | 服务器完整测试与 v7 12-group train-only 成本/teacher-health benchmark；通过后登记并重跑两架构各自的 S1/S2 scorer/student 有限预算网格。旧 v5 的 1000 steps 不迁移，test 仍封存 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
-| 当前决定 | D-039：M1-v3 修复 per-family/C00–C11 conformance，激活 now/collateral并给 C/E 对称 current target；Set Transformer 为唯一主架构、既有 MLP 为次级容量稳健性臂，每臂完整 A–F；仓库不再设两小时单-run 上限。全局 reconciliation、PNO 与 M2 顺序不变 |
+| 当前决定 | D-039 保留 live energy、C/E current target、Set Transformer 主臂＋MLP 次臂及每臂完整 A–F；D-040 将规模修正为 1000/200/200 个总混合 paired groups，要求真实 C10/C11 行为指纹，并修复/常驻审计 current-now。仓库不设两小时单-run 上限；全局 reconciliation、PNO 与 M2 顺序不变 |
 | 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 validation report/test。两架构各自的 scorer/student 有限预算网格须在小规模健康检查后、任何选择性 run 前登记 |
 | Git 备份 | D-038 科学代码基线为 `72afa7d`；S2 40-group reports 已在提交 `ececefb`、10-group 锚点已在 `70355ac` 导入 `results/`，服务器大产物仍位于 ignored `outputs/`。服务器操作只通过版本化的 `ops/run_next_server_step.sh` 交付，脚本所在提交仍须先 push、服务器再 pull |
 
@@ -559,6 +559,17 @@ M1-v3 的阶段顺序、转向条件和成功/失败终点见 [M1-v3 收口执�
 - 验证/结果：协议测试 19 项通过；A–F/可训练性/开发学习组合测试 36 项通过；本地数据 teacher/reference agreement 总体及各 family 均为 1.0，health gate 通过，C00–C11 均有支持。服务器完整测试仍待运行，故不能写成全套通过。
 - 局限：本地规模极小；C09 的 `now` 因无有效当前 evidence 结构性中性；1-step scorer 数值不是可比较成绩；正式规模时间/磁盘和新预算尚未选择。
 - 下一步：推送干净实现提交；服务器先单独执行 `full_test`，成功后再执行 `health_benchmark` 并导出带 provenance 的 JSON。两者通过后才登记新的 S1/S2 网格。
+
+### LOG-036—2026-09-07—D-040 v7 机制修复与本地审计探针
+
+- 类型/状态：D-039 首版实现审计为无效并完成替代实现；M1-development、train-only 的 v7 机制/合同探针通过。不是 formal run、validation trial、test 或 CTL 性能结论。
+- 目的/白话：阻止“改 family 标签就算新机制”、规模被混合 schedule 重复乘 12，以及两条 now 通道用不同分母造成假强弱。输入是总混合 paired-group 合同、C10/C11 的真实传感/事务行为和当前证据，输出是 v7 arrays、行为指纹、legal collateral 对照与同分母 now 指标。例如 C10 的当前帧不告诉模型动态 actor 是否会持续，两个 group 分别以 NOOP/BIND 为 reference；它不等于手写 family one-hot，也不允许在线模型读取以后答案。
+- 作废/修复：LOG-035 的 v6 12-group 产物只保留为发现问题的本地失败探针，不进入训练或成绩。D-040 将正式规模改为 train/validation/test=`1000/200/200` 个总混合 groups（共 1400，不乘 12）；C10 改为平衡 transient-NOOP/persistent-BIND，C11 加入 shared-preflight admitted 且 executor-legal 的 BIND+collateral 候选。executed-now 的 target 从错误的 reference post-world 改为当前有效匿名传感观测；SPLIT latent 与 MERGE evidence scope 同步修正，避免正确事务被误罚。
+- 审计：family gate 按 reference template、观测有效性和真实 legal collateral 形成 fingerprint，`scenario_variant` 只作 provenance、不参与指纹；要求 12 个 family 指纹不重复、C10 同时含 NOOP/BIND、C11 每行都有 collateral=1 的合法对照而 reference collateral=0。`current_now_comparability` 只在两条 now 都可算的同一行和同一 admitted+legal 候选集合上报告 reference-in-minimum、unique、uniform-tie expected 与并列数，缺失行另计；它不裁剪强 baseline，也不向 C/E 的训练或在线推理提供 executor legality。
+- 本地 Run/产物：ignored `outputs/m1-v4-local-health-g2-final/`；2 个总混合 train paired groups、80 learning rows（76 online＋4 recovery），2 workers 生成 10.1 秒，arrays digest 前缀=`24de3376c64c6523`，并与独立串行生成逐数组一致。teacher/reference agreement=`1.0`、无 disagreement；12 个行为指纹唯一，C10 reference 为 `{BIND,NOOP}`，C11 legal-collateral contrast rate=`1.0`，三类 health gate 均通过。未生成或读取 validation/test。
+- now 数字：76 个 online learning rows 中共同可比 64、executed-now 不可用 12；2 个 exact-ambiguity pairs 的 current target/mask/desired identity rate=`1.0`。C10 的 proxy reference-in-minimum=`0.5`、uniform-tie expected=`0.5`；executed-now reference-in-minimum=`1.0`但约 14.5 个候选并列、uniform-tie expected=`0.06905`。这说明当前传感确实不能靠执行区分 C10 的持久性，future 才承担该信息；不能只看 reference-in-minimum 宣称任一通道更强。
+- 验证：协议 21 项、A–F/current-now 22 项、rollout 19 项，以及 data/metrics/trainability/dev-learning 32 项针对性测试均通过；Python 编译、服务器脚本 `bash -n` 与 `git diff --check` 通过。服务器完整测试尚未运行，故不写成全套通过。
+- 成本/下一步：LOG-035 的 v6 12-group 24.7 秒/3.96 MB 线性换算到当前 1400 总 groups 约 48 分钟/0.46 GB，仅作旧实现计划参考。推送干净提交后，服务器先单独跑 `full_test`；同一提交成功后才跑 12-group v7 `health_benchmark`，用其真实时间/体积登记新的 S1/S2 有限预算网格。test 继续封存。
 
 ## 后续条目模板
 

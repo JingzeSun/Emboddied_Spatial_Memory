@@ -2,7 +2,7 @@
 
 The existing smoke runner sizes and generates its own data from the smoke
 config. This one reads arrays produced by ``generate_m1_parallel.py`` so a run
-can be sized from the protocol's groups_per_family instead, and so generation
+can be sized from the protocol's total mixed paired-group counts instead, and so generation
 and training can happen on different machines or at different times.
 
 Two phases are reported. Teacher-forced accuracy answers the single-step

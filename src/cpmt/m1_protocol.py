@@ -30,7 +30,7 @@ def _require(condition: bool, message: str) -> None:
 
 def validate_m1_protocol(config: Mapping[str, Any]) -> None:
     """Reject incomplete, leaky, or silently weakened M1 protocol settings."""
-    _require(config.get("protocol") == "m1-hard-condition-v3", "wrong protocol")
+    _require(config.get("protocol") == "m1-hard-condition-v4", "wrong protocol")
     _require(config.get("stage") == "M1", "stage must be M1")
     _require(config.get("status") in {"pretest_lock_candidate", "frozen_pretest"},
              "protocol must be a pre-test candidate or frozen pre-test contract")
@@ -60,16 +60,40 @@ def validate_m1_protocol(config: Mapping[str, Any]) -> None:
     )
     _require(
         data.get("generation_count_semantics")
-        == "groups_per_family_not_total_mixed_groups",
-        "generation counts must be interpreted per family",
+        == "total_mixed_paired_groups_each_group_contains_all_families",
+        "generation counts must be total mixed paired groups",
+    )
+    _require(
+        data.get("paired_groups")
+        == {"train": 1000, "validation": 200, "test": 200},
+        "mixed paired-group split sizes changed",
+    )
+    _require(
+        data.get("legacy_fixture_groups_per_family")
+        == {"train": 1000, "validation": 200, "test": 200},
+        "legacy fixture-only scale changed",
     )
     _require(
         data.get("family_coverage_domain")
         == "all_configured_families_missing_family_fails",
         "coverage must fail when a configured family is absent",
     )
-    _require(data["minimum_test_support_per_family"] >= 100,
-             "per-family test support is too small")
+    _require(
+        data.get("family_mechanism_contract")
+        == {
+            "C10": "balanced_transient_dynamic_actor_NOOP_vs_persistent_background_BIND_with_same_current_observation_distribution",
+            "C11": "necessary_BIND_vs_admitted_legal_BIND_with_unrelated_open_memory_mutation",
+            "behavioral_fingerprint_gate": True,
+        },
+        "C10/C11 behavioral family mechanisms changed",
+    )
+    _require(data["minimum_test_support_per_family"] == 200,
+             "per-family test support must remain 200 independent mixed groups")
+    _require(
+        int(data["paired_groups"]["test"])
+        >= int(data["minimum_test_support_per_family"]),
+        "mixed test groups cannot meet per-family independent-group support",
+    )
 
     future = config["future"]
     # A hashed target has no metric structure, so a learned outcome scorer
@@ -191,6 +215,11 @@ def validate_m1_protocol(config: Mapping[str, Any]) -> None:
         "now must measure post-edit current projection consistency",
     )
     _require(
+        energy.get("now_target_source")
+        == "current_online_sensor_only_never_reference_post_world",
+        "now may not use the reference post-world as its target",
+    )
+    _require(
         energy.get("now_normalization")
         == "per_method_per_decision_zscore_over_available_admitted_candidates;_executed_teacher_excludes_executor_illegal;_store_raw_and_scaled",
         "now must use the registered per-decision normalization",
@@ -245,8 +274,11 @@ def validate_m1_protocol(config: Mapping[str, Any]) -> None:
     )
     _require("selection" in str(architecture.get("between_architecture_selection", "")),
              "architecture results may not be used for post-hoc model selection")
-    _require("full_A_to_F" in str(architecture.get("run_scope", "")),
-             "each architecture arm must run the full A-F method table")
+    _require(
+        architecture.get("run_scope")
+        == "same_v7_arrays_and_full_A_to_F_within_each_architecture",
+        "each architecture arm must run the full A-F method table on the same v7 arrays",
+    )
     set_spec = architecture.get("cross_candidate_set_transformer_v1", {})
     _require(
         {

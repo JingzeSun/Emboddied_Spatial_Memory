@@ -416,7 +416,7 @@ def generate_m1_split(
         raise ValueError("M1 generator only exposes train/validation; test is sealed")
     count = (
         int(groups_per_family) if groups_per_family is not None
-        else int(config["data"]["groups_per_family"][split])
+        else int(config["data"]["legacy_fixture_groups_per_family"][split])
     )
     if count <= 0:
         raise ValueError("groups_per_family must be positive")

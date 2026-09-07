@@ -1162,6 +1162,120 @@ def structured_relation_target_only_diagnostics(
     }
 
 
+def current_now_comparability_diagnostics(
+    arrays: Mapping[str, np.ndarray], scenario_families: Sequence[str],
+) -> dict[str, Any]:
+    """Compare proxy and executed-now ranking on exactly the same support.
+
+    Missing executed-now rows are reported, never counted as failures while an
+    all-tied proxy row is counted as success. Both channels use the same
+    admitted, executor-legal candidates solely for this offline audit; this
+    legality mask is not available to C/E at deployment.
+    """
+    targets = np.asarray(arrays["relation_targets"], dtype=np.float64)
+    masks = np.asarray(arrays["relation_mask"], dtype=np.float64)
+    desired = np.asarray(arrays["relation_desired"], dtype=np.float64)
+    reference = np.asarray(arrays["y"], dtype=np.int64)
+    executed = np.asarray(arrays["candidate_energy_now_raw"], dtype=np.float64)
+    admitted = np.asarray(
+        arrays["candidate_static_preflight_pass"], dtype=bool,
+    )
+    legal = np.asarray(arrays["candidate_legal"], dtype=bool)
+    recovery = np.asarray(arrays["recovery"], dtype=bool)
+    if targets.shape != masks.shape or targets.shape != desired.shape:
+        raise ValueError("current-now audit relation arrays differ in shape")
+    if targets.shape[:2] != executed.shape or admitted.shape != executed.shape:
+        raise ValueError("current-now audit candidate arrays differ in shape")
+    current_dim = len(CURRENT_RELATION_QUERIES)
+    current_targets = targets[:, :, :current_dim]
+    current_masks = masks[:, :, :current_dim]
+    current_desired = desired[:, :, :current_dim]
+    denominators = current_masks.sum(axis=2)
+    proxy = np.divide(
+        (np.abs(current_targets - current_desired) * current_masks).sum(axis=2),
+        denominators,
+        out=np.full_like(denominators, np.nan),
+        where=denominators > 0.0,
+    )
+    common_available = (
+        admitted & legal & np.isfinite(proxy) & np.isfinite(executed)
+    )
+    rows = np.arange(len(reference))
+    common_rows = (
+        ~recovery
+        & common_available[rows, reference]
+        & common_available.any(axis=1)
+    )
+
+    def summarize(values: np.ndarray, row_mask: np.ndarray) -> dict[str, Any] | None:
+        selected = common_rows & row_mask
+        if not selected.any():
+            return None
+        scored = np.where(common_available, values, np.inf)
+        minima = scored.min(axis=1, keepdims=True)
+        minimum_set = np.isclose(scored, minima, rtol=1e-9, atol=1e-12)
+        tie_size = minimum_set.sum(axis=1)
+        reference_is_minimum = minimum_set[rows, reference]
+        return {
+            "rows": int(selected.sum()),
+            "reference_in_minimum_set_rate": float(
+                reference_is_minimum[selected].mean()
+            ),
+            "unique_reference_minimum_rate": float((
+                reference_is_minimum[selected] & (tie_size[selected] == 1)
+            ).mean()),
+            "uniform_tie_break_expected_accuracy": float(
+                (reference_is_minimum[selected] / tie_size[selected]).mean()
+            ),
+            "mean_minimum_set_size": float(tie_size[selected].mean()),
+        }
+
+    family_indices = np.asarray(arrays["scenario_family_index"], dtype=np.int64)
+    by_family = {}
+    for family_index, family in enumerate(scenario_families):
+        family_rows = family_indices == family_index
+        by_family[str(family)] = {
+            "proxy": summarize(proxy, family_rows),
+            "executed_now_raw": summarize(executed, family_rows),
+        }
+
+    pair_checks = []
+    ambiguous = np.asarray(arrays["ambiguous"], dtype=bool) & ~recovery
+    groups = np.asarray(arrays["group"], dtype=np.int64)
+    for group in np.unique(groups[ambiguous]):
+        pair_rows = np.flatnonzero(ambiguous & (groups == group))
+        if len(pair_rows) != 2:
+            pair_checks.append(False)
+            continue
+        left, right = pair_rows
+        pair_checks.append(
+            int(reference[left]) != int(reference[right])
+            and np.array_equal(current_targets[left], current_targets[right])
+            and np.array_equal(current_masks[left], current_masks[right])
+            and np.array_equal(current_desired[left], current_desired[right])
+        )
+    all_rows = np.ones(len(reference), dtype=bool)
+    return {
+        "online_rows": int((~recovery).sum()),
+        "common_support_rows": int(common_rows.sum()),
+        "executed_now_unavailable_online_rows": int((
+            (~recovery) & ~np.isfinite(executed[rows, reference])
+        ).sum()),
+        "proxy": summarize(proxy, all_rows),
+        "executed_now_raw": summarize(executed, all_rows),
+        "by_family": by_family,
+        "exact_ambiguity_pairs": len(pair_checks),
+        "exact_ambiguity_current_target_identity_rate": (
+            float(np.mean(pair_checks)) if pair_checks else None
+        ),
+        "strength_cap_enforced": False,
+        "interpretation": (
+            "same-support audit; a strong deployable proxy is not capped, but "
+            "missing executed-now rows cannot be counted asymmetrically"
+        ),
+    }
+
+
 def static_preflight_diagnostics(
     arrays: Mapping[str, np.ndarray],
 ) -> dict[str, Any]:

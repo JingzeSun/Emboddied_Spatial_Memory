@@ -29,7 +29,9 @@ from cpmt.m1_af_rollout import (
     _program_touches_protected,
     build_rollout_learning_arrays,
     calibrate_shared_commit_rule,
+    candidate_current_relation_targets,
     causal_rollout_metrics,
+    current_now_comparability_diagnostics,
     online_feature_vector,
     resolve_af_smoke_config,
     run_af_seed,
@@ -234,6 +236,44 @@ class TestM1AFCausalRollout(unittest.TestCase):
         for group in np.unique(self.train["group"]):
             assignments = mask[self.train["group"] == group]
             self.assertEqual(len(set(assignments.tolist())), 1)
+
+    def test_current_proxy_audit_uses_common_support_and_is_reference_blind(self):
+        audit = current_now_comparability_diagnostics(
+            self.train, self.hard["data"]["scenario_families"],
+        )
+        self.assertGreater(audit["common_support_rows"], 0)
+        self.assertGreater(audit["executed_now_unavailable_online_rows"], 0)
+        self.assertEqual(
+            audit["exact_ambiguity_current_target_identity_rate"], 1.0,
+        )
+        self.assertFalse(audit["strength_cap_enforced"])
+        self.assertEqual(
+            audit["by_family"]["C10"]["proxy"][
+                "reference_in_minimum_set_rate"
+            ],
+            0.5,
+        )
+
+        step = next(
+            step for sequence in self.train_audit for step in sequence["steps"]
+            if step["scenario_family"] == "C10"
+        )
+        program = step["online"]["candidate_programs"][0]
+        baseline = candidate_current_relation_targets(
+            program, step["online"],
+            self.hard["future"]["no_execution_now_target_policy"],
+        )
+        changed = deepcopy(step["online"])
+        changed["audit_only_reference_program_index"] = (
+            step["reference_program_index"] + 1
+        ) % 16
+        changed["audit_only_future"] = ["mutated"]
+        after = candidate_current_relation_targets(
+            program, changed,
+            self.hard["future"]["no_execution_now_target_policy"],
+        )
+        for left, right in zip(baseline, after, strict=True):
+            np.testing.assert_array_equal(left, right)
 
     def test_executed_teacher_covers_reference_and_illegal_is_masked(self):
         health_minimum = self.hard["energy"]["teacher_health_gate"][

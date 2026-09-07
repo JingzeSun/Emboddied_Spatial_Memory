@@ -12,6 +12,8 @@ path produces, and it does not train, evaluate, or touch the sealed test split.
 from __future__ import annotations
 
 import argparse
+from collections import Counter
+import hashlib
 import json
 import multiprocessing as mp
 import sys
@@ -24,7 +26,11 @@ PROJECT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT / "src"))
 
 from cpmt.hashing import canonical_json  # noqa: E402
-from cpmt.m1_af_rollout import rollout_learning_arrays_from_audits  # noqa: E402
+from cpmt.m1_af_rollout import (  # noqa: E402
+    TEMPLATES,
+    current_now_comparability_diagnostics,
+    rollout_learning_arrays_from_audits,
+)
 from cpmt.m1_protocol import load_and_validate, protocol_sha256  # noqa: E402
 from cpmt.m1_rollout import generate_m1_paired_rollout_split  # noqa: E402
 from cpmt.run_provenance import arrays_sha256, capture_run_provenance  # noqa: E402
@@ -32,11 +38,13 @@ from cpmt.run_provenance import arrays_sha256, capture_run_provenance  # noqa: E
 ARRAY_KEYS_ORDERED = None  # discovered from the first shard
 
 
-def _shard(task: tuple[str, str, int, int, str]) -> tuple[int, str]:
+def _shard(
+    task: tuple[str, str, int, int, str],
+) -> tuple[int, str, dict[str, object]]:
     """Generate exactly one paired group and write it as a shard."""
     config_path, split, group_index, future_hash_bins, out_dir = task
     config = load_and_validate(Path(config_path))
-    _, audits, _ = generate_m1_paired_rollout_split(
+    _, audits, summary = generate_m1_paired_rollout_split(
         config, split, paired_groups=1, start_group_index=group_index,
     )
     arrays = rollout_learning_arrays_from_audits(
@@ -46,13 +54,92 @@ def _shard(task: tuple[str, str, int, int, str]) -> tuple[int, str]:
     # zeros; the parent restores the serial numbering on merge.
     path = Path(out_dir) / f"{split}_{group_index:06d}.npz"
     np.savez(path, **arrays)
-    return group_index, str(path)
+    return group_index, str(path), summary["family_mechanism_audit"]
+
+
+def _aggregate_family_mechanism_audits(
+    audits: list[dict[str, object]], families: list[str],
+) -> dict[str, object]:
+    """Combine per-shard behavior facts without trusting family labels alone."""
+    by_family: dict[str, object] = {}
+    fingerprints: dict[str, str] = {}
+    for family in families:
+        support = 0
+        reference_templates: Counter[str] = Counter()
+        observation_modes: Counter[str] = Counter()
+        scenario_variants: Counter[str] = Counter()
+        collateral_count = 0.0
+        for audit in audits:
+            item = audit["by_family"][family]
+            item_support = int(item["support"])
+            support += item_support
+            reference_templates.update(item["reference_template_counts"])
+            observation_modes.update(item["observation_mode_counts"])
+            scenario_variants.update(item["scenario_variant_counts"])
+            rate = item["explicit_legal_collateral_contrast_rate"]
+            if rate is not None:
+                collateral_count += float(rate) * item_support
+        fingerprint_payload = {
+            "reference_templates": sorted(reference_templates),
+            "observation_modes": sorted(observation_modes),
+            "has_explicit_legal_collateral_contrast": collateral_count > 0.0,
+        }
+        fingerprint = canonical_json(fingerprint_payload)
+        fingerprints[family] = fingerprint
+        by_family[family] = {
+            "support": support,
+            "reference_template_counts": dict(sorted(reference_templates.items())),
+            "observation_mode_counts": dict(sorted(observation_modes.items())),
+            "scenario_variant_counts": dict(sorted(scenario_variants.items())),
+            "behavioral_fingerprint_payload": fingerprint_payload,
+            "behavioral_fingerprint_sha256": hashlib.sha256(
+                fingerprint.encode("utf-8")
+            ).hexdigest(),
+            "explicit_legal_collateral_contrast_rate": (
+                collateral_count / support if support else None
+            ),
+        }
+    duplicate_groups = [
+        sorted(group) for group in {
+            tuple(sorted(
+                family for family, value in fingerprints.items()
+                if value == fingerprint
+            ))
+            for fingerprint in fingerprints.values()
+        }
+        if len(group) > 1
+    ]
+    paired_group_support_by_family = {
+        family: sum(
+            int(audit["by_family"][family]["support"] > 0)
+            for audit in audits
+        )
+        for family in families
+    }
+    return {
+        "by_family": by_family,
+        "paired_group_support_by_family": paired_group_support_by_family,
+        "behavioral_fingerprints_unique": not duplicate_groups,
+        "duplicate_behavioral_fingerprint_groups": sorted(duplicate_groups),
+        "c10_reference_templates": sorted(
+            by_family["C10"]["reference_template_counts"]
+        ),
+        "c10_dynamic_static_variants_present": (
+            set(by_family["C10"]["reference_template_counts"])
+            == {"BIND", "NOOP"}
+        ),
+        "c11_legal_collateral_contrast_present": (
+            float(by_family["C11"][
+                "explicit_legal_collateral_contrast_rate"
+            ] or 0.0) == 1.0
+        ),
+    }
 
 
 def generate_parallel(
     config_path: Path, split: str, paired_groups: int, *,
     future_hash_bins: int, workers: int, out_dir: Path,
-) -> dict[str, np.ndarray]:
+) -> tuple[dict[str, np.ndarray], dict[str, object]]:
     out_dir.mkdir(parents=True, exist_ok=True)
     tasks = [
         (str(config_path), split, index, future_hash_bins, str(out_dir))
@@ -61,7 +148,7 @@ def generate_parallel(
     started = time.time()
     with mp.Pool(processes=workers) as pool:
         done = 0
-        results: list[tuple[int, str]] = []
+        results: list[tuple[int, str, dict[str, object]]] = []
         for item in pool.imap_unordered(_shard, tasks, chunksize=1):
             results.append(item)
             done += 1
@@ -73,7 +160,7 @@ def generate_parallel(
     results.sort()
     merged: dict[str, list[np.ndarray]] = {}
     groups: list[np.ndarray] = []
-    for group_index, path in results:
+    for group_index, path, _ in results:
         shard = np.load(path, allow_pickle=True)
         for key in shard.files:
             merged.setdefault(key, []).append(shard[key])
@@ -83,7 +170,11 @@ def generate_parallel(
     arrays["group"] = np.concatenate(groups)
     print(f"generated {paired_groups} paired groups in "
           f"{time.time()-started:.1f}s with {workers} workers", flush=True)
-    return arrays
+    family_mechanism_audit = _aggregate_family_mechanism_audits(
+        [item[2] for item in results],
+        list(load_and_validate(config_path)["data"]["scenario_families"]),
+    )
+    return arrays, family_mechanism_audit
 
 
 def _digest(arrays: dict[str, np.ndarray]) -> str:
@@ -95,10 +186,10 @@ def main() -> int:
     parser.add_argument("--config", default=str(PROJECT / "configs" / "m1_hard_condition.json"))
     parser.add_argument("--split", choices=["train", "validation"], required=True)
     parser.add_argument(
-        "--groups-per-family", type=int, required=True,
+        "--paired-groups", type=int, required=True,
         help=(
-            "paired groups for each configured C00-C11 family; the generated "
-            "mixed schedule therefore contains this value times 12 groups"
+            "total mixed paired groups; every group contains all C00-C11 "
+            "families, so this value is not multiplied by 12"
         ),
     )
     parser.add_argument("--future-hash-bins", type=int, default=32)
@@ -111,11 +202,10 @@ def main() -> int:
 
     config_path = Path(args.config)
     config = load_and_validate(config_path)
-    groups_per_family = int(args.groups_per_family)
-    if groups_per_family <= 0:
-        raise ValueError("groups-per-family must be positive")
+    paired_groups_total = int(args.paired_groups)
+    if paired_groups_total <= 0:
+        raise ValueError("paired-groups must be positive")
     configured_families = list(config["data"]["scenario_families"])
-    paired_groups_total = groups_per_family * len(configured_families)
     generation_provenance = capture_run_provenance(
         PROJECT, component="m1_array_generation", entrypoint=Path(__file__),
     )
@@ -125,7 +215,7 @@ def main() -> int:
           f"dataset {config['data']['dataset_version']}", flush=True)
 
     generation_started = time.time()
-    arrays = generate_parallel(
+    arrays, family_mechanism_audit = generate_parallel(
         config_path, args.split, paired_groups_total,
         future_hash_bins=args.future_hash_bins, workers=args.workers,
         out_dir=shard_dir,
@@ -139,9 +229,13 @@ def main() -> int:
     family_indices = np.asarray(arrays["scenario_family_index"], dtype=np.int64)
     family_health = {}
     activation_by_family = {}
+    learning_group_support_by_family = {}
     for family_index, family in enumerate(configured_families):
         family_mask = online & (family_indices == family_index)
         support = int(family_mask.sum())
+        learning_group_support_by_family[family] = int(len(np.unique(
+            np.asarray(arrays["group"], dtype=np.int64)[family_mask]
+        )))
         family_health[family] = {
             "support": support,
             "reference_agreement": (
@@ -165,6 +259,54 @@ def main() -> int:
             }
             for term in ("now", "collateral")
         }
+    reference_templates = np.asarray(arrays["candidate_templates"])[
+        np.arange(len(arrays["y"])), np.asarray(arrays["y"], dtype=np.int64)
+    ]
+    c10_mask = online & (
+        family_indices == configured_families.index("C10")
+    )
+    c10_reference_templates = sorted({
+        TEMPLATES[int(value)] for value in reference_templates[c10_mask]
+    })
+    c11_mask = online & (
+        family_indices == configured_families.index("C11")
+    )
+    bind_code = TEMPLATES.index("BIND")
+    c11_legal_collateral = (
+        np.asarray(arrays["candidate_static_preflight_pass"], dtype=bool)
+        & np.asarray(arrays["candidate_legal"], dtype=bool)
+        & (np.asarray(arrays["candidate_templates"], dtype=np.int64) == bind_code)
+        & (np.asarray(arrays["candidate_energy_collateral"]) == 1.0)
+    )
+    c11_contrast_rate = (
+        float(c11_legal_collateral[c11_mask].any(axis=1).mean())
+        if c11_mask.any() else 0.0
+    )
+    current_now_audit = current_now_comparability_diagnostics(
+        arrays, configured_families,
+    )
+    family_mechanism_gate = {
+        "all_configured_families_in_every_paired_group": all(
+            int(value) == paired_groups_total
+            for value in family_mechanism_audit[
+                "paired_group_support_by_family"
+            ].values()
+        ),
+        "behavioral_fingerprints_unique": family_mechanism_audit[
+            "behavioral_fingerprints_unique"
+        ],
+        "duplicate_behavioral_fingerprint_groups": family_mechanism_audit[
+            "duplicate_behavioral_fingerprint_groups"
+        ],
+        "c10_reference_templates": c10_reference_templates,
+        "c10_dynamic_static_variants_present": (
+            set(c10_reference_templates) == {"BIND", "NOOP"}
+        ),
+        "c11_legal_collateral_contrast_rate": c11_contrast_rate,
+        "c11_legal_collateral_contrast_present_each_row": (
+            c11_contrast_rate == 1.0
+        ),
+    }
     health_contract = config["energy"]["teacher_health_gate"]
     overall_agreement = float(agree[online].mean())
     overall_pass = overall_agreement >= float(
@@ -186,7 +328,23 @@ def main() -> int:
             health_contract["reference_agreement_each_family_minimum"]
         ),
         "by_family": family_health,
-        "pass": bool(overall_pass and each_family_pass),
+        "pass": bool(
+            overall_pass
+            and each_family_pass
+            and family_mechanism_gate[
+                "all_configured_families_in_every_paired_group"
+            ]
+            and family_mechanism_gate["behavioral_fingerprints_unique"]
+            and family_mechanism_gate[
+                "c10_dynamic_static_variants_present"
+            ]
+            and family_mechanism_gate[
+                "c11_legal_collateral_contrast_present_each_row"
+            ]
+            and current_now_audit[
+                "exact_ambiguity_current_target_identity_rate"
+            ] == 1.0
+        ),
         "failure_action": health_contract["failure_action"],
     }
     print(f"wrote {out}  learning_rows={len(arrays['y'])} "
@@ -221,13 +379,25 @@ def main() -> int:
             return 1
         print(f"identical to serial ({serial_seconds:.1f}s serial)")
     manifest = {
-        "schema_version": "cpmt-m1-generation-manifest-v3",
-        "runner": "generate_m1_parallel_v3",
+        "schema_version": "cpmt-m1-generation-manifest-v4",
+        "runner": "generate_m1_parallel_v4",
         "split": args.split,
-        "groups_per_family": groups_per_family,
         "configured_scenario_families": configured_families,
         "configured_family_count": len(configured_families),
         "paired_groups_total": paired_groups_total,
+        "paired_group_count_semantics": (
+            "total_mixed_groups_each_group_contains_all_families"
+        ),
+        "configured_paired_groups_for_split": int(
+            config["data"]["paired_groups"][args.split]
+        ),
+        "causal_paired_group_support_by_family": {
+            family: int(value)
+            for family, value in family_mechanism_audit[
+                "paired_group_support_by_family"
+            ].items()
+        },
+        "learning_group_support_by_family": learning_group_support_by_family,
         "workers": args.workers,
         "generation_seconds": generation_seconds,
         "protocol_sha256": protocol_sha256(config),
@@ -246,6 +416,9 @@ def main() -> int:
         "teacher_reference_agreement": overall_agreement,
         "teacher_disagreement_decisions": int((~agree[online]).sum()),
         "teacher_health_gate": teacher_health_gate,
+        "family_mechanism_audit": family_mechanism_audit,
+        "family_mechanism_gate": family_mechanism_gate,
+        "current_now_comparability": current_now_audit,
         "live_energy_activation_by_family": activation_by_family,
         "formal_run": False,
         "test_generated": False,

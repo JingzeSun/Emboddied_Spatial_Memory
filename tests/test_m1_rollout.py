@@ -14,6 +14,7 @@ from cpmt.m1_data import validate_online_payload
 from cpmt.m1_metrics import graph_error_counts, rollout_graph_metrics
 from cpmt.m1_rollout import (
     CANDIDATE_BUDGET,
+    ROLLOUT_FAMILY_COUNTS,
     ROLLOUT_TEMPLATE_COUNTS,
     audit_m1_candidate_coverage,
     execute_rollout_choices,
@@ -55,7 +56,15 @@ class TestM1ContinuousRollout(unittest.TestCase):
     def test_registered_transactions_have_executable_positive_examples(self):
         for sequence in self.audit:
             counts = Counter(sequence["event_order"])
-            self.assertEqual(dict(counts), ROLLOUT_TEMPLATE_COUNTS)
+            expected_templates = dict(ROLLOUT_TEMPLATE_COUNTS)
+            c10 = next(
+                step for step in sequence["steps"]
+                if step["scenario_family"] == "C10"
+            )
+            if c10["reference_template"] == "NOOP":
+                expected_templates["NOOP"] += 1
+                expected_templates["BIND"] -= 1
+            self.assertEqual(dict(counts), expected_templates)
             family_counts = Counter(
                 step["event_spec"]["scenario_family"]
                 for step in sequence["steps"]
@@ -63,7 +72,7 @@ class TestM1ContinuousRollout(unittest.TestCase):
             self.assertEqual(
                 set(family_counts), {f"C{index:02d}" for index in range(12)},
             )
-            self.assertTrue(all(count > 0 for count in family_counts.values()))
+            self.assertEqual(dict(sorted(family_counts.items())), ROLLOUT_FAMILY_COUNTS)
             for step in sequence["steps"]:
                 reference = step["executed_candidates"][
                     step["reference_program_index"]
@@ -89,10 +98,59 @@ class TestM1ContinuousRollout(unittest.TestCase):
                     candidate for candidate in step["executed_candidates"]
                     if not candidate["legal"]
                 ]
-                self.assertGreaterEqual(len(illegal), 1)
-                self.assertIn(
-                    "ProtectedMutationError",
-                    {item["failure"]["type"] for item in illegal},
+                if step["scenario_family"] == "C11":
+                    self.assertTrue(any(
+                        candidate["legal"]
+                        and candidate["template"] == "BIND"
+                        and energy["collateral"] == 1.0
+                        and "bind-with-collateral" in program["transaction_id"]
+                        for program, candidate, energy in zip(
+                            step["online"]["candidate_programs"],
+                            step["executed_candidates"],
+                            step["candidate_energies"],
+                            strict=True,
+                        )
+                    ))
+                else:
+                    self.assertGreaterEqual(len(illegal), 1)
+                    self.assertIn(
+                        "ProtectedMutationError",
+                        {item["failure"]["type"] for item in illegal},
+                    )
+
+    def test_c10_c11_are_behavioral_families_not_renamed_bind_rows(self):
+        _, audits, summary = generate_m1_paired_rollout_split(
+            self.config, "validation", paired_groups=2,
+        )
+        mechanism = summary["family_mechanism_audit"]
+        self.assertTrue(mechanism["behavioral_fingerprints_unique"])
+        self.assertEqual(mechanism["duplicate_behavioral_fingerprint_groups"], [])
+        self.assertTrue(mechanism["c10_dynamic_static_variants_present"])
+        self.assertEqual(
+            set(mechanism["c10_reference_templates"]), {"BIND", "NOOP"},
+        )
+        self.assertTrue(mechanism["c11_legal_collateral_contrast_present"])
+        for audit in audits:
+            for step in audit["steps"]:
+                if step["scenario_family"] == "C10":
+                    current_only_values = {
+                        float(energy["now_raw"])
+                        for candidate, energy in zip(
+                            step["executed_candidates"],
+                            step["candidate_energies"],
+                            strict=True,
+                        )
+                        if candidate["legal"]
+                        and candidate["static_preflight_pass"]
+                        and candidate["template"] in {"NOOP", "BIND"}
+                        and energy["now_raw"] is not None
+                    }
+                    self.assertEqual(len(current_only_values), 1)
+                if step["scenario_family"] != "C11":
+                    continue
+                reference = step["reference_program_index"]
+                self.assertEqual(
+                    step["candidate_energies"][reference]["collateral"], 0.0,
                 )
 
     def test_fixed_k16_is_deduplicated_and_reference_blind(self):

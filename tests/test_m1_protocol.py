@@ -118,6 +118,28 @@ class TestM1Protocol(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "every configured family"):
             validate_m1_protocol(changed)
 
+    def test_mixed_group_scale_is_total_not_multiplied_by_family_count(self):
+        self.assertEqual(
+            self.config["data"]["paired_groups"],
+            {"train": 1000, "validation": 200, "test": 200},
+        )
+        changed = deepcopy(self.config)
+        changed["data"]["generation_count_semantics"] = (
+            "groups_per_family_not_total_mixed_groups"
+        )
+        with self.assertRaisesRegex(ValueError, "total mixed"):
+            validate_m1_protocol(changed)
+        changed = deepcopy(self.config)
+        changed["data"]["minimum_test_support_per_family"] = 199
+        with self.assertRaisesRegex(ValueError, "must remain 200"):
+            validate_m1_protocol(changed)
+
+    def test_c10_c11_behavioral_contract_cannot_be_replaced_by_labels(self):
+        changed = deepcopy(self.config)
+        changed["data"]["family_mechanism_contract"]["C11"] = "BIND_label_only"
+        with self.assertRaisesRegex(ValueError, "behavioral family"):
+            validate_m1_protocol(changed)
+
     def test_configured_families_cannot_be_duplicated_to_fake_twelve(self):
         changed = deepcopy(self.config)
         changed["data"]["scenario_families"][-1] = "C10"
@@ -150,11 +172,22 @@ class TestM1Protocol(unittest.TestCase):
         changed["energy"]["collateral_semantics"] = "protected_touch_only"
         with self.assertRaisesRegex(ValueError, "unrelated open-memory churn"):
             validate_m1_protocol(changed)
+        changed = deepcopy(self.config)
+        changed["energy"]["now_target_source"] = "reference_post_world"
+        with self.assertRaisesRegex(ValueError, "reference post-world"):
+            validate_m1_protocol(changed)
 
     def test_both_architecture_arms_are_pre_registered(self):
         changed = deepcopy(self.config)
         changed["architecture_evaluation"]["secondary"] = None
         with self.assertRaisesRegex(ValueError, "secondary architecture"):
+            validate_m1_protocol(changed)
+
+        changed = deepcopy(self.config)
+        changed["architecture_evaluation"]["run_scope"] = (
+            "same_v6_arrays_and_full_A_to_F_within_each_architecture"
+        )
+        with self.assertRaisesRegex(ValueError, "same v7 arrays"):
             validate_m1_protocol(changed)
 
     def test_fixed_formal_run_wall_time_cap_is_retired(self):

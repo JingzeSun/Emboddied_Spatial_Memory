@@ -43,6 +43,11 @@ ROLLOUT_TEMPLATE_COUNTS = {
     "MERGE": 1,
     "REPLACE": 1,
 }
+ROLLOUT_FAMILY_COUNTS = {
+    "C00": 1, "C01": 2, "C02": 3, "C03": 1,
+    "C04": 1, "C05": 1, "C06": 1, "C07": 3,
+    "C08": 3, "C09": 2, "C10": 1, "C11": 1,
+}
 TEMPLATE_FAMILY = {
     "NOOP": "C00",
     "BIND": "C01",
@@ -65,7 +70,8 @@ CANDIDATE_EVENT_FIELDS = (
 )
 PROPOSAL_FEATURE_DIM = 16
 PROPOSAL_OBSERVATION_FIELDS = {
-    "node_query", "edge_query", "place_query", "merge_queries", "source",
+    "node_query", "edge_query", "place_query", "merge_queries",
+    "unrelated_node_query", "unrelated_context_active", "source",
 }
 PROPOSAL_RETRIEVAL_SOURCE = "controlled_noisy_retrieval_features_v2"
 PROPOSAL_RETRIEVAL_FIELDS = {
@@ -288,6 +294,7 @@ def _initial_world(
     validate_graph(graph)
     topology = {
         "namespace": namespace,
+        "sequence_index": sequence_index,
         "appearance_dim": APPEARANCE_DIM,
         "semantic_latents": _semantic_latents(special, rng),
         "place_count": place_count,
@@ -519,11 +526,26 @@ def _event_plan(
             scenario_family = ("C01", "C10", "C11", "C01")[ordinal]
         else:
             scenario_family = TEMPLATE_FAMILY[template]
+        reference_template = template
+        scenario_variant = "default"
+        if scenario_family == "C10":
+            # C10 is the M0 dynamic/static pair: the current observation is
+            # deliberately identical in both variants, while later persistence
+            # determines whether the correct transaction is NOOP or BIND.
+            persistent = int(topology["sequence_index"]) % 2 == 0
+            reference_template = "BIND" if persistent else "NOOP"
+            scenario_variant = (
+                "persistent_background_bind" if persistent
+                else "transient_dynamic_actor_noop"
+            )
+        elif scenario_family == "C11":
+            scenario_variant = "necessary_bind_with_legal_collateral_contrast"
         event = {
             "event_id": event_id,
             "step_index": step_index,
             "decision_time": step_index + 1,
             "scenario_family": scenario_family,
+            "scenario_variant": scenario_variant,
             "candidate_seed": candidate_seed,
             "pose_bucket": int(rng.integers(0, 8)),
             "observation_seed": int(rng.integers(0, 2**31 - 1)),
@@ -531,16 +553,16 @@ def _event_plan(
             "contrast_birth_id": f"{namespace}:entity:contrast-birth:{step_index}",
             "protected_id": special["protected_id"],
         }
-        reference_spec: dict[str, Any] = {"template": template}
-        if template == "NOOP":
+        reference_spec: dict[str, Any] = {"template": reference_template}
+        if reference_template == "NOOP":
             reference_spec["noop_cause"] = ordinal % 3
-        if template == "BIRTH":
+        if reference_template == "BIRTH":
             reference_spec["new_node_id"] = (
                 f"candidate:{current_evidence_ref}:birth"
             )
-        elif template == "REACTIVATE":
+        elif reference_template == "REACTIVATE":
             reference_spec["target_node_id"] = special["dormant_target"]
-        elif template == "RELINK":
+        elif reference_template == "RELINK":
             target_edge_id = special["mover_edges"][ordinal]
             old_target = topology["initial_edge_targets"][target_edge_id]
             old_index = places.index(old_target)
@@ -549,31 +571,46 @@ def _event_plan(
                 "new_target": places[(old_index + ordinal + 1) % len(places)],
                 "places": list(places),
             })
-        elif template == "RETRACT":
+        elif reference_template == "RETRACT":
             reference_spec["target_edge_id"] = special["retract_edges"][ordinal]
-        elif template == "SPLIT":
+        elif reference_template == "SPLIT":
             reference_spec["target_node_id"] = special["split_source"]
             reference_spec["successor_ids"] = [
                 f"candidate:{current_evidence_ref}:split:0:left",
                 f"candidate:{current_evidence_ref}:split:0:right",
             ]
-        elif template == "MERGE":
+            for slot in range(2):
+                topology["semantic_latents"][
+                    f"candidate:{current_evidence_ref}:split:{slot}:left"
+                ] = clone_json(topology["semantic_latents"][
+                    f"{special['split_source']}::component:0"
+                ])
+                topology["semantic_latents"][
+                    f"candidate:{current_evidence_ref}:split:{slot}:right"
+                ] = clone_json(topology["semantic_latents"][
+                    f"{special['split_source']}::component:1"
+                ])
+        elif reference_template == "MERGE":
             reference_spec["target_node_ids"] = [
                 special["merge_a"], special["merge_b"],
             ]
-        elif template == "REPLACE":
+        elif reference_template == "REPLACE":
             reference_spec.update({
                 "target_edge_id": special["replace_edge"],
                 "new_node_id": f"candidate:{current_evidence_ref}:replace",
                 "new_target": places[-1],
             })
-        elif template == "BIND":
+        elif reference_template == "BIND":
             reference_spec["target_node_id"] = special["bind_target"]
 
-        node_observation_id = str(
-            reference_spec.get("target_node_id")
-            or next(iter(reference_spec.get("target_node_ids", [])),
-                    f"{event_id}:unmatched-node")
+        node_observation_id = (
+            str(special["bind_target"])
+            if scenario_family == "C10"
+            else str(
+                reference_spec.get("target_node_id")
+                or next(iter(reference_spec.get("target_node_ids", [])),
+                        f"{event_id}:unmatched-node")
+            )
         )
         edge_observation_id = str(reference_spec.get(
             "target_edge_id", f"{event_id}:unmatched-edge",
@@ -602,13 +639,20 @@ def _event_plan(
                 _proposal_query(str(value), node_pool, rng, retrieval)
                 for value in merge_observation_ids
             ],
+            # This is an online observation of a nearby but task-irrelevant
+            # context, not a family label or hidden answer.  The fixed proposer
+            # can offer a collateral edit only when such context is present.
+            "unrelated_node_query": _proposal_query(
+                str(special["decoy_target"]), node_pool, rng, retrieval,
+            ),
+            "unrelated_context_active": scenario_family == "C11",
             "source": PROPOSAL_RETRIEVAL_SOURCE,
         }
         event["reference_spec"] = reference_spec
         # Generated from the world truth, so the observation is evidence about
         # the decision instead of an independent random cue.
         event["observation_spec"] = _observation_spec(
-            template, reference_spec, event, topology, ambiguous=False,
+            reference_template, reference_spec, event, topology, ambiguous=False,
         )
         event["observation_noise"] = float(observation_noise)
         events.append(event)
@@ -696,6 +740,10 @@ def _prepare_paired_recovery_revisit(
         "merge_queries": clone_json(
             reveal["proposal_observation"]["merge_queries"]
         ),
+        "unrelated_node_query": clone_json(
+            reveal["proposal_observation"]["unrelated_node_query"]
+        ),
+        "unrelated_context_active": False,
         "source": PROPOSAL_RETRIEVAL_SOURCE,
     }
     reveal["observation_spec"] = _observation_spec(
@@ -752,6 +800,56 @@ def _bind_program(
          "arguments": {"target_kind": "node", "target_id": target,
                        "provenance_ref": tx}},
     ]
+    return program
+
+
+def _bind_with_collateral_program(
+    graph: Mapping[str, Any], event: Mapping[str, Any], target: str,
+    unrelated_target: str,
+) -> dict[str, Any]:
+    """Bind the relevant node while also mutating an unrelated legal node.
+
+    The extra mutation is deliberately legal and outside the candidate-
+    independent current evidence scope.  It is therefore measured by the live
+    collateral term instead of being absorbed by the protected/illegal mask.
+    """
+    if target == unrelated_target or unrelated_target == str(event["protected_id"]):
+        raise ValueError("collateral target must be distinct and unprotected")
+    program = _bind_program(
+        graph, event, target, suffix="bind-with-collateral",
+    )
+    tx = program["transaction_id"]
+    evidence = program["evidence_refs"][0]
+    program["declared_edit_cost"] = 0.5
+    program["operations"].extend([
+        {
+            "op_id": "collateral:assert",
+            "op_type": "ASSERT_PRECONDITION",
+            "arguments": {
+                "kind": "node_lifecycle",
+                "node_id": unrelated_target,
+                "allowed": ["candidate", "confirmed"],
+            },
+        },
+        {
+            "op_id": "collateral:attach",
+            "op_type": "ATTACH_EVIDENCE",
+            "arguments": {
+                "target_kind": "node",
+                "target_id": unrelated_target,
+                "evidence_ref": evidence,
+            },
+        },
+        {
+            "op_id": "collateral:provenance",
+            "op_type": "RECORD_PROVENANCE",
+            "arguments": {
+                "target_kind": "node",
+                "target_id": unrelated_target,
+                "provenance_ref": tx,
+            },
+        },
+    ])
     return program
 
 
@@ -1196,7 +1294,18 @@ def _observation_spec(
         # Occlusion is not evidence that a fact is false; it carries nothing.
         spec.update(visibility="occluded", reliability=0.0)
         return spec
-    if template == "NOOP":
+    if event.get("scenario_family") == "C10":
+        # A transient actor and a persistent background change have the same
+        # valid current observation.  Only the later trajectory tells whether
+        # attaching the evidence was warranted, so neither the sensor payload
+        # nor proposal query names the hidden NOOP/BIND variant.
+        target = str(special["bind_target"])
+        spec.update(
+            appearance_source=target,
+            place_from_entity=target,
+            evidence_novel=True,
+        )
+    elif template == "NOOP":
         # C00 pure viewpoint change, C09 pose fault, and a depth fault: in all
         # three the world did not change, so memory must be left alone.
         target = str(special["bind_target"])
@@ -1436,6 +1545,29 @@ def _proposal_context(
             if place != current_target.get(target_edge)
         ] or place_targets
         relink_pairs.append([target_edge, options[place_rank % len(options)]])
+    collateral_target = None
+    if bool(observation["unrelated_context_active"]):
+        evidence_scope = _current_online_evidence_scope(graph, event, ranks=3)
+        unrelated_candidates = [
+            str(node["node_id"])
+            for node in open_nodes
+            if node["lifecycle"] in {"candidate", "confirmed"}
+            and str(node["node_id"]) not in evidence_scope
+            and str(node["node_id"]) != str(event["protected_id"])
+            and str(node["node_id"]) not in set(bind_targets)
+        ]
+        ranked_unrelated = _rank_by_observation(
+            unrelated_candidates,
+            observation["unrelated_node_query"],
+            event,
+            kind="unrelated-context",
+        )
+        if not ranked_unrelated:
+            raise ValueError(
+                "C11 collateral stress requires an unprotected node outside "
+                "the current evidence scope"
+            )
+        collateral_target = ranked_unrelated[0]
     return {
         "relink_pairs": relink_pairs,
         "bind_targets": bind_targets,
@@ -1453,6 +1585,7 @@ def _proposal_context(
             for slot in range(2)
         ],
         "replace_id": f"candidate:{event['current_evidence_ref']}:replace",
+        "collateral_target": collateral_target,
     }
 
 
@@ -1480,10 +1613,16 @@ def _build_fixed_candidate_catalog(
         _bind_program(graph, event, target, suffix=f"bind-{slot}")
         for slot, target in enumerate(context["bind_targets"])
     )
-    programs.append(_bind_program(
-        graph, event, str(event["protected_id"]),
-        suffix="bind-protected-illegal",
-    ))
+    if context["collateral_target"] is None:
+        programs.append(_bind_program(
+            graph, event, str(event["protected_id"]),
+            suffix="bind-protected-illegal",
+        ))
+    else:
+        programs.append(_bind_with_collateral_program(
+            graph, event, context["bind_targets"][0],
+            str(context["collateral_target"]),
+        ))
     programs.append(_birth_program(
         graph, event, context["birth_id"], suffix="birth",
     ))
@@ -1964,10 +2103,17 @@ def _projection_mismatch(
 
 
 def _current_projection_mismatch(
-    candidate_post: Mapping[str, Any], current_target: Mapping[str, Any],
-    event: Mapping[str, Any],
+    candidate_post: Mapping[str, Any], online: Mapping[str, Any],
+    event: Mapping[str, Any], latents: Mapping[str, Any],
 ) -> float | None:
-    """Score a post-edit world only against a valid current sensor projection."""
+    """Score a post-edit world against the current sensor, never a reference world.
+
+    Visible observations ask whether some open entity in the candidate world
+    explains the anonymous appearance (and, when reported, its place).  An
+    empty observation asks whether an edge matching the anonymous edge query
+    remains open.  BIND and NOOP therefore tie on a currently ambiguous C10
+    view; only later persistence can distinguish them.
+    """
     observation = event["observation_spec"]
     valid = (
         observation.get("visibility") in {"visible", "visible_empty"}
@@ -1977,9 +2123,61 @@ def _current_projection_mismatch(
     )
     if not valid:
         return None
-    return _projection_mismatch(
-        candidate_post, current_target, int(event["pose_bucket"]),
+    region = online["current_regions"][0]
+    visibility = str(region["visibility"])
+    if visibility == "visible_empty":
+        query = np.asarray(
+            online["proposal_observation"]["edge_query"], dtype=np.float64,
+        )
+        similarities = [
+            float(np.dot(
+                np.asarray(stable_retrieval_feature(str(edge["edge_id"])),
+                           dtype=np.float64),
+                query,
+            ))
+            for edge in candidate_post["edges"]
+            if edge.get("valid_to") is None
+        ]
+        return max(0.0, max(similarities, default=0.0))
+
+    observed = np.asarray(region["anonymous_signature"], dtype=np.float64)
+    open_entities = [
+        node for node in candidate_post["nodes"]
+        if node.get("valid_to") is None and node["node_type"] == "entity"
+        and node["lifecycle"] != "retracted"
+    ]
+    appearance_scores = {
+        str(node["node_id"]): float(
+            appearance_of(str(node["node_id"]), latents) @ observed
+        )
+        for node in open_entities
+    }
+    best_appearance = max(appearance_scores.values(), default=-1.0)
+    appearance_error = 1.0 - best_appearance
+    if observation.get("place_id") is None:
+        return float(appearance_error)
+
+    place_query = np.asarray(
+        online["proposal_observation"]["place_query"], dtype=np.float64,
     )
+    joint_errors = []
+    for edge in candidate_post["edges"]:
+        source = str(edge["source"])
+        if (
+            edge.get("valid_to") is not None
+            or edge["relation"] != "located_at"
+            or source not in appearance_scores
+        ):
+            continue
+        place_similarity = float(np.dot(
+            np.asarray(stable_retrieval_feature(str(edge["target"])),
+                       dtype=np.float64),
+            place_query,
+        ))
+        joint_errors.append(
+            (1.0 - appearance_scores[source]) + (1.0 - place_similarity)
+        )
+    return float(min(joint_errors, default=appearance_error + 2.0))
 
 
 def _current_online_evidence_scope(
@@ -2008,6 +2206,10 @@ def _current_online_evidence_scope(
     selected.update(_rank_by_observation(
         place_ids, observation["place_query"], event, kind="place",
     )[:ranks])
+    for slot, query in enumerate(observation["merge_queries"]):
+        selected.update(_rank_by_observation(
+            open_nodes, query, event, kind=f"merge-scope-{slot}",
+        )[:ranks])
     # Include the one-hop open subgraph around the retrieved IDs.  This scope
     # is fixed before any candidate executes and is identical for all K slots.
     for edge in open_edges:
@@ -2380,7 +2582,8 @@ def _generate_sequence(
             (
                 None if execution["post_graph"] is None
                 else _current_projection_mismatch(
-                    execution["post_graph"], reference_states[step_index], event,
+                    execution["post_graph"], material["online"], event,
+                    topology["semantic_latents"],
                 )
             )
             for execution in material["executions"]
@@ -2572,11 +2775,17 @@ def _generate_sequence(
             bool(execution["legal"] and execution["static_preflight_pass"])
             for execution in recovery_executions
         ]
+        recovery_online = _online_step(
+            online_sequence_id, paired_group_id, split, world_seed, asset_family,
+            wrong_base, reveal_event, recovery_programs,
+            topology["semantic_latents"],
+        )
         recovery_raw_nows = [
             (
                 None if execution["post_graph"] is None
                 else _current_projection_mismatch(
-                    execution["post_graph"], target_state, reveal_event,
+                    execution["post_graph"], recovery_online, reveal_event,
+                    topology["semantic_latents"],
                 )
             )
             for execution in recovery_executions
@@ -2599,11 +2808,6 @@ def _generate_sequence(
             recovery_traces.append((branch_hashes, branch_failures))
         scaled_futures = standardize_future_term(
             raw_futures, recovery_eligible,
-        )
-        recovery_online = _online_step(
-            online_sequence_id, paired_group_id, split, world_seed, asset_family,
-            wrong_base, reveal_event, recovery_programs,
-            topology["semantic_latents"],
         )
         recovery_energies = []
         for index, (execution, program) in enumerate(zip(
@@ -2762,6 +2966,112 @@ def generate_m1_rollout_split(
     return online_steps, audits, summary
 
 
+def _family_mechanism_audit(
+    audits: Sequence[Mapping[str, Any]], families: Sequence[str],
+) -> dict[str, Any]:
+    """Describe family behavior without trusting the family name itself.
+
+    The fingerprint uses executed reference templates, sensor-validity modes,
+    and the presence of a legal BIND candidate that actually incurs live
+    collateral.  ``scenario_variant`` is reported for provenance but excluded
+    from the fingerprint, so renaming an event cannot make a clone pass.
+    """
+    by_family: dict[str, Any] = {}
+    fingerprints: dict[str, str] = {}
+    for family in families:
+        steps = [
+            step for audit in audits for step in audit["steps"]
+            if str(step["scenario_family"]) == family
+        ]
+        reference_templates = Counter(
+            str(step["reference_template"]) for step in steps
+        )
+        observation_modes = Counter(
+            canonical_json({
+                "visibility": step["event_spec"]["observation_spec"]["visibility"],
+                "pose_valid": bool(step["event_spec"]["observation_spec"]["pose_valid"]),
+                "depth_valid": bool(step["event_spec"]["observation_spec"]["depth_valid"]),
+                "reliability_positive": (
+                    float(step["event_spec"]["observation_spec"]["reliability"])
+                    > 0.0
+                ),
+                "evidence_novel": bool(
+                    step["event_spec"]["observation_spec"]["evidence_novel"]
+                ),
+                "unrelated_context_active": bool(
+                    step["event_spec"]["proposal_observation"][
+                        "unrelated_context_active"
+                    ]
+                ),
+            })
+            for step in steps
+        )
+        explicit_collateral = []
+        for step in steps:
+            has_contrast = any(
+                execution["legal"]
+                and execution["static_preflight_pass"]
+                and execution["template"] == "BIND"
+                and float(energy["collateral"]) == 1.0
+                and "bind-with-collateral" in str(program["transaction_id"])
+                for program, execution, energy in zip(
+                    step["online"]["candidate_programs"],
+                    step["executed_candidates"],
+                    step["candidate_energies"],
+                    strict=True,
+                )
+            )
+            explicit_collateral.append(has_contrast)
+        variants = Counter(
+            str(step["event_spec"].get("scenario_variant", "unspecified"))
+            for step in steps
+        )
+        fingerprint_payload = {
+            "reference_templates": sorted(reference_templates),
+            "observation_modes": sorted(observation_modes),
+            "has_explicit_legal_collateral_contrast": any(explicit_collateral),
+        }
+        fingerprints[family] = canonical_json(fingerprint_payload)
+        by_family[family] = {
+            "support": len(steps),
+            "reference_template_counts": dict(sorted(reference_templates.items())),
+            "observation_mode_counts": dict(sorted(observation_modes.items())),
+            "scenario_variant_counts": dict(sorted(variants.items())),
+            "behavioral_fingerprint_payload": fingerprint_payload,
+            "explicit_legal_collateral_contrast_rate": (
+                float(np.mean(explicit_collateral)) if steps else None
+            ),
+            "behavioral_fingerprint_sha256": hashlib.sha256(
+                fingerprints[family].encode("utf-8")
+            ).hexdigest(),
+        }
+    duplicate_groups = [
+        sorted(group) for group in {
+            tuple(sorted(
+                family for family, value in fingerprints.items()
+                if value == fingerprint
+            ))
+            for fingerprint in fingerprints.values()
+        }
+        if len(group) > 1
+    ]
+    return {
+        "by_family": by_family,
+        "behavioral_fingerprints_unique": not duplicate_groups,
+        "duplicate_behavioral_fingerprint_groups": sorted(duplicate_groups),
+        "c10_reference_templates": sorted(
+            by_family["C10"]["reference_template_counts"]
+        ),
+        "c10_dynamic_static_variants_present": (
+            set(by_family["C10"]["reference_template_counts"]) == {"BIND", "NOOP"}
+        ),
+        "c11_legal_collateral_contrast_present": (
+            float(by_family["C11"]["explicit_legal_collateral_contrast_rate"] or 0.0)
+            == 1.0
+        ),
+    }
+
+
 def generate_m1_paired_rollout_split(
     config: Mapping[str, Any], split: str, *, paired_groups: int = 1,
     start_group_index: int = 0,
@@ -2883,6 +3193,9 @@ def generate_m1_paired_rollout_split(
             for item in teacher_agreement_by_family.values()
         )
     )
+    family_mechanism_audit = _family_mechanism_audit(
+        audits, registered_families,
+    )
     summary = {
         "status": "paired_rollout_interface_validation_only",
         "split": split,
@@ -2924,6 +3237,7 @@ def generate_m1_paired_rollout_split(
         )),
         "teacher_reference_agreement_by_family": teacher_agreement_by_family,
         "teacher_health_gate_pass": teacher_health_gate_pass,
+        "family_mechanism_audit": family_mechanism_audit,
         "distinct_topology_and_order_signatures": len(topology_signatures),
         "place_count_range": [
             min(audit["topology"]["place_count"] for audit in group_representatives),
