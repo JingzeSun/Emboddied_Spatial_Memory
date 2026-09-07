@@ -4,7 +4,7 @@
 
 ## 当前看板
 
-> **2026-09-07 更新（LOG-032）：** v5 40-group 的 scorer steps `{300,1000}` × seeds `{7,19,31,43,59}` 已在同一 arrays 上完成；以 8 个 paired inner-dev groups 为统计单位、每组先平均五 seed，1000−300 的 effect=`+0.026875`，95% CI=`[+0.008750,+0.045000]`，`p_nonpositive=0.000900`，故按预登记规则选择 1000 steps。两个 report 已通过 exporter 导入并提交 `results/`；不进入 S3、student、causal 或 test。
+> **2026-09-07 更新（LOG-032）：** v5 40-group 的 scorer steps `{300,1000}` × seeds `{7,19,31,43,59}` 已在同一 arrays 上完成；以 8 个 paired inner-dev groups 为统计单位、每组先平均五 seed，1000−300 的 effect=`+0.026875`，95% CI=`[+0.008750,+0.045000]`，`p_nonpositive=0.000900`，故按预登记规则选择 1000 steps。两个 report 已通过 exporter 导入并提交 `results/`；当前只补同预算的 10-group 五 seed 数据量锚点，不进入 S3、student、causal 或 test。
 
 最后更新：2026-09-07，LOG-032 v5 S2 五 seed 预算选择与 report 导出；正式 M1 gate 未运行、未生成或读取 test。
 
@@ -14,7 +14,7 @@
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
 | 阶段 | M1-v2 `pretest_lock_candidate`；只开放 train/validation，尚未重新冻结，正式 gate 未运行，不是 M2/Full CPMT |
 | 最近结果 | v5 S1 的 target/assembly 与 scorer 接线改善已由 LOG-031 记录；S2 五 seed 在 40 groups 上选择 1000 steps：300/1000 inner-dev teacher mean=`0.767500/0.794375`，总体 masked BCE mean=`0.086793/0.062483`，ranking-relevant BCE mean=`0.153600/0.102113`，reference margin mean=`0.379248/0.309308`。预算选择只依据 candidate-ranking accuracy 的预登记 CI，不把 BCE 或 margin 当选择量 |
-| 尚缺 | 已将两个 S2 report 导入并提交 `results/`；下一步依据可比的 10→40 数据量证据决定是否进入 S3。test 仍封存，PNO 与 Khronos 式全局慢路径属 M2 |
+| 尚缺 | 已将两个 S2 report 导入并提交 `results/`；v5 尚缺与已选 1000 steps 同预算的 10-group 五 seed 锚点，先用共同 inner-dev group 1 判断 10→40 的方向性信号，再决定是否进入 S3。test 仍封存，PNO 与 Khronos 式全局慢路径属 M2 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
 | 当前决定 | D-034：M1-v2 只加入有界、证据触发的局部补偿，E 不执行候选评分分支；D-038：static preflight 是 A–E 共享 online mask，但不替代 executor illegal 或候选审计；全局 reconciliation、PNO 与 M2 顺序不变 |
 | 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 test。scorer loss 不因本轮 BCE 下降自动修改；1000 steps 已按 ranking CI 选定，S3 是否需要仍待数据量交互判断 |
