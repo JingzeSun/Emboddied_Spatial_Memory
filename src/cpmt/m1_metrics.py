@@ -6,7 +6,8 @@ independent cases cannot be passed off as persistent self-rollout.
 """
 from __future__ import annotations
 
-from collections import defaultdict
+from collections import Counter, defaultdict
+import math
 from typing import Any, Iterable, Mapping, Sequence
 
 import numpy as np
@@ -83,6 +84,69 @@ def _active_graph_state(graph: Mapping[str, Any]) -> str:
     })
 
 
+def _active_record_counters(
+    graph: Mapping[str, Any],
+) -> tuple[Counter[str], Counter[str]]:
+    """Return multiplicity-preserving active node and edge records."""
+    nodes = Counter(
+        canonical_json({
+            key: node.get(key)
+            for key in (
+                "node_id", "node_type", "lifecycle", "canonical_id",
+                "latent_refs",
+            )
+        })
+        for node in graph["nodes"] if node.get("valid_to") is None
+    )
+    edges = Counter(
+        canonical_json({
+            key: edge.get(key)
+            for key in ("source", "target", "relation", "frame")
+        })
+        for edge in graph["edges"] if edge.get("valid_to") is None
+    )
+    return nodes, edges
+
+
+def _counter_symmetric_difference(
+    left: Counter[str], right: Counter[str],
+) -> int:
+    return sum((left - right).values()) + sum((right - left).values())
+
+
+def active_world_record_metrics(
+    predicted: Mapping[str, Any], reference: Mapping[str, Any],
+) -> dict[str, float]:
+    """Grade the exact active-world state without losing duplicate records.
+
+    The multiset Jaccard score uses exactly the semantic node and edge fields
+    used by ``_active_graph_state``. Consequently, it is one exactly when the
+    registered binary active-world endpoint is one; it is only a finer-grained
+    relaxation of that same construct, not a different edge-only metric.
+    """
+    predicted_nodes, predicted_edges = _active_record_counters(predicted)
+    reference_nodes, reference_edges = _active_record_counters(reference)
+    predicted_all = predicted_nodes + predicted_edges
+    reference_all = reference_nodes + reference_edges
+    intersection = sum((predicted_all & reference_all).values())
+    union = sum((predicted_all | reference_all).values())
+    return {
+        "graded_active_world_correctness": (
+            float(intersection / union) if union else 1.0
+        ),
+        "active_node_state_symmetric_difference": float(
+            _counter_symmetric_difference(predicted_nodes, reference_nodes)
+        ),
+        "active_edge_state_symmetric_difference": float(
+            _counter_symmetric_difference(predicted_edges, reference_edges)
+        ),
+        "active_reference_node_count": float(sum(reference_nodes.values())),
+        "active_reference_edge_count": float(sum(reference_edges.values())),
+        "active_reference_record_count": float(sum(reference_all.values())),
+        "active_record_union_count": float(union),
+    }
+
+
 def _open_memory_state(graph: Mapping[str, Any]) -> str:
     """Serialize current open records while retaining their evidence support."""
     nodes = [{
@@ -102,6 +166,101 @@ def _open_memory_state(graph: Mapping[str, Any]) -> str:
         "nodes": sorted(nodes, key=canonical_json),
         "edges": sorted(edges, key=canonical_json),
     })
+
+
+def _open_memory_record_counters(
+    graph: Mapping[str, Any],
+) -> tuple[Counter[str], Counter[str], Counter[str]]:
+    """Return open records and their evidence attachments as multisets."""
+    open_nodes = [
+        node for node in graph["nodes"] if node.get("valid_to") is None
+    ]
+    open_edges = [
+        edge for edge in graph["edges"] if edge.get("valid_to") is None
+    ]
+    node_records = Counter(
+        canonical_json({
+            key: node.get(key)
+            for key in (
+                "node_id", "node_type", "lifecycle", "canonical_id",
+                "evidence_refs", "latent_refs",
+            )
+        })
+        for node in open_nodes
+    )
+    edge_records = Counter(
+        canonical_json({
+            key: edge.get(key)
+            for key in (
+                "source", "target", "relation", "frame", "evidence_refs",
+            )
+        })
+        for edge in open_edges
+    )
+    attachments: Counter[str] = Counter()
+    for node in open_nodes:
+        semantic = {
+            key: node.get(key)
+            for key in (
+                "node_id", "node_type", "lifecycle", "canonical_id",
+                "latent_refs",
+            )
+        }
+        for evidence_ref in node.get("evidence_refs", []):
+            attachments[canonical_json({
+                "record_kind": "node",
+                "semantic_record": semantic,
+                "evidence_ref": evidence_ref,
+            })] += 1
+    for edge in open_edges:
+        semantic = {
+            key: edge.get(key)
+            for key in ("source", "target", "relation", "frame")
+        }
+        for evidence_ref in edge.get("evidence_refs", []):
+            attachments[canonical_json({
+                "record_kind": "edge",
+                "semantic_record": semantic,
+                "evidence_ref": evidence_ref,
+            })] += 1
+    return node_records, edge_records, attachments
+
+
+def open_memory_record_metrics(
+    predicted: Mapping[str, Any], reference: Mapping[str, Any],
+) -> dict[str, float]:
+    """Grade current semantic records together with their evidence support."""
+    predicted_nodes, predicted_edges, predicted_evidence = (
+        _open_memory_record_counters(predicted)
+    )
+    reference_nodes, reference_edges, reference_evidence = (
+        _open_memory_record_counters(reference)
+    )
+    predicted_all = predicted_nodes + predicted_edges
+    reference_all = reference_nodes + reference_edges
+    intersection = sum((predicted_all & reference_all).values())
+    union = sum((predicted_all | reference_all).values())
+    return {
+        "graded_open_memory_correctness": (
+            float(intersection / union) if union else 1.0
+        ),
+        "open_memory_node_symmetric_difference": float(
+            _counter_symmetric_difference(predicted_nodes, reference_nodes)
+        ),
+        "open_memory_edge_symmetric_difference": float(
+            _counter_symmetric_difference(predicted_edges, reference_edges)
+        ),
+        "open_evidence_attachment_symmetric_difference": float(
+            _counter_symmetric_difference(
+                predicted_evidence, reference_evidence,
+            )
+        ),
+        "open_memory_reference_record_count": float(sum(reference_all.values())),
+        "open_memory_record_union_count": float(union),
+        "open_memory_reference_evidence_attachment_count": float(
+            sum(reference_evidence.values())
+        ),
+    }
 
 
 def protected_signature(graph: Mapping[str, Any], protected_ids: Iterable[str]) -> str:
@@ -138,7 +297,7 @@ def graph_error_counts(
     )
     protected = set(protected_ids)
     history_exact = float(_decision_state(predicted) == _decision_state(reference))
-    return {
+    result = {
         # Keep the old field as an explicit compatibility alias.  M1-v2 uses
         # active_graph_correct as the deployable outcome and reports the full
         # retained-history comparison separately.
@@ -158,6 +317,21 @@ def graph_error_counts(
             != _protected_signature(base, protected)
         ),
     }
+    result.update(active_world_record_metrics(predicted, reference))
+    result.update(open_memory_record_metrics(predicted, reference))
+    if result["active_graph_correct"] != float(
+        result["graded_active_world_correctness"] == 1.0
+    ):
+        raise AssertionError(
+            "graded active-world endpoint must be exact iff binary endpoint is exact"
+        )
+    if result["open_memory_correct"] != float(
+        result["graded_open_memory_correctness"] == 1.0
+    ):
+        raise AssertionError(
+            "graded open-memory endpoint must be exact iff binary endpoint is exact"
+        )
+    return result
 
 
 def evaluate_selected_candidate(
@@ -200,6 +374,7 @@ def rollout_graph_metrics(
     base_states: Sequence[Mapping[str, Any]],
     protected_ids_by_step: Sequence[Iterable[str]],
     *, horizon: int, recovery_window: int = 3,
+    unrelated_collateral_by_step: Sequence[float] | None = None,
 ) -> dict[str, float]:
     """Evaluate a real ordered rollout; independent cases are not accepted."""
     lengths = {
@@ -208,6 +383,10 @@ def rollout_graph_metrics(
     }
     if lengths != {horizon}:
         raise ValueError("rollout inputs must be one ordered sequence at the frozen horizon")
+    if unrelated_collateral_by_step is None:
+        unrelated_collateral_by_step = [0.0] * horizon
+    if len(unrelated_collateral_by_step) != horizon:
+        raise ValueError("unrelated collateral must align with the frozen horizon")
     per_step = [
         graph_error_counts(predicted, reference, base, protected)
         for predicted, reference, base, protected in zip(
@@ -218,6 +397,18 @@ def rollout_graph_metrics(
     if recovery_window <= 0:
         raise ValueError("recovery window must be positive")
     final = per_step[-1]
+    protected_collateral = [
+        float(row["collateral_violation"] > 0.0) for row in per_step
+    ]
+    unrelated_collateral = [
+        float(value > 0.0) for value in unrelated_collateral_by_step
+    ]
+    joint_collateral = [
+        max(protected_value, unrelated_value)
+        for protected_value, unrelated_value in zip(
+            protected_collateral, unrelated_collateral, strict=True,
+        )
+    ]
     active = np.asarray([
         row["active_graph_correct"] for row in per_step
     ], dtype=np.float64)
@@ -236,6 +427,18 @@ def rollout_graph_metrics(
     result = {
         "mean_active_graph_correctness": float(active.mean()),
         "final_active_graph_correctness": final["active_graph_correct"],
+        "mean_graded_active_world_correctness": float(np.mean([
+            row["graded_active_world_correctness"] for row in per_step
+        ])),
+        "final_graded_active_world_correctness": final[
+            "graded_active_world_correctness"
+        ],
+        "mean_graded_open_memory_correctness": float(np.mean([
+            row["graded_open_memory_correctness"] for row in per_step
+        ])),
+        "final_graded_open_memory_correctness": final[
+            "graded_open_memory_correctness"
+        ],
         "mean_open_memory_correctness": float(np.mean([
             row["open_memory_correct"] for row in per_step
         ])),
@@ -252,9 +455,54 @@ def rollout_graph_metrics(
         "memory_contamination_per_100": 100.0 * final["memory_contamination"] / horizon,
         "missing_open_facts_per_100": 100.0 * final["missing_open_facts"] / horizon,
         "false_birth_growth_per_100": 100.0 * final["false_birth_growth"] / horizon,
-        "collateral_violation_per_100": 100.0 * sum(
-            row["collateral_violation"] for row in per_step
-        ) / horizon,
+        # The registered collateral construct is the union of protected-state
+        # and evidence-scope-external mutations. Components remain visible so
+        # neither route can hide behind the aggregate.
+        "collateral_violation_per_100": (
+            100.0 * sum(joint_collateral) / horizon
+        ),
+        "protected_collateral_violation_per_100": (
+            100.0 * sum(protected_collateral) / horizon
+        ),
+        "unrelated_collateral_violation_per_100": (
+            100.0 * sum(unrelated_collateral) / horizon
+        ),
+        "active_node_state_error_per_100": (
+            100.0 * final["active_node_state_symmetric_difference"] / horizon
+        ),
+        "active_edge_state_error_per_100": (
+            100.0 * final["active_edge_state_symmetric_difference"] / horizon
+        ),
+        "open_evidence_attachment_error_per_100": (
+            100.0
+            * final["open_evidence_attachment_symmetric_difference"]
+            / horizon
+        ),
+        "open_memory_node_error_per_100": (
+            100.0 * final["open_memory_node_symmetric_difference"] / horizon
+        ),
+        "open_memory_edge_error_per_100": (
+            100.0 * final["open_memory_edge_symmetric_difference"] / horizon
+        ),
+        "final_active_reference_node_count": final[
+            "active_reference_node_count"
+        ],
+        "final_active_reference_edge_count": final[
+            "active_reference_edge_count"
+        ],
+        "final_active_reference_record_count": final[
+            "active_reference_record_count"
+        ],
+        "final_active_record_union_count": final["active_record_union_count"],
+        "final_open_memory_reference_record_count": final[
+            "open_memory_reference_record_count"
+        ],
+        "final_open_memory_record_union_count": final[
+            "open_memory_record_union_count"
+        ],
+        "final_open_memory_reference_evidence_attachment_count": final[
+            "open_memory_reference_evidence_attachment_count"
+        ],
         "mean_memory_contamination": float(np.mean([
             row["memory_contamination"] for row in per_step
         ])),
@@ -352,3 +600,161 @@ def holm_bonferroni(p_values: Mapping[str, float]) -> dict[str, float]:
         running = max(running, min(1.0, (total - rank) * float(value)))
         adjusted[name] = running
     return adjusted
+
+
+def endpoint_viability_assessment(
+    rows: Sequence[Mapping[str, Any]], *, expected_groups: int,
+    exact_metric: str = "final_active_graph_correctness",
+    graded_metric: str = "final_graded_active_world_correctness",
+    support_metric: str = "final_graded_open_memory_correctness",
+    minimum_effect: float = 0.03, planning_effect: float = 0.06,
+    z_one_sided_alpha: float = 1.959963984540054,
+    z_power: float = 0.8416212335729143,
+    minimum_test_groups: int = 200,
+) -> dict[str, Any]:
+    """Apply the pre-registered train-only endpoint switch and power rules.
+
+    Rows are averaged first within a complete paired group, so seeds and the
+    two siblings never become fake independent samples. The endpoint choice
+    depends only on whether paired differences are observable, never on which
+    method wins or the sign of its effect.
+    """
+    if not rows or expected_groups <= 1:
+        raise ValueError("endpoint assessment needs multiple paired groups")
+    if not 0.0 < minimum_effect < planning_effect <= 1.0:
+        raise ValueError("endpoint effect thresholds must be ordered in (0, 1]")
+    required_methods = {"A", "C", "E", "F"}
+    grouped: dict[str, dict[str, dict[str, list[float]]]] = defaultdict(
+        lambda: defaultdict(lambda: defaultdict(list))
+    )
+    for row in rows:
+        group = str(row["paired_group_id"])
+        method = str(row["method"])
+        if method not in required_methods:
+            continue
+        metrics = row["metrics"]
+        for name in (
+            exact_metric, graded_metric, support_metric,
+            "active_node_state_error_per_100",
+            "final_active_reference_record_count",
+        ):
+            grouped[group][method][name].append(float(metrics[name]))
+    if len(grouped) != expected_groups:
+        raise ValueError(
+            f"expected {expected_groups} complete paired groups, got {len(grouped)}"
+        )
+    group_means: dict[str, dict[str, dict[str, float]]] = {}
+    for group, methods in grouped.items():
+        if set(methods) != required_methods:
+            raise ValueError(f"paired group {group} lacks A/C/E/F rows")
+        group_means[group] = {
+            method: {
+                metric: float(np.mean(values))
+                for metric, values in metrics.items()
+            }
+            for method, metrics in methods.items()
+        }
+    oracle_failures = [
+        group for group, methods in group_means.items()
+        if methods["F"][exact_metric] != 1.0
+        or methods["F"][graded_metric] != 1.0
+        or methods["F"][support_metric] != 1.0
+        or methods["F"]["active_node_state_error_per_100"] != 0.0
+    ]
+    minimum_nonzero_groups = int(math.ceil(minimum_effect * expected_groups))
+
+    def contrast(metric: str, baseline: str) -> dict[str, Any]:
+        differences = np.asarray([
+            methods["A"][metric] - methods[baseline][metric]
+            for _, methods in sorted(group_means.items())
+        ], dtype=np.float64)
+        standard_deviation = float(np.std(differences, ddof=1))
+        nonzero = int(np.count_nonzero(np.abs(differences) > 1e-12))
+        nondegenerate = bool(
+            standard_deviation > 0.0 and nonzero >= minimum_nonzero_groups
+        )
+        detectable_effect = float(
+            minimum_effect
+            + (z_one_sided_alpha + z_power)
+            * standard_deviation / math.sqrt(expected_groups)
+        )
+        required = int(math.ceil((
+            (z_one_sided_alpha + z_power) * standard_deviation
+            / (planning_effect - minimum_effect)
+        ) ** 2))
+        required = max(minimum_test_groups, required)
+        required = int(math.ceil(required / 10.0) * 10)
+        return {
+            "baseline": baseline,
+            "paired_groups": expected_groups,
+            "mean_effect": float(np.mean(differences)),
+            "paired_group_standard_deviation": standard_deviation,
+            "nonzero_paired_groups": nonzero,
+            "minimum_nonzero_paired_groups": minimum_nonzero_groups,
+            "nondegenerate": nondegenerate,
+            "detectable_true_effect_at_registered_power": detectable_effect,
+            "required_test_groups_for_planning_effect": required,
+        }
+
+    by_metric = {
+        metric: {
+            f"A_vs_{baseline}": contrast(metric, baseline)
+            for baseline in ("C", "E")
+        }
+        for metric in (exact_metric, graded_metric, support_metric)
+    }
+    exact_ok = all(
+        value["nondegenerate"] for value in by_metric[exact_metric].values()
+    )
+    graded_ok = all(
+        value["nondegenerate"] for value in by_metric[graded_metric].values()
+    )
+    support_ok = all(
+        value["nondegenerate"] for value in by_metric[support_metric].values()
+    )
+    if oracle_failures:
+        disposition = "abort_oracle_integrity_failure"
+        selected_metric = None
+    elif not support_ok:
+        disposition = "stop_open_memory_support_endpoint_not_viable"
+        selected_metric = None
+    elif exact_ok:
+        disposition = "retain_exact_endpoint"
+        selected_metric = exact_metric
+    elif graded_ok:
+        disposition = "switch_once_to_graded_endpoint"
+        selected_metric = graded_metric
+    else:
+        disposition = "stop_endpoint_not_viable_new_decision_required"
+        selected_metric = None
+    selected_test_groups = None
+    if selected_metric is not None:
+        selected_test_groups = max(
+            value["required_test_groups_for_planning_effect"]
+            for metric in (selected_metric, support_metric)
+            for value in by_metric[metric].values()
+        )
+    reference_counts = np.asarray([
+        methods["F"]["final_active_reference_record_count"]
+        for methods in group_means.values()
+    ], dtype=np.float64)
+    return {
+        "disposition": disposition,
+        "selected_metric": selected_metric,
+        "required_support_metric": support_metric,
+        "oracle_integrity_pass": not oracle_failures,
+        "oracle_failure_groups": sorted(oracle_failures),
+        "minimum_effect": float(minimum_effect),
+        "planning_effect": float(planning_effect),
+        "one_sided_alpha_per_primary_contrast": 0.025,
+        "target_power": 0.8,
+        "by_metric": by_metric,
+        "selected_test_groups": selected_test_groups,
+        "reference_record_count": {
+            "minimum": float(reference_counts.min()),
+            "mean": float(reference_counts.mean()),
+            "median": float(np.median(reference_counts)),
+            "maximum": float(reference_counts.max()),
+        },
+        "winner_or_effect_sign_used_for_switch": False,
+    }

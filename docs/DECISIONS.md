@@ -48,6 +48,7 @@
 | D-041 | accepted | current 固定自然量程、软后验逐项影响审计和五个预登记机制切片 |
 | D-042 | accepted; optimization details superseded by D-043 | v8 双架构 train/inner-dev 有限预算框架保留；具体网络归一化、网格和逐方法选择由 D-043 更新 |
 | D-043 | accepted | A–E 严格共用架构与 12 格搜索空间、各自按同一 reference 指标选预算；Pre-LN 主臂、共享/交叉预算读数与触顶纪律预登记 |
+| D-044 | accepted | test 前以固定 train-only anchor 一次判定 exact endpoint 是否退化；必要时切到同构 multiset-Jaccard，并把 open-memory/evidence、节点与完整 collateral 纳入覆盖、安全和检验力定样 |
 
 ## D-015 — 单执行入口与五阶段合同
 
@@ -579,6 +580,32 @@
 - 影响：更新 Set Transformer 架构、预算 runner、机器合同、测试和 S4 流程。架构变化要求追加 `EXECUTE.md` LOG，但在服务器预算结果产生前不宣称性能提升。旧 D-042 full-test handoff 作废；旧 v8 health 只可在新提交重生成且 arrays digest 相同后继承机制结论。
 - 是否接触 test 信息：否；设计只基于 train-only health、代码审计和预登记优化风险，validation/test 未读取。
 - 验证方式：本地轻量测试锁住 Pre-LN、最终 LayerNorm、三学习率、四 checkpoints、逐方法相同 12 格、双预算读数、确定性第二名、paired bootstrap 和触顶策略；服务器先跑完整测试，再单独做 12-group digest invariance，之后才允许生成 1000-group train arrays。
+
+## D-044 — semantic/support 终点可用性、机制覆盖与 test 检验力预登记
+
+- 日期：2026-09-08。
+- 状态：accepted；只授权 train-only 可用性探针和常驻评测补全，尚未选择 exact/graded 分支、尚未解封 validation/test。
+- 用户确认：用户要求在拉取服务器 D-043 运行时报告后，客观判断并“正式接受并实现评价协议变更”；此前已明确接受把 endpoint 非退化、检验力、节点盲区与 F oracle 纳入预登记。
+- 背景：D-043 服务器剖析已通过，Set Transformer/MLP 完整登记网格保守线性投影分别为 `3.128/1.239` 小时，合计 `4.367` 小时，因而先做固定 anchor 探针不会造成不可接受的额外计算。旧 3-group smoke 中 A–E 的 `final_active_graph_correctness` 全为零，但它只能提示风险，不能触发换指标；该量是 20 步结束时 active node+edge semantic state 的整图精确相等，不是逐步正确率连乘，后续事务可以恢复。另一方面，`memory_contamination` 与 `missing_open_facts` 都只覆盖开放边，无法看见非 protected 节点的 lifecycle/canonical/latent 错误；active state 又有意不含 `evidence_refs`，因此 C10 的错误 BIND/NOOP 可保持 active semantic world 与边计数完全相同。现有 protected collateral 能看完整受保护记录，却没有把已计算的证据范围外 unrelated mutation 纳入 causal 主安全聚合，导致 C11 的专门对照也可能不触发旧主安全数。
+- 决策：
+  1. **不立即换主指标。** 使用已经生成的唯一 1000-group v8 train arrays，在主架构 `cross_candidate_set_transformer_v1` 上只跑 A/C/E 和无需训练的 F。固定 seeds=`{7,19,31,43,59}`、learning rate=`0.0006`、student updates=`3000`、E scorer=`0.0006/3000`、C auxiliary weight=`1.0`；799 个 fitting groups 与 201 个 inner-dev groups 由既有 SHA-256 规则确定。不得搜索 checkpoint、learning rate、方法或指标，不读取 validation/test。
+  2. causal commit gate 在 201 个 inner-dev groups 内做预登记的两折 cross-fit：paired group 以 `sha256(paired_group_id + ':endpoint-probe-fold')` 前 8 字节模 2 分折，每折只使用另一折按既有 lexicographic 规则校准 A/C/E 与五 seed 共用的 gate；本折只评估。另报 `(commit_probability=0, margin=0)` always-commit 诊断，但它不能触发指标切换。这样输入是 train-only 概率，输出是对每个 group 没用自身结果校准过的 causal endpoint；它不等于 validation 校准或新增可调 gate。
+  3. exact semantic endpoint 仍为 `final_active_graph_correctness`。预备 fallback 为**多重集 Jaccard active-world correctness**：把 `_active_graph_state` 同一组开放节点记录 `(node_id,node_type,lifecycle,canonical_id,latent_refs)` 与开放边记录 `(source,target,relation,frame)` 合并成保留重复次数的多重集，取交集计数/并集计数。它在 `[0,1]` 内且 `graded=1` 当且仅当 exact=1，所以只是同一 active-world 构念的渐进松弛，不是换成 edge-only contamination；不同 `edge_id` 但语义相同的重复开放边不会被普通 set 静默折叠。
+  4. 另把 `final_graded_open_memory_correctness` 固定为 A−C/A−E 都必须通过的 co-primary support endpoint。它对 `_open_memory_state` 的同一开放 node/edge records（包含 `evidence_refs`）计算多重集 Jaccard，阈值独立登记为 `0.03`；同时单报 evidence attachment 对称差。白话说，semantic active world 回答“当前世界结构对不对”，open-memory support 回答“这些开放记录挂接的观察证据对不对”；C10 错误 BIND 只污染后者，不能再被 active 指标吞掉。它不把 closed provenance 算当前错误，也不把 evidence 支持与几何边污染混成一个解释。
+  5. F 是硬 integrity gate：每一个 inner-dev group 必须 semantic exact=1、active graded=1、open-memory graded=1 且 node error=0；任一失败就中止，不允许切指标或启动完整预算网格。A−C/A−E 先在每个完整 paired group 内对两个 siblings 和五 seed 等权平均。某 endpoint 对一个对照“非退化”要求 paired-group 差的样本标准差大于 0，且绝对非零 group 数至少 `ceil(0.03×201)=7`；`1e-12` 以下按数值零处理。open-memory support 对两对照也必须非退化，否则停止，不用 semantic 分支掩盖 evidence 盲区。
+  6. semantic endpoint 的一次性切换规则只看**可观测性**，不看 A 是否赢、效应正负或大小：若 exact 对 A−C、A−E 均非退化，保留 exact；否则仅当 active graded 对两者均非退化时，全局一次切到 active graded；若 graded 仍退化，停止并另立 decision，不继续搜索第三个 semantic 指标。graded 的有意义效应独立登记为绝对 `0.03`，含义是相对 active-record overlap 提高三个百分点，不冒充从二值率继承了同一物理单位。
+  7. 检验力按与正式门一致的 H0 `effect≤0.03` 规划，而非错误地按 H0 `effect≤0`。对最终选中的 semantic endpoint 与固定 open-memory support endpoint，固定规划真效应 `0.06`、每个主对照单侧 `alpha=0.025`、power=`0.80`，以探针 paired-group SD 代入 `ceil((((1.959964+0.841621)×SD)/(0.06−0.03))²)`；至少 200、向上取整到 10，并取两个 endpoint × A−C/A−E 的最大值。无预设上限，test 只在样本数登记后生成；这不是用 inner-dev 效应判断胜负，而只用方差避免一次性 test 天生欠功效。
+  8. 无论是否切换，常驻报告 semantic exact/graded、open-memory exact/graded、active/open node/edge 多重集对称差、evidence attachment 对称差、参考记录数和 union 规模。新增 `active_node_state_error_per_100` 安全非劣 margin=`1.0/100 decisions`；修改一个节点记录算“一条正确记录缺失＋一条错误记录多出”共 2，新增/删除算 1。白话说，它防止方法边数没错却把对象 lifecycle 或 canonical 身份改坏；输入是终点 active node records，输出是错误记录数，它不替代主效果，也不把 retained history 当当前世界。
+  9. collateral 主安全量修正为每步 `protected state mutation OR committed evidence-scope-external mutation` 的并集，并分别报告 protected/unrelated 两个分量；原 margin=`0.5/100 decisions` 不变。白话说，受保护对象被碰坏和证据范围外的无关图被连带修改，两种都算连带伤害；输入是每步 base→post 状态及 evidence scope，输出是两个原因和不重复计数的并集，它不把合法的新事实 growth 或 executor illegal 混进来。
+  10. 新增 C00–C11 机制–指标覆盖矩阵：对每个 reference row 枚举所有非 reference、shared-preflight admitted 且 executor-legal 的候选，逐 family 报 active、open-memory、evidence、边/节点与 collateral 哪条渐进通道能看到差异。所有 family 至少要有一个非参考候选被渐进通道识别；C10 的指定相反 BIND/NOOP 每行必须由 open-memory+evidence 识别，C11 的 `bind-with-collateral` 每行必须由 unrelated collateral 识别，否则在 endpoint probe/预算网格前停止。它不要求把语义等价的每个程序都硬判错，也不把 executor illegal 当可部署指标。
+  11. recovery 同时报 `designed_recovery_rate_within_window` 与 `any_first_error_recovery_rate_within_window`、各自 eligible 数与恢复时间。另报最终参考 active/open-memory record 数分布，防止 graded 比例受图规模变化而被误读。
+  12. M1 v8 health 中 teacher/reference argmax agreement=`1.0` 必须如实披露，同时报告 teacher top-1 均值/中位数、低于 0.60 的比例与 posterior entropy，并保留 H=1 消融。一般 CPMT 合同仍允许 teacher 与 reference 分歧；本 fixture 的高 agreement 是 teacher health/conformance 事实，M1 在此主要检验软 executable hindsight distribution 的传播，而不宣称所有决策都由 teacher 改写标签。
+  13. D-041 对 C10 “teacher resolution/causal endpoint 具有信息量”的旧表述在本条下被精确收窄：C10 的当前输入按构造完全同分布，任何合法在线方法的实例级单步上限都约为 0.5；hindsight teacher 能在训练时辨认哪个已发生未来与候选一致，但 student 部署时不可能从相同当前输入预知该实例。因此 C10 只检查软后验的不确定性、QUARANTINE/提交行为和 evidence-support 后果，不单独支持 A 优于 C/E，也不宣称预测 20 步未来。
+- 白话：endpoint viability probe（终点可用性探针）解决“正式 test 只有一次，但原来的整图全对指标可能所有方法都得零”的问题。输入是固定模型设置、201 个从 train 留出的完整 group 和未训练的 F oracle，输出只有三种机械结果：保留 exact、一次切到同构 graded、或停止；例如 A/C/E 的 exact 全零但 graded 有组间差时按已写死规则切换。它不按谁赢挑指标、不调模型、不看 validation/test，也不是正式方法成绩。
+- 备选：直接因旧 smoke 全零而换主指标，被拒绝，因为旧样本小且协议/模型过时；用 contamination+missing 作 fallback，被拒绝，因为二者只看边并遗漏节点身份状态；用普通 set Jaccard，被拒绝，因为会折叠重复语义边；若 exact 方差大就换 graded，被拒绝，正确处理是保留 exact 并前瞻增加 test groups；把 201 个 group 直接称为 200，被拒绝，实际 hash 分割是 799/201。
+- 影响：新增专用机器预登记 `configs/m1_endpoint_viability_probe.json`；补 active-world graded/node/edge、open-memory graded/evidence、完整 collateral 分解、机制–指标覆盖矩阵、endpoint decision helper、测试与 S4 流程。活动 `m1_hard_condition.json` 暂不修改，从而已有 v6/v8 1000-group arrays 可作为探针输入；探针选定 semantic 分支和 test 数量后再一次性升级正式 protocol、同步 co-primary/safety/go rule 并按新 protocol manifest 重验/重生成，不把条件分支提前伪装成已选结论。
+- 是否接触 test 信息：否；D-044 的依据只有代码审计、旧 train-only smoke、v8 train arrays/health 和 planning-only runtime profile。validation/test 未读取，test 尚未生成。
+- 验证方式：单测锁住 node-only 错误可见、重复 edge 多重性、`graded=1⇔exact=1`、protected/unrelated collateral 分量与并集、F gate、group-first 聚合、非退化开关和功效公式；干净服务器 full test 后才运行固定探针。报告导出并接受分支后，才允许进入 D-043 完整预算网格。
 
 ## 新决策模板
 

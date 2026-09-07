@@ -2211,6 +2211,9 @@ def causal_rollout_metrics(
             })
         metrics = rollout_graph_metrics(
             predicted_states, references, base_states, protected, horizon=20,
+            unrelated_collateral_by_step=[
+                choice["selected_collateral"] for choice in choices
+            ],
         )
         pivot_step = int(audit["ambiguity_pivot_step"])
         revisit_step = int(audit["recovery_revisit_step"])
@@ -2312,11 +2315,29 @@ def causal_rollout_metrics(
         sequence_rows.append({"metrics": metrics, "choices": choices})
     metric_names = (
         "mean_active_graph_correctness", "final_active_graph_correctness",
+        "mean_graded_active_world_correctness",
+        "final_graded_active_world_correctness",
+        "mean_graded_open_memory_correctness",
+        "final_graded_open_memory_correctness",
         "mean_open_memory_correctness", "final_open_memory_correctness",
         "mean_history_exactness", "final_history_exactness",
         "mean_post_graph_correctness", "final_post_graph_correctness",
         "memory_contamination_per_100", "missing_open_facts_per_100",
         "false_birth_growth_per_100", "collateral_violation_per_100",
+        "protected_collateral_violation_per_100",
+        "unrelated_collateral_violation_per_100",
+        "active_node_state_error_per_100",
+        "active_edge_state_error_per_100",
+        "open_evidence_attachment_error_per_100",
+        "open_memory_node_error_per_100",
+        "open_memory_edge_error_per_100",
+        "final_active_reference_node_count",
+        "final_active_reference_edge_count",
+        "final_active_reference_record_count",
+        "final_active_record_union_count",
+        "final_open_memory_reference_record_count",
+        "final_open_memory_record_union_count",
+        "final_open_memory_reference_evidence_attachment_count",
         "mean_memory_contamination",
         "memory_contamination_auc_per_100_decisions",
         "unresolved_active_error", "commit_rate", "raw_invalid_selection_rate",

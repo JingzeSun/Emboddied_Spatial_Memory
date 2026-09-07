@@ -3069,6 +3069,17 @@ def _family_mechanism_audit(
             for step in steps
         )
         explicit_collateral = []
+        wrong_admitted_legal_candidates = 0
+        progressive_detected_candidates = 0
+        active_detected_candidates = 0
+        open_memory_detected_candidates = 0
+        evidence_detected_candidates = 0
+        collateral_detected_candidates = 0
+        rows_with_detected_alternative = []
+        c10_designated_rows = 0
+        c10_designated_detected_rows = 0
+        c11_designated_rows = 0
+        c11_designated_detected_rows = 0
         for step in steps:
             has_contrast = any(
                 execution["legal"]
@@ -3084,6 +3095,77 @@ def _family_mechanism_audit(
                 )
             )
             explicit_collateral.append(has_contrast)
+            reference_index = int(step["reference_program_index"])
+            reference = step["executed_candidates"][reference_index]["post_graph"]
+            base = step["online"]["prior_world"]
+            protected = [step["event_spec"]["protected_id"]]
+            row_detected = False
+            c10_candidates = []
+            c11_candidates = []
+            for program, execution, energy in zip(
+                step["online"]["candidate_programs"],
+                step["executed_candidates"], step["candidate_energies"],
+                strict=True,
+            ):
+                if (
+                    int(execution["candidate_index"]) == reference_index
+                    or not execution["legal"]
+                    or not execution["static_preflight_pass"]
+                ):
+                    continue
+                wrong_admitted_legal_candidates += 1
+                metrics = graph_error_counts(
+                    execution["post_graph"], reference, base, protected,
+                )
+                active_changed = (
+                    metrics["graded_active_world_correctness"] < 1.0
+                )
+                open_memory_changed = (
+                    metrics["graded_open_memory_correctness"] < 1.0
+                )
+                evidence_changed = (
+                    metrics["open_evidence_attachment_symmetric_difference"]
+                    > 0.0
+                )
+                collateral_changed = float(energy["collateral"]) > 0.0
+                progressive_changed = bool(
+                    active_changed or open_memory_changed
+                    or metrics["memory_contamination"] > 0.0
+                    or metrics["missing_open_facts"] > 0.0
+                    or metrics["false_birth_growth"] > 0.0
+                    or collateral_changed
+                )
+                progressive_detected_candidates += int(progressive_changed)
+                active_detected_candidates += int(active_changed)
+                open_memory_detected_candidates += int(open_memory_changed)
+                evidence_detected_candidates += int(evidence_changed)
+                collateral_detected_candidates += int(collateral_changed)
+                row_detected = row_detected or progressive_changed
+                candidate_template = str(execution["template"])
+                reference_template = str(step["reference_template"])
+                if family == "C10" and {
+                    candidate_template, reference_template,
+                } == {"BIND", "NOOP"}:
+                    c10_candidates.append(bool(
+                        open_memory_changed and evidence_changed
+                    ))
+                if (
+                    family == "C11"
+                    and "bind-with-collateral"
+                    in str(program["transaction_id"])
+                ):
+                    c11_candidates.append(bool(collateral_changed))
+            rows_with_detected_alternative.append(row_detected)
+            if family == "C10":
+                c10_designated_rows += 1
+                c10_designated_detected_rows += int(
+                    bool(c10_candidates) and all(c10_candidates)
+                )
+            if family == "C11":
+                c11_designated_rows += 1
+                c11_designated_detected_rows += int(
+                    bool(c11_candidates) and all(c11_candidates)
+                )
         variants = Counter(
             str(step["event_spec"].get("scenario_variant", "unspecified"))
             for step in steps
@@ -3103,6 +3185,34 @@ def _family_mechanism_audit(
             "explicit_legal_collateral_contrast_rate": (
                 float(np.mean(explicit_collateral)) if steps else None
             ),
+            "mechanism_metric_coverage": {
+                "reference_rows": len(steps),
+                "wrong_admitted_legal_candidates": (
+                    wrong_admitted_legal_candidates
+                ),
+                "progressive_detected_candidates": (
+                    progressive_detected_candidates
+                ),
+                "active_detected_candidates": active_detected_candidates,
+                "open_memory_detected_candidates": (
+                    open_memory_detected_candidates
+                ),
+                "evidence_detected_candidates": evidence_detected_candidates,
+                "collateral_detected_candidates": (
+                    collateral_detected_candidates
+                ),
+                "rows_with_detected_alternative": int(sum(
+                    rows_with_detected_alternative
+                )),
+                "c10_designated_rows": c10_designated_rows,
+                "c10_designated_detected_rows": (
+                    c10_designated_detected_rows
+                ),
+                "c11_designated_rows": c11_designated_rows,
+                "c11_designated_detected_rows": (
+                    c11_designated_detected_rows
+                ),
+            },
             "behavioral_fingerprint_sha256": hashlib.sha256(
                 fingerprints[family].encode("utf-8")
             ).hexdigest(),
@@ -3131,6 +3241,34 @@ def _family_mechanism_audit(
             float(by_family["C11"]["explicit_legal_collateral_contrast_rate"] or 0.0)
             == 1.0
         ),
+        "mechanism_metric_coverage": {
+            "all_families_have_progressive_detection": all(
+                item["mechanism_metric_coverage"][
+                    "progressive_detected_candidates"
+                ] > 0
+                for item in by_family.values()
+            ),
+            "c10_designated_contrast_detected_every_row": (
+                by_family["C10"]["mechanism_metric_coverage"][
+                    "c10_designated_rows"
+                ] > 0
+                and by_family["C10"]["mechanism_metric_coverage"][
+                    "c10_designated_detected_rows"
+                ] == by_family["C10"]["mechanism_metric_coverage"][
+                    "c10_designated_rows"
+                ]
+            ),
+            "c11_designated_contrast_detected_every_row": (
+                by_family["C11"]["mechanism_metric_coverage"][
+                    "c11_designated_rows"
+                ] > 0
+                and by_family["C11"]["mechanism_metric_coverage"][
+                    "c11_designated_detected_rows"
+                ] == by_family["C11"]["mechanism_metric_coverage"][
+                    "c11_designated_rows"
+                ]
+            ),
+        },
     }
 
 

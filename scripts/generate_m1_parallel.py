@@ -70,6 +70,7 @@ def _aggregate_family_mechanism_audits(
         observation_modes: Counter[str] = Counter()
         scenario_variants: Counter[str] = Counter()
         collateral_count = 0.0
+        coverage_totals: Counter[str] = Counter()
         for audit in audits:
             item = audit["by_family"][family]
             item_support = int(item["support"])
@@ -80,6 +81,10 @@ def _aggregate_family_mechanism_audits(
             rate = item["explicit_legal_collateral_contrast_rate"]
             if rate is not None:
                 collateral_count += float(rate) * item_support
+            coverage_totals.update({
+                str(key): int(value)
+                for key, value in item["mechanism_metric_coverage"].items()
+            })
         fingerprint_payload = {
             "reference_templates": sorted(reference_templates),
             "observation_modes": sorted(observation_modes),
@@ -99,6 +104,7 @@ def _aggregate_family_mechanism_audits(
             "explicit_legal_collateral_contrast_rate": (
                 collateral_count / support if support else None
             ),
+            "mechanism_metric_coverage": dict(sorted(coverage_totals.items())),
         }
     duplicate_groups = [
         sorted(group) for group in {
@@ -134,6 +140,34 @@ def _aggregate_family_mechanism_audits(
                 "explicit_legal_collateral_contrast_rate"
             ] or 0.0) == 1.0
         ),
+        "mechanism_metric_coverage": {
+            "all_families_have_progressive_detection": all(
+                item["mechanism_metric_coverage"][
+                    "progressive_detected_candidates"
+                ] > 0
+                for item in by_family.values()
+            ),
+            "c10_designated_contrast_detected_every_row": (
+                by_family["C10"]["mechanism_metric_coverage"][
+                    "c10_designated_rows"
+                ] > 0
+                and by_family["C10"]["mechanism_metric_coverage"][
+                    "c10_designated_detected_rows"
+                ] == by_family["C10"]["mechanism_metric_coverage"][
+                    "c10_designated_rows"
+                ]
+            ),
+            "c11_designated_contrast_detected_every_row": (
+                by_family["C11"]["mechanism_metric_coverage"][
+                    "c11_designated_rows"
+                ] > 0
+                and by_family["C11"]["mechanism_metric_coverage"][
+                    "c11_designated_detected_rows"
+                ] == by_family["C11"]["mechanism_metric_coverage"][
+                    "c11_designated_rows"
+                ]
+            ),
+        },
     }
 
 
@@ -321,6 +355,9 @@ def main() -> int:
         "c11_legal_collateral_contrast_present_each_row": (
             c11_contrast_rate == 1.0
         ),
+        "mechanism_metric_coverage": family_mechanism_audit[
+            "mechanism_metric_coverage"
+        ],
     }
     health_contract = config["energy"]["teacher_health_gate"]
     overall_agreement = float(agree[online].mean())
@@ -356,6 +393,9 @@ def main() -> int:
             and family_mechanism_gate[
                 "c11_legal_collateral_contrast_present_each_row"
             ]
+            and all(family_mechanism_gate[
+                "mechanism_metric_coverage"
+            ].values())
             and current_now_audit[
                 "exact_ambiguity_current_target_identity_rate"
             ] == 1.0

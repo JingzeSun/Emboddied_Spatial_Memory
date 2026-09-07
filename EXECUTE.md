@@ -4,19 +4,19 @@
 
 ## 当前看板
 
-> **2026-09-07 更新（LOG-046 / D-043）：** 两架构固定 300-step 运行时剖析均已通过：完整登记网格保守投影为 Set Transformer 3.128 小时、MLP 1.239 小时、合计 4.367 小时。下一步先导出详细报告，再预登记节点级安全与 causal endpoint 健康探针；不直接启动完整网格。
+> **2026-09-08 更新（LOG-047 / D-044）：** 两架构运行时报告已导出并复核，完整网格保守投影合计 4.367 小时。D-044 已正式接受并接线：先全测 semantic/open-memory/evidence、node 与完整 collateral 指标及机制–指标覆盖矩阵，再以固定 train-only anchor 机械决定 semantic exact/graded 分支，并按两类 endpoint 的 paired SD 前瞻定 test groups；不直接启动完整网格。
 
-最后更新：2026-09-07，1000-group train arrays、剖析入口全测和两架构成本剖析均已通过、待导出及 endpoint 探针预登记；正式 M1 gate 未运行、未生成或读取 validation/test。
+最后更新：2026-09-08，1000-group train arrays、剖析入口全测、两架构成本剖析和报告导出均已通过；D-044 endpoint/support/safety/coverage/power 预登记与基础指标已实现，待服务器全测和固定探针。正式 M1 gate 未运行、未生成或读取 validation/test。
 
 | 项目 | 当前事实 |
 |---|---|
 | 方向 | CPMT 具身空间记忆；CTL 是主学习假设，用户希望面向 ML 研究 |
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
-| 阶段 | M1-v6 `pretest_lock_candidate`；D-043 架构/预算预登记、1000-group train 生成及两架构运行时剖析已完成；待节点级安全/endpoint 可用性预登记与 train-only 探针，再进入完整 train/inner-dev 预算选择；尚未进入 S5 validation、重新冻结或 M2 |
+| 阶段 | M1-v6 `pretest_lock_candidate`；D-043 架构/预算、1000-group train 与成本剖析已完成；D-044 节点安全/endpoint 可用性/检验力规则已接受并实现基础指标，待服务器全测与固定 train-only 探针，再进入完整 train/inner-dev 预算选择；尚未进入 S5 validation、重新冻结或 M2 |
 | 最近结果 | [`m1_v5_s4_v8_health_benchmark.json`](results/m1_v5_s4_v8_health_benchmark.json) 已于 `e47a7e4` 入库并本地复核：480 learning rows（456 online＋24 recovery），teacher agreement=`1.0`，12 个 family 各自 agreement 均为 `1.0`；posterior mean TV 为 future=`0.681108`、now=`0.071170`、growth=`0.025655`、edit=`0.022655`、collateral=`0.015360`，C11 collateral TV=`0.136628`。now 预期零/非零 family 完全匹配，无偏离 |
-| 尚缺 | 导出成本报告；冻结并运行节点级安全/endpoint 健康探针；随后依次得到两臂 scorer 与逐方法 student budget；validation/test 仍封存 |
+| 尚缺 | D-044 科学代码服务器全测；固定 anchor endpoint probe 及 exact/graded/test-N 机械分支结果；随后依次得到两臂 scorer 与逐方法 student budget；validation/test 仍封存 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
-| 当前决定 | D-039 保留 live energy、C/E current target、Set Transformer 主臂＋MLP 次臂及每臂完整 A–F；D-040 固定总混合规模和真实 C10/C11；D-041 固定 current 自然量程与 posterior 审计；D-043 固定 Pre-LN 主臂、A–E 相同 12 格与同指标逐方法选择、共享/交叉预算诊断及 10000 触顶纪律。架构间不择优；全局 reconciliation、PNO 与 M2 顺序不变 |
+| 当前决定 | D-039–D-043 固定 live energy、真实 C10/C11、current/posterior 审计、Pre-LN 双架构和 A–E 对称 12 格。D-044 不立即替换 exact：固定 probe 只按非退化性保留 exact 或一次切到同构 graded，并常驻节点/完整 collateral 安全量、按方差定 test N。架构间不择优；全局 reconciliation、PNO 与 M2 顺序不变 |
 | 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 validation/test。D-043 无额外人工选择；运行时剖析只供用户决定何时租用算力，不改变登记网格 |
 | Git 备份 | D-038 科学代码基线为 `72afa7d`；S2 40-group reports 已在提交 `ececefb`、10-group 锚点已在 `70355ac` 导入 `results/`，服务器大产物仍位于 ignored `outputs/`。服务器操作只通过版本化的 `ops/run_next_server_step.sh` 交付，脚本所在提交仍须先 push、服务器再 pull |
 
@@ -659,6 +659,16 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - 结果：Set Transformer 完整登记网格保守线性投影=`3.128` 小时，峰值显存约 `2602.039` MB；shared MLP 投影=`1.239` 小时，峰值约 `1989.218` MB；两臂合计=`4.367` 小时。两份报告均通过 schema、protocol、dataset、arrays digest、固定 profile 点和无选择/无科学指标检查；唯一成功标志为 `SERVER_STEP_OK id=m1_v6_v8_d043_two_architecture_runtime_profile`。
 - 白话：运行时剖析回答“已登记的 180 万次更新在当前服务器上大约要跑多久”。输入是每个架构的一条短训练路径，输出按 learning rate、seed、checkpoint 和方法数线性外推的计划时间；例如主臂短路径较慢，投影约 3.128 小时。它不是硬时限、不保证实际严格线性，也没有比较 A/C/E 的准确率。
 - 下一步：先把服务器两份完整 JSON 及 provenance 导出到 `results/`。随后在不读取 validation/test 的前提下另立预登记，补 active-node error 常驻安全量和一次固定 anchor 的 endpoint 非退化/检验力探针；探针通过或按事先开关切换后才运行完整预算网格。
+
+### LOG-047—2026-09-08—D-044 endpoint/safety/power 评价协议接线
+
+- 类型/状态：评价协议与科学指标实现变更；已完成本地定向测试，尚未运行服务器 full test 或固定 endpoint probe，不是方法效果、validation trial 或 formal test 结果。
+- 输入/provenance：已拉取服务器导出提交 `0fc8371404d8dd4688399a6b17720cddde7d062a`，报告为 `results/m1_v6_d043_runtime_profile.json`；输入 train arrays digest=`e8a890f1b254a7109af641fea57fcbea5efd931b4272d8e96cb870f51604b168`。报告确认 Set Transformer/MLP 完整网格保守线性投影=`3.128/1.239` 小时、合计 `4.367` 小时，峰值约 `2602/1989` MB，且 selection/scientific metrics/validation/test 均未运行。
+- 改变/固定：接受 D-044，但不直接把 semantic exact endpoint 换掉。新增与 `_active_graph_state` 完全同字段、保留重复记录的 multiset-Jaccard graded correctness；另对含 `evidence_refs` 的 `_open_memory_state` 增加 graded correctness 和 evidence attachment error，作为固定 co-primary support endpoint。常驻 active/open node/edge symmetric difference 与参考规模；collateral 聚合改为 protected 与 evidence-scope-external unrelated mutation 的逐步并集，同时保留两个分量。机制–指标矩阵逐 family 枚举非 reference admitted+legal 候选，C10 指定 BIND/NOOP 必须由 open-memory/evidence 检出，C11 指定对照必须由 unrelated collateral 检出。新增 group-first endpoint assessment，F integrity 失败即停；semantic exact/graded 的一次切换不读取赢家、方向或效应大小，test N 取 semantic/support 两类 endpoint 的 paired-SD 功效需求最大值。
+- 白话：这次接线解决“整图全对指标若全为零会看不见真实差异，边级计数看不见节点身份，以及 active state 看不见 evidence 附着”的问题。输入是同一个终点 active/open memory，输出有 semantic exact/graded、support graded、evidence 和节点/边错误数；例如 lifecycle 改错会在 node error 中出现，C10 错误 BIND 则由 evidence-support 出现。20-step 是逐步接收新观测的闭环长度，不是预测第 20 步；C10 单步当前不可判定仍预期约 0.5，不据此声称 CTL 能预知未来。它不是因 A 输赢换指标，也没有使用 validation/test。
+- 验证：首轮 `tests.test_m1_metrics` 与 `tests.test_m1_af_rollout` 共 36 项通过，随后补入 endpoint switch/F gate、open-memory/evidence 与 probe config 单测。配置 `configs/m1_endpoint_viability_probe.json` 冻结 Set Transformer、A/C/E+F、五 seed、`0.0006/3000`、799/201 split、两折 train-inner-dev cross-fit gate、7-group非退化下限、semantic/support graded `0.03`、node safety `1.0/100` 与 test power 公式。
+- 覆盖复核：新增 open-memory/evidence 与机制矩阵后，44 项相关单测通过，Python compile、probe JSON、server shell syntax 与 `git diff --check` 通过。ignored 本地产物 `outputs/local-d044-coverage-g2/train.npz` 用 2 个 train paired groups/2 workers 在 12.7 秒生成 80 learning rows，teacher agreement=`1.0`、扩展 health gate PASS；C10 指定相反 BIND/NOOP `4/4` rows 被 open-memory+evidence 检出，C11 指定 collateral BIND `4/4` 被 unrelated collateral 检出，12 family 均至少有一个非 reference admitted+legal 候选被渐进通道看见。先跑 1 group 时 health 按既有规则因 C10 只含一个 variant 而失败，这是预期的最小分母保护，不是正式失败 run。
+- 局限/下一步：当前只实现评价底层、机械决策函数和预登记；尚未训练 anchor 或观察 endpoint 数值，也没有选中 exact/graded 分支。下一步先在干净服务器运行全套测试；通过后实现/运行唯一 probe runner，导出报告并按 D-044 自动改写正式 protocol，之后才可启动 D-043 完整预算网格。
 
 ## 后续条目模板
 

@@ -1,0 +1,167 @@
+{
+  "schema_version": "m1-endpoint-viability-probe-v1",
+  "status": "accepted_train_only_preregistration",
+  "decision": "D-044",
+  "source_protocol": {
+    "protocol_version": "m1-hard-condition-v6",
+    "dataset_version": "m1-paired-latent-worlds-v8-fixed-range-current-energy",
+    "protocol_sha256": "73666cabb77b4884302d77ca621669bfdc77e86a44951b8a92b97208509c0eec",
+    "train_arrays_digest": "e8a890f1b254a7109af641fea57fcbea5efd931b4272d8e96cb870f51604b168",
+    "train_paired_groups": 1000,
+    "fitting_paired_groups": 799,
+    "inner_dev_paired_groups": 201
+  },
+  "access_boundary": {
+    "train_arrays_read": true,
+    "train_rollout_audits_reconstructed": true,
+    "validation_arrays_read": false,
+    "validation_trial_consumed": false,
+    "test_generated": false,
+    "test_access": false
+  },
+  "training_anchor": {
+    "architecture": "cross_candidate_set_transformer_v1",
+    "methods": ["A", "C", "E"],
+    "oracle": "F",
+    "seeds": [7, 19, 31, 43, 59],
+    "learning_rate": 0.0006,
+    "student_updates": 3000,
+    "e_outcome_scorer_learning_rate": 0.0006,
+    "e_outcome_scorer_updates": 3000,
+    "c_auxiliary_weight": 1.0,
+    "grid_search": false,
+    "checkpoint_selection": false
+  },
+  "commit_rule": {
+    "mode": "two_fold_train_inner_dev_cross_fit",
+    "fold": "int.from_bytes(sha256((paired_group_id + ':endpoint-probe-fold').encode('utf-8')).digest()[:8], 'big') % 2",
+    "calibrate_on_opposite_fold": true,
+    "shared_across": ["A", "C", "E"],
+    "seed_weighting": "equal_within_complete_paired_group",
+    "selection": "existing_lexicographic_one_step_active_correctness_then_fact_error_then_false_birth_then_higher_commit_rate",
+    "always_commit_diagnostic": {"commit_probability": 0.0, "margin_threshold": 0.0, "can_trigger_switch": false}
+  },
+  "endpoints": {
+    "exact": {
+      "metric": "final_active_graph_correctness",
+      "definition": "exact_equality_of_active_node_and_edge_semantic_multisets"
+    },
+    "graded": {
+      "metric": "final_graded_active_world_correctness",
+      "definition": "multiset_jaccard_intersection_over_union_on_the_same_active_node_and_edge_records_as_exact",
+      "node_fields": ["node_id", "node_type", "lifecycle", "canonical_id", "latent_refs"],
+      "edge_fields": ["source", "target", "relation", "frame"],
+      "duplicate_records_preserved": true,
+      "exact_equivalence": "graded_equals_1_if_and_only_if_exact_equals_1",
+      "meaningful_effect_absolute": 0.03,
+      "threshold_semantics": "three_percentage_points_more_relative_active_record_overlap;_newly_registered_not_inherited_from_binary_scale"
+    },
+    "open_memory_support": {
+      "metric": "final_graded_open_memory_correctness",
+      "definition": "multiset_jaccard_on_open_node_and_edge_records_including_evidence_refs",
+      "exact_equivalence": "graded_open_memory_equals_1_if_and_only_if_open_memory_correct_equals_1",
+      "meaningful_effect_absolute": 0.03,
+      "required_co_primary_for_both_A_vs_C_and_A_vs_E": true,
+      "reason": "active_semantics_and_edge_only_fact_counts_cannot_observe_evidence_only_BIND_or_unrelated_evidence_attachment_damage"
+    }
+  },
+  "oracle_integrity_gate": {
+    "all_F_groups_require": {
+      "final_active_graph_correctness": 1.0,
+      "final_graded_active_world_correctness": 1.0,
+      "final_graded_open_memory_correctness": 1.0,
+      "active_node_state_error_per_100": 0.0
+    },
+    "failure_action": "abort_without_endpoint_switch_or_budget_grid"
+  },
+  "nondegeneracy_and_one_time_switch": {
+    "unit": "complete_paired_group_after_equal_averaging_over_two_siblings_and_five_seeds",
+    "contrasts": ["A_vs_C", "A_vs_E"],
+    "absolute_difference_tolerance": 1e-12,
+    "minimum_nonzero_group_rule": "ceil(0.03 * inner_dev_paired_groups)",
+    "minimum_nonzero_groups_at_n_201": 7,
+    "sample_standard_deviation_must_be_positive": true,
+    "retain_exact_when_both_contrasts_nondegenerate": true,
+    "switch_globally_to_graded_when_any_exact_contrast_degenerate_and_both_graded_contrasts_nondegenerate": true,
+    "winner_identity_effect_direction_and_effect_size_forbidden_for_switch": true,
+    "graded_failure_action": "stop_and_open_new_decision_without_searching_another_endpoint"
+  },
+  "power_planning": {
+    "null_boundary_minimum_effect": 0.03,
+    "planning_true_effect": 0.06,
+    "one_sided_alpha_per_primary_contrast": 0.025,
+    "z_one_sided_alpha": 1.959963984540054,
+    "target_power": 0.8,
+    "z_power": 0.8416212335729143,
+    "formula": "ceil((((z_one_sided_alpha + z_power) * paired_group_sd) / (planning_true_effect - null_boundary_minimum_effect)) ** 2)",
+    "minimum_test_paired_groups": 200,
+    "round_up_to_multiple": 10,
+    "take_maximum_across_primary_contrasts_and_selected_semantic_plus_open_memory_support_endpoints": true,
+    "registered_test_size_cap": null,
+    "test_is_not_generated_until_result_is_frozen": true
+  },
+  "always_on_reporting_and_safety": {
+    "report": [
+      "final_active_graph_correctness",
+      "final_graded_active_world_correctness",
+      "final_graded_open_memory_correctness",
+      "active_node_state_error_per_100",
+      "active_edge_state_error_per_100",
+      "open_evidence_attachment_error_per_100",
+      "open_memory_node_error_per_100",
+      "open_memory_edge_error_per_100",
+      "protected_collateral_violation_per_100",
+      "unrelated_collateral_violation_per_100",
+      "collateral_violation_per_100",
+      "final_active_reference_node_count",
+      "final_active_reference_edge_count",
+      "final_active_reference_record_count",
+      "final_active_record_union_count",
+      "final_open_memory_reference_record_count",
+      "final_open_memory_record_union_count",
+      "final_open_memory_reference_evidence_attachment_count",
+      "designed_recovery_rate_within_window",
+      "any_first_error_recovery_rate_within_window"
+    ],
+    "node_state_symmetric_difference_noninferiority_margin_per_100": 1.0,
+    "node_change_accounting": "changed_record_counts_as_one_missing_plus_one_extra;_addition_or_removal_counts_as_one",
+    "collateral_joint_definition": "per_step_union_of_protected_state_change_and_committed_evidence_scope_external_mutation",
+    "collateral_components_reported_separately": true,
+    "existing_collateral_noninferiority_margin_per_100": 0.5
+  },
+  "mechanism_metric_coverage": {
+    "scope": "all_C00_to_C11_reference_rows_and_each_nonreference_shared_preflight_admitted_executor_legal_candidate",
+    "progressive_channels": [
+      "graded_active_world_correctness",
+      "graded_open_memory_correctness",
+      "active_node_state_symmetric_difference",
+      "active_edge_state_symmetric_difference",
+      "open_evidence_attachment_symmetric_difference",
+      "memory_contamination",
+      "missing_open_facts",
+      "false_birth_growth",
+      "unrelated_collateral"
+    ],
+    "report_by_family": true,
+    "all_families_require_at_least_one_detected_nonreference_candidate": true,
+    "c10_designated_opposite_BIND_NOOP_requires_open_memory_and_evidence_detection_every_row": true,
+    "c10_online_interpretation": "information_limit_slice_with_expected_single_step_accuracy_near_0.5;_no_instance_level_future_prediction_or_method_advantage_claim;_report_uncertainty_quarantine_and_open_memory_support_consequence",
+    "c10_dedicated_recovery_currently_registered": false,
+    "c11_designated_bind_with_collateral_requires_unrelated_collateral_detection_every_row": true,
+    "failure_action": "stop_before_endpoint_probe_and_budget_grid"
+  },
+  "teacher_disclosure": {
+    "report_teacher_reference_argmax_agreement": true,
+    "report_top1_probability_mean_median_and_fraction_below_0.60": true,
+    "report_posterior_entropy_and_uniform_entropy": true,
+    "interpretation": "M1_v8_tests_propagation_of_a_soft_executable_hindsight_distribution_whose_argmax_recovers_the_reference_in_the_health_fixture;_not_a_claim_that_every_fixture_decision_has_teacher_label_disagreement",
+    "retain_horizon_1_ablation": true
+  },
+  "output": {
+    "schema_version": "m1-endpoint-viability-report-v1",
+    "save_per_seed_method_sequence_rows": true,
+    "save_cross_fitted_gate_by_fold": true,
+    "save_failures_and_provenance": true,
+    "formal_method_effect_claim": false
+  }
+}

@@ -131,6 +131,26 @@ class TestM1ContinuousRollout(unittest.TestCase):
             set(mechanism["c10_reference_templates"]), {"BIND", "NOOP"},
         )
         self.assertTrue(mechanism["c11_legal_collateral_contrast_present"])
+        coverage = mechanism["mechanism_metric_coverage"]
+        self.assertTrue(coverage["all_families_have_progressive_detection"])
+        self.assertTrue(coverage["c10_designated_contrast_detected_every_row"])
+        self.assertTrue(coverage["c11_designated_contrast_detected_every_row"])
+        c10_coverage = mechanism["by_family"]["C10"][
+            "mechanism_metric_coverage"
+        ]
+        self.assertEqual(
+            c10_coverage["c10_designated_detected_rows"],
+            c10_coverage["c10_designated_rows"],
+        )
+        self.assertGreater(c10_coverage["evidence_detected_candidates"], 0)
+        c11_coverage = mechanism["by_family"]["C11"][
+            "mechanism_metric_coverage"
+        ]
+        self.assertEqual(
+            c11_coverage["c11_designated_detected_rows"],
+            c11_coverage["c11_designated_rows"],
+        )
+        self.assertGreater(c11_coverage["collateral_detected_candidates"], 0)
         for audit in audits:
             for step in audit["steps"]:
                 if step["scenario_family"] == "C10":
