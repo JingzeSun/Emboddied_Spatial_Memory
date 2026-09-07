@@ -3130,8 +3130,8 @@ def _family_mechanism_audit(
                 collateral_changed = float(energy["collateral"]) > 0.0
                 progressive_changed = bool(
                     active_changed or open_memory_changed
-                    or metrics["memory_contamination"] > 0.0
-                    or metrics["missing_open_facts"] > 0.0
+                    or metrics["extra_open_fact_error"] > 0.0
+                    or metrics["missing_open_fact_error"] > 0.0
                     or metrics["false_birth_growth"] > 0.0
                     or collateral_changed
                 )

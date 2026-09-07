@@ -1,7 +1,7 @@
 {
-  "schema_version": "m1-endpoint-viability-probe-v1",
+  "schema_version": "m1-endpoint-viability-probe-v2",
   "status": "accepted_train_only_preregistration",
-  "decision": "D-044",
+  "decisions": ["D-044", "D-045"],
   "source_protocol": {
     "protocol_version": "m1-hard-condition-v6",
     "dataset_version": "m1-paired-latent-worlds-v8-fixed-range-current-energy",
@@ -33,13 +33,40 @@
     "checkpoint_selection": false
   },
   "commit_rule": {
-    "mode": "two_fold_train_inner_dev_cross_fit",
-    "fold": "int.from_bytes(sha256((paired_group_id + ':endpoint-probe-fold').encode('utf-8')).digest()[:8], 'big') % 2",
-    "calibrate_on_opposite_fold": true,
-    "shared_across": ["A", "C", "E"],
-    "seed_weighting": "equal_within_complete_paired_group",
-    "selection": "existing_lexicographic_one_step_active_correctness_then_fact_error_then_false_birth_then_higher_commit_rate",
-    "always_commit_diagnostic": {"commit_probability": 0.0, "margin_threshold": 0.0, "can_trigger_switch": false}
+    "mode": "fixed_always_attempt_shared_gate",
+    "commit_probability": 0.0,
+    "margin_threshold": 0.0,
+    "shared_across": ["A", "C", "E", "F"],
+    "selection": "none",
+    "validation_rows_used_for_gate_selection": 0,
+    "reason": "removes_cross_method_posterior_scale_and_one_step_vs_20_step_selection_mismatch",
+    "executor_illegal_action": "deterministic_QUARANTINE_without_persistent_write",
+    "low_confidence_selective_gate": "not_used_for_M1_primary_effect_or_endpoint_switch",
+    "report_confidence_and_risk_coverage_diagnostics": true,
+    "evidence": {
+      "audit": "docs/reviews/2026-09-07_metric_layer_audit.md:B2-B3",
+      "historical_nonformal_report": "results/m1-v2-pretest-smoke-20260906T102332Z.json",
+      "historical_gate_selected": {"commit_probability": 0.0, "margin_threshold": 0.0},
+      "historical_protocol_is_not_current_performance_evidence": true
+    }
+  },
+  "construct_alignment": {
+    "canonical_endpoint_state_metrics": {
+      "extra_open_fact_error": "predicted_open_edge_fact_set_minus_reference_open_edge_fact_set",
+      "missing_open_fact_error": "reference_open_edge_fact_set_minus_predicted_open_edge_fact_set",
+      "new_incorrect_open_fact_write": "current_extra_open_fact_not_present_in_method_predecision_world",
+      "retained_stale_open_fact": "current_extra_open_fact_already_present_in_method_predecision_world"
+    },
+    "canonical_trajectory_metrics": {
+      "extra_open_fact_error_auc_per_100_decisions": "time_integral_of_extra_open_fact_state_burden_normalized_to_100_decisions",
+      "missing_open_fact_error_auc_per_100_decisions": "time_integral_of_missing_open_fact_state_burden_normalized_to_100_decisions",
+      "open_fact_error_auc_per_100_decisions": "sum_of_extra_and_missing_open_fact_AUC_without_cancellation",
+      "new_incorrect_open_fact_write_auc_per_100_decisions": "time_integral_of_newly_introduced_wrong_open_facts",
+      "retained_stale_open_fact_auc_per_100_decisions": "time_integral_of_wrong_open_facts_carried_from_each_predecision_world"
+    },
+    "registered_long_horizon_co_primary": "open_fact_error_auc_per_100_decisions",
+    "dynamic_contamination_rate_mapping": "not_claimed_in_M1;_extra_open_fact_error_AUC_is_only_a_controlled_persistent_world_proxy;_dynamic_actor_overwrite_of_static_slots_requires_M2_or_M3",
+    "terminal_metrics_are_reported_but_do_not_substitute_for_trajectory_burden": true
   },
   "endpoints": {
     "exact": {
@@ -89,6 +116,8 @@
   "power_planning": {
     "null_boundary_minimum_effect": 0.03,
     "planning_true_effect": 0.06,
+    "open_fact_error_auc_null_boundary_minimum_effect": 2.0,
+    "open_fact_error_auc_planning_true_effect": 4.0,
     "one_sided_alpha_per_primary_contrast": 0.025,
     "z_one_sided_alpha": 1.959963984540054,
     "target_power": 0.8,
@@ -96,7 +125,7 @@
     "formula": "ceil((((z_one_sided_alpha + z_power) * paired_group_sd) / (planning_true_effect - null_boundary_minimum_effect)) ** 2)",
     "minimum_test_paired_groups": 200,
     "round_up_to_multiple": 10,
-    "take_maximum_across_primary_contrasts_and_selected_semantic_plus_open_memory_support_endpoints": true,
+    "take_maximum_across_primary_contrasts_and_selected_semantic_plus_open_memory_support_plus_open_fact_error_AUC_endpoints": true,
     "registered_test_size_cap": null,
     "test_is_not_generated_until_result_is_frozen": true
   },
@@ -105,6 +134,18 @@
       "final_active_graph_correctness",
       "final_graded_active_world_correctness",
       "final_graded_open_memory_correctness",
+      "terminal_extra_open_fact_error_per_100_decisions",
+      "terminal_missing_open_fact_error_per_100_decisions",
+      "terminal_new_incorrect_open_fact_write_per_100_decisions",
+      "terminal_retained_stale_open_fact_per_100_decisions",
+      "extra_open_fact_error_auc_per_100_decisions",
+      "missing_open_fact_error_auc_per_100_decisions",
+      "open_fact_error_auc_per_100_decisions",
+      "new_incorrect_open_fact_write_auc_per_100_decisions",
+      "retained_stale_open_fact_auc_per_100_decisions",
+      "false_birth_growth_per_100",
+      "false_birth_growth_auc_per_100_decisions",
+      "missing_open_entity_auc_per_100_decisions",
       "active_node_state_error_per_100",
       "active_edge_state_error_per_100",
       "open_evidence_attachment_error_per_100",
@@ -121,8 +162,12 @@
       "final_open_memory_record_union_count",
       "final_open_memory_reference_evidence_attachment_count",
       "designed_recovery_rate_within_window",
-      "any_first_error_recovery_rate_within_window"
+      "designed_recovery_eligible_sequences",
+      "any_first_error_recovery_rate_within_window",
+      "any_first_error_recovery_eligible_sequences"
     ],
+    "empty_conditional_denominator_value": null,
+    "false_birth_growth_definition": "count_of_predicted_open_entity_ids_absent_from_reference_open_entity_ids_without_net_cardinality_cancellation",
     "node_state_symmetric_difference_noninferiority_margin_per_100": 1.0,
     "node_change_accounting": "changed_record_counts_as_one_missing_plus_one_extra;_addition_or_removal_counts_as_one",
     "collateral_joint_definition": "per_step_union_of_protected_state_change_and_committed_evidence_scope_external_mutation",
@@ -137,8 +182,10 @@
       "active_node_state_symmetric_difference",
       "active_edge_state_symmetric_difference",
       "open_evidence_attachment_symmetric_difference",
-      "memory_contamination",
-      "missing_open_facts",
+      "extra_open_fact_error",
+      "missing_open_fact_error",
+      "new_incorrect_open_fact_write",
+      "retained_stale_open_fact",
       "false_birth_growth",
       "unrelated_collateral"
     ],
@@ -157,10 +204,51 @@
     "interpretation": "M1_v8_tests_propagation_of_a_soft_executable_hindsight_distribution_whose_argmax_recovers_the_reference_in_the_health_fixture;_not_a_claim_that_every_fixture_decision_has_teacher_label_disagreement",
     "retain_horizon_1_ablation": true
   },
+  "naming_and_scope": {
+    "formal_primary_table_excludes": [
+      "post_graph_correct",
+      "mean_post_graph_correctness",
+      "final_post_graph_correctness",
+      "unresolved_active_error",
+      "memory_contamination",
+      "memory_contamination_per_100",
+      "memory_contamination_auc_per_100_decisions",
+      "missing_open_facts",
+      "missing_open_facts_per_100",
+      "excess_nodes"
+    ],
+    "compatibility_aliases": {
+      "post_graph_correct": "history_exact",
+      "mean_post_graph_correctness": "mean_history_exactness",
+      "final_post_graph_correctness": "final_history_exactness",
+      "unresolved_active_error": "one_minus_final_active_graph_correctness",
+      "memory_contamination": "extra_open_fact_error",
+      "memory_contamination_per_100": "terminal_extra_open_fact_error_per_100_decisions",
+      "memory_contamination_auc_per_100_decisions": "extra_open_fact_error_auc_per_100_decisions",
+      "missing_open_facts": "missing_open_fact_error",
+      "missing_open_facts_per_100": "terminal_missing_open_fact_error_per_100_decisions",
+      "excess_nodes": "legacy_pre_D045_net_open_entity_cardinality_excess_not_formal_false_birth_growth"
+    },
+    "semantic_endpoint_roles": {
+      "exact": "preferred_binary_semantic_endpoint_when_nondegenerate",
+      "graded": "single_pre_registered_fallback_when_exact_is_degenerate",
+      "both_reported": true
+    },
+    "minimal_world_change_interpretation": "registered_prior_or_regularizer_only_not_a_validated_primary_mechanism",
+    "m1_scope": "controlled_embodied_persistent_world_revision_only",
+    "deferred_to_M2_M3": [
+      "independent_dynamic_or_transient_memory",
+      "decay",
+      "static_retention",
+      "dynamic_actor_contamination_of_static_slots",
+      "reappearance_consistency",
+      "viewpoint_consistency"
+    ]
+  },
   "output": {
-    "schema_version": "m1-endpoint-viability-report-v1",
+    "schema_version": "m1-endpoint-viability-report-v2",
     "save_per_seed_method_sequence_rows": true,
-    "save_cross_fitted_gate_by_fold": true,
+    "save_fixed_commit_rule": true,
     "save_failures_and_provenance": true,
     "formal_method_effect_claim": false
   }

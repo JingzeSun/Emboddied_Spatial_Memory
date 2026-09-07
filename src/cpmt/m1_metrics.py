@@ -292,9 +292,18 @@ def graph_error_counts(
     """Count persistent graph errors without combining them into one score."""
     predicted_facts = _open_fact_tokens(predicted)
     reference_facts = _open_fact_tokens(reference)
-    false_births = max(
-        0, len(_open_entity_ids(predicted)) - len(_open_entity_ids(reference))
-    )
+    predicted_entities = _open_entity_ids(predicted)
+    reference_entities = _open_entity_ids(reference)
+    predicted_extra_facts = predicted_facts - reference_facts
+    reference_missing_facts = reference_facts - predicted_facts
+    base_facts = _open_fact_tokens(base)
+    # A state-only endpoint cannot say how an error arose.  Preserve the
+    # symmetric state discrepancy and additionally separate facts introduced
+    # by this decision from already-open facts that this decision retained.
+    # Across a rollout the latter includes both genuinely newly stale facts and
+    # earlier bad writes that have not yet been repaired.
+    new_incorrect_facts = predicted_extra_facts - base_facts
+    retained_incorrect_facts = predicted_extra_facts & base_facts
     protected = set(protected_ids)
     history_exact = float(_decision_state(predicted) == _decision_state(reference))
     result = {
@@ -309,9 +318,22 @@ def graph_error_counts(
             _open_memory_state(predicted) == _open_memory_state(reference)
         ),
         "history_exact": history_exact,
-        "memory_contamination": float(len(predicted_facts - reference_facts)),
-        "missing_open_facts": float(len(reference_facts - predicted_facts)),
-        "false_birth_growth": float(false_births),
+        "extra_open_fact_error": float(len(predicted_extra_facts)),
+        "missing_open_fact_error": float(len(reference_missing_facts)),
+        "new_incorrect_open_fact_write": float(len(new_incorrect_facts)),
+        "retained_stale_open_fact": float(len(retained_incorrect_facts)),
+        # Compatibility aliases for reports produced before D-045.  The new
+        # names above are canonical because they state polarity explicitly.
+        "memory_contamination": float(len(predicted_extra_facts)),
+        "missing_open_facts": float(len(reference_missing_facts)),
+        # Set difference, rather than a net cardinality difference, prevents
+        # one missing real entity from cancelling one extra false entity.
+        "false_birth_growth": float(len(
+            predicted_entities - reference_entities
+        )),
+        "missing_open_entities": float(len(
+            reference_entities - predicted_entities
+        )),
         "collateral_violation": float(
             _protected_signature(predicted, protected)
             != _protected_signature(base, protected)
@@ -319,6 +341,13 @@ def graph_error_counts(
     }
     result.update(active_world_record_metrics(predicted, reference))
     result.update(open_memory_record_metrics(predicted, reference))
+    if result["extra_open_fact_error"] != (
+        result["new_incorrect_open_fact_write"]
+        + result["retained_stale_open_fact"]
+    ):
+        raise AssertionError(
+            "new-write and retained-stale counts must partition extra open facts"
+        )
     if result["active_graph_correct"] != float(
         result["graded_active_world_correctness"] == 1.0
     ):
@@ -452,8 +481,26 @@ def rollout_graph_metrics(
             row["post_graph_correct"] for row in per_step
         ])),
         "final_post_graph_correctness": final["post_graph_correct"],
-        "memory_contamination_per_100": 100.0 * final["memory_contamination"] / horizon,
-        "missing_open_facts_per_100": 100.0 * final["missing_open_facts"] / horizon,
+        "terminal_extra_open_fact_error_per_100_decisions": (
+            100.0 * final["extra_open_fact_error"] / horizon
+        ),
+        "terminal_missing_open_fact_error_per_100_decisions": (
+            100.0 * final["missing_open_fact_error"] / horizon
+        ),
+        "terminal_new_incorrect_open_fact_write_per_100_decisions": (
+            100.0 * final["new_incorrect_open_fact_write"] / horizon
+        ),
+        "terminal_retained_stale_open_fact_per_100_decisions": (
+            100.0 * final["retained_stale_open_fact"] / horizon
+        ),
+        # Compatibility aliases.  Formal D-045 reports label these as aliases
+        # and use the explicit terminal/AUC names below.
+        "memory_contamination_per_100": (
+            100.0 * final["extra_open_fact_error"] / horizon
+        ),
+        "missing_open_facts_per_100": (
+            100.0 * final["missing_open_fact_error"] / horizon
+        ),
         "false_birth_growth_per_100": 100.0 * final["false_birth_growth"] / horizon,
         # The registered collateral construct is the union of protected-state
         # and evidence-scope-external mutations. Components remain visible so
@@ -503,11 +550,39 @@ def rollout_graph_metrics(
         "final_open_memory_reference_evidence_attachment_count": final[
             "open_memory_reference_evidence_attachment_count"
         ],
-        "mean_memory_contamination": float(np.mean([
-            row["memory_contamination"] for row in per_step
+        "mean_extra_open_fact_error": float(np.mean([
+            row["extra_open_fact_error"] for row in per_step
         ])),
+        "mean_missing_open_fact_error": float(np.mean([
+            row["missing_open_fact_error"] for row in per_step
+        ])),
+        "mean_memory_contamination": float(np.mean([
+            row["extra_open_fact_error"] for row in per_step
+        ])),
+        "extra_open_fact_error_auc_per_100_decisions": 100.0 * sum(
+            row["extra_open_fact_error"] for row in per_step
+        ) / horizon,
+        "missing_open_fact_error_auc_per_100_decisions": 100.0 * sum(
+            row["missing_open_fact_error"] for row in per_step
+        ) / horizon,
+        "open_fact_error_auc_per_100_decisions": 100.0 * sum(
+            row["extra_open_fact_error"] + row["missing_open_fact_error"]
+            for row in per_step
+        ) / horizon,
+        "new_incorrect_open_fact_write_auc_per_100_decisions": 100.0 * sum(
+            row["new_incorrect_open_fact_write"] for row in per_step
+        ) / horizon,
+        "retained_stale_open_fact_auc_per_100_decisions": 100.0 * sum(
+            row["retained_stale_open_fact"] for row in per_step
+        ) / horizon,
+        "false_birth_growth_auc_per_100_decisions": 100.0 * sum(
+            row["false_birth_growth"] for row in per_step
+        ) / horizon,
+        "missing_open_entity_auc_per_100_decisions": 100.0 * sum(
+            row["missing_open_entities"] for row in per_step
+        ) / horizon,
         "memory_contamination_auc_per_100_decisions": 100.0 * sum(
-            row["memory_contamination"] for row in per_step
+            row["extra_open_fact_error"] for row in per_step
         ) / horizon,
         "any_first_error_recovery_eligible": recovery_eligible,
         "any_first_error_recovered_within_window": recovered_within_window,
@@ -607,7 +682,10 @@ def endpoint_viability_assessment(
     exact_metric: str = "final_active_graph_correctness",
     graded_metric: str = "final_graded_active_world_correctness",
     support_metric: str = "final_graded_open_memory_correctness",
+    burden_metric: str = "open_fact_error_auc_per_100_decisions",
     minimum_effect: float = 0.03, planning_effect: float = 0.06,
+    burden_minimum_effect: float = 2.0,
+    burden_planning_effect: float = 4.0,
     z_one_sided_alpha: float = 1.959963984540054,
     z_power: float = 0.8416212335729143,
     minimum_test_groups: int = 200,
@@ -623,6 +701,8 @@ def endpoint_viability_assessment(
         raise ValueError("endpoint assessment needs multiple paired groups")
     if not 0.0 < minimum_effect < planning_effect <= 1.0:
         raise ValueError("endpoint effect thresholds must be ordered in (0, 1]")
+    if not 0.0 < burden_minimum_effect < burden_planning_effect:
+        raise ValueError("burden effect thresholds must be positive and ordered")
     required_methods = {"A", "C", "E", "F"}
     grouped: dict[str, dict[str, dict[str, list[float]]]] = defaultdict(
         lambda: defaultdict(lambda: defaultdict(list))
@@ -634,7 +714,7 @@ def endpoint_viability_assessment(
             continue
         metrics = row["metrics"]
         for name in (
-            exact_metric, graded_metric, support_metric,
+            exact_metric, graded_metric, support_metric, burden_metric,
             "active_node_state_error_per_100",
             "final_active_reference_record_count",
         ):
@@ -659,13 +739,21 @@ def endpoint_viability_assessment(
         if methods["F"][exact_metric] != 1.0
         or methods["F"][graded_metric] != 1.0
         or methods["F"][support_metric] != 1.0
+        or methods["F"][burden_metric] != 0.0
         or methods["F"]["active_node_state_error_per_100"] != 0.0
     ]
     minimum_nonzero_groups = int(math.ceil(minimum_effect * expected_groups))
 
-    def contrast(metric: str, baseline: str) -> dict[str, Any]:
+    def contrast(
+        metric: str, baseline: str, *, higher_is_better: bool,
+        null_minimum_effect: float, planned_effect: float,
+    ) -> dict[str, Any]:
         differences = np.asarray([
-            methods["A"][metric] - methods[baseline][metric]
+            (
+                methods["A"][metric] - methods[baseline][metric]
+                if higher_is_better
+                else methods[baseline][metric] - methods["A"][metric]
+            )
             for _, methods in sorted(group_means.items())
         ], dtype=np.float64)
         standard_deviation = float(np.std(differences, ddof=1))
@@ -674,13 +762,13 @@ def endpoint_viability_assessment(
             standard_deviation > 0.0 and nonzero >= minimum_nonzero_groups
         )
         detectable_effect = float(
-            minimum_effect
+            null_minimum_effect
             + (z_one_sided_alpha + z_power)
             * standard_deviation / math.sqrt(expected_groups)
         )
         required = int(math.ceil((
             (z_one_sided_alpha + z_power) * standard_deviation
-            / (planning_effect - minimum_effect)
+            / (planned_effect - null_minimum_effect)
         ) ** 2))
         required = max(minimum_test_groups, required)
         required = int(math.ceil(required / 10.0) * 10)
@@ -692,17 +780,29 @@ def endpoint_viability_assessment(
             "nonzero_paired_groups": nonzero,
             "minimum_nonzero_paired_groups": minimum_nonzero_groups,
             "nondegenerate": nondegenerate,
+            "higher_is_better": higher_is_better,
+            "null_minimum_effect": float(null_minimum_effect),
+            "planning_effect": float(planned_effect),
             "detectable_true_effect_at_registered_power": detectable_effect,
             "required_test_groups_for_planning_effect": required,
         }
 
-    by_metric = {
-        metric: {
-            f"A_vs_{baseline}": contrast(metric, baseline)
+    by_metric = {}
+    for metric in (exact_metric, graded_metric, support_metric, burden_metric):
+        is_burden = metric == burden_metric
+        by_metric[metric] = {
+            f"A_vs_{baseline}": contrast(
+                metric, baseline,
+                higher_is_better=not is_burden,
+                null_minimum_effect=(
+                    burden_minimum_effect if is_burden else minimum_effect
+                ),
+                planned_effect=(
+                    burden_planning_effect if is_burden else planning_effect
+                ),
+            )
             for baseline in ("C", "E")
         }
-        for metric in (exact_metric, graded_metric, support_metric)
-    }
     exact_ok = all(
         value["nondegenerate"] for value in by_metric[exact_metric].values()
     )
@@ -712,11 +812,17 @@ def endpoint_viability_assessment(
     support_ok = all(
         value["nondegenerate"] for value in by_metric[support_metric].values()
     )
+    burden_ok = all(
+        value["nondegenerate"] for value in by_metric[burden_metric].values()
+    )
     if oracle_failures:
         disposition = "abort_oracle_integrity_failure"
         selected_metric = None
     elif not support_ok:
         disposition = "stop_open_memory_support_endpoint_not_viable"
+        selected_metric = None
+    elif not burden_ok:
+        disposition = "stop_open_fact_burden_endpoint_not_viable"
         selected_metric = None
     elif exact_ok:
         disposition = "retain_exact_endpoint"
@@ -731,7 +837,7 @@ def endpoint_viability_assessment(
     if selected_metric is not None:
         selected_test_groups = max(
             value["required_test_groups_for_planning_effect"]
-            for metric in (selected_metric, support_metric)
+            for metric in (selected_metric, support_metric, burden_metric)
             for value in by_metric[metric].values()
         )
     reference_counts = np.asarray([
@@ -742,10 +848,13 @@ def endpoint_viability_assessment(
         "disposition": disposition,
         "selected_metric": selected_metric,
         "required_support_metric": support_metric,
+        "required_burden_metric": burden_metric,
         "oracle_integrity_pass": not oracle_failures,
         "oracle_failure_groups": sorted(oracle_failures),
         "minimum_effect": float(minimum_effect),
         "planning_effect": float(planning_effect),
+        "burden_minimum_effect": float(burden_minimum_effect),
+        "burden_planning_effect": float(burden_planning_effect),
         "one_sided_alpha_per_primary_contrast": 0.025,
         "target_power": 0.8,
         "by_metric": by_metric,

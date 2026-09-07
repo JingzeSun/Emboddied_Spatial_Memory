@@ -80,6 +80,71 @@ class TestM1Metrics(unittest.TestCase):
         )
         self.assertEqual(metrics["false_birth_growth"], 1.0)
         self.assertEqual(metrics["memory_contamination"], 1.0)
+        self.assertEqual(metrics["extra_open_fact_error"], 1.0)
+        self.assertEqual(metrics["missing_open_fact_error"], 0.0)
+
+    def test_false_birth_set_difference_cannot_be_cancelled_by_deletion(self):
+        record = next(row for row in self.audit if row["case_family"] == "C01")
+        reference = deepcopy(record["executed_candidates"][
+            record["reference_program_index"]
+        ]["post_graph"])
+        predicted = deepcopy(reference)
+        removed = next(
+            node for node in predicted["nodes"]
+            if node["node_type"] == "entity"
+            and node.get("valid_to") is None
+            and node["lifecycle"] not in {"retracted", "alias"}
+        )
+        removed["valid_to"] = 9
+        predicted["nodes"].append({
+            "node_id": "false-extra", "node_version_id": "false-extra@0",
+            "node_type": "entity", "lifecycle": "candidate",
+            "valid_from": 9, "valid_to": None, "canonical_id": None,
+            "predecessor_ids": [], "evidence_refs": ["ev:false-extra"],
+            "latent_refs": ["latent:false-extra"], "provenance": ["test"],
+        })
+        metrics = graph_error_counts(predicted, reference, reference, [])
+        self.assertEqual(metrics["false_birth_growth"], 1.0)
+        self.assertEqual(metrics["missing_open_entities"], 1.0)
+
+    def test_rollout_separates_new_wrong_writes_from_stale_retention(self):
+        record = self.audit[0]
+        reference = deepcopy(record["executed_candidates"][
+            record["reference_program_index"]
+        ]["post_graph"])
+        wrong = deepcopy(reference)
+        extra = deepcopy(next(
+            edge for edge in wrong["edges"] if edge.get("valid_to") is None
+        ))
+        extra["edge_id"] = "test:wrong-write"
+        extra["edge_version_id"] = "test:wrong-write@v0"
+        extra["target"] = "place:test-wrong-target"
+        wrong["edges"].append(extra)
+        states = [wrong] * 20
+        bases = [reference] + [wrong] * 19
+        metrics = rollout_graph_metrics(
+            states, [reference] * 20, bases, [[]] * 20, horizon=20,
+        )
+        self.assertEqual(
+            metrics["terminal_extra_open_fact_error_per_100_decisions"],
+            5.0,
+        )
+        self.assertEqual(
+            metrics["new_incorrect_open_fact_write_auc_per_100_decisions"],
+            5.0,
+        )
+        self.assertEqual(
+            metrics["retained_stale_open_fact_auc_per_100_decisions"],
+            95.0,
+        )
+        self.assertEqual(
+            metrics["extra_open_fact_error_auc_per_100_decisions"],
+            100.0,
+        )
+        self.assertEqual(
+            metrics["memory_contamination_auc_per_100_decisions"],
+            metrics["extra_open_fact_error_auc_per_100_decisions"],
+        )
 
     def test_rollout_requires_real_frozen_horizon(self):
         record = self.audit[0]
@@ -264,6 +329,11 @@ class TestM1Metrics(unittest.TestCase):
                         "active_node_state_error_per_100": (
                             0.0 if method == "F" else 1.0
                         ),
+                        "open_fact_error_auc_per_100_decisions": (
+                            0.0 if method == "F" else (
+                                5.0 + 0.1 * group if method == "A" else 8.0
+                            )
+                        ),
                         "final_active_reference_record_count": 40.0 + group,
                     },
                 })
@@ -276,6 +346,18 @@ class TestM1Metrics(unittest.TestCase):
             "final_graded_active_world_correctness",
         )
         self.assertFalse(result["winner_or_effect_sign_used_for_switch"])
+        self.assertEqual(
+            result["required_burden_metric"],
+            "open_fact_error_auc_per_100_decisions",
+        )
+        self.assertIn(
+            "open_fact_error_auc_per_100_decisions", result["by_metric"],
+        )
+        self.assertFalse(
+            result["by_metric"]["open_fact_error_auc_per_100_decisions"][
+                "A_vs_C"
+            ]["higher_is_better"]
+        )
         self.assertEqual(
             result["by_metric"]["final_active_graph_correctness"][
                 "A_vs_C"
@@ -301,6 +383,11 @@ class TestM1Metrics(unittest.TestCase):
                             )
                         ),
                         "active_node_state_error_per_100": 0.0,
+                        "open_fact_error_auc_per_100_decisions": (
+                            0.0 if method == "F" else (
+                                5.0 + 0.1 * group if method == "A" else 8.0
+                            )
+                        ),
                         "final_active_reference_record_count": 30.0,
                     },
                 })

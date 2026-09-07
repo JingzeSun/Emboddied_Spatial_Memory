@@ -16,7 +16,7 @@
 
 ## 当前指针
 
-- 当前阶段：**S4 M1-v6：D-044 基础指标与一次性分支规则已实现；指标层审计已登记为 endpoint probe 前的阻断待办。服务器 full test 可完成，但在审计待办形成 D-045 并实现/验证前，不运行 endpoint probe 或完整预算网格。**
+- 当前阶段：**S4 M1-v6：D-045 已接受并完成指标构念/全过程负担/gate 的本地接线；下一步只在干净服务器运行 D-044/D-045 full test。成功前不运行 endpoint probe 或完整预算网格；成功后另一次提交才把唯一服务器入口改写为固定 `(0,0)` gate 的 train-only endpoint probe。**
 - 最近有效证据：v5 S2 的 arrays/manifest/report 已验收；1000−300 的 paired-group 95% CI 为 `[+0.008750,+0.045000]`，按预登记规则选择 1000。10-group 同预算锚点中共同 group 1 的 40−10 平均差为 `+0.005000`、仅 `1/5` seed 严格为正，未达 S3 触发条件。完整数字与 provenance 见 `EXECUTE.md` LOG-032/033。
 - 已完成：同一份 40-group v4 arrays 确定性截取 10/40 groups，运行 scorer steps {60,300,1000} × seed 7。40-group 全 train 上，static preflight 对 2,552/2,552 个 executor-illegal 候选全部静态拒绝、合法误拒 0；过滤后 target-only 均匀并列期望由 0.7729 升至 0.9698，assembled oracle accuracy 由 0.7438 升至 0.9525，其 exact-ambiguity capped 读数由 0.7275 升至 0.9275。D-038 已接受把同一只读预检变成 A–E 共享 mask；旧 v4 过滤数字仍只作采纳依据，不冒充 v5 方法成绩。
 - scorer 分支：40-group inner-dev 的未过滤/过滤后 teacher accuracy 在 steps 60/300/1000 分别为 0.0500/0.5688/0.5031 与 0.0625/0.7469/0.7094。1000 steps 虽将 held-out BCE 从 0.1016 降到 0.0744，候选排序却低于 300 steps；共同 group 1 在 10/40 groups、300/1000 steps 过滤后均为 0.875，也没有显示扩大到 S3 的明确数据收益。因此 300 steps 只是当前单 seed 候选，尚未固定。
@@ -27,20 +27,20 @@
 - scorer 选择规则：共享 mask 后的 inner-dev candidate-ranking accuracy 是主选择量；同一 paired group、同一 seed 的 1000−300 先配对，再在每个 group 内对五个登记 seed 求平均，最后对 8 个 group 差值用固定 seed=260906 做 10,000 次单层 paired-group bootstrap，取 95% percentile CI。只有 CI 下界大于 0 才选 1000，否则选计算更省的 300；不得把 5×8 格子当成 40 个独立样本。总体/判别性 BCE 与 reference ranking margin 只解释目标是否失配，不按 BCE 单独选预算。若多 seed 复现“总体 BCE 改善但判别性 BCE、margin 或排序下降”，另立 decision 后才可测试 future-derived listwise loss，不得直接用全量 reference index 监督。
 - BCE 分解判据：`ranking_relevant_bce` 是 loss-mismatch 的主 BCE 诊断，因为它直接筛出会改变 oracle mismatch 贡献、因而可能改变候选能量排序的位置；`target_discriminative_bce` 是次级解释量，只回答同一坐标在准入候选间是否同时出现真/假。两者不必是包含关系；发生冲突时，预算仍只按 candidate-ranking accuracy 的预登记置信区间选择，是否改 loss 以 ranking-relevant BCE、reference margin 与实际排序的多 seed 共变为主，且必须另立 decision。
 - D-043 预算边界：每种架构先选 E scorer，再让 A–E 从完全相同的 12 格中以同一 reference accuracy 各自选 `(lr,updates)`；精确平手取更少 updates、再取更小 lr。10000 触顶照实接受、不扩格；共享格与 A/E 交叉格只作算力敏感性诊断。架构之间禁止择优，C auxiliary weight 暂固定 1.0。`test_access=false`、`validation_arrays_read=false`、`validation_trial_consumed=false`；不校准 gate、不跑 causal，不进入 PNO/M2 或全局 reconciliation。
-- D-044 endpoint 边界：只在 Set Transformer 主臂以固定 `(lr=0.0006, updates=3000)` 跑 A/C/E、五 seed 和 F；201 个 inner-dev groups 内使用两折 cross-fitted shared gate。F 任一 semantic exact/graded、open-memory graded 或 node integrity 失败立即停止。semantic exact 的 A−C/A−E 均有至少 7 个非零 paired-group 差且 SD>0 时保留 exact；否则仅在 active graded 两对照均满足时一次切换，开关禁止读取赢家、效应方向和大小；open-memory graded 是固定 co-primary，也必须对两对照非退化。test N 取 selected semantic/open-memory × 两对照的 paired-SD 功效需求最大值。机制–指标矩阵另要求 C10 的相反 BIND/NOOP 被 evidence-support 通道看见、C11 指定对照被 unrelated collateral 看见；C10 单步仍按信息上限预期约 0.5，不宣称模型能预测未见未来。validation/test 仍封存。
+- D-044/D-045 endpoint 边界：只在 Set Transformer 主臂以固定 `(lr=0.0006, updates=3000)` 跑 A/C/E、五 seed 和 F；所有方法固定 `(commit_probability=0, margin_threshold=0)`，不再用两折单步代理选择 shared raw-softmax gate。F 任一 semantic exact/graded、open-memory graded、open-fact AUC 或 node integrity 失败立即停止。semantic exact 的 A−C/A−E 均有至少 7 个非零 paired-group 差且 SD>0 时保留 exact；否则仅在 active graded 两对照均满足时一次切换，开关禁止读取赢家、效应方向和大小；open-memory graded 与 `open_fact_error_auc_per_100_decisions` 是固定 co-primary，也必须对两对照非退化。test N 取 selected semantic/open-memory/open-fact AUC × 两对照的 paired-SD 功效需求最大值。机制–指标矩阵另要求 C10 的相反 BIND/NOOP 被 evidence-support 通道看见、C11 指定对照被 unrelated collateral 看见；C10 单步仍按信息上限预期约 0.5，不宣称模型能预测未见未来。validation/test 仍封存。
 
-## 重开对话后的强制待办（指标层审计，尚未形成新 decision）
+## 指标层审计处置（D-045 已形成，待服务器 full test）
 
-依据：[2026-09-07 指标层审计](../../docs/reviews/2026-09-07_metric_layer_audit.md)。该文件是外部只读复核，不是 ground truth；以下事项是正式 endpoint probe/完整预算网格前必须逐项处理并在新 decision 中冻结的工程与统计待办。
+依据：[2026-09-07 指标层审计](../../docs/reviews/2026-09-07_metric_layer_audit.md)。该文件是外部只读复核，不是 ground truth；以下事项已由 D-045 逐项裁定并完成本地接线，只有服务器 full test 成功后才算通过工程验证。
 
-1. **污染构念对齐（阻断）**：当前 `memory_contamination` 实际是终点额外开放边错误，未区分主动错误写入与未及时撤销的 stale fact；对照原始愿景的 Dynamic Contamination Rate，需拆出 commission/omission（至少保留旧字段兼容 alias），并明确 M1 哪一项代表原始构念。
-2. **终点与时间负担（阻断）**：不能只用第 20 步终点代表 long-horizon contamination。并列登记 terminal burden 与时间积分/AUC burden；若仍把 contamination 作为 co-primary，endpoint probe 的功效规划必须纳入它，不能只按 semantic/open-memory 定 test N。
-3. **指标命名清理**：`post_graph_correct`/`history_exact` 的兼容别名、`unresolved_active_error` 的反极性冗余、exact/graded 的主次角色必须在正式报告中明确，避免把 retained history 当 active world。
-4. **统计/门修正**：空 recovery 分母必须返回 `None` 并报告 eligible denominator；`false_birth_growth` 不能用实体基数差抵消错误删除与错误新增；shared commit gate 的绝对阈值尺度和“一步指标选 gate、20 步 endpoint 评价”的错配必须先用 train-only 证据决定是否改为可比的预登记规则。
-5. **minimal-world-change 只作已审计正则项**：edit/growth posterior influence 很小是结果，不得为制造作用事后调权；若保留该措辞，论文只称其为注册 prior/regularizer，不称其为已验证主机制。
-6. **范围边界**：M1 只验证 CPMT/CTL 的受控 persistent-world revision；最初愿景中的独立 dynamic/transient memory、decay、static retention、reappearance/viewpoint consistency 留给 M2/M3，不能用 M1 指标宣称已经验证。
+1. **污染构念对齐（已接线）**：`memory_contamination` 已降为兼容 alias；规范量改为 extra/missing open-fact error，并把额外事实拆成 new-write/stale-retention。M1 明确不声称原始 Dynamic Contamination Rate。
+2. **终点与时间负担（已接线）**：terminal burden 与 AUC burden 已分开登记；正式长期负担 co-primary 是 extra+missing 的 `open_fact_error_auc_per_100_decisions`，并已纳入 test-N 功效规划。
+3. **指标命名清理（已接线）**：history/post、contamination 与 unresolved 兼容 alias 已从正式 endpoint summary 排除；exact 是首选二值语义终点，graded 只作一次性同构 fallback。
+4. **统计/门修正（已接线）**：空 recovery 分母返回 `None` 并报告 eligible denominator；`false_birth_growth` 使用集合差；shared gate 固定为 `(0,0)` always-attempt，不再用一步 proxy 选择 20-step gate。
+5. **minimal-world-change（已裁定）**：edit/growth posterior influence 继续原样报告，不事后调权；论文只称其为注册 prior/regularizer，不称其为已验证主机制。
+6. **范围边界（已裁定）**：M1 只验证 CPMT/CTL 的受控 persistent-world revision；独立 dynamic/transient memory、decay、static retention、reappearance/viewpoint consistency 留给 M2/M3。
 
-待办完成顺序固定为：读取审计与原始愿景 → 建立 D-045（只冻结上述构念/统计选择，不看 validation/test）→ 更新机器 config、runner、报告 schema 与单测 → full test → 固定 endpoint probe → 再决定是否进入完整预算网格。A1/A2/A4 的 evidence/node/collateral 覆盖修复与 D-044 保持，不重复返工；C10 继续按信息上限约 0.5 解释，不宣称能预测未见未来。
+处置结果：规范名改为 extra/missing open-fact error，并拆 new-write/stale-retention；terminal 与 AUC 并列，`open_fact_error_auc_per_100_decisions` 成为固定 co-primary 且纳入 test-N；正式主表排除 history/post、contamination 和 unresolved 兼容别名；空 recovery 为 `null`、false-birth 用集合差；minimal-world-change 只称注册正则；M1 不声称原始 DCR 或完整 static/dynamic 双记忆。D-044 的 shared cross-fitted gate 被 D-045 固定 `(0,0)` 无选择 gate supersede，以消除跨方法概率尺度和单步/20-step 尺度错配。完成顺序现为：**服务器 full test → 固定 endpoint probe → 再决定是否进入完整预算网格**。A1/A2/A4 的 evidence/node/collateral 覆盖修复保持，不重复返工；C10 继续按信息上限约 0.5 解释，不宣称能预测未见未来。
 
 ## 总流程
 
@@ -73,8 +73,8 @@ S7 M1 成功 / no-go / 不确定收口
 | S1（v4/v5 ✓） | E 低是 target、能量组装、优化还是泛化问题 | 10-group train arrays 按 SHA-256 留出完整 inner-dev group；scorer=60、seed=7；不读 validation | v5 shared-mask 不变量、target/assembly 与 scorer 接线已复核；结果见 `EXECUTE.md` LOG-031 |
 | S2（v4 seed 7 ✓；v5 ✓） | E 是优化不足、数据不足还是两者交互；逐关系 BCE 是否与候选排序失配 | D-038 后先以 10 groups/60 steps/seed 7 重跑 S1；再在同一 40-group v5 train arrays 上跑 steps {300,1000} × seeds {7,19,31,43,59}；已选 1000 后，补 10 groups × 1000 × 五 seed 的同预算共同-group 锚点；只用 train/inner-dev | shared-mask 不变量、v5 S1 与 300/1000 五 seed 完整；按 paired-group CI 规则已选择唯一 scorer budget=1000；锚点未满足预登记方向判据，故 S3 跳过，不据 BCE 单独改 loss |
 | S3 | 40 groups 后是否仍明确受数据多样性限制 | 仅在 S2 的 10→40 同预算锚点满足预登记方向判据后，在一个更大 train-group 点上复扫 S2 的两个 scorer steps，而不是顺序固定旧最优；仍只用 train/inner-dev | 确认最优 steps 是否随数据规模改变，并判定数据曲线继续上升或已经饱和；不得同时改容量或 target |
-| S4 | 正式 run 的分母、能量、架构和终止规则是否唯一 | 按 D-040 固定总混合 group 与真实 C10/C11；按 D-041 固定能量和机制审计；D-043 冻结 Pre-LN 主臂、A–E 相同 12 格及逐方法/共享/交叉预算读数；D-044 在网格前以固定 train-only anchor 机械选择 exact 或同构 graded endpoint，并用 paired SD 前瞻定 test 数，同时常驻节点与完整 collateral 安全量 | D-043 服务器全测、12-group digest、1000-group train arrays 与 4.367 小时成本剖析均已通过；D-044 规则已冻结，待科学代码服务器全测及一次 endpoint probe；架构间不择优，endpoint 开关不读赢家/方向/效应，validation/test 仍封存 |
-| S5 | 锁定设置在足量 train/validation 上是否值得进入 test | 生成满足 C00–C11 support 的 train 和与已查看 4 groups 不重叠的新 validation confirmation；5 seeds；10% labels 主设置；完整 20-step causal 和 10,000 paired bootstrap | coverage/invariant/provenance 全通过；calibration 选唯一共享 gate；新的 report 半区仅报一次；没有触发明确 stop rule |
+| S4 | 正式 run 的分母、能量、架构和终止规则是否唯一 | 按 D-040 固定总混合 group 与真实 C10/C11；按 D-041 固定能量和机制审计；D-043 冻结 Pre-LN 主臂、A–E 相同 12 格及逐方法/共享/交叉预算读数；D-044/D-045 在网格前以固定 train-only anchor 机械选择 exact 或同构 graded endpoint、前瞻确定三类 co-primary 的 test N，并固定 `(0,0)` 无选择 gate、全过程 open-fact burden、节点与完整 collateral 安全量 | D-043 服务器全测、12-group digest、1000-group train arrays 与 4.367 小时成本剖析均已通过；D-044/D-045 本地接线完成，待科学代码服务器全测及一次 endpoint probe；架构间不择优，endpoint 开关不读赢家/方向/效应，validation/test 仍封存 |
+| S5 | 锁定设置在足量 train/validation 上是否值得进入 test | 生成满足 C00–C11 support 的 train 和与已查看 4 groups 不重叠的新 validation confirmation；calibration 半区只选 C auxiliary weight，gate 固定 `(0,0)`；5 seeds、10% labels、完整 20-step causal 和 10,000 paired bootstrap | coverage/invariant/provenance 全通过；不校准 gate；新的 report 半区只报告一次；没有触发明确 stop rule |
 | S6 | 封存后的未见数据是否支持 CTL 主张 | 记录 protocol/code/data/hyperparameter hash，单独人工解封 test；test 不选阈值、checkpoint 或方法 | 5 seeds 完整 A–F causal 结果、逐例指标、paired CI、所有失败和完整 provenance |
 | S7 | M1 是否成功且可以结束 | 严格按下方终止规则 | 唯一 pass/no-go/inconclusive 结论；更新 EXECUTE/DECISIONS/claim ledger；不再调 M1 |
 
@@ -100,14 +100,14 @@ E 的 scorer 与 A–E 的 online student 使用两个独立预算：E 额外 sc
 
 D-043 已把新曲线定为两架构各自的 learning rate `{0.0002,0.0006,0.002}` × `{300,1000,3000,10000}` 前缀 checkpoints × 五 seed，并改用完整 1000-group train 的固定 inner-dev。E scorer 先按 reference candidate-ranking accuracy 选择；随后 A–E 各自按同一 reference-candidate selection accuracy 选格。最高均值胜，只有精确平手才取更小 updates、再取更小 lr；10000 胜出直接接受并标 ceiling。相同网格还输出一个 A–E 共享格和 A/E 在彼此格上的交叉读数，均不反向改变正式配置。它是有限网格而非 held-out BCE early stopping；架构身份、网格上界和选择量不随中间结果扩张。
 
-validation trial 预算单独保留给 C auxiliary weight 和 shared commit rule：已查看的历史 smoke 保守计 1 次，C auxiliary weight 最多使用 3 个登记点，总计仍不超过每方法 6 次。D-043 的 learning rate/checkpoint 网格只读 train/inner-dev，不计作 validation trial，但每格必须完整报告且不得扩张。LOG-022 已经查看过的 4-group report 半区不再被称为 S5 首次确认；S4 必须登记一个不重叠的 validation confirmation group range。
+validation trial 预算只保留给 C auxiliary weight：已查看的历史 smoke 保守计 1 次，C auxiliary weight 最多使用 3 个登记点，总计仍不超过每方法 6 次；D-045 已固定 commit gate，不再消耗 validation trial。D-043 的 learning rate/checkpoint 网格只读 train/inner-dev，不计作 validation trial，但每格必须完整报告且不得扩张。LOG-022 已经查看过的 4-group report 半区不再被称为 S5 首次确认；S4 必须登记一个不重叠的 validation confirmation group range。
 
 ## 允许调整与必须重新冻结的边界
 
 | 类型 | 处理方式 |
 |---|---|
 | 可在当前阶段调整 | 诊断输出字段、CPU/GPU 线程、worker 数和不改数据/训练轨迹的批处理方式；结果写 EXECUTE |
-| 只能按已登记规则选 | learning rate/checkpoint 只从 D-043 的相同 12 格用 train/inner-dev 选择；validation 只选 C auxiliary weight 与共享 commit rule，累计不超过每方法 6 个 validation trials；任何扩格须新 decision |
+| 只能按已登记规则选 | learning rate/checkpoint 只从 D-043 的相同 12 格用 train/inner-dev 选择；validation 只选 C auxiliary weight，commit gate 固定 `(0,0)`，累计不超过每方法 6 个 validation trials；任何扩格须新 decision |
 | 必须新 decision + 新 dataset/protocol hash + 从 S1 重跑 | 启用 static-preflight 候选过滤、E target 定义、能量标准化/权重、recovery 触发/范围、K、候选生成器、H 主值、online feature 语义、主指标或效应门槛 |
 | test 解封后禁止调整 | 所有会影响方法、数据、阈值、checkpoint、排除项或报告口径的内容；test 只产生最终结论 |
 

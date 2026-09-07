@@ -588,6 +588,113 @@ def load_and_validate(path: Path) -> dict[str, Any]:
     return config
 
 
+def validate_m1_endpoint_probe(
+    probe: Mapping[str, Any], source_protocol: Mapping[str, Any],
+) -> None:
+    """Reject a leaky or semantically regressed D-044/D-045 probe overlay."""
+    _require(
+        probe.get("schema_version") == "m1-endpoint-viability-probe-v2",
+        "wrong endpoint probe schema",
+    )
+    _require(probe.get("decisions") == ["D-044", "D-045"],
+             "endpoint probe decisions changed")
+    source = probe.get("source_protocol", {})
+    _require(source.get("protocol_sha256") == protocol_sha256(source_protocol),
+             "endpoint probe source protocol changed")
+    _require(source.get("dataset_version")
+             == source_protocol["data"]["dataset_version"],
+             "endpoint probe source dataset changed")
+    access = probe.get("access_boundary", {})
+    _require(
+        access.get("train_arrays_read") is True
+        and access.get("validation_arrays_read") is False
+        and access.get("validation_trial_consumed") is False
+        and access.get("test_generated") is False
+        and access.get("test_access") is False,
+        "endpoint probe may read train only",
+    )
+    gate = probe.get("commit_rule", {})
+    _require(
+        gate.get("mode") == "fixed_always_attempt_shared_gate"
+        and gate.get("commit_probability") == 0.0
+        and gate.get("margin_threshold") == 0.0
+        and gate.get("selection") == "none"
+        and gate.get("validation_rows_used_for_gate_selection") == 0
+        and gate.get("shared_across") == ["A", "C", "E", "F"],
+        "endpoint probe gate must be fixed, shared, and selection-free",
+    )
+    alignment = probe.get("construct_alignment", {})
+    _require(
+        alignment.get("registered_long_horizon_co_primary")
+        == "open_fact_error_auc_per_100_decisions",
+        "endpoint probe must use cumulative open-fact error burden",
+    )
+    _require(
+        "not_claimed_in_M1"
+        in alignment.get("dynamic_contamination_rate_mapping", ""),
+        "M1 may not claim the original dynamic contamination construct",
+    )
+    power = probe.get("power_planning", {})
+    _require(
+        power.get(
+            "take_maximum_across_primary_contrasts_and_selected_semantic_plus_open_memory_support_plus_open_fact_error_AUC_endpoints"
+        ) is True
+        and power.get("open_fact_error_auc_null_boundary_minimum_effect") == 2.0
+        and power.get("open_fact_error_auc_planning_true_effect") == 4.0,
+        "power planning must include the cumulative burden co-primary",
+    )
+    reporting = probe.get("always_on_reporting_and_safety", {})
+    _require(reporting.get("empty_conditional_denominator_value") is None,
+             "empty recovery denominators must be null")
+    _require(
+        "without_net_cardinality_cancellation"
+        in reporting.get("false_birth_growth_definition", ""),
+        "false-birth growth may not use net cardinality",
+    )
+    naming = probe.get("naming_and_scope", {})
+    excluded = set(naming.get("formal_primary_table_excludes", []))
+    _require(
+        {"final_post_graph_correctness", "unresolved_active_error",
+         "memory_contamination_per_100", "excess_nodes"} <= excluded,
+        "formal endpoint table must exclude compatibility aliases",
+    )
+    report_fields = set(reporting.get("report", []))
+    _require(
+        {
+            "terminal_extra_open_fact_error_per_100_decisions",
+            "terminal_missing_open_fact_error_per_100_decisions",
+            "terminal_new_incorrect_open_fact_write_per_100_decisions",
+            "terminal_retained_stale_open_fact_per_100_decisions",
+            "open_fact_error_auc_per_100_decisions",
+            "false_birth_growth_per_100",
+            "false_birth_growth_auc_per_100_decisions",
+            "missing_open_entity_auc_per_100_decisions",
+        } <= report_fields
+        and not (excluded & report_fields),
+        "always-on report must use canonical D-045 fields",
+    )
+    _require(
+        naming.get("minimal_world_change_interpretation")
+        == "registered_prior_or_regularizer_only_not_a_validated_primary_mechanism",
+        "minimal-world-change may only be described as a registered regularizer",
+    )
+    output = probe.get("output", {})
+    _require(
+        output.get("schema_version") == "m1-endpoint-viability-report-v2"
+        and output.get("save_fixed_commit_rule") is True
+        and "save_cross_fitted_gate_by_fold" not in output,
+        "wrong endpoint report schema",
+    )
+
+
+def load_and_validate_endpoint_probe(
+    path: Path, source_protocol: Mapping[str, Any],
+) -> dict[str, Any]:
+    probe = json.loads(path.read_text(encoding="utf-8"))
+    validate_m1_endpoint_probe(probe, source_protocol)
+    return probe
+
+
 def protocol_sha256(config: Mapping[str, Any]) -> str:
     payload = json.dumps(
         config, ensure_ascii=False, sort_keys=True, separators=(",", ":")

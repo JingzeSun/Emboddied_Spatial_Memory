@@ -8,7 +8,7 @@ and training can happen on different machines or at different times.
 Two phases are reported. Teacher-forced accuracy answers the single-step
 contrasts. The 20-step causal self-rollout replays each sequence on the world
 that method's own choices produced, so an early wrong transaction keeps
-contaminating later decisions; that is the protocol's primary metric family and
+burdening later decisions; that is the protocol's primary metric family and
 single-step accuracy is not a substitute for it.
 
 Every (method, seed) causal result is written as it completes, so an interrupted
@@ -37,7 +37,6 @@ from cpmt.dev_learning import (  # noqa: E402
 )
 from cpmt.m1_af_rollout import (  # noqa: E402
     CANDIDATE_FEATURE_DIM, CURRENT_RELATION_QUERIES,
-    calibrate_shared_commit_rule,
     causal_rollout_metrics, paired_group_is_calibration,
     mechanism_slice_selection_diagnostics,
     rollout_learning_arrays_from_audits, selection_error_decomposition,
@@ -150,6 +149,7 @@ def _paired_causal_statistics(
     bootstrap = hard["evaluation"]["bootstrap"]
     meaningful = hard["evaluation"]["meaningful_effect"]
     safety = hard["evaluation"]["safety_noninferiority_margin_per_100"]
+    open_fact_burden_minimum = 2.0  # D-045; not the original DCR construct.
     resamples = int(bootstrap["resamples"])
     confidence = float(bootstrap["confidence"])
     contrasts = {}
@@ -166,12 +166,19 @@ def _paired_causal_statistics(
                 minimum_effect=float(
                     meaningful["active_graph_correctness_absolute"]),
             ),
-            "memory_contamination": paired_stratified_bootstrap(
+            "open_memory_support": paired_stratified_bootstrap(
                 rows, "cpmt_ctl_core", other,
-                "memory_contamination_per_100", higher_is_better=False,
+                "final_graded_open_memory_correctness",
+                higher_is_better=True,
                 resamples=resamples, confidence=confidence,
-                minimum_effect=float(
-                    meaningful["memory_contamination_absolute_per_100"]),
+                minimum_effect=0.03,
+            ),
+            "open_fact_error_burden": paired_stratified_bootstrap(
+                rows, "cpmt_ctl_core", other,
+                "open_fact_error_auc_per_100_decisions",
+                higher_is_better=False,
+                resamples=resamples, confidence=confidence,
+                minimum_effect=open_fact_burden_minimum,
             ),
             "false_birth_noninferiority": paired_stratified_bootstrap(
                 rows, "cpmt_ctl_core", other,
@@ -185,15 +192,24 @@ def _paired_causal_statistics(
                 resamples=resamples, confidence=confidence,
                 minimum_effect=-float(safety["collateral_violation"]),
             ),
+            "active_node_noninferiority": paired_stratified_bootstrap(
+                rows, "cpmt_ctl_core", other,
+                "active_node_state_error_per_100", higher_is_better=False,
+                resamples=resamples, confidence=confidence,
+                minimum_effect=-1.0,
+            ),
         }
-        # Both co-primary benefits are required. Their maximum one-sided p is
+        # All three co-primary benefits are required. Their maximum one-sided p is
         # the conservative intersection-union p for this contrast; Holm then
         # corrects the registered A-C/A-E family.
         p_values[short] = max(
             metrics["active_graph_correctness"][
                 "one_sided_p_at_or_below_minimum"
             ],
-            metrics["memory_contamination"][
+            metrics["open_memory_support"][
+                "one_sided_p_at_or_below_minimum"
+            ],
+            metrics["open_fact_error_burden"][
                 "one_sided_p_at_or_below_minimum"
             ],
         )
@@ -209,12 +225,14 @@ def _paired_causal_statistics(
             adjusted[name] <= alpha
             and metrics["active_graph_correctness"]["ci_low"]
             >= float(meaningful["active_graph_correctness_absolute"])
-            and metrics["memory_contamination"]["ci_low"]
-            >= float(meaningful["memory_contamination_absolute_per_100"])
+            and metrics["open_memory_support"]["ci_low"] >= 0.03
+            and metrics["open_fact_error_burden"]["ci_low"]
+            >= open_fact_burden_minimum
             and metrics["false_birth_noninferiority"]["ci_low"]
             >= -float(safety["false_birth_growth"])
             and metrics["collateral_noninferiority"]["ci_low"]
             >= -float(safety["collateral_violation"])
+            and metrics["active_node_noninferiority"]["ci_low"] >= -1.0
         )
     return {
         "scope": "validation_report_partition_not_formal_test_gate",
@@ -288,8 +306,11 @@ def main() -> int:
         raise ValueError(
             "train arrays did not pass the preregistered teacher health gate"
         )
-    report_mask = ~np.asarray(validation_np["calibration"], dtype=bool)
     recovery_mask = np.asarray(validation_np["recovery"], dtype=bool)
+    # D-045 supersedes validation-selected confidence gates, but the historical
+    # calibration/report split remains necessary for the separately registered
+    # C auxiliary-weight selection. Gate selection still consumes zero rows.
+    report_mask = ~np.asarray(validation_np["calibration"], dtype=bool)
     online_report_mask = report_mask & ~recovery_mask
     calibration_online_mask = ~report_mask & ~recovery_mask
     validation_report_np = _subset_rows(validation_np, online_report_mask)
@@ -332,6 +353,8 @@ def main() -> int:
                current_evidence_scope_ranks=int(hard["candidates"][
                    "proposal_retrieval"
                ]["enumerated_ranks"]),
+               commit_probability=0.0,
+               margin_threshold=0.0,
                **architecture_settings)
 
     print(f"protocol {protocol_sha256(hard)[:16]}  "
@@ -442,7 +465,7 @@ def main() -> int:
     forced: dict[str, list[dict]] = {m: [] for m in STUDENTS}
     scorer_teacher: list[float] = []
     scorer_diagnostics: list[dict] = []
-    calibration_probabilities: dict[str, np.ndarray] = {}
+    validation_probabilities: dict[str, np.ndarray] = {}
     # Train every seed first, so the single-step table and the primary contrasts
     # are on screen within minutes. The causal replay that follows takes orders
     # of magnitude longer, and its per-pair results are written as they land.
@@ -501,7 +524,7 @@ def main() -> int:
                 probs = masked_candidate_probabilities(
                     logits, candidate_admissibility_mask(V, logits),
                 ).cpu().numpy()
-            calibration_probabilities[f"{method}:seed{seed}"] = probs
+            validation_probabilities[f"{method}:seed{seed}"] = probs
             forced[method].append(selection_error_decomposition(
                 probs[online_report_mask], validation_report_np,
             ))
@@ -526,15 +549,20 @@ def main() -> int:
             flush=True,
         )
 
-    commit_calibration = calibrate_shared_commit_rule(
-        calibration_probabilities, validation_np, hard,
-    )
-    cfg.update(commit_calibration["selected"])
+    commit_rule = {
+        "mode": "fixed_always_attempt_shared_gate",
+        "commit_probability": 0.0,
+        "margin_threshold": 0.0,
+        "selection": "none",
+        "validation_rows_used_for_gate_selection": 0,
+        "validation_calibration_partition_retained_for_c_auxiliary_weight": True,
+        "decision": "D-045",
+    }
     mechanism_slice_reports: dict[str, list[dict]] = {}
     for method in STUDENTS:
         mechanism_slice_reports[method] = [
             mechanism_slice_selection_diagnostics(
-                calibration_probabilities[f"{method}:seed{seed}"],
+                validation_probabilities[f"{method}:seed{seed}"],
                 validation_np,
                 hard["evaluation"]["mechanism_diagnostic_slices"],
                 row_mask=online_report_mask,
@@ -557,10 +585,10 @@ def main() -> int:
         )
     ]
     print(
-        "selected shared commit rule on calibration groups: "
+        "fixed D-045 commit rule (no validation selection): "
         f"p={cfg['commit_probability']:.3f} "
         f"margin={cfg['margin_threshold']:.3f}; "
-        f"report rows={commit_calibration['report_rows']}",
+        f"report rows={int(online_report_mask.sum())}",
         flush=True,
     )
     report_audits = (
@@ -626,7 +654,7 @@ def main() -> int:
               flush=True)
         for seed in seeds:
             for method in ALL_METHODS:
-                target = causal_dir / f"{method}_seed{seed}_{gate_tag}_v4.json"
+                target = causal_dir / f"{method}_seed{seed}_{gate_tag}_v5.json"
                 if target.exists():
                     continue
                 began = time.time()
@@ -637,7 +665,7 @@ def main() -> int:
                 metrics.update(method=method, seed=seed,
                                seconds=time.time() - began)
                 target.write_text(json.dumps({
-                    "schema_version": "cpmt-m1-causal-result-v4",
+                    "schema_version": "cpmt-m1-causal-result-v5",
                     "aggregate": metrics,
                     "sequences": sequence_rows,
                 }, indent=2), encoding="utf-8")
@@ -646,7 +674,7 @@ def main() -> int:
                       f"  history={metrics['final_history_exactness']:.4f}"
                       f"  ({metrics['seconds']:.0f}s)", flush=True)
 
-        observable_path = causal_dir / f"observable_information_oracle_{gate_tag}_v4.json"
+        observable_path = causal_dir / f"observable_information_oracle_{gate_tag}_v5.json"
         if not observable_path.exists():
             began = time.time()
             metrics, sequence_rows = causal_rollout_metrics(
@@ -655,7 +683,7 @@ def main() -> int:
             metrics.update(method="observable_information_oracle",
                            seconds=time.time() - began)
             observable_path.write_text(json.dumps({
-                "schema_version": "cpmt-m1-causal-result-v4",
+                "schema_version": "cpmt-m1-causal-result-v5",
                 "aggregate": metrics,
                 "sequences": sequence_rows,
             }, indent=2), encoding="utf-8")
@@ -666,12 +694,12 @@ def main() -> int:
     causal_summary: dict[str, dict] = {}
     causal_payloads: dict[str, list[dict]] = {}
     if not args.skip_causal:
-        print(f"\n{'method':<24}{'active':>10}{'mean':>10}{'contam/100':>12}"
-              f"{'missing/100':>13}{'falsebirth/100':>16}")
+        print(f"\n{'method':<24}{'active':>10}{'mean':>10}{'extra-T/100':>12}"
+              f"{'missing-T/100':>13}{'falsebirth/100':>16}")
         print("-" * 85)
         for method in ALL_METHODS:
             paths = [
-                causal_dir / f"{method}_seed{s}_{gate_tag}_v4.json" for s in seeds
+                causal_dir / f"{method}_seed{s}_{gate_tag}_v5.json" for s in seeds
             ]
             payloads = [json.loads(path.read_text())
                         for path in paths if path.exists()]
@@ -680,7 +708,8 @@ def main() -> int:
                 continue
             causal_payloads[method] = payloads
             def col(key):
-                return float(np.mean([r[key] for r in rows]))
+                values = [r[key] for r in rows if r.get(key) is not None]
+                return float(np.mean(values)) if values else None
             causal_summary[method] = {
                 "final_active_graph_correctness": col(
                     "final_active_graph_correctness"),
@@ -688,19 +717,65 @@ def main() -> int:
                     [r["final_active_graph_correctness"] for r in rows])),
                 "mean_active_graph_correctness": col(
                     "mean_active_graph_correctness"),
+                "final_graded_active_world_correctness": col(
+                    "final_graded_active_world_correctness"),
+                "final_graded_open_memory_correctness": col(
+                    "final_graded_open_memory_correctness"),
                 "final_open_memory_correctness": col(
                     "final_open_memory_correctness"),
                 "final_history_exactness": col("final_history_exactness"),
-                "final_post_graph_correctness": col("final_post_graph_correctness"),
-                "final_std": float(np.std(
-                    [r["final_post_graph_correctness"] for r in rows])),
-                "mean_post_graph_correctness": col("mean_post_graph_correctness"),
-                "memory_contamination_per_100": col("memory_contamination_per_100"),
-                "missing_open_facts_per_100": col("missing_open_facts_per_100"),
+                "terminal_extra_open_fact_error_per_100_decisions": col(
+                    "terminal_extra_open_fact_error_per_100_decisions"),
+                "terminal_missing_open_fact_error_per_100_decisions": col(
+                    "terminal_missing_open_fact_error_per_100_decisions"),
+                "terminal_new_incorrect_open_fact_write_per_100_decisions": col(
+                    "terminal_new_incorrect_open_fact_write_per_100_decisions"),
+                "terminal_retained_stale_open_fact_per_100_decisions": col(
+                    "terminal_retained_stale_open_fact_per_100_decisions"),
                 "false_birth_growth_per_100": col("false_birth_growth_per_100"),
+                "false_birth_growth_auc_per_100_decisions": col(
+                    "false_birth_growth_auc_per_100_decisions"),
+                "missing_open_entity_auc_per_100_decisions": col(
+                    "missing_open_entity_auc_per_100_decisions"),
                 "collateral_violation_per_100": col("collateral_violation_per_100"),
-                "memory_contamination_auc_per_100_decisions": col(
-                    "memory_contamination_auc_per_100_decisions"),
+                "protected_collateral_violation_per_100": col(
+                    "protected_collateral_violation_per_100"),
+                "unrelated_collateral_violation_per_100": col(
+                    "unrelated_collateral_violation_per_100"),
+                "active_node_state_error_per_100": col(
+                    "active_node_state_error_per_100"),
+                "active_edge_state_error_per_100": col(
+                    "active_edge_state_error_per_100"),
+                "open_evidence_attachment_error_per_100": col(
+                    "open_evidence_attachment_error_per_100"),
+                "open_memory_node_error_per_100": col(
+                    "open_memory_node_error_per_100"),
+                "open_memory_edge_error_per_100": col(
+                    "open_memory_edge_error_per_100"),
+                "final_active_reference_node_count": col(
+                    "final_active_reference_node_count"),
+                "final_active_reference_edge_count": col(
+                    "final_active_reference_edge_count"),
+                "final_active_reference_record_count": col(
+                    "final_active_reference_record_count"),
+                "final_active_record_union_count": col(
+                    "final_active_record_union_count"),
+                "final_open_memory_reference_record_count": col(
+                    "final_open_memory_reference_record_count"),
+                "final_open_memory_record_union_count": col(
+                    "final_open_memory_record_union_count"),
+                "final_open_memory_reference_evidence_attachment_count": col(
+                    "final_open_memory_reference_evidence_attachment_count"),
+                "extra_open_fact_error_auc_per_100_decisions": col(
+                    "extra_open_fact_error_auc_per_100_decisions"),
+                "missing_open_fact_error_auc_per_100_decisions": col(
+                    "missing_open_fact_error_auc_per_100_decisions"),
+                "open_fact_error_auc_per_100_decisions": col(
+                    "open_fact_error_auc_per_100_decisions"),
+                "new_incorrect_open_fact_write_auc_per_100_decisions": col(
+                    "new_incorrect_open_fact_write_auc_per_100_decisions"),
+                "retained_stale_open_fact_auc_per_100_decisions": col(
+                    "retained_stale_open_fact_auc_per_100_decisions"),
                 "recovery_rate_within_window": col(
                     "recovery_rate_within_window"),
                 "designed_recovery_eligible_sequences": col(
@@ -715,11 +790,9 @@ def main() -> int:
                     "any_first_error_recovery_eligible_sequences"),
                 "any_first_error_recovery_rate_within_window": col(
                     "any_first_error_recovery_rate_within_window"),
-                "unresolved_active_error": col("unresolved_active_error"),
                 # How often the method actually wrote its choice rather than
-                # quarantining it. Without this the commit policy cannot be
-                # tuned, and a method that looks accurate by refusing to act
-                # cannot be told apart from one that acts correctly.
+                # quarantining it. Under the fixed D-045 gate this diagnoses
+                # executor-illegal fallback; it is not used to tune a gate.
                 "commit_rate": col("commit_rate"),
                 "raw_invalid_selection_rate": col("raw_invalid_selection_rate"),
                 "initial_step_raw_invalid_selection_rate": col(
@@ -786,8 +859,8 @@ def main() -> int:
             c = causal_summary[method]
             print(f"{LABEL[method]:<24}{c['final_active_graph_correctness']:>10.4f}"
                   f"{c['mean_active_graph_correctness']:>10.4f}"
-                  f"{c['memory_contamination_per_100']:>12.3f}"
-                  f"{c['missing_open_facts_per_100']:>13.3f}"
+                  f"{c['terminal_extra_open_fact_error_per_100_decisions']:>12.3f}"
+                  f"{c['terminal_missing_open_fact_error_per_100_decisions']:>13.3f}"
                   f"{c['false_birth_growth_per_100']:>16.3f}")
 
     causal_complete = bool(causal_summary) and all(
@@ -800,8 +873,8 @@ def main() -> int:
         if causal_complete else None
     )
     report = {
-        "schema_version": "cpmt-m1-af-report-v5",
-        "runner": "run_m1_af_scaled_v5",
+        "schema_version": "cpmt-m1-af-report-v6",
+        "runner": "run_m1_af_scaled_v6",
         "formal_run": False,
         "test_generated": False,
         "protocol_sha256": protocol_sha256(hard),
@@ -858,12 +931,66 @@ def main() -> int:
         },
         "structured_relation_target_oracle": relation_oracle,
         "structured_relation_target_only": target_only,
-        "commit_calibration": commit_calibration,
+        "commit_rule": commit_rule,
         "scorer_teacher_validation_accuracy": scorer_teacher,
         "outcome_scorer_diagnostics": scorer_diagnostics,
         "mechanism_diagnostic_slices_teacher_forced": mechanism_slice_reports,
         "teacher_forced": summary,
         "primary_contrasts": contrasts,
+        "metric_semantics": {
+            "canonical_long_horizon_burden": (
+                "open_fact_error_auc_per_100_decisions"
+            ),
+            "terminal_and_auc_reported_separately": True,
+            "compatibility_aliases_excluded_from_formal_endpoint_summary": [
+                "mean_post_graph_correctness",
+                "final_post_graph_correctness",
+                "unresolved_active_error",
+                "memory_contamination_per_100",
+                "memory_contamination_auc_per_100_decisions",
+                "missing_open_facts_per_100",
+            ],
+            "original_dynamic_contamination_rate_claimed_by_M1": False,
+        },
+        "formal_endpoint_summary": {
+            method: {
+                key: values[key]
+                for key in (
+                    "final_active_graph_correctness",
+                    "final_graded_active_world_correctness",
+                    "final_graded_open_memory_correctness",
+                    "final_open_memory_correctness",
+                    "terminal_extra_open_fact_error_per_100_decisions",
+                    "terminal_missing_open_fact_error_per_100_decisions",
+                    "terminal_new_incorrect_open_fact_write_per_100_decisions",
+                    "terminal_retained_stale_open_fact_per_100_decisions",
+                    "extra_open_fact_error_auc_per_100_decisions",
+                    "missing_open_fact_error_auc_per_100_decisions",
+                    "open_fact_error_auc_per_100_decisions",
+                    "new_incorrect_open_fact_write_auc_per_100_decisions",
+                    "retained_stale_open_fact_auc_per_100_decisions",
+                    "false_birth_growth_per_100",
+                    "false_birth_growth_auc_per_100_decisions",
+                    "missing_open_entity_auc_per_100_decisions",
+                    "active_node_state_error_per_100",
+                    "active_edge_state_error_per_100",
+                    "open_evidence_attachment_error_per_100",
+                    "open_memory_node_error_per_100",
+                    "open_memory_edge_error_per_100",
+                    "protected_collateral_violation_per_100",
+                    "unrelated_collateral_violation_per_100",
+                    "collateral_violation_per_100",
+                    "final_active_reference_node_count",
+                    "final_active_reference_edge_count",
+                    "final_active_reference_record_count",
+                    "final_active_record_union_count",
+                    "final_open_memory_reference_record_count",
+                    "final_open_memory_record_union_count",
+                    "final_open_memory_reference_evidence_attachment_count",
+                )
+            }
+            for method, values in causal_summary.items()
+        },
         "causal_rollout": causal_summary,
         "paired_causal_statistics": paired_statistics,
         "observable_information_oracle": (

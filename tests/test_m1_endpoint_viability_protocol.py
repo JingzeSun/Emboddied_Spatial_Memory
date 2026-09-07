@@ -1,8 +1,7 @@
-"""Lock the accepted D-044 train-only endpoint probe contract."""
+"""Lock the accepted D-044/D-045 train-only endpoint probe contract."""
 from __future__ import annotations
 
 import hashlib
-import json
 from pathlib import Path
 import sys
 import unittest
@@ -10,7 +9,9 @@ import unittest
 PROJECT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT / "src"))
 
-from cpmt.m1_protocol import load_and_validate, protocol_sha256
+from cpmt.m1_protocol import (
+    load_and_validate, load_and_validate_endpoint_probe, protocol_sha256,
+)
 
 
 class TestM1EndpointViabilityProtocol(unittest.TestCase):
@@ -20,7 +21,7 @@ class TestM1EndpointViabilityProtocol(unittest.TestCase):
             PROJECT / "configs" / "m1_hard_condition.json"
         )
         cls.path = PROJECT / "configs" / "m1_endpoint_viability_probe.json"
-        cls.probe = json.loads(cls.path.read_text(encoding="utf-8"))
+        cls.probe = load_and_validate_endpoint_probe(cls.path, cls.hard)
 
     def test_source_protocol_and_arrays_are_frozen(self):
         source = self.probe["source_protocol"]
@@ -66,6 +67,78 @@ class TestM1EndpointViabilityProtocol(unittest.TestCase):
             self.probe["endpoints"]["open_memory_support"][
                 "required_co_primary_for_both_A_vs_C_and_A_vs_E"
             ]
+        )
+        self.assertEqual(
+            self.probe["construct_alignment"][
+                "registered_long_horizon_co_primary"
+            ],
+            "open_fact_error_auc_per_100_decisions",
+        )
+        self.assertTrue(
+            power[
+                "take_maximum_across_primary_contrasts_and_selected_semantic_plus_open_memory_support_plus_open_fact_error_AUC_endpoints"
+            ]
+        )
+        self.assertEqual(
+            power["open_fact_error_auc_null_boundary_minimum_effect"], 2.0,
+        )
+
+    def test_gate_is_fixed_and_does_not_select_on_one_step_proxy(self):
+        gate = self.probe["commit_rule"]
+        self.assertEqual(gate["mode"], "fixed_always_attempt_shared_gate")
+        self.assertEqual(gate["commit_probability"], 0.0)
+        self.assertEqual(gate["margin_threshold"], 0.0)
+        self.assertEqual(gate["selection"], "none")
+        self.assertEqual(gate["validation_rows_used_for_gate_selection"], 0)
+        self.assertIn("one_step_vs_20_step", gate["reason"])
+        self.assertEqual(
+            gate["executor_illegal_action"],
+            "deterministic_QUARANTINE_without_persistent_write",
+        )
+        output = self.probe["output"]
+        self.assertTrue(output["save_fixed_commit_rule"])
+        self.assertNotIn("save_cross_fitted_gate_by_fold", output)
+
+        runner = (PROJECT / "scripts" / "run_m1_af_scaled.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertNotIn("calibrate_shared_commit_rule(", runner)
+        self.assertIn('"validation_rows_used_for_gate_selection": 0', runner)
+        self.assertNotIn("cfg.update(commit_", runner)
+        self.assertNotIn('"commit_calibration":', runner)
+
+    def test_aliases_are_excluded_and_empty_recovery_is_null(self):
+        naming = self.probe["naming_and_scope"]
+        excluded = set(naming["formal_primary_table_excludes"])
+        self.assertIn("final_post_graph_correctness", excluded)
+        self.assertIn("unresolved_active_error", excluded)
+        self.assertIn("memory_contamination_per_100", excluded)
+        self.assertIn("excess_nodes", excluded)
+        self.assertEqual(
+            naming["compatibility_aliases"]["post_graph_correct"],
+            "history_exact",
+        )
+        reporting = self.probe["always_on_reporting_and_safety"]
+        self.assertIsNone(reporting["empty_conditional_denominator_value"])
+        self.assertIn(
+            "without_net_cardinality_cancellation",
+            reporting["false_birth_growth_definition"],
+        )
+
+    def test_m1_does_not_claim_the_original_dynamic_memory_construct(self):
+        alignment = self.probe["construct_alignment"]
+        self.assertIn(
+            "not_claimed_in_M1", alignment["dynamic_contamination_rate_mapping"]
+        )
+        scope = self.probe["naming_and_scope"]
+        self.assertEqual(
+            scope["m1_scope"],
+            "controlled_embodied_persistent_world_revision_only",
+        )
+        self.assertIn("decay", scope["deferred_to_M2_M3"])
+        self.assertEqual(
+            scope["minimal_world_change_interpretation"],
+            "registered_prior_or_regularizer_only_not_a_validated_primary_mechanism",
         )
 
     def test_graded_equivalence_node_safety_and_collateral_union_are_locked(self):

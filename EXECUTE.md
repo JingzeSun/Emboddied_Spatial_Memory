@@ -4,19 +4,19 @@
 
 ## 当前看板
 
-> **2026-09-08 更新（D-044 + 指标层审计待办）：** 两架构运行时报告已导出并复核，完整网格保守投影合计 4.367 小时。D-044 基础指标已接线；指标层审计指出 contamination 构念、终点/AUC、恢复分母、false-birth 计数与 shared gate 仍需在 D-045 冻结。full test 可继续，但 endpoint probe/完整网格暂缓。
+> **2026-09-08 更新（D-045 本地接线完成）：** Claude 指标层审计的 C1/C7 阻断项及 C2–C6、B1–B4 已逐项裁定并接线：规范 open-fact 名称、new-write/stale 分解、terminal/AUC 双口径、三类 co-primary 功效、空 recovery=`null`、false-birth 集合差和固定 `(0,0)` 无选择 gate。下一步只跑服务器 full test；endpoint probe/完整网格继续阻断。
 
-最后更新：2026-09-08，1000-group train arrays、剖析入口全测、两架构成本剖析和报告导出均已通过；D-044 基础指标已实现。指标层审计待办尚未形成 D-045，故正式 endpoint probe、M1 gate、validation/test 均未运行/读取。
+最后更新：2026-09-08，D-045 指标构念修订已接受并完成本地实现与定向测试；未运行服务器 full test、endpoint probe、预算网格，也未读取 validation/test。
 
 | 项目 | 当前事实 |
 |---|---|
 | 方向 | CPMT 具身空间记忆；CTL 是主学习假设，用户希望面向 ML 研究 |
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
-| 阶段 | M1-v6 `pretest_lock_candidate`；D-043 架构/预算、1000-group train 与成本剖析已完成；D-044 节点安全/endpoint 可用性/检验力规则已接受并实现基础指标，待服务器全测与固定 train-only 探针，再进入完整 train/inner-dev 预算选择；尚未进入 S5 validation、重新冻结或 M2 |
+| 阶段 | M1-v6 `pretest_lock_candidate`；D-043 架构/预算、1000-group train 与成本剖析已完成；D-044/D-045 endpoint 可用性、构念语义、全过程负担、检验力与固定 gate 已本地接线，待服务器全测与固定 train-only 探针；尚未进入完整预算、S5 validation、重新冻结或 M2 |
 | 最近结果 | [`m1_v5_s4_v8_health_benchmark.json`](results/m1_v5_s4_v8_health_benchmark.json) 已于 `e47a7e4` 入库并本地复核：480 learning rows（456 online＋24 recovery），teacher agreement=`1.0`，12 个 family 各自 agreement 均为 `1.0`；posterior mean TV 为 future=`0.681108`、now=`0.071170`、growth=`0.025655`、edit=`0.022655`、collateral=`0.015360`，C11 collateral TV=`0.136628`。now 预期零/非零 family 完全匹配，无偏离 |
-| 尚缺 | D-044 科学代码服务器全测；先完成指标层审计待办并形成 D-045，再运行固定 anchor endpoint probe、确定 terminal/AUC 与 test-N 规则；随后才进入两臂 scorer/student budget；validation/test 仍封存 |
+| 尚缺 | D-044/D-045 科学代码服务器 full test；通过后另一次提交实现并运行固定 anchor endpoint probe，机械选择 exact/graded semantic 分支并计算三类 co-primary 的 test N；随后才进入两臂 scorer/student budget；validation/test 仍封存 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
-| 当前决定 | D-039–D-043 固定 live energy、真实 C10/C11、current/posterior 审计、Pre-LN 双架构和 A–E 对称 12 格。D-044 已实现 evidence/node/collateral 覆盖；指标层审计要求在 probe 前另立 D-045 对齐 contamination、terminal/AUC、恢复/出生计数与 gate 规则。架构间不择优；全局 reconciliation、PNO 与 M2 顺序不变 |
+| 当前决定 | D-039–D-043 固定 live energy、真实 C10/C11、current/posterior 审计、Pre-LN 双架构和 A–E 对称 12 格。D-044 的 evidence/node/collateral 覆盖保留；D-045 已把旧 contamination 正名、补全过程 open-fact burden、修复 recovery/false-birth，并以固定 `(0,0)` gate supersede cross-fit gate。M1 不声称原始 DCR 或完整动态记忆；全局 reconciliation、PNO 与 M2 顺序不变 |
 | 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 validation/test。D-043 无额外人工选择；运行时剖析只供用户决定何时租用算力，不改变登记网格 |
 | Git 备份 | D-038 科学代码基线为 `72afa7d`；S2 40-group reports 已在提交 `ececefb`、10-group 锚点已在 `70355ac` 导入 `results/`，服务器大产物仍位于 ignored `outputs/`。服务器操作只通过版本化的 `ops/run_next_server_step.sh` 交付，脚本所在提交仍须先 push、服务器再 pull |
 
@@ -37,9 +37,9 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - [x] 为连续序列补 paired latent siblings，并把 A–F 接入非正式 train/validation causal smoke；完成 CPU 资源测量和首轮 leakage audit。
 - [x] 在扩 K=16 前完成全标签容量、4→10 paired groups、60→1000 updates 的可学习性阶梯；分开记录 candidate miss、teacher error 与 amortization error。
 - [x] 实现去重、确定性的 K=16 candidate generator，并完成 reference 参数解耦和 C00–C08 validation 开发 coverage 审计。
-- [ ] 在不进入 M2、不动 test 的前提下，在 AutoDL 的干净提交上完成 M1-v3 全套测试与足量 train/validation 预演；根据 report 半区的 active、contamination、recovery 和 paired CI 决定是否重新冻结，再单独申请 test 解封。
+- [ ] 在不进入 M2、不动 test 的前提下，在 AutoDL 的干净提交上完成 D-045 full test、train-only endpoint probe 与足量 train/validation 预演；按 semantic、open-memory support、全过程 open-fact burden、recovery 和 paired CI 决定是否重新冻结，再单独申请 test 解封。
 - [x] **(1) 强化 E 的 outcome scorer 目标空间与监督覆盖。** E 已改为候选作用域的未来关系查询；训练覆盖全部 K=16 候选，目标只读实际 reference future，不执行候选，也不复用 executor 导出的 illegal/collateral。C 使用同一关系目标作 direct auxiliary。当前只验证接线，E 是否真正变强须由服务器足量 run 回答。
-- [x] **(2) 校准 commit/quarantine 策略。** validation paired groups 已按固定 SHA-256 规则分成 calibration/report；预登记网格只在前者选择一组 A–E 共享阈值，后者只汇报。网格包含 K=16 未校准 softmax 可达到的低阈值，避免所有模型因烟测阈值不可达而机械地零提交。
+- [x] **(2) 固定 commit/quarantine 策略。** D-045 已 supersede 旧 validation calibration/report 阈值选择：M1 主比较对 A/C/E/F 一律使用 `commit_probability=0`、`margin_threshold=0` 的 always-attempt gate；shared preflight 与 executor-illegal 的 deterministic QUARANTINE 仍保留。confidence/risk-coverage 只作诊断，不再决定阈值或主效果。
 - [x] **(3) 如实计算 `now` 与 `collateral` 并报告实际影响。** D-039–D-041 已把 executed-now 改为当前匿名投影的固定自然量程、把 legal unrelated mutation 记为 collateral，并常驻逐项 posterior influence/逐 family 预期模式；12-group v8 health 中两项均有可测 posterior 影响，且 C11 collateral 对照通过。它仍不宣称每个 family 的六项都非零。
 - [x] **(4a) M1-v2 有界局部恢复。** 按 D-034，exact ambiguity 后固定安排一次相关可见证据重访；用同一 K=16 proposer 和 versioned executor 产生/提交补偿 RELINK，旧错不回填且 provenance 不删除。可观测 oracle 已证明候选路径能在 1 步内恢复 active world；learned recovery 尚待服务器验证。
 - [ ] **(4b) Khronos 式全局慢路径（M2）。** 全图、跨多对象、异步重访协调会改变系统时序与方法能力，仍不是 M1 的局部补偿修复；只有 M1-v2 hard condition 支持继续后才实现。
@@ -669,6 +669,16 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - 验证：首轮 `tests.test_m1_metrics` 与 `tests.test_m1_af_rollout` 共 36 项通过，随后补入 endpoint switch/F gate、open-memory/evidence 与 probe config 单测。配置 `configs/m1_endpoint_viability_probe.json` 冻结 Set Transformer、A/C/E+F、五 seed、`0.0006/3000`、799/201 split、两折 train-inner-dev cross-fit gate、7-group非退化下限、semantic/support graded `0.03`、node safety `1.0/100` 与 test power 公式。
 - 覆盖复核：新增 open-memory/evidence 与机制矩阵后，44 项相关单测通过，Python compile、probe JSON、server shell syntax 与 `git diff --check` 通过。ignored 本地产物 `outputs/local-d044-coverage-g2/train.npz` 用 2 个 train paired groups/2 workers 在 12.7 秒生成 80 learning rows，teacher agreement=`1.0`、扩展 health gate PASS；C10 指定相反 BIND/NOOP `4/4` rows 被 open-memory+evidence 检出，C11 指定 collateral BIND `4/4` 被 unrelated collateral 检出，12 family 均至少有一个非 reference admitted+legal 候选被渐进通道看见。先跑 1 group 时 health 按既有规则因 C10 只含一个 variant 而失败，这是预期的最小分母保护，不是正式失败 run。
 - 局限/下一步：当前只实现评价底层、机械决策函数和预登记；尚未训练 anchor 或观察 endpoint 数值，也没有选中 exact/graded 分支。下一步先在干净服务器运行全套测试；通过后实现/运行唯一 probe runner，导出报告并按 D-044 自动改写正式 protocol，之后才可启动 D-043 完整预算网格。
+
+### LOG-048—2026-09-08—D-045 指标构念与全过程负担接线
+
+- 类型/状态：指标构念、统计合同、报告 schema 与 gate 公平性修订已接受并完成本地接线；对应 Claude 指标审计的 C1/C7 阻断项以及 C2–C6、B1–B4。尚未运行服务器 full test、endpoint probe、预算网格、validation 或 test，因此没有方法效果结论。
+- 改变/固定：规范量改为 extra/missing open-fact error，并把每步 extra 拆成 new incorrect write 与 retained stale fact；terminal 只报终点归一化负担，AUC 报二十步累计状态负担。`open_fact_error_auc_per_100_decisions` 固定为第三个 co-primary，test N 取 selected semantic、graded open-memory support、open-fact AUC 三类 × A−C/A−E 的功效需求最大值。正式 endpoint summary 排除 history/post 重复 alias、`unresolved_active_error`、旧 contamination 名和旧数组 `excess_nodes`；M1 不声称原始 Dynamic Contamination Rate 或完整 static/dynamic 双记忆。
+- 统计/公平性修复：conditional recovery 空分母改为 JSON `null` 且保留 eligible denominator；正式 false-birth 改用预测开放 entity ID 减 reference ID 的集合差，另报 missing entities；D-044 cross-fit raw-softmax gate 被固定 `(commit_probability=0, margin_threshold=0)` always-attempt gate supersede，A/C/E/F 不再按一步 proxy 或不同概率尺度选择阈值。validation calibration/report 隔离仍为 C auxiliary-weight 选择保留，但 gate selection 消耗 0 行，report 半区仍不参与选择。
+- 兼容与不变量：旧 v8 train arrays 的 `excess_nodes` 是 pre-D-045 净基数诊断，只为复用不可变训练输入保留，禁止进入正式 safety；正式 causal metric 从逐步图状态重算集合差。首个 2-group 本地生成因直接替换该数组字段得到不同 digest prefix=`e2efe5`，据此回退为上述显式兼容边界；最终 ignored `outputs/local-d045-metric-invariance-g2b/train.npz` 的 digest=`613684ee14ca6532653e98b5dc8e0a91aaf6e7464b1eeb9c09d8f36a4bc56580`，与 D-044 同规模输入逐位一致，teacher agreement=`1.0`、health gate PASS。该小产物只验证生成不变量，不是科学 run。
+- 本地验证：协议/指标 52 项、连续 rollout 20 项、A–F rollout 26 项，共 98 项定向测试通过；Python compile、probe JSON、server shell syntax 与 `git diff --check` 通过。A–F suite 首次运行曾在 fixture 构建时报一次 `stored graph_hash does not match graph contents`，未改代码立即重跑即 26/26 通过，本轮再次相同运行仍 26/26 通过；鉴于本机既有高负载不稳定风险，该瞬时失败保留记录，不能替代干净服务器 full test。
+- 白话：D-045 解决“错误已经能看见，但名字、时间口径和决策门仍可能让结论答错问题”。输入是同一 20-step self-rollout 的逐步预测/reference 世界、固定候选概率与 eligible 分母，输出是规范终点量、全过程负担、分解后的错误来源和无选择执行规则。例如错边前 19 步存在、最后一步修好时 terminal 为零但 AUC 仍计 19 步。它不证明 A 优于 C/E、不验证动态 actor 覆盖静态槽，也不授权 endpoint probe、完整网格或 test。
+- 下一步：活动服务器入口只运行 D-044/D-045 full test，唯一成功标志为 `SERVER_STEP_OK id=m1_v6_v8_d045_metric_semantics_full_test`。成功后另一次提交才把入口改写为固定 train-only endpoint probe；full test 前不得启动 probe 或完整预算网格。
 
 ## 后续条目模板
 

@@ -855,17 +855,31 @@ def rollout_learning_arrays_from_audits(
                     base_metrics["active_graph_correct"]
                 ),
                 "fact_errors": np.asarray([
-                    item["memory_contamination"] + item["missing_open_facts"]
+                    item["extra_open_fact_error"]
+                    + item["missing_open_fact_error"]
                     for item in candidate_metrics
                 ], dtype=np.float32),
                 "base_fact_errors": float(
-                    base_metrics["memory_contamination"]
-                    + base_metrics["missing_open_facts"]
+                    base_metrics["extra_open_fact_error"]
+                    + base_metrics["missing_open_fact_error"]
                 ),
                 "excess_nodes": np.asarray([
-                    item["false_birth_growth"] for item in candidate_metrics
+                    # Preserve the v8 train-array digest.  This legacy field
+                    # was used only by the now-superseded one-step gate audit;
+                    # D-045 formal causal reports recompute false births from
+                    # entity-ID set difference in ``graph_error_counts``.
+                    max(
+                        0.0,
+                        item["false_birth_growth"]
+                        - item["missing_open_entities"],
+                    )
+                    for item in candidate_metrics
                 ], dtype=np.float32),
-                "base_excess_nodes": float(base_metrics["false_birth_growth"]),
+                "base_excess_nodes": float(max(
+                    0.0,
+                    base_metrics["false_birth_growth"]
+                    - base_metrics["missing_open_entities"],
+                )),
                 "penalties": np.asarray(penalties, dtype=np.float32),
                 "no_execution_penalties": np.asarray(
                     no_execution_penalties, dtype=np.float32,
@@ -1859,12 +1873,12 @@ def calibrate_shared_commit_rule(
     probabilities_by_run: Mapping[str, np.ndarray],
     arrays: Mapping[str, np.ndarray], hard_config: Mapping[str, Any],
 ) -> dict[str, Any]:
-    """Select one A-E commit rule on the sealed validation-calibration half.
+    """Compatibility helper for pre-D-045 reports; never use for M1 primary runs.
 
-    The score is computed on independent one-step post-world outcomes from
-    online rows only, so the grid does not require hundreds of expensive causal
-    replays. Recovery-only training examples are excluded. Every model and seed
-    contributes equally, and the report half is never inspected.
+    Historical reports selected one A-E gate from one-step post-world outcomes
+    on a validation-calibration half. D-045 supersedes that policy with the
+    fixed ``(commit_probability=0, margin_threshold=0)`` always-attempt rule.
+    This function remains only so old fixtures and reports stay reproducible.
     """
     if not probabilities_by_run:
         raise ValueError("commit calibration requires model probabilities")
@@ -2104,8 +2118,8 @@ def causal_rollout_metrics(
                         scored.append((
                             -errors["active_graph_correct"],
                             -errors["open_memory_correct"],
-                            errors["memory_contamination"]
-                            + errors["missing_open_facts"],
+                            errors["extra_open_fact_error"]
+                            + errors["missing_open_fact_error"],
                             errors["false_birth_growth"],
                             not candidate["static_preflight_pass"],
                             not candidate["legal"],
@@ -2322,6 +2336,10 @@ def causal_rollout_metrics(
         "mean_open_memory_correctness", "final_open_memory_correctness",
         "mean_history_exactness", "final_history_exactness",
         "mean_post_graph_correctness", "final_post_graph_correctness",
+        "terminal_extra_open_fact_error_per_100_decisions",
+        "terminal_missing_open_fact_error_per_100_decisions",
+        "terminal_new_incorrect_open_fact_write_per_100_decisions",
+        "terminal_retained_stale_open_fact_per_100_decisions",
         "memory_contamination_per_100", "missing_open_facts_per_100",
         "false_birth_growth_per_100", "collateral_violation_per_100",
         "protected_collateral_violation_per_100",
@@ -2338,7 +2356,15 @@ def causal_rollout_metrics(
         "final_open_memory_reference_record_count",
         "final_open_memory_record_union_count",
         "final_open_memory_reference_evidence_attachment_count",
+        "mean_extra_open_fact_error", "mean_missing_open_fact_error",
         "mean_memory_contamination",
+        "extra_open_fact_error_auc_per_100_decisions",
+        "missing_open_fact_error_auc_per_100_decisions",
+        "open_fact_error_auc_per_100_decisions",
+        "new_incorrect_open_fact_write_auc_per_100_decisions",
+        "retained_stale_open_fact_auc_per_100_decisions",
+        "false_birth_growth_auc_per_100_decisions",
+        "missing_open_entity_auc_per_100_decisions",
         "memory_contamination_auc_per_100_decisions",
         "unresolved_active_error", "commit_rate", "raw_invalid_selection_rate",
         "raw_static_rejected_selection_rate", "mean_effective_candidate_count",
@@ -2369,7 +2395,7 @@ def causal_rollout_metrics(
         float(np.mean([
             row["any_first_error_recovered_within_window"]
             for row in generic_eligible
-        ])) if generic_eligible else 0.0
+        ])) if generic_eligible else None
     )
     designed_eligible = [
         row["metrics"] for row in sequence_rows
@@ -2381,12 +2407,12 @@ def causal_rollout_metrics(
     aggregate["designed_recovery_trigger_rate"] = (
         float(np.mean([
             row["designed_revisit_triggered"] for row in designed_eligible
-        ])) if designed_eligible else 0.0
+        ])) if designed_eligible else None
     )
     aggregate["designed_recovery_rate_within_window"] = (
         float(np.mean([
             row["designed_recovery_success"] for row in designed_eligible
-        ])) if designed_eligible else 0.0
+        ])) if designed_eligible else None
     )
     # Registered name now refers specifically to the bounded pivot recovery;
     # the arbitrary first-error diagnostic remains separately available.
@@ -2419,14 +2445,14 @@ def causal_rollout_metrics(
         if row["any_first_error_time_to_recovery"] >= 0.0
     ]
     aggregate["any_first_error_mean_time_to_recovery"] = (
-        float(np.mean(generic_recovered)) if generic_recovered else -1.0
+        float(np.mean(generic_recovered)) if generic_recovered else None
     )
     designed_recovered = [
         row["designed_recovery_time"] for row in designed_eligible
         if row["designed_recovery_time"] >= 0.0
     ]
     aggregate["mean_time_to_first_recovery"] = (
-        float(np.mean(designed_recovered)) if designed_recovered else -1.0
+        float(np.mean(designed_recovered)) if designed_recovered else None
     )
     aggregate["p95_forward_latency_ms"] = (
         float(np.quantile(forward_latencies_ms, 0.95))

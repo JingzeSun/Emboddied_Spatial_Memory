@@ -548,6 +548,22 @@ class TestM1AFCausalRollout(unittest.TestCase):
         self.assertEqual(
             oracle["causal_rollout"]["memory_contamination_per_100"], 0.0,
         )
+        self.assertEqual(
+            oracle["causal_rollout"][
+                "designed_recovery_eligible_sequences"
+            ],
+            0.0,
+        )
+        self.assertIsNone(
+            oracle["causal_rollout"][
+                "designed_recovery_rate_within_window"
+            ]
+        )
+        self.assertIsNone(
+            oracle["causal_rollout"][
+                "any_first_error_recovery_rate_within_window"
+            ]
+        )
         self.assertIn(
             "current_future_relation_bce",
             details["outcome_scorer_training"][0],
