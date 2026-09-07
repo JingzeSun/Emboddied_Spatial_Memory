@@ -4,17 +4,17 @@
 
 ## 当前看板
 
-> **2026-09-07 更新（LOG-045 / D-043）：** 纯运行时剖析入口的服务器 192 项完整测试已通过。下一步在唯一 1000-group train arrays 上分别运行 Set Transformer 与 MLP 的固定 300-step 成本剖析；它不选择超参、不输出科学指标。
+> **2026-09-07 更新（LOG-046 / D-043）：** 两架构固定 300-step 运行时剖析均已通过：完整登记网格保守投影为 Set Transformer 3.128 小时、MLP 1.239 小时、合计 4.367 小时。下一步先导出详细报告，再预登记节点级安全与 causal endpoint 健康探针；不直接启动完整网格。
 
-最后更新：2026-09-07，1000-group train arrays 与运行时剖析入口全测均已通过、待两架构成本剖析；正式 M1 gate 未运行、未生成或读取 validation/test。
+最后更新：2026-09-07，1000-group train arrays、剖析入口全测和两架构成本剖析均已通过、待导出及 endpoint 探针预登记；正式 M1 gate 未运行、未生成或读取 validation/test。
 
 | 项目 | 当前事实 |
 |---|---|
 | 方向 | CPMT 具身空间记忆；CTL 是主学习假设，用户希望面向 ML 研究 |
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
-| 阶段 | M1-v6 `pretest_lock_candidate`；D-043 架构/预算预登记、1000-group train 生成及剖析入口全测已完成，待两架构运行时剖析及 train/inner-dev 预算选择；尚未进入 S5 validation、重新冻结或 M2 |
+| 阶段 | M1-v6 `pretest_lock_candidate`；D-043 架构/预算预登记、1000-group train 生成及两架构运行时剖析已完成；待节点级安全/endpoint 可用性预登记与 train-only 探针，再进入完整 train/inner-dev 预算选择；尚未进入 S5 validation、重新冻结或 M2 |
 | 最近结果 | [`m1_v5_s4_v8_health_benchmark.json`](results/m1_v5_s4_v8_health_benchmark.json) 已于 `e47a7e4` 入库并本地复核：480 learning rows（456 online＋24 recovery），teacher agreement=`1.0`，12 个 family 各自 agreement 均为 `1.0`；posterior mean TV 为 future=`0.681108`、now=`0.071170`、growth=`0.025655`、edit=`0.022655`、collateral=`0.015360`，C11 collateral TV=`0.136628`。now 预期零/非零 family 完全匹配，无偏离 |
-| 尚缺 | 先估算 Set Transformer/MLP 完整网格墙钟成本，再依次得到两臂 scorer 与逐方法 student budget；validation/test 仍封存 |
+| 尚缺 | 导出成本报告；冻结并运行节点级安全/endpoint 健康探针；随后依次得到两臂 scorer 与逐方法 student budget；validation/test 仍封存 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
 | 当前决定 | D-039 保留 live energy、C/E current target、Set Transformer 主臂＋MLP 次臂及每臂完整 A–F；D-040 固定总混合规模和真实 C10/C11；D-041 固定 current 自然量程与 posterior 审计；D-043 固定 Pre-LN 主臂、A–E 相同 12 格与同指标逐方法选择、共享/交叉预算诊断及 10000 触顶纪律。架构间不择优；全局 reconciliation、PNO 与 M2 顺序不变 |
 | 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 validation/test。D-043 无额外人工选择；运行时剖析只供用户决定何时租用算力，不改变登记网格 |
@@ -651,6 +651,14 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - 结果：`python -m unittest discover -s tests -p 'test_*.py'` 共运行 192 项，用时 323.186 秒，全部通过，`FULL_TEST_EXIT=0`。log=`outputs/m1-v6-v8-d043-profile-full-test-8b304e3/full_test.log`，匹配 commit/protocol/dataset/test count 的 marker=`full_test.ok.json`；唯一成功标志为 `SERVER_STEP_OK id=m1_v6_v8_d043_runtime_profile_full_test`。
 - 白话：本次 full test 回答“新增的计时路径能否与既有训练、executor 和审计代码共同通过自动检查”。输入是只增加剖析模式后的完整代码与测试，输出是 192 项通过和可复用 marker；例如下个入口必须先核对 marker 才能读取 1000-group train arrays。它没有训练模型、没有产生准确率，也不说明完整网格需要多久。
 - 下一步：用同一 train arrays、seed=7、lr=0.0006、steps=300 依次剖析 Set Transformer 和 MLP；每臂只运行一个 scorer 及 A–E 各一条路径。输出只含墙钟、参数量、显存及保守线性投影，不参与 D-043 的任何选择。
+
+### LOG-046—2026-09-07—D-043 两架构运行时剖析通过
+
+- 类型/状态：planning-only 训练成本剖析完成；不是预算选择、方法效果、validation trial 或 formal run。
+- 输入/provenance：server repo=`/root/Emboddied_Spatial_Memory`，活动 handoff commit=`51bf03a243c3686b948b8f3abe20be21361b0b87`，已全测 profiler commit=`8b304e39403731bc6be28c26ff38699da71d879a`；输入是唯一 1000-group train arrays digest=`e8a890f1b254a7109af641fea57fcbea5efd931b4272d8e96cb870f51604b168`。每臂固定 seed=7、lr=`0.0006`、steps=300，只运行一个 E scorer 和 A–E 各一条 student 路径；selection/scientific metrics/validation/test 均为 false。
+- 结果：Set Transformer 完整登记网格保守线性投影=`3.128` 小时，峰值显存约 `2602.039` MB；shared MLP 投影=`1.239` 小时，峰值约 `1989.218` MB；两臂合计=`4.367` 小时。两份报告均通过 schema、protocol、dataset、arrays digest、固定 profile 点和无选择/无科学指标检查；唯一成功标志为 `SERVER_STEP_OK id=m1_v6_v8_d043_two_architecture_runtime_profile`。
+- 白话：运行时剖析回答“已登记的 180 万次更新在当前服务器上大约要跑多久”。输入是每个架构的一条短训练路径，输出按 learning rate、seed、checkpoint 和方法数线性外推的计划时间；例如主臂短路径较慢，投影约 3.128 小时。它不是硬时限、不保证实际严格线性，也没有比较 A/C/E 的准确率。
+- 下一步：先把服务器两份完整 JSON 及 provenance 导出到 `results/`。随后在不读取 validation/test 的前提下另立预登记，补 active-node error 常驻安全量和一次固定 anchor 的 endpoint 非退化/检验力探针；探针通过或按事先开关切换后才运行完整预算网格。
 
 ## 后续条目模板
 

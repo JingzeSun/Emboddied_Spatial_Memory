@@ -62,6 +62,14 @@ def _read(path: Path) -> object | None:
         return {"unreadable": str(error)}
 
 
+def _runtime_profiles(out_dir: Path) -> dict[str, object]:
+    """Collect nested planning-only runtime profiles without moving arrays."""
+    return {
+        path.relative_to(out_dir).as_posix(): _read(path)
+        for path in sorted(out_dir.rglob("runtime_profile.json"))
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out-dir", type=Path, required=True,
@@ -83,6 +91,7 @@ def main() -> int:
     ) if (out_dir / "causal").is_dir() else []
 
     af_report = _read(out_dir / "af_report.json")
+    runtime_profiles = _runtime_profiles(out_dir)
     generation_manifests = {
         path.name: _read(path)
         for path in sorted(out_dir.glob("*.manifest.json"))
@@ -100,6 +109,10 @@ def main() -> int:
                 for name, value in generation_manifests.items()
             },
             "training": (af_report or {}).get("training_provenance"),
+            "runtime_profiles": {
+                name: (value or {}).get("training_provenance")
+                for name, value in runtime_profiles.items()
+            },
             "export": capture_run_provenance(
                 PROJECT, component="result_export", entrypoint=Path(__file__),
             ),
@@ -107,6 +120,7 @@ def main() -> int:
         },
         "af_report": af_report,
         "teacher_forced_only": _read(out_dir / "af_teacher_forced.json"),
+        "runtime_profiles": runtime_profiles,
         "generation_manifests": generation_manifests,
         "causal_per_seed": {name: value for name, value in causal_rows},
         # Anything else a runner dropped here, so a new report does not need a
@@ -118,8 +132,15 @@ def main() -> int:
             and not path.name.endswith(".manifest.json")
         },
     }
-    if report["af_report"] is None and report["teacher_forced_only"] is None:
-        print(f"no af_report.json or af_teacher_forced.json under {out_dir}")
+    if (
+        report["af_report"] is None
+        and report["teacher_forced_only"] is None
+        and not report["runtime_profiles"]
+    ):
+        print(
+            "no af_report.json, af_teacher_forced.json, or "
+            f"runtime_profile.json under {out_dir}"
+        )
         return 1
 
     args.results_dir.mkdir(parents=True, exist_ok=True)
@@ -131,10 +152,10 @@ def main() -> int:
     stages = [
         *(value for value in report["pipeline_provenance"]["generation"].values()),
         report["pipeline_provenance"]["training"],
+        *report["pipeline_provenance"]["runtime_profiles"].values(),
         report["pipeline_provenance"]["export"],
     ]
-    if any(stage is None for stage in stages):
-        print("WARNING: at least one pipeline stage has no provenance record")
+    stages = [stage for stage in stages if stage is not None]
     if any((stage or {}).get("git_dirty") for stage in stages):
         print("WARNING: at least one pipeline stage used a dirty working tree; "
               "HEAD plus diff/source hashes were retained")
