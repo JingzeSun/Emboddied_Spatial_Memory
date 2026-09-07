@@ -10,6 +10,8 @@ sys.path.insert(0, str(PROJECT))
 
 from scripts.run_m1_train_inner_dev_budget import (  # noqa: E402
     _accuracy_by_group,
+    _auxiliary_weight_group_means,
+    _auxiliary_weight_selection,
     _cell_group_means,
     _checkpoint_selection,
     _grid_selection,
@@ -120,6 +122,49 @@ class TestM1BudgetSelection(unittest.TestCase):
                 method="A",
             )
 
+    def test_sequential_auxiliary_weight_selection_reuses_fixed_compute(self):
+        runs = [
+            {
+                "seed": seed,
+                "auxiliary_weight": weight,
+                "inner_dev_online": {
+                    "reference_accuracy_by_group": values,
+                },
+            }
+            for weight, seed, values in (
+                (0.1, 7, {"g0": 0.7, "g1": 0.7}),
+                (0.1, 19, {"g0": 0.7, "g1": 0.7}),
+                (1.0, 7, {"g0": 0.8, "g1": 0.8}),
+                (1.0, 19, {"g0": 0.8, "g1": 0.8}),
+                (10.0, 7, {"g0": 0.8, "g1": 0.8}),
+                (10.0, 19, {"g0": 0.8, "g1": 0.8}),
+            )
+        ]
+        means = _auxiliary_weight_group_means(
+            runs,
+            expected_weights=[0.1, 1.0, 10.0],
+            expected_observations_per_group=2,
+        )
+        selected = _auxiliary_weight_selection(
+            means,
+            anchor_weight=1.0,
+            uncertainty={
+                "bootstrap_resamples": 100,
+                "bootstrap_seed": 260907,
+                "confidence": 0.95,
+            },
+        )
+        self.assertEqual(selected["selected_auxiliary_weight"], 1.0)
+        self.assertTrue(selected["tie_break_applied"])
+        self.assertEqual(
+            selected["deterministic_runner_up"]["auxiliary_weight"], 10.0
+        )
+        self.assertIsNotNone(
+            selected[
+                "selected_vs_deterministic_runner_up_paired_bootstrap"
+            ]
+        )
+
     def test_paired_bootstrap_is_reproducible_and_group_paired(self):
         first = _paired_group_bootstrap_difference(
             {"g0": 0.9, "g1": 0.7, "g2": 0.8},
@@ -150,14 +195,19 @@ class TestM1BudgetSelection(unittest.TestCase):
             learning_rate_count=3,
             seed_count=5,
             checkpoint_count=4,
+            additional_student_paths_by_method={"A": 0, "E": 2},
         )
         self.assertEqual(projection["paths_per_component"], 15)
         self.assertEqual(projection["scorer_seconds"], 360.0)
         self.assertEqual(
             projection["student_seconds_by_method"],
-            {"A": 180.0, "E": 180.0},
+            {"A": 180.0, "E": 201.0},
         )
-        self.assertEqual(projection["total_seconds"], 720.0)
+        self.assertEqual(projection["total_seconds"], 741.0)
+        self.assertEqual(
+            projection["additional_student_paths_by_method"],
+            {"A": 0, "E": 2},
+        )
         self.assertFalse(projection["protocol_cap_or_selection_metric"])
 
 

@@ -1,4 +1,4 @@
-"""Lock the accepted D-044/D-045 train-only endpoint probe contract."""
+"""Lock the accepted D-044--D-046 train-only endpoint probe contract."""
 from __future__ import annotations
 
 import hashlib
@@ -80,8 +80,49 @@ class TestM1EndpointViabilityProtocol(unittest.TestCase):
             ]
         )
         self.assertEqual(
-            power["open_fact_error_auc_null_boundary_minimum_effect"], 2.0,
+            power["open_fact_error_auc_null_boundary_minimum_effect"], 40.0,
         )
+        self.assertEqual(
+            power["open_fact_error_auc_planning_true_effect"], 80.0,
+        )
+        self.assertIn(
+            "not_a_unit_conversion", power["open_fact_error_auc_effect_model"]
+        )
+        self.assertEqual(
+            power[
+                "open_fact_error_auc_minimum_error_fact_decision_exposures_reduced_per_group"
+            ],
+            8.0,
+        )
+        self.assertTrue(power["probe_observed_scale_or_SD_may_not_change_40_or_80"])
+
+    def test_c_weight_moves_to_sequential_train_inner_dev_selection(self):
+        amendment = self.probe[
+            "post_probe_train_inner_dev_budget_amendment"
+        ]
+        self.assertEqual(
+            amendment["direct_future_auxiliary_weights"], [0.1, 1.0, 10.0]
+        )
+        self.assertEqual(
+            amendment["learning_rate_and_updates_search_cells_per_method"], 12
+        )
+        self.assertEqual(
+            amendment["additional_c_auxiliary_weight_paths_per_seed"], 2
+        )
+        self.assertFalse(
+            amendment["joint_learning_rate_updates_auxiliary_weight_search"]
+        )
+        self.assertFalse(amendment["validation_arrays_read"])
+        budget_runner = (
+            PROJECT / "scripts" / "run_m1_train_inner_dev_budget.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn("load_and_validate_endpoint_probe", budget_runner)
+        self.assertIn("C_AUXILIARY_SELECTED", budget_runner)
+        self.assertIn("reuse_anchor_weight_run_without_retraining", str(amendment))
+        confirmation = self.probe["validation_confirmation"]
+        self.assertEqual(confirmation["selection"], "none")
+        self.assertTrue(confirmation["use_all_registered_groups_once"])
+        self.assertTrue(confirmation["historical_calibration_report_partition_ignored"])
 
     def test_gate_is_fixed_and_does_not_select_on_one_step_proxy(self):
         gate = self.probe["commit_rule"]
@@ -90,6 +131,9 @@ class TestM1EndpointViabilityProtocol(unittest.TestCase):
         self.assertEqual(gate["margin_threshold"], 0.0)
         self.assertEqual(gate["selection"], "none")
         self.assertEqual(gate["validation_rows_used_for_gate_selection"], 0)
+        self.assertEqual(gate["commit_attempt_rate_under_fixed_gate"], 1.0)
+        self.assertIn("COMMIT_request", gate["actual_commit_rate_definition"])
+        self.assertIn("executor_illegal", gate["executor_quarantine_rate_definition"])
         self.assertIn("one_step_vs_20_step", gate["reason"])
         self.assertEqual(
             gate["executor_illegal_action"],
@@ -106,6 +150,13 @@ class TestM1EndpointViabilityProtocol(unittest.TestCase):
         self.assertIn('"validation_rows_used_for_gate_selection": 0', runner)
         self.assertNotIn("cfg.update(commit_", runner)
         self.assertNotIn('"commit_calibration":', runner)
+        self.assertIn('"validation_selection": "none"', runner)
+        self.assertIn('"commit_attempt_rate": col("commit_attempt_rate")', runner)
+        self.assertIn(
+            'report_mask = np.ones(len(validation_np["y"]), dtype=bool)',
+            runner,
+        )
+        self.assertNotIn("paired_group_is_calibration", runner)
 
     def test_aliases_are_excluded_and_empty_recovery_is_null(self):
         naming = self.probe["naming_and_scope"]

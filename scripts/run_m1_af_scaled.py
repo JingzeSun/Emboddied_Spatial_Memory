@@ -37,7 +37,7 @@ from cpmt.dev_learning import (  # noqa: E402
 )
 from cpmt.m1_af_rollout import (  # noqa: E402
     CANDIDATE_FEATURE_DIM, CURRENT_RELATION_QUERIES,
-    causal_rollout_metrics, paired_group_is_calibration,
+    causal_rollout_metrics,
     mechanism_slice_selection_diagnostics,
     rollout_learning_arrays_from_audits, selection_error_decomposition,
     static_preflight_diagnostics,
@@ -45,7 +45,11 @@ from cpmt.m1_af_rollout import (  # noqa: E402
     structured_relation_target_only_diagnostics,
     uniform_admissible_random_accuracy,
 )
-from cpmt.m1_protocol import load_and_validate, protocol_sha256  # noqa: E402
+from cpmt.m1_protocol import (  # noqa: E402
+    load_and_validate,
+    load_and_validate_endpoint_probe,
+    protocol_sha256,
+)
 from cpmt.m1_metrics import (  # noqa: E402
     holm_bonferroni, paired_stratified_bootstrap,
 )
@@ -118,7 +122,7 @@ def _subset_rows(data: dict[str, np.ndarray], mask: np.ndarray) -> dict[str, np.
 
 
 def _paired_causal_statistics(
-    payloads_by_method: dict[str, list[dict]], hard: dict,
+    payloads_by_method: dict[str, list[dict]], hard: dict, overlay: dict,
 ) -> dict:
     """Compute registered paired-group contrasts from complete causal rows."""
     indexed: dict[str, dict[tuple[int, str], dict]] = {}
@@ -149,7 +153,11 @@ def _paired_causal_statistics(
     bootstrap = hard["evaluation"]["bootstrap"]
     meaningful = hard["evaluation"]["meaningful_effect"]
     safety = hard["evaluation"]["safety_noninferiority_margin_per_100"]
-    open_fact_burden_minimum = 2.0  # D-045; not the original DCR construct.
+    open_fact_burden_minimum = float(
+        overlay["power_planning"][
+            "open_fact_error_auc_null_boundary_minimum_effect"
+        ]
+    )
     resamples = int(bootstrap["resamples"])
     confidence = float(bootstrap["confidence"])
     contrasts = {}
@@ -235,7 +243,7 @@ def _paired_causal_statistics(
             and metrics["active_node_noninferiority"]["ci_low"] >= -1.0
         )
     return {
-        "scope": "validation_report_partition_not_formal_test_gate",
+        "scope": "validation_confirmation_not_formal_test_gate",
         "stratification_note": (
             "each endpoint spans the same mixed registered 20-step scenario "
             "schedule; resampling keeps each paired_group_id intact"
@@ -250,6 +258,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path,
                         default=PROJECT / "configs" / "m1_hard_condition.json")
+    parser.add_argument(
+        "--overlay", type=Path,
+        default=PROJECT / "configs" / "m1_endpoint_viability_probe.json",
+        help="accepted D-044--D-046 evaluation overlay",
+    )
     parser.add_argument("--train", type=Path, required=True)
     parser.add_argument("--validation", type=Path, required=True)
     parser.add_argument("--out-dir", type=Path, required=True)
@@ -278,6 +291,7 @@ def main() -> int:
     args = parser.parse_args()
 
     hard = load_and_validate(args.config)
+    overlay = load_and_validate_endpoint_probe(args.overlay, hard)
     training_provenance = capture_run_provenance(
         PROJECT, component="m1_training_and_causal_evaluation",
         entrypoint=Path(__file__),
@@ -307,12 +321,11 @@ def main() -> int:
             "train arrays did not pass the preregistered teacher health gate"
         )
     recovery_mask = np.asarray(validation_np["recovery"], dtype=bool)
-    # D-045 supersedes validation-selected confidence gates, but the historical
-    # calibration/report split remains necessary for the separately registered
-    # C auxiliary-weight selection. Gate selection still consumes zero rows.
-    report_mask = ~np.asarray(validation_np["calibration"], dtype=bool)
+    # D-046 moves the final remaining C weight choice into train/inner-dev.
+    # Validation is now one pure confirmation set; historical calibration bits
+    # in reusable arrays are ignored and select nothing.
+    report_mask = np.ones(len(validation_np["y"]), dtype=bool)
     online_report_mask = report_mask & ~recovery_mask
-    calibration_online_mask = ~report_mask & ~recovery_mask
     validation_report_np = _subset_rows(validation_np, online_report_mask)
     device = torch.device("cpu")
     scorer_steps = (
@@ -499,12 +512,7 @@ def main() -> int:
                 row_mask=~np.asarray(train_np["recovery"], dtype=bool),
                 **scorer_influence_kwargs,
             ),
-            "validation_calibration_online": outcome_scorer_diagnostics(
-                scorer, V, learned["validation"],
-                row_mask=calibration_online_mask,
-                **scorer_influence_kwargs,
-            ),
-            "validation_report_online": outcome_scorer_diagnostics(
+            "validation_confirmation_online": outcome_scorer_diagnostics(
                 scorer, V, learned["validation"],
                 row_mask=online_report_mask,
                 **scorer_influence_kwargs,
@@ -512,7 +520,9 @@ def main() -> int:
             "training_trace": scorer_trace,
         }
         scorer_diagnostics.append(scorer_seed_diagnostics)
-        report_diagnostic = scorer_seed_diagnostics["validation_report_online"]
+        report_diagnostic = scorer_seed_diagnostics[
+            "validation_confirmation_online"
+        ]
         scorer_teacher.append(report_diagnostic["teacher_accuracy"])
         models = {}
         for method in STUDENTS:
@@ -537,15 +547,12 @@ def main() -> int:
             )
         trained[seed] = models
         train_diagnostic = scorer_seed_diagnostics["train_online_chain"]
-        calibration_diagnostic = scorer_seed_diagnostics[
-            "validation_calibration_online"
-        ]
         print(
             f"  seed {seed} trained in {time.time()-began:.0f}s; "
             f"E train BCE={train_diagnostic['masked_bce']:.4f} "
             f"teacher={train_diagnostic['teacher_accuracy']:.4f}; "
-            f"calibration BCE={calibration_diagnostic['masked_bce']:.4f} "
-            f"teacher={calibration_diagnostic['teacher_accuracy']:.4f}",
+            f"confirmation BCE={report_diagnostic['masked_bce']:.4f} "
+            f"teacher={report_diagnostic['teacher_accuracy']:.4f}",
             flush=True,
         )
 
@@ -555,8 +562,11 @@ def main() -> int:
         "margin_threshold": 0.0,
         "selection": "none",
         "validation_rows_used_for_gate_selection": 0,
-        "validation_calibration_partition_retained_for_c_auxiliary_weight": True,
-        "decision": "D-045",
+        "validation_selection": "none",
+        "validation_historical_partition_ignored": True,
+        "commit_attempt_rate_expected_under_fixed_gate": 1.0,
+        "actual_commit_and_executor_quarantine_reported_separately": True,
+        "decision": "D-046",
     }
     mechanism_slice_reports: dict[str, list[dict]] = {}
     for method in STUDENTS:
@@ -585,20 +595,15 @@ def main() -> int:
         )
     ]
     print(
-        "fixed D-045 commit rule (no validation selection): "
+        "fixed D-046 commit rule (no validation selection): "
         f"p={cfg['commit_probability']:.3f} "
         f"margin={cfg['margin_threshold']:.3f}; "
-        f"report rows={int(online_report_mask.sum())}",
+        f"confirmation rows={int(online_report_mask.sum())}",
         flush=True,
     )
-    report_audits = (
-        [
-            audit for audit in val_audits
-            if not paired_group_is_calibration(str(audit["paired_group_id"]))
-        ] if val_audits is not None else None
-    )
+    report_audits = list(val_audits) if val_audits is not None else None
     if val_audits is not None and not report_audits:
-        raise ValueError("validation report partition contains no paired groups")
+        raise ValueError("validation confirmation contains no paired groups")
     gate_tag = (
         f"p{int(round(float(cfg['commit_probability']) * 1000)):03d}_"
         f"m{int(round(float(cfg['margin_threshold']) * 1000)):03d}"
@@ -790,10 +795,11 @@ def main() -> int:
                     "any_first_error_recovery_eligible_sequences"),
                 "any_first_error_recovery_rate_within_window": col(
                     "any_first_error_recovery_rate_within_window"),
-                # How often the method actually wrote its choice rather than
-                # quarantining it. Under the fixed D-045 gate this diagnoses
-                # executor-illegal fallback; it is not used to tune a gate.
+                # The fixed D-046 gate requests COMMIT every time; actual
+                # writes and executor-illegal QUARANTINE remain distinct.
+                "commit_attempt_rate": col("commit_attempt_rate"),
                 "commit_rate": col("commit_rate"),
+                "executor_quarantine_rate": col("executor_quarantine_rate"),
                 "raw_invalid_selection_rate": col("raw_invalid_selection_rate"),
                 "initial_step_raw_invalid_selection_rate": col(
                     "initial_step_raw_invalid_selection_rate"),
@@ -846,7 +852,8 @@ def main() -> int:
                                     ) else None
                                 )
                                 for metric in (
-                                    "selection_accuracy", "commit_rate",
+                                    "selection_accuracy", "commit_attempt_rate",
+                                    "commit_rate", "executor_quarantine_rate",
                                     "committed_registered_accuracy",
                                     "active_correctness_after_decision",
                                     "selected_collateral_rate",
@@ -869,15 +876,20 @@ def main() -> int:
         for method in ALL_METHODS
     )
     paired_statistics = (
-        _paired_causal_statistics(causal_payloads, hard)
+        _paired_causal_statistics(causal_payloads, hard, overlay)
         if causal_complete else None
     )
     report = {
-        "schema_version": "cpmt-m1-af-report-v6",
-        "runner": "run_m1_af_scaled_v6",
+        "schema_version": "cpmt-m1-af-report-v7",
+        "runner": "run_m1_af_scaled_v7",
         "formal_run": False,
         "test_generated": False,
         "protocol_sha256": protocol_sha256(hard),
+        "evaluation_overlay": {
+            "schema_version": overlay["schema_version"],
+            "decisions": overlay["decisions"],
+            "validation_confirmation": overlay["validation_confirmation"],
+        },
         "training_provenance": training_provenance,
         "input_arrays": {
             "train": train_input,
@@ -924,7 +936,7 @@ def main() -> int:
         "teacher_reference_agreement": {
             "train": float((np.asarray(train_np["pstar"]).argmax(1)
                             == train_np["y"]).mean()),
-            "validation_report": float((
+            "validation_confirmation": float((
                 np.asarray(validation_np["pstar"]).argmax(1)[online_report_mask]
                 == validation_np["y"][online_report_mask]
             ).mean()),

@@ -358,6 +358,14 @@ class TestM1Metrics(unittest.TestCase):
                 "A_vs_C"
             ]["higher_is_better"]
         )
+        burden = result["by_metric"][
+            "open_fact_error_auc_per_100_decisions"
+        ]["A_vs_C"]
+        self.assertEqual(burden["null_minimum_effect"], 40.0)
+        self.assertEqual(burden["planning_effect"], 80.0)
+        self.assertEqual(
+            burden["required_test_groups_for_planning_effect"], 200,
+        )
         self.assertEqual(
             result["by_metric"]["final_active_graph_correctness"][
                 "A_vs_C"

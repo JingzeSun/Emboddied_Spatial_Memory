@@ -630,6 +630,27 @@
 - 是否接触 test 信息：否。只读取外部审计、原始愿景、活动合同、历史已导出的非正式 smoke 与 train-only v8 health/runtime 证据；未生成或读取 validation/test，未训练 anchor，未观察 endpoint probe 结果。
 - 验证方式：单测锁定 extra/missing、新写入/stale 的逐步恒等关系，终点/AUC 差异、false-birth 不抵消、空 recovery=`null`、compatibility alias 排除、三类 co-primary 功效与无选择 gate；Python compile、JSON/schema、shell syntax 与 `git diff --check` 本地通过后，先在干净服务器只跑 full test。full test 成功后才把唯一服务器入口改写为固定 train-only endpoint probe，仍不启动完整预算网格。
 
+## D-046 — M1 AUC 持续等价门与纯 validation confirmation
+
+- 日期：2026-09-08。
+- 状态：accepted；在读取 endpoint probe、validation 或 test 结果前冻结，supersede D-045 §4/§5 的 AUC `2/4` 门，并把 D-043/D-045 遗留的 validation 选择职责移回 train/inner-dev。
+- 用户确认：用户接受 terminal 与 AUC 是不同 estimand、`2×20` 只有在声明“效应贯穿 20 步”时才有含义，并明确要求把更严门与样本量、全程持续理由、probe 不得回调阈值、C 顺序扫描及三种提交率写入正式 decision 后执行。
+- 背景：D-045 正确把 `open_fact_error_auc_per_100_decisions` 登记为 long-horizon co-primary，却把终点错误负担的最小/规划效应 `2/4` 原样沿用到 AUC。terminal=`100×第20步错误事实数/20`，AUC=`100×二十步错误事实数之和/20`；二者不是同一统计对象，因而不能只凭相同的 `/100 decisions` 字样共用数值门。用 AUC `2/4` 时功效公式的 planning-minus-null 只有 2，配对 SD 为 20/30/50/80 会分别要求 790/1770/4910/12560 groups，说明该门把“很短的累计暴露变化”误当成长期有意义效应。旧 smoke 又是 extra-only、旧 gate、旧协议，只能提示 AUC 数量级，不能选阈值。与此同时，固定 `(0,0)` gate 已取消 validation gate 搜索；若 C auxiliary weight 仍留在 validation，200-group validation 就只服务一个基线的三选一，无法保持纯确认职责。
+- 决策：
+  1. `open_fact_error_auc_per_100_decisions` 的最小有意义绝对改善固定为 `40.0`，功效规划真效应固定为 `80.0`。这叫 **20-decision persistent-equivalent effect（20 步持续等价效应）**，是声明的建模假设，不是从 terminal 做单位转换。因 AUC=`5×错误事实-决策步暴露总数`，40 对应每个 paired group 平均减少 8 个错误开放事实×决策步暴露，80 对应减少 16 个。例如相对基线少保留一条错边 8 步达到最小门；只在最后一步把终点修好但此前没有累计减少 8 个暴露，不能靠 terminal 合格替代 AUC 合格。它不表示每个错误必须恰好持续 20 步，也不把 AUC 解释成错误事件发生率。
+  2. 选择“全 20 步持续等价”而不是半程锚点，是为了让 long-horizon 门专门拒绝晚期补救：一个方法可以终点正确，却因前段长期保留错边而未达到 AUC 40；三类 co-primary 使用 intersection-union gate 时整体应失败。这解决“后来修好是否能抹掉早先污染”的研究问题，输入是完整 20-step 逐步状态，输出是不可被终点追溯清零的累计收益；它不等于另加终点惩罚，也不允许 semantic/open-memory 的优势抵消 AUC 失败。
+  3. semantic 与 open-memory 的 null/planning 仍为 `0.03/0.06`，AUC 为 `40/80`，三者都保持 planning-to-null=`2×`。H0 是 effect≤minimum，因此把 AUC minimum 从 2 提到 40 会使科学通过门更严；功效分母从 2 增到 40、所需 N 随 `(SD/(planning−minimum))²` 降低，是按 AUC 自身构念定门后的数学推论，不是选阈值的动机。功效仍取三类 co-primary×A−C/A−E 最大值、至少 200、向上取整到 10、无预设上限。
+  4. endpoint probe 无论观察到什么 AUC 均值、效应或 SD，都不得改 `40/80`。若可达尺度远低于 40，报告应冻结该尺度与功效结果，并把它解释为“CTL 在本 M1 设计中未达到预登记的持续效应量级”；不得以“尺度不匹配”为由重调门、换相对百分比或再跑一版 probe。probe 只决定 exact/graded semantic 的机械分支与 test N，不决定 AUC 阈值。
+  5. C 的 `direct_future_auxiliary_weight∈{0.1,1,10}` 改到 train/inner-dev 做**顺序有限搜索**。第一阶段所有 A–E 仍在 weight=1 锚点上使用完全相同的 3 learning rates×4 update prefixes=12 格，以相同 complete groups、五 seeds、reference candidate-ranking accuracy、均值最高与“更少 updates、再更小 lr”的平手规则选各自计算格。第二阶段只固定 C 已选的 lr/updates，复用 weight=1 结果并为 0.1、10 各补一条同 seed 训练路径；三权重仍按相同 group-first、seed-averaged accuracy 选最高，精确平手优先锚点 1，再取较小登记权重。两阶段各自报告全部格、确定性 runner-up 与 paired-group bootstrap 不确定性，不做 36 格联合搜索、不扩权重或回头重选 C 的 lr/updates。
+  6. 顺序搜索让 C 比其他方法每 seed 多两条已登记路径，但不会冒充完全对称搜索；公平性来自共同的 12 格计算预算、相同 train/inner-dev 行/seed/指标/聚合，以及把 C 独有 loss-weight 自由度和成本完整披露。按 D-043 已保存的 300-step 实测，保守假定两条额外路径都跑到 10000 updates 时，Set Transformer/MLP 约额外 `0.513/0.157` 小时，两臂总投影由 `4.367` 增至约 `5.036` 小时；真实增量随 C 已选 updates 下降。这是旧 profile 的规划外推，不是新实测 runtime，也不改变 operator 对云资源的控制。
+  7. validation 改为纯 confirmation：所有 train/inner-dev 选择冻结后，新的 200 个登记 validation groups 只完整运行一次并报告，不选择 C weight、commit gate、lr、updates、checkpoint、method 或 endpoint。旧 arrays 即使保留历史 calibration bit，正式 validation runner 也忽略该分区；LOG-022 已查看的 4-group smoke 仍只是历史开发结果，不计入新的 confirmation。validation 输入是冻结模型与 200 groups，输出是一次泛化确认及完整失败；它不是 inner-dev、不是 test，也不能在失败后用于调参。
+  8. 固定 `(0,0)` gate 下分别报告 `commit_attempt_rate`、实际 `commit_rate` 与 `executor_quarantine_rate`。前者是模型请求执行 argmax 的比例并固定为 1；实际 commit 还要求 executor legal；请求后因 executor-illegal 原子回退的比例单列为 quarantine，满足 `attempt=commit+quarantine`。相对旧 smoke，移除 confidence abstention 预计会给 E 的错误施加向上压力并可能扩大 A−E，但这只是预登记方向性风险，不是保证结果、gate 理由或成功条件。
+- 备选方案：拒绝继续使用 AUC `2/4`，因为它没有 long-horizon 构念依据；拒绝从 probe 的实测 SD 或可达效应反推阈值，因为会把预登记变成事后调门；拒绝相对 baseline AUC 百分比，因为零/近零 baseline 不稳定且 A−C/A−E 会失去共同绝对门；拒绝 `lr×updates×weight` 36 格联合搜索，因为它给 C 更大的联合择优空间与选择噪声；拒绝继续用 validation 三选一，因为当前仍可在未读 validation 前完成同一有限选择。
+- 机器合同与版本：`configs/m1_endpoint_viability_probe.json` 升为 v3，继续覆盖不变的 v6/v8 source protocol 与 train arrays digest；endpoint report 升为 v3，通用 A–F report 升为 v7，train/inner-dev budget report 升为 v3，runtime profile 升为 v2。活动 `m1_hard_condition.json` 暂不改 hash，以继续字节级复用既有 1000-group train arrays；它内部被 supersede 的 validation/gate 旧字段不能覆盖 D-046 overlay，等 probe 冻结 semantic 分支与 test N 后再一次性升级总协议。
+- 影响：D-045 的指标名称、extra/missing、新写入/stale、false-birth、recovery null、固定 gate 与范围声明保持；只 supersede AUC 效应门/功效值和 validation 选择职责。当前 endpoint probe 与完整预算网格继续阻断，先在干净服务器对 D-044–D-046 全部实现跑 full test。full test 成功后才改写唯一入口运行固定 train-only endpoint probe；若其通过，再运行含 C 顺序权重搜索的两臂预算网格。
+- 是否接触 test 信息：否。D-046 只使用代码/量纲审计、已登记公式、历史非正式 smoke 的尺度提醒和 D-043 planning-only runtime profile；未运行或读取 endpoint probe、validation/test，test 尚未生成。
+- 验证方式：schema validator 锁住 `40/80`、8/16 暴露、不得按 probe 回调、顺序选择与纯 confirmation；功效单测锁住最低 200/向上取整；预算 helper 单测锁住 group-first 聚合、锚点平手与两条附加路径；causal 单测锁住 attempt/commit/quarantine 恒等关系。完成 Python compile、JSON 解析、shell syntax、定向测试与 diff 检查后，唯一服务器入口只运行全仓库测试，不生成数据、不训练、不读 validation/test。
+
 ## 新决策模板
 
 ```text

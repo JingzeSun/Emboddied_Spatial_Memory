@@ -3,9 +3,10 @@
 This v8 S1/S2 entrypoint reads exactly the registered 1,000 mixed train
 paired groups, holds out complete groups with the frozen SHA-256 rule, and
 evaluates the registered checkpoints on one identical seeded trajectory per
-learning rate. Every A-E method gets the same finite search space and selection
-rule while retaining the exact same online architecture within the arm. It
-handles one architecture arm per invocation. It never reads
+learning rate. Every A-E method first gets the same finite lr/update search at
+C's auxiliary-weight anchor. D-046 then freezes C's selected compute cell and
+compares its three registered auxiliary weights by reusing the anchor path and
+adding two paths per seed. It handles one architecture arm per invocation. It never reads
 validation/test, calibrates a commit gate, runs causal evaluation, or chooses
 between the Set Transformer and MLP arms.
 
@@ -41,7 +42,11 @@ from cpmt.m1_af_rollout import (  # noqa: E402
     CURRENT_RELATION_QUERIES,
     training_inner_dev_mask,
 )
-from cpmt.m1_protocol import load_and_validate, protocol_sha256  # noqa: E402
+from cpmt.m1_protocol import (  # noqa: E402
+    load_and_validate,
+    load_and_validate_endpoint_probe,
+    protocol_sha256,
+)
 from cpmt.run_provenance import arrays_sha256, capture_run_provenance  # noqa: E402
 
 
@@ -247,6 +252,123 @@ def _cell_group_means(
     return means
 
 
+def _auxiliary_weight_group_means(
+    runs: list[dict], *, expected_weights: list[float],
+    expected_observations_per_group: int,
+) -> dict[float, dict[str, float]]:
+    """Average the fixed-compute C weight trials within complete groups."""
+    weights = [float(value) for value in expected_weights]
+    if len(weights) != len(set(weights)):
+        raise ValueError("auxiliary-weight grid must be unique")
+    collected = {weight: {} for weight in weights}
+    seen_support = set()
+    for run in runs:
+        weight = float(run["auxiliary_weight"])
+        if weight not in collected:
+            raise ValueError(f"unexpected auxiliary weight: {weight}")
+        by_group = run.get("inner_dev_online", {}).get(
+            "reference_accuracy_by_group"
+        )
+        if not isinstance(by_group, dict) or not by_group:
+            raise ValueError("missing auxiliary-weight complete-group metric")
+        for group_id, value in by_group.items():
+            support_key = (weight, str(group_id), int(run["seed"]))
+            if support_key in seen_support:
+                raise ValueError(
+                    "duplicate seed support in auxiliary-weight cell: "
+                    f"{support_key}"
+                )
+            seen_support.add(support_key)
+            collected[weight].setdefault(str(group_id), []).append(float(value))
+
+    group_ids = None
+    means = {}
+    for weight in weights:
+        groups = collected[weight]
+        if not groups:
+            raise ValueError(f"auxiliary-weight cell has no observations: {weight}")
+        if any(
+            len(values) != int(expected_observations_per_group)
+            for values in groups.values()
+        ):
+            raise ValueError(
+                "auxiliary-weight cell does not have equal seed support for "
+                f"every complete paired group: {weight}"
+            )
+        current_group_ids = set(groups)
+        if group_ids is None:
+            group_ids = current_group_ids
+        elif current_group_ids != group_ids:
+            raise ValueError(
+                "auxiliary-weight cells do not share complete paired groups"
+            )
+        means[weight] = {
+            group_id: float(np.mean(values))
+            for group_id, values in sorted(groups.items())
+        }
+    return means
+
+
+def _auxiliary_weight_selection(
+    group_means_by_weight: dict[float, dict[str, float]], *,
+    anchor_weight: float,
+    uncertainty: dict,
+) -> dict:
+    """Select C's weight after compute is fixed, preferring the anchor on ties."""
+    anchor_weight = float(anchor_weight)
+    if anchor_weight not in group_means_by_weight:
+        raise ValueError("auxiliary-weight selection lacks its registered anchor")
+    aggregate = {
+        float(weight): float(np.mean(list(by_group.values())))
+        for weight, by_group in group_means_by_weight.items()
+    }
+    if not aggregate or not all(np.isfinite(value) for value in aggregate.values()):
+        raise ValueError("auxiliary-weight aggregates must be finite")
+    ranked = sorted(
+        aggregate,
+        key=lambda weight: (
+            -aggregate[weight],
+            0 if weight == anchor_weight else 1,
+            weight,
+        ),
+    )
+    selected = ranked[0]
+    runner_up = ranked[1] if len(ranked) > 1 else None
+    result = {
+        "aggregate_mean_by_weight": [
+            {
+                "auxiliary_weight": float(weight),
+                "aggregate_mean": float(aggregate[weight]),
+            }
+            for weight in sorted(aggregate)
+        ],
+        "selected_auxiliary_weight": float(selected),
+        "selected_aggregate_mean": float(aggregate[selected]),
+        "deterministic_runner_up": (
+            {
+                "auxiliary_weight": float(runner_up),
+                "aggregate_mean": float(aggregate[runner_up]),
+            }
+            if runner_up is not None else None
+        ),
+        "tie_break_applied": sum(
+            value == aggregate[selected] for value in aggregate.values()
+        ) > 1,
+        "tie_break_rule": "prefer_anchor_1.0_then_lower_registered_weight",
+    }
+    result["selected_vs_deterministic_runner_up_paired_bootstrap"] = (
+        _paired_group_bootstrap_difference(
+            group_means_by_weight[selected],
+            group_means_by_weight[runner_up],
+            resamples=int(uncertainty["bootstrap_resamples"]),
+            seed=int(uncertainty["bootstrap_seed"]),
+            confidence=float(uncertainty["confidence"]),
+        )
+        if runner_up is not None else None
+    )
+    return result
+
+
 def _paired_group_bootstrap_difference(
     selected_by_group: dict[str, float],
     runner_up_by_group: dict[str, float], *,
@@ -327,6 +449,7 @@ def _linear_runtime_projection(
     profile_steps: int, maximum_steps: int,
     learning_rate_count: int, seed_count: int,
     checkpoint_count: int,
+    additional_student_paths_by_method: dict[str, int] | None = None,
 ) -> dict:
     """Project registered-grid cost from one fixed, non-selective profile path."""
     if profile_steps <= 0 or maximum_steps < profile_steps:
@@ -337,6 +460,13 @@ def _linear_runtime_projection(
         raise ValueError("student runtime methods do not match")
     if min(learning_rate_count, seed_count, checkpoint_count) <= 0:
         raise ValueError("runtime projection counts must be positive")
+    additional_paths = additional_student_paths_by_method or {
+        method: 0 for method in student_path_seconds_by_method
+    }
+    if set(additional_paths) != set(student_path_seconds_by_method):
+        raise ValueError("additional student path methods do not match")
+    if any(int(value) < 0 for value in additional_paths.values()):
+        raise ValueError("additional student path counts must be non-negative")
     scale = float(maximum_steps) / float(profile_steps)
     paths_per_component = int(learning_rate_count) * int(seed_count)
     scorer_seconds = paths_per_component * (
@@ -344,10 +474,16 @@ def _linear_runtime_projection(
         + float(scorer_evaluation_seconds) * int(checkpoint_count)
     )
     student_seconds_by_method = {
-        method: paths_per_component * (
-            float(student_path_seconds_by_method[method]) * scale
-            + float(student_evaluation_seconds_by_method[method])
-            * int(checkpoint_count)
+        method: (
+            paths_per_component * (
+                float(student_path_seconds_by_method[method]) * scale
+                + float(student_evaluation_seconds_by_method[method])
+                * int(checkpoint_count)
+            )
+            + int(additional_paths[method]) * (
+                float(student_path_seconds_by_method[method]) * scale
+                + float(student_evaluation_seconds_by_method[method])
+            )
         )
         for method in sorted(student_path_seconds_by_method)
     }
@@ -359,6 +495,10 @@ def _linear_runtime_projection(
         ),
         "protocol_cap_or_selection_metric": False,
         "paths_per_component": paths_per_component,
+        "additional_student_paths_by_method": {
+            method: int(additional_paths[method])
+            for method in sorted(additional_paths)
+        },
         "profile_steps": int(profile_steps),
         "maximum_steps": int(maximum_steps),
         "checkpoint_evaluations_per_path": int(checkpoint_count),
@@ -376,6 +516,7 @@ def _synchronize(device: torch.device) -> None:
 
 def _run_runtime_profile(
     *, args: argparse.Namespace, hard: dict, budget: dict,
+    budget_amendment: dict,
     active_protocol: str, train_input: dict,
     fitting: dict[str, torch.Tensor], held_out: dict[str, torch.Tensor],
     inner_online: np.ndarray, inner_groups: np.ndarray,
@@ -482,10 +623,20 @@ def _run_runtime_profile(
         checkpoint_count=max(
             len(scorer_checkpoints), len(student_checkpoints)
         ),
+        additional_student_paths_by_method={
+            method: (
+                int(budget_amendment[
+                    "additional_c_auxiliary_weight_paths_per_seed"
+                ]) * len(seeds)
+                if method == budget_amendment["direct_future_method_name"]
+                else 0
+            )
+            for method in student_path_seconds_by_method
+        },
     )
     report = {
-        "schema_version": "cpmt-m1-v8-budget-runtime-profile-v1",
-        "runner": "run_m1_train_inner_dev_budget_runtime_profile_v1",
+        "schema_version": "cpmt-m1-v8-budget-runtime-profile-v2",
+        "runner": "run_m1_train_inner_dev_budget_runtime_profile_v2",
         "formal_run": False,
         "selection_performed": False,
         "scientific_metrics_exported": False,
@@ -494,6 +645,7 @@ def _run_runtime_profile(
         "protocol_sha256": active_protocol,
         "dataset_version": hard["data"]["dataset_version"],
         "architecture": args.architecture,
+        "D046_budget_amendment": budget_amendment,
         "input_arrays": {"train": train_input},
         "profile": {
             "seed": profile_seed,
@@ -639,6 +791,11 @@ def main() -> int:
         default=PROJECT / "configs" / "m1_hard_condition.json",
     )
     parser.add_argument(
+        "--overlay", type=Path,
+        default=PROJECT / "configs" / "m1_endpoint_viability_probe.json",
+        help="accepted D-044--D-046 train-only evaluation/budget overlay",
+    )
+    parser.add_argument(
         "--architecture", required=True,
         choices=(
             "cross_candidate_set_transformer_v1",
@@ -657,7 +814,9 @@ def main() -> int:
     args = parser.parse_args()
 
     hard = load_and_validate(args.config)
+    overlay = load_and_validate_endpoint_probe(args.overlay, hard)
     budget = hard["training"]["pretest_budget_selection"]
+    budget_amendment = overlay["post_probe_train_inner_dev_budget_amendment"]
     if args.architecture not in budget["architectures"]:
         parser.error("--architecture is outside the registered budget arms")
     active_protocol = protocol_sha256(hard)
@@ -721,7 +880,9 @@ def main() -> int:
         scorer_steps=max(scorer_checkpoints),
         student_steps=max(student_checkpoints),
         distillation_weight=1.0,
-        auxiliary_weight=float(budget["direct_future_auxiliary_weight_anchor"]),
+        auxiliary_weight=float(
+            budget_amendment["direct_future_auxiliary_weight_anchor"]
+        ),
         candidate_feature_dim=CANDIDATE_FEATURE_DIM,
         current_relation_dim=len(CURRENT_RELATION_QUERIES),
         standardize_future_term=True,
@@ -742,6 +903,7 @@ def main() -> int:
             args=args,
             hard=hard,
             budget=budget,
+            budget_amendment=budget_amendment,
             active_protocol=active_protocol,
             train_input=train_input,
             fitting=fitting,
@@ -907,6 +1069,8 @@ def main() -> int:
                         "method": str(run_method),
                         "learning_rate": float(run_learning_rate),
                         "checkpoint": int(step),
+                        "auxiliary_weight": float(cfg["auxiliary_weight"]),
+                        "selection_stage": "learning_rate_and_updates_at_auxiliary_anchor",
                         "inner_dev_online": metrics,
                         "training_trace": trace,
                     })
@@ -979,6 +1143,176 @@ def main() -> int:
         }
         student_selections[method] = selection
 
+    # D-046 uses a sequential C search. First, C receives exactly the same
+    # lr/update grid as A--E at auxiliary weight 1.0. Only after that compute
+    # cell is frozen do two additional fixed-compute paths compare 0.1 and 10.
+    # This prevents a 36-cell joint search while keeping validation untouched.
+    direct_future_method = str(budget_amendment["direct_future_method_name"])
+    auxiliary_weights = [
+        float(value)
+        for value in budget_amendment["direct_future_auxiliary_weights"]
+    ]
+    auxiliary_anchor = float(
+        budget_amendment["direct_future_auxiliary_weight_anchor"]
+    )
+    c_compute_selection = student_selections[direct_future_method]
+    c_selected_learning_rate = float(
+        c_compute_selection["selected_learning_rate"]
+    )
+    c_selected_checkpoint = int(c_compute_selection["selected_checkpoint"])
+    auxiliary_weight_runs = [
+        {
+            "seed": int(run["seed"]),
+            "method": direct_future_method,
+            "learning_rate": c_selected_learning_rate,
+            "checkpoint": c_selected_checkpoint,
+            "auxiliary_weight": auxiliary_anchor,
+            "selection_stage": "reused_anchor_run_at_fixed_selected_compute",
+            "inner_dev_online": run["inner_dev_online"],
+            "training_trace_reused_from_learning_rate_updates_grid": True,
+        }
+        for run in student_runs
+        if run["method"] == direct_future_method
+        and float(run["learning_rate"]) == c_selected_learning_rate
+        and int(run["checkpoint"]) == c_selected_checkpoint
+    ]
+    for seed in seeds:
+        train_teacher, inner_teacher = _method_teachers(
+            direct_future_method, fitting, held_out, {},
+        )
+        for auxiliary_weight in auxiliary_weights:
+            if auxiliary_weight == auxiliary_anchor:
+                continue
+            began = time.time()
+
+            def auxiliary_checkpoint(
+                step, model, trace, *, run_seed=seed,
+                run_auxiliary_weight=auxiliary_weight,
+                fixed_teacher=inner_teacher,
+            ):
+                student_parameter_counts.add(sum(
+                    parameter.numel() for parameter in model.parameters()
+                ))
+                student_parameter_signatures.add(tuple(
+                    (
+                        name, tuple(parameter.shape),
+                        bool(parameter.requires_grad),
+                    )
+                    for name, parameter in model.named_parameters()
+                ))
+                metrics = _student_checkpoint_metrics(
+                    model, held_out, fixed_teacher,
+                    inner_online, inner_groups,
+                )
+                auxiliary_weight_runs.append({
+                    "seed": int(run_seed),
+                    "method": direct_future_method,
+                    "learning_rate": c_selected_learning_rate,
+                    "checkpoint": int(step),
+                    "auxiliary_weight": float(run_auxiliary_weight),
+                    "selection_stage": "auxiliary_weight_at_fixed_selected_compute",
+                    "inner_dev_online": metrics,
+                    "training_trace": trace,
+                })
+                print(
+                    f"C_AUXILIARY_CHECKPOINT architecture={args.architecture} "
+                    f"seed={run_seed} lr={c_selected_learning_rate:.6g} "
+                    f"steps={step} weight={run_auxiliary_weight:.6g} "
+                    f"reference_accuracy={metrics['reference_accuracy']:.6f}",
+                    flush=True,
+                )
+
+            train_student(
+                direct_future_method, fitting, train_teacher,
+                dict(
+                    cfg,
+                    learning_rate=c_selected_learning_rate,
+                    student_steps=c_selected_checkpoint,
+                    auxiliary_weight=auxiliary_weight,
+                ),
+                seed, device,
+                checkpoint_steps=[c_selected_checkpoint],
+                checkpoint_callback=auxiliary_checkpoint,
+            )
+            print(
+                f"C_AUXILIARY_PATH_OK seed={seed} "
+                f"lr={c_selected_learning_rate:.6g} "
+                f"steps={c_selected_checkpoint} "
+                f"weight={auxiliary_weight:.6g} "
+                f"wall_seconds={time.time()-began:.3f}",
+                flush=True,
+            )
+        del train_teacher, inner_teacher
+        if device.type == "cuda":
+            torch.cuda.empty_cache()
+
+    if len(student_parameter_counts) != 1:
+        raise AssertionError(
+            "C auxiliary paths changed the shared student parameter count"
+        )
+    if len(student_parameter_signatures) != 1:
+        raise AssertionError(
+            "C auxiliary paths changed the shared student parameter shapes"
+        )
+    auxiliary_group_means = _auxiliary_weight_group_means(
+        auxiliary_weight_runs,
+        expected_weights=auxiliary_weights,
+        expected_observations_per_group=len(seeds),
+    )
+    auxiliary_selection = _auxiliary_weight_selection(
+        auxiliary_group_means,
+        anchor_weight=auxiliary_anchor,
+        uncertainty=uncertainty,
+    )
+    weight_runner_up = auxiliary_selection["deterministic_runner_up"]
+    c_final_selection = {
+        "selected_learning_rate": c_selected_learning_rate,
+        "selected_checkpoint": c_selected_checkpoint,
+        "selected_auxiliary_weight": auxiliary_selection[
+            "selected_auxiliary_weight"
+        ],
+        "selected_aggregate_mean": auxiliary_selection[
+            "selected_aggregate_mean"
+        ],
+        "deterministic_runner_up": (
+            {
+                "learning_rate": c_selected_learning_rate,
+                "checkpoint": c_selected_checkpoint,
+                **weight_runner_up,
+            }
+            if weight_runner_up is not None else None
+        ),
+        "selected_vs_deterministic_runner_up_paired_bootstrap": (
+            auxiliary_selection[
+                "selected_vs_deterministic_runner_up_paired_bootstrap"
+            ]
+        ),
+        "tie_break_applied": auxiliary_selection["tie_break_applied"],
+        "budget_grid_ceiling_reached": c_compute_selection[
+            "budget_grid_ceiling_reached"
+        ],
+        "ceiling_action": c_compute_selection["ceiling_action"],
+        "shared_diagnostic_anchor": c_compute_selection[
+            "shared_diagnostic_anchor"
+        ],
+        "selection_order": list(budget_amendment["selection_order"]),
+        "selected_aggregate_mean_at_auxiliary_anchor": c_compute_selection[
+            "selected_aggregate_mean"
+        ],
+        "learning_rate_updates_selection_at_auxiliary_anchor": (
+            c_compute_selection
+        ),
+        "auxiliary_weight_selection_at_fixed_compute": auxiliary_selection,
+    }
+    student_selections[direct_future_method] = c_final_selection
+    print(
+        f"C_AUXILIARY_SELECTED architecture={args.architecture} "
+        f"lr={c_selected_learning_rate:.6g} steps={c_selected_checkpoint} "
+        f"weight={c_final_selection['selected_auxiliary_weight']:.6g} "
+        f"score={c_final_selection['selected_aggregate_mean']:.6f}",
+        flush=True,
+    )
+
     methods = list(budget["student_selection_methods"])
     shared_group_means = _cell_group_means(
         student_runs,
@@ -1009,7 +1343,6 @@ def main() -> int:
         for method, selection in student_selections.items()
     }
     primary_method = "cpmt_ctl_core"
-    direct_future_method = "direct_future_loss"
     no_execution_method = "future_no_execution"
     primary_cell = (
         float(student_selections[primary_method]["selected_learning_rate"]),
@@ -1071,8 +1404,8 @@ def main() -> int:
     args.out_dir.mkdir(parents=True, exist_ok=True)
     report_path = args.out_dir / "budget_report.json"
     report = {
-        "schema_version": "cpmt-m1-v8-train-inner-dev-budget-v2",
-        "runner": "run_m1_train_inner_dev_budget_v2",
+        "schema_version": "cpmt-m1-v8-train-inner-dev-budget-v3",
+        "runner": "run_m1_train_inner_dev_budget_v3",
         "formal_run": False,
         "test_generated": False,
         "causal_complete": False,
@@ -1098,7 +1431,8 @@ def main() -> int:
             "validation_trial_consumed": False,
             "test_access": False,
         },
-        "registered_contract": budget,
+        "registered_source_budget_contract": budget,
+        "D046_budget_amendment": budget_amendment,
         "device": {
             "requested": args.device,
             "resolved": device_name,
@@ -1134,9 +1468,17 @@ def main() -> int:
             "outcome_scorer_additional_parameters_for_E": int(
                 scorer_parameter_count
             ),
-            "student_grid_cells_per_method": len(expected_student_cells),
-            "student_grid_identical_A_to_E": True,
-            "method_specific_grid_expansion": False,
+            "learning_rate_updates_grid_cells_per_method": len(
+                expected_student_cells
+            ),
+            "learning_rate_updates_grid_identical_A_to_E_at_auxiliary_anchor": True,
+            "C_additional_auxiliary_weight_paths_per_seed": int(
+                budget_amendment[
+                    "additional_c_auxiliary_weight_paths_per_seed"
+                ]
+            ),
+            "C_joint_lr_updates_auxiliary_weight_grid": False,
+            "unregistered_method_specific_grid_expansion": False,
         },
         "scorer": {
             "selection": scorer_selection,
@@ -1147,6 +1489,7 @@ def main() -> int:
             "selection_by_method": student_selections,
             "dual_budget_readout": dual_budget_readout,
             "runs": student_runs,
+            "C_auxiliary_weight_runs": auxiliary_weight_runs,
             "wall_seconds": float(time.time() - student_started),
         },
         "selected": {
@@ -1156,14 +1499,22 @@ def main() -> int:
                 method: {
                     "learning_rate": selection["selected_learning_rate"],
                     "student_steps": selection["selected_checkpoint"],
+                    **(
+                        {
+                            "direct_future_auxiliary_weight": selection[
+                                "selected_auxiliary_weight"
+                            ]
+                        }
+                        if method == direct_future_method else {}
+                    ),
                     "budget_grid_ceiling_reached": selection[
                         "budget_grid_ceiling_reached"
                     ],
                 }
                 for method, selection in student_selections.items()
             },
-            "direct_future_auxiliary_weight_anchor_only": float(
-                budget["direct_future_auxiliary_weight_anchor"]
+            "direct_future_auxiliary_weight_selection_stage": (
+                "train_inner_dev_after_fixed_learning_rate_and_updates"
             ),
         },
     }

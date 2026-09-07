@@ -684,8 +684,8 @@ def endpoint_viability_assessment(
     support_metric: str = "final_graded_open_memory_correctness",
     burden_metric: str = "open_fact_error_auc_per_100_decisions",
     minimum_effect: float = 0.03, planning_effect: float = 0.06,
-    burden_minimum_effect: float = 2.0,
-    burden_planning_effect: float = 4.0,
+    burden_minimum_effect: float = 40.0,
+    burden_planning_effect: float = 80.0,
     z_one_sided_alpha: float = 1.959963984540054,
     z_power: float = 0.8416212335729143,
     minimum_test_groups: int = 200,
@@ -695,7 +695,9 @@ def endpoint_viability_assessment(
     Rows are averaged first within a complete paired group, so seeds and the
     two siblings never become fake independent samples. The endpoint choice
     depends only on whether paired differences are observable, never on which
-    method wins or the sign of its effect.
+    method wins or the sign of its effect. The burden defaults are D-046's
+    fixed 20-decision persistent-equivalent effects, not a unit conversion
+    from the terminal burden and not a value inferred from these rows.
     """
     if not rows or expected_groups <= 1:
         raise ValueError("endpoint assessment needs multiple paired groups")

@@ -484,6 +484,12 @@ class TestM1AFCausalRollout(unittest.TestCase):
             report["slices"]["temporal_underdetermination"]["definition"],
             "scenario_family_equals_C10",
         )
+        for item in report["slices"].values():
+            self.assertEqual(item["commit_attempt_rate"], 1.0)
+            self.assertAlmostEqual(
+                item["commit_attempt_rate"],
+                item["commit_rate"] + item["executor_quarantine_rate"],
+            )
 
     def test_every_generated_row_has_an_admitted_noop_fallback(self):
         noop_index = TEMPLATES.index("NOOP")
@@ -640,6 +646,13 @@ class TestM1AFCausalRollout(unittest.TestCase):
         self.assertEqual(corrected[0]["active_correct_after"], 1.0)
         self.assertEqual(metrics["triggered_revisit_count"], 1.0)
         self.assertEqual(metrics["triggered_revisit_commit_rate"], 1.0)
+        self.assertEqual(metrics["commit_attempt_rate"], 1.0)
+        self.assertEqual(metrics["commit_rate"], 1.0)
+        self.assertEqual(metrics["executor_quarantine_rate"], 0.0)
+        self.assertAlmostEqual(
+            metrics["commit_attempt_rate"],
+            metrics["commit_rate"] + metrics["executor_quarantine_rate"],
+        )
         self.assertEqual(
             metrics["triggered_revisit_active_resolution_rate"], 1.0,
         )

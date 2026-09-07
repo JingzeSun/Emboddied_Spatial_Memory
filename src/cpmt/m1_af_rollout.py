@@ -1376,6 +1376,7 @@ def mechanism_slice_selection_diagnostics(
         )
         legal = np.asarray(arrays["candidate_legal"], dtype=bool)
         committed = requested_commit & legal[rows, predicted]
+        executor_quarantined = requested_commit & ~legal[rows, predicted]
         active = np.asarray(arrays["active_correct"], dtype=np.float64)
         base_active = np.asarray(
             arrays["base_active_correct"], dtype=np.float64,
@@ -1390,7 +1391,9 @@ def mechanism_slice_selection_diagnostics(
             committed, collateral[rows, predicted], 0.0,
         )
     else:
+        requested_commit = np.zeros(len(reference), dtype=bool)
         committed = np.zeros(len(reference), dtype=bool)
+        executor_quarantined = np.zeros(len(reference), dtype=bool)
         active_after = np.full(len(reference), np.nan)
         selected_collateral = np.full(len(reference), np.nan)
     output = {
@@ -1413,7 +1416,15 @@ def mechanism_slice_selection_diagnostics(
         if calibrated:
             committed_mask = mask & committed
             item.update({
+                "commit_attempt_rate": (
+                    float(np.mean(requested_commit[mask]))
+                    if mask.any() else None
+                ),
                 "commit_rate": float(np.mean(committed[mask])) if mask.any() else None,
+                "executor_quarantine_rate": (
+                    float(np.mean(executor_quarantined[mask]))
+                    if mask.any() else None
+                ),
                 "committed_registered_accuracy": (
                     float(np.mean(
                         predicted[committed_mask] == reference[committed_mask]
@@ -2162,7 +2173,9 @@ def causal_rollout_metrics(
                 margin_threshold=float(smoke_config["margin_threshold"]),
             )
             base = current
-            committed = decision["action"] == "COMMIT" and selected["legal"]
+            commit_requested = decision["action"] == "COMMIT"
+            committed = commit_requested and selected["legal"]
+            executor_quarantined = commit_requested and not selected["legal"]
             current = selected["post_graph"] if committed else clone_json(base)
             evidence_scope = _current_online_evidence_scope(
                 base, stored["event_spec"],
@@ -2213,6 +2226,8 @@ def causal_rollout_metrics(
                     for candidate in materialized["executed_candidates"]
                 )),
                 "committed": committed,
+                "commit_requested": commit_requested,
+                "executor_quarantined": executor_quarantined,
                 "registered_selection_correct": registered_correct,
                 "committed_registered_correct": committed and registered_correct,
                 "revisit_opportunity": revisit_opportunity,
@@ -2258,7 +2273,13 @@ def causal_rollout_metrics(
             "paired_group_id": audit["paired_group_id"],
             "sequence_id": audit["sequence_id"],
             "sibling_index": audit["sibling_index"],
+            "commit_attempt_rate": float(np.mean([
+                item["commit_requested"] for item in choices
+            ])),
             "commit_rate": float(np.mean([item["committed"] for item in choices])),
+            "executor_quarantine_rate": float(np.mean([
+                item["executor_quarantined"] for item in choices
+            ])),
             "raw_invalid_selection_rate": float(np.mean([
                 not item["selected_legal"] for item in choices
             ])),
@@ -2366,7 +2387,8 @@ def causal_rollout_metrics(
         "false_birth_growth_auc_per_100_decisions",
         "missing_open_entity_auc_per_100_decisions",
         "memory_contamination_auc_per_100_decisions",
-        "unresolved_active_error", "commit_rate", "raw_invalid_selection_rate",
+        "unresolved_active_error", "commit_attempt_rate", "commit_rate",
+        "executor_quarantine_rate", "raw_invalid_selection_rate",
         "raw_static_rejected_selection_rate", "mean_effective_candidate_count",
         "initial_step_raw_invalid_selection_rate",
         "registered_selection_accuracy", "committed_registered_accuracy",
@@ -2491,6 +2513,16 @@ def causal_rollout_metrics(
                 "commit_rate": (
                     float(np.mean([
                         choice["committed"] for choice in selected
+                    ])) if selected else None
+                ),
+                "commit_attempt_rate": (
+                    float(np.mean([
+                        choice["commit_requested"] for choice in selected
+                    ])) if selected else None
+                ),
+                "executor_quarantine_rate": (
+                    float(np.mean([
+                        choice["executor_quarantined"] for choice in selected
                     ])) if selected else None
                 ),
                 "committed_registered_accuracy": (

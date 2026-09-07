@@ -591,12 +591,12 @@ def load_and_validate(path: Path) -> dict[str, Any]:
 def validate_m1_endpoint_probe(
     probe: Mapping[str, Any], source_protocol: Mapping[str, Any],
 ) -> None:
-    """Reject a leaky or semantically regressed D-044/D-045 probe overlay."""
+    """Reject a leaky or semantically regressed D-044/D-046 overlay."""
     _require(
-        probe.get("schema_version") == "m1-endpoint-viability-probe-v2",
+        probe.get("schema_version") == "m1-endpoint-viability-probe-v3",
         "wrong endpoint probe schema",
     )
-    _require(probe.get("decisions") == ["D-044", "D-045"],
+    _require(probe.get("decisions") == ["D-044", "D-045", "D-046"],
              "endpoint probe decisions changed")
     source = probe.get("source_protocol", {})
     _require(source.get("protocol_sha256") == protocol_sha256(source_protocol),
@@ -613,6 +613,75 @@ def validate_m1_endpoint_probe(
         and access.get("test_access") is False,
         "endpoint probe may read train only",
     )
+    anchor = probe.get("training_anchor", {})
+    _require(
+        anchor.get("c_auxiliary_weight") == 1.0
+        and anchor.get("c_auxiliary_weight_role")
+        == "fixed_probe_anchor_only_not_the_later_train_inner_dev_selection"
+        and anchor.get("grid_search") is False
+        and anchor.get("checkpoint_selection") is False,
+        "endpoint probe must retain a fixed non-selective C anchor",
+    )
+    budget_amendment = probe.get(
+        "post_probe_train_inner_dev_budget_amendment", {}
+    )
+    _require(
+        budget_amendment.get("selection_order")
+        == [
+            "select_learning_rate_and_student_updates_at_c_auxiliary_weight_1.0",
+            "hold_selected_learning_rate_and_student_updates_fixed_then_select_c_auxiliary_weight",
+        ]
+        and budget_amendment.get("direct_future_method") == "C"
+        and budget_amendment.get("direct_future_method_name")
+        == "direct_future_loss"
+        and budget_amendment.get("direct_future_auxiliary_weights")
+        == [0.1, 1.0, 10.0]
+        and budget_amendment.get("direct_future_auxiliary_weight_anchor") == 1.0
+        and budget_amendment.get("learning_rate_and_updates_search_cells_per_method")
+        == 12
+        and budget_amendment.get("additional_c_auxiliary_weight_paths_per_seed")
+        == 2
+        and budget_amendment.get("joint_learning_rate_updates_auxiliary_weight_search")
+        is False,
+        "C auxiliary weight must use the registered sequential train/inner-dev search",
+    )
+    _require(
+        budget_amendment.get("auxiliary_weight_selection_metric")
+        == "inner_dev_online_reference_candidate_ranking_accuracy"
+        and budget_amendment.get("auxiliary_weight_selection_aggregation")
+        == "equal_weight_mean_over_seed_and_complete_paired_group"
+        and budget_amendment.get("auxiliary_weight_selection_rule")
+        == "highest_registered_aggregate_mean_with_exact_ties_to_anchor_1.0_then_lower_registered_weight"
+        and budget_amendment.get(
+            "same_inner_dev_groups_and_seeds_as_learning_rate_updates_selection"
+        ) is True
+        and budget_amendment.get("reuse_anchor_weight_run_without_retraining")
+        is True
+        and budget_amendment.get("grid_expansion_forbidden") is True
+        and budget_amendment.get(
+            "report_all_three_weight_results_and_selected_vs_runner_up_uncertainty"
+        ) is True
+        and budget_amendment.get("validation_arrays_read") is False
+        and budget_amendment.get("validation_trial_consumed") is False
+        and budget_amendment.get("test_access") is False,
+        "C auxiliary weight selection may not gain an unregistered or leaky degree of freedom",
+    )
+    confirmation = probe.get("validation_confirmation", {})
+    _require(
+        confirmation.get("role")
+        == "pure_confirmation_after_all_train_inner_dev_selection_is_frozen"
+        and confirmation.get("selection") == "none"
+        and confirmation.get("registered_paired_groups") == 200
+        and confirmation.get("use_all_registered_groups_once") is True
+        and confirmation.get("historical_calibration_report_partition_ignored")
+        is True
+        and confirmation.get("direct_future_auxiliary_weight_selection")
+        == "forbidden"
+        and confirmation.get("commit_rule_selection") == "forbidden"
+        and confirmation.get("learning_rate_or_updates_selection") == "forbidden"
+        and confirmation.get("test_access") is False,
+        "validation must be a pure, selection-free confirmation set",
+    )
     gate = probe.get("commit_rule", {})
     _require(
         gate.get("mode") == "fixed_always_attempt_shared_gate"
@@ -622,6 +691,19 @@ def validate_m1_endpoint_probe(
         and gate.get("validation_rows_used_for_gate_selection") == 0
         and gate.get("shared_across") == ["A", "C", "E", "F"],
         "endpoint probe gate must be fixed, shared, and selection-free",
+    )
+    _require(
+        gate.get("commit_attempt_rate_under_fixed_gate") == 1.0
+        and gate.get("actual_commit_rate_definition")
+        == "fraction_of_decisions_with_COMMIT_request_and_executor_legal_selected_candidate"
+        and gate.get("executor_quarantine_rate_definition")
+        == "fraction_of_decisions_with_COMMIT_request_but_executor_illegal_selected_candidate"
+        and gate.get("rate_identity_under_fixed_gate")
+        == "commit_attempt_rate_equals_actual_commit_rate_plus_executor_quarantine_rate"
+        and gate.get(
+            "directional_expectation_is_not_gate_justification_or_success_criterion"
+        ) is True,
+        "fixed gate must distinguish attempts, actual commits, and executor quarantine",
     )
     alignment = probe.get("construct_alignment", {})
     _require(
@@ -639,9 +721,30 @@ def validate_m1_endpoint_probe(
         power.get(
             "take_maximum_across_primary_contrasts_and_selected_semantic_plus_open_memory_support_plus_open_fact_error_AUC_endpoints"
         ) is True
-        and power.get("open_fact_error_auc_null_boundary_minimum_effect") == 2.0
-        and power.get("open_fact_error_auc_planning_true_effect") == 4.0,
+        and power.get("open_fact_error_auc_null_boundary_minimum_effect") == 40.0
+        and power.get("open_fact_error_auc_planning_true_effect") == 80.0,
         "power planning must include the cumulative burden co-primary",
+    )
+    _require(
+        power.get("open_fact_error_auc_effect_model")
+        == "twenty_decision_persistent_equivalent_absolute_reduction_not_a_unit_conversion_from_terminal_burden"
+        and power.get("open_fact_error_auc_horizon_decisions") == 20
+        and power.get(
+            "open_fact_error_auc_minimum_error_fact_decision_exposures_reduced_per_group"
+        ) == 8.0
+        and power.get(
+            "open_fact_error_auc_planning_error_fact_decision_exposures_reduced_per_group"
+        ) == 16.0
+        and power.get("planning_to_null_ratio_matches_correctness_endpoints")
+        == 2.0
+        and power.get(
+            "larger_threshold_is_a_stricter_effect_gate_and_lower_required_N_is_a_consequence_not_the_selection_motive"
+        ) is True
+        and power.get("probe_observed_scale_or_SD_may_not_change_40_or_80")
+        is True
+        and power.get("probe_scale_mismatch_action")
+        == "retain_thresholds_and_report_a_true_effect_scale_failure_without_retuning",
+        "AUC effects must remain a fixed 20-decision persistent-equivalent model",
     )
     reporting = probe.get("always_on_reporting_and_safety", {})
     _require(reporting.get("empty_conditional_denominator_value") is None,
@@ -666,6 +769,9 @@ def validate_m1_endpoint_probe(
             "terminal_new_incorrect_open_fact_write_per_100_decisions",
             "terminal_retained_stale_open_fact_per_100_decisions",
             "open_fact_error_auc_per_100_decisions",
+            "commit_attempt_rate",
+            "commit_rate",
+            "executor_quarantine_rate",
             "false_birth_growth_per_100",
             "false_birth_growth_auc_per_100_decisions",
             "missing_open_entity_auc_per_100_decisions",
@@ -680,7 +786,7 @@ def validate_m1_endpoint_probe(
     )
     output = probe.get("output", {})
     _require(
-        output.get("schema_version") == "m1-endpoint-viability-report-v2"
+        output.get("schema_version") == "m1-endpoint-viability-report-v3"
         and output.get("save_fixed_commit_rule") is True
         and "save_cross_fitted_gate_by_fold" not in output,
         "wrong endpoint report schema",

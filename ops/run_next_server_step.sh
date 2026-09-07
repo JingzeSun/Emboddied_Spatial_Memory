@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Unique active CPMT server phase: full test of the accepted D-044/D-045 metric layer.
+# Unique active CPMT server phase: full test of accepted D-044--D-046.
 #
 # Prerequisites: clean checkout synchronized with origin/main; Python environment
 # already configured. Read boundary: tracked source/config/docs/tests and Git
@@ -10,7 +10,7 @@
 
 set -uo pipefail
 
-CPMT_SERVER_STEP_ID="m1_v6_v8_d045_metric_semantics_full_test"
+CPMT_SERVER_STEP_ID="m1_v6_v8_d046_persistent_auc_full_test"
 CPMT_EXPECTED_PROTOCOL="73666cabb77b4884302d77ca621669bfdc77e86a44951b8a92b97208509c0eec"
 CPMT_EXPECTED_DATASET="m1-paired-latent-worlds-v8-fixed-range-current-energy"
 CPMT_PROBE_CONFIG="configs/m1_endpoint_viability_probe.json"
@@ -19,7 +19,7 @@ CPMT_SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)" || exit
 CPMT_REPO_DIR="$(git -C "$CPMT_SCRIPT_DIR" rev-parse --show-toplevel)" || exit 2
 CPMT_CURRENT_COMMIT="$(git -C "$CPMT_REPO_DIR" rev-parse HEAD)" || exit 2
 CPMT_COMMIT_SHORT="$(git -C "$CPMT_REPO_DIR" rev-parse --short=7 HEAD)" || exit 2
-CPMT_OUTPUT_DIR="$CPMT_REPO_DIR/outputs/m1-v6-v8-d045-full-test-$CPMT_COMMIT_SHORT"
+CPMT_OUTPUT_DIR="$CPMT_REPO_DIR/outputs/m1-v6-v8-d046-full-test-$CPMT_COMMIT_SHORT"
 CPMT_TEST_LOG="$CPMT_OUTPUT_DIR/full_test.log"
 CPMT_TEST_MARKER="$CPMT_OUTPUT_DIR/full_test.ok.json"
 
@@ -76,7 +76,7 @@ assert marker["protocol_sha256"] == sys.argv[3]
 assert marker["dataset_version"] == sys.argv[4]
 assert marker["probe_config_sha256"] == sys.argv[5]
 assert marker["exit_code"] == 0
-assert marker["tests_run"] >= 207
+assert marker["tests_run"] >= 210
 print("FULL_TEST_MARKER_REUSED tests={}".format(marker["tests_run"]))
 PY
 else
@@ -97,7 +97,7 @@ assert len(matches) == 1
 print(matches[0])
 PY
 )" || cpmt_fail "test_count_parse_failed"
-  [[ "$CPMT_TEST_COUNT" -ge 207 ]] || cpmt_fail "unexpected_test_count"
+  [[ "$CPMT_TEST_COUNT" -ge 210 ]] || cpmt_fail "unexpected_test_count"
   python - "$CPMT_TEST_MARKER" "$CPMT_CURRENT_COMMIT" \
     "$CPMT_EXPECTED_PROTOCOL" "$CPMT_EXPECTED_DATASET" \
     "$CPMT_PROBE_SHA256" "$CPMT_TEST_COUNT" <<'PY' || \
@@ -108,7 +108,7 @@ from pathlib import Path
 path = Path(sys.argv[1])
 payload = {
     "schema_version": "cpmt-full-test-marker-v1",
-    "stage": "m1_v6_v8_d045_metric_semantics_full_test",
+    "stage": "m1_v6_v8_d046_persistent_auc_full_test",
     "commit": sys.argv[2],
     "protocol_sha256": sys.argv[3],
     "dataset_version": sys.argv[4],
@@ -129,4 +129,4 @@ fi
 printf "FULL_TEST_LOG=%s\n" "$CPMT_TEST_LOG"
 printf "FULL_TEST_MARKER=%s\n" "$CPMT_TEST_MARKER"
 printf "SERVER_STEP_OK id=%s\n" "$CPMT_SERVER_STEP_ID"
-printf "NEXT=rewrite_entry_for_fixed_train_only_d044_d045_endpoint_probe\n"
+printf "NEXT=rewrite_entry_for_fixed_train_only_d044_d046_endpoint_probe\n"
