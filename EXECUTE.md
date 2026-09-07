@@ -704,7 +704,7 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 
 - 类型/状态：服务器 full test 已由用户确认 `SERVER_OK`；固定 endpoint probe runner 已实现并完成本地定向验证，尚未取得 endpoint 科学结果。
 - 输入/边界：唯一 train arrays=`outputs/m1-v6-v8-d043-train-g1000-53539ce/train.npz`，digest=`e8a890f1b254a7109af641fea57fcbea5efd931b4272d8e96cb870f51604b168`；固定 Set Transformer、A/C/E+F、seed=`7,19,31,43,59`、lr=`0.0006`、student/scorer=`3000`、C weight=`1.0`；完整 test marker 来自 commit `d36ab9730fed0c32a2d7924ac0969c5acc013019`。validation/test 均封存。
-- 实现：`scripts/run_m1_endpoint_probe.py` 重建冻结的 201 个 train/inner-dev paired audits，逐 seed/method 原子保存 scorer cache 与 causal sequence rows，保存 H3-vs-H1 teacher 对照，最后调用预登记 endpoint switch 与三类 co-primary（含 AUC `40/80`）功效计算。`ops/run_next_server_step.sh` 只承载这一阶段，支持已有文件续跑并在报告完成后写 marker。
+- 实现：`scripts/run_m1_endpoint_probe.py` 重建冻结的 201 个 train/inner-dev paired audits，逐 seed/method 原子保存 scorer cache 与 causal sequence rows，保存 H3-vs-H1 teacher 对照，最后调用预登记 endpoint switch 与三类 co-primary（含 AUC `40/80`）功效计算。`ops/run_next_server_step.sh` 只承载这一阶段，支持已有文件续跑并在报告完成后写 marker；大产物固定写入服务器数据盘 `/root/autodl-tmp/cpmt_outputs/`，不再增长系统盘。
 - 本地验证：endpoint/protocol/metrics/rollout 相关定向测试 `72` 项通过（162.786 秒）；Python compile、shell syntax、JSON 与 `git diff --check` 通过。此次验证没有读取 train 之外的数据，也没有生成 test 或运行完整预算网格。
 - 白话：这一步回答“固定的 M1 anchor 是否足以让预登记的终点门和 AUC 门做出机械决定”。输入是既有 train arrays 和 201 个冻结 inner-dev groups，输出是可续跑的 A/C/E/F 因果结果、H3-vs-H1 teacher 机制证据和 endpoint/test-N 报告；它不等于正式 test，也不把 probe 结果自动当成 CTL 成功。
 - 下一步：服务器同步仓库后运行 `ops/run_next_server_step.sh`；只在报告明确完成并人工审查 disposition、selected metric、三类功效 N 与 H3-vs-H1 后，才决定是否进入 C 顺序权重和两架构完整预算网格。

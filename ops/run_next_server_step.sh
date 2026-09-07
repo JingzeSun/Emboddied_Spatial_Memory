@@ -7,11 +7,12 @@ CPMT_EXPECTED_DATASET="m1-paired-latent-worlds-v8-fixed-range-current-energy"
 CPMT_EXPECTED_FULL_TEST_COMMIT="d36ab9730fed0c32a2d7924ac0969c5acc013019"
 CPMT_EXPECTED_TRAIN_DIGEST="e8a890f1b254a7109af641fea57fcbea5efd931b4272d8e96cb870f51604b168"
 CPMT_TRAIN_RELATIVE="outputs/m1-v6-v8-d043-train-g1000-53539ce/train.npz"
+CPMT_DATA_ROOT="/root/autodl-tmp"
 CPMT_SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)" || exit 2
 CPMT_REPO_DIR="$(git -C "$CPMT_SCRIPT_DIR" rev-parse --show-toplevel)" || exit 2
 CPMT_CURRENT_COMMIT="$(git -C "$CPMT_REPO_DIR" rev-parse HEAD)" || exit 2
 CPMT_COMMIT_SHORT="$(git -C "$CPMT_REPO_DIR" rev-parse --short=7 HEAD)" || exit 2
-CPMT_OUTPUT_DIR="$CPMT_REPO_DIR/outputs/m1-v6-v8-d047-endpoint-probe-$CPMT_COMMIT_SHORT"
+CPMT_OUTPUT_DIR="$CPMT_DATA_ROOT/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-$CPMT_COMMIT_SHORT"
 CPMT_MARKER="$CPMT_OUTPUT_DIR/endpoint_probe.ok.json"
 CPMT_FULL_TEST_MARKER="$CPMT_REPO_DIR/outputs/m1-v6-v8-d046-full-test-d36ab97/full_test.ok.json"
 CPMT_TRAIN="$CPMT_REPO_DIR/$CPMT_TRAIN_RELATIVE"
@@ -26,6 +27,7 @@ CPMT_REMOTE_HEAD="$(git -C "$CPMT_REPO_DIR" ls-remote origin refs/heads/main | a
 [[ "$CPMT_REMOTE_HEAD" == "$CPMT_CURRENT_COMMIT" ]] || cpmt_fail origin_main_does_not_match_checkout
 [[ -f "$CPMT_FULL_TEST_MARKER" ]] || cpmt_fail preceding_full_test_marker_missing
 [[ -f "$CPMT_TRAIN" && -f "${CPMT_TRAIN%.npz}.manifest.json" ]] || cpmt_fail train_arrays_or_manifest_missing
+[[ -d "$CPMT_DATA_ROOT" ]] || cpmt_fail data_disk_missing
 mkdir -p "$CPMT_OUTPUT_DIR" || cpmt_fail output_directory_creation_failed
 CPMT_PROBE_SHA256="$(sha256sum "$CPMT_REPO_DIR/configs/m1_endpoint_viability_probe.json" | awk '{print $1}')" || cpmt_fail probe_hash_failed
 python - "$CPMT_FULL_TEST_MARKER" "$CPMT_EXPECTED_FULL_TEST_COMMIT" "$CPMT_EXPECTED_PROTOCOL" "$CPMT_EXPECTED_DATASET" "$CPMT_PROBE_SHA256" <<'PY' || cpmt_fail preceding_full_test_marker_invalid
