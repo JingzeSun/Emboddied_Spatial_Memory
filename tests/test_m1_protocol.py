@@ -190,6 +190,41 @@ class TestM1Protocol(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "same v8 arrays"):
             validate_m1_protocol(changed)
 
+    def test_v8_budget_grid_is_finite_train_only_and_architecture_specific(self):
+        budget = self.config["training"]["pretest_budget_selection"]
+        self.assertEqual(budget["scorer_update_checkpoints"], [300, 1000, 3000])
+        self.assertEqual(budget["student_update_checkpoints"], [300, 1000, 3000])
+        self.assertEqual(budget["train_paired_groups"], 1000)
+
+        changed = deepcopy(self.config)
+        changed["training"]["pretest_budget_selection"][
+            "student_update_checkpoints"
+        ].append(10000)
+        with self.assertRaisesRegex(ValueError, "checkpoint grids"):
+            validate_m1_protocol(changed)
+
+        changed = deepcopy(self.config)
+        changed["training"]["pretest_budget_selection"][
+            "validation_arrays_read"
+        ] = True
+        with self.assertRaisesRegex(ValueError, "may not access"):
+            validate_m1_protocol(changed)
+
+        changed = deepcopy(self.config)
+        changed["training"]["pretest_budget_selection"][
+            "architecture_result_selection_forbidden"
+        ] = False
+        with self.assertRaisesRegex(ValueError, "architecture arms"):
+            validate_m1_protocol(changed)
+
+    def test_validation_no_longer_selects_scorer_or_student_updates(self):
+        changed = deepcopy(self.config)
+        changed["training"]["validation_only_selection"].append(
+            "student_updates"
+        )
+        with self.assertRaisesRegex(ValueError, "validation may only"):
+            validate_m1_protocol(changed)
+
     def test_current_energy_uses_fixed_range_and_future_keeps_zscore(self):
         changed = deepcopy(self.config)
         changed["energy"]["now_normalization"] = changed["energy"][

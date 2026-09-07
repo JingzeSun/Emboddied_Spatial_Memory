@@ -29,8 +29,8 @@ SCORER_DIAGNOSTIC_POLICY = {
         "shared_mask_inner_dev_candidate_ranking_accuracy"
     ),
     "budget_selection_rule": (
-        "select_1000_only_if_paired_group_95pct_ci_lower_bound_for_"
-        "1000_minus_300_is_above_zero_else_select_300"
+        "per_architecture_registered_checkpoint_grid_highest_equal_seed_"
+        "and_complete_group_mean_with_exact_ties_to_fewer_updates"
     ),
     "primary_bce_mismatch_diagnostic": "ranking_relevant_bce",
     "secondary_bce_explanation": "target_discriminative_bce",
@@ -460,8 +460,10 @@ def _sync(device: torch.device) -> None:
         torch.cuda.synchronize(device)
 
 
-def train_outcome_scorer(train: dict, validation: dict, config: dict, seed: int,
-                         device: torch.device) -> tuple[nn.Module, dict, list[dict]]:
+def train_outcome_scorer(
+    train: dict, validation: dict, config: dict, seed: int,
+    device: torch.device, *, checkpoint_steps=None, checkpoint_callback=None,
+) -> tuple[nn.Module, dict, list[dict]]:
     torch.manual_seed(seed + 10000)
     num_candidates = int(train["penalties"].shape[1])
     if int(validation["penalties"].shape[1]) != num_candidates:
@@ -503,6 +505,73 @@ def train_outcome_scorer(train: dict, validation: dict, config: dict, seed: int,
             return F.one_hot(candidate, num_candidates).float()
         return blocks[torch.arange(len(rows), device=rows.device), candidate]
 
+    # Future remains standardized because its raw structured-token units differ
+    # across methods. Current relation probability error already has D-041's
+    # fixed [0, 1] natural range.
+    normalize = bool(config.get("standardize_future_term", False))
+
+    def produce_teachers() -> dict[str, torch.Tensor]:
+        teachers = {}
+        with torch.no_grad():
+            for name, data in (("train", train), ("validation", validation)):
+                if structured:
+                    prediction = model.predict_candidates(
+                        data["x"], data["poses"],
+                    )
+                    mask = data["relation_mask"]
+                    desired = data["relation_desired"]
+                    bce_error = F.binary_cross_entropy_with_logits(
+                        prediction, desired, reduction="none",
+                    )
+                    probability_error = torch.abs(
+                        torch.sigmoid(prediction) - desired
+                    )
+                    current_dim = int(config["current_relation_dim"])
+                    current_mask = mask[:, :, :current_dim]
+                    future_mask = mask[:, :, current_dim:]
+                    current_error = (
+                        (
+                            probability_error[:, :, :current_dim]
+                            * current_mask
+                        ).sum(-1)
+                        / current_mask.sum(-1).clamp_min(1.0)
+                    )
+                    future_error = (
+                        (bce_error[:, :, current_dim:] * future_mask).sum(-1)
+                        / future_mask.sum(-1).clamp_min(1.0)
+                    )
+                else:
+                    future_errors = []
+                    for candidate in range(num_candidates):
+                        column = torch.full(
+                            (len(data["x"]),), candidate,
+                            dtype=torch.long, device=device,
+                        )
+                        prediction = model(
+                            data["x"], descriptors_for(data, None, column),
+                            data["poses"],
+                        )
+                        future_errors.append(
+                            ((prediction - data["future"]) ** 2).mean(-1)
+                        )
+                    future_error = torch.stack(future_errors, dim=1)
+                    current_error = torch.zeros_like(future_error)
+                admissible = candidate_admissibility_mask(data, future_error)
+                if normalize:
+                    future_error = masked_row_standardize(
+                        future_error, admissible,
+                    )
+                energy = (
+                    config["energy_weights"]["now"] * current_error
+                    + config["energy_weights"]["future"] * future_error
+                    + data[scorer_penalty_key]
+                )
+                energy = energy.masked_fill(~admissible, torch.inf)
+                teachers[name] = torch.softmax(
+                    -energy / config["temperature"], dim=1,
+                ).detach()
+        return teachers
+
     optimizer = torch.optim.Adam(
         model.parameters(), lr=config["learning_rate"],
         weight_decay=float(config.get("scorer_weight_decay", 0.0)))
@@ -512,8 +581,18 @@ def train_outcome_scorer(train: dict, validation: dict, config: dict, seed: int,
     )
     if len(supervised_rows) == 0:
         raise ValueError("no labelled factual examples for no-execution scorer")
+    total_steps = int(config["scorer_steps"])
+    requested_checkpoints = (
+        {int(value) for value in checkpoint_steps}
+        if checkpoint_steps is not None else set()
+    )
+    if any(value <= 0 or value > total_steps for value in requested_checkpoints):
+        raise ValueError("scorer checkpoints must lie within the training path")
+    if requested_checkpoints and checkpoint_callback is None:
+        raise ValueError("scorer checkpoint steps require a callback")
     trace = []
-    for step in range(config["scorer_steps"]):
+    final_teachers = None
+    for step in range(total_steps):
         batch = supervised_rows[torch.randint(
             len(supervised_rows), (config["batch_size"],), device=device,
         )]
@@ -553,74 +632,22 @@ def train_outcome_scorer(train: dict, validation: dict, config: dict, seed: int,
                 "current_future_relation_bce" if structured else "future_mse":
                     float(loss.detach().cpu()),
             })
-    # The shared energy weights are calibrated for a future term measured in
-    # differing structural tokens.  This scorer reports a mean squared error
-    # over hashed features, which is about three orders of magnitude smaller, so
-    # without rescaling the penalty term decides the argmax and this method
-    # silently becomes execute_current_only.
-    normalize = bool(config.get("standardize_future_term", False))
-    model.eval()  # also disables dropout while the teacher is produced
-    teachers = {}
-    with torch.no_grad():
-        for name, data in (("train", train), ("validation", validation)):
-            if structured:
-                prediction = model.predict_candidates(
-                    data["x"], data["poses"],
+        completed = step + 1
+        if completed in requested_checkpoints or completed == total_steps:
+            model.eval()
+            current_teachers = produce_teachers()
+            if completed in requested_checkpoints:
+                checkpoint_callback(
+                    completed, model, current_teachers, list(trace),
                 )
-                mask = data["relation_mask"]
-                desired = data["relation_desired"]
-                bce_error = F.binary_cross_entropy_with_logits(
-                    prediction, desired, reduction="none",
-                )
-                probability_error = torch.abs(
-                    torch.sigmoid(prediction) - desired
-                )
-                current_dim = int(config["current_relation_dim"])
-                current_mask = mask[:, :, :current_dim]
-                future_mask = mask[:, :, current_dim:]
-                current_error = (
-                    (
-                        probability_error[:, :, :current_dim]
-                        * current_mask
-                    ).sum(-1)
-                    / current_mask.sum(-1).clamp_min(1.0)
-                )
-                future_error = (
-                    (bce_error[:, :, current_dim:] * future_mask).sum(-1)
-                    / future_mask.sum(-1).clamp_min(1.0)
-                )
+            if completed == total_steps:
+                final_teachers = current_teachers
             else:
-                future_errors = []
-                for candidate in range(num_candidates):
-                    column = torch.full(
-                        (len(data["x"]),), candidate,
-                        dtype=torch.long, device=device,
-                    )
-                    prediction = model(
-                        data["x"], descriptors_for(data, None, column),
-                        data["poses"],
-                    )
-                    future_errors.append(
-                        ((prediction - data["future"]) ** 2).mean(-1)
-                    )
-                future_error = torch.stack(future_errors, dim=1)
-                current_error = torch.zeros_like(future_error)
-            admissible = candidate_admissibility_mask(data, future_error)
-            if normalize:
-                future_error = masked_row_standardize(
-                    future_error, admissible,
-                )
-            # Current relation probability error already has the fixed [0, 1]
-            # range. BCE remains the supervised fitting loss above, while this
-            # bounded inference energy avoids candidate-spread amplification.
-            energy = (
-                config["energy_weights"]["now"] * current_error
-                + config["energy_weights"]["future"] * future_error
-                + data[scorer_penalty_key]
-            )
-            energy = energy.masked_fill(~admissible, torch.inf)
-            teachers[name] = torch.softmax(-energy / config["temperature"], dim=1).detach()
-    return model, teachers, trace
+                model.train()
+    if final_teachers is None:
+        raise AssertionError("outcome scorer did not reach its final checkpoint")
+    model.eval()
+    return model, final_teachers, trace
 
 
 def outcome_scorer_diagnostics(
@@ -925,7 +952,8 @@ def outcome_scorer_diagnostics(
 
 def train_student(method: str, train: dict, teacher: torch.Tensor,
                   config: dict, seed: int,
-                  device: torch.device) -> tuple[OnlineModel, list[dict]]:
+                  device: torch.device, *, checkpoint_steps=None,
+                  checkpoint_callback=None) -> tuple[OnlineModel, list[dict]]:
     # Matched architecture, initial weights, batches, optimizer and update count.
     torch.manual_seed(seed)
     num_candidates = int(train["penalties"].shape[1])
@@ -951,8 +979,17 @@ def train_student(method: str, train: dict, teacher: torch.Tensor,
         torch.arange(len(references), device=device), references
     ]):
         raise ValueError("a reference transaction failed static preflight")
+    total_steps = int(config["student_steps"])
+    requested_checkpoints = (
+        {int(value) for value in checkpoint_steps}
+        if checkpoint_steps is not None else set()
+    )
+    if any(value <= 0 or value > total_steps for value in requested_checkpoints):
+        raise ValueError("student checkpoints must lie within the training path")
+    if requested_checkpoints and checkpoint_callback is None:
+        raise ValueError("student checkpoint steps require a callback")
     trace = []
-    for step in range(config["student_steps"]):
+    for step in range(total_steps):
         batch = torch.randint(len(train["x"]), (config["batch_size"],), device=device)
         x = train["x"][batch]
         candidate_mask = full_candidate_mask[batch]
@@ -1004,6 +1041,12 @@ def train_student(method: str, train: dict, teacher: torch.Tensor,
             trace.append(dict(step=step + 1, loss=float(loss.detach().cpu()),
                               labelled_ce=float(supervised.detach().cpu()),
                               auxiliary=float(auxiliary.detach().cpu())))
+        completed = step + 1
+        if completed in requested_checkpoints:
+            model.eval()
+            checkpoint_callback(completed, model, list(trace))
+            if completed != total_steps:
+                model.train()
     model.eval()
     return model, trace
 

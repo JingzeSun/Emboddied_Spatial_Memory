@@ -20,6 +20,9 @@ from cpmt.dev_learning import (
     masked_candidate_logits,
     masked_candidate_probabilities,
     outcome_scorer_diagnostics,
+    tensors,
+    train_outcome_scorer,
+    train_student,
 )
 from cpmt.m1_af_rollout import (
     CANDIDATE_FAILURE_TYPE_TO_CODE,
@@ -154,6 +157,60 @@ class TestM1AFCausalRollout(unittest.TestCase):
         smoke["architecture"] = "unregistered"
         with self.assertRaisesRegex(ValueError, "unregistered"):
             resolve_af_smoke_config(self.hard, smoke)
+
+    def test_registered_training_checkpoints_are_true_rng_prefixes(self):
+        device = torch.device("cpu")
+        train = tensors(self.train, device)
+        validation = tensors(self.validation, device)
+        config = dict(self.config, scorer_steps=2, student_steps=2, batch_size=8)
+
+        scorer_seen = {}
+
+        def scorer_checkpoint(step, model, teachers, trace):
+            scorer_seen[step] = teachers["validation"].clone()
+
+        _, scorer_teachers, _ = train_outcome_scorer(
+            train, validation, config, 7, device,
+            checkpoint_steps=[1, 2], checkpoint_callback=scorer_checkpoint,
+        )
+        self.assertEqual(set(scorer_seen), {1, 2})
+        torch.testing.assert_close(
+            scorer_seen[2], scorer_teachers["validation"],
+        )
+        _, one_step_teachers, _ = train_outcome_scorer(
+            train, validation, dict(config, scorer_steps=1), 7, device,
+        )
+        torch.testing.assert_close(
+            scorer_seen[1], one_step_teachers["validation"],
+        )
+
+        student_seen = {}
+
+        def student_checkpoint(step, model, trace):
+            with torch.no_grad():
+                student_seen[step] = model(validation["x"]).clone()
+
+        student, _ = train_student(
+            "cpmt_ctl_core", train, train["pstar"], config, 7, device,
+            checkpoint_steps=[1, 2], checkpoint_callback=student_checkpoint,
+        )
+        self.assertEqual(set(student_seen), {1, 2})
+        with torch.no_grad():
+            torch.testing.assert_close(student_seen[2], student(validation["x"]))
+        one_step_student, _ = train_student(
+            "cpmt_ctl_core", train, train["pstar"],
+            dict(config, student_steps=1), 7, device,
+        )
+        with torch.no_grad():
+            torch.testing.assert_close(
+                student_seen[1], one_step_student(validation["x"]),
+            )
+
+        with self.assertRaisesRegex(ValueError, "within the training path"):
+            train_student(
+                "cpmt_ctl_core", train, train["pstar"], config, 7, device,
+                checkpoint_steps=[3], checkpoint_callback=student_checkpoint,
+            )
 
     def test_protected_touch_matches_exact_structured_ids(self):
         program = {

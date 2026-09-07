@@ -43,6 +43,10 @@
 | D-036 | accepted | S1/S2 只用 train/inner-dev，不再消费 validation report |
 | D-037 | accepted | S2 先审计只读 static preflight；启用前必须另立 decision |
 | D-038 | accepted | static preflight 成为 A–E 共享 online admissibility mask；保留 executor illegal 能量与完整候选审计 |
+| D-039 | accepted as amended | live energy、两条候选架构臂和完整重跑；规模/机制/now 细节由 D-040/D-041 修订 |
+| D-040 | accepted | 1000/200/200 个总混合 groups；C10/C11 必须有真实行为机制与指纹 gate |
+| D-041 | accepted | current 固定自然量程、软后验逐项影响审计和五个预登记机制切片 |
+| D-042 | accepted | v8 双架构各自在 1000-group train/inner-dev 上选择有限 scorer/student 预算；禁止架构择优 |
 
 ## D-015 — 单执行入口与五阶段合同
 
@@ -526,6 +530,28 @@
 - 影响：更新 energy assembly、C/E scorer inference、arrays/manifest、生成健康门、A–F 报告、协议/data/report schema、测试与 S4 流程；补充逐 family now 预期偏离和 S1 E-current 同尺 posterior 报告；不改 raw current mismatch、future 语义、能量权重、temperature、A–F、K=16、C10/C11、正式规模、两架构、主指标或 test seal。
 - 是否接触 test 信息：否；只读取本地 train-only v7 探针及重新生成的小规模 train/validation 接口验证数据，未生成或解封正式 test。
 - 验证方式：协议负例分别锁住 current fixed range、future z-score、bounded probability current energy、posterior audit 和非主机制切片；单测验证 `raw/range==scaled`、scaled∈[0,1]、关系 current energy 不 z-score、posterior 重构/逐项消融、五切片全覆盖；随后在干净服务器提交上跑 full test，再单独跑 12-group v8 train-only health/cost benchmark，成功后才登记新 S1/S2。
+
+## D-042 — v8 双架构 train/inner-dev 有限预算选择
+
+- 日期：2026-09-07。
+- 状态：accepted；落实 D-039/D-041 要求的 v8 重新选预算，旧 v5/v7 的 1000-step 结论仍不迁移。
+- 用户确认：服务器 175 项测试和 12-group v8 health 均通过并完成本地复核后，用户回复“OK开始下一步”，授权进入预算登记与实现。
+- 背景：Set Transformer 主臂加入候选间交互，MLP 次臂容量较小；同时 v8 改了 current energy、C10/C11 和训练目标接线。因此旧协议上只为 E scorer 选出的 1000 updates 既不能代表新 scorer，也没有回答 A–E student 应训练多久。若先看 validation 再决定训练步数，会消耗确认分区并把 S5 变成调参。
+- 决策：
+  1. 两条架构臂分别选择自己的 scorer budget 和 student budget，但架构身份不由结果选择：`cross_candidate_set_transformer_v1` 始终是 go/no-go 主臂，`shared_candidate_mlp_v1` 始终是容量稳健性次臂。
+  2. 预算选择只读完整的 1000 个 v8 train mixed paired groups。继续用 `sha256(rollout-pair:train:{group_index:06d}) mod 5 == 0` 留出完整 inner-dev group；siblings 与 recovery rows 同进同出。validation/test 均不生成、不读取、不消费 trial。
+  3. 两种架构都登记 scorer/student checkpoints `{300,1000,3000}`、五个 seed `{7,19,31,43,59}`、learning rate `0.002` 和 batch size `64`。每个 seed 只训练一条到 3000 updates 的固定随机轨迹，在三个前缀处评估；这与分别以相同 seed 从头训练到 300/1000/3000 的参数状态相同，同时避免重复前缀计算。
+  4. E scorer 先选。主选择量是 shared-preflight 后 inner-dev online 行的 reference candidate-ranking accuracy；先在每个完整 paired group 内计算，再让 seed 和 group 等权平均。登记点中均值最高者胜；仅当浮点结果精确相同时选择 updates 更少者。BCE、margin 和 current posterior influence 继续解释，不参与选择。
+  5. scorer 固定后再选该架构唯一的 shared student updates。A–E 均进入选择，每个方法与其固定 teacher 比较 inner-dev online argmax；方法先等权，再让 seed 与完整 group 等权。均值最高者胜，精确平手选较少 updates。A/B/C 使用 executed hindsight teacher 作评估目标、D 使用 current-only teacher、E 使用刚选定的 no-execution scorer teacher；这量的是各自监督被 amortize 的程度，不是 A 相对 C/E 的主效果，也不允许针对 A 单独选预算。
+  6. C 在本轮 student-budget 选择中使用预登记 `auxiliary_weight=1.0` 锚点并与 A–E 共用 updates。validation 后续只允许在原 `{0.1,1,10}` 中选择 C auxiliary weight 以及一组 A–E 共享 commit rule；它不能回头重选 scorer/student updates。
+  7. runner 必须报告逐 architecture/seed/method/checkpoint/paired-group 选择量、BCE/KL/reference accuracy、训练 trace、wall-clock、设备和参数量。A–E student 参数量在同一架构内必须一致并满足既有 10% 门；E 的额外 scorer 参数仍单列。
+- 白话：有限预算网格解决“模型没学会究竟是方法差，还是只训练得不够”的问题。输入是 1000 个 train groups、两种固定架构和三个事先写死的更新点，输出是每种架构各一个 scorer 步数与一个 A–E 共用 student 步数。例如 Set Transformer 可能选 3000、MLP 可能选 1000，但仍分别完整跑 A–F，不能因 MLP 分数好就把它换成主模型。它不是正式 validation/test 成绩，也不是无限搜索超参数。
+- 白话：前缀 checkpoint 路径解决重复训练成本。输入是同一 seed、相同初始化与批次随机序列，输出是训练到第 300、1000、3000 步时的三个状态；例如第 300 步状态就是单独“训练 300 步”会得到的状态，后续评估不会改变随机批次。它不等于 early stopping、不按中途结果改变最大步数，也不让三个点共享不同 seed。
+- 白话：teacher-argmax student 选择量解决“共同 student 预算不能只按 A 是否赢来挑”的问题。输入是 A–E 各自已经固定的监督 posterior 与学生在线输出，输出是学生第一名是否复现其 teacher 第一名；例如 E 的 scorer teacher 选 BIND 而 E student 选 NOOP 就记一次 amortization error。它不把 teacher 或 future 喂给 online inference，也不等于最终 reference accuracy、causal 效果或 CTL 优势。
+- 备选：沿用旧 1000 steps，被拒绝，因为架构、能量和数据协议均已改变；在 validation 上选 checkpoint，被拒绝，因为会把确认集用于训练开发；为 A/C/E 分别选 student steps，被拒绝，因为会破坏共同更新预算并制造方法特定优化优势；把三个点独立重训，被拒绝，因为固定 seed 下重复了完全相同的前缀计算。
+- 影响：活动 protocol 名称和 dataset version 保持 v5/v8，但机器配置 hash 因预算合同加入而更新；旧 12-group health arrays 只保留为机制健康证据，正式 1000-group train arrays 必须按新 protocol hash 重生成。新增 train-only budget runner 和 checkpoint 审计回调；S5 validation 只保留 C weight 与 shared commit rule 的选择权。
+- 是否接触 test 信息：否；本 decision 只依据已入库的 train-only health 报告与既有合同，不生成或读取 validation/test。
+- 验证方式：协议负例锁住 1000 train groups、两架构、五 seed、两个 `{300,1000,3000}` 网格、选择量、平手规则和 validation/test=false；单测验证 checkpoint 回调落在真实训练前缀且平手选较小预算。随后在干净服务器提交上跑完整测试，再生成唯一 1000-group v8 train arrays，依次运行 Set Transformer 与 MLP 的预算报告。
 
 ## 新决策模板
 

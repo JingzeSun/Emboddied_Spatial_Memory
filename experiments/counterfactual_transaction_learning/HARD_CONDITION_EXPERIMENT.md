@@ -75,9 +75,9 @@ D 诊断 future evidence；F 分解 candidate coverage 与 scorer error。
 - executed-now 的逐 family 预期模式在生成前固定：C01/C02/C04/C06/C07/C08 的 leave-now-out mean total variation 预期非零，C00/C03/C05/C09/C10/C11 按机制预期为数值零。manifest 同时报告实测集合和双向偏离名单；`1e-6` 只吸收 float32 posterior 重构舍入，不是效果阈值。偏离不进 health gate，也不触发权重调整。
 - S1 对 E scorer 的 current 通道，在相同 fitting/inner-dev online 行、temperature 与 `now=1` 权重下，使用和 executed teacher 相同的 leave-current-out total variation、KL、argmax 与 reference 概率指标并排报告。C 共享 current relation auxiliary target，但没有单独组装 current-energy posterior，故不报告不存在的 C posterior 消融。两侧影响无需相等，结果不用于裁剪对照、调权或设 gate。
 - 五个机制切片按固定优先级互斥分配：exact ambiguity、C10 temporal underdetermination、C11 side-effect sensitive、C09 current unavailable、其余 family。每片同时写明预期行为并报告 selection/commit/active/collateral；切片由生成器机制而非实测准确率定义，只作描述，不能替代完整 mixed 20-step causal endpoint 主门。
-- 同一份 v8 arrays 运行两条预登记架构臂：主臂 `cross_candidate_set_transformer_v1`（model dim 128、4 heads、两层 Set Attention Block、FFN 256）让候选在打分前相互比较；次臂是既有 hidden 64、两层 `shared_candidate_mlp_v1`。每条臂都完整运行 A–F，同一臂内 A–E 共享 encoder/student updates 并满足 10% 参数量门槛；禁止看结果后在两架构间择优。v5 的 1000 scorer steps 对 v8 两架构均失效，须重新用 train/inner-dev 选择 scorer/student 预算。
+- 同一份 v8 arrays 运行两条预登记架构臂：主臂 `cross_candidate_set_transformer_v1`（model dim 128、4 heads、两层 Set Attention Block、FFN 256）让候选在打分前相互比较；次臂是既有 hidden 64、两层 `shared_candidate_mlp_v1`。每条臂都完整运行 A–F，同一臂内 A–E 共享 encoder/student updates 并满足 10% 参数量门槛；禁止看结果后在两架构间择优。按 D-042，两条架构各自在完整 1000-group train 的固定 inner-dev 上，以五 seed 扫描 scorer/student updates `{300,1000,3000}`；先按 E reference candidate-ranking accuracy 选 scorer，再按 A–E 等权的 student-to-own-teacher argmax agreement 选一组共享 student updates，均值最高且精确平手时取较小预算。三个点来自同 seed 到 3000 updates 的同一随机轨迹前缀，不重复训练前缀。C 此时固定 auxiliary weight=1，后续 validation 只能从 `{0.1,1,10}` 选 C weight 和一组共享 commit rule，不能重选 updates。
 - validation paired groups 按 `paired_group_id` 的固定 SHA-256 奇偶拆成 calibration/report。只在 calibration 半区的 online rows 从登记网格选一组 A–E 共用的 commit probability/margin；report 半区只汇报，不能选阈值。counterfactual recovery training rows 只用于学习，不参与 gate calibration 或 report 分母。
-- S1/S2 的 target/scorer 选择只使用 train 内按 paired-group 哈希固定留出的 inner-dev；整个 sibling 及其 recovery row 同进同出。它不消耗 validation trial，也不能用于最终效果报告。LOG-022 已查看过的 4-group validation report 只保留为历史开发结果，不再冒充 S5 的首次确认；S5 必须在 S4 登记后使用与它不重叠的新 validation confirmation groups。
+- S1/S2 的 target/scorer/student-budget 选择只使用 train 内按 paired-group 哈希固定留出的 inner-dev；整个 sibling 及其 recovery row 同进同出。它不消耗 validation trial，也不能用于最终效果报告。LOG-022 已查看过的 4-group validation report 只保留为历史开发结果，不再冒充 S5 的首次确认；S5 必须在 S4 登记后使用与它不重叠的新 validation confirmation groups。
 
 白话：公平协议解决“CPMT 是否只是比对照多拿了答案或算力”的问题。输入是同一批 online 信息、同一候选语言和可核对的训练预算，输出是 A–F 可比的预测、运行成本与失败。例如 E 可以预测“RELINK 声称的新位置未来是否成立”，但不能先执行 16 个候选再偷看哪些合法；最终决定落地时仍和其他方法一样调用 executor。它不等于强迫网络结构一模一样，也不等于把 F 的 oracle 成绩当实际系统成绩。
 
@@ -102,6 +102,10 @@ D 诊断 future evidence；F 分解 candidate coverage 与 scorer error。
 白话：共享 online admissibility mask 解决“一个候选在不改世界前就已违反版本、前置条件或 protected state，却只让执行式方法提前排除”的不公平。输入是当前记忆、事务文本、当前证据和 protected IDs，输出是在原 K=16 槽位上的允许/拒绝值；例如 BIND 明写要碰 protected node 时，A–E 都把它的 softmax 概率设为 0。它不等于执行候选、不产生 post-edit world、不保证通过项合法，也不删除 executor 的 illegal、failure 或 provenance。
 
 白话：train/inner-dev（训练内开发留出）解决“需要调优化，但又不该提前消费 validation report”的问题。输入是原 train paired groups，输出是一组拟合 group 和一组只做 target/scorer 选择的留出 group；例如一对相同 online 输入、不同 future 的 siblings 必须一起被留出。它不是 test、不是正式 validation 成绩，也不允许把 inner-dev 调到最好后宣称方法已经泛化。
+
+白话：有限预算 checkpoint 网格解决“复杂模型训练不足”和“看到结果后无限加步数”两个相反风险。输入是两种固定架构、五个 seed 和预先登记的 300/1000/3000 步，输出是每种架构一个 E scorer 步数与一个 A–E 共用 student 步数；例如 Set Transformer 选 3000 而 MLP 选 1000 只表示各自优化预算不同，不允许把 MLP 改成主臂。它不等于 early stopping、不选择架构，也不使用 validation/test。
+
+白话：student-to-own-teacher agreement（学生复现自身教师第一名的一致率）解决“不能用 A 是否赢过 C/E 来为 A 挑训练步数”的问题。输入是每种方法已固定的 teacher posterior 和 inner-dev 在线学生分数，输出是两边第一名是否相同；例如 E 教师选 BIND、E 学生选 NOOP 就记为 amortization error。它不把 future/teacher 提供给部署模型，也不是最终 causal 成绩。
 
 白话：structured relation-target oracle（结构化关系目标上限）解决“E 没学好，究竟是目标没有信息，还是 scorer 没学会”的问题。输入是每个候选从程序文本提出的关系查询、真实 reference future 给出的查询真假和 E 可用的声明成本，输出是在完美知道这些关系真假时的候选排序准确率。例如，若 RELINK 声称“杯子未来在水槽”且真实 future 支持它，oracle 给该查询零不一致；错误位置得到不一致。它不执行 candidate post-world、不是可部署模型、不是 F 的 transaction oracle，也不能作为 E 的正式成绩。
 

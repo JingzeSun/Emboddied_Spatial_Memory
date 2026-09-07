@@ -16,17 +16,17 @@
 
 ## 当前指针
 
-- 当前阶段：**S4 M1-v5 服务器复核：175 项完整测试与 12-group v8 train-only health 均已通过，报告已入库并本地复核；下一步在运行前登记两架构各自的 v8 S1/S2 有限预算网格**。
+- 当前阶段：**S4 M1-v5：D-042 已登记两架构各自的 v8 S1/S2 有限预算网格并实现 train-only runner；下一步先在新 protocol hash 上跑服务器完整测试，再生成唯一 1000-group train arrays**。
 - 最近有效证据：v5 S2 的 arrays/manifest/report 已验收；1000−300 的 paired-group 95% CI 为 `[+0.008750,+0.045000]`，按预登记规则选择 1000。10-group 同预算锚点中共同 group 1 的 40−10 平均差为 `+0.005000`、仅 `1/5` seed 严格为正，未达 S3 触发条件。完整数字与 provenance 见 `EXECUTE.md` LOG-032/033。
 - 已完成：同一份 40-group v4 arrays 确定性截取 10/40 groups，运行 scorer steps {60,300,1000} × seed 7。40-group 全 train 上，static preflight 对 2,552/2,552 个 executor-illegal 候选全部静态拒绝、合法误拒 0；过滤后 target-only 均匀并列期望由 0.7729 升至 0.9698，assembled oracle accuracy 由 0.7438 升至 0.9525，其 exact-ambiguity capped 读数由 0.7275 升至 0.9275。D-038 已接受把同一只读预检变成 A–E 共享 mask；旧 v4 过滤数字仍只作采纳依据，不冒充 v5 方法成绩。
 - scorer 分支：40-group inner-dev 的未过滤/过滤后 teacher accuracy 在 steps 60/300/1000 分别为 0.0500/0.5688/0.5031 与 0.0625/0.7469/0.7094。1000 steps 虽将 held-out BCE 从 0.1016 降到 0.0744，候选排序却低于 300 steps；共同 group 1 在 10/40 groups、300/1000 steps 过滤后均为 0.875，也没有显示扩大到 S3 的明确数据收益。因此 300 steps 只是当前单 seed 候选，尚未固定。
-- 当前分支：D-041 已将 executed-now 从退化敏感的逐行 z-score 改为传感器自然量程，并使 C/E current inference 使用固定 0–1 probability error；生成 manifest 常驻逐项 posterior influence、冻结逐 family now 预期零/非零模式并只报偏离，S1 对 E current 通道按相同 posterior 指标与 executed teacher 同行并报。A–F 报告按生成机制输出五个非主切片。服务器 full test 与 12-group health 均已通过，报告已由 `e47a7e4` 入库并本地复核；架构/实验事实见 `EXECUTE.md` LOG-040。下一步先固定 Set Transformer 主臂和 MLP 次臂各自的 scorer/student S1/S2 有限预算网格及唯一选择法，再改写服务器入口运行；旧 v5/v7 预算不迁移，validation/test 仍不读取。
+- 当前分支：D-041 的服务器 full test 与 12-group health 均已通过，报告已由 `e47a7e4` 入库并本地复核；架构/实验事实见 `EXECUTE.md` LOG-040。D-042 现已固定 Set Transformer 主臂和 MLP 次臂各自的 scorer/student `{300,1000,3000}` 五 seed 网格、1000-group train/inner-dev 分母和唯一选择法，并用同 seed 训练轨迹前缀避免重复计算。配置 hash 已因此更新，旧 health arrays 不作训练输入。当前只待服务器新提交完整测试；通过后生成 1000-group train，不读取 validation/test。
 - 成本边界：正式规模是 train/validation/test=`1000/200/200` 个总混合 paired groups，合计 1400，不乘 12。服务器 v8 12-group/16-worker 实测线性外推为 train 约 24.6 分钟、全部 split 约 34.5 分钟；合并 arrays 约 332/465 MB，连同保留 shards 约 674/943 MB。这些是规划参考而非严格线性保证或固定时限。按 D-039 不再设单 run 两小时硬上限，仍完整记录资源且保留 BugCheck 停止规则。
 - 数据量锚点判据（运行前固定）：只在 10-group 固定留出的共同 paired group 1 上，逐 seed 计算 `40 groups − 10 groups` 的 candidate-ranking accuracy。若五 seed 中至少 4 个严格为正，且五 seed 均值 `>= 0.025`（该 group 的 40 online decisions 中至少一个平均决策），才称“有明确继续增大 train diversity 的方向性信号”并进入 S3；否则 S3 不触发、进入 S4 预冻结审计。该锚点只有一个独立 group，故不报虚假的 CI、不重新选择 1000 steps、也不单独支持性能结论。
 - 预登记方向：共享 mask 主要移除旧 E 会选而 A–D 已由执行信息避开的静态非法候选，因此预期 v5 的 `A_vs_E` 单步与 causal margin 相对 v3/v4 历史读数缩小，触发主对比 stop rule 的概率上升；若 margin 不缩小或仍通过门槛，才是更强证据。该方向在运行前固定，结果出来后不得把“缩小”或“不缩小”任一方向改写成预先支持 CTL。
 - scorer 选择规则：共享 mask 后的 inner-dev candidate-ranking accuracy 是主选择量；同一 paired group、同一 seed 的 1000−300 先配对，再在每个 group 内对五个登记 seed 求平均，最后对 8 个 group 差值用固定 seed=260906 做 10,000 次单层 paired-group bootstrap，取 95% percentile CI。只有 CI 下界大于 0 才选 1000，否则选计算更省的 300；不得把 5×8 格子当成 40 个独立样本。总体/判别性 BCE 与 reference ranking margin 只解释目标是否失配，不按 BCE 单独选预算。若多 seed 复现“总体 BCE 改善但判别性 BCE、margin 或排序下降”，另立 decision 后才可测试 future-derived listwise loss，不得直接用全量 reference index 监督。
 - BCE 分解判据：`ranking_relevant_bce` 是 loss-mismatch 的主 BCE 诊断，因为它直接筛出会改变 oracle mismatch 贡献、因而可能改变候选能量排序的位置；`target_discriminative_bce` 是次级解释量，只回答同一坐标在准入候选间是否同时出现真/假。两者不必是包含关系；发生冲突时，预算仍只按 candidate-ranking accuracy 的预登记置信区间选择，是否改 loss 以 ranking-relevant BCE、reference margin 与实际排序的多 seed 共变为主，且必须另立 decision。
-- 边界：`test_access=false`、`validation_arrays_read=false`、`validation_trial_consumed=false`；本轮不训练 student、不校准 gate、不跑 causal，不进入 PNO/M2 或全局 reconciliation。
+- D-042 预算边界：每种架构先选 E scorer，再以 A–E 等权的 student-to-own-teacher argmax agreement 选唯一共享 student updates；架构之间禁止择优，C auxiliary weight 暂固定 1.0。`test_access=false`、`validation_arrays_read=false`、`validation_trial_consumed=false`；不校准 gate、不跑 causal，不进入 PNO/M2 或全局 reconciliation。
 
 ## 总流程
 
@@ -59,7 +59,7 @@ S7 M1 成功 / no-go / 不确定收口
 | S1（v4/v5 ✓） | E 低是 target、能量组装、优化还是泛化问题 | 10-group train arrays 按 SHA-256 留出完整 inner-dev group；scorer=60、seed=7；不读 validation | v5 shared-mask 不变量、target/assembly 与 scorer 接线已复核；结果见 `EXECUTE.md` LOG-031 |
 | S2（v4 seed 7 ✓；v5 ✓） | E 是优化不足、数据不足还是两者交互；逐关系 BCE 是否与候选排序失配 | D-038 后先以 10 groups/60 steps/seed 7 重跑 S1；再在同一 40-group v5 train arrays 上跑 steps {300,1000} × seeds {7,19,31,43,59}；已选 1000 后，补 10 groups × 1000 × 五 seed 的同预算共同-group 锚点；只用 train/inner-dev | shared-mask 不变量、v5 S1 与 300/1000 五 seed 完整；按 paired-group CI 规则已选择唯一 scorer budget=1000；锚点未满足预登记方向判据，故 S3 跳过，不据 BCE 单独改 loss |
 | S3 | 40 groups 后是否仍明确受数据多样性限制 | 仅在 S2 的 10→40 同预算锚点满足预登记方向判据后，在一个更大 train-group 点上复扫 S2 的两个 scorer steps，而不是顺序固定旧最优；仍只用 train/inner-dev | 确认最优 steps 是否随数据规模改变，并判定数据曲线继续上升或已经饱和；不得同时改容量或 target |
-| S4 | 正式 run 的分母、能量、架构和终止规则是否唯一 | 按 D-040 固定 1000/200/200 个总混合 groups并保留真实 C10/C11；按 D-041 固定 now 自然量程、future z-score、C/E 0–1 current error、逐项软后验审计、逐 family now 预期模式、E/teacher 同尺 current influence 和五个机制切片；在同一 v8 arrays 上接 Set Transformer 主臂与 MLP 次臂的完整 A–F；先做小规模 train-only cost/health benchmark | 固定量程一致性、posterior influence 与预期模式偏离报告、E/teacher current 同尺报告、12 个非重复行为指纹、C10/C11 与 exact-ambiguity 门已实现；teacher health 过门；审计偏离和五切片不替代混合 causal 主门；两架构置换/参数公平性通过；两架构各自的 scorer/student 有限预算网格与唯一选择法在运行前登记 |
+| S4 | 正式 run 的分母、能量、架构和终止规则是否唯一 | 按 D-040 固定 1000/200/200 个总混合 groups并保留真实 C10/C11；按 D-041 固定 now 自然量程、future z-score、C/E 0–1 current error、逐项软后验审计、逐 family now 预期模式、E/teacher 同尺 current influence 和五个机制切片；在同一 v8 arrays 上接 Set Transformer 主臂与 MLP 次臂的完整 A–F；D-042 冻结两架构各自的 1000-group train/inner-dev scorer/student 有限预算选择 | health 已通过；D-042 网格与 runner 已实现，待服务器完整测试、1000-group train 生成及两架构预算报告；架构间不择优，审计偏离和五切片不替代混合 causal 主门 |
 | S5 | 锁定设置在足量 train/validation 上是否值得进入 test | 生成满足 C00–C11 support 的 train 和与已查看 4 groups 不重叠的新 validation confirmation；5 seeds；10% labels 主设置；完整 20-step causal 和 10,000 paired bootstrap | coverage/invariant/provenance 全通过；calibration 选唯一共享 gate；新的 report 半区仅报一次；没有触发明确 stop rule |
 | S6 | 封存后的未见数据是否支持 CTL 主张 | 记录 protocol/code/data/hyperparameter hash，单独人工解封 test；test 不选阈值、checkpoint 或方法 | 5 seeds 完整 A–F causal 结果、逐例指标、paired CI、所有失败和完整 provenance |
 | S7 | M1 是否成功且可以结束 | 严格按下方终止规则 | 唯一 pass/no-go/inconclusive 结论；更新 EXECUTE/DECISIONS/claim ledger；不再调 M1 |
@@ -83,6 +83,8 @@ admitted-uniform random accuracy（准入集合均匀随机准确率）解决 ma
 residual decision-impact upper bound（残余非法决策影响上界）解决只报残余候选总数却不知道最多影响多少决策的问题。输入是“预检通过但执行后非法”的行列 mask，输出是至少含一个此类候选的决策行比例；例如 100 行中有 3 行含残余非法项，则 executor illegal 通道最多改变 3% 的 teacher 决策。它是严格上界，不等于真的改变了 3%，也不为没有 post-edit world 的失败候选虚构 future 能量。
 
 E 的 scorer 与 A–E 的 online student 使用两个独立预算：student updates 仍对 A–E 完全一致，E 额外 scorer updates 单列并报告。60→600 的非仓库 scratch probe 只作为提出二维曲线的线索，不作为选择正式设置的证据；scorer 选择只看上述可追溯 train/inner-dev 曲线。held-out BCE 早停目前仅是候选方案，未登记 patience、最大步数和 checkpoint 规则前不启用。
+
+D-042 已把新曲线定为两架构各自的 `{300,1000,3000}` 前缀 checkpoints × 五 seed，并改用完整 1000-group train 的固定 inner-dev。E scorer 先按 reference candidate-ranking accuracy 选择；随后 A–E 用各自固定 teacher 的 argmax agreement 等权选择该架构唯一 shared student updates。最高均值胜，只有精确平手才取更小 updates。它是有限网格而非 held-out BCE early stopping；架构身份、网格上界和选择量不随中间结果扩张。
 
 validation trial 预算单独保留给 student/commit 开发：已查看的历史 smoke 保守计 1 次，共享 student updates 最多 2 个新点，C auxiliary weight 最多 3 个登记点，总计不超过 6。train/inner-dev scorer 曲线不计作 validation trial，但每个配置仍必须在报告中列出，不能无限搜索。LOG-022 已经查看过的 4-group report 半区不再被称为 S5 首次确认；S4 必须登记一个不重叠的 validation confirmation group range。
 

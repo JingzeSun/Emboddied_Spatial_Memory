@@ -4,20 +4,20 @@
 
 ## 当前看板
 
-> **2026-09-07 更新（LOG-040 / D-041）：** M1-v5/v8 的服务器完整测试与 12-group train-only health benchmark 均已通过，导出报告已在 `e47a7e4` 入库并完成本地复核。teacher agreement=`1.0`、now family 模式完全匹配，各有限能量项均在完整 posterior 上有可测影响。下一步在运行前登记两架构各自的 v8 S1/S2 有限预算网格；不沿用旧预算、不读 validation/test。
+> **2026-09-07 更新（LOG-040 / D-042）：** M1-v5/v8 的服务器完整测试与 12-group train-only health 已通过。D-042 已在任何选择性训练前登记两架构各自的 1000-group train/inner-dev scorer/student `{300,1000,3000}` 五 seed 网格与唯一选择法，并实现 train-only runner。下一步先跑新 protocol hash 的服务器完整测试；不沿用旧预算、不读 validation/test。
 
-最后更新：2026-09-07，LOG-040 M1-v5/v8 服务器 health 报告已入库并完成本地复核；正式 M1 gate 未运行、未生成或读取 test。
+最后更新：2026-09-07，D-042 预算合同与 runner 已实现、尚待服务器完整测试；正式 M1 gate 未运行、未生成或读取 test。
 
 | 项目 | 当前事实 |
 |---|---|
 | 方向 | CPMT 具身空间记忆；CTL 是主学习假设，用户希望面向 ML 研究 |
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
-| 阶段 | M1-v5 `pretest_lock_candidate`；只开放 train/inner-dev 与小规模接口验证，尚未重新冻结，正式 gate 未运行，不是 M2/Full CPMT |
+| 阶段 | M1-v5 `pretest_lock_candidate`；D-042 预算预登记已完成，待服务器完整测试与 1000-group train/inner-dev 选择；尚未进入 S5 validation、重新冻结或 M2 |
 | 最近结果 | [`m1_v5_s4_v8_health_benchmark.json`](results/m1_v5_s4_v8_health_benchmark.json) 已于 `e47a7e4` 入库并本地复核：480 learning rows（456 online＋24 recovery），teacher agreement=`1.0`，12 个 family 各自 agreement 均为 `1.0`；posterior mean TV 为 future=`0.681108`、now=`0.071170`、growth=`0.025655`、edit=`0.022655`、collateral=`0.015360`，C11 collateral TV=`0.136628`。now 预期零/非零 family 完全匹配，无偏离 |
-| 尚缺 | 在任何选择性训练前登记两架构各自的 v8 S1/S2 scorer/student 有限预算网格并运行 train/inner-dev；旧 v5/v7 的预算不迁移，validation/test 仍封存 |
+| 尚缺 | 在新 protocol hash 上通过服务器完整测试；生成 1000-group v8 train arrays，依次得到 Set Transformer/MLP 各自唯一 scorer/student budget；旧 v5/v7 预算不迁移，validation/test 仍封存 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
-| 当前决定 | D-039 保留 live energy、C/E current target、Set Transformer 主臂＋MLP 次臂及每臂完整 A–F；D-040 固定总混合规模和真实 C10/C11；D-041 固定 current 自然量程、完整 posterior 审计、逐 family now 预期偏离和非主机制切片。E/teacher current 影响只同尺报告，不设门、不调权。仓库不设两小时单-run 上限；全局 reconciliation、PNO 与 M2 顺序不变 |
-| 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 validation report/test。两架构各自的 scorer/student 有限预算网格须在小规模健康检查后、任何选择性 run 前登记 |
+| 当前决定 | D-039 保留 live energy、C/E current target、Set Transformer 主臂＋MLP 次臂及每臂完整 A–F；D-040 固定总混合规模和真实 C10/C11；D-041 固定 current 自然量程与 posterior 审计；D-042 固定每臂 300/1000/3000 五 seed 预算网格、train-only 选择量和不做架构择优。仓库不设两小时单-run 上限；全局 reconciliation、PNO 与 M2 顺序不变 |
+| 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 validation report/test。D-042 无额外人工选择，服务器只按活动入口先做完整测试 |
 | Git 备份 | D-038 科学代码基线为 `72afa7d`；S2 40-group reports 已在提交 `ececefb`、10-group 锚点已在 `70355ac` 导入 `results/`，服务器大产物仍位于 ignored `outputs/`。服务器操作只通过版本化的 `ops/run_next_server_step.sh` 交付，脚本所在提交仍须先 push、服务器再 pull |
 
 白话：M1-v5 现在仍是“考前定卷”，不是已冻结或已通过。旧容量诊断证明简单 MLP 在给足标签时能拟合可见训练关系；新的 K=16、固定量程与恢复审计只证明候选、executor、teacher 和 active-world 评测路径可达。这些都不等于 CTL 已胜出，更不是带 PNO 的 Full CPMT。
@@ -40,7 +40,7 @@ M1-v5 的阶段顺序、转向条件和成功/失败终点见 [M1-v5 收口执�
 - [ ] 在不进入 M2、不动 test 的前提下，在 AutoDL 的干净提交上完成 M1-v3 全套测试与足量 train/validation 预演；根据 report 半区的 active、contamination、recovery 和 paired CI 决定是否重新冻结，再单独申请 test 解封。
 - [x] **(1) 强化 E 的 outcome scorer 目标空间与监督覆盖。** E 已改为候选作用域的未来关系查询；训练覆盖全部 K=16 候选，目标只读实际 reference future，不执行候选，也不复用 executor 导出的 illegal/collateral。C 使用同一关系目标作 direct auxiliary。当前只验证接线，E 是否真正变强须由服务器足量 run 回答。
 - [x] **(2) 校准 commit/quarantine 策略。** validation paired groups 已按固定 SHA-256 规则分成 calibration/report；预登记网格只在前者选择一组 A–E 共享阈值，后者只汇报。网格包含 K=16 未校准 softmax 可达到的低阈值，避免所有模型因烟测阈值不可达而机械地零提交。
-- [ ] **(3) 如实计算 `now` 与 `collateral` 能量项并报告哪些项真正在变化。** 协议声明 6 项，实际只有 `future`/`edit`/`growth` 变化：`now` 因 `_program_header` 给每个候选都写入 `evidence_refs` 而恒为 0；`collateral`（权重 10.0，全场最大）硬编码为 0，且因 `_check_protected` 把任何触碰受保护 ID 的操作判为非法而与 illegal mask 结构性冗余。须让实现与声明一致，并记录该冗余，避免审稿人误以为有 6 个有效项。
+- [x] **(3) 如实计算 `now` 与 `collateral` 并报告实际影响。** D-039–D-041 已把 executed-now 改为当前匿名投影的固定自然量程、把 legal unrelated mutation 记为 collateral，并常驻逐项 posterior influence/逐 family 预期模式；12-group v8 health 中两项均有可测 posterior 影响，且 C11 collateral 对照通过。它仍不宣称每个 family 的六项都非零。
 - [x] **(4a) M1-v2 有界局部恢复。** 按 D-034，exact ambiguity 后固定安排一次相关可见证据重访；用同一 K=16 proposer 和 versioned executor 产生/提交补偿 RELINK，旧错不回填且 provenance 不删除。可观测 oracle 已证明候选路径能在 1 步内恢复 active world；learned recovery 尚待服务器验证。
 - [ ] **(4b) Khronos 式全局慢路径（M2）。** 全图、跨多对象、异步重访协调会改变系统时序与方法能力，仍不是 M1 的局部补偿修复；只有 M1-v2 hard condition 支持继续后才实现。
 

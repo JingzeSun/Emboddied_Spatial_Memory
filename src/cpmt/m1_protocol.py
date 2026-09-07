@@ -306,6 +306,72 @@ def validate_m1_protocol(config: Mapping[str, Any]) -> None:
              "A-E student update budgets must match")
     _require(training["test_selects_nothing"] is True,
              "test cannot select any setting")
+    _require(
+        training.get("validation_only_selection")
+        == ["direct_future_auxiliary_weight", "shared_commit_rule"],
+        "validation may only select the registered C weight and shared commit rule",
+    )
+    budget = training.get("pretest_budget_selection", {})
+    _require(
+        budget.get("stage") == "v8_s1_s2_train_inner_dev_only"
+        and int(budget.get("train_paired_groups", 0)) == 1000
+        and budget.get("inner_dev_partition")
+        == "sha256_rollout_pair_train_group_mod_5_equals_0_complete_groups",
+        "v8 budget selection must use the registered train/inner-dev groups",
+    )
+    _require(
+        budget.get("architectures")
+        == ["cross_candidate_set_transformer_v1", "shared_candidate_mlp_v1"]
+        and budget.get("architecture_budgets_selected_independently") is True
+        and budget.get("architecture_result_selection_forbidden") is True,
+        "budget selection must retain both independent architecture arms",
+    )
+    _require(
+        budget.get("seeds") == training["formal_seeds"]
+        and float(budget.get("learning_rate", 0.0)) == 0.002
+        and int(budget.get("batch_size", 0)) == 64,
+        "budget selection seeds or optimizer settings changed",
+    )
+    _require(
+        budget.get("scorer_update_checkpoints") == [300, 1000, 3000]
+        and budget.get("student_update_checkpoints") == [300, 1000, 3000]
+        and budget.get("checkpoint_execution")
+        == "one_identical_seeded_training_trajectory_to_maximum_and_evaluate_registered_prefix_checkpoints",
+        "finite scorer/student checkpoint grids changed",
+    )
+    _require(
+        budget.get("scorer_selection_metric")
+        == "inner_dev_online_reference_candidate_ranking_accuracy"
+        and budget.get("scorer_selection_aggregation")
+        == "equal_weight_mean_over_seed_and_complete_paired_group",
+        "scorer budget selection metric changed",
+    )
+    _require(
+        budget.get("student_selection_methods")
+        == [
+            "cpmt_ctl_core", "direct_classifier", "direct_future_loss",
+            "execute_current_only", "future_no_execution",
+        ]
+        and budget.get("student_selection_metric")
+        == "inner_dev_online_student_argmax_matches_method_specific_teacher_argmax"
+        and budget.get("student_selection_aggregation")
+        == "equal_method_weight_then_equal_seed_and_complete_paired_group_weight",
+        "shared student budget selection metric changed",
+    )
+    _require(
+        float(budget.get("direct_future_auxiliary_weight_anchor", -1.0)) == 1.0
+        and budget.get("selection_rule")
+        == "highest_registered_aggregate_mean_with_exact_ties_to_fewer_updates"
+        and budget.get("selected_scorer_fixed_before_student_grid") is True
+        and budget.get("student_updates_shared_A_to_E_within_architecture") is True,
+        "budget ordering, tie break, or A-E fairness changed",
+    )
+    _require(
+        budget.get("validation_arrays_read") is False
+        and budget.get("validation_trial_consumed") is False
+        and budget.get("test_access") is False,
+        "budget selection may not access validation or test",
+    )
     architecture = config.get("architecture_evaluation", {})
     _require(
         architecture.get("primary") == "cross_candidate_set_transformer_v1",
