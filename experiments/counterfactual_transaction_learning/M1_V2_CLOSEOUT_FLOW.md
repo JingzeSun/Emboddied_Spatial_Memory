@@ -16,11 +16,11 @@
 
 ## 当前指针
 
-- 当前阶段：**S4 M1-v5 服务器复核：v8 的固定自然量程 current energy、软后验逐项审计、机制切片、总混合组规模、真实 C10/C11 和两架构接线已在本地完成；下一步只跑干净提交的服务器完整测试**。
+- 当前阶段：**S4 M1-v5 服务器复核：干净提交 `c27e258` 的 175 项完整测试已通过；下一步只跑 12-group v8 train-only health/cost benchmark**。
 - 最近有效证据：v5 S2 的 arrays/manifest/report 已验收；1000−300 的 paired-group 95% CI 为 `[+0.008750,+0.045000]`，按预登记规则选择 1000。10-group 同预算锚点中共同 group 1 的 40−10 平均差为 `+0.005000`、仅 `1/5` seed 严格为正，未达 S3 触发条件。完整数字与 provenance 见 `EXECUTE.md` LOG-032/033。
 - 已完成：同一份 40-group v4 arrays 确定性截取 10/40 groups，运行 scorer steps {60,300,1000} × seed 7。40-group 全 train 上，static preflight 对 2,552/2,552 个 executor-illegal 候选全部静态拒绝、合法误拒 0；过滤后 target-only 均匀并列期望由 0.7729 升至 0.9698，assembled oracle accuracy 由 0.7438 升至 0.9525，其 exact-ambiguity capped 读数由 0.7275 升至 0.9275。D-038 已接受把同一只读预检变成 A–E 共享 mask；旧 v4 过滤数字仍只作采纳依据，不冒充 v5 方法成绩。
 - scorer 分支：40-group inner-dev 的未过滤/过滤后 teacher accuracy 在 steps 60/300/1000 分别为 0.0500/0.5688/0.5031 与 0.0625/0.7469/0.7094。1000 steps 虽将 held-out BCE 从 0.1016 降到 0.0744，候选排序却低于 300 steps；共同 group 1 在 10/40 groups、300/1000 steps 过滤后均为 0.875，也没有显示扩大到 S3 的明确数据收益。因此 300 steps 只是当前单 seed 候选，尚未固定。
-- 当前分支：D-041 已将 executed-now 从退化敏感的逐行 z-score 改为传感器自然量程，并使 C/E current inference 使用固定 0–1 probability error；生成 manifest 常驻逐项 posterior influence、冻结逐 family now 预期零/非零模式并只报偏离，S1 对 E current 通道按相同 posterior 指标与 executed teacher 同行并报。A–F 报告按生成机制输出五个非主切片。本地 v8 小规模 health 与训练报告接线已通过；架构/实验事实见 `EXECUTE.md` LOG-038。当前版本化服务器入口只承载 `full_test`；成功后由下一提交改写同一入口为 12-group `health_benchmark`。二者通过后登记并重跑 S1/S2；旧 v5/v7 的预算选择不迁移，validation/test 仍不读取。
+- 当前分支：D-041 已将 executed-now 从退化敏感的逐行 z-score 改为传感器自然量程，并使 C/E current inference 使用固定 0–1 probability error；生成 manifest 常驻逐项 posterior influence、冻结逐 family now 预期零/非零模式并只报偏离，S1 对 E current 通道按相同 posterior 指标与 executed teacher 同行并报。A–F 报告按生成机制输出五个非主切片。服务器 full test 已通过；架构/实验事实见 `EXECUTE.md` LOG-039。当前版本化服务器入口只承载 12-group `health_benchmark`，复用 `c27e258` 的 full-test marker，不重跑测试。health 通过后登记并重跑 S1/S2；旧 v5/v7 的预算选择不迁移，validation/test 仍不读取。
 - 成本边界：正式规模是 train/validation/test=`1000/200/200` 个总混合 paired groups，合计 1400，不乘 12。既有小规模数字只作计划参考；当前估计仍约 42–48 分钟/约 0.46 GB 合并 arrays，将由服务器 v8 12-group benchmark 更新而不设固定时限。按 D-039 不再设单 run 两小时硬上限，仍完整记录资源且保留 BugCheck 停止规则。
 - 数据量锚点判据（运行前固定）：只在 10-group 固定留出的共同 paired group 1 上，逐 seed 计算 `40 groups − 10 groups` 的 candidate-ranking accuracy。若五 seed 中至少 4 个严格为正，且五 seed 均值 `>= 0.025`（该 group 的 40 online decisions 中至少一个平均决策），才称“有明确继续增大 train diversity 的方向性信号”并进入 S3；否则 S3 不触发、进入 S4 预冻结审计。该锚点只有一个独立 group，故不报虚假的 CI、不重新选择 1000 steps、也不单独支持性能结论。
 - 预登记方向：共享 mask 主要移除旧 E 会选而 A–D 已由执行信息避开的静态非法候选，因此预期 v5 的 `A_vs_E` 单步与 causal margin 相对 v3/v4 历史读数缩小，触发主对比 stop rule 的概率上升；若 margin 不缩小或仍通过门槛，才是更强证据。该方向在运行前固定，结果出来后不得把“缩小”或“不缩小”任一方向改写成预先支持 CTL。

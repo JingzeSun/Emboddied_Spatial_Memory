@@ -4,17 +4,17 @@
 
 ## 当前看板
 
-> **2026-09-07 更新（LOG-038 / D-041）：** M1-v5/v8 已把 executed-now 改为固定自然量程，并补齐逐 family now 预期模式偏离与 S1 的 E/teacher 同尺 current posterior influence；D-040 的总混合组规模、真实 C10/C11 和 D-039 的 Set Transformer 主臂＋MLP 次臂保留。本地 4-group 生成和 1-step scorer 只验证报告接线，不是方法成绩。下一步只在服务器干净提交上跑完整测试；成功后再由下一提交切换唯一入口到 12-group train-only health/cost benchmark，test 继续封存。
+> **2026-09-07 更新（LOG-039 / D-041）：** M1-v5/v8 的服务器完整测试已在干净提交 `c27e258` 上通过：175 项、323.357 秒、退出码 0。当前唯一入口已切换为 12-group train-only health/cost benchmark，复用该 full-test marker，不重跑测试、不训练、不读 validation/test。
 
-最后更新：2026-09-07，LOG-038 M1-v5/v8 now family 预期模式与 E/teacher 同尺 current influence 完成本地接线；正式 M1 gate 未运行、未生成或读取 test。
+最后更新：2026-09-07，LOG-039 M1-v5/v8 服务器 175 项完整测试通过；正式 M1 gate 未运行、未生成或读取 test。
 
 | 项目 | 当前事实 |
 |---|---|
 | 方向 | CPMT 具身空间记忆；CTL 是主学习假设，用户希望面向 ML 研究 |
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
 | 阶段 | M1-v5 `pretest_lock_candidate`；只开放 train/inner-dev 与小规模接口验证，尚未重新冻结，正式 gate 未运行，不是 M2/Full CPMT |
-| 最近结果 | 本地 v8 4-group train 接线探针为 `160` learning rows、teacher/reference agreement=`1.0`。逐 family now 实测非零恰为 C01/C02/C04/C06/C07/C08，数值零恰为 C00/C03/C05/C09/C10/C11，冻结模式无偏离。1-step、单 seed E scorer 的同行审计显示 fitting/inner-dev mean TV 分别为 `0.007184/0.008066`，对应 executed teacher 为 `0.070387/0.075941`；该未训练充分读数只证明同尺报告可用，不是强弱结论或调权依据 |
-| 尚缺 | 服务器完整测试与 v8 12-group train-only 成本/teacher-health/posterior benchmark；通过后登记并重跑两架构各自的 S1/S2 scorer/student 有限预算网格。旧 v5/v7 的预算不迁移，test 仍封存 |
+| 最近结果 | 服务器在 commit=`c27e2581b5ced881d0d9f8283ad8c1865fdc1342`、protocol=`1af46e526e94fb0f186166bf2e34a16c61468e2e70fe583b602341eead994189` 上运行完整测试，175 项用时 323.357 秒并全部通过，`FULL_TEST_EXIT=0`；成功 marker 已落入 ignored `outputs/m1-v5-server-preflight/`。这证明当前实现通过测试，不是方法效果成绩 |
+| 尚缺 | v8 12-group train-only 成本/teacher-health/posterior benchmark；通过后登记并重跑两架构各自的 S1/S2 scorer/student 有限预算网格。旧 v5/v7 的预算不迁移，test 仍封存 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
 | 当前决定 | D-039 保留 live energy、C/E current target、Set Transformer 主臂＋MLP 次臂及每臂完整 A–F；D-040 固定总混合规模和真实 C10/C11；D-041 固定 current 自然量程、完整 posterior 审计、逐 family now 预期偏离和非主机制切片。E/teacher current 影响只同尺报告，不设门、不调权。仓库不设两小时单-run 上限；全局 reconciliation、PNO 与 M2 顺序不变 |
 | 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 validation report/test。两架构各自的 scorer/student 有限预算网格须在小规模健康检查后、任何选择性 run 前登记 |
@@ -592,6 +592,14 @@ M1-v5 的阶段顺序、转向条件和成功/失败终点见 [M1-v5 收口执�
 - scorer 报告探针：ignored `outputs/local-audit-v8-g4b/scorer-s1/af_report.json`；Set Transformer、seed 7、scorer 仅 1 step。fitting/inner-dev 的 E current leave-out mean TV=`0.007184/0.008066`，同一行 executed-now mean TV=`0.070387/0.075941`。该 scorer 几乎未训练，数字只验证“同尺、同行、并排”数据链，不能据此说 A/E 谁更强或选择预算。
 - 验证：Python compile 通过；protocol＋A–F 49 项及 CTL dev 11 项兼容测试通过；服务器脚本语法与无参数边界通过；4-group 生成、family 模式匹配和 1-step scorer v5 report 完整落盘。开发中第一次 scorer 探针因配置新增审计字段后旧 manifest 的 protocol hash 不匹配而按设计拒绝，重生成同内容 arrays 后通过；另一次实现探针只请求 now 而无法重构完整 teacher，修为先按全部有限能量重构再提取 now 后通过。这两次均发生在本地 ignored 开发产物，不是服务器失败 run。
 - 局限/下一步：小样本模式匹配和 1-step E 影响不预测正式规模。当前 `ops/run_next_server_step.sh` 只承载服务器 full test；其唯一成功标志出现后，下一提交才把同一入口改写为 12-group health benchmark。validation report 与 test 继续封存。
+
+### LOG-039—2026-09-07—M1-v5/v8 服务器完整测试通过
+
+- 类型/状态：干净服务器工程复核通过；不是数据生成、训练、validation trial、formal test 或方法效果结果。
+- 输入/provenance：终端解析的 server repo=`/root/Emboddied_Spatial_Memory`，commit=`c27e2581b5ced881d0d9f8283ad8c1865fdc1342`，protocol SHA-256=`1af46e526e94fb0f186166bf2e34a16c61468e2e70fe583b602341eead994189`，dataset=`m1-paired-latent-worlds-v8-fixed-range-current-energy`，test access=false。
+- 结果：`python -m unittest discover -s tests -p 'test_*.py'` 共运行 175 项，用时 323.357 秒，全部通过；`FULL_TEST_EXIT=0`。log 与匹配 commit/protocol/dataset 的成功 marker 已写入服务器 ignored `outputs/m1-v5-server-preflight/`。
+- 白话：本次 full test 回答“新审计和旧功能能否在同一干净版本上共同通过自动检查”。输入是冻结候选配置、科学代码和全套测试，输出是 175 项通过及可复用 marker；例如后续 health 脚本会先核对 marker 的 commit 和 protocol，避免为了换一份运维脚本再花 323 秒重跑。它不等于 teacher health 通过、不等于 CTL 优于对照，也没有生成或读取 test split。
+- 下一步：只运行 12-group v8 train-only health/cost benchmark，验证 teacher health、12-family mechanism、now 预期激活模式、posterior influence、产物体积与生成耗时；不训练、不读 validation/test。成功后先审查并导出报告，再登记新 S1/S2 有限预算。
 
 ## 后续条目模板
 
