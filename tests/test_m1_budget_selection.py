@@ -13,6 +13,7 @@ from scripts.run_m1_train_inner_dev_budget import (  # noqa: E402
     _cell_group_means,
     _checkpoint_selection,
     _grid_selection,
+    _linear_runtime_projection,
     _paired_group_bootstrap_difference,
 )
 
@@ -137,6 +138,27 @@ class TestM1BudgetSelection(unittest.TestCase):
         self.assertEqual(first, second)
         self.assertAlmostEqual(first["observed_mean_difference"], 2.0 / 30.0)
         self.assertEqual(first["complete_paired_groups"], 3)
+
+    def test_runtime_projection_counts_registered_paths_and_methods(self):
+        projection = _linear_runtime_projection(
+            scorer_path_seconds=2.0,
+            scorer_evaluation_seconds=1.0,
+            student_path_seconds_by_method={"A": 1.0, "E": 1.0},
+            student_evaluation_seconds_by_method={"A": 0.5, "E": 0.5},
+            profile_steps=100,
+            maximum_steps=1000,
+            learning_rate_count=3,
+            seed_count=5,
+            checkpoint_count=4,
+        )
+        self.assertEqual(projection["paths_per_component"], 15)
+        self.assertEqual(projection["scorer_seconds"], 360.0)
+        self.assertEqual(
+            projection["student_seconds_by_method"],
+            {"A": 180.0, "E": 180.0},
+        )
+        self.assertEqual(projection["total_seconds"], 720.0)
+        self.assertFalse(projection["protocol_cap_or_selection_metric"])
 
 
 if __name__ == "__main__":

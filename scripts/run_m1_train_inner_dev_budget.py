@@ -8,6 +8,10 @@ rule while retaining the exact same online architecture within the arm. It
 handles one architecture arm per invocation. It never reads
 validation/test, calibrates a commit gate, runs causal evaluation, or chooses
 between the Set Transformer and MLP arms.
+
+With ``--runtime-profile-only`` it instead measures one fixed, registered
+300-update path for the scorer and A--E.  That mode exports timing and parameter
+counts only: it performs no selection and exports no scientific metric.
 """
 from __future__ import annotations
 
@@ -316,6 +320,244 @@ def _cell_score(
     return float(np.mean(list(group_means_by_cell[cell].values())))
 
 
+def _linear_runtime_projection(
+    *, scorer_path_seconds: float, scorer_evaluation_seconds: float,
+    student_path_seconds_by_method: dict[str, float],
+    student_evaluation_seconds_by_method: dict[str, float],
+    profile_steps: int, maximum_steps: int,
+    learning_rate_count: int, seed_count: int,
+    checkpoint_count: int,
+) -> dict:
+    """Project registered-grid cost from one fixed, non-selective profile path."""
+    if profile_steps <= 0 or maximum_steps < profile_steps:
+        raise ValueError("runtime projection needs valid update counts")
+    if set(student_path_seconds_by_method) != set(
+        student_evaluation_seconds_by_method
+    ):
+        raise ValueError("student runtime methods do not match")
+    if min(learning_rate_count, seed_count, checkpoint_count) <= 0:
+        raise ValueError("runtime projection counts must be positive")
+    scale = float(maximum_steps) / float(profile_steps)
+    paths_per_component = int(learning_rate_count) * int(seed_count)
+    scorer_seconds = paths_per_component * (
+        float(scorer_path_seconds) * scale
+        + float(scorer_evaluation_seconds) * int(checkpoint_count)
+    )
+    student_seconds_by_method = {
+        method: paths_per_component * (
+            float(student_path_seconds_by_method[method]) * scale
+            + float(student_evaluation_seconds_by_method[method])
+            * int(checkpoint_count)
+        )
+        for method in sorted(student_path_seconds_by_method)
+    }
+    total_seconds = scorer_seconds + sum(student_seconds_by_method.values())
+    return {
+        "assumption": (
+            "linear_updates;_profile_path_final_full_teacher_materialization_is_"
+            "also_scaled_so_the_scorer_projection_is_conservative"
+        ),
+        "protocol_cap_or_selection_metric": False,
+        "paths_per_component": paths_per_component,
+        "profile_steps": int(profile_steps),
+        "maximum_steps": int(maximum_steps),
+        "checkpoint_evaluations_per_path": int(checkpoint_count),
+        "scorer_seconds": float(scorer_seconds),
+        "student_seconds_by_method": student_seconds_by_method,
+        "total_seconds": float(total_seconds),
+        "total_hours": float(total_seconds / 3600.0),
+    }
+
+
+def _synchronize(device: torch.device) -> None:
+    if device.type == "cuda":
+        torch.cuda.synchronize(device)
+
+
+def _run_runtime_profile(
+    *, args: argparse.Namespace, hard: dict, budget: dict,
+    active_protocol: str, train_input: dict,
+    fitting: dict[str, torch.Tensor], held_out: dict[str, torch.Tensor],
+    inner_online: np.ndarray, inner_groups: np.ndarray,
+    cfg: dict, diagnostic_kwargs: dict, seeds: list[int],
+    learning_rates: list[float], scorer_checkpoints: list[int],
+    student_checkpoints: list[int], device: torch.device,
+    device_name: str,
+) -> int:
+    """Measure cost only; do not select, save, or report scientific metrics."""
+    profile_steps = min(min(scorer_checkpoints), min(student_checkpoints))
+    anchor = budget["shared_diagnostic_anchor"]
+    profile_learning_rate = float(anchor["learning_rate"])
+    if profile_learning_rate not in learning_rates:
+        raise ValueError("runtime profile learning rate is outside registered grid")
+    profile_seed = int(seeds[0])
+    profile_cfg = dict(
+        cfg,
+        learning_rate=profile_learning_rate,
+        scorer_steps=profile_steps,
+        student_steps=profile_steps,
+    )
+    args.out_dir.mkdir(parents=True, exist_ok=True)
+    report_path = args.out_dir / "runtime_profile.json"
+    if report_path.exists():
+        raise ValueError("runtime profile report already exists; refusing overwrite")
+
+    print(
+        f"RUNTIME_PROFILE_BEGIN architecture={args.architecture} "
+        f"device={device_name} seed={profile_seed} "
+        f"lr={profile_learning_rate:.6g} steps={profile_steps}",
+        flush=True,
+    )
+    _synchronize(device)
+    scorer_started = time.time()
+    scorer, learned, _ = train_outcome_scorer(
+        fitting, held_out, profile_cfg, profile_seed, device,
+    )
+    _synchronize(device)
+    scorer_path_seconds = float(time.time() - scorer_started)
+    _synchronize(device)
+    scorer_evaluation_started = time.time()
+    outcome_scorer_diagnostics(
+        scorer, held_out, learned["validation"],
+        row_mask=inner_online, **diagnostic_kwargs,
+    )
+    _synchronize(device)
+    scorer_evaluation_seconds = float(
+        time.time() - scorer_evaluation_started
+    )
+    scorer_parameter_count = sum(
+        parameter.numel() for parameter in scorer.parameters()
+    )
+    del scorer
+
+    student_path_seconds_by_method = {}
+    student_evaluation_seconds_by_method = {}
+    student_parameter_signatures = set()
+    for method in budget["student_selection_methods"]:
+        train_teacher, inner_teacher = _method_teachers(
+            method, fitting, held_out, learned,
+        )
+        _synchronize(device)
+        student_started = time.time()
+        model, _ = train_student(
+            method, fitting, train_teacher,
+            profile_cfg, profile_seed, device,
+        )
+        _synchronize(device)
+        student_path_seconds_by_method[method] = float(
+            time.time() - student_started
+        )
+        student_parameter_signatures.add(tuple(
+            (name, tuple(parameter.shape), bool(parameter.requires_grad))
+            for name, parameter in model.named_parameters()
+        ))
+        _synchronize(device)
+        evaluation_started = time.time()
+        _student_checkpoint_metrics(
+            model, held_out, inner_teacher, inner_online, inner_groups,
+        )
+        _synchronize(device)
+        student_evaluation_seconds_by_method[method] = float(
+            time.time() - evaluation_started
+        )
+        del model, train_teacher, inner_teacher
+    del learned
+    if len(student_parameter_signatures) != 1:
+        raise AssertionError(
+            "A-E runtime-profile student parameter shapes differ"
+        )
+    student_parameter_signature = next(iter(student_parameter_signatures))
+
+    projection = _linear_runtime_projection(
+        scorer_path_seconds=scorer_path_seconds,
+        scorer_evaluation_seconds=scorer_evaluation_seconds,
+        student_path_seconds_by_method=student_path_seconds_by_method,
+        student_evaluation_seconds_by_method=(
+            student_evaluation_seconds_by_method
+        ),
+        profile_steps=profile_steps,
+        maximum_steps=max(max(scorer_checkpoints), max(student_checkpoints)),
+        learning_rate_count=len(learning_rates),
+        seed_count=len(seeds),
+        checkpoint_count=max(
+            len(scorer_checkpoints), len(student_checkpoints)
+        ),
+    )
+    report = {
+        "schema_version": "cpmt-m1-v8-budget-runtime-profile-v1",
+        "runner": "run_m1_train_inner_dev_budget_runtime_profile_v1",
+        "formal_run": False,
+        "selection_performed": False,
+        "scientific_metrics_exported": False,
+        "validation_arrays_read": False,
+        "test_access": False,
+        "protocol_sha256": active_protocol,
+        "dataset_version": hard["data"]["dataset_version"],
+        "architecture": args.architecture,
+        "input_arrays": {"train": train_input},
+        "profile": {
+            "seed": profile_seed,
+            "learning_rate": profile_learning_rate,
+            "steps": profile_steps,
+            "registered_grid_point": True,
+            "scorer_path_seconds": scorer_path_seconds,
+            "scorer_evaluation_seconds": scorer_evaluation_seconds,
+            "student_path_seconds_by_method": student_path_seconds_by_method,
+            "student_evaluation_seconds_by_method": (
+                student_evaluation_seconds_by_method
+            ),
+        },
+        "parameter_fairness": {
+            "outcome_scorer_parameters": int(scorer_parameter_count),
+            "student_parameters": int(sum(
+                int(np.prod(shape)) for _, shape, _ in student_parameter_signature
+            )),
+            "student_parameter_signature_A_to_E": [
+                {
+                    "name": name,
+                    "shape": list(shape),
+                    "requires_grad": requires_grad,
+                }
+                for name, shape, requires_grad in student_parameter_signature
+            ],
+        },
+        "registered_grid_projection": projection,
+        "device": {
+            "resolved": device_name,
+            "torch_version": torch.__version__,
+            "cuda_version": torch.version.cuda,
+            "cuda_device": (
+                torch.cuda.get_device_name(device)
+                if device.type == "cuda" else None
+            ),
+            "peak_allocated_mb": (
+                float(torch.cuda.max_memory_allocated(device) / 2**20)
+                if device.type == "cuda" else None
+            ),
+            "threads": int(args.threads),
+        },
+        "training_provenance": capture_run_provenance(
+            PROJECT,
+            component="m1_v8_budget_runtime_profile",
+            entrypoint=Path(__file__),
+        ),
+    }
+    report_path.write_text(
+        json.dumps(report, indent=2, sort_keys=True), encoding="utf-8",
+    )
+    print(f"RUNTIME_PROFILE_REPORT={report_path}", flush=True)
+    print(
+        f"RUNTIME_PROFILE_ESTIMATED_HOURS={projection['total_hours']:.3f}",
+        flush=True,
+    )
+    print(
+        f"RUNTIME_PROFILE_OK architecture={args.architecture} "
+        "selection=false scientific_metrics_exported=false",
+        flush=True,
+    )
+    return 0
+
+
 def _student_checkpoint_metrics(
     model: torch.nn.Module, held_out: dict[str, torch.Tensor],
     teacher: torch.Tensor, inner_online: np.ndarray,
@@ -405,6 +647,13 @@ def main() -> int:
     )
     parser.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto")
     parser.add_argument("--threads", type=int, default=16)
+    parser.add_argument(
+        "--runtime-profile-only", action="store_true",
+        help=(
+            "measure one fixed registered path for cost planning; do not "
+            "select budgets or export scientific metrics"
+        ),
+    )
     args = parser.parse_args()
 
     hard = load_and_validate(args.config)
@@ -488,6 +737,26 @@ def main() -> int:
         ),
     }
     seeds = [int(value) for value in budget["seeds"]]
+    if args.runtime_profile_only:
+        return _run_runtime_profile(
+            args=args,
+            hard=hard,
+            budget=budget,
+            active_protocol=active_protocol,
+            train_input=train_input,
+            fitting=fitting,
+            held_out=held_out,
+            inner_online=inner_online,
+            inner_groups=inner_groups,
+            cfg=cfg,
+            diagnostic_kwargs=diagnostic_kwargs,
+            seeds=seeds,
+            learning_rates=learning_rates,
+            scorer_checkpoints=scorer_checkpoints,
+            student_checkpoints=student_checkpoints,
+            device=device,
+            device_name=device_name,
+        )
     print(
         f"BUDGET_RUN_BEGIN architecture={args.architecture} device={device_name} "
         f"groups={len(unique_groups)} fitting={len(fitting_groups)} "

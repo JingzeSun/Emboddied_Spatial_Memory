@@ -4,20 +4,20 @@
 
 ## 当前看板
 
-> **2026-09-07 更新（LOG-043 / D-043）：** M1-v6/v8 的 191 项服务器完整测试与 12-group train-only arrays digest 不变性均已通过；D-043 未改变数据内容。下一步只生成唯一 1000-group train arrays，预计约 25 分钟；不训练、不读 validation/test。
+> **2026-09-07 更新（LOG-044 / D-043）：** M1-v6/v8 的唯一 1000-group train arrays 已生成并通过全部 teacher-health 门；实际用时约 16.7 分钟。下一步先全测新增的纯运行时剖析入口，再用固定 300-step 路径估算两架构完整预算网格耗时；剖析不选择超参、不输出科学指标。
 
-最后更新：2026-09-07，D-043 full test 与 12-group arrays digest 不变性已通过、待 1000-group train generation；正式 M1 gate 未运行、未生成或读取 test。
+最后更新：2026-09-07，1000-group train arrays 已通过健康门、待运行时剖析入口全测；正式 M1 gate 未运行、未生成或读取 validation/test。
 
 | 项目 | 当前事实 |
 |---|---|
 | 方向 | CPMT 具身空间记忆；CTL 是主学习假设，用户希望面向 ML 研究 |
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
-| 阶段 | M1-v6 `pretest_lock_candidate`；D-043 架构/预算预登记、服务器 full test 与 digest 复核已完成，待 1000-group train/inner-dev 生成与选择；尚未进入 S5 validation、重新冻结或 M2 |
+| 阶段 | M1-v6 `pretest_lock_candidate`；D-043 架构/预算预登记、服务器 full test、digest 复核与 1000-group train 生成已完成，待两架构运行时剖析及 train/inner-dev 预算选择；尚未进入 S5 validation、重新冻结或 M2 |
 | 最近结果 | [`m1_v5_s4_v8_health_benchmark.json`](results/m1_v5_s4_v8_health_benchmark.json) 已于 `e47a7e4` 入库并本地复核：480 learning rows（456 online＋24 recovery），teacher agreement=`1.0`，12 个 family 各自 agreement 均为 `1.0`；posterior mean TV 为 future=`0.681108`、now=`0.071170`、growth=`0.025655`、edit=`0.022655`、collateral=`0.015360`，C11 collateral TV=`0.136628`。now 预期零/非零 family 完全匹配，无偏离 |
-| 尚缺 | 生成 1000-group train arrays，依次得到 Set Transformer/MLP 的 scorer 与逐方法 student budget；validation/test 仍封存 |
+| 尚缺 | 先估算 Set Transformer/MLP 完整网格墙钟成本，再依次得到两臂 scorer 与逐方法 student budget；validation/test 仍封存 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
 | 当前决定 | D-039 保留 live energy、C/E current target、Set Transformer 主臂＋MLP 次臂及每臂完整 A–F；D-040 固定总混合规模和真实 C10/C11；D-041 固定 current 自然量程与 posterior 审计；D-043 固定 Pre-LN 主臂、A–E 相同 12 格与同指标逐方法选择、共享/交叉预算诊断及 10000 触顶纪律。架构间不择优；全局 reconciliation、PNO 与 M2 顺序不变 |
-| 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 validation report/test。D-043 无额外人工选择，服务器只按活动入口生成 1000-group train |
+| 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 validation/test。D-043 无额外人工选择；运行时剖析只供用户决定何时租用算力，不改变登记网格 |
 | Git 备份 | D-038 科学代码基线为 `72afa7d`；S2 40-group reports 已在提交 `ececefb`、10-group 锚点已在 `70355ac` 导入 `results/`，服务器大产物仍位于 ignored `outputs/`。服务器操作只通过版本化的 `ops/run_next_server_step.sh` 交付，脚本所在提交仍须先 push、服务器再 pull |
 
 白话：M1-v6 现在仍是“考前定卷”，不是已冻结或已通过。Pre-LN 和逐方法对称调优只是在排除架构/优化混淆；新的 K=16、固定量程与恢复审计也只证明候选、executor、teacher 和 active-world 评测路径可达。这些都不等于 CTL 已胜出，更不是带 PNO 的 Full CPMT。
@@ -635,6 +635,14 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - 结果：17.957 秒生成 480 learning rows（456 online＋24 recovery），merged NPZ=`3,986,922` bytes；teacher/reference agreement=`1.0`、health gate PASS、逐 family now pattern 匹配。arrays digest=`e924f96d4cf28179df010766e4275244cbb78cb9f9425ed514093bdbca3958c3`，与 D-041/LOG-040 逐位相同；`HEALTH_ARRAYS_DIGEST_INVARIANT=true`，唯一成功标志为 `SERVER_STEP_OK id=m1_v6_v8_d043_health_g12_arrays_digest_invariance`。服务器 Git 工作树保持干净。
 - 白话：digest 不变性回答“D-043 改网络和调参规则时，有没有意外改变训练样本”。输入是相同 seed/12 groups 但新 protocol hash 下重新生成的 arrays，输出是逐字节内容哈希与旧 v8 完全一致。例如 Pre-LN 和新的 12 格只存在于训练阶段，所以候选、能量和 teacher 数组不应变化，本次确实没变。它不说明新模型更好，也不替代 1000-group 预算选择。
 - 下一步：生成唯一 1000-group v8 train arrays；先复用 191-test marker 和本次 health artifact，继续只读 train、不训练、不读 validation/test。按 12-group 实测线性参考，预计约 25 分钟、merged arrays 约 332 MB，保留 shards 后总量约 674 MB；实际时间与 digest 必须由 manifest 报告。
+
+### LOG-044—2026-09-07—D-043 服务器 1000-group train arrays 生成通过
+
+- 类型/状态：唯一正式规模 train-only arrays 生成与 teacher-health 验收通过；不是 scorer/student 训练、预算选择、validation trial、formal run 或方法效果结果。
+- 输入/provenance：server repo=`/root/Emboddied_Spatial_Memory`；generation handoff commit=`8a837e65ea8279a460ed712654142da888956af4`，已全测科学 commit=`53539ce54320c8098f210c7a62eaee05f9ecd41f`；protocol SHA-256=`73666cabb77b4884302d77ca621669bfdc77e86a44951b8a92b97208509c0eec`，dataset=`m1-paired-latent-worlds-v8-fixed-range-current-energy`。split=train、总混合 paired groups=1000、workers=16；training/validation/test access=false。
+- 结果：1001.0 秒生成 40,000 learning rows（38,000 online＋2,000 recovery），1000/1000 shards 完整保留；merged NPZ=`331,410,122` bytes、retained shards=`341,522,000` bytes。teacher/reference agreement=`1.0`、teacher health PASS、逐 family now pattern 匹配。arrays digest=`e8a890f1b254a7109af641fea57fcbea5efd931b4272d8e96cb870f51604b168`；arrays=`outputs/m1-v6-v8-d043-train-g1000-53539ce/train.npz`，manifest=`train.manifest.json`，唯一成功标志为 `SERVER_STEP_OK id=m1_v6_v8_d043_train_generation_g1000`。
+- 白话：这一步回答“用于预算选择的足量训练数据是否已经完整、健康地落盘”。输入是 1000 条混合 20-step paired groups，输出是同一份供两种架构、A–E 共用的不可变训练数组和 manifest；例如后续 Set Transformer 与 MLP 都必须读取上述同一 digest。它不训练模型、不读取 validation/test，也不说明 CTL 已经提升。
+- 下一步：先全测一个固定 300-step、单 seed、单 learning-rate 的 train/inner-dev 运行时剖析入口，再分别测两种架构。剖析只导出墙钟、显存、参数量及线性成本估计，不保存准确率、不做预算选择；正式 12 格 × 5 seeds 网格仍完全按 D-043 执行。
 
 ## 后续条目模板
 
