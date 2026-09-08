@@ -1,205 +1,151 @@
 #!/usr/bin/env bash
-# Unique phase: the registered MLP arm in an independent worktree; GPU may be shared.
-# Inputs: D-048 full-test success + existing v8 1,000-group train arrays.
-# Read: repository, preceding marker, train arrays/manifest. No validation/test.
-# Write: only this arm's data-disk log, execution status and final budget report.
-# Resume: background worker survives terminal disconnect; lock prevents duplicates.
-# A completed report is reused. An interrupted arm without a report is NOT restarted.
-# No checkpoint resume exists inside the scientific runner; retain failures for review.
+# Unique phase: accept already-written budget reports, correcting method-name validation.
+# Inputs: existing two arm outputs + D-048 full-test marker + unchanged science/config.
+# Read: reports, exit records and provenance only. Never read arrays or launch training.
+# Write: acceptance log and verified budget.ok.json / budget.acceptance.json markers only.
+# Resume: reuse verified markers; a locked/running arm is reported pending, never restarted.
 set -uo pipefail
-export CPMT_SERVER_STEP_ID="m1_v6_d048_mlp_train_inner_dev_budget"
-export CPMT_ARCHITECTURE="shared_candidate_mlp_v1"
-export CPMT_EXPECTED_TEST_COMMIT="27d79eaa8f2312f62fff411d249bf574af061d8e"
-export CPMT_EXPECTED_REGISTRATION="d366935b14975a18cf3e0af58833fcb8a1151c5929c8848d40677d692fd51e1d"
-export CPMT_EXPECTED_PROTOCOL="73666cabb77b4884302d77ca621669bfdc77e86a44951b8a92b97208509c0eec"
-export CPMT_EXPECTED_TRAIN_DIGEST="e8a890f1b254a7109af641fea57fcbea5efd931b4272d8e96cb870f51604b168"
+CPMT_SERVER_STEP_ID="m1_v6_d048_budget_reports_acceptance"
 CPMT_SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)" || exit 2
-export CPMT_REPO_DIR="$(git -C "$CPMT_SCRIPT_DIR" rev-parse --show-toplevel)" || exit 2
-export CPMT_CURRENT_COMMIT="$(git -C "$CPMT_REPO_DIR" rev-parse HEAD)" || exit 2
-export CPMT_OUTPUT_DIR="/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-mlp"
-export CPMT_FULL_TEST_MARKER="/root/autodl-tmp/cpmt_outputs/m1-v6-d048-full-test-27d79ea/full_test.ok.json"
-# Resolve the actual primary checkout via Git; do not guess its path or spelling.
-export CPMT_SOURCE_REPO="$(python - "$CPMT_REPO_DIR" <<'PY'
-import subprocess,sys
+CPMT_REPO_DIR="$(git -C "$CPMT_SCRIPT_DIR" rev-parse --show-toplevel)" || exit 2
+CPMT_AUDIT_DIR="/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-acceptance"
+[[ "$#" -eq 0 ]] || exit 2
+cd "$CPMT_REPO_DIR" || exit 2
+mkdir -p "$CPMT_AUDIT_DIR" || exit 2
+python - "$CPMT_REPO_DIR" <<'PY' 2>&1 | tee -a "$CPMT_AUDIT_DIR/acceptance.log"
+import datetime,hashlib,itertools,json,subprocess,sys
 from pathlib import Path
-root=Path(sys.argv[1])
-p=Path(subprocess.check_output(['git','-C',str(root),'rev-parse','--git-common-dir'],text=True).strip())
-print((p if p.is_absolute() else root/p).resolve().parent)
-PY
-)" || exit 2
-export CPMT_EXPECTED_PRIMARY_COMMIT="72f1b8a879b86c6b37f107ac29a14989a6b67f07"
-export CPMT_PRIMARY_RUN_DIR="/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-set-transformer"
-export CPMT_TRAIN="$CPMT_SOURCE_REPO/outputs/m1-v6-v8-d043-train-g1000-53539ce/train.npz"
-export CPMT_MARKER="$CPMT_OUTPUT_DIR/budget.ok.json"
-export PYTHONUNBUFFERED=1
-export OMP_NUM_THREADS=8
-export MKL_NUM_THREADS=8
-cpmt_fail() { printf "SERVER_STEP_FAILED id=%s reason=%s\nLOG=%s/budget.log\n" "$CPMT_SERVER_STEP_ID" "$1" "$CPMT_OUTPUT_DIR" >&2; exit 1; }
-[[ "$#" -eq 0 ]] || cpmt_fail unexpected_arguments
-[[ "$CPMT_REPO_DIR" != "$CPMT_SOURCE_REPO" ]] || cpmt_fail independent_worktree_required_do_not_pull_the_running_checkout
-cd "$CPMT_REPO_DIR" || cpmt_fail repository_unavailable
 
-cpmt_check_prerequisites() {
-  git diff --quiet || return 1
-  git diff --cached --quiet || return 1
-  [[ -z "$(git ls-files --others --exclude-standard)" ]] || return 1
-  python - <<'PY'
-import json,os,subprocess,sys
-from pathlib import Path
-sys.path.insert(0,'src')
-from cpmt.m1_protocol import load_and_validate,load_and_validate_endpoint_probe,protocol_sha256
-from cpmt.m1_registration import load_registration
-from cpmt.run_provenance import source_tree_sha256
-e=os.environ; root=Path.cwd()
-assert subprocess.check_output(['git','-C',e['CPMT_SOURCE_REPO'],'rev-parse','HEAD'],text=True).strip()==e['CPMT_EXPECTED_PRIMARY_COMMIT'], 'primary checkout changed'
-primary=json.loads((Path(e['CPMT_PRIMARY_RUN_DIR'])/'started.json').read_text())
-assert primary['commit']==e['CPMT_EXPECTED_PRIMARY_COMMIT'] and primary['architecture']=='cross_candidate_set_transformer_v1'
-assert subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()==e['CPMT_CURRENT_COMMIT']
-m=json.loads(Path(e['CPMT_FULL_TEST_MARKER']).read_text(encoding='utf-8'))
-assert m['schema_version']=='cpmt-d048-full-test-marker-v1'
-assert m['commit']==e['CPMT_EXPECTED_TEST_COMMIT'] and m['tests_run']==221 and m['exit_code']==0
-assert m['failures']==0 and m['errors']==0 and m['skipped']==0
-assert m['registration_sha256']==e['CPMT_EXPECTED_REGISTRATION']
-assert m['source_and_tests_sha256']==source_tree_sha256(root,roots=('src','scripts','configs','tests'))
-assert m['test_access'] is False and m['formal_validation_arrays_read'] is False
-hard=load_and_validate(root/'configs/m1_hard_condition.json')
-overlay=load_and_validate_endpoint_probe(root/'configs/m1_endpoint_viability_probe.json',hard)
-r=load_registration(root,hard,overlay)
-assert protocol_sha256(r)==e['CPMT_EXPECTED_REGISTRATION'] and protocol_sha256(hard)==e['CPMT_EXPECTED_PROTOCOL']
-assert e['CPMT_ARCHITECTURE'] in hard['training']['pretest_budget_selection']['architectures']
-print('FULL_TEST_AND_REGISTRATION_PREREQUISITES_OK tests=221 test_access=false',flush=True)
-PY
-}
+STAGE='m1_v6_d048_budget_reports_acceptance'
+REGISTRATION='d366935b14975a18cf3e0af58833fcb8a1151c5929c8848d40677d692fd51e1d'
+TRAIN_DIGEST='e8a890f1b254a7109af641fea57fcbea5efd931b4272d8e96cb870f51604b168'
+TEST_COMMIT='27d79eaa8f2312f62fff411d249bf574af061d8e'
+ARMS=[
+ ('cross_candidate_set_transformer_v1','set-transformer','72f1b8a879b86c6b37f107ac29a14989a6b67f07','m1_v6_d048_set_transformer_train_inner_dev_budget'),
+ ('shared_candidate_mlp_v1','mlp','04c8319460df47a0a17960341880d28497897709','m1_v6_d048_mlp_train_inner_dev_budget'),
+]
 
-cpmt_finish_report() {
-  cpmt_check_prerequisites || return 1
-  python - <<'PY'
-import hashlib,json,os
-from pathlib import Path
-e=os.environ; out=Path(e['CPMT_OUTPUT_DIR']); path=out/'budget_report.json'
-assert (out/'runner_exit.txt').read_text().strip()=='0'
-started=json.loads((out/'started.json').read_text())
-assert started['commit']==e['CPMT_CURRENT_COMMIT'] and started['stage']==e['CPMT_SERVER_STEP_ID']
-r=json.loads(path.read_text(encoding='utf-8'))
-assert r['schema_version']=='cpmt-m1-v8-train-inner-dev-budget-v3'
-assert r['architecture']==e['CPMT_ARCHITECTURE'] and r['architecture_result_selection_forbidden'] is True
-assert r['protocol_sha256']==e['CPMT_EXPECTED_PROTOCOL'] and r['post_probe_registration_sha256']==e['CPMT_EXPECTED_REGISTRATION']
-assert r['formal_run'] is False and r['test_generated'] is False and r['causal_complete'] is False
-assert r['training_provenance']['git_commit']==e['CPMT_CURRENT_COMMIT'] and r['training_provenance']['git_dirty'] is False
-assert r['input_arrays']['train']['arrays_digest']==e['CPMT_EXPECTED_TRAIN_DIGEST']
-p=r['partition']; assert p['train_paired_groups']==1000
-assert len(p['fitting_group_ids'])==799 and len(p['inner_dev_group_ids'])==201
-assert not(set(p['fitting_group_ids']) & set(p['inner_dev_group_ids']))
-assert p['validation_arrays_read'] is False and p['validation_trial_consumed'] is False and p['test_access'] is False
-assert set(r['selected']['student_hyperparameters_by_method'])==set('ABCDE')
-assert len(r['scorer']['runs'])==60 and len(r['students']['runs'])==300
-aux=r['students']['C_auxiliary_weight_runs']
-assert len(aux)==15
-assert sum(row['selection_stage']=='reused_anchor_run_at_fixed_selected_compute' for row in aux)==5
-assert sum(row['selection_stage']=='auxiliary_weight_at_fixed_selected_compute' for row in aux)==10
-assert r['parameter_fairness']['learning_rate_updates_grid_cells_per_method']==12
-m={'schema_version':'cpmt-d048-budget-arm-marker-v1','stage':e['CPMT_SERVER_STEP_ID'],
-   'commit':e['CPMT_CURRENT_COMMIT'],'architecture':e['CPMT_ARCHITECTURE'],
-   'registration_sha256':e['CPMT_EXPECTED_REGISTRATION'],'train_arrays_digest':e['CPMT_EXPECTED_TRAIN_DIGEST'],
-   'report_sha256':hashlib.sha256(path.read_bytes()).hexdigest(),'runner_exit_code':0,
-   'validation_arrays_read':False,'test_access':False}
-marker=Path(e['CPMT_MARKER'])
-if marker.exists():
-    assert json.loads(marker.read_text())==m
-else:
-    tmp=marker.with_suffix('.tmp'); tmp.write_text(json.dumps(m,indent=2)+'\n',encoding='utf-8'); tmp.replace(marker)
-print(f"BUDGET_REPORT_VALIDATED architecture={e['CPMT_ARCHITECTURE']}",flush=True)
-PY
-}
+def require(condition,message):
+    if not condition:
+        raise ValueError(message)
 
-cpmt_resource_snapshot() {
-  python - "$1" <<'PY'
-import datetime,json,os,subprocess,sys
-from pathlib import Path
-e=os.environ; queries={}
-for name,query in [('device','--query-gpu=index,name,utilization.gpu,memory.used,memory.total'),
-                   ('processes','--query-compute-apps=pid,process_name,used_gpu_memory')]:
-    try:
-        r=subprocess.run(['nvidia-smi',query,'--format=csv,noheader'],capture_output=True,text=True,timeout=15)
-        queries[name]={'exit_code':r.returncode,'stdout':r.stdout,'stderr':r.stderr}
-    except (OSError,subprocess.TimeoutExpired) as error:
-        queries[name]={'unavailable':str(error)}
-m={'utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'architecture':e['CPMT_ARCHITECTURE'],
-   'cpu_logical_count':os.cpu_count(),'torch_threads':8,'gpu_sharing_allowed':True,
-   'primary_run_directory':e['CPMT_PRIMARY_RUN_DIR'],'primary_commit':e['CPMT_EXPECTED_PRIMARY_COMMIT'],
-   'runtime_not_an_exclusive_gpu_benchmark':True,'nvidia_smi':queries}
-(Path(e['CPMT_OUTPUT_DIR'])/sys.argv[1]).write_text(json.dumps(m,indent=2)+'\n',encoding='utf-8')
-PY
-}
+def validate_report(r,started,architecture,run_commit,arm_stage,hard,overlay,source_hash):
+    require(started['commit']==run_commit and started['stage']==arm_stage,'unexpected original start record')
+    require(r['schema_version']=='cpmt-m1-v8-train-inner-dev-budget-v3','wrong budget report schema')
+    require(r['architecture']==architecture and r['architecture_result_selection_forbidden'] is True,'architecture boundary mismatch')
+    require(r['protocol_sha256']==overlay['source_protocol']['protocol_sha256'],'source protocol mismatch')
+    require(r['post_probe_registration_sha256']==REGISTRATION,'registration mismatch')
+    require(all(r[k] is False for k in ('formal_run','test_generated','causal_complete')),'unexpected formal/test/causal access')
+    provenance=r['training_provenance']
+    require(provenance['git_commit']==run_commit and provenance['git_dirty'] is False,'original training provenance mismatch')
+    require(provenance['source_tree_sha256']==source_hash,'training scientific source differs from verified source')
+    require(r['input_arrays']['train']['arrays_digest']==TRAIN_DIGEST,'train digest mismatch')
+    p=r['partition']
+    fitting=set(p['fitting_group_ids']); inner=set(p['inner_dev_group_ids'])
+    require(p['train_paired_groups']==1000 and len(fitting)==799 and len(inner)==201 and not(fitting & inner),'paired partition mismatch')
+    require(all(p[k] is False for k in ('validation_arrays_read','validation_trial_consumed','test_access')),'held-out access boundary mismatch')
+    budget=hard['training']['pretest_budget_selection']
+    methods=set(budget['student_selection_methods'])
+    # The runner serializes full method names, not the human-facing A-E IDs.
+    selected=r['selected']['student_hyperparameters_by_method']
+    require(set(selected)==methods,'selected methods must match registered full method names')
+    require(r['registered_source_budget_contract']==budget,'source budget contract drift')
+    require(r['D046_budget_amendment']==overlay['post_probe_train_inner_dev_budget_amendment'],'C weight amendment drift')
+    def check_grid(rows,expected,keys,label):
+        actual=[tuple(row[k] for k in keys) for row in rows]
+        require(len(actual)==len(expected) and set(actual)==expected,label+' grid is missing, duplicated or expanded')
+    scorer_cells=set(itertools.product(budget['seeds'],budget['learning_rates'],budget['scorer_update_checkpoints']))
+    check_grid(r['scorer']['runs'],scorer_cells,('seed','learning_rate','checkpoint'),'scorer')
+    student_cells=set(itertools.product(methods,budget['seeds'],budget['learning_rates'],budget['student_update_checkpoints']))
+    check_grid(r['students']['runs'],student_cells,('method','seed','learning_rate','checkpoint'),'students')
+    for method,value in selected.items():
+        require(value['learning_rate'] in budget['learning_rates'] and value['student_steps'] in budget['student_update_checkpoints'],method+' selected an unregistered setting')
+    weights=overlay['post_probe_train_inner_dev_budget_amendment']['direct_future_auxiliary_weights']
+    anchor=overlay['post_probe_train_inner_dev_budget_amendment']['direct_future_auxiliary_weight_anchor']
+    aux=r['students']['C_auxiliary_weight_runs']
+    check_grid(aux,set(itertools.product(budget['seeds'],weights)),('seed','auxiliary_weight'),'C weight')
+    c=selected['direct_future_loss']
+    require(c['direct_future_auxiliary_weight'] in weights,'unregistered selected C weight')
+    for row in aux:
+        require(row['method']=='direct_future_loss' and row['learning_rate']==c['learning_rate'] and row['checkpoint']==c['student_steps'],'C weight comparison changed frozen compute')
+        expected='reused_anchor_run_at_fixed_selected_compute' if row['auxiliary_weight']==anchor else 'auxiliary_weight_at_fixed_selected_compute'
+        require(row['selection_stage']==expected,'C anchor reuse/additional path mismatch')
+    require(r['parameter_fairness']['learning_rate_updates_grid_cells_per_method']==12,'wrong number of compute settings')
 
-if [[ "${CPMT_BUDGET_WORKER:-0}" == "1" ]]; then
-  # Descriptor 9, inherited from the launcher, owns the lock until this job exits.
-  trap 'CPMT_WORKER_EXIT=$?; printf "%s\n" "$CPMT_WORKER_EXIT" > "$CPMT_OUTPUT_DIR/worker_exit.txt"' EXIT
-  cpmt_check_prerequisites || cpmt_fail prerequisites_changed
-  python - <<'PY' || cpmt_fail train_or_cuda_prerequisite_failed
-import json,os,sys
-from pathlib import Path
-import numpy as np
-import torch
-sys.path.insert(0,'src')
-from cpmt.run_provenance import arrays_sha256
-e=os.environ; path=Path(e['CPMT_TRAIN'])
-m=json.loads(path.with_suffix('.manifest.json').read_text(encoding='utf-8'))
-with np.load(path,allow_pickle=True) as f: a={k:f[k] for k in f.files}
-assert arrays_sha256(a)==m['arrays_digest']==e['CPMT_EXPECTED_TRAIN_DIGEST']
-assert m['protocol_sha256']==e['CPMT_EXPECTED_PROTOCOL'] and m['split']=='train'
-assert m['teacher_health_gate']['pass'] is True and len(set(a['group'].tolist()))==1000
-assert torch.cuda.is_available(), 'CUDA required; do not silently start hours of CPU training'
-print(f"TRAIN_ARRAYS_OK groups=1000 digest={m['arrays_digest']} cuda={torch.cuda.get_device_name(0)}",flush=True)
-PY
-  cpmt_resource_snapshot resource_start.json || cpmt_fail resource_start_record_failed
-  printf "BUDGET_RUN_BEGIN architecture=%s\n" "$CPMT_ARCHITECTURE"
-  python scripts/run_m1_train_inner_dev_budget.py --train "$CPMT_TRAIN" --out-dir "$CPMT_OUTPUT_DIR" --architecture "$CPMT_ARCHITECTURE" --device cuda --threads 8
-  CPMT_RUN_EXIT=$?
-  printf "%s\n" "$CPMT_RUN_EXIT" > "$CPMT_OUTPUT_DIR/runner_exit.txt"
-  printf "BUDGET_RUN_EXIT=%s\n" "$CPMT_RUN_EXIT"
-  cpmt_resource_snapshot resource_end.json || cpmt_fail resource_end_record_failed
-  [[ "$CPMT_RUN_EXIT" -eq 0 ]] || cpmt_fail budget_runner_failed_no_automatic_restart
-  cpmt_finish_report || cpmt_fail budget_report_validation_failed
-  printf "SERVER_STEP_OK id=%s\n" "$CPMT_SERVER_STEP_ID"
-  exit 0
-fi
+def write_or_verify(path,value):
+    if path.exists():
+        require(json.loads(path.read_text(encoding='utf-8'))==value,'existing marker mismatch: '+str(path))
+    else:
+        tmp=path.with_suffix('.tmp')
+        tmp.write_text(json.dumps(value,indent=2)+'\n',encoding='utf-8')
+        tmp.replace(path)
 
-command -v flock >/dev/null 2>&1 || cpmt_fail flock_missing
-command -v nohup >/dev/null 2>&1 || cpmt_fail nohup_missing
-[[ -d /root/autodl-tmp ]] || cpmt_fail data_disk_missing
-mkdir -p "$CPMT_OUTPUT_DIR" || cpmt_fail output_directory_creation_failed
-exec 9>"$CPMT_OUTPUT_DIR/worker.lock"
-if ! flock -n 9; then
-  printf "SERVER_STEP_RUNNING id=%s\nLOG=%s/budget.log\n" "$CPMT_SERVER_STEP_ID" "$CPMT_OUTPUT_DIR"
-  [[ ! -f "$CPMT_OUTPUT_DIR/budget.log" ]] || tail -n 8 "$CPMT_OUTPUT_DIR/budget.log"
-  exit 0
-fi
-cpmt_check_prerequisites || cpmt_fail full_test_or_registration_prerequisite_failed
-if [[ -f "$CPMT_MARKER" || -f "$CPMT_OUTPUT_DIR/runner_exit.txt" ]]; then
-  cpmt_finish_report || cpmt_fail previous_attempt_requires_review_no_automatic_restart
-  printf "SERVER_STEP_OK id=%s\nBUDGET_REPORT=%s/budget_report.json\n" "$CPMT_SERVER_STEP_ID" "$CPMT_OUTPUT_DIR"
-  exit 0
-fi
-[[ ! -f "$CPMT_OUTPUT_DIR/started.json" && ! -f "$CPMT_OUTPUT_DIR/budget.log" && ! -f "$CPMT_OUTPUT_DIR/budget_report.json" ]] || cpmt_fail interrupted_attempt_requires_review_no_automatic_restart
-CPMT_REMOTE_HEAD="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
-[[ "$CPMT_REMOTE_HEAD" == "$CPMT_CURRENT_COMMIT" ]] || cpmt_fail origin_main_does_not_match_checkout
-python - <<'PY' || cpmt_fail start_record_failed
-import datetime,json,os
-from pathlib import Path
-e=os.environ
-m={'stage':e['CPMT_SERVER_STEP_ID'],'commit':e['CPMT_CURRENT_COMMIT'],
-   'started_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),
-   'architecture':e['CPMT_ARCHITECTURE'],'read_boundary':'existing_train_arrays_only',
-   'input_source_repository':e['CPMT_SOURCE_REPO'],'gpu_sharing_allowed':True,
-   'concurrent_primary_run_directory':e['CPMT_PRIMARY_RUN_DIR'],
-   'runtime_not_an_exclusive_gpu_benchmark':True,
-   'write_boundary':e['CPMT_OUTPUT_DIR'],'validation_arrays_read':False,'test_access':False}
-(Path(e['CPMT_OUTPUT_DIR'])/'started.json').write_text(json.dumps(m,indent=2)+'\n',encoding='utf-8')
+def main():
+    import fcntl
+    root=Path(sys.argv[1]);sys.path.insert(0,str(root/'src'))
+    from cpmt.m1_protocol import load_and_validate,load_and_validate_endpoint_probe,protocol_sha256
+    from cpmt.m1_registration import load_registration
+    from cpmt.run_provenance import capture_run_provenance,source_tree_sha256
+    require(not subprocess.check_output(['git','status','--porcelain'],cwd=root,text=True).strip(),'acceptance checkout must be clean')
+    print('ACCEPTANCE_BEGIN utc='+datetime.datetime.now(datetime.timezone.utc).isoformat(),flush=True)
+    hard=load_and_validate(root/'configs/m1_hard_condition.json')
+    overlay=load_and_validate_endpoint_probe(root/'configs/m1_endpoint_viability_probe.json',hard)
+    require(protocol_sha256(load_registration(root,hard,overlay))==REGISTRATION,'active registration mismatch')
+    base=Path('/root/autodl-tmp/cpmt_outputs')
+    test=json.loads((base/'m1-v6-d048-full-test-27d79ea/full_test.ok.json').read_text())
+    require(test['commit']==TEST_COMMIT and test['tests_run']==221 and test['exit_code']==0,'full-test prerequisite failed')
+    require(test['registration_sha256']==REGISTRATION and test['test_access'] is False and test['formal_validation_arrays_read'] is False,'full-test boundary mismatch')
+    require(test['source_and_tests_sha256']==source_tree_sha256(root,roots=('src','scripts','configs','tests')),'scientific/test tree changed')
+    source_hash=source_tree_sha256(root)
+    accepted=0;pending=[];failed=[]
+    for architecture,suffix,run_commit,arm_stage in ARMS:
+        out=base/('m1-v6-d048-budget-'+suffix)
+        if not (out/'worker.lock').exists():
+            pending.append(architecture);print('BUDGET_ARM_PENDING architecture='+architecture+' reason=no_run_lock',flush=True);continue
+        with (out/'worker.lock').open('r+') as lock:
+            try:
+                fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+            except BlockingIOError:
+                pending.append(architecture);print('BUDGET_ARM_RUNNING architecture='+architecture,flush=True);continue
+            try:
+                require((out/'runner_exit.txt').exists(),'no completed runner exit record; do not restart automatically')
+                require((out/'runner_exit.txt').read_text().strip()=='0','training runner did not exit successfully')
+                path=out/'budget_report.json';raw=path.read_bytes();r=json.loads(raw)
+                started=json.loads((out/'started.json').read_text())
+                validate_report(r,started,architecture,run_commit,arm_stage,hard,overlay,source_hash)
+                marker={'schema_version':'cpmt-d048-budget-arm-marker-v1','stage':arm_stage,
+                        'commit':run_commit,'architecture':architecture,'registration_sha256':REGISTRATION,
+                        'train_arrays_digest':TRAIN_DIGEST,'report_sha256':hashlib.sha256(raw).hexdigest(),
+                        'runner_exit_code':0,'validation_arrays_read':False,'test_access':False}
+                write_or_verify(out/'budget.ok.json',marker)
+                audit_path=out/'budget.acceptance.json'
+                if audit_path.exists():
+                    require(json.loads(audit_path.read_text())['validated_marker']==marker,'previous acceptance mismatch')
+                else:
+                    previous_exit=out/'worker_exit.txt'
+                    audit={'schema_version':'cpmt-budget-acceptance-v1','validated_marker':marker,
+                           'accepted_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                           'acceptance_provenance':capture_run_provenance(root,component=STAGE,entrypoint=root/'ops/run_next_server_step.sh'),
+                           'original_worker_exit':previous_exit.read_text().strip() if previous_exit.exists() else None,
+                           'repair':'validate_registered_full_method_names_instead_of_letter_ids',
+                           'training_restarted':False,'report_rewritten':False,
+                           'runtime_not_an_exclusive_gpu_benchmark':True}
+                    write_or_verify(audit_path,audit)
+                accepted+=1
+                print(f'BUDGET_ARM_ACCEPTED architecture={architecture} training_commit={run_commit} report={path}',flush=True)
+            except (ValueError,KeyError,OSError,TypeError) as error:
+                failed.append(architecture);print(f'BUDGET_ARM_FAILED architecture={architecture} reason={error}',flush=True)
+    if failed:
+        print(f'SERVER_STEP_FAILED id={STAGE} failed={failed} pending={pending}',flush=True);return 1
+    if pending:
+        print(f'SERVER_STEP_PENDING id={STAGE} accepted={accepted} pending={pending}',flush=True);return 0
+    print(f'SERVER_STEP_OK id={STAGE} accepted_arms={accepted}',flush=True)
+    print('NEXT=export_verified_budget_reports_in_a_separate_stage',flush=True)
+    return 0
+
+if __name__=='__main__':
+    sys.exit(main())
 PY
-CPMT_BUDGET_WORKER=1 nohup bash "$CPMT_SCRIPT_DIR/run_next_server_step.sh" > "$CPMT_OUTPUT_DIR/budget.log" 2>&1 < /dev/null 9>&9 &
-CPMT_WORKER_PID=$!
-printf "%s\n" "$CPMT_WORKER_PID" > "$CPMT_OUTPUT_DIR/worker.pid"
-printf "SERVER_STEP_STARTED id=%s pid=%s\nLOG=%s/budget.log\n" "$CPMT_SERVER_STEP_ID" "$CPMT_WORKER_PID" "$CPMT_OUTPUT_DIR"
-printf "Re-run bash ops/run_next_server_step.sh to inspect status; it will not launch duplicates.\n"
-printf "Keep this checkout unchanged while the worker runs. NEXT=review_both_registered_arms_before_export_or_validation\n"
+CPMT_EXITS=("${PIPESTATUS[@]}")
+printf "ACCEPTANCE_EXIT=%s LOG_WRITE_EXIT=%s\n" "${CPMT_EXITS[0]}" "${CPMT_EXITS[1]}"
+[[ "${CPMT_EXITS[0]}" -eq 0 && "${CPMT_EXITS[1]}" -eq 0 ]]
