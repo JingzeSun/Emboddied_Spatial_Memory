@@ -6,7 +6,7 @@
 
 > **2026-09-08 更新（D-047 endpoint probe 已导出并本地复核）：** 报告提交 `ed440f6` 已拉取。固定 train-only probe 的 F integrity 通过，机械判定保留 exact endpoint，规划 test N=1350；这不是 M1 pass。当前 anchor 的 open-memory A−C 与两组 open-fact AUC 改善未达登记最小效应；H3/H1 分布差异较小、argmax 不变。详见 LOG-052；尚未启动完整预算、validation/test 或 M2。
 
-最后更新：2026-09-08，D-048 已登记 exact/test 1350，并完成执行/信息边界代码核查；本地轻检查通过，新增边界与全套测试待服务器验证，validation/test 未读取。
+最后更新：2026-09-08，D-048 服务器全测 221 项用时 239.461 秒，仅旧合同文本断言失败；已修正并通过本地 14 项相关轻测试，待服务器复验，validation/test 未读取。
 
 | 项目 | 当前事实 |
 |---|---|
@@ -14,7 +14,7 @@
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
 | 阶段 | M1-v6 S4 `pretest_lock_candidate`；固定 endpoint probe 已完成，尚未进入完整预算、S5 validation、重新冻结或 M2 |
 | 最近结果 | [`m1_v6_d047_endpoint_probe.json`](results/m1_v6_d047_endpoint_probe.json)：201 groups、A/C/E 五 seed、F；终点 exact A/C/E=`0.918408/0.793035/0.471144`，open-memory graded=`0.932013/0.920288/0.878167`，open-fact AUC=`8.830846/12.383085/14.134328`。保留 exact，test N=1350；H3/H1 mean TV=`0.003293`、argmax change=`0`。固定 anchor 未满足全部效应要求，非正式成败结论 |
-| 尚缺 | D-048 新增边界与全套服务器测试；通过后再进入既定预算网格。正式 test 入口尚需消费组合登记并重新冻结；不改 AUC `40/80`，validation/test 仍封存 |
+| 尚缺 | 旧合同文本测试修正后的服务器全套复验；通过后再进入既定预算网格。正式 test 入口尚需消费组合登记并重新冻结；不改 AUC `40/80`，validation/test 仍封存 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。D-046 顺序 C weight 搜索按既有逐方法实测路径的最坏 10000-update 外推，两臂总计划约 5.036 小时（非新实测）。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
 | 当前决定 | D-039–D-043 固定 live energy、真实 C10/C11、current/posterior 审计、Pre-LN 双架构和 A–E 对称 12 格。D-044–D-046 的 endpoint、open-fact AUC `40/80`、固定 gate、C 顺序权重和纯 confirmation 保留；D-047 收紧 claim，拆清 online network/shared executor，登记外生轨迹，并把 H3-vs-H1 teacher 对照设为主文必报、无选择无成败门的机制证据。M1 不声称原始 DCR、完整动态记忆或 active navigation；全局 reconciliation、PNO 与 M2 顺序不变 |
 | 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 validation/test。D-043 无额外人工选择；运行时剖析只供用户决定何时租用算力，不改变登记网格 |
@@ -747,3 +747,10 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - A 的 counterfactual trace 沿登记后续参考事务推进，future 对比使用参考图生成的结构观测；C/E future relation targets 来自相同参考后续轨迹，其构造不执行候选；当前目标来自当前观测与声明。共享合成参考来源不等于传感器证据，不能自然推出无标注真实视觉训练。新增 C/E 目标无执行检查；M2 草案补充部署与教师接口验收边界。
 - `p95_forward_latency_ms` 排除候选生成/分支审计与完整提交，仅为网络前向及相关张量/概率处理计时。保留历史字段和值，不重解释为端到端耗时。H3/H1 与删项 TV 只作教师分布诊断，不作贡献百分比/学生收益证据；LOG-052 数值和原 passing gates 不变。
 - 本地验证：4 项纯登记单元测试通过（约 0.1 秒），组合协议 CLI 通过。新增 rollout 边界测试与全套 unittest 留待服务器；未运行本地重训练/causal 任务，未访问服务器原始数组、validation 或 test。本次没有改候选算法、teacher target、能量或优化，不要求重跑已完成 probe。
+
+## LOG-054（2026-09-08）：D-048 全测失败与过期合同断言修正
+
+- 用户服务器截图显示提交 `9fc1080` 的全套测试运行 221 项，耗时 239.461 秒，`FAILED (failures=1)`，进程退出码 1、日志写入退出码 0。失败日志/marker 保留于 `/root/autodl-tmp/cpmt_outputs/m1-v6-d048-full-test-9fc1080/`；本轮依据截图登记，尚未读取服务器 marker 文件原文。
+- 唯一失败是 `test_claim_execution_and_exogenous_trajectory_boundaries_are_locked` 的旧第 243 行，要求研究合同包含“只执行最终选中的单个事务”。D-048 已纠正该过强表述，但上一轮遗漏同步这条文本测试。这不是本次发现的候选执行、训练或未来泄漏故障；截图所示其余测试没有失败，新增边界测试没有报告失败。
+- 修正测试以已校验 D-048 登记中的执行边界为准：候选生成/评测均执行全部候选、共享静态 mask、仅选中合法世界持久化、在线不读 future/post-world、单次执行部署尚未实现。D-047 overlay 的原字符串只保留为来源快照检查，不再强制活动合同复述旧说法。研究算法、数据、能量、登记 hash 和 passing gates 均不变。
+- 本地 10 项 endpoint 协议测试与 4 项登记测试全部通过；不在本地运行全套或 rollout 重任务。服务器入口继续只承担修复后的全套验证，不重跑已完成 probe/训练数组，也不提前进入预算训练。未覆盖或删除旧失败产物。

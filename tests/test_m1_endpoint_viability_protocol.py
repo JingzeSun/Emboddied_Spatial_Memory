@@ -12,6 +12,7 @@ sys.path.insert(0, str(PROJECT / "src"))
 from cpmt.m1_protocol import (
     load_and_validate, load_and_validate_endpoint_probe, protocol_sha256,
 )
+from cpmt.m1_registration import load_registration
 
 
 class TestM1EndpointViabilityProtocol(unittest.TestCase):
@@ -225,6 +226,15 @@ class TestM1EndpointViabilityProtocol(unittest.TestCase):
             "applies_only_the_selected_transaction",
             scope["online_model_execution_boundary"],
         )
+        # The immutable D-047 overlay is historical provenance. D-048's
+        # validated registration, not that string, defines the active boundary.
+        boundary = load_registration(PROJECT, self.hard, self.probe)["execution_boundary"]
+        self.assertTrue(boundary["candidate_generation_executes_all"])
+        self.assertTrue(boundary["evaluation_materializes_all"])
+        self.assertTrue(boundary["only_selected_legal_world_persists"])
+        self.assertEqual(boundary["online_selection_mask"], "shared_static_preflight")
+        self.assertFalse(boundary["online_reads_future_or_candidate_post_world"])
+        self.assertFalse(boundary["single_execution_deployment_implemented"])
         self.assertIn(
             "seeded_pregenerated_exogenous_inputs",
             scope["m1_pose_trajectory_boundary"],
@@ -240,7 +250,7 @@ class TestM1EndpointViabilityProtocol(unittest.TestCase):
             contract,
         )
         self.assertIn("预生成的外生输入", contract)
-        self.assertIn("只执行最终选中的单个事务", contract)
+        self.assertIn("p95_forward_latency_ms", contract)
 
     def test_graded_equivalence_node_safety_and_collateral_union_are_locked(self):
         graded = self.probe["endpoints"]["graded"]
