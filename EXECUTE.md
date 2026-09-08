@@ -4,15 +4,15 @@
 
 ## 当前看板
 
-> **2026-09-08 更新（D-047 endpoint probe 已导出并本地复核）：** 报告提交 `ed440f6` 已拉取。固定 train-only probe 的 F integrity 通过，机械判定保留 exact endpoint，规划 test N=1350；这不是 M1 pass。当前 anchor 的 open-memory A−C 与两组 open-fact AUC 改善未达登记最小效应；H3/H1 分布差异较小、argmax 不变。详见 LOG-052；尚未启动完整预算、validation/test 或 M2。
+> **2026-09-08 更新（D-047 endpoint probe 已导出并本地复核）：** 报告提交 `ed440f6` 已拉取。固定 train-only probe 的 F integrity 通过，机械判定保留 exact endpoint，规划 test N=1350；这不是 M1 pass。当前 anchor 的 open-memory A−C 与两组 open-fact AUC 改善未达登记最小效应；H3/H1 分布差异较小、argmax 不变。探针详见 LOG-052；主架构预算已启动，MLP 并行入口已准备（LOG-056），validation/test 与 M2 未启动。
 
-最后更新：2026-09-08，D-048 服务器 221 项全测通过（238.729 秒）；已具备进入既定预算网格的前提，预算训练尚未收到启动/完成证据，validation/test 未读取。
+最后更新：2026-09-08，主架构预算入口已启动（用户截图）；独立 worktree 的 MLP 并行入口已准备，尚未收到 MLP 启动或任一架构预算完成证据。validation/test 未读取。
 
 | 项目 | 当前事实 |
 |---|---|
 | 方向 | CPMT 具身空间记忆；CTL 是主学习假设，用户希望面向 ML 研究 |
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
-| 阶段 | M1-v6 S4 `pretest_lock_candidate`；固定 endpoint probe 已完成，尚未进入完整预算、S5 validation、重新冻结或 M2 |
+| 阶段 | M1-v6 S4 `pretest_lock_candidate`；固定 endpoint probe 与全套测试已完成，开始既定预算选择；尚未进入 S5 validation、重新冻结或 M2 |
 | 最近结果 | [`m1_v6_d047_endpoint_probe.json`](results/m1_v6_d047_endpoint_probe.json)：201 groups、A/C/E 五 seed、F；终点 exact A/C/E=`0.918408/0.793035/0.471144`，open-memory graded=`0.932013/0.920288/0.878167`，open-fact AUC=`8.830846/12.383085/14.134328`。保留 exact，test N=1350；H3/H1 mean TV=`0.003293`、argmax change=`0`。固定 anchor 未满足全部效应要求，非正式成败结论 |
 | 尚缺 | 完成两条架构臂的既定 train/inner-dev 预算选择，再开展 S5；正式 test 入口仍需消费组合登记并重新冻结。原 AUC `40/80` 与 validation/test 边界保留 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。D-046 顺序 C weight 搜索按既有逐方法实测路径的最坏 10000-update 外推，两臂总计划约 5.036 小时（非新实测）。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
@@ -760,3 +760,10 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - 用户截图显示提交 `27d79ea` 的 221 项 unittest 全部通过，耗时 238.729 秒，`FULL_TEST_EXIT=0`、`LOG_WRITE_EXIT=0`，并输出唯一 `SERVER_STEP_OK id=m1_v6_d048_registration_boundary_full_test`。
 - 成功 marker 路径为 `/root/autodl-tmp/cpmt_outputs/m1-v6-d048-full-test-27d79ea/full_test.ok.json`。此处按截图验收；下一服务器入口在训练前直接读取该 marker，核对精确提交、221 项/退出码、登记 hash 与当前源码/测试树 hash，不重跑测试。LOG-054 的旧失败目录保留。
 - 该结果完成 D-048 工程验证前提，包含新增执行边界测试；不等于 CTL 通过 M1。已有 train arrays、probe、方法和效应门槛不变。本地没有新增科学代码或重训练，后续预算训练尚无运行结果。
+
+## LOG-056（2026-09-08）：主架构预算启动与 MLP 并行调度
+
+- 用户截图显示仓库更新至 `72f1b8a`，入口通过 full-test/registration 前提并输出 `SERVER_STEP_STARTED`，后台 shell PID=2004；随后 `nvidia-smi` 显示 Python PID=2027、约 3788 MiB / 32760 MiB 显存、GPU utilization=5%。这是单次资源快照，不能推出持续低利用率、进度百分比或必然的并行加速；尚无预算完成报告。
+- 根据用户希望利用余量同时运行既定 MLP 对照，保留主架构 checkout 的 HEAD 与文件不动，仅用 fetch 获取提交，再在数据盘创建 detached worktree 启动 MLP。输入训练数组通过 Git common-dir 解析到原仓库，仍只读同一已验收 digest；MLP 的输出/锁/进程/日志独立，原主架构不重启、不移动、不更改参数。
+- 这仅改变已登记两臂的调度，不增加架构、预算或选择机会，不按中途方法成绩决定是否运行 MLP。两臂仍各自 8 个 PyTorch threads，MLP 仍使用既定完整网格与 C 顺序权重。MLP 的 started/resource_start/resource_end 元数据记录可能的 GPU 共享和进程快照；并行区间的两臂 wall-clock 不作为独占 GPU 速度比较，原 3.640/1.395 小时估算不保证在共享条件下成立。
+- 本次没有修改 src/scripts/configs/tests，继续读取并校验 `27d79ea` 的 221 项全测 marker，不再跑测试或生成数据。新入口仍只承担 MLP 预算阶段，后台防重复启动；无完整报告的失败不自动重训。预算结束后再交付结果导出，不提前打开 validation/test。
