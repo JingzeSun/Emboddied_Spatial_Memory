@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Unique phase: the registered Set Transformer train/inner-dev budget arm.
+# Unique phase: the registered MLP arm in an independent worktree; GPU may be shared.
 # Inputs: D-048 full-test success + existing v8 1,000-group train arrays.
 # Read: repository, preceding marker, train arrays/manifest. No validation/test.
 # Write: only this arm's data-disk log, execution status and final budget report.
@@ -7,8 +7,8 @@
 # A completed report is reused. An interrupted arm without a report is NOT restarted.
 # No checkpoint resume exists inside the scientific runner; retain failures for review.
 set -uo pipefail
-export CPMT_SERVER_STEP_ID="m1_v6_d048_set_transformer_train_inner_dev_budget"
-export CPMT_ARCHITECTURE="cross_candidate_set_transformer_v1"
+export CPMT_SERVER_STEP_ID="m1_v6_d048_mlp_train_inner_dev_budget"
+export CPMT_ARCHITECTURE="shared_candidate_mlp_v1"
 export CPMT_EXPECTED_TEST_COMMIT="27d79eaa8f2312f62fff411d249bf574af061d8e"
 export CPMT_EXPECTED_REGISTRATION="d366935b14975a18cf3e0af58833fcb8a1151c5929c8848d40677d692fd51e1d"
 export CPMT_EXPECTED_PROTOCOL="73666cabb77b4884302d77ca621669bfdc77e86a44951b8a92b97208509c0eec"
@@ -16,15 +16,27 @@ export CPMT_EXPECTED_TRAIN_DIGEST="e8a890f1b254a7109af641fea57fcbea5efd931b4272d
 CPMT_SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)" || exit 2
 export CPMT_REPO_DIR="$(git -C "$CPMT_SCRIPT_DIR" rev-parse --show-toplevel)" || exit 2
 export CPMT_CURRENT_COMMIT="$(git -C "$CPMT_REPO_DIR" rev-parse HEAD)" || exit 2
-export CPMT_OUTPUT_DIR="/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-set-transformer"
+export CPMT_OUTPUT_DIR="/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-mlp"
 export CPMT_FULL_TEST_MARKER="/root/autodl-tmp/cpmt_outputs/m1-v6-d048-full-test-27d79ea/full_test.ok.json"
-export CPMT_TRAIN="$CPMT_REPO_DIR/outputs/m1-v6-v8-d043-train-g1000-53539ce/train.npz"
+# Resolve the actual primary checkout via Git; do not guess its path or spelling.
+export CPMT_SOURCE_REPO="$(python - "$CPMT_REPO_DIR" <<'PY'
+import subprocess,sys
+from pathlib import Path
+root=Path(sys.argv[1])
+p=Path(subprocess.check_output(['git','-C',str(root),'rev-parse','--git-common-dir'],text=True).strip())
+print((p if p.is_absolute() else root/p).resolve().parent)
+PY
+)" || exit 2
+export CPMT_EXPECTED_PRIMARY_COMMIT="72f1b8a879b86c6b37f107ac29a14989a6b67f07"
+export CPMT_PRIMARY_RUN_DIR="/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-set-transformer"
+export CPMT_TRAIN="$CPMT_SOURCE_REPO/outputs/m1-v6-v8-d043-train-g1000-53539ce/train.npz"
 export CPMT_MARKER="$CPMT_OUTPUT_DIR/budget.ok.json"
 export PYTHONUNBUFFERED=1
 export OMP_NUM_THREADS=8
 export MKL_NUM_THREADS=8
 cpmt_fail() { printf "SERVER_STEP_FAILED id=%s reason=%s\nLOG=%s/budget.log\n" "$CPMT_SERVER_STEP_ID" "$1" "$CPMT_OUTPUT_DIR" >&2; exit 1; }
 [[ "$#" -eq 0 ]] || cpmt_fail unexpected_arguments
+[[ "$CPMT_REPO_DIR" != "$CPMT_SOURCE_REPO" ]] || cpmt_fail independent_worktree_required_do_not_pull_the_running_checkout
 cd "$CPMT_REPO_DIR" || cpmt_fail repository_unavailable
 
 cpmt_check_prerequisites() {
@@ -39,6 +51,9 @@ from cpmt.m1_protocol import load_and_validate,load_and_validate_endpoint_probe,
 from cpmt.m1_registration import load_registration
 from cpmt.run_provenance import source_tree_sha256
 e=os.environ; root=Path.cwd()
+assert subprocess.check_output(['git','-C',e['CPMT_SOURCE_REPO'],'rev-parse','HEAD'],text=True).strip()==e['CPMT_EXPECTED_PRIMARY_COMMIT'], 'primary checkout changed'
+primary=json.loads((Path(e['CPMT_PRIMARY_RUN_DIR'])/'started.json').read_text())
+assert primary['commit']==e['CPMT_EXPECTED_PRIMARY_COMMIT'] and primary['architecture']=='cross_candidate_set_transformer_v1'
 assert subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()==e['CPMT_CURRENT_COMMIT']
 m=json.loads(Path(e['CPMT_FULL_TEST_MARKER']).read_text(encoding='utf-8'))
 assert m['schema_version']=='cpmt-d048-full-test-marker-v1'
@@ -97,6 +112,26 @@ print(f"BUDGET_REPORT_VALIDATED architecture={e['CPMT_ARCHITECTURE']}",flush=Tru
 PY
 }
 
+cpmt_resource_snapshot() {
+  python - "$1" <<'PY'
+import datetime,json,os,subprocess,sys
+from pathlib import Path
+e=os.environ; queries={}
+for name,query in [('device','--query-gpu=index,name,utilization.gpu,memory.used,memory.total'),
+                   ('processes','--query-compute-apps=pid,process_name,used_gpu_memory')]:
+    try:
+        r=subprocess.run(['nvidia-smi',query,'--format=csv,noheader'],capture_output=True,text=True,timeout=15)
+        queries[name]={'exit_code':r.returncode,'stdout':r.stdout,'stderr':r.stderr}
+    except (OSError,subprocess.TimeoutExpired) as error:
+        queries[name]={'unavailable':str(error)}
+m={'utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'architecture':e['CPMT_ARCHITECTURE'],
+   'cpu_logical_count':os.cpu_count(),'torch_threads':8,'gpu_sharing_allowed':True,
+   'primary_run_directory':e['CPMT_PRIMARY_RUN_DIR'],'primary_commit':e['CPMT_EXPECTED_PRIMARY_COMMIT'],
+   'runtime_not_an_exclusive_gpu_benchmark':True,'nvidia_smi':queries}
+(Path(e['CPMT_OUTPUT_DIR'])/sys.argv[1]).write_text(json.dumps(m,indent=2)+'\n',encoding='utf-8')
+PY
+}
+
 if [[ "${CPMT_BUDGET_WORKER:-0}" == "1" ]]; then
   # Descriptor 9, inherited from the launcher, owns the lock until this job exits.
   trap 'CPMT_WORKER_EXIT=$?; printf "%s\n" "$CPMT_WORKER_EXIT" > "$CPMT_OUTPUT_DIR/worker_exit.txt"' EXIT
@@ -117,11 +152,13 @@ assert m['teacher_health_gate']['pass'] is True and len(set(a['group'].tolist())
 assert torch.cuda.is_available(), 'CUDA required; do not silently start hours of CPU training'
 print(f"TRAIN_ARRAYS_OK groups=1000 digest={m['arrays_digest']} cuda={torch.cuda.get_device_name(0)}",flush=True)
 PY
+  cpmt_resource_snapshot resource_start.json || cpmt_fail resource_start_record_failed
   printf "BUDGET_RUN_BEGIN architecture=%s\n" "$CPMT_ARCHITECTURE"
   python scripts/run_m1_train_inner_dev_budget.py --train "$CPMT_TRAIN" --out-dir "$CPMT_OUTPUT_DIR" --architecture "$CPMT_ARCHITECTURE" --device cuda --threads 8
   CPMT_RUN_EXIT=$?
   printf "%s\n" "$CPMT_RUN_EXIT" > "$CPMT_OUTPUT_DIR/runner_exit.txt"
   printf "BUDGET_RUN_EXIT=%s\n" "$CPMT_RUN_EXIT"
+  cpmt_resource_snapshot resource_end.json || cpmt_fail resource_end_record_failed
   [[ "$CPMT_RUN_EXIT" -eq 0 ]] || cpmt_fail budget_runner_failed_no_automatic_restart
   cpmt_finish_report || cpmt_fail budget_report_validation_failed
   printf "SERVER_STEP_OK id=%s\n" "$CPMT_SERVER_STEP_ID"
@@ -154,6 +191,9 @@ e=os.environ
 m={'stage':e['CPMT_SERVER_STEP_ID'],'commit':e['CPMT_CURRENT_COMMIT'],
    'started_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),
    'architecture':e['CPMT_ARCHITECTURE'],'read_boundary':'existing_train_arrays_only',
+   'input_source_repository':e['CPMT_SOURCE_REPO'],'gpu_sharing_allowed':True,
+   'concurrent_primary_run_directory':e['CPMT_PRIMARY_RUN_DIR'],
+   'runtime_not_an_exclusive_gpu_benchmark':True,
    'write_boundary':e['CPMT_OUTPUT_DIR'],'validation_arrays_read':False,'test_access':False}
 (Path(e['CPMT_OUTPUT_DIR'])/'started.json').write_text(json.dumps(m,indent=2)+'\n',encoding='utf-8')
 PY
@@ -162,4 +202,4 @@ CPMT_WORKER_PID=$!
 printf "%s\n" "$CPMT_WORKER_PID" > "$CPMT_OUTPUT_DIR/worker.pid"
 printf "SERVER_STEP_STARTED id=%s pid=%s\nLOG=%s/budget.log\n" "$CPMT_SERVER_STEP_ID" "$CPMT_WORKER_PID" "$CPMT_OUTPUT_DIR"
 printf "Re-run bash ops/run_next_server_step.sh to inspect status; it will not launch duplicates.\n"
-printf "Keep this checkout unchanged while the worker runs. NEXT=review_this_arm_then_deliver_the_registered_MLP_arm\n"
+printf "Keep this checkout unchanged while the worker runs. NEXT=review_both_registered_arms_before_export_or_validation\n"
