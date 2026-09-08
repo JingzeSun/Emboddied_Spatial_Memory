@@ -4,17 +4,17 @@
 
 ## 当前看板
 
-> **2026-09-08 更新（D-047 endpoint probe 已导出并本地复核）：** 报告提交 `ed440f6` 已拉取。固定 train-only probe 的 F integrity 通过，机械判定保留 exact endpoint，规划 test N=1350；这不是 M1 pass。当前 anchor 的 open-memory A−C 与两组 open-fact AUC 改善未达登记最小效应；H3/H1 分布差异较小、argmax 不变。探针详见 LOG-052；两臂预算均已完成并通过服务器验收（LOG-058），完整报告待导出复核，validation/test 与 M2 未启动。
+> **2026-09-09 更新（D-048 两臂预算报告已拉取复核）：** 结果提交 `4d90e4b` 已拉取，两份导出 SHA-256 与服务器输出一致，逐组均值及预算选择复算通过。各自选定预算下，Set Transformer 的 A/C/E 单步 reference accuracy 为 `94.2236%/94.0534%/92.0843%`，MLP 为 `93.8701%/94.0351%/91.5213%`；A 对 C 的均值优势小且跨架构方向不一致，尚无连续记忆优势结论。详见 LOG-059；S5 validation、S6 test 与 M2 均未启动。
 
-最后更新：2026-09-09，用户服务器截图确认两臂均 BUDGET_ARM_ACCEPTED，SERVER_STEP_OK accepted_arms=2，ACCEPTANCE_EXIT=0、LOG_WRITE_EXIT=0。完整预算数值尚未导回，不提前判断方法胜负。
+最后更新：2026-09-09，预算结果及原始训练/验收/导出 provenance 已在本地核对。两臂选择严格沿用 D-043/D-046，不扩网格、不按架构择优；进入 S5 前仍需正式 runner 消费预算与组合登记，并保存正式模型。
 
 | 项目 | 当前事实 |
 |---|---|
 | 方向 | CPMT 具身空间记忆；CTL 是主学习假设，用户希望面向 ML 研究 |
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
-| 阶段 | M1-v6 S4 `pretest_lock_candidate`；固定 endpoint probe 与全套测试已完成，两臂预算报告已验收，待导出分析；尚未进入 S5 validation、重新冻结或 M2 |
+| 阶段 | M1-v6 S4 `pretest_lock_candidate`；固定 endpoint probe 与全套测试已完成，两臂预算报告已验收、导出并本地复算通过；尚未进入 S5 validation、重新冻结或 M2 |
 | 最近结果 | [`m1_v6_d047_endpoint_probe.json`](results/m1_v6_d047_endpoint_probe.json)：201 groups、A/C/E 五 seed、F；终点 exact A/C/E=`0.918408/0.793035/0.471144`，open-memory graded=`0.932013/0.920288/0.878167`，open-fact AUC=`8.830846/12.383085/14.134328`。保留 exact，test N=1350；H3/H1 mean TV=`0.003293`、argmax change=`0`。固定 anchor 未满足全部效应要求，非正式成败结论 |
-| 尚缺 | 导出并复核两条架构臂的既定 train/inner-dev 预算选择，再开展 S5；正式 test 入口仍需消费组合登记并重新冻结。原 AUC `40/80` 与 validation/test 边界保留 |
+| 尚缺 | 将已核对的两臂预算接入 S5 正式训练/连续评测入口，保存选定配置模型并开展一次 200-group validation confirmation；正式 test 入口仍需消费组合登记并重新冻结。原 AUC `40/80` 与 validation/test 边界保留 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。D-046 顺序 C weight 搜索按既有逐方法实测路径的最坏 10000-update 外推，两臂总计划约 5.036 小时（非新实测）。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
 | 当前决定 | D-039–D-043 固定 live energy、真实 C10/C11、current/posterior 审计、Pre-LN 双架构和 A–E 对称 12 格。D-044–D-046 的 endpoint、open-fact AUC `40/80`、固定 gate、C 顺序权重和纯 confirmation 保留；D-047 收紧 claim，拆清 online network/shared executor，登记外生轨迹，并把 H3-vs-H1 teacher 对照设为主文必报、无选择无成败门的机制证据。M1 不声称原始 DCR、完整动态记忆或 active navigation；全局 reconciliation、PNO 与 M2 顺序不变 |
 | 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 validation/test。D-043 无额外人工选择；运行时剖析只供用户决定何时租用算力，不改变登记网格 |
@@ -783,3 +783,26 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - 活动入口改为独立导出阶段：先验证两臂报告 hash 与 acceptance marker，再调用仓库 exporter，在数据盘暂存并核对后生成 `results/m1_v6_d048_budget_set_transformer.json` 与 `results/m1_v6_d048_budget_mlp.json`。已有完整导出核对一致后复用，不覆盖不匹配产物；不包含自动 Git 提交或任何后续训练。
 - 原 exporter 虽会收集普通 JSON，却拒绝只有 budget_report 的目录，且未把预算训练来源挂到 pipeline training。补充 budget_report 支持与原始训练 provenance；这是导出代码变更，导出 source hash 因此改变，原训练 source/commit 保持原样记录，不冒充重新训练。入口核对相对原训练提交的 src/scripts/configs/tests 差异仅为 exporter。无需为报告包装重跑科学预算或全套重测试。
 - 本地仅进行 Bash/内嵌 Python/导出器静态检查及小型 JSON 导出检查；不进行重训练、rollout 或硬件 benchmark。用户已选择暂不开展新的并行提速验证；既定 S5/S6 的登记接线与必要正确性检查仍需完成。
+
+## LOG-059（2026-09-09）：D-048 两臂预算结果导回与选择复核
+
+- 结果提交 `4d90e4b` 已 fast-forward 拉取；[Set Transformer 报告](results/m1_v6_d048_budget_set_transformer.json) SHA-256=`00e494f540126e42be05f9c18d4c373d12ffbfd3e1fc1a5cd64c1f453d408fee`，[MLP 报告](results/m1_v6_d048_budget_mlp.json) SHA-256=`1379d4d8ba908b9490989bbda254cfaf68c7219ad74bff7adfe4651d4c1a7692`，均与用户服务器导出输出完全一致。按 runner 原 sorted/indented JSON 序列化复原 budget_report，字节 hash 亦与各自 budget.ok.json 一致；acceptance 的 validated_marker 相等。
+- 两臂原训练 source hash 相同：`ab859af7e89e71f878d21a4f85c6ab7aa4b65306b0f015a302a3b4c3ae040678`，原训练提交分别为 `72f1b8a`/`04c8319`，clean；导出提交为 `9dfb329`，clean，导出 source hash=`aec02be089ea6028e6224fdcffc8f544ec6627774adb9b47dfc76d2ad904b194`。后者包含新增 budget 导出支持，不替代原训练 provenance。
+- 每臂 1000 paired groups 固定划分为 799 fitting 与 201 inner-dev，无交叉；学习行数 31960/8040，预算选择所用 inner-dev online 行数为每 seed 7638。逐条检查 60 scorer、300 student 与 15 C 权重 checkpoint 行的 seed/lr/steps/weight 格子完整且无重复；从 201 组的逐组分数重新按组内五 seed 平均、再组间平均复算全部 12 格与 C 顺序权重，所选配置及报告均值一致（数值核对容差 1e-12）。这不是 375 次独立从头训练。
+- 结果是固定参考历史下的单步参考候选选择正确率，用途是决定正式训练设置；例如前一步参考记忆正确时本步是否选中登记候选。它不测模型自有错误记忆的连续积累，不是最终世界正确率，也不是未见 validation/test 的泛化估计。所有 `validation_arrays_read/validation_trial_consumed/test_access/formal_run/test_generated/causal_complete` 边界均为 false，预算合同与本地登记一致。
+- 过拟合边界：代码把 train.npz 按完整 paired group 分成互斥 fitting/held_out，checkpoint 指标在 held_out 上计算；因此不是 799 拟合组的训练集准确率。不过 201 inner-dev 被反复用于超参数与 C 权重选择，最高分存在选择乐观偏差；五 seed 不能消除这一偏差。独立 S5 confirmation 与最终 S6 test 仍必需，不能将当前约 94% 称为独立测试准确率。
+
+| 方法 | Set Transformer：lr / updates / reference accuracy | MLP：lr / updates / reference accuracy |
+|---|---|---|
+| A CPMT-CTL Core | 0.0006 / 3000 / 94.223619% | 0.002 / 3000 / 93.870123% |
+| B direct classifier | 0.0002 / 10000 / 93.631841% | 0.0006 / 10000 / 93.288819% |
+| C direct+future loss | 0.0006 / 10000 / 94.053417%；aux=1 | 0.002 / 10000 / 94.035088%；aux=10 |
+| D execute-current-only | 0.002 / 3000 / 91.796282% | 0.0002 / 10000 / 90.421576% |
+| E future-no-execution student | 0.0006 / 1000 / 92.084315% | 0.002 / 3000 / 91.521341% |
+
+- E 的 outcome scorer 单独选择：Set Transformer 为 lr=0.0002、1000 updates，candidate-ranking accuracy=86.260801%；MLP 为 lr=0.002、10000 updates，84.619010%。该 scorer 排序率不等于上表 E student 的参考选择正确率。
+- C 在固定计算格上的 aux {0.1,1,10} 正确率：Set Transformer `{94.024614%,94.053417%,93.252160%}`，选 1；MLP `{93.553286%,93.807279%,94.035088%}`，选 10。两臂 B/C、MLP D 与 MLP scorer 触及 10000 上界，按原规则接受并报告，不事后扩张网格。
+- 正式选定配置的单步均值差：Set Transformer A−C=`+0.170202` 个百分点，A−E=`+2.139303` 个百分点；MLP A−C=`−0.164965` 个百分点，A−E=`+2.348782` 个百分点。共享计算格诊断的 A−C 分别为 `+0.667714/+0.510605` 个百分点，不能以较好看的共享格替换逐方法最优配置。报告内 selected-vs-runner-up 的 CI 比较的是超参数格，并非 A−C/A−E 方法间 CI；不据此宣布方法显著性。
+- 判断：A 的已选更新数为 3000，而 B/C 为 10000，可作为学习曲线描述；未核算教师成本等因素，不能直接称总算力效率提升。两臂 A 高于 E 的单步均值尚有方向性信号，A 对 C 则接近且跨架构方向不一致，不能宣布 CTL 已有效。也不能把这些单步差值套入 20-step semantic/support/AUC 的正式通过门；这批结果本身没有给出 formal no-go。
+- 报告中 scorer+student 两段 wall_seconds 合计约 Set Transformer 5.8175 小时、MLP 1.9600 小时；均为 CUDA、8 threads，PyTorch 分配显存峰值约 2604.35/1991.66 MiB。两臂存在并行共享资源，不作为独占速度比较，两段耗时之和也不充当总日历时间或 S5/S6 ETA。
+- 本轮只读取结果 JSON、代码与登记，并进行轻量逐组数值复算；没有训练、读取原始 arrays 或打开 validation/test。当前预算 runner 未保存可直接复用的模型权重；后续按已选格训练并保存正式模型不等于重扫这次预算网格。S5 入口仍需落实逐方法预算/组合登记与既定一次性 200-group、五 seed、20-step confirmation；不新增并行提速验证，不重跑已完成预算。
