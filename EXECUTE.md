@@ -4,17 +4,17 @@
 
 ## 当前看板
 
-> **2026-09-08 更新（D-047 endpoint probe 已导出并本地复核）：** 报告提交 `ed440f6` 已拉取。固定 train-only probe 的 F integrity 通过，机械判定保留 exact endpoint，规划 test N=1350；这不是 M1 pass。当前 anchor 的 open-memory A−C 与两组 open-fact AUC 改善未达登记最小效应；H3/H1 分布差异较小、argmax 不变。探针详见 LOG-052；主架构预算已启动，MLP 并行入口已准备（LOG-056），validation/test 与 M2 未启动。
+> **2026-09-08 更新（D-047 endpoint probe 已导出并本地复核）：** 报告提交 `ed440f6` 已拉取。固定 train-only probe 的 F integrity 通过，机械判定保留 exact endpoint，规划 test N=1350；这不是 M1 pass。当前 anchor 的 open-memory A−C 与两组 open-fact AUC 改善未达登记最小效应；H3/H1 分布差异较小、argmax 不变。探针详见 LOG-052；两臂预算均已完成并通过服务器验收（LOG-058），完整报告待导出复核，validation/test 与 M2 未启动。
 
-最后更新：2026-09-08，用户 MLP 截图显示训练退出码及报告前置检查通过，产物验收在方法键名断言失败；已定位为运维验收器把完整方法名误作 A–E 字母。准备仅复验已有两臂报告，不重训练；主架构完成状态待核查。
+最后更新：2026-09-09，用户服务器截图确认两臂均 BUDGET_ARM_ACCEPTED，SERVER_STEP_OK accepted_arms=2，ACCEPTANCE_EXIT=0、LOG_WRITE_EXIT=0。完整预算数值尚未导回，不提前判断方法胜负。
 
 | 项目 | 当前事实 |
 |---|---|
 | 方向 | CPMT 具身空间记忆；CTL 是主学习假设，用户希望面向 ML 研究 |
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
-| 阶段 | M1-v6 S4 `pretest_lock_candidate`；固定 endpoint probe 与全套测试已完成，开始既定预算选择；尚未进入 S5 validation、重新冻结或 M2 |
+| 阶段 | M1-v6 S4 `pretest_lock_candidate`；固定 endpoint probe 与全套测试已完成，两臂预算报告已验收，待导出分析；尚未进入 S5 validation、重新冻结或 M2 |
 | 最近结果 | [`m1_v6_d047_endpoint_probe.json`](results/m1_v6_d047_endpoint_probe.json)：201 groups、A/C/E 五 seed、F；终点 exact A/C/E=`0.918408/0.793035/0.471144`，open-memory graded=`0.932013/0.920288/0.878167`，open-fact AUC=`8.830846/12.383085/14.134328`。保留 exact，test N=1350；H3/H1 mean TV=`0.003293`、argmax change=`0`。固定 anchor 未满足全部效应要求，非正式成败结论 |
-| 尚缺 | 完成两条架构臂的既定 train/inner-dev 预算选择，再开展 S5；正式 test 入口仍需消费组合登记并重新冻结。原 AUC `40/80` 与 validation/test 边界保留 |
+| 尚缺 | 导出并复核两条架构臂的既定 train/inner-dev 预算选择，再开展 S5；正式 test 入口仍需消费组合登记并重新冻结。原 AUC `40/80` 与 validation/test 边界保留 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。D-046 顺序 C weight 搜索按既有逐方法实测路径的最坏 10000-update 外推，两臂总计划约 5.036 小时（非新实测）。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
 | 当前决定 | D-039–D-043 固定 live energy、真实 C10/C11、current/posterior 审计、Pre-LN 双架构和 A–E 对称 12 格。D-044–D-046 的 endpoint、open-fact AUC `40/80`、固定 gate、C 顺序权重和纯 confirmation 保留；D-047 收紧 claim，拆清 online network/shared executor，登记外生轨迹，并把 H3-vs-H1 teacher 对照设为主文必报、无选择无成败门的机制证据。M1 不声称原始 DCR、完整动态记忆或 active navigation；全局 reconciliation、PNO 与 M2 顺序不变 |
 | 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 validation/test。D-043 无额外人工选择；运行时剖析只供用户决定何时租用算力，不改变登记网格 |
@@ -775,3 +775,11 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - 将活动服务器阶段改为两臂既有报告验收：从独立 acceptance worktree 读取旧产物，以机器合同里的完整方法名校验，同时检查各 seed/lr/checkpoint 的格子完整性、C anchor 复用及附加权重、source hash 与原始训练提交。对持锁的运行任务只显示 pending；没有成功 runner 退出记录或报告不完整时保留失败，不启动训练。
 - 已验收后补写原 schema 的 `budget.ok.json`，其中 commit 仍是实际训练提交；另写 `budget.acceptance.json` 保存本次验收提交、旧 worker exit 和修复原因。训练报告不改写、失败日志不删除、原训练 checkout 不更新。当前代码仅变更 ops 和进度记录，src/scripts/configs/tests 及 221 项 full-test 前提保持不变。
 - 本地 Bash/内嵌 Python 语法检查通过；使用真实预算配置构造两臂报告元数据，13 项轻检查覆盖完整方法名、拒绝旧字母键、缺失格子、错误训练 commit、test 访问、C 固定计算设置漂移和 marker 防覆盖。未进行本地重训练，未访问服务器原始 arrays；先前运维模拟未采用真实方法键名，未发现此错，现已补足。
+
+## LOG-058（2026-09-09）：两臂预算验收通过，准备报告导出
+
+- 用户截图显示独立 acceptance 入口同时输出两条 `BUDGET_ARM_ACCEPTED`，Set Transformer 原训练提交 `72f1b8a879b86c6b37f107ac29a14989a6b67f07`、MLP 原训练提交 `04c8319460df47a0a17960341880d28497897709`，最终 `SERVER_STEP_OK id=m1_v6_d048_budget_reports_acceptance accepted_arms=2`，`ACCEPTANCE_EXIT=0 LOG_WRITE_EXIT=0`。服务器输出时间为 2026-09-08 16:12:33 UTC；本条按用户当前本地日期记载。此处依据截图，完整报告与验收 JSON 尚待导回本地。
+- 这表明既有 runner 退出及完整预算格子、登记、原始 provenance 的验收通过；原入口的拒绝重启/键名断言不再作为训练失败判断。没有重跑训练，也不根据截图中的单条 checkpoint 判断正式效果。validation/test 与完整 causal 尚未运行。
+- 活动入口改为独立导出阶段：先验证两臂报告 hash 与 acceptance marker，再调用仓库 exporter，在数据盘暂存并核对后生成 `results/m1_v6_d048_budget_set_transformer.json` 与 `results/m1_v6_d048_budget_mlp.json`。已有完整导出核对一致后复用，不覆盖不匹配产物；不包含自动 Git 提交或任何后续训练。
+- 原 exporter 虽会收集普通 JSON，却拒绝只有 budget_report 的目录，且未把预算训练来源挂到 pipeline training。补充 budget_report 支持与原始训练 provenance；这是导出代码变更，导出 source hash 因此改变，原训练 source/commit 保持原样记录，不冒充重新训练。入口核对相对原训练提交的 src/scripts/configs/tests 差异仅为 exporter。无需为报告包装重跑科学预算或全套重测试。
+- 本地仅进行 Bash/内嵌 Python/导出器静态检查及小型 JSON 导出检查；不进行重训练、rollout 或硬件 benchmark。用户已选择暂不开展新的并行提速验证；既定 S5/S6 的登记接线与必要正确性检查仍需完成。

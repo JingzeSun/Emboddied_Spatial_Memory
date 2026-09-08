@@ -91,6 +91,7 @@ def main() -> int:
     ) if (out_dir / "causal").is_dir() else []
 
     af_report = _read(out_dir / "af_report.json")
+    budget_report = _read(out_dir / "budget_report.json")
     endpoint_probe_report = _read(out_dir / "endpoint_probe_report.json")
     endpoint_causal_aggregates = {}
     if endpoint_probe_report is not None:
@@ -125,6 +126,7 @@ def main() -> int:
             "training": (
                 (af_report or {}).get("training_provenance")
                 or (endpoint_probe_report or {}).get("training_provenance")
+                or (budget_report or {}).get("training_provenance")
             ),
             "runtime_profiles": {
                 name: (value or {}).get("training_provenance")
@@ -136,6 +138,7 @@ def main() -> int:
             "export_environment": _environment(),
         },
         "af_report": af_report,
+        "budget_report": budget_report,
         "endpoint_probe": endpoint_probe_report,
         "teacher_forced_only": _read(out_dir / "af_teacher_forced.json"),
         "runtime_profiles": runtime_profiles,
@@ -150,6 +153,7 @@ def main() -> int:
             if path.name not in {
                 "af_report.json", "af_teacher_forced.json",
                 "endpoint_probe_report.json",
+                "budget_report.json",
             }
             and not path.name.endswith(".manifest.json")
         },
@@ -157,11 +161,12 @@ def main() -> int:
     if (
         report["af_report"] is None
         and report["endpoint_probe"] is None
+        and report["budget_report"] is None
         and report["teacher_forced_only"] is None
         and not report["runtime_profiles"]
     ):
         print(
-            "no af_report.json, af_teacher_forced.json, or "
+            "no af_report.json, af_teacher_forced.json, budget_report.json, or "
             f"runtime_profile.json under {out_dir}"
         )
         return 1
@@ -190,7 +195,7 @@ def main() -> int:
     if complete is False:
         print("NOTE: causal_complete is false, so the protocol's primary "
               "metrics are not established by this run")
-    print("\nnext: git add results && git commit && git push")
+    print("\nnext: review the exported report, then commit its exact results path")
     return 0
 
 
