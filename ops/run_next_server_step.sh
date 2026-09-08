@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Unique active phase: validate D-048 registration and the complete test suite.
+# Unique active phase: revalidate D-048 after correcting the stale contract assertion.
 # Inputs: clean synced checkout, pinned scientific commit and exported D-047 report.
 # Read: repository/tests only; no existing train/validation/test arrays.
 # Write: this phase's log/markers and temporary unit-test fixtures on the data disk.
 # Resume: reuse a matching success marker; preserve failed logs; never rerun the probe.
 set -uo pipefail
 CPMT_SERVER_STEP_ID="m1_v6_d048_registration_boundary_full_test"
-CPMT_EXPECTED_SCIENCE_COMMIT="c94fc1f45aff6de5993d159657e24a8f8fd9e02d"
+CPMT_EXPECTED_SCIENCE_COMMIT="fce2d046c8760262a4cbb4f5189de929444a08ee"
 CPMT_EXPECTED_REGISTRATION="d366935b14975a18cf3e0af58833fcb8a1151c5929c8848d40677d692fd51e1d"
 CPMT_EXPECTED_TESTS=221
 CPMT_DATA_ROOT="/root/autodl-tmp"
