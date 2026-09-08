@@ -1,5 +1,7 @@
 # Scripts
 
+`run_m1_s5_train.py` 消费 `configs/m1_s5_training_plan.json` 中已选预算，只在完整 train 上训练并保存两架构的 scorer/student；不扫描超参数、不读 validation/test、不做连续评测。输入是已验收 train 数组、固定预算及匹配的新全测 marker，输出是按架构/seed/方法分别保存的权重和来源记录；例如已完成的 A/seed7 在重连后直接复用。它不等于 S5 验证通过，也不是 optimizer 中途续训；失败半成品保留待复核。服务器仍只通过 `ops/run_next_server_step.sh` 接收当前阶段，训练与之后的数据生成/确认分别交付。详细边界见 [D-049](../docs/DECISIONS.md) 和 [实验合同](../experiments/counterfactual_transaction_learning/HARD_CONDITION_EXPERIMENT.md)。
+
 现有 dynamic_memory_prior_work PPT 脚本是历史 provenance，内容对应 D-017 之前的方法，保留但不再作为活动合同。不得仅改标题就把旧图当 CPMT。
 
 ## 单房间视觉试点入口

@@ -6,7 +6,7 @@
 
 > **2026-09-09 更新（D-048 两臂预算报告已拉取复核）：** 结果提交 `4d90e4b` 已拉取，两份导出 SHA-256 与服务器输出一致，逐组均值及预算选择复算通过。各自选定预算下，Set Transformer 的 A/C/E 单步 reference accuracy 为 `94.2236%/94.0534%/92.0843%`，MLP 为 `93.8701%/94.0351%/91.5213%`；A 对 C 的均值优势小且跨架构方向不一致，尚无连续记忆优势结论。详见 LOG-059；S5 validation、S6 test 与 M2 均未启动。
 
-最后更新：2026-09-09，预算结果及原始训练/验收/导出 provenance 已在本地核对。两臂选择严格沿用 D-043/D-046，不扩网格、不按架构择优；进入 S5 前仍需正式 runner 消费预算与组合登记，并保存正式模型。
+最后更新：2026-09-09，预算结果及原始训练/验收/导出 provenance 已在本地核对。两臂选择严格沿用 D-043/D-046，不扩网格、不按架构择优；D-049 已新增消费预算/登记与保存模型的训练入口，等待服务器新全测；独立 S5 连续评测入口仍需后续接线。
 
 | 项目 | 当前事实 |
 |---|---|
@@ -14,7 +14,7 @@
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
 | 阶段 | M1-v6 S4 `pretest_lock_candidate`；固定 endpoint probe 与全套测试已完成，两臂预算报告已验收、导出并本地复算通过；尚未进入 S5 validation、重新冻结或 M2 |
 | 最近结果 | [`m1_v6_d047_endpoint_probe.json`](results/m1_v6_d047_endpoint_probe.json)：201 groups、A/C/E 五 seed、F；终点 exact A/C/E=`0.918408/0.793035/0.471144`，open-memory graded=`0.932013/0.920288/0.878167`，open-fact AUC=`8.830846/12.383085/14.134328`。保留 exact，test N=1350；H3/H1 mean TV=`0.003293`、argmax change=`0`。固定 anchor 未满足全部效应要求，非正式成败结论 |
-| 尚缺 | 将已核对的两臂预算接入 S5 正式训练/连续评测入口，保存选定配置模型并开展一次 200-group validation confirmation；正式 test 入口仍需消费组合登记并重新冻结。原 AUC `40/80` 与 validation/test 边界保留 |
+| 尚缺 | 服务器验证新训练入口，再按已选配置保存模型，之后接线并开展一次 200-group validation confirmation；正式 test 入口仍需消费组合登记并重新冻结。原 AUC `40/80` 与 validation/test 边界保留 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。D-046 顺序 C weight 搜索按既有逐方法实测路径的最坏 10000-update 外推，两臂总计划约 5.036 小时（非新实测）。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
 | 当前决定 | D-039–D-043 固定 live energy、真实 C10/C11、current/posterior 审计、Pre-LN 双架构和 A–E 对称 12 格。D-044–D-046 的 endpoint、open-fact AUC `40/80`、固定 gate、C 顺序权重和纯 confirmation 保留；D-047 收紧 claim，拆清 online network/shared executor，登记外生轨迹，并把 H3-vs-H1 teacher 对照设为主文必报、无选择无成败门的机制证据。M1 不声称原始 DCR、完整动态记忆或 active navigation；全局 reconciliation、PNO 与 M2 顺序不变 |
 | 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 validation/test。D-043 无额外人工选择；运行时剖析只供用户决定何时租用算力，不改变登记网格 |
@@ -806,3 +806,11 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - 判断：A 的已选更新数为 3000，而 B/C 为 10000，可作为学习曲线描述；未核算教师成本等因素，不能直接称总算力效率提升。两臂 A 高于 E 的单步均值尚有方向性信号，A 对 C 则接近且跨架构方向不一致，不能宣布 CTL 已有效。也不能把这些单步差值套入 20-step semantic/support/AUC 的正式通过门；这批结果本身没有给出 formal no-go。
 - 报告中 scorer+student 两段 wall_seconds 合计约 Set Transformer 5.8175 小时、MLP 1.9600 小时；均为 CUDA、8 threads，PyTorch 分配显存峰值约 2604.35/1991.66 MiB。两臂存在并行共享资源，不作为独占速度比较，两段耗时之和也不充当总日历时间或 S5/S6 ETA。
 - 本轮只读取结果 JSON、代码与登记，并进行轻量逐组数值复算；没有训练、读取原始 arrays 或打开 validation/test。当前预算 runner 未保存可直接复用的模型权重；后续按已选格训练并保存正式模型不等于重扫这次预算网格。S5 入口仍需落实逐方法预算/组合登记与既定一次性 200-group、五 seed、20-step confirmation；不新增并行提速验证，不重跑已完成预算。
+
+## LOG-060（2026-09-09）：D-049 已选配置训练/模型保存入口实现，待服务器全测
+
+- 用户明确要求开始下一阶段。按 D-049 增加 `configs/m1_s5_training_plan.json`、纯元数据/模型产物模块 `src/cpmt/m1_s5_training.py` 与 `scripts/run_m1_s5_train.py`。plan 绑定 LOG-059 的两份完整导出指纹和原选中配置，规范化 plan SHA-256=`eef52f674a7570ff8de9d14684cea9c1c96ebf734285d5e164735743ed03954d`；已有生成合同、probe、budget exports 与数组不改写。
+- 新 runner 在完整 1000-group train 上按既定两臂、五 seed、A–E 逐方法配置训练；保留原 label mask，顺序 CUDA/8 threads，共保存 50 student 与 10 E scorer。直接调用既有 train_student/train_outcome_scorer，不修改目标或学习算法；scorer 的第二数据参数是 train alias，不读取 validation。注册 gate 明确覆盖为 `(0,0)`，不继承 smoke 默认。F 不训练。
+- 模型文件含 CPU state_dict、构造参数、训练配置与绑定；manifest 记录 trace、成本、原始 provenance 和模型 hash。已完成目录复用并加载核对；incomplete 目录和异常保留，不自动重训。每个模型完成后更新全局清单；训练阶段只读 train，不计算 validation 或 20-step causal，完整 S5 evaluator 尚待接线。
+- 新增 13 项检查：8 项纯元数据/产物检查已在本地通过，涵盖报告指纹、配置漂移、数据访问边界、60 个计划组件、hash 复用与中断保护；另 5 项 runner/小模型检查只在服务器运行，覆盖两架构两类模型加载、C 权重与固定 gate、scorer train alias、完整 60 模型调度及第二次运行零重训。未在本地做训练、causal 或 CPU 压力测试。
+- 当前唯一服务器入口只运行新完整套件（预计 234 项=既有 221+新增 13），数据盘保留日志和成功/失败 marker，成功按源码/测试树及 plan hash 复用。全测通过前不预埋真实训练；服务器通过输出到来后才改写同一 ops 文件交付训练阶段。新代码尚无服务器测试/训练结果，旧 221 项通过不冒充本次验证。

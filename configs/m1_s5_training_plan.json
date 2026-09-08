@@ -1,0 +1,103 @@
+{
+  "schema_version": "cpmt-m1-s5-training-plan-v1",
+  "decision": "D-049",
+  "stage": "S5_train_only_preparation",
+  "formal_run": false,
+  "validation_arrays_read": false,
+  "test_access": false,
+  "post_probe_registration_sha256": "d366935b14975a18cf3e0af58833fcb8a1151c5929c8848d40677d692fd51e1d",
+  "train_arrays_digest": "e8a890f1b254a7109af641fea57fcbea5efd931b4272d8e96cb870f51604b168",
+  "training_population": "all_registered_train_groups_after_inner_dev_selection",
+  "train_paired_groups": 1000,
+  "main_label_fraction": 0.1,
+  "label_policy": "reuse_existing_train_label_mask_without_resampling",
+  "seeds": [
+    7,
+    19,
+    31,
+    43,
+    59
+  ],
+  "device": "cuda",
+  "torch_threads": 8,
+  "arm_execution": "sequential_no_architecture_selection",
+  "checkpoint_policy": "save_every_completed_method_seed_and_scorer;reuse_only_matching_hashes;incomplete_attempt_requires_review",
+  "validation_policy": "later_separate_once_only_confirmation_no_setting_selection",
+  "test_policy": "sealed_requires_separate_S6_release",
+  "arms": {
+    "cross_candidate_set_transformer_v1": {
+      "budget_report": "results/m1_v6_d048_budget_set_transformer.json",
+      "budget_export_sha256": "00e494f540126e42be05f9c18d4c373d12ffbfd3e1fc1a5cd64c1f453d408fee",
+      "selected": {
+        "direct_future_auxiliary_weight_selection_stage": "train_inner_dev_after_fixed_learning_rate_and_updates",
+        "outcome_scorer_learning_rate": 0.0002,
+        "outcome_scorer_steps": 1000,
+        "student_hyperparameters_by_method": {
+          "cpmt_ctl_core": {
+            "budget_grid_ceiling_reached": false,
+            "learning_rate": 0.0006,
+            "student_steps": 3000
+          },
+          "direct_classifier": {
+            "budget_grid_ceiling_reached": true,
+            "learning_rate": 0.0002,
+            "student_steps": 10000
+          },
+          "direct_future_loss": {
+            "budget_grid_ceiling_reached": true,
+            "direct_future_auxiliary_weight": 1.0,
+            "learning_rate": 0.0006,
+            "student_steps": 10000
+          },
+          "execute_current_only": {
+            "budget_grid_ceiling_reached": false,
+            "learning_rate": 0.002,
+            "student_steps": 3000
+          },
+          "future_no_execution": {
+            "budget_grid_ceiling_reached": false,
+            "learning_rate": 0.0006,
+            "student_steps": 1000
+          }
+        }
+      }
+    },
+    "shared_candidate_mlp_v1": {
+      "budget_report": "results/m1_v6_d048_budget_mlp.json",
+      "budget_export_sha256": "1379d4d8ba908b9490989bbda254cfaf68c7219ad74bff7adfe4651d4c1a7692",
+      "selected": {
+        "direct_future_auxiliary_weight_selection_stage": "train_inner_dev_after_fixed_learning_rate_and_updates",
+        "outcome_scorer_learning_rate": 0.002,
+        "outcome_scorer_steps": 10000,
+        "student_hyperparameters_by_method": {
+          "cpmt_ctl_core": {
+            "budget_grid_ceiling_reached": false,
+            "learning_rate": 0.002,
+            "student_steps": 3000
+          },
+          "direct_classifier": {
+            "budget_grid_ceiling_reached": true,
+            "learning_rate": 0.0006,
+            "student_steps": 10000
+          },
+          "direct_future_loss": {
+            "budget_grid_ceiling_reached": true,
+            "direct_future_auxiliary_weight": 10.0,
+            "learning_rate": 0.002,
+            "student_steps": 10000
+          },
+          "execute_current_only": {
+            "budget_grid_ceiling_reached": true,
+            "learning_rate": 0.0002,
+            "student_steps": 10000
+          },
+          "future_no_execution": {
+            "budget_grid_ceiling_reached": false,
+            "learning_rate": 0.002,
+            "student_steps": 3000
+          }
+        }
+      }
+    }
+  }
+}

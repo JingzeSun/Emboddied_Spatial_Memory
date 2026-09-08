@@ -697,3 +697,15 @@
 - 修正系统边界：当前生成器和评测器都执行候选；前者检查 canonical duplicate，成功返回恰为原 16 个的固定排列，否则报错。保留这一检查与全部历史数据；仅选中合法世界进入持续记忆。不声称已实现单次执行部署，也不将 forward latency 当系统延迟。M2 独立部署路径及无执行候选生成的等价性仍 planned。
 - 披露 M1 合成器参考信息：A 的后续参考事务/结构观测与 C/E 的参考轨迹目标不等于真实传感器；当前不支持无标注视觉主张。分布 TV 不等于贡献比例或学生收益。发现影响在线选择的 future/post-world/reference 信息才修复并重验受影响结果；没有这类证据时不重构或重跑整个 M1。
 - 因登记校验接入科学 runner、增加边界测试，下一唯一服务器阶段是全套验证；验证后再进入原预算网格，不混入训练、导出或 Git 发布。现有 probe/数组保留；不会靠改门槛、量程或加 M2 模型挽救 M1。
+
+## D-049：S5 已选预算实体化、全 train 重训与可复用模型产物
+
+- 状态：accepted（2026-09-09）；用户在了解预算训练与独立确认的区别后明确要求“给我指令开始做”。只落实 D-043/D-046/D-048 的后续训练，不改变方法、候选、能量、成功门、架构身份或搜索预算。具体科学结果见 EXECUTE LOG-059。
+- 以 `configs/m1_s5_training_plan.json` 绑定两份已验收预算导出 SHA-256、逐方法选中 lr/updates、C 权重及各臂 E scorer 配置；机器验证 selected 必须与已固定报告完全一致。主架构 Set Transformer、次架构 MLP 都保留，五 seeds 7/19/31/43/59，不新增网格或根据最终成绩择优。
+- 正式训练采用已登记的完整 1000 paired-group train：预算选择结束后，将其内部 201 组重新纳入训练，与另外 799 组合并。所有方法共享相同已有数组、原 transaction-labelled mask 与 10% 标签来源，不重新采样标签，不增加任何 validation/test 数据。重训后不再把 201 inner-dev 称为独立泛化数据；S5 新 200-group confirmation 仍只运行一次且不选参数。该全 train 拟合选择在访问 confirmation 前固定，不能因结果好坏退回 799 组。
+- 白话：selected-budget refit（按选定配置重新拟合）解决“搜索已经选出了训练方法，但没有留下可直接用的权重”。输入是完整 train 数组与固定配置，输出是可加载的网络权重；例如 A 按登记的 3000 updates 重训一次，C 按其 10000 updates 与选定辅助权重重训一次。它不是重新搜索，不保证重训准确率等于原 inner-dev 数字，也不是在验证集上训练。
+- 两臂顺序运行 CUDA、各 8 个 torch threads，不实施新分片/吞吐 benchmark。每臂五个 outcome scorer 和 25 个 A–E student，共 60 个独立模型产物；F 是确定性 oracle，无需学习权重。现有训练函数和目标公式保持原样；E scorer 的旧 API 第二个名为 validation 的数据参数明确使用同一 train 对象，只为生成 train 教师分布，不读取独立验证数据。
+- 每个 `(architecture,seed,method)` 分别落盘 CPU state_dict、重建参数、固定 config、完整 trace、模型 hash、训练/数据/登记/code 来源及成本。E scorer 另保存其同一 train 上的教师分布，以免接续 E student 时重复训练 scorer。模型目录完成后原子发布并经同一加载函数核对；重运行只复用绑定和 hash 均一致的产物。单个模型中途失败保留 incomplete 目录及错误，不自动覆盖或重训；它不是逐 optimizer step 的断点恢复。
+- 白话：可复用模型产物解决“终端重连后不知道哪个模型已经完成”。输入是一个模型的权重及其来源记录，输出是一个可校验的完整模型目录；例如 30 个模型已完成时，它们会被跳过，剩下的尚未开始模型才需要训练。它不允许换配置后继续复用旧权重，也不隐藏失败记录。
+- `run_m1_s5_train.py` 仅承担 train-only 模型训练/保存，状态为 S5 preparation，`formal_run=false`、`validation_arrays_read=false`、`test_access=false`、`causal_complete=false`。S5 的数据生成/一次性确认和 S6 test 解封仍是独立后续阶段；本条不声称完整 S5 evaluator 已实现，不将训练完成称为 M1 通过。
+- 因新增训练/存储代码和方案登记，先通过新的服务器完整测试，成功 marker 绑定 plan 与 src/scripts/configs/tests hash；旧 221 项 marker 继续作为历史事实但不能验收新代码。当前 ops 版本只承载该全测阶段，不预埋训练/导出/push。本地只做静态和纯元数据检查，含模型加载及完整套件在 AutoDL 上运行。

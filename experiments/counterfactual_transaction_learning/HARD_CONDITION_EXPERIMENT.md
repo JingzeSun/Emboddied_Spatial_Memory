@@ -169,3 +169,13 @@ D 诊断 future evidence；F 分解 candidate coverage 与 scorer error。
 TV（Total Variation，总变差距离）输入删项/截短视野前后的两组候选概率，输出分布差异；例如概率只在次优候选间移动，TV 仍可非零。它不等于贡献百分比或学生长期收益。H3-vs-H1 报告只检验多看两步对教师分布的影响，不检验 H=1 学生，也不能从它推出 teacher 纠正错误参考标签。数值结果只记 EXECUTE。
 
 D-048 登记的 `execution_boundary` 明确覆盖旧 overlay 的 `naming_and_scope.online_model_execution_boundary`：候选生成和评测均展开全部候选，只有选中合法世界持久化。旧 overlay 字符串只为来源指纹保留，不能继续作为当前系统单次执行的依据。
+
+## S5 固定配置训练与权重产物（D-049，等待服务器实现验证）
+
+预算搜索完成后，以 [S5 training plan](../../configs/m1_s5_training_plan.json) 固定两臂各方法的 lr/updates、C weight、E scorer 配置和五 seeds。训练使用完整的 1000-group train 与原有 10% transaction label mask；原 201 inner-dev 在配置选定后纳入重训，之后不能充当独立验证。新 200-group validation 仍与历史已查看组隔离，只在模型设置冻结后作一次完整确认，不反向选 lr、权重或 checkpoint；test 仍封存。A–E 在同一架构内的输入、网络结构、数据与标签 mask 一致，更新数按已登记的逐方法选择执行；不得回退成统一 300/1000-step smoke 配置。
+
+白话：这一步输入已选出的训练配方和完整 train，输出能在下一阶段直接加载的网络。例如 Transformer A 使用 0.0006/3000，C 使用 0.0006/10000 和 aux=1；MLP C 使用 0.002/10000 和 aux=10。它不是另一轮调参，不把训练分数当验证结果，不保证先前约 94% 的 inner-dev 数字在重训或连续评测中不变。
+
+`run_m1_s5_train.py` 只训练/保存 50 个在线 student 和 10 个 E scorer，使用 CUDA、8 threads、两臂顺序执行；F 无需训练。每个模型原子保存 state_dict、模型构造参数、config、trace、模型 hash 与完整来源；成功产物按 plan/data/source/device 等绑定复用，未完成产物保留并要求先复核。E 的 train 教师分布同 checkpoint 保存，不通过独立 validation 产生或选择它；在线推理输入边界保持不变。单模型完成后才形成可复用产物，这不是中途 optimizer 状态续训。
+
+白话：一个模型目录回答“训练的是哪套设置、权重是否完整、能否继续用”。输入训练完成的网络，输出模型文件及验收元数据；例如机器重连时已经完整保存的 A/seed7 不再训练。它不代表该模型科学上优于基线；当前训练记录不含正式 p95 或世界指标，这些留待独立连续评测。新实现须经服务器全测后运行，当前不授权 test、不改变原最小效应门，也不表示完整 S5/S6 evaluator 已接线。
