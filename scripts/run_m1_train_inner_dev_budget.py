@@ -48,6 +48,7 @@ from cpmt.m1_protocol import (  # noqa: E402
     protocol_sha256,
 )
 from cpmt.run_provenance import arrays_sha256, capture_run_provenance  # noqa: E402
+from cpmt.m1_registration import load_registration  # noqa: E402
 
 
 def _load_train(
@@ -815,6 +816,7 @@ def main() -> int:
 
     hard = load_and_validate(args.config)
     overlay = load_and_validate_endpoint_probe(args.overlay, hard)
+    registration = load_registration(PROJECT, hard, overlay)
     budget = hard["training"]["pretest_budget_selection"]
     budget_amendment = overlay["post_probe_train_inner_dev_budget_amendment"]
     if args.architecture not in budget["architectures"]:
@@ -1405,6 +1407,8 @@ def main() -> int:
     report_path = args.out_dir / "budget_report.json"
     report = {
         "schema_version": "cpmt-m1-v8-train-inner-dev-budget-v3",
+        "post_probe_registration": registration,
+        "post_probe_registration_sha256": protocol_sha256(registration),
         "runner": "run_m1_train_inner_dev_budget_v3",
         "formal_run": False,
         "test_generated": False,

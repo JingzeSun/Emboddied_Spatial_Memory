@@ -8,7 +8,7 @@
 |---|---|
 | 本文件 | 阶段顺序、分支条件、当前指针、允许调整的开发细节 |
 | [`EXECUTE.md`](../../EXECUTE.md) | 已经发生的 run、失败、结果与当前看板；不再承担完整流程 |
-| [`configs/m1_hard_condition.json`](../../configs/m1_hard_condition.json) | 方法、候选、split、门槛、seed 和 test 边界的机器真值 |
+| [`configs/m1_hard_condition.json`](../../configs/m1_hard_condition.json) + [`m1_endpoint_viability_probe.json`](../../configs/m1_endpoint_viability_probe.json) + [`m1_post_probe_registration.json`](../../configs/m1_post_probe_registration.json) | 生成来源、既定 overlay 与 probe 后评测登记共同组成机器合同；test 未解封 |
 | [`HARD_CONDITION_EXPERIMENT.md`](HARD_CONDITION_EXPERIMENT.md) | M1 实验合同与白话解释 |
 | [`docs/DECISIONS.md`](../../docs/DECISIONS.md) | 已接受的重要方法、预算或流程变更 |
 
@@ -16,12 +16,12 @@
 
 ## 当前指针
 
-- 当前阶段：**S4 M1-v6：D-044–D-047 full test 已由用户确认 `SERVER_OK`。当前唯一入口运行固定 `(0,0)` gate、C weight=1、Set Transformer A/C/E+F 的 train-only endpoint probe，并在同一 201 个 inner-dev groups 上报告 H3-vs-H1 teacher 机制对照。成功前不运行完整预算网格；validation/test 仍封存。**
+- 当前阶段：**S4 M1-v6：D-048 已登记 exact/test N 并校正执行与教师信息边界；下一阶段仅运行新增登记/边界测试及全套 unittest。结果见 EXECUTE LOG-052/053；全套验证通过后再交付既定 train/inner-dev 预算网格。不得重跑已完成 probe，validation/test 仍封存。**
 - 最近有效证据：v5 S2 的 arrays/manifest/report 已验收；1000−300 的 paired-group 95% CI 为 `[+0.008750,+0.045000]`，按预登记规则选择 1000。10-group 同预算锚点中共同 group 1 的 40−10 平均差为 `+0.005000`、仅 `1/5` seed 严格为正，未达 S3 触发条件。完整数字与 provenance 见 `EXECUTE.md` LOG-032/033。
 - 已完成：同一份 40-group v4 arrays 确定性截取 10/40 groups，运行 scorer steps {60,300,1000} × seed 7。40-group 全 train 上，static preflight 对 2,552/2,552 个 executor-illegal 候选全部静态拒绝、合法误拒 0；过滤后 target-only 均匀并列期望由 0.7729 升至 0.9698，assembled oracle accuracy 由 0.7438 升至 0.9525，其 exact-ambiguity capped 读数由 0.7275 升至 0.9275。D-038 已接受把同一只读预检变成 A–E 共享 mask；旧 v4 过滤数字仍只作采纳依据，不冒充 v5 方法成绩。
 - scorer 分支：40-group inner-dev 的未过滤/过滤后 teacher accuracy 在 steps 60/300/1000 分别为 0.0500/0.5688/0.5031 与 0.0625/0.7469/0.7094。1000 steps 虽将 held-out BCE 从 0.1016 降到 0.0744，候选排序却低于 300 steps；共同 group 1 在 10/40 groups、300/1000 steps 过滤后均为 0.875，也没有显示扩大到 S3 的明确数据收益。因此 300 steps 只是当前单 seed 候选，尚未固定。
 - 当前分支：D-043 提交 `53539ce` 已在干净服务器运行 191 项测试，12-group train-only health 亦以完全相同的历史 digest 通过。1000-group train 随后用 16 workers 在 1001.0 秒内生成 40,000 rows，teacher agreement=`1.0`、health gate PASS，arrays digest=`e8a890f1b254a7109af641fea57fcbea5efd931b4272d8e96cb870f51604b168`。运行时报告已导出为 `results/m1_v6_d043_runtime_profile.json`：固定 300-step 实测外推原 12 格 Set Transformer/MLP 分别约 3.128/1.239 小时、峰值约 2.60/1.99 GB，合计约 4.367 小时；D-046 对同一逐方法实测路径保守加入每臂 10 条 C 附加路径后约为 3.640/1.395、合计 5.036 小时，仍只是 planning estimate，没有科学指标。D-044–D-047 已把 exact/graded 一次切换、节点安全、完整 collateral、F gate、AUC `40/80`、test 检验力规则和 H=1 teacher 主文机制对照冻结到专用 train-only overlay；当前不读取 validation/test、不直接启动完整网格。
-- 成本边界：正式规模是 train/validation/test=`1000/200/200` 个总混合 paired groups，合计 1400，不乘 12。服务器 v8 12-group/16-worker 实测线性外推为 train 约 24.6 分钟、全部 split 约 34.5 分钟；合并 arrays 约 332/465 MB，连同保留 shards 约 674/943 MB。这些是规划参考而非严格线性保证或固定时限。按 D-039 不再设单 run 两小时硬上限，仍完整记录资源且保留 BugCheck 停止规则。
+- 成本边界：正式计划按组合登记采用 train/validation/test=1000/200/1350 个总混合 paired groups，不乘 12；原 test=200 的全 split 成本外推仅是历史估算，不能覆盖新规模。运行成本与已生成数据见 EXECUTE。完整预算网格仍按 D-046 登记，未获新结果前不扩网格；test 仅在 S6 完成入口接线、复核规模和重新冻结后生成。
 - 数据量锚点判据（运行前固定）：只在 10-group 固定留出的共同 paired group 1 上，逐 seed 计算 `40 groups − 10 groups` 的 candidate-ranking accuracy。若五 seed 中至少 4 个严格为正，且五 seed 均值 `>= 0.025`（该 group 的 40 online decisions 中至少一个平均决策），才称“有明确继续增大 train diversity 的方向性信号”并进入 S3；否则 S3 不触发、进入 S4 预冻结审计。该锚点只有一个独立 group，故不报虚假的 CI、不重新选择 1000 steps、也不单独支持性能结论。
 - 预登记方向：共享 mask 主要移除旧 E 会选而 A–D 已由执行信息避开的静态非法候选，因此预期 v5 的 `A_vs_E` 单步与 causal margin 相对 v3/v4 历史读数缩小，触发主对比 stop rule 的概率上升；若 margin 不缩小或仍通过门槛，才是更强证据。该方向在运行前固定，结果出来后不得把“缩小”或“不缩小”任一方向改写成预先支持 CTL。
 - scorer 选择规则：共享 mask 后的 inner-dev candidate-ranking accuracy 是主选择量；同一 paired group、同一 seed 的 1000−300 先配对，再在每个 group 内对五个登记 seed 求平均，最后对 8 个 group 差值用固定 seed=260906 做 10,000 次单层 paired-group bootstrap，取 95% percentile CI。只有 CI 下界大于 0 才选 1000，否则选计算更省的 300；不得把 5×8 格子当成 40 个独立样本。总体/判别性 BCE 与 reference ranking margin 只解释目标是否失配，不按 BCE 单独选预算。若多 seed 复现“总体 BCE 改善但判别性 BCE、margin 或排序下降”，另立 decision 后才可测试 future-derived listwise loss，不得直接用全量 reference index 监督。
@@ -44,7 +44,7 @@
 
 ## 主张、执行与轨迹边界补正（D-047 已形成，待服务器 full test）
 
-D-047 不改变 A/C/E、数据、候选、executor、co-primary 或通过门，只消除三种容易伤害论文可信度的过度表述。第一，claim 改为“真实执行候选世界后，以 current/随后实际观测的 future evidence 为主要评分信号”，edit/growth 只称预登记正则，不再与 current/future 并列成已验证机制。第二，online 网络只评分且不读 `post_graph`/future，但 CPMT 系统会用共享 executor 只执行选中的单个事务；不能把“模型不展开全部候选”误写成“系统不执行修订”。第三，M1 的 event/observation/pose/revisit schedule 是 seed 固定、模型运行前预生成的外生输入，故 M1 不评测 active navigation 或 action policy。
+D-047 不改变 A/C/E、数据、候选、executor、co-primary 或通过门，只消除三种容易伤害论文可信度的过度表述。第一，claim 改为“真实执行候选世界后，以 current/随后实际观测的 future evidence 为主要评分信号”，edit/growth 只称预登记正则，不再与 current/future 并列成已验证机制。第二，online 网络只评分且不读 `post_graph`/future，D-048 进一步校正为：共享生成器和评测器仍展开候选，只有选中合法世界持久化；M2 单次执行部署路径尚未实现。第三，M1 的 event/observation/pose/revisit schedule 是 seed 固定、模型运行前预生成的外生输入，故 M1 不评测 active navigation 或 action policy。
 
 teacher agreement=`1.0` 继续按 fixture 事实披露，M1 只声称传播软 executable hindsight distribution，不声称普遍重写 hard labels。为避免这句话沦为免责说明，endpoint probe 必须在同一 201 个完整 train/inner-dev groups 上增加 H3-vs-H1 teacher horizon contrast：只截短执行后 future trace，其余输入与能量全部固定；agreement、top-1、entropy、TV、KL、argmax change 和 reference-probability shift 总体/逐 family 报告，并进入论文主文。它是机制解释，不是重训 H=1 student、不是新方法/co-primary，也不改变 A-vs-C/E 成败规则；弱或零结果必须披露并收窄“多步 future 起作用”的叙述，不能据此调参。
 

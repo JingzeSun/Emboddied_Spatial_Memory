@@ -4,17 +4,17 @@
 
 ## 当前看板
 
-> **2026-09-08 更新（D-047 full test 通过，endpoint probe 已交付）：** 用户确认服务器 `SERVER_OK`；随后已把唯一入口改为固定 train-only endpoint probe。它读取既有 1000-group train arrays，在 201 个冻结 inner-dev groups 上运行 Set Transformer A/C/E、F oracle 与 H3-vs-H1 teacher 对照；validation/test 和完整预算网格继续封存。
+> **2026-09-08 更新（D-047 endpoint probe 已导出并本地复核）：** 报告提交 `ed440f6` 已拉取。固定 train-only probe 的 F integrity 通过，机械判定保留 exact endpoint，规划 test N=1350；这不是 M1 pass。当前 anchor 的 open-memory A−C 与两组 open-fact AUC 改善未达登记最小效应；H3/H1 分布差异较小、argmax 不变。详见 LOG-052；尚未启动完整预算、validation/test 或 M2。
 
-最后更新：2026-09-08，D-047 full test 已由用户在服务器确认 `SERVER_OK`；endpoint probe 尚待运行，validation/test 仍未读取。
+最后更新：2026-09-08，D-048 已登记 exact/test 1350，并完成执行/信息边界代码核查；本地轻检查通过，新增边界与全套测试待服务器验证，validation/test 未读取。
 
 | 项目 | 当前事实 |
 |---|---|
 | 方向 | CPMT 具身空间记忆；CTL 是主学习假设，用户希望面向 ML 研究 |
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
-| 阶段 | M1-v6 `pretest_lock_candidate`；D-044–D-047 full test 已通过；当前运行固定 train-only endpoint probe，尚未进入完整预算、S5 validation、重新冻结或 M2 |
-| 最近结果 | [`m1_v5_s4_v8_health_benchmark.json`](results/m1_v5_s4_v8_health_benchmark.json) 已于 `e47a7e4` 入库并本地复核：480 learning rows（456 online＋24 recovery），teacher agreement=`1.0`，12 个 family 各自 agreement 均为 `1.0`；posterior mean TV 为 future=`0.681108`、now=`0.071170`、growth=`0.025655`、edit=`0.022655`、collateral=`0.015360`，C11 collateral TV=`0.136628`。now 预期零/非零 family 完全匹配，无偏离 |
-| 尚缺 | 固定 anchor endpoint probe 报告、机械选择 exact/graded semantic 分支并按 AUC `40/80` 计算三类 co-primary 的 test N；随后才进入含 C 顺序权重选择的两臂 scorer/student budget；validation/test 仍封存 |
+| 阶段 | M1-v6 S4 `pretest_lock_candidate`；固定 endpoint probe 已完成，尚未进入完整预算、S5 validation、重新冻结或 M2 |
+| 最近结果 | [`m1_v6_d047_endpoint_probe.json`](results/m1_v6_d047_endpoint_probe.json)：201 groups、A/C/E 五 seed、F；终点 exact A/C/E=`0.918408/0.793035/0.471144`，open-memory graded=`0.932013/0.920288/0.878167`，open-fact AUC=`8.830846/12.383085/14.134328`。保留 exact，test N=1350；H3/H1 mean TV=`0.003293`、argmax change=`0`。固定 anchor 未满足全部效应要求，非正式成败结论 |
+| 尚缺 | D-048 新增边界与全套服务器测试；通过后再进入既定预算网格。正式 test 入口尚需消费组合登记并重新冻结；不改 AUC `40/80`，validation/test 仍封存 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。D-046 顺序 C weight 搜索按既有逐方法实测路径的最坏 10000-update 外推，两臂总计划约 5.036 小时（非新实测）。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
 | 当前决定 | D-039–D-043 固定 live energy、真实 C10/C11、current/posterior 审计、Pre-LN 双架构和 A–E 对称 12 格。D-044–D-046 的 endpoint、open-fact AUC `40/80`、固定 gate、C 顺序权重和纯 confirmation 保留；D-047 收紧 claim，拆清 online network/shared executor，登记外生轨迹，并把 H3-vs-H1 teacher 对照设为主文必报、无选择无成败门的机制证据。M1 不声称原始 DCR、完整动态记忆或 active navigation；全局 reconciliation、PNO 与 M2 顺序不变 |
 | 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 validation/test。D-043 无额外人工选择；运行时剖析只供用户决定何时租用算力，不改变登记网格 |
@@ -709,6 +709,19 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - 白话：这一步回答“固定的 M1 anchor 是否足以让预登记的终点门和 AUC 门做出机械决定”。输入是既有 train arrays 和 201 个冻结 inner-dev groups，输出是可续跑的 A/C/E/F 因果结果、H3-vs-H1 teacher 机制证据和 endpoint/test-N 报告；它不等于正式 test，也不把 probe 结果自动当成 CTL 成功。
 - 下一步：服务器同步仓库后运行 `ops/run_next_server_step.sh`；只在报告明确完成并人工审查 disposition、selected metric、三类功效 N 与 H3-vs-H1 后，才决定是否进入 C 顺序权重和两架构完整预算网格。
 
+### LOG-052—2026-09-08—D-047 endpoint probe 导出复核与效应尺度边界
+
+- 类型/状态：固定 train-only endpoint probe 完成并本地复核；`formal_run=false`、`formal_method_effect_claim=false`、validation/test access=false。`retain_exact_endpoint` 只确认指标可用，不等于 M1 通过，也不自动启动完整预算网格。
+- 产物/provenance：`git pull --ff-only` 拉取结果提交 `ed440f6`；报告为 [`m1_v6_d047_endpoint_probe.json`](results/m1_v6_d047_endpoint_probe.json)。实际运行与导出来自干净 commit `7f73a548be12a80889478c73f04d2324cd185667`，source hash=`dd6a4939a878c46e3f37c0f545c0a3b12c51a5ad1995069df69b7c4e48f6d313`；既有 train arrays digest=`e8a890f1b254a7109af641fea57fcbea5efd931b4272d8e96cb870f51604b168`。fitting/inner-dev=`799/201`，Set Transformer，seed=`7,19,31,43,59`，lr=`0.0006`，student/scorer=`3000`，C weight=`1`，gate=`(0,0)`；报告环境为 RTX 4080 SUPER。
+- 完整性复核：marker 对原 endpoint report 的 SHA-256、本地 Git 中运行 commit 的 entrypoint/overlay/source 哈希全部匹配；source 重构按 `.gitattributes` 对 `.ps1` 使用 CRLF，不能直接拿 Git blob 的 LF 摘要误判来源不一致。A/C/E 各五份 aggregate 与 F 一份共 16 份，每份 402 sequences；三类主量及 graded 诊断的均值差和登记功效公式重算一致。原始 train arrays 与逐 sequence causal 文件仍在服务器，未在本地独立重算 paired SD 或完整轨迹；导出报告不替代原始文件验收。
+- endpoint：F exact/graded/open-memory=`1`，open-fact AUC 与节点错误=`0`，oracle failure groups 为空。exact A−C/A−E 的非零 paired groups=`103/154`，均超过登记下限 7；support 和 burden 两对照也非退化，故保留 `final_active_graph_correctness`，不切 graded。正式 test 规划 N=`1350`，由 exact A−E 的 paired SD=`0.392052` 主导；exact A−C 需 400，其余所选主量的功效 N 均受下限 200 约束。N 按预登记最小/规划效应计算，不按观察到的赢家或效应大小选取；尚未生成 test 或改写正式 config。
+- 固定 anchor 效果（相同 groups，五 seed 等权；不是正式 CI/pass）：终点 exact A/C/E=`0.918407960/0.793034826/0.471144279`，A−C=`0.125373134`、A−E=`0.447263682`。open-memory graded A/C/E=`0.932013311/0.920288271/0.878167308`，差值=`0.011725040/0.053846003`，其中 A−C 低于登记 0.03。open-fact AUC A/C/E=`8.830845771/12.383084577/14.134328358`，减少=`3.552238806/5.303482587`，均低于登记最小减少 40；不能以 exact 较好抵消这两项主量要求。
+- 效应尺度限制：在本批固定 C/E anchor 不变时，因 AUC 非负，即使 A 的负担降到 0，最大平均减少也只有 `12.383085/14.134328`，仍小于 40。这是当前 anchor 的尺度限制，不是对未运行的完整调优或新 split 作失败预言。增加 test N 只改善精度，不会把小效应放大为 40；不据此调低 40、改相对指标、弱化对照或增加 M2 模块。当前尚非 S5/S6 正式 stop-rule 判定。
+- 安全描述：五 seed 均值 false birth A/C/E=`0.587065/1.614428/4.803483`，active-node error=`1.577114/4.320896/15.037313`，collateral violation=`0/0.009950/1.313433`（均沿用报告 per-100 口径）。三方法 raw-invalid selection 均为 0；这些均值不是正式安全置信界验收。A 的连续候选选择准确率约 `0.919851`，不能与终点整图正确率混用。
+- H3/H1：同一 201 个完整 groups 的 7638 个非末步决策（每条轨迹末步无 future 对照）上，两种 horizon teacher/reference argmax agreement 均为 1；总体 TV mean=`0.003293445`、median=`0`、p95=`0.019239392`、max=`0.190402847`，argmax change=`0`。H3/H1 top-1 mean=`0.747663149/0.750053878`，reference probability shift=`-0.002390729`；各 family mean TV 约 `0.000010–0.006909`。这支持“增加两步只对软分布产生较小平均变化”的边界，不支持“多步普遍纠正标签”或“学生因 H3 更好”；没有训练 H1 student。按 D-047 收窄多步机制叙述，不改 horizon、权重、主比较或 gate。
+- 白话：这次输入是冻结的训练集内部 anchor，输出是可用的考试指标、样本量规划和候选世界学习的初步读数。例如 A 的整图正确率较高，但相对于 C 的开放记忆改善只有约 1.17 个百分点，累计错误减少也未达 40；不能只挑整图数字宣布通过。H3/H1 第一名不变且分布差异较小，也不等于 future 整项无用。它不是正式 M1 go/no-go，不能代替真实视觉或部署路径等价性检验。
+- 下一步边界：当前脚本与输入大产物保持，避免重跑已完成 probe。正式协议登记与进入预算网格前，按既定流程处置 endpoint/test N，完成之前识别的审计/部署依赖及教师信息来源核查；不因本报告扩格、改门或开启 M2。没有新增方法决定，不追加 D 编号。
+
 ## 后续条目模板
 
 将新事件追加在此模板之前；更新顶部看板，不复制整段对话。
@@ -726,3 +739,11 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - 结论/决定：支持/不支持什么，重要决定链接 D-XXX。
 - 下一步/人工事项：具体交付和必要权限；同步看板。
 ~~~
+
+## LOG-053（2026-09-08）：D-048 登记与执行/教师边界核查
+
+- 将 LOG-052 机械结果登记到 `configs/m1_post_probe_registration.json`：exact、support 与 burden 三终点，test N=1350，原最小/规划效应和 test 封存保留。登记规范化 JSON hash=`d366935b14975a18cf3e0af58833fcb8a1151c5929c8848d40677d692fd51e1d`。原生成协议 hash、v8 train arrays 与 probe overlay 不变；新增校验器核对来源/overlay/probe 指纹与 six-cell SD 的 N 计算，预算 runner 读取 train 前校验并记录登记。
+- 代码核查发现需纠正此前“额外执行仅属于评测审计”的表述：`_prepare_fixed_candidates` 本身执行全部候选，规范化合法执行后世界并检查重复；`_build_fixed_candidate_catalog` 固定产出 16 个、prepare 在去重后不足 16 个时报错，故成功数据没有候选删减，但存在执行依赖和失败守卫。`materialize_rollout_step` 再展开所有候选；网络只读独立 online vector 与共享静态 preflight mask，只有选中合法 post-world 持久化。代码读取未见 future/post-world/reference index 进入 A–E 网络选择；这不是完整部署等价性证明。保留生成器，仅改正误导性 docstring 和合同，新增原目录/排列一致、重复必须报错与未选中执行结果污染测试。
+- A 的 counterfactual trace 沿登记后续参考事务推进，future 对比使用参考图生成的结构观测；C/E future relation targets 来自相同参考后续轨迹，其构造不执行候选；当前目标来自当前观测与声明。共享合成参考来源不等于传感器证据，不能自然推出无标注真实视觉训练。新增 C/E 目标无执行检查；M2 草案补充部署与教师接口验收边界。
+- `p95_forward_latency_ms` 排除候选生成/分支审计与完整提交，仅为网络前向及相关张量/概率处理计时。保留历史字段和值，不重解释为端到端耗时。H3/H1 与删项 TV 只作教师分布诊断，不作贡献百分比/学生收益证据；LOG-052 数值和原 passing gates 不变。
+- 本地验证：4 项纯登记单元测试通过（约 0.1 秒），组合协议 CLI 通过。新增 rollout 边界测试与全套 unittest 留待服务器；未运行本地重训练/causal 任务，未访问服务器原始数组、validation 或 test。本次没有改候选算法、teacher target、能量或优化，不要求重跑已完成 probe。

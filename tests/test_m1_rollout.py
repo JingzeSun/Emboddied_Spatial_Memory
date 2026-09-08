@@ -5,6 +5,9 @@ import json
 from pathlib import Path
 import sys
 import unittest
+from unittest.mock import patch
+
+import numpy as np
 
 PROJECT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT / "src"))
@@ -14,6 +17,7 @@ from cpmt.m1_data import validate_online_payload
 from cpmt.m1_metrics import graph_error_counts, rollout_graph_metrics
 from cpmt.m1_rollout import (
     CANDIDATE_BUDGET,
+    _build_fixed_candidate_catalog,
     ROLLOUT_FAMILY_COUNTS,
     ROLLOUT_TEMPLATE_COUNTS,
     audit_m1_candidate_coverage,
@@ -44,6 +48,23 @@ class TestM1ContinuousRollout(unittest.TestCase):
                 cls.config, "validation", paired_groups=2,
             )
         )
+
+    def test_successful_generation_keeps_raw_catalog_and_permutation(self):
+        for sequence in self.paired_audit:
+            for step in sequence["steps"]:
+                base, event = step["online"]["prior_world"], step["event_spec"]
+                with patch("cpmt.m1_rollout._execute_candidates",
+                           side_effect=AssertionError("raw catalog executed")):
+                    raw, _ = _build_fixed_candidate_catalog(base, event)
+                permutation = np.random.default_rng(int(event["candidate_seed"])).permutation(16)
+                self.assertEqual([raw[int(i)] for i in permutation],
+                                 step["online"]["candidate_programs"])
+
+    def test_canonical_duplicate_aborts_instead_of_silently_filtering(self):
+        step = self.paired_audit[0]["steps"][0]
+        with patch("cpmt.m1_rollout._candidate_state_signature", return_value="duplicate"):
+            with self.assertRaisesRegex(AssertionError, "collapsed under canonical"):
+                generate_fixed_candidates(step["online"]["prior_world"], step["event_spec"])
 
     def test_every_sequence_is_one_real_twenty_step_chain(self):
         self.assertEqual(self.summary["horizon_decisions"], 20)

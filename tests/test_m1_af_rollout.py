@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import sys
 import unittest
+from unittest.mock import patch
 
 import numpy as np
 import torch
@@ -34,6 +35,7 @@ from cpmt.m1_af_rollout import (
     build_rollout_learning_arrays,
     calibrate_shared_commit_rule,
     candidate_current_relation_targets,
+    candidate_future_relation_targets,
     causal_rollout_metrics,
     current_now_comparability_diagnostics,
     mechanism_slice_selection_diagnostics,
@@ -48,6 +50,7 @@ from cpmt.m1_af_rollout import (
     training_inner_dev_mask,
     uniform_admissible_random_accuracy,
 )
+from cpmt.m1_rollout import materialize_rollout_step
 
 
 class TestM1AFCausalRollout(unittest.TestCase):
@@ -84,6 +87,45 @@ class TestM1AFCausalRollout(unittest.TestCase):
         np.testing.assert_array_equal(before, after)
         with self.assertRaisesRegex(ValueError, "exactly"):
             online_feature_vector(step)
+
+    def test_unselected_execution_results_do_not_affect_online_rollout(self):
+        class FixedScores(torch.nn.Module):
+            def forward(self, x):
+                return torch.arange(16, device=x.device, dtype=x.dtype).expand(len(x), -1)
+
+        model = FixedScores()
+        config = dict(self.config, device="cpu", commit_probability=0.0, margin_threshold=0.0)
+        _, expected = causal_rollout_metrics(model, self.validation_audit, config)
+
+        def poisoned(*args, **kwargs):
+            materialized = materialize_rollout_step(*args, **kwargs)
+            candidates = materialized["executed_candidates"]
+            # FixedScores selects the largest statically admitted index.
+            selected = max(i for i, c in enumerate(candidates) if c["static_preflight_pass"])
+            for index, candidate in enumerate(candidates):
+                if index != selected:
+                    candidate["legal"] = not candidate["legal"]
+                    candidate["post_graph"] = {"unselected_audit_poison": True}
+                    candidate["post_graph_hash"] = "unselected_audit_poison"
+            return materialized
+
+        with patch("cpmt.m1_af_rollout.materialize_rollout_step", side_effect=poisoned):
+            _, actual = causal_rollout_metrics(model, self.validation_audit, config)
+        self.assertEqual(expected, actual)
+
+    def test_no_execution_future_targets_ignore_candidate_post_worlds(self):
+        sequence = self.validation_audit[0]
+        step = sequence["steps"][0]
+        future_states = [s["executed_candidates"][s["reference_program_index"]]["post_graph"]
+                         for s in sequence["steps"][1:4]]
+        for program in step["online"]["candidate_programs"]:
+            with patch("cpmt.m1_rollout.execute_transaction",
+                       side_effect=AssertionError("future target executed candidate")):
+                targets, masks, desired = candidate_future_relation_targets(
+                    program, step["online"]["prior_world"], future_states, horizon=3,
+                )
+            self.assertEqual(targets.shape, masks.shape)
+            self.assertEqual(targets.shape, desired.shape)
 
     def test_same_template_candidates_are_separable_after_argument_features(self):
         """Without query-aligned arguments the three RELINK slots encode alike."""

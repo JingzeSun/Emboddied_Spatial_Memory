@@ -25,6 +25,8 @@ CPMT 是完整 embodied spatial memory 方法；本目录只验证其中唯一�
 7. SCENARIOS.md、BASELINES.md、CRITERIA.md；
 8. DATASETS.md、TRAINING.md、PROTOCOL.md、PUBLICATION_GATES.md。
 
+M2 的架构建议、模型选择依据与误差诊断另见 [M2 设计草案](M2_DESIGN.md)（proposed/planned，尚未冻结）；它不维护阶段指针，也不授权绕过 M1 gate。
+
 这些细粒度文件是同一实验的支持材料，不是平行路线。流程文件指定“应该往哪走”，EXECUTE 只记“已经发生了什么”。
 
 ## 四关

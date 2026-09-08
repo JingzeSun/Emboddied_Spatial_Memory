@@ -10,7 +10,7 @@
 
 ## 六个方法
 
-| ID | 方法 | 执行候选 | future supervision | post-edit world |
+| ID | 方法 | 监督/上限构造执行候选 | future supervision | post-edit world |
 |---|---|---:|---:|---:|
 | A | CPMT-CTL Core（M1 固定解析表征） | 是 | 是 | 是 |
 | B | Direct classifier | 否 | 否 | 否 |
@@ -18,6 +18,8 @@
 | D | Execute + current-only | 是 | 否 | 是 |
 | E | Future scorer without execution | 否 | 是 | 否 |
 | F | Oracle candidate/program | 是 | 是 | 是 |
+
+表中“执行候选”描述各方法的监督或上限构造，不表示共享候选生成与审计 runner 的系统调用次数。当前实现的执行边界和合成参考信息见 [研究合同](../../docs/01_research_contract.md#方法角色)。
 
 ## 公平性
 
@@ -50,11 +52,11 @@ D 诊断 future evidence；F 分解 candidate coverage 与 scorer error。
 
 ## M1-v6 pre-test lock candidate（D-043 + D-044–D-047 evaluation overlay，尚未重新冻结）
 
-生成/训练机器合同为 [`configs/m1_hard_condition.json`](../../configs/m1_hard_condition.json)，D-044–D-047 的 train-only 评价/预算 overlay 为 [`configs/m1_endpoint_viability_probe.json`](../../configs/m1_endpoint_viability_probe.json)。D-031 冻结的 M1-v1、D-034/D-038 的 v2/v5 数值，以及被 D-040/D-041 取代的 v6/v7 本地探针只作为历史诊断保留；D-039 的 live energy/两条架构臂、D-040 的混合组规模与真实 C10/C11、D-041 的 current fixed-range 与 posterior audit，以及 D-043 的 Pre-LN 与对称逐方法预算合并为活动 v8 实现。D-045/D-046 不改已有 train arrays 的生成内容/hash，只覆盖正式报告构念、AUC 持续等价门、endpoint probe gate、C 顺序权重选择与纯 validation confirmation；D-047 同样不改 arrays，只补 claim/scope 与由 probe 重建 audit 计算的 H3-vs-H1 teacher 机制报告。probe 选定 semantic 分支/test N 后才一次性升级总协议。状态仍为 `pretest_lock_candidate`；这不是 formal run，两个配置都锁定 `test_access=false`，完成实现验证并另行接受重新冻结前不得生成或读取 test。
+生成/训练机器合同为 [`configs/m1_hard_condition.json`](../../configs/m1_hard_condition.json)，D-044–D-047 的 train-only 评价/预算 overlay 为 [`configs/m1_endpoint_viability_probe.json`](../../configs/m1_endpoint_viability_probe.json)。D-031 冻结的 M1-v1、D-034/D-038 的 v2/v5 数值，以及被 D-040/D-041 取代的 v6/v7 本地探针只作为历史诊断保留；D-039 的 live energy/两条架构臂、D-040 的混合组规模与真实 C10/C11、D-041 的 current fixed-range 与 posterior audit，以及 D-043 的 Pre-LN 与对称逐方法预算合并为活动 v8 实现。D-045/D-046 不改已有 train arrays 的生成内容/hash，只覆盖正式报告构念、AUC 持续等价门、endpoint probe gate、C 顺序权重选择与纯 validation confirmation；D-047 同样不改 arrays，只补 claim/scope 与由 probe 重建 audit 计算的 H3-vs-H1 teacher 机制报告。D-048 以组合登记完成 probe 后评测协议升级：`configs/m1_post_probe_registration.json` 绑定原生成配置、D-047 overlay 与已完成 probe 的规范化 JSON SHA-256；评测采用登记的 exact 与 test N=1350，其余 D-044–D-047 规则继承 overlay。原 v6 配置保留为已有数组的生成来源，不再单独代表全部活动评测设置。状态仍为 `pretest_lock_candidate`；这不是 formal run，组合合同锁定 `test_access=false`，完成实现验证并另行接受重新冻结前不得生成或读取 test。
 
 ### 数据与 future
 
-- train/validation/test 分别生成 1000/200/200 个**总混合 paired groups**，三 split 合计 1400，不再乘 12；CLI 的 `--paired-groups` 与 manifest 都使用这一总数语义。每个 group 的 20-step causal schedule 必须覆盖 C00–C11，因此 test 中每个 family 都有至少 200 个独立 paired-group 支持；同一 `paired_group_id + world_seed + asset_family` 不跨 split。coverage gate 的分母固定为全部 12 个 family，任何 family 缺失即失败。只排除在任何方法运行前就已确认的 schema 或生成/渲染失败；方法自身失败必须保留。
+- D-048 登记 train/validation/test 的计划规模为 1000/200/1350 个**总混合 paired groups**，合计 2550，不再乘 12；原生成配置的 test=200 是 probe 前来源快照，不得作为正式 test 的执行规模。test 生成入口尚未解封，S6 须接入登记配置并重新冻结后才可运行；CLI 的 `--paired-groups` 与 manifest 都使用这一总数语义。每个 group 的 20-step causal schedule 必须覆盖 C00–C11，因此已登记正式 test 中每个 family 计划有 1350 个独立 paired-group 支持；同一 `paired_group_id + world_seed + asset_family` 不跨 split。coverage gate 的分母固定为全部 12 个 family，任何 family 缺失即失败。只排除在任何方法运行前就已确认的 schema 或生成/渲染失败；方法自身失败必须保留。
 - C10 不是 BIND 的统计别名：跨 paired groups 平衡生成当前观测同分布的 transient dynamic actor/NOOP 与 persistent background change/BIND，当前帧不能泄露以后是否持续。C11 必须在正确必要 BIND 之外包含一个通过 shared preflight、executor-legal、却改动当前 evidence scope 外既有开放事实的 BIND+collateral 候选。health manifest 必须保存基于真实 reference、观测有效性和 legal collateral contrast 的 behavior fingerprint；`scenario_variant` 不参与 fingerprint，任意两个 family 指纹重复、C10 缺任一变体或 C11 缺合法 collateral 对照都直接失败。
 - 主 future horizon 固定为实际已执行轨迹中**当前决策之后**的 3 个后续决策点，不能把 now 的当前步重复计入 future；H=1/5 只作报告型消融。变长 episode 只评分真实存在且 pose/visibility 有效的 future；至少有一步 future 的尾部样本保留并 mask 缺失步，零 future 样本只进 online 诊断，不训练 hindsight teacher。
 - 可见正证据与“可靠可见但为空”都进入评分；遮挡和未观察区域 mask。预计算 online feature 只允许时间戳不晚于当前决策，future cache 分目录保存。
@@ -75,7 +77,7 @@ D 诊断 future evidence；F 分解 candidate coverage 与 scorer error。
 - executed-now 的逐 family 预期模式在生成前固定：C01/C02/C04/C06/C07/C08 的 leave-now-out mean total variation 预期非零，C00/C03/C05/C09/C10/C11 按机制预期为数值零。manifest 同时报告实测集合和双向偏离名单；`1e-6` 只吸收 float32 posterior 重构舍入，不是效果阈值。偏离不进 health gate，也不触发权重调整。
 - S1 对 E scorer 的 current 通道，在相同 fitting/inner-dev online 行、temperature 与 `now=1` 权重下，使用和 executed teacher 相同的 leave-current-out total variation、KL、argmax 与 reference 概率指标并排报告。C 共享 current relation auxiliary target，但没有单独组装 current-energy posterior，故不报告不存在的 C posterior 消融。两侧影响无需相等，结果不用于裁剪对照、调权或设 gate。
 - 五个机制切片按固定优先级互斥分配：exact ambiguity、C10 temporal underdetermination、C11 side-effect sensitive、C09 current unavailable、其余 family。每片同时写明预期行为并报告 selection/commit/active/collateral；切片由生成器机制而非实测准确率定义，只作描述，不能替代完整 mixed 20-step causal endpoint 主门。
-- 20-step self-rollout 是闭环在线评测长度，不是要求模型从第 0 步预测第 20 步：每一步都从方法自己的当前图重新生成候选、读取当步新观测、作一次事务决定，再由共享 executor 只执行最终选中的单个事务。online 网络本身不读取或生成候选 `post_graph`；“评分时不展开所有候选世界”与“系统应用选中修订”是两个不同阶段。训练 hindsight 只回看之后最多 H=3 个**实际已观测且 pose/visibility 有效**的步骤，且每条候选分支会先继续执行期间实际登记的后续事务，再与对应已发生观测比较，不把当前图冻结后硬拿去对比第 3 步。未观测、遮挡或无效 pose/depth 不进入 future 分母。这是训练期对“哪个当前修订与紧随其后的真实观测更一致”的回溯监督，不是部署时输入未来，也不主张对任意外生变化进行远期预测。C10 刻意属于当前不可判定的信息上限切片，单步准确率预期约 0.5、A/C/E 不预期在该行凭空获得实例级先知能力；它检验 posterior uncertainty、quarantine 与 evidence-support 后果，不单独承载 CTL 优越性，也没有被解释成“预测 20 步未来”。
+- 20-step self-rollout 是闭环在线评测长度，不是要求模型从第 0 步预测第 20 步：每一步都从方法自己的当前图重新生成候选、读取当步新观测、作一次事务决定，只有选中合法事务的执行后世界进入下一步。当前共享候选生成器与评测器均会展开候选作检查/审计，不能称整个系统只执行一个候选；online 网络本身不读取或生成候选 `post_graph`，共享 mask 来自静态预检。训练 hindsight 只回看之后最多 H=3 个**实际已观测且 pose/visibility 有效**的步骤，且每条候选分支会先继续执行期间实际登记的后续事务，再与对应已发生观测比较，不把当前图冻结后硬拿去对比第 3 步。未观测、遮挡或无效 pose/depth 不进入 future 分母。这是训练期对“哪个当前修订与紧随其后的真实观测更一致”的回溯监督，不是部署时输入未来，也不主张对任意外生变化进行远期预测。C10 刻意属于当前不可判定的信息上限切片，单步准确率预期约 0.5、A/C/E 不预期在该行凭空获得实例级先知能力；它检验 posterior uncertainty、quarantine 与 evidence-support 后果，不单独承载 CTL 优越性，也没有被解释成“预测 20 步未来”。
 - M1 的 world event、观测顺序、pose bucket 与 controlled-revisit action history 由固定 seed 在方法运行前生成，并对所有方法保持一致；它们是外生输入，不由 online memory state 或模型分数选择。例如模型可以决定是否 RELINK，但不能决定下一步去哪个 pose 获取证据。因此本实验检验固定观测流下的记忆修订，不等于 active navigation、主动消歧或 learned action policy。
 - D-047 把 H=1 从“配置里保留的一行”提升为 endpoint probe 与论文主文必报的 **teacher horizon contrast（教师视野对照）**。输入是同一 201 个完整 train/inner-dev paired groups 上已经真实执行的同一批候选；H=3 与 H=1 之间只截短随后实际观测的反事实 trace，immutable base、候选顺序、当前证据、外生轨迹、now/edit/growth/collateral/illegal、权重与 temperature 全部不变。输出同时含两种 horizon 的 teacher/reference agreement、top-1 与 entropy，以及 H3-vs-H1 的 total variation、KL、argmax change 和 reference-probability shift，总体和逐 family 报告，独立单位仍是完整 paired group。例如 H=3 只改变第二至第十六名概率而第一名不变时，TV/KL 仍会留下机制证据。它只回答“多两步已观测 future 是否改变 executable teacher 的软分布”，不等于重训一个 H=1 学生、不新增方法或 co-primary，也不参与 endpoint switch、test N、超参数和 M1 pass/fail；若结果弱或为零，必须在主文披露并收窄多步 future 机制解释，不能调权重或改变 A-vs-C/E 规则。H=5 继续是次级报告型扩展，不承担这项主文义务。
 - 同一份 v8 arrays 运行两条预登记架构臂：主臂 `cross_candidate_set_transformer_v1`（model dim 128、4 heads、两层 Pre-LayerNorm Set Attention Block、FFN 256、末端 LayerNorm、dropout 0）让候选在打分前相互比较；次臂是既有 hidden 64、两层 `shared_candidate_mlp_v1`。每条臂都完整运行 A–F，禁止看结果后在两架构间择优。按 D-043/D-046，两条架构各自在完整 1000-group train 的固定 inner-dev 上，以五 seed 扫描 learning rate `{0.0002,0.0006,0.002}` × scorer/student updates `{300,1000,3000,10000}`。E scorer 先按 reference candidate-ranking accuracy 选格；固定 scorer 后，A–E 在 C weight=1 锚点上各自按相同 reference-candidate selection accuracy 选择一个格，均值最高且精确平手时依次取更少 updates、更小 learning rate。每个 learning rate/seed 只训练一条到 10000 的固定轨迹并读取四个前缀；不得为任何方法扩格。C 的计算格冻结后，weight=1 结果直接复用，只在同一格为 0.1/10 各补一条路径；同一 group-first/五 seed 均值最高，精确平手优先 1、再取较小权重，不做 36 格联合搜索。正式选择之外，同一批 12 格必须报告 A–E 共享格和 A/E 交叉格结果。10000 胜出时接受并标记 grid ceiling，不得事后扩展。
@@ -157,3 +159,13 @@ D 诊断 future evidence；F 分解 candidate coverage 与 scorer error。
 轻量静态/单元检查可在本地运行；用户已提示本机 CPU 负载可能诱发内存损坏，因此数据生成、完整测试、训练和 causal rollout 优先在 AutoDL 的干净 Git 提交上执行。仓库不设置固定单-run wall-clock 上限，只要求保存实际耗时、内存/显存、磁盘和失败；云实例由操作者手动启停并设置定时关机，仓库只记录该控制方式，不自行启动或续费实例。新宿主机发生 BugCheck 时仍停止长 run。
 
 白话：计算边界解决“在哪台机器安全地跑”。输入是本地稳定性记录、服务器 wall-clock/显存和干净提交哈希，输出是本地只做轻检查、AutoDL 承担重任务。例如服务器 `git pull` 到指定提交后生成 arrays，再把 output 汇总拉回本地分析。它不等于允许脚本自行购买资源，也不等于服务器跑完就自动解封 test。
+
+## D-048 probe 后登记与证据范围
+
+白话：组合登记解决“已有训练数据的生成指纹不能改，但正式评测必须记住探针选定的终点和规模”的问题。输入是原 v6 生成合同、D-047 overlay 和已导出的固定 train-only probe，输出是绑定三者哈希的评测计划。例如旧 train arrays 仍按原协议 hash 验收，而新计划的 test groups 必须是 1350。它不是重新生成数据、不是以当前均值选指标，也不授权读取 test。`scripts/validate_m1_protocol.py` 校验组合登记；预算 runner 在读取 train arrays 前同样校验，报告同时保存来源协议 hash 和登记 hash。正式生成/评测入口未来必须消费该计划，不能只读来源 v6 配置。
+
+登记固定 semantic=`final_active_graph_correctness`、support=`final_graded_open_memory_correctness`、burden=`open_fact_error_auc_per_100_decisions`，两个主对比均须满足 0.03/0.03/40；其余安全门、Holm/paired bootstrap、C 顺序预算与纯 validation confirmation 继承既有合同。不得因为当前 anchor 的累计负担较小而降低 40/80、换分母或改数据后继续复用本次登记。
+
+TV（Total Variation，总变差距离）输入删项/截短视野前后的两组候选概率，输出分布差异；例如概率只在次优候选间移动，TV 仍可非零。它不等于贡献百分比或学生长期收益。H3-vs-H1 报告只检验多看两步对教师分布的影响，不检验 H=1 学生，也不能从它推出 teacher 纠正错误参考标签。数值结果只记 EXECUTE。
+
+D-048 登记的 `execution_boundary` 明确覆盖旧 overlay 的 `naming_and_scope.online_model_execution_boundary`：候选生成和评测均展开全部候选，只有选中合法世界持久化。旧 overlay 字符串只为来源指纹保留，不能继续作为当前系统单次执行的依据。

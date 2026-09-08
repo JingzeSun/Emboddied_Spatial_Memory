@@ -1,0 +1,46 @@
+{
+  "schema_version": "cpmt-m1-post-probe-registration-v1",
+  "decision": "D-048",
+  "status": "registered_pretest_not_test_release",
+  "test_access": false,
+  "execution_boundary": {
+    "candidate_generation_executes_all": true,
+    "evaluation_materializes_all": true,
+    "online_selection_mask": "shared_static_preflight",
+    "online_reads_future_or_candidate_post_world": false,
+    "only_selected_legal_world_persists": true,
+    "single_execution_deployment_implemented": false,
+    "p95_forward_latency_scope": "network_and_associated_tensor_probability_operations"
+  },
+  "evidence_report": "results/m1_v6_d047_endpoint_probe.json",
+  "source_protocol_sha256": "73666cabb77b4884302d77ca621669bfdc77e86a44951b8a92b97208509c0eec",
+  "probe_overlay_sha256": "6816ce3ab3b524bad493609511582de0eb7f6ac9c12399c0137e9083b48b2d67",
+  "endpoint_probe_sha256": "f854ba1be1e92bc1ddf1afed4752b1e98a2486d5e114891015f8d256807b555b",
+  "evaluation_plan": {
+    "paired_groups": {
+      "train": 1000,
+      "validation": 200,
+      "test": 1350
+    },
+    "semantic_metric": "final_active_graph_correctness",
+    "support_metric": "final_graded_open_memory_correctness",
+    "burden_metric": "open_fact_error_auc_per_100_decisions",
+    "minimum_effects": [
+      0.03,
+      0.03,
+      40.0
+    ],
+    "planning_effects": [
+      0.06,
+      0.06,
+      80.0
+    ],
+    "primary_contrasts": [
+      "A_vs_C",
+      "A_vs_E"
+    ],
+    "commit_probability": 0.0,
+    "margin_threshold": 0.0,
+    "validation_selects_settings": false
+  }
+}

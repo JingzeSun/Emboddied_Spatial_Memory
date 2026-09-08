@@ -3708,7 +3708,12 @@ def teacher_horizon_contrast(
 def materialize_rollout_step(
     audit_sequence: Mapping[str, Any], base: Mapping[str, Any], step_index: int,
 ) -> dict[str, Any]:
-    """Rebuild one deployable step on a caller-provided predicted graph."""
+    """Rebuild an audited evaluation step on the caller's predicted graph.
+
+    Generation executes candidates for canonical duplicate rejection, and this
+    runner also materializes all branches. Only the selected world persists;
+    this is not a select-before-single-execution deployment implementation.
+    """
     steps = audit_sequence["steps"]
     if not 0 <= step_index < len(steps):
         raise ValueError("step index is outside the recorded sequence")
