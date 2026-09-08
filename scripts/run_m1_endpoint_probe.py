@@ -147,7 +147,10 @@ def _reconstruct_audits(config_path: Path, hard: dict, train: dict,
     rebuilt["group"] = np.asarray([int(g) for g in rebuilt["group"]], dtype=np.int64)
     # A one-group reconstruction naturally labels its rows zero; recover the
     # registered group index from the audit order before exact comparison.
-    local_groups = np.asarray(rebuilt["group"], dtype=np.int64)
+    # Copy the labels before rewriting the output array; a view would change
+    # the later boolean masks as each local group is assigned its registered
+    # group index.
+    local_groups = np.asarray(rebuilt["group"], dtype=np.int64).copy()
     for local, gid in enumerate(groups):
         rebuilt["group"][local_groups == local] = gid
     order = np.lexsort((np.arange(len(expected["y"])), expected["group"]))
