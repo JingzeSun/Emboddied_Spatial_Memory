@@ -92,6 +92,19 @@ def main() -> int:
 
     af_report = _read(out_dir / "af_report.json")
     endpoint_probe_report = _read(out_dir / "endpoint_probe_report.json")
+    endpoint_causal_aggregates = {}
+    if endpoint_probe_report is not None:
+        # Keep the committable result small.  Full per-sequence choices remain
+        # in the ignored server output; the endpoint report plus these
+        # aggregate rows are sufficient for review and provenance checks.
+        for name, payload in causal_rows:
+            if isinstance(payload, dict):
+                endpoint_causal_aggregates[name] = {
+                    "schema_version": payload.get("schema_version"),
+                    "short_method": payload.get("short_method"),
+                    "aggregate": payload.get("aggregate"),
+                }
+        causal_rows = []
     runtime_profiles = _runtime_profiles(out_dir)
     generation_manifests = {
         path.name: _read(path)
@@ -128,6 +141,7 @@ def main() -> int:
         "runtime_profiles": runtime_profiles,
         "generation_manifests": generation_manifests,
         "causal_per_seed": {name: value for name, value in causal_rows},
+        "endpoint_causal_aggregates": endpoint_causal_aggregates,
         # Anything else a runner dropped here, so a new report does not need a
         # change in this script to travel back with the rest of the run.
         "other_reports": {

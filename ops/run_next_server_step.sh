@@ -68,5 +68,20 @@ rpath,mpath=Path(sys.argv[1]),Path(sys.argv[2]); r=json.loads(rpath.read_text(en
 m={'schema_version':'cpmt-endpoint-probe-marker-v1','status':'complete','commit':sys.argv[3],'train_arrays_digest':sys.argv[4],'report_sha256':hashlib.sha256(rpath.read_bytes()).hexdigest(),'disposition':r['endpoint_assessment']['disposition'],'selected_test_groups':r['endpoint_assessment']['selected_test_groups'],'validation_arrays_read':False,'test_access':False}; mpath.write_text(json.dumps(m,indent=2)+'\n',encoding='utf-8'); print(f"ENDPOINT_PROBE_MARKER_WRITTEN disposition={m['disposition']}")
 PY
 fi
+CPMT_RESULT_NAME="m1_v6_d047_endpoint_probe"
+(cd "$CPMT_REPO_DIR" && python scripts/export_run_report.py \
+  --out-dir "$CPMT_OUTPUT_DIR" --name "$CPMT_RESULT_NAME" \
+  --note "D-047 fixed train-only endpoint probe; full causal rows remain on the server data disk.") \
+  || cpmt_fail endpoint_result_export_failed
+git -C "$CPMT_REPO_DIR" add -- "results/$CPMT_RESULT_NAME.json" || \
+  cpmt_fail endpoint_result_stage_failed
+if git -C "$CPMT_REPO_DIR" diff --cached --quiet; then
+  printf "RESULT_PUSH_REUSED path=results/%s.json\n" "$CPMT_RESULT_NAME"
+else
+  git -C "$CPMT_REPO_DIR" commit -m "results: D-047 endpoint probe" || \
+    cpmt_fail endpoint_result_commit_failed
+  git -C "$CPMT_REPO_DIR" push origin main || cpmt_fail endpoint_result_push_failed
+  printf "RESULT_PUSH_OK path=results/%s.json\n" "$CPMT_RESULT_NAME"
+fi
 printf "ENDPOINT_PROBE_REPORT=%s/endpoint_probe_report.json\nSERVER_STEP_OK id=%s\n" "$CPMT_OUTPUT_DIR" "$CPMT_SERVER_STEP_ID"
 printf "NEXT=review_endpoint_probe_report_then_register_or_stop_before_budget_grid\n"
