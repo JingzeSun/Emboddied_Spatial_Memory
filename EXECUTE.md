@@ -6,7 +6,7 @@
 
 > **2026-09-08 更新（D-047 endpoint probe 已导出并本地复核）：** 报告提交 `ed440f6` 已拉取。固定 train-only probe 的 F integrity 通过，机械判定保留 exact endpoint，规划 test N=1350；这不是 M1 pass。当前 anchor 的 open-memory A−C 与两组 open-fact AUC 改善未达登记最小效应；H3/H1 分布差异较小、argmax 不变。探针详见 LOG-052；主架构预算已启动，MLP 并行入口已准备（LOG-056），validation/test 与 M2 未启动。
 
-最后更新：2026-09-08，主架构预算入口已启动（用户截图）；独立 worktree 的 MLP 并行入口已准备，尚未收到 MLP 启动或任一架构预算完成证据。validation/test 未读取。
+最后更新：2026-09-08，用户 MLP 截图显示训练退出码及报告前置检查通过，产物验收在方法键名断言失败；已定位为运维验收器把完整方法名误作 A–E 字母。准备仅复验已有两臂报告，不重训练；主架构完成状态待核查。
 
 | 项目 | 当前事实 |
 |---|---|
@@ -767,3 +767,11 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - 根据用户希望利用余量同时运行既定 MLP 对照，保留主架构 checkout 的 HEAD 与文件不动，仅用 fetch 获取提交，再在数据盘创建 detached worktree 启动 MLP。输入训练数组通过 Git common-dir 解析到原仓库，仍只读同一已验收 digest；MLP 的输出/锁/进程/日志独立，原主架构不重启、不移动、不更改参数。
 - 这仅改变已登记两臂的调度，不增加架构、预算或选择机会，不按中途方法成绩决定是否运行 MLP。两臂仍各自 8 个 PyTorch threads，MLP 仍使用既定完整网格与 C 顺序权重。MLP 的 started/resource_start/resource_end 元数据记录可能的 GPU 共享和进程快照；并行区间的两臂 wall-clock 不作为独占 GPU 速度比较，原 3.640/1.395 小时估算不保证在共享条件下成立。
 - 本次没有修改 src/scripts/configs/tests，继续读取并校验 `27d79ea` 的 221 项全测 marker，不再跑测试或生成数据。新入口仍只承担 MLP 预算阶段，后台防重复启动；无完整报告的失败不自动重训。预算结束后再交付结果导出，不提前打开 validation/test。
+
+## LOG-057（2026-09-08）：MLP 训练后验收键名错误与无重训修复
+
+- 用户截图中旧 MLP 入口报 `previous_attempt_requires_review_no_automatic_restart`，回溯为 `cpmt_finish_report` 内嵌 Python 第 18 行。按提交 `04c8319` 精确定位，该行错误要求 `student_hyperparameters_by_method` 的键为 `A/B/C/D/E`；正式 runner 按合同输出的是 `cpmt_ctl_core/direct_classifier/direct_future_loss/execute_current_only/future_no_execution`。原 Set Transformer 入口 `72f1b8a` 也有相同检查错误。
+- 执行到这行意味着旧验收器已读到 `runner_exit.txt=0`、可解析的 `budget_report.json`，并通过原训练 commit/clean、协议/登记 hash、train digest 和 split/access 检查；据此认定 MLP 科学 runner 已正常结束，尚未完成产物验收。截图不是训练算法失败的证据；完整 JSON 尚未拉回本地，不宣称后续完整格子检查已经通过。
+- 将活动服务器阶段改为两臂既有报告验收：从独立 acceptance worktree 读取旧产物，以机器合同里的完整方法名校验，同时检查各 seed/lr/checkpoint 的格子完整性、C anchor 复用及附加权重、source hash 与原始训练提交。对持锁的运行任务只显示 pending；没有成功 runner 退出记录或报告不完整时保留失败，不启动训练。
+- 已验收后补写原 schema 的 `budget.ok.json`，其中 commit 仍是实际训练提交；另写 `budget.acceptance.json` 保存本次验收提交、旧 worker exit 和修复原因。训练报告不改写、失败日志不删除、原训练 checkout 不更新。当前代码仅变更 ops 和进度记录，src/scripts/configs/tests 及 221 项 full-test 前提保持不变。
+- 本地 Bash/内嵌 Python 语法检查通过；使用真实预算配置构造两臂报告元数据，13 项轻检查覆盖完整方法名、拒绝旧字母键、缺失格子、错误训练 commit、test 访问、C 固定计算设置漂移和 marker 防覆盖。未进行本地重训练，未访问服务器原始 arrays；先前运维模拟未采用真实方法键名，未发现此错，现已补足。
