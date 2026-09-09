@@ -4,17 +4,17 @@
 
 ## 当前看板
 
-> **2026-09-09 更新（当前服务器 probe 保持原版本；后续 train-only 阶段已预先接线）：** prepare/train 已获用户成功回执，evaluate 尚无完成回执；本轮没有同步或操作服务器。已接入修正版登记消费、GPU 四进程固定预算与 60 模型 refit、完整 train 容量检查，以及复用短训权重/探针逐例结果的新增接口检查。已做本地轻量检查，服务器完整测试及 GPU/真实分片评测 pending。详见 LOG-085。
+> **2026-09-10 更新（修正版固定 probe 报告已复核）：** 323 项测试、prepare/train/evaluate/summarize 均成功；201 组完整配对、A/C/E 五 seed 与 F 的 6432 条终点记录齐全，保留 exact、N=1350，登记消费检查通过。A/C/E 最终 exact 均值为 0.920398/0.748756/0.382587；A−C support 和两项 burden 改善仍未达到登记效应门，不能据探针宣布 M1 成功。见 LOG-086。后续代码已交付，GPU/容量/新增接口验证尚未运行。
 
-最后更新：2026-09-09，当前 probe 必须先在原服务器版本完成 evaluate/summarize/export，再同步新代码。`ops/m1_corrected_followon.sh` 已准备检查、预算、重训及导出子命令；正式 S5 confirmation/S6 的数据入口、一次性消费和解封仍需独立冻结，本入口不执行 validation/test。
+最后更新：2026-09-10，probe 导出已入库，完整轨迹不重跑。`ops/m1_corrected_followon.sh` 已准备检查、预算、重训及导出子命令；正式 S5 confirmation/S6 的数据入口、一次性消费和解封仍需独立冻结，本入口不执行 validation/test。
 
 | 项目 | 当前事实 |
 |---|---|
 | 方向 | CPMT 具身空间记忆；CTL 是主学习假设，用户希望面向 ML 研究 |
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
 | 阶段 | M1-v7：修正 train 已验收并获准复用；严格检查历史 FAIL，D-053 显式槽位诊断 PASS，D-054 正式评测接线与来源桥接已验证；完整新模型训练、S5/S6 与 M2 未启动 |
-| 最近结果 | [`m1_v6_d047_endpoint_probe.json`](results/m1_v6_d047_endpoint_probe.json)：201 groups、A/C/E 五 seed、F；终点 exact A/C/E=`0.918408/0.793035/0.471144`，open-memory graded=`0.932013/0.920288/0.878167`，open-fact AUC=`8.830846/12.383085/14.134328`。保留 exact，test N=1350；H3/H1 mean TV=`0.003293`、argmax change=`0`。固定 anchor 未满足全部效应要求，非正式成败结论 |
-| 尚缺 | 固定 probe/新组合登记、预算并行及 fit/inner-dev 诊断、真实模型小样本贯通、原网格重跑、60 模型 refit、独立确认与正式 test；D-051 数值门与 N 规则保持 |
+| 最近结果 | [`m1_v7_d054_corrected_endpoint_probe.json`](results/m1_v7_d054_corrected_endpoint_probe.json)：201 groups、A/C/E 五 seed、F；exact A/C/E=`0.920398/0.748756/0.382587`，support=`0.932137/0.918196/0.859446`，burden=`9.164179/22.393035/13.159204`。保留 exact，N=1350；固定 anchor 未达到全部效应要求，不是正式成败结论。旧 v6 结果保留作历史证据 |
+| 尚缺 | 后续新来源完整测试、GPU 对拍/容量与新增接口验收、原网格重跑、60 模型 refit、独立确认与正式 test；固定 probe/组合登记已完成，D-051 数值门与 N 规则保持 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。D-046 顺序 C weight 搜索按既有逐方法实测路径的最坏 10000-update 外推，两臂总计划约 5.036 小时（非新实测）。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
 | 当前决定 | D-039–D-043 固定 live energy、真实 C10/C11、current/posterior 审计、Pre-LN 双架构和 A–E 对称 12 格。D-044–D-046 的 endpoint、open-fact AUC `40/80`、固定 gate、C 顺序权重和纯 confirmation 保留；D-047 收紧 claim，拆清 online network/shared executor，登记外生轨迹，并把 H3-vs-H1 teacher 对照设为主文必报、无选择无成败门的机制证据。M1 不声称原始 DCR、完整动态记忆或 active navigation；全局 reconciliation、PNO 与 M2 顺序不变 |
 | 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 validation/test。D-043 无额外人工选择；运行时剖析只供用户决定何时租用算力，不改变登记网格 |
@@ -1053,3 +1053,13 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - 每步单独保存来源、attempt、exit、日志 hash、产物指纹；成功复用，失败/中断不自动重跑，导出能保留失败日志与子进程现场。阶段可连续使用已生成但未提交的精确 results 导出，科学代码必须干净；不为每个成功步骤要求 git commit/pull。预算根据历史同网格耗时默认后台；refit 读取当前机器已完成预算路径估时，只有预计超过 1800 秒才默认后台，否则前台，`--foreground` 可明确覆盖。其余短检查前台输出。
 - 本地通过 18 项新轻量测试（0.151 秒）、13 项公共 worker 回归（0.451 秒）、7 项运维检查（0.031 秒）和原 4 项 GPU 对拍运维检查（0.017 秒），共 42 项。覆盖完整配方、拒绝扩格/漏 seed/重复任务、真实预算编排配模拟分数验证三道顺序及 C 不重选计算格、配对/链校验、分片排序、单进程前向 mask/选择字段、复用/失败拒绝与导出、refit 耗时估算。这里只运行小型数组/tensor 与 metadata/模拟任务，不是实际 GPU 或真实 rollout 验证。AST、Bash 语法及原 generation/encoding 来源桥接检查通过；服务器全测、GPU 对拍、容量和实际新增接口检查均 pending。
 - 实现边界：本交付止于检查、两臂原网格及 60 模型 refit，并提供后续可复用的配对评测/统计函数。正式 S5 confirmation/S6 的新数据生成、一次性消费 reservation、最终报告与 test 解封仍未由本入口实现或授权；不把公共接口已写好表述成正式 S5/S6 已通过。
+
+## LOG-086（2026-09-10）：修正版固定 anchor probe 导出复核通过
+
+- 从 main `58fe92a` 拉取 `results/m1_v7_d054_corrected_endpoint_probe.json`，文件 SHA-256=`86ba54c4fdb9457bba373d6d1187a25d2bd0c059e75a7fbda51d80013a8ac720`。原运行 commit=`e5c25231e006c469789a02ba2c40e1a644e03034`、干净工作树，source/tests=`b7ec2ddbfcddc475a3760c8a72b71a1108758dbd19728a4fdbc49d2714b5aecc`，train digest 仍为已验收的 `a1d9f7517feb3c301e856d774369adc9754475a884d236bc49dad43af231136e`。后续正式消费者 `consume_probe()` 在本地读取实际导出后通过：合同、原运行科学 src/probe 实现、配对支持、F/终点及完整登记一致；没有读取服务器大数组或重跑轨迹。
+- 回执：323 项 full test，failures/errors/skipped=0；prepare/train/evaluate/summarize 均 exit=0，分别耗时 1984.981/1871.076/14315.849/7.371 秒。evaluate 约 3 小时 58 分钟，summarize 实测约 7.4 秒。failure map 为空。A/C/E 各五 seed×402 条轨迹、每条 20 步，另有 F 的 402 条参考轨迹；导出保留 6432 条终点记录。完整候选执行审计、权重和状态链仍在服务器，不能把本地 JSON 核验称为重新执行验收。
+- F exact/active graded/open-memory graded 均为 1，open-fact AUC 与 active-node error 均为 0；固定三项 co-primary 对两条主对照均非退化。逐组先平均两 sibling/五 seed，独立复算六格 paired SD 与均值，均与报告一致。六格原功效公式需求均低于 floor；最大原始需求来自 exact A−E，约 842.997，按 10 向上取整为 850，仍按 D-051 下限维持 N=1350。保留 exact，不重选 endpoint、不调效应门、不生成 test。
+- 五 seed 均值（A/C/E）：最终 semantic exact=`0.920398/0.748756/0.382587`；final graded open-memory correctness=`0.932137/0.918196/0.859446`；全程 open-fact error AUC/100 decisions（越低越好）=`9.164179/22.393035/13.159204`。A−C exact/support 改善为 `0.171642/0.013941`，burden 减少 `13.228856`；A−E 对应为 `0.537811/0.072691/3.995025`。A−C support 均值仍低于 0.03，两项 burden 减少均低于 40；因此不是全部成败门通过，不能据此宣布 M1 成功。这里只按既定规则接受指标可用性与样本量登记，不基于固定探针成绩另开调参规则。
+- 固定参考历史的单步 fitting/inner-dev accuracy（A/C/E）分别为 `0.944997/0.942236`、`0.934866/0.932757`、`0.905942/0.903561`，差距约 `0.002761/0.002109/0.002380`。这不是独立 validation/test，也不能用小单步差距担保连续运行泛化；C/E 的最终 exact 跨 seed 波动明显，原因仍需固定预算诊断，不从目前结果直接归因或改变搜索。
+- H3-vs-H1：7638 普通行、201 完整组，平均 TV=`0.0033031878`、KL=`0.0034901599`、argmax change=0，两种 teacher/reference agreement 均为 1。H3 reference probability 相对 H1 平均变化 `-0.0024014093`；仅为教师分布诊断，不证明 H3 学生优于 H1。上述结果不进入样本量以外的新选择，也不改变预登记成功条件。
+- 本轮只改记录与流程指针，未改变源代码、配置、测试或运维入口；服务器已取得 `ef210c0` 后续代码时，可直接执行已交付的 follow-on `test`，无需为本次文档记录再同步一次。新来源完整测试、GPU 对拍、容量/新增接口等条件仍 pending；不重复原 probe。
