@@ -4,9 +4,9 @@
 
 ## 当前看板
 
-> **2026-09-09 更新（D-049 固定配置训练报告已拉取复核）：** 结果提交 `3221caf` 已拉取，导出 SHA-256 与服务器输出一致；60 个模型的登记配置、trace 终止步数和原始代码指纹核对通过。模型训练计时合计约 80.700 分钟，尚无独立 validation 或 20-step 连续结果。详见 LOG-063；S5 validation、S6 test 与 M2 均未启动。
+> **2026-09-09 更新（S5 确认数据生成失败，待精确现场诊断）：** 用户日志显示 C11 collateral 场景无法找到符合条件的范围外节点，`GENERATION_RUN_EXIT=1`；最后可见 `completed=59/200`，实际完成目录数和失败组号待读取保留产物。模型训练结果仍见 LOG-063，S5 模型评测与 test 尚未启动。详见 LOG-066。
 
-最后更新：2026-09-09，预算结果及原始训练/验收/导出 provenance 已在本地核对。两臂选择严格沿用 D-043/D-046，不扩网格、不按架构择优；D-049 新入口已在服务器通过 234 项完整测试；固定预算 train-only 训练/模型保存报告已导回，本地配置、完整性与 provenance 复核通过。用户确认 D-050 新完整测试通过；当前交付固定 200-group 确认数据生成，入口会复核原成功 marker，尚未收到新数据完成证据。
+最后更新：2026-09-09，预算结果及原始训练/验收/导出 provenance 已在本地核对。两臂选择严格沿用 D-043/D-046，不扩网格、不按架构择优；D-049 新入口已在服务器通过 234 项完整测试；固定预算 train-only 训练/模型保存报告已导回，本地配置、完整性与 provenance 复核通过。用户确认 D-050 新完整测试通过，但随后固定确认数据生成出现 C11 前置条件失败；当前只诊断保留现场，尚未修订生成规则或续跑。
 
 | 项目 | 当前事实 |
 |---|---|
@@ -14,7 +14,7 @@
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
 | 阶段 | M1-v6 S5 train-only 准备：已选配置训练/60 模型报告导回与本地复核通过；S5 validation、S6 test 与 M2 尚未启动 |
 | 最近结果 | [`m1_v6_d047_endpoint_probe.json`](results/m1_v6_d047_endpoint_probe.json)：201 groups、A/C/E 五 seed、F；终点 exact A/C/E=`0.918408/0.793035/0.471144`，open-memory graded=`0.932013/0.920288/0.878167`，open-fact AUC=`8.830846/12.383085/14.134328`。保留 exact，test N=1350；H3/H1 mean TV=`0.003293`、argmax change=`0`。固定 anchor 未满足全部效应要求，非正式成败结论 |
-| 尚缺 | 生成并验收固定 200-group 确认数据，随后开展一次 validation confirmation，复用已保存模型；正式 test 入口仍需消费组合登记并重新冻结。原 AUC `40/80` 与 validation/test 边界保留 |
+| 尚缺 | 定位 C11 生成失败与修复影响，保留已完成/失败分片；确认数据尚未完整，模型 confirmation 不启动；正式 test 入口仍需消费组合登记并重新冻结。原 AUC `40/80` 与 validation/test 边界保留 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。D-046 顺序 C weight 搜索按既有逐方法实测路径的最坏 10000-update 外推，两臂总计划约 5.036 小时（非新实测）。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
 | 当前决定 | D-039–D-043 固定 live energy、真实 C10/C11、current/posterior 审计、Pre-LN 双架构和 A–E 对称 12 格。D-044–D-046 的 endpoint、open-fact AUC `40/80`、固定 gate、C 顺序权重和纯 confirmation 保留；D-047 收紧 claim，拆清 online network/shared executor，登记外生轨迹，并把 H3-vs-H1 teacher 对照设为主文必报、无选择无成败门的机制证据。M1 不声称原始 DCR、完整动态记忆或 active navigation；全局 reconciliation、PNO 与 M2 顺序不变 |
 | 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 validation/test。D-043 无额外人工选择；运行时剖析只供用户决定何时租用算力，不改变登记网格 |
@@ -857,3 +857,12 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - 当前唯一阶段改为 `m1_v6_d050_s5_confirmation_data`，输出固定 `/root/autodl-tmp/cpmt_outputs/m1-v6-d050-s5-validation-g200`。后台调用已通过服务器测试的 runner `generate` 模式，16 workers 生成 validation 4–203 的 200 个完整配对组（400 条轨迹、8000 个在线决策）；保留此前固定的历史排除范围、原生成器和编码器，不训练、不运行模型确认、不访问 test。
 - 原工作目录保持不变时，重复运行入口只报告持锁任务状态和日志尾部；完成后核对 runner exit、完整 200 组 shard hash、每组 summary 的 split/index/2 siblings/40 decisions、总 manifest 的 400 sequences/8000 decisions、原覆盖和教师健康门及 provenance，再写 generation.ok.json。成功产物只验收复用，失败/中断保留并拒绝自动重启；不得用新组替换失败组。尚未收到真实生成完成输出。
 - 本轮只改 ops 与既有进度记录，src/scripts/configs/tests 保持 `4b8522e` 的科学代码不变，可复用刚通过的 250 项验证。Bash 和三个内嵌 Python 静态检查通过；8 项纯元数据/临时文件检查覆盖完整验收、成功复用、损坏分片、错误 test 访问、教师健康失败、缺失组、错误来源提交和非零 runner exit 的拒绝。未在本地生成数据、加载数组或执行模型。
+
+## LOG-066（2026-09-09）：S5 确认数据 C11 生成失败，保留产物并定位证据范围问题
+
+- 用户截图显示并行生成最后可见 `S5_DATA_GROUP_OK index=60 completed=59/200`，随后 `ValueError: C11 collateral stress requires an unprotected node outside the current evidence scope`；`GENERATION_RUN_EXIT=1`、`SERVER_STEP_FAILED id=m1_v6_d050_s5_confirmation_data reason=generation_failed_requires_review`。栈位于 `_generate_sequence → _candidate_programs → _build_fixed_candidate_catalog → _proposal_context`；尚未运行模型确认。并行返回顺序不能确定失败组，也不能把截图中的 59 当作最终实际完整目录总数。
+- 静态核查发现独立的实现问题：`_current_online_evidence_scope` 注释定义检索后的“一跳”子图，但循环直接用持续增长的 selected 集合判定后续边，可能跨多跳传播且依赖边记录顺序。用实际函数体的三节点/两条边纯字典反例，固定检索种子 a 时，边顺序 a-b、b-c 会纳入 c；反向边顺序则不会。未生成任何数据集或运行模型。该反例证明代码和一跳注释不一致，但尚未证明它足以解释本次真实失败。
+- 此函数不仅决定 C11 无关候选，还参与 reference/recovery 的 collateral 能量以及自有记忆 rollout 的 collateral 指标；不能仅为让生成通过而删除断言、收缩范围、改组号或添加节点。当前未改它，也未据此要求重跑整个 M1；是否需要修订定义、哪些既有数据/模型/评测受影响，必须以确切现场与后续影响核查决定。
+- 当前唯一入口改为 `m1_v6_d050_s5_generation_diagnostic`：持原 worker 锁确认任务已退出，仅读原目录的开始/退出/manifest/complete/failure 元数据，列出完整、失败和中断组。从已有精确 C11 failure.json 中取最小组号，仅按原生成规则在内存复现这一组；使用 sys.settrace 读取 evidence scope 扩展前后集合与异常帧，保存实际 graph/event、sequence/sibling/step、bind targets 和候选池。它不替换函数、不改返回值，不重扫 200 组，不覆盖原分片或继续模型评测。
+- 诊断独立保存到 `/root/autodl-tmp/cpmt_outputs/m1-v6-d050-s5-generation-diagnostic`，最终通过仓库 exporter 输出唯一 `results/m1_v6_d050_s5_generation_failure.json`；原元数据前后指纹必须一致。匹配的诊断/导出可复用；即使未复现或出现不同异常也明确保存该状态，不冒称根因已确认。新增 exporter 仅支持 diagnostic_report 及独立 provenance，是本轮 src/scripts/configs/tests 唯一变化；原生成/执行/模型/指标代码保持失败时版本。
+- 本地 Bash/内嵌 Python/exporter 静态检查通过；三节点真实 scope 函数反例与观察器检查验证初始/最终范围、异常上下文捕获和输入未修改，diagnostic-only 导出包装检查通过。没有本地真实 group 生成、模型运行、全套测试或 validation 模型指标。尚待服务器诊断返回，不追加新方法 decision、不更换固定确认范围、不删除失败记录。
