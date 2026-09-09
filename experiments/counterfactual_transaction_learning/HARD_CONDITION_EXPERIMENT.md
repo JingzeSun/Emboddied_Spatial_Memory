@@ -245,8 +245,14 @@ train 复用必须经 `configs/m1_train_reuse_policy.json` 核对原验收指纹
 
 `m1_training_jobs.py` 将一条模型训练路径作为独立进程任务。输入是固定 train 数组、架构/seed/学习率/checkpoints 和必要的已完成 scorer，输出是逐 checkpoint 权重、概率、训练 trace、逐组指标及可核验完成记录。例如四个进程共享一张 GPU，各自训练不同 seed 的完整模型，而不是四个进程分担同一模型的更新。CPU 线程限制为每进程一条；调度线程只管理子进程，不共享模型或随机状态。
 
-同一实现支持 budget 和 refit 两种人口划分：前者按原 hash 留出完整 train groups，后者使用全部输入 train。fit/inner-dev 采用相同的普通行 reference-ranking accuracy 定义，并另报逐组均值和差距；refit 不保留“独立 inner-dev”说法。此差距不改变参数选择规则，也不等于独立泛化成绩。正式 1000 组、全部原网格、C 顺序权重搜索以及 60 模型重训的登记消费仍待后续正式编排；当前 CLI 只接受固定工程检查，拒绝直接运行正式任务。
+同一实现支持 budget 和 refit 两种人口划分：前者按原 hash 留出完整 train groups，后者使用全部输入 train。fit/inner-dev 采用相同的普通行 reference-ranking accuracy 定义，并另报逐组均值和差距；refit 不保留“独立 inner-dev”说法。此差距不改变参数选择规则，也不等于独立泛化成绩。正式 1000 组、全部原网格、C 顺序权重搜索以及 60 模型重训的登记消费已由 `m1_corrected_training_plan.py` 和 `run_m1_corrected_followon.py` 接线，服务器验证 pending。worker 只接受固定工程检查或经过 ready 回执、固定配方和来源校验的 train-only 任务；不能直接增加学习率、步数、seed 或读取 validation/test。
 
 GPU 对拍固定使用原 train groups 0..9（原 hash 分为 9 fit/1 inner-dev）、两架构、seeds 7/19、scorer+A–E、lr=0.0006、steps 10/30、C weight=1。两种人口模式各跑单进程和四进程，核对精确 tensor 数值、教师/概率、checkpoint 分数与 trace；torch.save 容器字节不是比较对象，容差不在结果出现后放宽。例如调度次序不同但同 seed 的权重与预测一致才通过；任何差异保留诊断并暂停，而非修改样本或选择更好结果。它不验证学习收益、不完成原网格选参，也不证明 1000 组的四进程显存峰值已经满足。
 
 检查期间不与当前 corrected probe 的 CPU 评测并行，以免将共享算力下的延迟误报为独占测量。小样本资源/速度报告只能描述已记录的运行条件；正式训练并发选择和完整规模资源检查仍按 D-051 与用户明确要求处理。所有来源、完成/失败日志和 exported report 保留，test 不访问，validation 不读取。
+
+完整规模容量检查固定使用 1000 组 train、两架构各一条 scorer/A、seed 7、lr=0.0006、两步更新，四进程同时运行完整 refit 人口并记录采样资源和每进程分配峰值。输入仍是已验收数组，输出只用于决定四进程能否保持显存/内存余量。例如小样本对拍通过但完整数组放不进四份 worker 时，在正式网格前停止。它不重新选择超参，也不保证后续整个长任务不会发生资源故障；不得把两步分数写成方法成绩。
+
+`m1_paired_evaluation.py` 是磁盘分片评测公共路径：输入保存权重及完整 paired group 文件路径，worker 自行读取两条轨迹，每条连续执行 20 步；输出逐组真实执行审计、逐例指标和按组号合并的结果。例如同一场景的两个 pivot sibling 始终在一个任务里，不将第 10 步后半段交给另一 worker。前向 p95 不从 worker 分位数拼接；关闭评测进程池后，读取实际在线输入作单进程前向重放，并核对选择不变。此计时只覆盖网络与概率计算，不是完整系统耗时，也不声称机器全局独占。
+
+新增接口检查只使用并发对拍已经保存的两架构 A/C/E、seed 7、30-step refit 权重和原固定 inner-dev 组号最前四组；不为该检查额外训练。逐例完整记录要求不分片串行与四 worker 合并精确一致。正式统计公共函数另读取已有 probe 的 201 组、五 seed 结果，检查配对覆盖后复用原 10000 次 bootstrap、安全门及 Holm 计算；其 train-only 输出不参与选参、不判断 M1 方法成败。正式 S5/S6 的消费 reservation、数据入口及解封仍需独立冻结；公共数值函数已接入不等于这些正式运行已获放行。

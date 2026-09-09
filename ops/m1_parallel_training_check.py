@@ -100,7 +100,8 @@ def main():
         'ops_sha256': file_sha256(Path(__file__)), 'shell_sha256': file_sha256(ROOT / 'ops/m1_parallel_training_check.sh'),
         'test_delivery_sha256': file_sha256(ROOT / 'ops/m1_candidate_availability.py')}
     if action != 'export':
-        require(not capture_run_provenance(ROOT, component='parallel_training_ops')['git_dirty'], 'clean checkout required')
+        from m1_corrected_training_plan import require_clean_science
+        require_clean_science()
     stage = Path('/root/autodl-tmp/cpmt_outputs') / ('m1-v7-d054-training-process-check-' + source[:12])
     stage.mkdir(parents=True, exist_ok=True)
     print(f'PARALLEL_TRAINING_CHECK_STAGE action={action} output={stage} formal_budget_authorized=false', flush=True)

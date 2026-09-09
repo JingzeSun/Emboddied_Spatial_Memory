@@ -89,7 +89,8 @@ def make_job(mode, architecture, seed, method, input_path, manifest, binding, de
 def run(output):
     no_active_probe()
     hard, rebuild, science = contracts()
-    require(not capture_run_provenance(ROOT, component='parallel_training_check')['git_dirty'], 'clean checkout required')
+    from m1_corrected_training_plan import require_clean_science
+    require_clean_science()
     binding = {'source_and_tests_sha256': science['source_and_tests_sha256'], 'science': science, 'plan': fixed_plan()}
     output.mkdir(parents=True, exist_ok=True)
     require(not (output / 'attempt.json').exists(), 'previous check retained; no automatic restart')
@@ -137,7 +138,8 @@ def run(output):
             'pass': passed, 'compared_jobs': sum(map(len, comparisons.values())),
             'training_jobs_executed': 96, 'formal_budget_authorized': False,
             'validation_access': False, 'test_access': False,
-            'full_budget_or_s5_registration_consumption_implemented': False,
+            'full_budget_or_s5_registration_consumption_implemented': True,
+            'full_budget_or_s5_server_validation_completed': False,
             'full_population_resource_check_completed': False}
         write_json(output / 'report.json', report)
         print(f'TRAINING_PROCESS_CHECK_RESULT pass={str(passed).lower()} compared_jobs=48', flush=True)

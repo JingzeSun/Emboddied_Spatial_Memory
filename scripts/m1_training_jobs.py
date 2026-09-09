@@ -1,7 +1,7 @@
 """Shared model-path worker and process dispatcher for budget and S5 recipes.
 
-The executable interface currently accepts only the fixed train-only engineering
-check. Formal grid/refit release still requires the corrected probe and plans.
+The executable interface accepts fixed engineering jobs or sealed train-only
+grid/refit recipes. Formal grid/refit requires corrected probe and check receipts.
 No generator, learning algorithm, optimizer, or scientific gate is changed.
 """
 from __future__ import annotations
@@ -48,7 +48,10 @@ def check_config(architecture):
 
 def validate_job(job):
     require(job['schema_version'] == 'cpmt-training-path-job-v1', 'wrong training job schema')
-    require(job['authorization'] == 'fixed_train_only_engineering_check', 'formal training not released by this entry')
+    if job['authorization'] != 'fixed_train_only_engineering_check':
+        from m1_corrected_training_plan import validate_registered_job
+        validate_registered_job(job)
+        return
     require(job['mode'] in ['budget', 'refit'], 'unknown training population')
     require(job['architecture'] in ARCHITECTURES and job['seed'] in CHECK_SEEDS, 'unregistered check arm/seed')
     require(job['method'] in ['outcome_scorer', *METHODS], 'unknown method')
@@ -90,6 +93,10 @@ def ranking_metrics(probabilities, teacher, arrays):
         'group_mean_reference_accuracy': float(np.mean(list(by_group.values()))),
         'teacher_argmax_agreement': float(np.mean(predicted[keep] == t.argmax(1)[keep])),
         'teacher_reference_accuracy': float(np.mean(t.argmax(1)[keep] == target[keep])),
+        'reference_candidate_static_unavailable_rate': float(np.mean(~mask[np.arange(len(target)), target][keep])),
+        'teacher_reference_error_rate': float(np.mean(t.argmax(1)[keep] != target[keep])),
+        'amortization_disagreement_with_teacher': float(np.mean(predicted[keep] != t.argmax(1)[keep])),
+        'candidate_miss_interpretation': 'reference_slot_static_availability_only_not_complete_generator_recall',
         'population_is_reference_history': True}
 
 
@@ -126,7 +133,11 @@ def validate_scorer_dependency(job, dependency_job):
 def run_training_path(job, path, config):
     """One process, one uninterrupted optimizer path, all requested checkpoints."""
     validate_job(job)
-    require(config == check_config(job['architecture']), 'unregistered check model/config')
+    if job['authorization'] == 'fixed_train_only_engineering_check':
+        require(config == check_config(job['architecture']), 'unregistered check model/config')
+    else:
+        from m1_corrected_training_plan import training_config
+        require(config == training_config(job['architecture']), 'unregistered training config')
     require(sys.platform == 'linux' and torch.cuda.is_available(), 'AutoDL CUDA required; no CPU fallback')
     torch.set_num_threads(1)
     device = torch.device('cuda')
@@ -195,7 +206,8 @@ def run_training_path(job, path, config):
             'parameter_count': sum(p.numel() for p in model.parameters()),
             'parameter_signature': [[n, list(p.shape), p.requires_grad] for n, p in model.named_parameters()],
             'provenance': capture_run_provenance(ROOT, component='shared_training_path'),
-            'model_selection_performed': False, 'formal_run': False})
+            'model_selection_performed': False, 'formal_run': False,
+            'training_role': job['authorization']})
     complete_unit(path, binding, produce)
     # Reload through the common consumer without modifying future RNG streams.
     loaded, payload = load_model(path, binding, max(job['checkpoints']), device)
@@ -294,7 +306,8 @@ def main():
     args = parser.parse_args()
     request = read_json(args.request); job = request['job']
     require(source_tree_sha256(ROOT, roots=('src', 'scripts', 'configs', 'tests')) == job['source_and_tests_sha256'], 'worker source changed')
-    require(not capture_run_provenance(ROOT, component='training_worker')['git_dirty'], 'worker needs clean checkout')
+    from m1_corrected_training_plan import require_clean_science
+    require_clean_science()
     run_training_path(job, args.output, request['config'])
 
 

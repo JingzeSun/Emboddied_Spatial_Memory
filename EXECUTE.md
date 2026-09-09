@@ -4,9 +4,9 @@
 
 ## 当前看板
 
-> **2026-09-09 更新（当前服务器 probe 保持运行；并行训练公共路径已预先开发）：** 修正版 probe 的 prepare/train 已获用户成功回执，evaluate 正在服务器串行运行；本轮没有同步或操作服务器。已新增预算分区/全 train 重训共用的独立进程 worker、固定十组 GPU 串行/四进程对拍入口及来源/失败保护，完成本地 17 项轻量检查；GPU 检查尚未运行。详见 LOG-084。
+> **2026-09-09 更新（当前服务器 probe 保持原版本；后续 train-only 阶段已预先接线）：** prepare/train 已获用户成功回执，evaluate 尚无完成回执；本轮没有同步或操作服务器。已接入修正版登记消费、GPU 四进程固定预算与 60 模型 refit、完整 train 容量检查，以及复用短训权重/探针逐例结果的新增接口检查。已做本地轻量检查，服务器完整测试及 GPU/真实分片评测 pending。详见 LOG-085。
 
-最后更新：2026-09-09，当前 probe 必须先在原服务器版本完成 summarize/export，再同步新训练检查代码。公共 worker 两种模式已有实现，不等于正式预算选择或 S5 登记消费已接完；完整 1000 组资源核验和正式路径小预演仍待完成。
+最后更新：2026-09-09，当前 probe 必须先在原服务器版本完成 evaluate/summarize/export，再同步新代码。`ops/m1_corrected_followon.sh` 已准备检查、预算、重训及导出子命令；正式 S5 confirmation/S6 的数据入口、一次性消费和解封仍需独立冻结，本入口不执行 validation/test。
 
 | 项目 | 当前事实 |
 |---|---|
@@ -1040,3 +1040,16 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - 新 ops/m1_parallel_training_check.sh test/check/export 为前台有界检查，独立源码绑定输出目录，精确导出 results/m1_v7_d054_training_process_check.json。test/check 之前均检查 /proc 中是否仍有当前 corrected probe evaluate，若存在则在新 attempt/训练前拒绝，避免污染本轮 CPU 延迟。四进程必须通过既有 cgroup CPU、显存和内存保守阈值；这只是十组检查容量，full_population_resource_check_completed=false，不能外推已满足 1000 组四进程的实际峰值。完整预算与 S5 正式登记消费保持禁止，机器报告显式 full_budget_or_s5_registration_consumption_implemented=false；后续仍须完成两者编排，不能遗漏 S5。
 - 本地 13 项公共路径轻量检查通过（0.416 秒）：冻结架构/GPU 单线程配置、禁止正式任务/参数扩张、E 依赖错 seed 拒绝、完整组隔离与 refit 非独立、指标对照旧定义、masked/nonfinite 拒绝、四并发上限/排序、重复任务和失败不重试、精确数值比较、微小差异拒绝、配置漂移和权重篡改拒绝。4 项运维微型测试通过（0.028 秒）：活动 probe 阻止启动、完成失败不重启、中断不重启、失败可导出并复用。测试只使用小型数组/tensor 文件和受控调度函数，没有模型训练或 GPU；AST、Bash 语法、diff 检查通过，原 D-054 generation/encoding 来源桥接仍一致。静态全套预计 336 项，服务器新全测及 GPU 对拍尚未运行。
 - 重要交接边界：新脚本会改变全局 source/tests 指纹。当前服务器不能 pull；必须先用当前版本跑完 evaluate、summarize、export，保留并提交该精确 probe 结果，再同步新阶段。没有要求为本轮本地开发重复已成功的 prepare/train，也没有将开发中的 GPU 方案套进当前 CPU probe。
+
+## LOG-085（2026-09-09）：预先接线后续检查、固定并行预算与全 train 重训
+
+- 用户要求复用当前 probe 已覆盖的工程证据，并把已确定的后续阶段一次准备好。本轮实现 `ops/m1_corrected_followon.sh` 的命名动作和对应正式 runner，未操作服务器或启动训练/生成/rollout。当前 probe 的 runner、运维脚本和 `src/` 科学模块未修改；仍须在原服务器版本完成 probe 汇总/导出。阶段顺序和命令只维护在 M1_V2_CLOSEOUT_FLOW，不新增交接文件。
+- 新 `m1_corrected_training_plan.py` 消费修正 probe 的完整导出，逐例重算原登记，F/固定终点失败时不发放预算。核对固定合同、train digest、旧运行 commit 的科学 src 与 probe 实现；新全局 source/tests hash 不冒充旧 probe 的运行来源。GPU 对拍报告须对应当前源码，48 对保存权重/概率/指标再次核验。后续直接复用该来源完整测试回执，不再因更换 ops 入口重跑全套测试。
+- 训练 worker 增加带配方指纹和 ready 回执的 train-only 模式。两臂共 30 条 scorer 优化器路径，选完对应 scorer 后才派发 150 条 A–E 路径；每条连续更新到 10000，并在 300/1000/3000/10000 保存 checkpoint，不把它们当四次独立训练。之后仅在 C 已选计算格补 0.1/10，两臂共 20 条；基线 weight=1 复用。共 200 条路径、740 个不重复 checkpoint 观察。使用原 group-first/等权五 seed reducer、平手规则、原 260907 seed 的预算不确定性诊断和共享/交叉计算格诊断；不扩网格、不选架构或幸运 seed。fit/inner-dev 同口径分数与差距、参考槽位静态不可用、教师参考错误与学生/教师不一致分别记录；这些不是完整视觉候选召回或独立泛化成绩。
+- 全 train refit 从预算保存的逐组指标重新核对选择结果，复用同一公共 GPU worker，在原 1000 组、原 label mask 上从头训练 10 scorer+50 student。E 只消费同架构/seed/数组/人口/来源的已完成 scorer；C 读取最终已选 weight。refit 的 inner_dev=null/independent=false，不把已用于拟合的旧 inner-dev 继续称为独立验证。两臂预算和 refit 都按四独立进程、每进程一条 torch/BLAS CPU 线程接线；服务器运行与容量验证尚未完成。
+- 固定容量检查使用两架构各 scorer/A、seed 7、lr=0.0006、完整 1000 组 refit 人口、两步更新，四条路径同时运行并记录资源采样及分配峰值；只作运行资源门，不用分数调参或宣称长任务资源保证。显存/主存余量失败即保留现场，不能静默改科学配方。
+- 新 `m1_paired_evaluation.py` 按完整 paired group 分片，spawn worker 只接收路径/小型配置，自行加载一个保存模型和每组两条审计轨迹。模型加载放在首个任务内，错误传回 parent，避免 initializer 失败导致反复派生 worker。每条轨迹保持 20 步状态连续，保留实际候选执行、在线输入、选择与持续世界；审计使用 gzip level 1。parent 按组号合并并拒绝缺项/重复/断链，worker 前向 p95 不用于报告；关闭进程池后单独重放已记录的在线前向，验证 argmax 选择不变并测同范围 p95。这是网络及概率运算耗时，不是系统总延迟或机器全局独占测量。
+- 新增接口检查复用 GPU 对拍的两架构 A/C/E、seed 7、30-step refit 权重；固定原 inner-dev 组号前四组，共六模型×四组×两 sibling×20=960 次决策/布局。只对新增路径运行不分片串行与四 worker 两种布局，全部逐例科学记录须精确相等，不按效果挑样本或放宽容差。另直接读取 probe 已保存的 201 组五 seed 逐例 JSON，调用原 paired bootstrap/安全门/Holm 公共数值路径；不重跑 120600 次 probe 决策、不为接口检查额外训练。四组和 201 组统计均明确 train-only 工程用途，不据此作 M1 成败判断。
+- 每步单独保存来源、attempt、exit、日志 hash、产物指纹；成功复用，失败/中断不自动重跑，导出能保留失败日志与子进程现场。阶段可连续使用已生成但未提交的精确 results 导出，科学代码必须干净；不为每个成功步骤要求 git commit/pull。预算根据历史同网格耗时默认后台；refit 读取当前机器已完成预算路径估时，只有预计超过 1800 秒才默认后台，否则前台，`--foreground` 可明确覆盖。其余短检查前台输出。
+- 本地通过 18 项新轻量测试（0.151 秒）、13 项公共 worker 回归（0.451 秒）、7 项运维检查（0.031 秒）和原 4 项 GPU 对拍运维检查（0.017 秒），共 42 项。覆盖完整配方、拒绝扩格/漏 seed/重复任务、真实预算编排配模拟分数验证三道顺序及 C 不重选计算格、配对/链校验、分片排序、单进程前向 mask/选择字段、复用/失败拒绝与导出、refit 耗时估算。这里只运行小型数组/tensor 与 metadata/模拟任务，不是实际 GPU 或真实 rollout 验证。AST、Bash 语法及原 generation/encoding 来源桥接检查通过；服务器全测、GPU 对拍、容量和实际新增接口检查均 pending。
+- 实现边界：本交付止于检查、两臂原网格及 60 模型 refit，并提供后续可复用的配对评测/统计函数。正式 S5 confirmation/S6 的新数据生成、一次性消费 reservation、最终报告与 test 解封仍未由本入口实现或授权；不把公共接口已写好表述成正式 S5/S6 已通过。
