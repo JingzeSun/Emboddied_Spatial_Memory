@@ -1,0 +1,95 @@
+{
+  "completion": {
+    "binding": {
+      "ops_sha256": "9dacefda9bc0769f2ba1a5621c7d0baec591da2355e97cfe59ecddd1b550d7c9",
+      "shell_sha256": "6b9c7fe4929d33d1a99230116079dd4cfd1c88039e23adeda9e5c95f905698e6",
+      "source_and_tests_sha256": "176275ba3aa76e8f0fe561f9d5b0d4064d532f3db2fef7dfaa56d4f7989c869b",
+      "test_delivery_sha256": "23d83d517018a55d505a8d3ee9df86afdb02a61d6004f2ced9dc2d6f997276d7"
+    },
+    "exit_code": 0,
+    "report_sha256": "de495a5367ae8b1b0d00b171ac859857460e0716918df637175b65a850b6a035"
+  },
+  "formal_budget_authorized": false,
+  "full_test": {
+    "binding": {
+      "ops_sha256": "9dacefda9bc0769f2ba1a5621c7d0baec591da2355e97cfe59ecddd1b550d7c9",
+      "shell_sha256": "6b9c7fe4929d33d1a99230116079dd4cfd1c88039e23adeda9e5c95f905698e6",
+      "source_and_tests_sha256": "176275ba3aa76e8f0fe561f9d5b0d4064d532f3db2fef7dfaa56d4f7989c869b",
+      "test_delivery_sha256": "23d83d517018a55d505a8d3ee9df86afdb02a61d6004f2ced9dc2d6f997276d7"
+    },
+    "errors": 0,
+    "exit_code": 0,
+    "failures": 0,
+    "log_sha256": "8fe1a23aaf3e71179c11fddbeeec6e66e14a1ab046d844c1ee6dd1e8cf45c5a4",
+    "skipped": 0,
+    "tests": 311
+  },
+  "report": {
+    "accepted": true,
+    "all_groups_regenerated_and_compared": false,
+    "arrays_digest": "a1d9f7517feb3c301e856d774369adc9754475a884d236bc49dad43af231136e",
+    "candidate_availability_policy": {
+      "c11_missing_target": "record_keep_full_trajectory_and_all_original_metric_denominators",
+      "candidate_slots": 16,
+      "canonical_duplicates": "retain_first_mark_later_slots_unavailable",
+      "decision": "D-054",
+      "empty_slot_execution": "not_attempted_no_post_world",
+      "formal_test_release": false,
+      "online_selection": "shared_availability_and_static_preflight_mask",
+      "policy_id": "shared_explicit_candidate_slots_v1",
+      "reference_generation": "strict_k16_unchanged",
+      "reference_reachability": "post_selection_semantic_exact_over_selectable_legal_candidates",
+      "schema_version": "cpmt-m1-candidate-availability-policy-v1"
+    },
+    "data_generated": false,
+    "encoding_definition_check": "unchanged_except_causal_evaluation",
+    "formal_budget_authorized": false,
+    "generation_commit": "ee1af48eb9d6337e0f22a23b34c1042d00cf715b",
+    "generation_marker_sha256": "ffc18b168554e35af20aed89a18dd5cce7b881c1a30c2f78ea3b03757e4c12fc",
+    "provenance": {
+      "component": "candidate_policy_train_reuse",
+      "entrypoint": "ops/m1_candidate_policy.py",
+      "entrypoint_sha256": "9dacefda9bc0769f2ba1a5621c7d0baec591da2355e97cfe59ecddd1b550d7c9",
+      "git_branch": "main",
+      "git_commit": "2febabf9ef60b8f37e212714b54354499bf0e811",
+      "git_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "git_dirty": false,
+      "git_status": [],
+      "schema_version": "cpmt-run-provenance-v1",
+      "source_tree_sha256": "0548ba886ff71391500de96becbd57073d03defd7c0b4d701169f9e4ac8e8a75"
+    },
+    "reference_behavior_evidence_groups": 16,
+    "schema_version": "cpmt-m1-train-reuse-verification-v1",
+    "source_and_tests_sha256": "176275ba3aa76e8f0fe561f9d5b0d4064d532f3db2fef7dfaa56d4f7989c869b",
+    "source_changes": {
+      "src/cpmt/m1_af_rollout.py": {
+        "change": "modified",
+        "normalized_sha256": "8a433e064b883c5cb2b61744d557a685b646a248936e572da2caf19b299cbd77"
+      },
+      "src/cpmt/m1_branch_preflight.py": {
+        "change": "added",
+        "normalized_sha256": "63ee8dca4e0990ca97ffae24b8948c9dc8a83a8df7843f612d8e902fb0937a58"
+      },
+      "src/cpmt/m1_candidate_policy.py": {
+        "change": "added",
+        "normalized_sha256": "b4971c455773ef565545a2c3df6949335cdca2f85dcda6403757c2eb32cd3a64"
+      },
+      "src/cpmt/m1_rollout.py": {
+        "change": "modified",
+        "normalized_sha256": "369edb57da8e305acffacffe90f55e244c1d628628ee70b15afc381e3cb1c49e"
+      },
+      "src/cpmt/m1_train_reuse.py": {
+        "change": "added",
+        "normalized_sha256": "b2c040b72566468ef9ade209a9c318540290cad5bfb51854bf68cecce7099892"
+      }
+    },
+    "test_access": false,
+    "training_performed": false,
+    "validation_access": false,
+    "verified_files": 1002,
+    "verified_train_groups": 1000
+  },
+  "schema_version": "cpmt-candidate-policy-train-reuse-export-v1",
+  "test_access": false,
+  "validation_access": false
+}
