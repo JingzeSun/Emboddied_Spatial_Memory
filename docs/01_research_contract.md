@@ -12,6 +12,12 @@
 
 ## 方法角色
 
+范围修复后的重建受 D-051 和 [`m1_scope_rebuild_plan.json`](../configs/m1_scope_rebuild_plan.json) 约束（生产接线 pending）：current evidence scope 必须由原当前查询的固定检索集合做一次 open-edge 扩展，对边记录排列不变，不递归使用扩展结果。它同时用于 C11 候选、collateral 教师能量和安全指标；对应操作性定义及数据版本须在修正数据生成前写入机器合同。旧实现的产物只作历史证据，不与修正版本混合。
+
+白话：这条约束明确“当前观测涉及哪些已有记忆”。输入是当前图与检索到的节点/边，输出是一跳涉及的标识集合；例如检索到 A、存在 A–B 和 B–C 时，可以纳入 B，但不能仅因 B 刚被纳入又把 C 加进来。它不改变候选预算、学习目标权重或安全门，不是主动获取新观测；修复正确性不等于 CTL 方法有效。
+
+修正后的 fixed train probe 保留 exact、support、AUC 与原安全门，F 或非退化检查失败时停止，不重选 endpoint。test 组数仅在进入 confirmation 前按原六格 SD 公式重估一次并取至少 1350；不按观测效应或 validation/test 结果调整。预算重跑保持原网格和完整 paired-group 隔离，inner-dev 最优值不作无偏泛化成绩；只有完整独立确认与 test 才能支持对应范围内的最终性能结论。执行顺序、阶段证据与具体限制分别见唯一流程、EXECUTE 和 D-051。
+
 - CPMT：完整具身空间记忆系统；
 - CTL：从 future-conditioned transaction posterior 蒸馏 online transaction policy 的核心学习机制；
 - Projective Node Orbit：使同一世界节点解释多视角 observation latents 的表征基础；

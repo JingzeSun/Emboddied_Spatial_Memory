@@ -6,7 +6,7 @@
 
 > **2026-09-09 更新（train 范围影响报告已核对）：** 201 个已有 train/inner-dev 审计组中，169/402 个 C11 决策的候选对象改变；固定旧候选复算时 490/8442 条教师分布改变、首选改变 0。影响已进入训练输入与软监督，不能只改 validation 后直接沿用旧模型作修正后的正式确认。生产修复与重新冻结尚未实施；S5 模型评测与 test 仍未启动。详见 LOG-069。
 
-最后更新：2026-09-09，预算结果及原始训练/验收/导出 provenance 已在本地核对。两臂选择严格沿用 D-043/D-046，不扩网格、不按架构择优；D-049 新入口已在服务器通过 234 项完整测试；固定预算 train-only 训练/模型保存报告已导回，本地配置、完整性与 provenance 复核通过。D-050 确认数据生成的失败现场已导回并定位，尚未修订生成规则或续跑；旧数据、教师与指标的受影响范围仍待检查。
+最后更新：2026-09-09，旧训练/预算/诊断报告已核对；范围修正对候选与监督的实际影响见 LOG-069。D-051 固定统一重建、重跑原预算与全部模型，保留旧产物，当前仅交付服务器有界并行测速（LOG-070）。生产 scope、旧 hard config、旧 probe/registration 与训练算法尚未改动；修正版本仍需完整验证与重新冻结，不恢复 S5 或解封 test。
 
 | 项目 | 当前事实 |
 |---|---|
@@ -892,3 +892,13 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - 工程判断：当前 CTL 学习完整软教师分布，首选未变不能推出训练目标未变；169 个 C11 对象替换还没有重新执行，因此上述固定候选差异不代表修正后的完整教师效果。已有报告足以否定“仅修 validation 然后把旧模型直接当作修正版训练结果”的做法。旧数组、模型、预算/probe 报告仍保留为旧实现的历史证据；新正式确认需要采用一致的数据/候选/教师定义。具体重算与重新冻结方案尚未接受，本条不直接重开预算网格或推倒 executor/网络架构。
 - 本次服务器诊断循环 wall_seconds=57.920909（不含全部前置检查/测试/导出），model_evaluation_performed=false、candidates_executed=false、validation_read=false、test_access=false。本地只读导出 JSON、Git blob 并做轻量统计核对，没有读取原始审计缓存、训练或执行 rollout。该结果是实现影响证据，不是 CTL 科学假设失败，也不证明修正后的性能会升降。
 - 下一项是生产一跳修复及相应正确性检查，并明确新旧产物边界、重新冻结和受影响数据/训练/评测的处理方案；旧 59 个完整 validation 分片与 17 个 incomplete 目录继续保留，不混入修正后的数据。当前 ops 仍为已完成的影响诊断，未交付恢复生成或正式评测入口。
+
+## LOG-070（2026-09-09）：D-051 重跑规则固定，交付有界并行选参路径测速
+
+- 用户接受重训并要求检查多线程提速、控制过拟合。代码核查确认预算入口每次只处理一架构，内部 scorer 的 lr×seed、student 的 seed×method×lr 仍串行；`--threads` 控制一个进程内部 CPU 并行，不会并行网格。每条 lr 路径已经复用 300/1000/3000/10000 的 prefix checkpoints，不能把重复训练这些 checkpoint 当成新的节省空间。训练函数调用全局 torch.manual_seed，正式并发应使用独立进程隔离状态，保留 scorer/student/C-weight 阶段依赖。
+- D-051 与 `configs/m1_scope_rebuild_plan.json` 在任何修正数据/probe 前记录：完整原预算重跑、旧模型不作为修正版模型复用，exact 固定，F/非退化失败停止，test N 按原公式六格 SD 需求与 1350 取最大且仅估一次。新纯元数据 helper `src/cpmt/m1_scope_rebuild.py` 实现 N 算术、资源准入与耗时选择；尚未接入旧 `m1_registration.py`，不会伪造新 probe 或绕过旧来源绑定。生产 scope 修复、hard/dataset/registration 升版、完整预算并行调度与新增 fit/inner-dev 差距报告均待各自后续实现。
+- 新 `scripts/run_m1_budget_concurrency_probe.py` 只在 Linux/AutoDL 运行，直接调用既有 `--runtime-profile-only`，原 train 数组路径来自已接受 probe export。最多比较 (进程,线程)=(1,8)/(1,1)/(2,1)/(4,1)；每配置同样四个任务，两次各架构，每任务固定 scorer+A–E 各 300 updates。最多 16 个短任务、28800 model updates，不进行完整网格、超参数选择、新数组生成、模型保存或独立 validation/test 访问。它会计算旧 train/inner-dev 的既有诊断用于计时，但不导出科学准确率或用分数选调度。
+- 读取实际 CPU affinity/cgroup quota、主存余量及唯一 GPU 的 UUID/显存；总线程不超过 CPU 容量，按每进程预留 GPU 4 GiB、主存 8 GiB 并各留 2 GiB 余量筛掉不满足的布局。该准入只是保守估计，不保证不发生 OOM；实际异常保留日志并停止交付后续阶段，不自动重试。ThreadPoolExecutor 仅监管独立 Python 子进程，不在共享 Torch 状态中训练。按完整固定任务集耗时比较，5% 内优先少进程再少线程，报告建议仅作 runtime 初选，不宣称全预算速度或数值等价已验证。
+- 唯一 ops 阶段为 `m1_v6_d051_budget_concurrency`，输出独立 `/root/autodl-tmp/cpmt_outputs/m1-v6-d051-budget-concurrency`，完成后导出唯一 `results/m1_v6_d051_budget_concurrency.json`。后台运行、锁保护、重复调用查状态或校验成功、失败/中断不自动重启；旧服务器产物不改写。原训练算法/硬合同保持历史版本，测速新文件只记录自身来源；旧数据这里只用于计算成本，不作为修正版科学证据。
+- 8 项本地纯元数据测试通过：样本量下限、六格最大值、忽略观测效应、F/退化/不完整拒绝、CPU quota、显存余量、耗时平手及原搜索/confirmation 边界。新 Python 与 ops/内嵌 Python 静态检查通过，没有本地训练、数据生成、CUDA、真实 rollout、全套测试或 benchmark。服务器实际速度、最优并发数尚无结果；不承诺 2/4 进程线性加速。
+- 成本解释纠正：旧 D-046 的约 5.036 小时是外推，不是新实测；LOG-059 的两臂 scorer/student 时间合计另约 7.78 小时且两臂并行共享硬件，不能当作总日历时间。旧 1000-group 生成约 1001 秒、60 模型 refit 的逐模型耗时合计约 80.7 分钟，因此预算搜索值得优化，不能称其为相对重建的“零头”。这些历史数值不直接给出新实例/新版本 ETA。
