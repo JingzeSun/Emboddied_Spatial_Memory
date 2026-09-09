@@ -1427,7 +1427,7 @@ def _event_variant(event: Mapping[str, Any], **updates: Any) -> dict[str, Any]:
 
 
 def _proposal_context(
-    graph: Mapping[str, Any], event: Mapping[str, Any],
+    graph: Mapping[str, Any], event: Mapping[str, Any], *, allow_unavailable: bool = False,
 ) -> dict[str, Any]:
     """Build fixed argument ranks using only the current executable world.
 
@@ -1525,7 +1525,7 @@ def _proposal_context(
     for pair in fallback_pairs:
         if pair[0] != pair[1] and set(pair) not in [set(item) for item in merge_pairs]:
             merge_pairs.append(pair)
-    if len(merge_pairs) < 2:
+    if len(merge_pairs) < 2 and not allow_unavailable:
         raise ValueError("fixed candidate generator found fewer than two merge pairs")
     edge_targets = _repeat_to(edges, 6, name="open edge")
     place_targets = _repeat_to(places, 4, name="open place")
@@ -1563,12 +1563,12 @@ def _proposal_context(
             event,
             kind="unrelated-context",
         )
-        if not ranked_unrelated:
+        if not ranked_unrelated and not allow_unavailable:
             raise ValueError(
                 "C11 collateral stress requires an unprotected node outside "
                 "the current evidence scope"
             )
-        collateral_target = ranked_unrelated[0]
+        collateral_target = ranked_unrelated[0] if ranked_unrelated else None
     return {
         "relink_pairs": relink_pairs,
         "bind_targets": bind_targets,
@@ -1591,7 +1591,7 @@ def _proposal_context(
 
 
 def _build_fixed_candidate_catalog(
-    graph: Mapping[str, Any], event: Mapping[str, Any],
+    graph: Mapping[str, Any], event: Mapping[str, Any], *, allow_unavailable: bool = False,
 ) -> tuple[list[dict[str, Any]], dict[str, dict[str, Any]]]:
     """Create the sixteen fixed proposals without reading the reference."""
     missing = set(CANDIDATE_EVENT_FIELDS) - set(event)
@@ -1607,14 +1607,17 @@ def _build_fixed_candidate_catalog(
         raise ValueError("unsupported fixed proposal-observation source")
     if len(observation["merge_queries"]) != 2:
         raise ValueError("proposal observation requires two merge queries")
-    context = _proposal_context(graph, event)
+    context = _proposal_context(graph, event, allow_unavailable=allow_unavailable)
     evidence: dict[str, dict[str, Any]] = {}
     programs: list[dict[str, Any]] = [_noop_program(graph, event)]
     programs.extend(
         _bind_program(graph, event, target, suffix=f"bind-{slot}")
         for slot, target in enumerate(context["bind_targets"])
     )
-    if context["collateral_target"] is None:
+    if (allow_unavailable and observation["unrelated_context_active"]
+            and context["collateral_target"] is None):
+        programs.append(_unavailable_slot(graph, event, "BIND", "collateral", "c11_scope_complement_empty"))
+    elif context["collateral_target"] is None:
         programs.append(_bind_program(
             graph, event, str(event["protected_id"]),
             suffix="bind-protected-illegal",
@@ -1663,6 +1666,9 @@ def _build_fixed_candidate_catalog(
             target_node_id=context["split_targets"][slot],
             successor_ids=context["split_successors"][slot],
         )
+        if allow_unavailable and not _latest_node(graph, split_event["target_node_id"])["evidence_refs"]:
+            programs.append(_unavailable_slot(graph, event, "SPLIT", f"split-{slot}", "split_source_without_evidence"))
+            continue
         program = _split_program(graph, split_event)
         program["transaction_id"] = f"{program['transaction_id']}:slot-{slot}"
         for operation in program["operations"]:
@@ -1673,7 +1679,13 @@ def _build_fixed_candidate_catalog(
                     program["transaction_id"]
                 ]
         programs.append(program)
-    for slot, pair in enumerate(context["merge_pairs"]):
+    merge_pairs = list(context["merge_pairs"])
+    if allow_unavailable:
+        merge_pairs += [None] * (2 - len(merge_pairs))
+    for slot, pair in enumerate(merge_pairs):
+        if pair is None:
+            programs.append(_unavailable_slot(graph, event, "MERGE", f"merge-{slot}", "insufficient_distinct_merge_pairs"))
+            continue
         merge_event = _event_variant(event, target_node_ids=pair)
         program = _merge_program(graph, merge_event)
         program["transaction_id"] = f"{program['transaction_id']}:slot-{slot}"
@@ -1763,12 +1775,12 @@ def _candidate_state_signature(
 
 
 def _prepare_fixed_candidates(
-    graph: Mapping[str, Any], event: Mapping[str, Any],
+    graph: Mapping[str, Any], event: Mapping[str, Any], *, allow_unavailable: bool = False,
 ) -> tuple[
     list[dict[str, Any]], dict[str, dict[str, Any]], dict[str, Any],
     list[str | None],
 ]:
-    programs, evidence = _build_fixed_candidate_catalog(graph, event)
+    programs, evidence = _build_fixed_candidate_catalog(graph, event, allow_unavailable=allow_unavailable)
     executions = _execute_candidates(graph, programs, evidence)
     kept: list[dict[str, Any]] = []
     kept_signatures: list[str | None] = []
@@ -1788,6 +1800,11 @@ def _prepare_fixed_candidates(
         )
         if signature in signatures:
             duplicate_count += 1
+            if allow_unavailable:
+                kept.append(_unavailable_slot(
+                    graph, event, _program_label(program), f"duplicate-{len(kept)}",
+                    "canonical_duplicate", original_program=program))
+                kept_signatures.append(None)
             continue
         signatures.add(signature)
         kept.append(program)
@@ -1812,11 +1829,17 @@ def _prepare_fixed_candidates(
         "canonical_duplicates_removed": duplicate_count,
         "reference_fields_read": False,
     }
+    if allow_unavailable:
+        audit["availability_policy"] = "experimental_explicit_unavailable_slots_v1"
+        audit["unavailable_slots"] = sum(_is_unavailable_slot(p) for p in ordered)
+        audit["constructed_programs"] = len(ordered) - audit["unavailable_slots"]
+        audit["legal_programs"] = sum(signature is not None for signature in ordered_signatures)
+        audit["illegal_programs"] = audit["constructed_programs"] - audit["legal_programs"]
     return ordered, evidence, audit, ordered_signatures
 
 
 def generate_fixed_candidates(
-    graph: Mapping[str, Any], event: Mapping[str, Any],
+    graph: Mapping[str, Any], event: Mapping[str, Any], *, allow_unavailable: bool = False,
 ) -> tuple[list[dict[str, Any]], dict[str, dict[str, Any]], dict[str, Any]]:
     """Execute, canonicalize and deduplicate the fixed K=16 proposal set.
 
@@ -1825,7 +1848,7 @@ def generate_fixed_candidates(
     The function does not decide which candidate is correct and does not read
     the hidden template, future trace or reference graph.
     """
-    programs, evidence, audit, _ = _prepare_fixed_candidates(graph, event)
+    programs, evidence, audit, _ = _prepare_fixed_candidates(graph, event, allow_unavailable=allow_unavailable)
     return programs, evidence, audit
 
 
@@ -1995,6 +2018,24 @@ def audit_m1_candidate_coverage(
     return rows, summary
 
 
+def _is_unavailable_slot(program: Mapping[str, Any]) -> bool:
+    return program.get("slot_status") == "unavailable"
+
+
+def _unavailable_slot(graph, event, template, suffix, reason, *, original_program=None):
+    """Experimental input slot, not an executable transaction or a second NOOP.
+
+    The executor is never asked to execute this record. Its false shared mask
+    is visible to every method; the reason is kept for diagnostics. Formal
+    generation and evaluation remain strict until separately registered.
+    """
+    slot = _program_header(graph, event, template, suffix=f"unavailable:{suffix}", intent="REVISE")
+    slot.update(slot_status="unavailable", unavailable_reason=reason)
+    if original_program is not None:
+        slot["deduplicated_program"] = clone_json(original_program)
+    return slot
+
+
 def _program_label(program: Mapping[str, Any]) -> str:
     if program["template"] == "COMPOSITE":
         return str(program.get("composition_label", "COMPOSITE"))
@@ -2009,6 +2050,17 @@ def _execute_candidates(
     records = []
     for index, raw_program in enumerate(programs):
         program = clone_json(raw_program)
+        if _is_unavailable_slot(program):
+            # No fabricated post-world and no executor attempt for an empty slot.
+            failure = {"type": "ProposalUnavailable", "message": program["unavailable_reason"]}
+            records.append({
+                "candidate_index": index, "transaction_id": program["transaction_id"],
+                "template": _program_label(program), "base_graph_hash": base["graph_hash"],
+                "static_preflight_pass": False, "static_preflight_failure": failure,
+                "legal": False, "post_graph": None, "post_graph_hash": None,
+                "failure": failure, "slot_status": "unavailable", "execution_attempted": False,
+            })
+            continue
         try:
             preflight_transaction(
                 base, program, evidence_by_id=evidence,
@@ -3711,6 +3763,7 @@ def teacher_horizon_contrast(
 
 def materialize_rollout_step(
     audit_sequence: Mapping[str, Any], base: Mapping[str, Any], step_index: int,
+    *, allow_unavailable: bool = False,
 ) -> dict[str, Any]:
     """Rebuild an audited evaluation step on the caller's predicted graph.
 
@@ -3724,7 +3777,7 @@ def materialize_rollout_step(
         raise ValueError("step index is outside the recorded sequence")
     stored = steps[step_index]
     event = stored["event_spec"]
-    programs, evidence, _ = generate_fixed_candidates(base, event)
+    programs, evidence, generation = generate_fixed_candidates(base, event, allow_unavailable=allow_unavailable)
     executions = _execute_candidates(base, programs, evidence)
     source_online = stored["online"]
     online = _online_step(
@@ -3733,11 +3786,14 @@ def materialize_rollout_step(
         source_online["asset_family"], base, event, programs,
         audit_sequence["topology"]["semantic_latents"],
     )
-    return {
+    result = {
         "step_index": step_index,
         "online": online,
         "executed_candidates": executions,
     }
+    if allow_unavailable:
+        result["candidate_availability"] = generation
+    return result
 
 
 def execute_rollout_choices(
