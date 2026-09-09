@@ -4,17 +4,17 @@
 
 ## 当前看板
 
-> **2026-09-09 更新（D-048 两臂预算报告已拉取复核）：** 结果提交 `4d90e4b` 已拉取，两份导出 SHA-256 与服务器输出一致，逐组均值及预算选择复算通过。各自选定预算下，Set Transformer 的 A/C/E 单步 reference accuracy 为 `94.2236%/94.0534%/92.0843%`，MLP 为 `93.8701%/94.0351%/91.5213%`；A 对 C 的均值优势小且跨架构方向不一致，尚无连续记忆优势结论。详见 LOG-059；S5 validation、S6 test 与 M2 均未启动。
+> **2026-09-09 更新（D-049 固定配置训练报告已拉取复核）：** 结果提交 `3221caf` 已拉取，导出 SHA-256 与服务器输出一致；60 个模型的登记配置、trace 终止步数和原始代码指纹核对通过。模型训练计时合计约 80.700 分钟，尚无独立 validation 或 20-step 连续结果。详见 LOG-063；S5 validation、S6 test 与 M2 均未启动。
 
-最后更新：2026-09-09，预算结果及原始训练/验收/导出 provenance 已在本地核对。两臂选择严格沿用 D-043/D-046，不扩网格、不按架构择优；D-049 新入口已在服务器通过 234 项完整测试；用户已确认固定预算 train-only 训练/模型保存验收通过；当前先导出完成清单与原始 provenance，详细 JSON 尚待本地复核。独立 S5 连续评测入口仍需后续接线。
+最后更新：2026-09-09，预算结果及原始训练/验收/导出 provenance 已在本地核对。两臂选择严格沿用 D-043/D-046，不扩网格、不按架构择优；D-049 新入口已在服务器通过 234 项完整测试；固定预算 train-only 训练/模型保存报告已导回，本地配置、完整性与 provenance 复核通过。独立 S5 连续评测入口仍需后续接线。
 
 | 项目 | 当前事实 |
 |---|---|
 | 方向 | CPMT 具身空间记忆；CTL 是主学习假设，用户希望面向 ML 研究 |
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
-| 阶段 | M1-v6 S5 train-only 准备：用户确认已选配置训练/60 模型验收通过，待导出清单本地复核；S5 validation、S6 test 与 M2 尚未启动 |
+| 阶段 | M1-v6 S5 train-only 准备：已选配置训练/60 模型报告导回与本地复核通过；S5 validation、S6 test 与 M2 尚未启动 |
 | 最近结果 | [`m1_v6_d047_endpoint_probe.json`](results/m1_v6_d047_endpoint_probe.json)：201 groups、A/C/E 五 seed、F；终点 exact A/C/E=`0.918408/0.793035/0.471144`，open-memory graded=`0.932013/0.920288/0.878167`，open-fact AUC=`8.830846/12.383085/14.134328`。保留 exact，test N=1350；H3/H1 mean TV=`0.003293`、argmax change=`0`。固定 anchor 未满足全部效应要求，非正式成败结论 |
-| 尚缺 | 导出并复核已完成训练清单，之后接线并开展一次 200-group validation confirmation；正式 test 入口仍需消费组合登记并重新冻结。原 AUC `40/80` 与 validation/test 边界保留 |
+| 尚缺 | 接线并开展一次 200-group validation confirmation，复用已保存模型；正式 test 入口仍需消费组合登记并重新冻结。原 AUC `40/80` 与 validation/test 边界保留 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。D-046 顺序 C weight 搜索按既有逐方法实测路径的最坏 10000-update 外推，两臂总计划约 5.036 小时（非新实测）。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
 | 当前决定 | D-039–D-043 固定 live energy、真实 C10/C11、current/posterior 审计、Pre-LN 双架构和 A–E 对称 12 格。D-044–D-046 的 endpoint、open-fact AUC `40/80`、固定 gate、C 顺序权重和纯 confirmation 保留；D-047 收紧 claim，拆清 online network/shared executor，登记外生轨迹，并把 H3-vs-H1 teacher 对照设为主文必报、无选择无成败门的机制证据。M1 不声称原始 DCR、完整动态记忆或 active navigation；全局 reconciliation、PNO 与 M2 顺序不变 |
 | 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 validation/test。D-043 无额外人工选择；运行时剖析只供用户决定何时租用算力，不改变登记网格 |
@@ -830,3 +830,12 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - exporter 增加 training_manifest 支持，保留原训练 provenance，并单独记录导出 provenance；该文件是本轮 src/scripts/configs/tests 相对原训练提交唯一允许的差异。仅包装既有报告，不改变训练或评测算法，不因导出代码 hash 变化要求重新训练或重跑全套测试。
 - 后续仍须先完成一次性独立 200-group validation confirmation 的登记接线与必要正确性检查，再复用固定模型做每条 20 步连续评测。训练完成不等于 S5 confirmation 已完成；本轮不生成或读取 validation/test，不实施新的并行提速验证。
 - 本地 Bash、内嵌 Python 和 exporter 语法检查通过；8 项轻量临时文件检查覆盖实际 exporter 打包、精确复用、损坏权重、缺失模型 manifest、错误完成 marker、非零 runner exit、导出内容漂移及旧全测证据漂移的拒绝。未加载或执行模型，未读取数据集。
+
+## LOG-063（2026-09-09）：D-049 固定配置训练报告导回与本地复核
+
+- 结果提交 `3221caf` 已 fast-forward 拉取。[训练报告](results/m1_v6_d049_s5_training.json) SHA-256=`50313a11befab8d6921e4876f2f9e36ff8913762268dc16a0c6d4de2bb47c6f6`，与服务器导出输出完全一致。按原 sorted/indented JSON 加结尾换行复原 training_manifest，SHA-256=`dd6a4079f5bd447ca7119c1d4dd0f7fac0b05657f2fb538b8dfb3a6401ae1b7c`，与 training.ok.json 一致；status=complete、runner_exit_code=0、models=60。
+- 固定 plan 与 post-probe registration 均与本地一致，既有 train arrays digest 保持不变。使用完整 1000 groups、40000 学习行，其中 4000 行带标签，原 label mask 复用。两架构各五 seed、25 student+5 scorer，共 50 student+10 scorer；逐个核对 component、模型路径、SHA 字段、训练配置、原始 provenance 与日志终止步数，所有模型达到已选预算，记录的 trace 数值均有限。C 的辅助权重仍分别为 1/10，gate=(0,0)，CUDA/8 threads；没有重新选配置。
+- 训练提交 `af2ed07108f52b186623bba08731a35de84ed88b`，source SHA-256=`0963d03bfac3be34be9588e5629661da5724d9276cc827e1b95a090da04f2cb9`；导出提交 `c5288ac9b7508733947868513068ca06d560492d`，source SHA-256=`c1c59a5e1955b31cd7c081ddd0ad6103a3a61a7eca99a0f113dad08351d31e56`。两阶段 clean，分别从对应 Git 提交按服务器 LF checkout 规则重建源文件字节并复算 source/entrypoint hash，一致。导出阶段包含 exporter 支持变更，未覆盖原训练来源。
+- 各模型 wall_seconds 求和：Set Transformer 3121.429 秒（52.024 分钟），MLP 1720.548 秒（28.676 分钟），合计 4841.977 秒（80.700 分钟）。这是模型函数计时之和，不含完整调度、保存/加载与验收等全部开销，不冒充总日历耗时。同架构 A–E 的 student 参数量一致，分别为 359673/33017；逐模型 PyTorch allocated 显存峰值的最大值分别为 3336.471/2570.354 MiB，不等于 nvidia-smi 整机显存占用。
+- 本次报告只有训练 trace 与模型完成证据；没有新泛化准确率或 20-step causal 结果，不能根据 loss 或成功 marker 宣布 CTL 有效。formal_run、validation_arrays_read、test_access、causal_complete、model_selection_performed 均为 false。训练函数允许 hindsight/辅助目标，online_future_access=false；原 D-047/D-048 执行边界保持。
+- 本地读取的是导出的 JSON 与 Git 对象，没有下载或重新加载服务器模型权重；权重文件的实际 hash 验收来自服务器完成/导出阶段，本地核对其清单与绑定。未训练、未重跑全测、未读取 validation/test。后续仍需接线一次独立 200-group、每条 20 步的 S5 confirmation，复用已保存模型，不重扫预算。
