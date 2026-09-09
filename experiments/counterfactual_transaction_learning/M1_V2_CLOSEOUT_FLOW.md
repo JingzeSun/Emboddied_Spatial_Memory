@@ -16,7 +16,7 @@
 
 ## 当前指针
 
-- 当前阶段：**修正版固定 anchor probe 的运行、汇总、导出及本地报告复核已完成（LOG-086），封存登记已可供后续入口消费。当前进入已交付的 `ops/m1_corrected_followon.sh test`：新来源完整测试→GPU 对拍→容量与新增接口检查；这些条件通过后才运行原预算网格。probe 的实际模型保存/加载、完整轨迹与汇总证据复用，不重复执行。**
+- 当前阶段：**固定 anchor probe 已复核；follow-on 新接口检查遇到一次性迭代器错误，现已修复。先执行 `repair-test`，通过后 `repair-adopt` 核验并复用旧 GPU 对拍/容量产物，再执行 `interfaces`。旧失败目录保留，probe 完整轨迹与已成功训练不重跑；接口通过后才进入既有预算步骤。证据见 EXECUTE LOG-087。**
 - 历史 S2 证据：v5 S2 的 arrays/manifest/report 已验收；1000−300 的 paired-group 95% CI 为 `[+0.008750,+0.045000]`，按预登记规则选择 1000。10-group 同预算锚点中共同 group 1 的 40−10 平均差为 `+0.005000`、仅 `1/5` seed 严格为正，未达 S3 触发条件。完整数字与 provenance 见 `EXECUTE.md` LOG-032/033。
 - 已完成：同一份 40-group v4 arrays 确定性截取 10/40 groups，运行 scorer steps {60,300,1000} × seed 7。40-group 全 train 上，static preflight 对 2,552/2,552 个 executor-illegal 候选全部静态拒绝、合法误拒 0；过滤后 target-only 均匀并列期望由 0.7729 升至 0.9698，assembled oracle accuracy 由 0.7438 升至 0.9525，其 exact-ambiguity capped 读数由 0.7275 升至 0.9275。D-038 已接受把同一只读预检变成 A–E 共享 mask；旧 v4 过滤数字仍只作采纳依据，不冒充 v5 方法成绩。
 - scorer 分支：40-group inner-dev 的未过滤/过滤后 teacher accuracy 在 steps 60/300/1000 分别为 0.0500/0.5688/0.5031 与 0.0625/0.7469/0.7094。1000 steps 虽将 held-out BCE 从 0.1016 降到 0.0744，候选排序却低于 300 steps；共同 group 1 在 10/40 groups、300/1000 steps 过滤后均为 0.875，也没有显示扩大到 S3 的明确数据收益。因此 300 steps 只是当前单 seed 候选，尚未固定。
@@ -79,7 +79,7 @@ S4 修正版本的选参前检查与预算选择
   ├─ 固定 train 错误分支完整 20 步检查、失败现场与导出审查
   ├─ 固定 anchor probe：F integrity、固定三项终点非退化、按 D-051 机械确定 N（已完成）
   │   └─ 同时覆盖模型保存/加载→20 步→配对汇总与探针导出（已完成，可复用）
-  ├─ 预算并行接线与等价检查、fit/inner-dev 同口径诊断 ← 当前：先新来源完整测试
+  ├─ 预算并行接线与等价检查、fit/inner-dev 同口径诊断 ← 当前：修复测试 → 成功产物复用核验 → 新增接口检查
   ├─ 复用 probe 工程证据；train-only 小样本只补正式登记、两架构权重兼容、
   │   评测分片合并、配对置信区间及验收报告等新增接口，不重跑完整 probe
   └─ 上述全部通过，才运行两臂完整原预算网格并验收
@@ -122,6 +122,8 @@ S7 M1 成功 / no-go / 不确定收口
 | `process-export` | 对拍完成，成功或失败均可导出原精确 process-check 报告 | 前台 |
 | `prepare` | probe 与 process-check 导出均完整通过；核对旧运行来源、复用权重/轨迹并消费新登记 | 前台 |
 | `capacity` | prepare 通过；两架构各 scorer/A，四进程、完整 1000 组、固定两步，只作容量检查 | 前台 |
+| `repair-test` | 本次迭代器修复的当前来源完整测试；旧 full-test 不冒充新来源 | 前台 |
+| `repair-adopt` | 新全测通过，核验旧成功步骤与特定空评测失败；保留原目录并建立明确来源的复用回执，不重复 GPU 训练 | 前台 |
 | `interfaces` | 容量检查通过；新增接口检查、独立前向计时、复用 probe 逐例统计，成功后生成 ready 回执 | 前台 |
 | `export-checks` | 上述检查完成或已失败；导出 `results/m1_v7_d054_corrected_checks.json` | 前台 |
 | `budget` | 所有检查通过；30 条 scorer、150 条 A–E、20 条 C 补充路径，按固定规则选择，不扩格 | 默认后台；`status` 查看进度 |

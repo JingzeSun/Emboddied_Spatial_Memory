@@ -4,9 +4,9 @@
 
 ## 当前看板
 
-> **2026-09-10 更新（修正版固定 probe 报告已复核）：** 323 项测试、prepare/train/evaluate/summarize 均成功；201 组完整配对、A/C/E 五 seed 与 F 的 6432 条终点记录齐全，保留 exact、N=1350，登记消费检查通过。A/C/E 最终 exact 均值为 0.920398/0.748756/0.382587；A−C support 和两项 burden 改善仍未达到登记效应门，不能据探针宣布 M1 成功。见 LOG-086。后续代码已交付，GPU/容量/新增接口验证尚未运行。
+> **2026-09-10 更新（新增接口检查失败已定位）：** 用户报告 follow-on `interfaces` 因 `missing/duplicate sibling pair` 失败。新串行适配器误传一次性 generator，配对预检查耗尽后，实际评测读不到轨迹；已改为可重复打开绑定分片的读取对象。既有固定 probe 不使用该适配器，不受此次错误影响。恢复入口先跑新来源完整测试，再核验并复用旧 GPU 对拍/容量成功产物，只补失败的接口检查；服务器修复后验收 pending。见 LOG-087。
 
-最后更新：2026-09-10，probe 导出已入库，完整轨迹不重跑。`ops/m1_corrected_followon.sh` 已准备检查、预算、重训及导出子命令；正式 S5 confirmation/S6 的数据入口、一次性消费和解封仍需独立冻结，本入口不执行 validation/test。
+最后更新：2026-09-10，固定 probe 已复核（LOG-086）；follow-on 接口修复及保留现场的复用入口已实现，尚待服务器执行。正式预算、S5/S6 未因本次修复放行；validation/test 仍封存。
 
 | 项目 | 当前事实 |
 |---|---|
@@ -14,7 +14,7 @@
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
 | 阶段 | M1-v7：修正 train 已验收并获准复用；严格检查历史 FAIL，D-053 显式槽位诊断 PASS，D-054 正式评测接线与来源桥接已验证；完整新模型训练、S5/S6 与 M2 未启动 |
 | 最近结果 | [`m1_v7_d054_corrected_endpoint_probe.json`](results/m1_v7_d054_corrected_endpoint_probe.json)：201 groups、A/C/E 五 seed、F；exact A/C/E=`0.920398/0.748756/0.382587`，support=`0.932137/0.918196/0.859446`，burden=`9.164179/22.393035/13.159204`。保留 exact，N=1350；固定 anchor 未达到全部效应要求，不是正式成败结论。旧 v6 结果保留作历史证据 |
-| 尚缺 | 后续新来源完整测试、GPU 对拍/容量与新增接口验收、原网格重跑、60 模型 refit、独立确认与正式 test；固定 probe/组合登记已完成，D-051 数值门与 N 规则保持 |
+| 尚缺 | 接口修复的新来源完整测试、旧成功产物复用核验及新增接口验收、原网格重跑、60 模型 refit、独立确认与正式 test；D-051 数值门与 N 规则保持 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。D-046 顺序 C weight 搜索按既有逐方法实测路径的最坏 10000-update 外推，两臂总计划约 5.036 小时（非新实测）。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
 | 当前决定 | D-039–D-043 固定 live energy、真实 C10/C11、current/posterior 审计、Pre-LN 双架构和 A–E 对称 12 格。D-044–D-046 的 endpoint、open-fact AUC `40/80`、固定 gate、C 顺序权重和纯 confirmation 保留；D-047 收紧 claim，拆清 online network/shared executor，登记外生轨迹，并把 H3-vs-H1 teacher 对照设为主文必报、无选择无成败门的机制证据。M1 不声称原始 DCR、完整动态记忆或 active navigation；全局 reconciliation、PNO 与 M2 顺序不变 |
 | 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 validation/test。D-043 无额外人工选择；运行时剖析只供用户决定何时租用算力，不改变登记网格 |
@@ -1063,3 +1063,11 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - 固定参考历史的单步 fitting/inner-dev accuracy（A/C/E）分别为 `0.944997/0.942236`、`0.934866/0.932757`、`0.905942/0.903561`，差距约 `0.002761/0.002109/0.002380`。这不是独立 validation/test，也不能用小单步差距担保连续运行泛化；C/E 的最终 exact 跨 seed 波动明显，原因仍需固定预算诊断，不从目前结果直接归因或改变搜索。
 - H3-vs-H1：7638 普通行、201 完整组，平均 TV=`0.0033031878`、KL=`0.0034901599`、argmax change=0，两种 teacher/reference agreement 均为 1。H3 reference probability 相对 H1 平均变化 `-0.0024014093`；仅为教师分布诊断，不证明 H3 学生优于 H1。上述结果不进入样本量以外的新选择，也不改变预登记成功条件。
 - 本轮只改记录与流程指针，未改变源代码、配置、测试或运维入口；服务器已取得 `ef210c0` 后续代码时，可直接执行已交付的 follow-on `test`，无需为本次文档记录再同步一次。新来源完整测试、GPU 对拍、容量/新增接口等条件仍 pending；不重复原 probe。
+
+## LOG-087（2026-09-10）：follow-on 单次迭代器导致空评测，修复并保留旧成功证据
+
+- 用户提供服务器失败回执：`m1_v7_d054_followon_interfaces` exit=1，目录 `/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-cc2d5e2113ed`；NumPy 空均值警告后抛出 `ValueError: missing/duplicate sibling pair`。前置步骤成功目前依据用户操作记录，恢复入口仍须逐项核验实际 marker、退出状态和文件 hash，不能把本地检查称为服务器验收。
+- 根因已从调用链定位：新增 `m1_paired_evaluation.run_serial` 传入一次性 generator；`causal_rollout_metrics` 先遍历检查两 sibling 的 pivot，再遍历执行轨迹，第二遍为空。这是适配器错误，并非候选缺失或模型训练失败。固定 probe 使用自己的可重复读取对象，原已验收结果不受此处错误影响。
+- 修复只将该适配器改为 `ReplayableAudits`。白话：它解决“检查读过一遍后，正式评测无数据”的问题；输入为固定分片路径与 hash，输出为每次重新读取的同一组审计记录。例如配对预检查读完两条轨迹后，执行循环仍能重新读取两条。它不是复制所有 audits 到每个 worker，也不改变轨迹、候选、标签、模型或统计门。
+- 新 `repair-test` / `repair-adopt` 恢复入口检查与 `ef210c0` 的来源差异仅为本次迭代器替换及新增回归测试；重新运行当前来源完整测试，随后只读核验旧 GPU 对拍、四条容量训练路径、train/probe 输入、退出记录及旧失败的空执行文件。旧目录原样保留，新目录明确记录原执行来源与复用角色；不把旧测试冒充新测试、不自动重新训练、不删除失败分片。若发现不同失败、已有实际执行或后续预算启动，则拒绝此次特定恢复。
+- 本地 4 项读取器/实际核心循环入口回归、5 项恢复验证和 7 项阶段运维回归通过，共 16 项；实际核心循环测试在第二次遍历入口主动停止，不执行真实轨迹。未在本机训练、生成或运行真实 rollout。服务器新版全测、复用核验、串行/分片实测仍 pending；本次不改变科学合同、原网格、N=1350 或验收门，不新增科学 decision。

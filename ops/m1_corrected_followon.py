@@ -65,7 +65,9 @@ def prerequisite(stage, action, binding):
     # full test just because a different operations script consumes the result.
     checked = read_json(ROOT / CHECK_EXPORT)
     require(checked['full_test']['exit_code'] == checked['completion']['exit_code'] == 0 and checked['report']['pass'], 'process check must pass')
-    require(checked['report']['binding']['source_and_tests_sha256'] == binding['source_and_tests_sha256'], 'process check source changed')
+    if checked['report']['binding']['source_and_tests_sha256'] != binding['source_and_tests_sha256']:
+        from m1_followon_recovery import verify_adoption
+        verify_adoption(stage, binding)
     for previous in ORDER[:ORDER.index(action)]:
         require(verify_step(stage, previous, binding)['exit_code'] == 0, 'prior stage failed: ' + previous)
 
@@ -152,6 +154,9 @@ def export(stage, kind, binding):
         'completion': completions, 'reports': reports, 'failures': failures, 'failed_jobs': failed_jobs,
         'pass': not failed, 'validation_access': False, 'test_access': False,
         'log_tails': {a: (stage / f'{a}.log').read_text(encoding='utf-8').splitlines()[-60:] for a,m in completions.items() if m['exit_code'] != 0}}
+    if (stage / 'adoption.json').exists():
+        from m1_followon_recovery import verify_adoption
+        payload['verified_input_adoption'] = verify_adoption(stage, binding)
     path = ROOT / EXPORTS[kind]
     if path.exists(): require(read_json(path) == payload, 'different prior export retained; review before replacement')
     else: write_json(path, payload)
@@ -164,7 +169,7 @@ def export(stage, kind, binding):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', choices=[*ORDER, 'test', 'process-check', 'process-export', 'status',
-        'export-checks', 'export-budget', 'export-refit'])
+        'export-checks', 'export-budget', 'export-refit', 'repair-test', 'repair-adopt'])
     parser.add_argument('--foreground', action='store_true')
     args = parser.parse_args(); no_active_probe(); require_clean_science()
     if args.action in ['test', 'process-check', 'process-export']:
@@ -181,6 +186,9 @@ def main():
         except BlockingIOError:
             print('FOLLOWON_ALREADY_RUNNING use status; no duplicate launched', flush=True)
             return 0
+        if args.action in ['repair-test', 'repair-adopt']:
+            from m1_followon_recovery import repair_test, adopt
+            return (repair_test if args.action == 'repair-test' else adopt)(stage, binding)
         if args.action.startswith('export-'): return export(stage, args.action[7:], binding)
         background = args.action == 'budget'  # Historical same-grid work exceeds 30 min even at four workers.
         if args.action == 'refit' and not args.foreground:

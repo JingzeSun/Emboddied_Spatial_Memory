@@ -49,6 +49,16 @@ def read_audits(spec):
     return audits
 
 
+class ReplayableAudits:
+    """Each traversal reopens the bound shards; only one pair stays in memory."""
+    def __init__(self, specs):
+        self.specs = tuple(dict(spec) for spec in specs)
+
+    def __iter__(self):
+        for spec in self.specs:
+            yield from read_audits(spec)
+
+
 def run_serial(path, binding, model, specs, config):
     def produce(staging):
         began = time.monotonic()
@@ -56,9 +66,7 @@ def run_serial(path, binding, model, specs, config):
             def sink(materialized, choice, current):
                 validate_graph(current)
                 stream.write(json.dumps({'materialized': materialized, 'choice': choice, 'current': current}, allow_nan=False) + '\n')
-            def audits():
-                for spec in specs: yield from read_audits(spec)
-            aggregate, rows = causal_rollout_metrics(model, audits(), config, audit_sink=sink)
+            aggregate, rows = causal_rollout_metrics(model, ReplayableAudits(specs), config, audit_sink=sink)
         validate_rows(rows, [s['paired_group_id'] for s in specs])
         # Keep the raw value only inside the isolated worker artifact, marked
         # invalid for reported latency. Parent never averages these quantiles.
