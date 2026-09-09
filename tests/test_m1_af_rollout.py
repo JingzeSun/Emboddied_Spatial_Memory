@@ -57,7 +57,7 @@ class TestM1AFCausalRollout(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.hard = json.loads(
-            (PROJECT / "configs" / "m1_hard_condition.json").read_text(
+            (PROJECT / "configs" / "m1_hard_condition_v7.json").read_text(
                 encoding="utf-8"
             )
         )

@@ -43,7 +43,7 @@ from .m1_rollout import (
     materialize_rollout_step,
     stable_retrieval_feature,
 )
-from .m1_protocol import validate_m1_protocol
+from .m1_protocol import validate_m1_protocol, validate_rollout_source
 from .pending import decide_commit
 
 
@@ -686,6 +686,8 @@ def rollout_learning_arrays_from_audits(
     """Encode already generated audit sequences without retaining online duplicates."""
     if not audits:
         raise ValueError("rollout learning arrays require at least one audit sequence")
+    for audit in audits:
+        validate_rollout_source(audit, hard_config)
     rows = []
     group_ids = {
         name: index for index, name in enumerate(sorted({

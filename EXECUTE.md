@@ -4,17 +4,17 @@
 
 ## 当前看板
 
-> **2026-09-09 更新（train 范围影响报告已核对）：** 201 个已有 train/inner-dev 审计组中，169/402 个 C11 决策的候选对象改变；固定旧候选复算时 490/8442 条教师分布改变、首选改变 0。影响已进入训练输入与软监督，不能只改 validation 后直接沿用旧模型作修正后的正式确认。生产修复与重新冻结尚未实施；S5 模型评测与 test 仍未启动。详见 LOG-069。
+> **2026-09-09 更新（v7 一跳修复已实现，待服务器全测）：** 生产函数以独立提交恢复固定检索集合的一跳扩展，新增 v7/v9 生成合同与旧审计拒绝边界；当前仅交付前台完整测试。旧训练影响见 LOG-069，并行配置初选见 LOG-071；尚无修正版本数据、probe、预算或模型结果。详见 LOG-072。
 
-最后更新：2026-09-09，旧训练/预算/诊断报告已核对；范围修正对候选与监督的实际影响见 LOG-069。D-051 有界并行测速报告已导回，按原规则初选 4 进程×1 线程，完整预算分片仍待实现与一致性验证（LOG-071）。生产 scope、旧 hard config、旧 probe/registration 与训练算法尚未改动；修正版本仍需完整验证与重新冻结，不恢复 S5 或解封 test。
+最后更新：2026-09-09，D-051 生产 scope 修复和 v7/v9 来源边界已实现，等待服务器完整测试。旧 hard/probe/registration/预算/模型产物保持历史版本；修正版的 probe、组合登记和预算并行接线仍待完成，不复用旧模型作新正式确认，不恢复 S5 或解封 test。
 
 | 项目 | 当前事实 |
 |---|---|
 | 方向 | CPMT 具身空间记忆；CTL 是主学习假设，用户希望面向 ML 研究 |
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
-| 阶段 | M1-v6 S5 train-only 准备：已选配置训练/60 模型报告导回与本地复核通过；S5 validation、S6 test 与 M2 尚未启动 |
+| 阶段 | M1-v7 范围修复重建：生产修复及 v7/v9 边界已实现，待服务器全测；v6 的 60 模型仅保留历史证据，新 S5 confirmation、S6 test 与 M2 尚未启动 |
 | 最近结果 | [`m1_v6_d047_endpoint_probe.json`](results/m1_v6_d047_endpoint_probe.json)：201 groups、A/C/E 五 seed、F；终点 exact A/C/E=`0.918408/0.793035/0.471144`，open-memory graded=`0.932013/0.920288/0.878167`，open-fact AUC=`8.830846/12.383085/14.134328`。保留 exact，test N=1350；H3/H1 mean TV=`0.003293`、argmax change=`0`。固定 anchor 未满足全部效应要求，非正式成败结论 |
-| 尚缺 | 定位 C11 生成失败与修复影响，保留已完成/失败分片；确认数据尚未完整，模型 confirmation 不启动；正式 test 入口仍需消费组合登记并重新冻结。原 AUC `40/80` 与 validation/test 边界保留 |
+| 尚缺 | 修正版全测、重建 train、固定 probe/新组合登记、预算并行及完整原网格重跑、60 模型 refit 与独立确认；正式 test 入口仍需消费新组合登记并重新冻结。原 AUC `40/80` 与 D-051 endpoint/N 规则保留 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。D-046 顺序 C weight 搜索按既有逐方法实测路径的最坏 10000-update 外推，两臂总计划约 5.036 小时（非新实测）。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
 | 当前决定 | D-039–D-043 固定 live energy、真实 C10/C11、current/posterior 审计、Pre-LN 双架构和 A–E 对称 12 格。D-044–D-046 的 endpoint、open-fact AUC `40/80`、固定 gate、C 顺序权重和纯 confirmation 保留；D-047 收紧 claim，拆清 online network/shared executor，登记外生轨迹，并把 H3-vs-H1 teacher 对照设为主文必报、无选择无成败门的机制证据。M1 不声称原始 DCR、完整动态记忆或 active navigation；全局 reconciliation、PNO 与 M2 顺序不变 |
 | 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 validation/test。D-043 无额外人工选择；运行时剖析只供用户决定何时租用算力，不改变登记网格 |
@@ -911,3 +911,12 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - 四个布局耗时合计约 346.839852 秒（5.78 分钟），不含所有入口检查与最终导出；各子进程 PyTorch 分配显存峰值 Transformer 2602.039 MiB、MLP 1989.218 MiB，不能把单进程峰值相加冒称测得整机峰值。当前结果说明短任务并行有价值，未测试 8 个进程，也不据此追加并发扫描。
 - 限制：每配置只有一个固定混合任务批次，两次同架构任务仍是相同 seed 的计时重复，不是五 seed 科学重复；长短任务、冷启动、数据读取、scorer 选择与 C 权重阶段依赖都可能影响正式网格效率。不能把旧“约 5 小时”直接除以 2.81 当作承诺 ETA。profile 没有保存模型概率用于等价比较，完整预算分片 runner 尚未实现；后续新数据资源检查和串行/并行数值与汇总一致性验证仍需要。
 - 这批报告没有新方法准确率、修正后数据或模型、独立 confirmation/test；不改变 D-051 的固定网格、paired-group 隔离或防过拟合边界。本地只读 JSON/Git 并做轻量复算，无训练、CUDA、rollout 或新的 benchmark。当前 ops 保留已完成测速阶段；下一项按 D-051 进入独立 scope 修复与版本接线。后续预计不超过 30 分钟的任务按新 AGENTS 规则前台运行，不重复本次测速。
+
+## LOG-072（2026-09-09）：独立一跳修复、v7/v9 版本隔离与前台完整测试入口
+
+- 用户同意进入修复。提交 `31f0e0f` 只修改 `src/cpmt/m1_rollout.py` 中生产 scope 的一处循环：先保存 frozenset(selected)，再以该固定集合判断每条边。该提交仅 2 行增加/1 行替换，不混入候选策略、训练目标、模型或统计规则。C11 无范围外候选时仍报错；没有主动扩充图或回退到其它对象。
+- 新 `configs/m1_hard_condition_v7.json` 为修正生成合同，dataset=`m1-paired-latent-worlds-v9-one-hop-scope`，规范化 SHA-256=`adc6badc93dcca11904e12cb93396d26c3a4e728ccf438ce9a3a4f442f93901f`；rebuild plan 精确绑定路径/hash。相对原合同仅改变 protocol/dataset 标识并增加 scope 查询、ranks=3、open-only、检索边端点、非递归、边序不变、候选无关、无 future/post-world 和四处消费者的定义，预算、seed、组数与所有科学门保持。旧 hard/overlay/registration/模型计划不改写，旧指纹仍能核查历史报告；不能用旧 test=200 生成正式 test。
+- 生产 coverage/rollout 生成要求新协议；每条新序列审计保存 source_binding。已有审计编码、H3/H1 对照、materialize 和 execute_rollout_choices 在处理前验证版本，编码还比较精确 config hash，拒绝无绑定/v8 或来源不匹配记录。并行生成默认使用新合同，并拒绝覆盖既有 shard 目录或目标 arrays/manifest；正式新生成阶段以后在新目录运行，旧成功与失败产物不移动删除。低层图查询函数仍可用于只读历史现场分析，不把这种分析当新生成结果。
+- 既有会生成连续轨迹的四个测试文件改用 v7 合同；历史登记/报告元数据测试仍读取原 v6 合同，防止为了全测通过而改写旧结果的预期来源。新增 14 项范围与版本检查：生产函数的一跳/边序/检索边/关闭边、保存的 group78 现场恢复目标、该对象误改的 collateral 从旧范围下 0 变为新范围下 1、空池断言保留、合同最小差异、旧生成与审计拒绝、编码来源及旧分片防覆盖。它们只操作小字典/临时文件或已公开诊断图；没有重新生成 group78，也没有执行候选或模型。
+- 14 项新增轻检查在本地通过；随后补充 full-test marker 的来源、计划、失败/数量/test 访问拒绝断言，并单独重验该纯元数据用例通过。4 项历史 registration 元数据检查亦通过，旧报告/1350/hash 仍可核查。Python/ops 内嵌 Python/Bash 静态检查通过。未在本地执行真实生成、模型训练、causal rollout 或完整套件；旧服务器 250 项成功仅保留历史效力，不能覆盖本次生产修复。
+- 唯一 ops 阶段为 `m1_v7_d051_scope_rebuild_full_test`，预计 280 项（既有 266+新增 14），前台显示完整输出并 tee 日志。输出目录由完整 src/scripts/configs/tests 源码 hash 的前缀确定，避免只更新文档/ops 后默认重测；成功 marker 同时锁完整 hash、新合同、rebuild plan、测试数量与干净 provenance。匹配成功复用，失败/中断保留并拒绝自动重启；使用小型历史 train/validation fixtures 和已保存 group78 诊断图，不启动 1000/200-group 实验生成、confirmation 或 test。正式训练与模型预算任务尚未启动。

@@ -1,0 +1,611 @@
+{
+  "protocol": "m1-hard-condition-v7",
+  "status": "pretest_lock_candidate",
+  "stage": "M1",
+  "purpose": "Test whether post-edit executable hindsight supervision outperforms direct future loss and future scoring without execution for online embodied spatial-memory revision.",
+  "test_access": false,
+  "decision_refs": [
+    "D-018",
+    "D-025",
+    "D-026",
+    "D-027",
+    "D-030",
+    "D-031",
+    "D-034",
+    "D-038",
+    "D-039",
+    "D-040",
+    "D-041"
+  ],
+  "methods": [
+    {
+      "id": "A",
+      "name": "cpmt_ctl_core",
+      "execute_candidates": true,
+      "future_supervision": true,
+      "post_edit_world": true
+    },
+    {
+      "id": "B",
+      "name": "direct_classifier",
+      "execute_candidates": false,
+      "future_supervision": false,
+      "post_edit_world": false
+    },
+    {
+      "id": "C",
+      "name": "direct_future_loss",
+      "execute_candidates": false,
+      "future_supervision": true,
+      "post_edit_world": false
+    },
+    {
+      "id": "D",
+      "name": "execute_current_only",
+      "execute_candidates": true,
+      "future_supervision": false,
+      "post_edit_world": true
+    },
+    {
+      "id": "E",
+      "name": "future_no_execution",
+      "execute_candidates": false,
+      "future_supervision": true,
+      "post_edit_world": false
+    },
+    {
+      "id": "F",
+      "name": "oracle_candidate_program",
+      "execute_candidates": true,
+      "future_supervision": true,
+      "post_edit_world": true
+    }
+  ],
+  "data": {
+    "dataset_version": "m1-paired-latent-worlds-v9-one-hop-scope",
+    "generator": "controlled_embodied_spatial_worlds_v2",
+    "group_keys": [
+      "paired_group_id",
+      "world_seed",
+      "asset_family"
+    ],
+    "paired_siblings_minimum": 2,
+    "paired_groups": {
+      "train": 1000,
+      "validation": 200,
+      "test": 200
+    },
+    "legacy_fixture_groups_per_family": {
+      "train": 1000,
+      "validation": 200,
+      "test": 200
+    },
+    "scenario_families": [
+      "C00",
+      "C01",
+      "C02",
+      "C03",
+      "C04",
+      "C05",
+      "C06",
+      "C07",
+      "C08",
+      "C09",
+      "C10",
+      "C11"
+    ],
+    "generation_count_semantics": "total_mixed_paired_groups_each_group_contains_all_families",
+    "family_coverage_domain": "all_configured_families_missing_family_fails",
+    "continuous_rollout_required_families": [
+      "C00",
+      "C01",
+      "C02",
+      "C03",
+      "C04",
+      "C05",
+      "C06",
+      "C07",
+      "C08",
+      "C09",
+      "C10",
+      "C11"
+    ],
+    "family_mechanism_contract": {
+      "C10": "balanced_transient_dynamic_actor_NOOP_vs_persistent_background_BIND_with_same_current_observation_distribution",
+      "C11": "necessary_BIND_vs_admitted_legal_BIND_with_unrelated_open_memory_mutation",
+      "behavioral_fingerprint_gate": true
+    },
+    "minimum_test_support_per_family": 200,
+    "exclude_only": [
+      "schema_invalid_before_method_execution",
+      "generator_or_render_failure_independent_of_method"
+    ],
+    "retain_method_failures": true,
+    "test_release": "sealed_until_protocol_is_accepted_and_implementation_validation_passes",
+    "regeneration_rule": "new_dataset_version_and_manifest_hash"
+  },
+  "future": {
+    "source": "actual_executed_trajectory",
+    "primary_horizon": 3,
+    "start_offset_decisions": 1,
+    "target_representation": "hashed_tokens",
+    "target_representation_options": [
+      "world_latent",
+      "hashed_tokens"
+    ],
+    "reported_ablations": [
+      1,
+      5
+    ],
+    "variable_horizon_mask": "score_only_observed_future_steps_with_valid_pose_and_visibility",
+    "episode_tail": "retain_with_mask_if_at_least_one_future_step; zero-future cases_are_online_only_diagnostics",
+    "visibility_policy": "score_visible_positive_and_reliably_visible_empty; mask_occluded_and_unobserved",
+    "online_export_excludes": [
+      "future_evidence",
+      "future_features",
+      "oracle_equivalence",
+      "simulator_hidden_state",
+      "persistent_object_id"
+    ],
+    "precomputed_feature_boundary": "online_cache_uses_only_timestamps_at_or_before_decision_time; future_cache_is_separate_hindsight_only",
+    "executed_teacher_comparison": "10x_active_semantic_plus_1x_open_memory_support; closed_history_is_audit_only",
+    "executed_teacher_comparison_ablation": "1x_active_semantic_plus_1x_open_memory_support_report_only",
+    "no_execution_target": "candidate_scoped_future_relations_v1",
+    "no_execution_now_target": "candidate_scoped_current_relations_v1",
+    "no_execution_now_target_inputs": "immutable_prior_world;_current_online_observation;_candidate_program_declarations;_never_candidate_post_world;_never_executor_outcome;_never_legality;_never_future",
+    "no_execution_now_target_policy": {
+      "argument_cosine_minimum": 0.8,
+      "novel_entity_best_maximum": 0.6,
+      "split_best_minimum": 0.55,
+      "split_best_maximum": 0.8,
+      "dormant_match_minimum": 0.8,
+      "merge_best_minimum": 0.8,
+      "merge_second_minimum": 0.8
+    },
+    "no_execution_candidate_execution": "forbidden_for_candidate_scoring_and_target_construction;_selected_transaction_uses_shared_executor",
+    "no_execution_supervision": "dense_queries_for_all_k16_candidates_from_actual_reference_future"
+  },
+  "recovery": {
+    "mode": "bounded_online_compensating_transaction_v1",
+    "trigger": "deterministic_relevant_visible_contradiction",
+    "lookback_decisions": 3,
+    "scope": "evidence_affected_subgraph_only",
+    "candidate_generator": "same_fixed_deterministic_k16",
+    "credit": "record_correction_when_committed;_never_backfill_original_step",
+    "global_async_reconciliation": "M2_only"
+  },
+  "candidates": {
+    "budget_k": 16,
+    "generator": "fixed_deterministic",
+    "templates": [
+      "NOOP",
+      "BIND",
+      "BIRTH",
+      "REACTIVATE",
+      "RELINK",
+      "RETRACT",
+      "SPLIT",
+      "MERGE"
+    ],
+    "replace": "RETRACT_plus_BIRTH_composite",
+    "quarantine": "deterministic_nonpersistent_wrapper",
+    "deduplicate": "canonical_memory_state_equivalence",
+    "illegal_policy": "retain_failure_record_and_mask_before_softmax",
+    "online_admissibility_mask": {
+      "name": "transaction_static_preflight_v1",
+      "shared_methods": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E"
+      ],
+      "inputs": [
+        "immutable_prior_world",
+        "candidate_program",
+        "online_evidence",
+        "protected_ids"
+      ],
+      "application": "retain_k16_slots_and_audit_records;_exclude_rejected_candidates_from_training_normalization_online_softmax_calibration_and_commit",
+      "pass_semantics": "preflight_pass_means_execution_outcome_unknown_not_legal",
+      "reference_must_pass": true,
+      "reject_all_candidates_forbidden": true,
+      "executor_illegal_energy_retained": true,
+      "remaining_executor_illegal_candidates_always_reported": true
+    },
+    "coverage_gate_overall": 0.98,
+    "coverage_gate_each_family": 0.95,
+    "proposal_retrieval": {
+      "source": "controlled_noisy_retrieval_features_v2",
+      "noise_sigma": 0.02,
+      "distractor_weight": 0.05,
+      "enumerated_ranks": 3
+    }
+  },
+  "observation": {
+    "source": "world_generated_appearance_v1",
+    "appearance_noise": 0.15,
+    "occlusion_is_neutral": true
+  },
+  "energy": {
+    "terms": [
+      "now",
+      "future",
+      "edit",
+      "growth",
+      "collateral",
+      "illegal"
+    ],
+    "weights": {
+      "now": 1.0,
+      "future": 1.0,
+      "edit": 0.1,
+      "growth": 0.25,
+      "collateral": 1.0
+    },
+    "now_semantics": "post_edit_projection_mismatch_against_valid_current_online_observation",
+    "now_target_source": "current_online_sensor_only_never_reference_post_world",
+    "now_normalization": "fixed_natural_range_without_candidate_spread_scaling;_visible_appearance_divide_2;_visible_appearance_plus_place_divide_4;_visible_empty_divide_1;_candidate_relation_probability_absolute_error_bounded_0_1;_executed_teacher_excludes_executor_illegal;_store_raw_scale_and_scaled",
+    "future_normalization": "per_method_per_decision_zscore_over_available_admitted_candidates;_executed_teacher_excludes_executor_illegal;_store_raw_and_scaled",
+    "no_execution_current_inference_energy": "mean_absolute_error_between_sigmoid_relation_probability_and_desired_bit_bounded_0_1;_BCE_remains_training_loss",
+    "collateral_semantics": "binary_any_legal_preexisting_open_memory_mutation_outside_candidate_independent_current_online_evidence_scope",
+    "protected_touch_semantics": "executor_illegal_not_collateral",
+    "activation_audit": "report_nonzero_rate_and_distribution_for_now_and_collateral_overall_and_by_family;_leave_one_term_out_teacher_posterior_influence_for_now_future_edit_growth_collateral",
+    "posterior_influence_audit": {
+      "terms": [
+        "now",
+        "future",
+        "edit",
+        "growth",
+        "collateral"
+      ],
+      "total_variation_thresholds": [
+        0.001,
+        0.01,
+        0.05,
+        0.1
+      ],
+      "metrics": [
+        "mean_median_p95_max_total_variation",
+        "fraction_above_each_threshold",
+        "argmax_change_rate",
+        "mean_KL_full_to_ablated",
+        "full_minus_ablated_reference_probability"
+      ],
+      "primary_interpretation": "posterior_distribution_not_argmax_only",
+      "expected_now_activation_pattern": {
+        "metric": "leave_now_out_posterior_mean_total_variation",
+        "expected_nonzero_mean_tv_families": [
+          "C01",
+          "C02",
+          "C04",
+          "C06",
+          "C07",
+          "C08"
+        ],
+        "expected_zero_mean_tv_families": [
+          "C00",
+          "C03",
+          "C05",
+          "C09",
+          "C10",
+          "C11"
+        ],
+        "numerical_zero_tolerance": 1e-06,
+        "deviation_action": "report_family_names_without_gate_or_weight_tuning"
+      },
+      "no_execution_comparison": "S1_reports_the_same_leave_current_out_posterior_metrics_for_E_on_the_same_rows;_C_shares_the_current_target_as_an_auxiliary_but_has_no_separately_assembled_current_energy_posterior;_report_only_without_gate_or_weight_tuning"
+    },
+    "teacher_health_gate": {
+      "reference_agreement_overall_minimum": 0.95,
+      "reference_agreement_each_family_minimum": 0.9,
+      "failure_action": "stop_without_weight_tuning_and_open_new_pretest_decision"
+    },
+    "illegal": "positive_infinity_mask",
+    "temperature": 0.25,
+    "store_per_candidate_components": true,
+    "current_online_evidence_scope": {
+      "schema_version": "cpmt-current-evidence-scope-v2",
+      "definition": "immutable_retrieved_ids_one_open_edge_expansion",
+      "retrieval_queries": [
+        "node_query",
+        "edge_query",
+        "place_query",
+        "merge_queries"
+      ],
+      "enumerated_ranks": 3,
+      "open_records_only": true,
+      "retrieved_edge_includes_endpoints": true,
+      "recursive_expansion": false,
+      "edge_record_order_invariant": true,
+      "candidate_independent": true,
+      "future_or_post_world_read": false,
+      "consumers": [
+        "c11_candidate_target",
+        "reference_collateral_energy",
+        "recovery_collateral_energy",
+        "causal_collateral_safety_metric"
+      ]
+    }
+  },
+  "training": {
+    "main_label_fraction": 0.1,
+    "reported_label_fractions": [
+      0.0,
+      0.01,
+      0.1,
+      1.0
+    ],
+    "formal_seeds": [
+      7,
+      19,
+      31,
+      43,
+      59
+    ],
+    "same_online_encoder_A_to_E": true,
+    "same_student_architecture_A_to_E": true,
+    "same_student_search_space_A_to_E": true,
+    "method_specific_student_hyperparameters": true,
+    "trainable_parameter_tolerance_fraction": 0.1,
+    "max_validation_trials_per_method": 6,
+    "direct_future_auxiliary_weights": [
+      0.1,
+      1.0,
+      10.0
+    ],
+    "validation_only_selection": [
+      "direct_future_auxiliary_weight",
+      "shared_commit_rule"
+    ],
+    "pretest_budget_selection": {
+      "stage": "v8_s1_s2_train_inner_dev_only",
+      "train_paired_groups": 1000,
+      "inner_dev_partition": "sha256_rollout_pair_train_group_mod_5_equals_0_complete_groups",
+      "architectures": [
+        "cross_candidate_set_transformer_v1",
+        "shared_candidate_mlp_v1"
+      ],
+      "architecture_budgets_selected_independently": true,
+      "architecture_result_selection_forbidden": true,
+      "seeds": [
+        7,
+        19,
+        31,
+        43,
+        59
+      ],
+      "learning_rates": [
+        0.0002,
+        0.0006,
+        0.002
+      ],
+      "batch_size": 64,
+      "scorer_update_checkpoints": [
+        300,
+        1000,
+        3000,
+        10000
+      ],
+      "student_update_checkpoints": [
+        300,
+        1000,
+        3000,
+        10000
+      ],
+      "checkpoint_execution": "one_identical_seeded_training_trajectory_to_maximum_and_evaluate_registered_prefix_checkpoints",
+      "scorer_selection_metric": "inner_dev_online_reference_candidate_ranking_accuracy",
+      "scorer_selection_aggregation": "equal_weight_mean_over_seed_and_complete_paired_group",
+      "student_selection_methods": [
+        "cpmt_ctl_core",
+        "direct_classifier",
+        "direct_future_loss",
+        "execute_current_only",
+        "future_no_execution"
+      ],
+      "student_hyperparameters_selected_per_method": true,
+      "student_selection_metric": "inner_dev_online_reference_candidate_ranking_accuracy",
+      "student_selection_aggregation": "within_each_method_equal_weight_mean_over_seed_and_complete_paired_group",
+      "direct_future_auxiliary_weight_anchor": 1.0,
+      "selection_rule": "highest_registered_lr_checkpoint_aggregate_mean_with_exact_ties_to_fewer_updates_then_lower_learning_rate",
+      "upper_checkpoint_policy": "accept_registered_10000_and_report_budget_grid_ceiling_reached_without_posthoc_extension",
+      "selected_scorer_fixed_before_student_grid": true,
+      "student_architecture_and_search_space_shared_A_to_E_within_architecture": true,
+      "report_each_method_own_optimum_and_shared_anchor_gap": true,
+      "shared_diagnostic_anchor": {
+        "learning_rate": 0.0006,
+        "student_updates": 3000
+      },
+      "dual_budget_readout": {
+        "method_specific": "each_method_at_its_own_selected_lr_and_checkpoint",
+        "shared": "one_cell_selected_by_equal_method_seed_and_complete_group_mean_reference_accuracy",
+        "cross": "A_at_E_selected_cell_and_E_at_A_selected_cell",
+        "selection_effect": "method_specific_cells_define_formal_training;_shared_and_cross_are_pre_registered_compute_sensitivity_diagnostics",
+        "grid_expansion_forbidden": true
+      },
+      "selection_uncertainty": {
+        "scope": "selected_minus_deterministic_runner_up",
+        "unit": "complete_paired_group_after_equal_seed_averaging",
+        "bootstrap_resamples": 10000,
+        "bootstrap_seed": 260907,
+        "confidence": 0.95,
+        "diagnostic_only_selection_rule_unchanged": true
+      },
+      "validation_arrays_read": false,
+      "validation_trial_consumed": false,
+      "test_access": false
+    },
+    "commit_calibration": {
+      "partition": "sha256_paired_group_id_even_calibration_odd_report",
+      "calibration_fraction": 0.5,
+      "shared_across_methods": true,
+      "commit_probability_grid": [
+        0.0,
+        0.1,
+        0.2,
+        0.35,
+        0.45,
+        0.55,
+        0.65,
+        0.75,
+        0.85
+      ],
+      "margin_threshold_grid": [
+        0.0,
+        0.025,
+        0.05,
+        0.1,
+        0.15,
+        0.2
+      ],
+      "selection": "lexicographic_one_step_active_correctness_then_fact_error_then_false_birth_then_higher_commit_rate",
+      "report_partition_selects_nothing": true
+    },
+    "frozen": [
+      "observation_front_end",
+      "depth",
+      "pose",
+      "region_proposals",
+      "candidate_generator",
+      "executor"
+    ],
+    "test_selects_nothing": true
+  },
+  "architecture_evaluation": {
+    "primary": "cross_candidate_set_transformer_v1",
+    "secondary": "shared_candidate_mlp_v1",
+    "registered": [
+      "cross_candidate_set_transformer_v1",
+      "shared_candidate_mlp_v1"
+    ],
+    "run_scope": "same_v8_arrays_and_full_A_to_F_within_each_architecture",
+    "between_architecture_selection": "posthoc_selection_forbidden;_set_transformer_is_primary_go_no_go_and_mlp_is_secondary_capacity_robustness",
+    "cross_candidate_set_transformer_v1": {
+      "model_dim": 128,
+      "attention_heads": 4,
+      "set_attention_blocks": 2,
+      "feedforward_dim": 256,
+      "dropout": 0.0,
+      "normalization": "pre_layernorm_with_final_layernorm",
+      "candidate_output": "shared_equivariant_score_head"
+    },
+    "shared_candidate_mlp_v1": {
+      "hidden_dim": 64,
+      "context_encoder_layers": 2,
+      "candidate_scorer_layers": 2,
+      "cross_candidate_interaction": false,
+      "candidate_output": "shared_equivariant_score_head"
+    },
+    "fairness": "within_each_architecture_A_to_E_share_exact_online_architecture_input_and_hyperparameter_search_space_and_stay_within_registered_parameter_tolerance;_each_method_selects_its_own_lr_and_updates_by_the_same_train_inner_dev_rule"
+  },
+  "evaluation": {
+    "application_rule": "all_methods_apply_their_selected_transaction_with_the_same_executor_before_graph_metrics",
+    "primary_contrasts": [
+      "A_vs_C",
+      "A_vs_E"
+    ],
+    "primary_metrics": {
+      "active_graph_correctness": "current_open_semantic_world_correct_fraction_without_retroactive_credit",
+      "memory_contamination": "incorrect_open_facts_per_100_decisions_at_self_rollout_horizon",
+      "false_birth_growth": "excess_open_entity_nodes_per_100_decisions_at_self_rollout_horizon",
+      "collateral_violation": "protected_or_unrelated_mutations_per_100_decisions"
+    },
+    "self_rollout_horizon_decisions": 20,
+    "history_exactness": "reported_diagnostic_not_primary_deployable_final",
+    "recovery_window_decisions": 3,
+    "bootstrap": {
+      "unit": "paired_group_id",
+      "resamples": 10000,
+      "confidence": 0.95,
+      "stratify_by": "single_mixed_registered_20_step_endpoint_stratum"
+    },
+    "mechanism_diagnostic_slices": {
+      "selection_rule": "pre_registered_generator_mechanism_only_never_empirical_accuracy_threshold",
+      "precedence": [
+        "exact_online_ambiguity",
+        "temporal_underdetermination",
+        "execution_side_effect_sensitive",
+        "current_sensor_unavailable",
+        "other_registered_mechanisms"
+      ],
+      "exact_online_ambiguity": {
+        "definition": "ambiguity_equals_epistemically_ambiguous_pivot",
+        "expected_behavior": "same_online_siblings_have_different_references;_online_single_step_pair_accuracy_is_capped_at_0.5;_report_recovery_without_retroactive_credit"
+      },
+      "temporal_underdetermination": {
+        "definition": "scenario_family_equals_C10",
+        "expected_behavior": "transient_NOOP_and_persistent_BIND_share_current_observation_distribution;_online_single_step_accuracy_expected_near_0.5;_causal_endpoint_and_teacher_resolution_are_informative"
+      },
+      "execution_side_effect_sensitive": {
+        "definition": "scenario_family_equals_C11",
+        "expected_behavior": "each_row_contains_an_admitted_legal_collateral_contrast;_report_selected_collateral_and_active_correctness"
+      },
+      "current_sensor_unavailable": {
+        "definition": "scenario_family_equals_C09",
+        "expected_behavior": "executed_now_is_unavailable_by_construction;_null_now_influence_confirms_the_mechanism"
+      },
+      "other_registered_mechanisms": {
+        "definition": "all_remaining_online_rows",
+        "expected_behavior": "descriptive_only_without_posthoc_family_selection"
+      },
+      "reported_metrics": [
+        "selection_accuracy",
+        "commit_rate",
+        "committed_registered_accuracy",
+        "active_correctness_after_decision",
+        "selected_collateral_rate"
+      ],
+      "primary_gate": false,
+      "full_mixed_20_step_causal_endpoint_remains_primary": true
+    },
+    "multiple_comparisons": {
+      "procedure": "Holm-Bonferroni",
+      "familywise_alpha": 0.05,
+      "family": [
+        "A_vs_C",
+        "A_vs_E"
+      ]
+    },
+    "meaningful_effect": {
+      "active_graph_correctness_absolute": 0.03,
+      "memory_contamination_absolute_per_100": 2.0
+    },
+    "safety_noninferiority_margin_per_100": {
+      "false_birth_growth": 1.0,
+      "collateral_violation": 0.5
+    },
+    "invariant_violation_gate": 0,
+    "go_rule": "both_primary_contrasts_meet_both_meaningful_effects_with_adjusted_95pct_CI_excluding_zero; safety_metrics_are_noninferior; invariant_violations_equal_zero",
+    "stop_rule": "if_A_fails_against_C_or_E_with_CI_excluding_the_registered_meaningful_effect_stop_model_expansion_and_do_not_enter_M2"
+  },
+  "error_decomposition": [
+    "candidate_miss",
+    "teacher_error",
+    "amortization_error",
+    "rollout_error"
+  ],
+  "logging": {
+    "required": [
+      "config",
+      "seed",
+      "data_hash",
+      "code_hash",
+      "front_end_ids",
+      "future_use_policy",
+      "candidate_energies",
+      "per_case_metrics",
+      "all_failures",
+      "wall_clock",
+      "peak_vram",
+      "p95_latency"
+    ],
+    "failed_runs_are_retained": true
+  },
+  "resources": {
+    "policy": "operator_controlled_cloud_instances",
+    "cloud_spend_authorized_aud": null,
+    "cloud_spend_control": "operator_starts_and_schedules_shutdown_of_pay_as_you_go_instances",
+    "formal_run_wall_time_policy": "measure_and_report_without_repository_fixed_cap",
+    "stop_on_new_host_bugcheck": true
+  }
+}

@@ -1,4 +1,4 @@
-# M1-v6 收口执行流程
+# M1 收口执行流程（v7 范围修复重建）
 
 本文件沿用 D-035 批准的固定文件名，是 M1-v6 从当前 pretest 走到结束的唯一流程大纲。它解决“下一步做什么、看到什么结果后走哪条分支”的问题；输入是已登记的 M1 合同和每阶段结果，输出是下一个有界任务。例如 E 的 target-only oracle 高、但 scorer train accuracy 低时，下一步是优化诊断，不是改 target。它不是实验结果日志、不是新的方法合同，也不代替机器可读配置。
 
@@ -8,7 +8,7 @@
 |---|---|
 | 本文件 | 阶段顺序、分支条件、当前指针、允许调整的开发细节 |
 | [`EXECUTE.md`](../../EXECUTE.md) | 已经发生的 run、失败、结果与当前看板；不再承担完整流程 |
-| [`configs/m1_hard_condition.json`](../../configs/m1_hard_condition.json) + [`m1_endpoint_viability_probe.json`](../../configs/m1_endpoint_viability_probe.json) + [`m1_post_probe_registration.json`](../../configs/m1_post_probe_registration.json) | 生成来源、既定 overlay 与 probe 后评测登记共同组成机器合同；test 未解封 |
+| [`configs/m1_hard_condition_v7.json`](../../configs/m1_hard_condition_v7.json) + [`m1_scope_rebuild_plan.json`](../../configs/m1_scope_rebuild_plan.json) | 修正版本的生成合同与重建前固定规则；旧 v6 hard/overlay/post-probe registration 保留作历史来源，新组合登记待修正 probe 后接线，test 未解封 |
 | [`HARD_CONDITION_EXPERIMENT.md`](HARD_CONDITION_EXPERIMENT.md) | M1 实验合同与白话解释 |
 | [`docs/DECISIONS.md`](../../docs/DECISIONS.md) | 已接受的重要方法、预算或流程变更 |
 
@@ -16,7 +16,7 @@
 
 ## 当前指针
 
-- 当前阶段：**D-051 并行测速已导回并依原规则初选配置（EXECUTE LOG-071），不再追加测速。下一项为独立生产一跳修复、正确性检查与新数据版本接线，再落实预算并行及一致性验证。重建、完整原预算重跑、endpoint/N 与防过拟合规则保持；生产修复及完整预算分片 runner 尚未实施。当前唯一入口仍是已完成的 runtime probe，不启动新预算、S5 或 test。**
+- 当前阶段：**生产一跳修复已独立提交，v7/v9 生成合同与来源隔离已实现（EXECUTE LOG-072）。当前唯一入口为前台完整测试；成功后才单独交付新 train 生成阶段。D-051 的预算重跑、固定 endpoint、N 下限与防过拟合规则保持，4 进程×1 线程仅为后续预算调度初选，完整并行入口与新 probe/registration 接线尚待完成。不恢复旧 S5、不启动新预算或 test。**
 - 最近有效证据：v5 S2 的 arrays/manifest/report 已验收；1000−300 的 paired-group 95% CI 为 `[+0.008750,+0.045000]`，按预登记规则选择 1000。10-group 同预算锚点中共同 group 1 的 40−10 平均差为 `+0.005000`、仅 `1/5` seed 严格为正，未达 S3 触发条件。完整数字与 provenance 见 `EXECUTE.md` LOG-032/033。
 - 已完成：同一份 40-group v4 arrays 确定性截取 10/40 groups，运行 scorer steps {60,300,1000} × seed 7。40-group 全 train 上，static preflight 对 2,552/2,552 个 executor-illegal 候选全部静态拒绝、合法误拒 0；过滤后 target-only 均匀并列期望由 0.7729 升至 0.9698，assembled oracle accuracy 由 0.7438 升至 0.9525，其 exact-ambiguity capped 读数由 0.7275 升至 0.9275。D-038 已接受把同一只读预检变成 A–E 共享 mask；旧 v4 过滤数字仍只作采纳依据，不冒充 v5 方法成绩。
 - scorer 分支：40-group inner-dev 的未过滤/过滤后 teacher accuracy 在 steps 60/300/1000 分别为 0.0500/0.5688/0.5031 与 0.0625/0.7469/0.7094。1000 steps 虽将 held-out BCE 从 0.1016 降到 0.0744，候选排序却低于 300 steps；共同 group 1 在 10/40 groups、300/1000 steps 过滤后均为 0.875，也没有显示扩大到 S3 的明确数据收益。因此 300 steps 只是当前单 seed 候选，尚未固定。

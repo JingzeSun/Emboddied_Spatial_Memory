@@ -26,7 +26,7 @@ class TestS5ConfirmationRunner(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         torch.set_num_threads(1)
-        cls.hard=load_and_validate(PROJECT / "configs/m1_hard_condition.json")
+        cls.hard=load_and_validate(PROJECT / "configs/m1_hard_condition_v7.json")
         cls.plan=read_json(PROJECT / "configs/m1_s5_confirmation_plan.json")
         cls.online, cls.audits, cls.summary=generate_m1_paired_rollout_split(cls.hard,"train",paired_groups=1)
         cls.arrays=rollout_learning_arrays_from_audits(cls.hard,cls.audits,future_hash_bins=32)
@@ -41,7 +41,7 @@ class TestS5ConfirmationRunner(unittest.TestCase):
     def test_group_cache_uses_existing_generator_encoder_and_reuses_completed_files(self):
         # Supply only pre-generated train fixtures; do not generate S5 validation.
         with tempfile.TemporaryDirectory() as tmp,patch.object(runner,"generate_m1_paired_rollout_split",return_value=(self.online,self.audits,self.summary)) as generator:
-            task=(str(PROJECT / "configs/m1_hard_condition.json"),tmp,4,{"fixture":True})
+            task=(str(PROJECT / "configs/m1_hard_condition_v7.json"),tmp,4,{"fixture":True})
             index, marker=runner.make_group(task)
             self.assertEqual(index,4)
             self.assertEqual(generator.call_args.kwargs,{"paired_groups":1,"start_group_index":4})

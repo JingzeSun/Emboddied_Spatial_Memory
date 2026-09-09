@@ -94,5 +94,14 @@
     "numerical_equivalence_check_required_before_parallel_budget": true,
     "new_array_resource_check_required": true,
     "formal_latency_measurement": "separate_serial_pass_with_recorded_conditions"
+  },
+  "corrected_source": {
+    "path": "configs/m1_hard_condition_v7.json",
+    "protocol_sha256": "adc6badc93dcca11904e12cb93396d26c3a4e728ccf438ce9a3a4f442f93901f",
+    "protocol": "m1-hard-condition-v7",
+    "dataset_version": "m1-paired-latent-worlds-v9-one-hop-scope",
+    "legacy_config": "configs/m1_hard_condition.json",
+    "legacy_config_role": "historical_evidence_validation_only",
+    "new_rollout_generation_requires_corrected_protocol": true
   }
 }

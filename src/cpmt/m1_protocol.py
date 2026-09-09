@@ -21,6 +21,20 @@ REQUIRED_TEMPLATES = {
     "NOOP", "BIND", "BIRTH", "REACTIVATE", "RELINK", "RETRACT", "SPLIT", "MERGE"
 }
 EXPECTED_SCENARIO_FAMILIES = [f"C{index:02d}" for index in range(12)]
+CURRENT_ROLLOUT_PROTOCOL = "m1-hard-condition-v7"
+CURRENT_ROLLOUT_DATASET = "m1-paired-latent-worlds-v9-one-hop-scope"
+CURRENT_SCOPE_SCHEMA = "cpmt-current-evidence-scope-v2"
+CURRENT_SCOPE_DEFINITION = {
+    "schema_version": CURRENT_SCOPE_SCHEMA,
+    "definition": "immutable_retrieved_ids_one_open_edge_expansion",
+    "retrieval_queries": ["node_query", "edge_query", "place_query", "merge_queries"],
+    "enumerated_ranks": 3, "open_records_only": True,
+    "retrieved_edge_includes_endpoints": True, "recursive_expansion": False,
+    "edge_record_order_invariant": True, "candidate_independent": True,
+    "future_or_post_world_read": False,
+    "consumers": ["c11_candidate_target", "reference_collateral_energy",
+                  "recovery_collateral_energy", "causal_collateral_safety_metric"],
+}
 
 
 def _require(condition: bool, message: str) -> None:
@@ -30,7 +44,14 @@ def _require(condition: bool, message: str) -> None:
 
 def validate_m1_protocol(config: Mapping[str, Any]) -> None:
     """Reject incomplete, leaky, or silently weakened M1 protocol settings."""
-    _require(config.get("protocol") == "m1-hard-condition-v6", "wrong protocol")
+    _require(config.get("protocol") in {"m1-hard-condition-v6", CURRENT_ROLLOUT_PROTOCOL}, "wrong protocol")
+    if config.get("protocol") == CURRENT_ROLLOUT_PROTOCOL:
+        _require(config.get("data", {}).get("dataset_version") == CURRENT_ROLLOUT_DATASET,
+                 "corrected scope requires the v9 dataset version")
+        _require(config.get("energy", {}).get("current_online_evidence_scope") == CURRENT_SCOPE_DEFINITION,
+                 "corrected scope must be immutable one-hop and edge-order invariant")
+        _require(config.get("candidates", {}).get("proposal_retrieval", {}).get("enumerated_ranks") == 3,
+                 "corrected scope retrieval ranks must remain three")
     _require(config.get("stage") == "M1", "stage must be M1")
     _require(config.get("status") in {"pretest_lock_candidate", "frozen_pretest"},
              "protocol must be a pre-test candidate or frozen pre-test contract")
@@ -586,6 +607,33 @@ def load_and_validate(path: Path) -> dict[str, Any]:
     config = json.loads(path.read_text(encoding="utf-8"))
     validate_m1_protocol(config)
     return config
+
+
+def validate_current_rollout_protocol(config: Mapping[str, Any]) -> None:
+    """Historical v6 is readable, but cannot generate new corrected rollouts."""
+    validate_m1_protocol(config)
+    _require(config.get("protocol") == CURRENT_ROLLOUT_PROTOCOL,
+             "legacy protocol is historical only; corrected rollouts require v7/v9")
+
+
+def rollout_source_binding(config: Mapping[str, Any]) -> dict[str, str]:
+    validate_current_rollout_protocol(config)
+    return {"protocol": CURRENT_ROLLOUT_PROTOCOL, "protocol_sha256": protocol_sha256(config),
+            "dataset_version": CURRENT_ROLLOUT_DATASET, "scope_schema": CURRENT_SCOPE_SCHEMA}
+
+
+def validate_rollout_source(audit: Mapping[str, Any], config: Mapping[str, Any] | None = None) -> None:
+    """Reject unversioned/legacy audits before corrected encoding or execution."""
+    binding = audit.get("source_binding", {})
+    _require(binding.get("protocol") == CURRENT_ROLLOUT_PROTOCOL
+             and binding.get("dataset_version") == CURRENT_ROLLOUT_DATASET
+             and binding.get("scope_schema") == CURRENT_SCOPE_SCHEMA,
+             "legacy/unversioned rollout audit cannot be used with corrected scope")
+    digest = binding.get("protocol_sha256", "")
+    _require(isinstance(digest, str) and len(digest) == 64
+             and all(c in "0123456789abcdef" for c in digest), "invalid rollout source digest")
+    if config is not None:
+        _require(binding == rollout_source_binding(config), "rollout audit/config source binding mismatch")
 
 
 def validate_m1_endpoint_probe(

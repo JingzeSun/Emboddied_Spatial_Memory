@@ -32,7 +32,8 @@ from cpmt.m1_af_rollout import (  # noqa: E402
     posterior_term_influence_diagnostics,
     rollout_learning_arrays_from_audits,
 )
-from cpmt.m1_protocol import load_and_validate, protocol_sha256  # noqa: E402
+from cpmt.m1_protocol import (load_and_validate, protocol_sha256,
+                              validate_current_rollout_protocol)  # noqa: E402
 from cpmt.m1_rollout import generate_m1_paired_rollout_split  # noqa: E402
 from cpmt.run_provenance import arrays_sha256, capture_run_provenance  # noqa: E402
 
@@ -175,6 +176,9 @@ def generate_parallel(
     config_path: Path, split: str, paired_groups: int, *,
     future_hash_bins: int, workers: int, out_dir: Path,
 ) -> tuple[dict[str, np.ndarray], dict[str, object]]:
+    validate_current_rollout_protocol(load_and_validate(config_path))
+    if out_dir.exists() and any(out_dir.iterdir()):
+        raise ValueError("existing shard directory requires review; refusing to overwrite old/partial data")
     out_dir.mkdir(parents=True, exist_ok=True)
     tasks = [
         (str(config_path), split, index, future_hash_bins, str(out_dir))
@@ -218,7 +222,7 @@ def _digest(arrays: dict[str, np.ndarray]) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--config", default=str(PROJECT / "configs" / "m1_hard_condition.json"))
+    parser.add_argument("--config", default=str(PROJECT / "configs" / "m1_hard_condition_v7.json"))
     parser.add_argument("--split", choices=["train", "validation"], required=True)
     parser.add_argument(
         "--paired-groups", type=int, required=True,
@@ -237,6 +241,7 @@ def main() -> int:
 
     config_path = Path(args.config)
     config = load_and_validate(config_path)
+    validate_current_rollout_protocol(config)
     paired_groups_total = int(args.paired_groups)
     if paired_groups_total <= 0:
         raise ValueError("paired-groups must be positive")
@@ -245,6 +250,8 @@ def main() -> int:
         PROJECT, component="m1_array_generation", entrypoint=Path(__file__),
     )
     out = Path(args.out)
+    if out.exists() or out.with_suffix(".manifest.json").exists():
+        raise ValueError("existing output/manifest requires review; refusing to overwrite data")
     shard_dir = Path(args.shard_dir) if args.shard_dir else out.parent / f"{out.stem}_shards"
     print(f"protocol sha256 {protocol_sha256(config)[:16]}  "
           f"dataset {config['data']['dataset_version']}", flush=True)

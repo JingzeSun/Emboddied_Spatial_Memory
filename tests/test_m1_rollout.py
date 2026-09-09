@@ -36,7 +36,7 @@ class TestM1ContinuousRollout(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.config = json.loads(
-            (PROJECT / "configs" / "m1_hard_condition.json").read_text(
+            (PROJECT / "configs" / "m1_hard_condition_v7.json").read_text(
                 encoding="utf-8"
             )
         )
@@ -535,7 +535,7 @@ class TestM1PairedContinuousRollout(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.config = json.loads(
-            (PROJECT / "configs" / "m1_hard_condition.json").read_text(
+            (PROJECT / "configs" / "m1_hard_condition_v7.json").read_text(
                 encoding="utf-8"
             )
         )

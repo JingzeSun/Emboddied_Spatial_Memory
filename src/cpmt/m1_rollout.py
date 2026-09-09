@@ -27,7 +27,8 @@ from .m1_data import (
     validate_online_payload,
 )
 from .m1_metrics import graph_error_counts
-from .m1_protocol import validate_m1_protocol
+from .m1_protocol import (rollout_source_binding, validate_current_rollout_protocol,
+                         validate_rollout_source)
 
 
 SPLIT_SEED_OFFSET = {"train": 0, "validation": 200_000_000}
@@ -1868,7 +1869,7 @@ def audit_m1_candidate_coverage(
     canonical match is recorded as a candidate miss instead of being converted
     into a scorer or student error.
     """
-    validate_m1_protocol(config)
+    validate_current_rollout_protocol(config)
     if split not in SPLIT_SEED_OFFSET:
         raise ValueError("M1 candidate audit exposes train/validation only; test is sealed")
     if paired_groups <= 0:
@@ -2940,6 +2941,7 @@ def _generate_sequence(
         })
     return online_steps, {
         "schema_version": "cpmt-m1-rollout-audit-v1",
+        "source_binding": rollout_source_binding(config),
         "sequence_id": sequence_id,
         "paired_group_id": paired_group_id,
         "sibling_index": sibling_index,
@@ -2967,7 +2969,7 @@ def generate_m1_rollout_split(
     config: Mapping[str, Any], split: str, *, sequences: int = 1,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
     """Generate procedural 20-step train/validation sequences, never test."""
-    validate_m1_protocol(config)
+    validate_current_rollout_protocol(config)
     if split not in SPLIT_SEED_OFFSET:
         raise ValueError("M1 rollout generator exposes train/validation only; test is sealed")
     if sequences <= 0:
@@ -3284,7 +3286,7 @@ def generate_m1_paired_rollout_split(
     audit-only reference selects the primary program for sibling 0 and its
     legal contrast for sibling 1.  Subsequent bases then diverge naturally.
     """
-    validate_m1_protocol(config)
+    validate_current_rollout_protocol(config)
     if split not in SPLIT_SEED_OFFSET:
         raise ValueError(
             "M1 paired rollout generator exposes train/validation only; test is sealed"
@@ -3487,6 +3489,7 @@ def teacher_horizon_contrast(
         )
     siblings_by_group: dict[str, set[int]] = {}
     for audit in audits:
+        validate_rollout_source(audit, config)
         group_id = str(audit["paired_group_id"])
         sibling = audit.get("sibling_index")
         if sibling is None:
@@ -3715,6 +3718,7 @@ def materialize_rollout_step(
     runner also materializes all branches. Only the selected world persists;
     this is not a select-before-single-execution deployment implementation.
     """
+    validate_rollout_source(audit_sequence)
     steps = audit_sequence["steps"]
     if not 0 <= step_index < len(steps):
         raise ValueError("step index is outside the recorded sequence")
@@ -3744,6 +3748,7 @@ def execute_rollout_choices(
     Illegal selections use the deterministic QUARANTINE-style fallback: the
     persistent graph remains the current base, while the failure is recorded.
     """
+    validate_rollout_source(audit_sequence)
     steps = audit_sequence["steps"]
     if len(selected_indices) != len(steps):
         raise ValueError("selected indices must cover the complete ordered sequence")
