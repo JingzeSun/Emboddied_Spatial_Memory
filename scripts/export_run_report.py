@@ -92,6 +92,7 @@ def main() -> int:
 
     af_report = _read(out_dir / "af_report.json")
     budget_report = _read(out_dir / "budget_report.json")
+    training_manifest = _read(out_dir / "training_manifest.json")
     endpoint_probe_report = _read(out_dir / "endpoint_probe_report.json")
     endpoint_causal_aggregates = {}
     if endpoint_probe_report is not None:
@@ -127,6 +128,7 @@ def main() -> int:
                 (af_report or {}).get("training_provenance")
                 or (endpoint_probe_report or {}).get("training_provenance")
                 or (budget_report or {}).get("training_provenance")
+                or (training_manifest or {}).get("training_provenance")
             ),
             "runtime_profiles": {
                 name: (value or {}).get("training_provenance")
@@ -139,6 +141,7 @@ def main() -> int:
         },
         "af_report": af_report,
         "budget_report": budget_report,
+        "training_manifest": training_manifest,
         "endpoint_probe": endpoint_probe_report,
         "teacher_forced_only": _read(out_dir / "af_teacher_forced.json"),
         "runtime_profiles": runtime_profiles,
@@ -154,6 +157,7 @@ def main() -> int:
                 "af_report.json", "af_teacher_forced.json",
                 "endpoint_probe_report.json",
                 "budget_report.json",
+                "training_manifest.json",
             }
             and not path.name.endswith(".manifest.json")
         },
@@ -162,11 +166,12 @@ def main() -> int:
         report["af_report"] is None
         and report["endpoint_probe"] is None
         and report["budget_report"] is None
+        and report["training_manifest"] is None
         and report["teacher_forced_only"] is None
         and not report["runtime_profiles"]
     ):
         print(
-            "no af_report.json, af_teacher_forced.json, budget_report.json, or "
+            "no af_report.json, af_teacher_forced.json, budget_report.json, training_manifest.json, or "
             f"runtime_profile.json under {out_dir}"
         )
         return 1
