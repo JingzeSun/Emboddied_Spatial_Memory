@@ -39,6 +39,28 @@ def arrays():
             "recovery": np.tile([False] * 38 + [True] * 2, 1000)}
 
 
+def production_family_code(family, families):
+    """Use the real encoder expression, without importing Torch or generating data."""
+    tree = ast.parse((ROOT / "src/cpmt/m1_af_rollout.py").read_text(encoding="utf-8"))
+    encoder = next(n for n in tree.body if isinstance(n, ast.FunctionDef)
+                   and n.name == "rollout_learning_arrays_from_audits")
+    expression = next(value for node in ast.walk(encoder) if isinstance(node, ast.Dict)
+                      for key, value in zip(node.keys, node.values)
+                      if isinstance(key, ast.Constant) and key.value == "scenario_family_index")
+    return eval(compile(ast.Expression(body=expression), "production_family_code", "eval"),
+                {"scenario_family_index": {name: i for i, name in enumerate(families)},
+                 "step": {"scenario_family": family}})
+
+
+def production_recovery_family():
+    tree = ast.parse((ROOT / "src/cpmt/m1_rollout.py").read_text(encoding="utf-8"))
+    call = next(n for n in ast.walk(tree) if isinstance(n, ast.Call)
+                and isinstance(n.func, ast.Attribute) and n.func.attr == "append"
+                and isinstance(n.func.value, ast.Name) and n.func.value.id == "recovery_examples")
+    return next(ast.literal_eval(value) for key, value in zip(call.args[0].keys, call.args[0].values)
+                if isinstance(key, ast.Constant) and key.value == "scenario_family")
+
+
 class TestCorrectedTrainAcceptance(unittest.TestCase):
     def header(self, value):
         NAMESPACE["validate_manifest_header"](value, {"protocol_sha256": "fixed-protocol"},
@@ -92,6 +114,8 @@ class TestCorrectedTrainAcceptance(unittest.TestCase):
         # In this toy learning table, family C03 is absent from group 0.
         value["scenario_family_index"][[3, 15, 27]] = 0
         families = [f"C{i:02d}" for i in range(12)]
+        value["scenario_family_index"][value["recovery"]] = production_family_code(
+            production_recovery_family(), families)
         report = manifest()
         report.update(configured_scenario_families=families,
                       causal_paired_group_support_by_family=dict.fromkeys(families, 1000),
@@ -100,6 +124,26 @@ class TestCorrectedTrainAcceptance(unittest.TestCase):
 
     def test_learning_family_coverage_can_be_lower_than_causal_coverage(self):
         NAMESPACE["validate_family_support"](*self.family_fixture())
+
+    def test_actual_recovery_encoding_is_minus_one_and_is_accepted(self):
+        value, report, hard = self.family_fixture()
+        self.assertEqual(production_recovery_family(), "RECOVERY_RELINK")
+        self.assertTrue(np.all(value["scenario_family_index"][value["recovery"]] == -1))
+        NAMESPACE["validate_family_support"](value, report, hard)
+
+    def test_minus_one_is_not_allowed_on_ordinary_rows(self):
+        value, report, hard = self.family_fixture()
+        value["scenario_family_index"][0] = -1
+        with self.assertRaisesRegex(ValueError, "invalid ordinary"):
+            NAMESPACE["validate_family_support"](value, report, hard)
+
+    def test_recovery_requires_its_specific_sentinel(self):
+        for code in (-2, 0, 12):
+            with self.subTest(code=code):
+                value, report, hard = self.family_fixture()
+                value["scenario_family_index"][38] = code
+                with self.assertRaisesRegex(ValueError, "invalid recovery"):
+                    NAMESPACE["validate_family_support"](value, report, hard)
 
     def test_overstated_learning_coverage_is_rejected(self):
         value, report, hard = self.family_fixture()

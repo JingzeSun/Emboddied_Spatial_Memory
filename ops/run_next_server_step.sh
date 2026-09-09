@@ -111,10 +111,15 @@ def validate_family_support(arrays,manifest,hard):
     causal=manifest['causal_paired_group_support_by_family']
     require(set(causal)==set(families) and all(v==1000 for v in causal.values()),
             'causal family coverage mismatch')
-    group=np.asarray(arrays['group']);online=~np.asarray(arrays['recovery'])
+    group=np.asarray(arrays['group']);recovery=np.asarray(arrays['recovery']);online=~recovery
     codes=np.asarray(arrays['scenario_family_index'])
-    require(codes.shape==group.shape and codes.dtype.kind in 'iu'
-            and np.all((codes>=0)&(codes<len(families))),'invalid scenario family codes')
+    require(codes.shape==group.shape and codes.dtype.kind in 'iu','invalid scenario family vector shape/dtype')
+    # RECOVERY_RELINK is intentionally outside C00-C11; the production encoder
+    # maps its family to -1. It must not enter ordinary-family coverage counts.
+    require(np.all((codes[online]>=0)&(codes[online]<len(families))),
+            'invalid ordinary scenario family codes: '+str(np.unique(codes[online]).tolist()))
+    require(np.all(codes[recovery]==-1),
+            'invalid recovery scenario family codes (expected -1): '+str(np.unique(codes[recovery]).tolist()))
     observed={family:int(len(np.unique(group[online & (codes==index)])))
               for index,family in enumerate(families)}
     # A family's only reference occurrence may be the omitted last step.

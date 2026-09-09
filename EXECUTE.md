@@ -4,9 +4,9 @@
 
 ## 当前看板
 
-> **2026-09-09 更新（train 生成成功，运维计数验收待修复后续验）：** 用户回执显示 1000 paired groups / 16 workers / 1187.1 秒，生成器 exit=0、teacher health PASS；学习行 38000 reference + 2000 recovery，共 40000，digest 前缀 `a1d9f7517feb3c30`。后续验收误用完整轨迹计数而退出 1；仅修复 ops 并复用现有产物续验，不重生成。详见 LOG-075。
+> **2026-09-09 更新（train 产物保留，恢复样本编号验收修复待续验）：** 生成器已成功（1000 groups、1187.1 秒、health PASS）；首次验收行数/覆盖错误已修复。第二次 accept-only 在场景编号检查中错误拒绝恢复行的合法 `-1` 编码，当前只修复该 ops 检查并补生产编码回归测试，仍不重生成。详见 LOG-075/076。
 
-最后更新：2026-09-09，修正 train 的生成器已成功，完整产物验收尚待服务器完成。当前修复只涉及 ops 的行数/覆盖语义及 accept-only 保护，科学源码、数据和 280 项测试绑定保持；没有启动新 probe、预算或训练。
+最后更新：2026-09-09，train 生成器成功，accept-only 已进入 family 编号检查但因拒绝合法恢复编码 -1 中止；修复后的最终验收仍待服务器返回。科学源码、生成数据和 280 项全测绑定保持，新 probe、预算及训练尚未启动。
 
 | 项目 | 当前事实 |
 |---|---|
@@ -939,3 +939,10 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - 增加 `--accept-only`：必须已有 attempt 与 runner_exit，随后仍核验绑定和 exit=0；缺失、中断或失败绝不启动生成。复用同一 source-bound 目录与既有 280 项全测 marker；数据生成 provenance 保留原提交，当前验收 provenance 单独记录。成功输出明确区分 learning_rows/reference_learning_rows/recovery_rows。
 - `ops/tests/test_corrected_train_acceptance.py` 从实际内嵌 Python 提取验收函数，使用小型合成计数向量和临时空文件运行 11 项轻量测试，全部通过（0.142 秒）；覆盖正确口径、字段错误、分组恢复数量错位、漏组/非法组、family 覆盖过报、causal 门保留及 accept-only 无重生成路径。Bash/Python 语法与 diff 检查通过。新增运维测试放 ops/tests，不改变 src/scripts/configs/tests 的科学测试指纹；没有在本地生成数据、训练、跑真实 rollout 或全套测试。
 - 当前仅交付修复后续验，尚无 generation.ok.json 成功回执；先验收再进入已登记工程检查，不据此降低任何科学验收门。这次需要同步是必要 bug 修复，按 D-052 允许，不恢复逐步切换必须 pull 的旧规则。
+
+## LOG-076（2026-09-09）：accept-only 错误拒绝 RECOVERY_RELINK 的 -1 编码
+
+- 用户在提交 `badb4b7cacd12cfadb2e2b84e59402e5c095a48e` 运行 accept-only，日志确认复用了 280 项全测且没有重生成；在 `validate_family_support` 抛 `invalid scenario family codes`，GENERATION_EXIT=1、LOG_WRITE_EXIT=0。已有生成产物和两次失败现场继续保留，尚未收到 generation.ok.json 成功证据。
+- 根因是上一验收补丁遗漏真实恢复编码，而非数据类型漂移：生成器的 recovery_examples 使用 scenario_family=`RECOVERY_RELINK`；编码器对配置的 C00–C11 查表，未在表中的恢复名称按既有约定得到整数 -1。验收把所有行一律要求为 0–11，错误拒绝 2000 个合法恢复样本。上一版测试只用普通 family 编号构造恢复行，未覆盖生产约定；这是验收实现与测试遗漏。
+- 本次只改 ops：普通非 recovery 行必须落在 0–11，recovery 行必须恰为 -1；拒绝普通行 -1、恢复行 -2/0/12，保留 shape/dtype 检查及错误取值报告。family 覆盖只统计普通行。行数、逐组 38+2、causal 各 1000、learning 覆盖重算、hash、协议、来源及 health gate 均不变，不改产物或编码器，不放宽科学验收门。
+- 测试从实际 m1_rollout 的 recovery 构造中提取名称，并从实际 m1_af_rollout 编码函数中提取 scenario_family_index 表达式用于轻量 fixture，避免手写普通 family 编号掩盖恢复约定；不 import Torch、不执行生成器。运维回归共 14 项通过（0.611 秒），Bash/内嵌 Python 语法与 diff 检查通过。src/scripts/configs/tests 无变更，既有生成和全测指纹继续使用；服务器只需修复版本的 accept-only，实际最终验收结果仍待回执。
