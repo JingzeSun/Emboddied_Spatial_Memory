@@ -4,9 +4,9 @@
 
 ## 当前看板
 
-> **2026-09-09 更新（S5 确认数据生成失败，待精确现场诊断）：** 用户日志显示 C11 collateral 场景无法找到符合条件的范围外节点，`GENERATION_RUN_EXIT=1`；最后可见 `completed=59/200`，实际完成目录数和失败组号待读取保留产物。模型训练结果仍见 LOG-063，S5 模型评测与 test 尚未启动。详见 LOG-066。
+> **2026-09-09 更新（S5 失败现场已导回）：** 已确认 59 个完整组、17 个 incomplete 目录；原规则复现 group 78 / sibling 0 / 第 3 步的 C11 失败。现场中非预期的多跳扩展吞掉了最后一个范围外候选；固定检索集合的一跳复算可恢复该候选，但尚未完成全批生成或旧训练影响检查。模型训练结果仍见 LOG-063，S5 模型评测与 test 尚未启动。详见 LOG-067。
 
-最后更新：2026-09-09，预算结果及原始训练/验收/导出 provenance 已在本地核对。两臂选择严格沿用 D-043/D-046，不扩网格、不按架构择优；D-049 新入口已在服务器通过 234 项完整测试；固定预算 train-only 训练/模型保存报告已导回，本地配置、完整性与 provenance 复核通过。用户确认 D-050 新完整测试通过，但随后固定确认数据生成出现 C11 前置条件失败；当前只诊断保留现场，尚未修订生成规则或续跑。
+最后更新：2026-09-09，预算结果及原始训练/验收/导出 provenance 已在本地核对。两臂选择严格沿用 D-043/D-046，不扩网格、不按架构择优；D-049 新入口已在服务器通过 234 项完整测试；固定预算 train-only 训练/模型保存报告已导回，本地配置、完整性与 provenance 复核通过。D-050 确认数据生成的失败现场已导回并定位，尚未修订生成规则或续跑；旧数据、教师与指标的受影响范围仍待检查。
 
 | 项目 | 当前事实 |
 |---|---|
@@ -866,3 +866,11 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - 当前唯一入口改为 `m1_v6_d050_s5_generation_diagnostic`：持原 worker 锁确认任务已退出，仅读原目录的开始/退出/manifest/complete/failure 元数据，列出完整、失败和中断组。从已有精确 C11 failure.json 中取最小组号，仅按原生成规则在内存复现这一组；使用 sys.settrace 读取 evidence scope 扩展前后集合与异常帧，保存实际 graph/event、sequence/sibling/step、bind targets 和候选池。它不替换函数、不改返回值，不重扫 200 组，不覆盖原分片或继续模型评测。
 - 诊断独立保存到 `/root/autodl-tmp/cpmt_outputs/m1-v6-d050-s5-generation-diagnostic`，最终通过仓库 exporter 输出唯一 `results/m1_v6_d050_s5_generation_failure.json`；原元数据前后指纹必须一致。匹配的诊断/导出可复用；即使未复现或出现不同异常也明确保存该状态，不冒称根因已确认。新增 exporter 仅支持 diagnostic_report 及独立 provenance，是本轮 src/scripts/configs/tests 唯一变化；原生成/执行/模型/指标代码保持失败时版本。
 - 本地 Bash/内嵌 Python/exporter 静态检查通过；三节点真实 scope 函数反例与观察器检查验证初始/最终范围、异常上下文捕获和输入未修改，diagnostic-only 导出包装检查通过。没有本地真实 group 生成、模型运行、全套测试或 validation 模型指标。尚待服务器诊断返回，不追加新方法 decision、不更换固定确认范围、不删除失败记录。
+
+## LOG-067（2026-09-09）：S5 group 78 诊断导回，确认多跳扩展导致现场候选耗尽
+
+- 结果提交 `2948462` 已 fast-forward 拉取。[诊断报告](results/m1_v6_d050_s5_generation_failure.json) SHA-256=`b1714dd3b1bc74e16830526bd8352e3e9acf538e78b36b85cae453aa908ac73e`，与服务器截图一致。诊断 provenance 为干净提交 `d02e5c904cf91cda2c05d126c822d9892ca5b672`；报告记录 original_metadata_unchanged=true、model_evaluation_performed=false、replacement_groups_generated=false、test_access=false。
+- 200 个预定组的清单中，完整目录与 parent manifest 各 59 个，另有 17 个 incomplete 目录；不把所有 incomplete 目录都判成同一异常。服务器按原规则仅复现已记录的 C11 失败组 78，status=reproduced_expected_failure。现场为 sibling 0、world_seed=200360984；异常帧外层 sequence_context.step_index 为 null，但保存的 event.step_index=2 明确定位第 3 步，event_id 后缀 10 不是序列第 11 步。
+- 本地仅对保存的 graph/event 和检索集合做纯字典复算：初始检索含 12 个节点/边标识；原逐边循环得到 42 个标识，与服务器捕获集合完全相同。以固定初始检索集合判断每条边的一跳范围得到 40 个标识；差集恰为 entity:mover:0 及 edge:mover-location:0。原循环经先前加入的 place:4 继续传播，把这两个标识额外纳入。沿用原生命周期、protected_id 与 bind_targets 过滤后，原范围的可用候选为 0，一跳范围的可用候选为 1（entity:mover:0）。
+- 解释：证据范围用于判断哪些既有记忆与当前观测相关，输入是当前图与检索结果，输出是节点/边标识集合。例如此现场的 mover:0 原本在一跳范围外，可作为 C11 检查误改无关记忆的对象；多跳传播却把它标成相关。这不是新模型能力，也不是准确率或过拟合结果。该现场已支持“非预期扩展导致候选耗尽”的解释，但单次范围复算不等于修正后整个组、200 组或自有记忆轨迹都能成功。
+- 调用点复核：范围函数同时参与 C11 候选选择、reference/recovery 的 collateral 能量以及 causal rollout 的 collateral 指标。修正可能影响旧候选及教师分布，不能只改 validation 后直接接旧模型，也不能仅凭此次故障宣布全 M1 必须重跑。下一步先确定既有训练数据/教师与指标的实际影响，再决定修复及重新冻结范围；本轮仅记录证据，不改算法、配置、ops 或训练产物，不启动模型评测或 test。
