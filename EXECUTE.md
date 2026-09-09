@@ -4,15 +4,15 @@
 
 ## 当前看板
 
-> **2026-09-09 更新（严格检查仍 FAIL，交付显式不可用槽位诊断）：** LOG-078 的生产候选耗尽问题已在独立 opt-in 模式实现诊断处理，16 个原失败图的单步构造均通过；正式默认路径仍严格。下一步服务器完整测试，再复用已有 16 组审计验证参考兼容性与完整压力矩阵；尚无服务器 PASS。详见 LOG-079。
+> **2026-09-09 更新（D-053 诊断通过并完成导出复核）：** 299 项服务器测试通过；16 组的 640 个参考步骤、32 个恢复步骤兼容，224 条轨迹/4480 次决策完整通过，耗时 95.374 秒。新增处理记录 MERGE 配对不足 304 个槽位、C11 无目标 12 次、canonical 重复 8 个槽位；优先 SPLIT 的 640 次选择有 544 次执行器拒绝并保留世界。详见 LOG-080；诊断 PASS 不等于动作均成功或正式预算已放行。
 
-最后更新：2026-09-09，修正 train 验收及原失败现场保留；D-053 只授权工程诊断，未放行正式预算、重训或 S5/S6，未决定重生成。
+最后更新：2026-09-09，诊断报告已核查，原严格检查失败仍保留。下一步为正式候选可用性语义、统计口径与来源兼容性接线；新 probe、完整预算、重训和 S5/S6 未启动。
 
 | 项目 | 当前事实 |
 |---|---|
 | 方向 | CPMT 具身空间记忆；CTL 是主学习假设，用户希望面向 ML 研究 |
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
-| 阶段 | M1-v7：修正 train 已验收，固定错误分支检查失败待修复评审；新模型、S5/S6 与 M2 未启动 |
+| 阶段 | M1-v7：修正 train 已验收；严格检查历史 FAIL，D-053 显式槽位诊断 PASS；正式接入待完成，新模型、S5/S6 与 M2 未启动 |
 | 最近结果 | [`m1_v6_d047_endpoint_probe.json`](results/m1_v6_d047_endpoint_probe.json)：201 groups、A/C/E 五 seed、F；终点 exact A/C/E=`0.918408/0.793035/0.471144`，open-memory graded=`0.932013/0.920288/0.878167`，open-fact AUC=`8.830846/12.383085/14.134328`。保留 exact，test N=1350；H3/H1 mean TV=`0.003293`、argmax change=`0`。固定 anchor 未满足全部效应要求，非正式成败结论 |
 | 尚缺 | 固定 train 错误分支检查、固定 probe/新组合登记、预算并行及原网格重跑、60 模型 refit、独立确认与正式 test；D-051 数值门与 N 规则保持 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。D-046 顺序 C weight 搜索按既有逐方法实测路径的最坏 10000-update 外推，两臂总计划约 5.036 小时（非新实测）。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
@@ -985,3 +985,14 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - 服务器入口为 `ops/m1_candidate_availability.sh test|check|export`，一次同步后分块执行，全部前台。先运行完整 unittest discovery（预期至少 299 项、零错误/失败/跳过），marker 绑定当前 source/tests、ops 与原报告 hash；check 仅复用服务器旧 `/root/autodl-tmp/cpmt_outputs/m1-v7-d051-branch-preflight-a488142c3548/run/` 的审计，不调用 train 生成。CPU 最多 4 worker、每进程一线程。工程结果只能说明保存的 16 组参考兼容，不自动推广为全部 1000 组。
 - 新输出使用独立 source-bound `m1-v7-d053-availability-*`，已完成失败或成功都可核验并导出到精确 `results/m1_v7_d053_candidate_availability.json`，包含完整失败快照、逐组摘要及文件指纹；源头报告、原失败目录、train 数组保持。中断/未知产物不自动覆盖或重启，失败出口明确仍可 export；`formal_budget_authorized=false` 恒定。
 - 新运维 5 项微型文件测试通过（0.166 秒）：失败不重跑、失败导出与复用、产物篡改拒绝、中断拒绝重启、full-test 失败阻止诊断。AST、Bash 语法和 diff 检查通过。这些只验证本地控制流，不替代服务器完整测试或真实矩阵。原严格工程门仍 FAIL，正式模式接入、评价口径与来源兼容性尚待后续审查。
+
+
+## LOG-080（2026-09-09）：D-053 全矩阵通过，审查候选不可用分布及执行拒绝
+
+- 拉取提交 `762ab50`，读取 `results/m1_v7_d053_candidate_availability.json`，文件 SHA-256=`d1a1fd70782c42a3842414f57a0fcc2293e4dbf11f2ead681e3a170fe2cd6d7f`。报告绑定原失败报告 SHA-256 `ea058b7468517f59027c740adbc73540c6c97357d323fc7ba43eb8e6cdd16449`，运行提交 `b7caeda3dfb4ef28704b6ecd74cfc9563e27837e`、干净工作树和 source/tests=`46784c2d40c0879fc30068de4e4de2e1507f0db823d15d4d4ef23986da9f617e`。本地按该提交 Git 文件及 Linux 换行规则（.ps1 依 .gitattributes 使用 CRLF）重构来源指纹一致；直接比较 Windows 工作树字节会因换行不同而不一致，不据此误报科学源码变化。
+- 全测 299、errors/failures/skipped=0、exit=0；test/check binding 一致。16 组均 reference_steps_verified=40、recovery_steps_verified=2，总 640+32。固定矩阵完整 224 条，每条 20 步，共 4480 次；failed_groups=[]、failure_snapshots={}、gate=true、check exit=0。实际 wall=95.374 秒，4 CPU worker；不作为后续模型训练或完整评测 ETA。
+- 本地重新计算矩阵 gate，逐分支选中模板数之和均为 20；各分支不可用原因总和与逐组一致。用导出内容重构各组 result.json，SHA-256 与报告记录一致，并与 completion manifest 交叉核对所有逐组文件指纹。成功轨迹 gzip 本体仍在服务器，未在本地逐条读取；兼容性与逐步 invariant 通过证据来自已验收服务器 runner 和报告，不声称本地重新执行了 4480 步。
+- 不可用统计是槽位暴露次数，不是失败轨迹数或全部不同决策数：MERGE 配对不足 304 个，全部出现在 prefer_merge、覆盖 16 组；C11 无目标 12 次，也仅在 prefer_merge，涉及 0/66/199/333/865/932 六组的 12 条 sibling 轨迹。canonical 重复 8 个，仅在 prefer_retract，涉及 133/333/799/865 四组。SPLIT 无证据处理本次未触发，不能宣称该分支已获真实矩阵验证。12 次 C11 无目标均保留在完整轨迹中，不排除时刻或组、不把不可触发损害当作安全改善。
+- 每条规则共 32 条轨迹/640 次选择。prefer_merge 实际选 MERGE=504、NOOP=136；prefer_retract 为 RETRACT=630、NOOP=10；NOOP、RELINK、SPLIT、BIRTH 优先规则各选其模板 640 次。prefer_split 的 544/640（85%）次选中程序被 executor 拒绝并保留 base，固定随机规则另有 10 次执行拒绝，其余规则无选中执行拒绝。拒绝是既有 QUARANTINE 语义，不是图 invariant 崩溃；因此完整 20 步不代表 20 次成功修改或学习到恢复。报告未导出成功轨迹内所有拒绝原因正文，不臆测这 544 次具体由哪一 precondition/invariant 引起。
+- 固定随机的 640 次选择没有不可用槽位，仍包含原执行拒绝；这只能说明该固定小样本路径未触发槽位修复，不能推断实际模型触发率为零。正常参考/恢复状态在保存的 16 组上候选、顺序、证据和执行记录一致，支持继续审查该方案；不等于证明全部 1000 组学习数组/教师不变或真实模型泛化成立。
+- 结论：接受本份诊断报告为 D-053 工程证据，不覆盖 LOG-078 的严格 FAIL，也不将 proposed 模式自动切为正式。接下来应落实共享候选可用性规则、unavailable/非法执行/候选缺失的独立口径、C11 可用性披露和生成/评测来源绑定，再按既定条件进入固定 probe 与小样本模型贯通。当前无新生成、训练、validation/test 访问；formal_budget_authorized=false。没有基于此报告重生成 train、扩网格、调整安全或效应门。
