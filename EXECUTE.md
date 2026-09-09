@@ -4,15 +4,15 @@
 
 ## 当前看板
 
-> **2026-09-09 更新（修正 train 已完成验收，交付固定错误分支检查）：** 用户返回 GENERATION_ACCEPTED、GENERATION_EXIT=0、LOG_WRITE_EXIT=0；1000 groups、40000 学习行（38000 普通+2000 recovery），完整指纹 `a1d9f7517feb3c301e856d774369adc9754475a884d236bc49dad43af231136e`。本轮不重生成，交付同一版本的 check/export 命令；真实分支检查尚未运行。详见 LOG-077。
+> **2026-09-09 更新（错误分支检查失败，暂停完整预算）：** 已读取服务器导出并核对 SHA-256；16 组均在 sibling 0 的 prefer_merge 分支失败，13 组缺少两对不同 MERGE，3 组缺少 C11 范围外目标。16 个失败图 invariant 均通过，单次 proposal 快照重放全部复现；这是生产候选生成器对错误累积状态的处理缺口，不能当作运维验收误报。详见 LOG-078。
 
-最后更新：2026-09-09，修正 train 生成与验收均已成功；错误分支检查代码从隔离分支纳入，并交付固定 check/export 命令。旧生产算法未改，新 probe、预算、重训和 S5/S6 尚未启动。
+最后更新：2026-09-09，修正 train 验收仍保留；错误分支门未通过，新 probe、完整预算、重训和 S5/S6 均未启动。尚未修改生成算法或作出重生成决定。
 
 | 项目 | 当前事实 |
 |---|---|
 | 方向 | CPMT 具身空间记忆；CTL 是主学习假设，用户希望面向 ML 研究 |
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
-| 阶段 | M1-v7：修正 train 已验收，固定错误分支检查待服务器执行；新模型、S5/S6 与 M2 未启动 |
+| 阶段 | M1-v7：修正 train 已验收，固定错误分支检查失败待修复评审；新模型、S5/S6 与 M2 未启动 |
 | 最近结果 | [`m1_v6_d047_endpoint_probe.json`](results/m1_v6_d047_endpoint_probe.json)：201 groups、A/C/E 五 seed、F；终点 exact A/C/E=`0.918408/0.793035/0.471144`，open-memory graded=`0.932013/0.920288/0.878167`，open-fact AUC=`8.830846/12.383085/14.134328`。保留 exact，test N=1350；H3/H1 mean TV=`0.003293`、argmax change=`0`。固定 anchor 未满足全部效应要求，非正式成败结论 |
 | 尚缺 | 固定 train 错误分支检查、固定 probe/新组合登记、预算并行及原网格重跑、60 模型 refit、独立确认与正式 test；D-051 数值门与 N 规则保持 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。D-046 顺序 C weight 搜索按既有逐方法实测路径的最坏 10000-update 外推，两臂总计划约 5.036 小时（非新实测）。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
@@ -964,3 +964,13 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - export 核验源代码/输入绑定、退出码、固定矩阵与逐组文件 hash；无论工程通过还是已完成失败都可导出，失败包含现场 JSON 和末尾日志。导出固定到 `results/m1_v7_d051_train_branch_preflight.json`，包含生成 marker、检查报告、文件指纹和独立导出 provenance，拒绝覆盖不一致的旧导出。成功输出 EXPORT_VERIFIED/PREFLIGHT_EXPORT_OK 不等于工程 PASS；以 report.gate.pass 决定能否进入 probe/预算。中断且无 completion 的尝试仍须审查，不能拿部分成功组放行。
 - 新检查控制流 11 项轻量测试通过（0.003 秒）；运维首跑、成功复用、失败不重跑并导出现场、二次导出复用、文件篡改、来源改变、缺报告/中断防护共 7 项测试通过（0.311 秒）。后者使用微型本地报告和模拟子进程，仅验证文件与调度链路；不是实际服务器数据或真实 rollout 测试。AST、CLI help、Bash 语法与 diff 检查完成。本地未执行生成、训练或真实 causal rollout；新增检查代码不冒用旧 280 项全测证据。
 - 原生成入口保留历史/兼容用途，不再作为下一阶段命令。固定工程检查尚未运行，probe/预算 runner 新登记接线与 fit/inner-dev 差距诊断仍待后续阶段完成；验收成功不等于方法通过或允许 M2/S6。
+
+
+## LOG-078（2026-09-09）：固定合并压力分支暴露候选生成器状态耗尽，暂停完整预算
+
+- 拉取结果提交 `4636a55`，读取 `results/m1_v7_d051_train_branch_preflight.json`，文件 SHA-256=`ea058b7468517f59027c740adbc73540c6c97357d323fc7ba43eb8e6cdd16449`，与用户服务器导出一致。服务器 CPU 4 worker、每 worker 1 torch thread，报告 wall=96.721 秒；工程 gate=false，224 条预期轨迹仅 16 条完整成功、4480 次预期决策仅 320 次计入完整轨迹。该计数不含失败轨迹中已执行的步数，不代表只尝试了 320 步。
+- 全部 16 组完成 sibling 0 的 NOOP 20 步，随后在 prefer_merge 失败。13 组报 `fixed candidate generator found fewer than two merge pairs`：组 0/133/266/333/399/466/532/599/666/732/799/932/999；其失败图均只剩 2 个 open confirmed 实体，无法提供两对不同实体组合。组 66/199/865 报 `C11 collateral stress requires an unprotected node outside the current evidence scope`。失败 step_index 为 7–17（零基），不是第二条分支一开始就失败。每组遇首个异常即停止，其余策略和 sibling 尚未覆盖，不能据此宣称只有这两类故障。
+- traceback 均进入生产 `materialize_rollout_step → generate_fixed_candidates → _proposal_context`，并非新增 checker 自己的 MERGE/C11 断言。正式 `causal_rollout_metrics` 在模型预测前调用同一 materializer；若模型到达这些状态，也会中断评测。固定偏好合并是压力规则，本报告不估计实际 A–E 模型发生概率，不判 CTL 科学 no-go。
+- 本地仅读取已有 16 个失败快照，对 `validate_graph` 和单次 `_proposal_context` 做轻量重放：16 个图均通过 invariant，16 个异常及消息全部一致复现（0.016 秒）。3 个 C11 快照反转边序后 scope 均不变；本次 C11 同名异常不能据此说是一跳修复失效。未生成数据、未推进完整 rollout、未训练或读取 validation/test。
+- 白话：状态耗尽指连续合法编辑会消耗后续候选构造所需的对象。输入是已被合并多次的记忆图，输出本应仍是可评分候选或明确的不可用槽位；例如只剩两个实体时只有一对可合并组合，原生成器仍索要两对便抛错。它不等于图结构非法，也不证明模型一定这样选择。当前关于不可用槽位的处理只是待设计方向，尚未实现或接受；不能直接删断言、复制 NOOP 凑 K、添加对象或换组放行。
+- 已验收的参考 train 仍保留，检查证明其重建分片 digest 一致。参考轨迹生成通过不保证偏离参考后的所有状态可处理。完整选参继续暂停；先设计同时符合候选 K/去重、online 公平性与 C11 coverage 语义的修复，并评估是否改变原 train 候选/监督，再决定重建范围。没有根据本次报告自动重生成、重训或改变已登记效应门。失败现场完整保留，不覆盖原报告。
