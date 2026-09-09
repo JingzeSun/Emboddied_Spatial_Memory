@@ -169,11 +169,19 @@ def load_data(data_dir, plan):
 
 
 def evaluation_config(hard, plan, saved=None):
-    return {**(saved or {}), "device": "cpu", "cpu_threads": 1,
+    config = {**(saved or {}), "device": "cpu", "cpu_threads": 1,
         "commit_probability": plan["evaluation"]["commit_probability"],
         "margin_threshold": plan["evaluation"]["margin_threshold"],
         "mechanism_diagnostic_slices": hard["evaluation"]["mechanism_diagnostic_slices"],
         "current_evidence_scope_ranks": hard["candidates"]["proposal_retrieval"]["enumerated_ranks"]}
+
+    # Only the evaluation plan may authorize the new policy, never a checkpoint.
+    config.pop("candidate_availability_policy", None)
+    if "candidate_availability_policy" in plan["evaluation"]:
+        from cpmt.m1_candidate_policy import validate_candidate_policy
+        config["candidate_availability_policy"] = validate_candidate_policy(
+            plan["evaluation"]["candidate_availability_policy"])
+    return config
 
 
 def teacher_forced(model, arrays):

@@ -1,0 +1,13 @@
+{
+  "schema_version": "cpmt-m1-candidate-availability-policy-v1",
+  "decision": "D-054",
+  "policy_id": "shared_explicit_candidate_slots_v1",
+  "candidate_slots": 16,
+  "reference_generation": "strict_k16_unchanged",
+  "online_selection": "shared_availability_and_static_preflight_mask",
+  "empty_slot_execution": "not_attempted_no_post_world",
+  "canonical_duplicates": "retain_first_mark_later_slots_unavailable",
+  "c11_missing_target": "record_keep_full_trajectory_and_all_original_metric_denominators",
+  "reference_reachability": "post_selection_semantic_exact_over_selectable_legal_candidates",
+  "formal_test_release": false
+}

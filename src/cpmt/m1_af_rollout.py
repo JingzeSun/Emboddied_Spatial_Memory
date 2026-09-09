@@ -45,6 +45,7 @@ from .m1_rollout import (
 )
 from .m1_protocol import validate_m1_protocol, validate_rollout_source
 from .pending import decide_commit
+from .m1_candidate_policy import validate_candidate_policy, step_availability, summarize_availability
 
 
 NODE_TYPES = ("entity", "surface", "place", "chart", "region")
@@ -2064,6 +2065,11 @@ def causal_rollout_metrics(
     """Evaluate a method causally on its own persistent predicted graph."""
     if oracle and observable_oracle:
         raise ValueError("full and observable oracle modes are mutually exclusive")
+    policy = smoke_config.get("candidate_availability_policy")
+    if policy is not None:
+        policy = validate_candidate_policy(policy)
+        if int(smoke_config["current_evidence_scope_ranks"]) != 3:
+            raise ValueError("D-054 requires the registered one-hop scope ranks=3")
     device = torch.device(smoke_config["device"])
     sequence_rows = []
     forward_latencies_ms = []
@@ -2106,7 +2112,11 @@ def causal_rollout_metrics(
         references = []
         protected = []
         for step_index, stored in enumerate(audit["steps"]):
-            materialized = materialize_rollout_step(audit, current, step_index)
+            if policy is None:
+                materialized = materialize_rollout_step(audit, current, step_index)
+            else:
+                materialized = materialize_rollout_step(audit, current, step_index, allow_unavailable=True)
+                materialized["candidate_availability"]["availability_policy"] = policy["policy_id"]
             reference_state = stored["executed_candidates"][
                 stored["reference_program_index"]
             ]["post_graph"]
@@ -2241,6 +2251,10 @@ def causal_rollout_metrics(
                 "base_graph_hash": base["graph_hash"],
                 "post_graph_hash": current["graph_hash"],
             })
+            if policy is not None:
+                choices[-1]["candidate_availability"] = step_availability(
+                    materialized, stored["event_spec"], reference_state,
+                    is_c11=stored["scenario_family"] == "C11")
             # Optional offline recorder runs only after the online choice and
             # persistence decision. It is not a model input or selection hook.
             if audit_sink is not None:
@@ -2355,7 +2369,10 @@ def causal_rollout_metrics(
                 float(revisit_step - pivot_step) if designed_success else -1.0
             ),
         })
-        sequence_rows.append({"metrics": metrics, "choices": choices})
+        row = {"metrics": metrics, "choices": choices}
+        if policy is not None:
+            row["candidate_availability"] = summarize_availability(choices)
+        sequence_rows.append(row)
     metric_names = (
         "mean_active_graph_correctness", "final_active_graph_correctness",
         "mean_graded_active_world_correctness",
@@ -2551,6 +2568,10 @@ def causal_rollout_metrics(
                 ),
             }
         aggregate["mechanism_diagnostic_slices"] = slice_report
+    if policy is not None:
+        aggregate["candidate_availability_policy"] = policy
+        aggregate["candidate_availability"] = summarize_availability(
+            [choice for row in sequence_rows for choice in row["choices"]])
     return aggregate, sequence_rows
 
 

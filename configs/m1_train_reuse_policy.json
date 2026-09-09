@@ -1,0 +1,40 @@
+{
+  "schema_version": "cpmt-m1-train-reuse-policy-v1",
+  "decision": "D-054",
+  "generation_commit": "ee1af48eb9d6337e0f22a23b34c1042d00cf715b",
+  "generation_marker_sha256": "ffc18b168554e35af20aed89a18dd5cce7b881c1a30c2f78ea3b03757e4c12fc",
+  "generation_protocol_sha256": "adc6badc93dcca11904e12cb93396d26c3a4e728ccf438ce9a3a4f442f93901f",
+  "arrays_digest": "a1d9f7517feb3c301e856d774369adc9754475a884d236bc49dad43af231136e",
+  "evidence_reports": {
+    "results/m1_v7_d051_train_branch_preflight.json": "ea058b7468517f59027c740adbc73540c6c97357d323fc7ba43eb8e6cdd16449",
+    "results/m1_v7_d053_candidate_availability.json": "d1a1fd70782c42a3842414f57a0fcc2293e4dbf11f2ead681e3a170fe2cd6d7f"
+  },
+  "compatibility_basis": "reviewed_default_strict_generation_unchanged_and_16_group_execution_equivalence",
+  "reference_behavior_evidence_groups": 16,
+  "all_groups_regenerated_and_compared": false,
+  "training_files_to_verify": 1002,
+  "test_access": false,
+  "regeneration_performed": false,
+  "reviewed_source_changes": {
+    "src/cpmt/m1_af_rollout.py": {
+      "change": "modified",
+      "normalized_sha256": "8a433e064b883c5cb2b61744d557a685b646a248936e572da2caf19b299cbd77"
+    },
+    "src/cpmt/m1_branch_preflight.py": {
+      "change": "added",
+      "normalized_sha256": "63ee8dca4e0990ca97ffae24b8948c9dc8a83a8df7843f612d8e902fb0937a58"
+    },
+    "src/cpmt/m1_candidate_policy.py": {
+      "change": "added",
+      "normalized_sha256": "b4971c455773ef565545a2c3df6949335cdca2f85dcda6403757c2eb32cd3a64"
+    },
+    "src/cpmt/m1_rollout.py": {
+      "change": "modified",
+      "normalized_sha256": "369edb57da8e305acffacffe90f55e244c1d628628ee70b15afc381e3cb1c49e"
+    },
+    "src/cpmt/m1_train_reuse.py": {
+      "change": "added",
+      "normalized_sha256": "b2c040b72566468ef9ade209a9c318540290cad5bfb51854bf68cecce7099892"
+    }
+  }
+}

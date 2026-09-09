@@ -4,9 +4,9 @@
 
 ## 当前看板
 
-> **2026-09-09 更新（D-053 诊断通过并完成导出复核）：** 299 项服务器测试通过；16 组的 640 个参考步骤、32 个恢复步骤兼容，224 条轨迹/4480 次决策完整通过，耗时 95.374 秒。新增处理记录 MERGE 配对不足 304 个槽位、C11 无目标 12 次、canonical 重复 8 个槽位；优先 SPLIT 的 640 次选择有 544 次执行器拒绝并保留世界。详见 LOG-080；诊断 PASS 不等于动作均成功或正式预算已放行。
+> **2026-09-09 更新（D-054 正式策略接线与 train 复用核验已交付，服务器验证 pending）：** 已采纳共享不可用槽位规则，实际 causal evaluator 增加候选不可用/执行拒绝/参考语义可达性及 C11 可用性独立诊断，原指标分母不变。新增精确来源桥接，下一阶段完整测试后只读校验 1002 个原 train 文件；不重复 D-053 矩阵、不重生成 1000 组。详见 LOG-081。
 
-最后更新：2026-09-09，诊断报告已核查，原严格检查失败仍保留。下一步为正式候选可用性语义、统计口径与来源兼容性接线；新 probe、完整预算、重训和 S5/S6 未启动。
+最后更新：2026-09-09，D-053 诊断成功保留；D-054 已完成代码与本地轻量验证，新的服务器全测、复用验收仍待运行。修正 probe/组合登记、预算并行和模型小预演仍未完成，不启动完整预算或 S5/S6。
 
 | 项目 | 当前事实 |
 |---|---|
@@ -996,3 +996,14 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - 每条规则共 32 条轨迹/640 次选择。prefer_merge 实际选 MERGE=504、NOOP=136；prefer_retract 为 RETRACT=630、NOOP=10；NOOP、RELINK、SPLIT、BIRTH 优先规则各选其模板 640 次。prefer_split 的 544/640（85%）次选中程序被 executor 拒绝并保留 base，固定随机规则另有 10 次执行拒绝，其余规则无选中执行拒绝。拒绝是既有 QUARANTINE 语义，不是图 invariant 崩溃；因此完整 20 步不代表 20 次成功修改或学习到恢复。报告未导出成功轨迹内所有拒绝原因正文，不臆测这 544 次具体由哪一 precondition/invariant 引起。
 - 固定随机的 640 次选择没有不可用槽位，仍包含原执行拒绝；这只能说明该固定小样本路径未触发槽位修复，不能推断实际模型触发率为零。正常参考/恢复状态在保存的 16 组上候选、顺序、证据和执行记录一致，支持继续审查该方案；不等于证明全部 1000 组学习数组/教师不变或真实模型泛化成立。
 - 结论：接受本份诊断报告为 D-053 工程证据，不覆盖 LOG-078 的严格 FAIL，也不将 proposed 模式自动切为正式。接下来应落实共享候选可用性规则、unavailable/非法执行/候选缺失的独立口径、C11 可用性披露和生成/评测来源绑定，再按既定条件进入固定 probe 与小样本模型贯通。当前无新生成、训练、validation/test 访问；formal_budget_authorized=false。没有基于此报告重生成 train、扩网格、调整安全或效应门。
+
+
+## LOG-081（2026-09-09）：正式可用性评测接线、独立统计及 train 来源桥接
+
+- 用户要求继续正式接入，D-054 固定新评测策略。新增 `configs/m1_candidate_availability_policy.json` 与 `m1_candidate_policy.py`，严格验证完整策略后才在 `causal_rollout_metrics` 启用 slot handling；S5 evaluation_config 只从 evaluation plan 接收策略，丢弃 checkpoint 自带的同名项，防止未登记切换。旧默认调用、旧组合登记仍保持历史行为，新 fixed probe 和 S5 最终计划尚需绑定本策略。
+- 新统计仅在在线选定动作并持久化之后读取评测参考：逐步记录 unavailable/真实构造/执行拒绝/可选合法数量、当前参考语义是否可由候选达到、C11 范围外目标和指定合法 collateral 对照是否可用。序列与总体汇总单列，原 rollout_graph_metrics、paired group、20 步、co-primary、安全分母/阈值均不改。C11 零分母返回 null；不可用不混成 executor-illegal。语义不可达诊断不等于已定位生成器单独责任，也不进入在线输入、选参或新成败门。
+- 新 `m1_train_reuse.py` 绑定原生成提交、marker/arrays/evidence 指纹与已审查的五个源码差异：m1_rollout、m1_branch_preflight、m1_af_rollout、新 candidate_policy 和 train_reuse。除已锁定的精确源码变化外，原生成器/executor/依赖不得变；m1_af_rollout 通过 AST 比较要求训练和编码的所有原定义不变，仅排除 causal evaluator 及其新 import。默认严格生成路径经源码审查，16 组参考行为一致仍作有限实测支持。所有 1000 shards+train.npz+manifest 共 1002 个文件须与原验收 SHA-256 一致才允许建立复用记录；不修改原 marker、原 generation commit 或数组。
+- 本地四项候选策略测试通过（0.199 秒）：完整策略漂移拒绝，C11 空槽与 executor 拒绝分别计数且保留分母，零 C11 分母为 null，不可用位置不能变可选。五项来源测试通过（0.281 秒）：1002 文件名覆盖、单片改变拒绝、未审查源码拒绝、清单缺片拒绝、当前真实源码差异及训练编码 AST 对比。文件覆盖测试用微型 metadata 和 mock digest，不假称已在本地读取服务器全部数组。
+- 新服务器集成测试调用真实 causal_rollout_metrics，在固定一组 train fixture 上核对 full-reference oracle 原指标不变、连续 MERGE 的特征评分模型遇耗尽仍完成两条 20 步并输出不可用统计，以及保存模型不能越过计划启用策略。测试不训练模型，不是完整 checkpoint 保存/加载小预演。本地未运行这些真实 rollout 测试；新的完整测试静态计数为 311 项，须在 AutoDL 通过。
+- 同一版本交付 `ops/m1_candidate_policy.sh test|reuse|export`，全部前台。test 复用已验证的全测交付函数并绑定其源码；reuse 只读原 `/root/autodl-tmp/cpmt_outputs/m1-v7-d051-train-719bb2d494d9/generation.ok.json` 及其文件，显示每 100 文件进度；成功/已完成失败均可导出到 `results/m1_v7_d054_candidate_policy_and_train_reuse.json`。新输出目录 source-bound，旧产物不覆盖，中断不自动重启。
+- 三项运维微型测试通过（0.052 秒）：已完成失败不重复验证、失败可导出且重复导出复用、完成报告篡改拒绝；AST、Bash 语法、diff 检查通过。本轮未生成完整 train、训练、运行完整矩阵或访问正式 validation/test；311 项服务器全测与实际 1002 文件核验尚待回执。即便 reuse accepted，formal_budget_authorized 仍为 false，固定 probe/新组合登记、并行选参和模型小预演仍须完成。
