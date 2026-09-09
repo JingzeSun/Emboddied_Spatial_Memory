@@ -210,3 +210,12 @@ D-048 登记的 `execution_boundary` 明确覆盖旧 overlay 的 `naming_and_sco
 选择器只接收候选 index/template/static_preflight_pass；legal/post_graph、reference、future 和教师分数不传给选择器。executor-illegal 保留世界的原行为不变；构造异常、K=16 坍缩或 invariant 失败保存当前图/event/已完成步数并停止该组，不吞错、不换样本。其他固定组继续留存结果；完整矩阵全部完成且无工程错误才能 PASS。
 
 状态：生成已验收，检查器与轻量测试从隔离工程分支纳入，真实服务器检查尚未运行。按 D-052 使用同一版本的 `ops/m1_train_preflight.sh check` 与 `export`；导出成功仅说明报告被核验并写出，工程门以 `report.gate.pass` 为准。已有完成尝试复用，失败现场随导出保留，不自动重跑。未触碰 validation/test，未改变主终点、效应、安全 margin、N 或选参规则。
+
+
+### 对象耗尽时的候选可用性（D-053，experimental；正式接入仍 planned）
+
+参考数据仍使用原严格生成合同，K=16 去重与 C11 合法连带对照不能缺失。LOG-078 的失败发生在连续错误合并后的自有记忆，因此另提供显式诊断模式，区分“网络的 16 个输入槽位”和“当前真正构造出的事务”。`slot_status=unavailable` 表示该格没有可执行程序，`unavailable_reason` 记录配对不足、C11 无目标、SPLIT 无证据或 canonical 重复；它的共享准入值恒为 false，`post_graph=null`、`execution_attempted=false`。兼容记录中的 `legal=false` 只用于拒绝选择，不应统计为执行器实际尝试后的非法事务。所有真正存在的候选仍从同一 base 克隆并执行。
+
+白话：输入是模型当前记忆和当前查询，输出是固定长度的真实候选/不可用槽位。例如连续合并后仅剩一对对象，就保留这一对，把缺失的第二对明确标出来，机器人仍能选 NOOP 或其他可用动作。它不等于添加一个空操作、隐藏 C11 样本、补充对象或读参考答案；当前只验证程序是否能完整运行，不能据此声称模型会恢复正确记忆。
+
+默认 `generate_fixed_candidates` 和 `materialize_rollout_step` 均保留 `allow_unavailable=False`。新诊断入口只复用固定 16 组已保存的 train 审计，先核对 640 个普通参考步骤与 32 个恢复步骤，再运行全部 4480 次压力决策；逐步保存不可用原因及 C11 无目标暴露。未知异常仍失败，不丢弃分支或改变组集。该 gate 与旧严格 gate 分别记录，`formal_budget_authorized=false`；正式启用、覆盖与安全指标口径尚须登记和验证。

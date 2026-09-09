@@ -16,7 +16,7 @@
 
 ## 当前指针
 
-- 当前阶段：**修正 train 已验收（LOG-077）；固定错误分支检查已运行并导出，工程 FAIL（LOG-078），当前先审查生产候选生成器对对象耗尽状态的修复方案。完整预算前置条件尚未满足，不运行 probe/完整预算、不重生成 train、不挑换组；原检查失败目录和报告保留。后续仍按下方选参前放行条件依次推进。**
+- 当前阶段：**修正 train 已验收；严格错误分支检查 FAIL（LOG-078）。当前 D-053 显式不可用槽位诊断已实现，先按 `bash ops/m1_candidate_availability.sh test`、`check`、`export` 完成服务器验证；复用原 16 组审计，不重生成。正式默认模式仍严格，诊断 PASS 不放行预算；先审查兼容性/完整轨迹结果并确定正式规则，再回到下方固定 probe 与其他选参前条件。**
 - 历史 S2 证据：v5 S2 的 arrays/manifest/report 已验收；1000−300 的 paired-group 95% CI 为 `[+0.008750,+0.045000]`，按预登记规则选择 1000。10-group 同预算锚点中共同 group 1 的 40−10 平均差为 `+0.005000`、仅 `1/5` seed 严格为正，未达 S3 触发条件。完整数字与 provenance 见 `EXECUTE.md` LOG-032/033。
 - 已完成：同一份 40-group v4 arrays 确定性截取 10/40 groups，运行 scorer steps {60,300,1000} × seed 7。40-group 全 train 上，static preflight 对 2,552/2,552 个 executor-illegal 候选全部静态拒绝、合法误拒 0；过滤后 target-only 均匀并列期望由 0.7729 升至 0.9698，assembled oracle accuracy 由 0.7438 升至 0.9525，其 exact-ambiguity capped 读数由 0.7275 升至 0.9275。D-038 已接受把同一只读预检变成 A–E 共享 mask；旧 v4 过滤数字仍只作采纳依据，不冒充 v5 方法成绩。
 - scorer 分支：40-group inner-dev 的未过滤/过滤后 teacher accuracy 在 steps 60/300/1000 分别为 0.0500/0.5688/0.5031 与 0.0625/0.7469/0.7094。1000 steps 虽将 held-out BCE 从 0.1016 降到 0.0744，候选排序却低于 300 steps；共同 group 1 在 10/40 groups、300/1000 steps 过滤后均为 0.875，也没有显示扩大到 S3 的明确数据收益。因此 300 steps 只是当前单 seed 候选，尚未固定。

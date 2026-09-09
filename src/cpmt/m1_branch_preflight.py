@@ -63,7 +63,7 @@ def choose_candidate(candidates, policy, *, group, sibling, step):
     return int(choices[0]["candidate_index"]), unavailable
 
 
-def run_branch(audit, group, policy, *, materialize, scope, validate_graph, sink, proposal_context=None):
+def run_branch(audit, group, policy, *, materialize, scope, validate_graph, sink, proposal_context=None, allow_unavailable=False):
     """Run the production materializer on evolving memory; persist each step."""
     validate_audit(audit, group)
     current = deepcopy(audit["initial_world"])
@@ -91,7 +91,8 @@ def run_branch(audit, group, policy, *, materialize, scope, validate_graph, sink
             if proposal_context is not None:
                 proposal = proposal_context(current, event)
                 availability["distinct_merge_pairs"] = len({tuple(sorted(pair)) for pair in proposal["merge_pairs"]})
-                require(availability["distinct_merge_pairs"] == 2, "MERGE pair coverage is incomplete")
+                if not allow_unavailable:
+                    require(availability["distinct_merge_pairs"] == 2, "MERGE pair coverage is incomplete")
                 if event["proposal_observation"]["unrelated_context_active"]:
                     availability["c11_unrelated_candidates"] = sum(
                         node.get("valid_to") is None
@@ -100,7 +101,8 @@ def run_branch(audit, group, policy, *, materialize, scope, validate_graph, sink
                         and node["node_id"] != event["protected_id"]
                         and node["node_id"] not in proposal["bind_targets"]
                         for node in current["nodes"])
-                    require(availability["c11_unrelated_candidates"] > 0, "C11 scope complement is empty")
+                    if not allow_unavailable:
+                        require(availability["c11_unrelated_candidates"] > 0, "C11 scope complement is empty")
             reordered = deepcopy(current)
             reordered["edges"].reverse()
             require(evidence_scope == scope(reordered, event, ranks=3), "scope depends on edge order")
@@ -128,6 +130,15 @@ def run_branch(audit, group, policy, *, materialize, scope, validate_graph, sink
                    "legal_count": sum(c["legal"] for c in candidates),
                    "candidate_failures": [{k: c[k] for k in ("candidate_index", "template", "legal", "failure")}
                                           for c in candidates if not c["legal"]]}
+            if allow_unavailable:
+                row["unavailable_slots"] = [{"candidate_index": c["candidate_index"],
+                    "template": c["template"], "reason": c["failure"]["message"]}
+                    for c in candidates if c.get("slot_status") == "unavailable"]
+                for candidate in candidates:
+                    if candidate.get("slot_status") == "unavailable":
+                        require(not candidate["static_preflight_pass"] and not candidate["legal"]
+                                and candidate["post_graph"] is None and candidate["execution_attempted"] is False,
+                                "unavailable slot acquired a world or became selectable")
             sink({"kind": "step", **row})
             rows.append(row)
         except Exception as error:
