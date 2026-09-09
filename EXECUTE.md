@@ -4,17 +4,17 @@
 
 ## 当前看板
 
-> **2026-09-09 更新（D-054 正式策略接线与 train 复用核验已交付，服务器验证 pending）：** 已采纳共享不可用槽位规则，实际 causal evaluator 增加候选不可用/执行拒绝/参考语义可达性及 C11 可用性独立诊断，原指标分母不变。新增精确来源桥接，下一阶段完整测试后只读校验 1002 个原 train 文件；不重复 D-053 矩阵、不重生成 1000 组。详见 LOG-081。
+> **2026-09-09 更新（D-054 服务器验证与 train 复用报告复核通过）：** 311 项测试全部通过，服务器已核验 1002 个原 train 文件，1000 组修正版数据获准复用；本地复核报告、策略和代码来源指纹一致。不重生成 train，不重复 D-053 矩阵。详见 LOG-082。
 
-最后更新：2026-09-09，D-053 诊断成功保留；D-054 已完成代码与本地轻量验证，新的服务器全测、复用验收仍待运行。修正 probe/组合登记、预算并行和模型小预演仍未完成，不启动完整预算或 S5/S6。
+最后更新：2026-09-09，D-053 诊断成功保留；D-054 服务器全测与复用验收已通过。修正 probe/组合登记、预算并行和模型小预演仍未完成，不启动完整预算或 S5/S6。
 
 | 项目 | 当前事实 |
 |---|---|
 | 方向 | CPMT 具身空间记忆；CTL 是主学习假设，用户希望面向 ML 研究 |
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
-| 阶段 | M1-v7：修正 train 已验收；严格检查历史 FAIL，D-053 显式槽位诊断 PASS；正式接入待完成，新模型、S5/S6 与 M2 未启动 |
+| 阶段 | M1-v7：修正 train 已验收并获准复用；严格检查历史 FAIL，D-053 显式槽位诊断 PASS，D-054 正式评测接线与来源桥接已验证；完整新模型训练、S5/S6 与 M2 未启动 |
 | 最近结果 | [`m1_v6_d047_endpoint_probe.json`](results/m1_v6_d047_endpoint_probe.json)：201 groups、A/C/E 五 seed、F；终点 exact A/C/E=`0.918408/0.793035/0.471144`，open-memory graded=`0.932013/0.920288/0.878167`，open-fact AUC=`8.830846/12.383085/14.134328`。保留 exact，test N=1350；H3/H1 mean TV=`0.003293`、argmax change=`0`。固定 anchor 未满足全部效应要求，非正式成败结论 |
-| 尚缺 | 固定 train 错误分支检查、固定 probe/新组合登记、预算并行及原网格重跑、60 模型 refit、独立确认与正式 test；D-051 数值门与 N 规则保持 |
+| 尚缺 | 固定 probe/新组合登记、预算并行及 fit/inner-dev 诊断、真实模型小样本贯通、原网格重跑、60 模型 refit、独立确认与正式 test；D-051 数值门与 N 规则保持 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。D-046 顺序 C weight 搜索按既有逐方法实测路径的最坏 10000-update 外推，两臂总计划约 5.036 小时（非新实测）。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
 | 当前决定 | D-039–D-043 固定 live energy、真实 C10/C11、current/posterior 审计、Pre-LN 双架构和 A–E 对称 12 格。D-044–D-046 的 endpoint、open-fact AUC `40/80`、固定 gate、C 顺序权重和纯 confirmation 保留；D-047 收紧 claim，拆清 online network/shared executor，登记外生轨迹，并把 H3-vs-H1 teacher 对照设为主文必报、无选择无成败门的机制证据。M1 不声称原始 DCR、完整动态记忆或 active navigation；全局 reconciliation、PNO 与 M2 顺序不变 |
 | 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 validation/test。D-043 无额外人工选择；运行时剖析只供用户决定何时租用算力，不改变登记网格 |
@@ -1007,3 +1007,12 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - 新服务器集成测试调用真实 causal_rollout_metrics，在固定一组 train fixture 上核对 full-reference oracle 原指标不变、连续 MERGE 的特征评分模型遇耗尽仍完成两条 20 步并输出不可用统计，以及保存模型不能越过计划启用策略。测试不训练模型，不是完整 checkpoint 保存/加载小预演。本地未运行这些真实 rollout 测试；新的完整测试静态计数为 311 项，须在 AutoDL 通过。
 - 同一版本交付 `ops/m1_candidate_policy.sh test|reuse|export`，全部前台。test 复用已验证的全测交付函数并绑定其源码；reuse 只读原 `/root/autodl-tmp/cpmt_outputs/m1-v7-d051-train-719bb2d494d9/generation.ok.json` 及其文件，显示每 100 文件进度；成功/已完成失败均可导出到 `results/m1_v7_d054_candidate_policy_and_train_reuse.json`。新输出目录 source-bound，旧产物不覆盖，中断不自动重启。
 - 三项运维微型测试通过（0.052 秒）：已完成失败不重复验证、失败可导出且重复导出复用、完成报告篡改拒绝；AST、Bash 语法、diff 检查通过。本轮未生成完整 train、训练、运行完整矩阵或访问正式 validation/test；311 项服务器全测与实际 1002 文件核验尚待回执。即便 reuse accepted，formal_budget_authorized 仍为 false，固定 probe/新组合登记、并行选参和模型小预演仍须完成。
+
+
+## LOG-082（2026-09-09）：D-054 服务器全测与原 train 复用验收报告复核通过
+
+- 拉取结果提交 `754149c`，报告 `results/m1_v7_d054_candidate_policy_and_train_reuse.json` SHA-256=`2d7ff07ccb1cf9ff29084d39ccd0faa653c678ae40dfaf6f3388aabb1c1a965c`。运行提交 `2febabf9ef60b8f37e212714b54354499bf0e811`、工作树干净；full_test 为 311 项，errors/failures/skipped 均为 0，test/reuse exit 均为 0，accepted=true。
+- 服务器报告 verified_files=1002、verified_train_groups=1000，原 generation commit、marker SHA-256 和 arrays digest 均与复用策略一致；数组 digest 仍为 `a1d9f7517feb3c301e856d774369adc9754475a884d236bc49dad43af231136e`。编码定义检查为 unchanged_except_causal_evaluation，五个源码差异与已审查清单一致；共享候选策略完整匹配登记配置。
+- 本地重构内部 reuse.report.json 的序列化 SHA-256，与 completion 的 `de495a5367ae8b1b0d00b171ac859857460e0716918df637175b65a850b6a035` 一致；test/completion/report 来源绑定一致。按运行提交的 Git 文件及 Linux 换行规则（.ps1 为 CRLF）重构 source/tests=`176275ba3aa76e8f0fe561f9d5b0d4064d532f3db2fef7dfaa56d4f7989c869b`、source=`0548ba886ff71391500de96becbd57073d03defd7c0b4d701169f9e4ac8e8a75`，以及两个运维文件和共用全测交付函数指纹，全部一致。两份历史证据报告指纹亦与策略一致。
+- 接受该报告为原修正版 train 的复用依据：无需重新生成 1000 组。1002 文件读取发生在服务器，本地没有这些数组，也未重做全测或轨迹；参考行为实测仍限于已有 16 组，all_groups_regenerated_and_compared=false，不把字节核验描述成全部 1000 组的新行为对照。全测包含小型集成 fixture，通过不等于真实模型学习或泛化成立。
+- data_generated/training_performed/validation_access/test_access/formal_budget_authorized 均为 false。复用数据不复用修复前的模型或选参结论；固定 probe/新组合登记、并行选参与同口径 fit/inner-dev 诊断、真实模型保存/加载和配对评测导出小预演仍待完成。当前只更新验收记录与流程指针，无方法、预算、门槛或科学代码变更。
