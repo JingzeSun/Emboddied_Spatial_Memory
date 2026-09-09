@@ -4,17 +4,17 @@
 
 ## 当前看板
 
-> **2026-09-09 更新（v7 服务器全测通过，train 重建待运行）：** 用户返回 280 项完整测试成功，测试和日志退出均为 0。当前入口已转为修正版 1000-group train 生成与验收；尚无修正版本数据、probe、预算或模型结果。详见 LOG-073。
+> **2026-09-09 更新（train 生成成功，运维计数验收待修复后续验）：** 用户回执显示 1000 paired groups / 16 workers / 1187.1 秒，生成器 exit=0、teacher health PASS；学习行 38000 reference + 2000 recovery，共 40000，digest 前缀 `a1d9f7517feb3c30`。后续验收误用完整轨迹计数而退出 1；仅修复 ops 并复用现有产物续验，不重生成。详见 LOG-075。
 
-最后更新：2026-09-09，D-051 生产 scope 修复及 v7/v9 来源边界已通过服务器 280 项全测，已交付 train 重建入口。旧产物保留；修正版 probe、组合登记和预算并行接线仍待完成，不复用旧模型作新正式确认，不恢复 S5 或解封 test。
+最后更新：2026-09-09，修正 train 的生成器已成功，完整产物验收尚待服务器完成。当前修复只涉及 ops 的行数/覆盖语义及 accept-only 保护，科学源码、数据和 280 项测试绑定保持；没有启动新 probe、预算或训练。
 
 | 项目 | 当前事实 |
 |---|---|
 | 方向 | CPMT 具身空间记忆；CTL 是主学习假设，用户希望面向 ML 研究 |
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
-| 阶段 | M1-v7 范围修复重建：生产修复及 v7/v9 边界已通过服务器全测，train 重建待运行；v6 的 60 模型仅保留历史证据，新 S5 confirmation、S6 test 与 M2 尚未启动 |
+| 阶段 | M1-v7 范围修复重建：train 生成器成功，运维验收失败待续验；新模型、S5 confirmation、S6 test 与 M2 未启动 |
 | 最近结果 | [`m1_v6_d047_endpoint_probe.json`](results/m1_v6_d047_endpoint_probe.json)：201 groups、A/C/E 五 seed、F；终点 exact A/C/E=`0.918408/0.793035/0.471144`，open-memory graded=`0.932013/0.920288/0.878167`，open-fact AUC=`8.830846/12.383085/14.134328`。保留 exact，test N=1350；H3/H1 mean TV=`0.003293`、argmax change=`0`。固定 anchor 未满足全部效应要求，非正式成败结论 |
-| 尚缺 | 重建 train、固定 probe/新组合登记、预算并行及完整原网格重跑、60 模型 refit 与独立确认；正式 test 入口仍需消费新组合登记并重新冻结。原 AUC `40/80` 与 D-051 endpoint/N 规则保留 |
+| 尚缺 | 修正 train 完整验收、固定错误分支检查、固定 probe/新组合登记、预算并行及原网格重跑、60 模型 refit 与独立确认；正式 test 仍需重新冻结。原效应门和 D-051 endpoint/N 规则保留 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。D-046 顺序 C weight 搜索按既有逐方法实测路径的最坏 10000-update 外推，两臂总计划约 5.036 小时（非新实测）。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
 | 当前决定 | D-039–D-043 固定 live energy、真实 C10/C11、current/posterior 审计、Pre-LN 双架构和 A–E 对称 12 格。D-044–D-046 的 endpoint、open-fact AUC `40/80`、固定 gate、C 顺序权重和纯 confirmation 保留；D-047 收紧 claim，拆清 online network/shared executor，登记外生轨迹，并把 H3-vs-H1 teacher 对照设为主文必报、无选择无成败门的机制证据。M1 不声称原始 DCR、完整动态记忆或 active navigation；全局 reconciliation、PNO 与 M2 顺序不变 |
 | 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 validation/test。D-043 无额外人工选择；运行时剖析只供用户决定何时租用算力，不改变登记网格 |
@@ -929,3 +929,13 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - 输入是修正合同及已成功全测标记，输出是独立 `/root/autodl-tmp/cpmt_outputs/m1-v7-d051-train-719bb2d494d9/` 下的 train.npz、manifest、1000 个分片、运行来源与验收 marker。例如第 78 组仍按原 train 组号生成，不借用旧 validation 第 78 组或换组规避异常。这是 planned 的训练数据重建，不是已经完成的模型训练或确认评测；不改候选/executor/学习算法，不打开 validation/test。
 - 入口持独占锁，已有成功产物核对绑定与完整文件 hash 后复用；runner 已有 exit=0 但缺验收 marker 时只续做验收。失败、没有退出证据的中断或未知旧文件均保留并拒绝自动重新生成。首次验收检查正式 manifest/provenance、教师健康门、逐 family 的 1000-group 覆盖、全部精确分片名/大小、数组 digest 与每组 40 个 online decisions，并保存每个分片的 SHA-256。生成成功后本阶段直接结束，不预埋训练、probe、导出或 push。
 - 本轮仅修改 ops 与既有实验记录/流程指针，src/scripts/configs/tests 不变，复用刚通过的服务器全测。本地只做 Bash/内嵌 Python 静态检查、入口纯元数据分支检查和 diff 审查；未运行真实数据生成、训练、rollout 或完整测试。修正 train 实际成功、digest 和教师健康结果尚待服务器返回。
+
+## LOG-075（2026-09-09）：train 生成成功，修复运维验收混用轨迹与学习行计数
+
+- 用户终端回执：1000 paired groups、16 workers、1187.1 秒；输出 `/root/autodl-tmp/cpmt_outputs/m1-v7-d051-train-719bb2d494d9/train.npz`，learning_rows=40000，其中普通学习行 38000、recovery=2000，digest 前缀 `a1d9f7517feb3c30`。teacher/reference agreement=1.0（38000 普通学习行无分歧），teacher health PASS，GENERATION_RUN_EXIT=0。完整 hash 和服务器 manifest 尚未读回，本记录不把终端前缀当完整指纹。
+- 后续 `accept()` 抛 `generation manifest binding/count mismatch`，GENERATION_EXIT=1、LOG_WRITE_EXIT=0。根因是交付的 ops 验收错误要求 manifest.online_chain_decisions=40000、每组普通训练行=40，并把 learning_group_support_by_family 与 causal 覆盖都要求为 1000；这是验收实现错误，不是已发现的新生成器失败。保留 attempt、runner_exit、分片、原 manifest 和失败 JSON，不删改生成产物。
+- 编码器 `rollout_learning_arrays_from_audits` 既有行为：完整审计仍每条 20 步，但最后一步无 future_states，编码时跳过；每条保留 19 个普通学习行和 1 个恢复样本，每配对组 38+2=40 行。manifest 的历史字段 online_chain_decisions 实际记普通学习行，不是完整审计决策数。旧 D-043/D-049 报告已记录 38000+2000；旧 learning 覆盖 C03/C04/C05/C06 分别为 961/959/958/954 组，而 causal 仍各 1000。这里核对的是历史字段语义，不用旧数值要求新结果相同。
+- 修复只在 ops：header 要求 total=40000、reference-learning=38000、recovery=2000；逐组验证 38 普通+2 恢复并拒绝非法组号、dtype、漏组、总行不一致。causal family 仍各 1000；learning family 覆盖从实际非 recovery 行按 group 与 scenario_family_index 重算，要求与 manifest 完全一致，不再错误固定全为 1000。字段不匹配输出具体 expected/actual。协议、来源、完整文件、数组 digest、健康门等原检查保留。
+- 增加 `--accept-only`：必须已有 attempt 与 runner_exit，随后仍核验绑定和 exit=0；缺失、中断或失败绝不启动生成。复用同一 source-bound 目录与既有 280 项全测 marker；数据生成 provenance 保留原提交，当前验收 provenance 单独记录。成功输出明确区分 learning_rows/reference_learning_rows/recovery_rows。
+- `ops/tests/test_corrected_train_acceptance.py` 从实际内嵌 Python 提取验收函数，使用小型合成计数向量和临时空文件运行 11 项轻量测试，全部通过（0.142 秒）；覆盖正确口径、字段错误、分组恢复数量错位、漏组/非法组、family 覆盖过报、causal 门保留及 accept-only 无重生成路径。Bash/Python 语法与 diff 检查通过。新增运维测试放 ops/tests，不改变 src/scripts/configs/tests 的科学测试指纹；没有在本地生成数据、训练、跑真实 rollout 或全套测试。
+- 当前仅交付修复后续验，尚无 generation.ok.json 成功回执；先验收再进入已登记工程检查，不据此降低任何科学验收门。这次需要同步是必要 bug 修复，按 D-052 允许，不恢复逐步切换必须 pull 的旧规则。

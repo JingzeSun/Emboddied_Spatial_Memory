@@ -10,7 +10,13 @@ set -uo pipefail
 export CPMT_SERVER_STEP_ID="m1_v7_d051_corrected_train_generation"
 CPMT_SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)" || exit 2
 CPMT_REPO_DIR="$(git -C "$CPMT_SCRIPT_DIR" rev-parse --show-toplevel)" || exit 2
-[[ "$#" -eq 0 ]] || exit 2
+export CPMT_ACCEPT_ONLY=0
+if [[ "$#" -eq 1 && "$1" == "--accept-only" ]]; then
+    export CPMT_ACCEPT_ONLY=1
+elif [[ "$#" -ne 0 ]]; then
+    printf 'Usage: bash ops/run_next_server_step.sh [--accept-only]\n'
+    exit 2
+fi
 cd "$CPMT_REPO_DIR" || exit 2
 [[ -d /root/autodl-tmp ]] || exit 2
 [[ -z "$(git status --porcelain)" ]] || { printf 'SERVER_STEP_FAILED reason=checkout_not_clean\n'; exit 1; }
@@ -65,17 +71,64 @@ def resources():
     require(workers>=1 and available>=8 and free>=4,'insufficient CPU/memory/disk headroom; no generation started')
     return {'cpu_capacity':min(cpu),'available_memory_gib':available,'free_disk_gib':free,'workers':workers}
 
+def validate_manifest_header(manifest,binding,hard):
+    # The encoder excludes the last (future-less) step of each 20-step chain.
+    # Per paired group: 2 * 19 reference learning rows + 2 recovery rows.
+    # Keep the historical manifest field name; do not rewrite producer outputs.
+    expected={'schema_version':'cpmt-m1-generation-manifest-v5','split':'train',
+              'paired_groups_total':1000,'configured_paired_groups_for_split':1000,
+              'protocol_sha256':binding['protocol_sha256'],'dataset_version':hard['data']['dataset_version'],
+              'decisions':40000,'online_chain_decisions':38000,'recovery_training_examples':2000,
+              'retained_shard_count':1000,'formal_run':False,'test_generated':False}
+    mismatches={k:{'expected':v,'actual':manifest.get(k)} for k,v in expected.items() if manifest.get(k)!=v}
+    require(not mismatches,'generation manifest binding/count mismatch: '+str(mismatches))
+
+def validate_learning_counts(arrays,manifest):
+    import numpy as np
+    group=np.asarray(arrays['group']);recovery=np.asarray(arrays['recovery'])
+    require(group.ndim==1 and group.dtype.kind in 'iu' and recovery.dtype.kind=='b'
+            and recovery.shape==group.shape,'invalid group/recovery vectors')
+    require(len(group)==len(arrays['y'])==manifest['decisions']==40000,'learning row count mismatch')
+    require(np.all((group>=0)&(group<1000)),'train group index out of range')
+    online=~recovery
+    require(int(online.sum())==manifest['online_chain_decisions']==38000
+            and int(recovery.sum())==manifest['recovery_training_examples']==2000,
+            'reference-learning/recovery row count mismatch')
+    require(np.array_equal(np.unique(group),np.arange(1000))
+            and np.array_equal(np.bincount(group[online],minlength=1000),np.full(1000,38))
+            and np.array_equal(np.bincount(group[recovery],minlength=1000),np.full(1000,2)),
+            'incomplete paired train learning rows: expected 38 reference + 2 recovery per group')
+
+def require_accept_only_prerequisites(out,accept_only):
+    if accept_only:
+        require((out/'attempt.json').exists() and (out/'runner_exit.json').exists(),
+                'accept-only requires an existing attempt and runner exit; generation will not start')
+
+def validate_family_support(arrays,manifest,hard):
+    import numpy as np
+    families=list(hard['data']['scenario_families'])
+    require(manifest['configured_scenario_families']==families,'configured family order mismatch')
+    causal=manifest['causal_paired_group_support_by_family']
+    require(set(causal)==set(families) and all(v==1000 for v in causal.values()),
+            'causal family coverage mismatch')
+    group=np.asarray(arrays['group']);online=~np.asarray(arrays['recovery'])
+    codes=np.asarray(arrays['scenario_family_index'])
+    require(codes.shape==group.shape and codes.dtype.kind in 'iu'
+            and np.all((codes>=0)&(codes<len(families))),'invalid scenario family codes')
+    observed={family:int(len(np.unique(group[online & (codes==index)])))
+              for index,family in enumerate(families)}
+    # A family's only reference occurrence may be the omitted last step.
+    # Learning coverage therefore need not be 1000; verify it against rows.
+    require(observed==manifest['learning_group_support_by_family'],
+            'learning family coverage differs from encoded rows: '+str(observed))
+
 def accept(binding,hard,attempt):
     import numpy as np
     exit_record=read_json(OUT/'runner_exit.json')
     require(exit_record['binding']==binding and exit_record['exit_code']==0,'generation runner did not succeed')
     path=OUT/'train.npz';manifest_path=path.with_suffix('.manifest.json')
     manifest=read_json(manifest_path)
-    expected={'schema_version':'cpmt-m1-generation-manifest-v5','split':'train',
-              'paired_groups_total':1000,'configured_paired_groups_for_split':1000,
-              'protocol_sha256':binding['protocol_sha256'],'dataset_version':hard['data']['dataset_version'],
-              'online_chain_decisions':40000,'retained_shard_count':1000,'formal_run':False,'test_generated':False}
-    require(all(manifest.get(k)==v for k,v in expected.items()),'generation manifest binding/count mismatch')
+    validate_manifest_header(manifest,binding,hard)
     provenance=manifest['generation_provenance']
     require(provenance['git_dirty'] is False
             and provenance['git_commit']==attempt['provenance']['git_commit']
@@ -83,9 +136,6 @@ def accept(binding,hard,attempt):
     require(manifest['workers']==attempt['resources']['workers'],'worker count mismatch')
     require(manifest['teacher_health_gate']['applicable'] is True
             and manifest['teacher_health_gate']['pass'] is True,'train teacher health gate failed')
-    families=set(hard['data']['scenario_families'])
-    for key in ('causal_paired_group_support_by_family','learning_group_support_by_family'):
-        require(set(manifest[key])==families and all(v==1000 for v in manifest[key].values()),'family coverage mismatch')
     shards=sorted((OUT/'shards').glob('*.npz'))
     require([p.name for p in shards]==[f'train_{i:06d}.npz' for i in range(1000)],'missing/unexpected shard')
     require(path.stat().st_size==manifest['merged_npz_bytes']
@@ -93,12 +143,8 @@ def accept(binding,hard,attempt):
     with np.load(path,allow_pickle=False) as archive:
         arrays={key:archive[key] for key in archive.files}
     require(arrays_sha256(arrays)==manifest['arrays_digest'],'arrays digest mismatch')
-    group=np.asarray(arrays['group']);online=~np.asarray(arrays['recovery'],dtype=bool)
-    require(len(group)==manifest['decisions'] and int((~online).sum())==manifest['recovery_training_examples'],
-            'learning/recovery row count mismatch')
-    require(np.array_equal(np.unique(group),np.arange(1000))
-            and np.array_equal(np.bincount(group[online],minlength=1000),np.full(1000,40)),
-            'incomplete paired train groups')
+    validate_learning_counts(arrays,manifest)
+    validate_family_support(arrays,manifest,hard)
     require(source_tree_sha256(ROOT,roots=('src','scripts','configs','tests'))==binding['source_and_tests_sha256'],
             'source/tests changed during generation')
     return {'schema_version':'cpmt-scope-rebuild-train-v1','binding':binding,'exit_code':0,
@@ -110,6 +156,7 @@ def accept(binding,hard,attempt):
                                                        entrypoint=ROOT/'ops/run_next_server_step.sh')}
 
 def main():
+    require_accept_only_prerequisites(OUT,os.environ['CPMT_ACCEPT_ONLY']=='1')
     plan=read_json(ROOT/'configs/m1_scope_rebuild_plan.json')
     hard_path=ROOT/plan['corrected_source']['path'];hard=load_and_validate(hard_path)
     validate_current_rollout_protocol(hard)
@@ -159,7 +206,7 @@ def main():
             require(code==0,'generation failed; preserve outputs and review before next stage')
         marker=accept(binding,hard,attempt)
         write_json(success,marker)
-        print('GENERATION_ACCEPTED groups=1000 online_rows=40000 arrays_digest='+marker['arrays_digest'],flush=True)
+        print('GENERATION_ACCEPTED groups=1000 learning_rows=40000 reference_learning_rows=38000 recovery_rows=2000 arrays_digest='+marker['arrays_digest'],flush=True)
     print('GENERATION_MARKER='+str(success),flush=True)
     print('NEXT=review_corrected_train_then_deliver_next_stage_separately',flush=True)
     print('SERVER_STEP_OK id='+STAGE,flush=True)
