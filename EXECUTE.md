@@ -4,9 +4,9 @@
 
 ## 当前看板
 
-> **2026-09-09 更新（D-054 服务器验证与 train 复用报告复核通过）：** 311 项测试全部通过，服务器已核验 1002 个原 train 文件，1000 组修正版数据获准复用；本地复核报告、策略和代码来源指纹一致。不重生成 train，不重复 D-053 矩阵。详见 LOG-082。
+> **2026-09-09 更新（修正版固定 anchor probe 已交付，服务器新入口全测待运行）：** D-054 train 复用验收保留，新增同阶段 test/prepare/train/evaluate/status/summarize/export。固定 201 组审计逐数组对照及 F integrity 在训练前运行；15 个学生与 5 个 scorer 分别保存，评测读取权重和成对磁盘审计；D-051 固定 exact、不允许 graded 回退，N 按六格 SD 与 1350 下限机械登记。详见 LOG-083。
 
-最后更新：2026-09-09，D-053 诊断成功保留；D-054 服务器全测与复用验收已通过。修正 probe/组合登记、预算并行和模型小预演仍未完成，不启动完整预算或 S5/S6。
+最后更新：2026-09-09，新入口仅完成本地轻量验证；服务器全测、prepare 和固定 probe 结果仍 pending。完整预算并行和后续正式路径小预演仍未完成，不启动两臂完整网格或 S5/S6。
 
 | 项目 | 当前事实 |
 |---|---|
@@ -1016,3 +1016,14 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - 本地重构内部 reuse.report.json 的序列化 SHA-256，与 completion 的 `de495a5367ae8b1b0d00b171ac859857460e0716918df637175b65a850b6a035` 一致；test/completion/report 来源绑定一致。按运行提交的 Git 文件及 Linux 换行规则（.ps1 为 CRLF）重构 source/tests=`176275ba3aa76e8f0fe561f9d5b0d4064d532f3db2fef7dfaa56d4f7989c869b`、source=`0548ba886ff71391500de96becbd57073d03defd7c0b4d701169f9e4ac8e8a75`，以及两个运维文件和共用全测交付函数指纹，全部一致。两份历史证据报告指纹亦与策略一致。
 - 接受该报告为原修正版 train 的复用依据：无需重新生成 1000 组。1002 文件读取发生在服务器，本地没有这些数组，也未重做全测或轨迹；参考行为实测仍限于已有 16 组，all_groups_regenerated_and_compared=false，不把字节核验描述成全部 1000 组的新行为对照。全测包含小型集成 fixture，通过不等于真实模型学习或泛化成立。
 - data_generated/training_performed/validation_access/test_access/formal_budget_authorized 均为 false。复用数据不复用修复前的模型或选参结论；固定 probe/新组合登记、并行选参与同口径 fit/inner-dev 诊断、真实模型保存/加载和配对评测导出小预演仍待完成。当前只更新验收记录与流程指针，无方法、预算、门槛或科学代码变更。
+
+
+## LOG-083（2026-09-09）：修正版固定 anchor probe 与机械组合登记交付
+
+- 新增 scripts/run_m1_corrected_probe.py，沿用 D-051 固定 Set Transformer、A/C/E、五 seeds、lr=0.0006、3000 updates、C weight=1；799 fit/201 inner-dev 的完整 paired-group 分区不变。绑定已验收 D-054 报告、修正版协议、重建计划、旧 overlay 中的固定 anchor 来源和共享槽位策略；旧 v6 runner/registration 不改写。生成/编码来源仍严格匹配原 D-054 五文件审查清单，没有因为新增运维和 probe 脚本而重生成完整 train。
+- prepare 只读原 train.npz/manifest 指纹及固定 201 个 shard；worker 自行读取对应 shard，重建该组两条参考审计并用既有数组比较函数逐字段精确对照。单组局部编号映射回原 group，先写 audit 后比较，避免 daemon worker 嵌套创建 Pool。最多 4 worker，按 cgroup CPU/内存限制下调；每个 worker 仅处理一组世界，不向 worker pickle 全部审计。全局 H3/H1 诊断与 F 评测使用可重复磁盘迭代器；F exact/graded/open-memory/AUC/node 任一失败即不开放训练。
+- train 在 CPU、torch/BLAS 单线程下顺序执行固定 20 模型（5 scorers+15 students），保留原 Adam/随机流/监督目标与注释 mask；每个模型独立完成目录、精确 binding 和文件哈希，保存 primitive/tensor checkpoint 并加载核验。学生输出固定 3000-step 的 fit/inner-dev 同口径 reference-history 诊断及差距，E scorer 保存原 outcome diagnostics；无 checkpoint/设备/参数择优。它不是两臂完整网格，也不把 inner-dev 分数当独立 test 精度。完整预算逐 checkpoint 的同口径诊断仍待实现。
+- evaluate 只从保存权重加载，顺序跑 15 个 method/seed，每个 201 组、402 条完整轨迹、8040 次决策；磁盘迭代保留每组两条 sibling，完整 20 步不拆。逐步写实际 materialized 候选、选择与持久化世界，validate_graph 检查执行后世界；保留失败及来源。序列须满足精确 paired-group/sibling 覆盖、20 步索引、前后图哈希链和共享 mask。CPU 前向 p95 在本阶段无训练/其他评测 worker 竞争时计量，仍只代表网络及相关 tensor 操作，不代表整个系统延迟或机器全局独占。
+- summarize 在均值/SD 前核验每组 A/C/E 五 seed×两 sibling 与 F 两 sibling 完整无重复，再调用既有 group-first 统计；强制三项既定 co-primary 均非退化，禁止旧 graded 回退。F 或固定终点不可用时 N=null、registration=null，保留报告；通过时按六格原功效公式、向上取 10 整数和 floor=1350 创建 cpmt-m1-corrected-post-probe-registration-v1。登记包含效应/安全门、共享槽位和执行边界，test 与完整预算授权恒为 false；这是待结果回传核验的新登记产物，后续 S5/S6 消费入口尚未因此自动接好或解封。
+- 新 ops/m1_corrected_probe.sh 同一版本提供 test/prepare/train/evaluate/status/summarize/export；测试、准备、固定训练和汇总前台，预计超过半小时的完整评测默认后台，并有独立 status。每步检查前置 marker、源文件及日志指纹；成功复用，失败/中断不自动重启。export 可导出已完成失败的 traceback/log tail，也可在成功汇总后导出报告和封存登记；精确路径为 results/m1_v7_d054_corrected_endpoint_probe.json。要求至少 20 GiB 空闲磁盘保存审计；不会删除或覆盖旧输出。CPU 固定训练尚无本轮耗时实测，不给精确 ETA。
+- 本地 11 项轻量检查通过（0.898 秒）：固定合同与 201 分区、N 下限和上调公式、禁止 graded 切换、F 失败、缺 seed/重复 sibling/非有限值拒绝、登记重算与封存、状态链断裂拒绝；3 项运维微型测试通过（0.018 秒）：已完成失败不重算、中断不重启、前置失败阻止后续。另添加服务器完整测试中的一组真实 train 重建→数组对照→模型保存/加载预测一致→两条 20 步→完成产物复用测试；该模型未训练，本地未运行该生成/rollout fixture，不将其写成短训模型小预演完成。静态预计全套测试 323 项，实际以服务器回执为准。无本地重任务、真实 anchor 训练、validation/test 访问或新科学成绩。

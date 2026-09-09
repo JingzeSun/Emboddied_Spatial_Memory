@@ -16,7 +16,7 @@
 
 ## 当前指针
 
-- 当前阶段：**D-053 固定错误分支矩阵、D-054 正式评测接线与 train 复用报告均已复核通过（LOG-080/082）。当前转入固定 anchor probe/新组合登记的接线准备；不重生成 train，不重复已通过的 test/reuse/压力矩阵。完整预算仍须等待固定 probe、并行选参及 fit/inner-dev 诊断、真实模型小样本贯通条件。**
+- 当前阶段：**D-053 固定错误分支矩阵、D-054 正式评测接线与 train 复用报告均已复核通过（LOG-080/082）。修正版固定 anchor probe 已交付 `ops/m1_corrected_probe.sh test|prepare|train|evaluate|status|summarize|export`（LOG-083），服务器新入口全测待运行。依次完成准备、固定训练、连续评测和机械汇总；只在三项固定终点可用时生成封存的组合登记。完整预算仍须等待本 probe、并行选参及真实模型小样本贯通条件。**
 - 历史 S2 证据：v5 S2 的 arrays/manifest/report 已验收；1000−300 的 paired-group 95% CI 为 `[+0.008750,+0.045000]`，按预登记规则选择 1000。10-group 同预算锚点中共同 group 1 的 40−10 平均差为 `+0.005000`、仅 `1/5` seed 严格为正，未达 S3 触发条件。完整数字与 provenance 见 `EXECUTE.md` LOG-032/033。
 - 已完成：同一份 40-group v4 arrays 确定性截取 10/40 groups，运行 scorer steps {60,300,1000} × seed 7。40-group 全 train 上，static preflight 对 2,552/2,552 个 executor-illegal 候选全部静态拒绝、合法误拒 0；过滤后 target-only 均匀并列期望由 0.7729 升至 0.9698，assembled oracle accuracy 由 0.7438 升至 0.9525，其 exact-ambiguity capped 读数由 0.7275 升至 0.9275。D-038 已接受把同一只读预检变成 A–E 共享 mask；旧 v4 过滤数字仍只作采纳依据，不冒充 v5 方法成绩。
 - scorer 分支：40-group inner-dev 的未过滤/过滤后 teacher accuracy 在 steps 60/300/1000 分别为 0.0500/0.5688/0.5031 与 0.0625/0.7469/0.7094。1000 steps 虽将 held-out BCE 从 0.1016 降到 0.0744，候选排序却低于 300 steps；共同 group 1 在 10/40 groups、300/1000 steps 过滤后均为 0.875，也没有显示扩大到 S3 的明确数据收益。因此 300 steps 只是当前单 seed 候选，尚未固定。
@@ -76,8 +76,8 @@ S3 更大 train 规模交互确认（未触发，跳过）
   ↓
 S4 修正版本的选参前检查与预算选择
   ├─ 修正 1000 组 train 生成与健康验收
-  ├─ 固定 train 错误分支完整 20 步检查、失败现场与导出审查 ← 当前
-  ├─ 固定 anchor probe：F integrity、固定三项终点非退化、按 D-051 机械确定 N
+  ├─ 固定 train 错误分支完整 20 步检查、失败现场与导出审查
+  ├─ 固定 anchor probe：F integrity、固定三项终点非退化、按 D-051 机械确定 N ← 当前
   ├─ 预算并行接线与等价检查、fit/inner-dev 同口径诊断
   ├─ train-only 小样本贯通实际模型保存/加载、20 步评测、配对汇总及导出
   └─ 上述全部通过，才运行两臂完整原预算网格并验收
@@ -96,8 +96,8 @@ S7 M1 成功 / no-go / 不确定收口
 | 检查 | 何时做、要交付什么 | 当前实现边界 |
 |---|---|---|
 | 修正 train 验收 | 其余检查之前；组数、普通/recovery 行数、family 编码、digest 与来源一致 | 已有生成及验收回执，见 LOG-077；不重生成 |
-| 错误分支 20 步 | 现在；固定 16 组、七条选择规则，检查 C11 范围外目标、MERGE 配对、K=16、immutable base、边序不变和失败现场 | 实际报告 FAIL，见 LOG-078；修复审查中，不能把 NOOP 完成或快照复现当工程 PASS。恢复案例由重建审计核验，不保证任意错误组合都能恢复 |
-| 固定 anchor probe | 错误分支检查通过后、完整网格前；修正版 F、三项 co-primary 非退化、H3/H1 诊断及六格 SD；按既定规则登记 N | 须接入修正数据与 D-051 规则；exact 不重选，F 或非退化失败即停止；这是固定配置探针，不是完整选参 |
+| 错误分支 20 步 | 固定 16 组、七条选择规则，检查 C11 范围外目标、MERGE 配对、K=16、immutable base、边序不变和失败现场 | 历史严格 FAIL 保留；D-053 完整矩阵和 D-054 正式策略/复用验收已完成，见 LOG-080/082；不重复。完整轨迹不保证任意错误组合都能恢复 |
+| 固定 anchor probe | 错误分支检查通过后、完整网格前；修正版 F、三项 co-primary 非退化、H3/H1 诊断及六格 SD；按既定规则登记 N | 已交付新入口，服务器待运行：prepare 重建并逐数组核验固定 201 组、检查 F 后，才可 train/evaluate；summarize 不允许 graded 切换，机械填写封存登记。不是完整选参 |
 | 并行预算与泛化诊断 | 完整网格前；独立进程随机流/汇总等价、资源检查、同一 checkpoint 的 fit 与 inner-dev 同口径分数和差距 | planned：旧 runtime 测速不等于完整预算接线已通过；差距只作诊断，不增加选参规则 |
 | 后续真实代码路径贯通 | 完整网格前；少量固定 train 数据、诊断权重，贯通保存→加载→完整 20 步→paired-group 汇总→统计→导出；同时检查复用、来源绑定和失败拒绝 | planned：必须调用后续正式 runner 的实际公共路径；单独 mock 或另写简化评测器不算通过。覆盖普通/recovery 编码、成对轨迹与分母；不报告为方法成绩 |
 

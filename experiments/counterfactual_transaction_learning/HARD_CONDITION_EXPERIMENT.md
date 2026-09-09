@@ -221,7 +221,7 @@ D-048 登记的 `execution_boundary` 明确覆盖旧 overlay 的 `naming_and_sco
 默认 `generate_fixed_candidates` 和 `materialize_rollout_step` 均保留 `allow_unavailable=False`。新诊断入口只复用固定 16 组已保存的 train 审计，先核对 640 个普通参考步骤与 32 个恢复步骤，再运行全部 4480 次压力决策；逐步保存不可用原因及 C11 无目标暴露。未知异常仍失败，不丢弃分支或改变组集。该 gate 与旧严格 gate 分别记录，`formal_budget_authorized=false`；正式启用、覆盖与安全指标口径尚须登记和验证。
 
 
-### 正式 self-rollout 的共享候选可用性（D-054，已采纳；新接线服务器验证待完成）
+### 正式 self-rollout 的共享候选可用性（D-054，已采纳）
 
 D-054 采用 `configs/m1_candidate_availability_policy.json` 作为独立评测策略，覆盖上一节“正式采用仍 planned”的状态。参考数据仍使用严格 v7/v9 生成来源，真实事务执行边界不变；固定 16 个网络输入位置允许部分位置为不可用记录。只有显式登记此策略的评测配置才能启用，旧登记和保存模型不能自动切换。实际候选按原共享生成、执行和去重流程处理，所有方法的选择 mask 相同。
 
@@ -230,3 +230,12 @@ D-054 采用 `configs/m1_candidate_availability_policy.json` 作为独立评测�
 白话：输入是本步候选执行记录和独立评测参考，输出是哪里出了问题。例如程序仍能跑满 20 步，但第 15 步没有任何可选世界能把前面误合并的椅子分回来，就记录这一事实；它不等于单独归罪于生成器，也不代表成功恢复。C11 另报目标存在率与指定合法连带候选可用率，无目标时仍保留原时间步、组和全部主要指标分母；零 C11 分母用 null，不用零或一伪装成绩。诊断计算不纳入网络前向延迟定义，实际总耗时仍包含这部分审计。
 
 train 复用必须经 `configs/m1_train_reuse_policy.json` 核对原验收指纹、全部 1002 个文件和已审查源码差异。参考生成默认严格路径及训练编码保持，旧 generation provenance 不改写，生成版本与评测版本分别记载。保存 16 组的行为一致性是支持证据，不能写成已完成全量重新生成对拍。正式 fixed probe、S5/S6 的后续组合登记必须绑定新策略，test 仍封存。
+
+
+### 修正版固定 anchor 与组合登记的实现（D-051/D-054）
+
+`run_m1_corrected_probe.py` 消费已验收的修正版 train，先核对固定 201 个 inner-dev 组的重建数组与 F 上限，再训练固定参数的 A/C/E 五 seed；模型落盘后从同一公共 causal evaluator 评测完整 20 步。固定运行条件是 CPU、一个 torch/BLAS 线程；审计重建最多四个独立进程，评测按 method/seed 顺序执行。学习目标、split、模型容量、gate 和效应门均沿用已登记规则。
+
+`cpmt-m1-corrected-post-probe-registration-v1` 解决旧组合登记写死 1350 且仍连接旧数据的问题。输入是完整 train probe 的六格 paired SD、D-051 规则和数据/代码/策略来源，输出是新的封存登记。例如公式给出 1280 时仍取 1350，给出 1401 时向上取 1410；固定 exact 或其他必需终点不可用时没有登记，也不切到 graded。它不等于 test 解封、自动批准完整选参或宣布方法有效；后续消费入口必须显式校验这一新 schema 与来源，不能把它塞进旧 v6 校验器。完整矩阵先核对每个方法/seed/sibling，再按原组内均值和样本标准差计算，避免缺 seed 或重复行改变有效样本数。
+
+固定 anchor 的拟合/inner-dev 差距只解释已固定模型的拟合情况，无参数选择作用；本阶段权重保存/加载集成 fixture 的模型未训练，不替代完整选参前已要求的真实短训、配对统计与正式报告导出小预演。运行结果仅记 EXECUTE，未完成的服务器验证不视为方法证据。
