@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Unique phase: full tests for the isolated scope fix and v7/v9 data boundary.
-# Foreground (expected minutes); show every result and also retain the log.
-# Read code/configs, retained reports and existing synthetic test fixtures only.
-# Write test logs/markers/tmp under a new source-bound AutoDL data-disk directory.
-# No experiment training, new 1000/200-group generation, confirmation or test release.
-# Matching success is reused; failed/interrupted attempts remain and never auto-restart.
+# Unique phase: corrected v7/v9 1000-group train generation and acceptance.
+# Input: clean checkout and matching 280-test success marker (read-only).
+# Write only the new source-bound data directory; preserve all old outputs.
+# Foreground: historical same-size generation took about 17 minutes / 16 workers.
+# Reuse completed generation; partial/failed attempts require review, never rerun.
+# No training, probe, validation/test generation, export, or Git mutation.
+# Sole success: SERVER_STEP_OK id=m1_v7_d051_corrected_train_generation
 set -uo pipefail
-export CPMT_SERVER_STEP_ID="m1_v7_d051_scope_rebuild_full_test"
-CPMT_EXPECTED_TESTS=280
+export CPMT_SERVER_STEP_ID="m1_v7_d051_corrected_train_generation"
 CPMT_SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)" || exit 2
 CPMT_REPO_DIR="$(git -C "$CPMT_SCRIPT_DIR" rev-parse --show-toplevel)" || exit 2
 [[ "$#" -eq 0 ]] || exit 2
@@ -15,88 +15,171 @@ cd "$CPMT_REPO_DIR" || exit 2
 [[ -d /root/autodl-tmp ]] || exit 2
 [[ -z "$(git status --porcelain)" ]] || { printf 'SERVER_STEP_FAILED reason=checkout_not_clean\n'; exit 1; }
 CPMT_SOURCE_SHORT="$(python -c 'import sys;sys.path.insert(0,"src");from cpmt.run_provenance import source_tree_sha256;from pathlib import Path;print(source_tree_sha256(Path.cwd(),roots=("src","scripts","configs","tests"))[:12])')" || exit 2
-CPMT_OUTPUT_DIR="/root/autodl-tmp/cpmt_outputs/m1-v7-d051-full-test-$CPMT_SOURCE_SHORT"
-mkdir -p "$CPMT_OUTPUT_DIR/tmp" || exit 2
-export TMPDIR="$CPMT_OUTPUT_DIR/tmp"
-export OMP_NUM_THREADS=1
-export MKL_NUM_THREADS=1
-export OPENBLAS_NUM_THREADS=1
-export CUDA_VISIBLE_DEVICES=""
-export PYTHONUNBUFFERED=1
-python - "$CPMT_OUTPUT_DIR" "$CPMT_EXPECTED_TESTS" <<'PY_TEST' 2>&1 | tee -a "$CPMT_OUTPUT_DIR/full_test.log"
-import datetime,fcntl,os,sys,time,traceback,unittest
+CPMT_OUTPUT_DIR="/root/autodl-tmp/cpmt_outputs/m1-v7-d051-train-$CPMT_SOURCE_SHORT"
+mkdir -p "$CPMT_OUTPUT_DIR" || exit 2
+export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
+export CUDA_VISIBLE_DEVICES="" PYTHONUNBUFFERED=1
+python - "$CPMT_OUTPUT_DIR" <<'PY_GENERATE' 2>&1 | tee -a "$CPMT_OUTPUT_DIR/generation.log"
+import datetime,fcntl,hashlib,math,os,shutil,subprocess,sys,time,traceback
 from pathlib import Path
 sys.path.insert(0,'src')
 from cpmt.m1_protocol import load_and_validate,protocol_sha256,validate_current_rollout_protocol
 from cpmt.m1_s5_training import read_json,require,write_json
 from cpmt.m1_scope_rebuild import validate_rebuild_test_marker
-from cpmt.run_provenance import capture_run_provenance,source_tree_sha256
+from cpmt.run_provenance import arrays_sha256,capture_run_provenance,source_tree_sha256
 
 STAGE=os.environ['CPMT_SERVER_STEP_ID']
+ROOT=Path.cwd()
+OUT=Path(sys.argv[1])
+
+def digest(path):
+    with path.open('rb') as stream:
+        return hashlib.file_digest(stream,'sha256').hexdigest()
+
+def resources():
+    cpu=[float(len(os.sched_getaffinity(0)))];memory=[]
+    mount=Path('/sys/fs/cgroup')
+    relative=next((line.split(':',2)[2] for line in Path('/proc/self/cgroup').read_text().splitlines()
+                   if line.startswith('0::')),'/')
+    current=(mount/relative.lstrip('/')).resolve();folders=[mount]
+    if current.is_relative_to(mount) and current.exists():
+        folders += [current,*[p for p in current.parents if p.is_relative_to(mount)]]
+    for folder in set(folders):
+        quota=folder/'cpu.max'
+        if quota.exists():
+            value,period=quota.read_text().split()
+            if value!='max': cpu.append(int(value)/int(period))
+        limit,used=folder/'memory.max',folder/'memory.current'
+        if limit.exists() and used.exists() and limit.read_text().strip()!='max':
+            memory.append(max(0,int(limit.read_text())-int(used.read_text()))/2**30)
+    quota,period=mount/'cpu/cpu.cfs_quota_us',mount/'cpu/cpu.cfs_period_us'
+    if quota.exists() and period.exists() and int(quota.read_text())>0:
+        cpu.append(int(quota.read_text())/int(period.read_text()))
+    limit,used=mount/'memory/memory.limit_in_bytes',mount/'memory/memory.usage_in_bytes'
+    if limit.exists() and used.exists():
+        memory.append(max(0,int(limit.read_text())-int(used.read_text()))/2**30)
+    memory.append(next(int(line.split()[1])/2**20 for line in Path('/proc/meminfo').read_text().splitlines()
+                       if line.startswith('MemAvailable:')))
+    available=min(memory);free=shutil.disk_usage(OUT).free/2**30
+    workers=min(16,math.floor(min(cpu)),math.floor((available-4)/0.5))
+    require(workers>=1 and available>=8 and free>=4,'insufficient CPU/memory/disk headroom; no generation started')
+    return {'cpu_capacity':min(cpu),'available_memory_gib':available,'free_disk_gib':free,'workers':workers}
+
+def accept(binding,hard,attempt):
+    import numpy as np
+    exit_record=read_json(OUT/'runner_exit.json')
+    require(exit_record['binding']==binding and exit_record['exit_code']==0,'generation runner did not succeed')
+    path=OUT/'train.npz';manifest_path=path.with_suffix('.manifest.json')
+    manifest=read_json(manifest_path)
+    expected={'schema_version':'cpmt-m1-generation-manifest-v5','split':'train',
+              'paired_groups_total':1000,'configured_paired_groups_for_split':1000,
+              'protocol_sha256':binding['protocol_sha256'],'dataset_version':hard['data']['dataset_version'],
+              'online_chain_decisions':40000,'retained_shard_count':1000,'formal_run':False,'test_generated':False}
+    require(all(manifest.get(k)==v for k,v in expected.items()),'generation manifest binding/count mismatch')
+    provenance=manifest['generation_provenance']
+    require(provenance['git_dirty'] is False
+            and provenance['git_commit']==attempt['provenance']['git_commit']
+            and provenance['source_tree_sha256']==binding['source_tree_sha256'],'generation provenance mismatch')
+    require(manifest['workers']==attempt['resources']['workers'],'worker count mismatch')
+    require(manifest['teacher_health_gate']['applicable'] is True
+            and manifest['teacher_health_gate']['pass'] is True,'train teacher health gate failed')
+    families=set(hard['data']['scenario_families'])
+    for key in ('causal_paired_group_support_by_family','learning_group_support_by_family'):
+        require(set(manifest[key])==families and all(v==1000 for v in manifest[key].values()),'family coverage mismatch')
+    shards=sorted((OUT/'shards').glob('*.npz'))
+    require([p.name for p in shards]==[f'train_{i:06d}.npz' for i in range(1000)],'missing/unexpected shard')
+    require(path.stat().st_size==manifest['merged_npz_bytes']
+            and sum(p.stat().st_size for p in shards)==manifest['retained_shard_bytes'],'artifact size mismatch')
+    with np.load(path,allow_pickle=False) as archive:
+        arrays={key:archive[key] for key in archive.files}
+    require(arrays_sha256(arrays)==manifest['arrays_digest'],'arrays digest mismatch')
+    group=np.asarray(arrays['group']);online=~np.asarray(arrays['recovery'],dtype=bool)
+    require(len(group)==manifest['decisions'] and int((~online).sum())==manifest['recovery_training_examples'],
+            'learning/recovery row count mismatch')
+    require(np.array_equal(np.unique(group),np.arange(1000))
+            and np.array_equal(np.bincount(group[online],minlength=1000),np.full(1000,40)),
+            'incomplete paired train groups')
+    require(source_tree_sha256(ROOT,roots=('src','scripts','configs','tests'))==binding['source_and_tests_sha256'],
+            'source/tests changed during generation')
+    return {'schema_version':'cpmt-scope-rebuild-train-v1','binding':binding,'exit_code':0,
+            'arrays_path':str(path),'arrays_digest':manifest['arrays_digest'],'manifest':manifest,
+            'file_sha256':{'train.npz':digest(path),'train.manifest.json':digest(manifest_path),
+                           **{'shards/'+p.name:digest(p) for p in shards}},
+            'validation_generated':False,'test_access':False,'training_performed':False,
+            'attempt':attempt,'acceptance_provenance':capture_run_provenance(ROOT,component=STAGE,
+                                                       entrypoint=ROOT/'ops/run_next_server_step.sh')}
 
 def main():
-    root=Path.cwd();out=Path(sys.argv[1]);expected=int(sys.argv[2])
-    plan=read_json(root/'configs/m1_scope_rebuild_plan.json')
-    hard=load_and_validate(root/plan['corrected_source']['path'])
+    plan=read_json(ROOT/'configs/m1_scope_rebuild_plan.json')
+    hard_path=ROOT/plan['corrected_source']['path'];hard=load_and_validate(hard_path)
     validate_current_rollout_protocol(hard)
-    require(protocol_sha256(hard)==plan['corrected_source']['protocol_sha256'],'corrected contract binding mismatch')
-    provenance=capture_run_provenance(root,component=STAGE,entrypoint=root/'ops/run_next_server_step.sh')
+    require(plan['rebuild']['train_groups']==hard['data']['paired_groups']['train']==1000,'train group contract changed')
+    source=source_tree_sha256(ROOT,roots=('src','scripts','configs','tests'))
+    full_test=OUT.parent/('m1-v7-d051-full-test-'+source[:12])/'full_test.ok.json'
+    validate_rebuild_test_marker(read_json(full_test),ROOT,plan,expected_tests=280)
+    require(protocol_sha256(hard)==plan['corrected_source']['protocol_sha256'],'corrected protocol mismatch')
+    provenance=capture_run_provenance(ROOT,component=STAGE,entrypoint=ROOT/'ops/run_next_server_step.sh')
     require(not provenance['git_dirty'],'checkout must be clean')
-    marker_path=out/'full_test.ok.json'
+    binding={'stage':STAGE,'protocol_sha256':protocol_sha256(hard),'plan_sha256':protocol_sha256(plan),
+             'source_tree_sha256':provenance['source_tree_sha256'],'source_and_tests_sha256':source,
+             'full_test_marker':str(full_test),'full_test_marker_sha256':digest(full_test),
+             'groups':1000,'split':'train','future_hash_bins':32}
     print('SERVER_STEP_BEGIN id='+STAGE+' commit='+provenance['git_commit'],flush=True)
-    print('BOUNDARY corrected_protocol=v7 dataset=v9 experiment_generation=false confirmation=false test_access=false',flush=True)
-    if marker_path.exists():
-        marker=read_json(marker_path)
-        validate_rebuild_test_marker(marker,root,plan,expected_tests=expected)
-        print('FULL_TEST_REUSED tests='+str(marker['tests_run']),flush=True)
+    print('FULL_TEST_REUSED tests=280 marker='+str(full_test),flush=True)
+    print('OUTPUT_DIR='+str(OUT)+' training=false validation=false test_access=false',flush=True)
+    success=OUT/'generation.ok.json';attempt_path=OUT/'attempt.json'
+    if success.exists():
+        marker=read_json(success)
+        require(marker['binding']==binding and marker['exit_code']==0,'success binding mismatch')
+        for relative,expected in marker['file_sha256'].items():
+            path=OUT/relative
+            require(path.resolve().is_relative_to(OUT.resolve()) and digest(path)==expected,'retained artifact hash mismatch: '+relative)
+        print('GENERATION_REUSED arrays_digest='+marker['arrays_digest'],flush=True)
     else:
-        require(not (out/'attempt.json').exists() and not list(out.glob('full_test.failed.*.json')),
-                'previous failed/interrupted test attempt requires review; no automatic restart')
-        before=source_tree_sha256(root,roots=('src','scripts','configs','tests'))
-        stamp=datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')
-        write_json(out/'attempt.json',{'stage':STAGE,'source_and_tests_sha256':before,'provenance':provenance})
-        started=time.monotonic()
-        try:
-            import torch
-            torch.set_num_threads(1)
-            loader=unittest.TestLoader();suite=loader.discover('tests')
-            require(not loader.errors and suite.countTestCases()==expected,
-                    f'discovery mismatch actual={suite.countTestCases()} expected={expected} errors={loader.errors}')
-            result=unittest.TextTestRunner(verbosity=2).run(suite)
-            after=source_tree_sha256(root,roots=('src','scripts','configs','tests'))
-            success=result.wasSuccessful() and not result.skipped and result.testsRun==expected and before==after
-            marker={'schema_version':'cpmt-scope-rebuild-tests-v1','commit':provenance['git_commit'],
-                    'corrected_protocol_sha256':protocol_sha256(hard),'rebuild_plan_sha256':protocol_sha256(plan),
-                    'tests_run':result.testsRun,'expected_tests':expected,'exit_code':0 if success else 1,
-                    'failures':len(result.failures),'errors':len(result.errors),'skipped':len(result.skipped),
-                    'wall_seconds':time.monotonic()-started,'source_and_tests_sha256':before,
-                    'source_tree_unchanged':before==after,'test_access':False,
-                    'validation_confirmation_run':False,'new_confirmation_groups_generated':False,
-                    'fixture_access':'historical_small_train_validation_fixtures_and_retained_group78_snapshot',
-                    'provenance':provenance,'failed_tests':[str(test) for test,_ in result.failures+result.errors]}
-            destination=marker_path if success else out/('full_test.failed.'+stamp+'.json')
-            write_json(destination,marker)
-            print(f'FULL_TEST_RESULT tests={result.testsRun} exit={marker["exit_code"]} marker={destination}',flush=True)
-            require(success,'full_test_failed; inspect displayed failures and retained marker')
-            validate_rebuild_test_marker(marker,root,plan,expected_tests=expected)
-        except BaseException as error:
-            path=out/('full_test.failed.'+stamp+'.exception.json')
-            write_json(path,{'type':type(error).__name__,'message':str(error),'traceback':traceback.format_exc(),
-                             'source_and_tests_sha256':before,'provenance':provenance})
-            raise
-    print('FULL_TEST_MARKER='+str(marker_path),flush=True)
+        if attempt_path.exists():
+            attempt=read_json(attempt_path)
+            require(attempt['binding']==binding,'existing attempt binding mismatch')
+            require((OUT/'runner_exit.json').exists(),'interrupted attempt requires review; no automatic restart')
+            require(read_json(OUT/'runner_exit.json')['exit_code']==0,'failed generation requires review; no automatic restart')
+            print('GENERATION_ACCEPT_ONLY runner already finished; no data regeneration',flush=True)
+        else:
+            require(not any((OUT/name).exists() for name in ('train.npz','train.manifest.json','shards','runner_exit.json')),
+                    'unrecognized existing artifacts require review')
+            machine=resources()
+            print('GENERATION_RESOURCES='+str(machine),flush=True)
+            command=[sys.executable,'scripts/generate_m1_parallel.py','--config',str(hard_path),
+                     '--split','train','--paired-groups','1000','--future-hash-bins','32',
+                     '--workers',str(machine['workers']),'--out',str(OUT/'train.npz'),'--shard-dir',str(OUT/'shards')]
+            attempt={'binding':binding,'provenance':provenance,'resources':machine,'command':command}
+            write_json(attempt_path,attempt)
+            started=time.monotonic()
+            code=subprocess.run(command,cwd=ROOT).returncode
+            write_json(OUT/'runner_exit.json',{'binding':binding,'exit_code':code,'wall_seconds':time.monotonic()-started})
+            print('GENERATION_RUN_EXIT='+str(code),flush=True)
+            require(code==0,'generation failed; preserve outputs and review before next stage')
+        marker=accept(binding,hard,attempt)
+        write_json(success,marker)
+        print('GENERATION_ACCEPTED groups=1000 online_rows=40000 arrays_digest='+marker['arrays_digest'],flush=True)
+    print('GENERATION_MARKER='+str(success),flush=True)
+    print('NEXT=review_corrected_train_then_deliver_next_stage_separately',flush=True)
     print('SERVER_STEP_OK id='+STAGE,flush=True)
-    print('NEXT=review_full_test_then_deliver_corrected_train_generation_separately',flush=True)
 
 if __name__=='__main__':
-    with (Path(sys.argv[1])/'full_test.lock').open('a+') as lock:
-        fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+    with (OUT/'generation.lock').open('a+') as lock:
+        try:
+            fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+        except BlockingIOError:
+            print('SERVER_STEP_BUSY id='+STAGE+' log='+str(OUT/'generation.log'),flush=True)
+            raise SystemExit(3)
         try:
             main()
-        except Exception as error:
+        except BaseException as error:
+            stamp=datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')
+            write_json(OUT/('generation.failed.'+stamp+'.json'),
+                       {'type':type(error).__name__,'message':str(error),'traceback':traceback.format_exc()})
             print('SERVER_STEP_FAILED id='+STAGE+' reason='+str(error),flush=True)
             raise
-PY_TEST
+PY_GENERATE
 CPMT_EXITS=("${PIPESTATUS[@]}")
-printf 'FULL_TEST_EXIT=%s LOG_WRITE_EXIT=%s\n' "${CPMT_EXITS[0]}" "${CPMT_EXITS[1]}"
+printf 'GENERATION_EXIT=%s LOG_WRITE_EXIT=%s\n' "${CPMT_EXITS[0]}" "${CPMT_EXITS[1]}"
 [[ "${CPMT_EXITS[0]}" -eq 0 && "${CPMT_EXITS[1]}" -eq 0 ]]

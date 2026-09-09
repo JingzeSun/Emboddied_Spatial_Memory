@@ -4,17 +4,17 @@
 
 ## 当前看板
 
-> **2026-09-09 更新（v7 一跳修复已实现，待服务器全测）：** 生产函数以独立提交恢复固定检索集合的一跳扩展，新增 v7/v9 生成合同与旧审计拒绝边界；当前仅交付前台完整测试。旧训练影响见 LOG-069，并行配置初选见 LOG-071；尚无修正版本数据、probe、预算或模型结果。详见 LOG-072。
+> **2026-09-09 更新（v7 服务器全测通过，train 重建待运行）：** 用户返回 280 项完整测试成功，测试和日志退出均为 0。当前入口已转为修正版 1000-group train 生成与验收；尚无修正版本数据、probe、预算或模型结果。详见 LOG-073。
 
-最后更新：2026-09-09，D-051 生产 scope 修复和 v7/v9 来源边界已实现，等待服务器完整测试。旧 hard/probe/registration/预算/模型产物保持历史版本；修正版的 probe、组合登记和预算并行接线仍待完成，不复用旧模型作新正式确认，不恢复 S5 或解封 test。
+最后更新：2026-09-09，D-051 生产 scope 修复及 v7/v9 来源边界已通过服务器 280 项全测，已交付 train 重建入口。旧产物保留；修正版 probe、组合登记和预算并行接线仍待完成，不复用旧模型作新正式确认，不恢复 S5 或解封 test。
 
 | 项目 | 当前事实 |
 |---|---|
 | 方向 | CPMT 具身空间记忆；CTL 是主学习假设，用户希望面向 ML 研究 |
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
-| 阶段 | M1-v7 范围修复重建：生产修复及 v7/v9 边界已实现，待服务器全测；v6 的 60 模型仅保留历史证据，新 S5 confirmation、S6 test 与 M2 尚未启动 |
+| 阶段 | M1-v7 范围修复重建：生产修复及 v7/v9 边界已通过服务器全测，train 重建待运行；v6 的 60 模型仅保留历史证据，新 S5 confirmation、S6 test 与 M2 尚未启动 |
 | 最近结果 | [`m1_v6_d047_endpoint_probe.json`](results/m1_v6_d047_endpoint_probe.json)：201 groups、A/C/E 五 seed、F；终点 exact A/C/E=`0.918408/0.793035/0.471144`，open-memory graded=`0.932013/0.920288/0.878167`，open-fact AUC=`8.830846/12.383085/14.134328`。保留 exact，test N=1350；H3/H1 mean TV=`0.003293`、argmax change=`0`。固定 anchor 未满足全部效应要求，非正式成败结论 |
-| 尚缺 | 修正版全测、重建 train、固定 probe/新组合登记、预算并行及完整原网格重跑、60 模型 refit 与独立确认；正式 test 入口仍需消费新组合登记并重新冻结。原 AUC `40/80` 与 D-051 endpoint/N 规则保留 |
+| 尚缺 | 重建 train、固定 probe/新组合登记、预算并行及完整原网格重跑、60 模型 refit 与独立确认；正式 test 入口仍需消费新组合登记并重新冻结。原 AUC `40/80` 与 D-051 endpoint/N 规则保留 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。D-046 顺序 C weight 搜索按既有逐方法实测路径的最坏 10000-update 外推，两臂总计划约 5.036 小时（非新实测）。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
 | 当前决定 | D-039–D-043 固定 live energy、真实 C10/C11、current/posterior 审计、Pre-LN 双架构和 A–E 对称 12 格。D-044–D-046 的 endpoint、open-fact AUC `40/80`、固定 gate、C 顺序权重和纯 confirmation 保留；D-047 收紧 claim，拆清 online network/shared executor，登记外生轨迹，并把 H3-vs-H1 teacher 对照设为主文必报、无选择无成败门的机制证据。M1 不声称原始 DCR、完整动态记忆或 active navigation；全局 reconciliation、PNO 与 M2 顺序不变 |
 | 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 validation/test。D-043 无额外人工选择；运行时剖析只供用户决定何时租用算力，不改变登记网格 |
@@ -920,3 +920,12 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - 既有会生成连续轨迹的四个测试文件改用 v7 合同；历史登记/报告元数据测试仍读取原 v6 合同，防止为了全测通过而改写旧结果的预期来源。新增 14 项范围与版本检查：生产函数的一跳/边序/检索边/关闭边、保存的 group78 现场恢复目标、该对象误改的 collateral 从旧范围下 0 变为新范围下 1、空池断言保留、合同最小差异、旧生成与审计拒绝、编码来源及旧分片防覆盖。它们只操作小字典/临时文件或已公开诊断图；没有重新生成 group78，也没有执行候选或模型。
 - 14 项新增轻检查在本地通过；随后补充 full-test marker 的来源、计划、失败/数量/test 访问拒绝断言，并单独重验该纯元数据用例通过。4 项历史 registration 元数据检查亦通过，旧报告/1350/hash 仍可核查。Python/ops 内嵌 Python/Bash 静态检查通过。未在本地执行真实生成、模型训练、causal rollout 或完整套件；旧服务器 250 项成功仅保留历史效力，不能覆盖本次生产修复。
 - 唯一 ops 阶段为 `m1_v7_d051_scope_rebuild_full_test`，预计 280 项（既有 266+新增 14），前台显示完整输出并 tee 日志。输出目录由完整 src/scripts/configs/tests 源码 hash 的前缀确定，避免只更新文档/ops 后默认重测；成功 marker 同时锁完整 hash、新合同、rebuild plan、测试数量与干净 provenance。匹配成功复用，失败/中断保留并拒绝自动重启；使用小型历史 train/validation fixtures 和已保存 group78 诊断图，不启动 1000/200-group 实验生成、confirmation 或 test。正式训练与模型预算任务尚未启动。
+
+
+## LOG-073（2026-09-09）：修正版服务器 280 项全测成功，交付独立 train 生成入口
+
+- 用户返回 `FULL_TEST_RESULT tests=280 exit=0`、`SERVER_STEP_OK id=m1_v7_d051_scope_rebuild_full_test` 与 `FULL_TEST_EXIT=0 LOG_WRITE_EXIT=0`。成功 marker 路径为 `/root/autodl-tmp/cpmt_outputs/m1-v7-d051-full-test-719bb2d494d9/full_test.ok.json`。这是用户提供的终端回执；本地未读取服务器 marker 正文，下一入口会调用既有 validator 核验完整 source/tests hash、计划、v7 合同、280 项数量和无失败/跳过等条件。全测成功是工程证据，不是 CTL 有效性结果。
+- 唯一 ops 阶段改为 `m1_v7_d051_corrected_train_generation`，调用既有 `scripts/generate_m1_parallel.py`，固定 v7 合同、train=1000 总混合 paired groups、原 group/seed namespace 和 future_hash_bins=32。最多 16 个生成进程、每进程 BLAS 1 线程；按实际 CPU affinity/cgroup 配额限制进程数，并检查可用主存和磁盘。生成进程不等于后续预算的 4 个训练进程。历史同规模生成约 1001 秒，故本次前台显示进度、保存日志和退出码，该历史耗时不是新版本 ETA 保证。
+- 输入是修正合同及已成功全测标记，输出是独立 `/root/autodl-tmp/cpmt_outputs/m1-v7-d051-train-719bb2d494d9/` 下的 train.npz、manifest、1000 个分片、运行来源与验收 marker。例如第 78 组仍按原 train 组号生成，不借用旧 validation 第 78 组或换组规避异常。这是 planned 的训练数据重建，不是已经完成的模型训练或确认评测；不改候选/executor/学习算法，不打开 validation/test。
+- 入口持独占锁，已有成功产物核对绑定与完整文件 hash 后复用；runner 已有 exit=0 但缺验收 marker 时只续做验收。失败、没有退出证据的中断或未知旧文件均保留并拒绝自动重新生成。首次验收检查正式 manifest/provenance、教师健康门、逐 family 的 1000-group 覆盖、全部精确分片名/大小、数组 digest 与每组 40 个 online decisions，并保存每个分片的 SHA-256。生成成功后本阶段直接结束，不预埋训练、probe、导出或 push。
+- 本轮仅修改 ops 与既有实验记录/流程指针，src/scripts/configs/tests 不变，复用刚通过的服务器全测。本地只做 Bash/内嵌 Python 静态检查、入口纯元数据分支检查和 diff 审查；未运行真实数据生成、训练、rollout 或完整测试。修正 train 实际成功、digest 和教师健康结果尚待服务器返回。
