@@ -16,7 +16,7 @@
 
 ## 当前指针
 
-- 当前阶段：**S5 train-only 准备：D-049 固定预算训练/60 模型报告已导回并本地复核通过（EXECUTE LOG-063）；当前导出阶段已完成。下一步接线一次性 200-group validation confirmation，复用已保存模型；新评测阶段交付前不重复运行旧入口。不按架构择优、不访问 test、不新增并行提速验证；完整 S5 evaluator 尚未完成。**
+- 当前阶段：**S5 confirmation 接线已实现、待服务器新完整测试（D-050，EXECUTE LOG-064）：原 60 个模型复用，新 validation 范围固定 4–203 共 200 组。当前唯一入口只运行预计 250 项全测；通过后分别交付确认数据生成、保存模型的 20-step 连续评测。主次架构、五 seed、已选参数及成功/停止门不变；不访问 test、不新增评测并行 benchmark，尚无新 validation 结果。**
 - 最近有效证据：v5 S2 的 arrays/manifest/report 已验收；1000−300 的 paired-group 95% CI 为 `[+0.008750,+0.045000]`，按预登记规则选择 1000。10-group 同预算锚点中共同 group 1 的 40−10 平均差为 `+0.005000`、仅 `1/5` seed 严格为正，未达 S3 触发条件。完整数字与 provenance 见 `EXECUTE.md` LOG-032/033。
 - 已完成：同一份 40-group v4 arrays 确定性截取 10/40 groups，运行 scorer steps {60,300,1000} × seed 7。40-group 全 train 上，static preflight 对 2,552/2,552 个 executor-illegal 候选全部静态拒绝、合法误拒 0；过滤后 target-only 均匀并列期望由 0.7729 升至 0.9698，assembled oracle accuracy 由 0.7438 升至 0.9525，其 exact-ambiguity capped 读数由 0.7275 升至 0.9275。D-038 已接受把同一只读预检变成 A–E 共享 mask；旧 v4 过滤数字仍只作采纳依据，不冒充 v5 方法成绩。
 - scorer 分支：40-group inner-dev 的未过滤/过滤后 teacher accuracy 在 steps 60/300/1000 分别为 0.0500/0.5688/0.5031 与 0.0625/0.7469/0.7094。1000 steps 虽将 held-out BCE 从 0.1016 降到 0.0744，候选排序却低于 300 steps；共同 group 1 在 10/40 groups、300/1000 steps 过滤后均为 0.875，也没有显示扩大到 S3 的明确数据收益。因此 300 steps 只是当前单 seed 候选，尚未固定。

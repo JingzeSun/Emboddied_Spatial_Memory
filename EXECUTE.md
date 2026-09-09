@@ -6,7 +6,7 @@
 
 > **2026-09-09 更新（D-049 固定配置训练报告已拉取复核）：** 结果提交 `3221caf` 已拉取，导出 SHA-256 与服务器输出一致；60 个模型的登记配置、trace 终止步数和原始代码指纹核对通过。模型训练计时合计约 80.700 分钟，尚无独立 validation 或 20-step 连续结果。详见 LOG-063；S5 validation、S6 test 与 M2 均未启动。
 
-最后更新：2026-09-09，预算结果及原始训练/验收/导出 provenance 已在本地核对。两臂选择严格沿用 D-043/D-046，不扩网格、不按架构择优；D-049 新入口已在服务器通过 234 项完整测试；固定预算 train-only 训练/模型保存报告已导回，本地配置、完整性与 provenance 复核通过。独立 S5 连续评测入口仍需后续接线。
+最后更新：2026-09-09，预算结果及原始训练/验收/导出 provenance 已在本地核对。两臂选择严格沿用 D-043/D-046，不扩网格、不按架构择优；D-049 新入口已在服务器通过 234 项完整测试；固定预算 train-only 训练/模型保存报告已导回，本地配置、完整性与 provenance 复核通过。D-050 已完成独立 S5 数据/保存模型评测接线，当前交付新完整测试，尚待服务器验证。
 
 | 项目 | 当前事实 |
 |---|---|
@@ -14,7 +14,7 @@
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
 | 阶段 | M1-v6 S5 train-only 准备：已选配置训练/60 模型报告导回与本地复核通过；S5 validation、S6 test 与 M2 尚未启动 |
 | 最近结果 | [`m1_v6_d047_endpoint_probe.json`](results/m1_v6_d047_endpoint_probe.json)：201 groups、A/C/E 五 seed、F；终点 exact A/C/E=`0.918408/0.793035/0.471144`，open-memory graded=`0.932013/0.920288/0.878167`，open-fact AUC=`8.830846/12.383085/14.134328`。保留 exact，test N=1350；H3/H1 mean TV=`0.003293`、argmax change=`0`。固定 anchor 未满足全部效应要求，非正式成败结论 |
-| 尚缺 | 接线并开展一次 200-group validation confirmation，复用已保存模型；正式 test 入口仍需消费组合登记并重新冻结。原 AUC `40/80` 与 validation/test 边界保留 |
+| 尚缺 | 通过 D-050 新完整测试后，分阶段生成并开展一次 200-group validation confirmation，复用已保存模型；正式 test 入口仍需消费组合登记并重新冻结。原 AUC `40/80` 与 validation/test 边界保留 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。D-046 顺序 C weight 搜索按既有逐方法实测路径的最坏 10000-update 外推，两臂总计划约 5.036 小时（非新实测）。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
 | 当前决定 | D-039–D-043 固定 live energy、真实 C10/C11、current/posterior 审计、Pre-LN 双架构和 A–E 对称 12 格。D-044–D-046 的 endpoint、open-fact AUC `40/80`、固定 gate、C 顺序权重和纯 confirmation 保留；D-047 收紧 claim，拆清 online network/shared executor，登记外生轨迹，并把 H3-vs-H1 teacher 对照设为主文必报、无选择无成败门的机制证据。M1 不声称原始 DCR、完整动态记忆或 active navigation；全局 reconciliation、PNO 与 M2 顺序不变 |
 | 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 validation/test。D-043 无额外人工选择；运行时剖析只供用户决定何时租用算力，不改变登记网格 |
@@ -839,3 +839,14 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - 各模型 wall_seconds 求和：Set Transformer 3121.429 秒（52.024 分钟），MLP 1720.548 秒（28.676 分钟），合计 4841.977 秒（80.700 分钟）。这是模型函数计时之和，不含完整调度、保存/加载与验收等全部开销，不冒充总日历耗时。同架构 A–E 的 student 参数量一致，分别为 359673/33017；逐模型 PyTorch allocated 显存峰值的最大值分别为 3336.471/2570.354 MiB，不等于 nvidia-smi 整机显存占用。
 - 本次报告只有训练 trace 与模型完成证据；没有新泛化准确率或 20-step causal 结果，不能根据 loss 或成功 marker 宣布 CTL 有效。formal_run、validation_arrays_read、test_access、causal_complete、model_selection_performed 均为 false。训练函数允许 hindsight/辅助目标，online_future_access=false；原 D-047/D-048 执行边界保持。
 - 本地读取的是导出的 JSON 与 Git 对象，没有下载或重新加载服务器模型权重；权重文件的实际 hash 验收来自服务器完成/导出阶段，本地核对其清单与绑定。未训练、未重跑全测、未读取 validation/test。后续仍需接线一次独立 200-group、每条 20 步的 S5 confirmation，复用已保存模型，不重扫预算。
+
+## LOG-064（2026-09-09）：D-050 S5 独立确认数据/保存模型评测入口实现，待服务器全测
+
+- 用户在 LOG-063 报告核对后明确授权开始。新增 `configs/m1_s5_confirmation_plan.json`、纯元数据模块 `src/cpmt/m1_s5_confirmation.py` 与 `scripts/run_m1_s5_confirmation.py`，落实 D-050：绑定原训练导出和既定合同，排除历史 validation 0–3，新范围固定 4–203，共 200 组。未读取或生成这些确认数据，尚无 S5 指标。
+- 数据模式复用既有 generator/array encoder，16-worker 仅传路径、组号与小型绑定，每组完整保存 paired audit、learning arrays 与 SHA。parent 汇总原覆盖/教师健康规则；失败保留且不得替换样本。成功数据再次访问只验 hash，不重生成或改写完成 manifest。
+- 评测模式校验原 60 个模型产物，直接加载 50 student，CPU/1 thread 串行；每模型 400 条完整 20-step 轨迹。F oracle 和 observable oracle 各一次，F 按原完整性门先检查。逐方法/seed 保存完整 sequence choices、指标、固定参考历史诊断与逐候选执行失败；继承原固定 gate 和统计函数，paired group 含两 sibling/五 seed，保留三项效应与安全门、Holm 校正。此处只说明实现，不表示真实 200-group 评测已经运行或通过。
+- 原 `causal_rollout_metrics` 仅新增默认关闭的选择后审计回调，新增记录不进入网络/选择输入；生成审计保留六项参考 hindsight 能量与 future branches，分叉世界单独记录实际候选执行。新源码与旧训练 hash 分开绑定；原 60 个模型不重训，不改变候选、教师目标或核心指标公式。exporter 已支持最终 S5 报告的 training/evaluation/export provenance。
+- 每个完整生成/评测单元原子发布并校验文件 hash，partial 和失败保留、拒绝自动重试。数据目录唯一 consumption 记录与评测目录 trial 共同绑定 data/model/plan/source/runtime/output，防止换配置、环境或目录重开确认；生成数组和原训练文件不改写。完整报告只供既定 S5 stop rule 复核，不自动解封 test。
+- 新增 16 项检查：8 项纯元数据检查已在本地通过，覆盖实际固定报告绑定、历史隔离、test/gate 漂移、单元内容校验、失败保留、同一数据的输出位置占用、配对重复/缺失与 20-step hash 连续性；另外 8 项包含 train fixtures/小模型/runner 接线的检查只交由服务器运行，覆盖原生成编码复用、缓存、审计回调不改变 oracle 轨迹、固定参考历史诊断、完整单元复用、失败链和按组统计。没有本地训练、真实 rollout、benchmark 或完整套件运行。
+- 当前唯一 ops 阶段为 `m1_v6_d050_s5_confirmation_full_test`，预计 250 项（原 234+16），使用数据盘临时目录，成功 marker 绑定新 plan 与完整 source/tests hash；Bash、新增 Python 及内嵌 Python 静态检查已通过。旧 234 项训练测试保持其历史效力，本轮新科学代码仍需服务器完整验证；此入口不预埋数据生成、50 模型评测或 Git 导出。
+- 另用纯元数据替身执行完整调度检查：两臂 50 个 student 加两种 oracle 全部被调度；第二次访问没有新增模型加载、单步前向或 rollout 调用。该检查没有导入/执行真实模型，不能代替待服务器运行的 8 项 runner 集成检查。

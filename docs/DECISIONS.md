@@ -709,3 +709,18 @@
 - 白话：可复用模型产物解决“终端重连后不知道哪个模型已经完成”。输入是一个模型的权重及其来源记录，输出是一个可校验的完整模型目录；例如 30 个模型已完成时，它们会被跳过，剩下的尚未开始模型才需要训练。它不允许换配置后继续复用旧权重，也不隐藏失败记录。
 - `run_m1_s5_train.py` 仅承担 train-only 模型训练/保存，状态为 S5 preparation，`formal_run=false`、`validation_arrays_read=false`、`test_access=false`、`causal_complete=false`。S5 的数据生成/一次性确认和 S6 test 解封仍是独立后续阶段；本条不声称完整 S5 evaluator 已实现，不将训练完成称为 M1 通过。
 - 因新增训练/存储代码和方案登记，先通过新的服务器完整测试，成功 marker 绑定 plan 与 src/scripts/configs/tests hash；旧 221 项 marker 继续作为历史事实但不能验收新代码。当前 ops 版本只承载该全测阶段，不预埋训练/导出/push。本地只做静态和纯元数据检查，含模型加载及完整套件在 AutoDL 上运行。
+
+## D-050：固定 S5 独立确认范围、保存模型消费与连续评测接线
+
+- 状态：accepted（2026-09-09）；用户在 D-049 训练报告本地复核通过后授权“可以，开始吧”。落实既有纯 confirmation，不改变 A–E、主次架构、已选权重、gate、三项主要指标、效应门或 test N。新代码的服务器验证仍 pending；不是实验成功。
+- `configs/m1_s5_confirmation_plan.json` 绑定已验收训练导出、训练方案、原生成合同、probe overlay 和组合登记。补齐 D-036/LOG-025 要求的历史隔离：排除旧 validation 编号 0–3，新范围固定为 4–203（含端点），共 200 个完整 paired groups，保持原 validation seed namespace。此登记发生在首次生成或读取这批新确认数据之前，不能因数据健康或方法结果失败替换组、移动编号或增加组数。
+- 白话：独立确认集范围解决“过去看过的例子混入新考试”。输入是历史用过的组号和原生成器，输出是冻结的 200 个新组号；例如旧组 3 被排除，新组 4 保留两条配对轨迹。它不是按模型分数挑样本，也不是新的任务或 test 解封。
+- 新 `run_m1_s5_confirmation.py` 提供 generation/evaluation 两个独立命令模式，仍只能经当时版本的唯一 ops 入口交付。生成沿用现有 deterministic generator 和编码器，以既有 16-worker 路径参数/分片模式为模板，每个 worker 自己写一个完整 paired-group 的审计 gzip、学习数组和指纹；parent 按组号记录清单。重任务仍在 AutoDL，本地不跑 full suite、模型或 rollout；不添加 1/4/8-worker benchmark，不实施轨迹评测分片并行。
+- 评测固定 CPU、1 个 torch thread、两臂/方法/seed 串行，直接读取原 50 个 student；10 个 scorer 只核对已保存产物完整性，不重训或重新形成 E 教师。F full-reference oracle 只跑一次并作原完整性检查，其结果跨两臂共享，不伪装为独立 seed；observable information oracle 单独跑一次作信息上限诊断，不能代替 F 或主对照。主架构仍 Set Transformer，MLP 是次架构，不按结果择优。
+- 白话：保存模型的连续确认解决“单步分数看不出错误记忆是否积累”。输入是固定权重、当前观测和模型上一步留下的记忆，输出是完整 20 步选择与世界指标；例如第 6 步绑错后，第 7 步从这个错误世界继续。它不重置到正确历史，不训练模型，也不做未来 20 步的一次性答案预测。新范围每模型 400 条轨迹、8000 次决策，50 student 共 400000 次在线决策；两种 oracle 各另有 8000 次。
+- 主要统计复用现有 `_paired_causal_statistics`：先在组内合并两 sibling 和五 seed，再做固定 seed=260906、10000 次 paired-group bootstrap。保留 exact/open-memory/AUC 的最小效应 0.03/0.03/40、三项 intersection-union 与两主对照 Holm 校正，以及 false-birth/collateral/active-node 安全非劣门。S5 输出完整结果后按既定 stop rule 复核；不自动解封 S6、不重选 endpoint 或训练设置。
+- 额外固定参考历史的单步诊断只读学习数组中非 recovery 行，记录候选不可用、执行教师与参考的不一致、student 与教师的分歧及 template/argument 误差；它不能替代完整 8000 次自有记忆连续决策，也不把“student 与教师不同”一概称为错，因为教师本身可能错误。validation 不再切 calibration/report 子集，所有组保留一次确认职责。
+- 白话：逐步审计记录解决“只知道最后错了却无法回查哪一步”。输入是选择已经结束后的候选执行记录，输出是压缩的逐步 online payload、候选合法性/失败、base/post hashes、选择概率及实际 sibling/sequence 标识；例如可以看到错误候选怎样进入后续记忆。它只在选择后记录，不进入网络输入或修改选择。参考历史下的六项候选能量和 future 分支保存在生成审计中，不冒称在模型分叉世界重新计算了 hindsight teacher。新增 callback 默认关闭；原候选生成、执行、网络和指标公式不改。
+- 数据分片及每个完整 `(architecture,method,seed)` 评测单元原子完成并保存内容 hash。成功单元只能在模型/data/plan/evaluation-code 绑定一致时复用；partial 与失败记录保留、拒绝自动重算。validation trial 在首次打开新数据前落盘，即使随后失败也保留已消费事实；数据目录另写唯一 `confirmation_consumption.json`，绑定实际评测输出目录，防止换目录重开。生成数组及审计不改写，评测仅在数据目录新增这一控制记录。评测 binding 同时记录 PyTorch/NumPy/Python、机器与 hostname，防止不知情地混用运行环境。该记录不等于 optimizer 恢复，也不允许换配置重复考试。
+- 成本逐模型报告 CPU wall_seconds 与实际 forward p95；保留原作用域“网络及相关张量/概率操作”，不平均各 seed 的 p95，不当作完整系统延迟。评测 CPU 的 peak_vram=0，训练 CUDA 显存另见原训练报告；串行/1-thread 是明确测量条件，不承诺操作系统不存在其他租户负载或把它称为独占硬件 benchmark。
+- 因新增科学 runner、配置和只记录的 callback，下一唯一服务器阶段先运行完整测试（预计 250=234+16），成功 marker 绑定新方案及 source/tests hash。此 ops 版本不预埋数据生成、评测或导出；全测通过后按规则逐阶段改写入口。原 60 个已验收模型仍复用，不因新评测 source hash 变化重训。

@@ -179,3 +179,23 @@ D-048 登记的 `execution_boundary` 明确覆盖旧 overlay 的 `naming_and_sco
 `run_m1_s5_train.py` 只训练/保存 50 个在线 student 和 10 个 E scorer，使用 CUDA、8 threads、两臂顺序执行；F 无需训练。每个模型原子保存 state_dict、模型构造参数、config、trace、模型 hash 与完整来源；成功产物按 plan/data/source/device 等绑定复用，未完成产物保留并要求先复核。E 的 train 教师分布同 checkpoint 保存，不通过独立 validation 产生或选择它；在线推理输入边界保持不变。单模型完成后才形成可复用产物，这不是中途 optimizer 状态续训。
 
 白话：一个模型目录回答“训练的是哪套设置、权重是否完整、能否继续用”。输入训练完成的网络，输出模型文件及验收元数据；例如机器重连时已经完整保存的 A/seed7 不再训练。它不代表该模型科学上优于基线；当前训练记录不含正式 p95 或世界指标，这些留待独立连续评测。新实现须经服务器全测后运行，当前不授权 test、不改变原最小效应门，也不表示完整 S5/S6 evaluator 已接线。
+
+## D-050：S5 保存模型独立确认接口（已实现，待服务器完整验证）
+
+活动接线由 `configs/m1_s5_confirmation_plan.json` 固定。输入是 D-049 已验收的 60 个模型清单及既有生成/评测合同，输出先是新数据清单，再是两臂 20-step continuous confirmation 报告；两阶段由唯一 ops 入口分别交付。它不改变 M1 唯一主张，不意味着 S5 或 M1 已通过。
+
+历史 validation 0–3 全部排除；新 validation 4–203 共 200 组，各含两条 20 步 sibling。原 validation namespace 与种子规则不变，不把新组号与 train 中同一整数编号视为同一世界。所有组一次进入确认，不再切 calibration/report，不用验证结果选择配置或换样本。例如旧第 3 组曾用于 scorer 诊断，不能因改了代码就称它从未看过；新第 4 组的两个 sibling 必须一起保留。这是数据隔离，不是采样优化。
+
+生成阶段沿用既有候选/executor/编码器，以 16 workers 各自从路径读取合同、写完整配对组的 `audits.json.gz`、`learning.npz`、`summary.json`、`complete.json`。这些文件分别存完整参考审计（含六项能量及 future 分支）、诊断数组、健康/覆盖计数和指纹。输入是固定组号，输出是能复核的数据分片；例如第 4 组完成后重连只核对已有 hash。失败组保留并阻止进入评测，不得被别组替换。它不是并行评测或训练样本重生成。
+
+评测阶段加载原 50 个 student，固定 CPU/1 thread 串行；F full-reference oracle 和单独的信息上限 oracle 各一次。每个模型的 200 组共 400 条完整轨迹、8000 次在线决策；每步采用上一步实际留下的世界。学习数组末尾没有 future 的在线行不会出现在单步教师诊断里，故该诊断行数可少于 8000；完整 causal 路径仍覆盖每条全部 20 步。它不表示遗漏主评测步骤，也不把诊断当独立模型选择机会。
+
+`teacher_forced` 是固定正确参考历史的单步诊断，输入是相同参考历史下的当前在线向量，输出候选不可用率、教师与参考的不一致、student 与教师的分歧等；例如正确候选存在而 student 偏离教师，可定位学习/输入问题。它不证明教师总正确，不代替自有错误历史上的 rollout。生成的候选覆盖与执行教师健康逐 C00–C11 报告，当前预检、完整执行和最终选择边界沿用 D-047/D-048。
+
+`audit_sink` 是选择后的可选审计回调：输入是已选定并持久化的世界和候选执行记录，输出压缩逐步 online 输入、程序失败、base/post hashes、候选概率和实际序列/sibling 标识。它不参与打分、不把 future/post-world 传给网络。参考 hindsight 能量保存在生成审计；分叉世界的回调记录不是重新形成训练教师。每个持久世界重新检查 invariant，失败保留并停止；正常候选的静态或执行拒绝仍作为已预期的非法候选记录，不能冒充持久世界损坏。
+
+统计按原配对组单位汇总两 sibling 与五 seed，10000 次重采样；原 exact、open-memory、open-fact AUC 三项指标及 0.03/0.03/40 效应门、两主对照 Holm 校正和安全门不变。`s5_confirmation_report.json` 保存两个架构的逐方法逐 seed 指标与配对统计，供既定 S5 stop rule 复核；测试解封始终为 false，不自动启动 S6。
+
+完整模型评测单元成功后写指纹并原子发布；中断单元保留 `.incomplete` 和失败原因，拒绝自动重试。`validation_trial.json` 在读取确认数据前记录模型、数据、方案、新评测源码与运行环境的绑定；数据目录另以排他创建的 `confirmation_consumption.json` 绑定唯一评测输出位置，换目录不能另开一次确认。评测不改写生成分片，只新增这一控制记录。输入是一次冻结考试，输出是可追溯的消费记录；例如第 12 个模型失败时，前 11 个结果不因重连丢失，也不能换参数重跑。它不是新的确认机会或可任意覆盖的临时缓存。训练源码保留原 hash，新评测源码另记，避免为了新增 evaluator 重训模型。
+
+成本每模型单独记录 wall_seconds、CPU/1-thread 条件和 forward p95，不对多个 p95 求平均；该 p95 只覆盖网络与相关张量/概率处理，不是候选生成到执行结束的系统延迟。CPU 评测的 allocated VRAM 为 0，不能用它取代 CUDA 训练成本或声称整机无其他进程竞争。全部原始单元与失败留在服务器，最终 JSON 由仓库 exporter 带原始 training/evaluation/export provenance 导回。

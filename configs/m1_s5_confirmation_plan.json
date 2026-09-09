@@ -1,0 +1,65 @@
+{
+  "schema_version": "cpmt-m1-s5-confirmation-plan-v1",
+  "decision": "D-050",
+  "stage": "S5_independent_confirmation",
+  "test_access": false,
+  "formal_test_release": false,
+  "training_export": "results/m1_v6_d049_s5_training.json",
+  "training_export_sha256": "50313a11befab8d6921e4876f2f9e36ff8913762268dc16a0c6d4de2bb47c6f6",
+  "training_plan_sha256": "eef52f674a7570ff8de9d14684cea9c1c96ebf734285d5e164735743ed03954d",
+  "source_protocol_sha256": "73666cabb77b4884302d77ca621669bfdc77e86a44951b8a92b97208509c0eec",
+  "probe_overlay_sha256": "6816ce3ab3b524bad493609511582de0eb7f6ac9c12399c0137e9083b48b2d67",
+  "post_probe_registration_sha256": "d366935b14975a18cf3e0af58833fcb8a1151c5929c8848d40677d692fd51e1d",
+  "data": {
+    "split": "validation",
+    "start_group_index": 4,
+    "paired_groups": 200,
+    "excluded_historical_group_indices": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "historical_evidence": "results/m1-v2-retest-318c5a1-20260906T105905Z.json",
+    "historical_evidence_sha256": "0d4cf4737ea75d46b15cd48e8a73c35d712c6b35c00296a4b9c8e11c2c997b59",
+    "siblings_per_group": 2,
+    "horizon_decisions": 20,
+    "future_hash_bins": 32,
+    "generation_workers": 16,
+    "generation_cache": "complete_pair_audit_and_learning_arrays_per_group"
+  },
+  "evaluation": {
+    "device": "cpu",
+    "torch_threads": 1,
+    "scheduling": "serial_architecture_method_seed_no_training",
+    "seeds": [
+      7,
+      19,
+      31,
+      43,
+      59
+    ],
+    "methods": [
+      "cpmt_ctl_core",
+      "direct_classifier",
+      "direct_future_loss",
+      "execute_current_only",
+      "future_no_execution"
+    ],
+    "oracle": "oracle_candidate_program_once_shared_across_arms_not_independent_seeds",
+    "observable_oracle": "separate_information_ceiling_diagnostic_once",
+    "use_all_groups_once": true,
+    "model_selection_performed": false,
+    "commit_probability": 0.0,
+    "margin_threshold": 0.0,
+    "resamples": 10000,
+    "bootstrap_seed": 260906,
+    "confidence": 0.95,
+    "stratification": "mixed_registered_20_step_schedule",
+    "unit": "paired_group_id_including_two_siblings_and_all_five_seeds",
+    "latency_scope": "per_model_network_and_associated_tensor_probability_operations_no_p95_averaging",
+    "resource_measurement": "serial_cpu_one_torch_thread_report_conditions_and_wall_seconds_cpu_peak_vram_zero",
+    "resume": "reuse_hash_bound_completed_units_preserve_failure_stop_on_partial_unit_no_automatic_retry",
+    "test_access": false
+  }
+}

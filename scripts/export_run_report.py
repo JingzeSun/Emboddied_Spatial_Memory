@@ -93,6 +93,7 @@ def main() -> int:
     af_report = _read(out_dir / "af_report.json")
     budget_report = _read(out_dir / "budget_report.json")
     training_manifest = _read(out_dir / "training_manifest.json")
+    s5_confirmation = _read(out_dir / "s5_confirmation_report.json")
     endpoint_probe_report = _read(out_dir / "endpoint_probe_report.json")
     endpoint_causal_aggregates = {}
     if endpoint_probe_report is not None:
@@ -129,7 +130,9 @@ def main() -> int:
                 or (endpoint_probe_report or {}).get("training_provenance")
                 or (budget_report or {}).get("training_provenance")
                 or (training_manifest or {}).get("training_provenance")
+                or (s5_confirmation or {}).get("training_provenance")
             ),
+            "evaluation": (s5_confirmation or {}).get("evaluation_provenance"),
             "runtime_profiles": {
                 name: (value or {}).get("training_provenance")
                 for name, value in runtime_profiles.items()
@@ -142,6 +145,7 @@ def main() -> int:
         "af_report": af_report,
         "budget_report": budget_report,
         "training_manifest": training_manifest,
+        "s5_confirmation": s5_confirmation,
         "endpoint_probe": endpoint_probe_report,
         "teacher_forced_only": _read(out_dir / "af_teacher_forced.json"),
         "runtime_profiles": runtime_profiles,
@@ -158,6 +162,7 @@ def main() -> int:
                 "endpoint_probe_report.json",
                 "budget_report.json",
                 "training_manifest.json",
+                "s5_confirmation_report.json",
             }
             and not path.name.endswith(".manifest.json")
         },
@@ -167,6 +172,7 @@ def main() -> int:
         and report["endpoint_probe"] is None
         and report["budget_report"] is None
         and report["training_manifest"] is None
+        and report["s5_confirmation"] is None
         and report["teacher_forced_only"] is None
         and not report["runtime_profiles"]
     ):

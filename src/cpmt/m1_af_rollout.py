@@ -12,7 +12,7 @@ from copy import deepcopy
 import hashlib
 import math
 import time
-from typing import Any, Mapping, Sequence
+from typing import Any, Callable, Mapping, Sequence
 
 import numpy as np
 import torch
@@ -2057,6 +2057,7 @@ def causal_rollout_metrics(
     model: OnlineModel | None, audits: Sequence[Mapping[str, Any]],
     smoke_config: Mapping[str, Any], *, oracle: bool = False,
     observable_oracle: bool = False,
+    audit_sink: Callable[[Mapping[str, Any], Mapping[str, Any], Mapping[str, Any]], None] | None = None,
 ) -> tuple[dict[str, float], list[dict[str, Any]]]:
     """Evaluate a method causally on its own persistent predicted graph."""
     if oracle and observable_oracle:
@@ -2238,6 +2239,11 @@ def causal_rollout_metrics(
                 "base_graph_hash": base["graph_hash"],
                 "post_graph_hash": current["graph_hash"],
             })
+            # Optional offline recorder runs only after the online choice and
+            # persistence decision. It is not a model input or selection hook.
+            if audit_sink is not None:
+                audit_sink({**materialized, "audit_sequence_id": audit["sequence_id"],
+                            "audit_sibling_index": audit["sibling_index"]}, choices[-1], current)
         metrics = rollout_graph_metrics(
             predicted_states, references, base_states, protected, horizon=20,
             unrelated_collateral_by_step=[
