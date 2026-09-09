@@ -239,3 +239,14 @@ train 复用必须经 `configs/m1_train_reuse_policy.json` 核对原验收指纹
 `cpmt-m1-corrected-post-probe-registration-v1` 解决旧组合登记写死 1350 且仍连接旧数据的问题。输入是完整 train probe 的六格 paired SD、D-051 规则和数据/代码/策略来源，输出是新的封存登记。例如公式给出 1280 时仍取 1350，给出 1401 时向上取 1410；固定 exact 或其他必需终点不可用时没有登记，也不切到 graded。它不等于 test 解封、自动批准完整选参或宣布方法有效；后续消费入口必须显式校验这一新 schema 与来源，不能把它塞进旧 v6 校验器。完整矩阵先核对每个方法/seed/sibling，再按原组内均值和样本标准差计算，避免缺 seed 或重复行改变有效样本数。
 
 固定 anchor 的拟合/inner-dev 差距只解释已固定模型的拟合情况，无参数选择作用；本阶段权重保存/加载集成 fixture 的模型未训练，不替代完整选参前已要求的真实短训、配对统计与正式报告导出小预演。运行结果仅记 EXECUTE，未完成的服务器验证不视为方法证据。
+
+
+### 预算与重训共用的多进程路径（工程实现，GPU 验证 pending）
+
+`m1_training_jobs.py` 将一条模型训练路径作为独立进程任务。输入是固定 train 数组、架构/seed/学习率/checkpoints 和必要的已完成 scorer，输出是逐 checkpoint 权重、概率、训练 trace、逐组指标及可核验完成记录。例如四个进程共享一张 GPU，各自训练不同 seed 的完整模型，而不是四个进程分担同一模型的更新。CPU 线程限制为每进程一条；调度线程只管理子进程，不共享模型或随机状态。
+
+同一实现支持 budget 和 refit 两种人口划分：前者按原 hash 留出完整 train groups，后者使用全部输入 train。fit/inner-dev 采用相同的普通行 reference-ranking accuracy 定义，并另报逐组均值和差距；refit 不保留“独立 inner-dev”说法。此差距不改变参数选择规则，也不等于独立泛化成绩。正式 1000 组、全部原网格、C 顺序权重搜索以及 60 模型重训的登记消费仍待后续正式编排；当前 CLI 只接受固定工程检查，拒绝直接运行正式任务。
+
+GPU 对拍固定使用原 train groups 0..9（原 hash 分为 9 fit/1 inner-dev）、两架构、seeds 7/19、scorer+A–E、lr=0.0006、steps 10/30、C weight=1。两种人口模式各跑单进程和四进程，核对精确 tensor 数值、教师/概率、checkpoint 分数与 trace；torch.save 容器字节不是比较对象，容差不在结果出现后放宽。例如调度次序不同但同 seed 的权重与预测一致才通过；任何差异保留诊断并暂停，而非修改样本或选择更好结果。它不验证学习收益、不完成原网格选参，也不证明 1000 组的四进程显存峰值已经满足。
+
+检查期间不与当前 corrected probe 的 CPU 评测并行，以免将共享算力下的延迟误报为独占测量。小样本资源/速度报告只能描述已记录的运行条件；正式训练并发选择和完整规模资源检查仍按 D-051 与用户明确要求处理。所有来源、完成/失败日志和 exported report 保留，test 不访问，validation 不读取。

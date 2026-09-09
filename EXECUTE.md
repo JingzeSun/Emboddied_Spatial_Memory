@@ -4,9 +4,9 @@
 
 ## 当前看板
 
-> **2026-09-09 更新（修正版固定 anchor probe 已交付，服务器新入口全测待运行）：** D-054 train 复用验收保留，新增同阶段 test/prepare/train/evaluate/status/summarize/export。固定 201 组审计逐数组对照及 F integrity 在训练前运行；15 个学生与 5 个 scorer 分别保存，评测读取权重和成对磁盘审计；D-051 固定 exact、不允许 graded 回退，N 按六格 SD 与 1350 下限机械登记。详见 LOG-083。
+> **2026-09-09 更新（当前服务器 probe 保持运行；并行训练公共路径已预先开发）：** 修正版 probe 的 prepare/train 已获用户成功回执，evaluate 正在服务器串行运行；本轮没有同步或操作服务器。已新增预算分区/全 train 重训共用的独立进程 worker、固定十组 GPU 串行/四进程对拍入口及来源/失败保护，完成本地 17 项轻量检查；GPU 检查尚未运行。详见 LOG-084。
 
-最后更新：2026-09-09，新入口仅完成本地轻量验证；服务器全测、prepare 和固定 probe 结果仍 pending。完整预算并行和后续正式路径小预演仍未完成，不启动两臂完整网格或 S5/S6。
+最后更新：2026-09-09，当前 probe 必须先在原服务器版本完成 summarize/export，再同步新训练检查代码。公共 worker 两种模式已有实现，不等于正式预算选择或 S5 登记消费已接完；完整 1000 组资源核验和正式路径小预演仍待完成。
 
 | 项目 | 当前事实 |
 |---|---|
@@ -1027,3 +1027,16 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - summarize 在均值/SD 前核验每组 A/C/E 五 seed×两 sibling 与 F 两 sibling 完整无重复，再调用既有 group-first 统计；强制三项既定 co-primary 均非退化，禁止旧 graded 回退。F 或固定终点不可用时 N=null、registration=null，保留报告；通过时按六格原功效公式、向上取 10 整数和 floor=1350 创建 cpmt-m1-corrected-post-probe-registration-v1。登记包含效应/安全门、共享槽位和执行边界，test 与完整预算授权恒为 false；这是待结果回传核验的新登记产物，后续 S5/S6 消费入口尚未因此自动接好或解封。
 - 新 ops/m1_corrected_probe.sh 同一版本提供 test/prepare/train/evaluate/status/summarize/export；测试、准备、固定训练和汇总前台，预计超过半小时的完整评测默认后台，并有独立 status。每步检查前置 marker、源文件及日志指纹；成功复用，失败/中断不自动重启。export 可导出已完成失败的 traceback/log tail，也可在成功汇总后导出报告和封存登记；精确路径为 results/m1_v7_d054_corrected_endpoint_probe.json。要求至少 20 GiB 空闲磁盘保存审计；不会删除或覆盖旧输出。CPU 固定训练尚无本轮耗时实测，不给精确 ETA。
 - 本地 11 项轻量检查通过（0.898 秒）：固定合同与 201 分区、N 下限和上调公式、禁止 graded 切换、F 失败、缺 seed/重复 sibling/非有限值拒绝、登记重算与封存、状态链断裂拒绝；3 项运维微型测试通过（0.018 秒）：已完成失败不重算、中断不重启、前置失败阻止后续。另添加服务器完整测试中的一组真实 train 重建→数组对照→模型保存/加载预测一致→两条 20 步→完成产物复用测试；该模型未训练，本地未运行该生成/rollout fixture，不将其写成短训模型小预演完成。静态预计全套测试 323 项，实际以服务器回执为准。无本地重任务、真实 anchor 训练、validation/test 访问或新科学成绩。
+
+
+## LOG-084（2026-09-09）：不干扰运行中 probe 的 GPU 并发公共路径开发
+
+- 用户要求等待 evaluate 时先执行不冲突的工作。本轮仅在本地开发和运行轻量 metadata/metric/artifact 测试；未访问服务器、未启动 GPU/CPU 训练或生成数据，也未修改 run_m1_corrected_probe.py 或其运维入口。用户回执显示 prepare/train exit=0、20 模型已保存、evaluate 在运行；这不是新 probe 汇总或成绩验收。
+- 新 scripts/m1_training_jobs.py 使用 ThreadPoolExecutor 管理最多四个独立 Python 子进程；调度线程不持有共享模型、optimizer 或随机流，每个子进程只跑一条 architecture/seed/method/lr 路径。每条路径保留同一个优化器连续更新，在固定 checkpoints 保存 CPU tensor 权重、教师缓存、概率、同口径指标及 trace。所有子进程 CUDA_VISIBLE_DEVICES 固定同一 GPU UUID，OMP/MKL/OpenBLAS/torch 均单线程，不把四进程误称四张 GPU。
+- worker 复用现有 train_student/train_outcome_scorer、model_kwargs、shared mask、teacher 选择与 durable complete_unit；生成器、学习算法和 src/ 下的原编码/执行器均未变。budget 模式按既有 group hash 拆完整组，refit 模式使用全部输入 train 并明确 inner_dev=null/independent=false。A/C/分类器使用原 pstar，current-only 使用 pstar_current，E 只读同架构/seed/数据/模式的已完成 scorer；依赖的 marker 与模型文件指纹须一致。独立 scorer 批次全部完成后才派发学生，不拆一个 optimizer 的更新路径。
+- 固定 GPU 检查计划在执行前写入 fixed_plan()：原修正版 train 的 group 0..9，读取原分片并核对 generation marker/逐片 hash，不重新生成或重采样标签；10 组共 400 学习行，按原 hash 是 9 个 fit 组和 1 个 inner-dev 组。两架构×seeds 7/19，scorer+A–E，steps 10/30，lr=0.0006，C weight=1；分别运行 budget/refit 的单进程与四进程，共 96 条短训练路径、48 对比较。小样本仅验证工程等价，不据一个 inner-dev 组判断泛化、选超参或改变效应门。
+- checkpoint 的 fit 与 inner-dev 使用同一普通行 reference-ranking accuracy 和逐组均值；recovery 参与训练但从普通行指标分母排除。指标与旧预算 helper 的同口径结果在轻量 fixture 中一致；学生前向分批 64 行，避免增加全 fit 评估时的显存峰值。完整预算 checkpoints 300/1000/3000/10000 的正式编排仍待接入，不能将短检查的 10/30 分数冒作选参成绩。
+- 对拍比较精确 tensor 值、概率、教师、逐 checkpoint 指标和 trace；不要求 torch.save ZIP 字节一致，不根据看到的误差临时放宽容差。每个模型从保存权重加载；学生重新前向概率须与保存记录一致。每个架构内 A–E 参数签名核对一致。差异、子进程失败、未完成任务和 traceback 均保留；无自动重试、覆盖或替换样本。已完成失败也能 export，报告包含失败子进程日志尾部，避免只有父进程报错而缺失根因。
+- 新 ops/m1_parallel_training_check.sh test/check/export 为前台有界检查，独立源码绑定输出目录，精确导出 results/m1_v7_d054_training_process_check.json。test/check 之前均检查 /proc 中是否仍有当前 corrected probe evaluate，若存在则在新 attempt/训练前拒绝，避免污染本轮 CPU 延迟。四进程必须通过既有 cgroup CPU、显存和内存保守阈值；这只是十组检查容量，full_population_resource_check_completed=false，不能外推已满足 1000 组四进程的实际峰值。完整预算与 S5 正式登记消费保持禁止，机器报告显式 full_budget_or_s5_registration_consumption_implemented=false；后续仍须完成两者编排，不能遗漏 S5。
+- 本地 13 项公共路径轻量检查通过（0.416 秒）：冻结架构/GPU 单线程配置、禁止正式任务/参数扩张、E 依赖错 seed 拒绝、完整组隔离与 refit 非独立、指标对照旧定义、masked/nonfinite 拒绝、四并发上限/排序、重复任务和失败不重试、精确数值比较、微小差异拒绝、配置漂移和权重篡改拒绝。4 项运维微型测试通过（0.028 秒）：活动 probe 阻止启动、完成失败不重启、中断不重启、失败可导出并复用。测试只使用小型数组/tensor 文件和受控调度函数，没有模型训练或 GPU；AST、Bash 语法、diff 检查通过，原 D-054 generation/encoding 来源桥接仍一致。静态全套预计 336 项，服务器新全测及 GPU 对拍尚未运行。
+- 重要交接边界：新脚本会改变全局 source/tests 指纹。当前服务器不能 pull；必须先用当前版本跑完 evaluate、summarize、export，保留并提交该精确 probe 结果，再同步新阶段。没有要求为本轮本地开发重复已成功的 prepare/train，也没有将开发中的 GPU 方案套进当前 CPU probe。
