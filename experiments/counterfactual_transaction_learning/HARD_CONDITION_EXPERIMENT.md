@@ -199,3 +199,14 @@ D-048 登记的 `execution_boundary` 明确覆盖旧 overlay 的 `naming_and_sco
 完整模型评测单元成功后写指纹并原子发布；中断单元保留 `.incomplete` 和失败原因，拒绝自动重试。`validation_trial.json` 在读取确认数据前记录模型、数据、方案、新评测源码与运行环境的绑定；数据目录另以排他创建的 `confirmation_consumption.json` 绑定唯一评测输出位置，换目录不能另开一次确认。评测不改写生成分片，只新增这一控制记录。输入是一次冻结考试，输出是可追溯的消费记录；例如第 12 个模型失败时，前 11 个结果不因重连丢失，也不能换参数重跑。它不是新的确认机会或可任意覆盖的临时缓存。训练源码保留原 hash，新评测源码另记，避免为了新增 evaluator 重训模型。
 
 成本每模型单独记录 wall_seconds、CPU/1-thread 条件和 forward p95，不对多个 p95 求平均；该 p95 只覆盖网络与相关张量/概率处理，不是候选生成到执行结束的系统延迟。CPU 评测的 allocated VRAM 为 0，不能用它取代 CUDA 训练成本或声称整机无其他进程竞争。全部原始单元与失败留在服务器，最终 JSON 由仓库 exporter 带原始 training/evaluation/export provenance 导回。
+
+
+### D-051 选参前的 train 错误分支工程检查
+
+检查解决正确参考轨迹之外的记忆状态可能让候选构造中止的问题。输入为已验收 v7/v9 train 数据和 D-051 固定的 16 组、七种规则，输出为 224 条 20-step 轨迹的完整性结果及失败现场。例如连续 MERGE 后仍须能构造下一步候选；它不等于 CTL 学习效果验证，也不保证穷尽全部可达状态。
+
+接口为 `run_m1_train_branch_preflight.py`，固定计划由 `m1_branch_preflight.fixed_plan()` 记录进产物。生成标记、协议、分片 SHA-256、生成提交和检查提交分别核验；生成生产模块不能发生未经审查的变化。重建 16 组 audit 的编码必须与已验收分片一致。`complete_branch_matrix` 表示组×sibling×规则无缺漏或重复；`preferred_template_unavailable` 表示偏好模板静态不可用、明确采用 NOOP 的次数；`minimum_c11_unrelated_candidates` 表示轨迹 C11 时最少范围外可用目标数。这些是工程诊断，不用于选模型或修改效应门。
+
+选择器只接收候选 index/template/static_preflight_pass；legal/post_graph、reference、future 和教师分数不传给选择器。executor-illegal 保留世界的原行为不变；构造异常、K=16 坍缩或 invariant 失败保存当前图/event/已完成步数并停止该组，不吞错、不换样本。其他固定组继续留存结果；完整矩阵全部完成且无工程错误才能 PASS。
+
+状态：生成已验收，检查器与轻量测试从隔离工程分支纳入，真实服务器检查尚未运行。按 D-052 使用同一版本的 `ops/m1_train_preflight.sh check` 与 `export`；导出成功仅说明报告被核验并写出，工程门以 `report.gate.pass` 为准。已有完成尝试复用，失败现场随导出保留，不自动重跑。未触碰 validation/test，未改变主终点、效应、安全 margin、N 或选参规则。

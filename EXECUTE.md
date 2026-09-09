@@ -4,17 +4,17 @@
 
 ## 当前看板
 
-> **2026-09-09 更新（train 产物保留，恢复样本编号验收修复待续验）：** 生成器已成功（1000 groups、1187.1 秒、health PASS）；首次验收行数/覆盖错误已修复。第二次 accept-only 在场景编号检查中错误拒绝恢复行的合法 `-1` 编码，当前只修复该 ops 检查并补生产编码回归测试，仍不重生成。详见 LOG-075/076。
+> **2026-09-09 更新（修正 train 已完成验收，交付固定错误分支检查）：** 用户返回 GENERATION_ACCEPTED、GENERATION_EXIT=0、LOG_WRITE_EXIT=0；1000 groups、40000 学习行（38000 普通+2000 recovery），完整指纹 `a1d9f7517feb3c301e856d774369adc9754475a884d236bc49dad43af231136e`。本轮不重生成，交付同一版本的 check/export 命令；真实分支检查尚未运行。详见 LOG-077。
 
-最后更新：2026-09-09，train 生成器成功，accept-only 已进入 family 编号检查但因拒绝合法恢复编码 -1 中止；修复后的最终验收仍待服务器返回。科学源码、生成数据和 280 项全测绑定保持，新 probe、预算及训练尚未启动。
+最后更新：2026-09-09，修正 train 生成与验收均已成功；错误分支检查代码从隔离分支纳入，并交付固定 check/export 命令。旧生产算法未改，新 probe、预算、重训和 S5/S6 尚未启动。
 
 | 项目 | 当前事实 |
 |---|---|
 | 方向 | CPMT 具身空间记忆；CTL 是主学习假设，用户希望面向 ML 研究 |
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
-| 阶段 | M1-v7 范围修复重建：train 生成器成功，运维验收失败待续验；新模型、S5 confirmation、S6 test 与 M2 未启动 |
+| 阶段 | M1-v7：修正 train 已验收，固定错误分支检查待服务器执行；新模型、S5/S6 与 M2 未启动 |
 | 最近结果 | [`m1_v6_d047_endpoint_probe.json`](results/m1_v6_d047_endpoint_probe.json)：201 groups、A/C/E 五 seed、F；终点 exact A/C/E=`0.918408/0.793035/0.471144`，open-memory graded=`0.932013/0.920288/0.878167`，open-fact AUC=`8.830846/12.383085/14.134328`。保留 exact，test N=1350；H3/H1 mean TV=`0.003293`、argmax change=`0`。固定 anchor 未满足全部效应要求，非正式成败结论 |
-| 尚缺 | 修正 train 完整验收、固定错误分支检查、固定 probe/新组合登记、预算并行及原网格重跑、60 模型 refit 与独立确认；正式 test 仍需重新冻结。原效应门和 D-051 endpoint/N 规则保留 |
+| 尚缺 | 固定 train 错误分支检查、固定 probe/新组合登记、预算并行及原网格重跑、60 模型 refit、独立确认与正式 test；D-051 数值门与 N 规则保持 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。D-046 顺序 C weight 搜索按既有逐方法实测路径的最坏 10000-update 外推，两臂总计划约 5.036 小时（非新实测）。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
 | 当前决定 | D-039–D-043 固定 live energy、真实 C10/C11、current/posterior 审计、Pre-LN 双架构和 A–E 对称 12 格。D-044–D-046 的 endpoint、open-fact AUC `40/80`、固定 gate、C 顺序权重和纯 confirmation 保留；D-047 收紧 claim，拆清 online network/shared executor，登记外生轨迹，并把 H3-vs-H1 teacher 对照设为主文必报、无选择无成败门的机制证据。M1 不声称原始 DCR、完整动态记忆或 active navigation；全局 reconciliation、PNO 与 M2 顺序不变 |
 | 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 validation/test。D-043 无额外人工选择；运行时剖析只供用户决定何时租用算力，不改变登记网格 |
@@ -930,6 +930,15 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - 入口持独占锁，已有成功产物核对绑定与完整文件 hash 后复用；runner 已有 exit=0 但缺验收 marker 时只续做验收。失败、没有退出证据的中断或未知旧文件均保留并拒绝自动重新生成。首次验收检查正式 manifest/provenance、教师健康门、逐 family 的 1000-group 覆盖、全部精确分片名/大小、数组 digest 与每组 40 个 online decisions，并保存每个分片的 SHA-256。生成成功后本阶段直接结束，不预埋训练、probe、导出或 push。
 - 本轮仅修改 ops 与既有实验记录/流程指针，src/scripts/configs/tests 不变，复用刚通过的服务器全测。本地只做 Bash/内嵌 Python 静态检查、入口纯元数据分支检查和 diff 审查；未运行真实数据生成、训练、rollout 或完整测试。修正 train 实际成功、digest 和教师健康结果尚待服务器返回。
 
+## LOG-074（2026-09-09）：隔离实现选参前错误分支检查，尚未运行真实场景
+
+- 用户接受前置工程检查，并澄清服务器成功的是 280 项完整测试，尚非 train 生成。隔离分支实现 runner/helper；生成任务保持原科学源码，固定组号和规则事先记录在 D-051。原终点、安全门、N 和训练划分不变。
+- 固定矩阵为 16×2×7=224 条轨迹、4480 次决策。调用生产 materializer、scope 和 executor 图验证器，每步延续选中世界；选择器只接收模板、位置与静态预检。worker 按完整 paired group 读取分片，使用 spawn、CPU/BLAS 一线程；禁止在本机启动真实检查。
+- 要求 corrected train 成功标记，核验协议、train=1000、32 bins、健康门、manifest、合并数组和固定 16 个分片文件 hash；生成提交到检查提交之间生产模块不得改变，仅新增工程 helper。只重建 16 组 audit，重新编码须与已验收分片 digest 一致；未改生成器、候选、能量或软监督算法。
+- 每步记录 base/post hash、scope、C11 范围外可用目标、MERGE 配对和 executor 失败。构造异常保存当前图/event/步数；生成异常保存限定生成器 frame 的图/event 上下文及 traceback。失败保留，不自动重跑或替换组；漏跑、重复或不足 20 步均不能 PASS。
+- 11 项轻量控制流测试通过（0.004 秒）：状态传递、输入不可变、非法执行保留世界、构造失败现场、边序、K 坍缩、非 train 拒绝、选择不读取执行/未来、模板缺失回退、C11 计数和完整矩阵。AST 与 CLI help 检查通过。未运行真实生成、训练、causal rollout 或新增完整套件，不宣称真实工程检查通过。
+- runner 尚未成为活动服务器阶段。后续按 D-052 统一准备阶段脚本和固定命令，不再逐步改写唯一入口。并行预算完整接线、fit/inner-dev 差距报告、新 probe/组合登记仍待完成。后续文档修正恢复了先前 PowerShell ASCII 管道损坏的中文，本记录的科学内容与检查规则不变。
+
 ## LOG-075（2026-09-09）：train 生成成功，修复运维验收混用轨迹与学习行计数
 
 - 用户终端回执：1000 paired groups、16 workers、1187.1 秒；输出 `/root/autodl-tmp/cpmt_outputs/m1-v7-d051-train-719bb2d494d9/train.npz`，learning_rows=40000，其中普通学习行 38000、recovery=2000，digest 前缀 `a1d9f7517feb3c30`。teacher/reference agreement=1.0（38000 普通学习行无分歧），teacher health PASS，GENERATION_RUN_EXIT=0。完整 hash 和服务器 manifest 尚未读回，本记录不把终端前缀当完整指纹。
@@ -946,3 +955,12 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - 根因是上一验收补丁遗漏真实恢复编码，而非数据类型漂移：生成器的 recovery_examples 使用 scenario_family=`RECOVERY_RELINK`；编码器对配置的 C00–C11 查表，未在表中的恢复名称按既有约定得到整数 -1。验收把所有行一律要求为 0–11，错误拒绝 2000 个合法恢复样本。上一版测试只用普通 family 编号构造恢复行，未覆盖生产约定；这是验收实现与测试遗漏。
 - 本次只改 ops：普通非 recovery 行必须落在 0–11，recovery 行必须恰为 -1；拒绝普通行 -1、恢复行 -2/0/12，保留 shape/dtype 检查及错误取值报告。family 覆盖只统计普通行。行数、逐组 38+2、causal 各 1000、learning 覆盖重算、hash、协议、来源及 health gate 均不变，不改产物或编码器，不放宽科学验收门。
 - 测试从实际 m1_rollout 的 recovery 构造中提取名称，并从实际 m1_af_rollout 编码函数中提取 scenario_family_index 表达式用于轻量 fixture，避免手写普通 family 编号掩盖恢复约定；不 import Torch、不执行生成器。运维回归共 14 项通过（0.611 秒），Bash/内嵌 Python 语法与 diff 检查通过。src/scripts/configs/tests 无变更，既有生成和全测指纹继续使用；服务器只需修复版本的 accept-only，实际最终验收结果仍待回执。
+
+## LOG-077（2026-09-09）：修正 train 完整验收成功，固定工程检查与导出一并交付
+
+- 用户返回 GENERATION_ACCEPT_ONLY（无重生成）、GENERATION_ACCEPTED groups=1000 learning_rows=40000 reference_learning_rows=38000 recovery_rows=2000、SERVER_STEP_OK 与两项 exit=0。arrays_digest=`a1d9f7517feb3c301e856d774369adc9754475a884d236bc49dad43af231136e`；marker=`/root/autodl-tmp/cpmt_outputs/m1-v7-d051-train-719bb2d494d9/generation.ok.json`。这是服务器验收成功回执，完整 marker 将由下一阶段读取核验并随导出带回；不假称本地已读取服务器文件。原两次运维失败保留。
+- 纳入 LOG-074 已实现的固定 16-group/224-trajectory/4480-decision train 分支检查；生产生成器、编码器、scope、executor 与科学合同均不改。先核验已验收 marker、完整数组指纹、manifest 和分片 hash，确认生成提交到检查提交之间既有生产模块未变（仅允许新增工程 helper），再重建 16 组 audit 并比对其编码与分片 digest。每步使用 production materializer 推进真实所选世界，不用参考世界覆盖错误状态。
+- D-052 交付为 `bash ops/m1_train_preflight.sh check` 与 `... export`，同一提交一次同步。固定读取上述实际服务器 marker 和完整数组指纹，输出路径由当前检查源码/测试 hash 绑定。check 前台打印进度、保存 check.log 和退出证据，按 CPU/cgroup 与主存余量最多 4 worker、每进程一线程，GPU 禁用；实际工程检查耗时尚未实测，不给确定 ETA。已完成 PASS/FAIL 均核验后复用，不自动重跑；不完整尝试保留并拒绝重启。
+- export 核验源代码/输入绑定、退出码、固定矩阵与逐组文件 hash；无论工程通过还是已完成失败都可导出，失败包含现场 JSON 和末尾日志。导出固定到 `results/m1_v7_d051_train_branch_preflight.json`，包含生成 marker、检查报告、文件指纹和独立导出 provenance，拒绝覆盖不一致的旧导出。成功输出 EXPORT_VERIFIED/PREFLIGHT_EXPORT_OK 不等于工程 PASS；以 report.gate.pass 决定能否进入 probe/预算。中断且无 completion 的尝试仍须审查，不能拿部分成功组放行。
+- 新检查控制流 11 项轻量测试通过（0.003 秒）；运维首跑、成功复用、失败不重跑并导出现场、二次导出复用、文件篡改、来源改变、缺报告/中断防护共 7 项测试通过（0.311 秒）。后者使用微型本地报告和模拟子进程，仅验证文件与调度链路；不是实际服务器数据或真实 rollout 测试。AST、CLI help、Bash 语法与 diff 检查完成。本地未执行生成、训练或真实 causal rollout；新增检查代码不冒用旧 280 项全测证据。
+- 原生成入口保留历史/兼容用途，不再作为下一阶段命令。固定工程检查尚未运行，probe/预算 runner 新登记接线与 fit/inner-dev 差距诊断仍待后续阶段完成；验收成功不等于方法通过或允许 M2/S6。
