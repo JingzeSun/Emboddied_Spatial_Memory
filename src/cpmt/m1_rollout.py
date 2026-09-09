@@ -2264,11 +2264,12 @@ def _current_online_evidence_scope(
         )[:ranks])
     # Include the one-hop open subgraph around the retrieved IDs.  This scope
     # is fixed before any candidate executes and is identical for all K slots.
+    retrieved = frozenset(selected)
     for edge in open_edges:
         edge_ids_for_record = {
             str(edge["edge_id"]), str(edge["source"]), str(edge["target"]),
         }
-        if selected & edge_ids_for_record:
+        if retrieved & edge_ids_for_record:
             selected.update(edge_ids_for_record)
     return selected
 
