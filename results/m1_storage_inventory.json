@@ -1,0 +1,1960 @@
+{
+  "content_hashes_checked": false,
+  "deletion_authorized": false,
+  "entries": [
+    {
+      "bytes_by_suffix": {
+        ".log": 1019
+      },
+      "errors": [],
+      "files": 1,
+      "largest_files": [
+        {
+          "bytes": 1019,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-acceptance/acceptance.log"
+        }
+      ],
+      "logical_bytes": 1019,
+      "marker_counts": {},
+      "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-acceptance",
+      "referenced_by_exports": [],
+      "symlinks_not_followed": []
+    },
+    {
+      "bytes_by_suffix": {
+        ".json": 22545377,
+        ".log": 1132
+      },
+      "errors": [],
+      "files": 3,
+      "largest_files": [
+        {
+          "bytes": 11275612,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-export/m1_v6_d048_budget_set_transformer.json"
+        },
+        {
+          "bytes": 11269765,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-export/m1_v6_d048_budget_mlp.json"
+        },
+        {
+          "bytes": 1132,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-export/export.log"
+        }
+      ],
+      "logical_bytes": 22546509,
+      "marker_counts": {},
+      "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-export",
+      "referenced_by_exports": [],
+      "symlinks_not_followed": []
+    },
+    {
+      "bytes_by_suffix": {
+        ".acceptance.json": 1533,
+        ".json": 21274927,
+        ".lock": 0,
+        ".log": 69341,
+        ".ok.json": 567,
+        ".pid": 5,
+        ".txt": 4
+      },
+      "errors": [],
+      "files": 16,
+      "largest_files": [
+        {
+          "bytes": 10635834,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-mlp/budget_report.json"
+        },
+        {
+          "bytes": 10635834,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-mlp/.ipynb_checkpoints/budget_report-checkpoint.json"
+        },
+        {
+          "bytes": 68054,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-mlp/budget.log"
+        },
+        {
+          "bytes": 1533,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-mlp/budget.acceptance.json"
+        },
+        {
+          "bytes": 1287,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-mlp/.ipynb_checkpoints/budget-checkpoint.log"
+        },
+        {
+          "bytes": 659,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-mlp/resource_start.json"
+        },
+        {
+          "bytes": 659,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-mlp/resource_end.json"
+        },
+        {
+          "bytes": 659,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-mlp/.ipynb_checkpoints/resource_start-checkpoint.json"
+        },
+        {
+          "bytes": 641,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-mlp/started.json"
+        },
+        {
+          "bytes": 641,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-mlp/.ipynb_checkpoints/started-checkpoint.json"
+        },
+        {
+          "bytes": 567,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-mlp/budget.ok.json"
+        },
+        {
+          "bytes": 5,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-mlp/worker.pid"
+        },
+        {
+          "bytes": 2,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-mlp/worker_exit.txt"
+        },
+        {
+          "bytes": 2,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-mlp/runner_exit.txt"
+        },
+        {
+          "bytes": 0,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-mlp/worker.lock"
+        },
+        {
+          "bytes": 0,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-mlp/.ipynb_checkpoints/worker-checkpoint.lock"
+        }
+      ],
+      "logical_bytes": 21346377,
+      "marker_counts": {},
+      "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-mlp",
+      "referenced_by_exports": [
+        "m1_v6_d048_budget_mlp.json"
+      ],
+      "symlinks_not_followed": []
+    },
+    {
+      "bytes_by_suffix": {
+        ".acceptance.json": 1556,
+        ".json": 10643440,
+        ".lock": 0,
+        ".log": 73848,
+        ".ok.json": 590,
+        ".pid": 5,
+        ".txt": 4
+      },
+      "errors": [],
+      "files": 10,
+      "largest_files": [
+        {
+          "bytes": 10643013,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-set-transformer/budget_report.json"
+        },
+        {
+          "bytes": 72326,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-set-transformer/budget.log"
+        },
+        {
+          "bytes": 1556,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-set-transformer/budget.acceptance.json"
+        },
+        {
+          "bytes": 1522,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-set-transformer/.ipynb_checkpoints/budget-checkpoint.log"
+        },
+        {
+          "bytes": 590,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-set-transformer/budget.ok.json"
+        },
+        {
+          "bytes": 427,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-set-transformer/started.json"
+        },
+        {
+          "bytes": 5,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-set-transformer/worker.pid"
+        },
+        {
+          "bytes": 2,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-set-transformer/worker_exit.txt"
+        },
+        {
+          "bytes": 2,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-set-transformer/runner_exit.txt"
+        },
+        {
+          "bytes": 0,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-set-transformer/worker.lock"
+        }
+      ],
+      "logical_bytes": 10719443,
+      "marker_counts": {},
+      "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-budget-set-transformer",
+      "referenced_by_exports": [
+        "m1_v6_d048_budget_mlp.json",
+        "m1_v6_d048_budget_set_transformer.json"
+      ],
+      "symlinks_not_followed": []
+    },
+    {
+      "bytes_by_suffix": {
+        ".json": 1598,
+        ".log": 34810,
+        ".ok.json": 1121
+      },
+      "errors": [],
+      "files": 3,
+      "largest_files": [
+        {
+          "bytes": 34810,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-full-test-27d79ea/full_test.log"
+        },
+        {
+          "bytes": 1598,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-full-test-27d79ea/protocol_validation.json"
+        },
+        {
+          "bytes": 1121,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-full-test-27d79ea/full_test.ok.json"
+        }
+      ],
+      "logical_bytes": 37529,
+      "marker_counts": {},
+      "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-full-test-27d79ea",
+      "referenced_by_exports": [],
+      "symlinks_not_followed": []
+    },
+    {
+      "bytes_by_suffix": {
+        ".20260908T095727776241Z.json": 1122,
+        ".json": 1598,
+        ".log": 44233
+      },
+      "errors": [],
+      "files": 3,
+      "largest_files": [
+        {
+          "bytes": 44233,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-full-test-9fc1080/full_test.log"
+        },
+        {
+          "bytes": 1598,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-full-test-9fc1080/protocol_validation.json"
+        },
+        {
+          "bytes": 1122,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-full-test-9fc1080/full_test.failed.20260908T095727776241Z.json"
+        }
+      ],
+      "logical_bytes": 46953,
+      "marker_counts": {},
+      "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d048-full-test-9fc1080",
+      "referenced_by_exports": [],
+      "symlinks_not_followed": []
+    },
+    {
+      "bytes_by_suffix": {
+        ".lock": 0,
+        ".log": 37526,
+        ".ok.json": 1241
+      },
+      "errors": [],
+      "files": 3,
+      "largest_files": [
+        {
+          "bytes": 37526,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d049-full-test-c6d7644/full_test.log"
+        },
+        {
+          "bytes": 1241,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d049-full-test-c6d7644/full_test.ok.json"
+        },
+        {
+          "bytes": 0,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d049-full-test-c6d7644/full_test.lock"
+        }
+      ],
+      "logical_bytes": 38767,
+      "marker_counts": {},
+      "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d049-full-test-c6d7644",
+      "referenced_by_exports": [],
+      "symlinks_not_followed": []
+    },
+    {
+      "bytes_by_suffix": {
+        ".json": 2913813,
+        ".lock": 0,
+        ".log": 16945,
+        ".ok.json": 471,
+        ".pid": 10,
+        ".pt": 72267925,
+        ".txt": 4
+      },
+      "errors": [],
+      "files": 193,
+      "largest_files": [
+        {
+          "bytes": 3890974,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d049-s5-selected-training/models/cross_candidate_set_transformer_v1/seed_7/outcome_scorer/model.pt"
+        },
+        {
+          "bytes": 3890974,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d049-s5-selected-training/models/cross_candidate_set_transformer_v1/seed_59/outcome_scorer/model.pt"
+        },
+        {
+          "bytes": 3890974,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d049-s5-selected-training/models/cross_candidate_set_transformer_v1/seed_43/outcome_scorer/model.pt"
+        },
+        {
+          "bytes": 3890974,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d049-s5-selected-training/models/cross_candidate_set_transformer_v1/seed_31/outcome_scorer/model.pt"
+        },
+        {
+          "bytes": 3890974,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d049-s5-selected-training/models/cross_candidate_set_transformer_v1/seed_19/outcome_scorer/model.pt"
+        },
+        {
+          "bytes": 2611511,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d049-s5-selected-training/models/shared_candidate_mlp_v1/seed_7/outcome_scorer/model.pt"
+        },
+        {
+          "bytes": 2611511,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d049-s5-selected-training/models/shared_candidate_mlp_v1/seed_59/outcome_scorer/model.pt"
+        },
+        {
+          "bytes": 2611511,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d049-s5-selected-training/models/shared_candidate_mlp_v1/seed_43/outcome_scorer/model.pt"
+        },
+        {
+          "bytes": 2611511,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d049-s5-selected-training/models/shared_candidate_mlp_v1/seed_31/outcome_scorer/model.pt"
+        },
+        {
+          "bytes": 2611511,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d049-s5-selected-training/models/shared_candidate_mlp_v1/seed_19/outcome_scorer/model.pt"
+        },
+        {
+          "bytes": 1553343,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d049-s5-selected-training/training_manifest.json"
+        },
+        {
+          "bytes": 1451525,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d049-s5-selected-training/models/cross_candidate_set_transformer_v1/seed_7/direct_future_loss/model.pt"
+        },
+        {
+          "bytes": 1451525,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d049-s5-selected-training/models/cross_candidate_set_transformer_v1/seed_59/direct_future_loss/model.pt"
+        },
+        {
+          "bytes": 1451525,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d049-s5-selected-training/models/cross_candidate_set_transformer_v1/seed_43/direct_future_loss/model.pt"
+        },
+        {
+          "bytes": 1451525,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d049-s5-selected-training/models/cross_candidate_set_transformer_v1/seed_31/direct_future_loss/model.pt"
+        },
+        {
+          "bytes": 1451525,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d049-s5-selected-training/models/cross_candidate_set_transformer_v1/seed_19/direct_future_loss/model.pt"
+        },
+        {
+          "bytes": 1451461,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d049-s5-selected-training/models/cross_candidate_set_transformer_v1/seed_7/future_no_execution/model.pt"
+        },
+        {
+          "bytes": 1451461,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d049-s5-selected-training/models/cross_candidate_set_transformer_v1/seed_7/execute_current_only/model.pt"
+        },
+        {
+          "bytes": 1451461,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d049-s5-selected-training/models/cross_candidate_set_transformer_v1/seed_7/direct_classifier/model.pt"
+        },
+        {
+          "bytes": 1451461,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d049-s5-selected-training/models/cross_candidate_set_transformer_v1/seed_7/cpmt_ctl_core/model.pt"
+        }
+      ],
+      "logical_bytes": 75199168,
+      "marker_counts": {},
+      "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d049-s5-selected-training",
+      "referenced_by_exports": [
+        "m1_v6_d049_s5_training.json"
+      ],
+      "symlinks_not_followed": []
+    },
+    {
+      "bytes_by_suffix": {
+        ".json": 1658308,
+        ".lock": 0,
+        ".log": 566,
+        ".ok.json": 345
+      },
+      "errors": [],
+      "files": 4,
+      "largest_files": [
+        {
+          "bytes": 1658308,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d049-s5-training-export/m1_v6_d049_s5_training.json"
+        },
+        {
+          "bytes": 566,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d049-s5-training-export/export.log"
+        },
+        {
+          "bytes": 345,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d049-s5-training-export/export.ok.json"
+        },
+        {
+          "bytes": 0,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d049-s5-training-export/export.lock"
+        }
+      ],
+      "logical_bytes": 1659219,
+      "marker_counts": {},
+      "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d049-s5-training-export",
+      "referenced_by_exports": [],
+      "symlinks_not_followed": []
+    },
+    {
+      "bytes_by_suffix": {
+        ".lock": 0,
+        ".log": 40580,
+        ".ok.json": 1236
+      },
+      "errors": [],
+      "files": 3,
+      "largest_files": [
+        {
+          "bytes": 40580,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-full-test-4b8522e/full_test.log"
+        },
+        {
+          "bytes": 1236,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-full-test-4b8522e/full_test.ok.json"
+        },
+        {
+          "bytes": 0,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-full-test-4b8522e/full_test.lock"
+        }
+      ],
+      "logical_bytes": 41816,
+      "marker_counts": {},
+      "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-full-test-4b8522e",
+      "referenced_by_exports": [],
+      "symlinks_not_followed": []
+    },
+    {
+      "bytes_by_suffix": {
+        ".json": 165445,
+        ".lock": 0,
+        ".log": 969
+      },
+      "errors": [],
+      "files": 4,
+      "largest_files": [
+        {
+          "bytes": 86307,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-s5-generation-diagnostic/m1_v6_d050_s5_generation_failure.json"
+        },
+        {
+          "bytes": 79138,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-s5-generation-diagnostic/diagnostic_report.json"
+        },
+        {
+          "bytes": 969,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-s5-generation-diagnostic/diagnostic.log"
+        },
+        {
+          "bytes": 0,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-s5-generation-diagnostic/diagnostic.lock"
+        }
+      ],
+      "logical_bytes": 166414,
+      "marker_counts": {},
+      "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-s5-generation-diagnostic",
+      "referenced_by_exports": [],
+      "symlinks_not_followed": []
+    },
+    {
+      "bytes_by_suffix": {
+        ".json": 1765992,
+        ".json.gz": 75393661,
+        ".lock": 0,
+        ".log": 11994,
+        ".npz": 20832842,
+        ".pid": 5,
+        ".txt": 4
+      },
+      "errors": [],
+      "files": 327,
+      "largest_files": [
+        {
+          "bytes": 1612914,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-s5-validation-g200/group_000016/audits.json.gz"
+        },
+        {
+          "bytes": 1454778,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-s5-validation-g200/group_000041/audits.json.gz"
+        },
+        {
+          "bytes": 1389400,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-s5-validation-g200/group_000021/audits.json.gz"
+        },
+        {
+          "bytes": 1388399,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-s5-validation-g200/group_000007/audits.json.gz"
+        },
+        {
+          "bytes": 1385238,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-s5-validation-g200/group_000036/audits.json.gz"
+        },
+        {
+          "bytes": 1374637,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-s5-validation-g200/group_000032/audits.json.gz"
+        },
+        {
+          "bytes": 1355744,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-s5-validation-g200/group_000045/audits.json.gz"
+        },
+        {
+          "bytes": 1355454,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-s5-validation-g200/group_000008/audits.json.gz"
+        },
+        {
+          "bytes": 1348016,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-s5-validation-g200/group_000056/audits.json.gz"
+        },
+        {
+          "bytes": 1345437,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-s5-validation-g200/group_000058/audits.json.gz"
+        },
+        {
+          "bytes": 1343560,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-s5-validation-g200/group_000028/audits.json.gz"
+        },
+        {
+          "bytes": 1334196,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-s5-validation-g200/group_000049/audits.json.gz"
+        },
+        {
+          "bytes": 1321116,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-s5-validation-g200/group_000037/audits.json.gz"
+        },
+        {
+          "bytes": 1319071,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-s5-validation-g200/group_000047/audits.json.gz"
+        },
+        {
+          "bytes": 1315221,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-s5-validation-g200/group_000060/audits.json.gz"
+        },
+        {
+          "bytes": 1300756,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-s5-validation-g200/group_000027/audits.json.gz"
+        },
+        {
+          "bytes": 1293431,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-s5-validation-g200/group_000031/audits.json.gz"
+        },
+        {
+          "bytes": 1292539,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-s5-validation-g200/group_000052/audits.json.gz"
+        },
+        {
+          "bytes": 1288181,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-s5-validation-g200/group_000040/audits.json.gz"
+        },
+        {
+          "bytes": 1281760,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-s5-validation-g200/group_000014/audits.json.gz"
+        }
+      ],
+      "logical_bytes": 98004498,
+      "marker_counts": {
+        "complete.json": 59,
+        "failure.json": 1
+      },
+      "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-s5-validation-g200",
+      "referenced_by_exports": [],
+      "symlinks_not_followed": []
+    },
+    {
+      "bytes_by_suffix": {
+        ".json": 14748166,
+        ".lock": 0,
+        ".log": 36195,
+        ".ok.json": 225,
+        ".txt": 2
+      },
+      "errors": [],
+      "files": 610,
+      "largest_files": [
+        {
+          "bytes": 6663077,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-train-scope-impact/diagnostic_report.json"
+        },
+        {
+          "bytes": 47690,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-train-scope-impact/group_000409/result.json"
+        },
+        {
+          "bytes": 44874,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-train-scope-impact/group_000520/result.json"
+        },
+        {
+          "bytes": 43726,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-train-scope-impact/group_000462/result.json"
+        },
+        {
+          "bytes": 42980,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-train-scope-impact/group_000699/result.json"
+        },
+        {
+          "bytes": 41997,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-train-scope-impact/group_000050/result.json"
+        },
+        {
+          "bytes": 41980,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-train-scope-impact/group_000566/result.json"
+        },
+        {
+          "bytes": 41778,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-train-scope-impact/group_000746/result.json"
+        },
+        {
+          "bytes": 41699,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-train-scope-impact/group_000627/result.json"
+        },
+        {
+          "bytes": 41696,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-train-scope-impact/group_000705/result.json"
+        },
+        {
+          "bytes": 41349,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-train-scope-impact/group_000425/result.json"
+        },
+        {
+          "bytes": 41300,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-train-scope-impact/group_000331/result.json"
+        },
+        {
+          "bytes": 41105,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-train-scope-impact/group_000696/result.json"
+        },
+        {
+          "bytes": 41015,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-train-scope-impact/group_000634/result.json"
+        },
+        {
+          "bytes": 40744,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-train-scope-impact/group_000395/result.json"
+        },
+        {
+          "bytes": 40723,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-train-scope-impact/group_000681/result.json"
+        },
+        {
+          "bytes": 40647,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-train-scope-impact/group_000068/result.json"
+        },
+        {
+          "bytes": 40502,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-train-scope-impact/group_000446/result.json"
+        },
+        {
+          "bytes": 40344,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-train-scope-impact/group_000921/result.json"
+        },
+        {
+          "bytes": 40333,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-train-scope-impact/group_000109/result.json"
+        }
+      ],
+      "logical_bytes": 14784588,
+      "marker_counts": {
+        "complete.json": 201
+      },
+      "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d050-train-scope-impact",
+      "referenced_by_exports": [],
+      "symlinks_not_followed": []
+    },
+    {
+      "bytes_by_suffix": {
+        ".json": 5627127,
+        ".lock": 0,
+        ".log": 13003,
+        ".ok.json": 225,
+        ".txt": 2
+      },
+      "errors": [],
+      "files": 62,
+      "largest_files": [
+        {
+          "bytes": 2072277,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d051-budget-concurrency/diagnostic_report.json"
+        },
+        {
+          "bytes": 475132,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d051-budget-concurrency/workers_1_threads_8/layout.json"
+        },
+        {
+          "bytes": 475129,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d051-budget-concurrency/workers_1_threads_1/layout.json"
+        },
+        {
+          "bytes": 475128,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d051-budget-concurrency/workers_4_threads_1/layout.json"
+        },
+        {
+          "bytes": 475127,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d051-budget-concurrency/workers_2_threads_1/layout.json"
+        },
+        {
+          "bytes": 104704,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d051-budget-concurrency/workers_1_threads_1/transformer_1/runtime_profile.json"
+        },
+        {
+          "bytes": 104702,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d051-budget-concurrency/workers_2_threads_1/transformer_0/runtime_profile.json"
+        },
+        {
+          "bytes": 104701,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d051-budget-concurrency/workers_1_threads_8/transformer_0/runtime_profile.json"
+        },
+        {
+          "bytes": 104699,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d051-budget-concurrency/workers_4_threads_1/transformer_0/runtime_profile.json"
+        },
+        {
+          "bytes": 104699,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d051-budget-concurrency/workers_2_threads_1/transformer_1/runtime_profile.json"
+        },
+        {
+          "bytes": 104697,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d051-budget-concurrency/workers_1_threads_1/transformer_0/runtime_profile.json"
+        },
+        {
+          "bytes": 104695,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d051-budget-concurrency/workers_4_threads_1/transformer_1/runtime_profile.json"
+        },
+        {
+          "bytes": 104695,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d051-budget-concurrency/workers_1_threads_8/transformer_1/runtime_profile.json"
+        },
+        {
+          "bytes": 100813,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d051-budget-concurrency/workers_4_threads_1/mlp_1/runtime_profile.json"
+        },
+        {
+          "bytes": 100813,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d051-budget-concurrency/workers_2_threads_1/mlp_0/runtime_profile.json"
+        },
+        {
+          "bytes": 100813,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d051-budget-concurrency/workers_1_threads_8/mlp_1/runtime_profile.json"
+        },
+        {
+          "bytes": 100811,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d051-budget-concurrency/workers_4_threads_1/mlp_0/runtime_profile.json"
+        },
+        {
+          "bytes": 100811,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d051-budget-concurrency/workers_1_threads_8/mlp_0/runtime_profile.json"
+        },
+        {
+          "bytes": 100810,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d051-budget-concurrency/workers_1_threads_1/mlp_0/runtime_profile.json"
+        },
+        {
+          "bytes": 100807,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d051-budget-concurrency/workers_1_threads_1/mlp_1/runtime_profile.json"
+        }
+      ],
+      "logical_bytes": 5640357,
+      "marker_counts": {},
+      "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-d051-budget-concurrency",
+      "referenced_by_exports": [],
+      "symlinks_not_followed": []
+    },
+    {
+      "bytes_by_suffix": {
+        ".json": 215641572,
+        ".json.gz": 246462627,
+        ".log": 546,
+        ".npz": 9012675,
+        ".ok.json": 449
+      },
+      "errors": [],
+      "files": 231,
+      "largest_files": [
+        {
+          "bytes": 13515308,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-7f73a54/causal/C_seed31.json"
+        },
+        {
+          "bytes": 13511721,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-7f73a54/causal/C_seed19.json"
+        },
+        {
+          "bytes": 13509290,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-7f73a54/causal/C_seed7.json"
+        },
+        {
+          "bytes": 13507908,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-7f73a54/causal/C_seed59.json"
+        },
+        {
+          "bytes": 13507546,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-7f73a54/causal/C_seed43.json"
+        },
+        {
+          "bytes": 13469574,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-7f73a54/causal/E_seed59.json"
+        },
+        {
+          "bytes": 13467085,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-7f73a54/causal/E_seed43.json"
+        },
+        {
+          "bytes": 13463880,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-7f73a54/causal/E_seed31.json"
+        },
+        {
+          "bytes": 13462630,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-7f73a54/causal/E_seed7.json"
+        },
+        {
+          "bytes": 13462500,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-7f73a54/causal/A_seed43.json"
+        },
+        {
+          "bytes": 13456348,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-7f73a54/causal/A_seed31.json"
+        },
+        {
+          "bytes": 13451926,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-7f73a54/causal/E_seed19.json"
+        },
+        {
+          "bytes": 13448088,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-7f73a54/causal/A_seed7.json"
+        },
+        {
+          "bytes": 13446616,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-7f73a54/causal/A_seed59.json"
+        },
+        {
+          "bytes": 13446022,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-7f73a54/causal/A_seed19.json"
+        },
+        {
+          "bytes": 11386730,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-7f73a54/causal/F_oracle.json"
+        },
+        {
+          "bytes": 1803717,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-7f73a54/scorer_seed43.npz"
+        },
+        {
+          "bytes": 1803647,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-7f73a54/scorer_seed19.npz"
+        },
+        {
+          "bytes": 1803327,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-7f73a54/scorer_seed31.npz"
+        },
+        {
+          "bytes": 1802280,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-7f73a54/scorer_seed7.npz"
+        }
+      ],
+      "logical_bytes": 471117869,
+      "marker_counts": {},
+      "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-7f73a54",
+      "referenced_by_exports": [
+        "m1_v6_d047_endpoint_probe.json",
+        "m1_v6_d050_train_scope_impact.json"
+      ],
+      "symlinks_not_followed": []
+    },
+    {
+      "bytes_by_suffix": {
+        ".json.gz": 246462627,
+        ".log": 1209
+      },
+      "errors": [],
+      "files": 202,
+      "largest_files": [
+        {
+          "bytes": 1514734,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-bf10172/audits/train_inner_dev_000409.json.gz"
+        },
+        {
+          "bytes": 1464261,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-bf10172/audits/train_inner_dev_000966.json.gz"
+        },
+        {
+          "bytes": 1410269,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-bf10172/audits/train_inner_dev_000357.json.gz"
+        },
+        {
+          "bytes": 1403295,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-bf10172/audits/train_inner_dev_000764.json.gz"
+        },
+        {
+          "bytes": 1400304,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-bf10172/audits/train_inner_dev_000694.json.gz"
+        },
+        {
+          "bytes": 1383415,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-bf10172/audits/train_inner_dev_000634.json.gz"
+        },
+        {
+          "bytes": 1378652,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-bf10172/audits/train_inner_dev_000050.json.gz"
+        },
+        {
+          "bytes": 1369156,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-bf10172/audits/train_inner_dev_000663.json.gz"
+        },
+        {
+          "bytes": 1364313,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-bf10172/audits/train_inner_dev_000967.json.gz"
+        },
+        {
+          "bytes": 1363289,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-bf10172/audits/train_inner_dev_000627.json.gz"
+        },
+        {
+          "bytes": 1362501,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-bf10172/audits/train_inner_dev_000205.json.gz"
+        },
+        {
+          "bytes": 1361986,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-bf10172/audits/train_inner_dev_000755.json.gz"
+        },
+        {
+          "bytes": 1359438,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-bf10172/audits/train_inner_dev_000066.json.gz"
+        },
+        {
+          "bytes": 1350869,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-bf10172/audits/train_inner_dev_000520.json.gz"
+        },
+        {
+          "bytes": 1349420,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-bf10172/audits/train_inner_dev_000978.json.gz"
+        },
+        {
+          "bytes": 1347056,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-bf10172/audits/train_inner_dev_000075.json.gz"
+        },
+        {
+          "bytes": 1344930,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-bf10172/audits/train_inner_dev_000681.json.gz"
+        },
+        {
+          "bytes": 1340045,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-bf10172/audits/train_inner_dev_000802.json.gz"
+        },
+        {
+          "bytes": 1338388,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-bf10172/audits/train_inner_dev_000252.json.gz"
+        },
+        {
+          "bytes": 1336638,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-bf10172/audits/train_inner_dev_000485.json.gz"
+        }
+      ],
+      "logical_bytes": 246463836,
+      "marker_counts": {},
+      "path": "/root/autodl-tmp/cpmt_outputs/m1-v6-v8-d047-endpoint-probe-bf10172",
+      "referenced_by_exports": [],
+      "symlinks_not_followed": []
+    },
+    {
+      "bytes_by_suffix": {
+        ".json": 3212678,
+        ".json.gz": 20243978,
+        ".jsonl.gz": 106481,
+        ".lock": 0,
+        ".log": 2060
+      },
+      "errors": [],
+      "files": 102,
+      "largest_files": [
+        {
+          "bytes": 1388353,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-branch-preflight-a488142c3548/run/group_000066/reference_audits.json.gz"
+        },
+        {
+          "bytes": 1355778,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-branch-preflight-a488142c3548/run/group_000532/reference_audits.json.gz"
+        },
+        {
+          "bytes": 1337178,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-branch-preflight-a488142c3548/run/group_000999/reference_audits.json.gz"
+        },
+        {
+          "bytes": 1333911,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-branch-preflight-a488142c3548/run/group_000399/reference_audits.json.gz"
+        },
+        {
+          "bytes": 1308348,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-branch-preflight-a488142c3548/run/group_000466/reference_audits.json.gz"
+        },
+        {
+          "bytes": 1308201,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-branch-preflight-a488142c3548/run/group_000932/reference_audits.json.gz"
+        },
+        {
+          "bytes": 1299278,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-branch-preflight-a488142c3548/run/group_000732/reference_audits.json.gz"
+        },
+        {
+          "bytes": 1298598,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-branch-preflight-a488142c3548/run/group_000599/reference_audits.json.gz"
+        },
+        {
+          "bytes": 1243412,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-branch-preflight-a488142c3548/run/group_000666/reference_audits.json.gz"
+        },
+        {
+          "bytes": 1236098,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-branch-preflight-a488142c3548/run/group_000266/reference_audits.json.gz"
+        },
+        {
+          "bytes": 1218751,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-branch-preflight-a488142c3548/run/group_000199/reference_audits.json.gz"
+        },
+        {
+          "bytes": 1217212,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-branch-preflight-a488142c3548/run/group_000000/reference_audits.json.gz"
+        },
+        {
+          "bytes": 1186613,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-branch-preflight-a488142c3548/run/group_000865/reference_audits.json.gz"
+        },
+        {
+          "bytes": 1185735,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-branch-preflight-a488142c3548/run/group_000799/reference_audits.json.gz"
+        },
+        {
+          "bytes": 1185698,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-branch-preflight-a488142c3548/run/group_000333/reference_audits.json.gz"
+        },
+        {
+          "bytes": 1140814,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-branch-preflight-a488142c3548/run/group_000133/reference_audits.json.gz"
+        },
+        {
+          "bytes": 150832,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-branch-preflight-a488142c3548/run/group_000999/generation_failure_context.json"
+        },
+        {
+          "bytes": 147929,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-branch-preflight-a488142c3548/run/group_000399/generation_failure_context.json"
+        },
+        {
+          "bytes": 146588,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-branch-preflight-a488142c3548/run/group_000532/generation_failure_context.json"
+        },
+        {
+          "bytes": 144694,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-branch-preflight-a488142c3548/run/group_000932/generation_failure_context.json"
+        }
+      ],
+      "logical_bytes": 23565197,
+      "marker_counts": {
+        "failure.json": 16
+      },
+      "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-branch-preflight-a488142c3548",
+      "referenced_by_exports": [],
+      "symlinks_not_followed": []
+    },
+    {
+      "bytes_by_suffix": {
+        ".json": 735,
+        ".lock": 0,
+        ".log": 45599,
+        ".ok.json": 1395
+      },
+      "errors": [],
+      "files": 4,
+      "largest_files": [
+        {
+          "bytes": 45599,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-full-test-719bb2d494d9/full_test.log"
+        },
+        {
+          "bytes": 1395,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-full-test-719bb2d494d9/full_test.ok.json"
+        },
+        {
+          "bytes": 735,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-full-test-719bb2d494d9/attempt.json"
+        },
+        {
+          "bytes": 0,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-full-test-719bb2d494d9/full_test.lock"
+        }
+      ],
+      "logical_bytes": 47729,
+      "marker_counts": {},
+      "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-full-test-719bb2d494d9",
+      "referenced_by_exports": [
+        "m1_v7_d051_train_branch_preflight.json"
+      ],
+      "symlinks_not_followed": []
+    },
+    {
+      "bytes_by_suffix": {
+        ".20260909T065830707824Z.json": 441,
+        ".20260909T070616239952Z.json": 473,
+        ".json": 2739,
+        ".lock": 0,
+        ".log": 4415,
+        ".manifest.json": 56092,
+        ".npz": 672932122,
+        ".ok.json": 195377
+      },
+      "errors": [],
+      "files": 1010,
+      "largest_files": [
+        {
+          "bytes": 331410122,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-train-719bb2d494d9/train.npz"
+        },
+        {
+          "bytes": 341522,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-train-719bb2d494d9/shards/train_000999.npz"
+        },
+        {
+          "bytes": 341522,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-train-719bb2d494d9/shards/train_000998.npz"
+        },
+        {
+          "bytes": 341522,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-train-719bb2d494d9/shards/train_000997.npz"
+        },
+        {
+          "bytes": 341522,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-train-719bb2d494d9/shards/train_000996.npz"
+        },
+        {
+          "bytes": 341522,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-train-719bb2d494d9/shards/train_000995.npz"
+        },
+        {
+          "bytes": 341522,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-train-719bb2d494d9/shards/train_000994.npz"
+        },
+        {
+          "bytes": 341522,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-train-719bb2d494d9/shards/train_000993.npz"
+        },
+        {
+          "bytes": 341522,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-train-719bb2d494d9/shards/train_000992.npz"
+        },
+        {
+          "bytes": 341522,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-train-719bb2d494d9/shards/train_000991.npz"
+        },
+        {
+          "bytes": 341522,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-train-719bb2d494d9/shards/train_000990.npz"
+        },
+        {
+          "bytes": 341522,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-train-719bb2d494d9/shards/train_000989.npz"
+        },
+        {
+          "bytes": 341522,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-train-719bb2d494d9/shards/train_000988.npz"
+        },
+        {
+          "bytes": 341522,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-train-719bb2d494d9/shards/train_000987.npz"
+        },
+        {
+          "bytes": 341522,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-train-719bb2d494d9/shards/train_000986.npz"
+        },
+        {
+          "bytes": 341522,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-train-719bb2d494d9/shards/train_000985.npz"
+        },
+        {
+          "bytes": 341522,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-train-719bb2d494d9/shards/train_000984.npz"
+        },
+        {
+          "bytes": 341522,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-train-719bb2d494d9/shards/train_000983.npz"
+        },
+        {
+          "bytes": 341522,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-train-719bb2d494d9/shards/train_000982.npz"
+        },
+        {
+          "bytes": 341522,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-train-719bb2d494d9/shards/train_000981.npz"
+        }
+      ],
+      "logical_bytes": 673191659,
+      "marker_counts": {},
+      "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d051-train-719bb2d494d9",
+      "referenced_by_exports": [
+        "m1_v7_d051_train_branch_preflight.json",
+        "m1_v7_d054_corrected_budget.json",
+        "m1_v7_d054_corrected_refit.json"
+      ],
+      "symlinks_not_followed": []
+    },
+    {
+      "bytes_by_suffix": {
+        ".attempt.json": 951,
+        ".completed.json": 29515,
+        ".json": 256507,
+        ".jsonl.gz": 594772,
+        ".lock": 0,
+        ".log": 49304,
+        ".result.json": 56
+      },
+      "errors": [],
+      "files": 251,
+      "largest_files": [
+        {
+          "bytes": 148793,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d053-availability-46784c2d40c0/run/report.json"
+        },
+        {
+          "bytes": 48213,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d053-availability-46784c2d40c0/test.log"
+        },
+        {
+          "bytes": 28958,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d053-availability-46784c2d40c0/check.completed.json"
+        },
+        {
+          "bytes": 6817,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d053-availability-46784c2d40c0/run/group_000333/result.json"
+        },
+        {
+          "bytes": 6813,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d053-availability-46784c2d40c0/run/group_000865/result.json"
+        },
+        {
+          "bytes": 6709,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d053-availability-46784c2d40c0/run/group_000199/result.json"
+        },
+        {
+          "bytes": 6704,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d053-availability-46784c2d40c0/run/group_000932/result.json"
+        },
+        {
+          "bytes": 6653,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d053-availability-46784c2d40c0/run/group_000133/result.json"
+        },
+        {
+          "bytes": 6651,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d053-availability-46784c2d40c0/run/group_000000/result.json"
+        },
+        {
+          "bytes": 6634,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d053-availability-46784c2d40c0/run/group_000799/result.json"
+        },
+        {
+          "bytes": 6610,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d053-availability-46784c2d40c0/run/group_000066/result.json"
+        },
+        {
+          "bytes": 6589,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d053-availability-46784c2d40c0/run/group_000266/result.json"
+        },
+        {
+          "bytes": 6573,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d053-availability-46784c2d40c0/run/group_000999/result.json"
+        },
+        {
+          "bytes": 6567,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d053-availability-46784c2d40c0/run/group_000599/result.json"
+        },
+        {
+          "bytes": 6566,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d053-availability-46784c2d40c0/run/group_000466/result.json"
+        },
+        {
+          "bytes": 6546,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d053-availability-46784c2d40c0/run/group_000399/result.json"
+        },
+        {
+          "bytes": 6521,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d053-availability-46784c2d40c0/run/group_000732/result.json"
+        },
+        {
+          "bytes": 6519,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d053-availability-46784c2d40c0/run/group_000532/result.json"
+        },
+        {
+          "bytes": 6501,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d053-availability-46784c2d40c0/run/group_000666/result.json"
+        },
+        {
+          "bytes": 3283,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d053-availability-46784c2d40c0/run/group_000599/sibling_0_fixed_random.jsonl.gz"
+        }
+      ],
+      "logical_bytes": 931105,
+      "marker_counts": {
+        "check.completed.json": 1,
+        "test.completed.json": 1
+      },
+      "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d053-availability-46784c2d40c0",
+      "referenced_by_exports": [],
+      "symlinks_not_followed": []
+    },
+    {
+      "bytes_by_suffix": {
+        ".attempt.json": 31479,
+        ".completed.json": 29800,
+        ".json": 293034372,
+        ".json.gz": 246372031,
+        ".jsonl.gz": 1331324435,
+        ".launch.json": 5830,
+        ".lock": 0,
+        ".log": 124216,
+        ".pt": 38752225,
+        ".result.json": 56,
+        ".worker.log": 1132
+      },
+      "errors": [],
+      "files": 1007,
+      "largest_files": [
+        {
+          "bytes": 85095906,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-fixed-probe-b7ec2ddbfcdd/run/causal/E_31/execution.jsonl.gz"
+        },
+        {
+          "bytes": 84584628,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-fixed-probe-b7ec2ddbfcdd/run/causal/E_43/execution.jsonl.gz"
+        },
+        {
+          "bytes": 84277687,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-fixed-probe-b7ec2ddbfcdd/run/causal/E_59/execution.jsonl.gz"
+        },
+        {
+          "bytes": 83961972,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-fixed-probe-b7ec2ddbfcdd/run/causal/A_59/execution.jsonl.gz"
+        },
+        {
+          "bytes": 83746214,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-fixed-probe-b7ec2ddbfcdd/run/causal/E_19/execution.jsonl.gz"
+        },
+        {
+          "bytes": 83480888,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-fixed-probe-b7ec2ddbfcdd/run/causal/E_7/execution.jsonl.gz"
+        },
+        {
+          "bytes": 82895982,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-fixed-probe-b7ec2ddbfcdd/run/causal/A_19/execution.jsonl.gz"
+        },
+        {
+          "bytes": 82889441,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-fixed-probe-b7ec2ddbfcdd/run/causal/A_7/execution.jsonl.gz"
+        },
+        {
+          "bytes": 82881025,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-fixed-probe-b7ec2ddbfcdd/run/causal/C_19/execution.jsonl.gz"
+        },
+        {
+          "bytes": 82849857,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-fixed-probe-b7ec2ddbfcdd/run/causal/C_59/execution.jsonl.gz"
+        },
+        {
+          "bytes": 82800141,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-fixed-probe-b7ec2ddbfcdd/run/causal/C_43/execution.jsonl.gz"
+        },
+        {
+          "bytes": 82783519,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-fixed-probe-b7ec2ddbfcdd/run/causal/A_43/execution.jsonl.gz"
+        },
+        {
+          "bytes": 82749246,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-fixed-probe-b7ec2ddbfcdd/run/causal/A_31/execution.jsonl.gz"
+        },
+        {
+          "bytes": 82618333,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-fixed-probe-b7ec2ddbfcdd/run/causal/C_31/execution.jsonl.gz"
+        },
+        {
+          "bytes": 82523159,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-fixed-probe-b7ec2ddbfcdd/run/causal/C_7/execution.jsonl.gz"
+        },
+        {
+          "bytes": 81186437,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-fixed-probe-b7ec2ddbfcdd/run/oracle/execution.jsonl.gz"
+        },
+        {
+          "bytes": 17952145,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-fixed-probe-b7ec2ddbfcdd/run/causal/C_43/result.json"
+        },
+        {
+          "bytes": 17951835,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-fixed-probe-b7ec2ddbfcdd/run/causal/C_7/result.json"
+        },
+        {
+          "bytes": 17950991,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-fixed-probe-b7ec2ddbfcdd/run/causal/C_19/result.json"
+        },
+        {
+          "bytes": 17948879,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-fixed-probe-b7ec2ddbfcdd/run/causal/C_59/result.json"
+        }
+      ],
+      "logical_bytes": 1909675576,
+      "marker_counts": {
+        "complete.json": 242,
+        "evaluate.completed.json": 1,
+        "prepare.completed.json": 1,
+        "summarize.completed.json": 1,
+        "test.completed.json": 1,
+        "train.completed.json": 1
+      },
+      "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-fixed-probe-b7ec2ddbfcdd",
+      "referenced_by_exports": [
+        "m1_v7_d054_corrected_budget.json",
+        "m1_v7_d054_corrected_refit.json"
+      ],
+      "symlinks_not_followed": []
+    },
+    {
+      "bytes_by_suffix": {
+        ".attempt.json": 26555,
+        ".completed.json": 79764,
+        ".json": 64912657,
+        ".jsonl.gz": 56653122,
+        ".launch.json": 621,
+        ".lock": 0,
+        ".log": 148258,
+        ".paths.json": 66496,
+        ".pt": 3191923494,
+        ".recipe.json": 3905896,
+        ".report.json": 50944509,
+        ".result.json": 56,
+        ".selection.json": 40166,
+        ".worker-checkpoint.log": 544,
+        ".worker.log": 24739
+      },
+      "errors": [],
+      "files": 2789,
+      "largest_files": [
+        {
+          "bytes": 42590316,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-5d279f14e2f6/run/budget.report.json"
+        },
+        {
+          "bytes": 11586331,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-5d279f14e2f6/run/refit_scorers/refit__cross_candidate_set_transformer_v1__7__outcome_scorer__lr0.0006__w1/artifact/checkpoint_1000.pt"
+        },
+        {
+          "bytes": 11586331,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-5d279f14e2f6/run/refit_scorers/refit__cross_candidate_set_transformer_v1__59__outcome_scorer__lr0.0006__w1/artifact/checkpoint_1000.pt"
+        },
+        {
+          "bytes": 11586331,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-5d279f14e2f6/run/refit_scorers/refit__cross_candidate_set_transformer_v1__43__outcome_scorer__lr0.0006__w1/artifact/checkpoint_1000.pt"
+        },
+        {
+          "bytes": 11586331,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-5d279f14e2f6/run/refit_scorers/refit__cross_candidate_set_transformer_v1__31__outcome_scorer__lr0.0006__w1/artifact/checkpoint_1000.pt"
+        },
+        {
+          "bytes": 11586331,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-5d279f14e2f6/run/refit_scorers/refit__cross_candidate_set_transformer_v1__19__outcome_scorer__lr0.0006__w1/artifact/checkpoint_1000.pt"
+        },
+        {
+          "bytes": 10304341,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-5d279f14e2f6/run/refit_scorers/refit__shared_candidate_mlp_v1__7__outcome_scorer__lr0.002__w1/artifact/checkpoint_10000.pt"
+        },
+        {
+          "bytes": 10304341,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-5d279f14e2f6/run/refit_scorers/refit__shared_candidate_mlp_v1__59__outcome_scorer__lr0.002__w1/artifact/checkpoint_10000.pt"
+        },
+        {
+          "bytes": 10304341,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-5d279f14e2f6/run/refit_scorers/refit__shared_candidate_mlp_v1__43__outcome_scorer__lr0.002__w1/artifact/checkpoint_10000.pt"
+        },
+        {
+          "bytes": 10304341,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-5d279f14e2f6/run/refit_scorers/refit__shared_candidate_mlp_v1__31__outcome_scorer__lr0.002__w1/artifact/checkpoint_10000.pt"
+        },
+        {
+          "bytes": 10304341,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-5d279f14e2f6/run/refit_scorers/refit__shared_candidate_mlp_v1__19__outcome_scorer__lr0.002__w1/artifact/checkpoint_10000.pt"
+        },
+        {
+          "bytes": 6816639,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-5d279f14e2f6/run/interfaces/cross_candidate_set_transformer_v1/future_no_execution/serial/execution.jsonl.gz"
+        },
+        {
+          "bytes": 6586991,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-5d279f14e2f6/run/refit_students/refit__cross_candidate_set_transformer_v1__7__future_no_execution__lr0.002__w1/artifact/checkpoint_3000.pt"
+        },
+        {
+          "bytes": 6586991,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-5d279f14e2f6/run/refit_students/refit__cross_candidate_set_transformer_v1__59__future_no_execution__lr0.002__w1/artifact/checkpoint_3000.pt"
+        },
+        {
+          "bytes": 6586991,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-5d279f14e2f6/run/refit_students/refit__cross_candidate_set_transformer_v1__43__future_no_execution__lr0.002__w1/artifact/checkpoint_3000.pt"
+        },
+        {
+          "bytes": 6586991,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-5d279f14e2f6/run/refit_students/refit__cross_candidate_set_transformer_v1__31__future_no_execution__lr0.002__w1/artifact/checkpoint_3000.pt"
+        },
+        {
+          "bytes": 6586991,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-5d279f14e2f6/run/refit_students/refit__cross_candidate_set_transformer_v1__19__future_no_execution__lr0.002__w1/artifact/checkpoint_3000.pt"
+        },
+        {
+          "bytes": 6586721,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-5d279f14e2f6/run/refit_students/refit__cross_candidate_set_transformer_v1__7__direct_classifier__lr0.0002__w1/artifact/checkpoint_10000.pt"
+        },
+        {
+          "bytes": 6586721,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-5d279f14e2f6/run/refit_students/refit__cross_candidate_set_transformer_v1__59__direct_classifier__lr0.0002__w1/artifact/checkpoint_10000.pt"
+        },
+        {
+          "bytes": 6586721,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-5d279f14e2f6/run/refit_students/refit__cross_candidate_set_transformer_v1__43__direct_classifier__lr0.0002__w1/artifact/checkpoint_10000.pt"
+        }
+      ],
+      "logical_bytes": 3368726877,
+      "marker_counts": {
+        "budget.completed.json": 1,
+        "capacity.completed.json": 1,
+        "complete.json": 291,
+        "interfaces.completed.json": 1,
+        "prepare.completed.json": 1,
+        "process.completed.json": 260,
+        "refit.completed.json": 1,
+        "test.completed.json": 1
+      },
+      "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-5d279f14e2f6",
+      "referenced_by_exports": [
+        "m1_v7_d054_corrected_budget.json",
+        "m1_v7_d054_corrected_checks.json",
+        "m1_v7_d054_corrected_refit.json"
+      ],
+      "symlinks_not_followed": []
+    },
+    {
+      "bytes_by_suffix": {
+        ".attempt.json": 1322,
+        ".completed.json": 2808,
+        ".json": 535934,
+        ".jsonl.gz": 41,
+        ".lock": 0,
+        ".log": 2612,
+        ".paths.json": 1541,
+        ".pt": 33748772,
+        ".recipe.json": 84086,
+        ".report.json": 4856
+      },
+      "errors": [],
+      "files": 52,
+      "largest_files": [
+        {
+          "bytes": 11586193,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-cc2d5e2113ed/run/capacity/refit__cross_candidate_set_transformer_v1__7__outcome_scorer__lr0.0006__w1/artifact/checkpoint_2.pt"
+        },
+        {
+          "bytes": 10304277,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-cc2d5e2113ed/run/capacity/refit__shared_candidate_mlp_v1__7__outcome_scorer__lr0.0006__w1/artifact/checkpoint_2.pt"
+        },
+        {
+          "bytes": 6586521,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-cc2d5e2113ed/run/capacity/refit__cross_candidate_set_transformer_v1__7__cpmt_ctl_core__lr0.0006__w1/artifact/checkpoint_2.pt"
+        },
+        {
+          "bytes": 5271781,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-cc2d5e2113ed/run/capacity/refit__shared_candidate_mlp_v1__7__cpmt_ctl_core__lr0.0006__w1/artifact/checkpoint_2.pt"
+        },
+        {
+          "bytes": 84086,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-cc2d5e2113ed/run/capacity.recipe.json"
+        },
+        {
+          "bytes": 61960,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-cc2d5e2113ed/run/capacity/refit__cross_candidate_set_transformer_v1__7__cpmt_ctl_core__lr0.0006__w1/artifact/result.json"
+        },
+        {
+          "bytes": 60059,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-cc2d5e2113ed/run/capacity/refit__cross_candidate_set_transformer_v1__7__outcome_scorer__lr0.0006__w1/artifact/result.json"
+        },
+        {
+          "bytes": 58187,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-cc2d5e2113ed/run/capacity/refit__shared_candidate_mlp_v1__7__outcome_scorer__lr0.0006__w1/artifact/result.json"
+        },
+        {
+          "bytes": 57176,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-cc2d5e2113ed/run/capacity/refit__shared_candidate_mlp_v1__7__cpmt_ctl_core__lr0.0006__w1/artifact/result.json"
+        },
+        {
+          "bytes": 28342,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-cc2d5e2113ed/run/prepared/complete.json"
+        },
+        {
+          "bytes": 28111,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-cc2d5e2113ed/run/prepared/attempt.json"
+        },
+        {
+          "bytes": 25388,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-cc2d5e2113ed/run/binding.json"
+        },
+        {
+          "bytes": 18598,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-cc2d5e2113ed/run/capacity/refit__cross_candidate_set_transformer_v1__7__outcome_scorer__lr0.0006__w1/artifact/complete.json"
+        },
+        {
+          "bytes": 18596,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-cc2d5e2113ed/run/capacity/refit__cross_candidate_set_transformer_v1__7__cpmt_ctl_core__lr0.0006__w1/artifact/complete.json"
+        },
+        {
+          "bytes": 18564,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-cc2d5e2113ed/run/capacity/refit__shared_candidate_mlp_v1__7__outcome_scorer__lr0.0006__w1/artifact/complete.json"
+        },
+        {
+          "bytes": 18562,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-cc2d5e2113ed/run/capacity/refit__shared_candidate_mlp_v1__7__cpmt_ctl_core__lr0.0006__w1/artifact/complete.json"
+        },
+        {
+          "bytes": 18276,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-cc2d5e2113ed/run/capacity/refit__cross_candidate_set_transformer_v1__7__outcome_scorer__lr0.0006__w1/artifact/attempt.json"
+        },
+        {
+          "bytes": 18274,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-cc2d5e2113ed/run/capacity/refit__cross_candidate_set_transformer_v1__7__cpmt_ctl_core__lr0.0006__w1/artifact/attempt.json"
+        },
+        {
+          "bytes": 18242,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-cc2d5e2113ed/run/capacity/refit__shared_candidate_mlp_v1__7__outcome_scorer__lr0.0006__w1/artifact/attempt.json"
+        },
+        {
+          "bytes": 18240,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-cc2d5e2113ed/run/capacity/refit__shared_candidate_mlp_v1__7__cpmt_ctl_core__lr0.0006__w1/artifact/attempt.json"
+        }
+      ],
+      "logical_bytes": 34381972,
+      "marker_counts": {
+        "capacity.completed.json": 1,
+        "complete.json": 5,
+        "failure.json": 1,
+        "interfaces.completed.json": 1,
+        "prepare.completed.json": 1,
+        "process.completed.json": 4
+      },
+      "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-followon-cc2d5e2113ed",
+      "referenced_by_exports": [
+        "m1_v7_d054_corrected_budget.json",
+        "m1_v7_d054_corrected_checks.json",
+        "m1_v7_d054_corrected_refit.json"
+      ],
+      "symlinks_not_followed": []
+    },
+    {
+      "bytes_by_suffix": {
+        ".attempt.json": 1361,
+        ".completed.json": 1053,
+        ".lock": 0,
+        ".log": 50082,
+        ".report.json": 2921,
+        ".result.json": 56
+      },
+      "errors": [],
+      "files": 8,
+      "largest_files": [
+        {
+          "bytes": 50082,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-policy-176275ba3aa7/test.log"
+        },
+        {
+          "bytes": 2921,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-policy-176275ba3aa7/reuse.report.json"
+        },
+        {
+          "bytes": 970,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-policy-176275ba3aa7/reuse.attempt.json"
+        },
+        {
+          "bytes": 557,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-policy-176275ba3aa7/test.completed.json"
+        },
+        {
+          "bytes": 496,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-policy-176275ba3aa7/reuse.completed.json"
+        },
+        {
+          "bytes": 391,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-policy-176275ba3aa7/test.attempt.json"
+        },
+        {
+          "bytes": 56,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-policy-176275ba3aa7/test.result.json"
+        },
+        {
+          "bytes": 0,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-policy-176275ba3aa7/phase.lock"
+        }
+      ],
+      "logical_bytes": 55473,
+      "marker_counts": {
+        "reuse.completed.json": 1,
+        "test.completed.json": 1
+      },
+      "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-policy-176275ba3aa7",
+      "referenced_by_exports": [],
+      "symlinks_not_followed": []
+    },
+    {
+      "bytes_by_suffix": {
+        ".attempt.json": 12320,
+        ".completed.json": 180383,
+        ".json": 2755851,
+        ".lock": 0,
+        ".log": 78726,
+        ".npz": 3324122,
+        ".pt": 159038656,
+        ".result.json": 56
+      },
+      "errors": [],
+      "files": 878,
+      "largest_files": [
+        {
+          "bytes": 3324122,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-training-process-check-cc2d5e2113ed/run/input/train_subset.npz"
+        },
+        {
+          "bytes": 1509707,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-training-process-check-cc2d5e2113ed/run/refit_workers_4/refit__cross_candidate_set_transformer_v1__7__future_no_execution/artifact/checkpoint_30.pt"
+        },
+        {
+          "bytes": 1509707,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-training-process-check-cc2d5e2113ed/run/refit_workers_4/refit__cross_candidate_set_transformer_v1__7__future_no_execution/artifact/checkpoint_10.pt"
+        },
+        {
+          "bytes": 1509707,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-training-process-check-cc2d5e2113ed/run/refit_workers_4/refit__cross_candidate_set_transformer_v1__19__future_no_execution/artifact/checkpoint_30.pt"
+        },
+        {
+          "bytes": 1509707,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-training-process-check-cc2d5e2113ed/run/refit_workers_4/refit__cross_candidate_set_transformer_v1__19__future_no_execution/artifact/checkpoint_10.pt"
+        },
+        {
+          "bytes": 1509707,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-training-process-check-cc2d5e2113ed/run/refit_workers_1/refit__cross_candidate_set_transformer_v1__7__future_no_execution/artifact/checkpoint_30.pt"
+        },
+        {
+          "bytes": 1509707,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-training-process-check-cc2d5e2113ed/run/refit_workers_1/refit__cross_candidate_set_transformer_v1__7__future_no_execution/artifact/checkpoint_10.pt"
+        },
+        {
+          "bytes": 1509707,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-training-process-check-cc2d5e2113ed/run/refit_workers_1/refit__cross_candidate_set_transformer_v1__19__future_no_execution/artifact/checkpoint_30.pt"
+        },
+        {
+          "bytes": 1509707,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-training-process-check-cc2d5e2113ed/run/refit_workers_1/refit__cross_candidate_set_transformer_v1__19__future_no_execution/artifact/checkpoint_10.pt"
+        },
+        {
+          "bytes": 1509387,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-training-process-check-cc2d5e2113ed/run/refit_workers_4/refit__cross_candidate_set_transformer_v1__7__execute_current_only/artifact/checkpoint_30.pt"
+        },
+        {
+          "bytes": 1509387,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-training-process-check-cc2d5e2113ed/run/refit_workers_4/refit__cross_candidate_set_transformer_v1__7__execute_current_only/artifact/checkpoint_10.pt"
+        },
+        {
+          "bytes": 1509387,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-training-process-check-cc2d5e2113ed/run/refit_workers_4/refit__cross_candidate_set_transformer_v1__7__direct_future_loss/artifact/checkpoint_30.pt"
+        },
+        {
+          "bytes": 1509387,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-training-process-check-cc2d5e2113ed/run/refit_workers_4/refit__cross_candidate_set_transformer_v1__7__direct_future_loss/artifact/checkpoint_10.pt"
+        },
+        {
+          "bytes": 1509387,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-training-process-check-cc2d5e2113ed/run/refit_workers_4/refit__cross_candidate_set_transformer_v1__7__direct_classifier/artifact/checkpoint_30.pt"
+        },
+        {
+          "bytes": 1509387,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-training-process-check-cc2d5e2113ed/run/refit_workers_4/refit__cross_candidate_set_transformer_v1__7__direct_classifier/artifact/checkpoint_10.pt"
+        },
+        {
+          "bytes": 1509387,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-training-process-check-cc2d5e2113ed/run/refit_workers_4/refit__cross_candidate_set_transformer_v1__7__cpmt_ctl_core/artifact/checkpoint_30.pt"
+        },
+        {
+          "bytes": 1509387,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-training-process-check-cc2d5e2113ed/run/refit_workers_4/refit__cross_candidate_set_transformer_v1__7__cpmt_ctl_core/artifact/checkpoint_10.pt"
+        },
+        {
+          "bytes": 1509387,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-training-process-check-cc2d5e2113ed/run/refit_workers_4/refit__cross_candidate_set_transformer_v1__19__execute_current_only/artifact/checkpoint_30.pt"
+        },
+        {
+          "bytes": 1509387,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-training-process-check-cc2d5e2113ed/run/refit_workers_4/refit__cross_candidate_set_transformer_v1__19__execute_current_only/artifact/checkpoint_10.pt"
+        },
+        {
+          "bytes": 1509387,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-training-process-check-cc2d5e2113ed/run/refit_workers_4/refit__cross_candidate_set_transformer_v1__19__direct_future_loss/artifact/checkpoint_30.pt"
+        }
+      ],
+      "logical_bytes": 165390114,
+      "marker_counts": {
+        "check.completed.json": 1,
+        "complete.json": 97,
+        "process.completed.json": 96,
+        "test.completed.json": 1
+      },
+      "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d054-training-process-check-cc2d5e2113ed",
+      "referenced_by_exports": [
+        "m1_v7_d054_corrected_budget.json",
+        "m1_v7_d054_corrected_checks.json",
+        "m1_v7_d054_corrected_refit.json",
+        "m1_v7_d054_training_process_check.json"
+      ],
+      "symlinks_not_followed": []
+    },
+    {
+      "bytes_by_suffix": {
+        ".attempt.json": 356385,
+        ".completed.json": 357919,
+        ".json": 5637739108,
+        ".json.gz": 250730512,
+        ".jsonl.gz": 12543282627,
+        ".launch-checkpoint.json": 59393,
+        ".launch.json": 59393,
+        ".lock": 0,
+        ".log": 1259100,
+        ".npz": 68645922,
+        ".result.json": 56,
+        ".worker.log": 849109
+      },
+      "errors": [],
+      "files": 42844,
+      "largest_files": [
+        {
+          "bytes": 87548053,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d055-s5-bea8616e86b6/run/confirmation_report.json"
+        },
+        {
+          "bytes": 18052518,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d055-s5-bea8616e86b6/run/evaluation/models/refit__cross_candidate_set_transformer_v1__43__direct_future_loss__lr0.0002__w10/result.json"
+        },
+        {
+          "bytes": 18048807,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d055-s5-bea8616e86b6/run/evaluation/models/refit__cross_candidate_set_transformer_v1__59__direct_future_loss__lr0.0002__w10/result.json"
+        },
+        {
+          "bytes": 18048595,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d055-s5-bea8616e86b6/run/evaluation/models/refit__cross_candidate_set_transformer_v1__19__direct_future_loss__lr0.0002__w10/result.json"
+        },
+        {
+          "bytes": 18047310,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d055-s5-bea8616e86b6/run/evaluation/models/refit__cross_candidate_set_transformer_v1__59__direct_classifier__lr0.0002__w1/result.json"
+        },
+        {
+          "bytes": 18046844,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d055-s5-bea8616e86b6/run/evaluation/models/refit__cross_candidate_set_transformer_v1__31__direct_future_loss__lr0.0002__w10/result.json"
+        },
+        {
+          "bytes": 18045011,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d055-s5-bea8616e86b6/run/evaluation/models/refit__cross_candidate_set_transformer_v1__7__direct_future_loss__lr0.0002__w10/result.json"
+        },
+        {
+          "bytes": 18042735,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d055-s5-bea8616e86b6/run/evaluation/models/refit__shared_candidate_mlp_v1__59__direct_classifier__lr0.0006__w1/result.json"
+        },
+        {
+          "bytes": 18041860,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d055-s5-bea8616e86b6/run/evaluation/models/refit__shared_candidate_mlp_v1__19__direct_classifier__lr0.0006__w1/result.json"
+        },
+        {
+          "bytes": 18041829,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d055-s5-bea8616e86b6/run/evaluation/models/refit__shared_candidate_mlp_v1__43__direct_classifier__lr0.0006__w1/result.json"
+        },
+        {
+          "bytes": 18041769,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d055-s5-bea8616e86b6/run/evaluation/models/refit__shared_candidate_mlp_v1__31__direct_classifier__lr0.0006__w1/result.json"
+        },
+        {
+          "bytes": 18041433,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d055-s5-bea8616e86b6/run/evaluation/models/refit__shared_candidate_mlp_v1__59__direct_future_loss__lr0.0006__w10/result.json"
+        },
+        {
+          "bytes": 18041298,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d055-s5-bea8616e86b6/run/evaluation/models/refit__shared_candidate_mlp_v1__7__direct_future_loss__lr0.0006__w10/result.json"
+        },
+        {
+          "bytes": 18041269,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d055-s5-bea8616e86b6/run/evaluation/models/refit__shared_candidate_mlp_v1__7__direct_classifier__lr0.0006__w1/result.json"
+        },
+        {
+          "bytes": 18040789,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d055-s5-bea8616e86b6/run/evaluation/models/refit__shared_candidate_mlp_v1__19__direct_future_loss__lr0.0006__w10/result.json"
+        },
+        {
+          "bytes": 18040505,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d055-s5-bea8616e86b6/run/evaluation/models/refit__shared_candidate_mlp_v1__31__direct_future_loss__lr0.0006__w10/result.json"
+        },
+        {
+          "bytes": 18039711,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d055-s5-bea8616e86b6/run/evaluation/models/refit__shared_candidate_mlp_v1__43__direct_future_loss__lr0.0006__w10/result.json"
+        },
+        {
+          "bytes": 18033094,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d055-s5-bea8616e86b6/run/evaluation/models/refit__cross_candidate_set_transformer_v1__7__direct_classifier__lr0.0002__w1/result.json"
+        },
+        {
+          "bytes": 18014997,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d055-s5-bea8616e86b6/run/evaluation/models/refit__cross_candidate_set_transformer_v1__43__future_no_execution__lr0.002__w1/result.json"
+        },
+        {
+          "bytes": 18011702,
+          "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d055-s5-bea8616e86b6/run/evaluation/models/refit__cross_candidate_set_transformer_v1__19__future_no_execution__lr0.002__w1/result.json"
+        }
+      ],
+      "logical_bytes": 18503339524,
+      "marker_counts": {
+        "complete.json": 10667,
+        "evaluate.completed.json": 1,
+        "generate.completed.json": 1,
+        "prepare.completed.json": 1,
+        "smoke.completed.json": 1,
+        "summarize.completed.json": 1,
+        "test.completed.json": 1
+      },
+      "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d055-s5-bea8616e86b6",
+      "referenced_by_exports": [
+        "m1_v7_d055_s5_case_group69.json",
+        "m1_v7_d055_s5_confirmation.json",
+        "m1_v7_d055_s5_data.json"
+      ],
+      "symlinks_not_followed": []
+    },
+    {
+      "logical_bytes": 61235,
+      "path": "/root/autodl-tmp/cpmt_outputs/m1-v7-d055-s5-validation-reservation.json",
+      "root_file": true
+    }
+  ],
+  "limitations": "Logical file sizes, not physical disk usage; no symlinks followed; non-atomic snapshot. No reference is not a deletion criterion.",
+  "read_only": true,
+  "recorded_paths_missing_on_this_host": [],
+  "root": "/root/autodl-tmp/cpmt_outputs",
+  "schema_version": "cpmt-storage-inventory-v1"
+}
