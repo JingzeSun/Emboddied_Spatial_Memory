@@ -8,6 +8,8 @@
 
 最后更新：2026-09-11，LOG-102 已拉取并复算 D-057 两 seed、18 学生/6 scorer、5760 次连续决策导出。CTL 角色版相对同宽度补零版的平均错误事实 AUC 降约 17.51%，但终点 active exact 从 31.25% 降到 25%；C06 混淆减少，C08 新增反向错误。这是混合的短预算信号，不认定角色版整体胜出，不自动加 seed/训练步数。原 S5 no-go 与 test 封存保持。
 
+LOG-103 补充：不同架构/数据/选参条件不能当作大小预算的过拟合对照；登记样本与生成 seed 分离，但 reference 参数派生 query 的间接信息通道真实存在。未直接读取 reference/test 的接口检查不等于排除了目标代理特征，现有程序化结果的主张边界须明确。
+
 | 项目 | 当前事实 |
 |---|---|
 | 方向 | CPMT 具身空间记忆；CTL 是主学习假设，用户希望面向 ML 研究 |
@@ -1253,3 +1255,17 @@ CTL/A 两 seed 的均值如下（同宽度补零是主编码对照，原 33 维�
 - C10 的“索引不同但 active 图正确”在 A 两 seed 中，补零为 `8/32`、角色为 `12/32`；不把它当作语义等价或自动计为正确修复。完整证据记忆通过上述 exact/graded 指标单列。A 的平均 false_birth_growth_per_100 从 4.84375 降到 4.21875，unrelated collateral 与 executor quarantine 两编码均为 0；这不代表所有风险均已排除。
 - 共享输入与 CTL 特异性：C 的角色减补零 AUC 在 seed 7/19 为 `+48.125/−5.625`，E 均为 0；E 的 graded open-memory 两 seed 都提高，说明不是所有表征收益都只属于 CTL。角色编码下 A−C 的 AUC 为 `−45/+8.125`，active exact 为 `+0.375/0`，graded open-memory 为 `+0.04979178/−0.00118502`；相对 C 的优势未跨 seed 一致。角色 A−E 的 AUC 为 `−20/−42.5`，仍只属本次小预算描述，不替代正式强对照结论。
 - 结论：角色编码在减轻长期错误负担、缓解 C06 混淆上有方向性信号，同时引入 C08/C05 等新错误并降低一个 seed 的终点正确性。因此不能说“改动全失效”，也不能说“整体已改善”或“CTL 已获得独特优势”。仅八个留出组、两个 seed、300 步，不做显著性或最佳 seed/组选择；既有 query 捷径仍未被此试验排除。D-057 固定运行已完成；本轮未自动扩 seed/步数、改架构或再解封数据，旧 S5 no-go 保持。
+
+## LOG-103（2026-09-11）：大小预算解释、split 命名与参考参数派生 query 的主张边界
+
+- 针对用户追问过拟合、test 是否不同及 Claude 的准泄漏意见，只读核对既有 refit/data/pilot 导出及生成/编码源码；没有读取封存 test、调用 Torch、训练、生成或改方法。以下是现有证据的补充解释，不新增 accepted 科学方案或预算。
+- “大预算抹平了小预算的角色优势”尚不是已有对照：D-057 的角色编码未在 S5 运行，S5 使用旧 pooled 编码。D-057 旧 pooled 下 A/C 平均 active exact 均为 0.125，AUC 为 143.125/100.625；新角色下 A/C 为 0.25/0.0625、AUC 107.5/125.9375。不能把新角色的小预算优势与旧编码的 S5 差值连成学习曲线，更不能直接归因为过拟合。
+- 预算还混合选参：D-057 A/C/E 均 300 步、lr=0.0006、aux=1；原主架构 S5 的已选 A 为 3000 步/lr=0.0006/aux=1，C 为 3000 步/lr=0.0002/aux=10，E 学生为 3000 步/lr=0.002/aux=1（E scorer 单独选参）。来源为 results/m1_v7_d054_corrected_refit.json 的 reports.budget.selected。C 充分训练和调权后的竞争力，不能概括成仅增加一个共同训练步数造成的变化。
+- 原固定 train/inner-dev 选参里，A 在已选 lr=0.0006 下的单步 reference-index accuracy，300/1000/3000/10000 步分别为 0.9276512176/0.9349829798/0.9430741032/0.9247970673。C 在其已选 lr=0.0002、aux=1 下为 0.8577899974/0.9120188531/0.9388845247/0.9191673213；之后在固定 3000 步上将 aux 按预登记选择为 10，分数为 0.9428122545。这是单步候选索引准确率，不是 S5 的连续终点指标。它提供旧设置中 C 随优化追近、10000 步发生留出性能退化的事实；没有同时固定全部条件的角色版学习曲线，也不能仅凭退化区分过拟合与优化不稳定。S5 实际用 3000 步，不是 10000 步退化端点。
+- split 核验：S5 data 导出的全部 200 个 group marker 均为 validation，编号严格 4–203；D-057 fit/dev 为 train 1000–1019 的互斥 12/8 分组，与原 train 0–999 不交叉。m1_rollout.py 的 world_seed=360906+SPLIT_SEED_OFFSET[split]+group_index，train offset=0，validation offset=200000000。按此对四组登记集合逐对核验生成 seed 交集均空：旧 train 范围 360906–361905，pilot fit 为范围 361906–361925 内 12 个、dev 为范围 361907–361922 内 8 个，S5 validation 为 200360910–200361109。此检查是登记实例/随机流分离，不是服务器全部原始轨迹或无 ID 局部场景的字节级/语义级排重，也不证明测试分布换了生成机制。
+- 两轮都不是 S6 formal test：S5 使用已消费的 validation，D-057 使用 train inner-dev；现有合同/导出记录 test_access=false，S6 未放行。两个学习 seed 7/19 故意共享同一八组 pilot 留出场景，用于配对比较，不能当成 16 个独立组。S5 已参与后续架构诊断，其原 200 组不能再充当新架构未见的独立确认集。
+- query 数据流核查：_event_plan 的 reference_spec.target_node_id(s)/target_edge_id/new_target 先决定 node/edge/place/merge query 的目标 ID，再经 _proposal_query 的 stable_retrieval_feature、distractor_weight=0.05、noise_sigma=0.02 形成观测。_proposal_context 读取这些 query 排序参数、用 merge_queries 构造首个 merge pair；online_feature_vector 和角色编码读取 node/edge/place 的参数相似度。最新角色版没有新增 merge_queries 的直接输入或 pair score，但原候选生成仍读取它，且其余三条 query 的来源没有改变。
+- 已有测试覆盖的边界较窄：test_fixed_k16_is_deduplicated_and_reference_blind 在保留已生成 proposal_observation 的情况下删除 reference_spec，检查候选不变；这证明下游不直接读那个字段，不能证明 query 的上游生成不含参考答案信息。另一个 reference_argument_decided_by_query 检查只要求比例在 [0,1]，没有以一个非平凡阈值排除 query lookup。_proposal_query 的 docstring 表达避免 lookup 的意图，但“加了非零噪声/干扰”不构成信息来源合法或检索不再容易的证明。
+- 判断边界：这是已存在的答案参数派生提示通道，不能仅称实现上的潜在副作用；若声称在线输入完全来自现实可获得的当前观测/历史，这类不可部署的参数提示属于目标代理信息，应修正该评测/表述。明确作为有真值辅助的程序化查询条件时，可以报告受控结果，但不能把它当作视觉身份推理或真实观测下收益的证据。A–E 共用输入控制了方法间的访问不对称，并不排除所有方法都学习了生成器捷径。指定 paired ambiguity 与 C10 的同观测不同答案设计也意味着不能夸大成“每一决策都喂入了完整答案”或已证明读取未来标签；训练 teacher 合法使用 hindsight 与在线学生得到不当提示是两回事。
+- 文献边界核对：Kapoor/Narayanan 的泄漏分类分别列出训练/测试混用、不合法结果代理特征和目标分布不匹配（https://reproducible.cs.princeton.edu/ ，对应论文 https://arxiv.org/abs/2207.07048）；Geirhos 等将标准分布有效而难以迁移的规则称为 shortcut learning（https://arxiv.org/abs/2004.07780）。因此新 seed/无样本重叠不足以反驳生成机制捷径；这些文献支持风险分类，不替本项目量化 query 贡献。
+- 后续仅 proposed：优先量化 query-only 参数/候选解码能力，并审查 query 能否由当前合法观测和历史重建。只移除学生的 merge query 特征不能排除候选生成端的间接提示；只在推理时置零也混入分布偏移，性能下降本身不证明作弊。若修正，须同时明确生成端与学生端的边界、保留/移除条件和训练评测一致性、候选覆盖与 teacher 变化，另立有界协议；M1 可先用既有合成观测，不因此提前扩成视觉 backbone 或 M2。本轮不自动执行消融或扩大训练，不删除旧失败结果、不更改原通过门。
