@@ -6,7 +6,7 @@
 
 > **2026-09-10 更新（S5 完成，科学门未通过）：** 已拉取 `ea6859e` 的 data/confirmation 导出并复核。369 项全测、200 组数据健康、50 模型完整评测与 F 通过；24 组效应/CI 独立复算一致。主架构 A/C/E exact 为 0.9205/0.8980/0.5200；A−C support 仅 +0.001911，burden reduction +0.690，其 CI 上界远低于登记门。两架构均未通过主比较；触发既有 S5 no-go 停止条件，S6 不放行。这是 S5 确认结论，不冒称 S6 test 结果。详见 LOG-090。
 
-最后更新：2026-09-11，LOG-099 修正服务器入口将 28 项旧回归误写为 30 项的 bug；用户回传旧回归 28 项全部 OK、exit=0，当前等待 recover 核验并复用完整 9+28 项原始服务器回执。没有减少测试或重跑模型；本机 CPU 故障背景下的结果只作历史记录。角色原型效果仍未验证；原 S5 no-go 保持，不进入 M2，test 保持封存。
+最后更新：2026-09-11，LOG-100 已拉取并核验独立服务器 9+28=37 项完整回执，D-056 角色原型工程验收通过，计数修复没有重跑测试。下一阶段训练对照的数据、预算和新确认协议尚待冻结，角色编码效果仍未验证；原 S5 no-go 保持，不进入 M2，test 保持封存。
 
 | 项目 | 当前事实 |
 |---|---|
@@ -1215,3 +1215,11 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - 新 recover 以旧入口 LF-normalized SHA-256 `b9591407403cc2e0f14be02b21f80e4da76fcc7b8dcef285f4f5438d04964f03` 及所有未变科学输入精确定位原 attempt，只接受已知 legacy 计数拒收及完整 9/28 成功回执。原 attempt/log/exit/failure 均不改写；分别记录 executed_code_binding 与当前验收 code_binding，并保存旧失败原因及全部旧证据文件原始 hash。恢复会写新的 count-correction-report.json 与 results/m1_d056_role_encoding_server_check.json，不调用测试进程、模型或生成器。旧 attempt 存在时，修正版 run 拒绝重复计算并提示 recover。
 - 白话：回执恢复的输入是已经完成的服务器计算证据，输出是纠正工具计数后的验收报告。例如 28 项全过无需再花 114 秒跑一遍；这不等于把测试失败改成成功，科学输入改变、日志篡改、测试遗漏、非零退出或其他 wrapper 失败都被拒绝。尚未收到实际恢复后的服务器报告，不能提前记录完整 37 项已验收。
 - ops/tests/test_role_server_receipts.py 的八项轻量标准库检查通过（0.125 秒、exit=0）：实际源码清单 9/28、复用成功回执且不调用外部进程/不改原文件、科学绑定变化拒绝、日志变化拒绝、真实测试失败拒绝、非计数 wrapper 失败拒绝、缺失/重复测试名称拒绝、旧版 unittest 显示兼容。仅使用临时小文本夹具，没有在故障本机重跑科学测试。方法和新训练协议不变，本修复不新增科学 decision。
+
+## LOG-100（2026-09-11）：独立服务器角色原型回执验收完成
+
+- 用户完成 recover/verify 并提交服务器报告后，本地以 `git pull --ff-only` 拉取 `54b3f67`。新增 results/m1_d056_role_encoding_server_check.json 为 19540 字节，原始 SHA-256=`aa4586be7a0ad37c29f765afbba97ffea377adfdaa93238bd7f2acfcfdcfc833`。仅运行标准库只读 verify，返回 `ROLE_SERVER_CHECK_VERIFIED tests=37 exit=0`；没有重跑任何模型、生成器或科学测试。
+- 服务器回执：角色专项九项，32.435 秒、exit=0；旧 A–F 回归二十八项，114.409 秒、exit=0。两组实际执行名称与源码静态方法清单一一对应，日志 hash、完整 OK 汇总、测试数及代码绑定均通过核验；不是仅凭用户贴出的结尾字符串验收。
+- 实际测试环境为独立 Linux 5.15.0-78-generic，hostname=autodl-container-1705479f78-9edd7799，Python 3.12.3、NumPy 2.3.2、Torch 2.8.0+cu128；解释器 /root/miniconda3/bin/python，机器记录的仓库根 /root/Emboddied_Spatial_Memory。执行源码提交为 762e6f8402878aa54563f114c65eba429dd6ab65，未把本机故障环境中的成功记录转作服务器证据。
+- recover 来源为 outputs/m1-role-encoding-server-check/c37b28ff04f9f7fe，保留 attempt.json、failure.json、两组 .exit.json 和 .log 的六份原始文件 hash。tests_rerun=false；原失败原因仍是 legacy 计数拒收。实际执行绑定与修正版验收绑定只在 ops/m1_role_encoding_server_check.py 和新增 ops/tests/test_role_server_receipts.py 上不同，科学源码、原两组测试及配置不变。报告明确区分当时执行代码与后续回执修复，不冒称新入口参与了原测试。
+- 工程结论：D-056 可选角色编码及同宽度补零对照的专项检查、默认路径回归和回执收尾现已完成。它证明本轮约定的接口、输入边界及兼容性检查通过，不证明角色编码降低了实际错误率，也不认证尚未运行的新训练协议。下一阶段仍需先冻结训练数据、预算、对照与新确认规则；不改原 S5 no-go、既有统计门或 test 封存，本轮无新科学方法 decision。

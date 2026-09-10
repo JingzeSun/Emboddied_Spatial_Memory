@@ -16,8 +16,8 @@
 
 ## 当前指针
 
-- 当前原型分支：D-056 的结果与本机失败只记 EXECUTE LOG-098/099。初版服务器入口把旧回归 28 项误写为 30 项，当前先同步必要的计数修复，再执行 `python ops/m1_role_encoding_server_check.py recover`，从旧 attempt 核验并复用 9+28=37 项成功回执，不重跑测试。随后同版本 `verify`（ROLE-S2），成功后仅提交 `results/m1_d056_role_encoding_server_check.json`。缺项、科学输入改变或其他失败原因则停止并保留现场，不把计数修复用作跳过测试。首次新执行才用 run；已经存在旧 attempt 时 run 会阻止重复计算。
-- ROLE-S1/S2 均完成前不启动新训练；之后再冻结角色版与原编码对照的数据、预算和新确认协议，不将工程测试或 LOG-097 探针当作方法有效性。旧字节绑定的 LOG-097 诊断可在 b63e9a6 复核，不重写旧报告适配新 source hash。未记录的错误分支 teacher 不补推，不改原 S5 停止结论，不调用 S6 或封存 test，已有 AV1→AV2→AV3 产物不重新生成或扫描。
+- 当前原型分支：ROLE-S1/S2 及回执修复、服务器产物 Git 收尾已完成，证据仅见 EXECUTE LOG-100；已有 results/m1_d056_role_encoding_server_check.json 直接复用，不再 run/recover，也不因文档更新重新同步或重跑。D-056 工程阶段结束。
+- 下一步是冻结角色版与原编码/同宽度补零对照的训练数据、预算及新确认协议；在这些科学条件确定前不启动新训练，不将工程测试或 LOG-097 探针当作方法有效性。旧字节绑定的 LOG-097 诊断可在 b63e9a6 复核，不重写旧报告适配新 source hash。未记录的错误分支 teacher 不补推，不改原 S5 停止结论，不调用 S6 或封存 test，已有 AV1→AV2→AV3 产物不重新生成或扫描。
 - 当前阶段：**S5 独立确认已完成并复核（EXECUTE LOG-090），工程完整但效应 CI 触发既有明确 no-go。当前进入本协议失败结果解释与收口；S6 不放行，test 保持封存，不重新选参/调门或扩模型进入 M2。S5 的结果不是 S6 test 结果，历史运行命令保留用于审计，不作为继续考试的授权。**
 - 历史 S2 证据：v5 S2 的 arrays/manifest/report 已验收；1000−300 的 paired-group 95% CI 为 `[+0.008750,+0.045000]`，按预登记规则选择 1000。10-group 同预算锚点中共同 group 1 的 40−10 平均差为 `+0.005000`、仅 `1/5` seed 严格为正，未达 S3 触发条件。完整数字与 provenance 见 `EXECUTE.md` LOG-032/033。
 - 已完成：同一份 40-group v4 arrays 确定性截取 10/40 groups，运行 scorer steps {60,300,1000} × seed 7。40-group 全 train 上，static preflight 对 2,552/2,552 个 executor-illegal 候选全部静态拒绝、合法误拒 0；过滤后 target-only 均匀并列期望由 0.7729 升至 0.9698，assembled oracle accuracy 由 0.7438 升至 0.9525，其 exact-ambiguity capped 读数由 0.7275 升至 0.9275。D-038 已接受把同一只读预检变成 A–E 共享 mask；旧 v4 过滤数字仍只作采纳依据，不冒充 v5 方法成绩。
