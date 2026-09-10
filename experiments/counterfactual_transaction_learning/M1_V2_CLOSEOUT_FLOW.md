@@ -17,7 +17,8 @@
 ## 当前指针
 
 - 当前原型分支：ROLE-S1/S2 及回执修复、服务器产物 Git 收尾已完成，证据仅见 EXECUTE LOG-100；已有 results/m1_d056_role_encoding_server_check.json 直接复用，不再 run/recover，也不因文档更新重新同步或重跑。D-056 工程阶段结束。
-- 当前独立开发任务为 D-057 小规模角色效果试验：用户已授权，固定计划见 configs/m1_role_pilot.json，运行边界与命令见 HARD_CONDITION_EXPERIMENT.md 的 D-057 小节。一次同步后依序 ROLE-P0 新入口专项检查 → ROLE-P1 新 train 1000–1019 的生成/健康/三路编码 → ROLE-P2 seed 7、seed 19 各九模型 → ROLE-P3 汇总/导出/核验。成功单元复用，失败保留并停止依赖步骤；当前等待服务器 ROLE-P0，不重跑旧 37 项验收。
+- D-057 的 ROLE-P0→P1→P2 seed 7/19→P3 及结果 Git 收尾已完成；本地导出复核见 EXECUTE LOG-102，既有运行全部复用，不再次 test/prepare/run/export。固定计划仍保存在 configs/m1_role_pilot.json，历史命令留作审计。
+- 当前进入 D-057 的混合结果解释与收口：可继续只读分析现有 C06 改善及 C08/C05 退步轨迹；更改模型、追加 seed/更新数、query 依赖消融或新的确认运行均尚未启动，须先另行明确有界方案。当前没有已授权而未跑完的第五 seed 或完整预算网格。
 - D-057 仅报告固定 300 步、两个 seed 的方向性结果，不按结果增加组、延长训练或选 checkpoint；没有信号可说明小预算下未见改善，不能断言角色表示在充分训练下无效。有信号仍需另外冻结 query 依赖对照及独立确认协议，不自动扩模型或进入 M2。旧字节绑定的 LOG-097 诊断可在 b63e9a6 复核，不重写旧报告适配新 source hash；已有 AV1→AV2→AV3、S5 产物不重新生成或扫描。
 - 当前阶段：**S5 独立确认已完成并复核（EXECUTE LOG-090），工程完整但效应 CI 触发既有明确 no-go。当前进入本协议失败结果解释与收口；S6 不放行，test 保持封存，不重新选参/调门或扩模型进入 M2。S5 的结果不是 S6 test 结果，历史运行命令保留用于审计，不作为继续考试的授权。**
 - 历史 S2 证据：v5 S2 的 arrays/manifest/report 已验收；1000−300 的 paired-group 95% CI 为 `[+0.008750,+0.045000]`，按预登记规则选择 1000。10-group 同预算锚点中共同 group 1 的 40−10 平均差为 `+0.005000`、仅 `1/5` seed 严格为正，未达 S3 触发条件。完整数字与 provenance 见 `EXECUTE.md` LOG-032/033。
