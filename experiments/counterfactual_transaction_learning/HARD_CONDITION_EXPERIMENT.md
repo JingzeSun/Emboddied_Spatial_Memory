@@ -311,11 +311,15 @@ GPU 对拍固定使用原 train groups 0..9（原 hash 分为 9 fit/1 inner-dev�
 
 历史 ROLE-P1/P2 入口 `python ops/m1_role_encoding_preflight.py [--verify]` 保留，用于复核本机九项专项检查记录 `results/m1_d056_role_encoding_preflight.json`。用户在 2026-09-11 明确本机 CPU 有问题后，该成功记录不再认证本原型，Windows/WSL 都不继续重试；必须执行以下独立服务器验收。
 
-当前机械顺序：ROLE-S1 执行 `python ops/m1_role_encoding_server_check.py run`，ROLE-S2 执行同一入口的 `verify`。run 仅允许独立 Linux 服务器，拒绝本机 Windows/WSL；实际项目根由 `git rev-parse --show-toplevel` 确认，输入源码须已经提交且无未提交改动。先运行 9 项角色专项，再运行 30 项既有 A–F 回归，前项 exit=0 且成功测试数匹配才进入后项。专项输入是一组 train 夹具；旧回归自行生成少量 train/validation 单元夹具，不读取原 S5 或封存 test。40 步固定分数模型只检验动态接线，不输出角色方法成绩；既有单元测试中的小训练调用也不属于正式模型训练或 checkpoint 选择。
+当前机械顺序：新执行的 ROLE-S1 使用 `python ops/m1_role_encoding_server_check.py run`，ROLE-S2 使用同一入口的 `verify`。run 仅允许独立 Linux 服务器，拒绝本机 Windows/WSL；实际项目根由 `git rev-parse --show-toplevel` 确认，输入源码须已经提交且无未提交改动。先运行 9 项角色专项，再运行 28 项既有 A–F 回归，前项 exit=0 且成功测试数匹配才进入后项。源码中显式 unittest 方法清单必须与登记计数一致，日志中执行名称须与该清单一一对应；初版误写的 30 项已纠正，不是少跑两项测试。专项输入是一组 train 夹具；旧回归自行生成少量 train/validation 单元夹具，不读取原 S5 或封存 test。40 步固定分数模型只检验动态接线，不输出角色方法成绩；既有单元测试中的小训练调用也不属于正式模型训练或 checkpoint 选择。
 
-输出为独立的 `results/m1_d056_role_encoding_server_check.json`，成功标志为 `ROLE_SERVER_CHECK_OK tests=39 exit=0`，后续 verify 成功为 `ROLE_SERVER_CHECK_VERIFIED tests=39 exit=0`。报告包含全部相关源码/测试和两份配置的 hash、实际服务器根路径、Git 提交、Python/NumPy/Torch、系统/hostname、两组完整 unittest 回执与退出状态。verify 可在本地只读核验服务器报告，不执行测试。它不复用本机九项成功记录。运行前写 attempt，每组计算结束后先写日志和 exit 回执，再启动下一组；现场在 `outputs/m1-role-encoding-server-check/<binding>/`。成功报告同绑定直接复用，失败或不完整尝试保留并拒绝自动重开；不删除本机或服务器失败证据。
+输出为独立的 `results/m1_d056_role_encoding_server_check.json`，成功标志为 `ROLE_SERVER_CHECK_OK tests=37 exit=0`，后续 verify 成功为 `ROLE_SERVER_CHECK_VERIFIED tests=37 exit=0`。报告包含全部相关源码/测试和两份配置的 hash、实际服务器根路径、Git 提交、Python/NumPy/Torch、系统/hostname、两组完整 unittest 回执与退出状态。verify 可在本地只读核验服务器报告，不执行测试。它不复用本机九项成功记录。运行前写 attempt，每组计算结束后先写日志和 exit 回执，再启动下一组；现场在 `outputs/m1-role-encoding-server-check/<binding>/`。成功报告同绑定直接复用，失败或不完整尝试保留并拒绝自动重开；不删除本机或服务器失败证据。
 
-全部 39 项通过后自动写报告，后续只需 verify 和精确提交这一个服务器产物，不为步骤切换更新版本。服务器实际通过之前，当前状态仍是原型实现完成、验收待完成；通过也不等于角色编码有效或允许直接启动未冻结的新训练协议。
+初版计数 bug 的已完成服务器执行使用 `python ops/m1_role_encoding_server_check.py recover`，不再调用 run。recover 由当前科学输入哈希及已钉住的旧入口 hash 精确定位旧 attempt；除入口和新增回执检查测试外，其余源码/科学测试/配置必须不变。仅接受原 failure 明确为 legacy 计数拒收、两组 exit=0、9/28 项完整 OK、实际测试名称清单匹配且各日志与 exit 回执哈希一致的情况。它不调用模型、测试进程或生成器，原 attempt/log/exit/failure 均不改写，另存 count-correction-report.json 并安装正式报告，成功标志 `ROLE_SERVER_CHECK_RECOVERED tests=37 rerun=0 exit=0`。
+
+白话：回执恢复解决“计算已经正确完成，却被入口写错的数量挡住”的收尾问题。输入是旧源码绑定和两组原始成功日志，输出是有来源的新验收报告；例如完整的 28 项不能因为错误要求 30 项被迫重跑。它不等于忽略失败：缺项、非零退出、跳过、源码变化或其他错误原因都拒绝恢复。报告中的 executed_code_binding 是实际测试时的绑定，code_binding 是当前验收工具绑定，不冒称新入口曾参与旧测试。
+
+全部 37 项通过并核验后自动写报告，后续只需 verify 和精确提交这一个服务器产物；本次必要 bug 修复须同步一次，此后不为步骤切换更新版本。取得完整服务器回执之前，当前状态仍是原型实现完成、验收待完成；通过也不等于角色编码有效或允许直接启动未冻结的新训练协议。
 
 下一科学阶段仍须先冻结：复用哪些合格 train 产物、拟合与 inner-dev paired-group 划分、A–E 及强制主对照的预算、同 seed/初始化与停止步数、query 依赖诊断和未参与本轮分析的新确认来源。本阶段不现场指定胜出方向或新科学效应阈值；C10 证据支持、全体错误负担及候选可达性仍要分别观察，不能只报 C06/C08。新增角色可能强化既有 query 捷径、过拟合角色稀疏性或增加优化难度；原候选生成器本身的 query 依赖没有被消除。merge_queries 配对分、历史计数删除、自身状态重采样和风险损失均不并入本原型。
 
