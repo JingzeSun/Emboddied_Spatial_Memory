@@ -323,6 +323,37 @@ GPU 对拍固定使用原 train groups 0..9（原 hash 分为 9 fit/1 inner-dev�
 
 下一科学阶段仍须先冻结：复用哪些合格 train 产物、拟合与 inner-dev paired-group 划分、A–E 及强制主对照的预算、同 seed/初始化与停止步数、query 依赖诊断和未参与本轮分析的新确认来源。本阶段不现场指定胜出方向或新科学效应阈值；C10 证据支持、全体错误负担及候选可达性仍要分别观察，不能只报 C06/C08。新增角色可能强化既有 query 捷径、过拟合角色稀疏性或增加优化难度；原候选生成器本身的 query 依赖没有被消除。merge_queries 配对分、历史计数删除、自身状态重采样和风险损失均不并入本原型。
 
+### D-057 小规模效果试验（非正式确认）
+
+本试验已获用户授权，运行前计划在 `configs/m1_role_pilot.json` 固定。它解决“接口通过后，短预算下是否出现值得研究的性能变化”：输入是 20 个新 train paired groups 和三种已实现编码，输出是两个 seed 的连续世界修订差异。例如角色版减少 RELINK/REPLACE 混淆但增加证据写错，需要同时报告；它不是正式 M1 成功判据，也不是充分训练或视觉前端验证。服务器运行完成前，效果一律 pending。
+
+- 数据为 train 编号 1000–1019，原完整训练范围 0–999 不再读取；沿用 `training_inner_dev_mask` 的 SHA-256 取模五规则。fit 为 1000、1002、1003、1005、1006、1010、1012、1013、1015、1017、1018、1019；inner-dev 为 1001、1004、1007、1008、1009、1011、1014、1016。保留 sibling 与恢复行的分组，480/320 学习行；最后一步不训练 hindsight，但仍在每条 20 步评测中保留。生成健康门不通过则停，不换样本。
+- 原 33 维、补零 68 维、角色 68 维三路都跑 A、C、E，seed 7/19，学生 300 步，E scorer 另 300 步，共 18 学生及 6 scorer。主 Set Transformer（候选集合注意力网络）仍为原 128 维两层四头；lr=0.0006、batch=64、辅助/蒸馏权重=1、gate=(0,0)、CPU 单线程。无选参、无 checkpoint 选择，角色版不读取 merge_queries。所有非 x 数组逐值相等；原 labels、teacher、损失及可用槽位策略不变。
+- 主编码比较为同宽度角色版减补零版：同参数量、同 seed 初始化、同批次随机序列；原 33 维锚点因初始化形状不同，随机数消耗及后续批次可不同，不将其当完全匹配的容量对照。既有有标签比例不重采样，实际 fit labelled 行数写入 manifest。不同方法的损失/额外 scorer 算力按原定义分别报告，不称训练 FLOPs 相同。
+- 输出完整每模型、每序列、每步选择、所有实际执行候选与保存世界；训练 audit 保留六项候选能量，错误自身状态没有保存的 teacher 不额外补算或伪造。报告原 active、open-memory exact/graded、open-fact error AUC 等指标及安全/候选可达性；AUC（Area Under the Curve，曲线下面积）在这里是逐步错误事实的累积暴露，例如一条错边保留十步计十次，不能只看终点是否修回。
+- `family_onsets` 是“上一决策 active world 正确且本步不是指定 epistemic pivot”时的新错误数/机会数；分子分母、错误程序类别和 C06→RELINK、C08→REPLACE 混淆单列。它解决持久旧错被反复算作新错误的问题；输入为完整选择链，输出为分 family 条件计数，例如上一部已错的 C08 不进入新错误分母。它不是所有策略共享不变的分母，因此另保留全体轨迹负担。`c10_index_active_disagreement` 单列 C10 参考索引不同但 active 图正确；这不等于证据/provenance 语义等价。
+- 配对差值先在同一组两 sibling 内平均，逐 seed、逐 group 保留；正确性差值正为改善、错误负担差值负为改善。另报每种编码的 A−C/A−E，以区分共享输入改进和 CTL 相对优势。两个 seed 不充当独立样本，不跑显著性门、不自动选赢家或追加预算；新方案正式确认及 query 移除/保留对照仍待另立协议。未见信号可由欠拟合或样本少导致，不宣布普遍无效；正信号也不能排除既有 query 捷径。
+
+以下均在已核实的服务器仓库 `/root/Emboddied_Spatial_Memory` 运行；本机 Windows/WSL 被拒绝。阶段同步一次后不为下一步骤再 pull，CPU/深度学习检查不在故障本机执行。新入口可先运行 `--help` 查看子命令。计划未实测总时长，当前按每 seed 有界前台运行并显示每完成 40 次决策的进度；如实际首块耗时超过 30 分钟，再依据实测安排尚未启动的下一块，不中断或重启已运行块。
+
+| 步骤 | 命令（统一前缀 `python scripts/run_m1_role_pilot.py`） | 输入前提与输出 | 成功标志 |
+|---|---|---|---|
+| ROLE-P0 | `test` | 固定 Git 源码与 D-056 历史服务器证据；只跑新入口的四项专项，含一组 train 工程夹具、极短优化、保存/加载与真实动态接线。不会读取试验留出组来选参，也不重跑旧 37 项。写 `outputs/m1-d057-role-pilot/tests/` | `ROLE-P0_TESTS_OK exit=0` |
+| ROLE-P1 | `prepare` | 自动核验 P0 marker/源码/计划/环境；两 worker 生成固定 20 组、完整健康检查、三路编码及非 x 相等，写 `groups/` 和 `prepared/` | `ROLE-P1_PREPARED fit=12 dev=8 exit=0` |
+| ROLE-P2a | `run --seed 7` | 自动核验 P0、P1、逐组 manifest/digest；九模型依次训练并在所有八组留出场景评测，写 `runs/` | `ROLE-P2_SEED_OK seed=7 models=9 exit=0` |
+| ROLE-P2b | `run --seed 19` | 额外核验 seed 7 九个成功单元，再运行另九模型；不挑换组、不读 seed 7 结果改变参数 | `ROLE-P2_SEED_OK seed=19 models=9 exit=0` |
+| ROLE-P3 | `export`，随后 `verify` | 自动核验全部 18 个模型与轨迹、来源、paired-group 完整性和差值，导出 `results/m1_d057_role_pilot.json`；verify 重新对照服务器原产物 | `ROLE-P3_EXPORTED` / `ROLE-P3_VERIFIED models=18 exit=0` |
+
+所有单元以原绑定成功后直接复用；出现 `.incomplete` 或失败记录即停止该依赖，禁止静默重训、覆盖或换目录另考。`student.pt` 在昂贵 rollout 前保存，配置绑定具体 encoding（两个 68 维模式不能混用），严格重载及前向对拍后才评测；完整原始执行留 outputs，结果导出含其 manifest/hash。失败也留在原单元，不自动包装为成功。新入口测试没有通过前不能生成试验数据或训练正式试验模型。
+
+导出核验成功后的 Git 收尾固定为以下三条，不另改脚本：
+
+```bash
+git add -- results/m1_d057_role_pilot.json
+git commit -m "Record D057 fixed-budget role encoding pilot"
+git push origin main
+```
+
 ### S5 全体逐步候选可达性导出（只读诊断，服务器全量待执行）
 
 入口为 `ops/export_m1_s5_availability.py export|verify`，只使用 Python 标准库。`export` 先执行本入口的轻量前置测试，再读取固定 SHA-256 的 S5 confirmation，从报告原样取得全部 50 模型、10000 个 paired-group 分片路径；逐一核验 complete.json 的原始字节哈希、result.json 的登记哈希、科学登记/来源绑定、模型与组号绑定、两 sibling 的原逐例指标、20 步时间轴和持久状态链。输入是已完成评测的保存结果，输出是 results/m1_v7_d055_s5_availability.json。例如第 5 步保存的合法可选候选没有完整正确世界，则直接保留该判断；它不是重新生成候选、执行模型或重算图相等性。原 audit 与 execution 文件的来源由已核验绑定引用，本入口不重新读取其字节，不冒称全量原始候选世界已经再次审计。

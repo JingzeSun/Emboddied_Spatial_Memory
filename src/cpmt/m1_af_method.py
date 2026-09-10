@@ -33,6 +33,8 @@ def run_af_method(
     smoke_config: Mapping[str, Any],
     seed: int,
     method: str,
+    *,
+    causal_evaluator=None,
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, torch.nn.Module]]:
     """Train and evaluate exactly one registered A-F method.
 
@@ -42,6 +44,8 @@ def run_af_method(
     scorer and matched online student, while the F worker only replays the
     audit reference index.  This is process isolation, not a different method,
     extra supervision, checkpoint selection, or permission to read test.
+    An explicit causal_evaluator may adapt the online encoding; training losses
+    and teachers are unchanged. The default continues to use the legacy path.
     """
     if method not in METHODS:
         raise ValueError(f"unknown A-F method {method!r}")
@@ -110,7 +114,7 @@ def run_af_method(
     teacher_metrics = _teacher_forced_metrics(
         probabilities, validation, validation_teacher,
     )
-    causal, causal_rows = causal_rollout_metrics(
+    causal, causal_rows = (causal_evaluator or causal_rollout_metrics)(
         model, validation_audits, smoke_config,
     )
     models[method] = model
