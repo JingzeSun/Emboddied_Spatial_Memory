@@ -16,7 +16,7 @@
 
 ## 当前指针
 
-- 当前分析分支：案例执行审计与全体已导出恢复指标分层已完成，证据仅记 EXECUTE LOG-092/093。下一有界任务是从已完成服务器分片只读导出全体逐步选择与候选可达性，区分可选却误选、错误后缺完整修复选项及有机会时的恢复；先核验 marker/hash，不重新评测。未记录的错误分支 teacher 不补推；该分支不修改方法、门槛或 S5 停止结论。
+- 当前分析分支：案例执行审计与全体已导出恢复指标分层已完成，证据仅记 EXECUTE LOG-092/093。全体逐步选择与候选可达性的只读 export/verify 入口已备齐，下一步是在服务器按本文件末尾 AV1→AV2→AV3 固定命令导出并同步报告；先核验原 marker/result hash，不重新评测。未记录的错误分支 teacher 不补推；该分支不修改方法、门槛或 S5 停止结论。
 - 当前阶段：**S5 独立确认已完成并复核（EXECUTE LOG-090），工程完整但效应 CI 触发既有明确 no-go。当前进入本协议失败结果解释与收口；S6 不放行，test 保持封存，不重新选参/调门或扩模型进入 M2。S5 的结果不是 S6 test 结果，历史运行命令保留用于审计，不作为继续考试的授权。**
 - 历史 S2 证据：v5 S2 的 arrays/manifest/report 已验收；1000−300 的 paired-group 95% CI 为 `[+0.008750,+0.045000]`，按预登记规则选择 1000。10-group 同预算锚点中共同 group 1 的 40−10 平均差为 `+0.005000`、仅 `1/5` seed 严格为正，未达 S3 触发条件。完整数字与 provenance 见 `EXECUTE.md` LOG-032/033。
 - 已完成：同一份 40-group v4 arrays 确定性截取 10/40 groups，运行 scorer steps {60,300,1000} × seed 7。40-group 全 train 上，static preflight 对 2,552/2,552 个 executor-illegal 候选全部静态拒绝、合法误拒 0；过滤后 target-only 均匀并列期望由 0.7729 升至 0.9698，assembled oracle accuracy 由 0.7438 升至 0.9525，其 exact-ambiguity capped 读数由 0.7275 升至 0.9275。D-038 已接受把同一只读预检变成 A–E 共享 mask；旧 v4 过滤数字仍只作采纳依据，不冒充 v5 方法成绩。
@@ -241,3 +241,26 @@ D-046 后不再有活动 validation trial 选择预算：C auxiliary weight 与 
 输出目录为 `/root/autodl-tmp/cpmt_outputs/m1-v7-d055-s5-<source-prefix>`。生成前全局固定 reservation 防止换来源/目录重开；各步骤退出证据、单位 hash 和失败现场保留，不能静默续算中断单位。运行中的 checkout 不同步。预计超过 30 分钟的 evaluate 可显式 `--foreground`，其余动作不套后台模板。两份报告导出后一次提交精确路径，不需要先提交 data 报告才能评测。
 
 导出与本地复核之后按原 S5 stop rule 决定是否进入 S6 最终冻结；本阶段不含 test 入口。完整命令存在不等于允许越过前置条件，也不表示服务器全测或正式确认已完成。
+
+
+## S5 事后逐步可达性分析：一次同步后的固定命令
+
+本阶段只读取已完成的 confirmation 及其绑定 complete/result 分片。同步前在服务器当前终端运行 `git rev-parse --show-toplevel` 取得实际仓库根路径并原样使用；不猜远端目录，不在仍运行任务的 checkout 中 pull。确认处于本仓库且没有未收尾更改后，`git pull --ff-only origin main`，阶段内不为切换步骤再次更新代码。
+
+| 步骤 ID | 命令 | 前提、读写边界和成功标志 |
+|---|---|---|
+| AV1 | `python ops/export_m1_s5_availability.py export` | 内置轻量前置测试先通过；固定 confirmation 哈希、全部模型/组矩阵及各单位原 marker/result 哈希和登记绑定必须一致。读取已有结果并在同一步汇总、校验、导出；输出 results/m1_v7_d055_s5_availability.json。成功为 AVAILABILITY_EXPORT_OK、exit=0；已有合格报告则 AVAILABILITY_VERIFY_OK 后直接复用。失败/中断保留 outputs/m1-s5-availability-export/<code-prefix>/ 运行证据，拒绝静默重开，不触发重新评测。 |
+| AV2 | `python ops/export_m1_s5_availability.py verify` | AV1 已成功。只读导出和固定 confirmation，从保留的全部步骤复算计数、比例和时间轴指标；不读原服务器分片。AVAILABILITY_VERIFY_OK、进程退出 0 后才进入 Git 收尾。 |
+| AV3 | 下方三条 Git 命令 | AV2 成功后仅提交这一份导出，不通配 results，也不提交 outputs。push 成功后本地同步同一版本，用 verify 及已有 JSON 字段分析；不为本地复核修改入口。 |
+
+AV1 默认前台：只扫描 complete/result JSON，逐 100 分片显示进度；读盘耗时尚无全量实测，不自动套后台模板。AV2 同样前台。导出不读取 execution 大文件，不重训、不重新运行 validation，不读取 test。服务器全量未运行前，不把本地小型检查或 group 69 对拍冒称为总体归因结果。
+
+AV3 的固定 Git 收尾：
+
+```bash
+git add -- results/m1_v7_d055_s5_availability.json
+git commit -m "results: export complete S5 candidate availability"
+git push origin main
+```
+
+本阶段完成后的有界分析是读取全部八格、方法/seed/当前 family/所选事务分层，并据逐例来源定位仍需完整轨迹的错误。先解释已保存事实，不据新诊断改原验收门或 S5 no-go。

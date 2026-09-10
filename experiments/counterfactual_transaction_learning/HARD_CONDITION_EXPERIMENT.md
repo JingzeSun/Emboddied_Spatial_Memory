@@ -279,3 +279,20 @@ GPU 对拍固定使用原 train groups 0..9（原 hash 分为 9 fit/1 inner-dev�
 `never_wrong`、`first_error_recovered`、`first_error_never_recovered` 将全部序列按首次全图错误后是否曾恢复划分；`ever_wrong` 是后两类之和，`first_error_recovered_within_3` 复用原三步窗口，`recovered_then_final_wrong` 单列恢复后终点再次出错，`first_step_wrong` 仅统计第一个决策后出错。输入是原首错、恢复时长及终点字段，输出是完整计数和首错步直方图（-1 表示无错）。例如第 3 步错、第 4 步修好、第 10 步再错至终点，属于曾恢复且终点再次出错；它不是始终未恢复，也不能证明所有中间局部事实都修好。
 
 `burden_sum_by_sequence_stratum` 将每条完整序列的既有 open-fact burden 按上述互斥类别求和；`first_step_wrong_sequences` 是另列的交叉子集，不与前三类再次相加。输入是原全过程负担，输出是各类序列承载的负担总量；例如首步错误序列后来又错一次，这两次均进入该序列的总负担，它不等于首步错误本身的因果贡献。`mean_burden` 仍除以所有序列。分母包含同一 200 paired groups 的两 sibling 和五 seed，不冒称 2000 个独立场景；不对方法各自不同的错误子集作因果恢复率比较或新增显著性检验。全体错误后逐步候选覆盖和错误分支 teacher 排名需另读已保存逐步轨迹，本汇总不补推这些缺失字段。
+
+
+### S5 全体逐步候选可达性导出（只读诊断，服务器全量待执行）
+
+入口为 `ops/export_m1_s5_availability.py export|verify`，只使用 Python 标准库。`export` 先执行本入口的轻量前置测试，再读取固定 SHA-256 的 S5 confirmation，从报告原样取得全部 50 模型、10000 个 paired-group 分片路径；逐一核验 complete.json 的原始字节哈希、result.json 的登记哈希、科学登记/来源绑定、模型与组号绑定、两 sibling 的原逐例指标、20 步时间轴和持久状态链。输入是已完成评测的保存结果，输出是 results/m1_v7_d055_s5_availability.json。例如第 5 步保存的合法可选候选没有完整正确世界，则直接保留该判断；它不是重新生成候选、执行模型或重算图相等性。原 audit 与 execution 文件的来源由已核验绑定引用，本入口不重新读取其字节，不冒称全量原始候选世界已经再次审计。
+
+导出保留全部逐步 choice 的步骤、当前 family/歧义类型、选中模板和索引、原参考索引及其匹配标志、实际提交/合法性/静态预检/隔离、重访、active_correct_after 与完整 candidate_availability。每模型的 400 条序列以 gzip+base64 JSON 无损封装这些保留字段，记录解压字节数和 SHA-256；每单位另保存原路径、marker/result 哈希及参考 audit 来源，每序列保存经核验的状态链摘要。输入是原保存字段，输出可在本地重新拆分和统计的数据，例如保留所有成功步与失败步而非只导出挑中的错误。它不是完整原 result 的字节备份：概率向量和逐步图哈希不复制进本报告，原文件保持在服务器。code_binding 只对导出器及测试代码统一 LF 行尾后求哈希以兼容 Windows/Linux；数据和报告仍按原始字节校验。
+
+`decision_cells` 是八格计数：`prior_correct/prior_wrong` 表示上一决策后的世界相对上一时刻参考是否正确，首步按登记的正确初始世界处理；`reachable/unreachable` 表示本步保存的可选合法候选中是否有完整正确世界；`correct/wrong` 是本步实际持久世界相对本步参考的正确性。它解决把“上一步就有错误”“本步无完整选项”“本步有选项却选错”混为一谈的问题。输入为相邻步正确性和本步保存的可达性，输出为互斥且覆盖所有步骤的格子；例如 `prior_wrong_unreachable_wrong` 是上一步已错、本步无完整正确候选、执行后仍错，不能归成模型面对完整修复选项却失败。参考目标可能随时间变化，`prior_wrong_reachable_correct` 只表示有候选时观察到全图恢复，不证明该操作主动修复了所有原错误。没有完整正确候选也不排除局部修改、分步修复或其他未走过的路径。
+
+`post_error_complete_option_fraction` 用上一刻已错的全部决策作分母，统计本步存在完整正确候选的比例；`observed_recovery_given_complete_option_fraction` 只在上一刻已错且本步存在完整候选的决策中统计恢复比例；零分母均为 null。例如三个错误后决策中两个有完整候选、其中一个恢复，两项分别为 2/3 和 1/2；它们不等于全体步骤的 candidate coverage 或 CTL 的因果纠错优势。各方法进入错误分支和修复机会的分母不同，仅描述原轨迹，不做新的成败检验，不改正式分母，也不把 sibling/seed 当成独立场景。
+
+`by_current_family` 和 `by_selected_template` 将八格按本步场景类型、实际选中事务分层；输入是当前步标签，输出是全部类别的计数，例如在 BIRTH 步发现以前身份错误仍无完整候选，会按当前 BIRTH 步记录，而不是把原错误原因归成 BIRTH。`sequence_counts` 记录至少一次出现对应现象的序列数量：with_prior_error_and_no_complete_option、with_prior_error_and_complete_option、with_reachable_selection_error；这些“曾出现”类别可以重叠，不能相加充当总序列数。模型、seed、配对组和 sibling 均保留，不按事后效果筛选。teacher_error_assessed=false：可达却选错能确认在线选择错误，但仅凭这些字段不能进一步区分 teacher error 与 amortization error，不能用参考轨迹教师正确率补推错误分支。
+
+`verify` 在不访问服务器原目录的条件下，校验同一 confirmation、代码绑定、全部 payload 哈希和序列矩阵，从逐步字段复算时间轴指标、每模型及每架构/方法八格计数和比例。它解决导出损坏、漏组或汇总不一致的问题；输入是封装报告与原 confirmation，输出是 AVAILABILITY_VERIFY_OK。例如少一条 sibling 或有人只改汇总分子，都不能通过。它不等于再次执行或验证候选图，原始字段的真实性依赖 export 时核验的 marker/result 来源。
+
+写入采用独占 partial 文件，完成检查后以不覆盖已有目标的方式安装。导出运行证据在 outputs/m1-s5-availability-export/<code-binding-prefix>/：attempt.json、progress.jsonl、complete.json 或 failure.json；这些不进 Git。每 100 个分片显示进度，完整导出内部复核成功后才写报告及 exit_code=0 完成证据。已存在且通过 verify 的导出直接复用，不重新扫描原分片；不完整尝试或 partial 保留并拒绝自动重开，先检查失败原因，不删除或替换原评测产物。本入口未实现任意多步反事实搜索，也不放行 S6/test。

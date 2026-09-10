@@ -14,7 +14,7 @@
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
 | 阶段 | M1-v7：S5 独立确认已完成，工程 PASS、科学 no-go；当前协议停止向 S6 推进 |
 | 最近结果 | [`m1_v7_d055_s5_confirmation.json`](results/m1_v7_d055_s5_confirmation.json)：200 配对组、50 学生模型、400000 次连续决策；两架构 A−C/A−E 均未通过登记检查。详细效应、CI、seed 与泛化诊断见 LOG-090 |
-| 尚缺 | 全体错误后的逐步候选覆盖及错误分支 teacher 归因尚未汇总；已有案例与全体恢复指标的证据见 LOG-092/093。论文可支持结论整理仍需完成；S6 未运行，当前停止条件下不作为待启动任务 |
+| 尚缺 | 全体逐步选择/候选可达性的只读 export/verify 入口已备齐，等待服务器导出，尚无全体逐步归因结果；错误分支 teacher 归因仍缺。已有案例与全体恢复指标的证据见 LOG-092/093。论文可支持结论整理仍需完成；S6 未运行，当前停止条件下不作为待启动任务 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。D-046 顺序 C weight 搜索按既有逐方法实测路径的最坏 10000-update 外推，两臂总计划约 5.036 小时（非新实测）。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
 | 当前决定 | D-039–D-043 固定 live energy、真实 C10/C11、current/posterior 审计、Pre-LN 双架构和 A–E 对称 12 格。D-044–D-046 的 endpoint、open-fact AUC `40/80`、固定 gate、C 顺序权重和纯 confirmation 保留；D-047 收紧 claim，拆清 online network/shared executor，登记外生轨迹，并把 H3-vs-H1 teacher 对照设为主文必报、无选择无成败门的机制证据。M1 不声称原始 DCR、完整动态记忆或 active navigation；全局 reconciliation、PNO 与 M2 顺序不变 |
 | 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 validation/test。D-043 无额外人工选择；运行时剖析只供用户决定何时租用算力，不改变登记网格 |
