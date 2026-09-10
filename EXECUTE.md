@@ -4,17 +4,17 @@
 
 ## 当前看板
 
-> **2026-09-10 更新（新增接口检查失败已定位）：** 用户报告 follow-on `interfaces` 因 `missing/duplicate sibling pair` 失败。新串行适配器误传一次性 generator，配对预检查耗尽后，实际评测读不到轨迹；已改为可重复打开绑定分片的读取对象。既有固定 probe 不使用该适配器，不受此次错误影响。恢复入口先跑新来源完整测试，再核验并复用旧 GPU 对拍/容量成功产物，只补失败的接口检查；服务器修复后验收 pending。见 LOG-087。
+> **2026-09-10 更新（修正版选参及 refit 导出复核通过）：** `cb13046` 的 checks/budget/refit 三份报告已拉取；358 项全测通过，接口修复实测通过，预算 200 条路径/740 个 checkpoint 观察齐全，60 模型完整重训。逐组复算两架构全部学习率/步数与 C 顺序权重选择一致，模型配置与五 seed 矩阵一致。预算实耗 7484.05 秒，refit 1136.19 秒；validation/test 尚未使用。见 LOG-088。
 
-最后更新：2026-09-10，固定 probe 已复核（LOG-086）；follow-on 接口修复及保留现场的复用入口已实现，尚待服务器执行。正式预算、S5/S6 未因本次修复放行；validation/test 仍封存。
+最后更新：2026-09-10，修正版预算与 60 模型训练已完成并复核导出；下一步 S5 独立 validation confirmation 的新来源入口仍需完成绑定与阶段检查，不能直接使用旧 v6 入口。
 
 | 项目 | 当前事实 |
 |---|---|
 | 方向 | CPMT 具身空间记忆；CTL 是主学习假设，用户希望面向 ML 研究 |
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
-| 阶段 | M1-v7：修正 train 已验收并获准复用；严格检查历史 FAIL，D-053 显式槽位诊断 PASS，D-054 正式评测接线与来源桥接已验证；完整新模型训练、S5/S6 与 M2 未启动 |
+| 阶段 | M1-v7：修正 train、固定 probe、工程检查、两臂预算和 60 模型 refit 已完成；S5 独立验证与 S6 test 尚未运行 |
 | 最近结果 | [`m1_v7_d054_corrected_endpoint_probe.json`](results/m1_v7_d054_corrected_endpoint_probe.json)：201 groups、A/C/E 五 seed、F；exact A/C/E=`0.920398/0.748756/0.382587`，support=`0.932137/0.918196/0.859446`，burden=`9.164179/22.393035/13.159204`。保留 exact，N=1350；固定 anchor 未达到全部效应要求，不是正式成败结论。旧 v6 结果保留作历史证据 |
-| 尚缺 | 接口修复的新来源完整测试、旧成功产物复用核验及新增接口验收、原网格重跑、60 模型 refit、独立确认与正式 test；D-051 数值门与 N 规则保持 |
+| 尚缺 | S5 新来源独立验证入口、固定 200-group confirmation 及其验收；随后 S6 最终冻结和单独 test 解封。D-051 数值门与 N=1350 保持 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。D-046 顺序 C weight 搜索按既有逐方法实测路径的最坏 10000-update 外推，两臂总计划约 5.036 小时（非新实测）。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
 | 当前决定 | D-039–D-043 固定 live energy、真实 C10/C11、current/posterior 审计、Pre-LN 双架构和 A–E 对称 12 格。D-044–D-046 的 endpoint、open-fact AUC `40/80`、固定 gate、C 顺序权重和纯 confirmation 保留；D-047 收紧 claim，拆清 online network/shared executor，登记外生轨迹，并把 H3-vs-H1 teacher 对照设为主文必报、无选择无成败门的机制证据。M1 不声称原始 DCR、完整动态记忆或 active navigation；全局 reconciliation、PNO 与 M2 顺序不变 |
 | 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 validation/test。D-043 无额外人工选择；运行时剖析只供用户决定何时租用算力，不改变登记网格 |
@@ -1071,3 +1071,12 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - 修复只将该适配器改为 `ReplayableAudits`。白话：它解决“检查读过一遍后，正式评测无数据”的问题；输入为固定分片路径与 hash，输出为每次重新读取的同一组审计记录。例如配对预检查读完两条轨迹后，执行循环仍能重新读取两条。它不是复制所有 audits 到每个 worker，也不改变轨迹、候选、标签、模型或统计门。
 - 新 `repair-test` / `repair-adopt` 恢复入口检查与 `ef210c0` 的来源差异仅为本次迭代器替换及新增回归测试；重新运行当前来源完整测试，随后只读核验旧 GPU 对拍、四条容量训练路径、train/probe 输入、退出记录及旧失败的空执行文件。旧目录原样保留，新目录明确记录原执行来源与复用角色；不把旧测试冒充新测试、不自动重新训练、不删除失败分片。若发现不同失败、已有实际执行或后续预算启动，则拒绝此次特定恢复。
 - 本地 4 项读取器/实际核心循环入口回归、5 项恢复验证和 7 项阶段运维回归通过，共 16 项；实际核心循环测试在第二次遍历入口主动停止，不执行真实轨迹。未在本机训练、生成或运行真实 rollout。服务器新版全测、复用核验、串行/分片实测仍 pending；本次不改变科学合同、原网格、N=1350 或验收门，不新增科学 decision。
+
+## LOG-088（2026-09-10）：修正版两臂预算与 60 模型 refit 导出复核
+
+- 从 `4c89e59` fast-forward 拉取服务器结果提交 `cb13046`。三个文件 SHA-256：checks=`727a968e4bc62a3110e1d8f9b9cb2fc7092aa506fe8e77dd6a3c56e3122b0a97`，budget=`0233215aca1b2c46c7a084d90fa11dd46b5ee9f6aa128deec834502a8365c0e7`，refit=`1e9f496edf5a5502fa3c0320594a132eb462f25be173237d87bc522674e47af2`；路径分别为 `results/m1_v7_d054_corrected_checks.json`、`results/m1_v7_d054_corrected_budget.json`、`results/m1_v7_d054_corrected_refit.json`。GitHub 大于 50 MB 的提示为建议性警告，推送已成功，不删除或改写原导出。
+- 三份导出 pass=true，当前 failures/failed_jobs 为空，全部阶段退出码 0，validation/test access=false；旧 iterator 失败保留在 verified_input_adoption，不能将当前空失败表解释为从未发生错误。修复后 358 项全测 failures/errors/skipped=0。新来源为 `5d279f14e2f652e1d9edf94dcdfe61693c02d6012eaf8f308304270a9b7dedf3`。接口检查 202.977 秒，预算 7484.050 秒（2 小时 4 分 44 秒），refit 1136.194 秒（18 分 56 秒）；复用 prepare/capacity 的 0 秒是核验复用记录，不是原执行时间。
+- 预算 799 fit/201 inner-dev，200 条优化器路径、740 个 checkpoint 观察（120 scorer、600 student、20 C 附加）。本地只读取导出的逐组 JSON，以五 seed 组内均值再组间均值独立复算全部 12 个架构/方法的学习率和步数选择，以及 C 在固定计算格的权重选择，均与记录相同；未重新运行 bootstrap 或服务器模型。budget 与 refit 所嵌预算报告完全相同。
+- 选定 `(lr,steps,weight)`：Set Transformer 的 A=`(.0006,3000,1)`、B=`(.0002,10000,1)`、C=`(.0002,3000,10)`、D=`(.0006,3000,1)`、E=`(.002,3000,1)`、scorer=`(.0006,1000,1)`；MLP 的 A=`(.002,3000,1)`、B=`(.0006,10000,1)`、C=`(.0006,10000,10)`、D=`(.0002,10000,1)`、E=`(.002,3000,1)`、scorer=`(.002,10000,1)`。按原规则接受 10000 触顶，不扩搜索网格，不按结果择优架构。
+- refit 两架构×六角色×五 seed=60，模型条目无缺失/重复；逐项核对 full-train 1000 组、mode=refit、学习率/步数/权重与已选设置一致。所有 refit checkpoint 的 inner_dev=null、inner_dev_independent=false，未将全 train 重训后的内部成绩冒充独立泛化指标。本地未持有服务器权重，权重实际文件核验依赖服务器 exporter 所记录的完成证据；此次不是重新执行训练。
+- 科学结论边界：本轮支持工程链路、预算选择及模型产物完整，不等于 S5 独立确认或 M1 go。下一阶段需绑定当前登记和权重的新 S5 confirmation 入口，旧 v6 验证入口不能直接复用；test 未解封，N=1350 与既有门保持。未为本次结果另设科学 decision。
