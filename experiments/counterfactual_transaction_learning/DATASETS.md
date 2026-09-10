@@ -6,13 +6,15 @@
 
 1. M0：12–30 个可审计 graph fixtures；
 2. M1：程序化 paired latent worlds；
-3. M2/M3：一个 embodied simulator 主数据源和一个 external/现实来源。
+3. M2/M3：原提案是一个 embodied simulator 主来源和一个 external/现实来源；D-058 允许优先从公开实采具身序列接入 M2，正式来源尚未冻结，M3 仍需独立外部验证，不能复用同源开发样本冒充未见来源。
 
 不增加第二个非具身应用领域。
 
 ## 必需字段
 
 world_seed、paired_group_id、split、observations、poses、actions、visibility、prior world、candidate programs、oracle equivalence、future evidence、protected IDs、generator version。
+
+上列是原程序化/模拟器合同字段。D-058 的实采适配须改用真实 scene/sequence/frame 标识和采集来源；没有 world_seed、动作日志或唯一参考事务时显式标为不适用/不可用，不虚构对应字段。旧记忆与候选由在线系统形成，不从标注完整图转换得到。新字段设计见 M2_DESIGN.md。
 
 online export 物理删除 future、oracle 和 hidden state。
 
@@ -47,6 +49,19 @@ paired group、world seed、asset family 和同源轨迹不跨 split。validatio
 - 不能从缺少标注直接推断对象消失；歧义/漏标/无法建立的事务应保留并报告。
 
 ## 数据适配验收规格
+
+### D-058 公开实采接入的来源比较（proposed）
+
+| 来源 | 可用于什么 | 必须处理的限制 |
+|---|---|---|
+| 3RScan | 已有提案中的标定 RGB-D、位姿及同场所变化后的重访，优先考察身份/位置修订的小样本接口 | 跨扫描有采集空档，不能虚构连续搬运轨迹；实例对应/对象变换只供独立审计。跨扫描参考对齐若用作固定 pose 条件须明示特权来源，不从完整重建初始化在线旧记忆 |
+| Aria Digital Twin（ADT，Aria 数字孪生数据集） | 实采眼镜视频中的动态活动，用于连续观测和对象变化的候选来源 | 官方同时提供实采与合成图像，以及真值派生深度、设备/对象轨迹；它们不能混称传感器输入。只有两个场所且动态对象共享，不足以仅靠随机序列切分声称广泛的未见场景/对象泛化 |
+
+白话：这项比较解决“公开数据哪部分真正提供新观测、哪部分其实是答案”的选源问题。输入是官方字段说明，输出是接入候选及来源限制。例如 3RScan 的 RGB-D 可形成当前观测，跨扫描对象 ID 用来检查记忆是否认对；它不是已经选定或下载的数据，也不保证任何来源覆盖全部事务。依据：[3RScan 官方字段](https://github.com/WaldJohannaU/3RScan)、[ADT 官方概览](https://facebookresearch.github.io/projectaria_tools/docs/open_datasets/aria_digital_twin_dataset)、[ADT 文件及真值格式](https://facebookresearch.github.io/projectaria_tools/docs/open_datasets/aria_digital_twin_dataset/data_format)（2026-09-11 查阅）。具体观测/记忆/教师/审计接口及干预检查见 M2_DESIGN.md 的 D-058 小节。
+
+3RScan 的[官方获取入口](https://waldjohannau.github.io/RIO/#)要求填写 Terms of Use 表单；获取资格与具体下载指令落实后，再准备服务器按训练场所下载的小样本阶段。不能把公开代码可读说成原始数据已经可下载或本机已有副本。
+
+### 共同检查
 
 本节规定接口应满足什么，不维护当前任务顺序、规模或完成状态；这些只在 [实验记录](../../EXECUTE.md)。
 

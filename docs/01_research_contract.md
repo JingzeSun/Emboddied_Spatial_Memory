@@ -90,6 +90,8 @@ REPLACE 是 RETRACT+BIRTH 的复合程序。QUARANTINE 是低置信度 wrapper�
 
 M0 executor fixtures → M1 hard-condition → M2 embodied visual self-rollout → M3 one external/real validation。
 
+D-058（2026-09-11）按用户明确转向，允许在 M1 no-go 保留的情况下先开展独立的 M2 公开观测接入，替代该接入阶段的 M1 成功前提。此为事后登记的新阶段选择，不是 M1 通过；完整视觉学习与 M3 的独立来源仍须另行冻结，原 M1 test 不解封。
+
 任何阶段均区分 planned、implemented、validated、failed。数值 gate 在正式 test 前冻结。
 
 ## M1 合成证据与 M2 传感器证据的边界
