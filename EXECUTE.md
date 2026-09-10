@@ -1119,3 +1119,17 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - 已知现象是同场景跨训练 seed 的方法胜负反转，以及部分运行早期出错后世界始终未完全恢复。尚不能断言某个 BIND/MERGE 等事务导致失败、同一条错误事实持续全部 20 步、或 CTL 本身缺少恢复能力。须从原服务器已保存的 execution.jsonl.gz 对齐 group 69、seed 7/19、A/C 的 8 条完整序列，检查首错候选、模型概率、实际提交及后续修复候选；优先区分 candidate miss、可用候选上的模型选择错误和执行状态问题。教师排序若未被原轨迹记录，不能凭 reference-history teacher=1 补推错误分支教师正确。
 - 本轮未读取服务器原始逐步轨迹，因此上述机制归因仍待证据；不启动新实验，不改变 LOG-090 的科学处置。
 - 为上述只读提取交付 `ops/export_m1_s5_case.py`：锁定原 S5 导出 SHA，从报告查找四个真实 shard 路径，核验完整文件哈希、逐例指标、八条 20 步轨迹、状态链及共同参考审计；原始 result/execution/reference 文件无损 gzip+base64 封装到 `results/m1_v7_d055_s5_case_group69.json`。只读既有产物，不导入模型或 executor；失败不重跑、不覆盖已有不同导出。3 项微型磁盘测试通过，覆盖完整提取和字节还原、复用/拒绝覆盖、篡改/配对不符、缺失决策拒绝；服务器真实提取尚待执行。
+
+
+## LOG-092（2026-09-10）：group 69 完整轨迹分析，首步身份误修与后续候选恢复边界
+
+- 消费服务器案例导出 `results/m1_v7_d055_s5_case_group69.json`（提交 `637fe7e`），核验 gzip/base64 解码后的原始文件 SHA、四个完成标记、参考审计、来源 S5 报告及 8 条/160 步完整矩阵。本地只对已有图和候选结果作比较，不加载模型、不调用 generator/executor、不访问 test、不搜索未发生的替代多步分支。`ops/analyze_m1_s5_case.py` 生成 `results/m1_v7_d055_s5_case_group69_analysis.json`；只保存本次派生差异及来源 hash，不重复嵌入原始轨迹或上游报告。
+- 全部 2560 个候选槽位按原 active-world 语义比较；逐步正确标记和候选 exact reachability 与原轨迹相符，8 条序列的 open-fact burden 与原指标逐一一致。每条 sibling 的首次 online 输入在四个模型之间完全相同，不能把首步胜负归于输入/候选不同。
+- 第一次决策是 C06：原参考要求 REPLACE，当前实现是撤回旧位置关系并创建新实体及其位置关系（不是物理删除旧节点）。具体原关系为 `entity:replace-old -> place:1`，参考将其关闭并建立 `candidate:...event:03:current:replace -> place:4`；错误 RELINK 则建立 `entity:replace-old -> place:4`。两个程序均合法且可选，REPLACE 是唯一能当步达到参考 active-world exact 的候选（index 5）；错误 RELINK 为 index 4。
+- 首步 `(P(REPLACE), P(错误 RELINK))`：A seed 7=`(0.8303743005,0.1499751955)`；C seed 7=`(0.0234276634,0.9734008312)`；A seed 19=`(0.3620305657,0.5962856412)`；C seed 19=`(0.9914267063,0.0083800228)`。两条 sibling 的首步概率相同。它们是模型输出概率，不是已经校准的正确概率；不能据四个点宣布校准优劣。
+- 首步参考解析 teacher 正确选 index 5，posterior=0.9554073851，对 index 4 为 0.0031752211。由于此刻实际 base 与参考 base 相同，首步可排除“正确候选不存在”和“该参考 teacher 排错”作为失败原因；A seed 19 是学生选择/监督摊销误差，C seed 7 是在线选择错误。不能据此进一步断言训练优化还是表示能力导致，也不把这份参考 teacher 当成 C 自身的损失目标或 E 的 learned teacher。
+- 四条首步失败序列（C seed 7 两条、A seed 19 两条）均保留上述同一额外位置事实、缺失同一正确位置事实到第 20 步，新 replacement 节点也一直缺失。从第 2 至第 20 次决策，在实际到达的 base 上，全部可选合法候选均无法恢复完整参考活动世界，且无一个候选能创建原参考要求的 replacement 节点，共 76/76 个后续决策。源码的 birth/replace ID 由当前事件 evidence ref 构造，见 `m1_rollout.py` `_proposal_context`；该首事件节点错过后，后续实际候选没有补建它的入口。这是实际路径上的一步恢复边界，不证明所有未探索多步路径都不可能恢复，也不涉及真实视觉物体的身份等价放宽。
+- 不能概括为“后续没有任何修正候选”：第 6 次决策存在 RETRACT（index 3）可移除原错位置边，和 RELINK（index 5）可改变该边；二者仍不能补齐缺失的新实体/正确关系，而且该步参考任务为 BIRTH，选它们会漏掉当步新节点。它们不是完整修复机会，不能只以 edge burden 较小就宣布更好策略；本轮不按事后指标重新选动作。
+- 另一类错误确实得到修复：登记歧义 pivot 为 step_index=2（第 3 次），紧接着 step_index=3 提供可见的 mover 位置回访。A seed 7 sibling 1 错把 mover 从 place:4 移到 place:0，下一步以 RELINK 移回 place:4，选择概率 0.964517653；C seed 19 sibling 0 在该移动时选 NOOP，下一步以 RELINK 补移，概率 0.999371350。C seed 7 sibling 0、A seed 19 sibling 1 也修好了这一 mover 错误，只是首步 C06 错误仍在，因此全图 exact 仍为 0。故不能从全图未恢复推出模型对后续位置错误完全没有纠错能力。
+- 负担的逐事实分解：四条首步失败序列各有同一 extra+missing 两个位置事实跨 20 步持续，对各条 burden 贡献 200；四条总 burden=820，其中 800（97.56%）来自这一首步遗留，余下 20 来自两条各一次的短暂 mover 错误。这是对已发生轨迹的加法分解，不是重跑干预后的因果效应。成功的两模型各为 burden 0/10，方向依 sibling 而异。final active exact 不等于证据支持也全部正确，不混同 support 指标。
+- 解释修正：LOG-091 的 seed 反转成立，但“未恢复”的原因现在细分为首步可避免的模型误选 + 后续实际候选缺少完整身份修复选项；专门设计的 C08 位置回访恢复在 A/C 上均可成功。该例不支持 CTL 独有恢复优势，也不能推广为全部 M1 错误不可恢复。参考轨迹 coverage=1 不等于错误分支 recovery coverage=1；当前证据未显示非法事务被错误提交或 executor 执行偏离所选程序。既有 S5 no-go 不因本案例而改判，未修改候选、指标、门槛或训练预算。
