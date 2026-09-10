@@ -48,7 +48,7 @@ M1 失败时停止扩模型，不通过增加表征或任务寻找正结果。
 
 2026-09-11 用户明确转向的例外见 docs/DECISIONS.md D-058：保留 M1 no-go 与 test 封存，允许独立开展 M2 公开观测接入；不把接入或新阶段结果当作旧 M1 通过。具体训练仍须先固定新阶段的方法、数据与预算，不授权按结果扩模型。
 
-D-059 进一步授权先审真实数据，再彻底重构新协议 M1；完整计划及当前指针仅维护在 experiments/counterfactual_transaction_learning/M1_V2_CLOSEOUT_FLOW.md。用户明确要求把关代码：科学改动按单一职责交付可读提交、输入输出例子和必要服务器测试，用户审过后才合并为新科学基线或运行依赖的效果实验，不在未审模块上堆叠后续科学代码。旧 M1 负结果及产物保留；当前计划交付不等于后续科学合同/预算自动冻结。
+D-059 进一步授权先审真实数据，再彻底重构新协议 M1；完整计划及当前指针仅维护在 docs/PLAN.md。用户明确要求把关代码：科学改动按单一职责交付可读提交、输入输出例子和必要服务器测试，用户审过后才合并为新科学基线或运行依赖的效果实验，不在未审模块上堆叠后续科学代码。旧 M1 负结果及产物保留；当前计划交付不等于后续科学合同/预算自动冻结。
 
 ## 实现与实验
 
@@ -84,15 +84,13 @@ D-059 进一步授权先审真实数据，再彻底重构新协议 M1；完整�
 - schema/code 中使用英文标识，但对应 README 或合同必须给出中文解释。
 - 若概念尚未实现或验证，白话说明也必须明确标记 proposed/planned，不得用叙述造成已经成立的印象。
 
-## 文件保护与决策
+## 文件职责与保护
 
-- docs/source/full_technical_vision.txt、prototype 原始图/PDF、notes.txt 和论文 PDF 是 source artifacts，不覆盖、不删除。
-- 历史 PPT/脚本只作 provenance；冲突时以 README、EXECUTE 和活动实验合同为准。
-- 未实现内容只能标 planned；fixture/unit test 通过不等于方法有效。
-- accepted 方法变化必须追加 docs/DECISIONS.md。
-- 实验/架构结果只记在 EXECUTE.md：顶部当前看板可更新；只有产生实验结果、架构代码实质变化或需要保留的失败 run 时才追加历史 LOG。M1-v2 的阶段顺序、当前指针、转向和终止条件只维护在 experiments/counterfactual_transaction_learning/M1_V2_CLOSEOUT_FLOW.md，它不复制实验结果。新对话先读流程当前指针，再读 EXECUTE 看板与最新 LOG。
-- 不按每个对话创建交接、STATUS、TODO、周报或结果 Markdown；M1_V2_CLOSEOUT_FLOW.md 是 D-035 明示批准的唯一阶段流程例外。不把同一进度复制到 README、人工确认首页或词典。
-- README 是稳定介绍，NEW_CHAT_HANDOFF_PROMPT 是固定跳转，human_confirmation 是表单索引；它们不再维护实时状态。
-- 普通讨论、状态问答和未形成结果的日常调试不要求追加 LOG，也不另建进度文件；若产生实验结果、架构变化或需保留的失败 run，只写 EXECUTE.md。实际改变重要方法、预算或流程才追加 DECISIONS，并按需修改对应合同；不要给每轮聊天分配 D 编号。
-- 新代码、测试、机器 run 产物仍按工程需要保存；配置/权重/逐例指标不塞进 Markdown。只有新内容确实无法归入既有职责，或用户明确要求独立交付时才新建文档。
-- 历史结果和旧周报保留为当时快照，不继续追写；不得把历史“下一步”覆盖当前看板。详细方法合同/文献仍按需阅读，非并行路线图。管理规则以 D-029 为准。
+- 日常入口仅 README；工作规则在本文件；完整计划、阶段和当前指针只在 docs/PLAN.md；方法和中文术语解释只在 docs/METHOD.md；数据来源/字段只在 docs/DATA.md。
+- 实验结果、架构实质变化、需保留失败及主张证据只写 EXECUTE.md，顶部看板可更新。重要方法/预算/流程变化追加 docs/DECISIONS.md；普通讨论不逐轮创建 LOG 或 decision。
+- 新对话先读 docs/PLAN.md 当前指针，再读 EXECUTE 看板和最新 LOG。不再创建单独 handoff、STATUS、TODO、周报、确认表或词典；用户需要独立对外交付时例外。
+- D-060 按用户明确要求重组并删除重复文档；旧细分合同、确认表、模板和两套方案副本在 c24ced2 Git 历史可查，不重新建 archive 副本。仍存在的旧 M1 合同/结果快照及历史代码说明只代表当时版本，不覆盖新计划。
+- docs/source/full_technical_vision.txt、prototype 原始图/PDF、notes.txt、论文 PDF 和原始资料不覆盖或删除；文献笔记保留。科学源码、schema、配置、fixtures、run 结果和服务器 outputs 的清理必须先检查复现依赖。
+- 已完成运行按原 code/data/config hash 复用；新代码不能冒用旧回执。源码 hash 可能包含 src/scripts/tests 目录内 README，不能因整理文档而随意改这些字节。
+- 新科学代码逐职责形成可审提交、具体输入输出和必要服务器测试，用户审过后再合并为新科学基线或运行依赖效果实验；测试通过不等于方法有效。
+- 未实现内容标 planned；数据、权重和逐例机器结果按工程职责保存，不塞进 Markdown，也不为每个对话新增进度文件。

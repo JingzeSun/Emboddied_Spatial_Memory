@@ -1,0 +1,163 @@
+# CPMT 方法合同
+
+本文件集中维护研究问题、术语、记忆、事务、教师、对照和评价。步骤与审查节点只在 [PLAN.md](PLAN.md)，来源与字段只在 [DATA.md](DATA.md)，结果与主张状态只在 [EXECUTE.md](../EXECUTE.md)。
+
+**实现边界：** 旧 M0/M1 已有代码与实验；新数据接口、数值 latent 修订及完整视觉系统仍为 planned。旧运行以[原 M1 合同](../experiments/counterfactual_transaction_learning/HARD_CONDITION_EXPERIMENT.md)、配置及原提交为准，本文不回改旧实验。
+
+## 研究问题与范围
+
+完整方法是 Counterfactual Projective Memory Transactions（CPMT，反事实投影记忆事务），核心机制是 Counterfactual Transaction Learning（CTL，反事实事务学习）。唯一问题：**执行候选修订后形成的事后监督，能否比直接未来损失更可靠地学习在线世界记忆修订？**
+
+白话：输入是旧世界记忆和新到达的观测，输出是保留或修订后的世界。例如椅子移动后应改位置且保留无关桌子的记忆；这不是只识别图片，也不预设每个新向量都是新物体。
+
+首篇只做 embodied spatial memory，固定 backbone、depth、pose、region proposals 和确定性候选器，允许固定/轻量投影。不加 learned candidate generator、主动消歧、动作策略、第二领域、端到端基础模型或大规模导航。executor、KL 损失和事务标签不能单独当创新。
+
+新 M1 可以依据真实数据重构，旧 M1/S5 no-go 保留；阶段顺序和用户代码审查遵循 PLAN。重构不解封旧 test，也不预设 CTL 会获胜。
+
+## 新观测怎样影响旧 latent
+
+| 对象 | 定义与例子 | 边界 |
+|---|---|---|
+| observation region | 一次图像中的区域、mask 或 patch 支持，例如本次看到的椅背 | 不自带跨帧真实身份 |
+| observation latent，z | 冻结前端对一次区域的编码 | 新到达不等于新实体 |
+| world node | 系统维护的持久身份、几何、证据和版本 | 不从数据集完整真值图初始化 |
+| canonical world latent，m | 节点从已归属观测形成的世界表征 | 不等于某一张照片或目标 ID 的哈希 |
+| evidence / latent refs | 指向具体观测或表示的可追溯引用 | 合并引用列表不等于学会向量融合 |
+
+一次观测可以支持旧节点、改变位置、揭示新身份或进入待定记忆。结构/引用修订与数值修订分别评价；旧 M1 主要覆盖前者。不能先把新观测混入旧向量，再决定它属于谁。
+
+拟议数值流程：候选在不可变旧世界上独立分配证据、形成对应表示，仅选中且成功执行的版本持久化。实际数组/张量也不能共享可写缓冲区；缓存引用绑定内容 hash。撤回错误绑定、SPLIT/MERGE 后按登记规则重分配证据并重计算表示，不只修边而留下被污染的向量。此能力仍待实现验证。
+
+白话：输入是旧档案和本次证据，输出是可追溯的新版本。例如误混了另一把椅子的特征，修复时检查证据归属和表示两层；向量变化幅度大不自动等于语义损伤，正确修订也可能改变表示。
+
+## 投影表示与视觉前端
+
+Projective Node Orbit（PNO，投影节点轨道）是固定/轻量表征基础：输入世界节点 m、视角 T 和可见性，输出可与当前区域 z 比较的预测。
+
+\[
+z_{t,i}\approx\Pi(T_t,m_j),\qquad
+\mathcal O(m_j)=\{\Pi(T,m_j):T\in\mathcal T_{\mathrm{reachable}}\}.
+\]
+
+这表示同一椅子换观察角度，仍应由同一个世界节点解释；轨道不是机器人路径，也不要求生成未来 RGB。
+
+前端拟保留 feature、support、depth、camera ray、pose、visibility 和 uncertainty。Local Structural Chart 指局部结构坐标表达：输入区域几何，输出可比较的局部坐标，例如转向时分别表达两侧墙面；它不把消失点直接当世界坐标，具体实现 planned。未知表面/不可靠几何应输出 unknown，不能把未见背面当作不存在的反证。
+
+固定 DINO-family 的具体 checkpoint、区域提议和投影/transport 规则在数据审查后选择。更强容量只在信息可用而拟合不足等具体诊断后提出，并给 A–E 同等条件。大型视觉语言模型不默认作事务决策核心，其输出也不能作未经核验的真值。
+
+拟验证对照包括 Exponential Moving Average（EMA，指数移动平均）/均值、去掉区域几何、pose/depth transport 或 visibility，以及 PNO。输入相同观测，输出不同表示的跨视角表现；它检验收益是否来自表征，不能把全部改善归于 CTL。
+
+## 事务、生命周期与原子执行
+
+事务输入旧世界和证据，输出合法新版本或原子拒绝。例如 RELINK 移动同一身份，REPLACE 则建立另一个身份，二者不是同一修改的两个名字。
+
+| Intent | Template | 语义 |
+|---|---|---|
+| PRESERVE | NOOP | 持久世界不变 |
+| ASSOCIATE | BIND | 给 candidate/confirmed 关联证据，不创建身份 |
+| ASSOCIATE | REACTIVATE | dormant 身份打开为 confirmed 新版本 |
+| EXPAND | BIRTH | 建立 candidate 身份；首次看见不等于物理刚出生 |
+| REVISE | RELINK | 保持身份，关闭旧关系版本并打开新关系 |
+| REVISE | RETRACT | 关闭被可靠反证否定的事实/边，保留身份与历史 |
+| REVISE | SPLIT | 关闭错误混合身份，建立至少两个 successor，证据恰好一次分配 |
+| REVISE | MERGE | 合并重复档案证据，保留 canonical 与其他身份的 alias 历史 |
+| COMPOSITE | REPLACE | 有序 RETRACT→BIRTH→ADD_EDGE，保留旧身份，不偷换成 RELINK |
+
+生命周期与版本结束时间分开：candidate 待确认；confirmed 已确认；dormant 暂不活跃但可重激活；retracted 已否定且不能直接复活；alias 指向 canonical。valid_to 只关闭一个版本，同一身份同一时刻至多一个 open version。
+
+既有 D-019–D-025 约束需在重构时显式兼容审查：BIRTH 不自动 confirmed，升级由 program 显式执行；独立 BIND 支持可促成确认，重复 time/view 证据保留但不重复增加独立权重。SPLIT 不向 successor 直接复制旧 aggregate latent。MERGE 按最早 valid_from、再按 ID 排序选 confirmed canonical，其他 source 新版本成为 alias。普通 node-level RETRACT 尚未实现，不能把 visible-empty 当身份从未存在。
+
+旧 M0 的可靠缺席要求至少两条不同 time/view 的 online visible-empty、有效 pose/depth、可靠度达标且中间没有正观测；新数据阈值另行审查。白话：遮挡、视野外、漏检不等于“那里确实空了”，不能一次没看到就删除身份。
+
+Primitive operations 是程序的基础写操作：ASSERT_PRECONDITION、CREATE_NODE、OPEN/CLOSE_NODE_VERSION、ADD_EDGE、CLOSE_EDGE_VERSION、ATTACH/MOVE_EVIDENCE、SET_CANONICAL_ALIAS、SET_LIFECYCLE、RECORD_PROVENANCE。它们将事务编译为受检查的顺序，不允许物理 DELETE。
+
+\[
+S_t^{(u)}=\operatorname{Execute}(\operatorname{Clone}(S_{t-1}),u).
+\]
+
+每个候选都从同一旧世界独立开始，前一个候选不能改变后一个候选的起点。
+
+Versioned Deterministic Executor（版本化确定性执行器）检查 base version、precondition、引用、intent/template、生命周期、保护范围、provenance、幂等性与原子回滚。同输入/config 得同结果 hash；无梯度、不读未来，失败不得半写入。它保证修改被正确执行，不保证模型选得正确。
+
+## 暂存与保守等价
+
+QUARANTINE 是低置信度提交 wrapper，不是世界事务。输入暂不足以提交的证据，输出独立 pending 记录；例如模糊椅背先保留检索线索，之后再关联。它不修改 persistent world；NOOP 是选择无需修改。
+
+Pending Memory Manager 保留弱证据、粗略表示、来源、假设和独立性权重。只在相关且可能消歧的观察机会计数；多次仍未解决可归档但可检索，消费须保留全部 evidence 与 consumed_by_transaction。旧 M1 固定 gate 与新视觉策略分开，不把通用 wrapper 说明冒充旧运行实际策略。
+
+Canonical memory-state equality 是保守状态相等：输入同一 base 后两份世界及允许的身份映射，输出是否相同。例如只改新内部 ID 名字可比较，证据归属或历史不同不能只因 active graph 相同就合并。
+
+既有对应合同：锚定/未声明身份固定；exchangeable 身份仅在显式集合内双射；新 local ID 可重命名但不能映到旧身份。映射后生命周期、事实、版本历史、evidence/latent 归属、protected 与 pending 一致。未来投影相似只用于评分，不定义世界等价；评价可只比较可判断语义子集，但另报证据/历史差异。
+
+## 候选与在线提交
+
+确定性候选只读取允许的当前观测与自身旧记忆。合法外观、几何、证据配对可以使用；内部 ID 只作寻址，不把正确目标、真值颜色、参考事务参数或其哈希编码成 query。旧 M1 的 reference_spec→query→候选/编码通道不复用于新协议；只去掉学生的 merge_queries 不足以修复仍依赖它的候选器。
+
+K、排序、去重、不可用槽位、完整/部分修复机会在新协议单独登记，不为保证正确候选出现而补答案。保护 scope/mask 的上游来源同样审查。
+
+拟议部署路径：固定候选与静态预检→网络选择→执行选中事务→新版本；训练/评价审计可展开全部候选。旧 M1 共享生成器执行过分支做 canonical 去重，不能据“网络不读 post-world”宣称整个系统只执行一次。新旧候选、mask 和提交结果需等价检查，系统成本不能只记网络前向。
+
+Global reconciliation（全局记忆协调）是 M2 明确保留的慢速修订：输入截至当前已积累的证据、版本历史与相关子图，输出同一执行器接受的跨对象/较长历史补偿事务。例如快路径把同一椅子建成两个档案，后续重访支持 MERGE 并修订相关关系；它不是主动寻找新视角，也不回填过去正确性。实现仍 planned，具体步骤为 PLAN 的 29a–29d，不能把该能力从 M2 完成清单省掉。
+
+三种过程分开：离线事后教师利用训练序列中已知的后续观测形成监督；在线快路径用当前观测即时提交；在线慢路径利用截至复核时刻的累计证据重新检查历史。慢路径不能读取尚未到达的未来，也不自动等于在线更新网络参数。
+
+慢路径先冻结触发、截止时间、历史范围、候选预算和失败策略。若后台计算期间快路径已改变 base version，提交前必须拒绝过时结果或按登记规则重算，不能覆盖新提交。恢复同时检查事实、证据归属和数值表示，旧错误及其持续时间仍留在评价中。
+
+公平比较包括 A/C/E 各自有无同一慢路径规则，并记录实际触发次数、等待时间及全部计算。不同自身状态可能导致不同触发，不能伪称每条轨迹机会相同；必要时在配对快照上固定证据/机会诊断。快慢双路径本身不独立包装成 CTL 创新，额外证据和算力的收益不能全部归给监督机制。
+
+## 事后教师与在线学习
+
+Hindsight teacher（事后教师）输入执行后的候选世界及当前/后续观测，输出监督分布。例如后来清晰可见的空位支持关闭旧位置关系；它不是在线预知未来，也不是直接读取正确对象 ID 的对应器。
+
+\[
+E(u)=\lambda_nD_{now}(u)+\lambda_fD_{future}(u)
++\beta C_{edit}(u)+\gamma C_{growth}(u)+\eta C_{collateral}(u)+I_{illegal}(u).
+\]
+
+分别衡量当前解释、未来解释、修改量、增长、连带影响和非法性，一个总分不能代替六项记录。
+
+now/future 对可用观测评分；edit/growth 属预登记正则；collateral 检查非必要范围的影响；illegal 排除非法候选。每项保存原始值、numerator/denominator、mask 和权重。visible-empty、occluded、out-of-view、unknown 分开。未来物体再次变化须用声明的推进/对应规则处理，不能重放正确后续事务，也不能暗用真值身份。
+
+\[
+p^*(u)=\frac{\mathbf1[u\text{ legal}]e^{-E(u)/\tau}}{\sum_v\mathbf1[v\text{ legal}]e^{-E(v)/\tau}},
+\qquad \mathcal L_{CTL}=KL(\operatorname{stopgrad}(p^*)\Vert q_\theta).
+\]
+
+教师对更能解释观测的修订赋更高权重，学生拟合该比较；创新假设在目标从执行后世界形成，KL 只是实现手段。无合法候选须显式失败或执行已定义 wrapper，不伪造概率。
+
+学生只读截至 t 的观测、旧记忆和候选，不读未来、post-world 正确性或真值。人工事务标签单列预算；多个有效候选按已审查集合标签处理，不强制唯一参考索引。新教师/标签规则待审，旧损失以原配置和源码为准。
+
+## 对照、训练与评价
+
+| 方法 | 监督职责 |
+|---|---|
+| A：CTL | 执行后候选世界形成当前/未来监督 |
+| B：Direct classifier | 直接事务标签 |
+| C：Direct + future loss | 不读取候选 post-world 的直接未来辅助目标 |
+| D：Execute current-only | 执行候选，教师去掉 future |
+| E：Future scorer without execution | 不执行候选 post-world 形成预测目标，学习未来评分并监督在线选择 |
+| F：Oracle | 独立审计答案下的候选上界，不是可部署模型 |
+
+A–E 共享前端、在线字段、候选机会、分组和合理参数/调参预算；C/E 有同等可用未来观测和合理容量。E 的额外 scorer、A 的执行、C 的辅助目标均计成本。相同学习率不等于充分公平。
+
+训练顺序是开发组选参→锁定配置→完整训练/保存加载核验→独立确认。Teacher-forced 输入参考历史，自身状态 self-rollout 承受此前错误，分别评价；自身状态训练若使用，只来自训练数据并单独登记。
+
+拟议标签效率为 0%/1%/10%/100% 事务标签：同一观测和固定语言/执行器下，输出不同人工标签量的表现。例如 0% 仍用未来观测和结构先验，不称完全无监督。
+
+| 评价 | 含义和边界 |
+|---|---|
+| candidate miss | 实际候选无正确修订，不算学生错；未知答案另列 |
+| teacher / amortization error | 正确候选存在时，分别检查教师和学生的选择 |
+| 语义与证据正确性 | 位置对但证据绑定错另计，内部编号不同不直接等于世界错 |
+| 完整/部分修复机会 | 撤错边却补不回节点只算部分机会，不推出所有多步路径不可能 |
+| 错误持续负担 | 累计 extra/missing 事实，终点修好不抹掉前面错误；未知实际时间按决策次数计 |
+| 无关损伤、增长、恢复 | 检查不应变部分、多余节点、恢复分母；无机会写 null，向量变化大不直接等于损伤 |
+| 成本 | 完整系统时延、存储、教师/学生训练和实际失败 |
+
+评测器读独立审计真值，不用教师能量作正确性。active-world、open-memory、历史 exactness 和程序索引分别解释；主要指标、安全条件、A−C/A−E 和多重检验在新确认前冻结，不直接套用旧数值。按场所/真实独立组配对，帧与 learner seed 不能扩充独立样本数。
+
+A 与 C/E 无可靠差异时不支持执行后监督独特优势；覆盖低先查候选器，教师好学生差查学习，单步好连续差不支持长期记忆。教师分布变化不等于学生收益，表征改善不全归 CTL。负结果、歧义和失败保留，论文主张见 EXECUTE 的证据表。
+
+## 历史原文
+
+现存源码、schema、fixtures、配置和报告保持原路径；旧运行继续绑定原提交。[开发合同](../experiments/counterfactual_transaction_learning/DEVELOPMENT.md)、[首轮结果](../experiments/counterfactual_transaction_learning/DEVELOPMENT_RESULTS.md)及旧 M1 合同保留。已合并的细分文档、确认表和旧方案副本可在[重组前提交](https://github.com/JingzeSun/Emboddied_Spatial_Memory/tree/c24ced2f4a5513f5a8944b98139857cfc27909ff)查看，其“下一步”不再作活动指令。

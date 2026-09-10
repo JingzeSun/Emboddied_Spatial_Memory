@@ -62,7 +62,7 @@
 | E | Future scorer without execution | 否 | 是 | 否 |
 | F | Oracle candidate/program | 是 | 是 | 是 |
 
-表中“执行候选”描述各方法的监督或上限构造，不表示共享候选生成与审计 runner 的系统调用次数。当前实现的执行边界和合成参考信息见 [研究合同](../../docs/01_research_contract.md#方法角色)。
+表中“执行候选”描述各方法的监督或上限构造，不表示共享候选生成与审计 runner 的系统调用次数。当前实现的执行边界和合成参考信息见 [研究合同](https://github.com/JingzeSun/Emboddied_Spatial_Memory/blob/c24ced2f4a5513f5a8944b98139857cfc27909ff/docs/01_research_contract.md#方法角色)。
 
 ## 公平性
 

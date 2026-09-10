@@ -1,91 +1,32 @@
-# 实验记录与当前进度
+# 实验记录与证据
 
-本文件是 embodied_spatial_memory 的唯一实验/架构进度记录，复用原 EXECUTE.md，不再按新对话创建文件。当前看板可更新；只有实验结果、架构实质变化或需保留的失败 run 才追加历史 LOG，普通对话不逐轮记录；管理规则见 D-032。
+本文件只维护实际结果、失败和主张证据；阶段计划与下一步见 [docs/PLAN.md](docs/PLAN.md)。新实验、实质架构实现或需保留的失败追加 LOG，普通讨论和文档整理不新增实验 LOG。
 
 ## 当前看板
 
-> **2026-09-10 更新（S5 完成，科学门未通过）：** 已拉取 `ea6859e` 的 data/confirmation 导出并复核。369 项全测、200 组数据健康、50 模型完整评测与 F 通过；24 组效应/CI 独立复算一致。主架构 A/C/E exact 为 0.9205/0.8980/0.5200；A−C support 仅 +0.001911，burden reduction +0.690，其 CI 上界远低于登记门。两架构均未通过主比较；触发既有 S5 no-go 停止条件，S6 不放行。这是 S5 确认结论，不冒称 S6 test 结果。详见 LOG-090。
-
-最后更新：2026-09-11，LOG-102 已拉取并复算 D-057 两 seed、18 学生/6 scorer、5760 次连续决策导出。CTL 角色版相对同宽度补零版的平均错误事实 AUC 降约 17.51%，但终点 active exact 从 31.25% 降到 25%；C06 混淆减少，C08 新增反向错误。这是混合的短预算信号，不认定角色版整体胜出，不自动加 seed/训练步数。原 S5 no-go 与 test 封存保持。
-
-LOG-103 补充：不同架构/数据/选参条件不能当作大小预算的过拟合对照；登记样本与生成 seed 分离，但 reference 参数派生 query 的间接信息通道真实存在。未直接读取 reference/test 的接口检查不等于排除了目标代理特征，现有程序化结果的主张边界须明确。
-
-| 项目 | 当前事实 |
+| 事项 | 已知事实 |
 |---|---|
-| 方向 | CPMT 具身空间记忆；CTL 是主学习假设，用户希望面向 ML 研究 |
-| 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
-| 阶段 | M1-v7：S5 独立确认已完成，工程 PASS、科学 no-go；当前协议停止向 S6 推进 |
-| 最近结果 | [`m1_v7_d055_s5_confirmation.json`](results/m1_v7_d055_s5_confirmation.json)：200 配对组、50 学生模型、400000 次连续决策；两架构 A−C/A−E 均未通过登记检查。详细效应、CI、seed 与泛化诊断见 LOG-090 |
-| 尚缺 | 全体逐步选择/候选可达性导出已同步并复核（LOG-094）；错误分支 teacher 排名及具体候选世界的进一步归因仍缺。论文可支持结论整理仍需完成；S6 未运行，当前停止条件下不作为待启动任务 |
-| 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。D-046 顺序 C weight 搜索按既有逐方法实测路径的最坏 10000-update 外推，两臂总计划约 5.036 小时（非新实测）。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
-| 当前决定 | D-039–D-043 固定 live energy、真实 C10/C11、current/posterior 审计、Pre-LN 双架构和 A–E 对称 12 格。D-044–D-046 的 endpoint、open-fact AUC `40/80`、固定 gate、C 顺序权重和纯 confirmation 保留；D-047 收紧 claim，拆清 online network/shared executor，登记外生轨迹，并把 H3-vs-H1 teacher 对照设为主文必报、无选择无成败门的机制证据。M1 不声称原始 DCR、完整动态记忆或 active navigation；全局 reconciliation、PNO 与 M2 顺序不变 |
-| 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 validation/test。D-043 无额外人工选择；运行时剖析只供用户决定何时租用算力，不改变登记网格 |
-| Git 备份 | D-038 科学代码基线为 `72afa7d`；S2 40-group reports 已在提交 `ececefb`、10-group 锚点已在 `70355ac` 导入 `results/`，服务器大产物仍位于 ignored `outputs/`。服务器操作只通过版本化的 `ops/run_next_server_step.sh` 交付，脚本所在提交仍须先 push、服务器再 pull |
+| 旧 M1-v7/S5 | 独立确认完成，工程通过但科学 no-go；S6 未放行，旧 test 封存。LOG-090 |
+| S5 主比较 | A/C/E active exact 为 0.9205/0.8980/0.5200；A−C support +0.001911、burden reduction +0.690，未满足登记门。原数值与 CI 见 LOG-090 |
+| 角色编码小试 | D-057 的 18 个学生、6 个 scorer 和 5760 次决策已导出复算；A 的角色版相对补零版平均 AUC 降约 17.51%，终点 exact 从 31.25% 降到 25%，属混合信号。LOG-102 |
+| 输入来源风险 | 原 reference 参数派生 query 通道存在，角色版未加入 merge_queries 直接配对分，但原候选仍使用该通道。LOG-103 |
+| 新工作证据 | D-058/D-059 已登记数据先行与 M1 重构，32 步计划已交付；公开数据尚未下载，新科学代码/训练尚未启动 |
+| 计算环境 | 本机 CPU 不稳定；科学计算、特征提取及测试在服务器由用户手动运行，本地只读分析和轻量标准库核查 |
 
-白话：M1-v6 现在仍是“考前定卷”，不是已冻结或已通过。Pre-LN 和逐方法对称调优只是在排除架构/优化混淆；新的 K=16、固定量程与恢复审计也只证明候选、executor、teacher 和 active-world 评测路径可达。这些都不等于 CTL 已胜出，更不是带 PNO 的 Full CPMT。
+## 主张与证据
 
-## 当前任务清单
+| ID | 主张 | 当前支持范围 |
+|---|---|---|
+| CL-01 | 执行后监督优于直接 future loss 与无执行 scorer | 旧 S5 未通过登记门，不能宣称成立；新协议仍待检验。LOG-090 |
+| CL-02 | 减少人工事务标签需求 | 新视觉标签效率实验未运行；不能从固定标签小试推出 |
+| CL-03 | 在线摊销保留事后教师收益 | 合成在线系统已有实现；完整视觉和自身记忆证据仍待验证 |
+| CL-04 | PNO 支持跨视角修订 | 完整 PNO 未实现/验证；解析投影和引用合并不代替此证据 |
+| CL-05 | 减少长期污染与多余节点 | 旧 M1 的部分指标/场景已有结果；不支持泛化成完整动态/视觉记忆改善 |
+| CL-06 | 独立现实来源上成立 | M3 未运行；不能作迁移主张 |
 
-M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执行流程](experiments/counterfactual_transaction_learning/M1_V2_CLOSEOUT_FLOW.md)。文件名按 D-035 保留；下表只保留任务完成状态，不再承担流程解释。
+代码、单元测试、advisor/model 评价和单次 demo 均不等于主张成立。初期 D-027 开发结果保存在[原结果快照](experiments/counterfactual_transaction_learning/DEVELOPMENT_RESULTS.md)，不替代正式比较。
 
-- [x] 首轮训练与结果审计：LOG-002。
-- [x] 收敛重复进度入口：LOG-004。
-- [x] 准备单房间试点范围，核查版本、字段、online 边界和渲染兼容性；许可正式审查仍待完成。
-- [x] 交付并由用户接受三类可视化案例、候选世界/教师分数、失败与实测资源。
-- [x] 写出正式 M1 的 split、future、A–F 公平性、指标、效应门槛和预算候选；校验器保持 test_access=false。
-- [x] D-031 接受 D-030 并记录 frozen hash；M1 A 重命名为 CPMT-CTL Core。
-- [x] 实现并在 validation smoke 中验证 C00–C11 paired generator、单步图指标、20-step 指标接口与 paired bootstrap；保留投影反例。
-- [x] 扩展为首版程序化 world topology，并构造连续 20-step state sequence；错误选择后的下一步从预测图继续，独立样本不冒充 self-rollout。
-- [x] 为连续序列补 paired latent siblings，并把 A–F 接入非正式 train/validation causal smoke；完成 CPU 资源测量和首轮 leakage audit。
-- [x] 在扩 K=16 前完成全标签容量、4→10 paired groups、60→1000 updates 的可学习性阶梯；分开记录 candidate miss、teacher error 与 amortization error。
-- [x] 实现去重、确定性的 K=16 candidate generator，并完成 reference 参数解耦和 C00–C08 validation 开发 coverage 审计。
-- [ ] 在不进入 M2、不动 test 的前提下，在 AutoDL 的干净提交上完成 D-044–D-047 full test、含 H3-vs-H1 teacher 主文机制对照的 train-only endpoint probe 与足量 train/validation 预演；按 semantic、open-memory support、全过程 open-fact burden、recovery 和 paired CI 决定是否重新冻结，再单独申请 test 解封。
-- [x] **(1) 强化 E 的 outcome scorer 目标空间与监督覆盖。** E 已改为候选作用域的未来关系查询；训练覆盖全部 K=16 候选，目标只读实际 reference future，不执行候选，也不复用 executor 导出的 illegal/collateral。C 使用同一关系目标作 direct auxiliary。当前只验证接线，E 是否真正变强须由服务器足量 run 回答。
-- [x] **(2) 固定 commit/quarantine 策略。** D-045/D-046 已 supersede 旧 validation calibration/report 阈值选择：M1 主比较对 A/C/E/F 一律使用 `commit_probability=0`、`margin_threshold=0` 的 always-attempt gate；`commit_attempt_rate=1`，实际 commit 与 executor-illegal deterministic QUARANTINE 分开报告。confidence/risk-coverage 只作诊断，不再决定阈值或主效果。
-- [x] **(3) 如实计算 `now` 与 `collateral` 并报告实际影响。** D-039–D-041 已把 executed-now 改为当前匿名投影的固定自然量程、把 legal unrelated mutation 记为 collateral，并常驻逐项 posterior influence/逐 family 预期模式；12-group v8 health 中两项均有可测 posterior 影响，且 C11 collateral 对照通过。它仍不宣称每个 family 的六项都非零。
-- [x] **(4a) M1-v2 有界局部恢复。** 按 D-034，exact ambiguity 后固定安排一次相关可见证据重访；用同一 K=16 proposer 和 versioned executor 产生/提交补偿 RELINK，旧错不回填且 provenance 不删除。可观测 oracle 已证明候选路径能在 1 步内恢复 active world；learned recovery 尚待服务器验证。
-- [ ] **(4b) Khronos 式全局慢路径（M2）。** 全图、跨多对象、异步重访协调会改变系统时序与方法能力，仍不是 M1 的局部补偿修复；只有 M1-v2 hard condition 支持继续后才实现。
-
-具体试点（开发接口已执行，尚非正式实验）：
-
-1. 一个公开训练场景的房间，制作换视角重见、首次发现此前未见对象、原对象移动后重访。原建议 5–10 房屋仅在接口验证后再考虑。
-2. 展示连续画面、相机位置、截至当前的记忆与合理事务，由用户判断是否符合空间认知目标。
-3. 最小投影器：候选世界＋固定几何/位姿 → 可见区域、位置及可比较观测。例如移动后的椅子应在新位置出现；不是完整 Projective Node Orbit（PNO），不要求 RGB 生成或同时学习深度、位姿、动力学。
-4. 从同一 base 真实执行候选，展示 now/future/edit/growth/collateral/illegal 与教师概率；检查移动、遮挡、多余修改、证据不足。
-5. 模拟器全场景真值仅供独立审计/声明的离线监督；在线 memory 只能由截至当前的观测构建，不包含隐藏位置、对象 ID、未来和完整重建。
-6. 正式 M1 支持继续后才做 PNO/固定前端视觉整合、使用自身记忆的长期自滚动；正式失败停止主 claim 的规则不变。
-
-单房间三项已交付并获人工接受；D-031 已冻结 M1 数值和命名。当前进入 train/validation 实现，先增加真正的 world/sequence 多样性，再接 A–F；不能因为 96-case generator smoke 或单元测试成功就解封 test、进入 M2。任何付费资源仍无授权。
-
-## 文件职责：规格与记录分开
-
-| 文件/目录 | 职责；何时更新 |
-|---|---|
-| 本文件 | 当前看板＋实验结果、架构变化和需保留失败 run；普通对话不逐轮追加 LOG |
-| [README.md](README.md)、[AGENTS.md](AGENTS.md) | 稳定研究简介与工作规则，不复制最新结果 |
-| [DECISIONS.md](docs/DECISIONS.md) | 重要方法/预算/流程决定，实际接受或修改时才追加；普通讨论不逐条编号 |
-| docs/01–05、活动实验合同 | 方法/数据/训练/评价规格，实质变化才修改 |
-| [白话词典](docs/PLAIN_LANGUAGE_GLOSSARY.md) | 概念解释，不是状态面板 |
-| [人工确认索引](docs/human_confirmation/README.md) | 表单导航；当前待定事项只在本看板 |
-| [claim ledger](docs/CLAIM_EVIDENCE_LEDGER.md) | 正式证据和 claim 状态，不是日常日志 |
-| [首轮报告](experiments/counterfactual_transaction_learning/DEVELOPMENT_RESULTS.md) | 已存在的单次结果分析快照，保留；其“下一步”仅代表当时意见 |
-| docs/NEW_CHAT_HANDOFF_PROMPT.md | 固定跳转，不再维护第二份长摘要 |
-| docs/reviews/ | 历史周报/模板保留；以后导师反馈写本文件，用户确需独立报告时再导出 |
-| archive、docs/source、prototype、literature | 历史、原始资料与文献，不为精简删除 |
-| outputs/<run_id>/ | 配置、权重、逐例结果、失败和快照；每次真实 run 分目录，不提交 Git |
-
-“一个记录文件”不等于把代码/配置/全部结果塞入 Markdown。机器实验仍需各自产物才能复现；禁止的是每个新对话新增计划、交接或报告。
-
-## 长期研究边界
-
-用户首次科研、单人推进，老师每周评价；助手负责研究/工程辅助，用户负责重要人工决策。所有方法和公式附白话说明。CPMT 是完整方法，CTL 是核心学习机制；executor、KL 和事务标签本身不是创新。
-
-- D-018–D-025：范围锁、生命周期/版本、SPLIT/MERGE、事实级撤回、pending、身份对应与保守状态等价，详见合同和决策日志。
-- D-026：即时在线判断不预读下一帧；之后可以修订，不回填为先前已正确；证据不足允许 QUARANTINE。
-- 等价只处理同一 base、同一时刻的表示差异；未来投影相似不能合并不同世界。
-- 不加主动策略、第二领域、learned proposer、端到端 backbone 或大规模导航。
-- 正式 M1 必须比较 direct+future loss 和 no-execution scorer；仅 latent loss 改善不支持长期记忆 claim。
-- 不用 test 调参、筛模型或改门槛；开发数据不改称未见 test。
+重组仅更新导航和证据看板；下列 LOG 原事件保留，指向已删除旧文档的链接固定到重组前 Git 版本。完整决策见 [docs/DECISIONS.md](docs/DECISIONS.md)，旧科学合同继续留在 experiments。
 
 ## 历史记录（按工作事件追加，不按对话建文件）
 
@@ -101,7 +42,7 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - 覆盖：NOOP/BIND/BIRTH/REACTIVATE/RELINK/事实级 RETRACT/SPLIT/MERGE/COMPOSITE:REPLACE；弱证据暂存、检索/归档/重激活/消费；身份双射和规范化状态比较。
 - 验证：63 个测试通过，HC-001 关闭；支持事务与 QUARANTINE 有正例，存在配对案例；错误版本/生命周期、protected 破坏、缺 provenance、重复事务等拒绝；执行/gate 无未来，无物理删除历史。不是所有可能 invariant 的全面证明。
 - 尚缺：node-level RETRACT、PNO、完整学习验证；后续开发训练见 LOG-002。
-- 参考：[事务合同](experiments/counterfactual_transaction_learning/TRANSACTION_SEMANTICS.md)、[测试](tests/README.md)、[HC-001](docs/human_confirmation/HC-001_transaction_semantics.md)。
+- 参考：[事务合同](https://github.com/JingzeSun/Emboddied_Spatial_Memory/blob/c24ced2f4a5513f5a8944b98139857cfc27909ff/experiments/counterfactual_transaction_learning/TRANSACTION_SEMANTICS.md)、[测试](tests/README.md)、[HC-001](https://github.com/JingzeSun/Emboddied_Spatial_Memory/blob/c24ced2f4a5513f5a8944b98139857cfc27909ff/docs/human_confirmation/HC-001_transaction_semantics.md)。
 
 <a id="log-002"></a>
 ### LOG-002｜2026-09-05｜首轮 CTL CUDA 开发实验
@@ -134,7 +75,7 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - 实际 BIND 算例 validation:1260905:BIND：BIND/BIRTH/冗余 RELINK 能量 0.01864/0.18954/0.02364，教师概率 50.56%/2.93%/46.51%。老师排名对但近乎犹豫；标签却要求 BIND。需对齐代价与评价，不能因投影一样违反 D-025 合并版本/证据不同的世界。
 - 其他缺口：CTL 解析教师掌握规则而无执行对照需学预测，知识不公平；只测单次更新；后续新事件归因、visibility mask、尾部策略未充分明确。
 - 待检验价值：同在线信息/有限标签下，学习效率、空间组合变化和连续修订是否改善；不会创造当前不存在的信息，更复杂数据不保证胜出。
-- 数据提案：ProcTHOR＋AI2-THOR 主环境，3RScan 现实重访验证；不是开箱即用 CTL 数据，后者不是完整连续搬运动作轨迹。来源/字段/许可见 [DATASETS.md](experiments/counterfactual_transaction_learning/DATASETS.md)。
+- 数据提案：ProcTHOR＋AI2-THOR 主环境，3RScan 现实重访验证；不是开箱即用 CTL 数据，后者不是完整连续搬运动作轨迹。来源/字段/许可见 [DATASETS.md](https://github.com/JingzeSun/Emboddied_Spatial_Memory/blob/c24ced2f4a5513f5a8944b98139857cfc27909ff/experiments/counterfactual_transaction_learning/DATASETS.md)。
 - 范围从原建议 5–10 房屋细化为先单房间三类案例，补最小投影接口，人工看评分，再冻结 M1；PNO/视觉/长期验证在正式 M1 支持继续后。
 - 云建议：24 GB 单卡、32–64 GB RAM Linux 仅未实测估计，先测渲染/缓存/训练资源，费用另确认。
 - 状态：未下载/适配公开数据、装模拟器、采集场景、租服务器或新训练。“保存对话”是文档授权，不等于采纳科研提案。
@@ -411,7 +352,7 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - 校准：`calibration_rows=40`、`report_rows=120`、`excluded_recovery_training_rows=8`，正确排除所有 recovery-only rows。选出的共享 gate 仍为 probability=0、margin=0，calibration commit rate=0.90；这是现有小样本的有效重算，不是 formal gate。
 - E 诊断：structured relation-target assembled oracle 在 120 个 online report rows 上为 0.8083，template=0.8083、argument-given-template=1.0；E scorer teacher=0.0500，E student=0.0667，causal raw-invalid selection=0.95。因此“目标完全没信息”已被排除；当前首要瓶颈是 scorer 优化/泛化，同时 target+组装仍有 19.17% 模板选择缺口。该 oracle 使用真实 future，其 ambiguous=0.8333 不是可部署在线上限。
 - 学习与 causal：A/B/C/D/E teacher-forced 为 0.4667/0.3750/0.3417/0.3250/0.0667，与 LOG-021 一致。A–E final active 均为 0；A mean active=0.0833、contamination=2.5，C/E contamination=18.33/32.5。paired report 只有 3 groups 且 active effect=0，不作性能结论；10,000 次 bootstrap 不会增加独立样本。observable oracle 仍为 final active=1、designed recovery=1、time-to-recovery=1 步。
-- 结论/下一步：校准泄漏已关闭，E 问题已缩小到可诊断范围。后续不再靠对话临时给顺序；按 [M1-v2 收口执行流程](experiments/counterfactual_transaction_learning/M1_V2_CLOSEOUT_FLOW.md) 从 S1 执行，先补 target-only/并列、E train/calibration BCE/accuracy 和 oracle illegal-rate，再进固定数据的 5-seed 优化曲线。
+- 结论/下一步：校准泄漏已关闭，E 问题已缩小到可诊断范围。后续不再靠对话临时给顺序；按 [M1-v2 收口执行流程](https://github.com/JingzeSun/Emboddied_Spatial_Memory/blob/c24ced2f4a5513f5a8944b98139857cfc27909ff/experiments/counterfactual_transaction_learning/M1_V2_CLOSEOUT_FLOW.md) 从 S1 执行，先补 target-only/并列、E train/calibration BCE/accuracy 和 oracle illegal-rate，再进固定数据的 5-seed 优化曲线。
 
 <a id="log-023"></a>
 ### LOG-023—2026-09-06—S1 target/assembly/scorer 诊断实现

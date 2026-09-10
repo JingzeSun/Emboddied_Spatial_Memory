@@ -33,10 +33,6 @@ __pycache__/
 .venv-wsl/
 .uv-cache/
 .uv-python/
-.uv-cache/
-.uv-python/
-.uv-cache/
-.uv-python/
 .vscode/
 .idea/
 .DS_Store
