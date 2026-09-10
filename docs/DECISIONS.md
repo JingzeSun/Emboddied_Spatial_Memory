@@ -781,3 +781,17 @@
 - train 复用采用 `configs/m1_train_reuse_policy.json` 来源桥接：固定原生成提交 `ee1af48eb9d6337e0f22a23b34c1042d00cf715b`、原 generation.ok.json hash、原 arrays digest、两份失败/诊断证据及逐文件已审查源码差异。生成器/encoder 以外的依赖不得新增未审查改变；m1_af_rollout 的训练/编码定义与原生成版本比较 AST，仅允许 causal evaluator 和其新诊断 import 不同。m1_rollout 默认严格路径差异经审查后按精确规范化文件 hash 锁定；这不是仅凭 16 组数值一致就假设任意源码兼容。
 - 白话：来源桥接解决“数据没有变，但新增评测代码使全局源码指纹变化”的问题。输入是原验收 marker、1002 个文件指纹、原生成提交和经过审查的精确改动，输出是可追溯的复用记录。例如保留原 train.npz 的来源，另记新评测版本；它不是给旧数据改生成日期、不等于全 1000 组重新生成并逐值对拍，也不能用于未经审查的候选或监督变更。若任何原分片/hash/编码定义或已批准源码差异不符，则停止并审查，不覆盖 marker 或自动重建。
 - 当前服务器阶段一次性交付 `ops/m1_candidate_policy.sh test|reuse|export`：前台完整测试含实际 causal evaluator 的一组固定 train 集成测试，再只读校验 1000 个分片和合并数组/manifest（1002 文件），输出独立复用报告。测试中的固定小型 train fixture 不是重新生成 1000 组；不运行上次已经成功的 224 条诊断、不训练模型，不读取正式 validation/test。失败保留并可导出，成功不授权预算；固定 probe、并行网格接线、真实保存/加载/统计小预演仍须按流程完成。
+
+
+## D-055：修正版 S5 独立确认绑定及整阶段交付
+
+- 状态：accepted，用户在修正版选参/60 模型 refit 报告复核后授权准备 S5（2026-09-10）。本条落实 D-050/D-051/D-054 已固定的确认方法与运行边界，不重新选择方法、参数、效应门、endpoint 或 N。
+- 新机器计划 `configs/m1_s5_confirmation_v7.json` 钉住 LOG-088 的 checks/budget/refit 三份导出 SHA-256、修正训练来源及组合登记。历史 v6 S5 合同和失败数据保持原样。新数据仍为原 validation seed namespace 的编号 4–203，排除 0–3，共 200 paired groups、每组两条 20 步。不因健康门、F 或模型结果失败换组、追加样本或重新生成另一批验证数据。
+- 来源复用：新阶段逐文件核验 `4c89e59` 中既有 src/scripts/configs 未改变，新增阶段文件单独由当前完整测试覆盖。先核验并 CPU 加载全部 60 个已保存模型，不重训评分器或学生。50 个 A–E student（两架构×五方法×五 seed）各跑 8000 次连续决策；共享 F 和 observable-information oracle 各跑一次，分别保存其 8000 次轨迹，后者只作信息上限诊断。架构主次保持，不根据 validation 选择赢家。
+- 新接口只补固定 train 第 1 组的小预演：新分片写入/读取与已验收 probe 审计重新编码 digest 对拍；两架构 A/C/E、seed 7 的现成正式权重共 240 次决策，两个 oracle 共 80 次决策。小预演不重训、不重做原固定 probe/预算/四进程等价检查；结果不参与科学参数选择。它检查新增写入、oracle 接线及正式权重消费，不保证未见的 200 组不会触发其他工程错误。
+- 生成最多 16 CPU worker，按实际 cgroup CPU/内存余量下调；评测复用已验收的 paired-group 四 CPU worker、各一个 Torch/BLAS thread，两个 sibling 保持同一任务、20 步状态串行传递。模型之间按固定顺序执行。每模型关闭评测进程池后，用同一已保存在线输入独立串行重放网络前向，并核验 argmax 与原选择一致；不平均 worker p95、不称为系统总延迟或机器全局独占测速。记录模型评测/重放 wall-clock、CPU 条件和 peak_vram=0。
+- 统计复用已验收的 `registered_statistics`，沿用原 10000 次 paired-group bootstrap、五 seed 组内合并、安全非劣门与主比较 Holm 校正；不增加指标成败门。单步 reference-history 诊断沿用原 teacher_forced/selection_error_decomposition，排除 recovery，分别报告候选不可用、teacher/reference 不一致、student/teacher 分歧和 template/argument；这些不是独立于 validation 的调参数据，也不替代完整 self-rollout。
+- 防止换目录重开：生成前在 outputs 根的固定 `m1-v7-d055-s5-validation-reservation.json` 写入当前来源、计划及唯一输出；评测在打开 validation arrays/audits 前另写 `confirmation_consumption.json` 和 trial 回执，绑定数据 manifest、已选模型、代码及 Python/NumPy/Torch/platform/hostname。不同绑定拒绝运行；partial/失败原地保留，不自动重试或覆盖。成功单元仅按原绑定复用。这是一次确认的消费约束，不是 checkpoint/optimizer 断点恢复。
+- 阶段完整交付 `ops/m1_corrected_confirmation.sh test|prepare|smoke|generate|export-data|evaluate|status|summarize|export-confirmation`，同步一次后顺序执行。全测、准备、小预演、生成和汇总默认前台；完整评测预计超过 30 分钟，默认后台并明确 `completed=false`。忙锁返回非零且说明动作未执行，避免将 launch 的 EXIT=0 当成训练/导出完成。已完成模型/数据/逐例轨迹的详细产物保留服务器，导出使用不同职责的 data/confirmation 两个精确 results 路径。
+- 完成后仅报告 S5 确认及既有检查结果，交由原 stop rule 复核；不自动生成 test、调整 N=1350 或放行 S6。本阶段未在本地生成/读取正式 validation/test；服务器全测、小预演及确认均 pending。
+- 白话：本次绑定解决“旧模型已经训练完成，新验证入口怎样可信地接上”的问题。输入是验收过的模型、冻结参数和固定 200 组范围，输出为一次独立连续验证的逐例记录、配对统计及来源。例如先把第 1 组 train 用新读写接口走通，再一次性评测 4–203 的 validation；不能看到 C 不好就改权重再考。它不等于重新选参、M1 已成功或 test 已解封。

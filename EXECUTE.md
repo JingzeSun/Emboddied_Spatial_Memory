@@ -6,7 +6,7 @@
 
 > **2026-09-10 更新（修正版选参及 refit 导出复核通过）：** `cb13046` 的 checks/budget/refit 三份报告已拉取；358 项全测通过，接口修复实测通过，预算 200 条路径/740 个 checkpoint 观察齐全，60 模型完整重训。逐组复算两架构全部学习率/步数与 C 顺序权重选择一致，模型配置与五 seed 矩阵一致。预算实耗 7484.05 秒，refit 1136.19 秒；validation/test 尚未使用。见 LOG-088。
 
-最后更新：2026-09-10，修正版预算与 60 模型训练已完成并复核导出；下一步 S5 独立 validation confirmation 的新来源入口仍需完成绑定与阶段检查，不能直接使用旧 v6 入口。
+最后更新：2026-09-10，修正版预算与 60 模型训练已完成并复核导出；D-055 的 S5 独立 confirmation 入口已准备，当前等待服务器新来源全测和固定 train 小预演；不能直接使用旧 v6 入口。
 
 | 项目 | 当前事实 |
 |---|---|
@@ -14,7 +14,7 @@
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
 | 阶段 | M1-v7：修正 train、固定 probe、工程检查、两臂预算和 60 模型 refit 已完成；S5 独立验证与 S6 test 尚未运行 |
 | 最近结果 | [`m1_v7_d054_corrected_endpoint_probe.json`](results/m1_v7_d054_corrected_endpoint_probe.json)：201 groups、A/C/E 五 seed、F；exact A/C/E=`0.920398/0.748756/0.382587`，support=`0.932137/0.918196/0.859446`，burden=`9.164179/22.393035/13.159204`。保留 exact，N=1350；固定 anchor 未达到全部效应要求，不是正式成败结论。旧 v6 结果保留作历史证据 |
-| 尚缺 | S5 新来源独立验证入口、固定 200-group confirmation 及其验收；随后 S6 最终冻结和单独 test 解封。D-051 数值门与 N=1350 保持 |
+| 尚缺 | S5 新来源全测、固定 train 小预演、200-group confirmation 及其验收；随后 S6 最终冻结和单独 test 解封。D-051 数值门与 N=1350 保持 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。D-046 顺序 C weight 搜索按既有逐方法实测路径的最坏 10000-update 外推，两臂总计划约 5.036 小时（非新实测）。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
 | 当前决定 | D-039–D-043 固定 live energy、真实 C10/C11、current/posterior 审计、Pre-LN 双架构和 A–E 对称 12 格。D-044–D-046 的 endpoint、open-fact AUC `40/80`、固定 gate、C 顺序权重和纯 confirmation 保留；D-047 收紧 claim，拆清 online network/shared executor，登记外生轨迹，并把 H3-vs-H1 teacher 对照设为主文必报、无选择无成败门的机制证据。M1 不声称原始 DCR、完整动态记忆或 active navigation；全局 reconciliation、PNO 与 M2 顺序不变 |
 | 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 validation/test。D-043 无额外人工选择；运行时剖析只供用户决定何时租用算力，不改变登记网格 |
@@ -1080,3 +1080,13 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - 选定 `(lr,steps,weight)`：Set Transformer 的 A=`(.0006,3000,1)`、B=`(.0002,10000,1)`、C=`(.0002,3000,10)`、D=`(.0006,3000,1)`、E=`(.002,3000,1)`、scorer=`(.0006,1000,1)`；MLP 的 A=`(.002,3000,1)`、B=`(.0006,10000,1)`、C=`(.0006,10000,10)`、D=`(.0002,10000,1)`、E=`(.002,3000,1)`、scorer=`(.002,10000,1)`。按原规则接受 10000 触顶，不扩搜索网格，不按结果择优架构。
 - refit 两架构×六角色×五 seed=60，模型条目无缺失/重复；逐项核对 full-train 1000 组、mode=refit、学习率/步数/权重与已选设置一致。所有 refit checkpoint 的 inner_dev=null、inner_dev_independent=false，未将全 train 重训后的内部成绩冒充独立泛化指标。本地未持有服务器权重，权重实际文件核验依赖服务器 exporter 所记录的完成证据；此次不是重新执行训练。
 - 科学结论边界：本轮支持工程链路、预算选择及模型产物完整，不等于 S5 独立确认或 M1 go。下一阶段需绑定当前登记和权重的新 S5 confirmation 入口，旧 v6 验证入口不能直接复用；test 未解封，N=1350 与既有门保持。未为本次结果另设科学 decision。
+
+
+## LOG-089（2026-09-10）：D-055 S5 独立确认整阶段入口实现
+
+- 新增冻结计划、只读模型/来源消费者、S5 正式 runner 及 ops 命名子命令。现有 `4c89e59` 的 src/scripts/configs 文件逐一比较保持不变；新阶段消费 LOG-088 三个精确导出 hash 和修正组合登记，不能将旧 full-test marker 当作新版本测试。读取本地实际导出确认计划/60 模型矩阵绑定通过；test N 仍为 1350。
+- 同一交付含 test、prepare、smoke、generate、export-data、evaluate、status、summarize、export-confirmation。阶段按 marker/source/runtime/manifest/digest 依赖守门，运行不训练任何模型；唯一固定 validation 范围 4–203，50 个学生模型及两个共享 oracle、配对统计与逐例审计接线完成。准备阶段核验并加载全部 60 模型，固定 train 第 1 组的小预演只补新的写入/oracle/正式权重消费。原 probe/预算/refit 不重跑。
+- 继续使用已验收的可重复磁盘审计读取器和四 worker paired-group 评测。父级原子完成目录与执行分片目录分开，避免完成时 rename 使记录的 shard 路径失效；串行前向重放在关闭池后独立测量，完整轨迹及失败原地保留。生成并发按 cgroup CPU/内存限额最多 16；小预演实际磁盘占用外推正式审计存储并加 25% 余量，生成前检查可用空间。该外推仅规划，不保证后续峰值。
+- 新固定全局数据 reservation 防止换 source-derived 目录重开验证；实际模型读 validation 前写独立消费回执。忙锁明确返回非零并说明请求未执行，后台 launch 明示 completed=false；成功、失败、中断分开记录，任何异常都不自动重训、换样本或改门。单步诊断复用原实现，bootstrap/安全/Holm 复用原公共统计；导出压缩职责，只保存本阶段报告、逐组指标和来源指纹，不再次嵌套全部预算/refit 巨大 JSON。
+- 本地 11 项新轻量测试和 6 项运维测试通过（共 17 项）：固定范围/禁 test/禁选参、旧算法桥接、实际 60 模型导出矩阵、新分片写读/篡改拒绝、可重复 oracle 输入/F 失败保留、当前 policy 覆盖旧 payload、健康门失败、消费早于验证读取、原子 rename 后 shard 路径与复用、完整两架构五方法五 seed 汇总接线、全局 reservation 和禁止中断重试。只用本地导出、微型 arrays 与模拟模型/统计，未运行真实模型训练、生成或 self-rollout。服务器新版全测、train 小预演、validation 生成/评测均 pending。
+- 实现本阶段不等于 S5 已通过；最终结果仍按既有 stop rule 复核，不自动开启 S6。完整方法、统计效应门、安全门、固定 exact 与 N 未修改；方法和流程边界见 D-055，命令顺序只在 M1_V2_CLOSEOUT_FLOW 维护。

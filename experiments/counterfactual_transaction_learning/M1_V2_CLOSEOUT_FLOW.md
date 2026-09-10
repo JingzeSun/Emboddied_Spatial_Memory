@@ -16,7 +16,7 @@
 
 ## 当前指针
 
-- 当前阶段：**修正版工程检查、两臂完整预算、60 模型 refit 已完成，三份导出已复核（EXECUTE LOG-088）。进入 S5 独立 validation confirmation 的阶段入口准备与来源绑定；现有 follow-on 到 refit 为止，不能直接运行旧版验证入口。下一阶段固定参数、复用已训练权重，不重做预算/probe；validation/test 仍未消费。**
+- 当前阶段：**修正版两臂预算和 60 模型 refit 已完成并复核（LOG-088）。D-055 的 S5 独立确认阶段代码已备齐，当前先执行新来源完整测试，再准备权重、固定 train 小预演和 validation 生成；服务器阶段验收 pending。同步一次后按下方 S5 命令表执行，不重跑预算或训练，test 未解封。**
 - 历史 S2 证据：v5 S2 的 arrays/manifest/report 已验收；1000−300 的 paired-group 95% CI 为 `[+0.008750,+0.045000]`，按预登记规则选择 1000。10-group 同预算锚点中共同 group 1 的 40−10 平均差为 `+0.005000`、仅 `1/5` seed 严格为正，未达 S3 触发条件。完整数字与 provenance 见 `EXECUTE.md` LOG-032/033。
 - 已完成：同一份 40-group v4 arrays 确定性截取 10/40 groups，运行 scorer steps {60,300,1000} × seed 7。40-group 全 train 上，static preflight 对 2,552/2,552 个 executor-illegal 候选全部静态拒绝、合法误拒 0；过滤后 target-only 均匀并列期望由 0.7729 升至 0.9698，assembled oracle accuracy 由 0.7438 升至 0.9525，其 exact-ambiguity capped 读数由 0.7275 升至 0.9275。D-038 已接受把同一只读预检变成 A–E 共享 mask；旧 v4 过滤数字仍只作采纳依据，不冒充 v5 方法成绩。
 - scorer 分支：40-group inner-dev 的未过滤/过滤后 teacher accuracy 在 steps 60/300/1000 分别为 0.0500/0.5688/0.5031 与 0.0625/0.7469/0.7094。1000 steps 虽将 held-out BCE 从 0.1016 降到 0.0744，候选排序却低于 300 steps；共同 group 1 在 10/40 groups、300/1000 steps 过滤后均为 0.875，也没有显示扩大到 S3 的明确数据收益。因此 300 steps 只是当前单 seed 候选，尚未固定。
@@ -93,15 +93,15 @@ S7 M1 成功 / no-go / 不确定收口
 
 ### 完整选参前的放行条件
 
-当前先检查，不启动完整预算。检查失败时先定位工程原因；不得删除断言、换掉失败组或改效应门以求通过。以下开发工作只用 train；不提前读取或生成 validation/test。状态证据统一见 EXECUTE，未实现事项明确保留为 planned。
+以下为已经完成的选参前放行记录。后续 S5 新接口检查仍先定位工程原因；不得删除断言、换掉失败组或改效应门以求通过。以下开发工作只用 train；不提前读取或生成 validation/test。状态证据统一见 EXECUTE，未实现事项明确保留为 planned。
 
 | 检查 | 何时做、要交付什么 | 当前实现边界 |
 |---|---|---|
 | 修正 train 验收 | 其余检查之前；组数、普通/recovery 行数、family 编码、digest 与来源一致 | 已有生成及验收回执，见 LOG-077；不重生成 |
 | 错误分支 20 步 | 固定 16 组、七条选择规则，检查 C11 范围外目标、MERGE 配对、K=16、immutable base、边序不变和失败现场 | 历史严格 FAIL 保留；D-053 完整矩阵和 D-054 正式策略/复用验收已完成，见 LOG-080/082；不重复。完整轨迹不保证任意错误组合都能恢复 |
 | 固定 anchor probe | 错误分支检查通过后、完整网格前；修正版 F、三项 co-primary 非退化、H3/H1 诊断及六格 SD；按既定规则登记 N，同时提供共有工程环节的验收证据 | 运行、汇总、导出及报告复核已完成（LOG-086）。实际模型保存/加载、完整 20 步、配对完整性与探针汇总/导出不另起一轮重复检查。不是完整选参，也不替代正式置信区间和验收门接线 |
-| 并行预算与泛化诊断 | 完整网格前；独立进程随机流/汇总等价、资源检查、同一 checkpoint 的 fit 与 inner-dev 同口径分数和差距；并行交付同时覆盖选参和 S5 全 train 重训 | 公共 worker、原网格/C 顺序权重编排、修正版登记消费及 60 模型 refit 已接线，服务器尚未验证（LOG-085）。固定十组 GPU 1/4 进程对拍后，用完整 1000 组做四条两步容量检查；GPU 4 进程×CPU 1 线程。差距只作诊断，不增加选参规则 |
-| 后续新增接口贯通 | 完整网格前；复用已验收 probe 证据，只补正式登记读取、两架构权重兼容、评测分片合并、配对置信区间及验收报告；同时检查复用、来源绑定和失败拒绝 | 已接线、服务器待验收：使用 GPU 对拍的 refit 权重，两架构×A/C/E×seed 7；固定原 inner-dev 组号序最前四组，各保留完整两条 20 步，比较不分片串行与四进程合并的全部科学逐例记录，另做串行前向计时。直接读取 probe 的 201 组五 seed 逐例结果验证正式统计公共函数，不重跑探针轨迹；检查成绩不参与选参。正式 S5 confirmation/S6 的数据生成、一次性消费与最终解封仍不由本入口执行 |
+| 并行预算与泛化诊断 | 完整网格前；独立进程随机流/汇总等价、资源检查、同一 checkpoint 的 fit 与 inner-dev 同口径分数和差距；并行交付同时覆盖选参和 S5 全 train 重训 | 公共 worker、原网格/C 顺序权重编排、修正版登记消费及 60 模型 refit 已接线，服务器验证与预算/refit 已完成（LOG-088）。固定十组 GPU 1/4 进程对拍后，用完整 1000 组做四条两步容量检查；GPU 4 进程×CPU 1 线程。差距只作诊断，不增加选参规则 |
+| 后续新增接口贯通 | 完整网格前；复用已验收 probe 证据，只补正式登记读取、两架构权重兼容、评测分片合并、配对置信区间及验收报告；同时检查复用、来源绑定和失败拒绝 | 已接线并经服务器验收（LOG-088）：使用 GPU 对拍的 refit 权重，两架构×A/C/E×seed 7；固定原 inner-dev 组号序最前四组，各保留完整两条 20 步，比较不分片串行与四进程合并的全部科学逐例记录，另做串行前向计时。直接读取 probe 的 201 组五 seed 逐例结果验证正式统计公共函数，不重跑探针轨迹；检查成绩不参与选参。正式 S5 confirmation/S6 的数据生成、一次性消费与最终解封仍不由本入口执行 |
 
 白话：新增接口贯通检查解决“模型都训完了，才发现正式入口读不了权重或统计字段”的问题。输入是已验收 probe 产物、并发检查短训权重及预先固定的少量 train 场景，输出是共有环节的复用证据和新增接口的实际运行证据。例如用现成逐例结果检查正式配对置信区间与报告，再用少量完整 paired groups 核对新并行评测的分片合并；不为检查报告格式重跑 201 组轨迹。它不是另一个完整 probe、不是正式选参或独立泛化验证，也不保证覆盖未来所有场景；规模和诊断设置须在运行前固定，不能根据成绩挑选。
 
@@ -219,3 +219,24 @@ D-046 后不再有活动 validation trial 选择预算：C auxiliary weight 与 
 - A–C/A–E paired CI、Holm 校正、safety、coverage、invariant 与恢复诊断；
 - 完整失败 run、排除原因和 provenance；
 - `EXECUTE.md` 最终 LOG、`docs/DECISIONS.md` 终止决定与 claim ledger 状态。
+
+
+## D-055 S5 独立确认：一次同步后的固定命令
+
+当前阶段已备齐；全测和 train 小预演先于 validation 生成，生成成功且健康门通过后才允许评测。所有动作统一为 `bash ops/m1_corrected_confirmation.sh <动作>`。每行成功后再执行下一行，不为切换动作要求新提交/pull。
+
+| 动作 | 完成条件与读写范围 | 前后台 |
+|---|---|---|
+| `test` | 新来源完整全测，failures/errors/skipped=0；不读正式 validation/test | 前台 |
+| `prepare` | 原算法来源桥接、导出指纹、登记与 60 模型全部 CPU 加载成功；不训练 | 前台 |
+| `smoke` | 固定 train 第 1 组读写 digest 对拍、两架构 A/C/E seed 7 正式权重与两个 oracle 接线，320 次决策；不读取 validation | 前台 |
+| `generate` | 固定 validation 4–203，共 200 组及原 family/teacher 健康门；输出新 data manifest；不评测模型 | 前台 |
+| `export-data` | 导出 `results/m1_v7_d055_s5_data.json`，成功报告 `engineering_pass=true` 后继续；失败只保留诊断 | 前台 |
+| `evaluate` | 先落一次性验证消费记录；50 模型×8000 决策及共享两个 oracle；成功启动仅为 `completed=false` | 默认后台 |
+| `status` | 只读状态；等待 `evaluate completed=true exit=0`，不是只看入口 EXIT=0 | 前台 |
+| `summarize` | 两架构所有配对/seed 支持齐全、原统计、安全门与 F 核验；不再选参数，不自动解封 test | 前台 |
+| `export-confirmation` | 导出 `results/m1_v7_d055_s5_confirmation.json`；科学未过门仍如实导出，工程失败单独标记 | 前台 |
+
+输出目录为 `/root/autodl-tmp/cpmt_outputs/m1-v7-d055-s5-<source-prefix>`。生成前全局固定 reservation 防止换来源/目录重开；各步骤退出证据、单位 hash 和失败现场保留，不能静默续算中断单位。运行中的 checkout 不同步。预计超过 30 分钟的 evaluate 可显式 `--foreground`，其余动作不套后台模板。两份报告导出后一次提交精确路径，不需要先提交 data 报告才能评测。
+
+导出与本地复核之后按原 S5 stop rule 决定是否进入 S6 最终冻结；本阶段不含 test 入口。完整命令存在不等于允许越过前置条件，也不表示服务器全测或正式确认已完成。

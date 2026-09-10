@@ -256,3 +256,16 @@ GPU 对拍固定使用原 train groups 0..9（原 hash 分为 9 fit/1 inner-dev�
 `m1_paired_evaluation.py` 是磁盘分片评测公共路径：输入保存权重及完整 paired group 文件路径，worker 自行读取两条轨迹，每条连续执行 20 步；输出逐组真实执行审计、逐例指标和按组号合并的结果。例如同一场景的两个 pivot sibling 始终在一个任务里，不将第 10 步后半段交给另一 worker。前向 p95 不从 worker 分位数拼接；关闭评测进程池后，读取实际在线输入作单进程前向重放，并核对选择不变。此计时只覆盖网络与概率计算，不是完整系统耗时，也不声称机器全局独占。
 
 新增接口检查只使用并发对拍已经保存的两架构 A/C/E、seed 7、30-step refit 权重和原固定 inner-dev 组号最前四组；不为该检查额外训练。逐例完整记录要求不分片串行与四 worker 合并精确一致。正式统计公共函数另读取已有 probe 的 201 组、五 seed 结果，检查配对覆盖后复用原 10000 次 bootstrap、安全门及 Holm 计算；其 train-only 输出不参与选参、不判断 M1 方法成败。正式 S5/S6 的消费 reservation、数据入口及解封仍需独立冻结；公共数值函数已接入不等于这些正式运行已获放行。
+
+
+### D-055 修正版 S5 确认的当前实现（服务器验证 pending）
+
+机器计划为 [`m1_s5_confirmation_v7.json`](../../configs/m1_s5_confirmation_v7.json)，实施入口为 `ops/m1_corrected_confirmation.sh`。它消费 LOG-088 已验收的两臂预算和 60 模型 refit，固定 validation 4–203、两 sibling、20 步；数据、候选、能量、在线边界及统计公共算法逐文件保持 `4c89e59`，不使用旧 v6 S5 登记冒充新来源。原 S5 科学门和 S6 单独解封规则保持。
+
+白话：新增数据写入与来源核验解决“模型存在，但下一阶段可能读错分片或权重”的问题；输入是固定分片编号、绑定 hash 和现成模型，输出是完整配对轨迹和原统计报告。例如两个 sibling 必须一起交给 CPU worker，前置配对检查和后续执行可反复读取同一绑定分片；不能把一次性迭代器耗尽后产生的空结果当作模型成绩。它不改感知表征、训练目标或评价口径。
+
+前置固定 train 第 1 组的新写入必须与既有 probe 审计重编码 digest 一致；两架构 A/C/E、seed 7 的正式权重及两个 oracle 使用这一组检查新接线，共 320 次决策，不训练模型、不访问 validation/test。这是新增接口小预演，不是重复固定 probe 或证明所有未见分支可靠。通过后才生成固定 200 validation groups。生成健康门同时要求原各 family 覆盖和 teacher agreement，失败保留原组，不替换样本。
+
+评测 50 个学生共 400000 次连续决策，另有两个共享 oracle 共 16000 次。四 worker 按 paired group 分片，模型间按固定顺序；每模型的单步 reference-history 错误分解与完整 self-rollout 同时报告。无竞争的阶段内串行重放报告每模型网络前向 p95：输入是已保存在线向量和静态 mask，输出是前向时间分布及选择一致性；例如其 p95=2 ms 只描述网络与概率计算，不包含候选执行和磁盘 I/O，也不保证服务器其他任务未争用 CPU。
+
+生成前固定全局数据目录 reservation，首次模型读取 validation 前落下消费标记；同一绑定可核验复用成功产物，失败和 partial 不自动恢复。输出逐例指标与汇总须保留 candidate miss、teacher error 和 student/teacher disagreement 的区别，并注明 `validation_trial_consumed=true`、`model_selection_performed=false`、`formal_test_release=false`。最终 S5 报告不自动放行 test，统计不通过也应正常导出负结果；工程失败与科学不通过分别报告。
