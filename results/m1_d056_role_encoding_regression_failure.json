@@ -1,0 +1,85 @@
+{
+  "schema_version": "cpmt-d056-role-regression-failure-v1",
+  "scope": "Engineering regression failures; not a method training/evaluation run",
+  "source_preflight": {
+    "path": "results/m1_d056_role_encoding_preflight.json",
+    "sha256": "d257dd56d4f88bcbea5ac955755000c659a8540396ef707f35cbf97b7c30fec3"
+  },
+  "code_binding": {
+    "src/cpmt/__init__.py": "29fc67d601880427ba12b5bb9d42777bddd01de9e3fa0921f14d1cee4735211b",
+    "src/cpmt/dev_data.py": "4e9db692b7ccd9c217193abfee4d3fb6743c6cc1f2e1560464da00b5515ed61d",
+    "src/cpmt/dev_learning.py": "f9e16ef4b380175361d3aa7e53433ef0b29e5a9144a007fe8bad3f8ffae22a6b",
+    "src/cpmt/equivalence.py": "dba388f49dd8bba400d27625a587a43ac51700e9f68b937a74dc15696c64c4f0",
+    "src/cpmt/errors.py": "9bec0a19e78806d9b2ae09bf4d6af82aa5f462cc65f196dd828ca40d4f76a3a3",
+    "src/cpmt/executor.py": "086a39c50c50a7765e484194db91a7c098b40b4ac8b4ec213075084039e6ec57",
+    "src/cpmt/hashing.py": "5403e11f50b788ef244f165f7338917973104b25623501a30b6c680d40e6fded",
+    "src/cpmt/m1_af_method.py": "f2a8f4902883dc5946c70803d0f0578652cd1725060ecf8d696f154c143d0f9b",
+    "src/cpmt/m1_af_rollout.py": "a6e487352e3c087e9ad1157f30bff61d398ec13935bb3f88a878f1e63c7dbd5f",
+    "src/cpmt/m1_branch_preflight.py": "63ee8dca4e0990ca97ffae24b8948c9dc8a83a8df7843f612d8e902fb0937a58",
+    "src/cpmt/m1_candidate_policy.py": "b4971c455773ef565545a2c3df6949335cdca2f85dcda6403757c2eb32cd3a64",
+    "src/cpmt/m1_data.py": "4c2ab4ab15e9d77d2aefafe2551fdd24276cec2a22672b67350807472d567b3f",
+    "src/cpmt/m1_metrics.py": "2cf9d0fa0111792f01b25954b6bf85179393d075a0a32c1d07c58ff204cd2d07",
+    "src/cpmt/m1_protocol.py": "9a9dc6852697d29a49f34f726d9f2b4f27e2060b91166f00c4d522556037dcc5",
+    "src/cpmt/m1_registration.py": "34be7007018a54fa227aa1cbbed341ab6943d7af1eb9a48af47e0a699fbecdd0",
+    "src/cpmt/m1_role_encoding.py": "14ff64f5df7c8e0c75406aed78574e13182447846535f0c1983334ef608ce75c",
+    "src/cpmt/m1_rollout.py": "369edb57da8e305acffacffe90f55e244c1d628628ee70b15afc381e3cb1c49e",
+    "src/cpmt/m1_s5_confirmation.py": "9c44e16086c09001c7b9f760e33f4d65b7887788b27061d2f7b1c618c889567c",
+    "src/cpmt/m1_s5_training.py": "f031cb0baf816d1063a0035d2b64437b172163ad83ac789ca0611e33197f3e84",
+    "src/cpmt/m1_scope_rebuild.py": "eb710412fbd12bb28af50dc45d8e935e57369317a527d84429e48b8713279177",
+    "src/cpmt/m1_train_reuse.py": "b2c040b72566468ef9ade209a9c318540290cad5bfb51854bf68cecce7099892",
+    "src/cpmt/m1_trainability.py": "7cb53e71b4b2de2346c248c5ec5055a0aed9916fbc32a4afb13e7479d5806f42",
+    "src/cpmt/maintenance.py": "5a29125721feb1715dcfed773445c518417714a9261a3aadfd2864cf88a4d71a",
+    "src/cpmt/pending.py": "95c6f7b71c27ad30f4d8f3119aa89f71801c7e6f8e36008296208d937d5e03e2",
+    "src/cpmt/run_provenance.py": "f5ec42862caa2d8e0d5eee30d8ea40ac13aff6e74363584cbb6adb77dd01792d",
+    "src/cpmt/visual_pilot.py": "c6d56b05228eb3e369d6c04141f4c683fede1ac7536e37b0ab4544c99cd7c533",
+    "ops/m1_role_encoding_preflight.py": "ed29bd2b3dee4caed70be79b05f5170b531f52eed70bc7960df783f00d2841f1",
+    "tests/test_m1_role_encoding.py": "5401bbbb3cb97b1d5a0089e1ba94565283013426813fa05c4e182b8626adab99",
+    "configs/m1_hard_condition_v7.json": "335c08fa4760fa1a8df7ed295eef1a3749640e968f12e6fe72570906cf8956c4",
+    "configs/m1_af_smoke.json": "a12a64b0eed91141f84f00b289eaa1971138d4d095f2323d9725f06e994f0a9c"
+  },
+  "prototype_preflight_tests_passed": 9,
+  "required_legacy_regression_tests": 30,
+  "legacy_regression_passed": false,
+  "formal_training_performed": false,
+  "test_access": false,
+  "cause": "At capture time, native interpreter/process failures during legacy fixture generation/copy/projection were unresolved. On 2026-09-11 the user reported that this computer's CPU is faulty; this is user-provided hardware context, not an independently measured CPU diagnosis. No individual exception is attributed conclusively from its stack.",
+  "attempts": [
+    {
+      "runtime": "Windows CPython 3.12.10 / NumPy system install / Torch 2.11.0+cu126",
+      "target": "test_m1_af_rollout.py, all 30 tests",
+      "exit_code": 1,
+      "observation": "Ten tests printed ok, then process ended while observable_oracle test was displayed; no Python traceback. This is not a passed suite."
+    },
+    {
+      "runtime": "Windows CPython 3.12.10, one thread, faulthandler",
+      "target": "test_observable_oracle_couples_the_ambiguous_pair",
+      "exit_code": 1,
+      "observation": "Windows fatal exception: access violation in clone_json -> execute_transaction -> _counterfactual_trace -> fixture setUpClass, before test execution."
+    },
+    {
+      "runtime": "Windows CPython 3.12.10, one thread, baseline module loaded via git show b63e9a6:src/cpmt/m1_af_rollout.py",
+      "target": "same single test",
+      "exit_code": 1,
+      "observation": "Ran 0 tests. Fixture generation raised TypeError: 'list_iterator' object is not callable in equivalence._semantic_provenance. Different failure; not proof of a common native root cause."
+    },
+    {
+      "runtime": "Windows project CPython 3.12.14 / NumPy 2.5.2 / Torch 2.14.0+cpu, one thread",
+      "target": "legacy plus prototype suites, 39 planned tests",
+      "exit_code": 1,
+      "stderr": "Windows fatal exception: access violation\n\nCurrent thread 0x0000c3b4 (most recent call first):\n  File \"D:\\Users\\28115\\Desktop\\SCI\\projects\\embodied_spatial_memory\\src\\cpmt\\hashing.py\", line 30 in clone_json\n  File \"D:\\Users\\28115\\Desktop\\SCI\\projects\\embodied_spatial_memory\\src\\cpmt\\hashing.py\", line 32 in clone_json\n  File \"D:\\Users\\28115\\Desktop\\SCI\\projects\\embodied_spatial_memory\\src\\cpmt\\hashing.py\", line 30 in clone_json\n  File \"D:\\Users\\28115\\Desktop\\SCI\\projects\\embodied_spatial_memory\\src\\cpmt\\m1_rollout.py\", line 2075 in _execute_candidates\n  File \"D:\\Users\\28115\\Desktop\\SCI\\projects\\embodied_spatial_memory\\src\\cpmt\\m1_rollout.py\", line 1784 in _prepare_fixed_candidates\n  File \"D:\\Users\\28115\\Desktop\\SCI\\projects\\embodied_spatial_memory\\src\\cpmt\\m1_rollout.py\", line 2423 in _counterfactual_trace\n  File \"D:\\Users\\28115\\Desktop\\SCI\\projects\\embodied_spatial_memory\\src\\cpmt\\m1_rollout.py\", line 2740 in _generate_sequence\n  File \"D:\\Users\\28115\\Desktop\\SCI\\projects\\embodied_spatial_memory\\src\\cpmt\\m1_rollout.py\", line 3359 in generate_m1_paired_rollout_split\n  File \"D:\\Users\\28115\\Desktop\\SCI\\projects\\embodied_spatial_memory\\src\\cpmt\\m1_af_rollout.py\", line 660 in build_rollout_learning_arrays\n  File \"D:\\Users\\28115\\Desktop\\SCI\\projects\\embodied_spatial_memory\\tests\\test_m1_af_rollout.py\", line 70 in setUpClass\n  File \"D:\\Users\\28115\\Desktop\\SCI\\projects\\embodied_spatial_memory\\.uv-python\\cpython-3.12-windows-x86_64-none\\Lib\\unittest\\suite.py\", line 166 in _handleClassSetUp\n  File \"D:\\Users\\28115\\Desktop\\SCI\\projects\\embodied_spatial_memory\\.uv-python\\cpython-3.12-windows-x86_64-none\\Lib\\unittest\\suite.py\", line 114 in run\n  File \"D:\\Users\\28115\\Desktop\\SCI\\projects\\embodied_spatial_memory\\.uv-python\\cpython-3.12-windows-x86_64-none\\Lib\\unittest\\suite.py\", line 84 in __call__\n  File \"D:\\Users\\28115\\Desktop\\SCI\\projects\\embodied_spatial_memory\\.uv-python\\cpython-3.12-windows-x86_64-none\\Lib\\unittest\\suite.py\", line 122 in run\n  File \"D:\\Users\\28115\\Desktop\\SCI\\projects\\embodied_spatial_memory\\.uv-python\\cpython-3.12-windows-x86_64-none\\Lib\\unittest\\suite.py\", line 84 in __call__\n  File \"D:\\Users\\28115\\Desktop\\SCI\\projects\\embodied_spatial_memory\\.uv-python\\cpython-3.12-windows-x86_64-none\\Lib\\unittest\\suite.py\", line 122 in run\n  File \"D:\\Users\\28115\\Desktop\\SCI\\projects\\embodied_spatial_memory\\.uv-python\\cpython-3.12-windows-x86_64-none\\Lib\\unittest\\suite.py\", line 84 in __call__\n  File \"D:\\Users\\28115\\Desktop\\SCI\\projects\\embodied_spatial_memory\\.uv-python\\cpython-3.12-windows-x86_64-none\\Lib\\unittest\\runner.py\", line 240 in run\n  File \"<string>\", line 1 in <module>\n"
+    },
+    {
+      "runtime": "Windows project CPython 3.12.14 / NumPy 2.5.2 / Torch 2.14.0+cpu, one thread, PYTHONMALLOC=malloc",
+      "target": "legacy plus prototype suites, 39 planned tests",
+      "exit_code": 1,
+      "stderr": "Windows fatal exception: access violation\n\nCurrent thread 0x00004714 (most recent call first):\n  File \"D:\\Users\\28115\\Desktop\\SCI\\projects\\embodied_spatial_memory\\src\\cpmt\\m1_data.py\", line 151 in <genexpr>\n  File \"D:\\Users\\28115\\Desktop\\SCI\\projects\\embodied_spatial_memory\\src\\cpmt\\m1_data.py\", line 149 in _cached_token\n  File \"D:\\Users\\28115\\Desktop\\SCI\\projects\\embodied_spatial_memory\\src\\cpmt\\m1_data.py\", line 225 in _active_state_tokens\n  File \"D:\\Users\\28115\\Desktop\\SCI\\projects\\embodied_spatial_memory\\src\\cpmt\\m1_data.py\", line 238 in project_active_structural_observation\n  File \"D:\\Users\\28115\\Desktop\\SCI\\projects\\embodied_spatial_memory\\src\\cpmt\\m1_rollout.py\", line 2185 in _projection_mismatch\n  File \"D:\\Users\\28115\\Desktop\\SCI\\projects\\embodied_spatial_memory\\src\\cpmt\\m1_rollout.py\", line 2485 in _counterfactual_trace\n  File \"D:\\Users\\28115\\Desktop\\SCI\\projects\\embodied_spatial_memory\\src\\cpmt\\m1_rollout.py\", line 2740 in _generate_sequence\n  File \"D:\\Users\\28115\\Desktop\\SCI\\projects\\embodied_spatial_memory\\src\\cpmt\\m1_rollout.py\", line 3359 in generate_m1_paired_rollout_split\n  File \"D:\\Users\\28115\\Desktop\\SCI\\projects\\embodied_spatial_memory\\src\\cpmt\\m1_af_rollout.py\", line 660 in build_rollout_learning_arrays\n  File \"D:\\Users\\28115\\Desktop\\SCI\\projects\\embodied_spatial_memory\\tests\\test_m1_af_rollout.py\", line 70 in setUpClass\n  File \"D:\\Users\\28115\\Desktop\\SCI\\projects\\embodied_spatial_memory\\.uv-python\\cpython-3.12-windows-x86_64-none\\Lib\\unittest\\suite.py\", line 166 in _handleClassSetUp\n  File \"D:\\Users\\28115\\Desktop\\SCI\\projects\\embodied_spatial_memory\\.uv-python\\cpython-3.12-windows-x86_64-none\\Lib\\unittest\\suite.py\", line 114 in run\n  File \"D:\\Users\\28115\\Desktop\\SCI\\projects\\embodied_spatial_memory\\.uv-python\\cpython-3.12-windows-x86_64-none\\Lib\\unittest\\suite.py\", line 84 in __call__\n  File \"D:\\Users\\28115\\Desktop\\SCI\\projects\\embodied_spatial_memory\\.uv-python\\cpython-3.12-windows-x86_64-none\\Lib\\unittest\\suite.py\", line 122 in run\n  File \"D:\\Users\\28115\\Desktop\\SCI\\projects\\embodied_spatial_memory\\.uv-python\\cpython-3.12-windows-x86_64-none\\Lib\\unittest\\suite.py\", line 84 in __call__\n  File \"D:\\Users\\28115\\Desktop\\SCI\\projects\\embodied_spatial_memory\\.uv-python\\cpython-3.12-windows-x86_64-none\\Lib\\unittest\\suite.py\", line 122 in run\n  File \"D:\\Users\\28115\\Desktop\\SCI\\projects\\embodied_spatial_memory\\.uv-python\\cpython-3.12-windows-x86_64-none\\Lib\\unittest\\suite.py\", line 84 in __call__\n  File \"D:\\Users\\28115\\Desktop\\SCI\\projects\\embodied_spatial_memory\\.uv-python\\cpython-3.12-windows-x86_64-none\\Lib\\unittest\\runner.py\", line 240 in run\n  File \"<string>\", line 1 in <module>\n"
+    },
+    {
+      "runtime": "WSL Ubuntu-24.04 project environment / CPython 3.12.3 / NumPy 2.5.2 / Torch 2.14.0+cpu, OMP/MKL threads=1",
+      "target": "test_m1_af_rollout.py, all 30 tests",
+      "exit_code": 1,
+      "stderr": "Fatal Python error: Segmentation fault\n\nCurrent thread 0x00007dfaed550080 (most recent call first):\n  File \"/mnt/d/Users/28115/Desktop/SCI/projects/embodied_spatial_memory/src/cpmt/hashing.py\", line 30 in clone_json\n  File \"/mnt/d/Users/28115/Desktop/SCI/projects/embodied_spatial_memory/src/cpmt/hashing.py\", line 32 in clone_json\n  File \"/mnt/d/Users/28115/Desktop/SCI/projects/embodied_spatial_memory/src/cpmt/hashing.py\", line 30 in clone_json\n  File \"/mnt/d/Users/28115/Desktop/SCI/projects/embodied_spatial_memory/src/cpmt/executor.py\", line 1313 in execute_transaction\n  File \"/mnt/d/Users/28115/Desktop/SCI/projects/embodied_spatial_memory/src/cpmt/m1_rollout.py\", line 2074 in _execute_candidates\n  File \"/mnt/d/Users/28115/Desktop/SCI/projects/embodied_spatial_memory/src/cpmt/m1_rollout.py\", line 1863 in _candidate_programs\n  File \"/mnt/d/Users/28115/Desktop/SCI/projects/embodied_spatial_memory/src/cpmt/m1_rollout.py\", line 2617 in _generate_sequence\n  File \"/mnt/d/Users/28115/Desktop/SCI/projects/embodied_spatial_memory/src/cpmt/m1_rollout.py\", line 3359 in generate_m1_paired_rollout_split\n  File \"/mnt/d/Users/28115/Desktop/SCI/projects/embodied_spatial_memory/src/cpmt/m1_af_rollout.py\", line 660 in build_rollout_learning_arrays\n  File \"/mnt/d/Users/28115/Desktop/SCI/projects/embodied_spatial_memory/tests/test_m1_af_rollout.py\", line 75 in setUpClass\n  File \"/usr/lib/python3.12/unittest/suite.py\", line 166 in _handleClassSetUp\n  File \"/usr/lib/python3.12/unittest/suite.py\", line 114 in run\n  File \"/usr/lib/python3.12/unittest/suite.py\", line 84 in __call__\n  File \"/usr/lib/python3.12/unittest/suite.py\", line 122 in run\n  File \"/usr/lib/python3.12/unittest/suite.py\", line 84 in __call__\n  File \"/usr/lib/python3.12/unittest/suite.py\", line 122 in run\n  File \"/usr/lib/python3.12/unittest/suite.py\", line 84 in __call__\n  File \"/usr/lib/python3.12/unittest/runner.py\", line 240 in run\n  File \"/usr/lib/python3.12/unittest/main.py\", line 281 in runTests\n  File \"/usr/lib/python3.12/unittest/main.py\", line 105 in __init__\n  File \"/usr/lib/python3.12/unittest/__main__.py\", line 18 in <module>\n  File \"<frozen runpy>\", line 88 in _run_code\n  File \"<frozen runpy>\", line 198 in _run_module_as_main\n\nExtension modules: numpy._core._multiarray_umath, numpy.linalg._umath_linalg, torch._C, torch._C._dynamo.autograd_compiler, torch._C._dynamo.eval_frame, torch._C._dynamo.guards, torch._C._dynamo.utils, torch._C._fft, torch._C._linalg, torch._C._nested, torch._C._nn, torch._C._sparse, torch._C._special, numpy.random._common, numpy.random.bit_generator, numpy.random._bounded_integers, numpy.random._pcg64, numpy.random._generator, numpy.random._mt19937, numpy.random._philox, numpy.random._sfc64, numpy.random.mtrand (total: 22)\n"
+    }
+  ],
+  "next_required_check": "Stop local retries. Run ops/m1_role_encoding_server_check.py run on the user's independent server to rerun all 9 prototype and 30 legacy checks, then verify the independent report. Neither local successes nor local crashes certify or refute the architecture change. No hardware/software repair has been declared completed."
+}

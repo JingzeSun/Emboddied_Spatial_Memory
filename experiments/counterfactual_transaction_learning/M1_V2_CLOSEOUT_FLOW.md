@@ -16,7 +16,8 @@
 
 ## 当前指针
 
-- 当前分析分支：已有案例、恢复与候选可达性导出直接复用。用户在 LOG-095/096 后授权继续下一版 CTL 优化的诊断；本轮固定入口为 `python ops/analyze_m1_s5_encoding.py [--verify]`，只读已有 choices/世界并做纯编码探针，证据仅记 EXECUTE LOG-097。下一步是据诊断确定独立的新开发协议，优先单独检验已有参数角色分离；不将 proposed 探针当作已接受的正式 encoder。新增训练的数据、预算、对照及确认条件须先冻结，未记录的错误分支 teacher 不补推，不改原 S5 停止结论，不调用 S6 或已有封存 test。既有 AV1→AV2→AV3 产物不重新生成或扫描。
+- 当前原型分支：D-056 已实现独立角色编码及补零对照；结果与本机失败只记 EXECUTE LOG-098。用户明确本机 CPU 有问题，停止本机 Windows/WSL 重试，由用户在独立服务器运行 `python ops/m1_role_encoding_server_check.py run`（ROLE-S1），同版本 `verify`（ROLE-S2）复核。重新完成 9 项专项和 30 项旧回归，不复用本机成功记录；失败保留现场，成功后仅提交 `results/m1_d056_role_encoding_server_check.json`。源码同步一次，不为检查、核验或 Git 收尾再改入口。
+- ROLE-S1/S2 均完成前不启动新训练；之后再冻结角色版与原编码对照的数据、预算和新确认协议，不将工程测试或 LOG-097 探针当作方法有效性。旧字节绑定的 LOG-097 诊断可在 b63e9a6 复核，不重写旧报告适配新 source hash。未记录的错误分支 teacher 不补推，不改原 S5 停止结论，不调用 S6 或封存 test，已有 AV1→AV2→AV3 产物不重新生成或扫描。
 - 当前阶段：**S5 独立确认已完成并复核（EXECUTE LOG-090），工程完整但效应 CI 触发既有明确 no-go。当前进入本协议失败结果解释与收口；S6 不放行，test 保持封存，不重新选参/调门或扩模型进入 M2。S5 的结果不是 S6 test 结果，历史运行命令保留用于审计，不作为继续考试的授权。**
 - 历史 S2 证据：v5 S2 的 arrays/manifest/report 已验收；1000−300 的 paired-group 95% CI 为 `[+0.008750,+0.045000]`，按预登记规则选择 1000。10-group 同预算锚点中共同 group 1 的 40−10 平均差为 `+0.005000`、仅 `1/5` seed 严格为正，未达 S3 触发条件。完整数字与 provenance 见 `EXECUTE.md` LOG-032/033。
 - 已完成：同一份 40-group v4 arrays 确定性截取 10/40 groups，运行 scorer steps {60,300,1000} × seed 7。40-group 全 train 上，static preflight 对 2,552/2,552 个 executor-illegal 候选全部静态拒绝、合法误拒 0；过滤后 target-only 均匀并列期望由 0.7729 升至 0.9698，assembled oracle accuracy 由 0.7438 升至 0.9525，其 exact-ambiguity capped 读数由 0.7275 升至 0.9275。D-038 已接受把同一只读预检变成 A–E 共享 mask；旧 v4 过滤数字仍只作采纳依据，不冒充 v5 方法成绩。

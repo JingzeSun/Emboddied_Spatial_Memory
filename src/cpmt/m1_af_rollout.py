@@ -683,8 +683,10 @@ def build_rollout_learning_arrays(
 def rollout_learning_arrays_from_audits(
     hard_config: Mapping[str, Any], audits: Sequence[Mapping[str, Any]], *,
     future_hash_bins: int,
+    feature_encoder: Callable[[Mapping[str, Any]], np.ndarray] | None = None,
 ) -> dict[str, np.ndarray]:
     """Encode already generated audit sequences without retaining online duplicates."""
+    encode_online = online_feature_vector if feature_encoder is None else feature_encoder
     if not audits:
         raise ValueError("rollout learning arrays require at least one audit sequence")
     for audit in audits:
@@ -768,7 +770,7 @@ def rollout_learning_arrays_from_audits(
                 for program in step["online"]["candidate_programs"]
             ]
             rows.append({
-                "x": online_feature_vector(step["online"]),
+                "x": encode_online(step["online"]),
                 "future": future_feature_vector(
                     step["future_trace"], horizon=horizon, bins=future_hash_bins,
                     representation=representation,
@@ -2061,8 +2063,10 @@ def causal_rollout_metrics(
     smoke_config: Mapping[str, Any], *, oracle: bool = False,
     observable_oracle: bool = False,
     audit_sink: Callable[[Mapping[str, Any], Mapping[str, Any], Mapping[str, Any]], None] | None = None,
+    feature_encoder: Callable[[Mapping[str, Any]], np.ndarray] | None = None,
 ) -> tuple[dict[str, float], list[dict[str, Any]]]:
     """Evaluate a method causally on its own persistent predicted graph."""
+    encode_online = online_feature_vector if feature_encoder is None else feature_encoder
     if oracle and observable_oracle:
         raise ValueError("full and observable oracle modes are mutually exclusive")
     policy = smoke_config.get("candidate_availability_policy")
@@ -2156,7 +2160,7 @@ def causal_rollout_metrics(
                     len(materialized["executed_candidates"]), dtype=np.float32,
                 )[selected_index]
             else:
-                vector = online_feature_vector(materialized["online"])
+                vector = encode_online(materialized["online"])
                 static_preflight_pass = torch.as_tensor(
                     [[
                         candidate["static_preflight_pass"]

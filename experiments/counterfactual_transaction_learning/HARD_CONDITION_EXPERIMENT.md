@@ -281,6 +281,44 @@ GPU 对拍固定使用原 train groups 0..9（原 hash 分为 9 fit/1 inner-dev�
 `burden_sum_by_sequence_stratum` 将每条完整序列的既有 open-fact burden 按上述互斥类别求和；`first_step_wrong_sequences` 是另列的交叉子集，不与前三类再次相加。输入是原全过程负担，输出是各类序列承载的负担总量；例如首步错误序列后来又错一次，这两次均进入该序列的总负担，它不等于首步错误本身的因果贡献。`mean_burden` 仍除以所有序列。分母包含同一 200 paired groups 的两 sibling 和五 seed，不冒称 2000 个独立场景；不对方法各自不同的错误子集作因果恢复率比较或新增显著性检验。全体错误后逐步候选覆盖和错误分支 teacher 排名需另读已保存逐步轨迹，本汇总不补推这些缺失字段。
 
 
+### D-056：已有参数角色分离原型（独立开发；效果未验证）
+
+本节只约束原型工程阶段，不修改上文已冻结的 S5 方法或替换其结论。用户在 LOG-097 后授权继续实现；正式方法有效性、开发训练预算和新确认数据仍为 planned。代码为 `src/cpmt/m1_role_encoding.py`，原 `online_feature_vector` 与所有旧入口默认行为保持；新适配器显式传递 `feature_encoder` 给训练数组构建和每步自身状态 rollout。原型训练/rollout 适配器只接受非空 train audits，配置必须 `formal_run=false`、`test_access=false`；不加载旧权重冒充新编码模型。
+
+白话：参数角色分离解决“参数混在一起后，网络不知道哪个 ID 是关系源、哪个是目的地”的表示问题。输入是原来已有的候选操作参数及 node/edge/place 三条 query，输出是在原 33 维候选块后追加的角色匹配信息。例如把 ADD_EDGE 中对象 source 和地点 target 分开编码；它不新增视觉信息、不读取参考索引或未来，也不等于已经证明这类信息丢失造成了 LOG-095 的 69 次错误。
+
+固定角色来自结构化参数字段，不解析 ID 中的 family、物体名字或事件编号：
+
+| 英文角色 | 中文含义与取值规则 |
+|---|---|
+| `edge_argument` | 顶层 edge_id 指向的边；沿用旧规则去掉 @ 版本后缀 |
+| `node_argument` | 顶层 node_id / node_version_id 指向的节点；沿用旧版本后缀归一化 |
+| `edge_source` | 嵌套 edge.source，例如位置边中的物体 |
+| `edge_target` | 嵌套 edge.target，例如位置边中的地点 |
+| `node_record` | 嵌套 node.node_id，例如待建立或打开新版本的节点 |
+
+各角色内部去重排序，对三条原 query 分别保留 max/mean，再加参数数目除以 6，合计每角色 7 维、追加 35 维；空角色全零。所有角色 ID 的并集必须严格等于旧 `candidate_argument_ids` 集合。不同角色可出现同一个 ID，角色计数不是全局不重复计数。原世界上下文和原候选 33 维逐位保留，事务日志计数、closed edges、生命周期不改，`merge_queries` 不进入新特征。
+
+| 编码 ID | 每候选宽度 | 职责 |
+|---|---:|---|
+| `pooled_v1` | 33 | 原编码兼容锚点 |
+| `pooled_padded_v1` | 68 | 原编码追加 35 个零，作为同宽度对照 |
+| `argument_roles_v1` | 68 | 原编码追加 35 个角色特征 |
+
+白话：同宽度对照解决“收益是否仅来自输入维度和模型参数量增加”的一部分混淆。输入为同一原候选描述，输出为补零的 68 维描述；例如两个 68 维模型可以使用完全相同的随机初始化和总参数量。它不保证两者的有效容量、梯度或训练难度相同，因为补零列没有输入信号；不将参数数目相同夸大为排除了所有容量影响。
+
+若把原输入记为 X、追加角色特征记为 Z，在允许忽略 Z 的理想预测器集合中，最优风险满足 `R*(X,Z) <= R*(X)`。白话：新增特征保留了“仍按原输入作答”的可能性，不能据此保证固定网络、有限数据或梯度训练一定改善。测试以把追加输入列的权重置零验证模型能忽略角色特征，但不训练或选择这种权重。
+
+历史 ROLE-P1/P2 入口 `python ops/m1_role_encoding_preflight.py [--verify]` 保留，用于复核本机九项专项检查记录 `results/m1_d056_role_encoding_preflight.json`。用户在 2026-09-11 明确本机 CPU 有问题后，该成功记录不再认证本原型，Windows/WSL 都不继续重试；必须执行以下独立服务器验收。
+
+当前机械顺序：ROLE-S1 执行 `python ops/m1_role_encoding_server_check.py run`，ROLE-S2 执行同一入口的 `verify`。run 仅允许独立 Linux 服务器，拒绝本机 Windows/WSL；实际项目根由 `git rev-parse --show-toplevel` 确认，输入源码须已经提交且无未提交改动。先运行 9 项角色专项，再运行 30 项既有 A–F 回归，前项 exit=0 且成功测试数匹配才进入后项。专项输入是一组 train 夹具；旧回归自行生成少量 train/validation 单元夹具，不读取原 S5 或封存 test。40 步固定分数模型只检验动态接线，不输出角色方法成绩；既有单元测试中的小训练调用也不属于正式模型训练或 checkpoint 选择。
+
+输出为独立的 `results/m1_d056_role_encoding_server_check.json`，成功标志为 `ROLE_SERVER_CHECK_OK tests=39 exit=0`，后续 verify 成功为 `ROLE_SERVER_CHECK_VERIFIED tests=39 exit=0`。报告包含全部相关源码/测试和两份配置的 hash、实际服务器根路径、Git 提交、Python/NumPy/Torch、系统/hostname、两组完整 unittest 回执与退出状态。verify 可在本地只读核验服务器报告，不执行测试。它不复用本机九项成功记录。运行前写 attempt，每组计算结束后先写日志和 exit 回执，再启动下一组；现场在 `outputs/m1-role-encoding-server-check/<binding>/`。成功报告同绑定直接复用，失败或不完整尝试保留并拒绝自动重开；不删除本机或服务器失败证据。
+
+全部 39 项通过后自动写报告，后续只需 verify 和精确提交这一个服务器产物，不为步骤切换更新版本。服务器实际通过之前，当前状态仍是原型实现完成、验收待完成；通过也不等于角色编码有效或允许直接启动未冻结的新训练协议。
+
+下一科学阶段仍须先冻结：复用哪些合格 train 产物、拟合与 inner-dev paired-group 划分、A–E 及强制主对照的预算、同 seed/初始化与停止步数、query 依赖诊断和未参与本轮分析的新确认来源。本阶段不现场指定胜出方向或新科学效应阈值；C10 证据支持、全体错误负担及候选可达性仍要分别观察，不能只报 C06/C08。新增角色可能强化既有 query 捷径、过拟合角色稀疏性或增加优化难度；原候选生成器本身的 query 依赖没有被消除。merge_queries 配对分、历史计数删除、自身状态重采样和风险损失均不并入本原型。
+
 ### S5 全体逐步候选可达性导出（只读诊断，服务器全量待执行）
 
 入口为 `ops/export_m1_s5_availability.py export|verify`，只使用 Python 标准库。`export` 先执行本入口的轻量前置测试，再读取固定 SHA-256 的 S5 confirmation，从报告原样取得全部 50 模型、10000 个 paired-group 分片路径；逐一核验 complete.json 的原始字节哈希、result.json 的登记哈希、科学登记/来源绑定、模型与组号绑定、两 sibling 的原逐例指标、20 步时间轴和持久状态链。输入是已完成评测的保存结果，输出是 results/m1_v7_d055_s5_availability.json。例如第 5 步保存的合法可选候选没有完整正确世界，则直接保留该判断；它不是重新生成候选、执行模型或重算图相等性。原 audit 与 execution 文件的来源由已核验绑定引用，本入口不重新读取其字节，不冒称全量原始候选世界已经再次审计。
