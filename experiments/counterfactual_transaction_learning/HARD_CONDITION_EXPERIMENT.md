@@ -269,3 +269,13 @@ GPU 对拍固定使用原 train groups 0..9（原 hash 分为 9 fit/1 inner-dev�
 评测 50 个学生共 400000 次连续决策，另有两个共享 oracle 共 16000 次。四 worker 按 paired group 分片，模型间按固定顺序；每模型的单步 reference-history 错误分解与完整 self-rollout 同时报告。无竞争的阶段内串行重放报告每模型网络前向 p95：输入是已保存在线向量和静态 mask，输出是前向时间分布及选择一致性；例如其 p95=2 ms 只描述网络与概率计算，不包含候选执行和磁盘 I/O，也不保证服务器其他任务未争用 CPU。
 
 生成前固定全局数据目录 reservation，首次模型读取 validation 前落下消费标记；同一绑定可核验复用成功产物，失败和 partial 不自动恢复。输出逐例指标与汇总须保留 candidate miss、teacher error 和 student/teacher disagreement 的区别，并注明 `validation_trial_consumed=true`、`model_selection_performed=false`、`formal_test_release=false`。最终 S5 报告不自动放行 test，统计不通过也应正常导出负结果；工程失败与科学不通过分别报告。
+
+### S5 事后恢复分层（只读描述，不修改正式指标）
+
+`ops/analyze_m1_s5_recovery.py` 解决把“出现错误”和“具有已登记恢复机会”使用同一分母的问题。输入是固定 SHA-256 的 S5 confirmation 全部逐序列指标；输出是每架构/方法、每 seed 和每 paired-group/seed 的计数、比例及负担分层。例如某序列首次全图出错后一直没恢复，会计入 `first_error_never_recovered`，但不会仅凭此认定修复候选缺失。它不重跑模型、executor 或 teacher，也不更改原统计和成败规则。
+
+`bounded_pivot_wrong` 原样汇总 `designed_bounded_pivot_error`：在预设歧义步出错，且保存世界 hash 属于该 paired group 预先覆盖的另一个参考 pivot 世界。`bounded_revisit_triggered` 和 `bounded_recovered` 分别汇总该范围内的可见重访触发与重访后全图恢复；`bounded_not_recovered` 是范围内错误数减恢复数。输入是既有布尔字段，输出是已登记窄范围的条件恢复比例 `bounded_recovery_fraction`，零分母返回 null。例如只有位置选错且世界命中预先覆盖状态才进入该分母；同时遗留身份错误可能不在其中。它不等于所有位置错误、所有可修复错误或重新检查实际候选后的完整覆盖率；`pivot_wrong_outside_registered_scope` 也不表示没有修复候选。
+
+`never_wrong`、`first_error_recovered`、`first_error_never_recovered` 将全部序列按首次全图错误后是否曾恢复划分；`ever_wrong` 是后两类之和，`first_error_recovered_within_3` 复用原三步窗口，`recovered_then_final_wrong` 单列恢复后终点再次出错，`first_step_wrong` 仅统计第一个决策后出错。输入是原首错、恢复时长及终点字段，输出是完整计数和首错步直方图（-1 表示无错）。例如第 3 步错、第 4 步修好、第 10 步再错至终点，属于曾恢复且终点再次出错；它不是始终未恢复，也不能证明所有中间局部事实都修好。
+
+`burden_sum_by_sequence_stratum` 将每条完整序列的既有 open-fact burden 按上述互斥类别求和；`first_step_wrong_sequences` 是另列的交叉子集，不与前三类再次相加。输入是原全过程负担，输出是各类序列承载的负担总量；例如首步错误序列后来又错一次，这两次均进入该序列的总负担，它不等于首步错误本身的因果贡献。`mean_burden` 仍除以所有序列。分母包含同一 200 paired groups 的两 sibling 和五 seed，不冒称 2000 个独立场景；不对方法各自不同的错误子集作因果恢复率比较或新增显著性检验。全体错误后逐步候选覆盖和错误分支 teacher 排名需另读已保存逐步轨迹，本汇总不补推这些缺失字段。
