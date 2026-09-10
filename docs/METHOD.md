@@ -158,6 +158,22 @@ A–E 共享前端、在线字段、候选机会、分组和合理参数/调参�
 
 A 与 C/E 无可靠差异时不支持执行后监督独特优势；覆盖低先查候选器，教师好学生差查学习，单步好连续差不支持长期记忆。教师分布变化不等于学生收益，表征改善不全归 CTL。负结果、歧义和失败保留，论文主张见 EXECUTE 的证据表。
 
+## 旧代码阅读地图（步骤 01）
+
+这张表用于审查旧实现的信息来源。输入是基线提交 `5c5450b` 的源码，输出是入口、读取链和后续替换边界；例如删除学生输入中的 `reference_spec`，仍会留下由它生成的 query。这是静态代码定位，不是新的运行结果，也不表示新模块已经实现。精确函数范围和文件摘要见[基线清单](../data/manifests/m1_rebuild_baseline.json)。行号均对应该基线。
+
+| 阅读顺序与旧入口 | 已核查的读取链 | 新实现要审什么（planned） |
+|---|---|---|
+| 1. `m1_rollout.py:_event_plan`（495）；`_proposal_query`（416） | `reference_spec` 的目标 ID 形成 node/edge/place/merge query；ID 向量再加干扰和噪声 | 观测特征来自实际帧及冻结前端；含噪不等于摆脱答案来源 |
+| 2. `m1_rollout.py:_proposal_context`（1429）；`_prepare_fixed_candidates`（1777） | 候选上下文读上述 query；MERGE 配对使用 merge_queries。候选真实执行后按 canonical memory state 去重 | 候选器单独审查上游来源与修复机会；只改学生编码不能移除候选构造中的答案代理 |
+| 3. `m1_af_rollout.py:_argument_features`（219）、`online_feature_vector`（371）；`m1_role_encoding.py:encode_online`（77） | pooled 编码聚合三个 query 的 ID 匹配，角色版拆开参数角色；均未直接纳入 merge_queries。上下文含 closed_edges 和 transaction_log 长度 | 按角色保留真实观测匹配信息；区分语义、证据归属与非语义历史，不能假定恢复 active graph 后输入也恢复 |
+| 4. `m1_rollout.py:_counterfactual_trace`（2395）、`_teacher_posterior`（2379） | 从候选 post-world 克隆分支；按登记的 reference policy 执行后续主事务或 NOOP，再与参考未来状态作投影比较 | 单独替换分支推进与未来证据评分；不能把正确后续事务重放直接移植到视觉教师 |
+| 5. `m1_af_rollout.py:candidate_future_relation_targets`（502）、`rollout_learning_arrays_from_audits`（683） | C/E 的候选相关未来目标读取参考轨迹 future_states；训练行来自 audit steps 与 recovery_examples，标签取 reference_program_index | C/E 同样改为允许的真实未来证据目标；唯一参考索引与多个语义有效答案分开处理 |
+| 6. `dev_learning.py:train_student`（958） | 有标签 CE 与教师 KL 等目标由各分支控制；既有数组构建没有自身策略的新状态重采样 | 在共同观测与候选契约下独立审查 A–E 目标和训练分布；不能把输入重构的效果全归 CTL |
+| 7. `executor.py:execute_transaction`（1285）；`equivalence.py:canonicalize_memory_state`（372）；`m1_metrics.py` | 执行、状态等价、active/open-memory 与逐轨迹评价已有独立入口 | 执行基础逐项复验后复用；数值 latent、证据归属和审计身份映射按新合同检查，不默认旧执行器已支持连续表示修订 |
+
+清单字段的中文含义：`baseline_commit` 是被定位的旧版本；`source_tree` 保存文件及 Git 原始字节摘要；`function_locations` 保存函数范围；`saved_local_report_inventory` 只登记本地报告完整性，`metrics_recomputed=false` 表示未复算指标；`public_data_access_check` 保存公开索引来源及访问限制。它不证明服务器权重/数组存在，也不改变历史报告自己的 code/data/config 绑定。
+
 ## 历史原文
 
 现存源码、schema、fixtures、配置和报告保持原路径；旧运行继续绑定原提交。[开发合同](../experiments/counterfactual_transaction_learning/DEVELOPMENT.md)、[首轮结果](../experiments/counterfactual_transaction_learning/DEVELOPMENT_RESULTS.md)及旧 M1 合同保留。已合并的细分文档、确认表和旧方案副本可在[重组前提交](https://github.com/JingzeSun/Emboddied_Spatial_Memory/tree/c24ced2f4a5513f5a8944b98139857cfc27909ff)查看，其“下一步”不再作活动指令。
