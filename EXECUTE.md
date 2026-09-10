@@ -6,7 +6,7 @@
 
 > **2026-09-10 更新（S5 完成，科学门未通过）：** 已拉取 `ea6859e` 的 data/confirmation 导出并复核。369 项全测、200 组数据健康、50 模型完整评测与 F 通过；24 组效应/CI 独立复算一致。主架构 A/C/E exact 为 0.9205/0.8980/0.5200；A−C support 仅 +0.001911，burden reduction +0.690，其 CI 上界远低于登记门。两架构均未通过主比较；触发既有 S5 no-go 停止条件，S6 不放行。这是 S5 确认结论，不冒称 S6 test 结果。详见 LOG-090。
 
-最后更新：2026-09-10，S5 报告及来源已复核；LOG-092 完成 group 69 原始轨迹分析，LOG-093 完成全部已导出序列的恢复分层，LOG-094 完成全体 400000 步保存的候选可达性分层。当前协议失败结果解释与收口继续；不改门、不扩模型、不进入 M2，test 保持封存。
+最后更新：2026-09-10，S5 报告及来源已复核；LOG-092–094 完成案例、恢复及全体 400000 步保存的候选可达性分层，LOG-095–097 完成错误高频区、外部建议复核及可复用编码诊断。下一版 CTL 改动仍为待验证方向，未改正式架构或重训；原 S5 no-go 保持，不进入 M2，test 保持封存。
 
 | 项目 | 当前事实 |
 |---|---|
@@ -1172,3 +1172,26 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - 代码核查事实：m1_af_rollout.online_feature_vector 用节点类型/生命周期计数、边数量/关系散列、当前观测匹配摘要、最后 pose 和 step 构造共享上下文；每候选 33 维由模板、intent、成本、操作计数、保护标志及匿名参数匹配组成。_argument_features 将候选所有参数 ID 去重后混合，对 node_query/edge_query/place_query 各仅保留相似度最大值和均值，另保留参数数量；未保留完整参数角色绑定和局部图连接。proposal_observation 中用于生成 merge_pairs 的两条 merge_queries 未直接进入学生这段编码。已有间接候选构造信号仍可能提供信息，不能据此宣称学生必然完全无法分辨两组 MERGE，实际特征碰撞/充分性尚未审计。
 - 当前主学生是 128 维、两层、四头的 Pre-LN 候选集合注意力（dev_learning.OnlineModel / SetAttentionBlock），注意力单元是 16 个候选 token，不是记忆节点。A 的训练损失为已标注子集交叉熵加全 batch 的 KL(teacher || student)，teacher 来自候选执行后能量的温度 0.25 分布；C 的结构化关系预测支路参与其辅助损失，A 当前不使用该支路梯度。训练数组由参考 audit.steps 与预设 recovery_examples 编码，不等于在学生任意错误状态分布上持续重新取样。
 - 上述编码压缩、语义判别及训练分布差异是可检验的架构优化假设，不是已证明的故障原因。用户提出允许依据结果优化 CTL 架构；本轮提供下一版候选方向及数学预期/副作用分析，没有实施、重训或接受某个具体新架构/损失协议，故不新增方法 decision，不改原 S5 结果。
+
+## LOG-096（2026-09-10）：外部复核建议核查与 C10 证据绑定分歧
+
+- 针对用户提供的 Claude 复核意见，复用 LOG-094 同一 SHA-256 的 availability 导出及 LOG-092 的 group 69 完整案例；只读解压保存的 choices、reference audits 和 execution 分支，没有调用模型、生成器或 executor，没有训练、重跑评测或读取 test。此处补充结果与解释纠正，不接受或实施新方法协议。
+- query 来源核查：m1_rollout.py 的 node/edge/place/merge queries 均有 reference_spec 参数派生路径；C05 的 node_query 已包含首个 target_node_id，merge_queries 则编码两个目标，生成器又按两个 query 的检索 top-1 构造第一组 merge pair。因此撤回将新增 merge_queries 配对分列为首选架构改动的建议：这有实质的参考身份/候选构造捷径风险，不能把可能提升解释为身份推理改善。它不自动等于未来或 test 泄漏，也尚未实测能消除多少错误。只拆已有参数角色不新增 query 来源，但仍可能放大既有捷径，不能称为已证明安全。
+- _proposal_query 的 docstring 明确希望避免精确隐藏参数散列使检索退化为 lookup；_argument_features 的 docstring 则说明匹配特征用于区分同模板候选。现有材料不足以断言 max/mean 聚合本身是有意设计的防捷径措施。
+- 独立重算 C10：按上一决策后 active world 正确的条件，主架构 A 的 registered_selection_correct=False 且 active_correct_after=1 为 956/1936（49.38%），MLP A 为 911/1823（49.97%），均选择 BIND。频数与外部复核一致；这是跨 seed/sibling 的条件决策频数，不是独立场景样本率。全体 availability 导出没有逐候选 post_graph，不能仅凭该文件确定全部分歧的字段差异或判定候选语义等价。
+- C10 完整案例：解压 group 69 的 reference_audits[file]（外层 base64/gzip、内层原始 gzip JSON）与四个 units 的 files[execution.jsonl.gz]（同样双层压缩）；对 8 条轨迹 step_index=1 的实际同 base 候选，比较 choice.reference_index 与 choice.selected_index 对应 post_graph。参考均为 NOOP，实际均为 BIND；_active_graph_state 相同，_open_memory_state 不同。bind 节点多出 obs:rollout:validation:000069:event:01:current:bind-0 一条 evidence_refs 和对应事务 provenance；open_evidence_attachment_symmetric_difference=1。两边 edges 完全相同、closed_edges 均为 1，节点生命周期不变；transaction_log 长度由 1 变 2，graph_version/parent_version/hash 也不同。这是同实际 base 的候选比较，包含首步身份已错的序列，不能冒充这些序列与参考全图相同。
+- 白话：证据绑定检查的是“这次观测是否应当支持这个记忆对象”，输入是候选执行后的开放记录及其 evidence_refs，输出是证据挂接差异。例如 C10 短暂动态观测被 BIND 到持久对象时，位置可以完全没变，但多记了一条不应记入的支持证据。它不等于闭合历史或审计名字变化。m1_metrics._open_memory_state 保留这项信息，canonicalize_memory_state 也不是仅比较 active graph；因此 active 正确而索引不同不能证明 CE 惩罚了语义等价答案，更不能据此合并 BIND/NOOP 标签。
+- HARD_CONDITION_EXPERIMENT.md 已登记 C10 为当前不可判定的时间信息切片，单步准确率预期约 0.5；它检验不确定性、quarantine 及 evidence-support 后果。这部分分歧需要报告，但不应按约 49% 直接列为可消除的架构误判。其输入偏移确有具体机制：上述案例的 transaction_log/20 上下文分量增加 0.05；这仍不证明该分量造成后续错误，也不支持未经对照删除闭合边、生命周期或证据内容。
+- 对新增风险损失的诊断建议需再收窄：若 Delta_i 就是现有 total energy 减同行可选最小值，则未屏蔽候选的 teacher 定义已给出 log(q_i)=-Delta_i/T-log(sum_j exp(-Delta_j/T))，T=0.25（数值下溢另论）。白话：这两个量本来由同一公式换算，计算其相关性不能证明新增训练信号；应先明确新 J 是否衡量现有能量未覆盖的执行后代价，再检查排序分歧和梯度权重变化。相同信息下不同损失仍可能改变优化，不能反向断言风险损失一定无用。
+- 讨论中的修正优先级仍为 proposed：先核验 query 捷径与指标语义，再单独检验已有参数角色分离；C10 历史计数消融可作为低成本对照，不能代替证据绑定任务；merge_queries 配对分暂缓，风险损失后置。任何共享输入/损失改变属于新版本，原 S5 no-go 与 test 封存保持，确认需使用未参与本轮诊断的数据。
+
+## LOG-097（2026-09-10）：可复用编码诊断与固定输入状态干预
+
+- 用户在 LOG-096 复核后授权继续。交付 ops/analyze_m1_s5_encoding.py、ops/tests/test_s5_encoding.py 和 results/m1_v7_d055_s5_encoding_analysis.json。运行入口为 `python ops/analyze_m1_s5_encoding.py`；`--verify` 从同一来源重算并逐字段核对，不写入。报告存在且一致时复用，不同则拒绝覆盖。输入核验 LOG-094 availability 的固定原始 SHA-256、共同 confirmation 报告 hash、case 内压缩 payload/marker/file/audit 来源及实际图链；报告记录分析脚本、测试和所用三个科学模块的 LF 归一化 hash。没有改正式 encoder、训练数组、候选、损失或模型，没有模型/候选执行或 test 访问。
+- 统计范围分开：C10 频数仍覆盖全体 A 两架构五 seed，复现 956/1936 与 911/1823；完整候选世界和特征分析只有此前选择的 group 69，一组两 sibling、A/C 两 seed、160 个实际决策，不能当作全体错误样本。脚本逐步 reference_index 在错误 base 上只保留索引比较语义，不宣称该索引在错误世界上始终是正确修复。
+- 在 160 个实际决策中，对每步全部可选且执行合法候选，用原 online_feature_vector 的 float32 候选块逐对比较，完全相等的碰撞数为 0。20 次 registered 索引分歧中，所选与参考索引候选块完全相同的次数也为 0。首步选错 RELINK 的四条轨迹，完整候选块最大绝对差为 1，末尾原参数块最大绝对差为 0.2285671830。白话：特征碰撞检查的是网络是否收到完全相同的候选描述，输入为同一步已有候选的正式编码，输出为相等候选对。例如若两个程序编码完全一样，模型就缺乏直接区分它们的信息；这里未发现这类现象，不等于现有特征已经保留全部角色信息，也不排除更好的表示改善有限样本学习。
+- proposed 角色探针只把 candidate_argument_ids 已使用的同一 ID 集合按操作类型及参数字段分组；各组对原三条 query 输出 count/max/mean，不读取 merge_queries、reference 索引或未来，不接入正式训练。在合成 source/target 交换测试中，旧参数 max/mean 聚合相同而角色探针不同；这是信息丢失的构造例，不是这 69 次实测错误的归因或改进实验。不能由 Bayes 最优风险下界推出有限模型一定改善。
+- C05 仅审计两个 sibling 的参考历史行（同一 group、相同数值，不当成两个独立场景）：正确 MERGE 的禁用配对分为 1.9866429266，另一合法 MERGE 为 1.2144963061。两者旧 node_query max 同为 0.9965585198；但旧 mean 已不同（0.5464861710 / 0.6197950991），edge/place 的旧匹配值也不同。因此新增配对分会直接强化这个样本的正确排序，而“旧编码里缺 merge_b 所以无法区分”仍不成立；这既不是全体捷径率，也不能估计 C05 的 24 次错误会消除多少。MERGE 配对分只输出审计结果，继续不进入学生。
+- 对 LOG-096 八对 C10 同 base 的 NOOP/BIND 分支，固定实际下一步 online 的观测、候选、pose 等，仅分别替换 prior_world 后调用纯特征编码，全部只在零起始索引 12 的 transaction_log/20 分量不同，差约 0.05；排除该分量后完整编码相同。白话：固定输入状态干预解决“图不同究竟改变了哪个网络输入”的问题，输入是同一下一步观测/候选及两个保存的世界，输出是编码差分；例如在此处定位到事务计数。它没有重新生成候选、运行模型或推演后续轨迹，所以不证明真实后续策略会完全相同，也不证明删计数提高准确率。
+- 上述结果给删除计数新增了明确限制：当前编码在这八对世界中对 evidence_refs 的真实差异没有另一个可见分量，删除计数既消除审计历史敏感性，也让两种 open-memory 状态在固定输入下完全不可区分。下一版若做这项消融，必须同时检查 evidence-support 与后续修订表现，不能只按 active world 或输入相等判好。当前尚未删除计数或额外编码证据。
+- 检查：六项合成单元测试通过，覆盖参数角色交换、原 ID 集合保持、拒读新增 query/标签、MERGE 配对置换不变性、payload 损坏拒绝、C10 上一步正确性分母；真实来源分析 exit=0。这批测试验证诊断工具边界，不是新架构有效性证据。后续优先检验角色分离与原编码在新开发协议下的差异；旧查询捷径、计数消融和自身状态训练分别控制，不在同一改动里叠加。新训练预算、数据与确认协议尚未冻结，本轮不启动训练或解封 S6。
