@@ -64,16 +64,27 @@ paired group、world seed、asset family 和同源轨迹不跨 split。validatio
 
 ## 数据适配验收规格
 
-### D-058 公开实采接入的来源比较（proposed）
+### 公开实采接入的来源比较（proposed；延续 D-058/D-059）
 
 | 来源 | 可用于什么 | 必须处理的限制 |
 |---|---|---|
 | 3RScan | 已有提案中的标定 RGB-D、位姿及同场所变化后的重访，优先考察身份/位置修订的小样本接口 | 跨扫描有采集空档，不能虚构连续搬运轨迹；实例对应/对象变换只供独立审计。跨扫描参考对齐若用作固定 pose 条件须明示特权来源，不从完整重建初始化在线旧记忆 |
 | Aria Digital Twin（ADT，Aria 数字孪生数据集） | 实采眼镜视频中的动态活动，用于连续观测和对象变化的候选来源 | 官方同时提供实采与合成图像，以及真值派生深度、设备/对象轨迹；它们不能混称传感器输入。只有两个场所且动态对象共享，不足以仅靠随机序列切分声称广泛的未见场景/对象泛化 |
+| Bonn RGB-D Dynamic（波恩动态彩色深度序列） | 实采移动/放置/移走箱子等连续序列；输入彩色深度帧及相机位姿，先输出可审查的变化案例，例如箱子移走后旧位置不应继续占据 | 官方列出相机位姿与静态环境点云真值，未列出完整对象身份轨迹标注；正式身份/证据归属评价需另做独立标注。短序列和少量环境不能代表长期、多场所泛化，也不预设所有变化都能唯一判断 |
+| ARKitScenes（移动设备室内彩色深度扫描） | iPad 实采 RGB-D、相机轨迹、标定和家具框；输入多视角扫描，检查旧节点在绕行后能否重识别 | 多次采集不等于物体确实发生变化，不保证有跨扫描身份/变化标签；适合观测与几何适配候选，不能单独替代动态修订证据。激光扫描高质量深度、完整 mesh 与全场景框须和移动设备观测分开 |
+| BEHAVE（人与物体交互数据） | 多台 RGB-D 相机记录搬动等交互，并提供人/物体注册与相机位姿；可提供真实物体变化的辅助案例 | 外部多相机视角与具身移动相机不同；不把它直接当完整 M2 主来源，不把人体姿态/接触任务扩为第二研究领域 |
 
 白话：这项比较解决“公开数据哪部分真正提供新观测、哪部分其实是答案”的选源问题。输入是官方字段说明，输出是接入候选及来源限制。例如 3RScan 的 RGB-D 可形成当前观测，跨扫描对象 ID 用来检查记忆是否认对；它不是已经选定或下载的数据，也不保证任何来源覆盖全部事务。依据：[3RScan 官方字段](https://github.com/WaldJohannaU/3RScan)、[ADT 官方概览](https://facebookresearch.github.io/projectaria_tools/docs/open_datasets/aria_digital_twin_dataset)、[ADT 文件及真值格式](https://facebookresearch.github.io/projectaria_tools/docs/open_datasets/aria_digital_twin_dataset/data_format)（2026-09-11 查阅）。具体观测/记忆/教师/审计接口及干预检查见 [METHOD.md](METHOD.md)。
 
-3RScan 的[官方获取入口](https://waldjohannau.github.io/RIO/)要求填写 Terms of Use 表单；获取资格与具体下载指令落实后，再准备服务器按训练场所下载的小样本阶段。不能把公开代码可读说成原始数据已经可下载或本机已有副本。
+访问与用途核查（2026-09-11，来源筛查，不是正式数据冻结）：
+
+- **3RScan**：[官方入口](https://waldjohannau.github.io/RIO/)要求 Terms of Use 表单；用户没有表单要求的机构/导师信息，不能把申请成功当现有条件。官方 [FAQ](https://github.com/WaldJohannaU/3RScan/blob/master/FAQ.md)进一步说明仓库 split 列表仅列 reference scans；旧清单的 385 个 ID 应理解为该训练 reference 列表，关联 rescans 仍需元数据，不能靠 ID 前缀猜测。
+- **Bonn**：[官方页面](https://www.ipb.uni-bonn.de/data/rgbd-dynamic-dataset/index.html)有直接分序列下载，不需填写机构/导师表单。移动遮挡箱子、放置非遮挡箱子、移走非遮挡箱子三个官方 ZIP 的未认证 HEAD 均返回 200，Content-Length 分别为 320845314、400775291、271656752 字节。对第一个 ZIP 仅读取 217106 字节目录元数据：590 个 RGB PNG、589 个 depth PNG，以及 rgb.txt、depth.txt、groundtruth.txt；这不证明时间对齐或数值质量，未读取图像/深度载荷、未取得完整文件 SHA256。页面要求研究引用，未见独立数据许可证文本；正式使用/再分发范围仍需记录清楚，不能套用 TUM 的许可。
+- **ARKitScenes**：[官方下载说明](https://github.com/apple/ARKitScenes/blob/main/DATA.md)允许按 video_id 和文件类型下载，官方脚本使用公开 Apple URL；示例训练视频 47333462 的相机轨迹 URL 未认证 HEAD 返回 200。未下载图像、深度或标注。按照[当前仓库许可](https://github.com/apple/ARKitScenes/blob/main/LICENSE)核查使用条件，不沿用第三方旧许可证描述。
+- **ADT**：[官方获取说明](https://facebookresearch.github.io/projectaria_tools/docs/open_datasets/dataset_download)给出邮箱注册并取得下载链接 JSON 的方式，也有[样例教程](https://facebookresearch.github.io/projectaria_tools/docs/open_datasets/aria_digital_twin_dataset)和公开序列预览。说明页未列出导师申请流程，但本轮未完成注册，不把它说成已获完整下载权限。[深度格式说明](https://facebookresearch.github.io/projectaria_tools/docs/open_datasets/aria_digital_twin_dataset/data_format)明确深度来自真值系统；使用这部分只能声明为特权深度受控条件，或另用冻结估计深度。
+- **BEHAVE**：[官方数据页与条款](https://virtualhumans.mpi-inf.mpg.de/behave/license.html)公开列出下载链接及非商业科学研究条件，单批文件较大，本轮未下载；[官方概览](https://virtualhumans.mpi-inf.mpg.de/behave/)说明其四台 Kinect 采集与对象注册。获取方便并不消除视角与任务限制。
+
+以上是候选来源的用途判断。Bonn 若用于初看，序列名只能帮助预选“检查哪类变化”，不能映射成模型输入或正确事务标签；实际发生了什么要看画面。没有已核查官方 train/test 分组的来源先只作开发样例，同场所及关联记录按组隔离，不能随机拆帧伪造独立检验。下载前登记具体清单；旧基线 manifest 保留其当时访问快照，不追改为新来源。
 
 ### 共同检查
 
