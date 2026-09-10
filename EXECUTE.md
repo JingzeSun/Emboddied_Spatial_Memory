@@ -1160,3 +1160,15 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - MLP A/C：有完整候选时恢复 924/927 与 922/922，分别 3/0 次失败；无完整候选且仍错为 3807/4314。A 的三个机会内失败均选择 REPLACE：seed 31、group 119、sibling 0、step_index 5；seed 7、group 119、sibling 1、step_index 5；seed 7、group 136、sibling 1、step_index 3（索引从 0 起）。这些是有界且来源明确的后续候选世界审计对象，不因此重训或更改候选。MLP E 另有 4 次机会内未恢复，B/D 为 0。
 - 全部十个架构/方法臂合并：上一刻正确且本步正确=312429 步，正确转错=14790 步，错误后有完整候选且恢复=8561 步，错误后有完整候选但仍错=210 步，错误后无完整候选且仍错=64010 步，总和 400000。合并计数只是工程/描述核对，不作为不同模型/seed 的独立样本显著性检验。
 - 结论范围：LOG-092 的“初始选择失误与后续候选修复边界必须分开”已在全体保存的步骤中得到更广的描述证据；主架构 A 相对 C 的收益不能解释成“同有完整修复机会时 A 更会恢复”。同时，主架构 E 和 MLP A/E 确实存在候选可达却未恢复的步骤，不能把所有未恢复一律甩给候选生成器。错误分支 teacher error 与 amortization error 仍未分开；全体保存可达性不是完整候选图重审，更不是所有替代多步路径的可达性证明。S5 no-go、原统计/效应门和 test 封存保持。
+
+
+## LOG-095（2026-09-10）：CTL 新错误高频区与现有学生编码核查
+
+- 应用户要求，将 LOG-094 已验收的完整逐步导出进一步按错误类型分析。只统计上一决策后 active world 正确、当前 ambiguity 不为 epistemically_ambiguous_pivot 的决策；分母包括该条件下当前 family 的正确和错误步。输入仍为 SHA-256=4fa2d663e6f84d5b3b5913fd2921f384d73cd92388f997c24dae4ae3c87a28d3 的 results/m1_v7_d055_s5_availability.json，复用其全部模型/seed/group/sibling；不调用模型、executor、生成器或 test。以下为事后条件频数，非独立场景错误率，未新增显著性检验。
+- 主架构 A（CTL）：C08 非预设歧义位置移动错误 46/3872（1.19%），46 次全部选 REPLACE；C05 合并错误 40/1934（2.07%），24 次选错误的 MERGE 程序、16 次选 SPLIT；C04 拆分错误 30/1930（1.55%），30 次全部选 MERGE；C06 替换错误 23/1950（1.18%），23 次全部选 RELINK；C02 新物体错误 20/5820（0.34%），20 次全部选 SPLIT。其余当前 family 在该条件下未见新 active-world 错误，总计 159 次。
+- 主架构 159 次分成：移动/替换两向混淆 69 次（C08+C06），拆分/合并类别或同类程序混淆 70 次（C04+C05），新建/拆分混淆 20 次（C02）。C05 错误的 24 个 MERGE 不能由“学会 MERGE 标签”解决：m1_rollout._proposal_context 构造不同 merge_pairs，候选构造对不同 target_node_ids 产生 MERGE；具体保存对象 ID 尚需原始候选世界进一步确认。所有这里的新错仅指候选存在却转错，不额外断言含噪在线观测总能唯一确定正确答案。
+- 典型保存索引（step_index 从 0 起）：主架构 A seed 19、group 60、sibling 0/1、step_index 8 在 C08 选 REPLACE；seed 19、group 15、sibling 0/1、step_index 17 在 C05 选错误 MERGE；seed 19、group 27、sibling 0/1、step_index 12 在 C04 选 MERGE；seed 19、group 69、sibling 0/1、step_index 0 在 C06 选 RELINK（完整世界证据见 LOG-092）；seed 19、group 13、sibling 0/1、step_index 0 在 C02 选 SPLIT。这些是定位例子，非随机代表样本；总体计数未筛 seed。
+- MLP A 同条件：C08=134/3613，其中 REPLACE=132、RETRACT=2；C05=114/1836，其中 MERGE=70、SPLIT=44；C04=62/1818，其中 MERGE=50、BIRTH=12；C06=67/1856，其中 BIRTH=33、NOOP=12、RELINK=16、BIND=6；C02=41/5452，其中 SPLIT=37、NOOP=4；C01=2/2625，均选 REPLACE。这些架构的容量和交互方式同时不同，不能将差异全归于某一个注意力模块。
+- 代码核查事实：m1_af_rollout.online_feature_vector 用节点类型/生命周期计数、边数量/关系散列、当前观测匹配摘要、最后 pose 和 step 构造共享上下文；每候选 33 维由模板、intent、成本、操作计数、保护标志及匿名参数匹配组成。_argument_features 将候选所有参数 ID 去重后混合，对 node_query/edge_query/place_query 各仅保留相似度最大值和均值，另保留参数数量；未保留完整参数角色绑定和局部图连接。proposal_observation 中用于生成 merge_pairs 的两条 merge_queries 未直接进入学生这段编码。已有间接候选构造信号仍可能提供信息，不能据此宣称学生必然完全无法分辨两组 MERGE，实际特征碰撞/充分性尚未审计。
+- 当前主学生是 128 维、两层、四头的 Pre-LN 候选集合注意力（dev_learning.OnlineModel / SetAttentionBlock），注意力单元是 16 个候选 token，不是记忆节点。A 的训练损失为已标注子集交叉熵加全 batch 的 KL(teacher || student)，teacher 来自候选执行后能量的温度 0.25 分布；C 的结构化关系预测支路参与其辅助损失，A 当前不使用该支路梯度。训练数组由参考 audit.steps 与预设 recovery_examples 编码，不等于在学生任意错误状态分布上持续重新取样。
+- 上述编码压缩、语义判别及训练分布差异是可检验的架构优化假设，不是已证明的故障原因。用户提出允许依据结果优化 CTL 架构；本轮提供下一版候选方向及数学预期/副作用分析，没有实施、重训或接受某个具体新架构/损失协议，故不新增方法 decision，不改原 S5 结果。
