@@ -4,17 +4,17 @@
 
 ## 当前看板
 
-> **2026-09-10 更新（修正版选参及 refit 导出复核通过）：** `cb13046` 的 checks/budget/refit 三份报告已拉取；358 项全测通过，接口修复实测通过，预算 200 条路径/740 个 checkpoint 观察齐全，60 模型完整重训。逐组复算两架构全部学习率/步数与 C 顺序权重选择一致，模型配置与五 seed 矩阵一致。预算实耗 7484.05 秒，refit 1136.19 秒；validation/test 尚未使用。见 LOG-088。
+> **2026-09-10 更新（S5 完成，科学门未通过）：** 已拉取 `ea6859e` 的 data/confirmation 导出并复核。369 项全测、200 组数据健康、50 模型完整评测与 F 通过；24 组效应/CI 独立复算一致。主架构 A/C/E exact 为 0.9205/0.8980/0.5200；A−C support 仅 +0.001911，burden reduction +0.690，其 CI 上界远低于登记门。两架构均未通过主比较；触发既有 S5 no-go 停止条件，S6 不放行。这是 S5 确认结论，不冒称 S6 test 结果。详见 LOG-090。
 
-最后更新：2026-09-10，修正版预算与 60 模型训练已完成并复核导出；D-055 的 S5 独立 confirmation 入口已准备，当前等待服务器新来源全测和固定 train 小预演；不能直接使用旧 v6 入口。
+最后更新：2026-09-10，S5 报告及来源已复核，进入当前协议失败结果解释与收口；不改门、不扩模型、不进入 M2，test 保持封存。
 
 | 项目 | 当前事实 |
 |---|---|
 | 方向 | CPMT 具身空间记忆；CTL 是主学习假设，用户希望面向 ML 研究 |
 | 已完成 | M0 合同与 M1-v1 历史基线；程序化 paired 20-step 与固定 K=16；D-034 的 M1-v2 active/history 指标、局部恢复机会、结构化 E、共享 commit 校准、可观测 oracle 和分阶段 provenance；最小 train/validation 接线及 causal smoke 已通过 |
-| 阶段 | M1-v7：修正 train、固定 probe、工程检查、两臂预算和 60 模型 refit 已完成；S5 独立验证与 S6 test 尚未运行 |
-| 最近结果 | [`m1_v7_d054_corrected_endpoint_probe.json`](results/m1_v7_d054_corrected_endpoint_probe.json)：201 groups、A/C/E 五 seed、F；exact A/C/E=`0.920398/0.748756/0.382587`，support=`0.932137/0.918196/0.859446`，burden=`9.164179/22.393035/13.159204`。保留 exact，N=1350；固定 anchor 未达到全部效应要求，不是正式成败结论。旧 v6 结果保留作历史证据 |
-| 尚缺 | S5 新来源全测、固定 train 小预演、200-group confirmation 及其验收；随后 S6 最终冻结和单独 test 解封。D-051 数值门与 N=1350 保持 |
+| 阶段 | M1-v7：S5 独立确认已完成，工程 PASS、科学 no-go；当前协议停止向 S6 推进 |
+| 最近结果 | [`m1_v7_d055_s5_confirmation.json`](results/m1_v7_d055_s5_confirmation.json)：200 配对组、50 学生模型、400000 次连续决策；两架构 A−C/A−E 均未通过登记检查。详细效应、CI、seed 与泛化诊断见 LOG-090 |
+| 尚缺 | 现有轨迹的失败案例解释与论文可支持结论整理；S6 未运行，当前停止条件下不作为待启动任务 |
 | 数据/算力 | 用户提示本机 CPU 负载可能诱发内存损坏；本轮本机重任务到此停止。D-046 顺序 C weight 搜索按既有逐方法实测路径的最坏 10000-update 外推，两臂总计划约 5.036 小时（非新实测）。后续数据生成、训练、causal rollout 和全套测试优先在 AutoDL 上由干净 Git 提交运行，本地只读取导出的 output。云实例仍由用户手动启停和定时关机 |
 | 当前决定 | D-039–D-043 固定 live energy、真实 C10/C11、current/posterior 审计、Pre-LN 双架构和 A–E 对称 12 格。D-044–D-046 的 endpoint、open-fact AUC `40/80`、固定 gate、C 顺序权重和纯 confirmation 保留；D-047 收紧 claim，拆清 online network/shared executor，登记外生轨迹，并把 H3-vs-H1 teacher 对照设为主文必报、无选择无成败门的机制证据。M1 不声称原始 DCR、完整动态记忆或 active navigation；全局 reconciliation、PNO 与 M2 顺序不变 |
 | 人工待定 | 正式 test 解封仍需以后单独事件；当前不读取 validation/test。D-043 无额外人工选择；运行时剖析只供用户决定何时租用算力，不改变登记网格 |
@@ -1090,3 +1090,20 @@ M1-v6 的阶段顺序、转向条件和成功/失败终点见 [M1-v6 收口执�
 - 新固定全局数据 reservation 防止换 source-derived 目录重开验证；实际模型读 validation 前写独立消费回执。忙锁明确返回非零并说明请求未执行，后台 launch 明示 completed=false；成功、失败、中断分开记录，任何异常都不自动重训、换样本或改门。单步诊断复用原实现，bootstrap/安全/Holm 复用原公共统计；导出压缩职责，只保存本阶段报告、逐组指标和来源指纹，不再次嵌套全部预算/refit 巨大 JSON。
 - 本地 11 项新轻量测试和 6 项运维测试通过（共 17 项）：固定范围/禁 test/禁选参、旧算法桥接、实际 60 模型导出矩阵、新分片写读/篡改拒绝、可重复 oracle 输入/F 失败保留、当前 policy 覆盖旧 payload、健康门失败、消费早于验证读取、原子 rename 后 shard 路径与复用、完整两架构五方法五 seed 汇总接线、全局 reservation 和禁止中断重试。只用本地导出、微型 arrays 与模拟模型/统计，未运行真实模型训练、生成或 self-rollout。服务器新版全测、train 小预演、validation 生成/评测均 pending。
 - 实现本阶段不等于 S5 已通过；最终结果仍按既有 stop rule 复核，不自动开启 S6。完整方法、统计效应门、安全门、固定 exact 与 N 未修改；方法和流程边界见 D-055，命令顺序只在 M1_V2_CLOSEOUT_FLOW 维护。
+
+
+## LOG-090（2026-09-10）：S5 独立确认复核，工程完整但触发科学 no-go
+
+- 拉取结果提交 `ea6859e`。`results/m1_v7_d055_s5_data.json` SHA-256=`a4ef7d0395f8527b2002704ba047fcd6d318ec5b22073728c7f60ae41da0ab6e`；`results/m1_v7_d055_s5_confirmation.json` SHA-256=`fa6426a96d0a1e8ca4cd7bb409ba9e6bbebf852d322a50cd47c6ea023e917e67`。同时导入的 `m1_v7_d054_training_process_check.json` 文件 hash 与旧 refit 的 input_exports 绑定一致。
+- 369 项 full test，errors/failures/skipped=0；prepare/smoke/generate/evaluate/summarize 均 exit=0，实耗分别 12.884/88.342/209.606/14339.792/72.202 秒；评测约 3 小时 58 分 59 秒。两份导出 engineering_pass=true、failure_units/failures 为空，data 是模型评测前快照（trial=false），confirmation 保留消费回执（trial=true）；两者不矛盾。
+- 换机核验：所有 S5 binding/runtime 同为 `autodl-container-2xu0qgs8j6-08076b4e`，Python 3.12.3、NumPy 2.3.2、Torch 2.8.0+cu128、CPU/单线程；新机器在 prepare 重新加载同一 refit 权重。逐模型 model_sha256 与旧 60 模型导出对应项一致，NumPy/Torch 版本与训练记录一致；这不等于不同机器逐决策重执行等价验证。S5 源码指纹 `bea8616e86b697733e7b331f4b11c1bd77f6d681de91e0244b4fcdcf89b0611a` 独立从 `4d4b65b` 的 Git 文件及 Linux 行尾规则复算一致，ops/shell 字节 hash 匹配。summarize 的 git_dirty 仅来自两个允许的未跟踪 results 导出，科学源码 diff 为空，不作为混用代码的证据。
+- 完整性：validation 编号恰为 4–203，400 sibling sequences；50 个 `(architecture,method,seed)` 无缺失/重复，每模型 400 条指标、200 执行分片、8000 次独立前向重放，共 400000 learned decisions，两个共享 oracle 各 400 条。所有阶段 binding/full-test/source 一致；两个 report 用原 write_json 序列化独立复算 raw report_sha256，data manifest 与消费回执绑定一致。生成参考轨迹 candidate coverage 和解析 teacher/reference agreement 均为 1，各 family 健康门通过，invariant=0；F exact/support=1、burden/node error=0。这里的 coverage/teacher=1 只针对参考轨迹，不证明模型错误分支的候选或教师永远正确。
+- 主架构 Set Transformer 五 seed 平均 `(final exact, open-memory support, open-fact burden)`：A CTL=`(0.9205,0.933069,8.915)`；B direct classifier=`(0.7820,0.920135,14.645)`；C direct future loss=`(0.8980,0.931158,9.605)`；D execute current only=`(0.5745,0.903168,28.300)`；E future scorer without execution=`(0.5200,0.891306,17.320)`。burden 越低越好，语义为整个连续过程的开放事实错误累积并按每 100 次决策计，不是错误百分比。
+- 主架构 A−C：exact 改善 `+0.0225`，95% CI `[0.0050,0.0405]`；support 改善 `+0.001911334`，CI `[0.000382941,0.003559497]`；burden reduction `+0.690`，CI `[-0.705,2.045]`。要求分别为 CI 下界至少 `0.03/0.03/40`，三项均不满足；support 与 burden 的上界也远低于各自门，符合明确 no-go，非仅样本少而未显著。相对 E 的 exact/support 改善 `+0.4005/+0.041763878`，各自 CI 下界 `0.3570/0.037297688` 超过 0.03；burden reduction `8.405 [5.240,11.840]` 仍不足 40。两主对比交并/Holm p 均为 1，原因是所有 co-primary 必须同时满足，不能据其否认单项有改善。
+- MLP 五 seed 平均 A/C/E：exact=`0.7885/0.7825/0.4525`，support=`0.921008/0.919304/0.884286`，burden=`16.210/11.385/26.780`。A−C exact `+0.0060 [-0.0270,0.0395]`，support `+0.001703860 [-0.001464057,0.004811680]`；burden reduction 为 `-4.825 [-7.480,-2.500]`，即 A 在整个过程累计更多错误，不是只因严格门未过。A−E burden reduction `10.570 [6.385,14.990125]` 也远低于 40。两架构、两主对照的 false-birth/collateral/active-node 三项安全非劣 CI 均通过原门；当前瓶颈为效果而非这三项安全门。
+- 本地独立按 200 paired groups、每组两 sibling/五 seed 构造差值，固定 RNG=260906、10000 次重采样，用向量化实现复算两架构×两对照×六效应/安全量的均值与 95% CI，共 24 组，与导出相符（误差容限 1e-12）；基于报告交并 p 复算 Holm 一致。只读已导出指标，未重跑真实模型、生成、执行轨迹或测试集。统计 CI 对配对场景重采样，不能解释成已覆盖任意新训练 seed 的不确定性。
+- 泛化诊断：同口径 reference-history 单步 accuracy，主架构 A 全 train=`94.4426%`、validation=`94.3289%`，差 `0.1137` 个百分点；C=`94.4542%→94.2395%`，差 `0.2147` 点。MLP A=`93.9247%→93.5737%`，差 `0.3510` 点。没有明显整体单步 train/validation 崩塌证据，但这不能排除连续错误积累和初始化不稳，也不能把单步分数与终点 exact 直接相减称为泛化差。E 训练时 learned scorer teacher 的参考准确率约 84%，S5 teacher_forced 中 teacher_error=0 是解析 pstar/reference 的诊断，不能据此声称 E 的 learned teacher 完美。
+- Seed 稳定性：主架构 A−C exact 在 seed 7/19/31/43/59 的差分别 `+0.1200/+0.0425/-0.0225/-0.0050/-0.0225`，只有 2/5 为正；不得删除任何 seed。MLP A exact 为 `0.55/0.87/0.7925/0.8775/0.8525`，seed 7 明显偏低；MLP E seed 7 exact=0.0425，单步均分无法刻画这种连续失稳。主架构 probe A exact≈0.920398 与 S5≈0.9205 数值接近，而 C≈0.748756→0.8980；两次数据、预算和全 train refit 都不同，只能描述强对照在完整流程中追近，不能归因于某一个超参数。
+- 尺度诊断：在这批固定 S5 上，C 平均 burden 仅主架构 9.605、MLP 11.385，而该指标非负，因此即便 A 的 burden 降到 0，样本平均改善也达不到 40。说明既定要求高于当前强对照剩余可改善空间；此迹象在固定 probe 已存在，应明确披露规划局限，不能事后把 40 降低让本次结果过门。即使暂不考虑该门，主架构 A−C support 增益仍小、seed 不一致，MLP 全程负担还更差，因此不能把未通过完全解释为门槛设置问题。
+- 错误分解（探索性描述）：主架构 extra-open-fact burden 中 A/C 的新错误写入=`2.160/1.215`，旧错误滞留=`2.2975/3.5875`，A 在两类错误之间存在方向相反的差异；这两项只分解 extra 部分，不是总 burden。MLP 新写入=`2.330/0.335`、滞留=`5.725/5.3575`，A 两项更高。需要已有执行轨迹才能定位具体动作和恢复时间，当前汇总不足以断言某种事务必然是原因。
+- 处置：按已登记 S5 stop rule，当前协议以 S5 科学 no-go 进入分析收口，S6 不放行、test 仍封存，不用更大模型/PNO/M2 或改门救结果。这不是 S6 test 的负结果。当前可报告“相对无执行评分器有明显描述性优势，但未建立相对充分调参 direct future loss 的登记幅度增益及跨 seed 稳定性”；不宣称 CTL 无任何作用，也不宣称主张已得到验证。下一步如需定位，可只读已保存轨迹作明示的事后失败分析，不重训或改本次确认规则。
