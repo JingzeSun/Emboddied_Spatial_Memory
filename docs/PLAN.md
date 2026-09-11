@@ -26,14 +26,14 @@ SH-03 的16对是首轮开发审计建议上限；物理时长、磁盘和运行
 
 ## 当前指针
 
-**SH-01 已实现待审，服务器检查 pending。** 分支 `review/spatial-history-contract`。阅读顺序：
+**SH-01 已通过服务器20项检查，用户“继续”后登记本批审查通过。** 原科学提交 `492a7b60f1bd2a996058c328bc02121e4d6fe9ce`，报告提交 `1e00352`，已快进合并main。当前实现SH-02，尚无物理运行结果。SH-01阅读顺序：
 
 1. [METHOD 的当前候选与第一职责批次](METHOD.md#第一职责批次成对输入边界实现待服务器检查及用户审查)和 [DATA 的字段合同](DATA.md#当前空间历史成对记录-v1d-062)。
 2. [手工输入](../data/fixtures/spatial_history/manual_pair.json)：两个世界3帧，其中末2帧相同；每世界2条控制分支。2×2像素和未来坐标均手工指定。
 3. [核心模块](../src/spatial_world_model/pair_contract.py)：`audit_pair → model_input`；[测试](../tests/spatial_world_model/test_pair_contract.py)验证20项合同性质。
 4. [服务器入口](../ops/spatial_history/contract_check.py)：`run → verify → export` 已一次交付；不含生成/训练步骤。
 
-预期例子：`audit_pair` 返回 `contract_valid=true`、`early_visual_evidence_differs=true`、两个 `outcomes_differ_by_action=true`，但 `physics_and_visibility_verified=false`。同一候选的两个短历史查询完全相同；完整历史查询只因早期视觉证据不同而不同。改变私有未来标签不改变提取结果。服务器会保存该输出和真实文件摘要；当前没有已执行回执。
+已验收例子：`audit_pair` 返回 `contract_valid=true`、`early_visual_evidence_differs=true`、两个 `outcomes_differ_by_action=true`，但 `physics_and_visibility_verified=false`。同一候选的两个短历史查询完全相同；完整历史查询只因早期视觉证据不同而不同。改变私有未来标签不改变提取结果。[服务器回执](../results/spatial_history_contract_v1.json)只认证原提交的合同，不认证后续模拟器。
 
 ### SH-01 服务器固定命令
 
