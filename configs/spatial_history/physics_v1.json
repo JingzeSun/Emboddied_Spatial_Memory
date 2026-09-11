@@ -1,5 +1,5 @@
 {
-  "version": "sh02-engineering-v1",
+  "version": "sh02-engineering-v2-flat-pusher",
   "mujoco": "3.3.7",
   "numpy": "2.2.6",
   "resolution": 64,

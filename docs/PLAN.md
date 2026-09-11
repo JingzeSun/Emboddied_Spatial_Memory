@@ -26,49 +26,27 @@ SH-03 的16对是首轮开发审计建议上限；物理时长、磁盘和运行
 
 ## 当前指针
 
-**SH-02服务器32项检查已运行，30项通过、2项失败；当前导出诊断，尚未验收。** 审查分支 `review/spatial-history-physics`；单对固定物理夹具，不生成SH-03开发集或训练模型。先读 [METHOD 的物理定义](METHOD.md#第二职责批次固定物理工程夹具实现服务器验证及审查-pending)、[DATA 的原始记录](DATA.md#sh-02-原始物理记录实现实际生成-pending)，再审 [场景XML](../configs/spatial_history/physics_v1.xml)、[控制配置](../configs/spatial_history/physics_v1.json)、[物理适配器](../src/spatial_world_model/physics_fixture.py)与[12项新检查](../tests/spatial_world_model/test_physics_fixture.py)。
+**SH-02/v2平面推头修复已实现待服务器32项检查及用户审查。** v1为30项通过、2项失败，诊断已完成；当前只修复球形推头从物块侧面滑过的问题，不生成SH-03开发集或训练模型。审查分支 `review/spatial-history-physics`；先读 [METHOD 的物理定义](METHOD.md#第二职责批次固定物理工程夹具实现服务器验证及审查-pending)、[DATA 的原始记录](DATA.md#sh-02-原始物理记录实现实际生成-pending)，再审 [场景XML](../configs/spatial_history/physics_v1.xml)、[控制配置](../configs/spatial_history/physics_v1.json)、[物理适配器](../src/spatial_world_model/physics_fixture.py)与[12项物理检查](../tests/spatial_world_model/test_physics_fixture.py)。
 
 SH-01原科学提交 `492a7b60f1bd2a996058c328bc02121e4d6fe9ce`、20项通过报告 `1e00352`已核验；用户“继续”后登记本批审查通过并快进合并main，审查登记为9044074。该批准只推进SH-02工程实现与必要测试。SH-02还没通过服务器检查，不合并科学基线、不提前堆叠数据生成/模型代码。
 
-当前诊断：首次EGL失败保留；补齐系统运行库后，实际renderer已确认RTX 4080 SUPER，驱动595.71.05。eglfix1套件用时11.830 s、32项运行完成，四分支均未记录到墙/屏接触，导致接触模式与非空遮挡接触检查失败。两份失败报告已经导出回传；不覆盖目录、不改变阈值或静默改控制重跑。后续修复须依据下面的只读接触诊断另行登记。
+依据：初次EGL环境问题已解决，实际renderer为RTX 4080 SUPER、驱动595.71.05。球形推头版的两份失败报告d087389和只读接触诊断0c4335e均已回传核验，具体失败证据见LOG-105。物块与推头约2.916 s开始接触、约4.05–4.08 s最后接触，随后物块停止，推头继续移动；对应挡板布局约5.048 s出现推头–墙接触。物块全过程y≤0.214694 m，未到墙近侧面0.575 m。这足以定位原预期的持续推动没有实现，不把机器人撞墙改记成物块撞墙。
 
-两份报告已由服务器提交d087389并在本地核验。当前读数：左右动作物块最终y分别约0.214218/0.214692 m，墙近侧面y=0.575 m；两世界对应终点距离均为0，8张预览已核验查看。报告缺少推杆接触过程，因此新增一个必要的只读诊断入口，不改物理参数/源码或32项检查。当前下一步是下面的轨迹诊断，不再运行前段export或物理套件。
+本次单一科学改动：球形推头改为宽0.30 m、前后厚0.05 m、高0.05 m的平面推头；原质量/初始中心、速度控制、物块、墙/屏、相机、求解器和通过门保留。配置文件名沿用v1接口，内容version/model已标v2，原球形配置由原提交与失败产物复现。预期更宽的接触面避免原侧向滑脱，是否成立仍由相同32项检查决定；不做参数扫描、不保证成功。
 
-### SH-02/contact-diagnose：一次同步，复用失败轨迹
+### SH-02/v2 服务器固定命令
 
-在当前空闲、干净的审查分支同步一次；这是补充原导出没有的接触过程读取能力，不是为了换步骤修改实验算法。命令仍在已核实服务器仓库运行：
-
-```bash
-git pull --ff-only origin review/spatial-history-physics
-python ops/spatial_history/contact_diagnose.py
-```
-
-前提为原两份失败报告已提交、eglfix1原产物存在且摘要匹配；入口用原receipt的提交核验原科学代码/合同，不让当前文档冒用旧回执。Python3.11+标准库，短任务前台；只读 `sh02-engineering-v1-eglfix1`，只写 `results/spatial_history_contact_diagnostic_v1.json`，不调用模拟器、不改原目录、不生成新轨迹。成功标志 `SH-02 CONTACT-DIAG EXPORTED ... exit=0`，相同结果复用、不同旧报告拒绝覆盖；失败停留在当前诊断。
-
-导出成功后纯Git回传：
-
-```bash
-git add -- results/spatial_history_contact_diagnostic_v1.json
-git commit -m "results: export SH-02 contact trajectory diagnosis"
-git push origin review/spatial-history-physics
-```
-
-本地读取控制末尾状态、真实接触起止与逐轴范围后才决定是否修复推杆几何、控制或记录逻辑；任何科学修复另立可审版本及新运行目录，不降低原通过门。此轮诊断能力交付不等于预先批准具体物理修复。
-
-### SH-02 服务器固定命令
-
-用户服务器已核实仓库为 `/root/Emboddied_Spatial_Memory`，数据盘为 `/root/autodl-tmp`。Git继续留在原处；旧 `cpmt_outputs` 约25 GB保留。新隔离环境 `/root/autodl-tmp/spatial-history-venv-v1`，新产物 `/root/autodl-tmp/spatial-history/sh02-engineering-v1`。同一checkout无任务运行、工作树干净时同步一次；不把远端仓库拼写改为Embodied：
+用户服务器已核实仓库为 `/root/Emboddied_Spatial_Memory`，数据盘为 `/root/autodl-tmp`。复用已验收EGL的环境 `/root/autodl-tmp/spatial-history-venv-v1`；新产物 `/root/autodl-tmp/spatial-history/sh02-engineering-v2-flat-pusher`，新报告 `results/spatial_history_physics_v2_flat_pusher.json`，默认路径已随修复更新，原失败目录/报告不覆盖。当前审查checkout无任务运行、工作树干净时同步一次：
 
 ```bash
 cd /root/Emboddied_Spatial_Memory
 git status --short
-git fetch origin review/spatial-history-physics
-git switch --track origin/review/spatial-history-physics
+git pull --ff-only origin review/spatial-history-physics
 ```
 
-若本地已有同名分支，先检查其提交/状态，不重复创建或重置。后续本阶段全部使用这次交付版本，无需步骤间pull。
+后续本阶段全部使用这次交付版本，无需步骤间pull。32项检查和全部物理/控制源码字节不因推头配置修复改写。
 
-SH-02/setup：读取已提交依赖清单，用Linux Python 3.11/3.12在上述新目录创建隔离环境，只安装MuJoCo/NumPy及必要依赖；前台显示安装输出、记录完整freeze和退出状态。检查数据盘挂载存在，不将新环境放到系统盘；不修改旧Torch/NumPy。环境已成功且匹配时只核验复用；残留失败/中断目录拒绝重建覆盖。
+SH-02/setup：本机服务器环境已经安装且通过GPU EGL探测，依赖清单未变，当前可直接run，其内部会检查freeze。新服务器重建时才需要本步骤及系统EGL依赖和上下文检查：读取已提交依赖清单，用Linux Python 3.11/3.12创建隔离环境；前台显示安装输出、记录freeze和退出状态。成功且匹配的环境只核验复用，失败/中断目录拒绝重建覆盖。
 
 ```bash
 python ops/spatial_history/physics_check.py setup
@@ -76,7 +54,7 @@ python ops/spatial_history/physics_check.py setup
 
 继续条件：`SH-02 ENV READY ... exit=0` 或 `SH-02 ENV VERIFIED ... exit=0`。安装失败停在当前步骤并保留日志，不启动依赖计算。
 
-SH-02/run：自动核验已批准SH-01回执、原实现字节未变、当前源码提交干净和隔离环境，再前台启动独立Linux进程。固定1对世界、4条首次控制分支、4条反序独立重放；每分支4.9 s模拟时长、2450物理步，15帧历史。原20项回归与12项新检查一并执行。真实运行时间尚未测；这是小规模工程检查，默认前台并逐分支报告，不预先承诺速度。
+SH-02/run：自动核验已批准SH-01回执、原实现字节未变、当前源码提交干净和隔离环境，再前台启动独立Linux进程。固定1对世界、4条首次控制分支、4条反序独立重放；每分支4.9 s模拟时长、2450物理步，15帧历史。原20项回归与12项物理检查一并执行。v1实测套件11.830 s，v2需实际计时，前台逐分支报告。
 
 ```bash
 /root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/physics_check.py run
@@ -84,7 +62,7 @@ SH-02/run：自动核验已批准SH-01回执、原实现字节未变、当前源
 
 读边界：SH-02绑定清单、SH-01导出、隔离环境；不访问旧outputs或封存test。写边界：上述SH-02新产物目录，另由安装步骤写新环境。成功标志 `SH-02 VERIFIED tests=32 original_commit=... exit=0`；`receipt.json`保存实际时间、退出、源码/合同绑定和所有产物摘要。再次run只verify，不重做。失败或进程崩溃保留现场、返回非零并允许导出诊断；不静默换后端/场景/目录重试。
 
-SH-02/export：成功、普通断言失败或子进程崩溃后只要父进程已写receipt均可导出。自动验证原始产物manifest，不重跑；报告包含环境/来源摘要、实际测试结果、每分支诊断和8张无损真实图像预览。失败报告附日志尾部，`status=failed`不会变成物理通过。
+SH-02/export：成功、普通断言失败或子进程崩溃后只要父进程已写receipt均可导出。自动验证原始产物manifest，不重跑；报告包含环境/来源摘要、实际测试结果、每分支诊断、8张无损真实图像预览，以及首次分支的控制末尾位置和各接触对起止/步数/最大力。只读摘要复用已有诊断函数，省略完整逐接触段列表以控制报告大小；原trace保留。失败附日志尾部，`status=failed`不会变成物理通过。
 
 ```bash
 /root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/physics_check.py export
@@ -95,8 +73,8 @@ SH-02/export：成功、普通断言失败或子进程崩溃后只要父进程�
 纯Git回传（只提交这份明确报告）：
 
 ```bash
-git add -- results/spatial_history_physics_v1.json
-git commit -m "results: export SH-02 physics engineering checks"
+git add -- results/spatial_history_physics_v2_flat_pusher.json
+git commit -m "results: export SH-02 flat-pusher engineering checks"
 git push origin review/spatial-history-physics
 ```
 

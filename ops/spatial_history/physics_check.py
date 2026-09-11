@@ -23,14 +23,15 @@ from contract_check import ROOT, encode, git, require, sha, write_new
 
 DISK = Path("/root/autodl-tmp")
 ENV = DISK / "spatial-history-venv-v1"
-RUN = DISK / "spatial-history/sh02-engineering-v1"
-REPORT = ROOT / "results/spatial_history_physics_v1.json"
+RUN = DISK / "spatial-history/sh02-engineering-v2-flat-pusher"
+REPORT = ROOT / "results/spatial_history_physics_v2_flat_pusher.json"
 REQUIREMENTS = "ops/spatial_history/requirements-physics.txt"
 TESTS = ("tests/spatial_world_model/test_pair_contract.py", "tests/spatial_world_model/test_physics_fixture.py")
 BOUND = ("src/spatial_world_model/__init__.py", "src/spatial_world_model/pair_contract.py",
          "src/spatial_world_model/physics_fixture.py", *TESTS, "data/fixtures/spatial_history/manual_pair.json",
          "configs/spatial_history/physics_v1.json", "configs/spatial_history/physics_v1.xml",
-         "ops/spatial_history/contract_check.py", "ops/spatial_history/physics_check.py", REQUIREMENTS,
+         "ops/spatial_history/contract_check.py", "ops/spatial_history/physics_check.py",
+         "ops/spatial_history/contact_diagnose.py", REQUIREMENTS,
          "docs/METHOD.md", "docs/DATA.md", "results/spatial_history_contract_v1.json")
 
 
@@ -187,6 +188,19 @@ def export(directory, report):
             value["diagnostics"][name] = json.loads((directory / name).read_text())
     for path in sorted((directory / "fixture").glob("*.png")):
         value["previews_png_base64"][path.name] = base64.b64encode(path.read_bytes()).decode()
+    # Include already-recorded contact/robot motion in the normal export.
+    # This avoids another export-only code update if the fixture fails again.
+    from contact_diagnose import summarize
+    value["contact_process_by_branch"] = {}
+    for path in sorted((directory / "fixture").glob("world-*-action-*-trace.json")):
+        if "-replay-" in path.name:
+            continue
+        relative = str(path.relative_to(directory)).replace(os.sep, "/")
+        require(relative in receipt["artifacts"], "unbound contact trace")
+        summary = summarize(json.loads(path.read_text()))
+        summary["object_pusher_episode_count"] = len(summary.pop("object_pusher_episodes"))
+        value["contact_process_by_branch"][relative] = {
+            "trace_sha256": receipt["artifacts"][relative], **summary}
     if receipt["exit_code"] != 0:
         value["failure_log_tail"] = (directory / "tests.log").read_text()[-16000:]
     if report.exists():
