@@ -1,40 +1,58 @@
 # 数据与观测合同
 
-## 当前：空间历史成对记录 v1（D-062）
+## 当前：空间历史四世界工程记录（D-062/D-070）
 
-### SH-04-R2 四世界家族字段建议（proposed，未实现）
+### SH-04-R2 四世界家族字段（已实现，服务器验证pending）
 
-双门候选与判定含义见[METHOD](METHOD.md#sh04-r2-two-gate)。用户已认可场景及真实送达任务，具体数值仍待审。它需要独立的新合同版本，旧`spatial-history-pair-v1`仍严格表示两世界、两候选；不以旧32项测试或SH-03回执认证新接口。这里先登记数据权限，不生成schema、场景、训练划分或新数组。
+双门候选与判定含义见[METHOD](METHOD.md#sh04-r2-two-gate)。D-070已批准观察、控制、任务/工程判定及本批预算。新合同版本为`spatial-history-two-gate-public-v1`，旧`spatial-history-pair-v1`仍严格表示两世界、两候选。新实现尚无服务器回执，不以旧32项测试或SH-03回执认证；没有训练/确认划分。
 
 白话：输入同一场景家族中四种门洞组合的真实记录，输出合法模型查询及独立的审计/监督通道。例如完整历史可以含两门的旧图，但模型拿不到“左左”标签、门洞真值坐标或执行后的轨迹；这不是把真实未来改名为latent或控制输入。
 
-| 建议通道/字段 | 内容与用途 | 权限与待定项 |
+| 通道/字段职责 | 内容与用途 | 权限与待定项 |
 |---|---|---|
-| `history` | 全部真实RGB/深度及有效位、相机内外参、时间、机器人本体、已发生控制 | 主输入；模型按所比较的历史规则消费，不能共享含额外历史的缓存统计。分辨率/采样/路径待定 |
-| `controls / goal` | 四世界共用的数值速度—时长序列和共同目标定义 | 主输入；计划控制不等于执行后的机器人或物块运动；具体四序列与目标几何待审 |
+| `history` | 全部真实RGB/有限正深度、相机内外参、时间、机器人本体、已发生控制；本版无单独有效mask，无效深度拒绝输入 | 主输入；64×64、0.1 s采样。模型按所比较的历史规则消费，不能共享含额外历史的缓存统计 |
+| `controls / goal` | 四世界共用的数值速度—时长序列和共同目标定义 | 主输入；四条200段/20 s控制及目标已冻结；计划控制不等于执行后的机器人或物块运动 |
 | `family_id / world_id / action_id` | 分组、去重和关联真实结果；左左等名称只供审查 | 私有元数据，不作为特征；同一物理家族的四世界、四动作及历史变体不得跨split |
-| `observation_equivalence` | 按指定单视图＋共同近期的完整公开输入形成不可区分组 | 仅审计；保存逐字段差异与摘要，不能向主模型提供答案分组 |
+| `frame_information[].equivalence_groups` | 按指定单视图＋共同近期的完整公开输入形成不可区分组 | 仅审计；保存按全部公开字段比较的分组及信息代价，不能向主模型提供答案分组 |
 | `layout_truth / initial_state / snapshots` | 两门实际几何、完整决策初态、重放积分状态 | 仅审计及单列特权诊断；主地图必须由公共传感器形成 |
 | `future_object_state / contacts / actual_robot_state` | 真执行物块位置/速度、接触对象/力/时间和实际机器人响应 | 物块/接触可作已登记训练监督及评估；实际机器人运动仅诊断，不能作计划控制替身 |
 | `visibility / geometry_recovery_audit` | 每历史/未来采样及实际接触步的可见性；观测几何与真值之差 | 仅审计/定位错误；不得作为选帧标签、语义mask或模型特征 |
 | `task_outcomes / costs` | 用户选定任务规则下从真实轨迹导出的到达结果与代价 | 只用于已登记监督/评估；不能按路线名称指定成功，不先假定通过矩阵 |
 | `manifest / receipts / failures` | 全部首次分支及新实例重放、来源摘要、退出证据和完整失败 | 私有来源审计；无结果明确未运行，不自动补样或覆写 |
 
-首个四世界家族的数值提案为16条不同控制分支、另16次独立重放；预算待用户审查，当前不生成。四世界各自独立记录一条相同的12 s相机路径、121帧历史；A/B分别取从0计的第25/65帧，共同近期为第119/120帧，全部历史帧的单视图检查从同一合法记录截取，不额外模拟、不合成路径。每条分支为200段0.1 s控制、20 s真实执行。数据角色仅为已见工程开发；未来训练/验证/确认的家族数和划分另审，不使用当前公开设计做独立确认。
+首个四世界家族已获准执行16条不同控制分支、另16次独立重放。四世界各自独立记录同一条12 s相机路径、121帧历史；A/B分别取从0计的第25/65帧，共同近期为第119/120帧，全部历史帧的单视图检查从同一合法记录截取，不额外模拟、不合成路径。每条分支为200段0.1 s控制、20 s真实执行。数据角色仅为已见工程开发；未来训练/验证/确认的家族数和划分另审，不使用当前公开设计做独立确认。
 
-[数值提案JSON](../configs/spatial_history/two_gate_engineering_proposal_v1.json)是可审参数登记，尚无runner消费，不能据其生成数据。`scene_direction_approved=true`只表示用户选过场景；`numeric_protocol_approved/generation_authorized/training_authorized=false`区分数值、运行与训练未批准。`physics_reference_sha256`绑定供复用固定物理参数的原XML字节，不认证尚未构建的新场景。白话：输入这份尚待决定的表，输出将来实现的明确参数来源；例如20 s不会因某条动作卡住而自动延长，这不是运行回执。
+[冻结配置JSON](../configs/spatial_history/two_gate_engineering_v1.json)由新入口消费，`numeric_protocol_approved/generation_authorized=true`，`training_authorized=false`，`approval_decision=D-070`。`proposal_source/proposal_sha256`追溯原[数值提案](../configs/spatial_history/two_gate_engineering_proposal_v1.json)及提交3c5755e；除明确批准元数据外逐值一致。`physics_reference_sha256`绑定复用的固定物理常数，新世界XML另存摘要。白话：输入已接受的参数表，输出明确的执行来源；例如20 s不会因某条动作卡住而自动延长，配置本身不是运行成功回执。
 
-| 提案字段/新增真值 | 中文定义与单位 | 权限和例子 |
+| 配置字段/真值职责 | 中文定义与单位 | 权限和例子 |
 |---|---|---|
 | `geometry` | 门、侧壁、物块、推头和固定动力学；长度米、质量kg、力N、速度m/s | 生成器输入，不整体给模型；两门真实坐标私有，已声明的公共机器人/物块常数可公平共享 |
 | `observation.camera_segments` | 相对历史起点的秒与相机y端点；`camera_segment_interpolation`为连续路径规则 | 相机实际位姿与真实时刻可见；预设A/B语义编号和真值分割不作为特征 |
 | `controls.phase_duration_s / phase_vx_mps / phase_vy_mps / phase_vz_mps` | 对齐的10段时长与四候选速度表；每段按0.1 s展开 | 模型只消费所查询候选展开后的数值，不给LL等类别或名义物块终点 |
 | `task_success / engineering_audit / budget_proposal` | 任务几何与停稳规则、来源/视野外/信息检查和运行预算 | 用于记录、监督、评分或执行边界；任务公开定义与实际真值结果分开，预算不是已发生耗时 |
-| `future_object_orientation / future_object_linear_velocity` | 每物理步圆柱真实姿态和三维线速度，分别为单位四元数与m/s | 任务评估用姿态求完整投影、速度判断停稳；主输入不读；未来是否作模型训练标签须R4另登记 |
-| `gate_passage_events` | 真实相邻步、穿面插值时刻/横坐标、尝试号、回退失效、同次整个物块过线步及顺序 | 仅评估/审计；不拼接不同尝试，不把机器人计划过门时间当真实事件；具体不等式见METHOD |
-| `task_boundary_trace / penetration_trace` | 每步真实投影边界、目标停留/速度、所有涉及动态物体的原始接触距离（未按力筛选）和相邻步平移 | 仅评估/诊断，失败原样保留；1 mm目标边界容差、5 mm穿透/单步平移工程上限是不同条件 |
+| `object_axis_world / object_linear_velocity_mps` | 每物理步圆柱轴的世界单位向量及三维线速度m/s；完整旋转另在积分状态内 | 任务评估用轴方向求完整投影、速度判断停稳；主输入不读；未来训练标签须R4另登记 |
+| `gate_events` | 真实相邻步、穿面插值时刻/横坐标、尝试号、回退失效、同次整个物块过线步及顺序 | 仅评估/审计；不拼接不同尝试，不把机器人计划过门时间当真实事件；具体不等式见METHOD |
+| `object_position_m / object_axis_world / contacts` | 每步真实投影边界、目标停留/速度、所有涉及动态物体的原始接触距离（未按力筛选）和相邻步平移 | 仅评估/诊断，失败原样保留；1 mm目标边界容差、5 mm穿透/单步平移工程上限是不同条件 |
 
-时间约定：相机表的0–12 s是稳定后采集窗口；记录里的`time_s`使用同一模拟时钟，未来标签严格晚于决策。任务的19–20 s是相对于决策的时间，不与历史时刻混用。全部控制分支从该世界同一完整积分状态恢复，独立重放单独保存；私有轨迹和公开输入分别物化并摘要绑定，不能让训练加载器打开含真值的整份世界JSON。
+时间约定：相机表的0–12 s是稳定后采集窗口；公开帧`time_s=0.5+0.1×帧下标`，保留实际模拟时钟（允许1e−9 s浮点差）。未来文件使用相对决策的0–20 s：下标0是恢复初态，其后才是未来；任务停稳窗口为相对19–20 s。不得把数组第一行初态标成未来。全部控制分支从该世界同一完整积分状态恢复，独立重放单独保存。
+
+白话：公开记录与真值文件分开，解决“加载整份场景时把答案顺手送进模型”的问题。输入`public.json`和所查询的控制名称，`model_input`只返回`history / controls / goal`；例如查询LR也只得到数值速度，返回值没有世界编号或LR类别。它是独立的输入接口，尚不等于训练进程/操作系统权限隔离；R3/R4仍需实现实际加载器并验证。
+
+| 实际文件/键 | 形状、来源与语义 | 可见范围 |
+|---|---|---|
+| `steps/history-W/data/public.json` | 仅`schema_version / history / actions / goal`；actions是四条共同数值控制，history有121帧 | 公开记录；路径中的W不可作特征。`model_input`返回所选历史/单条控制/目标，不返回选择下标 |
+| 历史帧 | `time_s,width,height,rgb,depth_m,camera_position_m,camera_xyzw,intrinsics,ee_position_m,ee_velocity_mps,previous_velocity_mps`；RGB扁平12288整数、深度4096米值；其余沿用旧帧坐标约定 | 公开；所有历史末端指令为零，相机/本体是真实读数，不读未来 |
+| `world.xml / snapshot.json / history.json / observation_evidence.json` | 实际XML、完整积分状态及其XML SHA/状态枚举、原历史、121份按geom计数的分割可见性和观察不改状态标志 | 私有审计；history.json是公开帧的原始副本，但未来加载器只取public.json |
+| `steps/primary-W-A/data/trace_raw.jsonl` | 含初态10001行，每行`step_index,time_s,object_position_m,object_axis_world,object_linear_velocity_mps,pusher_position_m,actuator_force_n,contacts,object_visible_pixels` | 原始真值；contacts保留全部接触，每项为`geoms / distance_m / normal_force_n`；未采分割的步可见性为null |
+| `trajectory.jsonl / visibility.jsonl` | 前者补齐所有规定审计步的可见性；后者保存这些步的实际`step_index / counts`，原trace不覆盖 | 私有审计；由保存的真实状态恢复渲染，不补执行或合成mask |
+| `integration.npy / end_snapshot.json` | 10001×实际完整状态宽度的float64，以及最终完整状态 | 私有恢复/重放；包含真实物块旋转和机器人响应，不能作模型控制输入 |
+| `rgb.npy / depth.npy` | 分别201×64×64×3 uint8、201×64×64 float32；初态加200个控制末时刻 | 决策初态加未来真实传感器；后200帧仅供后续已登记监督/评估，本批不训练 |
+| `sensor_times.npy / sensor_step_indices.npy` | 各201项，相对决策时刻与原物理步下标，float64/int64 | 传感器与轨迹对齐审计，不用绝对历史时间冒充未来 |
+| `rollout.json / result.json` | 分支状态/控制摘要、文件摘要、实际评分；`gate_events`含穿面两步、插值时刻、尝试/取消/完成状态；物理检查极值及首次失败步 | 私有结果；raw_task_success为几何判定，physics无效时task_success为null |
+| 历史PNG、`final_ego.png / private_overview.png` | 历史首/A/B/近期、末帧原RGB；另有固定高位审查相机图 | 前两类是公开像素的展示副本；overview只作`review_only_not_model_input`，不进传感器数组 |
+| `check/`、各步`receipt.json`、根`started.json / environment.json / completion.json` | 测试身份/退出状态、来源、环境、manifest、耗时/字节和终检记录；seed=null，无随机采样 | 私有来源；未运行、完整失败和中断分开，不为中断补造通过 |
+
+物理异常保留`failure.json`的有效状态前缀/已写trace行数，必要时保存`failed_current_state.f64`及未落盘批次`pending_actual_samples.jsonl`。预分配数组的未写部分不能当有效轨迹。导出JSON嵌入回执、逐分支评分、121帧信息损失/等价组、历史可见性、失败日志尾及选定原PNG；完整原始数组仍留数据盘，逐文件摘要进入报告。
 
 ### SH-04 新小试数据与模型权限（proposed，尚未生成）
 
