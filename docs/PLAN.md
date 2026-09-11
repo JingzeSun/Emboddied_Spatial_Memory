@@ -26,7 +26,9 @@ SH-03预算由D-065固定：128次4.9 s模拟执行，新产物2 GiB，按案例
 
 ## 当前指针
 
-**SH-02/v2已验收、审查并合并main；当前交付SH-03固定开发审计，服务器运行pending。** 新审查分支`review/spatial-history-development`；本批新增[登记表](../configs/spatial_history/development_audit_v1.json)、[适配与判定](../src/spatial_world_model/development_audit.py)、[8项测试](../tests/spatial_world_model/test_development_audit.py)和[阶段入口](../ops/spatial_history/development_check.py)。原物理生成器/配置/32项测试字节保留，不重跑旧工程套件。当前批次验收和用户审查后才进入SH-04协议，不训练模型。
+**SH-03已完成并回传：8项工程检查通过，16对开发审计12通过、4失败，整批未通过。** 原科学提交`9d1ce35`，报告提交`908a61e`，审查分支`review/spatial-history-development`；[报告](../results/spatial_history_development_audit_v1.json)与详细证据见LOG-106。失败均在墙y=0.52 m，原预期无接触分支也有短暂墙角接触；所有实际障碍接触时目标仍不可见。当前先处理预设碰撞模式与真实物理不符的问题，不重跑、不丢弃4例、不将12例作为整批通过，不进入SH-04或训练。必要协议/实现修复须依据这些证据另行登记版本和审查。
+
+本批审查入口：[登记表](../configs/spatial_history/development_audit_v1.json)、[适配与判定](../src/spatial_world_model/development_audit.py)、[8项测试](../tests/spatial_world_model/test_development_audit.py)、[阶段入口](../ops/spatial_history/development_check.py)。已完成产物按原源码/合同摘要复用；下列命令保留作为本版本操作说明，当前无需再次运行或导出。
 
 SH-01审查批准已登记于9044074。SH-02科学提交e3a1d71及通过报告f6b8c58完成核验后，用户明确要求“下一步”，据上下文登记对该批次的审查通过，允许合并main并实施SH-03固定开发审计。此授权不包括SH-04训练协议或模型效果实验。
 
