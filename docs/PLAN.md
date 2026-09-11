@@ -26,9 +26,9 @@ SH-03预算由D-065固定：128次4.9 s模拟执行，新产物2 GiB，按案例
 
 ## 当前指针
 
-**当前交付SH-03/v2墙角间隙修订，服务器验证pending。** 用户在获知v1失败后要求“继续”，依据D-066仅将墙横向外移2 cm，原16组设置与通过条件保持不变。审查分支`review/spatial-history-development`，实现见LOG-107。旧v1仍为12通过/4失败，原科学提交`9d1ce35`、报告提交`908a61e`；[旧报告](../results/spatial_history_development_audit_v1.json)及诊断见LOG-106，不将旧12例当新版本通过，不进入SH-04或训练。
+**SH-03/v2服务器12项检查及16对物理审计全部通过，报告/预览已核验。** 原科学提交`57d01aa`，报告提交`ce5b3f1`；[v2报告](../results/spatial_history_development_audit_v2_wall_clearance.json)与证据见LOG-107。原4例额外擦碰消失，预期碰撞与接触期间不可见保留；这是受开发失败指导后的物理验收，不是世界模型效果或独立泛化。审查分支`review/spatial-history-development`，本批代码与结果供审查，尚未合并新的科学基线或训练。旧v1仍为12通过/4失败，[旧报告](../results/spatial_history_development_audit_v1.json)与诊断保留于LOG-106。
 
-本批审查入口：[v2登记表](../configs/spatial_history/development_audit_v2_wall_clearance.json)、[适配与原判定](../src/spatial_world_model/development_audit.py)、[12项测试](../tests/spatial_world_model/test_development_audit.py)、[阶段入口](../ops/spatial_history/development_check.py)。旧完成产物按原源码/合同摘要复用；新几何须在新目录对全部16例产生独立回执，当前操作如下。
+本批审查入口：[v2登记表](../configs/spatial_history/development_audit_v2_wall_clearance.json)、[适配与原判定](../src/spatial_world_model/development_audit.py)、[12项测试](../tests/spatial_world_model/test_development_audit.py)、[阶段入口](../ops/spatial_history/development_check.py)。本批已完成产物按原源码/合同摘要复用，当前无需重跑、再次导出或同步文档。审查完成后下一批为SH-04：冻结视觉输入/编码、公平长历史与检索/地图对照、训练/确认划分、动作评分及预算；当前goal半径不能区分64条分支的成功/失败，不直接沿用为效果指标。以下保留本版本完整操作说明。
 
 SH-01审查批准已登记于9044074。SH-02科学提交e3a1d71及通过报告f6b8c58完成核验后，用户明确要求“下一步”，据上下文登记对该批次的审查通过，允许合并main并实施SH-03固定开发审计。此授权不包括SH-04训练协议或模型效果实验。
 
