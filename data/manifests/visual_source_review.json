@@ -1,0 +1,516 @@
+{
+  "schema_version": "cpmt-visual-source-review-v1",
+  "review_date": "2026-09-11",
+  "scope": "Initial visual screening only; R1 data/geometry acceptance not completed",
+  "baseline_commit": "ecef1eabcc48a0b8900ab082ce2e82fc1a444066",
+  "samples": [
+    {
+      "dataset": "ARKitScenes",
+      "video_id": "47333462",
+      "split": "Training",
+      "selection": "Official DATA.md example video; 12 uniform ordinal positions among timestamp-sorted RGB PNG members; selected before visual inspection",
+      "source_url": "https://docs-assets.developer.apple.com/ml-research/datasets/arkitscenes/v1/raw/Training/47333462/lowres_wide.zip",
+      "archive_size_from_prior_head": 268393149,
+      "archive_sha256": null,
+      "central_directory_sha256": "9712bf8c3c01eb7c4fc3c7abe7e3f20d6a8ffda3a3551d3f7c19be62688f8afa",
+      "rgb_png_count": 3611,
+      "range_bytes_read": 1278178,
+      "download_scope": "ZIP directory and 12 unmodified RGB PNG payloads; no depth or labels",
+      "purpose": "Development-only visual source review; not scientific evaluation",
+      "frames": [
+        {
+          "member": "lowres_wide/47333462_57352.271.png",
+          "crc32": 3474744045,
+          "compression": 8,
+          "compressed_bytes": 71656,
+          "uncompressed_bytes": 72876,
+          "offset": 90645477,
+          "sample_index": 0,
+          "path": "outputs/data-source-review/arkitscenes_47333462/00_47333462_57352.271.png",
+          "sha256": "2b111b6657f2be2b60780b07bbd9ff6a6c691db842f501834dc0267927e42688",
+          "timestamp": 57352.271
+        },
+        {
+          "member": "lowres_wide/47333462_57357.736.png",
+          "crc32": 4044746663,
+          "compression": 8,
+          "compressed_bytes": 75268,
+          "uncompressed_bytes": 75804,
+          "offset": 119023032,
+          "sample_index": 1,
+          "path": "outputs/data-source-review/arkitscenes_47333462/01_47333462_57357.736.png",
+          "sha256": "c7c1c0de173a8c6828953b1f212072be88bd6eeb7acd8b758ba8fa8d6bb39cbc",
+          "timestamp": 57357.736
+        },
+        {
+          "member": "lowres_wide/47333462_57363.200.png",
+          "crc32": 3857510228,
+          "compression": 8,
+          "compressed_bytes": 75270,
+          "uncompressed_bytes": 75772,
+          "offset": 209145877,
+          "sample_index": 2,
+          "path": "outputs/data-source-review/arkitscenes_47333462/02_47333462_57363.200.png",
+          "sha256": "42d8b623d0332ef52ba5772b8330cfd5e080046141d5da591de1d4d759568f34",
+          "timestamp": 57363.2
+        },
+        {
+          "member": "lowres_wide/47333462_57368.681.png",
+          "crc32": 1438462919,
+          "compression": 8,
+          "compressed_bytes": 84794,
+          "uncompressed_bytes": 85422,
+          "offset": 49731058,
+          "sample_index": 3,
+          "path": "outputs/data-source-review/arkitscenes_47333462/03_47333462_57368.681.png",
+          "sha256": "d336c669f8086455e5ac112fef2aeb460f842b8044d41d987c4bb820c00276d9",
+          "timestamp": 57368.681
+        },
+        {
+          "member": "lowres_wide/47333462_57374.146.png",
+          "crc32": 125424403,
+          "compression": 8,
+          "compressed_bytes": 77345,
+          "uncompressed_bytes": 78042,
+          "offset": 73111193,
+          "sample_index": 4,
+          "path": "outputs/data-source-review/arkitscenes_47333462/04_47333462_57374.146.png",
+          "sha256": "bf5f1501b3e0604ec7a2e870637aed0c93a62e40c628b0a23975be34c0067a7e",
+          "timestamp": 57374.146
+        },
+        {
+          "member": "lowres_wide/47333462_57379.610.png",
+          "crc32": 2834204478,
+          "compression": 8,
+          "compressed_bytes": 86046,
+          "uncompressed_bytes": 86956,
+          "offset": 65117256,
+          "sample_index": 5,
+          "path": "outputs/data-source-review/arkitscenes_47333462/05_47333462_57379.610.png",
+          "sha256": "4f7f23f31d4b9740f750679f453112f7a14af394df726e377619ff6b0973ba84",
+          "timestamp": 57379.61
+        },
+        {
+          "member": "lowres_wide/47333462_57385.075.png",
+          "crc32": 1633999184,
+          "compression": 8,
+          "compressed_bytes": 64386,
+          "uncompressed_bytes": 65442,
+          "offset": 72893245,
+          "sample_index": 6,
+          "path": "outputs/data-source-review/arkitscenes_47333462/06_47333462_57385.075.png",
+          "sha256": "8aaf3dcb920eeb5bdaa8f9ad565e4d44d984460810571c598229e913e178f54a",
+          "timestamp": 57385.075
+        },
+        {
+          "member": "lowres_wide/47333462_57390.539.png",
+          "crc32": 1181985728,
+          "compression": 8,
+          "compressed_bytes": 93733,
+          "uncompressed_bytes": 93880,
+          "offset": 83626897,
+          "sample_index": 7,
+          "path": "outputs/data-source-review/arkitscenes_47333462/07_47333462_57390.539.png",
+          "sha256": "596b3d9c71e496d9a68f06a32c3875188477ce8ffdf195cf5bf311b80e10ae20",
+          "timestamp": 57390.539
+        },
+        {
+          "member": "lowres_wide/47333462_57396.004.png",
+          "crc32": 513041307,
+          "compression": 8,
+          "compressed_bytes": 73444,
+          "uncompressed_bytes": 73813,
+          "offset": 167779476,
+          "sample_index": 8,
+          "path": "outputs/data-source-review/arkitscenes_47333462/08_47333462_57396.004.png",
+          "sha256": "5fe22a7d24d4638c70351c0c3f06097d448006f13a05c39bb7e7cb4cd0c188ea",
+          "timestamp": 57396.004
+        },
+        {
+          "member": "lowres_wide/47333462_57401.485.png",
+          "crc32": 3228201151,
+          "compression": 8,
+          "compressed_bytes": 63403,
+          "uncompressed_bytes": 64084,
+          "offset": 84832932,
+          "sample_index": 9,
+          "path": "outputs/data-source-review/arkitscenes_47333462/09_47333462_57401.485.png",
+          "sha256": "8f12429c97b6030199b2de095b643a5a7e8229bf02279c31ab6740297790601d",
+          "timestamp": 57401.485
+        },
+        {
+          "member": "lowres_wide/47333462_57406.949.png",
+          "crc32": 1959741005,
+          "compression": 8,
+          "compressed_bytes": 75511,
+          "uncompressed_bytes": 75867,
+          "offset": 244026570,
+          "sample_index": 10,
+          "path": "outputs/data-source-review/arkitscenes_47333462/10_47333462_57406.949.png",
+          "sha256": "a56b890a74166eb27885c3a38c00d7f7f4ab667979687312457cb3b48eaa30f5",
+          "timestamp": 57406.949
+        },
+        {
+          "member": "lowres_wide/47333462_57412.414.png",
+          "crc32": 1059459043,
+          "compression": 8,
+          "compressed_bytes": 82488,
+          "uncompressed_bytes": 82960,
+          "offset": 196652628,
+          "sample_index": 11,
+          "path": "outputs/data-source-review/arkitscenes_47333462/11_47333462_57412.414.png",
+          "sha256": "5162a7e92b41a6daa58abd3b2f95792352933d572d75b209dab8ba9dfe5aefeb",
+          "timestamp": 57412.414
+        }
+      ],
+      "visual_reviewed_by": "assistant; qualitative visual inspection only",
+      "all_saved_images_visually_inspected": true,
+      "human_review_status": "pending",
+      "split_metadata": {
+        "url": "https://raw.githubusercontent.com/apple/ARKitScenes/main/raw/raw_train_val_splits.csv",
+        "response_sha256": "5a817c0ee8150cea1de4fa9d6399880eaa646c2b62326c3314e674d201536c57",
+        "row": {
+          "video_id": "47333462",
+          "visit_id": "467138",
+          "fold": "Training"
+        },
+        "access_scope": "combined split metadata only; no validation/test image payload"
+      }
+    },
+    {
+      "dataset": "ADT",
+      "sequence_uid": "Apartment_release_clean_seq137_M1292",
+      "source_api": "https://explorer.projectaria.com/data/adt/previews",
+      "source_response_sha256": "6dad60b2b2881a54e22029e89a03c901b89936b401117eb0904e6b970be3a843",
+      "selection": "Previously identified public sequence; all 10 official thumbnails, no content-based thumbnail filtering",
+      "purpose": "Development-only visual source review; not scientific evaluation",
+      "limits": [
+        "Preview thumbnails, not original VRS frames",
+        "Thumbnail timestamps unavailable in this response; index order is not a verified time mapping",
+        "No depth, poses or object ground truth downloaded"
+      ],
+      "frames": [
+        {
+          "key": "thumbnail_0",
+          "path": "outputs/data-source-review/adt_Apartment_release_clean_seq137_M1292/thumbnail_0.jpg",
+          "official_filename": "ADT_Apartment_release_clean_seq137_M1292_thumbnail_0.jpg",
+          "bytes": 130865,
+          "sha1": "99f3f7f476f45f161c7a79b21d6e255f40e30635",
+          "sha256": "f3532c3a75837ef65d0230cf9a8518f94befdb7bca3303fd28975fc32073d3f1",
+          "timestamp": null
+        },
+        {
+          "key": "thumbnail_1",
+          "path": "outputs/data-source-review/adt_Apartment_release_clean_seq137_M1292/thumbnail_1.jpg",
+          "official_filename": "ADT_Apartment_release_clean_seq137_M1292_thumbnail_1.jpg",
+          "bytes": 176827,
+          "sha1": "2aad163d0ac4310f5564828a7750c257106f0277",
+          "sha256": "4dab1d7ff61dc1faec886c7ca9a5cb0ae37452757b41763d36f904a2ed384c25",
+          "timestamp": null
+        },
+        {
+          "key": "thumbnail_2",
+          "path": "outputs/data-source-review/adt_Apartment_release_clean_seq137_M1292/thumbnail_2.jpg",
+          "official_filename": "ADT_Apartment_release_clean_seq137_M1292_thumbnail_2.jpg",
+          "bytes": 185643,
+          "sha1": "4cc8ce7421418a2911ee38be1293005c719eacd3",
+          "sha256": "cf1b3402c5036bdbdaeb943badb2d15afd5c6825c25f48edf007045eb86b1a71",
+          "timestamp": null
+        },
+        {
+          "key": "thumbnail_3",
+          "path": "outputs/data-source-review/adt_Apartment_release_clean_seq137_M1292/thumbnail_3.jpg",
+          "official_filename": "ADT_Apartment_release_clean_seq137_M1292_thumbnail_3.jpg",
+          "bytes": 182620,
+          "sha1": "2a57b2726b3b74736159018f98ca9cf786da42ee",
+          "sha256": "959ce4c8944ffa302d5a5dfb690a35c43d443e21b8ef1fd349dbcf3fd7ccb5c6",
+          "timestamp": null
+        },
+        {
+          "key": "thumbnail_4",
+          "path": "outputs/data-source-review/adt_Apartment_release_clean_seq137_M1292/thumbnail_4.jpg",
+          "official_filename": "ADT_Apartment_release_clean_seq137_M1292_thumbnail_4.jpg",
+          "bytes": 180982,
+          "sha1": "e4f6e413e22e43383e6cf6d4460ffd1ea9b54a82",
+          "sha256": "9e550eadaa9b7a3b3cf135312c12e47d1d01fe97d1f9cfa801d48ac6bc9d8765",
+          "timestamp": null
+        },
+        {
+          "key": "thumbnail_5",
+          "path": "outputs/data-source-review/adt_Apartment_release_clean_seq137_M1292/thumbnail_5.jpg",
+          "official_filename": "ADT_Apartment_release_clean_seq137_M1292_thumbnail_5.jpg",
+          "bytes": 172210,
+          "sha1": "8dd1f37496970a7f7a2ed1de043d1db982b6f425",
+          "sha256": "eec0af8704764f06a06ddb3394fb18e94332b1f7aded27ebd572feec60b3db19",
+          "timestamp": null
+        },
+        {
+          "key": "thumbnail_6",
+          "path": "outputs/data-source-review/adt_Apartment_release_clean_seq137_M1292/thumbnail_6.jpg",
+          "official_filename": "ADT_Apartment_release_clean_seq137_M1292_thumbnail_6.jpg",
+          "bytes": 165856,
+          "sha1": "a9f370e5f239345b9364c6bc5a8facb2888f81ac",
+          "sha256": "c362ba44790495d7938008a038a6c086d6a4d7534833c066d43a2dbc271eefa7",
+          "timestamp": null
+        },
+        {
+          "key": "thumbnail_7",
+          "path": "outputs/data-source-review/adt_Apartment_release_clean_seq137_M1292/thumbnail_7.jpg",
+          "official_filename": "ADT_Apartment_release_clean_seq137_M1292_thumbnail_7.jpg",
+          "bytes": 177306,
+          "sha1": "ff544abe1301721790507d0818dec04291d0bd62",
+          "sha256": "74d6792e80bb4656769a0a4361db32bf140e40903873f8e8e2e756bf17e18ecc",
+          "timestamp": null
+        },
+        {
+          "key": "thumbnail_8",
+          "path": "outputs/data-source-review/adt_Apartment_release_clean_seq137_M1292/thumbnail_8.jpg",
+          "official_filename": "ADT_Apartment_release_clean_seq137_M1292_thumbnail_8.jpg",
+          "bytes": 158996,
+          "sha1": "2dfe56c3e81fbd6841b1a7c95449f1fb6df6c646",
+          "sha256": "f37eceabbdaff17d92b9e391f670f86c8a02cec90fc65bdd35a7a68ca7854401",
+          "timestamp": null
+        },
+        {
+          "key": "thumbnail_9",
+          "path": "outputs/data-source-review/adt_Apartment_release_clean_seq137_M1292/thumbnail_9.jpg",
+          "official_filename": "ADT_Apartment_release_clean_seq137_M1292_thumbnail_9.jpg",
+          "bytes": 185089,
+          "sha1": "5cebc5e8ee2bdb79c00892efdea8fa4268f4c506",
+          "sha256": "4a3e94cdd9b70bc0a1cbe2b47521091b27addb8302cc39dd6579d19c79e03bd2",
+          "timestamp": null
+        }
+      ],
+      "visual_reviewed_by": "assistant; qualitative visual inspection only",
+      "all_saved_images_visually_inspected": true,
+      "human_review_status": "pending"
+    },
+    {
+      "dataset": "ADT",
+      "sequence_uid": "Apartment_release_decoration_seq137_M1292",
+      "source_api": "https://explorer.projectaria.com/data/adt/previews",
+      "source_response_sha256": "6dad60b2b2881a54e22029e89a03c901b89936b401117eb0904e6b970be3a843",
+      "selection": "Second candidate: same seq137 suffix, different activity (RoomDecoration) from public metadata, selected after the Cleaning preview did not establish doorway traversal; all official thumbnails retained",
+      "purpose": "Development-only visual source review; same apartment as first sequence, not independent split",
+      "limits": [
+        "Preview thumbnails, not original VRS frames",
+        "Thumbnail timestamps unavailable; index order is not a verified time mapping",
+        "No depth, poses or object ground truth downloaded"
+      ],
+      "frames": [
+        {
+          "key": "thumbnail_0",
+          "path": "outputs/data-source-review/adt_Apartment_release_decoration_seq137_M1292/thumbnail_0.jpg",
+          "official_filename": "ADT_Apartment_release_decoration_seq137_M1292_thumbnail_0.jpg",
+          "bytes": 130591,
+          "sha1": "227e9f0cc976bc9d7f92255a02d5e0def731faa7",
+          "sha256": "ac061a07623d100e1a7bd0a7ae6a80efa9bc996018a18114626407c777d7eee4",
+          "timestamp": null
+        },
+        {
+          "key": "thumbnail_1",
+          "path": "outputs/data-source-review/adt_Apartment_release_decoration_seq137_M1292/thumbnail_1.jpg",
+          "official_filename": "ADT_Apartment_release_decoration_seq137_M1292_thumbnail_1.jpg",
+          "bytes": 179741,
+          "sha1": "2253e0dbcdb67e6f2d81054c0474ee6850932db4",
+          "sha256": "43628f01e396bd3f229595300b33c3a65330cfb97532dfb37d1010c6584a310f",
+          "timestamp": null
+        },
+        {
+          "key": "thumbnail_2",
+          "path": "outputs/data-source-review/adt_Apartment_release_decoration_seq137_M1292/thumbnail_2.jpg",
+          "official_filename": "ADT_Apartment_release_decoration_seq137_M1292_thumbnail_2.jpg",
+          "bytes": 113890,
+          "sha1": "8696c539893927a5a5cc0d75652b9cd383dd2fcb",
+          "sha256": "8b538d5c50cf7ef1c6b30410024f1e03b8b4bc59af21d92117e3f68c89804af6",
+          "timestamp": null
+        },
+        {
+          "key": "thumbnail_3",
+          "path": "outputs/data-source-review/adt_Apartment_release_decoration_seq137_M1292/thumbnail_3.jpg",
+          "official_filename": "ADT_Apartment_release_decoration_seq137_M1292_thumbnail_3.jpg",
+          "bytes": 177036,
+          "sha1": "c399d6d6bc62cc31f3ffcce23f087bf234065c89",
+          "sha256": "a96b860a3ec7e1ccb95a0a309747a063beb41cd8213558f9fbdf69bbf1f4ce70",
+          "timestamp": null
+        },
+        {
+          "key": "thumbnail_4",
+          "path": "outputs/data-source-review/adt_Apartment_release_decoration_seq137_M1292/thumbnail_4.jpg",
+          "official_filename": "ADT_Apartment_release_decoration_seq137_M1292_thumbnail_4.jpg",
+          "bytes": 185964,
+          "sha1": "3b38529a8ad8094bda0c6177ef86663931678733",
+          "sha256": "515068c2ea77a0da7218bd44903e7acc8b02d05c9a9f5d47d10cac25567dc40a",
+          "timestamp": null
+        },
+        {
+          "key": "thumbnail_5",
+          "path": "outputs/data-source-review/adt_Apartment_release_decoration_seq137_M1292/thumbnail_5.jpg",
+          "official_filename": "ADT_Apartment_release_decoration_seq137_M1292_thumbnail_5.jpg",
+          "bytes": 178145,
+          "sha1": "2de28f9c8dad2ea4b5cba1e49bcd36fb5c2f276d",
+          "sha256": "aad4a36c537e5354686661e820ec50c640a28111e2d070aa3095dfedc3563ee1",
+          "timestamp": null
+        },
+        {
+          "key": "thumbnail_6",
+          "path": "outputs/data-source-review/adt_Apartment_release_decoration_seq137_M1292/thumbnail_6.jpg",
+          "official_filename": "ADT_Apartment_release_decoration_seq137_M1292_thumbnail_6.jpg",
+          "bytes": 141821,
+          "sha1": "b54bf683f83bc9cfa09277b6dbafbbb50f2941d4",
+          "sha256": "6e785e3cc7c7d23b7d5b12823486e9599c2ff3841afd3306c3c138e218aa331f",
+          "timestamp": null
+        },
+        {
+          "key": "thumbnail_7",
+          "path": "outputs/data-source-review/adt_Apartment_release_decoration_seq137_M1292/thumbnail_7.jpg",
+          "official_filename": "ADT_Apartment_release_decoration_seq137_M1292_thumbnail_7.jpg",
+          "bytes": 166979,
+          "sha1": "646be1a5a93db0db40ecad62aa3f05520d605f2e",
+          "sha256": "7e7f385a036eda2f038378e1aea4b3c842a7e65c97b9d2cd4d55ba7a86f9c285",
+          "timestamp": null
+        },
+        {
+          "key": "thumbnail_8",
+          "path": "outputs/data-source-review/adt_Apartment_release_decoration_seq137_M1292/thumbnail_8.jpg",
+          "official_filename": "ADT_Apartment_release_decoration_seq137_M1292_thumbnail_8.jpg",
+          "bytes": 155412,
+          "sha1": "cfb2a5ead3948e0e65e4f1ec55b9338319b6fbc1",
+          "sha256": "90e423ae5b4dde769296b244e5172c9740a495faafa81bc592d208b0f1542701",
+          "timestamp": null
+        },
+        {
+          "key": "thumbnail_9",
+          "path": "outputs/data-source-review/adt_Apartment_release_decoration_seq137_M1292/thumbnail_9.jpg",
+          "official_filename": "ADT_Apartment_release_decoration_seq137_M1292_thumbnail_9.jpg",
+          "bytes": 187505,
+          "sha1": "db3161d09bdf08f4f79a64b73be45733c199ddfb",
+          "sha256": "957c01ed6193533ab5f75f61c0387356cf634629442fff8c377bda6d22ae350e",
+          "timestamp": null
+        }
+      ],
+      "visual_reviewed_by": "assistant; qualitative visual inspection only",
+      "all_saved_images_visually_inspected": true,
+      "human_review_status": "pending"
+    }
+  ],
+  "cases": [
+    {
+      "id": "ARK-S1",
+      "sequence": "arkitscenes_47333462",
+      "frames": [
+        2,
+        3,
+        5,
+        6,
+        9
+      ],
+      "title": "门框、墙面、地面与窗墙转角逐步入镜",
+      "observed": "门框与床在同一帧可见；后续样本展示床区、窗墙交界、上部墙角及另一侧墙面。",
+      "candidate_use": "结构片段纳入、旧/新结构关联与世界坐标稳定性的开发案例。",
+      "not_established": "未检查深度/位姿；稀疏帧不证明结构拓扑、墙面同一性或完整穿门轨迹。"
+    },
+    {
+      "id": "ARK-O1",
+      "sequence": "arkitscenes_47333462",
+      "frames": [
+        0,
+        1,
+        11
+      ],
+      "title": "地面印刷品的跨视角重见",
+      "observed": "序列开始与约 60.143 秒后的末帧均出现外观一致的地面印刷品与相似地砖背景。",
+      "candidate_use": "同一对象重识别与附近地面结构保留；对象身份目前是视觉判断。",
+      "not_established": "未读取真值身份；未见明确对象搬动，不把相机视角变化当对象位移。"
+    },
+    {
+      "id": "ADT-C-S1",
+      "sequence": "adt_Apartment_release_clean_seq137_M1292",
+      "frames": [
+        0,
+        1,
+        6,
+        7,
+        8
+      ],
+      "title": "厨房、餐桌、起居区与门洞共同可见",
+      "observed": "官方缩略图可见厨房柜台、餐桌、客厅家具、楼梯和通向另一空间的门洞。",
+      "candidate_use": "同一环境内结构与对象共同建记忆；窗墙、门口等结构锚点可进一步检查。",
+      "not_established": "没有缩略图时间戳；没有确认走过门口、楼梯或走廊转角的连续过程。"
+    },
+    {
+      "id": "ADT-C-O1",
+      "sequence": "adt_Apartment_release_clean_seq137_M1292",
+      "frames": [
+        2,
+        3,
+        5
+      ],
+      "title": "手持物体与支撑面",
+      "observed": "手持水果状物体和带环形物体的托盘，与客厅或桌面背景同时出现。",
+      "candidate_use": "相机自运动、手持物体变化及静态背景保留的联合案例候选。",
+      "not_established": "精确对象 ID、搬动前后关系、时刻和遮挡持续时间待完整视频及独立标注核查。"
+    },
+    {
+      "id": "ADT-D-S1",
+      "sequence": "adt_Apartment_release_decoration_seq137_M1292",
+      "frames": [
+        0,
+        1,
+        2,
+        3,
+        9
+      ],
+      "title": "门外公共区域与较小区域内视角",
+      "observed": "门外广角画面显示厨房/客厅和门洞；另一预览在较小区域内看到墙、柜门、白色台面等；后续索引再次显示客厅。",
+      "candidate_use": "跨门口连接新区域的优先连续视频核查对象。",
+      "not_established": "官方索引未映射时间；相邻缩略图之间的穿门路线、共同可见锚点及连续性尚未验证，不称已覆盖走廊拐角。"
+    },
+    {
+      "id": "ADT-D-O1",
+      "sequence": "adt_Apartment_release_decoration_seq137_M1292",
+      "frames": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "title": "相框的支撑、手持与重见",
+      "observed": "外观相似的黑色相框分别出现在区域内支撑面、近处手持、客厅桌面和墙上搁板等画面；背景结构重复出现。",
+      "candidate_use": "对象重新归属/位置修订与旧墙面保留的联合案例候选。",
+      "not_established": "尚未证明所有画面是同一实例或实际转移顺序；不得直接生成 RELINK/REPLACE 标签。"
+    }
+  ],
+  "constraints": {
+    "scientific_modules_imported": false,
+    "video_decoding_run_locally": false,
+    "scientific_tests_or_training_run": false,
+    "depth_pose_consistency_checked": false,
+    "full_archive_downloaded": false,
+    "original_adt_vrs_downloaded": false,
+    "human_review_completed": false
+  },
+  "input_risks": [
+    {
+      "name": "ADT motion-capture markers",
+      "source": "https://arxiv.org/html/2306.06362v2",
+      "evidence": "Sections 3.2 and 3.3 describe object and wall markers and image-space marker labeling.",
+      "interpretation": "Visible marker arrangements may aid identity matching; magnitude and mitigation are untested. This is not proof of test leakage or cheating."
+    },
+    {
+      "name": "ADT privileged depth",
+      "source": "https://facebookresearch.github.io/projectaria_tools/docs/open_datasets/aria_digital_twin_dataset/data_format",
+      "evidence": "Depth is generated by the ground-truth system.",
+      "interpretation": "Keep explicit controlled-input designation or separately assess frozen estimated depth."
+    }
+  ],
+  "split_policy": "ARKitScenes visit 467138 and related same-premises captures must remain development-only; both ADT previews belong to Apartment and cannot be separate independent splits. Cross-scene object reuse requires additional grouping review.",
+  "next_evidence_needed": [
+    "Timestamped continuous RGB around doorway transition and object handling",
+    "Aligned depth, camera intrinsics, poses, missing-frame and visibility checks on server",
+    "Independent structure/object audit definitions; no transaction labels inferred from preview names"
+  ],
+  "gallery_local_path": "outputs/data-source-review/index.html"
+}

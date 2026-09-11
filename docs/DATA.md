@@ -86,11 +86,31 @@ ARKitScenes 的[采集协议第 3.1 节](https://arxiv.org/html/2111.08897v3)明
 
 - **3RScan**：[官方入口](https://waldjohannau.github.io/RIO/)要求 Terms of Use 表单；用户没有表单要求的机构/导师信息，不能把申请成功当现有条件。官方 [FAQ](https://github.com/WaldJohannaU/3RScan/blob/master/FAQ.md)进一步说明仓库 split 列表仅列 reference scans；旧清单的 385 个 ID 应理解为该训练 reference 列表，关联 rescans 仍需元数据，不能靠 ID 前缀猜测。
 - **Bonn**：[官方页面](https://www.ipb.uni-bonn.de/data/rgbd-dynamic-dataset/index.html)有直接分序列下载，不需填写机构/导师表单。移动遮挡箱子、放置非遮挡箱子、移走非遮挡箱子三个官方 ZIP 的未认证 HEAD 均返回 200，Content-Length 分别为 320845314、400775291、271656752 字节。对第一个 ZIP 仅读取 217106 字节目录元数据：590 个 RGB PNG、589 个 depth PNG，以及 rgb.txt、depth.txt、groundtruth.txt；这不证明时间对齐或数值质量，未读取图像/深度载荷、未取得完整文件 SHA256。页面要求研究引用，未见独立数据许可证文本；正式使用/再分发范围仍需记录清楚，不能套用 TUM 的许可。
-- **ARKitScenes**：[官方下载说明](https://github.com/apple/ARKitScenes/blob/main/DATA.md)允许按 video_id 和文件类型下载，官方脚本使用公开 Apple URL；示例训练视频 47333462 的相机轨迹 URL 未认证 HEAD 返回 200。未下载图像、深度或标注。按照[当前仓库许可](https://github.com/apple/ARKitScenes/blob/main/LICENSE)核查使用条件，不沿用第三方旧许可证描述。
+- **ARKitScenes**：[官方下载说明](https://github.com/apple/ARKitScenes/blob/main/DATA.md)允许按 video_id 和文件类型下载，官方脚本使用公开 Apple URL；示例训练视频 47333462 的相机轨迹 URL 未认证 HEAD 返回 200。后续首批画面核查已读取该视频的 12 张 RGB 原帧，未读取深度或标注，详见下节。按照[当前仓库许可](https://github.com/apple/ARKitScenes/blob/main/LICENSE)核查使用条件，不沿用第三方旧许可证描述。
 - **ADT**：[官方获取说明](https://facebookresearch.github.io/projectaria_tools/docs/open_datasets/dataset_download)给出邮箱注册并取得下载链接 JSON 的方式，也有[样例教程](https://facebookresearch.github.io/projectaria_tools/docs/open_datasets/aria_digital_twin_dataset)和公开序列预览。说明页未列出导师申请流程，但本轮未完成注册，不把它说成已获完整下载权限。[深度格式说明](https://facebookresearch.github.io/projectaria_tools/docs/open_datasets/aria_digital_twin_dataset/data_format)明确深度来自真值系统；使用这部分只能声明为特权深度受控条件，或另用冻结估计深度。
 - **BEHAVE**：[官方数据页与条款](https://virtualhumans.mpi-inf.mpg.de/behave/license.html)公开列出下载链接及非商业科学研究条件，单批文件较大，本轮未下载；[官方概览](https://virtualhumans.mpi-inf.mpg.de/behave/)说明其四台 Kinect 采集与对象注册。获取方便并不消除视角与任务限制。
 
 以上是候选来源的用途判断。Bonn 若用于初看，序列名只能帮助预选“检查哪类变化”，不能映射成模型输入或正确事务标签；实际发生了什么要看画面。没有已核查官方 train/test 分组的来源先只作开发样例，同场所及关联记录按组隔离，不能随机拆帧伪造独立检验。下载前登记具体清单；旧基线 manifest 保留其当时访问快照，不追改为新来源。
+
+### 首批画面核查（开发预览）
+
+白话：这次核查用实际画面判断来源是否值得进入连续视频与几何检查。输入是官方 RGB 帧或预览缩略图，输出是带原图引用的定性案例。例如门框、墙地面与对象共同出现，可以列为结构接入候选；这不等于已验证跨门运动、三维连接或对象真值身份，更不等于 M1/M2 方法有效。
+
+来源、选择过程、32 张图像的摘要及 6 个案例记录在 [visual_source_review.json](../data/manifests/visual_source_review.json)。图像与内嵌原图的审查页保存在本地 `outputs/data-source-review/index.html`，不随 Git 分发。判断由助手逐图检查形成，用户复核仍待完成；ADT 缩略图没有已核实的时间戳，不能按编号伪造连续轨迹。
+
+| 样本 | 实际可见内容与候选用途 | 尚未建立的证据 |
+|---|---|---|
+| ARKitScenes 47333462 | 从 3611 张 RGB 中按时间顺序均匀取 12 张，跨度 60.143 秒；可见地面、床、门框、墙角、窗与家具的不同视角，开头与结尾重见外观一致的地面印刷物。适合结构逐步揭示、对象重识别及两者共同保留 | 未确认连续跨房间或走廊拐角，不证明物体实际移动；未核深度、标定和位姿一致性 |
+| ADT Apartment_release_clean_seq137_M1292 | 全部 10 张官方缩略图；厨房、客厅、餐区、楼梯与门口共同出现，另有手持物体和盘子。适合公共区域结构锚点与对象操作的联合考察 | 多区域同时可见不等于相机已经连续穿门；不能由缩略图恢复完整操作次序 |
+| ADT Apartment_release_decoration_seq137_M1292 | 全部 10 张官方缩略图；公共区域与较小区域内视角，以及外观相似相框在支撑面、近处手持、桌面和搁板上的状态。优先考察门口连接及对象搬放 | 需连续 RGB 确认实际路径、共同锚点、时间次序与对象身份；尚未确认指定的走廊转角 |
+
+ARKit 样本取自官方示例，选择早于看图；官方划分元数据确认其为 Training、visit_id=467138。只读取划分元数据及该训练视频帧，未读取验证/测试图像。ADT 第二段是在第一段不足以确认穿门后，按同后缀、不同活动选择的探索样本，不是随机代表性抽样。两段 ADT 同属一个公寓；这些已看场所及关联记录只作开发，不能再作为未见场所确认。共享物体的跨场所分组仍需核查。
+
+ADT 预览通过官方公开资源接口获得，未完成完整原始 VRS 的注册/下载；公开预览可访问不等于所有数据权限已取得。ARKit 仅用 HTTP Range 读取 ZIP 目录及所选 PNG，校验各帧长度、CRC32 和 SHA256；ADT 校验官方 SHA1 与本地 SHA256。没有完整 ZIP 摘要，也没有本地视频解码、特征提取或科学测试。
+
+**额外输入审查项：动捕标记。** [ADT 论文第 3.2–3.3 节](https://arxiv.org/html/2306.06362v2)说明物体及墙面使用运动捕捉标记，且标记出现在 Aria 图像中。它们可能为身份匹配提供额外线索，影响大小尚未量化；需在真实前端输入中核查，不能直接宣布存在答案泄漏，也不能默认实拍数据就没有捷径。真值派生深度仍按前述特权条件隔离。后续是否采用屏蔽或对照须先审查具体标记覆盖，不能改图后冒称原始观测。
+
+上述案例用于挑选后续审查材料，不生成正确事务标签。结构误接、重复片段合并和对象错误修复继续纳入 M2 慢修订合同；这些是待实现/验证目标，并非已从缩略图观察到的系统修复结果。
 
 ### 共同检查
 
