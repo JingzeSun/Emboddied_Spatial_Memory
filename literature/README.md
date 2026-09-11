@@ -1,6 +1,6 @@
 # 文献工作流
 
-> D-018 更新：完整方法是 embodied-first CPMT，核心学习机制是 CTL。每篇近邻工作必须核查：是否生成 typed transaction programs、是否在 cloned graph 上真实执行、是否用 future evidence 评价 post-edit world、是否保留版本/rollback、online inference 是否读取未来。详见 notes/counterfactual_transaction_learning_landscape_2026.md。
+> D-062/D-068：当前研究转向空间历史条件的动作后果预测，CTL不预设为核心机制。优先读[空间世界模型定向核查](notes/spatial_world_models_2026.md)。旧CPMT/CTL与记忆笔记保留作历史和相邻工作；当前方法见[方法合同](../docs/METHOD.md)，当前步骤只在[计划](../docs/PLAN.md)。
 
 `library.csv` 是唯一机器文献索引；PDF 文件名不是知识管理系统。同行评审准入见 [`peer_review_audit.md`](peer_review_audit.md)。
 
@@ -22,23 +22,25 @@
 
 ## 当前精读问题
 
-每篇论文除 memory coordinate、association、update、dynamic handling、data、metrics 外，还必须回答：
+每篇世界模型论文除状态坐标、更新、数据与指标外，还必须回答：
 
-1. 是否生成 structured innovation？
-2. 更新单位和 affected scope 是什么？
-3. 是否有 relation propagation？
-4. propagation 在哪里停止？
-5. 是否保留 history/provenance？
-6. 是否评测 necessary update 和 unrelated preservation？
-7. 是否隐式全图重算？
-8. 相对本项目的最小机制差异是什么？
+1. 输入的是机器人控制、假定实现的机器人轨迹，还是物体已知未来变换？
+2. 实际能看到哪些历史、深度、位姿、分割或真值初始状态？
+3. 监督是未来视觉、几何状态、接触、奖励还是额外教师？
+4. 历史是窗口、循环状态、检索还是持续空间表示？证据何时丢失？
+5. 视野外动态是实际碰撞、给定运动，还是生成一致性？
+6. 是否评估后果准确性、动作选择以及相同近期观察的配对归因？
+7. 代码、数据、权重、许可及运行预算分别核验到什么程度？
+8. 已有架构、原设定复现和本任务迁移分别有什么证据？
+
+白话：输入论文及实现证据，输出可比较的真实条件。例如“输入末端目标预测物块位姿”和“输入物块变换渲染”必须分开；它不是根据标题给论文贴标签。未执行的复现标planned，论文作者报告与本项目结果分开。
 
 ## 添加与更新
 
 1. 合法获得的 PDF 放 `papers/` 或 `papers_detail/`，这些目录不进 Git；
 2. 更新 `library.csv` 的官方 URL、状态和用途；
-3. 使用 `notes/TEMPLATE.md` 新建结构化笔记；
-4. 更新 `notes/00_cross_paper_synthesis.md`、`peer_review_audit.md` 与 `docs/01_research_contract.md` 的创新边界；
+3. 优先更新对应笔记；新增方向级核查可用一个合并笔记，不为每轮讨论批量建模板；
+4. 更新 `peer_review_audit.md` 的核验范围和 `docs/METHOD.md` 的当前方法边界；旧综合保留历史用途，不重建已删除合同；
 5. 投稿前重新审计 novelty-watch 状态。
 
 作者主页、项目页和社交媒体 venue 声明只能作线索，不能单独作为同行评审证据。

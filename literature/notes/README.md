@@ -2,6 +2,10 @@
 
 ## 本轮综合
 
+- [空间历史与动作条件世界模型（2026-09-11）](spatial_world_models_2026.md)：当前方向；真实输入/监督、直接重合、代码资产与复现边界
+
+以下综合对应旧记忆/CTL路线，保留参考，不覆盖D-062/D-068：
+
 - [跨论文综合与研究建议](00_cross_paper_synthesis.md)
 - [CPMT/CTL novelty landscape（updated 2026-09-05）](counterfactual_transaction_learning_landscape_2026.md)
 - [顶级论文的增量创新对照](top_venue_incremental_novelty_audit_2026.md)

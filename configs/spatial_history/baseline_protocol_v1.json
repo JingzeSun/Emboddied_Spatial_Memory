@@ -1,8 +1,10 @@
 {
   "stage": "SH-04",
   "version": "sh04-baseline-proposal-v1",
-  "status": "proposed_not_executable",
+  "status": "requires_revision_not_executable",
   "training_authorized": false,
+  "review_decision": "D-068",
+  "review_note": "Historical v1 proposal values retained for review only; scene identifiability, paper reproduction evidence, metrics and resource budget require revision before any dependent generation or training.",
   "prior_audit_sha256": "6c55d351d7eb0be6768d8992b608a452c677b1f02ac51cedf87443106df1ee5a",
   "observation": {
     "regime": "rgb_depth_calibrated_pose",
