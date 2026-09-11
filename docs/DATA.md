@@ -2,6 +2,18 @@
 
 ## 当前：空间历史成对记录 v1（D-062）
 
+### SH-03 数据登记与读写边界（实现待服务器验证）
+
+白话：新增登记表解决“到底生成了哪些案例、失败是否被换掉”的问题。输入固定16行参数，输出每行对应的原始数据和审计记录。例如sh03-00失败时，其轨迹和失败项仍可导出；这不是训练集筛选，也不会把场景参数作为模型特征。
+
+登记文件为`configs/spatial_history/development_audit_v1.json`，字段`wall_y_m/start_x_m/history_arc_samples`分别表示挡板中心纵坐标、物块与推杆共同横向起点、历史绕行采样数；单位米/米/帧。`unique_branches=64`是不同控制分支，`replay_branches=64`是独立一致性复核次数；`output_budget_bytes=2147483648`为新产物预算，按案例边界检查，单个正在运行案例可能使预算越界，越界后拒绝启动下一例并判批次失败。它不是服务器租赁配额；系统df的底层空闲容量不能替代用户数据盘50 GB额度。
+
+默认目录`/root/autodl-tmp/spatial-history/sh03-development-v1`中，顶层`started.json/environment.json`固定代码、登记表和环境；`check/`存新8项检查与回执。每个`sh03-XX/`有独立启动、日志、退出回执和完整文件摘要；`data/input_config.json/input_model.xml`是实际输入，`data/raw/`保留原SH-02生成器产生的世界XML、完整快照、原始像素/深度、逐物理步轨迹、反序重放及PNG，`data/pair.json`只规范化顶层pair_id/family_id/split，原始pair仍单独保留，`data/audit.json`记录13项检查与失败列表。
+
+规范记录统一`family_id=sh03-fixed-factorial-development`、`split=development`。原生成器的code/config摘要保留，新适配器、登记表和当前合同另由SH-03回执绑定；不把旧生成器的固定工程编号当作16个不同编号。模型仍只能经`model_input`读取过去RGB/深度、相机与机器人历史、拟执行速度和目标；登记参数、编号、XML、分割可见像素、完整快照和实际未来轨迹不得进主模型输入。未来物块位置/接触只作后续监督或评估，其余真值只做审计或单列特权诊断，SH-03本身不训练。
+
+`results/spatial_history_development_audit_v1.json`包含批次规范摘要、来源/环境、新测试、16例逐项状态、各例文件manifest、8张原PNG预览及首次分支接触过程摘要；失败保留日志尾部，未运行明确标not_run。完整数组仍在服务器；没有把数组嵌入小报告不等于没有生成。已封存回执的案例只核验复用；有启动但无退出回执的中断现场须先诊断，不覆盖或自动重跑。
+
 第一批只接收 `development`（开发）记录，不创建训练/确认/test 划分。JSON 中保存小样本的解码后像素与数值；这是可读的审计交换格式，不承诺后续训练直接用 JSON 存大数据。首个文件 `data/fixtures/spatial_history/manual_pair.json` 是人工指定接口例子，2×2 像素无物理含义，`simulator=not_run`、来源 hash 的全零值是占位；服务器回执会另记该文件真实摘要。不能把它计入16–32对物理案例，也不能把示例中的后果称为发现。
 
 白话：这个合同解决“模型不知不觉看见答案或两组近期输入不同”的问题。输入两个世界的完整审计记录，输出结构诊断与只含过去传感器信息、拟执行控制和共同目标的查询。例如未来物块位置只在 `branches.future`，提取后不出现在模型输入里；这不等于证明传感器记录真实或模型已懂遮挡。

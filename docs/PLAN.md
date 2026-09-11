@@ -16,19 +16,66 @@ D-059 的逐职责代码审查继续有效：当前批次可实现及做必要�
 |---|---|---|
 | SH-01 成对数据合同 | 已认可的候选；实现严格字段/时序/成对校验和模型输入提取，提供手工正负例 | 可读提交、具体输入输出、服务器回执；用户审查当前批次后进入 SH-02。不是物理案例 |
 | SH-02 物理生成器 | 已审合同；选择并固定模拟器版本、坐标/相机、控制器/饱和、物理参数、接触语义、场景和观察路径 | 单职责模拟器实现及必要服务器测试；真实快照恢复、控制执行、渲染和重放。实现审过才生成开发审计案例 |
-| SH-03 小规模物理审计 | SH-02 审查与工程通过；拟先16对开发世界，每世界2候选，最多64条分支，不因结果增样本 | 完整场景、快照、原始传感器、原始轨迹、失败、可视化和来源摘要。核验近期完全相同、早期相关证据可见、接触期间不可见、非布局状态一致；必要修复新版本，不覆盖 |
+| SH-03 小规模物理审计 | SH-02 审查与工程通过；D-065固定16对开发世界，64条不同分支及64次独立重放，不因结果增样本 | 完整场景、快照、原始传感器、原始轨迹、失败、可视化和来源摘要。16对全部满足原物理/输入条件才通过；必要修复新版本，不覆盖 |
 | SH-04 基础对照协议 | 物理审计通过；冻结训练/开发/确认划分、数据量、监督、固定候选与评分、预算和成功门 | 先交长历史/短历史、历史检索、地图加简单动力学及特权诊断的公平比较合同；没有预算和代码审查不训练 |
 | SH-05 复现并定位失败 | 已审基础对照与服务器检查；保持相同数据、信息与动作选择规则 | 逐例预测/接触/动作效果、独立场景组成对统计、成本。短历史的必然失败不算新发现；强对照成功则如实收口 |
 | SH-06 决定改进机制 | SH-05 确认并复现的具体失败 | 单一机制假设、对照与预算；不预先绑定 CTL，不靠扩场景/模型追正结果 |
 | SH-07 独立确认与交付 | 前阶段已审方法和冻结协议 | 未见场景确认、适当现实来源验证及论文/artifact；目前均 planned，不能视为已授权 test 解封 |
 
-SH-03 的16对是首轮开发审计建议上限；物理时长、磁盘和运行时间需 SH-02 测速后登记。SH-04 及以后不预设训练规模、模型架构或实验胜者。测试与计算在服务器由用户手动运行；本地只做源码、文档、Git 和标准库静态核查。
+SH-03预算由D-065固定：128次4.9 s模拟执行，新产物2 GiB，按案例边界检查；预计5–10分钟前台，实际耗时待服务器记录。SH-04及以后不预设训练规模、模型架构或实验胜者。测试与计算在服务器由用户手动运行；本地只做源码、文档、Git和标准库静态核查。
 
 ## 当前指针
 
-**SH-02/v2服务器32项检查通过，导出及画面已核验，待用户审查本批实现。** 原科学提交 `e3a1d7138b6c28ce38b60399da0336830f8478cc`，通过报告提交 `f6b8c58`。v1失败保留；当前不再重跑工程检查，不生成SH-03开发集或训练模型。审查分支 `review/spatial-history-physics`；先读 [通过报告](../results/spatial_history_physics_v2_flat_pusher.json)及LOG-105，再审 [METHOD 的物理定义](METHOD.md#第二职责批次固定物理工程夹具实现服务器验证及审查-pending)、[场景XML](../configs/spatial_history/physics_v1.xml)、[控制配置](../configs/spatial_history/physics_v1.json)、[物理适配器](../src/spatial_world_model/physics_fixture.py)与[12项物理检查](../tests/spatial_world_model/test_physics_fixture.py)。
+**SH-02/v2已验收、审查并合并main；当前交付SH-03固定开发审计，服务器运行pending。** 新审查分支`review/spatial-history-development`；本批新增[登记表](../configs/spatial_history/development_audit_v1.json)、[适配与判定](../src/spatial_world_model/development_audit.py)、[8项测试](../tests/spatial_world_model/test_development_audit.py)和[阶段入口](../ops/spatial_history/development_check.py)。原物理生成器/配置/32项测试字节保留，不重跑旧工程套件。当前批次验收和用户审查后才进入SH-04协议，不训练模型。
 
 SH-01审查批准已登记于9044074。SH-02科学提交e3a1d71及通过报告f6b8c58完成核验后，用户明确要求“下一步”，据上下文登记对该批次的审查通过，允许合并main并实施SH-03固定开发审计。此授权不包括SH-04训练协议或模型效果实验。
+
+### SH-03 服务器固定命令
+
+白话：同一次同步提供“检查新适配→生成完整16例→核验和导出”，避免步骤切换再改入口。输入已验收SH-02报告/源码与固定登记，输出独立案例回执；例如某例完整生成但没有预期碰撞，会保留为audit_failed并继续余下固定例。这不是自动调参或训练流水线。
+
+已核实服务器仓库`/root/Emboddied_Spatial_Memory`，环境`/root/autodl-tmp/spatial-history-venv-v1`；复用环境和EGL，无需安装或删除旧数据。当前checkout空闲且`git status --short`无输出时同步一次，新建本阶段本地审查分支：
+
+```bash
+cd /root/Emboddied_Spatial_Memory
+git status --short
+git fetch origin review/spatial-history-development
+git switch --track origin/review/spatial-history-development
+```
+
+若同名本地分支已存在，先核对它，不用reset；正常阶段首次同步后不再pull。运行目录固定`/root/autodl-tmp/spatial-history/sh03-development-v1`。
+
+SH-03/check：检查已验收SH-02的原Git绑定、当前实现未变、环境freeze和新阶段来源，然后服务器执行新增8项测试。写新目录的环境/启动记录和`check/`，只读旧报告及源码；不模拟16例。成功标志`SH-03 CHECK VERIFIED tests=8 exit=0`，同版成功回执复用，失败不重跑。
+
+```bash
+/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/development_check.py check
+```
+
+SH-03/run：只在上述成功后运行，自动核验依赖。前台生成固定16对，每例保存4条原始分支和4次反序重放；预计5–10分钟。每例完成先写退出回执/摘要，再启动下一例；已有完整回执只核验复用，从最早未启动例继续。完整物理审计失败仍记录并做完固定清单；运行异常停止余下案例。启动后无回执的中断现场拒绝覆盖或自动重试，须先诊断。只写本阶段数据盘目录，不访问旧outputs或封存test。
+
+```bash
+/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/development_check.py run
+```
+
+成功标志`SH-03 VERIFIED cases=16 unique_branches=64 replay_branches=64 exit=0`。否则保留全部已生成数据，导出诊断，不扩大计算；2 GiB按案例边界检查，底层df不代表租赁配额。无需重复run来查询结果，独立`verify`可只读核验。
+
+SH-03/export：通过或已保存退出回执的失败均可导出；自动核验逐例manifest、完整状态和新代码绑定，不重模拟。导出成功只表示报告生成，审计看`status`。父进程中断没有退出回执时先诊断，不补造成功证据。
+
+```bash
+/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/development_check.py export
+```
+
+成功标志`SH-03 EXPORTED status=passed|failed ... exit=0`。不同内容的同名报告不覆盖；固定批次完成或停止后回传这一份报告：
+
+```bash
+git add -- results/spatial_history_development_audit_v1.json
+git commit -m "results: export SH-03 fixed development audit"
+git push origin review/spatial-history-development
+```
+
+本地pull后只核验导出摘要、逐项失败和原PNG，不本地跑测试/模拟。通过仍只证明这16种开发设置的物理与输入条件，不能宣称模型利用了空间历史；下一科学协议须本批验收和审查后交付。
+
+### SH-02 已验收背景（历史记录，不是当前执行指令）
 
 依据：初次EGL环境问题已解决，实际renderer为RTX 4080 SUPER、驱动595.71.05。球形推头版的两份失败报告d087389和只读接触诊断0c4335e均已回传核验，具体失败证据见LOG-105。物块与推头约2.916 s开始接触、约4.05–4.08 s最后接触，随后物块停止，推头继续移动；对应挡板布局约5.048 s出现推头–墙接触。物块全过程y≤0.214694 m，未到墙近侧面0.575 m。这足以定位原预期的持续推动没有实现，不把机器人撞墙改记成物块撞墙。
 
@@ -36,7 +83,9 @@ SH-01审查批准已登记于9044074。SH-02科学提交e3a1d71及通过报告f6
 
 后续评分边界：目前goal半径0.5 m仅作为查询字段，四个终点都在该半径内，不能直接把本次“受阻/通过”当成目标成功/失败或动作选择收益。SH-04仍须事先冻结与任务相符的评分、阈值和预算；当前不据此更改工程配置或重跑。
 
-### SH-02/v2 服务器固定命令
+### SH-02/v2 历史固定命令
+
+以下仅保留复现路径。SH-03已扩充METHOD/DATA，不能在新checkout重跑这些命令来借用旧回执；旧完成任务按原版本复用，当前命令仅为上面的SH-03。
 
 用户服务器已核实仓库为 `/root/Emboddied_Spatial_Memory`，数据盘为 `/root/autodl-tmp`。复用已验收EGL的环境 `/root/autodl-tmp/spatial-history-venv-v1`；新产物 `/root/autodl-tmp/spatial-history/sh02-engineering-v2-flat-pusher`，新报告 `results/spatial_history_physics_v2_flat_pusher.json`，默认路径已随修复更新，原失败目录/报告不覆盖。当前审查checkout无任务运行、工作树干净时同步一次：
 

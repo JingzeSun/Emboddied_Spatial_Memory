@@ -1,0 +1,28 @@
+{
+  "stage": "SH-03",
+  "version": "sh03-development-v1",
+  "family_id": "sh03-fixed-factorial-development",
+  "split": "development",
+  "prior_receipt_sha256": "97d83ca73cdad22a9c1ab46ce24dc0b7e8e50103e174f968dca6fc2455460a6b",
+  "unique_branches": 64,
+  "replay_branches": 64,
+  "output_budget_bytes": 2147483648,
+  "cases": [
+    {"case_id": "sh03-00", "wall_y_m": 0.52, "start_x_m": -0.02, "history_arc_samples": 13},
+    {"case_id": "sh03-01", "wall_y_m": 0.52, "start_x_m": -0.02, "history_arc_samples": 23},
+    {"case_id": "sh03-02", "wall_y_m": 0.52, "start_x_m": 0.02, "history_arc_samples": 13},
+    {"case_id": "sh03-03", "wall_y_m": 0.52, "start_x_m": 0.02, "history_arc_samples": 23},
+    {"case_id": "sh03-04", "wall_y_m": 0.58, "start_x_m": -0.02, "history_arc_samples": 13},
+    {"case_id": "sh03-05", "wall_y_m": 0.58, "start_x_m": -0.02, "history_arc_samples": 23},
+    {"case_id": "sh03-06", "wall_y_m": 0.58, "start_x_m": 0.02, "history_arc_samples": 13},
+    {"case_id": "sh03-07", "wall_y_m": 0.58, "start_x_m": 0.02, "history_arc_samples": 23},
+    {"case_id": "sh03-08", "wall_y_m": 0.64, "start_x_m": -0.02, "history_arc_samples": 13},
+    {"case_id": "sh03-09", "wall_y_m": 0.64, "start_x_m": -0.02, "history_arc_samples": 23},
+    {"case_id": "sh03-10", "wall_y_m": 0.64, "start_x_m": 0.02, "history_arc_samples": 13},
+    {"case_id": "sh03-11", "wall_y_m": 0.64, "start_x_m": 0.02, "history_arc_samples": 23},
+    {"case_id": "sh03-12", "wall_y_m": 0.70, "start_x_m": -0.02, "history_arc_samples": 13},
+    {"case_id": "sh03-13", "wall_y_m": 0.70, "start_x_m": -0.02, "history_arc_samples": 23},
+    {"case_id": "sh03-14", "wall_y_m": 0.70, "start_x_m": 0.02, "history_arc_samples": 13},
+    {"case_id": "sh03-15", "wall_y_m": 0.70, "start_x_m": 0.02, "history_arc_samples": 23}
+  ]
+}
