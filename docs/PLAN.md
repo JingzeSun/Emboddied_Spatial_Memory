@@ -26,9 +26,11 @@ SH-03 的16对是首轮开发审计建议上限；物理时长、磁盘和运行
 
 ## 当前指针
 
-**SH-02 已实现待审，服务器32项工程检查 pending。** 审查分支 `review/spatial-history-physics`；单对固定物理夹具，不生成SH-03开发集或训练模型。先读 [METHOD 的物理定义](METHOD.md#第二职责批次固定物理工程夹具实现服务器验证及审查-pending)、[DATA 的原始记录](DATA.md#sh-02-原始物理记录实现实际生成-pending)，再审 [场景XML](../configs/spatial_history/physics_v1.xml)、[控制配置](../configs/spatial_history/physics_v1.json)、[物理适配器](../src/spatial_world_model/physics_fixture.py)与[12项新检查](../tests/spatial_world_model/test_physics_fixture.py)。
+**SH-02服务器32项检查已运行，30项通过、2项失败；当前导出诊断，尚未验收。** 审查分支 `review/spatial-history-physics`；单对固定物理夹具，不生成SH-03开发集或训练模型。先读 [METHOD 的物理定义](METHOD.md#第二职责批次固定物理工程夹具实现服务器验证及审查-pending)、[DATA 的原始记录](DATA.md#sh-02-原始物理记录实现实际生成-pending)，再审 [场景XML](../configs/spatial_history/physics_v1.xml)、[控制配置](../configs/spatial_history/physics_v1.json)、[物理适配器](../src/spatial_world_model/physics_fixture.py)与[12项新检查](../tests/spatial_world_model/test_physics_fixture.py)。
 
 SH-01原科学提交 `492a7b60f1bd2a996058c328bc02121e4d6fe9ce`、20项通过报告 `1e00352`已核验；用户“继续”后登记本批审查通过并快进合并main，审查登记为9044074。该批准只推进SH-02工程实现与必要测试。SH-02还没通过服务器检查，不合并科学基线、不提前堆叠数据生成/模型代码。
+
+当前诊断：首次EGL失败及失败导出保留；补齐系统运行库后，实际renderer已确认RTX 4080 SUPER，驱动595.71.05。eglfix1套件用时11.830 s、32项运行完成，四分支均未记录到墙/屏接触，导致接触模式与非空遮挡接触检查失败；原因尚待原始轨迹/画面定位。现在只用原入口export，指定 `--run-dir /root/autodl-tmp/spatial-history/sh02-engineering-v1-eglfix1 --report results/spatial_history_physics_v1_eglfix1.json`，再回传两份失败报告。无需pull，不覆盖目录、不改变阈值或静默改控制重跑。后续修复须依据诊断另行登记。
 
 ### SH-02 服务器固定命令
 

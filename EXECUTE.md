@@ -10,7 +10,7 @@
 | S5 主比较 | A/C/E active exact 为 0.9205/0.8980/0.5200；A−C support +0.001911、burden reduction +0.690，未满足登记门。原数值与 CI 见 LOG-090 |
 | 角色编码小试 | D-057 的 18 个学生、6 个 scorer 和 5760 次决策已导出复算；A 的角色版相对补零版平均 AUC 降约 17.51%，终点 exact 从 31.25% 降到 25%，属混合信号。LOG-102 |
 | 输入来源风险 | 原 reference 参数派生 query 通道存在，角色版未加入 merge_queries 直接配对分，但原候选仍使用该通道。LOG-103 |
-| 新工作证据 | SH-01服务器20项检查通过并获准推进；SH-02物理适配器已实现待审、32项服务器检查pending。没有已生成物理案例或模型失败结果；LOG-104/105 |
+| 新工作证据 | SH-01通过；SH-02的EGL初始化已修复，eglfix1运行32项检查、30通过2失败：四分支均未记录到预期墙接触。正在导出诊断；LOG-104/105 |
 | 计算环境 | 本机 CPU 不稳定；科学计算、特征提取及测试在服务器由用户手动运行，本地只读分析和轻量标准库核查 |
 
 ## 主张与证据
@@ -1229,3 +1229,7 @@ CTL/A 两 seed 的均值如下（同宽度补零是主编码对照，原 33 维�
 - 输入输出实例为预期：左墙/右墙两个世界分别用同一左推控制产生接触/通过，另一个控制镜像；近期两帧完全相同。是否真实成立由服务器12项新检查决定，当前不能把预期当结果；SH-01手工坐标仍为手工例子。
 - 交付隔离环境安装和run/verify/export完整阶段入口；Linux科学子进程前台运行原20项合同回归及12项新检查，父进程记录异常退出、部分产物与完整文件摘要，允许导出失败。安装、运行失败目录保留；已有成功结果只核验复用。默认数据盘新目录，不动旧环境、Git位置或cpmt_outputs。
 - 当前只完成标准库AST、JSON/XML语法和Git静态核查；模拟器API/控制/状态/渲染约定核查官方3.3.7文档/源码。没有本机导入MuJoCo/NumPy、运行科学测试、生成画面或训练；EGL可用性、接触模式、遮挡、数值重放和耗时均pending，审查分支不合并main。实际验收报告生成后追加本LOG。
+- 首次服务器失败补充（用户终端证据，尚未拉取机器报告）：原提交 `94239f8592abbb4ef447b9a0dde3155255119689` 的worker在导入阶段报 `'NoneType' object has no attribute 'eglQueryString'`，父进程记录exit=1；套件尚未启动，不能把日志里的计划tests=32当作已执行32项。`ctypes.CDLL('libEGL.so.1')`随后明确报库文件不可找到；OpenGL库检查尚未到达。失败目录 `/root/autodl-tmp/spatial-history/sh02-engineering-v1` 保留，原入口已导出 `results/spatial_history_physics_v1.json`，status=failed且导出exit=0；导出成功不是物理通过。
+- 运维修复待执行：补齐系统libegl1/libopengl0运行库后，先检查原EGL后端能否创建上下文及实际renderer；不重建Python环境、不换渲染后端、不改场景或32项科学检查。若通过，使用另行登记的 `sh02-engineering-v1-eglfix1` 目录和 `spatial_history_physics_v1_eglfix1.json` 报告，保留首次失败；若仍失败先定位驱动暴露，不执行物理套件。此处是系统依赖修复，尚无修复成功证据。
+- 运维修复后续验证（用户终端证据）：系统安装日志有其他版本NVIDIA库为空的警告，但随后nvidia-smi返回RTX 4080 SUPER、驱动595.71.05；MuJoCo EGL上下文创建和make_current成功，GL_RENDERER实际返回 `NVIDIA GeForce RTX 4080 SUPER/PCIe/SSE2`。这确认当前进程的GPU图形上下文可用，不仅是CUDA设备可见；未据此删除空库、重装驱动或切换后端。允许在已登记eglfix1新目录执行原套件；不宣称物理接触、遮挡、重放或32项测试已通过。本地仅登记证据，没有重跑科学检查。
+- eglfix1物理检查失败（用户终端证据，完整机器报告待回传）：套件实际运行32项、11.830 s，failures=2，父进程exit=1；剩余30项通过。`test_actual_wall_contact_and_counterfactual_separation`首先遇到四分支wall_contact_steps均为0，未到达后续终点差异断言；`test_all_obstacle_contact_steps_are_out_of_view`因障碍接触分支数0而拒绝通过，后续遮挡像素断言也未到达。故不能宣称反事实后果差异或遮挡碰撞成立。当前只知道生成器没有记录到预期接触，尚不能区分物块未被有效推动、轨迹未到墙、或接触记录问题；需读取原始轨迹与图像，不能直接降低接触门或换样本。失败目录保留，不训练模型、不进入SH-03；下一步使用既有export并回传原EGL失败及eglfix1两份报告。
