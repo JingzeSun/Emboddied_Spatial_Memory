@@ -1,0 +1,215 @@
+{
+  "schema_version": "spatial-history-pair-v1",
+  "pair_id": "manual-example-000",
+  "family_id": "manual-interface-fixture",
+  "split": "development",
+  "provenance": {
+    "kind": "hand_authored_fixture",
+    "simulator": "not_run",
+    "seed": 0,
+    "code_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "config_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "recent_frames": 2,
+  "control_kind": "ee_velocity_world_mps",
+  "goal": {
+    "center_m": [0, 1, 0.1],
+    "radius_m": 0.2
+  },
+  "actions": [
+    [
+      {
+        "duration_s": 0.1,
+        "ee_velocity_mps": [-0.1, 0.2, 0]
+      },
+      {
+        "duration_s": 0.1,
+        "ee_velocity_mps": [-0.1, 0.2, 0]
+      }
+    ],
+    [
+      {
+        "duration_s": 0.1,
+        "ee_velocity_mps": [0.1, 0.2, 0]
+      },
+      {
+        "duration_s": 0.1,
+        "ee_velocity_mps": [0.1, 0.2, 0]
+      }
+    ]
+  ],
+  "worlds": [
+    {
+      "history": [
+        {
+          "time_s": 0,
+          "width": 2,
+          "height": 2,
+          "rgb": [100, 10, 10, 20, 20, 20, 30, 30, 30, 40, 40, 40],
+          "depth_m": [1, 1, 1, 1],
+          "camera_position_m": [0, 0, 1],
+          "camera_xyzw": [0, 0, 0, 1],
+          "intrinsics": [1, 1, 0.5, 0.5],
+          "ee_position_m": [0, 0, 0.1],
+          "ee_velocity_mps": [0, 0, 0],
+          "previous_velocity_mps": [0, 0, 0]
+        },
+        {
+          "time_s": 0.1,
+          "width": 2,
+          "height": 2,
+          "rgb": [10, 10, 10, 20, 20, 20, 30, 30, 30, 40, 40, 40],
+          "depth_m": [1, 1, 1, 1],
+          "camera_position_m": [0, 0, 1],
+          "camera_xyzw": [0, 0, 0, 1],
+          "intrinsics": [1, 1, 0.5, 0.5],
+          "ee_position_m": [0, 0, 0.1],
+          "ee_velocity_mps": [0, 0, 0],
+          "previous_velocity_mps": [0, 0, 0]
+        },
+        {
+          "time_s": 0.2,
+          "width": 2,
+          "height": 2,
+          "rgb": [10, 10, 10, 20, 20, 20, 30, 30, 30, 40, 40, 40],
+          "depth_m": [1, 1, 1, 1],
+          "camera_position_m": [0, 0, 1],
+          "camera_xyzw": [0, 0, 0, 1],
+          "intrinsics": [1, 1, 0.5, 0.5],
+          "ee_position_m": [0, 0, 0.1],
+          "ee_velocity_mps": [0, 0, 0],
+          "previous_velocity_mps": [0, 0, 0]
+        }
+      ],
+      "initial_state": {
+        "object_position_m": [0, 0.2, 0.1],
+        "object_velocity_mps": [0, 0, 0],
+        "ee_position_m": [0, 0, 0.1],
+        "ee_velocity_mps": [0, 0, 0]
+      },
+      "hidden_obstacles": [
+        [-0.4, 0.6, 0, -0.2, 0.7, 0.2]
+      ],
+      "branches": [
+        {
+          "action_index": 0,
+          "base_snapshot_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "future": [
+            {
+              "time_s": 0.3,
+              "object_position_m": [-0.01, 0.21, 0.1],
+              "contact": false
+            },
+            {
+              "time_s": 0.4,
+              "object_position_m": [-0.02, 0.22, 0.1],
+              "contact": true
+            }
+          ]
+        },
+        {
+          "action_index": 1,
+          "base_snapshot_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "future": [
+            {
+              "time_s": 0.3,
+              "object_position_m": [0.01, 0.21, 0.1],
+              "contact": false
+            },
+            {
+              "time_s": 0.4,
+              "object_position_m": [0.02, 0.24, 0.1],
+              "contact": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "history": [
+        {
+          "time_s": 0,
+          "width": 2,
+          "height": 2,
+          "rgb": [200, 10, 10, 20, 20, 20, 30, 30, 30, 40, 40, 40],
+          "depth_m": [1, 1, 1, 1],
+          "camera_position_m": [0, 0, 1],
+          "camera_xyzw": [0, 0, 0, 1],
+          "intrinsics": [1, 1, 0.5, 0.5],
+          "ee_position_m": [0, 0, 0.1],
+          "ee_velocity_mps": [0, 0, 0],
+          "previous_velocity_mps": [0, 0, 0]
+        },
+        {
+          "time_s": 0.1,
+          "width": 2,
+          "height": 2,
+          "rgb": [10, 10, 10, 20, 20, 20, 30, 30, 30, 40, 40, 40],
+          "depth_m": [1, 1, 1, 1],
+          "camera_position_m": [0, 0, 1],
+          "camera_xyzw": [0, 0, 0, 1],
+          "intrinsics": [1, 1, 0.5, 0.5],
+          "ee_position_m": [0, 0, 0.1],
+          "ee_velocity_mps": [0, 0, 0],
+          "previous_velocity_mps": [0, 0, 0]
+        },
+        {
+          "time_s": 0.2,
+          "width": 2,
+          "height": 2,
+          "rgb": [10, 10, 10, 20, 20, 20, 30, 30, 30, 40, 40, 40],
+          "depth_m": [1, 1, 1, 1],
+          "camera_position_m": [0, 0, 1],
+          "camera_xyzw": [0, 0, 0, 1],
+          "intrinsics": [1, 1, 0.5, 0.5],
+          "ee_position_m": [0, 0, 0.1],
+          "ee_velocity_mps": [0, 0, 0],
+          "previous_velocity_mps": [0, 0, 0]
+        }
+      ],
+      "initial_state": {
+        "object_position_m": [0, 0.2, 0.1],
+        "object_velocity_mps": [0, 0, 0],
+        "ee_position_m": [0, 0, 0.1],
+        "ee_velocity_mps": [0, 0, 0]
+      },
+      "hidden_obstacles": [
+        [0.2, 0.6, 0, 0.4, 0.7, 0.2]
+      ],
+      "branches": [
+        {
+          "action_index": 0,
+          "base_snapshot_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "future": [
+            {
+              "time_s": 0.3,
+              "object_position_m": [-0.01, 0.21, 0.1],
+              "contact": false
+            },
+            {
+              "time_s": 0.4,
+              "object_position_m": [-0.02, 0.24, 0.1],
+              "contact": false
+            }
+          ]
+        },
+        {
+          "action_index": 1,
+          "base_snapshot_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "future": [
+            {
+              "time_s": 0.3,
+              "object_position_m": [0.01, 0.21, 0.1],
+              "contact": false
+            },
+            {
+              "time_s": 0.4,
+              "object_position_m": [0.02, 0.22, 0.1],
+              "contact": true
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

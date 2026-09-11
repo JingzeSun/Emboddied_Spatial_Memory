@@ -1,6 +1,18 @@
 # Project Instructions
 
-## 唯一方向
+## 当前方向（D-062，优先于下面的历史 CPMT 条款）
+
+- 用户于 2026-09-11 明确授权从记忆修订转向空间世界模型，并开始执行；必要时可重构工作区，但保留旧代码、结果、原始资料和复现路径。
+- 当前候选：近期观测相同而早期历史揭示的遮挡区结构不同时，能否预测同一机器人控制指令的不同视野外交互后果，并改善固定候选动作的选择。
+- 先检验既有方法的可复现失败，不预设持久三维状态、动态预测或二者组合是创新，不预先绑定 CTL。
+- 本轮允许固定候选控制序列的后果比较；不开展主动探索策略、开放世界、复杂操作、语言接口或高质量视频生成。
+- 数据/模型主对照必须包含长历史预测器、历史检索和地图加简单动力学。只胜过没有足够信息的短历史模型，不足以支持新机制。
+- 区分机器人控制指令、根据机器人运动学计算的计划运动、执行后实际运动、物体未来变换；后两项不得伪装成可部署的动作输入。
+- 第一批是独立成对数据合同与输入边界，具体定义见 METHOD/DATA；手工夹具不是模拟器、物理正确性或模型失败的证据。
+- D-059 的单职责科学提交、用户代码审查、服务器运行规则继续有效；本次开始授权不等于批准未审模块成为基线。新训练/测试划分、训练预算和机制仍须先具体登记。
+- 新旧实验协议分别适用：旧 test 继续封存，旧 no-go 不改写；新模块不必实现旧事务操作/六项能量，也不能用旧测试回执认证新代码。
+
+## 历史 CPMT 方向（仅用于旧代码和旧运行审计）
 
 - 完整方法是 Counterfactual Projective Memory Transactions（CPMT）。
 - 核心学习机制是 Counterfactual Transaction Learning（CTL）。
@@ -8,7 +20,7 @@
 - Projective Node Orbit 是固定/轻量表征基础；Versioned Deterministic Executor 是必要执行基础。
 - 唯一主张是：post-edit executable hindsight supervision 能否学习比 direct future loss 更可靠的在线世界记忆修订。
 
-## 首篇范围
+## 历史 CPMT 首篇范围
 
 允许：
 
@@ -27,7 +39,7 @@
 - 大规模导航或语言任务；
 - 把 executor、KL loss 或 transaction labels 单独称为创新。
 
-## 不可降级的硬条件
+## 旧 CPMT 运行不可降级的硬条件
 
 - 所有候选从同一 immutable base version 克隆并真实执行。
 - 能量必须分别记录 now、future、edit、growth、collateral 和 illegal。
@@ -37,7 +49,7 @@
 - RETRACT 关闭版本，不物理删除 provenance。
 - QUARANTINE 不修改 persistent world。
 
-## 唯一执行顺序
+## 旧 CPMT 执行顺序（当前指针已由 D-062 替代）
 
 1. M0：contracts、executor、oracle fixtures；
 2. M1：hard-condition go/no-go；
@@ -50,7 +62,7 @@ M1 失败时停止扩模型，不通过增加表征或任务寻找正结果。
 
 D-059 进一步授权先审真实数据，再彻底重构新协议 M1；完整计划及当前指针仅维护在 docs/PLAN.md。用户明确要求把关代码：科学改动按单一职责交付可读提交、输入输出例子和必要服务器测试，用户审过后才合并为新科学基线或运行依赖的效果实验，不在未审模块上堆叠后续科学代码。旧 M1 负结果及产物保留；当前计划交付不等于后续科学合同/预算自动冻结。
 
-## 实现与实验
+## 旧 CPMT 实现与实验
 
 - candidates、executor、projection、hindsight、online 必须可替换并分别记录误差。
 - executor 无梯度、deterministic、versioned，检查 precondition、protected state、invariant、provenance、idempotency 和 atomic rollback。
