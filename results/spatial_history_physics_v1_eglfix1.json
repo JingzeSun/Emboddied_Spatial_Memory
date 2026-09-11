@@ -1,0 +1,467 @@
+{
+  "diagnostics": {
+    "environment.json": {
+      "MUJOCO_GL": "egl",
+      "executable": "/root/autodl-tmp/spatial-history-venv-v1/bin/python",
+      "platform": "Linux-5.15.0-78-generic-x86_64-with-glibc2.35",
+      "python": "3.12.3 | packaged by Anaconda, Inc. | (main, May  6 2024, 19:46:43) [GCC 11.2.0]",
+      "repository": "/root/Emboddied_Spatial_Memory",
+      "setup": {
+        "exit_code": 0,
+        "finished": "2026-09-11T07:05:26.244138+00:00",
+        "freeze": [
+          "absl-py==2.5.0",
+          "etils==1.14.0",
+          "fsspec==2026.7.0",
+          "glfw==2.10.2",
+          "mujoco==3.3.7",
+          "numpy==2.2.6",
+          "pip==24.0",
+          "PyOpenGL==3.1.10",
+          "typing_extensions==4.16.0",
+          "zipp==4.1.0"
+        ],
+        "requirements_sha256": "af621b171fb5a2b9e4256307a0b6f80b572e09437a3a8299426918ad5e97cd87"
+      }
+    },
+    "fixture/evidence.json": {
+      "branches": [
+        {
+          "action_index": 0,
+          "final_object_position_m": [
+            -0.1977049025287674,
+            0.2142179827498202,
+            0.03999941045137736
+          ],
+          "hidden_contact_steps": 0,
+          "max_actuator_force_n": 20.0,
+          "max_contact_object_pixels": null,
+          "max_tilt_rad": 0.002251721109466505,
+          "object_z_range_m": [
+            0.03991611920764657,
+            0.04010866396107891
+          ],
+          "screen_contact_steps": 0,
+          "wall_contact_steps": 0,
+          "world_index": 0
+        },
+        {
+          "action_index": 1,
+          "final_object_position_m": [
+            0.19801580810466182,
+            0.21469233460531545,
+            0.039999410451377365
+          ],
+          "hidden_contact_steps": 0,
+          "max_actuator_force_n": 20.0,
+          "max_contact_object_pixels": null,
+          "max_tilt_rad": 0.0022517211099102553,
+          "object_z_range_m": [
+            0.03989886718771086,
+            0.040108663961091855
+          ],
+          "screen_contact_steps": 0,
+          "wall_contact_steps": 0,
+          "world_index": 0
+        },
+        {
+          "action_index": 0,
+          "final_object_position_m": [
+            -0.1977049025287674,
+            0.2142179827498202,
+            0.03999941045137736
+          ],
+          "hidden_contact_steps": 0,
+          "max_actuator_force_n": 20.0,
+          "max_contact_object_pixels": null,
+          "max_tilt_rad": 0.002251721109466505,
+          "object_z_range_m": [
+            0.03991611920764657,
+            0.04010866396107891
+          ],
+          "screen_contact_steps": 0,
+          "wall_contact_steps": 0,
+          "world_index": 1
+        },
+        {
+          "action_index": 1,
+          "final_object_position_m": [
+            0.19801580810466182,
+            0.21469233460531545,
+            0.039999410451377365
+          ],
+          "hidden_contact_steps": 0,
+          "max_actuator_force_n": 20.0,
+          "max_contact_object_pixels": null,
+          "max_tilt_rad": 0.0022517211099102553,
+          "object_z_range_m": [
+            0.03989886718771086,
+            0.040108663961091855
+          ],
+          "screen_contact_steps": 0,
+          "wall_contact_steps": 0,
+          "world_index": 1
+        }
+      ],
+      "final_separation_m_by_action": [
+        0.0,
+        0.0
+      ],
+      "history_visibility": [
+        [
+          {
+            "object": 0,
+            "pusher": 0,
+            "screen": 1984,
+            "wall": 146
+          },
+          {
+            "object": 0,
+            "pusher": 0,
+            "screen": 1963,
+            "wall": 112
+          },
+          {
+            "object": 0,
+            "pusher": 0,
+            "screen": 1966,
+            "wall": 86
+          },
+          {
+            "object": 0,
+            "pusher": 0,
+            "screen": 1907,
+            "wall": 50
+          },
+          {
+            "object": 0,
+            "pusher": 0,
+            "screen": 1987,
+            "wall": 28
+          },
+          {
+            "object": 0,
+            "pusher": 0,
+            "screen": 1903,
+            "wall": 23
+          },
+          {
+            "object": 12,
+            "pusher": 3,
+            "screen": 1953,
+            "wall": 0
+          },
+          {
+            "object": 9,
+            "pusher": 2,
+            "screen": 1946,
+            "wall": 0
+          },
+          {
+            "object": 11,
+            "pusher": 2,
+            "screen": 1850,
+            "wall": 0
+          },
+          {
+            "object": 10,
+            "pusher": 3,
+            "screen": 1895,
+            "wall": 0
+          },
+          {
+            "object": 11,
+            "pusher": 3,
+            "screen": 1962,
+            "wall": 0
+          },
+          {
+            "object": 9,
+            "pusher": 3,
+            "screen": 1962,
+            "wall": 0
+          },
+          {
+            "object": 12,
+            "pusher": 2,
+            "screen": 1984,
+            "wall": 0
+          },
+          {
+            "object": 12,
+            "pusher": 2,
+            "screen": 1984,
+            "wall": 0
+          },
+          {
+            "object": 12,
+            "pusher": 2,
+            "screen": 1984,
+            "wall": 0
+          }
+        ],
+        [
+          {
+            "object": 0,
+            "pusher": 0,
+            "screen": 1984,
+            "wall": 146
+          },
+          {
+            "object": 0,
+            "pusher": 0,
+            "screen": 1963,
+            "wall": 142
+          },
+          {
+            "object": 0,
+            "pusher": 0,
+            "screen": 1966,
+            "wall": 127
+          },
+          {
+            "object": 0,
+            "pusher": 0,
+            "screen": 1907,
+            "wall": 90
+          },
+          {
+            "object": 0,
+            "pusher": 0,
+            "screen": 1987,
+            "wall": 51
+          },
+          {
+            "object": 0,
+            "pusher": 0,
+            "screen": 1903,
+            "wall": 44
+          },
+          {
+            "object": 12,
+            "pusher": 3,
+            "screen": 1953,
+            "wall": 0
+          },
+          {
+            "object": 9,
+            "pusher": 2,
+            "screen": 1946,
+            "wall": 0
+          },
+          {
+            "object": 11,
+            "pusher": 2,
+            "screen": 1850,
+            "wall": 0
+          },
+          {
+            "object": 10,
+            "pusher": 3,
+            "screen": 1895,
+            "wall": 0
+          },
+          {
+            "object": 11,
+            "pusher": 3,
+            "screen": 1962,
+            "wall": 0
+          },
+          {
+            "object": 9,
+            "pusher": 3,
+            "screen": 1962,
+            "wall": 0
+          },
+          {
+            "object": 12,
+            "pusher": 2,
+            "screen": 1984,
+            "wall": 0
+          },
+          {
+            "object": 12,
+            "pusher": 2,
+            "screen": 1984,
+            "wall": 0
+          },
+          {
+            "object": 12,
+            "pusher": 2,
+            "screen": 1984,
+            "wall": 0
+          }
+        ]
+      ],
+      "nonlayout_integration_equal": true,
+      "observation_preserves_snapshot": [
+        true,
+        true
+      ],
+      "replay_equal": [
+        true,
+        true,
+        true,
+        true
+      ]
+    },
+    "tests-result.json": {
+      "errors": 0,
+      "exit_code": 1,
+      "failures": 2,
+      "skipped": 0,
+      "test_names": [
+        "test_pair_contract.PairContractTests.test_actual_object_transform_cannot_be_an_action",
+        "test_pair_contract.PairContractTests.test_bad_image_shape_and_depth_rejected",
+        "test_pair_contract.PairContractTests.test_branch_order_and_control_horizon_rejected",
+        "test_pair_contract.PairContractTests.test_duplicate_pairs_rejected",
+        "test_pair_contract.PairContractTests.test_early_camera_shortcut_rejected",
+        "test_pair_contract.PairContractTests.test_empty_prefix_or_empty_dataset_rejected",
+        "test_pair_contract.PairContractTests.test_fixture_is_not_physics_evidence",
+        "test_pair_contract.PairContractTests.test_future_time_alignment_required",
+        "test_pair_contract.PairContractTests.test_hidden_field_cannot_be_nested_in_frame",
+        "test_pair_contract.PairContractTests.test_no_contrast_samples_are_retained",
+        "test_pair_contract.PairContractTests.test_no_test_or_training_split_in_first_contract",
+        "test_pair_contract.PairContractTests.test_nonfinite_and_boolean_numbers_rejected",
+        "test_pair_contract.PairContractTests.test_nonlayout_initial_difference_rejected",
+        "test_pair_contract.PairContractTests.test_public_view_cannot_mutate_source",
+        "test_pair_contract.PairContractTests.test_public_view_is_an_allowlist",
+        "test_pair_contract.PairContractTests.test_recent_inputs_identical_but_full_inputs_differ",
+        "test_pair_contract.PairContractTests.test_recent_sensor_and_robot_shortcuts_rejected",
+        "test_pair_contract.PairContractTests.test_same_snapshot_required_within_each_world",
+        "test_pair_contract.PairContractTests.test_selector_types_are_strict",
+        "test_pair_contract.PairContractTests.test_truth_changes_do_not_change_model_features",
+        "test_physics_fixture.PhysicsFixtureTests.test_actual_wall_contact_and_counterfactual_separation",
+        "test_physics_fixture.PhysicsFixtureTests.test_all_obstacle_contact_steps_are_out_of_view",
+        "test_physics_fixture.PhysicsFixtureTests.test_complete_nonlayout_initial_state_matches",
+        "test_physics_fixture.PhysicsFixtureTests.test_contract_and_public_boundary",
+        "test_physics_fixture.PhysicsFixtureTests.test_early_wall_visible_recent_wall_hidden_object_visible",
+        "test_physics_fixture.PhysicsFixtureTests.test_identical_recent_independently_rendered_sensors",
+        "test_physics_fixture.PhysicsFixtureTests.test_independent_reverse_order_replay_is_exact",
+        "test_physics_fixture.PhysicsFixtureTests.test_interval_contact_labels_come_from_recorded_steps",
+        "test_physics_fixture.PhysicsFixtureTests.test_metric_depth_and_camera_convention_against_floor",
+        "test_physics_fixture.PhysicsFixtureTests.test_observing_preserves_integration_state",
+        "test_physics_fixture.PhysicsFixtureTests.test_planar_task_and_force_limits",
+        "test_physics_fixture.PhysicsFixtureTests.test_snapshot_tampering_and_other_world_rejected"
+      ],
+      "tests_run": 32
+    }
+  },
+  "failure_log_tail": "test_actual_object_transform_cannot_be_an_action (test_pair_contract.PairContractTests.test_actual_object_transform_cannot_be_an_action) ... ok\ntest_bad_image_shape_and_depth_rejected (test_pair_contract.PairContractTests.test_bad_image_shape_and_depth_rejected) ... ok\ntest_branch_order_and_control_horizon_rejected (test_pair_contract.PairContractTests.test_branch_order_and_control_horizon_rejected) ... ok\ntest_duplicate_pairs_rejected (test_pair_contract.PairContractTests.test_duplicate_pairs_rejected) ... ok\ntest_early_camera_shortcut_rejected (test_pair_contract.PairContractTests.test_early_camera_shortcut_rejected) ... ok\ntest_empty_prefix_or_empty_dataset_rejected (test_pair_contract.PairContractTests.test_empty_prefix_or_empty_dataset_rejected) ... ok\ntest_fixture_is_not_physics_evidence (test_pair_contract.PairContractTests.test_fixture_is_not_physics_evidence) ... ok\ntest_future_time_alignment_required (test_pair_contract.PairContractTests.test_future_time_alignment_required) ... ok\ntest_hidden_field_cannot_be_nested_in_frame (test_pair_contract.PairContractTests.test_hidden_field_cannot_be_nested_in_frame) ... ok\ntest_no_contrast_samples_are_retained (test_pair_contract.PairContractTests.test_no_contrast_samples_are_retained) ... ok\ntest_no_test_or_training_split_in_first_contract (test_pair_contract.PairContractTests.test_no_test_or_training_split_in_first_contract) ... ok\ntest_nonfinite_and_boolean_numbers_rejected (test_pair_contract.PairContractTests.test_nonfinite_and_boolean_numbers_rejected) ... ok\ntest_nonlayout_initial_difference_rejected (test_pair_contract.PairContractTests.test_nonlayout_initial_difference_rejected) ... ok\ntest_public_view_cannot_mutate_source (test_pair_contract.PairContractTests.test_public_view_cannot_mutate_source) ... ok\ntest_public_view_is_an_allowlist (test_pair_contract.PairContractTests.test_public_view_is_an_allowlist) ... ok\ntest_recent_inputs_identical_but_full_inputs_differ (test_pair_contract.PairContractTests.test_recent_inputs_identical_but_full_inputs_differ) ... ok\ntest_recent_sensor_and_robot_shortcuts_rejected (test_pair_contract.PairContractTests.test_recent_sensor_and_robot_shortcuts_rejected) ... ok\ntest_same_snapshot_required_within_each_world (test_pair_contract.PairContractTests.test_same_snapshot_required_within_each_world) ... ok\ntest_selector_types_are_strict (test_pair_contract.PairContractTests.test_selector_types_are_strict) ... ok\ntest_truth_changes_do_not_change_model_features (test_pair_contract.PairContractTests.test_truth_changes_do_not_change_model_features) ... ok\nSH-02 world=0 recording history\nSH-02 world=0 action=0 primary rollout\nSH-02 world=0 action=1 primary rollout\nSH-02 world=0 action=1 independent replay\nSH-02 world=0 action=0 independent replay\nSH-02 world=1 recording history\nSH-02 world=1 action=0 primary rollout\nSH-02 world=1 action=1 primary rollout\nSH-02 world=1 action=1 independent replay\nSH-02 world=1 action=0 independent replay\ntest_actual_wall_contact_and_counterfactual_separation (test_physics_fixture.PhysicsFixtureTests.test_actual_wall_contact_and_counterfactual_separation) ... FAIL\ntest_all_obstacle_contact_steps_are_out_of_view (test_physics_fixture.PhysicsFixtureTests.test_all_obstacle_contact_steps_are_out_of_view) ... FAIL\ntest_complete_nonlayout_initial_state_matches (test_physics_fixture.PhysicsFixtureTests.test_complete_nonlayout_initial_state_matches) ... ok\ntest_contract_and_public_boundary (test_physics_fixture.PhysicsFixtureTests.test_contract_and_public_boundary) ... ok\ntest_early_wall_visible_recent_wall_hidden_object_visible (test_physics_fixture.PhysicsFixtureTests.test_early_wall_visible_recent_wall_hidden_object_visible) ... ok\ntest_identical_recent_independently_rendered_sensors (test_physics_fixture.PhysicsFixtureTests.test_identical_recent_independently_rendered_sensors) ... ok\ntest_independent_reverse_order_replay_is_exact (test_physics_fixture.PhysicsFixtureTests.test_independent_reverse_order_replay_is_exact) ... ok\ntest_interval_contact_labels_come_from_recorded_steps (test_physics_fixture.PhysicsFixtureTests.test_interval_contact_labels_come_from_recorded_steps) ... ok\ntest_metric_depth_and_camera_convention_against_floor (test_physics_fixture.PhysicsFixtureTests.test_metric_depth_and_camera_convention_against_floor) ... ok\ntest_observing_preserves_integration_state (test_physics_fixture.PhysicsFixtureTests.test_observing_preserves_integration_state) ... ok\ntest_planar_task_and_force_limits (test_physics_fixture.PhysicsFixtureTests.test_planar_task_and_force_limits) ... ok\ntest_snapshot_tampering_and_other_world_rejected (test_physics_fixture.PhysicsFixtureTests.test_snapshot_tampering_and_other_world_rejected) ... ok\n\n======================================================================\nFAIL: test_actual_wall_contact_and_counterfactual_separation (test_physics_fixture.PhysicsFixtureTests.test_actual_wall_contact_and_counterfactual_separation)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/root/Emboddied_Spatial_Memory/tests/spatial_world_model/test_physics_fixture.py\", line 60, in test_actual_wall_contact_and_counterfactual_separation\n    self.assertEqual([b[\"wall_contact_steps\"] > 0 for b in branches], [True, False, False, True])\nAssertionError: Lists differ: [False, False, False, False] != [True, False, False, True]\n\nFirst differing element 0:\nFalse\nTrue\n\n- [False, False, False, False]\n+ [True, False, False, True]\n\n======================================================================\nFAIL: test_all_obstacle_contact_steps_are_out_of_view (test_physics_fixture.PhysicsFixtureTests.test_all_obstacle_contact_steps_are_out_of_view)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/root/Emboddied_Spatial_Memory/tests/spatial_world_model/test_physics_fixture.py\", line 69, in test_all_obstacle_contact_steps_are_out_of_view\n    self.assertEqual(len(hits), 2, \"must not pass visibility on zero contacts\")\nAssertionError: 0 != 2 : must not pass visibility on zero contacts\n\n----------------------------------------------------------------------\nRan 32 tests in 11.830s\n\nFAILED (failures=2)\n",
+  "kind": "engineering_physics_check",
+  "previews_png_base64": {
+    "world-0-action-0-final.png": "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAoUlEQVR4nO3RsQmAMBQG4exgcA61sncLp3AAA+IITqxgn+rhEbwjWD7+D9Oybk2/hC8QQC8QQC8QQC8QQC8QQC8QQC8QQC8QQC8QQC8QQC8QQC8QQC8QQC8QQC/4PaCE1pXhfbFnKwUD8jE+659v7NlK0X9gH/przucUe7ZSMOD7BNAJoBNAJ4BOAJ0AOgF0AugE0AmgE0AngE4AnQC65gE3qrE1b5Du0zoAAAAASUVORK5CYII=",
+    "world-0-action-1-final.png": "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAm0lEQVR4nO3RwQmAMBQE0fQQsQ7jybtdWIUFGFBLsGIFW4gZgrP8c5hHwrysTV/ACwTQBQLoAgF0gQC6QABdIIAuEEAXCKALBNAFAugCAXSBALpAAF0ggC74PSDXWszDe2WfrQfo9vTUd0cq+2xFwDn21xS3Zn/gowmgJ4CeAHoC6AmgJ4CeAHoC6AmgJ4CeAHoC6AmgJ4Be84Abay81cGPdZ88AAAAASUVORK5CYII=",
+    "world-0-early.png": "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAjklEQVR4nO3PUQnDUBBFwZiIiZioiZqolGcnNVgLSyAcQuey38uZ7fX+PPq2vACgLgCoCwDqAoC6AKAuAKgLAOoCgLoAoC4AqAsA6gKAugCgLgCoC/4esB4+gMG+x37tJs8BBjuP/dpNngMMdl/9AhjtvvoF0A+gHkA9gHoA9QDqAdQDqAdQD6AeQD2Aej+aXYAfcUA9/QAAAABJRU5ErkJggg==",
+    "world-0-recent.png": "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAqUlEQVR4nO3TsQmAMBgF4YwgCK6gldg5gLiEA4ilC2QFV3MlA4Ib/BzBe6RIl/sQ07KdVZ+EFwigCwTQBQLoAgF0gQC6QABdIIAuEEAXCKALBNAFAugCAXSBALpAAF3we0CufALoBQLaPH0n7pVAQHMMb325xL0SCdj77prLKZe4V/wH6MUCxvUuJ/QJvwA9AfQE0BNATwA9AfQE0BNATwA9AfQE0BNA7wG0rzJfCxBd2gAAAABJRU5ErkJggg==",
+    "world-1-action-0-final.png": "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAoUlEQVR4nO3RsQmAMBQG4exgcA61sncLp3AAA+IITqxgn+rhEbwjWD7+D9Oybk2/hC8QQC8QQC8QQC8QQC8QQC8QQC8QQC8QQC8QQC8QQC8QQC8QQC8QQC8QQC/4PaCE1pXhfbFnKwUD8jE+659v7NlK0X9gH/przucUe7ZSMOD7BNAJoBNAJ4BOAJ0AOgF0AugE0AmgE0AngE4AnQC65gE3qrE1b5Du0zoAAAAASUVORK5CYII=",
+    "world-1-action-1-final.png": "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAm0lEQVR4nO3RwQmAMBQE0fQQsQ7jybtdWIUFGFBLsGIFW4gZgrP8c5hHwrysTV/ACwTQBQLoAgF0gQC6QABdIIAuEEAXCKALBNAFAugCAXSBALpAAF0ggC74PSDXWszDe2WfrQfo9vTUd0cq+2xFwDn21xS3Zn/gowmgJ4CeAHoC6AmgJ4CeAHoC6AmgJ4CeAHoC6AmgJ4Be84Abay81cGPdZ88AAAAASUVORK5CYII=",
+    "world-1-early.png": "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAlklEQVR4nO3PUQ2AQAwEUUyciTOBCUwgpXbAIB8kCGjSDJfOZgXM2/bjXPobXiCALhBAFwigCwTQBQLoAgF0gQC6QABdIIAuEEAXCKALBNAFAugCAXRBe0Asvh6Ae47cq+ujC+CaI/fq+ugCiKyhNP1dG0CkDHXd3zoB/jkB9ATQE0BPAD0B9ATQE0BPAD0B9ATQE0DvAZWCgB81u9GIAAAAAElFTkSuQmCC",
+    "world-1-recent.png": "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAqUlEQVR4nO3TsQmAMBgF4YwgCK6gldg5gLiEA4ilC2QFV3MlA4Ib/BzBe6RIl/sQ07KdVZ+EFwigCwTQBQLoAgF0gQC6QABdIIAuEEAXCKALBNAFAugCAXSBALpAAF3we0CufALoBQLaPH0n7pVAQHMMb325xL0SCdj77prLKZe4V/wH6MUCxvUuJ/QJvwA9AfQE0BNATwA9AfQE0BNATwA9AfQE0BNA7wG0rzJfCxBd2gAAAABJRU5ErkJggg=="
+  },
+  "receipt": {
+    "artifacts": {
+      "environment.json": "9345f83328e8c794991a8612e7212b177fc14a779c98ef2542ce0973197973e0",
+      "fixture/config.json": "92840cc557eff64d260d6dfe63c00844b5e26687bd232b6390c61af0653fd6f3",
+      "fixture/evidence.json": "f5dc108f07814286ad9304a753bd9a019b242cdc874a895883acff0830dc8157",
+      "fixture/pair.json": "6519e8d96edad95755f083340a73edd7f32fc1595df2412edd9049a1116fcae7",
+      "fixture/world-0-action-0-final.png": "0e1c9d06ee29238d7a610034565a4307a3e8605c4ec694b4ec66425c3b98a1ba",
+      "fixture/world-0-action-0-replay-sensors.npz": "afacf9fa6e234614ea61a0345632c4bea191e3144d53fceb0e233fcbd487b087",
+      "fixture/world-0-action-0-replay-trace.json": "67fd1d019fba9e882d277a32c79a6f9981547bd5b60bf404b60ec4e5e59c3e5b",
+      "fixture/world-0-action-0-replay.json": "2f1d4b1423d7d886229ceb9121e8b571c867837f7f05302cf530ffd849b720ce",
+      "fixture/world-0-action-0-sensors.npz": "afacf9fa6e234614ea61a0345632c4bea191e3144d53fceb0e233fcbd487b087",
+      "fixture/world-0-action-0-trace.json": "67fd1d019fba9e882d277a32c79a6f9981547bd5b60bf404b60ec4e5e59c3e5b",
+      "fixture/world-0-action-1-final.png": "859540362f0dc959ba0941e759e09f54a456956f4301e2cd1635b11885507107",
+      "fixture/world-0-action-1-replay-sensors.npz": "c6731484ddc50d46bab199bf21fa599ab3115022d038634397d9841a1326ece1",
+      "fixture/world-0-action-1-replay-trace.json": "9ce66999b6eefc1c7e9244a430a05f8bd00092be190b28777d62950983ed1122",
+      "fixture/world-0-action-1-replay.json": "f47ef6e4bf14cdf4419028a90ee624cd91a5a443bf09a438d9871af406d2506e",
+      "fixture/world-0-action-1-sensors.npz": "c6731484ddc50d46bab199bf21fa599ab3115022d038634397d9841a1326ece1",
+      "fixture/world-0-action-1-trace.json": "9ce66999b6eefc1c7e9244a430a05f8bd00092be190b28777d62950983ed1122",
+      "fixture/world-0-early.png": "0315b6cc26948996f6022a97b7d91d3c6cffe00016d01f73050d0becdbb3e5ff",
+      "fixture/world-0-recent.png": "ecd77c896fe71e150b45874917773e2be74240998a9c402ae7628df6b81ea32a",
+      "fixture/world-0-record.json": "08fcc1f8f50215cf75087e1ce340c40cbeb6dbfd7214f68da744a16a3379d114",
+      "fixture/world-0-snapshot.json": "1c4faca3376f01c75f1f075a861efbe0f029c46d41d4f816ea67d1203bdd4641",
+      "fixture/world-0.xml": "8dec9daa4ed089c85e3e5f58dc654e3cfde8e0ec3517672266a5a8b1527bafc7",
+      "fixture/world-1-action-0-final.png": "0e1c9d06ee29238d7a610034565a4307a3e8605c4ec694b4ec66425c3b98a1ba",
+      "fixture/world-1-action-0-replay-sensors.npz": "afacf9fa6e234614ea61a0345632c4bea191e3144d53fceb0e233fcbd487b087",
+      "fixture/world-1-action-0-replay-trace.json": "b08a309e7287c7407d544c8dcd90a35e77f4021c8118df775318a77244354e89",
+      "fixture/world-1-action-0-replay.json": "a2476fe6b754027b3d42ff0d5d2d4f9c295472b7e68af1e5dc67e429073ac195",
+      "fixture/world-1-action-0-sensors.npz": "afacf9fa6e234614ea61a0345632c4bea191e3144d53fceb0e233fcbd487b087",
+      "fixture/world-1-action-0-trace.json": "b08a309e7287c7407d544c8dcd90a35e77f4021c8118df775318a77244354e89",
+      "fixture/world-1-action-1-final.png": "859540362f0dc959ba0941e759e09f54a456956f4301e2cd1635b11885507107",
+      "fixture/world-1-action-1-replay-sensors.npz": "c6731484ddc50d46bab199bf21fa599ab3115022d038634397d9841a1326ece1",
+      "fixture/world-1-action-1-replay-trace.json": "d9c1af7c55a0015f31cfedd3dd872f5bc842f2aad74ed5e14acfef92ed7abffc",
+      "fixture/world-1-action-1-replay.json": "6d8f3385a9427b8ad4f931ec8c1207a58e7f885f6565fc22f52246d8a8dbb03d",
+      "fixture/world-1-action-1-sensors.npz": "c6731484ddc50d46bab199bf21fa599ab3115022d038634397d9841a1326ece1",
+      "fixture/world-1-action-1-trace.json": "d9c1af7c55a0015f31cfedd3dd872f5bc842f2aad74ed5e14acfef92ed7abffc",
+      "fixture/world-1-early.png": "8341d97f8137297a8253e52cec0a58eaba6a49b7a0c35b6673f8e9620f4e2cc8",
+      "fixture/world-1-recent.png": "ecd77c896fe71e150b45874917773e2be74240998a9c402ae7628df6b81ea32a",
+      "fixture/world-1-record.json": "e4bf078094190af3a02aa5747e099907d053e25bcfe74dd1f8cf179eed5cb02e",
+      "fixture/world-1-snapshot.json": "a52363499eaef12f91363fcca7f9eb53e8af5080f630efc97da04c0ceeebc9c0",
+      "fixture/world-1.xml": "e387f7c19b0bf4c11a7ab147beb9a76cb54e6b863deb6162fbb9ca62c59bb821",
+      "started.json": "f95dcbcef154da98f52454f178f5b3babca40a73516f144b3611ac3f6eb95777",
+      "tests-result.json": "006b9487968dcaa681fc0b2209a94377106c933ac49ff98cc0472f5ed625aa7f",
+      "tests.log": "13165cb3a606a15bbea743a3cf0cc7e9de9f4f8a31b261a6e9e0e859ef3823ba"
+    },
+    "binding": {
+      "configs/spatial_history/physics_v1.json": "84bacc4f103be3440820b5aab258c08dbbf254109e115661b975be5ac6b2d28c",
+      "configs/spatial_history/physics_v1.xml": "f3cc9015d37b60adfb42c64ae1abe6c5c836ec5b4262c4530aa57603eb661112",
+      "data/fixtures/spatial_history/manual_pair.json": "b12681931276a1b396fb73efcc03d9528f064be76900b401f2d521b3a1695e54",
+      "docs/DATA.md": "2b385bf5dfdfa56f5d947535cf92044d26102ef7a2019e6bd66945907449bd75",
+      "docs/METHOD.md": "fa3534c47e391c82e880526073cf88cb7f7c7d7397df703cb8d6388a59ca2399",
+      "ops/spatial_history/contract_check.py": "1f68d9ea37b80656b8e0b0293b87b2bdf4407a22e7aced8cc864e5c89adb9899",
+      "ops/spatial_history/physics_check.py": "27278a42895e2088ae0d314d09f5b71e12f16ed3046743e21ec18364f7320f5e",
+      "ops/spatial_history/requirements-physics.txt": "af621b171fb5a2b9e4256307a0b6f80b572e09437a3a8299426918ad5e97cd87",
+      "results/spatial_history_contract_v1.json": "594bc5095ad997445a9b7f18300eeeee5c47e3435e582c10ed6e592ff01b68f3",
+      "src/spatial_world_model/__init__.py": "f96fd448d2183aba031c5087b3efe88e6fd4ac33d2312b19882cceed4e621eb9",
+      "src/spatial_world_model/pair_contract.py": "1289fbfd66c93dfc6783cd11a9aa50a22ff3aca92b0bbb8df63330848341cb2d",
+      "src/spatial_world_model/physics_fixture.py": "7b24390038a981cc66e503af73406377ca84db5b003d869774676b6d48e3784e",
+      "tests/spatial_world_model/test_pair_contract.py": "243e06a09f5fa931c53f565d70a81cc3e133fb17f7f1da5a276b0dceda6809ac",
+      "tests/spatial_world_model/test_physics_fixture.py": "0375a2462513f356a1d7bce76576eaee3decc046d6fce7b3465f1fae58ed1df8"
+    },
+    "commit": "94239f8592abbb4ef447b9a0dde3155255119689",
+    "elapsed_s": 12.128367744386196,
+    "engineering_fixture_count": 1,
+    "exit_code": 1,
+    "finished": "2026-09-11T07:17:19.443507+00:00",
+    "model_experiment_run": false,
+    "physics_and_visibility_verified": false,
+    "stage": "SH-02",
+    "started": "2026-09-11T07:17:07.315154+00:00",
+    "test_names": [
+      "test_pair_contract.PairContractTests.test_actual_object_transform_cannot_be_an_action",
+      "test_pair_contract.PairContractTests.test_bad_image_shape_and_depth_rejected",
+      "test_pair_contract.PairContractTests.test_branch_order_and_control_horizon_rejected",
+      "test_pair_contract.PairContractTests.test_duplicate_pairs_rejected",
+      "test_pair_contract.PairContractTests.test_early_camera_shortcut_rejected",
+      "test_pair_contract.PairContractTests.test_empty_prefix_or_empty_dataset_rejected",
+      "test_pair_contract.PairContractTests.test_fixture_is_not_physics_evidence",
+      "test_pair_contract.PairContractTests.test_future_time_alignment_required",
+      "test_pair_contract.PairContractTests.test_hidden_field_cannot_be_nested_in_frame",
+      "test_pair_contract.PairContractTests.test_no_contrast_samples_are_retained",
+      "test_pair_contract.PairContractTests.test_no_test_or_training_split_in_first_contract",
+      "test_pair_contract.PairContractTests.test_nonfinite_and_boolean_numbers_rejected",
+      "test_pair_contract.PairContractTests.test_nonlayout_initial_difference_rejected",
+      "test_pair_contract.PairContractTests.test_public_view_cannot_mutate_source",
+      "test_pair_contract.PairContractTests.test_public_view_is_an_allowlist",
+      "test_pair_contract.PairContractTests.test_recent_inputs_identical_but_full_inputs_differ",
+      "test_pair_contract.PairContractTests.test_recent_sensor_and_robot_shortcuts_rejected",
+      "test_pair_contract.PairContractTests.test_same_snapshot_required_within_each_world",
+      "test_pair_contract.PairContractTests.test_selector_types_are_strict",
+      "test_pair_contract.PairContractTests.test_truth_changes_do_not_change_model_features",
+      "test_physics_fixture.PhysicsFixtureTests.test_actual_wall_contact_and_counterfactual_separation",
+      "test_physics_fixture.PhysicsFixtureTests.test_all_obstacle_contact_steps_are_out_of_view",
+      "test_physics_fixture.PhysicsFixtureTests.test_complete_nonlayout_initial_state_matches",
+      "test_physics_fixture.PhysicsFixtureTests.test_contract_and_public_boundary",
+      "test_physics_fixture.PhysicsFixtureTests.test_early_wall_visible_recent_wall_hidden_object_visible",
+      "test_physics_fixture.PhysicsFixtureTests.test_identical_recent_independently_rendered_sensors",
+      "test_physics_fixture.PhysicsFixtureTests.test_independent_reverse_order_replay_is_exact",
+      "test_physics_fixture.PhysicsFixtureTests.test_interval_contact_labels_come_from_recorded_steps",
+      "test_physics_fixture.PhysicsFixtureTests.test_metric_depth_and_camera_convention_against_floor",
+      "test_physics_fixture.PhysicsFixtureTests.test_observing_preserves_integration_state",
+      "test_physics_fixture.PhysicsFixtureTests.test_planar_task_and_force_limits",
+      "test_physics_fixture.PhysicsFixtureTests.test_snapshot_tampering_and_other_world_rejected"
+    ]
+  },
+  "receipt_sha256": "d0e50397f0299c8ba213fee5b96f4e0300bc30126d9c40aec7b0ca3123e3846f"
+}
