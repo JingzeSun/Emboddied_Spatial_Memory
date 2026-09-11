@@ -28,7 +28,7 @@ SH-03 的16对是首轮开发审计建议上限；物理时长、磁盘和运行
 
 **SH-02/v2服务器32项检查通过，导出及画面已核验，待用户审查本批实现。** 原科学提交 `e3a1d7138b6c28ce38b60399da0336830f8478cc`，通过报告提交 `f6b8c58`。v1失败保留；当前不再重跑工程检查，不生成SH-03开发集或训练模型。审查分支 `review/spatial-history-physics`；先读 [通过报告](../results/spatial_history_physics_v2_flat_pusher.json)及LOG-105，再审 [METHOD 的物理定义](METHOD.md#第二职责批次固定物理工程夹具实现服务器验证及审查-pending)、[场景XML](../configs/spatial_history/physics_v1.xml)、[控制配置](../configs/spatial_history/physics_v1.json)、[物理适配器](../src/spatial_world_model/physics_fixture.py)与[12项物理检查](../tests/spatial_world_model/test_physics_fixture.py)。
 
-SH-01原科学提交 `492a7b60f1bd2a996058c328bc02121e4d6fe9ce`、20项通过报告 `1e00352`已核验；用户“继续”后登记本批审查通过并快进合并main，审查登记为9044074。SH-02现在工程通过，代码审查后才合并新科学基线并交付SH-03；本次PULL是同步及验收证据，不自动视作批准扩大数据或训练。
+SH-01审查批准已登记于9044074。SH-02科学提交e3a1d71及通过报告f6b8c58完成核验后，用户明确要求“下一步”，据上下文登记对该批次的审查通过，允许合并main并实施SH-03固定开发审计。此授权不包括SH-04训练协议或模型效果实验。
 
 依据：初次EGL环境问题已解决，实际renderer为RTX 4080 SUPER、驱动595.71.05。球形推头版的两份失败报告d087389和只读接触诊断0c4335e均已回传核验，具体失败证据见LOG-105。物块与推头约2.916 s开始接触、约4.05–4.08 s最后接触，随后物块停止，推头继续移动；对应挡板布局约5.048 s出现推头–墙接触。物块全过程y≤0.214694 m，未到墙近侧面0.575 m。这足以定位原预期的持续推动没有实现，不把机器人撞墙改记成物块撞墙。
 
