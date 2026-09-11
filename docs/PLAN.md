@@ -30,7 +30,30 @@ SH-03 的16对是首轮开发审计建议上限；物理时长、磁盘和运行
 
 SH-01原科学提交 `492a7b60f1bd2a996058c328bc02121e4d6fe9ce`、20项通过报告 `1e00352`已核验；用户“继续”后登记本批审查通过并快进合并main，审查登记为9044074。该批准只推进SH-02工程实现与必要测试。SH-02还没通过服务器检查，不合并科学基线、不提前堆叠数据生成/模型代码。
 
-当前诊断：首次EGL失败及失败导出保留；补齐系统运行库后，实际renderer已确认RTX 4080 SUPER，驱动595.71.05。eglfix1套件用时11.830 s、32项运行完成，四分支均未记录到墙/屏接触，导致接触模式与非空遮挡接触检查失败；原因尚待原始轨迹/画面定位。现在只用原入口export，指定 `--run-dir /root/autodl-tmp/spatial-history/sh02-engineering-v1-eglfix1 --report results/spatial_history_physics_v1_eglfix1.json`，再回传两份失败报告。无需pull，不覆盖目录、不改变阈值或静默改控制重跑。后续修复须依据诊断另行登记。
+当前诊断：首次EGL失败保留；补齐系统运行库后，实际renderer已确认RTX 4080 SUPER，驱动595.71.05。eglfix1套件用时11.830 s、32项运行完成，四分支均未记录到墙/屏接触，导致接触模式与非空遮挡接触检查失败。两份失败报告已经导出回传；不覆盖目录、不改变阈值或静默改控制重跑。后续修复须依据下面的只读接触诊断另行登记。
+
+两份报告已由服务器提交d087389并在本地核验。当前读数：左右动作物块最终y分别约0.214218/0.214692 m，墙近侧面y=0.575 m；两世界对应终点距离均为0，8张预览已核验查看。报告缺少推杆接触过程，因此新增一个必要的只读诊断入口，不改物理参数/源码或32项检查。当前下一步是下面的轨迹诊断，不再运行前段export或物理套件。
+
+### SH-02/contact-diagnose：一次同步，复用失败轨迹
+
+在当前空闲、干净的审查分支同步一次；这是补充原导出没有的接触过程读取能力，不是为了换步骤修改实验算法。命令仍在已核实服务器仓库运行：
+
+```bash
+git pull --ff-only origin review/spatial-history-physics
+python ops/spatial_history/contact_diagnose.py
+```
+
+前提为原两份失败报告已提交、eglfix1原产物存在且摘要匹配；入口用原receipt的提交核验原科学代码/合同，不让当前文档冒用旧回执。Python3.11+标准库，短任务前台；只读 `sh02-engineering-v1-eglfix1`，只写 `results/spatial_history_contact_diagnostic_v1.json`，不调用模拟器、不改原目录、不生成新轨迹。成功标志 `SH-02 CONTACT-DIAG EXPORTED ... exit=0`，相同结果复用、不同旧报告拒绝覆盖；失败停留在当前诊断。
+
+导出成功后纯Git回传：
+
+```bash
+git add -- results/spatial_history_contact_diagnostic_v1.json
+git commit -m "results: export SH-02 contact trajectory diagnosis"
+git push origin review/spatial-history-physics
+```
+
+本地读取控制末尾状态、真实接触起止与逐轴范围后才决定是否修复推杆几何、控制或记录逻辑；任何科学修复另立可审版本及新运行目录，不降低原通过门。此轮诊断能力交付不等于预先批准具体物理修复。
 
 ### SH-02 服务器固定命令
 
