@@ -1,0 +1,26 @@
+{
+  "version": "sh02-engineering-v1",
+  "mujoco": "3.3.7",
+  "numpy": "2.2.6",
+  "resolution": 64,
+  "settle_s": 0.5,
+  "sample_s": 0.1,
+  "history_arc_samples": 13,
+  "recent_frames": 2,
+  "camera_radius_m": 1.6,
+  "camera_height_m": 1.4,
+  "camera_target_m": [0, 0.25, 0.03],
+  "left_control_phases": [
+    {"samples": 5, "ee_velocity_mps": [0.2, 0, 0]},
+    {"samples": 36, "ee_velocity_mps": [-0.12, 0.3, 0]},
+    {"samples": 8, "ee_velocity_mps": [0, 0, 0]}
+  ],
+  "goal": {"center_m": [0, 0.8, 0.04], "radius_m": 0.5},
+  "contact_force_min_n": 0.000001,
+  "minimum_outcome_separation_m": 0.05,
+  "minimum_early_wall_pixels": 4,
+  "maximum_object_height_m": 0.065,
+  "minimum_object_height_m": 0.02,
+  "maximum_tilt_rad": 0.25,
+  "seed": 0
+}

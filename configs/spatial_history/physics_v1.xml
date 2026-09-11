@@ -1,0 +1,44 @@
+<mujoco model="spatial-history-engineering-v1">
+  <compiler angle="radian"/>
+  <option timestep="0.002" gravity="0 0 -9.81" integrator="implicitfast"
+          solver="Newton" iterations="100" tolerance="1e-10">
+    <flag autoreset="disable"/>
+  </option>
+  <statistic extent="4" center="0 0 0"/>
+  <visual>
+    <global offwidth="64" offheight="64"/>
+    <map znear="0.01" zfar="5"/>
+    <quality offsamples="0"/>
+    <headlight ambient="0.4 0.4 0.4" diffuse="0.6 0.6 0.6" specular="0 0 0"/>
+  </visual>
+  <default>
+    <geom friction="0.25 0.005 0.0001" solref="0.01 1" solimp="0.95 0.99 0.001"/>
+  </default>
+  <worldbody>
+    <geom name="floor" type="plane" size="3 3 0.1" rgba="0.65 0.65 0.65 1"/>
+    <geom name="screen" type="box" pos="0 0.25 0.71" size="2 0.02 0.59"
+          rgba="0.3 0.4 0.5 1"/>
+    <!-- Only this geom's x position is mirrored between the two worlds. -->
+    <geom name="wall" type="box" pos="-0.31 0.60 0.15" size="0.29 0.025 0.15"
+          rgba="0.85 0.2 0.1 1"/>
+    <body name="object" pos="0 0 0.04">
+      <freejoint name="object_free"/>
+      <geom name="object" type="cylinder" size="0.07 0.04" mass="0.15"
+            rgba="0.1 0.65 0.25 1"/>
+    </body>
+    <body name="pusher" pos="0 -0.25 0.05">
+      <joint name="slide_x" type="slide" axis="1 0 0"/>
+      <joint name="slide_y" type="slide" axis="0 1 0"/>
+      <geom name="pusher" type="sphere" size="0.035" mass="0.5" rgba="0.2 0.3 0.9 1"/>
+    </body>
+    <body name="camera_rig" mocap="true" pos="0 -1.6 1.4">
+      <camera name="ego" fovy="65"/>
+    </body>
+  </worldbody>
+  <actuator>
+    <velocity name="vx" joint="slide_x" kv="100" ctrllimited="true" ctrlrange="-0.5 0.5"
+              forcelimited="true" forcerange="-20 20"/>
+    <velocity name="vy" joint="slide_y" kv="100" ctrllimited="true" ctrlrange="-0.5 0.5"
+              forcelimited="true" forcerange="-20 20"/>
+  </actuator>
+</mujoco>

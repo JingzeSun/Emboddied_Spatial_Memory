@@ -1,0 +1,4 @@
+# Isolated SH-02 server environment; never install into the legacy CPMT env.
+# Direct numerical dependencies pinned; every run records the full pip freeze.
+mujoco==3.3.7
+numpy==2.2.6
