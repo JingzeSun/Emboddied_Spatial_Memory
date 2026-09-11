@@ -13,6 +13,9 @@ import xml.etree.ElementTree as ET
 
 from .pair_contract import audit_pair, require
 
+V2 = "sh03-development-v2-wall-clearance"
+V1_FAILURE_SHA = "d157842a9c7f6660fccdb579bc90d4d030095d8dc623e4727a878d3a9a821b78"
+
 
 def validate_case(case):
     require(set(case) == {"case_id", "wall_y_m", "start_x_m", "history_arc_samples"}, "case fields mismatch")
@@ -23,11 +26,17 @@ def validate_case(case):
 
 
 def validate_registry(registry):
+    v2 = registry.get("version") == V2
+    extra = {"wall_center_abs_x_m", "prior_development_audit_sha256"} if v2 else set()
     require(set(registry) == {"stage", "version", "family_id", "split", "prior_receipt_sha256",
-                             "unique_branches", "replay_branches", "output_budget_bytes", "cases"}, "registry fields mismatch")
-    require(registry["stage"] == "SH-03" and registry["version"] == "sh03-development-v1"
+                             "unique_branches", "replay_branches", "output_budget_bytes", "cases"} | extra, "registry fields mismatch")
+    require(registry["stage"] == "SH-03" and registry["version"] in ("sh03-development-v1", V2)
             and registry["split"] == "development"
             and registry["family_id"] == "sh03-fixed-factorial-development", "unsupported stage/split/family")
+    if v2:
+        require(type(registry["wall_center_abs_x_m"]) is float and registry["wall_center_abs_x_m"] == 0.33,
+                "unregistered wall clearance")
+        require(registry["prior_development_audit_sha256"] == V1_FAILURE_SHA, "unverified failure source")
     require(registry["prior_receipt_sha256"] == "97d83ca73cdad22a9c1ab46ce24dc0b7e8e50103e174f968dca6fc2455460a6b", "unapproved prerequisite")
     cases = registry["cases"]
     require(len(cases) == 16 and [c["case_id"] for c in cases] == [f"sh03-{i:02d}" for i in range(16)], "case inventory/order changed")
@@ -40,18 +49,25 @@ def validate_registry(registry):
     return cases
 
 
-def prepare_case(base_config, base_xml, case):
-    """Only wall depth, shared starting x, camera aim and arc duration vary."""
+def prepare_case(base_config, base_xml, case, registry=None):
+    """V2 adds one registered wall-x change to the original fixed adaptation."""
     validate_case(case)
+    version = "sh03-development-v1"
+    if registry is not None:
+        require(case in validate_registry(registry), "case absent from registry")
+        version = registry["version"]
     config = deepcopy(base_config)
-    config["version"] = "sh03-development-v1"
+    config["version"] = version
     config["history_arc_samples"] = case["history_arc_samples"]
     config["camera_target_m"][0] = case["start_x_m"]
     tree = ET.fromstring(base_xml)
-    tree.set("model", "sh03-development-v1")
+    tree.set("model", version)
     changes = [("./worldbody/geom[@name='wall']", 1, case["wall_y_m"]),
                ("./worldbody/body[@name='object']", 0, case["start_x_m"]),
                ("./worldbody/body[@name='pusher']", 0, case["start_x_m"])]
+    if version == V2:
+        # The unchanged generator mirrors this negative template x into +x.
+        changes.append(("./worldbody/geom[@name='wall']", 0, -registry["wall_center_abs_x_m"]))
     for path, axis, value in changes:
         element = tree.find(path)
         require(element is not None, f"missing base entity: {path}")
@@ -96,7 +112,7 @@ def generate_case(directory, base_config_path, base_xml_path, case, registry):
     directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=False)
     base_config = json.loads(Path(base_config_path).read_text(encoding="utf-8"))
-    config, xml = prepare_case(base_config, Path(base_xml_path).read_text(encoding="utf-8"), case)
+    config, xml = prepare_case(base_config, Path(base_xml_path).read_text(encoding="utf-8"), case, registry)
     save_json(directory / "input_config.json", config)
     (directory / "input_model.xml").write_text(xml, encoding="utf-8")
     raw_pair, evidence = generate_fixture(directory / "raw", directory / "input_config.json", directory / "input_model.xml")

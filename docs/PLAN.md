@@ -26,34 +26,33 @@ SH-03预算由D-065固定：128次4.9 s模拟执行，新产物2 GiB，按案例
 
 ## 当前指针
 
-**SH-03已完成并回传：8项工程检查通过，16对开发审计12通过、4失败，整批未通过。** 原科学提交`9d1ce35`，报告提交`908a61e`，审查分支`review/spatial-history-development`；[报告](../results/spatial_history_development_audit_v1.json)与详细证据见LOG-106。失败均在墙y=0.52 m，原预期无接触分支也有短暂墙角接触；所有实际障碍接触时目标仍不可见。当前先处理预设碰撞模式与真实物理不符的问题，不重跑、不丢弃4例、不将12例作为整批通过，不进入SH-04或训练。必要协议/实现修复须依据这些证据另行登记版本和审查。
+**当前交付SH-03/v2墙角间隙修订，服务器验证pending。** 用户在获知v1失败后要求“继续”，依据D-066仅将墙横向外移2 cm，原16组设置与通过条件保持不变。审查分支`review/spatial-history-development`，实现见LOG-107。旧v1仍为12通过/4失败，原科学提交`9d1ce35`、报告提交`908a61e`；[旧报告](../results/spatial_history_development_audit_v1.json)及诊断见LOG-106，不将旧12例当新版本通过，不进入SH-04或训练。
 
-本批审查入口：[登记表](../configs/spatial_history/development_audit_v1.json)、[适配与判定](../src/spatial_world_model/development_audit.py)、[8项测试](../tests/spatial_world_model/test_development_audit.py)、[阶段入口](../ops/spatial_history/development_check.py)。已完成产物按原源码/合同摘要复用；下列命令保留作为本版本操作说明，当前无需再次运行或导出。
+本批审查入口：[v2登记表](../configs/spatial_history/development_audit_v2_wall_clearance.json)、[适配与原判定](../src/spatial_world_model/development_audit.py)、[12项测试](../tests/spatial_world_model/test_development_audit.py)、[阶段入口](../ops/spatial_history/development_check.py)。旧完成产物按原源码/合同摘要复用；新几何须在新目录对全部16例产生独立回执，当前操作如下。
 
 SH-01审查批准已登记于9044074。SH-02科学提交e3a1d71及通过报告f6b8c58完成核验后，用户明确要求“下一步”，据上下文登记对该批次的审查通过，允许合并main并实施SH-03固定开发审计。此授权不包括SH-04训练协议或模型效果实验。
 
-### SH-03 服务器固定命令
+### SH-03/v2 服务器固定命令
 
 白话：同一次同步提供“检查新适配→生成完整16例→核验和导出”，避免步骤切换再改入口。输入已验收SH-02报告/源码与固定登记，输出独立案例回执；例如某例完整生成但没有预期碰撞，会保留为audit_failed并继续余下固定例。这不是自动调参或训练流水线。
 
-已核实服务器仓库`/root/Emboddied_Spatial_Memory`，环境`/root/autodl-tmp/spatial-history-venv-v1`；复用环境和EGL，无需安装或删除旧数据。当前checkout空闲且`git status --short`无输出时同步一次，新建本阶段本地审查分支：
+已核实服务器仓库`/root/Emboddied_Spatial_Memory`，环境`/root/autodl-tmp/spatial-history-venv-v1`；复用环境和EGL，无需安装或删除旧数据。当前已在review/spatial-history-development分支，checkout空闲且`git status --short`无输出时同步一次：
 
 ```bash
 cd /root/Emboddied_Spatial_Memory
 git status --short
-git fetch origin review/spatial-history-development
-git switch --track origin/review/spatial-history-development
+git pull --ff-only origin review/spatial-history-development
 ```
 
-若同名本地分支已存在，先核对它，不用reset；正常阶段首次同步后不再pull。运行目录固定`/root/autodl-tmp/spatial-history/sh03-development-v1`。
+若当前分支或路径与已核实状态不同，先只读核对，不用reset；本阶段同步后不再pull。新运行目录固定`/root/autodl-tmp/spatial-history/sh03-development-v2-wall-clearance`。旧v1原始目录与报告不改；新METHOD/DATA和适配源码不借旧回执认证。
 
-SH-03/check：检查已验收SH-02的原Git绑定、当前实现未变、环境freeze和新阶段来源，然后服务器执行新增8项测试。写新目录的环境/启动记录和`check/`，只读旧报告及源码；不模拟16例。成功标志`SH-03 CHECK VERIFIED tests=8 exit=0`，同版成功回执复用，失败不重跑。
+SH-03/check：检查已验收SH-02原Git绑定、原模拟器未变、v1完整失败报告及原Git来源、环境freeze和新阶段来源，然后服务器执行原8项加新增4项（共12项）。写新目录的环境/启动记录和`check/`，只读旧报告及源码；不模拟16例。成功标志`SH-03 CHECK VERIFIED tests=12 exit=0`，同版成功回执复用，失败不重跑。
 
 ```bash
 /root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/development_check.py check
 ```
 
-SH-03/run：只在上述成功后运行，自动核验依赖。前台生成固定16对，每例保存4条原始分支和4次反序重放；预计5–10分钟。每例完成先写退出回执/摘要，再启动下一例；已有完整回执只核验复用，从最早未启动例继续。完整物理审计失败仍记录并做完固定清单；运行异常停止余下案例。启动后无回执的中断现场拒绝覆盖或自动重试，须先诊断。只写本阶段数据盘目录，不访问旧outputs或封存test。
+SH-03/run：只在上述成功后运行，自动核验依赖。用新墙位置前台生成原固定16对，每例保存4条原始分支和4次反序重放；预计5–10分钟。每例完成先写退出回执/摘要，再启动下一例；新版本已有完整回执只核验复用，从最早未启动例继续，不借v1的12例通过状态。完整物理审计失败仍记录并做完固定清单；运行异常停止余下案例。启动后无回执的中断现场拒绝覆盖或自动重试，须先诊断。只写本阶段新数据盘目录，不访问旧outputs或封存test。
 
 ```bash
 /root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/development_check.py run
@@ -70,8 +69,8 @@ SH-03/export：通过或已保存退出回执的失败均可导出；自动核�
 成功标志`SH-03 EXPORTED status=passed|failed ... exit=0`。不同内容的同名报告不覆盖；固定批次完成或停止后回传这一份报告：
 
 ```bash
-git add -- results/spatial_history_development_audit_v1.json
-git commit -m "results: export SH-03 fixed development audit"
+git add -- results/spatial_history_development_audit_v2_wall_clearance.json
+git commit -m "results: export SH-03 wall-clearance revision audit"
 git push origin review/spatial-history-development
 ```
 

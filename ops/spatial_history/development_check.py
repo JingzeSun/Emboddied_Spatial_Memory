@@ -21,14 +21,16 @@ import unittest
 from contract_check import ROOT, encode, git, require, sha, write_new
 from physics_check import BOUND as SH02_BOUND, DISK, ENV, environment, now, stream
 
-REGISTRY = "configs/spatial_history/development_audit_v1.json"
+REGISTRY = "configs/spatial_history/development_audit_v2_wall_clearance.json"
+V1_REGISTRY = "configs/spatial_history/development_audit_v1.json"
+V1_REPORT = "results/spatial_history_development_audit_v1.json"
 PRIOR = "results/spatial_history_physics_v2_flat_pusher.json"
 TEST = "tests/spatial_world_model/test_development_audit.py"
-BOUND = (*SH02_BOUND, REGISTRY, PRIOR, TEST,
+BOUND = (*SH02_BOUND, REGISTRY, V1_REGISTRY, V1_REPORT, PRIOR, TEST,
          "src/spatial_world_model/development_audit.py",
          "ops/spatial_history/development_check.py")
-RUN = DISK / "spatial-history/sh03-development-v1"
-REPORT = ROOT / "results/spatial_history_development_audit_v1.json"
+RUN = DISK / "spatial-history/sh03-development-v2-wall-clearance"
+REPORT = ROOT / "results/spatial_history_development_audit_v2_wall_clearance.json"
 
 
 def read(path):
@@ -65,6 +67,17 @@ def prerequisites():
         require(sha(original) == digest, f"original SH-02 binding invalid: {name}")
         if not name.startswith("docs/"):
             require(sha((ROOT / name).read_bytes()) == digest, f"approved implementation changed: {name}")
+    failure = read(ROOT / V1_REPORT)
+    audit = failure["audit"]
+    require(sha(encode(audit)) == failure["audit_sha256"] == registry()["prior_development_audit_sha256"],
+            "SH-03/v1 failure evidence changed")
+    require(audit["status"] == "failed" and audit["tests"]["exit_code"] == 0
+            and [r["status"] for r in audit["cases"]] == ["audit_failed"] * 4 + ["passed"] * 12,
+            "expected complete SH-03/v1 failure report required")
+    require([r["case"] for r in audit["cases"]] == registry()["cases"], "v2 must retain all v1 cases")
+    for name, digest in audit["started"]["binding"].items():
+        original = subprocess.check_output(["git", "-C", str(ROOT), "show", f"{audit['started']['commit']}:{name}"])
+        require(sha(original) == digest, f"original SH-03/v1 source invalid: {name}")
 
 
 def names():

@@ -4,6 +4,10 @@
 
 ### SH-03 数据登记与读写边界（实现待服务器验证）
 
+v2补充（服务器验证pending）：当前登记为`configs/spatial_history/development_audit_v2_wall_clearance.json`，增加`wall_center_abs_x_m=0.33`（米，墙中心横坐标绝对值）和`prior_development_audit_sha256`（已核验v1失败报告的audit摘要）。白话：输入旧失败来源和唯一新墙位置，输出可追溯的新场景XML；例如实际墙位置为−0.33/+0.33 m，但这一真值参数不作为模型特征。它不是候选动作、物块未来变换或可调搜索范围。
+
+当前新目录为`/root/autodl-tmp/spatial-history/sh03-development-v2-wall-clearance`，新报告为`results/spatial_history_development_audit_v2_wall_clearance.json`；旧v1目录/报告及登记文件保留。新12项检查、全部16例、64条首次分支及64次独立重放产生新绑定，预算仍为新增2 GiB、按案例边界检查。case_id/family_id/split和原16行参数相同，用版本、实际配置/XML与回执区分；两版本不是32个独立场景，不拼接成训练/确认划分。check先核对原SH-02通过报告和v1失败报告的摘要/原Git来源，旧通过状态不用于替代v2验收。以下路径和8项计数描述原v1结构；v2沿用内部文件结构，check中改为12项。
+
 白话：新增登记表解决“到底生成了哪些案例、失败是否被换掉”的问题。输入固定16行参数，输出每行对应的原始数据和审计记录。例如sh03-00失败时，其轨迹和失败项仍可导出；这不是训练集筛选，也不会把场景参数作为模型特征。
 
 登记文件为`configs/spatial_history/development_audit_v1.json`，字段`wall_y_m/start_x_m/history_arc_samples`分别表示挡板中心纵坐标、物块与推杆共同横向起点、历史绕行采样数；单位米/米/帧。`unique_branches=64`是不同控制分支，`replay_branches=64`是独立一致性复核次数；`output_budget_bytes=2147483648`为新产物预算，按案例边界检查，单个正在运行案例可能使预算越界，越界后拒绝启动下一例并判批次失败。它不是服务器租赁配额；系统df的底层空闲容量不能替代用户数据盘50 GB额度。

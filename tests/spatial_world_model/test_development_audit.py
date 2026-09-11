@@ -79,3 +79,48 @@ class DevelopmentAuditTests(unittest.TestCase):
         result = assess(self.contract, self.evidence, self.config)
         self.assertIn("independent_replay_exact", result["failed_checks"])
         self.assertIn("both_actions_have_contrast", result["failed_checks"])
+
+    def test_v2_changes_only_wall_x_and_version_for_all_original_cases(self):
+        v2 = json.loads((ROOT / "configs/spatial_history/development_audit_v2_wall_clearance.json").read_text())
+        self.assertEqual(validate_registry(v2), self.registry["cases"])
+        original = deepcopy((self.config, self.registry, v2))
+        for case in v2["cases"]:
+            config1, xml1 = prepare_case(self.config, self.xml, case, self.registry)
+            config2, xml2 = prepare_case(self.config, self.xml, case, v2)
+            self.assertEqual(config2["version"], v2["version"])
+            config1["version"] = config2["version"]
+            self.assertEqual(config1, config2)
+            before, after = ET.fromstring(xml1), ET.fromstring(xml2)
+            self.assertEqual(after.attrib["model"], v2["version"])
+            before.set("model", after.attrib["model"])
+            wall = before.find("./worldbody/geom[@name='wall']")
+            position = wall.attrib["pos"].split()
+            self.assertEqual(float(position[0]), -0.31)
+            position[0] = "-0.33"
+            wall.set("pos", " ".join(position))
+            self.assertEqual(ET.tostring(before), ET.tostring(after))
+        self.assertEqual((self.config, self.registry, v2), original)
+
+    def test_v2_rejects_unregistered_clearance_and_missing_failure_binding(self):
+        saved = json.loads((ROOT / "configs/spatial_history/development_audit_v2_wall_clearance.json").read_text())
+        for mode in ("different_clearance", "boolean", "missing_clearance", "missing_failure", "wrong_failure"):
+            v2 = deepcopy(saved)
+            if mode == "different_clearance": v2["wall_center_abs_x_m"] = 0.34
+            elif mode == "boolean": v2["wall_center_abs_x_m"] = True
+            elif mode == "missing_clearance": v2.pop("wall_center_abs_x_m")
+            elif mode == "missing_failure": v2.pop("prior_development_audit_sha256")
+            else: v2["prior_development_audit_sha256"] = "0" * 64
+            with self.assertRaises(ValueError): validate_registry(v2)
+
+    def test_v1_cannot_silently_accept_v2_geometry_fields(self):
+        self.registry["wall_center_abs_x_m"] = 0.33
+        with self.assertRaises(ValueError): validate_registry(self.registry)
+
+    def test_extra_hidden_wall_contact_still_fails_original_acceptance(self):
+        # A third branch touching the wall is rejected even when fully hidden.
+        extra = self.evidence["branches"][1]
+        extra.update(wall_contact_steps=8, hidden_contact_steps=8, max_contact_object_pixels=0)
+        result = assess(self.contract, self.evidence, self.config)
+        self.assertFalse(result["accepted"])
+        self.assertIn("expected_wall_contact_pattern", result["failed_checks"])
+        self.assertIn("positive_contacts_out_of_view", result["failed_checks"])
