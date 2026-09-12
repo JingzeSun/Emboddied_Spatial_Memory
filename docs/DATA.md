@@ -616,3 +616,6 @@ D-090 v2r1运维修复：配置新增source_code_files、public_registration（1
 ### R4-4资产环境审计字段（D-091）
 
 `ops/spatial_history/r4_model_assets_v1.py`读取/root/sh05-assets-v1下已锁作者源码及独立环境，不读本项目公共/私有样本。`audit-v1/<step>/started.json`记录入口摘要与时钟，`run.log`保存完整命令输出，`receipt.json`含来源或解释器/版本、日志bytes/sha256及退出/耗时，失败保留failure.json。exporter将逐阶段证据文本及摘要导出results/spatial_history_r4_model_assets_v1.json；author_forward_passed和adapted_models_ready为空明确表示尚无接通结果。白话：例如pip成功只填环境回执，不填模型成功；这些是资产工程字段，不是模型可消费的语义输入或效果标签。
+
+
+原生入口r4_native_models_v1.py的native-audit-v1目录将输入形状、参数数/名称、实际检查名、dependencies、source_module、CPU/RSS或CUDA峰值与日志/started摘要写入receipt。导出spatial_history_r4_native_models_v1.json核对每个成功回执的日志和started字节后列complete_stages；adapted_models_ready仍为空。独立进程读取守卫拒绝/root/autodl-tmp/spatial-history下全部项目数据，人工原生检查不接触训练/验证/确认标签。

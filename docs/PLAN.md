@@ -764,3 +764,15 @@ python -B ops/spatial_history/r4_model_assets_v1.py env_flowm
 python -B ops/spatial_history/r4_model_assets_v1.py env_dreamer
 python -B ops/spatial_history/r4_model_assets_v1.py export
 ```
+
+
+### R4-4 D/F原生接口检查（D-091，待服务器）
+
+资产环境回执成功且来源摘要一致后同步本职责，依次运行，预计每项小于20分钟，前台保留失败。仅人工原生模块检查，非本任务模型效果。
+
+```bash
+/root/sh05-assets-v1/flowm-env-v1/bin/python -B ops/spatial_history/r4_native_models_v1.py support_flowm
+/root/sh05-assets-v1/flowm-env-v1/bin/python -B ops/spatial_history/r4_native_models_v1.py flowm
+/root/sh05-assets-v1/dreamer-env-v1/bin/python -B ops/spatial_history/r4_native_models_v1.py dreamer
+python -B ops/spatial_history/r4_native_models_v1.py export
+```
