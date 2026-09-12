@@ -26,7 +26,7 @@ SH-03预算由D-065固定：128次4.9 s模拟执行，新产物2 GiB，按案例
 
 ## 当前指针
 
-**当前为SH-04-R4-2修订规格D-082待审，尚未实施。** 已交[数值提案](../configs/spatial_history/r4_repair_proposal_v2.json)：80×80/42度相机与后退终点、三位置带中的成对连续门位、9条独立固定控制及一次首4家族144首次+144重放预算。科学变化与静态依据见METHOD，字段与版本边界见DATA；它不是已获批准的小修，不能直接运行。下一职责是审查该规格，认可后先独立实现v2公共查询/九候选评分，再审生成/存储，完整阶段准备好才同步服务器。LOG-113的v1失败及诊断保留，家族ID/划分不变，不换样本、不放宽评分；旧诊断已完成无需重跑。其余60家族、confirmation、学习和下载均不开放；当前仍在`review/spatial-history-baselines`，未合并main。
+**当前为D-083：D-082规格已获认可，v2公共查询与九候选评分已实现，待代码审查。** 本批仅实现版本/80像素边界、九候选顺序/并列/缺失和原语义评分，33项标准库服务器检查及run/verify/export入口已准备但尚未执行，见LOG-114。按已认可的阶段顺序，本轮先交独立合同；用户审过后再实现v2设计/生成/存储和整阶段入口，全部准备好再让服务器同步一次，不在本轮提前生成。原提案JSON保持原字节，D-083登记本次实施范围；科学范围和144首次+144重放预算仍按D-082。LOG-113旧失败/诊断和家族ID/划分保持，不换样本、不放宽评分；其余60家族、confirmation、学习和下载均不开放，当前未合并main。
 
 已完成证据：[SH-03/v2报告](../results/spatial_history_development_audit_v2_wall_clearance.json)为12项/16对通过，原科学提交57d01aa、报告ce5b3f1，LOG-107；原v1失败保留于LOG-106。它们只供工程/输入审计，不能拆分成训练/确认。当前协议文档有新增内容，不借旧SH-03回执认证；旧产物按原代码/合同摘要复用。
 
@@ -78,6 +78,33 @@ SH-01审查批准已登记于9044074。SH-02科学提交e3a1d71及通过报告f6
 | SH-05 确认/归因 | 已锁主体/探针/评分，独立确认步骤另放行 | 三条适配和L/R/M同流程报告；简单方法成功收口，失败依E1–E4证据定位，不能自动扩模型 |
 
 R4-0只固定规格；现已按顺序交付R4-1及R4-2，后续职责仍planned。拟议总上限56 GPU小时/64 GiB新增存储需要真实容量核验；旧50 GB数据盘不能按此假定够用，预算不足先登记不可执行，不删旧产物或静默缩科学规模。
+
+### D-083合同检查预备步骤（本轮先审代码，完整v2阶段交齐后统一同步）
+
+白话：这一步只验证人工输入和九候选评分规则。输入是届时已提交的源码/配置及33项人工例，输出独立回执与小报告；例如证明缺第九条预测不会把分母缩成八，不是生成新物理数据。当前新生成器/存储尚未交付，按D-082不提前要求服务器同步；下面保留同版本的完整短命令，等待整阶段就绪再执行。
+
+步骤ID为`SH-04-R4-contract-v2`。输入前提：完整阶段届时同步到`review/spatial-history-baselines`，19项绑定文件已提交且干净，使用已核实的隔离环境。只写新合同目录`/root/autodl-tmp/spatial-history/sh04-r4-contract-v2`和固定报告`results/spatial_history_r4_contract_v2.json`，不访问物理输出。已有成功目录只verify，不重跑；失败/中断目录保留，可export原started/receipt/log供诊断，不能填造通过。
+
+```bash
+/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/r4_contract_check_v2.py run
+```
+
+成功标志`SH-04-R4-contract-v2 VERIFIED tests=33 exit=0`。run已经做一次终检，后续需要独立复查时仍使用同版：
+
+```bash
+/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/r4_contract_check_v2.py verify
+/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/r4_contract_check_v2.py export
+```
+
+只有`EXPORTED status=passed ... exit=0`与33项成功回执一起才表示合同检查完成。`failed_or_incomplete`只是失败报告导出成功，停止依赖步骤；不同已有报告不覆盖。所有步骤前台，单命令≤300 s、512 MiB地址空间/RSS、阶段加报告≤8 MiB，0模拟/渲染/训练/下载。后续生成的放行/检查另由尚待交付的v2入口负责，不用本合同通过代替。
+
+生成报告后纯Git回传使用：
+
+```bash
+git add -- results/spatial_history_r4_contract_v2.json
+git commit -m "results: export R4 v2 query and nine-candidate contract checks"
+git push origin review/spatial-history-baselines
+```
 
 ### R4-2失败诊断（已完成，保留复用说明）
 

@@ -156,6 +156,20 @@
 
 #### R4-2修订提案字段（D-082，proposed，未实现）
 
+**D-083补充：** D-082规格已获用户认可；本批只实现v2公共查询、预测、标签及评分值边界，物理数据与生成器仍未实现，原提案JSON不改。新入口与范围在独立`r4_contract_check_v2.json`登记，原字段表中未来物理产物仍为planned。
+
+| 已实现v2值边界 | 实际字段与限制 |
+|---|---|
+| `r4_query_v2.from_public_query`输入 | `schema_version=spatial-history-r4-public-query-v2`＋history/controls/goal，history为已经按full/recent/prefix选择的原生80×80帧列表，controls为200条数值指令；拒绝旧无版本/64像素对象 |
+| 列式查询输出 | `schema_version=spatial-history-r4-query-v2`＋history/controls/goal/domain_spec；history保留原RGB/深度/相机/本体值并增加depth_valid，相对时钟−12–0 s；不接实际未来状态 |
+| `model_features`输出 | 先校验版本，再复制history/controls/goal/domain_spec；版本字段不进入特征，修改返回值不修改源对象 |
+| `validate_candidate_queries` | 九查询＋外部事前登记的九条列式控制，逐位核对、拒绝重复，历史/目标/物性共用；此函数本身不提供文件/manifest认证或控制生成 |
+| 预测、标签 | 预测`schema_version=spatial-history-r4-prediction-v2`；标签`schema_version=spatial-history-r4-labels-v2`。200步字段与v1语义相同，标签可见像素上限6400，所有原始物理行也检查上限；源版本不符拒绝 |
+| 世界评分与汇总 | `schema_version=spatial-history-r4-scoring-v2`，世界固定9个注册位，缺失仍保留原错误/代价界；四世界、种子及家族层级不变，注册外/重复世界和跨方法真值变化拒绝 |
+| 检查与报告（尚未运行） | `ops/spatial_history/r4_contract_check_v2.py`绑定19项来源及33项测试身份；新目录`/root/autodl-tmp/spatial-history/sh04-r4-contract-v2`，新报告`results/spatial_history_r4_contract_v2.json`。报告包含started/receipt/tests.log原文与摘要、完整人工查询/预测/标签和并列/缺失评分；失败/中断导出不填造通过或人工评分 |
+
+白话：版本字段解决旧格式被误送入新接口的问题，输入合法值后输出验证结果或纯数值特征。例如给v1预测补一张旧64像素图并不能变成新查询；当前检查仍不能鉴定一张合成80像素图是否真正由模拟器渲染，这要靠后续来源绑定与生成审计。所有本批例子都明确标为人工合同例，不作为数据或模型结果。
+
 白话：本节防止把新分辨率/九候选数据误当成旧四候选数据。输入是[修订数值提案](../configs/spatial_history/r4_repair_proposal_v2.json)，输出目前只有待实现的字段和版本边界。例如旧查询的64×64和4候选不能换个版本字符串就成为80×80和9候选；必须由新合同校验实际原生观察与全部控制。这不是已有新数据、通过测试或模型接入。
 
 | 字段/产物 | 拟议值及读取边界 |
