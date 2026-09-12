@@ -97,3 +97,29 @@ PERSIST仍是已评审的直接先例：持续三维状态和视野外作用已�
 4. **失败是否可信**：原任务运行、官方权重数值重评、公平适配充分训练分别记录。代码/权限/资源不足是尚未复现；未收敛或监督不足是结论未定，不能选择最容易失败的版本作为新机制依据。
 
 值得检验但尚未证实的问题是：公开历史足以恢复任务信息、控制与监督公平且训练充分时，既有方法是否仍会丢失决策必要的信息，或不能把保留信息转化为正确后果。单个双门家族即使失败也只支持限定范围；本项目目前没有模型结果可以填写“现有模型已失败”。强对照成功则应如实收口。
+
+### 用户授权后的源码接口审查（2026-09-12）
+
+本轮读取GitHub API返回的完整commit及其raw源码，另读取Hugging Face（HF，模型文件托管站）的版本/文件元数据；未执行外部源码或下载权重。以下版本是本次只读审查锚点，不是已批准的运行环境锁；服务器兼容性、权重加载及原任务数值仍未验证。R3输入报告的独立审查见EXECUTE LOG-109，不能用其回执认证这些外部模型。
+
+| 作者仓库与本次commit | 实际读取范围 |
+|---|---|
+| [DreamerV3：e3f02248693a79dc8b0ebd62c93683888ddaccfe](https://github.com/danijar/dreamerv3/tree/e3f02248693a79dc8b0ebd62c93683888ddaccfe) | README、requirements、agent.py、rssm.py、configs.yaml；重点为输入类型、observe/imagine、奖励损失、训练切片与状态恢复。README将其称为作者重实现，不能称为论文原始内部训练代码 |
+| [PointWorld：05484826dfef74cbe278a3974179a5a16705d35d](https://github.com/NVlabs/PointWorld/tree/05484826dfef74cbe278a3974179a5a16705d35d) | README、arguments、pointworld/base.py、checkpoint_contract.py、norm_stats.py、scene_featurizer.py、dataset_components/constants.py；robot.py已获取但未完成逐段审查，不据其声称动作映射已验证 |
+| [FloWM：c909c54a3d58ae240de03f5ebbec222d3e6b1264](https://github.com/hlillemark/flowm/tree/c909c54a3d58ae240de03f5ebbec222d3e6b1264) | README、flowm_video.py、flowm_models_3d.py；Blockworld base/dynamic训练、70ctx推理及dataset配置；download_models_from_hf.py。未解析权重内嵌配置或审完整数据生成器 |
+
+**DreamerV3：允许进入第一份具体适配提案，当前不允许直接排名。** [rssm.py](https://github.com/danijar/dreamerv3/blob/e3f02248693a79dc8b0ebd62c93683888ddaccfe/dreamerv3/rssm.py#L94)的imagine接受固定动作序列，故四控制评分不必依赖策略生成。observe保留状态并按reset重置；默认batch_length=64不等于只能记64帧，但也不保证当前训练切片覆盖121帧。[agent.py](https://github.com/danijar/dreamerv3/blob/e3f02248693a79dc8b0ebd62c93683888ddaccfe/dreamerv3/agent.py#L156)奖励损失存在，完整loss仍构造策略想象；仅把策略loss权重设零不能冒称已独立抽出世界模型。
+
+输入还有实质适配：原Encoder将三维shape字段送入要求uint8的图像分支，浮点米制深度不能直接与RGB拼接。必须先确定独立浮点深度分支或另一种无损合法编码，登记尺度、缺失值及其容量变化；不擅自量化深度。需要完整历史初始化、训练时历史覆盖、prevact与观测对齐、四分支克隆同状态和随机性控制。作者requirements包含Python/JAX/CUDA及未完全钉死的依赖，旧MuJoCo环境不能直接覆盖。未核得可用于本任务的现成权重，也未完成原任务重评。
+
+**PointWorld：暂不接受为同控制端到端主排名，保留共享地图动力学候选。** [BaseModel.forward](https://github.com/NVlabs/PointWorld/blob/05484826dfef74cbe278a3974179a5a16705d35d/pointworld/base.py#L434)只取scene_flows/scene_features的第0时刻，却读取整个robot_flows序列；常量为1个上下文时刻、10个未来步。把121帧直接堆在时间维并不能让它使用全部历史。该字段名中的flow在forward接口中是点坐标序列，输出另有相对位移，不能混用。
+
+[场景编码器](https://github.com/NVlabs/PointWorld/blob/05484826dfef74cbe278a3974179a5a16705d35d/scene_featurizer.py#L141)从标定RGBD视图投影并聚合DINOv3特征；只添加旧门几何而只给近期图像，不会自动恢复旧门的视觉特征。历史地图及历史视图/特征关联须一起审查。未来机器人点必须由公开控制得到的计划或预测产生，不能来自原执行日志。控制受阻、10步到200步的时间标定/滚动、已预测点的再编码、任务物块识别与接触/整段成功读出均未解决；不能把换个张量shape当成适配完成。原多视图默认设置与当前单相机历史也须分别登记，不给其额外同时全景。
+
+**FloWM：暂不接受直接双门效果实验；作为原任务记忆参照保留。** [roll_map](https://github.com/hlillemark/flowm/blob/c909c54a3d58ae240de03f5ebbec222d3e6b1264/algorithms/mem_wm/backbones/flowm/flowm_models_3d.py#L243)对0/1作90度地图旋转、2作网格平移；3/4在该函数不移动。默认等变路径只有这一路自运动条件，不含独立推头连续速度接口。本任务历史相机连续运动与未来固定相机下的推头动作是两个变量，映射为这些整数会改变语义。关闭等变并改动作嵌入又改变了被比较机制，不能称原FloWM复现。
+
+[训练入口](https://github.com/hlillemark/flowm/blob/c909c54a3d58ae240de03f5ebbec222d3e6b1264/algorithms/flowm_video.py#L108)是未来画面MSE；所读dataset配置use_depth=false，动态训练文件context=50、序列140、teacher_forcing=0.125，推理文件context=70。由此不能从README或推理文件推断已发布权重的真实训练配置；须读取其绑定元数据再谈原指标重评。源码在每次forward新建地图，完整历史应一次重放或明确维护状态；仅分批调用会丢历史。评价时不得把target_seq用于状态更新；latent可视化返回的地图幅值也不是可直接用的完整动力学状态。连续相机变换、独立操纵动作和任务输出均需实质改动，优先级应低于Dreamer适配提案。
+
+**只读资产定位，非下载授权或显存承诺。** PointWorld HF revision=`b9e2e19a4f2bd65922e1f6d70aa953fe70aa9dba`，`small-droid/model-best.pt`为1,826,853,514 bytes，LFS内容SHA-256=`ccb9ed93dff5eea976010c57dd0cb5634db61c68b732c4437cbf54c8da9de8fe`；见[固定文件元数据](https://huggingface.co/api/models/nvidia/PointWorld_models/tree/b9e2e19a4f2bd65922e1f6d70aa953fe70aa9dba/small-droid)。另需DINOv3 ViT-L/16、机器人几何及归一化统计。FloWM HF revision=`693920b5fc0331a436c1ecb7aaf9bcc26e81138a`，`blockworld/dynamic/flowm/v2_dynamic.ckpt`为154,335,485 bytes，LFS内容SHA-256=`e523c75b3bb337d067a2132842e808c766d55f7b5c8420b85217f8fda249cfe7`；见[固定文件元数据](https://huggingface.co/api/models/flowm123/blockworld-models/tree/693920b5fc0331a436c1ecb7aaf9bcc26e81138a/blockworld/dynamic/flowm)。这些是托管元数据，尚未下载核实文件字节，不能推算GPU峰值。
+
+本轮结论是“审清接口后选择第一份适配合同”，不是“已选三个即将训练的基线”。执行顺序只在PLAN；方法改动、监督与具体输入输出只在METHOD继续细化。不能因为PointWorld/FloWM较难适配，便只留下没有充分历史的弱对照。
