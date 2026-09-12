@@ -1,5 +1,5 @@
 {
-  "version": "sh04-r2-two-gate-engineering-v1",
+  "version": "sh04-r2-two-gate-engineering-v1-lfsha1",
   "status": "frozen_engineering_only",
   "scene_direction_approved": true,
   "numeric_protocol_approved": true,
@@ -11,7 +11,7 @@
     "timestep_s": 0.002
   },
   "physics_reference": "configs/spatial_history/physics_v1.xml",
-  "physics_reference_sha256": "ef06b563e7606278668c668521a97bdae112c9cd49509a4e00fdd272d278d6bb",
+  "physics_reference_sha256": "9ced1ae1af9d868b0c986dc875a8d1148f649615e9495e398cb4699e654ee51e",
   "physics_reference_policy": "copy declared physical constants into a new scene; do not mutate or load as the new scene",
   "worlds": [
     "LL",
@@ -330,7 +330,7 @@
     "new_weight_download_bytes": 0,
     "failure_policy": "preserve all completed and partial results; no replacement, overwrite or automatic parameter search"
   },
-  "approval_decision": "D-070",
+  "approval_decision": "D-071",
   "proposal_source": "configs/spatial_history/two_gate_engineering_proposal_v1.json",
   "proposal_sha256": "f1218eca9dbfaa1815b8e86aa64f060868aacb81b707264323b4175d0cdcfe26"
 }

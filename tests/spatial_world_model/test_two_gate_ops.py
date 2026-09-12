@@ -173,6 +173,13 @@ class TwoGateOpsTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "proposal digest/path"):
             ops.validate_frozen_config(active, changed_bytes)
 
+    def test_only_registered_lf_blob_digest_can_replace_windows_worktree_digest(self):
+        active = ops.read(ROOT / ops.CONFIG)
+        proposal = (ROOT / ops.PROPOSAL).read_bytes()
+        active["physics_reference_sha256"] = "0" * 64
+        with self.assertRaisesRegex(ValueError, "byte normalization"):
+            ops.validate_frozen_config(active, proposal)
+
     def test_historical_verification_rejects_missing_registered_step(self):
         config = ops.read(ROOT / ops.CONFIG)
         environment = {"test_fixture": True}

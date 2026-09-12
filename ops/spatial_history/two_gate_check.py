@@ -28,6 +28,8 @@ CONFIG = "configs/spatial_history/two_gate_engineering_v1.json"
 PROPOSAL = "configs/spatial_history/two_gate_engineering_proposal_v1.json"
 PROPOSAL_COMMIT = "3c5755eb4f0f38a17c7396e735cb8543eea6c072"
 PROPOSAL_SHA = "f1218eca9dbfaa1815b8e86aa64f060868aacb81b707264323b4175d0cdcfe26"
+PROPOSAL_REFERENCE_WORKTREE_SHA = "ef06b563e7606278668c668521a97bdae112c9cd49509a4e00fdd272d278d6bb"
+PHYSICS_REFERENCE_BLOB_SHA = "9ced1ae1af9d868b0c986dc875a8d1148f649615e9495e398cb4699e654ee51e"
 PRIOR = "results/spatial_history_development_audit_v2_wall_clearance.json"
 PRIOR_SHA = "6c55d351d7eb0be6768d8992b608a452c677b1f02ac51cedf87443106df1ee5a"
 TESTS = tuple(f"tests/spatial_world_model/{name}.py" for name in (
@@ -39,8 +41,8 @@ BOUND = (CONFIG, PROPOSAL, PRIOR, REQUIREMENTS, *TESTS,
          "src/spatial_world_model/two_gate_engineering.py", "data/fixtures/spatial_history/manual_pair.json",
          "configs/spatial_history/physics_v1.xml", "ops/spatial_history/contract_check.py",
          "ops/spatial_history/physics_check.py", "ops/spatial_history/two_gate_check.py")
-RUN = DISK / "spatial-history/sh04-r2-two-gate-engineering-v1"
-REPORT = ROOT / "results/spatial_history_two_gate_engineering_v1.json"
+RUN = DISK / "spatial-history/sh04-r2-two-gate-engineering-v1-lfsha1"
+REPORT = ROOT / "results/spatial_history_two_gate_engineering_v1_lfsha1.json"
 RESERVE_BYTES = 1024 * 1024  # Preserve room for stop evidence and manifests.
 
 
@@ -88,12 +90,15 @@ def validate_frozen_config(value, proposal_bytes):
     """Approval changes metadata only; scientific values remain the reviewed proposal."""
     require(sha(proposal_bytes) == PROPOSAL_SHA == value["proposal_sha256"]
             and value["proposal_source"] == PROPOSAL, "approved numeric proposal digest/path changed")
-    require(value["version"] == "sh04-r2-two-gate-engineering-v1"
-            and value["status"] == "frozen_engineering_only" and value["approval_decision"] == "D-070",
+    require(value["version"] == "sh04-r2-two-gate-engineering-v1-lfsha1"
+            and value["status"] == "frozen_engineering_only" and value["approval_decision"] == "D-071",
             "unknown engineering approval")
     metadata = {"version", "status", "numeric_protocol_approved", "generation_authorized",
-                "approval_decision", "proposal_source", "proposal_sha256"}
+                "approval_decision", "proposal_source", "proposal_sha256", "physics_reference_sha256"}
     proposal = json.loads(proposal_bytes)
+    require(proposal["physics_reference_sha256"] == PROPOSAL_REFERENCE_WORKTREE_SHA
+            and value["physics_reference_sha256"] == PHYSICS_REFERENCE_BLOB_SHA,
+            "approved physics-reference byte normalization changed")
     require(encode({k: v for k, v in value.items() if k not in metadata})
             == encode({k: v for k, v in proposal.items() if k not in metadata}),
             "scientific configuration differs from reviewed numeric proposal")
@@ -110,6 +115,8 @@ def config():
     validate_frozen_config(value, proposal_bytes)
     original = subprocess.check_output(["git", "-C", str(ROOT), "show", f"{PROPOSAL_COMMIT}:{PROPOSAL}"])
     require(original == proposal_bytes and sha(original) == PROPOSAL_SHA, "original approved proposal source invalid")
+    require(file_sha(ROOT / value["physics_reference"]) == value["physics_reference_sha256"],
+            "physics reference checkout bytes changed")
     return value
 
 
