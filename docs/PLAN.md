@@ -809,3 +809,15 @@ D完整任务适配16项已通过并回传6a150e2，0优化更新；W原生7项�
 ```
 
 运行目录dinowm-adapter-check-v1首次失败保留，已成功仅核验导出；单次1800 s、RSS12 GiB/CUDA28 GiB、新证据64 MiB。预计前台，source/hash和原生权重回执自动检查，整个项目数据读取被守卫拒绝。未开放optimizer/新样本/确认/main合并；完整任务有效性仍需后续具体学习与评分证据。
+
+
+### F完整任务适配工程阶段（D-095，当前）
+
+D16项/W17项完整121/200及反向均已通过；F按D-095完成独立实现，运行19项人工检查后再交三模型统一公共查询出口。当前不等于SH-05学习效果验收。系统盘已有全部资产，未删旧数据。
+
+```bash
+/root/sh05-assets-v1/flowm-env-v1/bin/python -B ops/spatial_history/r4_flowm_adapter_check_v1.py run
+/root/sh05-assets-v1/flowm-env-v1/bin/python -B ops/spatial_history/r4_flowm_adapter_check_v1.py export
+```
+
+新flowm-adapter-check-v1目录，前台1800 s、RSS12 GiB/CUDA28 GiB、新证据64 MiB。先自动核原作者源/native成功，再运行完整人工例；失败只导出保留，不重试旧目录或截短输入。0优化/真实预测/新生成/确认，合同及绑定随本职责同步一次。
