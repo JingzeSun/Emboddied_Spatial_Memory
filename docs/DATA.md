@@ -117,7 +117,7 @@
 
 <a id="r4-data"></a>
 
-### SH-04-R4接口与新家族登记（D-079，冻结供审查，尚未生成）
+### SH-04-R4接口与新家族登记（D-079冻结；R4-1值合同代码待审，尚未生成）
 
 白话：本节把过去观察、模型预测、训练标签和评估真值分开存。输入为预登记的新物理家族，输出可以按来源重放的公开查询、独立标签和预测报告；例如四世界的同一条数值控制共享候选语义，但模型只看控制数值。旧工程家族不变成训练或确认样本；本节也不是已经实现的新数据加载器。
 
@@ -134,7 +134,7 @@
 | `audit.actual_robot_trajectory / xml / geometry / visibility / family_spec` | 完整原始执行、实例门几何、逐采样可见性及生成参数 | 评估/来源审计；几何探针训练只读自己split的门目标 |
 | `manifest.contract_sha256 / source_commit / adapter_commit / split_digest / asset_digests` | 固定协议、源码、适配、分组及真实下载资产摘要 | 外层先核验；全部预测封存后才连接确认真值 |
 
-新公共外层版本拟为`spatial-history-r4-query-v1`，原R2 public文件与读取器保留原版本。R4只是显式的张量/权限适配，不能给旧严格校验器添加绕过模式。区间接触仍按本页D-075物理步范围计算；初始状态不混入200个未来末点。公开robot几何点由固定外形和计划/预测位姿产生，来源字段只允许`planned`或`predicted`，任何`actual_future`输入直接拒绝。
+新公共外层版本为`spatial-history-r4-query-v1`，其当前R4-1值合同实现只接收调用者已选出的full/recent/prefix公开帧，不读取文件、标签或模型状态；原R2 public文件与读取器保留原版本。R4只是显式的张量/权限适配，不能给旧严格校验器添加绕过模式。区间接触仍按本页D-075物理步范围计算；初始状态不混入200个未来末点。公开robot几何点由固定外形和计划/预测位姿产生，来源字段只允许`planned`或`predicted`，任何`actual_future`输入直接拒绝。R4-1的手工值只用于解析和评分边界检查，不是新家族、真实训练标签或物理结果。
 
 **家族与划分。** 首批固定64个新家族：model_train 32、model_validation 8、model_confirmation 8、probe_train 8、probe_validation 4、probe_confirmation 4。每家族4世界、每世界4控制，共256历史、1024首次分支，另1024次独立反序重放；重放不增加样本。工程R2、SH-03、旧CPMT和旧v1均不参与任何split。确认家族属于本次未来小试确认，不是旧封存test，也不是SH-07外部确认。
 

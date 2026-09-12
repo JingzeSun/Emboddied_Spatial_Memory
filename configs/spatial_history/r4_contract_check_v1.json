@@ -1,0 +1,34 @@
+{
+  "version": "sh04-r4-contract-check-v1",
+  "status": "ready_for_server_engineering_check",
+  "decision": "D-080",
+  "source_protocol": "configs/spatial_history/protocol_r4_v1.json",
+  "query_schema": "spatial-history-r4-query-v1",
+  "prediction_schema": "spatial-history-r4-prediction-v1",
+  "scoring_schema": "spatial-history-r4-scoring-v1",
+  "scope": "standard-library value-contract and synthetic-score checks only",
+  "server_only": true,
+  "generation_authorized": false,
+  "training_authorized": false,
+  "weight_download_authorized": false,
+  "confirmation_authorized": false,
+  "new_simulation_steps": 0,
+  "new_training_steps": 0,
+  "new_weight_download_bytes": 0,
+  "tests": [
+    "tests/spatial_world_model/test_r4_query.py",
+    "tests/spatial_world_model/test_r4_scoring.py"
+  ],
+  "limits": {
+    "wall_clock_s": 300,
+    "new_stage_bytes": 8388608,
+    "process_rss_bytes": 536870912
+  },
+  "claims": {
+    "physics_validated": false,
+    "visibility_validated": false,
+    "public_geometry_recovery_verified": false,
+    "model_experiment_run": false,
+    "long_term_memory_claim_verified": false
+  }
+}
