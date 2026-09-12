@@ -1,0 +1,21 @@
+{
+  "version": "sh04-r4-coverage-check-v1",
+  "decision": "D-086",
+  "scope": "server_only_artificial_depth_and_coverage_checks",
+  "generation_authorized": false,
+  "training_authorized": false,
+  "weight_download_authorized": false,
+  "confirmation_authorized": false,
+  "tests": ["tests/spatial_world_model/test_r4_coverage.py", "tests/spatial_world_model/test_r4_coverage_ops.py"],
+  "limits": {"per_command_wall_s": 300, "stage_plus_report_bytes": 8388608, "process_as_and_rss_bytes": 536870912},
+  "sensor": {"near_depth_m": 0.04, "far_depth_m": 20.0, "clip_margin_m": 0.0001},
+  "selection": {"voxel_m": 0.02, "recent_keep": 2, "additional_frames": 8, "origin_m": [0.0, 0.0, 0.0]},
+  "claims": {
+    "real_history_retrieval_verified": false,
+    "public_geometry_recovery_verified": false,
+    "full_3d_map_verified": false,
+    "physical_predictability_verified": false,
+    "model_experiment_run": false,
+    "long_term_memory_claim_verified": false
+  }
+}
