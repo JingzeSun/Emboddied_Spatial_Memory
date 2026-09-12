@@ -568,3 +568,13 @@ ADT 预览通过官方公开资源接口获得，未完成完整原始 VRS 的�
 8. 可解释限制：不可辨识案例单独分析；复杂数据不保证 CTL 胜出；数据适配不能代替正式 M1 gate，不能把准备工作写成 M2 或长期效果已验证。
 
 来源候选和接口合同的实质变化才更新本文件；实验结果进入 EXECUTE，阶段顺序和下一步只维护 PLAN，不按对话扩写另一份进度清单。
+
+<a id="r4-map-control-engineering-data"></a>
+
+### R4-3c/d联合工程值与产物（D-089）
+
+白话：这些字段把“观测到了什么”和“作了什么近似”分开。输入来自原v2公共记录，输出名义地图及带原因的状态；例如unknown_cells中的格子即使有历史地面记录也不算名义自由。这不是私有XML转成模型输入，也不是新的训练标签或正式P场景点接口。
+
+`spatial-history-r4-map-history-v1`只含schema_version和frames。每帧严格白名单为time_s、width、height、depth_m、camera_position_m、camera_xyzw、intrinsics、ee_position_m、ee_velocity_mps；深度80×80原值不重采样，时间相对决策点为−12..0 s。RGB、previous_velocity、goal、controls及世界/家族名不传地图函数。运行适配器先验证完整公共记录，再按白名单取值；选择器和文件名只留运维层。
+
+`spatial-history-r4-observed-map-v1`输出status、cell_m、ground、surface_cells、floor_cells、nominal_free_cells、occupied_cells、unknown_cells、conflict_cells、obstacle_rectangles_xy_m、frame_audit、current_object、certified_free_volume=false及assumptions。xy格为整数二元组，矩形为[x0,x1,y0,y1]米；ground含height_interval_m与source_witnesses。每表面含cell_xy、role、height_m、first_source/last_source=[局部帧索引,row,col]、quad_observations；frame_audit显式对应source_index与time_s，记录分量分类数及原原因。地面缺失用null；未知格不丢弃，空列表不解释为整个世界自由。current_object沿用b完整值合同，未观测姿态/自旋仍null。

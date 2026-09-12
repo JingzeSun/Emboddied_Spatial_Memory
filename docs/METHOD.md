@@ -958,3 +958,21 @@ A 与 C/E 无可靠差异时不支持执行后监督独特优势；覆盖低先�
 ## 历史原文
 
 现存源码、schema、fixtures、配置和报告保持原路径；旧运行继续绑定原提交。[开发合同](../experiments/counterfactual_transaction_learning/DEVELOPMENT.md)、[首轮结果](../experiments/counterfactual_transaction_learning/DEVELOPMENT_RESULTS.md)及旧 M1 合同保留。已合并的细分文档、确认表和旧方案副本可在[重组前提交](https://github.com/JingzeSun/Emboddied_Spatial_Memory/tree/c24ced2f4a5513f5a8944b98139857cfc27909ff)查看，其“下一步”不再作活动指令。
+
+<a id="r4-map-control-engineering"></a>
+
+### R4-3c/d联合工程实现：公开地图（D-089）
+
+状态：本批工程实现，服务器检查与真实只读误差均pending。用户授权c/d一起交付并运行人工检查及原16历史/144主分支审计；这不把下述近似升级为正式地图基线或PointWorld动作输入。
+
+白话：公开表面地图解决“旧视角见过哪里”的保存问题。输入是121帧原生深度、相机和机器人本体数值及共同外形；输出观测表面、名义地面/墙顶、未知与来源。例如旧帧见到一段高出支撑面0.3 m的长条，保留其观测格子作为墙顶代理；未见侧墙不从世界模板补齐。它不是完整三维重建，也不是每格整个体积已被证明为空。
+
+实现为 `r4_observed_map.build_map`，参数唯一机器登记在 `r4_map_control_audit_v1.json/parameters/map`，并逐项对拍源码常量：
+
+- 每帧独立复用b的同帧候选，不利用未来关联消除旧帧歧义。合格圆面和未排除分量都不进入静态表面；未排除分量的观测格保留unknown。只有b因过大轴向跨度判为incompatible_extent的分量可贡献静态候选；这个分类本身不等于墙。
+- 在同一分量内，四个相邻原生像素构成2×2面片，四点高度跨度不超过0.0002 m。以世界xy轴、原点(0,0)、格长0.01 m，将中心落在观测面片包围矩形内的格子记为名义支持；负坐标用floor。同高度观察只有合并后总高度包络不超过0.0004 m才合并，保存首末来源、包络与面片次数。此插值与格中心规则没有全格自由空间保证。
+- 轴向观测跨度均至少0.3 m的平面候选中取最低者，其相交候选的共同高度交集作为名义地面；交集为空或无候选则ground_unresolved，不设世界z=0。表面中点距地面中点不超过0.0004 m记floor_proxy，距地面+0.3 m同样容差记wall_top_proxy，其余unclassified。多角色、地面/墙冲突均unknown；先前歧义仅能由严格较晚的同角色静态观察消除。
+- 名义自由格=floor减occupied减unknown；墙顶格按同行连续段、再按相邻行完全同宽合并矩形。预测只把这些观测墙顶向观测地面延伸，不外推未见墙端。occupied与unknown可重叠，预测扫掠时仍按unknown记录。
+- 当前物体只用原索引119/120的b关联，早期历史不补当前初态。full/recent/prefix均需精确切片与原时钟，prefix不到决策点时current_object=null。工程真实审计只用full，不另跑检索消融。
+
+手工输入输出：两帧背景深度1.4 m、圆顶深度1.32 m时，地面名义高度0、圆面从静态支持排除；全零深度得到空自由格与ground_unresolved。给观测增加深度1.1 m的大长条时才出现墙顶格。以上是解析夹具预期，尚非服务器结果。
