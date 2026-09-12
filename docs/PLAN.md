@@ -26,7 +26,7 @@ SH-03预算由D-065固定：128次4.9 s模拟执行，新产物2 GiB，按案例
 
 ## 当前指针
 
-**当前为R4-3b公开对象关联数值提案待审，尚未实施。** 用户在2b6cc9c验收记录后要求继续，本轮D-087交付完整顶面候选、推头排除、弦中点中心范围、圆形残差、歧义保留及两帧平均速度规则，见[METHOD](METHOD.md#r4-object-association)、[DATA](DATA.md#r4-object-association-data)与[r4_object_association_proposal_v1.json](../configs/spatial_history/r4_object_association_proposal_v1.json)。自旋/瞬时速度仍未观测，动力学初始化未就绪；这套严格近似的真实覆盖未知。下一步审查本提案后，按单职责交b实现、完整人工输入输出和同版run/verify/export，不提前叠c/d或效果实验。R4-3a报告908e370绑定26c8da8的11项来源及27项检查已验收，LOG-117；无需重跑。D-084原16历史/144首次/144重放及33/37项回执按原版本复用，其余60家族、确认、学习、下载及合并main仍未开放。旧失败与原PLAN局部编辑保留。
+**当前为R4-3b公开对象关联实现及完整人工检查阶段已交付，代码待审、服务器未运行。** 用户在a9cc59b的D-087具体数值提案后要求继续，D-088据此落实；科学提交a6eed98及[METHOD](METHOD.md#r4-object-association-implementation)/[DATA](DATA.md#r4-object-association-implementation-data)交24项科学人工例，独立运维8项，共32项待服务器检查。下方同版run/verify/export一次同步即可顺序运行；不读取真实历史、不新增模拟/训练/下载。先审本职责及回传证据，再审c的历史动态排除/静态地图具体规则，不堆叠未审科学依赖。自旋/瞬时速度未观测，动力学初始化与真实覆盖仍未验证。R4-3a的27项及D-084原16历史/144首次/144重放、33/37项回执按原版本复用，无需重跑；其余60家族、确认、学习、下载及合并main仍未开放。旧失败与原PLAN局部编辑保留。
 
 已完成证据：[SH-03/v2报告](../results/spatial_history_development_audit_v2_wall_clearance.json)为12项/16对通过，原科学提交57d01aa、报告ce5b3f1，LOG-107；原v1失败保留于LOG-106。它们只供工程/输入审计，不能拆分成训练/确认。当前协议文档有新增内容，不借旧SH-03回执认证；旧产物按原代码/合同摘要复用。
 
@@ -88,14 +88,62 @@ R4-0只固定规格；现已按顺序交付R4-1及R4-2，后续职责仍planned�
 | 步骤 | 本职责输出与先决条件 | 审查/检查重点及继续条件 |
 |---|---|---|
 | R4-3a 公共反投影与覆盖检索（工程验收通过） | `r4_coverage.py`深度专用值函数，19项科学人工例及8项运维检查同版27项通过，报告908e370绑定26c8da8，LOG-117 | 11项来源与三份原证据已核验；按原字节复用，不重跑。不以人工选中10帧推定真实门证据恢复；下一职责数值另审 |
-| R4-3b 当前对象公开关联（D-087数值提案待审） | 先审完整近水平顶面、推头mask、中心区间/圆形门、未排除碎片和区间平均速度；再交独立实现/完整人工例及同版运维 | 参数唯一源r4_object_association_proposal_v1.json；自旋/倾角不补真值，平均速度不认证为瞬时值。拟议300 s/512 MiB/8 MiB纯人工检查，真实查询为0；实际16历史覆盖须另登记清单/预算 |
+| R4-3b 当前对象公开关联（D-088实现待审） | a6eed98实现已认可D-087规则，24项科学人工例+8项运维共32项待检查；同版run/verify/export已交付 | 12项来源和原提案摘要绑定；逐命令300 s/512 MiB/阶段连报告8 MiB，真实查询为0。只读验收后再审c；自旋/瞬时速度和实际16历史覆盖不由人工例认证 |
 | R4-3c 历史静态地图 | b已审；先冻结逐帧动态支持排除、面片/墙端闭合、自由证据、结构外推、几何区间与未知覆盖；交地图职责 | M/P都消费完整历史，未知不填自由，不补私有侧墙；M几何精度不受P点截断影响。E0只能复用原恢复函数/证据，不能认证新地图 |
 | R4-3d 有限力预测与M任务读出 | b/c已审；先冻结状态自由度、接触/摩擦求解、区间/扫掠未知规则和公开过门事件判定；控制与读出可分单职责提交 | command/planned/predicted/actual分离，九分支同初态，0.002 s/200区间、推头与物块接触分开、未知不补数值。P只取封存的M机器人路径，无P反馈或实际路径替代 |
 | R4-3e 独立工程误差审计 | 依赖科学代码审过；另登记固定4家族16历史/144首次分支中的具体只读查询与评估清单、数值门和资源，交完整阶段入口 | 先封存公共预测再接私有原始证据，报告对象/地图/控制/接触/任务及全部未决分母。复用原模拟和重放产物，不为比较重新生成；工程通过后才讨论R4-4依赖 |
 
 a的检查只覆盖人工几何/选择规则，不开启真实动力学预测；b–e的实际工程计算和数值门尚未授权。每个已确定阶段预写齐全部所需入口，代码审过后服务器同步一次、按依赖顺序前台运行，后续成功只verify复用。不能为了“一次同步”提前实现未定的科学职责，也不能为发下一条已有命令再改脚本/提交。
 
-D-085本身没有新测试命令或计算预算；D-086仅细化a的下方标准库工程检查。D-087为b提出逐命令300 s、地址空间/峰值RSS各512 MiB、阶段加导出8 MiB的人工检查额度，尚无实现/命令/检查数或运行放行，不转借a的marker。后续实际恢复/近似动力学耗时记入另审工程预算，不记成原模拟重新执行，亦不把D-079待审总CPU额度当已授权余额。R4-4还需适配80像素的编码器输出（原四层stride2在80输入下不是原4×4）、九候选曝光和PointWorld资产；R4-3不私自决定resize/pooling或扩大训练预算。剩余非确认家族的生成放行仍须另核原清单、资源和依赖，不因R4-3a通过自动展开。
+D-085本身没有新测试命令或计算预算；D-086仅细化a的标准库工程检查。D-088按已认可D-087额度交b人工阶段，逐命令300 s、地址空间/峰值RSS各512 MiB、阶段加导出8 MiB，不转借a的marker。后续实际恢复/近似动力学耗时记入另审工程预算，不记成原模拟重新执行，亦不把D-079待审总CPU额度当已授权余额。R4-4还需适配80像素的编码器输出（原四层stride2在80输入下不是原4×4）、九候选曝光和PointWorld资产；R4-3不私自决定resize/pooling或扩大训练预算。剩余非确认家族的生成放行仍须另核原清单、资源和依赖，不因R4-3a通过自动展开。
+
+### R4-3b固定服务器人工检查阶段（D-088，32项待运行）
+
+白话：输入已交付源码、已审数值与完整人工深度例，输出绑定同版代码的检查回执和小报告。例如两个圆面被错误选成一个会留下失败日志；这不读取原16历史，也不验证真实刚体状态。预计短任务，默认前台，显示逐项结果和退出；逐命令≤300 s、地址空间/峰值RSS≤512 MiB、阶段加报告≤8 MiB，真实查询/模拟/训练/下载均0。
+
+**同步一次。** 审查当前科学职责后，在既有服务器仓库、没有运行任务的checkout核对路径和未提交内容；不安装依赖，不重跑旧阶段：
+
+```bash
+git rev-parse --show-toplevel
+git status --short
+```
+
+工作树干净时同步并记录完整提交：
+
+```bash
+git pull --ff-only origin review/spatial-history-baselines
+git rev-parse HEAD
+```
+
+**SH-04-R4-3b-object-v1/run。** 读取12项绑定来源及已审D-087提案，运行24项科学人工例和8项运维检查；不读旧物理outputs或借旧marker。入口核对当前源码与本次完整Git提交，绑定文件须已提交且干净。新固定目录为`/root/autodl-tmp/spatial-history/sh04-r4-3b-object-v1`，已存在仅verify，失败/中断不自动重试或覆盖：
+
+```bash
+/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/r4_object_association_check.py run
+```
+
+成功标志：`SH-04-R4-3b-object-v1 VERIFIED tests=32 exit=0`。run已终检；重连只用同版verify核原证据，不重新执行科学函数或测试：
+
+```bash
+/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/r4_object_association_check.py verify
+```
+
+**同阶段/export。** 完成或失败退出后导出原证据；失败只保留诊断，不启动依赖任务。不同内容的已有报告拒绝覆盖：
+
+```bash
+/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/r4_object_association_check.py export
+```
+
+导出目标为`results/spatial_history_r4_object_association_v1.json`；成功需`SH-04-R4-3b-object-v1 EXPORTED status=passed ... exit=0`，`failed_or_incomplete`仍回传原诊断。报告包含测试身份、原日志/回执文本与摘要、实际时间/资源和零真实查询范围；人工例通过不表示真实对象关联或地图/控制就绪。
+
+**纯Git收尾。** 通过或失败报告都保留，精确提交同一文件，之后本地pull核验证据：
+
+```bash
+git add -- results/spatial_history_r4_object_association_v1.json
+git commit -m "results: export R4 public object association checks"
+git push origin review/spatial-history-baselines
+```
+
+本职责代码与同版回执审过后再审c具体数值；本批不接入真实16历史、静态地图、动力学或P，不把32项通过升级为研究结论。
 
 ### R4-3a固定服务器检查阶段（D-086，27项已验收；以下保留复现命令，无需重跑）
 

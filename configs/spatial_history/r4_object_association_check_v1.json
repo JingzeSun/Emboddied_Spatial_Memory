@@ -1,0 +1,28 @@
+{
+  "version": "sh04-r4-object-association-check-v1",
+  "decision": "D-088",
+  "scope": "server_only_artificial_depth_object_association_checks",
+  "generation_authorized": false,
+  "training_authorized": false,
+  "weight_download_authorized": false,
+  "confirmation_authorized": false,
+  "tests": [
+    "tests/spatial_world_model/test_r4_object_association.py",
+    "tests/spatial_world_model/test_r4_object_association_ops.py"
+  ],
+  "limits": {
+    "per_command_wall_s": 300,
+    "stage_plus_report_bytes": 8388608,
+    "process_as_and_rss_bytes": 536870912
+  },
+  "accepted_proposal_commit": "a9cc59b0458f476ae9c2009946cff42ff07ce176",
+  "accepted_proposal_sha256": "81b50fc5f05de6b568da933f8d9097999f0250ab7f6efd7a2e9e32f350bb4953",
+  "claims": {
+    "real_history_object_association_verified": false,
+    "public_geometry_recovery_verified": false,
+    "full_3d_map_verified": false,
+    "physical_predictability_verified": false,
+    "model_experiment_run": false,
+    "long_term_memory_claim_verified": false
+  }
+}
