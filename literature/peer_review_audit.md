@@ -1,5 +1,7 @@
 # 同行评审与引用用途审计
 
+2026-09-12增量核验：ParticleFormer、LaDi-WM由PMLR v305正式CoRL 2025记录核验；PGND由RSS 2025正式proceedings核验。PointWorld的CVF官方PDF搜索索引已返回题名、作者及接收版出版声明，更新为CVPR 2026 verified_peer_reviewed；完整PDF直读仍受限，技术条件明确引用arXiv v1。此前保守待核结论保留如下，由本段覆盖PointWorld状态。候选适配及资产缺口见[增量核查](notes/spatial_world_models_2026.md#reviewed-baselines-20260912)，未运行任何复现。
+
 2026-09-11增量核验：当前转向D-062/D-068，详见[空间世界模型核查](notes/spatial_world_models_2026.md)，不重写下方历史审计。DINO-WM、3D Persistent Embodied World Models、PropNet、GNS由正式出版源核验；DreamerV3正式Nature题名为Mastering diverse control tasks through world models。FloWM/PERSIST由ICML 2026官方Downloads的Poster条目核验，单独poster页面直读受限。PointWorld/Ctrl-World本轮取得CVF/ICLR官方搜索条目但页面直读受限，索引暂保守标venue待进一步核验，正文条件来自指定arXiv版本。Mem-World与MRO-GWM仍按预印本处理。所有新增阅读状态不代表已复现；精确链接及用途在library.csv。
 
 > 2026-09-05 D-018 补充：第 5 节关于 affected-subgraph revision 的旧结论已被 CPMT/CTL 活动合同取代，保留为历史审计。当前创新边界见 notes/counterfactual_transaction_learning_landscape_2026.md；论文 venue 状态仍按本文的官方核验规则执行。
