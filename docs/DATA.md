@@ -649,3 +649,10 @@ F沿D-094 Torch公开张量接口；observe可传上块公开state继续，返�
 白话：例如分57+64帧接入应与一次121帧产生同图；未来解码得到的像素能做模型反馈，不能增加observed_support。imagine返回200×256未来池化、200×4×80×80预测RGBD、共同task及五个时间的完整地图引用；loss精确接收与D/W相同三项labels和三项future_images，目标不得进入主输入。
 
 r4_flowm_adapter_check_v1.py固定新flowm-adapter-check-v1目录，14项本地来源与原作者来源receipt绑定，19项人工检查涵盖整数/半格平移、零环绕、5通道推进、未知支持、空视图、完整分块等价、控制因果/分支与全200步反向八路径。receipt保存参数/梯度/资源/人工loss与输出摘要，失败写failure并保留。export生成spatial_history_r4_flowm_adapter_v1.json，0优化更新/0真实查询/0新权重。
+
+
+### 三模型真实公开接口证据（D-096）
+
+r4_three_model_public_check_v1.py读取既有r4_frontend_stage_v2r1配置的families[0]/worlds[0]公开文件及原登记bytes/sha256；该选择只基于清单顺序。读取守卫在解码前安装，拒绝spatial-history下其他所有文件，包含私有trajectory/labels及聚合报告；有实际拒绝open反例。算法只得到严格public query及9份缩放控制，文件名/家族/世界不进入模型。
+
+白话：例如同一份原始LL公开观察交给D/F/W，原144主分支和私有标签均不改动。新three-model-public-check-v1下D/F/W分别保存started绑定、c00..c22的samples/prediction、receipt或failure；D每候选16samples，F/W每候选1。receipt含公开源摘要、9候选/121帧/200步、参数与决策摘要、计时/峰值、0训练/0私有读取；未来目标从未打开。export内嵌所有JSON及原字节摘要至spatial_history_r4_three_model_public_v1.json，engineering_ready与trained_model_ready明确分开。
