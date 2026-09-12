@@ -242,6 +242,24 @@
 
 本提案未建测试/运行/导出schema，也未产生服务器结果。拟议人工检查预算、零真实查询和零模拟限制见数值源；实现时须另绑定明确Git来源/检查清单与新回执，不能消费R4-3a的27项marker当b通过。此前证据按原字节复用；本轮METHOD/DATA新增文字不冒用原摘要认证。
 
+<a id="r4-object-association-implementation-data"></a>
+
+#### R4-3b实际值接口与工程回执（D-088，代码待审，无服务器产物）
+
+本次实现D-087字段提案；上述历史提案JSON保持原字节，新的check配置绑定用户认可的原提案提交/摘要。具体算法、完整人工例和限制见[METHOD](METHOD.md#r4-object-association-implementation)，阶段入口仅在PLAN。不修改原v2记录/标签/查询格式。
+
+白话：实际接口保存“这个估计是从哪些原像素算来、在哪一步不能继续”。例如中点范围没有交集时，候选保留空交集诊断而顶层位置为空；推头本体仍可独立保留。它不是失败时用真值补完整状态，也不是已有真实查询的产物。
+
+- 实际函数为`associate_objects`及仅收单帧的`frame_candidates`。前者严格接`object_history.schema_version=spatial-history-r4-object-history-v1`及两帧列表，帧字段沿D-087白名单；后者需外层`source_index`整数0…120验证相对时钟，只读取给定帧。原图像的公共manifest/切片来源仍由后续接线认证，局部索引不是模型类别特征。
+- `common_shape`只含四个已列外形/固定轴字段，`association_parameters`恰为segmentation和fit字典；布尔选项不能用数值0/1冒充，像素计数不能用等值float替代。结果版本、status及null规则与D-087相同，未测自由度不补值；顶层`robot_state`和对象位置、帧内位置各自拥有数组副本。
+- `frame_results[].pusher_mask_pixels`保存行优先保守排除像素；投影未决时为null、components为空并有原因。每个component实际含`component_index / classification / reasons / support_pixels / outer_ring_pixels / top_height_interval_m / radial_tolerance_m / observed_axis_extent_m / position_m / position_intervals_m / support_weights / contour_transitions / radius_checks / interval_kind / assumption_refs`。支持数量和行列跨度可从完整像素表重算，未截断；图外外环像素保留其整数坐标用于解释裁剪。
+- `contour_transitions[]`含`world_axis`（0=x、1=y）、两个前景/背景`pixels`及`coordinate_interval_m`；`radius_checks`含`max_foreground_radius_m / min_outer_ring_radius_m / plane_axis_extent_m`。相应步骤未执行时诊断为null/空列表；被拒候选的`position_intervals_m`可包含下界大于上界的空交集诊断，不能送入下游当有效区间。只有classification通过且该帧唯一的候选才填该帧位置；两帧都成立才填顶层位置/速度。
+- `velocity_time_interval_s / interval_mean_velocity_mps / interval_mean_velocity_intervals_mps / velocity_kind`保留实际正时间差及独立端点传播；整体未决时速度null，原时间和逐帧诊断保留。`instantaneous_velocity_observed / dynamics_initial_state_ready`恒false，`orientation_xyzw / angular_velocity_radps`恒null；这与公开本体`robot_state.velocity_mps`测量字段不同。
+- 新工程报告为`results/spatial_history_r4_object_association_v1.json`，kind=`r4_object_association_artificial_engineering_check`；receipt绑定12项来源、完整Git、32项实际测试身份/数量、失败/错误/跳过/预期失败/意外成功、elapsed_s、peak_rss_bytes和stage_bytes。started.json/tests.log/receipt.json的原文本、字节和SHA-256嵌入报告，failure.json若存在同样保留；不同报告不覆盖、已有失败/中断不重跑。verify/export不调用关联器或执行测试。
+- receipt额外锁定`real_history_queries=0`以及新模拟/训练步/权重字节0；六项claims包括真实对象关联、公开几何、完整地图、物理预测、模型和长期记忆，全部false。逐命令300 s/512 MiB、阶段加报告8 MiB同D-087人工额度；旧27项和33/37项回执只供原职责复用，不认证b。
+
+当前没有真实对象数组、关联缓存或服务器回执，不新增独立误差通过门。科学源码和检查只能证明所给人工值按合同处理，不能证明这些严格支持门在16条真实历史上足够；实际误差审计必须另绑定原产物并保留全部未决分母。
+
 #### R4 v2设计与生成产物字段（D-084，服务器产物尚未生成）
 
 白话：这些字段把“按哪个配置生成、哪个控制产生哪个标签”连起来。输入固定设计和真实记录，输出独立公共、标签、审计渠道；例如public第9槽对应私有c22及其首次轨迹，不能把文件名当模型输入。下面是已实现保存规则，不是已有结果或已通过的测试。
