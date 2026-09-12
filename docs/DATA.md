@@ -185,6 +185,30 @@
 
 本轮只登记字段/权限，没有新源数据、缓存、预测、manifest或测试回执。原v2两份通过报告仍按7a2005c源码/文档摘要复用；新文档和未来R4-3代码不能冒用原33/37项回执认证。
 
+<a id="r4-coverage-data"></a>
+
+#### R4-3a实际值接口与工程回执（D-086，代码待审，无服务器产物）
+
+白话：这个值接口让“能选哪几帧”和“原图像保存在何处”分开。输入仅已批准切片的原生深度与相机数值，输出本地帧下标和全部像素证据；例如recent输出下标0/1，外层负责映射回原119/120。这不是把0/1当世界类别，也没有改变原始RGBD储存。
+
+| 实现对象/字段 | 严格定义 |
+|---|---|
+| `history.schema_version / frames` | `spatial-history-r4-depth-history-v1`；frames为所给切片的列表，不收完整query。模式/cut是函数关键字元数据，不在数值帧内 |
+| `frames[].time_s / width / height / depth_m` | 原决策相对时间、整数80/80及行优先6400个原深度；不允许附RGB/depth_valid/控制/目标/本体/mask/ID。有效与裁剪在模块内从原深度派生 |
+| `frames[].camera_position_m / camera_xyzw / intrinsics` | 米制3值、xyzw四元数4值及fx/fy/cx/cy四值；相机约束沿v2，不增加实例几何 |
+| `public_sensor_spec` | 只准depth_kind=`camera_axis_distance_m`、pixel_centers=`integer_u_v`、near_depth_m=0.04、far_depth_m=20、clip_margin_m=0.0001；其他E0字段不传入 |
+| `selection_parameters` | 仅voxel_m=0.02、recent_keep=2、additional_frames=8、origin_m=[0,0,0]，所有值严格锁定 |
+| 反投影结果`schema_version / frames` | `spatial-history-r4-surface-coverage-v1`；每帧local_index/time_s、voxel_keys `[V,3]`整数、source_pixels为同序V个不定长`[row,column]`列表，以及valid_pixels/zero_depth_pixels/clipped_depth_pixels，三计数和为6400 |
+| 选择结果`schema_version` | `spatial-history-r4-coverage-selection-v1`；没有task prediction，不送入v2后果评分器 |
+| `selected_local_indices / selected_time_s` | 按时间排序的唯一选择，最多10帧；原始时间不重新归零；外层取回原RGBD，只把原合法观察送编码器 |
+| `selection_trace / selected_union_voxels / frame_surfaces` | trace逐次记录local_index、role=`recent/greedy`、new_voxels；并集覆盖数只描述已选表面格；frame_surfaces嵌入全部所给帧的反投影证据，不是地图、模型token或真值覆盖率 |
+
+外层适配必须先按已审v2读取器选择full/recent/prefix，再显式提取上表字段并将源0.5…12.5 s转为−12…0 s。当前纯值函数不读服务器公共文件、不认证调用者拷贝来源；未来真实接线仍需原公共manifest/切片/像素摘要绑定。投影/选帧版本字符串、来源索引和边际分数留在调度/审计，不能作为新增模型语义特征；R原本可见的观察时间保留。
+
+独立服务器产物目录由PLAN固定，拟含started.json、tests.log及receipt.json；receipt绑定11项源码/配置/文档及原Git完整提交、27项测试身份/数量/失败/跳过/预期失败、时间/峰值RSS、实际阶段总字节和两个证据摘要。失败或中断保留已有文件，尽可能写failure.json；存在目录只verify，不自动续跑，缺退出不造成功。导出到`results/spatial_history_r4_coverage_v1.json`，嵌入原证据文本/字节数/SHA及原receipt摘要；不同报告拒绝覆盖，失败导出可保留截断JSON原文。
+
+回执明确新模拟/训练/权重字节均0，真实历史检索、几何恢复、地图、物理预测、模型和长期记忆主张均false。run的必要人工例与独立运维检查只认证本职责；旧v2的33/37项通过不能代替27项新回执。verify/export不调用科学函数或重新运行测试；计时上限是每条命令300 s，不伪称整个后续R4-3的总预算。
+
 #### R4 v2设计与生成产物字段（D-084，服务器产物尚未生成）
 
 白话：这些字段把“按哪个配置生成、哪个控制产生哪个标签”连起来。输入固定设计和真实记录，输出独立公共、标签、审计渠道；例如public第9槽对应私有c22及其首次轨迹，不能把文件名当模型输入。下面是已实现保存规则，不是已有结果或已通过的测试。
