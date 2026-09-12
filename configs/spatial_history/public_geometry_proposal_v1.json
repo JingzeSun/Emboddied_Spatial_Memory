@@ -1,0 +1,92 @@
+{
+  "version": "sh04-r3-e0-public-geometry-proposal-v1",
+  "status": "requires_review_not_executable",
+  "decision": "D-076",
+  "numeric_protocol_approved": false,
+  "implementation_run_authorized": false,
+  "training_authorized": false,
+  "source": {
+    "r2_commit": "9c044fca7738e2b294024d073ffbbb96902ef130",
+    "r2_report": "results/spatial_history_two_gate_engineering_v1_lfsha1.json",
+    "r2_audit_sha256": "acd203d21bef24cdca913fa9861bcc899c0e92cae88f8d07d36c37bfd2b0911e",
+    "r3_reader_commit": "88c42b7ffeabbeba1e4c1b5cb297ae03194e125e",
+    "r3_reader_report": "results/spatial_history_public_input_v1.json",
+    "original_artifacts_read_only": true
+  },
+  "public_sensor_spec": {
+    "depth_kind": "camera_axis_z_m",
+    "pixel_centers": "integer_u_v_with_public_intrinsics",
+    "near_depth_m": 0.04,
+    "far_depth_m": 20.0,
+    "clip_margin_m": 0.0001,
+    "camera_to_world_rotation": [[1, 0, 0], [0, -1, 0], [0, 0, -1]],
+    "rotation_entry_tolerance": 0.000001,
+    "source_policy": "shared_rig_only_near_and_far_from_pinned_reference_not_per_world_xml"
+  },
+  "extractor": {
+    "input": "validated_history_frames_only",
+    "used_fields": ["depth_m", "width", "height", "camera_position_m", "camera_xyzw", "intrinsics"],
+    "assumptions": ["static_observed_horizontal_surfaces", "axis_aligned_rectangular_boundaries", "calibrated_canonical_top_down_camera"],
+    "plane_tolerance_m": 0.0001,
+    "maximum_cluster_height_span_m": 0.0002,
+    "minimum_each_side_run_pixels": 2,
+    "minimum_consecutive_support_rows": 2,
+    "minimum_each_side_front_witness_columns": 2,
+    "minimum_farther_depth_separation_m": 0.0002,
+    "gap_rule": "all_intervening_pixels_valid_and_farther",
+    "pixel_footprint_half_width": 0.5,
+    "coordinate_guard_m": 0.000001,
+    "height_clustering": "sorted_greedy_complete_span",
+    "boundary_rule": "adjacent_surface_and_farther_valid_ray_footprints_intersect_same_plane_interval",
+    "fusion": "overlap_graph_then_common_interval_intersection_conflicts_preserved",
+    "candidate_count": "unbounded_by_task_gate_count",
+    "missing_boundary": "unknown_not_completed",
+    "unobserved_space": "unknown_not_free",
+    "rgb_used": false,
+    "controls_or_goal_used": false,
+    "private_labels_or_layout_used": false
+  },
+  "evaluation_only": {
+    "query_modes": {
+      "full": {"indices": null, "expected_candidates": 2, "targets": "both_actual_gates"},
+      "view_a": {"indices": [25], "expected_candidates": 1, "targets": "actual_near_gate"},
+      "view_b": {"indices": [65], "expected_candidates": 1, "targets": "actual_far_gate"},
+      "recent": {"indices": [119, 120], "expected_candidates": 0, "targets": "none"}
+    },
+    "worlds": ["LL", "LR", "RL", "RR"],
+    "queries": 16,
+    "total_frame_consumptions": 500,
+    "truth_source": "manifest_bound_original_world_xml_evaluator_only",
+    "matching": "unique_one_to_one_all_candidates_and_targets_no_best_subset",
+    "coordinate_targets": ["x_left", "x_right", "y_front"],
+    "maximum_coordinate_interval_width_m": 0.025,
+    "maximum_coordinate_midpoint_error_m": 0.0125,
+    "midpoint_error_gate_role": "redundant_consistency_check_not_independent_precision_evidence",
+    "truth_in_each_coordinate_interval_required": true,
+    "truth_in_plane_height_interval_required": true,
+    "missing_extra_ambiguous_or_conflicting_candidates_allowed": false,
+    "all_registered_queries_required": true,
+    "invariant_checks": ["recent_geometry_identical_across_worlds", "geometry_unchanged_by_rgb", "public_output_sealed_before_private_evaluation"],
+    "allow_outcome_labels": false,
+    "predictor_count_is_not_extractor_input": true
+  },
+  "budget_proposal": {
+    "wall_clock_limit_s": 1800,
+    "new_artifact_limit_bytes": 67108864,
+    "peak_rss_limit_bytes": 536870912,
+    "rss_scope": "sum_of_live_stage_process_tree",
+    "execution_mode": "foreground",
+    "python_dependencies": "stdlib_only",
+    "new_simulation_steps": 0,
+    "new_training_steps": 0,
+    "new_weight_download_bytes": 0,
+    "new_data_splits": 0,
+    "resume_policy": "verify_completed_only_preserve_failure_no_automatic_rerun"
+  },
+  "claims": {
+    "public_geometry_recovery_verified": false,
+    "full_3d_map_verified": false,
+    "physical_predictability_verified": false,
+    "model_experiment_run": false
+  }
+}

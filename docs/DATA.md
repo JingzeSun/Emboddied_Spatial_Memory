@@ -60,6 +60,23 @@
 
 物理异常保留`failure.json`的有效状态前缀/已写trace行数，必要时保存`failed_current_state.f64`及未落盘批次`pending_actual_samples.jsonl`。预分配数组的未写部分不能当有效轨迹。导出JSON嵌入回执、逐分支评分、121帧信息损失/等价组、历史可见性、失败日志尾及选定原PNG；完整原始数组仍留数据盘，逐文件摘要进入报告。
 
+### E0开口前缘恢复字段（D-076，proposed，尚未生成）
+
+白话：本提案把恢复器自己的判断与评估答案分开。输入为原公开帧及共同相机规格，输出坐标区间和支持这些区间的像素；例如每个开口有左右内边及前缘三条边，评估端再检查实际门边是否落入区间。这不是给恢复器两个真值门让它微调坐标，也不是完整三维地图。方法见[METHOD](METHOD.md#e0-public-geometry)，参数见[提案JSON](../configs/spatial_history/public_geometry_proposal_v1.json)。
+
+| 字段职责 | 拟议形状/含义 | 权限 |
+|---|---|---|
+| `public_sensor_spec / extractor` | 共同轴向深度、裁剪和姿态条件；平面/边界/融合数值 | 提取器只接这两个白名单子对象及合法history，不能接含评估部分的完整提案；0.04/20 m来自原共同参考XML及固定extent，不读各世界XML |
+| `candidates[].coordinate_intervals_m` | `3×2`米区间，顺序为左内边x、右内边x、前缘y；每项为`[lower,upper]` | 从公开深度计算；候选数可为0或更多，不按真值固定为2 |
+| `candidates[].coordinates_m / plane_height_interval_m` | 三条坐标的区间中点，以及被观测顶面的世界z区间 | 中点不表示亚像素真值；与D-075的`gate_opening_front_m`对应要经评估匹配，输出本身不附近/远标签 |
+| `support[].local_frame_index / pixel_pair / boundary_kind / raw_interval_m` | 支撑观察、相邻顶面/背景像素对、边类型和融合前区间；顶面高度区间也随支撑保存 | 下标相对于传入history；映射原始帧下标由外层保存。像素来自公共深度，不用实例分割或世界ID |
+| `incomplete_observations / rejected_counts / conflicts` | 缺边、无效/裁剪/较近遮挡/支撑不足等观察及候选冲突 | 保留失败原因，不自动补几何。未闭合局部观察与已形成候选之间的冲突分别记录 |
+| `query_mode / original_frame_indices / public_input_sha256 / output_sha256` | 外层full/A/B/recent清单、来源及封存的预测摘要 | 运维审计，不输入恢复器。16项全部保存，不能只导出通过项 |
+| `truth_xml_binding / targets / matches / coordinate_errors_m / coverage / widths_m` | 实际XML来源、真值前缘/顶面、唯一匹配及中点误差/包含/宽度 | 仅独立评估端；缺失/额外/歧义/冲突分别计数，不挑最佳子集，不让truth回流提取器 |
+| `input_checks_passed / extractor_completed / geometry_bounds_verified / failures` | 输入来源、运算完成、坐标门以及全部失败分别报告 | 未来新E0报告字段；不修改原R2/R3报告，不能用运算完成冒充几何恢复通过 |
+
+原公共文件、XML及报告均只读；新产物仅为稀疏候选与边界支撑，不复制完整RGBD或另存全历史密集点云。提案的16查询包含4×(121+1+1+2)=500次帧消费，均为同一旧工程家族的复用，不新增500帧物理观察或16个独立场景。近期条件独立空状态运行，输出无候选只表示没有恢复门边，不能把未知区域当无障碍。全部预算仍是提案，当前没有新服务器产物、运行目录或可执行入口。
+
 ### 历史利用诊断的记录字段（D-075，proposed，尚无schema实现或产物）
 
 白话：这些字段把同一案例的输入、内部诊断和实际后果连接起来，供评估端定位错误。输入是合法查询产生的状态/预测及独立真值文件，输出可回指来源的诊断行；例如某条控制预测成功但实际受阻，可以追到对应的历史状态和接触区间。它不扩展现有`public.json`或`load_query`，也不允许把诊断标签返回主模型。实验和指标定义见[METHOD的E0–E4](METHOD.md#history-use-diagnostic)。
