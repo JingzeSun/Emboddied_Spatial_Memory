@@ -1,0 +1,33 @@
+{
+  "version": "sh04-r4-engineering-subset-v1",
+  "decision": "D-081",
+  "status": "code_and_resource_review_pending",
+  "generation_authorized": false,
+  "training_authorized": false,
+  "weight_download_authorized": false,
+  "confirmation_authorized": false,
+  "protocol": "configs/spatial_history/protocol_r4_v1.json",
+  "base": "configs/spatial_history/two_gate_engineering_v1.json",
+  "e0": "configs/spatial_history/public_geometry_parallel_v1.json",
+  "subset": "first_four_model_train_in_registered_split_order",
+  "release": "explicit_server_run_with_reviewed_code_equal_to_check_commit_and_declared_remaining_data_quota",
+  "limits_proposed": {
+    "check_wall_s": 300,
+    "run_and_first_export_wall_s": 7200,
+    "stage_and_report_bytes": 8589934592,
+    "family_bytes": 402653184,
+    "all_64_raw_family_bytes": 25769803776,
+    "shared_features_and_stage_metadata_bytes": 8589934592,
+    "failure_reserve_bytes_per_family": 1048576,
+    "process_as_bytes": 6442450944,
+    "tree_rss_bytes": 32212254720,
+    "capacity_reserve_bytes": 536870912,
+    "workers_default": 4,
+    "workers_allowed": [1, 2, 3, 4]
+  },
+  "counts": {"families": 4, "histories": 16, "unique_branches": 64, "independent_replays": 64},
+  "remaining_inventory_executable": false,
+  "confirmation_executable": false,
+  "failure_policy": "preserve_every_started_family_no_retry_no_replacement; false_scientific_gate_does_not_skip_registered_branches",
+  "tests": ["test_r4_families", "test_r4_storage", "test_r4_generation"]
+}

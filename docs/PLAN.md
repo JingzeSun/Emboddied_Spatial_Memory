@@ -26,7 +26,7 @@ SH-03预算由D-065固定：128次4.9 s模拟执行，新产物2 GiB，按案例
 
 ## 当前指针
 
-**当前为SH-04-R4-2新家族生成/存储代码审查，尚未实现或生成数据。** R4-1结果`060437f`已只读核验：绑定`612499b`的15个文件，23项合同检查全部通过，人工并列/缺失例符合冻结语义；范围见LOG-111。R4-2须按D-079先实现确定性64行清单、连续几何/控制与观察时序、无损分片、来源/失败保留及固定model_train前4家族工程子批入口，并提前交齐check/run/verify/export；首批代码审过后才可运行工程子批，不能直接生成其余家族或confirmation。当前生成、训练、权重下载和确认授权仍均为false，D/F/P及L/R/M尚未接入；E0和R4-1通过不构成模型有效性证据。当前仍在`review/spatial-history-baselines`，未合并main，旧test/no-go不变。
+**当前为SH-04-R4-2代码/资源审查及必要服务器检查；实现已交付，物理数据未生成。** D-081交付确定性64行静态设计、逐门连续几何/独立控制/观察时序、无损分片和check/run/verify/export入口；固定首批为`r4-39/r4-47/r4-25/r4-03`。22项新服务器检查尚未运行，本地仅源码/AST/JSON/Git核查。先核容量并运行无模拟的check；用户审过代码和首批7200 s/8 GiB等具体分配后，才能用该check绑定的完整提交显式放行4家族工程子批。其余60家族、confirmation、学习和下载均不开放。当前仍在`review/spatial-history-baselines`，未合并main；旧test/no-go及R4-1已验收证据保持原范围，见LOG-111/112。
 
 已完成证据：[SH-03/v2报告](../results/spatial_history_development_audit_v2_wall_clearance.json)为12项/16对通过，原科学提交57d01aa、报告ce5b3f1，LOG-107；原v1失败保留于LOG-106。它们只供工程/输入审计，不能拆分成训练/确认。当前协议文档有新增内容，不借旧SH-03回执认证；旧产物按原代码/合同摘要复用。
 
@@ -63,21 +63,61 @@ D-075诊断实验包括E0公开几何恢复、E1编码/保留读出、E2同控�
 
 SH-01审查批准已登记于9044074。SH-02科学提交e3a1d71及通过报告f6b8c58完成核验后，用户明确要求“下一步”，据上下文登记对该批次的审查通过，允许合并main并实施SH-03固定开发审计。此授权不包括SH-04训练协议或模型效果实验。
 
-### SH-04-R4逐职责交付（当前；无服务器运行命令）
+### SH-04-R4逐职责交付
 
 白话：本阶段先把“输入什么、保留什么机制、预测什么、怎样判断失败”写到同一份可审协议。输入是已验收工程条件和三条作者源码接口，输出共同合同、具体适配和预算；例如PointWorld控制模块误差与场景点流误差分列。这不是已接好三个模型，也不能从E0回执推定新家族或新适配通过。
 
 | 顺序 | 具体交付及依赖 | 允许继续的证据 |
 |---|---|---|
 | R4-0 规格提案 | 本次METHOD/DATA及protocol_r4_v1.json，D-079登记；六系统、64家族、E1–E4与有限预算 | 数值提案可供审查，尚无学习、生成、下载或确认授权 |
-| R4-1 共同查询与评分（代码待审） | `r4_query.py`/`r4_scoring.py`实现公开schema、训练标签分离、区间接触、候选选择/缺失分母、家族统计；`r4_contract_check.py`只运行解析正负例及check/verify/export | 用户审查本职责代码，服务器必要检查通过；不依赖尚未实现模型 |
+| R4-1 共同查询与评分（已验收并准许继续） | `r4_query.py`/`r4_scoring.py`实现公开schema、训练标签分离、区间接触、候选选择/缺失分母、家族统计；`r4_contract_check.py`只运行解析正负例及check/verify/export | 23项通过及用户继续授权见LOG-111；不是模型/物理证据 |
 | R4-2 新家族生成/存储 | 固定清单、连续因素、变观察时序、无损分片、E0/物理/121帧信息门及重放 | 先审代码/数值和资源，固定train前4家族工程子批通过才继续原清单；不按结果替换样本 |
 | R4-3 公共前端与控制 | 观测覆盖检索、静态地图、当前对象公开关联、有限力近似执行器分别交付 | 可手算例、来源隔离、未知/接触/控制误差；三维点流不得获实际机器人路径 |
 | R4-4 三模型适配 | D、F、P各自可审提交，绑定作者版本，保留机制/新增模块/梯度/原生状态接口；独立环境及资产锁 | 全历史/200步、克隆/随机性/对拍/无未来输入检查；未过者留未就绪，不用弱替身替代 |
 | R4-5 资源与学习放行 | 固定配方20主路径、独立探针和全部成本；完整阶段入口一次交付 | 容量和预算经具体审查后，用户服务器手动运行；小型拟合与训练充分性不合格不作机制失败归因 |
 | SH-05 确认/归因 | 已锁主体/探针/评分，独立确认步骤另放行 | 三条适配和L/R/M同流程报告；简单方法成功收口，失败依E1–E4证据定位，不能自动扩模型 |
 
-本次只固定规格并提交审查分支，不创建新数据家族manifest、科学runner、训练环境或权重文件。拟议总上限56 GPU小时/64 GiB新增存储需要真实容量核验；旧50 GB数据盘不能按此假定够用，预算不足先登记不可执行，不删旧产物或静默缩科学规模。服务器当前无需pull或运行新命令。
+R4-0只固定规格；现已按顺序交付R4-1及R4-2，后续职责仍planned。拟议总上限56 GPU小时/64 GiB新增存储需要真实容量核验；旧50 GB数据盘不能按此假定够用，预算不足先登记不可执行，不删旧产物或静默缩科学规模。
+
+### R4-2固定交付与服务器步骤（代码/资源待审）
+
+白话：本阶段输入是事前固定的4个家族，输出完整物理/存储审计。比如先做不模拟的源码检查，审过后生成原清单首4家族，再核验和导出。它不是自动生成64家族的一键流水线；后续60家族没有入口。每步都使用这次同步的同一份代码，不为导出另改脚本或要求pull。
+
+沿用已核实仓库及隔离环境。checkout空闲且`git status --short`没有输出时同步一次；有未提交内容先保留处理：
+
+```bash
+cd /root/Emboddied_Spatial_Memory
+git status --short
+git pull --ff-only origin review/spatial-history-baselines
+```
+
+**R4-2/capacity**只读CPU/cgroup/RAM和文件系统容量，不创建阶段、不模拟；4路需要30 GiB可见可用内存加512 MiB余量。容量不够不静默降并发，可明确选择1–3路重新核容量；最多4路是本工程子批只有4家族，不改D-079后续最多12路提案。`df`不是实际租赁配额，生成时需另明报可用于本批的剩余新增数据额度。
+
+```bash
+/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/r4_generation_check.py capacity --workers 4
+```
+
+**R4-2/check**允许先执行：核验旧R4-1/E0原Git报告和现有环境锁，运行22项新检查，包括小型人工轨迹、无损字节、配置和XML编译；0模拟步、0渲染、0训练、0下载。目录固定为`/root/autodl-tmp/spatial-history/sh04-r4-engineering-subset-v1`，不接受自选运行目录。成功标志`SH-04-R4-2-engineering-subset-v1 CHECKED tests=22 exit=0`。已有目录只核验成功回执，失败/无回执不重试；必要时直接用本版export保留诊断。
+
+```bash
+/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/r4_generation_check.py check
+```
+
+**R4-2/run**仅在用户审过代码、[METHOD首批资源](METHOD.md#r4-generation)且check成功后执行。入口必填`--reviewed-code`，值为check记录的完整40位提交；必填`--available-new-data-gib`为已核实剩余新增数据额度，至少8，不根据底层df猜测。完整调用形式为`.../bin/python ops/spatial_history/r4_generation_check.py run --workers 4 --reviewed-code <已审完整提交> --available-new-data-gib <实际额度>`；尖括号为说明位，当前不能直接粘贴执行。该显式调用记录首批工程放行，不合并main、不解封确认。耗时尚未实测，先前台显示进度及每个家族退出；7200 s是保守上限，不据上限假定实际需后台。各家族完整16首次+16反序重放及E0/信息门后，成功运行打印`COMPLETED accepted=True|False exit=0`；False是完整工程失败，不是运行异常，也不能进入学习。
+
+**R4-2/verify**只读复查所有文件/三渠道清单、完整解压字节和回执；不是重跑物理。成功封存计算复用；缺run回执则拒绝，不补造完成。独立verify/重复export的只读运维时间另计，不重复消耗生成预算。
+
+```bash
+/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/r4_generation_check.py verify
+```
+
+**R4-2/export**首次成功导出与run合计≤7200 s，使用剩余时间；报告固定为`results/spatial_history_r4_engineering_subset_v1.json`。完整成功/失败、运行中断及check失败分别导出状态；失败诊断不能升级为通过。重复导出只核验同一报告和来源，不覆盖；pending未发布不自动重试。原始大数组留服务器，先生成报告再进行精确Git收尾。
+
+```bash
+/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/r4_generation_check.py export
+```
+
+继续条件：4家族全工程门成立、无损存储及实际资源验收、用户代码审查。类别捷径未排除时如实标工程小试；384 MiB/家族的事前硬上限只提供完整64家族原始产物24 GiB的分配上界，不证明剩余家族都能完成，也不代替服务器租赁剩余配额。首批实际来源/输出可继续复用，但其余60家族和confirmation仍需后续明确放行；本版本不会自动启动。
 
 ### SH-04-R3/E0 并行版本固定交付与服务器命令（已完成，保留复现路径）
 

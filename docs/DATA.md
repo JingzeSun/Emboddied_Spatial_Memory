@@ -154,6 +154,31 @@
 
 模型产物与上述原始物理证据不同：所有逐样本200步位置/接触/成功、选择、诊断读出、错误和来源都落盘；每个原生状态/完整点流保存精确shape/轴/摘要与`checkpoint+public_query+random_stream+prefix_or_chunk`可再生引用。每系统/seed固定选各split排序首家族的首世界、首控制、sample0，额外落盘完整原生状态/点流供审查，不按失败挑样本。其他状态是`materialized=false`，不得宣称已存完整数组；诊断运行当时消费真实内存状态并保存读出。再生必须先核验环境/确定性及原摘要，失败记不可复现；再生计算另计入既定预算，不覆盖主预测或伪造原运行回执。此规则避免把全量49×49×5×256地图和点流缓存误估为小报告，也不修改原物理产物保留要求。
 
+#### R4-2实现字段（D-081，代码待审；物理数据未生成）
+
+白话：以下文件将固定输入和实际证据连接起来。输入是64行事前设计中允许执行的4行，输出三份渠道清单、逐家族判定和整批回执。例如`public/r4`概念上只含过去帧，实际路径为`execution/r4-39/data/public/LL.json.gz`；该路径和LL标记留在外层，不返回模型。它不是把场景配置或未来物块状态写入公开查询，也不表示当前服务器已有这些文件。
+
+| 文件/字段 | 内容及读取边界 |
+|---|---|
+| `configs/spatial_history/r4_family_design_v1.json` | 已物化的64行静态配置，`index/family_id/split/split_rank`仅编排；`parameters`为D-079连续值，`camera`含路径/语义观察下标/诊断前缀；`normalized_design_sha256`核验去平移后不重复。不是实际物理数据manifest |
+| `design.json / started.json / check_receipt.json` | 服务器核验静态清单后保存原规范值、代码/Git来源、既有R4-1/E0报告、环境锁与22项检查的真实身份和退出；缺检查回执拒绝run |
+| `execution/release.json` | 用户审过的完整code commit、明报剩余新增数据配额、采用的首批资源和worker数。只放行固定4家族；不能用`df`可见容量替代租赁额度 |
+| `data/public/W.json.gz` | 沿用公开记录的`schema_version/history/actions/goal`；解压后经原公共校验和R4-1查询转换。121×64×64原RGB/米制深度、真实相机/本体、4条200段控制及共同目标；没有家族/门参数/未来运动 |
+| `data/audit/W/history_prefix.jsonl.gz` | 每次实际捕获立即追加`frame_index/observation/visibility/snapshot`；私有前缀审计，中断后已写原始帧保留。完整时与公开帧相同源，不是新增历史样本 |
+| `data/audit/W/world.xml / snapshot.json / observation.json` | 实际独立几何、完整决策快照、121帧原分割计数和观察不改状态检查；首/近/远/近期PNG同目录。history失败另存`history_failure.json`及实际快照 |
+| `data/audit/W/primary-A/`与`replay-A/` | 原始trace、补足可见性的trajectory、visibility、实际末快照、原RGB展示与私有全景图、rollout评分/文件摘要；前者与后者各16份。每次完整阵列按原字节/接触/任务事件比较，不把重放作独立样本 |
+| `*.npy.gz` | **R4专用行流，不是标准NPY**：gzip内第一行JSON为`version=r4-array-v1/shape/dtype`，随后连续C-order小端原数组行。integration是10001×完整状态宽度float64；RGB是201×64×64×3 uint8；depth是201×64×64 float64；time/index分别201项float64/int64。原生float32深度无损扩宽，禁止将此说成原传感器提供64位精度 |
+| `array_storage.*.raw_bytes/raw_sha256` | 每份数组解压后的实际长度/原始字节摘要、shape/dtype；同时保留压缩文件bytes/sha256。CRC（Cyclic Redundancy Check，循环冗余校验）验证压缩流损坏，SHA验证来源；两者都不证明物理正确性 |
+| `data/labels/W-A.json.gz` | 独立`labels`为R4-1的200步位置/区间接触/可见像素/整段成功/有效性，另绑定实际trajectory文件摘要。只提供首次执行的16条监督，重放不重复训练标签 |
+| `data/audit/geometry/` | 4世界×4模式的无损公共恢复输出、`public_seal.json`及私有`evaluation.json`；由新实际帧重算，不用旧E0通过填充新结果 |
+| `public_manifest.json / labels_manifest.json / audit_manifest.json` | 各自仅列对应渠道的相对文件名、字节数、文件SHA；渠道隔离由读取接口实现，文件夹不代表操作系统访问权限 |
+| `data/audit/family_result.json` | 全部分支原assessment、重放差异、121帧信息分组、观察/E0检查及失败、原/压缩存储字节；`accepted`是工程门，不是模型有效性 |
+| `complete.json / history_complete.json` | 同步函数完成与已保存原文件的绑定标志；没有启动一个新进程，不冒充每个分支都有独立OS退出回执 |
+| 家族`launched.json / exit.json / run.log`、`processes.json` | 真正的家族子进程PID、退出、未启动/缺退出、取消及资源；每家族内部顺序执行，其他家族最多4路并行。失败停止新派发，已获完整成功回执的计算不自动重跑 |
+| `summary.json / run_receipt.json / run_receipt.pending.json` | 全4家族结果与类别捷径/资源预留、完整来源/manifest和退出；pending未通过收尾门不得当成功。首批通过仍不授权其余60家族或确认 |
+
+固定阶段目录`/root/autodl-tmp/spatial-history/sh04-r4-engineering-subset-v1`，小报告`results/spatial_history_r4_engineering_subset_v1.json`。报告保留静态清单、来源、全部家族判定与渠道manifest、进程退出及失败日志尾；完整图像、积分和轨迹在服务器。没有导出完整数组不等于没有生成数组。已存在失败/中断目录只允许只读检查和诊断导出，不覆盖、补造成功或自动另起同批。所有候选、原始接触、失败行及无效分母保留，不依据结果替换样本。
+
 ### SH-04 新小试数据与模型权限（proposed，尚未生成）
 
 **D-068：本节v1数据量、划分和采集路径进入待修订状态，不能据此生成80对或确认16对。** 旧SH-03仅保留作工程/公开输入审计。新主场景先证明单帧证据不足、跨视角历史可区分、左右类别不决定全部后果；几何—控制组合和证据时序需重新登记。新数据字段/样本数/预算均未冻结，不因本次文献核查生成新数据。方法依据见METHOD，唯一执行顺序见PLAN。
