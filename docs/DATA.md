@@ -166,7 +166,7 @@
 |---|---|
 | `frame_surfaces.voxel_keys / source_pixels` | 每帧去重的三维整数覆盖键，0.02 m、固定世界原点；每个来源为所给历史内局部帧下标及原生行列。坐标来自深度；来源只用于取原帧/像素和审计 |
 | `retrieval.selected_local_indices / selected_time_s / marginal_new_voxels` | 最多10个不重复下标及原时间；另存贪心选择顺序和每次新增数，最终编码按时间顺序。全零新增按原规则保留；近期/前缀不读取所给历史之外的像素 |
-| `public_objects.status / candidates / position_m / velocity_mps / support_weights` | 从近期公开像素拟合的物块候选、中心/速度、支持及不确定性；推头当前位置/速度来自公开本体。未决时不发布单一有效对象；具体候选/区间子schema随拟合规格冻结 |
+| `public_objects.status / candidates / position_m / support_weights` | 从近期公开像素拟合的物块候选、中心、支持及不确定性；推头当前位置/速度来自公开本体。D-087以显式`interval_mean_velocity_mps`细化原拟议velocity字段，避免混淆瞬时速度；未决时不发布单一有效物块，子schema见下方待审提案 |
 | `observed_map.surfaces / free_evidence / unknown / conflicts` | 保留原生表面和射线/足迹证据、未覆盖与矛盾；动态/歧义点有独立状态。不能将未命中体素自动标free，不能以P降采样点替代全部几何 |
 | `collision_geometry.primitives / coordinate_intervals_m / assumption_refs` | 由观测及共同形状/厚高形成的名义碰撞体、区间和明确结构假设；所有体都须有公开支持。不可包含来自实例XML的墙端或两门模板补全 |
 | `point_scene.points_m / appearance_sources / object_support / validity` | P拟议0.01 m融合后至多4096点及原RGB来源；保留关联权重和缺失状态。此阶段没有DINO特征或未来真值点；外观来源不能改挂最近帧 |
@@ -208,6 +208,39 @@
 独立服务器产物目录由PLAN固定，拟含started.json、tests.log及receipt.json；receipt绑定11项源码/配置/文档及原Git完整提交、27项测试身份/数量/失败/跳过/预期失败、时间/峰值RSS、实际阶段总字节和两个证据摘要。失败或中断保留已有文件，尽可能写failure.json；存在目录只verify，不自动续跑，缺退出不造成功。导出到`results/spatial_history_r4_coverage_v1.json`，嵌入原证据文本/字节数/SHA及原receipt摘要；不同报告拒绝覆盖，失败导出可保留截断JSON原文。
 
 回执明确新模拟/训练/权重字节均0，真实历史检索、几何恢复、地图、物理预测、模型和长期记忆主张均false。run的必要人工例与独立运维检查只认证本职责；旧v2的33/37项通过不能代替27项新回执。verify/export不调用科学函数或重新运行测试；计时上限是每条命令300 s，不伪称整个后续R4-3的总预算。
+
+<a id="r4-object-association-data"></a>
+
+#### R4-3b公开对象值接口提案（D-087，proposed，无实现/产物）
+
+方法、数值含义与手算例见[METHOD](METHOD.md#r4-object-association)，数值源为[r4_object_association_proposal_v1.json](../configs/spatial_history/r4_object_association_proposal_v1.json)。以下是新纯值接口提案，不改变原v2公共记录/查询/预测schema，不向记录文件增加私有mask或对象初态。提案的版本、decision、授权和预算字段由外层审查/运维读取，科学函数只接列明白名单，不能把整个提案JSON当科学参数。
+
+白话：这些字段让“看到了什么”和“以后动力学想假定什么”能分开核查。输入两帧公开传感值，输出顶面支持、中心范围与区间平均速度；例如速度中点为0也会保留非零宽度区间，自旋仍为空。这不是测得完整刚体状态，也不是给M/P新增真值输入。
+
+| 拟议字段/接口 | 值、状态及权限 |
+|---|---|
+| `object_history.schema_version / frames` | 新`spatial-history-r4-object-history-v1`，只收原119/120两帧；不是a的history额外附字段后直接通过a入口 |
+| `frames[].time_s / width / height / depth_m / camera_position_m / camera_xyzw / intrinsics` | 与D-086同数值定义和合法近期切片；保持原−0.1/0时间与行优先6400深度，不接受RGB/depth_valid/previous_velocity/mask/控制/目标/ID |
+| `frames[].ee_position_m / ee_velocity_mps` | 公开本体三维位置/速度；有限数、非布尔。用于推头几何排除与原值输出，不作为物块初速度或静止依据 |
+| `public_sensor_spec / common_shape_spec / association_parameters` | 传感器白名单同a；外形仅半径、半高、推头半尺寸和固定世界轴运动学常量；参数只取提案segmentation/fit的数值和规则，逐值锁定，不能传实例XML/质量/目标/私有配置 |
+| 单帧原语`frame_candidates` | 仅接一帧合法数值与三份白名单；输出原相对时间、所有高度分量、推头mask及拒绝原因。外层两个单帧结果须由正式两帧入口内部计算，不能把外部预计算候选伪装成公开恢复 |
+| 结果`schema_version / status / reasons` | 拟为`spatial-history-r4-object-association-v1`；`status=association_ready / perception_unresolved`。格式/非有限/非法字段等输入违约抛合同错误；合法但缺支持/遮挡/歧义返回未决及原因，不抛成读取异常 |
+| `frame_results[].components` | 每项包括局部`component_index`、`classification=accepted_candidate / incompatible_extent / unexcluded_component`、`reasons`、行优先`support_pixels`、外环及轮廓来源、顶面区间、delta和各门观测值。索引按最小行列再最小z排序，只是审计身份 |
+| `frame_results[].association_ready / selected_component_index` | 恰有一个完整候选且没有其他未排除分量才为true并给索引；否则false/null。排除大分量只证明不符合该圆柱大小，不认证为静态墙 |
+| `frame_results[].position_m / position_intervals_m` | 单帧唯一关联时的名义中心`[3]`及区间`[3,2]`，否则null；每候选的诊断拟合可独立保留。x/y为弦中点区间交集，z为顶面区间减共同半高 |
+| 顶层`position_m / position_intervals_m` | 两帧整体association_ready时引用末帧唯一结果，否则null；单帧成功但整体未决仅保留在frame_results中，不能顶层伪装完整状态 |
+| `support_weights / interval_kind / assumption_refs` | 支持权重在每个通过候选内按其像素数等分；区间类型`conditional_raster_geometry_envelope_not_statistical_confidence`；假设显列直立圆柱代理、完整圆形轮廓及像素过渡范围，不产生真值mask/校准概率 |
+| `velocity_time_interval_s / interval_mean_velocity_mps / interval_mean_velocity_intervals_mps` | 原两帧时间、三维中点差/dt及`[3,2]`端点最坏组合；整体未决时速度及区间null，原输入时间仍可留诊断。不发布未注明来源的通用`velocity_mps`物块字段 |
+| `velocity_kind / instantaneous_velocity_observed` | 固定`backward_interval_mean / false`；没有“误差低于任务静止门”的自动通过条件，不把相同估计等同于实际静止 |
+| `orientation_xyzw / angular_velocity_radps / dynamics_initial_state_ready` | 恒null/null/false；近水平表面门没有测出零倾角或自旋。动力学须用自己的已审初始化近似，不能由此补真实姿态或零角速度 |
+| `robot_state.position_m / velocity_mps / source` | 原末帧公开本体值，source=`public_proprioception`；与物块估计分开，不读取未来本体。即使物块未决也可保留合法本体值 |
+| 外层`provenance` | 原公共manifest/切片/像素、白名单和参数摘要、代码/假设版本及封存输出摘要；路径/hash/原世界/配对/split不入数值特征。值检查不代替真实来源认证 |
+
+`reasons`拟至少区分`pusher_projection_unresolved / insufficient_support / incomplete_outline / center_interval_empty / center_interval_too_wide / radius_mismatch / no_accepted_candidate / multiple_accepted_candidates / unexcluded_support / missing_frame_estimate`；允许同分量多个原因，顺序按方法检查顺序固定。frame_results保留所有分量，无“取最好一个”或默默截断候选上限；输入固定80×80已给计算规模上界。非法两帧数量/时序属于合同错误，合法帧没有可用几何属于perception_unresolved。
+
+后续独立评估先封存本模块输出再接真值。原拟议`object_initial_velocity_error_mps`必须标明比较的是“后向区间均值作为决策初速度代理”的误差，不能叫瞬时测速精度；另报`object_interval_mean_velocity_error_mps`时须对比原轨迹同一时间区间的中心位移/dt。两者无新增通过门，实际评估仍另审。相同原像素造成的相关误差未建模，不能擅自缩区间；未决项保留登记分母，不能记零误差。
+
+本提案未建测试/运行/导出schema，也未产生服务器结果。拟议人工检查预算、零真实查询和零模拟限制见数值源；实现时须另绑定明确Git来源/检查清单与新回执，不能消费R4-3a的27项marker当b通过。此前证据按原字节复用；本轮METHOD/DATA新增文字不冒用原摘要认证。
 
 #### R4 v2设计与生成产物字段（D-084，服务器产物尚未生成）
 
