@@ -797,3 +797,15 @@ Dreamer原生检查已通过；本职责公共值转换与RGBD/RSSM/统一读出
 /root/sh05-assets-v1/dreamer-env-v1/bin/python -B ops/spatial_history/r4_dreamer_adapter_check_v1.py run
 /root/sh05-assets-v1/dreamer-env-v1/bin/python -B ops/spatial_history/r4_dreamer_adapter_check_v1.py export
 ```
+
+
+### W完整任务适配工程阶段（D-094，当前）
+
+D完整任务适配16项已通过并回传6a150e2，0优化更新；W原生7项亦通过。W新公共Torch读出和完整因果缓存适配已实现，按17项人工check验证全部121/200、原计算/梯度对拍、分支与时序及全反向。F完整适配继续实现。当前三条为D/F/W；前面历史D-073/074/079条款中的P保留为当时方案，按D-092后置。L/R/M及训练充分性/独立确认要求保持。
+
+```bash
+/root/sh05-assets-v1/flowm-env-v1/bin/python -B ops/spatial_history/r4_dinowm_adapter_check_v1.py run
+/root/sh05-assets-v1/flowm-env-v1/bin/python -B ops/spatial_history/r4_dinowm_adapter_check_v1.py export
+```
+
+运行目录dinowm-adapter-check-v1首次失败保留，已成功仅核验导出；单次1800 s、RSS12 GiB/CUDA28 GiB、新证据64 MiB。预计前台，source/hash和原生权重回执自动检查，整个项目数据读取被守卫拒绝。未开放optimizer/新样本/确认/main合并；完整任务有效性仍需后续具体学习与评分证据。

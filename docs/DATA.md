@@ -631,3 +631,12 @@ r4_model_inputs.prepare返回history/controls/goal三份纯值；RGB与depth仍�
 D.predict输出decision、observed、future、task；observed含tokens/deter/stoch/logit，future含原生prior，task为object_position_m[1,200,3]、contact_logit[1,200]、success_logit[1]与success_state[1,256]。概率只在外层用sigmoid转换，未训练值不写入正式结果表。训练loss单独接受精确三项labels（position_m/contact/success）及future_images（rgb/depth_m/depth_valid），不接受未来本体字段。白话：位置标签可以惩罚预测，但不能被误放到历史或控制里。
 
 r4_dreamer_adapter_check_v1.py只读源码及人工fixtures，进程守卫拒绝所有spatial-history项目数据。started绑定源字节/提交，receipt记录16项具体检查、实际参数shape/count、七模块梯度范数、人工loss各项、输出摘要和资源；zero optimizer/new_training_steps=0。导出spatial_history_r4_dreamer_adapter_v1.json内嵌证据JSON及摘要，不伪造模型checkpoint或实际任务预测；首次失败保持原目录。
+
+
+### W完整任务适配值与工程证据（D-094）
+
+Torch公共tensorize沿用D-093严格查询，只将RGB转[1,H,3,80,80]、深度/mask转[1,H,1,80,80]，其余H×37/H×4/200×4/12语义相同。W.observe返回encoded_history[1,H,36,394]、H-1帧各6层的prefix_cache、末观测last_observation、index和零动作decision[1,36,404]。imagine只读取该公开状态/controls/goal，返回future[1,200,36,394]、task及last_cache_frames。缓存tuple追加新张量，不就地修改旧分支；depth_valid是原传感器有效性，不是墙/对象真值。
+
+白话：例如121帧状态可以克隆给九候选，每条保持完全相同历史；第101步控制不会改变前100步预测。训练侧labels和future_images集合与D完全相同、无真实未来本体；辅助未来编码仅形成停止梯度目标，不进入预测缓存。图像padding及缓存是新适配字段，不能拿7项原生检查认证。
+
+r4_dinowm_adapter_check_v1.py在新/root/sh05-assets-v1/dinowm-adapter-check-v1写started/source/weight绑定与receipt或failure；只用人工fixture，守卫禁止全部项目数据。17项包含稠密/缓存值及梯度对拍、完整历史、早历史依赖、因果/分支不可变、全200步反向和七路径梯度、DINO冻结。证据记录参数数/shape、实际CUDA/RSS、耗时、loss和输出摘要，new_training_steps=0、optimizer_constructed=false。导出spatial_history_r4_dinowm_adapter_v1.json，不产生真实模型结果或checkpoint。
