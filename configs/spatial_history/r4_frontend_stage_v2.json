@@ -1,0 +1,55 @@
+{
+  "acceptance": {
+    "false_free_cells": 0,
+    "false_occupied_cells": 0,
+    "nominal_complete_branches": 144,
+    "resolved_histories": 16,
+    "selection_histories": 16,
+    "task_readout_branches": 144,
+    "two_opening_histories": 16
+  },
+  "acceptance_scope": "nominal_engineering_chain_only_not_prediction_accuracy_or_formal_M_P",
+  "actions": [
+    "c00",
+    "c01",
+    "c02",
+    "c10",
+    "c11",
+    "c12",
+    "c20",
+    "c21",
+    "c22"
+  ],
+  "check_test_count": 16,
+  "deadline_utc": "2026-09-13T18:14:12Z",
+  "download_authorized": false,
+  "families": [
+    "r4-39",
+    "r4-47",
+    "r4-25",
+    "r4-03"
+  ],
+  "formal_model_ready": false,
+  "generation_authorized": false,
+  "limits": {
+    "check_wall_s": 300,
+    "process_bytes": 4294967296,
+    "report_bytes": 33554432,
+    "run_wall_s": 7200,
+    "stage_bytes": 2147483648
+  },
+  "report": "results/spatial_history_r4_frontend_v2.json",
+  "run_directory": "/root/autodl-tmp/spatial-history/sh04-r4-frontend-v2",
+  "server_execution_authorized_by_user": true,
+  "source_directory": "/root/autodl-tmp/spatial-history/sh04-r4-engineering-subset-v2",
+  "source_report": "results/spatial_history_r4_map_control_v1.json",
+  "source_report_sha256": "d3635655e5594df1406167f2e15dfc7fbcf6f5d588979dcac2c883990cc8e868",
+  "stage": "SH-04-R4-frontend-v2",
+  "training_authorized": false,
+  "worlds": [
+    "LL",
+    "LR",
+    "RL",
+    "RR"
+  ]
+}

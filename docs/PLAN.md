@@ -26,7 +26,7 @@ SH-03预算由D-065固定：128次4.9 s模拟执行，新产物2 GiB，按案例
 
 ## 当前指针
 
-**当前为R4前端原证据已取回核验、两个具体缺口已定位，修订待审。** 775c050证据包的48负载/54输入及原摘要一致，LOG-119补充。16条历史近期两帧的6个未排除分量均为紧邻顶面的单像素，几何/RGB支持同一圆柱侧壁归属；现有高度分组与唯一性检查不能表达这些表面同属一物。64个门侧墙段中18个原深度可见但占据格为0，短墙片未满足对象尺寸排除条件，被挡在静态建图之前；另约90.1%–90.4%全世界墙格本来就在历史图像投影范围外。下一职责分别审议表面归属与静态面片保留，具体数值/实现尚未冻结，不直接删除小分量或将未决全部改成静态。原c3aaae2的22项源码、36项检查、320输入及16/144审计流程完整，但有效预测仍0/144，尚无动力学/接触/动作选择误差。无需重新导出或运行旧审计；formal_model_ready与eligible_for_P仍false，R4-4、其余60家族、确认、训练、下载与main合并仍未开放。原PLAN局部编辑保留。
+**当前为D-090授权的R4前端v2修订与服务器工程验收阶段。** 用户授权代理直接SSH并在24小时可用窗口内持续推进，实际仓库路径/root/Emboddied_Spatial_Memory已只读核实。原775c050侧壁/短墙片证据按原字节复用；本版分别实现条件表面归属、同帧地面相对墙高的短墙片保留，并显式桥接未改的旧求解器。16项人工反例、原16历史/144主分支及完整check→public封存/退出→evaluation→verify/export同版交付，当前尚未运行新检查/预测。验收具体门与资源先登记于D-090及r4_frontend_stage_v2.json；不把工程链路跑通升级为正式M/P或准确性验收。正式模型/其余60家族/确认/训练/下载/main合并仍未开放，旧失败和原PLAN局部编辑保留。
 
 已完成证据：[SH-03/v2报告](../results/spatial_history_development_audit_v2_wall_clearance.json)为12项/16对通过，原科学提交57d01aa、报告ce5b3f1，LOG-107；原v1失败保留于LOG-106。它们只供工程/输入审计，不能拆分成训练/确认。当前协议文档有新增内容，不借旧SH-03回执认证；旧产物按原代码/合同摘要复用。
 
@@ -99,6 +99,22 @@ D-085/086/088的原预算及回执保留；本批D-089新登记36项人工检查
 
 
 <a id="r4-cd-server"></a>
+
+### R4前端v2自主服务器工程阶段（D-090，当前步骤）
+
+白话：输入仍是已封存的原16历史与144指令，输出修订后的名义关联/地图/轨迹/接触/选择及独立误差。先运行16项人工反例，再保存全部公开预测并取得子进程退出0，之后才读私有真值。它不新生成样本、不训练、不调控制，也不认证正式不确定性。
+
+本轮用户已授权代理直接SSH执行，无需用户逐步复制命令。先在已核验且空闲的`/root/Emboddied_Spatial_Memory`同步review/spatial-history-baselines一次；使用原`/root/autodl-tmp/spatial-history-venv-v1/bin/python`，不安装新依赖。首次stage目录为`/root/autodl-tmp/spatial-history/sh04-r4-frontend-v2`，失败/中断原样保留，已成功步骤只核验复用。完整命令保留复现：
+
+```bash
+/root/autodl-tmp/spatial-history-venv-v1/bin/python -B ops/spatial_history/r4_frontend_stage_v2.py run
+/root/autodl-tmp/spatial-history-venv-v1/bin/python -B ops/spatial_history/r4_frontend_stage_v2.py verify
+/root/autodl-tmp/spatial-history-venv-v1/bin/python -B ops/spatial_history/r4_frontend_stage_v2.py export
+```
+
+每步成功并核对退出证据后继续；run中的父进程自动检查前步退出/receipt，不绕过失败。完整运行上限7200 s、进程4 GiB、阶段加报告2 GiB、报告32 MiB，16项check上限300 s，计算窗口至2026-09-13T18:14:12Z。预计前台，可直接看进度；只有实测预计超过30分钟才转后台安排。0新生成/训练/下载/确认。工程链路验收必须同时达到16对象状态、16两门口、144完整轨迹/任务读出、16世界选择有值及误标自由/占据均0；status=passed仅表示执行完整，还必须看engineering_accepted。未知扫掠、实际误差和formal_model_ready=false仍保留。
+
+输出为`results/spatial_history_r4_frontend_v2.json`，由代理取回后核验，再按原精确路径Git收尾；无需用户再手工pull/export。原服务器产物不删除/覆盖，正式模型准入不随工程通过自动开放。
 
 ### R4-c/d前端原证据回传（775c050已核验；以下保留复现命令，无需重跑）
 
