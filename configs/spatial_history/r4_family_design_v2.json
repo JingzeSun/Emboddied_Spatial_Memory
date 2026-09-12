@@ -1,0 +1,7373 @@
+{
+  "version": "sh04-r4-family-design-v2",
+  "protocol_sha256": "a9d7e237a3df8b9e5b399e88b8dd3ef1d10b431e28a0117b5f689f45c965db44",
+  "rows": [
+    {
+      "family_id": "r4-39",
+      "index": 39,
+      "split": "model_train",
+      "split_rank": 0,
+      "parameters": {
+        "gate_near_y_m": 0.5942787536038397,
+        "gate_far_y_m": 2.1931278974303914,
+        "gate_near_bias_x_m": -0.0023214896605523844,
+        "gate_far_bias_x_m": -0.00037985313773996124,
+        "gate_near_L_jitter_x_m": -0.0037343875426333927,
+        "gate_near_R_jitter_x_m": -0.0003186304431204278,
+        "gate_far_L_jitter_x_m": -0.0069203164254216225,
+        "gate_far_R_jitter_x_m": 0.005222256310998548,
+        "gate_near_clear_width_m": 0.3972757480016271,
+        "gate_far_clear_width_m": 0.39762408018281414,
+        "global_translation_x_m": -0.11783898935295709,
+        "control_near_scale": 1.0122638643410256,
+        "control_far_scale": 0.9557609683618051
+      },
+      "band_pairs": {
+        "near": [
+          1,
+          2
+        ],
+        "far": [
+          0,
+          1
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.8,
+          6.8
+        ],
+        "order": "near_first",
+        "probe_prefix_indices": [
+          28,
+          33,
+          42,
+          68,
+          73,
+          82,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.3
+            ],
+            "y_m": [
+              -0.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              2.3,
+              3.3
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              3.3,
+              6.3
+            ],
+            "y_m": [
+              0.6,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              6.3,
+              7.3
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              7.3,
+              11
+            ],
+            "y_m": [
+              2.2,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 28,
+          "B": 68
+        }
+      },
+      "normalized_design_sha256": "d6aea49670879e5ef6b34cbf4e1fd8b3120e3ec3157a3465f50321323a80d0e7"
+    },
+    {
+      "family_id": "r4-47",
+      "index": 47,
+      "split": "model_train",
+      "split_rank": 1,
+      "parameters": {
+        "gate_near_y_m": 0.6013561407099958,
+        "gate_far_y_m": 2.162935810190637,
+        "gate_near_bias_x_m": -0.002816740675595996,
+        "gate_far_bias_x_m": 0.0045962691271221314,
+        "gate_near_L_jitter_x_m": -0.00890492743868209,
+        "gate_near_R_jitter_x_m": -0.008480987370081915,
+        "gate_far_L_jitter_x_m": -0.0035006152415319614,
+        "gate_far_R_jitter_x_m": 0.002676538549938238,
+        "gate_near_clear_width_m": 0.3988506393156524,
+        "gate_far_clear_width_m": 0.3823258212895874,
+        "global_translation_x_m": 0.07232156861797279,
+        "control_near_scale": 1.0387612192936,
+        "control_far_scale": 1.0252281711850053
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          1
+        ],
+        "far": [
+          1,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.5,
+          6.8
+        ],
+        "order": "far_first",
+        "probe_prefix_indices": [
+          25,
+          30,
+          39,
+          68,
+          73,
+          82,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.0
+            ],
+            "y_m": [
+              -0.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              2.0,
+              3.0
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              3.0,
+              6.3
+            ],
+            "y_m": [
+              2.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              6.3,
+              7.3
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              7.3,
+              11
+            ],
+            "y_m": [
+              0.6,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 68,
+          "B": 25
+        }
+      },
+      "normalized_design_sha256": "a3dd78cb7c6bc6a1ced81b5b902d2e276f101829a42ffdd783db572102dd5d60"
+    },
+    {
+      "family_id": "r4-25",
+      "index": 25,
+      "split": "model_train",
+      "split_rank": 2,
+      "parameters": {
+        "gate_near_y_m": 0.5790099307997171,
+        "gate_far_y_m": 2.1825167407773676,
+        "gate_near_bias_x_m": -0.0042945471986963295,
+        "gate_far_bias_x_m": -0.0019403897698197004,
+        "gate_near_L_jitter_x_m": -0.009221341516026802,
+        "gate_near_R_jitter_x_m": 0.0051787075632977134,
+        "gate_far_L_jitter_x_m": -0.009133382629740896,
+        "gate_far_R_jitter_x_m": -0.004450910629515158,
+        "gate_near_clear_width_m": 0.39107933704645664,
+        "gate_far_clear_width_m": 0.39128254499217807,
+        "global_translation_x_m": 0.0011849953775869698,
+        "control_near_scale": 0.9978260710145318,
+        "control_far_scale": 1.041971002911043
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          1
+        ],
+        "far": [
+          0,
+          1
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.5,
+          6.2
+        ],
+        "order": "near_first",
+        "probe_prefix_indices": [
+          25,
+          30,
+          39,
+          62,
+          67,
+          76,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.0
+            ],
+            "y_m": [
+              -0.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              2.0,
+              3.0
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              3.0,
+              5.7
+            ],
+            "y_m": [
+              0.6,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              5.7,
+              6.7
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              6.7,
+              11
+            ],
+            "y_m": [
+              2.2,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 25,
+          "B": 62
+        }
+      },
+      "normalized_design_sha256": "ca5b99487f9e8dae51bc7ce3760732b9162e53648c60fd70e2c39d6d4407fe31"
+    },
+    {
+      "family_id": "r4-03",
+      "index": 3,
+      "split": "model_train",
+      "split_rank": 3,
+      "parameters": {
+        "gate_near_y_m": 0.6321967524645473,
+        "gate_far_y_m": 2.235832419620736,
+        "gate_near_bias_x_m": 1.0146688055593343e-05,
+        "gate_far_bias_x_m": -0.0002662708133124598,
+        "gate_near_L_jitter_x_m": -0.009320342273542325,
+        "gate_near_R_jitter_x_m": -0.007847829733234332,
+        "gate_far_L_jitter_x_m": -0.008749051409501735,
+        "gate_far_R_jitter_x_m": -0.00964933317174118,
+        "gate_near_clear_width_m": 0.3869497960208854,
+        "gate_far_clear_width_m": 0.3925153412885495,
+        "global_translation_x_m": 0.10851384239693301,
+        "control_near_scale": 1.0479079843950307,
+        "control_far_scale": 0.9987746177068126
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          2
+        ],
+        "far": [
+          1,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.5,
+          6.2
+        ],
+        "order": "near_first",
+        "probe_prefix_indices": [
+          25,
+          30,
+          39,
+          62,
+          67,
+          76,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.0
+            ],
+            "y_m": [
+              -0.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              2.0,
+              3.0
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              3.0,
+              5.7
+            ],
+            "y_m": [
+              0.6,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              5.7,
+              6.7
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              6.7,
+              11
+            ],
+            "y_m": [
+              2.2,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 25,
+          "B": 62
+        }
+      },
+      "normalized_design_sha256": "adf6b7b889d37c00fe64f2125d72bafab4ccf0a897871b27d1bfffb75ebee6d0"
+    },
+    {
+      "family_id": "r4-11",
+      "index": 11,
+      "split": "model_train",
+      "split_rank": 4,
+      "parameters": {
+        "gate_near_y_m": 0.6380325107024561,
+        "gate_far_y_m": 2.195146205090075,
+        "gate_near_bias_x_m": 0.004045213697616012,
+        "gate_far_bias_x_m": -0.004189739358466041,
+        "gate_near_L_jitter_x_m": -0.008090147373347298,
+        "gate_near_R_jitter_x_m": 0.0008603464987956763,
+        "gate_far_L_jitter_x_m": -0.004584586702683512,
+        "gate_far_R_jitter_x_m": 0.005589027697243197,
+        "gate_near_clear_width_m": 0.39725432185843107,
+        "gate_far_clear_width_m": 0.39695432393105423,
+        "global_translation_x_m": 0.01585199411425378,
+        "control_near_scale": 1.0319346759687609,
+        "control_far_scale": 1.0418259434796733
+      },
+      "band_pairs": {
+        "near": [
+          1,
+          2
+        ],
+        "far": [
+          0,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.2,
+          6.8
+        ],
+        "order": "near_first",
+        "probe_prefix_indices": [
+          22,
+          27,
+          36,
+          68,
+          73,
+          82,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              1.7000000000000002
+            ],
+            "y_m": [
+              -0.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              1.7000000000000002,
+              2.7
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              2.7,
+              6.3
+            ],
+            "y_m": [
+              0.6,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              6.3,
+              7.3
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              7.3,
+              11
+            ],
+            "y_m": [
+              2.2,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 22,
+          "B": 68
+        }
+      },
+      "normalized_design_sha256": "0cf19626251471ca4067c3d6fd97a89d2623833cccf8f137cd69bcc621d025c2"
+    },
+    {
+      "family_id": "r4-31",
+      "index": 31,
+      "split": "model_train",
+      "split_rank": 5,
+      "parameters": {
+        "gate_near_y_m": 0.5913784847222808,
+        "gate_far_y_m": 2.161138507245035,
+        "gate_near_bias_x_m": -0.003906370627553172,
+        "gate_far_bias_x_m": -0.001918590376711477,
+        "gate_near_L_jitter_x_m": 0.009892373386812913,
+        "gate_near_R_jitter_x_m": -0.009037988109525169,
+        "gate_far_L_jitter_x_m": 0.007157013229368273,
+        "gate_far_R_jitter_x_m": -0.0033599764935940725,
+        "gate_near_clear_width_m": 0.3903836839261982,
+        "gate_far_clear_width_m": 0.3922893480111612,
+        "global_translation_x_m": -0.03066796788873717,
+        "control_near_scale": 0.9963224306858999,
+        "control_far_scale": 1.0133356321230536
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          1
+        ],
+        "far": [
+          0,
+          1
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.5,
+          6.8
+        ],
+        "order": "near_first",
+        "probe_prefix_indices": [
+          25,
+          30,
+          39,
+          68,
+          73,
+          82,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.0
+            ],
+            "y_m": [
+              -0.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              2.0,
+              3.0
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              3.0,
+              6.3
+            ],
+            "y_m": [
+              0.6,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              6.3,
+              7.3
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              7.3,
+              11
+            ],
+            "y_m": [
+              2.2,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 25,
+          "B": 68
+        }
+      },
+      "normalized_design_sha256": "4dee2421422e5f6cf1f82a5cf7f2e5ae01aec8bf94b7de6b8a46d1fbee388a13"
+    },
+    {
+      "family_id": "r4-35",
+      "index": 35,
+      "split": "model_train",
+      "split_rank": 6,
+      "parameters": {
+        "gate_near_y_m": 0.5831448785909088,
+        "gate_far_y_m": 2.1853921415072497,
+        "gate_near_bias_x_m": -0.0020744318188319613,
+        "gate_far_bias_x_m": 0.004398198459004718,
+        "gate_near_L_jitter_x_m": 0.0037310860270216625,
+        "gate_near_R_jitter_x_m": 0.005542911406441878,
+        "gate_far_L_jitter_x_m": -0.007319910625097617,
+        "gate_far_R_jitter_x_m": 0.002470977683990256,
+        "gate_near_clear_width_m": 0.38941305155371786,
+        "gate_far_clear_width_m": 0.3911359860864627,
+        "global_translation_x_m": -0.11661607656054324,
+        "control_near_scale": 0.9856881853391221,
+        "control_far_scale": 0.9820127535997117
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          2
+        ],
+        "far": [
+          0,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.8,
+          6.5
+        ],
+        "order": "near_first",
+        "probe_prefix_indices": [
+          28,
+          33,
+          42,
+          65,
+          70,
+          79,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.3
+            ],
+            "y_m": [
+              -0.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              2.3,
+              3.3
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              3.3,
+              6.0
+            ],
+            "y_m": [
+              0.6,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              6.0,
+              7.0
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              7.0,
+              11
+            ],
+            "y_m": [
+              2.2,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 28,
+          "B": 65
+        }
+      },
+      "normalized_design_sha256": "49b824fb36e972719b0defcab5321bb43f893e4ccc09f10c92d4ff9b7ec3b942"
+    },
+    {
+      "family_id": "r4-53",
+      "index": 53,
+      "split": "model_train",
+      "split_rank": 7,
+      "parameters": {
+        "gate_near_y_m": 0.6187771141633506,
+        "gate_far_y_m": 2.2108799550484033,
+        "gate_near_bias_x_m": -0.0010910840496791375,
+        "gate_far_bias_x_m": -0.0020267512945330145,
+        "gate_near_L_jitter_x_m": -0.005044863617744026,
+        "gate_near_R_jitter_x_m": -0.006742795116212596,
+        "gate_far_L_jitter_x_m": -0.0024746703994784547,
+        "gate_far_R_jitter_x_m": -0.0012926199189238381,
+        "gate_near_clear_width_m": 0.3973206511275811,
+        "gate_far_clear_width_m": 0.38296785883750456,
+        "global_translation_x_m": -0.007228931135699057,
+        "control_near_scale": 0.9830005760148784,
+        "control_far_scale": 1.0124827149194362
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          1
+        ],
+        "far": [
+          0,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.8,
+          6.8
+        ],
+        "order": "far_first",
+        "probe_prefix_indices": [
+          28,
+          33,
+          42,
+          68,
+          73,
+          82,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.3
+            ],
+            "y_m": [
+              -0.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              2.3,
+              3.3
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              3.3,
+              6.3
+            ],
+            "y_m": [
+              2.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              6.3,
+              7.3
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              7.3,
+              11
+            ],
+            "y_m": [
+              0.6,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 68,
+          "B": 28
+        }
+      },
+      "normalized_design_sha256": "dd66eb008b5ce2f246e0be54d3addcc65d66f287f3ab78b846e2e93fa400efe2"
+    },
+    {
+      "family_id": "r4-26",
+      "index": 26,
+      "split": "model_train",
+      "split_rank": 8,
+      "parameters": {
+        "gate_near_y_m": 0.6031313874194765,
+        "gate_far_y_m": 2.1943137007231335,
+        "gate_near_bias_x_m": -0.0038312144297526947,
+        "gate_far_bias_x_m": 0.0038168802338976763,
+        "gate_near_L_jitter_x_m": 0.004042474343449067,
+        "gate_near_R_jitter_x_m": -0.008914366831752268,
+        "gate_far_L_jitter_x_m": -0.006080018985589989,
+        "gate_far_R_jitter_x_m": -0.004149706814936969,
+        "gate_near_clear_width_m": 0.3831556195284001,
+        "gate_far_clear_width_m": 0.3929508990716333,
+        "global_translation_x_m": 0.08044013080012657,
+        "control_near_scale": 0.9633395766527019,
+        "control_far_scale": 1.0445911212962902
+      },
+      "band_pairs": {
+        "near": [
+          1,
+          2
+        ],
+        "far": [
+          0,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.8,
+          6.2
+        ],
+        "order": "far_first",
+        "probe_prefix_indices": [
+          28,
+          33,
+          42,
+          62,
+          67,
+          76,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.3
+            ],
+            "y_m": [
+              -0.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              2.3,
+              3.3
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              3.3,
+              5.7
+            ],
+            "y_m": [
+              2.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              5.7,
+              6.7
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              6.7,
+              11
+            ],
+            "y_m": [
+              0.6,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 62,
+          "B": 28
+        }
+      },
+      "normalized_design_sha256": "a7554dcd3718fa9ae925b9b4a3bc8f780e4d6dea07fdfc54b2f48ecaa69c7988"
+    },
+    {
+      "family_id": "r4-40",
+      "index": 40,
+      "split": "model_train",
+      "split_rank": 9,
+      "parameters": {
+        "gate_near_y_m": 0.6362001956336523,
+        "gate_far_y_m": 2.233885435579841,
+        "gate_near_bias_x_m": -0.001246592874223888,
+        "gate_far_bias_x_m": -0.00019442304352580795,
+        "gate_near_L_jitter_x_m": -0.00591955691399685,
+        "gate_near_R_jitter_x_m": 0.0037387043396741974,
+        "gate_far_L_jitter_x_m": 0.005223737008429959,
+        "gate_far_R_jitter_x_m": -0.0006238211900269526,
+        "gate_near_clear_width_m": 0.39372574119319526,
+        "gate_far_clear_width_m": 0.38472978257661977,
+        "global_translation_x_m": 0.01794307730703562,
+        "control_near_scale": 0.9731697034388902,
+        "control_far_scale": 1.0336366321386548
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          2
+        ],
+        "far": [
+          1,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.2,
+          6.8
+        ],
+        "order": "near_first",
+        "probe_prefix_indices": [
+          22,
+          27,
+          36,
+          68,
+          73,
+          82,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              1.7000000000000002
+            ],
+            "y_m": [
+              -0.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              1.7000000000000002,
+              2.7
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              2.7,
+              6.3
+            ],
+            "y_m": [
+              0.6,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              6.3,
+              7.3
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              7.3,
+              11
+            ],
+            "y_m": [
+              2.2,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 22,
+          "B": 68
+        }
+      },
+      "normalized_design_sha256": "1308a2bd9640732f57a50c5557ad2bd338d9d3cffedc7ce68e7f634184d71e74"
+    },
+    {
+      "family_id": "r4-30",
+      "index": 30,
+      "split": "model_train",
+      "split_rank": 10,
+      "parameters": {
+        "gate_near_y_m": 0.6340924772089498,
+        "gate_far_y_m": 2.200270288428466,
+        "gate_near_bias_x_m": 0.0044400397637012435,
+        "gate_far_bias_x_m": -0.003941640616537671,
+        "gate_near_L_jitter_x_m": 0.008695017994613875,
+        "gate_near_R_jitter_x_m": 0.0006397848932689996,
+        "gate_far_L_jitter_x_m": -0.008298838227466736,
+        "gate_far_R_jitter_x_m": 0.0017634407739480582,
+        "gate_near_clear_width_m": 0.3885285848196363,
+        "gate_far_clear_width_m": 0.39154086365351864,
+        "global_translation_x_m": -0.09468876633062243,
+        "control_near_scale": 0.9774425847014635,
+        "control_far_scale": 1.0137199967853165
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          1
+        ],
+        "far": [
+          0,
+          1
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.8,
+          6.8
+        ],
+        "order": "far_first",
+        "probe_prefix_indices": [
+          28,
+          33,
+          42,
+          68,
+          73,
+          82,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.3
+            ],
+            "y_m": [
+              -0.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              2.3,
+              3.3
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              3.3,
+              6.3
+            ],
+            "y_m": [
+              2.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              6.3,
+              7.3
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              7.3,
+              11
+            ],
+            "y_m": [
+              0.6,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 68,
+          "B": 28
+        }
+      },
+      "normalized_design_sha256": "22b3deb302a0f6dcd7a9b6f6574a8498843241895a683c7d4ff898ad2cd18e81"
+    },
+    {
+      "family_id": "r4-00",
+      "index": 0,
+      "split": "model_train",
+      "split_rank": 11,
+      "parameters": {
+        "gate_near_y_m": 0.5875942456400514,
+        "gate_far_y_m": 2.2055728456643755,
+        "gate_near_bias_x_m": 0.004997065361075776,
+        "gate_far_bias_x_m": 0.0041838978337503515,
+        "gate_near_L_jitter_x_m": -0.0030849798395009807,
+        "gate_near_R_jitter_x_m": 0.009616791363320313,
+        "gate_far_L_jitter_x_m": -0.0007042664419204016,
+        "gate_far_R_jitter_x_m": -0.001004467043369435,
+        "gate_near_clear_width_m": 0.39830706695096235,
+        "gate_far_clear_width_m": 0.38817357490145177,
+        "global_translation_x_m": 0.046219137753709616,
+        "control_near_scale": 1.042611539174516,
+        "control_far_scale": 1.0068279353099352
+      },
+      "band_pairs": {
+        "near": [
+          1,
+          2
+        ],
+        "far": [
+          0,
+          1
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.2,
+          6.2
+        ],
+        "order": "far_first",
+        "probe_prefix_indices": [
+          22,
+          27,
+          36,
+          62,
+          67,
+          76,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              1.7000000000000002
+            ],
+            "y_m": [
+              -0.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              1.7000000000000002,
+              2.7
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              2.7,
+              5.7
+            ],
+            "y_m": [
+              2.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              5.7,
+              6.7
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              6.7,
+              11
+            ],
+            "y_m": [
+              0.6,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 62,
+          "B": 22
+        }
+      },
+      "normalized_design_sha256": "44d3164aa73fcb836ae8146469fc0ca9a2e9946460063c07797ba0636e36531a"
+    },
+    {
+      "family_id": "r4-21",
+      "index": 21,
+      "split": "model_train",
+      "split_rank": 12,
+      "parameters": {
+        "gate_near_y_m": 0.5987797789167114,
+        "gate_far_y_m": 2.2186386259100375,
+        "gate_near_bias_x_m": 0.0007801305475454434,
+        "gate_far_bias_x_m": 0.004765541514969913,
+        "gate_near_L_jitter_x_m": -0.004851643192591306,
+        "gate_near_R_jitter_x_m": 0.0061235165439457225,
+        "gate_far_L_jitter_x_m": 0.00807395184352709,
+        "gate_far_R_jitter_x_m": -0.008209271181751049,
+        "gate_near_clear_width_m": 0.3873368736329352,
+        "gate_far_clear_width_m": 0.384464807181748,
+        "global_translation_x_m": 0.022067952649599626,
+        "control_near_scale": 1.0034002818957692,
+        "control_far_scale": 0.974052567197826
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          1
+        ],
+        "far": [
+          1,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.5,
+          6.8
+        ],
+        "order": "far_first",
+        "probe_prefix_indices": [
+          25,
+          30,
+          39,
+          68,
+          73,
+          82,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.0
+            ],
+            "y_m": [
+              -0.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              2.0,
+              3.0
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              3.0,
+              6.3
+            ],
+            "y_m": [
+              2.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              6.3,
+              7.3
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              7.3,
+              11
+            ],
+            "y_m": [
+              0.6,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 68,
+          "B": 25
+        }
+      },
+      "normalized_design_sha256": "e1fb00a7451ed1b40c07609ed43bd80d10ed571c9d126f652ba6dee67c38d1ef"
+    },
+    {
+      "family_id": "r4-28",
+      "index": 28,
+      "split": "model_train",
+      "split_rank": 13,
+      "parameters": {
+        "gate_near_y_m": 0.6104598512532413,
+        "gate_far_y_m": 2.236587694294576,
+        "gate_near_bias_x_m": 0.0043339271937010955,
+        "gate_far_bias_x_m": 0.0018024122516454126,
+        "gate_near_L_jitter_x_m": 0.0001916931185451977,
+        "gate_near_R_jitter_x_m": 0.005239240779147853,
+        "gate_far_L_jitter_x_m": -0.003971720358856857,
+        "gate_far_R_jitter_x_m": -0.004849756644040177,
+        "gate_near_clear_width_m": 0.3897169238703939,
+        "gate_far_clear_width_m": 0.3946125873333655,
+        "global_translation_x_m": 0.10814894172629766,
+        "control_near_scale": 0.9767737652351709,
+        "control_far_scale": 1.0185127586241234
+      },
+      "band_pairs": {
+        "near": [
+          1,
+          2
+        ],
+        "far": [
+          1,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.2,
+          6.5
+        ],
+        "order": "near_first",
+        "probe_prefix_indices": [
+          22,
+          27,
+          36,
+          65,
+          70,
+          79,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              1.7000000000000002
+            ],
+            "y_m": [
+              -0.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              1.7000000000000002,
+              2.7
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              2.7,
+              6.0
+            ],
+            "y_m": [
+              0.6,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              6.0,
+              7.0
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              7.0,
+              11
+            ],
+            "y_m": [
+              2.2,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 22,
+          "B": 65
+        }
+      },
+      "normalized_design_sha256": "66866e6198647a205e52ddb253a532d8a9dc4711d2a6557067bfe45188629073"
+    },
+    {
+      "family_id": "r4-24",
+      "index": 24,
+      "split": "model_train",
+      "split_rank": 14,
+      "parameters": {
+        "gate_near_y_m": 0.6384415164063512,
+        "gate_far_y_m": 2.1646061671006067,
+        "gate_near_bias_x_m": 0.0024853702994848082,
+        "gate_far_bias_x_m": 0.0011397826482628546,
+        "gate_near_L_jitter_x_m": -0.0018763910445114725,
+        "gate_near_R_jitter_x_m": 0.009507929949470575,
+        "gate_far_L_jitter_x_m": -0.0030516938032490518,
+        "gate_far_R_jitter_x_m": -0.006177165267318386,
+        "gate_near_clear_width_m": 0.3827997575462852,
+        "gate_far_clear_width_m": 0.3912228743309446,
+        "global_translation_x_m": 0.018531955279894957,
+        "control_near_scale": 0.972717379291361,
+        "control_far_scale": 1.0130441707776643
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          2
+        ],
+        "far": [
+          0,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.8,
+          6.5
+        ],
+        "order": "far_first",
+        "probe_prefix_indices": [
+          28,
+          33,
+          42,
+          65,
+          70,
+          79,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.3
+            ],
+            "y_m": [
+              -0.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              2.3,
+              3.3
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              3.3,
+              6.0
+            ],
+            "y_m": [
+              2.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              6.0,
+              7.0
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              7.0,
+              11
+            ],
+            "y_m": [
+              0.6,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 65,
+          "B": 28
+        }
+      },
+      "normalized_design_sha256": "c5d268d523c92cd47d223eabf259a51fb73c21c0b0c60a82e59fe3793500e885"
+    },
+    {
+      "family_id": "r4-07",
+      "index": 7,
+      "split": "model_train",
+      "split_rank": 15,
+      "parameters": {
+        "gate_near_y_m": 0.6081041246087113,
+        "gate_far_y_m": 2.2081292157520993,
+        "gate_near_bias_x_m": 0.0025314659239151606,
+        "gate_far_bias_x_m": 0.0007561242792536831,
+        "gate_near_L_jitter_x_m": -0.0017721230684702247,
+        "gate_near_R_jitter_x_m": -0.006589615553061966,
+        "gate_far_L_jitter_x_m": -0.009688802503713186,
+        "gate_far_R_jitter_x_m": 0.002186989063152702,
+        "gate_near_clear_width_m": 0.3864040465974408,
+        "gate_far_clear_width_m": 0.3906840460932732,
+        "global_translation_x_m": 0.034692230654571804,
+        "control_near_scale": 1.0290139496898938,
+        "control_far_scale": 1.0396256061705038
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          1
+        ],
+        "far": [
+          1,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.8,
+          6.5
+        ],
+        "order": "far_first",
+        "probe_prefix_indices": [
+          28,
+          33,
+          42,
+          65,
+          70,
+          79,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.3
+            ],
+            "y_m": [
+              -0.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              2.3,
+              3.3
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              3.3,
+              6.0
+            ],
+            "y_m": [
+              2.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              6.0,
+              7.0
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              7.0,
+              11
+            ],
+            "y_m": [
+              0.6,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 65,
+          "B": 28
+        }
+      },
+      "normalized_design_sha256": "e30f3b77a4c86958a899fd913fa6e3790972603ffb8ae07799e5be47508a2ffd"
+    },
+    {
+      "family_id": "r4-15",
+      "index": 15,
+      "split": "model_train",
+      "split_rank": 16,
+      "parameters": {
+        "gate_near_y_m": 0.5716887833456846,
+        "gate_far_y_m": 2.2331227883706717,
+        "gate_near_bias_x_m": 0.0006180007376089588,
+        "gate_far_bias_x_m": -0.000493487740625501,
+        "gate_near_L_jitter_x_m": -0.0017282066702878386,
+        "gate_near_R_jitter_x_m": -0.008736538823124676,
+        "gate_far_L_jitter_x_m": 0.003910113417976488,
+        "gate_far_R_jitter_x_m": 0.005808364724797682,
+        "gate_near_clear_width_m": 0.3844917296762935,
+        "gate_far_clear_width_m": 0.3819109420594884,
+        "global_translation_x_m": -0.08584522186864217,
+        "control_near_scale": 1.012063368477996,
+        "control_far_scale": 1.0147010735506514
+      },
+      "band_pairs": {
+        "near": [
+          1,
+          2
+        ],
+        "far": [
+          0,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.5,
+          6.5
+        ],
+        "order": "near_first",
+        "probe_prefix_indices": [
+          25,
+          30,
+          39,
+          65,
+          70,
+          79,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.0
+            ],
+            "y_m": [
+              -0.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              2.0,
+              3.0
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              3.0,
+              6.0
+            ],
+            "y_m": [
+              0.6,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              6.0,
+              7.0
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              7.0,
+              11
+            ],
+            "y_m": [
+              2.2,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 25,
+          "B": 65
+        }
+      },
+      "normalized_design_sha256": "115e727a91d3797d082101b0a8f86f806d63b963be0481ecbeae4934f2e45970"
+    },
+    {
+      "family_id": "r4-12",
+      "index": 12,
+      "split": "model_train",
+      "split_rank": 17,
+      "parameters": {
+        "gate_near_y_m": 0.5939511395016006,
+        "gate_far_y_m": 2.217256002861954,
+        "gate_near_bias_x_m": -0.00019379392053548924,
+        "gate_far_bias_x_m": 0.0019410772598024003,
+        "gate_near_L_jitter_x_m": -0.0058319931250865485,
+        "gate_near_R_jitter_x_m": -0.002234485687294451,
+        "gate_far_L_jitter_x_m": 0.008413581751253113,
+        "gate_far_R_jitter_x_m": -0.0002389165834061277,
+        "gate_near_clear_width_m": 0.39381639090794995,
+        "gate_far_clear_width_m": 0.39280385789564487,
+        "global_translation_x_m": -0.030203240669026396,
+        "control_near_scale": 0.9963496396100533,
+        "control_far_scale": 0.9676222596451853
+      },
+      "band_pairs": {
+        "near": [
+          1,
+          2
+        ],
+        "far": [
+          1,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.8,
+          6.8
+        ],
+        "order": "near_first",
+        "probe_prefix_indices": [
+          28,
+          33,
+          42,
+          68,
+          73,
+          82,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.3
+            ],
+            "y_m": [
+              -0.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              2.3,
+              3.3
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              3.3,
+              6.3
+            ],
+            "y_m": [
+              0.6,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              6.3,
+              7.3
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              7.3,
+              11
+            ],
+            "y_m": [
+              2.2,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 28,
+          "B": 68
+        }
+      },
+      "normalized_design_sha256": "dfed1e959496831a28bcf289e3f4fc61ee4ec83ccb1e5522555c266e7937614e"
+    },
+    {
+      "family_id": "r4-04",
+      "index": 4,
+      "split": "model_train",
+      "split_rank": 18,
+      "parameters": {
+        "gate_near_y_m": 0.5847282828239234,
+        "gate_far_y_m": 2.1897451280049083,
+        "gate_near_bias_x_m": -0.0044281325825295675,
+        "gate_far_bias_x_m": -0.00029374813890623453,
+        "gate_near_L_jitter_x_m": 0.00023279915679197405,
+        "gate_near_R_jitter_x_m": -0.009624270759817215,
+        "gate_far_L_jitter_x_m": 0.008966631613679074,
+        "gate_far_R_jitter_x_m": -0.00404747469024946,
+        "gate_near_clear_width_m": 0.3860252550671521,
+        "gate_far_clear_width_m": 0.3948865379619006,
+        "global_translation_x_m": 0.038764722090858655,
+        "control_near_scale": 1.0022699711289438,
+        "control_far_scale": 0.9706057924729979
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          1
+        ],
+        "far": [
+          0,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.8,
+          6.8
+        ],
+        "order": "far_first",
+        "probe_prefix_indices": [
+          28,
+          33,
+          42,
+          68,
+          73,
+          82,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.3
+            ],
+            "y_m": [
+              -0.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              2.3,
+              3.3
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              3.3,
+              6.3
+            ],
+            "y_m": [
+              2.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              6.3,
+              7.3
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              7.3,
+              11
+            ],
+            "y_m": [
+              0.6,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 68,
+          "B": 28
+        }
+      },
+      "normalized_design_sha256": "c8f031a75400009883738d9c307db5a47f81e0c374bc7f82d8e28a47d1e8bd91"
+    },
+    {
+      "family_id": "r4-59",
+      "index": 59,
+      "split": "model_train",
+      "split_rank": 19,
+      "parameters": {
+        "gate_near_y_m": 0.6349009989291309,
+        "gate_far_y_m": 2.1893786769827632,
+        "gate_near_bias_x_m": -8.234282849691518e-05,
+        "gate_far_bias_x_m": -0.0010400285034684554,
+        "gate_near_L_jitter_x_m": 0.005041000943910762,
+        "gate_near_R_jitter_x_m": -0.006834891474250997,
+        "gate_far_L_jitter_x_m": 0.009582461130708703,
+        "gate_far_R_jitter_x_m": 0.007055459934802848,
+        "gate_near_clear_width_m": 0.39252728161215894,
+        "gate_far_clear_width_m": 0.3853395927482908,
+        "global_translation_x_m": -0.07833282150786199,
+        "control_near_scale": 1.0139825813584569,
+        "control_far_scale": 0.9702684052902606
+      },
+      "band_pairs": {
+        "near": [
+          1,
+          2
+        ],
+        "far": [
+          0,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.5,
+          6.5
+        ],
+        "order": "far_first",
+        "probe_prefix_indices": [
+          25,
+          30,
+          39,
+          65,
+          70,
+          79,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.0
+            ],
+            "y_m": [
+              -0.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              2.0,
+              3.0
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              3.0,
+              6.0
+            ],
+            "y_m": [
+              2.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              6.0,
+              7.0
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              7.0,
+              11
+            ],
+            "y_m": [
+              0.6,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 65,
+          "B": 25
+        }
+      },
+      "normalized_design_sha256": "7065899420480d61102a5c024b95c45ffe3235b6501ada255131bee8b7a4c4d5"
+    },
+    {
+      "family_id": "r4-16",
+      "index": 16,
+      "split": "model_train",
+      "split_rank": 20,
+      "parameters": {
+        "gate_near_y_m": 0.6128653770949406,
+        "gate_far_y_m": 2.218533095760268,
+        "gate_near_bias_x_m": -0.0007424061848741136,
+        "gate_far_bias_x_m": 0.0005531046901320388,
+        "gate_near_L_jitter_x_m": -0.0008350926851163794,
+        "gate_near_R_jitter_x_m": 0.00015151919245987543,
+        "gate_far_L_jitter_x_m": -0.005547004989592707,
+        "gate_far_R_jitter_x_m": 0.0038206442533884714,
+        "gate_near_clear_width_m": 0.387023930505578,
+        "gate_far_clear_width_m": 0.39362442616500926,
+        "global_translation_x_m": -0.10378966374222855,
+        "control_near_scale": 0.9817920242372549,
+        "control_far_scale": 0.9802207617824419
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          2
+        ],
+        "far": [
+          0,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.2,
+          6.5
+        ],
+        "order": "far_first",
+        "probe_prefix_indices": [
+          22,
+          27,
+          36,
+          65,
+          70,
+          79,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              1.7000000000000002
+            ],
+            "y_m": [
+              -0.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              1.7000000000000002,
+              2.7
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              2.7,
+              6.0
+            ],
+            "y_m": [
+              2.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              6.0,
+              7.0
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              7.0,
+              11
+            ],
+            "y_m": [
+              0.6,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 65,
+          "B": 22
+        }
+      },
+      "normalized_design_sha256": "5015da1b1ac0eaa43570f02ae9576c32aa228d16ad1023bd04a944562facbec6"
+    },
+    {
+      "family_id": "r4-57",
+      "index": 57,
+      "split": "model_train",
+      "split_rank": 21,
+      "parameters": {
+        "gate_near_y_m": 0.5791472011555627,
+        "gate_far_y_m": 2.1734040199452904,
+        "gate_near_bias_x_m": 0.002462046919765348,
+        "gate_far_bias_x_m": -0.002730452472723333,
+        "gate_near_L_jitter_x_m": 0.008599907080953066,
+        "gate_near_R_jitter_x_m": 0.002204752745956544,
+        "gate_far_L_jitter_x_m": 0.006704377078264627,
+        "gate_far_R_jitter_x_m": 0.0067082474980206894,
+        "gate_near_clear_width_m": 0.39534655595981266,
+        "gate_far_clear_width_m": 0.3881712933910997,
+        "global_translation_x_m": 0.029863218183588808,
+        "control_near_scale": 1.031553270506334,
+        "control_far_scale": 0.9740758542974532
+      },
+      "band_pairs": {
+        "near": [
+          1,
+          2
+        ],
+        "far": [
+          0,
+          1
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.8,
+          6.2
+        ],
+        "order": "far_first",
+        "probe_prefix_indices": [
+          28,
+          33,
+          42,
+          62,
+          67,
+          76,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.3
+            ],
+            "y_m": [
+              -0.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              2.3,
+              3.3
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              3.3,
+              5.7
+            ],
+            "y_m": [
+              2.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              5.7,
+              6.7
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              6.7,
+              11
+            ],
+            "y_m": [
+              0.6,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 62,
+          "B": 28
+        }
+      },
+      "normalized_design_sha256": "b3545e5625778671f48d0800f50af2fbc64eafbadf933f21ea91966593f18f2e"
+    },
+    {
+      "family_id": "r4-54",
+      "index": 54,
+      "split": "model_train",
+      "split_rank": 22,
+      "parameters": {
+        "gate_near_y_m": 0.59882153125594,
+        "gate_far_y_m": 2.172264755656414,
+        "gate_near_bias_x_m": 5.648264176135592e-05,
+        "gate_far_bias_x_m": -0.000831127924685481,
+        "gate_near_L_jitter_x_m": -0.0036832343526936352,
+        "gate_near_R_jitter_x_m": -0.007080969556734684,
+        "gate_far_L_jitter_x_m": -0.006228411355404088,
+        "gate_far_R_jitter_x_m": 0.007902313014006396,
+        "gate_near_clear_width_m": 0.3968781837490545,
+        "gate_far_clear_width_m": 0.39461864373377226,
+        "global_translation_x_m": -0.09280133561502435,
+        "control_near_scale": 1.0430073888262466,
+        "control_far_scale": 0.9518753047496996
+      },
+      "band_pairs": {
+        "near": [
+          1,
+          2
+        ],
+        "far": [
+          0,
+          1
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.8,
+          6.5
+        ],
+        "order": "near_first",
+        "probe_prefix_indices": [
+          28,
+          33,
+          42,
+          65,
+          70,
+          79,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.3
+            ],
+            "y_m": [
+              -0.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              2.3,
+              3.3
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              3.3,
+              6.0
+            ],
+            "y_m": [
+              0.6,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              6.0,
+              7.0
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              7.0,
+              11
+            ],
+            "y_m": [
+              2.2,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 28,
+          "B": 65
+        }
+      },
+      "normalized_design_sha256": "750e66c4b422275360f2d789c4d172ad6f893ae7245c6866be85f9d58495ffee"
+    },
+    {
+      "family_id": "r4-63",
+      "index": 63,
+      "split": "model_train",
+      "split_rank": 23,
+      "parameters": {
+        "gate_near_y_m": 0.5768337646624502,
+        "gate_far_y_m": 2.2036160877124957,
+        "gate_near_bias_x_m": -0.002739426777922722,
+        "gate_far_bias_x_m": -0.002791499120639555,
+        "gate_near_L_jitter_x_m": 0.0008875605631646685,
+        "gate_near_R_jitter_x_m": -0.009823337862615467,
+        "gate_far_L_jitter_x_m": 0.004174898568327647,
+        "gate_far_R_jitter_x_m": -0.009371448444084203,
+        "gate_near_clear_width_m": 0.3859525047302958,
+        "gate_far_clear_width_m": 0.39830508402041215,
+        "global_translation_x_m": 0.0033297324637754366,
+        "control_near_scale": 1.048552400830662,
+        "control_far_scale": 1.0093197465462411
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          1
+        ],
+        "far": [
+          0,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.5,
+          6.2
+        ],
+        "order": "far_first",
+        "probe_prefix_indices": [
+          25,
+          30,
+          39,
+          62,
+          67,
+          76,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.0
+            ],
+            "y_m": [
+              -0.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              2.0,
+              3.0
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              3.0,
+              5.7
+            ],
+            "y_m": [
+              2.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              5.7,
+              6.7
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              6.7,
+              11
+            ],
+            "y_m": [
+              0.6,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 62,
+          "B": 25
+        }
+      },
+      "normalized_design_sha256": "b8c4063879ed043240b8a30b5c3bc25fe3635167657a7e95c1556cc7f7637b85"
+    },
+    {
+      "family_id": "r4-45",
+      "index": 45,
+      "split": "model_train",
+      "split_rank": 24,
+      "parameters": {
+        "gate_near_y_m": 0.6142043819264917,
+        "gate_far_y_m": 2.209671632295115,
+        "gate_near_bias_x_m": 0.0003887540881071013,
+        "gate_far_bias_x_m": -0.0008762179073448697,
+        "gate_near_L_jitter_x_m": 0.0033787621585145873,
+        "gate_near_R_jitter_x_m": -0.007957154507052071,
+        "gate_far_L_jitter_x_m": -0.0006201760150964814,
+        "gate_far_R_jitter_x_m": 0.009171222389885743,
+        "gate_near_clear_width_m": 0.3810952010642918,
+        "gate_far_clear_width_m": 0.38669248335736306,
+        "global_translation_x_m": -0.008038174290270747,
+        "control_near_scale": 0.9784790348590029,
+        "control_far_scale": 0.9626715655955781
+      },
+      "band_pairs": {
+        "near": [
+          1,
+          2
+        ],
+        "far": [
+          0,
+          1
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.2,
+          6.8
+        ],
+        "order": "near_first",
+        "probe_prefix_indices": [
+          22,
+          27,
+          36,
+          68,
+          73,
+          82,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              1.7000000000000002
+            ],
+            "y_m": [
+              -0.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              1.7000000000000002,
+              2.7
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              2.7,
+              6.3
+            ],
+            "y_m": [
+              0.6,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              6.3,
+              7.3
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              7.3,
+              11
+            ],
+            "y_m": [
+              2.2,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 22,
+          "B": 68
+        }
+      },
+      "normalized_design_sha256": "9f08acb44d7f41fafb86a44c1505e427cd856498b2a60fda9f78137c4074a825"
+    },
+    {
+      "family_id": "r4-51",
+      "index": 51,
+      "split": "model_train",
+      "split_rank": 25,
+      "parameters": {
+        "gate_near_y_m": 0.5664742478229554,
+        "gate_far_y_m": 2.2097686672425043,
+        "gate_near_bias_x_m": 0.0033278663239542034,
+        "gate_far_bias_x_m": 0.0023169650942756574,
+        "gate_near_L_jitter_x_m": 0.0022652750685990108,
+        "gate_near_R_jitter_x_m": -7.979163136526135e-05,
+        "gate_far_L_jitter_x_m": -0.003213312193687916,
+        "gate_far_R_jitter_x_m": 0.009977631000125364,
+        "gate_near_clear_width_m": 0.3961745302393537,
+        "gate_far_clear_width_m": 0.383272772940698,
+        "global_translation_x_m": 0.010015865873346685,
+        "control_near_scale": 1.0109362781198388,
+        "control_far_scale": 1.0357615237590636
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          2
+        ],
+        "far": [
+          0,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.5,
+          6.5
+        ],
+        "order": "near_first",
+        "probe_prefix_indices": [
+          25,
+          30,
+          39,
+          65,
+          70,
+          79,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.0
+            ],
+            "y_m": [
+              -0.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              2.0,
+              3.0
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              3.0,
+              6.0
+            ],
+            "y_m": [
+              0.6,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              6.0,
+              7.0
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              7.0,
+              11
+            ],
+            "y_m": [
+              2.2,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 25,
+          "B": 65
+        }
+      },
+      "normalized_design_sha256": "49ae5a1fe71989a1cf80fad22bdc0e916ee04f9028fff9746a4f87ef4a3114cb"
+    },
+    {
+      "family_id": "r4-27",
+      "index": 27,
+      "split": "model_train",
+      "split_rank": 26,
+      "parameters": {
+        "gate_near_y_m": 0.639220368743632,
+        "gate_far_y_m": 2.1918471826686408,
+        "gate_near_bias_x_m": 0.0015287454868794072,
+        "gate_far_bias_x_m": 0.003188106982913437,
+        "gate_near_L_jitter_x_m": -0.002668181437755798,
+        "gate_near_R_jitter_x_m": 0.008077350305940015,
+        "gate_far_L_jitter_x_m": 0.0012652835889011942,
+        "gate_far_R_jitter_x_m": 0.00265537271865233,
+        "gate_near_clear_width_m": 0.38110315148253265,
+        "gate_far_clear_width_m": 0.3944824379467828,
+        "global_translation_x_m": -0.03703595714077185,
+        "control_near_scale": 0.9930711684981973,
+        "control_far_scale": 0.9964221952953685
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          1
+        ],
+        "far": [
+          0,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.5,
+          6.5
+        ],
+        "order": "far_first",
+        "probe_prefix_indices": [
+          25,
+          30,
+          39,
+          65,
+          70,
+          79,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.0
+            ],
+            "y_m": [
+              -0.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              2.0,
+              3.0
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              3.0,
+              6.0
+            ],
+            "y_m": [
+              2.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              6.0,
+              7.0
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              7.0,
+              11
+            ],
+            "y_m": [
+              0.6,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 65,
+          "B": 25
+        }
+      },
+      "normalized_design_sha256": "965e85facd52861a39f4d15c2dd8e7cd54154c8197d297c283aefb57bba22e48"
+    },
+    {
+      "family_id": "r4-17",
+      "index": 17,
+      "split": "model_train",
+      "split_rank": 27,
+      "parameters": {
+        "gate_near_y_m": 0.6165479590377821,
+        "gate_far_y_m": 2.223307413069325,
+        "gate_near_bias_x_m": 0.004061789211883133,
+        "gate_far_bias_x_m": -0.0006701704229120416,
+        "gate_near_L_jitter_x_m": 0.005545316882433591,
+        "gate_near_R_jitter_x_m": -0.008801820948069548,
+        "gate_far_L_jitter_x_m": 0.0017723343611631553,
+        "gate_far_R_jitter_x_m": 0.007995030406796921,
+        "gate_near_clear_width_m": 0.397359468651046,
+        "gate_far_clear_width_m": 0.39304296066456507,
+        "global_translation_x_m": 0.07313288249410421,
+        "control_near_scale": 0.9748286975090507,
+        "control_far_scale": 1.0110146688386072
+      },
+      "band_pairs": {
+        "near": [
+          1,
+          2
+        ],
+        "far": [
+          0,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.8,
+          6.2
+        ],
+        "order": "far_first",
+        "probe_prefix_indices": [
+          28,
+          33,
+          42,
+          62,
+          67,
+          76,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.3
+            ],
+            "y_m": [
+              -0.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              2.3,
+              3.3
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              3.3,
+              5.7
+            ],
+            "y_m": [
+              2.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              5.7,
+              6.7
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              6.7,
+              11
+            ],
+            "y_m": [
+              0.6,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 62,
+          "B": 28
+        }
+      },
+      "normalized_design_sha256": "31152e72d9ecfa5588321ce36997fe8b52fce47232f99cc58870ac82719b10fb"
+    },
+    {
+      "family_id": "r4-08",
+      "index": 8,
+      "split": "model_train",
+      "split_rank": 28,
+      "parameters": {
+        "gate_near_y_m": 0.6235465241325233,
+        "gate_far_y_m": 2.170824773050667,
+        "gate_near_bias_x_m": -0.0009584990444776167,
+        "gate_far_bias_x_m": -0.0034780866295775,
+        "gate_near_L_jitter_x_m": 0.004004466135362187,
+        "gate_near_R_jitter_x_m": -0.009357808423135312,
+        "gate_far_L_jitter_x_m": -0.0024987551941106816,
+        "gate_far_R_jitter_x_m": -0.004859748831806058,
+        "gate_near_clear_width_m": 0.3973742010672166,
+        "gate_far_clear_width_m": 0.38271103310194116,
+        "global_translation_x_m": 0.099982890152635,
+        "control_near_scale": 0.9931511771888772,
+        "control_far_scale": 1.024443268161959
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          1
+        ],
+        "far": [
+          0,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.2,
+          6.5
+        ],
+        "order": "far_first",
+        "probe_prefix_indices": [
+          22,
+          27,
+          36,
+          65,
+          70,
+          79,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              1.7000000000000002
+            ],
+            "y_m": [
+              -0.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              1.7000000000000002,
+              2.7
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              2.7,
+              6.0
+            ],
+            "y_m": [
+              2.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              6.0,
+              7.0
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              7.0,
+              11
+            ],
+            "y_m": [
+              0.6,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 65,
+          "B": 22
+        }
+      },
+      "normalized_design_sha256": "a1538949607b4e977ad1ed71773ba91a154ca0b3d1d64c6516fa03a30c53feda"
+    },
+    {
+      "family_id": "r4-10",
+      "index": 10,
+      "split": "model_train",
+      "split_rank": 29,
+      "parameters": {
+        "gate_near_y_m": 0.5926715795661075,
+        "gate_far_y_m": 2.1880134810301914,
+        "gate_near_bias_x_m": -0.003107244414994682,
+        "gate_far_bias_x_m": -0.002406202953882986,
+        "gate_near_L_jitter_x_m": -0.00875940819439207,
+        "gate_near_R_jitter_x_m": -0.009662339954251255,
+        "gate_far_L_jitter_x_m": 0.007045047405419865,
+        "gate_far_R_jitter_x_m": 0.0014116837580345262,
+        "gate_near_clear_width_m": 0.3951579378959356,
+        "gate_far_clear_width_m": 0.3908272905623548,
+        "global_translation_x_m": -0.09721592683976912,
+        "control_near_scale": 0.9503302721127355,
+        "control_far_scale": 1.0113913235989098
+      },
+      "band_pairs": {
+        "near": [
+          1,
+          2
+        ],
+        "far": [
+          0,
+          1
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.2,
+          6.5
+        ],
+        "order": "near_first",
+        "probe_prefix_indices": [
+          22,
+          27,
+          36,
+          65,
+          70,
+          79,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              1.7000000000000002
+            ],
+            "y_m": [
+              -0.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              1.7000000000000002,
+              2.7
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              2.7,
+              6.0
+            ],
+            "y_m": [
+              0.6,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              6.0,
+              7.0
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              7.0,
+              11
+            ],
+            "y_m": [
+              2.2,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 22,
+          "B": 65
+        }
+      },
+      "normalized_design_sha256": "023ef4046cf878ba2b4229c12497a966006fd6df4af87e6fe92bb7813c66ee9c"
+    },
+    {
+      "family_id": "r4-42",
+      "index": 42,
+      "split": "model_train",
+      "split_rank": 30,
+      "parameters": {
+        "gate_near_y_m": 0.6086649804424671,
+        "gate_far_y_m": 2.1939527138150607,
+        "gate_near_bias_x_m": -0.004475297979454822,
+        "gate_far_bias_x_m": -0.0023204411735963087,
+        "gate_near_L_jitter_x_m": 0.005770153690179651,
+        "gate_near_R_jitter_x_m": 0.00777681424246429,
+        "gate_far_L_jitter_x_m": 0.006556440578604465,
+        "gate_far_R_jitter_x_m": -0.006726650396499745,
+        "gate_near_clear_width_m": 0.3927191775581964,
+        "gate_far_clear_width_m": 0.3969222087384323,
+        "global_translation_x_m": 0.1056292500154605,
+        "control_near_scale": 0.9611232136175144,
+        "control_far_scale": 1.0441702270981812
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          1
+        ],
+        "far": [
+          0,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.8,
+          6.2
+        ],
+        "order": "far_first",
+        "probe_prefix_indices": [
+          28,
+          33,
+          42,
+          62,
+          67,
+          76,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.3
+            ],
+            "y_m": [
+              -0.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              2.3,
+              3.3
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              3.3,
+              5.7
+            ],
+            "y_m": [
+              2.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              5.7,
+              6.7
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              6.7,
+              11
+            ],
+            "y_m": [
+              0.6,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 62,
+          "B": 28
+        }
+      },
+      "normalized_design_sha256": "db15537320c86c1f0e72ddaaa1b13bc69e7a8ece2ab639b90d8039115c3666a4"
+    },
+    {
+      "family_id": "r4-49",
+      "index": 49,
+      "split": "model_train",
+      "split_rank": 31,
+      "parameters": {
+        "gate_near_y_m": 0.6326106836621014,
+        "gate_far_y_m": 2.1790995157109108,
+        "gate_near_bias_x_m": 0.0008751282843530127,
+        "gate_far_bias_x_m": 0.0013972541117667527,
+        "gate_near_L_jitter_x_m": 0.001165620779968804,
+        "gate_near_R_jitter_x_m": -0.002505994129972956,
+        "gate_far_L_jitter_x_m": 0.00501638197094509,
+        "gate_far_R_jitter_x_m": -0.004166617589056191,
+        "gate_near_clear_width_m": 0.3996115445195319,
+        "gate_far_clear_width_m": 0.38509605091424665,
+        "global_translation_x_m": 0.11146189604727669,
+        "control_near_scale": 1.0489354166320426,
+        "control_far_scale": 1.0229921922236063
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          1
+        ],
+        "far": [
+          1,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.8,
+          6.2
+        ],
+        "order": "near_first",
+        "probe_prefix_indices": [
+          28,
+          33,
+          42,
+          62,
+          67,
+          76,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.3
+            ],
+            "y_m": [
+              -0.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              2.3,
+              3.3
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              3.3,
+              5.7
+            ],
+            "y_m": [
+              0.6,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              5.7,
+              6.7
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              6.7,
+              11
+            ],
+            "y_m": [
+              2.2,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 28,
+          "B": 62
+        }
+      },
+      "normalized_design_sha256": "d72493e5fac427077e17dd730babd0312fa3663b9a537fa926c45e8f54c4782b"
+    },
+    {
+      "family_id": "r4-52",
+      "index": 52,
+      "split": "model_validation",
+      "split_rank": 0,
+      "parameters": {
+        "gate_near_y_m": 0.5770351426065822,
+        "gate_far_y_m": 2.184805926220198,
+        "gate_near_bias_x_m": 0.0020999913574297506,
+        "gate_far_bias_x_m": -0.004860467085654636,
+        "gate_near_L_jitter_x_m": 0.0008860722019634632,
+        "gate_near_R_jitter_x_m": -0.006704706134766121,
+        "gate_far_L_jitter_x_m": 0.001277366227339271,
+        "gate_far_R_jitter_x_m": 0.0044888845455053426,
+        "gate_near_clear_width_m": 0.3927593766117967,
+        "gate_far_clear_width_m": 0.3917338118599007,
+        "global_translation_x_m": -0.005189750034570076,
+        "control_near_scale": 0.9767584813352593,
+        "control_far_scale": 0.9571694052873208
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          1
+        ],
+        "far": [
+          1,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.2,
+          6.5
+        ],
+        "order": "near_first",
+        "probe_prefix_indices": [
+          22,
+          27,
+          36,
+          65,
+          70,
+          79,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              1.7000000000000002
+            ],
+            "y_m": [
+              -0.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              1.7000000000000002,
+              2.7
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              2.7,
+              6.0
+            ],
+            "y_m": [
+              0.6,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              6.0,
+              7.0
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              7.0,
+              11
+            ],
+            "y_m": [
+              2.2,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 22,
+          "B": 65
+        }
+      },
+      "normalized_design_sha256": "45e5f690a3615b71b5ce449d420504f9788dd3a1c5e409293c5b0bb8a276127b"
+    },
+    {
+      "family_id": "r4-43",
+      "index": 43,
+      "split": "model_validation",
+      "split_rank": 1,
+      "parameters": {
+        "gate_near_y_m": 0.626508692814821,
+        "gate_far_y_m": 2.2160182174610963,
+        "gate_near_bias_x_m": -0.003376707247013652,
+        "gate_far_bias_x_m": -0.0013543016613887103,
+        "gate_near_L_jitter_x_m": 0.004581790169209931,
+        "gate_near_R_jitter_x_m": 0.007272457592128289,
+        "gate_far_L_jitter_x_m": -0.001783865096976778,
+        "gate_far_R_jitter_x_m": 0.005238703461086862,
+        "gate_near_clear_width_m": 0.38876073377680653,
+        "gate_far_clear_width_m": 0.3870697284008488,
+        "global_translation_x_m": 0.10024728754276177,
+        "control_near_scale": 1.0139999641562383,
+        "control_far_scale": 1.0236447159472517
+      },
+      "band_pairs": {
+        "near": [
+          1,
+          2
+        ],
+        "far": [
+          0,
+          1
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.5,
+          6.2
+        ],
+        "order": "near_first",
+        "probe_prefix_indices": [
+          25,
+          30,
+          39,
+          62,
+          67,
+          76,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.0
+            ],
+            "y_m": [
+              -0.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              2.0,
+              3.0
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              3.0,
+              5.7
+            ],
+            "y_m": [
+              0.6,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              5.7,
+              6.7
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              6.7,
+              11
+            ],
+            "y_m": [
+              2.2,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 25,
+          "B": 62
+        }
+      },
+      "normalized_design_sha256": "4fdf3bf33958a666da9a102c9dcf15f557de943a91abca7aba8d38af4bc66013"
+    },
+    {
+      "family_id": "r4-18",
+      "index": 18,
+      "split": "model_validation",
+      "split_rank": 2,
+      "parameters": {
+        "gate_near_y_m": 0.588696480138671,
+        "gate_far_y_m": 2.200358664873107,
+        "gate_near_bias_x_m": -0.0032928977600655664,
+        "gate_far_bias_x_m": 0.0006198186428022449,
+        "gate_near_L_jitter_x_m": -0.006923562270022457,
+        "gate_near_R_jitter_x_m": -0.0001235211873657511,
+        "gate_far_L_jitter_x_m": -0.0012547405567793195,
+        "gate_far_R_jitter_x_m": 0.0015427002610436252,
+        "gate_near_clear_width_m": 0.39489378273726866,
+        "gate_far_clear_width_m": 0.39536798985817667,
+        "global_translation_x_m": -0.0815816829123355,
+        "control_near_scale": 1.0370183588686097,
+        "control_far_scale": 0.9971109641722905
+      },
+      "band_pairs": {
+        "near": [
+          1,
+          2
+        ],
+        "far": [
+          0,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.8,
+          6.5
+        ],
+        "order": "far_first",
+        "probe_prefix_indices": [
+          28,
+          33,
+          42,
+          65,
+          70,
+          79,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.3
+            ],
+            "y_m": [
+              -0.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              2.3,
+              3.3
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              3.3,
+              6.0
+            ],
+            "y_m": [
+              2.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              6.0,
+              7.0
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              7.0,
+              11
+            ],
+            "y_m": [
+              0.6,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 65,
+          "B": 28
+        }
+      },
+      "normalized_design_sha256": "ebbb9181742334e22254b7afe722868d7943f1d24979150d9ad16b91d778f3da"
+    },
+    {
+      "family_id": "r4-60",
+      "index": 60,
+      "split": "model_validation",
+      "split_rank": 3,
+      "parameters": {
+        "gate_near_y_m": 0.5946569679193536,
+        "gate_far_y_m": 2.1755868848174305,
+        "gate_near_bias_x_m": 0.004289260441052478,
+        "gate_far_bias_x_m": 0.004050731550737226,
+        "gate_near_L_jitter_x_m": -0.003636868087455363,
+        "gate_near_R_jitter_x_m": -0.009479728152141641,
+        "gate_far_L_jitter_x_m": -0.0036194083625697634,
+        "gate_far_R_jitter_x_m": 0.004622446296981759,
+        "gate_near_clear_width_m": 0.3940391606851249,
+        "gate_far_clear_width_m": 0.38375130826015,
+        "global_translation_x_m": 0.09547762948100977,
+        "control_near_scale": 1.0302348243668193,
+        "control_far_scale": 1.020076891796898
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          2
+        ],
+        "far": [
+          1,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.2,
+          6.5
+        ],
+        "order": "far_first",
+        "probe_prefix_indices": [
+          22,
+          27,
+          36,
+          65,
+          70,
+          79,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              1.7000000000000002
+            ],
+            "y_m": [
+              -0.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              1.7000000000000002,
+              2.7
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              2.7,
+              6.0
+            ],
+            "y_m": [
+              2.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              6.0,
+              7.0
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              7.0,
+              11
+            ],
+            "y_m": [
+              0.6,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 65,
+          "B": 22
+        }
+      },
+      "normalized_design_sha256": "d10dd6edacf66df525ee978ba97d0f41d7997712caa0d45ba167870f3bc95b46"
+    },
+    {
+      "family_id": "r4-01",
+      "index": 1,
+      "split": "model_validation",
+      "split_rank": 4,
+      "parameters": {
+        "gate_near_y_m": 0.5940328189320302,
+        "gate_far_y_m": 2.2006327299774386,
+        "gate_near_bias_x_m": -0.0015991235476175655,
+        "gate_far_bias_x_m": 6.874489785772559e-05,
+        "gate_near_L_jitter_x_m": 0.002310008646398118,
+        "gate_near_R_jitter_x_m": 0.0015308744770480068,
+        "gate_far_L_jitter_x_m": -0.0055772045640265795,
+        "gate_far_R_jitter_x_m": -0.002154201492148145,
+        "gate_near_clear_width_m": 0.3815121438548788,
+        "gate_far_clear_width_m": 0.3855440253810946,
+        "global_translation_x_m": 0.014814281983645095,
+        "control_near_scale": 1.0078259864125774,
+        "control_far_scale": 1.0227408795101252
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          1
+        ],
+        "far": [
+          1,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.8,
+          6.2
+        ],
+        "order": "far_first",
+        "probe_prefix_indices": [
+          28,
+          33,
+          42,
+          62,
+          67,
+          76,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.3
+            ],
+            "y_m": [
+              -0.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              2.3,
+              3.3
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              3.3,
+              5.7
+            ],
+            "y_m": [
+              2.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              5.7,
+              6.7
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              6.7,
+              11
+            ],
+            "y_m": [
+              0.6,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 62,
+          "B": 28
+        }
+      },
+      "normalized_design_sha256": "7cddbbbefeecda41a460e9e88d73aab8c2a4355a39683afcbfc511d076d6e62a"
+    },
+    {
+      "family_id": "r4-29",
+      "index": 29,
+      "split": "model_validation",
+      "split_rank": 5,
+      "parameters": {
+        "gate_near_y_m": 0.5926027868556752,
+        "gate_far_y_m": 2.1751423619743537,
+        "gate_near_bias_x_m": -0.004771454419934848,
+        "gate_far_bias_x_m": -0.00013138399664890717,
+        "gate_near_L_jitter_x_m": -0.002014403164190614,
+        "gate_near_R_jitter_x_m": -0.00011585637474850058,
+        "gate_far_L_jitter_x_m": -0.0015908134305560543,
+        "gate_far_R_jitter_x_m": 0.0028948802238003,
+        "gate_near_clear_width_m": 0.3873446298289483,
+        "gate_far_clear_width_m": 0.3902617420737045,
+        "global_translation_x_m": -0.003373107772982817,
+        "control_near_scale": 0.9791735487309525,
+        "control_far_scale": 0.9952488334859385
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          1
+        ],
+        "far": [
+          0,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.2,
+          6.5
+        ],
+        "order": "far_first",
+        "probe_prefix_indices": [
+          22,
+          27,
+          36,
+          65,
+          70,
+          79,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              1.7000000000000002
+            ],
+            "y_m": [
+              -0.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              1.7000000000000002,
+              2.7
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              2.7,
+              6.0
+            ],
+            "y_m": [
+              2.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              6.0,
+              7.0
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              7.0,
+              11
+            ],
+            "y_m": [
+              0.6,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 65,
+          "B": 22
+        }
+      },
+      "normalized_design_sha256": "b5e732acb71fa875bb960b5915e8a1510ad954e2c0813293499f7a5b9030e3a3"
+    },
+    {
+      "family_id": "r4-02",
+      "index": 2,
+      "split": "model_validation",
+      "split_rank": 6,
+      "parameters": {
+        "gate_near_y_m": 0.5862063474871695,
+        "gate_far_y_m": 2.1776335818293338,
+        "gate_near_bias_x_m": 0.003492048776963695,
+        "gate_far_bias_x_m": 0.001738770413343452,
+        "gate_near_L_jitter_x_m": 0.007166888583624584,
+        "gate_near_R_jitter_x_m": 0.00937429002220033,
+        "gate_far_L_jitter_x_m": -0.009790888888764147,
+        "gate_far_R_jitter_x_m": 0.0030087520946526797,
+        "gate_near_clear_width_m": 0.3862953736011549,
+        "gate_far_clear_width_m": 0.38055404101914686,
+        "global_translation_x_m": -0.009257413864983216,
+        "control_near_scale": 0.9740235251923817,
+        "control_far_scale": 1.0394044290796898
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          2
+        ],
+        "far": [
+          1,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.2,
+          6.2
+        ],
+        "order": "far_first",
+        "probe_prefix_indices": [
+          22,
+          27,
+          36,
+          62,
+          67,
+          76,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              1.7000000000000002
+            ],
+            "y_m": [
+              -0.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              1.7000000000000002,
+              2.7
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              2.7,
+              5.7
+            ],
+            "y_m": [
+              2.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              5.7,
+              6.7
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              6.7,
+              11
+            ],
+            "y_m": [
+              0.6,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 62,
+          "B": 22
+        }
+      },
+      "normalized_design_sha256": "7a3028fe8a4e2c144ca2aea8ab57a40baf5397a63f72a1378281b468d8f8e771"
+    },
+    {
+      "family_id": "r4-13",
+      "index": 13,
+      "split": "model_validation",
+      "split_rank": 7,
+      "parameters": {
+        "gate_near_y_m": 0.5862822927477433,
+        "gate_far_y_m": 2.218277848413363,
+        "gate_near_bias_x_m": -0.002635794587787603,
+        "gate_far_bias_x_m": 0.0025317122048073492,
+        "gate_near_L_jitter_x_m": 0.0060364446105752815,
+        "gate_near_R_jitter_x_m": 0.009747671285957502,
+        "gate_far_L_jitter_x_m": 0.005102755287073987,
+        "gate_far_R_jitter_x_m": 0.0022896572835250876,
+        "gate_near_clear_width_m": 0.38756382423981783,
+        "gate_far_clear_width_m": 0.39408294235538605,
+        "global_translation_x_m": 0.011984933914176071,
+        "control_near_scale": 1.0109077633518988,
+        "control_far_scale": 0.9656215348596892
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          2
+        ],
+        "far": [
+          0,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.8,
+          6.2
+        ],
+        "order": "far_first",
+        "probe_prefix_indices": [
+          28,
+          33,
+          42,
+          62,
+          67,
+          76,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.3
+            ],
+            "y_m": [
+              -0.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              2.3,
+              3.3
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              3.3,
+              5.7
+            ],
+            "y_m": [
+              2.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              5.7,
+              6.7
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              6.7,
+              11
+            ],
+            "y_m": [
+              0.6,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 62,
+          "B": 28
+        }
+      },
+      "normalized_design_sha256": "ab4a51edf39c3ae5695b654c5914420af1d68197d0a05449be2eb82154e90216"
+    },
+    {
+      "family_id": "r4-32",
+      "index": 32,
+      "split": "model_confirmation",
+      "split_rank": 0,
+      "parameters": {
+        "gate_near_y_m": 0.6089577714513087,
+        "gate_far_y_m": 2.1779844690029173,
+        "gate_near_bias_x_m": -0.0036258682183077755,
+        "gate_far_bias_x_m": 0.004605115329851057,
+        "gate_near_L_jitter_x_m": 0.007062050361177933,
+        "gate_near_R_jitter_x_m": -0.00629831230667639,
+        "gate_far_L_jitter_x_m": 0.008655202074434485,
+        "gate_far_R_jitter_x_m": -0.004302803633119133,
+        "gate_near_clear_width_m": 0.3905494487191286,
+        "gate_far_clear_width_m": 0.3801187521166165,
+        "global_translation_x_m": -0.020985662229608154,
+        "control_near_scale": 0.9930531744853446,
+        "control_far_scale": 0.9902109061495051
+      },
+      "band_pairs": {
+        "near": [
+          1,
+          2
+        ],
+        "far": [
+          1,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.5,
+          6.8
+        ],
+        "order": "near_first",
+        "probe_prefix_indices": [
+          25,
+          30,
+          39,
+          68,
+          73,
+          82,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.0
+            ],
+            "y_m": [
+              -0.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              2.0,
+              3.0
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              3.0,
+              6.3
+            ],
+            "y_m": [
+              0.6,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              6.3,
+              7.3
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              7.3,
+              11
+            ],
+            "y_m": [
+              2.2,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 25,
+          "B": 68
+        }
+      },
+      "normalized_design_sha256": "92f3a47038653c5ee4ee98b283b324dc460f0e4de4e9aa0f486d41cc78046611"
+    },
+    {
+      "family_id": "r4-50",
+      "index": 50,
+      "split": "model_confirmation",
+      "split_rank": 1,
+      "parameters": {
+        "gate_near_y_m": 0.6230922798538215,
+        "gate_far_y_m": 2.2108024415728336,
+        "gate_near_bias_x_m": -0.00077541850252698,
+        "gate_far_bias_x_m": 0.00458840044604389,
+        "gate_near_L_jitter_x_m": -0.006728748040272342,
+        "gate_near_R_jitter_x_m": 0.0055802875037532194,
+        "gate_far_L_jitter_x_m": -0.0005796108836547201,
+        "gate_far_R_jitter_x_m": -0.0056753116182240975,
+        "gate_near_clear_width_m": 0.3811495898854413,
+        "gate_far_clear_width_m": 0.3865839264355553,
+        "global_translation_x_m": 0.09301914119874283,
+        "control_near_scale": 0.9749802790966167,
+        "control_far_scale": 0.9967093366775037
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          1
+        ],
+        "far": [
+          0,
+          1
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.5,
+          6.8
+        ],
+        "order": "near_first",
+        "probe_prefix_indices": [
+          25,
+          30,
+          39,
+          68,
+          73,
+          82,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.0
+            ],
+            "y_m": [
+              -0.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              2.0,
+              3.0
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              3.0,
+              6.3
+            ],
+            "y_m": [
+              0.6,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              6.3,
+              7.3
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              7.3,
+              11
+            ],
+            "y_m": [
+              2.2,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 25,
+          "B": 68
+        }
+      },
+      "normalized_design_sha256": "9af30d84953b6a35cab410b2a7ebd850b0a09ed9904fe4d31b0f407cf8991fa0"
+    },
+    {
+      "family_id": "r4-55",
+      "index": 55,
+      "split": "model_confirmation",
+      "split_rank": 2,
+      "parameters": {
+        "gate_near_y_m": 0.5965019608970104,
+        "gate_far_y_m": 2.2178400140040297,
+        "gate_near_bias_x_m": 0.00203333253295081,
+        "gate_far_bias_x_m": 0.001259272199483242,
+        "gate_near_L_jitter_x_m": -0.0031795848186035123,
+        "gate_near_R_jitter_x_m": -0.009878178034708075,
+        "gate_far_L_jitter_x_m": -0.0070145462673617855,
+        "gate_far_R_jitter_x_m": -0.0018032387320044193,
+        "gate_near_clear_width_m": 0.39266255716248055,
+        "gate_far_clear_width_m": 0.3814976525140544,
+        "global_translation_x_m": -0.0749731001393717,
+        "control_near_scale": 0.9650420248166337,
+        "control_far_scale": 1.047323572722466
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          1
+        ],
+        "far": [
+          0,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.2,
+          6.8
+        ],
+        "order": "near_first",
+        "probe_prefix_indices": [
+          22,
+          27,
+          36,
+          68,
+          73,
+          82,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              1.7000000000000002
+            ],
+            "y_m": [
+              -0.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              1.7000000000000002,
+              2.7
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              2.7,
+              6.3
+            ],
+            "y_m": [
+              0.6,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              6.3,
+              7.3
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              7.3,
+              11
+            ],
+            "y_m": [
+              2.2,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 22,
+          "B": 68
+        }
+      },
+      "normalized_design_sha256": "ae234bb08132236be20038111812a970a1b464b951b6e80012e6d7981a3dc3b1"
+    },
+    {
+      "family_id": "r4-41",
+      "index": 41,
+      "split": "model_confirmation",
+      "split_rank": 3,
+      "parameters": {
+        "gate_near_y_m": 0.6268787515341118,
+        "gate_far_y_m": 2.1929218840180087,
+        "gate_near_bias_x_m": -0.004048678119105918,
+        "gate_far_bias_x_m": 0.004980850194571343,
+        "gate_near_L_jitter_x_m": 0.002152302095137724,
+        "gate_near_R_jitter_x_m": -0.0012127630502280322,
+        "gate_far_L_jitter_x_m": 0.0032005937126596846,
+        "gate_far_R_jitter_x_m": 0.0001407513145387316,
+        "gate_near_clear_width_m": 0.3834790793525675,
+        "gate_far_clear_width_m": 0.3975092971769941,
+        "global_translation_x_m": -0.10523622138747904,
+        "control_near_scale": 0.992459527325268,
+        "control_far_scale": 0.9986151382651863
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          1
+        ],
+        "far": [
+          0,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.5,
+          6.5
+        ],
+        "order": "far_first",
+        "probe_prefix_indices": [
+          25,
+          30,
+          39,
+          65,
+          70,
+          79,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.0
+            ],
+            "y_m": [
+              -0.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              2.0,
+              3.0
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              3.0,
+              6.0
+            ],
+            "y_m": [
+              2.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              6.0,
+              7.0
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              7.0,
+              11
+            ],
+            "y_m": [
+              0.6,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 65,
+          "B": 25
+        }
+      },
+      "normalized_design_sha256": "0d6c8071dfe884fe181d74e42444422c22ef61e6e1b29799bff1e419c5ae0172"
+    },
+    {
+      "family_id": "r4-33",
+      "index": 33,
+      "split": "model_confirmation",
+      "split_rank": 4,
+      "parameters": {
+        "gate_near_y_m": 0.5687290721239145,
+        "gate_far_y_m": 2.164246693691683,
+        "gate_near_bias_x_m": 0.0013001039837068533,
+        "gate_far_bias_x_m": 0.0013769425169871266,
+        "gate_near_L_jitter_x_m": 0.00644030581202038,
+        "gate_near_R_jitter_x_m": -0.0002562889497269988,
+        "gate_far_L_jitter_x_m": 0.002569611416481812,
+        "gate_far_R_jitter_x_m": -0.0013855775014565922,
+        "gate_near_clear_width_m": 0.3843342296738691,
+        "gate_far_clear_width_m": 0.38185796016337986,
+        "global_translation_x_m": 0.11048165720787631,
+        "control_near_scale": 0.9608447290091243,
+        "control_far_scale": 0.9521776036223888
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          1
+        ],
+        "far": [
+          1,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.8,
+          6.8
+        ],
+        "order": "near_first",
+        "probe_prefix_indices": [
+          28,
+          33,
+          42,
+          68,
+          73,
+          82,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.3
+            ],
+            "y_m": [
+              -0.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              2.3,
+              3.3
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              3.3,
+              6.3
+            ],
+            "y_m": [
+              0.6,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              6.3,
+              7.3
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              7.3,
+              11
+            ],
+            "y_m": [
+              2.2,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 28,
+          "B": 68
+        }
+      },
+      "normalized_design_sha256": "d1f3f729873dfc8c69c6fc48e990650b2f89c2189e9bd548fed072553d5d261c"
+    },
+    {
+      "family_id": "r4-62",
+      "index": 62,
+      "split": "model_confirmation",
+      "split_rank": 5,
+      "parameters": {
+        "gate_near_y_m": 0.5675142049282004,
+        "gate_far_y_m": 2.2056079838470204,
+        "gate_near_bias_x_m": -0.004118189304459788,
+        "gate_far_bias_x_m": 0.004610182764776128,
+        "gate_near_L_jitter_x_m": 0.0077863752395057936,
+        "gate_near_R_jitter_x_m": -0.009785954958735401,
+        "gate_far_L_jitter_x_m": -0.004152645895319234,
+        "gate_far_R_jitter_x_m": -0.008600644749006167,
+        "gate_near_clear_width_m": 0.39800558892633514,
+        "gate_far_clear_width_m": 0.3957280010135369,
+        "global_translation_x_m": 0.06489456602173757,
+        "control_near_scale": 0.9740429607261777,
+        "control_far_scale": 0.9738827108396841
+      },
+      "band_pairs": {
+        "near": [
+          1,
+          2
+        ],
+        "far": [
+          0,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.8,
+          6.2
+        ],
+        "order": "far_first",
+        "probe_prefix_indices": [
+          28,
+          33,
+          42,
+          62,
+          67,
+          76,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.3
+            ],
+            "y_m": [
+              -0.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              2.3,
+              3.3
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              3.3,
+              5.7
+            ],
+            "y_m": [
+              2.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              5.7,
+              6.7
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              6.7,
+              11
+            ],
+            "y_m": [
+              0.6,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 62,
+          "B": 28
+        }
+      },
+      "normalized_design_sha256": "5529afe704a68dfd4126933e3bc547825910685cc88da56f3b14e13abd436dd0"
+    },
+    {
+      "family_id": "r4-44",
+      "index": 44,
+      "split": "model_confirmation",
+      "split_rank": 6,
+      "parameters": {
+        "gate_near_y_m": 0.6395817634874598,
+        "gate_far_y_m": 2.1693156615592573,
+        "gate_near_bias_x_m": -3.123827732264429e-05,
+        "gate_far_bias_x_m": -0.004480448679632296,
+        "gate_near_L_jitter_x_m": 0.008233243380035333,
+        "gate_near_R_jitter_x_m": -0.001105726989626488,
+        "gate_far_L_jitter_x_m": -0.000714206085834666,
+        "gate_far_R_jitter_x_m": 0.009097792265489733,
+        "gate_near_clear_width_m": 0.38584403420146474,
+        "gate_far_clear_width_m": 0.39633008748864007,
+        "global_translation_x_m": -0.10369364963711344,
+        "control_near_scale": 0.9916661844846529,
+        "control_far_scale": 0.9846447924805302
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          2
+        ],
+        "far": [
+          0,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.8,
+          6.5
+        ],
+        "order": "near_first",
+        "probe_prefix_indices": [
+          28,
+          33,
+          42,
+          65,
+          70,
+          79,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.3
+            ],
+            "y_m": [
+              -0.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              2.3,
+              3.3
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              3.3,
+              6.0
+            ],
+            "y_m": [
+              0.6,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              6.0,
+              7.0
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              7.0,
+              11
+            ],
+            "y_m": [
+              2.2,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 28,
+          "B": 65
+        }
+      },
+      "normalized_design_sha256": "c0421814cdda9d5e30ed6d0cef62b008cd6cc15ed565359607a7664b8823d01f"
+    },
+    {
+      "family_id": "r4-48",
+      "index": 48,
+      "split": "model_confirmation",
+      "split_rank": 7,
+      "parameters": {
+        "gate_near_y_m": 0.6098202477412434,
+        "gate_far_y_m": 2.2029711469861177,
+        "gate_near_bias_x_m": -0.0026719848145105034,
+        "gate_far_bias_x_m": 0.002886900594353506,
+        "gate_near_L_jitter_x_m": 0.005542671977561331,
+        "gate_near_R_jitter_x_m": -0.003615525930784726,
+        "gate_far_L_jitter_x_m": -0.007564766513267412,
+        "gate_far_R_jitter_x_m": -0.0004048983297597758,
+        "gate_near_clear_width_m": 0.3841691893338277,
+        "gate_far_clear_width_m": 0.396785504510131,
+        "global_translation_x_m": -0.03209822711398086,
+        "control_near_scale": 0.9934955120598431,
+        "control_far_scale": 0.9595359502675277
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          1
+        ],
+        "far": [
+          1,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.5,
+          6.8
+        ],
+        "order": "far_first",
+        "probe_prefix_indices": [
+          25,
+          30,
+          39,
+          68,
+          73,
+          82,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.0
+            ],
+            "y_m": [
+              -0.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              2.0,
+              3.0
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              3.0,
+              6.3
+            ],
+            "y_m": [
+              2.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              6.3,
+              7.3
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              7.3,
+              11
+            ],
+            "y_m": [
+              0.6,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 68,
+          "B": 25
+        }
+      },
+      "normalized_design_sha256": "50f6a81806a4fe2b295de9e4a4fbbfec4d074f1b0836770567b6b524f253f855"
+    },
+    {
+      "family_id": "r4-46",
+      "index": 46,
+      "split": "probe_train",
+      "split_rank": 0,
+      "parameters": {
+        "gate_near_y_m": 0.5842205778509366,
+        "gate_far_y_m": 2.2366874102560015,
+        "gate_near_bias_x_m": 0.004127421676564953,
+        "gate_far_bias_x_m": 0.0002320685681024429,
+        "gate_near_L_jitter_x_m": 0.001177044361897776,
+        "gate_near_R_jitter_x_m": -0.0024203315627078373,
+        "gate_far_L_jitter_x_m": -0.009800230457721987,
+        "gate_far_R_jitter_x_m": 0.004564519310352282,
+        "gate_near_clear_width_m": 0.39404347585838184,
+        "gate_far_clear_width_m": 0.39310325201171886,
+        "global_translation_x_m": 0.029613008041003863,
+        "control_near_scale": 1.0075965311137536,
+        "control_far_scale": 1.0099255967265939
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          2
+        ],
+        "far": [
+          0,
+          1
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.2,
+          6.8
+        ],
+        "order": "near_first",
+        "probe_prefix_indices": [
+          22,
+          27,
+          36,
+          68,
+          73,
+          82,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              1.7000000000000002
+            ],
+            "y_m": [
+              -0.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              1.7000000000000002,
+              2.7
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              2.7,
+              6.3
+            ],
+            "y_m": [
+              0.6,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              6.3,
+              7.3
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              7.3,
+              11
+            ],
+            "y_m": [
+              2.2,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 22,
+          "B": 68
+        }
+      },
+      "normalized_design_sha256": "12d86d02975a833a9478c2a28bb8794a18d292dccac412e72fe47f5f41b9b304"
+    },
+    {
+      "family_id": "r4-09",
+      "index": 9,
+      "split": "probe_train",
+      "split_rank": 1,
+      "parameters": {
+        "gate_near_y_m": 0.5934796003097327,
+        "gate_far_y_m": 2.211183189196191,
+        "gate_near_bias_x_m": 0.0035449180886670756,
+        "gate_far_bias_x_m": -0.00031028628049875346,
+        "gate_near_L_jitter_x_m": -0.0057577918420934635,
+        "gate_near_R_jitter_x_m": 0.002582832232161625,
+        "gate_far_L_jitter_x_m": -0.004841715002878142,
+        "gate_far_R_jitter_x_m": 0.005672497976657224,
+        "gate_near_clear_width_m": 0.39672731545341366,
+        "gate_far_clear_width_m": 0.38187707487434347,
+        "global_translation_x_m": 0.09703125103460514,
+        "control_near_scale": 1.0408322966522587,
+        "control_far_scale": 1.0422013801355794
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          1
+        ],
+        "far": [
+          0,
+          1
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.2,
+          6.5
+        ],
+        "order": "far_first",
+        "probe_prefix_indices": [
+          22,
+          27,
+          36,
+          65,
+          70,
+          79,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              1.7000000000000002
+            ],
+            "y_m": [
+              -0.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              1.7000000000000002,
+              2.7
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              2.7,
+              6.0
+            ],
+            "y_m": [
+              2.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              6.0,
+              7.0
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              7.0,
+              11
+            ],
+            "y_m": [
+              0.6,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 65,
+          "B": 22
+        }
+      },
+      "normalized_design_sha256": "7503df178302b505a79a7b4ea8894ccc5559ace304c14ea1d1456d69455e4c28"
+    },
+    {
+      "family_id": "r4-37",
+      "index": 37,
+      "split": "probe_train",
+      "split_rank": 2,
+      "parameters": {
+        "gate_near_y_m": 0.6288531454630097,
+        "gate_far_y_m": 2.160524016379469,
+        "gate_near_bias_x_m": -0.0009187427917303481,
+        "gate_far_bias_x_m": 0.004228818294497024,
+        "gate_near_L_jitter_x_m": 0.0067254776398711896,
+        "gate_near_R_jitter_x_m": 0.001812309528819743,
+        "gate_far_L_jitter_x_m": 0.009400186876381464,
+        "gate_far_R_jitter_x_m": 0.009306182449637762,
+        "gate_near_clear_width_m": 0.3849146010958023,
+        "gate_far_clear_width_m": 0.3899952294743035,
+        "global_translation_x_m": 0.06310331095113261,
+        "control_near_scale": 1.0223643962645894,
+        "control_far_scale": 0.9936072851514899
+      },
+      "band_pairs": {
+        "near": [
+          1,
+          2
+        ],
+        "far": [
+          1,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.2,
+          6.5
+        ],
+        "order": "far_first",
+        "probe_prefix_indices": [
+          22,
+          27,
+          36,
+          65,
+          70,
+          79,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              1.7000000000000002
+            ],
+            "y_m": [
+              -0.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              1.7000000000000002,
+              2.7
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              2.7,
+              6.0
+            ],
+            "y_m": [
+              2.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              6.0,
+              7.0
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              7.0,
+              11
+            ],
+            "y_m": [
+              0.6,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 65,
+          "B": 22
+        }
+      },
+      "normalized_design_sha256": "a2e5e2945f9aeda3e095b976551071e1adafbe640409615ef6384997d98c22dc"
+    },
+    {
+      "family_id": "r4-20",
+      "index": 20,
+      "split": "probe_train",
+      "split_rank": 3,
+      "parameters": {
+        "gate_near_y_m": 0.6312275359842991,
+        "gate_far_y_m": 2.239716501093234,
+        "gate_near_bias_x_m": 0.0004196512854740264,
+        "gate_far_bias_x_m": 0.003940565452907051,
+        "gate_near_L_jitter_x_m": -0.005549805689794986,
+        "gate_near_R_jitter_x_m": 0.0017429140606491055,
+        "gate_far_L_jitter_x_m": 0.009519917574426865,
+        "gate_far_R_jitter_x_m": 0.0009555855354249545,
+        "gate_near_clear_width_m": 0.3944392465284995,
+        "gate_far_clear_width_m": 0.3823331887902674,
+        "global_translation_x_m": 0.06960555281855318,
+        "control_near_scale": 1.0235678092238096,
+        "control_far_scale": 1.0256069337865503
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          1
+        ],
+        "far": [
+          0,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.2,
+          6.8
+        ],
+        "order": "far_first",
+        "probe_prefix_indices": [
+          22,
+          27,
+          36,
+          68,
+          73,
+          82,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              1.7000000000000002
+            ],
+            "y_m": [
+              -0.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              1.7000000000000002,
+              2.7
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              2.7,
+              6.3
+            ],
+            "y_m": [
+              2.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              6.3,
+              7.3
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              7.3,
+              11
+            ],
+            "y_m": [
+              0.6,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 68,
+          "B": 22
+        }
+      },
+      "normalized_design_sha256": "ba224a3519ffa5ca5978cf0d396b52fa29810182ce2f68b21116467b9bfa670c"
+    },
+    {
+      "family_id": "r4-22",
+      "index": 22,
+      "split": "probe_train",
+      "split_rank": 4,
+      "parameters": {
+        "gate_near_y_m": 0.5784994199903635,
+        "gate_far_y_m": 2.236602819008763,
+        "gate_near_bias_x_m": -0.003180323855317412,
+        "gate_far_bias_x_m": 0.0027713830745904975,
+        "gate_near_L_jitter_x_m": 0.006453601060082711,
+        "gate_near_R_jitter_x_m": -0.00953672420836397,
+        "gate_far_L_jitter_x_m": -0.008949093462682913,
+        "gate_far_R_jitter_x_m": -0.009731419366078018,
+        "gate_near_clear_width_m": 0.38307358683165976,
+        "gate_far_clear_width_m": 0.386292773577789,
+        "global_translation_x_m": 0.05410271994623303,
+        "control_near_scale": 0.9734019275931503,
+        "control_far_scale": 1.034473042296698
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          1
+        ],
+        "far": [
+          0,
+          1
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.8,
+          6.2
+        ],
+        "order": "far_first",
+        "probe_prefix_indices": [
+          28,
+          33,
+          42,
+          62,
+          67,
+          76,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.3
+            ],
+            "y_m": [
+              -0.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              2.3,
+              3.3
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              3.3,
+              5.7
+            ],
+            "y_m": [
+              2.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              5.7,
+              6.7
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              6.7,
+              11
+            ],
+            "y_m": [
+              0.6,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 62,
+          "B": 28
+        }
+      },
+      "normalized_design_sha256": "a29aafc30cdae3feb290cfec7a45ff9e070e28de1c7ea81523c2c536f2cbb705"
+    },
+    {
+      "family_id": "r4-38",
+      "index": 38,
+      "split": "probe_train",
+      "split_rank": 5,
+      "parameters": {
+        "gate_near_y_m": 0.6140417800283633,
+        "gate_far_y_m": 2.2234904982581214,
+        "gate_near_bias_x_m": 0.003982159123699054,
+        "gate_far_bias_x_m": 0.0004940096263754959,
+        "gate_near_L_jitter_x_m": -0.0035131984283273,
+        "gate_near_R_jitter_x_m": 0.004009805489543453,
+        "gate_far_L_jitter_x_m": 0.0015430648799397255,
+        "gate_far_R_jitter_x_m": -0.008790756695145752,
+        "gate_near_clear_width_m": 0.39670908213910216,
+        "gate_far_clear_width_m": 0.3941598859312426,
+        "global_translation_x_m": -0.11317907637653114,
+        "control_near_scale": 1.0340170738430787,
+        "control_far_scale": 1.005672949673752
+      },
+      "band_pairs": {
+        "near": [
+          1,
+          2
+        ],
+        "far": [
+          0,
+          1
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.8,
+          6.5
+        ],
+        "order": "near_first",
+        "probe_prefix_indices": [
+          28,
+          33,
+          42,
+          65,
+          70,
+          79,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.3
+            ],
+            "y_m": [
+              -0.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              2.3,
+              3.3
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              3.3,
+              6.0
+            ],
+            "y_m": [
+              0.6,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              6.0,
+              7.0
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              7.0,
+              11
+            ],
+            "y_m": [
+              2.2,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 28,
+          "B": 65
+        }
+      },
+      "normalized_design_sha256": "5fe2bceef1e817442e5b35df83631950dc2c0fc9e3a12d82bea540faa877a18d"
+    },
+    {
+      "family_id": "r4-05",
+      "index": 5,
+      "split": "probe_train",
+      "split_rank": 6,
+      "parameters": {
+        "gate_near_y_m": 0.5735254375966798,
+        "gate_far_y_m": 2.2046678570902145,
+        "gate_near_bias_x_m": 0.0037770344965010133,
+        "gate_far_bias_x_m": -0.003970337702647264,
+        "gate_near_L_jitter_x_m": -0.007730241370806563,
+        "gate_near_R_jitter_x_m": 0.002233583154609576,
+        "gate_far_L_jitter_x_m": 0.0017389892007118758,
+        "gate_far_R_jitter_x_m": 0.004493028269301234,
+        "gate_near_clear_width_m": 0.3810384420589529,
+        "gate_far_clear_width_m": 0.39981256195987264,
+        "global_translation_x_m": 0.09330154376504304,
+        "control_near_scale": 0.9887561825604687,
+        "control_far_scale": 1.0362099001433271
+      },
+      "band_pairs": {
+        "near": [
+          1,
+          2
+        ],
+        "far": [
+          1,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.2,
+          6.5
+        ],
+        "order": "far_first",
+        "probe_prefix_indices": [
+          22,
+          27,
+          36,
+          65,
+          70,
+          79,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              1.7000000000000002
+            ],
+            "y_m": [
+              -0.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              1.7000000000000002,
+              2.7
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              2.7,
+              6.0
+            ],
+            "y_m": [
+              2.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              6.0,
+              7.0
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              7.0,
+              11
+            ],
+            "y_m": [
+              0.6,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 65,
+          "B": 22
+        }
+      },
+      "normalized_design_sha256": "32f3d11e04af8a4d95f08f399cbf738e76b6f4c5aa982f7806e3e2eb3189678f"
+    },
+    {
+      "family_id": "r4-14",
+      "index": 14,
+      "split": "probe_train",
+      "split_rank": 7,
+      "parameters": {
+        "gate_near_y_m": 0.5830355550696307,
+        "gate_far_y_m": 2.2114534439717826,
+        "gate_near_bias_x_m": -0.0001919762647658637,
+        "gate_far_bias_x_m": -5.107062208391591e-05,
+        "gate_near_L_jitter_x_m": 0.0017476060819076652,
+        "gate_near_R_jitter_x_m": 0.0033025764455155253,
+        "gate_far_L_jitter_x_m": 0.008655996120692755,
+        "gate_far_R_jitter_x_m": -0.006416736124201385,
+        "gate_near_clear_width_m": 0.3944867168009224,
+        "gate_far_clear_width_m": 0.3976710944567126,
+        "global_translation_x_m": -0.04925745802723144,
+        "control_near_scale": 1.0149798088007553,
+        "control_far_scale": 0.974895604569
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          1
+        ],
+        "far": [
+          1,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.2,
+          6.5
+        ],
+        "order": "near_first",
+        "probe_prefix_indices": [
+          22,
+          27,
+          36,
+          65,
+          70,
+          79,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              1.7000000000000002
+            ],
+            "y_m": [
+              -0.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              1.7000000000000002,
+              2.7
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              2.7,
+              6.0
+            ],
+            "y_m": [
+              0.6,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              6.0,
+              7.0
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              7.0,
+              11
+            ],
+            "y_m": [
+              2.2,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 22,
+          "B": 65
+        }
+      },
+      "normalized_design_sha256": "511b3765d12aca2dc3e98ecb49620a848fb5adb4b456818ad150c8cfcb64467e"
+    },
+    {
+      "family_id": "r4-61",
+      "index": 61,
+      "split": "probe_validation",
+      "split_rank": 0,
+      "parameters": {
+        "gate_near_y_m": 0.5636348771334319,
+        "gate_far_y_m": 2.231281959317446,
+        "gate_near_bias_x_m": 0.0029597965482299456,
+        "gate_far_bias_x_m": -0.002895279470919443,
+        "gate_near_L_jitter_x_m": 0.008643017512966573,
+        "gate_near_R_jitter_x_m": 0.0008185310947071336,
+        "gate_far_L_jitter_x_m": -0.003974929938902338,
+        "gate_far_R_jitter_x_m": 0.0007602647333968399,
+        "gate_near_clear_width_m": 0.3803938571486166,
+        "gate_far_clear_width_m": 0.384877998057342,
+        "global_translation_x_m": -0.07639174984176172,
+        "control_near_scale": 0.9739808931745346,
+        "control_far_scale": 1.0305147605770297
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          2
+        ],
+        "far": [
+          0,
+          1
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.8,
+          6.5
+        ],
+        "order": "near_first",
+        "probe_prefix_indices": [
+          28,
+          33,
+          42,
+          65,
+          70,
+          79,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.3
+            ],
+            "y_m": [
+              -0.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              2.3,
+              3.3
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              3.3,
+              6.0
+            ],
+            "y_m": [
+              0.6,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              6.0,
+              7.0
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              7.0,
+              11
+            ],
+            "y_m": [
+              2.2,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 28,
+          "B": 65
+        }
+      },
+      "normalized_design_sha256": "21c4817db0df8bd7d47e8ae89ec9d9c768fdd2af0c57b518aed53343c6197c10"
+    },
+    {
+      "family_id": "r4-36",
+      "index": 36,
+      "split": "probe_validation",
+      "split_rank": 1,
+      "parameters": {
+        "gate_near_y_m": 0.5852820062668134,
+        "gate_far_y_m": 2.1727087907914897,
+        "gate_near_bias_x_m": 0.0015576818967678171,
+        "gate_far_bias_x_m": 0.0043120798798262526,
+        "gate_near_L_jitter_x_m": 0.0016737500836340648,
+        "gate_near_R_jitter_x_m": -0.00862143577543202,
+        "gate_far_L_jitter_x_m": 0.002701396753459191,
+        "gate_far_R_jitter_x_m": -0.005865035067181158,
+        "gate_near_clear_width_m": 0.3842020550547398,
+        "gate_far_clear_width_m": 0.3848851642340555,
+        "global_translation_x_m": 0.06135446314343257,
+        "control_near_scale": 0.974167461105382,
+        "control_far_scale": 1.0376139373783881
+      },
+      "band_pairs": {
+        "near": [
+          1,
+          2
+        ],
+        "far": [
+          0,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.8,
+          6.8
+        ],
+        "order": "far_first",
+        "probe_prefix_indices": [
+          28,
+          33,
+          42,
+          68,
+          73,
+          82,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.3
+            ],
+            "y_m": [
+              -0.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              2.3,
+              3.3
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              3.3,
+              6.3
+            ],
+            "y_m": [
+              2.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              6.3,
+              7.3
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              7.3,
+              11
+            ],
+            "y_m": [
+              0.6,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 68,
+          "B": 28
+        }
+      },
+      "normalized_design_sha256": "778309ff85eeaf673bf0cd0eb97c1e46392677826128cd73edb012d0322f20a3"
+    },
+    {
+      "family_id": "r4-23",
+      "index": 23,
+      "split": "probe_validation",
+      "split_rank": 2,
+      "parameters": {
+        "gate_near_y_m": 0.560967080932561,
+        "gate_far_y_m": 2.192435452465997,
+        "gate_near_bias_x_m": 0.0037868803852171744,
+        "gate_far_bias_x_m": -0.0047830367638055675,
+        "gate_near_L_jitter_x_m": 0.005407800018029773,
+        "gate_near_R_jitter_x_m": -0.003647633187918874,
+        "gate_far_L_jitter_x_m": -0.007587398443877793,
+        "gate_far_R_jitter_x_m": -6.578317843016629e-05,
+        "gate_near_clear_width_m": 0.3831780280112944,
+        "gate_far_clear_width_m": 0.3831628554631596,
+        "global_translation_x_m": 0.027054388025783277,
+        "control_near_scale": 0.959522365675247,
+        "control_far_scale": 1.0416914047507773
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          2
+        ],
+        "far": [
+          0,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.8,
+          6.2
+        ],
+        "order": "far_first",
+        "probe_prefix_indices": [
+          28,
+          33,
+          42,
+          62,
+          67,
+          76,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.3
+            ],
+            "y_m": [
+              -0.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              2.3,
+              3.3
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              3.3,
+              5.7
+            ],
+            "y_m": [
+              2.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              5.7,
+              6.7
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              6.7,
+              11
+            ],
+            "y_m": [
+              0.6,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 62,
+          "B": 28
+        }
+      },
+      "normalized_design_sha256": "7f764d8efa6e85b2f74a5b5b277af8b2c447bcf9e386ae871bb8e8ad9e248ebb"
+    },
+    {
+      "family_id": "r4-58",
+      "index": 58,
+      "split": "probe_validation",
+      "split_rank": 3,
+      "parameters": {
+        "gate_near_y_m": 0.615574595336702,
+        "gate_far_y_m": 2.2390550940115452,
+        "gate_near_bias_x_m": -0.0026248790116587552,
+        "gate_far_bias_x_m": 0.003148463079791642,
+        "gate_near_L_jitter_x_m": -0.002306808930203441,
+        "gate_near_R_jitter_x_m": -0.00814078188126664,
+        "gate_far_L_jitter_x_m": -0.0028508193692766267,
+        "gate_far_R_jitter_x_m": 0.008593872608209064,
+        "gate_near_clear_width_m": 0.3823384736318509,
+        "gate_far_clear_width_m": 0.38063056500653153,
+        "global_translation_x_m": 0.035966798485274176,
+        "control_near_scale": 1.0328710966410106,
+        "control_far_scale": 1.0052413640724382
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          1
+        ],
+        "far": [
+          0,
+          1
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.2,
+          6.5
+        ],
+        "order": "near_first",
+        "probe_prefix_indices": [
+          22,
+          27,
+          36,
+          65,
+          70,
+          79,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              1.7000000000000002
+            ],
+            "y_m": [
+              -0.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              1.7000000000000002,
+              2.7
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              2.7,
+              6.0
+            ],
+            "y_m": [
+              0.6,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              6.0,
+              7.0
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              7.0,
+              11
+            ],
+            "y_m": [
+              2.2,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 22,
+          "B": 65
+        }
+      },
+      "normalized_design_sha256": "8587497e26aba7892376b3a72e8d39d7cfca32ec73c2fe1a18f3493fbe23aa25"
+    },
+    {
+      "family_id": "r4-34",
+      "index": 34,
+      "split": "probe_confirmation",
+      "split_rank": 0,
+      "parameters": {
+        "gate_near_y_m": 0.6291985469278095,
+        "gate_far_y_m": 2.1653759100854133,
+        "gate_near_bias_x_m": -0.003916967726423886,
+        "gate_far_bias_x_m": -0.0016923101209602243,
+        "gate_near_L_jitter_x_m": -0.002170409851340019,
+        "gate_near_R_jitter_x_m": 0.006772101259159656,
+        "gate_far_L_jitter_x_m": -0.009075693031949503,
+        "gate_far_R_jitter_x_m": 0.009675599614490651,
+        "gate_near_clear_width_m": 0.38151746939053155,
+        "gate_far_clear_width_m": 0.39104502759852666,
+        "global_translation_x_m": -0.06828374093796825,
+        "control_near_scale": 1.0292783319959802,
+        "control_far_scale": 0.9804889964283162
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          2
+        ],
+        "far": [
+          0,
+          1
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.2,
+          6.5
+        ],
+        "order": "near_first",
+        "probe_prefix_indices": [
+          22,
+          27,
+          36,
+          65,
+          70,
+          79,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              1.7000000000000002
+            ],
+            "y_m": [
+              -0.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              1.7000000000000002,
+              2.7
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              2.7,
+              6.0
+            ],
+            "y_m": [
+              0.6,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              6.0,
+              7.0
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              7.0,
+              11
+            ],
+            "y_m": [
+              2.2,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 22,
+          "B": 65
+        }
+      },
+      "normalized_design_sha256": "03400a9e7e781568f70a38a232d9d481597b709dcf46b7465ca59b0097b24485"
+    },
+    {
+      "family_id": "r4-56",
+      "index": 56,
+      "split": "probe_confirmation",
+      "split_rank": 1,
+      "parameters": {
+        "gate_near_y_m": 0.5843216724571942,
+        "gate_far_y_m": 2.1646168227260802,
+        "gate_near_bias_x_m": 0.00429276087628861,
+        "gate_far_bias_x_m": 0.002842835314984791,
+        "gate_near_L_jitter_x_m": -0.005033092991558603,
+        "gate_near_R_jitter_x_m": 0.00935459991684314,
+        "gate_far_L_jitter_x_m": -0.005553282880167982,
+        "gate_far_R_jitter_x_m": 0.006401439177127868,
+        "gate_near_clear_width_m": 0.3907164418632389,
+        "gate_far_clear_width_m": 0.3872626827431865,
+        "global_translation_x_m": 0.07025451022337784,
+        "control_near_scale": 0.9573865265247364,
+        "control_far_scale": 0.9735641132738909
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          1
+        ],
+        "far": [
+          1,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.8,
+          6.5
+        ],
+        "order": "far_first",
+        "probe_prefix_indices": [
+          28,
+          33,
+          42,
+          65,
+          70,
+          79,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.3
+            ],
+            "y_m": [
+              -0.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              2.3,
+              3.3
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              3.3,
+              6.0
+            ],
+            "y_m": [
+              2.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              6.0,
+              7.0
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              7.0,
+              11
+            ],
+            "y_m": [
+              0.6,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 65,
+          "B": 28
+        }
+      },
+      "normalized_design_sha256": "692f6a20a199ff0508c32e5661b8e5a53c62760425a9113b421552dde74341db"
+    },
+    {
+      "family_id": "r4-06",
+      "index": 6,
+      "split": "probe_confirmation",
+      "split_rank": 2,
+      "parameters": {
+        "gate_near_y_m": 0.611941077920664,
+        "gate_far_y_m": 2.164553902136612,
+        "gate_near_bias_x_m": -0.004496256112997634,
+        "gate_far_bias_x_m": -0.0034954511935901115,
+        "gate_near_L_jitter_x_m": 0.0030044651777623374,
+        "gate_near_R_jitter_x_m": 0.0031335868980047806,
+        "gate_far_L_jitter_x_m": 0.008761117693664748,
+        "gate_far_R_jitter_x_m": 0.007919406537744656,
+        "gate_near_clear_width_m": 0.38177109535420467,
+        "gate_far_clear_width_m": 0.3869530324073242,
+        "global_translation_x_m": -0.036158559279743846,
+        "control_near_scale": 1.0037738202318303,
+        "control_far_scale": 1.0382913833060385
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          2
+        ],
+        "far": [
+          1,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.8,
+          6.8
+        ],
+        "order": "far_first",
+        "probe_prefix_indices": [
+          28,
+          33,
+          42,
+          68,
+          73,
+          82,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.3
+            ],
+            "y_m": [
+              -0.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              2.3,
+              3.3
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              3.3,
+              6.3
+            ],
+            "y_m": [
+              2.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              6.3,
+              7.3
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              7.3,
+              11
+            ],
+            "y_m": [
+              0.6,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 68,
+          "B": 28
+        }
+      },
+      "normalized_design_sha256": "f8dd06fc48cb3479b161c6dd6df0a4598a5abb58ade48c04406821a46b75d14a"
+    },
+    {
+      "family_id": "r4-19",
+      "index": 19,
+      "split": "probe_confirmation",
+      "split_rank": 3,
+      "parameters": {
+        "gate_near_y_m": 0.5716762158272465,
+        "gate_far_y_m": 2.208124209040213,
+        "gate_near_bias_x_m": 0.0034904651579195775,
+        "gate_far_bias_x_m": 0.0005763371809364322,
+        "gate_near_L_jitter_x_m": -0.00036383073406631196,
+        "gate_near_R_jitter_x_m": -0.0004681570621126001,
+        "gate_far_L_jitter_x_m": -0.0061229196574335495,
+        "gate_far_R_jitter_x_m": 0.009476385128217529,
+        "gate_near_clear_width_m": 0.3953041958645843,
+        "gate_far_clear_width_m": 0.3985537830007585,
+        "global_translation_x_m": 0.11253388621132909,
+        "control_near_scale": 0.9677931920984105,
+        "control_far_scale": 1.0349574864179931
+      },
+      "band_pairs": {
+        "near": [
+          0,
+          1
+        ],
+        "far": [
+          1,
+          2
+        ]
+      },
+      "camera": {
+        "dwell_centers_s": [
+          2.5,
+          6.2
+        ],
+        "order": "near_first",
+        "probe_prefix_indices": [
+          25,
+          30,
+          39,
+          62,
+          67,
+          76,
+          101,
+          120
+        ],
+        "segments": [
+          {
+            "time_s": [
+              0,
+              2.0
+            ],
+            "y_m": [
+              -0.2,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              2.0,
+              3.0
+            ],
+            "y_m": [
+              0.6,
+              0.6
+            ]
+          },
+          {
+            "time_s": [
+              3.0,
+              5.7
+            ],
+            "y_m": [
+              0.6,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              5.7,
+              6.7
+            ],
+            "y_m": [
+              2.2,
+              2.2
+            ]
+          },
+          {
+            "time_s": [
+              6.7,
+              11
+            ],
+            "y_m": [
+              2.2,
+              -0.2
+            ]
+          },
+          {
+            "time_s": [
+              11,
+              12
+            ],
+            "y_m": [
+              -0.2,
+              -0.2
+            ]
+          }
+        ],
+        "view_frame_indices": {
+          "A": 25,
+          "B": 62
+        }
+      },
+      "normalized_design_sha256": "72cdd122732185f04ffed8524f02d031d0f3b47dbe77664832de038a3553e214"
+    }
+  ],
+  "engineering_family_ids": [
+    "r4-39",
+    "r4-47",
+    "r4-25",
+    "r4-03"
+  ],
+  "confirmation_observations_generated": false
+}
