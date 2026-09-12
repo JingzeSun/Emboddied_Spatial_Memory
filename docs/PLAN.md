@@ -26,7 +26,7 @@ SH-03预算由D-065固定：128次4.9 s模拟执行，新产物2 GiB，按案例
 
 ## 当前指针
 
-**当前为SH-04-R4-2代码/资源审查及必要服务器检查；实现已交付，物理数据未生成。** D-081交付确定性64行静态设计、逐门连续几何/独立控制/观察时序、无损分片和check/run/verify/export入口；固定首批为`r4-39/r4-47/r4-25/r4-03`。22项新服务器检查尚未运行，本地仅源码/AST/JSON/Git核查。先核容量并运行无模拟的check；用户审过代码和首批7200 s/8 GiB等具体分配后，才能用该check绑定的完整提交显式放行4家族工程子批。其余60家族、confirmation、学习和下载均不开放。当前仍在`review/spatial-history-baselines`，未合并main；旧test/no-go及R4-1已验收证据保持原范围，见LOG-111/112。
+**当前为SH-04-R4-2首4家族失败归因，等待原产物的只读接触/几何拒绝摘要。** 用户已放行首批，22项服务器检查通过；运行提交`5aa5a72`完成4家族，但全部accepted=false。结果`969e194`的来源、回执及嵌入摘要已核验；物理/重放通过，候选覆盖、单帧信息损失和公开几何恢复未通过，见LOG-113。先使用下方只读诊断入口复用原产物；原始生成和评分字节保留，尚未登记或执行修订版。其余60家族、confirmation、学习和下载均不开放。当前仍在`review/spatial-history-baselines`，未合并main；旧test/no-go及R4-1已验收证据保持原范围。
 
 已完成证据：[SH-03/v2报告](../results/spatial_history_development_audit_v2_wall_clearance.json)为12项/16对通过，原科学提交57d01aa、报告ce5b3f1，LOG-107；原v1失败保留于LOG-106。它们只供工程/输入审计，不能拆分成训练/确认。当前协议文档有新增内容，不借旧SH-03回执认证；旧产物按原代码/合同摘要复用。
 
@@ -79,7 +79,34 @@ SH-01审查批准已登记于9044074。SH-02科学提交e3a1d71及通过报告f6
 
 R4-0只固定规格；现已按顺序交付R4-1及R4-2，后续职责仍planned。拟议总上限56 GPU小时/64 GiB新增存储需要真实容量核验；旧50 GB数据盘不能按此假定够用，预算不足先登记不可执行，不删旧产物或静默缩科学规模。
 
-### R4-2固定交付与服务器步骤（代码/资源待审）
+### R4-2失败诊断（当前步骤）
+
+白话：这里读取已经完成的失败现场，区分“公开几何缺少可用墙顶像素”和“推头或物块实际碰到什么”。输入是原报告绑定的压缩预测和64条首次轨迹；输出仅为已有拒绝计数、接触对及首末/峰值时刻的状态。例如`gate_contact_steps=0`只排除了物块碰门，仍需检查`pusher/gate_*`接触。这不是重跑模拟、重评分或批准改变相机/门宽/控制。
+
+步骤ID为`SH-04-R4-2/failure-diagnostics`。新入口`ops/spatial_history/r4_failure_diagnostics.py`是补齐原export未包含的只读诊断能力，不修改原入口或其来源绑定。前提是原失败报告SHA与封存目录一致；按报告清单核验每项读取的字节/SHA，核对原几何候选数和轨迹终点，结束前再次核对输入。覆盖全部4家族×16条主分支及4家族×16个E0查询，不挑成功/失败例，不再次读取重放轨迹。原重放证据沿用原报告。
+
+`positive_steps`是同一几何体对发生正力接触的时间步数，每步多个求解接触点只计一次；`first/last/peak`保存对应实际状态，不能把首末之间所有时间都算作持续接触；`peak_point_normal_force_n`是单个接触点的峰值法向力，不是接触对总力。阈值读取原提交的`contact_force_min_n=1e-6`；几何`rejected_counts/incomplete_reasons`来自已保存预测，不重跑提取器。
+
+本次运维上限300 s、512 MiB进程地址空间、8 MiB报告；预计短任务，前台显示逐家族进度。只写`results/spatial_history_r4_failure_diagnostics_v1.json`，原服务器目录只读；无断点续算，已存在诊断报告拒绝覆盖。中断未写出报告时可重新只读汇总；已有报告先核对完整性，不删除现场。0模拟/训练/下载。入口尚未在服务器执行，本地只做AST、输入键/路径及报告静态核查。
+
+checkout当前无任务运行时同步一次并执行：
+
+```bash
+git pull --ff-only origin review/spatial-history-baselines
+/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/r4_failure_diagnostics.py
+```
+
+继续条件是终行`SH-04-R4-2 DIAGNOSTICS EXPORTED families=4 branches=64 geometry=64 ... exit=0`；之后仅提交该新诊断报告：
+
+```bash
+git add -- results/spatial_history_r4_failure_diagnostics_v1.json
+git commit -m "results: export R4 failure contact and geometry diagnostics"
+git push origin review/spatial-history-baselines
+```
+
+回传后核验输入来源并定位接触；任何科学配置/代码修订需另行具体登记与审查，不自动重跑或替换首4家族。
+
+### R4-2固定交付与服务器步骤（原版已完成，供复用核验）
 
 白话：本阶段输入是事前固定的4个家族，输出完整物理/存储审计。比如先做不模拟的源码检查，审过后生成原清单首4家族，再核验和导出。它不是自动生成64家族的一键流水线；后续60家族没有入口。每步都使用这次同步的同一份代码，不为导出另改脚本或要求pull。
 
