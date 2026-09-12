@@ -26,7 +26,7 @@ SH-03预算由D-065固定：128次4.9 s模拟执行，新产物2 GiB，按案例
 
 ## 当前指针
 
-**当前为R4-3b公开对象关联实现及完整人工检查阶段已交付，代码待审、服务器未运行。** 用户在a9cc59b的D-087具体数值提案后要求继续，D-088据此落实；科学提交a6eed98及[METHOD](METHOD.md#r4-object-association-implementation)/[DATA](DATA.md#r4-object-association-implementation-data)交24项科学人工例，独立运维8项，共32项待服务器检查。下方同版run/verify/export一次同步即可顺序运行；不读取真实历史、不新增模拟/训练/下载。先审本职责及回传证据，再审c的历史动态排除/静态地图具体规则，不堆叠未审科学依赖。自旋/瞬时速度未观测，动力学初始化与真实覆盖仍未验证。R4-3a的27项及D-084原16历史/144首次/144重放、33/37项回执按原版本复用，无需重跑；其余60家族、确认、学习、下载及合并main仍未开放。旧失败与原PLAN局部编辑保留。
+**当前为R4-3c/d联合工程实现及原16历史/144主分支只读审计阶段已交付，服务器待运行。** 用户明确要求pull后c、d一起做，并选择“人工检查＋现有16条历史/144分支的只读工程审计”，D-089据此授权本组依赖一起交付。c地图提交02bce57、d有限力/任务读出25d0bff、独立误差评估与23项人工检查c5af4d8；独立运维13项，共36项，同版check→run→verify/export齐备。b回传bf8c05d已按原66e4f6d核验：12项绑定、32项测试和三份证据一致，约17.71 s/30.64 MiB，LOG-118；无需重跑。新代码只提供带未决的名义工程诊断，初态/自旋/地图边界不确定性未认证，formal_model_ready与eligible_for_P仍false；完整正式c/d准入仍待审计证据及相应规则完善，不进入R4-4模型效果。原a的27项及v2的33/37项、144首次/144重放按原版本复用；其余60家族、确认、训练、下载与main合并仍未开放。原PLAN局部编辑保留。
 
 已完成证据：[SH-03/v2报告](../results/spatial_history_development_audit_v2_wall_clearance.json)为12项/16对通过，原科学提交57d01aa、报告ce5b3f1，LOG-107；原v1失败保留于LOG-106。它们只供工程/输入审计，不能拆分成训练/确认。当前协议文档有新增内容，不借旧SH-03回执认证；旧产物按原代码/合同摘要复用。
 
@@ -88,16 +88,74 @@ R4-0只固定规格；现已按顺序交付R4-1及R4-2，后续职责仍planned�
 | 步骤 | 本职责输出与先决条件 | 审查/检查重点及继续条件 |
 |---|---|---|
 | R4-3a 公共反投影与覆盖检索（工程验收通过） | `r4_coverage.py`深度专用值函数，19项科学人工例及8项运维检查同版27项通过，报告908e370绑定26c8da8，LOG-117 | 11项来源与三份原证据已核验；按原字节复用，不重跑。不以人工选中10帧推定真实门证据恢复；下一职责数值另审 |
-| R4-3b 当前对象公开关联（D-088实现待审） | a6eed98实现已认可D-087规则，24项科学人工例+8项运维共32项待检查；同版run/verify/export已交付 | 12项来源和原提案摘要绑定；逐命令300 s/512 MiB/阶段连报告8 MiB，真实查询为0。只读验收后再审c；自旋/瞬时速度和实际16历史覆盖不由人工例认证 |
-| R4-3c 历史静态地图 | b已审；先冻结逐帧动态支持排除、面片/墙端闭合、自由证据、结构外推、几何区间与未知覆盖；交地图职责 | M/P都消费完整历史，未知不填自由，不补私有侧墙；M几何精度不受P点截断影响。E0只能复用原恢复函数/证据，不能认证新地图 |
-| R4-3d 有限力预测与M任务读出 | b/c已审；先冻结状态自由度、接触/摩擦求解、区间/扫掠未知规则和公开过门事件判定；控制与读出可分单职责提交 | command/planned/predicted/actual分离，九分支同初态，0.002 s/200区间、推头与物块接触分开、未知不补数值。P只取封存的M机器人路径，无P反馈或实际路径替代 |
-| R4-3e 独立工程误差审计 | 依赖科学代码审过；另登记固定4家族16历史/144首次分支中的具体只读查询与评估清单、数值门和资源，交完整阶段入口 | 先封存公共预测再接私有原始证据，报告对象/地图/控制/接触/任务及全部未决分母。复用原模拟和重放产物，不为比较重新生成；工程通过后才讨论R4-4依赖 |
+| R4-3b 当前对象公开关联（人工工程验收通过） | 报告bf8c05d绑定原66e4f6d，24+8=32项通过；12项来源和三份原证据核验完整，LOG-118 | 原字节复用，不重跑；自旋/瞬时速度仍未观测，人工例不认证实际16历史覆盖 |
+| R4-3c 历史静态地图（D-089工程实现） | 02bce57实现逐帧动态排除、观测面片与名义地面/墙/未知及来源 | 本批full历史16次；格中心插值不是全格自由证据，完整几何包络准入尚未完成 |
+| R4-3d 有限力预测与公共任务读出（D-089工程实现） | 25d0bff实现平面有限力、摩擦/接触、未知扫掠及公开开口/停稳读出；九次独立同初态 | 只保存名义诊断及未决；main_prediction=null、eligible_for_P=false，未把后向均速和零自旋当真实瞬时观测 |
+| R4-3e 本批独立工程审计（D-089已交付） | c5af4d8评估对象/地图/控制/接触/任务，36项检查通过后按固定320源文件读取16历史/144主分支 | 先封存全部公开输出并保存退出0，才读取私有真实轨迹；passed只代表工程执行/证据完整，模型与完整前端准入仍false |
 
-a的检查只覆盖人工几何/选择规则，不开启真实动力学预测；b–e的实际工程计算和数值门尚未授权。每个已确定阶段预写齐全部所需入口，代码审过后服务器同步一次、按依赖顺序前台运行，后续成功只verify复用。不能为了“一次同步”提前实现未定的科学职责，也不能为发下一条已有命令再改脚本/提交。
+a/b人工例不认证真实动力学；D-089按用户明确范围开放本组c/d与必要独立只读评估的一次工程交付。科学代码分职责可审，阶段同步一次，成功步骤只核验复用；不因本批联合交付而自动开放R4-4、训练或确认。
 
-D-085本身没有新测试命令或计算预算；D-086仅细化a的标准库工程检查。D-088按已认可D-087额度交b人工阶段，逐命令300 s、地址空间/峰值RSS各512 MiB、阶段加导出8 MiB，不转借a的marker。后续实际恢复/近似动力学耗时记入另审工程预算，不记成原模拟重新执行，亦不把D-079待审总CPU额度当已授权余额。R4-4还需适配80像素的编码器输出（原四层stride2在80输入下不是原4×4）、九候选曝光和PointWorld资产；R4-3不私自决定resize/pooling或扩大训练预算。剩余非确认家族的生成放行仍须另核原清单、资源和依赖，不因R4-3a通过自动展开。
+D-085/086/088的原预算及回执保留；本批D-089新登记36项人工检查和16/144只读工程计算，额度见下方及METHOD，不冒用旧marker或待审GPU预算。R4-4仍须另审80像素编码器适配、九候选曝光、PointWorld资产和完整不确定性边界，其余家族生成与模型效果不由工程通过自动放行。
 
-### R4-3b固定服务器人工检查阶段（D-088，32项待运行）
+
+<a id="r4-cd-server"></a>
+
+### R4-c/d同版服务器阶段（D-089，36项及16/144待运行）
+
+白话：输入是本次三份科学提交、固定数值和已验收原产物，输出人工检查、封存预测与逐例误差报告。例如第一个世界关联失败仍保留其九个未决分支；这不是换场景重试或开始训练。方法/限制见[METHOD](METHOD.md#r4-map-control-engineering)，字段见[DATA](DATA.md#r4-map-control-engineering-data)。本地不运行科学函数或测试，服务器由用户前台执行。
+
+**同步一次。** 先审本批代码，在没有运行任务的既有服务器checkout核对实际路径、当前分支及未提交内容；不根据本地路径猜服务器路径：
+
+```bash
+git rev-parse --show-toplevel
+git branch --show-current
+git status --short
+```
+
+确认当前为review/spatial-history-baselines、工作树干净后同步，之后check/run/export不再pull：
+
+```bash
+git pull --ff-only origin review/spatial-history-baselines
+git rev-parse HEAD
+```
+
+**SH-04-R4-cd-v1/check。** 读22项绑定来源，运行23项科学人工例及13项运维检查；旧真实报告只用于摘要绑定，不读物理outputs。新固定目录sh04-r4-cd-audit-v1/check已有时只核验，失败/中断拒绝重跑。前台、300 s、512 MiB，人工阶段额度8 MiB：
+
+```bash
+/root/autodl-tmp/spatial-history-venv-v1/bin/python -B ops/spatial_history/r4_map_control_check.py check
+```
+
+继续条件：`SH-04-R4-cd-v1 VERIFIED tests=36 exit=0`。失败则直接执行下方export回传诊断，不启动run。
+
+**同阶段/run。** 复用同版check和原成功生成回执摘要；原目录为已记录的`/root/autodl-tmp/spatial-history/sh04-r4-engineering-subset-v2`。仅读登记的320个文件，先公开预测后独立评估。运行前核可用内存至少2.5 GiB、盘至少1 GiB；总1800 s上限，进程2 GiB上限，阶段连导出1 GiB、报告32 MiB并预留失败证据1 MiB。前台显示144项公共状态及16项审计进度，失败/中断保留现场、已有run只verify：
+
+```bash
+/root/autodl-tmp/spatial-history-venv-v1/bin/python -B ops/spatial_history/r4_map_control_check.py run
+```
+
+成功标志：`SH-04-R4-cd-v1 VERIFIED histories=16 branches=144 formal_ready=False exit=0`。run已做终检，完成后直接export；只有重连核验原完成产物时才需同版verify，不执行科学函数：
+
+```bash
+/root/autodl-tmp/spatial-history-venv-v1/bin/python -B ops/spatial_history/r4_map_control_check.py verify
+```
+
+**同阶段/export。** check或run完成/失败退出后均可导出，不重跑也不覆盖不同内容的报告：
+
+```bash
+/root/autodl-tmp/spatial-history-venv-v1/bin/python -B ops/spatial_history/r4_map_control_check.py export
+```
+
+目标`results/spatial_history_r4_map_control_v1.json`；成功工程报告须`SH-04-R4-cd-v1 EXPORTED status=passed ... exit=0`。failed_or_incomplete也保留并回传。passed仅指本批执行和证据完整，须另读nominal_complete/readout/未决分母与误差；formal_model_ready和P准入仍false，没有准确率的科学通过门。
+
+**纯Git收尾。** 报告写成后按精确路径提交，不提交服务器大地图/轨迹。之后本地pull只读验收；没有中间新版本同步：
+
+```bash
+git add -- results/spatial_history_r4_map_control_v1.json
+git commit -m "results: export R4 joint map and control engineering audit"
+git push origin review/spatial-history-baselines
+```
+
+### R4-3b固定服务器人工检查阶段（D-088，32项已验收；以下为原66e4f6d复现命令，无需重跑）
 
 白话：输入已交付源码、已审数值与完整人工深度例，输出绑定同版代码的检查回执和小报告。例如两个圆面被错误选成一个会留下失败日志；这不读取原16历史，也不验证真实刚体状态。预计短任务，默认前台，显示逐项结果和退出；逐命令≤300 s、地址空间/峰值RSS≤512 MiB、阶段加报告≤8 MiB，真实查询/模拟/训练/下载均0。
 
@@ -143,7 +201,7 @@ git commit -m "results: export R4 public object association checks"
 git push origin review/spatial-history-baselines
 ```
 
-本职责代码与同版回执审过后再审c具体数值；本批不接入真实16历史、静态地图、动力学或P，不把32项通过升级为研究结论。
+b的原代码/回执已核验，后续按D-089联合工程阶段执行；此处历史命令不应在修改后的METHOD/DATA上重跑，原32项也不认证新c/d。
 
 ### R4-3a固定服务器检查阶段（D-086，27项已验收；以下保留复现命令，无需重跑）
 
