@@ -787,3 +787,13 @@ D/F原生回执已验，W锁定源码及以下入口同步一次后按顺序；�
 /root/sh05-assets-v1/flowm-env-v1/bin/python -B ops/spatial_history/r4_dinowm_assets_v1.py native
 python -B ops/spatial_history/r4_dinowm_assets_v1.py export
 ```
+
+
+### D完整任务适配检查（D-093，待服务器）
+
+Dreamer原生检查已通过；本职责公共值转换与RGBD/RSSM/统一读出/分离训练loss分开可读，完整人工121/200前向和反向不做优化更新。同步一次后运行，失败保留，export不重算：
+
+```bash
+/root/sh05-assets-v1/dreamer-env-v1/bin/python -B ops/spatial_history/r4_dreamer_adapter_check_v1.py run
+/root/sh05-assets-v1/dreamer-env-v1/bin/python -B ops/spatial_history/r4_dreamer_adapter_check_v1.py export
+```

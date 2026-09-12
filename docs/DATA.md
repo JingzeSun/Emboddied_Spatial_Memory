@@ -622,3 +622,12 @@ D-090 v2r1运维修复：配置新增source_code_files、public_registration（1
 
 
 D-092的DINO-WM资产目录为/root/sh05-assets-v1/dinowm-native-v1，download保存官方URL与权重bytes/sha256，native先核下载回执及权重再严格加载。逐阶段started保存两份官方源码全文件摘要、脚本和时钟，receipt含人工输入/输出形状、实际检查、参数量、GPU/RSS峰值、退出及耗时。导出results/spatial_history_r4_dinowm_native_v1.json不内嵌权重；adapted_models_ready为空，明确区别原生工程与任务接通。白话：例如权重严格加载通过仍不表示预测器已在双门数据训练。
+
+
+### D完整任务适配值与工程证据（D-093）
+
+r4_model_inputs.prepare返回history/controls/goal三份纯值；RGB与depth仍保存原80×80展平列表。D.tensorize生成[1,H,80,80,3] uint8 RGB、[1,H,80,80,1] float32深度/bool有效性、[1,H,37]元数据、[1,H,4]上一控制及reset，未来[1,200,4]控制和[1,12]目标。H为合法完整/近期/前缀长度，模式只在外层校验不作模型特征。
+
+D.predict输出decision、observed、future、task；observed含tokens/deter/stoch/logit，future含原生prior，task为object_position_m[1,200,3]、contact_logit[1,200]、success_logit[1]与success_state[1,256]。概率只在外层用sigmoid转换，未训练值不写入正式结果表。训练loss单独接受精确三项labels（position_m/contact/success）及future_images（rgb/depth_m/depth_valid），不接受未来本体字段。白话：位置标签可以惩罚预测，但不能被误放到历史或控制里。
+
+r4_dreamer_adapter_check_v1.py只读源码及人工fixtures，进程守卫拒绝所有spatial-history项目数据。started绑定源字节/提交，receipt记录16项具体检查、实际参数shape/count、七模块梯度范数、人工loss各项、输出摘要和资源；zero optimizer/new_training_steps=0。导出spatial_history_r4_dreamer_adapter_v1.json内嵌证据JSON及摘要，不伪造模型checkpoint或实际任务预测；首次失败保持原目录。
