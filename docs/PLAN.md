@@ -26,7 +26,7 @@ SH-03预算由D-065固定：128次4.9 s模拟执行，新产物2 GiB，按案例
 
 ## 当前指针
 
-**当前为SH-04-R4-1代码审查：D-079规格保持冻结；共同公开查询/预测值合同及评分器已交可审实现，尚未运行服务器检查。** [规格](../configs/spatial_history/protocol_r4_v1.json)仍为`frozen_for_review_not_executable`；新增的[工程检查登记](../configs/spatial_history/r4_contract_check_v1.json)仅允许标准库合同测试，明确禁止生成、训练、权重下载与确认。查询端拒绝私有布局、未来实际运动和审计编号；评分端保留无效/缺失候选在完整注册分母中，并按家族而不是帧、控制或seed作统计单位。它解决各后续适配能否在同一输入/输出/评分语义下比较，不是任一模型已经接入或有效。用户审查代码、服务器R4-1回执通过后，才交R4-2新家族生成器；E0审查a516395及结果范围见LOG-110。当前仍在`review/spatial-history-baselines`，未合并main，旧test/no-go不变。
+**当前为SH-04-R4-2新家族生成/存储代码审查，尚未实现或生成数据。** R4-1结果`060437f`已只读核验：绑定`612499b`的15个文件，23项合同检查全部通过，人工并列/缺失例符合冻结语义；范围见LOG-111。R4-2须按D-079先实现确定性64行清单、连续几何/控制与观察时序、无损分片、来源/失败保留及固定model_train前4家族工程子批入口，并提前交齐check/run/verify/export；首批代码审过后才可运行工程子批，不能直接生成其余家族或confirmation。当前生成、训练、权重下载和确认授权仍均为false，D/F/P及L/R/M尚未接入；E0和R4-1通过不构成模型有效性证据。当前仍在`review/spatial-history-baselines`，未合并main，旧test/no-go不变。
 
 已完成证据：[SH-03/v2报告](../results/spatial_history_development_audit_v2_wall_clearance.json)为12项/16对通过，原科学提交57d01aa、报告ce5b3f1，LOG-107；原v1失败保留于LOG-106。它们只供工程/输入审计，不能拆分成训练/确认。当前协议文档有新增内容，不借旧SH-03回执认证；旧产物按原代码/合同摘要复用。
 
