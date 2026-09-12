@@ -1,9 +1,12 @@
 """Server-only E0 orchestration checks; synthetic files, no real recovery run."""
 import json
+import fcntl
 from pathlib import Path
 import signal
+import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from unittest.mock import Mock, patch
 
@@ -23,8 +26,11 @@ class PublicGeometryOpsTests(unittest.TestCase):
     def test_active_config_preserves_proposal_scientific_values(self):
         config = ops.configuration()
         proposal = json.loads((ops.ROOT / ops.PROPOSAL).read_text(encoding="utf-8"))
-        for key in ("public_sensor_spec", "extractor", "evaluation_only", "budget_proposal", "claims", "source"):
+        for key in ("public_sensor_spec", "extractor", "evaluation_only", "claims", "source"):
             self.assertEqual(config[key], proposal[key])
+        expected_budget = {**proposal["budget_proposal"], "peak_rss_limit_bytes": 17 * 512 * 1024 * 1024}
+        self.assertEqual(config["budget_proposal"], expected_budget)
+        self.assertEqual(config["parallel_execution"], ops.PARALLEL_SPEC)
         self.assertFalse(config["training_authorized"])
         changed = {**config, "extractor": {**config["extractor"], "plane_tolerance_m": 1}}
         with patch.object(ops, "read", return_value=changed), self.assertRaises(ValueError):
@@ -65,7 +71,8 @@ class PublicGeometryOpsTests(unittest.TestCase):
     def sealed(self):
         for i in range(16):
             ops.save(self.directory, f"predictions/query-{i:02d}.json", {"example": i})
-        return {"predictions": ops.manifest(self.directory), "public_complete": True}
+        return {"predictions": {p: entry for p, entry in ops.manifest(self.directory).items()
+                                if p.startswith("predictions/")}, "public_complete": True}
 
     def test_seal_requires_every_prediction_and_exact_bytes(self):
         seal = self.sealed()
@@ -90,10 +97,10 @@ class PublicGeometryOpsTests(unittest.TestCase):
         child = Mock(pid=12345, returncode=-9)
         child.poll.return_value = None
         with patch.object(ops.subprocess, "Popen", return_value=child), \
-                patch.object(ops, "tree_memory", return_value=(ops.LIMIT_RSS + 1, ops.LIMIT_RSS + 1)), \
+                patch.object(ops, "tree_memory", side_effect=[(0, 0), (0, 0), (ops.LIMIT_RSS + 1, ops.LIMIT_RSS + 1)]), \
                 patch.object(ops.os, "killpg") as kill:
             ledger = []
-            with self.assertRaisesRegex(ValueError, "failed"):
+            with self.assertRaisesRegex(ValueError, "memory limit"):
                 ops.run_child(self.directory, "tests", "tests", {}, ops.time.monotonic(), ledger)
             kill.assert_called_once_with(child.pid, signal.SIGKILL)
         self.assertEqual(len(ledger), 1)
@@ -174,6 +181,118 @@ class PublicGeometryOpsTests(unittest.TestCase):
             kill.assert_called_once_with(ops.os.getpid(), signal.SIGUSR1)
         stop.set.assert_called_once()
         self.assertIn("whole-command", monitor["error"])
+
+    def test_existing_worker_count_is_restored_and_cannot_be_changed(self):
+        recorded = ops.execution_spec(8)
+        ops.save(self.directory, "started.json", {"execution": recorded})
+        with patch.object(ops, "LIMIT_RSS", ops.LIMIT_RSS):
+            self.assertEqual(ops.configure_execution(self.directory), recorded)
+            self.assertEqual(ops.LIMIT_RSS, 9 * ops.PROCESS_LIMIT)
+            with self.assertRaisesRegex(ValueError, "different worker count"):
+                ops.configure_execution(self.directory, 4)
+        for workers in (0, 17, True, 4.0):
+            with self.assertRaises(ValueError):
+                ops.execution_spec(workers)
+        recorded["tree_rss_limit_bytes"] += 1
+        (self.directory / "started.json").write_text(json.dumps({"execution": recorded}))
+        with self.assertRaisesRegex(ValueError, "limits changed"):
+            ops.configure_execution(self.directory)
+
+    def test_capacity_command_reports_feasible_counts_without_running_a_stage(self):
+        for cpu, memory_gib, maximum, recommended in ((12.5, 8, 12, 4), (8, 3, 4, 4), (2, 10, 2, 2)):
+            with patch.object(ops, "capacity", return_value={"cpu_capacity": cpu,
+                    "available_memory_bytes": memory_gib * 1024 ** 3}), \
+                    patch.object(ops, "run") as run, patch.object(ops, "save") as save:
+                result = ops.capacity_options()
+                self.assertEqual(result["maximum_feasible_workers"], maximum)
+                self.assertEqual(result["recommended_initial_workers"], recommended)
+                self.assertEqual(result["feasible_workers"], list(range(1, maximum + 1)))
+                self.assertFalse(result["stage_created"])
+                self.assertFalse(result["tests_or_queries_run"])
+                run.assert_not_called()
+                save.assert_not_called()
+
+    def test_existing_serial_stage_blocks_new_parallel_execution(self):
+        with patch.object(ops, "SERIAL_RUN", self.directory), \
+                patch.object(ops.resource, "setrlimit"), patch.object(ops, "configuration") as config:
+            with self.assertRaisesRegex(ValueError, "original serial E0 exists"):
+                ops.run(self.directory / "parallel", ops.SOURCE)
+        config.assert_not_called()
+        self.assertFalse((self.directory / "parallel").exists())
+
+    def test_malformed_worker_statistics_still_preserve_exit_evidence(self):
+        ops.save(self.directory, "worker/tests.json", {"bad": "incomplete"})
+        child = Mock(pid=12345, returncode=0)
+        child.poll.return_value = 0
+        with patch.object(ops.subprocess, "Popen", return_value=child), \
+                patch.object(ops, "tree_memory", return_value=(1, 1)):
+            ledger = []
+            with self.assertRaisesRegex(ValueError, "failed"):
+                ops.run_child(self.directory, "tests", "tests", {}, ops.time.monotonic(), ledger)
+        self.assertEqual(len(ledger), 1)
+        self.assertIn("malformed worker", ledger[0]["error"])
+        self.assertEqual(ops.read(self.directory / "exits/tests.json"), ledger[0])
+
+    def test_launched_process_is_recorded_even_when_no_exit_callback_is_available(self):
+        child = Mock(pid=12345)
+        def incomplete_dispatch(tasks, workers, launch, completed, checkpoint, abort):
+            launch(tasks[0])
+            raise ValueError("simulated unreaped child; no exit callback")
+        ledger, launched = [], []
+        with patch.object(ops.subprocess, "Popen", return_value=child), \
+                patch.object(ops, "dispatch", side_effect=incomplete_dispatch):
+            with self.assertRaisesRegex(ValueError, "unreaped"):
+                ops.run_child(self.directory, "public", "query-00", {}, time.monotonic(), ledger, launched)
+        self.assertEqual(launched, [{"id": "query-00", "role": "public", "pid": 12345}])
+        self.assertEqual(ledger, [])
+
+    def test_two_processes_cannot_spend_the_same_artifact_budget(self):
+        directory = self.directory / "writes"
+        directory.mkdir()
+        program = """import pathlib, sys
+sys.path.insert(0, sys.argv[1])
+import public_geometry_check as ops
+ops.LIMIT_BYTES, ops.RESERVE = 500, 0
+pathlib.Path(sys.argv[3]).write_text('ready')
+try:
+    ops.save(pathlib.Path(sys.argv[2]), sys.argv[4] + '.json', {'data': 'x' * 150})
+except ValueError:
+    sys.exit(7)
+"""
+        children = []
+        try:
+            with (directory / ".write.lock").open("a+b") as lock:
+                fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+                for index in range(2):
+                    children.append(subprocess.Popen([sys.executable, "-B", "-c", program,
+                        str(ops.ROOT / "ops/spatial_history"), str(directory),
+                        str(self.directory / f"ready-{index}"), str(index)]))
+                deadline = time.monotonic() + 10
+                while not all((self.directory / f"ready-{i}").exists() for i in range(2)):
+                    self.assertLess(time.monotonic(), deadline, "test children did not reach the write gate")
+                    time.sleep(0.01)
+                fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
+            self.assertEqual(sorted(child.wait(timeout=10) for child in children), [0, 7])
+        finally:
+            for child in children:
+                if child.poll() is None:
+                    child.kill()
+                child.wait(timeout=5)
+        self.assertEqual(len(list(directory.glob("*.json"))), 1)
+        self.assertLessEqual(2 * ops.used_bytes(directory), 500)
+
+    def test_failed_export_preserves_interrupted_json_as_diagnostic(self):
+        (self.directory / "partial.json").write_bytes(b'{"unfinished":')
+        saved = {"exit_code": 1, "elapsed_s": 1801, "artifacts": ops.manifest(self.directory)}
+        ops.save(self.directory, "receipt.json", saved)
+        report = self.directory.parent / (self.directory.name + "-export.json")
+        self.addCleanup(lambda: report.unlink(missing_ok=True))
+        with patch.object(ops, "verify", return_value=saved):
+            ops.export(self.directory, report)
+        value = ops.read(report)
+        self.assertEqual(value["status"], "failed")
+        self.assertEqual(value["unparsed_artifacts"]["partial.json"]["sha256"], ops.sha(b'{"unfinished":'))
+        self.assertFalse(value["public_geometry_recovery_verified"])
 
 
 if __name__ == "__main__":

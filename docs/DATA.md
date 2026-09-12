@@ -60,9 +60,9 @@
 
 物理异常保留`failure.json`的有效状态前缀/已写trace行数，必要时保存`failed_current_state.f64`及未落盘批次`pending_actual_samples.jsonl`。预分配数组的未写部分不能当有效轨迹。导出JSON嵌入回执、逐分支评分、121帧信息损失/等价组、历史可见性、失败日志尾及选定原PNG；完整原始数组仍留数据盘，逐文件摘要进入报告。
 
-### E0开口前缘恢复字段（D-077已实现，服务器尚未生成）
+### E0开口前缘恢复字段（D-078并行工程，服务器尚未生成）
 
-白话：本合同把恢复器自己的判断与评估答案分开。输入为原公开帧及共同相机规格，输出坐标区间和支持这些区间的像素；例如每个开口有左右内边及前缘三条边，评估端再检查实际门边是否落入区间。这不是给恢复器两个真值门让它微调坐标，也不是完整三维地图。方法见[METHOD](METHOD.md#e0-public-geometry)，活动配置为[public_geometry_v1.json](../configs/spatial_history/public_geometry_v1.json)；它沿用D-076科学数值，原[提案JSON](../configs/spatial_history/public_geometry_proposal_v1.json)保持不可执行及原字节。下面是实现字段定义，当前没有这批服务器结果。
+白话：本合同把恢复器自己的判断与评估答案分开。输入为原公开帧及共同相机规格，输出坐标区间和支持这些区间的像素；例如每个开口有左右内边及前缘三条边，评估端再检查实际门边是否落入区间。这不是给恢复器两个真值门让它微调坐标，也不是完整三维地图。方法见[METHOD](METHOD.md#e0-public-geometry)，活动配置为[public_geometry_parallel_v1.json](../configs/spatial_history/public_geometry_parallel_v1.json)；它保持科学数值，另登记并发运维。下面是实现字段定义，当前没有这批服务器结果。
 
 | 实现字段 | 形状/含义 | 权限 |
 |---|---|---|
@@ -86,11 +86,11 @@
 
 规范JSON摘要使用排序键、UTF-8、2空格缩进、末尾LF；`public_file_sha256`和封存manifest则绑定相应文件的实际字节。`started.json.jobs[].indices=null`表示完整历史，其余保存原始下标；提取器的`support.local_frame_index`只需通过该清单映射，不能从恢复输出倒填近/远门标记。所有16份预测封存之后，评估子进程才解析原XML；公共请求文件不含XML、预期门数或评估配置。RGB不变性仅由新手工解析服务器检查提供，不额外运行真实查询。
 
-`export_resources`保存`elapsed_s_upper_bound / measurement / run_plus_export_elapsed_s_upper_bound / observed_live_hwm_peak_before_serialization_bytes / enforced_live_tree_rss_upper_bound_bytes / failed_run_diagnostic_only`。白话：它记录为这份可带回本地的报告进行核验、组装和写盘的时间及资源保护证据，输入导出进程计量，输出首轮持久回执；例如首次成功导出与原run共同使用1800 s预算，这不是再次运行恢复器。run回执的`elapsed_s`和首导出的时间上界各包括1 s收尾余量；阶段与报告总字节≤64 MiB，进程树内存按512 MiB保护。50 ms采样的当前RSS与各存活进程`VmHWM`保守和分别记录，地址空间限制只作附加保护，不宣称连续精确的同时RSS峰值。导出中`observed_live_hwm_peak_before_serialization_bytes`是序列化前观测值，`enforced_live_tree_rss_upper_bound_bytes=536870912`是包括写入的保护上界，不是完整导出实测峰值；全命令最终观测统计在终端输出。重导出复用首次资源记录并要求报告字节相同；可选verify/重导出各自的行政只读操作仍受单次1800 s/512 MiB保护。失败诊断导出设`failed_run_diagnostic_only=true`，不能据此声称首轮预算或几何通过。
+`started.json.execution/resources`记录实际worker数、每进程512 MiB地址空间门、树RSS门、CPU/cgroup/RAM预检；`receipt.json`另记录`launched_children / not_started_ids / missing_exit_ids`。白话：例如4路只说明四个公共查询可同时处理，输出仍是原16项封存预测；不能把并发PID当作新样本。首轮run/export共同使用1800 s，阶段与报告总字节≤64 MiB；预检只覆盖可见约束，不表示资源已预留或得到连续精确峰值。
 
-正式回执与首份导出均先写pending文件：阶段内`receipt.pending.json`及报告旁`spatial_history_public_geometry_v1.pending.json`。写完并通过时间/内存收尾门后才重命名发布；pending表示未完成发布，不是可复用的成功回执或报告。失败/中断不覆盖原现场，不能把pending中的临时成功字段当作正式验收。
+正式回执与首份导出均先写pending文件：阶段内`receipt.pending.json`及报告旁`spatial_history_public_geometry_parallel_v1.pending.json`。写完并通过时间/内存收尾门后才重命名发布；pending表示未完成发布，不是可复用的成功回执或报告。失败/中断不覆盖原现场，不能把pending中的临时成功字段当作正式验收。
 
-原公共文件、XML及报告均只读；新产物为稀疏候选、像素支持、封存/评估及资源证据，不复制完整RGBD或另存密集点云。固定16查询向恢复器传入`4×(121+1+1+2)=500`帧，这是提取器输入计数，读取器在每次切片前仍校验完整文件，验证/导出还会核对来源；不应写成只读取500帧字节。它们均复用同一旧工程家族，不新增500帧物理观察或16个独立场景。近期条件独立空状态运行，输出无候选只表示没有恢复门边，不能把未知区域当无障碍。已实现入口登记目录为`/root/autodl-tmp/spatial-history/sh04-r3-e0-public-geometry-v1`，导出路径为`results/spatial_history_public_geometry_v1.json`；登记路径不表示服务器目录或报告已经生成。
+原公共文件、XML及报告均只读；新产物为稀疏候选、像素支持、封存/评估及资源证据，不复制完整RGBD或另存密集点云。固定16查询向恢复器传入`4×(121+1+1+2)=500`帧，这是提取器输入计数，不是新样本。公共worker输出按固定查询ID排序，跨进程写入以`.write.lock`保护预算和写入。入口目录为`/root/autodl-tmp/spatial-history/sh04-r3-e0-public-geometry-parallel-v1`，导出路径为`results/spatial_history_public_geometry_parallel_v1.json`；登记路径不表示服务器目录或报告已经生成。
 
 ### 历史利用诊断的记录字段（D-075，proposed，尚无schema实现或产物）
 

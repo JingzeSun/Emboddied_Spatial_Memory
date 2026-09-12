@@ -5,6 +5,7 @@ Workers receive role-specific requests. This is an API boundary, not an OS jail.
 """
 import argparse
 import ast
+import fcntl
 import importlib
 import json
 import math
@@ -23,13 +24,18 @@ import unittest
 sys.dont_write_bytecode = True
 from contract_check import ROOT, encode, git, require, sha
 import public_input_check as reader_ops
+from public_geometry_workers import dispatch
+from public_geometry_resources import capacity
 
 
-STAGE = "SH-04-R3-E0-public-geometry-v1"
-RUN = Path("/root/autodl-tmp/spatial-history/sh04-r3-e0-public-geometry-v1")
+STAGE = "SH-04-R3-E0-public-geometry-parallel-v1"
+SERIAL_RUN = Path("/root/autodl-tmp/spatial-history/sh04-r3-e0-public-geometry-v1")
+RUN = Path("/root/autodl-tmp/spatial-history/sh04-r3-e0-public-geometry-parallel-v1")
 SOURCE = reader_ops.SOURCE
-REPORT = ROOT / "results/spatial_history_public_geometry_v1.json"
-CONFIG = "configs/spatial_history/public_geometry_v1.json"
+REPORT = ROOT / "results/spatial_history_public_geometry_parallel_v1.json"
+CONFIG = "configs/spatial_history/public_geometry_parallel_v1.json"
+SERIAL_CONFIG = "configs/spatial_history/public_geometry_v1.json"
+SERIAL_COMMIT = "0b1640fe92d1c3452f7e9dde4652d38fd13446ac"
 PROPOSAL = "configs/spatial_history/public_geometry_proposal_v1.json"
 PROPOSAL_COMMIT = "e64afa64239f82bd659a59df069b8f670b21ddcf"
 PROPOSAL_SHA = "935ecaf6556ea58cde2c0f3d7c90fa0b74f8ef21c61122dc67b727c9fe1406b5"
@@ -38,16 +44,28 @@ R3_COMMIT = "88c42b7ffeabbeba1e4c1b5cb297ae03194e125e"
 R3_SHA = "6db21359a5e1c6e09701bf9d7e23d4630dcf9c1aae8513b137cbea48bd612754"
 TESTS = ("tests/spatial_world_model/test_public_geometry.py",
          "tests/spatial_world_model/test_public_geometry_audit.py",
-         "tests/spatial_world_model/test_public_geometry_ops.py")
+         "tests/spatial_world_model/test_public_geometry_ops.py",
+         "tests/spatial_world_model/test_public_geometry_workers.py",
+         "tests/spatial_world_model/test_public_geometry_resources.py")
 BOUND = ("src/spatial_world_model/__init__.py", "src/spatial_world_model/pair_contract.py",
          "src/spatial_world_model/two_gate_contract.py", "src/spatial_world_model/public_reader.py",
          "src/spatial_world_model/public_geometry.py", "src/spatial_world_model/public_geometry_audit.py",
          "ops/spatial_history/contract_check.py", "ops/spatial_history/public_input_check.py",
-         "ops/spatial_history/public_geometry_check.py", *TESTS, CONFIG, PROPOSAL,
+         "ops/spatial_history/public_geometry_check.py", "ops/spatial_history/public_geometry_workers.py",
+         "ops/spatial_history/public_geometry_resources.py", *TESTS, CONFIG, SERIAL_CONFIG, PROPOSAL,
          reader_ops.R2_REPORT, R3_REPORT, "docs/METHOD.md", "docs/DATA.md")
 LIMIT_S = 1800
 LIMIT_BYTES = 64 * 1024 * 1024
-LIMIT_RSS = 512 * 1024 * 1024
+PROCESS_LIMIT = 512 * 1024 * 1024
+DEFAULT_WORKERS = 4
+MAX_WORKERS = 16
+LIMIT_RSS = (DEFAULT_WORKERS + 1) * PROCESS_LIMIT
+PARALLEL_SPEC = {"default_workers": DEFAULT_WORKERS, "minimum_workers": 1, "maximum_workers": MAX_WORKERS,
+                 "process_as_limit_bytes": PROCESS_LIMIT, "memory_reserve_bytes": PROCESS_LIMIT,
+                 "tree_rss_limit_rule": "(workers + 1) * process_as_limit_bytes",
+                 "parallel_scope": "public_queries_only", "capacity_policy": "reject_insufficient_no_silent_downshift",
+                 "failure_policy": "stop_dispatch_kill_live_groups_preserve_every_started_exit",
+                 "aggregation_order": "registered_query_id", "artifact_writes": "process_shared_flock"}
 RESERVE = 1024 * 1024
 CLOSEOUT_S = 1.0
 COMMAND_BEGIN = None
@@ -63,10 +81,18 @@ def configuration():
     proposal_raw = subprocess.check_output(["git", "-C", str(ROOT), "show", f"{PROPOSAL_COMMIT}:{PROPOSAL}"])
     require(sha(proposal_raw) == PROPOSAL_SHA and (ROOT / PROPOSAL).read_bytes() == proposal_raw,
             "proposal source bytes changed")
-    expected = json.loads(proposal_raw)
-    expected.update(version="sh04-r3-e0-public-geometry-v1", status="frozen_read_only_engineering",
+    serial_expected = json.loads(proposal_raw)
+    serial_expected.update(version="sh04-r3-e0-public-geometry-v1", status="frozen_read_only_engineering",
                     decision="D-077", numeric_protocol_approved=True, implementation_run_authorized=True,
                     proposal_source=PROPOSAL, proposal_commit=PROPOSAL_COMMIT, proposal_sha256=PROPOSAL_SHA)
+    serial_raw = subprocess.check_output(["git", "-C", str(ROOT), "show", f"{SERIAL_COMMIT}:{SERIAL_CONFIG}"])
+    require((ROOT / SERIAL_CONFIG).read_bytes() == serial_raw and encode(json.loads(serial_raw)) == encode(serial_expected),
+            "original serial registration changed")
+    expected = json.loads(serial_raw)
+    expected.update(version="sh04-r3-e0-public-geometry-parallel-v1", decision="D-078",
+                    serial_registration_source=SERIAL_CONFIG, serial_registration_commit=SERIAL_COMMIT,
+                    serial_registration_sha256=sha(serial_raw), parallel_execution=PARALLEL_SPEC)
+    expected["budget_proposal"]["peak_rss_limit_bytes"] = (MAX_WORKERS + 1) * PROCESS_LIMIT
     actual = read(ROOT / CONFIG)
     require(encode(actual) == encode(expected), "active configuration differs from approved proposal")
     return actual
@@ -74,6 +100,43 @@ def configuration():
 
 def binding():
     return {name: file_sha(ROOT / name) for name in BOUND}
+
+
+def execution_spec(workers):
+    require(type(workers) is int and 1 <= workers <= MAX_WORKERS, "workers must be an integer in 1..16")
+    return {"workers": workers, "process_as_limit_bytes": PROCESS_LIMIT,
+            "tree_rss_limit_bytes": (workers + 1) * PROCESS_LIMIT}
+
+
+def configure_execution(directory, requested_workers=None):
+    global LIMIT_RSS
+    started = directory / "started.json"
+    if started.exists():
+        recorded = read(started)["execution"]
+        expected = execution_spec(recorded["workers"])
+        require(recorded == expected, "recorded execution limits changed")
+        require(requested_workers is None or requested_workers == recorded["workers"],
+                "existing stage uses a different worker count; preserved")
+    else:
+        expected = execution_spec(DEFAULT_WORKERS if requested_workers is None else requested_workers)
+    LIMIT_RSS = expected["tree_rss_limit_bytes"]
+    return expected
+
+
+def capacity_options():
+    """Report feasible counts without creating a stage or measuring speed."""
+    observed = capacity(1, PROCESS_LIMIT, PROCESS_LIMIT)
+    feasible = [n for n in range(1, MAX_WORKERS + 1)
+                if observed["cpu_capacity"] >= n and observed["available_memory_bytes"] >= (n + 2) * PROCESS_LIMIT]
+    require(feasible, "no worker count fits the visible resources")
+    return {"cpu_capacity": observed["cpu_capacity"],
+            "available_memory_gib": observed["available_memory_bytes"] / (1024 ** 3),
+            "feasible_workers": feasible, "maximum_feasible_workers": max(feasible),
+            "recommended_initial_workers": min(DEFAULT_WORKERS, max(feasible)),
+            "minimum_available_memory_gib": {str(n): (n + 2) * PROCESS_LIMIT / (1024 ** 3)
+                                             for n in (1, 4, 8, 16)},
+            "scope": "visible CPU affinity/cgroup and RAM limits; no reservation and no speed benchmark",
+            "stage_created": False, "tests_or_queries_run": False}
 
 
 def source_inputs(source):
@@ -139,13 +202,18 @@ def save(directory, relative, value, *, emergency=False):
     path = directory / relative
     no_links(path)
     raw = encode(value)
-    used = used_bytes(directory)
-    # Reserve a second copy for the exported report, plus failure evidence.
-    require((used + len(raw) <= LIMIT_BYTES if emergency else 2 * (used + len(raw)) + RESERVE <= LIMIT_BYTES),
-            "E0 artifact/export budget reached")
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("xb") as handle:
-        handle.write(raw)
+    lock = directory / ".write.lock"
+    no_links(lock)
+    # The byte check and complete write share one kernel lock across parent
+    # and workers; concurrent writers cannot each spend the same free space.
+    with lock.open("a+b") as lock_handle:
+        fcntl.flock(lock_handle.fileno(), fcntl.LOCK_EX)
+        used = used_bytes(directory)
+        require((used + len(raw) <= LIMIT_BYTES if emergency else 2 * (used + len(raw)) + RESERVE <= LIMIT_BYTES),
+                "E0 artifact/export budget reached")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("xb") as handle:
+            handle.write(raw)
 
 
 def tree_memory():
@@ -187,42 +255,79 @@ def watch_command(stop):
         stop.wait(0.05)
 
 
-def run_child(directory, role, identifier, request, begin, ledger):
-    request_name = f"requests/{identifier}.json"
-    save(directory, request_name, request)
-    # A child address-space limit is an additional conservative bound, not an RSS measurement.
+def watch_thread(stop):
+    blocked = {signal.SIGTERM, signal.SIGINT, signal.SIGALRM, signal.SIGUSR1}
+    # This dedicated thread keeps its mask until it exits, so it cannot take
+    # a pending signal while the main thread registers a newly spawned child.
+    signal.pthread_sigmask(signal.SIG_BLOCK, blocked)
+    watch_command(stop)
+
+
+def run_children(directory, tasks, workers, begin, ledger, launched_children=None):
+    """One parent owns dispatch/receipts; workers write only their own outputs."""
     parent_peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024
-    env = {**os.environ, "E0_CHILD_DIR": str(directory), "E0_CHILD_ID": identifier,
-           "E0_CHILD_AS_BYTES": str(max(1, LIMIT_RSS - parent_peak))}
-    cmd = [sys.executable, "-B", str(Path(__file__).resolve()), "_worker", "--role", role, "--id", identifier]
-    child = subprocess.Popen(cmd, env=env, start_new_session=True)
-    error, peak_rss, peak_bound = None, 0, parent_peak
-    try:
-        while child.poll() is None:
-            rss, hwm = tree_memory()
-            peak_rss, peak_bound = max(peak_rss, rss), max(peak_bound, hwm)
-            require(time.monotonic() - begin <= LIMIT_S, "stage wall-clock limit")
-            require(hwm <= LIMIT_RSS, "live process-tree memory limit")
-            require(2 * used_bytes(directory) + RESERVE <= LIMIT_BYTES, "artifact/export limit")
-            time.sleep(0.05)
-    except BaseException as exc:
-        error = f"{type(exc).__name__}: {exc}"
+    measured = {"rss": 0, "bound": parent_peak}
+    launched_children = [] if launched_children is None else launched_children
+
+    def checkpoint():
+        rss, hwm = tree_memory()
+        measured["rss"], measured["bound"] = max(measured["rss"], rss), max(measured["bound"], hwm)
+        require(time.monotonic() - begin <= LIMIT_S, "stage wall-clock limit")
+        require(hwm <= LIMIT_RSS and MONITOR["error"] is None, "live process-tree memory limit")
+        require(2 * used_bytes(directory) + RESERVE <= LIMIT_BYTES, "artifact/export limit")
+
+    def launch(task):
+        identifier, role = task["id"], task["role"]
+        save(directory, f"requests/{identifier}.json", task["request"])
+        env = {**os.environ, "E0_CHILD_DIR": str(directory), "E0_CHILD_ID": identifier,
+               "E0_CHILD_AS_BYTES": str(PROCESS_LIMIT)}
+        cmd = [sys.executable, "-B", str(Path(__file__).resolve()), "_worker", "--role", role, "--id", identifier]
+        child = subprocess.Popen(cmd, env=env, start_new_session=True)
+        launched_children.append({"id": identifier, "role": role, "pid": child.pid})
+        return child
+
+    def abort(child):
         try:
             os.killpg(child.pid, signal.SIGKILL)
         except ProcessLookupError:
-            pass
-    finally:
-        child.wait()
-    stats_path = directory / f"worker/{identifier}.json"
-    stats = read(stats_path) if stats_path.exists() else None
-    if stats is not None:
-        peak_bound = max(peak_bound, parent_peak + stats["peak_rss_bytes"])
-    ledger.append({"id": identifier, "role": role, "exit_code": child.returncode, "error": error,
-                   "sampled_live_rss_peak_bytes": peak_rss, "conservative_live_hwm_peak_bytes": peak_bound,
-                   "worker": stats})
-    save(directory, f"exits/{identifier}.json", ledger[-1], emergency=error is not None)
-    require(error is None and child.returncode == 0 and stats is not None
-            and stats["completed"] and peak_bound <= LIMIT_RSS, f"{identifier} failed; preserved")
+            if child.poll() is None:
+                child.kill()
+        except OSError:
+            child.kill()
+        child.wait(timeout=5)
+
+    def completed(task, child, error):
+        identifier = task["id"]
+        stats, stats_error = None, None
+        try:
+            stats_path = directory / f"worker/{identifier}.json"
+            stats = read(stats_path) if stats_path.exists() else None
+            if stats is not None:
+                require(isinstance(stats, dict) and set(stats) == {"id", "role", "completed", "error", "peak_rss_bytes"}
+                        and stats["id"] == identifier and stats["role"] == task["role"]
+                        and type(stats["completed"]) is bool and type(stats["peak_rss_bytes"]) is int
+                        and 0 < stats["peak_rss_bytes"] <= PROCESS_LIMIT
+                        and (stats["error"] is None if stats["completed"] else isinstance(stats["error"], str)),
+                        "malformed worker completion evidence")
+        except (OSError, ValueError, KeyError, TypeError):
+            stats_error = traceback.format_exc()
+            stats = None
+        bound = max(measured["bound"], parent_peak + (stats["peak_rss_bytes"] if stats else 0))
+        row = {"id": identifier, "role": task["role"], "exit_code": child.returncode,
+               "error": error or stats_error, "sampled_live_rss_peak_bytes": measured["rss"],
+               "conservative_live_hwm_peak_bytes": bound, "worker": stats}
+        ledger.append(row)
+        save(directory, f"exits/{identifier}.json", row, emergency=error is not None or child.returncode != 0 or stats_error is not None)
+        if error is None:
+            require(stats_error is None and child.returncode == 0 and stats is not None
+                    and stats["completed"] and bound <= LIMIT_RSS, f"{identifier} failed; preserved")
+        return row
+
+    return dispatch(tasks, workers, launch, completed, checkpoint, abort)
+
+
+def run_child(directory, role, identifier, request, begin, ledger, launched_children=None):
+    return run_children(directory, [{"id": identifier, "role": role, "request": request}], 1, begin, ledger, launched_children)
 
 
 def worker_tests(directory, request):
@@ -329,7 +434,9 @@ def worker(role, identifier):
     require(os.environ.get("E0_CHILD_DIR") == str(RUN) and os.environ.get("E0_CHILD_ID") == identifier,
             "fresh parent launch required")
     require(not (RUN / "receipt.json").exists(), "closed stage cannot launch workers")
+    signal.pthread_sigmask(signal.SIG_UNBLOCK, {signal.SIGTERM, signal.SIGINT, signal.SIGALRM, signal.SIGUSR1})
     cap = int(os.environ["E0_CHILD_AS_BYTES"])
+    require(cap == PROCESS_LIMIT, "worker process limit differs from registration")
     resource.setrlimit(resource.RLIMIT_AS, (cap, cap))
     sys.path.insert(0, str(ROOT / "src"))
     request = read(RUN / f"requests/{identifier}.json")
@@ -366,6 +473,14 @@ def success_evidence(directory, saved, started):
     """Rebuild census, input digests, target matching and child evidence."""
     config = configuration()
     require(started["config"] == config, "registered configuration changed")
+    execution = execution_spec(started["execution"]["workers"])
+    require(saved["execution"] == started["execution"] == execution, "execution registration differs")
+    resources = started["resources"]
+    require(resources["workers"] == execution["workers"] and resources["cpu_capacity"] >= execution["workers"]
+            and resources["tree_rss_limit_bytes"] == execution["tree_rss_limit_bytes"]
+            and resources["process_as_limit_bytes"] == PROCESS_LIMIT and resources["reserve_bytes"] == PROCESS_LIMIT
+            and resources["available_memory_bytes"] >= execution["tree_rss_limit_bytes"] + PROCESS_LIMIT,
+            "original capacity preflight was insufficient")
     # A later documentation change can reuse a receipt. A changed verifier or
     # scientific implementation must use the original checkout to verify it.
     for name in BOUND:
@@ -376,11 +491,12 @@ def success_evidence(directory, saved, started):
     registered_jobs = jobs(config, inputs, SOURCE)
     require(started["jobs"] == registered_jobs, "job registration differs")
     ids = ["tests"] + [f"query-{i:02d}" for i in range(16)] + ["evaluate"]
-    expected_files = {"started.json", "tests.json", "tests.log", "public_seal.json", "evaluation.json", "audit.json"}
+    expected_files = {".write.lock", "started.json", "tests.json", "tests.log", "public_seal.json", "evaluation.json", "audit.json"}
     expected_files |= {f"{sub}/{identifier}.json" for sub in ("requests", "worker", "exits") for identifier in ids}
     expected_files |= {f"predictions/query-{i:02d}.json" for i in range(16)}
     require(set(saved["artifacts"]) == expected_files, "successful artifact census differs")
     require([r["id"] for r in saved["children"]] == ids, "child completion census incomplete")
+    require(saved["not_started_ids"] == [] and saved["missing_exit_ids"] == [], "successful child evidence incomplete")
     for row in saved["children"]:
         identifier = row["id"]
         require(row == read(directory / f"exits/{identifier}.json")
@@ -428,6 +544,18 @@ def success_evidence(directory, saved, started):
 def verify(directory, *, require_success=True, pending=None):
     no_links(directory)
     saved, started = (read(directory / "receipt.json") if pending is None else pending), read(directory / "started.json")
+    execution = execution_spec(started["execution"]["workers"])
+    require(saved["execution"] == started["execution"] == execution, "execution registration differs")
+    registered_ids = ["tests"] + [job["id"] for job in started["jobs"]] + ["evaluate"]
+    launched_ids = [row["id"] for row in saved["launched_children"]]
+    exited_ids = [row["id"] for row in saved["children"]]
+    require(launched_ids == registered_ids[:len(launched_ids)]
+            and len(exited_ids) == len(set(exited_ids)) and set(exited_ids) <= set(launched_ids)
+            and saved["not_started_ids"] == [i for i in registered_ids if i not in launched_ids]
+            and saved["missing_exit_ids"] == [i for i in launched_ids if i not in exited_ids],
+            "launched, unstarted, and missing-exit census differs")
+    require(all(type(row["pid"]) is int and row["pid"] > 0 for row in saved["launched_children"]),
+            "invalid launched process evidence")
     require(saved["stage"] == started["stage"] == STAGE, "wrong stage")
     require(saved["commit"] == started["commit"] and saved["binding"] == started["binding"]
             and set(saved["binding"]) == set(BOUND), "source binding mismatch")
@@ -443,42 +571,49 @@ def verify(directory, *, require_success=True, pending=None):
                 "tests incomplete")
         success_evidence(directory, saved, started)
         require(saved["source_unchanged"] and saved["input_unchanged"] and saved["error"] is None
-                and saved["elapsed_s"] <= LIMIT_S and saved["conservative_live_hwm_peak_bytes"] <= LIMIT_RSS
+                and saved["elapsed_s"] <= LIMIT_S
+                and saved["conservative_live_hwm_peak_bytes"] <= execution["tree_rss_limit_bytes"]
                 and used_bytes(directory) <= LIMIT_BYTES, "resource or source guard failed")
     if require_success:
         require(saved["exit_code"] == 0, "failed run preserved; export diagnosis")
         if pending is None:
-            print(f"{STAGE} VERIFIED tests={len(started['test_names'])} queries=16 exit=0", flush=True)
+            print(f"{STAGE} VERIFIED tests={len(started['test_names'])} queries=16 workers={execution['workers']} exit=0", flush=True)
     return saved
 
 
-def run(directory, source):
+def run(directory, source, *, workers=DEFAULT_WORKERS):
     if directory.exists():
         verify(directory)
         return
     require(platform.system() == "Linux" and (3, 11) <= sys.version_info[:2] < (3, 13), "Linux Python 3.11/3.12 required")
     begin = COMMAND_BEGIN if COMMAND_BEGIN is not None else time.monotonic()
-    resource.setrlimit(resource.RLIMIT_AS, (LIMIT_RSS, LIMIT_RSS))
+    resource.setrlimit(resource.RLIMIT_AS, (PROCESS_LIMIT, PROCESS_LIMIT))
+    no_links(SERIAL_RUN)
+    require(not SERIAL_RUN.exists(), "original serial E0 exists; preserve and verify using commit " + SERIAL_COMMIT)
+    execution = configure_execution(directory, workers)
     config = configuration()
     require(not git("status", "--porcelain", "--", *BOUND), "bound sources must be clean and committed")
     before, commit = binding(), git("rev-parse", "HEAD")
     original_binding(commit, before)
+    resources = capacity(workers, PROCESS_LIMIT, PROCESS_LIMIT)
+    print(f"{STAGE} CAPACITY {json.dumps(resources, sort_keys=True)}", flush=True)
     inputs = source_inputs(source)
     registered_jobs = jobs(config, inputs, source)
     directory.mkdir(parents=True, exist_ok=False)
     save(directory, "started.json", {"stage": STAGE, "commit": commit, "binding": before, "config": config,
          "inputs": inputs, "jobs": registered_jobs, "test_names": test_names(), "python": sys.version,
-         "repository": str(ROOT), "source_directory": str(source), "started": reader_ops.now()})
-    ledger, error, same_input, accepted = [], None, False, False
+         "repository": str(ROOT), "source_directory": str(source), "started": reader_ops.now(),
+         "execution": execution, "resources": resources})
+    ledger, launched_children, error, same_input, accepted = [], [], None, False, False
     try:
-        run_child(directory, "tests", "tests", {"test_names": test_names()}, begin, ledger)
-        for job in registered_jobs:
-            run_child(directory, "public", job["id"], public_request(job, config), begin, ledger)
+        run_child(directory, "tests", "tests", {"test_names": test_names()}, begin, ledger, launched_children)
+        tasks = [{"id": job["id"], "role": "public", "request": public_request(job, config)} for job in registered_jobs]
+        run_children(directory, tasks, workers, begin, ledger, launched_children)
         predictions = {name: entry for name, entry in manifest(directory).items() if name.startswith("predictions/")}
         save(directory, "public_seal.json", {"predictions": predictions, "public_complete": True})
         verify_seal(directory, read(directory / "public_seal.json"))
         run_child(directory, "evaluate", "evaluate", {"xml": inputs["xml"], "jobs": registered_jobs,
-                  "evaluation_only": config["evaluation_only"], "public_seal_sha256": file_sha(directory / "public_seal.json")}, begin, ledger)
+                  "evaluation_only": config["evaluation_only"], "public_seal_sha256": file_sha(directory / "public_seal.json")}, begin, ledger, launched_children)
         checks = inventory_checks(directory, registered_jobs, read(directory / "evaluation.json"))
         accepted = all(checks.values())
         save(directory, "audit.json", {"accepted": accepted, "checks": checks,
@@ -495,12 +630,18 @@ def run(directory, source):
             same_source = binding() == before and git("rev-parse", "HEAD") == commit
         except BaseException:
             error = "Input/source recheck: " + traceback.format_exc()
+    registered_ids = ["tests"] + [job["id"] for job in registered_jobs] + ["evaluate"]
+    ledger.sort(key=lambda row: registered_ids.index(row["id"]))
     artifacts = manifest(directory)
     elapsed = time.monotonic() - begin
     peak = max([resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024]
                + [x["conservative_live_hwm_peak_bytes"] for x in ledger])
     success = accepted and error is None and same_input and same_source and elapsed <= LIMIT_S and peak <= LIMIT_RSS
     saved = {"stage": STAGE, "commit": commit, "binding": before, "finished": reader_ops.now(),
+             "launched_children": launched_children,
+             "execution": execution, "not_started_ids": [identifier for identifier in registered_ids
+                                                          if identifier not in {r["id"] for r in launched_children}],
+             "missing_exit_ids": [r["id"] for r in launched_children if r["id"] not in {e["id"] for e in ledger}],
              "children": ledger, "elapsed_s": elapsed, "conservative_live_hwm_peak_bytes": peak,
              "error": error, "source_unchanged": same_source, "input_unchanged": same_input,
              "geometry_accepted": accepted, "artifacts": artifacts,
@@ -537,7 +678,7 @@ def run(directory, source):
         raise
     (directory / "receipt.pending.json").rename(directory / "receipt.json")
     require(success, f"{STAGE} failed; preserved; use export")
-    print(f"{STAGE} VERIFIED tests={len(test_names())} queries=16 exit=0", flush=True)
+    print(f"{STAGE} VERIFIED tests={len(test_names())} queries=16 workers={workers} exit=0", flush=True)
 
 
 def export_remaining_s(saved, elapsed):
@@ -569,7 +710,14 @@ def export(directory, report):
              "receipt": saved, "receipt_sha256": file_sha(directory / "receipt.json"), "artifacts_json": {}}
     for name in saved["artifacts"]:
         if name.endswith(".json"):
-            value["artifacts_json"][name] = read(directory / name)
+            try:
+                value["artifacts_json"][name] = read(directory / name)
+            except (ValueError, UnicodeDecodeError):
+                require(saved["exit_code"] != 0, "successful stage contains invalid JSON")
+                raw_artifact = (directory / name).read_bytes()
+                value.setdefault("unparsed_artifacts", {})[name] = {
+                    "reason": "interrupted_or_invalid_json_preserved", "bytes": len(raw_artifact),
+                    "sha256": sha(raw_artifact), "utf8_prefix": raw_artifact[:16000].decode("utf-8", errors="replace")}
     if saved["exit_code"] and (directory / "tests.log").exists():
         value["tests_log_tail"] = (directory / "tests.log").read_text(encoding="utf-8")[-16000:]
     if prior is not None:
@@ -612,11 +760,13 @@ def export(directory, report):
 
 
 def main():
-    global COMMAND_BEGIN
+    global COMMAND_BEGIN, LIMIT_RSS
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("step", choices=("run", "verify", "export", "_worker"))
+    parser.add_argument("step", choices=("capacity", "run", "verify", "export", "_worker"))
     parser.add_argument("--role", choices=("tests", "public", "evaluate"))
     parser.add_argument("--id")
+    parser.add_argument("--workers", type=int, choices=range(1, MAX_WORKERS + 1),
+                        help="public query concurrency for a new run (default: 4)")
     args = parser.parse_args()
     no_links(RUN)
     os.chdir(ROOT)
@@ -625,33 +775,43 @@ def main():
     if args.step != "_worker":
         require(platform.system() == "Linux", "server-only command")
         COMMAND_BEGIN = time.monotonic()
-        resource.setrlimit(resource.RLIMIT_AS, (LIMIT_RSS, LIMIT_RSS))
+        require(args.workers is None or args.step == "run", "--workers is only accepted with run")
+        resource.setrlimit(resource.RLIMIT_AS, (PROCESS_LIMIT, PROCESS_LIMIT))
+        if args.step == "capacity":
+            LIMIT_RSS = PROCESS_LIMIT
+        else:
+            configure_execution(RUN, args.workers)
         def deadline(signum, frame):
             # Disable the timer for bounded failure-receipt cleanup, not further work.
             signal.setitimer(signal.ITIMER_REAL, 0)
             raise TimeoutError("whole-command wall-clock limit")
         def stopped(signum, frame):
             signal.setitimer(signal.ITIMER_REAL, 0)
-            raise KeyboardInterrupt("SIGTERM: preserve interrupted E0 stage")
+            raise KeyboardInterrupt(f"{signal.Signals(signum).name}: preserve interrupted E0 stage")
         def memory_limit(signum, frame):
             signal.setitimer(signal.ITIMER_REAL, 0)
             raise MemoryError(MONITOR["error"] or "whole-command memory guard")
         signal.signal(signal.SIGALRM, deadline)
         signal.signal(signal.SIGTERM, stopped)
+        signal.signal(signal.SIGINT, stopped)
         signal.signal(signal.SIGUSR1, memory_limit)
         signal.setitimer(signal.ITIMER_REAL, LIMIT_S)
         stop = threading.Event()
-        watcher = threading.Thread(target=watch_command, args=(stop,), daemon=True)
+        watcher = threading.Thread(target=watch_thread, args=(stop,), daemon=True)
         watcher.start()
     try:
-        if args.step == "run":
-            run(RUN, SOURCE)
+        if args.step == "capacity":
+            print(json.dumps(capacity_options(), ensure_ascii=False, sort_keys=True, indent=2), flush=True)
+            print(f"{STAGE} CAPACITY CHECKED exit=0", flush=True)
+        elif args.step == "run":
+            run(RUN, SOURCE, workers=configure_execution(RUN, args.workers)["workers"])
         elif args.step == "verify":
             verify(RUN)
         elif args.step == "export":
             export(RUN, REPORT)
         else:
-            require(args.role is not None and args.id in ["tests", "evaluate"] + [f"query-{i:02d}" for i in range(16)], "invalid worker")
+            require(args.workers is None and args.role is not None
+                    and args.id in ["tests", "evaluate"] + [f"query-{i:02d}" for i in range(16)], "invalid worker")
             worker(args.role, args.id)
     finally:
         if stop is not None:
