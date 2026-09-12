@@ -611,3 +611,8 @@ audit_receipt绑定全部阶段文件、源码、summary、两阶段真实退出
 阶段配置`r4_frontend_stage_v2.json`登记固定families/worlds/actions、原报告SHA、源路径、新输出路径、16项人工检查、deadline和资源。新check/public/evaluation各有started/receipt及失败时failure，父进程另保存check_exit/predict_exit/evaluate_exit。public全部输出封存并有predict_exit=0后才打开私有XML/轨迹/标签；原320输入逐文件校验。evaluation/summary记录acceptance_required、acceptance_observed、engineering_accepted以及原全量逐例误差；formal_model_ready仍false。公开地图和轨迹留服务器，独立export写`results/spatial_history_r4_frontend_v2.json`并绑定配置、源码、原输入/输出清单及原始回执。status=passed仍只表示执行完整，需另看engineering_accepted；两者都不表示正式模型通过。
 
 D-090 v2r1运维修复：配置新增source_code_files、public_registration（16项）和truth_registration（304项），每项只含原path→bytes/sha256，没有真实状态或标签值。新入口r4_frontend_stage_v2r1.py仅流式核父报告摘要，不解析其JSON；公开子进程对原数据目录安装只允许16公开文件的读取守卫，私有读只在公开子进程退出后独立评估。新增3项隔离反例，共19项。旧v2中断报告/目录保留，新目录与报告用v2r1后缀；科学schema与算法仍为v2。
+
+
+### R4-4资产环境审计字段（D-091）
+
+`ops/spatial_history/r4_model_assets_v1.py`读取/root/sh05-assets-v1下已锁作者源码及独立环境，不读本项目公共/私有样本。`audit-v1/<step>/started.json`记录入口摘要与时钟，`run.log`保存完整命令输出，`receipt.json`含来源或解释器/版本、日志bytes/sha256及退出/耗时，失败保留failure.json。exporter将逐阶段证据文本及摘要导出results/spatial_history_r4_model_assets_v1.json；author_forward_passed和adapted_models_ready为空明确表示尚无接通结果。白话：例如pip成功只填环境回执，不填模型成功；这些是资产工程字段，不是模型可消费的语义输入或效果标签。

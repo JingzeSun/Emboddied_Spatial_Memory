@@ -22,11 +22,13 @@ D-059 的逐职责代码审查继续有效：当前批次可实现及做必要�
 | SH-06 决定改进机制 | SH-05 确认并复现的具体失败 | 单一机制假设、对照与预算；不预先绑定 CTL，不靠扩场景/模型追正结果 |
 | SH-07 独立确认与交付 | 前阶段已审方法和冻结协议 | 未见场景确认、适当现实来源验证及论文/artifact；目前均 planned，不能视为已授权 test 解封 |
 
-SH-03预算由D-065固定：128次4.9 s模拟执行，新产物2 GiB，按案例边界检查；预计5–10分钟前台，实际耗时待服务器记录。SH-04及以后不预设训练规模、模型架构或实验胜者。测试与计算在服务器由用户手动运行；本地只做源码、文档、Git和标准库静态核查。
+SH-03预算由D-065固定：128次4.9 s模拟执行，新产物2 GiB，按案例边界检查；预计5–10分钟前台，实际耗时待服务器记录。SH-04及以后不预设训练规模、模型架构或实验胜者。测试与计算仅在服务器；本轮D-090/091按用户授权由代理直接SSH执行。本地只做源码、文档、Git和标准库静态核查。
 
 ## 当前指针
 
-**当前为D-090授权的R4前端v2r1隔离修复与服务器工程验收阶段。** 用户授权代理直接SSH并在24小时可用窗口内持续推进，实际仓库路径/root/Emboddied_Spatial_Memory已只读核实。原775c050侧壁/短墙片证据按原字节复用；本版分别实现条件表面归属、同帧地面相对墙高的短墙片保留，并显式桥接未改的旧求解器。19项人工/隔离反例、原16历史/144主分支及完整check→public封存/退出→evaluation→verify/export同版交付，首次v2的16项通过但因运维私有读隔离问题主动中断并封存；v2r1科学算法不变，新验证待运行。验收具体门与资源先登记于D-090及r4_frontend_stage_v2.json；不把工程链路跑通升级为正式M/P或准确性验收。正式模型/其余60家族/确认/训练/下载/main合并仍未开放，旧失败和原PLAN局部编辑保留。
+**当前为R4-4模型接入准备，前端v2r1名义工程验收已通过。** 报告81bceed绑定01c03cf，19项检查、30项来源绑定、原16历史/144分支/320输入核验完整；16关联/两开口、144轨迹/任务读出、16选择及误标占据/自由均达到D-090登记门。公开推演754.3 s、评估66.8 s，实际物块平均误差9.59 cm、接触Brier 0.1152；16世界名义选择恰好选中真实成功动作，但全144分支仍涉及未知扫掠，formal_model_ready/eligible_for_P=false。LOG-121保留工程通过与科学缺口。
+
+用户追加授权完成后继续SH-05接三模型、可用系统盘且必要时删除旧CPMT/CTL数据。D-091登记按实际依赖连续推进：先锁官方源码与独立环境、必要原生检查，再按职责实现完整历史/200步适配；不将24小时窗口当作56 GPU小时预算或确认集解封。DreamerV3/FloWM继续；PointWorld官方DINOv3资产缺失，用户正在询问DINOv2替代方案，DINO-WM为待定推荐，尚未把更换编码器或第三模型写成已审基线。已核系统盘约29 GiB空闲、数据盘22 GiB，尚不需删除，旧数据未动。原PLAN局部编辑保留。
 
 已完成证据：[SH-03/v2报告](../results/spatial_history_development_audit_v2_wall_clearance.json)为12项/16对通过，原科学提交57d01aa、报告ce5b3f1，LOG-107；原v1失败保留于LOG-106。它们只供工程/输入审计，不能拆分成训练/确认。当前协议文档有新增内容，不借旧SH-03回执认证；旧产物按原代码/合同摘要复用。
 
@@ -750,3 +752,15 @@ python ops/spatial_history/contract_check.py export
 - 第一轮没有必要搬迁旧源码或删除文件；大重构需明确解决实际依赖问题后再做。用户许可重构不等于要求清空工作区或服务器 outputs。
 - ARKitScenes/ADT 已下载开发预览和 [来源清单](../data/manifests/visual_source_review.json)保留，完整接入暂缓；它们不能直接提供所需的机器人控制反事实分支。
 - D-059/D-061 的32步旧计划由本计划替代为暂停状态；完整原文在 [转向前版本](https://github.com/JingzeSun/Emboddied_Spatial_Memory/blob/5f4fd115ed89876c0045d325af290d2636171e73/docs/PLAN.md)。不另建 archive/进度文件。
+
+
+### R4-4资产环境阶段命令（D-091）
+
+此版本只获取并核查源码/环境，不包含模型前向或训练。三份官方源码已锁/root/sh05-assets-v1；实际代码和环境变化后的独立接线入口另按该职责交付。当前主仓库同步一次后顺序执行，前一步exit=0才继续；失败现场保留，export读取现场不重跑。
+
+```bash
+python -B ops/spatial_history/r4_model_assets_v1.py sources
+python -B ops/spatial_history/r4_model_assets_v1.py env_flowm
+python -B ops/spatial_history/r4_model_assets_v1.py env_dreamer
+python -B ops/spatial_history/r4_model_assets_v1.py export
+```
