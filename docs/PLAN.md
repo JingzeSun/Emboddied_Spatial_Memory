@@ -26,7 +26,7 @@ SH-03预算由D-065固定：128次4.9 s模拟执行，新产物2 GiB，按案例
 
 ## 当前指针
 
-**当前为D-083：D-082规格已获认可，v2公共查询与九候选评分已实现，待代码审查。** 本批仅实现版本/80像素边界、九候选顺序/并列/缺失和原语义评分，33项标准库服务器检查及run/verify/export入口已准备但尚未执行，见LOG-114。按已认可的阶段顺序，本轮先交独立合同；用户审过后再实现v2设计/生成/存储和整阶段入口，全部准备好再让服务器同步一次，不在本轮提前生成。原提案JSON保持原字节，D-083登记本次实施范围；科学范围和144首次+144重放预算仍按D-082。LOG-113旧失败/诊断和家族ID/划分保持，不换样本、不放宽评分；其余60家族、confirmation、学习和下载均不开放，当前未合并main。
+**当前为D-084：用户在8450180合同交付后继续，v2设计、生成/存储及完整服务器阶段已实现，待本批代码审查和服务器核验。** D-082数值不改：首4家族固定r4-39/r4-47/r4-25/r4-03，16历史/144首次/144重放，仅一次新批。先在同一提交执行33项v2合同检查，再做37项生成检查；代码审过且核实新数据剩余额度后才运行物理。新入口的capacity/check/run/verify/export已配齐，阶段开始同步一次，途中不再pull。实际服务器检查、原生渲染和生成均未运行，见LOG-115；旧LOG-113失败与现场完整保留，旧批耗时/存储计入D-082总预算。类别捷径仍存在或任一家族门失败时停止依赖工作，不调整门限/换样本；其余60家族、确认、学习、下载和合并main均未开放。
 
 已完成证据：[SH-03/v2报告](../results/spatial_history_development_audit_v2_wall_clearance.json)为12项/16对通过，原科学提交57d01aa、报告ce5b3f1，LOG-107；原v1失败保留于LOG-106。它们只供工程/输入审计，不能拆分成训练/确认。当前协议文档有新增内容，不借旧SH-03回执认证；旧产物按原代码/合同摘要复用。
 
@@ -79,32 +79,92 @@ SH-01审查批准已登记于9044074。SH-02科学提交e3a1d71及通过报告f6
 
 R4-0只固定规格；现已按顺序交付R4-1及R4-2，后续职责仍planned。拟议总上限56 GPU小时/64 GiB新增存储需要真实容量核验；旧50 GB数据盘不能按此假定够用，预算不足先登记不可执行，不删旧产物或静默缩科学规模。
 
-### D-083合同检查预备步骤（本轮先审代码，完整v2阶段交齐后统一同步）
+### R4 v2完整服务器阶段（D-084，先审本批代码；一次同步）
 
-白话：这一步只验证人工输入和九候选评分规则。输入是届时已提交的源码/配置及33项人工例，输出独立回执与小报告；例如证明缺第九条预测不会把分母缩成八，不是生成新物理数据。当前新生成器/存储尚未交付，按D-082不提前要求服务器同步；下面保留同版本的完整短命令，等待整阶段就绪再执行。
+白话：同一版本先核人工合同与工程接线，再生成固定四家族，最后验收/导出。输入是已审完整提交和真实租赁剩余额度，输出完整原生数据及含失败细节的小报告；例如推头碰门后整批未通过，也能直接导出原接触摘要。这不是自动扩跑64家族或训练。预计生成耗时只能参考旧批外推，默认前台；7200 s是硬上限，不是实测预计时长。
 
-步骤ID为`SH-04-R4-contract-v2`。输入前提：完整阶段届时同步到`review/spatial-history-baselines`，19项绑定文件已提交且干净，使用已核实的隔离环境。只写新合同目录`/root/autodl-tmp/spatial-history/sh04-r4-contract-v2`和固定报告`results/spatial_history_r4_contract_v2.json`，不访问物理输出。已有成功目录只verify，不重跑；失败/中断目录保留，可export原started/receipt/log供诊断，不能填造通过。
+**同步一次。** 在已核实的仓库工作目录中、checkout没有运行任务时先检查；有未提交文件先保留处理。这里不重新猜测服务器仓库路径。
+
+```bash
+git rev-parse --show-toplevel
+git status --short
+```
+
+工作树干净且本批代码审过后：
+
+```bash
+git pull --ff-only origin review/spatial-history-baselines
+git rev-parse HEAD
+```
+
+记录打印的完整40位提交用于后续明确放行。从这一步到导出不再pull、不改绑定文件、不在中途提交报告。
+
+**SH-04-R4-contract-v2。** 使用既有隔离环境，33项标准库人工例；只写新合同目录`/root/autodl-tmp/spatial-history/sh04-r4-contract-v2`及`results/spatial_history_r4_contract_v2.json`，不访问物理现场。已有目录只verify，不重跑；失败/中断保留。
 
 ```bash
 /root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/r4_contract_check_v2.py run
 ```
 
-成功标志`SH-04-R4-contract-v2 VERIFIED tests=33 exit=0`。run已经做一次终检，后续需要独立复查时仍使用同版：
+继续条件：`SH-04-R4-contract-v2 VERIFIED tests=33 exit=0`。run已终检，不必重复verify；成功或失败都可以用同版导出：
 
 ```bash
-/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/r4_contract_check_v2.py verify
 /root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/r4_contract_check_v2.py export
 ```
 
-只有`EXPORTED status=passed ... exit=0`与33项成功回执一起才表示合同检查完成。`failed_or_incomplete`只是失败报告导出成功，停止依赖步骤；不同已有报告不覆盖。所有步骤前台，单命令≤300 s、512 MiB地址空间/RSS、阶段加报告≤8 MiB，0模拟/渲染/训练/下载。后续生成的放行/检查另由尚待交付的v2入口负责，不用本合同通过代替。
+只有`EXPORTED status=passed`才继续。失败报告仍保留原日志/回执，先回传诊断，不启动依赖步骤。单步≤300 s、512 MiB地址空间/RSS、阶段加报告≤8 MiB，0模拟/渲染/训练/下载。
 
-生成报告后纯Git回传使用：
+**SH-04-R4-2-engineering-subset-v2/capacity。** 只读可见cgroup CPU/内存和数据盘空间，不预留资源，df不代替租赁配额：
 
 ```bash
-git add -- results/spatial_history_r4_contract_v2.json
-git commit -m "results: export R4 v2 query and nine-candidate contract checks"
+/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/r4_generation_check_v2.py capacity --workers 4
+```
+
+**同阶段/check。** 自动验证同提交v2合同回执、旧R4-1/E0报告原Git来源、v1失败报告与旧现场清单、保留空间和耗时账本，再检查新64行设计及37项测试。编译MuJoCo XML而不积分/渲染；只写新目录`/root/autodl-tmp/spatial-history/sh04-r4-engineering-subset-v2`。
+
+```bash
+/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/r4_generation_check_v2.py check
+```
+
+继续条件：`SH-04-R4-2-engineering-subset-v2 CHECKED tests=37 exit=0`。失败先export。新目录已存在则只核验原check；中断和失败不自动重跑，不删除现场。
+
+**同阶段/run。** 前提：上面完整提交已经审过、两组新检查通过、4路容量通过，并且租赁后台确认用于本批的剩余新数据额度至少8 GiB。`--reviewed-code`必须逐字等于check记录的完整提交；不能用短hash、旧提交或另一次测试marker。下面两个输入由本次人工放行填写，未填写或非法值会拒绝运行；历史截图/df空闲量不能代填。
+
+```bash
+read -r -p '已审的完整40位提交: ' R4_V2_REVIEWED_CODE
+read -r -p '租赁后台确认的本批剩余新数据额度 GiB: ' R4_V2_NEW_DATA_GIB
+```
+
+```bash
+/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/r4_generation_check_v2.py run --workers 4 --reviewed-code "$R4_V2_REVIEWED_CODE" --available-new-data-gib "$R4_V2_NEW_DATA_GIB"
+```
+
+每个家族前台显示history/branch/write及退出，父进程约30秒显示资源进度。固定16历史/144首次/144重放；每家族原生数组/轨迹保存在execution/对应ID/data。运行连首次export≤7200 s；每家族384 MiB含1 MiB失败保留、阶段连报告8 GiB、每进程6 GiB、树30 GiB。旧批268.25082197599113 s计入8小时总生成预算，旧现场/报告保留在1 GiB共享池预留内。压缩率由本批真实核验，超限停止保留前缀，不能临时增额或少存数组。
+
+`COMPLETED accepted=True|False exit=0`表示固定工作已完整结束，false表示工程条件失败；异常退出保留failure/未启动项。已有execution时run只核验，绝不续算或重复模拟。无论真/假，完成后均进入验收和导出，不再逐步询问。
+
+**同阶段/verify。** 只读核验同源回执、三个渠道清单、全部36标签/72组数组每家族、原生形状/无损摘要、候选控制槽、重放与总门；不模拟。
+
+```bash
+/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/r4_generation_check_v2.py verify
+```
+
+完整证据标志`VERIFIED accepted=True|False exit=0`；不完整/异常也继续导出失败证据，不重跑。类别交集全非空会让总accepted=false，即使family_gates_passed=true；任何报告都不自动开放其余60家族/学习。
+
+**同阶段/export。** 输出固定`results/spatial_history_r4_engineering_subset_v2.json`，原始数组留数据盘。包含全部家族结果、E0计数、接触摘要、来源/manifest/退出/失败与固定预览；无需追加诊断脚本。已有相同报告核验复用，不覆盖不同报告。
+
+```bash
+/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/r4_generation_check_v2.py export
+```
+
+`EXPORTED status=passed|failed|failed_or_incomplete|integrity_failed ... exit=0`是导出状态，不代表模型有效。生成前check失败也用此命令保存现场。全部计算停止、两份报告实际存在后一次Git收尾；若前一步合同就失败，仅提交实际存在的合同报告，不假造第二份：
+
+```bash
+git add -- results/spatial_history_r4_contract_v2.json results/spatial_history_r4_engineering_subset_v2.json
+git commit -m "results: export R4 v2 contract and engineering subset audit"
 git push origin review/spatial-history-baselines
 ```
+
+本地pull后按原提交来源只读验收。失败保留，不按结果换家族/改控制/阈值；通过也只说明这四家族工程条件，不代表任何模型接入或有效。
 
 ### R4-2失败诊断（已完成，保留复用说明）
 

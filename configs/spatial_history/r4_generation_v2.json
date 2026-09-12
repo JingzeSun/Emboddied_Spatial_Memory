@@ -1,0 +1,62 @@
+{
+  "version": "sh04-r4-engineering-subset-v2",
+  "decision": "D-084",
+  "status": "code_and_resource_review_pending",
+  "generation_authorized": false,
+  "training_authorized": false,
+  "weight_download_authorized": false,
+  "confirmation_authorized": false,
+  "protocol": "configs/spatial_history/r4_repair_proposal_v2.json",
+  "base": "configs/spatial_history/two_gate_engineering_v1.json",
+  "e0": "configs/spatial_history/public_geometry_parallel_v1.json",
+  "subset": "first_four_model_train_in_registered_split_order",
+  "release": "explicit_server_run_with_reviewed_code_equal_to_check_commit_and_declared_remaining_data_quota",
+  "limits_proposed": {
+    "check_wall_s": 300,
+    "run_and_first_export_wall_s": 7200,
+    "stage_and_report_bytes": 8589934592,
+    "family_bytes": 402653184,
+    "all_64_raw_family_bytes": 25769803776,
+    "shared_features_and_stage_metadata_bytes": 8589934592,
+    "failure_reserve_bytes_per_family": 1048576,
+    "process_as_bytes": 6442450944,
+    "tree_rss_bytes": 32212254720,
+    "capacity_reserve_bytes": 536870912,
+    "workers_default": 4,
+    "workers_allowed": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "generation_total_wall_s_including_v1": 28800,
+    "v1_run_and_first_export_consumed_s_upper": 268.25082197599113,
+    "retained_v1_reserved_from_shared_pool_bytes": 1073741824,
+    "new_features_and_metadata_bytes": 7516192768
+  },
+  "counts": {
+    "families": 4,
+    "histories": 16,
+    "unique_branches": 144,
+    "independent_replays": 144
+  },
+  "remaining_inventory_executable": false,
+  "confirmation_executable": false,
+  "failure_policy": "preserve_every_started_family_no_retry_no_replacement; false_scientific_gate_does_not_skip_registered_branches",
+  "tests": [
+    "test_r4_families_v2",
+    "test_r4_public_v2",
+    "test_r4_storage",
+    "test_r4_generation_v2",
+    "test_r4_generation_ops_v2"
+  ],
+  "design": "configs/spatial_history/r4_family_design_v2.json",
+  "source_proposal_sha256": "772d62800c5c350cde650cbdd4ae8981745ac38c485f75e68d9a6bd64956198b",
+  "retained_v1": {
+    "stage": "/root/autodl-tmp/spatial-history/sh04-r4-engineering-subset-v1",
+    "report": "results/spatial_history_r4_engineering_subset_v1.json",
+    "report_sha256": "95da3e3e2a75a92b15c7774cfcb88875ebefe2bdbd3bf685e67400d46fb94341",
+    "diagnostic_report": "results/spatial_history_r4_failure_diagnostics_v1.json",
+    "diagnostic_report_sha256": "32a5e9addc62f183bce6a6d48e74ae6ef106a730d8d0faaf8ae3c5a235ee8846"
+  }
+}

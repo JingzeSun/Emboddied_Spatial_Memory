@@ -154,7 +154,27 @@
 
 模型产物与上述原始物理证据不同：所有逐样本200步位置/接触/成功、选择、诊断读出、错误和来源都落盘；每个原生状态/完整点流保存精确shape/轴/摘要与`checkpoint+public_query+random_stream+prefix_or_chunk`可再生引用。每系统/seed固定选各split排序首家族的首世界、首控制、sample0，额外落盘完整原生状态/点流供审查，不按失败挑样本。其他状态是`materialized=false`，不得宣称已存完整数组；诊断运行当时消费真实内存状态并保存读出。再生必须先核验环境/确定性及原摘要，失败记不可复现；再生计算另计入既定预算，不覆盖主预测或伪造原运行回执。此规则避免把全量49×49×5×256地图和点流缓存误估为小报告，也不修改原物理产物保留要求。
 
-#### R4-2修订提案字段（D-082，proposed，未实现）
+#### R4 v2设计与生成产物字段（D-084，服务器产物尚未生成）
+
+白话：这些字段把“按哪个配置生成、哪个控制产生哪个标签”连起来。输入固定设计和真实记录，输出独立公共、标签、审计渠道；例如public第9槽对应私有c22及其首次轨迹，不能把文件名当模型输入。下面是已实现保存规则，不是已有结果或已通过的测试。
+
+| 产物/字段 | 含义与读取边界 |
+|---|---|
+| `r4_family_design_v2.json` | version=sh04-r4-family-design-v2，64行parameters、band_pairs、camera、split/rank和去横移规范摘要；固定engineering_family_ids，确认行只有事前设计 |
+| 私有`config.registration` | index与D-071完整base_template供精确派生校验，配置version=sh04-r4-family-v2；运行不靠模板赋予许可 |
+| `public/W.json.gz` | schema_version=spatial-history-r4-public-family-v2，121条真实80×80 history、匿名九槽actions列表、共同goal；目录名W是编排元数据 |
+| `model_input` | 验证完整公共记录后，按candidate_index及history_mode/history_cut_index选择一槽/合法历史，输出D-083源查询；选择器不进入模型特征 |
+| `labels/W-cXY.json.gz` | 36份首次分支v2标签及trajectory大小/SHA绑定，任务/物理/可见性状态与实际评分一致；重放不增加监督 |
+| `audit/W/primary-cXY`及`replay-cXY` | 原生数组、10001行轨迹、201传感帧、快照/实际接触/完成或失败标记；控制摘要和全部实际字节用于重放比较 |
+| `family_result.json` | schema_version=sh04-r4-family-result-v2，4历史/36首次/36重放、36分支、72组数组摘要、成功矩阵和失败门；缺槽或完成回执不符均拒绝 |
+| `branches[].contacts` | trace_rows、initial/terminal，以及positive_contact_pairs中的geoms、positive_steps、first/last/peak、peak_point_normal_force_n；同一步多点计一次，峰值为单点力，首末区间不表示连续接触 |
+| `geometry.rows[]` | 原assessment加公开预测rejected_counts、candidate_count、incomplete_count、conflict_count；16查询/家族全部保留，零候选/零拒绝计数不推定通过 |
+| 总报告`family_gates_passed/accepted/categorical_shortcut` | 区分家族门与类别捷径门，交集按固定数值槽0…8计算；交集全非空则总accepted=false；无效物理矩阵只作原始诊断 |
+| `generation_ledger/export_resources/remaining_storage` | v1耗时、v1+v2耗时上界、1 GiB旧现场保留及7 GiB新共享池；不完整报告总生成耗时为null，不伪造预算核验 |
+
+生成检查依赖同提交D-083成功回执、旧报告原Git来源与v1现场清单；全部代码、配置及依赖进入新来源绑定，不复用旧22项marker。新目录存在时只核验，不续算/覆盖/换样本。生成检查37项尚未运行，实际压缩和物理/E0/信息结果未定。
+
+#### R4-2修订提案字段（D-082历史登记，实施补充见D-083/D-084）
 
 **D-083补充：** D-082规格已获用户认可；本批只实现v2公共查询、预测、标签及评分值边界，物理数据与生成器仍未实现，原提案JSON不改。新入口与范围在独立`r4_contract_check_v2.json`登记，原字段表中未来物理产物仍为planned。
 
