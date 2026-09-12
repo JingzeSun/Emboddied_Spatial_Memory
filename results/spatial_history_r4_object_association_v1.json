@@ -1,0 +1,111 @@
+{
+  "claims": {
+    "full_3d_map_verified": false,
+    "long_term_memory_claim_verified": false,
+    "model_experiment_run": false,
+    "physical_predictability_verified": false,
+    "public_geometry_recovery_verified": false,
+    "real_history_object_association_verified": false
+  },
+  "kind": "r4_object_association_artificial_engineering_check",
+  "receipt": {
+    "artifacts": {
+      "started.json": "ccc7037914151596df69d696d559f79770ae955edc4510b3bc5ab38d141b9a05",
+      "tests.log": "df334dbe7aa6a6f73024cc13b99296da02241105020bb5209a83414fbe06fbe2"
+    },
+    "binding": {
+      "configs/spatial_history/r4_object_association_check_v1.json": "bd54977737fcd56cda0ddcc729b6f4373bdbb0c4dae06ac39ac917e289f54233",
+      "configs/spatial_history/r4_object_association_proposal_v1.json": "81b50fc5f05de6b568da933f8d9097999f0250ab7f6efd7a2e9e32f350bb4953",
+      "docs/DATA.md": "6816b97484e5c1f4b1647d3c1ba2698a7fe112138bb9eb82544f10407198ff03",
+      "docs/METHOD.md": "4a44c174764d5b1f50b1b030227b520f3d823d8d128262e20cbb5f0cf1d3dee2",
+      "ops/spatial_history/contract_check.py": "1f68d9ea37b80656b8e0b0293b87b2bdf4407a22e7aced8cc864e5c89adb9899",
+      "ops/spatial_history/r4_object_association_check.py": "8d95ce01964c7898a98b61389df75061023d9cc2da1c7df4a6da1a0abed33563",
+      "src/spatial_world_model/__init__.py": "f96fd448d2183aba031c5087b3efe88e6fd4ac33d2312b19882cceed4e621eb9",
+      "src/spatial_world_model/pair_contract.py": "1289fbfd66c93dfc6783cd11a9aa50a22ff3aca92b0bbb8df63330848341cb2d",
+      "src/spatial_world_model/r4_coverage.py": "ea01e291960bfda74b60a86340ce6c770b1e4096a8cd2d3070691847c9d6118e",
+      "src/spatial_world_model/r4_object_association.py": "c2dff38eecb5714b4771335cbb19f7b2ef5a67c2784427eb22dbcbf65b475e99",
+      "tests/spatial_world_model/test_r4_object_association.py": "4c32701451bf2f42adca8ef83e7dee682191c4fda27439091396c2bc95a9424b",
+      "tests/spatial_world_model/test_r4_object_association_ops.py": "293232582f281b9d6c8e186f0213aff0498c01951827276b50980390966cd689"
+    },
+    "claims": {
+      "full_3d_map_verified": false,
+      "long_term_memory_claim_verified": false,
+      "model_experiment_run": false,
+      "physical_predictability_verified": false,
+      "public_geometry_recovery_verified": false,
+      "real_history_object_association_verified": false
+    },
+    "commit": "66e4f6d7b8fa6d2a9ba5525fb156b07bda4e12c8",
+    "elapsed_s": 17.711251076310873,
+    "errors": 0,
+    "exit_code": 0,
+    "expected_failures": 0,
+    "failures": 0,
+    "new_simulation_steps": 0,
+    "new_training_steps": 0,
+    "new_weight_download_bytes": 0,
+    "peak_rss_bytes": 32124928,
+    "platform": "Linux-5.15.0-83-generic-x86_64-with-glibc2.35",
+    "python": "3.12.3 | packaged by Anaconda, Inc. | (main, May  6 2024, 19:46:43) [GCC 11.2.0]",
+    "real_history_queries": 0,
+    "skipped": 0,
+    "stage": "SH-04-R4-3b-object-v1",
+    "stage_bytes": 13785,
+    "test_names": [
+      "test_r4_object_association.R4ObjectAssociationTests.test_chord_axis_mapping_and_empty_center_intersection",
+      "test_r4_object_association.R4ObjectAssociationTests.test_depth_clock_calibration_and_proprioception_validation",
+      "test_r4_object_association.R4ObjectAssociationTests.test_equal_estimates_do_not_observe_stationarity_or_spin",
+      "test_r4_object_association.R4ObjectAssociationTests.test_frozen_parameters_reject_booleans_numeric_changes_and_unknowns",
+      "test_r4_object_association.R4ObjectAssociationTests.test_full_native_circle_center_encloses_analytic_center",
+      "test_r4_object_association.R4ObjectAssociationTests.test_height_groups_do_not_chain_and_diagonal_pixels_do_not_connect",
+      "test_r4_object_association.R4ObjectAssociationTests.test_hole_invalid_clipped_and_higher_occluder_are_not_filled",
+      "test_r4_object_association.R4ObjectAssociationTests.test_image_boundary_truncation_is_unresolved",
+      "test_r4_object_association.R4ObjectAssociationTests.test_invalid_outer_ring_pixel_prevents_complete_outline",
+      "test_r4_object_association.R4ObjectAssociationTests.test_missing_second_estimate_retains_first_only_in_diagnostics",
+      "test_r4_object_association.R4ObjectAssociationTests.test_moving_circle_velocity_interval_contains_known_displacement",
+      "test_r4_object_association.R4ObjectAssociationTests.test_native_footprint_center_width_gate_at_different_depths",
+      "test_r4_object_association.R4ObjectAssociationTests.test_no_files_and_no_input_or_output_aliasing",
+      "test_r4_object_association.R4ObjectAssociationTests.test_noncanonical_height_is_observed_not_forced_to_template",
+      "test_r4_object_association.R4ObjectAssociationTests.test_private_fields_rejected_at_every_public_boundary",
+      "test_r4_object_association.R4ObjectAssociationTests.test_projected_mask_includes_pixel_footprint_and_padding",
+      "test_r4_object_association.R4ObjectAssociationTests.test_pusher_overlap_and_unprojectable_box_are_unresolved",
+      "test_r4_object_association.R4ObjectAssociationTests.test_quaternion_sign_equivalence_and_single_frame_causality",
+      "test_r4_object_association.R4ObjectAssociationTests.test_registered_decimal_velocity_example_and_actual_dt",
+      "test_r4_object_association.R4ObjectAssociationTests.test_square_top_rejected_by_radius_without_dropping_corners",
+      "test_r4_object_association.R4ObjectAssociationTests.test_support_is_native_circle_and_weights_are_uniform",
+      "test_r4_object_association.R4ObjectAssociationTests.test_tiny_unexcluded_fragment_blocks_otherwise_unique_circle",
+      "test_r4_object_association.R4ObjectAssociationTests.test_two_complete_circles_are_ambiguous_without_temporal_selection",
+      "test_r4_object_association.R4ObjectAssociationTests.test_world_translation_and_negative_coordinates_use_camera",
+      "test_r4_object_association_ops.R4ObjectAssociationOpsTests.test_configuration_matches_scientific_constants_and_census",
+      "test_r4_object_association_ops.R4ObjectAssociationOpsTests.test_existing_stage_only_verifies_without_retry",
+      "test_r4_object_association_ops.R4ObjectAssociationOpsTests.test_export_preserves_failure_bytes_and_rejects_different_report",
+      "test_r4_object_association_ops.R4ObjectAssociationOpsTests.test_interrupted_new_stage_keeps_failure_and_no_success_receipt",
+      "test_r4_object_association_ops.R4ObjectAssociationOpsTests.test_recorded_commit_and_current_source_both_have_to_match",
+      "test_r4_object_association_ops.R4ObjectAssociationOpsTests.test_verify_rejects_evidence_change_or_extra_failure_file",
+      "test_r4_object_association_ops.R4ObjectAssociationOpsTests.test_verify_rejects_incomplete_tests_claims_or_resource_receipts",
+      "test_r4_object_association_ops.R4ObjectAssociationOpsTests.test_write_budget_is_checked_before_creating_file"
+    ],
+    "tests_run": 32,
+    "unexpected_successes": 0
+  },
+  "receipt_sha256": "1051dfd13175f53561652b16f1ad48d48e6d2ccb7bb479394fe628f975365835",
+  "source_artifacts": {
+    "receipt.json": {
+      "bytes": 6355,
+      "sha256": "1051dfd13175f53561652b16f1ad48d48e6d2ccb7bb479394fe628f975365835",
+      "text": "{\n  \"artifacts\": {\n    \"started.json\": \"ccc7037914151596df69d696d559f79770ae955edc4510b3bc5ab38d141b9a05\",\n    \"tests.log\": \"df334dbe7aa6a6f73024cc13b99296da02241105020bb5209a83414fbe06fbe2\"\n  },\n  \"binding\": {\n    \"configs/spatial_history/r4_object_association_check_v1.json\": \"bd54977737fcd56cda0ddcc729b6f4373bdbb0c4dae06ac39ac917e289f54233\",\n    \"configs/spatial_history/r4_object_association_proposal_v1.json\": \"81b50fc5f05de6b568da933f8d9097999f0250ab7f6efd7a2e9e32f350bb4953\",\n    \"docs/DATA.md\": \"6816b97484e5c1f4b1647d3c1ba2698a7fe112138bb9eb82544f10407198ff03\",\n    \"docs/METHOD.md\": \"4a44c174764d5b1f50b1b030227b520f3d823d8d128262e20cbb5f0cf1d3dee2\",\n    \"ops/spatial_history/contract_check.py\": \"1f68d9ea37b80656b8e0b0293b87b2bdf4407a22e7aced8cc864e5c89adb9899\",\n    \"ops/spatial_history/r4_object_association_check.py\": \"8d95ce01964c7898a98b61389df75061023d9cc2da1c7df4a6da1a0abed33563\",\n    \"src/spatial_world_model/__init__.py\": \"f96fd448d2183aba031c5087b3efe88e6fd4ac33d2312b19882cceed4e621eb9\",\n    \"src/spatial_world_model/pair_contract.py\": \"1289fbfd66c93dfc6783cd11a9aa50a22ff3aca92b0bbb8df63330848341cb2d\",\n    \"src/spatial_world_model/r4_coverage.py\": \"ea01e291960bfda74b60a86340ce6c770b1e4096a8cd2d3070691847c9d6118e\",\n    \"src/spatial_world_model/r4_object_association.py\": \"c2dff38eecb5714b4771335cbb19f7b2ef5a67c2784427eb22dbcbf65b475e99\",\n    \"tests/spatial_world_model/test_r4_object_association.py\": \"4c32701451bf2f42adca8ef83e7dee682191c4fda27439091396c2bc95a9424b\",\n    \"tests/spatial_world_model/test_r4_object_association_ops.py\": \"293232582f281b9d6c8e186f0213aff0498c01951827276b50980390966cd689\"\n  },\n  \"claims\": {\n    \"full_3d_map_verified\": false,\n    \"long_term_memory_claim_verified\": false,\n    \"model_experiment_run\": false,\n    \"physical_predictability_verified\": false,\n    \"public_geometry_recovery_verified\": false,\n    \"real_history_object_association_verified\": false\n  },\n  \"commit\": \"66e4f6d7b8fa6d2a9ba5525fb156b07bda4e12c8\",\n  \"elapsed_s\": 17.711251076310873,\n  \"errors\": 0,\n  \"exit_code\": 0,\n  \"expected_failures\": 0,\n  \"failures\": 0,\n  \"new_simulation_steps\": 0,\n  \"new_training_steps\": 0,\n  \"new_weight_download_bytes\": 0,\n  \"peak_rss_bytes\": 32124928,\n  \"platform\": \"Linux-5.15.0-83-generic-x86_64-with-glibc2.35\",\n  \"python\": \"3.12.3 | packaged by Anaconda, Inc. | (main, May  6 2024, 19:46:43) [GCC 11.2.0]\",\n  \"real_history_queries\": 0,\n  \"skipped\": 0,\n  \"stage\": \"SH-04-R4-3b-object-v1\",\n  \"stage_bytes\": 13785,\n  \"test_names\": [\n    \"test_r4_object_association.R4ObjectAssociationTests.test_chord_axis_mapping_and_empty_center_intersection\",\n    \"test_r4_object_association.R4ObjectAssociationTests.test_depth_clock_calibration_and_proprioception_validation\",\n    \"test_r4_object_association.R4ObjectAssociationTests.test_equal_estimates_do_not_observe_stationarity_or_spin\",\n    \"test_r4_object_association.R4ObjectAssociationTests.test_frozen_parameters_reject_booleans_numeric_changes_and_unknowns\",\n    \"test_r4_object_association.R4ObjectAssociationTests.test_full_native_circle_center_encloses_analytic_center\",\n    \"test_r4_object_association.R4ObjectAssociationTests.test_height_groups_do_not_chain_and_diagonal_pixels_do_not_connect\",\n    \"test_r4_object_association.R4ObjectAssociationTests.test_hole_invalid_clipped_and_higher_occluder_are_not_filled\",\n    \"test_r4_object_association.R4ObjectAssociationTests.test_image_boundary_truncation_is_unresolved\",\n    \"test_r4_object_association.R4ObjectAssociationTests.test_invalid_outer_ring_pixel_prevents_complete_outline\",\n    \"test_r4_object_association.R4ObjectAssociationTests.test_missing_second_estimate_retains_first_only_in_diagnostics\",\n    \"test_r4_object_association.R4ObjectAssociationTests.test_moving_circle_velocity_interval_contains_known_displacement\",\n    \"test_r4_object_association.R4ObjectAssociationTests.test_native_footprint_center_width_gate_at_different_depths\",\n    \"test_r4_object_association.R4ObjectAssociationTests.test_no_files_and_no_input_or_output_aliasing\",\n    \"test_r4_object_association.R4ObjectAssociationTests.test_noncanonical_height_is_observed_not_forced_to_template\",\n    \"test_r4_object_association.R4ObjectAssociationTests.test_private_fields_rejected_at_every_public_boundary\",\n    \"test_r4_object_association.R4ObjectAssociationTests.test_projected_mask_includes_pixel_footprint_and_padding\",\n    \"test_r4_object_association.R4ObjectAssociationTests.test_pusher_overlap_and_unprojectable_box_are_unresolved\",\n    \"test_r4_object_association.R4ObjectAssociationTests.test_quaternion_sign_equivalence_and_single_frame_causality\",\n    \"test_r4_object_association.R4ObjectAssociationTests.test_registered_decimal_velocity_example_and_actual_dt\",\n    \"test_r4_object_association.R4ObjectAssociationTests.test_square_top_rejected_by_radius_without_dropping_corners\",\n    \"test_r4_object_association.R4ObjectAssociationTests.test_support_is_native_circle_and_weights_are_uniform\",\n    \"test_r4_object_association.R4ObjectAssociationTests.test_tiny_unexcluded_fragment_blocks_otherwise_unique_circle\",\n    \"test_r4_object_association.R4ObjectAssociationTests.test_two_complete_circles_are_ambiguous_without_temporal_selection\",\n    \"test_r4_object_association.R4ObjectAssociationTests.test_world_translation_and_negative_coordinates_use_camera\",\n    \"test_r4_object_association_ops.R4ObjectAssociationOpsTests.test_configuration_matches_scientific_constants_and_census\",\n    \"test_r4_object_association_ops.R4ObjectAssociationOpsTests.test_existing_stage_only_verifies_without_retry\",\n    \"test_r4_object_association_ops.R4ObjectAssociationOpsTests.test_export_preserves_failure_bytes_and_rejects_different_report\",\n    \"test_r4_object_association_ops.R4ObjectAssociationOpsTests.test_interrupted_new_stage_keeps_failure_and_no_success_receipt\",\n    \"test_r4_object_association_ops.R4ObjectAssociationOpsTests.test_recorded_commit_and_current_source_both_have_to_match\",\n    \"test_r4_object_association_ops.R4ObjectAssociationOpsTests.test_verify_rejects_evidence_change_or_extra_failure_file\",\n    \"test_r4_object_association_ops.R4ObjectAssociationOpsTests.test_verify_rejects_incomplete_tests_claims_or_resource_receipts\",\n    \"test_r4_object_association_ops.R4ObjectAssociationOpsTests.test_write_budget_is_checked_before_creating_file\"\n  ],\n  \"tests_run\": 32,\n  \"unexpected_successes\": 0\n}\n"
+    },
+    "started.json": {
+      "bytes": 1584,
+      "sha256": "ccc7037914151596df69d696d559f79770ae955edc4510b3bc5ab38d141b9a05",
+      "text": "{\n  \"binding\": {\n    \"configs/spatial_history/r4_object_association_check_v1.json\": \"bd54977737fcd56cda0ddcc729b6f4373bdbb0c4dae06ac39ac917e289f54233\",\n    \"configs/spatial_history/r4_object_association_proposal_v1.json\": \"81b50fc5f05de6b568da933f8d9097999f0250ab7f6efd7a2e9e32f350bb4953\",\n    \"docs/DATA.md\": \"6816b97484e5c1f4b1647d3c1ba2698a7fe112138bb9eb82544f10407198ff03\",\n    \"docs/METHOD.md\": \"4a44c174764d5b1f50b1b030227b520f3d823d8d128262e20cbb5f0cf1d3dee2\",\n    \"ops/spatial_history/contract_check.py\": \"1f68d9ea37b80656b8e0b0293b87b2bdf4407a22e7aced8cc864e5c89adb9899\",\n    \"ops/spatial_history/r4_object_association_check.py\": \"8d95ce01964c7898a98b61389df75061023d9cc2da1c7df4a6da1a0abed33563\",\n    \"src/spatial_world_model/__init__.py\": \"f96fd448d2183aba031c5087b3efe88e6fd4ac33d2312b19882cceed4e621eb9\",\n    \"src/spatial_world_model/pair_contract.py\": \"1289fbfd66c93dfc6783cd11a9aa50a22ff3aca92b0bbb8df63330848341cb2d\",\n    \"src/spatial_world_model/r4_coverage.py\": \"ea01e291960bfda74b60a86340ce6c770b1e4096a8cd2d3070691847c9d6118e\",\n    \"src/spatial_world_model/r4_object_association.py\": \"c2dff38eecb5714b4771335cbb19f7b2ef5a67c2784427eb22dbcbf65b475e99\",\n    \"tests/spatial_world_model/test_r4_object_association.py\": \"4c32701451bf2f42adca8ef83e7dee682191c4fda27439091396c2bc95a9424b\",\n    \"tests/spatial_world_model/test_r4_object_association_ops.py\": \"293232582f281b9d6c8e186f0213aff0498c01951827276b50980390966cd689\"\n  },\n  \"commit\": \"66e4f6d7b8fa6d2a9ba5525fb156b07bda4e12c8\",\n  \"stage\": \"SH-04-R4-3b-object-v1\",\n  \"started\": \"2026-09-12T16:20:25.324536+00:00\"\n}\n"
+    },
+    "tests.log": {
+      "bytes": 5846,
+      "sha256": "df334dbe7aa6a6f73024cc13b99296da02241105020bb5209a83414fbe06fbe2",
+      "text": "test_chord_axis_mapping_and_empty_center_intersection (test_r4_object_association.R4ObjectAssociationTests.test_chord_axis_mapping_and_empty_center_intersection) ... ok\ntest_depth_clock_calibration_and_proprioception_validation (test_r4_object_association.R4ObjectAssociationTests.test_depth_clock_calibration_and_proprioception_validation) ... ok\ntest_equal_estimates_do_not_observe_stationarity_or_spin (test_r4_object_association.R4ObjectAssociationTests.test_equal_estimates_do_not_observe_stationarity_or_spin) ... ok\ntest_frozen_parameters_reject_booleans_numeric_changes_and_unknowns (test_r4_object_association.R4ObjectAssociationTests.test_frozen_parameters_reject_booleans_numeric_changes_and_unknowns) ... ok\ntest_full_native_circle_center_encloses_analytic_center (test_r4_object_association.R4ObjectAssociationTests.test_full_native_circle_center_encloses_analytic_center) ... ok\ntest_height_groups_do_not_chain_and_diagonal_pixels_do_not_connect (test_r4_object_association.R4ObjectAssociationTests.test_height_groups_do_not_chain_and_diagonal_pixels_do_not_connect) ... ok\ntest_hole_invalid_clipped_and_higher_occluder_are_not_filled (test_r4_object_association.R4ObjectAssociationTests.test_hole_invalid_clipped_and_higher_occluder_are_not_filled) ... ok\ntest_image_boundary_truncation_is_unresolved (test_r4_object_association.R4ObjectAssociationTests.test_image_boundary_truncation_is_unresolved) ... ok\ntest_invalid_outer_ring_pixel_prevents_complete_outline (test_r4_object_association.R4ObjectAssociationTests.test_invalid_outer_ring_pixel_prevents_complete_outline) ... ok\ntest_missing_second_estimate_retains_first_only_in_diagnostics (test_r4_object_association.R4ObjectAssociationTests.test_missing_second_estimate_retains_first_only_in_diagnostics) ... ok\ntest_moving_circle_velocity_interval_contains_known_displacement (test_r4_object_association.R4ObjectAssociationTests.test_moving_circle_velocity_interval_contains_known_displacement) ... ok\ntest_native_footprint_center_width_gate_at_different_depths (test_r4_object_association.R4ObjectAssociationTests.test_native_footprint_center_width_gate_at_different_depths) ... ok\ntest_no_files_and_no_input_or_output_aliasing (test_r4_object_association.R4ObjectAssociationTests.test_no_files_and_no_input_or_output_aliasing) ... ok\ntest_noncanonical_height_is_observed_not_forced_to_template (test_r4_object_association.R4ObjectAssociationTests.test_noncanonical_height_is_observed_not_forced_to_template) ... ok\ntest_private_fields_rejected_at_every_public_boundary (test_r4_object_association.R4ObjectAssociationTests.test_private_fields_rejected_at_every_public_boundary) ... ok\ntest_projected_mask_includes_pixel_footprint_and_padding (test_r4_object_association.R4ObjectAssociationTests.test_projected_mask_includes_pixel_footprint_and_padding) ... ok\ntest_pusher_overlap_and_unprojectable_box_are_unresolved (test_r4_object_association.R4ObjectAssociationTests.test_pusher_overlap_and_unprojectable_box_are_unresolved) ... ok\ntest_quaternion_sign_equivalence_and_single_frame_causality (test_r4_object_association.R4ObjectAssociationTests.test_quaternion_sign_equivalence_and_single_frame_causality) ... ok\ntest_registered_decimal_velocity_example_and_actual_dt (test_r4_object_association.R4ObjectAssociationTests.test_registered_decimal_velocity_example_and_actual_dt) ... ok\ntest_square_top_rejected_by_radius_without_dropping_corners (test_r4_object_association.R4ObjectAssociationTests.test_square_top_rejected_by_radius_without_dropping_corners) ... ok\ntest_support_is_native_circle_and_weights_are_uniform (test_r4_object_association.R4ObjectAssociationTests.test_support_is_native_circle_and_weights_are_uniform) ... ok\ntest_tiny_unexcluded_fragment_blocks_otherwise_unique_circle (test_r4_object_association.R4ObjectAssociationTests.test_tiny_unexcluded_fragment_blocks_otherwise_unique_circle) ... ok\ntest_two_complete_circles_are_ambiguous_without_temporal_selection (test_r4_object_association.R4ObjectAssociationTests.test_two_complete_circles_are_ambiguous_without_temporal_selection) ... ok\ntest_world_translation_and_negative_coordinates_use_camera (test_r4_object_association.R4ObjectAssociationTests.test_world_translation_and_negative_coordinates_use_camera) ... ok\ntest_configuration_matches_scientific_constants_and_census (test_r4_object_association_ops.R4ObjectAssociationOpsTests.test_configuration_matches_scientific_constants_and_census) ... ok\ntest_existing_stage_only_verifies_without_retry (test_r4_object_association_ops.R4ObjectAssociationOpsTests.test_existing_stage_only_verifies_without_retry) ... ok\ntest_export_preserves_failure_bytes_and_rejects_different_report (test_r4_object_association_ops.R4ObjectAssociationOpsTests.test_export_preserves_failure_bytes_and_rejects_different_report) ... ok\ntest_interrupted_new_stage_keeps_failure_and_no_success_receipt (test_r4_object_association_ops.R4ObjectAssociationOpsTests.test_interrupted_new_stage_keeps_failure_and_no_success_receipt) ... ok\ntest_recorded_commit_and_current_source_both_have_to_match (test_r4_object_association_ops.R4ObjectAssociationOpsTests.test_recorded_commit_and_current_source_both_have_to_match) ... ok\ntest_verify_rejects_evidence_change_or_extra_failure_file (test_r4_object_association_ops.R4ObjectAssociationOpsTests.test_verify_rejects_evidence_change_or_extra_failure_file) ... ok\ntest_verify_rejects_incomplete_tests_claims_or_resource_receipts (test_r4_object_association_ops.R4ObjectAssociationOpsTests.test_verify_rejects_incomplete_tests_claims_or_resource_receipts) ... ok\ntest_write_budget_is_checked_before_creating_file (test_r4_object_association_ops.R4ObjectAssociationOpsTests.test_write_budget_is_checked_before_creating_file) ... ok\n\n----------------------------------------------------------------------\nRan 32 tests in 17.616s\n\nOK\n"
+    }
+  },
+  "status": "passed",
+  "verification_error": null
+}
