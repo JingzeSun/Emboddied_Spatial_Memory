@@ -1306,3 +1306,5 @@ CTL/A 两 seed 的均值如下（同宽度补零是主编码对照，原 33 维�
 - 全部44张嵌入无损64×64原PNG（12张历史、16张末帧、16张私有俯视）均匹配各自manifest摘要及字节数；四世界近期PNG相同、A/B原PNG的相同关系分别对应近门/远门分组，16张末帧PNG均相同。实际查看21张：四世界全部12张历史图、LL/LL末帧，以及LL/LL、LL/LR、LR/LR、LR/LL、RL/RL、RL/RR、RR/RR、RR/RL的8张私有俯视图。公开末帧为空地，目标已在固定相机视野外；俯视仅帮助审查末态相对双门的位置，不进入模型输入，不凭一张图判定接触或整段稳定送达。
 - 验收范围：这一个固定双门四世界工程家族满足D-070/D-071登记的物理、观察、实际任务差异、重放及固定单帧信息条件；原始完整RGBD、逐步轨迹和积分数组仍在服务器，本地只读导出证据及源码，未运行MuJoCo、NumPy、Torch、测试或模拟。服务器export按原代码核验完整manifest，本地不能冒称独立重读全部原始产物。`public_geometry_recovery_verified=false`、`model_experiment_run=false`、`long_term_memory_claim_verified=false`保持原值；尚未证明公开历史可恢复可用几何、任何模型利用历史、动作选择改善、成熟主对照可复现失败或长期记忆机制有效。未下载权重、训练或建立新train/validation/test划分；长历史预测器、历史检索、地图加简单动力学仍是后续必需主对照。
 - 原失败目录`/root/autodl-tmp/spatial-history/sh04-r2-two-gate-engineering-v1`与D-071成功目录`/root/autodl-tmp/spatial-history/sh04-r2-two-gate-engineering-v1-lfsha1`分别保留，未重跑或覆盖。本次仅提交EXECUTE文档到原审查分支，未合并main或将工程通过登记为用户代码审查批准；没有启动R3、公开RGBD几何恢复、架构比较或任何依赖的效果实验，后续仍按PLAN及逐职责审查规则单独推进。
+
+- R2审查批准补充：用户在34121aa交付上述只读验收之后明确“下一步”；依D-059及SH-02/SH-03相同的审查流程，登记对原运行9c044fc、结果53737f8及审查34121aa所对应R2批次的审查通过，允许合并main并交付R3首个独立职责。该许可不等于批准尚未交付的几何恢复判定、论文资产下载、模型训练或新数据划分。
