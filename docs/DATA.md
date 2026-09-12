@@ -154,6 +154,37 @@
 
 模型产物与上述原始物理证据不同：所有逐样本200步位置/接触/成功、选择、诊断读出、错误和来源都落盘；每个原生状态/完整点流保存精确shape/轴/摘要与`checkpoint+public_query+random_stream+prefix_or_chunk`可再生引用。每系统/seed固定选各split排序首家族的首世界、首控制、sample0，额外落盘完整原生状态/点流供审查，不按失败挑样本。其他状态是`materialized=false`，不得宣称已存完整数组；诊断运行当时消费真实内存状态并保存读出。再生必须先核验环境/确定性及原摘要，失败记不可复现；再生计算另计入既定预算，不覆盖主预测或伪造原运行回执。此规则避免把全量49×49×5×256地图和点流缓存误估为小报告，也不修改原物理产物保留要求。
 
+<a id="r4-public-front-control-data"></a>
+
+#### R4-3公共派生值与控制来源（D-085，proposed，尚无schema/产物）
+
+本节基于v2原生80×80/九候选，不更改旧v1字段或v2查询/预测校验器；下面是待实现的内部值和外层审计记录，不宣称已有文件。方法与中文概念解释见[METHOD](METHOD.md#r4-public-front-control)。
+
+白话：这些记录解决“同一个坐标究竟来自观察、假设还是预测”。输入合法公共值，输出带来源的派生值和独立失败状态；例如公开前缘加共同半厚度得到门中心，必须能追到前缘像素和所用常量。这不是给模型添加世界ID、审计路径或真值标签。
+
+| 拟议对象/字段 | 值与读取边界 |
+|---|---|
+| `frame_surfaces.voxel_keys / source_pixels` | 每帧去重的三维整数覆盖键，0.02 m、固定世界原点；每个来源为所给历史内局部帧下标及原生行列。坐标来自深度；来源只用于取原帧/像素和审计 |
+| `retrieval.selected_local_indices / selected_time_s / marginal_new_voxels` | 最多10个不重复下标及原时间；另存贪心选择顺序和每次新增数，最终编码按时间顺序。全零新增按原规则保留；近期/前缀不读取所给历史之外的像素 |
+| `public_objects.status / candidates / position_m / velocity_mps / support_weights` | 从近期公开像素拟合的物块候选、中心/速度、支持及不确定性；推头当前位置/速度来自公开本体。未决时不发布单一有效对象；具体候选/区间子schema随拟合规格冻结 |
+| `observed_map.surfaces / free_evidence / unknown / conflicts` | 保留原生表面和射线/足迹证据、未覆盖与矛盾；动态/歧义点有独立状态。不能将未命中体素自动标free，不能以P降采样点替代全部几何 |
+| `collision_geometry.primitives / coordinate_intervals_m / assumption_refs` | 由观测及共同形状/厚高形成的名义碰撞体、区间和明确结构假设；所有体都须有公开支持。不可包含来自实例XML的墙端或两门模板补全 |
+| `point_scene.points_m / appearance_sources / object_support / validity` | P拟议0.01 m融合后至多4096点及原RGB来源；保留关联权重和缺失状态。此阶段没有DINO特征或未来真值点；外观来源不能改挂最近帧 |
+| `robot_motion.kind` | `command / planned / predicted / actual_future`是互斥来源。实际控制接口只接数值command；P正式机器人条件只接受已绑定公共预测器产生的predicted |
+| `robot_prediction.position_m / velocity_mps` | 推头t=0和0.1…20 s，共`[201,3]`；t=0来自公开本体。内部0.002 s轨迹`[10001,3]`用于控制/接触检查，不从实际10001行拷贝 |
+| `robot_prediction.robot_points_m / status / valid_prefix_steps` | P条件拟为`[201,512,3]`，固定外形点身份加自身预测位姿，机器人点采样规则后续冻结。路径状态与M任务读出状态分开；失败可留前缀供诊断，不能拿前缀填满200步正式预测 |
+| `map_rollout.object_state / contacts / task_events` | 仅M任务读出及独立评估读取；不进入P动作输入。状态自由度、碰撞/摩擦数值schema尚待控制职责冻结 |
+| `result.status / reason / first_unresolved_time_s / prediction` | 最终任务结果外层状态拟分`ok / perception_unresolved / map_unresolved / control_unresolved / task_readout_unresolved / numerical_failure`；仅ok携带完整v2 prediction，其余prediction=null且保留失败前缀。进入既有评分前映射为无效候选，九个注册位及原代价界不变；M任务读出失败不自动使有效机器人路径或P任务预测失效 |
+| 外层`provenance` | 原始公共manifest/查询摘要、具体代码/参数/假设版本、原生像素到派生几何的映射和封存摘要。函数可消费公开局部索引，ID/路径/hash/split/世界类型不进模型特征 |
+
+数值张量与来源旁表分开。M/P可消费公开几何的有效/未知状态，因为它是观察派生信息；不能消费独立评估的真值匹配、指定A/B/停留帧号、私有mask、实际接触或成功矩阵。R不消费M/P的关联或碰撞输出。前端纯值函数无文件读取权限；外层来源验证可核验manifest，但不能借此把私有config作为科学函数参数。这里仍是函数/进程数据边界，不声称已经建立操作系统隔离。
+
+**拟议误差字段（连续诊断，无新通过阈值）。** `robot_position_error_m`在200个未来末点分别计算预测与实际的三维欧氏距离，保存逐点、均值及终点；`robot_velocity_error_mps`同样逐末点对比速度；planned和predicted分别标明，不能拿计划误差冒充控制模型误差。`object_initial_position_error_m / object_initial_velocity_error_mps`仅在公共估计封存后对比决策真值；未决估计不记零误差。`unresolved_count / registered_count`按完整登记候选及原因计数，另存首次未决时刻，不作条件成功率。
+
+白话：这些误差用于区分“开始就没认对物块”与“推头后来预测错了”。例如物块初始误差很小、推头受阻后位置误差变大，支持继续检查控制近似；这不是单凭相关性确定原因，也不是新增达标门。地图与点支持的误差必须在具体几何schema冻结后另定匹配和分母，本次不虚构一个统一地图准确率。
+
+本轮只登记字段/权限，没有新源数据、缓存、预测、manifest或测试回执。原v2两份通过报告仍按7a2005c源码/文档摘要复用；新文档和未来R4-3代码不能冒用原33/37项回执认证。
+
 #### R4 v2设计与生成产物字段（D-084，服务器产物尚未生成）
 
 白话：这些字段把“按哪个配置生成、哪个控制产生哪个标签”连起来。输入固定设计和真实记录，输出独立公共、标签、审计渠道；例如public第9槽对应私有c22及其首次轨迹，不能把文件名当模型输入。下面是已实现保存规则，不是已有结果或已通过的测试。
