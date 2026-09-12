@@ -26,7 +26,7 @@ SH-03预算由D-065固定：128次4.9 s模拟执行，新产物2 GiB，按案例
 
 ## 当前指针
 
-**当前为SH-04-R3：公开读取结果a9275e7已完成只读核验，三项论文源码接口审查已交付；D-076已交E0俯视顶面边界恢复的具体算法、数值/资源提案与字段；E0实现及三份模型适配合同仍待交付。** 18项服务器检查、32次查询及来源绑定的实际结论见LOG-109；新读取器仍在审查分支，尚未将本次工程验收代替用户代码审查或合并main。用户在34121aa完成R2只读验收后明确“下一步”，R2已审代码与结果已合并main至cd31dd1。本轮只交设计，不实施几何恢复算法、模型训练或新划分。R2原运行9c044fc、结果53737f8、审查34121aa见LOG-108，原失败现场保留。R1文献核查89e4ace与旧v1暂停状态D-068不变。
+**当前为SH-04-R3/E0：D-077已交公开开口恢复器、独立几何评估器及完整run/verify/export；59项必要服务器检查、16项真实历史查询及几何验收均待运行。** 用户在E0具体提案e64afa6交付后要求继续，活动配置保留D-076全部科学数值与预算；本批实现及静态审查范围见LOG-110。下一步按下方E0命令执行本职责的服务器工程核验，再只读审查导出结果；三份模型适配合同、E1–E4学习及效果实验尚未交付或授权运行。代码留在`review/spatial-history-baselines`，不以工程检查代替用户代码审查或合并main。原公开读取结果a9275e7与18项检查/32次查询见LOG-109，不重跑；R2原运行9c044fc、结果53737f8、审查34121aa及已审合并cd31dd1见LOG-108，原失败现场保留。R1文献核查89e4ace与旧v1暂停状态D-068不变。
 
 已完成证据：[SH-03/v2报告](../results/spatial_history_development_audit_v2_wall_clearance.json)为12项/16对通过，原科学提交57d01aa、报告ce5b3f1，LOG-107；原v1失败保留于LOG-106。它们只供工程/输入审计，不能拆分成训练/确认。当前协议文档有新增内容，不借旧SH-03回执认证；旧产物按原代码/合同摘要复用。
 
@@ -59,11 +59,59 @@ SH-05按D-074保留DreamerV3、PointWorld、FloWM三条本任务适配路线；�
 
 源码审核发现的缺口全部保留为适配工作项：PointWorld需历史地图/特征、控制到机器人运动及长推演合同；FloWM需连续相机/独立推头控制及后果目标；Dreamer需RGBD、完整历史和离线世界模型职责分离。三仓库审查commit及权重元数据已记录，均未运行。下一批先交共同外层输入输出及三条适配合同，公共几何恢复/控制适配分别按职责审查；实现可按依赖先后交付，但不因难度将其中两条移出本任务。公开输入模块审过后才实施依赖代码，R4再冻结监督、强对照、划分和预算。先按METHOD的共同研究流程保留三个独立适配结果和适用边界，随后仅针对已定位的错误审查模块组合；FloWM记忆＋PointWorld动力学是示例，不预定最终架构，不启动全排列实验。
 
-D-075诊断实验已交提案：E0公开几何恢复、E1编码/保留读出、E2同控制单门配对、E3全时域推演、E4成功读出与选择。方法及原工程检查点见[METHOD](METHOD.md#history-use-diagnostic)，字段见DATA。E0算法与误差核验现已按D-076形成[具体提案](METHOD.md#e0-public-geometry)及[数值JSON](../configs/spatial_history/public_geometry_proposal_v1.json)，提案不可执行。下一交付为经数值审查后的E0实现、必要服务器检查及同阶段run/verify/export；三条模型适配合同仍需明确原生状态读取位置，不能先把缺失状态用真值补齐。探针学习和主模型效果均等各自代码/家族/预算审过后再运行；当前不把四世界用于拟合或独立确认，也不新增实验LOG。
+D-075诊断实验包括E0公开几何恢复、E1编码/保留读出、E2同控制单门配对、E3全时域推演、E4成功读出与选择。方法见[METHOD](METHOD.md#history-use-diagnostic)，字段见DATA。E0现按D-077进入独立实现及必要工程核验，使用[活动配置](../configs/spatial_history/public_geometry_v1.json)；原[数值提案](../configs/spatial_history/public_geometry_proposal_v1.json)保持不可执行，供逐值来源核对。E0通过只能提供公开几何可读的正向参照，不能直接判断模型在哪里丢失或没有利用信息。三条模型适配合同仍需明确原生状态读取位置，不能用真值补齐缺失状态；E1–E4探针学习和主模型效果等各自代码/家族/预算审过后再运行，当前四世界不用于拟合或独立确认。
 
 SH-01审查批准已登记于9044074。SH-02科学提交e3a1d71及通过报告f6b8c58完成核验后，用户明确要求“下一步”，据上下文登记对该批次的审查通过，允许合并main并实施SH-03固定开发审计。此授权不包括SH-04训练协议或模型效果实验。
 
-### SH-04-R3/public-input 固定交付与服务器命令
+### SH-04-R3/E0 固定交付与服务器命令（当前）
+
+白话：这一阶段先检查“历史里有的信息，是否能由只读公开深度的方法恢复出来”。输入是已验收R2的四份公共历史及原R3读取器，输出是16份封存的几何预测和独立评估；例如完整历史应恢复两处开口，而近期两帧只能报告没有已恢复开口。它不是模型训练、完整三维建图或错误动作归因结果。具体输入输出和误差含义见[METHOD](METHOD.md#e0-public-geometry)。
+
+同阶段入口已完整交付，不需为测试、验收或导出再同步代码。沿用已核实仓库及隔离环境；checkout空闲且`git status --short`无输出时同步一次，若有改动先保留处理，不覆盖：
+
+```bash
+cd /root/Emboddied_Spatial_Memory
+git status --short
+git fetch origin
+git switch review/spatial-history-baselines
+git pull --ff-only origin review/spatial-history-baselines
+```
+
+**E0/run**：前置核验R2/R3原Git绑定、报告、服务器回执和公共文件摘要；先运行59项新检查，再按4世界×full/A/B/recent形成16个独立查询。全部预测封存后才解析原manifest绑定的私有XML并逐项验收，终检复算来源/查询摘要/匹配与退出证据。不会重跑原R2物理生成或R3测试。
+
+```bash
+/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/public_geometry_check.py run
+```
+
+前台显示59项检查、16条公开恢复与16条私有评估。新目录`/root/autodl-tmp/spatial-history/sh04-r3-e0-public-geometry-v1`；只写该目录及导出报告，原R2失败/成功目录与R3目录只读保留。成功标志`SH-04-R3-E0-public-geometry-v1 VERIFIED tests=59 queries=16 exit=0`。已有完整成功只核验复用；失败、中断、未发布临时回执均保留，不自动重试、改参数或覆盖。
+
+正式run（含测试、来源核验、恢复、评估和终检）与首次成功export合计上限1800 s，各自计入1 s文件收尾保守上界；首次export只能使用剩余时间。新阶段文件加导出报告总计≤64 MiB，存活进程树RSS合计≤512 MiB；50 ms采样与进程高水位之和作保守保护，并辅以地址空间限额，不冒称连续精确峰值测量。run回执保存终检后的统计；export保存序列化前观测峰值及包括写入的执行上界，整命令统计另显示在终端。0模拟、0训练、0权重、0新划分，不新增依赖。
+
+**E0/export**：run有正式回执后导出；成功需再次核验完整来源、封存预测及独立匹配，失败只导出诊断，不冒充通过或预算通过。每份实际XML文本/摘要及恢复区间、像素支持都进入审查报告，私有内容不进入恢复器。
+
+```bash
+/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/public_geometry_check.py export
+```
+
+继续条件为`EXPORTED status=passed|failed ... exit=0`；其中failed仅表示失败诊断已导出。正式回执/报告先写临时文件，收尾门通过后才发布；无正式回执的硬中断不能补造成功，已有`.pending.json`不得自动重试。重复导出仅核验并复用同一报告，内容不同则拒绝覆盖。必要时可独立只读核验：
+
+```bash
+/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/public_geometry_check.py verify
+```
+
+独立verify、成功复用与重复导出是可选的运维核验，不再运行恢复器；每次另设1800 s/512 MiB命令保护并显示耗时，不能将它们的重复次数说成新增实验或隐去首次正式导出的成本。首次导出预算耗尽时保留run回执，不能重新给实验1800 s。失败诊断导出另受单次保护，仍保持失败。
+
+完成导出后精确回传同一文件：
+
+```bash
+git add -- results/spatial_history_public_geometry_v1.json
+git commit -m "results: export E0 public geometry audit"
+git push origin review/spatial-history-baselines
+```
+
+报告回传后先做只读证据审查。即使E0全部通过，也不自动运行三模型适配、探针或SH-05，不改变旧报告的false字段。
+
+### SH-04-R3/public-input 历史服务器命令（已完成，保留复现路径）
 
 本批是D-072登记的独立公开读取职责，代码位于`public_reader.py`，必要检查与实际文件审计位于`public_input_check.py`。原运行88c42b7、报告a9275e7的18项服务器检查及32次真实查询已经完成并只读核验，见LOG-109，不重跑；下列保留复现命令。原R2回执不能认证新读取器。方法及具体输入输出见METHOD/DATA。
 
@@ -101,7 +149,7 @@ git commit -m "results: export R3 public input boundary audit"
 git push origin review/spatial-history-baselines
 ```
 
-后续职责仍分别planned：公共RGBD几何恢复须先提出恢复对象/算法/误差及缺失处理的具体判定供审查；原SH-03视觉读取、论文资产/资源与独立环境锁依D-073的适用性审查交付；训练与强对照协议在R4另审。本批未开始它们，也没有沿用暂停v1的特征/数据/训练预算。
+本节为原公开读取批次的复现路径；E0的当前交付及命令见上节。原SH-03视觉读取、论文资产/资源与独立环境锁仍依D-073的适用性审查分别交付；训练与强对照协议在R4另审，不沿用暂停v1的特征/数据/训练预算。
 
 ### SH-04-R2 历史服务器固定命令（已完成，保留复现路径）
 

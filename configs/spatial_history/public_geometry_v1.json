@@ -1,0 +1,158 @@
+{
+  "budget_proposal": {
+    "execution_mode": "foreground",
+    "new_artifact_limit_bytes": 67108864,
+    "new_data_splits": 0,
+    "new_simulation_steps": 0,
+    "new_training_steps": 0,
+    "new_weight_download_bytes": 0,
+    "peak_rss_limit_bytes": 536870912,
+    "python_dependencies": "stdlib_only",
+    "resume_policy": "verify_completed_only_preserve_failure_no_automatic_rerun",
+    "rss_scope": "sum_of_live_stage_process_tree",
+    "wall_clock_limit_s": 1800
+  },
+  "claims": {
+    "full_3d_map_verified": false,
+    "model_experiment_run": false,
+    "physical_predictability_verified": false,
+    "public_geometry_recovery_verified": false
+  },
+  "decision": "D-077",
+  "evaluation_only": {
+    "all_registered_queries_required": true,
+    "allow_outcome_labels": false,
+    "coordinate_targets": [
+      "x_left",
+      "x_right",
+      "y_front"
+    ],
+    "invariant_checks": [
+      "recent_geometry_identical_across_worlds",
+      "geometry_unchanged_by_rgb",
+      "public_output_sealed_before_private_evaluation"
+    ],
+    "matching": "unique_one_to_one_all_candidates_and_targets_no_best_subset",
+    "maximum_coordinate_interval_width_m": 0.025,
+    "maximum_coordinate_midpoint_error_m": 0.0125,
+    "midpoint_error_gate_role": "redundant_consistency_check_not_independent_precision_evidence",
+    "missing_extra_ambiguous_or_conflicting_candidates_allowed": false,
+    "predictor_count_is_not_extractor_input": true,
+    "queries": 16,
+    "query_modes": {
+      "full": {
+        "expected_candidates": 2,
+        "indices": null,
+        "targets": "both_actual_gates"
+      },
+      "recent": {
+        "expected_candidates": 0,
+        "indices": [
+          119,
+          120
+        ],
+        "targets": "none"
+      },
+      "view_a": {
+        "expected_candidates": 1,
+        "indices": [
+          25
+        ],
+        "targets": "actual_near_gate"
+      },
+      "view_b": {
+        "expected_candidates": 1,
+        "indices": [
+          65
+        ],
+        "targets": "actual_far_gate"
+      }
+    },
+    "total_frame_consumptions": 500,
+    "truth_in_each_coordinate_interval_required": true,
+    "truth_in_plane_height_interval_required": true,
+    "truth_source": "manifest_bound_original_world_xml_evaluator_only",
+    "worlds": [
+      "LL",
+      "LR",
+      "RL",
+      "RR"
+    ]
+  },
+  "extractor": {
+    "assumptions": [
+      "static_observed_horizontal_surfaces",
+      "axis_aligned_rectangular_boundaries",
+      "calibrated_canonical_top_down_camera"
+    ],
+    "boundary_rule": "adjacent_surface_and_farther_valid_ray_footprints_intersect_same_plane_interval",
+    "candidate_count": "unbounded_by_task_gate_count",
+    "controls_or_goal_used": false,
+    "coordinate_guard_m": 1e-06,
+    "fusion": "overlap_graph_then_common_interval_intersection_conflicts_preserved",
+    "gap_rule": "all_intervening_pixels_valid_and_farther",
+    "height_clustering": "sorted_greedy_complete_span",
+    "input": "validated_history_frames_only",
+    "maximum_cluster_height_span_m": 0.0002,
+    "minimum_consecutive_support_rows": 2,
+    "minimum_each_side_front_witness_columns": 2,
+    "minimum_each_side_run_pixels": 2,
+    "minimum_farther_depth_separation_m": 0.0002,
+    "missing_boundary": "unknown_not_completed",
+    "pixel_footprint_half_width": 0.5,
+    "plane_tolerance_m": 0.0001,
+    "private_labels_or_layout_used": false,
+    "rgb_used": false,
+    "unobserved_space": "unknown_not_free",
+    "used_fields": [
+      "depth_m",
+      "width",
+      "height",
+      "camera_position_m",
+      "camera_xyzw",
+      "intrinsics"
+    ]
+  },
+  "implementation_run_authorized": true,
+  "numeric_protocol_approved": true,
+  "proposal_commit": "e64afa64239f82bd659a59df069b8f670b21ddcf",
+  "proposal_sha256": "935ecaf6556ea58cde2c0f3d7c90fa0b74f8ef21c61122dc67b727c9fe1406b5",
+  "proposal_source": "configs/spatial_history/public_geometry_proposal_v1.json",
+  "public_sensor_spec": {
+    "camera_to_world_rotation": [
+      [
+        1,
+        0,
+        0
+      ],
+      [
+        0,
+        -1,
+        0
+      ],
+      [
+        0,
+        0,
+        -1
+      ]
+    ],
+    "clip_margin_m": 0.0001,
+    "depth_kind": "camera_axis_z_m",
+    "far_depth_m": 20.0,
+    "near_depth_m": 0.04,
+    "pixel_centers": "integer_u_v_with_public_intrinsics",
+    "rotation_entry_tolerance": 1e-06,
+    "source_policy": "shared_rig_only_near_and_far_from_pinned_reference_not_per_world_xml"
+  },
+  "source": {
+    "original_artifacts_read_only": true,
+    "r2_audit_sha256": "acd203d21bef24cdca913fa9861bcc899c0e92cae88f8d07d36c37bfd2b0911e",
+    "r2_commit": "9c044fca7738e2b294024d073ffbbb96902ef130",
+    "r2_report": "results/spatial_history_two_gate_engineering_v1_lfsha1.json",
+    "r3_reader_commit": "88c42b7ffeabbeba1e4c1b5cb297ae03194e125e",
+    "r3_reader_report": "results/spatial_history_public_input_v1.json"
+  },
+  "status": "frozen_read_only_engineering",
+  "training_authorized": false,
+  "version": "sh04-r3-e0-public-geometry-v1"
+}

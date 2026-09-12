@@ -60,22 +60,37 @@
 
 物理异常保留`failure.json`的有效状态前缀/已写trace行数，必要时保存`failed_current_state.f64`及未落盘批次`pending_actual_samples.jsonl`。预分配数组的未写部分不能当有效轨迹。导出JSON嵌入回执、逐分支评分、121帧信息损失/等价组、历史可见性、失败日志尾及选定原PNG；完整原始数组仍留数据盘，逐文件摘要进入报告。
 
-### E0开口前缘恢复字段（D-076，proposed，尚未生成）
+### E0开口前缘恢复字段（D-077已实现，服务器尚未生成）
 
-白话：本提案把恢复器自己的判断与评估答案分开。输入为原公开帧及共同相机规格，输出坐标区间和支持这些区间的像素；例如每个开口有左右内边及前缘三条边，评估端再检查实际门边是否落入区间。这不是给恢复器两个真值门让它微调坐标，也不是完整三维地图。方法见[METHOD](METHOD.md#e0-public-geometry)，参数见[提案JSON](../configs/spatial_history/public_geometry_proposal_v1.json)。
+白话：本合同把恢复器自己的判断与评估答案分开。输入为原公开帧及共同相机规格，输出坐标区间和支持这些区间的像素；例如每个开口有左右内边及前缘三条边，评估端再检查实际门边是否落入区间。这不是给恢复器两个真值门让它微调坐标，也不是完整三维地图。方法见[METHOD](METHOD.md#e0-public-geometry)，活动配置为[public_geometry_v1.json](../configs/spatial_history/public_geometry_v1.json)；它沿用D-076科学数值，原[提案JSON](../configs/spatial_history/public_geometry_proposal_v1.json)保持不可执行及原字节。下面是实现字段定义，当前没有这批服务器结果。
 
-| 字段职责 | 拟议形状/含义 | 权限 |
+| 实现字段 | 形状/含义 | 权限 |
 |---|---|---|
-| `public_sensor_spec / extractor` | 共同轴向深度、裁剪和姿态条件；平面/边界/融合数值 | 提取器只接这两个白名单子对象及合法history，不能接含评估部分的完整提案；0.04/20 m来自原共同参考XML及固定extent，不读各世界XML |
+| `public_sensor_spec / extractor` | 共同轴向深度、裁剪和姿态条件；平面/边界/融合数值 | 提取器只接这两个白名单子对象及合法history，不能接含评估部分的完整配置；0.04/20 m来自原共同参考XML及固定extent，不读各世界XML |
+| `schema_version / history_frames` | `public-openings-v1`及本次实际传给提取器的帧数 | 公共恢复输出顶层还含`candidates / conflicts / incomplete_observations / rejected_counts`，严格六个字段；无世界/门类别 |
 | `candidates[].coordinate_intervals_m` | `3×2`米区间，顺序为左内边x、右内边x、前缘y；每项为`[lower,upper]` | 从公开深度计算；候选数可为0或更多，不按真值固定为2 |
 | `candidates[].coordinates_m / plane_height_interval_m` | 三条坐标的区间中点，以及被观测顶面的世界z区间 | 中点不表示亚像素真值；与D-075的`gate_opening_front_m`对应要经评估匹配，输出本身不附近/远标签 |
-| `support[].local_frame_index / pixel_pair / boundary_kind / raw_interval_m` | 支撑观察、相邻顶面/背景像素对、边类型和融合前区间；顶面高度区间也随支撑保存 | 下标相对于传入history；映射原始帧下标由外层保存。像素来自公共深度，不用实例分割或世界ID |
-| `incomplete_observations / rejected_counts / conflicts` | 缺边、无效/裁剪/较近遮挡/支撑不足等观察及候选冲突 | 保留失败原因，不自动补几何。未闭合局部观察与已形成候选之间的冲突分别记录 |
-| `query_mode / original_frame_indices / public_input_sha256 / output_sha256` | 外层full/A/B/recent清单、来源及封存的预测摘要 | 运维审计，不输入恢复器。16项全部保存，不能只导出通过项 |
-| `truth_xml_binding / targets / matches / coordinate_errors_m / coverage / widths_m` | 实际XML来源、真值前缘/顶面、唯一匹配及中点误差/包含/宽度 | 仅独立评估端；缺失/额外/歧义/冲突分别计数，不挑最佳子集，不让truth回流提取器 |
-| `input_checks_passed / extractor_completed / geometry_bounds_verified / failures` | 输入来源、运算完成、坐标门以及全部失败分别报告 | 未来新E0报告字段；不修改原R2/R3报告，不能用运算完成冒充几何恢复通过 |
+| `candidates[].support[]` | 严格含`local_frame_index / pixel_pair / boundary_kind / raw_interval_m / plane_height_interval_m`；像素对为`[[u_surface,v_surface],[u_farther,v_farther]]`，边类型为`x_left / x_right / y_front` | 局部下标相对于传入history；原始下标映射由外层保存。每条支持保留融合前坐标与顶面区间，不用私有实例分割 |
+| `incomplete_observations[]` | `local_frame_index / row_span / plane_height_interval_m / reason`；行范围`[first_v,last_v]`，原因包括无效/较近间隙、连续行或二维面片不足、缺前缘及边区间不相容 | 缺边保持未知。局部视野自然造成的未闭合观察可与成功候选并存，不单独作为整批失败 |
+| `rejected_counts` | 九项非负整数计数，详见下文 | 记录无效深度和候选提取拒绝，不用于筛选世界或补几何 |
+| `conflicts[]` | `reason="empty_common_intersection" / members`；members保留该重叠连通组全部原候选与支持 | 公共证据自身的冲突；不可用平均消除，独立验收必须检查 |
+| `started.json.jobs[]` | `id / world / mode / indices / expected_candidates / public_path / expected_sha256 / expected_bytes`；mode为`full / view_a / view_b / recent` | 外层清单与来源审计，世界、模式、下标和预期数量不输入`recover_openings`；public worker只把选后合法history及两个公共参数对象交给它 |
+| `predictions/query-NN.json` | `prediction / prediction_sha256 / public_file_sha256 / history_sha256 / history_frames` | prediction为上方六字段恢复输出；其余绑定原公共文件及实际切片，均由外层生成。保存全部16项，不只保留通过项 |
+| `public_seal.json` | `public_complete=true / predictions`；后者为16个预测文件名到`bytes / sha256`的映射 | 所有预测完成后封存，私有XML解析前后都复核；不把内容规范摘要与整个预测文件字节摘要混为一谈 |
+| `evaluation.json.private_xml_evidence` | 每世界保存`relative_path / bytes / sha256 / xml_text / targets`；targets每项含`coordinates_m / plane_height_m / gate_index` | 仅独立评估可见。XML为原manifest绑定的实际UTF-8文本，摘要与字节数对应原文件；可在本地只读复算，不按世界名称填答案 |
+| `evaluation.json.rows[].assessment` | `accepted / checks / failed_checks / registered_count_matches / targets / matches / pair_diagnostics / eligible_target_indices`以及候选、目标、冲突、未闭合和匹配数 | 全候选与全目标唯一匹配；`pair_diagnostics`保留逐配对坐标/高度包含和中点误差，`matches`另含区间宽度；匹配数超过1时最多保存2表示已证非唯一，不挑最佳子集 |
+| `audit.json / receipt.json / worker/*.json / exits/*.json` | 汇总输入帧数/查询数/近期一致/坐标验收，逐子进程完成与退出状态，来源/输入不变性、错误、manifest及资源记录 | 读取工程、运算完成、几何门与失败可分别追查；缺失阶段不能补造通过，不修改原R2/R3报告 |
+| 导出报告的`receipt / receipt_sha256 / artifacts_json / export_resources` | 实际回执及其字节摘要、阶段JSON产物内嵌、首次导出资源记录；失败时可附`tests_log_tail` | 报告仍是私有工程审计。`public_geometry_recovery_verified`仅能随新批次成功验收成立；完整地图、物理预测与模型实验声明保持false |
 
-原公共文件、XML及报告均只读；新产物仅为稀疏候选与边界支撑，不复制完整RGBD或另存全历史密集点云。提案的16查询包含4×(121+1+1+2)=500次帧消费，均为同一旧工程家族的复用，不新增500帧物理观察或16个独立场景。近期条件独立空状态运行，输出无候选只表示没有恢复门边，不能把未知区域当无障碍。全部预算仍是提案，当前没有新服务器产物、运行目录或可执行入口。
+`rejected_counts`的九个键为`zero_depth_pixels`（0深度像素）、`clipped_depth_pixels`（近/远裁剪范围像素）、`insufficient_side_run_pairs`（双侧连续像素不足）、`invalid_gap_pairs`（间隙含无效深度）、`nonfarther_gap_pairs`（间隙未全部更远）、`insufficient_row_groups`（连续行不足或行配对竞争）、`insufficient_side_patch_groups`（二维面片不足）、`missing_front_groups`（前缘见证不足）、`incompatible_boundary_groups`（行内融合或双侧前缘区间不相容）。这些是提取过程计数，不是物理失败标签。
+
+规范JSON摘要使用排序键、UTF-8、2空格缩进、末尾LF；`public_file_sha256`和封存manifest则绑定相应文件的实际字节。`started.json.jobs[].indices=null`表示完整历史，其余保存原始下标；提取器的`support.local_frame_index`只需通过该清单映射，不能从恢复输出倒填近/远门标记。所有16份预测封存之后，评估子进程才解析原XML；公共请求文件不含XML、预期门数或评估配置。RGB不变性仅由新手工解析服务器检查提供，不额外运行真实查询。
+
+`export_resources`保存`elapsed_s_upper_bound / measurement / run_plus_export_elapsed_s_upper_bound / observed_live_hwm_peak_before_serialization_bytes / enforced_live_tree_rss_upper_bound_bytes / failed_run_diagnostic_only`。白话：它记录为这份可带回本地的报告进行核验、组装和写盘的时间及资源保护证据，输入导出进程计量，输出首轮持久回执；例如首次成功导出与原run共同使用1800 s预算，这不是再次运行恢复器。run回执的`elapsed_s`和首导出的时间上界各包括1 s收尾余量；阶段与报告总字节≤64 MiB，进程树内存按512 MiB保护。50 ms采样的当前RSS与各存活进程`VmHWM`保守和分别记录，地址空间限制只作附加保护，不宣称连续精确的同时RSS峰值。导出中`observed_live_hwm_peak_before_serialization_bytes`是序列化前观测值，`enforced_live_tree_rss_upper_bound_bytes=536870912`是包括写入的保护上界，不是完整导出实测峰值；全命令最终观测统计在终端输出。重导出复用首次资源记录并要求报告字节相同；可选verify/重导出各自的行政只读操作仍受单次1800 s/512 MiB保护。失败诊断导出设`failed_run_diagnostic_only=true`，不能据此声称首轮预算或几何通过。
+
+正式回执与首份导出均先写pending文件：阶段内`receipt.pending.json`及报告旁`spatial_history_public_geometry_v1.pending.json`。写完并通过时间/内存收尾门后才重命名发布；pending表示未完成发布，不是可复用的成功回执或报告。失败/中断不覆盖原现场，不能把pending中的临时成功字段当作正式验收。
+
+原公共文件、XML及报告均只读；新产物为稀疏候选、像素支持、封存/评估及资源证据，不复制完整RGBD或另存密集点云。固定16查询向恢复器传入`4×(121+1+1+2)=500`帧，这是提取器输入计数，读取器在每次切片前仍校验完整文件，验证/导出还会核对来源；不应写成只读取500帧字节。它们均复用同一旧工程家族，不新增500帧物理观察或16个独立场景。近期条件独立空状态运行，输出无候选只表示没有恢复门边，不能把未知区域当无障碍。已实现入口登记目录为`/root/autodl-tmp/spatial-history/sh04-r3-e0-public-geometry-v1`，导出路径为`results/spatial_history_public_geometry_v1.json`；登记路径不表示服务器目录或报告已经生成。
 
 ### 历史利用诊断的记录字段（D-075，proposed，尚无schema实现或产物）
 
