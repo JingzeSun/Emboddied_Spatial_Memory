@@ -28,7 +28,7 @@ SH-03预算由D-065固定：128次4.9 s模拟执行，新产物2 GiB，按案例
 
 **当前为R4-4模型接入准备，前端v2r1名义工程验收已通过。** 报告81bceed绑定01c03cf，19项检查、30项来源绑定、原16历史/144分支/320输入核验完整；16关联/两开口、144轨迹/任务读出、16选择及误标占据/自由均达到D-090登记门。公开推演754.3 s、评估66.8 s，实际物块平均误差9.59 cm、接触Brier 0.1152；16世界名义选择恰好选中真实成功动作，但全144分支仍涉及未知扫掠，formal_model_ready/eligible_for_P=false。LOG-121保留工程通过与科学缺口。
 
-用户追加授权完成后继续SH-05接三模型、可用系统盘且必要时删除旧CPMT/CTL数据。D-091登记按实际依赖连续推进：先锁官方源码与独立环境、必要原生检查，再按职责实现完整历史/200步适配；不将24小时窗口当作56 GPU小时预算或确认集解封。DreamerV3/FloWM继续；PointWorld官方DINOv3资产缺失，用户正在询问DINOv2替代方案，DINO-WM为待定推荐，尚未把更换编码器或第三模型写成已审基线。已核系统盘约29 GiB空闲、数据盘22 GiB，尚不需删除，旧数据未动。原PLAN局部编辑保留。
+用户追加授权完成后继续SH-05接三模型、可用系统盘且必要时删除旧CPMT/CTL数据。D-091登记按实际依赖连续推进：先锁官方源码与独立环境、必要原生检查，再按职责实现完整历史/200步适配；不将24小时窗口当作56 GPU小时预算或确认集解封。DreamerV3/FloWM原生接口各8项已通过，回传8d03694（LOG-122）。用户现已明确选择DINO-WM替代PointWorld，按D-092继续W官方资产/原生检查及三份具体适配；PointWorld后置，不把原生前向当作完整任务接通。已核系统盘约29 GiB空闲、数据盘22 GiB，尚不需删除，旧数据未动。原PLAN局部编辑保留。
 
 已完成证据：[SH-03/v2报告](../results/spatial_history_development_audit_v2_wall_clearance.json)为12项/16对通过，原科学提交57d01aa、报告ce5b3f1，LOG-107；原v1失败保留于LOG-106。它们只供工程/输入审计，不能拆分成训练/确认。当前协议文档有新增内容，不借旧SH-03回执认证；旧产物按原代码/合同摘要复用。
 
@@ -775,4 +775,15 @@ python -B ops/spatial_history/r4_model_assets_v1.py export
 /root/sh05-assets-v1/flowm-env-v1/bin/python -B ops/spatial_history/r4_native_models_v1.py flowm
 /root/sh05-assets-v1/dreamer-env-v1/bin/python -B ops/spatial_history/r4_native_models_v1.py dreamer
 python -B ops/spatial_history/r4_native_models_v1.py export
+```
+
+
+### DINO-WM替代后的资产/原生阶段（D-092）
+
+D/F原生回执已验，W锁定源码及以下入口同步一次后按顺序；前步exit=0且回执/权重摘要一致才继续。原生3帧不替代随后121帧任务适配，未启动训练或新数据。
+
+```bash
+/root/sh05-assets-v1/flowm-env-v1/bin/python -B ops/spatial_history/r4_dinowm_assets_v1.py download
+/root/sh05-assets-v1/flowm-env-v1/bin/python -B ops/spatial_history/r4_dinowm_assets_v1.py native
+python -B ops/spatial_history/r4_dinowm_assets_v1.py export
 ```

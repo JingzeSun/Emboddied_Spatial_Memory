@@ -619,3 +619,6 @@ D-090 v2r1运维修复：配置新增source_code_files、public_registration（1
 
 
 原生入口r4_native_models_v1.py的native-audit-v1目录将输入形状、参数数/名称、实际检查名、dependencies、source_module、CPU/RSS或CUDA峰值与日志/started摘要写入receipt。导出spatial_history_r4_native_models_v1.json核对每个成功回执的日志和started字节后列complete_stages；adapted_models_ready仍为空。独立进程读取守卫拒绝/root/autodl-tmp/spatial-history下全部项目数据，人工原生检查不接触训练/验证/确认标签。
+
+
+D-092的DINO-WM资产目录为/root/sh05-assets-v1/dinowm-native-v1，download保存官方URL与权重bytes/sha256，native先核下载回执及权重再严格加载。逐阶段started保存两份官方源码全文件摘要、脚本和时钟，receipt含人工输入/输出形状、实际检查、参数量、GPU/RSS峰值、退出及耗时。导出results/spatial_history_r4_dinowm_native_v1.json不内嵌权重；adapted_models_ready为空，明确区别原生工程与任务接通。白话：例如权重严格加载通过仍不表示预测器已在双门数据训练。
