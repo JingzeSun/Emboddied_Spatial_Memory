@@ -821,3 +821,17 @@ D16项/W17项完整121/200及反向均已通过；F按D-095完成独立实现，
 ```
 
 新flowm-adapter-check-v1目录，前台1800 s、RSS12 GiB/CUDA28 GiB、新证据64 MiB。先自动核原作者源/native成功，再运行完整人工例；失败只导出保留，不重试旧目录或截短输入。0优化/真实预测/新生成/确认，合同及绑定随本职责同步一次。
+
+
+### 三模型真实公共接口核验（D-096，当前）
+
+D16/W17/F19项人工工程已通过，先执行同一个已保存真实公开历史及全部九候选的统一接口核验，再审学习预算/正式数据与诊断。三个步骤均只读固定public文件，0训练/真值读取；每步保存退出0后才启动下一步，任何失败保留。
+
+```bash
+/root/sh05-assets-v1/dreamer-env-v1/bin/python -B ops/spatial_history/r4_three_model_public_check_v1.py D
+/root/sh05-assets-v1/flowm-env-v1/bin/python -B ops/spatial_history/r4_three_model_public_check_v1.py F
+/root/sh05-assets-v1/flowm-env-v1/bin/python -B ops/spatial_history/r4_three_model_public_check_v1.py W
+/root/sh05-assets-v1/flowm-env-v1/bin/python -B ops/spatial_history/r4_three_model_public_check_v1.py export
+```
+
+三模型run/export同版同步一次，不在运行中pull。新目录three-model-public-check-v1；逐模型1800 s前台、RSS12 GiB/CUDA28 GiB，阶段512 MiB/报告16 MiB。D保存16随机样本，F/W确定性各1，完整27模型-候选出值仍只认证工程，不能声明学习、独立确认或有效性通过。
