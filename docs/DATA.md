@@ -36,7 +36,13 @@
 
 时间约定：相机表的0–12 s是稳定后采集窗口；公开帧`time_s=0.5+0.1×帧下标`，保留实际模拟时钟（允许1e−9 s浮点差）。未来文件使用相对决策的0–20 s：下标0是恢复初态，其后才是未来；任务停稳窗口为相对19–20 s。不得把数组第一行初态标成未来。全部控制分支从该世界同一完整积分状态恢复，独立重放单独保存。
 
-白话：公开记录与真值文件分开，解决“加载整份场景时把答案顺手送进模型”的问题。输入`public.json`和所查询的控制名称，`model_input`只返回`history / controls / goal`；例如查询LR也只得到数值速度，返回值没有世界编号或LR类别。它是独立的输入接口，尚不等于训练进程/操作系统权限隔离；R3/R4仍需实现实际加载器并验证。
+白话：公开记录与真值文件分开，解决“加载整份场景时把答案顺手送进模型”的问题。输入`public.json`和所查询的控制名称，`model_input`只返回`history / controls / goal`；例如查询LR也只得到数值速度，返回值没有世界编号或LR类别。R3首批已交付实际读取器`public_reader.load_query`，服务器验证待运行；它是输入API边界，尚不等于训练进程/操作系统权限隔离。
+
+**R3/public-input字段边界（D-072，已实现、待服务器验证）。** `public_path / expected_sha256 / expected_bytes / action_name / history_indices`为调用参数，前3项来自外层核验后的文件路径与manifest；后2项是查询控制及可选历史下标。读取器不自动寻找标签或旁边文件；先核验同一份原始字节，再拒绝重复JSON键、非有限常量和违反原公开合同的字段，最后按原`model_input`选历史。允许单文件至多32 MiB仅为内存/读取保护，不改变121帧协议；已验收4文件各约14.9 MB。
+
+输入例（实际文件尚待服务器加载）：`steps/history-LL/data/public.json`，字节数`14904397`，SHA-256=`669b3afaed576fdc0219dd8a94364a469618b06aabc0da8d56de6d2e20675c90`，查询`action_name="LR"`、`history_indices=[25,65,119,120]`。合同输出为4个原始64×64 RGBD帧、200段`duration_s / ee_velocity_mps`数值控制、原公开goal；顶层严格为`history / controls / goal`。它不返回LL世界、LR名称、来源路径、摘要、下标、门洞真值、执行后机器人运动或未来物块状态。该例说明接口形状，不是本地实际读入的运行结果。
+
+`public_audit.json`及导出报告的`queries[]`是私有审计记录：`world / action / mode`只用于回指检查项，`query_sha256 / history_sha256 / controls_sha256 / goal_sha256`按带末尾LF、排序键、UTF-8、2空格缩进的JSON计算；这些审计字段不进入读取器返回值。`public_inputs`保存R2四文件的原路径、字节数和原始字节SHA，不把规范序列化摘要混同文件SHA。报告保留`geometry_recovery_run=false / model_experiment_run=false / new_training_steps=0`；不保存一套复制的公共图像或新标签。
 
 | 实际文件/键 | 形状、来源与语义 | 可见范围 |
 |---|---|---|
