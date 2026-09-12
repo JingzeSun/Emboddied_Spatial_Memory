@@ -640,3 +640,12 @@ Torch公共tensorize沿用D-093严格查询，只将RGB转[1,H,3,80,80]、深度
 白话：例如121帧状态可以克隆给九候选，每条保持完全相同历史；第101步控制不会改变前100步预测。训练侧labels和future_images集合与D完全相同、无真实未来本体；辅助未来编码仅形成停止梯度目标，不进入预测缓存。图像padding及缓存是新适配字段，不能拿7项原生检查认证。
 
 r4_dinowm_adapter_check_v1.py在新/root/sh05-assets-v1/dinowm-adapter-check-v1写started/source/weight绑定与receipt或failure；只用人工fixture，守卫禁止全部项目数据。17项包含稠密/缓存值及梯度对拍、完整历史、早历史依赖、因果/分支不可变、全200步反向和七路径梯度、DINO冻结。证据记录参数数/shape、实际CUDA/RSS、耗时、loss和输出摘要，new_training_steps=0、optimizer_constructed=false。导出spatial_history_r4_dinowm_adapter_v1.json，不产生真实模型结果或checkpoint。
+
+
+### F完整适配值与工程证据（D-095）
+
+F沿D-094 Torch公开张量接口；observe可传上块公开state继续，返回map[1,5,49,49,256]、observed_support[1,1,49,49,1]、camera_xy[1,2]、metadata[1,37]、image[1,5,80,80]和history_frames。image为RGB三通道/米制深度/有效mask；support表示历史观测曾支持该列的插值程度，不是碰撞占据概率。历史state不含未来控制或标签。
+
+白话：例如分57+64帧接入应与一次121帧产生同图；未来解码得到的像素能做模型反馈，不能增加observed_support。imagine返回200×256未来池化、200×4×80×80预测RGBD、共同task及五个时间的完整地图引用；loss精确接收与D/W相同三项labels和三项future_images，目标不得进入主输入。
+
+r4_flowm_adapter_check_v1.py固定新flowm-adapter-check-v1目录，14项本地来源与原作者来源receipt绑定，19项人工检查涵盖整数/半格平移、零环绕、5通道推进、未知支持、空视图、完整分块等价、控制因果/分支与全200步反向八路径。receipt保存参数/梯度/资源/人工loss与输出摘要，失败写failure并保留。export生成spatial_history_r4_flowm_adapter_v1.json，0优化更新/0真实查询/0新权重。
