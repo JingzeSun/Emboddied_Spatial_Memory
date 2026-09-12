@@ -76,8 +76,10 @@ def main():
     parent_raw = PARENT.read_bytes()
     require(record(parent_raw)['sha256'] == PARENT_SHA, 'unexpected parent report')
     parent = json.loads(parent_raw)
-    require(parent['status'] == 'passed' and parent['verification_error'] is None
-            and parent['malformed_json'] == [], 'requires complete engineering evidence')
+    require(parent['status'] == 'passed' and parent['verification_error'] is None,
+            'requires complete engineering evidence')
+    require(parent['malformed_json'] == {},
+            'malformed_json must be an empty object (original exporter schema)')
     receipt, seal, summary = (parent[k] for k in ('receipt', 'public_seal', 'summary'))
     require(receipt['exit_code'] == receipt['prediction']['exit_code']
             == receipt['evaluation']['exit_code'] == 0, 'successful phase exits required')
