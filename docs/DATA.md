@@ -10,7 +10,7 @@
 
 | 通道/字段职责 | 内容与用途 | 权限与待定项 |
 |---|---|---|
-| `history` | 全部真实RGB/有限正深度、相机内外参、时间、机器人本体、已发生控制；本版无单独有效mask，无效深度拒绝输入 | 主输入；64×64、0.1 s采样。模型按所比较的历史规则消费，不能共享含额外历史的缓存统计 |
+| `history` | 全部真实RGB/有限非负深度、相机内外参、时间、机器人本体、已发生控制；本版无单独有效mask，0沿用旧帧合同的无效深度约定 | 主输入；64×64、0.1 s采样。模型按所比较的历史规则消费，不能共享含额外历史的缓存统计 |
 | `controls / goal` | 四世界共用的数值速度—时长序列和共同目标定义 | 主输入；四条200段/20 s控制及目标已冻结；计划控制不等于执行后的机器人或物块运动 |
 | `family_id / world_id / action_id` | 分组、去重和关联真实结果；左左等名称只供审查 | 私有元数据，不作为特征；同一物理家族的四世界、四动作及历史变体不得跨split |
 | `frame_information[].equivalence_groups` | 按指定单视图＋共同近期的完整公开输入形成不可区分组 | 仅审计；保存按全部公开字段比较的分组及信息代价，不能向主模型提供答案分组 |
@@ -59,6 +59,29 @@
 | `check/`、各步`receipt.json`、根`started.json / environment.json / completion.json` | 测试身份/退出状态、来源、环境、manifest、耗时/字节和终检记录；seed=null，无随机采样 | 私有来源；未运行、完整失败和中断分开，不为中断补造通过 |
 
 物理异常保留`failure.json`的有效状态前缀/已写trace行数，必要时保存`failed_current_state.f64`及未落盘批次`pending_actual_samples.jsonl`。预分配数组的未写部分不能当有效轨迹。导出JSON嵌入回执、逐分支评分、121帧信息损失/等价组、历史可见性、失败日志尾及选定原PNG；完整原始数组仍留数据盘，逐文件摘要进入报告。
+
+### 历史利用诊断的记录字段（D-075，proposed，尚无schema实现或产物）
+
+白话：这些字段把同一案例的输入、内部诊断和实际后果连接起来，供评估端定位错误。输入是合法查询产生的状态/预测及独立真值文件，输出可回指来源的诊断行；例如某条控制预测成功但实际受阻，可以追到对应的历史状态和接触区间。它不扩展现有`public.json`或`load_query`，也不允许把诊断标签返回主模型。实验和指标定义见[METHOD的E0–E4](METHOD.md#history-use-diagnostic)。
+
+| 拟议字段 | 形状、单位、含义 | 边界 |
+|---|---|---|
+| `audit_key / model_revision / adapter_revision / checkpoint_sha256 / seed / history_mode` | 关联家族、世界、控制、代码、权重及full/recent条件 | 外层私有审计，编号/摘要不作为网络特征；无checkpoint时明确未运行 |
+| `history_cut_index / input_prefix_sha256 / state_ref / state_schema` | 原始前缀末帧、实际消费的公开前缀摘要、状态产物引用和结构版本 | 状态仅由相应前缀形成；引用由诊断进程读取，不将文件路径作为主模型或探针特征 |
+| `gate_opening_front_m` | `2×3`米值，每门为`[x_left,x_right,y_front]`；左右为两侧墙的开口内边，前缘为较小世界y的墙面；沿y由近到远排序 | 分别保存公开观测估计、探针预测和私有评估目标，三通道不混淆；前缘不是原任务的门中心穿越面 |
+| `observed_support / geometry_unknown / geometry_error_m` | 恢复器的观测来源、未知区域及评估误差；探针目标另有评估侧的证据已出现标记 | 恢复器来源只能由公开帧形成；私有可见性只在评估侧核对，不作为选帧或对象mask输入 |
+| `probe_revision / probe_training_family_digest / probe_target / probe_prediction` | 冻结读出的来源、拟合家族登记、独立目标及预测 | 探针训练不能使用本工程家族或确认家族；目标不回流主体，标签打乱负对照另存版本 |
+| `prediction_times_s / object_position_m / obstacle_contact_probability` | 相对决策时刻`0.1,0.2,…,20.0`，分别200项、`200×3`米值和200个区间接触概率 | 主预测输出；初态不混入200个未来值，不得从真实轨迹填补缺项 |
+| `rollout_state_ref / rollout_time_s / diagnostic_geometry` | 原生预测状态在相对`0,5,10,15,20` s的引用和几何读出 | 0为决策初态，其余只能由控制推演；兼容的原生中间状态读取需适配合同明确，不能填入未来观察 |
+| `task_success_probability / diagnostic_success_probability / selection_probabilities` | 主整段成功概率、冻结诊断读出的概率及四候选选择概率 | 主结果和诊断结果分列；并列最优均匀分配仅用于计算期望代价，不假称实际随机执行 |
+| `paired_worlds / changed_gate / prediction_difference / actual_difference / pair_position_error_m` | 四条单门配对边、被改变的门、同控制的预测/真实差及配对位置误差 | 仅评估端重组原分支，不成为新独立样本；模型不读取配对编号或哪扇门改变 |
+| `actual_task_success / expected_actual_cost / selection_regret / evidence_flags / unresolved_reasons` | 原任务标签、选择的期望实际代价、相对最优候选的代价差及归因证据 | 缺失/物理无效/推理失败分别计数；未完成诊断记未核验，不强行归因 |
+
+预测接触按控制间隔定义：第k项表示相对时间`(0.1×(k−1),0.1×k]`内至少一次物块—门/侧壁正力接触的概率，k为1至200。评估标签读取原物理步`50×(k−1)+1`至`50×k`，沿用原距离≤0、法向力>1e−6 N及物块与`gate_ / side_`的对象规则；不计推头/地面接触，不用控制末一个瞬时接触代替整个区间。初始步0单列，不归入未来。区间概率不自动定义“全程至少一次接触”的概率，后者若使用须另行登记汇总方式。
+
+整段成功仍使用原`assessment.task_success`。物理无效时该值为null，不把`raw_task_success`偷换成有效主标签；可见性合格性、物理有效性和任务成功分别报告。任一候选标签缺失/为null或预测不合格时，该世界的`expected_actual_cost / selection_regret`为null并注明原因；不对余下候选重归一化，汇总同时报告可计算数与完整登记数。私有完整姿态/速度/门事件可以解释错误，却不能通过来源关联进入主模型。诊断行只引用经manifest绑定的原始轨迹，不修改原产物；模型状态、逐步预测等大文件在未来获准的服务器新目录，小报告由阶段入口导出，当前未创建运行目录。
+
+深度说明的静态纠正：上方原“正深度、无效拒绝”表述强于实际代码。`pair_contract.frame`及调用它的双门合同接受有限非负值，0已在旧帧合同中定义为无效；本次仅修正文档。公开几何恢复应由`depth_m>0`派生有效性，不把0投影成真实表面。没有修改读取器、原schema或旧报告，也没有据此声称原实际RGBD含有零值。
 
 ### SH-04 新小试数据与模型权限（proposed，尚未生成）
 
