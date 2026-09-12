@@ -4,7 +4,7 @@
 
 ### SH-04-R2 四世界家族字段（已实现，服务器验证pending）
 
-双门候选与判定含义见[METHOD](METHOD.md#sh04-r2-two-gate)。D-070已批准观察、控制、任务/工程判定及本批预算。新合同版本为`spatial-history-two-gate-public-v1`，旧`spatial-history-pair-v1`仍严格表示两世界、两候选。新实现尚无服务器回执，不以旧32项测试或SH-03回执认证；没有训练/确认划分。
+双门候选与判定含义见[METHOD](METHOD.md#sh04-r2-two-gate)。D-070已批准观察、控制、任务/工程判定及本批预算；D-071仅修复物理参考XML的跨平台字节摘要。新合同版本为`spatial-history-two-gate-public-v1`，旧`spatial-history-pair-v1`仍严格表示两世界、两候选。首个Linux运行在进入`history-LL`前发现摘要不符并停止，不以旧32项测试或SH-03回执认证；没有训练/确认划分。
 
 白话：输入同一场景家族中四种门洞组合的真实记录，输出合法模型查询及独立的审计/监督通道。例如完整历史可以含两门的旧图，但模型拿不到“左左”标签、门洞真值坐标或执行后的轨迹；这不是把真实未来改名为latent或控制输入。
 
@@ -22,7 +22,7 @@
 
 首个四世界家族已获准执行16条不同控制分支、另16次独立重放。四世界各自独立记录同一条12 s相机路径、121帧历史；A/B分别取从0计的第25/65帧，共同近期为第119/120帧，全部历史帧的单视图检查从同一合法记录截取，不额外模拟、不合成路径。每条分支为200段0.1 s控制、20 s真实执行。数据角色仅为已见工程开发；未来训练/验证/确认的家族数和划分另审，不使用当前公开设计做独立确认。
 
-[冻结配置JSON](../configs/spatial_history/two_gate_engineering_v1.json)由新入口消费，`numeric_protocol_approved/generation_authorized=true`，`training_authorized=false`，`approval_decision=D-070`。`proposal_source/proposal_sha256`追溯原[数值提案](../configs/spatial_history/two_gate_engineering_proposal_v1.json)及提交3c5755e；除明确批准元数据外逐值一致。`physics_reference_sha256`绑定复用的固定物理常数，新世界XML另存摘要。白话：输入已接受的参数表，输出明确的执行来源；例如20 s不会因某条动作卡住而自动延长，配置本身不是运行成功回执。
+[冻结配置JSON](../configs/spatial_history/two_gate_engineering_v1.json)由新入口消费，`numeric_protocol_approved/generation_authorized=true`，`training_authorized=false`，`approval_decision=D-071`。`proposal_source/proposal_sha256`追溯原[数值提案](../configs/spatial_history/two_gate_engineering_proposal_v1.json)及提交3c5755e；除明确批准元数据和一个跨平台字节摘要外逐值一致。原提案的`physics_reference_sha256`为Windows工作树的CRLF字节摘要；活动配置固定改用同一Git blob的LF字节摘要，入口同时要求这两个固定值，不能借此改变任何物理值。白话：输入已接受的参数表，输出明确的执行来源；例如20 s不会因某条动作卡住而自动延长，配置本身不是运行成功回执。
 
 | 配置字段/真值职责 | 中文定义与单位 | 权限和例子 |
 |---|---|---|

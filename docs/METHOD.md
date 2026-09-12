@@ -79,7 +79,7 @@ SH-03/v2墙角间隙修订（implemented，物理效果未验证）：白话，�
 
 <a id="sh04-r2-two-gate"></a>
 
-### SH-04-R2 双门空间证据候选（D-070工程协议，服务器验证待运行）
+### SH-04-R2 双门空间证据候选（D-070/D-071工程协议，服务器验证待运行）
 
 用户已认可双门四世界/四候选及真实送达任务（D-069），并接受本节全部数值、信息判定与工程预算（D-070）。下列合同已有独立实现，尚未在服务器运行；批准数值不等于物理条件已经成立，也不等于批准模型训练。
 
@@ -126,7 +126,7 @@ SH-03/v2墙角间隙修订（implemented，物理效果未验证）：白话，�
 
 #### R2 单一工程数值协议 v1（frozen，未运行）
 
-数值集中登记于[two_gate_engineering_v1.json](../configs/spatial_history/two_gate_engineering_v1.json)，状态`frozen_engineering_only`。原[two_gate_engineering_proposal_v1.json](../configs/spatial_history/two_gate_engineering_proposal_v1.json)保留待审时的字节，执行入口逐值比对全部非授权字段。这里解决“图中能走，实际怎样判”的问题：输入完整几何、真实相机路径与速度表，输出事后可审的通过/失败、信息条件和复现证据。例如即使某个非同名控制成功，也按真实轨迹计分，不按预期矩阵覆盖答案。
+数值集中登记于[two_gate_engineering_v1.json](../configs/spatial_history/two_gate_engineering_v1.json)，状态`frozen_engineering_only`。原[two_gate_engineering_proposal_v1.json](../configs/spatial_history/two_gate_engineering_proposal_v1.json)保留待审时的字节，执行入口逐值比对全部非授权字段。D-071只把物理参考XML的工作树CRLF摘要改为Git blob的LF摘要，其他科学字段仍逐值不变。这里解决“图中能走，实际怎样判”的问题：输入完整几何、真实相机路径与速度表，输出事后可审的通过/失败、信息条件和复现证据。例如即使某个非同名控制成功，也按真实轨迹计分，不按预期矩阵覆盖答案。
 
 | 几何/物理 | 冻结数值 | 选择依据与边界 |
 |---|---|---|

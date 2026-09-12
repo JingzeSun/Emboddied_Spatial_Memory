@@ -26,7 +26,7 @@ SH-03预算由D-065固定：128次4.9 s模拟执行，新产物2 GiB，按案例
 
 ## 当前指针
 
-**当前为SH-04-R2工程交付，等待服务器检查和完整生成回执。** 用户已接受全部数值及单帧信息判定（D-070）；[冻结配置](../configs/spatial_history/two_gate_engineering_v1.json)保留原提案的全部科学值。新公共合同、独立物理适配、完整审计及check/run/verify/export已实现，分职责提交到`review/spatial-history-baselines`；main保持已审SH-03批次e901beb。本地仅静态核查，未执行测试、模拟或模型训练；实际结果见LOG-108。R1文献核查89e4ace、旧v1暂停状态D-068和全部旧结果保留。
+**当前为SH-04-R2工程交付，等待服务器检查和完整生成回执。** D-071修正Windows工作树CRLF与Linux Git blob LF的XML字节摘要差异；几何、观察、控制、任务、信息门和预算均保持D-070原值。首个Linux运行在`history-LL`开始前因该绑定错误停止并保留。新公共合同、独立物理适配、完整审计及check/run/verify/export已实现，分职责提交到`review/spatial-history-baselines`；main保持已审SH-03批次e901beb。本地仅静态核查，未执行测试、模拟或模型训练；实际结果见LOG-108。R1文献核查89e4ace、旧v1暂停状态D-068和全部旧结果保留。
 
 已完成证据：[SH-03/v2报告](../results/spatial_history_development_audit_v2_wall_clearance.json)为12项/16对通过，原科学提交57d01aa、报告ce5b3f1，LOG-107；原v1失败保留于LOG-106。它们只供工程/输入审计，不能拆分成训练/确认。当前协议文档有新增内容，不借旧SH-03回执认证；旧产物按原代码/合同摘要复用。
 
@@ -47,7 +47,7 @@ SH-03预算由D-065固定：128次4.9 s模拟执行，新产物2 GiB，按案例
 
 R2本次**预算已获D-070批准**：1个工程家族、4世界、每世界1条真实历史、16条首次控制分支及16次新实例反序重放；0训练步、0新权重下载，复用旧隔离环境。新数据上限2 GiB、生成墙钟上限30分钟，前台逐分支显示进度。实际耗时未测，30分钟是上限而非承诺；必要检查单独计时，不把其短零控制夹具算入16条完整执行。
 
-新数据盘目录为`/root/autodl-tmp/spatial-history/sh04-r2-two-gate-engineering-v1`，导出报告为`results/spatial_history_two_gate_engineering_v1.json`；服务器尚未运行。check通过才允许run；每步封存退出/manifest后再启动下一步。完整物理/信息审计失败仍保存固定清单全部结果，运行异常或预算到达则停止并标清未运行项。写前字节预检及父进程墙钟/磁盘监控持续生效，含静默子进程；保留1 MiB给失败证据和manifest。终检计入生成时间。失败和无回执的中断拒绝自动重试/覆盖，已封存成功步骤按原绑定复用；独立重放不是新增样本。
+首个Linux运行目录`/root/autodl-tmp/spatial-history/sh04-r2-two-gate-engineering-v1`已在`history-LL`前失败并封存，先导出诊断，绝不覆盖或重跑。D-071的新目录为`/root/autodl-tmp/spatial-history/sh04-r2-two-gate-engineering-v1-lfsha1`，报告为`results/spatial_history_two_gate_engineering_v1_lfsha1.json`；check通过才允许run。每步封存退出/manifest后再启动下一步。完整物理/信息审计失败仍保存固定清单全部结果，运行异常或预算到达则停止并标清未运行项。写前字节预检及父进程墙钟/磁盘监控持续生效，含静默子进程；保留1 MiB给失败证据和manifest。终检计入生成时间。失败和无回执的中断拒绝自动重试/覆盖，已封存成功步骤按原绑定复用；独立重放不是新增样本。
 
 工程只报告来源/物理/观察/动作信息是否成立。数值审核不等于科学代码审过；R3公共RGBD几何恢复和R4观测地图动力学正向对照缺失时，不能把工程通过升级为“完整历史足够”或启动未授权的模型效果实验。
 
@@ -96,8 +96,8 @@ git pull --ff-only origin review/spatial-history-baselines
 导出标志：`SH-04-R2 EXPORTED status=passed|failed ... exit=0`；export成功不等于实验通过。固定批次完成或停止后，按精确路径回传：
 
 ```bash
-git add -- results/spatial_history_two_gate_engineering_v1.json
-git commit -m "results: export SH-04-R2 two-gate engineering audit"
+git add -- results/spatial_history_two_gate_engineering_v1_lfsha1.json
+git commit -m "results: export SH-04-R2 two-gate engineering audit lfsha1"
 git push origin review/spatial-history-baselines
 ```
 
