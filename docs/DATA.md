@@ -695,4 +695,10 @@ D-107补充：`sensor_times.npy.gz`由0.002秒物理步累加产生，按公共�
 
 D-108新增开发生成v2目录`/root/autodl-tmp/spatial-history/sh05-r4-development-generation-v2`；其48家族内容schema与v1提案相同，检查和最终报告路径独立。v1的零生成检查证据不冒充v2运行回执。
 
+### R4学习runtime状态（D-109）
+
+`UniformBranchSampler.state_dict`字段为schema_version、固定family_ids/seed、已发出draws及Python random完整状态；它属于训练恢复审计，不进入模型。Torch checkpoint字段固定为schema_version、update、model、optimizer、sampler、torch_rng_state、cuda_rng_state和binding；binding至少由代码、数据清单、配置摘要组成，具体runner必须补齐。`.partial`不是成功checkpoint，正式路径不可覆盖。
+
+白话：这些字段解决训练中断后是否从完全相同位置继续的问题；输入是一次完整更新后的模型和所有随机/优化状态，输出可核摘要的单个恢复文件。例如只保留model而丢掉AdamW动量或下一采样位置，不能称精确续跑。它不保存模型输入中的family/world/action，也不代替逐例预测与验证指标。
+
 白话：例如一条分支可同时给出“看过什么和要执行什么”以及“实际物块后来到哪里”，但前者放model_input、后者只放训练target。未来RGBD只帮助D/F/W重建自身状态，不包含推头真实未来位姿。这不是把标签变成部署输入，也不允许从audit身份查表预测。
