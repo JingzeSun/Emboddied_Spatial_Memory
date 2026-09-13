@@ -679,3 +679,12 @@ D-101最终成功证据若产生，来自`dreamer-cuda-v3`；v1镜像超时和v2
 D-099的prepare_query返回history/controls/goal及独立selection_evidence，只有前三项是模型输入；公开查询严格校验后才允许R选帧，证据里的local_indices/voxel来源仅供审计。L历史tokens为[1,3025,256]，R至多[1,250,256]；decision_metadata为[1,37]，不保留其他语义字段。未来future_features为[1,200,256]，task沿共同位置/接触/成功输出。白话：例如R的第九个选中观察仍对应原119时刻，不能把选帧后的序号当作真实时间。
 
 history-predictor-check-v1保存started原代码/合同绑定、receipt或failure，导出results/spatial_history_r4_history_predictor_v1.json；21项人工检查、L/R各自完整反向时间/三项损失/八路径梯度、总参数和实际CUDA/RSS峰值都记录。new_training_steps=0/optimizer_constructed=false；不是已拟合checkpoint或真实家族结果。
+
+
+### R4学习分支读取值（D-104）
+
+`spatial-history-r4-learning-branch-v1`的返回顶层为`schema_version/model_input/targets/auxiliary_targets/audit`。`model_input`严格是r4-query-v2的history/controls/goal/domain_spec；`targets`含prediction_times_s[200]、object_position_m[200,3]、interval_contact[200]和task_success布尔值。`auxiliary_targets`为null或future_rgb[200,80,80,3] uint8、future_depth_m[200,80,80] float64及future_depth_valid同形布尔数组；进入模型适配器时再显式转float32，不改服务器原数组。
+
+`audit`含family_id/world/action/action_slot和public/label文件摘要，只供采样、日志及复现，不是模型张量。`actual_future_robot_motion_returned=false`、`integration_state_returned=false`是读取边界记录；它们不能被下游改写为特征。branch_index中的`seals`含三个原manifest及family_result，属于父训练进程的来源证明，不随微批次传入模型。
+
+白话：例如一条分支可同时给出“看过什么和要执行什么”以及“实际物块后来到哪里”，但前者放model_input、后者只放训练target。未来RGBD只帮助D/F/W重建自身状态，不包含推头真实未来位姿。这不是把标签变成部署输入，也不允许从audit身份查表预测。
