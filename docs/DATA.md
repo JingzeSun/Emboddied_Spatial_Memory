@@ -673,6 +673,8 @@ D-098的results/spatial_history_r4_dreamer_cuda_v1.json保存独立install/check
 
 D-100只改变运行stage为`dreamer-cuda-v2`及下载端点/超时重试；最终报告文件名和schema不变，内嵌新v2成功证据。首次v1失败仍在服务器资产目录，不混入成功报告。白话：下载失败只说明当时镜像没有及时返回完整wheel，不等于相同wheel内容或CUDA检查被替换。
 
+D-101最终成功证据若产生，来自`dreamer-cuda-v3`；v1镜像超时和v2主动中断均不混入成功报告，服务器原目录保留各自日志/failure。白话：三个目录区分三次网络现场，只有带receipt且文件摘要完整的v3才可供GPU检查消费。
+
 
 D-099的prepare_query返回history/controls/goal及独立selection_evidence，只有前三项是模型输入；公开查询严格校验后才允许R选帧，证据里的local_indices/voxel来源仅供审计。L历史tokens为[1,3025,256]，R至多[1,250,256]；decision_metadata为[1,37]，不保留其他语义字段。未来future_features为[1,200,256]，task沿共同位置/接触/成功输出。白话：例如R的第九个选中观察仍对应原119时刻，不能把选帧后的序号当作真实时间。
 

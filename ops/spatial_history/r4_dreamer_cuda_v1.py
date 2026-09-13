@@ -15,7 +15,7 @@ import time
 
 from r4_model_assets_v1 import ASSETS, ROOT, record, write
 
-RUN = ASSETS / 'dreamer-cuda-v2'
+RUN = ASSETS / 'dreamer-cuda-v3'
 OVERLAY = RUN / 'packages'
 PYTHON = ASSETS / 'dreamer-env-v1/bin/python'
 SOURCES = ['ops/spatial_history/r4_dreamer_cuda_v1.py',
@@ -137,7 +137,8 @@ def main():
     try:
         if step == 'install':
             args = [str(PYTHON), '-m', 'pip', 'install', '--no-deps', '--no-cache-dir',
-                    '--index-url', 'https://pypi.org/simple', '--timeout', '120', '--retries', '5',
+                    '--index-url', 'http://mirrors.aliyun.com/pypi/simple',
+                    '--trusted-host', 'mirrors.aliyun.com', '--timeout', '120', '--retries', '5',
                     '--target', str(OVERLAY), '--report', str(stage / 'pip_report.json'),
                     'jax-cuda12-plugin==0.4.33', 'jax-cuda12-pjrt==0.4.33']
         else:

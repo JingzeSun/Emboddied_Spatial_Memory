@@ -1220,3 +1220,8 @@
 
 - 日期：2026-09-13。`dreamer-cuda-v1/install`从服务器默认阿里镜像下载首个14.9MB wheel时连接代理超时，pip退出2；只写started/run.log/failure，overlay未形成成功回执，原CPU环境、项目源码和数据未改。该失败不是CUDA兼容性或模型失败证据。
 - 修订只将新stage固定为`/root/sh05-assets-v1/dreamer-cuda-v2`，显式使用官方PyPI simple索引、单请求120秒及最多5次网络重试；包名/版本、无依赖安装、1GiB/1800秒、科学检查和全部输入输出保持D-098。原v1目录不删除、不覆盖、不再次运行；v2成功后仍须按安装文件摘要与gpu强制检查验收。
+
+## D-101：学术加速实测后改用长超时镜像下载
+
+- 用户提醒启用`source /etc/network_turbo`；主SSH会话在v2开始前已执行，进程环境核得http/https代理存在。v2官方PyPI下载持续约4分钟仅得约3MB，仍在前进但不足以高效完成，主动中断；脚本保存`dreamer-cuda-v2/install/failure.json`，未产生成功回执或改CPU环境。
+- v3精确目录为`/root/sh05-assets-v1/dreamer-cuda-v3`，仍在已启用加速的同一会话，改回实测吞吐更高的阿里镜像，并保留120秒请求超时与5次重试。包版本、无依赖、文件摘要、科学检查和资源边界均不变。v1/v2失败目录保留；网络策略不是科学方法变化。
