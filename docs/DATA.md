@@ -759,3 +759,16 @@ D-111的`spatial-history-r4-pessimistic-map-v1`不再是正式输入schema。新
 私有`private_evaluation.json.gz`每项保存v1/v2坐标验收、v2证据计数、原v1通过项的候选几何逐值保持结果，以及每个候选B的`candidate_index / support_index / boundary_kind / pixel / geom_name / registered_gate_wall / actual_depth_m / plane_far_depth_m / strict_farther_required_depth_m / derived_world_height_m`。白话：公开输出先回答v2看到了什么，私有表随后才回答B实际打中了哪一个geom；例如`registered_gate_wall=true`只用于审计这次恢复是否正确，不能回流改变公开候选。
 
 `summary.json`固定报告v1通过/失败、v2通过、严格回归保持、v1失败由B恢复、B像素数量/边类型/geom名称、是否全为登记门墙及物块/推头命中数。通过要求预先固定为v1 `262/2`、v2 `264/264`、其余262项几何逐值相同、两项失败均含B且通过、所有B为对应门墙、身体命中0；这些数来自D-116封存事实和D-117目标，不在新运行后改写。
+
+### E0-v2封存开发评价字段（D-120）
+
+- `source_public_census`：50个固定家族各自的公开manifest及四份公开历史摘要；只用于证明评价读取的是停止前封存字节。输入不含XML、snapshot、segmentation、family result或标签。
+- `family_id / split / world / mode / source_frame_indices`：逐项身份；四模式固定为121帧完整历史、登记近门帧、登记远门帧和119–120近期帧。它们是评价索引，不送入E0特征。
+- `v1_prediction / v2_prediction`：同一公开观测字节的两个版本输出。先将800项全部写入`public/*.json.gz`并由`public_seal.json`绑定，之后才能产生私有评价。
+- `v1_prediction_reproduced`：本次v1输出是否与原家族`audit/geometry`封存预测逐值相同；它检查输入/实现漂移，不评价v2好坏。
+- `v1_assessment / v2_assessment`：封存后使用同一XML目标和原25 mm上限得到的逐项判卷；目标、匹配和误差只在私有输出中出现。
+- `v2_boundary_support`：每个B的候选/支持编号、局部与原历史帧号、像素、边界类型、平面高度区间及私有`geom_name`。`registered_gate_wall=true`只表示事后分割命中四个登记门墙之一，不把该像素写成自由。
+- `source_status`区分`released_existing / verified_generation / e0_only_accepted_unverified / e0_only_v1_rejected`。特别地，`r4-22`报告只能支持E0评价，不能被训练reader接纳。
+- 汇总报告同时保存800项计数、v1失败项身份、B像素种类/geom计数、最大坐标区间宽及私有边界帧重渲染数。`claims.e0_v2_frontend_upgrade_authorized=false`明确通过报告仍不是协议升级授权。
+
+白话：这些字段让人能追到“哪一个封存历史、哪种查看方式、哪个像素改变了判定”。例如某个B若命中`object`，报告会使全阶段失败，而不是把它解释成门洞自由。它不保存新的训练样本、模型输出或确认集结果。

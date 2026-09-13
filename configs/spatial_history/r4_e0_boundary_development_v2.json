@@ -1,0 +1,78 @@
+{
+  "version": "sh05-r4-e0-boundary-development-v2",
+  "decision": "D-120",
+  "status": "authorized_fixed_sealed_development_audit",
+  "development_audit_authorized": true,
+  "e0_frontend_upgrade_authorized": false,
+  "dual_m_authorized": false,
+  "data_completion_authorized": false,
+  "training_authorized": false,
+  "confirmation_authorized": false,
+  "design": "configs/spatial_history/r4_family_design_v2.json",
+  "generation_config": "configs/spatial_history/r4_development_generation_v2.json",
+  "e0_v1": "configs/spatial_history/public_geometry_parallel_v1.json",
+  "e0_v2": "configs/spatial_history/public_geometry_boundary_v2.json",
+  "source_stages": {
+    "released_existing": "/root/autodl-tmp/spatial-history/sh04-r4-engineering-subset-v2/execution",
+    "stopped_generation": "/root/autodl-tmp/spatial-history/sh05-r4-development-generation-v2/execution"
+  },
+  "released_existing_family_ids": ["r4-39", "r4-47", "r4-25", "r4-03"],
+  "verified_generation_family_ids": [
+    "r4-11", "r4-31", "r4-35", "r4-53", "r4-26", "r4-40", "r4-30", "r4-00",
+    "r4-21", "r4-28", "r4-24", "r4-07", "r4-15", "r4-12", "r4-04", "r4-59",
+    "r4-16", "r4-57", "r4-54", "r4-63", "r4-45", "r4-51", "r4-27", "r4-17",
+    "r4-08", "r4-10", "r4-42", "r4-49", "r4-52", "r4-43", "r4-18", "r4-60",
+    "r4-01", "r4-29", "r4-02", "r4-13", "r4-46", "r4-09", "r4-37", "r4-20",
+    "r4-38", "r4-05", "r4-14", "r4-61"
+  ],
+  "e0_only_family_status": {
+    "r4-22": "family_accepted_but_terminal_verify_cancelled",
+    "r4-36": "family_rejected_only_by_e0_v1"
+  },
+  "excluded_unsealed_family_ids": ["r4-23", "r4-58"],
+  "expected_family_count": 50,
+  "expected_split_counts": {
+    "model_train": 32,
+    "model_validation": 8,
+    "probe_train": 8,
+    "probe_validation": 2
+  },
+  "worlds": ["LL", "LR", "RL", "RR"],
+  "modes": {
+    "full": "all_121_frames",
+    "view_a": "registered_near_gate_frame",
+    "view_b": "registered_far_gate_frame",
+    "recent": "frames_119_and_120"
+  },
+  "acceptance": {
+    "expected_case_count": 800,
+    "expected_v1_accepted_cases": 796,
+    "expected_v1_failed_cases": 4,
+    "all_v1_predictions_reproduce_sealed_outputs": true,
+    "all_v2_cases_accepted": true,
+    "all_v1_accepted_cases_remain_accepted": true,
+    "all_v1_failed_cases_resolved_by_boundary_support": true,
+    "all_no_boundary_v1_success_geometry_exactly_preserved": true,
+    "all_boundary_pixels_registered_gate_walls": true,
+    "boundary_pixel_body_hits": 0,
+    "maximum_coordinate_interval_width_m": 0.025,
+    "private_truth_only_after_public_seal": true
+  },
+  "run_directory": "/root/autodl-tmp/spatial-history/sh05-r4-e0-boundary-development-v2",
+  "environment": "/root/autodl-tmp/spatial-history-venv-v1",
+  "required_environment": {
+    "MUJOCO_GL": "egl",
+    "PYOPENGL_PLATFORM": "egl"
+  },
+  "report": "results/spatial_history_r4_e0_boundary_development_v2.json",
+  "limits": {
+    "check_wall_s": 600,
+    "run_wall_s": 3600,
+    "process_as_bytes": 6442450944,
+    "stage_bytes": 536870912,
+    "report_bytes": 134217728,
+    "physics_steps": 0,
+    "training_steps": 0,
+    "weight_download_bytes": 0
+  }
+}
