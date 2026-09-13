@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| VSMT首篇/VM-01～04 | VSMT已快进合并main；首轮31/36失败保留，修复版服务器37/37通过并导回绑定报告。VM-04已交不可执行数据协议v1：建议ProcTHOR＋AI2-THOR、同源L1/L2、2/48/12/12家族、32帧、九程序各2重复、双轨旧记忆与关系感知SPLIT；关键资产摘要、阈值和语义仍为null。0生成/0训练/0新private读取。LOG-133/134，D-125–127 |
+| VSMT首篇/VM-01～04 | VSMT已合并main；首轮31/36失败与修复37/37报告保留。VM-04不可执行协议下，关系感知SPLIT、公开因果prior、标签独立清单/闸门已分三提交完成本地静态检查；52项服务器测试和只读来源审计入口已备，尚未运行。服务器关机前手工审计见LOG-135，无正式回执；0安装/下载/生成/训练/新private/confirmation读取。LOG-133–135，D-125–131 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
 | R4三模型接入 | D完整适配16项通过（121/200全反向，0更新），W完整适配17项亦通过，F完整适配19项通过；真实公共接口27/27候选通过，0优化/真值读取。209bb34，LOG-123–127 |
 | R4前端v2r1 | 81bceed：19项通过，16历史/144名义预测/16选择完整，误标占据/自由0；物块平均误差9.59 cm、接触Brier 0.1152，全部涉及未知扫掠，正式M/P未就绪。LOG-121 |
@@ -1592,3 +1592,10 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 五个错误归为两个实现原因：安全键扫描把executor合法的`composition_label=REPLACE`误判为私有label；SPLIT候选关闭了仍有开放边的`entity-a`，导致图端点不变量失败。前者须只对白名单机制键做窄例外；后者在尚未实现公开关系重分配前不得对带开放incident edge的节点提出SPLIT。白话：输入合法公开图和候选，输出本应是可执行目录；例如一个节点仍连着`located_at`边时，不能只关闭节点却让边悬空。它不说明SPLIT语义本身错误，也不允许为通过测试跳过真实执行。
 - 修复新增相应回归并把固定计数更新为37；必须形成新提交、新服务器目录和新回执，旧失败不覆盖。阈值、数据、训练和confirmation仍为0/未授权。
 - 修复提交`fd25c6b`、文档提交`351395a`同步后在新目录`/root/autodl-tmp/vsmt_outputs/vsmt-vm01-vm03-contract-check-v1-351395ad8836`运行37/37通过，墙钟0.629秒。导出[vsmt_vm01_vm03_contract_check.json](results/vsmt_vm01_vm03_contract_check.json)，1473 bytes、SHA-256=`1ac51560cbc3201706080fb77be61f9dfe1d7189b2af86ab2238185a2a8ce47d7`；报告绑定`351395ad8836754f829d8b051f5448e7933f8f86`，`generation_performed=false`、`training_steps=0`、`private_data_opened=false`。这证明当前合同/适配器/候选工程分支通过，不证明方法效果或新数据无泄漏；因果prior回执仍是VM-04前置项。
+
+## LOG-135：VM-04本地代码候选与关机前只读来源审计（2026-09-14）
+
+- `b5b26b4`把SPLIT改为关系感知原子事务：开放边数≤2时逐边枚举后继0/后继1/二者，关闭源节点和旧边后保留关系类型、方向、另一端点并重建；漏分/重复/夹带边原子拒绝。“均不继承”只留executor合同，公开负证据口径冻结前不生成。`9b37be0`实现只接公开packet的BIRTH/BIND因果prior及逐步回执；`2a44a80`实现2/48/12/12 family分组、标签独立episode ID、私有平衡映射和执行闸门。三项只有AST/JSON/diff静态通过，服务器测试pending，不是效果证据。
+- 用户关机前的手工只读核查显示：仓库实际路径`/root/Emboddied_Spatial_Memory`且当时同步到`a430c47`；GPU为RTX 4080 SUPER 32760 MiB、空闲约32230 MiB，根盘/`/root/autodl-tmp`约27/33 GB可用；基础Python 3.12.3、pip 24.0、Torch 2.8.0+cu128且CUDA可用，AI2-THOR/ProcTHOR/SAM2均未安装，`libvulkan`未解析而EGL/GL存在。这些是终端观察，无标准receipt且早于上述三个新提交，不能认证它们。
+- 可复用DINOv2仓库为commit`7764ea0f912e53c92e82eb78a2a1631e92725fc8`，ViT-S/14权重SHA-256=`b938bf1bc15cd2ec0feacfe3a1bb553fe8ea9ca46a7e1d8d00217f29aef60cd9`。候选官方ref为AI2-THOR 5.0.0 `f0825767cd50d69f666c7f282e54abfe58f1e917`、ProcTHOR-10K 0.1.0 `10746a749edfb819ba83dc1bdd3ab6f905567183`及0.1.2 `d54954a81e7126001e552c2d7904ee2e0d49eaae`、ProcTHOR代码`53d5bd4c8c96a699e6a615dc390abb670cc9d353`、SAM2`2b90b9f5ceec907a1c18123530e92e794ad901a4`；SAM2.1 Hiera-small官方文件HEAD为184,416,285 bytes。精确包/许可证/运行构建仍待固定入口复核。
+- 兼容性风险：ProcTHOR包元数据只列Python 3.6–3.9，SAM2要求Python≥3.10且Torch≥2.5.1；因此未选择不兼容的Python 3.9，也未改基础3.12。后续只读preflight先跑52项合同和来源摘要；通过后再单独审Python 3.10/3.11隔离环境、CloudRendering的`libvulkan1`与ProcTHOR LFS数据取得方式。当前0安装、0模型/数据下载、0模拟、0生成、0训练、0private/confirmation读取。

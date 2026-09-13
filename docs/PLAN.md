@@ -16,7 +16,7 @@
 | VM-01 公私数据与共同适配合同（代码候选） | D-122草案；固定结构类型、公开 proposal/descriptor、五通道文件和反作弊 gate | schema、正负例、private mutation invariance、无 private 推理及 candidate-before-teacher 测试；补齐公开自由空间和逐候选在线证据，待合并服务器测试 |
 | VM-02 三种论文机制与朴素基线（代码候选） | 共同接口；TAF、ELU、WFR、LOW 只消费相同 `ObservationPacket` | clean-room 适配器、显式无默认值配置、版本化共同输出包装及人工分支测试；未冻结阈值，不称官方复现或效果结果 |
 | VM-03 VSMT 无泄漏候选与 teacher（代码候选） | VM-01接口；复用 executor/八原子语义，删除参考派生 query | public-only 九类程序、逐一真实执行、公开摘要排序、online evidence封存及封存后teacher；待同批服务器测试 |
-| VM-04 新数据数值冻结与开发生成（v1提案已交） | [不可执行提案](../configs/vsmt/vm04_data_protocol_proposal_v1.json)；审查 ProcTHOR＋AI2-THOR、2/48/12/12家族、32帧、九程序各2重复、SAM2.1＋DINOv2、双轨 prior 和关系感知 SPLIT | 先补齐并批准所有 null 来源/前端/语义/阈值/预算，再实现 source audit、public-only prior 回执和2家族 audit；同一序列产出 L1/L2，失败不换样本，未达输入门不生成正式 train/validation或训练 |
+| VM-04 新数据数值冻结与开发生成（v1提案已交） | [不可执行提案](../configs/vsmt/vm04_data_protocol_proposal_v1.json)；审查 ProcTHOR＋AI2-THOR、2/48/12/12家族、32帧、九程序各2重复、SAM2.1＋DINOv2、双轨 prior 和关系感知 SPLIT | 关系SPLIT、public-only prior、标签独立清单/闸门及只读source audit入口已实现为代码候选；服务器重开后同一提交依次测试、审计、导出，之后才审隔离环境和2家族audit。所有null阈值/语义未冻结前不生成正式train/validation或训练 |
 | VM-05 公平训练与 validation | 数据验收；冻结各方法阈值、学习预算、停止规则、共同/完整任务指标 | VSMT/TAF/ELU/WFR/LOW 在 L2 完全同前端输入主评；L1只作机制上界，旧 A/C/E 只作内部消融；确认前锁定全部选择 |
 | VM-06 独立确认与论文证据 | 模型、前端、候选、评分和最小效果门冻结后另行授权 | 未见家族 confirmation、必要现实来源、逐类/共享能力/成本/失败报告；不能按 validation 结果改样本或门 |
 

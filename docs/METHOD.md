@@ -135,6 +135,8 @@ VM-04 v1拟把单步机制比较和长期自反馈分开。`controlled_revision`
 
 `VM04ProtocolGate`（VM-04协议执行闸门）和标签独立清单现为本地代码候选。闸门输入完整协议及拟执行动作，只有状态为`frozen_executable`、数值/实现/对应动作授权均为真、所有来源/前端/语义/泄漏字段非空且待审清单为空时才放行；当前提案对下载、生成、confirmation和训练全部拒绝。family清单按来源manifest摘要、split seed和house ID确定排序，整house不跨split；公开episode ID只由协议、family和槽位生成，事务分配另用只存于私有编排清单的salt打乱。例如更换私有salt会改变每个槽对应的MERGE/BIRTH，却不能改变任何公开episode ID。它解决路径或候选编号暗示答案的问题，不等于nuisance probe已经通过，也不生成一帧图像；confirmation episode计划在对应授权前也拒绝创建。
 
+`VM04Preflight`（VM-04服务器预检）是已准备但尚未运行的固定三步入口：`contracts`在受审提交上精确运行52项VSMT测试，`source-audit`只查询官方ref/元数据、现有DINO资产、模块/库/GPU/磁盘，`export`只在前两步有摘要绑定成功标志时生成小报告。输入是同一Git提交和只读审计配置，输出started、日志、receipt、success及`results/vsmt_vm04_preflight.json`；例如网络失败保留attempt-01，修好网络后可在同一提交写attempt-02而不覆盖。它不执行pip/conda安装、不下载checkpoint主体、不启动AI2-THOR、不生成样本或训练。
+
 关系感知 SPLIT 已按用户批准形成待服务器验证的代码候选：一次原子操作完成“关闭源节点、关闭所有源 incident edges、创建两个后继、按候选 assignment 重建边”。每条旧边可给后继0、后继1或二者；合同也允许在至少两份已登记公开负证据下均不继承，但当前生成器尚不提出这一分支，避免在关系负证据口径冻结前暗定语义。第一批源节点开放边数上限为2，超过上限或含源节点自环时不生成 SPLIT，并计入候选覆盖分析。输入一个待拆节点、两个公开区域和开放边，输出完整合法的 SPLIT 后状态；例如一个错误聚合的双椅节点拆开后，两者都可 `located_at` 同一地点，而只有一者继承某个局部 `adjacent_to`。它不是 SPLIT 后再让 teacher 补边，也不是默认复制全部关系；静态检查或 executor 可执行也不表示关系分配在语义上正确。
 
 VM-05拟增加三个同架构内部对照，但不改变五个主臂。Direct Reference Candidate Ranker（DRCR，直接参考候选排序器）使用同一在线网络和已封存 catalog，训练标签直接来自参考等价组，不使用执行后未来 teacher；No-Execution Candidate Scorer（NECS，无执行候选评分器）使用同一 catalog 和 teacher target，但不编码候选执行后的图；Public Heuristic Ranker（PHR，公开启发式排序器）完全不学习，只按冻结公开相似度排序。三者输入边界与 VSMT 相同，输出候选槽位。例如 NECS 若已经解释全部收益，说明“执行候选后再比较”没有获得独立支持。它们是 VSMT 因果消融，不是 ConceptGraphs/Fusion++/Khronos 的替代，也不自动获得主方法地位。

@@ -1,0 +1,106 @@
+{
+  "version": "vsmt-vm04-source-audit-v1",
+  "status": "executable_read_only",
+  "decision": "D-131",
+  "source_audit_authorized": true,
+  "asset_download_authorized": false,
+  "dependency_install_authorized": false,
+  "generation_authorized": false,
+  "training_authorized": false,
+  "confirmation_authorized": false,
+  "limits": {
+    "wall_clock_seconds": 1800,
+    "network_response_bytes_per_request": 2097152,
+    "report_bytes": 67108864
+  },
+  "expected_contract_tests": 52,
+  "remote_git_refs": [
+    {
+      "name": "ai2thor_5_0_0",
+      "repository": "https://github.com/allenai/ai2thor.git",
+      "ref": "refs/tags/5.0.0^{}",
+      "expected_commit": "f0825767cd50d69f666c7f282e54abfe58f1e917"
+    },
+    {
+      "name": "procthor_10k_0_1_0",
+      "repository": "https://github.com/allenai/procthor-10k.git",
+      "ref": "refs/tags/0.1.0",
+      "expected_commit": "10746a749edfb819ba83dc1bdd3ab6f905567183"
+    },
+    {
+      "name": "procthor_10k_0_1_2",
+      "repository": "https://github.com/allenai/procthor-10k.git",
+      "ref": "refs/tags/0.1.2",
+      "expected_commit": "d54954a81e7126001e552c2d7904ee2e0d49eaae"
+    }
+  ],
+  "remote_commit_urls": [
+    {
+      "name": "sam2_reviewed_commit",
+      "url": "https://api.github.com/repos/facebookresearch/sam2/commits/2b90b9f5ceec907a1c18123530e92e794ad901a4",
+      "expected_commit": "2b90b9f5ceec907a1c18123530e92e794ad901a4"
+    },
+    {
+      "name": "procthor_code_reviewed_commit",
+      "url": "https://api.github.com/repos/allenai/procthor/commits/53d5bd4c8c96a699e6a615dc390abb670cc9d353",
+      "expected_commit": "53d5bd4c8c96a699e6a615dc390abb670cc9d353"
+    }
+  ],
+  "pypi_releases": [
+    {"project": "ai2thor", "version": "5.0.0"},
+    {"project": "procthor", "version": "0.0.1"}
+  ],
+  "http_assets": [
+    {
+      "name": "sam2_1_hiera_small",
+      "url": "https://dl.fbaipublicfiles.com/segment_anything_2/092824/sam2.1_hiera_small.pt",
+      "expected_content_length": 184416285,
+      "download": false
+    }
+  ],
+  "known_local_assets": [
+    {
+      "name": "dinov2_repository",
+      "path": "/root/sh05-assets-v1/dinov2",
+      "kind": "git_repository",
+      "expected_commit": "7764ea0f912e53c92e82eb78a2a1631e92725fc8"
+    },
+    {
+      "name": "dinov2_vits14_checkpoint",
+      "path": "/root/sh05-assets-v1/dinowm-native-v1/download/dinov2_vits14_pretrain.pth",
+      "kind": "file",
+      "expected_sha256": "b938bf1bc15cd2ec0feacfe3a1bb553fe8ea9ca46a7e1d8d00217f29aef60cd9"
+    }
+  ],
+  "python_modules_to_probe_without_install": [
+    "torch",
+    "torchvision",
+    "ai2thor",
+    "procthor",
+    "sam2"
+  ],
+  "system_libraries_to_probe": [
+    "EGL",
+    "GL",
+    "vulkan"
+  ],
+  "candidate_environment": {
+    "status": "requires_compatibility_resolution_not_installed",
+    "python": null,
+    "candidate_python_versions": ["3.10", "3.11"],
+    "reason": "ProcTHOR published classifiers stop at Python 3.9 while SAM2 requires Python at least 3.10, so a Python 3.10 or 3.11 isolated compatibility check is required rather than choosing an incompatible 3.9 environment or mutating the server base Python",
+    "allowed_install_root": "/root/autodl-tmp/vsmt-envs",
+    "allowed_asset_root": "/root/autodl-tmp/vsmt-assets",
+    "cloud_rendering_requires_libvulkan": true
+  },
+  "success_policy": {
+    "contract_tests_exact": true,
+    "remote_refs_match": true,
+    "remote_commits_exist": true,
+    "pypi_versions_exist": true,
+    "http_content_lengths_match": true,
+    "known_local_assets_match": true,
+    "missing_uninstalled_modules_are_recorded_not_failed": true,
+    "no_install_download_generation_training_or_confirmation": true
+  }
+}

@@ -24,6 +24,7 @@ from vsmt.vm04_protocol import (  # noqa: E402
 
 
 CONFIG_PATH = PROJECT_ROOT / "configs" / "vsmt" / "vm04_data_protocol_proposal_v1.json"
+SOURCE_AUDIT_PATH = PROJECT_ROOT / "configs" / "vsmt" / "vm04_source_audit_v1.json"
 
 
 def protocol() -> dict:
@@ -31,6 +32,22 @@ def protocol() -> dict:
 
 
 class VM04ProtocolTests(unittest.TestCase):
+    def test_source_audit_is_read_only_and_does_not_choose_an_environment(self) -> None:
+        audit = json.loads(SOURCE_AUDIT_PATH.read_text(encoding="utf-8"))
+        self.assertEqual(audit["status"], "executable_read_only")
+        self.assertTrue(audit["source_audit_authorized"])
+        for flag in (
+            "asset_download_authorized", "dependency_install_authorized",
+            "generation_authorized", "training_authorized",
+            "confirmation_authorized",
+        ):
+            self.assertFalse(audit[flag])
+        self.assertIsNone(audit["candidate_environment"]["python"])
+        self.assertEqual(
+            audit["candidate_environment"]["candidate_python_versions"],
+            ["3.10", "3.11"],
+        )
+
     def test_proposal_arithmetic_and_eight_atoms_are_consistent(self) -> None:
         record = validate_vm04_protocol(protocol())
         self.assertEqual(record["experimental_unit"]["programs_per_family"], 9)
