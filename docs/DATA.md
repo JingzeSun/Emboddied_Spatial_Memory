@@ -736,3 +736,18 @@ D-111的`spatial-history-r4-pessimistic-map-v1`不再是正式输入schema。新
 `summary.json`按世界与门报告零相位原结果、通过的相位分子、结果是否随纯x干预改变及零相位阻挡geom计数；`conclusion`分别给出`body_occlusion_supported`、`registered_gate_surface_blocker_supported`和`pixel_phase_causal_attribution_supported`。这些布尔量只对固定`r4-36`干预成立，不是新轨迹的家族级通过门。阶段回执固定264次重渲染、0物理步、0训练、0确认读取和`data_protocol_selected=false`。
 
 白话：输入原失败目录及诊断代码，输出可核摘要的小报告。例如33个位置中32个通过只能说明该快照的失败由像素相位控制，不能据此挑其中一个位置重建全部数据。这不是数据筛选表、模型分数或E0新阈值。
+
+### E0-v2边界兼容字段（D-117，implemented，review pending）
+
+`public-openings-v2`保持E0-v1的`candidates / conflicts / incomplete_observations / rejected_counts / history_frames`并新增`evidence_counts`。候选仍输出左内边x、右内边x和前缘y三个坐标区间；它不输出门编号、附近/远处角色、自由格或物块通行结论。
+
+| 字段 | 含义 | 权限与后续 |
+|---|---|---|
+| `support[].pixel_pair` | `[墙顶面像素, 严格更远像素]`；v2两端不要求相邻 | 两端及完整半像素足迹生成保守边界区间；不把端点中点称为真值 |
+| `support[].boundary_compatible_pixels` | 位于上述两端之间、有效且深度严格越过墙顶区间但未达到原0.2 mm分离量的连续B像素 | 只扩大`raw_interval_m`对应的可能墙位置；空列表表示原相邻严格转换，非空不产生自由证书 |
+| `support[].transition_kind` | `adjacent_strict_farther`或`boundary_compatible_band` | 明示候选是否依赖边界带；不是私有geom类别，也不声称B一定是竖直墙面 |
+| `evidence_counts` | `strict_farther_gap_pixels / boundary_compatible_gap_pixels / strict_farther_front_witnesses / boundary_compatible_front_pixels` | 统计本次公开提取实际消费的两类证据；不用于挑样本、门或相机相位 |
+| `incomplete_observations[].reason` | 新增`gap_without_strict_farther`与`gap_contains_nonboundary_or_interior_ambiguity`，并保留无效深度、二维支持、前缘和区间冲突原因 | 全B、中央B、较近遮挡均不会生成门候选；允许其他完整帧独立提供候选 |
+| `rejected_counts` | v2分别累计`invalid_gap_pairs / nonboundary_gap_pairs / gap_without_strict_farther_pairs`及原二维/前缘/冲突类计数 | 这是失败溯源，不是自动删样本或把该区域填成墙/自由 |
+
+白话：输入一行公开深度，输出“哪些像素严格看到墙后、哪些只与墙边兼容”和由此得到的墙边区间。例如右墙前有一个B时，`pixel_pair`跨过它连到最近F，右边界区间变宽，但输出中没有任何`free=true`。它不等于用私有分割认出`gate_0_right`，也不保证整个门洞地面已经认证自由。

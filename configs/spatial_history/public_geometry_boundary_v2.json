@@ -1,0 +1,62 @@
+{
+  "version": "sh05-r4-e0-boundary-v2-review-v1",
+  "status": "implemented_review_pending_not_executable",
+  "decision": "D-117",
+  "numeric_protocol_approved": true,
+  "development_evaluation_authorized": false,
+  "dual_m_authorized": false,
+  "training_authorized": false,
+  "confirmation_authorized": false,
+  "public_sensor_spec": {
+    "depth_kind": "camera_axis_z_m",
+    "pixel_centers": "integer_u_v_with_public_intrinsics",
+    "near_depth_m": 0.04,
+    "far_depth_m": 20.0,
+    "clip_margin_m": 0.0001,
+    "camera_to_world_rotation": [[1, 0, 0], [0, -1, 0], [0, 0, -1]],
+    "rotation_entry_tolerance": 0.000001,
+    "source_policy": "shared_rig_only_near_and_far_from_pinned_reference_not_per_world_xml"
+  },
+  "extractor": {
+    "input": "validated_history_frames_only",
+    "used_fields": ["depth_m", "width", "height", "camera_position_m", "camera_xyzw", "intrinsics"],
+    "assumptions": ["static_observed_horizontal_surfaces", "axis_aligned_rectangular_boundaries", "calibrated_canonical_top_down_camera"],
+    "plane_tolerance_m": 0.0001,
+    "maximum_cluster_height_span_m": 0.0002,
+    "minimum_each_side_run_pixels": 2,
+    "minimum_consecutive_support_rows": 2,
+    "minimum_each_side_front_witness_columns": 2,
+    "minimum_farther_depth_separation_m": 0.0002,
+    "gap_rule": "contiguous_edge_boundary_bands_and_nonempty_strict_farther_interior",
+    "pixel_footprint_half_width": 0.5,
+    "coordinate_guard_m": 0.000001,
+    "height_clustering": "sorted_greedy_complete_span",
+    "boundary_rule": "surface_to_strict_farther_footprints_span_boundary_compatible_band",
+    "boundary_compatible_rule": "valid_depth_beyond_plane_interval_but_short_of_unchanged_farther_separation",
+    "fusion": "overlap_graph_then_common_interval_intersection_conflicts_preserved",
+    "candidate_count": "unbounded_by_task_gate_count",
+    "missing_boundary": "unknown_not_completed",
+    "unobserved_space": "unknown_not_free",
+    "boundary_compatible_pixels_certify_free": false,
+    "rgb_used": false,
+    "controls_or_goal_used": false,
+    "private_labels_or_layout_used": false
+  },
+  "fixed_semantics": {
+    "strict_farther_threshold_changed": false,
+    "accepted_gap_language": "boundary_compatible_star_then_strict_farther_plus_then_boundary_compatible_star",
+    "boundary_band_use": "widens_wall_coordinate_interval_only",
+    "boundary_band_free_space_use": "forbidden",
+    "resolved_narrow_clearance": "continue_to_pessimistic_dynamics_and_score",
+    "unresolved_or_conflicting_geometry": "hard_stop_before_dynamics",
+    "private_audit_timing": "only_after_all_public_predictions_are_sealed"
+  },
+  "review_scope": {
+    "independent_analytic_fixtures": true,
+    "r4_36_phase_sweep": "planned_after_code_review",
+    "all_development_validation_families": "planned_after_phase_and_fixture_acceptance",
+    "data_rebuild": false,
+    "model_training": false,
+    "confirmation_read": false
+  }
+}
