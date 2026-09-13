@@ -4,7 +4,7 @@
 
 ## 当前目标与授权（D-122）
 
-第一篇改为比较 Versioned Structural Memory Transactions（VSMT，版本化结构记忆事务）、三类论文机制适配和一个朴素基线。旧 S5 A 对 C/E no-go、旧 test 封存和全部复现路径不改写。当前只授权独立分支上的文献/代码泄漏审计与 METHOD/DATA/PLAN 草案；新数据必须重新生成，但生成数值、split、预算、训练和 confirmation 尚未授权。
+第一篇改为比较 Versioned Structural Memory Transactions（VSMT，版本化结构记忆事务）、三类论文机制适配和一个朴素基线。旧 S5 A 对 C/E no-go、旧 test 封存和全部复现路径不改写。VM-00 文献/代码泄漏审计已交付并获准继续；当前只实现 VM-01 公私边界、共同适配接口和反作弊测试。新数据必须重新生成，但生成数值、split、预算、训练和 confirmation 尚未授权。
 
 白话：当前阶段解决“到底比较哪些记忆更新机制，以及怎样保证没有 teacher 偷给答案”的问题。输入是旧 executor/八事务、旧失败记录和论文机制，输出可审的方法、数据、对照与反作弊合同。例如先证明 MERGE pair 只由当前区域和旧记忆产生，再允许写候选生成器。它不是生成数据、训练模型或宣布新方法有效。
 
@@ -12,8 +12,8 @@
 
 | 步骤 ID | 输入与工作 | 输出与继续条件 |
 |---|---|---|
-| VM-00 来源与泄漏审计（当前） | 旧 M1 generator/online/teacher 数据流，同行评审论文与官方许可证 | 明确 `merge_queries` 等风险、可独立实现的机制和非官方复现边界；用户审草案后才进入 VM-01 |
-| VM-01 公私数据与共同适配合同 | D-122草案；固定结构类型、公开 proposal/descriptor、五通道文件和反作弊 gate | schema、正负例、private mutation invariance、无 private 推理及 candidate-before-teacher 测试；可读单职责提交，尚不生成正式数据 |
+| VM-00 来源与泄漏审计（已完成） | 旧 M1 generator/online/teacher 数据流，同行评审论文与官方许可证 | 已明确 `merge_queries` 等风险、可独立实现的机制和非官方复现边界；提交 e460fc8 |
+| VM-01 公私数据与共同适配合同（当前） | D-122草案；固定结构类型、公开 proposal/descriptor、五通道文件和反作弊 gate | schema、正负例、private mutation invariance、无 private 推理及 candidate-before-teacher 测试；当前代码候选待用户审查和服务器测试，尚不生成正式数据 |
 | VM-02 三种论文机制与朴素基线 | 已审共同接口；TAF、ELU、WFR、LOW 只消费相同 `ObservationPacket` | 独立 clean-room 适配器、论文/差异/许可证登记、手算输入输出和共享能力测试；不以接口通过声称复现论文结果 |
 | VM-03 VSMT 无泄漏候选与 teacher | VM-01审过；复用 executor/八原子语义，删除参考派生 query | public-only 候选、封存 digest、candidate miss、teacher-only 标签及三类错误归因；旧 S5 数据不可复用 |
 | VM-04 新数据数值冻结与开发生成 | VM-01–03代码审过；另行固定场景、图类型、八类比例、轨迹、split、存储和计算预算 | 先小规模工程批次再完整 train/validation；真值 mask 仅 private，失败不换样本；未达输入门不训练 |
@@ -22,7 +22,7 @@
 
 ### 当前指针
 
-**停在 VM-00：已建立 `codex/m1-structural-memory-revision`，正在交付文献机制、clean-room 边界和旧 `merge_queries` 泄漏审计草案。** 下一步是用户审查本批文档；未批准 VM-01 科学代码、任何新数据生成、下载、训练或 confirmation。原 D-062 工作区和当前未提交文档不移动、不覆盖。
+**停在 VM-01：公私合同、共同适配接口、候选先于 teacher 封存和私有扰动不变性测试已形成代码候选。** 本批先由用户审查语义外的实现边界，再在服务器运行合同测试；语义等价和指标权重按下方边界案例由用户裁决。VM-02 适配器实现、任何新数据生成、下载、训练或 confirmation 均未批准。原 D-062 工作区和当前未提交文档不移动、不覆盖。
 
 ## 上一 D-062 路线（暂停，以下保留复现）
 

@@ -1,12 +1,12 @@
 # 数据与观测合同
 
-## 当前：VSMT 新数据边界（D-122，proposed，尚未生成）
+## 当前：VSMT 新数据边界（D-122/D-123，VM-01代码候选，尚未生成）
 
 新版数据解决旧合成 query 由参考事务参数派生、无法支撑无泄漏视觉实验的问题。输入源拟为受控具身 RGB-D 序列、公开相机/机器人位姿和已发生动作；输出分成不可互读的 `public`、`candidate`、`teacher`、`private_eval` 与 `provenance` 五类产物。例如一次 MERGE 样本的 `public` 只保存两个当前区域的 RGB-D/匿名特征及 prior memory，`candidate` 由这些公开值枚举可能 pair，真实 pair 只在 `private_eval`。它不复用旧 S5 query/data，也不把人工事务夹具当作视觉或物理结果。
 
 ### 五类产物与读取权限
 
-| 通道 | proposed 内容 | 禁止与用途 |
+| 通道 | 当前合同内容 | 禁止与用途 |
 |---|---|---|
 | `public` | 截至决策时刻的 RGB-D、时间、相机/机器人位姿、已执行动作、冻结 proposal/descriptor 结果、公开传感器状态 | 所有方法唯一在线输入；禁止未来帧、真实未来运动、场景答案名、reference、instance ID、真值 mask |
 | `candidate` | 由 `public + prior predicted memory` 生成的规范事务程序、静态 preflight、顺序、catalog digest 和来源字段 digest | teacher 打开前封存；禁止因正确候选缺失而补槽或重排 |
@@ -18,9 +18,13 @@
 
 ### `ObservationPacket` 与 `MemoryUpdateResult`
 
-`ObservationPacket` 是共同在线输入包，字段使用英文标识，拟只含：`schema_version, sample_id_hash, timestamp, rgbd_refs, camera_pose, robot_state, past_actions, region_observations, prior_memory_ref, public_constants`。`sample_id_hash` 仅用于对齐，必须经 nuisance probe 证明不能编码 family/template/split；`region_observations` 含 mask 来源、DINOv2 匿名描述、公开深度点、几何包围和可靠性，不含永久身份。它解决五个实验臂接收不同信息的问题；输入一帧或一段合法前缀，输出一个严格白名单对象；例如 TAF 和 VSMT 看到完全相同的两个区域向量。它不包含候选正确性或 teacher 标签。
+`ObservationPacket` 是共同在线输入包，VM-01 精确字段为：`schema_version, sample_id_hash, decision_time_s, rgbd_refs, camera_pose, robot_state, past_actions, region_observations, prior_memory_ref, public_constants`。`sample_id_hash`、`rgbd_refs` 和 `prior_memory_ref` 只作外层对齐/摘要绑定，`build_adapter_input` 会删除它们；适配器实际只得到决策时间、相机位姿、机器人状态、已结束动作、匿名区域、已校验 prior memory 和公共常数。`region_observations` 当前只含包内顺序号、mask 摘要、匿名 descriptor、质心、包围尺寸、可靠性和冻结 proposal 来源，不含永久身份或原图路径。它解决五个实验臂接收不同信息的问题；输入一个合法决策前缀及匹配的旧图，输出严格白名单对象；例如 TAF 和 VSMT 看到完全相同的 `region:0000` 向量。它不包含候选正确性、teacher 标签，也不决定以后是否增加共同原始 RGB 张量；若增加须另审 schema，不能借 `rgbd_refs` 自动打开旁边文件。
 
-`MemoryUpdateResult` 是共同预测输出，拟含：`method_id, pre_memory_digest, post_memory, normalized_delta, confidence, runtime, diagnostics`。它解决直接改图方法与事务选择方法难以同一评价的问题；输入任一方法的内部更新结果，输出规范化后的新记忆和变化记录；例如 LOW 覆盖旧节点属性会记录为一条非版本化 BIND-like delta。它不声称原论文使用了本项目的事务术语，规范化只供评价。
+`MemoryUpdateResult` 是共同预测输出，VM-01 精确字段为：`schema_version, method_id, pre_memory_sha256, post_memory, post_memory_sha256, normalized_delta, confidence, runtime_ms, diagnostics`。`normalized_delta` 只记录声明模板以及创建/关闭的节点版本和边版本 ID；当前验证结构合法和摘要绑定，不判定它在语义上应叫 BIND 还是 BIRTH。它解决直接改图方法与事务选择方法难以同一评价的问题；输入任一方法的内部更新结果，输出规范化的新记忆和变化记录；例如 LOW 覆盖旧节点属性可在后续适配规范中映射为 BIND-like delta。它不声称原论文使用了本项目事务术语，也不把结构合法等同语义正确。
+
+`CandidateCatalog`（候选目录）解决 teacher 是否改过选择空间的问题。输入只能是已验证 `ObservationPacket + prior_memory`、公开来源指针和候选程序，输出带逐程序摘要和整体摘要的包内匿名顺序 `candidate:0000...`；例如 MERGE 程序可声明由 `/region_observations` 与 `/nodes` 派生。它不接收 private 参数，也不证明某个候选是正确答案。`TeacherTargets`（教师目标）输入已经封存的目录和等长分数/概率，输出按完全相同 ID 与顺序绑定的标签；例如候选漏掉正确 MERGE 时只能给现有项评分，不能新增 `candidate:0007`。它不是在线输入，也不允许 teacher 排序目录。
+
+`PrivateEvaluation`（私有评价记录）由独立入口加载，当前只绑定参考记忆、候选事务等价组、未来观测摘要、模拟器身份映射和语义案例 ID；实际未来数组的数值字段留到 VM-04 前另行冻结。它解决答案文件怎样与公开样本对齐而不进入模型的问题；例如交换两个模拟器实例名会改变 `private_sha256`，但不得改变公开包或候选。它不构造 proposal/query/candidate，也不是当前已经生成的数据。
 
 ### 新生成内容与结构范围
 

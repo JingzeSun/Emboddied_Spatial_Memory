@@ -1,0 +1,306 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/embodied-memory/vsmt_vm01_contracts.schema.json",
+  "title": "VSMT VM-01 boundary records",
+  "oneOf": [
+    {"$ref": "#/$defs/observation_packet"},
+    {"$ref": "#/$defs/candidate_catalog"},
+    {"$ref": "#/$defs/teacher_targets"},
+    {"$ref": "#/$defs/memory_update_result"},
+    {"$ref": "#/$defs/private_evaluation"},
+    {"$ref": "#/$defs/private_mutation_invariance"}
+  ],
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_.-]{0,127}$"
+    },
+    "finite_number": {
+      "type": "number"
+    },
+    "vector": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/finite_number"}
+    },
+    "observation_packet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version", "sample_id_hash", "decision_time_s", "rgbd_refs",
+        "camera_pose", "robot_state", "past_actions", "region_observations",
+        "prior_memory_ref", "public_constants"
+      ],
+      "properties": {
+        "schema_version": {"const": "vsmt-observation-packet-v1"},
+        "sample_id_hash": {"$ref": "#/$defs/sha256"},
+        "decision_time_s": {"type": "number", "minimum": 0},
+        "rgbd_refs": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["rgb_sha256", "depth_sha256"],
+          "properties": {
+            "rgb_sha256": {"$ref": "#/$defs/sha256"},
+            "depth_sha256": {"$ref": "#/$defs/sha256"}
+          }
+        },
+        "camera_pose": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["position_m", "quaternion_xyzw"],
+          "properties": {
+            "position_m": {
+              "type": "array", "minItems": 3, "maxItems": 3,
+              "items": {"type": "number"}
+            },
+            "quaternion_xyzw": {
+              "type": "array", "minItems": 4, "maxItems": 4,
+              "items": {"type": "number"}
+            }
+          }
+        },
+        "robot_state": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["feature_names", "values"],
+          "properties": {
+            "feature_names": {
+              "type": "array", "uniqueItems": true,
+              "items": {"type": "string", "pattern": "^[a-z][a-z0-9_]{0,63}$"}
+            },
+            "values": {"type": "array", "items": {"type": "number"}}
+          }
+        },
+        "past_actions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["end_time_s", "command"],
+            "properties": {
+              "end_time_s": {"type": "number", "minimum": 0},
+              "command": {"$ref": "#/$defs/vector"}
+            }
+          }
+        },
+        "region_observations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "region_id", "mask_sha256", "descriptor", "centroid_m",
+              "extent_m", "reliability", "proposal_source_id"
+            ],
+            "properties": {
+              "region_id": {"type": "string", "pattern": "^region:[0-9]{4}$"},
+              "mask_sha256": {"$ref": "#/$defs/sha256"},
+              "descriptor": {"$ref": "#/$defs/vector"},
+              "centroid_m": {
+                "type": "array", "minItems": 3, "maxItems": 3,
+                "items": {"type": "number"}
+              },
+              "extent_m": {
+                "type": "array", "minItems": 3, "maxItems": 3,
+                "items": {"type": "number", "minimum": 0}
+              },
+              "reliability": {"type": "number", "minimum": 0, "maximum": 1},
+              "proposal_source_id": {"$ref": "#/$defs/identifier"}
+            }
+          }
+        },
+        "prior_memory_ref": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["graph_version", "graph_sha256"],
+          "properties": {
+            "graph_version": {"type": "string", "minLength": 1},
+            "graph_sha256": {"$ref": "#/$defs/sha256"}
+          }
+        },
+        "public_constants": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "coordinate_frame", "depth_unit", "descriptor_model_id",
+            "proposal_model_id"
+          ],
+          "properties": {
+            "coordinate_frame": {"$ref": "#/$defs/identifier"},
+            "depth_unit": {"$ref": "#/$defs/identifier"},
+            "descriptor_model_id": {"$ref": "#/$defs/identifier"},
+            "proposal_model_id": {"$ref": "#/$defs/identifier"}
+          }
+        }
+      }
+    },
+    "candidate_catalog": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version", "public_sha256", "prior_memory_sha256",
+        "generator_id", "derivations", "candidates", "catalog_sha256"
+      ],
+      "properties": {
+        "schema_version": {"const": "vsmt-candidate-catalog-v1"},
+        "public_sha256": {"$ref": "#/$defs/sha256"},
+        "prior_memory_sha256": {"$ref": "#/$defs/sha256"},
+        "generator_id": {"$ref": "#/$defs/identifier"},
+        "derivations": {
+          "type": "array", "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "public_fields", "prior_memory_fields"],
+            "properties": {
+              "name": {"$ref": "#/$defs/identifier"},
+              "public_fields": {
+                "type": "array", "minItems": 1,
+                "items": {"type": "string", "pattern": "^/"}
+              },
+              "prior_memory_fields": {
+                "type": "array",
+                "items": {"type": "string", "pattern": "^/"}
+              }
+            }
+          }
+        },
+        "candidates": {
+          "type": "array", "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["candidate_id", "program", "program_sha256"],
+            "properties": {
+              "candidate_id": {"type": "string", "pattern": "^candidate:[0-9]{4}$"},
+              "program": {"type": "object"},
+              "program_sha256": {"$ref": "#/$defs/sha256"}
+            }
+          }
+        },
+        "catalog_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "teacher_targets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version", "catalog_sha256", "teacher_id", "targets",
+        "teacher_sha256"
+      ],
+      "properties": {
+        "schema_version": {"const": "vsmt-teacher-targets-v1"},
+        "catalog_sha256": {"$ref": "#/$defs/sha256"},
+        "teacher_id": {"$ref": "#/$defs/identifier"},
+        "targets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["candidate_id", "score", "probability"],
+            "properties": {
+              "candidate_id": {"type": "string", "pattern": "^candidate:[0-9]{4}$"},
+              "score": {"type": "number"},
+              "probability": {"type": "number", "minimum": 0, "maximum": 1}
+            }
+          }
+        },
+        "teacher_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "normalized_delta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "declared_template", "created_node_version_ids", "closed_node_version_ids",
+        "created_edge_version_ids", "closed_edge_version_ids"
+      ],
+      "properties": {
+        "declared_template": {
+          "type": ["string", "null"],
+          "enum": [
+            null, "NOOP", "BIND", "BIRTH", "REACTIVATE", "RELINK",
+            "RETRACT", "SPLIT", "MERGE", "REPLACE"
+          ]
+        },
+        "created_node_version_ids": {"$ref": "#/$defs/unique_ids"},
+        "closed_node_version_ids": {"$ref": "#/$defs/unique_ids"},
+        "created_edge_version_ids": {"$ref": "#/$defs/unique_ids"},
+        "closed_edge_version_ids": {"$ref": "#/$defs/unique_ids"}
+      }
+    },
+    "unique_ids": {
+      "type": "array", "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "memory_update_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version", "method_id", "pre_memory_sha256", "post_memory",
+        "post_memory_sha256", "normalized_delta", "confidence", "runtime_ms",
+        "diagnostics"
+      ],
+      "properties": {
+        "schema_version": {"const": "vsmt-memory-update-result-v1"},
+        "method_id": {"$ref": "#/$defs/identifier"},
+        "pre_memory_sha256": {"$ref": "#/$defs/sha256"},
+        "post_memory": {"type": "object"},
+        "post_memory_sha256": {"$ref": "#/$defs/sha256"},
+        "normalized_delta": {"$ref": "#/$defs/normalized_delta"},
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+        "runtime_ms": {"type": "number", "minimum": 0},
+        "diagnostics": {"type": "object"}
+      }
+    },
+    "private_evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version", "sample_id_hash", "public_sha256", "reference_memory",
+        "reference_transaction_equivalence", "future_observation_sha256",
+        "simulator_identity_map", "semantic_case_id", "private_sha256"
+      ],
+      "properties": {
+        "schema_version": {"const": "vsmt-private-evaluation-v1"},
+        "sample_id_hash": {"$ref": "#/$defs/sha256"},
+        "public_sha256": {"$ref": "#/$defs/sha256"},
+        "reference_memory": {"type": "object"},
+        "reference_transaction_equivalence": {
+          "type": "array",
+          "items": {
+            "type": "array", "items": {"type": "string", "minLength": 1}
+          }
+        },
+        "future_observation_sha256": {
+          "type": "array", "items": {"$ref": "#/$defs/sha256"}
+        },
+        "simulator_identity_map": {
+          "type": "object", "additionalProperties": {"type": "string"}
+        },
+        "semantic_case_id": {"$ref": "#/$defs/identifier"},
+        "private_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "private_mutation_invariance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version", "public_sha256", "private_sha256",
+        "candidate_catalog_sha256", "adapter_input_sha256", "logits_sha256"
+      ],
+      "properties": {
+        "schema_version": {"const": "vsmt-private-mutation-invariance-v1"},
+        "public_sha256": {"$ref": "#/$defs/sha256"},
+        "private_sha256": {"$ref": "#/$defs/sha256"},
+        "candidate_catalog_sha256": {"$ref": "#/$defs/sha256"},
+        "adapter_input_sha256": {"$ref": "#/$defs/sha256"},
+        "logits_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    }
+  }
+}

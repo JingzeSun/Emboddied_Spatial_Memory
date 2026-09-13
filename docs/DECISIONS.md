@@ -1324,3 +1324,10 @@
 - 新版固定原则是 candidate-before-teacher：候选只由公开观测前缀和 prior predicted memory 产生、先写 digest 封存，teacher 随后才可打开未来/reference 并仅给既有候选打训练标签。private reference、未来或模拟器 ID 变化而 public 不变时，候选、顺序、在线特征和 logits 必须逐字节不变；漏掉正确候选记 candidate miss，不准补槽。
 - 新数据全部重新生成，采用 public/candidate/teacher/private_eval/provenance 分通道和独立读取器。冻结 DINOv2 只提供共享匿名 RGB 区域描述，深度/位姿提供公开几何；真值 mask/instance ID 只能 private 评价。具体图类型、proposal、场景、split、样本数、训练与存储预算尚未冻结，当前 generation/training/confirmation 均未授权。
 - 独立工作树为`D:\Users\28115\Desktop\SCI\projects\embodied_spatial_memory_m1_structural`，分支`codex/m1-structural-memory-revision`从已审`origin/main`提交`1e5fa2c`建立；原工作区未提交的`docs/PLAN.md`和`scripts/notes.txt`未移动或修改。当前只交 VM-00 文献、许可证、旧代码泄漏和合同草案，用户审过后才进入 VM-01 schema/测试实现。
+
+## D-123：VM-01只冻结信息边界，语义等价与指标由用户裁决
+
+- 日期：2026-09-13。用户批准继续 VM-01，并明确 BIND/BIRTH 等语义指标由用户判断，但实现者必须提供足以区分边界的案例和描述。本职责不实现 TAF/ELU/WFR/LOW、不生成数据、不训练，也不把未裁决语义藏进 validator。
+- 新 `vsmt.contracts` 严格验证公开观测、候选目录、teacher 目标、共同结果、私有评价和私有扰动不变性。共同适配器只接剥离审计身份后的七类部署值；候选构造 API 不接 private，teacher 只能按已封存候选的原 ID 与顺序给分。白话：输入同一份公开观测和旧记忆，输出固定模型输入、候选摘要及独立标签绑定。例如交换私有模拟器实例名后，private 摘要应变，但候选、适配输入和 logits 摘要必须完全不变。它不证明候选正确、事务语义合理或方法优于基线。
+- S-01 至 S-12 作为待用户裁决案例，分别覆盖 BIND/BIRTH、REACTIVATE/BIRTH、RELINK/REPLACE、SPLIT/BIRTH、MERGE/BIND、RETRACT/NOOP、低置信 NOOP、地点/关系扩充、图 ID 等价、错误代价、持续时间和 provenance。裁决须在 VM-04 数据数值冻结前落到生成规则与等价集合；当前不预选有利于 VSMT 的口径。
+- 本地只允许语法、JSON和 diff 静态核查；合同测试须在服务器用本提交运行并保存退出证据。用户代码审查及服务器测试通过前，VM-02 和任何效果依赖均不开始。
