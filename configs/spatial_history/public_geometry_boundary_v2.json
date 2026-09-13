@@ -31,7 +31,7 @@
     "pixel_footprint_half_width": 0.5,
     "coordinate_guard_m": 0.000001,
     "height_clustering": "sorted_greedy_complete_span",
-    "boundary_rule": "surface_to_strict_farther_footprints_span_boundary_compatible_band",
+    "boundary_rule": "adjacent_envelope_or_common_observed_depth_face_footprints_within_transition_envelope",
     "boundary_compatible_rule": "valid_depth_beyond_plane_interval_but_short_of_unchanged_farther_separation",
     "fusion": "overlap_graph_then_common_interval_intersection_conflicts_preserved",
     "candidate_count": "unbounded_by_task_gate_count",

@@ -1,0 +1,53 @@
+{
+  "version": "sh05-r4-e0-boundary-phase-v2",
+  "decision": "D-118",
+  "status": "authorized_fixed_public_phase_audit",
+  "phase_audit_authorized": true,
+  "dual_m_authorized": false,
+  "data_rebuild_authorized": false,
+  "training_authorized": false,
+  "confirmation_authorized": false,
+  "source_report": "results/spatial_history_r4_e0_pixel_phase_v1.json",
+  "source_report_sha256": "96b6864d4e99e7861b0b9cda5aacb471aecb4df0175a66c30cae054d491c9994",
+  "source_run_directory": "/root/autodl-tmp/spatial-history/sh05-r4-e0-pixel-phase-v1",
+  "source_generation_stage": "/root/autodl-tmp/spatial-history/sh05-r4-development-generation-v2",
+  "source_family": "r4-36",
+  "e0_v1": "configs/spatial_history/public_geometry_parallel_v1.json",
+  "e0_v2": "configs/spatial_history/public_geometry_boundary_v2.json",
+  "worlds": ["LL", "LR", "RL", "RR"],
+  "gates": [
+    {"gate_index": 0, "view_key": "A"},
+    {"gate_index": 1, "view_key": "B"}
+  ],
+  "phase_sweep": {
+    "denominator": 32,
+    "numerators": [-16, -15, -14, -13, -12, -11, -10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+    "source_public_frames": 264,
+    "new_public_renders": 0,
+    "private_audit_rerenders": 264
+  },
+  "acceptance": {
+    "all_v2_cases_accepted": true,
+    "expected_v1_accepted_cases": 262,
+    "expected_v1_failed_cases": 2,
+    "all_v1_accepted_geometry_exactly_preserved": true,
+    "all_v1_failed_cases_resolved_by_boundary_support": true,
+    "all_boundary_pixels_registered_gate_walls": true,
+    "boundary_pixel_body_hits": 0,
+    "maximum_coordinate_interval_width_m": 0.025,
+    "private_truth_only_after_public_seal": true
+  },
+  "run_directory": "/root/autodl-tmp/spatial-history/sh05-r4-e0-boundary-phase-v2",
+  "environment": "/root/autodl-tmp/spatial-history-venv-v1",
+  "report": "results/spatial_history_r4_e0_boundary_phase_v2.json",
+  "limits": {
+    "check_wall_s": 300,
+    "run_wall_s": 900,
+    "process_as_bytes": 2147483648,
+    "stage_bytes": 67108864,
+    "report_bytes": 16777216,
+    "physics_steps": 0,
+    "training_steps": 0,
+    "weight_download_bytes": 0
+  }
+}

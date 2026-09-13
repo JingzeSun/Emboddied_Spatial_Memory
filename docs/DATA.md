@@ -743,11 +743,19 @@ D-111的`spatial-history-r4-pessimistic-map-v1`不再是正式输入schema。新
 
 | 字段 | 含义 | 权限与后续 |
 |---|---|---|
-| `support[].pixel_pair` | `[墙顶面像素, 严格更远像素]`；v2两端不要求相邻 | 两端及完整半像素足迹生成保守边界区间；不把端点中点称为真值 |
-| `support[].boundary_compatible_pixels` | 位于上述两端之间、有效且深度严格越过墙顶区间但未达到原0.2 mm分离量的连续B像素 | 只扩大`raw_interval_m`对应的可能墙位置；空列表表示原相邻严格转换，非空不产生自由证书 |
+| `support[].pixel_pair` | `[墙顶面像素, 严格更远像素]`；v2两端不要求相邻 | 无B时按两端在墙顶高度的完整半像素足迹生成v1区间；不把端点中点称为真值 |
+| `support[].boundary_compatible_pixels` | 位于上述两端之间、有效且深度严格越过墙顶区间但未达到原0.2 mm分离量的连续B像素 | 有B时各自按实际公开深度投影完整像素足迹，取共同竖直面区间并与宽转换包络相交；非空仍不产生自由证书 |
 | `support[].transition_kind` | `adjacent_strict_farther`或`boundary_compatible_band` | 明示候选是否依赖边界带；不是私有geom类别，也不声称B一定是竖直墙面 |
 | `evidence_counts` | `strict_farther_gap_pixels / boundary_compatible_gap_pixels / strict_farther_front_witnesses / boundary_compatible_front_pixels` | 统计本次公开提取实际消费的两类证据；不用于挑样本、门或相机相位 |
 | `incomplete_observations[].reason` | 新增`gap_without_strict_farther`与`gap_contains_nonboundary_or_interior_ambiguity`，并保留无效深度、二维支持、前缘和区间冲突原因 | 全B、中央B、较近遮挡均不会生成门候选；允许其他完整帧独立提供候选 |
 | `rejected_counts` | v2分别累计`invalid_gap_pairs / nonboundary_gap_pairs / gap_without_strict_farther_pairs`及原二维/前缘/冲突类计数 | 这是失败溯源，不是自动删样本或把该区域填成墙/自由 |
 
 白话：输入一行公开深度，输出“哪些像素严格看到墙后、哪些只与墙边兼容”和由此得到的墙边区间。例如右墙前有一个B时，`pixel_pair`跨过它连到最近F，右边界区间变宽，但输出中没有任何`free=true`。它不等于用私有分割认出`gate_0_right`，也不保证整个门洞地面已经认证自由。
+
+### E0-v2固定相位检查字段（D-118）
+
+`SH-05-R4-E0-boundary-phase-v2/public/*.json.gz`不复制RGBD，保存原相位身份、`source_public_record`字节摘要、原`v1_prediction`和同一`observation`生成的`v2_prediction`。`public_seal.json`绑定全部264项并声明`new_public_renders=0 / private_geometry_read_during_public_phase=false`；源D-116目录的check、run receipt和除receipt外完整文件清单须与Git内报告逐项一致。
+
+私有`private_evaluation.json.gz`每项保存v1/v2坐标验收、v2证据计数、原v1通过项的候选几何逐值保持结果，以及每个候选B的`candidate_index / support_index / boundary_kind / pixel / geom_name / registered_gate_wall / actual_depth_m / plane_far_depth_m / strict_farther_required_depth_m / derived_world_height_m`。白话：公开输出先回答v2看到了什么，私有表随后才回答B实际打中了哪一个geom；例如`registered_gate_wall=true`只用于审计这次恢复是否正确，不能回流改变公开候选。
+
+`summary.json`固定报告v1通过/失败、v2通过、严格回归保持、v1失败由B恢复、B像素数量/边类型/geom名称、是否全为登记门墙及物块/推头命中数。通过要求预先固定为v1 `262/2`、v2 `264/264`、其余262项几何逐值相同、两项失败均含B且通过、所有B为对应门墙、身体命中0；这些数来自D-116封存事实和D-117目标，不在新运行后改写。

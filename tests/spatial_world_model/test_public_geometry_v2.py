@@ -75,6 +75,10 @@ class PublicGeometryV2Tests(unittest.TestCase):
         self.assertTrue(all(item["transition_kind"] == "boundary_compatible_band"
                             and item["boundary_compatible_pixels"] for item in right))
         self.assertEqual(result["evidence_counts"]["boundary_compatible_gap_pixels"], 4)
+        interval = result["candidates"][0]["coordinate_intervals_m"][1]
+        self.assertLess(interval[1] - interval[0], .025)
+        self.assertLessEqual(interval[0], .02)
+        self.assertGreaterEqual(interval[1], .02)
         self.assertNotIn("free", result["candidates"][0])
 
     def test_left_and_right_boundary_bands_are_symmetric(self):
@@ -86,6 +90,10 @@ class PublicGeometryV2Tests(unittest.TestCase):
         for kind in ("x_left", "x_right"):
             self.assertTrue(all(item["transition_kind"] == "boundary_compatible_band"
                                 for item in support_for(result, kind)))
+        for truth, interval in zip((-.02, .02),
+                                   result["candidates"][0]["coordinate_intervals_m"][:2]):
+            self.assertLessEqual(interval[0], truth)
+            self.assertGreaterEqual(interval[1], truth)
 
     def test_boundary_compatible_pixel_in_gap_interior_is_unresolved(self):
         value = opening()

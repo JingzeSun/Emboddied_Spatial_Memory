@@ -30,7 +30,7 @@ _EXTRACTOR_DECLARATIONS = {
                     "calibrated_canonical_top_down_camera"],
     "gap_rule": "contiguous_edge_boundary_bands_and_nonempty_strict_farther_interior",
     "height_clustering": "sorted_greedy_complete_span",
-    "boundary_rule": "surface_to_strict_farther_footprints_span_boundary_compatible_band",
+    "boundary_rule": "adjacent_envelope_or_common_observed_depth_face_footprints_within_transition_envelope",
     "boundary_compatible_rule": "valid_depth_beyond_plane_interval_but_short_of_unchanged_farther_separation",
     "fusion": "overlap_graph_then_common_interval_intersection_conflicts_preserved",
     "candidate_count": "unbounded_by_task_gate_count",
@@ -147,6 +147,33 @@ def _pixel_evidence(observation, rotation, pixel, height_interval, valid, parame
     return "nonboundary_nearer"
 
 
+def _face_interval(observation, rotation, pixels, axis, parameters):
+    """Intersect full pixel footprints at observed depth for one possible vertical face."""
+    guard = parameters["coordinate_guard_m"]
+    half = parameters["pixel_footprint_half_width"]
+    camera = observation["camera_position_m"]
+    intervals = []
+    for u, v in pixels:
+        depth = observation["depth_m"][v * observation["width"] + u]
+        positions = []
+        for du in (-half, half):
+            for dv in (-half, half):
+                ray = v1._ray(observation, rotation, u + du, v + dv)
+                positions.append(camera[axis] + depth * ray[axis])
+        intervals.append([min(positions) - guard, max(positions) + guard])
+    return v1._common(intervals)
+
+
+def _transition_interval(observation, rotation, pair, boundary_pixels,
+                         height_interval, axis, parameters):
+    envelope = v1._boundary_interval(
+        observation, rotation, pair, height_interval, axis, parameters)
+    if not boundary_pixels:
+        return envelope
+    face = _face_interval(observation, rotation, boundary_pixels, axis, parameters)
+    return None if face is None else v1._common([envelope, face])
+
+
 def _gap_transition(observation, rotation, gap, height_interval, valid, parameters,
                     evidence):
     labels = [_pixel_evidence(observation, rotation, pixel, height_interval, valid, parameters)
@@ -239,9 +266,14 @@ def _frame_candidates(observation, frame_index, rotation, sensor, parameters,
                 ]
                 bands = [transition["left_boundary_pixels"],
                          transition["right_boundary_pixels"]]
-                intervals = [v1._boundary_interval(observation, rotation, pair,
-                                                   height_interval, 0, parameters)
-                             for pair in pairs]
+                intervals = [_transition_interval(observation, rotation, pair, band,
+                                                  height_interval, 0, parameters)
+                             for pair, band in zip(pairs, bands)]
+                if any(interval is None for interval in intervals):
+                    rejected["incompatible_boundary_groups"] += 1
+                    incomplete.append(v1._incomplete(
+                        frame_index, [v], height_interval, "incompatible_boundary_face_band"))
+                    continue
                 rows.append({
                     "v": v, "left": left, "right": right, "intervals": intervals,
                     "support": [
@@ -298,8 +330,11 @@ def _frame_candidates(observation, frame_index, rotation, sensor, parameters,
                         continue
                     farther_pixel, boundary_pixels = transition
                     pair = [(u, surface_v), farther_pixel]
-                    interval = v1._boundary_interval(
-                        observation, rotation, pair, height_interval, 1, parameters)
+                    interval = _transition_interval(
+                        observation, rotation, pair, boundary_pixels,
+                        height_interval, 1, parameters)
+                    if interval is None:
+                        continue
                     side_witnesses.append(_support(
                         frame_index, pair[0], pair[1], boundary_pixels, "y_front",
                         interval, height_interval))
