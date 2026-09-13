@@ -1569,3 +1569,10 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - `92c35c4`实现封存分支reader。首次v1错误要求实例配置含`family_id`；v2修复身份后错误比较整家族public与单候选query版本；v3修复桥接后以`1e-12`秒拒绝最大约`7.71e-12`秒的正常浮点累计。三个独立目录均保存started/failure，依次在索引、public和辅助时钟边界停止；均未训练、模拟、读确认或修改源数据。D-105–107分别登记原因，未覆盖或重跑失败目录。
 - v4绑定`02d5aa4`并退出0：核验旧stage的4164个文件及四家族三个manifest/family_result，建立144分支索引；真实读取固定r4-39/LL/槽0，关闭/开启辅助目标时公开模型输入与位置/接触/成功标签一致。未来RGB为`[200,80,80,3] uint8`，深度/有效mask为`[200,80,80] float64/bool`；时间和物理步对齐，没有返回integration或实际未来机器人运动，读取前后全清单相同。耗时11.7007秒，0训练/模拟/确认。
 - [学习读取报告](results/spatial_history_r4_learning_data_v4.json)为4119 bytes，SHA-256=`f1ab554b298a72d54e85e9696c85c59b88aac0ecc15f96640585c6f6833153a07`，结果提交`d60146a`。这证明reader能消费当前封存数据，不表示训练runner、优化收敛或模型有效。
+
+## LOG-132：D-115区间修复通过，48家族生成在公开几何门停止（2026-09-13）
+
+- `5209396`把E0完整`coordinate_intervals_m`传播到M的保守墙并集，`faeb82f`修复双M对生成阶段全局`run_receipt.json`的摘要验证；两提交已快进并推送到`main`。本地纯公开边界检查20/20通过；服务器固定环境中生成阶段44/44、双M 36/36通过。真实旧家族预检的四世界均得到2个E0候选、2组左右墙传播和2个保守开口。白话：例如门边中点看似够宽但区间端点不够宽时，M现在按端点挡住，并保存是哪个公开候选扩出的墙；它不读取XML真值或把未知补成自由。
+- 用户授权后以提交`faeb82fa8fea3e5e85bfd444e641b8bbe39a0955`、8 workers启动剩余48家族重建。前44个worker已输出`FAMILY COMPLETED`后，`r4-36`因唯一失败项`public_geometry=false`使父阶段退出1并保留全部前缀；该家族其余18项检查含physics、replay_equal、实际门接触、近期一致和信息门均为true。
+- `r4-36`的LL/LR在full历史各只恢复1个远门候选，固定近门view_a为0个；RL/RR的full各2个、view_a/view_b各1个、recent为0，全部通过。失败family_result为417753 bytes，SHA-256=`c31e2a05a63836201c30a884ff7e6ff4598c3eaf2918bf5c4d04e05e05191d8e`；父`failure.json`为82 bytes、SHA-256=`6d90ed6e7afcc078849d151332b3f0376e95bfdcad33370f9def8fedee1ef449`；`processes.json`为4563 bytes、SHA-256=`e4f69f7419247d2b99bcbc38d17d7cf34af2027d30a950f05cf1eea175a33922`。这些文件位于服务器`/root/autodl-tmp/spatial-history/sh05-r4-development-generation-v2/execution/`，未被覆盖。
+- 该失败触发当前数据合同的硬停止：不能删掉`r4-36`、放宽E0阈值、把缺失近门按中点补全或在44/48分母上继续双M/训练。双M效果运行、三模型拟合和确认均未开始。白话：这说明一个登记家族的近门左布局没有足够公开边界证据，不能用一格膨胀假装看见；它不是三模型失败，也不是DINO-WM无效。下一步须由用户在“保留no-go”与“登记新的公开可见性筛选并形成新数据版本”等语义方案中决定。
