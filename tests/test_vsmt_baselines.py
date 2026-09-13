@@ -103,6 +103,7 @@ def packet(
         "region_observations": [deepcopy(dict(item)) for item in regions],
         "free_space_observations": ([{
             "free_space_id": "free:0000",
+            "time_s": 1.0,
             "minimum_m": [-1.0, -1.0, -1.0],
             "maximum_m": [1.0, 1.0, 1.0],
             "reliability": 1.0,

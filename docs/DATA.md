@@ -18,7 +18,7 @@
 
 ### `ObservationPacket` 与 `MemoryUpdateResult`
 
-`ObservationPacket` 是共同在线输入包，VM-01 精确字段为：`schema_version, sample_id_hash, decision_time_s, rgbd_refs, camera_pose, robot_state, past_actions, region_observations, free_space_observations, prior_memory_ref, public_constants`。`sample_id_hash`、`rgbd_refs` 和 `prior_memory_ref` 只作外层对齐/摘要绑定，`build_adapter_input` 会删除它们；适配器实际得到决策时间、相机位姿、机器人状态、已结束动作、匿名区域、传感器派生自由空间、已校验 prior memory 和公共常数。`region_observations` 当前含包内顺序号、匿名 `structure_kind`、mask 摘要、descriptor、质心、包围尺寸、可靠性和冻结 proposal 来源，不含永久身份或原图路径。`free_space_observations` 是由公开深度射线保守内包得到的轴对齐盒，只含包内顺序号、三维上下界、可靠性和支持摘要；例如旧节点包围盒完整落在高可靠自由盒里时，ELU 才得到负观测候选。它不是真值空区、不提供被删对象 ID，具体深度到内包盒的数值规则仍须 VM-04 前冻结。
+`ObservationPacket` 是共同在线输入包，VM-01 精确字段为：`schema_version, sample_id_hash, decision_time_s, rgbd_refs, camera_pose, robot_state, past_actions, region_observations, free_space_observations, prior_memory_ref, public_constants`。`sample_id_hash`、`rgbd_refs` 和 `prior_memory_ref` 只作外层对齐/摘要绑定，`build_adapter_input` 会删除它们；适配器实际得到决策时间、相机位姿、机器人状态、已结束动作、匿名区域、传感器派生自由空间、已校验 prior memory 和公共常数。`region_observations` 当前含包内顺序号、匿名 `structure_kind`、mask 摘要、descriptor、质心、包围尺寸、可靠性和冻结 proposal 来源，不含永久身份或原图路径。`free_space_observations` 是由公开深度射线保守内包得到的轴对齐盒，含包内顺序号、合法历史 `time_s`、三维上下界、可靠性和支持摘要；至少两个不同历史时刻的覆盖证据才能组成 executor 可接受的 RETRACT/REPLACE 负证据链。例如旧节点包围盒在连续两帧都完整落入高可靠自由盒时，ELU 才得到负观测候选。它不是真值空区、不提供被删对象 ID，具体深度到内包盒的数值规则仍须 VM-04 前冻结。
 
 白话：新增自由空间证据解决“没检测到”无法区分遮挡与可靠为空的问题。输入只能是当前公开 RGB-D 和相机标定，输出不指向任何旧节点的匿名自由盒；例如桌面前方射线直到墙面之间的一块空间可标 `free:0000`。它不等于模拟器碰撞几何、真值 mask 或“对象已消失”标签；每个适配器仍需用相同公开几何自行判断旧节点是否被覆盖。共同适配器因此看到八类部署值，TAF、ELU、WFR、LOW 与 VSMT 完全一致。
 
@@ -26,7 +26,7 @@
 
 VM-02 的共同节点观测状态键为 `vsmt_observation_state`，当前包含 `descriptor, centroid_m, extent_m, reliability, last_seen_s, observation_count`；ELU 可另存 `existence_log_odds`，WFR 可另存 `fragment_observations, absent_reconciliations`。它解决各适配器如何从同一图读取自己的最小状态；输入匿名区域观测，输出只依赖公开前缀的当前节点统计。例如 TAF 对 descriptor/centroid 做按既有观测数与当前可靠性的确定性融合。它不含永久真值身份、reference 标签或未来，并不把 ELU/WFR 私有字段提供给其他方法作为额外特征；正式初始化及字段迁移仍须随 VM-04 数据合同冻结。
 
-`CandidateCatalog`（候选目录）解决 teacher 是否改过选择空间的问题。输入只能是已验证 `ObservationPacket + prior_memory`、公开来源指针和候选程序，输出带逐程序摘要和整体摘要的包内匿名顺序 `candidate:0000...`；例如 MERGE 程序可声明由 `/region_observations` 与 `/nodes` 派生。它不接收 private 参数，也不证明某个候选是正确答案。`TeacherTargets`（教师目标）输入已经封存的目录和等长分数/概率，输出按完全相同 ID 与顺序绑定的标签；例如候选漏掉正确 MERGE 时只能给现有项评分，不能新增 `candidate:0007`。它不是在线输入，也不允许 teacher 排序目录。
+`CandidateCatalog`（候选目录）解决 teacher 是否改过选择空间的问题。输入只能是已验证 `ObservationPacket + prior_memory`、公开来源指针、候选程序及程序引用的 `online_evidence`，输出带逐程序摘要、逐证据摘要和整体摘要的包内匿名顺序 `candidate:0000...`；例如 RETRACT 的两条可靠空视野记录须与事务一起封存，MERGE 程序可声明由 `/region_observations` 与 `/nodes` 派生。它不接收 private 参数，也不证明某个候选是正确答案。`TeacherTargets`（教师目标）输入已经封存的目录和等长分数/概率，输出按完全相同 ID 与顺序绑定的标签；例如候选漏掉正确 MERGE 时只能给现有项评分，不能新增 `candidate:0007` 或替换其空视野证据。它不是在线输入，也不允许 teacher 排序目录。
 
 `PrivateEvaluation`（私有评价记录）由独立入口加载，当前只绑定参考记忆、候选事务等价组、未来观测摘要、模拟器身份映射和语义案例 ID；实际未来数组的数值字段留到 VM-04 前另行冻结。它解决答案文件怎样与公开样本对齐而不进入模型的问题；例如交换两个模拟器实例名会改变 `private_sha256`，但不得改变公开包或候选。它不构造 proposal/query/candidate，也不是当前已经生成的数据。
 

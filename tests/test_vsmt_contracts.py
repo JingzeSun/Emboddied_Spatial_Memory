@@ -88,6 +88,7 @@ def make_packet(memory: Mapping[str, Any]) -> dict[str, Any]:
         }],
         "free_space_observations": [{
             "free_space_id": "free:0000",
+            "time_s": 2.0,
             "minimum_m": [-0.5, -0.5, 0.0],
             "maximum_m": [0.5, 0.5, 1.5],
             "reliability": 0.9,

@@ -123,11 +123,12 @@
             "type": "object",
             "additionalProperties": false,
             "required": [
-              "free_space_id", "minimum_m", "maximum_m", "reliability",
+              "free_space_id", "time_s", "minimum_m", "maximum_m", "reliability",
               "support_sha256"
             ],
             "properties": {
               "free_space_id": {"type": "string", "pattern": "^free:[0-9]{4}$"},
+              "time_s": {"type": "number", "minimum": 0},
               "minimum_m": {
                 "type": "array", "minItems": 3, "maxItems": 3,
                 "items": {"type": "number"}
@@ -202,11 +203,16 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["candidate_id", "program", "program_sha256"],
+            "required": [
+              "candidate_id", "program", "program_sha256",
+              "online_evidence", "online_evidence_sha256"
+            ],
             "properties": {
               "candidate_id": {"type": "string", "pattern": "^candidate:[0-9]{4}$"},
               "program": {"type": "object"},
-              "program_sha256": {"$ref": "#/$defs/sha256"}
+              "program_sha256": {"$ref": "#/$defs/sha256"},
+              "online_evidence": {"type": "object"},
+              "online_evidence_sha256": {"$ref": "#/$defs/sha256"}
             }
           }
         },

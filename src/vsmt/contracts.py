@@ -61,6 +61,7 @@ REGION_KEYS = {
 }
 FREE_SPACE_KEYS = {
     "free_space_id",
+    "time_s",
     "minimum_m",
     "maximum_m",
     "reliability",
@@ -374,6 +375,7 @@ def validate_observation_packet(packet: Mapping[str, Any]) -> dict[str, Any]:
 
     free_spaces = packet["free_space_observations"]
     _require(type(free_spaces) is list, "free_space_observations must be a list")
+    previous_free_time = -math.inf
     for index, free_space in enumerate(free_spaces):
         _require(type(free_space) is dict,
                  f"free_space_observations[{index}] must be an object")
@@ -386,6 +388,13 @@ def validate_observation_packet(packet: Mapping[str, Any]) -> dict[str, Any]:
             and free_space["free_space_id"] == expected_id,
             "free-space IDs must be packet-local opaque ordinals",
         )
+        free_time = _number(
+            free_space["time_s"],
+            f"free_space_observations[{index}].time_s", minimum=0.0,
+        )
+        _require(previous_free_time <= free_time <= decision_time,
+                 "free-space times must be ordered and not enter the future")
+        previous_free_time = free_time
         minimum = _vector(
             free_space["minimum_m"],
             f"free_space_observations[{index}].minimum_m", length=3,
@@ -508,7 +517,10 @@ def validate_candidate_catalog(
              "candidate catalog must be nonempty")
     for index, item in enumerate(candidates):
         _require(type(item) is dict, f"candidates[{index}] must be an object")
-        _exact_keys(item, {"candidate_id", "program", "program_sha256"},
+        _exact_keys(item, {
+            "candidate_id", "program", "program_sha256",
+            "online_evidence", "online_evidence_sha256",
+        },
                     f"candidates[{index}]")
         expected_id = f"candidate:{index:04d}"
         _require(
@@ -524,6 +536,15 @@ def validate_candidate_catalog(
         expected_program_hash = canonical_sha256(item["program"])
         _require(item["program_sha256"] == expected_program_hash,
                  "candidate program digest mismatch")
+        _require(type(item["online_evidence"]) is dict,
+                 "candidate online_evidence must be an object")
+        _reject_forbidden_keys(
+            item["online_evidence"],
+            location=f"$.candidates[{index}].online_evidence",
+        )
+        expected_evidence_hash = canonical_sha256(item["online_evidence"])
+        _require(item["online_evidence_sha256"] == expected_evidence_hash,
+                 "candidate online evidence digest mismatch")
 
     expected_hash = canonical_sha256(_candidate_catalog_payload(catalog))
     _require(catalog["catalog_sha256"] == expected_hash,
@@ -542,16 +563,22 @@ def seal_candidate_catalog(
     packet: Mapping[str, Any], prior_memory: Mapping[str, Any],
     *, generator_id: str, derivations: list[Mapping[str, Any]],
     programs: list[Mapping[str, Any]],
+    online_evidence: list[Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Seal candidates from public values; no private argument exists by design."""
 
     public = validate_observation_packet(packet)
     memory_digest = _public_memory_digest(prior_memory)
+    evidence_rows = online_evidence or [{} for _ in programs]
+    _require(len(evidence_rows) == len(programs),
+             "online_evidence must have one object per program")
     candidates = [
         {
             "candidate_id": f"candidate:{index:04d}",
             "program": clone_json(dict(program)),
             "program_sha256": canonical_sha256(program),
+            "online_evidence": clone_json(dict(evidence_rows[index])),
+            "online_evidence_sha256": canonical_sha256(evidence_rows[index]),
         }
         for index, program in enumerate(programs)
     ]
