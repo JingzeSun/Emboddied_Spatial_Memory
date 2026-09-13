@@ -34,6 +34,23 @@ class DualMStageTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 stage.source_file(root, "public", "LL.json.gz")
 
+    def test_source_family_is_bound_by_global_generation_receipt(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            data = root / "execution" / "r4-00" / "data"
+            data.mkdir(parents=True)
+            manifest = data / "public_manifest.json"
+            manifest.write_text("{}")
+            (root / "run_receipt.json").write_text(json.dumps({
+                "exit_code": 0, "accepted": True,
+                "artifacts": {"r4-00/data/public_manifest.json":
+                              stage.file_record(manifest)},
+            }))
+            self.assertEqual(stage.verified_source_root(root, "r4-00"), data)
+            manifest.write_text('{"changed":true}')
+            with self.assertRaises(ValueError):
+                stage.verified_source_root(root, "r4-00")
+
     def test_encoding_rejects_nonfinite_values(self):
         with self.assertRaises(ValueError):
             stage.encode({"value": float("nan")})

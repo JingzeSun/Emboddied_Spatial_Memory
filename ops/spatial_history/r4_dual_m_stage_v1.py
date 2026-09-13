@@ -212,13 +212,24 @@ def verify_check():
     return receipt
 
 
-def source_root(family_id, existing_ids):
-    base = Path(CONFIG["existing_stage"] if family_id in existing_ids else CONFIG["generated_stage"])
+def verified_source_root(base, family_id):
+    """Bind one source family through the generator's global immutable receipt."""
+    base = Path(base)
+    receipt = read(base / "run_receipt.json")
+    require(receipt["exit_code"] == 0 and receipt["accepted"],
+            "source generation was not accepted")
     path = base / "execution" / family_id / "data"
     require(path.is_dir(), "source family missing: " + family_id)
-    verified = path.parent / "verified.json"
-    require(verified.is_file() and read(verified)["accepted"], "source family not verified: " + family_id)
+    relative = f"{family_id}/data/public_manifest.json"
+    require(relative in receipt["artifacts"] and
+            file_record(path / "public_manifest.json") == receipt["artifacts"][relative],
+            "source public manifest differs from accepted receipt: " + family_id)
     return path
+
+
+def source_root(family_id, existing_ids):
+    base = CONFIG["existing_stage"] if family_id in existing_ids else CONFIG["generated_stage"]
+    return verified_source_root(base, family_id)
 
 
 def source_file(data, channel, name):
@@ -348,8 +359,9 @@ def run(reviewed_code, workers):
             config["limits"]["stage_bytes"] + config["limits"]["data_disk_reserve_bytes"],
             "insufficient stage disk plus reserve")
     # These exact mechanical receipts must exist before public M predictions.
-    require((Path(config["generated_stage"]) / "verify_receipt.json").is_file(),
-            "48-family generation is not verified")
+    generated_receipt = read(Path(config["generated_stage"]) / "run_receipt.json")
+    require(generated_receipt["exit_code"] == 0 and generated_receipt["accepted"],
+            "48-family generation is not accepted")
     write(RUN / "release.json", {
         "reviewed_code": reviewed_code, "workers": workers,
         "family_ids": [row["family_id"] for row in families],
