@@ -30,6 +30,11 @@ import time
 import unittest
 
 
+if os.name != "nt":
+    os.environ.setdefault("MUJOCO_GL", "egl")
+    os.environ.setdefault("PYOPENGL_PLATFORM", "egl")
+
+
 ROOT = Path(__file__).resolve().parents[2]
 sys.path[:0] = [str(ROOT / "src"), str(ROOT), str(ROOT / "tests/spatial_world_model")]
 from spatial_world_model.pair_contract import require
@@ -144,6 +149,12 @@ def configuration():
     }, "acceptance changed")
     require(Path(config["run_directory"]) == RUN and Path(config["environment"]) == ENVIRONMENT,
             "runtime path changed")
+    require(config["failed_run_directory"]
+            == "/root/autodl-tmp/spatial-history/sh05-r4-e0-boundary-phase-v2",
+            "failed run provenance changed")
+    require(config["required_environment"]
+            == {"MUJOCO_GL": "egl", "PYOPENGL_PLATFORM": "egl"},
+            "render environment changed")
     require(ROOT / config["report"] == REPORT, "report path changed")
     return config
 
@@ -151,6 +162,9 @@ def configuration():
 def require_environment():
     require(os.name != "nt" and resource is not None, "server Linux environment required")
     require(Path(sys.prefix).resolve() == ENVIRONMENT.resolve(), "wrong environment")
+    require(all(os.environ.get(name) == value
+                for name, value in CONFIG["required_environment"].items()),
+            "registered EGL environment is not active")
     import mujoco
     import numpy
     require((mujoco.__version__, numpy.__version__) == ("3.3.7", "2.2.6"),

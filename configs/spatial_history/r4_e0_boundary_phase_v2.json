@@ -37,8 +37,13 @@
     "maximum_coordinate_interval_width_m": 0.025,
     "private_truth_only_after_public_seal": true
   },
-  "run_directory": "/root/autodl-tmp/spatial-history/sh05-r4-e0-boundary-phase-v2",
+  "failed_run_directory": "/root/autodl-tmp/spatial-history/sh05-r4-e0-boundary-phase-v2",
+  "run_directory": "/root/autodl-tmp/spatial-history/sh05-r4-e0-boundary-phase-v2-egl",
   "environment": "/root/autodl-tmp/spatial-history-venv-v1",
+  "required_environment": {
+    "MUJOCO_GL": "egl",
+    "PYOPENGL_PLATFORM": "egl"
+  },
   "report": "results/spatial_history_r4_e0_boundary_phase_v2.json",
   "limits": {
     "check_wall_s": 300,
