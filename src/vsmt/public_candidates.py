@@ -680,8 +680,17 @@ def generate_public_candidate_catalog(
                     prior_memory, deployable_hash, left, right, tick,
                 ))
 
+    incident_node_ids = {
+        endpoint
+        for edge in edges
+        for endpoint in (edge["source"], edge["target"])
+    }
     for node in regular:
         if node["lifecycle"] not in {"candidate", "confirmed"}:
+            continue
+        # Until public relation reassignment is enumerated, SPLIT is executable
+        # only for nodes without an open incident edge.
+        if node["node_id"] in incident_node_ids:
             continue
         compatible = []
         for region in regions:

@@ -112,6 +112,7 @@ FORBIDDEN_INFORMATION_KEY_FRAGMENTS = {
     "true_mask",
     "world_id",
 }
+PUBLIC_MECHANISM_KEYS = {"composition_label"}
 FORBIDDEN_DERIVATION_TOKENS = {
     "answer",
     "future",
@@ -240,14 +241,15 @@ def _reject_forbidden_keys(value: Any, *, location: str = "$") -> None:
         for key, item in value.items():
             _require(type(key) is str, f"{location} contains a non-string key")
             normalized = key.lower()
-            _require(
-                normalized not in FORBIDDEN_INFORMATION_KEYS
-                and not any(
-                    fragment in normalized
-                    for fragment in FORBIDDEN_INFORMATION_KEY_FRAGMENTS
-                ),
-                f"forbidden information key {key!r} at {location}",
-            )
+            if normalized not in PUBLIC_MECHANISM_KEYS:
+                _require(
+                    normalized not in FORBIDDEN_INFORMATION_KEYS
+                    and not any(
+                        fragment in normalized
+                        for fragment in FORBIDDEN_INFORMATION_KEY_FRAGMENTS
+                    ),
+                    f"forbidden information key {key!r} at {location}",
+                )
             _reject_forbidden_keys(item, location=f"{location}.{key}")
     elif type(value) is list:
         for index, item in enumerate(value):

@@ -197,6 +197,21 @@ class PublicCandidateTests(unittest.TestCase):
         self.assertNotIn("RETRACT", observed)
         self.assertNotIn("REPLACE", observed)
 
+    def test_split_does_not_close_an_open_edge_endpoint(self) -> None:
+        graph = graph_fixture()
+        catalog = generate_public_candidate_catalog(
+            packet_fixture(graph), graph, config=config(),
+        )
+        split_programs = [
+            item["program"] for item in catalog["candidates"]
+            if item["program"]["template"] == "SPLIT"
+        ]
+        self.assertTrue(split_programs)
+        self.assertTrue(all(
+            program["operations"][0]["arguments"]["node_id"] != "entity-a"
+            for program in split_programs
+        ))
+
     def test_audit_identity_does_not_change_programs_or_order(self) -> None:
         graph = graph_fixture()
         left_packet = packet_fixture(graph)
