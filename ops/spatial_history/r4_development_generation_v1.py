@@ -21,6 +21,7 @@ import unittest
 
 sys.dont_write_bytecode = True
 ROOT = Path(__file__).resolve().parents[2]
+ENTRYPOINT = Path(__file__).resolve()
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "tests/spatial_world_model"))
 from spatial_world_model.pair_contract import require
@@ -35,6 +36,7 @@ CONFIG_PATH = "configs/spatial_history/r4_development_generation_v1.json"
 RUN = Path("/root/autodl-tmp/spatial-history/sh05-r4-development-generation-v1")
 REPORT = ROOT / "results/spatial_history_r4_development_generation_v1.json"
 STAGE = "SH-05-R4-development-generation-v1"
+CONFIG_VERSION = "sh05-r4-development-generation-v1"
 TESTS = (
     "test_r4_families_v2", "test_r4_public_v2", "test_r4_storage",
     "test_r4_generation_v2", "test_r4_generation_ops_v2",
@@ -95,7 +97,7 @@ def binding():
 
 def configuration():
     config = read(ROOT / CONFIG_PATH)
-    require(config["version"] == "sh05-r4-development-generation-v1", "wrong config version")
+    require(config["version"] == CONFIG_VERSION, "wrong config version")
     require(Path(config["run_directory"]) == RUN and ROOT / config["report"] == REPORT, "stage paths changed")
     require(all(config[key] is False for key in (
         "implementation_review_complete", "generation_authorized", "training_authorized", "confirmation_authorized"
@@ -259,7 +261,7 @@ def supervise(family_ids, workers):
         log = (unit / "run.log").open("x")
         try:
             child = subprocess.Popen(
-                [sys.executable, "-B", str(Path(__file__).resolve()), "_worker", "--family", task["id"]],
+                [sys.executable, "-B", str(ENTRYPOINT), "_worker", "--family", task["id"]],
                 cwd=ROOT, env=dict(os.environ, MUJOCO_GL="egl", OPENBLAS_NUM_THREADS="1", OMP_NUM_THREADS="1", PYTHONUNBUFFERED="1"),
                 stdout=log, stderr=subprocess.STDOUT, start_new_session=True,
             )
@@ -344,7 +346,11 @@ def run(reviewed_code, declared_gib, workers):
     config, checked = configuration(), verify_check()
     if (RUN / "execution").exists():
         raise FileExistsError("execution already started; preserve and inspect instead of rerunning")
-    require(reviewed_code == checked["commit"] == git("rev-parse", "HEAD"), "reviewed code must equal checked HEAD")
+    require(reviewed_code == checked["commit"], "reviewed code must equal checked source commit")
+    require(binding() == checked["binding"], "reviewed bound files changed after check")
+    require(subprocess.run(["git", "-C", str(ROOT), "merge-base", "--is-ancestor",
+                            checked["commit"], git("rev-parse", "HEAD")]).returncode == 0,
+            "current checkout does not descend from reviewed code")
     require(declared_gib is not None and declared_gib >= config["limits"]["minimum_declared_new_data_gib"], "declare at least 18 GiB new-data allowance")
     require(not git("status", "--porcelain", "--", *BOUND), "bound files changed after check")
     cap = capacity(workers)
