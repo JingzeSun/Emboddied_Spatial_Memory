@@ -29,6 +29,7 @@ HEX64 = re.compile(r"^[0-9a-f]{64}$")
 OPAQUE_REGION = re.compile(r"^region:[0-9]{4}$")
 OPAQUE_FREE_SPACE = re.compile(r"^free:[0-9]{4}$")
 OPAQUE_CANDIDATE = re.compile(r"^candidate:[0-9]{4}$")
+OPAQUE_LATENT_REF = re.compile(r"^latent:[0-9a-f]{16,64}$")
 IDENTIFIER = re.compile(r"^[a-z][a-z0-9_.-]{0,127}$")
 FEATURE_NAME = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
 
@@ -293,6 +294,19 @@ def _graph_digest(graph: Mapping[str, Any]) -> str:
 
 def _public_memory_digest(graph: Mapping[str, Any]) -> str:
     _reject_forbidden_keys(graph, location="$.prior_memory")
+    nodes = graph.get("nodes")
+    _require(type(nodes) is list, "prior memory nodes must be a list")
+    for node_index, node in enumerate(nodes):
+        _require(type(node) is dict,
+                 f"prior memory nodes[{node_index}] must be an object")
+        latent_refs = node.get("latent_refs")
+        _require(type(latent_refs) is list and all(
+            type(item) is str and OPAQUE_LATENT_REF.fullmatch(item) is not None
+            for item in latent_refs
+        ), (
+            f"prior memory nodes[{node_index}].latent_refs must contain only "
+            "public-derived opaque latent digests"
+        ))
     return _graph_digest(graph)
 
 

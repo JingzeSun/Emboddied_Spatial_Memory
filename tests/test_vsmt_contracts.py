@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import ast
 import json
 from pathlib import Path
 import sys
@@ -234,6 +235,31 @@ class VSMTContractTests(unittest.TestCase):
         packet = make_packet(memory)
         with self.assertRaisesRegex(ValueError, "forbidden information key"):
             build_adapter_input(packet, memory)
+
+    def test_adapter_input_rejects_legacy_semantic_latent_reference(self) -> None:
+        memory = deepcopy(self.memory)
+        memory["nodes"][0]["latent_refs"] = ["latent:C05:chair-a"]
+        memory = seal_graph(memory)
+        packet = make_packet(memory)
+        with self.assertRaisesRegex(ValueError, "opaque latent digests"):
+            build_adapter_input(packet, memory)
+
+    def test_vsmt_does_not_import_old_m1_feature_or_query_modules(self) -> None:
+        violations: list[str] = []
+        for path in sorted((SRC_ROOT / "vsmt").glob("*.py")):
+            tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+            for item in ast.walk(tree):
+                names: list[str] = []
+                if isinstance(item, ast.Import):
+                    names.extend(alias.name for alias in item.names)
+                elif isinstance(item, ast.ImportFrom) and item.module is not None:
+                    names.append(item.module)
+                violations.extend(
+                    f"{path.name}:{name}"
+                    for name in names
+                    if name.startswith("cpmt.m1_")
+                )
+        self.assertEqual(violations, [])
 
     def test_candidate_derivation_rejects_private_pointer(self) -> None:
         catalog = make_catalog(self.packet, self.memory)

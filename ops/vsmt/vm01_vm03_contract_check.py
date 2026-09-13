@@ -17,7 +17,7 @@ from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 STAGE_ID = "vsmt-vm01-vm03-contract-check-v1"
-EXPECTED_TESTS = 34
+EXPECTED_TESTS = 36
 BOUND_PATHS = (
     "schemas/vsmt_vm01_contracts.schema.json",
     "src/vsmt/__init__.py",

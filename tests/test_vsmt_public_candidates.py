@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import hashlib
 import inspect
 from pathlib import Path
 import sys
@@ -30,6 +31,7 @@ def node(
     node_id: str, node_type: str, centroid: list[float], *,
     lifecycle: str = "confirmed", descriptor: list[float] | None = None,
 ) -> dict[str, Any]:
+    latent_digest = hashlib.sha256(node_id.encode("utf-8")).hexdigest()
     return {
         "node_id": node_id,
         "node_version_id": f"{node_id}@v0",
@@ -38,7 +40,7 @@ def node(
         "valid_from": 0,
         "valid_to": None,
         "evidence_refs": [f"observation:{node_id}"],
-        "latent_refs": [f"latent:{node_id}"],
+        "latent_refs": [f"latent:{latent_digest}"],
         "canonical_id": None,
         "predecessor_ids": [],
         "provenance": ["fixture:public"],
