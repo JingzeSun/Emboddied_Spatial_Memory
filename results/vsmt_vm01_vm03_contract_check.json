@@ -1,0 +1,24 @@
+{
+  "bound_sha256": {
+    "schemas/vsmt_vm01_contracts.schema.json": "f0da1b3e399942aaa14945088fce39059496d6107a8022a570af795c15a20668",
+    "src/vsmt/__init__.py": "80c2774b37d97c0b7b8c36d4ed000ecd49a6b6f1c38203987225f8760e819e24",
+    "src/vsmt/baselines.py": "6857c28033c10edaa7881d97ebe3734e4bd6d2d2410f09ab660d8a9ef0053c8e",
+    "src/vsmt/contracts.py": "adc8fbc637ce918d2243d2ff2ca90ba3e62fc2fa2d6817f58f7898d1c71fa060",
+    "src/vsmt/graph_ops.py": "9c977f43bcc48c1ae9d1133d0e7c439fecbef38be1287eeada349628babc6536",
+    "src/vsmt/public_candidates.py": "edf967008056a05dc2ceb2d676743d46b1a28184e739c2f26991e8cef11cb0ea",
+    "tests/test_vsmt_baselines.py": "e43946ab2e65c48a28008e8f28da46cf855a73ad5ac6e38072f6a9bf6a855235",
+    "tests/test_vsmt_contracts.py": "5daa196abaa4a0d63ea66f535ee12f7bd46e12173790f14e2689d6e83cab758f",
+    "tests/test_vsmt_public_candidates.py": "1324277b19271f6eef0ff9e6c9c3f404d13f3ef51c90b4e84177d5aa0bdfeded"
+  },
+  "generation_performed": false,
+  "private_data_opened": false,
+  "reviewed_code": "351395ad8836754f829d8b051f5448e7933f8f86",
+  "schema_version": "vsmt-vm01-vm03-contract-report-v1",
+  "source_marker_sha256": "26fa8c63c3eb95959a9278e977b282b54c0d11cd1b9b99e98bd088aae3837928",
+  "source_receipt_sha256": "4d060f7ef36d07351c7780bb23bf46a353001d540c9833866dddac53f2ec3d99",
+  "stage_id": "vsmt-vm01-vm03-contract-check-v1",
+  "success": true,
+  "tests": 37,
+  "training_steps": 0,
+  "wall_seconds": 0.6294950321316719
+}
