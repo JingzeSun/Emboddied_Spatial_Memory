@@ -105,8 +105,16 @@ def _history(root, config, reference, world, progress):
         scene.close()
 
 
+def opening_recoverer(e0):
+    if e0.get("version") == "sh05-r4-e0-boundary-v2-review-v1":
+        from .public_geometry_v2 import recover_openings
+    else:
+        from .public_geometry import recover_openings
+    return recover_openings
+
+
 def _geometry(root, publics, config, e0, progress):
-    from .public_geometry import recover_openings
+    recover_openings = opening_recoverer(e0)
     destination = root / "audit" / "geometry"
     destination.mkdir()
     indices = config["observation"]["fixed_view_frame_indices"]

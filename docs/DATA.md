@@ -772,3 +772,16 @@ D-111的`spatial-history-r4-pessimistic-map-v1`不再是正式输入schema。新
 - 汇总报告同时保存800项计数、v1失败项身份、B像素种类/geom计数、最大坐标区间宽及私有边界帧重渲染数。`claims.e0_v2_frontend_upgrade_authorized=false`明确通过报告仍不是协议升级授权。
 
 白话：这些字段让人能追到“哪一个封存历史、哪种查看方式、哪个像素改变了判定”。例如某个B若命中`object`，报告会使全阶段失败，而不是把它解释成门洞自由。它不保存新的训练样本、模型输出或确认集结果。
+
+### E0-v2开发数据协议v3字段（D-121）
+
+- `dataset_index.version/decision/accepted`：固定为`sh05-r4-development-protocol-v3 / D-121 / true`才可供后续入口读取；它是新协议封口，不修改任一源家族自己的`family_result`。
+- `families[]`：52个原设计身份及split，`source_kind`只允许`reused`或`new_generation`。前者固定50个，后者固定`r4-23/r4-58`；不含model/probe confirmation。
+- `seals[family_id].data_root`：服务器上实际源`data`目录。配套`public_manifest / labels_manifest / audit_manifest / family_result`均保存字节数和SHA-256，后续读取前必须逐项复核；不通过路径存在性猜测完成。
+- `source_accepted/source_failed_checks`：保留原E0-v1家族结论。`r4-36`继续为`source_accepted=false`且只能有`public_geometry`失败；新协议另以`protocol_accepted=true`表示非E0门及E0-v2替代门全过。两个字段不能相互覆盖。
+- `protocol_e0_v2_full[]`：每家族四世界在121帧公开历史上的新E0-v2预测摘要和私有判卷；实际预测由`public_e0_seal`绑定的208个gzip JSON保存。50个复用家族另有`D120_all_four_modes_accepted=true`，新两家族由其新`family_result`覆盖full/view_a/view_b/recent。
+- `categorical_shortcut`：用全部52个既定成功矩阵重算的类别捷径审计；若仍存在未排除捷径，整个新版本不接纳，不能换家族。
+- `observation_trajectory`：明确家族内相机x恒定、仅y随时间变化、121帧/12秒和决策/未来相机位姿不变。家族设计的`global_translation_x_m`是整场景与相机共同平移，不是轨迹横移。
+- `xy_upgrade_contingency`：只保存未来升级触发语义。D/F/W三者须在完整SH-05中按训练前锁定的同一规则均表现良好，才审议一个新的时变x/y数据版本；`automatic_release=false`且当前数据分母永久保留。
+
+白话：索引解决“大数组不复制但新协议仍能精确知道自己读取了什么”。输入一个家族ID，输出其不可变源目录、四份摘要封条和E0-v2资格；例如后续reader打开`r4-36`时仍会看见旧E0-v1失败记录，同时核新协议替代证据。它不把绝对路径送进模型、不让训练读取split或摘要，也不是把未知格补成自由。
