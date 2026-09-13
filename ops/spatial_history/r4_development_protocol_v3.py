@@ -30,6 +30,7 @@ sys.dont_write_bytecode = True
 ROOT = Path(__file__).resolve().parents[2]
 ENTRYPOINT = Path(__file__).resolve()
 sys.path.insert(0, str(ROOT / "src"))
+sys.path.insert(0, str(ROOT / "tests/spatial_world_model"))
 
 from spatial_world_model.pair_contract import require
 from spatial_world_model.r4_families_v2 import categorical_shortcut, family_config, validate_manifest
@@ -43,9 +44,9 @@ RUN = Path("/root/autodl-tmp/spatial-history/sh05-r4-development-protocol-v3")
 REPORT = ROOT / "results/spatial_history_r4_development_protocol_v3.json"
 WORLDS = ("LL", "LR", "RL", "RR")
 TESTS = (
-    "tests.spatial_world_model.test_r4_development_protocol_v3",
-    "tests.spatial_world_model.test_public_geometry_v2",
-    "tests.spatial_world_model.test_r4_generation_v2",
+    "test_r4_development_protocol_v3",
+    "test_public_geometry_v2",
+    "test_r4_generation_v2",
 )
 BOUND = (
     CONFIG_PATH,
