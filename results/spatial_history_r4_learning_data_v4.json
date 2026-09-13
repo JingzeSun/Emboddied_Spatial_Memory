@@ -1,0 +1,126 @@
+{
+  "receipt": {
+    "array_dtypes": {
+      "future_depth_m": "float64",
+      "future_depth_valid": "bool",
+      "future_rgb": "uint8"
+    },
+    "array_shapes": {
+      "future_depth_m": [
+        200,
+        80,
+        80
+      ],
+      "future_depth_valid": [
+        200,
+        80,
+        80
+      ],
+      "future_rgb": [
+        200,
+        80,
+        80,
+        3
+      ]
+    },
+    "binding": {
+      "configs/spatial_history/learning_contract_r4_v2.json": {
+        "bytes": 10499,
+        "sha256": "5ff4a327ec2de294501e872cb80d65fe478919914b263b2605c98119c93eee40"
+      },
+      "configs/spatial_history/r4_learning_data_check_v4.json": {
+        "bytes": 786,
+        "sha256": "552b21bae2455ce8b1d35ecfb82c720db8880ccf493137dc0f0186df031c3177"
+      },
+      "docs/DATA.md": {
+        "bytes": 129849,
+        "sha256": "ab2255f13d305f5bfc09e1571138e2e1455d7411ec738bbd2a390b63b8a1be9d"
+      },
+      "docs/DECISIONS.md": {
+        "bytes": 288019,
+        "sha256": "e257999b1c81d904f1adfc0a36e27d08f3088ec0a5ef18c76b40e6e81d283a97"
+      },
+      "docs/METHOD.md": {
+        "bytes": 237290,
+        "sha256": "6096d4f582737e43fea0d5501242cf66182d3487261bf18e65fdebdb157e7e34"
+      },
+      "ops/spatial_history/r4_learning_data_check_v1.py": {
+        "bytes": 7312,
+        "sha256": "63e98600b173e05d66bf98a001e738b37f86cb94fa42d5bb2a20ce6961276c82"
+      },
+      "ops/spatial_history/r4_learning_data_check_v4.py": {
+        "bytes": 1883,
+        "sha256": "30b3c5312438cee7dace410af168ded641227e0903cabdd8ba69b957d1cd12cf"
+      },
+      "results/spatial_history_r4_engineering_subset_v2.json": {
+        "bytes": 5274474,
+        "sha256": "2cb6e138e6851373bdd6af5533336ad4e251c68161b9ebbf292323710c178306"
+      },
+      "src/spatial_world_model/r4_generation_v2.py": {
+        "bytes": 17017,
+        "sha256": "2f4c335d4f3ecbf3cd0116b2f6300504f4f46637af3e48388636881dc52e60bb"
+      },
+      "src/spatial_world_model/r4_learning_data.py": {
+        "bytes": 7996,
+        "sha256": "c77f7c2d93ce39767fe64612246e20c3b56a63e931183e7f9dfa99678db77c61"
+      },
+      "src/spatial_world_model/r4_public_v2.py": {
+        "bytes": 5767,
+        "sha256": "f23c04602e30222269e5c7b62e1f31c9f497aaff3b57e0bfd29d26660e26091e"
+      },
+      "src/spatial_world_model/r4_query_v2.py": {
+        "bytes": 12342,
+        "sha256": "dead4b3319e2c6a3cd12f70b4724a7df15544fa05d66b88822347a9a23657d5f"
+      },
+      "src/spatial_world_model/r4_scoring_v2.py": {
+        "bytes": 17768,
+        "sha256": "b0aad9f5c51dcea36bec6d8256dfc72045fbe09bd35331925f0f1a0bcb5dd087"
+      },
+      "src/spatial_world_model/r4_storage.py": {
+        "bytes": 5144,
+        "sha256": "84b91c48165813de4acf3786000b96b1ac36c71deda51e19652243035404a576"
+      },
+      "tests/spatial_world_model/test_r4_learning_data.py": {
+        "bytes": 1876,
+        "sha256": "355d2d2da2fb58d4aa1d1d69570df0d04787a60abe423280a7893cc9c71bd1a0"
+      }
+    },
+    "checks": [
+      "external_manifest_seals",
+      "complete_family_census",
+      "public_query_121x200",
+      "label_trajectory_binding",
+      "auxiliary_toggle_main_invariance",
+      "future_rgbd_1_through_200",
+      "sensor_time_and_step_alignment",
+      "no_integration_or_future_robot_return",
+      "source_inventory_unchanged"
+    ],
+    "commit": "02d5aa42faf6798445ad9736d973b7ddd9e2d4cf",
+    "confirmation_read": false,
+    "elapsed_s": 11.70070543140173,
+    "exit_code": 0,
+    "family_count": 4,
+    "indexed_branches": 144,
+    "new_simulation_steps": 0,
+    "new_training_steps": 0,
+    "sample": {
+      "action_slot": 0,
+      "family_id": "r4-39",
+      "world": "LL"
+    },
+    "source_files_verified": 4164,
+    "stage": "SH-05-R4-learning-data-check-v4"
+  },
+  "receipt_file": {
+    "bytes": 3506,
+    "sha256": "54c742ce0055d6cb343fdf789c4f9d2a0a6d92bdfaa1a8a7df6ddd36fb28f87e"
+  },
+  "source_report": {
+    "bytes": 5274474,
+    "sha256": "2cb6e138e6851373bdd6af5533336ad4e251c68161b9ebbf292323710c178306"
+  },
+  "stage": "SH-05-R4-learning-data-check-v4",
+  "training_data_reader_ready": true,
+  "training_runner_ready": false
+}
