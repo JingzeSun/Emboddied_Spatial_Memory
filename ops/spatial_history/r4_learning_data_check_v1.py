@@ -21,6 +21,7 @@ CONFIG = ROOT / "configs/spatial_history/r4_learning_data_check_v1.json"
 RUN = Path("/root/autodl-tmp/spatial-history/sh05-r4-learning-data-check-v1")
 REPORT = ROOT / "results/spatial_history_r4_learning_data_v1.json"
 STAGE = "SH-05-R4-learning-data-check-v1"
+CONFIG_VERSION = "sh05-r4-learning-data-check-v1"
 BOUND = (
     "configs/spatial_history/r4_learning_data_check_v1.json",
     "configs/spatial_history/learning_contract_r4_v2.json",
@@ -71,7 +72,7 @@ def expected_seals(source_inventory, families):
 
 def run():
     config = read(CONFIG)
-    require(config["version"] == "sh05-r4-learning-data-check-v1", "config version")
+    require(config["version"] == CONFIG_VERSION, "config version")
     require(not RUN.exists() and not REPORT.exists(), "refuse overwrite/retry")
     require(not git("status", "--porcelain", "--", *BOUND), "bound files must be committed")
     require(file_record(ROOT / config["source_report"])["sha256"] == config["source_report_sha256"],

@@ -1,4 +1,7 @@
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 from spatial_world_model import r4_learning_data as data
 
@@ -19,6 +22,17 @@ class LearningDataValueTests(unittest.TestCase):
     def test_index_requires_external_seals(self):
         with self.assertRaises(ValueError):
             data.branch_index({"r4-39": "unused"}, {})
+
+    def test_index_binds_family_to_parent_directory(self):
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary) / "r4-39" / "data"
+            root.mkdir(parents=True)
+            with patch.object(data, "verify_family_seal",
+                              return_value={"data_root": str(root)}):
+                index = data.branch_index({"r4-39": root}, {"r4-39": {}})
+            self.assertEqual(len(index["rows"]), 36)
+            with self.assertRaises(ValueError):
+                data.branch_index({"r4-47": root}, {"r4-47": {}})
 
     def test_audit_only_names_are_not_model_fields(self):
         model_fields = ("history", "controls", "goal", "domain_spec")

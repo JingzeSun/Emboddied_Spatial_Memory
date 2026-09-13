@@ -687,4 +687,6 @@ history-predictor-check-v1保存started原代码/合同绑定、receipt或failur
 
 `audit`含family_id/world/action/action_slot和public/label文件摘要，只供采样、日志及复现，不是模型张量。`actual_future_robot_motion_returned=false`、`integration_state_returned=false`是读取边界记录；它们不能被下游改写为特征。branch_index中的`seals`含三个原manifest及family_result，属于父训练进程的来源证明，不随微批次传入模型。
 
+D-105补充：原`audit/config.json`没有家族实例编号；reader以已解析的`.../execution/<family_id>/data`父目录名和外部来源报告中的家族路径共同绑定身份，再核三个manifest、family_result和完整文件清单。目录名只是审计索引，不进入`model_input`。
+
 白话：例如一条分支可同时给出“看过什么和要执行什么”以及“实际物块后来到哪里”，但前者放model_input、后者只放训练target。未来RGBD只帮助D/F/W重建自身状态，不包含推头真实未来位姿。这不是把标签变成部署输入，也不允许从audit身份查表预测。

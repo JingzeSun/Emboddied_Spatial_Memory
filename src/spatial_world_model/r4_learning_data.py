@@ -86,9 +86,10 @@ def branch_index(family_roots, expected_seals):
     seals = {}
     for family_id, root in family_roots.items():
         require(type(family_id) is str and family_id.startswith("r4-"), "invalid family id")
+        root = Path(root).resolve(strict=True)
+        require(root.name == "data" and root.parent.name == family_id,
+                "family id/root mismatch")
         seal = verify_family_seal(root, expected_seals[family_id])
-        config = _json(Path(root) / "audit/config.json")
-        require(config["family_id"] == family_id, "family id/root mismatch")
         seals[family_id] = seal
         rows.extend({"family_id": family_id, "world": world, "action": action, "action_slot": slot}
                     for world in WORLDS for slot, action in enumerate(ACTIONS))
