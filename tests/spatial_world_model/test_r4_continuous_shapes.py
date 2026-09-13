@@ -18,7 +18,14 @@ DOMAIN = {"object_radius_m": .07, "pusher_half_size_m": [.15, .025, .025]}
 
 
 def map_value(floor, wall=()):
+    cell = .005
+    wall_cells = []
+    for rectangle in wall:
+        for x in range(math.floor(rectangle[0] / cell), math.ceil(rectangle[1] / cell)):
+            for y in range(math.floor(rectangle[2] / cell), math.ceil(rectangle[3] / cell)):
+                wall_cells.append([x, y])
     return {
+        "cell_m": cell,
         "geometry_parameters": {
             "circle_quadrant_segments": Q,
             "circle_outer_radius_scale": 1 / math.cos(math.pi / (4 * Q)),
@@ -26,6 +33,9 @@ def map_value(floor, wall=()):
         },
         "observed_floor_support_rectangles_xy_m": list(floor),
         "observed_wall_interval_rectangles_xy_m": list(wall),
+        "observed_wall_interval_cells": wall_cells,
+        "body_occlusion_unknown_cells": [],
+        "observed_floor_cells": [],
         "current_object": None,
     }
 
@@ -60,6 +70,8 @@ class ContinuousShapeTests(unittest.TestCase):
         gap = map_value([[-.3, .3, -.5, -.01], [-.3, .3, .01, .2]])
         result = audit_trajectory(gap, trajectory, DOMAIN)
         self.assertFalse(result["complete_sweep_contained"])
+        self.assertEqual(result["body"], "object")
+        self.assertIn(result["region_kind"], {"sampling_gap_unknown", "outside_observed_region"})
         self.assertGreater(result["object_uncovered_area_m2"], 0.)
 
 

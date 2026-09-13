@@ -715,6 +715,8 @@ D-111的`spatial-history-r4-pessimistic-map-v1`不再是正式输入schema。新
 
 每个M结果共同含`system=M-SIMPLE|M-PHYS`、200步共同prediction、`certificate`、`contact_provenance`和数值审计。`certificate`至少含`assumption_conditioned / complete_sweep_contained / first_uncertified_step / first_uncertified_time_s / body / region_kind`；`contact_provenance`逐接触标明`observed_wall_interval / body_occlusion_unknown / sampling_gap_unknown / outside_observed_region / object_pusher`。未知先验产生的碰撞是模型输出，不能放进观测事实字段。
 
+`spatial-history-r4-m-simple-v1`（implemented, review pending）顶层含`system=M-SIMPLE / status / prediction / trajectory / certificate / contact_provenance / numerical_audit / initialization / initial_sensitivity / formal_model_ready=false`。`trajectory`为t=0加10000个2 ms步；共同`prediction`只抽取200个0.1 s末点，接触概率是该区间内是否有物块–已观测墙或物块–悲观未知接触的确定0/1值。`initial_sensitivity`固定含中点及去重后的四个xy角点；每项保存初始位置、完成状态、200步预测、名义成功、接触来源和数值审计，不保存实际未来。`contact_provenance`把连续相同来源压成`first_step / last_step / step_count / body / source / detail`区间，其中未知detail含代表格及未覆盖面积，墙detail含公开矩形序号。白话：输入同一公开地图和五个登记初态，输出一条中点主预测与四条不挑结果的边界敏感性；例如只有高x角点擦墙时会在该分支出现墙接触，但主预测不因此改选它。它不是从五条里挑最接近真值的一条，也不是概率校准后的随机样本。
+
 连续几何审计另存`dependency_versions.shapely/geos`及`outer_circle_radial_excess_m`。固定32段/象限时外包半径因子为`1.000301272041302`，再加`numeric_guard_m=1e-6`；自由地面格则必须完全落入已向内收缩的观测面片。二者方向相反，避免同一个多边形近似同时被当作自由外包和扫掠内包。
 
 白话：这些字段解决“预测撞墙”和“真的看见墙”被混写的问题。输入同一公开地图和控制，输出两种动力学的完整预测及每次阻挡的证据来源；例如M-PHYS在0.4秒撞到`body_occlusion_unknown`，表示它按悲观先验预测那里有障碍，不表示传感器观察到墙。它不读取私有XML、实际接触或未来机器人运动，独立评估只能在两种公开预测都封存后追加误差。

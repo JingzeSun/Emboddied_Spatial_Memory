@@ -95,23 +95,45 @@ def audit_trajectory(continuous_map, trajectory, public_domain):
     radius = public_domain["object_radius_m"]
     half = public_domain["pusher_half_size_m"][:2]
     maximum_uncovered_area = 0.
+    cached_positions = None
+    cached_uncovered = None
     for step in range(1, len(trajectory)):
         previous, current = trajectory[step - 1], trajectory[step]
-        object_sweep = _outer_circle_sweep(
-            previous["object_position_m"], current["object_position_m"], radius, q,
-            parameters["numeric_guard_m"])
-        pusher_sweep = _box_sweep(
-            previous["robot_position_m"], current["robot_position_m"], half)
-        object_uncovered = object_sweep.difference(free)
-        pusher_uncovered = pusher_sweep.difference(free)
+        positions = (tuple(previous["object_position_m"][:2]),
+                     tuple(current["object_position_m"][:2]),
+                     tuple(previous["robot_position_m"][:2]),
+                     tuple(current["robot_position_m"][:2]))
+        if positions == cached_positions:
+            object_uncovered, pusher_uncovered = cached_uncovered
+        else:
+            object_sweep = _outer_circle_sweep(
+                previous["object_position_m"], current["object_position_m"], radius, q,
+                parameters["numeric_guard_m"])
+            pusher_sweep = _box_sweep(
+                previous["robot_position_m"], current["robot_position_m"], half)
+            object_uncovered = object_sweep.difference(free)
+            pusher_uncovered = pusher_sweep.difference(free)
+            cached_positions = positions
+            cached_uncovered = (object_uncovered, pusher_uncovered)
         maximum_uncovered_area = max(maximum_uncovered_area,
                                      object_uncovered.area, pusher_uncovered.area)
         if not object_uncovered.is_empty or not pusher_uncovered.is_empty:
+            body = "object" if not object_uncovered.is_empty else "pusher"
+            first_uncovered = (object_uncovered if body == "object" else pusher_uncovered)
+            point = first_uncovered.representative_point()
+            cell_m = continuous_map["cell_m"]
+            cell = (math.floor(point.x / cell_m), math.floor(point.y / cell_m))
+            from .r4_continuous_map import classify_uncertified_cells
+            classified = classify_uncertified_cells(continuous_map, {cell})
+            region_kind = next(name for name, cells in classified.items() if cells)
             return {
                 "assumption_conditioned": True,
                 "complete_sweep_contained": False,
                 "first_uncertified_step": step,
                 "first_uncertified_time_s": step * .002,
+                "body": body,
+                "region_kind": region_kind,
+                "representative_cell": list(cell),
                 "object_uncovered_area_m2": object_uncovered.area,
                 "pusher_uncovered_area_m2": pusher_uncovered.area,
                 "outer_circle_radial_excess_m":
@@ -123,6 +145,9 @@ def audit_trajectory(continuous_map, trajectory, public_domain):
         "complete_sweep_contained": True,
         "first_uncertified_step": None,
         "first_uncertified_time_s": None,
+        "body": None,
+        "region_kind": None,
+        "representative_cell": None,
         "object_uncovered_area_m2": 0.,
         "pusher_uncovered_area_m2": 0.,
         "outer_circle_radial_excess_m": _outer_circle_radius(
