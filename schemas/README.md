@@ -4,6 +4,8 @@
 
 `vsmt_causal_prior_receipt.schema.json` 是 VM-04 的公开因果旧记忆回执外形合同，记录构建器、配置、逐包输入、逐步更新和版本链摘要。它解决受控实验的共同 prior 是否可从公开历史逐步复算；输入一份构建回执，输出字段/摘要格式接受或拒绝。例如两包输入必须对应两项更新和三项图版本摘要。它不证明进程没有挂载 private，也不判断 BIND 阈值是否合理；运行时因果隔离和摘要复算仍由 `src/vsmt/causal_prior.py` 及后续服务器守卫执行。
 
+`vsmt_vm04_manifests.schema.json` 覆盖house家族划分、无标签公开episode计划和私有事务分配三类清单。它解决split成组、episode ID与标签分离及摘要绑定；输入计划记录，输出JSON外形接受或拒绝。例如公开计划只有slot，具体该slot是SPLIT还是MERGE只在私有计划。它不授权创建confirmation计划、不运行模拟器，也不证明路径nuisance无法学到标签；运行时闸门在 `src/vsmt/vm04_protocol.py`。
+
 以下文件是旧 CPMT pipeline 的历史跨模块边界：
 
 这些 JSON Schema 定义 CPMT pipeline 的跨模块边界：

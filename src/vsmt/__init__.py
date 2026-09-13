@@ -41,6 +41,14 @@ from .public_candidates import (
     generate_public_candidate_catalog,
     label_sealed_candidates,
 )
+from .vm04_protocol import (
+    assert_vm04_action_authorized,
+    make_episode_plan_manifests,
+    make_family_split_manifest,
+    validate_episode_plan_manifests,
+    validate_family_split_manifest,
+    validate_vm04_protocol,
+)
 
 __all__ = [
     "AdapterInput",
@@ -75,4 +83,10 @@ __all__ = [
     "build_causal_prior",
     "empty_public_memory",
     "validate_causal_prior_receipt",
+    "assert_vm04_action_authorized",
+    "make_episode_plan_manifests",
+    "make_family_split_manifest",
+    "validate_episode_plan_manifests",
+    "validate_family_split_manifest",
+    "validate_vm04_protocol",
 ]

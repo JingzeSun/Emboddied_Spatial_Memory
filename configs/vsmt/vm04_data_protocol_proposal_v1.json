@@ -364,11 +364,9 @@
     "overwrite_failed_or_completed_family": false
   },
   "required_review_decisions": [
-    "accept_or_change_source_and_family_counts",
-    "accept_or_change_32_observation_schedule",
-    "accept_or_change_SAM2_1_per_frame_proposal",
+    "pin_audited_AI2THOR_ProcTHOR_and_SAM_artifacts_and_license_snapshots",
     "freeze_all_region_geometry_free_space_and_bootstrap_thresholds",
-    "accept_or_change_relation_aware_SPLIT_assignment",
+    "freeze_public_negative_evidence_for_SPLIT_neither_assignment",
     "freeze_candidate_caps_and_teacher_temperature",
     "freeze_S01_to_S12_numeric_and_aggregation_choices",
     "set_nuisance_probe_gate",

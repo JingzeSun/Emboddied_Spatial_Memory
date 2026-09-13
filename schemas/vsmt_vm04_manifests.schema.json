@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/embodied-memory/vsmt_vm04_manifests.schema.json",
+  "title": "VSMT VM-04 Planning Manifests",
+  "oneOf": [
+    {"$ref": "#/$defs/familyManifest"},
+    {"$ref": "#/$defs/publicEpisodeManifest"},
+    {"$ref": "#/$defs/privateEpisodeManifest"}
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "split": {"enum": ["audit", "train", "validation", "confirmation"]},
+    "familyManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "protocol_version", "source_manifest_sha256", "split_seed", "eligible_house_count", "selected_family_count", "families", "manifest_sha256"],
+      "properties": {
+        "schema_version": {"const": "vsmt-vm04-family-split-manifest-v1"},
+        "protocol_version": {"type": "string", "minLength": 1},
+        "source_manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "split_seed": {"type": "integer", "minimum": 0},
+        "eligible_house_count": {"type": "integer", "minimum": 0},
+        "selected_family_count": {"type": "integer", "minimum": 0},
+        "families": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["family_id", "source_house_id", "split", "rank"],
+            "properties": {
+              "family_id": {"type": "string", "pattern": "^family:[0-9]{4}$"},
+              "source_house_id": {"type": "string", "minLength": 1},
+              "split": {"$ref": "#/$defs/split"},
+              "rank": {"type": "integer", "minimum": 0}
+            }
+          }
+        },
+        "manifest_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "publicEpisodeManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "protocol_version", "family_manifest_sha256", "included_splits", "episode_count", "episodes", "manifest_sha256"],
+      "properties": {
+        "schema_version": {"const": "vsmt-vm04-public-episode-plan-v1"},
+        "protocol_version": {"type": "string", "minLength": 1},
+        "family_manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "included_splits": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/split"}},
+        "episode_count": {"type": "integer", "minimum": 0},
+        "episodes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["episode_id", "family_id", "split", "slot", "observation_count", "decision_observation_index_zero_based"],
+            "properties": {
+              "episode_id": {"type": "string", "pattern": "^episode:[0-9a-f]{24}$"},
+              "family_id": {"type": "string", "pattern": "^family:[0-9]{4}$"},
+              "split": {"$ref": "#/$defs/split"},
+              "slot": {"type": "integer", "minimum": 0},
+              "observation_count": {"type": "integer", "minimum": 1},
+              "decision_observation_index_zero_based": {"type": "integer", "minimum": 0}
+            }
+          }
+        },
+        "manifest_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "privateEpisodeManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "protocol_version", "public_episode_manifest_sha256", "assignment_salt_sha256", "episode_count", "assignments", "manifest_sha256"],
+      "properties": {
+        "schema_version": {"const": "vsmt-vm04-private-episode-plan-v1"},
+        "protocol_version": {"type": "string", "minLength": 1},
+        "public_episode_manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "assignment_salt_sha256": {"$ref": "#/$defs/sha256"},
+        "episode_count": {"type": "integer", "minimum": 0},
+        "assignments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["episode_id", "program", "replicate"],
+            "properties": {
+              "episode_id": {"type": "string", "pattern": "^episode:[0-9a-f]{24}$"},
+              "program": {"enum": ["NOOP", "BIND", "BIRTH", "REACTIVATE", "RELINK", "RETRACT", "SPLIT", "MERGE", "REPLACE"]},
+              "replicate": {"type": "integer", "minimum": 0}
+            }
+          }
+        },
+        "manifest_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    }
+  }
+}

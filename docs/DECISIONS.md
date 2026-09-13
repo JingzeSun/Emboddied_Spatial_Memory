@@ -1376,3 +1376,9 @@
 - 日期：2026-09-14；状态：implementation candidate。`src/vsmt/causal_prior.py`只接收公开packet、前一步预测图、显式无默认值配置和源码摘要；函数签名不接受private/teacher/future/path。从全episode共享的空图开始，每帧区域至多使用一次，公开相似度过门做BIND，否则BIRTH，运行时间固定记0以保持回执确定性。
 - 回执逐步绑定公开文件、实际AdapterInput、提交更新和图版本链；审计身份变化会改变外层文件绑定，但不能改变实际输入摘要或最终图。白话：它解决“受控对比的共同旧图是不是用真值做好了”的问题；输入0～23帧公开观测，输出24帧前同一旧图及可复算链。例如两个连续同类近邻区域会先BIRTH再BIND。它不构造关系、不读取私有身份，也不证明关联阈值合理。
 - 该提交只允许本地AST/JSON/diff静态检查。正式VM-04运行前仍须冻结关联数值，增加服务器只挂载public的进程级守卫并取得新回执；旧VM-01～03的37项成功不能认证本模块，当前生成和训练授权保持false。
+
+## D-130：VM-04计划清单标签隔离与fail-closed闸门
+
+- 日期：2026-09-14；状态：implementation candidate。新增纯标准库协议校验、house-family确定性分组和episode计划，不读取资产、不生成图像。family按`sha256(source_manifest_sha256|split_seed|house_id)`排序后依次分2/48/12/12，合计74个house且不跨split；协议同时复算18 episode/family、1332 episode和42624 observations。
+- 公开episode ID只依赖协议版本、family ordinal和0～17槽位，事务/重复分配只在私有计划中由私有salt确定；更换salt必须保持公开计划逐字节相同。confirmation计划调用当前会因授权false直接拒绝。白话：它解决“文件名里虽然没写MERGE，但固定槽位仍能猜到MERGE”的问题；输入公开槽位和私有平衡分配，输出分读权限的两份清单。它不等于元数据探针已经跑过，也不允许训练进程读取私有映射。
+- 执行闸门要求`frozen_executable`、数值批准、实现批准、动作授权、来源/前端/因果prior/语义/nuisance全部填齐且待审事项为空。当前提案在第一项即失败，因此本代码不能被用来下载、生成、打开confirmation或训练；服务器测试仍pending。

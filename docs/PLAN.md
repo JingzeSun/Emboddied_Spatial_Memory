@@ -22,7 +22,7 @@
 
 ### 当前指针
 
-**VSMT 已快进合并到 `main`；VM-01～VM-03 工程验收通过，VM-04 v1 数据协议现为不可执行审议稿。** 首次服务器31/36失败及目录保留；修复版在提交`351395a`的新目录运行37/37通过，报告为[vsmt_vm01_vm03_contract_check.json](../results/vsmt_vm01_vm03_contract_check.json)，明确0数据生成、0训练、0 private读取。当前提案建议 ProcTHOR＋AI2-THOR、2/48/12/12独立房屋家族、每家族八原子及REPLACE各2重复、32帧episode、SAM2.1逐帧proposal＋已核DINOv2，并把受控单次修订与各方法闭环记忆分开。SAM/场景资产摘要、公开几何和bootstrap阈值、候选cap/teacher温度、SPLIT关系分配及S-01～S-12数值口径仍未冻结，所以无下载、生成、训练或confirmation授权。原D-062分支、代码、数据和结果均保留；`scripts/notes.txt`按用户要求保留当前工作区内容，`docs/PLAN.md`采用本VSMT版本。
+**VSMT 已在 `main`；VM-01～VM-03 工程验收通过，VM-04 v1仍不可执行，但不依赖服务器的三项代码候选已完成。** 关系感知SPLIT现原子处理开放边，public bootstrap从空图顺序封存BIRTH/BIND旧记忆链，VM-04协议闸门与标签独立family/episode清单会拒绝当前未冻结配置及confirmation计划；三者仅有本地AST/JSON/diff静态检查，尚无服务器回执。首次服务器31/36失败及修复37/37目录保留；旧报告[vsmt_vm01_vm03_contract_check.json](../results/vsmt_vm01_vm03_contract_check.json)不能认证新代码。当前提案仍为ProcTHOR＋AI2-THOR、2/48/12/12独立房屋家族、每家族八原子及REPLACE各2重复、32帧episode、SAM2.1逐帧proposal＋已核DINOv2、受控与闭环双轨。SAM/场景精确资产摘要、公开几何/bootstrap/候选/teacher阈值、关系关闭负证据及S-01～S-12数值口径未冻结，所以无下载、生成、训练或confirmation授权。服务器重开后当前唯一下一步是同步一次并运行新增合同/清单/因果prior及SPLIT测试，再按回执决定环境与2家族audit。原D-062分支、代码、数据和结果均保留；`scripts/notes.txt`按用户要求保持原字节。
 
 ## 上一 D-062 路线（暂停，以下保留复现）
 
