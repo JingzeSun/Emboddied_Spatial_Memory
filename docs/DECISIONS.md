@@ -1347,3 +1347,9 @@
 - 新实验分成同源三层：L0旧符号回归；L1在新数据上用 oracle proposal 的结构机制上界；L2让 VSMT/TAF/ELU/WFR/LOW 共享完全相同的冻结 RGB-D proposal、DINOv2 region descriptor、depth/pose/free-space，作为主结果。VSMT 不改成端到端原始 RGB 网络；RGB-D先经共享前端形成结构观测，公平性由所有方法的相同前端字节与摘要保证。
 - 新增静态反作弊门：VSMT 包不得导入旧 `cpmt.m1_*` query/feature 模块；部署 prior memory 的 `latent_refs` 只能为空或公开派生的十六进制摘要，旧 `latent:C05:chair-a` 一类语义值须拒绝。此门仍不足以证明匿名值的因果来源，因此 VM-04 必须实现不挂载 private 的 prior memory 顺序构建回执，并把 prior/candidate/online/logits 全部纳入 private-mutation invariance；该生成、数值、split、预算和训练仍未授权。
 - D-124的服务器阶段沿用同一入口但定向测试计数更新为36；旧34项回执尚不存在、也不得冒用。原D-062工作树的用户未提交PLAN/notes继续原样保留，VSMT论文版在独立分支交付，用户审查后再决定合并。
+
+## D-126：SPLIT关系重分配未冻结前只生成无开放incident edge候选
+
+- 日期：2026-09-14。首次服务器合同测试发现当前SPLIT会关闭源节点并创建两个后继，但没有关闭或重建源节点的开放关系，因此对`entity-a --located_at--> place-a`执行后留下悬空边并被executor正确拒绝。失败目录保留，没有导出、生成或训练。
+- 当前窄修复是在候选生成阶段排除具有开放 incident edge（关联边）的SPLIT源节点；无关联边节点仍可产生和执行SPLIT。白话：它解决“拆了节点却没决定原关系归谁”的结构非法问题；输入旧图的开放边和可分区域，输出只含目前语义完整的SPLIT候选。例如孤立的错误聚合片段可拆，仍连着地点边的节点暂不拆。它不等于这些节点永远不能SPLIT，也不把关系复制给两个后继当作默认答案。
+- VM-04前须由用户在S-04/S-08语义下冻结关系分配候选：分给左后继、右后继、两者、关闭，或按公开证据枚举多个合法程序；冻结前不自行扩张。对应回归和合法`composition_label`窄白名单使服务器定向计数变为37，须在新提交/新目录重跑。

@@ -76,6 +76,8 @@ VM-01 的共同适配运行器只把 `decision_time_s / camera_pose / robot_stat
 
 VM-03 的 `generate_public_candidate_catalog`（公开候选目录生成器）枚举 NOOP、BIND、BIRTH、REACTIVATE、RELINK、RETRACT、SPLIT、MERGE 八个原子模板及 REPLACE 复合程序。输入只有已验证公开包、prior predicted memory 和无默认值的阈值/每模板容量配置；每个程序先用既有 deterministic executor（确定性执行器）真实 preflight/执行，再连同公开 `online_evidence` 摘要封存。BIND/REACTIVATE/SPLIT 使用匿名区域与公开节点相似度，MERGE 使用两个公开节点，RELINK 枚举开放边与其他公开地点，RETRACT/REPLACE 必须有两个不同合法历史时刻的自由空间覆盖。当前阈值和每模板上限尚未冻结，测试数值只验证分支。
 
+当前SPLIT只对没有开放incident edge（关联边）的节点生成；带关系节点的拆分必须同时决定每条旧边应分给哪个后继、复制、关闭还是另建，S-04/S-08尚未冻结这一语义。它解决关闭源节点后留下悬空边的问题；输入开放边集合，输出当前可完整执行的SPLIT子集。例如孤立片段可拆，仍连着地点的实体暂不产生SPLIT。它不等于VSMT最终不支持带关系结构扩充，缺失的正确程序必须先记candidate miss，不能由teacher补入。
+
 白话：该生成器解决 `merge_queries` 曾经从参考答案直接给出目标的问题。输入例如两个当前匿名区域和三个旧节点，输出由公开相似度筛出的全部有限事务程序；正确 MERGE pair 没进入目录时后面只能记 candidate miss。候选事务 ID 和顺序只由剥离审计字段后的 `AdapterInput` 摘要产生，因此更换 `sample_id_hash` 或文件摘要不会改变程序/顺序。它不读取 private、不会保证正确候选总在目录，也不把 executor 通过当成语义正确。
 
 `label_sealed_candidates`（封存后教师标注器）输入完整 catalog、与其 public 摘要绑定的 private evaluation、用户以后冻结的 scorer 和温度，输出原槽位上的分数及 softmax 概率。softmax（归一化指数分布）把各候选有限分数转成总和为1的训练目标；例如 MERGE 得分1、其余得分0时 MERGE 槽概率较高，但候选数和顺序不变。它不调用候选生成器、不补候选、不决定 S-01～S-12 的语义 scorer，也不进入部署推理。
