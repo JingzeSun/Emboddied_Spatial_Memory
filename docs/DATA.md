@@ -709,4 +709,12 @@ D-110的共同逐分支metric记录`position_error_m/contact_brier/success_brier
 
 白话：这些字段记录M为何停止；输入是每个0.002秒扫掠所需格，输出首次不能由公开证据允许的步及完整预测。例如只有推头扫到未知时`pusher_denied=true`，不能伪装成已观测墙的物块碰撞。它不存私有墙坐标或真实标签，private评估结果必须在独立进程另存。
 
+### M连续条件证书与双动力学字段（D-112，planned）
+
+D-111的`spatial-history-r4-pessimistic-map-v1`不再是正式输入schema。新连续地图须分别保存`observed_floor_support`、`observed_wall_intervals`、`decision_body_core`及`unknown_regions`；每项含连续XY边界、公开帧/像素来源、投影收缩或扩张量和依赖的公共假设。栅格缓存另存`cell_m / fully_contained_free_cells / wall_intersecting_cells`，只能是连续证据的保守派生物，不能从旧格中心结果反推连续区域。
+
+每个M结果共同含`system=M-SIMPLE|M-PHYS`、200步共同prediction、`certificate`、`contact_provenance`和数值审计。`certificate`至少含`assumption_conditioned / complete_sweep_contained / first_uncertified_step / first_uncertified_time_s / body / region_kind`；`contact_provenance`逐接触标明`observed_wall_interval / body_occlusion_unknown / sampling_gap_unknown / outside_observed_region / object_pusher`。未知先验产生的碰撞是模型输出，不能放进观测事实字段。
+
+白话：这些字段解决“预测撞墙”和“真的看见墙”被混写的问题。输入同一公开地图和控制，输出两种动力学的完整预测及每次阻挡的证据来源；例如M-PHYS在0.4秒撞到`body_occlusion_unknown`，表示它按悲观先验预测那里有障碍，不表示传感器观察到墙。它不读取私有XML、实际接触或未来机器人运动，独立评估只能在两种公开预测都封存后追加误差。
+
 白话：例如一条分支可同时给出“看过什么和要执行什么”以及“实际物块后来到哪里”，但前者放model_input、后者只放训练target。未来RGBD只帮助D/F/W重建自身状态，不包含推头真实未来位姿。这不是把标签变成部署输入，也不允许从audit身份查表预测。
