@@ -1274,3 +1274,9 @@
 - 日期：2026-09-13。先实现框架中立的`r4_learning_runtime`，不选择验证结果或启动优化。`UniformBranchSampler`按family→world→candidate三层均匀有放回抽样，保存Python RNG完整状态和draw计数；恢复后下一条身份序列逐值相同。身份只交reader定位，不进入模型张量。
 - `accumulated_torch_step`恰好消费8条完整121/200分支，每条总损失除以8后反向，全部累计完只做一次全局范数1裁剪和一次optimizer step；任一非有限loss/term或无梯度均在更新前失败。白话：它解决一条完整轨迹太大而不能组成普通batch的问题；输入8条完整分支及各模型已有loss，输出一个参数更新和各项平均值。例如8条loss相加后除8，不能把200步拆成八个伪样本。它不决定学习率、不读取验证集，也不证明500或10000步足够。
 - checkpoint只含模型、optimizer、sampler、Torch CPU/CUDA RNG、update与代码/数据/配置binding；先写`.partial`再原子改名，正式文件拒绝覆盖，加载只允许tensor/基本值并拒绝不同binding。白话：输入一次已完成更新的全部可恢复状态，输出一个不可覆盖文件及摘要；例如中断后必须从同一采样器下一draw继续。它不把失败partial当成功，也不允许只载模型权重后声称精确续跑。
+
+## D-110：L/R/F/W共享Torch学习桥接与三项微拟合指标
+
+- 日期：2026-09-13。`r4_torch_learning`只把reader已经分离的值接到现有模型：L/R调用各自公开query选择且不请求未来图像；F/W请求已允许的未来RGBD辅助target；身份/audit不传入模型。AdamW只接`requires_grad=true`参数，学习率限登记的`1e-4/3e-4`、weight decay固定0.01，W冻结DINOv2不会进入optimizer。
+- 三项微拟合指标为200步三维欧氏位置误差均值、接触概率Brier均值和整段成功概率Brier；先逐分支算，再对完整分支等权。白话：输入模型logit与真实训练标签，输出三种0附近更好的误差，例如logit 0对应概率0.5，真假标签的Brier都是0.25。它不以0.5阈值准确率代替概率质量，不按大量无接触帧重新加权，也不读取validation来调整一次微拟合。
+- 本批是桥接实现和人工值测试，尚未在服务器真实分支执行optimizer update；Dreamer JAX仍需对应的同语义runtime。代码通过不表示达到0.02微拟合门。
