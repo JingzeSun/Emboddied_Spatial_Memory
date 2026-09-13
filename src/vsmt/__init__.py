@@ -1,5 +1,16 @@
 """Leak-resistant contracts for Versioned Structural Memory Transactions."""
 
+from .baselines import (
+    ELUAdapter,
+    ELUConfig,
+    LOWAdapter,
+    LOWConfig,
+    TAFAdapter,
+    TAFConfig,
+    WFRAdapter,
+    WFRConfig,
+)
+
 from .contracts import (
     AdapterInput,
     MemoryUpdateAdapter,
@@ -36,4 +47,12 @@ __all__ = [
     "validate_private_evaluation",
     "validate_private_mutation_invariance",
     "validate_teacher_targets",
+    "ELUAdapter",
+    "ELUConfig",
+    "LOWAdapter",
+    "LOWConfig",
+    "TAFAdapter",
+    "TAFConfig",
+    "WFRAdapter",
+    "WFRConfig",
 ]

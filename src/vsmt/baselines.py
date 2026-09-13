@@ -1,0 +1,561 @@
+"""Clean-room mechanism-level memory adapters for the VSMT comparison.
+
+These are independent task adaptations, not official reproductions.  TAF is
+inspired by ConceptGraphs (ICRA 2024), ELU by Fusion++ (3DV 2018), Dengler et
+al. (ECMR 2021), and POCD (RSS 2022), and WFR by Khronos (RSS 2024).  No
+upstream source, class layout, default threshold, or test was copied.
+
+Sources:
+https://arxiv.org/abs/2309.16650
+https://arxiv.org/abs/1808.08378
+https://arxiv.org/abs/2011.06895
+https://www.roboticsproceedings.org/rss18/p013.html
+https://www.roboticsproceedings.org/rss20/p081.html
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+import math
+import time
+from typing import Any, Mapping
+
+from .contracts import AdapterInput
+from .graph_ops import (
+    GraphRevision,
+    archived_nodes,
+    association_score,
+    centroid_distance,
+    finite_number,
+    fully_covered_by_free_space,
+    node_pair_score,
+    observation_state,
+    open_nodes,
+    validate_threshold,
+)
+
+
+def _positive(value: Any, name: str) -> float:
+    result = finite_number(value, name)
+    if result <= 0.0:
+        raise ValueError(f"{name} must be positive")
+    return result
+
+
+def _positive_integer(value: Any, name: str) -> int:
+    if type(value) is not int or value <= 0:
+        raise ValueError(f"{name} must be a positive integer")
+    return value
+
+
+def _weights(visual: float, geometry: float) -> None:
+    validate_threshold(visual, "visual_weight", low=0.0, high=1.0)
+    validate_threshold(geometry, "geometry_weight", low=0.0, high=1.0)
+    if not math.isclose(visual + geometry, 1.0, abs_tol=1e-12):
+        raise ValueError("visual_weight and geometry_weight must sum to one")
+
+
+@dataclass(frozen=True)
+class LOWConfig:
+    maximum_centroid_distance_m: float
+
+    def __post_init__(self) -> None:
+        _positive(self.maximum_centroid_distance_m, "maximum_centroid_distance_m")
+
+
+@dataclass(frozen=True)
+class TAFConfig:
+    visual_weight: float
+    geometry_weight: float
+    geometry_scale_m: float
+    association_threshold: float
+    duplicate_threshold: float
+    fusion_interval: int
+
+    def __post_init__(self) -> None:
+        _weights(self.visual_weight, self.geometry_weight)
+        _positive(self.geometry_scale_m, "geometry_scale_m")
+        validate_threshold(self.association_threshold, "association_threshold",
+                           low=0.0, high=1.0)
+        validate_threshold(self.duplicate_threshold, "duplicate_threshold",
+                           low=0.0, high=1.0)
+        _positive_integer(self.fusion_interval, "fusion_interval")
+
+
+@dataclass(frozen=True)
+class ELUConfig:
+    visual_weight: float
+    geometry_weight: float
+    geometry_scale_m: float
+    association_threshold: float
+    free_space_reliability_threshold: float
+    birth_log_odds: float
+    positive_log_odds_increment: float
+    negative_log_odds_decrement: float
+    dormant_log_odds_threshold: float
+    retract_log_odds_threshold: float
+
+    def __post_init__(self) -> None:
+        _weights(self.visual_weight, self.geometry_weight)
+        _positive(self.geometry_scale_m, "geometry_scale_m")
+        validate_threshold(self.association_threshold, "association_threshold",
+                           low=0.0, high=1.0)
+        validate_threshold(
+            self.free_space_reliability_threshold,
+            "free_space_reliability_threshold", low=0.0, high=1.0,
+        )
+        finite_number(self.birth_log_odds, "birth_log_odds")
+        _positive(self.positive_log_odds_increment, "positive_log_odds_increment")
+        _positive(self.negative_log_odds_decrement, "negative_log_odds_decrement")
+        finite_number(self.dormant_log_odds_threshold,
+                      "dormant_log_odds_threshold")
+        finite_number(self.retract_log_odds_threshold,
+                      "retract_log_odds_threshold")
+        if self.retract_log_odds_threshold >= self.dormant_log_odds_threshold:
+            raise ValueError("retract threshold must be below dormant threshold")
+
+
+@dataclass(frozen=True)
+class WFRConfig:
+    visual_weight: float
+    geometry_weight: float
+    geometry_scale_m: float
+    association_threshold: float
+    duplicate_threshold: float
+    confirmation_observations: int
+    reconciliation_interval: int
+    absent_reconciliations_before_retract: int
+    free_space_reliability_threshold: float
+
+    def __post_init__(self) -> None:
+        _weights(self.visual_weight, self.geometry_weight)
+        _positive(self.geometry_scale_m, "geometry_scale_m")
+        validate_threshold(self.association_threshold, "association_threshold",
+                           low=0.0, high=1.0)
+        validate_threshold(self.duplicate_threshold, "duplicate_threshold",
+                           low=0.0, high=1.0)
+        _positive_integer(self.confirmation_observations,
+                          "confirmation_observations")
+        _positive_integer(self.reconciliation_interval,
+                          "reconciliation_interval")
+        _positive_integer(self.absent_reconciliations_before_retract,
+                          "absent_reconciliations_before_retract")
+        validate_threshold(
+            self.free_space_reliability_threshold,
+            "free_space_reliability_threshold", low=0.0, high=1.0,
+        )
+
+
+def _ranked_matches(
+    region: Mapping[str, Any], nodes: list[dict[str, Any]], *,
+    visual_weight: float, geometry_weight: float, geometry_scale_m: float,
+) -> list[tuple[float, dict[str, Any]]]:
+    rows = [
+        (
+            association_score(
+                region, node,
+                visual_weight=visual_weight,
+                geometry_weight=geometry_weight,
+                geometry_scale_m=geometry_scale_m,
+            ),
+            node,
+        )
+        for node in nodes
+    ]
+    return sorted(rows, key=lambda item: (-item[0], str(item[1]["node_id"])))
+
+
+def _current_node(revision: GraphRevision, node_id: str) -> dict[str, Any] | None:
+    matches = [
+        node for node in revision.graph["nodes"]
+        if node["node_id"] == node_id and node.get("valid_to") is None
+    ]
+    if len(matches) > 1:
+        raise ValueError(f"node {node_id!r} has multiple open versions")
+    return matches[0] if matches else None
+
+
+def _greedy_duplicate_merges(
+    revision: GraphRevision, *, visual_weight: float, geometry_weight: float,
+    geometry_scale_m: float, threshold: float,
+) -> int:
+    merge_count = 0
+    while True:
+        nodes = sorted(open_nodes(revision.graph), key=lambda node: str(node["node_id"]))
+        choices: list[tuple[float, str, str, dict[str, Any], dict[str, Any]]] = []
+        for left_index, left in enumerate(nodes):
+            for right in nodes[left_index + 1:]:
+                score = node_pair_score(
+                    left, right,
+                    visual_weight=visual_weight,
+                    geometry_weight=geometry_weight,
+                    geometry_scale_m=geometry_scale_m,
+                )
+                if score >= threshold:
+                    choices.append((
+                        score, str(left["node_id"]), str(right["node_id"]), left, right,
+                    ))
+        if not choices:
+            return merge_count
+        _, _, _, winner, loser = sorted(
+            choices, key=lambda item: (-item[0], item[1], item[2])
+        )[0]
+        revision.merge_nodes(winner, loser)
+        merge_count += 1
+
+
+class LOWAdapter:
+    """Last-Observation Overwrite naïve baseline."""
+
+    method_id = "low.adapter.v1"
+
+    def __init__(self, config: LOWConfig):
+        self.config = config
+
+    def update(self, model_input: AdapterInput) -> Mapping[str, Any]:
+        started = time.perf_counter()
+        revision = GraphRevision(model_input["prior_memory"], method_id=self.method_id)
+        used: set[str] = set()
+        matched = 0
+        born = 0
+        for region in model_input["region_observations"]:
+            eligible = [
+                node for node in open_nodes(revision.graph, include_dormant=False)
+                if node["node_id"] not in used
+                and node.get("node_type") == region["structure_kind"]
+            ]
+            ranked = sorted(
+                ((
+                    centroid_distance(region, observation_state(node) or {}), node
+                ) for node in eligible),
+                key=lambda item: (item[0], str(item[1]["node_id"])),
+            )
+            if ranked and ranked[0][0] <= self.config.maximum_centroid_distance_m:
+                node = ranked[0][1]
+                revision.update_node(
+                    node, region, float(model_input["decision_time_s"]),
+                    fused=False, template="BIND",
+                )
+                used.add(str(node["node_id"]))
+                matched += 1
+            else:
+                revision.create_node(
+                    region, float(model_input["decision_time_s"]),
+                    lifecycle="confirmed",
+                )
+                born += 1
+        confidence = (
+            sum(float(region["reliability"])
+                for region in model_input["region_observations"])
+            / max(1, len(model_input["region_observations"]))
+        )
+        return revision.finish(
+            confidence=confidence,
+            runtime_ms=(time.perf_counter() - started) * 1000.0,
+            diagnostics={"matched_regions": matched, "born_regions": born},
+        )
+
+
+class TAFAdapter:
+    """Thresholded Association and Fusion mechanism-level adaptation."""
+
+    method_id = "taf.adapter.v1"
+
+    def __init__(self, config: TAFConfig):
+        self.config = config
+
+    def update(self, model_input: AdapterInput) -> Mapping[str, Any]:
+        started = time.perf_counter()
+        revision = GraphRevision(model_input["prior_memory"], method_id=self.method_id)
+        used: set[str] = set()
+        matched = 0
+        born = 0
+        for region in model_input["region_observations"]:
+            eligible = [
+                node for node in open_nodes(revision.graph, include_dormant=False)
+                if node["node_id"] not in used
+            ]
+            ranked = _ranked_matches(
+                region, eligible,
+                visual_weight=self.config.visual_weight,
+                geometry_weight=self.config.geometry_weight,
+                geometry_scale_m=self.config.geometry_scale_m,
+            )
+            if ranked and ranked[0][0] >= self.config.association_threshold:
+                node = ranked[0][1]
+                revision.update_node(
+                    node, region, float(model_input["decision_time_s"]),
+                    fused=True, template="BIND",
+                )
+                used.add(str(node["node_id"]))
+                matched += 1
+            else:
+                revision.create_node(
+                    region, float(model_input["decision_time_s"]),
+                    lifecycle="confirmed",
+                )
+                born += 1
+        merged = 0
+        if revision.tick % self.config.fusion_interval == 0:
+            merged = _greedy_duplicate_merges(
+                revision,
+                visual_weight=self.config.visual_weight,
+                geometry_weight=self.config.geometry_weight,
+                geometry_scale_m=self.config.geometry_scale_m,
+                threshold=self.config.duplicate_threshold,
+            )
+        confidence = (
+            sum(float(region["reliability"])
+                for region in model_input["region_observations"])
+            / max(1, len(model_input["region_observations"]))
+        )
+        return revision.finish(
+            confidence=confidence,
+            runtime_ms=(time.perf_counter() - started) * 1000.0,
+            diagnostics={
+                "matched_regions": matched,
+                "born_regions": born,
+                "merged_pairs": merged,
+            },
+        )
+
+
+class ELUAdapter:
+    """Existence-Likelihood Updating mechanism-level adaptation."""
+
+    method_id = "elu.adapter.v1"
+
+    def __init__(self, config: ELUConfig):
+        self.config = config
+
+    def _score(self, region: Mapping[str, Any], node: Mapping[str, Any]) -> float:
+        return association_score(
+            region, node,
+            visual_weight=self.config.visual_weight,
+            geometry_weight=self.config.geometry_weight,
+            geometry_scale_m=self.config.geometry_scale_m,
+        )
+
+    def update(self, model_input: AdapterInput) -> Mapping[str, Any]:
+        started = time.perf_counter()
+        revision = GraphRevision(model_input["prior_memory"], method_id=self.method_id)
+        initial_open = open_nodes(revision.graph)
+        archived = archived_nodes(revision.graph)
+        used: set[str] = set()
+        reactivated = 0
+        born = 0
+        positive = 0
+        for region in model_input["region_observations"]:
+            active_ranked = _ranked_matches(
+                region, [node for node in initial_open if node["node_id"] not in used],
+                visual_weight=self.config.visual_weight,
+                geometry_weight=self.config.geometry_weight,
+                geometry_scale_m=self.config.geometry_scale_m,
+            )
+            if active_ranked and active_ranked[0][0] >= self.config.association_threshold:
+                node = active_ranked[0][1]
+                state = observation_state(node) or {}
+                log_odds = float(state.get("existence_log_odds", self.config.birth_log_odds))
+                log_odds += (
+                    self.config.positive_log_odds_increment
+                    * float(region["reliability"])
+                )
+                revision.update_node(
+                    node, region, float(model_input["decision_time_s"]),
+                    lifecycle="confirmed", fused=True,
+                    template="REACTIVATE" if node["lifecycle"] == "dormant" else "BIND",
+                    state_updates={"existence_log_odds": log_odds},
+                )
+                used.add(str(node["node_id"]))
+                positive += 1
+                if node["lifecycle"] == "dormant":
+                    reactivated += 1
+                continue
+
+            archived_ranked = _ranked_matches(
+                region, [node for node in archived if node["node_id"] not in used],
+                visual_weight=self.config.visual_weight,
+                geometry_weight=self.config.geometry_weight,
+                geometry_scale_m=self.config.geometry_scale_m,
+            )
+            if archived_ranked and archived_ranked[0][0] >= self.config.association_threshold:
+                node = archived_ranked[0][1]
+                state = observation_state(node) or {}
+                log_odds = float(state.get("existence_log_odds", self.config.birth_log_odds))
+                log_odds += (
+                    self.config.positive_log_odds_increment
+                    * float(region["reliability"])
+                )
+                revision.reactivate_node(
+                    node, region, float(model_input["decision_time_s"]),
+                    state_updates={"existence_log_odds": log_odds},
+                )
+                used.add(str(node["node_id"]))
+                reactivated += 1
+            else:
+                revision.create_node(
+                    region, float(model_input["decision_time_s"]),
+                    lifecycle="confirmed",
+                    state_updates={"existence_log_odds": self.config.birth_log_odds},
+                )
+                born += 1
+
+        dormant = 0
+        retracted = 0
+        for original in initial_open:
+            node_id = str(original["node_id"])
+            if node_id in used:
+                continue
+            current = _current_node(revision, node_id)
+            if current is None or not fully_covered_by_free_space(
+                current, model_input["free_space_observations"],
+                minimum_reliability=self.config.free_space_reliability_threshold,
+            ):
+                continue
+            state = observation_state(current) or {}
+            log_odds = float(state.get("existence_log_odds", self.config.birth_log_odds))
+            log_odds -= self.config.negative_log_odds_decrement
+            if log_odds <= self.config.retract_log_odds_threshold:
+                revision.lifecycle_node(
+                    current, lifecycle="retracted", template="RETRACT",
+                    state_updates={"existence_log_odds": log_odds}, terminal=True,
+                )
+                retracted += 1
+            elif log_odds <= self.config.dormant_log_odds_threshold:
+                revision.lifecycle_node(
+                    current, lifecycle="dormant", template=None,
+                    state_updates={"existence_log_odds": log_odds},
+                )
+                dormant += 1
+
+        evidence_count = positive + reactivated + born + dormant + retracted
+        confidence = min(1.0, evidence_count / max(1, len(initial_open) + len(
+            model_input["region_observations"]
+        )))
+        return revision.finish(
+            confidence=confidence,
+            runtime_ms=(time.perf_counter() - started) * 1000.0,
+            diagnostics={
+                "positive_updates": positive,
+                "born_regions": born,
+                "reactivated_nodes": reactivated,
+                "dormant_nodes": dormant,
+                "retracted_nodes": retracted,
+            },
+        )
+
+
+class WFRAdapter:
+    """Windowed Fragment Reconciliation mechanism-level adaptation."""
+
+    method_id = "wfr.adapter.v1"
+
+    def __init__(self, config: WFRConfig):
+        self.config = config
+
+    def update(self, model_input: AdapterInput) -> Mapping[str, Any]:
+        started = time.perf_counter()
+        revision = GraphRevision(model_input["prior_memory"], method_id=self.method_id)
+        initial_open = open_nodes(revision.graph)
+        used: set[str] = set()
+        matched = 0
+        fragments = 0
+        for region in model_input["region_observations"]:
+            ranked = _ranked_matches(
+                region, [node for node in initial_open if node["node_id"] not in used],
+                visual_weight=self.config.visual_weight,
+                geometry_weight=self.config.geometry_weight,
+                geometry_scale_m=self.config.geometry_scale_m,
+            )
+            if ranked and ranked[0][0] >= self.config.association_threshold:
+                node = ranked[0][1]
+                state = observation_state(node) or {}
+                revision.update_node(
+                    node, region, float(model_input["decision_time_s"]),
+                    lifecycle=node["lifecycle"], fused=True, template="BIND",
+                    state_updates={
+                        "fragment_observations": int(
+                            state.get("fragment_observations", 0)
+                        ) + 1,
+                        "absent_reconciliations": 0,
+                    },
+                )
+                used.add(str(node["node_id"]))
+                matched += 1
+            else:
+                revision.create_node(
+                    region, float(model_input["decision_time_s"]),
+                    lifecycle="candidate",
+                    state_updates={
+                        "fragment_observations": 1,
+                        "absent_reconciliations": 0,
+                    },
+                )
+                fragments += 1
+
+        confirmed = 0
+        retracted = 0
+        merged = 0
+        if revision.tick % self.config.reconciliation_interval == 0:
+            for node in list(open_nodes(revision.graph)):
+                current = _current_node(revision, str(node["node_id"]))
+                if current is None:
+                    continue
+                state = observation_state(current) or {}
+                if (
+                    current["lifecycle"] == "candidate"
+                    and int(state.get("fragment_observations", 0))
+                    >= self.config.confirmation_observations
+                ):
+                    revision.lifecycle_node(
+                        current, lifecycle="confirmed", template="BIND",
+                        state_updates={"absent_reconciliations": 0},
+                    )
+                    confirmed += 1
+
+            for original in initial_open:
+                node_id = str(original["node_id"])
+                if node_id in used:
+                    continue
+                current = _current_node(revision, node_id)
+                if current is None or not fully_covered_by_free_space(
+                    current, model_input["free_space_observations"],
+                    minimum_reliability=self.config.free_space_reliability_threshold,
+                ):
+                    continue
+                state = observation_state(current) or {}
+                absent = int(state.get("absent_reconciliations", 0)) + 1
+                if absent >= self.config.absent_reconciliations_before_retract:
+                    revision.lifecycle_node(
+                        current, lifecycle="retracted", template="RETRACT",
+                        state_updates={"absent_reconciliations": absent}, terminal=True,
+                    )
+                    retracted += 1
+                else:
+                    revision.lifecycle_node(
+                        current, lifecycle=current["lifecycle"], template=None,
+                        state_updates={"absent_reconciliations": absent},
+                    )
+
+            merged = _greedy_duplicate_merges(
+                revision,
+                visual_weight=self.config.visual_weight,
+                geometry_weight=self.config.geometry_weight,
+                geometry_scale_m=self.config.geometry_scale_m,
+                threshold=self.config.duplicate_threshold,
+            )
+
+        confidence = min(1.0, (
+            matched + confirmed + merged + retracted
+        ) / max(1, len(model_input["region_observations"]) + len(initial_open)))
+        return revision.finish(
+            confidence=confidence,
+            runtime_ms=(time.perf_counter() - started) * 1000.0,
+            diagnostics={
+                "matched_regions": matched,
+                "new_fragments": fragments,
+                "confirmed_fragments": confirmed,
+                "merged_pairs": merged,
+                "retracted_nodes": retracted,
+            },
+        )

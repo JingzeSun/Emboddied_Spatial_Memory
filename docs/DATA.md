@@ -24,6 +24,8 @@
 
 `MemoryUpdateResult` 是共同预测输出，VM-01 精确字段为：`schema_version, method_id, pre_memory_sha256, post_memory, post_memory_sha256, normalized_delta, confidence, runtime_ms, diagnostics`。`normalized_delta` 只记录声明模板以及创建/关闭的节点版本和边版本 ID；当前验证结构合法和摘要绑定，不判定它在语义上应叫 BIND 还是 BIRTH。它解决直接改图方法与事务选择方法难以同一评价的问题；输入任一方法的内部更新结果，输出规范化的新记忆和变化记录；例如 LOW 覆盖旧节点属性可在后续适配规范中映射为 BIND-like delta。它不声称原论文使用了本项目事务术语，也不把结构合法等同语义正确。
 
+VM-02 的共同节点观测状态键为 `vsmt_observation_state`，当前包含 `descriptor, centroid_m, extent_m, reliability, last_seen_s, observation_count`；ELU 可另存 `existence_log_odds`，WFR 可另存 `fragment_observations, absent_reconciliations`。它解决各适配器如何从同一图读取自己的最小状态；输入匿名区域观测，输出只依赖公开前缀的当前节点统计。例如 TAF 对 descriptor/centroid 做按既有观测数与当前可靠性的确定性融合。它不含永久真值身份、reference 标签或未来，并不把 ELU/WFR 私有字段提供给其他方法作为额外特征；正式初始化及字段迁移仍须随 VM-04 数据合同冻结。
+
 `CandidateCatalog`（候选目录）解决 teacher 是否改过选择空间的问题。输入只能是已验证 `ObservationPacket + prior_memory`、公开来源指针和候选程序，输出带逐程序摘要和整体摘要的包内匿名顺序 `candidate:0000...`；例如 MERGE 程序可声明由 `/region_observations` 与 `/nodes` 派生。它不接收 private 参数，也不证明某个候选是正确答案。`TeacherTargets`（教师目标）输入已经封存的目录和等长分数/概率，输出按完全相同 ID 与顺序绑定的标签；例如候选漏掉正确 MERGE 时只能给现有项评分，不能新增 `candidate:0007`。它不是在线输入，也不允许 teacher 排序目录。
 
 `PrivateEvaluation`（私有评价记录）由独立入口加载，当前只绑定参考记忆、候选事务等价组、未来观测摘要、模拟器身份映射和语义案例 ID；实际未来数组的数值字段留到 VM-04 前另行冻结。它解决答案文件怎样与公开样本对齐而不进入模型的问题；例如交换两个模拟器实例名会改变 `private_sha256`，但不得改变公开包或候选。它不构造 proposal/query/candidate，也不是当前已经生成的数据。
