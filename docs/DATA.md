@@ -691,4 +691,6 @@ D-105补充：原`audit/config.json`没有家族实例编号；reader以已解�
 
 D-106补充：磁盘`public/<world>.json.gz`是含九候选的`public-family-v2`，必须先经`r4_public_v2.model_input(public, action_slot)`验证并选槽，所得`public-query-v2`才进入共同查询转换。两个schema不能直接等同。
 
+D-107补充：`sensor_times.npy.gz`由0.002秒物理步累加产生，按公共时钟合同以`1e-9`秒绝对容差核0.1秒采样；`sensor_step_indices`仍精确核对0、50、…、10000。原数组不重写。
+
 白话：例如一条分支可同时给出“看过什么和要执行什么”以及“实际物块后来到哪里”，但前者放model_input、后者只放训练target。未来RGBD只帮助D/F/W重建自身状态，不包含推头真实未来位姿。这不是把标签变成部署输入，也不允许从audit身份查表预测。

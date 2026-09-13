@@ -142,7 +142,7 @@ def load_branch(index, family_id, world, action_slot, *, include_auxiliary_rgbd)
         steps = array("sensor_step_indices.npy.gz")
         require(rgb.shape == (201, 80, 80, 3) and depth.shape == (201, 80, 80),
                 "future RGBD shape")
-        require(all(math.isclose(float(value), i / 10, abs_tol=1e-12, rel_tol=0)
+        require(all(math.isclose(float(value), i / 10, abs_tol=1e-9, rel_tol=0)
                     for i, value in enumerate(times)), "future sensor times changed")
         require(steps.tolist() == [50 * i for i in range(201)],
                 "future sensor step indices changed")
