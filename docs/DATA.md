@@ -656,3 +656,14 @@ r4_flowm_adapter_check_v1.py固定新flowm-adapter-check-v1目录，14项本地�
 r4_three_model_public_check_v1.py读取既有r4_frontend_stage_v2r1配置的families[0]/worlds[0]公开文件及原登记bytes/sha256；该选择只基于清单顺序。读取守卫在解码前安装，拒绝spatial-history下其他所有文件，包含私有trajectory/labels及聚合报告；有实际拒绝open反例。算法只得到严格public query及9份缩放控制，文件名/家族/世界不进入模型。
 
 白话：例如同一份原始LL公开观察交给D/F/W，原144主分支和私有标签均不改动。新three-model-public-check-v1下D/F/W分别保存started绑定、c00..c22的samples/prediction、receipt或failure；D每候选16samples，F/W每候选1。receipt含公开源摘要、9候选/121帧/200步、参数与决策摘要、计时/峰值、0训练/0私有读取；未来目标从未打开。export内嵌所有JSON及原字节摘要至spatial_history_r4_three_model_public_v1.json，engineering_ready与trained_model_ready明确分开。
+
+
+### R4-5学习数据与资源预检证据（D-097，proposed）
+
+[learning_contract_r4_v2.json](../configs/spatial_history/learning_contract_r4_v2.json)直接引用原r4_family_design_v2，不另随机划分。32/8/8/8/4/4家族顺序和64个身份保持；每家族4世界9候选，共256历史、2304首次分支及2304独立重放。开发侧52家族，已有4家族按原manifest/digest/exit复用，余48待新生成入口；确认侧12家族仍只保留设计，模型/探针/评分锁定与单独放行前不生成观测。旧CPMT test继续封存。
+
+白话：这些计数解决“候选由四条变九条后仍按旧规模计数据”的错误。输入固定家族清单，输出开发、确认及复用分母；例如一家的36条控制不是36个独立场景家族。这里是计划计数，不是2304条新分支已经生成。
+
+r4_learning_preflight_v1.py只读取Git、已导出的工程JSON、家族设计、磁盘统计和JAX/Torch设备列表，不打开数据文件、初始化模型或跑训练。输出results/spatial_history_r4_learning_preflight_v1.json，含源文件bytes/SHA256、原33项内嵌证据校验、精确服务器根目录、各文件系统可用字节、设备信息、剩余旧窗口、固定预算缺口和未满足条件。audit_completed/exit_code=0仅表示预检执行完成；training_executable与confirmation_executable仍为false。成功报告拒绝重写；故障先保留终端证据，再登记修复，不借旧marker认证。
+
+白话：资源预检输入机器实际容量和拟议额度，输出哪些前提还缺。例如Dreamer只能列出CpuDevice时，不能因为另两模型能用GPU就声称三模型训练环境均就绪。这不是GPU训练测速，前向/反向工程总耗时也不能直接当每个优化步成本。
