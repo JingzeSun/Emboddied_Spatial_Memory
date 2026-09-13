@@ -703,4 +703,10 @@ D-108新增开发生成v2目录`/root/autodl-tmp/spatial-history/sh05-r4-develop
 
 D-110的共同逐分支metric记录`position_error_m/contact_brier/success_brier`三个有限浮点；聚合只对完整分支逐项算术平均。训练loss term仍按模型分别记录，不能混称共同metric。Torch optimizer state不含冻结参数；W的DINOv2权重仍由外部资产摘要绑定。
 
+### M悲观输出值（D-111）
+
+`spatial-history-r4-pessimistic-map-v1`返回共同`prediction`、补齐后的proxy、task、audit及布尔边界。audit含`stop_step/object_denied/pusher_denied/denied_cell_count/decision_body_free_cells`；stop_step为null表示全轨迹始终在允许格内。共同prediction仍是200个0.1秒端点、200个0/1物块碰障概率和一个0/1成功概率。
+
+白话：这些字段记录M为何停止；输入是每个0.002秒扫掠所需格，输出首次不能由公开证据允许的步及完整预测。例如只有推头扫到未知时`pusher_denied=true`，不能伪装成已观测墙的物块碰撞。它不存私有墙坐标或真实标签，private评估结果必须在独立进程另存。
+
 白话：例如一条分支可同时给出“看过什么和要执行什么”以及“实际物块后来到哪里”，但前者放model_input、后者只放训练target。未来RGBD只帮助D/F/W重建自身状态，不包含推头真实未来位姿。这不是把标签变成部署输入，也不允许从audit身份查表预测。
