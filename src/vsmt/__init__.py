@@ -29,6 +29,13 @@ from .contracts import (
     validate_private_mutation_invariance,
     validate_teacher_targets,
 )
+from .causal_prior import (
+    PublicBootstrapConfig,
+    advance_public_bootstrap,
+    build_causal_prior,
+    empty_public_memory,
+    validate_causal_prior_receipt,
+)
 from .public_candidates import (
     PublicCandidateConfig,
     generate_public_candidate_catalog,
@@ -63,4 +70,9 @@ __all__ = [
     "PublicCandidateConfig",
     "generate_public_candidate_catalog",
     "label_sealed_candidates",
+    "PublicBootstrapConfig",
+    "advance_public_bootstrap",
+    "build_causal_prior",
+    "empty_public_memory",
+    "validate_causal_prior_receipt",
 ]

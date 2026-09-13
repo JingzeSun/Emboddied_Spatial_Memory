@@ -2,6 +2,8 @@
 
 `vsmt_vm01_contracts.schema.json` 是当前 VM-01 的机读外形合同，覆盖公开观测、封存候选、teacher 标签、共同结果、私有评价和私有扰动审计六类记录。候选程序引用的公开 `online_evidence` 与程序分别摘要并一起进入 catalog seal。它解决文件串线和多余字段混入的问题；输入一个 JSON 记录，输出 schema 接受或拒绝。例如带 `reference_spec` 的公开观测会因额外字段被拒绝。它不定义 BIND/BIRTH 等价、事务评分权重或模型效果；精确时间、摘要绑定、禁止信息来源和候选先于 teacher 的运行时约束由 `src/vsmt/contracts.py` 执行。
 
+`vsmt_causal_prior_receipt.schema.json` 是 VM-04 的公开因果旧记忆回执外形合同，记录构建器、配置、逐包输入、逐步更新和版本链摘要。它解决受控实验的共同 prior 是否可从公开历史逐步复算；输入一份构建回执，输出字段/摘要格式接受或拒绝。例如两包输入必须对应两项更新和三项图版本摘要。它不证明进程没有挂载 private，也不判断 BIND 阈值是否合理；运行时因果隔离和摘要复算仍由 `src/vsmt/causal_prior.py` 及后续服务器守卫执行。
+
 以下文件是旧 CPMT pipeline 的历史跨模块边界：
 
 这些 JSON Schema 定义 CPMT pipeline 的跨模块边界：

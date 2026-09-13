@@ -131,7 +131,7 @@ VM-03 的 `generate_public_candidate_catalog`（公开候选目录生成器）�
 
 VM-04 v1拟把单步机制比较和长期自反馈分开。`controlled_revision`（受控单次修订）输入同一 evidence level 内逐字节相同的 causal prior memory（因果旧记忆）和当前公开 packet，输出每个方法的一次新图；`closed_loop_revision`（闭环连续修订）输入相同完整公开序列但让各方法使用自己上一时刻提交的图，输出各自版本链与恢复轨迹。例如先把同一个重复节点旧图交给五个方法比较 MERGE，再另看它们从空图运行时谁会形成重复、多久修好。它解决单步公平性和长期误差传播不能由一张表同时回答的问题；不把共同 bootstrap 的表现算成任何一个方法的贡献，也不拿闭环中不同旧图冒充同条件单步实验。
 
-受控轨道的 `public_bootstrap_v1`（公开旧记忆构建器，planned）只允许从空图依时间顺序做公开 BIRTH/BIND，并给每一步保存输入、配置、提交程序和版本链 SHA-256；构建进程只能挂载 `public`。输入第 0–23 帧的公开 packet，输出第 24 帧之前的封存旧图和 `causal_prior_receipt`。例如交换 private simulator ID 或未来帧而不改 public 时，整个回执必须逐字节不变。它不使用 reference transaction 初始化“正确旧图”，也不等于 bootstrap 自己是主对照；阈值尚未冻结，当前不可实现为数据入口。
+受控轨道的 `public_bootstrap_v1`（公开旧记忆构建器）已形成待服务器验证的纯代码候选：从同一个空图依时间顺序只做公开 BIRTH/BIND，并给每一步保存原公开包摘要、剥离审计身份后的适配输入摘要、提交更新摘要和版本链 SHA-256；构建函数签名没有 private、teacher、future 或路径参数，运行阶段还必须用仅挂载 `public` 的进程守卫。输入第 0–23 帧的公开 packet，输出第 24 帧之前的封存旧图和 `causal_prior_receipt`。例如只改变样本摘要或RGB-D文件摘要时，构建出的图和实际适配输入摘要不变，但外层公开文件绑定摘要会变化；以后交换 private simulator ID 或未来帧则因这些值根本不可达而不应改变任何回执字节。它不使用 reference transaction 初始化“正确旧图”，也不等于 bootstrap 自己是主对照；关联阈值尚未冻结，所以当前模块不能成为数据生成入口。
 
 关系感知 SPLIT 已按用户批准形成待服务器验证的代码候选：一次原子操作完成“关闭源节点、关闭所有源 incident edges、创建两个后继、按候选 assignment 重建边”。每条旧边可给后继0、后继1或二者；合同也允许在至少两份已登记公开负证据下均不继承，但当前生成器尚不提出这一分支，避免在关系负证据口径冻结前暗定语义。第一批源节点开放边数上限为2，超过上限或含源节点自环时不生成 SPLIT，并计入候选覆盖分析。输入一个待拆节点、两个公开区域和开放边，输出完整合法的 SPLIT 后状态；例如一个错误聚合的双椅节点拆开后，两者都可 `located_at` 同一地点，而只有一者继承某个局部 `adjacent_to`。它不是 SPLIT 后再让 teacher 补边，也不是默认复制全部关系；静态检查或 executor 可执行也不表示关系分配在语义上正确。
 

@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/embodied-memory/vsmt_causal_prior_receipt.schema.json",
+  "title": "VSMT Public-Only Causal Prior Receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "builder_id",
+    "builder_revision",
+    "builder_code_sha256",
+    "builder_config_sha256",
+    "initial_memory_sha256",
+    "ordered_public_packet_sha256s",
+    "ordered_adapter_input_sha256s",
+    "committed_update_sha256s",
+    "version_chain_sha256s",
+    "final_prior_memory_sha256",
+    "packet_count",
+    "receipt_sha256"
+  ],
+  "properties": {
+    "schema_version": {"const": "vsmt-causal-prior-receipt-v1"},
+    "builder_id": {"const": "vsmt.public.bootstrap.v1"},
+    "builder_revision": {"type": "string", "minLength": 1},
+    "builder_code_sha256": {"$ref": "#/$defs/sha256"},
+    "builder_config_sha256": {"$ref": "#/$defs/sha256"},
+    "initial_memory_sha256": {"$ref": "#/$defs/sha256"},
+    "ordered_public_packet_sha256s": {"$ref": "#/$defs/digestArray"},
+    "ordered_adapter_input_sha256s": {"$ref": "#/$defs/digestArray"},
+    "committed_update_sha256s": {"$ref": "#/$defs/digestArray"},
+    "version_chain_sha256s": {"$ref": "#/$defs/digestArray"},
+    "final_prior_memory_sha256": {"$ref": "#/$defs/sha256"},
+    "packet_count": {"type": "integer", "minimum": 0},
+    "receipt_sha256": {"$ref": "#/$defs/sha256"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "digestArray": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/sha256"}
+    }
+  }
+}

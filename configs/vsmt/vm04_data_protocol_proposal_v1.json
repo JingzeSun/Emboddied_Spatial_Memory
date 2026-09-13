@@ -243,12 +243,13 @@
       "ordered_public_packet_sha256s",
       "builder_code_sha256",
       "builder_config_sha256",
-      "committed_program_sha256s",
+      "committed_update_sha256s",
       "version_chain_sha256s",
       "final_prior_memory_sha256"
     ],
     "required_invariance": "private_identity_reference_and_future_mutation_leave_every_receipt_byte_unchanged",
-    "blocking_reason": "builder_thresholds_and_implementation_not_yet_reviewed"
+    "implementation_status": "code_candidate_pending_server_verification",
+    "blocking_reason": "builder_thresholds_and_runtime_public_only_mount_not_yet_frozen"
   },
   "split_relation_assignment_proposal": {
     "status": "implementation_candidate_pending_server_verification",
