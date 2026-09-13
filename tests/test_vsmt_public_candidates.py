@@ -291,6 +291,33 @@ class PublicCandidateTests(unittest.TestCase):
             execute_transaction(graph, program)
         self.assertEqual(graph, before)
 
+    def test_split_rejects_duplicate_replacement_for_one_successor(self) -> None:
+        graph = graph_fixture()
+        catalog = generate_public_candidate_catalog(
+            packet_fixture(graph), graph, config=config(),
+        )
+        program = deepcopy(next(
+            item["program"] for item in catalog["candidates"]
+            if item["program"]["template"] == "SPLIT"
+            and len(item["program"]["split_relation_assignments"][0][
+                "successor_node_ids"
+            ]) == 2
+        ))
+        assignment = program["split_relation_assignments"][0]
+        replacements = [
+            operation["arguments"]["edge"]
+            for operation in program["operations"]
+            if operation["op_type"] == "ADD_EDGE"
+        ]
+        replacements[1]["source"] = assignment["successor_node_ids"][0]
+        before = deepcopy(graph)
+
+        with self.assertRaisesRegex(
+            ContractError, "one relation for each named successor",
+        ):
+            execute_transaction(graph, program)
+        self.assertEqual(graph, before)
+
     def test_audit_identity_does_not_change_programs_or_order(self) -> None:
         graph = graph_fixture()
         left_packet = packet_fixture(graph)

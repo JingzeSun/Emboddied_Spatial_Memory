@@ -622,29 +622,29 @@ def _validate_reliable_negative_evidence_refs(
     ]
     if len(negatives) < 2:
         raise PreconditionError(
-            "fact RETRACT needs at least two visible_empty "
+            "reliable absence needs at least two visible_empty "
             "contradicting events"
         )
     for event in negatives:
         if event.get("availability") != "online":
             raise PreconditionError(
-                "RETRACT evidence must be available online"
+                "reliable absence evidence must be available online"
             )
         if event.get("visibility") != "visible_empty":
             raise PreconditionError(
-                "RETRACT evidence must mark visible_empty"
+                "reliable absence evidence must mark visible_empty"
             )
         if event.get("pose_valid") is not True:
             raise PreconditionError(
-                "RETRACT evidence requires valid pose"
+                "reliable absence evidence requires valid pose"
             )
         if event.get("depth_valid") is not True:
             raise PreconditionError(
-                "RETRACT evidence requires valid depth"
+                "reliable absence evidence requires valid depth"
             )
         if event.get("reliability", 0) < reliability_threshold:
             raise PreconditionError(
-                "RETRACT evidence is below reliability threshold"
+                "reliable absence evidence is below reliability threshold"
             )
 
     distinct_keys = {
@@ -653,7 +653,7 @@ def _validate_reliable_negative_evidence_refs(
     }
     if len(distinct_keys) < 2:
         raise PreconditionError(
-            "RETRACT evidence needs two distinct time/view keys"
+            "reliable absence evidence needs two distinct time/view keys"
         )
 
     first_time = min(event["time_index"] for event in negatives)
@@ -1013,6 +1013,11 @@ def _validate_template_preconditions(
             raise ContractError(
                 "SPLIT must close every open incident edge exactly once"
             )
+        close_edge_at = {
+            operation["arguments"]["edge_id"]: operation["arguments"]["at"]
+            for operation in operations
+            if operation["op_type"] == "CLOSE_EDGE_VERSION"
+        }
 
         added_edges = [
             operation["arguments"]["edge"]
@@ -1066,6 +1071,7 @@ def _validate_template_preconditions(
                 raise ContractError(
                     "SPLIT relation assignment and replacement edge count differ"
                 )
+            replacement_ids: list[str] = []
             for new_edge in replacements:
                 replacement_id = (
                     new_edge["source"]
@@ -1087,11 +1093,25 @@ def _validate_template_preconditions(
                     or other_new != other_old
                     or new_edge["relation"] != old_edge["relation"]
                     or new_edge["frame"] != old_edge["frame"]
+                    or not set(old_edge["evidence_refs"])
+                    <= set(new_edge["evidence_refs"])
+                    or not set(old_edge["provenance"])
+                    <= set(new_edge["provenance"])
+                    or new_edge.get("valid_from") != close_edge_at[old_edge["edge_id"]]
+                    or new_edge.get("valid_to") is not None
                 ):
                     raise ContractError(
-                        "SPLIT replacement edge changed more than source identity"
+                        "SPLIT replacement edge changed or lost old relation state"
                     )
+                replacement_ids.append(replacement_id)
                 accounted_versions.append(new_edge["edge_version_id"])
+            if (
+                len(replacement_ids) != len(set(replacement_ids))
+                or set(replacement_ids) != set(assigned_ids)
+            ):
+                raise ContractError(
+                    "SPLIT must recreate one relation for each named successor"
+                )
         if (
             len(accounted_versions) != len(set(accounted_versions))
             or set(accounted_versions)

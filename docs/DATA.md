@@ -28,7 +28,7 @@ VM-01 当前代码已拒绝旧式语义 `latent_refs`：可部署旧记忆的该
 
 `CausalPriorReceipt`（因果旧记忆回执）代码候选的字段为：builder身份/版本/源码摘要、显式配置摘要、初始图摘要、按时间排列的公开包摘要、实际适配输入摘要、每步提交更新摘要、完整版本链、最终旧图摘要、包数和回执摘要。它解决 prior memory 是否可能由答案预填的问题；输入按时间排列且 `prior_memory_ref` 连续匹配的公开包，输出可逐步复算的封存链。例如第0帧BIRTH、第1帧公开相似度过门后BIND，链中会有初始图及两个后图摘要。它不保存private真值、不证明阈值正确，也不把包/文件摘要交给模型；schema见 `schemas/vsmt_causal_prior_receipt.schema.json`，当前只完成本地AST/JSON静态检查。
 
-VM-04清单拆成三层：`FamilySplitManifest`保存实际ProcTHOR house到audit/train/validation/confirmation的唯一归属，仅供数据编排；`PublicEpisodePlan`只保存与事务标签无关的opaque episode ID、family、split、槽位、32帧数和决策索引；`PrivateEpisodePlan`才保存episode到九种程序及重复号的映射和私有assignment salt。它解决训练文件名或槽号能否泄漏事务类别；输入合格house列表和协议，输出互相摘要绑定但读取权限分离的清单。例如换salt后公开18个episode槽完全不变，私有九程序各2次的排列会变。它不隐藏split本身，也不代替后续只用元数据的nuisance probe；confirmation私有计划在授权前不可创建，schema见 `schemas/vsmt_vm04_manifests.schema.json`。
+VM-04清单拆成三层：`FamilySplitManifest`保存audit/train/validation的实际ProcTHOR house ID，但confirmation行只保存承诺摘要及空ID；真实confirmation ID只能由另一个同时检查confirmation授权的reveal接口恢复。`PublicEpisodePlan`只保存与事务标签无关的opaque episode ID、family、split、槽位、32帧数和决策索引；`PrivateEpisodePlan`才保存episode到九种程序及重复号的映射和私有assignment salt。它解决确认家族提前暴露以及训练文件名/槽号泄漏事务类别；输入合格house列表和协议，输出互相摘要绑定但读取权限分离的清单。例如换salt后公开18个episode槽完全不变，私有九程序各2次的排列会变。它不隐藏开发split本身，也不代替后续只用元数据的nuisance probe；confirmation真实ID和episode计划在授权前均不可创建，schema见 `schemas/vsmt_vm04_manifests.schema.json`。
 
 白话：新增自由空间证据解决“没检测到”无法区分遮挡与可靠为空的问题。输入只能是当前公开 RGB-D 和相机标定，输出不指向任何旧节点的匿名自由盒；例如桌面前方射线直到墙面之间的一块空间可标 `free:0000`。它不等于模拟器碰撞几何、真值 mask 或“对象已消失”标签；每个适配器仍需用相同公开几何自行判断旧节点是否被覆盖。共同适配器因此看到八类部署值，TAF、ELU、WFR、LOW 与 VSMT 完全一致。
 

@@ -38,4 +38,4 @@
 
 旧源码、配置和 run 报告保留原路径。已被合并的细分文档、重复确认表和两套旧方案副本从工作树删除，原文可在[重组前提交](https://github.com/JingzeSun/Emboddied_Spatial_Memory/tree/c24ced2f4a5513f5a8944b98139857cfc27909ff)查看，不在新目录再复制一套。
 
-VSMT VM-01～VM-03 已完成服务器合同验收并合并 `main`；VM-04已有[不可执行的数据协议v1](configs/vsmt/vm04_data_protocol_proposal_v1.json)。关系感知SPLIT、公开因果prior、标签独立family/episode清单和fail-closed闸门已形成代码候选；固定服务器入口会先跑52项合同测试，再做只读来源审计并导出小报告。当前仍不安装依赖、不下载资产、不生成数据、不打开confirmation、不训练；来源兼容性、前端/几何/候选/teacher阈值及S-01～S-12数值口径尚待冻结。旧 CPMT 的 S5 no-go、旧 test 封存、D-062 世界模型代码与全部复现路径保留，但不再占据日常入口。
+VSMT VM-01～VM-03 已完成服务器合同验收并合并 `main`；VM-04已有[不可执行的数据协议v1](configs/vsmt/vm04_data_protocol_proposal_v1.json)。关系感知SPLIT、公开因果prior、标签独立family/episode清单和fail-closed闸门已形成代码候选；固定服务器入口会先跑53项合同测试，再做只读来源审计并导出小报告。当前仍不安装依赖、不下载资产、不生成数据、不打开confirmation、不训练；来源兼容性、前端/几何/候选/teacher阈值及S-01～S-12数值口径尚待冻结。旧 CPMT 的 S5 no-go、旧 test封存、D-062世界模型代码与全部复现路径保留，但不再占据日常入口。

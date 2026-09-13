@@ -234,7 +234,12 @@ def make_family_split_manifest(
         for source_house_id in ordered[cursor:cursor + count]:
             rows.append({
                 "family_id": f"family:{cursor:04d}",
-                "source_house_id": source_house_id,
+                "source_house_id": (
+                    None if split_name == "confirmation" else source_house_id
+                ),
+                "source_house_id_sha256": hashlib.sha256(
+                    f"{source_digest}|{source_house_id}".encode("utf-8")
+                ).hexdigest(),
                 "split": split_name,
                 "rank": cursor,
             })
@@ -272,6 +277,11 @@ def validate_family_split_manifest(
              "family manifest split seed mismatch")
     rows = manifest["families"]
     _require(type(rows) is list, "families must be a list")
+    _require(all(type(row) is dict for row in rows),
+             "every family row must be an object")
+    _require(type(manifest["eligible_house_count"]) is int
+             and manifest["eligible_house_count"] >= len(rows),
+             "eligible_house_count must cover every selected family")
     _require(manifest["selected_family_count"] == len(rows),
              "selected family count mismatch")
     _require(len(rows) == record["split_proposal"]["total_families"],
@@ -280,15 +290,27 @@ def validate_family_split_manifest(
     _require([row.get("family_id") for row in rows] == expected_ids,
              "family IDs must be canonical ordinals")
     for index, row in enumerate(rows):
-        _require(type(row) is dict and set(row) == {
-            "family_id", "source_house_id", "split", "rank",
+        _require(set(row) == {
+            "family_id", "source_house_id", "source_house_id_sha256", "split", "rank",
         }, f"families[{index}] has unexpected fields")
         _require(row["rank"] == index, "family rank must match canonical order")
         _require(row["split"] in ALL_SPLITS, "family split is not registered")
-    source_ids = [row.get("source_house_id") for row in rows]
-    _require(all(type(item) is str and item for item in source_ids),
-             "source house IDs must be nonempty strings")
-    _require(len(source_ids) == len(set(source_ids)),
+        _hex64(row["source_house_id_sha256"], "source_house_id_sha256")
+        if row["split"] == "confirmation":
+            _require(row["source_house_id"] is None,
+                     "confirmation source house ID must remain sealed")
+        else:
+            _require(type(row["source_house_id"]) is str and row["source_house_id"],
+                     "development source house ID must be nonempty")
+            expected_commitment = hashlib.sha256(
+                f"{manifest['source_manifest_sha256']}|{row['source_house_id']}".encode(
+                    "utf-8"
+                )
+            ).hexdigest()
+            _require(row["source_house_id_sha256"] == expected_commitment,
+                     "development source house commitment mismatch")
+    commitments = [row["source_house_id_sha256"] for row in rows]
+    _require(len(commitments) == len(set(commitments)),
              "a source house may not cross or repeat across splits")
     for split_name in ALL_SPLITS:
         observed = sum(row.get("split") == split_name for row in rows)
@@ -297,6 +319,42 @@ def validate_family_split_manifest(
     _require(manifest["manifest_sha256"] == _raw_sha256(_manifest_payload(manifest)),
              "family split manifest digest mismatch")
     return clone_json(dict(manifest))
+
+
+def reveal_confirmation_family_ids(
+    eligible_house_ids: Sequence[str], family_manifest: Mapping[str, Any], *,
+    config: Mapping[str, Any],
+) -> list[dict[str, str]]:
+    """Reveal confirmation source IDs only after the confirmation action gate."""
+
+    record = validate_vm04_protocol(config)
+    assert_vm04_action_authorized(record, action="confirmation_generation")
+    families = validate_family_split_manifest(family_manifest, config=record)
+    house_ids = list(eligible_house_ids)
+    _require(all(type(item) is str and item for item in house_ids)
+             and len(house_ids) == len(set(house_ids)),
+             "eligible house IDs must be unique nonempty strings")
+    required = int(record["split_proposal"]["total_families"])
+    _require(len(house_ids) >= required,
+             f"need at least {required} eligible house families")
+    source_digest = families["source_manifest_sha256"]
+    seed = int(families["split_seed"])
+    ordered = sorted(house_ids, key=lambda house_id: hashlib.sha256(
+        f"{source_digest}|{seed}|{house_id}".encode("utf-8")
+    ).hexdigest())[:required]
+    revealed: list[dict[str, str]] = []
+    for row, source_house_id in zip(families["families"], ordered, strict=True):
+        commitment = hashlib.sha256(
+            f"{source_digest}|{source_house_id}".encode("utf-8")
+        ).hexdigest()
+        _require(commitment == row["source_house_id_sha256"],
+                 "eligible house list does not match the sealed family manifest")
+        if row["split"] == "confirmation":
+            revealed.append({
+                "family_id": row["family_id"],
+                "source_house_id": source_house_id,
+            })
+    return revealed
 
 
 def make_episode_plan_manifests(

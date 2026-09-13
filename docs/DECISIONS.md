@@ -1380,7 +1380,7 @@
 ## D-130：VM-04计划清单标签隔离与fail-closed闸门
 
 - 日期：2026-09-14；状态：implementation candidate。新增纯标准库协议校验、house-family确定性分组和episode计划，不读取资产、不生成图像。family按`sha256(source_manifest_sha256|split_seed|house_id)`排序后依次分2/48/12/12，合计74个house且不跨split；协议同时复算18 episode/family、1332 episode和42624 observations。
-- 公开episode ID只依赖协议版本、family ordinal和0～17槽位，事务/重复分配只在私有计划中由私有salt确定；更换salt必须保持公开计划逐字节相同。confirmation计划调用当前会因授权false直接拒绝。白话：它解决“文件名里虽然没写MERGE，但固定槽位仍能猜到MERGE”的问题；输入公开槽位和私有平衡分配，输出分读权限的两份清单。它不等于元数据探针已经跑过，也不允许训练进程读取私有映射。
+- 开发family行保存实际house ID，confirmation行只保存绑定来源manifest的摘要并把ID置空；真实ID的reveal和confirmation episode计划当前都会因授权false拒绝。公开episode ID只依赖协议版本、family ordinal和0～17槽位，事务/重复分配只在私有计划中由私有salt确定；更换salt必须保持公开计划逐字节相同。白话：它解决“确认家族被提前看见”和“文件名里虽然没写MERGE但固定槽位仍能猜到MERGE”的问题；输入公开槽位和私有平衡分配，输出分读权限的清单。它不等于元数据探针已经跑过，也不允许训练进程读取私有映射。
 - 执行闸门要求`frozen_executable`、数值批准、实现批准、动作授权、来源/前端/因果prior/语义/nuisance全部填齐且待审事项为空。当前提案在第一项即失败，因此本代码不能被用来下载、生成、打开confirmation或训练；服务器测试仍pending。
 
 ## D-131：VM-04只读来源预检一次同步交付

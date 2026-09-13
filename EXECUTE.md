@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| VSMT首篇/VM-01～04 | VSMT已合并main；首轮31/36失败与修复37/37报告保留。VM-04不可执行协议下，关系感知SPLIT、公开因果prior、标签独立清单/闸门已分三提交完成本地静态检查；52项服务器测试和只读来源审计入口已备，尚未运行。服务器关机前手工审计见LOG-135，无正式回执；0安装/下载/生成/训练/新private/confirmation读取。LOG-133–135，D-125–131 |
+| VSMT首篇/VM-01～04 | VSMT已合并main；首轮31/36失败与修复37/37报告保留。VM-04不可执行协议下，关系感知SPLIT、公开因果prior、标签独立清单/闸门已分三提交完成本地静态检查；53项服务器测试和只读来源审计入口已备，尚未运行。服务器关机前手工审计见LOG-135，无正式回执；0安装/下载/生成/训练/新private/confirmation读取。LOG-133–135，D-125–131 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
 | R4三模型接入 | D完整适配16项通过（121/200全反向，0更新），W完整适配17项亦通过，F完整适配19项通过；真实公共接口27/27候选通过，0优化/真值读取。209bb34，LOG-123–127 |
 | R4前端v2r1 | 81bceed：19项通过，16历史/144名义预测/16选择完整，误标占据/自由0；物块平均误差9.59 cm、接触Brier 0.1152，全部涉及未知扫掠，正式M/P未就绪。LOG-121 |
@@ -1598,4 +1598,4 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - `b5b26b4`把SPLIT改为关系感知原子事务：开放边数≤2时逐边枚举后继0/后继1/二者，关闭源节点和旧边后保留关系类型、方向、另一端点并重建；漏分/重复/夹带边原子拒绝。“均不继承”只留executor合同，公开负证据口径冻结前不生成。`9b37be0`实现只接公开packet的BIRTH/BIND因果prior及逐步回执；`2a44a80`实现2/48/12/12 family分组、标签独立episode ID、私有平衡映射和执行闸门。三项只有AST/JSON/diff静态通过，服务器测试pending，不是效果证据。
 - 用户关机前的手工只读核查显示：仓库实际路径`/root/Emboddied_Spatial_Memory`且当时同步到`a430c47`；GPU为RTX 4080 SUPER 32760 MiB、空闲约32230 MiB，根盘/`/root/autodl-tmp`约27/33 GB可用；基础Python 3.12.3、pip 24.0、Torch 2.8.0+cu128且CUDA可用，AI2-THOR/ProcTHOR/SAM2均未安装，`libvulkan`未解析而EGL/GL存在。这些是终端观察，无标准receipt且早于上述三个新提交，不能认证它们。
 - 可复用DINOv2仓库为commit`7764ea0f912e53c92e82eb78a2a1631e92725fc8`，ViT-S/14权重SHA-256=`b938bf1bc15cd2ec0feacfe3a1bb553fe8ea9ca46a7e1d8d00217f29aef60cd9`。候选官方ref为AI2-THOR 5.0.0 `f0825767cd50d69f666c7f282e54abfe58f1e917`、ProcTHOR-10K 0.1.0 `10746a749edfb819ba83dc1bdd3ab6f905567183`及0.1.2 `d54954a81e7126001e552c2d7904ee2e0d49eaae`、ProcTHOR代码`53d5bd4c8c96a699e6a615dc390abb670cc9d353`、SAM2`2b90b9f5ceec907a1c18123530e92e794ad901a4`；SAM2.1 Hiera-small官方文件HEAD为184,416,285 bytes。精确包/许可证/运行构建仍待固定入口复核。
-- 兼容性风险：ProcTHOR包元数据只列Python 3.6–3.9，SAM2要求Python≥3.10且Torch≥2.5.1；因此未选择不兼容的Python 3.9，也未改基础3.12。后续只读preflight先跑52项合同和来源摘要；通过后再单独审Python 3.10/3.11隔离环境、CloudRendering的`libvulkan1`与ProcTHOR LFS数据取得方式。当前0安装、0模型/数据下载、0模拟、0生成、0训练、0private/confirmation读取。
+- 兼容性风险：ProcTHOR包元数据只列Python 3.6–3.9，SAM2要求Python≥3.10且Torch≥2.5.1；因此未选择不兼容的Python 3.9，也未改基础3.12。后续只读preflight先跑53项合同和来源摘要；通过后再单独审Python 3.10/3.11隔离环境、CloudRendering的`libvulkan1`与ProcTHOR LFS数据取得方式。当前0安装、0模型/数据下载、0模拟、0生成、0训练、0private/confirmation读取。

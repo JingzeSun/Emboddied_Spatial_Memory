@@ -19,6 +19,7 @@ from vsmt.vm04_protocol import (  # noqa: E402
     assert_vm04_action_authorized,
     make_episode_plan_manifests,
     make_family_split_manifest,
+    reveal_confirmation_family_ids,
     validate_vm04_protocol,
 )
 
@@ -74,7 +75,11 @@ class VM04ProtocolTests(unittest.TestCase):
         self.assertEqual(left, right)
         rows = left["families"]
         self.assertEqual(len(rows), 74)
-        self.assertEqual(len({row["source_house_id"] for row in rows}), 74)
+        self.assertEqual(len({row["source_house_id_sha256"] for row in rows}), 74)
+        self.assertTrue(all(
+            row["source_house_id"] is None
+            for row in rows if row["split"] == "confirmation"
+        ))
         for split_name in ALL_SPLITS:
             expected = protocol()["split_proposal"][f"{split_name}_families"]
             self.assertEqual(sum(row["split"] == split_name for row in rows), expected)
@@ -148,6 +153,12 @@ class VM04ProtocolTests(unittest.TestCase):
                 config=config,
                 assignment_salt_sha256="b" * 64,
                 included_splits=("confirmation",),
+            )
+        with self.assertRaisesRegex(ValueError, "not frozen_executable"):
+            reveal_confirmation_family_ids(
+                [f"house-{index:04d}" for index in range(80)],
+                families,
+                config=config,
             )
 
     def test_manifest_tampering_does_not_change_source_config(self) -> None:

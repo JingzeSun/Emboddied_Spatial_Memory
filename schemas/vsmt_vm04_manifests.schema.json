@@ -26,10 +26,11 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["family_id", "source_house_id", "split", "rank"],
+            "required": ["family_id", "source_house_id", "source_house_id_sha256", "split", "rank"],
             "properties": {
               "family_id": {"type": "string", "pattern": "^family:[0-9]{4}$"},
-              "source_house_id": {"type": "string", "minLength": 1},
+              "source_house_id": {"type": ["string", "null"], "minLength": 1},
+              "source_house_id_sha256": {"$ref": "#/$defs/sha256"},
               "split": {"$ref": "#/$defs/split"},
               "rank": {"type": "integer", "minimum": 0}
             }
