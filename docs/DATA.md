@@ -726,3 +726,13 @@ D-111的`spatial-history-r4-pessimistic-map-v1`不再是正式输入schema。新
 白话：这些字段解决“预测撞墙”和“真的看见墙”被混写的问题。输入同一公开地图和控制，输出两种动力学的完整预测及每次阻挡的证据来源；例如M-PHYS在0.4秒撞到`body_occlusion_unknown`，表示它按悲观先验预测那里有障碍，不表示传感器观察到墙。它不读取私有XML、实际接触或未来机器人运动，独立评估只能在两种公开预测都封存后追加误差。
 
 白话：例如一条分支可同时给出“看过什么和要执行什么”以及“实际物块后来到哪里”，但前者放model_input、后者只放训练target。未来RGBD只帮助D/F/W重建自身状态，不包含推头真实未来位姿。这不是把标签变成部署输入，也不允许从audit身份查表预测。
+
+### E0像素相位诊断字段（D-116）
+
+`SH-05-R4-E0-pixel-phase-v1/public/*.json.gz`每项保存`world/gate_index/frame_index/phase_numerator/phase_denominator/offset_x_m/camera_x_m/pixel_pitch_m`、完整单帧`observation`和未经修改的E0 `prediction`。`public_seal.json`逐文件保存bytes/SHA-256及所有源输入摘要；在它完成前不解析XML目标或分割geom名称。
+
+`private_evaluation.json.gz`随后为每项增加原`assessment/target`、左右边界的`projected_u/nearest_pixel_u/signed_phase_from_nearest_pixel`及`gate_gap_trace`。后者逐墙顶行保存左右run、间隙列、是否全部足够远和每个失败像素的`geom_name/actual_depth_m/required_depth_m/depth_shortfall_m/derived_world_height_m/valid_depth`。白话：这些字段把“E0说间隙不够深”落实到哪一列、差多少和那列实际属于什么物体；例如`geom_name=gate_0_right`排除把同一像素解释成推头遮挡。它们是私有归因标签，不进入模型或新的公开数据格式。
+
+`summary.json`按世界与门报告零相位原结果、通过的相位分子、结果是否随纯x干预改变及零相位阻挡geom计数；`conclusion`分别给出`body_occlusion_supported`、`registered_gate_surface_blocker_supported`和`pixel_phase_causal_attribution_supported`。这些布尔量只对固定`r4-36`干预成立，不是新轨迹的家族级通过门。阶段回执固定264次重渲染、0物理步、0训练、0确认读取和`data_protocol_selected=false`。
+
+白话：输入原失败目录及诊断代码，输出可核摘要的小报告。例如33个位置中32个通过只能说明该快照的失败由像素相位控制，不能据此挑其中一个位置重建全部数据。这不是数据筛选表、模型分数或E0新阈值。
