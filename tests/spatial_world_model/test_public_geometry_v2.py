@@ -157,7 +157,7 @@ class PublicGeometryV2Tests(unittest.TestCase):
             extractor = deepcopy(self.extractor)
             extractor[field] = changed
             with self.subTest(field=field), self.assertRaises(ValueError):
-                self.recover([opening()])
+                recover_openings([opening()], self.sensor, extractor)
 
 
 if __name__ == "__main__":
