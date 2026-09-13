@@ -22,7 +22,7 @@
 
 ### 当前指针
 
-**停在 VSMT 论文收敛版的 VM-01～VM-03 合并工程验收：三个职责已形成代码候选，新增旧 LATENT 拒绝和禁止导入旧 M1 query/feature 的反作弊检查；固定服务器入口一次运行37项 VSMT 定向测试并导出小报告。** 首次服务器运行31/36通过，暴露合法 `composition_label` 被安全键误拒绝、带开放关系节点的 SPLIT 未重接边两个实现问题，失败目录保留；修复提交须在新目录重跑。通过及用户代码审查后才讨论 VM-04 的 L1/L2 数据数值、split、因果 prior 回执、预算和开发生成。当前无正式阈值、数据、训练、下载或 confirmation 授权。原 D-062 工作区及其中用户未提交的 `docs/PLAN.md`、`scripts/notes.txt` 不移动、不覆盖。
+**VM-01～VM-03 的VSMT论文收敛版工程验收已通过，当前停在用户代码审查与VM-04科学冻结之前。** 首次服务器31/36失败及目录保留；修复版在提交`351395a`的新目录运行37/37通过，报告为[vsmt_vm01_vm03_contract_check.json](../results/vsmt_vm01_vm03_contract_check.json)，明确0数据生成、0训练、0 private读取。下一科学职责须先冻结L1/L2数据数值、split、因果prior回执、SPLIT关系重分配、阈值和预算，不能凭工程通过自动生成或训练。当前无正式数据、训练、下载或confirmation授权。原D-062工作区及其中用户未提交的`docs/PLAN.md`、`scripts/notes.txt`不移动、不覆盖。
 
 ## 上一 D-062 路线（暂停，以下保留复现）
 
