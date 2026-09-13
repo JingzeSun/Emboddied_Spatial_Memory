@@ -133,8 +133,8 @@
     "scientific_values_may_auto_shrink": false
   },
   "execution_gates": {
-    "unmet_at_registration": ["new_learning_contract_and_budget_require_concrete_review", "L_R_predictors_not_implemented_or_checked", "M_formal_uncertainty_boundary_unresolved", "remaining_development_generation_runner_not_released", "training_checkpoint_and_diagnostic_runners_not_implemented_or_checked", "full_sequence_optimizer_throughput_not_measured", "confirmation_requires_separate_locked_release"],
-    "current_allowed_step": "read_only_resource_and_contract_preflight",
+    "unmet_at_registration": ["new_learning_contract_and_budget_require_concrete_review", "dual_M_implementations_and_stage_runner_require_user_code_review", "remaining_development_generation_must_be_restarted_after_review", "training_checkpoint_and_diagnostic_runners_not_implemented_or_checked", "full_sequence_optimizer_throughput_not_measured", "confirmation_requires_separate_locked_release"],
+    "current_allowed_step": "dual_M_isolated_checks_and_user_code_review_no_effect_run",
     "preflight_wall_s": 180,
     "preflight_output_max_bytes": 1048576,
     "preflight_new_training_steps": 0,

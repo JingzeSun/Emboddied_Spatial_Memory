@@ -1194,4 +1194,6 @@ M-PHYS现有实现为[r4_reconstructed_mujoco.py](../src/spatial_world_model/r4_
 
 三维圆柱倾斜时，未知扫掠暂用能包住任意姿态圆柱的球半径`sqrt(radius²+half_height²)`投到平面；当前公共尺寸对应约80.62 mm，严格大于直立70 mm圆盘。这个保守包络解决引擎内短暂倾斜时固定圆盘漏掉角部的问题，输出numerical audit另存实际最大倾角；例如圆柱擦门后倾斜时，80.62 mm包络可能比实际投影更早触发未知阻挡。它保证不会因姿态投影过小而把未知认证为自由，但可能增加假阻挡，不能解释为M-PHYS动力学能力不足或现实安全距离。
 
+双M阶段入口为[r4_dual_m_stage_v1.py](../ops/spatial_history/r4_dual_m_stage_v1.py)（implemented, review pending）。`environment`建立独立锁定环境；`check`复跑连续地图、两求解器和隔离测试；`run`用1–8个家族worker只读52个开发/验证家族的公开manifest，逐世界构图并为九候选同时保存两种M；`verify`逐文件核摘要和200步合同；`evaluate`在公开封存后才按labels manifest计位置、接触Brier、成功Brier和动作regret；`export`生成Git内小报告。输入是已有4家族与待重跑48家族的已验证目录，输出是每家族公开预测、独立评价及回执。例如一个worker在`r4-11/LR/c02`数值失败会非零退出、父进程停止并保留其他已完成家族，不会跳过该分支补齐均值。这不是一键忽略失败，也不读取12个确认家族。
+
 连续集合布尔运算固定使用Shapely 2.1.2及其随wheel记录的GEOS版本。圆形自由核心用内接32段/象限多边形，圆盘扫掠半径乘`sec(pi/128)`并另加1 µm形成外包；自由区缩小、扫掠扩大，因此近似只会额外报未决。Shapely的buffer在这里计算线段与圆的Minkowski和，`covers`检查完整外包扫掠是否落在内包自由并集。白话：例如真实70 mm圆盘用约70.021 µm额外半径检查，边界数值误差不会漏过一条极窄未知缝；这不是学习出的安全余量，也不能弥补错误的观测假设。

@@ -717,6 +717,8 @@ D-111的`spatial-history-r4-pessimistic-map-v1`不再是正式输入schema。新
 
 `M-PHYS.generated_scene`含`builder / source / xml_sha256 / wall_geometries / source_xml_used / saved_integration_state_used / xml`；每个`wall_geometries`元素含生成geom名、公开墙区间矩形和固定来源。`numerical_audit`含失败步、最大单步平移、最大接触侵入、最大物块倾角及MuJoCo/NumPy版本；`certificate`另给`object_projection / object_projection_radius_m`。白话：这些字段让审查者可从同一公开地图重建实际送入引擎的场景，并看见80.62 mm保守投影是否造成提前阻挡；它不保存或变相编码原世界XML、私有门编号和真实未来状态。
 
+`SH-05-R4-dual-M-v1/public/<family>/<world>/map.json.gz`保存一次公共连续地图，`<action>.json.gz`保存严格的`family_id / split / world / action / M-SIMPLE / M-PHYS / private_truth_read=false`；家族`manifest.json`逐文件记录字节数和SHA-256。独立`evaluation/<family>.json.gz`才包含同一世界九候选对标签的评分，`summary.json`只汇总52家族、208世界、1872分支的完整性、家族平均regret、逐分支位置/接触/成功误差和条件证书数量。白话：公开阶段即使知道路径里的`LR`字符串也只把它当已登记本地槽位，不把私有布局坐标送给模型；评价阶段在所有预测落盘后才打开标签。它不把文件名当视觉特征，也不因某一候选失败缩小分母。
+
 `spatial-history-r4-m-simple-v1`（implemented, review pending）顶层含`system=M-SIMPLE / status / prediction / trajectory / certificate / contact_provenance / numerical_audit / initialization / initial_sensitivity / formal_model_ready=false`。`trajectory`为t=0加10000个2 ms步；共同`prediction`只抽取200个0.1 s末点，接触概率是该区间内是否有物块–已观测墙或物块–悲观未知接触的确定0/1值。`initial_sensitivity`固定含中点及去重后的四个xy角点；每项保存初始位置、完成状态、200步预测、名义成功、接触来源和数值审计，不保存实际未来。`contact_provenance`把连续相同来源压成`first_step / last_step / step_count / body / source / detail`区间，其中未知detail含代表格及未覆盖面积，墙detail含公开矩形序号。白话：输入同一公开地图和五个登记初态，输出一条中点主预测与四条不挑结果的边界敏感性；例如只有高x角点擦墙时会在该分支出现墙接触，但主预测不因此改选它。它不是从五条里挑最接近真值的一条，也不是概率校准后的随机样本。
 
 连续几何审计另存`dependency_versions.shapely/geos`及`outer_circle_radial_excess_m`。固定32段/象限时外包半径因子为`1.000301272041302`，再加`numeric_guard_m=1e-6`；自由地面格则必须完全落入已向内收缩的观测面片。二者方向相反，避免同一个多边形近似同时被当作自由外包和扫掠内包。
