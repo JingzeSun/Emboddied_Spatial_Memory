@@ -18,7 +18,9 @@
 
 ### `ObservationPacket` 与 `MemoryUpdateResult`
 
-`ObservationPacket` 是共同在线输入包，VM-01 精确字段为：`schema_version, sample_id_hash, decision_time_s, rgbd_refs, camera_pose, robot_state, past_actions, region_observations, prior_memory_ref, public_constants`。`sample_id_hash`、`rgbd_refs` 和 `prior_memory_ref` 只作外层对齐/摘要绑定，`build_adapter_input` 会删除它们；适配器实际只得到决策时间、相机位姿、机器人状态、已结束动作、匿名区域、已校验 prior memory 和公共常数。`region_observations` 当前只含包内顺序号、mask 摘要、匿名 descriptor、质心、包围尺寸、可靠性和冻结 proposal 来源，不含永久身份或原图路径。它解决五个实验臂接收不同信息的问题；输入一个合法决策前缀及匹配的旧图，输出严格白名单对象；例如 TAF 和 VSMT 看到完全相同的 `region:0000` 向量。它不包含候选正确性、teacher 标签，也不决定以后是否增加共同原始 RGB 张量；若增加须另审 schema，不能借 `rgbd_refs` 自动打开旁边文件。
+`ObservationPacket` 是共同在线输入包，VM-01 精确字段为：`schema_version, sample_id_hash, decision_time_s, rgbd_refs, camera_pose, robot_state, past_actions, region_observations, free_space_observations, prior_memory_ref, public_constants`。`sample_id_hash`、`rgbd_refs` 和 `prior_memory_ref` 只作外层对齐/摘要绑定，`build_adapter_input` 会删除它们；适配器实际得到决策时间、相机位姿、机器人状态、已结束动作、匿名区域、传感器派生自由空间、已校验 prior memory 和公共常数。`region_observations` 当前含包内顺序号、匿名 `structure_kind`、mask 摘要、descriptor、质心、包围尺寸、可靠性和冻结 proposal 来源，不含永久身份或原图路径。`free_space_observations` 是由公开深度射线保守内包得到的轴对齐盒，只含包内顺序号、三维上下界、可靠性和支持摘要；例如旧节点包围盒完整落在高可靠自由盒里时，ELU 才得到负观测候选。它不是真值空区、不提供被删对象 ID，具体深度到内包盒的数值规则仍须 VM-04 前冻结。
+
+白话：新增自由空间证据解决“没检测到”无法区分遮挡与可靠为空的问题。输入只能是当前公开 RGB-D 和相机标定，输出不指向任何旧节点的匿名自由盒；例如桌面前方射线直到墙面之间的一块空间可标 `free:0000`。它不等于模拟器碰撞几何、真值 mask 或“对象已消失”标签；每个适配器仍需用相同公开几何自行判断旧节点是否被覆盖。共同适配器因此看到八类部署值，TAF、ELU、WFR、LOW 与 VSMT 完全一致。
 
 `MemoryUpdateResult` 是共同预测输出，VM-01 精确字段为：`schema_version, method_id, pre_memory_sha256, post_memory, post_memory_sha256, normalized_delta, confidence, runtime_ms, diagnostics`。`normalized_delta` 只记录声明模板以及创建/关闭的节点版本和边版本 ID；当前验证结构合法和摘要绑定，不判定它在语义上应叫 BIND 还是 BIRTH。它解决直接改图方法与事务选择方法难以同一评价的问题；输入任一方法的内部更新结果，输出规范化的新记忆和变化记录；例如 LOW 覆盖旧节点属性可在后续适配规范中映射为 BIND-like delta。它不声称原论文使用了本项目事务术语，也不把结构合法等同语义正确。
 

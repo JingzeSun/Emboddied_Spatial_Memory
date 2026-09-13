@@ -40,7 +40,7 @@ Teacher-only supervision（仅教师可见监督）解决训练时可以利用�
 6. 正确程序不在公开候选中时记 `candidate_miss`，不得由 oracle 插入；teacher 选错记 `teacher_error`，学生与冻结 teacher 不一致记 `amortization_error`。
 7. 单列只用路径、seed、候选槽号、数量和时间步的 nuisance probe；它解决元数据能否猜答案的问题，输入不含图像/几何/记忆，输出事务分类准确率。例如候选 index 若几乎直接给出 MERGE 就必须失败。它不要求合法当前观测无法预测事务。
 
-VM-01 的共同适配运行器只把 `decision_time_s / camera_pose / robot_state / past_actions / region_observations / prior_memory / public_constants` 交给方法，并检查方法没有原地修改输入；样本摘要、RGB-D 文件摘要和 prior 引用只在外层核对后剥离。候选目录的构造函数在签名上没有 private 参数，来源指针只允许公开包和 prior memory 白名单根；teacher 记录必须逐槽保持目录 ID 与顺序。白话：这解决“答案虽不在函数参数里，却通过路径、候选编号或预填 query 绕进来”的问题；输入公开记录和旧记忆，输出固定适配输入、候选摘要及后续独立 teacher 绑定。例如改变 reference MERGE pair 后若 logits 摘要变化，私有扰动检查直接失败。它不判断两个节点在现实中是否同一对象，也不证明模型有效。
+VM-01 的共同适配运行器只把 `decision_time_s / camera_pose / robot_state / past_actions / region_observations / free_space_observations / prior_memory / public_constants` 交给方法，并检查方法没有原地修改输入；样本摘要、RGB-D 文件摘要和 prior 引用只在外层核对后剥离。候选目录的构造函数在签名上没有 private 参数，来源指针只允许公开包和 prior memory 白名单根；teacher 记录必须逐槽保持目录 ID 与顺序。白话：这解决“答案虽不在函数参数里，却通过路径、候选编号或预填 query 绕进来”的问题；输入公开记录和旧记忆，输出固定适配输入、候选摘要及后续独立 teacher 绑定。例如改变 reference MERGE pair 后若 logits 摘要变化，私有扰动检查直接失败。它不判断两个节点在现实中是否同一对象，也不证明模型有效。
 
 ### 待用户裁决的语义边界案例
 

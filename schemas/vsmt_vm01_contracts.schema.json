@@ -33,6 +33,7 @@
       "required": [
         "schema_version", "sample_id_hash", "decision_time_s", "rgbd_refs",
         "camera_pose", "robot_state", "past_actions", "region_observations",
+        "free_space_observations",
         "prior_memory_ref", "public_constants"
       ],
       "properties": {
@@ -93,11 +94,14 @@
             "type": "object",
             "additionalProperties": false,
             "required": [
-              "region_id", "mask_sha256", "descriptor", "centroid_m",
+              "region_id", "structure_kind", "mask_sha256", "descriptor", "centroid_m",
               "extent_m", "reliability", "proposal_source_id"
             ],
             "properties": {
               "region_id": {"type": "string", "pattern": "^region:[0-9]{4}$"},
+              "structure_kind": {
+                "enum": ["entity", "place", "surface", "fragment"]
+              },
               "mask_sha256": {"$ref": "#/$defs/sha256"},
               "descriptor": {"$ref": "#/$defs/vector"},
               "centroid_m": {
@@ -110,6 +114,30 @@
               },
               "reliability": {"type": "number", "minimum": 0, "maximum": 1},
               "proposal_source_id": {"$ref": "#/$defs/identifier"}
+            }
+          }
+        },
+        "free_space_observations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "free_space_id", "minimum_m", "maximum_m", "reliability",
+              "support_sha256"
+            ],
+            "properties": {
+              "free_space_id": {"type": "string", "pattern": "^free:[0-9]{4}$"},
+              "minimum_m": {
+                "type": "array", "minItems": 3, "maxItems": 3,
+                "items": {"type": "number"}
+              },
+              "maximum_m": {
+                "type": "array", "minItems": 3, "maxItems": 3,
+                "items": {"type": "number"}
+              },
+              "reliability": {"type": "number", "minimum": 0, "maximum": 1},
+              "support_sha256": {"$ref": "#/$defs/sha256"}
             }
           }
         },

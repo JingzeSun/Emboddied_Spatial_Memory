@@ -27,6 +27,7 @@ INVARIANCE_SCHEMA = "vsmt-private-mutation-invariance-v1"
 
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
 OPAQUE_REGION = re.compile(r"^region:[0-9]{4}$")
+OPAQUE_FREE_SPACE = re.compile(r"^free:[0-9]{4}$")
 OPAQUE_CANDIDATE = re.compile(r"^candidate:[0-9]{4}$")
 IDENTIFIER = re.compile(r"^[a-z][a-z0-9_.-]{0,127}$")
 FEATURE_NAME = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
@@ -40,6 +41,7 @@ OBSERVATION_KEYS = {
     "robot_state",
     "past_actions",
     "region_observations",
+    "free_space_observations",
     "prior_memory_ref",
     "public_constants",
 }
@@ -49,6 +51,7 @@ ROBOT_STATE_KEYS = {"feature_names", "values"}
 ACTION_KEYS = {"end_time_s", "command"}
 REGION_KEYS = {
     "region_id",
+    "structure_kind",
     "mask_sha256",
     "descriptor",
     "centroid_m",
@@ -56,6 +59,14 @@ REGION_KEYS = {
     "reliability",
     "proposal_source_id",
 }
+FREE_SPACE_KEYS = {
+    "free_space_id",
+    "minimum_m",
+    "maximum_m",
+    "reliability",
+    "support_sha256",
+}
+STRUCTURE_KINDS = {"entity", "place", "surface", "fragment"}
 PRIOR_REF_KEYS = {"graph_version", "graph_sha256"}
 PUBLIC_CONSTANT_KEYS = {
     "coordinate_frame",
@@ -118,6 +129,7 @@ PUBLIC_DERIVATION_ROOTS = {
     "/robot_state",
     "/past_actions",
     "/region_observations",
+    "/free_space_observations",
     "/public_constants",
 }
 MEMORY_DERIVATION_ROOTS = {
@@ -154,6 +166,7 @@ class AdapterInput(TypedDict):
     robot_state: dict[str, Any]
     past_actions: list[dict[str, Any]]
     region_observations: list[dict[str, Any]]
+    free_space_observations: list[dict[str, Any]]
     prior_memory: dict[str, Any]
     public_constants: dict[str, str]
 
@@ -344,6 +357,8 @@ def validate_observation_packet(packet: Mapping[str, Any]) -> dict[str, Any]:
             and region["region_id"] == expected_id,
             "region IDs must be packet-local opaque ordinals",
         )
+        _require(region["structure_kind"] in STRUCTURE_KINDS,
+                 "region structure_kind is not supported")
         _hex64(region["mask_sha256"], f"region_observations[{index}].mask_sha256")
         _vector(region["descriptor"], f"region_observations[{index}].descriptor",
                 nonempty=True)
@@ -356,6 +371,39 @@ def validate_observation_packet(packet: Mapping[str, Any]) -> dict[str, Any]:
         _require(0.0 <= reliability <= 1.0, "region reliability must be within [0, 1]")
         _identifier(region["proposal_source_id"],
                     f"region_observations[{index}].proposal_source_id")
+
+    free_spaces = packet["free_space_observations"]
+    _require(type(free_spaces) is list, "free_space_observations must be a list")
+    for index, free_space in enumerate(free_spaces):
+        _require(type(free_space) is dict,
+                 f"free_space_observations[{index}] must be an object")
+        _exact_keys(free_space, FREE_SPACE_KEYS,
+                    f"free_space_observations[{index}]")
+        expected_id = f"free:{index:04d}"
+        _require(
+            type(free_space["free_space_id"]) is str
+            and OPAQUE_FREE_SPACE.fullmatch(free_space["free_space_id"]) is not None
+            and free_space["free_space_id"] == expected_id,
+            "free-space IDs must be packet-local opaque ordinals",
+        )
+        minimum = _vector(
+            free_space["minimum_m"],
+            f"free_space_observations[{index}].minimum_m", length=3,
+        )
+        maximum = _vector(
+            free_space["maximum_m"],
+            f"free_space_observations[{index}].maximum_m", length=3,
+        )
+        _require(all(lower <= upper for lower, upper in zip(minimum, maximum)),
+                 "free-space bounds must be ordered")
+        reliability = _number(
+            free_space["reliability"],
+            f"free_space_observations[{index}].reliability",
+        )
+        _require(0.0 <= reliability <= 1.0,
+                 "free-space reliability must be within [0, 1]")
+        _hex64(free_space["support_sha256"],
+               f"free_space_observations[{index}].support_sha256")
 
     prior_ref = packet["prior_memory_ref"]
     _require(type(prior_ref) is dict, "prior_memory_ref must be an object")
@@ -392,6 +440,9 @@ def build_adapter_input(
         "robot_state": clone_json(public["robot_state"]),
         "past_actions": clone_json(public["past_actions"]),
         "region_observations": clone_json(public["region_observations"]),
+        "free_space_observations": clone_json(
+            public["free_space_observations"]
+        ),
         "prior_memory": memory,
         "public_constants": clone_json(public["public_constants"]),
     }

@@ -78,12 +78,20 @@ def make_packet(memory: Mapping[str, Any]) -> dict[str, Any]:
         "past_actions": [{"end_time_s": 1.5, "command": [0.0, 0.1]}],
         "region_observations": [{
             "region_id": "region:0000",
+            "structure_kind": "place",
             "mask_sha256": "4" * 64,
             "descriptor": [0.25, -0.5],
             "centroid_m": [0.0, 0.0, 1.0],
             "extent_m": [0.2, 0.1, 0.3],
             "reliability": 0.8,
             "proposal_source_id": "fixed.region.v1",
+        }],
+        "free_space_observations": [{
+            "free_space_id": "free:0000",
+            "minimum_m": [-0.5, -0.5, 0.0],
+            "maximum_m": [0.5, 0.5, 1.5],
+            "reliability": 0.9,
+            "support_sha256": "5" * 64,
         }],
         "prior_memory_ref": {
             "graph_version": memory["graph_version"],
@@ -174,7 +182,8 @@ class VSMTContractTests(unittest.TestCase):
             set(model_input),
             {
                 "decision_time_s", "camera_pose", "robot_state", "past_actions",
-                "region_observations", "prior_memory", "public_constants",
+                "region_observations", "free_space_observations",
+                "prior_memory", "public_constants",
             },
         )
         self.assertNotIn("sample_id_hash", model_input)
@@ -197,6 +206,18 @@ class VSMTContractTests(unittest.TestCase):
         packet = deepcopy(self.packet)
         packet["region_observations"][0]["region_id"] = "region:chair"
         with self.assertRaisesRegex(ValueError, "opaque ordinals"):
+            validate_observation_packet(packet)
+
+    def test_public_packet_rejects_unregistered_structure_kind(self) -> None:
+        packet = deepcopy(self.packet)
+        packet["region_observations"][0]["structure_kind"] = "ground_truth_object"
+        with self.assertRaisesRegex(ValueError, "structure_kind"):
+            validate_observation_packet(packet)
+
+    def test_public_packet_rejects_reversed_free_space_bounds(self) -> None:
+        packet = deepcopy(self.packet)
+        packet["free_space_observations"][0]["minimum_m"][0] = 0.6
+        with self.assertRaisesRegex(ValueError, "bounds must be ordered"):
             validate_observation_packet(packet)
 
     def test_adapter_input_requires_exact_prior_memory_binding(self) -> None:
@@ -254,7 +275,8 @@ class VSMTContractTests(unittest.TestCase):
         self.assertEqual(result["method_id"], adapter.method_id)
         self.assertEqual(adapter.seen_keys, {
             "decision_time_s", "camera_pose", "robot_state", "past_actions",
-            "region_observations", "prior_memory", "public_constants",
+            "region_observations", "free_space_observations",
+            "prior_memory", "public_constants",
         })
 
     def test_run_adapter_detects_input_mutation(self) -> None:
