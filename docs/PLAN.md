@@ -16,13 +16,13 @@
 | VM-01 公私数据与共同适配合同（代码候选） | D-122草案；固定结构类型、公开 proposal/descriptor、五通道文件和反作弊 gate | schema、正负例、private mutation invariance、无 private 推理及 candidate-before-teacher 测试；补齐公开自由空间和逐候选在线证据，待合并服务器测试 |
 | VM-02 三种论文机制与朴素基线（代码候选） | 共同接口；TAF、ELU、WFR、LOW 只消费相同 `ObservationPacket` | clean-room 适配器、显式无默认值配置、版本化共同输出包装及人工分支测试；未冻结阈值，不称官方复现或效果结果 |
 | VM-03 VSMT 无泄漏候选与 teacher（代码候选） | VM-01接口；复用 executor/八原子语义，删除参考派生 query | public-only 九类程序、逐一真实执行、公开摘要排序、online evidence封存及封存后teacher；待同批服务器测试 |
-| VM-04 新数据数值冻结与开发生成 | VM-01–03代码审过；固定场景、图类型、八类比例、轨迹、split、存储/计算预算和因果 prior 回执 | 同一新序列产出 L1 oracle-structured 诊断与 L2 shared-RGB-D 主输入；真值 mask 仅 L1/private，旧 C00–C11 只作 L0 回归；失败不换样本，未达输入门不训练 |
+| VM-04 新数据数值冻结与开发生成（v1提案已交） | [不可执行提案](../configs/vsmt/vm04_data_protocol_proposal_v1.json)；审查 ProcTHOR＋AI2-THOR、2/48/12/12家族、32帧、九程序各2重复、SAM2.1＋DINOv2、双轨 prior 和关系感知 SPLIT | 先补齐并批准所有 null 来源/前端/语义/阈值/预算，再实现 source audit、public-only prior 回执和2家族 audit；同一序列产出 L1/L2，失败不换样本，未达输入门不生成正式 train/validation或训练 |
 | VM-05 公平训练与 validation | 数据验收；冻结各方法阈值、学习预算、停止规则、共同/完整任务指标 | VSMT/TAF/ELU/WFR/LOW 在 L2 完全同前端输入主评；L1只作机制上界，旧 A/C/E 只作内部消融；确认前锁定全部选择 |
 | VM-06 独立确认与论文证据 | 模型、前端、候选、评分和最小效果门冻结后另行授权 | 未见家族 confirmation、必要现实来源、逐类/共享能力/成本/失败报告；不能按 validation 结果改样本或门 |
 
 ### 当前指针
 
-**VM-01～VM-03 的VSMT论文收敛版工程验收已通过，当前停在用户代码审查与VM-04科学冻结之前。** 首次服务器31/36失败及目录保留；修复版在提交`351395a`的新目录运行37/37通过，报告为[vsmt_vm01_vm03_contract_check.json](../results/vsmt_vm01_vm03_contract_check.json)，明确0数据生成、0训练、0 private读取。下一科学职责须先冻结L1/L2数据数值、split、因果prior回执、SPLIT关系重分配、阈值和预算，不能凭工程通过自动生成或训练。当前无正式数据、训练、下载或confirmation授权。原D-062工作区及其中用户未提交的`docs/PLAN.md`、`scripts/notes.txt`不移动、不覆盖。
+**VSMT 已快进合并到 `main`；VM-01～VM-03 工程验收通过，VM-04 v1 数据协议现为不可执行审议稿。** 首次服务器31/36失败及目录保留；修复版在提交`351395a`的新目录运行37/37通过，报告为[vsmt_vm01_vm03_contract_check.json](../results/vsmt_vm01_vm03_contract_check.json)，明确0数据生成、0训练、0 private读取。当前提案建议 ProcTHOR＋AI2-THOR、2/48/12/12独立房屋家族、每家族八原子及REPLACE各2重复、32帧episode、SAM2.1逐帧proposal＋已核DINOv2，并把受控单次修订与各方法闭环记忆分开。SAM/场景资产摘要、公开几何和bootstrap阈值、候选cap/teacher温度、SPLIT关系分配及S-01～S-12数值口径仍未冻结，所以无下载、生成、训练或confirmation授权。原D-062分支、代码、数据和结果均保留；`scripts/notes.txt`按用户要求保留当前工作区内容，`docs/PLAN.md`采用本VSMT版本。
 
 ## 上一 D-062 路线（暂停，以下保留复现）
 

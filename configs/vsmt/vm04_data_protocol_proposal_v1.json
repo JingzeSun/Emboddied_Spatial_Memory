@@ -1,0 +1,378 @@
+{
+  "version": "vsmt-vm04-data-protocol-proposal-v1",
+  "status": "requires_review_not_executable",
+  "decision": "D-127",
+  "numeric_protocol_approved": false,
+  "implementation_authorized": false,
+  "asset_download_authorized": false,
+  "generation_authorized": false,
+  "training_authorized": false,
+  "confirmation_authorized": false,
+  "scope": {
+    "paper_method": "versioned_structural_memory_transactions",
+    "primary_question": "same_public_rgbd_prefix_and_same_causal_prior_memory_then_compare_structural_revision_mechanisms",
+    "atomic_templates": [
+      "NOOP",
+      "BIND",
+      "BIRTH",
+      "REACTIVATE",
+      "RELINK",
+      "RETRACT",
+      "SPLIT",
+      "MERGE"
+    ],
+    "registered_composite_positive": "REPLACE",
+    "excluded": [
+      "legacy_reference_derived_queries",
+      "legacy_latent_as_visual_input",
+      "end_to_end_backbone_training",
+      "active_exploration_policy",
+      "open_world_language_interface"
+    ]
+  },
+  "source_proposal": {
+    "primary_source": "ProcTHOR-10K_houses_rendered_with_AI2-THOR",
+    "official_urls": {
+      "procthor": "https://procthor.allenai.org/",
+      "procthor_10k": "https://github.com/allenai/procthor-10k",
+      "ai2thor": "https://github.com/allenai/ai2thor"
+    },
+    "ai2thor_release_proposal": "5.0.0",
+    "ai2thor_package_sha256": null,
+    "procthor_revision": null,
+    "procthor_manifest_sha256": null,
+    "blocking_source_audit": [
+      "pin_exact_AI2-THOR_wheel_or_source_commit_and_sha256",
+      "pin_exact_ProcTHOR_house_manifest_and_license_snapshot",
+      "verify_headless_RGB_depth_instance_segmentation_and_object_interaction_on_server",
+      "enumerate_eligible_houses_before_any_effect_result"
+    ],
+    "simulator_instance_metadata_policy": "private_generation_and_evaluation_only",
+    "instance_segmentation_policy": "L1_and_private_eval_only_never_L2_proposals"
+  },
+  "experimental_unit": {
+    "independence_unit": "house_family",
+    "family_definition": "one_ProcTHOR_house_plus_asset_assignment_path_skeleton_and_two_predeclared_replicates_for_each_registered_program",
+    "episode_definition": "one_32_observation_public_sequence_with_one_registered_decision_and_seven_followup_observations",
+    "programs_per_family": 9,
+    "replicates_per_program_per_family": 2,
+    "episodes_per_family": 18,
+    "observations_per_episode": 32,
+    "decision_observation_index_zero_based": 24,
+    "public_prefix_indices_inclusive": [0, 24],
+    "teacher_followup_indices_inclusive": [25, 31],
+    "phase_indices": {
+      "prior_memory_acquisition": [0, 15],
+      "occlusion_or_intervention_gap": [16, 23],
+      "current_decision": [24, 24],
+      "future_evaluation_only": [25, 31]
+    },
+    "failed_episode_replacement": false,
+    "single_frame_random_split_allowed": false
+  },
+  "split_proposal": {
+    "ordering_rule": "sort_eligible_house_ids_by_sha256_of_source_manifest_sha256_split_seed_and_house_id",
+    "split_seed": 260914,
+    "audit_families": 2,
+    "train_families": 48,
+    "validation_families": 12,
+    "confirmation_families": 12,
+    "total_families": 74,
+    "audit_episodes": 36,
+    "train_episodes": 864,
+    "validation_episodes": 216,
+    "confirmation_episodes": 216,
+    "total_episodes": 1332,
+    "total_observations": 42624,
+    "confirmation_generation_deferred": true,
+    "grouping_guards": [
+      "house_id_never_crosses_split",
+      "replicates_of_one_program_never_cross_split",
+      "camera_path_variants_never_cross_split",
+      "frontend_cache_never_crosses_L1_and_L2",
+      "confirmation_house_ids_not_opened_during_development"
+    ]
+  },
+  "observation_proposal": {
+    "rgb_height": 224,
+    "rgb_width": 224,
+    "depth_height": 224,
+    "depth_width": 224,
+    "vertical_fov_degrees": 90,
+    "observation_clock": "one_packet_after_each_successful_registered_agent_action",
+    "agent_actions_public_after_completion": [
+      "MoveAhead",
+      "MoveBack",
+      "MoveLeft",
+      "MoveRight",
+      "RotateLeft",
+      "RotateRight",
+      "LookUp",
+      "LookDown",
+      "PickupObject",
+      "PutObject",
+      "DropHandObject",
+      "PushObject",
+      "PullObject"
+    ],
+    "initial_pose_action": "TeleportFull_before_observation_zero_setup_only",
+    "external_environment_intervention": "private_provenance_not_model_input_unless_executed_by_the_robot",
+    "failed_actions": "recorded_in_provenance_and_episode_fails_without_resampling",
+    "future_actual_motion_as_input": false,
+    "future_object_transform_as_input": false
+  },
+  "graph_ontology_proposal": {
+    "node_kinds": [
+      "entity",
+      "surface",
+      "place"
+    ],
+    "edge_kinds": [
+      "located_at",
+      "supported_by",
+      "contains",
+      "adjacent_to"
+    ],
+    "evidence_fragment_is_versioned_provenance_not_a_fourth_world_object_kind": true,
+    "node_identity": "packet_anonymous_public_id_with_versioned_predecessor_links",
+    "private_simulator_identity_allowed_online": false
+  },
+  "registered_program_sources": {
+    "NOOP": "occlusion_or_low_reliability_without_a_supported_persistent_change",
+    "BIND": "reobservation_of_one_existing_entity_surface_or_place",
+    "BIRTH": "first_public_reveal_of_a_new_entity_or_persistent_place",
+    "REACTIVATE": "public_reobservation_of_a_dormant_structure_without_reliable_simultaneous_old_location_support",
+    "RELINK": "same_structure_with_a_changed_place_or_support_relation",
+    "RETRACT": "old_entity_or_relation_covered_by_two_distinct_reliable_public_free_space_observations",
+    "SPLIT": "one_prior_memory_node_created_from_a_public_undersegmentation_then_resolved_into_two_public_regions",
+    "MERGE": "two_prior_memory_nodes_created_by_a_public_association_break_then_supported_as_one_structure",
+    "REPLACE": "old_structure_reliably_absent_and_a_distinct_structure_publicly_present"
+  },
+  "controlled_frontend_stress": {
+    "role": "controlled_memory_error_source_not_world_physics",
+    "applies_identically_to_all_methods_within_an_evidence_level": true,
+    "private_truth_used_to_choose_fault_targets": false,
+    "split_undersegmentation": "combine_only_publicly_adjacent_or_overlapping_proposals_on_a_predeclared_prefix_interval_then_restore_unmodified_proposals",
+    "merge_duplicate": "block_public_cross_view_association_on_a_predeclared_prefix_interval_then_restore_normal_public_association",
+    "schedule_visible_to_model": false,
+    "schedule_balanced_across_programs_and_split": true,
+    "private_posthoc_role": "classify_realized_target_or_record_construction_failure_never_rewrite_public_or_candidates",
+    "natural_frontend_errors_reported_separately": true
+  },
+  "evidence_levels": {
+    "L0": {
+      "name": "symbolic_executor_regression",
+      "source": "legacy_C00-C11",
+      "new_simulation": false,
+      "paper_main_table": false
+    },
+    "L1": {
+      "name": "oracle_structured_diagnostic",
+      "source": "same_VM04_RGBD_sequences_and_timestamps",
+      "proposal": "simulator_instance_masks_with_instance_ids_removed_before_adapter_input",
+      "prior_memory": "built_sequentially_from_L1_public_packets_only",
+      "paper_main_table": false
+    },
+    "L2": {
+      "name": "shared_RGBD_main",
+      "source": "same_VM04_RGBD_sequences_and_timestamps",
+      "proposal": "frozen_public_per_frame_region_proposal",
+      "prior_memory": "built_sequentially_from_L2_public_packets_only",
+      "paper_main_table": true
+    },
+    "cross_level_cache_reuse": false,
+    "shared_world_reference_for_evaluation_only": true
+  },
+  "shared_frontend_proposal": {
+    "region_proposal": {
+      "model": "SAM_2.1_hiera_small_per_frame_automatic_mask_generator",
+      "official_repository": "https://github.com/facebookresearch/sam2",
+      "repository_commit": null,
+      "checkpoint_sha256": null,
+      "cross_frame_video_memory_enabled": false,
+      "prompt_source": "fixed_grid_only_no_text_no_private_points_or_boxes",
+      "automatic_mask_parameters": null,
+      "blocking_reason": "commit_checkpoint_and_all_mask_thresholds_require_server_asset_audit_and_user_numeric_review"
+    },
+    "descriptor": {
+      "model": "dinov2_vits14_without_registers",
+      "official_repository": "https://github.com/facebookresearch/dinov2",
+      "repository_commit": "7764ea0f912e53c92e82eb78a2a1631e92725fc8",
+      "checkpoint_url": "https://dl.fbaipublicfiles.com/dinov2/dinov2_vits14/dinov2_vits14_pretrain.pth",
+      "checkpoint_sha256": "b938bf1bc15cd2ec0feacfe3a1bb553fe8ea9ca46a7e1d8d00217f29aef60cd9",
+      "patch_size": 14,
+      "embedding_dimension": 384,
+      "input_height": 224,
+      "input_width": 224,
+      "region_pooling": "mask_weighted_mean_of_patch_tokens_then_L2_normalize",
+      "frozen": true,
+      "old_asset_receipt_is_source_evidence_not_VM04_frontend_receipt": true
+    },
+    "geometry": {
+      "source": "public_depth_camera_pose_and_calibration_only",
+      "outputs": [
+        "centroid_m",
+        "extent_m",
+        "conservative_free_space_boxes",
+        "place_and_surface_regions"
+      ],
+      "numeric_thresholds": null,
+      "blocking_reason": "depth_validity_clustering_overlap_and_free_space_thresholds_require_user_numeric_review"
+    },
+    "identical_frontend_bytes_for_methods": [
+      "VSMT",
+      "TAF",
+      "ELU",
+      "WFR",
+      "LOW"
+    ]
+  },
+  "causal_prior_receipt_proposal": {
+    "controlled_track_builder": "public_bootstrap_v1_BIRTH_then_public_threshold_BIND_only",
+    "builder_thresholds": null,
+    "initial_memory": "empty_graph",
+    "input_mounts": [
+      "public"
+    ],
+    "forbidden_mounts": [
+      "candidate",
+      "teacher",
+      "private_eval"
+    ],
+    "receipt_fields": [
+      "ordered_public_packet_sha256s",
+      "builder_code_sha256",
+      "builder_config_sha256",
+      "committed_program_sha256s",
+      "version_chain_sha256s",
+      "final_prior_memory_sha256"
+    ],
+    "required_invariance": "private_identity_reference_and_future_mutation_leave_every_receipt_byte_unchanged",
+    "blocking_reason": "builder_thresholds_and_implementation_not_yet_reviewed"
+  },
+  "split_relation_assignment_proposal": {
+    "status": "requires_user_semantic_review_before_implementation",
+    "recommended_rule": "SPLIT_atomically_closes_source_and_each_open_incident_edge_then_recreates_each_edge_on_successor_0_successor_1_both_or_neither",
+    "candidate_source": "enumerate_only_type_valid_assignments_then_rank_and_cap_with_public_geometry_descriptor_and_free_space_evidence",
+    "successor_names_are_packet_ordinals_not_left_right_labels": true,
+    "maximum_open_incident_edges_per_SPLIT_source": 2,
+    "maximum_raw_relation_assignments_per_SPLIT_source": 16,
+    "teacher_may_select_or_score_after_catalog_seal": true,
+    "teacher_may_create_an_assignment": false,
+    "close_or_neither_requires_registered_public_negative_evidence": true,
+    "fallback_before_approval": "retain_VM03_isolated_node_SPLIT_only"
+  },
+  "experiment_tracks": {
+    "controlled_revision": {
+      "role": "primary_mechanism_comparison",
+      "prior": "same_sealed_causal_prior_memory_bytes_for_all_methods_within_one_evidence_level",
+      "decision_count_per_episode": 1
+    },
+    "closed_loop_revision": {
+      "role": "secondary_error_persistence_and_recovery_comparison",
+      "prior": "each_method_own_committed_memory_from_observation_zero",
+      "uses_same_sequences_without_new_simulation": true,
+      "reported_separately": true
+    }
+  },
+  "method_matrix": {
+    "primary_methods": [
+      "VSMT",
+      "TAF",
+      "ELU",
+      "WFR",
+      "LOW"
+    ],
+    "required_VSMT_internal_controls_for_VM05": [
+      "direct_reference_candidate_ranker_same_online_architecture_without_post_execution_teacher",
+      "no_execution_candidate_scorer_same_catalog_and_teacher_targets_without_candidate_post_state",
+      "public_heuristic_candidate_ranker_without_learning"
+    ],
+    "diagnostic_upper_bounds": [
+      "L1_oracle_proposal",
+      "sealed_catalog_oracle_choice"
+    ],
+    "unsupported_template_policy": "count_in_full_task_and_also_report_pairwise_shared_capability_subset",
+    "official_reproduction_claimed": false
+  },
+  "semantic_and_metric_status": {
+    "S01_to_S12_case_catalog_accepted": true,
+    "exact_identity_motion_and_visibility_thresholds_frozen": false,
+    "graph_equivalence_policy_frozen": false,
+    "aggregate_error_weights_frozen": false,
+    "endpoint_and_duration_primary_order_frozen": false,
+    "provenance_required_for_transaction_success_frozen": false,
+    "teacher_temperature_frozen": false,
+    "candidate_thresholds_and_caps_frozen": false,
+    "policy": "unresolved_values_must_be_null_and_block_generation_or_training_not_inferred_from_validation"
+  },
+  "leakage_gates": {
+    "candidate_before_teacher": true,
+    "prediction_without_private_mount": true,
+    "private_mutation_targets": [
+      "simulator_instance_ids",
+      "reference_program",
+      "reference_graph_ids",
+      "future_RGBD",
+      "future_world_state"
+    ],
+    "must_remain_byte_identical": [
+      "public_packets",
+      "causal_prior_receipt",
+      "candidate_catalog",
+      "candidate_order",
+      "online_features",
+      "untrained_logits"
+    ],
+    "nuisance_probe_inputs": [
+      "split_name",
+      "path_name",
+      "house_rank",
+      "seed",
+      "decision_index",
+      "candidate_slot",
+      "candidate_count"
+    ],
+    "nuisance_probe_gate": null,
+    "candidate_miss_never_repaired": true,
+    "separate_errors": [
+      "construction_failure",
+      "candidate_miss",
+      "teacher_error",
+      "amortization_error",
+      "executor_illegal",
+      "frontend_error"
+    ]
+  },
+  "budget_proposal": {
+    "audit_generation_wall_clock_limit_s": 1800,
+    "train_validation_generation_wall_clock_limit_s": 28800,
+    "confirmation_generation_wall_clock_limit_s": 7200,
+    "new_dataset_limit_bytes": 17179869184,
+    "new_frontend_asset_limit_bytes": 4294967296,
+    "new_report_limit_bytes": 67108864,
+    "new_training_steps": 0,
+    "execution_mode": "audit_foreground_full_generation_background_only_if_measured_over_30_minutes",
+    "resume_policy": "verify_manifest_digest_and_exit_marker_then_continue_from_earliest_missing_family",
+    "overwrite_failed_or_completed_family": false
+  },
+  "required_review_decisions": [
+    "accept_or_change_source_and_family_counts",
+    "accept_or_change_32_observation_schedule",
+    "accept_or_change_SAM2_1_per_frame_proposal",
+    "freeze_all_region_geometry_free_space_and_bootstrap_thresholds",
+    "accept_or_change_relation_aware_SPLIT_assignment",
+    "freeze_candidate_caps_and_teacher_temperature",
+    "freeze_S01_to_S12_numeric_and_aggregation_choices",
+    "set_nuisance_probe_gate",
+    "approve_separate_audit_generation_budget_before_any_generation"
+  ],
+  "claims": {
+    "data_generated": false,
+    "frontend_verified": false,
+    "eight_atomic_templates_realized": false,
+    "leakage_gates_verified": false,
+    "model_trained": false,
+    "method_effect_supported": false
+  }
+}

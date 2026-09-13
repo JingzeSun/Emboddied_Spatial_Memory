@@ -1354,3 +1354,13 @@
 - 当前窄修复是在候选生成阶段排除具有开放 incident edge（关联边）的SPLIT源节点；无关联边节点仍可产生和执行SPLIT。白话：它解决“拆了节点却没决定原关系归谁”的结构非法问题；输入旧图的开放边和可分区域，输出只含目前语义完整的SPLIT候选。例如孤立的错误聚合片段可拆，仍连着地点边的节点暂不拆。它不等于这些节点永远不能SPLIT，也不把关系复制给两个后继当作默认答案。
 - VM-04前须由用户在S-04/S-08语义下冻结关系分配候选：分给左后继、右后继、两者、关闭，或按公开证据枚举多个合法程序；冻结前不自行扩张。对应回归和合法`composition_label`窄白名单使服务器定向计数变为37，须在新提交/新目录重跑。
 - 修复版服务器37/37通过，旧失败与新成功目录均保留；该工程通过不自动批准VM-04生成、阈值、split、预算、训练或上述SPLIT关系语义。
+
+## D-127：VM-04首个同源RGB-D数据协议作为不可执行审议稿
+
+- 日期：2026-09-14；状态：proposed。用户要求把VSMT分支快进合并`main`并开始下一步，同时明确保留当前工作区`scripts/notes.txt`、采用VSMT `docs/PLAN.md`。合并已完成；本职责只交[VM-04 v1提案](../configs/vsmt/vm04_data_protocol_proposal_v1.json)和论文合同，不下载、生成、训练或打开confirmation。
+- 主来源建议ProcTHOR-10K＋AI2-THOR，独立单位为house family；拟2/48/12/12个audit/train/validation/confirmation家族，每家族对八原子和REPLACE各2个预登记重复，每episode 32帧、第24帧决策、第25–31帧只供封存后teacher/private评价，总计1,332条episode、42,624帧。house不跨split、失败不换样本、confirmation延后生成。以上均未获数值批准。
+- L1/L2复用同一物理序列和时刻但独立建prior/candidate：L1用去真实ID的simulator mask作机制诊断，L2建议逐帧无视频记忆SAM2.1自动mask＋冻结DINOv2 ViT-S/14区域池化作主表。DINO来源沿用已核commit/权重摘要但须产生新VM-04回执；SAM、AI2-THOR/ProcTHOR精确摘要和全部proposal/几何阈值为空，fail closed。
+- SPLIT/MERGE正例定位为受控前端记忆错误而非物体物理裂合。压力日程和pair只依赖公开proposal/固定时间表；私有真值只在封存后判目标成立或construction failure，不能修改public/candidate或换样本。自然前端错误另报。
+- 关系感知SPLIT建议成为一个原子操作：关闭源节点及其开放incident edges，再为每条边枚举给后继0、后继1、二者或均不继承的类型合法分配；均不继承须有公开负证据。第一批建议源度数≤2、最多16个原始分配组合。用户批准与executor/schema实现前，D-126的孤立节点限制继续有效。
+- 主比较仍为VSMT/TAF/ELU/WFR/LOW；同一数据另分controlled revision共享因果prior和closed-loop revision各自自反馈两轨。VM-05须加入直接参考排序、无执行后状态评分和公开启发式排序三项VSMT内部对照，以区分teacher、candidate execution和候选启发式贡献；它们不替代LOW或三种论文机制。
+- S-01～S-12案例目录已被用户认可，但具体身份/可见性阈值、图等价、错误权重、终点/持续时间优先级、provenance成功条件、candidate cap、teacher温度及nuisance probe门未冻结。JSON保持`null`并把全部授权设false，不能因本提案存在而开始服务器生成。

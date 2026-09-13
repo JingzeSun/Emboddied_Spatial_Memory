@@ -42,6 +42,40 @@ VM-02 的共同节点观测状态键为 `vsmt_observation_state`，当前包含 
 
 正式视觉输入计划共享一个冻结、与结果无关的 proposal/descriptor 前端。DINOv2 只从 `public.rgb` 产生区域描述；深度和位姿产生公开几何。VSMT、TAF、ELU、WFR、LOW 必须消费同一前端字节和缓存摘要，不能让 VSMT 用 RGB-D 而对照用旧 LATENT，也不能让对照读取更干净的真值结构。模拟器 instance segmentation 可生成 private 对齐标签和误差评估，但不能作为正式 proposal；若开发期用真值 mask 做接口检查，结果必须标 `oracle_structured_diagnostic_only`，不得进入主表。
 
+### VM-04 新数据协议 v1（D-127，proposed、不可执行）
+
+[唯一数值提案](../configs/vsmt/vm04_data_protocol_proposal_v1.json)先把“什么是一条样本、L1/L2怎样同源、八原子怎样产生、什么仍未决定”写成机器可查合同。它解决讨论停留在“以后重生成数据”而无法审查的问题；输入拟固定的 ProcTHOR 房屋、AI2-THOR RGB-D 回放和公开前端，输出 32 个顺序观测、一个登记决策、七个仅供 teacher/private 评价的后续观测及完整来源回执。例如第 0–15 帧建立旧记忆，第 16–23 帧发生遮挡或环境变化，第 24 帧只凭公开前缀提出并选择事务，第 25–31 帧才由封存后的 teacher 判断候选后状态。它不是已经批准的数据配置，也没有授权下载、生成、训练或 confirmation。
+
+首选来源是 ProcTHOR-10K＋AI2-THOR：前者提供程序生成房屋，后者提供可交互场景、相机动作及 RGB/可选 depth/instance segmentation 接口。proposal 暂登记 AI2-THOR 5.0.0，但 wheel/source SHA、ProcTHOR revision、house manifest 和服务器 headless 能力仍为空，因此入口必须拒绝执行。实例 mask 和 simulator object ID 只给 L1/private；L2 不能挂载它们。相机在观测 0 之前可用 `TeleportFull` 做初始放置，之后每个 packet 对应一个已成功的登记 agent action；机器人实际执行过的操作进入 `past_actions`，外界搬动物体只留 private provenance。它不把实际未来运动或物体变换伪装成动作输入。
+
+拟议独立单位为 `house_family`，不能随机拆帧。2 个 audit、48 个 train、12 个 validation、12 个 confirmation 家族按源 manifest＋固定 seed＋house ID 的 SHA-256 顺序选取；每家族对八个原子与 REPLACE 各做 2 个预登记重复，即 18 条 episode。总量为 74 家族、1,332 条 episode、42,624 帧；confirmation 的 216 条 episode 继续延后生成。失败家族/episode 记录失败且不按结果换样本。白话：这解决同一个房子换个相机角度同时落进训练和验证的泄漏；输入完整 house family，输出唯一 split 归属。例如某房屋的 MERGE 重复和 BIRTH 重复都只能在 train。它不保证 1,332 条都成功生成，也不把构造失败从分母静默删除。
+
+同一物理序列形成两个完全隔离的 proposal 视图：L1 把真值 instance mask 去除真实 ID 后生成匿名区域，用来查机制上限；L2 拟用逐帧、无视频记忆的 SAM 2.1 Hiera-S 自动 mask，再用冻结 DINOv2 ViT-S/14 无 register 的 patch token 做区域池化。DINOv2沿用已核官方 commit `7764ea0f912e53c92e82eb78a2a1631e92725fc8`及权重 SHA-256 `b938bf1bc15cd2ec0feacfe3a1bb553fe8ea9ca46a7e1d8d00217f29aef60cd9`，但旧回执只证明资产来源，不认证 VM-04 前端。SAM commit/checkpoint、自动 mask 参数以及 depth→surface/place/free-space 的全部门限仍为空并阻止运行。白话：逐帧 SAM 只把当前图像切成匿名区域，输入单张公开 RGB，输出 masks；不用其视频 memory 是为了避免共享前端先替 WFR/VSMT 做长期关联。它不输出永久身份，也不等于 SAM 的 region 就是真实对象。
+
+八原子和 REPLACE 的数据来源分开登记，防止把物理变化、观察变化和旧记忆错误混成一个标签：
+
+| 程序 | 拟议可观察构造与边界 | 不等于什么 |
+|---|---|---|
+| NOOP | 无受支持的持久变化，或遮挡/低可靠使证据不足 | 不是把难例删出分母 |
+| BIND | 同一 entity、surface 或 place 的公开重观测 | 不是 descriptor 过阈就自动拥有真值身份 |
+| BIRTH | 首次公开揭示的新 entity 或可持续 place | 不只限对象，也不是每个 mask 都建点 |
+| REACTIVATE | dormant 结构再次出现，且旧址没有可同时存在的可靠证据 | 不是所有“消失后出现”都复用旧 ID |
+| RELINK | 同一结构的 `located_at/supported_by` 等关系发生变化 | 不是把另一实体替换旧实体 |
+| RETRACT | 两个不同历史时刻的公开可靠自由空间覆盖旧实体或旧关系 | 不是一次漏检就删除 |
+| SPLIT | public-only 前端在旧前缀把相邻/重叠区域欠分成一个记忆节点，当前恢复为两个区域 | 不是现实物体裂开，也不由真值指定欠分 pair |
+| MERGE | public-only 关联在旧前缀按预登记时间窗断开而形成重复节点，当前公开证据支持同一结构 | 不是现实物体融合，也不允许 `merge_queries` 给答案 pair |
+| REPLACE | 旧结构可靠为空，同时当前出现身份冲突的新结构；执行为 RETRACT+BIRTH | 不是第九个原子 |
+
+`controlled_frontend_stress`（受控前端压力事件）专门产生可复验的 SPLIT/MERGE 旧记忆错误。输入只能是已经公开的 proposals、固定时间窗和公开几何，输出所有方法在同一 evidence level 内共同看到的欠分或关联断开。例如固定前缀内把两个公开相邻 mask 合成一条 proposal，之后恢复原 proposal，可能形成 SPLIT 需求。私有真值只能在 public/candidate 封存后把它判作“目标成立”或“construction_failure”，不能反向挑 pair、改候选或重采样。它不冒充自然检测错误；自然错误须另列结果。
+
+拟议 SPLIT 关系语义是：SPLIT 原子事务在关闭源节点时一并关闭其开放 incident edges，再把每条旧边分配给 `successor_0`、`successor_1`、二者或均不继承；只枚举类型合法并有公开证据的组合。第一批每个 SPLIT 源最多 2 条开放边，因此最多 4²=16 个原始分配程序，之后才按公开分数和冻结 cap 排序；teacher 只能在封存后评分，不能创建正确分配。白话：它解决“拆了节点但旧边悬空”以及“默认把关系复制两份可能错”的问题；输入旧开放边和两个匿名后继，输出若干完整、原子执行的关系分配候选。例如混成一个节点的两把椅子都在同一房间时 `located_at` 可给两个后继，而错误 `supported_by` 可关闭。它不增加第九个事务，也未获用户最终语义批准；批准前继续只允许孤立节点 SPLIT。
+
+同一数据拟报告两条轨道。`controlled_revision`（受控单次修订）让五个方法在同一 L1 或 L2 内拿到逐字节相同、由 public-only bootstrap 顺序构建并封存的 prior memory，用来隔离修订机制；`closed_loop_revision`（闭环连续修订）让每个方法从空图开始提交自己的历史，用同一序列报告错误持续和恢复。前者输入共享旧记忆、输出一次可比更新，例如同一错误合并图交给 VSMT/TAF/ELU/WFR/LOW；后者输入相同观测流、输出各自版本链。前者不证明长期稳定，后者也不能因为各方法旧图不同而伪装成单步同条件比较。
+
+主臂仍为 VSMT/TAF/ELU/WFR/LOW；VM-05还须有三项 VSMT 内部对照：同在线架构但不用执行后 teacher 的 direct reference ranker、看候选语法/旧图但不看候选执行后状态的 no-execution scorer、完全不学习的 public heuristic ranker。L1 oracle proposal 和 sealed-catalog oracle choice 只作上界。白话：这些内部对照解决“收益到底来自未来 teacher、真实执行后的候选状态，还是候选本身已经很好猜”；它们输入同一 catalog，输出候选排序。例如 no-execution scorer 若与 VSMT 同样好，不能把收益归因于执行后比较。它们不是新增论文机制主臂，也不能替代 LOW 朴素基线。
+
+当前真正阻塞 VM-04 的不是服务器是否开启，而是以下值尚未获审：SAM commit/checkpoint及全部 mask 参数、depth/free-space与 public bootstrap 阈值、候选 cap/teacher temperature、SPLIT 关系语义、S-01～S-12 的数值/图等价/汇总选择和 nuisance probe 门。配置把这些字段保持 `null`，任何生成入口都必须 fail closed。这里的 2/48/12/12 家族、32 帧、每程序 2 重复、16 GiB数据上限和 8 小时 train+validation 生成上限也只是建议值，不因写进 JSON 自动变成批准值。
+
 ### 强制泄漏检查字段
 
 每个样本须保存但不向模型返回：`public_digest`、`candidate_digest`、`private_digest`、`candidate_generated_before_private_open`、`query_derivation_fields`、`instance_id_permutation_digest`、`private_mutation_invariance`、`prediction_without_private_access` 和 `nuisance_probe_group`。其中 `query_derivation_fields` 逐个列出 node/edge/place/pair query 所依赖的 public 字段摘要；出现 `reference_spec`、未来、真值 identity 或 private 路径即拒绝。

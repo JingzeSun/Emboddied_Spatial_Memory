@@ -38,4 +38,4 @@
 
 旧源码、配置和 run 报告保留原路径。已被合并的细分文档、重复确认表和两套旧方案副本从工作树删除，原文可在[重组前提交](https://github.com/JingzeSun/Emboddied_Spatial_Memory/tree/c24ced2f4a5513f5a8944b98139857cfc27909ff)查看，不在新目录再复制一套。
 
-当前先完成 VSMT VM-01～VM-03 的服务器合同验收和代码审查，再冻结新 RGB-D 数据、split、阈值、训练预算和语义评分；当前指针见 PLAN。暂不生成数据或训练。旧 CPMT 的 S5 no-go、旧 test 封存、D-062 世界模型代码与全部复现路径保留，但不再占据日常入口。
+VSMT VM-01～VM-03 已完成服务器合同验收并合并 `main`；VM-04已有[不可执行的数据协议v1](configs/vsmt/vm04_data_protocol_proposal_v1.json)，正等待来源、split、前端阈值、关系感知SPLIT、teacher/candidate数值及语义汇总审查。当前不下载、不生成数据也不训练。旧 CPMT 的 S5 no-go、旧 test 封存、D-062 世界模型代码与全部复现路径保留，但不再占据日常入口。
