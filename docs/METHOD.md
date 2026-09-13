@@ -76,7 +76,7 @@ VM-01 的共同适配运行器只把 `decision_time_s / camera_pose / robot_stat
 
 VM-03 的 `generate_public_candidate_catalog`（公开候选目录生成器）枚举 NOOP、BIND、BIRTH、REACTIVATE、RELINK、RETRACT、SPLIT、MERGE 八个原子模板及 REPLACE 复合程序。输入只有已验证公开包、prior predicted memory 和无默认值的阈值/每模板容量配置；每个程序先用既有 deterministic executor（确定性执行器）真实 preflight/执行，再连同公开 `online_evidence` 摘要封存。BIND/REACTIVATE/SPLIT 使用匿名区域与公开节点相似度，MERGE 使用两个公开节点，RELINK 枚举开放边与其他公开地点，RETRACT/REPLACE 必须有两个不同合法历史时刻的自由空间覆盖。当前阈值和每模板上限尚未冻结，测试数值只验证分支。
 
-当前SPLIT只对没有开放incident edge（关联边）的节点生成；带关系节点的拆分必须同时决定每条旧边应分给哪个后继、复制、关闭还是另建，S-04/S-08尚未冻结这一语义。它解决关闭源节点后留下悬空边的问题；输入开放边集合，输出当前可完整执行的SPLIT子集。例如孤立片段可拆，仍连着地点的实体暂不产生SPLIT。它不等于VSMT最终不支持带关系结构扩充，缺失的正确程序必须先记candidate miss，不能由teacher补入。
+当前SPLIT公开生成器会对开放边数不超过2的节点枚举“后继0、后继1、二者”三种逐边分配，并在同一原子事务中关闭每条旧边、按原关系类型/方向/另一端点重建新边；任何开放边漏分、重复分或夹带未登记替代边都会使整笔事务失败且不修改原图。“均不继承”只在executor合同层保留，生成器在关系负证据数值规则冻结前不提出。它解决关闭源节点后留下悬空边的问题；输入开放边集合，输出可完整执行的有限SPLIT程序。例如实体原来有一条`located_at`边时，目录分别包含左后继继承、右后继继承和两个后继都继承。它不保证正确分配一定进容量上限，也不允许teacher补入缺失分支。
 
 白话：该生成器解决 `merge_queries` 曾经从参考答案直接给出目标的问题。输入例如两个当前匿名区域和三个旧节点，输出由公开相似度筛出的全部有限事务程序；正确 MERGE pair 没进入目录时后面只能记 candidate miss。候选事务 ID 和顺序只由剥离审计字段后的 `AdapterInput` 摘要产生，因此更换 `sample_id_hash` 或文件摘要不会改变程序/顺序。它不读取 private、不会保证正确候选总在目录，也不把 executor 通过当成语义正确。
 
@@ -133,7 +133,7 @@ VM-04 v1拟把单步机制比较和长期自反馈分开。`controlled_revision`
 
 受控轨道的 `public_bootstrap_v1`（公开旧记忆构建器，planned）只允许从空图依时间顺序做公开 BIRTH/BIND，并给每一步保存输入、配置、提交程序和版本链 SHA-256；构建进程只能挂载 `public`。输入第 0–23 帧的公开 packet，输出第 24 帧之前的封存旧图和 `causal_prior_receipt`。例如交换 private simulator ID 或未来帧而不改 public 时，整个回执必须逐字节不变。它不使用 reference transaction 初始化“正确旧图”，也不等于 bootstrap 自己是主对照；阈值尚未冻结，当前不可实现为数据入口。
 
-关系感知 SPLIT 的推荐语义是一次原子操作完成“关闭源节点、关闭所有源 incident edges、创建两个后继、按候选 assignment 重建边”。每条旧边可给后继0、后继1、二者或均不继承，但“均不继承”必须有冻结的公开负证据，且所有组合先过类型约束；第一批源节点开放边数建议不超过2。输入一个待拆节点、两个公开区域和开放边，输出完整合法的 SPLIT 后状态；例如一个错误聚合的双椅节点拆开后，两者都可 `located_at` 同一地点，而只有一者继承某个局部 `adjacent_to`。它不是 SPLIT 后再让 teacher 补边，也不是默认复制全部关系；用户批准和 executor/schema 实现之前，VM-03 的孤立节点限制继续有效。
+关系感知 SPLIT 已按用户批准形成待服务器验证的代码候选：一次原子操作完成“关闭源节点、关闭所有源 incident edges、创建两个后继、按候选 assignment 重建边”。每条旧边可给后继0、后继1或二者；合同也允许在至少两份已登记公开负证据下均不继承，但当前生成器尚不提出这一分支，避免在关系负证据口径冻结前暗定语义。第一批源节点开放边数上限为2，超过上限或含源节点自环时不生成 SPLIT，并计入候选覆盖分析。输入一个待拆节点、两个公开区域和开放边，输出完整合法的 SPLIT 后状态；例如一个错误聚合的双椅节点拆开后，两者都可 `located_at` 同一地点，而只有一者继承某个局部 `adjacent_to`。它不是 SPLIT 后再让 teacher 补边，也不是默认复制全部关系；静态检查或 executor 可执行也不表示关系分配在语义上正确。
 
 VM-05拟增加三个同架构内部对照，但不改变五个主臂。Direct Reference Candidate Ranker（DRCR，直接参考候选排序器）使用同一在线网络和已封存 catalog，训练标签直接来自参考等价组，不使用执行后未来 teacher；No-Execution Candidate Scorer（NECS，无执行候选评分器）使用同一 catalog 和 teacher target，但不编码候选执行后的图；Public Heuristic Ranker（PHR，公开启发式排序器）完全不学习，只按冻结公开相似度排序。三者输入边界与 VSMT 相同，输出候选槽位。例如 NECS 若已经解释全部收益，说明“执行候选后再比较”没有获得独立支持。它们是 VSMT 因果消融，不是 ConceptGraphs/Fusion++/Khronos 的替代，也不自动获得主方法地位。
 

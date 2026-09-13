@@ -74,7 +74,7 @@ VM-02 的共同节点观测状态键为 `vsmt_observation_state`，当前包含 
 
 主臂仍为 VSMT/TAF/ELU/WFR/LOW；VM-05还须有三项 VSMT 内部对照：同在线架构但不用执行后 teacher 的 direct reference ranker、看候选语法/旧图但不看候选执行后状态的 no-execution scorer、完全不学习的 public heuristic ranker。L1 oracle proposal 和 sealed-catalog oracle choice 只作上界。白话：这些内部对照解决“收益到底来自未来 teacher、真实执行后的候选状态，还是候选本身已经很好猜”；它们输入同一 catalog，输出候选排序。例如 no-execution scorer 若与 VSMT 同样好，不能把收益归因于执行后比较。它们不是新增论文机制主臂，也不能替代 LOW 朴素基线。
 
-当前真正阻塞 VM-04 的不是服务器是否开启，而是以下值尚未获审：SAM commit/checkpoint及全部 mask 参数、depth/free-space与 public bootstrap 阈值、候选 cap/teacher temperature、SPLIT 关系语义、S-01～S-12 的数值/图等价/汇总选择和 nuisance probe 门。配置把这些字段保持 `null`，任何生成入口都必须 fail closed。这里的 2/48/12/12 家族、32 帧、每程序 2 重复、16 GiB数据上限和 8 小时 train+validation 生成上限也只是建议值，不因写进 JSON 自动变成批准值。
+当前真正阻塞 VM-04 的不是服务器是否开启，而是以下值尚未冻结：SAM commit/checkpoint及全部 mask 参数、depth/free-space与 public bootstrap 阈值、候选 cap/teacher temperature、关系“均不继承”的公开负证据、S-01～S-12 的数值/图等价/汇总选择和 nuisance probe 门。关系感知SPLIT的三类保留分配和开放边数上限2已经形成代码候选，但尚无服务器回执。配置把未决字段保持 `null`，任何生成入口都必须 fail closed。这里的 2/48/12/12 家族、32 帧、每程序 2重复、16 GiB数据上限和 8小时 train+validation 生成上限也只是建议值，不因写进 JSON 自动变成批准值。
 
 ### 强制泄漏检查字段
 

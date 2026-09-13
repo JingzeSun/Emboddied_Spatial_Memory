@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import hashlib
+from itertools import product
 import math
 from typing import Any, Callable, Mapping
 
@@ -55,6 +56,7 @@ class PublicCandidateConfig:
     split_minimum_separation_m: float
     free_space_reliability_threshold: float
     maximum_candidates_per_template: int
+    maximum_split_incident_edges: int
 
     def __post_init__(self) -> None:
         for name in ("visual_weight", "geometry_weight"):
@@ -80,6 +82,13 @@ class PublicCandidateConfig:
             or self.maximum_candidates_per_template <= 0
         ):
             raise ValueError("maximum_candidates_per_template must be positive")
+        if (
+            type(self.maximum_split_incident_edges) is not int
+            or not 0 <= self.maximum_split_incident_edges <= 2
+        ):
+            raise ValueError(
+                "maximum_split_incident_edges must be an integer within [0, 2]"
+            )
 
 
 def _transaction_id(public_hash: str, template: str, *parts: object) -> str:
@@ -394,10 +403,24 @@ def _retract_program(
 
 def _split_program(
     graph: Mapping[str, Any], public_hash: str, node: Mapping[str, Any],
-    left: Mapping[str, Any], right: Mapping[str, Any], tick: int,
+    left: Mapping[str, Any], right: Mapping[str, Any], tick: int, *,
+    incident_edges: list[Mapping[str, Any]],
+    assignment_indices: tuple[tuple[int, ...], ...],
 ) -> tuple[dict[str, Any], dict[str, Any]]:
+    if len(incident_edges) != len(assignment_indices):
+        raise ValueError("each incident edge needs one public assignment")
+    if any(
+        edge["source"] == node["node_id"] and edge["target"] == node["node_id"]
+        for edge in incident_edges
+    ):
+        raise ValueError("relation-aware SPLIT does not support a source self-edge")
+    assignment_signature = [
+        [edge["edge_version_id"], list(indices)]
+        for edge, indices in zip(incident_edges, assignment_indices, strict=True)
+    ]
     program = _header(graph, public_hash, "SPLIT", "REVISE",
-                      node["node_id"], left["region_id"], right["region_id"])
+                      node["node_id"], left["region_id"], right["region_id"],
+                      assignment_signature)
     evidence = [
         _region_evidence_ref(left, "split-left"),
         _region_evidence_ref(right, "split-right"),
@@ -406,6 +429,7 @@ def _split_program(
     partitions = [source_evidence[::2] + [evidence[0]],
                   source_evidence[1::2] + [evidence[1]]]
     program["evidence_refs"] = evidence
+    program["split_successor_evidence_refs"] = evidence
     program["operations"] = [
         {
             "op_id": "split:lifecycle", "op_type": "SET_LIFECYCLE",
@@ -414,6 +438,25 @@ def _split_program(
                 "to": "retracted",
             },
         },
+    ]
+    for edge_index, edge in enumerate(incident_edges):
+        program["operations"].extend([
+            {
+                "op_id": f"split:edge-close:{edge_index}",
+                "op_type": "CLOSE_EDGE_VERSION",
+                "arguments": {"edge_id": edge["edge_id"], "at": tick},
+            },
+            {
+                "op_id": f"split:edge-provenance:{edge_index}",
+                "op_type": "RECORD_PROVENANCE",
+                "arguments": {
+                    "target_kind": "edge",
+                    "edge_version_id": edge["edge_version_id"],
+                    "provenance_ref": program["transaction_id"],
+                },
+            },
+        ])
+    program["operations"].extend([
         {"op_id": "split:close", "op_type": "CLOSE_NODE_VERSION",
          "arguments": {"node_id": node["node_id"], "at": tick}},
         {
@@ -423,7 +466,8 @@ def _split_program(
                 "provenance_ref": program["transaction_id"],
             },
         },
-    ]
+    ])
+    successors: list[dict[str, Any]] = []
     for index, (region, evidence_refs) in enumerate(
         zip((left, right), partitions, strict=True)
     ):
@@ -437,10 +481,59 @@ def _split_program(
             evidence_refs=evidence_refs,
             predecessor_ids=[node["node_version_id"]],
         )
+        successors.append(successor)
         program["operations"].append({
             "op_id": f"split:create:{index}", "op_type": "CREATE_NODE",
             "arguments": {"node": successor},
         })
+
+    assignments: list[dict[str, Any]] = []
+    for edge_index, (edge, indices) in enumerate(
+        zip(incident_edges, assignment_indices, strict=True)
+    ):
+        successor_ids = [successors[index]["node_id"] for index in indices]
+        assignments.append({
+            "source_edge_version_id": edge["edge_version_id"],
+            "successor_node_ids": successor_ids,
+            "negative_evidence_refs": [],
+        })
+        for successor_index in indices:
+            successor_id = successors[successor_index]["node_id"]
+            replacement = clone_json(dict(edge))
+            replacement.update({
+                "edge_id": opaque_id(
+                    public_hash, edge["edge_id"], successor_id, "split",
+                    prefix="edge",
+                ),
+                "edge_version_id": opaque_id(
+                    public_hash, edge["edge_version_id"], successor_id, tick,
+                    "split", prefix="edge-version",
+                ),
+                "source": (
+                    successor_id
+                    if edge["source"] == node["node_id"] else edge["source"]
+                ),
+                "target": (
+                    successor_id
+                    if edge["target"] == node["node_id"] else edge["target"]
+                ),
+                "valid_from": tick,
+                "valid_to": None,
+                "evidence_refs": list(dict.fromkeys(
+                    list(edge["evidence_refs"]) + [evidence[successor_index]]
+                )),
+                "provenance": list(dict.fromkeys(
+                    list(edge["provenance"])
+                    + [f"split_source_edge:{edge['edge_version_id']}",
+                       program["transaction_id"]]
+                )),
+            })
+            program["operations"].append({
+                "op_id": f"split:edge-add:{edge_index}:{successor_index}",
+                "op_type": "ADD_EDGE",
+                "arguments": {"edge": replacement},
+            })
+    program["split_relation_assignments"] = assignments
     return program, {}
 
 
@@ -680,17 +773,25 @@ def generate_public_candidate_catalog(
                     prior_memory, deployable_hash, left, right, tick,
                 ))
 
-    incident_node_ids = {
-        endpoint
-        for edge in edges
-        for endpoint in (edge["source"], edge["target"])
-    }
+    incident_by_node: dict[str, list[Mapping[str, Any]]] = {}
+    for edge in edges:
+        for endpoint in {edge["source"], edge["target"]}:
+            incident_by_node.setdefault(endpoint, []).append(edge)
     for node in regular:
         if node["lifecycle"] not in {"candidate", "confirmed"}:
             continue
-        # Until public relation reassignment is enumerated, SPLIT is executable
-        # only for nodes without an open incident edge.
-        if node["node_id"] in incident_node_ids:
+        incident_edges = sorted(
+            incident_by_node.get(node["node_id"], []),
+            key=lambda edge: str(edge["edge_version_id"]),
+        )
+        if (
+            len(incident_edges) > config.maximum_split_incident_edges
+            or any(
+                edge["source"] == node["node_id"]
+                and edge["target"] == node["node_id"]
+                for edge in incident_edges
+            )
+        ):
             continue
         compatible = []
         for region in regions:
@@ -706,9 +807,18 @@ def generate_public_candidate_catalog(
             for right_score, right in compatible[left_index + 1:]:
                 if centroid_distance(left, right) < config.split_minimum_separation_m:
                     continue
-                _append(rows, "SPLIT", min(left_score, right_score), _split_program(
-                    prior_memory, deployable_hash, node, left, right, tick,
-                ))
+                assignments = product(
+                    ((0,), (1,), (0, 1)), repeat=len(incident_edges),
+                )
+                for assignment_indices in assignments:
+                    _append(
+                        rows, "SPLIT", min(left_score, right_score),
+                        _split_program(
+                            prior_memory, deployable_hash, node, left, right, tick,
+                            incident_edges=incident_edges,
+                            assignment_indices=assignment_indices,
+                        ),
+                    )
 
     selected: list[tuple[dict[str, Any], dict[str, Any]]] = []
     for template in TEMPLATE_ORDER:

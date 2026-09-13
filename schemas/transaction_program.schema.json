@@ -15,6 +15,31 @@
       "type": "array",
       "items": {"enum": ["BIND", "BIRTH", "REACTIVATE", "RELINK", "RETRACT", "SPLIT", "MERGE"]}
     },
+    "split_successor_evidence_refs": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "split_relation_assignments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["source_edge_version_id", "successor_node_ids", "negative_evidence_refs"],
+        "properties": {
+          "source_edge_version_id": {"type": "string", "minLength": 1},
+          "successor_node_ids": {
+            "type": "array",
+            "maxItems": 2,
+            "uniqueItems": true,
+            "items": {"type": "string", "minLength": 1}
+          },
+          "negative_evidence_refs": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1}
+          }
+        }
+      }
+    },
     "base_graph_version": {"type": "string", "minLength": 1},
     "operations": {
       "type": "array",

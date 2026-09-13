@@ -14,6 +14,7 @@ SRC_ROOT = PROJECT_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
+from cpmt.executor import ContractError, execute_transaction  # noqa: E402
 from cpmt.hashing import seal_graph  # noqa: E402
 from vsmt.contracts import (  # noqa: E402
     seal_private_evaluation,
@@ -152,6 +153,7 @@ def config() -> PublicCandidateConfig:
         split_minimum_separation_m=0.3,
         free_space_reliability_threshold=0.9,
         maximum_candidates_per_template=20,
+        maximum_split_incident_edges=2,
     )
 
 
@@ -197,7 +199,7 @@ class PublicCandidateTests(unittest.TestCase):
         self.assertNotIn("RETRACT", observed)
         self.assertNotIn("REPLACE", observed)
 
-    def test_split_does_not_close_an_open_edge_endpoint(self) -> None:
+    def test_split_reassigns_an_open_incident_edge_atomically(self) -> None:
         graph = graph_fixture()
         catalog = generate_public_candidate_catalog(
             packet_fixture(graph), graph, config=config(),
@@ -207,10 +209,87 @@ class PublicCandidateTests(unittest.TestCase):
             if item["program"]["template"] == "SPLIT"
         ]
         self.assertTrue(split_programs)
+        related = [
+            program for program in split_programs
+            if any(
+                operation["op_type"] == "SET_LIFECYCLE"
+                and operation["arguments"].get("node_id") == "entity-a"
+                for operation in program["operations"]
+            )
+        ]
+        self.assertTrue(related)
         self.assertTrue(all(
-            program["operations"][0]["arguments"]["node_id"] != "entity-a"
-            for program in split_programs
+            program["split_relation_assignments"][0][
+                "source_edge_version_id"
+            ] == "edge:located@v0"
+            for program in related
         ))
+        self.assertEqual(
+            {
+                len(program["split_relation_assignments"][0][
+                    "successor_node_ids"
+                ])
+                for program in related
+            },
+            {1, 2},
+        )
+        self.assertTrue(all(
+            any(
+                operation["op_type"] == "CLOSE_EDGE_VERSION"
+                and operation["arguments"]["edge_id"] == "edge:located"
+                for operation in program["operations"]
+            )
+            for program in related
+        ))
+
+    def test_split_skips_nodes_over_the_public_incident_edge_cap(self) -> None:
+        graph = graph_fixture()
+        for index in range(2):
+            graph["edges"].append({
+                "edge_id": f"edge:extra:{index}",
+                "edge_version_id": f"edge:extra:{index}@v0",
+                "source": "entity-a",
+                "target": "place-b",
+                "relation": f"public_relation_{index}",
+                "frame": "map",
+                "valid_from": 0,
+                "valid_to": None,
+                "evidence_refs": [f"observation:extra:{index}"],
+                "provenance": ["fixture:public"],
+            })
+        graph = seal_graph(graph)
+        catalog = generate_public_candidate_catalog(
+            packet_fixture(graph), graph, config=config(),
+        )
+        related = [
+            item["program"] for item in catalog["candidates"]
+            if item["program"]["template"] == "SPLIT"
+            and any(
+                operation["op_type"] == "SET_LIFECYCLE"
+                and operation["arguments"].get("node_id") == "entity-a"
+                for operation in item["program"]["operations"]
+            )
+        ]
+        self.assertEqual(related, [])
+
+    def test_split_rejects_an_unassigned_incident_edge_atomically(self) -> None:
+        graph = graph_fixture()
+        catalog = generate_public_candidate_catalog(
+            packet_fixture(graph), graph, config=config(),
+        )
+        program = deepcopy(next(
+            item["program"] for item in catalog["candidates"]
+            if item["program"]["template"] == "SPLIT"
+            and item["program"]["split_relation_assignments"]
+        ))
+        program["split_relation_assignments"] = []
+        before = deepcopy(graph)
+
+        with self.assertRaisesRegex(
+            ContractError, "assign every open incident edge exactly once",
+        ):
+            execute_transaction(graph, program)
+        self.assertEqual(graph, before)
 
     def test_audit_identity_does_not_change_programs_or_order(self) -> None:
         graph = graph_fixture()

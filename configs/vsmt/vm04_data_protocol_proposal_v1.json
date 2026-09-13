@@ -251,7 +251,7 @@
     "blocking_reason": "builder_thresholds_and_implementation_not_yet_reviewed"
   },
   "split_relation_assignment_proposal": {
-    "status": "requires_user_semantic_review_before_implementation",
+    "status": "implementation_candidate_pending_server_verification",
     "recommended_rule": "SPLIT_atomically_closes_source_and_each_open_incident_edge_then_recreates_each_edge_on_successor_0_successor_1_both_or_neither",
     "candidate_source": "enumerate_only_type_valid_assignments_then_rank_and_cap_with_public_geometry_descriptor_and_free_space_evidence",
     "successor_names_are_packet_ordinals_not_left_right_labels": true,
@@ -260,7 +260,13 @@
     "teacher_may_select_or_score_after_catalog_seal": true,
     "teacher_may_create_an_assignment": false,
     "close_or_neither_requires_registered_public_negative_evidence": true,
-    "fallback_before_approval": "retain_VM03_isolated_node_SPLIT_only"
+    "implemented_public_assignments": [
+      "successor_0",
+      "successor_1",
+      "both_successors"
+    ],
+    "neither_assignment_status": "executor_contract_only_pending_public_negative_evidence_rule",
+    "verification_status": "local_static_checks_only"
   },
   "experiment_tracks": {
     "controlled_revision": {

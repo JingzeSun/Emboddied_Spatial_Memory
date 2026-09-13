@@ -577,13 +577,31 @@ def _validate_reliable_negative_evidence(
     evidence_by_id: Mapping[str, dict[str, Any]],
     reliability_threshold: float,
 ) -> None:
+    _validate_reliable_negative_evidence_refs(
+        program["evidence_refs"],
+        target_version_id=target_version_id,
+        evidence_by_id=evidence_by_id,
+        reliability_threshold=reliability_threshold,
+    )
+
+
+def _validate_reliable_negative_evidence_refs(
+    evidence_refs: Iterable[str],
+    *,
+    target_version_id: str,
+    evidence_by_id: Mapping[str, dict[str, Any]],
+    reliability_threshold: float,
+) -> None:
     if not 0 <= reliability_threshold <= 1:
         raise ContractError(
             "reliability_threshold must be between 0 and 1"
         )
+    evidence_refs = list(evidence_refs)
+    if any(type(evidence_id) is not str for evidence_id in evidence_refs):
+        raise ContractError("negative evidence refs must be strings")
     missing = [
         evidence_id
-        for evidence_id in program["evidence_refs"]
+        for evidence_id in evidence_refs
         if evidence_id not in evidence_by_id
     ]
     if missing:
@@ -593,7 +611,7 @@ def _validate_reliable_negative_evidence(
 
     referenced = [
         evidence_by_id[evidence_id]
-        for evidence_id in program["evidence_refs"]
+        for evidence_id in evidence_refs
     ]
     negatives = [
         event
@@ -906,19 +924,6 @@ def _validate_template_preconditions(
             for evidence_list in evidence_lists
             for evidence in evidence_list
         ]
-        expected_evidence = set(source["evidence_refs"]) | set(
-            program["evidence_refs"]
-        )
-        if (
-            len(flattened_evidence)
-            != len(set(flattened_evidence))
-            or set(flattened_evidence) != expected_evidence
-        ):
-            raise ContractError(
-                "SPLIT must partition source/program evidence "
-                "exactly once"
-            )
-
         latent_lists = [
             node["latent_refs"] for node in successors
         ]
@@ -939,6 +944,161 @@ def _validate_template_preconditions(
             raise ContractError(
                 "SPLIT successors cannot inherit the old "
                 "conflated aggregate latent"
+            )
+
+        successor_evidence = program.get(
+            "split_successor_evidence_refs", program["evidence_refs"],
+        )
+        if (
+            type(successor_evidence) is not list
+            or any(type(item) is not str for item in successor_evidence)
+            or not set(successor_evidence) <= set(program["evidence_refs"])
+        ):
+            raise ContractError(
+                "SPLIT successor evidence must be a string-list subset "
+                "of program evidence_refs"
+            )
+        expected_evidence = set(source["evidence_refs"]) | set(
+            successor_evidence
+        )
+        if (
+            len(flattened_evidence) != len(set(flattened_evidence))
+            or set(flattened_evidence) != expected_evidence
+        ):
+            raise ContractError(
+                "SPLIT must partition source/successor evidence "
+                "exactly once"
+            )
+
+        incident_edges = [
+            edge for edge in graph["edges"]
+            if edge.get("valid_to") is None
+            and source_id in {edge["source"], edge["target"]}
+        ]
+        if any(
+            edge["source"] == source_id and edge["target"] == source_id
+            for edge in incident_edges
+        ):
+            raise ContractError(
+                "relation-aware SPLIT does not support a source self-edge"
+            )
+        assignments = program.get("split_relation_assignments", [])
+        if type(assignments) is not list or any(
+            type(row) is not dict for row in assignments
+        ):
+            raise ContractError("SPLIT relation assignments must be objects")
+        assignment_versions = [
+            row.get("source_edge_version_id") for row in assignments
+        ]
+        expected_versions = [
+            edge["edge_version_id"] for edge in incident_edges
+        ]
+        if (
+            len(assignment_versions) != len(set(assignment_versions))
+            or set(assignment_versions) != set(expected_versions)
+        ):
+            raise ContractError(
+                "SPLIT must assign every open incident edge exactly once"
+            )
+
+        close_edge_ids = [
+            operation["arguments"]["edge_id"]
+            for operation in operations
+            if operation["op_type"] == "CLOSE_EDGE_VERSION"
+        ]
+        if (
+            len(close_edge_ids) != len(set(close_edge_ids))
+            or set(close_edge_ids) != {edge["edge_id"] for edge in incident_edges}
+        ):
+            raise ContractError(
+                "SPLIT must close every open incident edge exactly once"
+            )
+
+        added_edges = [
+            operation["arguments"]["edge"]
+            for operation in operations
+            if operation["op_type"] == "ADD_EDGE"
+        ]
+        accounted_versions: list[str] = []
+        edge_by_version = {
+            edge["edge_version_id"]: edge for edge in incident_edges
+        }
+        successor_id_set = set(successor_ids)
+        for assignment in assignments:
+            source_edge_version = assignment["source_edge_version_id"]
+            old_edge = edge_by_version[source_edge_version]
+            assigned_ids = assignment.get("successor_node_ids")
+            negative_refs = assignment.get("negative_evidence_refs")
+            if type(assigned_ids) is not list or type(negative_refs) is not list:
+                raise ContractError(
+                    "SPLIT relation assignment lists are required"
+                )
+            if (
+                len(assigned_ids) != len(set(assigned_ids))
+                or len(assigned_ids) > 2
+                or not set(assigned_ids) <= successor_id_set
+            ):
+                raise ContractError(
+                    "SPLIT relation assignment names invalid successors"
+                )
+            if assigned_ids and negative_refs:
+                raise ContractError(
+                    "retained SPLIT relation cannot also claim reliable absence"
+                )
+            if not set(negative_refs) <= set(program["evidence_refs"]):
+                raise ContractError(
+                    "SPLIT relation absence evidence must appear in "
+                    "program evidence_refs"
+                )
+            if not assigned_ids:
+                _validate_reliable_negative_evidence_refs(
+                    negative_refs,
+                    target_version_id=source_edge_version,
+                    evidence_by_id=evidence_by_id,
+                    reliability_threshold=reliability_threshold,
+                )
+
+            marker = f"split_source_edge:{source_edge_version}"
+            replacements = [
+                edge for edge in added_edges if marker in edge["provenance"]
+            ]
+            if len(replacements) != len(assigned_ids):
+                raise ContractError(
+                    "SPLIT relation assignment and replacement edge count differ"
+                )
+            for new_edge in replacements:
+                replacement_id = (
+                    new_edge["source"]
+                    if old_edge["source"] == source_id
+                    else new_edge["target"]
+                )
+                other_old = (
+                    old_edge["target"]
+                    if old_edge["source"] == source_id
+                    else old_edge["source"]
+                )
+                other_new = (
+                    new_edge["target"]
+                    if old_edge["source"] == source_id
+                    else new_edge["source"]
+                )
+                if (
+                    replacement_id not in assigned_ids
+                    or other_new != other_old
+                    or new_edge["relation"] != old_edge["relation"]
+                    or new_edge["frame"] != old_edge["frame"]
+                ):
+                    raise ContractError(
+                        "SPLIT replacement edge changed more than source identity"
+                    )
+                accounted_versions.append(new_edge["edge_version_id"])
+        if (
+            len(accounted_versions) != len(set(accounted_versions))
+            or set(accounted_versions)
+            != {edge["edge_version_id"] for edge in added_edges}
+        ):
+            raise ContractError(
+                "SPLIT contains an unassigned or duplicate replacement edge"
             )
         return
 
