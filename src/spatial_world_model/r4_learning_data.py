@@ -10,7 +10,8 @@ from pathlib import Path
 
 from .pair_contract import require
 from .r4_generation_v2 import ACTIONS
-from .r4_query_v2 import SOURCE_VERSION, from_public_query
+from .r4_public_v2 import model_input as select_public_model_input
+from .r4_query_v2 import from_public_query
 from .r4_scoring_v2 import validate_labels
 from .r4_storage import file_record
 
@@ -107,12 +108,7 @@ def load_branch(index, family_id, world, action_slot, *, include_auxiliary_rgbd)
     public_rel = f"{world}.json.gz"
     label_rel = f"{world}-{action}.json.gz"
     public = _gzip_json(_manifest_record(root / "public", seal["public"]["manifest"], public_rel))
-    require(public["schema_version"] == SOURCE_VERSION and len(public["actions"]) == 9,
-            "public branch source version/count")
-    query = from_public_query({
-        "schema_version": SOURCE_VERSION, "history": public["history"],
-        "controls": public["actions"][action_slot], "goal": public["goal"],
-    })
+    query = from_public_query(select_public_model_input(public, action_slot))
     label_record = _gzip_json(_manifest_record(root / "labels", seal["labels"]["manifest"], label_rel))
     validate_labels(label_record["labels"])
     trajectory_rel = f"{world}/primary-{action}/trajectory.jsonl.gz"

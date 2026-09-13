@@ -1,0 +1,15 @@
+{
+  "version": "sh05-r4-learning-data-check-v3",
+  "decision": "D-106",
+  "families": ["r4-39", "r4-47", "r4-25", "r4-03"],
+  "sample": {"family_id": "r4-39", "world": "LL", "action_slot": 0},
+  "source_stage": "/root/autodl-tmp/spatial-history/sh04-r4-engineering-subset-v2",
+  "source_report": "results/spatial_history_r4_engineering_subset_v2.json",
+  "source_report_sha256": "2cb6e138e6851373bdd6af5533336ad4e251c68161b9ebbf292323710c178306",
+  "run_directory": "/root/autodl-tmp/spatial-history/sh05-r4-learning-data-check-v3",
+  "report": "results/spatial_history_r4_learning_data_v3.json",
+  "limits": {"wall_s": 600, "process_as_bytes": 6442450944, "report_bytes": 1048576},
+  "generation_authorized": false,
+  "training_authorized": false,
+  "confirmation_authorized": false
+}

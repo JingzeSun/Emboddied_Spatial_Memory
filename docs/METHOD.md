@@ -1157,3 +1157,5 @@ r4_history_predictor.py实现D-097的自然5×5版本。RGB/深度卷积格相�
 未来RGBD只供D/F/W已有辅助损失，读取原primary的rgb/depth/sensor_times/sensor_step_indices四数组；integration数组虽必须存在于complete清单，但永不打开。数组先核压缩文件摘要，再核自描述头、解压原字节长度与SHA-256；201帧严格取1:201为200个未来端点，0帧保持决策锚点。L/R调用时`include_auxiliary_rgbd=false`，因此只读公开历史和任务标签。该接口尚未构造采样器、optimizer或checkpoint，真实读取工程结果未产生前不能称训练入口就绪。
 
 D-105修正只改变家族身份的来源：原实例配置没有`family_id`，因此要求数据根的父目录与调用方编号一致，并由旧报告中的`execution/<family_id>/data/...`摘要完成外部绑定。训练张量、候选顺序、标签、辅助目标和禁止字段不变；v1失败现场保留，v2另目录核验。
+
+D-106修正让reader复用现有公开数据桥接：完整`public-family-v2`先验证全部九候选，再由`action_slot`选择并产生`public-query-v2`，最后形成共同模型输入。v2失败仅说明这两个schema被错误比较，不是数据损坏或模型失败；v3独立检查。
