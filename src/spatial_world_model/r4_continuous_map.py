@@ -11,6 +11,7 @@ from copy import deepcopy
 import math
 
 from .pair_contract import keys, require
+from . import public_geometry
 from . import r4_object_association as objects
 from . import r4_object_surfaces as surfaces
 from . import r4_observed_map_v2 as nominal_maps
@@ -34,7 +35,7 @@ PARAMETERS = {
     "circle_quadrant_segments": 32,
     "circle_outer_radius_scale": 1.000301272041302,
     "floor_support": "whole_cell_inside_one_observed_locally_horizontal_quad",
-    "wall_support": "cell_intersects_observed_wall_top_interval",
+    "wall_support": "cell_intersects_observed_wall_top_or_opening_boundary_interval",
     "body_core": "whole_cell_inside_every_allowed_current_body_placement",
     "unknown_priority": ["observed_wall_interval", "body_occlusion_unknown",
                          "sampling_gap_unknown", "outside_observed_region"],
@@ -112,9 +113,82 @@ def _fixed(value, expected, where):
     objects._fixed(value, expected, where)
 
 
+def _opening_intervals(prediction, history_frames):
+    """Validate the sealed public E0 result without accepting private additions."""
+    keys(prediction, "schema_version candidates conflicts incomplete_observations "
+         "rejected_counts history_frames", "public opening prediction")
+    require(prediction["schema_version"] == public_geometry.VERSION,
+            "public opening prediction version")
+    require(prediction["history_frames"] == history_frames,
+            "public opening prediction history length")
+    require(prediction["conflicts"] == [], "conflicting public opening intervals")
+    require(isinstance(prediction["candidates"], list) and prediction["candidates"],
+            "public opening intervals missing")
+    validated = []
+    for index, candidate in enumerate(prediction["candidates"]):
+        keys(candidate, "coordinate_intervals_m coordinates_m plane_height_interval_m support",
+             f"public opening candidate {index}")
+        intervals = candidate["coordinate_intervals_m"]
+        require(isinstance(intervals, list) and len(intervals) == 3,
+                "opening candidate coordinate intervals")
+        for interval in intervals:
+            require(isinstance(interval, list) and len(interval) == 2 and
+                    all(type(value) in (int, float) and math.isfinite(value)
+                        for value in interval) and interval[0] <= interval[1],
+                    "invalid opening coordinate interval")
+        coordinates = candidate["coordinates_m"]
+        require(isinstance(coordinates, list) and len(coordinates) == 3 and
+                all(type(value) in (int, float) and math.isfinite(value)
+                    for value in coordinates), "invalid opening coordinates")
+        require(all(abs(coordinates[axis] - math.fsum(intervals[axis]) / 2) <= 1e-12
+                    for axis in range(3)), "opening midpoint differs from interval")
+        require(intervals[0][1] < intervals[1][0], "opening interval has no certain gap")
+        validated.append(deepcopy(intervals))
+    return validated
+
+
+def _propagate_opening_intervals(wall_rectangles, coordinate_intervals,
+                                 wall_thickness_m, cell_m):
+    """Outer-approximate wall faces from E0 boundary intervals and observed tops."""
+    propagated, records = [], []
+    for candidate_index, intervals in enumerate(coordinate_intervals):
+        left, right, front = intervals
+        opening_mid = math.fsum((left[0], left[1], right[0], right[1])) / 4
+        y_band = [front[0] - cell_m, front[1] + wall_thickness_m + cell_m]
+        nearby = [rectangle for rectangle in wall_rectangles
+                  if rectangle[2] <= y_band[1] and rectangle[3] >= y_band[0]]
+        left_support = [rectangle for rectangle in nearby
+                        if math.fsum(rectangle[:2]) / 2 < opening_mid and
+                        rectangle[0] < left[1]]
+        right_support = [rectangle for rectangle in nearby
+                         if math.fsum(rectangle[:2]) / 2 > opening_mid and
+                         rectangle[1] > right[0]]
+        if not left_support or not right_support:
+            return [], [], f"opening_{candidate_index}_wall_side_unresolved"
+        left_rectangle = [min(value[0] for value in left_support),
+                          max(left[1], max(value[1] for value in left_support)),
+                          min(front[0], min(value[2] for value in left_support)),
+                          max(front[1] + wall_thickness_m,
+                              max(value[3] for value in left_support))]
+        right_rectangle = [min(right[0], min(value[0] for value in right_support)),
+                           max(value[1] for value in right_support),
+                           min(front[0], min(value[2] for value in right_support)),
+                           max(front[1] + wall_thickness_m,
+                               max(value[3] for value in right_support))]
+        propagated.extend((left_rectangle, right_rectangle))
+        records.append({
+            "candidate_index": candidate_index,
+            "coordinate_intervals_m": deepcopy(intervals),
+            "left_wall_outer_rectangle_xy_m": left_rectangle,
+            "right_wall_outer_rectangle_xy_m": right_rectangle,
+            "rule": "left_uses_x_left_upper_right_uses_x_right_lower_front_uses_full_interval",
+        })
+    return propagated, records, "continuous_map_ready"
+
+
 def build_map(history, public_sensor_spec, common_shape, public_domain,
               nominal_map_parameters, continuous_parameters, *, history_mode="full",
-              history_cut_index=None):
+              history_cut_index=None, public_opening_prediction=None):
     """Build one public D-112 map; private geometry and future state are rejected."""
     _fixed(continuous_parameters, PARAMETERS, "continuous map parameters")
     validate_domain(public_domain)
@@ -141,6 +215,10 @@ def build_map(history, public_sensor_spec, common_shape, public_domain,
         "observed_floor_support_rectangles_xy_m": [],
         "observed_wall_interval_cells": [],
         "observed_wall_interval_rectangles_xy_m": [],
+        "opening_boundary_intervals": [],
+        "wall_interval_propagation": [],
+        "wall_interval_derived_cells": [],
+        "wall_interval_witnesses": [],
         "decision_body_core_cells": [],
         "body_occlusion_unknown_cells": [],
         "certified_free_cells": [],
@@ -174,7 +252,25 @@ def build_map(history, public_sensor_spec, common_shape, public_domain,
         body_core |= box_core_cells(robot_intervals, half, PARAMETERS["cell_m"])
         body_possible = circle_possible_cells(object_intervals, radius, PARAMETERS["cell_m"])
         body_possible |= box_possible_cells(robot_intervals, half, PARAMETERS["cell_m"])
-    wall_cells = set(walls)
+    wall_rectangles = merge_cells_to_rectangles(set(walls), PARAMETERS["cell_m"])
+    propagated, propagation_records = [], []
+    if public_opening_prediction is None:
+        result["status"] = "opening_intervals_unresolved"
+    else:
+        intervals = _opening_intervals(public_opening_prediction, len(history["frames"]))
+        propagated, propagation_records, result["status"] = _propagate_opening_intervals(
+            wall_rectangles, intervals, public_domain["obstacle_thickness_m"],
+            PARAMETERS["cell_m"])
+        result["opening_boundary_intervals"] = intervals
+    interval_cells = set()
+    interval_witnesses = {}
+    for record, rectangles in zip(propagation_records,
+                                  zip(propagated[::2], propagated[1::2])):
+        for side, rectangle in zip(("left", "right"), rectangles):
+            for cell in cells_intersecting_rectangle(rectangle, PARAMETERS["cell_m"]):
+                interval_cells.add(cell)
+                interval_witnesses.setdefault(cell, (record["candidate_index"], side))
+    wall_cells = set(walls) | interval_cells
     observed_floor = set(floor)
     body_core -= wall_cells
     certified = (observed_floor | body_core) - wall_cells
@@ -186,6 +282,10 @@ def build_map(history, public_sensor_spec, common_shape, public_domain,
         observed_wall_interval_cells=[list(cell) for cell in sorted(wall_cells)],
         observed_wall_interval_rectangles_xy_m=merge_cells_to_rectangles(
             wall_cells, PARAMETERS["cell_m"]),
+        wall_interval_propagation=propagation_records,
+        wall_interval_derived_cells=[list(cell) for cell in sorted(interval_cells)],
+        wall_interval_witnesses=[[*cell, *interval_witnesses[cell]]
+                                 for cell in sorted(interval_witnesses)],
         decision_body_core_cells=[list(cell) for cell in sorted(body_core)],
         body_occlusion_unknown_cells=[list(cell) for cell in sorted(body_ring)],
         certified_free_cells=[list(cell) for cell in sorted(certified)],

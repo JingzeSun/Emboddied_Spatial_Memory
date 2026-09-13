@@ -3,6 +3,7 @@ import math
 import unittest
 
 from spatial_world_model import r4_continuous_map as maps
+from spatial_world_model import r4_continuous_readout as readout
 from spatial_world_model import r4_object_association as objects
 from spatial_world_model import r4_observed_map_v2 as nominal_maps
 from spatial_world_model.r4_query_v2 import domain_spec
@@ -41,6 +42,20 @@ def build(wall=False):
         nominal_maps.parameters(), maps.parameters(), history_mode="recent")
 
 
+def opening_prediction(intervals):
+    return {
+        "schema_version": "public-openings-v1",
+        "candidates": [{
+            "coordinate_intervals_m": intervals,
+            "coordinates_m": [math.fsum(value) / 2 for value in intervals],
+            "plane_height_interval_m": [.2999, .3001],
+            "support": [],
+        }],
+        "conflicts": [], "incomplete_observations": [], "rejected_counts": {},
+        "history_frames": 2,
+    }
+
+
 def synthetic_map():
     floor = {(0, 0): (12, 3, 4), (1, 0): (12, 3, 4), (2, 0): (20, 8, 9)}
     walls = {(2, 0): (17, 5, 6)}
@@ -77,7 +92,7 @@ class ContinuousMapTests(unittest.TestCase):
 
     def test_public_depth_builds_whole_cell_floor_and_body_core(self):
         result = build()
-        self.assertEqual(result["status"], "nominal_map_ready")
+        self.assertEqual(result["status"], "opening_intervals_unresolved")
         self.assertTrue(result["assumption_conditioned"])
         self.assertTrue(result["observed_floor_cells"])
         self.assertTrue(result["decision_body_core_cells"])
@@ -93,6 +108,43 @@ class ContinuousMapTests(unittest.TestCase):
         self.assertTrue(walls)
         self.assertFalse(walls & free)
         self.assertEqual(len(result["wall_cell_witnesses"]), len(walls))
+
+    def test_opening_interval_extremes_shrink_gap_and_expand_front(self):
+        raw = [[-1., -.1, .5, .55], [.1, 1., .5, .55]]
+        intervals = [[-.1, -.02], [.02, .1], [.495, .505]]
+        rectangles, records, status = maps._propagate_opening_intervals(
+            raw, [intervals], .05, .005)
+        self.assertEqual(status, "continuous_map_ready")
+        self.assertEqual(rectangles, [[-1., -.02, .495, .555], [.02, 1., .495, .555]])
+        self.assertEqual(records[0]["coordinate_intervals_m"], intervals)
+        free = [[x, y] for x in range(-4, 4) for y in range(90, 121)]
+        value = {"cell_m": .005, "observed_floor_cells": free,
+                 "observed_wall_interval_rectangles_xy_m": rectangles}
+        openings = readout.public_openings(value)
+        self.assertEqual(openings[0]["x_bounds_m"], [-.02, .02])
+        self.assertTrue(openings[0]["coordinate_uncertainty_certified"])
+        self.assertAlmostEqual(math.fsum((intervals[0][0], intervals[0][1])) / 2,
+                               -.06)
+        self.assertAlmostEqual(math.fsum((intervals[1][0], intervals[1][1])) / 2,
+                               .06)
+
+    def test_opening_interval_without_both_observed_wall_sides_is_unresolved(self):
+        intervals = [[-.1, -.02], [.02, .1], [.49, .51]]
+        rectangles, records, status = maps._propagate_opening_intervals(
+            [[-1., -.1, .5, .55]], [intervals], .05, .005)
+        self.assertEqual(rectangles, [])
+        self.assertEqual(records, [])
+        self.assertEqual(status, "opening_0_wall_side_unresolved")
+
+    def test_public_opening_input_rejects_private_or_midpoint_changed_fields(self):
+        prediction = opening_prediction([[-.1, -.02], [.02, .1], [.49, .51]])
+        prediction["labels"] = {}
+        with self.assertRaises(ValueError):
+            maps._opening_intervals(prediction, 2)
+        prediction.pop("labels")
+        prediction["candidates"][0]["coordinates_m"][0] = 0.
+        with self.assertRaises(ValueError):
+            maps._opening_intervals(prediction, 2)
 
 
 if __name__ == "__main__":

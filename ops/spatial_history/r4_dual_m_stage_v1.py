@@ -52,9 +52,11 @@ BOUND = (
     CONFIG_PATH,
     "configs/spatial_history/learning_contract_r4_v2.json",
     "configs/spatial_history/r4_family_design_v2.json",
+    "configs/spatial_history/public_geometry_parallel_v1.json",
     "ops/spatial_history/requirements-r4-map.txt",
     "ops/spatial_history/r4_dual_m_stage_v1.py",
     "src/spatial_world_model/r4_continuous_geometry.py",
+    "src/spatial_world_model/public_geometry.py",
     "src/spatial_world_model/r4_continuous_map.py",
     "src/spatial_world_model/r4_continuous_shapes.py",
     "src/spatial_world_model/r4_continuous_readout.py",
@@ -230,6 +232,7 @@ def source_file(data, channel, name):
 
 
 def _public_family(family_id, split, existing_ids):
+    from spatial_world_model import public_geometry
     from spatial_world_model import r4_continuous_map as maps
     from spatial_world_model import r4_continuous_readout as task_readout
     from spatial_world_model import r4_object_association as objects
@@ -238,6 +241,7 @@ def _public_family(family_id, split, existing_ids):
     from spatial_world_model import r4_simple_dynamics as simple
     from spatial_world_model.r4_query_v2 import domain_spec
     data = source_root(family_id, existing_ids)
+    geometry_config = read(ROOT / "configs/spatial_history/public_geometry_parallel_v1.json")
     destination = RUN / "public" / family_id
     destination.mkdir(parents=True)
     files = {}
@@ -247,6 +251,9 @@ def _public_family(family_id, split, existing_ids):
         value = read(source_file(data, "public", world + ".json.gz"))
         require(len(value["history"]) == 121 and len(value["actions"]) == 9,
                 "public query census")
+        opening_prediction = public_geometry.recover_openings(
+            value["history"], geometry_config["public_sensor_spec"],
+            geometry_config["extractor"])
         frames = [{key: frame[key] for key in objects.FIELDS.split()}
                   for frame in value["history"]]
         for index, frame in enumerate(frames):
@@ -254,9 +261,13 @@ def _public_family(family_id, split, existing_ids):
         mapped = maps.build_map(
             {"schema_version": nominal_maps.HISTORY_VERSION, "frames": frames},
             objects.sensor_spec(), objects.common_shape_spec(), domain_spec(),
-            nominal_maps.parameters(), maps.parameters(), history_mode="full")
+            nominal_maps.parameters(), maps.parameters(), history_mode="full",
+            public_opening_prediction=opening_prediction)
         require(mapped["current_object"] is not None and
                 mapped["current_object"]["status"] == "association_ready", "map association")
+        require(mapped["status"] == "continuous_map_ready" and
+                len(task_readout.public_openings(mapped)) == 2,
+                "public opening intervals unresolved")
         files[f"{world}/map.json.gz"] = write(destination / world / "map.json.gz", mapped)
         for action, rows in zip(ACTIONS, value["actions"]):
             controls = {name: [row[name] for row in rows]

@@ -18,9 +18,9 @@ VERSION = "spatial-history-r4-continuous-readout-v1"
 PARAMETERS = {
     "expected_task_openings": 2,
     "wall_thickness_m": .05,
-    "wall_band_tolerance_m": .02,
+    "wall_band_tolerance_m": .035,
     "minimum_wall_band_m": .02,
-    "maximum_wall_band_m": .08,
+    "maximum_wall_band_m": .085,
     "object_radius_m": .07,
     "object_half_height_m": .04,
 }
@@ -70,9 +70,9 @@ def public_openings(continuous_map):
                     "plane_y_m": (front + back) / 2,
                     "source_rectangles": group,
                     "observed_through_columns": columns,
-                    "coordinate_uncertainty_certified": False,
+                    "coordinate_uncertainty_certified": True,
                     "assumption_conditioned": True,
-                    "boundary_semantics": "pessimistic_observed_wall_cell_union",
+                    "boundary_semantics": "pessimistic_public_opening_interval_wall_union",
                 })
     return sorted(openings, key=lambda value: (value["plane_y_m"], value["x_bounds_m"]))
 

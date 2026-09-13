@@ -9,7 +9,7 @@
   "design": "configs/spatial_history/r4_family_design_v2.json",
   "design_sha256": "d93a8e368a2235e4573f79e3839dc27a78ab274eca9c5446a8227c6599fcaa89",
   "learning_contract": "configs/spatial_history/learning_contract_r4_v2.json",
-  "learning_contract_sha256": "93f22d601109901faac24eeb506f1096055a99aa7054415267443a7a3e7cc082",
+  "learning_contract_sha256": "35f9ffba3f23c8c49f1b0bcf9a2f5d39a3177a0675a496d5ee9b511ff29721f9",
   "base": "configs/spatial_history/two_gate_engineering_v1.json",
   "e0": "configs/spatial_history/public_geometry_parallel_v1.json",
   "existing_stage": "/root/autodl-tmp/spatial-history/sh04-r4-engineering-subset-v2",

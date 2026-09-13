@@ -1,6 +1,6 @@
 {
   "version": "sh05-r4-dual-m-stage-v1",
-  "decision": "D-114",
+  "decision": "D-115",
   "status": "concrete_review_candidate_not_executable",
   "implementation_review_complete": false,
   "effect_run_authorized": false,
@@ -9,7 +9,7 @@
   "design": "configs/spatial_history/r4_family_design_v2.json",
   "design_sha256": "d93a8e368a2235e4573f79e3839dc27a78ab274eca9c5446a8227c6599fcaa89",
   "learning_contract": "configs/spatial_history/learning_contract_r4_v2.json",
-  "learning_contract_sha256": "93f22d601109901faac24eeb506f1096055a99aa7054415267443a7a3e7cc082",
+  "learning_contract_sha256": "35f9ffba3f23c8c49f1b0bcf9a2f5d39a3177a0675a496d5ee9b511ff29721f9",
   "existing_stage": "/root/autodl-tmp/spatial-history/sh04-r4-engineering-subset-v2",
   "generated_stage": "/root/autodl-tmp/spatial-history/sh05-r4-development-generation-v2",
   "run_directory": "/root/autodl-tmp/spatial-history/sh05-r4-dual-m-v1",
