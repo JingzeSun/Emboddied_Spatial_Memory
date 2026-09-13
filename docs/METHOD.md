@@ -6,6 +6,32 @@ Versioned Structural Memory Transactions（VSMT，版本化结构记忆事务）
 
 REPLACE 继续定义为 RETRACT+BIRTH 复合程序，不计入八个原子模板。结构记忆允许实体、地点/区域、实体—地点关系、实体—实体关系、观测证据引用和版本历史；第一批数据具体纳入哪些节点/边类型须在生成预算前冻结，不能用未生成的类型扩大结果表述。
 
+### 论文定位、核心创新与成熟架构骨架
+
+第一篇的核心候选创新不是“使用图”“保留历史”或“设计八个事务名称”，而是以下三个不可拆开的部分：
+
+1. **可执行的类型化修订空间。** 每个候选是带前条件、作用域和 provenance 的结构程序，并从同一个 immutable base version（不可变基版本）克隆执行；节点、边、生命周期和证据都可被局部修订，非法程序原子回滚。它解决预测一个标签却不知道实际改坏了什么的问题；输入旧图和候选程序，输出完整候选后状态。例如 MERGE 后既能检查重复节点是否消失，也能检查无关地点边是否被误改。它不等于把分类标签换成动词，也不把旧 executor 单独称为创新。
+2. **candidate-before-teacher 的反事实学习边界。** 在线候选只由公开观测前缀和系统自己形成的旧记忆产生并先封存；训练 teacher 随后才可用未来/参考证据比较这些已执行后状态。它解决未来监督通过 `merge_queries` 偷给候选身份的问题；输入固定候选目录和私有后验，输出原槽位上的排序/软目标。例如正确 MERGE pair 未被公开生成时只能记 `candidate_miss`。它不等于 teacher 可以补候选，也不预设旧 CTL 已经有效。
+3. **状态、历史与副作用的联合可审计评价。** VSMT 同时保留新图、旧版本、证据归属、非法/回滚和无关结构变化，并把 candidate miss、teacher error、amortization error 分开。它解决终点图偶然正确却修订过程不可追溯的问题；输入每步预测/执行日志和私有评价，输出结构错误、持续时间、provenance、collateral 与成本分项。例如先错绑两帧再修复与始终正确不会得到同一过程分。它不等于事后挑一个有利的总分；S-01～S-12 语义及权重仍须事前冻结。
+
+整体采用成熟的双速率结构感知骨架，而不复制任何一个上游系统。共享前端参考 [ConceptGraphs](https://concept-graphs.github.io/) 的 posed RGB-D→区域→多视角关联；结构状态参考 [Hydra](https://www.roboticsproceedings.org/rss18/p050.html) 的实体、地点、房间等分层图；存在证据参考 [Fusion++](https://doi.org/10.1109/3DV.2018.00015) 的对象存在概率；短期片段与较慢全局协调参考 [Khronos](https://www.roboticsproceedings.org/rss20/p081.html) 的 active window / global reconciliation。VSMT 在这个骨架上新增的是统一事务空间、版本化真实执行、严格监督边界和相应误差分解；当前均为论文设计与工程候选，尚无实验支持“优于这些系统”。
+
+```text
+公开 RGB-D/位姿/已发生动作
+          ↓ 共享冻结 proposal + DINOv2 区域描述 + 公开几何/自由空间
+ObservationPacket + 因果构建的 prior predicted memory
+          ↓                    ↓
+  公共候选生成器        TAF / ELU / WFR / LOW
+          ↓
+同一基版本上逐候选真实执行并封存
+          ↓
+在线选择器 → commit/rollback → 新版本记忆
+          ↑
+训练期专用：封存后 teacher 只给原候选打分
+```
+
+白话：这条流水线把“看图”“提出怎么改”“试执行”“训练时评价”和“部署时提交”分开。输入是一段公开 RGB-D 观察和旧记忆，输出一个可重放的新图版本；例如 DINOv2 只描述两个区域像不像，是否 MERGE 还要经过几何、历史、候选执行和在线选择。它不把 RGB 直接交给 teacher，也不要求每个对照都实现八种操作；不支持的能力会在完整任务中如实计错，并另报共同能力子集。
+
 ### 第一篇主问题与三组比较
 
 当前 proposed 主问题是：在完全相同的公开视觉—几何观测、初始预测记忆和评价协议下，显式版本化事务是否比已有的增量融合、生命周期置信更新、片段协调机制及朴素更新，更少产生重复、错绑、陈旧、误删和结构破坏，同时保留可追溯修订？这不是继续检验“CTL 必须显著胜过 direct future loss”；旧 A/C/E 只能作为 VSMT 内部训练消融，并保留原 S5 no-go。
@@ -53,6 +79,24 @@ VM-03 的 `generate_public_candidate_catalog`（公开候选目录生成器）�
 白话：该生成器解决 `merge_queries` 曾经从参考答案直接给出目标的问题。输入例如两个当前匿名区域和三个旧节点，输出由公开相似度筛出的全部有限事务程序；正确 MERGE pair 没进入目录时后面只能记 candidate miss。候选事务 ID 和顺序只由剥离审计字段后的 `AdapterInput` 摘要产生，因此更换 `sample_id_hash` 或文件摘要不会改变程序/顺序。它不读取 private、不会保证正确候选总在目录，也不把 executor 通过当成语义正确。
 
 `label_sealed_candidates`（封存后教师标注器）输入完整 catalog、与其 public 摘要绑定的 private evaluation、用户以后冻结的 scorer 和温度，输出原槽位上的分数及 softmax 概率。softmax（归一化指数分布）把各候选有限分数转成总和为1的训练目标；例如 MERGE 得分1、其余得分0时 MERGE 槽概率较高，但候选数和顺序不变。它不调用候选生成器、不补候选、不决定 S-01～S-12 的语义 scorer，也不进入部署推理。
+
+### 旧 C00–C11 与 LATENT 的保留边界
+
+旧 C00–C11 仍有参考性，但职责降为 `symbolic_executor_regression`（符号执行器回归）和 `semantic_archetype`（语义原型），不再是论文主数据。它们覆盖 NOOP/RELINK、BIND/BIRTH、REACTIVATE、SPLIT、MERGE、REPLACE、RETRACT、位姿不确定、动态/静态冲突和 collateral 等分支，适合检查八原子前条件、原子回滚、版本/provenance、S-01～S-12 边界以及错误分解。例如 C05 可验证一个合法 MERGE 是否保留两源证据。它不证明 RGB-D 能发现这个 MERGE，也不提供真实感知泛化或物理正确性证据。
+
+旧代码所谓 LATENT 主要是从符号节点/边标识、合成 history cue 和参考派生 query 经稳定哈希得到的结构向量；`project_structural_observation` 还直接把 `latent_refs` 纳入未来结构 token。它解决旧受控实验中把离散图喂给小模型的问题，输入已结构化甚至由参考参数派生的 ID/query，输出固定维向量。例如 `latent:C05:chair-a` 会稳定映射到同一检索向量。它不是从 RGB 学到的视觉 latent，也不能直接作为 VSMT 主实验的部署输入，因为哈希不会消除上游身份/标签泄漏。
+
+论文按三层证据而不是 LATENT/RGB 二选一组织：
+
+| 层级 | 共同输入 | 能回答什么 | 不能支持什么 |
+|---|---|---|---|
+| `L0 symbolic regression` | C00–C11 手工图与事务 | 执行器语义、回滚、版本和边界案例是否实现正确 | 感知、泛化、方法优越性 |
+| `L1 oracle_structured diagnostic` | 新数据的匿名区域、公开几何和因果旧记忆；可用真值 proposal，但严格标 oracle | 排除检测误差后，VSMT/TAF/ELU/WFR/LOW 的记忆机制能力上界和失败归因 | 可部署 RGB-D 主张；不得进入主排名 |
+| `L2 shared RGB-D main` | 所有方法完全相同的冻结 proposal、DINOv2 区域描述、depth/pose/free-space | 端到端公开感知条件下的主比较 | 不等于端到端微调视觉 backbone，也不允许 VSMT 用 RGB 而基线只用 latent |
+
+白话：L0 检查“扳手能不能按设计转”，L1 检查“零件已经看对时机制会不会改对”，L2 才检查“机器人真的从相机输入能不能工作”。例如同一 MERGE 案例先在 C05 验证执行，再在新数据 oracle mask 下定位机制上限，最后所有方法共用同一 RGB-D 前端作主表。它不允许把三个层级的数字混成一个胜率，也不需要把 VSMT 改成原始 RGB 端到端网络。
+
+实现反作弊审计补充两条。第一，`src/vsmt/` 禁止导入旧 `cpmt.m1_*` 特征/query模块，部署 prior memory 中的 `latent_refs` 只能为空或为公开派生的 `latent:<hex>` 摘要；`latent:C05:chair-a` 一类旧语义引用必须被合同拒绝。第二，键名黑名单和匿名化都不能证明值的因果来源，VM-04 仍必须在无 private 挂载进程中从公开观测顺序构建 prior memory，并把其 digest 纳入 private-mutation invariance。它解决“把答案哈希后继续偷渡”的残余风险；输入同一公开前缀和不同私有标注变体，输出必须是逐字节相同的 prior/candidate/logits。例如只换 simulator instance map，旧记忆摘要也必须不变。它不等于字符串看不懂就天然无泄漏。
 
 ### 待用户裁决的语义边界案例
 

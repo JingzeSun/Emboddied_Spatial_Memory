@@ -4,6 +4,7 @@
 
 - 用户于 2026-09-13 根据导师意见，将第一篇优先级切回结构记忆修订；旧 S5 no-go 保留，不把原 A 对 C 的不足改写为成功。
 - 当前 proposed 方法名为 Versioned Structural Memory Transactions（VSMT，版本化结构记忆事务）；处理节点、关系、证据、生命周期和结构扩充，不限定为对象生命周期。
+- 第一篇论文核心候选贡献固定为“类型化可执行事务＋版本化状态/副作用审计＋candidate-before-teacher学习边界”的组合；DINOv2、场景图、确定性executor、八原子名称和保存历史字节均不得单独写成创新。
 - 保留 NOOP、BIND、BIRTH、REACTIVATE、RELINK、RETRACT、SPLIT、MERGE 八个原子模板；REPLACE 仍是 RETRACT+BIRTH 复合程序。事务单独出现不主张首次提出。
 - 第一篇主比较改为：VSMT、可在同一公开输入/状态/输出接口上独立实现的论文机制适配器，以及一个朴素基线。旧 A/C/E 仅可在新合同内作为训练机制消融，不能继续承担唯一主张。
 - 论文机制适配只参考公开论文的机制并明确引用、差异与非官方复现身份；不复制上游源码、类名、默认配置或文字。若以后运行官方代码，须作为独立复现路线登记许可证、commit、原设定与任务适配。
@@ -11,6 +12,7 @@
 - 候选集必须在 teacher、未来、reference transaction 和私有真值可见之前生成并封存；teacher 只可给既有候选打训练标签，不得插入、删除、排序或修补候选。正确候选缺失按 candidate miss 计入。
 - BIND/BIRTH、REACTIVATE/BIRTH、RELINK/REPLACE、SPLIT/MERGE 等语义等价和指标权重由用户裁决；实现者须先给出能区分边界的正反案例、可选口径及其结果影响，不得把信息安全合同暗中写成语义答案。
 - 新数据必须重新生成，物理/视觉公开输入与私有监督分文件、分读取器；模拟器 instance ID、真值 mask、参考事务、未来观测及实际未来状态不得进入部署输入或候选生成。
+- 旧C00–C11只作符号执行/语义边界回归；旧LATENT由符号ID、合成cue和参考派生query构成，不得进入VSMT主实验。主表中VSMT/TAF/ELU/WFR/LOW必须共用同一冻结RGB-D前端；oracle structured仅作单列机制诊断。
 - 当前只批准文献与旧实现审计、方法/数据/反作弊合同和独立分支；具体数据划分、生成预算、模型预算、确认集与效果运行仍须在用户代码审查前后分别冻结。
 - D-059 的单职责科学提交、用户代码审查和服务器规则继续有效；旧代码、结果、原始资料、D-062 空间世界模型分支及复现路径保留。
 
@@ -63,7 +65,7 @@
 - RETRACT 关闭版本，不物理删除 provenance。
 - QUARANTINE 不修改 persistent world。
 
-## 旧 CPMT 执行顺序（当前指针已由 D-062 替代）
+## 旧 CPMT 执行顺序（当前指针已由 D-122/D-125 替代）
 
 1. M0：contracts、executor、oracle fixtures；
 2. M1：hard-condition go/no-go；

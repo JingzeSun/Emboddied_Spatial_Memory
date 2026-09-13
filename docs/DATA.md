@@ -4,11 +4,13 @@
 
 新版数据解决旧合成 query 由参考事务参数派生、无法支撑无泄漏视觉实验的问题。输入源拟为受控具身 RGB-D 序列、公开相机/机器人位姿和已发生动作；输出分成不可互读的 `public`、`candidate`、`teacher`、`private_eval` 与 `provenance` 五类产物。例如一次 MERGE 样本的 `public` 只保存两个当前区域的 RGB-D/匿名特征及 prior memory，`candidate` 由这些公开值枚举可能 pair，真实 pair 只在 `private_eval`。它不复用旧 S5 query/data，也不把人工事务夹具当作视觉或物理结果。
 
+旧 C00–C11 不迁移为新版样本：其 `case_family`、语义化 node/evidence/`latent_refs`、人工 `oracle_equivalence` 和预写候选仍保留在原目录，只供 `L0 symbolic regression`。新 `L1 oracle_structured` 与 `L2 shared RGB-D` 必须从同一批重新生成的序列形成，二者只在 proposal 来源上不同；场景、时间切分、旧记忆构建和 private 标签相同。白话：这解决“用旧符号样本冒充视觉实验”以及“oracle 与 RGB 条件换了数据”的问题。输入同一真实或模拟序列，输出一份真值 proposal 诊断视图和一份冻结视觉前端主视图；例如同一个椅子分裂事件在 L1 用私有 mask 只查机制上限，L2 用公共 proposal 进入主表。它不允许把 L1 的候选或旧记忆缓存给 L2。
+
 ### 五类产物与读取权限
 
 | 通道 | 当前合同内容 | 禁止与用途 |
 |---|---|---|
-| `public` | 截至决策时刻的 RGB-D、时间、相机/机器人位姿、已执行动作、冻结 proposal/descriptor 结果、公开传感器状态 | 所有方法唯一在线输入；禁止未来帧、真实未来运动、场景答案名、reference、instance ID、真值 mask |
+| `public` | 截至决策时刻的 RGB-D、时间、相机/机器人位姿、已执行动作、冻结 proposal/descriptor 结果、公开传感器状态，以及从更早 public 顺序构建的 prior memory 摘要 | 所有方法唯一在线输入；禁止未来帧、真实未来运动、场景答案名、reference、instance ID、真值 mask |
 | `candidate` | 由 `public + prior predicted memory` 生成的规范事务程序、静态 preflight、顺序、catalog digest 和来源字段 digest | teacher 打开前封存；禁止因正确候选缺失而补槽或重排 |
 | `teacher` | 固定候选上的训练后验/排序、六项能量或新版登记能量、teacher 版本与 candidate digest | 仅训练标签；validation 只用于登记选择，confirmation/test 推理不可读 |
 | `private_eval` | 参考结构版本、事务等价集合、模拟器 instance/关系真值、未来观测、实际未来状态及错误归因 | 只由独立评价器打开；不得构造 query、proposal、candidate 或模型输入 |
@@ -19,6 +21,10 @@
 ### `ObservationPacket` 与 `MemoryUpdateResult`
 
 `ObservationPacket` 是共同在线输入包，VM-01 精确字段为：`schema_version, sample_id_hash, decision_time_s, rgbd_refs, camera_pose, robot_state, past_actions, region_observations, free_space_observations, prior_memory_ref, public_constants`。`sample_id_hash`、`rgbd_refs` 和 `prior_memory_ref` 只作外层对齐/摘要绑定，`build_adapter_input` 会删除它们；适配器实际得到决策时间、相机位姿、机器人状态、已结束动作、匿名区域、传感器派生自由空间、已校验 prior memory 和公共常数。`region_observations` 当前含包内顺序号、匿名 `structure_kind`、mask 摘要、descriptor、质心、包围尺寸、可靠性和冻结 proposal 来源，不含永久身份或原图路径。`free_space_observations` 是由公开深度射线保守内包得到的轴对齐盒，含包内顺序号、合法历史 `time_s`、三维上下界、可靠性和支持摘要；至少两个不同历史时刻的覆盖证据才能组成 executor 可接受的 RETRACT/REPLACE 负证据链。例如旧节点包围盒在连续两帧都完整落入高可靠自由盒时，ELU 才得到负观测候选。它不是真值空区、不提供被删对象 ID，具体深度到内包盒的数值规则仍须 VM-04 前冻结。
+
+`causal_prior_receipt`（因果旧记忆回执，planned）解决 prior memory 虽然字段合法、其值却可能由 simulator instance ID 或 reference transaction 预先构造的问题。输入只读 public 序列、初始空图或公开初始化和冻结更新器版本，输出每步输入摘要、提交事务摘要、图版本链及最终图摘要；构建进程不得挂载 `teacher/private_eval`。例如把私有椅子 ID 从 7 改成 19 而 public 字节不变时，最终 prior memory 必须逐字节不变。它不等于把私有 ID 哈希后就成为公开值，也不允许用 reference graph 初始化历史。
+
+VM-01 当前代码已拒绝旧式语义 `latent_refs`：可部署旧记忆的该字段只能为空或形如 `latent:<16–64位十六进制摘要>`，并有测试禁止 `src/vsmt/` 导入旧 `cpmt.m1_*` query/feature 模块。这是必要的静态门，不是充分的因果证明；VM-04 生成器仍须实现上面的无私有挂载回执与 private mutation 检查。
 
 白话：新增自由空间证据解决“没检测到”无法区分遮挡与可靠为空的问题。输入只能是当前公开 RGB-D 和相机标定，输出不指向任何旧节点的匿名自由盒；例如桌面前方射线直到墙面之间的一块空间可标 `free:0000`。它不等于模拟器碰撞几何、真值 mask 或“对象已消失”标签；每个适配器仍需用相同公开几何自行判断旧节点是否被覆盖。共同适配器因此看到八类部署值，TAF、ELU、WFR、LOW 与 VSMT 完全一致。
 
@@ -34,7 +40,7 @@ VM-02 的共同节点观测状态键为 `vsmt_observation_state`，当前包含 
 
 新数据至少需要八个原子模板的可执行正例及容易混淆的合法反例，并包含对象之外的结构变化：地点/区域 BIRTH、实体—地点 RELINK、关系 RETRACT、观测碎片 SPLIT/MERGE 和 dormant 结构 REACTIVATE。物理世界变化、感知片段错误与记忆初始错误必须分别标源；例如同一把椅子真实移动导致 RELINK，与两次检测形成重复节点后需要 MERGE，不能共用一个含糊标签。具体场景数、每类比例、轨迹、图类型和随机预算尚未冻结。
 
-正式视觉输入计划共享一个冻结、与结果无关的 proposal/descriptor 前端。DINOv2 只从 `public.rgb` 产生区域描述；深度和位姿产生公开几何。模拟器 instance segmentation 可生成 private 对齐标签和误差评估，但不能作为正式 proposal；若开发期用真值 mask 做接口检查，结果必须标 `oracle_proposal_engineering_only`，不得进入主表。
+正式视觉输入计划共享一个冻结、与结果无关的 proposal/descriptor 前端。DINOv2 只从 `public.rgb` 产生区域描述；深度和位姿产生公开几何。VSMT、TAF、ELU、WFR、LOW 必须消费同一前端字节和缓存摘要，不能让 VSMT 用 RGB-D 而对照用旧 LATENT，也不能让对照读取更干净的真值结构。模拟器 instance segmentation 可生成 private 对齐标签和误差评估，但不能作为正式 proposal；若开发期用真值 mask 做接口检查，结果必须标 `oracle_structured_diagnostic_only`，不得进入主表。
 
 ### 强制泄漏检查字段
 

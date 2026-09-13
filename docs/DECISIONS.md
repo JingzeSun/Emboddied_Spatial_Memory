@@ -1339,3 +1339,11 @@
 - VM-02 clean-room 代码候选实现 TAF 的 BIND/BIRTH/MERGE、ELU 的 BIND/BIRTH/REACTIVATE/RETRACT、WFR 的 BIND/BIRTH/MERGE/RETRACT 和 LOW 的 BIND/BIRTH。所有阈值配置无默认值，人工测试值不冻结为实验参数；共同 GraphRevision 只统一合法输出和审计版本，不让基线读取其机制之外的历史能力。
 - VM-03 公开生成器枚举八原子加 REPLACE，按每模板显式上限取公开分数候选，逐一用旧 executor 真执行后封存。事务 ID 和顺序只依赖剥离审计身份后的 AdapterInput 摘要；完整 public 摘要只绑定文件。teacher API 只遍历已封存槽并输出分数/概率，具体语义 scorer 仍由用户在 VM-04 前决定。
 - 固定 `ops/vsmt/vm01_vm03_contract_check.py` 在审查提交上运行34项定向测试，保存 started/log/receipt/success 后才允许 export；失败不导出、不生成数据、不训练、不打开真实 private 数据。服务器尚未运行，本地仅 AST/JSON/diff 静态检查。
+
+## D-125：第一篇按VSMT论文收敛，旧LATENT降为诊断而非视觉输入
+
+- 日期：2026-09-14。用户要求本地日常入口、方法和计划从暂停的空间世界模型改成当前 VSMT 论文版本，并询问 C00–C11、旧 LATENT 与 RGB 输入的实验职责。第一篇唯一当前主题固定为 VSMT；核心候选贡献写成“类型化可执行事务、版本化状态/副作用审计、candidate-before-teacher 监督边界”的组合。成熟系统只提供共享前端、图层次、存在更新和快慢协调骨架，不能把 ConceptGraphs、Hydra、Fusion++、Khronos 的已有能力改写成本项目创新。
+- 旧 C00–C11 保留为 `L0 symbolic regression`，用于八原子/REPLACE 前条件、原子回滚、版本/provenance、S-01～S-12 和错误分解回归；不进入主表，不证明视觉感知或方法效果。旧 LATENT 来自符号 ID、合成 history cue、稳定哈希和参考派生 query，不是 RGB 学得的 latent；最多作为旧结果或 oracle-structured 机制诊断，不能成为部署主输入。
+- 新实验分成同源三层：L0旧符号回归；L1在新数据上用 oracle proposal 的结构机制上界；L2让 VSMT/TAF/ELU/WFR/LOW 共享完全相同的冻结 RGB-D proposal、DINOv2 region descriptor、depth/pose/free-space，作为主结果。VSMT 不改成端到端原始 RGB 网络；RGB-D先经共享前端形成结构观测，公平性由所有方法的相同前端字节与摘要保证。
+- 新增静态反作弊门：VSMT 包不得导入旧 `cpmt.m1_*` query/feature 模块；部署 prior memory 的 `latent_refs` 只能为空或公开派生的十六进制摘要，旧 `latent:C05:chair-a` 一类语义值须拒绝。此门仍不足以证明匿名值的因果来源，因此 VM-04 必须实现不挂载 private 的 prior memory 顺序构建回执，并把 prior/candidate/online/logits 全部纳入 private-mutation invariance；该生成、数值、split、预算和训练仍未授权。
+- D-124的服务器阶段沿用同一入口但定向测试计数更新为36；旧34项回执尚不存在、也不得冒用。原D-062工作树的用户未提交PLAN/notes继续原样保留，VSMT论文版在独立分支交付，用户审查后再决定合并。

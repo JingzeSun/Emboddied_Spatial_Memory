@@ -2,9 +2,9 @@
 
 本文件是阶段、审查节点和当前指针的唯一维护处。方法见 [METHOD.md](METHOD.md)，字段见 [DATA.md](DATA.md)，证据见 [EXECUTE.md](../EXECUTE.md)，当前优先级依据为 D-122；D-062 空间世界模型路线暂停但完整保留。
 
-## 当前目标与授权（D-122）
+## 当前目标与授权（D-122/D-125）
 
-第一篇改为比较 Versioned Structural Memory Transactions（VSMT，版本化结构记忆事务）、三类论文机制适配和一个朴素基线。旧 S5 A 对 C/E no-go、旧 test 封存和全部复现路径不改写。用户要求把 VM-01～VM-03 工程代码分别形成可审提交后一次同步到服务器测试；当前不生成新数据。生成数值、split、预算、训练和 confirmation 尚未授权。
+第一篇论文已收敛为 Versioned Structural Memory Transactions（VSMT，版本化结构记忆事务）：比较 VSMT、三类论文机制适配和一个朴素基线，核心候选贡献是“类型化可执行事务＋版本化状态/副作用审计＋candidate-before-teacher 学习边界”的组合，而不是 DINOv2、场景图、executor 或事务名称本身。旧 S5 A 对 C/E no-go、旧 test 封存和全部复现路径不改写。用户要求先把论文定位、C00–C11/LATENT/RGB 边界及 VM-01～VM-03 一起收口，再一次同步服务器测试；本轮不生成新数据。生成数值、split、预算、训练和 confirmation 尚未授权。
 
 白话：当前阶段解决“到底比较哪些记忆更新机制，以及怎样保证没有 teacher 偷给答案”的问题。输入是旧 executor/八事务、旧失败记录和论文机制，输出可审的方法、数据、对照与反作弊合同。例如先证明 MERGE pair 只由当前区域和旧记忆产生，再允许写候选生成器。它不是生成数据、训练模型或宣布新方法有效。
 
@@ -16,13 +16,13 @@
 | VM-01 公私数据与共同适配合同（代码候选） | D-122草案；固定结构类型、公开 proposal/descriptor、五通道文件和反作弊 gate | schema、正负例、private mutation invariance、无 private 推理及 candidate-before-teacher 测试；补齐公开自由空间和逐候选在线证据，待合并服务器测试 |
 | VM-02 三种论文机制与朴素基线（代码候选） | 共同接口；TAF、ELU、WFR、LOW 只消费相同 `ObservationPacket` | clean-room 适配器、显式无默认值配置、版本化共同输出包装及人工分支测试；未冻结阈值，不称官方复现或效果结果 |
 | VM-03 VSMT 无泄漏候选与 teacher（代码候选） | VM-01接口；复用 executor/八原子语义，删除参考派生 query | public-only 九类程序、逐一真实执行、公开摘要排序、online evidence封存及封存后teacher；待同批服务器测试 |
-| VM-04 新数据数值冻结与开发生成 | VM-01–03代码审过；另行固定场景、图类型、八类比例、轨迹、split、存储和计算预算 | 先小规模工程批次再完整 train/validation；真值 mask 仅 private，失败不换样本；未达输入门不训练 |
-| VM-05 公平训练与 validation | 数据验收；冻结各方法阈值、学习预算、停止规则、共同/完整任务指标 | VSMT/TAF/ELU/WFR/LOW 同输入评估；旧 A/C/E 仅内部消融；确认前锁定全部选择 |
+| VM-04 新数据数值冻结与开发生成 | VM-01–03代码审过；固定场景、图类型、八类比例、轨迹、split、存储/计算预算和因果 prior 回执 | 同一新序列产出 L1 oracle-structured 诊断与 L2 shared-RGB-D 主输入；真值 mask 仅 L1/private，旧 C00–C11 只作 L0 回归；失败不换样本，未达输入门不训练 |
+| VM-05 公平训练与 validation | 数据验收；冻结各方法阈值、学习预算、停止规则、共同/完整任务指标 | VSMT/TAF/ELU/WFR/LOW 在 L2 完全同前端输入主评；L1只作机制上界，旧 A/C/E 只作内部消融；确认前锁定全部选择 |
 | VM-06 独立确认与论文证据 | 模型、前端、候选、评分和最小效果门冻结后另行授权 | 未见家族 confirmation、必要现实来源、逐类/共享能力/成本/失败报告；不能按 validation 结果改样本或门 |
 
 ### 当前指针
 
-**停在 VM-01～VM-03 合并工程验收：三个职责已分别形成代码候选，固定服务器入口一次运行34项 VSMT 定向测试并导出小报告。** 服务器尚未开启/运行；测试通过及用户代码审查后才讨论 VM-04 数值、split、预算和开发生成。当前无正式阈值、数据、训练、下载或 confirmation 授权。原 D-062 工作区和当前未提交文档不移动、不覆盖。
+**停在 VSMT 论文收敛版的 VM-01～VM-03 合并工程验收：三个职责已形成代码候选，新增旧 LATENT 拒绝和禁止导入旧 M1 query/feature 的反作弊检查；固定服务器入口一次运行36项 VSMT 定向测试并导出小报告。** 服务器尚未运行；测试通过及用户代码审查后才讨论 VM-04 的 L1/L2 数据数值、split、因果 prior 回执、预算和开发生成。当前无正式阈值、数据、训练、下载或 confirmation 授权。原 D-062 工作区及其中用户未提交的 `docs/PLAN.md`、`scripts/notes.txt` 不移动、不覆盖。
 
 ## 上一 D-062 路线（暂停，以下保留复现）
 
