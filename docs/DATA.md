@@ -671,6 +671,8 @@ r4_learning_preflight_v1.py只读取Git、已导出的工程JSON、家族设计�
 
 D-098的results/spatial_history_r4_dreamer_cuda_v1.json保存独立install/check内嵌JSON及SHA256，pip_report为实际依赖下载来源，package_files为overlay普通文件摘要（nvidia目录链接仅复用已有库）。check结果包含jax/backend/devices、121/200、参数总数、七组gradient_l2、首次编译加反向秒数和三次热态反向秒数、GPU内存统计及RSS；new_training_steps=0、optimizer_throughput_measured=false。白话：报告区分安装成功、完整反向成功和真实学习，原CPU报告不能被此新回执覆盖。
 
+D-100只改变运行stage为`dreamer-cuda-v2`及下载端点/超时重试；最终报告文件名和schema不变，内嵌新v2成功证据。首次v1失败仍在服务器资产目录，不混入成功报告。白话：下载失败只说明当时镜像没有及时返回完整wheel，不等于相同wheel内容或CUDA检查被替换。
+
 
 D-099的prepare_query返回history/controls/goal及独立selection_evidence，只有前三项是模型输入；公开查询严格校验后才允许R选帧，证据里的local_indices/voxel来源仅供审计。L历史tokens为[1,3025,256]，R至多[1,250,256]；decision_metadata为[1,37]，不保留其他语义字段。未来future_features为[1,200,256]，task沿共同位置/接触/成功输出。白话：例如R的第九个选中观察仍对应原119时刻，不能把选帧后的序号当作真实时间。
 
