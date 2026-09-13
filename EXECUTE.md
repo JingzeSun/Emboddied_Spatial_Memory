@@ -6,6 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
+| VSMT VM-01～03 | 公私合同、TAF/ELU/WFR/LOW clean-room适配器、八原子加REPLACE公开候选与封存后teacher已形成分职责代码候选；34项定向测试和固定服务器入口待运行。阈值/数据/训练均未冻结或执行；LOG-133 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
 | R4三模型接入 | D完整适配16项通过（121/200全反向，0更新），W完整适配17项亦通过，F完整适配19项通过；真实公共接口27/27候选通过，0优化/真值读取。209bb34，LOG-123–127 |
 | R4前端v2r1 | 81bceed：19项通过，16历史/144名义预测/16选择完整，误标占据/自由0；物块平均误差9.59 cm、接触Brier 0.1152，全部涉及未知扫掠，正式M/P未就绪。LOG-121 |
@@ -1576,3 +1577,10 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 用户授权后以提交`faeb82fa8fea3e5e85bfd444e641b8bbe39a0955`、8 workers启动剩余48家族重建。前44个worker已输出`FAMILY COMPLETED`后，`r4-36`因唯一失败项`public_geometry=false`使父阶段退出1并保留全部前缀；该家族其余18项检查含physics、replay_equal、实际门接触、近期一致和信息门均为true。
 - `r4-36`的LL/LR在full历史各只恢复1个远门候选，固定近门view_a为0个；RL/RR的full各2个、view_a/view_b各1个、recent为0，全部通过。失败family_result为417753 bytes，SHA-256=`c31e2a05a63836201c30a884ff7e6ff4598c3eaf2918bf5c4d04e05e05191d8e`；父`failure.json`为82 bytes、SHA-256=`6d90ed6e7afcc078849d151332b3f0376e95bfdcad33370f9def8fedee1ef449`；`processes.json`为4563 bytes、SHA-256=`e4f69f7419247d2b99bcbc38d17d7cf34af2027d30a950f05cf1eea175a33922`。这些文件位于服务器`/root/autodl-tmp/spatial-history/sh05-r4-development-generation-v2/execution/`，未被覆盖。
 - 该失败触发当前数据合同的硬停止：不能删掉`r4-36`、放宽E0阈值、把缺失近门按中点补全或在44/48分母上继续双M/训练。双M效果运行、三模型拟合和确认均未开始。白话：这说明一个登记家族的近门左布局没有足够公开边界证据，不能用一格膨胀假装看见；它不是三模型失败，也不是DINO-WM无效。下一步须由用户在“保留no-go”与“登记新的公开可见性筛选并形成新数据版本”等语义方案中决定。
+
+## LOG-133：VSMT VM-01～VM-03合并工程包待服务器验证（2026-09-13）
+
+- VM-01严格公私白名单增加匿名结构类型、带合法历史时间的传感器自由空间内包，以及逐候选`online_evidence`摘要。适配器输入剥离sample/file/prior引用；prior/post graph也拒绝隐藏reference/future/private键。白话：输入公开区域、自由空间和旧预测图，输出只含部署可取得的八类值；例如改`sample_id_hash`不能改变候选程序。它不验证自由空间提取物理正确，也不定义事务真值。
+- VM-02代码候选独立实现TAF/ELU/WFR/LOW，文件头记录论文来源和“非官方复现”，所有数值配置无默认值。共同GraphRevision保留合法版本供审计，但各适配器只使用自己的关联、存在分数、片段窗口或最近质心机制。当前人工值测试不是阈值选择，没有复制上游源码或运行官方仓库。
+- VM-03公开生成器枚举八原子及REPLACE，按公开分数和显式每模板上限取候选；每项连公开证据交旧executor实际执行成功后才封存。teacher只对已封存槽调用待定scorer；S-01～S-12仍由用户在数据冻结前裁决。候选ID/顺序使用剥离审计字段的AdapterInput摘要，不使用reference、private或完整文件身份摘要。
+- 三组共34项定向测试已写但尚未运行；固定服务器入口只执行测试并保存started/log/receipt/success，成功后另行export小报告。当前仅AST、JSON解析和diff静态检查通过，服务器未开启；0数据生成、0训练、0真实private读取，不能声称工程通过或方法有效。

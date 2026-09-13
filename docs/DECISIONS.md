@@ -1331,3 +1331,11 @@
 - 新 `vsmt.contracts` 严格验证公开观测、候选目录、teacher 目标、共同结果、私有评价和私有扰动不变性。共同适配器只接剥离审计身份后的七类部署值；候选构造 API 不接 private，teacher 只能按已封存候选的原 ID 与顺序给分。白话：输入同一份公开观测和旧记忆，输出固定模型输入、候选摘要及独立标签绑定。例如交换私有模拟器实例名后，private 摘要应变，但候选、适配输入和 logits 摘要必须完全不变。它不证明候选正确、事务语义合理或方法优于基线。
 - S-01 至 S-12 作为待用户裁决案例，分别覆盖 BIND/BIRTH、REACTIVATE/BIRTH、RELINK/REPLACE、SPLIT/BIRTH、MERGE/BIND、RETRACT/NOOP、低置信 NOOP、地点/关系扩充、图 ID 等价、错误代价、持续时间和 provenance。裁决须在 VM-04 数据数值冻结前落到生成规则与等价集合；当前不预选有利于 VSMT 的口径。
 - 本地只允许语法、JSON和 diff 静态核查；合同测试须在服务器用本提交运行并保存退出证据。用户代码审查及服务器测试通过前，VM-02 和任何效果依赖均不开始。
+
+## D-124：VM-01～VM-03分别提交后一次同步做服务器工程验收
+
+- 日期：2026-09-13。用户认可 METHOD 的 S-01～S-12 边界案例，并要求其余工程内容先一起交付、最后一次到服务器运行。按 D-059 仍保留单职责提交和可审差异，但把服务器同步/测试合并；这不跳过用户审查，也不授权 VM-04 数据生成或后续训练。
+- VM-01 在实现 VM-02 时补出必要公开输入：匿名 `structure_kind` 与传感器派生 `free_space_observations`。后者含合法历史时间、轴对齐内包、可靠性和支持摘要；候选另封存每程序的 `online_evidence` 及摘要。白话：ELU/RETRACT 必须知道旧节点所在空间是否真的被传感器看空，输入公开深度派生的匿名自由盒，输出可重复检查的负证据；例如同一节点连续两时刻被完整覆盖才可形成 VSMT RETRACT 候选。它不是真值空区、不点名要删除谁，也不把一次漏检当删除。
+- VM-02 clean-room 代码候选实现 TAF 的 BIND/BIRTH/MERGE、ELU 的 BIND/BIRTH/REACTIVATE/RETRACT、WFR 的 BIND/BIRTH/MERGE/RETRACT 和 LOW 的 BIND/BIRTH。所有阈值配置无默认值，人工测试值不冻结为实验参数；共同 GraphRevision 只统一合法输出和审计版本，不让基线读取其机制之外的历史能力。
+- VM-03 公开生成器枚举八原子加 REPLACE，按每模板显式上限取公开分数候选，逐一用旧 executor 真执行后封存。事务 ID 和顺序只依赖剥离审计身份后的 AdapterInput 摘要；完整 public 摘要只绑定文件。teacher API 只遍历已封存槽并输出分数/概率，具体语义 scorer 仍由用户在 VM-04 前决定。
+- 固定 `ops/vsmt/vm01_vm03_contract_check.py` 在审查提交上运行34项定向测试，保存 started/log/receipt/success 后才允许 export；失败不导出、不生成数据、不训练、不打开真实 private 数据。服务器尚未运行，本地仅 AST/JSON/diff 静态检查。
