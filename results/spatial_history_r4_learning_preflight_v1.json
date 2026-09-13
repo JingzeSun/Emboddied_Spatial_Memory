@@ -1,0 +1,237 @@
+{
+  "audit_completed": true,
+  "binding": {
+    "configs/spatial_history/learning_contract_r4_v2.json": {
+      "bytes": 10499,
+      "sha256": "5ff4a327ec2de294501e872cb80d65fe478919914b263b2605c98119c93eee40"
+    },
+    "configs/spatial_history/protocol_r4_v1.json": {
+      "bytes": 12374,
+      "sha256": "abf9b357b408a64507320ee5feee5cb0b0bc3a3354d69ee4ad256810f75bd7d2"
+    },
+    "configs/spatial_history/r4_family_design_v2.json": {
+      "bytes": 160825,
+      "sha256": "d93a8e368a2235e4573f79e3839dc27a78ab274eca9c5446a8227c6599fcaa89"
+    },
+    "docs/DATA.md": {
+      "bytes": 125705,
+      "sha256": "40f2ffc051461ddebc9bbb87e5287e8199bfee1006ed0a18fe3f3b2a9a921f14"
+    },
+    "docs/DECISIONS.md": {
+      "bytes": 274923,
+      "sha256": "f95985e423d878fc5d32fe96bd4bd464b7cfe84d91cfa68ec5d3f35b8bc353a8"
+    },
+    "docs/METHOD.md": {
+      "bytes": 232325,
+      "sha256": "a2d59db638d32c46e4e32791fdfad55aa2306e2ded687f51559e666ff4cfc9c7"
+    },
+    "ops/spatial_history/r4_learning_preflight_v1.py": {
+      "bytes": 7757,
+      "sha256": "1a5b37d92a2d71b680315dbf68f19d53d84ec37a543c0c90c250dd6d193b444c"
+    },
+    "results/spatial_history_r4_three_model_public_v1.json": {
+      "bytes": 6232253,
+      "sha256": "e91c351b8696db94c44d29cbfaa060f91707fffbb2d428dc029d1ada3e913fee"
+    }
+  },
+  "capacity": {
+    "new_environment_installation_bytes_not_yet_measured": true,
+    "previous_window_remaining_s": 58040.708806,
+    "requested_data_and_results_bytes": 55834574848,
+    "required_reserve_bytes": 10737418240,
+    "shortfall_bytes": 0,
+    "unique_filesystem_free_bytes": 78206697472
+  },
+  "confirmation_executable": false,
+  "dataset_files_read": 0,
+  "disks": {
+    "/": {
+      "device_id": 130,
+      "free_bytes": 29061316608,
+      "resolved_path": "/",
+      "total_bytes": 32212254720,
+      "used_bytes": 3150938112
+    },
+    "/root/autodl-tmp": {
+      "device_id": 2304,
+      "free_bytes": 49145380864,
+      "resolved_path": "/root/autodl-tmp",
+      "total_bytes": 53687091200,
+      "used_bytes": 4541710336
+    }
+  },
+  "dreamer_cuda_backend_available": false,
+  "elapsed_s": 3.297482317313552,
+  "exit_code": 0,
+  "new_simulations": 0,
+  "new_training_steps": 0,
+  "new_weight_downloads": 0,
+  "parent_embedded_artifacts_verified": 33,
+  "probes": {
+    "clock": {
+      "argv": [
+        "date",
+        "-u",
+        "+%Y-%m-%dT%H:%M:%SZ"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "2026-09-13T02:06:51Z\n"
+    },
+    "dreamer": {
+      "argv": [
+        "/root/sh05-assets-v1/dreamer-env-v1/bin/python",
+        "-B",
+        "-c",
+        "import json,jax; print(json.dumps({\"jax\":jax.__version__,\"devices\":[d.platform for d in jax.devices()]}))"
+      ],
+      "exit_code": 0,
+      "stderr": "An NVIDIA GPU may be present on this machine, but a CUDA-enabled jaxlib is not installed. Falling back to cpu.\n",
+      "stdout": "{\"jax\": \"0.4.33\", \"devices\": [\"cpu\"]}\n"
+    },
+    "git_head": {
+      "argv": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "ca68ba48bcd7f953bd281c72104fc065cbfd0c3e\n"
+    },
+    "git_status": {
+      "argv": [
+        "git",
+        "status",
+        "--porcelain"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "?? results/m1_outputs_cleanup_20260913.json\n"
+    },
+    "gpu": {
+      "argv": [
+        "nvidia-smi",
+        "--query-gpu=name,memory.total,memory.used",
+        "--format=csv,noheader"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "NVIDIA GeForce RTX 4080 SUPER, 32760 MiB, 1 MiB\n"
+    },
+    "processes": {
+      "argv": [
+        "ps",
+        "-eo",
+        "pid,etime,comm"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "   PID     ELAPSED COMMAND\n 16153       00:00 python"
+    },
+    "torch": {
+      "argv": [
+        "/root/sh05-assets-v1/flowm-env-v1/bin/python",
+        "-B",
+        "-c",
+        "import json,torch; print(json.dumps({\"torch\":torch.__version__,\"cuda_available\":torch.cuda.is_available()}))"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "{\"torch\": \"2.8.0+cu128\", \"cuda_available\": true}\n"
+    }
+  },
+  "repository_root": "/root/Emboddied_Spatial_Memory",
+  "schema_version": "spatial-history-r4-learning-preflight-v1",
+  "split_family_ids": {
+    "model_confirmation": [
+      "r4-32",
+      "r4-50",
+      "r4-55",
+      "r4-41",
+      "r4-33",
+      "r4-62",
+      "r4-44",
+      "r4-48"
+    ],
+    "model_train": [
+      "r4-39",
+      "r4-47",
+      "r4-25",
+      "r4-03",
+      "r4-11",
+      "r4-31",
+      "r4-35",
+      "r4-53",
+      "r4-26",
+      "r4-40",
+      "r4-30",
+      "r4-00",
+      "r4-21",
+      "r4-28",
+      "r4-24",
+      "r4-07",
+      "r4-15",
+      "r4-12",
+      "r4-04",
+      "r4-59",
+      "r4-16",
+      "r4-57",
+      "r4-54",
+      "r4-63",
+      "r4-45",
+      "r4-51",
+      "r4-27",
+      "r4-17",
+      "r4-08",
+      "r4-10",
+      "r4-42",
+      "r4-49"
+    ],
+    "model_validation": [
+      "r4-52",
+      "r4-43",
+      "r4-18",
+      "r4-60",
+      "r4-01",
+      "r4-29",
+      "r4-02",
+      "r4-13"
+    ],
+    "probe_confirmation": [
+      "r4-34",
+      "r4-56",
+      "r4-06",
+      "r4-19"
+    ],
+    "probe_train": [
+      "r4-46",
+      "r4-09",
+      "r4-37",
+      "r4-20",
+      "r4-22",
+      "r4-38",
+      "r4-05",
+      "r4-14"
+    ],
+    "probe_validation": [
+      "r4-61",
+      "r4-36",
+      "r4-23",
+      "r4-58"
+    ]
+  },
+  "time_utc": "2026-09-13T02:06:51.291194+00:00",
+  "training_executable": false,
+  "unmet_conditions": [
+    "new_learning_contract_and_budget_require_concrete_review",
+    "L_R_predictors_not_implemented_or_checked",
+    "M_formal_uncertainty_boundary_unresolved",
+    "remaining_development_generation_runner_not_released",
+    "training_checkpoint_and_diagnostic_runners_not_implemented_or_checked",
+    "full_sequence_optimizer_throughput_not_measured",
+    "confirmation_requires_separate_locked_release",
+    "dreamer_cuda_backend_unavailable",
+    "previous_online_window_does_not_cover_full_gpu_hour_ceiling"
+  ]
+}
