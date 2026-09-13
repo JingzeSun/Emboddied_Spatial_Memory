@@ -1606,3 +1606,9 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 共有1540个候选B支持，其中`x_right=426`、`y_front=1114`；私有阶段只恢复114个实际来源帧。geom命中为`gate_0_left=278 / gate_0_right=748 / gate_1_left=260 / gate_1_right=254`，1540/1540均为登记门墙，物块/推头命中0。该计数是运行后报告值，不是预设通过目标。
 - 正式运行耗时`2335.548454007134 s`。首次重连后的`verify/export`因新shell未激活登记虚拟环境而在任何写入前以`wrong environment`拒绝；激活原环境后同一回执验证和单次导出通过。第一次Git推送仅因TLS连接中断失败，启用学术加速后重推同一提交成功；没有重跑科学计算。
 - 报告[spatial_history_r4_e0_boundary_development_v2.json](results/spatial_history_r4_e0_boundary_development_v2.json)由`2e00dab`回传，2,863,674 bytes，SHA-256=`0391e4cd74f5aa1bf300b68aa5e796e7a5802163e5e8a2a98e8987e85f180b05`。它支持E0-v2在全部现有封存开发/验证公开历史上的准入证据，但报告仍显式`e0_v2_frontend_upgrade_authorized=false`；`r4-22`未因此成为训练家族，`r4-23/r4-58`仍未完成，双M/训练/确认均无结果。
+
+## LOG-137：D-121新开发数据协议入口检查通过，待用户代码审查释放补生成
+
+- `9ce0a66`登记E0-v2正式前端、新数据版本和未来xy升级条件，并实现只引用50个完整源家族、只新生成`r4-23/r4-58`的阶段入口；`24b98d7`只修复服务器非包式测试目录的导入路径。旧E0-v1派发保留，只有固定E0-v2版本显式调用`public_geometry_v2`；旧`r4-36 accepted=false`不会被覆盖。
+- 服务器固定物理环境执行23/23项通过，用时2.1238204333931208秒；检查覆盖52家族固定分区、无confirmation、家族内相机x恒定/y往返、唯一E0-v1替代例、未来xy非自动触发、E0-v1/v2派发、E0-v2边界正反例、原物理/XML/轨迹与72分支不跳过规则。`check_receipt.json`为7351 bytes、SHA-256=`0eac50a384e8fdde2b54a631d788309024a6da7999864c6736253147d9a253c0`。
+- 本检查为0模拟步、0训练、0数据读取、0confirmation、0下载；阶段只有check回执，尚未创建`execution`、生成两个家族或写`dataset_index`。依D-059，实际补生成仍等待用户审查`9ce0a66..24b98d7`，通过后使用同一提交和已有入口运行，不再为切步骤改脚本。
