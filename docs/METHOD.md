@@ -48,6 +48,12 @@ Teacher-only supervision（仅教师可见监督）解决训练时可以利用�
 
 VM-01 的共同适配运行器只把 `decision_time_s / camera_pose / robot_state / past_actions / region_observations / free_space_observations / prior_memory / public_constants` 交给方法，并检查方法没有原地修改输入；样本摘要、RGB-D 文件摘要和 prior 引用只在外层核对后剥离。候选目录的构造函数在签名上没有 private 参数，来源指针只允许公开包和 prior memory 白名单根；teacher 记录必须逐槽保持目录 ID 与顺序。白话：这解决“答案虽不在函数参数里，却通过路径、候选编号或预填 query 绕进来”的问题；输入公开记录和旧记忆，输出固定适配输入、候选摘要及后续独立 teacher 绑定。例如改变 reference MERGE pair 后若 logits 摘要变化，私有扰动检查直接失败。它不判断两个节点在现实中是否同一对象，也不证明模型有效。
 
+VM-03 的 `generate_public_candidate_catalog`（公开候选目录生成器）枚举 NOOP、BIND、BIRTH、REACTIVATE、RELINK、RETRACT、SPLIT、MERGE 八个原子模板及 REPLACE 复合程序。输入只有已验证公开包、prior predicted memory 和无默认值的阈值/每模板容量配置；每个程序先用既有 deterministic executor（确定性执行器）真实 preflight/执行，再连同公开 `online_evidence` 摘要封存。BIND/REACTIVATE/SPLIT 使用匿名区域与公开节点相似度，MERGE 使用两个公开节点，RELINK 枚举开放边与其他公开地点，RETRACT/REPLACE 必须有两个不同合法历史时刻的自由空间覆盖。当前阈值和每模板上限尚未冻结，测试数值只验证分支。
+
+白话：该生成器解决 `merge_queries` 曾经从参考答案直接给出目标的问题。输入例如两个当前匿名区域和三个旧节点，输出由公开相似度筛出的全部有限事务程序；正确 MERGE pair 没进入目录时后面只能记 candidate miss。候选事务 ID 和顺序只由剥离审计字段后的 `AdapterInput` 摘要产生，因此更换 `sample_id_hash` 或文件摘要不会改变程序/顺序。它不读取 private、不会保证正确候选总在目录，也不把 executor 通过当成语义正确。
+
+`label_sealed_candidates`（封存后教师标注器）输入完整 catalog、与其 public 摘要绑定的 private evaluation、用户以后冻结的 scorer 和温度，输出原槽位上的分数及 softmax 概率。softmax（归一化指数分布）把各候选有限分数转成总和为1的训练目标；例如 MERGE 得分1、其余得分0时 MERGE 槽概率较高，但候选数和顺序不变。它不调用候选生成器、不补候选、不决定 S-01～S-12 的语义 scorer，也不进入部署推理。
+
 ### 待用户裁决的语义边界案例
 
 下面案例是 VM-04 设计前的裁决表，不是已经冻结的标签或指标。每例都故意给出“结构合法但语义可能不同”的两种答案；用户选择后，必须把选择转成生成规则、等价集合和逐例验收，不能在看到 validation 结果后改变。

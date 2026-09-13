@@ -29,6 +29,11 @@ from .contracts import (
     validate_private_mutation_invariance,
     validate_teacher_targets,
 )
+from .public_candidates import (
+    PublicCandidateConfig,
+    generate_public_candidate_catalog,
+    label_sealed_candidates,
+)
 
 __all__ = [
     "AdapterInput",
@@ -55,4 +60,7 @@ __all__ = [
     "TAFConfig",
     "WFRAdapter",
     "WFRConfig",
+    "PublicCandidateConfig",
+    "generate_public_candidate_catalog",
+    "label_sealed_candidates",
 ]
