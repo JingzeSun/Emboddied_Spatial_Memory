@@ -1315,3 +1315,12 @@
 - 连续地图现在从同一原公开历史重算E0：左墙内缘取左边区间上界、右墙内缘取右边区间下界、前缘覆盖完整区间并加公共墙厚；每个候选必须在公开深度墙顶面找到左右支撑，否则该世界在动力学前失败。原像素墙证据与区间派生墙格分字段保存，最终墙并集从认证自由和身体核心中扣除。
 - 白话：这解决“中点看起来能过，但允许的墙位置可能更窄”这一具体漏洞。输入是不含私有标签的E0区间与墙顶面，输出最不利门宽和可追溯墙并集；例如中点门宽120 mm、端点门宽40 mm时必须按40 mm评估。它不扩大观察范围、不读取XML真值，也不把未知区或门洞认证为自由。修复仍须形成新提交并通过本地/服务器隔离检查后由用户审查，才能重跑开发/验证；确认集继续封存。
 - 同次服务器预检还发现阶段入口误读了不存在的逐家族`verified.json`和生成`verify_receipt.json`。正式生成器实际输出全局`run_receipt.json`，其中`accepted=true`且`artifacts`逐文件绑定整个execution。入口改为先核全局成功回执，再核每家族`public_manifest`与回执中的摘要，随后由manifest核公开文件；校验链未放宽。白话：例如`r4-39`的manifest改一个字节就会在读历史前拒绝；这不是把“目录存在”当作验证通过，也不重跑已有四家族。
+
+## D-122：第一篇切回版本化结构记忆事务，先消除参考 query 捷径
+
+- 日期：2026-09-13。用户依据导师意见将第一篇优先级从 D-062 空间世界模型切回记忆修订，并确认保留 NOOP、BIND、BIRTH、REACTIVATE、RELINK、RETRACT、SPLIT、MERGE 八个原子模板；REPLACE 仍为复合程序。旧 S5 的 A 对 C/E no-go 和 test 封存不改写，D-062 分支、代码、数据和证据暂停但不删除。
+- 新 proposed 名称为 Versioned Structural Memory Transactions（VSMT，版本化结构记忆事务），范围包含实体、地点/区域、关系、证据及结构 SPLIT/MERGE，不缩成对象生命周期。第一篇主比较改为 VSMT、ConceptGraphs 风格阈值关联融合（TAF）、Fusion++/Dengler 风格存在概率更新（ELU）、Khronos 风格窗口片段协调（WFR）和朴素末次观测覆盖（LOW）。后三者是引用清楚的 clean-room mechanism-level adaptations，不复制上游源码，也不冒称论文官方复现。
+- 旧实现审计确认实质信息风险：`_event_plan` 由 `reference_spec.target_node_id(s)/target_edge_id/new_target` 生成 node/edge/place/merge query，候选生成器再据此排序；尤其 `merge_queries` 直接帮助构造首个 MERGE pair。删除 `reference_spec` 后候选不变的测试没有追踪 query 的上游来源，因此不能证明无 oracle shortcut。此事实不回写旧 S5 结果，但新数据、候选和主实验禁止复用全部参考派生 query。
+- 新版固定原则是 candidate-before-teacher：候选只由公开观测前缀和 prior predicted memory 产生、先写 digest 封存，teacher 随后才可打开未来/reference 并仅给既有候选打训练标签。private reference、未来或模拟器 ID 变化而 public 不变时，候选、顺序、在线特征和 logits 必须逐字节不变；漏掉正确候选记 candidate miss，不准补槽。
+- 新数据全部重新生成，采用 public/candidate/teacher/private_eval/provenance 分通道和独立读取器。冻结 DINOv2 只提供共享匿名 RGB 区域描述，深度/位姿提供公开几何；真值 mask/instance ID 只能 private 评价。具体图类型、proposal、场景、split、样本数、训练与存储预算尚未冻结，当前 generation/training/confirmation 均未授权。
+- 独立工作树为`D:\Users\28115\Desktop\SCI\projects\embodied_spatial_memory_m1_structural`，分支`codex/m1-structural-memory-revision`从已审`origin/main`提交`1e5fa2c`建立；原工作区未提交的`docs/PLAN.md`和`scripts/notes.txt`未移动或修改。当前只交 VM-00 文献、许可证、旧代码泄漏和合同草案，用户审过后才进入 VM-01 schema/测试实现。

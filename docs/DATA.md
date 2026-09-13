@@ -1,5 +1,43 @@
 # 数据与观测合同
 
+## 当前：VSMT 新数据边界（D-122，proposed，尚未生成）
+
+新版数据解决旧合成 query 由参考事务参数派生、无法支撑无泄漏视觉实验的问题。输入源拟为受控具身 RGB-D 序列、公开相机/机器人位姿和已发生动作；输出分成不可互读的 `public`、`candidate`、`teacher`、`private_eval` 与 `provenance` 五类产物。例如一次 MERGE 样本的 `public` 只保存两个当前区域的 RGB-D/匿名特征及 prior memory，`candidate` 由这些公开值枚举可能 pair，真实 pair 只在 `private_eval`。它不复用旧 S5 query/data，也不把人工事务夹具当作视觉或物理结果。
+
+### 五类产物与读取权限
+
+| 通道 | proposed 内容 | 禁止与用途 |
+|---|---|---|
+| `public` | 截至决策时刻的 RGB-D、时间、相机/机器人位姿、已执行动作、冻结 proposal/descriptor 结果、公开传感器状态 | 所有方法唯一在线输入；禁止未来帧、真实未来运动、场景答案名、reference、instance ID、真值 mask |
+| `candidate` | 由 `public + prior predicted memory` 生成的规范事务程序、静态 preflight、顺序、catalog digest 和来源字段 digest | teacher 打开前封存；禁止因正确候选缺失而补槽或重排 |
+| `teacher` | 固定候选上的训练后验/排序、六项能量或新版登记能量、teacher 版本与 candidate digest | 仅训练标签；validation 只用于登记选择，confirmation/test 推理不可读 |
+| `private_eval` | 参考结构版本、事务等价集合、模拟器 instance/关系真值、未来观测、实际未来状态及错误归因 | 只由独立评价器打开；不得构造 query、proposal、candidate 或模型输入 |
+| `provenance` | 原始文件摘要、生成器/前端/模型版本、seed、split group、失败与退出回执 | 用于复现和审计；路径、seed、split 编号不进入模型值 |
+
+白话：`candidate` 封存解决 teacher 先知道答案再帮模型准备选项的问题。输入是尚未打开任何私有文件的公开记录，输出一份带摘要的候选清单；例如只找到一个合理 MERGE pair 就只记录这一个，正确 pair 缺失时后面记 candidate miss。它不保证候选覆盖率为 100%，也不允许 teacher 在训练时补齐。
+
+### `ObservationPacket` 与 `MemoryUpdateResult`
+
+`ObservationPacket` 是共同在线输入包，字段使用英文标识，拟只含：`schema_version, sample_id_hash, timestamp, rgbd_refs, camera_pose, robot_state, past_actions, region_observations, prior_memory_ref, public_constants`。`sample_id_hash` 仅用于对齐，必须经 nuisance probe 证明不能编码 family/template/split；`region_observations` 含 mask 来源、DINOv2 匿名描述、公开深度点、几何包围和可靠性，不含永久身份。它解决五个实验臂接收不同信息的问题；输入一帧或一段合法前缀，输出一个严格白名单对象；例如 TAF 和 VSMT 看到完全相同的两个区域向量。它不包含候选正确性或 teacher 标签。
+
+`MemoryUpdateResult` 是共同预测输出，拟含：`method_id, pre_memory_digest, post_memory, normalized_delta, confidence, runtime, diagnostics`。它解决直接改图方法与事务选择方法难以同一评价的问题；输入任一方法的内部更新结果，输出规范化后的新记忆和变化记录；例如 LOW 覆盖旧节点属性会记录为一条非版本化 BIND-like delta。它不声称原论文使用了本项目的事务术语，规范化只供评价。
+
+### 新生成内容与结构范围
+
+新数据至少需要八个原子模板的可执行正例及容易混淆的合法反例，并包含对象之外的结构变化：地点/区域 BIRTH、实体—地点 RELINK、关系 RETRACT、观测碎片 SPLIT/MERGE 和 dormant 结构 REACTIVATE。物理世界变化、感知片段错误与记忆初始错误必须分别标源；例如同一把椅子真实移动导致 RELINK，与两次检测形成重复节点后需要 MERGE，不能共用一个含糊标签。具体场景数、每类比例、轨迹、图类型和随机预算尚未冻结。
+
+正式视觉输入计划共享一个冻结、与结果无关的 proposal/descriptor 前端。DINOv2 只从 `public.rgb` 产生区域描述；深度和位姿产生公开几何。模拟器 instance segmentation 可生成 private 对齐标签和误差评估，但不能作为正式 proposal；若开发期用真值 mask 做接口检查，结果必须标 `oracle_proposal_engineering_only`，不得进入主表。
+
+### 强制泄漏检查字段
+
+每个样本须保存但不向模型返回：`public_digest`、`candidate_digest`、`private_digest`、`candidate_generated_before_private_open`、`query_derivation_fields`、`instance_id_permutation_digest`、`private_mutation_invariance`、`prediction_without_private_access` 和 `nuisance_probe_group`。其中 `query_derivation_fields` 逐个列出 node/edge/place/pair query 所依赖的 public 字段摘要；出现 `reference_spec`、未来、真值 identity 或 private 路径即拒绝。
+
+白话：private mutation invariance（私有改动不变性）解决“答案是否已经绕路写进公开输入”的问题。输入两份 public 完全相同但 reference、未来或模拟器 ID 被置换的审计副本，输出候选和在线特征是否逐字节相同。例如交换两个真值对象编号后 MERGE 候选顺序必须不变。它不要求最终评价标签相同，也不证明视觉信息本身没有合理线索。
+
+### 划分与重新生成状态
+
+旧 train/validation/test、旧 S5 arrays、旧 query 和旧 candidate catalog 均不得作为新版效果数据。可复用的是 executor、事务 schema、旧失败案例设计经验及 Git 中的历史结果。新 split 必须以物理/资产家族成组，train/validation/confirmation 不共享场景模板实例、材质身份或初始记忆错误实例；confirmation 在前端、候选、阈值、模型、预算和评分冻结后才生成。当前 `generation_authorized=false`、`training_authorized=false`、`confirmation_authorized=false`，等待具体数值合同和用户代码审查。
+
 ## 当前：空间历史四世界工程记录（D-062/D-070）
 
 ### SH-04-R2 四世界家族字段（已实现，服务器验证pending）

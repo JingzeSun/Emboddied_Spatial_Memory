@@ -1,4 +1,50 @@
-# 空间世界模型候选与历史方法合同
+# 结构记忆修订与历史方法合同
+
+## 当前候选：Versioned Structural Memory Transactions（D-122，proposed）
+
+Versioned Structural Memory Transactions（VSMT，版本化结构记忆事务）解决持续记忆中的节点、关系、证据和生命周期怎样在新观测到来时被显式修订。输入是截至决策时刻的公开观测前缀、由本方法此前预测得到的版本化结构记忆，以及仅由这两者产生的候选事务；输出是 NOOP、BIND、BIRTH、REACTIVATE、RELINK、RETRACT、SPLIT、MERGE 中一个原子事务或由它们组成的合法程序、新记忆版本和 provenance。例如旧记忆把两个空间区域合成一个节点，当前多视角证据支持两个成分时，SPLIT 关闭旧版本、建立两个后继并重新分配证据。VSMT 不是对象跟踪的别名，不要求所有节点都是物体，也不把事务名称、确定性 executor、DINOv2 或场景图单独称为创新；当前方法及主张均未由新实验验证。
+
+REPLACE 继续定义为 RETRACT+BIRTH 复合程序，不计入八个原子模板。结构记忆允许实体、地点/区域、实体—地点关系、实体—实体关系、观测证据引用和版本历史；第一批数据具体纳入哪些节点/边类型须在生成预算前冻结，不能用未生成的类型扩大结果表述。
+
+### 第一篇主问题与三组比较
+
+当前 proposed 主问题是：在完全相同的公开视觉—几何观测、初始预测记忆和评价协议下，显式版本化事务是否比已有的增量融合、生命周期置信更新、片段协调机制及朴素更新，更少产生重复、错绑、陈旧、误删和结构破坏，同时保留可追溯修订？这不是继续检验“CTL 必须显著胜过 direct future loss”；旧 A/C/E 只能作为 VSMT 内部训练消融，并保留原 S5 no-go。
+
+统一的 Memory Update Adapter（记忆更新适配器）解决不同论文方法输出格式不一样而无法公平比较的问题。输入统一为 `ObservationPacket + prior_memory`，输出统一为 `MemoryUpdateResult`，其中包含新状态、规范化 delta、置信度、运行时间和方法诊断。例如阈值融合直接更新一个对象时，适配器把该变化规范化为 BIND，但仍保存它原本的相似度和阈值。它不把独立适配冒充作者官方复现，也不强迫原方法支持论文中没有的 SPLIT 或 RETRACT；共享能力子集和全任务结果必须分开报告。
+
+| 实验臂 | 机制来源与独立实现边界 | 在共同流水线中的行为 |
+|---|---|---|
+| `VSMT` | 本项目八原子事务、version/provenance、执行前条件和原子回滚；选择器训练方式另作消融 | 从公开证据候选集中选择并由共同 executor 执行；不能由 teacher 修补候选 |
+| `TAF` | Thresholded Association and Fusion（阈值关联与融合），机制参考 ConceptGraphs 的几何/视觉匹配、增量对象融合及周期性合并 | 匹配超过冻结阈值则更新已有节点，否则 BIRTH；周期性仅按公开重叠/特征合并重复节点，不使用未来确认 |
+| `ELU` | Existence-Likelihood Updating（存在概率更新），机制参考 Fusion++、Dengler 等的存在置信、可靠正/负观测及错误关联修正 | 对节点/关系维护存在分数；可靠看见增加、可靠空视野减少，跨阈值时 BIRTH/RETRACT/REACTIVATE，关联变化可 RELINK |
+| `WFR` | Windowed Fragment Reconciliation（窗口化片段协调），机制参考 Khronos 的 active window、fragment hypotheses 和较慢 reconciliation | 先积累公开观测片段，再在固定间隔按兼容图协调 BIND/BIRTH/RELINK/SPLIT/MERGE/RETRACT；不运行或复制 Khronos ROS/C++源码 |
+| `LOW` | Last-Observation Overwrite（末次观测覆盖），本项目朴素基线 | 最近几何邻居在阈值内就覆盖其属性，否则 BIRTH；不保留版本、不回滚、不重激活、不分裂/合并 |
+
+白话：TAF 解决“当前片段属于旧节点还是新节点”，输入共享的几何和视觉相似度，输出融合或新建，例如相似椅子超过阈值就并入旧椅子；它不处理完整生命周期。ELU 解决“旧记忆是否仍存在”，输入连续正证据、可靠空视野和遮挡状态，输出存在分数及更新，例如旧址多次可靠为空后关闭旧边；它不把一次漏检当删除。WFR 解决短时碎片和长期一致性冲突，输入固定窗口片段及旧图，输出周期性协调后的图，例如两个重复片段在重访后 MERGE；它不是 Khronos 官方复现。LOW 只回答复杂机制是否胜过最简单的在线覆盖，输入最近观测和距离阈值，输出覆盖或新建；它不是有意缺少当前信息的弱模型。
+
+所有论文机制适配器均采用 clean-room 实现：只依据论文、补充材料和公开接口说明重新写算法；文件头登记论文、机制、差异和“not an official implementation”，不复制上游源码、类名、注释、默认配置或测试。TAF/ELU/WFR 的阈值只能在共同 train/validation 上冻结，不抄论文在不同传感器/数据集上的数值。若适配改变原方法的关键输入或优化目标，正文称 mechanism-level adaptation，不称 reproduction。
+
+### 反作弊信息边界
+
+Teacher-only supervision（仅教师可见监督）解决训练时可以利用后续观测、但部署时不能提前知道未来的边界问题。输入是已经封存的候选目录及训练样本的私有未来/参考状态，输出仅为候选上的软标签、排序或能量；例如未来三帧证明两个片段确属同一结构时，teacher 可以提高既有 MERGE 候选的目标概率。它不允许生成 MERGE 的两个目标、补入漏掉的正确候选、改变候选顺序或进入评估推理。
+
+旧实现的 `node_query/edge_query/place_query/merge_queries` 不满足新版来源要求：`_event_plan` 先从 `reference_spec.target_node_id(s)/target_edge_id/new_target` 构造 query，`_proposal_context` 再用这些 query 排候选；其中 `merge_queries` 会把参考 MERGE 对放在首个候选 pair。后续删除 `reference_spec` 只能证明候选函数没有直接读该字段，不能消除已经编码进 query 的参考身份。旧 S5 可继续按原合同解释，但这些 query、候选和数据均不得进入 VSMT 新实验。
+
+新版必须同时满足以下 gate，任一失败都停止生成或效果实验：
+
+1. `public` 仅含决策时刻及之前的 RGB-D、相机/机器人位姿、已执行动作、冻结前端产生的匿名区域/片段及先前预测记忆；目录名、场景答案名、模拟器 instance ID、真值 mask 和 reference transaction 不进入模型值。
+2. 节点、边、地点及 MERGE pair 的 query 必须在运行时由当前公开区域特征、公开几何和 prior memory 计算；数据文件不再保存参考导出的 `merge_queries`。
+3. 候选生成在任何 private/reference/future 文件打开前完成，写入 digest 后封存；teacher 只能读取该 digest 指向的固定候选并输出标签。
+4. 修改任意 private reference、未来或模拟器 ID 而保持 public 字节不变时，候选目录、候选顺序、在线特征和未训练模型 logits 必须逐字节不变。
+5. 评估进程在 private 数据不可见时仍须完成全部预测；评价器随后按预测 digest 独立打开标签。删除 private 挂载后仍可预测是最低运行门，不等于方法有效。
+6. 正确程序不在公开候选中时记 `candidate_miss`，不得由 oracle 插入；teacher 选错记 `teacher_error`，学生与冻结 teacher 不一致记 `amortization_error`。
+7. 单列只用路径、seed、候选槽号、数量和时间步的 nuisance probe；它解决元数据能否猜答案的问题，输入不含图像/几何/记忆，输出事务分类准确率。例如候选 index 若几乎直接给出 MERGE 就必须失败。它不要求合法当前观测无法预测事务。
+
+### 共享视觉前端与结果口径
+
+冻结 DINOv2 区域描述器解决跨视角外观比较：输入当前公开 RGB 区域，输出匿名特征向量，例如不同视角下同一椅子的描述应较接近。它不生成 region proposal、不输出对象身份、不更新记忆，也不是论文创新。所有实验臂必须复用完全相同的冻结权重、proposal、深度、位姿与区域描述；模拟器真值 mask 仅可用于 private 评价，不能产生正式 proposal。
+
+主结果至少分开报告：候选覆盖、八事务及 REPLACE 的逐类结果、共享能力子集、完整任务图错误、重复/陈旧/误删事实、错误持续时间、provenance/invariant、运行时间和峰值记忆。某个对照不支持某事务时，既报告完整任务后果，也在双方共同支持的事件子集上比较；不能只用 VSMT 独有操作制造胜差。
 
 ## 当前候选：空间历史对动作后果预测的作用（D-062，proposed）
 
