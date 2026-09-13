@@ -22,6 +22,7 @@ PARAMETERS = {
     "minimum_wall_band_m": .02,
     "maximum_wall_band_m": .08,
     "object_radius_m": .07,
+    "object_half_height_m": .04,
 }
 
 
@@ -99,7 +100,17 @@ def readout(openings, trajectory, goal, readout_parameters):
     goal_all = True
     speed_all = True
     radius = PARAMETERS["object_radius_m"]
+    half_height = PARAMETERS["object_half_height_m"]
     epsilon = goal["containment_boundary_tolerance_m"]
+    def extent(sample, axis):
+        direction = sample.get("object_axis_world")
+        if direction is None:
+            return radius
+        require(isinstance(direction, list) and len(direction) == 3,
+                "object axis must be a 3-vector")
+        component = direction[axis]
+        return radius * math.sqrt(max(0., 1 - component * component)) \
+            + half_height * abs(component)
     for index, sample in enumerate(trajectory):
         require(sample["step_index"] == index, "trajectory step order")
         position = sample["object_position_m"]
@@ -126,15 +137,16 @@ def readout(openings, trajectory, goal, readout_parameters):
                                    "completion_time_s": None})
                     active[gate] = len(events) - 1 if valid and ordered else None
                 if (active[gate] is not None and
-                        position[1] - radius >= plane_y + PARAMETERS["wall_thickness_m"] / 2
+                        position[1] - extent(sample, 1) >= plane_y + PARAMETERS["wall_thickness_m"] / 2
                         - epsilon):
                     events[active[gate]].update(status="completed", completion_time_s=time_s)
                     completed[gate].append(time_s)
                     active[gate] = None
         if time_s >= goal["settled_interval_s"][0] - 1e-9:
             for axis, bounds in enumerate((goal["goal_x_bounds_m"], goal["goal_y_bounds_m"])):
-                goal_all &= (position[axis] - radius >= bounds[0] - epsilon and
-                             position[axis] + radius <= bounds[1] + epsilon)
+                body_extent = extent(sample, axis)
+                goal_all &= (position[axis] - body_extent >= bounds[0] - epsilon and
+                             position[axis] + body_extent <= bounds[1] + epsilon)
             speed_all &= math.sqrt(sum(value * value for value in
                                        sample["object_velocity_mps"])) \
                 <= goal["maximum_object_linear_speed_mps"]

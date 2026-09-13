@@ -82,7 +82,7 @@ def assumption_free_geometry(continuous_map, public_domain, *, include_common_bo
     return free.difference(walls) if not walls.is_empty else free
 
 
-def audit_trajectory(continuous_map, trajectory, public_domain):
+def audit_trajectory(continuous_map, trajectory, public_domain, *, object_radius_m=None):
     """Return the first outer-approximated body sweep not covered by inner free geometry."""
     require(isinstance(trajectory, list) and trajectory, "trajectory required")
     dependency_versions = _dependency_versions()
@@ -92,7 +92,10 @@ def audit_trajectory(continuous_map, trajectory, public_domain):
                          1 / math.cos(math.pi / (4 * q)), rel_tol=0, abs_tol=1e-15),
             "circle outer scale does not match quadrant segments")
     free = assumption_free_geometry(continuous_map, public_domain)
-    radius = public_domain["object_radius_m"]
+    radius = (public_domain["object_radius_m"] if object_radius_m is None
+              else object_radius_m)
+    require(type(radius) in (int, float) and radius >= public_domain["object_radius_m"],
+            "audit object radius must contain the public cylinder radius")
     half = public_domain["pusher_half_size_m"][:2]
     maximum_uncovered_area = 0.
     cached_positions = None
