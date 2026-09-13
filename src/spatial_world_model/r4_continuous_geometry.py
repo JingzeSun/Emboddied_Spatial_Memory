@@ -48,6 +48,36 @@ def cells_intersecting_rectangle(rectangle, cell_m):
             for y in range(lo_y, hi_y + 1)}
 
 
+def merge_cells_to_rectangles(cells, cell_m):
+    """Represent a cell union exactly as non-overlapping axis-aligned rectangles."""
+    rows = {}
+    for x, y in set(cells):
+        rows.setdefault(y, []).append(x)
+    active, merged, previous_y = {}, [], None
+    for y, xs in sorted(rows.items()):
+        spans = []
+        for x in sorted(xs):
+            if spans and spans[-1][1] + 1 == x:
+                spans[-1][1] = x
+            else:
+                spans.append([x, x])
+        next_active = {}
+        for first_x, last_x in spans:
+            key = first_x, last_x
+            if previous_y is not None and y == previous_y + 1 and key in active:
+                rectangle = active.pop(key)
+                rectangle[3] = y
+            else:
+                rectangle = [first_x, last_x, y, y]
+            next_active[key] = rectangle
+        merged.extend(active.values())
+        active, previous_y = next_active, y
+    merged.extend(active.values())
+    return [[first_x * cell_m, (last_x + 1) * cell_m,
+             first_y * cell_m, (last_y + 1) * cell_m]
+            for first_x, last_x, first_y, last_y in sorted(merged)]
+
+
 def _point_rectangle_distance2(point, rectangle):
     x0, x1, y0, y1 = rectangle
     dx = max(x0 - point[0], 0., point[0] - x1)
@@ -177,9 +207,35 @@ def box_core_cells(position_intervals, half_size, cell_m):
     return cells_fully_in_rectangle(core, cell_m) if core[0] <= core[1] and core[2] <= core[3] else set()
 
 
-def first_uncertified_sweep(trajectory, certified_free_cells, *, object_radius,
-                            pusher_half_size, cell_m):
-    """Audit the first complete swept shape that leaves the certified cell union."""
+def circle_possible_cells(position_intervals, radius, cell_m):
+    """Cells touched by the circle under at least one allowed centre position."""
+    x0, x1 = position_intervals[0]
+    y0, y1 = position_intervals[1]
+    center_box = (x0, x1, y0, y1)
+    bounds = (x0 - radius, x1 + radius, y0 - radius, y1 + radius)
+    radius2 = (radius + NUMERIC_EPSILON_M) ** 2
+    result = set()
+    for cell in cells_intersecting_rectangle(bounds, cell_m):
+        cx0, cx1, cy0, cy1 = cell_bounds(cell, cell_m)
+        dx = max(x0 - cx1, cx0 - x1, 0.)
+        dy = max(y0 - cy1, cy0 - y1, 0.)
+        if dx * dx + dy * dy <= radius2:
+            result.add(cell)
+    return result
+
+
+def box_possible_cells(position_intervals, half_size, cell_m):
+    """Cells touched by the fixed-axis box under at least one allowed centre."""
+    bounds = (position_intervals[0][0] - half_size[0],
+              position_intervals[0][1] + half_size[0],
+              position_intervals[1][0] - half_size[1],
+              position_intervals[1][1] + half_size[1])
+    return cells_intersecting_rectangle(bounds, cell_m)
+
+
+def first_uncertified_grid_recheck(trajectory, certified_free_cells, *, object_radius,
+                                   pusher_half_size, cell_m):
+    """Conservative grid recheck; the continuous Shapely audit remains primary."""
     require(len(trajectory) >= 1, "trajectory required")
     free = set(certified_free_cells)
     for step in range(1, len(trajectory)):

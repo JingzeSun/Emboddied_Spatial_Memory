@@ -715,6 +715,8 @@ D-111的`spatial-history-r4-pessimistic-map-v1`不再是正式输入schema。新
 
 每个M结果共同含`system=M-SIMPLE|M-PHYS`、200步共同prediction、`certificate`、`contact_provenance`和数值审计。`certificate`至少含`assumption_conditioned / complete_sweep_contained / first_uncertified_step / first_uncertified_time_s / body / region_kind`；`contact_provenance`逐接触标明`observed_wall_interval / body_occlusion_unknown / sampling_gap_unknown / outside_observed_region / object_pusher`。未知先验产生的碰撞是模型输出，不能放进观测事实字段。
 
+连续几何审计另存`dependency_versions.shapely/geos`及`outer_circle_radial_excess_m`。固定32段/象限时外包半径因子为`1.000301272041302`，再加`numeric_guard_m=1e-6`；自由地面格则必须完全落入已向内收缩的观测面片。二者方向相反，避免同一个多边形近似同时被当作自由外包和扫掠内包。
+
 白话：这些字段解决“预测撞墙”和“真的看见墙”被混写的问题。输入同一公开地图和控制，输出两种动力学的完整预测及每次阻挡的证据来源；例如M-PHYS在0.4秒撞到`body_occlusion_unknown`，表示它按悲观先验预测那里有障碍，不表示传感器观察到墙。它不读取私有XML、实际接触或未来机器人运动，独立评估只能在两种公开预测都封存后追加误差。
 
 白话：例如一条分支可同时给出“看过什么和要执行什么”以及“实际物块后来到哪里”，但前者放model_input、后者只放训练target。未来RGBD只帮助D/F/W重建自身状态，不包含推头真实未来位姿。这不是把标签变成部署输入，也不允许从audit身份查表预测。

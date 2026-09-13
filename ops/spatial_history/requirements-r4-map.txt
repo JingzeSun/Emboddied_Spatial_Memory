@@ -1,0 +1,4 @@
+# Isolated D-112 map/dynamics geometry.  Server installation is review-gated.
+shapely==2.1.2
+mujoco==3.3.7
+numpy==2.2.6
