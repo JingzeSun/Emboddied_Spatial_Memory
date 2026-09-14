@@ -683,6 +683,13 @@ class GraphRevision:
         for relation in relations:
             if str(relation["relation"]) not in SCAFFOLD_RELATIONS:
                 continue
+            if not all(
+                str(relation[field]) in region_node_ids
+                for field in ("source_region_id", "target_region_id")
+            ):
+                raise ValueError(
+                    "place adjacency endpoints must be current place regions"
+                )
             source, target, relation_kind = canonical_relation_observation(
                 relation, region_node_ids,
             )
