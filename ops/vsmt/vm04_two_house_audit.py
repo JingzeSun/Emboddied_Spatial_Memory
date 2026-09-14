@@ -61,10 +61,12 @@ STRUCTURE_PATH = PROJECT_ROOT / "configs/vsmt/vm04_l1_non_entity_geometry_review
 REPORT_PATH = PROJECT_ROOT / "results/vsmt_vm04_l1_two_house_audit.json"
 BOUND_PATHS = (
     "configs/vsmt/vm04_l1_two_house_audit_proposal_v1.json",
+    "configs/vsmt/vm04_public_seal_parallel_recovery_v1.json",
     "configs/vsmt/vm04_l1_environment_v1.json",
     "configs/vsmt/vm04_l1_action_symmetry_v1.json",
     "configs/vsmt/vm04_l1_non_entity_geometry_review_v1.json",
     "ops/vsmt/vm04_two_house_audit.py",
+    "ops/vsmt/vm04_public_seal_parallel.py",
     "ops/vsmt/vm04_two_house_worker.py",
     "src/vsmt/two_house_audit.py",
     "src/vsmt/l1_entities.py",
@@ -80,7 +82,7 @@ BOUND_PATHS = (
 TEST_GROUPS = (
     ("executor", "test_executor.py", 42),
     ("l1", "test_l1_*.py", 31),
-    ("vsmt", "test_vsmt_*.py", 136),
+    ("vsmt", "test_vsmt_*.py", 141),
 )
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
 
@@ -577,7 +579,8 @@ def _resource_checkpoint(
 
         gpu_bytes = int(torch.cuda.memory_allocated())
     limits = (
-        (elapsed <= int(resources["hard_wall_clock_seconds"]),
+        (resources["hard_wall_clock_seconds"] is None
+         or elapsed <= int(resources["hard_wall_clock_seconds"]),
          "stage wall-clock limit reached"),
         (stage_bytes <= int(resources["maximum_stage_bytes"]),
          "stage byte limit reached"),
@@ -1899,10 +1902,13 @@ def _terminal_episode_ids(receipt: Mapping[str, Any]) -> set[str]:
     }
 
 
-def run_verify(reviewed_code: str, output_root: Path) -> None:
+def run_verify(
+    reviewed_code: str, output_root: Path, *, source_stage_reviewed_code: str | None = None,
+) -> None:
     config = assert_two_house_action_authorized(load_config(), action="private-eval")
     commit, bindings = verify_checkout(reviewed_code)
-    stage = stage_directory(output_root, commit)
+    stage_code = source_stage_reviewed_code or commit
+    stage = stage_directory(output_root, stage_code)
     receipts = {
         name: _marker(stage, name)[0]
         for name in (
@@ -1931,6 +1937,19 @@ def run_verify(reviewed_code: str, output_root: Path) -> None:
     require(materialized_ids == planned_ids, "materializer lacks fixed-slot terminal records")
     seal = read_json(stage / "public.seal.json")
     evaluation = read_json(stage / "private-evaluation.json")
+    if source_stage_reviewed_code is not None:
+        require(
+            receipts["public-seal"].get("source_stage_reviewed_code") == stage_code
+            and receipts["private-eval"].get("source_stage_reviewed_code") == stage_code,
+            "recovery receipts bind another source stage",
+        )
+        require(
+            receipts["public-seal"].get("requested_workers") == 12
+            and receipts["public-seal"].get("actual_workers") == 12
+            and receipts["private-eval"].get("requested_workers") == 12
+            and receipts["private-eval"].get("actual_workers") == 12,
+            "recovery public/private work did not use all 12 workers",
+        )
     require(receipts["private-eval"]["public_seal_file_sha256"] == sha256(
         stage / "public.seal.json"
     ), "private evaluator is not bound to the sealed public bytes")
@@ -1958,10 +1977,23 @@ def run_verify(reviewed_code: str, output_root: Path) -> None:
     })
     receipt = {
         "schema_version": "vsmt-vm04-two-house-verify-receipt-v1",
-        "stage_id": STAGE_ID, "reviewed_code": commit, "bound_sha256": bindings,
+        "stage_id": STAGE_ID, "reviewed_code": commit,
+        "source_stage_reviewed_code": stage_code, "bound_sha256": bindings,
         "receipt_sha256s": receipt_digests,
         "planned_episode_count": 36, "terminal_generation_episode_count": 36,
         "worker_requested_count": 2, "worker_actual_count": 2,
+        "public_seal_worker_requested_count": receipts["public-seal"].get(
+            "requested_workers"
+        ),
+        "public_seal_worker_actual_count": receipts["public-seal"].get(
+            "actual_workers"
+        ),
+        "private_eval_worker_requested_count": receipts["private-eval"].get(
+            "requested_workers"
+        ),
+        "private_eval_worker_actual_count": receipts["private-eval"].get(
+            "actual_workers"
+        ),
         "worker_exit_count": 2, "not_started": [], "missing_exit": [],
         "public_sealed_before_private_evaluation": True,
         "canonical_merge_digest_independent_of_worker_completion_order": True,
@@ -2008,10 +2040,13 @@ def _capacity_totals(seal: Mapping[str, Any]) -> dict[str, Any]:
     return totals
 
 
-def run_export(reviewed_code: str, output_root: Path) -> None:
+def run_export(
+    reviewed_code: str, output_root: Path, *, source_stage_reviewed_code: str | None = None,
+) -> None:
     config = assert_two_house_action_authorized(load_config(), action="private-eval")
     commit, bindings = verify_checkout(reviewed_code)
-    stage = stage_directory(output_root, commit)
+    stage_code = source_stage_reviewed_code or commit
+    stage = stage_directory(output_root, stage_code)
     verify, _ = _marker(stage, "verify")
     require(not REPORT_PATH.exists(), f"report already exists: {REPORT_PATH}")
     seal = read_json(stage / "public.seal.json")
@@ -2020,8 +2055,9 @@ def run_export(reviewed_code: str, output_root: Path) -> None:
     generation = read_json(stage / "generate.receipt.json")
     materialize = read_json(stage / "materialize.receipt.json")
     report = {
-        "schema_version": "vsmt-vm04-l1-two-house-audit-report-v1",
+        "schema_version": "vsmt-vm04-l1-two-house-audit-report-v2",
         "stage_id": STAGE_ID, "reviewed_code": commit,
+        "source_stage_reviewed_code": stage_code,
         "bound_sha256": bindings,
         "config_sha256": sha256(CONFIG_PATH),
         "source_manifest_sha256": selection["source_manifest_sha256"],
@@ -2072,6 +2108,7 @@ def main() -> None:
     parser.add_argument("--reviewed-code", required=True)
     parser.add_argument("--output-root", type=Path,
                         default=Path("/root/autodl-tmp/vsmt_outputs"))
+    parser.add_argument("--source-stage-reviewed-code")
     parser.add_argument("--source-root", type=Path)
     parser.add_argument("--source-file", type=Path, action="append", default=[])
     parser.add_argument("--license-path", type=Path, action="append", default=[])
@@ -2120,9 +2157,15 @@ def main() -> None:
     elif arguments.mode == "private-eval":
         run_private_evaluation(arguments.reviewed_code, arguments.output_root)
     elif arguments.mode == "verify":
-        run_verify(arguments.reviewed_code, arguments.output_root)
+        run_verify(
+            arguments.reviewed_code, arguments.output_root,
+            source_stage_reviewed_code=arguments.source_stage_reviewed_code,
+        )
     elif arguments.mode == "export":
-        run_export(arguments.reviewed_code, arguments.output_root)
+        run_export(
+            arguments.reviewed_code, arguments.output_root,
+            source_stage_reviewed_code=arguments.source_stage_reviewed_code,
+        )
 
 
 if __name__ == "__main__":

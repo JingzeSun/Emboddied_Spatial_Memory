@@ -686,7 +686,6 @@ def capacity_probe(
         and visible_cpu_count >= requested_workers
         and free_bytes >= resources["minimum_free_data_disk_bytes_before_start"]
         and predicted_stage_bytes <= resources["maximum_stage_bytes"]
-        and predicted_wall_seconds <= resources["hard_wall_clock_seconds"]
     )
     return {
         "requested_workers": requested_workers,
@@ -694,6 +693,8 @@ def capacity_probe(
         "visible_cpu_count": visible_cpu_count,
         "free_data_disk_bytes": free_bytes,
         "predicted_wall_seconds": float(predicted_wall_seconds),
+        "wall_clock_limit_seconds": resources["hard_wall_clock_seconds"],
+        "wall_clock_timeout_disabled": resources["hard_wall_clock_seconds"] is None,
         "predicted_stage_bytes": predicted_stage_bytes,
         "ready": ready,
         "generation_started": False,

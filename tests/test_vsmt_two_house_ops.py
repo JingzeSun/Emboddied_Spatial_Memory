@@ -20,6 +20,13 @@ WORKER_SPEC = importlib.util.spec_from_file_location("vm04_two_house_worker", WO
 assert WORKER_SPEC is not None and WORKER_SPEC.loader is not None
 WORKER = importlib.util.module_from_spec(WORKER_SPEC)
 WORKER_SPEC.loader.exec_module(WORKER)
+PARALLEL_ENTRY = PROJECT_ROOT / "ops/vsmt/vm04_public_seal_parallel.py"
+PARALLEL_SPEC = importlib.util.spec_from_file_location(
+    "vm04_public_seal_parallel", PARALLEL_ENTRY
+)
+assert PARALLEL_SPEC is not None and PARALLEL_SPEC.loader is not None
+PARALLEL = importlib.util.module_from_spec(PARALLEL_SPEC)
+PARALLEL_SPEC.loader.exec_module(PARALLEL)
 
 
 class TwoHouseOpsTests(unittest.TestCase):
@@ -130,6 +137,53 @@ class TwoHouseOpsTests(unittest.TestCase):
         self.assertNotIn("materialized/private", source)
         self.assertIn("range(25)", source)
         self.assertNotIn("range(32)", source)
+
+    def test_parallel_recovery_uses_all_twelve_workers_without_wall_timeout(self) -> None:
+        config = PARALLEL.load_recovery_config()
+        parallel = config["parallel_public_seal"]
+        self.assertEqual(parallel["requested_workers"], 12)
+        self.assertIsNone(parallel["maximum_wall_clock_seconds"])
+        self.assertFalse(parallel["wall_clock_timeout_allowed"])
+        self.assertEqual(PARALLEL.choose_worker_count(12, 48, 12), 12)
+        with self.assertRaisesRegex(RuntimeError, "only 11 CPUs"):
+            PARALLEL.choose_worker_count(12, 48, 11)
+
+    def test_parallel_public_worker_is_public_only_and_atomically_promoted(self) -> None:
+        source = inspect.getsource(PARALLEL.run_public_profile_task)
+        self.assertIn('"materialized/public"', source)
+        self.assertNotIn("materialized/private", source)
+        self.assertNotIn("private/episode_plan", source)
+        self.assertIn("_promote_attempt", source)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            attempt = root / "attempt"
+            final = root / "completed/task"
+            attempt.mkdir()
+            (attempt / "value.json").write_text("{}", encoding="utf-8")
+            PARALLEL._promote_attempt(attempt, final)
+            self.assertFalse(attempt.exists())
+            self.assertEqual((final / "value.json").read_text(encoding="utf-8"), "{}")
+
+    def test_parallel_private_open_occurs_only_after_public_marker_check(self) -> None:
+        source = inspect.getsource(PARALLEL.run_parallel_private_evaluation)
+        marker_position = source.index('_marker(stage, "public-seal")')
+        dispatch_position = source.index("_run_worker_pool")
+        self.assertLess(marker_position, dispatch_position)
+        self.assertIn("public seal changed before private opening", source)
+
+    def test_recovery_downstream_accepts_explicit_source_stage_code(self) -> None:
+        verify_source = inspect.getsource(OPS.run_verify)
+        export_source = inspect.getsource(OPS.run_export)
+        for source in (verify_source, export_source):
+            self.assertIn("source_stage_reviewed_code or commit", source)
+            self.assertIn('"source_stage_reviewed_code": stage_code', source)
+
+    def test_parallel_pool_records_worker_exits_and_progress(self) -> None:
+        source = inspect.getsource(PARALLEL._run_worker_pool)
+        self.assertIn("multiprocessing.get_context", source)
+        self.assertIn('get_context("spawn")', source)
+        self.assertIn('row["exit_code"] = process.exitcode', source)
+        self.assertIn("_PROGRESS", source)
 
     def test_worker_target_ranking_uses_mask_geometry_not_private_id(self) -> None:
         import numpy as np

@@ -252,8 +252,8 @@
   },
   "resource_and_worker_proposal": {
     "execution_mode": "foreground",
-    "hard_wall_clock_seconds": 1800,
-    "if_capacity_probe_predicts_over_1800_seconds": "do_not_start_generation_and_return_for_user_review",
+    "hard_wall_clock_seconds": null,
+    "if_capacity_probe_predicts_over_1800_seconds": "continue_with_multiple_workers_and_record_actual_time_under_D-156",
     "simulator_house_family_workers": 2,
     "family_assignment": "one_preselected_house_family_per_worker",
     "GPU_descriptor_consumers": 1,

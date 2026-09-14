@@ -238,7 +238,7 @@ class TwoHouseAuditContractTests(unittest.TestCase):
             result["episodes"][0]["candidate_miss_reason"]["strict"]["16"]
         )
 
-    def test_capacity_probe_refuses_wrong_worker_count_or_large_prediction(self) -> None:
+    def test_capacity_probe_refuses_wrong_worker_count_but_not_long_runtime(self) -> None:
         value = capacity_probe(
             free_bytes=10_000_000_000, visible_cpu_count=12,
             requested_workers=2, predicted_wall_seconds=100,
@@ -256,7 +256,8 @@ class TwoHouseAuditContractTests(unittest.TestCase):
             requested_workers=2, predicted_wall_seconds=1801,
             predicted_stage_bytes=1000, config=config(),
         )
-        self.assertFalse(slow["ready"])
+        self.assertTrue(slow["ready"])
+        self.assertTrue(slow["wall_clock_timeout_disabled"])
 
 
 if __name__ == "__main__":
