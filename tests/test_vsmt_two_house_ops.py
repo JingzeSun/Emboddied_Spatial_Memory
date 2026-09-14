@@ -5,6 +5,7 @@ import inspect
 import json
 from pathlib import Path
 import tempfile
+from types import SimpleNamespace
 import unittest
 
 
@@ -141,6 +142,73 @@ class TwoHouseOpsTests(unittest.TestCase):
         second = WORKER.rank_visible_instance_ids({"renamed-a": left, "renamed-z": right})
         self.assertEqual(first, ["private-z", "private-a"])
         self.assertEqual(second, ["renamed-a", "renamed-z"])
+
+    def test_anonymous_view_support_ignores_ids_and_small_masks(self) -> None:
+        import numpy as np
+
+        first = np.zeros((32, 32), dtype=np.bool_)
+        second = np.zeros((32, 32), dtype=np.bool_)
+        small = np.zeros((32, 32), dtype=np.bool_)
+        first[:14, :14] = True
+        second[14:28, 14:28] = True
+        small[:13, :13] = True
+        self.assertEqual(
+            WORKER.anonymous_mask_support({"a": first, "b": second, "c": small}),
+            (2, 392),
+        )
+        self.assertEqual(
+            WORKER.anonymous_mask_support({"renamed-z": first, "renamed-y": second}),
+            (2, 392),
+        )
+
+    def test_initial_viewpoint_prefers_support_then_lexicographic_pose(self) -> None:
+        rows = [
+            {"position": {"x": 1, "y": 0, "z": 0}, "rotation_y_degrees": 0,
+             "eligible_anonymous_mask_count": 3,
+             "total_eligible_anonymous_mask_pixels": 700},
+            {"position": {"x": 0, "y": 0, "z": 0}, "rotation_y_degrees": 90,
+             "eligible_anonymous_mask_count": 3,
+             "total_eligible_anonymous_mask_pixels": 700},
+            {"position": {"x": -1, "y": 0, "z": 0}, "rotation_y_degrees": 0,
+             "eligible_anonymous_mask_count": 2,
+             "total_eligible_anonymous_mask_pixels": 900},
+        ]
+        self.assertEqual(
+            WORKER.select_initial_viewpoint(rows)["position"]["x"], 0,
+        )
+
+    def test_initial_viewpoint_scans_sorted_positions_and_cardinal_yaws(self) -> None:
+        import numpy as np
+
+        mask = np.ones((14, 14), dtype=np.bool_)
+
+        class FakeController:
+            def __init__(self):
+                self.teleports = []
+
+            def step(self, **action):
+                if action["action"] == "GetReachablePositions":
+                    return SimpleNamespace(metadata={
+                        "lastActionSuccess": True,
+                        "actionReturn": [
+                            {"x": 1, "y": 0, "z": 0},
+                            {"x": 0, "y": 0, "z": 0},
+                        ],
+                    })
+                self.teleports.append((action["x"], action["rotation"]["y"]))
+                count = 3 if action["x"] == 1 and action["rotation"]["y"] == 90 else 2
+                return SimpleNamespace(
+                    metadata={"lastActionSuccess": True},
+                    instance_masks={"id-%s" % index: mask for index in range(count)},
+                )
+
+        controller = FakeController()
+        pose = WORKER.discover_initial_viewpoint(controller)
+        self.assertEqual(pose["position"]["x"], 1.0)
+        self.assertEqual(pose["rotation_y_degrees"], 90)
+        self.assertEqual(controller.teleports, [
+            (x, yaw) for x in (0.0, 1.0) for yaw in (0, 90, 180, 270)
+        ])
 
     def test_worker_intervention_schedule_is_predeclared(self) -> None:
         objects = {

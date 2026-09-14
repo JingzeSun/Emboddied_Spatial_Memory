@@ -23,6 +23,10 @@ class ResourceStop(RuntimeError):
     """Stop dispatching new fixed slots after a frozen family resource limit."""
 
 
+MINIMUM_ANONYMOUS_MASK_PIXELS = 196
+CARDINAL_YAW_DEGREES = (0, 90, 180, 270)
+
+
 def require(condition, message):
     if not condition:
         raise RuntimeError(message)
@@ -169,7 +173,7 @@ def rank_visible_instance_ids(instance_masks):
         require(tuple(mask.shape) == shape, "instance masks have inconsistent shapes")
         flat = mask.reshape(-1)
         indices = np.flatnonzero(flat)
-        if len(indices) < 196:
+        if len(indices) < MINIMUM_ANONYMOUS_MASK_PIXELS:
             continue
         digest = hashlib.sha256(
             canonical_json([mask.shape[0], mask.shape[1]] + flat.astype(int).tolist()).encode(
@@ -179,6 +183,95 @@ def rank_visible_instance_ids(instance_masks):
         ranked.append((int(indices[0]), int(len(indices)), digest, str(private_id)))
     ranked.sort()
     return [row[-1] for row in ranked]
+
+
+def anonymous_mask_support(instance_masks):
+    """Return ID-independent eligible-mask count and total pixel support."""
+
+    import numpy as np
+
+    eligible_pixels = []
+    shape = None
+    for raw in instance_masks.values():
+        mask = np.asarray(raw, dtype=np.bool_)
+        if mask.ndim != 2:
+            continue
+        shape = shape or tuple(mask.shape)
+        require(tuple(mask.shape) == shape, "instance masks have inconsistent shapes")
+        pixels = int(np.count_nonzero(mask))
+        if pixels >= MINIMUM_ANONYMOUS_MASK_PIXELS:
+            eligible_pixels.append(pixels)
+    return len(eligible_pixels), sum(eligible_pixels)
+
+
+def select_initial_viewpoint(candidates):
+    """Select the frozen public start pose without using instance identities."""
+
+    require(candidates, "no reachable viewpoint has two eligible anonymous masks")
+    return min(candidates, key=lambda row: (
+        -int(row["eligible_anonymous_mask_count"]),
+        -int(row["total_eligible_anonymous_mask_pixels"]),
+        float(row["position"]["x"]), float(row["position"]["y"]),
+        float(row["position"]["z"]), int(row["rotation_y_degrees"]),
+    ))
+
+
+def discover_initial_viewpoint(controller):
+    """Scan reachable positions once and return one anonymous-geometry pose."""
+
+    reachable = controller.step(action="GetReachablePositions")
+    require(reachable.metadata.get("lastActionSuccess") is True,
+            "GetReachablePositions failed")
+    raw_positions = reachable.metadata.get("actionReturn")
+    require(isinstance(raw_positions, list) and raw_positions,
+            "GetReachablePositions returned no positions")
+    positions = sorted({
+        (float(row["x"]), float(row["y"]), float(row["z"]))
+        for row in raw_positions
+        if isinstance(row, dict) and all(axis in row for axis in ("x", "y", "z"))
+    })
+    require(positions, "GetReachablePositions returned no valid positions")
+    candidates = []
+    for x, y, z in positions:
+        for yaw in CARDINAL_YAW_DEGREES:
+            event = controller.step(
+                action="TeleportFull", x=x, y=y, z=z,
+                rotation={"x": 0, "y": yaw, "z": 0}, horizon=0,
+                standing=True, forceAction=True,
+            )
+            if event.metadata.get("lastActionSuccess") is not True:
+                continue
+            count, pixels = anonymous_mask_support(event.instance_masks)
+            if count < 2:
+                continue
+            candidates.append({
+                "position": {"x": x, "y": y, "z": z},
+                "rotation_y_degrees": yaw, "horizon_degrees": 0,
+                "standing": True,
+                "eligible_anonymous_mask_count": count,
+                "total_eligible_anonymous_mask_pixels": pixels,
+            })
+    return select_initial_viewpoint(candidates)
+
+
+def make_controller(house):
+    from ai2thor.controller import Controller
+    from ai2thor.platform import CloudRendering
+
+    return Controller(
+        platform=CloudRendering, scene=house, width=224, height=224,
+        renderDepthImage=True, renderInstanceSegmentation=True,
+    )
+
+
+def teleport_to_initial_viewpoint(controller, start_pose):
+    position = start_pose["position"]
+    return controller.step(
+        action="TeleportFull", x=position["x"], y=position["y"], z=position["z"],
+        rotation={"x": 0, "y": start_pose["rotation_y_degrees"], "z": 0},
+        horizon=start_pose["horizon_degrees"], standing=start_pose["standing"],
+        forceAction=True,
+    )
 
 
 def intervention_actions(program, frame_index, targets, initial_objects):
@@ -285,24 +378,19 @@ def capture_frame(
     }
 
 
-def run_episode(house, assignment, episode_root, family_byte_limit):
-    from ai2thor.controller import Controller
-    from ai2thor.platform import CloudRendering
-
+def run_episode(house, assignment, episode_root, family_byte_limit, start_pose):
     program = assignment["program"]
     public_directory = episode_root / "public"
     private_directory = episode_root / "private"
     public_directory.mkdir(parents=True)
     private_directory.mkdir(parents=True)
-    controller = Controller(
-        platform=CloudRendering, scene=house, width=224, height=224,
-        renderDepthImage=True, renderInstanceSegmentation=True,
-    )
+    controller = make_controller(house)
     started = time.monotonic()
     frames, actions = [], []
     try:
-        probe = controller.step(action="Pass")
-        require(probe.metadata.get("lastActionSuccess") is True, "initial simulator Pass failed")
+        probe = teleport_to_initial_viewpoint(controller, start_pose)
+        require(probe.metadata.get("lastActionSuccess") is True,
+                "initial simulator TeleportFull failed")
         targets = rank_visible_instance_ids(probe.instance_masks)
         required_targets = 2 if program in {"SPLIT", "REPLACE"} else 1
         require(len(targets) >= required_targets,
@@ -345,6 +433,7 @@ def run_episode(house, assignment, episode_root, family_byte_limit):
             "registered_agent_action_count": len(past_actions),
             "registered_agent_action_policy": "alternating_quarter_degree_yaw_by_replicate",
             "public_target_selection_rule": "anonymous_mask_canonical_order",
+            "initial_viewpoint": start_pose,
             "wall_seconds": time.monotonic() - started,
         }
         write_new_json(episode_root / "raw.receipt.json", receipt)
@@ -390,6 +479,25 @@ def main():
                    if row["house_id"] == house_id)
     house = load_source_record(arguments.source_root, locator)
     family_root = stage / "execution" / arguments.family_id
+    start_pose = None
+    start_pose_error = None
+    search_controller = make_controller(house)
+    try:
+        start_pose = discover_initial_viewpoint(search_controller)
+    except Exception as error:
+        start_pose_error = "%s: %s" % (type(error).__name__, error)
+    finally:
+        search_controller.stop()
+    if start_pose is not None:
+        write_new_json(family_root / "initial_viewpoint.receipt.json", {
+            "schema_version": "vsmt-vm04-two-house-initial-viewpoint-v1",
+            "family_id": arguments.family_id,
+            "selection_rule": (
+                "maximize_eligible_mask_count_then_total_eligible_pixels_then_"
+                "lexicographic_x_y_z_yaw"
+            ),
+            "pose": start_pose, "success": True,
+        })
     results = []
     ordered_rows = sorted(public_rows, key=lambda row: row["slot"])
     resource_stopped = False
@@ -399,7 +507,10 @@ def main():
         episode_root = family_root / "episodes" / public["episode_id"]
         episode_root.mkdir(parents=True)
         try:
-            run_episode(house, assignment, episode_root, arguments.family_byte_limit)
+            require(start_pose_error is None, "initial viewpoint search failed: %s" % start_pose_error)
+            run_episode(
+                house, assignment, episode_root, arguments.family_byte_limit, start_pose,
+            )
             results.append({"episode_id": public["episode_id"], "status": "complete",
                             "receipt_sha256": sha256(episode_root / "raw.receipt.json")})
         except Exception as error:
@@ -438,6 +549,11 @@ def main():
         "failed_count": sum(row["status"] == "failed" for row in results),
         "not_started_count": sum(row["status"] == "not_started" for row in results),
         "resource_stopped": resource_stopped,
+        "initial_viewpoint_search_succeeded": start_pose is not None,
+        "initial_viewpoint_receipt_sha256": (
+            sha256(family_root / "initial_viewpoint.receipt.json")
+            if start_pose is not None else None
+        ),
         "family_bytes": directory_bytes(family_root), "success": True,
     })
     print("VM04_TWO_HOUSE_WORKER_OK family=%s slots=18" % arguments.family_id, flush=True)

@@ -65,6 +65,7 @@ def validate_two_house_config(config: Mapping[str, Any]) -> dict[str, Any]:
         "private_audit_authorized", "training_authorized",
         "validation_effect_authorized", "confirmation_authorized", "scope",
         "source_inventory_proposal", "family_selection_proposal",
+        "generator_initial_viewpoint",
         "audit_only_association_profiles",
         "audit_only_lifecycle_and_capacity_values", "two_layer_execution_proposal",
         "completion_and_failure_policy", "resource_and_worker_proposal",
@@ -115,6 +116,26 @@ def validate_two_house_config(config: Mapping[str, Any]) -> dict[str, Any]:
              "public/private observation boundary changed")
     _require(family["failed_family_or_episode_replacement"] is False,
              "failed families or episodes may not be replaced")
+
+    viewpoint = record["generator_initial_viewpoint"]
+    _require(viewpoint["reachable_position_source"] == "AI2-THOR_GetReachablePositions"
+             and viewpoint["yaw_degrees"] == [0, 90, 180, 270]
+             and viewpoint["horizon_degrees"] == 0,
+             "generator initial viewpoint scan changed")
+    _require(viewpoint["minimum_anonymous_mask_pixels"] == 196
+             and viewpoint["minimum_eligible_anonymous_masks"] == 2,
+             "generator anonymous visibility threshold changed")
+    _require(viewpoint["selection_rule"] == (
+        "maximize_eligible_mask_count_then_total_eligible_pixels_then_"
+        "lexicographic_x_y_z_yaw"
+    ), "generator initial viewpoint selection rule changed")
+    _require(viewpoint["search_once_per_house_family"] is True
+             and viewpoint["reuse_frozen_pose_for_all_family_slots"] is True,
+             "generator viewpoint must be frozen once per family")
+    _require(viewpoint["private_instance_id_or_class_may_affect_pose"] is False
+             and viewpoint["future_or_program_result_may_affect_pose"] is False
+             and viewpoint["failed_search_replacement_house_allowed"] is False,
+             "generator viewpoint anti-selection guard changed")
 
     values = record["audit_only_lifecycle_and_capacity_values"]
     expected_values = {

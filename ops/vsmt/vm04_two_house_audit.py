@@ -80,7 +80,7 @@ BOUND_PATHS = (
 TEST_GROUPS = (
     ("executor", "test_executor.py", 42),
     ("l1", "test_l1_*.py", 31),
-    ("vsmt", "test_vsmt_*.py", 131),
+    ("vsmt", "test_vsmt_*.py", 134),
 )
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
 
