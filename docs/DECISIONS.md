@@ -1469,3 +1469,13 @@
 - 编辑代价按声明的高层事务原子归一：RELINK计一个原子，REPLACE按RETRACT+BIRTH计两个；为维持原子一致性必须关闭的incident edges不再逐版本加罚，非必要或越界变化另计collateral。正式权重仍在S指标冻结时裁决。白话：关系多的旧杯子不应只因清理边更多而让正确REPLACE永远输给RELINK。它不把REPLACE和RELINK视为同价，也不免除副作用惩罚。
 - 逐类型确认性范围固定为SPLIT、MERGE和entity RETRACT；relation RETRACT单独作描述性/次要报告，总体九类主确认仍包含它。这样避免把两种RETRACT混成一个效应，也不为共享关系能力新增第四个低功效确认性主张。confirmation family数仍须由开发成品率反推并在访问confirmation前冻结。
 - 提交证据顺序从本决定起固定为decision/config先于科学实现；D-141的用户裁决已先发生在对话而登记提交随后完成，不回写或重排既有Git历史。
+
+## D-143：BIND包络、闭环可见体积、模板白名单和语义成本补充获批
+
+- 日期：2026-09-14；状态：approved for protocol-first implementation and local/server contract verification, not data execution。用户在复审外部意见后逐字批准本补充；D-142仍有效，本决定收紧其实现形态。协议提交必须先于继续实现；不授权house生成、训练、validation效果、confirmation生成/reveal或私有数据读取。
+- 五方法每次接受节点观测时都由共享状态合同保存“本次原始观测AABB”和“截至本次、只增不减的可靠支持包络”；包络不得由融合后的平均centroid/extent反推。TAF/ELU/WFR/LOW已通过`GraphRevision`产生BIND successor；VSMT节点BIND也必须关闭当前版本并打开携带原始AABB与累计包络的规范successor，仍计一个高层BIND而不按物理版本数加价。白话：杯子先在桌左、后在桌右时，两次原始盒子都保留；不能只留下从未真实占据过的中间平均盒子。它不等于把移动自动判成同一身份，是否BIND仍由既有公开候选规则决定。
+- packet v3只新增节点无关的`visibility_observations`，由公开depth、相机标定和pose形成受遮挡深度限制的匿名可见体积；不得保存`node_id→机会真假`。共享函数分别将这些体积和当前公开区域与每个方法自己的记忆相交，才判断该方法的节点是否错失机会；远平面在节点之前即遮挡，不累计。例：五方法记住的杯子位置不同，同一匿名可见体积会对它们分别产生不同机会结果。它不使用共享bootstrap位置代替闭环方法状态，也不把真值可见性送入packet。
+- “已声明语义变化”采用模板—真实diff封闭白名单，并由共同auditor对不经过executor的TAF/ELU/WFR/LOW同样执行；方法自报`declared_template`不能自行授权任意改写。统一terminal后SPLIT不得原地改lifecycle，alias/canonical转移只允许MERGE，其他模板只允许各自已登记的关闭、追加和successor形状。白话：把一次坐标重写叫做“已声明”不能逃过检查；声明和真实图差必须吻合。它不要求基线改写成VSMT程序。
+- 严格整组截断除`cutoff_group_count/candidate_count`外记录`unused_capacity`。RELINK双端点循环另记`endpoint_pair_evaluation_count`以审计二次计算量，但实际通过语义门并进入桶的程序才计pre-cap candidate；RELINK不加入指数歧义护栏。白话：容量20只保留13个时，报告剩余7格为什么没有被低分组填充；尝试过100对端点也不等于生成了100个合法候选。
+- 编辑成本按canonical开放关系事实而非物理edge version数计算。RETRACT为终止实体必须关闭的incident edges不逐条加价；MERGE重锚/去重后若`(relation, canonical source, canonical target, frame)`事实未变，也不按重开版本数加价，但MERGE本身仍计一个高层原子。真正新增的持续关系事实计growth，丢失或改变无关事实计collateral。例：两个重复杯子合并后仍只有“杯子位于地点A”不算关系增长；凭空多出地点B才计费。它不使MERGE免费，也不免除副作用。
+- entity RETRACT确认性主张受预登记保护：开发审计必须在新原始包络＋裕度规则下报告per-family构造yield与candidate recall。单位不足时只能在confirmation访问前按授权增加family，或如实报告功效不足/无确认结论；不得在看到confirmation后降级为描述性。包络裕度只可依据未见confirmation的开发安全校准调整，禁止为达到目标yield而缩小。该条追加D-143而不回写D-141历史。

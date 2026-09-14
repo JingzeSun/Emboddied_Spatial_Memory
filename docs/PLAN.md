@@ -22,7 +22,7 @@
 
 ### 当前指针
 
-**D-142六项修订安全口径已获用户批准，必须先登记协议再实现；登记后旧155项本地计数只能作为前一提交证据。** 待实现内容为：不可逆entity RETRACT使用可靠历史观测包络＋待审计裕度并受当前可BIND区域阻断；共享dormancy改按匿名公开可见体积产生的连续错失观测机会，覆盖candidate/confirmed并保留来源；在线保护place scaffold，评价期统一读取不进入adapter输入的封存protected集合，版本改写分类且仅未声明破坏fatal；候选桶遇首个放不下的完整组即停止并记cutoff；SPLIT统一terminal规范形，SPLIT/REPLACE共用组合护栏；编辑成本按高层原子归一；逐类型确认改为SPLIT/MERGE/entity RETRACT，relation RETRACT描述性。所有新数值仍为null，2-house审计、house生成、训练、validation效果和confirmation继续阻断。下一步是形成单职责实现和新增正反例，再重新准备固定服务器`contracts → smoke → export`入口；不得用`a1514fa`或旧回执认证新代码。
+**D-142/D-143修订安全口径已按“协议先于实现”登记，旧155项本地计数只能作为`a1514fa`证据。** 实现须同时满足：不可逆entity RETRACT使用逐次原始AABB形成的可靠单调包络＋待审计裕度并受当前可BIND区域阻断；VSMT节点BIND与四对照一样产生规范版本successor；packet v3只存节点无关、受遮挡限制的`visibility_observations`，共享函数使用各方法自己的闭环图判断错失机会；在线保护place scaffold，评价期统一读取不进入adapter输入的封存protected集合，版本改写按模板diff封闭白名单分类且仅未声明破坏fatal；候选桶严格整组截断并记cutoff/unused capacity，SPLIT统一terminal，SPLIT/REPLACE共用组合护栏，RELINK另记端点对计算量；编辑成本按高层原子和canonical关系事实归一；逐类型确认仅SPLIT/MERGE/entity RETRACT，relation RETRACT描述性且entity RETRACT不得在confirmation后降级。所有新数值仍为null，2-house审计、house生成、训练、validation效果和confirmation继续阻断。下一步是按职责完成实现和正反例，再重新准备固定服务器`contracts → smoke → export`入口；不得用旧回执认证新代码。
 
 ## 上一 D-062 路线（暂停，以下保留复现）
 

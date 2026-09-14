@@ -23,6 +23,13 @@
     "standalone_retract_blocked_by_current_bind_eligible_region": true,
     "replace_remains_eligible_when_standalone_retract_is_blocked": true
   },
+  "node_bind_versioning": {
+    "close_current_and_open_successor": true,
+    "record_raw_observation_aabb": true,
+    "record_monotonic_support_envelope": true,
+    "support_envelope_is_shared_state_contract": true,
+    "raw_version_count_adds_edit_cost": false
+  },
   "entity_replace": {
     "composition": ["RETRACT", "BIRTH"],
     "new_identity_must_be_distinct": true,
@@ -34,8 +41,10 @@
     "applies_byte_identically_before_all_five_methods": true,
     "eligible_for_dormancy": ["candidate_entity", "confirmed_entity"],
     "dormancy_trigger": "consecutive_missed_public_observation_opportunities",
-    "observation_opportunity_is_node_agnostic": true,
-    "observation_opportunity_inputs": ["public_depth", "public_camera_calibration", "public_pose"],
+    "packet_field": "visibility_observations",
+    "packet_visibility_is_node_agnostic": true,
+    "per_node_opportunity_is_computed_after_intersection_with_each_method_memory": true,
+    "visibility_inputs": ["public_depth", "public_camera_calibration", "public_pose"],
     "observation_opportunity_forbidden_inputs": ["instance_id", "teacher", "future", "reference_transaction", "private_evaluation"],
     "current_bind_eligible_region_resets_missed_opportunity_count": true,
     "no_observation_opportunity_does_not_increment_count": true,
@@ -60,6 +69,8 @@
       "undeclared_destructive_rewrite"
     ],
     "undeclared_destructive_rewrite_is_fatal": true,
+    "declared_semantic_transition_requires_template_diff_allowlist": true,
+    "template_diff_allowlist_is_enforced_for_non_executor_baselines": true,
     "online_public_protected_scope": "deterministic_place_scaffold",
     "evaluation_protected_scope": "sealed_common_post_inference_episode_scope",
     "evaluation_protected_scope_is_adapter_input": false,
@@ -70,7 +81,10 @@
     "retention_order": "descending_priority_then_canonical_signature",
     "when_next_group_does_not_fit": "stop_bucket_retention",
     "later_lower_priority_groups_may_fill_gap": false,
-    "record_cutoff_group_and_candidate_counts": true
+    "record_cutoff_group_and_candidate_counts": true,
+    "record_unused_capacity": true,
+    "record_relink_endpoint_pair_evaluations": true,
+    "relink_endpoint_pair_evaluations_are_not_candidates": true
   },
   "split_compute_guards": {
     "maximum_ambiguous_relation_variables": null,
@@ -88,7 +102,9 @@
     "unit": "declared_high_level_transaction_atom",
     "replace_atom_count": 2,
     "relink_atom_count": 1,
-    "required_incident_edge_closures_add_raw_version_cost": false,
+    "required_retract_incident_edge_closures_add_raw_version_cost": false,
+    "merge_canonical_reanchors_preserving_semantic_relation_add_raw_version_cost": false,
+    "genuinely_new_persistent_semantic_relations_add_growth_cost": true,
     "unnecessary_or_out_of_scope_changes_are_scored_as_collateral": true,
     "formal_metric_weights_frozen": false
   },
@@ -98,6 +114,13 @@
     "primary_confirmatory_claim": "family_aggregated_over_all_registered_program_types",
     "per_type_confirmatory_programs": ["SPLIT", "MERGE", "ENTITY_RETRACT"],
     "relation_retract_reporting": "descriptive_secondary",
+    "entity_retract_claim_cannot_be_downgraded_after_confirmation_access": true,
+    "entity_retract_development_audit_requires_yield_and_candidate_recall": true,
+    "insufficient_entity_retract_units_routes_to": [
+      "increase_pre_confirmation_family_count_if_authorized",
+      "report_underpowered_or_no_confirmatory_conclusion"
+    ],
+    "support_margin_may_be_revised_to_hit_target_yield": false,
     "descriptive_only_programs": [
       "NOOP", "BIND", "BIRTH", "REACTIVATE", "RELINK", "REPLACE"
     ],

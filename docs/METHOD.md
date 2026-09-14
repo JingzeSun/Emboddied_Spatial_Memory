@@ -56,7 +56,7 @@ VM-02 代码候选把数值全部放在无默认值配置中，当前人工测�
 
 共同 `GraphRevision` 只是输出存储包装器：每次实体状态变化关闭旧 node version、追加新 version，并生成 `MemoryUpdateResult` 的规范 delta；方法内部能否读或利用历史仍由适配器限制。输入是方法已经作出的更新决定，输出是可由共同 evaluator 检查的合法图。例如 LOW 覆盖质心时旧版本仍留在图里供审计，但下一次 LOW 只找当前开放节点，不做回滚或重激活。它不是 VSMT 学习机制，也不把“保存历史字节”算作基线拥有版本推理能力。
 
-`SharedMemoryWrapper`（共享记忆包装器）在五个方法运行前逐字节相同地维护place证据，并按连续错失的公开合格观测机会把candidate/confirmed entity改为dormant；可靠自由空间为空则仍交给RETRACT，不能用dormant掩盖消失。输入当前公开packet、共同prior memory、匿名可见体积和显式机会门，输出共同prepared packet、版本化记忆及公开审计。例如机器人离开房间一分钟不累计；只有相机重新覆盖旧杯位置、深度有效且连续没有可BIND区域时才累计，达到冻结次数后进入dormant并保留进入前的candidate/confirmed来源。它不读取teacher/future/private，不把一次性candidate自动升级，也不允许retracted身份复活；机会次数、可靠性门及可见体积数值尚未冻结，只能由开发审计及train/validation选择。
+`SharedMemoryWrapper`（共享记忆包装器）在五个方法运行前逐字节相同地维护place证据，并按连续错失的公开合格观测机会把candidate/confirmed entity改为dormant；可靠自由空间为空则仍交给RETRACT，不能用dormant掩盖消失。packet v3只给节点无关的匿名`visibility_observations`，共享函数再与每个方法自己的记忆包络和当前区域相交，输出该方法自己的机会判断、prepared packet、版本化记忆及公开审计。例如机器人离开房间一分钟不累计；相机正对旧杯位置但橱柜深度远平面挡在杯子之前也不累计；只有未遮挡覆盖且没有可BIND区域时才累计。它不保存逐节点机会答案，不读取teacher/future/private，不把一次性candidate自动升级，也不允许retracted身份复活；机会次数、可靠性门及可见体积数值尚未冻结，只能由开发审计及train/validation选择。
 
 `CommonPostUpdateAudit`（共同更新后审计）不强迫TAF、ELU、WFR和LOW改写成VSMT程序，而是在每个方法更新后用同一只读规则验证图、重算delta、检查历史版本是否被物理删除，并分别记录既有版本突变、protected节点状态和其incident topology变化。输入任一方法的prior/result，输出同schema审计；例如基线直接删掉一个旧retracted版本，即使当前开放图看起来正确，也会被记为history deletion并拒绝共同runner。它不判断该方法是否选对事务，也不把VSMT executor的动作空间偷偷送给对照。
 
@@ -1030,6 +1030,10 @@ z_{t,i}\approx\Pi(T_t,m_j),\qquad
 `CommonPostUpdateAudit`（共同更新后审计）分在线和评价两层。在线输入是公开packet、共同prior及确定性place scaffold ID，输出图合法性、历史保留、声明delta和版本变化分类；评价层等五方法都输出后才读取同一封存protected集合并计算状态/拓扑副作用。例如关闭杯子的`located_at`会合法改变地点的incident topology，但改写地点坐标属于未声明破坏并直接拒绝。它不把episode私有保护标签传给方法，也不要求TAF/ELU/WFR/LOW使用VSMT executor。
 
 `SemanticEditCost`（语义编辑代价，planned）按高层事务原子计费，而不是按写了多少版本逐条收费。输入执行程序及共同审计的必要/非必要变化分类，输出原子编辑成本与独立collateral成本；例如RELINK计1，REPLACE的RETRACT+BIRTH计2，RETRACT为保持一致性关闭五条旧关系不会变成额外5分。它不把两种程序判成同价，也不免除越界副作用。正式权重仍未冻结。
+
+D-143进一步规定节点BIND的共享版本形状：每次被方法接受的公开区域都保存本次原始AABB，并将达到可靠性门的原始AABB并入只增不减的支持包络；融合descriptor/centroid/extent只供关联状态，绝不能反推不可逆RETRACT体积。VSMT与四个对照都关闭旧版本、打开规范successor；这不改变BIND的高层原子成本。
+
+共同auditor的“已声明语义变化”不是开放标签，而是模板—真实diff封闭白名单：MERGE才可产生alias/canonical变化，统一terminal后的SPLIT不得原地改lifecycle，BIND/REACTIVATE/RELINK/RETRACT/REPLACE分别只能产生合同登记的追加、关闭与successor。该检查也作用于不经过executor的基线。白话：方法不能先改任意旧字段，再把输出自称MERGE逃过审计；它不比较方法内部算法，只检查共同输出是否合法。
 
 旧 M0 的可靠缺席要求至少两条不同 time/view 的 online visible-empty、有效 pose/depth、可靠度达标且中间没有正观测；新数据阈值另行审查。白话：遮挡、视野外、漏检不等于“那里确实空了”，不能一次没看到就删除身份。
 
