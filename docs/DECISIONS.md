@@ -1513,3 +1513,9 @@
 - 必要反例至少覆盖非受信任create、非受信任bind、受信任身份对非邻接关系三类；每类都检查异常发生前后revision内部图和created/closed/template记账不变，并检查捕获异常后不能封存未声明边。跨帧邻接、候选6项/9桶/0截断及共同审计v2继续沿用D-146，逐版本模板归属仍是五方法主比较前阻断项。
 - 协议提交`0be2854`先于实现；`122cea6`移除公开接口的模板抑制参数并实现先验校验的骨架专用create/bind，三类失败原子反例通过；`74161b6`把机器合同和固定入口绑定到该策略并将VSMT期望数更新为106。固定入口在本地临时目录对`74161b6`顺序执行contracts与smoke：executor 42、L1 31、VSMT 106共179项通过，smoke仍为61条canonical关系边、6候选、9桶、0截断；这不是服务器回执，不回填D-144工程基线。
 - 服务器在受审`33aec1c`上按固定入口顺序通过179项合同与同构smoke，导出报告`results/vsmt_vm04_l1_capacity_scaffold.json`摘要为`b5918086e5ee7f4e30d113b87b3b7546c5083f6431374abd7471e33562c68eff`，由结果提交`7641509`回传。D-144提案工程基线据此绑定该受审代码与报告；该工程回执不改变提案的不可执行状态，也不授权后续来源或数据步骤。
+
+## D-148：冻结D-144审计数值并授权一次性交付完整2-house数据入口
+
+- 日期：2026-09-14；状态：audit values approved and implementation authorized, inventory and generation still blocked。用户逐字批准“按D-144当前数值冻结，立即实现完整2-house数据入口；实现完成只做一次总审。总审通过后运行inventory并公布固定house IDs，再由用户确认后直接生成数据”。本决定把机器提案状态改为`approved_for_implementation_not_executable`，只开放`audit_numeric_values_approved`与`implementation_authorized`；source inventory、house选择、生成、private evaluator、训练、validation效果和confirmation授权仍为false。
+- 本批实现必须一次性交付七段固定能力：只读来源/license清点、冻结source manifest与eligible ID摘要、与清点分开的确定性2-house选择与36-slot不可变manifest、两个family worker的模拟器生成、公私文件分离与trusted L1匿名化、public-only容量重放封存、封存后private严格recall及合同/资源停止/导出。白话：输入冻结配置、ProcTHOR作者train清单和两个稍后公开的house ID，输出36个固定slot的公开packet、隔离私有标签、容量审计和失败回执。例如某slot构造失败就保留失败且不换house。它不等于现在已经读取来源、生成数据、看private结果或选择正式阈值。
+- 实现完成后只做一次总审；总审通过才单独授权并运行inventory。inventory运行只冻结manifest/license/eligible摘要，不得同批选择house；house IDs公布并由用户确认后，才可把generation/private audit授权位在新的协议提交中打开并执行。不得用预写入口绕过这两个运行闸门。
