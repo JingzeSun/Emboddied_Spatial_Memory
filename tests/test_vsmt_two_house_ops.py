@@ -210,6 +210,41 @@ class TwoHouseOpsTests(unittest.TestCase):
             (x, yaw) for x in (0.0, 1.0) for yaw in (0, 90, 180, 270)
         ])
 
+    def test_legacy_house_upgrade_is_deterministic_and_does_not_mutate_source(self) -> None:
+        source = {
+            "metadata": {"schema": "0.0.1"},
+            "proceduralParameters": {
+                "ceilingMaterial": "White", "ceilingColor": {"r": 1},
+            },
+            "rooms": [{"floorMaterial": "Wood", "ceilings": []}],
+            "walls": [{
+                "id": "wall|exterior|0", "material": "Brick", "color": {"r": 0},
+            }],
+            "windows": [{
+                "assetId": "window-a",
+                "boundingBox": {
+                    "min": {"x": 1, "y": 2, "z": 0},
+                    "max": {"x": 3, "y": 6, "z": 0},
+                },
+                "assetOffset": {"x": 0.5, "y": 0.25, "z": 0},
+            }],
+            "doors": [],
+            "objects": [],
+        }
+        frozen = json.loads(json.dumps(source))
+        assets = {"window-a": {"boundingBox": {"x": 2, "y": 4, "z": 0.1}}}
+        first = WORKER.upgrade_house_schema_v1(source, assets)
+        second = WORKER.upgrade_house_schema_v1(source, assets)
+        self.assertEqual(source, frozen)
+        self.assertEqual(first, second)
+        self.assertEqual(first["metadata"]["schema"], "1.0.0")
+        self.assertEqual(first["rooms"][0]["floorMaterial"], {"name": "Wood"})
+        self.assertEqual(first["walls"][0]["roomId"], "exterior")
+        self.assertEqual(first["windows"][0]["holePolygon"][0]["x"], 1)
+        self.assertEqual(first["windows"][0]["assetPosition"], {
+            "x": 2.5, "y": 4.25, "z": 0,
+        })
+
     def test_worker_intervention_schedule_is_predeclared(self) -> None:
         objects = {
             "a": {"position": {"x": 1.0, "y": 0.5, "z": 2.0},

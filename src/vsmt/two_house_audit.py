@@ -65,7 +65,7 @@ def validate_two_house_config(config: Mapping[str, Any]) -> dict[str, Any]:
         "private_audit_authorized", "training_authorized",
         "validation_effect_authorized", "confirmation_authorized", "scope",
         "source_inventory_proposal", "family_selection_proposal",
-        "generator_initial_viewpoint",
+        "generator_initial_viewpoint", "source_house_schema_compatibility",
         "audit_only_association_profiles",
         "audit_only_lifecycle_and_capacity_values", "two_layer_execution_proposal",
         "completion_and_failure_policy", "resource_and_worker_proposal",
@@ -136,6 +136,30 @@ def validate_two_house_config(config: Mapping[str, Any]) -> dict[str, Any]:
              and viewpoint["future_or_program_result_may_affect_pose"] is False
              and viewpoint["failed_search_replacement_house_allowed"] is False,
              "generator viewpoint anti-selection guard changed")
+
+    compatibility = record["source_house_schema_compatibility"]
+    _require(compatibility["source_schema"] == "0.0.1"
+             and compatibility["simulator_required_schema"] == "1.0.0",
+             "source house schema compatibility changed")
+    _require(compatibility["upgrade_semantics_commit"] ==
+             "53d5bd4c8c96a699e6a615dc390abb670cc9d353",
+             "source house upgrade semantics commit changed")
+    _require(compatibility["upgrade_semantics_source"] ==
+             "allenai/procthor procthor/utils/upgrade_house_version.py"
+             and compatibility["asset_dimensions_source"] ==
+             "installed_pinned_procthor_asset-database.json",
+             "source house schema compatibility source changed")
+    for name in (
+        "source_record_mutation_allowed",
+        "upgrade_may_read_program_future_or_private_evaluation",
+    ):
+        _require(compatibility[name] is False, f"schema compatibility guard changed: {name}")
+    for name in (
+        "upgraded_house_must_be_deterministic",
+        "controller_initial_event_success_required",
+        "controller_initial_objects_must_be_nonempty",
+    ):
+        _require(compatibility[name] is True, f"schema compatibility guard changed: {name}")
 
     values = record["audit_only_lifecycle_and_capacity_values"]
     expected_values = {

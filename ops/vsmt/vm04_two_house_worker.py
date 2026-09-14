@@ -25,6 +25,7 @@ class ResourceStop(RuntimeError):
 
 MINIMUM_ANONYMOUS_MASK_PIXELS = 196
 CARDINAL_YAW_DEGREES = (0, 90, 180, 270)
+_ASSET_ID_DATABASE = None
 
 
 def require(condition, message):
@@ -160,6 +161,112 @@ def load_source_record(source_root, locator):
     raise RuntimeError("source locator index is absent")
 
 
+def _material_properties(value):
+    if isinstance(value, str) and value:
+        return {"name": value}
+    require(isinstance(value, dict), "legacy material must be a string or object")
+    return json.loads(json.dumps(value))
+
+
+def upgrade_house_schema_v1(house, asset_id_database):
+    """Upgrade a frozen ProcTHOR 0.0.1 record using the official 1.0.0 semantics."""
+
+    source = json.loads(json.dumps(house))
+    schema = source.get("metadata", {}).get("schema")
+    require(schema in {"0.0.1", "1.0.0"}, "unsupported ProcTHOR house schema")
+    if schema == "1.0.0":
+        return source
+
+    procedural = source["proceduralParameters"]
+    ceiling = _material_properties(procedural["ceilingMaterial"])
+    if procedural.get("ceilingColor"):
+        ceiling["color"] = json.loads(json.dumps(procedural["ceilingColor"]))
+    for legacy, current in (
+        ("ceilingMaterialTilingXDivisor", "tilingDivisorX"),
+        ("ceilingMaterialTilingYDivisor", "tilingDivisorY"),
+    ):
+        if procedural.get(legacy) is not None:
+            ceiling[current] = procedural.pop(legacy)
+    procedural["ceilingMaterial"] = ceiling
+
+    for room in source["rooms"]:
+        floor = _material_properties(room["floorMaterial"])
+        if room.get("floorColor"):
+            floor["color"] = room.pop("floorColor")
+        for legacy, current in (
+            ("floorMaterialTilingXDivisor", "tilingDivisorX"),
+            ("floorMaterialTilingYDivisor", "tilingDivisorY"),
+        ):
+            if room.get(legacy) is not None:
+                floor[current] = room.pop(legacy)
+        room["floorMaterial"] = floor
+        for ceiling_row in room.get("ceilings", []):
+            if "materialProperties" in ceiling_row:
+                ceiling_row["material"] = ceiling_row.pop("materialProperties")
+            material = _material_properties(ceiling_row["material"])
+            for legacy, current in (
+                ("tilingDivisorX", "tilingDivisorX"),
+                ("tilingDivisorY", "tilingDivisorY"),
+            ):
+                if ceiling_row.get(legacy) is not None:
+                    material[current] = ceiling_row.pop(legacy)
+            ceiling_row["material"] = material
+
+    for wall in source["walls"]:
+        if "materialProperties" in wall:
+            wall["material"] = wall.pop("materialProperties")
+        material = _material_properties(wall.get("material", {}))
+        if wall.get("materialId"):
+            material["name"] = wall.pop("materialId")
+        if wall.get("color"):
+            material["color"] = json.loads(json.dumps(wall["color"]))
+        wall["material"] = material
+        if str(wall["id"]).split("|")[1] == "exterior":
+            wall["roomId"] = "exterior"
+
+    for opening in source["windows"] + source["doors"]:
+        if opening.get("color"):
+            material = _material_properties(opening.get("material", {}))
+            material["color"] = json.loads(json.dumps(opening["color"]))
+            opening["material"] = material
+        asset_id = opening["assetId"]
+        require(asset_id in asset_id_database, "opening asset is missing from pinned database")
+        asset_box = asset_id_database[asset_id]["boundingBox"]
+        old_box = opening.pop("boundingBox")
+        offset = opening.pop("assetOffset")
+        opening["holePolygon"] = [old_box["min"], old_box["max"]]
+        opening["assetPosition"] = {
+            "x": old_box["min"]["x"] + offset["x"] + asset_box["x"] / 2.0,
+            "y": old_box["min"]["y"] + offset["y"] + asset_box["y"] / 2.0,
+            "z": 0,
+        }
+
+    for object_row in source["objects"]:
+        if "materialProperties" in object_row:
+            object_row["material"] = object_row.pop("materialProperties")
+        if object_row.get("color"):
+            material = _material_properties(object_row.get("material", {}))
+            material["color"] = object_row.pop("color")
+            object_row["material"] = material
+    source["metadata"]["schema"] = "1.0.0"
+    return source
+
+
+def load_pinned_asset_id_database():
+    global _ASSET_ID_DATABASE
+    if _ASSET_ID_DATABASE is None:
+        import procthor
+
+        path = Path(procthor.__file__).resolve().parent / "databases" / "asset-database.json"
+        require(path.is_file(), "pinned ProcTHOR asset database is missing")
+        by_type = read_json(path)
+        _ASSET_ID_DATABASE = {
+            str(asset["assetId"]): asset
+            for assets in by_type.values() for asset in assets
+        }
+    return _ASSET_ID_DATABASE
+
+
 def rank_visible_instance_ids(instance_masks):
     import numpy as np
 
@@ -258,10 +365,20 @@ def make_controller(house):
     from ai2thor.controller import Controller
     from ai2thor.platform import CloudRendering
 
-    return Controller(
-        platform=CloudRendering, scene=house, width=224, height=224,
+    upgraded_house = upgrade_house_schema_v1(house, load_pinned_asset_id_database())
+    controller = Controller(
+        platform=CloudRendering, scene=upgraded_house, width=224, height=224,
         renderDepthImage=True, renderInstanceSegmentation=True,
     )
+    initial = controller.last_event
+    if initial.metadata.get("lastActionSuccess") is not True:
+        error = initial.metadata.get("errorMessage") or "unknown scene creation error"
+        controller.stop()
+        raise RuntimeError("initial ProcTHOR scene creation failed: %s" % error)
+    if not initial.metadata.get("objects"):
+        controller.stop()
+        raise RuntimeError("initial ProcTHOR scene has no objects")
+    return controller
 
 
 def teleport_to_initial_viewpoint(controller, start_pose):
