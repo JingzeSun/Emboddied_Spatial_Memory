@@ -22,7 +22,7 @@
 
 ### 当前指针
 
-**D-151已完成服务器204/204合同、独立inventory与独立select，固定house为`train:004270`和`train:008243`，当前等待用户确认生成。** 来源train文件52,316,238字节且与官方LFS SHA-256一致，未下载val/test；10,000个eligible house的manifest/license/ID摘要和selection/salt摘要均已冻结。generation、private evaluator、训练、validation效果与confirmation仍关闭；确认后从现有planning stage直接进入capacity与生成，不重新清点或选房。
+**D-152已由用户确认固定house并开放generation/post-seal private audit，当前执行服务器完整2-house流水线。** 固定house仍为`train:004270`和`train:008243`，不重新清点、选房或替换失败house；顺序为`contracts → capacity → generate → materialize → public-seal → private-eval → verify → export`。训练、validation效果、confirmation和L2仍关闭。
 
 **D-147已完成实现、服务器固定入口与回执绑定：公开边create/bind不再允许调用者抑制模板；无模板骨架邻接改走先验验证的专用入口，非受信任create/bind及受信任非邻接三类失败均保持revision逐字节不变，捕获异常后`finish`仍是真NOOP。**协议/实现/运维绑定提交依次为`0be2854`、`122cea6`、`74161b6`；服务器在受审`33aec1c`上通过executor 42、L1 31、VSMT 106共179项及61关系边/6候选/9桶/0截断/341可见截锥smoke，[工程报告](../results/vsmt_vm04_l1_capacity_scaffold.json)摘要为`b5918086…c68eff`并由`7641509`回传。D-144工程基线已绑定该代码与报告；2-house提案仍不可执行，来源inventory、审计实现/运行、生成、private、训练和confirmation均未授权。
 

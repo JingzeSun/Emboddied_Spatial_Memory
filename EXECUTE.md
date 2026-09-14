@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| VSMT首篇/VM-01～04 | D-151已在服务器`a8fa08a`通过204/204合同并完成独立inventory/select：10,000个eligible house，固定`train:004270`与`train:008243`；来源train字节与官方LFS摘要一致且未取val/test。manifest/license/eligible/selection/salt摘要已冻结，generation/private/training/validation/confirmation仍关闭；当前只等用户确认这两个house后直接生成。统计独立单位仍为family，L2/SAM后置，逐版本模板归属留到五方法比较前。LOG-133–151，D-125–151 |
+| VSMT首篇/VM-01～04 | D-152用户已确认固定`train:004270`与`train:008243`并开放generation/post-seal private audit；D-151的10,000-house inventory、来源/选择/salt摘要继续冻结，不重新选房。当前执行服务器`contracts → capacity → generate → materialize → public-seal → private-eval → verify → export`；训练、validation效果、confirmation与L2仍关闭。统计独立单位仍为family，逐版本模板归属留到五方法比较前。LOG-133–152，D-125–152 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
 | R4三模型接入 | D完整适配16项通过（121/200全反向，0更新），W完整适配17项亦通过，F完整适配19项通过；真实公共接口27/27候选通过，0优化/真值读取。209bb34，LOG-123–127 |
 | R4前端v2r1 | 81bceed：19项通过，16历史/144名义预测/16选择完整，误标占据/自由0；物块平均误差9.59 cm、接触Brier 0.1152，全部涉及未知扫掠，正式M/P未就绪。LOG-121 |

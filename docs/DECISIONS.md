@@ -1538,3 +1538,8 @@
 - inventory独立清点10,000个author-train house，冻结source manifest=`7db1df1e…9269bd`、license=`3767827e…eb9e52`、eligible IDs=`31b9d819…fb6d87`；该步`selection_performed=false`。下一条独立select按seed 260914和冻结manifest确定`train:004270`与`train:008243`，selection SHA-256=`8fb750d8…5a1e3d`；失败不换房规则不变。
 - 白话：固定house IDs解决“先看到哪间房容易构造，再决定用哪间”的自选风险；输入完整10,000房屋ID清单和预登记seed，输出两间不可替换的审计house。例如后续某个slot失败也仍留在原house和原slot。它不证明两间房能构造全部程序，也没有启动模拟器、生成帧、private评价、训练或confirmation。
 - 当前只把来源、选择摘要和私有程序分配salt摘要写回机器配置；`generation_authorized`与`private_audit_authorized`仍为false。用户确认这两个固定house后，才新增协议提交开放generation/private audit并从现有planning stage直接继续。
+
+## D-152：确认固定house并开放完整2-house生成与封存后private审计
+
+- 日期：2026-09-15；状态：generation and post-seal private audit authorized。用户逐字确认`train:004270`与`train:008243`并要求直接开放generation/private-audit生成数据。据此机器配置只把状态改为`generation_executable`并开放`generation_authorized`、`private_audit_authorized`；D-144全部数值、来源/选择/程序salt摘要、失败不换房、资源停止、公私边界及训练/confirmation阻断均不变。
+- 固定执行顺序为当前提交服务器contracts，通过后以D-151 planning stage运行capacity；只有capacity ready才运行两个family worker的generate，然后依次materialize、public-seal、private-eval、verify、export。白话：这一步解决“协议和两间房已固定，但运行闸门仍关闭”的问题；输入是封存planning stage和固定来源checkout，输出36个slot的公开packet、隔离private标签及容量/recall审计。例如某slot无法构造时记录失败且不换房。它不开放train/validation效果实验、模型训练、confirmation或L2。

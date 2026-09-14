@@ -1,7 +1,7 @@
 {
   "version": "vsmt-vm04-l1-two-house-audit-proposal-v1",
-  "status": "inventory_executable_generation_blocked",
-  "decision": "D-151",
+  "status": "generation_executable",
+  "decision": "D-152",
   "engineering_baseline_reviewed_code": "a8fa08a74bad99218a5be72d874841dd169695ab",
   "engineering_receipt_sha256": "d29caeaaf88cf58d5829a7fe9bda4b61fd79c594439cff437ce7835ccce7879b",
   "engineering_baseline_blocking_reason": null,
@@ -10,8 +10,8 @@
   "audit_numeric_values_approved": true,
   "implementation_authorized": true,
   "source_inventory_authorized": true,
-  "generation_authorized": false,
-  "private_audit_authorized": false,
+  "generation_authorized": true,
+  "private_audit_authorized": true,
   "training_authorized": false,
   "validation_effect_authorized": false,
   "confirmation_authorized": false,
@@ -106,7 +106,7 @@
     "public_prefix_indices_inclusive": [0, 24],
     "future_private_indices_inclusive": [25, 31],
     "private_program_assignment_salt_generated_once_at_seal": true,
-    "private_program_assignment_salt_sha256": "159ded00f0ce6ebd8b438ff5fa19c855f05e95b1d597576dc95112ae77737211b",
+    "private_program_assignment_salt_sha256": "159ded00f0ce6ebd8b438ff5fa19c855f05e95b1d597576dc95112ae7773721b",
     "failed_family_or_episode_replacement": false,
     "audit_families_may_enter_train_validation_or_confirmation": false
   },
@@ -266,7 +266,6 @@
     "user_code_review_and_new_server_contract_receipt"
   ],
   "still_blocked": [
-    "two_house_generation",
     "formal_threshold_or_cap_selection",
     "semantic_equivalence_recall",
     "train_validation_generation",
