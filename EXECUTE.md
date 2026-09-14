@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| VSMT首篇/VM-01～04 | VSMT已合并main；旧31/36失败与修复37/37保留。最终`5e125ba`在服务器53/53合同与只读来源审计通过，[VM-04预检报告](results/vsmt_vm04_preflight.json)已回传；本轮两个新失败现场保留。用户决定五方法先做L1，L2/SAM后置；当前仍0安装/下载/生成/训练/新private/confirmation读取。LOG-133–136，D-125–132 |
+| VSMT首篇/VM-01～04 | VSMT已合并main；53/53 VM-04预检通过。五方法共同L1的隔离环境、匿名mask及实体物化已通过：`40f6d32`上22/22，官方AI2-THOR帧与真实冻结DINO非数据smoke成功，[实体物化报告](results/vsmt_vm04_l1_entity_materializer.json)已回传；旧失败现场保留。L2/SAM后置；当前0 VM-04 house生成、0训练、0新private/confirmation读取。正式生成/训练数据/检验已要求多worker。LOG-133–138，D-125–137 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
 | R4三模型接入 | D完整适配16项通过（121/200全反向，0更新），W完整适配17项亦通过，F完整适配19项通过；真实公共接口27/27候选通过，0优化/真值读取。209bb34，LOG-123–127 |
 | R4前端v2r1 | 81bceed：19项通过，16历史/144名义预测/16选择完整，误标占据/自由0；物块平均误差9.59 cm、接触Brier 0.1152，全部涉及未知扫掠，正式M/P未就绪。LOG-121 |
@@ -1614,3 +1614,10 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - `5833fe01816551f51ecc5cea7dd738407258a188`只修复入口`PYTHONPATH`绑定；新目录精确9/9通过，墙钟0.296秒。测试覆盖断开mask保持一体、ID置换和输入换序不变、相似实例不合并、小区域匿名拒绝、显式触边策略、空mask、重叠fail-closed及公开缓存无真实ID。它证明第一道隔离代码满足这些人工合同，不证明AI2-THOR真实mask统计、DINO池化、几何或记忆效果。
 - 服务器在数据盘建立Python 3.9.25模拟器环境，安装AI2-THOR 5.0.0与ProcTHOR 0.0.1.dev2；系统补`libvulkan1`/`vulkan-tools`，不修改基础Python 3.12/Torch 2.8。AI2-THOR自带内存下载在18%被中止并保留日志，随后以数据盘可续传文件完成官方CloudRendering构建；835,983,275字节，SHA-256=`1fd5f998644a6dd522a4cf6604c05360a75a5c27f450a7486c20e52dc2b67bb9`。Vulkan识别RTX 4080 SUPER，FloorPlan1 smoke返回224×224 RGB/depth/instance segmentation、9个instance mask且Pass成功；既有DINO commit/权重摘要匹配。
 - 导出[vsmt_vm04_l1_environment.json](results/vsmt_vm04_l1_environment.json)，SHA-256=`a546009299d4455d7d158101c2d886a54c1903d306708b2a6a48e104d9503f94`，结果提交`20fa48e`。报告明确`generation_performed=false`、`training_steps=0`、`confirmation_data_opened=false`。当前environment ready，但L1完整materializer、public geometry、selector、teacher/evaluator、2-house数据和五方法效果均未完成；下一步先审支持/几何数值，不能把smoke称为“L1实验已经跑完”。
+
+## LOG-138：L1实体DINO描述与公开可见几何通过（2026-09-14）
+
+- 用户批准实体mask至少196像素、触边支持充足即保留、DINO总patch权重至少1.0、float32单位范数容差`1e-5`、depth 0.05–20 m、有效点`max(32,ceil(25%×visible))`和有效比例可靠性。固定AI2-THOR 5.0.0提交的`Depth.shader`使用`Linear01Depth`，因此实现按相机轴向z反投影，不把depth当斜射线欧氏长度。白话：一个196像素区域至少需49个有效深度点，输出只描述当前看见的点，不从模拟器bbox/mesh补背面。
+- `a01f342`实现RGB归一化、真实DINO patch token接口、mask占比池化、单位化、公开相机反投影、camera-to-world变换、可见质心/extent/可靠性和稳定失败原因；`40f6d32`另把正式生成、训练数据读取及validation/评价多worker写成硬要求。服务器阶段`/root/autodl-tmp/vsmt_outputs/vsmt-vm04-l1-entity-materializer-v1-40f6d3297181`精确22/22通过，Vulkan/AI2-THOR一帧环境复验也通过。
+- 真实冻结DINOv2 ViT-S/14在RTX 4080 SUPER、Python 3.12.3、Torch 2.8.0+cu128上完成确定性非数据smoke；patch shape为16×16×384，196像素mask总权重1.0，descriptor维数384、范数0.9999999974，196个有效点高于49点门、可靠性1.0，公开记录不含临时instance值。xFormers缺失只产生性能警告，没有改变成功条件或输出。
+- 导出[vsmt_vm04_l1_entity_materializer.json](results/vsmt_vm04_l1_entity_materializer.json)，SHA-256=`e9cdb0f28b58d104830fce6fc9e6ce8ce9c9b9b2787df5d5bdcc7f41290e234a7`，结果提交`ee89bcb1b8677c1650f9e3f7884dca2e88c33f7f`。报告绑定受审代码`40f6d32971810b1e9f564e6f4e674a9bd216891b`、DINO仓库/权重和官方CloudRendering构建，且`generation_performed=false`、`training_steps=0`、`confirmation_data_opened=false`。这证明L1实体物化工程接通，不证明surface/place/free-space、完整ObservationPacket、2-house数据、selector/teacher或五方法效果。

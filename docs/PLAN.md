@@ -16,13 +16,13 @@
 | VM-01 公私数据与共同适配合同（代码候选） | D-122草案；固定结构类型、公开 proposal/descriptor、五通道文件和反作弊 gate | schema、正负例、private mutation invariance、无 private 推理及 candidate-before-teacher 测试；补齐公开自由空间和逐候选在线证据，待合并服务器测试 |
 | VM-02 三种论文机制与朴素基线（代码候选） | 共同接口；TAF、ELU、WFR、LOW 只消费相同 `ObservationPacket` | clean-room 适配器、显式无默认值配置、版本化共同输出包装及人工分支测试；未冻结阈值，不称官方复现或效果结果 |
 | VM-03 VSMT 无泄漏候选与 teacher（代码候选） | VM-01接口；复用 executor/八原子语义，删除参考派生 query | public-only 九类程序、逐一真实执行、公开摘要排序、online evidence封存及封存后teacher；待同批服务器测试 |
-| VM-04 新数据数值冻结与开发生成（L1优先，实体物化代码待服务器验证） | [总协议提案](../configs/vsmt/vm04_data_protocol_proposal_v1.json)、[L1合同](../configs/vsmt/vm04_l1_contract_proposal_v1.json)及[隔离环境](../configs/vsmt/vm04_l1_environment_v1.json)；ProcTHOR＋AI2-THOR、2/48/12/12家族、32帧、九程序各2重复、匿名oracle mask＋冻结DINOv2、双轨 prior 和关系感知 SPLIT；L2的SAM2.1前端后置 | `5833fe0`上9/9匿名mask测试和环境smoke通过；D-136已批准196像素、patch权重1.0、范数`1e-5`、0.05–20 m、`max(32,ceil(25%))`及可靠性，DINO池化/可见几何代码与22项测试待新服务器回执。2-house生成、训练与confirmation仍阻断 |
+| VM-04 新数据数值冻结与开发生成（L1优先，实体物化通过） | [总协议提案](../configs/vsmt/vm04_data_protocol_proposal_v1.json)、[L1合同](../configs/vsmt/vm04_l1_contract_proposal_v1.json)及[隔离环境](../configs/vsmt/vm04_l1_environment_v1.json)；ProcTHOR＋AI2-THOR、2/48/12/12家族、32帧、九程序各2重复、匿名oracle mask＋冻结DINOv2、双轨 prior 和关系感知 SPLIT；L2的SAM2.1前端后置 | `40f6d32`上22/22、AI2-THOR复验及真实DINO非数据smoke通过；[报告](../results/vsmt_vm04_l1_entity_materializer.json)绑定实体描述/可见几何。下一职责是surface/place/free-space与完整packet；2-house生成、训练与confirmation仍阻断，正式重阶段须多worker |
 | VM-05 公平训练与 validation | 数据验收；冻结各方法阈值、学习预算、停止规则、共同/完整任务指标 | VSMT/TAF/ELU/WFR/LOW 在 L2 完全同前端输入主评；L1只作机制上界，旧 A/C/E 只作内部消融；确认前锁定全部选择 |
 | VM-06 独立确认与论文证据 | 模型、前端、候选、评分和最小效果门冻结后另行授权 | 未见家族 confirmation、必要现实来源、逐类/共享能力/成本/失败报告；不能按 validation 结果改样本或门 |
 
 ### 当前指针
 
-**VSMT 已在 `main`；五方法共同L1的实体物化数值已认可，当前指针是完成DINO区域描述与公开可见几何的服务器工程验收。** 已通过的`5833fe0`环境报告继续绑定Python 3.9.25、AI2-THOR 5.0.0、ProcTHOR 0.0.1.dev2、官方CloudRendering构建、RTX 4080 SUPER、224×224传感器输出和既有DINO摘要。D-136新增实体mask至少196像素、触边支持足够即保留、patch总权重至少1.0、单位范数容差`1e-5`、depth 0.05–20 m、有效点`max(32,ceil(25%×visible))`和有效比例可靠性；固定AI2-THOR shader核查后按相机轴向z反投影。`l1_entities`代码、22项合同与真实冻结DINO非数据smoke尚待新提交服务器运行，未取得回执前不能声称完整实体materializer通过。后续正式生成、训练数据读取及validation/评价都必须多worker，精确并发在各阶段capacity probe后冻结；本次短合同/smoke仍单进程。当前仍是0 VM-04 house生成、0训练、0confirmation；surface/place/free-space、bootstrap/各方法阈值、选择器容量、teacher/evaluator及S-01～S-12继续分批在对话中裁决。原D-062分支、代码、数据和结果均保留，`scripts/notes.txt`保持原字节。
+**VSMT 已在 `main`；五方法共同L1的匿名实体物化已经服务器工程通过，当前指针转到surface/place/free-space和完整`ObservationPacket`合同。** `40f6d32`精确22/22通过；环境复验返回224×224 RGB/depth/instance及9个mask，真实冻结DINO在RTX 4080 SUPER输出16×16×384 patch token，196像素区域得到384维单位描述、196/49有效深度支持和可靠性1.0。报告绑定DINO、AI2-THOR构建及所有代码/配置摘要，明确0 house生成、0训练、0confirmation；它不证明记忆效果。下一科学决断是surface/place/free-space如何从公开depth形成，以及这些结构是否首批L1全部纳入；随后才可完成packet、审2-house audit。正式生成、训练数据读取和validation/评价均须多worker，精确数值在capacity probe后冻结。bootstrap/五方法阈值、选择器容量、teacher/evaluator及S-01～S-12仍分批在对话中裁决。原D-062分支、代码、数据和结果均保留，`scripts/notes.txt`保持原字节。
 
 ## 上一 D-062 路线（暂停，以下保留复现）
 
