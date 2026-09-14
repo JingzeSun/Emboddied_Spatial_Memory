@@ -171,6 +171,12 @@ Free-space（可见自由空间）在packet v2保存由6个世界半空间定义
 
 2-house capacity audit（两房屋容量审计，planned且尚未授权）分两层。公开层在不挂载private时统计各尺度free-space存活、RETRACT/REPLACE公开可得率、每桶截断前/后候选量、运行时间和峰值内存；全部public/candidate封存后，私有层才统计逐事务candidate recall和可用正例数。输入固定两house公开序列及随后独立打开的评价标签，输出容量和覆盖报告。例如公开层可发现16-tile截锥因无效depth几乎全灭，私有层再判断这是否造成RETRACT正确程序缺失。它不根据审计结果自动改阈值、替换house或生成训练数据；任何会改变正式数值、语义或house数的结论都须回到用户裁决。
 
+[D-144两房屋审计数值提案](../configs/vsmt/vm04_l1_two_house_audit_proposal_v1.json)把该审计收窄为36个固定slot：从ProcTHOR-10K作者`train`分区的完整来源清单中，只按来源manifest摘要、seed `260914`和house ID哈希选择前两个family；每family九类程序各两个重复、每episode 32帧且第24帧决策。合格性只查来源记录可解析、ID唯一和属于作者train分区，不看事务能否构造、候选数、private身份或未来；加载失败和construction failure均保留且不换house。白话：它解决“两间容易的房子是否被事后挑中”的问题；输入尚待只读封存的完整来源清单，输出两个预先承诺的开发house和36个不透明episode槽。例如首个house无法构造SPLIT时记两次失败，不能换第三间house。它不是训练/验证划分、功效分析或confirmation，也尚未授权读取来源或运行模拟器。
+
+审计不把测试smoke中的单个阈值升级为正式值，而预登记`strict/balanced/permissive_capacity_upper_bound`三组类型化关联profile，只用于重放容量边界；每组保存视觉相似度、米制质心距离、几何接近度、可靠性和枚举优先级原分量。候选按16/32/64三个cap重放，64仅是资源审计上限；SPLIT/REPLACE临时资源护栏为6个歧义关系变量、729个完整变体和32条总incident edge。历史支持包络临时用可靠性0.9、每边2 cm裕度；错失机会临时用可靠性0.9和连续3次，另只报告2/3/4次敏感计数。所有对应正式字段继续为`null`，私有结果不得从三个profile中选赢家。白话：输入同一封存公开分量，输出“阈值偏严/适中/偏松时目录有多大”；例如正确程序排在cap 32之后就记miss。它不是方法调参、teacher选择或确认集决策，包络裕度也不得为提高yield而缩小。
+
+私有层只在public/candidate seal完成后报告每family/程序/重复的attempted、constructed、failed和严格规范reference program是否出现在cap 16/32/64目录中；entity RETRACT另按D-143合法性报告recall。BIND/BIRTH等语义等价类仍待用户裁决，因此本批不计算或暗定equivalence-class recall，也不产生teacher概率或五方法效果。运行提案为前台最多1800秒、两个house-family worker各占一个预选family、一个确定性串行GPU descriptor队列；总新stage≤4 GiB、每family≤2 GiB、报告≤64 MiB、进程树RSS≤40 GiB、GPU分配≤24 GiB且新资产下载为0。capacity probe若预计超过30分钟则不启动。它输出完整失败与资源回执，不以最低yield/recall决定是否“成功”，更不自动解封后续生成。
+
 VSMT Online Candidate Selector（VSMT在线候选选择器，planned）拟对每个已封存候选独立复用同一个打分器：分别编码类型化prior摘要、程序/在线证据、候选触及的执行前子图、真实执行后的子图和规范delta，再用逐候选MLP输出一个logit；不接受candidate slot、目录顺序、路径或样本名。所有候选从同一基图真实执行并封存后才打分，最大logit提交，严格并列按程序规范摘要排序。例如把同一候选集合换序时，每个程序的logit跟着程序而不是槽号移动，最终选择不变。它不让teacher生成候选，也不是DINO视觉adapter；隐藏宽度、层数、参数和训练预算仍未冻结。
 
 同架构对照按该选择器边界解释：DRCR保留全部在线输入但用直接reference等价标签训练；NECS把post-state和delta分支替换为固定零张量且不能打开post graph；PHR只用封存前的公开候选分数。五个主臂中TAF/ELU/WFR/LOW仍直接从同一`AdapterInput`产生图更新，不经过VSMT选择器。输入都是同一L1区域与prior，输出各自`MemoryUpdateResult`；例如ELU仍只能在公开自由空间完整覆盖时降低存在分数。它不强迫四个机制适配器伪装成候选分类器，也不赋予任何一方额外视觉信息。

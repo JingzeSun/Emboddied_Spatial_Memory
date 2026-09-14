@@ -1,0 +1,234 @@
+{
+  "version": "vsmt-vm04-l1-two-house-audit-proposal-v1",
+  "status": "requires_user_review_not_executable",
+  "decision": "D-144-proposal",
+  "engineering_baseline_reviewed_code": "08cd697fd91296c66beda16af71ab1c3297f6fd9",
+  "engineering_receipt_sha256": "74c3e6258eb78fa7a52fbe11fa0bb7030b0a113497e4b355dffd5a10ae7d828b",
+  "audit_numeric_values_approved": false,
+  "implementation_authorized": false,
+  "source_inventory_authorized": false,
+  "generation_authorized": false,
+  "private_audit_authorized": false,
+  "training_authorized": false,
+  "validation_effect_authorized": false,
+  "confirmation_authorized": false,
+  "scope": {
+    "evidence_level": "L1_oracle_structured_diagnostic",
+    "purpose": "engineering_capacity_construction_yield_and_strict_candidate_recall_audit",
+    "power_analysis": false,
+    "formal_threshold_selection": false,
+    "method_effect_measurement": false,
+    "L2_frontend_in_scope": false,
+    "formal_values_remain_null_after_this_proposal": true
+  },
+  "source_inventory_proposal": {
+    "source": "ProcTHOR-10K",
+    "author_partition": "train",
+    "data_release_tag": "0.1.2",
+    "data_release_commit": "d54954a81e7126001e552c2d7904ee2e0d49eaae",
+    "generator_package": "procthor==0.0.1.dev2",
+    "generator_code_reviewed_commit": "53d5bd4c8c96a699e6a615dc390abb670cc9d353",
+    "ai2thor_version": "5.0.0",
+    "ai2thor_commit": "f0825767cd50d69f666c7f282e54abfe58f1e917",
+    "ai2thor_cloudrendering_sha256": "1fd5f998644a6dd522a4cf6604c05360a75a5c27f450a7486c20e52dc2b67bb9",
+    "source_manifest_sha256": null,
+    "license_snapshot_sha256": null,
+    "eligible_house_ids_sha256": null,
+    "audit_house_ids": null,
+    "mechanical_eligibility_only": [
+      "member_of_author_train_partition",
+      "unique_nonempty_house_id",
+      "source_record_parses_under_pinned_release_schema"
+    ],
+    "forbidden_eligibility_inputs": [
+      "registered_program_realization",
+      "candidate_count",
+      "candidate_recall",
+      "teacher_score",
+      "private_object_identity_or_future_outcome"
+    ],
+    "load_or_episode_failure_policy": "retain_failure_without_replacement",
+    "blocking_rule": "inventory_and_license_digests_must_be_pinned_before_generation_can_be_reviewed"
+  },
+  "family_selection_proposal": {
+    "split_seed": 260914,
+    "ordering_rule": "ascending_sha256_of_source_manifest_sha256_split_seed_and_house_id",
+    "audit_family_count": 2,
+    "programs_per_family": 9,
+    "replicates_per_program_per_family": 2,
+    "episodes_per_family": 18,
+    "total_episodes": 36,
+    "observations_per_episode": 32,
+    "total_observations": 1152,
+    "decision_observation_index_zero_based": 24,
+    "public_prefix_indices_inclusive": [0, 24],
+    "future_private_indices_inclusive": [25, 31],
+    "private_program_assignment_salt_generated_once_at_seal": true,
+    "private_program_assignment_salt_sha256": null,
+    "failed_family_or_episode_replacement": false,
+    "audit_families_may_enter_train_validation_or_confirmation": false
+  },
+  "audit_only_association_profiles": {
+    "role": "predeclared_capacity_brackets_not_formal_method_configurations",
+    "selection_from_private_results_allowed": false,
+    "score_formula": "visual_weight_times_visual_similarity_plus_geometry_weight_times_max_0_1_minus_centroid_distance_over_geometry_scale_m",
+    "profiles": [
+      {
+        "profile_id": "strict",
+        "entity": {"visual_weight": 0.75, "geometry_weight": 0.25, "geometry_scale_m": 0.5, "bind_threshold": 0.85, "merge_threshold": 0.92, "split_region_threshold": 0.85},
+        "surface": {"visual_weight": 0.25, "geometry_weight": 0.75, "geometry_scale_m": 0.25, "bind_threshold": 0.88, "merge_threshold": 0.92, "split_region_threshold": 0.88},
+        "fragment": {"visual_weight": 0.5, "geometry_weight": 0.5, "geometry_scale_m": 0.25, "bind_threshold": 0.85, "merge_threshold": 0.92, "split_region_threshold": 0.85}
+      },
+      {
+        "profile_id": "balanced",
+        "entity": {"visual_weight": 0.7, "geometry_weight": 0.3, "geometry_scale_m": 0.75, "bind_threshold": 0.8, "merge_threshold": 0.9, "split_region_threshold": 0.8},
+        "surface": {"visual_weight": 0.3, "geometry_weight": 0.7, "geometry_scale_m": 0.5, "bind_threshold": 0.82, "merge_threshold": 0.9, "split_region_threshold": 0.82},
+        "fragment": {"visual_weight": 0.5, "geometry_weight": 0.5, "geometry_scale_m": 0.5, "bind_threshold": 0.8, "merge_threshold": 0.9, "split_region_threshold": 0.8}
+      },
+      {
+        "profile_id": "permissive_capacity_upper_bound",
+        "entity": {"visual_weight": 0.6, "geometry_weight": 0.4, "geometry_scale_m": 1.0, "bind_threshold": 0.7, "merge_threshold": 0.82, "split_region_threshold": 0.7},
+        "surface": {"visual_weight": 0.2, "geometry_weight": 0.8, "geometry_scale_m": 1.0, "bind_threshold": 0.72, "merge_threshold": 0.82, "split_region_threshold": 0.72},
+        "fragment": {"visual_weight": 0.4, "geometry_weight": 0.6, "geometry_scale_m": 1.0, "bind_threshold": 0.7, "merge_threshold": 0.82, "split_region_threshold": 0.7}
+      }
+    ],
+    "required_raw_outputs": [
+      "visual_similarity",
+      "centroid_distance_m",
+      "geometry_proximity",
+      "public_reliability",
+      "enumeration_priority"
+    ]
+  },
+  "audit_only_lifecycle_and_capacity_values": {
+    "support_envelope_reliability_threshold": 0.9,
+    "support_envelope_margin_m_per_side": 0.02,
+    "support_margin_sensitivity_report_m_per_side": [0.02, 0.05],
+    "support_margin_may_be_reduced_to_improve_yield": false,
+    "opportunity_reliability_threshold": 0.9,
+    "minimum_consecutive_missed_opportunities": 3,
+    "missed_opportunity_count_sensitivity_report": [2, 3, 4],
+    "formal_dormancy_selection_from_audit_allowed": false,
+    "candidate_capacity_replay_values": [16, 32, 64],
+    "primary_capacity_ceiling_for_resource_audit": 64,
+    "maximum_ambiguous_relation_variables": 6,
+    "maximum_relation_variants": 729,
+    "maximum_total_incident_edges": 32,
+    "guard_values_are_resource_safety_ceilings_not_semantic_rules": true,
+    "free_space_reliability_threshold": 0.9,
+    "minimum_free_space_time_separation_s": 0.25,
+    "free_space_target_expansion_m_per_side": 0.02,
+    "split_minimum_region_separation_m": 0.3,
+    "formal_candidate_cap": null,
+    "formal_support_envelope_reliability_threshold": null,
+    "formal_support_envelope_margin_m_per_side": null,
+    "formal_opportunity_reliability_threshold": null,
+    "formal_minimum_consecutive_missed_opportunities": null,
+    "formal_split_replace_guard_values": null
+  },
+  "two_layer_execution_proposal": {
+    "trusted_L1_materialization": {
+      "input_mounts": ["sealed_RGB", "sealed_public_depth", "sealed_public_pose", "private_current_frame_instance_masks"],
+      "output": "anonymous_L1_public_packets_and_private_mapping_commitment",
+      "forbidden_output": ["simulator_instance_id", "cross_frame_private_identity", "reference_program", "future_state"]
+    },
+    "public_capacity_layer": {
+      "input_mounts": ["public", "sealed_audit_only_profiles"],
+      "forbidden_mounts": ["teacher", "private_eval", "future_world_state", "reference_program"],
+      "seal_before_private_open": true,
+      "outputs": [
+        "free_space_survival_by_scale",
+        "visibility_survival_by_scale",
+        "retract_replace_public_availability",
+        "raw_association_component_distributions",
+        "pre_cap_group_and_candidate_counts_by_bucket",
+        "retained_truncated_cutoff_and_unused_capacity_at_16_32_64",
+        "split_replace_guard_rejections",
+        "relink_endpoint_pair_evaluation_count",
+        "runtime_and_peak_CPU_RAM_GPU_memory"
+      ]
+    },
+    "private_post_seal_layer": {
+      "may_open_only_after_public_seal": true,
+      "outputs": [
+        "attempted_constructed_failed_counts_by_family_program_and_replicate",
+        "strict_exact_canonical_reference_program_recall_at_16_32_64",
+        "entity_RETRACT_legal_candidate_recall_under_D143_semantics",
+        "construction_failure_reason",
+        "candidate_miss_reason"
+      ],
+      "semantic_equivalence_class_recall": null,
+      "blocking_reason_for_equivalence_recall": "BIND_BIRTH_REACTIVATE_RELINK_REPLACE_SPLIT_MERGE_equivalence_boundaries_remain_user_decisions",
+      "teacher_ranking_or_probability_computed": false,
+      "method_predictions_or_effects_computed": false
+    }
+  },
+  "completion_and_failure_policy": {
+    "run_complete_requires": [
+      "two_preselected_families_have_terminal_records",
+      "all_36_episode_slots_are_attempted_exactly_once_or_marked_not_started_after_a_hard_resource_stop",
+      "every_started_worker_has_an_exit_record",
+      "public_outputs_are_sealed_before_private_evaluation",
+      "canonical_merge_digest_is_independent_of_worker_completion_order"
+    ],
+    "construction_failure_or_candidate_miss_is_a_result_not_a_rerun_trigger": true,
+    "minimum_yield_or_recall_pass_gate": null,
+    "scientific_success_claim_allowed": false,
+    "infrastructure_failure": "preserve_prefix_and_stop_new_dispatch_without_automatic_retry",
+    "resource_limit_reached": "write_terminal_receipt_and_leave_unstarted_slots_explicit"
+  },
+  "resource_and_worker_proposal": {
+    "execution_mode": "foreground",
+    "hard_wall_clock_seconds": 1800,
+    "if_capacity_probe_predicts_over_1800_seconds": "do_not_start_generation_and_return_for_user_review",
+    "simulator_house_family_workers": 2,
+    "family_assignment": "one_preselected_house_family_per_worker",
+    "GPU_descriptor_consumers": 1,
+    "GPU_requests_from_family_workers": "deterministic_serial_queue",
+    "maximum_stage_bytes": 4294967296,
+    "maximum_bytes_per_family": 2147483648,
+    "maximum_report_bytes": 67108864,
+    "minimum_free_data_disk_bytes_before_start": 8589934592,
+    "maximum_process_tree_RSS_bytes": 42949672960,
+    "maximum_GPU_allocated_bytes": 25769803776,
+    "new_asset_download_bytes": 0,
+    "training_steps": 0,
+    "overwrite_existing_stage": false,
+    "resume_policy": "reuse_only_digest_bound_completed_family_then_continue_from_earliest_missing_slot"
+  },
+  "required_receipts": [
+    "source_inventory_and_license_snapshot",
+    "reviewed_code_config_and_asset_digests",
+    "requested_and_actual_worker_counts",
+    "capacity_probe",
+    "deterministic_family_and_episode_assignments",
+    "per_worker_start_exit_and_artifact_digests",
+    "public_seal",
+    "private_evaluator_start_after_public_seal",
+    "not_started_and_missing_exit_items",
+    "canonical_merged_output_digest",
+    "generation_training_private_confirmation_boundary_flags"
+  ],
+  "implementation_required_before_any_run": [
+    "read_only_source_inventory_and_license_snapshot_entry",
+    "immutable_two_family_and_36_slot_manifest_sealer",
+    "two_worker_simulator_generation_with_separate_public_and_private_outputs",
+    "trusted_L1_anonymizing_materializer_file_boundary",
+    "public_only_capacity_replay_and_seal",
+    "post_seal_private_strict_recall_evaluator",
+    "fixed_contract_capacity_export_entry",
+    "positive_negative_and_resource_stop_tests",
+    "user_code_review_and_new_server_contract_receipt"
+  ],
+  "still_blocked": [
+    "source_inventory_or_license_read",
+    "two_house_generation",
+    "formal_threshold_or_cap_selection",
+    "semantic_equivalence_recall",
+    "train_validation_generation",
+    "selector_or_adapter_training",
+    "validation_effect_measurement",
+    "confirmation_generation_reveal_or_evaluation",
+    "L2_SAM_asset_or_materialization"
+  ]
+}

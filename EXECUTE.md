@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| VSMT首篇/VM-01～04 | VSMT已合并main；旧53/53 VM-04预检、L1实体22/22及完整结构130/130回执保留。D-140～D-143实现提交`8ea0e13`补齐共同place、类型化容量、关系感知SPLIT/MERGE、entity RETRACT/REPLACE、规范节点BIND与可靠单调包络、packet v3匿名可见体积、机会型dormancy、封闭模板审计及语义编辑记账；新固定服务器回执在受审`08cd697`上通过executor 42/42、L1 31/31、VSMT 91/91和341可见截锥合成smoke，报告`74c3e625…d828b`由`3071ee1`回传。统计独立单位为family，分类型确认只预登记SPLIT/MERGE/entity RETRACT；confirmation family数待开发成品率反推。L2/SAM后置；当前0 VM-04 house生成、0训练、0新private/confirmation读取，用户代码审查与后续数值/运行授权仍缺失。正式生成/训练数据/检验已要求多worker。LOG-133–143，D-125–143 |
+| VSMT首篇/VM-01～04 | VSMT已合并main；旧53/53 VM-04预检、L1实体22/22及完整结构130/130回执保留。D-140～D-143实现提交`8ea0e13`补齐共同place、类型化容量、关系感知SPLIT/MERGE、entity RETRACT/REPLACE、规范节点BIND与可靠单调包络、packet v3匿名可见体积、机会型dormancy、封闭模板审计及语义编辑记账；新固定服务器回执在受审`08cd697`上通过executor 42/42、L1 31/31、VSMT 91/91和341可见截锥合成smoke，报告`74c3e625…d828b`由`3071ee1`回传。用户随后认可D-140～D-143工程基线；D-144仅新增不可执行2-house数值审议稿。统计独立单位为family，分类型确认只预登记SPLIT/MERGE/entity RETRACT；confirmation family数待开发成品率反推。L2/SAM后置；当前0 VM-04 house生成、0训练、0新private/confirmation读取，来源inventory、审计实现与运行仍待分别授权。正式生成/训练数据/检验已要求多worker。LOG-133–143，D-125–144 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
 | R4三模型接入 | D完整适配16项通过（121/200全反向，0更新），W完整适配17项亦通过，F完整适配19项通过；真实公共接口27/27候选通过，0优化/真值读取。209bb34，LOG-123–127 |
 | R4前端v2r1 | 81bceed：19项通过，16历史/144名义预测/16选择完整，误标占据/自由0；物块平均误差9.59 cm、接触Brier 0.1152，全部涉及未知扫掠，正式M/P未就绪。LOG-121 |

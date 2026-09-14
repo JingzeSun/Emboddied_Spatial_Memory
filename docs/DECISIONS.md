@@ -1479,3 +1479,11 @@
 - 严格整组截断除`cutoff_group_count/candidate_count`外记录`unused_capacity`。RELINK双端点循环另记`endpoint_pair_evaluation_count`以审计二次计算量，但实际通过语义门并进入桶的程序才计pre-cap candidate；RELINK不加入指数歧义护栏。白话：容量20只保留13个时，报告剩余7格为什么没有被低分组填充；尝试过100对端点也不等于生成了100个合法候选。
 - 编辑成本按canonical开放关系事实而非物理edge version数计算。RETRACT为终止实体必须关闭的incident edges不逐条加价；MERGE重锚/去重后若`(relation, canonical source, canonical target, frame)`事实未变，也不按重开版本数加价，但MERGE本身仍计一个高层原子。真正新增的持续关系事实计growth，丢失或改变无关事实计collateral。例：两个重复杯子合并后仍只有“杯子位于地点A”不算关系增长；凭空多出地点B才计费。它不使MERGE免费，也不免除副作用。
 - entity RETRACT确认性主张受预登记保护：开发审计必须在新原始包络＋裕度规则下报告per-family构造yield与candidate recall。单位不足时只能在confirmation访问前按授权增加family，或如实报告功效不足/无确认结论；不得在看到confirmation后降级为描述性。包络裕度只可依据未见confirmation的开发安全校准调整，禁止为达到目标yield而缩小。该条追加D-143而不回写D-141历史。
+
+## D-144：D-140～D-143工程基线获认可并形成2-house不可执行数值提案
+
+- 日期：2026-09-14；状态：engineering baseline accepted, two-house proposal requires review and is not executable。D-143服务器164/164及合成packet v3 smoke交付后，助手在对话中明确推荐“批准D-140至D-143实现作为工程基线；下一步只制定并审查2-house开发审计数值，不授权数据生成、训练、private或confirmation”，用户回复“继续”。据此认可当前工程基线并授权本轮制定[机器提案](../configs/vsmt/vm04_l1_two_house_audit_proposal_v1.json)；不把该回复解释为来源读取、实现或运行授权。
+- 两house建议从ProcTHOR-10K `0.1.2`作者train分区完整manifest中按原seed `260914`哈希预选；机械合格只查来源分区、唯一ID和记录可解析，不看目标能否构造、候选、teacher、private身份或未来。两个family共36个固定episode/1,152帧，任何加载/构造失败留在原slot且不换house。manifest、license和实际house ID摘要当前仍为null，先做只读inventory也须用户另行批准。
+- 审计建议预登记strict/balanced/permissive三组类型化关联profile，只用于同一公开分量的容量重放，不按private结果选赢家；候选cap报告16/32/64，64是资源上限而非正式cap。审计临时值建议为支持包络可靠性0.9＋每边2 cm裕度、机会可靠性0.9＋连续3次、SPLIT/REPLACE护栏6个歧义变量/729变体/32条总incident edge；正式值全部继续为null，2/5 cm裕度和2/3/4次机会只作敏感计数，裕度不得为提高yield而缩小。
+- public层须在无private/teacher/reference/future挂载下封存free-space/visibility存活、原关联分量、逐桶容量/截断/unused、护栏、RELINK端点对及资源；之后private evaluator才报告逐slot construction yield、严格canonical reference recall和D-143 entity RETRACT合法recall。其他语义等价类recall保持null，避免在BIND/BIRTH等边界裁决前暗定答案；本批不生成teacher概率或五方法效果。
+- 资源建议为两个family worker各处理一个预选house、一个确定性串行GPU descriptor队列、前台硬停1800秒、stage≤4 GiB/每family≤2 GiB/报告≤64 MiB、进程树RSS≤40 GiB、GPU分配≤24 GiB、新资产下载0、训练步0。capacity probe预计超过30分钟则不启动。construction failure和candidate miss是报告结果而非重跑条件，不设最低yield/recall通过门；来源inventory、审计代码、服务器合同和实际运行仍需依次审查授权。

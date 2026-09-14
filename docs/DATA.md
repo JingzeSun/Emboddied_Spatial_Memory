@@ -62,6 +62,10 @@ VM-02 的共同节点观测状态键为 `vsmt_observation_state`，当前包含 
 
 当前数值清单中的2个audit、48个train、12个validation、12个confirmation仍是待重算提案：按源manifest＋固定seed＋house ID的SHA-256顺序选取；每家族对八个原子与REPLACE各做2个预登记重复，即18条episode。若暂按该提案，总量为74家族、1,332条episode、42,624帧，confirmation的216条episode继续延后生成。失败family/episode记录失败且不按结果换样本。它不保证这些数量足以支持上述分类型主张，最终confirmation family数须按D-141规则更新后再冻结。
 
+D-144新增的[2-house audit机器提案](../configs/vsmt/vm04_l1_two_house_audit_proposal_v1.json)不修改上述正式split提案，只定义独立开发审计的待审字段。来源层须先保存ProcTHOR-10K `0.1.2`作者train分区清单摘要、许可证快照摘要、机械合格ID列表摘要和哈希选出的两个实际audit house ID；当前四项仍为`null`。公开计划固定2 family×18 slot、共36 episode/1,152帧，私有事务salt只保存承诺摘要；任一来源解析、加载或episode构造失败都占原slot且不替换。白话：输入完整未筛效果的来源清单，输出可复算的两house承诺；例如某house启动失败仍留在manifest。它不是先看可用正例再选house，也不生成confirmation身份。
+
+两层产物继续分读权限：可信L1 materializer可临时读取当前帧instance mask但只能输出匿名packet和私有映射承诺；public capacity进程只挂载匿名packet与三组审计profile，输出各尺度free-space/visibility存活、原关联分量、逐桶pre-cap/retained/truncated/cutoff/unused、护栏拒绝、RELINK端点对次数及资源峰值；public seal后独立private evaluator才输出逐slot construction yield、严格canonical reference recall和D-143 entity RETRACT合法candidate recall。BIND/BIRTH、REACTIVATE/BIRTH、RELINK/REPLACE及SPLIT/MERGE的等价类recall保持`null`，因为这些语义边界尚未裁决。它不读取teacher打分、不运行五方法预测，也不把严格reference miss自动解释为方法失败。
+
 同一物理序列形成两个完全隔离的 proposal 视图：L1 把真值 instance mask 去除真实 ID 后生成匿名区域，用来查机制上限；L2 拟用逐帧、无视频记忆的 SAM 2.1 Hiera-S 自动 mask，再用冻结 DINOv2 ViT-S/14 无 register 的 patch token 做区域池化。DINOv2沿用已核官方 commit `7764ea0f912e53c92e82eb78a2a1631e92725fc8`及权重 SHA-256 `b938bf1bc15cd2ec0feacfe3a1bb553fe8ea9ca46a7e1d8d00217f29aef60cd9`，但旧回执只证明资产来源，不认证 VM-04 前端。SAM commit/checkpoint、自动 mask 参数以及 depth→surface/place/free-space 的全部门限仍为空并阻止运行。白话：逐帧 SAM 只把当前图像切成匿名区域，输入单张公开 RGB，输出 masks；不用其视频 memory 是为了避免共享前端先替 WFR/VSMT 做长期关联。它不输出永久身份，也不等于 SAM 的 region 就是真实对象。
 
 八原子和 REPLACE 的数据来源分开登记，防止把物理变化、观察变化和旧记忆错误混成一个标签：

@@ -13,16 +13,16 @@
 | 步骤 ID | 输入与工作 | 输出与继续条件 |
 |---|---|---|
 | VM-00 来源与泄漏审计（已完成） | 旧 M1 generator/online/teacher 数据流，同行评审论文与官方许可证 | 已明确 `merge_queries` 等风险、可独立实现的机制和非官方复现边界；提交 e460fc8 |
-| VM-01 公私数据与共同适配合同（工程回执通过，待用户代码审查） | D-122草案；固定结构类型、公开 proposal/descriptor、五通道文件和反作弊 gate | schema、正负例、private mutation invariance、无 private 推理及 candidate-before-teacher 测试；D-143固定服务器回执已覆盖当前字节，不等于新科学基线已获用户审查 |
-| VM-02 三种论文机制与朴素基线（工程回执通过，待用户代码审查） | 共同接口；TAF、ELU、WFR、LOW 只消费相同 `ObservationPacket` | clean-room 适配器、显式无默认值配置、版本化共同输出包装及人工分支测试；未冻结阈值，不称官方复现或效果结果 |
-| VM-03 VSMT 无泄漏候选与 teacher（工程回执通过，待用户代码审查） | VM-01接口；复用 executor/八原子语义，删除参考派生 query | public-only 九类程序、逐一真实执行、公开摘要排序、online evidence封存及封存后teacher；D-143固定服务器回执已覆盖当前字节，未生成真实house数据 |
-| VM-04 新数据数值冻结与开发生成（L1优先，D-143工程回执通过） | [总协议提案](../configs/vsmt/vm04_data_protocol_proposal_v1.json)、[L1合同](../configs/vsmt/vm04_l1_contract_proposal_v1.json)、[动作对称合同](../configs/vsmt/vm04_l1_action_symmetry_v1.json)及[隔离环境](../configs/vsmt/vm04_l1_environment_v1.json)；ProcTHOR＋AI2-THOR、32帧、九程序各2重复、匿名oracle mask＋冻结DINOv2、双轨 prior 和关系感知 SPLIT；confirmation family数待开发成品率反推，L2的SAM2.1前端后置 | [D-143报告](../results/vsmt_vm04_l1_action_symmetry.json)绑定`08cd697`并在服务器通过164/164合同和341个匿名可见截锥smoke；仍只是合成公开depth工程证据。用户代码审查、2-house审计数值/运行、house生成、训练与confirmation仍阻断，正式重阶段须多worker |
+| VM-01 公私数据与共同适配合同（D-143工程基线已审） | D-122草案；固定结构类型、公开 proposal/descriptor、五通道文件和反作弊 gate | schema、正负例、private mutation invariance、无 private 推理及 candidate-before-teacher 测试；D-143固定服务器回执已覆盖当前字节，真实生成边界仍须下一职责实现与审查 |
+| VM-02 三种论文机制与朴素基线（D-143工程基线已审） | 共同接口；TAF、ELU、WFR、LOW 只消费相同 `ObservationPacket` | clean-room 适配器、显式无默认值配置、版本化共同输出包装及人工分支测试；未冻结阈值，不称官方复现或效果结果 |
+| VM-03 VSMT 无泄漏候选与 teacher（D-143工程基线已审） | VM-01接口；复用 executor/八原子语义，删除参考派生 query | public-only 九类程序、逐一真实执行、公开摘要排序、online evidence封存及封存后teacher；D-143固定服务器回执已覆盖当前字节，未生成真实house数据 |
+| VM-04 新数据数值冻结与开发生成（2-house审计数值待审） | [总协议提案](../configs/vsmt/vm04_data_protocol_proposal_v1.json)、[L1合同](../configs/vsmt/vm04_l1_contract_proposal_v1.json)、[动作对称合同](../configs/vsmt/vm04_l1_action_symmetry_v1.json)、[2-house审计提案](../configs/vsmt/vm04_l1_two_house_audit_proposal_v1.json)及[隔离环境](../configs/vsmt/vm04_l1_environment_v1.json)；ProcTHOR＋AI2-THOR、32帧、九程序各2重复、匿名oracle mask＋冻结DINOv2、双轨 prior 和关系感知 SPLIT；confirmation family数待开发成品率反推，L2的SAM2.1前端后置 | [D-143报告](../results/vsmt_vm04_l1_action_symmetry.json)绑定`08cd697`并在服务器通过164/164合同和341个匿名可见截锥smoke。用户已认可D-140～D-143工程基线；D-144只形成不可执行审议稿，来源inventory、审计实现/运行、train/validation、训练与confirmation仍阻断 |
 | VM-05 公平训练与 validation | 数据验收；冻结各方法阈值、学习预算、停止规则、共同/完整任务指标 | VSMT/TAF/ELU/WFR/LOW 在 L2 完全同前端输入主评；L1只作机制上界，旧 A/C/E 只作内部消融；确认前锁定全部选择 |
 | VM-06 独立确认与论文证据 | 模型、前端、候选、评分和最小效果门冻结后另行授权 | 未见家族 confirmation、必要现实来源、逐类/共享能力/成本/失败报告；不能按 validation 结果改样本或门 |
 
 ### 当前指针
 
-**D-143固定服务器入口已在受审代码`08cd697fd91296c66beda16af71ab1c3297f6fd9`上依次完成`contracts → smoke → export`，报告提交`3071ee196281e59ccc470eef8a2c8a53065cab40`已推送main。** executor 42/42、L1 31/31、VSMT 91/91，共164/164；合成公开depth packet v3含341个节点无关、受遮挡限制的`visibility_observations`，并完成共享记忆和候选目录smoke。白话：输入是冻结源码和合成公开depth，输出是绑定源码字节的测试/烟测回执；例如同一匿名可见体积由各方法自己的图判断错失机会。它不等于真实house数据、阈值合理、方法有效或用户已审代码。按D-059，当前下一步先由用户审查D-140～D-143科学实现；2-house审计数值与运行、house生成、训练、validation效果和confirmation均未授权，所有待开发数值仍为null。
+**用户在D-143回执交付后回复“继续”，按上一轮明示推荐口径登记为认可D-140～D-143工程基线，并只授权制定2-house开发审计数值；[D-144提案](../configs/vsmt/vm04_l1_two_house_audit_proposal_v1.json)现为`requires_user_review_not_executable`。** 推荐固定两个来源哈希预选house、36个episode/1,152帧、三个仅供容量边界的类型化关联profile、cap 16/32/64、审计临时包络0.9＋2 cm、连续3次0.9可靠机会、SPLIT/REPLACE资源护栏6/729/32、两个family worker、前台1800秒和4 GiB stage上限。正式阈值继续为null；先只读封存source manifest/license，再实现并审查固定入口，均须另行批准。当前0新来源读取、0模拟器、0数据生成、0训练、0private/confirmation访问。
 
 ## 上一 D-062 路线（暂停，以下保留复现）
 
