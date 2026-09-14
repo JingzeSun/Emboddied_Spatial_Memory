@@ -1531,3 +1531,10 @@
 - 日期：2026-09-14；状态：source checkout acquisition authorized, generation still blocked。服务器总审合同通过后只发现已安装的ProcTHOR生成器包，没有D-144要求的ProcTHOR-10K 0.1.2 Git数据checkout；用户明确回复“可以下载”。据此允许在审计stage之外向数据盘一次性取得官方仓库Git元数据、`LICENSE`和`train.jsonl.gz`，必须checkout到`d54954a81e7126001e552c2d7904ee2e0d49eaae`，下载硬上限64 MiB，不得取得validation/test数据。
 - 白话：来源准备解决“服务器有模拟器代码但没有可清点的房屋定义”这个运维缺口；输入是官方固定commit，输出一个可由inventory核验commit和许可证的只读checkout。例如只物化作者train压缩清单，不取val/test。它不属于audit stage内部的新资产下载，不改变D-144阈值、房屋选择规则或资源数值，也不授权模拟器生成、private评价、训练或confirmation。
 - 来源准备成功后按同一固定代码依次运行服务器contracts、单独inventory、再单独select；公布两个固定house ID后停止，等待用户确认生成。
+
+## D-151：冻结2-house来源摘要与固定house IDs，等待生成确认
+
+- 日期：2026-09-14；状态：inventory and selection complete, generation blocked。服务器在`a8fa08a74bad99218a5be72d874841dd169695ab`通过204/204合同，回执SHA-256=`d29caeaaf88cf58d5829a7fe9bda4b61fd79c594439cff437ce7835ccce7879b`。一次性来源准备只物化52,316,238字节的`train.jsonl.gz`，SHA-256=`d64450ec821aef55351f62885e4d56b3f0d948693af467bb7f6532850ef4fa37`，与固定commit的LFS指针一致；gzip检查通过，未取得val/test。
+- inventory独立清点10,000个author-train house，冻结source manifest=`7db1df1e…9269bd`、license=`3767827e…eb9e52`、eligible IDs=`31b9d819…fb6d87`；该步`selection_performed=false`。下一条独立select按seed 260914和冻结manifest确定`train:004270`与`train:008243`，selection SHA-256=`8fb750d8…5a1e3d`；失败不换房规则不变。
+- 白话：固定house IDs解决“先看到哪间房容易构造，再决定用哪间”的自选风险；输入完整10,000房屋ID清单和预登记seed，输出两间不可替换的审计house。例如后续某个slot失败也仍留在原house和原slot。它不证明两间房能构造全部程序，也没有启动模拟器、生成帧、private评价、训练或confirmation。
+- 当前只把来源、选择摘要和私有程序分配salt摘要写回机器配置；`generation_authorized`与`private_audit_authorized`仍为false。用户确认这两个固定house后，才新增协议提交开放generation/private audit并从现有planning stage直接继续。

@@ -1,12 +1,12 @@
 {
   "version": "vsmt-vm04-l1-two-house-audit-proposal-v1",
   "status": "inventory_executable_generation_blocked",
-  "decision": "D-150",
-  "engineering_baseline_reviewed_code": "33aec1c057a5e2a6d4f9b37a24c9f76f1873028c",
-  "engineering_receipt_sha256": "b5918086e5ee7f4e30d113b87b3b7546c5083f6431374abd7471e33562c68eff",
+  "decision": "D-151",
+  "engineering_baseline_reviewed_code": "a8fa08a74bad99218a5be72d874841dd169695ab",
+  "engineering_receipt_sha256": "d29caeaaf88cf58d5829a7fe9bda4b61fd79c594439cff437ce7835ccce7879b",
   "engineering_baseline_blocking_reason": null,
-  "superseded_engineering_baseline_reviewed_code": "08cd697fd91296c66beda16af71ab1c3297f6fd9",
-  "superseded_engineering_receipt_sha256": "74c3e6258eb78fa7a52fbe11fa0bb7030b0a113497e4b355dffd5a10ae7d828b",
+  "superseded_engineering_baseline_reviewed_code": "33aec1c057a5e2a6d4f9b37a24c9f76f1873028c",
+  "superseded_engineering_receipt_sha256": "b5918086e5ee7f4e30d113b87b3b7546c5083f6431374abd7471e33562c68eff",
   "audit_numeric_values_approved": true,
   "implementation_authorized": true,
   "source_inventory_authorized": true,
@@ -27,7 +27,21 @@
     "git_metadata_allowed": true,
     "maximum_download_bytes": 67108864,
     "validation_or_test_split_download_allowed": false,
-    "does_not_change_audit_stage_new_asset_download_bytes": true
+    "does_not_change_audit_stage_new_asset_download_bytes": true,
+    "completed": true,
+    "train_jsonl_gz_bytes": 52316238,
+    "train_jsonl_gz_sha256": "d64450ec821aef55351f62885e4d56b3f0d948693af467bb7f6532850ef4fa37",
+    "validation_or_test_split_downloaded": false
+  },
+  "planning_stage_binding": {
+    "reviewed_code": "a8fa08a74bad99218a5be72d874841dd169695ab",
+    "contract_receipt_sha256": "d29caeaaf88cf58d5829a7fe9bda4b61fd79c594439cff437ce7835ccce7879b",
+    "inventory_receipt_sha256": "6d30db1f8094cd5734e42d88919edf4b6ac1c21f49098d3bf8aec7989d8f0dfc",
+    "selection_receipt_sha256": "7aa29f63f0f71d04fa3cc2613867afb08f22559d7fbe1282225d23030e5f62b9",
+    "inventory_sha256": "eb3d5decc3397fe78bc48e77732a4f820abbd7191658265241c491861ee93e82",
+    "selection_sha256": "8fb750d8001c49b218945f6eb1d9bb79b1d53d779409ba45a732c815ed5a1e3d",
+    "public_episode_manifest_sha256": "403a7039cea8d8097fca1344d0041bc021ee6a231cffbede38066e690ab1bf406",
+    "private_episode_manifest_sha256": "cb8e05aea4dda7f92b9463adf411986e0183f8a6660217a4bd08f6b5ac36ecaa4"
   },
   "scope": {
     "evidence_level": "L1_oracle_structured_diagnostic",
@@ -48,10 +62,13 @@
     "ai2thor_version": "5.0.0",
     "ai2thor_commit": "f0825767cd50d69f666c7f282e54abfe58f1e917",
     "ai2thor_cloudrendering_sha256": "1fd5f998644a6dd522a4cf6604c05360a75a5c27f450a7486c20e52dc2b67bb9",
-    "source_manifest_sha256": null,
-    "license_snapshot_sha256": null,
-    "eligible_house_ids_sha256": null,
-    "audit_house_ids": null,
+    "source_manifest_sha256": "7db1df1edb714162089b56e62f5258a947c5c6ddc38ed2b7082582d4659269bd",
+    "license_snapshot_sha256": "3767827e4276d2ff806c1c76c587ff01e5d6e62a31577787f99bfac828eb9e52",
+    "eligible_house_ids_sha256": "31b9d819afafcbef8d9bc3466fa00d49e6605cfbe1af3827ddf1a25fa0fb6d87",
+    "audit_house_ids": [
+      "train:004270",
+      "train:008243"
+    ],
     "mechanical_eligibility_only": [
       "member_of_author_train_partition",
       "unique_nonempty_house_id",
@@ -89,7 +106,7 @@
     "public_prefix_indices_inclusive": [0, 24],
     "future_private_indices_inclusive": [25, 31],
     "private_program_assignment_salt_generated_once_at_seal": true,
-    "private_program_assignment_salt_sha256": null,
+    "private_program_assignment_salt_sha256": "159ded00f0ce6ebd8b438ff5fa19c855f05e95b1d597576dc95112ae77737211b",
     "failed_family_or_episode_replacement": false,
     "audit_families_may_enter_train_validation_or_confirmation": false
   },
