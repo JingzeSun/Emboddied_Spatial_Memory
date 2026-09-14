@@ -1487,3 +1487,12 @@
 - 审计建议预登记strict/balanced/permissive三组类型化关联profile，只用于同一公开分量的容量重放，不按private结果选赢家；候选cap报告16/32/64，64是资源上限而非正式cap。审计临时值建议为支持包络可靠性0.9＋每边2 cm裕度、机会可靠性0.9＋连续3次、SPLIT/REPLACE护栏6个歧义变量/729变体/32条总incident edge；正式值全部继续为null，2/5 cm裕度和2/3/4次机会只作敏感计数，裕度不得为提高yield而缩小。
 - public层须在无private/teacher/reference/future挂载下封存free-space/visibility存活、原关联分量、逐桶容量/截断/unused、护栏、RELINK端点对及资源；之后private evaluator才报告逐slot construction yield、严格canonical reference recall和D-143 entity RETRACT合法recall。其他语义等价类recall保持null，避免在BIND/BIRTH等边界裁决前暗定答案；本批不生成teacher概率或五方法效果。
 - 资源建议为两个family worker各处理一个预选house、一个确定性串行GPU descriptor队列、前台硬停1800秒、stage≤4 GiB/每family≤2 GiB/报告≤64 MiB、进程树RSS≤40 GiB、GPU分配≤24 GiB、新资产下载0、训练步0。capacity probe预计超过30分钟则不启动。construction failure和candidate miss是报告结果而非重跑条件，不设最低yield/recall通过门；来源inventory、审计代码、服务器合同和实际运行仍需依次审查授权。
+
+## D-145：截断顺序无关、地点相邻归入骨架与审计放宽标注获批
+
+- 日期：2026-09-14；状态：implementation delivered locally, server receipt pending, still not executable。用户在助手交付D-144验收意见后回复“这次修改你来做，然后我再交给GPT审批”，据此实现两项必修与三项次要收紧；不把该回复解释为来源读取、2-house运行、训练或confirmation授权。
+- 候选桶的严格分数截断此前只对已保留集合增量重排，被截断的组会被后到的低分小组顶替，于是封存目录取决于枚举顺序而非候选集合。桶现在记住截断线，排序在线后的组直接拒绝且截断线只收紧；超容量组与护栏拒绝组仍单独计数、不设截断线。白话：这解决“同一批候选换个产生顺序就得到不同目录”的问题；输入逐个到达的候选组与桶容量，输出与一次性排序完全相同的保留集合。例如放不下的3候选组被截断后，后到的2候选低分组不能因为塞得进而顶替它。它不改变任何阈值，也不决定最终提交哪个事务。
+- 地点身份已由世界格坐标确定，因此格与格之间的`adjacent_to`是坐标的推论而非修订决定。共同`place_scaffold`现在自行维护相邻边，使用`adjacency-birth`/`adjacency-bind` provenance且不追加任何学习模板；共享关系更新把这类观测记为`scaffold_maintained`，公开候选生成器不再为骨架关系开容量桶或生成RETRACT/REPLACE。合成完整packet上候选目录因此从26项、截断40项降为6项、截断0项，而61条canonical关系边不变。
+- 共同审计现在报告`semantic_allowance_templates`与`semantic_allowance_is_result_level`：`classify_mutation`取结果所声明模板的并集，一个结果同时声明MERGE与其他模板时该放宽会比逐版本判定宽，因此如实标出而不是默认成立。逐版本模板归属需要结果合同新增字段，本轮不实现。
+- D-144提案同步收紧：来源inventory改为“只读清点→冻结manifest与eligible house ID摘要→公布audit house ID→才可审查生成”的独立前置步骤，house选择不得与manifest冻结同批完成；`minimum_consecutive_missed_opportunities`新增不得为提高yield而下调；private层须按0.02/0.05两档裕度分别报告entity RETRACT合法候选recall；`protected_incident_topology_change`明确只作评价期指标而非在线闸门。提案的工程基线摘要因本轮改动作废并置null，须取得新的服务器回执后才能重新填写。
+- 固定入口改为新stage `vsmt-vm04-l1-capacity-scaffold-v1`并导出到新路径，不覆盖D-143已验收报告；期望测试数更新为executor 42、L1 31、VSMT 101，共174。本地标准库分组全部通过且本地smoke干跑成功，但本地通过不等于服务器验收，也不代表D-059用户代码审查已完成。

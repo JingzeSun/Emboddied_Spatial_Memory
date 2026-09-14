@@ -2,8 +2,11 @@
   "version": "vsmt-vm04-l1-two-house-audit-proposal-v1",
   "status": "requires_user_review_not_executable",
   "decision": "D-144-proposal",
-  "engineering_baseline_reviewed_code": "08cd697fd91296c66beda16af71ab1c3297f6fd9",
-  "engineering_receipt_sha256": "74c3e6258eb78fa7a52fbe11fa0bb7030b0a113497e4b355dffd5a10ae7d828b",
+  "engineering_baseline_reviewed_code": null,
+  "engineering_receipt_sha256": null,
+  "engineering_baseline_blocking_reason": "capacity_and_adjacency_fixes_after_08cd697_need_a_new_server_receipt",
+  "superseded_engineering_baseline_reviewed_code": "08cd697fd91296c66beda16af71ab1c3297f6fd9",
+  "superseded_engineering_receipt_sha256": "74c3e6258eb78fa7a52fbe11fa0bb7030b0a113497e4b355dffd5a10ae7d828b",
   "audit_numeric_values_approved": false,
   "implementation_authorized": false,
   "source_inventory_authorized": false,
@@ -48,6 +51,14 @@
       "private_object_identity_or_future_outcome"
     ],
     "load_or_episode_failure_policy": "retain_failure_without_replacement",
+    "inventory_is_a_separate_read_only_step_before_generation": true,
+    "inventory_step_order": [
+      "read_only_source_and_license_inventory",
+      "freeze_source_manifest_sha256_and_eligible_house_ids_sha256",
+      "publish_audit_house_ids_from_the_frozen_manifest",
+      "only_then_review_and_authorize_generation"
+    ],
+    "house_selection_may_not_share_a_run_with_manifest_freezing": true,
     "blocking_rule": "inventory_and_license_digests_must_be_pinned_before_generation_can_be_reviewed"
   },
   "family_selection_proposal": {
@@ -108,6 +119,7 @@
     "opportunity_reliability_threshold": 0.9,
     "minimum_consecutive_missed_opportunities": 3,
     "missed_opportunity_count_sensitivity_report": [2, 3, 4],
+    "missed_opportunity_count_may_be_reduced_to_improve_yield": false,
     "formal_dormancy_selection_from_audit_allowed": false,
     "candidate_capacity_replay_values": [16, 32, 64],
     "primary_capacity_ceiling_for_resource_audit": 64,
@@ -154,6 +166,7 @@
         "attempted_constructed_failed_counts_by_family_program_and_replicate",
         "strict_exact_canonical_reference_program_recall_at_16_32_64",
         "entity_RETRACT_legal_candidate_recall_under_D143_semantics",
+        "entity_RETRACT_legal_candidate_recall_per_support_margin_0_02_and_0_05_m",
         "construction_failure_reason",
         "candidate_miss_reason"
       ],
@@ -210,6 +223,7 @@
     "generation_training_private_confirmation_boundary_flags"
   ],
   "implementation_required_before_any_run": [
+    "order_independent_candidate_truncation_and_scaffold_adjacency_server_receipt",
     "read_only_source_inventory_and_license_snapshot_entry",
     "immutable_two_family_and_36_slot_manifest_sealer",
     "two_worker_simulator_generation_with_separate_public_and_private_outputs",

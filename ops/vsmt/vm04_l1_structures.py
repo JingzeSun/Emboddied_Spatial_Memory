@@ -27,11 +27,11 @@ CONFIG_PATH = (
     PROJECT_ROOT / "configs" / "vsmt"
     / "vm04_l1_non_entity_geometry_review_v1.json"
 )
-STAGE_ID = "vsmt-vm04-l1-action-symmetry-v1"
+STAGE_ID = "vsmt-vm04-l1-capacity-scaffold-v1"
 TEST_GROUPS = (
     ("executor", "test_executor.py", 42),
     ("l1", "test_l1_*.py", 31),
-    ("vsmt", "test_vsmt_*.py", 91),
+    ("vsmt", "test_vsmt_*.py", 101),
 )
 EXPECTED_TESTS = sum(group[2] for group in TEST_GROUPS)
 BOUND_PATHS = (
@@ -290,7 +290,7 @@ def run_contracts(reviewed_code: str, output_root: Path) -> None:
     receipt_path = stage / "contracts.receipt.json"
     write_new_json(receipt_path, receipt)
     if not success:
-        print(f"VM04_L1_ACTION_SYMMETRY_CONTRACTS_FAILED stage={stage}")
+        print(f"VM04_L1_CAPACITY_SCAFFOLD_CONTRACTS_FAILED stage={stage}")
         raise SystemExit(1)
     write_new_json(stage / "contracts.success.json", {
         "schema_version": "vsmt-vm04-l1-action-symmetry-contract-success-v1",
@@ -299,7 +299,7 @@ def run_contracts(reviewed_code: str, output_root: Path) -> None:
         "observed_tests": observed_total,
         "success": True,
     })
-    print(f"VM04_L1_ACTION_SYMMETRY_CONTRACTS_OK stage={stage} tests={observed_total}")
+    print(f"VM04_L1_CAPACITY_SCAFFOLD_CONTRACTS_OK stage={stage} tests={observed_total}")
 
 
 def run_smoke(reviewed_code: str, output_root: Path) -> None:
@@ -593,6 +593,10 @@ def run_smoke(reviewed_code: str, output_root: Path) -> None:
             ),
         )
         relation_counts = result["diagnostics"]["relation_updates"]
+        adjacency_counts = result["diagnostics"]["place_adjacency_updates"]
+        candidate_scopes = {
+            row["scope"] for row in candidate_catalog["capacity_audit"]
+        }
         success = bool(
             len(surfaces) >= 1
             and len(places) >= 1
@@ -600,11 +604,14 @@ def run_smoke(reviewed_code: str, output_root: Path) -> None:
             and len(visibility) == 341
             and len(relations) >= 2
             and relation_counts.get("born", 0) >= 1
+            and adjacency_counts.get("born", 0) >= 1
+            and relation_counts.get("scaffold_maintained", 0)
+            == adjacency_counts.get("born", 0)
+            + adjacency_counts.get("bound", 0)
+            + adjacency_counts.get("deduplicated", 0)
             and len(candidate_catalog["candidates"]) >= 1
-            and all(
-                row["scope"] != "place"
-                for row in candidate_catalog["capacity_audit"]
-            )
+            and "place" not in candidate_scopes
+            and "relation:adjacent_to" not in candidate_scopes
         )
         summary = {
             "surface_regions": len(surfaces),
@@ -615,6 +622,7 @@ def run_smoke(reviewed_code: str, output_root: Path) -> None:
             "relation_observations": len(relations),
             "canonical_relation_edges": len(result["post_memory"]["edges"]),
             "relation_updates": relation_counts,
+            "place_adjacency_updates": adjacency_counts,
             "post_memory_sha256": result["post_memory_sha256"],
             "candidate_catalog_schema": candidate_catalog["schema_version"],
             "candidate_count": len(candidate_catalog["candidates"]),
@@ -646,7 +654,7 @@ def run_smoke(reviewed_code: str, output_root: Path) -> None:
     receipt_path = stage / "smoke.receipt.json"
     write_new_json(receipt_path, receipt)
     if not success:
-        print(f"VM04_L1_ACTION_SYMMETRY_SMOKE_FAILED stage={stage} error={error}")
+        print(f"VM04_L1_CAPACITY_SCAFFOLD_SMOKE_FAILED stage={stage} error={error}")
         raise SystemExit(1)
     write_new_json(stage / "smoke.success.json", {
         "schema_version": "vsmt-vm04-l1-action-symmetry-smoke-success-v1",
@@ -654,7 +662,7 @@ def run_smoke(reviewed_code: str, output_root: Path) -> None:
         "receipt_sha256": sha256(receipt_path),
         "success": True,
     })
-    print(f"VM04_L1_ACTION_SYMMETRY_SMOKE_OK stage={stage} summary={summary}")
+    print(f"VM04_L1_CAPACITY_SCAFFOLD_SMOKE_OK stage={stage} summary={summary}")
 
 
 def export_stage(reviewed_code: str, output_root: Path) -> None:
@@ -664,7 +672,7 @@ def export_stage(reviewed_code: str, output_root: Path) -> None:
     contracts = require_success(stage, "contracts", commit)
     smoke = require_success(stage, "smoke", commit)
     report = {
-        "schema_version": "vsmt-vm04-l1-action-symmetry-report-v1",
+        "schema_version": "vsmt-vm04-l1-capacity-scaffold-report-v1",
         "stage_id": STAGE_ID,
         "reviewed_code": commit,
         "bound_sha256": bindings,
@@ -680,16 +688,16 @@ def export_stage(reviewed_code: str, output_root: Path) -> None:
         "smoke_receipt_sha256": sha256(stage / "smoke.receipt.json"),
     }
     destination = (
-        PROJECT_ROOT / "results" / "vsmt_vm04_l1_action_symmetry.json"
+        PROJECT_ROOT / "results" / "vsmt_vm04_l1_capacity_scaffold.json"
     )
     if destination.exists():
         existing = json.loads(destination.read_text(encoding="utf-8"))
         if existing != report:
             raise RuntimeError(f"refusing to overwrite different report: {destination}")
-        print(f"VM04_L1_ACTION_SYMMETRY_EXPORT_REUSED path={destination}")
+        print(f"VM04_L1_CAPACITY_SCAFFOLD_EXPORT_REUSED path={destination}")
         return
     write_new_json(destination, report)
-    print(f"VM04_L1_ACTION_SYMMETRY_EXPORT_OK path={destination} sha256={sha256(destination)}")
+    print(f"VM04_L1_CAPACITY_SCAFFOLD_EXPORT_OK path={destination} sha256={sha256(destination)}")
 
 
 def main() -> None:
