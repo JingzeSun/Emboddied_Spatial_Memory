@@ -1,0 +1,95 @@
+{
+  "DINOv2_checkpoint_sha256": "b938bf1bc15cd2ec0feacfe3a1bb553fe8ea9ca46a7e1d8d00217f29aef60cd9",
+  "DINOv2_repository_commit": "7764ea0f912e53c92e82eb78a2a1631e92725fc8",
+  "bound_sha256": {
+    "configs/vsmt/vm04_l1_contract_proposal_v1.json": "941b1ad7a2c68a6f3cd59cbb55dedab9650946ec7d45ecaf66fb374c5dbec63d",
+    "configs/vsmt/vm04_l1_environment_v1.json": "acecc33b5f4982830219f7f325334fb9311579ddd75551a7de3a1f450c06000a",
+    "ops/vsmt/vm04_l1_frontend.py": "93d758848d20afb1bd1cbf1e11a5d1128d24eb5aef1e5a2a09b518d2310b5d86",
+    "src/vsmt/__init__.py": "440195e59ce328c5e36af4572715dab2682c04f1e4b8f758d2aa97ff499f900e",
+    "src/vsmt/l1_entities.py": "0655b2325a8dbca9d6f65d85f2f79c857a68b597480bb28f819c39762b738109",
+    "src/vsmt/l1_masks.py": "ffe1f7383e1b057759671ff8ab4b4ec1dc5a3870d29fde28908b2c109694f0d7",
+    "tests/test_l1_entities.py": "8431e184173fc0de957d993bd16afe0f096162af84d24df989a69f89515c5cd7",
+    "tests/test_l1_masks.py": "a1e0e54d907850310025c12bdb7df9f219aacfba4c1b56cedf5c01c2a6831f38"
+  },
+  "build": {
+    "archive_bytes": 835983275,
+    "archive_path": "/root/autodl-tmp/vsmt-assets/ai2thor/download/thor-CloudRendering-f0825767cd50d69f666c7f282e54abfe58f1e917.zip",
+    "archive_sha256": "1fd5f998644a6dd522a4cf6604c05360a75a5c27f450a7486c20e52dc2b67bb9",
+    "executable_path": "/root/autodl-tmp/vsmt-assets/ai2thor/releases/thor-CloudRendering-f0825767cd50d69f666c7f282e54abfe58f1e917/thor-CloudRendering-f0825767cd50d69f666c7f282e54abfe58f1e917",
+    "extracted_now": false,
+    "release_path": "/root/autodl-tmp/vsmt-assets/ai2thor/releases/thor-CloudRendering-f0825767cd50d69f666c7f282e54abfe58f1e917"
+  },
+  "confirmation_data_opened": false,
+  "contract_success": true,
+  "contract_tests": 22,
+  "environment_success": true,
+  "exported_at": "2026-09-14T03:49:46.732987+00:00",
+  "generation_performed": false,
+  "materializer_runtime": {
+    "DINOv2_checkpoint_sha256": "b938bf1bc15cd2ec0feacfe3a1bb553fe8ea9ca46a7e1d8d00217f29aef60cd9",
+    "DINOv2_repository_commit": "7764ea0f912e53c92e82eb78a2a1631e92725fc8",
+    "cuda_device": "NVIDIA GeForce RTX 4080 SUPER",
+    "python": "3.12.3",
+    "torch": "2.8.0+cu128"
+  },
+  "materializer_smoke": {
+    "centroid_m": [
+      -0.09374999999999999,
+      0.09374999999999976,
+      1.5
+    ],
+    "descriptor_dimension": 384,
+    "descriptor_float32_sha256": "1309c24a265d17cab0954a86d7b0c9a074828907612bd4069df6803c6b619963",
+    "descriptor_norm": 0.9999999974417214,
+    "extent_m": [
+      0.17410714285714285,
+      0.17410714285714285,
+      0.0
+    ],
+    "input_kind": "deterministic_synthetic_non_dataset_frame",
+    "patch_token_shape": [
+      16,
+      16,
+      384
+    ],
+    "private_instance_value_in_public_record": false,
+    "region_visible_pixels": 196,
+    "reliability": 1.0,
+    "required_valid_depth_point_count": 49,
+    "rgb_shape": [
+      224,
+      224,
+      3
+    ],
+    "total_patch_weight": 1.0,
+    "valid_depth_point_count": 196
+  },
+  "materializer_success": true,
+  "package_probe": {
+    "ai2thor": "5.0.0",
+    "procthor": "0.0.1.dev2",
+    "python": "3.9.25"
+  },
+  "reviewed_code": "40f6d32971810b1e9f564e6f4e674a9bd216891b",
+  "schema_version": "vsmt-vm04-l1-entity-materializer-report-v1",
+  "smoke": {
+    "depth_shape": [
+      224,
+      224
+    ],
+    "frame_shape": [
+      224,
+      224,
+      3
+    ],
+    "instance_mask_count": 9,
+    "instance_shape": [
+      224,
+      224,
+      3
+    ],
+    "last_action_success": true
+  },
+  "stage_id": "vsmt-vm04-l1-entity-materializer-v1",
+  "training_steps": 0
+}
