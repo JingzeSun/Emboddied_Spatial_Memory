@@ -1525,3 +1525,9 @@
 - 日期：2026-09-14；状态：inventory executable, generation still blocked。一次性总审绑定提交`0d4fbfe340f4c4cad83cd38601175409bc70a89b`：固定入口本地精确通过executor 42、L1 31、VSMT 131，共204/204；Python编译、JSON解析、diff检查通过，`scripts/notes.txt`未变。总审同时核对公开重放不读private计划或25–31未来帧、每帧公开agent action已登记、来源commit/license边界、失败不换house、资源硬停以及公开错误不泄露private异常文本。
 - 按用户已批准的顺序，现在只开放`source_inventory_authorized`并把状态改为`inventory_executable_generation_blocked`；inventory与select仍必须是两个独立命令，前者只冻结作者train清单、许可证与eligible ID摘要，后者只按冻结摘要和seed 260914确定两个house。白话：这一步解决“先把可选房屋全集固定，再机械地抽出两间”的问题；输入是固定ProcTHOR-10K 0.1.2本地只读checkout，输出manifest/license/eligible摘要和随后公开的两个house ID。例如换一个枚举顺序不能改变选中结果。它不运行模拟器、不生成任何帧、不读取private评价，也不开放训练或confirmation。
 - `generation_authorized`、`private_audit_authorized`、训练、validation效果与confirmation继续为false。两个house ID公布后必须停住，等待用户确认，才可在新的协议提交中绑定inventory/selection摘要并开放生成。
+
+## D-150：授权一次性准备固定ProcTHOR-10K来源checkout
+
+- 日期：2026-09-14；状态：source checkout acquisition authorized, generation still blocked。服务器总审合同通过后只发现已安装的ProcTHOR生成器包，没有D-144要求的ProcTHOR-10K 0.1.2 Git数据checkout；用户明确回复“可以下载”。据此允许在审计stage之外向数据盘一次性取得官方仓库Git元数据、`LICENSE`和`train.jsonl.gz`，必须checkout到`d54954a81e7126001e552c2d7904ee2e0d49eaae`，下载硬上限64 MiB，不得取得validation/test数据。
+- 白话：来源准备解决“服务器有模拟器代码但没有可清点的房屋定义”这个运维缺口；输入是官方固定commit，输出一个可由inventory核验commit和许可证的只读checkout。例如只物化作者train压缩清单，不取val/test。它不属于audit stage内部的新资产下载，不改变D-144阈值、房屋选择规则或资源数值，也不授权模拟器生成、private评价、训练或confirmation。
+- 来源准备成功后按同一固定代码依次运行服务器contracts、单独inventory、再单独select；公布两个固定house ID后停止，等待用户确认生成。

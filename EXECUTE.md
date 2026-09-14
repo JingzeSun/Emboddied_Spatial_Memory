@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| VSMT首篇/VM-01～04 | D-149唯一一次总审已通过并只开放2-house只读inventory/独立select；总审绑定`0d4fbfe`，本地204/204合同、编译、JSON与diff检查通过。完整固定入口已覆盖双family生成、公私隔离、trusted L1、public replay/seal、post-seal private recall及资源停止，但generation/private/training/validation/confirmation仍关闭。当前执行新服务器合同与inventory/select，公布固定house IDs后停住等用户确认。统计独立单位仍为family，L2/SAM后置，逐版本模板归属留到五方法比较前。LOG-133–149，D-125–149 |
+| VSMT首篇/VM-01～04 | D-149唯一一次总审已通过，服务器`41a66b6`合同204/204；但机器没有固定ProcTHOR-10K数据checkout。D-150经用户明确授权，只在audit stage之外一次性取得官方0.1.2 Git元数据、LICENSE和train压缩清单，≤64 MiB、不取val/test；随后运行inventory与独立select并公布house IDs。generation/private/training/validation/confirmation仍关闭。统计独立单位仍为family，L2/SAM后置，逐版本模板归属留到五方法比较前。LOG-133–150，D-125–150 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
 | R4三模型接入 | D完整适配16项通过（121/200全反向，0更新），W完整适配17项亦通过，F完整适配19项通过；真实公共接口27/27候选通过，0优化/真值读取。209bb34，LOG-123–127 |
 | R4前端v2r1 | 81bceed：19项通过，16历史/144名义预测/16选择完整，误标占据/自由0；物块平均误差9.59 cm、接触Brier 0.1152，全部涉及未知扫掠，正式M/P未就绪。LOG-121 |

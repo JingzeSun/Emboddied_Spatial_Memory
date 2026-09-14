@@ -1,7 +1,7 @@
 {
   "version": "vsmt-vm04-l1-two-house-audit-proposal-v1",
   "status": "inventory_executable_generation_blocked",
-  "decision": "D-149",
+  "decision": "D-150",
   "engineering_baseline_reviewed_code": "33aec1c057a5e2a6d4f9b37a24c9f76f1873028c",
   "engineering_receipt_sha256": "b5918086e5ee7f4e30d113b87b3b7546c5083f6431374abd7471e33562c68eff",
   "engineering_baseline_blocking_reason": null,
@@ -15,6 +15,20 @@
   "training_authorized": false,
   "validation_effect_authorized": false,
   "confirmation_authorized": false,
+  "source_checkout_acquisition": {
+    "authorized": true,
+    "scope": "one_time_pre_inventory_provisioning_outside_the_audit_stage",
+    "repository": "https://github.com/allenai/procthor-10k.git",
+    "required_commit": "d54954a81e7126001e552c2d7904ee2e0d49eaae",
+    "allowed_materialized_paths": [
+      "LICENSE",
+      "train.jsonl.gz"
+    ],
+    "git_metadata_allowed": true,
+    "maximum_download_bytes": 67108864,
+    "validation_or_test_split_download_allowed": false,
+    "does_not_change_audit_stage_new_asset_download_bytes": true
+  },
   "scope": {
     "evidence_level": "L1_oracle_structured_diagnostic",
     "purpose": "engineering_capacity_construction_yield_and_strict_candidate_recall_audit",
