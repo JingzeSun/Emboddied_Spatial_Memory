@@ -85,6 +85,10 @@ TEST_GROUPS = (
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
 
 
+class ResourceLimitReached(RuntimeError):
+    """A frozen stage resource ceiling was reached."""
+
+
 def require(condition: bool, message: str) -> None:
     if not condition:
         raise RuntimeError(message)
@@ -529,6 +533,68 @@ def _verify_frozen_selection(
                 f"frozen selection mismatch: {key}")
 
 
+def _directory_bytes(path: Path) -> int:
+    return sum(item.stat().st_size for item in path.rglob("*") if item.is_file())
+
+
+def _linux_process_tree_rss_bytes(root_pids: Iterable[int]) -> int:
+    """Read Linux process-tree RSS without adding a runtime dependency."""
+
+    pending = [int(pid) for pid in root_pids]
+    observed: set[int] = set()
+    total = 0
+    while pending:
+        pid = pending.pop()
+        if pid in observed:
+            continue
+        observed.add(pid)
+        status = Path(f"/proc/{pid}/status")
+        children = Path(f"/proc/{pid}/task/{pid}/children")
+        if status.is_file():
+            for line in status.read_text(encoding="utf-8", errors="replace").splitlines():
+                if line.startswith("VmRSS:"):
+                    total += int(line.split()[1]) * 1024
+                    break
+        if children.is_file():
+            pending.extend(int(value) for value in children.read_text().split())
+    return total
+
+
+def _resource_checkpoint(
+    stage: Path, config: Mapping[str, Any], *, started: float,
+    root_pids: Iterable[int] = (), include_gpu: bool = False,
+) -> dict[str, float | int]:
+    """Fail closed on the frozen wall, stage, process-tree, and GPU ceilings."""
+
+    resources = config["resource_and_worker_proposal"]
+    elapsed = time.monotonic() - started
+    stage_bytes = _directory_bytes(stage)
+    roots = list(root_pids) or [os.getpid()]
+    rss_bytes = _linux_process_tree_rss_bytes(roots)
+    gpu_bytes = 0
+    if include_gpu:
+        import torch
+
+        gpu_bytes = int(torch.cuda.memory_allocated())
+    limits = (
+        (elapsed <= int(resources["hard_wall_clock_seconds"]),
+         "stage wall-clock limit reached"),
+        (stage_bytes <= int(resources["maximum_stage_bytes"]),
+         "stage byte limit reached"),
+        (rss_bytes <= int(resources["maximum_process_tree_RSS_bytes"]),
+         "process-tree RSS limit reached"),
+        (gpu_bytes <= int(resources["maximum_GPU_allocated_bytes"]),
+         "GPU allocation limit reached"),
+    )
+    for allowed, message in limits:
+        if not allowed:
+            raise ResourceLimitReached(message)
+    return {
+        "wall_seconds": elapsed, "stage_bytes": stage_bytes,
+        "process_tree_RSS_bytes": rss_bytes, "GPU_allocated_bytes": gpu_bytes,
+    }
+
+
 def _abort_process(child: subprocess.Popen[str]) -> None:
     if child.poll() is not None:
         child.wait()
@@ -614,11 +680,10 @@ def run_generation(
             write_new_json(family_root / "launched.json", launches[-1])
         active = set(family_ids)
         while active:
-            elapsed = time.monotonic() - started
-            require(elapsed <= int(resources["hard_wall_clock_seconds"]),
-                    "generation wall-clock limit reached")
-            require(_directory_bytes(stage) <= int(resources["maximum_stage_bytes"]),
-                    "generation stage byte limit reached")
+            _resource_checkpoint(
+                stage, config, started=started,
+                root_pids=(children[family_id].pid for family_id in active),
+            )
             require(shutil.disk_usage(output_root.resolve()).free >= int(
                 resources["minimum_free_data_disk_bytes_before_start"]
             ), "generation data-disk reserve crossed")
@@ -963,6 +1028,8 @@ def run_materializer(reviewed_code: str, output_root: Path) -> None:
     public_root = materialized / "public"
     private_root = materialized / "private"
     started = time.monotonic()
+    peak_rss_bytes = 0
+    peak_gpu_bytes = 0
     results: list[dict[str, Any]] = []
     for public_plan in plans["public"]["episodes"]:
         episode_id = public_plan["episode_id"]
@@ -995,6 +1062,7 @@ def run_materializer(reviewed_code: str, output_root: Path) -> None:
         prior_free: list[list[dict[str, Any]]] = []
         frame_records: list[dict[str, Any]] = []
         failed: str | None = None
+        failed_type: str | None = None
         for frame_index in range(32):
             try:
                 raw_public = family_root / "public" / f"frame_{frame_index:04d}"
@@ -1024,13 +1092,35 @@ def run_materializer(reviewed_code: str, output_root: Path) -> None:
                     "private_crosswalk_sha256": sha256(private_path),
                 })
                 prior_free.append(free_current)
+                resources = _resource_checkpoint(
+                    stage, config, started=started, include_gpu=True,
+                )
+                peak_rss_bytes = max(
+                    peak_rss_bytes, int(resources["process_tree_RSS_bytes"])
+                )
+                peak_gpu_bytes = max(
+                    peak_gpu_bytes, int(resources["GPU_allocated_bytes"])
+                )
             except Exception as error:
+                if isinstance(error, ResourceLimitReached):
+                    write_new_json(materialized / "resource-stop.json", {
+                        "episode_id": episode_id, "frame_index": frame_index,
+                        "error": str(error), "preserved_completed_frames": len(frame_records),
+                    })
+                    raise
                 failed = f"{type(error).__name__}: {error}"
+                failed_type = type(error).__name__
                 break
         if failed is not None:
             write_new_json(output_public / "failure.json", {
                 "episode_id": episode_id, "reason": "materialization_failed",
-                "error": failed, "completed_frame_count": len(frame_records),
+                "error_type": failed_type,
+                "completed_frame_count": len(frame_records),
+            })
+            write_new_json(output_private / "failure.json", {
+                "episode_id": episode_id, "program": assignment["program"],
+                "reason": "materialization_failed", "error": failed,
+                "completed_frame_count": len(frame_records),
             })
             results.append({"episode_id": episode_id, "status": "failed",
                             "reason": "materialization_failed"})
@@ -1054,9 +1144,6 @@ def run_materializer(reviewed_code: str, output_root: Path) -> None:
             })
             results.append({"episode_id": episode_id, "status": "complete",
                             "public_receipt_sha256": sha256(output_public / "receipt.json")})
-        require(_directory_bytes(stage) <= int(
-            config["resource_and_worker_proposal"]["maximum_stage_bytes"]
-        ), "materialized stage byte limit exceeded")
     receipt = {
         "schema_version": "vsmt-vm04-two-house-materializer-receipt-v1",
         "stage_id": STAGE_ID, "reviewed_code": commit, "bound_sha256": bindings,
@@ -1065,6 +1152,8 @@ def run_materializer(reviewed_code: str, output_root: Path) -> None:
         "completed_count": sum(row["status"] == "complete" for row in results),
         "failed_count": sum(row["status"] == "failed" for row in results),
         "GPU_descriptor_consumers": 1, "wall_seconds": time.monotonic() - started,
+        "peak_process_tree_RSS_bytes": peak_rss_bytes,
+        "peak_GPU_allocated_bytes": peak_gpu_bytes,
         "success": True, "training_steps": 0,
         "private_data_opened_for_evaluation": False,
         "confirmation_data_opened": False,
@@ -1351,6 +1440,14 @@ def run_public_seal(reviewed_code: str, output_root: Path) -> None:
                         catalog_root / f"cap_{capacity}.json"
                     )
                 profile_results[profile_id] = result
+        try:
+            checkpoint = _resource_checkpoint(stage, config, started=started)
+        except ResourceLimitReached as error:
+            write_new_json(public_audit_root / "resource-stop.json", {
+                "episode_id": episode_id, "error": str(error),
+                "completed_episode_count": len(rows),
+            })
+            raise
         rows.append({
             "episode_id": episode_id, "family_id": plan["family_id"],
             "slot": plan["slot"], "status": status,
@@ -1359,8 +1456,8 @@ def run_public_seal(reviewed_code: str, output_root: Path) -> None:
                 profile_id: {capacity: result["capacity_summary"]
                              for capacity, result in value["catalogs"].items()}
                 for profile_id, value in profile_results.items()
-            }, "runtime": {"wall_seconds": time.monotonic() - started,
-                            "peak_rss_bytes": None},
+            }, "runtime": {"wall_seconds": checkpoint["wall_seconds"],
+                            "peak_rss_bytes": checkpoint["process_tree_RSS_bytes"]},
         })
     processes = read_json(stage / "execution/processes.json")
     seal = make_public_seal(
@@ -1626,6 +1723,14 @@ def run_private_evaluation(reviewed_code: str, output_root: Path) -> None:
     started = time.monotonic()
     for assignment in plans["private"]["assignments"]:
         episode_id = assignment["episode_id"]
+        try:
+            _resource_checkpoint(stage, config, started=started)
+        except ResourceLimitReached as error:
+            write_new_json(stage / "private/private-eval-resource-stop.json", {
+                "episode_id": episode_id, "error": str(error),
+                "completed_episode_count": len(rows),
+            })
+            raise
         public_row = public_by_id[episode_id]
         base = {
             "episode_id": episode_id, "family_id": assignment["family_id"],
@@ -1745,6 +1850,14 @@ def run_private_evaluation(reviewed_code: str, output_root: Path) -> None:
             "canonical_reference_match_count_by_profile": match_counts,
             "reference_is_existing_candidate_only_when_match_count_is_one": True,
         })
+        try:
+            _resource_checkpoint(stage, config, started=started)
+        except ResourceLimitReached as error:
+            write_new_json(stage / "private/private-eval-resource-stop.json", {
+                "episode_id": episode_id, "error": str(error),
+                "completed_episode_count": len(rows),
+            })
+            raise
     evaluation = evaluate_private_recall(seal, rows)
     write_new_json(stage / "private-evaluation.json", evaluation)
     matcher_path = stage / "private/matcher-receipt.json"

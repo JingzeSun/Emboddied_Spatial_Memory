@@ -99,6 +99,12 @@ class TwoHouseOpsTests(unittest.TestCase):
         )
         self.assertFalse(probe["ready"])
         self.assertFalse(probe["generation_started"])
+        with tempfile.TemporaryDirectory() as directory:
+            stage = Path(directory)
+            (stage / "byte.bin").write_bytes(b"x")
+            value["resource_and_worker_proposal"]["maximum_stage_bytes"] = 0
+            with self.assertRaisesRegex(OPS.ResourceLimitReached, "stage byte"):
+                OPS._resource_checkpoint(stage, value, started=OPS.time.monotonic())
 
     def test_worker_resource_stop_keeps_remaining_fixed_slots(self) -> None:
         source = WORKER_ENTRY.read_text(encoding="utf-8")
