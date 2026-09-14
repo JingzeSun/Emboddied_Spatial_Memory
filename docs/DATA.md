@@ -105,6 +105,8 @@ DINO输入固定为224×224当前RGB；uint8除255后按均值`[0.485,0.456,0.40
 
 实体几何用mask内0.05–20 m有效公开depth逐像素反投影到世界坐标，AI2-THOR深度按相机轴向`z`解释；质心为可见点逐坐标均值，extent为可见点逐轴最大减最小。有效点至少`max(32, ceil(25%×可见像素数))`，可靠性为有效点数除以可见像素数。输入公开depth、内参与camera pose，输出可见几何。例如杯子底部被桌沿挡住时，extent可以偏小并由可靠性反映，而不能读取真值bbox修正。它不等于对象完整尺寸；surface/place/free-space规则仍未冻结。
 
+D-138审议稿拟将旧`free_space_observations`的`minimum_m/maximum_m`轴对齐盒替换为packet v2的6个世界半空间截锥，并新增`relation_observations`。关系记录拟含包内`relation_id`、两个包内region ID、`relation`、`reliability`和公开支持摘要；只允许从当前surface/place/entity公开几何形成并在teacher前封存。例如实体中心明确落在已观测0.5 m地面格内且离边界至少2 cm时，可提出`located_at`，其反向`contains`共用同一证据。它解决旧schema无法表达“第一条关系观测”的问题；输入匿名region和公开几何，输出匿名关系证据。它不提供永久节点ID、参考边或正确事务，字段和数值尚未批准，现有packet v1继续有效且不会被审议稿冒充通过。
+
 L1 materialization receipt（L1物化回执）分公开与私有两份：公开回执绑定materializer/config、RGB/depth/pose、匿名mask、descriptor、geometry、`ObservationPacket`及DINO源码/权重摘要；私有审计回执另存原instance mask集合、ID映射和公开回执摘要。输入同一次物化，输出两条不可互读的来源链；例如只置换instance ID时公开回执必须不变，私有映射摘要可以变化。它不把private摘要、路径、类别或future/reference摘要带入公开回执或方法输入。
 
 VSMT选择器新增的计划产物为`online_candidate_features`和`candidate_logits`。前者逐候选绑定catalog、prior、候选触及的执行前子图、同一基图真实执行后的子图及normalized delta；后者由共享逐候选打分器输出一项有限标量。candidate ordinal、列表位置、路径和样本ID均禁止成为数值特征；并列拟按canonical program SHA-256处理。输入一个封存catalog，输出与每个program身份绑定的logit，例如候选换序后logit只随program移动。它不允许teacher改catalog，也不使TAF/ELU/WFR/LOW经过VSMT网络；网络宽度、层数、参数量和训练预算仍为`null`。

@@ -1426,3 +1426,10 @@
 
 - 日期：2026-09-14；状态：execution requirement approved。用户要求生成数据、训练和检验均使用多个worker。正式数据生成以完整house family为任务单元且至少2个worker；validation/评价以封存episode或完整family并行且至少2个worker；当前单张GPU上的训练保留一个learner进程并至少2个数据加载/预处理worker，多个独立方法/seed可由外层调度，但并发占用同一GPU须另经容量审查。
 - 回执须记录请求/实际worker数、capacity probe、确定性分片和seed、逐worker开始/退出/产物摘要、未启动/缺退出项及与完成顺序无关的合并摘要。白话：4个worker只是把同一冻结house清单分块加速，不创造4倍样本；某个worker失败时保留完整前缀并停止新派发，不能换house补齐。精确worker数在各正式阶段前根据CPU、RAM、GPU和磁盘吞吐冻结；单worker只允许合同测试、非数据smoke或用户点名的失败复现。
+
+## D-138：surface/place/free-space实现前审议与关系通道缺口
+
+- 日期：2026-09-14；状态：proposed, requires user review。用户批准本批只做surface/place/free-space数值提案和实现前审查，不生成数据、训练或confirmation。唯一审议稿为`configs/vsmt/vm04_l1_non_entity_geometry_review_v1.json`；原L1合同相应字段继续为`null`，所以本轮没有暗中批准实现或运行。
+- Surface拟用公开depth的14×14基础平面片、10°合并、最终至少784内点、2 cm内点阈值和1 cm RMS；place拟从距标准站立agent支撑高度5 cm内的水平surface形成0.5 m地面格，25个0.1 m子格至少覆盖16个。AI2-THOR固定提交中的标准agent胶囊高1.8 m、camera局部高度0.675 m，因此支撑高度可由公开camera世界y减1.575 m得到；禁止`GetReachablePositions`、navmesh和房间标签。白话：输入公开depth和相机标定，输出平面区域与局部地面锚点。例如桌面是surface但不是place。它不输出房间语义、可行走标签或真值网格，数值尚未获批。
+- Free-space不再建议沿用packet v1的世界AABB：透视截锥的外包AABB会包含没有看见的空间，保守内包又会使跨盒目标无故漏证。拟改成6个世界半空间的多尺度截锥；每个时刻最多341个，depth块100%有效、边界内缩1像素、表面前留10 cm，旧bbox每边扩2 cm且完整落在单个截锥内，并在相隔至少0.25 s两时刻成立才允许负证据。白话：输入两帧公开depth，输出“相机确实看到为空”的空间；沙发后的旧椅子仍是未知而不是空。它不等于漏检、碰撞自由或导航网格，schema改变尚未获批。
+- 审查发现packet v1没有`relation_observations`，`public.bootstrap.v1`只执行节点BIRTH/BIND并保持空edge，因此单独实现surface/place仍不能产生第一条`located_at/supported_by`，RELINK也没有可修改对象。推荐新增公开关系通道，并把既有BIRTH/BIND类型化为节点或关系身份：关系BIRTH创建第一条edge，关系BIND附证据，RELINK仍只改已有edge；不增加第九个原子且teacher不得补边。白话：首次看到“杯子在桌边地点”要先建立关系，以后位置改变才叫RELINK。它不是给真值scene graph，也不是普通工程细节；该语义会改变executor、候选覆盖和五方法能力，必须由用户明确批准。

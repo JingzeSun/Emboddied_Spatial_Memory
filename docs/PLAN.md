@@ -22,7 +22,7 @@
 
 ### 当前指针
 
-**VSMT 已在 `main`；五方法共同L1的匿名实体物化已经服务器工程通过，当前指针转到surface/place/free-space和完整`ObservationPacket`合同。** `40f6d32`精确22/22通过；环境复验返回224×224 RGB/depth/instance及9个mask，真实冻结DINO在RTX 4080 SUPER输出16×16×384 patch token，196像素区域得到384维单位描述、196/49有效深度支持和可靠性1.0。报告绑定DINO、AI2-THOR构建及所有代码/配置摘要，明确0 house生成、0训练、0confirmation；它不证明记忆效果。下一科学决断是surface/place/free-space如何从公开depth形成，以及这些结构是否首批L1全部纳入；随后才可完成packet、审2-house audit。正式生成、训练数据读取和validation/评价均须多worker，精确数值在capacity probe后冻结。bootstrap/五方法阈值、选择器容量、teacher/evaluator及S-01～S-12仍分批在对话中裁决。原D-062分支、代码、数据和结果均保留，`scripts/notes.txt`保持原字节。
+**VSMT 已在 `main`；五方法共同L1的匿名实体物化已经服务器工程通过，surface/place/free-space实现前审议稿已形成但不可执行。** `40f6d32`精确22/22通过；环境复验返回224×224 RGB/depth/instance及9个mask，真实冻结DINO在RTX 4080 SUPER输出16×16×384 patch token，196像素区域得到384维单位描述、196/49有效深度支持和可靠性1.0。报告绑定DINO、AI2-THOR构建及所有代码/配置摘要，明确0 house生成、0训练、0confirmation；它不证明记忆效果。D-138建议surface用公开depth平面片、place用0.5 m可见地面格、free-space用多尺度保守截锥而非不安全的世界AABB；审查同时发现packet v1没有关系观测且因果prior不能创建第一条边，须先裁决是否新增`relation_observations`并把既有BIRTH/BIND类型化到节点/关系。获批后才可实现packet v2和完整物化，不获批则不能声称首批L1覆盖RELINK/关系修订。正式生成、训练数据读取和validation/评价均须多worker，精确worker数在capacity probe后冻结；2-house、训练和confirmation仍阻断。bootstrap/五方法阈值、选择器容量、teacher/evaluator及S-01～S-12仍分批在对话中裁决。原D-062分支、代码、数据和结果均保留，`scripts/notes.txt`保持原字节。
 
 ## 上一 D-062 路线（暂停，以下保留复现）
 
