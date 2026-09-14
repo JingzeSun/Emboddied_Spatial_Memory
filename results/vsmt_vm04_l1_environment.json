@@ -1,0 +1,53 @@
+{
+  "DINOv2_checkpoint_sha256": "b938bf1bc15cd2ec0feacfe3a1bb553fe8ea9ca46a7e1d8d00217f29aef60cd9",
+  "DINOv2_repository_commit": "7764ea0f912e53c92e82eb78a2a1631e92725fc8",
+  "bound_sha256": {
+    "configs/vsmt/vm04_l1_contract_proposal_v1.json": "46c9ee66c1b685d98d37a7ec82a32d0a912448543fb807ca399434047d20a9ff",
+    "configs/vsmt/vm04_l1_environment_v1.json": "8b0bb7bb0e5ed0c0e32783042112587dcf23d59b34747d749f252d5730e3e2dc",
+    "ops/vsmt/vm04_l1_frontend.py": "8c301aa97eec23d1ad382377d00b906d779251de3441ac26f6dd46f81e7e8e19",
+    "src/vsmt/__init__.py": "55b28a3dfc51dc36f01f4964242d770a2ea88725fc1eedc92a095cbd09e2a280",
+    "src/vsmt/l1_masks.py": "ffe1f7383e1b057759671ff8ab4b4ec1dc5a3870d29fde28908b2c109694f0d7",
+    "tests/test_l1_masks.py": "a1e0e54d907850310025c12bdb7df9f219aacfba4c1b56cedf5c01c2a6831f38"
+  },
+  "build": {
+    "archive_bytes": 835983275,
+    "archive_path": "/root/autodl-tmp/vsmt-assets/ai2thor/download/thor-CloudRendering-f0825767cd50d69f666c7f282e54abfe58f1e917.zip",
+    "archive_sha256": "1fd5f998644a6dd522a4cf6604c05360a75a5c27f450a7486c20e52dc2b67bb9",
+    "executable_path": "/root/autodl-tmp/vsmt-assets/ai2thor/releases/thor-CloudRendering-f0825767cd50d69f666c7f282e54abfe58f1e917/thor-CloudRendering-f0825767cd50d69f666c7f282e54abfe58f1e917",
+    "extracted_now": true,
+    "release_path": "/root/autodl-tmp/vsmt-assets/ai2thor/releases/thor-CloudRendering-f0825767cd50d69f666c7f282e54abfe58f1e917"
+  },
+  "confirmation_data_opened": false,
+  "contract_success": true,
+  "contract_tests": 9,
+  "environment_success": true,
+  "exported_at": "2026-09-14T03:23:40.031712+00:00",
+  "generation_performed": false,
+  "package_probe": {
+    "ai2thor": "5.0.0",
+    "procthor": "0.0.1.dev2",
+    "python": "3.9.25"
+  },
+  "reviewed_code": "5833fe01816551f51ecc5cea7dd738407258a188",
+  "schema_version": "vsmt-vm04-l1-environment-report-v1",
+  "smoke": {
+    "depth_shape": [
+      224,
+      224
+    ],
+    "frame_shape": [
+      224,
+      224,
+      3
+    ],
+    "instance_mask_count": 9,
+    "instance_shape": [
+      224,
+      224,
+      3
+    ],
+    "last_action_success": true
+  },
+  "stage_id": "vsmt-vm04-l1-frontend-v1",
+  "training_steps": 0
+}
