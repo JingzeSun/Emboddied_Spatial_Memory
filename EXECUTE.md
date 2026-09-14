@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| VSMT首篇/VM-01～04 | VSMT已合并main；旧53/53 VM-04预检、L1实体22/22及完整结构130/130回执保留。D-140/D-141新代码把place改为共同坐标scaffold、候选改为类型化有界分桶和catalog总容量/护栏审计，并补SPLIT整组、MERGE关系重锚、entity RETRACT/REPLACE、共享dormant路径、共同更新后审计、真实实体主链与退化格失败；本地独立进程155项合同通过，服务器同进程待跑，旧报告不能认证新字节。统计独立单位为family，分类型确认只预登记SPLIT/MERGE/RETRACT；confirmation family数待开发成品率反推。L2/SAM后置；当前0 VM-04 house生成、0训练、0新private/confirmation读取。正式生成/训练数据/检验已要求多worker。LOG-133–141，D-125–141 |
+| VSMT首篇/VM-01～04 | VSMT已合并main；旧53/53 VM-04预检、L1实体22/22及完整结构130/130回执保留。D-140～D-143实现提交`8ea0e13`补齐共同place、类型化容量、关系感知SPLIT/MERGE、entity RETRACT/REPLACE、规范节点BIND与可靠单调包络、packet v3匿名可见体积、机会型dormancy、封闭模板审计及语义编辑记账；本地固定分组42/42、31/31、91/91通过，服务器SSH拒绝连接，正式新回执待跑且旧报告不能认证新字节。统计独立单位为family，分类型确认只预登记SPLIT/MERGE/entity RETRACT；confirmation family数待开发成品率反推。L2/SAM后置；当前0 VM-04 house生成、0训练、0新private/confirmation读取。正式生成/训练数据/检验已要求多worker。LOG-133–142，D-125–143 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
 | R4三模型接入 | D完整适配16项通过（121/200全反向，0更新），W完整适配17项亦通过，F完整适配19项通过；真实公共接口27/27候选通过，0优化/真值读取。209bb34，LOG-123–127 |
 | R4前端v2r1 | 81bceed：19项通过，16历史/144名义预测/16选择完整，误标占据/自由0；物块平均误差9.59 cm、接触Brier 0.1152，全部涉及未知扫掠，正式M/P未就绪。LOG-121 |
@@ -1641,3 +1641,10 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 新共同更新后审计不强迫对照走VSMT executor，但统一验证五方法图、重算delta、检测历史物理删除、既有版本突变和protected节点/incident topology变化。CandidateCatalog新增顶层总容量摘要，并把SPLIT歧义边护栏与总incident-edge护栏分开计数；schema和固定服务器入口同步更新。
 - 统计合同固定family为独立单位、总体九类聚合为主确认主张、SPLIT/MERGE/RETRACT为三项分类型确认性主张，其余六类描述性报告；confirmation family数待开发构造成品率反推并在任何confirmation访问前冻结，2-house audit不承担功效估计。
 - 最新字节在本地独立进程通过executor 42/42、L1 31/31、VSMT 82/82，共155项；JSON/schema和Python语法通过。本机把VSMT项放在同一Python进程复跑时曾在纯Python JSON校验栈发生原生access violation，同一各文件独立进程全部通过，因此不能记服务器验收；固定入口须在服务器同进程通过155项再做合成非数据smoke/export。当前0模拟器、0 house生成、0训练、0private/confirmation读取。
+
+## LOG-142：D-143修订安全实现与待服务器认证（2026-09-14）
+
+- `a93ff2c`、`baf885c`、`7f89ee8`先后登记D-142/D-143协议与闭环细化，随后科学实现`8ea0e136701008be6b93a1e8c5a6dcca6d066bf2`落地并推送main。VSMT节点BIND关闭旧版本并打开携带本次原始AABB和可靠单调包络的successor；packet v3只暴露匿名`visibility_observations`，共享函数以各方法自己的图判未遮挡机会，candidate/confirmed均按连续机会进入dormant，可靠visible-empty继续路由RETRACT。
+- 同批将已有版本变化分成合法关闭、开放版本证据/provenance追加、MERGE封闭语义变化和未声明破坏，后者对五方法fatal；在线自动保护place状态，评价protected集合仍不进adapter输入。严格候选截断记录cutoff与unused capacity，SPLIT/REPLACE共用歧义变量/总变体护栏，RELINK记录端点对计算量；语义记账按高层原子及canonical开放关系事实计算，MERGE重锚不按edge版本周转重复收费。
+- 本地标准库固定分组分别为executor 42/42、L1 31/31、VSMT 91/91，共164项；旧CTL 11/11及旧M1事务正例检查通过，JSON、Python编译和diff检查通过。Windows固定入口用错误补全长哈希时先被精确checkout闸门拒绝；改用真实提交后前两组通过，VSMT组在本机既有间歇性运行时故障中把内置`any`误成`set_iterator`并报2项错误，失败现场保留且没有继续smoke。相同91项独立整组随后/此前通过，故不把本机失败或单独通过冒充服务器验收。
+- 推送后尝试连接已登记服务器，SSH端口返回`Connection refused`，未能同步或运行固定入口。当前0模拟器、0 house生成、0数据生成、0训练、0private/confirmation读取；`scripts/notes.txt`仍为原SHA-256 `af0d4ed625ffb1a754d80ed2f3ccf2401695f6bcaadd4dc8fdc75edc0be8239b`。下一次服务器开启后只需同步`8ea0e13`并依次运行`contracts → smoke → export`。
