@@ -168,7 +168,14 @@ def run_contracts(reviewed_code: str, output_root: Path) -> None:
         sys.executable, "-B", "-m", "unittest", "discover",
         "-s", str(PROJECT_ROOT / "tests"), "-p", "test_l1_masks.py", "-v",
     ]
-    result = run_command(command, timeout=1800)
+    test_environment = dict(os.environ)
+    existing_pythonpath = test_environment.get("PYTHONPATH")
+    test_environment["PYTHONPATH"] = str(PROJECT_ROOT / "src") + (
+        os.pathsep + existing_pythonpath if existing_pythonpath else ""
+    )
+    result = run_command(
+        command, timeout=1800, environment=test_environment,
+    )
     log_path = stage / "contracts.unittest.log"
     log_path.write_text(result["output"], encoding="utf-8")
     print(result["output"], end="")
