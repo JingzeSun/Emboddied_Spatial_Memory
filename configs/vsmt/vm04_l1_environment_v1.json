@@ -1,0 +1,53 @@
+{
+  "version": "vsmt-vm04-l1-environment-v1",
+  "status": "authorized_install_and_smoke_only",
+  "decision": "D-135",
+  "scope": "L1_engineering_prerequisites_not_dataset_generation_or_training",
+  "environment_separation": {
+    "simulator_process": {
+      "environment_path": "/root/autodl-tmp/vsmt-envs/simulator-py39",
+      "python": "3.9.25",
+      "packages": {
+        "ai2thor": "5.0.0",
+        "procthor": "0.0.1.dev2"
+      },
+      "output_boundary": "sealed_RGB_depth_instance_mask_pose_files_only"
+    },
+    "public_materializer_process": {
+      "python": "3.12.3",
+      "torch": "2.8.0+cu128",
+      "DINOv2_repository": "/root/sh05-assets-v1/dinov2",
+      "DINOv2_repository_commit": "7764ea0f912e53c92e82eb78a2a1631e92725fc8",
+      "DINOv2_checkpoint": "/root/sh05-assets-v1/dinowm-native-v1/download/dinov2_vits14_pretrain.pth",
+      "DINOv2_checkpoint_sha256": "b938bf1bc15cd2ec0feacfe3a1bb553fe8ea9ca46a7e1d8d00217f29aef60cd9"
+    }
+  },
+  "system_runtime": {
+    "required_packages": ["libvulkan1", "vulkan-tools"],
+    "required_GPU": "NVIDIA_GeForce_RTX_4080_SUPER",
+    "CloudRendering_smoke_scene": "FloorPlan1",
+    "smoke_resolution": [224, 224],
+    "smoke_outputs": ["RGB", "depth", "instance_segmentation", "instance_masks"]
+  },
+  "reviewed_assets": {
+    "AI2_THOR_CloudRendering_commit": "f0825767cd50d69f666c7f282e54abfe58f1e917",
+    "AI2_THOR_CloudRendering_zip_bytes": 835983275,
+    "AI2_THOR_CloudRendering_zip_sha256": "1fd5f998644a6dd522a4cf6604c05360a75a5c27f450a7486c20e52dc2b67bb9",
+    "asset_root": "/root/autodl-tmp/vsmt-assets/ai2thor"
+  },
+  "authorization": {
+    "dependency_install": true,
+    "reviewed_asset_download": true,
+    "simulator_smoke": true,
+    "dataset_generation": false,
+    "training": false,
+    "confirmation": false
+  },
+  "explicitly_absent": [
+    "SAM_or_other_L2_frontend",
+    "teacher",
+    "reference_transaction",
+    "future_observation",
+    "confirmation_house_ID"
+  ]
+}

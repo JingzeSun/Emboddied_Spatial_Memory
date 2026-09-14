@@ -141,7 +141,7 @@ VM-04 v1拟把单步机制比较和长期自反馈分开。`controlled_revision`
 
 VM-05拟增加三个同架构内部对照，但不改变五个主臂。Direct Reference Candidate Ranker（DRCR，直接参考候选排序器）使用同一在线网络和已封存 catalog，训练标签直接来自参考等价组，不使用执行后未来 teacher；No-Execution Candidate Scorer（NECS，无执行候选评分器）使用同一 catalog 和 teacher target，但不编码候选执行后的图；Public Heuristic Ranker（PHR，公开启发式排序器）完全不学习，只按冻结公开相似度排序。三者输入边界与 VSMT 相同，输出候选槽位。例如 NECS 若已经解释全部收益，说明“执行候选后再比较”没有获得独立支持。它们是 VSMT 因果消融，不是 ConceptGraphs/Fusion++/Khronos 的替代，也不自动获得主方法地位。
 
-### L1-first共同机制诊断合同（D-132/D-133，proposed、不可执行）
+### L1-first共同机制诊断合同（D-132/D-133/D-135，方向已认可、数值未冻结）
 
 [L1-only机器提案](../configs/vsmt/vm04_l1_contract_proposal_v1.json)把用户决定的“先做L1”限定为五方法共同的 oracle-structured diagnostic（真值区域提议机制诊断），而不是VSMT专属上界。输入是同一AI2-THOR序列中的当前RGB、公开depth/pose及只在隔离materializer可见的instance mask；输出是去掉instance ID、每帧重新编号的匿名区域、冻结DINOv2描述、公开可见几何和共同`ObservationPacket`。例如把模拟器椅子ID从7换成19但mask像素不变时，五方法看到的区域、描述、prior和候选必须逐字节不变。它不提供跨帧真值身份、对象类别、真值姿态/网格、reference事务或未来，也不能进入L2主排名。
 
@@ -154,6 +154,8 @@ L1的冻结DINOv2区域描述拟用224×224原RGB、不裁剪不增强，按官�
 VSMT Online Candidate Selector（VSMT在线候选选择器，planned）拟对每个已封存候选独立复用同一个打分器：分别编码类型化prior摘要、程序/在线证据、候选触及的执行前子图、真实执行后的子图和规范delta，再用逐候选MLP输出一个logit；不接受candidate slot、目录顺序、路径或样本名。所有候选从同一基图真实执行并封存后才打分，最大logit提交，严格并列按程序规范摘要排序。例如把同一候选集合换序时，每个程序的logit跟着程序而不是槽号移动，最终选择不变。它不让teacher生成候选，也不是DINO视觉adapter；隐藏宽度、层数、参数和训练预算仍未冻结。
 
 同架构对照按该选择器边界解释：DRCR保留全部在线输入但用直接reference等价标签训练；NECS把post-state和delta分支替换为固定零张量且不能打开post graph；PHR只用封存前的公开候选分数。五个主臂中TAF/ELU/WFR/LOW仍直接从同一`AdapterInput`产生图更新，不经过VSMT选择器。输入都是同一L1区域与prior，输出各自`MemoryUpdateResult`；例如ELU仍只能在公开自由空间完整覆盖时降低存在分数。它不强迫四个机制适配器伪装成候选分类器，也不赋予任何一方额外视觉信息。
+
+`L1MaskMaterialization`（L1匿名mask物化，implementation candidate）只完成第一道隔离：临时输入当前帧`instance_id → binary mask`，把每个实例的全部可见像素保留为一个mask，按首个非零像素、像素数和mask摘要公开排序，输出逐帧匿名编号、mask缓存及支持不足的匿名失败。真实ID只进入单独私有映射摘要；空mask不公开，重叠instance mask整帧拒绝，最小像素与边界截断策略无默认值。例如同一椅子的椅背和两条腿被桌面隔开时仍输出一个区域，两只相似杯子仍输出两个区域。它不做跨帧跟踪、DINO描述、三维投影、候选生成或事务选择，当前本地只做AST检查，必须由服务器新测试回执认证。
 
 当前提案要求八个反作弊正反例：instance ID置换、私有mask枚举换序、同实例跨帧重编号、两相似实体同时可见、遮挡不等于自由空间、过小/无有效depth区域失败保留、private/future变异不改在线字节，以及catalog校验后只换scorer batch顺序仍保持逐程序logit。它们输入合法或故意破坏的成对记录，输出逐字节不变或明确失败；例如正确MERGE因公开证据不足未进入catalog时只能记candidate miss。它们不修改封存catalog或teacher槽位，不是数据效果样本，也不能替代2-house真实audit。
 

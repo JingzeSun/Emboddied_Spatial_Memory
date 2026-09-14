@@ -50,6 +50,15 @@ from .vm04_protocol import (
     validate_family_split_manifest,
     validate_vm04_protocol,
 )
+from .l1_masks import (
+    KEEP_SUPPORTED_BORDER_REGIONS,
+    REJECT_BORDER_REGIONS,
+    AnonymousMask,
+    L1MaskConfig,
+    L1MaskMaterialization,
+    RejectedAnonymousMask,
+    anonymize_instance_masks,
+)
 
 __all__ = [
     "AdapterInput",
@@ -91,4 +100,11 @@ __all__ = [
     "validate_episode_plan_manifests",
     "validate_family_split_manifest",
     "validate_vm04_protocol",
+    "KEEP_SUPPORTED_BORDER_REGIONS",
+    "REJECT_BORDER_REGIONS",
+    "AnonymousMask",
+    "L1MaskConfig",
+    "L1MaskMaterialization",
+    "RejectedAnonymousMask",
+    "anonymize_instance_masks",
 ]

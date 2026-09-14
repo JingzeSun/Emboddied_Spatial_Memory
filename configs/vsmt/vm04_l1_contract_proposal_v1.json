@@ -1,16 +1,34 @@
 {
   "version": "vsmt-vm04-l1-contract-proposal-v1",
-  "status": "proposed_non_executable",
-  "decision": "D-133",
+  "status": "direction_approved_implementation_authorized_not_executable",
+  "decision": "D-135",
   "approval": {
+    "directional_boundary_approved": true,
     "contract_approved": false,
-    "implementation_authorized": false,
-    "dependency_install_authorized": false,
-    "asset_download_authorized": false,
+    "implementation_authorized": true,
+    "dependency_install_authorized": true,
+    "asset_download_authorized": true,
     "audit_generation_authorized": false,
     "train_validation_generation_authorized": false,
     "training_authorized": false,
     "confirmation_authorized": false
+  },
+  "authorization_scope": {
+    "allowed_now": [
+      "L1_contract_and_materializer_implementation",
+      "necessary_server_contract_tests",
+      "isolated_AI2_THOR_and_ProcTHOR_environment_setup",
+      "reviewed_AI2_THOR_CloudRendering_build_download",
+      "reuse_of_existing_reviewed_DINOv2_repository_and_checkpoint",
+      "non_dataset_simulator_smoke_test"
+    ],
+    "still_blocked": [
+      "SAM_or_other_L2_frontend_install_or_download",
+      "two_house_audit_generation_until_manifest_and_support_rules_are_frozen",
+      "train_or_validation_generation",
+      "selector_training",
+      "confirmation_generation_or_reveal"
+    ]
   },
   "scope": {
     "evidence_level": "L1_oracle_structured_diagnostic",

@@ -22,6 +22,8 @@
 
 `ObservationPacket` 是共同在线输入包，VM-01 精确字段为：`schema_version, sample_id_hash, decision_time_s, rgbd_refs, camera_pose, robot_state, past_actions, region_observations, free_space_observations, prior_memory_ref, public_constants`。`sample_id_hash`、`rgbd_refs` 和 `prior_memory_ref` 只作外层对齐/摘要绑定，`build_adapter_input` 会删除它们；适配器实际得到决策时间、相机位姿、机器人状态、已结束动作、匿名区域、传感器派生自由空间、已校验 prior memory 和公共常数。`region_observations` 当前含包内顺序号、匿名 `structure_kind`、mask 摘要、descriptor、质心、包围尺寸、可靠性和冻结 proposal 来源，不含永久身份或原图路径。`free_space_observations` 是由公开深度射线保守内包得到的轴对齐盒，含包内顺序号、合法历史 `time_s`、三维上下界、可靠性和支持摘要；至少两个不同历史时刻的覆盖证据才能组成 executor 可接受的 RETRACT/REPLACE 负证据链。例如旧节点包围盒在连续两帧都完整落入高可靠自由盒时，ELU 才得到负观测候选。它不是真值空区、不提供被删对象 ID，具体深度到内包盒的数值规则仍须 VM-04 前冻结。
 
+L1第一道隔离缓存`vsmt-l1-anonymous-mask-cache-v1`保存图像高宽、按内容排序的匿名区域和匿名拒绝记录。区域含包内`region_id`、固定`entity`结构类型、mask摘要、行优先0/1像素、可见像素数和是否触边；拒绝项只含mask摘要、支持数、触边标志和固定原因。输入instance ID既不进入公开字段，也不参与公开排序或缓存摘要，只形成访问受限的映射摘要。例如把模拟器ID从`Cup|7`换成`opaque-b`而mask不变，公开缓存必须逐字节相同，私有映射摘要应改变。它还不是`ObservationPacket`：DINO描述、公开几何和可靠性完成并通过阈值后才能组包。
+
 `causal_prior_receipt`（因果旧记忆回执，planned）解决 prior memory 虽然字段合法、其值却可能由 simulator instance ID 或 reference transaction 预先构造的问题。输入只读 public 序列、初始空图或公开初始化和冻结更新器版本，输出每步输入摘要、提交事务摘要、图版本链及最终图摘要；构建进程不得挂载 `teacher/private_eval`。例如把私有椅子 ID 从 7 改成 19 而 public 字节不变时，最终 prior memory 必须逐字节不变。它不等于把私有 ID 哈希后就成为公开值，也不允许用 reference graph 初始化历史。
 
 VM-01 当前代码已拒绝旧式语义 `latent_refs`：可部署旧记忆的该字段只能为空或形如 `latent:<16–64位十六进制摘要>`，并有测试禁止 `src/vsmt/` 导入旧 `cpmt.m1_*` query/feature 模块。这是必要的静态门，不是充分的因果证明；VM-04 生成器仍须实现上面的无私有挂载回执与 private mutation 检查。
