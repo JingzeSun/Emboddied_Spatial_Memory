@@ -20,6 +20,7 @@ from cpmt.hashing import canonical_json
 
 from .l1_entities import (
     DINORegionConfig,
+    L1EntityConstructionError,
     L1EntityObservation,
     _camera_values,
     pool_dinov2_region_descriptor,
@@ -208,7 +209,9 @@ class FreeSpaceMaterializationConfig:
 class MaterializedRegion:
     structure_kind: str
     mask_sha256: str
-    mask_values: tuple[int, ...]
+    mask_bytes: bytes
+    mask_first_true_index: int
+    mask_pixel_count: int
     height: int
     width: int
     descriptor: tuple[float, ...]
@@ -221,7 +224,10 @@ class MaterializedRegion:
     place_cell_xz: tuple[int, int] | None = None
 
     def mask_array(self) -> np.ndarray:
-        return np.asarray(self.mask_values, dtype=np.bool_).reshape(self.height, self.width)
+        values = np.frombuffer(self.mask_bytes, dtype=np.uint8)
+        if len(values) != self.height * self.width:
+            raise L1StructureConstructionError("materialized_mask_shape_mismatch")
+        return values.astype(np.bool_, copy=True).reshape(self.height, self.width)
 
     def public_record(self, region_id: str) -> dict[str, Any]:
         return {
@@ -234,6 +240,30 @@ class MaterializedRegion:
             "reliability": self.reliability,
             "proposal_source_id": self.proposal_source_id,
         }
+
+
+@dataclass(frozen=True)
+class RejectedPlaceCell:
+    place_cell_xz: tuple[int, int]
+    mask_sha256: str
+    mask_pixel_count: int
+    covered_subcells: int
+    reason: str
+
+    def public_record(self) -> dict[str, Any]:
+        return {
+            "place_cell_xz": list(self.place_cell_xz),
+            "mask_sha256": self.mask_sha256,
+            "mask_pixel_count": self.mask_pixel_count,
+            "covered_subcells": self.covered_subcells,
+            "reason": self.reason,
+        }
+
+
+@dataclass(frozen=True)
+class PlaceMaterialization:
+    regions: tuple[MaterializedRegion, ...]
+    rejected: tuple[RejectedPlaceCell, ...]
 
 
 @dataclass(frozen=True)
@@ -262,6 +292,16 @@ def _mask_sha256(mask: np.ndarray) -> str:
     height, width = mask.shape
     payload = [int(height), int(width), *mask.astype(np.uint8).reshape(-1).tolist()]
     return hashlib.sha256(canonical_json(payload).encode("utf-8")).hexdigest()
+
+
+def _mask_storage(mask: np.ndarray) -> tuple[bytes, int, int]:
+    """Store one byte per pixel and cache deterministic ordering statistics."""
+
+    binary = np.ascontiguousarray(mask, dtype=np.uint8).reshape(-1)
+    indices = np.flatnonzero(binary)
+    if not len(indices):
+        raise L1StructureConstructionError("empty_materialized_mask")
+    return binary.tobytes(), int(indices[0]), int(len(indices))
 
 
 def _world_point_grid(
@@ -428,10 +468,13 @@ def materialize_public_surfaces(
         )
         centroid = inlier_points.mean(axis=0)
         extent = inlier_points.max(axis=0) - inlier_points.min(axis=0)
+        mask_bytes, first_true, pixel_count = _mask_storage(inlier_mask)
         results.append(MaterializedRegion(
             structure_kind="surface",
             mask_sha256=_mask_sha256(inlier_mask),
-            mask_values=tuple(int(value) for value in inlier_mask.reshape(-1)),
+            mask_bytes=mask_bytes,
+            mask_first_true_index=first_true,
+            mask_pixel_count=pixel_count,
             height=height,
             width=width,
             descriptor=descriptor.values,
@@ -443,7 +486,7 @@ def materialize_public_surfaces(
             plane_offset_m=float(offset),
         ))
     return tuple(sorted(results, key=lambda item: (
-        item.mask_values.index(1), sum(item.mask_values), item.mask_sha256,
+        item.mask_first_true_index, item.mask_pixel_count, item.mask_sha256,
     )))
 
 
@@ -452,8 +495,8 @@ def materialize_public_places(
     calibration: Mapping[str, Any], pose: Mapping[str, Any], patch_tokens: Any,
     descriptor_config: DINORegionConfig, surface_config: SurfaceMaterializationConfig,
     config: PlaceMaterializationConfig,
-) -> tuple[MaterializedRegion, ...]:
-    """Convert observed floor-like surface pixels into world-aligned place cells."""
+) -> PlaceMaterialization:
+    """Return accepted place cells and stable public reasons for rejected cells."""
 
     world, _ = _world_point_grid(
         depth_m, calibration, pose,
@@ -496,9 +539,18 @@ def materialize_public_places(
             cell_mask[rows[selected], columns[selected]] = True
 
     results: list[MaterializedRegion] = []
+    rejected: list[RejectedPlaceCell] = []
     for key, mask in sorted(cell_masks.items()):
         pixel_count = int(mask.sum())
+        mask_sha256 = _mask_sha256(mask)
         if pixel_count < config.minimum_mask_pixels:
+            rejected.append(RejectedPlaceCell(
+                place_cell_xz=key,
+                mask_sha256=mask_sha256,
+                mask_pixel_count=pixel_count,
+                covered_subcells=0,
+                reason="below_minimum_place_mask_pixels",
+            ))
             continue
         points = world[mask]
         cell_x0 = origin_x + key[0] * config.cell_size_m
@@ -516,22 +568,59 @@ def materialize_public_places(
         )
         covered = len(set(zip(sub_x[inside].tolist(), sub_z[inside].tolist())))
         if covered < config.minimum_covered_subcells:
+            rejected.append(RejectedPlaceCell(
+                place_cell_xz=key,
+                mask_sha256=mask_sha256,
+                mask_pixel_count=pixel_count,
+                covered_subcells=covered,
+                reason="below_minimum_place_subcell_coverage",
+            ))
             continue
-        normal, offset, _, _ = _canonical_plane(points)
+        try:
+            normal, offset, _, _ = _canonical_plane(points)
+        except L1StructureConstructionError as caught:
+            rejected.append(RejectedPlaceCell(
+                place_cell_xz=key,
+                mask_sha256=mask_sha256,
+                mask_pixel_count=pixel_count,
+                covered_subcells=covered,
+                reason=caught.reason,
+            ))
+            continue
         if abs(float(normal[1])) <= 1e-9:
+            rejected.append(RejectedPlaceCell(
+                place_cell_xz=key,
+                mask_sha256=mask_sha256,
+                mask_pixel_count=pixel_count,
+                covered_subcells=covered,
+                reason="place_plane_vertical_component_too_small",
+            ))
             continue
         center_x = cell_x0 + config.cell_size_m / 2.0
         center_z = cell_z0 + config.cell_size_m / 2.0
         center_y = (
             offset - float(normal[0]) * center_x - float(normal[2]) * center_z
         ) / float(normal[1])
-        descriptor = pool_dinov2_region_descriptor(
-            patch_tokens, mask, descriptor_config,
-        )
+        try:
+            descriptor = pool_dinov2_region_descriptor(
+                patch_tokens, mask, descriptor_config,
+            )
+        except L1EntityConstructionError as caught:
+            rejected.append(RejectedPlaceCell(
+                place_cell_xz=key,
+                mask_sha256=mask_sha256,
+                mask_pixel_count=pixel_count,
+                covered_subcells=covered,
+                reason=caught.reason,
+            ))
+            continue
+        mask_bytes, first_true, stored_pixel_count = _mask_storage(mask)
         results.append(MaterializedRegion(
             structure_kind="place",
-            mask_sha256=_mask_sha256(mask),
-            mask_values=tuple(int(value) for value in mask.reshape(-1)),
+            mask_sha256=mask_sha256,
+            mask_bytes=mask_bytes,
+            mask_first_true_index=first_true,
+            mask_pixel_count=stored_pixel_count,
             height=mask.shape[0],
             width=mask.shape[1],
             descriptor=descriptor.values,
@@ -543,9 +632,12 @@ def materialize_public_places(
             plane_offset_m=float(offset),
             place_cell_xz=key,
         ))
-    return tuple(sorted(results, key=lambda item: (
-        item.mask_values.index(1), sum(item.mask_values), item.mask_sha256,
-    )))
+    return PlaceMaterialization(
+        regions=tuple(sorted(results, key=lambda item: (
+            item.mask_first_true_index, item.mask_pixel_count, item.mask_sha256,
+        ))),
+        rejected=tuple(rejected),
+    )
 
 
 def _normalized_halfspace(
@@ -712,10 +804,13 @@ def entity_regions_with_masks(
         mask = mask_by_id.get(entity.region_id)
         if mask is None or mask.mask_sha256 != entity.mask_sha256:
             raise ValueError("entity observation and anonymous mask do not match")
+        mask_bytes, first_true, pixel_count = _mask_storage(mask.as_array())
         results.append(MaterializedRegion(
             structure_kind="entity",
             mask_sha256=entity.mask_sha256,
-            mask_values=mask.row_major_values,
+            mask_bytes=mask_bytes,
+            mask_first_true_index=first_true,
+            mask_pixel_count=pixel_count,
             height=mask.height,
             width=mask.width,
             descriptor=entity.descriptor.values,
@@ -735,13 +830,13 @@ def assemble_region_records(
 
     ordered = [
         *sorted(entities, key=lambda item: (
-            item.mask_values.index(1), sum(item.mask_values), item.mask_sha256,
+            item.mask_first_true_index, item.mask_pixel_count, item.mask_sha256,
         )),
         *sorted(places, key=lambda item: (
-            item.mask_values.index(1), sum(item.mask_values), item.mask_sha256,
+            item.mask_first_true_index, item.mask_pixel_count, item.mask_sha256,
         )),
         *sorted(surfaces, key=lambda item: (
-            item.mask_values.index(1), sum(item.mask_values), item.mask_sha256,
+            item.mask_first_true_index, item.mask_pixel_count, item.mask_sha256,
         )),
     ]
     records: list[dict[str, Any]] = []

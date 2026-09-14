@@ -299,14 +299,24 @@ def run_smoke(reviewed_code: str, output_root: Path) -> None:
             empty_public_memory,
         )
         from vsmt.contracts import validate_observation_packet
-        from vsmt.l1_entities import DINORegionConfig
+        from vsmt.l1_entities import (
+            AI2THOR_CAMERA_AXIS_Z,
+            DINORegionConfig,
+            PublicGeometryConfig,
+            materialize_l1_entity_observation,
+        )
+        from vsmt.l1_masks import (
+            KEEP_SUPPORTED_BORDER_REGIONS,
+            L1MaskConfig,
+            anonymize_instance_masks,
+        )
         from vsmt.l1_structures import (
             FreeSpaceMaterializationConfig,
-            MaterializedRegion,
             PlaceMaterializationConfig,
             SurfaceMaterializationConfig,
             assemble_free_space_history,
             assemble_region_records,
+            entity_regions_with_masks,
             materialize_public_free_space,
             materialize_public_places,
             materialize_public_relations,
@@ -407,28 +417,34 @@ def run_smoke(reviewed_code: str, output_root: Path) -> None:
         surfaces = materialize_public_surfaces(
             depth, calibration, pose, tokens, descriptor_config, surface_config,
         )
-        places = materialize_public_places(
+        place_result = materialize_public_places(
             surfaces, depth, calibration, pose, tokens, descriptor_config,
             surface_config, place_config,
         )
+        places = place_result.regions
         if not surfaces or not places:
             raise RuntimeError("synthetic public floor did not materialize")
         entity_mask = np.zeros((224, 224), dtype=np.bool_)
-        entity_mask[0, 0] = True
-        place = places[0]
-        entity = MaterializedRegion(
-            structure_kind="entity",
-            mask_sha256=hashlib.sha256(entity_mask.astype(np.uint8).tobytes()).hexdigest(),
-            mask_values=tuple(int(value) for value in entity_mask.reshape(-1)),
-            height=224,
-            width=224,
-            descriptor=(1.0, 0.0, 0.0, 0.0),
-            centroid_m=(place.centroid_m[0], place.centroid_m[1] + 0.1, place.centroid_m[2]),
-            extent_m=(0.1, 0.2, 0.1),
-            reliability=1.0,
-            proposal_source_id="fixture.public.entity.v1",
+        entity_mask[:14, :14] = True
+        anonymous = anonymize_instance_masks(
+            {"smoke-private-entity": entity_mask},
+            L1MaskConfig(196, KEEP_SUPPORTED_BORDER_REGIONS),
         )
-        regions, indexed = assemble_region_records([entity], places, surfaces)
+        entity_observation = materialize_l1_entity_observation(
+            anonymous.regions[0], tokens, depth, calibration, pose,
+            descriptor_config,
+            PublicGeometryConfig(
+                depth_convention=AI2THOR_CAMERA_AXIS_Z,
+                minimum_depth_m=0.05,
+                maximum_depth_m=20.0,
+                absolute_minimum_valid_depth_points=32,
+                minimum_valid_depth_fraction=0.25,
+            ),
+        )
+        entities = entity_regions_with_masks(
+            [entity_observation], anonymous.regions,
+        )
+        regions, indexed = assemble_region_records(entities, places, surfaces)
         relations = materialize_public_relations(
             indexed,
             place_config=place_config,

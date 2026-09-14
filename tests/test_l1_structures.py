@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import math
 from pathlib import Path
 import sys
 import unittest
+from unittest.mock import patch
 
 import numpy as np
 
@@ -18,14 +20,26 @@ from cpmt.executor import ContractError, execute_transaction  # noqa: E402
 from cpmt.hashing import seal_graph  # noqa: E402
 from vsmt.contracts import validate_observation_packet  # noqa: E402
 from vsmt.graph_ops import STATE_KEY, fully_covered_by_free_space  # noqa: E402
-from vsmt.l1_entities import DINORegionConfig  # noqa: E402
+from vsmt.l1_entities import (  # noqa: E402
+    AI2THOR_CAMERA_AXIS_Z,
+    DINORegionConfig,
+    PublicGeometryConfig,
+    materialize_l1_entity_observation,
+)
+from vsmt.l1_masks import (  # noqa: E402
+    KEEP_SUPPORTED_BORDER_REGIONS,
+    L1MaskConfig,
+    anonymize_instance_masks,
+)
 from vsmt.l1_structures import (  # noqa: E402
     FreeSpaceMaterializationConfig,
+    L1StructureConstructionError,
     MaterializedRegion,
     PlaceMaterializationConfig,
     SurfaceMaterializationConfig,
     assemble_free_space_history,
     assemble_region_records,
+    entity_regions_with_masks,
     materialize_public_free_space,
     materialize_public_places,
     materialize_public_relations,
@@ -106,6 +120,66 @@ def mask_digest(mask: np.ndarray) -> str:
 
 
 class PublicStructureMaterializerTests(unittest.TestCase):
+    def test_anonymous_entity_bridge_reaches_a_valid_packet(self) -> None:
+        mask = np.zeros((224, 224), dtype=np.bool_)
+        mask[:14, :14] = True
+        anonymous = anonymize_instance_masks(
+            {"private-chair-id": mask},
+            L1MaskConfig(196, KEEP_SUPPORTED_BORDER_REGIONS),
+        )
+        entity = materialize_l1_entity_observation(
+            anonymous.regions[0], patch_tokens(),
+            np.ones((224, 224), dtype=np.float32), calibration(), {
+                "position_m": [0.0, 0.0, 0.0],
+                "quaternion_xyzw": [0.0, 0.0, 0.0, 1.0],
+            }, descriptor_config(), PublicGeometryConfig(
+                depth_convention=AI2THOR_CAMERA_AXIS_Z,
+                minimum_depth_m=0.05,
+                maximum_depth_m=20.0,
+                absolute_minimum_valid_depth_points=32,
+                minimum_valid_depth_fraction=0.25,
+            ),
+        )
+        bridged = entity_regions_with_masks([entity], anonymous.regions)
+        records, _ = assemble_region_records(bridged, [], [])
+        memory = seal_graph({
+            "schema_version": "cpmt-0.2",
+            "graph_id": "graph:entity-bridge",
+            "graph_version": "v0",
+            "parent_version": None,
+            "nodes": [],
+            "edges": [],
+            "transaction_log": [],
+        })
+        packet = {
+            "schema_version": "vsmt-observation-packet-v2",
+            "sample_id_hash": "1" * 64,
+            "decision_time_s": 0.0,
+            "rgbd_refs": {"rgb_sha256": "2" * 64, "depth_sha256": "3" * 64},
+            "camera_pose": {
+                "position_m": [0.0, 0.0, 0.0],
+                "quaternion_xyzw": [0.0, 0.0, 0.0, 1.0],
+            },
+            "robot_state": {"feature_names": [], "values": []},
+            "past_actions": [],
+            "region_observations": records,
+            "relation_observations": [],
+            "free_space_observations": [],
+            "prior_memory_ref": {
+                "graph_version": memory["graph_version"],
+                "graph_sha256": memory["graph_hash"],
+            },
+            "public_constants": {
+                "coordinate_frame": "map",
+                "depth_unit": "metre",
+                "descriptor_model_id": "dinov2.vits14",
+                "proposal_model_id": "fixed.region.v2",
+            },
+        }
+        validate_observation_packet(packet)
+        self.assertEqual(records[0]["mask_sha256"], anonymous.regions[0].mask_sha256)
+        self.assertNotIn("private-chair-id", json.dumps(packet, sort_keys=True))
+
     def test_floor_depth_yields_surface_and_observed_place_cells(self) -> None:
         depth = np.full((224, 224), 1.575, dtype=np.float32)
         half = math.sqrt(0.5)
@@ -119,16 +193,18 @@ class PublicStructureMaterializerTests(unittest.TestCase):
         )
         self.assertEqual(len(surfaces), 1)
         self.assertEqual(surfaces[0].structure_kind, "surface")
-        self.assertGreaterEqual(sum(surfaces[0].mask_values), 784)
+        self.assertGreaterEqual(surfaces[0].mask_pixel_count, 784)
         self.assertAlmostEqual(abs(surfaces[0].plane_normal[1]), 1.0, places=6)
-        places = materialize_public_places(
+        place_result = materialize_public_places(
             surfaces, depth, calibration(), pose, patch_tokens(),
             descriptor_config(), surface_config(), place_config(),
         )
+        places = place_result.regions
         self.assertTrue(places)
         self.assertTrue(all(item.structure_kind == "place" for item in places))
         self.assertTrue(all(item.extent_m == (0.5, 0.0, 0.5) for item in places))
         self.assertTrue(all(item.reliability >= 16 / 25 for item in places))
+        self.assertIsInstance(place_result.rejected, tuple)
 
     def test_curved_depth_does_not_pass_planar_surface_contract(self) -> None:
         rows, columns = np.indices((224, 224))
@@ -140,6 +216,31 @@ class PublicStructureMaterializerTests(unittest.TestCase):
             }, patch_tokens(), descriptor_config(), surface_config(),
         )
         self.assertEqual(surfaces, ())
+
+    def test_degenerate_place_cell_is_recorded_without_aborting_frame(self) -> None:
+        depth = np.full((224, 224), 1.575, dtype=np.float32)
+        half = math.sqrt(0.5)
+        pose = {
+            "position_m": [0.0, 1.575, 0.0],
+            "quaternion_xyzw": [half, 0.0, 0.0, half],
+        }
+        surfaces = materialize_public_surfaces(
+            depth, calibration(), pose, patch_tokens(), descriptor_config(),
+            surface_config(),
+        )
+        with patch(
+            "vsmt.l1_structures._canonical_plane",
+            side_effect=L1StructureConstructionError("degenerate_plane_points"),
+        ):
+            result = materialize_public_places(
+                surfaces, depth, calibration(), pose, patch_tokens(),
+                descriptor_config(), surface_config(), place_config(),
+            )
+        self.assertEqual(result.regions, ())
+        self.assertTrue(result.rejected)
+        self.assertIn(
+            "degenerate_plane_points", {item.reason for item in result.rejected},
+        )
 
     def test_multiscale_free_space_has_341_frusta_and_rolling_history(self) -> None:
         depth = np.full((224, 224), 2.0, dtype=np.float32)
@@ -206,7 +307,9 @@ class PublicRelationTests(unittest.TestCase):
         return MaterializedRegion(
             structure_kind=kind,
             mask_sha256=mask_digest(mask),
-            mask_values=tuple(int(value) for value in mask.reshape(-1)),
+            mask_bytes=np.ascontiguousarray(mask, dtype=np.uint8).tobytes(),
+            mask_first_true_index=int(np.flatnonzero(mask)[0]),
+            mask_pixel_count=int(mask.sum()),
             height=mask.shape[0],
             width=mask.shape[1],
             descriptor=(1.0, 0.0),
