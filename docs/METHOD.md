@@ -159,6 +159,8 @@ VSMT Online Candidate Selector（VSMT在线候选选择器，planned）拟对每
 
 当前提案要求八个反作弊正反例：instance ID置换、私有mask枚举换序、同实例跨帧重编号、两相似实体同时可见、遮挡不等于自由空间、过小/无有效depth区域失败保留、private/future变异不改在线字节，以及catalog校验后只换scorer batch顺序仍保持逐程序logit。它们输入合法或故意破坏的成对记录，输出逐字节不变或明确失败；例如正确MERGE因公开证据不足未进入catalog时只能记candidate miss。它们不修改封存catalog或teacher槽位，不是数据效果样本，也不能替代2-house真实audit。
 
+正式生成、训练和validation/评价必须采用多worker。生成按完整house family确定性分片；训练在当前单GPU上保持一个learner进程，但至少两个数据读取/预处理worker，独立方法/seed可由外层worker排队而不能未经容量批准并抢同一GPU；validation/评价按封存episode或完整family并行，公开预测全部封存后才打开private评价。输入是冻结清单、worker数和资源上限，输出每worker分片/seed/退出/摘要及与完成顺序无关的规范合并。例如4个生成worker各拿互斥house集合，即使第3个先完成，最终报告仍按family ID排序。它不把并发执行变成更多样本，也不允许失败worker由别的house替换；具体worker数须在正式运行前经capacity probe（容量探测）后冻结。
+
 ## 当前候选：空间历史对动作后果预测的作用（D-062，proposed）
 
 研究问题：近期传感器信息和机器人控制指令相同，但早期观察揭示了不同遮挡区结构，模型能否预测不同的视野外交互后果，并改善固定候选动作的选择？输入为合法历史、候选控制和共同目标；输出为未来物块位置序列与接触判断。例如左侧挡板曾经可见，后来完全被遮挡，同一左推控制应与没有该挡板的场景产生不同预测。这不是证明“显式三维状态必胜”，也不是输入物体目标位移后生成视觉效果。

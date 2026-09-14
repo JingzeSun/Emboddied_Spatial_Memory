@@ -259,6 +259,17 @@
     "method_specific_RGB_encoder_or_visual_adapter": false,
     "formal_thresholds": null
   },
+  "parallel_execution": {
+    "formal_generation_requires_multiple_house_family_workers": true,
+    "formal_training_requires_multiple_data_workers": true,
+    "formal_validation_and_evaluation_require_multiple_workers": true,
+    "minimum_workers_per_parallel_stage": 2,
+    "exact_worker_counts": null,
+    "single_GPU_training_process_until_separate_capacity_approval": true,
+    "worker_counts_require_capacity_probe_and_freeze_before_run": true,
+    "output_order_is_canonical_and_independent_of_completion_order": true,
+    "single_worker_only_for_contract_smoke_or_failure_reproduction": true
+  },
   "teacher_and_evaluator": {
     "teacher_opens_private_only_after_catalog_and_all_candidate_post_states_are_sealed": true,
     "teacher_outputs": "score_and_probability_for_each_existing_candidate_id_in_original_order",
@@ -329,6 +340,7 @@
     "teacher_candidate_score_components_and_temperature",
     "S01_to_S12_graph_equivalence_and_aggregate_metric_policy",
     "nuisance_probe_gate",
+    "generation_training_data_and_validation_worker_counts",
     "two_house_audit_manifest_and_runtime_budget"
   ],
   "claims": {

@@ -363,6 +363,39 @@
     "resume_policy": "verify_manifest_digest_and_exit_marker_then_continue_from_earliest_missing_family",
     "overwrite_failed_or_completed_family": false
   },
+  "parallel_execution_requirement": {
+    "status": "required_design_worker_counts_pending_capacity_review",
+    "formal_single_worker_run_allowed": false,
+    "generation": {
+      "unit": "whole_house_family",
+      "minimum_workers": 2,
+      "worker_count": null,
+      "deterministic_partition": true,
+      "failed_worker_stops_new_dispatch_and_preserves_completed_families": true
+    },
+    "training": {
+      "gpu_learner_processes": 1,
+      "minimum_data_workers": 2,
+      "data_worker_count": null,
+      "independent_method_seed_runs_may_be_scheduled_as_workers": true,
+      "concurrent_gpu_runs_require_separate_capacity_approval": true
+    },
+    "validation_and_evaluation": {
+      "unit": "sealed_episode_or_whole_house_family",
+      "minimum_workers": 2,
+      "worker_count": null,
+      "prediction_seals_before_private_evaluation": true
+    },
+    "required_receipts": [
+      "requested_and_actual_worker_counts",
+      "capacity_probe",
+      "deterministic_worker_assignments",
+      "per_worker_seed_start_exit_and_artifact_digests",
+      "not_started_and_missing_exit_items",
+      "canonical_merged_output_digest"
+    ],
+    "single_worker_exception": "contract_tests_non_dataset_smoke_or_user_requested_failure_reproduction_only"
+  },
   "required_review_decisions": [
     "pin_audited_AI2THOR_ProcTHOR_and_SAM_artifacts_and_license_snapshots",
     "freeze_all_region_geometry_free_space_and_bootstrap_thresholds",
@@ -370,6 +403,7 @@
     "freeze_candidate_caps_and_teacher_temperature",
     "freeze_S01_to_S12_numeric_and_aggregation_choices",
     "set_nuisance_probe_gate",
+    "freeze_generation_training_data_and_validation_worker_counts_after_capacity_probe",
     "approve_separate_audit_generation_budget_before_any_generation"
   ],
   "claims": {

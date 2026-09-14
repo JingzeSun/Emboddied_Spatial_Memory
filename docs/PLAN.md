@@ -22,7 +22,7 @@
 
 ### 当前指针
 
-**VSMT 已在 `main`；五方法共同L1的实体物化数值已认可，当前指针是完成DINO区域描述与公开可见几何的服务器工程验收。** 已通过的`5833fe0`环境报告继续绑定Python 3.9.25、AI2-THOR 5.0.0、ProcTHOR 0.0.1.dev2、官方CloudRendering构建、RTX 4080 SUPER、224×224传感器输出和既有DINO摘要。D-136新增实体mask至少196像素、触边支持足够即保留、patch总权重至少1.0、单位范数容差`1e-5`、depth 0.05–20 m、有效点`max(32,ceil(25%×visible))`和有效比例可靠性；固定AI2-THOR shader核查后按相机轴向z反投影。`l1_entities`代码、22项合同与真实冻结DINO非数据smoke尚待新提交服务器运行，未取得回执前不能声称完整实体materializer通过。仍是0 VM-04 house生成、0训练、0confirmation；surface/place/free-space、bootstrap/各方法阈值、选择器容量、teacher/evaluator及S-01～S-12继续分批在对话中裁决。原D-062分支、代码、数据和结果均保留，`scripts/notes.txt`保持原字节。
+**VSMT 已在 `main`；五方法共同L1的实体物化数值已认可，当前指针是完成DINO区域描述与公开可见几何的服务器工程验收。** 已通过的`5833fe0`环境报告继续绑定Python 3.9.25、AI2-THOR 5.0.0、ProcTHOR 0.0.1.dev2、官方CloudRendering构建、RTX 4080 SUPER、224×224传感器输出和既有DINO摘要。D-136新增实体mask至少196像素、触边支持足够即保留、patch总权重至少1.0、单位范数容差`1e-5`、depth 0.05–20 m、有效点`max(32,ceil(25%×visible))`和有效比例可靠性；固定AI2-THOR shader核查后按相机轴向z反投影。`l1_entities`代码、22项合同与真实冻结DINO非数据smoke尚待新提交服务器运行，未取得回执前不能声称完整实体materializer通过。后续正式生成、训练数据读取及validation/评价都必须多worker，精确并发在各阶段capacity probe后冻结；本次短合同/smoke仍单进程。当前仍是0 VM-04 house生成、0训练、0confirmation；surface/place/free-space、bootstrap/各方法阈值、选择器容量、teacher/evaluator及S-01～S-12继续分批在对话中裁决。原D-062分支、代码、数据和结果均保留，`scripts/notes.txt`保持原字节。
 
 ## 上一 D-062 路线（暂停，以下保留复现）
 

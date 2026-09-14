@@ -1421,3 +1421,8 @@
 - 日期：2026-09-14；状态：entity materialization values approved。用户认可推荐口径：实体mask最少196个可见像素，触边但支持充足就保留；DINO总patch权重至少1.0，float32单位范数容差`1e-5`；公开depth有效范围0.05–20 m，有效点至少`max(32, ceil(25%×可见像素数))`，区域可靠性为有效点数除以可见像素数。支持不足或非有限值保留construction failure，不重采样、不用私有几何补齐。
 - 固定AI2-THOR 5.0.0提交`f0825767cd50d69f666c7f282e54abfe58f1e917`的`Depth.shader`用`Linear01Depth`乘far-near，故本批把返回米制depth固定为相机前向轴`z`。反投影使用整数像素`u=列、v=行`且不加0.5，camera坐标为`x=(u-cx)z/fx, y=(cy-v)z/fy, z=depth`，再用公开camera-to-world四元数/平移变换。白话：画面边缘一个depth=2 m的像素仍位于相机前方z=2 m平面，不把2 m当作斜射线长度。它不读取模拟器对象pose/mesh/bbox，也不声称AI2-THOR文档中的自然语言“distance”是另一种几何定义。
 - 当前授权只覆盖`l1_entities`实现、必要服务器合同测试和一次真实冻结DINO权重的非数据smoke；不生成2-house audit，不训练，不打开confirmation。surface/place/free-space、bootstrap/五方法阈值、选择器容量、teacher/evaluator和S-01～S-12汇总口径仍未裁决；以后视觉前端或本层输入改变时按新摘要重跑L1是预期行为，不覆盖旧结果。
+
+## D-137：正式生成、训练与检验必须支持多worker
+
+- 日期：2026-09-14；状态：execution requirement approved。用户要求生成数据、训练和检验均使用多个worker。正式数据生成以完整house family为任务单元且至少2个worker；validation/评价以封存episode或完整family并行且至少2个worker；当前单张GPU上的训练保留一个learner进程并至少2个数据加载/预处理worker，多个独立方法/seed可由外层调度，但并发占用同一GPU须另经容量审查。
+- 回执须记录请求/实际worker数、capacity probe、确定性分片和seed、逐worker开始/退出/产物摘要、未启动/缺退出项及与完成顺序无关的合并摘要。白话：4个worker只是把同一冻结house清单分块加速，不创造4倍样本；某个worker失败时保留完整前缀并停止新派发，不能换house补齐。精确worker数在各正式阶段前根据CPU、RAM、GPU和磁盘吞吐冻结；单worker只允许合同测试、非数据smoke或用户点名的失败复现。

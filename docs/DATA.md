@@ -26,6 +26,8 @@ L1第一道隔离缓存`vsmt-l1-anonymous-mask-cache-v1`保存图像高宽、按
 
 L1实体描述缓存把匿名mask投到16×16个DINOv2 ViT-S/14 patch token，每块权重为196个像素中落入mask的比例，总权重至少1.0；加权均值L2归一化后以384维float32保存，单位范数容差`1e-5`。公开几何缓存只接同帧米制轴向depth、`fx/fy/cx/cy`和camera-to-world的`position_m/quaternion_xyzw`，深度有效范围0.05–20 m，有效点门为`max(32, ceil(25%×visible_pixel_count))`，可靠性为有效点比例。输出只含可见点质心、可见轴对齐extent、支持计数和摘要。例如196像素中98个深度有效时通过且可靠性0.5；它不保存DINO的CLS token、不把深度当欧氏射线长度，也不包含真值姿态、mesh、完整bbox或instance ID。
 
+正式多worker回执必须保存请求/实际worker数、容量探测、每个worker的确定性任务清单与seed、开始/退出、产物摘要、未启动/缺退出项及规范合并摘要。生成worker的最小不可拆单位是完整house family；validation公开预测按episode或family分片，但private evaluator只能在全部公开预测封存后运行。当前单GPU训练保持一个learner并至少两个数据worker，不能把多个进程争抢同一GPU包装成更充分训练。例如某worker处理family 03失败时保留其他已完成family并停止新派发，不由family 04顶替。它不改变split、样本权重或统计独立单位；精确worker数仍须运行前容量核验。
+
 `causal_prior_receipt`（因果旧记忆回执，planned）解决 prior memory 虽然字段合法、其值却可能由 simulator instance ID 或 reference transaction 预先构造的问题。输入只读 public 序列、初始空图或公开初始化和冻结更新器版本，输出每步输入摘要、提交事务摘要、图版本链及最终图摘要；构建进程不得挂载 `teacher/private_eval`。例如把私有椅子 ID 从 7 改成 19 而 public 字节不变时，最终 prior memory 必须逐字节不变。它不等于把私有 ID 哈希后就成为公开值，也不允许用 reference graph 初始化历史。
 
 VM-01 当前代码已拒绝旧式语义 `latent_refs`：可部署旧记忆的该字段只能为空或形如 `latent:<16–64位十六进制摘要>`，并有测试禁止 `src/vsmt/` 导入旧 `cpmt.m1_*` query/feature 模块。这是必要的静态门，不是充分的因果证明；VM-04 生成器仍须实现上面的无私有挂载回执与 private mutation 检查。
