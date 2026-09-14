@@ -589,6 +589,10 @@ class GraphRevision:
                 float(loser_state["reliability"]),
             ),
         }
+        self._canonicalize_merge_relations(
+            canonical_node_id=str(winner["node_id"]),
+            source_node_ids={str(winner["node_id"]), str(loser["node_id"])},
+        )
         merged = self.update_node(
             winner, synthetic_region,
             max(float(winner_state["last_seen_s"]), float(loser_state["last_seen_s"])),
@@ -602,8 +606,74 @@ class GraphRevision:
         if current_loser["valid_to"] is None:
             current_loser["valid_to"] = self.tick
             self.closed_nodes.append(current_loser["node_version_id"])
-            self._close_incident_edges(current_loser["node_id"])
+        if any(
+            edge.get("valid_to") is None
+            and current_loser["node_id"] in {edge["source"], edge["target"]}
+            for edge in self.graph["edges"]
+        ):
+            raise ValueError("MERGE left an open relation on the retired identity")
         return merged
+
+    def _canonicalize_merge_relations(
+        self, *, canonical_node_id: str, source_node_ids: set[str],
+    ) -> None:
+        incident = sorted((
+            edge for edge in self.graph["edges"]
+            if edge.get("valid_to") is None
+            and source_node_ids & {str(edge["source"]), str(edge["target"])}
+        ), key=lambda edge: (
+            int(edge["valid_from"]), str(edge["edge_id"]),
+            str(edge["edge_version_id"]),
+        ))
+        groups: dict[tuple[str, str, str, str], list[dict[str, Any]]] = {}
+        for edge in incident:
+            edge["valid_to"] = self.tick
+            self.closed_edges.append(str(edge["edge_version_id"]))
+            source = (
+                canonical_node_id
+                if edge["source"] in source_node_ids else str(edge["source"])
+            )
+            target = (
+                canonical_node_id
+                if edge["target"] in source_node_ids else str(edge["target"])
+            )
+            if source == target:
+                continue
+            groups.setdefault(
+                (source, target, str(edge["relation"]), str(edge["frame"])), [],
+            ).append(edge)
+
+        for signature, group in sorted(groups.items()):
+            source, target, relation, frame = signature
+            identity = min(group, key=lambda edge: (
+                int(edge["valid_from"]), str(edge["edge_id"]),
+                str(edge["edge_version_id"]),
+            ))
+            predecessor_versions = sorted(
+                str(edge["edge_version_id"]) for edge in group
+            )
+            successor = clone_json(identity)
+            successor.update({
+                "edge_version_id": self._new_edge_version_id(
+                    str(identity["edge_id"]), "merge-relation",
+                ),
+                "source": source,
+                "target": target,
+                "relation": relation,
+                "frame": frame,
+                "valid_from": self.tick,
+                "valid_to": None,
+                "evidence_refs": list(dict.fromkeys(
+                    reference for edge in group for reference in edge["evidence_refs"]
+                )),
+                "provenance": list(dict.fromkeys([
+                    *(reference for edge in group for reference in edge["provenance"]),
+                    *(f"merge_source_edge:{version}" for version in predecessor_versions),
+                    f"{self.method_id}:merge-relation",
+                ])),
+            })
+            self.graph["edges"].append(successor)
+            self.created_edges.append(str(successor["edge_version_id"]))
 
     def _close_incident_edges(self, node_id: str) -> None:
         for edge in self.graph["edges"]:

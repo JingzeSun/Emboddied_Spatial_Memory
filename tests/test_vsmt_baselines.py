@@ -31,6 +31,7 @@ def observed_node(
     node_id: str, *, centroid: list[float], descriptor: list[float],
     lifecycle: str = "confirmed", valid_to: int | None = None,
     observation_count: int = 1, state_updates: Mapping[str, Any] | None = None,
+    node_type: str = "entity",
 ) -> dict[str, Any]:
     state = {
         "descriptor": descriptor,
@@ -45,7 +46,7 @@ def observed_node(
     return {
         "node_id": node_id,
         "node_version_id": f"{node_id}@v0",
-        "node_type": "entity",
+        "node_type": node_type,
         "lifecycle": lifecycle,
         "valid_from": 0,
         "valid_to": valid_to,
@@ -58,14 +59,16 @@ def observed_node(
     }
 
 
-def memory(*nodes: Mapping[str, Any]) -> dict[str, Any]:
+def memory(
+    *nodes: Mapping[str, Any], edges: list[Mapping[str, Any]] | None = None,
+) -> dict[str, Any]:
     return seal_graph({
         "schema_version": "cpmt-0.2",
         "graph_id": "graph:baseline-fixture",
         "graph_version": "v0",
         "parent_version": None,
         "nodes": [deepcopy(dict(node)) for node in nodes],
-        "edges": [],
+        "edges": [deepcopy(dict(edge)) for edge in (edges or [])],
         "transaction_log": [],
     })
 
@@ -279,6 +282,50 @@ class VSMTBaselineTests(unittest.TestCase):
         )
         self.assertEqual(result["normalized_delta"]["declared_template"], "MERGE")
         self.assertEqual(result["diagnostics"]["merged_pairs"], 1)
+
+    def test_taf_merge_reanchors_and_deduplicates_relations(self) -> None:
+        nodes = (
+            observed_node(
+                "node-a", centroid=[0.0, 0.0, 0.0], descriptor=[1.0, 0.0],
+            ),
+            observed_node(
+                "node-b", centroid=[0.01, 0.0, 0.0], descriptor=[1.0, 0.0],
+            ),
+            observed_node(
+                "place-a", centroid=[0.0, 0.0, 0.0], descriptor=[0.0, 1.0],
+                node_type="place",
+            ),
+        )
+        edges = [
+            {
+                "edge_id": f"edge:{index}",
+                "edge_version_id": f"edge:{index}@v0",
+                "source": source,
+                "target": "place-a",
+                "relation": "located_at",
+                "frame": "map",
+                "valid_from": 0,
+                "valid_to": None,
+                "evidence_refs": [f"observation:edge:{index}"],
+                "provenance": [f"fixture:edge:{index}"],
+            }
+            for index, source in enumerate(("node-a", "node-b"))
+        ]
+        graph = memory(*nodes, edges=edges)
+        result = run_adapter(
+            TAFAdapter(taf_config()), packet(graph, regions=[]), graph,
+        )
+        open_edges = [
+            edge for edge in result["post_memory"]["edges"]
+            if edge["valid_to"] is None
+        ]
+        self.assertEqual(len(open_edges), 1)
+        self.assertEqual(open_edges[0]["source"], "node-a")
+        self.assertEqual(open_edges[0]["target"], "place-a")
+        self.assertEqual(
+            set(open_edges[0]["evidence_refs"]),
+            {"observation:edge:0", "observation:edge:1"},
+        )
 
     def test_elu_retracts_only_with_covering_free_space(self) -> None:
         graph = memory(observed_node(

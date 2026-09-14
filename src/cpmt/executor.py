@@ -1290,6 +1290,126 @@ def _validate_template_preconditions(
                     "active MERGE aliases hold pointers only; "
                     "evidence and latents live in history/canonical"
                 )
+
+        source_id_set = set(source_ids)
+        incident_edges = [
+            edge for edge in graph["edges"]
+            if edge.get("valid_to") is None
+            and source_id_set & {edge["source"], edge["target"]}
+        ]
+        edge_closes = [
+            operation for operation in operations
+            if operation["op_type"] == "CLOSE_EDGE_VERSION"
+        ]
+        closed_edge_ids = [
+            operation["arguments"]["edge_id"] for operation in edge_closes
+        ]
+        expected_edge_ids = [edge["edge_id"] for edge in incident_edges]
+        if (
+            len(closed_edge_ids) != len(set(closed_edge_ids))
+            or set(closed_edge_ids) != set(expected_edge_ids)
+        ):
+            raise ContractError(
+                "MERGE must close every open incident edge exactly once"
+            )
+        close_times = {
+            operation["arguments"]["edge_id"]: operation["arguments"]["at"]
+            for operation in edge_closes
+        }
+        if close_times and len(set(close_times.values())) != 1:
+            raise ContractError("MERGE incident edges must close at one tick")
+
+        expected_groups: dict[
+            tuple[str, str, str, str], list[dict[str, Any]]
+        ] = {}
+        collapsed_versions: set[str] = set()
+        for edge in incident_edges:
+            rewritten_source = (
+                canonical_id if edge["source"] in source_id_set else edge["source"]
+            )
+            rewritten_target = (
+                canonical_id if edge["target"] in source_id_set else edge["target"]
+            )
+            if rewritten_source == rewritten_target:
+                collapsed_versions.add(edge["edge_version_id"])
+                continue
+            signature = (
+                rewritten_source, rewritten_target, edge["relation"], edge["frame"],
+            )
+            expected_groups.setdefault(signature, []).append(edge)
+
+        edge_adds = [
+            operation["arguments"]["edge"]
+            for operation in operations if operation["op_type"] == "ADD_EDGE"
+        ]
+        actual_by_signature: dict[tuple[str, str, str, str], dict[str, Any]] = {}
+        for edge in edge_adds:
+            signature = (
+                edge["source"], edge["target"], edge["relation"], edge["frame"],
+            )
+            if signature in actual_by_signature:
+                raise ContractError("MERGE cannot reopen duplicate semantic edges")
+            actual_by_signature[signature] = edge
+        if set(actual_by_signature) != set(expected_groups):
+            raise ContractError(
+                "MERGE must reopen every non-self relation on canonical endpoints"
+            )
+
+        expected_rewrites: list[tuple[tuple[str, ...], str | None, str]] = []
+        for signature, group in expected_groups.items():
+            successor = actual_by_signature[signature]
+            identity = min(group, key=lambda edge: (
+                edge["valid_from"], edge["edge_id"], edge["edge_version_id"],
+            ))
+            predecessor_versions = tuple(sorted(
+                edge["edge_version_id"] for edge in group
+            ))
+            expected_evidence = {
+                reference for edge in group for reference in edge["evidence_refs"]
+            }
+            expected_provenance = {
+                reference for edge in group for reference in edge["provenance"]
+            } | {
+                f"merge_source_edge:{version}" for version in predecessor_versions
+            } | {program["transaction_id"]}
+            close_at = close_times[identity["edge_id"]]
+            if (
+                successor["edge_id"] != identity["edge_id"]
+                or successor["edge_version_id"] in {
+                    edge["edge_version_id"] for edge in graph["edges"]
+                }
+                or successor["valid_from"] != close_at
+                or successor.get("valid_to") is not None
+                or set(successor["evidence_refs"]) != expected_evidence
+                or not expected_provenance <= set(successor["provenance"])
+            ):
+                raise ContractError(
+                    "MERGE relation successor does not preserve identity, "
+                    "evidence, provenance, or version timing"
+                )
+            expected_rewrites.append((
+                predecessor_versions, successor["edge_version_id"],
+                "canonicalized_or_deduplicated",
+            ))
+        expected_rewrites.extend(
+            ((version,), None, "collapsed_self_relation")
+            for version in sorted(collapsed_versions)
+        )
+        declared_rewrites = program.get("merge_relation_rewrites", [])
+        if type(declared_rewrites) is not list:
+            raise ContractError("MERGE relation rewrites must be a list")
+        actual_rewrites = []
+        for row in declared_rewrites:
+            if type(row) is not dict or set(row) != {
+                "source_edge_version_ids", "successor_edge_version_id", "reason",
+            }:
+                raise ContractError("MERGE relation rewrite record is malformed")
+            actual_rewrites.append((
+                tuple(row["source_edge_version_ids"]),
+                row["successor_edge_version_id"], row["reason"],
+            ))
+        if sorted(actual_rewrites, key=str) != sorted(expected_rewrites, key=str):
+            raise ContractError("MERGE relation rewrite audit is incomplete")
         return
 
     if template == "RETRACT":

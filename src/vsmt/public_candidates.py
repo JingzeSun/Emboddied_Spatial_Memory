@@ -685,6 +685,101 @@ def _merge_program(
             "op_id": f"merge:open:{source['node_id']}",
             "op_type": "OPEN_NODE_VERSION", "arguments": {"node": successor},
         })
+    source_ids = {str(source["node_id"]) for source in sources}
+    incident_edges = sorted((
+        edge for edge in graph["edges"]
+        if edge.get("valid_to") is None
+        and source_ids & {str(edge["source"]), str(edge["target"])}
+    ), key=lambda edge: (
+        int(edge["valid_from"]), str(edge["edge_id"]),
+        str(edge["edge_version_id"]),
+    ))
+    rewritten_groups: dict[
+        tuple[str, str, str, str], list[Mapping[str, Any]]
+    ] = {}
+    rewrite_rows: list[dict[str, Any]] = []
+    for edge_index, edge in enumerate(incident_edges):
+        source_id = (
+            canonical["node_id"] if edge["source"] in source_ids else edge["source"]
+        )
+        target_id = (
+            canonical["node_id"] if edge["target"] in source_ids else edge["target"]
+        )
+        operations.extend([
+            {
+                "op_id": f"merge:edge-close:{edge_index}",
+                "op_type": "CLOSE_EDGE_VERSION",
+                "arguments": {"edge_id": edge["edge_id"], "at": tick},
+            },
+            {
+                "op_id": f"merge:edge-provenance:{edge_index}",
+                "op_type": "RECORD_PROVENANCE",
+                "arguments": {
+                    "target_kind": "edge",
+                    "edge_version_id": edge["edge_version_id"],
+                    "provenance_ref": program["transaction_id"],
+                },
+            },
+        ])
+        if source_id == target_id:
+            rewrite_rows.append({
+                "source_edge_version_ids": [edge["edge_version_id"]],
+                "successor_edge_version_id": None,
+                "reason": "collapsed_self_relation",
+            })
+            continue
+        signature = (
+            str(source_id), str(target_id), str(edge["relation"]), str(edge["frame"]),
+        )
+        rewritten_groups.setdefault(signature, []).append(edge)
+
+    for group_index, (signature, group) in enumerate(sorted(
+        rewritten_groups.items(), key=lambda item: item[0],
+    )):
+        source_id, target_id, relation, frame = signature
+        edge_identity = min(group, key=lambda edge: (
+            int(edge["valid_from"]), str(edge["edge_id"]),
+            str(edge["edge_version_id"]),
+        ))
+        predecessor_versions = sorted(str(edge["edge_version_id"]) for edge in group)
+        successor = clone_json(dict(edge_identity))
+        successor.update({
+            "edge_version_id": opaque_id(
+                public_hash, predecessor_versions, canonical["node_id"], tick,
+                "merge-relation", prefix="edge-version",
+            ),
+            "source": source_id,
+            "target": target_id,
+            "relation": relation,
+            "frame": frame,
+            "valid_from": tick,
+            "valid_to": None,
+            "evidence_refs": list(dict.fromkeys(
+                reference for edge in group for reference in edge["evidence_refs"]
+            )),
+            "provenance": list(dict.fromkeys([
+                *(reference for edge in group for reference in edge["provenance"]),
+                *(f"merge_source_edge:{version}" for version in predecessor_versions),
+                program["transaction_id"],
+            ])),
+        })
+        operations.append({
+            "op_id": f"merge:edge-open:{group_index}",
+            "op_type": "ADD_EDGE",
+            "arguments": {"edge": successor},
+        })
+        rewrite_rows.append({
+            "source_edge_version_ids": predecessor_versions,
+            "successor_edge_version_id": successor["edge_version_id"],
+            "reason": "canonicalized_or_deduplicated",
+        })
+    program["merge_relation_rewrites"] = sorted(
+        rewrite_rows,
+        key=lambda row: (
+            row["source_edge_version_ids"],
+            str(row["successor_edge_version_id"]),
+        ),
+    )
     program["operations"] = operations
     return program, {}
 

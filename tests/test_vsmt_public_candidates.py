@@ -357,6 +357,54 @@ class PublicCandidateTests(unittest.TestCase):
         ]
         self.assertEqual(related, [])
 
+    def test_merge_reanchors_and_deduplicates_alias_incident_relations(self) -> None:
+        graph = graph_fixture()
+        graph["edges"].append({
+            "edge_id": "edge:located-duplicate",
+            "edge_version_id": "edge:located-duplicate@v0",
+            "source": "entity-b",
+            "target": "place-a",
+            "relation": "located_at",
+            "frame": "map",
+            "valid_from": 0,
+            "valid_to": None,
+            "evidence_refs": ["observation:edge-duplicate"],
+            "provenance": ["fixture:duplicate"],
+        })
+        graph = seal_graph(graph)
+        catalog = generate_public_candidate_catalog(
+            packet_fixture(graph), graph, config=config(),
+        )
+        program = next(
+            item["program"] for item in catalog["candidates"]
+            if item["program"]["template"] == "MERGE"
+            and {
+                operation["arguments"]["node_id"]
+                for operation in item["program"]["operations"]
+                if operation["op_type"] == "CLOSE_NODE_VERSION"
+            } == {"entity-a", "entity-b"}
+        )
+        post = execute_transaction(graph, program)
+        open_edges = [edge for edge in post["edges"] if edge["valid_to"] is None]
+        located = [
+            edge for edge in open_edges
+            if edge["relation"] == "located_at"
+            and edge["source"] == "entity-a"
+            and edge["target"] == "place-a"
+        ]
+        self.assertEqual(len(located), 1)
+        self.assertEqual(
+            set(located[0]["evidence_refs"]),
+            {"observation:edge", "observation:edge-duplicate"},
+        )
+        self.assertFalse(any(
+            "entity-b" in {edge["source"], edge["target"]} for edge in open_edges
+        ))
+        self.assertEqual(len(program["merge_relation_rewrites"]), 1)
+        self.assertEqual(
+            len(program["merge_relation_rewrites"][0]["source_edge_version_ids"]), 2,
+        )
+
     def test_split_rejects_an_unassigned_incident_edge_atomically(self) -> None:
         graph = graph_fixture()
         catalog = generate_public_candidate_catalog(
