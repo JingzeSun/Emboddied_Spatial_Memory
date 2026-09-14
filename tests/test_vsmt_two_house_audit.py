@@ -24,6 +24,7 @@ from vsmt.two_house_audit import (  # noqa: E402
     select_audit_houses,
     validate_episode_plans,
     validate_house_selection,
+    validate_public_episode_plan,
     validate_source_inventory,
     validate_two_house_config,
 )
@@ -73,16 +74,21 @@ def plans() -> dict[str, dict]:
 
 def public_rows(public_plan: dict) -> list[dict]:
     key = hashlib.sha256(b"reference-key").hexdigest()
+    catalogs = {
+        "16": {"canonical_candidate_key_sha256s": [key]},
+        "32": {"canonical_candidate_key_sha256s": [key]},
+        "64": {"canonical_candidate_key_sha256s": [key]},
+    }
     return [
         {
             "episode_id": row["episode_id"],
             "family_id": row["family_id"],
             "slot": row["slot"],
             "status": "constructed",
-            "catalogs": {
-                "16": {"canonical_candidate_key_sha256s": [key]},
-                "32": {"canonical_candidate_key_sha256s": [key]},
-                "64": {"canonical_candidate_key_sha256s": [key]},
+            "profiles": {
+                "strict": {"catalogs": deepcopy(catalogs)},
+                "balanced": {"catalogs": deepcopy(catalogs)},
+                "permissive_capacity_upper_bound": {"catalogs": deepcopy(catalogs)},
             },
             "capacity_audit": {},
             "runtime": {"wall_seconds": 0.1, "peak_rss_bytes": 1},
@@ -131,6 +137,7 @@ class TwoHouseAuditContractTests(unittest.TestCase):
     def test_public_plan_never_exposes_program_or_house(self) -> None:
         value = plans()
         self.assertEqual(validate_episode_plans(value), value)
+        self.assertEqual(validate_public_episode_plan(value["public"]), value["public"])
         self.assertEqual(len(value["public"]["episodes"]), 36)
         rendered = json.dumps(value["public"], sort_keys=True)
         self.assertNotIn("source_house_id", rendered)
@@ -183,6 +190,12 @@ class TwoHouseAuditContractTests(unittest.TestCase):
                 capacities=[16, 32, 64], worker_completion_order=[],
             )
 
+    def test_public_plan_standalone_validator_rejects_private_companion_fields(self) -> None:
+        value = plans()["public"]
+        value["program"] = "NOOP"
+        with self.assertRaisesRegex(ValueError, "unexpected fields"):
+            validate_public_episode_plan(value)
+
     def test_private_evaluation_reports_strict_and_margin_recall(self) -> None:
         plan = plans()
         key = hashlib.sha256(b"reference-key").hexdigest()
@@ -200,14 +213,18 @@ class TwoHouseAuditContractTests(unittest.TestCase):
                 "replicate": assignment["replicate"],
                 "constructed": True,
                 "construction_failure_reason": None,
-                "canonical_reference_key_sha256": key,
+                "canonical_reference_key_sha256_by_profile": {
+                    "strict": key,
+                    "balanced": key,
+                    "permissive_capacity_upper_bound": key,
+                },
                 "entity_retract_legal_at_margin_0_02": assignment["program"] == "RETRACT",
                 "entity_retract_legal_at_margin_0_05": False,
             })
         result = evaluate_private_recall(seal, rows)
         self.assertEqual(result["episode_count"], 36)
         self.assertTrue(all(
-            row["strict_exact_canonical_reference_program_recall"]["16"]
+            row["strict_exact_canonical_reference_program_recall"]["strict"]["16"]
             for row in result["episodes"]
         ))
         retract = next(row for row in result["episodes"] if row["program"] == "RETRACT")
@@ -218,6 +235,9 @@ class TwoHouseAuditContractTests(unittest.TestCase):
             retract["entity_RETRACT_legal_candidate_recall"]["margin_0_05_m"]
         )
         self.assertIsNone(result["semantic_equivalence_class_recall"])
+        self.assertIsNone(
+            result["episodes"][0]["candidate_miss_reason"]["strict"]["16"]
+        )
 
     def test_capacity_probe_refuses_wrong_worker_count_or_large_prediction(self) -> None:
         value = capacity_probe(

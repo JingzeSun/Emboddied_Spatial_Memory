@@ -28,6 +28,7 @@ REGISTERED_PROGRAMS = (
     "NOOP", "BIND", "BIRTH", "REACTIVATE", "RELINK", "RETRACT", "SPLIT",
     "MERGE", "REPLACE",
 )
+ASSOCIATION_PROFILE_IDS = ("strict", "balanced", "permissive_capacity_upper_bound")
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
 
 
@@ -392,12 +393,11 @@ def validate_episode_plans(
 ) -> dict[str, dict[str, Any]]:
     _require(set(plans) == {"public", "private"},
              "episode plans require public and private files")
-    public = clone_json(dict(plans["public"]))
+    public = validate_public_episode_plan(plans["public"])
     private = clone_json(dict(plans["private"]))
-    _require(public.get("schema_version") == PUBLIC_PLAN_SCHEMA
-             and private.get("schema_version") == PRIVATE_PLAN_SCHEMA,
+    _require(private.get("schema_version") == PRIVATE_PLAN_SCHEMA,
              "wrong episode plan schema")
-    for record in (public, private):
+    for record in (private,):
         _hex64(record.get("manifest_sha256"), "manifest_sha256")
         _require(record["manifest_sha256"] == _sha256({
             key: value for key, value in record.items() if key != "manifest_sha256"
@@ -433,6 +433,39 @@ def validate_episode_plans(
     return {"public": public, "private": private}
 
 
+def validate_public_episode_plan(plan: Mapping[str, Any]) -> dict[str, Any]:
+    """Validate the label-free plan without opening its private companion."""
+
+    public = clone_json(dict(plan))
+    expected = {
+        "schema_version", "config_version", "selection_sha256", "family_count",
+        "episode_count", "episodes", "program_assignment_exposed", "manifest_sha256",
+    }
+    _require(set(public) == expected, "public episode plan has unexpected fields")
+    _require(public.get("schema_version") == PUBLIC_PLAN_SCHEMA,
+             "wrong public episode plan schema")
+    _hex64(public.get("manifest_sha256"), "manifest_sha256")
+    _require(public["manifest_sha256"] == _sha256({
+        key: value for key, value in public.items() if key != "manifest_sha256"
+    }), "public episode manifest digest mismatch")
+    rows = public["episodes"]
+    _require(public["episode_count"] == 36 and public["family_count"] == 2,
+             "public episode plan shape changed")
+    _require(public["program_assignment_exposed"] is False,
+             "public episode plan exposes assignments")
+    _require(type(rows) is list and len(rows) == 36
+             and len({row.get("episode_id") for row in rows}) == 36,
+             "public episode plan needs 36 unique rows")
+    _require(all(set(row) == {
+        "episode_id", "family_id", "slot", "observation_count",
+        "decision_observation_index_zero_based",
+    } for row in rows), "public episode rows expose unexpected fields")
+    _require(all(row["observation_count"] == 32
+                 and row["decision_observation_index_zero_based"] == 24
+                 for row in rows), "public episode observation shape changed")
+    return public
+
+
 def make_public_seal(
     episode_rows: Sequence[Mapping[str, Any]], *, public_manifest_sha256: str,
     capacities: Sequence[int], worker_completion_order: Sequence[str],
@@ -449,8 +482,13 @@ def make_public_seal(
     for index, row in enumerate(rows):
         _require(not (forbidden & set(row)),
                  f"public audit row {index} contains a private field")
-        _require(row.get("catalogs") and set(map(int, row["catalogs"])) == {16, 32, 64},
-                 f"public audit row {index} lacks all capacity replays")
+        profiles = row.get("profiles")
+        _require(type(profiles) is dict and tuple(profiles) == ASSOCIATION_PROFILE_IDS,
+                 f"public audit row {index} lacks the frozen association profiles")
+        for profile in profiles.values():
+            _require(type(profile) is dict and set(map(int, profile.get("catalogs", {})))
+                     == {16, 32, 64},
+                     f"public audit row {index} lacks all capacity replays")
     result = {
         "schema_version": PUBLIC_SEAL_SCHEMA,
         "public_manifest_sha256": public_manifest_sha256,
@@ -495,33 +533,44 @@ def evaluate_private_recall(
         _require(public is not None, "private row has no sealed public episode")
         required = {
             "episode_id", "family_id", "program", "replicate", "constructed",
-            "construction_failure_reason", "canonical_reference_key_sha256",
+            "construction_failure_reason", "canonical_reference_key_sha256_by_profile",
             "entity_retract_legal_at_margin_0_02",
             "entity_retract_legal_at_margin_0_05",
         }
         _require(set(row) == required, "private evaluation row has unexpected fields")
         _require(row["program"] in REGISTERED_PROGRAMS, "unknown private program")
         constructed = row["constructed"] is True
-        reference = row["canonical_reference_key_sha256"]
+        references = row["canonical_reference_key_sha256_by_profile"]
         if constructed:
-            _hex64(reference, "canonical_reference_key_sha256")
+            _require(type(references) is dict and tuple(references) == ASSOCIATION_PROFILE_IDS,
+                     "constructed row needs one reference key per profile")
+            for profile_id, reference in references.items():
+                _hex64(reference, f"canonical_reference_key_sha256_by_profile.{profile_id}")
             _require(row["construction_failure_reason"] is None,
                      "constructed row may not have a failure reason")
         else:
-            _require(reference is None and type(row["construction_failure_reason"]) is str,
+            _require(references is None and type(row["construction_failure_reason"]) is str,
                      "failed construction needs one reason and no reference key")
-        hits: dict[str, bool | None] = {}
-        for capacity in (16, 32, 64):
-            keys = public["catalogs"][str(capacity)]["canonical_candidate_key_sha256s"]
-            _require(type(keys) is list and all(
-                type(item) is str and HEX64.fullmatch(item) for item in keys
-            ), "public candidate keys are malformed")
-            hits[str(capacity)] = None if not constructed else reference in keys
+        hits: dict[str, dict[str, bool | None]] = {}
+        for profile_id in ASSOCIATION_PROFILE_IDS:
+            hits[profile_id] = {}
+            for capacity in (16, 32, 64):
+                keys = public["profiles"][profile_id]["catalogs"][str(capacity)][
+                    "canonical_candidate_key_sha256s"
+                ]
+                _require(type(keys) is list and all(
+                    type(item) is str and HEX64.fullmatch(item) for item in keys
+                ), "public candidate keys are malformed")
+                hits[profile_id][str(capacity)] = (
+                    None if not constructed else references[profile_id] in keys
+                )
         group = aggregates[f"{row['family_id']}|{row['program']}"]
         group["attempted"] += 1
         group["constructed"] += int(constructed)
         for capacity in (16, 32, 64):
-            group[f"strict_hits_{capacity}"] += int(hits[str(capacity)] is True)
+            group[f"strict_hits_{capacity}"] += int(
+                hits["strict"][str(capacity)] is True
+            )
         evaluated.append({
             "episode_id": episode_id,
             "family_id": row["family_id"],
@@ -530,6 +579,19 @@ def evaluate_private_recall(
             "constructed": constructed,
             "construction_failure_reason": row["construction_failure_reason"],
             "strict_exact_canonical_reference_program_recall": hits,
+            "candidate_miss_reason": {
+                profile_id: {
+                    str(capacity): (
+                        "construction_failed_not_candidate_miss"
+                        if not constructed else (
+                            None if hits[profile_id][str(capacity)] is True
+                            else "exact_canonical_reference_program_absent"
+                        )
+                    )
+                    for capacity in (16, 32, 64)
+                }
+                for profile_id in ASSOCIATION_PROFILE_IDS
+            },
             "entity_RETRACT_legal_candidate_recall": {
                 "margin_0_02_m": (
                     hits if row["entity_retract_legal_at_margin_0_02"] is True else None
