@@ -1569,3 +1569,11 @@
 - 用户进一步明确“需要跑得久就跑久一点”，因此正式有效工作不再因预设墙钟到达而失败；原1800秒只作为本次失败事实保留，不再约束恢复后的public seal及后续正式服务器计算。内存、显存、磁盘剩余量和异常进程保护继续生效，因为它们防止机器崩溃或写满，并不以时长截断合法计算。训练公平性以后用冻结样本、配置数、训练步数和停止规则约束，不用墙钟强杀。
 - `public-seal`恢复采用新的原子任务目录：每个`constructed episode × association profile`由独立worker只读25帧公开输入，在独立attempt目录写prior、三档catalog和结果；全部文件及摘要完成后才原子提升为完成单元。失败或中断的attempt原样保留，后续同一固定入口只跳过摘要验证通过的完成单元，不覆盖旧文件。最终按原36个episode顺序和固定profile顺序规范合并，private仍须等`public.seal.json`及其成功回执存在后才可打开。
 - 恢复代码与原生成/materialize代码分开绑定：上游stage固定为`53d47367c7b30cff7d518d0d15fde1dca37ace0c`，并核验materialize receipt、public plan、原resource-stop和started摘要；恢复及后续private/verify/export回执同时登记上游stage代码与当前执行代码。它解决并行、续跑和完整provenance，不重新生成house、不替换失败slot、不改变候选/teacher/指标数值，也不开放train/validation或confirmation。
+
+## D-157：VM-05区分学习排序器与确定性机制选参
+
+- 日期：2026-09-15；状态：readiness protocol only, training and validation effects blocked。用户要求在D-156 public seal运行期间完善VM-05，并核查TAF、ELU、WFR三个论文方法究竟需要训练模型还是只采用机制；随后明确服务器任务不再限制运行时长。当前先固定职责分类和执行边界，不从尚未完成的D-144审计猜网络、网格、步数或seed。
+- 来源复核显示，ConceptGraphs、Fusion++/Dengler及Khronos完整系统可依赖SAM、Grounding DINO、Mask/Faster R-CNN或外部语义分割等预训练感知，但本项目采用的多视角阈值关联/融合、存在证据更新、窗口片段/全局协调属于算法机制。TAF、ELU、WFR和朴素LOW因此不做梯度训练，只在共同train/validation内从预登记有限配置选择；不能称官方模型复现。共享DINOv2与L1/L2前端冻结且五主臂逐字节一致，不能把上游私有感知模型带入某一对照。
+- 真正做梯度训练的是VSMT在线候选排序器及同架构DRCR、NECS两项因果消融；PHR是无学习公开启发式控制。三学习臂的架构、优化器、步数、seed数和五个确定性方法的有限网格当前保持null，须绑定VM-04完整审计、train/validation family、S-01～S-12选择语义及逐版本模板归属后另行冻结。每个主方法仍最多12个完整配置选择机会；没有梯度不等于没有选参。
+- VM-05所有服务器特征物化、配置搜索、训练和validation，只要有至少两个独立任务就先实测单任务CPU/RAM/VRAM/I/O，再采用最大安全worker数；GPU显存允许时并发独立learner，否则每个单learner仍使用多个数据worker。有效任务不设墙钟超时，资源安全只防RAM/VRAM溢出和磁盘写满；科学预算由固定样本、配置数、更新步数、seed及停止规则界定。输出必须记录worker分片、退出、产物摘要和与完成顺序无关的规范合并。
+- [机器readiness合同](../configs/vsmt/vm05_training_validation_readiness_v1.json)当前`training_authorized=false`、`validation_effect_authorized=false`、`confirmation_authorized=false`。白话：输入是本轮已知的方法性质和资源规则，输出是以后实现/运行不能混淆的任务清单；例如ELU跑12组阈值是调参，不会产生ELU checkpoint。它不等于VM-05已经能跑，也不允许抢在D-144结果前选有利网格。

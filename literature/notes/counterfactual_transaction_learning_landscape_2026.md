@@ -50,6 +50,8 @@
 | ELU：存在概率更新 | [Fusion++, 3DV 2018](https://arxiv.org/abs/1808.08378)；[Dengler et al., ECMR 2021](https://arxiv.org/abs/2011.06895)；[POCD, RSS 2022](https://www.roboticsproceedings.org/rss18/p013.html) | 存在置信、可靠正/负观测、错误关联修正及半静态变化证据 | 不复现 TSDF/完整 SLAM，不把一次未检出当作消失 |
 | WFR：窗口化片段协调 | [Khronos, RSS 2024](https://www.roboticsproceedings.org/rss20/p081.html) | active window、fragment hypotheses、较慢的全局 association/reconciliation、presence/absence | 不复制 BSD-3 ROS/C++，不称完整 metric-semantic SLAM 或作者 baseline |
 
+模型/机制边界复核：ConceptGraphs的[官方项目页](https://concept-graphs.github.io/)与[官方仓库](https://github.com/concept-graphs/concept-graphs)明确依赖通用分割、检测和视觉语言预训练模型，但多视角关联/融合是系统算法；Fusion++的[正式论文](https://doi.org/10.1109/3DV.2018.00015)以Mask R-CNN给实例观测后维护对象图与存在概率，[Dengler等](https://arxiv.org/abs/2011.06895)同样把预训练检测与几何关联/存在似然更新分开；Khronos的[正式论文](https://www.roboticsproceedings.org/rss20/p081.html)和[官方仓库](https://github.com/MIT-SPARK/Khronos)把active window、全局因子图协调与外部语义分割来源分开。因此本项目TAF/ELU/WFR是无梯度的记忆机制适配，但仍须在共同train/validation做有限配置选择。它们不是三个待训练的记忆网络；上游系统含预训练感知组件也不等于机制本身是学习器。
+
 补充强近邻为 [SuperMap, RSS 2026](https://www.roboticsproceedings.org/rss22/p052.html)，其 3D-aware association/reactivation、existence/label confidence 和 outdated-content pruning 会限制 BIND/REACTIVATE/RETRACT 的新颖性；当前用作 related-work 与 ELU/WFR 设计压力，不另加第四个高度重叠适配器。[Long-Term Online Multi-Session Graph-Based SPLAM](https://arxiv.org/abs/2301.00050) 的 Working Memory/Long-Term Memory 转移和重取回是 REACTIVATE 的经典系统近邻，但主要解决在线资源管理，不适合作为本轮结构纠错主基线。
 
 ### clean-room 与许可证边界

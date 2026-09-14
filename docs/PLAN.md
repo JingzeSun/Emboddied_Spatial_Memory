@@ -17,10 +17,12 @@
 | VM-02 三种论文机制与朴素基线（D-143工程基线已审） | 共同接口；TAF、ELU、WFR、LOW 只消费相同 `ObservationPacket` | clean-room 适配器、显式无默认值配置、版本化共同输出包装及人工分支测试；未冻结阈值，不称官方复现或效果结果 |
 | VM-03 VSMT 无泄漏候选与 teacher（D-143工程基线已审） | VM-01接口；复用 executor/八原子语义，删除参考派生 query | public-only 九类程序、逐一真实执行、公开摘要排序、online evidence封存及封存后teacher；D-143固定服务器回执已覆盖当前字节，未生成真实house数据 |
 | VM-04 新数据数值冻结与开发生成（只读inventory已授权） | [总协议提案](../configs/vsmt/vm04_data_protocol_proposal_v1.json)、[L1合同](../configs/vsmt/vm04_l1_contract_proposal_v1.json)、[动作对称合同](../configs/vsmt/vm04_l1_action_symmetry_v1.json)、[2-house审计配置](../configs/vsmt/vm04_l1_two_house_audit_proposal_v1.json)及[隔离环境](../configs/vsmt/vm04_l1_environment_v1.json)；ProcTHOR＋AI2-THOR、32帧、九程序各2重复、匿名oracle mask＋冻结DINOv2、双轨 prior 和关系感知 SPLIT；confirmation family数待开发成品率反推，L2的SAM2.1前端后置 | D-149一次性总审已通过并只开放`contracts → inventory → select`；inventory与select必须分两次命令。公布固定house IDs后停住，用户确认才生成；train/validation、训练与confirmation仍阻断 |
-| VM-05 公平训练与 validation | 数据验收；冻结各方法阈值、学习预算、停止规则、共同/完整任务指标 | VSMT/TAF/ELU/WFR/LOW 在 L2 完全同前端输入主评；L1只作机制上界，旧 A/C/E 只作内部消融；确认前锁定全部选择 |
+| VM-05 公平训练与 validation | 数据验收；冻结各方法阈值、学习预算、停止规则、共同/完整任务指标；VSMT/DRCR/NECS做梯度训练，TAF/ELU/WFR/LOW/PHR只做有限配置选择 | 五个主臂在 L2 完全同前端输入主评；L1只作机制上界；确认前锁定全部选择；所有独立服务器单元采用容量允许的最大安全worker且不设墙钟强杀 |
 | VM-06 独立确认与论文证据 | 模型、前端、候选、评分和最小效果门冻结后另行授权 | 未见家族 confirmation、必要现实来源、逐类/共享能力/成本/失败报告；不能按 validation 结果改样本或门 |
 
 ### 当前指针
+
+**D-156的12-worker public seal恢复正在服务器执行，源stage固定为`53d4736`，当前恢复实现为`ea8cb16`；214/214服务器合同已通过，48个公开重放任务已由12个worker启动且无墙钟超时。** 完成后同一服务器checkout直接执行12-worker private audit、verify与export，不重新生成16个完整episode，也不替换20个构造失败slot。VM-05同时只做readiness准备：D-157区分VSMT/DRCR/NECS梯度训练与TAF/ELU/WFR/LOW/PHR有限配置选择，正式架构、网格、训练步数和seed仍须等本次审计结果后冻结；当前不得启动训练或validation效果运行。
 
 **D-155正在完成真实source house的最后一个生成兼容点。** D-154内存升级已让两间房成功创建223/136个对象；AI2-THOR仍须先把agent放到house登记pose，才能成功返回可达点（首房实测1299个）。当前加入该确定性bootstrap，再执行D-153匿名视点搜索；新HEAD、新stage只有产生非零完整raw episode才继续materialize/seal/private/verify/export。前两个失败stage、固定house/slot均不变，训练、validation效果、confirmation和L2仍关闭。
 

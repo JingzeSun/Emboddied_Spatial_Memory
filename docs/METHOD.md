@@ -185,6 +185,12 @@ VSMT Online Candidate Selector（VSMT在线候选选择器，planned）拟对每
 
 同架构对照按该选择器边界解释：DRCR保留全部在线输入但用直接reference等价标签训练；NECS把post-state和delta分支替换为固定零张量且不能打开post graph；PHR只用封存前的公开候选分数。五个主臂中TAF/ELU/WFR/LOW仍直接从同一`AdapterInput`产生图更新，不经过VSMT选择器。输入都是同一L1区域与prior，输出各自`MemoryUpdateResult`；例如ELU仍只能在公开自由空间完整覆盖时降低存在分数。它不强迫四个机制适配器伪装成候选分类器，也不赋予任何一方额外视觉信息。
 
+VM-05必须把“原系统用了预训练感知模型”和“本项目的记忆更新器需要梯度训练”分开。ConceptGraphs官方系统组合通用实例分割、开放词汇检测/视觉语义特征与多视角关联，官方仓库列出SAM、Grounding DINO、RAM/Tag2Text、CLIP/OpenCLIP等预训练依赖；本项目TAF只取其阈值关联、增量融合和周期去重机制。Fusion++用Mask R-CNN提供实例观测，Dengler等使用预训练Faster R-CNN，但存在概率、正负观测更新和几何关联是算法状态更新；本项目ELU不训练检测器或存在网络。Khronos把active window与较慢的全局因子图协调分开，语义分割可来自真值、预录结果或外部预训练推理；本项目WFR只取窗口片段与周期协调。白话：这些来源系统确实“用模型看图”，但它们的记忆修订机制不是三套要在VM-05从头拟合的神经网络；输入统一改为本项目冻结前端后，TAF/ELU/WFR只剩有限配置选择。它不表示上游完整系统没有学习组件，也不允许删掉对照的train/validation选参。
+
+因此VM-05的梯度训练对象固定为VSMT、DRCR和NECS三个同在线架构的候选排序器；PHR、TAF、ELU、WFR和LOW不做梯度更新，只在共同train/validation上从预登记有限配置中选择。共享DINOv2及L1/L2 proposal/几何前端全程冻结且逐方法输入字节一致。输入是封存的train/validation family、公开catalog或`AdapterInput`和私有训练标签，输出三个学习排序器的checkpoint以及五个确定性方法的冻结配置。例如ELU的十二个配置试验只是比较存在阈值与证据增量，不会保存神经网络权重。它不把“没有梯度”误写成“没有拟合选择”，也不把VSMT训练预算转借给基线或反过来。
+
+[VM-05 readiness合同](../configs/vsmt/vm05_training_validation_readiness_v1.json)当前只固定上述职责分类、相同最多12个完整配置的选择机会、多worker与无墙钟强杀规则；网络宽度、优化器、更新步数、seed数、PHR公式和各方法有限网格仍为`null`。所有独立服务器单元必须先用实测单worker的CPU/RAM/VRAM/I/O做容量探测，再采用最大安全worker数；单GPU有多个独立训练job且显存允许时并发learner，不允许时每个learner仍用多个数据worker。输入是资源实测与冻结任务清单，输出worker分片、退出码、产物摘要、实际完成顺序和规范合并顺序。例如显存只安全容纳一个learner时不硬塞两个GPU进程，但其数据预处理仍不能退回单worker。它不以跑得久为失败，也不允许用OOM或写满磁盘试探容量。
+
 `L1MaskMaterialization`（L1匿名mask物化）只完成第一道隔离：临时输入当前帧`instance_id → binary mask`，把每个实例的全部可见像素保留为一个mask，按首个非零像素、像素数和mask摘要公开排序，输出逐帧匿名编号、mask缓存及支持不足的匿名失败。真实ID只进入单独私有映射摘要；空mask不公开，重叠instance mask整帧拒绝。例如同一椅子的椅背和两条腿被桌面隔开时仍输出一个区域，两只相似杯子仍输出两个区域。`l1_entities`再输入匿名mask、冻结patch token和公开depth/相机，输出共同区域记录。它不做跨帧跟踪、候选生成或事务选择；新实体物化代码仍须服务器回执认证。
 
 当前提案要求八个反作弊正反例：instance ID置换、私有mask枚举换序、同实例跨帧重编号、两相似实体同时可见、遮挡不等于自由空间、过小/无有效depth区域失败保留、private/future变异不改在线字节，以及catalog校验后只换scorer batch顺序仍保持逐程序logit。它们输入合法或故意破坏的成对记录，输出逐字节不变或明确失败；例如正确MERGE因公开证据不足未进入catalog时只能记candidate miss。它们不修改封存catalog或teacher槽位，不是数据效果样本，也不能替代2-house真实audit。

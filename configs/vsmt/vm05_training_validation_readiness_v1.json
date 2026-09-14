@@ -1,0 +1,144 @@
+{
+  "version": "vsmt-vm05-training-validation-readiness-v1",
+  "status": "planned_blocked_by_vm04_audit_and_numeric_freeze",
+  "decision": "D-157",
+  "training_authorized": false,
+  "validation_effect_authorized": false,
+  "confirmation_authorized": false,
+  "wall_clock_timeout_seconds": null,
+  "shared_frontend": {
+    "method_id": "frozen_DINOv2_and_shared_L1_or_L2_region_geometry_frontend",
+    "gradient_updates": false,
+    "method_private_perception_models_allowed": false,
+    "identical_cached_input_bytes_for_all_methods": true
+  },
+  "execution_classes": {
+    "learned_candidate_rankers": {
+      "methods": [
+        "VSMT",
+        "DRCR",
+        "NECS"
+      ],
+      "requires_gradient_training": true,
+      "same_online_architecture_for_all_three": true,
+      "differences": {
+        "VSMT": "post_execution_candidate_state_and_sealed_hindsight_teacher",
+        "DRCR": "direct_reference_equivalence_labels_without_post_execution_teacher",
+        "NECS": "sealed_teacher_targets_without_candidate_post_state_or_delta_features"
+      },
+      "architecture": null,
+      "optimizer": null,
+      "training_steps": null,
+      "seed_count": null,
+      "blocking_reason": "freeze_after_VM04_candidate_capacity_and_yield_audit"
+    },
+    "deterministic_mechanism_adapters": {
+      "methods": [
+        "TAF",
+        "ELU",
+        "WFR",
+        "LOW"
+      ],
+      "requires_gradient_training": false,
+      "requires_finite_train_validation_configuration_selection": true,
+      "maximum_complete_configurations_per_method": 12,
+      "configuration_spaces": null,
+      "blocking_reason": "freeze_finite_grids_after_VM04_audit_without_confirmation_access"
+    },
+    "deterministic_internal_control": {
+      "methods": [
+        "PHR"
+      ],
+      "requires_gradient_training": false,
+      "requires_finite_train_validation_configuration_selection": true,
+      "decision_formula": null,
+      "blocking_reason": "freeze_positive_negative_examples_and_S01_to_S12_consistent_formula"
+    }
+  },
+  "paper_system_model_boundary": {
+    "TAF": {
+      "source_system": "ConceptGraphs",
+      "source_system_uses_pretrained_perception_models": true,
+      "adapted_memory_update_is_gradient_trained": false,
+      "adaptation_scope": "visual_geometric_association_incremental_fusion_and_periodic_duplicate_merge"
+    },
+    "ELU": {
+      "source_system": "Fusion++_and_Dengler_et_al",
+      "source_system_uses_pretrained_perception_models": true,
+      "adapted_memory_update_is_gradient_trained": false,
+      "adaptation_scope": "existence_evidence_update_reliable_negative_observation_and_identity_lifecycle"
+    },
+    "WFR": {
+      "source_system": "Khronos",
+      "source_system_may_consume_external_or_pretrained_semantic_segmentation": true,
+      "adapted_memory_update_is_gradient_trained": false,
+      "adaptation_scope": "active_window_fragments_and_periodic_global_reconciliation"
+    },
+    "policy": "upstream_perception_models_do_not_make_the_adapted_memory_mechanism_a_trainable_VM05_model"
+  },
+  "fair_selection": {
+    "same_train_families": true,
+    "same_validation_families": true,
+    "same_frozen_primary_selection_metric": true,
+    "maximum_complete_configurations_per_primary_method": 12,
+    "unused_trials_need_not_be_spent": true,
+    "failed_configuration_counts_against_cap_unless_infrastructure_failure": true,
+    "confirmation_may_not_select_or_change_any_value": true,
+    "learned_and_deterministic_methods_are_not_forced_to_share_numeric_parameters": true
+  },
+  "multi_worker_execution": {
+    "policy": "maximum_safe_parallel_workers_for_every_independent_server_work_unit",
+    "minimum_workers_when_at_least_two_independent_units_exist": 2,
+    "worker_count_is_selected_by_capacity_probe": true,
+    "capacity_inputs": [
+      "visible_CPU_cores",
+      "free_RAM_bytes",
+      "free_GPU_VRAM_bytes",
+      "free_data_disk_bytes",
+      "measured_single_worker_CPU_RAM_GPU_and_IO"
+    ],
+    "feature_materialization_partition": "sealed_episode_or_complete_family",
+    "deterministic_adapter_grid_partition": "method_configuration_seed_or_family",
+    "learned_ranker_partition": "independent_method_configuration_seed_training_job",
+    "validation_partition": "sealed_episode_or_complete_family",
+    "gpu_policy": "run_the_maximum_number_of_independent_learner_workers_that_a_probe_shows_fit_safely_and_use_multiple_data_workers_inside_each_learner",
+    "canonical_merge_independent_of_worker_completion_order": true,
+    "record_required": [
+      "requested_workers",
+      "actual_workers",
+      "task_partition",
+      "worker_pid_or_job_id",
+      "worker_exit_code",
+      "artifact_sha256",
+      "actual_completion_order",
+      "canonical_merge_order"
+    ]
+  },
+  "resource_safety": {
+    "wall_clock_timeout_allowed": false,
+    "RAM_safety_check_required": true,
+    "GPU_VRAM_safety_check_required": true,
+    "disk_free_space_safety_check_required": true,
+    "OOM_or_disk_full_may_not_be_used_as_a_capacity_probe": true,
+    "scientific_budget_is_frozen_by_samples_configurations_steps_and_stopping_rule_not_elapsed_time": true
+  },
+  "required_inputs_before_executable": [
+    "VM04_verified_two_house_public_and_private_audit_receipt",
+    "accepted_candidate_capacity_and_yield_interpretation",
+    "frozen_train_validation_family_manifests",
+    "frozen_S01_to_S12_selection_semantics",
+    "frozen_finite_configuration_spaces",
+    "frozen_selector_architecture_optimizer_steps_and_seeds",
+    "per_version_template_attribution_for_common_post_update_audit",
+    "server_capacity_probe_for_parallel_CPU_and_GPU_jobs"
+  ],
+  "prohibited": [
+    "training_before_all_required_inputs_are_bound",
+    "using_confirmation_to_select_thresholds_models_or_stopping",
+    "giving_TAF_ELU_WFR_or_LOW_a_method_private_visual_frontend",
+    "calling_threshold_search_gradient_training",
+    "calling_a_pretrained_perception_dependency_a_trained_memory_updater",
+    "serial_execution_when_two_or_more_independent_safe_work_units_exist",
+    "terminating_a_valid_run_only_because_elapsed_time_exceeded_an_estimate"
+  ]
+}
