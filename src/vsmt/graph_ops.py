@@ -604,8 +604,7 @@ class GraphRevision:
 
     def create_edge(
         self, relation: Mapping[str, Any], *, source_node_id: str,
-        target_node_id: str, template: str | None = "BIRTH",
-        purpose: str = "relation-birth",
+        target_node_id: str,
     ) -> dict[str, Any]:
         edge_id = opaque_id(
             self.pre_hash, self.method_id, self.tick, relation["relation_id"],
@@ -623,16 +622,15 @@ class GraphRevision:
             "valid_from": self.tick,
             "valid_to": None,
             "evidence_refs": [f"observation:{relation['support_sha256']}"],
-            "provenance": [f"{self.method_id}:{purpose}"],
+            "provenance": [f"{self.method_id}:relation-birth"],
         }
         self.graph["edges"].append(edge)
         self.created_edges.append(version_id)
-        self._record_edge_template(template)
+        self.templates.append("BIRTH")
         return edge
 
     def bind_edge(
-        self, edge: Mapping[str, Any], relation: Mapping[str, Any], *,
-        template: str | None = "BIND", purpose: str = "relation-bind",
+        self, edge: Mapping[str, Any], relation: Mapping[str, Any],
     ) -> dict[str, Any]:
         current = next(
             item for item in self.graph["edges"]
@@ -643,10 +641,10 @@ class GraphRevision:
         evidence = f"observation:{relation['support_sha256']}"
         if evidence not in current["evidence_refs"]:
             current["evidence_refs"].append(evidence)
-        provenance = f"{self.method_id}:{purpose}"
+        provenance = f"{self.method_id}:relation-bind"
         if provenance not in current["provenance"]:
             current["provenance"].append(provenance)
-        self._record_edge_template(template)
+        self.templates.append("BIND")
         return current
 
     def relink_edge(
@@ -682,17 +680,88 @@ class GraphRevision:
         self.templates.append("RELINK")
         return successor
 
-    def _record_edge_template(self, template: str | None) -> None:
-        """Only a trusted deterministic wrapper may leave an edge untemplated."""
+    def _validate_place_adjacency_context(
+        self, relation: Mapping[str, Any], *, source_node_id: str,
+        target_node_id: str,
+    ) -> None:
+        """Fail before mutation unless this is a trusted scaffold adjacency."""
 
-        if template is not None:
-            self.templates.append(template)
-            return
         if self.method_id not in TRUSTED_SCAFFOLD_METHOD_IDS:
             raise ValueError(
                 "untemplated edge operations are reserved for the trusted "
                 "place adjacency scaffold"
             )
+        if str(relation.get("relation")) not in SCAFFOLD_RELATIONS:
+            raise ValueError(
+                "untemplated scaffold edges must use the adjacent_to relation"
+            )
+        if source_node_id == target_node_id or not all(
+            _node_type(self.graph, node_id) == "place"
+            for node_id in (source_node_id, target_node_id)
+        ):
+            raise ValueError(
+                "untemplated place adjacency requires two distinct open place nodes"
+            )
+
+    def _create_place_adjacency_edge(
+        self, relation: Mapping[str, Any], *, source_node_id: str,
+        target_node_id: str,
+    ) -> dict[str, Any]:
+        """Create one trusted deterministic adjacency without a learned atom."""
+
+        self._validate_place_adjacency_context(
+            relation,
+            source_node_id=source_node_id,
+            target_node_id=target_node_id,
+        )
+        edge_id = opaque_id(
+            self.pre_hash, self.method_id, self.tick, relation["relation_id"],
+            source_node_id, target_node_id, "adjacent_to",
+            len(self.created_edges), prefix="edge",
+        )
+        version_id = self._new_edge_version_id(edge_id, "birth")
+        edge = {
+            "edge_id": edge_id,
+            "edge_version_id": version_id,
+            "source": source_node_id,
+            "target": target_node_id,
+            "relation": "adjacent_to",
+            "frame": "map",
+            "valid_from": self.tick,
+            "valid_to": None,
+            "evidence_refs": [f"observation:{relation['support_sha256']}"],
+            "provenance": [f"{self.method_id}:adjacency-birth"],
+        }
+        self.graph["edges"].append(edge)
+        self.created_edges.append(version_id)
+        return edge
+
+    def _bind_place_adjacency_edge(
+        self, edge: Mapping[str, Any], relation: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        """Bind evidence to one trusted deterministic adjacency without an atom."""
+
+        current = next(
+            item for item in self.graph["edges"]
+            if item["edge_version_id"] == edge["edge_version_id"]
+        )
+        self._validate_place_adjacency_context(
+            {
+                **dict(relation),
+                "relation": current.get("relation"),
+            },
+            source_node_id=str(current["source"]),
+            target_node_id=str(current["target"]),
+        )
+        if current["valid_to"] is not None:
+            raise ValueError("place adjacency BIND target must be open")
+        evidence = f"observation:{relation['support_sha256']}"
+        if evidence not in current["evidence_refs"]:
+            current["evidence_refs"].append(evidence)
+        provenance = f"{self.method_id}:adjacency-bind"
+        if provenance not in current["provenance"]:
+            current["provenance"].append(provenance)
+        return current
 
     def _open_place_scaffold_index(self) -> dict[str, dict[str, Any]]:
         index: dict[str, dict[str, Any]] = {}
@@ -821,15 +890,11 @@ class GraphRevision:
                 and edge["relation"] == "adjacent_to"
             ), key=lambda edge: str(edge["edge_id"]))
             if exact:
-                self.bind_edge(
-                    exact[0], normalized,
-                    template=None, purpose="adjacency-bind",
-                )
+                self._bind_place_adjacency_edge(exact[0], normalized)
                 counts["bound"] += 1
                 continue
-            self.create_edge(
+            self._create_place_adjacency_edge(
                 normalized, source_node_id=source, target_node_id=target,
-                template=None, purpose="adjacency-birth",
             )
             counts["born"] += 1
         return counts

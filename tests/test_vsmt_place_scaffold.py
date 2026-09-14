@@ -121,6 +121,39 @@ class PlaceScaffoldTests(unittest.TestCase):
 
 
 class PlaceAdjacencyTests(unittest.TestCase):
+    def unlinked_neighbour_memory(
+        self,
+    ) -> tuple[dict[str, object], dict[str, str]]:
+        memory = empty_public_memory()
+        revision = GraphRevision(
+            memory, method_id=PLACE_SCAFFOLD_ID,
+            support_envelope_reliability_threshold=0.9,
+        )
+        left = revision.upsert_place_scaffold(
+            place_region(0, (0.25, 0.0, -0.25)), 1.0,
+        )
+        right = revision.upsert_place_scaffold(
+            place_region(1, (0.75, 0.0, -0.25)), 1.0,
+        )
+        result = revision.finish(
+            confidence=1.0, runtime_ms=0.0, diagnostics={},
+        )
+        return result["post_memory"], {
+            "region:0000": str(left["node_id"]),
+            "region:0001": str(right["node_id"]),
+        }
+
+    @staticmethod
+    def revision_state(revision: GraphRevision) -> object:
+        return deepcopy((
+            revision.graph,
+            revision.templates,
+            revision.created_nodes,
+            revision.closed_nodes,
+            revision.created_edges,
+            revision.closed_edges,
+        ))
+
     def neighbour_packet(self, memory: dict[str, object]) -> dict[str, object]:
         current = packet(memory)
         current["region_observations"] = [
@@ -237,7 +270,26 @@ class PlaceAdjacencyTests(unittest.TestCase):
             [edge for edge in prepared["edges"] if edge["valid_to"] is None], [],
         )
 
-    def test_a_memory_method_cannot_write_an_untemplated_edge(self) -> None:
+    def test_untrusted_adjacency_create_is_atomic_after_caught_error(self) -> None:
+        memory, node_ids = self.unlinked_neighbour_memory()
+        revision = GraphRevision(
+            memory, method_id="fixture.method.v1",
+            support_envelope_reliability_threshold=0.9,
+        )
+        before = self.revision_state(revision)
+        with self.assertRaisesRegex(ValueError, "reserved for the trusted"):
+            revision.apply_place_adjacency(
+                [adjacency_observation()], node_ids,
+            )
+        self.assertEqual(self.revision_state(revision), before)
+        result = revision.finish(
+            confidence=1.0, runtime_ms=0.0, diagnostics={},
+        )
+        self.assertEqual(result["normalized_delta"]["declared_template"], "NOOP")
+        self.assertEqual(result["post_memory_sha256"], memory["graph_hash"])
+        self.assertEqual(result["post_memory"], memory)
+
+    def test_untrusted_adjacency_bind_is_atomic_after_caught_error(self) -> None:
         memory = empty_public_memory()
         _, prepared = prepare_place_scaffold(
             self.neighbour_packet(memory), memory,
@@ -247,14 +299,42 @@ class PlaceAdjacencyTests(unittest.TestCase):
             prepared, method_id="fixture.method.v1",
             support_envelope_reliability_threshold=0.9,
         )
+        before = self.revision_state(revision)
         open_edge = [
             edge for edge in prepared["edges"] if edge["valid_to"] is None
         ][0]
         with self.assertRaisesRegex(ValueError, "reserved for the trusted"):
-            revision.bind_edge(
+            revision._bind_place_adjacency_edge(
                 open_edge, adjacency_observation(),
-                template=None, purpose="adjacency-bind",
             )
+        self.assertEqual(self.revision_state(revision), before)
+        result = revision.finish(
+            confidence=1.0, runtime_ms=0.0, diagnostics={},
+        )
+        self.assertEqual(result["normalized_delta"]["declared_template"], "NOOP")
+        self.assertEqual(result["post_memory"], prepared)
+
+    def test_trusted_wrapper_cannot_hide_a_non_adjacency_edge(self) -> None:
+        memory, node_ids = self.unlinked_neighbour_memory()
+        revision = GraphRevision(
+            memory, method_id=PLACE_SCAFFOLD_ID,
+            support_envelope_reliability_threshold=0.9,
+        )
+        relation = adjacency_observation()
+        relation["relation"] = "located_at"
+        before = self.revision_state(revision)
+        with self.assertRaisesRegex(ValueError, "must use the adjacent_to"):
+            revision._create_place_adjacency_edge(
+                relation,
+                source_node_id=node_ids["region:0000"],
+                target_node_id=node_ids["region:0001"],
+            )
+        self.assertEqual(self.revision_state(revision), before)
+        result = revision.finish(
+            confidence=1.0, runtime_ms=0.0, diagnostics={},
+        )
+        self.assertEqual(result["normalized_delta"]["declared_template"], "NOOP")
+        self.assertEqual(result["post_memory"], memory)
 
 
 if __name__ == "__main__":
