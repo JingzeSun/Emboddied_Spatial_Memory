@@ -18,6 +18,8 @@ from cpmt.hashing import canonical_json, clone_json, seal_graph
 
 STATE_KEY = "vsmt_observation_state"
 PLACE_SCAFFOLD_ID = "vsmt.place.scaffold.v1"
+# 白话：这些关系由确定性地点骨架维护，不进入任何方法的事务候选空间。
+SCAFFOLD_RELATIONS = frozenset({"adjacent_to"})
 
 
 def finite_number(value: Any, name: str) -> float:
@@ -344,6 +346,13 @@ def open_edges(graph: Mapping[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
+def _node_type(graph: Mapping[str, Any], node_id: str) -> str | None:
+    for node in graph["nodes"]:
+        if node["node_id"] == node_id and node.get("valid_to") is None:
+            return str(node.get("node_type"))
+    return None
+
+
 def canonical_relation_observation(
     relation: Mapping[str, Any], region_node_ids: Mapping[str, str],
 ) -> tuple[str, str, str]:
@@ -576,7 +585,8 @@ class GraphRevision:
 
     def create_edge(
         self, relation: Mapping[str, Any], *, source_node_id: str,
-        target_node_id: str,
+        target_node_id: str, template: str | None = "BIRTH",
+        purpose: str = "relation-birth",
     ) -> dict[str, Any]:
         edge_id = opaque_id(
             self.pre_hash, self.method_id, self.tick, relation["relation_id"],
@@ -594,15 +604,17 @@ class GraphRevision:
             "valid_from": self.tick,
             "valid_to": None,
             "evidence_refs": [f"observation:{relation['support_sha256']}"],
-            "provenance": [f"{self.method_id}:relation-birth"],
+            "provenance": [f"{self.method_id}:{purpose}"],
         }
         self.graph["edges"].append(edge)
         self.created_edges.append(version_id)
-        self.templates.append("BIRTH")
+        if template is not None:
+            self.templates.append(template)
         return edge
 
     def bind_edge(
-        self, edge: Mapping[str, Any], relation: Mapping[str, Any],
+        self, edge: Mapping[str, Any], relation: Mapping[str, Any], *,
+        template: str | None = "BIND", purpose: str = "relation-bind",
     ) -> dict[str, Any]:
         current = next(
             item for item in self.graph["edges"]
@@ -613,10 +625,11 @@ class GraphRevision:
         evidence = f"observation:{relation['support_sha256']}"
         if evidence not in current["evidence_refs"]:
             current["evidence_refs"].append(evidence)
-        provenance = f"{self.method_id}:relation-bind"
+        provenance = f"{self.method_id}:{purpose}"
         if provenance not in current["provenance"]:
             current["provenance"].append(provenance)
-        self.templates.append("BIND")
+        if template is not None:
+            self.templates.append(template)
         return current
 
     def relink_edge(
@@ -652,13 +665,74 @@ class GraphRevision:
         self.templates.append("RELINK")
         return successor
 
+    def apply_place_adjacency(
+        self, relations: Sequence[Mapping[str, Any]],
+        region_node_ids: Mapping[str, str],
+    ) -> dict[str, int]:
+        """Maintain the deterministic adjacency of the shared place scaffold.
+
+        白话：这一步解决“地面格之间挨着不挨着，本来就由格坐标决定，不该让记忆
+        方法去猜”的问题。输入是本帧公开的 `adjacent_to` 观测和地点格到骨架节点
+        的对应，输出是骨架自己维护的相邻边及计数；例如格 (3,5) 与 (3,6) 同时被
+        观测到时直接建立一条规范相邻边，再次观测只附加证据。它不产生候选事务、
+        不判断可通行，也不处理 `located_at` 或 `supported_by`。
+        """
+
+        counts = {"born": 0, "bound": 0, "deduplicated": 0}
+        seen: set[tuple[str, str, str]] = set()
+        for relation in relations:
+            if str(relation["relation"]) not in SCAFFOLD_RELATIONS:
+                continue
+            source, target, relation_kind = canonical_relation_observation(
+                relation, region_node_ids,
+            )
+            if not all(
+                _node_type(self.graph, node_id) == "place"
+                for node_id in (source, target)
+            ):
+                raise ValueError(
+                    "place adjacency requires two open place scaffold nodes"
+                )
+            signature = (source, target, str(relation["support_sha256"]))
+            if signature in seen:
+                counts["deduplicated"] += 1
+                continue
+            seen.add(signature)
+            normalized = dict(relation)
+            normalized["relation"] = relation_kind
+            exact = sorted((
+                edge for edge in open_edges(self.graph)
+                if edge["source"] == source
+                and edge["target"] == target
+                and edge["relation"] == relation_kind
+            ), key=lambda edge: str(edge["edge_id"]))
+            if exact:
+                self.bind_edge(
+                    exact[0], normalized,
+                    template=None, purpose="adjacency-bind",
+                )
+                counts["bound"] += 1
+                continue
+            self.create_edge(
+                normalized, source_node_id=source, target_node_id=target,
+                template=None, purpose="adjacency-birth",
+            )
+            counts["born"] += 1
+        return counts
+
     def apply_relation_observations(
         self, relations: Sequence[Mapping[str, Any]],
         region_node_ids: Mapping[str, str],
     ) -> dict[str, int]:
-        counts = {"born": 0, "bound": 0, "relinked": 0, "inverse_deduplicated": 0}
+        counts = {
+            "born": 0, "bound": 0, "relinked": 0, "inverse_deduplicated": 0,
+            "scaffold_maintained": 0,
+        }
         seen: set[tuple[str, str, str, str]] = set()
         for relation in relations:
+            if str(relation["relation"]) in SCAFFOLD_RELATIONS:
+                counts["scaffold_maintained"] += 1
+                continue
             source, target, relation_kind = canonical_relation_observation(
                 relation, region_node_ids,
             )

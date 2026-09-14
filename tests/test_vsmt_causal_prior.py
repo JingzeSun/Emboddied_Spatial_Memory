@@ -183,7 +183,10 @@ class CausalPriorTests(unittest.TestCase):
         self.assertEqual(result["post_memory"]["edges"][0]["relation"], "located_at")
         self.assertEqual(
             result["diagnostics"]["relation_updates"],
-            {"born": 1, "bound": 0, "relinked": 0, "inverse_deduplicated": 0},
+            {
+                "born": 1, "bound": 0, "relinked": 0,
+                "inverse_deduplicated": 0, "scaffold_maintained": 0,
+            },
         )
 
     def test_audit_identity_changes_receipt_binding_not_prior_or_adapter_bytes(self) -> None:

@@ -988,6 +988,63 @@ class PublicCandidateTests(unittest.TestCase):
         )
 
 
+class ScaffoldRelationCandidateTests(unittest.TestCase):
+    """Place adjacency is scaffold bookkeeping, never a learned transaction."""
+
+    def catalog_with_adjacency(self) -> Mapping[str, Any]:
+        graph = deepcopy(graph_fixture())
+        graph["edges"].append({
+            "edge_id": "edge:adjacent",
+            "edge_version_id": "edge:adjacent@v0",
+            "source": "place-a",
+            "target": "place-b",
+            "relation": "adjacent_to",
+            "frame": "map",
+            "valid_from": 0,
+            "valid_to": None,
+            "evidence_refs": ["observation:edge-adjacent"],
+            "provenance": ["fixture:public"],
+        })
+        graph = seal_graph({
+            key: value for key, value in graph.items()
+            if key not in {"graph_hash"}
+        })
+        packet = packet_fixture(graph)
+        packet["region_observations"].append(
+            region(3, [0.0, 0.0, 0.0], kind="place"),
+        )
+        packet["relation_observations"].append({
+            "relation_id": "relation:0001",
+            "source_region_id": "region:0002",
+            "target_region_id": "region:0003",
+            "relation": "adjacent_to",
+            "reliability": 1.0,
+            "support_sha256": "c" * 64,
+        })
+        return generate_public_candidate_catalog(
+            packet, graph, config=config(),
+        )
+
+    def test_no_candidate_creates_or_retires_a_place_adjacency_edge(self) -> None:
+        catalog = self.catalog_with_adjacency()
+        touched = []
+        for candidate in catalog["candidates"]:
+            for operation in candidate["program"]["operations"]:
+                arguments = operation["arguments"]
+                edge = arguments.get("edge")
+                if type(edge) is dict and edge.get("relation") == "adjacent_to":
+                    touched.append(operation["op_id"])
+                if arguments.get("edge_id") == "edge:adjacent":
+                    touched.append(operation["op_id"])
+        self.assertEqual(touched, [])
+
+    def test_no_capacity_bucket_is_opened_for_place_adjacency(self) -> None:
+        catalog = self.catalog_with_adjacency()
+        self.assertNotIn(
+            "relation:adjacent_to",
+            {row["scope"] for row in catalog["capacity_audit"]},
+        )
+
 def bucket_group(count: int, tag: str) -> list[
     tuple[dict[str, Any], dict[str, Any], dict[str, float]]
 ]:

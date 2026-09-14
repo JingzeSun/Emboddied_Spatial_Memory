@@ -33,14 +33,22 @@ def prepare_place_scaffold(
             support_envelope_reliability_threshold
         ),
     )
+    place_node_ids: dict[str, str] = {}
     for region in places:
-        revision.upsert_place_scaffold(
+        scaffold = revision.upsert_place_scaffold(
             region, float(model_input["decision_time_s"]),
         )
+        place_node_ids[str(region["region_id"])] = str(scaffold["node_id"])
+    adjacency_counts = revision.apply_place_adjacency(
+        model_input["relation_observations"], place_node_ids,
+    )
     result = revision.finish(
         confidence=1.0,
         runtime_ms=0.0,
-        diagnostics={"place_scaffold_regions": len(places)},
+        diagnostics={
+            "place_scaffold_regions": len(places),
+            "place_adjacency_updates": adjacency_counts,
+        },
     )
     memory = result["post_memory"]
     prepared = clone_json(public)

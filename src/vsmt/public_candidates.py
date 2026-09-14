@@ -26,6 +26,7 @@ from .contracts import (
     validate_private_evaluation,
 )
 from .graph_ops import (
+    SCAFFOLD_RELATIONS,
     association_components,
     association_score,
     centroid_distance,
@@ -1573,6 +1574,9 @@ def generate_public_candidate_catalog(
             ]
     seen_relation_signatures: set[tuple[str, str, str, str]] = set()
     for relation_observation in public["relation_observations"]:
+        if str(relation_observation["relation"]) in SCAFFOLD_RELATIONS:
+            # 由确定性地点骨架维护并在骨架回执里计数，不是方法的修订决定。
+            continue
         relation = clone_json(dict(relation_observation))
         source_region_id = relation["source_region_id"]
         target_region_id = relation["target_region_id"]
@@ -1773,7 +1777,7 @@ def generate_public_candidate_catalog(
 
     for edge in edges:
         source = by_id.get(edge["source"])
-        if source is None:
+        if source is None or str(edge["relation"]) in SCAFFOLD_RELATIONS:
             continue
         covering = _covering_free_spaces(
             source, public["free_space_observations"],

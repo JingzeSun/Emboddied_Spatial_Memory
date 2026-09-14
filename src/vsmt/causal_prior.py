@@ -216,6 +216,9 @@ def advance_public_bootstrap(
                 "promoted_to_confirmed": False,
             })
 
+    adjacency_counts = revision.apply_place_adjacency(
+        model_input["relation_observations"], region_node_ids,
+    )
     relation_counts = revision.apply_relation_observations(
         model_input["relation_observations"], region_node_ids,
     )
@@ -236,6 +239,7 @@ def advance_public_bootstrap(
         diagnostics={
             "bootstrap_decisions": decisions,
             "packet_region_count": len(regions),
+            "place_adjacency_updates": adjacency_counts,
             "relation_updates": relation_counts,
         },
     )
