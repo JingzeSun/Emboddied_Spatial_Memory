@@ -1,0 +1,323 @@
+{
+  "version": "vsmt-vm04-l1-contract-proposal-v1",
+  "status": "proposed_non_executable",
+  "decision": "D-133",
+  "approval": {
+    "contract_approved": false,
+    "implementation_authorized": false,
+    "dependency_install_authorized": false,
+    "asset_download_authorized": false,
+    "audit_generation_authorized": false,
+    "train_validation_generation_authorized": false,
+    "training_authorized": false,
+    "confirmation_authorized": false
+  },
+  "scope": {
+    "evidence_level": "L1_oracle_structured_diagnostic",
+    "purpose": "compare_memory_revision_mechanisms_after_removing_entity_proposal_error",
+    "methods": ["VSMT", "TAF", "ELU", "WFR", "LOW"],
+    "paper_main_table": false,
+    "l2_status": "deferred_not_cancelled",
+    "same_physical_sequences_as_future_L2": true,
+    "only_entity_proposal_source_may_differ_from_L2": true
+  },
+  "channel_boundary": {
+    "isolated_materializer_inputs": [
+      "current_frame_simulator_instance_masks",
+      "current_frame_simulator_instance_ids",
+      "current_frame_RGB",
+      "current_frame_public_depth",
+      "current_frame_public_camera_pose_and_calibration"
+    ],
+    "materializer_outputs": [
+      "anonymous_mask_cache",
+      "frozen_DINOv2_region_descriptors",
+      "public_mask_depth_geometry",
+      "ObservationPacket",
+      "materialization_receipt"
+    ],
+    "method_visible_input": "validated_AdapterInput_only",
+    "method_visible_region_fields": [
+      "region_id",
+      "structure_kind",
+      "mask_sha256",
+      "descriptor",
+      "centroid_m",
+      "extent_m",
+      "reliability",
+      "proposal_source_id"
+    ],
+    "method_forbidden_values": [
+      "simulator_instance_id",
+      "simulator_object_type_or_name",
+      "cross_frame_oracle_identity",
+      "ground_truth_pose_or_mesh",
+      "reference_program",
+      "reference_graph",
+      "future_observation",
+      "future_world_state",
+      "private_file_path_or_row_index"
+    ],
+    "raw_mask_pixels_visible_to_memory_methods": false,
+    "rgb_or_rgbd_file_references_visible_to_memory_methods": false
+  },
+  "oracle_entity_materialization": {
+    "source": "one_visible_mask_per_simulator_instance_per_frame",
+    "instance_id_role": "temporary_private_lookup_key_discarded_before_any_public_sort_or_hash",
+    "disconnected_visible_components_of_one_instance": "remain_one_within_frame_oracle_region",
+    "cross_frame_linking": false,
+    "object_class_exposed": false,
+    "structure_kind": "entity",
+    "canonical_region_order": [
+      "structure_kind",
+      "row_major_first_true_pixel",
+      "visible_pixel_count",
+      "sha256_of_canonical_binary_mask"
+    ],
+    "region_id_rule": "assign_region_0000_upwards_after_canonical_sort_each_packet",
+    "mask_sha256_rule": "sha256_of_canonical_JSON_array_[height_width_row_major_0_or_1_values]",
+    "empty_or_offscreen_instance": "no_region",
+    "controlled_frontend_stress_order": "apply_predeclared_mask_transformation_after_anonymization_and_before_descriptor_or_geometry",
+    "minimum_visible_pixels": null,
+    "border_truncation_policy": null,
+    "blocking_reason": "minimum_support_and_truncation_rules_require_user_numeric_review"
+  },
+  "non_entity_regions": {
+    "surface_source": "public_depth_pose_and_calibration_only",
+    "place_source": "public_depth_pose_and_calibration_only",
+    "fragment_source": "predeclared_transformation_of_anonymous_regions_only",
+    "simulator_semantic_segmentation_or_room_labels_allowed": false,
+    "numeric_rules": null,
+    "blocking_reason": "surface_place_and_fragment_geometry_rules_are_not_yet_frozen"
+  },
+  "dinov2_region_descriptor": {
+    "repository_commit": "7764ea0f912e53c92e82eb78a2a1631e92725fc8",
+    "checkpoint_sha256": "b938bf1bc15cd2ec0feacfe3a1bb553fe8ea9ca46a7e1d8d00217f29aef60cd9",
+    "model": "dinov2_vits14_without_registers",
+    "frozen": true,
+    "evaluation_mode": true,
+    "input_rgb": "224x224_uint8_sRGB_current_public_frame",
+    "resize_or_crop": "none",
+    "random_augmentation": false,
+    "input_transform": {
+      "scale": "uint8_divide_by_255",
+      "mean": [0.485, 0.456, 0.406],
+      "std": [0.229, 0.224, 0.225]
+    },
+    "patch_grid": [16, 16],
+    "patch_size_pixels": 14,
+    "patch_token_dimension": 384,
+    "class_token_used": false,
+    "region_weight_per_patch": "fraction_of_the_14x14_patch_pixels_inside_the_anonymous_mask",
+    "region_pooling": "weighted_mean_of_patch_tokens_then_L2_normalize",
+    "descriptor_dimension": 384,
+    "descriptor_storage_dtype": "float32",
+    "method_specific_visual_adapter": false,
+    "cache_once_and_share_identical_bytes_across_methods": true,
+    "minimum_total_patch_weight": null,
+    "unit_norm_validation_tolerance": null,
+    "blocking_reason": "minimum_pooling_support_and_numeric_validation_tolerance_require_review"
+  },
+  "public_geometry": {
+    "entity_point_source": "anonymous_mask_intersection_with_valid_public_depth",
+    "projection": "registered_depth_pixels_backprojected_with_public_intrinsics_then_transformed_by_public_camera_pose",
+    "centroid_proposal": "coordinatewise_mean_of_visible_world_points",
+    "extent_proposal": "axis_aligned_visible_world_point_maximum_minus_minimum",
+    "hidden_object_geometry_completion": false,
+    "simulator_pose_mesh_or_axis_aligned_bounding_box_allowed": false,
+    "depth_valid_range_m": [null, null],
+    "minimum_valid_depth_points": null,
+    "reliability_formula": null,
+    "free_space_box_rules": null,
+    "surface_and_place_rules": null,
+    "blocking_reason": "depth_support_reliability_free_space_surface_and_place_values_require_review"
+  },
+  "materialization_receipts": {
+    "public_receipt_fields": [
+      "schema_version",
+      "evidence_level",
+      "materializer_code_sha256",
+      "approved_config_sha256",
+      "RGB_sha256",
+      "depth_sha256",
+      "camera_calibration_and_pose_sha256",
+      "anonymous_mask_cache_sha256",
+      "descriptor_cache_sha256",
+      "geometry_cache_sha256",
+      "ObservationPacket_sha256",
+      "DINO_repository_commit",
+      "DINO_checkpoint_sha256"
+    ],
+    "private_audit_receipt_fields": [
+      "raw_instance_mask_set_sha256",
+      "instance_id_mapping_sha256",
+      "public_receipt_sha256"
+    ],
+    "public_receipt_forbidden": [
+      "instance_id",
+      "instance_id_mapping_sha256",
+      "object_name_or_type",
+      "private_path",
+      "reference_or_future_digest"
+    ],
+    "instance_id_permutation_changes_public_receipt": false,
+    "instance_id_permutation_may_change_private_audit_receipt": true
+  },
+  "causal_prior": {
+    "L1_and_L2_cache_reuse": false,
+    "controlled_revision": "same_sealed_L1_prior_memory_bytes_for_all_five_methods",
+    "closed_loop_revision": "each_method_commits_its_own_memory_from_packet_zero",
+    "builder": "public_bootstrap_v1_BIRTH_then_public_threshold_BIND_only",
+    "builder_inputs": "ordered_L1_ObservationPackets_only",
+    "builder_thresholds": null,
+    "private_teacher_future_or_reference_mount": false
+  },
+  "candidate_generation": {
+    "applies_to": "VSMT_and_its_internal_controls",
+    "generator": "vsmt_public_generator_v1",
+    "uses_frozen_descriptor_and_public_geometry_only": true,
+    "candidate_before_teacher": true,
+    "execute_every_candidate_from_same_immutable_base": true,
+    "candidate_thresholds_and_caps": null,
+    "teacher_may_insert_delete_reorder_or_repair": false
+  },
+  "vsmt_online_selector": {
+    "status": "architecture_proposal_not_implemented",
+    "candidate_scoring": "one_shared_scorer_applied_independently_to_each_sealed_candidate",
+    "candidate_slot_index_embedding": false,
+    "catalog_order_or_path_feature": false,
+    "input_branches": [
+      "typed_prior_graph_summary",
+      "candidate_program_and_online_evidence",
+      "candidate_touched_pre_state_subgraph",
+      "executed_candidate_post_state_subgraph",
+      "normalized_pre_to_post_delta"
+    ],
+    "node_features": [
+      "frozen_384d_descriptor",
+      "structure_kind",
+      "lifecycle",
+      "centroid_m",
+      "extent_m",
+      "reliability",
+      "public_age",
+      "observation_count"
+    ],
+    "edge_features": [
+      "public_relation_type",
+      "direction",
+      "endpoint_node_features",
+      "lifecycle_and_age"
+    ],
+    "encoding_family": "shared_typed_node_and_edge_encoders_with_sum_and_max_pooling_then_candidate_MLP",
+    "pre_post_comparison": "concatenate_pre_pool_post_pool_and_post_minus_pre",
+    "logit_output": "one_finite_scalar_per_candidate",
+    "choice": "maximum_logit",
+    "tie_break": "ascending_canonical_program_sha256_not_candidate_slot",
+    "hidden_width": null,
+    "encoder_layers": null,
+    "selector_layers": null,
+    "parameter_budget": null,
+    "blocking_reason": "capacity_training_budget_and_regularization_require_VM05_review"
+  },
+  "vsmt_internal_controls": {
+    "DRCR": "same_online_architecture_and_executed_candidate_inputs_but_direct_reference_equivalence_training_targets_without_post_execution_future_teacher",
+    "NECS": "same_candidate_scorer_with_post_state_and_delta_branches_replaced_by_fixed_zero_tensors_and_no_post_graph_access",
+    "PHR": "no_learning_rank_by_frozen_public_candidate_generation_score_with_canonical_hash_tie_break",
+    "sealed_catalog_oracle": "diagnostic_upper_bound_only"
+  },
+  "other_method_behavior": {
+    "TAF": "same_L1_AdapterInput_then_thresholded_visual_geometric_association_and_fusion",
+    "ELU": "same_L1_AdapterInput_then_existence_log_odds_updates_from_positive_regions_and_public_free_space",
+    "WFR": "same_L1_AdapterInput_then_windowed_fragment_confirmation_merge_and_retraction",
+    "LOW": "same_L1_AdapterInput_then_nearest_centroid_overwrite_or_birth",
+    "method_specific_RGB_encoder_or_visual_adapter": false,
+    "formal_thresholds": null
+  },
+  "teacher_and_evaluator": {
+    "teacher_opens_private_only_after_catalog_and_all_candidate_post_states_are_sealed": true,
+    "teacher_outputs": "score_and_probability_for_each_existing_candidate_id_in_original_order",
+    "teacher_temperature": null,
+    "candidate_score_components": null,
+    "graph_equivalence_policy": null,
+    "evaluator_process_is_separate_from_prediction": true,
+    "reported_error_classes": [
+      "construction_failure",
+      "frontend_error",
+      "candidate_miss",
+      "teacher_error",
+      "amortization_error",
+      "executor_illegal",
+      "unsupported_template"
+    ],
+    "aggregate_error_weights": null,
+    "endpoint_duration_and_provenance_primary_order": null
+  },
+  "required_positive_and_negative_examples": [
+    {
+      "case_id": "L1-01-instance-id-permutation",
+      "change": "permute_all_simulator_instance_ids_while_preserving_mask_pixels_and_public_sensors",
+      "must_remain_identical": ["anonymous_regions", "descriptors", "geometry", "prior", "catalog", "online_features", "untrained_logits"],
+      "may_change": ["private_mapping_digest"]
+    },
+    {
+      "case_id": "L1-02-no-cross-frame-oracle-link",
+      "change": "the_same_private_instance_reappears_in_a_later_packet",
+      "required_behavior": "later_region_receives_a_new_packet_local_ordinal_and_identity_must_be_inferred_from_descriptor_geometry_and_memory"
+    },
+    {
+      "case_id": "L1-03-mask-input-order",
+      "change": "shuffle_the_private_instance_mask_enumeration_order",
+      "required_behavior": "canonical_anonymous_region_order_and_every_downstream_online_byte_remain_identical"
+    },
+    {
+      "case_id": "L1-04-two-similar-entities",
+      "change": "two_same_class_similar_appearance_entities_are_simultaneously_visible",
+      "required_behavior": "emit_two_anonymous_regions_without_class_or_identity_and_allow_ambiguity_in_candidate_or_prediction_results"
+    },
+    {
+      "case_id": "L1-05-occluded-is-not-empty",
+      "change": "an_old_entity_has_no_current_oracle_mask_because_it_is_occluded",
+      "required_behavior": "do_not_create_RETRACT_or_negative_existence_evidence_without_independent_public_free_space_support"
+    },
+    {
+      "case_id": "L1-06-small-or-invalid-region",
+      "change": "a_visible_mask_has_insufficient_valid_depth_or_DINO_patch_support_under_the_future_frozen_rule",
+      "required_behavior": "record_frontend_or_construction_failure_without_resampling_or_private_geometry_completion"
+    },
+    {
+      "case_id": "L1-07-private-future-mutation",
+      "change": "mutate_reference_program_reference_graph_and_future_observations_after_public_bytes_are_fixed",
+      "required_behavior": "prior_catalog_order_online_features_and_untrained_logits_remain_byte_identical"
+    },
+    {
+      "case_id": "L1-08-catalog-permutation",
+      "change": "permute_candidate_batching_only_after_catalog_validation_without_mutating_the_sealed_catalog",
+      "required_behavior": "shared_candidate_logits_follow_program_sha256_and_selected_program_is_unchanged_without_slot_features"
+    }
+  ],
+  "unresolved_review_items": [
+    "minimum_visible_pixels_and_border_truncation_policy",
+    "DINO_pooling_support_and_unit_norm_tolerance",
+    "depth_valid_range_and_minimum_points",
+    "region_reliability_formula",
+    "surface_place_and_free_space_geometry",
+    "bootstrap_and_all_method_thresholds",
+    "candidate_thresholds_caps_and_public_heuristic_score",
+    "selector_capacity_regularization_and_training_budget",
+    "teacher_candidate_score_components_and_temperature",
+    "S01_to_S12_graph_equivalence_and_aggregate_metric_policy",
+    "nuisance_probe_gate",
+    "two_house_audit_manifest_and_runtime_budget"
+  ],
+  "claims": {
+    "contract_frozen": false,
+    "implementation_complete": false,
+    "environment_ready": false,
+    "L1_data_generated": false,
+    "selector_trained": false,
+    "five_method_experiment_run": false,
+    "L1_mechanism_advantage_verified": false,
+    "L2_deployable_result_verified": false
+  }
+}

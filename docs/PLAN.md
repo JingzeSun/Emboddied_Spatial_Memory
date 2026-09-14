@@ -16,13 +16,13 @@
 | VM-01 公私数据与共同适配合同（代码候选） | D-122草案；固定结构类型、公开 proposal/descriptor、五通道文件和反作弊 gate | schema、正负例、private mutation invariance、无 private 推理及 candidate-before-teacher 测试；补齐公开自由空间和逐候选在线证据，待合并服务器测试 |
 | VM-02 三种论文机制与朴素基线（代码候选） | 共同接口；TAF、ELU、WFR、LOW 只消费相同 `ObservationPacket` | clean-room 适配器、显式无默认值配置、版本化共同输出包装及人工分支测试；未冻结阈值，不称官方复现或效果结果 |
 | VM-03 VSMT 无泄漏候选与 teacher（代码候选） | VM-01接口；复用 executor/八原子语义，删除参考派生 query | public-only 九类程序、逐一真实执行、公开摘要排序、online evidence封存及封存后teacher；待同批服务器测试 |
-| VM-04 新数据数值冻结与开发生成（L1优先，v1提案仍不可执行） | [不可执行提案](../configs/vsmt/vm04_data_protocol_proposal_v1.json)；审查 ProcTHOR＋AI2-THOR、2/48/12/12家族、32帧、九程序各2重复、L1匿名oracle mask＋冻结DINOv2、双轨 prior 和关系感知 SPLIT；L2的SAM2.1前端后置 | 关系SPLIT、public-only prior、标签独立清单/闸门已通过53项服务器合同检查，官方来源及现有DINO资产只读预检通过；下一职责先冻结五方法共同L1输入、阈值、选择器和评价，再审隔离环境与2家族audit。所有null阈值/语义未冻结前不安装、生成正式train/validation或训练 |
+| VM-04 新数据数值冻结与开发生成（L1优先，v1提案仍不可执行） | [总协议提案](../configs/vsmt/vm04_data_protocol_proposal_v1.json)及[L1-only合同提案](../configs/vsmt/vm04_l1_contract_proposal_v1.json)；ProcTHOR＋AI2-THOR、2/48/12/12家族、32帧、九程序各2重复、匿名oracle mask＋冻结DINOv2、双轨 prior 和关系感知 SPLIT；L2的SAM2.1前端后置 | 关系SPLIT、public-only prior、标签独立清单/闸门已通过53项服务器合同检查，官方来源及现有DINO资产只读预检通过；L1输入输出、选择器边界及8个正反例已交审，所有支持/几何/阈值/容量/teacher/指标仍为null。用户审查后才可实现合同与检查，再另审隔离环境和2家族audit；当前不安装、生成或训练 |
 | VM-05 公平训练与 validation | 数据验收；冻结各方法阈值、学习预算、停止规则、共同/完整任务指标 | VSMT/TAF/ELU/WFR/LOW 在 L2 完全同前端输入主评；L1只作机制上界，旧 A/C/E 只作内部消融；确认前锁定全部选择 |
 | VM-06 独立确认与论文证据 | 模型、前端、候选、评分和最小效果门冻结后另行授权 | 未见家族 confirmation、必要现实来源、逐类/共享能力/成本/失败报告；不能按 validation 结果改样本或门 |
 
 ### 当前指针
 
-**VSMT 已在 `main`；VM-01～VM-04当前代码边界取得服务器预检回执，下一职责切到五方法共同的L1-first合同冻结。** 最终受审提交`5e125ba`上53/53项合同通过，官方Git/PyPI/HTTP来源及现有DINOv2仓库/权重匹配，报告为[vsmt_vm04_preflight.json](../results/vsmt_vm04_preflight.json)；原`f016b7d`测试选择器错误和`a1a55f0`错误PyPI版本审计现场均保留，不改写为成功。用户决定先做L1：VSMT/TAF/ELU/WFR/LOW共同消费去掉instance ID的oracle mask、同一冻结DINOv2区域描述及公开depth/pose几何；这只后置SAM proposal误差，不给任何方法oracle身份，也不把L1列为L2主结果。基础环境仍未安装AI2-THOR/ProcTHOR/SAM2且缺`libvulkan`；具体L1匿名化/池化/几何、bootstrap/候选/各方法阈值、VSMT在线选择器、teacher/evaluator及S-01～S-12数值口径未冻结，所以当前仍无安装、下载、生成、训练或confirmation授权。下一步先交L1-only输入输出与正反例供用户代码/语义审查，再决定隔离环境和2家族audit；原D-062分支、代码、数据和结果均保留，`scripts/notes.txt`保持原字节。
+**VSMT 已在 `main`；VM-01～VM-04当前代码边界取得服务器预检回执，五方法共同的L1-first合同提案已交用户审查。** 最终受审提交`5e125ba`上53/53项合同通过，官方Git/PyPI/HTTP来源及现有DINOv2仓库/权重匹配，报告为[vsmt_vm04_preflight.json](../results/vsmt_vm04_preflight.json)；原`f016b7d`测试选择器错误和`a1a55f0`错误PyPI版本审计现场均保留，不改写为成功。[L1-only提案](../configs/vsmt/vm04_l1_contract_proposal_v1.json)规定VSMT/TAF/ELU/WFR/LOW共同消费去掉instance ID且逐帧重编号的oracle mask、同一冻结DINOv2区域描述及公开depth/pose几何；surface/place/free-space不读模拟器语义，VSMT按program身份逐候选共享打分且不能使用slot。八个正反例覆盖ID/顺序/private变异、遮挡、支持不足及catalog换序。基础环境仍未安装AI2-THOR/ProcTHOR/SAM2且缺`libvulkan`；最小mask/patch/depth支持、可靠性、surface/place/free-space、bootstrap/候选/各方法阈值、选择器容量、teacher/evaluator及S-01～S-12数值口径均保持null，所以当前仍无安装、下载、生成、训练或confirmation授权。下一步是用户审查该合同并裁决未决数值/语义；通过后才交L1 materializer/selector/evaluator代码候选和必要测试，再决定隔离环境与2家族audit。原D-062分支、代码、数据和结果均保留，`scripts/notes.txt`保持原字节。
 
 ## 上一 D-062 路线（暂停，以下保留复现）
 

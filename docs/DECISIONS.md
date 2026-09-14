@@ -1395,3 +1395,11 @@
 - Oracle proposal（真值区域提议诊断）解决自动分割错误是否掩盖记忆机制的问题；输入模拟器instance mask，输出去掉instance ID、按包重新编号的区域mask。例如椅子mask可帮助五个方法看到同一完整区域，但不能告诉它们这是历史中的哪把椅子。它不提供真值身份、reference事务或正确候选，也不允许跨L1/L2复用prior/candidate缓存。
 - L1仍保留冻结DINOv2 descriptor作为共同公开外观信号，只后置SAM2.1自动proposal及其误差；不能把`visual_weight=0`的纯几何退化版或oracle instance identity暗中当成L1主设置。L1只报告机制上界与失败归因，不进入L2共享RGB-D主排名；L2后置不等于取消。
 - 当前决定只改变实施顺序，不冻结匿名化/池化/几何数值、bootstrap/候选/基线阈值、VSMT在线选择器、teacher/evaluator、数据规模或训练预算。服务器预检成功只允许进入L1-only合同与代码审查，仍不授权依赖安装、资产下载、2家族生成、正式train/validation、训练或confirmation。
+
+## D-133：L1-only输入、匿名化和逐候选选择器形成不可执行提案
+
+- 日期：2026-09-14；状态：proposed，待用户审查。唯一机器提案为`configs/vsmt/vm04_l1_contract_proposal_v1.json`；所有实现、安装、下载、audit生成、train/validation生成、训练和confirmation授权均为false。它细化D-132的实施边界，不把本次“继续”解释为对首次出现数值或网络容量的批准。
+- L1隔离materializer只在单帧内用instance ID取mask，公开排序前丢弃ID；同一实例跨帧重新编号。实体可使用oracle mask，surface/place/free-space仍只读公开depth/pose，不能把simulator语义、真值pose/mesh/bbox或房间图带入方法。白话：输入真值像素分区，输出匿名区域和可见几何；例如两帧中的同一杯子仍须由方法自己BIND。它不等于oracle identity或oracle scene graph。
+- 冻结DINOv2拟在224×224原RGB上产生16×16×384 patch token，以每个14×14 patch的mask占比加权平均并L2归一化；缓存float32 descriptor一次，五方法逐字节共享，无私有视觉adapter。最小像素/patch/depth支持、范数容差和可靠性仍为null。白话：它输入同一当前RGB和匿名mask，输出区域外观向量，例如半个patch属于区域则权重0.5；它不训练backbone或提供对象身份。
+- VSMT在线选择器拟用无slot embedding的共享逐候选scorer，编码prior、program/evidence、候选触及的pre-state、同一基图真实执行后的post-state及delta，每个program输出一个logit；换序诊断中logit必须随program而非ordinal移动。DRCR保留post-state但换直接reference训练标签，NECS禁止post graph并用固定零分支，PHR只用冻结公开启发式分。该设计解决旧索引head和“执行后状态是否有独立价值”的问题；输入封存catalog，输出候选排序。它不改变candidate-before-teacher，也不让四个论文机制适配器经过VSMT网络。
+- 必需正反例固定为instance ID置换、跨帧重编号、mask枚举换序、两相似实体、遮挡非空、支持不足失败保留、private/future变异和catalog校验后scorer batch换序八类。它们先验证信息边界与接口；最后一项不修改封存catalog或teacher槽位。它们不证明真实数据覆盖或方法效果。下一步只有在用户审查本提案后，才可把已接受规则实现为L1 materializer/selector/evaluator代码与必要服务器测试；环境和2-house audit继续后置。

@@ -131,15 +131,31 @@ VM-03 的 `generate_public_candidate_catalog`（公开候选目录生成器）�
 
 VM-04 v1拟把单步机制比较和长期自反馈分开。`controlled_revision`（受控单次修订）输入同一 evidence level 内逐字节相同的 causal prior memory（因果旧记忆）和当前公开 packet，输出每个方法的一次新图；`closed_loop_revision`（闭环连续修订）输入相同完整公开序列但让各方法使用自己上一时刻提交的图，输出各自版本链与恢复轨迹。例如先把同一个重复节点旧图交给五个方法比较 MERGE，再另看它们从空图运行时谁会形成重复、多久修好。它解决单步公平性和长期误差传播不能由一张表同时回答的问题；不把共同 bootstrap 的表现算成任何一个方法的贡献，也不拿闭环中不同旧图冒充同条件单步实验。
 
-受控轨道的 `public_bootstrap_v1`（公开旧记忆构建器）已形成待服务器验证的纯代码候选：从同一个空图依时间顺序只做公开 BIRTH/BIND，并给每一步保存原公开包摘要、剥离审计身份后的适配输入摘要、提交更新摘要和版本链 SHA-256；构建函数签名没有 private、teacher、future 或路径参数，运行阶段还必须用仅挂载 `public` 的进程守卫。输入第 0–23 帧的公开 packet，输出第 24 帧之前的封存旧图和 `causal_prior_receipt`。例如只改变样本摘要或RGB-D文件摘要时，构建出的图和实际适配输入摘要不变，但外层公开文件绑定摘要会变化；以后交换 private simulator ID 或未来帧则因这些值根本不可达而不应改变任何回执字节。它不使用 reference transaction 初始化“正确旧图”，也不等于 bootstrap 自己是主对照；关联阈值尚未冻结，所以当前模块不能成为数据生成入口。
+受控轨道的 `public_bootstrap_v1`（公开旧记忆构建器）已通过服务器合同检查：从同一个空图依时间顺序只做公开 BIRTH/BIND，并给每一步保存原公开包摘要、剥离审计身份后的适配输入摘要、提交更新摘要和版本链 SHA-256；构建函数签名没有 private、teacher、future 或路径参数，运行阶段还必须用仅挂载 `public` 的进程守卫。输入第 0–23 帧的公开 packet，输出第 24 帧之前的封存旧图和 `causal_prior_receipt`。例如只改变样本摘要或RGB-D文件摘要时，构建出的图和实际适配输入摘要不变，但外层公开文件绑定摘要会变化；以后交换 private simulator ID 或未来帧则因这些值根本不可达而不应改变任何回执字节。它不使用 reference transaction 初始化“正确旧图”，也不等于 bootstrap 自己是主对照；关联阈值尚未冻结，所以当前模块不能成为数据生成入口。
 
-`VM04ProtocolGate`（VM-04协议执行闸门）和标签独立清单现为本地代码候选。闸门输入完整协议及拟执行动作，只有状态为`frozen_executable`、数值/实现/对应动作授权均为真、所有来源/前端/语义/泄漏字段非空且待审清单为空时才放行；当前提案对下载、生成、confirmation和训练全部拒绝。family清单按来源manifest摘要、split seed和house ID确定排序，整house不跨split；开发行可见实际ID，confirmation行只有摘要和空ID，真实ID的reveal接口先检查confirmation授权。公开episode ID只由协议、family和槽位生成，事务分配另用只存于私有编排清单的salt打乱。例如更换私有salt会改变每个槽对应的MERGE/BIRTH，却不能改变任何公开episode ID。它解决确认家族提前暴露及路径/候选编号暗示答案的问题，不等于nuisance probe已经通过，也不生成一帧图像；confirmation ID与episode计划在对应授权前都拒绝创建。
+`VM04ProtocolGate`（VM-04协议执行闸门）和标签独立清单已通过服务器合同检查。闸门输入完整协议及拟执行动作，只有状态为`frozen_executable`、数值/实现/对应动作授权均为真、所有来源/前端/语义/泄漏字段非空且待审清单为空时才放行；当前提案对下载、生成、confirmation和训练全部拒绝。family清单按来源manifest摘要、split seed和house ID确定排序，整house不跨split；开发行可见实际ID，confirmation行只有摘要和空ID，真实ID的reveal接口先检查confirmation授权。公开episode ID只由协议、family和槽位生成，事务分配另用只存于私有编排清单的salt打乱。例如更换私有salt会改变每个槽对应的MERGE/BIRTH，却不能改变任何公开episode ID。它解决确认家族提前暴露及路径/候选编号暗示答案的问题，不等于nuisance probe已经通过，也不生成一帧图像；confirmation ID与episode计划在对应授权前都拒绝创建。
 
-`VM04Preflight`（VM-04服务器预检）是已准备但尚未运行的固定三步入口：`contracts`在受审提交上精确运行53项VSMT测试，`source-audit`只查询官方ref/元数据、现有DINO资产、模块/库/GPU/磁盘，`export`只在前两步有摘要绑定成功标志时生成小报告。输入是同一Git提交和只读审计配置，输出started、日志、receipt、success及`results/vsmt_vm04_preflight.json`；例如网络失败保留attempt-01，修好网络后可在同一提交写attempt-02而不覆盖。它不执行pip/conda安装、不下载checkpoint主体、不启动AI2-THOR、不生成样本或训练。
+`VM04Preflight`（VM-04服务器预检）已在提交`5e125ba`完成固定三步：`contracts`精确运行53项VSMT测试，`source-audit`只查询官方ref/元数据、现有DINO资产、模块/库/GPU/磁盘，`export`在前两步有摘要绑定成功标志后生成[报告](../results/vsmt_vm04_preflight.json)。输入是同一Git提交和只读审计配置，输出started、日志、receipt、success及小报告；前两次测试/PyPI来源错误的目录继续保留。它没有执行pip/conda安装、下载checkpoint主体、启动AI2-THOR、生成样本或训练，预检通过也不等于L1环境或数据已经就绪。
 
-关系感知 SPLIT 已按用户批准形成待服务器验证的代码候选：一次原子操作完成“关闭源节点、关闭所有源 incident edges、创建两个后继、按候选 assignment 重建边”。每条旧边可给后继0、后继1或二者；合同也允许在至少两份已登记公开负证据下均不继承，但当前生成器尚不提出这一分支，避免在关系负证据口径冻结前暗定语义。第一批源节点开放边数上限为2，超过上限或含源节点自环时不生成 SPLIT，并计入候选覆盖分析。输入一个待拆节点、两个公开区域和开放边，输出完整合法的 SPLIT 后状态；例如一个错误聚合的双椅节点拆开后，两者都可 `located_at` 同一地点，而只有一者继承某个局部 `adjacent_to`。它不是 SPLIT 后再让 teacher 补边，也不是默认复制全部关系；静态检查或 executor 可执行也不表示关系分配在语义上正确。
+关系感知 SPLIT 已通过服务器合同检查：一次原子操作完成“关闭源节点、关闭所有源 incident edges、创建两个后继、按候选 assignment 重建边”。每条旧边可给后继0、后继1或二者；合同也允许在至少两份已登记公开负证据下均不继承，但当前生成器尚不提出这一分支，避免在关系负证据口径冻结前暗定语义。第一批源节点开放边数上限为2，超过上限或含源节点自环时不生成 SPLIT，并计入候选覆盖分析。输入一个待拆节点、两个公开区域和开放边，输出完整合法的 SPLIT 后状态；例如一个错误聚合的双椅节点拆开后，两者都可 `located_at` 同一地点，而只有一者继承某个局部 `adjacent_to`。它不是 SPLIT 后再让 teacher 补边，也不是默认复制全部关系；测试通过或 executor 可执行也不表示关系分配在语义上正确。
 
 VM-05拟增加三个同架构内部对照，但不改变五个主臂。Direct Reference Candidate Ranker（DRCR，直接参考候选排序器）使用同一在线网络和已封存 catalog，训练标签直接来自参考等价组，不使用执行后未来 teacher；No-Execution Candidate Scorer（NECS，无执行候选评分器）使用同一 catalog 和 teacher target，但不编码候选执行后的图；Public Heuristic Ranker（PHR，公开启发式排序器）完全不学习，只按冻结公开相似度排序。三者输入边界与 VSMT 相同，输出候选槽位。例如 NECS 若已经解释全部收益，说明“执行候选后再比较”没有获得独立支持。它们是 VSMT 因果消融，不是 ConceptGraphs/Fusion++/Khronos 的替代，也不自动获得主方法地位。
+
+### L1-first共同机制诊断合同（D-132/D-133，proposed、不可执行）
+
+[L1-only机器提案](../configs/vsmt/vm04_l1_contract_proposal_v1.json)把用户决定的“先做L1”限定为五方法共同的 oracle-structured diagnostic（真值区域提议机制诊断），而不是VSMT专属上界。输入是同一AI2-THOR序列中的当前RGB、公开depth/pose及只在隔离materializer可见的instance mask；输出是去掉instance ID、每帧重新编号的匿名区域、冻结DINOv2描述、公开可见几何和共同`ObservationPacket`。例如把模拟器椅子ID从7换成19但mask像素不变时，五方法看到的区域、描述、prior和候选必须逐字节不变。它不提供跨帧真值身份、对象类别、真值姿态/网格、reference事务或未来，也不能进入L2主排名。
+
+Oracle Region Materializer（真值区域匿名化器）解决“使用真值mask诊断分割误差时，怎样不顺带泄漏身份”的问题。它在单帧内可用instance ID找到该实例的全部可见像素，随即丢弃ID；区域只按结构类型、首个真像素、面积和mask摘要排序，再赋`region:0000...`。同一实例下一帧必须获得新的包内编号，身份仍由外观、几何和旧记忆推断。surface/place/free-space继续只从公开depth/pose形成，不能读取模拟器房间名或语义网格。例如一把被遮挡成两个可见岛的椅子在当前帧仍可是一条oracle region，但下次出现不能沿用私有ID直接BIND。它不是部署proposal，也不是完整oracle场景图。
+
+L1的冻结DINOv2区域描述拟用224×224原RGB、不裁剪不增强，按官方均值/方差归一化后送入ViT-S/14无register模型；16×16个384维patch token分别按对应14×14像素中mask占比加权，求均值后做L2归一化。输入同一匿名mask和当前RGB，输出384维float32 descriptor并只缓存一次供五方法共享。例如一个patch有196像素、其中98像素属于区域，则权重为0.5。它不微调backbone、不使用CLS token，也不允许方法私有视觉adapter；最小mask/patch支持和范数容差仍为`null`，未获审查前不能实现为生成入口。
+
+实体公开几何只把匿名mask与公开有效depth相交，按相机内参反投影并用公开pose变到世界坐标；当前提案以可见点坐标均值作质心、逐轴最大减最小作extent，不补全遮挡背面。输入当前可见RGB-D和相机标定，输出`centroid_m/extent_m/reliability`；例如只看见椅背上半部时extent只能描述可见部分，不能读取模拟器完整包围盒补齐。它不等于真值物体几何；有效深度范围、最小点数、可靠性、surface/place/free-space规则均待用户数值审查。
+
+VSMT Online Candidate Selector（VSMT在线候选选择器，planned）拟对每个已封存候选独立复用同一个打分器：分别编码类型化prior摘要、程序/在线证据、候选触及的执行前子图、真实执行后的子图和规范delta，再用逐候选MLP输出一个logit；不接受candidate slot、目录顺序、路径或样本名。所有候选从同一基图真实执行并封存后才打分，最大logit提交，严格并列按程序规范摘要排序。例如把同一候选集合换序时，每个程序的logit跟着程序而不是槽号移动，最终选择不变。它不让teacher生成候选，也不是DINO视觉adapter；隐藏宽度、层数、参数和训练预算仍未冻结。
+
+同架构对照按该选择器边界解释：DRCR保留全部在线输入但用直接reference等价标签训练；NECS把post-state和delta分支替换为固定零张量且不能打开post graph；PHR只用封存前的公开候选分数。五个主臂中TAF/ELU/WFR/LOW仍直接从同一`AdapterInput`产生图更新，不经过VSMT选择器。输入都是同一L1区域与prior，输出各自`MemoryUpdateResult`；例如ELU仍只能在公开自由空间完整覆盖时降低存在分数。它不强迫四个机制适配器伪装成候选分类器，也不赋予任何一方额外视觉信息。
+
+当前提案要求八个反作弊正反例：instance ID置换、私有mask枚举换序、同实例跨帧重编号、两相似实体同时可见、遮挡不等于自由空间、过小/无有效depth区域失败保留、private/future变异不改在线字节，以及catalog校验后只换scorer batch顺序仍保持逐程序logit。它们输入合法或故意破坏的成对记录，输出逐字节不变或明确失败；例如正确MERGE因公开证据不足未进入catalog时只能记candidate miss。它们不修改封存catalog或teacher槽位，不是数据效果样本，也不能替代2-house真实audit。
 
 ## 当前候选：空间历史对动作后果预测的作用（D-062，proposed）
 

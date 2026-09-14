@@ -50,7 +50,7 @@ VM-02 的共同节点观测状态键为 `vsmt_observation_state`，当前包含 
 
 [唯一数值提案](../configs/vsmt/vm04_data_protocol_proposal_v1.json)先把“什么是一条样本、L1/L2怎样同源、八原子怎样产生、什么仍未决定”写成机器可查合同。它解决讨论停留在“以后重生成数据”而无法审查的问题；输入拟固定的 ProcTHOR 房屋、AI2-THOR RGB-D 回放和公开前端，输出 32 个顺序观测、一个登记决策、七个仅供 teacher/private 评价的后续观测及完整来源回执。例如第 0–15 帧建立旧记忆，第 16–23 帧发生遮挡或环境变化，第 24 帧只凭公开前缀提出并选择事务，第 25–31 帧才由封存后的 teacher 判断候选后状态。它不是已经批准的数据配置，也没有授权下载、生成、训练或 confirmation。
 
-首选来源是 ProcTHOR-10K＋AI2-THOR：前者提供程序生成房屋，后者提供可交互场景、相机动作及 RGB/可选 depth/instance segmentation 接口。proposal 暂登记 AI2-THOR 5.0.0，但 wheel/source SHA、ProcTHOR revision、house manifest 和服务器 headless 能力仍为空，因此入口必须拒绝执行。实例 mask 和 simulator object ID 只给 L1/private；L2 不能挂载它们。相机在观测 0 之前可用 `TeleportFull` 做初始放置，之后每个 packet 对应一个已成功的登记 agent action；机器人实际执行过的操作进入 `past_actions`，外界搬动物体只留 private provenance。它不把实际未来运动或物体变换伪装成动作输入。
+首选来源是 ProcTHOR-10K＋AI2-THOR：前者提供程序生成房屋，后者提供可交互场景、相机动作及 RGB/可选 depth/instance segmentation 接口。只读预检已核AI2-THOR 5.0.0 tag、ProcTHOR代码/数据tag及PyPI发布存在，但wheel/source精确安装摘要、house manifest、许可证快照和服务器headless运行仍未固定，因此入口继续拒绝执行。实例 mask 和 simulator object ID 只给 L1隔离materializer/private；L2 不能挂载它们。相机在观测 0 之前可用 `TeleportFull` 做初始放置，之后每个 packet 对应一个已成功的登记 agent action；机器人实际执行过的操作进入 `past_actions`，外界搬动物体只留 private provenance。它不把实际未来运动或物体变换伪装成动作输入。
 
 拟议独立单位为 `house_family`，不能随机拆帧。2 个 audit、48 个 train、12 个 validation、12 个 confirmation 家族按源 manifest＋固定 seed＋house ID 的 SHA-256 顺序选取；每家族对八个原子与 REPLACE 各做 2 个预登记重复，即 18 条 episode。总量为 74 家族、1,332 条 episode、42,624 帧；confirmation 的 216 条 episode 继续延后生成。失败家族/episode 记录失败且不按结果换样本。白话：这解决同一个房子换个相机角度同时落进训练和验证的泄漏；输入完整 house family，输出唯一 split 归属。例如某房屋的 MERGE 重复和 BIRTH 重复都只能在 train。它不保证 1,332 条都成功生成，也不把构造失败从分母静默删除。
 
@@ -78,7 +78,45 @@ VM-02 的共同节点观测状态键为 `vsmt_observation_state`，当前包含 
 
 主臂仍为 VSMT/TAF/ELU/WFR/LOW；VM-05还须有三项 VSMT 内部对照：同在线架构但不用执行后 teacher 的 direct reference ranker、看候选语法/旧图但不看候选执行后状态的 no-execution scorer、完全不学习的 public heuristic ranker。L1 oracle proposal 和 sealed-catalog oracle choice 只作上界。白话：这些内部对照解决“收益到底来自未来 teacher、真实执行后的候选状态，还是候选本身已经很好猜”；它们输入同一 catalog，输出候选排序。例如 no-execution scorer 若与 VSMT 同样好，不能把收益归因于执行后比较。它们不是新增论文机制主臂，也不能替代 LOW 朴素基线。
 
-当前真正阻塞 VM-04 的不是服务器是否开启，而是以下值尚未冻结：SAM commit/checkpoint及全部 mask 参数、depth/free-space与 public bootstrap 阈值、候选 cap/teacher temperature、关系“均不继承”的公开负证据、S-01～S-12 的数值/图等价/汇总选择和 nuisance probe 门。关系感知SPLIT的三类保留分配和开放边数上限2已经形成代码候选，但尚无服务器回执。配置把未决字段保持 `null`，任何生成入口都必须 fail closed。这里的 2/48/12/12 家族、32 帧、每程序 2重复、16 GiB数据上限和 8小时 train+validation 生成上限也只是建议值，不因写进 JSON 自动变成批准值。
+当前真正阻塞 VM-04 的不是服务器是否开启；关系感知SPLIT、因果prior、清单/闸门已取得53项服务器合同回执，来源预检也已通过。仍未冻结的是L1匿名mask支持、DINO池化容差、depth/free-space与 public bootstrap 阈值、候选 cap/teacher temperature、在线选择器容量、关系“均不继承”的公开负证据、S-01～S-12 的数值/图等价/汇总选择和 nuisance probe 门；L2另有SAM精确资产摘要与全部mask参数。配置把未决字段保持 `null`，任何安装、生成或训练入口都必须 fail closed。这里的 2/48/12/12 家族、32 帧、每程序 2重复、16 GiB数据上限和 8小时 train+validation 生成上限也只是建议值，不因写进 JSON 自动变成批准值。
+
+### VM-04 L1-only 输入输出提案（D-132/D-133，proposed、不可执行）
+
+[L1-only合同提案](../configs/vsmt/vm04_l1_contract_proposal_v1.json)解决五方法能否先在“实体区域已切对、身份仍未知”的条件下比较。隔离materializer输入当前帧RGB、公开depth/pose/calibration及私有instance masks/IDs，输出匿名mask缓存、冻结DINOv2描述、公开可见几何、`ObservationPacket`和来源回执；方法进程仍只收到既有`AdapterInput`。例如私有ID为`Mug|3`只可帮助取出本帧mask，公开排序前必须删除，输出只能是`region:0000`及mask摘要。它不返回mask数组、RGB路径、类别名或跨帧oracle ID给记忆方法，也不是L2部署输入。
+
+| L1区域类型 | materializer可读来源 | 方法可见输出 | 明确禁止 |
+|---|---|---|---|
+| `entity` | 单帧instance mask＋当前RGB-D/pose | 匿名ordinal、mask摘要、384维DINO描述、可见点质心/extent、可靠性 | instance ID、类别名、真值姿态/mesh/bbox、跨帧链接 |
+| `surface` | 公开depth/pose/calibration | 匿名几何区域及同字段 | simulator surface/room语义或碰撞mesh |
+| `place` | 公开depth/pose/calibration | 可持续匿名地点候选 | house/room名称、私有导航图或reference地点 |
+| `fragment` | 预登记的匿名区域变换 | 匿名片段及变换摘要 | 按reference程序挑片段或用真实身份合并 |
+
+白话：实体oracle mask只移除“检测器有没有把像素分对”的误差；输入仍是一帧可见像素，输出仍没有历史身份。例如同一杯子下一帧再次出现时会得到新的包内ordinal，TAF/ELU/WFR/VSMT必须自己依据描述、位置和旧记忆决定BIND还是BIRTH。它不允许把模拟器ID哈希后塞进descriptor，也不把完整物体几何补给方法。
+
+匿名区域规范顺序拟为`structure_kind → row-major首个真像素 → 可见像素数 → binary mask SHA-256`，之后才赋`region:0000...`；mask摘要只覆盖`[height,width,row-major 0/1值]`的canonical JSON。输入mask枚举顺序任意，输出顺序和字节必须相同。例如把AI2-THOR返回的两个实例行交换，公开packet不得变化。它不按instance ID、对象类别、文件路径或reference排序；最小可见像素和边缘截断处置仍为`null`。
+
+DINO输入固定为224×224当前RGB；uint8除255后按均值`[0.485,0.456,0.406]`、标准差`[0.229,0.224,0.225]`归一化，不裁剪、不增强。ViT-S/14产生16×16×384 patch token；每个token权重等于对应14×14块中mask像素比例，按权重求均值并L2归一化为384维float32。输入同一RGB和匿名mask，输出一次缓存、五方法逐字节共享的descriptor。例如半个patch属于mask时该token权重为0.5。它不使用CLS/register token、不训练DINO，也没有方法私有视觉adapter；最小总权重和单位范数容差待审。
+
+实体几何拟用mask内有效公开depth逐像素反投影到世界坐标，质心为可见点逐坐标均值，extent为可见点逐轴最大减最小；不补全不可见背面。输入公开depth、内参与camera pose，输出可见几何。例如杯子底部被桌沿挡住时，extent可以偏小并由可靠性反映，而不能读取真值bbox修正。它不等于对象完整尺寸；有效深度范围、最少点数、可靠性公式及surface/place/free-space规则仍未冻结。
+
+L1 materialization receipt（L1物化回执）分公开与私有两份：公开回执绑定materializer/config、RGB/depth/pose、匿名mask、descriptor、geometry、`ObservationPacket`及DINO源码/权重摘要；私有审计回执另存原instance mask集合、ID映射和公开回执摘要。输入同一次物化，输出两条不可互读的来源链；例如只置换instance ID时公开回执必须不变，私有映射摘要可以变化。它不把private摘要、路径、类别或future/reference摘要带入公开回执或方法输入。
+
+VSMT选择器新增的计划产物为`online_candidate_features`和`candidate_logits`。前者逐候选绑定catalog、prior、候选触及的执行前子图、同一基图真实执行后的子图及normalized delta；后者由共享逐候选打分器输出一项有限标量。candidate ordinal、列表位置、路径和样本ID均禁止成为数值特征；并列拟按canonical program SHA-256处理。输入一个封存catalog，输出与每个program身份绑定的logit，例如候选换序后logit只随program移动。它不允许teacher改catalog，也不使TAF/ELU/WFR/LOW经过VSMT网络；网络宽度、层数、参数量和训练预算仍为`null`。
+
+必需正反例在实现前固定为：
+
+| 案例 | 输入改动 | 必须输出；它不等于什么 |
+|---|---|---|
+| L1-01 ID置换 | 只换全部simulator instance ID | 匿名区域、descriptor、geometry、prior、catalog、在线特征/logit逐字节相同；private mapping摘要可变，不要求private标签相同 |
+| L1-02 跨帧重现 | 同一私有实例下一帧再见 | 新包内ordinal，由方法自己关联；不允许oracle直接BIND |
+| L1-03 mask枚举换序 | 私有读取器交换实例返回顺序 | 规范公开顺序完全相同；不以输入数组位置代替身份 |
+| L1-04 两相似实体 | 两把同类近似外观椅子同时可见 | 两匿名区域并保留歧义；不输出类别或正确pair |
+| L1-05 遮挡 | 旧实体当前无mask但射线被遮挡 | 不生成可靠空证据/RETRACT；“没mask”不等于不存在 |
+| L1-06 支持不足 | mask太小或有效depth不足 | 保存frontend/construction failure且不补样；不读真值bbox补齐 |
+| L1-07 private/future变异 | public不变，只改reference/future | prior、catalog、顺序、在线特征及未训练logit不变；不要求teacher标签不变 |
+| L1-08 候选batch换序 | catalog校验后只改变scorer的候选batch顺序，不修改封存catalog | logit跟program SHA、最终选择不变；不允许slot head，也不伪造可被teacher接受的重排catalog |
+
+这些案例解决匿名化、输入因果性和逐候选打分是否真的成立；输入是人工小例或同public的私有变体，输出字节不变或明确失败。例如L1-05必须等两份公开自由空间覆盖才可提出RETRACT。它们不证明真实2-house序列能产生全部事务，也不代替后续效果实验。
 
 ### 强制泄漏检查字段
 
