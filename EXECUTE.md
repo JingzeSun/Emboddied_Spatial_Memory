@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| VSMT首篇/VM-01～04 | VSMT已合并main；53/53 VM-04预检通过。五方法共同L1的隔离环境、匿名mask及实体物化已通过：`40f6d32`上22/22，官方AI2-THOR帧与真实冻结DINO非数据smoke成功，[实体物化报告](results/vsmt_vm04_l1_entity_materializer.json)已回传；旧失败现场保留。L2/SAM后置；当前0 VM-04 house生成、0训练、0新private/confirmation读取。正式生成/训练数据/检验已要求多worker。LOG-133–138，D-125–137 |
+| VSMT首篇/VM-01～04 | VSMT已合并main；53/53 VM-04预检、L1实体22/22及完整结构130/130通过。`135636d`把surface/place/6半空间free-space、packet v2关系和类型化关系事务接入因果prior及五方法；[完整结构报告](results/vsmt_vm04_l1_structures.json)绑定合成packet烟测，旧失败现场保留。L2/SAM后置；当前0 VM-04 house生成、0训练、0新private/confirmation读取。正式生成/训练数据/检验已要求多worker。LOG-133–139，D-125–138 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
 | R4三模型接入 | D完整适配16项通过（121/200全反向，0更新），W完整适配17项亦通过，F完整适配19项通过；真实公共接口27/27候选通过，0优化/真值读取。209bb34，LOG-123–127 |
 | R4前端v2r1 | 81bceed：19项通过，16历史/144名义预测/16选择完整，误标占据/自由0；物块平均误差9.59 cm、接触Brier 0.1152，全部涉及未知扫掠，正式M/P未就绪。LOG-121 |
@@ -1621,3 +1621,10 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - `a01f342`实现RGB归一化、真实DINO patch token接口、mask占比池化、单位化、公开相机反投影、camera-to-world变换、可见质心/extent/可靠性和稳定失败原因；`40f6d32`另把正式生成、训练数据读取及validation/评价多worker写成硬要求。服务器阶段`/root/autodl-tmp/vsmt_outputs/vsmt-vm04-l1-entity-materializer-v1-40f6d3297181`精确22/22通过，Vulkan/AI2-THOR一帧环境复验也通过。
 - 真实冻结DINOv2 ViT-S/14在RTX 4080 SUPER、Python 3.12.3、Torch 2.8.0+cu128上完成确定性非数据smoke；patch shape为16×16×384，196像素mask总权重1.0，descriptor维数384、范数0.9999999974，196个有效点高于49点门、可靠性1.0，公开记录不含临时instance值。xFormers缺失只产生性能警告，没有改变成功条件或输出。
 - 导出[vsmt_vm04_l1_entity_materializer.json](results/vsmt_vm04_l1_entity_materializer.json)，SHA-256=`e9cdb0f28b58d104830fce6fc9e6ce8ce9c9b9b2787df5d5bdcc7f41290e234a7`，结果提交`ee89bcb1b8677c1650f9e3f7884dca2e88c33f7f`。报告绑定受审代码`40f6d32971810b1e9f564e6f4e674a9bd216891b`、DINO仓库/权重和官方CloudRendering构建，且`generation_performed=false`、`training_steps=0`、`confirmation_data_opened=false`。这证明L1实体物化工程接通，不证明surface/place/free-space、完整ObservationPacket、2-house数据、selector/teacher或五方法效果。
+
+## LOG-139：L1完整结构packet与类型化关系工程通过（2026-09-14）
+
+- 用户批准D-138四项推荐口径后，`1dc79d8`实现公开depth的surface、0.5 m observed-place格、6半空间多尺度free-space、ObservationPacket v2关系通道及节点/关系类型化BIRTH/BIND；因果prior、VSMT候选和TAF/ELU/WFR/LOW消费同一关系字节。`contains`作为`located_at`反向公开视图并共用证据，持久图只存规范`located_at`；这避免同一事实双计和RELINK后残留反向旧边。输入是当前/历史公开RGB-D、相机标定与匿名region，输出匿名结构、空截锥与类型关系；不读取`GetReachablePositions`、房间标签、真值bbox/mesh、teacher或未来。
+- 首次服务器目录`/root/autodl-tmp/vsmt_outputs/vsmt-vm04-l1-structures-v1-1dc79d8791ba`在executor组42项中的C11旧负例停止：新单目标BIND检查先于protected-collateral错误，改变错误优先级。`db86e06`把单目标限制收窄到关系BIND，保留旧节点BIND的保护状态检查；第二目录`...-db86e06a4feb`通过executor 42项，但L1第29项因关系BIND附证据却未记录本次事务provenance而停止。两目录均保留完整失败回执，无smoke/export、生成或训练。
+- `135636d478890a30f82011040f4bf972a813b03f`补齐关系BIND的`RECORD_PROVENANCE`并保留关系多目标拒绝。最终目录`/root/autodl-tmp/vsmt_outputs/vsmt-vm04-l1-structures-v1-135636d47889`依次通过executor 42/42、L1 29/29、VSMT 59/59，共130/130；三组墙钟约0.150/1.533/1.594秒。合成公开depth烟测约1.565秒，输出1个surface、36个place、38个region、两个时刻682个free-space截锥和62条关系观测；因果prior建立61条规范边并去重1条`contains/located_at`反向重复。
+- 导出[vsmt_vm04_l1_structures.json](results/vsmt_vm04_l1_structures.json)，SHA-256=`1fbde5643928dc613d4e6c8e4b485193690204dda667fcafbc4942663f72db06`，结果提交`8a0dc4d`。报告绑定全部实现/配置/测试摘要，`generation_performed=false`、`training_steps=0`、`private_data_opened=false`、`confirmation_data_opened=false`且smoke未启动模拟器。白话：这证明完整L1结构packet能按合同构造并被五方法/因果prior消费；它不证明真实house里的产量、误差、阈值合理或任何方法效果，2-house生成仍须另行批准。
