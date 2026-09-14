@@ -1508,7 +1508,8 @@
 
 ## D-147：无模板骨架边必须先验授权且失败原子
 
-- 日期：2026-09-14；状态：implemented locally, fixed-entry server receipt pending, still not executable。GPT复审复现D-146权限检查发生在边与provenance已写入之后：非受信任调用者可捕获异常再`finish`，得到新增边、零模板且共同白名单通过；受信任method ID也可把非`adjacent_to`关系伪装成无模板骨架更新。用户随后明确回复“你来做吧，开始”，只授权本轮修复、必要本地测试和单职责提交；不授权push、服务器运行、source读取、2-house生成、private、训练或confirmation。
+- 日期：2026-09-14；状态：implemented and fixed-entry server verified, still not executable。GPT复审复现D-146权限检查发生在边与provenance已写入之后：非受信任调用者可捕获异常再`finish`，得到新增边、零模板且共同白名单通过；受信任method ID也可把非`adjacent_to`关系伪装成无模板骨架更新。用户随后明确回复“你来做吧，开始”，授权该修复与必要验证；后续“继续”仅执行既定push和服务器`contracts → smoke → export`，不授权source读取、2-house生成、private、训练或confirmation。
 - 公开`create_edge`与`bind_edge`恢复为必记BIRTH/BIND，不再接收调用者提供的`template`或`purpose`。无模板边只经骨架内部专用入口形成；该入口在任何图字节、delta列表或模板列表改变之前，必须同时验证调用者属于受信任确定性包装、关系为`adjacent_to`、两个端点均为开放place，且provenance purpose由代码固定。白话：这解决“已经写完边才说没有权限”的失败原子性问题；输入一次边操作和调用上下文，输出要么完整合法写入，要么revision逐字节不变。例如普通方法尝试无模板建边并捕获错误后继续结束，结果仍必须是真正NOOP。它不新增事务模板，也不改变合法地点邻接的图语义。
 - 必要反例至少覆盖非受信任create、非受信任bind、受信任身份对非邻接关系三类；每类都检查异常发生前后revision内部图和created/closed/template记账不变，并检查捕获异常后不能封存未声明边。跨帧邻接、候选6项/9桶/0截断及共同审计v2继续沿用D-146，逐版本模板归属仍是五方法主比较前阻断项。
 - 协议提交`0be2854`先于实现；`122cea6`移除公开接口的模板抑制参数并实现先验校验的骨架专用create/bind，三类失败原子反例通过；`74161b6`把机器合同和固定入口绑定到该策略并将VSMT期望数更新为106。固定入口在本地临时目录对`74161b6`顺序执行contracts与smoke：executor 42、L1 31、VSMT 106共179项通过，smoke仍为61条canonical关系边、6候选、9桶、0截断；这不是服务器回执，不回填D-144工程基线。
+- 服务器在受审`33aec1c`上按固定入口顺序通过179项合同与同构smoke，导出报告`results/vsmt_vm04_l1_capacity_scaffold.json`摘要为`b5918086e5ee7f4e30d113b87b3b7546c5083f6431374abd7471e33562c68eff`，由结果提交`7641509`回传。D-144提案工程基线据此绑定该受审代码与报告；该工程回执不改变提案的不可执行状态，也不授权后续来源或数据步骤。
