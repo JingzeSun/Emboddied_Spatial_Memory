@@ -353,6 +353,9 @@ class VSMTContractTests(unittest.TestCase):
             "prior_memory", "public_constants",
         })
         audit = result["diagnostics"]["common_post_update_audit"]
+        self.assertEqual(
+            audit["schema_version"], "vsmt-common-post-update-audit-v2",
+        )
         self.assertTrue(audit["structural_validation_passed"])
         self.assertTrue(audit["declared_delta_matches_graph_diff"])
 

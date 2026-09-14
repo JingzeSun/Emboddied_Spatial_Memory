@@ -1256,7 +1256,7 @@ def audit_memory_update_result(
     )
     semantic_cost = semantic_edit_accounting(before, validated)
     return {
-        "schema_version": "vsmt-common-post-update-audit-v1",
+        "schema_version": "vsmt-common-post-update-audit-v2",
         "structural_validation_passed": True,
         "history_preserved": not missing_nodes and not missing_edges,
         "declared_delta_matches_graph_diff": delta_matches,
