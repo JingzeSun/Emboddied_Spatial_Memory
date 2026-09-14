@@ -1519,3 +1519,9 @@
 - 日期：2026-09-14；状态：audit values approved and implementation authorized, inventory and generation still blocked。用户逐字批准“按D-144当前数值冻结，立即实现完整2-house数据入口；实现完成只做一次总审。总审通过后运行inventory并公布固定house IDs，再由用户确认后直接生成数据”。本决定把机器提案状态改为`approved_for_implementation_not_executable`，只开放`audit_numeric_values_approved`与`implementation_authorized`；source inventory、house选择、生成、private evaluator、训练、validation效果和confirmation授权仍为false。
 - 本批实现必须一次性交付七段固定能力：只读来源/license清点、冻结source manifest与eligible ID摘要、与清点分开的确定性2-house选择与36-slot不可变manifest、两个family worker的模拟器生成、公私文件分离与trusted L1匿名化、public-only容量重放封存、封存后private严格recall及合同/资源停止/导出。白话：输入冻结配置、ProcTHOR作者train清单和两个稍后公开的house ID，输出36个固定slot的公开packet、隔离私有标签、容量审计和失败回执。例如某slot构造失败就保留失败且不换house。它不等于现在已经读取来源、生成数据、看private结果或选择正式阈值。
 - 实现完成后只做一次总审；总审通过才单独授权并运行inventory。inventory运行只冻结manifest/license/eligible摘要，不得同批选择house；house IDs公布并由用户确认后，才可把generation/private audit授权位在新的协议提交中打开并执行。不得用预写入口绕过这两个运行闸门。
+
+## D-149：完整2-house入口总审通过并开放只读inventory
+
+- 日期：2026-09-14；状态：inventory executable, generation still blocked。一次性总审绑定提交`0d4fbfe340f4c4cad83cd38601175409bc70a89b`：固定入口本地精确通过executor 42、L1 31、VSMT 131，共204/204；Python编译、JSON解析、diff检查通过，`scripts/notes.txt`未变。总审同时核对公开重放不读private计划或25–31未来帧、每帧公开agent action已登记、来源commit/license边界、失败不换house、资源硬停以及公开错误不泄露private异常文本。
+- 按用户已批准的顺序，现在只开放`source_inventory_authorized`并把状态改为`inventory_executable_generation_blocked`；inventory与select仍必须是两个独立命令，前者只冻结作者train清单、许可证与eligible ID摘要，后者只按冻结摘要和seed 260914确定两个house。白话：这一步解决“先把可选房屋全集固定，再机械地抽出两间”的问题；输入是固定ProcTHOR-10K 0.1.2本地只读checkout，输出manifest/license/eligible摘要和随后公开的两个house ID。例如换一个枚举顺序不能改变选中结果。它不运行模拟器、不生成任何帧、不读取private评价，也不开放训练或confirmation。
+- `generation_authorized`、`private_audit_authorized`、训练、validation效果与confirmation继续为false。两个house ID公布后必须停住，等待用户确认，才可在新的协议提交中绑定inventory/selection摘要并开放生成。

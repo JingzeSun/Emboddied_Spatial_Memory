@@ -98,12 +98,14 @@ def public_rows(public_plan: dict) -> list[dict]:
 
 
 class TwoHouseAuditContractTests(unittest.TestCase):
-    def test_frozen_config_is_implementation_only(self) -> None:
+    def test_frozen_config_opens_only_inventory_and_selection(self) -> None:
         value = validate_two_house_config(config())
-        self.assertEqual(value["status"], "approved_for_implementation_not_executable")
+        self.assertEqual(value["status"], "inventory_executable_generation_blocked")
         self.assertTrue(value["audit_numeric_values_approved"])
         self.assertTrue(value["implementation_authorized"])
-        for action in ("inventory", "select", "generate", "private-eval"):
+        for action in ("inventory", "select"):
+            self.assertEqual(assert_two_house_action_authorized(value, action=action), value)
+        for action in ("generate", "private-eval"):
             with self.assertRaisesRegex(ValueError, "not authorized"):
                 assert_two_house_action_authorized(value, action=action)
 

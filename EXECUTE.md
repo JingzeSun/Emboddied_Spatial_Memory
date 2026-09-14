@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| VSMT首篇/VM-01～04 | D-140～D-147工程基线已由服务器179项合同与61关系边/6候选/9桶/0截断/341可见截锥smoke认证，报告`b5918086…c68eff`绑定`33aec1c`。D-148按D-144数值完成完整2-house固定入口：只读inventory、独立哈希选房/36-slot计划、双family模拟器worker、公私文件隔离、trusted L1匿名化、三profile×16/32/64 public replay与seal、post-seal strict canonical/private recall、2/5 cm RETRACT合法性、资源停止、verify/export；本地executor 42/L1 31/VSMT 131共204项通过，当前停在唯一一次总审。统计独立单位仍为family，L2/SAM后置，逐版本模板归属留到五方法比较前；当前0 source inventory、0 house选择、0 VM-04数据生成、0private评价、0训练/validation效果/confirmation。LOG-133–148，D-125–148 |
+| VSMT首篇/VM-01～04 | D-149唯一一次总审已通过并只开放2-house只读inventory/独立select；总审绑定`0d4fbfe`，本地204/204合同、编译、JSON与diff检查通过。完整固定入口已覆盖双family生成、公私隔离、trusted L1、public replay/seal、post-seal private recall及资源停止，但generation/private/training/validation/confirmation仍关闭。当前执行新服务器合同与inventory/select，公布固定house IDs后停住等用户确认。统计独立单位仍为family，L2/SAM后置，逐版本模板归属留到五方法比较前。LOG-133–149，D-125–149 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
 | R4三模型接入 | D完整适配16项通过（121/200全反向，0更新），W完整适配17项亦通过，F完整适配19项通过；真实公共接口27/27候选通过，0优化/真值读取。209bb34，LOG-123–127 |
 | R4前端v2r1 | 81bceed：19项通过，16历史/144名义预测/16选择完整，误标占据/自由0；物块平均误差9.59 cm、接触Brier 0.1152，全部涉及未知扫掠，正式M/P未就绪。LOG-121 |

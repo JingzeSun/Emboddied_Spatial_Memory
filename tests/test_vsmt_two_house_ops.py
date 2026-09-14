@@ -84,10 +84,10 @@ class TwoHouseOpsTests(unittest.TestCase):
                 OPS.write_new_json(path, {"value": 2})
             self.assertEqual(json.loads(path.read_text()), {"value": 1})
 
-    def test_current_config_keeps_every_run_gate_closed(self) -> None:
+    def test_current_config_opens_only_inventory_and_selection(self) -> None:
         value = OPS.load_config()
         self.assertTrue(value["implementation_authorized"])
-        self.assertFalse(value["source_inventory_authorized"])
+        self.assertTrue(value["source_inventory_authorized"])
         self.assertFalse(value["generation_authorized"])
         self.assertFalse(value["private_audit_authorized"])
 
