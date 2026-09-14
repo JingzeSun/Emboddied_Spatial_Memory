@@ -1182,7 +1182,28 @@ def _node_replace_program(
     return program, evidence
 
 
+def _rank_key(score: float, signature: str) -> tuple[float, str]:
+    """Return the deterministic public enumeration order of one candidate group.
+
+    白话：这是候选组的排队号码，先按枚举优先分从高到低，同分再按程序摘要排序。
+    输入一个组的优先分和其程序摘要，输出一个可比较的排队号码；例如两个同分的
+    SPLIT 变体组只会按摘要决定先后，不会按枚举时间先后。它不是最终选择分，也
+    不参与 teacher 打分。
+    """
+
+    return (-float(score), str(signature))
+
+
 class _CandidateBucket:
+    """One (template, scope) capacity bucket with an order-independent cutoff.
+
+    白话：这个桶解决“同一批候选按不同枚举顺序产生时，封存目录不能不一样”的
+    问题。输入是逐个到达的候选组和该桶容量，输出是按排队号码取到第一个放不下
+    为止的保留集合，以及截断统计。例如先来 3 个候选的组放不下被截断后，后到的
+    2 个候选的低分组也不能因为“恰好塞得进”而顶替它进入目录。它不改变任何阈值，
+    也不决定最终提交哪个事务；超出整桶容量的组和护栏拒绝的组单独计数，不设截断线。
+    """
+
     def __init__(self, capacity: int) -> None:
         self.capacity = capacity
         self.groups: list[
@@ -1198,6 +1219,7 @@ class _CandidateBucket:
         self.total_incident_guard_rejected_node_count = 0
         self.cutoff_group_count = 0
         self.cutoff_candidate_count = 0
+        self.cutoff_rank_key: tuple[float, str] | None = None
         self.current_positive_blocked_node_count = 0
         self.endpoint_pair_evaluation_count = 0
 
@@ -1217,8 +1239,13 @@ class _CandidateBucket:
         signature = canonical_sha256([
             canonical_sha256(program) for program, _, _ in candidates
         ])
+        rank_key = _rank_key(score, signature)
+        if self.cutoff_rank_key is not None and rank_key >= self.cutoff_rank_key:
+            self.cutoff_group_count += 1
+            self.cutoff_candidate_count += len(candidates)
+            return
         self.groups.append((score, signature, candidates))
-        ranked = sorted(self.groups, key=lambda item: (-item[0], item[1]))
+        ranked = sorted(self.groups, key=lambda item: _rank_key(item[0], item[1]))
         retained = []
         retained_count = 0
         cutoff_index = len(ranked)
@@ -1229,6 +1256,12 @@ class _CandidateBucket:
             retained.append(group)
             retained_count += len(group[2])
         discarded = ranked[cutoff_index:]
+        if discarded:
+            stop_key = _rank_key(discarded[0][0], discarded[0][1])
+            self.cutoff_rank_key = (
+                stop_key if self.cutoff_rank_key is None
+                else min(stop_key, self.cutoff_rank_key)
+            )
         self.cutoff_group_count += len(discarded)
         self.cutoff_candidate_count += sum(len(group[2]) for group in discarded)
         self.groups = retained
@@ -1264,7 +1297,7 @@ class _CandidateBucket:
         return [
             (score, program, evidence, components)
             for score, _, candidates in sorted(
-                self.groups, key=lambda item: (-item[0], item[1]),
+                self.groups, key=lambda item: _rank_key(item[0], item[1]),
             )
             for program, evidence, components in candidates
         ]

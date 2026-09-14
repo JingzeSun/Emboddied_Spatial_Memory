@@ -4,7 +4,9 @@ from copy import deepcopy
 from dataclasses import replace
 import hashlib
 import inspect
+from itertools import permutations
 from pathlib import Path
+from random import Random
 import sys
 import unittest
 from typing import Any, Mapping
@@ -22,12 +24,15 @@ from cpmt.executor import (  # noqa: E402
 )
 from cpmt.hashing import seal_graph  # noqa: E402
 from vsmt.contracts import (  # noqa: E402
+    canonical_sha256,
     seal_private_evaluation,
     validate_candidate_catalog,
 )
 from vsmt.graph_ops import STATE_KEY, opaque_id  # noqa: E402
 from vsmt.public_candidates import (  # noqa: E402
     PublicCandidateConfig,
+    _CandidateBucket,
+    _rank_key,
     generate_public_candidate_catalog,
     label_sealed_candidates,
 )
@@ -981,6 +986,99 @@ class PublicCandidateTests(unittest.TestCase):
         self.assertAlmostEqual(
             sum(row["probability"] for row in targets["targets"]), 1.0,
         )
+
+
+def bucket_group(count: int, tag: str) -> list[
+    tuple[dict[str, Any], dict[str, Any], dict[str, float]]
+]:
+    return [({"program": f"{tag}-{index}"}, {}, {}) for index in range(count)]
+
+
+def single_pass_retained(
+    groups: list[tuple[float, int, str]], capacity: int,
+) -> list[str]:
+    """Rank every group once and stop at the first group that does not fit."""
+
+    rows = []
+    for score, count, tag in groups:
+        if count > capacity:
+            continue
+        candidates = bucket_group(count, tag)
+        signature = canonical_sha256([
+            canonical_sha256(program) for program, _, _ in candidates
+        ])
+        rows.append((_rank_key(score, signature), candidates))
+    rows.sort(key=lambda item: item[0])
+    retained: list[str] = []
+    used = 0
+    for _, candidates in rows:
+        if used + len(candidates) > capacity:
+            break
+        retained.extend(program["program"] for program, _, _ in candidates)
+        used += len(candidates)
+    return sorted(retained)
+
+
+def bucket_retained(
+    groups: list[tuple[float, int, str]], capacity: int,
+    order: tuple[int, ...],
+) -> list[str]:
+    bucket = _CandidateBucket(capacity)
+    for index in order:
+        score, count, tag = groups[index]
+        bucket.append_group(score, bucket_group(count, tag))
+    return sorted(
+        program["program"] for _, program, _, _ in bucket.selected()
+    )
+
+
+class CandidateCapacityTests(unittest.TestCase):
+    def test_truncation_does_not_depend_on_enumeration_order(self) -> None:
+        groups = [(0.9, 30, "A"), (0.5, 3, "B"), (0.4, 2, "C")]
+        results = {
+            tuple(bucket_retained(groups, 32, order))
+            for order in permutations(range(len(groups)))
+        }
+        self.assertEqual(len(results), 1)
+        self.assertEqual(
+            sorted(next(iter(results))), single_pass_retained(groups, 32),
+        )
+
+    def test_a_cut_group_is_not_replaced_by_a_lower_priority_group(self) -> None:
+        groups = [(0.9, 30, "A"), (0.5, 3, "B"), (0.4, 2, "C")]
+        bucket = _CandidateBucket(32)
+        for score, count, tag in groups:
+            bucket.append_group(score, bucket_group(count, tag))
+        self.assertEqual(len(bucket.selected()), 30)
+        self.assertEqual(bucket.cutoff_group_count, 2)
+        self.assertEqual(bucket.cutoff_candidate_count, 5)
+
+    def test_every_order_matches_the_single_pass_ranking(self) -> None:
+        generator = Random(260914)
+        for _ in range(24):
+            capacity = generator.choice([8, 16])
+            count = generator.randint(2, 5)
+            groups = [
+                (
+                    round(generator.uniform(0.1, 1.0), 3),
+                    generator.randint(1, capacity + 2),
+                    f"g{index}",
+                )
+                for index in range(count)
+            ]
+            expected = single_pass_retained(groups, capacity)
+            for order in permutations(range(count)):
+                self.assertEqual(
+                    bucket_retained(groups, capacity, order), expected,
+                )
+
+    def test_an_oversized_group_does_not_set_the_cutoff_line(self) -> None:
+        bucket = _CandidateBucket(4)
+        bucket.append_group(0.9, bucket_group(5, "oversized"))
+        bucket.append_group(0.1, bucket_group(2, "small"))
+        self.assertEqual(bucket.oversized_group_count, 1)
+        self.assertEqual(bucket.cutoff_group_count, 0)
+        self.assertEqual(len(bucket.selected()), 2)
 
 
 if __name__ == "__main__":
