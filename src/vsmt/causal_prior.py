@@ -31,6 +31,7 @@ from .graph_ops import (
 RECEIPT_SCHEMA = "vsmt-causal-prior-receipt-v1"
 BUILDER_ID = "vsmt.public.bootstrap.v1"
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
+LEARNED_STRUCTURE_KINDS = {"entity", "surface", "fragment"}
 
 
 def _positive(value: Any, name: str) -> float:
@@ -46,26 +47,36 @@ def _positive(value: Any, name: str) -> float:
 class PublicBootstrapConfig:
     """All scientific values are required; this class has no defaults."""
 
-    visual_weight: float
-    geometry_weight: float
-    geometry_scale_m: float
-    association_threshold: float
+    association_rules: Mapping[str, Mapping[str, float]]
     maximum_regions_per_packet: int
     builder_revision: str
 
     def __post_init__(self) -> None:
-        validate_threshold(self.visual_weight, "visual_weight", low=0.0, high=1.0)
-        validate_threshold(
-            self.geometry_weight, "geometry_weight", low=0.0, high=1.0,
-        )
-        if not math.isclose(
-            self.visual_weight + self.geometry_weight, 1.0, abs_tol=1e-12,
-        ):
-            raise ValueError("visual_weight and geometry_weight must sum to one")
-        _positive(self.geometry_scale_m, "geometry_scale_m")
-        validate_threshold(
-            self.association_threshold, "association_threshold", low=0.0, high=1.0,
-        )
+        if set(self.association_rules) != LEARNED_STRUCTURE_KINDS:
+            raise ValueError(
+                "bootstrap association_rules must explicitly cover "
+                "entity, surface, and fragment but not place"
+            )
+        expected = {
+            "visual_weight", "geometry_weight", "geometry_scale_m",
+            "association_threshold",
+        }
+        for kind, rule in self.association_rules.items():
+            if type(rule) is not dict or set(rule) != expected:
+                raise ValueError(f"bootstrap {kind} association rule is malformed")
+            visual = validate_threshold(
+                rule["visual_weight"], f"{kind}.visual_weight", low=0.0, high=1.0,
+            )
+            geometry = validate_threshold(
+                rule["geometry_weight"], f"{kind}.geometry_weight", low=0.0, high=1.0,
+            )
+            if not math.isclose(visual + geometry, 1.0, abs_tol=1e-12):
+                raise ValueError(f"{kind} visual and geometry weights must sum to one")
+            _positive(rule["geometry_scale_m"], f"{kind}.geometry_scale_m")
+            validate_threshold(
+                rule["association_threshold"], f"{kind}.association_threshold",
+                low=0.0, high=1.0,
+            )
         if (
             type(self.maximum_regions_per_packet) is not int
             or self.maximum_regions_per_packet <= 0
@@ -97,14 +108,16 @@ def _best_match(
     region: Mapping[str, Any], revision: GraphRevision, used_node_ids: set[str],
     config: PublicBootstrapConfig,
 ) -> tuple[float, dict[str, Any]] | None:
+    kind = str(region["structure_kind"])
+    rule = config.association_rules[kind]
     rows = [
         (
             association_score(
                 region,
                 node,
-                visual_weight=config.visual_weight,
-                geometry_weight=config.geometry_weight,
-                geometry_scale_m=config.geometry_scale_m,
+                visual_weight=rule["visual_weight"],
+                geometry_weight=rule["geometry_weight"],
+                geometry_scale_m=rule["geometry_scale_m"],
             ),
             node,
         )
@@ -132,8 +145,26 @@ def advance_public_bootstrap(
     decisions: list[dict[str, Any]] = []
     region_node_ids: dict[str, str] = {}
     for region in regions:
+        if region["structure_kind"] != "place":
+            continue
+        place = revision.upsert_place_scaffold(
+            region, float(model_input["decision_time_s"]),
+        )
+        region_node_ids[str(region["region_id"])] = str(place["node_id"])
+        decisions.append({
+            "template": "PLACE_SCAFFOLD",
+            "region_id": region["region_id"],
+            "node_id": place["node_id"],
+            "association_score": None,
+        })
+    for region in regions:
+        if region["structure_kind"] == "place":
+            continue
         ranked = _best_match(region, revision, used_node_ids, config)
-        if ranked is not None and ranked[0] >= config.association_threshold:
+        threshold = config.association_rules[region["structure_kind"]][
+            "association_threshold"
+        ]
+        if ranked is not None and ranked[0] >= threshold:
             score, matched = ranked
             updated = revision.update_node(
                 matched,

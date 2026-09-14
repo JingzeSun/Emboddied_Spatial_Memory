@@ -26,51 +26,70 @@ from .contracts import (
     validate_private_evaluation,
 )
 from .graph_ops import (
+    association_components,
     association_score,
     centroid_distance,
     covering_free_space_times,
     finite_number,
     next_tick,
+    node_pair_components,
     node_pair_score,
     observation_state,
     open_nodes,
     opaque_id,
     validate_threshold,
 )
+from .place_scaffold import place_region_node_ids
 
 
 TEMPLATE_ORDER = (
     "NOOP", "BIND", "BIRTH", "REACTIVATE", "RELINK", "RETRACT",
     "SPLIT", "MERGE", "REPLACE",
 )
+LEARNED_STRUCTURE_KINDS = {"entity", "surface", "fragment"}
 
 
 @dataclass(frozen=True)
 class PublicCandidateConfig:
-    visual_weight: float
-    geometry_weight: float
-    geometry_scale_m: float
-    bind_threshold: float
-    merge_threshold: float
-    split_region_threshold: float
+    association_rules: Mapping[str, Mapping[str, float]]
     split_minimum_separation_m: float
     free_space_reliability_threshold: float
     free_space_target_expansion_m: float
     minimum_free_space_time_separation_s: float
-    maximum_candidates_per_template: int
+    maximum_candidates_per_bucket: int
     maximum_split_incident_edges: int
 
     def __post_init__(self) -> None:
-        for name in ("visual_weight", "geometry_weight"):
-            validate_threshold(getattr(self, name), name, low=0.0, high=1.0)
-        if not math.isclose(
-            self.visual_weight + self.geometry_weight, 1.0, abs_tol=1e-12,
-        ):
-            raise ValueError("visual and geometry weights must sum to one")
-        if finite_number(self.geometry_scale_m, "geometry_scale_m") <= 0.0:
-            raise ValueError("geometry_scale_m must be positive")
-        for name in ("bind_threshold", "merge_threshold", "split_region_threshold"):
-            validate_threshold(getattr(self, name), name, low=0.0, high=1.0)
+        if set(self.association_rules) != LEARNED_STRUCTURE_KINDS:
+            raise ValueError(
+                "candidate association_rules must explicitly cover "
+                "entity, surface, and fragment but not place"
+            )
+        expected = {
+            "visual_weight", "geometry_weight", "geometry_scale_m",
+            "bind_threshold", "merge_threshold", "split_region_threshold",
+        }
+        for kind, rule in self.association_rules.items():
+            if type(rule) is not dict or set(rule) != expected:
+                raise ValueError(f"candidate {kind} association rule is malformed")
+            visual = validate_threshold(
+                rule["visual_weight"], f"{kind}.visual_weight", low=0.0, high=1.0,
+            )
+            geometry = validate_threshold(
+                rule["geometry_weight"], f"{kind}.geometry_weight", low=0.0, high=1.0,
+            )
+            if not math.isclose(visual + geometry, 1.0, abs_tol=1e-12):
+                raise ValueError(f"{kind} visual and geometry weights must sum to one")
+            if finite_number(
+                rule["geometry_scale_m"], f"{kind}.geometry_scale_m",
+            ) <= 0.0:
+                raise ValueError(f"{kind}.geometry_scale_m must be positive")
+            for name in (
+                "bind_threshold", "merge_threshold", "split_region_threshold",
+            ):
+                validate_threshold(
+                    rule[name], f"{kind}.{name}", low=0.0, high=1.0,
+                )
         if finite_number(
             self.split_minimum_separation_m, "split_minimum_separation_m",
         ) <= 0.0:
@@ -92,17 +111,20 @@ class PublicCandidateConfig:
                 "minimum_free_space_time_separation_s must be positive"
             )
         if (
-            type(self.maximum_candidates_per_template) is not int
-            or self.maximum_candidates_per_template <= 0
+            type(self.maximum_candidates_per_bucket) is not int
+            or self.maximum_candidates_per_bucket <= 0
         ):
-            raise ValueError("maximum_candidates_per_template must be positive")
+            raise ValueError("maximum_candidates_per_bucket must be positive")
         if (
             type(self.maximum_split_incident_edges) is not int
-            or not 0 <= self.maximum_split_incident_edges <= 2
+            or self.maximum_split_incident_edges < 0
         ):
             raise ValueError(
-                "maximum_split_incident_edges must be an integer within [0, 2]"
+                "maximum_split_incident_edges must be a non-negative integer"
             )
+
+    def rule(self, structure_kind: str) -> Mapping[str, float]:
+        return self.association_rules[structure_kind]
 
 
 def _transaction_id(public_hash: str, template: str, *parts: object) -> str:
@@ -849,12 +871,173 @@ def _replace_program(
     return program, evidence
 
 
+class _CandidateBucket:
+    def __init__(self, capacity: int) -> None:
+        self.capacity = capacity
+        self.groups: list[
+            tuple[
+                float, str,
+                list[tuple[dict[str, Any], dict[str, Any], dict[str, float]]],
+            ]
+        ] = []
+        self.pre_cap_candidate_count = 0
+        self.pre_cap_group_count = 0
+        self.oversized_group_count = 0
+
+    def append_group(
+        self, score: float,
+        candidates: list[
+            tuple[dict[str, Any], dict[str, Any], dict[str, float]]
+        ],
+    ) -> None:
+        if not candidates:
+            return
+        self.pre_cap_group_count += 1
+        self.pre_cap_candidate_count += len(candidates)
+        if len(candidates) > self.capacity:
+            self.oversized_group_count += 1
+            return
+        signature = canonical_sha256([
+            canonical_sha256(program) for program, _, _ in candidates
+        ])
+        self.groups.append((score, signature, candidates))
+        ranked = sorted(self.groups, key=lambda item: (-item[0], item[1]))
+        retained = []
+        retained_count = 0
+        for group in ranked:
+            if retained_count + len(group[2]) > self.capacity:
+                continue
+            retained.append(group)
+            retained_count += len(group[2])
+        self.groups = retained
+
+    def reject_oversized_group(self, candidate_count: int) -> None:
+        if type(candidate_count) is not int or candidate_count <= self.capacity:
+            raise ValueError("oversized candidate group count must exceed capacity")
+        self.pre_cap_group_count += 1
+        self.pre_cap_candidate_count += candidate_count
+        self.oversized_group_count += 1
+
+    def selected(
+        self,
+    ) -> list[tuple[float, dict[str, Any], dict[str, Any], dict[str, float]]]:
+        return [
+            (score, program, evidence, components)
+            for score, _, candidates in sorted(
+                self.groups, key=lambda item: (-item[0], item[1]),
+            )
+            for program, evidence, components in candidates
+        ]
+
+
 def _append(
-    rows: dict[str, list[tuple[float, dict[str, Any], dict[str, Any]]]],
-    template: str, score: float,
-    candidate: tuple[dict[str, Any], dict[str, Any]],
+    rows: dict[tuple[str, str], _CandidateBucket],
+    template: str, scope: str, score: float,
+    candidate: tuple[dict[str, Any], dict[str, Any]], *, capacity: int,
+    priority_components: Mapping[str, float],
 ) -> None:
-    rows[template].append((score, candidate[0], candidate[1]))
+    bucket = rows.setdefault((template, scope), _CandidateBucket(capacity))
+    bucket.append_group(score, [(
+        candidate[0], candidate[1], dict(priority_components),
+    )])
+
+
+def _association_priority_components(
+    region: Mapping[str, Any], node: Mapping[str, Any],
+    rule: Mapping[str, float],
+) -> dict[str, float]:
+    components = association_components(
+        region, node, geometry_scale_m=rule["geometry_scale_m"],
+    )
+    if components is None:
+        raise ValueError("association priority requested for incompatible structures")
+    return {
+        **components,
+        "visual_weight": float(rule["visual_weight"]),
+        "geometry_weight": float(rule["geometry_weight"]),
+    }
+
+
+def _normalized_relation_endpoints(
+    relation: Mapping[str, Any],
+) -> tuple[str, str, str]:
+    source = str(relation["source_region_id"])
+    target = str(relation["target_region_id"])
+    relation_type = str(relation["relation"])
+    if relation_type == "contains":
+        source, target = target, source
+        relation_type = "located_at"
+    return source, target, relation_type
+
+
+def _region_match_node_ids(
+    matches_by_region: Mapping[str, list[tuple[float, Mapping[str, Any]]]],
+    region_id: str,
+) -> set[str]:
+    return {
+        str(node["node_id"])
+        for _, node in matches_by_region.get(region_id, [])
+    }
+
+
+def _public_split_assignment_options(
+    *, edge: Mapping[str, Any], split_node_id: str,
+    left_region_id: str, right_region_id: str,
+    relation_observations: list[Mapping[str, Any]],
+    matches_by_region: Mapping[str, list[tuple[float, Mapping[str, Any]]]],
+) -> tuple[tuple[int, ...], ...]:
+    """Use only public relation support to constrain one SPLIT edge assignment."""
+
+    support = [False, False]
+    for successor_index, successor_region_id in enumerate(
+        (left_region_id, right_region_id)
+    ):
+        for relation in relation_observations:
+            source_region_id, target_region_id, relation_type = (
+                _normalized_relation_endpoints(relation)
+            )
+            if relation_type != edge["relation"]:
+                continue
+            if relation_type == "adjacent_to":
+                if successor_region_id == source_region_id:
+                    other_region_id = target_region_id
+                elif successor_region_id == target_region_id:
+                    other_region_id = source_region_id
+                else:
+                    continue
+                other_node_id = (
+                    str(edge["target"])
+                    if edge["source"] == split_node_id else str(edge["source"])
+                )
+                if other_node_id in _region_match_node_ids(
+                    matches_by_region, other_region_id,
+                ):
+                    support[successor_index] = True
+                    break
+            elif edge["source"] == split_node_id:
+                if (
+                    source_region_id == successor_region_id
+                    and str(edge["target"]) in _region_match_node_ids(
+                        matches_by_region, target_region_id,
+                    )
+                ):
+                    support[successor_index] = True
+                    break
+            elif (
+                target_region_id == successor_region_id
+                and str(edge["source"]) in _region_match_node_ids(
+                    matches_by_region, source_region_id,
+                )
+            ):
+                support[successor_index] = True
+                break
+    if support == [True, False]:
+        return ((0,),)
+    if support == [False, True]:
+        return ((1,),)
+    if support == [True, True]:
+        return ((0, 1),)
+    return ((0,), (1,), (0, 1))
 
 
 def generate_public_candidate_catalog(
@@ -871,55 +1054,92 @@ def generate_public_candidate_catalog(
     for region in regions:
         region["decision_time_s"] = decision_time
     nodes = open_nodes(prior_memory)
-    regular = [node for node in nodes if node["lifecycle"] in {"candidate", "confirmed"}]
-    dormant = [node for node in nodes if node["lifecycle"] == "dormant"]
+    regular = [
+        node for node in nodes
+        if node["lifecycle"] in {"candidate", "confirmed"}
+        and node.get("node_type") != "place"
+    ]
+    dormant = [
+        node for node in nodes
+        if node["lifecycle"] == "dormant" and node.get("node_type") != "place"
+    ]
     edges = [edge for edge in prior_memory["edges"] if edge.get("valid_to") is None]
     by_id = {node["node_id"]: node for node in nodes}
-    rows: dict[str, list[tuple[float, dict[str, Any], dict[str, Any]]]] = {
-        template: [] for template in TEMPLATE_ORDER
-    }
+    rows: dict[tuple[str, str], _CandidateBucket] = {}
+    capacity = config.maximum_candidates_per_bucket
 
     noop = _header(prior_memory, deployable_hash, "NOOP", "PRESERVE", "noop")
-    _append(rows, "NOOP", 1.0, (noop, {}))
+    _append(
+        rows, "NOOP", "global", 1.0, (noop, {}), capacity=capacity,
+        priority_components={"fixed_priority": 1.0},
+    )
 
     for region in regions:
-        _append(rows, "BIRTH", float(region["reliability"]),
-                _birth_program(prior_memory, deployable_hash, region, tick))
+        if region["structure_kind"] == "place":
+            continue
+        rule = config.rule(str(region["structure_kind"]))
+        _append(
+            rows, "BIRTH", str(region["structure_kind"]),
+            float(region["reliability"]),
+            _birth_program(prior_memory, deployable_hash, region, tick),
+            capacity=capacity,
+            priority_components={
+                "region_reliability": float(region["reliability"]),
+            },
+        )
         for node in regular:
             score = association_score(
                 region, node,
-                visual_weight=config.visual_weight,
-                geometry_weight=config.geometry_weight,
-                geometry_scale_m=config.geometry_scale_m,
+                visual_weight=rule["visual_weight"],
+                geometry_weight=rule["geometry_weight"],
+                geometry_scale_m=rule["geometry_scale_m"],
             )
-            if score >= config.bind_threshold:
-                _append(rows, "BIND", score,
-                        _bind_program(prior_memory, deployable_hash, region, node))
+            if score >= rule["bind_threshold"]:
+                _append(
+                    rows, "BIND", str(region["structure_kind"]), score,
+                    _bind_program(prior_memory, deployable_hash, region, node),
+                    capacity=capacity,
+                    priority_components=_association_priority_components(
+                        region, node, rule,
+                    ),
+                )
         for node in dormant:
             score = association_score(
                 region, node,
-                visual_weight=config.visual_weight,
-                geometry_weight=config.geometry_weight,
-                geometry_scale_m=config.geometry_scale_m,
+                visual_weight=rule["visual_weight"],
+                geometry_weight=rule["geometry_weight"],
+                geometry_scale_m=rule["geometry_scale_m"],
             )
-            if score >= config.bind_threshold:
-                _append(rows, "REACTIVATE", score, _reactivate_program(
-                    prior_memory, deployable_hash, region, node, tick,
-                ))
+            if score >= rule["bind_threshold"]:
+                _append(
+                    rows, "REACTIVATE", str(region["structure_kind"]), score,
+                    _reactivate_program(
+                        prior_memory, deployable_hash, region, node, tick,
+                    ), capacity=capacity,
+                    priority_components=_association_priority_components(
+                        region, node, rule,
+                    ),
+                )
 
     region_by_id = {region["region_id"]: region for region in regions}
+    place_node_ids = place_region_node_ids(regions, prior_memory)
     matches_by_region: dict[str, list[tuple[float, Mapping[str, Any]]]] = {}
     for region in regions:
-        matches_by_region[region["region_id"]] = [
-            (score, node)
-            for node in regular
-            if (score := association_score(
-                region, node,
-                visual_weight=config.visual_weight,
-                geometry_weight=config.geometry_weight,
-                geometry_scale_m=config.geometry_scale_m,
-            )) >= config.bind_threshold
-        ]
+        if region["structure_kind"] == "place":
+            node_id = place_node_ids[region["region_id"]]
+            matches_by_region[region["region_id"]] = [(1.0, by_id[node_id])]
+        else:
+            rule = config.rule(str(region["structure_kind"]))
+            matches_by_region[region["region_id"]] = [
+                (score, node)
+                for node in regular
+                if (score := association_score(
+                    region, node,
+                    visual_weight=rule["visual_weight"],
+                    geometry_weight=rule["geometry_weight"],
+                    geometry_scale_m=rule["geometry_scale_m"],
+                )) >= rule["bind_threshold"]
+            ]
     seen_relation_signatures: set[tuple[str, str, str, str]] = set()
     for relation_observation in public["relation_observations"]:
         relation = clone_json(dict(relation_observation))
@@ -965,10 +1185,18 @@ def generate_public_candidate_catalog(
                     and edge["relation"] == relation["relation"]
                 ]
                 if exact:
-                    _append(rows, "BIND", relation_score, _relation_bind_program(
-                        prior_memory, deployable_hash, relation,
-                        sorted(exact, key=lambda item: str(item["edge_id"]))[0],
-                    ))
+                    _append(
+                        rows, "BIND", f"relation:{relation['relation']}",
+                        relation_score, _relation_bind_program(
+                            prior_memory, deployable_hash, relation,
+                            sorted(exact, key=lambda item: str(item["edge_id"]))[0],
+                        ), capacity=capacity,
+                        priority_components={
+                            "relation_reliability": float(relation["reliability"]),
+                            "source_association_score": source_score,
+                            "target_association_score": target_score,
+                        },
+                    )
                     continue
                 movable = [
                     edge for edge in edges
@@ -977,17 +1205,33 @@ def generate_public_candidate_catalog(
                     and relation["relation"] in {"located_at", "supported_by"}
                 ]
                 if movable:
-                    _append(rows, "RELINK", relation_score, _relink_program(
-                        prior_memory, deployable_hash,
-                        sorted(movable, key=lambda item: str(item["edge_id"]))[0],
-                        target_node, tick, relation_observation=relation,
-                    ))
+                    _append(
+                        rows, "RELINK", f"relation:{relation['relation']}",
+                        relation_score, _relink_program(
+                            prior_memory, deployable_hash,
+                            sorted(movable, key=lambda item: str(item["edge_id"]))[0],
+                            target_node, tick, relation_observation=relation,
+                        ), capacity=capacity,
+                        priority_components={
+                            "relation_reliability": float(relation["reliability"]),
+                            "source_association_score": source_score,
+                            "target_association_score": target_score,
+                        },
+                    )
                 else:
-                    _append(rows, "BIRTH", relation_score, _relation_birth_program(
-                        prior_memory, deployable_hash, relation,
-                        source_node_id=source_id, target_node_id=target_id,
-                        tick=tick,
-                    ))
+                    _append(
+                        rows, "BIRTH", f"relation:{relation['relation']}",
+                        relation_score, _relation_birth_program(
+                            prior_memory, deployable_hash, relation,
+                            source_node_id=source_id, target_node_id=target_id,
+                            tick=tick,
+                        ), capacity=capacity,
+                        priority_components={
+                            "relation_reliability": float(relation["reliability"]),
+                            "source_association_score": source_score,
+                            "target_association_score": target_score,
+                        },
+                    )
 
     for edge in edges:
         source = by_id.get(edge["source"])
@@ -1003,15 +1247,29 @@ def generate_public_candidate_catalog(
         )
         if len(covering) >= 2:
             reliability = min(float(item["reliability"]) for item in covering[-2:])
-            _append(rows, "RETRACT", reliability, _retract_program(
-                prior_memory, deployable_hash, edge, covering, tick,
-            ))
+            relation_scope = f"relation:{edge['relation']}"
+            _append(
+                rows, "RETRACT", relation_scope, reliability,
+                _retract_program(
+                    prior_memory, deployable_hash, edge, covering, tick,
+                ), capacity=capacity,
+                priority_components={
+                    "free_space_minimum_reliability": reliability,
+                },
+            )
             for region in regions:
                 if region["structure_kind"] == source.get("node_type"):
-                    _append(rows, "REPLACE", reliability * float(region["reliability"]),
-                            _replace_program(
-                                prior_memory, deployable_hash, edge, region, covering, tick,
-                            ))
+                    _append(
+                        rows, "REPLACE", relation_scope,
+                        reliability * float(region["reliability"]),
+                        _replace_program(
+                            prior_memory, deployable_hash, edge, region, covering, tick,
+                        ), capacity=capacity,
+                        priority_components={
+                            "free_space_minimum_reliability": reliability,
+                            "region_reliability": float(region["reliability"]),
+                        },
+                    )
 
     for left_index, left in enumerate(regular):
         for right in regular[left_index + 1:]:
@@ -1020,16 +1278,30 @@ def generate_public_candidate_catalog(
                 and left.get("node_type") == right.get("node_type")
             ):
                 continue
+            rule = config.rule(str(left["node_type"]))
             score = node_pair_score(
                 left, right,
-                visual_weight=config.visual_weight,
-                geometry_weight=config.geometry_weight,
-                geometry_scale_m=config.geometry_scale_m,
+                visual_weight=rule["visual_weight"],
+                geometry_weight=rule["geometry_weight"],
+                geometry_scale_m=rule["geometry_scale_m"],
             )
-            if score >= config.merge_threshold:
-                _append(rows, "MERGE", score, _merge_program(
-                    prior_memory, deployable_hash, left, right, tick,
-                ))
+            if score >= rule["merge_threshold"]:
+                pair_components = node_pair_components(
+                    left, right, geometry_scale_m=rule["geometry_scale_m"],
+                )
+                if pair_components is None:
+                    raise ValueError("MERGE priority requires compatible nodes")
+                _append(
+                    rows, "MERGE", str(left["node_type"]), score,
+                    _merge_program(
+                        prior_memory, deployable_hash, left, right, tick,
+                    ), capacity=capacity,
+                    priority_components={
+                        **pair_components,
+                        "visual_weight": float(rule["visual_weight"]),
+                        "geometry_weight": float(rule["geometry_weight"]),
+                    },
+                )
 
     incident_by_node: dict[str, list[Mapping[str, Any]]] = {}
     for edge in edges:
@@ -1052,46 +1324,85 @@ def generate_public_candidate_catalog(
         ):
             continue
         compatible = []
+        rule = config.rule(str(node["node_type"]))
         for region in regions:
+            if region["structure_kind"] == "place":
+                continue
             score = association_score(
                 region, node,
-                visual_weight=config.visual_weight,
-                geometry_weight=config.geometry_weight,
-                geometry_scale_m=config.geometry_scale_m,
+                visual_weight=rule["visual_weight"],
+                geometry_weight=rule["geometry_weight"],
+                geometry_scale_m=rule["geometry_scale_m"],
             )
-            if score >= config.split_region_threshold:
+            if score >= rule["split_region_threshold"]:
                 compatible.append((score, region))
         for left_index, (left_score, left) in enumerate(compatible):
             for right_score, right in compatible[left_index + 1:]:
                 if centroid_distance(left, right) < config.split_minimum_separation_m:
                     continue
-                assignments = product(
-                    ((0,), (1,), (0, 1)), repeat=len(incident_edges),
+                assignment_options = [
+                    _public_split_assignment_options(
+                        edge=edge,
+                        split_node_id=str(node["node_id"]),
+                        left_region_id=str(left["region_id"]),
+                        right_region_id=str(right["region_id"]),
+                        relation_observations=public["relation_observations"],
+                        matches_by_region=matches_by_region,
+                    )
+                    for edge in incident_edges
+                ]
+                assignment_count = math.prod(
+                    len(options) for options in assignment_options
                 )
-                for assignment_indices in assignments:
-                    _append(
-                        rows, "SPLIT", min(left_score, right_score),
-                        _split_program(
+                split_bucket = rows.setdefault(
+                    ("SPLIT", str(node["node_type"])),
+                    _CandidateBucket(capacity),
+                )
+                if assignment_count > capacity:
+                    split_bucket.reject_oversized_group(assignment_count)
+                    continue
+                candidates = [
+                    (*_split_program(
                             prior_memory, deployable_hash, node, left, right, tick,
                             incident_edges=incident_edges,
                             assignment_indices=assignment_indices,
-                        ),
-                    )
+                        ), {
+                            "left_association_score": left_score,
+                            "right_association_score": right_score,
+                        })
+                    for assignment_indices in product(*assignment_options)
+                ]
+                split_bucket.append_group(
+                    min(left_score, right_score), candidates,
+                )
 
-    selected: list[tuple[dict[str, Any], dict[str, Any]]] = []
+    selected: list[
+        tuple[dict[str, Any], dict[str, Any], dict[str, Any]]
+    ] = []
     for template in TEMPLATE_ORDER:
-        ranked = sorted(
-            rows[template],
-            key=lambda item: (-item[0], canonical_sha256(item[1])),
-        )[:config.maximum_candidates_per_template]
-        selected.extend((program, evidence) for _, program, evidence in ranked)
+        for (bucket_template, scope), bucket in sorted(rows.items()):
+            if bucket_template != template:
+                continue
+            selected.extend(
+                (
+                    program,
+                    evidence,
+                    {
+                        "bucket_id": f"{bucket_template}|{scope}",
+                        "enumeration_priority": score,
+                        "priority_components": components,
+                    },
+                )
+                for score, program, evidence, components in bucket.selected()
+            )
 
     selected.sort(key=lambda item: hashlib.sha256(
         f"{deployable_hash}|{canonical_sha256(item[0])}".encode("utf-8")
     ).hexdigest())
     programs: list[dict[str, Any]] = []
     evidence_rows: list[dict[str, Any]] = []
-    for program, evidence in selected:
+    enumeration_rows: list[dict[str, Any]] = []
+    for program, evidence, enumeration in selected:
         execute_transaction(
             clone_json(dict(prior_memory)), clone_json(program),
             evidence_by_id=clone_json(evidence),
@@ -1099,6 +1410,35 @@ def generate_public_candidate_catalog(
         )
         programs.append(program)
         evidence_rows.append(evidence)
+        enumeration_rows.append(enumeration)
+
+    capacity_rows = [
+        {
+            "bucket_id": f"{template}|{scope}",
+            "template": template,
+            "scope": scope,
+            "capacity": bucket.capacity,
+            "pre_cap_candidate_count": bucket.pre_cap_candidate_count,
+            "pre_cap_group_count": bucket.pre_cap_group_count,
+            "retained_candidate_count": sum(
+                len(group[2]) for group in bucket.groups
+            ),
+            "retained_group_count": len(bucket.groups),
+            "oversized_group_count": bucket.oversized_group_count,
+            "minimum_retained_priority": (
+                min(group[0] for group in bucket.groups)
+                if bucket.groups else None
+            ),
+            "minimum_retained_priority_group_count": (
+                sum(
+                    group[0] == min(item[0] for item in bucket.groups)
+                    for group in bucket.groups
+                )
+                if bucket.groups else 0
+            ),
+        }
+        for (template, scope), bucket in sorted(rows.items())
+    ]
 
     derivations = [{
         "name": "vsmt.public.candidates.v1",
@@ -1115,6 +1455,8 @@ def generate_public_candidate_catalog(
         public, prior_memory, generator_id="vsmt.public.generator.v1",
         derivations=derivations, programs=programs,
         online_evidence=evidence_rows,
+        enumeration_audits=enumeration_rows,
+        capacity_audit=capacity_rows,
     )
 
 

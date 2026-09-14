@@ -25,6 +25,7 @@ from vsmt.baselines import (  # noqa: E402
 )
 from vsmt.contracts import run_adapter  # noqa: E402
 from vsmt.graph_ops import STATE_KEY  # noqa: E402
+from vsmt.place_scaffold import prepare_place_scaffold  # noqa: E402
 
 
 def observed_node(
@@ -43,6 +44,8 @@ def observed_node(
     }
     if state_updates:
         state.update(state_updates)
+    if node_type == "place":
+        state["place_scaffold_key"] = f"{centroid[0]:.9f}:{centroid[2]:.9f}"
     return {
         "node_id": node_id,
         "node_version_id": f"{node_id}@v0",
@@ -136,25 +139,39 @@ def packet(
     }
 
 
-def taf_config(**updates: Any) -> TAFConfig:
+def association_rules(**updates: Any) -> dict[str, dict[str, float]]:
     values = {
         "visual_weight": 0.5,
         "geometry_weight": 0.5,
         "geometry_scale_m": 1.0,
         "association_threshold": 0.7,
-        "duplicate_threshold": 0.9,
-        "fusion_interval": 1,
     }
     values.update(updates)
-    return TAFConfig(**values)
+    return {
+        kind: dict(values) for kind in ("entity", "surface", "fragment")
+    }
+
+
+def low_config(distance: float) -> LOWConfig:
+    return LOWConfig(maximum_centroid_distance_m_by_structure_kind={
+        kind: distance for kind in ("entity", "surface", "fragment")
+    })
+
+
+def taf_config(**updates: Any) -> TAFConfig:
+    fusion_interval = int(updates.pop("fusion_interval", 1))
+    duplicate_threshold = float(updates.pop("duplicate_threshold", 0.9))
+    return TAFConfig(
+        association_rules=association_rules(
+            duplicate_threshold=duplicate_threshold, **updates,
+        ),
+        fusion_interval=fusion_interval,
+    )
 
 
 def elu_config(**updates: Any) -> ELUConfig:
     values = {
-        "visual_weight": 0.5,
-        "geometry_weight": 0.5,
-        "geometry_scale_m": 1.0,
-        "association_threshold": 0.7,
+        "association_rules": association_rules(),
         "free_space_reliability_threshold": 0.8,
         "free_space_target_expansion_m": 0.02,
         "minimum_free_space_time_separation_s": 0.25,
@@ -170,11 +187,7 @@ def elu_config(**updates: Any) -> ELUConfig:
 
 def wfr_config(**updates: Any) -> WFRConfig:
     values = {
-        "visual_weight": 0.5,
-        "geometry_weight": 0.5,
-        "geometry_scale_m": 1.0,
-        "association_threshold": 0.7,
-        "duplicate_threshold": 0.9,
+        "association_rules": association_rules(duplicate_threshold=0.9),
         "confirmation_observations": 2,
         "reconciliation_interval": 1,
         "absent_reconciliations_before_retract": 1,
@@ -189,7 +202,7 @@ def wfr_config(**updates: Any) -> WFRConfig:
 class VSMTBaselineTests(unittest.TestCase):
     def test_configs_require_explicit_valid_values(self) -> None:
         with self.assertRaises(ValueError):
-            LOWConfig(maximum_centroid_distance_m=0.0)
+            low_config(0.0)
         with self.assertRaisesRegex(ValueError, "sum to one"):
             taf_config(visual_weight=0.8, geometry_weight=0.8)
         with self.assertRaisesRegex(ValueError, "below dormant"):
@@ -215,17 +228,20 @@ class VSMTBaselineTests(unittest.TestCase):
             "support_sha256": "9" * 64,
         }]
         adapters = [
-            LOWAdapter(LOWConfig(maximum_centroid_distance_m=0.5)),
+            LOWAdapter(low_config(0.5)),
             TAFAdapter(taf_config()),
             ELUAdapter(elu_config()),
             WFRAdapter(wfr_config()),
         ]
+        prepared, scaffold_memory = prepare_place_scaffold(
+            packet(graph, regions=regions, relations=relations), graph,
+        )
         for adapter in adapters:
             with self.subTest(method=adapter.method_id):
                 result = run_adapter(
                     adapter,
-                    packet(graph, regions=regions, relations=relations),
-                    graph,
+                    prepared,
+                    scaffold_memory,
                 )
                 open_edges = [
                     edge for edge in result["post_memory"]["edges"]
@@ -238,7 +254,7 @@ class VSMTBaselineTests(unittest.TestCase):
         graph = memory(observed_node("node-a", centroid=[0.0, 0.0, 0.0],
                                      descriptor=[1.0, 0.0]))
         result = run_adapter(
-            LOWAdapter(LOWConfig(maximum_centroid_distance_m=0.5)),
+            LOWAdapter(low_config(0.5)),
             packet(graph, regions=[region(centroid=[0.1, 0.0, 0.0],
                                                   descriptor=[0.0, 1.0])]),
             graph,
@@ -253,7 +269,7 @@ class VSMTBaselineTests(unittest.TestCase):
         graph = memory(observed_node("node-a", centroid=[0.0, 0.0, 0.0],
                                      descriptor=[1.0, 0.0]))
         result = run_adapter(
-            LOWAdapter(LOWConfig(maximum_centroid_distance_m=0.1)),
+            LOWAdapter(low_config(0.1)),
             packet(graph, regions=[region(centroid=[1.0, 0.0, 0.0],
                                                   descriptor=[1.0, 0.0])]),
             graph,

@@ -17,6 +17,7 @@ from cpmt.hashing import canonical_json, clone_json, seal_graph
 
 
 STATE_KEY = "vsmt_observation_state"
+PLACE_SCAFFOLD_ID = "vsmt.place.scaffold.v1"
 
 
 def finite_number(value: Any, name: str) -> float:
@@ -111,32 +112,74 @@ def association_score(
     region: Mapping[str, Any], node: Mapping[str, Any], *,
     visual_weight: float, geometry_weight: float, geometry_scale_m: float,
 ) -> float:
+    components = association_components(
+        region, node, geometry_scale_m=geometry_scale_m,
+    )
+    if components is None:
+        return -1.0
+    return (
+        visual_weight * components["visual_similarity"]
+        + geometry_weight * components["geometry_proximity"]
+    )
+
+
+def association_components(
+    region: Mapping[str, Any], node: Mapping[str, Any], *,
+    geometry_scale_m: float,
+) -> dict[str, float] | None:
+    """Return public visual and geometric terms before weighting."""
+
     state = observation_state(node)
     if state is None or region["structure_kind"] != node.get("node_type"):
-        return -1.0
+        return None
     visual = (cosine_similarity(region["descriptor"], state["descriptor"]) + 1.0) / 2.0
     distance = centroid_distance(region, state)
     geometry = max(0.0, 1.0 - distance / geometry_scale_m)
-    return visual_weight * visual + geometry_weight * geometry
+    return {
+        "visual_similarity": visual,
+        "centroid_distance_m": distance,
+        "geometry_proximity": geometry,
+    }
 
 
 def node_pair_score(
     left: Mapping[str, Any], right: Mapping[str, Any], *,
     visual_weight: float, geometry_weight: float, geometry_scale_m: float,
 ) -> float:
+    components = node_pair_components(
+        left, right, geometry_scale_m=geometry_scale_m,
+    )
+    if components is None:
+        return -1.0
+    return (
+        visual_weight * components["visual_similarity"]
+        + geometry_weight * components["geometry_proximity"]
+    )
+
+
+def node_pair_components(
+    left: Mapping[str, Any], right: Mapping[str, Any], *,
+    geometry_scale_m: float,
+) -> dict[str, float] | None:
+    """Return public visual and geometric terms for two memory nodes."""
+
     left_state = observation_state(left)
     right_state = observation_state(right)
     if (
         left_state is None or right_state is None
         or left.get("node_type") != right.get("node_type")
     ):
-        return -1.0
+        return None
     visual = (cosine_similarity(
         left_state["descriptor"], right_state["descriptor"]
     ) + 1.0) / 2.0
     distance = centroid_distance(left_state, right_state)
     geometry = max(0.0, 1.0 - distance / geometry_scale_m)
-    return visual_weight * visual + geometry_weight * geometry
+    return {
+        "visual_similarity": visual,
+        "centroid_distance_m": distance,
+        "geometry_proximity": geometry,
+    }
 
 
 def fully_covered_by_free_space(
@@ -244,6 +287,21 @@ def opaque_id(*parts: object, prefix: str) -> str:
     return f"{prefix}:{hashlib.sha256(encoded).hexdigest()[:16]}"
 
 
+def place_scaffold_key(region: Mapping[str, Any]) -> str:
+    if region.get("structure_kind") != "place":
+        raise ValueError("place scaffold key requires a place region")
+    centroid = region.get("centroid_m")
+    if type(centroid) is not list or len(centroid) != 3:
+        raise ValueError("place region centroid_m must contain three values")
+    x = finite_number(centroid[0], "place centroid x")
+    z = finite_number(centroid[2], "place centroid z")
+    return f"{x:.9f}:{z:.9f}"
+
+
+def place_scaffold_node_id(region: Mapping[str, Any]) -> str:
+    return opaque_id(PLACE_SCAFFOLD_ID, place_scaffold_key(region), prefix="node")
+
+
 class GraphRevision:
     """Mutable work copy used only inside one adapter update."""
 
@@ -334,6 +392,79 @@ class GraphRevision:
         self.graph["nodes"].append(node)
         self.created_nodes.append(version_id)
         self.templates.append("BIRTH")
+        return node
+
+    def upsert_place_scaffold(
+        self, region: Mapping[str, Any], decision_time_s: float,
+    ) -> dict[str, Any]:
+        """Version one coordinate-defined place outside learned transactions."""
+
+        key = place_scaffold_key(region)
+        node_id = place_scaffold_node_id(region)
+        open_matches = [
+            node for node in self.graph["nodes"]
+            if node.get("valid_to") is None
+            and node.get("node_type") == "place"
+            and (observation_state(node) or {}).get("place_scaffold_key") == key
+        ]
+        if len(open_matches) > 1:
+            raise ValueError("place scaffold key has multiple open nodes")
+        if open_matches:
+            current = open_matches[0]
+            if current["node_id"] != node_id:
+                raise ValueError("place scaffold node identity is not coordinate-derived")
+            current["valid_to"] = self.tick
+            self.closed_nodes.append(str(current["node_version_id"]))
+            previous = observation_state(current)
+            state = self._state_from_region(
+                region, decision_time_s, previous=previous, fused=True,
+            )
+            state["place_scaffold_key"] = key
+            successor = clone_json(current)
+            successor.update({
+                "node_version_id": opaque_id(
+                    self.pre_hash, PLACE_SCAFFOLD_ID, self.tick, node_id,
+                    "bind", prefix="node-version",
+                ),
+                "lifecycle": "confirmed",
+                "valid_from": self.tick,
+                "valid_to": None,
+                "evidence_refs": list(dict.fromkeys(
+                    list(current["evidence_refs"])
+                    + [f"observation:{region['mask_sha256']}"]
+                )),
+                "predecessor_ids": [current["node_version_id"]],
+                "provenance": list(current["provenance"])
+                + [f"{PLACE_SCAFFOLD_ID}:bind"],
+                STATE_KEY: state,
+            })
+            self.graph["nodes"].append(successor)
+            self.created_nodes.append(str(successor["node_version_id"]))
+            return successor
+
+        if any(node["node_id"] == node_id for node in self.graph["nodes"]):
+            raise ValueError("place scaffold identity exists without an open version")
+        state = self._state_from_region(region, decision_time_s)
+        state["place_scaffold_key"] = key
+        node = {
+            "node_id": node_id,
+            "node_version_id": opaque_id(
+                self.pre_hash, PLACE_SCAFFOLD_ID, self.tick, node_id,
+                "birth", prefix="node-version",
+            ),
+            "node_type": "place",
+            "lifecycle": "confirmed",
+            "valid_from": self.tick,
+            "valid_to": None,
+            "evidence_refs": [f"observation:{region['mask_sha256']}"],
+            "latent_refs": [],
+            "canonical_id": None,
+            "predecessor_ids": [],
+            "provenance": [f"{PLACE_SCAFFOLD_ID}:birth"],
+            STATE_KEY: state,
+        }
+        self.graph["nodes"].append(node)
+        self.created_nodes.append(str(node["node_version_id"]))
         return node
 
     def create_edge(

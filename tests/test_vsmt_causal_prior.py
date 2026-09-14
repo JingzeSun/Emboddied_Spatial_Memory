@@ -25,10 +25,15 @@ from vsmt.graph_ops import STATE_KEY  # noqa: E402
 
 def bootstrap_config(**updates: Any) -> PublicBootstrapConfig:
     values = {
-        "visual_weight": 0.5,
-        "geometry_weight": 0.5,
-        "geometry_scale_m": 1.0,
-        "association_threshold": 0.7,
+        "association_rules": {
+            kind: {
+                "visual_weight": 0.5,
+                "geometry_weight": 0.5,
+                "geometry_scale_m": 1.0,
+                "association_threshold": 0.7,
+            }
+            for kind in ("entity", "surface", "fragment")
+        },
         "maximum_regions_per_packet": 8,
         "builder_revision": "fixture.v1",
     }

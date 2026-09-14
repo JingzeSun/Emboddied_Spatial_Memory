@@ -82,7 +82,9 @@ from .l1_structures import (
     FreeSpaceMaterializationConfig,
     L1StructureConstructionError,
     MaterializedRegion,
+    PlaceMaterialization,
     PlaceMaterializationConfig,
+    RejectedPlaceCell,
     SurfaceMaterializationConfig,
     assemble_free_space_history,
     assemble_region_records,
@@ -92,6 +94,7 @@ from .l1_structures import (
     materialize_public_relations,
     materialize_public_surfaces,
 )
+from .place_scaffold import prepare_place_scaffold
 
 __all__ = [
     "AdapterInput",
@@ -160,7 +163,9 @@ __all__ = [
     "FreeSpaceMaterializationConfig",
     "L1StructureConstructionError",
     "MaterializedRegion",
+    "PlaceMaterialization",
     "PlaceMaterializationConfig",
+    "RejectedPlaceCell",
     "SurfaceMaterializationConfig",
     "assemble_free_space_history",
     "assemble_region_records",
@@ -169,4 +174,5 @@ __all__ = [
     "materialize_public_places",
     "materialize_public_relations",
     "materialize_public_surfaces",
+    "prepare_place_scaffold",
 ]

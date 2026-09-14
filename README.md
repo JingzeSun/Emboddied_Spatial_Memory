@@ -38,4 +38,4 @@
 
 旧源码、配置和 run 报告保留原路径。已被合并的细分文档、重复确认表和两套旧方案副本从工作树删除，原文可在[重组前提交](https://github.com/JingzeSun/Emboddied_Spatial_Memory/tree/c24ced2f4a5513f5a8944b98139857cfc27909ff)查看，不在新目录再复制一套。
 
-VSMT VM-01～VM-03 已完成服务器合同验收并合并 `main`；VM-04的L1匿名实体、surface、place、多尺度free-space、packet v2关系通道及五方法共同消费已完成服务器工程验证。[L1结构报告](results/vsmt_vm04_l1_structures.json)绑定130/130合同测试和合成完整packet烟测，但当前仍不生成house、不打开confirmation、不训练；bootstrap/五方法阈值、候选cap、选择器、teacher/evaluator及S-01～S-12数值口径尚待冻结。旧 CPMT 的 S5 no-go、旧 test封存、D-062世界模型代码与全部复现路径保留，但不再占据日常入口。
+VSMT VM-01～VM-03 已完成服务器合同验收并合并 `main`；VM-04旧[L1结构报告](results/vsmt_vm04_l1_structures.json)绑定130/130合同与合成packet。D-140随后把place改为五方法共同的确定性坐标scaffold，候选改为类型化有界分桶并封存容量审计，补齐SPLIT整组分配、MERGE关系重锚、实体主链联测和退化格失败记录；这些新字节目前只有本地139项合同通过，尚待服务器回执，不能借旧报告认证。当前仍不生成house、不打开confirmation、不训练；正式阈值、候选cap、选择器、teacher/evaluator及S-01～S-12数值口径尚待冻结。旧CPMT的S5 no-go、旧test封存、D-062世界模型代码与全部复现路径保留。

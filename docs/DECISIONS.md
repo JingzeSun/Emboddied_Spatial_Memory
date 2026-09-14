@@ -1439,3 +1439,11 @@
 - 日期：2026-09-14；状态：proposed，待用户在对话中裁决。代码审计确认测试/烟测中的关联权重、阈值与候选上限只验证分支，不能升格为正式数值；单一视觉—质心分跨`entity/surface/place/fragment`也会混淆固定地点与可移动实体。拟改为封存可审的视觉、米制距离、归一化几何、结构类型和可靠性分量，再由类型化显式配置组合；仍不读取类别、instance ID、teacher或未来。
 - 当前候选器先完整物化所有组合、再按每模板cap截断，cap并不限制截断前内存；用于截断的分数随后丢失，而PHR提案又需要公开分。拟以输出等价的确定性流式top-k取代完整物化，保存每模板截断前计数、边界分与并列数，并把`enumeration_priority`与跨模板`decision_heuristic_score`分开。白话：NOOP为保证目录存在可在枚举阶段记1.0，但不能因此在最终选择时永远击败0.95的真实RELINK；排在cap后面的正确程序只能如实记candidate miss，teacher不能补回。它不等于PHR公式或cap数值已经批准。
 - 公平调参建议所有方法共用train/validation与冻结选择指标，各自最多评估12个完整配置；方法特有阈值可不同，bootstrap在受控轨道只选一次并逐字节共享。正式数值必须在相关S-01～S-12身份、等价和错误口径确定后选择，confirmation不得参与。该审议只允许用户批准后实现无默认值配置、分数封存、流式top-k和合同测试；不授权2-house、train/validation生成、训练或confirmation。
+
+## D-140：place脚手架、类型化容量、SPLIT整组和两层审计获批
+
+- 日期：2026-09-14；状态：approved for implementation and server contract verification, not data execution。用户认可D-139全部选择协议，并在审阅外部代码意见后批准：place按世界坐标作为五方法共同的确定性scaffold，不进入学习式BIND/MERGE/SPLIT；候选容量按`template × structure_kind`或`template × relation_type`分桶；TAF/ELU/WFR/LOW及bootstrap也使用显式类型化关联配置。测试/烟测数值仍不是正式阈值。
+- SPLIT采用公开证据约束的混合口径：当前关系唯一支持左、右或二者时确定性收窄；没有公开支持时保留左、右、二者三种分配。同一左右后继的全部关系分配是不可拆候选组，容量不足整组拒绝并记candidate miss，不能由canonical hash随机保留部分。`maximum_split_incident_edges`仅为待容量审计的计算护栏，不再固定为“最多2条边”的科学语义；均不继承仍等待公开负证据口径。
+- MERGE必须在同一原子内关闭两个源身份的全部开放incident edges，将alias端点重锚到canonical；同类型、同方向、同frame重复边合并证据/provenance，折叠出的自环关闭而不重开。白话：两个重复杯子节点都连到同一地点时，MERGE后只留一条规范关系并保留两边证据。它不删除旧版本，也不允许后续BIRTH掩盖悬空alias边。
+- `CandidateCatalog v2`封存每项枚举优先级和公开分量，并逐桶记录截断前候选/组数、保留数、超大整组数和最低保留优先级；PHR跨模板决策分仍未实现。2-house audit分成不挂载private的容量层，以及public/candidate全封存后才打开private的逐事务candidate recall/可用正例层；用户只批准审计内容，未授权实际运行。candidate recall和DRCR/NECS/PHR升为主报告一等诊断，关系通道为五方法共享能力而非VSMT独立创新。
+- 同批直接工程修复包括：真实`mask匿名化→实体物化→region组包`联测、mask紧凑字节存储、退化place格记录失败并跳过。允许必要本地/服务器合同及合成非数据smoke；house生成、阈值选择、训练、validation效果、private/confirmation读取仍为false。

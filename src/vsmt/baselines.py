@@ -33,6 +33,10 @@ from .graph_ops import (
     open_nodes,
     validate_threshold,
 )
+from .place_scaffold import place_region_node_ids
+
+
+LEARNED_STRUCTURE_KINDS = {"entity", "surface", "fragment"}
 
 
 def _positive(value: Any, name: str) -> float:
@@ -55,39 +59,70 @@ def _weights(visual: float, geometry: float) -> None:
         raise ValueError("visual_weight and geometry_weight must sum to one")
 
 
+def _validate_association_rules(
+    rules: Mapping[str, Mapping[str, float]], *,
+    expected_fields: set[str], name: str,
+) -> None:
+    if type(rules) is not dict or set(rules) != LEARNED_STRUCTURE_KINDS:
+        raise ValueError(
+            f"{name} must explicitly cover entity, surface, and fragment but not place"
+        )
+    for kind, rule in rules.items():
+        if type(rule) is not dict or set(rule) != expected_fields:
+            raise ValueError(f"{name}.{kind} is malformed")
+        if {"visual_weight", "geometry_weight"} <= expected_fields:
+            _weights(rule["visual_weight"], rule["geometry_weight"])
+        if "geometry_scale_m" in expected_fields:
+            _positive(rule["geometry_scale_m"], f"{name}.{kind}.geometry_scale_m")
+        for field in expected_fields & {
+            "association_threshold", "duplicate_threshold",
+        }:
+            validate_threshold(
+                rule[field], f"{name}.{kind}.{field}", low=0.0, high=1.0,
+            )
+
+
 @dataclass(frozen=True)
 class LOWConfig:
-    maximum_centroid_distance_m: float
+    maximum_centroid_distance_m_by_structure_kind: Mapping[str, float]
 
     def __post_init__(self) -> None:
-        _positive(self.maximum_centroid_distance_m, "maximum_centroid_distance_m")
+        rules = self.maximum_centroid_distance_m_by_structure_kind
+        if type(rules) is not dict or set(rules) != LEARNED_STRUCTURE_KINDS:
+            raise ValueError(
+                "LOW distance rules must explicitly cover entity, surface, and "
+                "fragment but not place"
+            )
+        for kind, value in rules.items():
+            _positive(value, f"maximum_centroid_distance_m.{kind}")
+
+    def maximum_distance(self, structure_kind: str) -> float:
+        return self.maximum_centroid_distance_m_by_structure_kind[structure_kind]
 
 
 @dataclass(frozen=True)
 class TAFConfig:
-    visual_weight: float
-    geometry_weight: float
-    geometry_scale_m: float
-    association_threshold: float
-    duplicate_threshold: float
+    association_rules: Mapping[str, Mapping[str, float]]
     fusion_interval: int
 
     def __post_init__(self) -> None:
-        _weights(self.visual_weight, self.geometry_weight)
-        _positive(self.geometry_scale_m, "geometry_scale_m")
-        validate_threshold(self.association_threshold, "association_threshold",
-                           low=0.0, high=1.0)
-        validate_threshold(self.duplicate_threshold, "duplicate_threshold",
-                           low=0.0, high=1.0)
+        _validate_association_rules(
+            self.association_rules,
+            expected_fields={
+                "visual_weight", "geometry_weight", "geometry_scale_m",
+                "association_threshold", "duplicate_threshold",
+            },
+            name="TAF association_rules",
+        )
         _positive_integer(self.fusion_interval, "fusion_interval")
+
+    def rule(self, structure_kind: str) -> Mapping[str, float]:
+        return self.association_rules[structure_kind]
 
 
 @dataclass(frozen=True)
 class ELUConfig:
-    visual_weight: float
-    geometry_weight: float
-    geometry_scale_m: float
-    association_threshold: float
+    association_rules: Mapping[str, Mapping[str, float]]
     free_space_reliability_threshold: float
     free_space_target_expansion_m: float
     minimum_free_space_time_separation_s: float
@@ -98,10 +133,14 @@ class ELUConfig:
     retract_log_odds_threshold: float
 
     def __post_init__(self) -> None:
-        _weights(self.visual_weight, self.geometry_weight)
-        _positive(self.geometry_scale_m, "geometry_scale_m")
-        validate_threshold(self.association_threshold, "association_threshold",
-                           low=0.0, high=1.0)
+        _validate_association_rules(
+            self.association_rules,
+            expected_fields={
+                "visual_weight", "geometry_weight", "geometry_scale_m",
+                "association_threshold",
+            },
+            name="ELU association_rules",
+        )
         validate_threshold(
             self.free_space_reliability_threshold,
             "free_space_reliability_threshold", low=0.0, high=1.0,
@@ -125,14 +164,13 @@ class ELUConfig:
         if self.retract_log_odds_threshold >= self.dormant_log_odds_threshold:
             raise ValueError("retract threshold must be below dormant threshold")
 
+    def rule(self, structure_kind: str) -> Mapping[str, float]:
+        return self.association_rules[structure_kind]
+
 
 @dataclass(frozen=True)
 class WFRConfig:
-    visual_weight: float
-    geometry_weight: float
-    geometry_scale_m: float
-    association_threshold: float
-    duplicate_threshold: float
+    association_rules: Mapping[str, Mapping[str, float]]
     confirmation_observations: int
     reconciliation_interval: int
     absent_reconciliations_before_retract: int
@@ -141,12 +179,14 @@ class WFRConfig:
     minimum_free_space_time_separation_s: float
 
     def __post_init__(self) -> None:
-        _weights(self.visual_weight, self.geometry_weight)
-        _positive(self.geometry_scale_m, "geometry_scale_m")
-        validate_threshold(self.association_threshold, "association_threshold",
-                           low=0.0, high=1.0)
-        validate_threshold(self.duplicate_threshold, "duplicate_threshold",
-                           low=0.0, high=1.0)
+        _validate_association_rules(
+            self.association_rules,
+            expected_fields={
+                "visual_weight", "geometry_weight", "geometry_scale_m",
+                "association_threshold", "duplicate_threshold",
+            },
+            name="WFR association_rules",
+        )
         _positive_integer(self.confirmation_observations,
                           "confirmation_observations")
         _positive_integer(self.reconciliation_interval,
@@ -167,18 +207,21 @@ class WFRConfig:
             "minimum_free_space_time_separation_s",
         )
 
+    def rule(self, structure_kind: str) -> Mapping[str, float]:
+        return self.association_rules[structure_kind]
+
 
 def _ranked_matches(
     region: Mapping[str, Any], nodes: list[dict[str, Any]], *,
-    visual_weight: float, geometry_weight: float, geometry_scale_m: float,
+    rule: Mapping[str, float],
 ) -> list[tuple[float, dict[str, Any]]]:
     rows = [
         (
             association_score(
                 region, node,
-                visual_weight=visual_weight,
-                geometry_weight=geometry_weight,
-                geometry_scale_m=geometry_scale_m,
+                visual_weight=rule["visual_weight"],
+                geometry_weight=rule["geometry_weight"],
+                geometry_scale_m=rule["geometry_scale_m"],
             ),
             node,
         )
@@ -198,22 +241,28 @@ def _current_node(revision: GraphRevision, node_id: str) -> dict[str, Any] | Non
 
 
 def _greedy_duplicate_merges(
-    revision: GraphRevision, *, visual_weight: float, geometry_weight: float,
-    geometry_scale_m: float, threshold: float,
+    revision: GraphRevision, *,
+    association_rules: Mapping[str, Mapping[str, float]],
 ) -> int:
     merge_count = 0
     while True:
-        nodes = sorted(open_nodes(revision.graph), key=lambda node: str(node["node_id"]))
+        nodes = sorted((
+            node for node in open_nodes(revision.graph)
+            if node.get("node_type") != "place"
+        ), key=lambda node: str(node["node_id"]))
         choices: list[tuple[float, str, str, dict[str, Any], dict[str, Any]]] = []
         for left_index, left in enumerate(nodes):
             for right in nodes[left_index + 1:]:
+                if left.get("node_type") != right.get("node_type"):
+                    continue
+                rule = association_rules[str(left["node_type"])]
                 score = node_pair_score(
                     left, right,
-                    visual_weight=visual_weight,
-                    geometry_weight=geometry_weight,
-                    geometry_scale_m=geometry_scale_m,
+                    visual_weight=rule["visual_weight"],
+                    geometry_weight=rule["geometry_weight"],
+                    geometry_scale_m=rule["geometry_scale_m"],
                 )
-                if score >= threshold:
+                if score >= rule["duplicate_threshold"]:
                     choices.append((
                         score, str(left["node_id"]), str(right["node_id"]), left, right,
                     ))
@@ -238,10 +287,14 @@ class LOWAdapter:
         started = time.perf_counter()
         revision = GraphRevision(model_input["prior_memory"], method_id=self.method_id)
         used: set[str] = set()
-        region_node_ids: dict[str, str] = {}
+        region_node_ids = place_region_node_ids(
+            model_input["region_observations"], revision.graph,
+        )
         matched = 0
         born = 0
         for region in model_input["region_observations"]:
+            if region["structure_kind"] == "place":
+                continue
             eligible = [
                 node for node in open_nodes(revision.graph, include_dormant=False)
                 if node["node_id"] not in used
@@ -253,7 +306,9 @@ class LOWAdapter:
                 ) for node in eligible),
                 key=lambda item: (item[0], str(item[1]["node_id"])),
             )
-            if ranked and ranked[0][0] <= self.config.maximum_centroid_distance_m:
+            if ranked and ranked[0][0] <= self.config.maximum_distance(
+                str(region["structure_kind"])
+            ):
                 node = ranked[0][1]
                 updated = revision.update_node(
                     node, region, float(model_input["decision_time_s"]),
@@ -300,21 +355,23 @@ class TAFAdapter:
         started = time.perf_counter()
         revision = GraphRevision(model_input["prior_memory"], method_id=self.method_id)
         used: set[str] = set()
-        region_node_ids: dict[str, str] = {}
+        region_node_ids = place_region_node_ids(
+            model_input["region_observations"], revision.graph,
+        )
         matched = 0
         born = 0
         for region in model_input["region_observations"]:
+            if region["structure_kind"] == "place":
+                continue
+            rule = self.config.rule(str(region["structure_kind"]))
             eligible = [
                 node for node in open_nodes(revision.graph, include_dormant=False)
                 if node["node_id"] not in used
             ]
             ranked = _ranked_matches(
-                region, eligible,
-                visual_weight=self.config.visual_weight,
-                geometry_weight=self.config.geometry_weight,
-                geometry_scale_m=self.config.geometry_scale_m,
+                region, eligible, rule=rule,
             )
-            if ranked and ranked[0][0] >= self.config.association_threshold:
+            if ranked and ranked[0][0] >= rule["association_threshold"]:
                 node = ranked[0][1]
                 updated = revision.update_node(
                     node, region, float(model_input["decision_time_s"]),
@@ -336,11 +393,7 @@ class TAFAdapter:
         merged = 0
         if revision.tick % self.config.fusion_interval == 0:
             merged = _greedy_duplicate_merges(
-                revision,
-                visual_weight=self.config.visual_weight,
-                geometry_weight=self.config.geometry_weight,
-                geometry_scale_m=self.config.geometry_scale_m,
-                threshold=self.config.duplicate_threshold,
+                revision, association_rules=self.config.association_rules,
             )
         confidence = (
             sum(float(region["reliability"])
@@ -368,31 +421,41 @@ class ELUAdapter:
         self.config = config
 
     def _score(self, region: Mapping[str, Any], node: Mapping[str, Any]) -> float:
+        rule = self.config.rule(str(region["structure_kind"]))
         return association_score(
             region, node,
-            visual_weight=self.config.visual_weight,
-            geometry_weight=self.config.geometry_weight,
-            geometry_scale_m=self.config.geometry_scale_m,
+            visual_weight=rule["visual_weight"],
+            geometry_weight=rule["geometry_weight"],
+            geometry_scale_m=rule["geometry_scale_m"],
         )
 
     def update(self, model_input: AdapterInput) -> Mapping[str, Any]:
         started = time.perf_counter()
         revision = GraphRevision(model_input["prior_memory"], method_id=self.method_id)
-        initial_open = open_nodes(revision.graph)
-        archived = archived_nodes(revision.graph)
+        initial_open = [
+            node for node in open_nodes(revision.graph)
+            if node.get("node_type") != "place"
+        ]
+        archived = [
+            node for node in archived_nodes(revision.graph)
+            if node.get("node_type") != "place"
+        ]
         used: set[str] = set()
-        region_node_ids: dict[str, str] = {}
+        region_node_ids = place_region_node_ids(
+            model_input["region_observations"], revision.graph,
+        )
         reactivated = 0
         born = 0
         positive = 0
         for region in model_input["region_observations"]:
+            if region["structure_kind"] == "place":
+                continue
+            rule = self.config.rule(str(region["structure_kind"]))
             active_ranked = _ranked_matches(
                 region, [node for node in initial_open if node["node_id"] not in used],
-                visual_weight=self.config.visual_weight,
-                geometry_weight=self.config.geometry_weight,
-                geometry_scale_m=self.config.geometry_scale_m,
+                rule=rule,
             )
-            if active_ranked and active_ranked[0][0] >= self.config.association_threshold:
+            if active_ranked and active_ranked[0][0] >= rule["association_threshold"]:
                 node = active_ranked[0][1]
                 state = observation_state(node) or {}
                 log_odds = float(state.get("existence_log_odds", self.config.birth_log_odds))
@@ -415,11 +478,9 @@ class ELUAdapter:
 
             archived_ranked = _ranked_matches(
                 region, [node for node in archived if node["node_id"] not in used],
-                visual_weight=self.config.visual_weight,
-                geometry_weight=self.config.geometry_weight,
-                geometry_scale_m=self.config.geometry_scale_m,
+                rule=rule,
             )
-            if archived_ranked and archived_ranked[0][0] >= self.config.association_threshold:
+            if archived_ranked and archived_ranked[0][0] >= rule["association_threshold"]:
                 node = archived_ranked[0][1]
                 state = observation_state(node) or {}
                 log_odds = float(state.get("existence_log_odds", self.config.birth_log_odds))
@@ -508,19 +569,25 @@ class WFRAdapter:
     def update(self, model_input: AdapterInput) -> Mapping[str, Any]:
         started = time.perf_counter()
         revision = GraphRevision(model_input["prior_memory"], method_id=self.method_id)
-        initial_open = open_nodes(revision.graph)
+        initial_open = [
+            node for node in open_nodes(revision.graph)
+            if node.get("node_type") != "place"
+        ]
         used: set[str] = set()
-        region_node_ids: dict[str, str] = {}
+        region_node_ids = place_region_node_ids(
+            model_input["region_observations"], revision.graph,
+        )
         matched = 0
         fragments = 0
         for region in model_input["region_observations"]:
+            if region["structure_kind"] == "place":
+                continue
+            rule = self.config.rule(str(region["structure_kind"]))
             ranked = _ranked_matches(
                 region, [node for node in initial_open if node["node_id"] not in used],
-                visual_weight=self.config.visual_weight,
-                geometry_weight=self.config.geometry_weight,
-                geometry_scale_m=self.config.geometry_scale_m,
+                rule=rule,
             )
-            if ranked and ranked[0][0] >= self.config.association_threshold:
+            if ranked and ranked[0][0] >= rule["association_threshold"]:
                 node = ranked[0][1]
                 state = observation_state(node) or {}
                 updated = revision.update_node(
@@ -603,11 +670,7 @@ class WFRAdapter:
                     )
 
             merged = _greedy_duplicate_merges(
-                revision,
-                visual_weight=self.config.visual_weight,
-                geometry_weight=self.config.geometry_weight,
-                geometry_scale_m=self.config.geometry_scale_m,
-                threshold=self.config.duplicate_threshold,
+                revision, association_rules=self.config.association_rules,
             )
 
         confidence = min(1.0, (

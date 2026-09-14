@@ -1,0 +1,97 @@
+from __future__ import annotations
+
+from copy import deepcopy
+from pathlib import Path
+import sys
+import unittest
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+SRC_ROOT = PROJECT_ROOT / "src"
+if str(SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(SRC_ROOT))
+
+from vsmt.causal_prior import empty_public_memory  # noqa: E402
+from vsmt.graph_ops import PLACE_SCAFFOLD_ID, STATE_KEY  # noqa: E402
+from vsmt.place_scaffold import prepare_place_scaffold  # noqa: E402
+
+
+def place_region() -> dict[str, object]:
+    return {
+        "region_id": "region:0000",
+        "structure_kind": "place",
+        "mask_sha256": "4" * 64,
+        "descriptor": [1.0, 0.0],
+        "centroid_m": [0.25, 0.0, -0.25],
+        "extent_m": [0.5, 0.0, 0.5],
+        "reliability": 0.8,
+        "proposal_source_id": "l1.public_depth.floor_place_cell.v1",
+    }
+
+
+def packet(memory: dict[str, object]) -> dict[str, object]:
+    return {
+        "schema_version": "vsmt-observation-packet-v2",
+        "sample_id_hash": "1" * 64,
+        "decision_time_s": 1.0,
+        "rgbd_refs": {"rgb_sha256": "2" * 64, "depth_sha256": "3" * 64},
+        "camera_pose": {
+            "position_m": [0.0, 0.0, 0.0],
+            "quaternion_xyzw": [0.0, 0.0, 0.0, 1.0],
+        },
+        "robot_state": {"feature_names": [], "values": []},
+        "past_actions": [],
+        "region_observations": [place_region()],
+        "relation_observations": [],
+        "free_space_observations": [],
+        "prior_memory_ref": {
+            "graph_version": memory["graph_version"],
+            "graph_sha256": memory["graph_hash"],
+        },
+        "public_constants": {
+            "coordinate_frame": "map",
+            "depth_unit": "metre",
+            "descriptor_model_id": "dinov2.vits14",
+            "proposal_model_id": "fixed.region.v2",
+        },
+    }
+
+
+class PlaceScaffoldTests(unittest.TestCase):
+    def test_public_audit_identity_does_not_change_scaffold_memory(self) -> None:
+        memory = empty_public_memory()
+        first = packet(memory)
+        second = deepcopy(first)
+        second["sample_id_hash"] = "a" * 64
+        second["rgbd_refs"] = {"rgb_sha256": "b" * 64, "depth_sha256": "c" * 64}
+        first_packet, first_memory = prepare_place_scaffold(first, memory)
+        second_packet, second_memory = prepare_place_scaffold(second, memory)
+        self.assertEqual(first_memory, second_memory)
+        self.assertNotEqual(first_packet["rgbd_refs"], second_packet["rgbd_refs"])
+
+    def test_revisit_versions_one_coordinate_identity_without_a_learned_template(self) -> None:
+        memory = empty_public_memory()
+        first_packet, first_memory = prepare_place_scaffold(packet(memory), memory)
+        current = [node for node in first_memory["nodes"] if node["valid_to"] is None]
+        self.assertEqual(len(current), 1)
+        node_id = current[0]["node_id"]
+        self.assertEqual(current[0]["provenance"], [f"{PLACE_SCAFFOLD_ID}:birth"])
+        self.assertEqual(current[0][STATE_KEY]["place_scaffold_key"], "0.250000000:-0.250000000")
+
+        later = deepcopy(first_packet)
+        later["decision_time_s"] = 2.0
+        later["prior_memory_ref"] = {
+            "graph_version": first_memory["graph_version"],
+            "graph_sha256": first_memory["graph_hash"],
+        }
+        _, second_memory = prepare_place_scaffold(later, first_memory)
+        versions = [node for node in second_memory["nodes"] if node["node_id"] == node_id]
+        self.assertEqual(len(versions), 2)
+        self.assertEqual(len([node for node in versions if node["valid_to"] is None]), 1)
+        self.assertEqual(
+            second_memory["transaction_log"][-1]["observed_templates"], [],
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -19,7 +19,7 @@ from cpmt.hashing import canonical_json, clone_json, compute_graph_hash
 
 
 OBSERVATION_SCHEMA = "vsmt-observation-packet-v2"
-CANDIDATE_SCHEMA = "vsmt-candidate-catalog-v1"
+CANDIDATE_SCHEMA = "vsmt-candidate-catalog-v2"
 TEACHER_SCHEMA = "vsmt-teacher-targets-v1"
 RESULT_SCHEMA = "vsmt-memory-update-result-v1"
 PRIVATE_SCHEMA = "vsmt-private-evaluation-v1"
@@ -561,7 +561,7 @@ def validate_candidate_catalog(
 
     expected = {
         "schema_version", "public_sha256", "prior_memory_sha256", "generator_id",
-        "derivations", "candidates", "catalog_sha256",
+        "derivations", "capacity_audit", "candidates", "catalog_sha256",
     }
     _exact_keys(catalog, expected, "candidate catalog")
     _require(catalog["schema_version"] == CANDIDATE_SCHEMA,
@@ -592,6 +592,72 @@ def validate_candidate_catalog(
                                          "memory derivation pointer")
     _require(len(names) == len(set(names)), "candidate derivation names must be unique")
 
+    capacity_rows = catalog["capacity_audit"]
+    _require(type(capacity_rows) is list and capacity_rows,
+             "candidate capacity_audit must be a nonempty list")
+    bucket_ids: list[str] = []
+    retained_by_bucket: dict[str, int] = {}
+    for index, row in enumerate(capacity_rows):
+        _require(type(row) is dict, f"capacity_audit[{index}] must be an object")
+        _exact_keys(row, {
+            "bucket_id", "template", "scope", "capacity",
+            "pre_cap_candidate_count", "pre_cap_group_count",
+            "retained_candidate_count", "retained_group_count",
+            "oversized_group_count", "minimum_retained_priority",
+            "minimum_retained_priority_group_count",
+        }, f"capacity_audit[{index}]")
+        for key in ("bucket_id", "template", "scope"):
+            _require(type(row[key]) is str and bool(row[key]),
+                     f"capacity_audit[{index}].{key} must be nonempty")
+        bucket_id = str(row["bucket_id"])
+        _require(bucket_id == f"{row['template']}|{row['scope']}",
+                 "candidate capacity bucket ID must bind template and scope")
+        bucket_ids.append(bucket_id)
+        counts: dict[str, int] = {}
+        for key in (
+            "capacity", "pre_cap_candidate_count", "pre_cap_group_count",
+            "retained_candidate_count", "retained_group_count",
+            "oversized_group_count",
+            "minimum_retained_priority_group_count",
+        ):
+            value = row[key]
+            _require(type(value) is int and value >= 0,
+                     f"capacity_audit[{index}].{key} must be a non-negative integer")
+            counts[key] = value
+        _require(counts["capacity"] > 0, "candidate bucket capacity must be positive")
+        _require(counts["retained_candidate_count"] <= counts["capacity"],
+                 "retained candidates exceed bucket capacity")
+        _require(
+            counts["retained_candidate_count"] <= counts["pre_cap_candidate_count"],
+            "retained candidates exceed their pre-cap count",
+        )
+        _require(counts["retained_group_count"] <= counts["pre_cap_group_count"],
+                 "retained groups exceed their pre-cap count")
+        _require(counts["oversized_group_count"] <= counts["pre_cap_group_count"],
+                 "oversized groups exceed their pre-cap count")
+        minimum_priority = row["minimum_retained_priority"]
+        _require(
+            minimum_priority is None
+            or _is_number(minimum_priority),
+            "minimum_retained_priority must be null or finite",
+        )
+        if counts["retained_group_count"] == 0:
+            _require(minimum_priority is None,
+                     "empty candidate bucket must have null minimum priority")
+            _require(counts["minimum_retained_priority_group_count"] == 0,
+                     "empty candidate bucket must have zero minimum-priority groups")
+        else:
+            _require(minimum_priority is not None,
+                     "nonempty candidate bucket needs a minimum priority")
+            _require(
+                0 < counts["minimum_retained_priority_group_count"]
+                <= counts["retained_group_count"],
+                "minimum-priority group count is inconsistent",
+            )
+        retained_by_bucket[bucket_id] = counts["retained_candidate_count"]
+    _require(len(bucket_ids) == len(set(bucket_ids)),
+             "candidate capacity bucket IDs must be unique")
+
     candidates = catalog["candidates"]
     _require(type(candidates) is list and candidates,
              "candidate catalog must be nonempty")
@@ -599,7 +665,7 @@ def validate_candidate_catalog(
         _require(type(item) is dict, f"candidates[{index}] must be an object")
         _exact_keys(item, {
             "candidate_id", "program", "program_sha256",
-            "online_evidence", "online_evidence_sha256",
+            "online_evidence", "online_evidence_sha256", "enumeration",
         },
                     f"candidates[{index}]")
         expected_id = f"candidate:{index:04d}"
@@ -625,6 +691,32 @@ def validate_candidate_catalog(
         expected_evidence_hash = canonical_sha256(item["online_evidence"])
         _require(item["online_evidence_sha256"] == expected_evidence_hash,
                  "candidate online evidence digest mismatch")
+        enumeration = item["enumeration"]
+        _require(type(enumeration) is dict,
+                 "candidate enumeration must be an object")
+        _exact_keys(enumeration, {
+            "bucket_id", "enumeration_priority", "priority_components",
+        }, f"candidates[{index}].enumeration")
+        _require(enumeration["bucket_id"] in retained_by_bucket,
+                 "candidate enumeration names an unknown capacity bucket")
+        _number(enumeration["enumeration_priority"],
+                "candidate enumeration_priority")
+        components = enumeration["priority_components"]
+        _require(type(components) is dict,
+                 "candidate priority_components must be an object")
+        for name, value in components.items():
+            _identifier(name, "candidate priority component name")
+            _number(value, f"candidate priority component {name}")
+
+    observed_retained = {
+        bucket_id: sum(
+            item["enumeration"]["bucket_id"] == bucket_id
+            for item in candidates
+        )
+        for bucket_id in bucket_ids
+    }
+    _require(observed_retained == retained_by_bucket,
+             "candidate capacity audit retained counts do not match the catalog")
 
     expected_hash = canonical_sha256(_candidate_catalog_payload(catalog))
     _require(catalog["catalog_sha256"] == expected_hash,
@@ -644,6 +736,8 @@ def seal_candidate_catalog(
     *, generator_id: str, derivations: list[Mapping[str, Any]],
     programs: list[Mapping[str, Any]],
     online_evidence: list[Mapping[str, Any]] | None = None,
+    enumeration_audits: list[Mapping[str, Any]] | None = None,
+    capacity_audit: list[Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Seal candidates from public values; no private argument exists by design."""
 
@@ -652,6 +746,29 @@ def seal_candidate_catalog(
     evidence_rows = online_evidence or [{} for _ in programs]
     _require(len(evidence_rows) == len(programs),
              "online_evidence must have one object per program")
+    enumeration_rows = enumeration_audits or [
+        {
+            "bucket_id": "EXTERNAL|global",
+            "enumeration_priority": 0.0,
+            "priority_components": {},
+        }
+        for _ in programs
+    ]
+    _require(len(enumeration_rows) == len(programs),
+             "enumeration_audits must have one object per program")
+    capacity_rows = capacity_audit or [{
+        "bucket_id": "EXTERNAL|global",
+        "template": "EXTERNAL",
+        "scope": "global",
+        "capacity": max(1, len(programs)),
+        "pre_cap_candidate_count": len(programs),
+        "pre_cap_group_count": len(programs),
+        "retained_candidate_count": len(programs),
+        "retained_group_count": len(programs),
+        "oversized_group_count": 0,
+        "minimum_retained_priority": 0.0 if programs else None,
+        "minimum_retained_priority_group_count": len(programs),
+    }]
     candidates = [
         {
             "candidate_id": f"candidate:{index:04d}",
@@ -659,6 +776,7 @@ def seal_candidate_catalog(
             "program_sha256": canonical_sha256(program),
             "online_evidence": clone_json(dict(evidence_rows[index])),
             "online_evidence_sha256": canonical_sha256(evidence_rows[index]),
+            "enumeration": clone_json(dict(enumeration_rows[index])),
         }
         for index, program in enumerate(programs)
     ]
@@ -668,6 +786,7 @@ def seal_candidate_catalog(
         "prior_memory_sha256": memory_digest,
         "generator_id": generator_id,
         "derivations": clone_json(derivations),
+        "capacity_audit": clone_json(capacity_rows),
         "candidates": candidates,
     }
     catalog["catalog_sha256"] = canonical_sha256(catalog)

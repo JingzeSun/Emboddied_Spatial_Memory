@@ -42,7 +42,7 @@ VM-04清单拆成三层：`FamilySplitManifest`保存audit/train/validation的�
 
 VM-02 的共同节点观测状态键为 `vsmt_observation_state`，当前包含 `descriptor, centroid_m, extent_m, reliability, last_seen_s, observation_count`；ELU 可另存 `existence_log_odds`，WFR 可另存 `fragment_observations, absent_reconciliations`。它解决各适配器如何从同一图读取自己的最小状态；输入匿名区域观测，输出只依赖公开前缀的当前节点统计。例如 TAF 对 descriptor/centroid 做按既有观测数与当前可靠性的确定性融合。它不含永久真值身份、reference 标签或未来，并不把 ELU/WFR 私有字段提供给其他方法作为额外特征；正式初始化及字段迁移仍须随 VM-04 数据合同冻结。
 
-`CandidateCatalog`（候选目录）解决 teacher 是否改过选择空间的问题。输入只能是已验证 `ObservationPacket + prior_memory`、公开来源指针、候选程序及程序引用的 `online_evidence`，输出带逐程序摘要、逐证据摘要和整体摘要的包内匿名顺序 `candidate:0000...`；例如 RETRACT 的两条可靠空视野记录须与事务一起封存，MERGE 程序可声明由 `/region_observations` 与 `/nodes` 派生。它不接收 private 参数，也不证明某个候选是正确答案。`TeacherTargets`（教师目标）输入已经封存的目录和等长分数/概率，输出按完全相同 ID 与顺序绑定的标签；例如候选漏掉正确 MERGE 时只能给现有项评分，不能新增 `candidate:0007` 或替换其空视野证据。它不是在线输入，也不允许 teacher 排序目录。
+`CandidateCatalog v2`（候选目录v2）解决teacher是否改过选择空间，以及容量到底截掉了什么。输入只能是已验证`ObservationPacket + prior_memory`、公开来源指针、候选程序及程序引用的`online_evidence`，输出带逐程序/证据摘要、`enumeration`和`capacity_audit`的包内匿名顺序`candidate:0000...`。`enumeration`保存`bucket_id`、枚举优先级和公开分量；容量桶保存template、结构类型或关系类型、容量、截断前候选/整组数、保留数、超大整组数及最低保留优先级。例如SPLIT同一左右后继的三种关系分配必须整组保留或整组拒绝，不能按hash只留一个。它不接收private参数、不保存PHR决策分，也不证明某个候选正确。`TeacherTargets`（教师目标）输入已封存目录和等长分数/概率，输出按完全相同ID与顺序绑定的标签；正确MERGE漏掉时不能新增槽或替换证据。
 
 `PrivateEvaluation`（私有评价记录）由独立入口加载，当前只绑定参考记忆、候选事务等价组、未来观测摘要、模拟器身份映射和语义案例 ID；实际未来数组的数值字段留到 VM-04 前另行冻结。它解决答案文件怎样与公开样本对齐而不进入模型的问题；例如交换两个模拟器实例名会改变 `private_sha256`，但不得改变公开包或候选。它不构造 proposal/query/candidate，也不是当前已经生成的数据。
 
@@ -84,7 +84,7 @@ VM-02 的共同节点观测状态键为 `vsmt_observation_state`，当前包含 
 
 主臂仍为 VSMT/TAF/ELU/WFR/LOW；VM-05还须有三项 VSMT 内部对照：同在线架构但不用执行后 teacher 的 direct reference ranker、看候选语法/旧图但不看候选执行后状态的 no-execution scorer、完全不学习的 public heuristic ranker。L1 oracle proposal 和 sealed-catalog oracle choice 只作上界。白话：这些内部对照解决“收益到底来自未来 teacher、真实执行后的候选状态，还是候选本身已经很好猜”；它们输入同一 catalog，输出候选排序。例如 no-execution scorer 若与 VSMT 同样好，不能把收益归因于执行后比较。它们不是新增论文机制主臂，也不能替代 LOW 朴素基线。
 
-当前真正阻塞 VM-04 的不是服务器是否开启；关系感知SPLIT、因果prior、清单/闸门已取得53项服务器合同回执，来源预检也已通过。仍未冻结的是L1匿名mask支持、DINO池化容差、depth/free-space与 public bootstrap 阈值、候选 cap/teacher temperature、在线选择器容量、关系“均不继承”的公开负证据、S-01～S-12 的数值/图等价/汇总选择和 nuisance probe 门；L2另有SAM精确资产摘要与全部mask参数。配置把未决字段保持 `null`，任何安装、生成或训练入口都必须 fail closed。这里的 2/48/12/12 家族、32 帧、每程序 2重复、16 GiB数据上限和 8小时 train+validation 生成上限也只是建议值，不因写进 JSON 自动变成批准值。
+当前真正阻塞VM-04的不是服务器是否开启；L1匿名mask、DINO池化、实体/表面/地点/free-space及关系结构值已批准并有旧工程回执，类型化配置、place scaffold、候选分桶、SPLIT整组和MERGE关系规范化已获实现授权但须新服务器回执。仍未冻结的是public bootstrap及各方法正式关联数值、候选cap、SPLIT计算护栏、teacher temperature、PHR公式、在线选择器容量、关系“均不继承”的公开负证据、S-01～S-12的数值/图等价/汇总选择和nuisance probe门；L2另有SAM资产与mask参数。2-house只读容量审计仍未获运行授权，train/validation、训练和confirmation继续fail closed；2/48/12/12家族、32帧、每程序2重复、16 GiB和8小时也仍是提案而非批准值。
 
 ### VM-04 L1-only 输入输出提案（D-132/D-133，proposed、不可执行）
 
@@ -94,7 +94,7 @@ VM-02 的共同节点观测状态键为 `vsmt_observation_state`，当前包含 
 |---|---|---|---|
 | `entity` | 单帧instance mask＋当前RGB-D/pose | 匿名ordinal、mask摘要、384维DINO描述、可见点质心/extent、可靠性 | instance ID、类别名、真值姿态/mesh/bbox、跨帧链接 |
 | `surface` | 公开depth/pose/calibration | 匿名几何区域及同字段 | simulator surface/room语义或碰撞mesh |
-| `place` | 公开depth/pose/calibration | 可持续匿名地点候选 | house/room名称、私有导航图或reference地点 |
+| `place` | 公开depth/pose/calibration | 0.5 m世界格及按坐标确定的共同scaffold版本，只作关系端点/几何锚 | house/room名称、私有导航图、reference地点、学习式BIND/MERGE/SPLIT |
 | `fragment` | 预登记的匿名区域变换 | 匿名片段及变换摘要 | 按reference程序挑片段或用真实身份合并 |
 
 白话：实体oracle mask只移除“检测器有没有把像素分对”的误差；输入仍是一帧可见像素，输出仍没有历史身份。例如同一杯子下一帧再次出现时会得到新的包内ordinal，TAF/ELU/WFR/VSMT必须自己依据描述、位置和旧记忆决定BIND还是BIRTH。它不允许把模拟器ID哈希后塞进descriptor，也不把完整物体几何补给方法。
@@ -105,7 +105,7 @@ DINO输入固定为224×224当前RGB；uint8除255后按均值`[0.485,0.456,0.40
 
 实体几何用mask内0.05–20 m有效公开depth逐像素反投影到世界坐标，AI2-THOR深度按相机轴向`z`解释；质心为可见点逐坐标均值，extent为可见点逐轴最大减最小。有效点至少`max(32, ceil(25%×可见像素数))`，可靠性为有效点数除以可见像素数。输入公开depth、内参与camera pose，输出可见几何。例如杯子底部被桌沿挡住时，extent可以偏小并由可靠性反映，而不能读取真值bbox修正。它不等于对象完整尺寸。
 
-D-138已批准把旧`free_space_observations`的`minimum_m/maximum_m`轴对齐盒替换为packet v2的6个世界半空间截锥，并新增必需的`relation_observations`。关系记录精确含包内`relation_id`、两个包内region ID、`relation`、`reliability`和公开支持摘要；端点类型固定为entity→place的`located_at`、place→entity的`contains`、entity→surface的`supported_by`及place→place的`adjacent_to`，只能从当前公开几何形成并在teacher前封存。`contains`与反向`located_at`共用支持摘要；消费端规范为一条持久`located_at`，不把同一事实算两次。例如实体中心明确落在已观测0.5 m地面格内且离边界至少2 cm时输出正反两个公开视图，因果prior只建立一条规范边。它解决旧schema无法表达“第一条关系观测”的问题；输入匿名region和公开几何，输出匿名关系证据。它不提供永久节点ID、参考边或正确事务；130项合同与合成完整packet烟测已通过，但没有生成真实house或验证效果。
+D-138已批准把旧`free_space_observations`的`minimum_m/maximum_m`轴对齐盒替换为packet v2的6个世界半空间截锥，并新增必需的`relation_observations`。关系记录精确含包内`relation_id`、两个包内region ID、`relation`、`reliability`和公开支持摘要；端点类型固定为entity→place的`located_at`、place→entity的`contains`、entity→surface的`supported_by`及place→place的`adjacent_to`，只能从当前公开几何形成并在teacher前封存。`contains`与反向`located_at`共用支持摘要；消费端规范为一条持久`located_at`，不把同一事实算两次。place region还必须先由共同`place_scaffold`按世界格坐标建立/更新开放节点，随后五方法和VSMT候选只把它当关系端点。它解决旧schema无法表达第一条关系及地砖候选淹没实体的问题；输入匿名region和公开几何，输出匿名关系证据与确定性地点锚。它不提供永久实体ID、参考边或正确事务；旧130项回执不认证这次新实现。
 
 L1 materialization receipt（L1物化回执）分公开与私有两份：公开回执绑定materializer/config、RGB/depth/pose、匿名mask、descriptor、geometry、`ObservationPacket`及DINO源码/权重摘要；私有审计回执另存原instance mask集合、ID映射和公开回执摘要。输入同一次物化，输出两条不可互读的来源链；例如只置换instance ID时公开回执必须不变，私有映射摘要可以变化。它不把private摘要、路径、类别或future/reference摘要带入公开回执或方法输入。
 

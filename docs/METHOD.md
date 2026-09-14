@@ -74,7 +74,7 @@ Teacher-only supervision（仅教师可见监督）解决训练时可以利用�
 
 VM-01 的共同适配运行器只把 `decision_time_s / camera_pose / robot_state / past_actions / region_observations / free_space_observations / prior_memory / public_constants` 交给方法，并检查方法没有原地修改输入；样本摘要、RGB-D 文件摘要和 prior 引用只在外层核对后剥离。候选目录的构造函数在签名上没有 private 参数，来源指针只允许公开包和 prior memory 白名单根；teacher 记录必须逐槽保持目录 ID 与顺序。白话：这解决“答案虽不在函数参数里，却通过路径、候选编号或预填 query 绕进来”的问题；输入公开记录和旧记忆，输出固定适配输入、候选摘要及后续独立 teacher 绑定。例如改变 reference MERGE pair 后若 logits 摘要变化，私有扰动检查直接失败。它不判断两个节点在现实中是否同一对象，也不证明模型有效。
 
-VM-03 的 `generate_public_candidate_catalog`（公开候选目录生成器）枚举 NOOP、BIND、BIRTH、REACTIVATE、RELINK、RETRACT、SPLIT、MERGE 八个原子模板及 REPLACE 复合程序。输入只有已验证公开包、prior predicted memory 和无默认值的阈值/每模板容量配置；每个程序先用既有 deterministic executor（确定性执行器）真实 preflight/执行，再连同公开 `online_evidence` 摘要封存。BIND/REACTIVATE/SPLIT 使用匿名区域与公开节点相似度，MERGE 使用两个公开节点，RELINK 枚举开放边与其他公开地点，RETRACT/REPLACE 必须有两个不同合法历史时刻的自由空间覆盖。当前阈值和每模板上限尚未冻结，测试数值只验证分支。
+VM-03 的 `generate_public_candidate_catalog`（公开候选目录生成器）枚举 NOOP、BIND、BIRTH、REACTIVATE、RELINK、RETRACT、SPLIT、MERGE 八个原子模板及 REPLACE 复合程序。输入只有已验证公开包、prior predicted memory 和无默认值的类型化阈值/分桶容量配置；每个程序先用既有 deterministic executor（确定性执行器）真实 preflight/执行，再连同公开 `online_evidence`、枚举优先级及容量审计封存。节点候选按`template × entity/surface/fragment`分桶，关系候选按`template × relation_type`分桶，place不进入学习式BIND/MERGE/SPLIT。BIND/REACTIVATE/SPLIT 使用匿名区域与公开节点相似度，MERGE 使用两个同类公开节点，RELINK枚举开放关系与公开锚点，RETRACT/REPLACE必须有两个不同合法历史时刻的自由空间覆盖。当前正式阈值和cap尚未冻结，测试数值只验证分支。
 
 当前SPLIT公开生成器会对开放边数不超过2的节点枚举“后继0、后继1、二者”三种逐边分配，并在同一原子事务中关闭每条旧边、按原关系类型/方向/另一端点重建新边；任何开放边漏分、重复分或夹带未登记替代边都会使整笔事务失败且不修改原图。“均不继承”只在executor合同层保留，生成器在关系负证据数值规则冻结前不提出。它解决关闭源节点后留下悬空边的问题；输入开放边集合，输出可完整执行的有限SPLIT程序。例如实体原来有一条`located_at`边时，目录分别包含左后继继承、右后继继承和两个后继都继承。它不保证正确分配一定进容量上限，也不允许teacher补入缺失分支。
 
@@ -82,7 +82,7 @@ VM-03 的 `generate_public_candidate_catalog`（公开候选目录生成器）�
 
 VM-04阈值审计发现，当前同一个“视觉相似度＋质心距离”分数跨`entity/surface/place/fragment`使用，会把含义不同的结构硬塞进同一尺度；正式方案拟改为先分别记录余弦相似度、米制距离、归一化几何接近度、结构类型和公开可靠性，再由每种结构的显式无默认值配置组合。它解决“地面格外观都像地板、移动实体却可合法位移”不能共用一个门的问题；输入仍是同一冻结描述和公开几何，输出可审的分量及类型内关联分。例如两个相距0.4 m但外观几乎相同的实体可以保留为待判候选，而两个不同0.5 m地面格不能只因纹理相同就BIND。它不使用类别、instance ID或teacher，也不等于这些类型化数值已冻结；正式数值仍须在S-01～S-12相关语义先确定后按共同train/validation选择。
 
-候选分数拟拆成两个不可互换的量。`enumeration_priority`（枚举优先级）只在同一事务模板内部决定容量满时保留谁；`decision_heuristic_score`（决策启发式分）只供PHR跨模板选择最终事务，不能改变已封存候选。它解决当前NOOP枚举值固定为1.0、若误作决策分便会永远压过低于1.0的真实修订的问题；输入是公开候选及其公开证据，输出一份容量审计分和以后另审的PHR决策分。例如容量64时排第65的正确MERGE必须记candidate miss，teacher不能把它补回。它不等于当前已有PHR公式，也不允许用validation或confirmation偷偷重排目录。
+候选分数拆成两个不可互换的量。`enumeration_priority`（枚举优先级）已随catalog v2封存，只在同一类型化容量桶内决定保留组；`decision_heuristic_score`（决策启发式分）仍为planned，只供PHR跨模板选择最终事务，不能改变已封存候选。每个候选另保存公开视觉相似度、质心距离、几何接近度、权重或可靠性分量；每桶保存截断前候选/组数、保留数、超大整组数和最低保留优先级。它解决NOOP枚举值固定为1.0、若误作决策分便会永远压过低于1.0的真实修订的问题；例如一个SPLIT左右后继的三种关系分配是同一整组，容量放不下时全部记miss，不能按程序hash随机留一个。它不等于PHR公式已经实现，也不允许用validation或confirmation偷偷重排目录。
 
 阈值公平性拟定义为“同数据、同冻结选择指标、每方法至多12个完整配置”，而不是五种机制被迫共用同一个数值。受控轨道的bootstrap只选一次并逐字节共享；TAF、ELU、WFR、LOW和VSMT公开候选器可各用适合自身机制的配置，但任何一方都不能超出12次完整配置选择，没必要为了凑数用满。输入是预登记有限配置和共同train/validation，输出每方法一个冻结配置及完整试验清单。例如ELU可以调存在分数门而LOW只能调距离门，但二者拥有相同最多12次选择机会。它不声称相同阈值就是公平，也不授权现在生成house或根据confirmation改值；完整审议稿见[`vm04_l1_threshold_review_v1.json`](../configs/vsmt/vm04_l1_threshold_review_v1.json)。
 
@@ -143,9 +143,9 @@ VM-04 v1拟把单步机制比较和长期自反馈分开。`controlled_revision`
 
 `VM04Preflight`（VM-04服务器预检）已在提交`5e125ba`完成固定三步：`contracts`精确运行53项VSMT测试，`source-audit`只查询官方ref/元数据、现有DINO资产、模块/库/GPU/磁盘，`export`在前两步有摘要绑定成功标志后生成[报告](../results/vsmt_vm04_preflight.json)。输入是同一Git提交和只读审计配置，输出started、日志、receipt、success及小报告；前两次测试/PyPI来源错误的目录继续保留。它没有执行pip/conda安装、下载checkpoint主体、启动AI2-THOR、生成样本或训练，预检通过也不等于L1环境或数据已经就绪。
 
-关系感知 SPLIT 已通过服务器合同检查：一次原子操作完成“关闭源节点、关闭所有源 incident edges、创建两个后继、按候选 assignment 重建边”。每条旧边可给后继0、后继1或二者；合同也允许在至少两份已登记公开负证据下均不继承，但当前生成器尚不提出这一分支，避免在关系负证据口径冻结前暗定语义。第一批源节点开放边数上限为2，超过上限或含源节点自环时不生成 SPLIT，并计入候选覆盖分析。输入一个待拆节点、两个公开区域和开放边，输出完整合法的 SPLIT 后状态；例如一个错误聚合的双椅节点拆开后，两者都可 `located_at` 同一地点，而只有一者继承某个局部 `adjacent_to`。它不是 SPLIT 后再让 teacher 补边，也不是默认复制全部关系；测试通过或 executor 可执行也不表示关系分配在语义上正确。
+关系感知 SPLIT 一次原子完成“关闭源节点、关闭全部开放incident edges、创建两个后继、按候选assignment重建边”。每条旧边可给左、右或二者；若当前公开`relation_observations`只支持左、只支持右或同时支持两者，生成器确定性收窄到该分配；若没有公开支持，则三种分配全部作为同一不可拆容量组保留。合同允许在至少两份已登记公开负证据下均不继承，但生成器仍不提出这一分支，避免暗定关系负证据。`maximum_split_incident_edges`只作为显式计算护栏，正式值须由真实度数审计后冻结，不再把“最多2条边”写成方法语义；源自环仍拒绝。输入一个待拆节点、两个公开区域、旧开放边和当前公开关系，输出完整合法的SPLIT后状态；例如只有左侧新区域公开显示仍位于原地点时，`located_at`只给左后继。它不是teacher事后补边，也不是哈希随机决定哪种关系分配活下来。
 
-VM-05拟增加三个同架构内部对照，但不改变五个主臂。Direct Reference Candidate Ranker（DRCR，直接参考候选排序器）使用同一在线网络和已封存 catalog，训练标签直接来自参考等价组，不使用执行后未来 teacher；No-Execution Candidate Scorer（NECS，无执行候选评分器）使用同一 catalog 和 teacher target，但不编码候选执行后的图；Public Heuristic Ranker（PHR，公开启发式排序器）完全不学习，只按冻结公开相似度排序。三者输入边界与 VSMT 相同，输出候选槽位。例如 NECS 若已经解释全部收益，说明“执行候选后再比较”没有获得独立支持。它们是 VSMT 因果消融，不是 ConceptGraphs/Fusion++/Khronos 的替代，也不自动获得主方法地位。
+VM-05把三个同架构内部对照列为解释论文胜负的一等实验，但不替代五个主臂。Direct Reference Candidate Ranker（DRCR，直接参考候选排序器）使用同一在线网络和已封存catalog，训练标签直接来自参考等价组，不使用执行后未来teacher；No-Execution Candidate Scorer（NECS，无执行候选评分器）使用同一catalog和teacher target，但不编码候选执行后的图；Public Heuristic Ranker（PHR，公开启发式排序器）完全不学习，只按另行冻结的公开决策分排序。三者输入边界与VSMT相同，输出候选槽位。例如NECS若已经解释全部收益，说明“执行候选后再比较”没有获得独立支持。它们是VSMT因果消融，不是ConceptGraphs/Fusion++/Khronos的替代；主报告必须同时给candidate recall，先区分候选遗漏、teacher错误和学生摊销错误。
 
 ### L1-first共同机制诊断合同（D-132～D-138，完整物化实现候选）
 
@@ -159,11 +159,13 @@ L1的冻结DINOv2区域描述用224×224原RGB、不裁剪不增强，按官方�
 
 Surface（表面节点）把公开depth按14×14像素块作确定性平面拟合，四邻域只合并法向差不超过10°且互相平面残差不超过3 cm的块，最终至少784个内点、内点阈值2 cm、RMS不超过1 cm；输出mask、同一冻结DINO描述和仅由可见点形成的几何。白话：它解决“桌面或墙面也需要版本化记忆，但没有实体真值mask”的问题；输入当前公开depth/相机，输出匿名平面区域。例如足够大的平桌面可成为surface，小杯子的曲面不会。它不等于模拟器语义面、完整网格或真值家具类别；工程合同与合成平面烟测已通过，真实house统计仍未知。
 
-Place（地点节点）只表示0.5 m世界坐标地面格，不表示房间名或可通行性。候选surface法向距世界竖直不超过10°、高度距公开相机位姿和固定站立agent标定推得的支撑高度不超过5 cm，再按0.1 m子格计覆盖；25格中至少16格且至少196像素才输出place，可靠性为覆盖子格比例。例如看到厨房地面的一小块可输出一个局部place，而高出地面75 cm的桌面只能是surface。它解决实体`located_at`关系需要公开地点锚点的问题；输入公开depth、相机pose和固定agent尺寸，输出匿名地面格。它不读取`GetReachablePositions`、导航网格或房间标签，也不宣称机器人一定能走到该格；工程合同与合成地面烟测已通过，真实house统计仍未知。
+Place（地点节点）只表示0.5 m世界坐标地面格，不表示房间名或可通行性。候选surface法向距世界竖直不超过10°、高度距公开相机位姿和固定站立agent标定推得的支撑高度不超过5 cm，再按0.1 m子格计覆盖；25格中至少16格且至少196像素才输出place，可靠性为覆盖子格比例。place身份由世界格坐标确定并由五方法共同的`place_scaffold`版本化，不进入学习式BIND/MERGE/SPLIT；它只保留为`located_at`/`adjacent_to`端点和几何锚。输入公开depth、相机pose和固定agent尺寸，输出坐标脚手架节点；例如同一0.5 m格重见时更新同一place版本，而不是让模型猜是否合并两块地砖。它不读取`GetReachablePositions`、导航网格或房间标签，也不表示地点身份修订已经成为VSMT贡献；真实house统计仍未知。
 
 Free-space（可见自由空间）在packet v2保存由6个世界半空间定义的保守截锥；224×224图像按14×14基础块及1/2/4/8/16多尺度对齐块生成，每时刻最多341个截锥，块内depth须100%有效，角边界内缩1像素，近端10 cm，远端取块内最小depth减10 cm且封顶5 m。旧节点AABB每边扩2 cm后，8个角必须在同一截锥内，并在相隔至少0.25 s的两个公开时刻分别成立，才是RETRACT/REPLACE负证据。白话：它解决“没检测到究竟是消失还是被挡住”的问题；输入公开历史depth和相机pose，输出匿名可见空截锥。例如沙发挡住旧椅子时远端会被沙发depth截短，不能删椅子。它不等于碰撞自由、导航网格或一次漏检；工程合同与两个合成时刻682截锥烟测已通过，真实遮挡统计仍未知。
 
-`ObservationPacket v2`新增完全公开且在teacher前封存的`relation_observations`；既有BIRTH/BIND被类型化为“节点身份”或“关系身份”，关系BIRTH只创建一条新边，关系BIND只给一条开放边附公开证据和事务provenance，仍不增加第九个原子。`located_at`按实体中心离0.5 m place边界至少2 cm生成；`supported_by`要求水平面、底面间隙`[-2,5] cm`、投影重叠至少0.25且mask重叠不超过0.05；相邻place共享完整格面时生成`adjacent_to`。`contains`是同证据的反向公开视图，持久图规范成一条`located_at`，避免双计和RELINK后残留反向旧边。例如首次看到杯子位于某place时由关系BIRTH建立第一条边，后来换到另一place才用RELINK。它解决第一条关系从哪里来的问题；输入匿名区域之间的公开几何，输出类型正确的关系证据和版本边。它不允许teacher补边，不提供永久真值身份；130项工程合同与合成因果prior烟测已通过，未验证方法效果。
+`ObservationPacket v2`新增完全公开且在teacher前封存的`relation_observations`；既有BIRTH/BIND被类型化为“节点身份”或“关系身份”，关系BIRTH只创建一条新边，关系BIND只给一条开放边附公开证据和事务provenance，仍不增加第九个原子。`located_at`按实体中心离0.5 m place边界至少2 cm生成；`supported_by`要求水平面、底面间隙`[-2,5] cm`、投影重叠至少0.25且mask重叠不超过0.05；相邻place共享完整格面时生成`adjacent_to`。`contains`是同证据的反向公开视图，持久图规范成一条`located_at`。MERGE同时关闭两个源节点的全部开放关系，把端点规范到canonical、合并重复边的证据/provenance并丢弃折叠出的自环，避免alias悬空关系。关系提取与基本exact→BIND、movable→RELINK、else→BIRTH更新由五个主方法共享，因此“有关系通道”本身不是VSMT差异化创新；差异要从节点身份错误怎样传播或被事务修正中衡量。它不允许teacher补边，也不提供永久真值身份；新修订须取得服务器回执后才替代旧130项证据。
+
+2-house capacity audit（两房屋容量审计，planned且尚未授权）分两层。公开层在不挂载private时统计各尺度free-space存活、RETRACT/REPLACE公开可得率、每桶截断前/后候选量、运行时间和峰值内存；全部public/candidate封存后，私有层才统计逐事务candidate recall和可用正例数。输入固定两house公开序列及随后独立打开的评价标签，输出容量和覆盖报告。例如公开层可发现16-tile截锥因无效depth几乎全灭，私有层再判断这是否造成RETRACT正确程序缺失。它不根据审计结果自动改阈值、替换house或生成训练数据；任何会改变正式数值、语义或house数的结论都须回到用户裁决。
 
 VSMT Online Candidate Selector（VSMT在线候选选择器，planned）拟对每个已封存候选独立复用同一个打分器：分别编码类型化prior摘要、程序/在线证据、候选触及的执行前子图、真实执行后的子图和规范delta，再用逐候选MLP输出一个logit；不接受candidate slot、目录顺序、路径或样本名。所有候选从同一基图真实执行并封存后才打分，最大logit提交，严格并列按程序规范摘要排序。例如把同一候选集合换序时，每个程序的logit跟着程序而不是槽号移动，最终选择不变。它不让teacher生成候选，也不是DINO视觉adapter；隐藏宽度、层数、参数和训练预算仍未冻结。
 

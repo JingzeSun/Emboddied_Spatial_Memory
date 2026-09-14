@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from dataclasses import replace
 import hashlib
 import inspect
 from pathlib import Path
@@ -33,6 +34,16 @@ def node(
     lifecycle: str = "confirmed", descriptor: list[float] | None = None,
 ) -> dict[str, Any]:
     latent_digest = hashlib.sha256(node_id.encode("utf-8")).hexdigest()
+    state = {
+        "descriptor": descriptor or [1.0, 0.0],
+        "centroid_m": centroid,
+        "extent_m": [0.1, 0.1, 0.1],
+        "reliability": 1.0,
+        "last_seen_s": 0.0,
+        "observation_count": 1,
+    }
+    if node_type == "place":
+        state["place_scaffold_key"] = f"{centroid[0]:.9f}:{centroid[2]:.9f}"
     return {
         "node_id": node_id,
         "node_version_id": f"{node_id}@v0",
@@ -45,14 +56,7 @@ def node(
         "canonical_id": None,
         "predecessor_ids": [],
         "provenance": ["fixture:public"],
-        STATE_KEY: {
-            "descriptor": descriptor or [1.0, 0.0],
-            "centroid_m": centroid,
-            "extent_m": [0.1, 0.1, 0.1],
-            "reliability": 1.0,
-            "last_seen_s": 0.0,
-            "observation_count": 1,
-        },
+        STATE_KEY: state,
     }
 
 
@@ -158,18 +162,23 @@ def packet_fixture(
 
 def config() -> PublicCandidateConfig:
     return PublicCandidateConfig(
-        visual_weight=0.7,
-        geometry_weight=0.3,
-        geometry_scale_m=1.0,
-        bind_threshold=0.6,
-        merge_threshold=0.9,
-        split_region_threshold=0.6,
+        association_rules={
+            kind: {
+                "visual_weight": 0.7,
+                "geometry_weight": 0.3,
+                "geometry_scale_m": 1.0,
+                "bind_threshold": 0.6,
+                "merge_threshold": 0.9,
+                "split_region_threshold": 0.6,
+            }
+            for kind in ("entity", "surface", "fragment")
+        },
         split_minimum_separation_m=0.3,
         free_space_reliability_threshold=0.9,
         free_space_target_expansion_m=0.02,
         minimum_free_space_time_separation_s=0.25,
-        maximum_candidates_per_template=20,
-        maximum_split_incident_edges=2,
+        maximum_candidates_per_bucket=20,
+        maximum_split_incident_edges=8,
     )
 
 
@@ -206,6 +215,31 @@ class PublicCandidateTests(unittest.TestCase):
             for candidate in catalog["candidates"]
         ))
 
+    def test_candidate_capacity_is_partitioned_by_structure_kind(self) -> None:
+        graph = graph_fixture()
+        public = packet_fixture(graph)
+        public["region_observations"].append(
+            region(3, [0.0, 0.0, 0.0], kind="surface")
+        )
+        bounded = replace(config(), maximum_candidates_per_bucket=1)
+        catalog = generate_public_candidate_catalog(public, graph, config=bounded)
+        birth_rows = {
+            row["bucket_id"]: row
+            for row in catalog["capacity_audit"]
+            if row["template"] == "BIRTH"
+        }
+        self.assertEqual(birth_rows["BIRTH|entity"]["retained_candidate_count"], 1)
+        self.assertEqual(birth_rows["BIRTH|surface"]["retained_candidate_count"], 1)
+
+    def test_place_scaffold_has_no_learned_node_candidate_bucket(self) -> None:
+        graph = graph_fixture()
+        catalog = generate_public_candidate_catalog(
+            packet_fixture(graph), graph, config=config(),
+        )
+        self.assertFalse(any(
+            row["scope"] == "place" for row in catalog["capacity_audit"]
+        ))
+
     def test_relink_requires_a_public_relation_observation(self) -> None:
         graph = graph_fixture()
         public = packet_fixture(graph)
@@ -216,14 +250,27 @@ class PublicCandidateTests(unittest.TestCase):
     def test_relation_observation_generates_typed_birth_bind_and_relink(self) -> None:
         graph = graph_fixture()
         public = packet_fixture(graph)
-        public["relation_observations"].append({
-            "relation_id": "relation:0001",
-            "source_region_id": "region:0002",
-            "target_region_id": "region:0000",
-            "relation": "contains",
-            "reliability": 1.0,
-            "support_sha256": "b" * 64,
-        })
+        public["region_observations"].append(
+            region(3, [0.0, 0.0, 0.0], kind="place")
+        )
+        public["relation_observations"].extend([
+            {
+                "relation_id": "relation:0001",
+                "source_region_id": "region:0000",
+                "target_region_id": "region:0003",
+                "relation": "located_at",
+                "reliability": 1.0,
+                "support_sha256": "c" * 64,
+            },
+            {
+                "relation_id": "relation:0002",
+                "source_region_id": "region:0002",
+                "target_region_id": "region:0000",
+                "relation": "contains",
+                "reliability": 1.0,
+                "support_sha256": "b" * 64,
+            },
+        ])
         catalog = generate_public_candidate_catalog(
             public, graph, config=config(),
         )
@@ -327,7 +374,29 @@ class PublicCandidateTests(unittest.TestCase):
             for program in related
         ))
 
-    def test_split_skips_nodes_over_the_public_incident_edge_cap(self) -> None:
+    def test_split_public_relation_support_constrains_the_whole_group(self) -> None:
+        graph = graph_fixture()
+        public = packet_fixture(graph)
+        public["region_observations"][2]["centroid_m"] = [0.0, 0.0, 0.0]
+        catalog = generate_public_candidate_catalog(public, graph, config=config())
+        related = [
+            item["program"] for item in catalog["candidates"]
+            if item["program"]["template"] == "SPLIT"
+            and any(
+                operation["op_type"] == "SET_LIFECYCLE"
+                and operation["arguments"].get("node_id") == "entity-a"
+                for operation in item["program"]["operations"]
+            )
+        ]
+        self.assertEqual(len(related), 1)
+        self.assertEqual(
+            len(related[0]["split_relation_assignments"][0][
+                "successor_node_ids"
+            ]),
+            1,
+        )
+
+    def test_split_oversized_assignment_group_is_not_partially_retained(self) -> None:
         graph = graph_fixture()
         for index in range(2):
             graph["edges"].append({
@@ -356,6 +425,12 @@ class PublicCandidateTests(unittest.TestCase):
             )
         ]
         self.assertEqual(related, [])
+        split_audit = next(
+            row for row in catalog["capacity_audit"]
+            if row["bucket_id"] == "SPLIT|entity"
+        )
+        self.assertGreaterEqual(split_audit["oversized_group_count"], 1)
+        self.assertGreaterEqual(split_audit["pre_cap_candidate_count"], 27)
 
     def test_merge_reanchors_and_deduplicates_alias_incident_relations(self) -> None:
         graph = graph_fixture()
@@ -471,6 +546,7 @@ class PublicCandidateTests(unittest.TestCase):
             [candidate["online_evidence_sha256"] for candidate in left["candidates"]],
             [candidate["online_evidence_sha256"] for candidate in right["candidates"]],
         )
+        self.assertEqual(left["capacity_audit"], right["capacity_audit"])
 
     def test_tampered_online_evidence_breaks_catalog_seal(self) -> None:
         graph = graph_fixture()
