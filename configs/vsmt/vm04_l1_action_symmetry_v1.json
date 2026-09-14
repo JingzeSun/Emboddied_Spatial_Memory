@@ -15,7 +15,13 @@
     "append_terminal_retracted_version": true,
     "preserve_prior_evidence_latents_and_provenance": true,
     "physical_history_deletion_allowed": false,
-    "reactivation_from_retracted_allowed": false
+    "reactivation_from_retracted_allowed": false,
+    "coverage_target": "reliability_filtered_historical_observation_aabb_union_plus_margin",
+    "support_envelope_reliability_threshold": null,
+    "support_envelope_margin_m_per_side": null,
+    "formal_envelope_values_require_development_audit": true,
+    "standalone_retract_blocked_by_current_bind_eligible_region": true,
+    "replace_remains_eligible_when_standalone_retract_is_blocked": true
   },
   "entity_replace": {
     "composition": ["RETRACT", "BIRTH"],
@@ -26,33 +32,71 @@
   },
   "shared_lifecycle_wrapper": {
     "applies_byte_identically_before_all_five_methods": true,
-    "eligible_for_dormancy": "confirmed_entity_only",
-    "dormancy_trigger": "public_inactivity_horizon",
+    "eligible_for_dormancy": ["candidate_entity", "confirmed_entity"],
+    "dormancy_trigger": "consecutive_missed_public_observation_opportunities",
+    "observation_opportunity_is_node_agnostic": true,
+    "observation_opportunity_inputs": ["public_depth", "public_camera_calibration", "public_pose"],
+    "observation_opportunity_forbidden_inputs": ["instance_id", "teacher", "future", "reference_transaction", "private_evaluation"],
+    "current_bind_eligible_region_resets_missed_opportunity_count": true,
+    "no_observation_opportunity_does_not_increment_count": true,
+    "preserve_pre_dormancy_lifecycle": true,
+    "candidate_reactivation_must_still_satisfy_independent_evidence_confirmation": true,
     "reliable_visible_empty_routes_to": "RETRACT_not_dormant",
-    "dormancy_inactivity_horizon_s": null,
-    "horizon_selection_split": "train_and_validation_only",
-    "confirmation_may_change_horizon": false
+    "minimum_consecutive_missed_opportunities": null,
+    "opportunity_reliability_threshold": null,
+    "formal_opportunity_values_require_development_audit": true,
+    "selection_split": "train_and_validation_only",
+    "confirmation_may_change_values": false
   },
   "common_post_update_audit": {
     "applies_to": ["VSMT", "TAF", "ELU", "WFR", "LOW"],
     "requires_valid_graph": true,
     "recomputes_normalized_delta": true,
     "detects_physical_history_deletion": true,
-    "records_preexisting_version_mutation": true,
+    "preexisting_version_mutation_classes": [
+      "closure_only",
+      "append_only_evidence_or_provenance",
+      "declared_semantic_transition",
+      "undeclared_destructive_rewrite"
+    ],
+    "undeclared_destructive_rewrite_is_fatal": true,
+    "online_public_protected_scope": "deterministic_place_scaffold",
+    "evaluation_protected_scope": "sealed_common_post_inference_episode_scope",
+    "evaluation_protected_scope_is_adapter_input": false,
     "records_protected_node_and_incident_topology_changes": true,
     "forces_baselines_through_vsmt_executor": false
+  },
+  "candidate_bucket_policy": {
+    "retention_order": "descending_priority_then_canonical_signature",
+    "when_next_group_does_not_fit": "stop_bucket_retention",
+    "later_lower_priority_groups_may_fill_gap": false,
+    "record_cutoff_group_and_candidate_counts": true
   },
   "split_compute_guards": {
     "maximum_ambiguous_edges": null,
     "maximum_total_incident_edges": null,
     "formal_values_require_development_capacity_audit": true,
-    "confirmation_may_change_guard_values": false
+    "confirmation_may_change_guard_values": false,
+    "shared_ambiguity_guard_routes": [
+      "SPLIT_incident_relation_assignments",
+      "REPLACE_current_relation_endpoint_variants"
+    ],
+    "relation_relink_is_not_a_cartesian_variant_route": true
+  },
+  "edit_cost_policy": {
+    "unit": "declared_high_level_transaction_atom",
+    "replace_atom_count": 2,
+    "relink_atom_count": 1,
+    "required_incident_edge_closures_add_raw_version_cost": false,
+    "unnecessary_or_out_of_scope_changes_are_scored_as_collateral": true,
+    "formal_metric_weights_frozen": false
   },
   "statistical_claim_policy": {
     "independence_unit": "house_family",
     "episode_replicates_are_not_independent_units": true,
     "primary_confirmatory_claim": "family_aggregated_over_all_registered_program_types",
-    "per_type_confirmatory_programs": ["SPLIT", "MERGE", "RETRACT"],
+    "per_type_confirmatory_programs": ["SPLIT", "MERGE", "ENTITY_RETRACT"],
+    "relation_retract_reporting": "descriptive_secondary",
     "descriptive_only_programs": [
       "NOOP", "BIND", "BIRTH", "REACTIVATE", "RELINK", "REPLACE"
     ],

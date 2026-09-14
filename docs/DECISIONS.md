@@ -1458,3 +1458,14 @@
 - SPLIT资源限制拆成`maximum_split_ambiguous_edges`与`maximum_split_total_incident_edges`：前者只作用于没有唯一公开支持的边，变体数为`3^(歧义边数)`；后者限制整笔原子操作规模。catalog逐桶分别记录两种护栏拒绝数，顶层记录所有桶总容量、截断前总量、保留总量和未保留总量；正式数值只能由开发容量审计冻结。
 - 统计独立单位固定为house family；同family两个replicate只能形成family内配对估计，不能当两个独立n。总体跨九类family聚合比较是主确认主张；分类型确认性主张只预登记SPLIT、MERGE、RETRACT，其余六类只作描述。confirmation family数由开发阶段逐类构造成品率反推并在任何confirmation访问前冻结，2-house audit只作工程审计、不作功效估计。当前12个confirmation family因此降回待重算提案，不得看confirmation后追加family。
 - place确定性坐标身份明确依赖AI2-THOR精确位姿；五方法共享其证据包装并单独计账。真实机器人SLAM漂移不在首篇研究范围，不能把模拟器精确位姿结论外推为现实地点身份已解决。所有批准语义的机器可查摘要见`configs/vsmt/vm04_l1_action_symmetry_v1.json`。
+
+## D-142：不可逆撤回、观测机会、共同审计和确认性RETRACT口径获批
+
+- 日期：2026-09-14；状态：approved for protocol-first implementation and local/server contract verification, not data execution。用户在对话中逐字批准六项推荐口径，并明确要求先登记协议再实现；本决定不授权house生成、训练、validation效果、confirmation生成/reveal或私有数据读取。
+- entity RETRACT的覆盖目标改为“达到显式可靠性门的历史公开观测AABB并集＋逐边安全裕度”，而非当前融合`extent_m`。可靠性门和裕度仍为开发审计后冻结的无默认值参数。当前packet若存在达到同一公开BIND门的实体区域，阻断单独node RETRACT，但仍保留REPLACE，使“同一物体移动”可走BIND/RELINK、“旧物消失且相似新物出现”仍可竞争REPLACE。白话：只看到过椅子前缘时，不能拿这个偏小盒子永久撤掉整把椅子；同时当前又看见像这把椅子的区域时，不能只撤旧身份。它不把当前相似区域直接判成同一身份，也不让teacher补候选。
+- 共享dormancy横轴从墙钟未观测时长改为连续错失的公开合格观测机会，并覆盖candidate/confirmed entity。观测机会由公开depth、相机标定和pose形成匿名、节点无关的可见体积，不含instance ID、teacher、future、reference或private；没有观测机会不累计，当前达到BIND门的区域重置计数，可靠visible-empty仍路由RETRACT。进入dormant前的candidate/confirmed来源必须保留，candidate重现仍须满足独立证据确认，不能借REACTIVATE偷升。例：机器人离开房间一分钟不累计；连续三次正对旧杯位置、深度有效却没有匹配才可休眠。它不等于实体已被证明消失，也不是新的学习事务。
+- common post-update audit改为分层保护和分类改写。在线公共protected范围至少包含确定性place scaffold；episode特定protected集合只在五方法完成推理后由同一封存评价器读取，不进入adapter输入。既有版本变化分为合法关闭、evidence/provenance仅追加、已声明语义转移和未声明破坏性改写；只有删除/替换旧证据、重写旧观测状态、重开或改写关闭时间等最后一类对五方法fatal。白话：杯子关系关闭会改变地点的incident topology但不等于改写地点状态；把旧地点坐标偷偷换掉则直接拒绝。它不强迫基线走VSMT executor，也不把private保护标签给模型看。
+- 候选桶按优先级降序和canonical signature确定性排序；第一个完整候选组放不下时停止该桶，禁止以后来的低分小组填空，并记录cutoff组/候选数。SPLIT源节点终止统一追加terminal retracted版本；SPLIT关系分配和REPLACE当前关系端点组合共用歧义变量数、总变体数及逐桶拒绝记账，逐关系RELINK不是笛卡尔组合路线。白话：容量紧时保留一个清楚的分数边界，不用组大小暗中改变谁被选中；完整歧义组仍不可拆。它不冻结cap或护栏数值。
+- 编辑代价按声明的高层事务原子归一：RELINK计一个原子，REPLACE按RETRACT+BIRTH计两个；为维持原子一致性必须关闭的incident edges不再逐版本加罚，非必要或越界变化另计collateral。正式权重仍在S指标冻结时裁决。白话：关系多的旧杯子不应只因清理边更多而让正确REPLACE永远输给RELINK。它不把REPLACE和RELINK视为同价，也不免除副作用惩罚。
+- 逐类型确认性范围固定为SPLIT、MERGE和entity RETRACT；relation RETRACT单独作描述性/次要报告，总体九类主确认仍包含它。这样避免把两种RETRACT混成一个效应，也不为共享关系能力新增第四个低功效确认性主张。confirmation family数仍须由开发成品率反推并在访问confirmation前冻结。
+- 提交证据顺序从本决定起固定为decision/config先于科学实现；D-141的用户裁决已先发生在对话而登记提交随后完成，不回写或重排既有Git历史。

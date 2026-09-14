@@ -22,7 +22,7 @@
 
 ### 当前指针
 
-**D-140/D-141已批准并完成L1候选、关系和动作空间对称化的本地代码候选，当前等待同一提交的服务器合同与合成非数据smoke。** place现为五方法共同的坐标scaffold，不进入学习式BIND/MERGE/SPLIT；候选按template×结构/关系类型有界分桶并汇总总容量；SPLIT按逐边公开支持只对歧义边枚举，另设总incident操作护栏；MERGE原子重锚去重关系。entity RETRACT会原子终止节点和全部incident edges并保留terminal历史，node REPLACE只BIRTH不同身份及当前公开关系；confirmed实体的长期公开未观测可经共享包装进入dormant，retracted不能复活。所有方法最终图经过同一delta/history/protected审计，但不强迫基线走VSMT executor。因果prior只在两份不同公开证据后确认candidate。统计以family为独立单位，总体为主确认结论，逐类型确认仅SPLIT/MERGE/RETRACT，confirmation family数待开发成品率反推。当前本地标准库合同按独立进程精确通过executor 42、L1 31、VSMT 82，共155项；本机VSMT同进程复跑出现已知原生access violation，因此必须以服务器同进程回执验收，这也不是方法效果。正式关联阈值、候选cap、dormancy门、SPLIT两类护栏、PHR/teacher/选择器及S-01～S-12剩余数值仍未冻结。2-house容量/私有覆盖审计、house生成、训练、validation效果和confirmation全部阻断；下一步只允许推送一次并运行固定`contracts → smoke → export`，发现会改语义/阈值再回到用户裁决。
+**D-142六项修订安全口径已获用户批准，必须先登记协议再实现；登记后旧155项本地计数只能作为前一提交证据。** 待实现内容为：不可逆entity RETRACT使用可靠历史观测包络＋待审计裕度并受当前可BIND区域阻断；共享dormancy改按匿名公开可见体积产生的连续错失观测机会，覆盖candidate/confirmed并保留来源；在线保护place scaffold，评价期统一读取不进入adapter输入的封存protected集合，版本改写分类且仅未声明破坏fatal；候选桶遇首个放不下的完整组即停止并记cutoff；SPLIT统一terminal规范形，SPLIT/REPLACE共用组合护栏；编辑成本按高层原子归一；逐类型确认改为SPLIT/MERGE/entity RETRACT，relation RETRACT描述性。所有新数值仍为null，2-house审计、house生成、训练、validation效果和confirmation继续阻断。下一步是形成单职责实现和新增正反例，再重新准备固定服务器`contracts → smoke → export`入口；不得用`a1514fa`或旧回执认证新代码。
 
 ## 上一 D-062 路线（暂停，以下保留复现）
 
