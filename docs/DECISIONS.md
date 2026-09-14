@@ -1505,3 +1505,9 @@
 - 共同post-update审计记录因新增`semantic_allowance_templates`与`semantic_allowance_is_result_level`升为`vsmt-common-post-update-audit-v2`，并在D-143配置登记该版本号。逐版本模板归属本批暂缓实现，登记为`per_version_template_attribution_blocks_five_method_comparison=true`：在五方法主比较之前必须补齐，否则一次声明多模板的结果会得到比逐版本更宽的语义放宽。
 - 新stage的started、contract receipt/success、smoke receipt/success五个schema串一并改为`capacity-scaffold`，避免新stage沿用已验收stage的记录身份。2-house提案另补`opportunity_reliability_threshold_may_be_reduced_to_improve_yield=false`，与机会次数、支持裕度三项禁止下调条款对齐。
 - 本地固定分组为executor 42、L1 31、VSMT 104，共177项通过；本地smoke干跑成功且与D-145同构：61条canonical关系边不变，`place_adjacency_updates`为born 60/bound 0/deduplicated 60/observation_supported 60/coordinate_derived 0，候选目录6项、9桶、截断0。跨帧坐标邻接由新增合同测试覆盖，单帧smoke不触发该分支。本地通过不代替服务器验收或D-059用户代码审查。
+
+## D-147：无模板骨架边必须先验授权且失败原子
+
+- 日期：2026-09-14；状态：approved for protocol-first local implementation, server receipt pending, still not executable。GPT复审复现D-146权限检查发生在边与provenance已写入之后：非受信任调用者可捕获异常再`finish`，得到新增边、零模板且共同白名单通过；受信任method ID也可把非`adjacent_to`关系伪装成无模板骨架更新。用户随后明确回复“你来做吧，开始”，只授权本轮修复、必要本地测试和单职责提交；不授权push、服务器运行、source读取、2-house生成、private、训练或confirmation。
+- 公开`create_edge`与`bind_edge`恢复为必记BIRTH/BIND，不再接收调用者提供的`template`或`purpose`。无模板边只经骨架内部专用入口形成；该入口在任何图字节、delta列表或模板列表改变之前，必须同时验证调用者属于受信任确定性包装、关系为`adjacent_to`、两个端点均为开放place，且provenance purpose由代码固定。白话：这解决“已经写完边才说没有权限”的失败原子性问题；输入一次边操作和调用上下文，输出要么完整合法写入，要么revision逐字节不变。例如普通方法尝试无模板建边并捕获错误后继续结束，结果仍必须是真正NOOP。它不新增事务模板，也不改变合法地点邻接的图语义。
+- 必要反例至少覆盖非受信任create、非受信任bind、受信任身份对非邻接关系三类；每类都检查异常发生前后revision内部图和created/closed/template记账不变，并检查捕获异常后不能封存未声明边。跨帧邻接、候选6项/9桶/0截断及共同审计v2继续沿用D-146，逐版本模板归属仍是五方法主比较前阻断项。
