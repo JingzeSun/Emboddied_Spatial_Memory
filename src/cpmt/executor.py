@@ -716,8 +716,8 @@ def _validate_template_preconditions(
             operation["arguments"].get("target_id")
             for operation in attach_ops
         }
-        if len(attachment_targets) != 1:
-            raise ContractError("BIND must target exactly one node or edge identity")
+        if target_kind == "edge" and len(attachment_targets) != 1:
+            raise ContractError("relation BIND must target exactly one edge identity")
         if target_kind == "node":
             for operation in attach_ops:
                 node = _open_node(

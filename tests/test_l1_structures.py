@@ -352,6 +352,53 @@ class TypedRelationExecutorTests(unittest.TestCase):
             "protected_ids": [],
         })
         self.assertIn("observation:second", bound["edges"][0]["evidence_refs"])
+        second_edge = dict(edge)
+        second_edge.update({
+            "edge_id": "edge:located-second",
+            "edge_version_id": "edge:located-second@v0",
+            "evidence_refs": ["observation:third"],
+            "provenance": ["transaction:birth-second-relation"],
+        })
+        two_edges = execute_transaction(bound, {
+            "schema_version": "cpmt-0.2",
+            "transaction_id": "transaction:birth-second-relation",
+            "intent": "EXPAND",
+            "template": "BIRTH",
+            "base_graph_version": bound["graph_version"],
+            "operations": [{
+                "op_id": "birth:second-edge",
+                "op_type": "ADD_EDGE",
+                "arguments": {"edge": second_edge},
+            }],
+            "evidence_refs": ["observation:third"],
+            "protected_ids": [],
+        })
+        with self.assertRaisesRegex(
+            ContractError, "relation BIND must target exactly one edge identity",
+        ):
+            execute_transaction(two_edges, {
+                "schema_version": "cpmt-0.2",
+                "transaction_id": "transaction:bad-multi-edge-bind",
+                "intent": "ASSOCIATE",
+                "template": "BIND",
+                "base_graph_version": two_edges["graph_version"],
+                "operations": [
+                    {
+                        "op_id": f"bind:edge:{index}",
+                        "op_type": "ATTACH_EVIDENCE",
+                        "arguments": {
+                            "target_kind": "edge",
+                            "target_id": edge_id,
+                            "evidence_ref": "observation:fourth",
+                        },
+                    }
+                    for index, edge_id in enumerate(
+                        ("edge:located", "edge:located-second")
+                    )
+                ],
+                "evidence_refs": ["observation:fourth"],
+                "protected_ids": [],
+            })
 
     def test_relation_birth_rejects_a_node_and_edge_in_same_atom(self) -> None:
         with self.assertRaisesRegex(ContractError, "exactly one node or edge"):
