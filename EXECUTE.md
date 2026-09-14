@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| VSMT首篇/VM-01～04 | VSMT已合并main；旧53/53 VM-04预检、L1实体22/22及完整结构130/130回执保留。D-140～D-143实现提交`8ea0e13`补齐共同place、类型化容量、关系感知SPLIT/MERGE、entity RETRACT/REPLACE、规范节点BIND与可靠单调包络、packet v3匿名可见体积、机会型dormancy、封闭模板审计及语义编辑记账；本地固定分组42/42、31/31、91/91通过，服务器SSH拒绝连接，正式新回执待跑且旧报告不能认证新字节。统计独立单位为family，分类型确认只预登记SPLIT/MERGE/entity RETRACT；confirmation family数待开发成品率反推。L2/SAM后置；当前0 VM-04 house生成、0训练、0新private/confirmation读取。正式生成/训练数据/检验已要求多worker。LOG-133–142，D-125–143 |
+| VSMT首篇/VM-01～04 | VSMT已合并main；旧53/53 VM-04预检、L1实体22/22及完整结构130/130回执保留。D-140～D-143实现提交`8ea0e13`补齐共同place、类型化容量、关系感知SPLIT/MERGE、entity RETRACT/REPLACE、规范节点BIND与可靠单调包络、packet v3匿名可见体积、机会型dormancy、封闭模板审计及语义编辑记账；新固定服务器回执在受审`08cd697`上通过executor 42/42、L1 31/31、VSMT 91/91和341可见截锥合成smoke，报告`74c3e625…d828b`由`3071ee1`回传。统计独立单位为family，分类型确认只预登记SPLIT/MERGE/entity RETRACT；confirmation family数待开发成品率反推。L2/SAM后置；当前0 VM-04 house生成、0训练、0新private/confirmation读取，用户代码审查与后续数值/运行授权仍缺失。正式生成/训练数据/检验已要求多worker。LOG-133–143，D-125–143 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
 | R4三模型接入 | D完整适配16项通过（121/200全反向，0更新），W完整适配17项亦通过，F完整适配19项通过；真实公共接口27/27候选通过，0优化/真值读取。209bb34，LOG-123–127 |
 | R4前端v2r1 | 81bceed：19项通过，16历史/144名义预测/16选择完整，误标占据/自由0；物块平均误差9.59 cm、接触Brier 0.1152，全部涉及未知扫掠，正式M/P未就绪。LOG-121 |
@@ -1648,3 +1648,10 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 同批将已有版本变化分成合法关闭、开放版本证据/provenance追加、MERGE封闭语义变化和未声明破坏，后者对五方法fatal；在线自动保护place状态，评价protected集合仍不进adapter输入。严格候选截断记录cutoff与unused capacity，SPLIT/REPLACE共用歧义变量/总变体护栏，RELINK记录端点对计算量；语义记账按高层原子及canonical开放关系事实计算，MERGE重锚不按edge版本周转重复收费。
 - 本地标准库固定分组分别为executor 42/42、L1 31/31、VSMT 91/91，共164项；旧CTL 11/11及旧M1事务正例检查通过，JSON、Python编译和diff检查通过。Windows固定入口用错误补全长哈希时先被精确checkout闸门拒绝；改用真实提交后前两组通过，VSMT组在本机既有间歇性运行时故障中把内置`any`误成`set_iterator`并报2项错误，失败现场保留且没有继续smoke。相同91项独立整组随后/此前通过，故不把本机失败或单独通过冒充服务器验收。
 - 推送后尝试连接已登记服务器，SSH端口返回`Connection refused`，未能同步或运行固定入口。当前0模拟器、0 house生成、0数据生成、0训练、0private/confirmation读取；`scripts/notes.txt`仍为原SHA-256 `af0d4ed625ffb1a754d80ed2f3ccf2401695f6bcaadd4dc8fdc75edc0be8239b`。下一次服务器开启后只需同步包含`8ea0e13`实现的最新main并依次运行`contracts → smoke → export`。
+
+## LOG-143：D-143固定服务器回执通过并回传（2026-09-14）
+
+- 服务器恢复后只读确认实际仓库为`/root/Emboddied_Spatial_Memory`、原checkout为干净`main@83430a2`、目标stage目录不存在；从`origin/main`快进至受审`08cd697fd91296c66beda16af71ab1c3297f6fd9`后仍为干净checkout。固定入口按顺序运行，没有修改科学脚本或复用旧stage。
+- `contracts`一次通过executor 42/42、L1 31/31、VSMT 91/91，共164/164；三组测试墙钟分别约0.031、1.327、3.903秒。成功目录为`/root/autodl-tmp/vsmt_outputs/vsmt-vm04-l1-action-symmetry-v1-08cd697fd912`，保留started、三份逐项日志、两份receipt和两份success marker，receipt及marker均绑定完整受审commit和文件SHA-256。
+- 合成公开depth `smoke`一次通过：1个surface、36个place、38个packet region、682个rolling free-space frusta、341个packet v3匿名visibility frusta、62条关系观测和61条canonical关系边；反向重复去重1条。候选目录保留26项、10个容量桶，截断前66项、截断40项；共享记忆审计SHA-256为`b53a70d07e7b110829e52e602092d5cd7db2064d9fed148d91facfb68eede4f0`。白话：同一份匿名可见体积能进入五方法共同包装并由各自记忆判机会，输出是可追溯候选/图摘要；它不等于真实house产量、阈值安全或方法效果。
+- 导出[服务器报告](results/vsmt_vm04_l1_action_symmetry.json)，SHA-256=`74c3e6258eb78fa7a52fbe11fa0bb7030b0a113497e4b355dffd5a10ae7d828b`，结果提交`3071ee196281e59ccc470eef8a2c8a53065cab40`已推送`origin/main`并在本地快进后复核同一摘要。报告明确`generation_performed=false`、`training_steps=0`、`private_data_opened=false`、`confirmation_data_opened=false`；本轮未启动模拟器、未生成house数据、未训练或访问封存数据。工程回执通过不代替D-059用户代码审查，也不授权2-house审计、数据生成、validation或confirmation。
