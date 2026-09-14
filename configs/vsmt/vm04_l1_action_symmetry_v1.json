@@ -75,7 +75,10 @@
     "evaluation_protected_scope": "sealed_common_post_inference_episode_scope",
     "evaluation_protected_scope_is_adapter_input": false,
     "records_protected_node_and_incident_topology_changes": true,
+    "audit_record_schema_version": "vsmt-common-post-update-audit-v2",
     "protected_node_state_change_is_an_online_gate": true,
+    "per_version_template_attribution_implemented": false,
+    "per_version_template_attribution_blocks_five_method_comparison": true,
     "protected_incident_topology_change_is_evaluation_period_only": true,
     "semantic_allowance_reported_when_widened_beyond_one_template": true,
     "forces_baselines_through_vsmt_executor": false

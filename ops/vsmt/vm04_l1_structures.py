@@ -31,7 +31,7 @@ STAGE_ID = "vsmt-vm04-l1-capacity-scaffold-v1"
 TEST_GROUPS = (
     ("executor", "test_executor.py", 42),
     ("l1", "test_l1_*.py", 31),
-    ("vsmt", "test_vsmt_*.py", 101),
+    ("vsmt", "test_vsmt_*.py", 104),
 )
 EXPECTED_TESTS = sum(group[2] for group in TEST_GROUPS)
 BOUND_PATHS = (
@@ -221,7 +221,7 @@ def run_contracts(reviewed_code: str, output_root: Path) -> None:
         raise RuntimeError(f"stage directory already exists: {stage}")
     stage.mkdir(parents=True)
     write_new_json(stage / "started.json", {
-        "schema_version": "vsmt-vm04-l1-action-symmetry-started-v1",
+        "schema_version": "vsmt-vm04-l1-capacity-scaffold-started-v1",
         "stage_id": STAGE_ID,
         "started_at": utc_now(),
         "reviewed_code": commit,
@@ -273,7 +273,7 @@ def run_contracts(reviewed_code: str, output_root: Path) -> None:
         and observed_total == EXPECTED_TESTS
     )
     receipt = {
-        "schema_version": "vsmt-vm04-l1-action-symmetry-contract-receipt-v1",
+        "schema_version": "vsmt-vm04-l1-capacity-scaffold-contract-receipt-v1",
         "stage_id": STAGE_ID,
         "reviewed_code": commit,
         "bound_sha256": bindings,
@@ -293,7 +293,7 @@ def run_contracts(reviewed_code: str, output_root: Path) -> None:
         print(f"VM04_L1_CAPACITY_SCAFFOLD_CONTRACTS_FAILED stage={stage}")
         raise SystemExit(1)
     write_new_json(stage / "contracts.success.json", {
-        "schema_version": "vsmt-vm04-l1-action-symmetry-contract-success-v1",
+        "schema_version": "vsmt-vm04-l1-capacity-scaffold-contract-success-v1",
         "reviewed_code": commit,
         "receipt_sha256": sha256(receipt_path),
         "observed_tests": observed_total,
@@ -605,10 +605,11 @@ def run_smoke(reviewed_code: str, output_root: Path) -> None:
             and len(relations) >= 2
             and relation_counts.get("born", 0) >= 1
             and adjacency_counts.get("born", 0) >= 1
-            and relation_counts.get("scaffold_maintained", 0)
-            == adjacency_counts.get("born", 0)
-            + adjacency_counts.get("bound", 0)
-            + adjacency_counts.get("deduplicated", 0)
+            and adjacency_counts.get("born", 0) + adjacency_counts.get("bound", 0)
+            == adjacency_counts.get("observation_supported", 0)
+            + adjacency_counts.get("coordinate_derived", 0)
+            and adjacency_counts.get("observation_supported", 0)
+            <= relation_counts.get("scaffold_maintained", 0)
             and len(candidate_catalog["candidates"]) >= 1
             and "place" not in candidate_scopes
             and "relation:adjacent_to" not in candidate_scopes
@@ -635,7 +636,7 @@ def run_smoke(reviewed_code: str, output_root: Path) -> None:
     except Exception as caught:
         error = {"type": type(caught).__name__, "message": str(caught)}
     receipt = {
-        "schema_version": "vsmt-vm04-l1-action-symmetry-smoke-receipt-v1",
+        "schema_version": "vsmt-vm04-l1-capacity-scaffold-smoke-receipt-v1",
         "stage_id": STAGE_ID,
         "reviewed_code": commit,
         "bound_sha256": bindings,
@@ -657,7 +658,7 @@ def run_smoke(reviewed_code: str, output_root: Path) -> None:
         print(f"VM04_L1_CAPACITY_SCAFFOLD_SMOKE_FAILED stage={stage} error={error}")
         raise SystemExit(1)
     write_new_json(stage / "smoke.success.json", {
-        "schema_version": "vsmt-vm04-l1-action-symmetry-smoke-success-v1",
+        "schema_version": "vsmt-vm04-l1-capacity-scaffold-smoke-success-v1",
         "reviewed_code": commit,
         "receipt_sha256": sha256(receipt_path),
         "success": True,

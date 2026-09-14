@@ -1496,3 +1496,12 @@
 - 共同审计现在报告`semantic_allowance_templates`与`semantic_allowance_is_result_level`：`classify_mutation`取结果所声明模板的并集，一个结果同时声明MERGE与其他模板时该放宽会比逐版本判定宽，因此如实标出而不是默认成立。逐版本模板归属需要结果合同新增字段，本轮不实现。
 - D-144提案同步收紧：来源inventory改为“只读清点→冻结manifest与eligible house ID摘要→公布audit house ID→才可审查生成”的独立前置步骤，house选择不得与manifest冻结同批完成；`minimum_consecutive_missed_opportunities`新增不得为提高yield而下调；private层须按0.02/0.05两档裕度分别报告entity RETRACT合法候选recall；`protected_incident_topology_change`明确只作评价期指标而非在线闸门。提案的工程基线摘要因本轮改动作废并置null，须取得新的服务器回执后才能重新填写。
 - 固定入口改为新stage `vsmt-vm04-l1-capacity-scaffold-v1`并导出到新路径，不覆盖D-143已验收报告；期望测试数更新为executor 42、L1 31、VSMT 101，共174。本地标准库分组全部通过且本地smoke干跑成功，但本地通过不等于服务器验收，也不代表D-059用户代码审查已完成。
+
+## D-146：无模板边操作收口、跨帧坐标邻接与共同审计v2获批
+
+- 日期：2026-09-14；状态：implementation delivered locally, server receipt pending, still not executable。用户据GPT对D-145的审查指示继续修复五项并暂缓一项；本轮仍未推送、未连接服务器、未读取source/private/confirmation。
+- D-145为骨架相邻引入的`template=None`边操作原先对任何调用者开放，一个适配器可以据此把建边藏到模板白名单之外。现在`create_edge`/`bind_edge`只允许受信任的确定性包装（`vsmt.place.scaffold.v1`、`vsmt.public.bootstrap.v1`）省略模板，其他method_id直接报错。白话：这解决“不记模板的边操作变成绕过审计的后门”；输入一次边操作及其调用者身份，输出要么记模板要么被拒绝。例如记忆方法调用同一接口建相邻边会失败。它不改变骨架自身的语义。
+- 骨架相邻原先只取本帧`adjacent_to`观测，因此本帧新见的格与图中已有的邻格连不上。现在骨架对本帧每个地点格按格边长查四邻格，只要邻格是开放骨架节点就建立或附加证据；本帧确有观测时用该观测的公开支持摘要，否则用由两个格坐标推出的公开摘要，计数分为`observation_supported`与`coordinate_derived`。对角格不相邻。格边长由开放骨架格的`extent_m`取得并要求一致。
+- 共同post-update审计记录因新增`semantic_allowance_templates`与`semantic_allowance_is_result_level`升为`vsmt-common-post-update-audit-v2`，并在D-143配置登记该版本号。逐版本模板归属本批暂缓实现，登记为`per_version_template_attribution_blocks_five_method_comparison=true`：在五方法主比较之前必须补齐，否则一次声明多模板的结果会得到比逐版本更宽的语义放宽。
+- 新stage的started、contract receipt/success、smoke receipt/success五个schema串一并改为`capacity-scaffold`，避免新stage沿用已验收stage的记录身份。2-house提案另补`opportunity_reliability_threshold_may_be_reduced_to_improve_yield=false`，与机会次数、支持裕度三项禁止下调条款对齐。
+- 本地固定分组为executor 42、L1 31、VSMT 104，共177项通过；本地smoke干跑成功且与D-145同构：61条canonical关系边不变，`place_adjacency_updates`为born 60/bound 0/deduplicated 60/observation_supported 60/coordinate_derived 0，候选目录6项、9桶、截断0。跨帧坐标邻接由新增合同测试覆盖，单帧smoke不触发该分支。本地通过不代替服务器验收或D-059用户代码审查。

@@ -117,6 +117,7 @@
     "support_margin_sensitivity_report_m_per_side": [0.02, 0.05],
     "support_margin_may_be_reduced_to_improve_yield": false,
     "opportunity_reliability_threshold": 0.9,
+    "opportunity_reliability_threshold_may_be_reduced_to_improve_yield": false,
     "minimum_consecutive_missed_opportunities": 3,
     "missed_opportunity_count_sensitivity_report": [2, 3, 4],
     "missed_opportunity_count_may_be_reduced_to_improve_yield": false,

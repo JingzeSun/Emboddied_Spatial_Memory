@@ -22,6 +22,8 @@
 
 ### 当前指针
 
+**D-146按GPT审查续修并待复审：不记模板的边操作只保留给受信任确定性包装，骨架相邻补齐跨帧坐标邻接（对角不相邻），共同post-update审计升`v2`，新stage五个receipt/success schema改名，机会可靠性阈值加不得下调条款；逐版本模板归属暂缓并登记为五方法主比较前的阻断项。**本地executor 42、L1 31、VSMT 104共177项与smoke干跑通过，仍未推送。
+
 **D-145实现已在本地完成并待用户/GPT审查：候选严格截断改为与枚举顺序无关，place间`adjacent_to`归入确定性骨架，共同审计标注result级语义放宽，D-144提案同步收紧inventory前置步骤、机会次数不得下调、entity RETRACT recall按0.02/0.05分档、protected拓扑仅作评价期指标。**本地executor 42、L1 31、VSMT 101共174项与smoke干跑通过，合成packet候选目录从26项/截断40项降为6项/截断0项；固定入口改用新stage `vsmt-vm04-l1-capacity-scaffold-v1`，服务器回执与D-144工程基线摘要待重新取得。本地通过不代替服务器验收或D-059代码审查。
 
 **用户在D-143回执交付后回复“继续”，按上一轮明示推荐口径登记为认可D-140～D-143工程基线，并只授权制定2-house开发审计数值；[D-144提案](../configs/vsmt/vm04_l1_two_house_audit_proposal_v1.json)现为`requires_user_review_not_executable`。** 推荐固定两个来源哈希预选house、36个episode/1,152帧、三个仅供容量边界的类型化关联profile、cap 16/32/64、审计临时包络0.9＋2 cm、连续3次0.9可靠机会、SPLIT/REPLACE资源护栏6/729/32、两个family worker、前台1800秒和4 GiB stage上限。正式阈值继续为null；先只读封存source manifest/license，再实现并审查固定入口，均须另行批准。当前0新来源读取、0模拟器、0数据生成、0训练、0private/confirmation访问。
