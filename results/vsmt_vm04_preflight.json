@@ -1,0 +1,295 @@
+{
+  "asset_download_performed": false,
+  "bound_sha256": {
+    "configs/vsmt/vm04_data_protocol_proposal_v1.json": "c90392c8cfa2833707c8d60f369a70cf41e8d7ab6c43829d3ff4684daed19c1c",
+    "configs/vsmt/vm04_source_audit_v1.json": "f57f46293b199b15346700befbf493c30ee6a708d9340ef5de946d9dc79ec4af",
+    "ops/vsmt/vm04_preflight.py": "df74775756437bf7243d667d3d2365641759499dae1efd8c4cd596e4aedd5284",
+    "schemas/transaction_program.schema.json": "1b58c792cf9fb2a804e1d13ca37574cf6f8c8ea107bb8b2416e8edad4bce0e1a",
+    "schemas/vsmt_causal_prior_receipt.schema.json": "4c0187fe94d0626405fd63eb8c0456f7794440b77eb1b8816589a9f5dce22b89",
+    "schemas/vsmt_vm01_contracts.schema.json": "f0da1b3e399942aaa14945088fce39059496d6107a8022a570af795c15a20668",
+    "schemas/vsmt_vm04_manifests.schema.json": "606a1fccfca0eb698edf6471cef3f5b80ad8014bd94a484c545c1695e233b91a",
+    "src/cpmt/executor.py": "ec122efc4f713701b419ab7091493c2d6a204d0945835d36ac109757753a325b",
+    "src/vsmt/__init__.py": "c161b0c4643a0fbc870959017b6233f3e76b44a09c1aff4f3db6b897cdd39b6f",
+    "src/vsmt/baselines.py": "6857c28033c10edaa7881d97ebe3734e4bd6d2d2410f09ab660d8a9ef0053c8e",
+    "src/vsmt/causal_prior.py": "e0ceb6706835f8d31dcc757a27f813de713c6a0651b8d5dc8b6971299e150c6a",
+    "src/vsmt/contracts.py": "adc8fbc637ce918d2243d2ff2ca90ba3e62fc2fa2d6817f58f7898d1c71fa060",
+    "src/vsmt/graph_ops.py": "9c977f43bcc48c1ae9d1133d0e7c439fecbef38be1287eeada349628babc6536",
+    "src/vsmt/public_candidates.py": "14241fe6a29b580bf829a061c1b18bfb6464eb927725e02d9805b443fecb8d36",
+    "src/vsmt/vm04_protocol.py": "bb0568e6f58fd513a3ef3da5a92085202cf36c5936a4da41c68ba24acda745d6",
+    "tests/test_vsmt_baselines.py": "e43946ab2e65c48a28008e8f28da46cf855a73ad5ac6e38072f6a9bf6a855235",
+    "tests/test_vsmt_causal_prior.py": "42c41f72d5e7806320d4de6853653463252b0b8005ffbcd61f9174cb507bc04b",
+    "tests/test_vsmt_contracts.py": "5daa196abaa4a0d63ea66f535ee12f7bd46e12173790f14e2689d6e83cab758f",
+    "tests/test_vsmt_public_candidates.py": "b71f2e842fc714297f72803954ee4fd2b07e55be81cf24e586de52d54a77363d",
+    "tests/test_vsmt_vm04_protocol.py": "aed5f24de470cabcdac731821b280eba5882a3581b1141036b75472cc5af1995"
+  },
+  "confirmation_data_opened": false,
+  "contract_receipt_sha256": "20cdbeb0d19f3ea10475d45b9b97a5c4c2b1ac01fefad9de73ae2b1d28d9393c",
+  "contract_success": true,
+  "contract_tests": 53,
+  "dependency_install_performed": false,
+  "generation_performed": false,
+  "host_summary": {
+    "disk": [
+      {
+        "free_bytes": 28669702144,
+        "path": "/",
+        "total_bytes": 32212254720,
+        "used_bytes": 3542552576
+      },
+      {
+        "free_bytes": 34380845056,
+        "path": "/root/autodl-tmp",
+        "total_bytes": 53687091200,
+        "used_bytes": 19306246144
+      }
+    ],
+    "executable": "/root/miniconda3/bin/python",
+    "gpu": [
+      {
+        "command": [
+          "nvidia-smi",
+          "--query-gpu=name,memory.total,memory.free,driver_version",
+          "--format=csv,noheader,nounits"
+        ],
+        "exit_code": 0,
+        "output": "NVIDIA GeForce RTX 4080 SUPER, 32760, 32230, 595.71.05\n",
+        "wall_seconds": 0.07744983211159706
+      }
+    ],
+    "platform": "Linux-5.15.0-83-generic-x86_64-with-glibc2.35",
+    "python_modules": [
+      {
+        "available": true,
+        "name": "torch"
+      },
+      {
+        "available": true,
+        "name": "torchvision"
+      },
+      {
+        "available": false,
+        "name": "ai2thor"
+      },
+      {
+        "available": false,
+        "name": "procthor"
+      },
+      {
+        "available": false,
+        "name": "sam2"
+      }
+    ],
+    "python_version": "3.12.3",
+    "system_libraries": [
+      {
+        "name": "EGL",
+        "resolved": "libEGL.so.1"
+      },
+      {
+        "name": "GL",
+        "resolved": "libGL.so.1"
+      },
+      {
+        "name": "vulkan",
+        "resolved": null
+      }
+    ],
+    "torch": [
+      {
+        "command": [
+          "/root/miniconda3/bin/python",
+          "-c",
+          "import json,torch; print(json.dumps({'version':torch.__version__,'cuda_available':torch.cuda.is_available(),'cuda_version':torch.version.cuda}))"
+        ],
+        "exit_code": 0,
+        "output": "{\"version\": \"2.8.0+cu128\", \"cuda_available\": true, \"cuda_version\": \"12.8\"}\n",
+        "wall_seconds": 2.7577145230025053
+      }
+    ]
+  },
+  "private_data_opened": false,
+  "reviewed_code": "5e125ba6263bac106cb1c2bb9b1387ac8434cf32",
+  "schema_version": "vsmt-vm04-preflight-report-v1",
+  "source_audit_marker_sha256": "fd2b1b7e098f1ac87e4b19324503e908bed81ea994a1d8f4641c4a338436c2d2",
+  "source_audit_receipt_sha256": "f3043dc51e9a9fdfb3830ff928e920c9711ab5e9dd21cb821336ce4bbf0032d9",
+  "source_audit_success": true,
+  "source_summary": {
+    "candidate_environment": {
+      "allowed_asset_root": "/root/autodl-tmp/vsmt-assets",
+      "allowed_install_root": "/root/autodl-tmp/vsmt-envs",
+      "candidate_python_versions": [
+        "3.10",
+        "3.11"
+      ],
+      "cloud_rendering_requires_libvulkan": true,
+      "python": null,
+      "reason": "ProcTHOR published classifiers stop at Python 3.9 while SAM2 requires Python at least 3.10, so a Python 3.10 or 3.11 isolated compatibility check is required rather than choosing an incompatible 3.9 environment or mutating the server base Python",
+      "status": "requires_compatibility_resolution_not_installed"
+    },
+    "http_assets": [
+      {
+        "body_bytes_read": 0,
+        "expected_content_length": 184416285,
+        "final_url": "https://dl.fbaipublicfiles.com/segment_anything_2/092824/sam2.1_hiera_small.pt",
+        "match": true,
+        "name": "sam2_1_hiera_small",
+        "observed_content_length": 184416285,
+        "status": 200,
+        "url": "https://dl.fbaipublicfiles.com/segment_anything_2/092824/sam2.1_hiera_small.pt"
+      }
+    ],
+    "known_local_assets": [
+      {
+        "exists": true,
+        "expected_commit": "7764ea0f912e53c92e82eb78a2a1631e92725fc8",
+        "kind": "git_repository",
+        "match": true,
+        "name": "dinov2_repository",
+        "observed_commit": "7764ea0f912e53c92e82eb78a2a1631e92725fc8",
+        "path": "/root/sh05-assets-v1/dinov2"
+      },
+      {
+        "exists": true,
+        "expected_sha256": "b938bf1bc15cd2ec0feacfe3a1bb553fe8ea9ca46a7e1d8d00217f29aef60cd9",
+        "kind": "file",
+        "match": true,
+        "name": "dinov2_vits14_checkpoint",
+        "observed_sha256": "b938bf1bc15cd2ec0feacfe3a1bb553fe8ea9ca46a7e1d8d00217f29aef60cd9",
+        "path": "/root/sh05-assets-v1/dinowm-native-v1/download/dinov2_vits14_pretrain.pth",
+        "size": 88283115
+      }
+    ],
+    "pypi_releases": [
+      {
+        "files": [
+          {
+            "filename": "ai2thor-5.0.0-py2.py3-none-any.whl",
+            "packagetype": "bdist_wheel",
+            "python_version": "py2.py3",
+            "requires_python": null,
+            "sha256": "144bbb517b64387f1e03aa7434c82fe5696fbf0fd1da0f14a272f1d9d2209af0",
+            "size": 68577
+          },
+          {
+            "filename": "ai2thor-5.0.0.tar.gz",
+            "packagetype": "sdist",
+            "python_version": "source",
+            "requires_python": null,
+            "sha256": "652298820c3c677579fc179232f1ccac0d5b9bc98b1f59baf7c0698d0e478758",
+            "size": 64318
+          }
+        ],
+        "project": "ai2thor",
+        "release_exists": true,
+        "response": {
+          "content_length_header": "18485",
+          "final_url": "https://pypi.org/pypi/ai2thor/5.0.0/json",
+          "payload_bytes": 18485,
+          "payload_sha256": "281e6af5b43c5a569ba3318e2626bbae5abf2040325fe0270b5be1090e00ec2b",
+          "status": 200
+        },
+        "version": "5.0.0"
+      },
+      {
+        "files": [
+          {
+            "filename": "procthor-0.0.1.dev2-py3-none-any.whl",
+            "packagetype": "bdist_wheel",
+            "python_version": "py3",
+            "requires_python": null,
+            "sha256": "ec0121ba0597525ac539df6923de11796349c329c4946637db3cfc0bd09c9831",
+            "size": 4312455
+          },
+          {
+            "filename": "procthor-0.0.1.dev2.tar.gz",
+            "packagetype": "sdist",
+            "python_version": "source",
+            "requires_python": null,
+            "sha256": "8260ea87212c28a7faa8b94c0a5665b7b1efa71a487683948e58ef82645be252",
+            "size": 3932383
+          }
+        ],
+        "project": "procthor",
+        "release_exists": true,
+        "response": {
+          "content_length_header": "2793",
+          "final_url": "https://pypi.org/pypi/procthor/0.0.1.dev2/json",
+          "payload_bytes": 2793,
+          "payload_sha256": "22858f6b8a7a3195bc5ffa5dd8b46a50a7fcfd94ef8099c70b8d55ccfe171059",
+          "status": 200
+        },
+        "version": "0.0.1.dev2"
+      }
+    ],
+    "remote_commits": [
+      {
+        "expected_commit": "2b90b9f5ceec907a1c18123530e92e794ad901a4",
+        "match": true,
+        "name": "sam2_reviewed_commit",
+        "observed_commit": "2b90b9f5ceec907a1c18123530e92e794ad901a4",
+        "response": {
+          "content_length_header": "6709",
+          "final_url": "https://api.github.com/repos/facebookresearch/sam2/commits/2b90b9f5ceec907a1c18123530e92e794ad901a4",
+          "payload_bytes": 6709,
+          "payload_sha256": "deb738be49569bda269fbcd47974b6b54f5213307d27f7cbd2113417a220ad7b",
+          "status": 200
+        },
+        "url": "https://api.github.com/repos/facebookresearch/sam2/commits/2b90b9f5ceec907a1c18123530e92e794ad901a4"
+      },
+      {
+        "expected_commit": "53d5bd4c8c96a699e6a615dc390abb670cc9d353",
+        "match": true,
+        "name": "procthor_code_reviewed_commit",
+        "observed_commit": "53d5bd4c8c96a699e6a615dc390abb670cc9d353",
+        "response": {
+          "content_length_header": null,
+          "final_url": "https://api.github.com/repos/allenai/procthor/commits/53d5bd4c8c96a699e6a615dc390abb670cc9d353",
+          "payload_bytes": 35832,
+          "payload_sha256": "a1f9366366cbbb9166ac3ebaf63015b25e6f0aa26e73abc300bc8a092d949f6f",
+          "status": 200
+        },
+        "url": "https://api.github.com/repos/allenai/procthor/commits/53d5bd4c8c96a699e6a615dc390abb670cc9d353"
+      }
+    ],
+    "remote_git_refs": [
+      {
+        "exit_code": 0,
+        "expected_commit": "f0825767cd50d69f666c7f282e54abfe58f1e917",
+        "match": true,
+        "name": "ai2thor_5_0_0",
+        "observed_commit": "f0825767cd50d69f666c7f282e54abfe58f1e917",
+        "observed_refs": {
+          "refs/tags/5.0.0": "f0825767cd50d69f666c7f282e54abfe58f1e917"
+        },
+        "ref": "refs/tags/5.0.0^{}",
+        "repository": "https://github.com/allenai/ai2thor.git"
+      },
+      {
+        "exit_code": 0,
+        "expected_commit": "10746a749edfb819ba83dc1bdd3ab6f905567183",
+        "match": true,
+        "name": "procthor_10k_0_1_0",
+        "observed_commit": "10746a749edfb819ba83dc1bdd3ab6f905567183",
+        "observed_refs": {
+          "refs/tags/0.1.0": "10746a749edfb819ba83dc1bdd3ab6f905567183"
+        },
+        "ref": "refs/tags/0.1.0",
+        "repository": "https://github.com/allenai/procthor-10k.git"
+      },
+      {
+        "exit_code": 0,
+        "expected_commit": "d54954a81e7126001e552c2d7904ee2e0d49eaae",
+        "match": true,
+        "name": "procthor_10k_0_1_2",
+        "observed_commit": "d54954a81e7126001e552c2d7904ee2e0d49eaae",
+        "observed_refs": {
+          "refs/tags/0.1.2": "d54954a81e7126001e552c2d7904ee2e0d49eaae"
+        },
+        "ref": "refs/tags/0.1.2",
+        "repository": "https://github.com/allenai/procthor-10k.git"
+      }
+    ]
+  },
+  "stage_id": "vsmt-vm04-preflight-v1",
+  "training_steps": 0
+}
