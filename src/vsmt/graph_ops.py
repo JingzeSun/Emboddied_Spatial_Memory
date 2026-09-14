@@ -8,8 +8,9 @@ does that in its own adapter.
 from __future__ import annotations
 
 import hashlib
+from itertools import product
 import math
-from typing import Any, Iterable, Mapping
+from typing import Any, Iterable, Mapping, Sequence
 
 from cpmt.executor import validate_graph
 from cpmt.hashing import canonical_json, clone_json, seal_graph
@@ -140,30 +141,89 @@ def node_pair_score(
 
 def fully_covered_by_free_space(
     node: Mapping[str, Any], free_spaces: Iterable[Mapping[str, Any]], *,
-    minimum_reliability: float,
+    minimum_reliability: float, target_expansion_m: float = 0.02,
 ) -> bool:
     state = observation_state(node)
     if state is None:
         return False
+    expansion = finite_number(target_expansion_m, "target_expansion_m")
+    if expansion < 0.0:
+        raise ValueError("target_expansion_m must be non-negative")
     lower = [
-        float(center) - float(size) / 2.0
+        float(center) - float(size) / 2.0 - expansion
         for center, size in zip(state["centroid_m"], state["extent_m"])
     ]
     upper = [
-        float(center) + float(size) / 2.0
+        float(center) + float(size) / 2.0 + expansion
         for center, size in zip(state["centroid_m"], state["extent_m"])
     ]
+    corners = list(product(*zip(lower, upper)))
     return any(
         float(free_space["reliability"]) >= minimum_reliability
         and all(
-            float(container_low) <= item_low
-            and item_high <= float(container_high)
-            for container_low, container_high, item_low, item_high in zip(
-                free_space["minimum_m"], free_space["maximum_m"], lower, upper,
-            )
+            sum(
+                float(coefficient) * float(coordinate)
+                for coefficient, coordinate in zip(
+                    halfspace["normal"], corner, strict=True,
+                )
+            ) <= float(halfspace["offset_m"]) + 1e-9
+            for corner in corners
+            for halfspace in free_space["halfspaces_world"]
         )
         for free_space in free_spaces
     )
+
+
+def open_edges(graph: Mapping[str, Any]) -> list[dict[str, Any]]:
+    return [
+        edge for edge in graph["edges"]
+        if edge.get("valid_to") is None
+    ]
+
+
+def canonical_relation_observation(
+    relation: Mapping[str, Any], region_node_ids: Mapping[str, str],
+) -> tuple[str, str, str]:
+    """Return the one stored direction for a public relation observation."""
+
+    source = region_node_ids[str(relation["source_region_id"])]
+    target = region_node_ids[str(relation["target_region_id"])]
+    relation_kind = str(relation["relation"])
+    if relation_kind == "contains":
+        return target, source, "located_at"
+    if relation_kind == "adjacent_to" and target < source:
+        source, target = target, source
+    return source, target, relation_kind
+
+
+def covering_free_space_times(
+    node: Mapping[str, Any], free_spaces: Iterable[Mapping[str, Any]], *,
+    minimum_reliability: float, target_expansion_m: float,
+    minimum_time_separation_s: float,
+) -> list[Mapping[str, Any]]:
+    separation = finite_number(
+        minimum_time_separation_s, "minimum_time_separation_s",
+    )
+    if separation <= 0.0:
+        raise ValueError("minimum_time_separation_s must be positive")
+    by_time: dict[float, Mapping[str, Any]] = {}
+    for free_space in free_spaces:
+        if fully_covered_by_free_space(
+            node, [free_space], minimum_reliability=minimum_reliability,
+            target_expansion_m=target_expansion_m,
+        ):
+            by_time.setdefault(float(free_space["time_s"]), free_space)
+    ordered = [by_time[key] for key in sorted(by_time)]
+    if len(ordered) < 2:
+        return ordered
+    qualified: list[Mapping[str, Any]] = []
+    for item in ordered:
+        if not qualified or (
+            float(item["time_s"]) - float(qualified[-1]["time_s"])
+            >= separation
+        ):
+            qualified.append(item)
+    return qualified
 
 
 def next_tick(graph: Mapping[str, Any]) -> int:
@@ -203,6 +263,12 @@ class GraphRevision:
         return opaque_id(
             self.pre_hash, self.method_id, self.tick, node_id, purpose,
             len(self.created_nodes), prefix="node-version",
+        )
+
+    def _new_edge_version_id(self, edge_id: str, purpose: str) -> str:
+        return opaque_id(
+            self.pre_hash, self.method_id, self.tick, edge_id, purpose,
+            len(self.created_edges), prefix="edge-version",
         )
 
     def _state_from_region(
@@ -269,6 +335,130 @@ class GraphRevision:
         self.created_nodes.append(version_id)
         self.templates.append("BIRTH")
         return node
+
+    def create_edge(
+        self, relation: Mapping[str, Any], *, source_node_id: str,
+        target_node_id: str,
+    ) -> dict[str, Any]:
+        edge_id = opaque_id(
+            self.pre_hash, self.method_id, self.tick, relation["relation_id"],
+            source_node_id, target_node_id, relation["relation"],
+            len(self.created_edges), prefix="edge",
+        )
+        version_id = self._new_edge_version_id(edge_id, "birth")
+        edge = {
+            "edge_id": edge_id,
+            "edge_version_id": version_id,
+            "source": source_node_id,
+            "target": target_node_id,
+            "relation": relation["relation"],
+            "frame": "map",
+            "valid_from": self.tick,
+            "valid_to": None,
+            "evidence_refs": [f"observation:{relation['support_sha256']}"],
+            "provenance": [f"{self.method_id}:relation-birth"],
+        }
+        self.graph["edges"].append(edge)
+        self.created_edges.append(version_id)
+        self.templates.append("BIRTH")
+        return edge
+
+    def bind_edge(
+        self, edge: Mapping[str, Any], relation: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        current = next(
+            item for item in self.graph["edges"]
+            if item["edge_version_id"] == edge["edge_version_id"]
+        )
+        if current["valid_to"] is not None:
+            raise ValueError("relation BIND target must be open")
+        evidence = f"observation:{relation['support_sha256']}"
+        if evidence not in current["evidence_refs"]:
+            current["evidence_refs"].append(evidence)
+        provenance = f"{self.method_id}:relation-bind"
+        if provenance not in current["provenance"]:
+            current["provenance"].append(provenance)
+        self.templates.append("BIND")
+        return current
+
+    def relink_edge(
+        self, edge: Mapping[str, Any], relation: Mapping[str, Any], *,
+        target_node_id: str,
+    ) -> dict[str, Any]:
+        current = next(
+            item for item in self.graph["edges"]
+            if item["edge_version_id"] == edge["edge_version_id"]
+        )
+        if current["valid_to"] is not None:
+            raise ValueError("RELINK target must be open")
+        if current["target"] == target_node_id:
+            return self.bind_edge(current, relation)
+        current["valid_to"] = self.tick
+        self.closed_edges.append(current["edge_version_id"])
+        version_id = self._new_edge_version_id(current["edge_id"], "relink")
+        successor = clone_json(current)
+        successor.update({
+            "edge_version_id": version_id,
+            "target": target_node_id,
+            "valid_from": self.tick,
+            "valid_to": None,
+            "evidence_refs": list(dict.fromkeys(
+                list(current["evidence_refs"])
+                + [f"observation:{relation['support_sha256']}"]
+            )),
+            "provenance": list(current["provenance"])
+            + [f"{self.method_id}:relink"],
+        })
+        self.graph["edges"].append(successor)
+        self.created_edges.append(version_id)
+        self.templates.append("RELINK")
+        return successor
+
+    def apply_relation_observations(
+        self, relations: Sequence[Mapping[str, Any]],
+        region_node_ids: Mapping[str, str],
+    ) -> dict[str, int]:
+        counts = {"born": 0, "bound": 0, "relinked": 0, "inverse_deduplicated": 0}
+        seen: set[tuple[str, str, str, str]] = set()
+        for relation in relations:
+            source, target, relation_kind = canonical_relation_observation(
+                relation, region_node_ids,
+            )
+            signature = (
+                source, target, relation_kind, str(relation["support_sha256"]),
+            )
+            if signature in seen:
+                counts["inverse_deduplicated"] += 1
+                continue
+            seen.add(signature)
+            normalized = dict(relation)
+            normalized["relation"] = relation_kind
+            edges = open_edges(self.graph)
+            exact = sorted((
+                edge for edge in edges
+                if edge["source"] == source
+                and edge["target"] == target
+                and edge["relation"] == relation_kind
+            ), key=lambda edge: str(edge["edge_id"]))
+            if exact:
+                self.bind_edge(exact[0], normalized)
+                counts["bound"] += 1
+                continue
+            movable = sorted((
+                edge for edge in edges
+                if edge["source"] == source
+                and edge["relation"] == relation_kind
+                and relation_kind in {"located_at", "supported_by"}
+            ), key=lambda edge: str(edge["edge_id"]))
+            if movable:
+                self.relink_edge(movable[0], normalized, target_node_id=target)
+                counts["relinked"] += 1
+                continue
+            self.create_edge(
+                normalized, source_node_id=source, target_node_id=target,
+            )
+            counts["born"] += 1
+        return counts
 
     def update_node(
         self, node: Mapping[str, Any], region: Mapping[str, Any],

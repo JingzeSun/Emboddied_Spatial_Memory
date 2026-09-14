@@ -103,9 +103,9 @@ VM-02 的共同节点观测状态键为 `vsmt_observation_state`，当前包含 
 
 DINO输入固定为224×224当前RGB；uint8除255后按均值`[0.485,0.456,0.406]`、标准差`[0.229,0.224,0.225]`归一化，不裁剪、不增强。ViT-S/14产生16×16×384 patch token；每个token权重等于对应14×14块中mask像素比例，按权重求均值并L2归一化为384维float32。区域总patch权重至少1.0，落盘float32向量的单位范数误差不超过`1e-5`，否则保留失败且不重采样。输入同一RGB和匿名mask，输出一次缓存、五方法逐字节共享的descriptor。例如半个patch权重0.5，单独不能通过。它不使用CLS/register token、不训练DINO，也没有方法私有视觉adapter。
 
-实体几何用mask内0.05–20 m有效公开depth逐像素反投影到世界坐标，AI2-THOR深度按相机轴向`z`解释；质心为可见点逐坐标均值，extent为可见点逐轴最大减最小。有效点至少`max(32, ceil(25%×可见像素数))`，可靠性为有效点数除以可见像素数。输入公开depth、内参与camera pose，输出可见几何。例如杯子底部被桌沿挡住时，extent可以偏小并由可靠性反映，而不能读取真值bbox修正。它不等于对象完整尺寸；surface/place/free-space规则仍未冻结。
+实体几何用mask内0.05–20 m有效公开depth逐像素反投影到世界坐标，AI2-THOR深度按相机轴向`z`解释；质心为可见点逐坐标均值，extent为可见点逐轴最大减最小。有效点至少`max(32, ceil(25%×可见像素数))`，可靠性为有效点数除以可见像素数。输入公开depth、内参与camera pose，输出可见几何。例如杯子底部被桌沿挡住时，extent可以偏小并由可靠性反映，而不能读取真值bbox修正。它不等于对象完整尺寸。
 
-D-138审议稿拟将旧`free_space_observations`的`minimum_m/maximum_m`轴对齐盒替换为packet v2的6个世界半空间截锥，并新增`relation_observations`。关系记录拟含包内`relation_id`、两个包内region ID、`relation`、`reliability`和公开支持摘要；只允许从当前surface/place/entity公开几何形成并在teacher前封存。例如实体中心明确落在已观测0.5 m地面格内且离边界至少2 cm时，可提出`located_at`，其反向`contains`共用同一证据。它解决旧schema无法表达“第一条关系观测”的问题；输入匿名region和公开几何，输出匿名关系证据。它不提供永久节点ID、参考边或正确事务，字段和数值尚未批准，现有packet v1继续有效且不会被审议稿冒充通过。
+D-138已批准把旧`free_space_observations`的`minimum_m/maximum_m`轴对齐盒替换为packet v2的6个世界半空间截锥，并新增必需的`relation_observations`。关系记录精确含包内`relation_id`、两个包内region ID、`relation`、`reliability`和公开支持摘要；端点类型固定为entity→place的`located_at`、place→entity的`contains`、entity→surface的`supported_by`及place→place的`adjacent_to`，只能从当前公开几何形成并在teacher前封存。`contains`与反向`located_at`共用支持摘要；消费端规范为一条持久`located_at`，不把同一事实算两次。例如实体中心明确落在已观测0.5 m地面格内且离边界至少2 cm时输出正反两个公开视图，因果prior只建立一条规范边。它解决旧schema无法表达“第一条关系观测”的问题；输入匿名region和公开几何，输出匿名关系证据。它不提供永久节点ID、参考边或正确事务；当前代码仍待服务器合同回执，不是数据或效果结果。
 
 L1 materialization receipt（L1物化回执）分公开与私有两份：公开回执绑定materializer/config、RGB/depth/pose、匿名mask、descriptor、geometry、`ObservationPacket`及DINO源码/权重摘要；私有审计回执另存原instance mask集合、ID映射和公开回执摘要。输入同一次物化，输出两条不可互读的来源链；例如只置换instance ID时公开回执必须不变，私有映射摘要可以变化。它不把private摘要、路径、类别或future/reference摘要带入公开回执或方法输入。
 

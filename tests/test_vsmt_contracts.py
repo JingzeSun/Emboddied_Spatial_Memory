@@ -61,7 +61,7 @@ def make_memory() -> dict[str, Any]:
 
 def make_packet(memory: Mapping[str, Any]) -> dict[str, Any]:
     return {
-        "schema_version": "vsmt-observation-packet-v1",
+        "schema_version": "vsmt-observation-packet-v2",
         "sample_id_hash": "1" * 64,
         "decision_time_s": 2.0,
         "rgbd_refs": {
@@ -87,11 +87,18 @@ def make_packet(memory: Mapping[str, Any]) -> dict[str, Any]:
             "reliability": 0.8,
             "proposal_source_id": "fixed.region.v1",
         }],
+        "relation_observations": [],
         "free_space_observations": [{
             "free_space_id": "free:0000",
             "time_s": 2.0,
-            "minimum_m": [-0.5, -0.5, 0.0],
-            "maximum_m": [0.5, 0.5, 1.5],
+            "halfspaces_world": [
+                {"normal": [1.0, 0.0, 0.0], "offset_m": 0.5},
+                {"normal": [-1.0, 0.0, 0.0], "offset_m": 0.5},
+                {"normal": [0.0, 1.0, 0.0], "offset_m": 0.5},
+                {"normal": [0.0, -1.0, 0.0], "offset_m": 0.5},
+                {"normal": [0.0, 0.0, 1.0], "offset_m": 1.5},
+                {"normal": [0.0, 0.0, -1.0], "offset_m": 0.0},
+            ],
             "reliability": 0.9,
             "support_sha256": "5" * 64,
         }],
@@ -184,7 +191,8 @@ class VSMTContractTests(unittest.TestCase):
             set(model_input),
             {
                 "decision_time_s", "camera_pose", "robot_state", "past_actions",
-                "region_observations", "free_space_observations",
+                "region_observations", "relation_observations",
+                "free_space_observations",
                 "prior_memory", "public_constants",
             },
         )
@@ -216,10 +224,37 @@ class VSMTContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "structure_kind"):
             validate_observation_packet(packet)
 
-    def test_public_packet_rejects_reversed_free_space_bounds(self) -> None:
+    def test_public_packet_rejects_nonunit_free_space_plane(self) -> None:
         packet = deepcopy(self.packet)
-        packet["free_space_observations"][0]["minimum_m"][0] = 0.6
-        with self.assertRaisesRegex(ValueError, "bounds must be ordered"):
+        packet["free_space_observations"][0]["halfspaces_world"][0]["normal"] = [
+            2.0, 0.0, 0.0,
+        ]
+        with self.assertRaisesRegex(ValueError, "unit norm"):
+            validate_observation_packet(packet)
+
+    def test_relation_observation_requires_typed_packet_local_endpoints(self) -> None:
+        packet = deepcopy(self.packet)
+        packet["region_observations"].append({
+            "region_id": "region:0001",
+            "structure_kind": "entity",
+            "mask_sha256": "6" * 64,
+            "descriptor": [0.5, 0.25],
+            "centroid_m": [0.0, 0.1, 1.0],
+            "extent_m": [0.1, 0.2, 0.1],
+            "reliability": 0.9,
+            "proposal_source_id": "fixed.region.v1",
+        })
+        packet["relation_observations"] = [{
+            "relation_id": "relation:0000",
+            "source_region_id": "region:0001",
+            "target_region_id": "region:0000",
+            "relation": "located_at",
+            "reliability": 0.8,
+            "support_sha256": "7" * 64,
+        }]
+        validate_observation_packet(packet)
+        packet["relation_observations"][0]["relation"] = "supported_by"
+        with self.assertRaisesRegex(ValueError, "endpoint kinds"):
             validate_observation_packet(packet)
 
     def test_adapter_input_requires_exact_prior_memory_binding(self) -> None:
@@ -302,7 +337,8 @@ class VSMTContractTests(unittest.TestCase):
         self.assertEqual(result["method_id"], adapter.method_id)
         self.assertEqual(adapter.seen_keys, {
             "decision_time_s", "camera_pose", "robot_state", "past_actions",
-            "region_observations", "free_space_observations",
+            "region_observations", "relation_observations",
+            "free_space_observations",
             "prior_memory", "public_constants",
         })
 

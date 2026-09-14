@@ -1,10 +1,13 @@
 {
   "version": "vsmt-vm04-l1-contract-proposal-v1",
-  "status": "entity_materialization_values_approved_implementation_authorized",
-  "decision": "D-136",
+  "status": "all_L1_materialization_values_approved_implementation_authorized",
+  "decision": "D-138",
   "approval": {
     "directional_boundary_approved": true,
     "entity_materialization_values_approved": true,
+    "non_entity_geometry_values_approved": true,
+    "packet_schema_v2_approved": true,
+    "typed_relation_semantics_approved": true,
     "contract_approved": false,
     "implementation_authorized": true,
     "dependency_install_authorized": true,
@@ -106,8 +109,8 @@
     "place_source": "public_depth_pose_and_calibration_only",
     "fragment_source": "predeclared_transformation_of_anonymous_regions_only",
     "simulator_semantic_segmentation_or_room_labels_allowed": false,
-    "numeric_rules": null,
-    "blocking_reason": "surface_place_and_fragment_geometry_rules_are_not_yet_frozen"
+    "numeric_rules": "configs/vsmt/vm04_l1_non_entity_geometry_review_v1.json",
+    "blocking_reason": "fragment_geometry_rules_remain_deferred_outside_current_L1_batch"
   },
   "dinov2_region_descriptor": {
     "repository_commit": "7764ea0f912e53c92e82eb78a2a1631e92725fc8",
@@ -153,9 +156,9 @@
       "rule": "max_of_absolute_and_fraction"
     },
     "reliability_formula": "valid_depth_point_count_divided_by_visible_pixel_count",
-    "free_space_box_rules": null,
-    "surface_and_place_rules": null,
-    "blocking_reason": "free_space_surface_and_place_rules_require_review"
+    "free_space_box_rules": "replaced_by_packet_v2_six_halfspace_multiscale_frusta_in_D-138",
+    "surface_and_place_rules": "configs/vsmt/vm04_l1_non_entity_geometry_review_v1.json",
+    "blocking_reason": null
   },
   "materialization_receipts": {
     "public_receipt_fields": [
@@ -192,7 +195,7 @@
     "L1_and_L2_cache_reuse": false,
     "controlled_revision": "same_sealed_L1_prior_memory_bytes_for_all_five_methods",
     "closed_loop_revision": "each_method_commits_its_own_memory_from_packet_zero",
-    "builder": "public_bootstrap_v1_BIRTH_then_public_threshold_BIND_only",
+    "builder": "public_bootstrap_v2_typed_node_or_relation_BIRTH_BIND_and_public_RELINK",
     "builder_inputs": "ordered_L1_ObservationPackets_only",
     "builder_thresholds": null,
     "private_teacher_future_or_reference_mount": false
@@ -333,7 +336,6 @@
     }
   ],
   "unresolved_review_items": [
-    "surface_place_and_free_space_geometry",
     "bootstrap_and_all_method_thresholds",
     "candidate_thresholds_caps_and_public_heuristic_score",
     "selector_capacity_regularization_and_training_budget",

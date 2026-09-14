@@ -75,6 +75,23 @@ from .l1_entities import (
     pool_dinov2_region_descriptor,
     preprocess_dinov2_rgb,
 )
+from .l1_structures import (
+    PLACE_PROPOSAL_SOURCE_ID,
+    SURFACE_PROPOSAL_SOURCE_ID,
+    FreeSpaceFrustum,
+    FreeSpaceMaterializationConfig,
+    L1StructureConstructionError,
+    MaterializedRegion,
+    PlaceMaterializationConfig,
+    SurfaceMaterializationConfig,
+    assemble_free_space_history,
+    assemble_region_records,
+    entity_regions_with_masks,
+    materialize_public_free_space,
+    materialize_public_places,
+    materialize_public_relations,
+    materialize_public_surfaces,
+)
 
 __all__ = [
     "AdapterInput",
@@ -137,4 +154,19 @@ __all__ = [
     "materialize_l1_entity_observation",
     "pool_dinov2_region_descriptor",
     "preprocess_dinov2_rgb",
+    "PLACE_PROPOSAL_SOURCE_ID",
+    "SURFACE_PROPOSAL_SOURCE_ID",
+    "FreeSpaceFrustum",
+    "FreeSpaceMaterializationConfig",
+    "L1StructureConstructionError",
+    "MaterializedRegion",
+    "PlaceMaterializationConfig",
+    "SurfaceMaterializationConfig",
+    "assemble_free_space_history",
+    "assemble_region_records",
+    "entity_regions_with_masks",
+    "materialize_public_free_space",
+    "materialize_public_places",
+    "materialize_public_relations",
+    "materialize_public_surfaces",
 ]

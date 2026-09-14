@@ -18,7 +18,7 @@ from cpmt.executor import validate_graph
 from cpmt.hashing import canonical_json, clone_json, compute_graph_hash
 
 
-OBSERVATION_SCHEMA = "vsmt-observation-packet-v1"
+OBSERVATION_SCHEMA = "vsmt-observation-packet-v2"
 CANDIDATE_SCHEMA = "vsmt-candidate-catalog-v1"
 TEACHER_SCHEMA = "vsmt-teacher-targets-v1"
 RESULT_SCHEMA = "vsmt-memory-update-result-v1"
@@ -28,6 +28,7 @@ INVARIANCE_SCHEMA = "vsmt-private-mutation-invariance-v1"
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
 OPAQUE_REGION = re.compile(r"^region:[0-9]{4}$")
 OPAQUE_FREE_SPACE = re.compile(r"^free:[0-9]{4}$")
+OPAQUE_RELATION = re.compile(r"^relation:[0-9]{4}$")
 OPAQUE_CANDIDATE = re.compile(r"^candidate:[0-9]{4}$")
 OPAQUE_LATENT_REF = re.compile(r"^latent:[0-9a-f]{16,64}$")
 IDENTIFIER = re.compile(r"^[a-z][a-z0-9_.-]{0,127}$")
@@ -42,6 +43,7 @@ OBSERVATION_KEYS = {
     "robot_state",
     "past_actions",
     "region_observations",
+    "relation_observations",
     "free_space_observations",
     "prior_memory_ref",
     "public_constants",
@@ -63,10 +65,24 @@ REGION_KEYS = {
 FREE_SPACE_KEYS = {
     "free_space_id",
     "time_s",
-    "minimum_m",
-    "maximum_m",
+    "halfspaces_world",
     "reliability",
     "support_sha256",
+}
+HALFSPACE_KEYS = {"normal", "offset_m"}
+RELATION_KEYS = {
+    "relation_id",
+    "source_region_id",
+    "target_region_id",
+    "relation",
+    "reliability",
+    "support_sha256",
+}
+RELATION_ENDPOINT_KINDS = {
+    "located_at": ("entity", "place"),
+    "contains": ("place", "entity"),
+    "supported_by": ("entity", "surface"),
+    "adjacent_to": ("place", "place"),
 }
 STRUCTURE_KINDS = {"entity", "place", "surface", "fragment"}
 PRIOR_REF_KEYS = {"graph_version", "graph_sha256"}
@@ -132,6 +148,7 @@ PUBLIC_DERIVATION_ROOTS = {
     "/robot_state",
     "/past_actions",
     "/region_observations",
+    "/relation_observations",
     "/free_space_observations",
     "/public_constants",
 }
@@ -169,6 +186,7 @@ class AdapterInput(TypedDict):
     robot_state: dict[str, Any]
     past_actions: list[dict[str, Any]]
     region_observations: list[dict[str, Any]]
+    relation_observations: list[dict[str, Any]]
     free_space_observations: list[dict[str, Any]]
     prior_memory: dict[str, Any]
     public_constants: dict[str, str]
@@ -374,7 +392,8 @@ def validate_observation_packet(packet: Mapping[str, Any]) -> dict[str, Any]:
             and region["region_id"] == expected_id,
             "region IDs must be packet-local opaque ordinals",
         )
-        _require(region["structure_kind"] in STRUCTURE_KINDS,
+        _require(type(region["structure_kind"]) is str
+                 and region["structure_kind"] in STRUCTURE_KINDS,
                  "region structure_kind is not supported")
         _hex64(region["mask_sha256"], f"region_observations[{index}].mask_sha256")
         _vector(region["descriptor"], f"region_observations[{index}].descriptor",
@@ -388,6 +407,48 @@ def validate_observation_packet(packet: Mapping[str, Any]) -> dict[str, Any]:
         _require(0.0 <= reliability <= 1.0, "region reliability must be within [0, 1]")
         _identifier(region["proposal_source_id"],
                     f"region_observations[{index}].proposal_source_id")
+
+    region_by_id = {region["region_id"]: region for region in regions}
+    relations = packet["relation_observations"]
+    _require(type(relations) is list, "relation_observations must be a list")
+    for index, relation in enumerate(relations):
+        _require(type(relation) is dict,
+                 f"relation_observations[{index}] must be an object")
+        _exact_keys(relation, RELATION_KEYS,
+                    f"relation_observations[{index}]")
+        expected_id = f"relation:{index:04d}"
+        _require(
+            type(relation["relation_id"]) is str
+            and OPAQUE_RELATION.fullmatch(relation["relation_id"]) is not None
+            and relation["relation_id"] == expected_id,
+            "relation IDs must be packet-local opaque ordinals",
+        )
+        source_id = relation["source_region_id"]
+        target_id = relation["target_region_id"]
+        _require(type(source_id) is str and type(target_id) is str,
+                 "relation endpoints must be strings")
+        _require(source_id in region_by_id and target_id in region_by_id,
+                 "relation endpoints must reference packet-local regions")
+        _require(source_id != target_id, "relation endpoints must be distinct")
+        relation_kind = relation["relation"]
+        _require(type(relation_kind) is str
+                 and relation_kind in RELATION_ENDPOINT_KINDS,
+                 "relation kind is not supported")
+        expected_kinds = RELATION_ENDPOINT_KINDS[relation_kind]
+        actual_kinds = (
+            region_by_id[source_id]["structure_kind"],
+            region_by_id[target_id]["structure_kind"],
+        )
+        _require(actual_kinds == expected_kinds,
+                 "relation endpoint kinds do not match relation type")
+        reliability = _number(
+            relation["reliability"],
+            f"relation_observations[{index}].reliability",
+        )
+        _require(0.0 <= reliability <= 1.0,
+                 "relation reliability must be within [0, 1]")
+        _hex64(relation["support_sha256"],
+               f"relation_observations[{index}].support_sha256")
 
     free_spaces = packet["free_space_observations"]
     _require(type(free_spaces) is list, "free_space_observations must be a list")
@@ -411,16 +472,18 @@ def validate_observation_packet(packet: Mapping[str, Any]) -> dict[str, Any]:
         _require(previous_free_time <= free_time <= decision_time,
                  "free-space times must be ordered and not enter the future")
         previous_free_time = free_time
-        minimum = _vector(
-            free_space["minimum_m"],
-            f"free_space_observations[{index}].minimum_m", length=3,
-        )
-        maximum = _vector(
-            free_space["maximum_m"],
-            f"free_space_observations[{index}].maximum_m", length=3,
-        )
-        _require(all(lower <= upper for lower, upper in zip(minimum, maximum)),
-                 "free-space bounds must be ordered")
+        halfspaces = free_space["halfspaces_world"]
+        _require(type(halfspaces) is list and len(halfspaces) == 6,
+                 "free-space frustum must contain exactly six halfspaces")
+        for plane_index, halfspace in enumerate(halfspaces):
+            name = f"free_space_observations[{index}].halfspaces_world[{plane_index}]"
+            _require(type(halfspace) is dict, f"{name} must be an object")
+            _exact_keys(halfspace, HALFSPACE_KEYS, name)
+            normal = _vector(halfspace["normal"], f"{name}.normal", length=3)
+            norm = math.sqrt(sum(value * value for value in normal))
+            _require(abs(norm - 1.0) <= 1e-6,
+                     "free-space halfspace normals must have unit norm")
+            _number(halfspace["offset_m"], f"{name}.offset_m")
         reliability = _number(
             free_space["reliability"],
             f"free_space_observations[{index}].reliability",
@@ -465,6 +528,7 @@ def build_adapter_input(
         "robot_state": clone_json(public["robot_state"]),
         "past_actions": clone_json(public["past_actions"]),
         "region_observations": clone_json(public["region_observations"]),
+        "relation_observations": clone_json(public["relation_observations"]),
         "free_space_observations": clone_json(
             public["free_space_observations"]
         ),

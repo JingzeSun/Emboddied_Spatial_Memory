@@ -27,15 +27,18 @@ import zipfile
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CONFIG_PATH = PROJECT_ROOT / "configs" / "vsmt" / "vm04_l1_environment_v1.json"
 STAGE_ID = "vsmt-vm04-l1-entity-materializer-v1"
-EXPECTED_TESTS = 22
+EXPECTED_TESTS = 29
 BOUND_PATHS = (
     "configs/vsmt/vm04_l1_contract_proposal_v1.json",
     "configs/vsmt/vm04_l1_environment_v1.json",
+    "configs/vsmt/vm04_l1_non_entity_geometry_review_v1.json",
     "src/vsmt/__init__.py",
     "src/vsmt/l1_entities.py",
     "src/vsmt/l1_masks.py",
+    "src/vsmt/l1_structures.py",
     "tests/test_l1_entities.py",
     "tests/test_l1_masks.py",
+    "tests/test_l1_structures.py",
     "ops/vsmt/vm04_l1_frontend.py",
 )
 

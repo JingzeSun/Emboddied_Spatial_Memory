@@ -72,10 +72,11 @@ def memory(*nodes: Mapping[str, Any]) -> dict[str, Any]:
 
 def region(
     *, centroid: list[float], descriptor: list[float], index: int = 0,
+    kind: str = "entity",
 ) -> dict[str, Any]:
     return {
         "region_id": f"region:{index:04d}",
-        "structure_kind": "entity",
+        "structure_kind": kind,
         "mask_sha256": f"{index + 3:x}" * 64,
         "descriptor": descriptor,
         "centroid_m": centroid,
@@ -88,9 +89,10 @@ def region(
 def packet(
     graph: Mapping[str, Any], *, regions: list[Mapping[str, Any]],
     include_free_space: bool = False,
+    relations: list[Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     return {
-        "schema_version": "vsmt-observation-packet-v1",
+        "schema_version": "vsmt-observation-packet-v2",
         "sample_id_hash": "1" * 64,
         "decision_time_s": 1.0,
         "rgbd_refs": {"rgb_sha256": "2" * 64, "depth_sha256": "3" * 64},
@@ -101,14 +103,23 @@ def packet(
         "robot_state": {"feature_names": [], "values": []},
         "past_actions": [],
         "region_observations": [deepcopy(dict(item)) for item in regions],
+        "relation_observations": [
+            deepcopy(dict(item)) for item in (relations or [])
+        ],
         "free_space_observations": ([{
-            "free_space_id": "free:0000",
-            "time_s": 1.0,
-            "minimum_m": [-1.0, -1.0, -1.0],
-            "maximum_m": [1.0, 1.0, 1.0],
+            "free_space_id": f"free:{index:04d}",
+            "time_s": time_s,
+            "halfspaces_world": [
+                {"normal": [1.0, 0.0, 0.0], "offset_m": 1.0},
+                {"normal": [-1.0, 0.0, 0.0], "offset_m": 1.0},
+                {"normal": [0.0, 1.0, 0.0], "offset_m": 1.0},
+                {"normal": [0.0, -1.0, 0.0], "offset_m": 1.0},
+                {"normal": [0.0, 0.0, 1.0], "offset_m": 1.0},
+                {"normal": [0.0, 0.0, -1.0], "offset_m": 1.0},
+            ],
             "reliability": 1.0,
             "support_sha256": "4" * 64,
-        }] if include_free_space else []),
+        } for index, time_s in enumerate((0.5, 1.0))] if include_free_space else []),
         "prior_memory_ref": {
             "graph_version": graph["graph_version"],
             "graph_sha256": graph["graph_hash"],
@@ -142,6 +153,8 @@ def elu_config(**updates: Any) -> ELUConfig:
         "geometry_scale_m": 1.0,
         "association_threshold": 0.7,
         "free_space_reliability_threshold": 0.8,
+        "free_space_target_expansion_m": 0.02,
+        "minimum_free_space_time_separation_s": 0.25,
         "birth_log_odds": 0.0,
         "positive_log_odds_increment": 1.0,
         "negative_log_odds_decrement": 2.0,
@@ -163,6 +176,8 @@ def wfr_config(**updates: Any) -> WFRConfig:
         "reconciliation_interval": 1,
         "absent_reconciliations_before_retract": 1,
         "free_space_reliability_threshold": 0.8,
+        "free_space_target_expansion_m": 0.02,
+        "minimum_free_space_time_separation_s": 0.25,
     }
     values.update(updates)
     return WFRConfig(**values)
@@ -178,6 +193,43 @@ class VSMTBaselineTests(unittest.TestCase):
             elu_config(retract_log_odds_threshold=0.0)
         with self.assertRaises(ValueError):
             wfr_config(reconciliation_interval=0)
+
+    def test_all_four_adapters_consume_the_same_public_relation(self) -> None:
+        graph = memory()
+        regions = [
+            region(centroid=[0.0, 0.1, 0.0], descriptor=[1.0, 0.0], index=0),
+            region(
+                centroid=[0.0, 0.0, 0.0], descriptor=[0.0, 1.0],
+                index=1, kind="place",
+            ),
+        ]
+        relations = [{
+            "relation_id": "relation:0000",
+            "source_region_id": "region:0000",
+            "target_region_id": "region:0001",
+            "relation": "located_at",
+            "reliability": 1.0,
+            "support_sha256": "9" * 64,
+        }]
+        adapters = [
+            LOWAdapter(LOWConfig(maximum_centroid_distance_m=0.5)),
+            TAFAdapter(taf_config()),
+            ELUAdapter(elu_config()),
+            WFRAdapter(wfr_config()),
+        ]
+        for adapter in adapters:
+            with self.subTest(method=adapter.method_id):
+                result = run_adapter(
+                    adapter,
+                    packet(graph, regions=regions, relations=relations),
+                    graph,
+                )
+                open_edges = [
+                    edge for edge in result["post_memory"]["edges"]
+                    if edge["valid_to"] is None
+                ]
+                self.assertEqual(len(open_edges), 1)
+                self.assertEqual(open_edges[0]["relation"], "located_at")
 
     def test_low_overwrites_nearest_same_kind(self) -> None:
         graph = memory(observed_node("node-a", centroid=[0.0, 0.0, 0.0],

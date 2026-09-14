@@ -16,13 +16,13 @@
 | VM-01 公私数据与共同适配合同（代码候选） | D-122草案；固定结构类型、公开 proposal/descriptor、五通道文件和反作弊 gate | schema、正负例、private mutation invariance、无 private 推理及 candidate-before-teacher 测试；补齐公开自由空间和逐候选在线证据，待合并服务器测试 |
 | VM-02 三种论文机制与朴素基线（代码候选） | 共同接口；TAF、ELU、WFR、LOW 只消费相同 `ObservationPacket` | clean-room 适配器、显式无默认值配置、版本化共同输出包装及人工分支测试；未冻结阈值，不称官方复现或效果结果 |
 | VM-03 VSMT 无泄漏候选与 teacher（代码候选） | VM-01接口；复用 executor/八原子语义，删除参考派生 query | public-only 九类程序、逐一真实执行、公开摘要排序、online evidence封存及封存后teacher；待同批服务器测试 |
-| VM-04 新数据数值冻结与开发生成（L1优先，实体物化通过） | [总协议提案](../configs/vsmt/vm04_data_protocol_proposal_v1.json)、[L1合同](../configs/vsmt/vm04_l1_contract_proposal_v1.json)及[隔离环境](../configs/vsmt/vm04_l1_environment_v1.json)；ProcTHOR＋AI2-THOR、2/48/12/12家族、32帧、九程序各2重复、匿名oracle mask＋冻结DINOv2、双轨 prior 和关系感知 SPLIT；L2的SAM2.1前端后置 | `40f6d32`上22/22、AI2-THOR复验及真实DINO非数据smoke通过；[报告](../results/vsmt_vm04_l1_entity_materializer.json)绑定实体描述/可见几何。下一职责是surface/place/free-space与完整packet；2-house生成、训练与confirmation仍阻断，正式重阶段须多worker |
+| VM-04 新数据数值冻结与开发生成（L1优先，完整物化待服务器回执） | [总协议提案](../configs/vsmt/vm04_data_protocol_proposal_v1.json)、[L1合同](../configs/vsmt/vm04_l1_contract_proposal_v1.json)及[隔离环境](../configs/vsmt/vm04_l1_environment_v1.json)；ProcTHOR＋AI2-THOR、2/48/12/12家族、32帧、九程序各2重复、匿名oracle mask＋冻结DINOv2、双轨 prior 和关系感知 SPLIT；L2的SAM2.1前端后置 | `40f6d32`上22/22、AI2-THOR复验及真实DINO非数据smoke通过；D-138已批准surface/place/free-space、packet v2与类型化关系语义，代码候选和130项固定入口待服务器验证。2-house生成、训练与confirmation仍阻断，正式重阶段须多worker |
 | VM-05 公平训练与 validation | 数据验收；冻结各方法阈值、学习预算、停止规则、共同/完整任务指标 | VSMT/TAF/ELU/WFR/LOW 在 L2 完全同前端输入主评；L1只作机制上界，旧 A/C/E 只作内部消融；确认前锁定全部选择 |
 | VM-06 独立确认与论文证据 | 模型、前端、候选、评分和最小效果门冻结后另行授权 | 未见家族 confirmation、必要现实来源、逐类/共享能力/成本/失败报告；不能按 validation 结果改样本或门 |
 
 ### 当前指针
 
-**VSMT 已在 `main`；五方法共同L1的匿名实体物化已经服务器工程通过，surface/place/free-space实现前审议稿已形成但不可执行。** `40f6d32`精确22/22通过；环境复验返回224×224 RGB/depth/instance及9个mask，真实冻结DINO在RTX 4080 SUPER输出16×16×384 patch token，196像素区域得到384维单位描述、196/49有效深度支持和可靠性1.0。报告绑定DINO、AI2-THOR构建及所有代码/配置摘要，明确0 house生成、0训练、0confirmation；它不证明记忆效果。D-138建议surface用公开depth平面片、place用0.5 m可见地面格、free-space用多尺度保守截锥而非不安全的世界AABB；审查同时发现packet v1没有关系观测且因果prior不能创建第一条边，须先裁决是否新增`relation_observations`并把既有BIRTH/BIND类型化到节点/关系。获批后才可实现packet v2和完整物化，不获批则不能声称首批L1覆盖RELINK/关系修订。正式生成、训练数据读取和validation/评价均须多worker，精确worker数在capacity probe后冻结；2-house、训练和confirmation仍阻断。bootstrap/五方法阈值、选择器容量、teacher/evaluator及S-01～S-12仍分批在对话中裁决。原D-062分支、代码、数据和结果均保留，`scripts/notes.txt`保持原字节。
+**D-138四项推荐口径已获批，完整L1结构物化代码候选待服务器合同与合成packet烟测。** 既有实体物化仍以`40f6d32`的22/22、AI2-THOR复验和真实冻结DINO smoke为证；新候选把surface公开平面片、0.5 m可见place格、6半空间多尺度free-space、packet v2关系通道及节点/关系类型化BIRTH/BIND接到因果prior、VSMT候选和TAF/ELU/WFR/LOW。`contains`规范为`located_at`反向视图而不双存。固定入口依次跑executor 42项、L1 29项、VSMT 59项（共130项），再用合成公开depth组装完整packet；服务器成功回执前不称工程通过。仍不生成house、不训练、不打开confirmation；正式生成、训练数据读取和validation/评价必须多worker，精确worker数在capacity probe后冻结。下一科学裁决仍是bootstrap/五方法阈值、候选cap、选择器容量、teacher/evaluator及S-01～S-12，不会在本实现批次暗中决定。原D-062分支、代码、数据和结果均保留，`scripts/notes.txt`保持原字节。
 
 ## 上一 D-062 路线（暂停，以下保留复现）
 

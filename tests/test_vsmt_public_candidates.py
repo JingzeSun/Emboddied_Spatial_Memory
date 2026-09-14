@@ -103,7 +103,7 @@ def packet_fixture(
     graph: Mapping[str, Any], *, free_times: tuple[float, ...] = (0.5, 1.0),
 ) -> dict[str, Any]:
     return {
-        "schema_version": "vsmt-observation-packet-v1",
+        "schema_version": "vsmt-observation-packet-v2",
         "sample_id_hash": "1" * 64,
         "decision_time_s": 1.0,
         "rgbd_refs": {"rgb_sha256": "2" * 64, "depth_sha256": "3" * 64},
@@ -118,12 +118,26 @@ def packet_fixture(
             region(1, [0.4, 0.0, 0.0]),
             region(2, [1.0, 0.0, 0.0], kind="place"),
         ],
+        "relation_observations": [{
+            "relation_id": "relation:0000",
+            "source_region_id": "region:0000",
+            "target_region_id": "region:0002",
+            "relation": "located_at",
+            "reliability": 1.0,
+            "support_sha256": "b" * 64,
+        }],
         "free_space_observations": [
             {
                 "free_space_id": f"free:{index:04d}",
                 "time_s": time_s,
-                "minimum_m": [-0.2, -0.2, -0.2],
-                "maximum_m": [0.2, 0.2, 0.2],
+                "halfspaces_world": [
+                    {"normal": [1.0, 0.0, 0.0], "offset_m": 0.2},
+                    {"normal": [-1.0, 0.0, 0.0], "offset_m": 0.2},
+                    {"normal": [0.0, 1.0, 0.0], "offset_m": 0.2},
+                    {"normal": [0.0, -1.0, 0.0], "offset_m": 0.2},
+                    {"normal": [0.0, 0.0, 1.0], "offset_m": 0.2},
+                    {"normal": [0.0, 0.0, -1.0], "offset_m": 0.2},
+                ],
                 "reliability": 1.0,
                 "support_sha256": f"{index + 8:x}" * 64,
             }
@@ -152,6 +166,8 @@ def config() -> PublicCandidateConfig:
         split_region_threshold=0.6,
         split_minimum_separation_m=0.3,
         free_space_reliability_threshold=0.9,
+        free_space_target_expansion_m=0.02,
+        minimum_free_space_time_separation_s=0.25,
         maximum_candidates_per_template=20,
         maximum_split_incident_edges=2,
     )
@@ -190,10 +206,79 @@ class PublicCandidateTests(unittest.TestCase):
             for candidate in catalog["candidates"]
         ))
 
+    def test_relink_requires_a_public_relation_observation(self) -> None:
+        graph = graph_fixture()
+        public = packet_fixture(graph)
+        public["relation_observations"] = []
+        catalog = generate_public_candidate_catalog(public, graph, config=config())
+        self.assertNotIn("RELINK", set(labels(catalog)))
+
+    def test_relation_observation_generates_typed_birth_bind_and_relink(self) -> None:
+        graph = graph_fixture()
+        public = packet_fixture(graph)
+        public["relation_observations"].append({
+            "relation_id": "relation:0001",
+            "source_region_id": "region:0002",
+            "target_region_id": "region:0000",
+            "relation": "contains",
+            "reliability": 1.0,
+            "support_sha256": "b" * 64,
+        })
+        catalog = generate_public_candidate_catalog(
+            public, graph, config=config(),
+        )
+        programs = [candidate["program"] for candidate in catalog["candidates"]]
+        self.assertTrue(any(
+            program["template"] == "BIRTH"
+            and any(operation["op_type"] == "ADD_EDGE"
+                    for operation in program["operations"])
+            for program in programs
+        ))
+        self.assertTrue(any(
+            program["template"] == "BIND"
+            and any(
+                operation["op_type"] == "ATTACH_EVIDENCE"
+                and operation["arguments"].get("target_kind") == "edge"
+                for operation in program["operations"]
+            )
+            for program in programs
+        ))
+        born_edges = [
+            operation["arguments"]["edge"]
+            for program in programs if program["template"] == "BIRTH"
+            for operation in program["operations"]
+            if operation["op_type"] == "ADD_EDGE"
+        ]
+        semantic_births = {
+            (
+                edge["source"], edge["target"], edge["relation"],
+                tuple(edge["evidence_refs"]),
+            )
+            for edge in born_edges
+        }
+        self.assertEqual(len(born_edges), len(semantic_births))
+        self.assertTrue(any(
+            program["template"] == "RELINK"
+            and any(
+                reference == "observation:" + "b" * 64
+                for reference in program["evidence_refs"]
+            )
+            for program in programs
+        ))
+
     def test_retract_and_replace_need_two_public_times(self) -> None:
         graph = graph_fixture()
         catalog = generate_public_candidate_catalog(
             packet_fixture(graph, free_times=(1.0,)), graph, config=config(),
+        )
+        observed = set(labels(catalog))
+        self.assertNotIn("RETRACT", observed)
+        self.assertNotIn("REPLACE", observed)
+
+    def test_retract_rejects_two_times_less_than_quarter_second_apart(self) -> None:
+        graph = graph_fixture()
+        catalog = generate_public_candidate_catalog(
+            packet_fixture(graph, free_times=(0.8, 1.0)), graph, config=config(),
         )
         observed = set(labels(catalog))
         self.assertNotIn("RETRACT", observed)

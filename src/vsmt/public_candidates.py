@@ -28,8 +28,8 @@ from .contracts import (
 from .graph_ops import (
     association_score,
     centroid_distance,
+    covering_free_space_times,
     finite_number,
-    fully_covered_by_free_space,
     next_tick,
     node_pair_score,
     observation_state,
@@ -55,6 +55,8 @@ class PublicCandidateConfig:
     split_region_threshold: float
     split_minimum_separation_m: float
     free_space_reliability_threshold: float
+    free_space_target_expansion_m: float
+    minimum_free_space_time_separation_s: float
     maximum_candidates_per_template: int
     maximum_split_incident_edges: int
 
@@ -77,6 +79,18 @@ class PublicCandidateConfig:
             self.free_space_reliability_threshold,
             "free_space_reliability_threshold", low=0.0, high=1.0,
         )
+        if finite_number(
+            self.free_space_target_expansion_m,
+            "free_space_target_expansion_m",
+        ) < 0.0:
+            raise ValueError("free_space_target_expansion_m must be non-negative")
+        if finite_number(
+            self.minimum_free_space_time_separation_s,
+            "minimum_free_space_time_separation_s",
+        ) <= 0.0:
+            raise ValueError(
+                "minimum_free_space_time_separation_s must be positive"
+            )
         if (
             type(self.maximum_candidates_per_template) is not int
             or self.maximum_candidates_per_template <= 0
@@ -190,18 +204,14 @@ def _support_event(
 
 def _covering_free_spaces(
     node: Mapping[str, Any], free_spaces: list[Mapping[str, Any]], *,
-    minimum_reliability: float,
+    minimum_reliability: float, target_expansion_m: float,
+    minimum_time_separation_s: float,
 ) -> list[Mapping[str, Any]]:
-    rows = [
-        item for item in free_spaces
-        if fully_covered_by_free_space(
-            node, [item], minimum_reliability=minimum_reliability,
-        )
-    ]
-    distinct_times: dict[float, Mapping[str, Any]] = {}
-    for item in rows:
-        distinct_times.setdefault(float(item["time_s"]), item)
-    return [distinct_times[key] for key in sorted(distinct_times)]
+    return covering_free_space_times(
+        node, free_spaces, minimum_reliability=minimum_reliability,
+        target_expansion_m=target_expansion_m,
+        minimum_time_separation_s=minimum_time_separation_s,
+    )
 
 
 def _negative_evidence(
@@ -285,6 +295,63 @@ def _birth_program(
     return program, {}
 
 
+def _relation_birth_program(
+    graph: Mapping[str, Any], public_hash: str,
+    relation: Mapping[str, Any], *, source_node_id: str,
+    target_node_id: str, tick: int,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    program = _header(
+        graph, public_hash, "BIRTH", "EXPAND", "relation",
+        relation["relation_id"], source_node_id, target_node_id,
+        relation["relation"],
+    )
+    edge_id = opaque_id(
+        public_hash, relation["relation_id"], source_node_id,
+        target_node_id, relation["relation"], prefix="edge",
+    )
+    evidence = f"observation:{relation['support_sha256']}"
+    program["evidence_refs"] = [evidence]
+    program["operations"] = [{
+        "op_id": "birth:relation-add",
+        "op_type": "ADD_EDGE",
+        "arguments": {"edge": {
+            "edge_id": edge_id,
+            "edge_version_id": opaque_id(edge_id, tick, prefix="edge-version"),
+            "source": source_node_id,
+            "target": target_node_id,
+            "relation": relation["relation"],
+            "frame": "map",
+            "valid_from": tick,
+            "valid_to": None,
+            "evidence_refs": [evidence],
+            "provenance": [program["transaction_id"]],
+        }},
+    }]
+    return program, {}
+
+
+def _relation_bind_program(
+    graph: Mapping[str, Any], public_hash: str,
+    relation: Mapping[str, Any], edge: Mapping[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    program = _header(
+        graph, public_hash, "BIND", "ASSOCIATE", "relation",
+        relation["relation_id"], edge["edge_version_id"],
+    )
+    evidence = f"observation:{relation['support_sha256']}"
+    program["evidence_refs"] = [evidence]
+    program["operations"] = [{
+        "op_id": "bind:relation-evidence",
+        "op_type": "ATTACH_EVIDENCE",
+        "arguments": {
+            "target_kind": "edge",
+            "target_id": edge["edge_id"],
+            "evidence_ref": evidence,
+        },
+    }]
+    return program, {}
+
+
 def _reactivate_program(
     graph: Mapping[str, Any], public_hash: str, region: Mapping[str, Any],
     node: Mapping[str, Any], tick: int,
@@ -334,11 +401,16 @@ def _reactivate_program(
 def _relink_program(
     graph: Mapping[str, Any], public_hash: str, edge: Mapping[str, Any],
     target: Mapping[str, Any], tick: int,
+    relation_observation: Mapping[str, Any] | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     program = _header(graph, public_hash, "RELINK", "REVISE",
                       edge["edge_id"], target["node_id"])
-    evidence = opaque_id(public_hash, edge["edge_id"], target["node_id"],
-                         prefix="evidence")
+    evidence = (
+        f"observation:{relation_observation['support_sha256']}"
+        if relation_observation is not None
+        else opaque_id(public_hash, edge["edge_id"], target["node_id"],
+                       prefix="evidence")
+    )
     successor = _edge_successor(
         edge, target=str(target["node_id"]),
         version_id=opaque_id(edge["edge_version_id"], tick, target["node_id"],
@@ -696,7 +768,6 @@ def generate_public_candidate_catalog(
     regular = [node for node in nodes if node["lifecycle"] in {"candidate", "confirmed"}]
     dormant = [node for node in nodes if node["lifecycle"] == "dormant"]
     edges = [edge for edge in prior_memory["edges"] if edge.get("valid_to") is None]
-    places = [node for node in regular if node.get("node_type") == "place"]
     by_id = {node["node_id"]: node for node in nodes}
     rows: dict[str, list[tuple[float, dict[str, Any], dict[str, Any]]]] = {
         template: [] for template in TEMPLATE_ORDER
@@ -730,18 +801,99 @@ def generate_public_candidate_catalog(
                     prior_memory, deployable_hash, region, node, tick,
                 ))
 
+    region_by_id = {region["region_id"]: region for region in regions}
+    matches_by_region: dict[str, list[tuple[float, Mapping[str, Any]]]] = {}
+    for region in regions:
+        matches_by_region[region["region_id"]] = [
+            (score, node)
+            for node in regular
+            if (score := association_score(
+                region, node,
+                visual_weight=config.visual_weight,
+                geometry_weight=config.geometry_weight,
+                geometry_scale_m=config.geometry_scale_m,
+            )) >= config.bind_threshold
+        ]
+    seen_relation_signatures: set[tuple[str, str, str, str]] = set()
+    for relation_observation in public["relation_observations"]:
+        relation = clone_json(dict(relation_observation))
+        source_region_id = relation["source_region_id"]
+        target_region_id = relation["target_region_id"]
+        if relation["relation"] == "contains":
+            source_region_id, target_region_id = target_region_id, source_region_id
+            relation["relation"] = "located_at"
+        if (
+            relation["relation"] == "adjacent_to"
+            and target_region_id < source_region_id
+        ):
+            source_region_id, target_region_id = target_region_id, source_region_id
+        relation_signature = (
+            source_region_id,
+            target_region_id,
+            relation["relation"],
+            relation["support_sha256"],
+        )
+        if relation_signature in seen_relation_signatures:
+            continue
+        seen_relation_signatures.add(relation_signature)
+        if source_region_id not in region_by_id or target_region_id not in region_by_id:
+            continue
+        for source_score, source_node_match in matches_by_region[source_region_id]:
+            for target_score, target_node_match in matches_by_region[target_region_id]:
+                source_node = source_node_match
+                target_node = target_node_match
+                source_id = str(source_node["node_id"])
+                target_id = str(target_node["node_id"])
+                if relation["relation"] == "adjacent_to" and target_id < source_id:
+                    source_id, target_id = target_id, source_id
+                    source_node, target_node = target_node, source_node
+                if source_id == target_id:
+                    continue
+                relation_score = min(
+                    float(relation["reliability"]), source_score, target_score,
+                )
+                exact = [
+                    edge for edge in edges
+                    if edge["source"] == source_id
+                    and edge["target"] == target_id
+                    and edge["relation"] == relation["relation"]
+                ]
+                if exact:
+                    _append(rows, "BIND", relation_score, _relation_bind_program(
+                        prior_memory, deployable_hash, relation,
+                        sorted(exact, key=lambda item: str(item["edge_id"]))[0],
+                    ))
+                    continue
+                movable = [
+                    edge for edge in edges
+                    if edge["source"] == source_id
+                    and edge["relation"] == relation["relation"]
+                    and relation["relation"] in {"located_at", "supported_by"}
+                ]
+                if movable:
+                    _append(rows, "RELINK", relation_score, _relink_program(
+                        prior_memory, deployable_hash,
+                        sorted(movable, key=lambda item: str(item["edge_id"]))[0],
+                        target_node, tick, relation_observation=relation,
+                    ))
+                else:
+                    _append(rows, "BIRTH", relation_score, _relation_birth_program(
+                        prior_memory, deployable_hash, relation,
+                        source_node_id=source_id, target_node_id=target_id,
+                        tick=tick,
+                    ))
+
     for edge in edges:
-        for target in places:
-            if target["node_id"] != edge["target"]:
-                _append(rows, "RELINK", 1.0, _relink_program(
-                    prior_memory, deployable_hash, edge, target, tick,
-                ))
         source = by_id.get(edge["source"])
         if source is None:
             continue
         covering = _covering_free_spaces(
             source, public["free_space_observations"],
             minimum_reliability=config.free_space_reliability_threshold,
+            target_expansion_m=config.free_space_target_expansion_m,
+            minimum_time_separation_s=(
+                config.minimum_free_space_time_separation_s
+            ),
         )
         if len(covering) >= 2:
             reliability = min(float(item["reliability"]) for item in covering[-2:])
@@ -846,7 +998,8 @@ def generate_public_candidate_catalog(
         "name": "vsmt.public.candidates.v1",
         "public_fields": [
             "/decision_time_s", "/region_observations",
-            "/free_space_observations", "/public_constants",
+            "/relation_observations", "/free_space_observations",
+            "/public_constants",
         ],
         "prior_memory_fields": [
             "/graph_version", "/nodes", "/edges", "/transaction_log",

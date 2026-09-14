@@ -692,7 +692,7 @@ def _validate_template_preconditions(
 
     if template == "BIND":
         if any(
-            op in {"CREATE_NODE", "OPEN_NODE_VERSION"}
+            op in {"CREATE_NODE", "OPEN_NODE_VERSION", "ADD_EDGE"}
             for op in op_types
         ):
             raise ContractError(
@@ -702,25 +702,39 @@ def _validate_template_preconditions(
             operation
             for operation in operations
             if operation["op_type"] == "ATTACH_EVIDENCE"
-            and operation["arguments"].get("target_kind") == "node"
         ]
-        if not attach_ops:
+        target_kinds = {
+            operation["arguments"].get("target_kind")
+            for operation in attach_ops
+        }
+        if not attach_ops or len(target_kinds) != 1 or not target_kinds <= {"node", "edge"}:
             raise ContractError(
-                "BIND needs a node ATTACH_EVIDENCE operation"
+                "BIND needs ATTACH_EVIDENCE operations for exactly one node or edge"
             )
-        for operation in attach_ops:
-            node = _open_node(
-                graph,
-                operation["arguments"]["target_id"],
-            )
-            if node["lifecycle"] not in {
-                "candidate",
-                "confirmed",
-            }:
-                raise PreconditionError(
-                    f"BIND target {node['node_id']!r} is "
-                    f"{node['lifecycle']!r}"
+        target_kind = next(iter(target_kinds))
+        attachment_targets = {
+            operation["arguments"].get("target_id")
+            for operation in attach_ops
+        }
+        if len(attachment_targets) != 1:
+            raise ContractError("BIND must target exactly one node or edge identity")
+        if target_kind == "node":
+            for operation in attach_ops:
+                node = _open_node(
+                    graph,
+                    operation["arguments"]["target_id"],
                 )
+                if node["lifecycle"] not in {
+                    "candidate",
+                    "confirmed",
+                }:
+                    raise PreconditionError(
+                        f"BIND target {node['node_id']!r} is "
+                        f"{node['lifecycle']!r}"
+                    )
+        else:
+            for operation in attach_ops:
+                _open_edge(graph, operation["arguments"]["target_id"])
         lifecycle_ops = [
             operation
             for operation in operations
@@ -729,7 +743,9 @@ def _validate_template_preconditions(
         bind_targets = {
             operation["arguments"]["target_id"]
             for operation in attach_ops
-        }
+        } if target_kind == "node" else set()
+        if target_kind == "edge" and lifecycle_ops:
+            raise ContractError("relation BIND cannot change node lifecycle")
         for operation in lifecycle_ops:
             arguments = operation["arguments"]
             if (
@@ -749,10 +765,27 @@ def _validate_template_preconditions(
             for operation in operations
             if operation["op_type"] == "CREATE_NODE"
         ]
-        if len(creates) != 1:
+        adds = [
+            operation
+            for operation in operations
+            if operation["op_type"] == "ADD_EDGE"
+        ]
+        if (len(creates), len(adds)) not in {(1, 0), (0, 1)}:
             raise ContractError(
-                "BIRTH must create exactly one identity"
+                "BIRTH must create exactly one node or edge identity"
             )
+        if adds:
+            edge = adds[0]["arguments"]["edge"]
+            if any(
+                existing["edge_id"] == edge["edge_id"]
+                for existing in graph["edges"]
+            ):
+                raise PreconditionError(
+                    f"BIRTH edge identity {edge['edge_id']!r} already exists"
+                )
+            _open_node(graph, edge["source"])
+            _open_node(graph, edge["target"])
+            return
         node = creates[0]["arguments"]["node"]
         if node["lifecycle"] != "candidate":
             raise ContractError(

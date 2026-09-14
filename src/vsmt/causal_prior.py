@@ -130,6 +130,7 @@ def advance_public_bootstrap(
     revision = GraphRevision(prior_memory, method_id=BUILDER_ID)
     used_node_ids: set[str] = set()
     decisions: list[dict[str, Any]] = []
+    region_node_ids: dict[str, str] = {}
     for region in regions:
         ranked = _best_match(region, revision, used_node_ids, config)
         if ranked is not None and ranked[0] >= config.association_threshold:
@@ -142,6 +143,7 @@ def advance_public_bootstrap(
                 template="BIND",
             )
             used_node_ids.add(str(updated["node_id"]))
+            region_node_ids[str(region["region_id"])] = str(updated["node_id"])
             decisions.append({
                 "template": "BIND",
                 "region_id": region["region_id"],
@@ -155,6 +157,7 @@ def advance_public_bootstrap(
                 lifecycle="candidate",
             )
             used_node_ids.add(str(created["node_id"]))
+            region_node_ids[str(region["region_id"])] = str(created["node_id"])
             decisions.append({
                 "template": "BIRTH",
                 "region_id": region["region_id"],
@@ -162,9 +165,19 @@ def advance_public_bootstrap(
                 "association_score": None,
             })
 
+    relation_counts = revision.apply_relation_observations(
+        model_input["relation_observations"], region_node_ids,
+    )
+    public_reliabilities = [
+        *[float(region["reliability"]) for region in regions],
+        *[
+            float(relation["reliability"])
+            for relation in model_input["relation_observations"]
+        ],
+    ]
     confidence = (
-        sum(float(region["reliability"]) for region in regions) / len(regions)
-        if regions else 1.0
+        sum(public_reliabilities) / len(public_reliabilities)
+        if public_reliabilities else 1.0
     )
     result = revision.finish(
         confidence=confidence,
@@ -172,6 +185,7 @@ def advance_public_bootstrap(
         diagnostics={
             "bootstrap_decisions": decisions,
             "packet_region_count": len(regions),
+            "relation_updates": relation_counts,
         },
     )
     return clone_json(result)

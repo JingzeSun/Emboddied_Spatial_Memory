@@ -26,8 +26,8 @@ from .graph_ops import (
     archived_nodes,
     association_score,
     centroid_distance,
+    covering_free_space_times,
     finite_number,
-    fully_covered_by_free_space,
     node_pair_score,
     observation_state,
     open_nodes,
@@ -89,6 +89,8 @@ class ELUConfig:
     geometry_scale_m: float
     association_threshold: float
     free_space_reliability_threshold: float
+    free_space_target_expansion_m: float
+    minimum_free_space_time_separation_s: float
     birth_log_odds: float
     positive_log_odds_increment: float
     negative_log_odds_decrement: float
@@ -103,6 +105,15 @@ class ELUConfig:
         validate_threshold(
             self.free_space_reliability_threshold,
             "free_space_reliability_threshold", low=0.0, high=1.0,
+        )
+        if finite_number(
+            self.free_space_target_expansion_m,
+            "free_space_target_expansion_m",
+        ) < 0.0:
+            raise ValueError("free_space_target_expansion_m must be non-negative")
+        _positive(
+            self.minimum_free_space_time_separation_s,
+            "minimum_free_space_time_separation_s",
         )
         finite_number(self.birth_log_odds, "birth_log_odds")
         _positive(self.positive_log_odds_increment, "positive_log_odds_increment")
@@ -126,6 +137,8 @@ class WFRConfig:
     reconciliation_interval: int
     absent_reconciliations_before_retract: int
     free_space_reliability_threshold: float
+    free_space_target_expansion_m: float
+    minimum_free_space_time_separation_s: float
 
     def __post_init__(self) -> None:
         _weights(self.visual_weight, self.geometry_weight)
@@ -143,6 +156,15 @@ class WFRConfig:
         validate_threshold(
             self.free_space_reliability_threshold,
             "free_space_reliability_threshold", low=0.0, high=1.0,
+        )
+        if finite_number(
+            self.free_space_target_expansion_m,
+            "free_space_target_expansion_m",
+        ) < 0.0:
+            raise ValueError("free_space_target_expansion_m must be non-negative")
+        _positive(
+            self.minimum_free_space_time_separation_s,
+            "minimum_free_space_time_separation_s",
         )
 
 
@@ -216,6 +238,7 @@ class LOWAdapter:
         started = time.perf_counter()
         revision = GraphRevision(model_input["prior_memory"], method_id=self.method_id)
         used: set[str] = set()
+        region_node_ids: dict[str, str] = {}
         matched = 0
         born = 0
         for region in model_input["region_observations"]:
@@ -232,18 +255,23 @@ class LOWAdapter:
             )
             if ranked and ranked[0][0] <= self.config.maximum_centroid_distance_m:
                 node = ranked[0][1]
-                revision.update_node(
+                updated = revision.update_node(
                     node, region, float(model_input["decision_time_s"]),
                     fused=False, template="BIND",
                 )
+                region_node_ids[str(region["region_id"])] = str(updated["node_id"])
                 used.add(str(node["node_id"]))
                 matched += 1
             else:
-                revision.create_node(
+                created = revision.create_node(
                     region, float(model_input["decision_time_s"]),
                     lifecycle="confirmed",
                 )
+                region_node_ids[str(region["region_id"])] = str(created["node_id"])
                 born += 1
+        relation_counts = revision.apply_relation_observations(
+            model_input["relation_observations"], region_node_ids,
+        )
         confidence = (
             sum(float(region["reliability"])
                 for region in model_input["region_observations"])
@@ -252,7 +280,11 @@ class LOWAdapter:
         return revision.finish(
             confidence=confidence,
             runtime_ms=(time.perf_counter() - started) * 1000.0,
-            diagnostics={"matched_regions": matched, "born_regions": born},
+            diagnostics={
+                "matched_regions": matched,
+                "born_regions": born,
+                "relation_updates": relation_counts,
+            },
         )
 
 
@@ -268,6 +300,7 @@ class TAFAdapter:
         started = time.perf_counter()
         revision = GraphRevision(model_input["prior_memory"], method_id=self.method_id)
         used: set[str] = set()
+        region_node_ids: dict[str, str] = {}
         matched = 0
         born = 0
         for region in model_input["region_observations"]:
@@ -283,18 +316,23 @@ class TAFAdapter:
             )
             if ranked and ranked[0][0] >= self.config.association_threshold:
                 node = ranked[0][1]
-                revision.update_node(
+                updated = revision.update_node(
                     node, region, float(model_input["decision_time_s"]),
                     fused=True, template="BIND",
                 )
+                region_node_ids[str(region["region_id"])] = str(updated["node_id"])
                 used.add(str(node["node_id"]))
                 matched += 1
             else:
-                revision.create_node(
+                created = revision.create_node(
                     region, float(model_input["decision_time_s"]),
                     lifecycle="confirmed",
                 )
+                region_node_ids[str(region["region_id"])] = str(created["node_id"])
                 born += 1
+        relation_counts = revision.apply_relation_observations(
+            model_input["relation_observations"], region_node_ids,
+        )
         merged = 0
         if revision.tick % self.config.fusion_interval == 0:
             merged = _greedy_duplicate_merges(
@@ -316,6 +354,7 @@ class TAFAdapter:
                 "matched_regions": matched,
                 "born_regions": born,
                 "merged_pairs": merged,
+                "relation_updates": relation_counts,
             },
         )
 
@@ -342,6 +381,7 @@ class ELUAdapter:
         initial_open = open_nodes(revision.graph)
         archived = archived_nodes(revision.graph)
         used: set[str] = set()
+        region_node_ids: dict[str, str] = {}
         reactivated = 0
         born = 0
         positive = 0
@@ -360,12 +400,13 @@ class ELUAdapter:
                     self.config.positive_log_odds_increment
                     * float(region["reliability"])
                 )
-                revision.update_node(
+                updated = revision.update_node(
                     node, region, float(model_input["decision_time_s"]),
                     lifecycle="confirmed", fused=True,
                     template="REACTIVATE" if node["lifecycle"] == "dormant" else "BIND",
                     state_updates={"existence_log_odds": log_odds},
                 )
+                region_node_ids[str(region["region_id"])] = str(updated["node_id"])
                 used.add(str(node["node_id"]))
                 positive += 1
                 if node["lifecycle"] == "dormant":
@@ -386,19 +427,25 @@ class ELUAdapter:
                     self.config.positive_log_odds_increment
                     * float(region["reliability"])
                 )
-                revision.reactivate_node(
+                updated = revision.reactivate_node(
                     node, region, float(model_input["decision_time_s"]),
                     state_updates={"existence_log_odds": log_odds},
                 )
+                region_node_ids[str(region["region_id"])] = str(updated["node_id"])
                 used.add(str(node["node_id"]))
                 reactivated += 1
             else:
-                revision.create_node(
+                created = revision.create_node(
                     region, float(model_input["decision_time_s"]),
                     lifecycle="confirmed",
                     state_updates={"existence_log_odds": self.config.birth_log_odds},
                 )
+                region_node_ids[str(region["region_id"])] = str(created["node_id"])
                 born += 1
+
+        relation_counts = revision.apply_relation_observations(
+            model_input["relation_observations"], region_node_ids,
+        )
 
         dormant = 0
         retracted = 0
@@ -407,10 +454,14 @@ class ELUAdapter:
             if node_id in used:
                 continue
             current = _current_node(revision, node_id)
-            if current is None or not fully_covered_by_free_space(
+            if current is None or len(covering_free_space_times(
                 current, model_input["free_space_observations"],
                 minimum_reliability=self.config.free_space_reliability_threshold,
-            ):
+                target_expansion_m=self.config.free_space_target_expansion_m,
+                minimum_time_separation_s=(
+                    self.config.minimum_free_space_time_separation_s
+                ),
+            )) < 2:
                 continue
             state = observation_state(current) or {}
             log_odds = float(state.get("existence_log_odds", self.config.birth_log_odds))
@@ -441,6 +492,7 @@ class ELUAdapter:
                 "reactivated_nodes": reactivated,
                 "dormant_nodes": dormant,
                 "retracted_nodes": retracted,
+                "relation_updates": relation_counts,
             },
         )
 
@@ -458,6 +510,7 @@ class WFRAdapter:
         revision = GraphRevision(model_input["prior_memory"], method_id=self.method_id)
         initial_open = open_nodes(revision.graph)
         used: set[str] = set()
+        region_node_ids: dict[str, str] = {}
         matched = 0
         fragments = 0
         for region in model_input["region_observations"]:
@@ -470,7 +523,7 @@ class WFRAdapter:
             if ranked and ranked[0][0] >= self.config.association_threshold:
                 node = ranked[0][1]
                 state = observation_state(node) or {}
-                revision.update_node(
+                updated = revision.update_node(
                     node, region, float(model_input["decision_time_s"]),
                     lifecycle=node["lifecycle"], fused=True, template="BIND",
                     state_updates={
@@ -480,10 +533,11 @@ class WFRAdapter:
                         "absent_reconciliations": 0,
                     },
                 )
+                region_node_ids[str(region["region_id"])] = str(updated["node_id"])
                 used.add(str(node["node_id"]))
                 matched += 1
             else:
-                revision.create_node(
+                created = revision.create_node(
                     region, float(model_input["decision_time_s"]),
                     lifecycle="candidate",
                     state_updates={
@@ -491,7 +545,12 @@ class WFRAdapter:
                         "absent_reconciliations": 0,
                     },
                 )
+                region_node_ids[str(region["region_id"])] = str(created["node_id"])
                 fragments += 1
+
+        relation_counts = revision.apply_relation_observations(
+            model_input["relation_observations"], region_node_ids,
+        )
 
         confirmed = 0
         retracted = 0
@@ -518,10 +577,16 @@ class WFRAdapter:
                 if node_id in used:
                     continue
                 current = _current_node(revision, node_id)
-                if current is None or not fully_covered_by_free_space(
+                if current is None or len(covering_free_space_times(
                     current, model_input["free_space_observations"],
-                    minimum_reliability=self.config.free_space_reliability_threshold,
-                ):
+                    minimum_reliability=(
+                        self.config.free_space_reliability_threshold
+                    ),
+                    target_expansion_m=self.config.free_space_target_expansion_m,
+                    minimum_time_separation_s=(
+                        self.config.minimum_free_space_time_separation_s
+                    ),
+                )) < 2:
                     continue
                 state = observation_state(current) or {}
                 absent = int(state.get("absent_reconciliations", 0)) + 1
@@ -557,5 +622,6 @@ class WFRAdapter:
                 "confirmed_fragments": confirmed,
                 "merged_pairs": merged,
                 "retracted_nodes": retracted,
+                "relation_updates": relation_counts,
             },
         )

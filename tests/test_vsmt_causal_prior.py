@@ -36,10 +36,10 @@ def bootstrap_config(**updates: Any) -> PublicBootstrapConfig:
     return PublicBootstrapConfig(**values)
 
 
-def region(index: int, centroid_x: float) -> dict[str, Any]:
+def region(index: int, centroid_x: float, kind: str = "entity") -> dict[str, Any]:
     return {
         "region_id": f"region:{index:04d}",
-        "structure_kind": "entity",
+        "structure_kind": kind,
         "mask_sha256": f"{index + 4:x}" * 64,
         "descriptor": [1.0, 0.0],
         "centroid_m": [centroid_x, 0.0, 0.0],
@@ -51,9 +51,10 @@ def region(index: int, centroid_x: float) -> dict[str, Any]:
 
 def packet(
     graph: Mapping[str, Any], *, time_s: float, regions: list[Mapping[str, Any]],
+    relations: list[Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     return {
-        "schema_version": "vsmt-observation-packet-v1",
+        "schema_version": "vsmt-observation-packet-v2",
         "sample_id_hash": "1" * 64,
         "decision_time_s": time_s,
         "rgbd_refs": {"rgb_sha256": "2" * 64, "depth_sha256": "3" * 64},
@@ -64,6 +65,9 @@ def packet(
         "robot_state": {"feature_names": [], "values": []},
         "past_actions": [],
         "region_observations": [deepcopy(dict(item)) for item in regions],
+        "relation_observations": [
+            deepcopy(dict(item)) for item in (relations or [])
+        ],
         "free_space_observations": [],
         "prior_memory_ref": {
             "graph_version": graph["graph_version"],
@@ -123,6 +127,31 @@ class CausalPriorTests(unittest.TestCase):
                 "observation_count"
             ],
             2,
+        )
+
+    def test_bootstrap_births_first_public_relation_after_endpoint_nodes(self) -> None:
+        initial = empty_public_memory()
+        current = packet(
+            initial, time_s=0.0,
+            regions=[region(0, 0.0), region(1, 0.0, kind="place")],
+            relations=[{
+                "relation_id": "relation:0000",
+                "source_region_id": "region:0000",
+                "target_region_id": "region:0001",
+                "relation": "located_at",
+                "reliability": 1.0,
+                "support_sha256": "8" * 64,
+            }],
+        )
+        result = advance_public_bootstrap(
+            current, initial, config=bootstrap_config(),
+        )
+        self.assertEqual(len(result["post_memory"]["nodes"]), 2)
+        self.assertEqual(len(result["post_memory"]["edges"]), 1)
+        self.assertEqual(result["post_memory"]["edges"][0]["relation"], "located_at")
+        self.assertEqual(
+            result["diagnostics"]["relation_updates"],
+            {"born": 1, "bound": 0, "relinked": 0, "inverse_deduplicated": 0},
         )
 
     def test_audit_identity_changes_receipt_binding_not_prior_or_adapter_bytes(self) -> None:
