@@ -80,6 +80,12 @@ VM-03 的 `generate_public_candidate_catalog`（公开候选目录生成器）�
 
 白话：该生成器解决 `merge_queries` 曾经从参考答案直接给出目标的问题。输入例如两个当前匿名区域和三个旧节点，输出由公开相似度筛出的全部有限事务程序；正确 MERGE pair 没进入目录时后面只能记 candidate miss。候选事务 ID 和顺序只由剥离审计字段后的 `AdapterInput` 摘要产生，因此更换 `sample_id_hash` 或文件摘要不会改变程序/顺序。它不读取 private、不会保证正确候选总在目录，也不把 executor 通过当成语义正确。
 
+VM-04阈值审计发现，当前同一个“视觉相似度＋质心距离”分数跨`entity/surface/place/fragment`使用，会把含义不同的结构硬塞进同一尺度；正式方案拟改为先分别记录余弦相似度、米制距离、归一化几何接近度、结构类型和公开可靠性，再由每种结构的显式无默认值配置组合。它解决“地面格外观都像地板、移动实体却可合法位移”不能共用一个门的问题；输入仍是同一冻结描述和公开几何，输出可审的分量及类型内关联分。例如两个相距0.4 m但外观几乎相同的实体可以保留为待判候选，而两个不同0.5 m地面格不能只因纹理相同就BIND。它不使用类别、instance ID或teacher，也不等于这些类型化数值已冻结；正式数值仍须在S-01～S-12相关语义先确定后按共同train/validation选择。
+
+候选分数拟拆成两个不可互换的量。`enumeration_priority`（枚举优先级）只在同一事务模板内部决定容量满时保留谁；`decision_heuristic_score`（决策启发式分）只供PHR跨模板选择最终事务，不能改变已封存候选。它解决当前NOOP枚举值固定为1.0、若误作决策分便会永远压过低于1.0的真实修订的问题；输入是公开候选及其公开证据，输出一份容量审计分和以后另审的PHR决策分。例如容量64时排第65的正确MERGE必须记candidate miss，teacher不能把它补回。它不等于当前已有PHR公式，也不允许用validation或confirmation偷偷重排目录。
+
+阈值公平性拟定义为“同数据、同冻结选择指标、每方法至多12个完整配置”，而不是五种机制被迫共用同一个数值。受控轨道的bootstrap只选一次并逐字节共享；TAF、ELU、WFR、LOW和VSMT公开候选器可各用适合自身机制的配置，但任何一方都不能超出12次完整配置选择，没必要为了凑数用满。输入是预登记有限配置和共同train/validation，输出每方法一个冻结配置及完整试验清单。例如ELU可以调存在分数门而LOW只能调距离门，但二者拥有相同最多12次选择机会。它不声称相同阈值就是公平，也不授权现在生成house或根据confirmation改值；完整审议稿见[`vm04_l1_threshold_review_v1.json`](../configs/vsmt/vm04_l1_threshold_review_v1.json)。
+
 `label_sealed_candidates`（封存后教师标注器）输入完整 catalog、与其 public 摘要绑定的 private evaluation、用户以后冻结的 scorer 和温度，输出原槽位上的分数及 softmax 概率。softmax（归一化指数分布）把各候选有限分数转成总和为1的训练目标；例如 MERGE 得分1、其余得分0时 MERGE 槽概率较高，但候选数和顺序不变。它不调用候选生成器、不补候选、不决定 S-01～S-12 的语义 scorer，也不进入部署推理。
 
 ### 旧 C00–C11 与 LATENT 的保留边界

@@ -1,0 +1,129 @@
+{
+  "version": "vsmt-vm04-l1-threshold-review-v1",
+  "status": "review_only_not_executable",
+  "decision": null,
+  "formal_values_frozen": false,
+  "may_be_consumed_by_generation_or_training_runner": false,
+  "scope": {
+    "reviewed_modules": [
+      "public_bootstrap",
+      "VSMT_public_candidate_generator",
+      "TAF",
+      "ELU",
+      "WFR",
+      "LOW",
+      "PHR_internal_control"
+    ],
+    "does_not_authorize": [
+      "house_generation",
+      "threshold_selection_from_private_or_confirmation_data",
+      "training",
+      "validation_effect_measurement",
+      "confirmation_generation_or_reveal"
+    ]
+  },
+  "audit_findings": [
+    {
+      "finding_id": "T-01-test-values-are-fixtures",
+      "finding": "Values such as visual_weight=0.7, bind_threshold=0.6, duplicate_threshold=0.9 and maximum_candidates_per_template=20 occur only in branch tests or synthetic smoke configuration and are not formal experiment values."
+    },
+    {
+      "finding_id": "T-02-one-score-crosses-structure-kinds",
+      "finding": "The same visual-weighted centroid score is currently applied to entity, surface, place and fragment records although the meaning and spatial stability of those structures differ."
+    },
+    {
+      "finding_id": "T-03-ranking-score-is-discarded",
+      "finding": "The generator uses an unsealed score only to truncate candidates within each template and then discards it, while the proposed PHR control requires a frozen public decision score."
+    },
+    {
+      "finding_id": "T-04-noop-score-is-not-a-decision-score",
+      "finding": "NOOP is assigned 1.0 during within-template enumeration. Reusing that value across templates would force NOOP to beat every non-NOOP candidate below 1.0."
+    },
+    {
+      "finding_id": "T-05-cap-does-not-bound-pre-cap-memory",
+      "finding": "maximum_candidates_per_template truncates only after all rows are materialized; relation and SPLIT combinations can therefore consume unbounded pre-cap memory and time."
+    },
+    {
+      "finding_id": "T-06-label-sensitive-selection-depends-on-semantics",
+      "finding": "Final bootstrap, association and candidate-recall choices depend on the still-unfrozen S-01 to S-12 identity, equivalence and error policies, so exact values cannot be scientifically selected in the current review."
+    }
+  ],
+  "recommended_protocol": {
+    "association_evidence": {
+      "record_components_separately": [
+        "cosine_similarity_mapped_to_0_1",
+        "centroid_distance_m",
+        "geometry_proximity_0_1",
+        "structure_kind",
+        "public_reliability"
+      ],
+      "hard_same_structure_kind_gate": true,
+      "structure_kind_specific_weights_scales_and_thresholds": true,
+      "single_global_entity_surface_place_fragment_score": false,
+      "formal_numeric_values": null
+    },
+    "fair_tuning": {
+      "same_train_validation_families": true,
+      "same_frozen_primary_selection_metric": true,
+      "same_maximum_complete_configurations_per_method": 12,
+      "method_specific_values_allowed": true,
+      "unused_trials_need_not_be_spent": true,
+      "bootstrap_selected_once_and_shared_byte_identically_in_controlled_revision": true,
+      "VSMT_candidate_generator_is_a_separate_public_configuration": true,
+      "confirmation_may_not_select_or_change_any_value": true
+    },
+    "selection_order": [
+      "freeze_score_roles_and_deterministic_resource_accounting",
+      "freeze_S01_to_S12_label_and_metric_semantics_needed_by_selection",
+      "run_an_independently_authorized_two_house_public_only_capacity_audit",
+      "freeze_registered_finite_search_spaces_without_confirmation_access",
+      "select_formal_values_using_only_train_and_validation_under_equal_trial_caps",
+      "lock_code_data_config_and_model_before_separate_confirmation_authorization"
+    ],
+    "candidate_capacity": {
+      "streaming_deterministic_top_k_per_template_required": true,
+      "record_exact_pre_cap_count_per_template": true,
+      "record_cutoff_priority_and_tie_count": true,
+      "record_generation_time_and_peak_memory": true,
+      "provisional_cap_for_capacity_review_only": 64,
+      "formal_cap": null,
+      "candidate_miss_when_correct_program_falls_below_cap": true,
+      "teacher_may_recover_below_cap_candidate": false
+    },
+    "public_score_roles": {
+      "enumeration_priority": {
+        "purpose": "deterministic_within_template_capacity_truncation_only",
+        "may_select_final_transaction": false,
+        "must_be_sealed_for_audit": true
+      },
+      "decision_heuristic_score": {
+        "purpose": "PHR_cross_template_final_transaction_selection_only",
+        "may_change_candidate_membership_or_order": false,
+        "must_not_reuse_noop_enumeration_priority_1_0": true,
+        "formula": null,
+        "blocking_reason": "requires_separate_positive_negative_examples_and_S01_to_S12_consistent_change_evidence_definition"
+      }
+    }
+  },
+  "implementation_allowed_after_approval": [
+    "add_structure_kind_keyed_explicit_config_schema_without_formal_defaults",
+    "seal_association_components_and_enumeration_priority_for_audit",
+    "replace_post_materialization_truncation_with_output_equivalent_streaming_top_k",
+    "add_resource_and_score_role_contract_tests"
+  ],
+  "implementation_not_allowed_after_approval": [
+    "invent_formal_numeric_thresholds",
+    "implement_or_tune_PHR_cross_template_formula",
+    "generate_two_house_audit_without_separate_authorization",
+    "generate_train_validation_or_confirmation_data",
+    "train_any_selector_or_adapter"
+  ],
+  "approval": {
+    "protocol_approved": false,
+    "structure_kind_specific_association_approved": false,
+    "equal_twelve_configuration_cap_approved": false,
+    "score_role_separation_approved": false,
+    "streaming_top_k_and_audit_fields_approved": false,
+    "selection_order_approved": false
+  }
+}

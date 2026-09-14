@@ -1433,3 +1433,9 @@
 - Surface用公开depth的14×14基础平面片、10°合并、最终至少784内点、2 cm内点阈值和1 cm RMS；place从距标准站立agent支撑高度5 cm内的水平surface形成0.5 m地面格，25个0.1 m子格至少覆盖16个。AI2-THOR固定提交中的标准agent胶囊高1.8 m、camera局部高度0.675 m，因此支撑高度由公开camera世界y减1.575 m得到；禁止`GetReachablePositions`、navmesh和房间标签。白话：输入公开depth和相机标定，输出平面区域与局部地面锚点。例如桌面是surface但不是place。它不输出房间语义、可行走标签或真值网格。
 - Free-space不再沿用packet v1的世界AABB：packet v2改存6个世界半空间的多尺度截锥；每个时刻最多341个，depth块100%有效、边界内缩1像素、表面前留10 cm，旧bbox每边扩2 cm且完整落在单个截锥内，并在相隔至少0.25 s两时刻成立才允许负证据。白话：输入两帧公开depth，输出“相机确实看到为空”的空间；沙发后的旧椅子仍是未知而不是空。它不等于漏检、碰撞自由或导航网格。
 - Packet v2新增公开关系通道，并把既有BIRTH/BIND类型化为节点或关系身份：关系BIRTH创建第一条edge，关系BIND给一条开放edge附证据，RELINK仍只改已有edge；不增加第九个原子且teacher不得补边。`contains`作为`located_at`的反向派生视图并共用证据，持久图只存一份规范`located_at`；`adjacent_to`按端点ID规范方向。白话：首次看到“杯子在某地点”先建立一条关系，后来换地点才RELINK；反向查询不再把同一事实计两次，也不会留下过期反向边。它不是给真值scene graph或永久身份。
+
+## D-139：阈值、候选容量与公平调参形成不可执行审议稿
+
+- 日期：2026-09-14；状态：proposed，待用户在对话中裁决。代码审计确认测试/烟测中的关联权重、阈值与候选上限只验证分支，不能升格为正式数值；单一视觉—质心分跨`entity/surface/place/fragment`也会混淆固定地点与可移动实体。拟改为封存可审的视觉、米制距离、归一化几何、结构类型和可靠性分量，再由类型化显式配置组合；仍不读取类别、instance ID、teacher或未来。
+- 当前候选器先完整物化所有组合、再按每模板cap截断，cap并不限制截断前内存；用于截断的分数随后丢失，而PHR提案又需要公开分。拟以输出等价的确定性流式top-k取代完整物化，保存每模板截断前计数、边界分与并列数，并把`enumeration_priority`与跨模板`decision_heuristic_score`分开。白话：NOOP为保证目录存在可在枚举阶段记1.0，但不能因此在最终选择时永远击败0.95的真实RELINK；排在cap后面的正确程序只能如实记candidate miss，teacher不能补回。它不等于PHR公式或cap数值已经批准。
+- 公平调参建议所有方法共用train/validation与冻结选择指标，各自最多评估12个完整配置；方法特有阈值可不同，bootstrap在受控轨道只选一次并逐字节共享。正式数值必须在相关S-01～S-12身份、等价和错误口径确定后选择，confirmation不得参与。该审议只允许用户批准后实现无默认值配置、分数封存、流式top-k和合同测试；不授权2-house、train/validation生成、训练或confirmation。

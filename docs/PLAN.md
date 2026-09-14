@@ -22,7 +22,7 @@
 
 ### 当前指针
 
-**D-138完整L1结构物化已在服务器工程通过，下一批转入bootstrap、五方法与候选生成的公开阈值审议。** `135636d`依次通过executor 42项、L1 29项、VSMT 59项，共130/130；合成公开depth形成1个surface、36个place、38个region、两个时刻682个free-space截锥和62条关系观测，因果prior规范为61条边并去重1条`contains/located_at`反向重复。[报告](../results/vsmt_vm04_l1_structures.json)绑定全部代码/配置摘要，明确0 house生成、0训练、0private/confirmation读取。它证明packet v2、结构物化、类型化关系事务及五方法消费的工程合同，不证明真实house统计、阈值合理或方法效果。正式生成、训练数据读取和validation/评价必须多worker，精确worker数在capacity probe后冻结；2-house、训练和confirmation仍阻断。下一科学裁决是bootstrap/五方法阈值及VSMT候选cap/公开分数，之后才审选择器容量、teacher/evaluator及S-01～S-12。原D-062分支、代码、数据和结果均保留，`scripts/notes.txt`保持原字节。
+**D-139阈值与公平调参审议稿已形成，等待用户在对话中裁决，未冻结任何正式数值。** 审计确认测试中的`0.7/0.3、0.6、0.9、20`只是分支夹具；当前单一关联分跨结构类型、候选截断后才限量且丢弃排序分，NOOP枚举值1.0也不能直接作为PHR跨模板决策分。[审议配置](../configs/vsmt/vm04_l1_threshold_review_v1.json)建议类型化关联配置、枚举优先级/决策启发式分分离、确定性流式每模板top-k及完整截断资源统计；公平性建议同train/validation、同冻结选择指标、每方法至多12个完整配置，bootstrap只选一次并共享。因为正式阈值选择依赖尚未冻结的S-01～S-12身份/等价与错误口径，当前只能先冻结选择协议和工程计量，不能把精确数值倒写成语义答案。2-house生成、训练与confirmation仍阻断；本批没有运行本地单元测试、模拟器或科学计算，也没有修改科学源码。用户批准后下一职责才是无数值默认的类型化配置、分数封存和流式top-k实现及必要测试。
 
 ## 上一 D-062 路线（暂停，以下保留复现）
 
