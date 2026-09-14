@@ -1415,3 +1415,9 @@
 - 用户随后要求“接着跑L1”。当前解释为允许L1合同/代码、必要服务器测试、隔离AI2-THOR/ProcTHOR环境、已审AI2-THOR CloudRendering构建和既有DINO资产复用；不从这句话推导任何仍为`null`的科学数值，也不提前允许SAM/L2、2-house数据生成、train/validation生成、选择器训练或confirmation。L1第一职责是只处理当前帧mask的匿名化模块：输入instance到二值mask的临时私有映射，输出按mask内容排序的匿名缓存和不含ID的失败记录；例如同一椅子隔着桌面露出的三块像素仍是一个`region`。它不做跨帧关联、DINO编码、几何、事务选择或效果实验。
 - L1模拟器与公开materializer改为文件边界隔离候选：Python 3.9环境只运行AI2-THOR 5.0.0/ProcTHOR 0.0.1.dev2并写封存RGB、depth、instance mask和pose；现有Python 3.12/Torch 2.8环境再运行冻结DINO和公开materializer。白话：它解决ProcTHOR旧Python范围与未来SAM所需新Python无法塞入同一环境的问题；例如模拟器进程结束后，记忆方法只收到匿名`AdapterInput`。它不允许私有mask ID穿过文件边界，也不表示模拟器smoke成功或数据协议已冻结。
 - 隔离环境和第一职责随后在`5833fe0`取得服务器回执：9/9匿名mask测试通过，官方AI2-THOR CloudRendering构建按835,983,275字节及SHA-256校验，Vulkan识别RTX 4080 SUPER，FloorPlan1返回224×224 RGB/depth/instance segmentation及9个instance mask，既有DINO仓库/权重摘要匹配。环境ready只代表可以开始下一块公开物化实现；0 VM-04 house生成、0训练、0confirmation，支持/几何/候选/teacher/指标数值仍须用户在对话中裁决。
+
+## D-136：L1实体mask、DINO池化与可见几何数值获批
+
+- 日期：2026-09-14；状态：entity materialization values approved。用户认可推荐口径：实体mask最少196个可见像素，触边但支持充足就保留；DINO总patch权重至少1.0，float32单位范数容差`1e-5`；公开depth有效范围0.05–20 m，有效点至少`max(32, ceil(25%×可见像素数))`，区域可靠性为有效点数除以可见像素数。支持不足或非有限值保留construction failure，不重采样、不用私有几何补齐。
+- 固定AI2-THOR 5.0.0提交`f0825767cd50d69f666c7f282e54abfe58f1e917`的`Depth.shader`用`Linear01Depth`乘far-near，故本批把返回米制depth固定为相机前向轴`z`。反投影使用整数像素`u=列、v=行`且不加0.5，camera坐标为`x=(u-cx)z/fx, y=(cy-v)z/fy, z=depth`，再用公开camera-to-world四元数/平移变换。白话：画面边缘一个depth=2 m的像素仍位于相机前方z=2 m平面，不把2 m当作斜射线长度。它不读取模拟器对象pose/mesh/bbox，也不声称AI2-THOR文档中的自然语言“distance”是另一种几何定义。
+- 当前授权只覆盖`l1_entities`实现、必要服务器合同测试和一次真实冻结DINO权重的非数据smoke；不生成2-house audit，不训练，不打开confirmation。surface/place/free-space、bootstrap/五方法阈值、选择器容量、teacher/evaluator和S-01～S-12汇总口径仍未裁决；以后视觉前端或本层输入改变时按新摘要重跑L1是预期行为，不覆盖旧结果。

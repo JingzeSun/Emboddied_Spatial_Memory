@@ -2,6 +2,7 @@
   "version": "vsmt-vm04-l1-environment-v1",
   "status": "authorized_install_and_smoke_only",
   "decision": "D-135",
+  "entity_materialization_decision": "D-136",
   "scope": "L1_engineering_prerequisites_not_dataset_generation_or_training",
   "environment_separation": {
     "simulator_process": {
@@ -28,6 +29,32 @@
     "CloudRendering_smoke_scene": "FloorPlan1",
     "smoke_resolution": [224, 224],
     "smoke_outputs": ["RGB", "depth", "instance_segmentation", "instance_masks"]
+  },
+  "entity_materialization": {
+    "anonymous_mask": {
+      "minimum_visible_pixels": 196,
+      "border_truncation_policy": "keep_if_minimum_support"
+    },
+    "dinov2": {
+      "image_shape": [224, 224, 3],
+      "patch_grid": [16, 16],
+      "patch_size_pixels": 14,
+      "patch_token_dimension": 384,
+      "minimum_total_patch_weight": 1.0,
+      "unit_norm_validation_tolerance": 0.00001
+    },
+    "public_geometry": {
+      "depth_convention": "ai2thor_linear01_camera_axis_z_m",
+      "depth_valid_range_m": [0.05, 20.0],
+      "absolute_minimum_valid_depth_points": 32,
+      "minimum_valid_depth_fraction": 0.25,
+      "minimum_valid_depth_rounding": "ceil",
+      "reliability": "valid_depth_point_count_divided_by_visible_pixel_count",
+      "pixel_coordinates": "u_column_v_row_no_half_pixel_offset",
+      "camera_axes": "x_right_y_up_z_forward",
+      "source_commit": "f0825767cd50d69f666c7f282e54abfe58f1e917",
+      "source_shader": "unity/Assets/Scripts/ImageSynthesis/Shaders/Depth.shader"
+    }
   },
   "reviewed_assets": {
     "AI2_THOR_CloudRendering_commit": "f0825767cd50d69f666c7f282e54abfe58f1e917",

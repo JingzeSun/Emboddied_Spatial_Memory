@@ -1,9 +1,11 @@
-"""Fixed VM-04 L1 environment and anonymous-mask contract entry.
+"""Fixed VM-04 L1 environment and entity-materializer entry.
 
-Run in order: ``contracts``, ``environment``, then ``export``.  The environment
-step may extract the already downloaded reviewed AI2-THOR build and launches one
-FloorPlan1 smoke frame.  It does not generate VM-04 houses, build training data,
-open confirmation data, or train a model.
+Run in order: ``contracts``, ``environment``, ``materializer``, then ``export``.
+The environment step may extract the already downloaded reviewed AI2-THOR build
+and launches one FloorPlan1 smoke frame.  The materializer step runs the real
+reviewed DINOv2 weights on a synthetic frame and checks public visible geometry.
+Neither step generates VM-04 houses, builds training data, opens confirmation
+data, or trains a model.
 """
 
 from __future__ import annotations
@@ -24,13 +26,15 @@ import zipfile
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CONFIG_PATH = PROJECT_ROOT / "configs" / "vsmt" / "vm04_l1_environment_v1.json"
-STAGE_ID = "vsmt-vm04-l1-frontend-v1"
-EXPECTED_TESTS = 9
+STAGE_ID = "vsmt-vm04-l1-entity-materializer-v1"
+EXPECTED_TESTS = 22
 BOUND_PATHS = (
     "configs/vsmt/vm04_l1_contract_proposal_v1.json",
     "configs/vsmt/vm04_l1_environment_v1.json",
     "src/vsmt/__init__.py",
+    "src/vsmt/l1_entities.py",
     "src/vsmt/l1_masks.py",
+    "tests/test_l1_entities.py",
     "tests/test_l1_masks.py",
     "ops/vsmt/vm04_l1_frontend.py",
 )
@@ -77,6 +81,34 @@ def load_config() -> dict[str, Any]:
     for key in ("dataset_generation", "training", "confirmation"):
         if authorization.get(key) is not False:
             raise RuntimeError(f"smoke config requires {key}=false")
+    materialization = config.get("entity_materialization", {})
+    if materialization.get("anonymous_mask") != {
+        "minimum_visible_pixels": 196,
+        "border_truncation_policy": "keep_if_minimum_support",
+    }:
+        raise RuntimeError("approved anonymous-mask values are not bound")
+    if materialization.get("dinov2") != {
+        "image_shape": [224, 224, 3],
+        "patch_grid": [16, 16],
+        "patch_size_pixels": 14,
+        "patch_token_dimension": 384,
+        "minimum_total_patch_weight": 1.0,
+        "unit_norm_validation_tolerance": 0.00001,
+    }:
+        raise RuntimeError("approved DINOv2 materialization values are not bound")
+    if materialization.get("public_geometry") != {
+        "depth_convention": "ai2thor_linear01_camera_axis_z_m",
+        "depth_valid_range_m": [0.05, 20.0],
+        "absolute_minimum_valid_depth_points": 32,
+        "minimum_valid_depth_fraction": 0.25,
+        "minimum_valid_depth_rounding": "ceil",
+        "reliability": "valid_depth_point_count_divided_by_visible_pixel_count",
+        "pixel_coordinates": "u_column_v_row_no_half_pixel_offset",
+        "camera_axes": "x_right_y_up_z_forward",
+        "source_commit": "f0825767cd50d69f666c7f282e54abfe58f1e917",
+        "source_shader": "unity/Assets/Scripts/ImageSynthesis/Shaders/Depth.shader",
+    }:
+        raise RuntimeError("approved public-geometry values are not bound")
     return config
 
 
@@ -154,7 +186,7 @@ def run_contracts(reviewed_code: str, output_root: Path) -> None:
         raise RuntimeError(f"stage directory already exists: {stage}")
     stage.mkdir(parents=True)
     write_new_json(stage / "started.json", {
-        "schema_version": "vsmt-vm04-l1-frontend-started-v1",
+        "schema_version": "vsmt-vm04-l1-entity-materializer-started-v1",
         "stage_id": STAGE_ID,
         "started_at": utc_now(),
         "reviewed_code": commit,
@@ -166,7 +198,7 @@ def run_contracts(reviewed_code: str, output_root: Path) -> None:
     })
     command = [
         sys.executable, "-B", "-m", "unittest", "discover",
-        "-s", str(PROJECT_ROOT / "tests"), "-p", "test_l1_masks.py", "-v",
+        "-s", str(PROJECT_ROOT / "tests"), "-p", "test_l1_*.py", "-v",
     ]
     test_environment = dict(os.environ)
     existing_pythonpath = test_environment.get("PYTHONPATH")
@@ -407,15 +439,205 @@ finally:
     print(f"VM04_L1_ENVIRONMENT_OK stage={stage}")
 
 
+def run_materializer(reviewed_code: str, output_root: Path) -> None:
+    config = load_config()
+    commit, bindings = verify_checkout(reviewed_code)
+    stage = stage_directory(output_root, commit)
+    require_success(stage, "contracts", commit)
+    require_success(stage, "environment", commit)
+    if (stage / "materializer.receipt.json").exists():
+        raise RuntimeError("materializer receipt already exists")
+
+    started = time.monotonic()
+    success = False
+    error: dict[str, str] | None = None
+    summary: dict[str, Any] | None = None
+    runtime: dict[str, Any] = {}
+    try:
+        sys.path.insert(0, str(PROJECT_ROOT / "src"))
+        import numpy as np
+        import torch
+
+        from vsmt.l1_entities import (
+            AI2THOR_CAMERA_AXIS_Z,
+            DINORegionConfig,
+            PublicGeometryConfig,
+            extract_dinov2_patch_tokens,
+            materialize_l1_entity_observation,
+        )
+        from vsmt.l1_masks import (
+            KEEP_SUPPORTED_BORDER_REGIONS,
+            L1MaskConfig,
+            anonymize_instance_masks,
+        )
+
+        frontend = config["environment_separation"]["public_materializer_process"]
+        expected_python = frontend["python"]
+        observed_python = ".".join(map(str, sys.version_info[:3]))
+        if observed_python != expected_python:
+            raise RuntimeError(
+                f"public materializer Python {observed_python} != {expected_python}"
+            )
+        dino_repository = Path(frontend["DINOv2_repository"])
+        dino_checkpoint = Path(frontend["DINOv2_checkpoint"])
+        if git("rev-parse", "HEAD", cwd=dino_repository) != frontend["DINOv2_repository_commit"]:
+            raise RuntimeError("reviewed DINOv2 repository commit mismatch")
+        if sha256(dino_checkpoint) != frontend["DINOv2_checkpoint_sha256"]:
+            raise RuntimeError("reviewed DINOv2 checkpoint digest mismatch")
+        if not torch.cuda.is_available():
+            raise RuntimeError("CUDA is required for the real DINOv2 smoke")
+        sys.path.insert(0, str(dino_repository))
+        from dinov2.hub.backbones import dinov2_vits14
+
+        dino_values = config["entity_materialization"]["dinov2"]
+        geometry_values = config["entity_materialization"]["public_geometry"]
+        descriptor_config = DINORegionConfig(
+            image_height=dino_values["image_shape"][0],
+            image_width=dino_values["image_shape"][1],
+            patch_size_pixels=dino_values["patch_size_pixels"],
+            patch_token_dimension=dino_values["patch_token_dimension"],
+            minimum_total_patch_weight=dino_values["minimum_total_patch_weight"],
+            unit_norm_validation_tolerance=dino_values["unit_norm_validation_tolerance"],
+        )
+        geometry_config = PublicGeometryConfig(
+            depth_convention=AI2THOR_CAMERA_AXIS_Z,
+            minimum_depth_m=geometry_values["depth_valid_range_m"][0],
+            maximum_depth_m=geometry_values["depth_valid_range_m"][1],
+            absolute_minimum_valid_depth_points=geometry_values[
+                "absolute_minimum_valid_depth_points"
+            ],
+            minimum_valid_depth_fraction=geometry_values[
+                "minimum_valid_depth_fraction"
+            ],
+        )
+
+        device = "cuda"
+        model = dinov2_vits14(pretrained=False)
+        state = torch.load(dino_checkpoint, map_location="cpu", weights_only=True)
+        model.load_state_dict(state, strict=True)
+        model.requires_grad_(False).eval().to(device)
+        rows, columns = np.indices((224, 224), dtype=np.uint16)
+        rgb = np.stack((
+            rows % 256,
+            columns % 256,
+            (rows + columns) % 256,
+        ), axis=-1).astype(np.uint8)
+        private_mask = np.zeros((224, 224), dtype=np.bool_)
+        private_mask[98:112, 98:112] = True
+        mask_values = config["entity_materialization"]["anonymous_mask"]
+        region = anonymize_instance_masks(
+            {"synthetic-private-key": private_mask},
+            L1MaskConfig(
+                minimum_visible_pixels=mask_values["minimum_visible_pixels"],
+                border_truncation_policy=KEEP_SUPPORTED_BORDER_REGIONS,
+            ),
+        ).regions[0]
+        patch_tokens = extract_dinov2_patch_tokens(
+            model, rgb, descriptor_config, device=device,
+        )
+        depth = np.full((224, 224), 1.5, dtype=np.float32)
+        observation = materialize_l1_entity_observation(
+            region,
+            patch_tokens,
+            depth,
+            {"fx": 112.0, "fy": 112.0, "cx": 111.5, "cy": 111.5},
+            {
+                "position_m": [0.0, 0.0, 0.0],
+                "quaternion_xyzw": [0.0, 0.0, 0.0, 1.0],
+            },
+            descriptor_config,
+            geometry_config,
+        )
+        record = observation.public_record()
+        descriptor_array = np.asarray(record["descriptor"], dtype="<f4")
+        descriptor_norm = float(np.linalg.norm(descriptor_array.astype(np.float64)))
+        success = bool(
+            patch_tokens.shape == (16, 16, 384)
+            and len(record["descriptor"]) == 384
+            and abs(descriptor_norm - 1.0)
+            <= dino_values["unit_norm_validation_tolerance"]
+            and observation.descriptor.total_patch_weight == 1.0
+            and observation.geometry.valid_depth_point_count == 196
+            and observation.geometry.required_valid_depth_point_count == 49
+            and observation.geometry.reliability == 1.0
+        )
+        summary = {
+            "input_kind": "deterministic_synthetic_non_dataset_frame",
+            "rgb_shape": list(rgb.shape),
+            "patch_token_shape": list(patch_tokens.shape),
+            "region_visible_pixels": region.visible_pixel_count,
+            "total_patch_weight": observation.descriptor.total_patch_weight,
+            "descriptor_dimension": len(record["descriptor"]),
+            "descriptor_norm": descriptor_norm,
+            "descriptor_float32_sha256": hashlib.sha256(
+                descriptor_array.tobytes(),
+            ).hexdigest(),
+            "centroid_m": record["centroid_m"],
+            "extent_m": record["extent_m"],
+            "valid_depth_point_count": observation.geometry.valid_depth_point_count,
+            "required_valid_depth_point_count": (
+                observation.geometry.required_valid_depth_point_count
+            ),
+            "reliability": record["reliability"],
+            "private_instance_value_in_public_record": (
+                "synthetic-private-key" in json.dumps(record, sort_keys=True)
+            ),
+        }
+        runtime = {
+            "python": observed_python,
+            "torch": torch.__version__,
+            "cuda_device": torch.cuda.get_device_name(0),
+            "DINOv2_repository_commit": frontend["DINOv2_repository_commit"],
+            "DINOv2_checkpoint_sha256": frontend["DINOv2_checkpoint_sha256"],
+        }
+        del model, state
+        torch.cuda.empty_cache()
+    except BaseException as exception:
+        error = {
+            "type": type(exception).__name__,
+            "message": str(exception),
+        }
+
+    receipt = {
+        "schema_version": "vsmt-vm04-l1-entity-materializer-receipt-v1",
+        "stage_id": STAGE_ID,
+        "reviewed_code": commit,
+        "bound_sha256": bindings,
+        "success": success,
+        "completed_at": utc_now(),
+        "wall_seconds": time.monotonic() - started,
+        "runtime": runtime,
+        "materializer_smoke": summary,
+        "error": error,
+        "generation_performed": False,
+        "training_steps": 0,
+        "private_data_persisted": False,
+        "confirmation_data_opened": False,
+    }
+    receipt_path = stage / "materializer.receipt.json"
+    write_new_json(receipt_path, receipt)
+    if not success:
+        print(f"VM04_L1_MATERIALIZER_FAILED stage={stage} error={error}")
+        raise SystemExit(1)
+    write_new_json(stage / "materializer.success.json", {
+        "schema_version": "vsmt-vm04-l1-entity-materializer-success-v1",
+        "reviewed_code": commit,
+        "receipt_sha256": sha256(receipt_path),
+        "success": True,
+    })
+    print(f"VM04_L1_MATERIALIZER_OK stage={stage}")
+
+
 def run_export(reviewed_code: str, output_root: Path) -> None:
     load_config()
     commit, bindings = verify_checkout(reviewed_code)
     stage = stage_directory(output_root, commit)
     contracts = require_success(stage, "contracts", commit)
     environment = require_success(stage, "environment", commit)
-    destination = PROJECT_ROOT / "results" / "vsmt_vm04_l1_environment.json"
+    materializer = require_success(stage, "materializer", commit)
+    destination = PROJECT_ROOT / "results" / "vsmt_vm04_l1_entity_materializer.json"
     report = {
-        "schema_version": "vsmt-vm04-l1-environment-report-v1",
+        "schema_version": "vsmt-vm04-l1-entity-materializer-report-v1",
         "stage_id": STAGE_ID,
         "reviewed_code": commit,
         "bound_sha256": bindings,
@@ -427,6 +649,9 @@ def run_export(reviewed_code: str, output_root: Path) -> None:
         "smoke": environment["smoke"],
         "DINOv2_repository_commit": environment["DINOv2_repository_commit"],
         "DINOv2_checkpoint_sha256": environment["DINOv2_checkpoint_sha256"],
+        "materializer_success": materializer["success"],
+        "materializer_runtime": materializer["runtime"],
+        "materializer_smoke": materializer["materializer_smoke"],
         "generation_performed": False,
         "training_steps": 0,
         "confirmation_data_opened": False,
@@ -438,7 +663,9 @@ def run_export(reviewed_code: str, output_root: Path) -> None:
 
 def parser() -> argparse.ArgumentParser:
     value = argparse.ArgumentParser()
-    value.add_argument("mode", choices=("contracts", "environment", "export"))
+    value.add_argument(
+        "mode", choices=("contracts", "environment", "materializer", "export"),
+    )
     value.add_argument("--reviewed-code", required=True)
     value.add_argument(
         "--output-root", type=Path,
@@ -453,6 +680,8 @@ def main() -> None:
         run_contracts(arguments.reviewed_code, arguments.output_root)
     elif arguments.mode == "environment":
         run_environment(arguments.reviewed_code, arguments.output_root)
+    elif arguments.mode == "materializer":
+        run_materializer(arguments.reviewed_code, arguments.output_root)
     else:
         run_export(arguments.reviewed_code, arguments.output_root)
 

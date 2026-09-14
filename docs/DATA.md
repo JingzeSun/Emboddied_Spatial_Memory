@@ -22,7 +22,9 @@
 
 `ObservationPacket` 是共同在线输入包，VM-01 精确字段为：`schema_version, sample_id_hash, decision_time_s, rgbd_refs, camera_pose, robot_state, past_actions, region_observations, free_space_observations, prior_memory_ref, public_constants`。`sample_id_hash`、`rgbd_refs` 和 `prior_memory_ref` 只作外层对齐/摘要绑定，`build_adapter_input` 会删除它们；适配器实际得到决策时间、相机位姿、机器人状态、已结束动作、匿名区域、传感器派生自由空间、已校验 prior memory 和公共常数。`region_observations` 当前含包内顺序号、匿名 `structure_kind`、mask 摘要、descriptor、质心、包围尺寸、可靠性和冻结 proposal 来源，不含永久身份或原图路径。`free_space_observations` 是由公开深度射线保守内包得到的轴对齐盒，含包内顺序号、合法历史 `time_s`、三维上下界、可靠性和支持摘要；至少两个不同历史时刻的覆盖证据才能组成 executor 可接受的 RETRACT/REPLACE 负证据链。例如旧节点包围盒在连续两帧都完整落入高可靠自由盒时，ELU 才得到负观测候选。它不是真值空区、不提供被删对象 ID，具体深度到内包盒的数值规则仍须 VM-04 前冻结。
 
-L1第一道隔离缓存`vsmt-l1-anonymous-mask-cache-v1`保存图像高宽、按内容排序的匿名区域和匿名拒绝记录。区域含包内`region_id`、固定`entity`结构类型、mask摘要、行优先0/1像素、可见像素数和是否触边；拒绝项只含mask摘要、支持数、触边标志和固定原因。输入instance ID既不进入公开字段，也不参与公开排序或缓存摘要，只形成访问受限的映射摘要。例如把模拟器ID从`Cup|7`换成`opaque-b`而mask不变，公开缓存必须逐字节相同，私有映射摘要应改变。它还不是`ObservationPacket`：DINO描述、公开几何和可靠性完成并通过阈值后才能组包。
+L1第一道隔离缓存`vsmt-l1-anonymous-mask-cache-v1`保存图像高宽、按内容排序的匿名区域和匿名拒绝记录。区域含包内`region_id`、固定`entity`结构类型、mask摘要、行优先0/1像素、可见像素数和是否触边；实体最少196个像素，触边区域满足该支持数就保留。拒绝项只含mask摘要、支持数、触边标志和固定原因。输入instance ID既不进入公开字段，也不参与公开排序或缓存摘要，只形成访问受限的映射摘要。例如把模拟器ID从`Cup|7`换成`opaque-b`而mask不变，公开缓存必须逐字节相同，私有映射摘要应改变。它还不是`ObservationPacket`：DINO描述、公开几何和可靠性完成并通过阈值后才能组包。
+
+L1实体描述缓存把匿名mask投到16×16个DINOv2 ViT-S/14 patch token，每块权重为196个像素中落入mask的比例，总权重至少1.0；加权均值L2归一化后以384维float32保存，单位范数容差`1e-5`。公开几何缓存只接同帧米制轴向depth、`fx/fy/cx/cy`和camera-to-world的`position_m/quaternion_xyzw`，深度有效范围0.05–20 m，有效点门为`max(32, ceil(25%×visible_pixel_count))`，可靠性为有效点比例。输出只含可见点质心、可见轴对齐extent、支持计数和摘要。例如196像素中98个深度有效时通过且可靠性0.5；它不保存DINO的CLS token、不把深度当欧氏射线长度，也不包含真值姿态、mesh、完整bbox或instance ID。
 
 `causal_prior_receipt`（因果旧记忆回执，planned）解决 prior memory 虽然字段合法、其值却可能由 simulator instance ID 或 reference transaction 预先构造的问题。输入只读 public 序列、初始空图或公开初始化和冻结更新器版本，输出每步输入摘要、提交事务摘要、图版本链及最终图摘要；构建进程不得挂载 `teacher/private_eval`。例如把私有椅子 ID 从 7 改成 19 而 public 字节不变时，最终 prior memory 必须逐字节不变。它不等于把私有 ID 哈希后就成为公开值，也不允许用 reference graph 初始化历史。
 
@@ -46,7 +48,7 @@ VM-02 的共同节点观测状态键为 `vsmt_observation_state`，当前包含 
 
 新数据至少需要八个原子模板的可执行正例及容易混淆的合法反例，并包含对象之外的结构变化：地点/区域 BIRTH、实体—地点 RELINK、关系 RETRACT、观测碎片 SPLIT/MERGE 和 dormant 结构 REACTIVATE。物理世界变化、感知片段错误与记忆初始错误必须分别标源；例如同一把椅子真实移动导致 RELINK，与两次检测形成重复节点后需要 MERGE，不能共用一个含糊标签。具体场景数、每类比例、轨迹、图类型和随机预算尚未冻结。
 
-正式视觉输入计划共享一个冻结、与结果无关的 proposal/descriptor 前端。DINOv2 只从 `public.rgb` 产生区域描述；深度和位姿产生公开几何。VSMT、TAF、ELU、WFR、LOW 必须消费同一前端字节和缓存摘要，不能让 VSMT 用 RGB-D 而对照用旧 LATENT，也不能让对照读取更干净的真值结构。模拟器 instance segmentation 可生成 private 对齐标签和误差评估，但不能作为正式 proposal；若开发期用真值 mask 做接口检查，结果必须标 `oracle_structured_diagnostic_only`，不得进入主表。
+正式视觉输入计划共享一个冻结、与结果无关的 proposal/descriptor 前端。DINOv2 只从 `public.rgb` 产生区域描述；深度和位姿产生公开几何。VSMT、TAF、ELU、WFR、LOW 必须消费同一前端字节和缓存摘要，不能让 VSMT 用 RGB-D 而对照用旧 LATENT，也不能让对照读取更干净的真值结构。L1允许隔离materializer用模拟器instance segmentation提出匿名mask，但这只消除实体proposal误差，结果必须标 `oracle_structured_diagnostic_only`且不得进入主表；L2仍禁止instance segmentation作为正式proposal。
 
 ### VM-04 新数据协议 v1（D-127，proposed、不可执行）
 
@@ -95,11 +97,11 @@ VM-02 的共同节点观测状态键为 `vsmt_observation_state`，当前包含 
 
 白话：实体oracle mask只移除“检测器有没有把像素分对”的误差；输入仍是一帧可见像素，输出仍没有历史身份。例如同一杯子下一帧再次出现时会得到新的包内ordinal，TAF/ELU/WFR/VSMT必须自己依据描述、位置和旧记忆决定BIND还是BIRTH。它不允许把模拟器ID哈希后塞进descriptor，也不把完整物体几何补给方法。
 
-匿名区域规范顺序拟为`structure_kind → row-major首个真像素 → 可见像素数 → binary mask SHA-256`，之后才赋`region:0000...`；mask摘要只覆盖`[height,width,row-major 0/1值]`的canonical JSON。输入mask枚举顺序任意，输出顺序和字节必须相同。例如把AI2-THOR返回的两个实例行交换，公开packet不得变化。它不按instance ID、对象类别、文件路径或reference排序；最小可见像素和边缘截断处置仍为`null`。
+匿名区域规范顺序为`structure_kind → row-major首个真像素 → 可见像素数 → binary mask SHA-256`，之后才赋`region:0000...`；mask摘要只覆盖`[height,width,row-major 0/1值]`的canonical JSON。输入mask枚举顺序任意，输出顺序和字节必须相同。例如一把椅子在画面左缘仍有220像素时保留，只有150像素时按支持不足拒绝。它不按instance ID、对象类别、文件路径或reference排序，也不把触边可见部分补成完整物体。
 
-DINO输入固定为224×224当前RGB；uint8除255后按均值`[0.485,0.456,0.406]`、标准差`[0.229,0.224,0.225]`归一化，不裁剪、不增强。ViT-S/14产生16×16×384 patch token；每个token权重等于对应14×14块中mask像素比例，按权重求均值并L2归一化为384维float32。输入同一RGB和匿名mask，输出一次缓存、五方法逐字节共享的descriptor。例如半个patch属于mask时该token权重为0.5。它不使用CLS/register token、不训练DINO，也没有方法私有视觉adapter；最小总权重和单位范数容差待审。
+DINO输入固定为224×224当前RGB；uint8除255后按均值`[0.485,0.456,0.406]`、标准差`[0.229,0.224,0.225]`归一化，不裁剪、不增强。ViT-S/14产生16×16×384 patch token；每个token权重等于对应14×14块中mask像素比例，按权重求均值并L2归一化为384维float32。区域总patch权重至少1.0，落盘float32向量的单位范数误差不超过`1e-5`，否则保留失败且不重采样。输入同一RGB和匿名mask，输出一次缓存、五方法逐字节共享的descriptor。例如半个patch权重0.5，单独不能通过。它不使用CLS/register token、不训练DINO，也没有方法私有视觉adapter。
 
-实体几何拟用mask内有效公开depth逐像素反投影到世界坐标，质心为可见点逐坐标均值，extent为可见点逐轴最大减最小；不补全不可见背面。输入公开depth、内参与camera pose，输出可见几何。例如杯子底部被桌沿挡住时，extent可以偏小并由可靠性反映，而不能读取真值bbox修正。它不等于对象完整尺寸；有效深度范围、最少点数、可靠性公式及surface/place/free-space规则仍未冻结。
+实体几何用mask内0.05–20 m有效公开depth逐像素反投影到世界坐标，AI2-THOR深度按相机轴向`z`解释；质心为可见点逐坐标均值，extent为可见点逐轴最大减最小。有效点至少`max(32, ceil(25%×可见像素数))`，可靠性为有效点数除以可见像素数。输入公开depth、内参与camera pose，输出可见几何。例如杯子底部被桌沿挡住时，extent可以偏小并由可靠性反映，而不能读取真值bbox修正。它不等于对象完整尺寸；surface/place/free-space规则仍未冻结。
 
 L1 materialization receipt（L1物化回执）分公开与私有两份：公开回执绑定materializer/config、RGB/depth/pose、匿名mask、descriptor、geometry、`ObservationPacket`及DINO源码/权重摘要；私有审计回执另存原instance mask集合、ID映射和公开回执摘要。输入同一次物化，输出两条不可互读的来源链；例如只置换instance ID时公开回执必须不变，私有映射摘要可以变化。它不把private摘要、路径、类别或future/reference摘要带入公开回执或方法输入。
 

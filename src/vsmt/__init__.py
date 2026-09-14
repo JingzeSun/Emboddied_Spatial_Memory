@@ -59,6 +59,22 @@ from .l1_masks import (
     RejectedAnonymousMask,
     anonymize_instance_masks,
 )
+from .l1_entities import (
+    AI2THOR_CAMERA_AXIS_Z,
+    PROPOSAL_SOURCE_ID,
+    DINORegionConfig,
+    DINORegionDescriptor,
+    L1EntityConstructionError,
+    L1EntityObservation,
+    PublicEntityGeometry,
+    PublicGeometryConfig,
+    backproject_public_entity_geometry,
+    extract_dinov2_patch_tokens,
+    mask_patch_weights,
+    materialize_l1_entity_observation,
+    pool_dinov2_region_descriptor,
+    preprocess_dinov2_rgb,
+)
 
 __all__ = [
     "AdapterInput",
@@ -107,4 +123,18 @@ __all__ = [
     "L1MaskMaterialization",
     "RejectedAnonymousMask",
     "anonymize_instance_masks",
+    "AI2THOR_CAMERA_AXIS_Z",
+    "PROPOSAL_SOURCE_ID",
+    "DINORegionConfig",
+    "DINORegionDescriptor",
+    "L1EntityConstructionError",
+    "L1EntityObservation",
+    "PublicEntityGeometry",
+    "PublicGeometryConfig",
+    "backproject_public_entity_geometry",
+    "extract_dinov2_patch_tokens",
+    "mask_patch_weights",
+    "materialize_l1_entity_observation",
+    "pool_dinov2_region_descriptor",
+    "preprocess_dinov2_rgb",
 ]

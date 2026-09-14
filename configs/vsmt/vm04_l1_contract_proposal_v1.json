@@ -1,9 +1,10 @@
 {
   "version": "vsmt-vm04-l1-contract-proposal-v1",
-  "status": "direction_approved_implementation_authorized_not_executable",
-  "decision": "D-135",
+  "status": "entity_materialization_values_approved_implementation_authorized",
+  "decision": "D-136",
   "approval": {
     "directional_boundary_approved": true,
+    "entity_materialization_values_approved": true,
     "contract_approved": false,
     "implementation_authorized": true,
     "dependency_install_authorized": true,
@@ -96,9 +97,9 @@
     "mask_sha256_rule": "sha256_of_canonical_JSON_array_[height_width_row_major_0_or_1_values]",
     "empty_or_offscreen_instance": "no_region",
     "controlled_frontend_stress_order": "apply_predeclared_mask_transformation_after_anonymization_and_before_descriptor_or_geometry",
-    "minimum_visible_pixels": null,
-    "border_truncation_policy": null,
-    "blocking_reason": "minimum_support_and_truncation_rules_require_user_numeric_review"
+    "minimum_visible_pixels": 196,
+    "border_truncation_policy": "keep_if_minimum_support",
+    "blocking_reason": null
   },
   "non_entity_regions": {
     "surface_source": "public_depth_pose_and_calibration_only",
@@ -132,23 +133,29 @@
     "descriptor_storage_dtype": "float32",
     "method_specific_visual_adapter": false,
     "cache_once_and_share_identical_bytes_across_methods": true,
-    "minimum_total_patch_weight": null,
-    "unit_norm_validation_tolerance": null,
-    "blocking_reason": "minimum_pooling_support_and_numeric_validation_tolerance_require_review"
+    "minimum_total_patch_weight": 1.0,
+    "unit_norm_validation_tolerance": 0.00001,
+    "blocking_reason": null
   },
   "public_geometry": {
     "entity_point_source": "anonymous_mask_intersection_with_valid_public_depth",
-    "projection": "registered_depth_pixels_backprojected_with_public_intrinsics_then_transformed_by_public_camera_pose",
-    "centroid_proposal": "coordinatewise_mean_of_visible_world_points",
-    "extent_proposal": "axis_aligned_visible_world_point_maximum_minus_minimum",
+    "projection": "registered_depth_pixels_with_u_column_v_row_no_half_pixel_offset_x=(u-cx)*z/fx_y=(cy-v)*z/fy_then_public_camera_to_world_pose",
+    "depth_convention": "ai2thor_linear01_camera_axis_z_m",
+    "centroid_rule": "coordinatewise_mean_of_visible_world_points",
+    "extent_rule": "axis_aligned_visible_world_point_maximum_minus_minimum",
     "hidden_object_geometry_completion": false,
     "simulator_pose_mesh_or_axis_aligned_bounding_box_allowed": false,
-    "depth_valid_range_m": [null, null],
-    "minimum_valid_depth_points": null,
-    "reliability_formula": null,
+    "depth_valid_range_m": [0.05, 20.0],
+    "minimum_valid_depth_points": {
+      "absolute_minimum": 32,
+      "minimum_visible_fraction": 0.25,
+      "rounding": "ceil",
+      "rule": "max_of_absolute_and_fraction"
+    },
+    "reliability_formula": "valid_depth_point_count_divided_by_visible_pixel_count",
     "free_space_box_rules": null,
     "surface_and_place_rules": null,
-    "blocking_reason": "depth_support_reliability_free_space_surface_and_place_values_require_review"
+    "blocking_reason": "free_space_surface_and_place_rules_require_review"
   },
   "materialization_receipts": {
     "public_receipt_fields": [
@@ -315,10 +322,6 @@
     }
   ],
   "unresolved_review_items": [
-    "minimum_visible_pixels_and_border_truncation_policy",
-    "DINO_pooling_support_and_unit_norm_tolerance",
-    "depth_valid_range_and_minimum_points",
-    "region_reliability_formula",
     "surface_place_and_free_space_geometry",
     "bootstrap_and_all_method_thresholds",
     "candidate_thresholds_caps_and_public_heuristic_score",
@@ -331,7 +334,7 @@
   "claims": {
     "contract_frozen": false,
     "implementation_complete": false,
-    "environment_ready": false,
+    "environment_ready": true,
     "L1_data_generated": false,
     "selector_trained": false,
     "five_method_experiment_run": false,

@@ -141,21 +141,21 @@ VM-04 v1拟把单步机制比较和长期自反馈分开。`controlled_revision`
 
 VM-05拟增加三个同架构内部对照，但不改变五个主臂。Direct Reference Candidate Ranker（DRCR，直接参考候选排序器）使用同一在线网络和已封存 catalog，训练标签直接来自参考等价组，不使用执行后未来 teacher；No-Execution Candidate Scorer（NECS，无执行候选评分器）使用同一 catalog 和 teacher target，但不编码候选执行后的图；Public Heuristic Ranker（PHR，公开启发式排序器）完全不学习，只按冻结公开相似度排序。三者输入边界与 VSMT 相同，输出候选槽位。例如 NECS 若已经解释全部收益，说明“执行候选后再比较”没有获得独立支持。它们是 VSMT 因果消融，不是 ConceptGraphs/Fusion++/Khronos 的替代，也不自动获得主方法地位。
 
-### L1-first共同机制诊断合同（D-132/D-133/D-135，方向已认可、数值未冻结）
+### L1-first共同机制诊断合同（D-132/D-133/D-135/D-136，实体物化数值已认可）
 
 [L1-only机器提案](../configs/vsmt/vm04_l1_contract_proposal_v1.json)把用户决定的“先做L1”限定为五方法共同的 oracle-structured diagnostic（真值区域提议机制诊断），而不是VSMT专属上界。输入是同一AI2-THOR序列中的当前RGB、公开depth/pose及只在隔离materializer可见的instance mask；输出是去掉instance ID、每帧重新编号的匿名区域、冻结DINOv2描述、公开可见几何和共同`ObservationPacket`。例如把模拟器椅子ID从7换成19但mask像素不变时，五方法看到的区域、描述、prior和候选必须逐字节不变。它不提供跨帧真值身份、对象类别、真值姿态/网格、reference事务或未来，也不能进入L2主排名。
 
 Oracle Region Materializer（真值区域匿名化器）解决“使用真值mask诊断分割误差时，怎样不顺带泄漏身份”的问题。它在单帧内可用instance ID找到该实例的全部可见像素，随即丢弃ID；区域只按结构类型、首个真像素、面积和mask摘要排序，再赋`region:0000...`。同一实例下一帧必须获得新的包内编号，身份仍由外观、几何和旧记忆推断。surface/place/free-space继续只从公开depth/pose形成，不能读取模拟器房间名或语义网格。例如一把被遮挡成两个可见岛的椅子在当前帧仍可是一条oracle region，但下次出现不能沿用私有ID直接BIND。它不是部署proposal，也不是完整oracle场景图。
 
-L1的冻结DINOv2区域描述拟用224×224原RGB、不裁剪不增强，按官方均值/方差归一化后送入ViT-S/14无register模型；16×16个384维patch token分别按对应14×14像素中mask占比加权，求均值后做L2归一化。输入同一匿名mask和当前RGB，输出384维float32 descriptor并只缓存一次供五方法共享。例如一个patch有196像素、其中98像素属于区域，则权重为0.5。它不微调backbone、不使用CLS token，也不允许方法私有视觉adapter；最小mask/patch支持和范数容差仍为`null`，未获审查前不能实现为生成入口。
+L1的冻结DINOv2区域描述用224×224原RGB、不裁剪不增强，按官方均值/方差归一化后送入ViT-S/14无register模型；16×16个384维patch token分别按对应14×14像素中mask占比加权，求均值后做L2归一化。实体mask至少196个可见像素，触边区域只要满足支持数就保留；区域总patch权重至少1.0，落盘float32向量的单位范数误差不超过`1e-5`，否则保留`construction_failure`而不重采样。输入同一匿名mask和当前RGB，输出384维float32 descriptor并只缓存一次供五方法共享。例如一个完整14×14块总权重正好为1.0，半个块只有0.5会拒绝。它不微调backbone、不使用CLS token，也不允许方法私有视觉adapter。
 
-实体公开几何只把匿名mask与公开有效depth相交，按相机内参反投影并用公开pose变到世界坐标；当前提案以可见点坐标均值作质心、逐轴最大减最小作extent，不补全遮挡背面。输入当前可见RGB-D和相机标定，输出`centroid_m/extent_m/reliability`；例如只看见椅背上半部时extent只能描述可见部分，不能读取模拟器完整包围盒补齐。它不等于真值物体几何；有效深度范围、最小点数、可靠性、surface/place/free-space规则均待用户数值审查。
+实体公开几何只把匿名mask与公开有效depth相交，按相机内参反投影并用公开camera-to-world pose变到世界坐标。固定AI2-THOR 5.0.0深度shader使用`Linear01Depth`，本合同据此把米制depth解释为相机前向轴`z`，像素用整数`u=列、v=行`且不加0.5，计算`x=(u-cx)z/fx、y=(cy-v)z/fy`；它不是从相机中心沿单位射线量出的欧氏距离。有效范围含端点0.05–20 m；有效点至少为`max(32, ceil(0.25×可见像素数))`，可靠性等于有效深度点数除以可见像素数。输出质心为可见世界点逐轴均值，extent为逐轴最大减最小。例如196像素mask至少需49个有效深度点，若98个有效则可靠性0.5。它不补全椅背后的隐藏几何，不读取模拟器完整bbox/mesh；surface/place/free-space规则仍未裁决。
 
 VSMT Online Candidate Selector（VSMT在线候选选择器，planned）拟对每个已封存候选独立复用同一个打分器：分别编码类型化prior摘要、程序/在线证据、候选触及的执行前子图、真实执行后的子图和规范delta，再用逐候选MLP输出一个logit；不接受candidate slot、目录顺序、路径或样本名。所有候选从同一基图真实执行并封存后才打分，最大logit提交，严格并列按程序规范摘要排序。例如把同一候选集合换序时，每个程序的logit跟着程序而不是槽号移动，最终选择不变。它不让teacher生成候选，也不是DINO视觉adapter；隐藏宽度、层数、参数和训练预算仍未冻结。
 
 同架构对照按该选择器边界解释：DRCR保留全部在线输入但用直接reference等价标签训练；NECS把post-state和delta分支替换为固定零张量且不能打开post graph；PHR只用封存前的公开候选分数。五个主臂中TAF/ELU/WFR/LOW仍直接从同一`AdapterInput`产生图更新，不经过VSMT选择器。输入都是同一L1区域与prior，输出各自`MemoryUpdateResult`；例如ELU仍只能在公开自由空间完整覆盖时降低存在分数。它不强迫四个机制适配器伪装成候选分类器，也不赋予任何一方额外视觉信息。
 
-`L1MaskMaterialization`（L1匿名mask物化，implementation candidate）只完成第一道隔离：临时输入当前帧`instance_id → binary mask`，把每个实例的全部可见像素保留为一个mask，按首个非零像素、像素数和mask摘要公开排序，输出逐帧匿名编号、mask缓存及支持不足的匿名失败。真实ID只进入单独私有映射摘要；空mask不公开，重叠instance mask整帧拒绝，最小像素与边界截断策略无默认值。例如同一椅子的椅背和两条腿被桌面隔开时仍输出一个区域，两只相似杯子仍输出两个区域。它不做跨帧跟踪、DINO描述、三维投影、候选生成或事务选择，当前本地只做AST检查，必须由服务器新测试回执认证。
+`L1MaskMaterialization`（L1匿名mask物化）只完成第一道隔离：临时输入当前帧`instance_id → binary mask`，把每个实例的全部可见像素保留为一个mask，按首个非零像素、像素数和mask摘要公开排序，输出逐帧匿名编号、mask缓存及支持不足的匿名失败。真实ID只进入单独私有映射摘要；空mask不公开，重叠instance mask整帧拒绝。例如同一椅子的椅背和两条腿被桌面隔开时仍输出一个区域，两只相似杯子仍输出两个区域。`l1_entities`再输入匿名mask、冻结patch token和公开depth/相机，输出共同区域记录。它不做跨帧跟踪、候选生成或事务选择；新实体物化代码仍须服务器回执认证。
 
 当前提案要求八个反作弊正反例：instance ID置换、私有mask枚举换序、同实例跨帧重编号、两相似实体同时可见、遮挡不等于自由空间、过小/无有效depth区域失败保留、private/future变异不改在线字节，以及catalog校验后只换scorer batch顺序仍保持逐程序logit。它们输入合法或故意破坏的成对记录，输出逐字节不变或明确失败；例如正确MERGE因公开证据不足未进入catalog时只能记candidate miss。它们不修改封存catalog或teacher槽位，不是数据效果样本，也不能替代2-house真实audit。
 
