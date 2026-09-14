@@ -1,7 +1,7 @@
 {
   "version": "vsmt-vm04-l1-two-house-audit-proposal-v1",
   "status": "generation_executable",
-  "decision": "D-152",
+  "decision": "D-153",
   "engineering_baseline_reviewed_code": "a8fa08a74bad99218a5be72d874841dd169695ab",
   "engineering_receipt_sha256": "d29caeaaf88cf58d5829a7fe9bda4b61fd79c594439cff437ce7835ccce7879b",
   "engineering_baseline_blocking_reason": null,
@@ -109,6 +109,20 @@
     "private_program_assignment_salt_sha256": "159ded00f0ce6ebd8b438ff5fa19c855f05e95b1d597576dc95112ae7773721b",
     "failed_family_or_episode_replacement": false,
     "audit_families_may_enter_train_validation_or_confirmation": false
+  },
+  "generator_initial_viewpoint": {
+    "status": "authorized_runtime_fix_after_zero_of_36_default_spawn_failure",
+    "reachable_position_source": "AI2-THOR_GetReachablePositions",
+    "yaw_degrees": [0, 90, 180, 270],
+    "horizon_degrees": 0,
+    "minimum_anonymous_mask_pixels": 196,
+    "minimum_eligible_anonymous_masks": 2,
+    "selection_rule": "maximize_eligible_mask_count_then_total_eligible_pixels_then_lexicographic_x_y_z_yaw",
+    "search_once_per_house_family": true,
+    "reuse_frozen_pose_for_all_family_slots": true,
+    "private_instance_id_or_class_may_affect_pose": false,
+    "future_or_program_result_may_affect_pose": false,
+    "failed_search_replacement_house_allowed": false
   },
   "audit_only_association_profiles": {
     "role": "predeclared_capacity_brackets_not_formal_method_configurations",

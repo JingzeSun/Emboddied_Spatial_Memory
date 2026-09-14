@@ -62,7 +62,9 @@ VM-02 的共同节点观测状态键为 `vsmt_observation_state`，当前包含 
 
 当前数值清单中的2个audit、48个train、12个validation、12个confirmation仍是待重算提案：按源manifest＋固定seed＋house ID的SHA-256顺序选取；每家族对八个原子与REPLACE各做2个预登记重复，即18条episode。若暂按该提案，总量为74家族、1,332条episode、42,624帧，confirmation的216条episode继续延后生成。失败family/episode记录失败且不按结果换样本。它不保证这些数量足以支持上述分类型主张，最终confirmation family数须按D-141规则更新后再冻结。
 
-D-144新增的[2-house audit机器提案](../configs/vsmt/vm04_l1_two_house_audit_proposal_v1.json)不修改上述正式split提案，只定义独立开发审计的待审字段。来源层须先保存ProcTHOR-10K `0.1.2`作者train分区清单摘要、许可证快照摘要、机械合格ID列表摘要和哈希选出的两个实际audit house ID；当前四项仍为`null`。公开计划固定2 family×18 slot、共36 episode/1,152帧，私有事务salt只保存承诺摘要；任一来源解析、加载或episode构造失败都占原slot且不替换。白话：输入完整未筛效果的来源清单，输出可复算的两house承诺；例如某house启动失败仍留在manifest。它不是先看可用正例再选house，也不生成confirmation身份。
+D-144新增的[2-house audit机器提案](../configs/vsmt/vm04_l1_two_house_audit_proposal_v1.json)不修改上述正式split提案，只定义独立开发审计字段。来源层须先保存ProcTHOR-10K `0.1.2`作者train分区清单摘要、许可证快照摘要、机械合格ID列表摘要和哈希选出的两个实际audit house ID；这些字段在D-151已冻结。公开计划固定2 family×18 slot、共36 episode/1,152帧，私有事务salt只保存承诺摘要；任一来源解析、加载或episode构造失败都占原slot且不替换。白话：输入完整未筛效果的来源清单，输出可复算的两house承诺；例如某house启动失败仍留在manifest。它不是先看可用正例再选house，也不生成confirmation身份。
+
+D-153的生成器初始视点只在每个固定house开始时搜索一次：`GetReachablePositions`给出当前场景可达相机坐标，生成器扫描四个水平朝向，以匿名mask合格数量、总像素支持和位姿字典序确定唯一位姿，再让该family全部slot复用。输入不含对象类别、instance ID排序、reference事务、未来或构造结果；输出位姿随公开相机文件封存，私有ID仍只用于既定干预和crosswalk。例如重命名全部instance ID而mask像素不变，所选位姿必须不变。它不是按每种事务分别找最容易成功的镜头，也不允许失败后换house。
 
 D-148实现把这些字段落成三个互相摘要绑定但权限不同的文件层。`inventory`要求本地ProcTHOR-10K git checkout的HEAD精确等于登记release commit，只读该checkout内显式的author-train JSON/JSONL（含gzip）和license文件，输出公开manifest/eligible摘要及隔离的source locator；`select`必须在另一次命令中从该已封存manifest按seed `260914`计算两个house，并生成36个公开opaque slot和私有程序salt；`generate`才按family启动两个Python 3.9模拟器worker。输入是预先存在且版本正确的本地`train.jsonl.gz`、许可证和冻结配置，输出可复算的house IDs、公开计划与私有计划。例如即使JSON行没有显式house ID，也按冻结文件顺序赋稳定`train:000123`，随后选择仍只依赖manifest、seed和该ID。它不下载来源、不接受checkout外license、不在inventory时选择house，也不让公开计划出现程序名或source house ID。
 

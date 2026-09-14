@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| VSMT首篇/VM-01～04 | D-152用户已确认固定`train:004270`与`train:008243`并开放generation/post-seal private audit；D-151的10,000-house inventory、来源/选择/salt摘要继续冻结，不重新选房。当前执行服务器`contracts → capacity → generate → materialize → public-seal → private-eval → verify → export`；训练、validation效果、confirmation与L2仍关闭。统计独立单位仍为family，逐版本模板归属留到五方法比较前。LOG-133–152，D-125–152 |
+| VSMT首篇/VM-01～04 | D-152已开放固定`train:004270`与`train:008243`的generation/private audit；首次真实generate在`a7f35e0`因默认出生视角36/36缺少匿名可见目标而零产出，原stage保留。D-153正加入每house一次、只依匿名mask几何的确定性视点搜索；随后新HEAD、新stage重跑。训练、validation效果、confirmation与L2仍关闭。统计独立单位仍为family。LOG-133–149，D-125–153 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
 | R4三模型接入 | D完整适配16项通过（121/200全反向，0更新），W完整适配17项亦通过，F完整适配19项通过；真实公共接口27/27候选通过，0优化/真值读取。209bb34，LOG-123–127 |
 | R4前端v2r1 | 81bceed：19项通过，16历史/144名义预测/16选择完整，误标占据/自由0；物块平均误差9.59 cm、接触Brier 0.1152，全部涉及未知扫掠，正式M/P未就绪。LOG-121 |
@@ -1694,3 +1694,10 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 总审修复提交`a836b98`补齐全过程资源检查：启动前检查1800秒、4 GiB、8 GiB磁盘保留线和双worker，生成期间汇总Linux子进程树RSS，materializer同时检查当前RSS与CUDA allocation，public/private后处理继续检查墙钟、stage字节及RSS；每family超过2 GiB时保留当前失败、把余下固定slot逐个记`not_started`并停止新分派。它同时恢复被清理时误删的stage字节计数函数，并保证公开materializer失败记录只给错误类型、完整异常只留private。verify要求36个slot都有complete/failed/not_started终态、两个worker都有exit、公开seal先于私有评价、全部摘要绑定及合并摘要不依赖worker完成顺序；export用O_EXCL写新报告，不覆盖既有结果。
 - 本地标准库分组精确通过executor 42/42、L1 31/31、VSMT 131/131，共204/204；其中新增25项两房屋合同/运维测试覆盖清单顺序无关与重复ID拒绝、选房可复算、公私计划隔离、seal顺序无关、private字段拒绝、严格/2档recall、唯一canonical matcher、worker匿名目标排序、预登记干预、每帧登记公开agent action、正负construction及资源停止。Python编译与diff检查通过。该本地测试没有加载AI2-THOR、DINO或真实ProcTHOR house，不能代替服务器合同及后续真实数据结果。
 - 本轮0 source inventory、0 house选择运行、0模拟器、0数据生成、0private evaluator、0训练、0validation效果、0confirmation；当前配置全部运行闸门仍关闭，工作只到总审候选。总审通过后先推送并取得新服务器合同回执，再只运行inventory与独立select公布固定house IDs；用户确认并另开generation/private位后才直接生成。
+
+## LOG-149：首次2-house真实生成零产出并保留（2026-09-15）
+
+- 服务器在`a7f35e07cae18576ad42466b3b7f20f2595fc32c`以D-151 planning stage及固定`train:004270`、`train:008243`运行；contracts精确通过executor 42、L1 31、VSMT 131，共204/204，capacity ready，预测墙钟1800秒、stage 3 GiB。
+- generate实际约142.81秒，两个family worker均退出0且各写18个终态，但36/36 raw episode均失败、0 complete。所有失败都是采帧前的`RuntimeError: insufficient anonymous visible targets for <PROGRAM>`；随后materialize只登记36个`raw_generation_failed`并得到0 complete。没有运行public-seal、private-eval、verify或export。
+- 白话：代码和模拟器都启动成功，但默认相机位置看不到既定数量的匿名区域，所以还没有形成任何可审数据。输入仍是固定house/slot，输出是完整失败回执和零产出证据。例如SPLIT需要两个mask而默认镜头不足两个，slot按规则失败且不换房。它不是DINO失败、容量超限、候选recall为零，也不是方法效果结果。
+- 原失败目录`/root/autodl-tmp/vsmt_outputs/vsmt-vm04-two-house-audit-v1-a7f35e07cae1`永久保留且不覆盖。D-153先登记每house一次的匿名视点搜索，再以新提交、新stage重跑；训练、validation效果、confirmation与L2仍未运行或授权。

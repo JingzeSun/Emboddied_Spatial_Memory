@@ -1543,3 +1543,9 @@
 
 - 日期：2026-09-15；状态：generation and post-seal private audit authorized。用户逐字确认`train:004270`与`train:008243`并要求直接开放generation/private-audit生成数据。据此机器配置只把状态改为`generation_executable`并开放`generation_authorized`、`private_audit_authorized`；D-144全部数值、来源/选择/程序salt摘要、失败不换房、资源停止、公私边界及训练/confirmation阻断均不变。
 - 固定执行顺序为当前提交服务器contracts，通过后以D-151 planning stage运行capacity；只有capacity ready才运行两个family worker的generate，然后依次materialize、public-seal、private-eval、verify、export。白话：这一步解决“协议和两间房已固定，但运行闸门仍关闭”的问题；输入是封存planning stage和固定来源checkout，输出36个slot的公开packet、隔离private标签及容量/recall审计。例如某slot无法构造时记录失败且不换房。它不开放train/validation效果实验、模型训练、confirmation或L2。
+
+## D-153：默认出生视角零产出后固定匿名初始视点搜索
+
+- 日期：2026-09-15；状态：generation runtime fix authorized，原失败stage永久保留。服务器在`a7f35e07cae18576ad42466b3b7f20f2595fc32c`完成contracts 204/204和capacity后，两个family worker均正常退出，但36/36固定slot都在采帧前报`insufficient anonymous visible targets`；generate约142.81秒，materialize据此得到0 complete。失败house、slot和原stage不得删除、覆盖或替换，public-seal/private-eval未运行。
+- 每个固定house在family worker分派slot前只做一次确定性初始视点搜索：读取AI2-THOR当前house的`GetReachablePositions`，按坐标排序并在0/90/180/270度水平朝向扫描；候选只以面积不少于196像素的匿名mask数量、这些mask总像素数及坐标/朝向字典序评分，选择最高项并供该family全部18个slot复用。搜索至少需要两个合格匿名mask，因为SPLIT/REPLACE需要两个目标；失败仍占原house并停止该family，不换房。
+- 白话：这个修复解决“模拟器随机/默认把相机放在看不见对象的位置”的工程问题。输入是同一固定house的可达相机位置和匿名mask几何，输出一个固定起始相机位姿。例如某位置能看见3块合格区域、另一位置只能看见1块，就选前者；同分时只按坐标和朝向决定。它不按对象名称、类别、instance ID、事务是否成功、未来帧或private评价挑容易样本，也不改变D-144阈值、house、slot、训练或confirmation授权。
