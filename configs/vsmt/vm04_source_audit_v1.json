@@ -13,7 +13,7 @@
     "network_response_bytes_per_request": 2097152,
     "report_bytes": 67108864
   },
-  "expected_contract_tests": 59,
+  "expected_contract_tests": 82,
   "remote_git_refs": [
     {
       "name": "ai2thor_5_0_0",

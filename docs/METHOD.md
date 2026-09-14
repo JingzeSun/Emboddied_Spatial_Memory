@@ -56,6 +56,10 @@ VM-02 代码候选把数值全部放在无默认值配置中，当前人工测�
 
 共同 `GraphRevision` 只是输出存储包装器：每次实体状态变化关闭旧 node version、追加新 version，并生成 `MemoryUpdateResult` 的规范 delta；方法内部能否读或利用历史仍由适配器限制。输入是方法已经作出的更新决定，输出是可由共同 evaluator 检查的合法图。例如 LOW 覆盖质心时旧版本仍留在图里供审计，但下一次 LOW 只找当前开放节点，不做回滚或重激活。它不是 VSMT 学习机制，也不把“保存历史字节”算作基线拥有版本推理能力。
 
+`SharedMemoryWrapper`（共享记忆包装器）在五个方法运行前逐字节相同地维护place证据，并只把超过公开未观测时间门的confirmed entity改为dormant；可靠自由空间为空则仍交给RETRACT，不能用dormant掩盖消失。输入当前公开packet、共同prior memory和显式时间门，输出共同prepared packet、版本化记忆及公开审计。例如杯子最后一次公开出现后超过冻结时长但其旧址没有可靠空证据，只进入dormant并保留全部历史，之后才可能REACTIVATE。它不读取teacher/future/private，不把candidate自动升级，也不允许retracted身份复活；时间门尚未冻结，只能由train/validation选择。
+
+`CommonPostUpdateAudit`（共同更新后审计）不强迫TAF、ELU、WFR和LOW改写成VSMT程序，而是在每个方法更新后用同一只读规则验证图、重算delta、检查历史版本是否被物理删除，并分别记录既有版本突变、protected节点状态和其incident topology变化。输入任一方法的prior/result，输出同schema审计；例如基线直接删掉一个旧retracted版本，即使当前开放图看起来正确，也会被记为history deletion并拒绝共同runner。它不判断该方法是否选对事务，也不把VSMT executor的动作空间偷偷送给对照。
+
 ### 反作弊信息边界
 
 Teacher-only supervision（仅教师可见监督）解决训练时可以利用后续观测、但部署时不能提前知道未来的边界问题。输入是已经封存的候选目录及训练样本的私有未来/参考状态，输出仅为候选上的软标签、排序或能量；例如未来三帧证明两个片段确属同一结构时，teacher 可以提高既有 MERGE 候选的目标概率。它不允许生成 MERGE 的两个目标、补入漏掉的正确候选、改变候选顺序或进入评估推理。
@@ -76,13 +80,13 @@ VM-01 的共同适配运行器只把 `decision_time_s / camera_pose / robot_stat
 
 VM-03 的 `generate_public_candidate_catalog`（公开候选目录生成器）枚举 NOOP、BIND、BIRTH、REACTIVATE、RELINK、RETRACT、SPLIT、MERGE 八个原子模板及 REPLACE 复合程序。输入只有已验证公开包、prior predicted memory 和无默认值的类型化阈值/分桶容量配置；每个程序先用既有 deterministic executor（确定性执行器）真实 preflight/执行，再连同公开 `online_evidence`、枚举优先级及容量审计封存。节点候选按`template × entity/surface/fragment`分桶，关系候选按`template × relation_type`分桶，place不进入学习式BIND/MERGE/SPLIT。BIND/REACTIVATE/SPLIT 使用匿名区域与公开节点相似度，MERGE 使用两个同类公开节点，RELINK枚举开放关系与公开锚点，RETRACT/REPLACE必须有两个不同合法历史时刻的自由空间覆盖。当前正式阈值和cap尚未冻结，测试数值只验证分支。
 
-当前SPLIT公开生成器会对开放边数不超过2的节点枚举“后继0、后继1、二者”三种逐边分配，并在同一原子事务中关闭每条旧边、按原关系类型/方向/另一端点重建新边；任何开放边漏分、重复分或夹带未登记替代边都会使整笔事务失败且不修改原图。“均不继承”只在executor合同层保留，生成器在关系负证据数值规则冻结前不提出。它解决关闭源节点后留下悬空边的问题；输入开放边集合，输出可完整执行的有限SPLIT程序。例如实体原来有一条`located_at`边时，目录分别包含左后继继承、右后继继承和两个后继都继承。它不保证正确分配一定进容量上限，也不允许teacher补入缺失分支。
+当前SPLIT公开生成器逐边应用公开支持规则：唯一支持左、右或二者时只保留该分配，没有公开支持的边才保留三种合法分配，因此变体数是`3^(歧义边数)`而不是`3^(全部边数)`。同一对后继的全部组合是不可拆组，并在同一原子事务中关闭每条旧边、按原关系类型/方向/另一端点重建；任何开放边漏分、重复分或夹带未登记替代边都会使整笔失败且不修改原图。“均不继承”只在executor合同层保留，生成器在关系负证据数值规则冻结前不提出。歧义边上限与总incident-edge操作上限是两个独立计算护栏，均须由开发容量审计冻结，并分别记录拒绝数。它解决关闭源节点后留下悬空边以及hash随机截断正确分配的问题；输入开放边和当前公开关系支持，输出完整可执行的有限SPLIT组。例如一条`located_at`已唯一支持左后继、另一条边无支持时，只枚举后者的三种，而不是九种。它不保证正确分配一定进入冻结容量，也不允许teacher补入缺失分支。
 
 白话：该生成器解决 `merge_queries` 曾经从参考答案直接给出目标的问题。输入例如两个当前匿名区域和三个旧节点，输出由公开相似度筛出的全部有限事务程序；正确 MERGE pair 没进入目录时后面只能记 candidate miss。候选事务 ID 和顺序只由剥离审计字段后的 `AdapterInput` 摘要产生，因此更换 `sample_id_hash` 或文件摘要不会改变程序/顺序。它不读取 private、不会保证正确候选总在目录，也不把 executor 通过当成语义正确。
 
 VM-04阈值审计发现，当前同一个“视觉相似度＋质心距离”分数跨`entity/surface/place/fragment`使用，会把含义不同的结构硬塞进同一尺度；正式方案拟改为先分别记录余弦相似度、米制距离、归一化几何接近度、结构类型和公开可靠性，再由每种结构的显式无默认值配置组合。它解决“地面格外观都像地板、移动实体却可合法位移”不能共用一个门的问题；输入仍是同一冻结描述和公开几何，输出可审的分量及类型内关联分。例如两个相距0.4 m但外观几乎相同的实体可以保留为待判候选，而两个不同0.5 m地面格不能只因纹理相同就BIND。它不使用类别、instance ID或teacher，也不等于这些类型化数值已冻结；正式数值仍须在S-01～S-12相关语义先确定后按共同train/validation选择。
 
-候选分数拆成两个不可互换的量。`enumeration_priority`（枚举优先级）已随catalog v2封存，只在同一类型化容量桶内决定保留组；`decision_heuristic_score`（决策启发式分）仍为planned，只供PHR跨模板选择最终事务，不能改变已封存候选。每个候选另保存公开视觉相似度、质心距离、几何接近度、权重或可靠性分量；每桶保存截断前候选/组数、保留数、超大整组数和最低保留优先级。它解决NOOP枚举值固定为1.0、若误作决策分便会永远压过低于1.0的真实修订的问题；例如一个SPLIT左右后继的三种关系分配是同一整组，容量放不下时全部记miss，不能按程序hash随机留一个。它不等于PHR公式已经实现，也不允许用validation或confirmation偷偷重排目录。
+候选分数拆成两个不可互换的量。`enumeration_priority`（枚举优先级）已随catalog v2封存，只在同一类型化容量桶内决定保留组；`decision_heuristic_score`（决策启发式分）仍为planned，只供PHR跨模板选择最终事务，不能改变已封存候选。每个候选另保存公开视觉相似度、质心距离、几何接近度、权重或可靠性分量；每桶保存截断前候选/组数、保留数、超大整组数、两类SPLIT护栏拒绝数和最低保留优先级，catalog顶层另保存全部桶的总容量、截断前总量、保留总量和未保留总量。它解决NOOP枚举值固定为1.0、若误作决策分便会永远压过低于1.0的真实修订，以及“分桶后总目录到底多大”不可见的问题；例如一个SPLIT左右后继的三种关系分配是同一整组，容量放不下时全部记miss，不能按程序hash随机留一个。它不等于PHR公式已经实现，也不允许用validation或confirmation偷偷重排目录。
 
 阈值公平性拟定义为“同数据、同冻结选择指标、每方法至多12个完整配置”，而不是五种机制被迫共用同一个数值。受控轨道的bootstrap只选一次并逐字节共享；TAF、ELU、WFR、LOW和VSMT公开候选器可各用适合自身机制的配置，但任何一方都不能超出12次完整配置选择，没必要为了凑数用满。输入是预登记有限配置和共同train/validation，输出每方法一个冻结配置及完整试验清单。例如ELU可以调存在分数门而LOW只能调距离门，但二者拥有相同最多12次选择机会。它不声称相同阈值就是公平，也不授权现在生成house或根据confirmation改值；完整审议稿见[`vm04_l1_threshold_review_v1.json`](../configs/vsmt/vm04_l1_threshold_review_v1.json)。
 
@@ -143,7 +147,7 @@ VM-04 v1拟把单步机制比较和长期自反馈分开。`controlled_revision`
 
 `VM04Preflight`（VM-04服务器预检）已在提交`5e125ba`完成固定三步：`contracts`精确运行53项VSMT测试，`source-audit`只查询官方ref/元数据、现有DINO资产、模块/库/GPU/磁盘，`export`在前两步有摘要绑定成功标志后生成[报告](../results/vsmt_vm04_preflight.json)。输入是同一Git提交和只读审计配置，输出started、日志、receipt、success及小报告；前两次测试/PyPI来源错误的目录继续保留。它没有执行pip/conda安装、下载checkpoint主体、启动AI2-THOR、生成样本或训练，预检通过也不等于L1环境或数据已经就绪。
 
-关系感知 SPLIT 一次原子完成“关闭源节点、关闭全部开放incident edges、创建两个后继、按候选assignment重建边”。每条旧边可给左、右或二者；若当前公开`relation_observations`只支持左、只支持右或同时支持两者，生成器确定性收窄到该分配；若没有公开支持，则三种分配全部作为同一不可拆容量组保留。合同允许在至少两份已登记公开负证据下均不继承，但生成器仍不提出这一分支，避免暗定关系负证据。`maximum_split_incident_edges`只作为显式计算护栏，正式值须由真实度数审计后冻结，不再把“最多2条边”写成方法语义；源自环仍拒绝。输入一个待拆节点、两个公开区域、旧开放边和当前公开关系，输出完整合法的SPLIT后状态；例如只有左侧新区域公开显示仍位于原地点时，`located_at`只给左后继。它不是teacher事后补边，也不是哈希随机决定哪种关系分配活下来。
+关系感知 SPLIT 一次原子完成“关闭源节点、关闭全部开放incident edges、创建两个后继、按候选assignment重建边”。每条旧边可给左、右或二者；若当前公开`relation_observations`只支持左、只支持右或同时支持两者，生成器确定性收窄到该分配；若没有公开支持，则三种分配全部作为同一不可拆容量组保留。合同允许在至少两份已登记公开负证据下均不继承，但生成器仍不提出这一分支，避免暗定关系负证据。D-141将计算护栏拆成`maximum_split_ambiguous_edges`和`maximum_split_total_incident_edges`，正式值须由开发度数/容量审计后分别冻结，不再把“最多2条边”写成方法语义；源自环仍拒绝。输入一个待拆节点、两个公开区域、旧开放边和当前公开关系，输出完整合法的SPLIT后状态；例如只有左侧新区域公开显示仍位于原地点时，`located_at`只给左后继。它不是teacher事后补边，也不是哈希随机决定哪种关系分配活下来。
 
 VM-05把三个同架构内部对照列为解释论文胜负的一等实验，但不替代五个主臂。Direct Reference Candidate Ranker（DRCR，直接参考候选排序器）使用同一在线网络和已封存catalog，训练标签直接来自参考等价组，不使用执行后未来teacher；No-Execution Candidate Scorer（NECS，无执行候选评分器）使用同一catalog和teacher target，但不编码候选执行后的图；Public Heuristic Ranker（PHR，公开启发式排序器）完全不学习，只按另行冻结的公开决策分排序。三者输入边界与VSMT相同，输出候选槽位。例如NECS若已经解释全部收益，说明“执行候选后再比较”没有获得独立支持。它们是VSMT因果消融，不是ConceptGraphs/Fusion++/Khronos的替代；主报告必须同时给candidate recall，先区分候选遗漏、teacher错误和学生摊销错误。
 
@@ -1021,7 +1025,7 @@ z_{t,i}\approx\Pi(T_t,m_j),\qquad
 
 生命周期与版本结束时间分开：candidate 待确认；confirmed 已确认；dormant 暂不活跃但可重激活；retracted 已否定且不能直接复活；alias 指向 canonical。valid_to 只关闭一个版本，同一身份同一时刻至多一个 open version。
 
-既有 D-019–D-025 约束需在重构时显式兼容审查：BIRTH 不自动 confirmed，升级由 program 显式执行；独立 BIND 支持可促成确认，重复 time/view 证据保留但不重复增加独立权重。SPLIT 不向 successor 直接复制旧 aggregate latent。MERGE 按最早 valid_from、再按 ID 排序选 confirmed canonical，其他 source 新版本成为 alias。普通 node-level RETRACT 尚未实现，不能把 visible-empty 当身份从未存在。
+既有 D-019–D-025 约束需在重构时显式兼容审查：BIRTH 不自动 confirmed，升级由 program 显式执行；独立 BIND 支持可促成确认，重复公开证据保留但不重复增加独立权重。SPLIT 不向 successor 直接复制旧 aggregate latent。MERGE 按最早 valid_from、再按 ID 排序选 confirmed canonical，其他 source 新版本成为 alias。D-141新增entity node-level RETRACT：只有至少两条不同time/view的公开可靠visible-empty证据才可原子关闭当前实体版本及全部开放incident edges，并追加同身份、保留旧证据/latent/provenance及新负证据的terminal retracted版本；不物理删除历史。node REPLACE严格等于上述RETRACT后BIRTH一个不同candidate实体，新实体不继承旧身份、证据或关系，只能新建当前packet公开支持的`located_at/supported_by`。例如旧杯子位置连续两次可靠为空且当前看到一个新杯子，旧杯及其旧关系一起终止，新杯只拿当前观测证据。它不等于同一杯子移动（那应是RELINK），也不把retracted改名为dormant后复活；surface/fragment的node RETRACT仍未扩展。
 
 旧 M0 的可靠缺席要求至少两条不同 time/view 的 online visible-empty、有效 pose/depth、可靠度达标且中间没有正观测；新数据阈值另行审查。白话：遮挡、视野外、漏检不等于“那里确实空了”，不能一次没看到就删除身份。
 

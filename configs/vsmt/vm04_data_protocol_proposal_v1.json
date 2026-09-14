@@ -93,6 +93,20 @@
       "confirmation_house_ids_not_opened_during_development"
     ]
   },
+  "statistical_analysis_policy": {
+    "approval_decision": "D-141",
+    "independence_unit": "house_family",
+    "episode_replicates_are_within_family_correlated": true,
+    "primary_confirmatory_claim": "family_aggregated_over_all_registered_program_types",
+    "per_type_confirmatory_programs": ["SPLIT", "MERGE", "RETRACT"],
+    "descriptive_only_programs": [
+      "NOOP", "BIND", "BIRTH", "REACTIVATE", "RELINK", "REPLACE"
+    ],
+    "confirmation_family_count_frozen": false,
+    "confirmation_family_count": null,
+    "family_count_selection": "development_construction_yield_then_freeze_before_confirmation",
+    "audit_families_are_engineering_only": true
+  },
   "observation_proposal": {
     "rgb_height": 224,
     "rgb_width": 224,
@@ -147,6 +161,16 @@
     "SPLIT": "one_prior_memory_node_created_from_a_public_undersegmentation_then_resolved_into_two_public_regions",
     "MERGE": "two_prior_memory_nodes_created_by_a_public_association_break_then_supported_as_one_structure",
     "REPLACE": "old_structure_reliably_absent_and_a_distinct_structure_publicly_present"
+  },
+  "shared_lifecycle_policy": {
+    "approval_decision": "D-141",
+    "confirmed_entity_becomes_dormant_after_public_inactivity_horizon": true,
+    "candidate_becomes_dormant": false,
+    "reliable_visible_empty_routes_to_retract": true,
+    "retracted_identity_can_reactivate": false,
+    "inactivity_horizon_s": null,
+    "horizon_selected_on": "train_and_validation_only",
+    "applies_identically_to_all_methods": true
   },
   "controlled_frontend_stress": {
     "role": "controlled_memory_error_source_not_world_physics",

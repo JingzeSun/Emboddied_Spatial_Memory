@@ -1443,7 +1443,18 @@
 ## D-140：place脚手架、类型化容量、SPLIT整组和两层审计获批
 
 - 日期：2026-09-14；状态：approved for implementation and server contract verification, not data execution。用户认可D-139全部选择协议，并在审阅外部代码意见后批准：place按世界坐标作为五方法共同的确定性scaffold，不进入学习式BIND/MERGE/SPLIT；候选容量按`template × structure_kind`或`template × relation_type`分桶；TAF/ELU/WFR/LOW及bootstrap也使用显式类型化关联配置。测试/烟测数值仍不是正式阈值。
-- SPLIT采用公开证据约束的混合口径：当前关系唯一支持左、右或二者时确定性收窄；没有公开支持时保留左、右、二者三种分配。同一左右后继的全部关系分配是不可拆候选组，容量不足整组拒绝并记candidate miss，不能由canonical hash随机保留部分。`maximum_split_incident_edges`仅为待容量审计的计算护栏，不再固定为“最多2条边”的科学语义；均不继承仍等待公开负证据口径。
+- SPLIT采用公开证据约束的混合口径：当前关系唯一支持左、右或二者时确定性收窄；没有公开支持时保留左、右、二者三种分配。同一左右后继的全部关系分配是不可拆候选组，容量不足整组拒绝并记candidate miss，不能由canonical hash随机保留部分。当时统称的incident-edge计算护栏不再固定为“最多2条边”的科学语义，随后由D-141拆成歧义边和总incident-edge两项；均不继承仍等待公开负证据口径。
 - MERGE必须在同一原子内关闭两个源身份的全部开放incident edges，将alias端点重锚到canonical；同类型、同方向、同frame重复边合并证据/provenance，折叠出的自环关闭而不重开。白话：两个重复杯子节点都连到同一地点时，MERGE后只留一条规范关系并保留两边证据。它不删除旧版本，也不允许后续BIRTH掩盖悬空alias边。
 - `CandidateCatalog v2`封存每项枚举优先级和公开分量，并逐桶记录截断前候选/组数、保留数、超大整组数和最低保留优先级；PHR跨模板决策分仍未实现。2-house audit分成不挂载private的容量层，以及public/candidate全封存后才打开private的逐事务candidate recall/可用正例层；用户只批准审计内容，未授权实际运行。candidate recall和DRCR/NECS/PHR升为主报告一等诊断，关系通道为五方法共享能力而非VSMT独立创新。
 - 同批直接工程修复包括：真实`mask匿名化→实体物化→region组包`联测、mask紧凑字节存储、退化place格记录失败并跳过。允许必要本地/服务器合同及合成非数据smoke；house生成、阈值选择、训练、validation效果、private/confirmation读取仍为false。
+
+## D-141：实体撤回、共享dormant路径、共同审计与family统计口径获批
+
+- 日期：2026-09-14；状态：approved for implementation and server contract verification, not data execution。用户先批准动作空间对称化、统计口径和`f73b587`追认，随后在具体例子与未来影响解释后选择方案1A：保留关系级RETRACT，同时实现entity node-level RETRACT；surface/fragment节点本轮不扩展。house生成、训练、validation效果、2-house audit、confirmation生成/reveal仍未授权。
+- entity RETRACT只有在至少两条不同time/view的公开在线visible-empty证据满足有效pose/depth及可靠性门时才可执行；同一原子关闭当前实体版本及全部开放incident edges，追加terminal retracted版本并保留全部旧evidence/latent/provenance和新负证据。目标incident edge的关闭属于声明范围，即使另一端是protected节点也不等于修改该邻居节点；邻居自身状态和无关边仍受保护。白话：旧杯子所在空间连续两次可靠为空时，杯子和直接挂在它上的`located_at/supported_by`一起终止，但地点节点和其他物体关系不变。它不是物理删除历史，也不允许retracted身份以后REACTIVATE。
+- entity REPLACE严格编译为上述RETRACT后BIRTH一个不同candidate实体；新实体不得继承旧身份、证据或关系，只能从当前packet的公开支持新建`located_at/supported_by`，且新节点/边证据必须是online supporting observation。例如旧杯子消失而当前位置出现新花瓶，旧杯历史封存，新花瓶只携带当前证据；若其实是同一杯子移动，应走RELINK而非REPLACE。全部写操作继续原子回滚。
+- 五方法运行前使用同一共享包装器：place版本化证据逐字节一致；只有长期未被公开重观测的confirmed entity可按显式时间门进入dormant，candidate不可进入，可靠空证据必须走RETRACT。时间门只可在train/validation选择并在confirmation前冻结。因果public bootstrap在两份不同公开观测证据后才把candidate升级confirmed，重复同一证据不计两次；因此REACTIVATE获得公开可构造路径，而不是由private或teacher造dormant。
+- TAF/ELU/WFR/LOW不强制经过VSMT executor，以免借到不属于原机制的动作空间；所有方法最终结果必须经过共同只读审计，统一验证图、重算delta、检测历史物理删除、既有版本突变及protected节点/incident topology变化。关系通道和place包装是五方法共享能力，论文须把节点错误与关系错误分开归因。
+- SPLIT资源限制拆成`maximum_split_ambiguous_edges`与`maximum_split_total_incident_edges`：前者只作用于没有唯一公开支持的边，变体数为`3^(歧义边数)`；后者限制整笔原子操作规模。catalog逐桶分别记录两种护栏拒绝数，顶层记录所有桶总容量、截断前总量、保留总量和未保留总量；正式数值只能由开发容量审计冻结。
+- 统计独立单位固定为house family；同family两个replicate只能形成family内配对估计，不能当两个独立n。总体跨九类family聚合比较是主确认主张；分类型确认性主张只预登记SPLIT、MERGE、RETRACT，其余六类只作描述。confirmation family数由开发阶段逐类构造成品率反推并在任何confirmation访问前冻结，2-house audit只作工程审计、不作功效估计。当前12个confirmation family因此降回待重算提案，不得看confirmation后追加family。
+- place确定性坐标身份明确依赖AI2-THOR精确位姿；五方法共享其证据包装并单独计账。真实机器人SLAM漂移不在首篇研究范围，不能把模拟器精确位姿结论外推为现实地点身份已解决。所有批准语义的机器可查摘要见`configs/vsmt/vm04_l1_action_symmetry_v1.json`。

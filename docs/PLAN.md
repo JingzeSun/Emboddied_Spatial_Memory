@@ -16,13 +16,13 @@
 | VM-01 公私数据与共同适配合同（代码候选） | D-122草案；固定结构类型、公开 proposal/descriptor、五通道文件和反作弊 gate | schema、正负例、private mutation invariance、无 private 推理及 candidate-before-teacher 测试；补齐公开自由空间和逐候选在线证据，待合并服务器测试 |
 | VM-02 三种论文机制与朴素基线（代码候选） | 共同接口；TAF、ELU、WFR、LOW 只消费相同 `ObservationPacket` | clean-room 适配器、显式无默认值配置、版本化共同输出包装及人工分支测试；未冻结阈值，不称官方复现或效果结果 |
 | VM-03 VSMT 无泄漏候选与 teacher（代码候选） | VM-01接口；复用 executor/八原子语义，删除参考派生 query | public-only 九类程序、逐一真实执行、公开摘要排序、online evidence封存及封存后teacher；待同批服务器测试 |
-| VM-04 新数据数值冻结与开发生成（L1优先，完整物化工程通过） | [总协议提案](../configs/vsmt/vm04_data_protocol_proposal_v1.json)、[L1合同](../configs/vsmt/vm04_l1_contract_proposal_v1.json)及[隔离环境](../configs/vsmt/vm04_l1_environment_v1.json)；ProcTHOR＋AI2-THOR、2/48/12/12家族、32帧、九程序各2重复、匿名oracle mask＋冻结DINOv2、双轨 prior 和关系感知 SPLIT；L2的SAM2.1前端后置 | D-138完整结构物化在`135636d`上130/130通过；[报告](../results/vsmt_vm04_l1_structures.json)另绑定合成完整packet及因果prior烟测。2-house生成、训练与confirmation仍阻断，正式重阶段须多worker |
+| VM-04 新数据数值冻结与开发生成（L1优先，完整物化工程通过） | [总协议提案](../configs/vsmt/vm04_data_protocol_proposal_v1.json)、[L1合同](../configs/vsmt/vm04_l1_contract_proposal_v1.json)、[动作对称合同](../configs/vsmt/vm04_l1_action_symmetry_v1.json)及[隔离环境](../configs/vsmt/vm04_l1_environment_v1.json)；ProcTHOR＋AI2-THOR、32帧、九程序各2重复、匿名oracle mask＋冻结DINOv2、双轨 prior 和关系感知 SPLIT；confirmation family数待开发成品率反推，L2的SAM2.1前端后置 | D-138完整结构物化在`135636d`上130/130通过；[报告](../results/vsmt_vm04_l1_structures.json)另绑定合成完整packet及因果prior烟测。D-140/D-141新增字节只获本地合同，不得借旧回执认证；2-house审计、house生成、训练与confirmation仍阻断，正式重阶段须多worker |
 | VM-05 公平训练与 validation | 数据验收；冻结各方法阈值、学习预算、停止规则、共同/完整任务指标 | VSMT/TAF/ELU/WFR/LOW 在 L2 完全同前端输入主评；L1只作机制上界，旧 A/C/E 只作内部消融；确认前锁定全部选择 |
 | VM-06 独立确认与论文证据 | 模型、前端、候选、评分和最小效果门冻结后另行授权 | 未见家族 confirmation、必要现实来源、逐类/共享能力/成本/失败报告；不能按 validation 结果改样本或门 |
 
 ### 当前指针
 
-**D-140已批准并完成L1候选/地点/关系修订的本地代码候选，当前等待同一提交的服务器合同与合成非数据smoke。** place现为五方法共同的坐标scaffold，不进入学习式BIND/MERGE/SPLIT；候选按template×结构类型/关系类型有界分桶，catalog v2封存枚举分量和截断审计；SPLIT按公开关系证据收窄或整组保留全部分配，MERGE原子重锚并去重alias关系。实体主链联测、紧凑mask和退化place失败记录也已补齐。本地标准库合同精确通过executor 42、L1 31、VSMT 66，共139项；这不是服务器回执或方法效果。正式关联阈值、候选cap、SPLIT计算护栏、PHR/teacher/选择器、S-01～S-12数值仍未冻结。2-house容量/私有覆盖审计、house生成、训练、validation效果和confirmation全部阻断；下一步只允许推送一次并运行固定`contracts → smoke → export`，发现会改语义/阈值再回到用户裁决。
+**D-140/D-141已批准并完成L1候选、关系和动作空间对称化的本地代码候选，当前等待同一提交的服务器合同与合成非数据smoke。** place现为五方法共同的坐标scaffold，不进入学习式BIND/MERGE/SPLIT；候选按template×结构/关系类型有界分桶并汇总总容量；SPLIT按逐边公开支持只对歧义边枚举，另设总incident操作护栏；MERGE原子重锚去重关系。entity RETRACT会原子终止节点和全部incident edges并保留terminal历史，node REPLACE只BIRTH不同身份及当前公开关系；confirmed实体的长期公开未观测可经共享包装进入dormant，retracted不能复活。所有方法最终图经过同一delta/history/protected审计，但不强迫基线走VSMT executor。因果prior只在两份不同公开证据后确认candidate。统计以family为独立单位，总体为主确认结论，逐类型确认仅SPLIT/MERGE/RETRACT，confirmation family数待开发成品率反推。当前本地标准库合同按独立进程精确通过executor 42、L1 31、VSMT 82，共155项；本机VSMT同进程复跑出现已知原生access violation，因此必须以服务器同进程回执验收，这也不是方法效果。正式关联阈值、候选cap、dormancy门、SPLIT两类护栏、PHR/teacher/选择器及S-01～S-12剩余数值仍未冻结。2-house容量/私有覆盖审计、house生成、训练、validation效果和confirmation全部阻断；下一步只允许推送一次并运行固定`contracts → smoke → export`，发现会改语义/阈值再回到用户裁决。
 
 ## 上一 D-062 路线（暂停，以下保留复现）
 

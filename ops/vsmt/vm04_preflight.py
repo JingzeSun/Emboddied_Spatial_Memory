@@ -30,6 +30,7 @@ CONFIG_PATH = PROJECT_ROOT / "configs" / "vsmt" / "vm04_source_audit_v1.json"
 STAGE_ID = "vsmt-vm04-preflight-v1"
 BOUND_PATHS = (
     "configs/vsmt/vm04_data_protocol_proposal_v1.json",
+    "configs/vsmt/vm04_l1_action_symmetry_v1.json",
     "configs/vsmt/vm04_source_audit_v1.json",
     "schemas/transaction_program.schema.json",
     "schemas/vsmt_causal_prior_receipt.schema.json",
@@ -42,11 +43,13 @@ BOUND_PATHS = (
     "src/vsmt/contracts.py",
     "src/vsmt/graph_ops.py",
     "src/vsmt/public_candidates.py",
+    "src/vsmt/shared_memory.py",
     "src/vsmt/vm04_protocol.py",
     "tests/test_vsmt_baselines.py",
     "tests/test_vsmt_causal_prior.py",
     "tests/test_vsmt_contracts.py",
     "tests/test_vsmt_public_candidates.py",
+    "tests/test_vsmt_shared_memory.py",
     "tests/test_vsmt_vm04_protocol.py",
     "ops/vsmt/vm04_preflight.py",
 )

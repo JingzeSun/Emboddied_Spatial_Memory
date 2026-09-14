@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| VSMT首篇/VM-01～04 | VSMT已合并main；旧53/53 VM-04预检、L1实体22/22及完整结构130/130回执保留。D-140新代码候选把place改为共同坐标scaffold、候选改为类型化有界分桶和catalog v2容量审计，并补SPLIT整组、MERGE关系重锚、真实实体主链与退化格失败；本地139项合同通过，服务器待跑，旧报告不能认证新字节。L2/SAM后置；当前0 VM-04 house生成、0训练、0新private/confirmation读取。正式生成/训练数据/检验已要求多worker。LOG-133–140，D-125–140 |
+| VSMT首篇/VM-01～04 | VSMT已合并main；旧53/53 VM-04预检、L1实体22/22及完整结构130/130回执保留。D-140/D-141新代码把place改为共同坐标scaffold、候选改为类型化有界分桶和catalog总容量/护栏审计，并补SPLIT整组、MERGE关系重锚、entity RETRACT/REPLACE、共享dormant路径、共同更新后审计、真实实体主链与退化格失败；本地独立进程155项合同通过，服务器同进程待跑，旧报告不能认证新字节。统计独立单位为family，分类型确认只预登记SPLIT/MERGE/RETRACT；confirmation family数待开发成品率反推。L2/SAM后置；当前0 VM-04 house生成、0训练、0新private/confirmation读取。正式生成/训练数据/检验已要求多worker。LOG-133–141，D-125–141 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
 | R4三模型接入 | D完整适配16项通过（121/200全反向，0更新），W完整适配17项亦通过，F完整适配19项通过；真实公共接口27/27候选通过，0优化/真值读取。209bb34，LOG-123–127 |
 | R4前端v2r1 | 81bceed：19项通过，16历史/144名义预测/16选择完整，误标占据/自由0；物块平均误差9.59 cm、接触Brier 0.1152，全部涉及未知扫掠，正式M/P未就绪。LOG-121 |
@@ -1628,3 +1628,16 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 首次服务器目录`/root/autodl-tmp/vsmt_outputs/vsmt-vm04-l1-structures-v1-1dc79d8791ba`在executor组42项中的C11旧负例停止：新单目标BIND检查先于protected-collateral错误，改变错误优先级。`db86e06`把单目标限制收窄到关系BIND，保留旧节点BIND的保护状态检查；第二目录`...-db86e06a4feb`通过executor 42项，但L1第29项因关系BIND附证据却未记录本次事务provenance而停止。两目录均保留完整失败回执，无smoke/export、生成或训练。
 - `135636d478890a30f82011040f4bf972a813b03f`补齐关系BIND的`RECORD_PROVENANCE`并保留关系多目标拒绝。最终目录`/root/autodl-tmp/vsmt_outputs/vsmt-vm04-l1-structures-v1-135636d47889`依次通过executor 42/42、L1 29/29、VSMT 59/59，共130/130；三组墙钟约0.150/1.533/1.594秒。合成公开depth烟测约1.565秒，输出1个surface、36个place、38个region、两个时刻682个free-space截锥和62条关系观测；因果prior建立61条规范边并去重1条`contains/located_at`反向重复。
 - 导出[vsmt_vm04_l1_structures.json](results/vsmt_vm04_l1_structures.json)，SHA-256=`1fbde5643928dc613d4e6c8e4b485193690204dda667fcafbc4942663f72db06`，结果提交`8a0dc4d`。报告绑定全部实现/配置/测试摘要，`generation_performed=false`、`training_steps=0`、`private_data_opened=false`、`confirmation_data_opened=false`且smoke未启动模拟器。白话：这证明完整L1结构packet能按合同构造并被五方法/因果prior消费；它不证明真实house里的产量、误差、阈值合理或任何方法效果，2-house生成仍须另行批准。
+
+## LOG-140：place scaffold、候选容量与关系修订本地候选（2026-09-14）
+
+- `01fb565`补齐`mask匿名化→实体物化→region组包`真实函数链联测，`f73b587`实现MERGE同原子关闭全部incident edges、canonical重锚、同签名去重和自环折叠；用户在外部审查指出其先于明确批准落地后，选择追认而非回退。`9730931`把place移出学习式BIND/MERGE/SPLIT，改为五方法共同的世界坐标scaffold；候选按template×结构/关系类型分桶，SPLIT公开支持唯一时收窄、歧义时整组保留。
+- 同批把mask存储改为紧凑字节并让退化place格记录failure后跳过。按当时字节本地标准库合同为executor 42、L1 31、VSMT 66，共139项；未获得服务器回执，不能借旧130/130报告认证。0 house生成、0训练、0private/confirmation读取。
+
+## LOG-141：实体动作空间对称化与family统计合同本地候选（2026-09-14）
+
+- 用户批准D-141方案1A后，executor和公开候选器新增entity node-level RETRACT/REPLACE：至少两条不同time/view的公开在线可靠空证据才可原子终止实体及全部开放incident edges，追加保留完整旧状态/evidence/latent/provenance的terminal retracted版本；REPLACE随后只BIRTH不同candidate身份和当前公开支持的`located_at/supported_by`，不继承旧关系或证据。恶意漏关一条边、改terminal状态或把teacher证据挂到新关系都会整笔拒绝且原图不变。
+- 新共享包装器在五方法前维护相同place证据，并仅把长期公开未观测的confirmed entity版本化为dormant；时间门无默认值且待train/validation选择。public bootstrap需两份不同公开证据才把candidate确认；ELU只能REACTIVATE开放dormant，terminal retracted身份必须BIRTH新节点。
+- 新共同更新后审计不强迫对照走VSMT executor，但统一验证五方法图、重算delta、检测历史物理删除、既有版本突变和protected节点/incident topology变化。CandidateCatalog新增顶层总容量摘要，并把SPLIT歧义边护栏与总incident-edge护栏分开计数；schema和固定服务器入口同步更新。
+- 统计合同固定family为独立单位、总体九类聚合为主确认主张、SPLIT/MERGE/RETRACT为三项分类型确认性主张，其余六类描述性报告；confirmation family数待开发构造成品率反推并在任何confirmation访问前冻结，2-house audit不承担功效估计。
+- 最新字节在本地独立进程通过executor 42/42、L1 31/31、VSMT 82/82，共155项；JSON/schema和Python语法通过。本机把VSMT项放在同一Python进程复跑时曾在纯Python JSON校验栈发生原生access violation，同一各文件独立进程全部通过，因此不能记服务器验收；固定入口须在服务器同进程通过155项再做合成非数据smoke/export。当前0模拟器、0 house生成、0训练、0private/confirmation读取。

@@ -27,17 +27,18 @@ CONFIG_PATH = (
     PROJECT_ROOT / "configs" / "vsmt"
     / "vm04_l1_non_entity_geometry_review_v1.json"
 )
-STAGE_ID = "vsmt-vm04-l1-candidate-revision-v1"
+STAGE_ID = "vsmt-vm04-l1-action-symmetry-v1"
 TEST_GROUPS = (
     ("executor", "test_executor.py", 42),
     ("l1", "test_l1_*.py", 31),
-    ("vsmt", "test_vsmt_*.py", 66),
+    ("vsmt", "test_vsmt_*.py", 82),
 )
 EXPECTED_TESTS = sum(group[2] for group in TEST_GROUPS)
 BOUND_PATHS = (
     "configs/vsmt/vm04_l1_contract_proposal_v1.json",
     "configs/vsmt/vm04_l1_non_entity_geometry_review_v1.json",
     "configs/vsmt/vm04_l1_threshold_review_v1.json",
+    "configs/vsmt/vm04_l1_action_symmetry_v1.json",
     "schemas/vsmt_vm01_contracts.schema.json",
     "src/cpmt/executor.py",
     "src/vsmt/__init__.py",
@@ -50,6 +51,7 @@ BOUND_PATHS = (
     "src/vsmt/l1_structures.py",
     "src/vsmt/place_scaffold.py",
     "src/vsmt/public_candidates.py",
+    "src/vsmt/shared_memory.py",
     "tests/test_executor.py",
     "tests/test_l1_entities.py",
     "tests/test_l1_masks.py",
@@ -59,6 +61,7 @@ BOUND_PATHS = (
     "tests/test_vsmt_contracts.py",
     "tests/test_vsmt_place_scaffold.py",
     "tests/test_vsmt_public_candidates.py",
+    "tests/test_vsmt_shared_memory.py",
     "tests/test_vsmt_vm04_protocol.py",
     "ops/vsmt/vm04_l1_structures.py",
 )
@@ -200,7 +203,7 @@ def run_contracts(reviewed_code: str, output_root: Path) -> None:
         raise RuntimeError(f"stage directory already exists: {stage}")
     stage.mkdir(parents=True)
     write_new_json(stage / "started.json", {
-        "schema_version": "vsmt-vm04-l1-candidate-revision-started-v1",
+        "schema_version": "vsmt-vm04-l1-action-symmetry-started-v1",
         "stage_id": STAGE_ID,
         "started_at": utc_now(),
         "reviewed_code": commit,
@@ -252,7 +255,7 @@ def run_contracts(reviewed_code: str, output_root: Path) -> None:
         and observed_total == EXPECTED_TESTS
     )
     receipt = {
-        "schema_version": "vsmt-vm04-l1-candidate-revision-contract-receipt-v1",
+        "schema_version": "vsmt-vm04-l1-action-symmetry-contract-receipt-v1",
         "stage_id": STAGE_ID,
         "reviewed_code": commit,
         "bound_sha256": bindings,
@@ -269,16 +272,16 @@ def run_contracts(reviewed_code: str, output_root: Path) -> None:
     receipt_path = stage / "contracts.receipt.json"
     write_new_json(receipt_path, receipt)
     if not success:
-        print(f"VM04_L1_CANDIDATE_REVISION_CONTRACTS_FAILED stage={stage}")
+        print(f"VM04_L1_ACTION_SYMMETRY_CONTRACTS_FAILED stage={stage}")
         raise SystemExit(1)
     write_new_json(stage / "contracts.success.json", {
-        "schema_version": "vsmt-vm04-l1-candidate-revision-contract-success-v1",
+        "schema_version": "vsmt-vm04-l1-action-symmetry-contract-success-v1",
         "reviewed_code": commit,
         "receipt_sha256": sha256(receipt_path),
         "observed_tests": observed_total,
         "success": True,
     })
-    print(f"VM04_L1_CANDIDATE_REVISION_CONTRACTS_OK stage={stage} tests={observed_total}")
+    print(f"VM04_L1_ACTION_SYMMETRY_CONTRACTS_OK stage={stage} tests={observed_total}")
 
 
 def run_smoke(reviewed_code: str, output_root: Path) -> None:
@@ -329,6 +332,7 @@ def run_smoke(reviewed_code: str, output_root: Path) -> None:
             PublicCandidateConfig,
             generate_public_candidate_catalog,
         )
+        from vsmt.shared_memory import SharedMemoryConfig, prepare_shared_memory
 
         surface_values = config["surface_proposal"]
         place_values = config["place_proposal"]
@@ -523,9 +527,14 @@ def run_smoke(reviewed_code: str, output_root: Path) -> None:
             "graph_version": result["post_memory"]["graph_version"],
             "graph_sha256": result["post_memory"]["graph_hash"],
         }
-        candidate_catalog = generate_public_candidate_catalog(
+        candidate_packet, candidate_memory, shared_audit = prepare_shared_memory(
             candidate_packet,
             result["post_memory"],
+            config=SharedMemoryConfig(dormancy_inactivity_horizon_s=1.0),
+        )
+        candidate_catalog = generate_public_candidate_catalog(
+            candidate_packet,
+            candidate_memory,
             config=PublicCandidateConfig(
                 association_rules={
                     kind: {
@@ -543,7 +552,8 @@ def run_smoke(reviewed_code: str, output_root: Path) -> None:
                 free_space_target_expansion_m=0.02,
                 minimum_free_space_time_separation_s=0.25,
                 maximum_candidates_per_bucket=20,
-                maximum_split_incident_edges=8,
+                maximum_split_ambiguous_edges=8,
+                maximum_split_total_incident_edges=16,
             ),
         )
         relation_counts = result["diagnostics"]["relation_updates"]
@@ -573,11 +583,13 @@ def run_smoke(reviewed_code: str, output_root: Path) -> None:
             "candidate_capacity_buckets": len(
                 candidate_catalog["capacity_audit"]
             ),
+            "candidate_capacity_summary": candidate_catalog["capacity_summary"],
+            "shared_memory_audit_sha256": shared_audit["audit_sha256"],
         }
     except Exception as caught:
         error = {"type": type(caught).__name__, "message": str(caught)}
     receipt = {
-        "schema_version": "vsmt-vm04-l1-candidate-revision-smoke-receipt-v1",
+        "schema_version": "vsmt-vm04-l1-action-symmetry-smoke-receipt-v1",
         "stage_id": STAGE_ID,
         "reviewed_code": commit,
         "bound_sha256": bindings,
@@ -596,15 +608,15 @@ def run_smoke(reviewed_code: str, output_root: Path) -> None:
     receipt_path = stage / "smoke.receipt.json"
     write_new_json(receipt_path, receipt)
     if not success:
-        print(f"VM04_L1_CANDIDATE_REVISION_SMOKE_FAILED stage={stage} error={error}")
+        print(f"VM04_L1_ACTION_SYMMETRY_SMOKE_FAILED stage={stage} error={error}")
         raise SystemExit(1)
     write_new_json(stage / "smoke.success.json", {
-        "schema_version": "vsmt-vm04-l1-candidate-revision-smoke-success-v1",
+        "schema_version": "vsmt-vm04-l1-action-symmetry-smoke-success-v1",
         "reviewed_code": commit,
         "receipt_sha256": sha256(receipt_path),
         "success": True,
     })
-    print(f"VM04_L1_CANDIDATE_REVISION_SMOKE_OK stage={stage} summary={summary}")
+    print(f"VM04_L1_ACTION_SYMMETRY_SMOKE_OK stage={stage} summary={summary}")
 
 
 def export_stage(reviewed_code: str, output_root: Path) -> None:
@@ -614,7 +626,7 @@ def export_stage(reviewed_code: str, output_root: Path) -> None:
     contracts = require_success(stage, "contracts", commit)
     smoke = require_success(stage, "smoke", commit)
     report = {
-        "schema_version": "vsmt-vm04-l1-candidate-revision-report-v1",
+        "schema_version": "vsmt-vm04-l1-action-symmetry-report-v1",
         "stage_id": STAGE_ID,
         "reviewed_code": commit,
         "bound_sha256": bindings,
@@ -630,16 +642,16 @@ def export_stage(reviewed_code: str, output_root: Path) -> None:
         "smoke_receipt_sha256": sha256(stage / "smoke.receipt.json"),
     }
     destination = (
-        PROJECT_ROOT / "results" / "vsmt_vm04_l1_candidate_revision.json"
+        PROJECT_ROOT / "results" / "vsmt_vm04_l1_action_symmetry.json"
     )
     if destination.exists():
         existing = json.loads(destination.read_text(encoding="utf-8"))
         if existing != report:
             raise RuntimeError(f"refusing to overwrite different report: {destination}")
-        print(f"VM04_L1_CANDIDATE_REVISION_EXPORT_REUSED path={destination}")
+        print(f"VM04_L1_ACTION_SYMMETRY_EXPORT_REUSED path={destination}")
         return
     write_new_json(destination, report)
-    print(f"VM04_L1_CANDIDATE_REVISION_EXPORT_OK path={destination} sha256={sha256(destination)}")
+    print(f"VM04_L1_ACTION_SYMMETRY_EXPORT_OK path={destination} sha256={sha256(destination)}")
 
 
 def main() -> None:

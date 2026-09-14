@@ -84,6 +84,8 @@
       "streaming_deterministic_top_k_per_template_and_subject_kind_required": true,
       "relation_buckets_keyed_by_relation_type": true,
       "record_exact_pre_cap_count_per_bucket": true,
+      "record_total_capacity_and_retained_count_across_buckets": true,
+      "record_split_guard_rejections_separately": true,
       "record_cutoff_priority_and_tie_count": true,
       "record_generation_time_and_peak_memory": true,
       "provisional_cap_for_capacity_review_only": 64,
@@ -94,6 +96,9 @@
     "place_identity": {
       "deterministic_coordinate_scaffold": true,
       "learned_bind_merge_split_candidates": false,
+      "evidence_wrapper_shared_byte_identically_across_methods": true,
+      "exact_pose_assumption_for_l1": true,
+      "slam_drift_out_of_scope_for_first_paper": true,
       "retained_uses": [
         "located_at_endpoint",
         "adjacent_to_endpoint",
@@ -105,8 +110,10 @@
       "no_public_support_keeps_left_right_and_both": true,
       "all_variants_for_one_successor_pair_form_one_indivisible_capacity_group": true,
       "group_larger_than_bucket_is_rejected_whole": true,
-      "maximum_incident_edges_is_audited_computational_guard_not_semantic_rule": true,
-      "formal_guard_value": null
+      "maximum_ambiguous_edges_is_audited_computational_guard_not_semantic_rule": true,
+      "maximum_total_incident_edges_is_a_separate_operation_guard": true,
+      "formal_ambiguous_edge_guard": null,
+      "formal_total_incident_edge_guard": null
     },
     "capacity_audit_layers": {
       "public_only_before_private_open": [

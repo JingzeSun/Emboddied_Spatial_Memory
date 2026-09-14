@@ -1,0 +1,63 @@
+{
+  "version": "vsmt-vm04-l1-action-symmetry-v1",
+  "status": "implementation_approved_non_executable",
+  "decision": "D-141",
+  "formal_numeric_values_frozen": false,
+  "generation_authorized": false,
+  "training_authorized": false,
+  "confirmation_authorized": false,
+  "entity_retract": {
+    "enabled": true,
+    "eligible_node_kinds": ["entity"],
+    "eligible_lifecycles": ["candidate", "confirmed", "dormant"],
+    "requires_two_distinct_online_visible_empty_observations": true,
+    "atomically_close_all_open_incident_edges": true,
+    "append_terminal_retracted_version": true,
+    "preserve_prior_evidence_latents_and_provenance": true,
+    "physical_history_deletion_allowed": false,
+    "reactivation_from_retracted_allowed": false
+  },
+  "entity_replace": {
+    "composition": ["RETRACT", "BIRTH"],
+    "new_identity_must_be_distinct": true,
+    "inherit_old_evidence_or_relations": false,
+    "allowed_new_public_relations": ["located_at", "supported_by"],
+    "new_structure_evidence_must_be_online_current_support": true
+  },
+  "shared_lifecycle_wrapper": {
+    "applies_byte_identically_before_all_five_methods": true,
+    "eligible_for_dormancy": "confirmed_entity_only",
+    "dormancy_trigger": "public_inactivity_horizon",
+    "reliable_visible_empty_routes_to": "RETRACT_not_dormant",
+    "dormancy_inactivity_horizon_s": null,
+    "horizon_selection_split": "train_and_validation_only",
+    "confirmation_may_change_horizon": false
+  },
+  "common_post_update_audit": {
+    "applies_to": ["VSMT", "TAF", "ELU", "WFR", "LOW"],
+    "requires_valid_graph": true,
+    "recomputes_normalized_delta": true,
+    "detects_physical_history_deletion": true,
+    "records_preexisting_version_mutation": true,
+    "records_protected_node_and_incident_topology_changes": true,
+    "forces_baselines_through_vsmt_executor": false
+  },
+  "split_compute_guards": {
+    "maximum_ambiguous_edges": null,
+    "maximum_total_incident_edges": null,
+    "formal_values_require_development_capacity_audit": true,
+    "confirmation_may_change_guard_values": false
+  },
+  "statistical_claim_policy": {
+    "independence_unit": "house_family",
+    "episode_replicates_are_not_independent_units": true,
+    "primary_confirmatory_claim": "family_aggregated_over_all_registered_program_types",
+    "per_type_confirmatory_programs": ["SPLIT", "MERGE", "RETRACT"],
+    "descriptive_only_programs": [
+      "NOOP", "BIND", "BIRTH", "REACTIVATE", "RELINK", "REPLACE"
+    ],
+    "confirmation_family_count": null,
+    "family_count_rule": "infer_from_development_construction_yield_then_freeze_before_confirmation",
+    "two_house_audit_is_power_analysis": false
+  }
+}

@@ -42,7 +42,7 @@ VM-04清单拆成三层：`FamilySplitManifest`保存audit/train/validation的�
 
 VM-02 的共同节点观测状态键为 `vsmt_observation_state`，当前包含 `descriptor, centroid_m, extent_m, reliability, last_seen_s, observation_count`；ELU 可另存 `existence_log_odds`，WFR 可另存 `fragment_observations, absent_reconciliations`。它解决各适配器如何从同一图读取自己的最小状态；输入匿名区域观测，输出只依赖公开前缀的当前节点统计。例如 TAF 对 descriptor/centroid 做按既有观测数与当前可靠性的确定性融合。它不含永久真值身份、reference 标签或未来，并不把 ELU/WFR 私有字段提供给其他方法作为额外特征；正式初始化及字段迁移仍须随 VM-04 数据合同冻结。
 
-`CandidateCatalog v2`（候选目录v2）解决teacher是否改过选择空间，以及容量到底截掉了什么。输入只能是已验证`ObservationPacket + prior_memory`、公开来源指针、候选程序及程序引用的`online_evidence`，输出带逐程序/证据摘要、`enumeration`和`capacity_audit`的包内匿名顺序`candidate:0000...`。`enumeration`保存`bucket_id`、枚举优先级和公开分量；容量桶保存template、结构类型或关系类型、容量、截断前候选/整组数、保留数、超大整组数及最低保留优先级。例如SPLIT同一左右后继的三种关系分配必须整组保留或整组拒绝，不能按hash只留一个。它不接收private参数、不保存PHR决策分，也不证明某个候选正确。`TeacherTargets`（教师目标）输入已封存目录和等长分数/概率，输出按完全相同ID与顺序绑定的标签；正确MERGE漏掉时不能新增槽或替换证据。
+`CandidateCatalog v2`（候选目录v2）解决teacher是否改过选择空间，以及容量到底截掉了什么。输入只能是已验证`ObservationPacket + prior_memory`、公开来源指针、候选程序及程序引用的`online_evidence`，输出带逐程序/证据摘要、`enumeration`、`capacity_audit`和顶层`capacity_summary`的包内匿名顺序`candidate:0000...`。`enumeration`保存`bucket_id`、枚举优先级和公开分量；容量桶保存template、结构类型或关系类型、容量、截断前候选/整组数、保留数、超大整组数、歧义边/总incident-edge护栏拒绝数及最低保留优先级，顶层汇总全部桶总容量和总截断量。例如SPLIT同一左右后继的三种关系分配必须整组保留或整组拒绝，不能按hash只留一个。它不接收private参数、不保存PHR决策分，也不证明某个候选正确。`TeacherTargets`（教师目标）输入已封存目录和等长分数/概率，输出按完全相同ID与顺序绑定的标签；正确MERGE漏掉时不能新增槽或替换证据。
 
 `PrivateEvaluation`（私有评价记录）由独立入口加载，当前只绑定参考记忆、候选事务等价组、未来观测摘要、模拟器身份映射和语义案例 ID；实际未来数组的数值字段留到 VM-04 前另行冻结。它解决答案文件怎样与公开样本对齐而不进入模型的问题；例如交换两个模拟器实例名会改变 `private_sha256`，但不得改变公开包或候选。它不构造 proposal/query/candidate，也不是当前已经生成的数据。
 
@@ -58,7 +58,9 @@ VM-02 的共同节点观测状态键为 `vsmt_observation_state`，当前包含 
 
 首选来源是 ProcTHOR-10K＋AI2-THOR：前者提供程序生成房屋，后者提供可交互场景、相机动作及 RGB/可选 depth/instance segmentation 接口。只读预检已核AI2-THOR 5.0.0 tag、ProcTHOR代码/数据tag及PyPI发布存在，但wheel/source精确安装摘要、house manifest、许可证快照和服务器headless运行仍未固定，因此入口继续拒绝执行。实例 mask 和 simulator object ID 只给 L1隔离materializer/private；L2 不能挂载它们。相机在观测 0 之前可用 `TeleportFull` 做初始放置，之后每个 packet 对应一个已成功的登记 agent action；机器人实际执行过的操作进入 `past_actions`，外界搬动物体只留 private provenance。它不把实际未来运动或物体变换伪装成动作输入。
 
-拟议独立单位为 `house_family`，不能随机拆帧。2 个 audit、48 个 train、12 个 validation、12 个 confirmation 家族按源 manifest＋固定 seed＋house ID 的 SHA-256 顺序选取；每家族对八个原子与 REPLACE 各做 2 个预登记重复，即 18 条 episode。总量为 74 家族、1,332 条 episode、42,624 帧；confirmation 的 216 条 episode 继续延后生成。失败家族/episode 记录失败且不按结果换样本。白话：这解决同一个房子换个相机角度同时落进训练和验证的泄漏；输入完整 house family，输出唯一 split 归属。例如某房屋的 MERGE 重复和 BIRTH 重复都只能在 train。它不保证 1,332 条都成功生成，也不把构造失败从分母静默删除。
+统计独立单位已固定为`house_family`，不能随机拆帧，也不能把同family的两个episode重复当成两个独立样本。总体主确认主张先在family内聚合九类程序的配对差，再跨family比较；分类型确认性主张只预登记SPLIT、MERGE、RETRACT，其余NOOP/BIND/BIRTH/REACTIVATE/RELINK/REPLACE只作描述性报告。confirmation family数不再把当前12当成已冻结答案，而由开发数据的逐类型构造成品率反推并在打开confirmation前锁死；2-house audit只查工程容量，不作功效估计。白话：某一house里两个SPLIT重复都成功，只增加该family内估计稳定性，不把统计n从1变2；输入开发成品率和预登记主张，输出冻结的confirmation family预算。例如SPLIT每family只有一半能构造时，不能仍拿12个family并把失败样本从分母删掉。它不允许看confirmation结果后加family，也不要求九个类型都各自显著。
+
+当前数值清单中的2个audit、48个train、12个validation、12个confirmation仍是待重算提案：按源manifest＋固定seed＋house ID的SHA-256顺序选取；每家族对八个原子与REPLACE各做2个预登记重复，即18条episode。若暂按该提案，总量为74家族、1,332条episode、42,624帧，confirmation的216条episode继续延后生成。失败family/episode记录失败且不按结果换样本。它不保证这些数量足以支持上述分类型主张，最终confirmation family数须按D-141规则更新后再冻结。
 
 同一物理序列形成两个完全隔离的 proposal 视图：L1 把真值 instance mask 去除真实 ID 后生成匿名区域，用来查机制上限；L2 拟用逐帧、无视频记忆的 SAM 2.1 Hiera-S 自动 mask，再用冻结 DINOv2 ViT-S/14 无 register 的 patch token 做区域池化。DINOv2沿用已核官方 commit `7764ea0f912e53c92e82eb78a2a1631e92725fc8`及权重 SHA-256 `b938bf1bc15cd2ec0feacfe3a1bb553fe8ea9ca46a7e1d8d00217f29aef60cd9`，但旧回执只证明资产来源，不认证 VM-04 前端。SAM commit/checkpoint、自动 mask 参数以及 depth→surface/place/free-space 的全部门限仍为空并阻止运行。白话：逐帧 SAM 只把当前图像切成匿名区域，输入单张公开 RGB，输出 masks；不用其视频 memory 是为了避免共享前端先替 WFR/VSMT 做长期关联。它不输出永久身份，也不等于 SAM 的 region 就是真实对象。
 
@@ -78,13 +80,13 @@ VM-02 的共同节点观测状态键为 `vsmt_observation_state`，当前包含 
 
 `controlled_frontend_stress`（受控前端压力事件）专门产生可复验的 SPLIT/MERGE 旧记忆错误。输入只能是已经公开的 proposals、固定时间窗和公开几何，输出所有方法在同一 evidence level 内共同看到的欠分或关联断开。例如固定前缀内把两个公开相邻 mask 合成一条 proposal，之后恢复原 proposal，可能形成 SPLIT 需求。私有真值只能在 public/candidate 封存后把它判作“目标成立”或“construction_failure”，不能反向挑 pair、改候选或重采样。它不冒充自然检测错误；自然错误须另列结果。
 
-拟议 SPLIT 关系语义是：SPLIT 原子事务在关闭源节点时一并关闭其开放 incident edges，再把每条旧边分配给 `successor_0`、`successor_1`、二者或均不继承；只枚举类型合法并有公开证据的组合。第一批每个 SPLIT 源最多 2 条开放边，因此最多 4²=16 个原始分配程序，之后才按公开分数和冻结 cap 排序；teacher 只能在封存后评分，不能创建正确分配。白话：它解决“拆了节点但旧边悬空”以及“默认把关系复制两份可能错”的问题；输入旧开放边和两个匿名后继，输出若干完整、原子执行的关系分配候选。例如混成一个节点的两把椅子都在同一房间时 `located_at` 可给两个后继，而错误 `supported_by` 可关闭。它不增加第九个事务，也未获用户最终语义批准；批准前继续只允许孤立节点 SPLIT。
+SPLIT关系语义已按D-140/D-141批准：原子事务关闭源节点及全部开放incident edges，再逐边按当前公开支持收窄为左、右或二者；没有公开支持的歧义边才保留这三种合法分配，所以组合数为`3^(歧义边数)`。同一后继pair的组合整组保留或整组拒绝；歧义边数上限与总incident-edge操作上限分别审计并在开发阶段冻结。“均不继承”只有达到另行冻结的公开关系负证据时才可生成。白话：旧节点有两条边，其中`located_at`公开唯一支持两个后继、`supported_by`当前没有证据时，只需枚举后者的三种分配；输入旧边、两个匿名后继和当前公开关系，输出完整原子程序。它不增加第九个事务，不让hash或teacher决定被截掉的分支，也不把“最多2条边”当科学语义。
 
 同一数据拟报告两条轨道。`controlled_revision`（受控单次修订）让五个方法在同一 L1 或 L2 内拿到逐字节相同、由 public-only bootstrap 顺序构建并封存的 prior memory，用来隔离修订机制；`closed_loop_revision`（闭环连续修订）让每个方法从空图开始提交自己的历史，用同一序列报告错误持续和恢复。前者输入共享旧记忆、输出一次可比更新，例如同一错误合并图交给 VSMT/TAF/ELU/WFR/LOW；后者输入相同观测流、输出各自版本链。前者不证明长期稳定，后者也不能因为各方法旧图不同而伪装成单步同条件比较。
 
 主臂仍为 VSMT/TAF/ELU/WFR/LOW；VM-05还须有三项 VSMT 内部对照：同在线架构但不用执行后 teacher 的 direct reference ranker、看候选语法/旧图但不看候选执行后状态的 no-execution scorer、完全不学习的 public heuristic ranker。L1 oracle proposal 和 sealed-catalog oracle choice 只作上界。白话：这些内部对照解决“收益到底来自未来 teacher、真实执行后的候选状态，还是候选本身已经很好猜”；它们输入同一 catalog，输出候选排序。例如 no-execution scorer 若与 VSMT 同样好，不能把收益归因于执行后比较。它们不是新增论文机制主臂，也不能替代 LOW 朴素基线。
 
-当前真正阻塞VM-04的不是服务器是否开启；L1匿名mask、DINO池化、实体/表面/地点/free-space及关系结构值已批准并有旧工程回执，类型化配置、place scaffold、候选分桶、SPLIT整组和MERGE关系规范化已获实现授权但须新服务器回执。仍未冻结的是public bootstrap及各方法正式关联数值、候选cap、SPLIT计算护栏、teacher temperature、PHR公式、在线选择器容量、关系“均不继承”的公开负证据、S-01～S-12的数值/图等价/汇总选择和nuisance probe门；L2另有SAM资产与mask参数。2-house只读容量审计仍未获运行授权，train/validation、训练和confirmation继续fail closed；2/48/12/12家族、32帧、每程序2重复、16 GiB和8小时也仍是提案而非批准值。
+当前真正阻塞VM-04的不是服务器是否开启；L1匿名mask、DINO池化、实体/表面/地点/free-space及关系结构值已批准并有旧工程回执，类型化配置、place scaffold、候选分桶、SPLIT整组、MERGE关系规范化、entity RETRACT/REPLACE、共享dormant路径和共同更新后审计已获实现授权但须新服务器回执。仍未冻结的是public bootstrap及各方法正式关联数值、候选cap、dormancy时间门、两类SPLIT计算护栏、teacher temperature、PHR公式、在线选择器容量、关系“均不继承”的公开负证据、S-01～S-12的数值/图等价细节和nuisance probe门；L2另有SAM资产与mask参数。统计独立单位、总体主张与SPLIT/MERGE/RETRACT分类型确认范围已冻结，但confirmation family数须由开发成品率反推。2-house只读容量审计仍未获运行授权，train/validation、训练和confirmation继续fail closed；48/12开发划分、32帧、每程序2重复、16 GiB和8小时也仍是提案而非批准值。
 
 ### VM-04 L1-only 输入输出提案（D-132/D-133，proposed、不可执行）
 
@@ -98,6 +100,8 @@ VM-02 的共同节点观测状态键为 `vsmt_observation_state`，当前包含 
 | `fragment` | 预登记的匿名区域变换 | 匿名片段及变换摘要 | 按reference程序挑片段或用真实身份合并 |
 
 白话：实体oracle mask只移除“检测器有没有把像素分对”的误差；输入仍是一帧可见像素，输出仍没有历史身份。例如同一杯子下一帧再次出现时会得到新的包内ordinal，TAF/ELU/WFR/VSMT必须自己依据描述、位置和旧记忆决定BIND还是BIRTH。它不允许把模拟器ID哈希后塞进descriptor，也不把完整物体几何补给方法。
+
+place坐标身份的确定性以AI2-THOR提供的精确相机位姿为前提：五方法共享包装器把同一世界格的版本化观测证据逐字节相同地附着，并在S指标中与实体/关系分开计账。输入公开depth、精确pose和固定格原点，输出可复用坐标锚；例如两帧都覆盖格`(2,-1)`时只更新该格版本，不让选择器决定是否BIND。它不声称真实机器人存在SLAM漂移时地点身份仍然确定；首篇明确把SLAM不确定性排除在研究范围，研究对象限定为实体与关系修订。
 
 匿名区域规范顺序为`structure_kind → row-major首个真像素 → 可见像素数 → binary mask SHA-256`，之后才赋`region:0000...`；mask摘要只覆盖`[height,width,row-major 0/1值]`的canonical JSON。输入mask枚举顺序任意，输出顺序和字节必须相同。例如一把椅子在画面左缘仍有220像素时保留，只有150像素时按支持不足拒绝。它不按instance ID、对象类别、文件路径或reference排序，也不把触边可见部分补成完整物体。
 
