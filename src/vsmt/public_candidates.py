@@ -340,15 +340,26 @@ def _relation_bind_program(
     )
     evidence = f"observation:{relation['support_sha256']}"
     program["evidence_refs"] = [evidence]
-    program["operations"] = [{
-        "op_id": "bind:relation-evidence",
-        "op_type": "ATTACH_EVIDENCE",
-        "arguments": {
-            "target_kind": "edge",
-            "target_id": edge["edge_id"],
-            "evidence_ref": evidence,
+    program["operations"] = [
+        {
+            "op_id": "bind:relation-evidence",
+            "op_type": "ATTACH_EVIDENCE",
+            "arguments": {
+                "target_kind": "edge",
+                "target_id": edge["edge_id"],
+                "evidence_ref": evidence,
+            },
         },
-    }]
+        {
+            "op_id": "bind:relation-provenance",
+            "op_type": "RECORD_PROVENANCE",
+            "arguments": {
+                "target_kind": "edge",
+                "target_id": edge["edge_id"],
+                "provenance_ref": program["transaction_id"],
+            },
+        },
+    ]
     return program, {}
 
 

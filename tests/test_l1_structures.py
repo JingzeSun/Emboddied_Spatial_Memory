@@ -339,15 +339,26 @@ class TypedRelationExecutorTests(unittest.TestCase):
             "intent": "ASSOCIATE",
             "template": "BIND",
             "base_graph_version": born["graph_version"],
-            "operations": [{
-                "op_id": "bind:edge",
-                "op_type": "ATTACH_EVIDENCE",
-                "arguments": {
-                    "target_kind": "edge",
-                    "target_id": "edge:located",
-                    "evidence_ref": "observation:second",
+            "operations": [
+                {
+                    "op_id": "bind:edge",
+                    "op_type": "ATTACH_EVIDENCE",
+                    "arguments": {
+                        "target_kind": "edge",
+                        "target_id": "edge:located",
+                        "evidence_ref": "observation:second",
+                    },
                 },
-            }],
+                {
+                    "op_id": "bind:edge-provenance",
+                    "op_type": "RECORD_PROVENANCE",
+                    "arguments": {
+                        "target_kind": "edge",
+                        "target_id": "edge:located",
+                        "provenance_ref": "transaction:bind-relation",
+                    },
+                },
+            ],
             "evidence_refs": ["observation:second"],
             "protected_ids": [],
         })
@@ -395,7 +406,15 @@ class TypedRelationExecutorTests(unittest.TestCase):
                     for index, edge_id in enumerate(
                         ("edge:located", "edge:located-second")
                     )
-                ],
+                ] + [{
+                    "op_id": "bind:multi-edge-provenance",
+                    "op_type": "RECORD_PROVENANCE",
+                    "arguments": {
+                        "target_kind": "edge",
+                        "target_id": "edge:located",
+                        "provenance_ref": "transaction:bad-multi-edge-bind",
+                    },
+                }],
                 "evidence_refs": ["observation:fourth"],
                 "protected_ids": [],
             })
