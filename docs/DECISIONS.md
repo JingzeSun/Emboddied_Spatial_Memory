@@ -1388,3 +1388,10 @@
 - 日期：2026-09-14；状态：entry prepared, server pending。用户先开启服务器并批准下一步，随后决定关机休息并要求完成所有不依赖服务器的内容。关机前仅作了手工只读来源/环境核查：实际仓库`/root/Emboddied_Spatial_Memory`、RTX 4080 SUPER 32760 MiB、基础Python 3.12.3/Torch 2.8.0+cu128，AI2-THOR/ProcTHOR/SAM2未安装；未下载、安装、生成、训练或打开private/confirmation。该手工观察没有标准receipt，不能认证新代码。
 - 固定`ops/vsmt/vm04_preflight.py`按`contracts → source-audit → export`运行，绑定同一受审提交。source audit只用`git ls-remote`、GitHub/PyPI小元数据、checkpoint HEAD、精确本地DINO路径及主机只读探针；所有安装/下载/生成/训练/confirmation标志为false。网络失败允许同提交递增attempt并保留旧失败，不覆盖；contracts成功只复用，不重跑。
 - 环境版本当前明确未决：ProcTHOR发布元数据只声明到Python 3.9，而SAM2要求Python≥3.10，所以不能直接选3.9，也不改服务器基础3.12；只登记后续在`/root/autodl-tmp/vsmt-envs`做Python 3.10/3.11隔离兼容检查。白话：预检解决“来源和机器是否能支撑后续安装”的问题；输入官方版本元数据和现有主机，输出匹配/缺失清单。例如现有DINO权重可复用但SAM权重只查长度、不下载。它不等于环境装好、模拟器能渲染或数据协议已冻结。
+
+## D-132：先做五方法共同L1，L2视觉proposal后置
+
+- 日期：2026-09-14。用户在确认L1职责后明确“先做L1”并授权继续当前预检收口。L1不是VSMT专属：VSMT、TAF、ELU、WFR、LOW必须消费同一批新序列、同一匿名oracle proposal、同一冻结DINOv2区域描述和同一公开depth/pose几何；受控轨道还须共享同一因果prior字节。
+- Oracle proposal（真值区域提议诊断）解决自动分割错误是否掩盖记忆机制的问题；输入模拟器instance mask，输出去掉instance ID、按包重新编号的区域mask。例如椅子mask可帮助五个方法看到同一完整区域，但不能告诉它们这是历史中的哪把椅子。它不提供真值身份、reference事务或正确候选，也不允许跨L1/L2复用prior/candidate缓存。
+- L1仍保留冻结DINOv2 descriptor作为共同公开外观信号，只后置SAM2.1自动proposal及其误差；不能把`visual_weight=0`的纯几何退化版或oracle instance identity暗中当成L1主设置。L1只报告机制上界与失败归因，不进入L2共享RGB-D主排名；L2后置不等于取消。
+- 当前决定只改变实施顺序，不冻结匿名化/池化/几何数值、bootstrap/候选/基线阈值、VSMT在线选择器、teacher/evaluator、数据规模或训练预算。服务器预检成功只允许进入L1-only合同与代码审查，仍不授权依赖安装、资产下载、2家族生成、正式train/validation、训练或confirmation。

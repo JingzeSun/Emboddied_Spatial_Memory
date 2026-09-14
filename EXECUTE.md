@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| VSMT首篇/VM-01～04 | VSMT已合并main；首轮31/36失败与修复37/37报告保留。VM-04不可执行协议下，关系感知SPLIT、公开因果prior、标签独立清单/闸门已分三提交完成本地静态检查；53项服务器测试和只读来源审计入口已备，尚未运行。服务器关机前手工审计见LOG-135，无正式回执；0安装/下载/生成/训练/新private/confirmation读取。LOG-133–135，D-125–131 |
+| VSMT首篇/VM-01～04 | VSMT已合并main；旧31/36失败与修复37/37保留。最终`5e125ba`在服务器53/53合同与只读来源审计通过，[VM-04预检报告](results/vsmt_vm04_preflight.json)已回传；本轮两个新失败现场保留。用户决定五方法先做L1，L2/SAM后置；当前仍0安装/下载/生成/训练/新private/confirmation读取。LOG-133–136，D-125–132 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
 | R4三模型接入 | D完整适配16项通过（121/200全反向，0更新），W完整适配17项亦通过，F完整适配19项通过；真实公共接口27/27候选通过，0优化/真值读取。209bb34，LOG-123–127 |
 | R4前端v2r1 | 81bceed：19项通过，16历史/144名义预测/16选择完整，误标占据/自由0；物块平均误差9.59 cm、接触Brier 0.1152，全部涉及未知扫掠，正式M/P未就绪。LOG-121 |
@@ -1599,3 +1599,11 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 用户关机前的手工只读核查显示：仓库实际路径`/root/Emboddied_Spatial_Memory`且当时同步到`a430c47`；GPU为RTX 4080 SUPER 32760 MiB、空闲约32230 MiB，根盘/`/root/autodl-tmp`约27/33 GB可用；基础Python 3.12.3、pip 24.0、Torch 2.8.0+cu128且CUDA可用，AI2-THOR/ProcTHOR/SAM2均未安装，`libvulkan`未解析而EGL/GL存在。这些是终端观察，无标准receipt且早于上述三个新提交，不能认证它们。
 - 可复用DINOv2仓库为commit`7764ea0f912e53c92e82eb78a2a1631e92725fc8`，ViT-S/14权重SHA-256=`b938bf1bc15cd2ec0feacfe3a1bb553fe8ea9ca46a7e1d8d00217f29aef60cd9`。候选官方ref为AI2-THOR 5.0.0 `f0825767cd50d69f666c7f282e54abfe58f1e917`、ProcTHOR-10K 0.1.0 `10746a749edfb819ba83dc1bdd3ab6f905567183`及0.1.2 `d54954a81e7126001e552c2d7904ee2e0d49eaae`、ProcTHOR代码`53d5bd4c8c96a699e6a615dc390abb670cc9d353`、SAM2`2b90b9f5ceec907a1c18123530e92e794ad901a4`；SAM2.1 Hiera-small官方文件HEAD为184,416,285 bytes。精确包/许可证/运行构建仍待固定入口复核。
 - 兼容性风险：ProcTHOR包元数据只列Python 3.6–3.9，SAM2要求Python≥3.10且Torch≥2.5.1；因此未选择不兼容的Python 3.9，也未改基础3.12。后续只读preflight先跑53项合同和来源摘要；通过后再单独审Python 3.10/3.11隔离环境、CloudRendering的`libvulkan1`与ProcTHOR LFS数据取得方式。当前0安装、0模型/数据下载、0模拟、0生成、0训练、0private/confirmation读取。
+
+## LOG-136：VM-04服务器合同与来源预检通过，主线转为L1-first（2026-09-14）
+
+- 首次在`f016b7da435c205cde0e6bcb4437072ce0057920`运行固定入口，53项中52项通过，新增重复关系负例因测试生成式先索引无关系SPLIT的空assignment而报`IndexError`；阶段目录`/root/autodl-tmp/vsmt_outputs/vsmt-vm04-preflight-v1-f016b7da435c`保留，无success、source audit或export。单职责提交`a1a55f0`只给测试选择条件增加非空守卫，未改executor、候选、阈值或数据语义。
+- `a1a55f0`上53/53通过；来源预检attempt-01因固定清单查询不存在的PyPI `procthor==0.0.1`返回404而失败，目录`/root/autodl-tmp/vsmt_outputs/vsmt-vm04-preflight-v1-a1a55f048d3f`保留且未export。独立HEAD确认`ai2thor==5.0.0`为200，ProcTHOR实际发布只有`0.0.1.dev0/0.0.1.dev2`；`5e125ba`只把审计目标修为已发布的`0.0.1.dev2`，不选择或安装运行环境。
+- 最终`5e125ba6263bac106cb1c2bb9b1387ac8434cf32`重新运行53/53通过，Git refs/commits、两个PyPI版本、SAM2.1 Hiera-small的184,416,285字节HEAD及现有DINOv2仓库/ViT-S14权重摘要全部匹配。基础Python 3.12.3、Torch 2.8.0+cu128和CUDA可用；AI2-THOR/ProcTHOR/SAM2未安装，EGL/GL可解析、Vulkan未解析，候选Python 3.10/3.11兼容环境仍未选择。
+- 导出[vsmt_vm04_preflight.json](results/vsmt_vm04_preflight.json)，SHA-256=`8f2542b212bd39732d1df028843b6ed0e1cfdf9c9a57e256b7ed21b3baf3aa04`，结果提交`5d3f04c`。报告绑定53项合同和来源success marker，`dependency_install_performed=false`、`asset_download_performed=false`、`generation_performed=false`、`training_steps=0`、`private_data_opened=false`、`confirmation_data_opened=false`。白话：这证明当前关系SPLIT、因果prior、清单/闸门及来源审计入口在服务器按登记运行，并确认可复用DINO资产；它不等于L1前端、模拟器环境、数据、在线选择器或任何方法效果已经就绪。
+- 用户随后决定先做五方法共同L1：匿名oracle mask只替换proposal来源，冻结DINOv2区域描述和公开depth/pose几何仍共同输入VSMT/TAF/ELU/WFR/LOW；SAM驱动的L2后置但不取消。L1是机制上界诊断，不是VSMT专属或论文主排名；instance ID、真值身份和reference事务仍禁止进入适配器。下一职责须先冻结并实现L1-only输入、VSMT选择器、teacher/evaluator和阈值，用户审查后才另行决定隔离环境与2家族audit，本回执不授权安装、生成或训练。
