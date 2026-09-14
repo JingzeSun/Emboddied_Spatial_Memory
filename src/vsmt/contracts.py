@@ -1109,6 +1109,13 @@ def audit_memory_update_result(
             {str(item) for item in entry.get("observed_templates", [])}
             if type(entry) is dict else set()
         )
+    # 白话：只有结果声明了不止一个模板时，允许的"已声明就地变化"字段才是这些
+    # 模板的并集，比逐版本判定宽。这里把这一放宽如实标出来，不让它默默成立。
+    semantic_allowance_templates = sorted(
+        template for template in observed_templates
+        if SEMANTIC_IN_PLACE_FIELDS_BY_TEMPLATE.get(template)
+    )
+    semantic_allowance_is_result_level = len(observed_templates) > 1
 
     def classify_mutation(
         kind: str, version_id: str,
@@ -1263,6 +1270,10 @@ def audit_memory_update_result(
         ),
         "undeclared_destructive_rewrite_version_ids": destructive_rewrites,
         "declared_semantic_transition_version_ids": semantic_transitions,
+        "semantic_allowance_templates": semantic_allowance_templates,
+        "semantic_allowance_is_result_level": (
+            semantic_allowance_is_result_level
+        ),
         "template_diff_allowlist_passed": template_diff_allowlist_passed,
         "template_diff_allowlist_violations": shape_violations,
         "protected_node_state_change_ids": protected_node_changes,

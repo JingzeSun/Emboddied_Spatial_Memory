@@ -388,6 +388,28 @@ class VSMTContractTests(unittest.TestCase):
             "append_only_evidence_or_provenance",
         )
         self.assertTrue(audit["template_diff_allowlist_passed"])
+        self.assertFalse(audit["semantic_allowance_is_result_level"])
+        self.assertEqual(audit["semantic_allowance_templates"], [])
+
+    def test_common_audit_flags_a_result_level_semantic_allowance(self) -> None:
+        result = make_result(self.memory, "fixture.adapter")
+        post = deepcopy(self.memory)
+        post["nodes"][0]["evidence_refs"].append("observation:changed")
+        post = seal_graph(post)
+        result["post_memory"] = post
+        result["post_memory_sha256"] = post["graph_hash"]
+        result["normalized_delta"]["declared_template"] = None
+        result["post_memory"]["transaction_log"] = [{
+            "observed_templates": ["BIND", "MERGE"],
+        }]
+        result["post_memory"] = seal_graph({
+            key: value for key, value in result["post_memory"].items()
+            if key != "graph_hash"
+        })
+        result["post_memory_sha256"] = result["post_memory"]["graph_hash"]
+        audit = audit_memory_update_result(self.memory, result)
+        self.assertTrue(audit["semantic_allowance_is_result_level"])
+        self.assertEqual(audit["semantic_allowance_templates"], ["MERGE"])
 
     def test_run_adapter_rejects_undeclared_destructive_rewrite(self) -> None:
         class RewriteAdapter(FixtureAdapter):
