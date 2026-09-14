@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| VSMT首篇/VM-01～04 | D-152已开放固定`train:004270`与`train:008243`的generation/private audit；首次真实generate在`a7f35e0`因默认出生视角36/36缺少匿名可见目标而零产出，原stage保留。D-153正加入每house一次、只依匿名mask几何的确定性视点搜索；随后新HEAD、新stage重跑。训练、validation效果、confirmation与L2仍关闭。统计独立单位仍为family。LOG-133–149，D-125–153 |
+| VSMT首篇/VM-01～04 | 两个固定house的generation/private audit已开放；`a7f35e0`和`a0e8410`两次零产出stage均保留。进一步诊断确认ProcTHOR 0.0.1 house从未被AI2-THOR 5.0.0成功创建，视点不足是空场景次生错误。D-154正加入官方语义的内存schema兼容及初始场景硬检查，再以新stage重跑。训练、validation效果、confirmation与L2仍关闭。LOG-133–150，D-125–154 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
 | R4三模型接入 | D完整适配16项通过（121/200全反向，0更新），W完整适配17项亦通过，F完整适配19项通过；真实公共接口27/27候选通过，0优化/真值读取。209bb34，LOG-123–127 |
 | R4前端v2r1 | 81bceed：19项通过，16历史/144名义预测/16选择完整，误标占据/自由0；物块平均误差9.59 cm、接触Brier 0.1152，全部涉及未知扫掠，正式M/P未就绪。LOG-121 |
@@ -1701,3 +1701,10 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - generate实际约142.81秒，两个family worker均退出0且各写18个终态，但36/36 raw episode均失败、0 complete。所有失败都是采帧前的`RuntimeError: insufficient anonymous visible targets for <PROGRAM>`；随后materialize只登记36个`raw_generation_failed`并得到0 complete。没有运行public-seal、private-eval、verify或export。
 - 白话：代码和模拟器都启动成功，但默认相机位置看不到既定数量的匿名区域，所以还没有形成任何可审数据。输入仍是固定house/slot，输出是完整失败回执和零产出证据。例如SPLIT需要两个mask而默认镜头不足两个，slot按规则失败且不换房。它不是DINO失败、容量超限、候选recall为零，也不是方法效果结果。
 - 原失败目录`/root/autodl-tmp/vsmt_outputs/vsmt-vm04-two-house-audit-v1-a7f35e07cae1`永久保留且不覆盖。D-153先登记每house一次的匿名视点搜索，再以新提交、新stage重跑；训练、validation效果、confirmation与L2仍未运行或授权。
+
+## LOG-150：D-153重跑揭示source house schema不兼容（2026-09-15）
+
+- `a0e841026b5609a28a119a3136e7f8848c519e59`在服务器通过executor 42、L1 31、VSMT 134，共207/207及capacity；新stage`/root/autodl-tmp/vsmt_outputs/vsmt-vm04-two-house-audit-v1-a0e841026b56`运行两个worker后仍为0 complete/36 failed，全部明确登记为`initial viewpoint search failed: GetReachablePositions failed`，未运行materialize或其后步骤。
+- 只读模拟器诊断随后读取Controller初始事件，发现它已因`ceilingMaterial`字符串不能转换为`MaterialProperties`而失败，objects=0、depth恒19.99；把三类material临时转为对象后，AI2-THOR继续明确要求house schema从`0.0.1`升级到`1.0.0`。这证明D-153并未接触有效house，不能把第二次失败解释为house没有对象或视点搜索无效。
+- 白话：第二次运行给视点搜索加了护栏，但真正上游是房屋版本不兼容。输入文件本身可解析，模拟器却没有建成房屋；输出只能是失败回执，不能送DINO或private评价。它不是固定house筛选失败，也不是方法candidate miss。
+- 原`a0e8410`stage继续保留。D-154按同一已登记ProcTHOR提交的官方升级语义实现内存转换，并新增Controller初始成功/对象非空硬检查；不下载新数据、不改原source、不换house/slot。

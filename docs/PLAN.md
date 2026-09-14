@@ -22,7 +22,7 @@
 
 ### 当前指针
 
-**D-153正在修复首次真实generate的零产出初始视点问题。** `a7f35e0`的服务器contracts 204/204与capacity通过，但两个固定house的默认出生视角导致36/36 slot在采帧前缺少匿名可见目标；原stage和失败回执保留，不重新清点、选房或替换house。当前按D-153先固定每house一次的匿名mask几何视点搜索，再以新HEAD、新stage从`contracts → capacity → generate`重跑，只有非零完整raw episode才继续`materialize → public-seal → private-eval → verify → export`。训练、validation效果、confirmation和L2仍关闭。
+**D-154正在修复真实source house与AI2-THOR 5.0.0的schema兼容。** `a7f35e0`与`a0e8410`两个服务器失败stage均保留；进一步只读诊断证明旧house `0.0.1`从未创建成功，D-153的视点错误是空场景次生故障。当前按固定ProcTHOR提交的官方升级语义在内存中转为`1.0.0`，强制检查Controller初始成功/对象非空后再执行D-153匿名视点搜索；新HEAD、新stage只有产生非零完整raw episode才继续materialize/seal/private/verify/export。固定house/slot不变，训练、validation效果、confirmation和L2仍关闭。
 
 **D-147已完成实现、服务器固定入口与回执绑定：公开边create/bind不再允许调用者抑制模板；无模板骨架邻接改走先验验证的专用入口，非受信任create/bind及受信任非邻接三类失败均保持revision逐字节不变，捕获异常后`finish`仍是真NOOP。**协议/实现/运维绑定提交依次为`0be2854`、`122cea6`、`74161b6`；服务器在受审`33aec1c`上通过executor 42、L1 31、VSMT 106共179项及61关系边/6候选/9桶/0截断/341可见截锥smoke，[工程报告](../results/vsmt_vm04_l1_capacity_scaffold.json)摘要为`b5918086…c68eff`并由`7641509`回传。D-144工程基线已绑定该代码与报告；2-house提案仍不可执行，来源inventory、审计实现/运行、生成、private、训练和confirmation均未授权。
 

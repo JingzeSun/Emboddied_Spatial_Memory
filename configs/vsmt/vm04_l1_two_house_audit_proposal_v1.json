@@ -1,7 +1,7 @@
 {
   "version": "vsmt-vm04-l1-two-house-audit-proposal-v1",
   "status": "generation_executable",
-  "decision": "D-153",
+  "decision": "D-154",
   "engineering_baseline_reviewed_code": "a8fa08a74bad99218a5be72d874841dd169695ab",
   "engineering_receipt_sha256": "d29caeaaf88cf58d5829a7fe9bda4b61fd79c594439cff437ce7835ccce7879b",
   "engineering_baseline_blocking_reason": null,
@@ -123,6 +123,18 @@
     "private_instance_id_or_class_may_affect_pose": false,
     "future_or_program_result_may_affect_pose": false,
     "failed_search_replacement_house_allowed": false
+  },
+  "source_house_schema_compatibility": {
+    "source_schema": "0.0.1",
+    "simulator_required_schema": "1.0.0",
+    "upgrade_semantics_source": "allenai/procthor procthor/utils/upgrade_house_version.py",
+    "upgrade_semantics_commit": "53d5bd4c8c96a699e6a615dc390abb670cc9d353",
+    "asset_dimensions_source": "installed_pinned_procthor_asset-database.json",
+    "source_record_mutation_allowed": false,
+    "upgraded_house_must_be_deterministic": true,
+    "controller_initial_event_success_required": true,
+    "controller_initial_objects_must_be_nonempty": true,
+    "upgrade_may_read_program_future_or_private_evaluation": false
   },
   "audit_only_association_profiles": {
     "role": "predeclared_capacity_brackets_not_formal_method_configurations",
