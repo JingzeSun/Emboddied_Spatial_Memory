@@ -48,7 +48,7 @@
   ],
   "pypi_releases": [
     {"project": "ai2thor", "version": "5.0.0"},
-    {"project": "procthor", "version": "0.0.1"}
+    {"project": "procthor", "version": "0.0.1.dev2"}
   ],
   "http_assets": [
     {
