@@ -1403,3 +1403,8 @@
 - 冻结DINOv2拟在224×224原RGB上产生16×16×384 patch token，以每个14×14 patch的mask占比加权平均并L2归一化；缓存float32 descriptor一次，五方法逐字节共享，无私有视觉adapter。最小像素/patch/depth支持、范数容差和可靠性仍为null。白话：它输入同一当前RGB和匿名mask，输出区域外观向量，例如半个patch属于区域则权重0.5；它不训练backbone或提供对象身份。
 - VSMT在线选择器拟用无slot embedding的共享逐候选scorer，编码prior、program/evidence、候选触及的pre-state、同一基图真实执行后的post-state及delta，每个program输出一个logit；换序诊断中logit必须随program而非ordinal移动。DRCR保留post-state但换直接reference训练标签，NECS禁止post graph并用固定零分支，PHR只用冻结公开启发式分。该设计解决旧索引head和“执行后状态是否有独立价值”的问题；输入封存catalog，输出候选排序。它不改变candidate-before-teacher，也不让四个论文机制适配器经过VSMT网络。
 - 必需正反例固定为instance ID置换、跨帧重编号、mask枚举换序、两相似实体、遮挡非空、支持不足失败保留、private/future变异和catalog校验后scorer batch换序八类。它们先验证信息边界与接口；最后一项不修改封存catalog或teacher槽位。它们不证明真实数据覆盖或方法效果。下一步只有在用户审查本提案后，才可把已接受规则实现为L1 materializer/selector/evaluator代码与必要服务器测试；环境和2-house audit继续后置。
+
+## D-134：用户裁决在对话正文直接交付
+
+- 日期：2026-09-14；状态：active workflow rule。用户指出从文件中寻找待认可内容费劲。今后凡有待认可、二选一或数值冻结，最终回复须直接给出待决事项、推荐口径、替代口径、结果/资源/主张影响和可直接回复的批准句；文件链接仅作证据，不再作为发现决策的入口。若没有待决事项，正文明确写“本轮无需裁决”。
+- 白话：这条规则解决“决定藏在文档里”的沟通问题；输入是本轮尚未冻结的选择，输出是一段在对话里即可审查和批准的清单。例如用户可直接回复“第1～5项按推荐口径认可”，而不必打开配置逐项找`null`。它只改变交付方式，不代表任何科学口径、数值、运行、下载、训练或confirmation已经获批。
