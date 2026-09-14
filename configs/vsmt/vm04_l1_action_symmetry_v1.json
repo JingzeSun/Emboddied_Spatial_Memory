@@ -81,6 +81,15 @@
     "per_version_template_attribution_blocks_five_method_comparison": true,
     "protected_incident_topology_change_is_evaluation_period_only": true,
     "semantic_allowance_reported_when_widened_beyond_one_template": true,
+    "untemplated_edge_operation_policy": {
+      "public_create_and_bind_allow_template_suppression": false,
+      "authorization_must_precede_mutation": true,
+      "rejection_is_atomic": true,
+      "trusted_method_ids": ["vsmt.place.scaffold.v1", "vsmt.public.bootstrap.v1"],
+      "only_relation": "adjacent_to",
+      "required_open_endpoint_kind": "place",
+      "provenance_purpose_is_caller_configurable": false
+    },
     "forces_baselines_through_vsmt_executor": false
   },
   "candidate_bucket_policy": {

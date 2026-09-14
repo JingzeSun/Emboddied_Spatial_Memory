@@ -31,7 +31,7 @@ STAGE_ID = "vsmt-vm04-l1-capacity-scaffold-v1"
 TEST_GROUPS = (
     ("executor", "test_executor.py", 42),
     ("l1", "test_l1_*.py", 31),
-    ("vsmt", "test_vsmt_*.py", 104),
+    ("vsmt", "test_vsmt_*.py", 106),
 )
 EXPECTED_TESTS = sum(group[2] for group in TEST_GROUPS)
 BOUND_PATHS = (
@@ -142,6 +142,20 @@ def load_config() -> dict[str, Any]:
         and action_symmetry.get("confirmation_authorized") is False
     ):
         raise RuntimeError("D-143 packet-v3 and versioned-BIND approval is not bound")
+    edge_policy = action_symmetry.get("common_post_update_audit", {}).get(
+        "untemplated_edge_operation_policy", {}
+    )
+    if not (
+        edge_policy.get("public_create_and_bind_allow_template_suppression") is False
+        and edge_policy.get("authorization_must_precede_mutation") is True
+        and edge_policy.get("rejection_is_atomic") is True
+        and edge_policy.get("trusted_method_ids")
+        == ["vsmt.place.scaffold.v1", "vsmt.public.bootstrap.v1"]
+        and edge_policy.get("only_relation") == "adjacent_to"
+        and edge_policy.get("required_open_endpoint_kind") == "place"
+        and edge_policy.get("provenance_purpose_is_caller_configurable") is False
+    ):
+        raise RuntimeError("D-147 atomic scaffold edge policy is not bound")
     return config
 
 
