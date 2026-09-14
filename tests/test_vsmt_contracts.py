@@ -20,6 +20,7 @@ from vsmt.contracts import (  # noqa: E402
     INVARIANCE_SCHEMA,
     PRIVATE_SCHEMA,
     RESULT_SCHEMA,
+    audit_memory_update_result,
     build_adapter_input,
     canonical_sha256,
     load_public_observation,
@@ -341,6 +342,67 @@ class VSMTContractTests(unittest.TestCase):
             "free_space_observations",
             "prior_memory", "public_constants",
         })
+        audit = result["diagnostics"]["common_post_update_audit"]
+        self.assertTrue(audit["structural_validation_passed"])
+        self.assertTrue(audit["declared_delta_matches_graph_diff"])
+
+    def test_run_adapter_rejects_a_delta_that_omits_actual_graph_changes(self) -> None:
+        class FalseDeltaAdapter(FixtureAdapter):
+            def update(self, model_input: dict[str, Any]) -> Mapping[str, Any]:
+                result = make_result(self.memory, self.method_id)
+                result["normalized_delta"]["created_node_version_ids"] = ["invented"]
+                return result
+
+        with self.assertRaisesRegex(ValueError, "actual graph version difference"):
+            run_adapter(FalseDeltaAdapter(self.memory), self.packet, self.memory)
+
+    def test_common_audit_reports_protected_state_mutation_for_any_method(self) -> None:
+        result = make_result(self.memory, "fixture.adapter")
+        post = deepcopy(self.memory)
+        post["nodes"][0]["evidence_refs"].append("observation:changed")
+        post = seal_graph(post)
+        result["post_memory"] = post
+        result["post_memory_sha256"] = post["graph_hash"]
+        result["normalized_delta"]["declared_template"] = "BIND"
+        audit = audit_memory_update_result(
+            self.memory, result, protected_node_ids=frozenset({"place-1"}),
+        )
+        self.assertEqual(audit["protected_node_state_change_ids"], ["place-1"])
+        self.assertEqual(
+            audit["preexisting_node_version_mutations"], ["place-1@v0"],
+        )
+
+    def test_common_audit_detects_physical_history_deletion(self) -> None:
+        prior = deepcopy(self.memory)
+        prior["nodes"].append({
+            "node_id": "entity-retired",
+            "node_version_id": "entity-retired@terminal",
+            "node_type": "entity",
+            "lifecycle": "retracted",
+            "valid_from": 1,
+            "valid_to": 1,
+            "evidence_refs": ["observation:retired"],
+            "latent_refs": [],
+            "canonical_id": None,
+            "predecessor_ids": [],
+            "provenance": ["fixture:public"],
+        })
+        prior = seal_graph(prior)
+        post = deepcopy(prior)
+        post["nodes"] = [
+            node for node in post["nodes"]
+            if node["node_id"] != "entity-retired"
+        ]
+        post = seal_graph(post)
+        result = make_result(prior, "fixture.adapter")
+        result["post_memory"] = post
+        result["post_memory_sha256"] = post["graph_hash"]
+        audit = audit_memory_update_result(prior, result)
+        self.assertFalse(audit["history_preserved"])
+        self.assertEqual(
+            audit["missing_preexisting_node_version_ids"],
+            ["entity-retired@terminal"],
+        )
 
     def test_run_adapter_detects_input_mutation(self) -> None:
         adapter = FixtureAdapter(self.memory, mutate=True)

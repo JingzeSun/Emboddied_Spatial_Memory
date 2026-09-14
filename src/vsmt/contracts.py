@@ -561,7 +561,8 @@ def validate_candidate_catalog(
 
     expected = {
         "schema_version", "public_sha256", "prior_memory_sha256", "generator_id",
-        "derivations", "capacity_audit", "candidates", "catalog_sha256",
+        "derivations", "capacity_audit", "capacity_summary", "candidates",
+        "catalog_sha256",
     }
     _exact_keys(catalog, expected, "candidate catalog")
     _require(catalog["schema_version"] == CANDIDATE_SCHEMA,
@@ -603,7 +604,9 @@ def validate_candidate_catalog(
             "bucket_id", "template", "scope", "capacity",
             "pre_cap_candidate_count", "pre_cap_group_count",
             "retained_candidate_count", "retained_group_count",
-            "oversized_group_count", "minimum_retained_priority",
+            "oversized_group_count", "ambiguity_guard_rejected_group_count",
+            "total_incident_guard_rejected_node_count",
+            "minimum_retained_priority",
             "minimum_retained_priority_group_count",
         }, f"capacity_audit[{index}]")
         for key in ("bucket_id", "template", "scope"):
@@ -618,6 +621,8 @@ def validate_candidate_catalog(
             "capacity", "pre_cap_candidate_count", "pre_cap_group_count",
             "retained_candidate_count", "retained_group_count",
             "oversized_group_count",
+            "ambiguity_guard_rejected_group_count",
+            "total_incident_guard_rejected_node_count",
             "minimum_retained_priority_group_count",
         ):
             value = row[key]
@@ -635,6 +640,11 @@ def validate_candidate_catalog(
                  "retained groups exceed their pre-cap count")
         _require(counts["oversized_group_count"] <= counts["pre_cap_group_count"],
                  "oversized groups exceed their pre-cap count")
+        _require(
+            counts["ambiguity_guard_rejected_group_count"]
+            <= counts["pre_cap_group_count"],
+            "ambiguity-guarded groups exceed their pre-cap count",
+        )
         minimum_priority = row["minimum_retained_priority"]
         _require(
             minimum_priority is None
@@ -657,6 +667,30 @@ def validate_candidate_catalog(
         retained_by_bucket[bucket_id] = counts["retained_candidate_count"]
     _require(len(bucket_ids) == len(set(bucket_ids)),
              "candidate capacity bucket IDs must be unique")
+
+    capacity_summary = catalog["capacity_summary"]
+    _require(type(capacity_summary) is dict,
+             "candidate capacity_summary must be an object")
+    _exact_keys(capacity_summary, {
+        "bucket_count", "total_capacity", "total_pre_cap_candidate_count",
+        "total_retained_candidate_count", "total_truncated_candidate_count",
+    }, "candidate capacity_summary")
+    expected_summary = {
+        "bucket_count": len(capacity_rows),
+        "total_capacity": sum(row["capacity"] for row in capacity_rows),
+        "total_pre_cap_candidate_count": sum(
+            row["pre_cap_candidate_count"] for row in capacity_rows
+        ),
+        "total_retained_candidate_count": sum(
+            row["retained_candidate_count"] for row in capacity_rows
+        ),
+        "total_truncated_candidate_count": sum(
+            row["pre_cap_candidate_count"] - row["retained_candidate_count"]
+            for row in capacity_rows
+        ),
+    }
+    _require(capacity_summary == expected_summary,
+             "candidate capacity_summary does not match its buckets")
 
     candidates = catalog["candidates"]
     _require(type(candidates) is list and candidates,
@@ -766,6 +800,8 @@ def seal_candidate_catalog(
         "retained_candidate_count": len(programs),
         "retained_group_count": len(programs),
         "oversized_group_count": 0,
+        "ambiguity_guard_rejected_group_count": 0,
+        "total_incident_guard_rejected_node_count": 0,
         "minimum_retained_priority": 0.0 if programs else None,
         "minimum_retained_priority_group_count": len(programs),
     }]
@@ -787,6 +823,20 @@ def seal_candidate_catalog(
         "generator_id": generator_id,
         "derivations": clone_json(derivations),
         "capacity_audit": clone_json(capacity_rows),
+        "capacity_summary": {
+            "bucket_count": len(capacity_rows),
+            "total_capacity": sum(row["capacity"] for row in capacity_rows),
+            "total_pre_cap_candidate_count": sum(
+                row["pre_cap_candidate_count"] for row in capacity_rows
+            ),
+            "total_retained_candidate_count": sum(
+                row["retained_candidate_count"] for row in capacity_rows
+            ),
+            "total_truncated_candidate_count": sum(
+                row["pre_cap_candidate_count"] - row["retained_candidate_count"]
+                for row in capacity_rows
+            ),
+        },
         "candidates": candidates,
     }
     catalog["catalog_sha256"] = canonical_sha256(catalog)
@@ -917,6 +967,105 @@ def validate_memory_update_result(
     return clone_json(dict(result))
 
 
+def audit_memory_update_result(
+    prior_memory: Mapping[str, Any],
+    result: Mapping[str, Any],
+    *,
+    protected_node_ids: set[str] | frozenset[str] = frozenset(),
+) -> dict[str, Any]:
+    """Recompute graph changes for every method without imposing its mechanism."""
+
+    before = clone_json(dict(prior_memory))
+    validate_graph(before, verify_hash=True)
+    validated = validate_memory_update_result(result)
+    _require(
+        validated["pre_memory_sha256"] == before["graph_hash"],
+        "common audit result is bound to a different prior memory",
+    )
+    after = validated["post_memory"]
+    before_nodes = {node["node_version_id"]: node for node in before["nodes"]}
+    after_nodes = {node["node_version_id"]: node for node in after["nodes"]}
+    before_edges = {edge["edge_version_id"]: edge for edge in before["edges"]}
+    after_edges = {edge["edge_version_id"]: edge for edge in after["edges"]}
+
+    created_nodes = sorted(set(after_nodes) - set(before_nodes))
+    created_edges = sorted(set(after_edges) - set(before_edges))
+    missing_nodes = sorted(set(before_nodes) - set(after_nodes))
+    missing_edges = sorted(set(before_edges) - set(after_edges))
+    closed_nodes = sorted(
+        version_id for version_id, node in after_nodes.items()
+        if node.get("valid_to") is not None
+        and (
+            version_id not in before_nodes
+            or before_nodes[version_id].get("valid_to") is None
+        )
+    )
+    closed_edges = sorted(
+        version_id for version_id, edge in after_edges.items()
+        if edge.get("valid_to") is not None
+        and (
+            version_id not in before_edges
+            or before_edges[version_id].get("valid_to") is None
+        )
+    )
+    recomputed = {
+        "created_node_version_ids": created_nodes,
+        "closed_node_version_ids": closed_nodes,
+        "created_edge_version_ids": created_edges,
+        "closed_edge_version_ids": closed_edges,
+    }
+    declared = validated["normalized_delta"]
+    delta_matches = all(
+        set(declared[key]) == set(values) for key, values in recomputed.items()
+    )
+
+    mutated_nodes = sorted(
+        version_id for version_id in set(before_nodes) & set(after_nodes)
+        if canonical_sha256(before_nodes[version_id])
+        != canonical_sha256(after_nodes[version_id])
+    )
+    mutated_edges = sorted(
+        version_id for version_id in set(before_edges) & set(after_edges)
+        if canonical_sha256(before_edges[version_id])
+        != canonical_sha256(after_edges[version_id])
+    )
+    protected = set(protected_node_ids)
+    protected_node_changes = sorted(
+        node_id for node_id in protected
+        if [node for node in before["nodes"] if node["node_id"] == node_id]
+        != [node for node in after["nodes"] if node["node_id"] == node_id]
+    )
+
+    def open_topology(graph: Mapping[str, Any], node_id: str) -> list[list[str]]:
+        return sorted([
+            [
+                str(edge["source"]), str(edge["target"]),
+                str(edge["relation"]), str(edge["frame"]),
+            ]
+            for edge in graph["edges"]
+            if edge.get("valid_to") is None
+            and node_id in {edge["source"], edge["target"]}
+        ])
+
+    protected_topology_changes = sorted(
+        node_id for node_id in protected
+        if open_topology(before, node_id) != open_topology(after, node_id)
+    )
+    return {
+        "schema_version": "vsmt-common-post-update-audit-v1",
+        "structural_validation_passed": True,
+        "history_preserved": not missing_nodes and not missing_edges,
+        "declared_delta_matches_graph_diff": delta_matches,
+        "recomputed_delta": recomputed,
+        "missing_preexisting_node_version_ids": missing_nodes,
+        "missing_preexisting_edge_version_ids": missing_edges,
+        "preexisting_node_version_mutations": mutated_nodes,
+        "preexisting_edge_version_mutations": mutated_edges,
+        "protected_node_state_change_ids": protected_node_changes,
+        "protected_incident_topology_change_ids": protected_topology_changes,
+    }
+
+
 def run_adapter(
     adapter: MemoryUpdateAdapter, packet: Mapping[str, Any],
     prior_memory: Mapping[str, Any],
@@ -932,8 +1081,27 @@ def run_adapter(
     result = adapter.update(adapter_input)
     _require(canonical_sha256(adapter_input) == before,
              "adapter input mutated during inference")
-    return validate_memory_update_result(
+    validated = validate_memory_update_result(
         result,
+        expected_method_id=adapter.method_id,
+        expected_pre_memory_sha256=pre_digest,
+    )
+    _require(
+        "common_post_update_audit" not in validated["diagnostics"],
+        "adapter may not supply the common post-update audit",
+    )
+    audit = audit_memory_update_result(prior_memory, validated)
+    _require(
+        audit["declared_delta_matches_graph_diff"],
+        "normalized_delta does not match the actual graph version difference",
+    )
+    _require(
+        audit["history_preserved"],
+        "adapter physically removed preexisting version history",
+    )
+    validated["diagnostics"]["common_post_update_audit"] = audit
+    return validate_memory_update_result(
+        validated,
         expected_method_id=adapter.method_id,
         expected_pre_memory_sha256=pre_digest,
     )

@@ -15,7 +15,11 @@ SRC_ROOT = PROJECT_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
-from cpmt.executor import ContractError, execute_transaction  # noqa: E402
+from cpmt.executor import (  # noqa: E402
+    ContractError,
+    PreconditionError,
+    execute_transaction,
+)
 from cpmt.hashing import seal_graph  # noqa: E402
 from vsmt.contracts import (  # noqa: E402
     seal_private_evaluation,
@@ -178,7 +182,8 @@ def config() -> PublicCandidateConfig:
         free_space_target_expansion_m=0.02,
         minimum_free_space_time_separation_s=0.25,
         maximum_candidates_per_bucket=20,
-        maximum_split_incident_edges=8,
+        maximum_split_ambiguous_edges=8,
+        maximum_split_total_incident_edges=16,
     )
 
 
@@ -230,6 +235,23 @@ class PublicCandidateTests(unittest.TestCase):
         }
         self.assertEqual(birth_rows["BIRTH|entity"]["retained_candidate_count"], 1)
         self.assertEqual(birth_rows["BIRTH|surface"]["retained_candidate_count"], 1)
+        self.assertEqual(
+            catalog["capacity_summary"]["bucket_count"],
+            len(catalog["capacity_audit"]),
+        )
+        self.assertEqual(
+            catalog["capacity_summary"]["total_retained_candidate_count"],
+            len(catalog["candidates"]),
+        )
+
+    def test_candidate_capacity_summary_cannot_disagree_with_buckets(self) -> None:
+        graph = graph_fixture()
+        catalog = generate_public_candidate_catalog(
+            packet_fixture(graph), graph, config=config(),
+        )
+        catalog["capacity_summary"]["total_capacity"] += 1
+        with self.assertRaisesRegex(ValueError, "does not match its buckets"):
+            validate_candidate_catalog(catalog)
 
     def test_place_scaffold_has_no_learned_node_candidate_bucket(self) -> None:
         graph = graph_fixture()
@@ -331,6 +353,191 @@ class PublicCandidateTests(unittest.TestCase):
         self.assertNotIn("RETRACT", observed)
         self.assertNotIn("REPLACE", observed)
 
+    def test_node_retract_closes_entity_and_all_incident_relations_atomically(self) -> None:
+        graph = graph_fixture()
+        catalog = generate_public_candidate_catalog(
+            packet_fixture(graph), graph, config=config(),
+        )
+        program = next(
+            item["program"] for item in catalog["candidates"]
+            if item["program"]["template"] == "RETRACT"
+            and item["program"]["retraction_target"] == {
+                "kind": "node_version", "version_id": "entity-a@v0",
+            }
+        )
+        evidence = next(
+            item["online_evidence"] for item in catalog["candidates"]
+            if item["program"] == program
+        )
+        post = execute_transaction(graph, program, evidence_by_id=evidence)
+        self.assertFalse(any(
+            node["node_id"] == "entity-a" and node["valid_to"] is None
+            for node in post["nodes"]
+        ))
+        terminal = next(
+            node for node in post["nodes"]
+            if node["node_id"] == "entity-a" and node["lifecycle"] == "retracted"
+        )
+        self.assertEqual(terminal["valid_from"], terminal["valid_to"])
+        self.assertEqual(terminal["predecessor_ids"], ["entity-a@v0"])
+        self.assertTrue(set(program["evidence_refs"]) <= set(terminal["evidence_refs"]))
+        self.assertFalse(any(
+            edge["valid_to"] is None
+            and "entity-a" in {edge["source"], edge["target"]}
+            for edge in post["edges"]
+        ))
+        self.assertTrue(any(
+            node["node_id"] == "place-a" and node["valid_to"] is None
+            for node in post["nodes"]
+        ))
+
+    def test_node_retract_rejects_one_missing_incident_edge_close_without_mutation(self) -> None:
+        graph = graph_fixture()
+        catalog = generate_public_candidate_catalog(
+            packet_fixture(graph), graph, config=config(),
+        )
+        candidate = next(
+            item for item in catalog["candidates"]
+            if item["program"]["template"] == "RETRACT"
+            and item["program"]["retraction_target"] == {
+                "kind": "node_version", "version_id": "entity-a@v0",
+            }
+        )
+        program = deepcopy(candidate["program"])
+        program["operations"] = [
+            operation for operation in program["operations"]
+            if operation["op_type"] != "CLOSE_EDGE_VERSION"
+        ]
+        before = deepcopy(graph)
+        with self.assertRaisesRegex(ContractError, "every open incident edge"):
+            execute_transaction(
+                graph, program, evidence_by_id=candidate["online_evidence"],
+            )
+        self.assertEqual(graph, before)
+
+    def test_node_retract_terminal_cannot_rewrite_preserved_state(self) -> None:
+        graph = graph_fixture()
+        catalog = generate_public_candidate_catalog(
+            packet_fixture(graph), graph, config=config(),
+        )
+        candidate = next(
+            item for item in catalog["candidates"]
+            if item["program"]["template"] == "RETRACT"
+            and item["program"]["retraction_target"] == {
+                "kind": "node_version", "version_id": "entity-a@v0",
+            }
+        )
+        program = deepcopy(candidate["program"])
+        terminal = next(
+            operation["arguments"]["node"]
+            for operation in program["operations"]
+            if operation["op_type"] == "OPEN_NODE_VERSION"
+        )
+        terminal[STATE_KEY]["centroid_m"] = [9.0, 9.0, 9.0]
+        before = deepcopy(graph)
+        with self.assertRaisesRegex(ContractError, "must preserve identity"):
+            execute_transaction(
+                graph, program, evidence_by_id=candidate["online_evidence"],
+            )
+        self.assertEqual(graph, before)
+
+    def test_node_retract_cannot_attach_collateral_evidence(self) -> None:
+        graph = graph_fixture()
+        catalog = generate_public_candidate_catalog(
+            packet_fixture(graph), graph, config=config(),
+        )
+        candidate = next(
+            item for item in catalog["candidates"]
+            if item["program"]["template"] == "RETRACT"
+            and item["program"]["retraction_target"] == {
+                "kind": "node_version", "version_id": "entity-a@v0",
+            }
+        )
+        program = deepcopy(candidate["program"])
+        program["operations"].append({
+            "op_id": "node-retract:collateral",
+            "op_type": "ATTACH_EVIDENCE",
+            "arguments": {
+                "target_kind": "node",
+                "node_version_id": "place-a@v0",
+                "evidence_ref": program["evidence_refs"][0],
+            },
+        })
+        before = deepcopy(graph)
+        with self.assertRaisesRegex(ContractError, "retired source version"):
+            execute_transaction(
+                graph, program, evidence_by_id=candidate["online_evidence"],
+            )
+        self.assertEqual(graph, before)
+
+    def test_node_replace_uses_new_public_relations_without_old_identity_evidence(self) -> None:
+        graph = graph_fixture()
+        catalog = generate_public_candidate_catalog(
+            packet_fixture(graph), graph, config=config(),
+        )
+        candidate = next(
+            item for item in catalog["candidates"]
+            if item["program"].get("composition_label") == "REPLACE"
+            and item["program"]["retraction_target"] == {
+                "kind": "node_version", "version_id": "entity-a@v0",
+            }
+            and any(
+                operation["op_type"] == "ADD_EDGE"
+                for operation in item["program"]["operations"]
+            )
+        )
+        program = candidate["program"]
+        post = execute_transaction(
+            graph, program, evidence_by_id=candidate["online_evidence"],
+        )
+        created = next(
+            operation["arguments"]["node"] for operation in program["operations"]
+            if operation["op_type"] == "CREATE_NODE"
+        )
+        self.assertNotEqual(created["node_id"], "entity-a")
+        self.assertEqual(created["lifecycle"], "candidate")
+        self.assertNotIn("observation:entity-a", created["evidence_refs"])
+        new_relations = [
+            edge for edge in post["edges"]
+            if edge["valid_to"] is None and edge["source"] == created["node_id"]
+        ]
+        self.assertEqual(len(new_relations), 1)
+        self.assertEqual(new_relations[0]["target"], "place-b")
+        self.assertEqual(new_relations[0]["relation"], "located_at")
+        self.assertNotIn("observation:edge", new_relations[0]["evidence_refs"])
+
+    def test_node_replace_rejects_nononline_new_relation_evidence_atomically(self) -> None:
+        graph = graph_fixture()
+        catalog = generate_public_candidate_catalog(
+            packet_fixture(graph), graph, config=config(),
+        )
+        candidate = next(
+            item for item in catalog["candidates"]
+            if item["program"].get("composition_label") == "REPLACE"
+            and item["program"]["retraction_target"] == {
+                "kind": "node_version", "version_id": "entity-a@v0",
+            }
+            and any(
+                operation["op_type"] == "ADD_EDGE"
+                for operation in item["program"]["operations"]
+            )
+        )
+        evidence = deepcopy(candidate["online_evidence"])
+        edge = next(
+            operation["arguments"]["edge"]
+            for operation in candidate["program"]["operations"]
+            if operation["op_type"] == "ADD_EDGE"
+        )
+        evidence[edge["evidence_refs"][0]]["availability"] = "teacher"
+        before = deepcopy(graph)
+        with self.assertRaisesRegex(
+            PreconditionError, "online supporting observation",
+        ):
+            execute_transaction(
+                graph, candidate["program"], evidence_by_id=evidence,
+            )
+        self.assertEqual(graph, before)
+
     def test_split_reassigns_an_open_incident_edge_atomically(self) -> None:
         graph = graph_fixture()
         catalog = generate_public_candidate_catalog(
@@ -431,6 +638,27 @@ class PublicCandidateTests(unittest.TestCase):
         )
         self.assertGreaterEqual(split_audit["oversized_group_count"], 1)
         self.assertGreaterEqual(split_audit["pre_cap_candidate_count"], 27)
+
+    def test_split_ambiguity_and_total_edge_guards_are_independent(self) -> None:
+        graph = graph_fixture()
+        public = packet_fixture(graph)
+        for guarded in (
+            replace(config(), maximum_split_ambiguous_edges=0),
+            replace(config(), maximum_split_total_incident_edges=0),
+        ):
+            catalog = generate_public_candidate_catalog(
+                public, graph, config=guarded,
+            )
+            entity_a_splits = [
+                item for item in catalog["candidates"]
+                if item["program"]["template"] == "SPLIT"
+                and any(
+                    operation["op_type"] == "SET_LIFECYCLE"
+                    and operation["arguments"].get("node_id") == "entity-a"
+                    for operation in item["program"]["operations"]
+                )
+            ]
+            self.assertEqual(entity_a_splits, [])
 
     def test_merge_reanchors_and_deduplicates_alias_incident_relations(self) -> None:
         graph = graph_fixture()

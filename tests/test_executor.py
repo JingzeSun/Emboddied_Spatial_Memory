@@ -971,7 +971,7 @@ class DeterministicExecutorTests(unittest.TestCase):
         with self.assertRaises(DuplicateTransactionError):
             execute_transaction(committed, replay)
 
-    def test_unimplemented_template_is_not_silently_executed(self) -> None:
+    def test_node_retract_rejects_non_entity_target(self) -> None:
         base = load_world("C01")
         program = load_program("C01", "bind.json")
         program["transaction_id"] = "tx-unimplemented-retract"
@@ -979,7 +979,7 @@ class DeterministicExecutorTests(unittest.TestCase):
         program["template"] = "RETRACT"
         program["retraction_target"] = {
             "kind": "node_version",
-            "version_id": "chair-1@v0",
+            "version_id": "wall-protected@v0",
         }
 
         with self.assertRaises(UnsupportedTemplateError):

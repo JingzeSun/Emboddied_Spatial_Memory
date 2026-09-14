@@ -200,8 +200,8 @@
       "additionalProperties": false,
       "required": [
         "schema_version", "public_sha256", "prior_memory_sha256",
-        "generator_id", "derivations", "capacity_audit", "candidates",
-        "catalog_sha256"
+        "generator_id", "derivations", "capacity_audit", "capacity_summary",
+        "candidates", "catalog_sha256"
       ],
       "properties": {
         "schema_version": {"const": "vsmt-candidate-catalog-v2"},
@@ -236,7 +236,9 @@
               "bucket_id", "template", "scope", "capacity",
               "pre_cap_candidate_count", "pre_cap_group_count",
               "retained_candidate_count", "retained_group_count",
-              "oversized_group_count", "minimum_retained_priority",
+              "oversized_group_count", "ambiguity_guard_rejected_group_count",
+              "total_incident_guard_rejected_node_count",
+              "minimum_retained_priority",
               "minimum_retained_priority_group_count"
             ],
             "properties": {
@@ -249,11 +251,34 @@
               "retained_candidate_count": {"type": "integer", "minimum": 0},
               "retained_group_count": {"type": "integer", "minimum": 0},
               "oversized_group_count": {"type": "integer", "minimum": 0},
+              "ambiguity_guard_rejected_group_count": {
+                "type": "integer", "minimum": 0
+              },
+              "total_incident_guard_rejected_node_count": {
+                "type": "integer", "minimum": 0
+              },
               "minimum_retained_priority": {"type": ["number", "null"]},
               "minimum_retained_priority_group_count": {
                 "type": "integer", "minimum": 0
               }
             }
+          }
+        },
+        "capacity_summary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "bucket_count", "total_capacity",
+            "total_pre_cap_candidate_count",
+            "total_retained_candidate_count",
+            "total_truncated_candidate_count"
+          ],
+          "properties": {
+            "bucket_count": {"type": "integer", "minimum": 1},
+            "total_capacity": {"type": "integer", "minimum": 1},
+            "total_pre_cap_candidate_count": {"type": "integer", "minimum": 0},
+            "total_retained_candidate_count": {"type": "integer", "minimum": 1},
+            "total_truncated_candidate_count": {"type": "integer", "minimum": 0}
           }
         },
         "candidates": {

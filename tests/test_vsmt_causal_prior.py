@@ -104,9 +104,11 @@ class CausalPriorTests(unittest.TestCase):
         first_result = advance_public_bootstrap(
             first, initial, config=bootstrap_config(),
         )
+        second_region = region(0, 0.05)
+        second_region["mask_sha256"] = "5" * 64
         second = packet(
             first_result["post_memory"], time_s=1.0,
-            regions=[region(0, 0.05)],
+            regions=[second_region],
         )
         built = build_causal_prior(
             [first, second],
@@ -133,6 +135,29 @@ class CausalPriorTests(unittest.TestCase):
             ],
             2,
         )
+        self.assertEqual(
+            next(item for item in versions if item["valid_to"] is None)["lifecycle"],
+            "confirmed",
+        )
+
+    def test_repeated_identical_public_evidence_does_not_confirm_candidate(self) -> None:
+        initial = empty_public_memory()
+        first = packet(initial, time_s=0.0, regions=[region(0, 0.0)])
+        first_result = advance_public_bootstrap(
+            first, initial, config=bootstrap_config(),
+        )
+        second = packet(
+            first_result["post_memory"], time_s=1.0,
+            regions=[region(0, 0.0)],
+        )
+        result = advance_public_bootstrap(
+            second, first_result["post_memory"], config=bootstrap_config(),
+        )
+        current = next(
+            node for node in result["post_memory"]["nodes"]
+            if node["valid_to"] is None
+        )
+        self.assertEqual(current["lifecycle"], "candidate")
 
     def test_bootstrap_births_first_public_relation_after_endpoint_nodes(self) -> None:
         initial = empty_public_memory()

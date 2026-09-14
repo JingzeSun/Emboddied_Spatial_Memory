@@ -1,9 +1,9 @@
 """Versioned deterministic execution for the CPMT C00-C11 M0 slice.
 
 Implemented templates: NOOP, BIND, BIRTH, REACTIVATE, RELINK, RETRACT,
-SPLIT, MERGE and COMPOSITE:REPLACE. Node-level RETRACT and QUARANTINE
-remain unsupported. Execution always happens on a deep copy of an
-immutable base graph.
+SPLIT, MERGE and COMPOSITE:REPLACE. RETRACT and REPLACE accept either an
+edge version or an entity node version. QUARANTINE remains unsupported.
+Execution always happens on a deep copy of an immutable base graph.
 """
 
 from __future__ import annotations
@@ -670,6 +670,217 @@ def _validate_reliable_negative_evidence_refs(
         raise PreconditionError(
             "supporting observation interrupts the negative chain"
         )
+
+
+def _validate_current_support_evidence_refs(
+    evidence_refs: Iterable[str],
+    *,
+    claim_refs: set[str],
+    evidence_by_id: Mapping[str, dict[str, Any]],
+) -> None:
+    """Require explicit online support for a newly born node or relation."""
+
+    evidence_refs = list(evidence_refs)
+    if not evidence_refs or len(evidence_refs) != len(set(evidence_refs)):
+        raise ContractError(
+            "new structure support needs unique nonempty evidence refs"
+        )
+    missing = [
+        evidence_id for evidence_id in evidence_refs
+        if evidence_id not in evidence_by_id
+    ]
+    if missing:
+        raise PreconditionError(
+            f"missing evidence records: {sorted(missing)}"
+        )
+    for evidence_id in evidence_refs:
+        event = evidence_by_id[evidence_id]
+        if (
+            event.get("claim_ref") not in claim_refs
+            or event.get("kind") != "observation"
+            or event.get("verdict") != "supports"
+            or event.get("availability") != "online"
+        ):
+            raise PreconditionError(
+                "new structure evidence must be an online supporting "
+                "observation for that structure"
+            )
+
+
+def _validate_node_retraction(
+    graph: dict[str, Any],
+    program: dict[str, Any],
+    operations: list[dict[str, Any]],
+    *,
+    target_version_id: str,
+    evidence_by_id: Mapping[str, dict[str, Any]],
+    reliability_threshold: float,
+) -> tuple[
+    dict[str, Any], dict[str, Any], list[dict[str, Any]], int, list[str]
+]:
+    """Validate the shared entity-retirement portion of RETRACT/REPLACE."""
+
+    source = _node_version(graph, target_version_id)
+    if source.get("valid_to") is not None:
+        raise PreconditionError("RETRACT target node version is already closed")
+    if _open_node(graph, source["node_id"])["node_version_id"] != target_version_id:
+        raise PreconditionError("RETRACT must target the current open node version")
+    if source.get("node_type") != "entity":
+        raise UnsupportedTemplateError(
+            "node-level RETRACT is currently limited to entity nodes"
+        )
+    if source.get("lifecycle") not in {"candidate", "confirmed", "dormant"}:
+        raise PreconditionError(
+            "node-level RETRACT needs a candidate, confirmed, or dormant entity"
+        )
+
+    node_closes = [
+        operation for operation in operations
+        if operation["op_type"] == "CLOSE_NODE_VERSION"
+    ]
+    if len(node_closes) != 1:
+        raise ContractError("node RETRACT must close exactly one node version")
+    close = node_closes[0]
+    if close["arguments"]["node_id"] != source["node_id"]:
+        raise ContractError("node RETRACT close does not match retraction_target")
+    close_at = close["arguments"]["at"]
+
+    terminal_versions = [
+        operation["arguments"]["node"] for operation in operations
+        if operation["op_type"] == "OPEN_NODE_VERSION"
+    ]
+    if len(terminal_versions) != 1:
+        raise ContractError(
+            "node RETRACT must append exactly one terminal retracted version"
+        )
+    terminal = terminal_versions[0]
+    negative_refs = [
+        evidence_id for evidence_id in program["evidence_refs"]
+        if evidence_id in evidence_by_id
+        and evidence_by_id[evidence_id].get("claim_ref") == target_version_id
+        and evidence_by_id[evidence_id].get("kind") == "visible_empty"
+        and evidence_by_id[evidence_id].get("verdict") == "contradicts"
+    ]
+    expected_terminal = clone_json(source)
+    expected_terminal.update({
+        "node_version_id": terminal.get("node_version_id"),
+        "lifecycle": "retracted",
+        "valid_from": close_at,
+        "valid_to": close_at,
+        "evidence_refs": list(dict.fromkeys(
+            list(source.get("evidence_refs", [])) + negative_refs
+        )),
+        "predecessor_ids": [source["node_version_id"]],
+        "provenance": list(dict.fromkeys(
+            list(source.get("provenance", [])) + [program["transaction_id"]]
+        )),
+    })
+    if (
+        terminal.get("node_version_id") == source["node_version_id"]
+        or any(
+            node["node_version_id"] == terminal.get("node_version_id")
+            for node in graph["nodes"]
+        )
+        or terminal != expected_terminal
+    ):
+        raise ContractError(
+            "node RETRACT terminal version must preserve identity, evidence, "
+            "latents, history, and transaction provenance"
+        )
+
+    incident_edges = [
+        edge for edge in graph["edges"]
+        if edge.get("valid_to") is None
+        and source["node_id"] in {edge["source"], edge["target"]}
+    ]
+    edge_closes = [
+        operation for operation in operations
+        if operation["op_type"] == "CLOSE_EDGE_VERSION"
+    ]
+    closed_edge_ids = [
+        operation["arguments"]["edge_id"] for operation in edge_closes
+    ]
+    expected_edge_ids = [edge["edge_id"] for edge in incident_edges]
+    if (
+        len(closed_edge_ids) != len(set(closed_edge_ids))
+        or set(closed_edge_ids) != set(expected_edge_ids)
+    ):
+        raise ContractError(
+            "node RETRACT must close every open incident edge exactly once"
+        )
+    if any(
+        operation["arguments"]["at"] != close_at for operation in edge_closes
+    ):
+        raise ContractError(
+            "node RETRACT and all incident edges must close at one tick"
+        )
+
+    evidence_attaches = [
+        operation for operation in operations
+        if operation["op_type"] == "ATTACH_EVIDENCE"
+    ]
+    attached_refs = [
+        operation["arguments"].get("evidence_ref")
+        for operation in evidence_attaches
+    ]
+    if (
+        len(attached_refs) != len(set(attached_refs))
+        or set(attached_refs) != set(negative_refs)
+        or any(
+            operation["arguments"].get("target_kind") != "node"
+            or operation["arguments"].get("node_version_id")
+            != source["node_version_id"]
+            for operation in evidence_attaches
+        )
+    ):
+        raise ContractError(
+            "node RETRACT may attach only its declared negative evidence "
+            "to the retired source version"
+        )
+
+    expected_provenance_targets = {
+        ("node", source["node_version_id"]),
+        *{
+            ("edge", edge["edge_version_id"])
+            for edge in incident_edges
+        },
+    }
+    provenance_records = [
+        operation for operation in operations
+        if operation["op_type"] == "RECORD_PROVENANCE"
+    ]
+    actual_provenance_targets = [
+        (
+            operation["arguments"].get("target_kind"),
+            operation["arguments"].get(
+                "node_version_id"
+                if operation["arguments"].get("target_kind") == "node"
+                else "edge_version_id"
+            ),
+        )
+        for operation in provenance_records
+    ]
+    if (
+        len(actual_provenance_targets) != len(set(actual_provenance_targets))
+        or set(actual_provenance_targets) != expected_provenance_targets
+        or any(
+            operation["arguments"].get("provenance_ref")
+            != program["transaction_id"]
+            for operation in provenance_records
+        )
+    ):
+        raise ContractError(
+            "node RETRACT provenance must cover only the source entity and "
+            "all retired incident edges"
+        )
+
+    _validate_reliable_negative_evidence(
+        program,
+        target_version_id=target_version_id,
+        evidence_by_id=evidence_by_id,
+        reliability_threshold=reliability_threshold,
+    )
+    return source, terminal, incident_edges, close_at, negative_refs
 
 
 def _validate_template_preconditions(
@@ -1418,11 +1629,34 @@ def _validate_template_preconditions(
             raise ContractError(
                 "RETRACT requires an explicit retraction_target"
             )
-        if target["kind"] != "edge_version":
-            raise UnsupportedTemplateError(
-                "node-level RETRACT is not implemented; "
-                "visible_empty only retracts fact/edge versions"
+        if target["kind"] == "node_version":
+            _, _, _, _, negative_refs = _validate_node_retraction(
+                graph,
+                program,
+                operations,
+                target_version_id=target["version_id"],
+                evidence_by_id=evidence_by_id,
+                reliability_threshold=reliability_threshold,
             )
+            forbidden = {
+                "CREATE_NODE", "ADD_EDGE", "MOVE_EVIDENCE",
+                "SET_CANONICAL_ALIAS", "SET_LIFECYCLE",
+            }
+            if any(op_type in forbidden for op_type in op_types):
+                raise ContractError(
+                    "node RETRACT may only retire its entity and incident edges"
+                )
+            if (
+                len(program["evidence_refs"])
+                != len(set(program["evidence_refs"]))
+                or set(program["evidence_refs"]) != set(negative_refs)
+            ):
+                raise ContractError(
+                    "node RETRACT may declare only its negative evidence"
+                )
+            return
+        if target["kind"] != "edge_version":
+            raise ContractError("RETRACT target kind is not supported")
         edge = _edge_version(graph, target["version_id"])
         if edge.get("valid_to") is not None:
             raise PreconditionError(
@@ -1470,10 +1704,137 @@ def _validate_template_preconditions(
                 "only COMPOSITE:REPLACE=[RETRACT,BIRTH] is supported"
             )
         target = program.get("retraction_target")
-        if not target or target["kind"] != "edge_version":
+        if not target:
             raise ContractError(
-                "REPLACE must retract an explicit edge/fact version"
+                "REPLACE must retract an explicit node or edge version"
             )
+        if target["kind"] == "node_version":
+            source, _, _, _, negative_refs = _validate_node_retraction(
+                graph,
+                program,
+                operations,
+                target_version_id=target["version_id"],
+                evidence_by_id=evidence_by_id,
+                reliability_threshold=reliability_threshold,
+            )
+            creates = [
+                operation for operation in operations
+                if operation["op_type"] == "CREATE_NODE"
+            ]
+            if len(creates) != 1:
+                raise ContractError(
+                    "node REPLACE must BIRTH exactly one new entity"
+                )
+            created = creates[0]["arguments"]["node"]
+            if (
+                created.get("node_type") != "entity"
+                or created.get("lifecycle") != "candidate"
+                or created.get("valid_to") is not None
+                or created.get("node_id") == source["node_id"]
+                or any(
+                    node["node_id"] == created.get("node_id")
+                    for node in graph["nodes"]
+                )
+                or set(created.get("evidence_refs", []))
+                & set(source.get("evidence_refs", []))
+                or program["transaction_id"] not in created.get("provenance", [])
+            ):
+                raise ContractError(
+                    "node REPLACE BIRTH must create a distinct candidate entity "
+                    "without inheriting old identity or evidence"
+                )
+            _validate_current_support_evidence_refs(
+                created.get("evidence_refs", []),
+                claim_refs={created["node_id"], created["node_version_id"]},
+                evidence_by_id=evidence_by_id,
+            )
+            if not set(created["evidence_refs"]) <= set(program["evidence_refs"]):
+                raise ContractError(
+                    "node REPLACE program must declare all new-node evidence"
+                )
+            create_index = next(
+                index for index, operation in enumerate(operations)
+                if operation is creates[0]
+            )
+            close_indices = [
+                index for index, operation in enumerate(operations)
+                if operation["op_type"]
+                in {"CLOSE_NODE_VERSION", "CLOSE_EDGE_VERSION"}
+            ]
+            if close_indices and max(close_indices) >= create_index:
+                raise ContractError(
+                    "node REPLACE must finish RETRACT before BIRTH"
+                )
+
+            adds = [
+                (index, operation) for index, operation in enumerate(operations)
+                if operation["op_type"] == "ADD_EDGE"
+            ]
+            signatures: set[tuple[str, str, str, str]] = set()
+            for operation_index, operation in adds:
+                if operation_index <= create_index:
+                    raise ContractError(
+                        "node REPLACE relation BIRTH must follow entity BIRTH"
+                    )
+                edge = operation["arguments"]["edge"]
+                signature = (
+                    edge["source"], edge["target"], edge["relation"], edge["frame"],
+                )
+                if signature in signatures:
+                    raise ContractError(
+                        "node REPLACE cannot create duplicate semantic relations"
+                    )
+                signatures.add(signature)
+                if (
+                    edge["source"] != created["node_id"]
+                    or edge["relation"] not in {"located_at", "supported_by"}
+                    or not edge.get("evidence_refs")
+                    or set(edge["evidence_refs"])
+                    & set(source.get("evidence_refs", []))
+                    or program["transaction_id"] not in edge.get("provenance", [])
+                ):
+                    raise ContractError(
+                        "node REPLACE relations must be current public facts of "
+                        "the new entity and must not inherit old evidence"
+                    )
+                _validate_current_support_evidence_refs(
+                    edge["evidence_refs"],
+                    claim_refs={edge["edge_id"], edge["edge_version_id"]},
+                    evidence_by_id=evidence_by_id,
+                )
+                if not set(edge["evidence_refs"]) <= set(program["evidence_refs"]):
+                    raise ContractError(
+                        "node REPLACE program must declare all new-relation evidence"
+                    )
+            forbidden = {"MOVE_EVIDENCE", "SET_CANONICAL_ALIAS", "SET_LIFECYCLE"}
+            if any(op_type in forbidden for op_type in op_types):
+                raise ContractError(
+                    "node REPLACE cannot move old evidence, alias identities, or "
+                    "rewrite lifecycle in place"
+                )
+            replacement_evidence = [
+                *created["evidence_refs"],
+                *[
+                    evidence_ref
+                    for _, operation in adds
+                    for evidence_ref in operation["arguments"]["edge"][
+                        "evidence_refs"
+                    ]
+                ],
+            ]
+            if (
+                len(program["evidence_refs"])
+                != len(set(program["evidence_refs"]))
+                or set(program["evidence_refs"])
+                != set(negative_refs) | set(replacement_evidence)
+            ):
+                raise ContractError(
+                    "node REPLACE must declare exactly its negative, new-node, "
+                    "and new-relation evidence"
+                )
+            return
+        if target["kind"] != "edge_version":
+            raise ContractError("REPLACE target kind is not supported")
         old_edge = _edge_version(graph, target["version_id"])
         if old_edge.get("valid_to") is not None:
             raise PreconditionError(

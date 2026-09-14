@@ -25,7 +25,10 @@ from vsmt.baselines import (  # noqa: E402
 )
 from vsmt.contracts import run_adapter  # noqa: E402
 from vsmt.graph_ops import STATE_KEY  # noqa: E402
-from vsmt.place_scaffold import prepare_place_scaffold  # noqa: E402
+from vsmt.shared_memory import (  # noqa: E402
+    SharedMemoryConfig,
+    prepare_shared_memory,
+)
 
 
 def observed_node(
@@ -233,9 +236,12 @@ class VSMTBaselineTests(unittest.TestCase):
             ELUAdapter(elu_config()),
             WFRAdapter(wfr_config()),
         ]
-        prepared, scaffold_memory = prepare_place_scaffold(
-            packet(graph, regions=regions, relations=relations), graph,
+        prepared, scaffold_memory, shared_audit = prepare_shared_memory(
+            packet(graph, regions=regions, relations=relations),
+            graph,
+            config=SharedMemoryConfig(dormancy_inactivity_horizon_s=100.0),
         )
+        self.assertEqual(shared_audit["dormant_node_ids"], [])
         for adapter in adapters:
             with self.subTest(method=adapter.method_id):
                 result = run_adapter(
@@ -369,7 +375,7 @@ class VSMTBaselineTests(unittest.TestCase):
         self.assertEqual(result["normalized_delta"]["declared_template"], "NOOP")
         self.assertEqual(result["post_memory_sha256"], graph["graph_hash"])
 
-    def test_elu_reactivates_archived_identity(self) -> None:
+    def test_elu_does_not_reactivate_terminal_retracted_identity(self) -> None:
         graph = memory(observed_node(
             "node-a", centroid=[0.0, 0.0, 0.0], descriptor=[1.0, 0.0],
             lifecycle="retracted", valid_to=0,
@@ -381,9 +387,32 @@ class VSMTBaselineTests(unittest.TestCase):
                                                   descriptor=[1.0, 0.0])]),
             graph,
         )
+        self.assertEqual(result["normalized_delta"]["declared_template"], "BIRTH")
+        self.assertFalse(any(
+            node["node_id"] == "node-a" and node["valid_to"] is None
+            for node in result["post_memory"]["nodes"]
+        ))
+
+    def test_elu_reactivates_only_open_dormant_identity(self) -> None:
+        graph = memory(observed_node(
+            "node-a", centroid=[0.0, 0.0, 0.0], descriptor=[1.0, 0.0],
+            lifecycle="dormant", state_updates={"existence_log_odds": -1.0},
+        ))
+        result = run_adapter(
+            ELUAdapter(elu_config()),
+            packet(graph, regions=[region(
+                centroid=[0.0, 0.0, 0.0], descriptor=[1.0, 0.0],
+            )]),
+            graph,
+        )
         self.assertEqual(
             result["normalized_delta"]["declared_template"], "REACTIVATE",
         )
+        current = next(
+            node for node in result["post_memory"]["nodes"]
+            if node["node_id"] == "node-a" and node["valid_to"] is None
+        )
+        self.assertEqual(current["lifecycle"], "confirmed")
 
     def test_wfr_births_candidate_fragment(self) -> None:
         graph = memory()

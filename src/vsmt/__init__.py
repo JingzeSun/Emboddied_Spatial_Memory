@@ -14,6 +14,7 @@ from .baselines import (
 from .contracts import (
     AdapterInput,
     MemoryUpdateAdapter,
+    audit_memory_update_result,
     build_adapter_input,
     canonical_sha256,
     load_private_evaluation,
@@ -95,10 +96,12 @@ from .l1_structures import (
     materialize_public_surfaces,
 )
 from .place_scaffold import prepare_place_scaffold
+from .shared_memory import SharedMemoryConfig, prepare_shared_memory
 
 __all__ = [
     "AdapterInput",
     "MemoryUpdateAdapter",
+    "audit_memory_update_result",
     "build_adapter_input",
     "canonical_sha256",
     "load_private_evaluation",
@@ -175,4 +178,6 @@ __all__ = [
     "materialize_public_relations",
     "materialize_public_surfaces",
     "prepare_place_scaffold",
+    "SharedMemoryConfig",
+    "prepare_shared_memory",
 ]

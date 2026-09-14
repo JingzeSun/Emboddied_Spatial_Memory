@@ -57,7 +57,8 @@ class PublicCandidateConfig:
     free_space_target_expansion_m: float
     minimum_free_space_time_separation_s: float
     maximum_candidates_per_bucket: int
-    maximum_split_incident_edges: int
+    maximum_split_ambiguous_edges: int
+    maximum_split_total_incident_edges: int
 
     def __post_init__(self) -> None:
         if set(self.association_rules) != LEARNED_STRUCTURE_KINDS:
@@ -115,13 +116,15 @@ class PublicCandidateConfig:
             or self.maximum_candidates_per_bucket <= 0
         ):
             raise ValueError("maximum_candidates_per_bucket must be positive")
-        if (
-            type(self.maximum_split_incident_edges) is not int
-            or self.maximum_split_incident_edges < 0
+        for name, value in (
+            ("maximum_split_ambiguous_edges", self.maximum_split_ambiguous_edges),
+            (
+                "maximum_split_total_incident_edges",
+                self.maximum_split_total_incident_edges,
+            ),
         ):
-            raise ValueError(
-                "maximum_split_incident_edges must be a non-negative integer"
-            )
+            if type(value) is not int or value < 0:
+                raise ValueError(f"{name} must be a non-negative integer")
 
     def rule(self, structure_kind: str) -> Mapping[str, float]:
         return self.association_rules[structure_kind]
@@ -237,20 +240,23 @@ def _covering_free_spaces(
 
 
 def _negative_evidence(
-    edge: Mapping[str, Any], free_spaces: list[Mapping[str, Any]], *, tick: int,
+    target: Mapping[str, Any], free_spaces: list[Mapping[str, Any]], *, tick: int,
 ) -> dict[str, dict[str, Any]]:
     selected = free_spaces[-2:]
+    target_version_id = str(
+        target.get("node_version_id", target.get("edge_version_id"))
+    )
     result: dict[str, dict[str, Any]] = {}
     for index, item in enumerate(selected):
         evidence_id = opaque_id(
-            edge["edge_version_id"], item["support_sha256"], item["time_s"],
+            target_version_id, item["support_sha256"], item["time_s"],
             prefix="evidence",
         )
         result[evidence_id] = _support_event(
             evidence_id,
             time_index=max(0, tick - 1 + index),
             viewpoint_id=str(item["free_space_id"]),
-            claim_ref=str(edge["edge_version_id"]),
+            claim_ref=target_version_id,
             reliability=float(item["reliability"]),
             visible_empty=True,
         )
@@ -503,6 +509,120 @@ def _retract_program(
             },
         },
     ]
+    return program, evidence
+
+
+def _retired_entity_version(
+    node: Mapping[str, Any], *, transaction_id: str, tick: int,
+    negative_evidence_refs: list[str], purpose: str,
+) -> dict[str, Any]:
+    terminal = clone_json(dict(node))
+    terminal.update({
+        "node_version_id": opaque_id(
+            node["node_version_id"], transaction_id, purpose,
+            prefix="node-version",
+        ),
+        "lifecycle": "retracted",
+        "valid_from": tick,
+        "valid_to": tick,
+        "evidence_refs": list(dict.fromkeys(
+            list(node["evidence_refs"]) + negative_evidence_refs
+        )),
+        "predecessor_ids": [node["node_version_id"]],
+        "provenance": list(dict.fromkeys(
+            list(node["provenance"]) + [transaction_id]
+        )),
+    })
+    return terminal
+
+
+def _node_retraction_operations(
+    node: Mapping[str, Any], incident_edges: list[Mapping[str, Any]], *,
+    transaction_id: str, negative_evidence_refs: list[str], tick: int,
+    purpose: str,
+) -> list[dict[str, Any]]:
+    operations: list[dict[str, Any]] = []
+    for index, edge in enumerate(incident_edges):
+        operations.extend([
+            {
+                "op_id": f"{purpose}:edge-close:{index}",
+                "op_type": "CLOSE_EDGE_VERSION",
+                "arguments": {"edge_id": edge["edge_id"], "at": tick},
+            },
+            {
+                "op_id": f"{purpose}:edge-provenance:{index}",
+                "op_type": "RECORD_PROVENANCE",
+                "arguments": {
+                    "target_kind": "edge",
+                    "edge_version_id": edge["edge_version_id"],
+                    "provenance_ref": transaction_id,
+                },
+            },
+        ])
+    operations.append({
+        "op_id": f"{purpose}:node-close",
+        "op_type": "CLOSE_NODE_VERSION",
+        "arguments": {"node_id": node["node_id"], "at": tick},
+    })
+    operations.extend(
+        {
+            "op_id": f"{purpose}:node-evidence:{index}",
+            "op_type": "ATTACH_EVIDENCE",
+            "arguments": {
+                "target_kind": "node",
+                "node_version_id": node["node_version_id"],
+                "evidence_ref": evidence_ref,
+            },
+        }
+        for index, evidence_ref in enumerate(negative_evidence_refs)
+    )
+    operations.extend([
+        {
+            "op_id": f"{purpose}:node-provenance",
+            "op_type": "RECORD_PROVENANCE",
+            "arguments": {
+                "target_kind": "node",
+                "node_version_id": node["node_version_id"],
+                "provenance_ref": transaction_id,
+            },
+        },
+        {
+            "op_id": f"{purpose}:terminal",
+            "op_type": "OPEN_NODE_VERSION",
+            "arguments": {"node": _retired_entity_version(
+                node,
+                transaction_id=transaction_id,
+                tick=tick,
+                negative_evidence_refs=negative_evidence_refs,
+                purpose=purpose,
+            )},
+        },
+    ])
+    return operations
+
+
+def _node_retract_program(
+    graph: Mapping[str, Any], public_hash: str, node: Mapping[str, Any],
+    incident_edges: list[Mapping[str, Any]],
+    free_spaces: list[Mapping[str, Any]], tick: int,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    program = _header(
+        graph, public_hash, "RETRACT", "REVISE", "node", node["node_id"],
+    )
+    evidence = _negative_evidence(node, free_spaces, tick=tick)
+    negative_refs = list(evidence)
+    program["evidence_refs"] = negative_refs
+    program["retraction_target"] = {
+        "kind": "node_version", "version_id": node["node_version_id"],
+    }
+    program["operations"] = _node_retraction_operations(
+        node,
+        incident_edges,
+        transaction_id=program["transaction_id"],
+        negative_evidence_refs=negative_refs,
+        tick=tick,
+        purpose="node-retract",
+    )
     return program, evidence
 
 
@@ -871,6 +991,106 @@ def _replace_program(
     return program, evidence
 
 
+def _node_replace_program(
+    graph: Mapping[str, Any], public_hash: str, node: Mapping[str, Any],
+    region: Mapping[str, Any], incident_edges: list[Mapping[str, Any]],
+    free_spaces: list[Mapping[str, Any]], tick: int, *,
+    current_relations: list[tuple[Mapping[str, Any], str]],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Build entity REPLACE without inheriting the retired identity or facts."""
+
+    relation_signature = [
+        [relation["relation_id"], target_node_id]
+        for relation, target_node_id in current_relations
+    ]
+    program = _header(
+        graph, public_hash, "COMPOSITE", "REVISE", "node", node["node_id"],
+        region["region_id"], relation_signature,
+    )
+    program["composition_label"] = "REPLACE"
+    program["component_templates"] = ["RETRACT", "BIRTH"]
+    program["retraction_target"] = {
+        "kind": "node_version", "version_id": node["node_version_id"],
+    }
+    evidence = _negative_evidence(node, free_spaces, tick=tick)
+    negative_refs = list(evidence)
+    birth_evidence = _region_evidence_ref(region, "node-replace-birth")
+    node_id = opaque_id(
+        public_hash, node["node_version_id"], region["region_id"], prefix="node",
+    )
+    evidence[birth_evidence] = _support_event(
+        birth_evidence,
+        time_index=tick,
+        viewpoint_id=str(region["region_id"]),
+        claim_ref=node_id,
+        reliability=float(region["reliability"]),
+        visible_empty=False,
+    )
+    created = _node_from_region(
+        region,
+        node_id=node_id,
+        version_id=opaque_id(node_id, tick, "node-replace", prefix="node-version"),
+        transaction_id=program["transaction_id"],
+        tick=tick,
+        evidence_refs=[birth_evidence],
+    )
+    operations = _node_retraction_operations(
+        node,
+        incident_edges,
+        transaction_id=program["transaction_id"],
+        negative_evidence_refs=negative_refs,
+        tick=tick,
+        purpose="node-replace",
+    )
+    operations.append({
+        "op_id": "node-replace:create",
+        "op_type": "CREATE_NODE",
+        "arguments": {"node": created},
+    })
+    relation_evidence_refs: list[str] = []
+    for index, (relation, target_node_id) in enumerate(current_relations):
+        edge_id = opaque_id(
+            node_id, relation["relation_id"], target_node_id, prefix="edge",
+        )
+        edge_version_id = opaque_id(
+            edge_id, tick, "node-replace", prefix="edge-version",
+        )
+        evidence_id = opaque_id(
+            relation["support_sha256"], edge_version_id,
+            "node-replace-relation", prefix="evidence",
+        )
+        evidence[evidence_id] = _support_event(
+            evidence_id,
+            time_index=tick,
+            viewpoint_id=str(relation["relation_id"]),
+            claim_ref=edge_version_id,
+            reliability=float(relation["reliability"]),
+            visible_empty=False,
+        )
+        relation_evidence_refs.append(evidence_id)
+        operations.append({
+            "op_id": f"node-replace:add-relation:{index}",
+            "op_type": "ADD_EDGE",
+            "arguments": {"edge": {
+                "edge_id": edge_id,
+                "edge_version_id": edge_version_id,
+                "source": node_id,
+                "target": target_node_id,
+                "relation": relation["relation"],
+                "frame": "map",
+                "valid_from": tick,
+                "valid_to": None,
+                "evidence_refs": [evidence_id],
+                "provenance": [program["transaction_id"]],
+            }},
+        })
+    program["evidence_refs"] = [
+        *negative_refs, birth_evidence, *relation_evidence_refs,
+    ]
+    program["operations"] = operations
+    return program, evidence
+
+
 class _CandidateBucket:
     def __init__(self, capacity: int) -> None:
         self.capacity = capacity
@@ -883,6 +1103,8 @@ class _CandidateBucket:
         self.pre_cap_candidate_count = 0
         self.pre_cap_group_count = 0
         self.oversized_group_count = 0
+        self.ambiguity_guard_rejected_group_count = 0
+        self.total_incident_guard_rejected_node_count = 0
 
     def append_group(
         self, score: float,
@@ -917,6 +1139,18 @@ class _CandidateBucket:
         self.pre_cap_group_count += 1
         self.pre_cap_candidate_count += candidate_count
         self.oversized_group_count += 1
+
+    def reject_ambiguity_guarded_group(self, candidate_count: int) -> None:
+        if type(candidate_count) is not int or candidate_count < 1:
+            raise ValueError("guarded candidate group count must be positive")
+        self.pre_cap_group_count += 1
+        self.pre_cap_candidate_count += candidate_count
+        self.ambiguity_guard_rejected_group_count += 1
+        if candidate_count > self.capacity:
+            self.oversized_group_count += 1
+
+    def reject_total_incident_guarded_node(self) -> None:
+        self.total_incident_guard_rejected_node_count += 1
 
     def selected(
         self,
@@ -1040,6 +1274,49 @@ def _public_split_assignment_options(
     return ((0,), (1,), (0, 1))
 
 
+def _current_relation_variants_for_new_entity(
+    *,
+    entity_region_id: str,
+    relation_observations: list[Mapping[str, Any]],
+    matches_by_region: Mapping[str, list[tuple[float, Mapping[str, Any]]]],
+) -> list[list[tuple[Mapping[str, Any], str]]]:
+    """Enumerate only current public relation endpoints for a replacement BIRTH."""
+
+    groups: list[list[tuple[Mapping[str, Any], str]]] = []
+    seen: set[tuple[str, str, str, str]] = set()
+    for original in relation_observations:
+        relation = clone_json(dict(original))
+        source_region_id, target_region_id, relation_type = (
+            _normalized_relation_endpoints(relation)
+        )
+        relation["relation"] = relation_type
+        if source_region_id != entity_region_id:
+            continue
+        if relation_type not in {"located_at", "supported_by"}:
+            continue
+        signature = (
+            source_region_id,
+            target_region_id,
+            relation_type,
+            str(relation["support_sha256"]),
+        )
+        if signature in seen:
+            continue
+        seen.add(signature)
+        choices = [
+            (relation, str(node["node_id"]))
+            for _, node in sorted(
+                matches_by_region.get(target_region_id, []),
+                key=lambda item: (-item[0], str(item[1]["node_id"])),
+            )
+        ]
+        if choices:
+            groups.append(choices)
+    if not groups:
+        return [[]]
+    return [list(variant) for variant in product(*groups)]
+
+
 def generate_public_candidate_catalog(
     packet: Mapping[str, Any], prior_memory: Mapping[str, Any], *,
     config: PublicCandidateConfig,
@@ -1064,6 +1341,10 @@ def generate_public_candidate_catalog(
         if node["lifecycle"] == "dormant" and node.get("node_type") != "place"
     ]
     edges = [edge for edge in prior_memory["edges"] if edge.get("valid_to") is None]
+    incident_by_node: dict[str, list[Mapping[str, Any]]] = {}
+    for edge in edges:
+        for endpoint in {edge["source"], edge["target"]}:
+            incident_by_node.setdefault(endpoint, []).append(edge)
     by_id = {node["node_id"]: node for node in nodes}
     rows: dict[tuple[str, str], _CandidateBucket] = {}
     capacity = config.maximum_candidates_per_bucket
@@ -1233,6 +1514,75 @@ def generate_public_candidate_catalog(
                         },
                     )
 
+    for node in nodes:
+        if (
+            node.get("node_type") != "entity"
+            or node.get("lifecycle") not in {"candidate", "confirmed", "dormant"}
+        ):
+            continue
+        covering = _covering_free_spaces(
+            node,
+            public["free_space_observations"],
+            minimum_reliability=config.free_space_reliability_threshold,
+            target_expansion_m=config.free_space_target_expansion_m,
+            minimum_time_separation_s=config.minimum_free_space_time_separation_s,
+        )
+        if len(covering) < 2:
+            continue
+        reliability = min(float(item["reliability"]) for item in covering[-2:])
+        incident_edges = sorted(
+            incident_by_node.get(str(node["node_id"]), []),
+            key=lambda edge: str(edge["edge_version_id"]),
+        )
+        _append(
+            rows,
+            "RETRACT",
+            "entity",
+            reliability,
+            _node_retract_program(
+                prior_memory,
+                deployable_hash,
+                node,
+                incident_edges,
+                covering,
+                tick,
+            ),
+            capacity=capacity,
+            priority_components={
+                "free_space_minimum_reliability": reliability,
+            },
+        )
+        for region in regions:
+            if region["structure_kind"] != "entity":
+                continue
+            for current_relations in _current_relation_variants_for_new_entity(
+                entity_region_id=str(region["region_id"]),
+                relation_observations=public["relation_observations"],
+                matches_by_region=matches_by_region,
+            ):
+                _append(
+                    rows,
+                    "REPLACE",
+                    "entity",
+                    reliability * float(region["reliability"]),
+                    _node_replace_program(
+                        prior_memory,
+                        deployable_hash,
+                        node,
+                        region,
+                        incident_edges,
+                        covering,
+                        tick,
+                        current_relations=current_relations,
+                    ),
+                    capacity=capacity,
+                    priority_components={
+                        "free_space_minimum_reliability": reliability,
+                        "region_reliability": float(region["reliability"]),
+                        "current_relation_count": len(current_relations),
+                    },
+                )
+
     for edge in edges:
         source = by_id.get(edge["source"])
         if source is None:
@@ -1303,10 +1653,6 @@ def generate_public_candidate_catalog(
                     },
                 )
 
-    incident_by_node: dict[str, list[Mapping[str, Any]]] = {}
-    for edge in edges:
-        for endpoint in {edge["source"], edge["target"]}:
-            incident_by_node.setdefault(endpoint, []).append(edge)
     for node in regular:
         if node["lifecycle"] not in {"candidate", "confirmed"}:
             continue
@@ -1314,13 +1660,17 @@ def generate_public_candidate_catalog(
             incident_by_node.get(node["node_id"], []),
             key=lambda edge: str(edge["edge_version_id"]),
         )
-        if (
-            len(incident_edges) > config.maximum_split_incident_edges
-            or any(
+        split_bucket = rows.setdefault(
+            ("SPLIT", str(node["node_type"])),
+            _CandidateBucket(capacity),
+        )
+        if len(incident_edges) > config.maximum_split_total_incident_edges:
+            split_bucket.reject_total_incident_guarded_node()
+            continue
+        if any(
                 edge["source"] == node["node_id"]
                 and edge["target"] == node["node_id"]
                 for edge in incident_edges
-            )
         ):
             continue
         compatible = []
@@ -1354,10 +1704,12 @@ def generate_public_candidate_catalog(
                 assignment_count = math.prod(
                     len(options) for options in assignment_options
                 )
-                split_bucket = rows.setdefault(
-                    ("SPLIT", str(node["node_type"])),
-                    _CandidateBucket(capacity),
+                ambiguous_edge_count = sum(
+                    len(options) > 1 for options in assignment_options
                 )
+                if ambiguous_edge_count > config.maximum_split_ambiguous_edges:
+                    split_bucket.reject_ambiguity_guarded_group(assignment_count)
+                    continue
                 if assignment_count > capacity:
                     split_bucket.reject_oversized_group(assignment_count)
                     continue
@@ -1425,6 +1777,12 @@ def generate_public_candidate_catalog(
             ),
             "retained_group_count": len(bucket.groups),
             "oversized_group_count": bucket.oversized_group_count,
+            "ambiguity_guard_rejected_group_count": (
+                bucket.ambiguity_guard_rejected_group_count
+            ),
+            "total_incident_guard_rejected_node_count": (
+                bucket.total_incident_guard_rejected_node_count
+            ),
             "minimum_retained_priority": (
                 min(group[0] for group in bucket.groups)
                 if bucket.groups else None

@@ -1,8 +1,10 @@
 """Public-only causal prior construction for VSMT controlled comparisons.
 
 The builder consumes validated observation packets in time order and performs
-only deterministic BIRTH/BIND updates.  Private evaluation, future data and
-teacher values are absent from every function signature by design.
+    only deterministic BIRTH/BIND updates. A candidate is explicitly confirmed
+    after a BIND supplies its second distinct public evidence reference. Private
+    evaluation, future data and teacher values are absent from every function
+    signature by design.
 """
 
 from __future__ import annotations
@@ -166,10 +168,16 @@ def advance_public_bootstrap(
         ]
         if ranked is not None and ranked[0] >= threshold:
             score, matched = ranked
+            current_evidence = f"observation:{region['mask_sha256']}"
+            promote = (
+                matched["lifecycle"] == "candidate"
+                and len(set(matched["evidence_refs"]) | {current_evidence}) >= 2
+            )
             updated = revision.update_node(
                 matched,
                 region,
                 float(model_input["decision_time_s"]),
+                lifecycle="confirmed" if promote else None,
                 fused=True,
                 template="BIND",
             )
@@ -180,6 +188,7 @@ def advance_public_bootstrap(
                 "region_id": region["region_id"],
                 "node_id": updated["node_id"],
                 "association_score": float(score),
+                "promoted_to_confirmed": promote,
             })
         else:
             created = revision.create_node(
@@ -194,6 +203,7 @@ def advance_public_bootstrap(
                 "region_id": region["region_id"],
                 "node_id": created["node_id"],
                 "association_score": None,
+                "promoted_to_confirmed": False,
             })
 
     relation_counts = revision.apply_relation_observations(

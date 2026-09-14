@@ -667,6 +667,8 @@ class GraphRevision:
         self, node: Mapping[str, Any], region: Mapping[str, Any],
         decision_time_s: float, *, state_updates: Mapping[str, Any],
     ) -> dict[str, Any]:
+        if node.get("lifecycle") != "dormant" or node.get("valid_to") is not None:
+            raise ValueError("REACTIVATE requires one open dormant node version")
         state = self._state_from_region(
             region, decision_time_s, previous=observation_state(node), fused=True,
         )

@@ -23,7 +23,6 @@ from typing import Any, Mapping
 from .contracts import AdapterInput
 from .graph_ops import (
     GraphRevision,
-    archived_nodes,
     association_score,
     centroid_distance,
     covering_free_space_times,
@@ -436,10 +435,6 @@ class ELUAdapter:
             node for node in open_nodes(revision.graph)
             if node.get("node_type") != "place"
         ]
-        archived = [
-            node for node in archived_nodes(revision.graph)
-            if node.get("node_type") != "place"
-        ]
         used: set[str] = set()
         region_node_ids = place_region_node_ids(
             model_input["region_observations"], revision.graph,
@@ -476,33 +471,13 @@ class ELUAdapter:
                     reactivated += 1
                 continue
 
-            archived_ranked = _ranked_matches(
-                region, [node for node in archived if node["node_id"] not in used],
-                rule=rule,
+            created = revision.create_node(
+                region, float(model_input["decision_time_s"]),
+                lifecycle="confirmed",
+                state_updates={"existence_log_odds": self.config.birth_log_odds},
             )
-            if archived_ranked and archived_ranked[0][0] >= rule["association_threshold"]:
-                node = archived_ranked[0][1]
-                state = observation_state(node) or {}
-                log_odds = float(state.get("existence_log_odds", self.config.birth_log_odds))
-                log_odds += (
-                    self.config.positive_log_odds_increment
-                    * float(region["reliability"])
-                )
-                updated = revision.reactivate_node(
-                    node, region, float(model_input["decision_time_s"]),
-                    state_updates={"existence_log_odds": log_odds},
-                )
-                region_node_ids[str(region["region_id"])] = str(updated["node_id"])
-                used.add(str(node["node_id"]))
-                reactivated += 1
-            else:
-                created = revision.create_node(
-                    region, float(model_input["decision_time_s"]),
-                    lifecycle="confirmed",
-                    state_updates={"existence_log_odds": self.config.birth_log_odds},
-                )
-                region_node_ids[str(region["region_id"])] = str(created["node_id"])
-                born += 1
+            region_node_ids[str(region["region_id"])] = str(created["node_id"])
+            born += 1
 
         relation_counts = revision.apply_relation_observations(
             model_input["relation_observations"], region_node_ids,
