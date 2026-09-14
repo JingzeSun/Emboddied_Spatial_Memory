@@ -22,7 +22,7 @@
 
 ### 当前指针
 
-**D-154正在修复真实source house与AI2-THOR 5.0.0的schema兼容。** `a7f35e0`与`a0e8410`两个服务器失败stage均保留；进一步只读诊断证明旧house `0.0.1`从未创建成功，D-153的视点错误是空场景次生故障。当前按固定ProcTHOR提交的官方升级语义在内存中转为`1.0.0`，强制检查Controller初始成功/对象非空后再执行D-153匿名视点搜索；新HEAD、新stage只有产生非零完整raw episode才继续materialize/seal/private/verify/export。固定house/slot不变，训练、validation效果、confirmation和L2仍关闭。
+**D-155正在完成真实source house的最后一个生成兼容点。** D-154内存升级已让两间房成功创建223/136个对象；AI2-THOR仍须先把agent放到house登记pose，才能成功返回可达点（首房实测1299个）。当前加入该确定性bootstrap，再执行D-153匿名视点搜索；新HEAD、新stage只有产生非零完整raw episode才继续materialize/seal/private/verify/export。前两个失败stage、固定house/slot均不变，训练、validation效果、confirmation和L2仍关闭。
 
 **D-147已完成实现、服务器固定入口与回执绑定：公开边create/bind不再允许调用者抑制模板；无模板骨架邻接改走先验验证的专用入口，非受信任create/bind及受信任非邻接三类失败均保持revision逐字节不变，捕获异常后`finish`仍是真NOOP。**协议/实现/运维绑定提交依次为`0be2854`、`122cea6`、`74161b6`；服务器在受审`33aec1c`上通过executor 42、L1 31、VSMT 106共179项及61关系边/6候选/9桶/0截断/341可见截锥smoke，[工程报告](../results/vsmt_vm04_l1_capacity_scaffold.json)摘要为`b5918086…c68eff`并由`7641509`回传。D-144工程基线已绑定该代码与报告；2-house提案仍不可执行，来源inventory、审计实现/运行、生成、private、训练和confirmation均未授权。
 

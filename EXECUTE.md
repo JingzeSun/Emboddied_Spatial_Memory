@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| VSMT首篇/VM-01～04 | 两个固定house的generation/private audit已开放；`a7f35e0`和`a0e8410`两次零产出stage均保留。进一步诊断确认ProcTHOR 0.0.1 house从未被AI2-THOR 5.0.0成功创建，视点不足是空场景次生错误。D-154正加入官方语义的内存schema兼容及初始场景硬检查，再以新stage重跑。训练、validation效果、confirmation与L2仍关闭。LOG-133–150，D-125–154 |
+| VSMT首篇/VM-01～04 | 两个固定house的generation/private audit已开放；两次零产出stage均保留。D-154已让house成功创建223/136个对象；D-155补齐用house登记agent pose启动可达点查询（首房实测1299点），然后才运行匿名视点搜索与新stage。训练、validation效果、confirmation与L2仍关闭。LOG-133–151，D-125–155 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
 | R4三模型接入 | D完整适配16项通过（121/200全反向，0更新），W完整适配17项亦通过，F完整适配19项通过；真实公共接口27/27候选通过，0优化/真值读取。209bb34，LOG-123–127 |
 | R4前端v2r1 | 81bceed：19项通过，16历史/144名义预测/16选择完整，误标占据/自由0；物块平均误差9.59 cm、接触Brier 0.1152，全部涉及未知扫掠，正式M/P未就绪。LOG-121 |
@@ -1708,3 +1708,9 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 只读模拟器诊断随后读取Controller初始事件，发现它已因`ceilingMaterial`字符串不能转换为`MaterialProperties`而失败，objects=0、depth恒19.99；把三类material临时转为对象后，AI2-THOR继续明确要求house schema从`0.0.1`升级到`1.0.0`。这证明D-153并未接触有效house，不能把第二次失败解释为house没有对象或视点搜索无效。
 - 白话：第二次运行给视点搜索加了护栏，但真正上游是房屋版本不兼容。输入文件本身可解析，模拟器却没有建成房屋；输出只能是失败回执，不能送DINO或private评价。它不是固定house筛选失败，也不是方法candidate miss。
 - 原`a0e8410`stage继续保留。D-154按同一已登记ProcTHOR提交的官方升级语义实现内存转换，并新增Controller初始成功/对象非空硬检查；不下载新数据、不改原source、不换house/slot。
+
+## LOG-151：房屋创建成功后定位procedural agent bootstrap（2026-09-15）
+
+- D-154实现提交`8a0afcdab4752e7032e9faaa07c553a1769c1411`本地固定入口通过executor 42、L1 31、VSMT 135，共208/208；服务器只读模拟器探针确认`train:004270`和`train:008243`转换后分别创建223和136个对象，source未回写。
+- 同一探针发现Controller仍保留创建house前的agent坐标，直接`GetReachablePositions`越界；先按house `metadata.agent`执行成功的`TeleportFull`后，首房匿名mask支持为21个/48,757像素，可达点查询成功并返回1299项。因此场景和匿名视觉数据实际存在，剩余故障是查询bootstrap而非选房或对象缺失。
+- 白话：房屋已建成，但导航查询的起点还在屋外旧坐标。输入房屋自带agent pose，输出一个有效的寻路起点和可达点集合；这不是最终选定相机位姿，也没有按事务结果选择样本。D-155实现后才创建新正式stage。

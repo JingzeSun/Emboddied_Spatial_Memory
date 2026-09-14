@@ -1555,3 +1555,9 @@
 - 日期：2026-09-15；状态：generation source compatibility fix authorized，前两次失败stage均保留。`a0e8410`服务器contracts 207/207与capacity通过，但36/36在family级视点搜索前失败；只读诊断确认Controller初始事件已失败，首个明确错误为旧字符串`proceduralParameters.ceilingMaterial`无法反序列化为AI2-THOR 5.0.0的`MaterialProperties`，转换三类material后又明确要求把house schema从`0.0.1`升级为`1.0.0`。因此D-153看到的`GetReachablePositions`失败是无效空场景的次生错误，不把它解释成固定house本身没有可视对象。
 - worker必须在内存中按已登记官方ProcTHOR提交`53d5bd4…`的`upgrade_house_version.py`语义做确定性兼容：升级material字段，使用固定安装包的`asset-database.json`补门窗hole/asset position，标注exterior wall并把schema写为`1.0.0`；原始source record字节不改。Controller创建后必须先检查初始事件成功且对象列表非空，再允许D-153视点搜索；任何转换、asset缺失或场景创建失败仍使固定slot失败且不换house。
 - 白话：这个兼容层解决“旧数据能解析成JSON，但新模拟器不认识旧字段形状”的版本问题。输入是冻结的0.1.2房屋记录和同一固定ProcTHOR安装包的asset尺寸，输出只存在于worker内存里的1.0.0房屋字典。例如`floorMaterial: "Wood"`变成`floorMaterial: {"name":"Wood"}`，门窗旧包围盒按官方规则变成洞口和asset位置。它不是重新生成房屋、修改原始数据、下载新数据、按事务结果修场景，也不开放训练/validation/confirmation。
+
+## D-155：用房屋登记agent pose启动可达点查询
+
+- 日期：2026-09-15；状态：generation compatibility completion authorized。D-154实现后在服务器只读探针中，两间固定house已分别创建出223和136个对象，但AI2-THOR仍把agent留在procedural house创建前的旧坐标，直接`GetReachablePositions`继续因越界失败。把agent先`TeleportFull`到升级后house自带的`metadata.agent`，同一`train:004270`查询立即成功并返回1299个可达位置。
+- worker创建house并通过对象非空检查后，必须先按该house登记的agent position/rotation/horizon/standing做一次确定性bootstrap，再调用D-153可达点扫描。bootstrap pose只用于让模拟器从有效场景坐标开始查询，不能直接充当最终公开起点；最终起点仍由全部可达位置上的匿名mask几何规则唯一决定。
+- 白话：这是把“寻路从哪里开始算”放回房屋作者登记的合法起点。输入是房屋JSON已有的agent pose，输出是可用的可达点集合；例如原来从场景外算会越界，从房屋内登记点算得到1299个位置。它不按对象、事务或结果挑镜头，也不改最终视点评分、house、slot或任何训练授权。
