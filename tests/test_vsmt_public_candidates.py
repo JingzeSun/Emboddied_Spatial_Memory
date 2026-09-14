@@ -299,6 +299,7 @@ class PublicCandidateTests(unittest.TestCase):
         program = deepcopy(next(
             item["program"] for item in catalog["candidates"]
             if item["program"]["template"] == "SPLIT"
+            and item["program"]["split_relation_assignments"]
             and len(item["program"]["split_relation_assignments"][0][
                 "successor_node_ids"
             ]) == 2
