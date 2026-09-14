@@ -1561,3 +1561,11 @@
 - 日期：2026-09-15；状态：generation compatibility completion authorized。D-154实现后在服务器只读探针中，两间固定house已分别创建出223和136个对象，但AI2-THOR仍把agent留在procedural house创建前的旧坐标，直接`GetReachablePositions`继续因越界失败。把agent先`TeleportFull`到升级后house自带的`metadata.agent`，同一`train:004270`查询立即成功并返回1299个可达位置。
 - worker创建house并通过对象非空检查后，必须先按该house登记的agent position/rotation/horizon/standing做一次确定性bootstrap，再调用D-153可达点扫描。bootstrap pose只用于让模拟器从有效场景坐标开始查询，不能直接充当最终公开起点；最终起点仍由全部可达位置上的匿名mask几何规则唯一决定。
 - 白话：这是把“寻路从哪里开始算”放回房屋作者登记的合法起点。输入是房屋JSON已有的agent pose，输出是可用的可达点集合；例如原来从场景外算会越界，从房屋内登记点算得到1299个位置。它不按对象、事务或结果挑镜头，也不改最终视点评分、house、slot或任何训练授权。
+
+## D-156：服务器重计算强制多worker且不得按墙钟截断
+
+- 日期：2026-09-15；状态：execution requirement approved，允许修复并继续已授权D-152审计。D-155实现后两间固定house共得到16个完整、20个构造失败的固定episode；16个完整episode均成功materialize。原`public-seal`按episode与三个association profile串行运行，只占12核服务器的一个CPU核，并在完成6/48个重放单元后被D-144的1800秒墙钟检查终止。失败发生在private打开前；原stage、六个完整单元和`public_audit/resource-stop.json`必须保留，不能覆盖或伪装成成功。
+- 用户据此明确规定：以后服务器上的生成、调参、训练、验证、测试、检验和审计，只要存在独立工作单元就必须使用多个worker，并根据CPU、GPU显存、内存和I/O采用最大安全并发；不得默认串行或机械固定为少量worker。当前12核、62 GiB RAM、单重放进程约304 MiB RSS，恢复入口固定请求12个CPU worker，运行时仍须记录实际worker数、任务分片、逐worker退出和与完成顺序无关的规范合并。
+- 用户进一步明确“需要跑得久就跑久一点”，因此正式有效工作不再因预设墙钟到达而失败；原1800秒只作为本次失败事实保留，不再约束恢复后的public seal及后续正式服务器计算。内存、显存、磁盘剩余量和异常进程保护继续生效，因为它们防止机器崩溃或写满，并不以时长截断合法计算。训练公平性以后用冻结样本、配置数、训练步数和停止规则约束，不用墙钟强杀。
+- `public-seal`恢复采用新的原子任务目录：每个`constructed episode × association profile`由独立worker只读25帧公开输入，在独立attempt目录写prior、三档catalog和结果；全部文件及摘要完成后才原子提升为完成单元。失败或中断的attempt原样保留，后续同一固定入口只跳过摘要验证通过的完成单元，不覆盖旧文件。最终按原36个episode顺序和固定profile顺序规范合并，private仍须等`public.seal.json`及其成功回执存在后才可打开。
+- 恢复代码与原生成/materialize代码分开绑定：上游stage固定为`53d47367c7b30cff7d518d0d15fde1dca37ace0c`，并核验materialize receipt、public plan、原resource-stop和started摘要；恢复及后续private/verify/export回执同时登记上游stage代码与当前执行代码。它解决并行、续跑和完整provenance，不重新生成house、不替换失败slot、不改变候选/teacher/指标数值，也不开放train/validation或confirmation。

@@ -1,0 +1,63 @@
+{
+  "version": "vsmt-vm04-public-seal-parallel-recovery-v1",
+  "status": "authorized_for_implementation_and_execution",
+  "decision": "D-156",
+  "source_stage": {
+    "stage_id": "vsmt-vm04-two-house-audit-v1",
+    "reviewed_code": "53d47367c7b30cff7d518d0d15fde1dca37ace0c",
+    "materialize_receipt_sha256": "8a05b0ef7d7e3e341285e9677acfb7d362edd0f276fd12ab1cc1ccc96767a0f4",
+    "materialize_success_sha256": "135727e491d9be9b9232afbe8025e05d7107c050893730ad2d9b9640cb29eb37",
+    "public_episode_plan_sha256": "08f498753d2661d0a585b8225dec9927a23f2fd5f9dc557f5de0796f42c24f50",
+    "failed_public_resource_stop_sha256": "476e03cc10259efe56d30657aff0ff3419ab7b1dccbd1b8d69d907a441092bc0",
+    "started_sha256": "99bb86a098eff340778524c7a9971535ecd16014641263e1e705f2b782debe5c",
+    "materialized_complete_episode_count": 16,
+    "materialized_failed_episode_count": 20
+  },
+  "parallel_public_seal": {
+    "task_unit": "one_constructed_episode_by_one_association_profile",
+    "expected_heavy_task_count": 48,
+    "requested_workers": 12,
+    "worker_selection_basis": {
+      "available_CPU_cores": 12,
+      "available_RAM_GiB": 62,
+      "observed_single_worker_RSS_MiB": 304,
+      "GPU_required": false
+    },
+    "maximum_wall_clock_seconds": null,
+    "wall_clock_timeout_allowed": false,
+    "output_directory": "public_audit_parallel_v1",
+    "completed_task_promotion": "atomic_directory_replace_after_all_files_and_result_digest_are_complete",
+    "resume": "validate_and_skip_complete_task_directories_preserve_partial_attempt_directories",
+    "canonical_merge_order": [
+      "public_episode_plan_order",
+      "strict",
+      "balanced",
+      "permissive_capacity_upper_bound"
+    ],
+    "private_data_may_be_read": false
+  },
+  "safety_limits": {
+    "retain_original_maximum_process_tree_RSS_bytes": true,
+    "retain_original_maximum_stage_bytes": true,
+    "retain_original_maximum_GPU_allocated_bytes": true,
+    "wall_clock_limit_disabled": true
+  },
+  "preservation": {
+    "original_public_audit_directory_immutable": true,
+    "original_resource_stop_immutable": true,
+    "regenerate_house_or_materialized_episode": false,
+    "replace_failed_slot_or_house": false
+  },
+  "downstream_receipts_bind": [
+    "source_stage_reviewed_code",
+    "current_execution_reviewed_code",
+    "source_materialize_receipt_sha256",
+    "parallel_public_task_manifest_sha256",
+    "requested_and_actual_worker_counts",
+    "per_worker_exit_and_artifact_digests",
+    "canonical_public_seal_sha256"
+  ],
+  "training_authorized": false,
+  "validation_effect_authorized": false,
+  "confirmation_authorized": false
+}
