@@ -100,6 +100,13 @@ from .l1_structures import (
 )
 from .place_scaffold import prepare_place_scaffold
 from .shared_memory import SharedMemoryConfig, prepare_shared_memory
+from .vm05_protocol import (
+    DETERMINISTIC_ADAPTERS,
+    DETERMINISTIC_CONTROLS,
+    LEARNED_RANKERS,
+    assert_vm05_action_authorized,
+    validate_vm05_readiness,
+)
 
 __all__ = [
     "AdapterInput",
@@ -186,4 +193,9 @@ __all__ = [
     "prepare_place_scaffold",
     "SharedMemoryConfig",
     "prepare_shared_memory",
+    "DETERMINISTIC_ADAPTERS",
+    "DETERMINISTIC_CONTROLS",
+    "LEARNED_RANKERS",
+    "assert_vm05_action_authorized",
+    "validate_vm05_readiness",
 ]
