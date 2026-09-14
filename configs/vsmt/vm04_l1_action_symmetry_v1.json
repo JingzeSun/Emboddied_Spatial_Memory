@@ -73,7 +73,8 @@
     "record_cutoff_group_and_candidate_counts": true
   },
   "split_compute_guards": {
-    "maximum_ambiguous_edges": null,
+    "maximum_ambiguous_relation_variables": null,
+    "maximum_relation_variants": null,
     "maximum_total_incident_edges": null,
     "formal_values_require_development_capacity_audit": true,
     "confirmation_may_change_guard_values": false,
