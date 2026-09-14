@@ -245,6 +245,28 @@ class TwoHouseOpsTests(unittest.TestCase):
             "x": 2.5, "y": 4.25, "z": 0,
         })
 
+    def test_house_agent_bootstrap_uses_authored_pose(self) -> None:
+        class FakeController:
+            def __init__(self):
+                self.action = None
+
+            def step(self, **action):
+                self.action = action
+                return SimpleNamespace(metadata={"lastActionSuccess": True})
+
+        controller = FakeController()
+        event = WORKER.bootstrap_house_agent(controller, {"metadata": {"agent": {
+            "position": {"x": 1, "y": 0.95, "z": 2},
+            "rotation": {"x": 0, "y": 270, "z": 0},
+            "horizon": 30, "standing": True,
+        }}})
+        self.assertTrue(event.metadata["lastActionSuccess"])
+        self.assertEqual(controller.action, {
+            "action": "TeleportFull", "x": 1.0, "y": 0.95, "z": 2.0,
+            "rotation": {"x": 0.0, "y": 270.0, "z": 0.0},
+            "horizon": 30.0, "standing": True, "forceAction": True,
+        })
+
     def test_worker_intervention_schedule_is_predeclared(self) -> None:
         objects = {
             "a": {"position": {"x": 1.0, "y": 0.5, "z": 2.0},

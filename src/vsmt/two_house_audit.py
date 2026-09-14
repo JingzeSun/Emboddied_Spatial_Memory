@@ -158,8 +158,12 @@ def validate_two_house_config(config: Mapping[str, Any]) -> dict[str, Any]:
         "upgraded_house_must_be_deterministic",
         "controller_initial_event_success_required",
         "controller_initial_objects_must_be_nonempty",
+        "bootstrap_pose_is_not_the_selected_public_start_pose",
     ):
         _require(compatibility[name] is True, f"schema compatibility guard changed: {name}")
+    _require(compatibility["reachable_position_bootstrap_pose_source"] ==
+             "upgraded_house_metadata_agent",
+             "reachable-position bootstrap source changed")
 
     values = record["audit_only_lifecycle_and_capacity_values"]
     expected_values = {

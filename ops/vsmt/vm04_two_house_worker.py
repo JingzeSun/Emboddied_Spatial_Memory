@@ -361,6 +361,31 @@ def discover_initial_viewpoint(controller):
     return select_initial_viewpoint(candidates)
 
 
+def bootstrap_house_agent(controller, upgraded_house):
+    """Place the agent at the house-authored pose before querying reachability."""
+
+    agent = upgraded_house.get("metadata", {}).get("agent")
+    require(isinstance(agent, dict), "upgraded house lacks metadata.agent")
+    position = agent.get("position")
+    rotation = agent.get("rotation")
+    require(isinstance(position, dict) and isinstance(rotation, dict),
+            "house agent pose is incomplete")
+    require(all(axis in position for axis in ("x", "y", "z"))
+            and all(axis in rotation for axis in ("x", "y", "z")),
+            "house agent pose axes are incomplete")
+    event = controller.step(
+        action="TeleportFull",
+        x=float(position["x"]), y=float(position["y"]), z=float(position["z"]),
+        rotation={axis: float(rotation[axis]) for axis in ("x", "y", "z")},
+        horizon=float(agent["horizon"]), standing=bool(agent["standing"]),
+        forceAction=True,
+    )
+    require(event.metadata.get("lastActionSuccess") is True,
+            "house agent bootstrap TeleportFull failed: %s" %
+            event.metadata.get("errorMessage"))
+    return event
+
+
 def make_controller(house):
     from ai2thor.controller import Controller
     from ai2thor.platform import CloudRendering
@@ -378,6 +403,11 @@ def make_controller(house):
     if not initial.metadata.get("objects"):
         controller.stop()
         raise RuntimeError("initial ProcTHOR scene has no objects")
+    try:
+        bootstrap_house_agent(controller, upgraded_house)
+    except Exception:
+        controller.stop()
+        raise
     return controller
 
 
