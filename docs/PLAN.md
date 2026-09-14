@@ -22,7 +22,7 @@
 
 ### 当前指针
 
-**D-142/D-143修订安全口径已按“协议先于实现”登记，并由`8ea0e136701008be6b93a1e8c5a6dcca6d066bf2`实现后推送main；旧155项与旧130项回执均不能认证这些新字节。** 新实现包括：不可逆entity RETRACT使用逐次原始AABB形成的可靠单调包络＋待审计裕度并受当前可BIND区域阻断；VSMT节点BIND与四对照一样产生规范版本successor；packet v3只存节点无关、受遮挡限制的`visibility_observations`，共享函数使用各方法自己的闭环图判断错失机会；在线保护place scaffold，评价期统一读取不进入adapter输入的封存protected集合，版本改写按模板diff封闭白名单分类且仅未声明破坏fatal；候选桶严格整组截断并记cutoff/unused capacity，SPLIT统一terminal，SPLIT/REPLACE共用组合护栏，RELINK另记端点对计算量；编辑记账按高层原子和canonical关系事实归一；逐类型确认仅SPLIT/MERGE/entity RETRACT，relation RETRACT描述性且entity RETRACT不得在confirmation后降级。本地固定分组已分别通过42/42 executor、31/31 L1和91/91 VSMT；服务器SSH当前拒绝连接，正式新回执仍缺失。所有新数值仍为null，2-house审计、house生成、训练、validation效果和confirmation继续阻断。下一步是服务器开启后一次同步该提交并依次运行固定`contracts → smoke → export`，不得临时改科学入口或借旧回执认证。
+**D-142/D-143修订安全口径已按“协议先于实现”登记，并由`8ea0e136701008be6b93a1e8c5a6dcca6d066bf2`实现后推送main；旧155项与旧130项回执均不能认证这些新字节。** 新实现包括：不可逆entity RETRACT使用逐次原始AABB形成的可靠单调包络＋待审计裕度并受当前可BIND区域阻断；VSMT节点BIND与四对照一样产生规范版本successor；packet v3只存节点无关、受遮挡限制的`visibility_observations`，共享函数使用各方法自己的闭环图判断错失机会；在线保护place scaffold，评价期统一读取不进入adapter输入的封存protected集合，版本改写按模板diff封闭白名单分类且仅未声明破坏fatal；候选桶严格整组截断并记cutoff/unused capacity，SPLIT统一terminal，SPLIT/REPLACE共用组合护栏，RELINK另记端点对计算量；编辑记账按高层原子和canonical关系事实归一；逐类型确认仅SPLIT/MERGE/entity RETRACT，relation RETRACT描述性且entity RETRACT不得在confirmation后降级。本地固定分组已分别通过42/42 executor、31/31 L1和91/91 VSMT；服务器SSH当前拒绝连接，正式新回执仍缺失。所有新数值仍为null，2-house审计、house生成、训练、validation效果和confirmation继续阻断。下一步是服务器开启后一次同步包含该实现的最新main并依次运行固定`contracts → smoke → export`，不得临时改科学入口或借旧回执认证。
 
 ## 上一 D-062 路线（暂停，以下保留复现）
 
