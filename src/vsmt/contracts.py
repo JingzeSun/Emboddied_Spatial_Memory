@@ -18,7 +18,7 @@ from cpmt.executor import validate_graph
 from cpmt.hashing import canonical_json, clone_json, compute_graph_hash
 
 
-OBSERVATION_SCHEMA = "vsmt-observation-packet-v2"
+OBSERVATION_SCHEMA = "vsmt-observation-packet-v3"
 CANDIDATE_SCHEMA = "vsmt-candidate-catalog-v2"
 TEACHER_SCHEMA = "vsmt-teacher-targets-v1"
 RESULT_SCHEMA = "vsmt-memory-update-result-v1"
@@ -28,6 +28,7 @@ INVARIANCE_SCHEMA = "vsmt-private-mutation-invariance-v1"
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
 OPAQUE_REGION = re.compile(r"^region:[0-9]{4}$")
 OPAQUE_FREE_SPACE = re.compile(r"^free:[0-9]{4}$")
+OPAQUE_VISIBILITY = re.compile(r"^visibility:[0-9]{4}$")
 OPAQUE_RELATION = re.compile(r"^relation:[0-9]{4}$")
 OPAQUE_CANDIDATE = re.compile(r"^candidate:[0-9]{4}$")
 OPAQUE_LATENT_REF = re.compile(r"^latent:[0-9a-f]{16,64}$")
@@ -45,6 +46,7 @@ OBSERVATION_KEYS = {
     "region_observations",
     "relation_observations",
     "free_space_observations",
+    "visibility_observations",
     "prior_memory_ref",
     "public_constants",
 }
@@ -64,6 +66,13 @@ REGION_KEYS = {
 }
 FREE_SPACE_KEYS = {
     "free_space_id",
+    "time_s",
+    "halfspaces_world",
+    "reliability",
+    "support_sha256",
+}
+VISIBILITY_KEYS = {
+    "visibility_id",
     "time_s",
     "halfspaces_world",
     "reliability",
@@ -150,6 +159,7 @@ PUBLIC_DERIVATION_ROOTS = {
     "/region_observations",
     "/relation_observations",
     "/free_space_observations",
+    "/visibility_observations",
     "/public_constants",
 }
 MEMORY_DERIVATION_ROOTS = {
@@ -176,6 +186,9 @@ DECLARED_TEMPLATES = {
     "MERGE",
     "REPLACE",
 }
+SEMANTIC_IN_PLACE_FIELDS_BY_TEMPLATE = {
+    "MERGE": frozenset({"lifecycle", "canonical_id"}),
+}
 
 
 class AdapterInput(TypedDict):
@@ -188,6 +201,7 @@ class AdapterInput(TypedDict):
     region_observations: list[dict[str, Any]]
     relation_observations: list[dict[str, Any]]
     free_space_observations: list[dict[str, Any]]
+    visibility_observations: list[dict[str, Any]]
     prior_memory: dict[str, Any]
     public_constants: dict[str, str]
 
@@ -493,6 +507,43 @@ def validate_observation_packet(packet: Mapping[str, Any]) -> dict[str, Any]:
         _hex64(free_space["support_sha256"],
                f"free_space_observations[{index}].support_sha256")
 
+    visibility = packet["visibility_observations"]
+    _require(type(visibility) is list, "visibility_observations must be a list")
+    previous_visibility_time = -math.inf
+    for index, item in enumerate(visibility):
+        name = f"visibility_observations[{index}]"
+        _require(type(item) is dict, f"{name} must be an object")
+        _exact_keys(item, VISIBILITY_KEYS, name)
+        expected_id = f"visibility:{index:04d}"
+        _require(
+            type(item["visibility_id"]) is str
+            and OPAQUE_VISIBILITY.fullmatch(item["visibility_id"]) is not None
+            and item["visibility_id"] == expected_id,
+            "visibility IDs must be packet-local opaque ordinals",
+        )
+        item_time = _number(item["time_s"], f"{name}.time_s", minimum=0.0)
+        _require(previous_visibility_time <= item_time <= decision_time,
+                 "visibility times must be ordered and not enter the future")
+        previous_visibility_time = item_time
+        halfspaces = item["halfspaces_world"]
+        _require(type(halfspaces) is list and len(halfspaces) == 6,
+                 "visibility frustum must contain exactly six halfspaces")
+        for plane_index, halfspace in enumerate(halfspaces):
+            plane_name = f"{name}.halfspaces_world[{plane_index}]"
+            _require(type(halfspace) is dict, f"{plane_name} must be an object")
+            _exact_keys(halfspace, HALFSPACE_KEYS, plane_name)
+            normal = _vector(
+                halfspace["normal"], f"{plane_name}.normal", length=3,
+            )
+            norm = math.sqrt(sum(value * value for value in normal))
+            _require(abs(norm - 1.0) <= 1e-6,
+                     "visibility halfspace normals must have unit norm")
+            _number(halfspace["offset_m"], f"{plane_name}.offset_m")
+        reliability = _number(item["reliability"], f"{name}.reliability")
+        _require(0.0 <= reliability <= 1.0,
+                 "visibility reliability must be within [0, 1]")
+        _hex64(item["support_sha256"], f"{name}.support_sha256")
+
     prior_ref = packet["prior_memory_ref"]
     _require(type(prior_ref) is dict, "prior_memory_ref must be an object")
     _exact_keys(prior_ref, PRIOR_REF_KEYS, "prior_memory_ref")
@@ -531,6 +582,9 @@ def build_adapter_input(
         "relation_observations": clone_json(public["relation_observations"]),
         "free_space_observations": clone_json(
             public["free_space_observations"]
+        ),
+        "visibility_observations": clone_json(
+            public["visibility_observations"]
         ),
         "prior_memory": memory,
         "public_constants": clone_json(public["public_constants"]),
@@ -606,6 +660,9 @@ def validate_candidate_catalog(
             "retained_candidate_count", "retained_group_count",
             "oversized_group_count", "ambiguity_guard_rejected_group_count",
             "total_incident_guard_rejected_node_count",
+            "cutoff_group_count", "cutoff_candidate_count",
+            "unused_capacity", "current_positive_blocked_node_count",
+            "endpoint_pair_evaluation_count",
             "minimum_retained_priority",
             "minimum_retained_priority_group_count",
         }, f"capacity_audit[{index}]")
@@ -623,6 +680,9 @@ def validate_candidate_catalog(
             "oversized_group_count",
             "ambiguity_guard_rejected_group_count",
             "total_incident_guard_rejected_node_count",
+            "cutoff_group_count", "cutoff_candidate_count",
+            "unused_capacity", "current_positive_blocked_node_count",
+            "endpoint_pair_evaluation_count",
             "minimum_retained_priority_group_count",
         ):
             value = row[key]
@@ -632,6 +692,11 @@ def validate_candidate_catalog(
         _require(counts["capacity"] > 0, "candidate bucket capacity must be positive")
         _require(counts["retained_candidate_count"] <= counts["capacity"],
                  "retained candidates exceed bucket capacity")
+        _require(
+            counts["unused_capacity"]
+            == counts["capacity"] - counts["retained_candidate_count"],
+            "candidate bucket unused capacity is inconsistent",
+        )
         _require(
             counts["retained_candidate_count"] <= counts["pre_cap_candidate_count"],
             "retained candidates exceed their pre-cap count",
@@ -802,6 +867,11 @@ def seal_candidate_catalog(
         "oversized_group_count": 0,
         "ambiguity_guard_rejected_group_count": 0,
         "total_incident_guard_rejected_node_count": 0,
+        "cutoff_group_count": 0,
+        "cutoff_candidate_count": 0,
+        "unused_capacity": 0,
+        "current_positive_blocked_node_count": 0,
+        "endpoint_pair_evaluation_count": 0,
         "minimum_retained_priority": 0.0 if programs else None,
         "minimum_retained_priority_group_count": len(programs),
     }]
@@ -1029,6 +1099,132 @@ def audit_memory_update_result(
         if canonical_sha256(before_edges[version_id])
         != canonical_sha256(after_edges[version_id])
     )
+    declared_template = validated["normalized_delta"]["declared_template"]
+    if declared_template is not None:
+        observed_templates = {str(declared_template)}
+    else:
+        tail = after.get("transaction_log", [])[-1:]
+        entry = tail[0] if tail else None
+        observed_templates = (
+            {str(item) for item in entry.get("observed_templates", [])}
+            if type(entry) is dict else set()
+        )
+
+    def classify_mutation(
+        kind: str, version_id: str,
+        old: Mapping[str, Any], new: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        fields = sorted(
+            key for key in set(old) | set(new) if old.get(key) != new.get(key)
+        )
+        remaining = set(fields)
+        closure = (
+            old.get("valid_to") is None
+            and type(new.get("valid_to")) is int
+        )
+        if closure:
+            remaining.discard("valid_to")
+
+        append_fields: list[str] = []
+        for field in ("evidence_refs", "provenance"):
+            if field not in remaining:
+                continue
+            old_values = old.get(field)
+            new_values = new.get(field)
+            if (
+                old.get("valid_to") is None
+                and type(old_values) is list
+                and type(new_values) is list
+                and new_values[:len(old_values)] == old_values
+                and len(new_values) >= len(old_values)
+            ):
+                append_fields.append(field)
+                remaining.discard(field)
+
+        allowed_semantic = frozenset().union(*(
+            SEMANTIC_IN_PLACE_FIELDS_BY_TEMPLATE.get(template, frozenset())
+            for template in observed_templates
+        ))
+        semantic_fields = sorted(remaining & set(allowed_semantic))
+        if semantic_fields and old.get("valid_to") is not None:
+            remaining.update(semantic_fields)
+            semantic_fields = []
+        remaining -= set(semantic_fields)
+        if remaining:
+            classification = "undeclared_destructive_rewrite"
+        elif semantic_fields:
+            classification = "declared_semantic_transition"
+        elif append_fields:
+            classification = "append_only_evidence_or_provenance"
+        elif closure:
+            classification = "closure_only"
+        else:
+            classification = "undeclared_destructive_rewrite"
+        return {
+            "record_kind": kind,
+            "version_id": version_id,
+            "classification": classification,
+            "changed_fields": fields,
+            "append_only_fields": append_fields,
+            "declared_semantic_fields": semantic_fields,
+        }
+
+    mutation_classifications = [
+        classify_mutation(
+            "node", version_id, before_nodes[version_id], after_nodes[version_id],
+        )
+        for version_id in mutated_nodes
+    ] + [
+        classify_mutation(
+            "edge", version_id, before_edges[version_id], after_edges[version_id],
+        )
+        for version_id in mutated_edges
+    ]
+    destructive_rewrites = sorted(
+        item["version_id"] for item in mutation_classifications
+        if item["classification"] == "undeclared_destructive_rewrite"
+    )
+    semantic_transitions = sorted(
+        item["version_id"] for item in mutation_classifications
+        if item["classification"] == "declared_semantic_transition"
+    )
+    shape_violations: list[str] = []
+    created_node_records = [after_nodes[version_id] for version_id in created_nodes]
+    alias_versions = [
+        str(node["node_version_id"]) for node in created_node_records
+        if node.get("lifecycle") == "alias"
+    ]
+    terminal_versions = [
+        str(node["node_version_id"]) for node in created_node_records
+        if node.get("lifecycle") == "retracted"
+        and node.get("valid_to") == node.get("valid_from")
+    ]
+    if alias_versions and "MERGE" not in observed_templates:
+        shape_violations.append("alias_successor_without_merge")
+    if terminal_versions and not observed_templates & {"RETRACT", "SPLIT", "REPLACE"}:
+        shape_violations.append("terminal_retraction_without_retracting_template")
+    if observed_templates == {"NOOP"} and any((
+        created_nodes, created_edges, closed_nodes, closed_edges,
+        mutated_nodes, mutated_edges,
+    )):
+        shape_violations.append("noop_changed_graph")
+    if observed_templates == {"BIND"} and (
+        created_edges or closed_edges
+        or any(
+            node.get("lifecycle") == "alias"
+            or node.get("lifecycle") == "retracted"
+            for node in created_node_records
+        )
+    ):
+        shape_violations.append("bind_exceeded_version_successor_or_append_scope")
+    if observed_templates == {"RELINK"} and (created_nodes or closed_nodes):
+        shape_violations.append("relink_changed_node_versions")
+    if observed_templates == {"BIRTH"} and (closed_nodes or closed_edges):
+        shape_violations.append("birth_closed_preexisting_versions")
+    template_diff_allowlist_passed = (
+        not destructive_rewrites and not shape_violations
+        and not (semantic_transitions and "MERGE" not in observed_templates)
+    )
     protected = set(protected_node_ids)
     protected_node_changes = sorted(
         node_id for node_id in protected
@@ -1051,6 +1247,7 @@ def audit_memory_update_result(
         node_id for node_id in protected
         if open_topology(before, node_id) != open_topology(after, node_id)
     )
+    semantic_cost = semantic_edit_accounting(before, validated)
     return {
         "schema_version": "vsmt-common-post-update-audit-v1",
         "structural_validation_passed": True,
@@ -1061,8 +1258,93 @@ def audit_memory_update_result(
         "missing_preexisting_edge_version_ids": missing_edges,
         "preexisting_node_version_mutations": mutated_nodes,
         "preexisting_edge_version_mutations": mutated_edges,
+        "preexisting_version_mutation_classifications": (
+            mutation_classifications
+        ),
+        "undeclared_destructive_rewrite_version_ids": destructive_rewrites,
+        "declared_semantic_transition_version_ids": semantic_transitions,
+        "template_diff_allowlist_passed": template_diff_allowlist_passed,
+        "template_diff_allowlist_violations": shape_violations,
         "protected_node_state_change_ids": protected_node_changes,
         "protected_incident_topology_change_ids": protected_topology_changes,
+        "semantic_edit_accounting": semantic_cost,
+    }
+
+
+def semantic_edit_accounting(
+    prior_memory: Mapping[str, Any], result: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Count high-level atoms and canonical relation facts, not version churn."""
+
+    before = clone_json(dict(prior_memory))
+    validated = validate_memory_update_result(result)
+    after = validated["post_memory"]
+    declared = validated["normalized_delta"]["declared_template"]
+    instances: list[str]
+    if declared is not None:
+        instances = [str(declared)]
+    else:
+        tail = after.get("transaction_log", [])[-1:]
+        entry = tail[0] if tail else None
+        if type(entry) is dict and type(entry.get("observed_template_instances")) is list:
+            instances = [str(item) for item in entry["observed_template_instances"]]
+        elif type(entry) is dict and type(entry.get("observed_templates")) is list:
+            instances = [str(item) for item in entry["observed_templates"]]
+        else:
+            instances = []
+    atom_count = sum(
+        0 if template == "NOOP" else 2 if template == "REPLACE" else 1
+        for template in instances
+    )
+
+    canonical: dict[str, str] = {}
+    for node in after["nodes"]:
+        if (
+            node.get("valid_to") is None
+            and node.get("lifecycle") == "alias"
+            and type(node.get("canonical_id")) is str
+        ):
+            canonical[str(node["node_id"])] = str(node["canonical_id"])
+
+    def resolve(node_id: str) -> str:
+        seen: set[str] = set()
+        current = node_id
+        while current in canonical and current not in seen:
+            seen.add(current)
+            current = canonical[current]
+        return current
+
+    def facts(graph: Mapping[str, Any]) -> set[tuple[str, str, str, str]]:
+        return {
+            (
+                resolve(str(edge["source"])),
+                resolve(str(edge["target"])),
+                str(edge["relation"]),
+                str(edge["frame"]),
+            )
+            for edge in graph["edges"]
+            if edge.get("valid_to") is None
+            and resolve(str(edge["source"])) != resolve(str(edge["target"]))
+        }
+
+    before_facts = facts(before)
+    after_facts = facts(after)
+    added = sorted(after_facts - before_facts)
+    removed = sorted(before_facts - after_facts)
+    delta = validated["normalized_delta"]
+    raw_edge_churn = (
+        len(delta["created_edge_version_ids"])
+        + len(delta["closed_edge_version_ids"])
+    )
+    return {
+        "schema_version": "vsmt-semantic-edit-accounting-v1",
+        "high_level_template_instances": instances,
+        "high_level_atom_count": atom_count,
+        "new_persistent_semantic_relation_facts": [list(item) for item in added],
+        "removed_persistent_semantic_relation_facts": [list(item) for item in removed],
+        "semantic_relation_growth_count": len(added),
+        "raw_edge_version_churn": raw_edge_churn,
+        "canonical_reanchor_churn_is_atom_cost": False,
     }
 
 
@@ -1090,7 +1372,17 @@ def run_adapter(
         "common_post_update_audit" not in validated["diagnostics"],
         "adapter may not supply the common post-update audit",
     )
-    audit = audit_memory_update_result(prior_memory, validated)
+    protected_place_ids = frozenset(
+        str(node["node_id"])
+        for node in prior_memory["nodes"]
+        if node.get("valid_to") is None
+        and node.get("node_type") == "place"
+        and type(node.get("vsmt_observation_state")) is dict
+        and node["vsmt_observation_state"].get("place_scaffold_key") is not None
+    )
+    audit = audit_memory_update_result(
+        prior_memory, validated, protected_node_ids=protected_place_ids,
+    )
     _require(
         audit["declared_delta_matches_graph_diff"],
         "normalized_delta does not match the actual graph version difference",
@@ -1098,6 +1390,14 @@ def run_adapter(
     _require(
         audit["history_preserved"],
         "adapter physically removed preexisting version history",
+    )
+    _require(
+        audit["template_diff_allowlist_passed"],
+        "adapter performed an undeclared destructive version rewrite",
+    )
+    _require(
+        not audit["protected_node_state_change_ids"],
+        "adapter changed the online protected place scaffold",
     )
     validated["diagnostics"]["common_post_update_audit"] = audit
     return validate_memory_update_result(

@@ -41,6 +41,7 @@ from vsmt.l1_structures import (  # noqa: E402
     assemble_region_records,
     entity_regions_with_masks,
     materialize_public_free_space,
+    materialize_public_visibility,
     materialize_public_places,
     materialize_public_relations,
     materialize_public_surfaces,
@@ -152,7 +153,7 @@ class PublicStructureMaterializerTests(unittest.TestCase):
             "transaction_log": [],
         })
         packet = {
-            "schema_version": "vsmt-observation-packet-v2",
+            "schema_version": "vsmt-observation-packet-v3",
             "sample_id_hash": "1" * 64,
             "decision_time_s": 0.0,
             "rgbd_refs": {"rgb_sha256": "2" * 64, "depth_sha256": "3" * 64},
@@ -165,6 +166,7 @@ class PublicStructureMaterializerTests(unittest.TestCase):
             "region_observations": records,
             "relation_observations": [],
             "free_space_observations": [],
+            "visibility_observations": [],
             "prior_memory_ref": {
                 "graph_version": memory["graph_version"],
                 "graph_sha256": memory["graph_hash"],
@@ -276,12 +278,28 @@ class PublicStructureMaterializerTests(unittest.TestCase):
                 "reliability": 1.0,
                 "last_seen_s": 0.0,
                 "observation_count": 1,
+                "observation_aabb_min_m": [-0.05, -0.05, 0.95],
+                "observation_aabb_max_m": [0.05, 0.05, 1.05],
+                "support_envelope_min_m": [-0.05, -0.05, 0.95],
+                "support_envelope_max_m": [0.05, 0.05, 1.05],
+                "support_envelope_observation_count": 1,
+                "support_envelope_reliability_threshold": 0.9,
             },
         }
         self.assertTrue(fully_covered_by_free_space(
             node, history, minimum_reliability=1.0,
             target_expansion_m=0.02,
+            support_reliability_threshold=0.9,
         ))
+        visibility = materialize_public_visibility(
+            second, surface_clearance_m=free_config().surface_clearance_m,
+        )
+        self.assertEqual(len(visibility), 341)
+        self.assertEqual(visibility[0]["visibility_id"], "visibility:0000")
+        self.assertGreater(
+            visibility[0]["halfspaces_world"][-1]["offset_m"],
+            second[0].public_record("free:0000")["halfspaces_world"][-1]["offset_m"],
+        )
 
     def test_invalid_depth_pixel_rejects_every_block_containing_it(self) -> None:
         depth = np.full((224, 224), 2.0, dtype=np.float32)
@@ -357,7 +375,7 @@ class PublicRelationTests(unittest.TestCase):
         contains = next(item for item in relations if item["relation"] == "contains")
         self.assertEqual(located["support_sha256"], contains["support_sha256"])
         packet = {
-            "schema_version": "vsmt-observation-packet-v2",
+            "schema_version": "vsmt-observation-packet-v3",
             "sample_id_hash": "1" * 64,
             "decision_time_s": 1.0,
             "rgbd_refs": {"rgb_sha256": "2" * 64, "depth_sha256": "3" * 64},
@@ -370,6 +388,7 @@ class PublicRelationTests(unittest.TestCase):
             "region_observations": records,
             "relation_observations": relations,
             "free_space_observations": [],
+            "visibility_observations": [],
             "prior_memory_ref": {"graph_version": "v0", "graph_sha256": "4" * 64},
             "public_constants": {
                 "coordinate_frame": "map",

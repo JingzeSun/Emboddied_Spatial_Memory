@@ -9,6 +9,7 @@ Execution always happens on a deep copy of an immutable base graph.
 from __future__ import annotations
 
 from collections import Counter
+import math
 from typing import Any, Iterable, Mapping
 
 from .errors import (
@@ -903,12 +904,20 @@ def _validate_template_preconditions(
 
     if template == "BIND":
         if any(
-            op in {"CREATE_NODE", "OPEN_NODE_VERSION", "ADD_EDGE"}
+            op in {"CREATE_NODE", "ADD_EDGE"}
             for op in op_types
         ):
             raise ContractError(
-                "BIND cannot create an identity or open a version"
+                "BIND cannot create an identity or relation"
             )
+        node_closes = [
+            operation for operation in operations
+            if operation["op_type"] == "CLOSE_NODE_VERSION"
+        ]
+        node_opens = [
+            operation for operation in operations
+            if operation["op_type"] == "OPEN_NODE_VERSION"
+        ]
         attach_ops = [
             operation
             for operation in operations
@@ -918,6 +927,181 @@ def _validate_template_preconditions(
             operation["arguments"].get("target_kind")
             for operation in attach_ops
         }
+        if node_closes or node_opens:
+            if (
+                len(node_closes) != 1
+                or len(node_opens) != 1
+                or attach_ops
+                or any(op == "SET_LIFECYCLE" for op in op_types)
+            ):
+                raise ContractError(
+                    "versioned node BIND needs one close and one open without "
+                    "in-place evidence or lifecycle mutation"
+                )
+            source = _open_node(
+                graph, node_closes[0]["arguments"]["node_id"],
+            )
+            if source["lifecycle"] not in {"candidate", "confirmed"}:
+                raise PreconditionError("versioned BIND source is not bindable")
+            successor = node_opens[0]["arguments"]["node"]
+            close_at = node_closes[0]["arguments"]["at"]
+            expected_top_level = clone_json(source)
+            expected_top_level.update({
+                "node_version_id": successor.get("node_version_id"),
+                "valid_from": close_at,
+                "valid_to": None,
+                "evidence_refs": list(dict.fromkeys(
+                    list(source["evidence_refs"]) + list(program["evidence_refs"])
+                )),
+                "predecessor_ids": [source["node_version_id"]],
+                "provenance": list(dict.fromkeys(
+                    list(source["provenance"]) + [program["transaction_id"]]
+                )),
+                "vsmt_observation_state": successor.get(
+                    "vsmt_observation_state"
+                ),
+            })
+            old_state = source.get("vsmt_observation_state")
+            new_state = successor.get("vsmt_observation_state")
+            old_envelope_count = (
+                int(old_state.get("support_envelope_observation_count", 0))
+                if type(old_state) is dict else -1
+            )
+            new_envelope_count = (
+                int(new_state.get("support_envelope_observation_count", 0))
+                if type(new_state) is dict else -1
+            )
+            old_lower = (
+                old_state.get("support_envelope_min_m")
+                if type(old_state) is dict else None
+            )
+            old_upper = (
+                old_state.get("support_envelope_max_m")
+                if type(old_state) is dict else None
+            )
+            new_lower = (
+                new_state.get("support_envelope_min_m")
+                if type(new_state) is dict else None
+            )
+            new_upper = (
+                new_state.get("support_envelope_max_m")
+                if type(new_state) is dict else None
+            )
+            old_threshold = (
+                old_state.get("support_envelope_reliability_threshold")
+                if type(old_state) is dict else None
+            )
+            new_threshold = (
+                new_state.get("support_envelope_reliability_threshold")
+                if type(new_state) is dict else None
+            )
+            raw_lower = (
+                new_state.get("observation_aabb_min_m")
+                if type(new_state) is dict else None
+            )
+            raw_upper = (
+                new_state.get("observation_aabb_max_m")
+                if type(new_state) is dict else None
+            )
+            raw_aabb_valid = (
+                type(raw_lower) is list and len(raw_lower) == 3
+                and type(raw_upper) is list and len(raw_upper) == 3
+                and all(
+                    type(value) in {int, float} and math.isfinite(float(value))
+                    for value in [*raw_lower, *raw_upper]
+                )
+                and all(
+                    float(raw_lower[axis]) <= float(raw_upper[axis])
+                    for axis in range(3)
+                )
+            )
+            old_envelope_valid = (
+                old_envelope_count == 0 and old_lower is None and old_upper is None
+            ) or (
+                old_envelope_count > 0
+                and type(old_lower) is list and len(old_lower) == 3
+                and type(old_upper) is list and len(old_upper) == 3
+            )
+            new_envelope_valid = (
+                new_envelope_count == 0 and new_lower is None and new_upper is None
+            ) or (
+                new_envelope_count > 0
+                and type(new_lower) is list and len(new_lower) == 3
+                and type(new_upper) is list and len(new_upper) == 3
+            )
+            envelope_monotonic = (
+                old_envelope_count == 0
+                or (
+                    new_envelope_count >= old_envelope_count
+                    and all(
+                        float(new_lower[axis]) <= float(old_lower[axis])
+                        and float(new_upper[axis]) >= float(old_upper[axis])
+                        for axis in range(3)
+                    )
+                )
+            )
+            threshold_stable = (
+                type(old_threshold) in {int, float}
+                and type(new_threshold) in {int, float}
+                and math.isfinite(float(old_threshold))
+                and math.isfinite(float(new_threshold))
+                and math.isclose(
+                    float(old_threshold), float(new_threshold), abs_tol=1e-12,
+                )
+            )
+            reliability = (
+                new_state.get("reliability")
+                if type(new_state) is dict else None
+            )
+            reliability_valid = (
+                type(reliability) in {int, float}
+                and math.isfinite(float(reliability))
+                and 0.0 <= float(reliability) <= 1.0
+            )
+            envelope_update_matches_reliability = False
+            if threshold_stable and reliability_valid:
+                if float(reliability) >= float(new_threshold):
+                    envelope_update_matches_reliability = (
+                        new_envelope_count == old_envelope_count + 1
+                        and new_envelope_count > 0
+                        and all(
+                            float(new_lower[axis]) <= float(raw_lower[axis])
+                            <= float(raw_upper[axis]) <= float(new_upper[axis])
+                            for axis in range(3)
+                        )
+                    )
+                else:
+                    envelope_update_matches_reliability = (
+                        new_envelope_count == old_envelope_count
+                        and new_lower == old_lower
+                        and new_upper == old_upper
+                    )
+            if (
+                successor.get("node_version_id") == source["node_version_id"]
+                or any(
+                    node["node_version_id"] == successor.get("node_version_id")
+                    for node in graph["nodes"]
+                )
+                or successor != expected_top_level
+                or type(old_state) is not dict
+                or type(new_state) is not dict
+                or int(new_state.get("observation_count", -1))
+                != int(old_state.get("observation_count", 0)) + 1
+                or not raw_aabb_valid
+                or not old_envelope_valid
+                or not new_envelope_valid
+                or new_envelope_count not in {
+                    old_envelope_count, old_envelope_count + 1,
+                }
+                or not envelope_monotonic
+                or not threshold_stable
+                or not envelope_update_matches_reliability
+            ):
+                raise ContractError(
+                    "versioned node BIND must preserve identity/history and "
+                    "append one raw AABB inside a monotonic support envelope"
+                )
+            return
         if not attach_ops or len(target_kinds) != 1 or not target_kinds <= {"node", "edge"}:
             raise ContractError(
                 "BIND needs ATTACH_EVIDENCE operations for exactly one node or edge"
@@ -981,6 +1165,24 @@ def _validate_template_preconditions(
             for operation in operations
             if operation["op_type"] == "ADD_EDGE"
         ]
+        legacy_toy_birth = (
+            program.get("compatibility_label")
+            == "legacy_toy_entity_birth_with_initial_relation"
+        )
+        if legacy_toy_birth and (len(creates), len(adds)) == (1, 1):
+            node = creates[0]["arguments"]["node"]
+            edge = adds[0]["arguments"]["edge"]
+            if (
+                node["lifecycle"] != "candidate"
+                or edge["source"] != node["node_id"]
+                or any(existing["node_id"] == node["node_id"] for existing in graph["nodes"])
+                or any(existing["edge_id"] == edge["edge_id"] for existing in graph["edges"])
+            ):
+                raise ContractError(
+                    "legacy toy BIRTH must add one candidate and its initial relation"
+                )
+            _open_node(graph, edge["target"])
+            return
         if (len(creates), len(adds)) not in {(1, 0), (0, 1)}:
             raise ContractError(
                 "BIRTH must create exactly one node or edge identity"
@@ -1037,11 +1239,24 @@ def _validate_template_preconditions(
             )
         if (
             new["node_id"] != node_id
-            or new["lifecycle"] != "confirmed"
+            or new["lifecycle"] not in {"candidate", "confirmed"}
         ):
             raise ContractError(
-                "REACTIVATE must open a confirmed version "
+                "REACTIVATE must open a candidate or confirmed version "
                 "of the same identity"
+            )
+        pre_dormancy = old.get("vsmt_observation_state", {}).get(
+            "pre_dormancy_lifecycle", "confirmed",
+        )
+        expected_lifecycle = (
+            "candidate"
+            if pre_dormancy == "candidate"
+            and len(set(new.get("evidence_refs", []))) < 2
+            else "confirmed"
+        )
+        if new["lifecycle"] != expected_lifecycle:
+            raise ContractError(
+                "REACTIVATE lifecycle violates independent-evidence confirmation"
             )
         return
 
@@ -1090,11 +1305,9 @@ def _validate_template_preconditions(
             for operation in operations
             if operation["op_type"] == "CLOSE_NODE_VERSION"
         ]
-        retracts = [
-            operation
-            for operation in operations
-            if operation["op_type"] == "SET_LIFECYCLE"
-            and operation["arguments"].get("to") == "retracted"
+        terminal_opens = [
+            operation for operation in operations
+            if operation["op_type"] == "OPEN_NODE_VERSION"
         ]
         creates = [
             operation
@@ -1103,28 +1316,44 @@ def _validate_template_preconditions(
         ]
         if (
             len(closes) != 1
-            or len(retracts) != 1
+            or len(terminal_opens) != 1
             or len(creates) < 2
+            or any(operation["op_type"] == "SET_LIFECYCLE" for operation in operations)
         ):
             raise ContractError(
-                "SPLIT needs one retracted/closed source and "
+                "SPLIT needs one closed source, one terminal version, and "
                 "at least two created successors"
             )
         source_id = closes[0]["arguments"]["node_id"]
-        retract = retracts[0]["arguments"]
+        source = _open_node(graph, source_id)
+        if source["lifecycle"] not in {"candidate", "confirmed"}:
+            raise PreconditionError(
+                "SPLIT source must be candidate or confirmed"
+            )
+        close_at = closes[0]["arguments"]["at"]
+        terminal = terminal_opens[0]["arguments"]["node"]
+        expected_terminal = clone_json(source)
+        expected_terminal.update({
+            "node_version_id": terminal.get("node_version_id"),
+            "lifecycle": "retracted",
+            "valid_from": close_at,
+            "valid_to": close_at,
+            "predecessor_ids": [source["node_version_id"]],
+            "provenance": list(dict.fromkeys(
+                list(source["provenance"]) + [program["transaction_id"]]
+            )),
+        })
         if (
-            retract.get("node_id") != source_id
-            or retract.get("from") not in {"candidate", "confirmed"}
+            terminal.get("node_version_id") == source["node_version_id"]
+            or any(
+                node["node_version_id"] == terminal.get("node_version_id")
+                for node in graph["nodes"]
+            )
+            or terminal != expected_terminal
         ):
             raise ContractError(
-                "SPLIT must retract and close the same "
-                "candidate/confirmed source"
-            )
-        source = _open_node(graph, source_id)
-        if source["lifecycle"] != retract["from"]:
-            raise PreconditionError(
-                "SPLIT source lifecycle does not match "
-                "the declared transition"
+                "SPLIT terminal must preserve the source and append one "
+                "canonical retracted version"
             )
 
         successors = [

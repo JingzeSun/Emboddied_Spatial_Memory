@@ -37,6 +37,7 @@ from .graph_ops import (
     observation_state,
     open_nodes,
     opaque_id,
+    state_from_region,
     validate_threshold,
 )
 from .place_scaffold import place_region_node_ids
@@ -54,10 +55,12 @@ class PublicCandidateConfig:
     association_rules: Mapping[str, Mapping[str, float]]
     split_minimum_separation_m: float
     free_space_reliability_threshold: float
-    free_space_target_expansion_m: float
+    support_envelope_reliability_threshold: float
+    support_envelope_margin_m: float
     minimum_free_space_time_separation_s: float
     maximum_candidates_per_bucket: int
-    maximum_split_ambiguous_edges: int
+    maximum_ambiguous_relation_variables: int
+    maximum_relation_variants: int
     maximum_split_total_incident_edges: int
 
     def __post_init__(self) -> None:
@@ -99,11 +102,15 @@ class PublicCandidateConfig:
             self.free_space_reliability_threshold,
             "free_space_reliability_threshold", low=0.0, high=1.0,
         )
+        validate_threshold(
+            self.support_envelope_reliability_threshold,
+            "support_envelope_reliability_threshold", low=0.0, high=1.0,
+        )
         if finite_number(
-            self.free_space_target_expansion_m,
-            "free_space_target_expansion_m",
+            self.support_envelope_margin_m,
+            "support_envelope_margin_m",
         ) < 0.0:
-            raise ValueError("free_space_target_expansion_m must be non-negative")
+            raise ValueError("support_envelope_margin_m must be non-negative")
         if finite_number(
             self.minimum_free_space_time_separation_s,
             "minimum_free_space_time_separation_s",
@@ -117,7 +124,11 @@ class PublicCandidateConfig:
         ):
             raise ValueError("maximum_candidates_per_bucket must be positive")
         for name, value in (
-            ("maximum_split_ambiguous_edges", self.maximum_split_ambiguous_edges),
+            (
+                "maximum_ambiguous_relation_variables",
+                self.maximum_ambiguous_relation_variables,
+            ),
+            ("maximum_relation_variants", self.maximum_relation_variants),
             (
                 "maximum_split_total_incident_edges",
                 self.maximum_split_total_incident_edges,
@@ -155,20 +166,10 @@ def _region_evidence_ref(region: Mapping[str, Any], purpose: str) -> str:
     return opaque_id(region["mask_sha256"], purpose, prefix="evidence")
 
 
-def _state_from_region(region: Mapping[str, Any], decision_time_s: float) -> dict[str, Any]:
-    return {
-        "descriptor": [float(value) for value in region["descriptor"]],
-        "centroid_m": [float(value) for value in region["centroid_m"]],
-        "extent_m": [float(value) for value in region["extent_m"]],
-        "reliability": float(region["reliability"]),
-        "last_seen_s": decision_time_s,
-        "observation_count": 1,
-    }
-
-
 def _node_from_region(
     region: Mapping[str, Any], *, node_id: str, version_id: str,
     transaction_id: str, tick: int, evidence_refs: list[str],
+    support_envelope_reliability_threshold: float,
     predecessor_ids: list[str] | None = None,
 ) -> dict[str, Any]:
     return {
@@ -183,8 +184,11 @@ def _node_from_region(
         "canonical_id": None,
         "predecessor_ids": predecessor_ids or [],
         "provenance": [transaction_id],
-        "vsmt_observation_state": _state_from_region(
+        "vsmt_observation_state": state_from_region(
             region, float(region.get("decision_time_s", tick)),
+            support_envelope_reliability_threshold=(
+                support_envelope_reliability_threshold
+            ),
         ),
     }
 
@@ -228,14 +232,16 @@ def _support_event(
 
 
 def _covering_free_spaces(
-    node: Mapping[str, Any], free_spaces: list[Mapping[str, Any]], *,
+    node: Mapping[str, Any],
+    free_spaces: list[Mapping[str, Any]], *,
     minimum_reliability: float, target_expansion_m: float,
-    minimum_time_separation_s: float,
+    minimum_time_separation_s: float, support_reliability_threshold: float,
 ) -> list[Mapping[str, Any]]:
     return covering_free_space_times(
         node, free_spaces, minimum_reliability=minimum_reliability,
         target_expansion_m=target_expansion_m,
         minimum_time_separation_s=minimum_time_separation_s,
+        support_reliability_threshold=support_reliability_threshold,
     )
 
 
@@ -265,11 +271,38 @@ def _negative_evidence(
 
 def _bind_program(
     graph: Mapping[str, Any], public_hash: str, region: Mapping[str, Any],
-    node: Mapping[str, Any],
+    node: Mapping[str, Any], tick: int, *,
+    support_envelope_reliability_threshold: float,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     program = _header(graph, public_hash, "BIND", "ASSOCIATE",
                       region["region_id"], node["node_id"])
     evidence = _region_evidence_ref(region, "bind")
+    previous_state = observation_state(node)
+    if previous_state is None:
+        raise ValueError("node BIND target lacks shared observation state")
+    successor = clone_json(dict(node))
+    successor.update({
+        "node_version_id": opaque_id(
+            node["node_version_id"], tick, "bind", prefix="node-version",
+        ),
+        "valid_from": tick,
+        "valid_to": None,
+        "evidence_refs": list(dict.fromkeys(
+            list(node["evidence_refs"]) + [evidence]
+        )),
+        "predecessor_ids": [node["node_version_id"]],
+        "provenance": list(dict.fromkeys(
+            list(node["provenance"]) + [program["transaction_id"]]
+        )),
+        "vsmt_observation_state": state_from_region(
+            region, float(region.get("decision_time_s", tick)),
+            support_envelope_reliability_threshold=(
+                support_envelope_reliability_threshold
+            ),
+            previous=previous_state,
+            fused=True,
+        ),
+    })
     program["evidence_refs"] = [evidence]
     program["operations"] = [
         {
@@ -280,18 +313,21 @@ def _bind_program(
             },
         },
         {
-            "op_id": "bind:attach", "op_type": "ATTACH_EVIDENCE",
+            "op_id": "bind:close", "op_type": "CLOSE_NODE_VERSION",
             "arguments": {
-                "target_kind": "node", "target_id": node["node_id"],
-                "evidence_ref": evidence,
+                "node_id": node["node_id"], "at": tick,
             },
         },
         {
             "op_id": "bind:provenance", "op_type": "RECORD_PROVENANCE",
             "arguments": {
-                "target_kind": "node", "target_id": node["node_id"],
+                "target_kind": "node", "node_version_id": node["node_version_id"],
                 "provenance_ref": program["transaction_id"],
             },
+        },
+        {
+            "op_id": "bind:open", "op_type": "OPEN_NODE_VERSION",
+            "arguments": {"node": successor},
         },
     ]
     return program, {}
@@ -299,7 +335,7 @@ def _bind_program(
 
 def _birth_program(
     graph: Mapping[str, Any], public_hash: str, region: Mapping[str, Any], tick: int,
-    *, purpose: str = "birth",
+    *, purpose: str = "birth", support_envelope_reliability_threshold: float,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     program = _header(graph, public_hash, "BIRTH", "EXPAND",
                       region["region_id"], purpose)
@@ -311,6 +347,9 @@ def _birth_program(
         version_id=opaque_id(node_id, tick, purpose, prefix="node-version"),
         transaction_id=program["transaction_id"], tick=tick,
         evidence_refs=[evidence],
+        support_envelope_reliability_threshold=(
+            support_envelope_reliability_threshold
+        ),
     )
     program["operations"] = [
         {
@@ -393,25 +432,43 @@ def _relation_bind_program(
 
 def _reactivate_program(
     graph: Mapping[str, Any], public_hash: str, region: Mapping[str, Any],
-    node: Mapping[str, Any], tick: int,
+    node: Mapping[str, Any], tick: int, *,
+    support_envelope_reliability_threshold: float,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     program = _header(graph, public_hash, "REACTIVATE", "ASSOCIATE",
                       region["region_id"], node["node_id"])
     evidence = _region_evidence_ref(region, "reactivate")
+    evidence_refs = list(dict.fromkeys(
+        list(node["evidence_refs"]) + [evidence]
+    ))
+    prior_lifecycle = (observation_state(node) or {}).get(
+        "pre_dormancy_lifecycle", "confirmed",
+    )
+    successor_lifecycle = (
+        "candidate"
+        if prior_lifecycle == "candidate" and len(evidence_refs) < 2
+        else "confirmed"
+    )
+    successor_state = state_from_region(
+        region, float(region.get("decision_time_s", tick)),
+        support_envelope_reliability_threshold=(
+            support_envelope_reliability_threshold
+        ),
+        previous=observation_state(node), fused=True,
+    )
+    successor_state["missed_observation_opportunities"] = 0
     successor = clone_json(dict(node))
     successor.update({
         "node_version_id": opaque_id(
             node["node_version_id"], tick, "reactivate", prefix="node-version",
         ),
-        "lifecycle": "confirmed",
+        "lifecycle": successor_lifecycle,
         "valid_from": tick,
         "valid_to": None,
-        "evidence_refs": list(dict.fromkeys(
-            list(node["evidence_refs"]) + [evidence]
-        )),
+        "evidence_refs": evidence_refs,
         "predecessor_ids": [node["node_version_id"]],
         "provenance": list(node["provenance"]) + [program["transaction_id"]],
-        "vsmt_observation_state": _state_from_region(region, float(tick)),
+        "vsmt_observation_state": successor_state,
     })
     program["evidence_refs"] = [evidence]
     program["operations"] = [
@@ -631,6 +688,7 @@ def _split_program(
     left: Mapping[str, Any], right: Mapping[str, Any], tick: int, *,
     incident_edges: list[Mapping[str, Any]],
     assignment_indices: tuple[tuple[int, ...], ...],
+    support_envelope_reliability_threshold: float,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     if len(incident_edges) != len(assignment_indices):
         raise ValueError("each incident edge needs one public assignment")
@@ -655,15 +713,7 @@ def _split_program(
                   source_evidence[1::2] + [evidence[1]]]
     program["evidence_refs"] = evidence
     program["split_successor_evidence_refs"] = evidence
-    program["operations"] = [
-        {
-            "op_id": "split:lifecycle", "op_type": "SET_LIFECYCLE",
-            "arguments": {
-                "node_id": node["node_id"], "from": node["lifecycle"],
-                "to": "retracted",
-            },
-        },
-    ]
+    program["operations"] = []
     for edge_index, edge in enumerate(incident_edges):
         program["operations"].extend([
             {
@@ -691,6 +741,16 @@ def _split_program(
                 "provenance_ref": program["transaction_id"],
             },
         },
+        {
+            "op_id": "split:terminal", "op_type": "OPEN_NODE_VERSION",
+            "arguments": {"node": _retired_entity_version(
+                node,
+                transaction_id=program["transaction_id"],
+                tick=tick,
+                negative_evidence_refs=[],
+                purpose="split",
+            )},
+        },
     ])
     successors: list[dict[str, Any]] = []
     for index, (region, evidence_refs) in enumerate(
@@ -704,6 +764,9 @@ def _split_program(
             version_id=opaque_id(node_id, tick, "split", prefix="node-version"),
             transaction_id=program["transaction_id"], tick=tick,
             evidence_refs=evidence_refs,
+            support_envelope_reliability_threshold=(
+                support_envelope_reliability_threshold
+            ),
             predecessor_ids=[node["node_version_id"]],
         )
         successors.append(successor)
@@ -796,6 +859,21 @@ def _merge_program(
         item for source in sources for item in source["latent_refs"]
     ))
     predecessors = [source["node_version_id"] for source in sources]
+    canonical_state = clone_json(observation_state(canonical) or {})
+    source_states = [observation_state(source) or {} for source in sources]
+    lowers = [state.get("support_envelope_min_m") for state in source_states]
+    uppers = [state.get("support_envelope_max_m") for state in source_states]
+    if all(type(value) is list and len(value) == 3 for value in lowers + uppers):
+        canonical_state["support_envelope_min_m"] = [
+            min(float(value[axis]) for value in lowers) for axis in range(3)
+        ]
+        canonical_state["support_envelope_max_m"] = [
+            max(float(value[axis]) for value in uppers) for axis in range(3)
+        ]
+        canonical_state["support_envelope_observation_count"] = sum(
+            int(state.get("support_envelope_observation_count", 0))
+            for state in source_states
+        )
     for source in sources:
         successor = clone_json(dict(source))
         successor.update({
@@ -821,6 +899,11 @@ def _merge_program(
             ),
             "latent_refs": (
                 all_latents if source["node_id"] == canonical["node_id"] else []
+            ),
+            "vsmt_observation_state": (
+                canonical_state
+                if source["node_id"] == canonical["node_id"]
+                else source.get("vsmt_observation_state")
             ),
         })
         operations.append({
@@ -928,7 +1011,8 @@ def _merge_program(
 
 def _replace_program(
     graph: Mapping[str, Any], public_hash: str, edge: Mapping[str, Any],
-    region: Mapping[str, Any], free_spaces: list[Mapping[str, Any]], tick: int,
+    region: Mapping[str, Any], free_spaces: list[Mapping[str, Any]], tick: int, *,
+    support_envelope_reliability_threshold: float,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     program = _header(graph, public_hash, "COMPOSITE", "REVISE",
                       edge["edge_id"], region["region_id"])
@@ -951,6 +1035,9 @@ def _replace_program(
         version_id=opaque_id(node_id, tick, "replace", prefix="node-version"),
         transaction_id=program["transaction_id"], tick=tick,
         evidence_refs=[birth_evidence],
+        support_envelope_reliability_threshold=(
+            support_envelope_reliability_threshold
+        ),
     )
     new_edge_id = opaque_id(node_id, edge["target"], prefix="edge")
     new_edge = {
@@ -996,6 +1083,7 @@ def _node_replace_program(
     region: Mapping[str, Any], incident_edges: list[Mapping[str, Any]],
     free_spaces: list[Mapping[str, Any]], tick: int, *,
     current_relations: list[tuple[Mapping[str, Any], str]],
+    support_envelope_reliability_threshold: float,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Build entity REPLACE without inheriting the retired identity or facts."""
 
@@ -1033,6 +1121,9 @@ def _node_replace_program(
         transaction_id=program["transaction_id"],
         tick=tick,
         evidence_refs=[birth_evidence],
+        support_envelope_reliability_threshold=(
+            support_envelope_reliability_threshold
+        ),
     )
     operations = _node_retraction_operations(
         node,
@@ -1105,6 +1196,10 @@ class _CandidateBucket:
         self.oversized_group_count = 0
         self.ambiguity_guard_rejected_group_count = 0
         self.total_incident_guard_rejected_node_count = 0
+        self.cutoff_group_count = 0
+        self.cutoff_candidate_count = 0
+        self.current_positive_blocked_node_count = 0
+        self.endpoint_pair_evaluation_count = 0
 
     def append_group(
         self, score: float,
@@ -1126,11 +1221,16 @@ class _CandidateBucket:
         ranked = sorted(self.groups, key=lambda item: (-item[0], item[1]))
         retained = []
         retained_count = 0
-        for group in ranked:
+        cutoff_index = len(ranked)
+        for index, group in enumerate(ranked):
             if retained_count + len(group[2]) > self.capacity:
-                continue
+                cutoff_index = index
+                break
             retained.append(group)
             retained_count += len(group[2])
+        discarded = ranked[cutoff_index:]
+        self.cutoff_group_count += len(discarded)
+        self.cutoff_candidate_count += sum(len(group[2]) for group in discarded)
         self.groups = retained
 
     def reject_oversized_group(self, candidate_count: int) -> None:
@@ -1151,6 +1251,12 @@ class _CandidateBucket:
 
     def reject_total_incident_guarded_node(self) -> None:
         self.total_incident_guard_rejected_node_count += 1
+
+    def block_current_positive_node(self) -> None:
+        self.current_positive_blocked_node_count += 1
+
+    def count_endpoint_pair_evaluation(self) -> None:
+        self.endpoint_pair_evaluation_count += 1
 
     def selected(
         self,
@@ -1274,13 +1380,13 @@ def _public_split_assignment_options(
     return ((0,), (1,), (0, 1))
 
 
-def _current_relation_variants_for_new_entity(
+def _current_relation_choice_groups_for_new_entity(
     *,
     entity_region_id: str,
     relation_observations: list[Mapping[str, Any]],
     matches_by_region: Mapping[str, list[tuple[float, Mapping[str, Any]]]],
 ) -> list[list[tuple[Mapping[str, Any], str]]]:
-    """Enumerate only current public relation endpoints for a replacement BIRTH."""
+    """Return node-agnostic public endpoint choices without taking their product."""
 
     groups: list[list[tuple[Mapping[str, Any], str]]] = []
     seen: set[tuple[str, str, str, str]] = set()
@@ -1312,9 +1418,7 @@ def _current_relation_variants_for_new_entity(
         ]
         if choices:
             groups.append(choices)
-    if not groups:
-        return [[]]
-    return [list(variant) for variant in product(*groups)]
+    return groups
 
 
 def generate_public_candidate_catalog(
@@ -1362,7 +1466,12 @@ def generate_public_candidate_catalog(
         _append(
             rows, "BIRTH", str(region["structure_kind"]),
             float(region["reliability"]),
-            _birth_program(prior_memory, deployable_hash, region, tick),
+            _birth_program(
+                prior_memory, deployable_hash, region, tick,
+                support_envelope_reliability_threshold=(
+                    config.support_envelope_reliability_threshold
+                ),
+            ),
             capacity=capacity,
             priority_components={
                 "region_reliability": float(region["reliability"]),
@@ -1378,7 +1487,12 @@ def generate_public_candidate_catalog(
             if score >= rule["bind_threshold"]:
                 _append(
                     rows, "BIND", str(region["structure_kind"]), score,
-                    _bind_program(prior_memory, deployable_hash, region, node),
+                    _bind_program(
+                        prior_memory, deployable_hash, region, node, tick,
+                        support_envelope_reliability_threshold=(
+                            config.support_envelope_reliability_threshold
+                        ),
+                    ),
                     capacity=capacity,
                     priority_components=_association_priority_components(
                         region, node, rule,
@@ -1396,6 +1510,9 @@ def generate_public_candidate_catalog(
                     rows, "REACTIVATE", str(region["structure_kind"]), score,
                     _reactivate_program(
                         prior_memory, deployable_hash, region, node, tick,
+                        support_envelope_reliability_threshold=(
+                            config.support_envelope_reliability_threshold
+                        ),
                     ), capacity=capacity,
                     priority_components=_association_priority_components(
                         region, node, rule,
@@ -1447,6 +1564,11 @@ def generate_public_candidate_catalog(
             continue
         for source_score, source_node_match in matches_by_region[source_region_id]:
             for target_score, target_node_match in matches_by_region[target_region_id]:
+                if relation["relation"] in {"located_at", "supported_by"}:
+                    rows.setdefault(
+                        ("RELINK", f"relation:{relation['relation']}"),
+                        _CandidateBucket(capacity),
+                    ).count_endpoint_pair_evaluation()
                 source_node = source_node_match
                 target_node = target_node_match
                 source_id = str(source_node["node_id"])
@@ -1524,8 +1646,11 @@ def generate_public_candidate_catalog(
             node,
             public["free_space_observations"],
             minimum_reliability=config.free_space_reliability_threshold,
-            target_expansion_m=config.free_space_target_expansion_m,
+            target_expansion_m=config.support_envelope_margin_m,
             minimum_time_separation_s=config.minimum_free_space_time_separation_s,
+            support_reliability_threshold=(
+                config.support_envelope_reliability_threshold
+            ),
         )
         if len(covering) < 2:
             continue
@@ -1534,38 +1659,62 @@ def generate_public_candidate_catalog(
             incident_by_node.get(str(node["node_id"]), []),
             key=lambda edge: str(edge["edge_version_id"]),
         )
-        _append(
-            rows,
-            "RETRACT",
-            "entity",
-            reliability,
-            _node_retract_program(
-                prior_memory,
-                deployable_hash,
-                node,
-                incident_edges,
-                covering,
-                tick,
-            ),
-            capacity=capacity,
-            priority_components={
-                "free_space_minimum_reliability": reliability,
-            },
+        entity_rule = config.rule("entity")
+        has_current_bind_region = any(
+            region["structure_kind"] == "entity"
+            and association_score(
+                region, node,
+                visual_weight=entity_rule["visual_weight"],
+                geometry_weight=entity_rule["geometry_weight"],
+                geometry_scale_m=entity_rule["geometry_scale_m"],
+            ) >= entity_rule["bind_threshold"]
+            for region in regions
         )
+        retract_bucket = rows.setdefault(
+            ("RETRACT", "entity"), _CandidateBucket(capacity),
+        )
+        if has_current_bind_region:
+            retract_bucket.block_current_positive_node()
+        else:
+            retract_program, retract_evidence = _node_retract_program(
+                prior_memory, deployable_hash, node, incident_edges, covering, tick,
+            )
+            retract_bucket.append_group(
+                reliability,
+                [(retract_program, retract_evidence, {
+                    "free_space_minimum_reliability": reliability,
+                })],
+            )
         for region in regions:
             if region["structure_kind"] != "entity":
                 continue
-            for current_relations in _current_relation_variants_for_new_entity(
+            relation_groups = _current_relation_choice_groups_for_new_entity(
                 entity_region_id=str(region["region_id"]),
                 relation_observations=public["relation_observations"],
                 matches_by_region=matches_by_region,
+            )
+            ambiguous_variables = sum(len(group) > 1 for group in relation_groups)
+            variant_count = math.prod(len(group) for group in relation_groups)
+            if not relation_groups:
+                variant_count = 1
+            replace_bucket = rows.setdefault(
+                ("REPLACE", "entity"), _CandidateBucket(capacity),
+            )
+            if (
+                ambiguous_variables
+                > config.maximum_ambiguous_relation_variables
+                or variant_count > config.maximum_relation_variants
             ):
-                _append(
-                    rows,
-                    "REPLACE",
-                    "entity",
-                    reliability * float(region["reliability"]),
-                    _node_replace_program(
+                replace_bucket.reject_ambiguity_guarded_group(variant_count)
+                continue
+            if variant_count > capacity:
+                replace_bucket.reject_oversized_group(variant_count)
+                continue
+            variants = product(*relation_groups) if relation_groups else [()]
+            candidate_group = []
+            for variant in variants:
+                current_relations = list(variant)
+                program, online_evidence = _node_replace_program(
                         prior_memory,
                         deployable_hash,
                         node,
@@ -1574,14 +1723,20 @@ def generate_public_candidate_catalog(
                         covering,
                         tick,
                         current_relations=current_relations,
-                    ),
-                    capacity=capacity,
-                    priority_components={
+                        support_envelope_reliability_threshold=(
+                            config.support_envelope_reliability_threshold
+                        ),
+                    )
+                candidate_group.append((
+                    program, online_evidence, {
                         "free_space_minimum_reliability": reliability,
                         "region_reliability": float(region["reliability"]),
                         "current_relation_count": len(current_relations),
                     },
-                )
+                ))
+            replace_bucket.append_group(
+                reliability * float(region["reliability"]), candidate_group,
+            )
 
     for edge in edges:
         source = by_id.get(edge["source"])
@@ -1590,9 +1745,12 @@ def generate_public_candidate_catalog(
         covering = _covering_free_spaces(
             source, public["free_space_observations"],
             minimum_reliability=config.free_space_reliability_threshold,
-            target_expansion_m=config.free_space_target_expansion_m,
+            target_expansion_m=config.support_envelope_margin_m,
             minimum_time_separation_s=(
                 config.minimum_free_space_time_separation_s
+            ),
+            support_reliability_threshold=(
+                config.support_envelope_reliability_threshold
             ),
         )
         if len(covering) >= 2:
@@ -1614,6 +1772,9 @@ def generate_public_candidate_catalog(
                         reliability * float(region["reliability"]),
                         _replace_program(
                             prior_memory, deployable_hash, edge, region, covering, tick,
+                            support_envelope_reliability_threshold=(
+                                config.support_envelope_reliability_threshold
+                            ),
                         ), capacity=capacity,
                         priority_components={
                             "free_space_minimum_reliability": reliability,
@@ -1707,7 +1868,13 @@ def generate_public_candidate_catalog(
                 ambiguous_edge_count = sum(
                     len(options) > 1 for options in assignment_options
                 )
-                if ambiguous_edge_count > config.maximum_split_ambiguous_edges:
+                if (
+                    ambiguous_edge_count
+                    > config.maximum_ambiguous_relation_variables
+                ):
+                    split_bucket.reject_ambiguity_guarded_group(assignment_count)
+                    continue
+                if assignment_count > config.maximum_relation_variants:
                     split_bucket.reject_ambiguity_guarded_group(assignment_count)
                     continue
                 if assignment_count > capacity:
@@ -1718,6 +1885,9 @@ def generate_public_candidate_catalog(
                             prior_memory, deployable_hash, node, left, right, tick,
                             incident_edges=incident_edges,
                             assignment_indices=assignment_indices,
+                            support_envelope_reliability_threshold=(
+                                config.support_envelope_reliability_threshold
+                            ),
                         ), {
                             "left_association_score": left_score,
                             "right_association_score": right_score,
@@ -1782,6 +1952,17 @@ def generate_public_candidate_catalog(
             ),
             "total_incident_guard_rejected_node_count": (
                 bucket.total_incident_guard_rejected_node_count
+            ),
+            "cutoff_group_count": bucket.cutoff_group_count,
+            "cutoff_candidate_count": bucket.cutoff_candidate_count,
+            "unused_capacity": bucket.capacity - sum(
+                len(group[2]) for group in bucket.groups
+            ),
+            "current_positive_blocked_node_count": (
+                bucket.current_positive_blocked_node_count
+            ),
+            "endpoint_pair_evaluation_count": (
+                bucket.endpoint_pair_evaluation_count
             ),
             "minimum_retained_priority": (
                 min(group[0] for group in bucket.groups)

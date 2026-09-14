@@ -31,7 +31,7 @@ def place_region() -> dict[str, object]:
 
 def packet(memory: dict[str, object]) -> dict[str, object]:
     return {
-        "schema_version": "vsmt-observation-packet-v2",
+        "schema_version": "vsmt-observation-packet-v3",
         "sample_id_hash": "1" * 64,
         "decision_time_s": 1.0,
         "rgbd_refs": {"rgb_sha256": "2" * 64, "depth_sha256": "3" * 64},
@@ -44,6 +44,7 @@ def packet(memory: dict[str, object]) -> dict[str, object]:
         "region_observations": [place_region()],
         "relation_observations": [],
         "free_space_observations": [],
+        "visibility_observations": [],
         "prior_memory_ref": {
             "graph_version": memory["graph_version"],
             "graph_sha256": memory["graph_hash"],
@@ -64,14 +65,20 @@ class PlaceScaffoldTests(unittest.TestCase):
         second = deepcopy(first)
         second["sample_id_hash"] = "a" * 64
         second["rgbd_refs"] = {"rgb_sha256": "b" * 64, "depth_sha256": "c" * 64}
-        first_packet, first_memory = prepare_place_scaffold(first, memory)
-        second_packet, second_memory = prepare_place_scaffold(second, memory)
+        first_packet, first_memory = prepare_place_scaffold(
+            first, memory, support_envelope_reliability_threshold=0.9,
+        )
+        second_packet, second_memory = prepare_place_scaffold(
+            second, memory, support_envelope_reliability_threshold=0.9,
+        )
         self.assertEqual(first_memory, second_memory)
         self.assertNotEqual(first_packet["rgbd_refs"], second_packet["rgbd_refs"])
 
     def test_revisit_versions_one_coordinate_identity_without_a_learned_template(self) -> None:
         memory = empty_public_memory()
-        first_packet, first_memory = prepare_place_scaffold(packet(memory), memory)
+        first_packet, first_memory = prepare_place_scaffold(
+            packet(memory), memory, support_envelope_reliability_threshold=0.9,
+        )
         current = [node for node in first_memory["nodes"] if node["valid_to"] is None]
         self.assertEqual(len(current), 1)
         node_id = current[0]["node_id"]
@@ -84,7 +91,9 @@ class PlaceScaffoldTests(unittest.TestCase):
             "graph_version": first_memory["graph_version"],
             "graph_sha256": first_memory["graph_hash"],
         }
-        _, second_memory = prepare_place_scaffold(later, first_memory)
+        _, second_memory = prepare_place_scaffold(
+            later, first_memory, support_envelope_reliability_threshold=0.9,
+        )
         versions = [node for node in second_memory["nodes"] if node["node_id"] == node_id]
         self.assertEqual(len(versions), 2)
         self.assertEqual(len([node for node in versions if node["valid_to"] is None]), 1)

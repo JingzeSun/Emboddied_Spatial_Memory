@@ -17,6 +17,7 @@ from .graph_ops import (
 
 def prepare_place_scaffold(
     packet: Mapping[str, Any], prior_memory: Mapping[str, Any],
+    *, support_envelope_reliability_threshold: float,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Advance public place versions before any method-specific decision."""
 
@@ -26,7 +27,12 @@ def prepare_place_scaffold(
         region for region in model_input["region_observations"]
         if region["structure_kind"] == "place"
     ]
-    revision = GraphRevision(prior_memory, method_id=PLACE_SCAFFOLD_ID)
+    revision = GraphRevision(
+        prior_memory, method_id=PLACE_SCAFFOLD_ID,
+        support_envelope_reliability_threshold=(
+            support_envelope_reliability_threshold
+        ),
+    )
     for region in places:
         revision.upsert_place_scaffold(
             region, float(model_input["decision_time_s"]),

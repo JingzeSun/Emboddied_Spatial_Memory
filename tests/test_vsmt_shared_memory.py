@@ -31,6 +31,12 @@ def observed_node(
         "reliability": 1.0,
         "last_seen_s": 0.0,
         "observation_count": 2,
+        "observation_aabb_min_m": [-0.05, -0.05, -0.05],
+        "observation_aabb_max_m": [0.05, 0.05, 0.05],
+        "support_envelope_min_m": [-0.05, -0.05, -0.05],
+        "support_envelope_max_m": [0.05, 0.05, 0.05],
+        "support_envelope_observation_count": 2,
+        "support_envelope_reliability_threshold": 0.9,
     }
     return {
         "node_id": node_id,
@@ -65,7 +71,7 @@ def memory() -> dict[str, Any]:
 
 def packet(graph: dict[str, Any]) -> dict[str, Any]:
     return {
-        "schema_version": "vsmt-observation-packet-v2",
+        "schema_version": "vsmt-observation-packet-v3",
         "sample_id_hash": "1" * 64,
         "decision_time_s": 10.0,
         "rgbd_refs": {"rgb_sha256": "2" * 64, "depth_sha256": "3" * 64},
@@ -78,6 +84,7 @@ def packet(graph: dict[str, Any]) -> dict[str, Any]:
         "region_observations": [],
         "relation_observations": [],
         "free_space_observations": [],
+        "visibility_observations": [],
         "prior_memory_ref": {
             "graph_version": graph["graph_version"],
             "graph_sha256": graph["graph_hash"],
@@ -91,21 +98,61 @@ def packet(graph: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def visibility_record(identifier: str = "visibility:0000") -> dict[str, Any]:
+    return {
+        "visibility_id": identifier,
+        "time_s": 10.0,
+        "halfspaces_world": [
+            {"normal": [1.0, 0.0, 0.0], "offset_m": 1.0},
+            {"normal": [-1.0, 0.0, 0.0], "offset_m": 1.0},
+            {"normal": [0.0, 1.0, 0.0], "offset_m": 1.0},
+            {"normal": [0.0, -1.0, 0.0], "offset_m": 1.0},
+            {"normal": [0.0, 0.0, 1.0], "offset_m": 1.0},
+            {"normal": [0.0, 0.0, -1.0], "offset_m": 1.0},
+        ],
+        "reliability": 1.0,
+        "support_sha256": "d" * 64,
+    }
+
+
+def shared_config(*, missed: int = 1) -> SharedMemoryConfig:
+    return SharedMemoryConfig(
+        support_envelope_reliability_threshold=0.9,
+        support_envelope_margin_m=0.02,
+        minimum_consecutive_missed_opportunities=missed,
+        opportunity_reliability_threshold=0.8,
+        free_space_reliability_threshold=0.8,
+        association_visual_weight=0.5,
+        association_geometry_weight=0.5,
+        association_geometry_scale_m=1.0,
+        association_bind_threshold=0.7,
+    )
+
+
 class SharedMemoryTests(unittest.TestCase):
-    def test_only_stale_confirmed_entity_becomes_dormant(self) -> None:
+    def test_public_opportunity_covers_candidate_and_confirmed_entities(self) -> None:
         graph = memory()
+        current_packet = packet(graph)
+        current_packet["visibility_observations"] = [visibility_record()]
         prepared, post, audit = prepare_shared_memory(
-            packet(graph),
+            current_packet,
             graph,
-            config=SharedMemoryConfig(dormancy_inactivity_horizon_s=5.0),
+            config=shared_config(),
         )
         current = {
             node["node_id"]: node for node in post["nodes"]
             if node["valid_to"] is None
         }
         self.assertEqual(current["entity-confirmed"]["lifecycle"], "dormant")
-        self.assertEqual(current["entity-candidate"]["lifecycle"], "candidate")
-        self.assertEqual(audit["dormant_node_ids"], ["entity-confirmed"])
+        self.assertEqual(current["entity-candidate"]["lifecycle"], "dormant")
+        self.assertEqual(
+            audit["dormant_node_ids"],
+            ["entity-candidate", "entity-confirmed"],
+        )
+        self.assertEqual(
+            current["entity-candidate"][STATE_KEY]["pre_dormancy_lifecycle"],
+            "candidate",
+        )
         self.assertEqual(audit["input_pre_memory_sha256"], graph["graph_hash"])
         self.assertEqual(prepared["prior_memory_ref"]["graph_sha256"], post["graph_hash"])
 
@@ -116,26 +163,94 @@ class SharedMemoryTests(unittest.TestCase):
         second["sample_id_hash"] = "a" * 64
         second["rgbd_refs"] = {"rgb_sha256": "b" * 64, "depth_sha256": "c" * 64}
         _, first_memory, first_audit = prepare_shared_memory(
-            first, graph, config=SharedMemoryConfig(5.0),
+            first, graph, config=shared_config(),
         )
         _, second_memory, second_audit = prepare_shared_memory(
-            second, graph, config=SharedMemoryConfig(5.0),
+            second, graph, config=shared_config(),
         )
         self.assertEqual(first_memory, second_memory)
         self.assertEqual(first_audit, second_audit)
 
-    def test_recent_confirmed_entity_remains_active(self) -> None:
+    def test_elapsed_time_without_visibility_is_not_an_opportunity(self) -> None:
         graph = memory()
-        current = next(
-            node for node in graph["nodes"] if node["node_id"] == "entity-confirmed"
-        )
-        current[STATE_KEY]["last_seen_s"] = 7.0
-        graph = seal_graph(graph)
         _, post, audit = prepare_shared_memory(
-            packet(graph), graph, config=SharedMemoryConfig(5.0),
+            packet(graph), graph, config=shared_config(),
         )
         self.assertEqual(post, graph)
         self.assertEqual(audit["dormant_node_ids"], [])
+
+    def test_visible_empty_routes_away_from_dormancy(self) -> None:
+        graph = memory()
+        current_packet = packet(graph)
+        current_packet["visibility_observations"] = [visibility_record()]
+        empty = visibility_record()
+        del empty["visibility_id"]
+        empty["free_space_id"] = "free:0000"
+        current_packet["free_space_observations"] = [empty]
+        _, post, audit = prepare_shared_memory(
+            current_packet, graph, config=shared_config(),
+        )
+        self.assertEqual(post, graph)
+        self.assertEqual(
+            audit["visible_empty_node_ids"],
+            ["entity-candidate", "entity-confirmed"],
+        )
+
+    def test_same_visibility_is_intersected_with_each_memory_node(self) -> None:
+        graph = memory()
+        candidate = next(
+            node for node in graph["nodes"]
+            if node["node_id"] == "entity-candidate"
+        )
+        candidate[STATE_KEY]["centroid_m"] = [5.0, 0.0, 0.0]
+        candidate[STATE_KEY]["observation_aabb_min_m"] = [4.95, -0.05, -0.05]
+        candidate[STATE_KEY]["observation_aabb_max_m"] = [5.05, 0.05, 0.05]
+        candidate[STATE_KEY]["support_envelope_min_m"] = [4.95, -0.05, -0.05]
+        candidate[STATE_KEY]["support_envelope_max_m"] = [5.05, 0.05, 0.05]
+        graph = seal_graph(graph)
+        current_packet = packet(graph)
+        current_packet["visibility_observations"] = [visibility_record()]
+        _, post, audit = prepare_shared_memory(
+            current_packet, graph, config=shared_config(),
+        )
+        current = {
+            node["node_id"]: node for node in post["nodes"]
+            if node["valid_to"] is None
+        }
+        self.assertEqual(current["entity-confirmed"]["lifecycle"], "dormant")
+        self.assertEqual(current["entity-candidate"]["lifecycle"], "candidate")
+        self.assertEqual(audit["dormant_node_ids"], ["entity-confirmed"])
+
+    def test_current_bind_eligible_region_resets_missed_count(self) -> None:
+        graph = memory()
+        confirmed = next(
+            node for node in graph["nodes"]
+            if node["node_id"] == "entity-confirmed"
+        )
+        confirmed[STATE_KEY]["missed_observation_opportunities"] = 2
+        graph = seal_graph(graph)
+        current_packet = packet(graph)
+        current_packet["region_observations"] = [{
+            "region_id": "region:0000",
+            "structure_kind": "entity",
+            "mask_sha256": "e" * 64,
+            "descriptor": [1.0, 0.0],
+            "centroid_m": [0.0, 0.0, 0.0],
+            "extent_m": [0.1, 0.1, 0.1],
+            "reliability": 1.0,
+            "proposal_source_id": "fixed.region.v2",
+        }]
+        _, post, audit = prepare_shared_memory(
+            current_packet, graph, config=shared_config(missed=3),
+        )
+        current = next(
+            node for node in post["nodes"]
+            if node["node_id"] == "entity-confirmed" and node["valid_to"] is None
+        )
+        self.assertEqual(
+            current[STATE_KEY]["missed_observation_opportunities"], 0,
+        )
+        self.assertEqual(audit["reset_node_ids"], ["entity-confirmed"])
 
 
 if __name__ == "__main__":

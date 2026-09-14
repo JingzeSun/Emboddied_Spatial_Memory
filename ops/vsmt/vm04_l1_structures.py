@@ -31,7 +31,7 @@ STAGE_ID = "vsmt-vm04-l1-action-symmetry-v1"
 TEST_GROUPS = (
     ("executor", "test_executor.py", 42),
     ("l1", "test_l1_*.py", 31),
-    ("vsmt", "test_vsmt_*.py", 82),
+    ("vsmt", "test_vsmt_*.py", 91),
 )
 EXPECTED_TESTS = sum(group[2] for group in TEST_GROUPS)
 BOUND_PATHS = (
@@ -99,6 +99,10 @@ def write_new_json(path: Path, value: Any) -> None:
 
 def load_config() -> dict[str, Any]:
     config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+    action_symmetry = json.loads(
+        (PROJECT_ROOT / "configs" / "vsmt"
+         / "vm04_l1_action_symmetry_v1.json").read_text(encoding="utf-8")
+    )
     if config.get("status") != "approved_implementation_authorized_not_generation":
         raise RuntimeError("L1 structure config is not implementation-authorized")
     approval = config.get("approval", {})
@@ -124,6 +128,20 @@ def load_config() -> dict[str, Any]:
         raise RuntimeError("approved negative-evidence separation is not bound")
     if free_space.get("target_aabb_expansion_m_per_side") != 0.02:
         raise RuntimeError("approved negative-evidence expansion is not bound")
+    if not (
+        action_symmetry.get("status") == "implementation_approved_non_executable"
+        and action_symmetry.get("decision") == "D-143"
+        and action_symmetry.get("shared_lifecycle_wrapper", {}).get(
+            "packet_field"
+        ) == "visibility_observations"
+        and action_symmetry.get("node_bind_versioning", {}).get(
+            "close_current_and_open_successor"
+        ) is True
+        and action_symmetry.get("generation_authorized") is False
+        and action_symmetry.get("training_authorized") is False
+        and action_symmetry.get("confirmation_authorized") is False
+    ):
+        raise RuntimeError("D-143 packet-v3 and versioned-BIND approval is not bound")
     return config
 
 
@@ -324,6 +342,7 @@ def run_smoke(reviewed_code: str, output_root: Path) -> None:
             assemble_region_records,
             entity_regions_with_masks,
             materialize_public_free_space,
+            materialize_public_visibility,
             materialize_public_places,
             materialize_public_relations,
             materialize_public_surfaces,
@@ -481,9 +500,12 @@ def run_smoke(reviewed_code: str, output_root: Path) -> None:
             [free_first, free_second],
             rolling_public_observation_times=free_config.rolling_public_observation_times,
         )
+        visibility = materialize_public_visibility(
+            free_second, surface_clearance_m=free_config.surface_clearance_m,
+        )
         memory = empty_public_memory()
         packet = {
-            "schema_version": "vsmt-observation-packet-v2",
+            "schema_version": "vsmt-observation-packet-v3",
             "sample_id_hash": "4" * 64,
             "decision_time_s": 0.3,
             "rgbd_refs": {"rgb_sha256": "5" * 64, "depth_sha256": "3" * 64},
@@ -493,6 +515,7 @@ def run_smoke(reviewed_code: str, output_root: Path) -> None:
             "region_observations": regions,
             "relation_observations": relations,
             "free_space_observations": free_spaces,
+            "visibility_observations": visibility,
             "prior_memory_ref": {
                 "graph_version": memory["graph_version"],
                 "graph_sha256": memory["graph_hash"],
@@ -520,6 +543,7 @@ def run_smoke(reviewed_code: str, output_root: Path) -> None:
                 },
                 maximum_regions_per_packet=512,
                 builder_revision="smoke-v1",
+                support_envelope_reliability_threshold=0.9,
             ),
         )
         candidate_packet = dict(packet)
@@ -530,7 +554,17 @@ def run_smoke(reviewed_code: str, output_root: Path) -> None:
         candidate_packet, candidate_memory, shared_audit = prepare_shared_memory(
             candidate_packet,
             result["post_memory"],
-            config=SharedMemoryConfig(dormancy_inactivity_horizon_s=1.0),
+            config=SharedMemoryConfig(
+                support_envelope_reliability_threshold=0.9,
+                support_envelope_margin_m=0.02,
+                minimum_consecutive_missed_opportunities=3,
+                opportunity_reliability_threshold=0.9,
+                free_space_reliability_threshold=0.9,
+                association_visual_weight=0.5,
+                association_geometry_weight=0.5,
+                association_geometry_scale_m=1.0,
+                association_bind_threshold=0.8,
+            ),
         )
         candidate_catalog = generate_public_candidate_catalog(
             candidate_packet,
@@ -549,10 +583,12 @@ def run_smoke(reviewed_code: str, output_root: Path) -> None:
                 },
                 split_minimum_separation_m=0.3,
                 free_space_reliability_threshold=0.9,
-                free_space_target_expansion_m=0.02,
+                support_envelope_reliability_threshold=0.9,
+                support_envelope_margin_m=0.02,
                 minimum_free_space_time_separation_s=0.25,
                 maximum_candidates_per_bucket=20,
-                maximum_split_ambiguous_edges=8,
+                maximum_ambiguous_relation_variables=8,
+                maximum_relation_variants=100,
                 maximum_split_total_incident_edges=16,
             ),
         )
@@ -561,6 +597,7 @@ def run_smoke(reviewed_code: str, output_root: Path) -> None:
             len(surfaces) >= 1
             and len(places) >= 1
             and len(free_spaces) == 682
+            and len(visibility) == 341
             and len(relations) >= 2
             and relation_counts.get("born", 0) >= 1
             and len(candidate_catalog["candidates"]) >= 1
@@ -574,6 +611,7 @@ def run_smoke(reviewed_code: str, output_root: Path) -> None:
             "place_regions": len(places),
             "packet_regions": len(regions),
             "free_space_frusta": len(free_spaces),
+            "visibility_frusta": len(visibility),
             "relation_observations": len(relations),
             "canonical_relation_edges": len(result["post_memory"]["edges"]),
             "relation_updates": relation_counts,

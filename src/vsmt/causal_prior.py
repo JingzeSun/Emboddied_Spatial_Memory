@@ -50,6 +50,7 @@ class PublicBootstrapConfig:
     """All scientific values are required; this class has no defaults."""
 
     association_rules: Mapping[str, Mapping[str, float]]
+    support_envelope_reliability_threshold: float
     maximum_regions_per_packet: int
     builder_revision: str
 
@@ -84,6 +85,10 @@ class PublicBootstrapConfig:
             or self.maximum_regions_per_packet <= 0
         ):
             raise ValueError("maximum_regions_per_packet must be a positive integer")
+        validate_threshold(
+            self.support_envelope_reliability_threshold,
+            "support_envelope_reliability_threshold", low=0.0, high=1.0,
+        )
         if (
             type(self.builder_revision) is not str
             or not self.builder_revision
@@ -142,7 +147,12 @@ def advance_public_bootstrap(
     if len(regions) > config.maximum_regions_per_packet:
         raise ValueError("packet exceeds maximum_regions_per_packet")
 
-    revision = GraphRevision(prior_memory, method_id=BUILDER_ID)
+    revision = GraphRevision(
+        prior_memory, method_id=BUILDER_ID,
+        support_envelope_reliability_threshold=(
+            config.support_envelope_reliability_threshold
+        ),
+    )
     used_node_ids: set[str] = set()
     decisions: list[dict[str, Any]] = []
     region_node_ids: dict[str, str] = {}

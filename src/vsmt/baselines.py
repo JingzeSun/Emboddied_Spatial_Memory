@@ -84,6 +84,7 @@ def _validate_association_rules(
 @dataclass(frozen=True)
 class LOWConfig:
     maximum_centroid_distance_m_by_structure_kind: Mapping[str, float]
+    support_envelope_reliability_threshold: float
 
     def __post_init__(self) -> None:
         rules = self.maximum_centroid_distance_m_by_structure_kind
@@ -94,6 +95,10 @@ class LOWConfig:
             )
         for kind, value in rules.items():
             _positive(value, f"maximum_centroid_distance_m.{kind}")
+        validate_threshold(
+            self.support_envelope_reliability_threshold,
+            "support_envelope_reliability_threshold", low=0.0, high=1.0,
+        )
 
     def maximum_distance(self, structure_kind: str) -> float:
         return self.maximum_centroid_distance_m_by_structure_kind[structure_kind]
@@ -103,6 +108,7 @@ class LOWConfig:
 class TAFConfig:
     association_rules: Mapping[str, Mapping[str, float]]
     fusion_interval: int
+    support_envelope_reliability_threshold: float
 
     def __post_init__(self) -> None:
         _validate_association_rules(
@@ -114,6 +120,10 @@ class TAFConfig:
             name="TAF association_rules",
         )
         _positive_integer(self.fusion_interval, "fusion_interval")
+        validate_threshold(
+            self.support_envelope_reliability_threshold,
+            "support_envelope_reliability_threshold", low=0.0, high=1.0,
+        )
 
     def rule(self, structure_kind: str) -> Mapping[str, float]:
         return self.association_rules[structure_kind]
@@ -123,7 +133,8 @@ class TAFConfig:
 class ELUConfig:
     association_rules: Mapping[str, Mapping[str, float]]
     free_space_reliability_threshold: float
-    free_space_target_expansion_m: float
+    support_envelope_reliability_threshold: float
+    support_envelope_margin_m: float
     minimum_free_space_time_separation_s: float
     birth_log_odds: float
     positive_log_odds_increment: float
@@ -144,11 +155,15 @@ class ELUConfig:
             self.free_space_reliability_threshold,
             "free_space_reliability_threshold", low=0.0, high=1.0,
         )
+        validate_threshold(
+            self.support_envelope_reliability_threshold,
+            "support_envelope_reliability_threshold", low=0.0, high=1.0,
+        )
         if finite_number(
-            self.free_space_target_expansion_m,
-            "free_space_target_expansion_m",
+            self.support_envelope_margin_m,
+            "support_envelope_margin_m",
         ) < 0.0:
-            raise ValueError("free_space_target_expansion_m must be non-negative")
+            raise ValueError("support_envelope_margin_m must be non-negative")
         _positive(
             self.minimum_free_space_time_separation_s,
             "minimum_free_space_time_separation_s",
@@ -174,7 +189,8 @@ class WFRConfig:
     reconciliation_interval: int
     absent_reconciliations_before_retract: int
     free_space_reliability_threshold: float
-    free_space_target_expansion_m: float
+    support_envelope_reliability_threshold: float
+    support_envelope_margin_m: float
     minimum_free_space_time_separation_s: float
 
     def __post_init__(self) -> None:
@@ -196,11 +212,15 @@ class WFRConfig:
             self.free_space_reliability_threshold,
             "free_space_reliability_threshold", low=0.0, high=1.0,
         )
+        validate_threshold(
+            self.support_envelope_reliability_threshold,
+            "support_envelope_reliability_threshold", low=0.0, high=1.0,
+        )
         if finite_number(
-            self.free_space_target_expansion_m,
-            "free_space_target_expansion_m",
+            self.support_envelope_margin_m,
+            "support_envelope_margin_m",
         ) < 0.0:
-            raise ValueError("free_space_target_expansion_m must be non-negative")
+            raise ValueError("support_envelope_margin_m must be non-negative")
         _positive(
             self.minimum_free_space_time_separation_s,
             "minimum_free_space_time_separation_s",
@@ -284,7 +304,12 @@ class LOWAdapter:
 
     def update(self, model_input: AdapterInput) -> Mapping[str, Any]:
         started = time.perf_counter()
-        revision = GraphRevision(model_input["prior_memory"], method_id=self.method_id)
+        revision = GraphRevision(
+            model_input["prior_memory"], method_id=self.method_id,
+            support_envelope_reliability_threshold=(
+                self.config.support_envelope_reliability_threshold
+            ),
+        )
         used: set[str] = set()
         region_node_ids = place_region_node_ids(
             model_input["region_observations"], revision.graph,
@@ -352,7 +377,12 @@ class TAFAdapter:
 
     def update(self, model_input: AdapterInput) -> Mapping[str, Any]:
         started = time.perf_counter()
-        revision = GraphRevision(model_input["prior_memory"], method_id=self.method_id)
+        revision = GraphRevision(
+            model_input["prior_memory"], method_id=self.method_id,
+            support_envelope_reliability_threshold=(
+                self.config.support_envelope_reliability_threshold
+            ),
+        )
         used: set[str] = set()
         region_node_ids = place_region_node_ids(
             model_input["region_observations"], revision.graph,
@@ -430,7 +460,12 @@ class ELUAdapter:
 
     def update(self, model_input: AdapterInput) -> Mapping[str, Any]:
         started = time.perf_counter()
-        revision = GraphRevision(model_input["prior_memory"], method_id=self.method_id)
+        revision = GraphRevision(
+            model_input["prior_memory"], method_id=self.method_id,
+            support_envelope_reliability_threshold=(
+                self.config.support_envelope_reliability_threshold
+            ),
+        )
         initial_open = [
             node for node in open_nodes(revision.graph)
             if node.get("node_type") != "place"
@@ -458,12 +493,17 @@ class ELUAdapter:
                     self.config.positive_log_odds_increment
                     * float(region["reliability"])
                 )
-                updated = revision.update_node(
-                    node, region, float(model_input["decision_time_s"]),
-                    lifecycle="confirmed", fused=True,
-                    template="REACTIVATE" if node["lifecycle"] == "dormant" else "BIND",
-                    state_updates={"existence_log_odds": log_odds},
-                )
+                if node["lifecycle"] == "dormant":
+                    updated = revision.reactivate_node(
+                        node, region, float(model_input["decision_time_s"]),
+                        state_updates={"existence_log_odds": log_odds},
+                    )
+                else:
+                    updated = revision.update_node(
+                        node, region, float(model_input["decision_time_s"]),
+                        lifecycle="confirmed", fused=True, template="BIND",
+                        state_updates={"existence_log_odds": log_odds},
+                    )
                 region_node_ids[str(region["region_id"])] = str(updated["node_id"])
                 used.add(str(node["node_id"]))
                 positive += 1
@@ -493,7 +533,10 @@ class ELUAdapter:
             if current is None or len(covering_free_space_times(
                 current, model_input["free_space_observations"],
                 minimum_reliability=self.config.free_space_reliability_threshold,
-                target_expansion_m=self.config.free_space_target_expansion_m,
+                target_expansion_m=self.config.support_envelope_margin_m,
+                support_reliability_threshold=(
+                    self.config.support_envelope_reliability_threshold
+                ),
                 minimum_time_separation_s=(
                     self.config.minimum_free_space_time_separation_s
                 ),
@@ -543,7 +586,12 @@ class WFRAdapter:
 
     def update(self, model_input: AdapterInput) -> Mapping[str, Any]:
         started = time.perf_counter()
-        revision = GraphRevision(model_input["prior_memory"], method_id=self.method_id)
+        revision = GraphRevision(
+            model_input["prior_memory"], method_id=self.method_id,
+            support_envelope_reliability_threshold=(
+                self.config.support_envelope_reliability_threshold
+            ),
+        )
         initial_open = [
             node for node in open_nodes(revision.graph)
             if node.get("node_type") != "place"
@@ -565,16 +613,23 @@ class WFRAdapter:
             if ranked and ranked[0][0] >= rule["association_threshold"]:
                 node = ranked[0][1]
                 state = observation_state(node) or {}
-                updated = revision.update_node(
-                    node, region, float(model_input["decision_time_s"]),
-                    lifecycle=node["lifecycle"], fused=True, template="BIND",
-                    state_updates={
-                        "fragment_observations": int(
-                            state.get("fragment_observations", 0)
-                        ) + 1,
-                        "absent_reconciliations": 0,
-                    },
-                )
+                state_updates = {
+                    "fragment_observations": int(
+                        state.get("fragment_observations", 0)
+                    ) + 1,
+                    "absent_reconciliations": 0,
+                }
+                if node["lifecycle"] == "dormant":
+                    updated = revision.reactivate_node(
+                        node, region, float(model_input["decision_time_s"]),
+                        state_updates=state_updates,
+                    )
+                else:
+                    updated = revision.update_node(
+                        node, region, float(model_input["decision_time_s"]),
+                        lifecycle=node["lifecycle"], fused=True, template="BIND",
+                        state_updates=state_updates,
+                    )
                 region_node_ids[str(region["region_id"])] = str(updated["node_id"])
                 used.add(str(node["node_id"]))
                 matched += 1
@@ -624,7 +679,10 @@ class WFRAdapter:
                     minimum_reliability=(
                         self.config.free_space_reliability_threshold
                     ),
-                    target_expansion_m=self.config.free_space_target_expansion_m,
+                    target_expansion_m=self.config.support_envelope_margin_m,
+                    support_reliability_threshold=(
+                        self.config.support_envelope_reliability_threshold
+                    ),
                     minimum_time_separation_s=(
                         self.config.minimum_free_space_time_separation_s
                     ),

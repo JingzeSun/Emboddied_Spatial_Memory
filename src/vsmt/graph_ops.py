@@ -55,6 +55,110 @@ def observation_state(node: Mapping[str, Any]) -> dict[str, Any] | None:
     return state
 
 
+def observation_aabb(
+    centroid_m: Sequence[Any], extent_m: Sequence[Any],
+) -> tuple[list[float], list[float]]:
+    if len(centroid_m) != 3 or len(extent_m) != 3:
+        raise ValueError("observation AABB needs three-dimensional inputs")
+    lower = [
+        finite_number(center, "observation centroid")
+        - finite_number(size, "observation extent") / 2.0
+        for center, size in zip(centroid_m, extent_m, strict=True)
+    ]
+    upper = [
+        finite_number(center, "observation centroid")
+        + finite_number(size, "observation extent") / 2.0
+        for center, size in zip(centroid_m, extent_m, strict=True)
+    ]
+    if any(size < 0.0 for size in map(float, extent_m)):
+        raise ValueError("observation extent must be non-negative")
+    return lower, upper
+
+
+def state_from_region(
+    region: Mapping[str, Any], decision_time_s: float, *,
+    support_envelope_reliability_threshold: float,
+    previous: Mapping[str, Any] | None = None,
+    fused: bool = False,
+) -> dict[str, Any]:
+    """Build shared observation state from one raw public region."""
+
+    threshold = validate_threshold(
+        support_envelope_reliability_threshold,
+        "support_envelope_reliability_threshold", low=0.0, high=1.0,
+    )
+    count = int(previous.get("observation_count", 0)) if previous else 0
+    if previous and fused:
+        previous_weight = max(1, count)
+        current_weight = max(1e-9, float(region["reliability"]))
+        total = previous_weight + current_weight
+
+        def blend(old: list[float], new: list[float]) -> list[float]:
+            return [
+                (previous_weight * float(a) + current_weight * float(b)) / total
+                for a, b in zip(old, new, strict=True)
+            ]
+
+        descriptor = blend(previous["descriptor"], region["descriptor"])
+        centroid = blend(previous["centroid_m"], region["centroid_m"])
+        extent = blend(previous["extent_m"], region["extent_m"])
+    else:
+        descriptor = [float(value) for value in region["descriptor"]]
+        centroid = [float(value) for value in region["centroid_m"]]
+        extent = [float(value) for value in region["extent_m"]]
+
+    raw_lower, raw_upper = observation_aabb(
+        region["centroid_m"], region["extent_m"],
+    )
+    previous_lower = previous.get("support_envelope_min_m") if previous else None
+    previous_upper = previous.get("support_envelope_max_m") if previous else None
+    previous_envelope_count = int(
+        previous.get("support_envelope_observation_count", 0)
+    ) if previous else 0
+    previous_threshold = (
+        previous.get("support_envelope_reliability_threshold")
+        if previous else threshold
+    )
+    if previous and previous_threshold is not None and not math.isclose(
+        float(previous_threshold), threshold, abs_tol=1e-12,
+    ):
+        raise ValueError("support-envelope reliability threshold changed mid-identity")
+    if float(region["reliability"]) >= threshold:
+        if previous_lower is None or previous_upper is None:
+            envelope_lower, envelope_upper = raw_lower, raw_upper
+        else:
+            envelope_lower = [
+                min(float(previous_lower[axis]), raw_lower[axis])
+                for axis in range(3)
+            ]
+            envelope_upper = [
+                max(float(previous_upper[axis]), raw_upper[axis])
+                for axis in range(3)
+            ]
+        envelope_count = previous_envelope_count + 1
+    else:
+        envelope_lower = clone_json(previous_lower)
+        envelope_upper = clone_json(previous_upper)
+        envelope_count = previous_envelope_count
+
+    result = clone_json(dict(previous)) if previous else {}
+    result.update({
+        "descriptor": descriptor,
+        "centroid_m": centroid,
+        "extent_m": extent,
+        "reliability": float(region["reliability"]),
+        "last_seen_s": float(decision_time_s),
+        "observation_count": count + 1,
+        "observation_aabb_min_m": raw_lower,
+        "observation_aabb_max_m": raw_upper,
+        "support_envelope_min_m": envelope_lower,
+        "support_envelope_max_m": envelope_upper,
+        "support_envelope_observation_count": envelope_count,
+        "support_envelope_reliability_threshold": threshold,
+    })
+    return result
+
+
 def open_nodes(graph: Mapping[str, Any], *, include_dormant: bool = True) -> list[dict[str, Any]]:
     lifecycles = {"candidate", "confirmed"}
     if include_dormant:
@@ -184,21 +288,37 @@ def node_pair_components(
 
 def fully_covered_by_free_space(
     node: Mapping[str, Any], free_spaces: Iterable[Mapping[str, Any]], *,
-    minimum_reliability: float, target_expansion_m: float = 0.02,
+    minimum_reliability: float, target_expansion_m: float,
+    support_reliability_threshold: float,
 ) -> bool:
+    support_threshold = validate_threshold(
+        support_reliability_threshold,
+        "support_reliability_threshold", low=0.0, high=1.0,
+    )
     state = observation_state(node)
     if state is None:
+        return False
+    recorded_threshold = state.get("support_envelope_reliability_threshold")
+    lower_bound = state.get("support_envelope_min_m")
+    upper_bound = state.get("support_envelope_max_m")
+    if (
+        recorded_threshold is None
+        or not math.isclose(float(recorded_threshold), support_threshold, abs_tol=1e-12)
+        or type(lower_bound) is not list or len(lower_bound) != 3
+        or type(upper_bound) is not list or len(upper_bound) != 3
+        or int(state.get("support_envelope_observation_count", 0)) < 1
+    ):
         return False
     expansion = finite_number(target_expansion_m, "target_expansion_m")
     if expansion < 0.0:
         raise ValueError("target_expansion_m must be non-negative")
     lower = [
-        float(center) - float(size) / 2.0 - expansion
-        for center, size in zip(state["centroid_m"], state["extent_m"])
+        finite_number(lower_bound[axis], "support envelope lower") - expansion
+        for axis in range(3)
     ]
     upper = [
-        float(center) + float(size) / 2.0 + expansion
-        for center, size in zip(state["centroid_m"], state["extent_m"])
+        finite_number(upper_bound[axis], "support envelope upper") + expansion
+        for axis in range(3)
     ]
     corners = list(product(*zip(lower, upper)))
     return any(
@@ -243,6 +363,7 @@ def covering_free_space_times(
     node: Mapping[str, Any], free_spaces: Iterable[Mapping[str, Any]], *,
     minimum_reliability: float, target_expansion_m: float,
     minimum_time_separation_s: float,
+    support_reliability_threshold: float,
 ) -> list[Mapping[str, Any]]:
     separation = finite_number(
         minimum_time_separation_s, "minimum_time_separation_s",
@@ -254,6 +375,7 @@ def covering_free_space_times(
         if fully_covered_by_free_space(
             node, [free_space], minimum_reliability=minimum_reliability,
             target_expansion_m=target_expansion_m,
+            support_reliability_threshold=support_reliability_threshold,
         ):
             by_time.setdefault(float(free_space["time_s"]), free_space)
     ordered = [by_time[key] for key in sorted(by_time)]
@@ -305,10 +427,17 @@ def place_scaffold_node_id(region: Mapping[str, Any]) -> str:
 class GraphRevision:
     """Mutable work copy used only inside one adapter update."""
 
-    def __init__(self, graph: Mapping[str, Any], *, method_id: str):
+    def __init__(
+        self, graph: Mapping[str, Any], *, method_id: str,
+        support_envelope_reliability_threshold: float,
+    ):
         self.graph = clone_json(dict(graph))
         validate_graph(self.graph, verify_hash=True)
         self.method_id = method_id
+        self.support_envelope_reliability_threshold = validate_threshold(
+            support_envelope_reliability_threshold,
+            "support_envelope_reliability_threshold", low=0.0, high=1.0,
+        )
         self.pre_hash = str(self.graph["graph_hash"])
         self.tick = next_tick(self.graph)
         self.templates: list[str] = []
@@ -333,35 +462,13 @@ class GraphRevision:
         self, region: Mapping[str, Any], decision_time_s: float, *,
         previous: Mapping[str, Any] | None = None, fused: bool = False,
     ) -> dict[str, Any]:
-        count = int(previous.get("observation_count", 0)) if previous else 0
-        if previous and fused:
-            previous_weight = max(1, count)
-            current_weight = max(1e-9, float(region["reliability"]))
-            total = previous_weight + current_weight
-
-            def blend(old: list[float], new: list[float]) -> list[float]:
-                return [
-                    (previous_weight * float(a) + current_weight * float(b)) / total
-                    for a, b in zip(old, new)
-                ]
-
-            descriptor = blend(previous["descriptor"], region["descriptor"])
-            centroid = blend(previous["centroid_m"], region["centroid_m"])
-            extent = blend(previous["extent_m"], region["extent_m"])
-        else:
-            descriptor = [float(value) for value in region["descriptor"]]
-            centroid = [float(value) for value in region["centroid_m"]]
-            extent = [float(value) for value in region["extent_m"]]
-        result = clone_json(dict(previous)) if previous else {}
-        result.update({
-            "descriptor": descriptor,
-            "centroid_m": centroid,
-            "extent_m": extent,
-            "reliability": float(region["reliability"]),
-            "last_seen_s": float(decision_time_s),
-            "observation_count": count + 1,
-        })
-        return result
+        return state_from_region(
+            region, decision_time_s,
+            support_envelope_reliability_threshold=(
+                self.support_envelope_reliability_threshold
+            ),
+            previous=previous, fused=fused,
+        )
 
     def create_node(
         self, region: Mapping[str, Any], decision_time_s: float, *,
@@ -669,23 +776,40 @@ class GraphRevision:
     ) -> dict[str, Any]:
         if node.get("lifecycle") != "dormant" or node.get("valid_to") is not None:
             raise ValueError("REACTIVATE requires one open dormant node version")
+        current = next(
+            item for item in self.graph["nodes"]
+            if item["node_version_id"] == node["node_version_id"]
+        )
+        current["valid_to"] = self.tick
+        self.closed_nodes.append(str(current["node_version_id"]))
         state = self._state_from_region(
-            region, decision_time_s, previous=observation_state(node), fused=True,
+            region, decision_time_s, previous=observation_state(current), fused=True,
         )
         state.update(clone_json(dict(state_updates)))
+        state["missed_observation_opportunities"] = 0
+        evidence_refs = list(dict.fromkeys(
+            list(current.get("evidence_refs", []))
+            + [f"observation:{region['mask_sha256']}"]
+        ))
+        prior_lifecycle = (observation_state(current) or {}).get(
+            "pre_dormancy_lifecycle", "confirmed",
+        )
+        successor_lifecycle = (
+            "candidate"
+            if prior_lifecycle == "candidate" and len(evidence_refs) < 2
+            else "confirmed"
+        )
         version_id = self._new_version_id(node["node_id"], "reactivate")
-        successor = clone_json(node)
+        successor = clone_json(current)
         successor.update({
             "node_version_id": version_id,
-            "lifecycle": "confirmed",
+            "lifecycle": successor_lifecycle,
             "valid_from": self.tick,
             "valid_to": None,
-            "evidence_refs": list(dict.fromkeys(
-                list(node.get("evidence_refs", []))
-                + [f"observation:{region['mask_sha256']}"]
-            )),
-            "predecessor_ids": [node["node_version_id"]],
-            "provenance": list(node["provenance"]) + [f"{self.method_id}:reactivate"],
+            "evidence_refs": evidence_refs,
+            "predecessor_ids": [current["node_version_id"]],
+            "provenance": list(current["provenance"])
+            + [f"{self.method_id}:reactivate"],
             STATE_KEY: state,
         })
         self.graph["nodes"].append(successor)
@@ -698,6 +822,21 @@ class GraphRevision:
         loser_state = observation_state(loser)
         if winner_state is None or loser_state is None:
             raise ValueError("MERGE requires two observation-state nodes")
+        for state in (winner_state, loser_state):
+            recorded_threshold = state.get(
+                "support_envelope_reliability_threshold"
+            )
+            if (
+                type(recorded_threshold) not in {int, float}
+                or not math.isclose(
+                    float(recorded_threshold),
+                    self.support_envelope_reliability_threshold,
+                    abs_tol=1e-12,
+                )
+            ):
+                raise ValueError(
+                    "MERGE inputs must use the shared support-envelope threshold"
+                )
         count_left = max(1, int(winner_state["observation_count"]))
         count_right = max(1, int(loser_state["observation_count"]))
         total = count_left + count_right
@@ -732,6 +871,35 @@ class GraphRevision:
             fused=False, template="MERGE",
             state_updates={"observation_count": total},
         )
+        merged_state = observation_state(merged)
+        if merged_state is None:
+            raise ValueError("MERGE successor lost observation state")
+        latest_state = (
+            loser_state
+            if float(loser_state["last_seen_s"]) > float(winner_state["last_seen_s"])
+            else winner_state
+        )
+        for key in ("observation_aabb_min_m", "observation_aabb_max_m"):
+            merged_state[key] = clone_json(latest_state.get(key))
+        left_lower = winner_state.get("support_envelope_min_m")
+        right_lower = loser_state.get("support_envelope_min_m")
+        left_upper = winner_state.get("support_envelope_max_m")
+        right_upper = loser_state.get("support_envelope_max_m")
+        if all(type(value) is list and len(value) == 3 for value in (
+            left_lower, right_lower, left_upper, right_upper,
+        )):
+            merged_state["support_envelope_min_m"] = [
+                min(float(left_lower[axis]), float(right_lower[axis]))
+                for axis in range(3)
+            ]
+            merged_state["support_envelope_max_m"] = [
+                max(float(left_upper[axis]), float(right_upper[axis]))
+                for axis in range(3)
+            ]
+            merged_state["support_envelope_observation_count"] = (
+                int(winner_state.get("support_envelope_observation_count", 0))
+                + int(loser_state.get("support_envelope_observation_count", 0))
+            )
         current_loser = next(
             item for item in self.graph["nodes"]
             if item["node_version_id"] == loser["node_version_id"]
@@ -739,6 +907,23 @@ class GraphRevision:
         if current_loser["valid_to"] is None:
             current_loser["valid_to"] = self.tick
             self.closed_nodes.append(current_loser["node_version_id"])
+        alias = clone_json(current_loser)
+        alias.update({
+            "node_version_id": self._new_version_id(
+                str(current_loser["node_id"]), "merge-alias",
+            ),
+            "lifecycle": "alias",
+            "canonical_id": str(winner["node_id"]),
+            "valid_from": self.tick,
+            "valid_to": None,
+            "evidence_refs": [],
+            "latent_refs": [],
+            "predecessor_ids": [current_loser["node_version_id"]],
+            "provenance": list(current_loser["provenance"])
+            + [f"{self.method_id}:merge-alias"],
+        })
+        self.graph["nodes"].append(alias)
+        self.created_nodes.append(str(alias["node_version_id"]))
         if any(
             edge.get("valid_to") is None
             and current_loser["node_id"] in {edge["source"], edge["target"]}
@@ -866,6 +1051,7 @@ class GraphRevision:
             "logical_tick": self.tick,
             "declared_template": declared,
             "observed_templates": distinct_templates,
+            "observed_template_instances": list(self.templates),
         })
         self.graph = seal_graph(self.graph)
         validate_graph(self.graph, verify_hash=True)

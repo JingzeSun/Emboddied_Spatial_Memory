@@ -71,6 +71,9 @@ def make_programs(base: dict, position: int) -> list[dict]:
             op("RECORD_PROVENANCE", target_kind="node", target_id="old",
                provenance_ref=tx)
         elif template == "BIRTH":
+            program["compatibility_label"] = (
+                "legacy_toy_entity_birth_with_initial_relation"
+            )
             op("CREATE_NODE", node=node("new", "entity", "latent:object", at=2,
                                        lifecycle="candidate", provenance=tx))
             op("ADD_EDGE", edge=edge("new-location", "new", position, at=2,

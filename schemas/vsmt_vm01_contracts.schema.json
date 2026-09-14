@@ -33,11 +33,11 @@
       "required": [
         "schema_version", "sample_id_hash", "decision_time_s", "rgbd_refs",
         "camera_pose", "robot_state", "past_actions", "region_observations",
-        "free_space_observations", "relation_observations",
+        "free_space_observations", "visibility_observations", "relation_observations",
         "prior_memory_ref", "public_constants"
       ],
       "properties": {
-        "schema_version": {"const": "vsmt-observation-packet-v2"},
+        "schema_version": {"const": "vsmt-observation-packet-v3"},
         "sample_id_hash": {"$ref": "#/$defs/sha256"},
         "decision_time_s": {"type": "number", "minimum": 0},
         "rgbd_refs": {
@@ -128,6 +128,38 @@
             ],
             "properties": {
               "free_space_id": {"type": "string", "pattern": "^free:[0-9]{4}$"},
+              "time_s": {"type": "number", "minimum": 0},
+              "halfspaces_world": {
+                "type": "array", "minItems": 6, "maxItems": 6,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["normal", "offset_m"],
+                  "properties": {
+                    "normal": {
+                      "type": "array", "minItems": 3, "maxItems": 3,
+                      "items": {"type": "number"}
+                    },
+                    "offset_m": {"type": "number"}
+                  }
+                }
+              },
+              "reliability": {"type": "number", "minimum": 0, "maximum": 1},
+              "support_sha256": {"$ref": "#/$defs/sha256"}
+            }
+          }
+        },
+        "visibility_observations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "visibility_id", "time_s", "halfspaces_world", "reliability",
+              "support_sha256"
+            ],
+            "properties": {
+              "visibility_id": {"type": "string", "pattern": "^visibility:[0-9]{4}$"},
               "time_s": {"type": "number", "minimum": 0},
               "halfspaces_world": {
                 "type": "array", "minItems": 6, "maxItems": 6,

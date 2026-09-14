@@ -252,7 +252,7 @@ class DeterministicExecutorTests(unittest.TestCase):
         source = next(
             node
             for node in result["nodes"]
-            if node["node_id"] == "conflated-1"
+            if node["node_version_id"] == "conflated-1@terminal"
         )
         self.assertEqual(source["lifecycle"], "retracted")
         self.assertEqual(source["valid_to"], 5)

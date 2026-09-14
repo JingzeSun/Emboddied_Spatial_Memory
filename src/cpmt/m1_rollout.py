@@ -1019,14 +1019,23 @@ def _split_program(
         {"op_id": "split:assert", "op_type": "ASSERT_PRECONDITION",
          "arguments": {"kind": "node_lifecycle", "node_id": source["node_id"],
                        "allowed": ["confirmed"]}},
-        {"op_id": "split:retract", "op_type": "SET_LIFECYCLE",
-         "arguments": {"node_id": source["node_id"], "from": "confirmed",
-                       "to": "retracted"}},
         {"op_id": "split:close", "op_type": "CLOSE_NODE_VERSION",
          "arguments": {"node_id": source["node_id"], "at": event["decision_time"]}},
         {"op_id": "split:provenance", "op_type": "RECORD_PROVENANCE",
          "arguments": {"target_kind": "node", "node_version_id": source["node_version_id"],
                        "provenance_ref": tx}},
+        {"op_id": "split:terminal", "op_type": "OPEN_NODE_VERSION",
+         "arguments": {"node": {
+             **source,
+             "node_version_id": f"{source['node_id']}@split-terminal:{event['step_index']}",
+             "lifecycle": "retracted",
+             "valid_from": event["decision_time"],
+             "valid_to": event["decision_time"],
+             "predecessor_ids": [source["node_version_id"]],
+             "provenance": list(dict.fromkeys(
+                 list(source["provenance"]) + [tx]
+             )),
+         }}},
     ]
     for index, (node_id, evidence_refs) in enumerate(
         zip(event["successor_ids"], partitions, strict=True)
@@ -1674,6 +1683,12 @@ def _build_fixed_candidate_catalog(
         for operation in program["operations"]:
             if operation["op_type"] == "RECORD_PROVENANCE":
                 operation["arguments"]["provenance_ref"] = program["transaction_id"]
+            elif operation["op_type"] == "OPEN_NODE_VERSION":
+                opened = operation["arguments"]["node"]
+                opened["provenance"] = list(dict.fromkeys(
+                    list(opened["provenance"][:-1])
+                    + [program["transaction_id"]]
+                ))
             elif operation["op_type"] == "CREATE_NODE":
                 operation["arguments"]["node"]["provenance"] = [
                     program["transaction_id"]

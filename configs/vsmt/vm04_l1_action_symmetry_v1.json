@@ -1,7 +1,7 @@
 {
   "version": "vsmt-vm04-l1-action-symmetry-v1",
   "status": "implementation_approved_non_executable",
-  "decision": "D-141",
+  "decision": "D-143",
   "formal_numeric_values_frozen": false,
   "generation_authorized": false,
   "training_authorized": false,

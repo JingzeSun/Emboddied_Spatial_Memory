@@ -62,7 +62,7 @@ def make_memory() -> dict[str, Any]:
 
 def make_packet(memory: Mapping[str, Any]) -> dict[str, Any]:
     return {
-        "schema_version": "vsmt-observation-packet-v2",
+        "schema_version": "vsmt-observation-packet-v3",
         "sample_id_hash": "1" * 64,
         "decision_time_s": 2.0,
         "rgbd_refs": {
@@ -103,6 +103,7 @@ def make_packet(memory: Mapping[str, Any]) -> dict[str, Any]:
             "reliability": 0.9,
             "support_sha256": "5" * 64,
         }],
+        "visibility_observations": [],
         "prior_memory_ref": {
             "graph_version": memory["graph_version"],
             "graph_sha256": memory["graph_hash"],
@@ -193,13 +194,22 @@ class VSMTContractTests(unittest.TestCase):
             {
                 "decision_time_s", "camera_pose", "robot_state", "past_actions",
                 "region_observations", "relation_observations",
-                "free_space_observations",
+                "free_space_observations", "visibility_observations",
                 "prior_memory", "public_constants",
             },
         )
         self.assertNotIn("sample_id_hash", model_input)
         self.assertNotIn("rgbd_refs", model_input)
         self.assertNotIn("prior_memory_ref", model_input)
+        schema = json.loads((
+            PROJECT_ROOT / "schemas" / "vsmt_vm01_contracts.schema.json"
+        ).read_text(encoding="utf-8"))
+        observation_schema = schema["$defs"]["observation_packet"]
+        self.assertEqual(
+            observation_schema["properties"]["schema_version"]["const"],
+            "vsmt-observation-packet-v3",
+        )
+        self.assertIn("visibility_observations", observation_schema["required"])
 
     def test_public_packet_rejects_private_reference_field(self) -> None:
         packet = deepcopy(self.packet)
@@ -339,7 +349,7 @@ class VSMTContractTests(unittest.TestCase):
         self.assertEqual(adapter.seen_keys, {
             "decision_time_s", "camera_pose", "robot_state", "past_actions",
             "region_observations", "relation_observations",
-            "free_space_observations",
+            "free_space_observations", "visibility_observations",
             "prior_memory", "public_constants",
         })
         audit = result["diagnostics"]["common_post_update_audit"]
@@ -370,6 +380,48 @@ class VSMTContractTests(unittest.TestCase):
         self.assertEqual(audit["protected_node_state_change_ids"], ["place-1"])
         self.assertEqual(
             audit["preexisting_node_version_mutations"], ["place-1@v0"],
+        )
+        self.assertEqual(
+            audit["preexisting_version_mutation_classifications"][0][
+                "classification"
+            ],
+            "append_only_evidence_or_provenance",
+        )
+        self.assertTrue(audit["template_diff_allowlist_passed"])
+
+    def test_run_adapter_rejects_undeclared_destructive_rewrite(self) -> None:
+        class RewriteAdapter(FixtureAdapter):
+            def update(self, model_input: dict[str, Any]) -> Mapping[str, Any]:
+                post = deepcopy(self.memory)
+                post["nodes"][0]["valid_from"] = 1
+                post = seal_graph(post)
+                result = make_result(self.memory, self.method_id)
+                result["post_memory"] = post
+                result["post_memory_sha256"] = post["graph_hash"]
+                result["normalized_delta"]["declared_template"] = "BIND"
+                return result
+
+        with self.assertRaisesRegex(ValueError, "destructive version rewrite"):
+            run_adapter(
+                RewriteAdapter(self.memory), self.packet, self.memory,
+            )
+
+    def test_common_audit_rejects_append_to_closed_history(self) -> None:
+        prior = deepcopy(self.memory)
+        prior["nodes"][0]["valid_to"] = 1
+        prior = seal_graph(prior)
+        post = deepcopy(prior)
+        post["nodes"][0]["evidence_refs"].append("observation:late-write")
+        post = seal_graph(post)
+        result = make_result(prior, "fixture.adapter")
+        result["post_memory"] = post
+        result["post_memory_sha256"] = post["graph_hash"]
+        result["normalized_delta"]["declared_template"] = "BIND"
+        audit = audit_memory_update_result(prior, result)
+        self.assertFalse(audit["template_diff_allowlist_passed"])
+        self.assertEqual(
+            audit["undeclared_destructive_rewrite_version_ids"],
+            ["place-1@v0"],
         )
 
     def test_common_audit_detects_physical_history_deletion(self) -> None:

@@ -25,7 +25,7 @@ from vsmt.contracts import (  # noqa: E402
     seal_private_evaluation,
     validate_candidate_catalog,
 )
-from vsmt.graph_ops import STATE_KEY  # noqa: E402
+from vsmt.graph_ops import STATE_KEY, opaque_id  # noqa: E402
 from vsmt.public_candidates import (  # noqa: E402
     PublicCandidateConfig,
     generate_public_candidate_catalog,
@@ -45,6 +45,20 @@ def node(
         "reliability": 1.0,
         "last_seen_s": 0.0,
         "observation_count": 1,
+        "observation_aabb_min_m": [
+            centroid[axis] - 0.05 for axis in range(3)
+        ],
+        "observation_aabb_max_m": [
+            centroid[axis] + 0.05 for axis in range(3)
+        ],
+        "support_envelope_min_m": [
+            centroid[axis] - 0.05 for axis in range(3)
+        ],
+        "support_envelope_max_m": [
+            centroid[axis] + 0.05 for axis in range(3)
+        ],
+        "support_envelope_observation_count": 1,
+        "support_envelope_reliability_threshold": 0.9,
     }
     if node_type == "place":
         state["place_scaffold_key"] = f"{centroid[0]:.9f}:{centroid[2]:.9f}"
@@ -109,9 +123,10 @@ def region(index: int, centroid: list[float], kind: str = "entity") -> dict[str,
 
 def packet_fixture(
     graph: Mapping[str, Any], *, free_times: tuple[float, ...] = (0.5, 1.0),
+    current_bind_matches: bool = True,
 ) -> dict[str, Any]:
-    return {
-        "schema_version": "vsmt-observation-packet-v2",
+    packet = {
+        "schema_version": "vsmt-observation-packet-v3",
         "sample_id_hash": "1" * 64,
         "decision_time_s": 1.0,
         "rgbd_refs": {"rgb_sha256": "2" * 64, "depth_sha256": "3" * 64},
@@ -151,6 +166,7 @@ def packet_fixture(
             }
             for index, time_s in enumerate(free_times)
         ],
+        "visibility_observations": [],
         "prior_memory_ref": {
             "graph_version": graph["graph_version"],
             "graph_sha256": graph["graph_hash"],
@@ -162,6 +178,11 @@ def packet_fixture(
             "proposal_model_id": "fixed.region.v1",
         },
     }
+    if not current_bind_matches:
+        for item in packet["region_observations"]:
+            if item["structure_kind"] == "entity":
+                item["descriptor"] = [-1.0, 0.0]
+    return packet
 
 
 def config() -> PublicCandidateConfig:
@@ -179,10 +200,12 @@ def config() -> PublicCandidateConfig:
         },
         split_minimum_separation_m=0.3,
         free_space_reliability_threshold=0.9,
-        free_space_target_expansion_m=0.02,
+        support_envelope_reliability_threshold=0.9,
+        support_envelope_margin_m=0.02,
         minimum_free_space_time_separation_s=0.25,
         maximum_candidates_per_bucket=20,
-        maximum_split_ambiguous_edges=8,
+        maximum_ambiguous_relation_variables=8,
+        maximum_relation_variants=100,
         maximum_split_total_incident_edges=16,
     )
 
@@ -334,6 +357,134 @@ class PublicCandidateTests(unittest.TestCase):
             )
             for program in programs
         ))
+        relink_audit = next(
+            row for row in catalog["capacity_audit"]
+            if row["bucket_id"] == "RELINK|relation:located_at"
+        )
+        self.assertGreater(relink_audit["endpoint_pair_evaluation_count"], 0)
+
+    def test_node_bind_versions_raw_aabb_and_monotonic_envelope(self) -> None:
+        graph = graph_fixture()
+        public = packet_fixture(graph)
+        public["region_observations"][0]["centroid_m"] = [0.1, 0.0, 0.0]
+        catalog = generate_public_candidate_catalog(public, graph, config=config())
+        candidate = next(
+            item for item in catalog["candidates"]
+            if item["program"]["template"] == "BIND"
+            and any(
+                operation["op_type"] == "CLOSE_NODE_VERSION"
+                and operation["arguments"]["node_id"] == "entity-a"
+                for operation in item["program"]["operations"]
+            )
+            and any(
+                operation["op_type"] == "OPEN_NODE_VERSION"
+                and operation["arguments"]["node"][STATE_KEY][
+                    "observation_aabb_min_m"
+                ][0] < 0.1
+                for operation in item["program"]["operations"]
+            )
+        )
+        post = execute_transaction(
+            graph, candidate["program"],
+            evidence_by_id=candidate["online_evidence"],
+        )
+        versions = [node for node in post["nodes"] if node["node_id"] == "entity-a"]
+        self.assertEqual(len(versions), 2)
+        current = next(node for node in versions if node["valid_to"] is None)
+        state = current[STATE_KEY]
+        for actual, expected in zip(
+            state["observation_aabb_min_m"], [0.05, -0.05, -0.05], strict=True,
+        ):
+            self.assertAlmostEqual(actual, expected)
+        for actual, expected in zip(
+            state["observation_aabb_max_m"], [0.15, 0.05, 0.05], strict=True,
+        ):
+            self.assertAlmostEqual(actual, expected)
+        for actual, expected in zip(
+            state["support_envelope_min_m"], [-0.05, -0.05, -0.05], strict=True,
+        ):
+            self.assertAlmostEqual(actual, expected)
+        for actual, expected in zip(
+            state["support_envelope_max_m"], [0.15, 0.05, 0.05], strict=True,
+        ):
+            self.assertAlmostEqual(actual, expected)
+
+    def test_current_bind_eligible_region_blocks_only_standalone_node_retract(self) -> None:
+        graph = graph_fixture()
+        catalog = generate_public_candidate_catalog(
+            packet_fixture(graph), graph, config=config(),
+        )
+        self.assertFalse(any(
+            item["program"]["template"] == "RETRACT"
+            and item["program"].get("retraction_target") == {
+                "kind": "node_version", "version_id": "entity-a@v0",
+            }
+            for item in catalog["candidates"]
+        ))
+        self.assertTrue(any(
+            item["program"].get("composition_label") == "REPLACE"
+            and item["program"].get("retraction_target") == {
+                "kind": "node_version", "version_id": "entity-a@v0",
+            }
+            for item in catalog["candidates"]
+        ))
+        retract_audit = next(
+            row for row in catalog["capacity_audit"]
+            if row["bucket_id"] == "RETRACT|entity"
+        )
+        self.assertGreaterEqual(
+            retract_audit["current_positive_blocked_node_count"], 1,
+        )
+
+    def test_strict_group_cutoff_reports_unused_capacity(self) -> None:
+        graph = graph_fixture()
+        catalog = generate_public_candidate_catalog(
+            packet_fixture(graph), graph,
+            config=replace(config(), maximum_candidates_per_bucket=3),
+        )
+        row = next(
+            item for item in catalog["capacity_audit"]
+            if item["bucket_id"] == "SPLIT|entity"
+        )
+        self.assertEqual(row["retained_candidate_count"], 1)
+        self.assertEqual(row["cutoff_candidate_count"], 3)
+        self.assertEqual(row["unused_capacity"], 2)
+
+    def test_candidate_origin_dormancy_cannot_skip_confirmation_evidence(self) -> None:
+        graph = graph_fixture()
+        dormant = next(
+            node for node in graph["nodes"] if node["node_id"] == "entity-d"
+        )
+        dormant[STATE_KEY]["pre_dormancy_lifecycle"] = "candidate"
+        public = packet_fixture(graph)
+        duplicate_ref = opaque_id(
+            public["region_observations"][0]["mask_sha256"],
+            "reactivate",
+            prefix="evidence",
+        )
+        dormant["evidence_refs"] = [duplicate_ref]
+        graph = seal_graph(graph)
+        public["prior_memory_ref"] = {
+            "graph_version": graph["graph_version"],
+            "graph_sha256": graph["graph_hash"],
+        }
+        catalog = generate_public_candidate_catalog(public, graph, config=config())
+        candidate = next(
+            item for item in catalog["candidates"]
+            if item["program"]["template"] == "REACTIVATE"
+            and any(
+                operation["op_type"] == "CLOSE_NODE_VERSION"
+                and operation["arguments"]["node_id"] == "entity-d"
+                for operation in item["program"]["operations"]
+            )
+            and item["program"]["evidence_refs"] == [duplicate_ref]
+        )
+        post = execute_transaction(graph, candidate["program"])
+        current = next(
+            node for node in post["nodes"]
+            if node["node_id"] == "entity-d" and node["valid_to"] is None
+        )
+        self.assertEqual(current["lifecycle"], "candidate")
 
     def test_retract_and_replace_need_two_public_times(self) -> None:
         graph = graph_fixture()
@@ -356,7 +507,7 @@ class PublicCandidateTests(unittest.TestCase):
     def test_node_retract_closes_entity_and_all_incident_relations_atomically(self) -> None:
         graph = graph_fixture()
         catalog = generate_public_candidate_catalog(
-            packet_fixture(graph), graph, config=config(),
+            packet_fixture(graph, current_bind_matches=False), graph, config=config(),
         )
         program = next(
             item["program"] for item in catalog["candidates"]
@@ -394,7 +545,7 @@ class PublicCandidateTests(unittest.TestCase):
     def test_node_retract_rejects_one_missing_incident_edge_close_without_mutation(self) -> None:
         graph = graph_fixture()
         catalog = generate_public_candidate_catalog(
-            packet_fixture(graph), graph, config=config(),
+            packet_fixture(graph, current_bind_matches=False), graph, config=config(),
         )
         candidate = next(
             item for item in catalog["candidates"]
@@ -418,7 +569,7 @@ class PublicCandidateTests(unittest.TestCase):
     def test_node_retract_terminal_cannot_rewrite_preserved_state(self) -> None:
         graph = graph_fixture()
         catalog = generate_public_candidate_catalog(
-            packet_fixture(graph), graph, config=config(),
+            packet_fixture(graph, current_bind_matches=False), graph, config=config(),
         )
         candidate = next(
             item for item in catalog["candidates"]
@@ -444,7 +595,7 @@ class PublicCandidateTests(unittest.TestCase):
     def test_node_retract_cannot_attach_collateral_evidence(self) -> None:
         graph = graph_fixture()
         catalog = generate_public_candidate_catalog(
-            packet_fixture(graph), graph, config=config(),
+            packet_fixture(graph, current_bind_matches=False), graph, config=config(),
         )
         candidate = next(
             item for item in catalog["candidates"]
@@ -551,8 +702,9 @@ class PublicCandidateTests(unittest.TestCase):
         related = [
             program for program in split_programs
             if any(
-                operation["op_type"] == "SET_LIFECYCLE"
-                and operation["arguments"].get("node_id") == "entity-a"
+                operation["op_type"] == "OPEN_NODE_VERSION"
+                and operation["arguments"]["node"].get("node_id") == "entity-a"
+                and operation["arguments"]["node"].get("lifecycle") == "retracted"
                 for operation in program["operations"]
             )
         ]
@@ -590,8 +742,9 @@ class PublicCandidateTests(unittest.TestCase):
             item["program"] for item in catalog["candidates"]
             if item["program"]["template"] == "SPLIT"
             and any(
-                operation["op_type"] == "SET_LIFECYCLE"
-                and operation["arguments"].get("node_id") == "entity-a"
+                operation["op_type"] == "OPEN_NODE_VERSION"
+                and operation["arguments"]["node"].get("node_id") == "entity-a"
+                and operation["arguments"]["node"].get("lifecycle") == "retracted"
                 for operation in item["program"]["operations"]
             )
         ]
@@ -626,8 +779,9 @@ class PublicCandidateTests(unittest.TestCase):
             item["program"] for item in catalog["candidates"]
             if item["program"]["template"] == "SPLIT"
             and any(
-                operation["op_type"] == "SET_LIFECYCLE"
-                and operation["arguments"].get("node_id") == "entity-a"
+                operation["op_type"] == "OPEN_NODE_VERSION"
+                and operation["arguments"]["node"].get("node_id") == "entity-a"
+                and operation["arguments"]["node"].get("lifecycle") == "retracted"
                 for operation in item["program"]["operations"]
             )
         ]
@@ -643,7 +797,7 @@ class PublicCandidateTests(unittest.TestCase):
         graph = graph_fixture()
         public = packet_fixture(graph)
         for guarded in (
-            replace(config(), maximum_split_ambiguous_edges=0),
+            replace(config(), maximum_ambiguous_relation_variables=0),
             replace(config(), maximum_split_total_incident_edges=0),
         ):
             catalog = generate_public_candidate_catalog(
@@ -653,8 +807,9 @@ class PublicCandidateTests(unittest.TestCase):
                 item for item in catalog["candidates"]
                 if item["program"]["template"] == "SPLIT"
                 and any(
-                    operation["op_type"] == "SET_LIFECYCLE"
-                    and operation["arguments"].get("node_id") == "entity-a"
+                    operation["op_type"] == "OPEN_NODE_VERSION"
+                    and operation["arguments"]["node"].get("node_id") == "entity-a"
+                    and operation["arguments"]["node"].get("lifecycle") == "retracted"
                     for operation in item["program"]["operations"]
                 )
             ]

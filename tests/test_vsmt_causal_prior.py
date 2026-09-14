@@ -36,6 +36,7 @@ def bootstrap_config(**updates: Any) -> PublicBootstrapConfig:
         },
         "maximum_regions_per_packet": 8,
         "builder_revision": "fixture.v1",
+        "support_envelope_reliability_threshold": 0.9,
     }
     values.update(updates)
     return PublicBootstrapConfig(**values)
@@ -59,7 +60,7 @@ def packet(
     relations: list[Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     return {
-        "schema_version": "vsmt-observation-packet-v2",
+        "schema_version": "vsmt-observation-packet-v3",
         "sample_id_hash": "1" * 64,
         "decision_time_s": time_s,
         "rgbd_refs": {"rgb_sha256": "2" * 64, "depth_sha256": "3" * 64},
@@ -74,6 +75,7 @@ def packet(
             deepcopy(dict(item)) for item in (relations or [])
         ],
         "free_space_observations": [],
+        "visibility_observations": [],
         "prior_memory_ref": {
             "graph_version": graph["graph_version"],
             "graph_sha256": graph["graph_hash"],

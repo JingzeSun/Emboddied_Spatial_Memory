@@ -44,6 +44,12 @@ def observed_node(
         "reliability": 1.0,
         "last_seen_s": 0.0,
         "observation_count": observation_count,
+        "observation_aabb_min_m": [value - 0.1 for value in centroid],
+        "observation_aabb_max_m": [value + 0.1 for value in centroid],
+        "support_envelope_min_m": [value - 0.1 for value in centroid],
+        "support_envelope_max_m": [value + 0.1 for value in centroid],
+        "support_envelope_observation_count": observation_count,
+        "support_envelope_reliability_threshold": 0.9,
     }
     if state_updates:
         state.update(state_updates)
@@ -101,7 +107,7 @@ def packet(
     relations: list[Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     return {
-        "schema_version": "vsmt-observation-packet-v2",
+        "schema_version": "vsmt-observation-packet-v3",
         "sample_id_hash": "1" * 64,
         "decision_time_s": 1.0,
         "rgbd_refs": {"rgb_sha256": "2" * 64, "depth_sha256": "3" * 64},
@@ -129,6 +135,7 @@ def packet(
             "reliability": 1.0,
             "support_sha256": "4" * 64,
         } for index, time_s in enumerate((0.5, 1.0))] if include_free_space else []),
+        "visibility_observations": [],
         "prior_memory_ref": {
             "graph_version": graph["graph_version"],
             "graph_sha256": graph["graph_hash"],
@@ -158,7 +165,7 @@ def association_rules(**updates: Any) -> dict[str, dict[str, float]]:
 def low_config(distance: float) -> LOWConfig:
     return LOWConfig(maximum_centroid_distance_m_by_structure_kind={
         kind: distance for kind in ("entity", "surface", "fragment")
-    })
+    }, support_envelope_reliability_threshold=0.9)
 
 
 def taf_config(**updates: Any) -> TAFConfig:
@@ -169,14 +176,16 @@ def taf_config(**updates: Any) -> TAFConfig:
             duplicate_threshold=duplicate_threshold, **updates,
         ),
         fusion_interval=fusion_interval,
+        support_envelope_reliability_threshold=0.9,
     )
 
 
 def elu_config(**updates: Any) -> ELUConfig:
     values = {
         "association_rules": association_rules(),
+        "support_envelope_reliability_threshold": 0.9,
         "free_space_reliability_threshold": 0.8,
-        "free_space_target_expansion_m": 0.02,
+        "support_envelope_margin_m": 0.02,
         "minimum_free_space_time_separation_s": 0.25,
         "birth_log_odds": 0.0,
         "positive_log_odds_increment": 1.0,
@@ -191,11 +200,12 @@ def elu_config(**updates: Any) -> ELUConfig:
 def wfr_config(**updates: Any) -> WFRConfig:
     values = {
         "association_rules": association_rules(duplicate_threshold=0.9),
+        "support_envelope_reliability_threshold": 0.9,
         "confirmation_observations": 2,
         "reconciliation_interval": 1,
         "absent_reconciliations_before_retract": 1,
         "free_space_reliability_threshold": 0.8,
-        "free_space_target_expansion_m": 0.02,
+        "support_envelope_margin_m": 0.02,
         "minimum_free_space_time_separation_s": 0.25,
     }
     values.update(updates)
@@ -239,7 +249,17 @@ class VSMTBaselineTests(unittest.TestCase):
         prepared, scaffold_memory, shared_audit = prepare_shared_memory(
             packet(graph, regions=regions, relations=relations),
             graph,
-            config=SharedMemoryConfig(dormancy_inactivity_horizon_s=100.0),
+            config=SharedMemoryConfig(
+                support_envelope_reliability_threshold=0.9,
+                support_envelope_margin_m=0.02,
+                minimum_consecutive_missed_opportunities=3,
+                opportunity_reliability_threshold=0.8,
+                free_space_reliability_threshold=0.8,
+                association_visual_weight=0.5,
+                association_geometry_weight=0.5,
+                association_geometry_scale_m=1.0,
+                association_bind_threshold=0.7,
+            ),
         )
         self.assertEqual(shared_audit["dormant_node_ids"], [])
         for adapter in adapters:
@@ -348,6 +368,12 @@ class VSMTBaselineTests(unittest.TestCase):
             set(open_edges[0]["evidence_refs"]),
             {"observation:edge:0", "observation:edge:1"},
         )
+        accounting = result["diagnostics"]["common_post_update_audit"][
+            "semantic_edit_accounting"
+        ]
+        self.assertEqual(accounting["high_level_atom_count"], 1)
+        self.assertEqual(accounting["semantic_relation_growth_count"], 0)
+        self.assertGreater(accounting["raw_edge_version_churn"], 0)
 
     def test_elu_retracts_only_with_covering_free_space(self) -> None:
         graph = memory(observed_node(

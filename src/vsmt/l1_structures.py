@@ -288,6 +288,30 @@ class FreeSpaceFrustum:
         }
 
 
+@dataclass(frozen=True)
+class VisibilityFrustum:
+    """Node-independent public volume in which a structure could be observed."""
+
+    time_s: float
+    halfspaces_world: tuple[tuple[tuple[float, float, float], float], ...]
+    support_sha256: str
+    block_width_tiles: int
+    block_row: int
+    block_column: int
+
+    def public_record(self, visibility_id: str) -> dict[str, Any]:
+        return {
+            "visibility_id": visibility_id,
+            "time_s": self.time_s,
+            "halfspaces_world": [
+                {"normal": list(normal), "offset_m": offset}
+                for normal, offset in self.halfspaces_world
+            ],
+            "reliability": 1.0,
+            "support_sha256": self.support_sha256,
+        }
+
+
 def _mask_sha256(mask: np.ndarray) -> str:
     height, width = mask.shape
     payload = [int(height), int(width), *mask.astype(np.uint8).reshape(-1).tolist()]
@@ -791,6 +815,46 @@ def assemble_free_space_history(
         item.public_record(f"free:{index:04d}")
         for index, item in enumerate(ordered)
     ]
+
+
+def materialize_public_visibility(
+    free_spaces: Sequence[FreeSpaceFrustum], *, surface_clearance_m: float,
+) -> list[dict[str, Any]]:
+    """Recover current node-agnostic visibility volumes from public frusta.
+
+    Free space stops before the measured surface.  Visibility extends the far
+    plane back to that surface, so a remembered node behind it is occluded and
+    a node on or before it is an observation opportunity.
+    """
+
+    clearance = _positive(surface_clearance_m, "surface_clearance_m")
+    ordered = sorted(free_spaces, key=lambda item: (
+        item.block_width_tiles,
+        item.block_row,
+        item.block_column,
+        item.support_sha256,
+    ))
+    records: list[dict[str, Any]] = []
+    for index, item in enumerate(ordered):
+        if len(item.halfspaces_world) != 6:
+            raise L1StructureConstructionError("visibility_requires_six_halfspaces")
+        halfspaces = list(item.halfspaces_world)
+        far_normal, far_offset = halfspaces[-1]
+        halfspaces[-1] = (far_normal, float(far_offset) + clearance)
+        support = hashlib.sha256(canonical_json({
+            "free_space_support_sha256": item.support_sha256,
+            "surface_clearance_m": clearance,
+            "purpose": "node_agnostic_visibility",
+        }).encode("utf-8")).hexdigest()
+        records.append(VisibilityFrustum(
+            time_s=item.time_s,
+            halfspaces_world=tuple(halfspaces),
+            support_sha256=support,
+            block_width_tiles=item.block_width_tiles,
+            block_row=item.block_row,
+            block_column=item.block_column,
+        ).public_record(f"visibility:{index:04d}"))
+    return records
 
 
 def entity_regions_with_masks(

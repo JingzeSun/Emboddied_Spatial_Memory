@@ -76,7 +76,7 @@ Teacher-only supervision（仅教师可见监督）解决训练时可以利用�
 6. 正确程序不在公开候选中时记 `candidate_miss`，不得由 oracle 插入；teacher 选错记 `teacher_error`，学生与冻结 teacher 不一致记 `amortization_error`。
 7. 单列只用路径、seed、候选槽号、数量和时间步的 nuisance probe；它解决元数据能否猜答案的问题，输入不含图像/几何/记忆，输出事务分类准确率。例如候选 index 若几乎直接给出 MERGE 就必须失败。它不要求合法当前观测无法预测事务。
 
-VM-01 的共同适配运行器只把 `decision_time_s / camera_pose / robot_state / past_actions / region_observations / free_space_observations / prior_memory / public_constants` 交给方法，并检查方法没有原地修改输入；样本摘要、RGB-D 文件摘要和 prior 引用只在外层核对后剥离。候选目录的构造函数在签名上没有 private 参数，来源指针只允许公开包和 prior memory 白名单根；teacher 记录必须逐槽保持目录 ID 与顺序。白话：这解决“答案虽不在函数参数里，却通过路径、候选编号或预填 query 绕进来”的问题；输入公开记录和旧记忆，输出固定适配输入、候选摘要及后续独立 teacher 绑定。例如改变 reference MERGE pair 后若 logits 摘要变化，私有扰动检查直接失败。它不判断两个节点在现实中是否同一对象，也不证明模型有效。
+VM-01 的共同适配运行器只把 `decision_time_s / camera_pose / robot_state / past_actions / region_observations / free_space_observations / visibility_observations / relation_observations / prior_memory / public_constants` 交给方法，并检查方法没有原地修改输入；样本摘要、RGB-D 文件摘要和 prior 引用只在外层核对后剥离。`visibility_observations`只描述当前公开RGB-D能看清的匿名世界体积，不含任何节点ID或“该节点是否应被看见”的答案；共享函数再用每个方法自己的图计算错失观测机会。候选目录的构造函数在签名上没有 private 参数，来源指针只允许公开包和 prior memory 白名单根；teacher 记录必须逐槽保持目录 ID 与顺序。白话：这解决“答案虽不在函数参数里，却通过路径、候选编号或预填 query 绕进来”的问题；输入公开记录和旧记忆，输出固定适配输入、候选摘要及后续独立 teacher 绑定。例如改变 reference MERGE pair 后若 logits 摘要变化，私有扰动检查直接失败；又如同一匿名可见体积会因五个方法记住的杯子位置不同而产生不同机会判断。它不判断两个节点在现实中是否同一对象，也不证明模型有效。
 
 VM-03 的 `generate_public_candidate_catalog`（公开候选目录生成器）枚举 NOOP、BIND、BIRTH、REACTIVATE、RELINK、RETRACT、SPLIT、MERGE 八个原子模板及 REPLACE 复合程序。输入只有已验证公开包、prior predicted memory 和无默认值的类型化阈值/分桶容量配置；每个程序先用既有 deterministic executor（确定性执行器）真实 preflight/执行，再连同公开 `online_evidence`、枚举优先级及容量审计封存。节点候选按`template × entity/surface/fragment`分桶，关系候选按`template × relation_type`分桶，place不进入学习式BIND/MERGE/SPLIT。BIND/REACTIVATE/SPLIT 使用匿名区域与公开节点相似度，MERGE 使用两个同类公开节点，RELINK枚举开放关系与公开锚点，RETRACT/REPLACE必须有两个不同合法历史时刻的自由空间覆盖。当前正式阈值和cap尚未冻结，测试数值只验证分支。
 
@@ -147,7 +147,7 @@ VM-04 v1拟把单步机制比较和长期自反馈分开。`controlled_revision`
 
 `VM04Preflight`（VM-04服务器预检）已在提交`5e125ba`完成固定三步：`contracts`精确运行53项VSMT测试，`source-audit`只查询官方ref/元数据、现有DINO资产、模块/库/GPU/磁盘，`export`在前两步有摘要绑定成功标志后生成[报告](../results/vsmt_vm04_preflight.json)。输入是同一Git提交和只读审计配置，输出started、日志、receipt、success及小报告；前两次测试/PyPI来源错误的目录继续保留。它没有执行pip/conda安装、下载checkpoint主体、启动AI2-THOR、生成样本或训练，预检通过也不等于L1环境或数据已经就绪。
 
-关系感知 SPLIT 一次原子完成“关闭源节点、关闭全部开放incident edges、创建两个后继、按候选assignment重建边”。每条旧边可给左、右或二者；若当前公开`relation_observations`只支持左、只支持右或同时支持两者，生成器确定性收窄到该分配；若没有公开支持，则三种分配全部作为同一不可拆容量组保留。合同允许在至少两份已登记公开负证据下均不继承，但生成器仍不提出这一分支，避免暗定关系负证据。D-141将计算护栏拆成`maximum_split_ambiguous_edges`和`maximum_split_total_incident_edges`，正式值须由开发度数/容量审计后分别冻结，不再把“最多2条边”写成方法语义；源自环仍拒绝。输入一个待拆节点、两个公开区域、旧开放边和当前公开关系，输出完整合法的SPLIT后状态；例如只有左侧新区域公开显示仍位于原地点时，`located_at`只给左后继。它不是teacher事后补边，也不是哈希随机决定哪种关系分配活下来。
+关系感知 SPLIT 一次原子完成“关闭源节点、追加terminal retracted版本、关闭全部开放incident edges、创建两个后继、按候选assignment重建边”。每条旧边可给左、右或二者；若当前公开`relation_observations`只支持左、只支持右或同时支持两者，生成器确定性收窄到该分配；若没有公开支持，则三种分配全部作为同一不可拆容量组保留。合同允许在至少两份已登记公开负证据下均不继承，但生成器仍不提出这一分支，避免暗定关系负证据。D-143让SPLIT与REPLACE共用`maximum_ambiguous_relation_variables`和`maximum_relation_variants`，前者只计没有唯一公开支持的关系变量，后者限制完整变体数；SPLIT另受`maximum_split_total_incident_edges`限制整笔原子规模。正式值须由开发度数/容量审计后冻结，不再把“最多2条边”写成方法语义；源自环仍拒绝。输入一个待拆节点、两个公开区域、旧开放边和当前公开关系，输出完整合法的SPLIT后状态；例如只有左侧新区域公开显示仍位于原地点时，`located_at`只给左后继。它不是teacher事后补边，也不是哈希随机决定哪种关系分配活下来。
 
 VM-05把三个同架构内部对照列为解释论文胜负的一等实验，但不替代五个主臂。Direct Reference Candidate Ranker（DRCR，直接参考候选排序器）使用同一在线网络和已封存catalog，训练标签直接来自参考等价组，不使用执行后未来teacher；No-Execution Candidate Scorer（NECS，无执行候选评分器）使用同一catalog和teacher target，但不编码候选执行后的图；Public Heuristic Ranker（PHR，公开启发式排序器）完全不学习，只按另行冻结的公开决策分排序。三者输入边界与VSMT相同，输出候选槽位。例如NECS若已经解释全部收益，说明“执行候选后再比较”没有获得独立支持。它们是VSMT因果消融，不是ConceptGraphs/Fusion++/Khronos的替代；主报告必须同时给candidate recall，先区分候选遗漏、teacher错误和学生摊销错误。
 
@@ -1029,7 +1029,7 @@ z_{t,i}\approx\Pi(T_t,m_j),\qquad
 
 `CommonPostUpdateAudit`（共同更新后审计）分在线和评价两层。在线输入是公开packet、共同prior及确定性place scaffold ID，输出图合法性、历史保留、声明delta和版本变化分类；评价层等五方法都输出后才读取同一封存protected集合并计算状态/拓扑副作用。例如关闭杯子的`located_at`会合法改变地点的incident topology，但改写地点坐标属于未声明破坏并直接拒绝。它不把episode私有保护标签传给方法，也不要求TAF/ELU/WFR/LOW使用VSMT executor。
 
-`SemanticEditCost`（语义编辑代价，planned）按高层事务原子计费，而不是按写了多少版本逐条收费。输入执行程序及共同审计的必要/非必要变化分类，输出原子编辑成本与独立collateral成本；例如RELINK计1，REPLACE的RETRACT+BIRTH计2，RETRACT为保持一致性关闭五条旧关系不会变成额外5分。它不把两种程序判成同价，也不免除越界副作用。正式权重仍未冻结。
+`SemanticEditAccounting`（语义编辑记账）已按高层事务原子和canonical开放关系事实实现，不按写了多少物理版本逐条计数。输入执行结果与前后图，输出原子数、真正新增/移除的持续关系事实、原始edge版本周转和独立collateral审计；例如RELINK计1，REPLACE的RETRACT+BIRTH计2，RETRACT为保持一致性关闭五条旧关系不会变成额外5个原子，MERGE重锚但语义关系不变时只保留MERGE本身一个原子。它不把两种程序判成同价，也不免除越界副作用；将这些记账量组合成最终`SemanticEditCost`（语义编辑代价）的正式权重仍未冻结。
 
 D-143进一步规定节点BIND的共享版本形状：每次被方法接受的公开区域都保存本次原始AABB，并将达到可靠性门的原始AABB并入只增不减的支持包络；融合descriptor/centroid/extent只供关联状态，绝不能反推不可逆RETRACT体积。VSMT与四个对照都关闭旧版本、打开规范successor；这不改变BIND的高层原子成本。
 
