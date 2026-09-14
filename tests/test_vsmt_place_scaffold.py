@@ -192,6 +192,70 @@ class PlaceAdjacencyTests(unittest.TestCase):
         self.assertEqual(counts["bound"], 0)
         self.assertIn("adjacent_to", SCAFFOLD_RELATIONS)
 
+    def test_a_new_cell_links_to_a_neighbour_seen_in_an_earlier_packet(self) -> None:
+        memory = empty_public_memory()
+        first = packet(memory)
+        first["region_observations"] = [place_region(0, (0.25, 0.0, -0.25))]
+        first_packet, first_memory = prepare_place_scaffold(
+            first, memory, support_envelope_reliability_threshold=0.9,
+        )
+        self.assertEqual(
+            [edge for edge in first_memory["edges"] if edge["valid_to"] is None], [],
+        )
+
+        second = deepcopy(first_packet)
+        second["decision_time_s"] = 2.0
+        later_cell = place_region(1, (0.75, 0.0, -0.25))
+        later_cell["region_id"] = "region:0000"
+        second["region_observations"] = [later_cell]
+        second["relation_observations"] = []
+        second["prior_memory_ref"] = {
+            "graph_version": first_memory["graph_version"],
+            "graph_sha256": first_memory["graph_hash"],
+        }
+        _, second_memory = prepare_place_scaffold(
+            second, first_memory, support_envelope_reliability_threshold=0.9,
+        )
+        edges = [edge for edge in second_memory["edges"] if edge["valid_to"] is None]
+        self.assertEqual(len(edges), 1)
+        self.assertEqual(edges[0]["relation"], "adjacent_to")
+        self.assertEqual(
+            second_memory["transaction_log"][-1]["observed_templates"], [],
+        )
+
+    def test_a_diagonal_cell_is_not_adjacent(self) -> None:
+        memory = empty_public_memory()
+        current = packet(memory)
+        current["region_observations"] = [
+            place_region(0, (0.25, 0.0, -0.25)),
+            place_region(1, (0.75, 0.0, 0.25)),
+        ]
+        _, prepared = prepare_place_scaffold(
+            current, memory, support_envelope_reliability_threshold=0.9,
+        )
+        self.assertEqual(
+            [edge for edge in prepared["edges"] if edge["valid_to"] is None], [],
+        )
+
+    def test_a_memory_method_cannot_write_an_untemplated_edge(self) -> None:
+        memory = empty_public_memory()
+        _, prepared = prepare_place_scaffold(
+            self.neighbour_packet(memory), memory,
+            support_envelope_reliability_threshold=0.9,
+        )
+        revision = GraphRevision(
+            prepared, method_id="fixture.method.v1",
+            support_envelope_reliability_threshold=0.9,
+        )
+        open_edge = [
+            edge for edge in prepared["edges"] if edge["valid_to"] is None
+        ][0]
+        with self.assertRaisesRegex(ValueError, "reserved for the trusted"):
+            revision.bind_edge(
+                open_edge, adjacency_observation(),
+                template=None, purpose="adjacency-bind",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

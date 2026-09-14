@@ -20,6 +20,12 @@ STATE_KEY = "vsmt_observation_state"
 PLACE_SCAFFOLD_ID = "vsmt.place.scaffold.v1"
 # 白话：这些关系由确定性地点骨架维护，不进入任何方法的事务候选空间。
 SCAFFOLD_RELATIONS = frozenset({"adjacent_to"})
+# 白话：只有这些受信任的确定性包装可以做"不记模板"的边操作；记忆方法一律不行，
+# 否则一个适配器可以把建边藏在模板白名单之外。
+TRUSTED_SCAFFOLD_METHOD_IDS = frozenset({
+    PLACE_SCAFFOLD_ID,
+    "vsmt.public.bootstrap.v1",
+})
 
 
 def finite_number(value: Any, name: str) -> float:
@@ -429,6 +435,19 @@ def place_scaffold_key(region: Mapping[str, Any]) -> str:
     return f"{x:.9f}:{z:.9f}"
 
 
+def _sha256_json(value: Any) -> str:
+    return hashlib.sha256(canonical_json(value).encode("utf-8")).hexdigest()
+
+
+def place_scaffold_key_from_centre(x: float, z: float) -> str:
+    """Format one place scaffold key directly from a cell centre coordinate."""
+
+    return (
+        f"{finite_number(x, 'place centre x'):.9f}"
+        f":{finite_number(z, 'place centre z'):.9f}"
+    )
+
+
 def place_scaffold_node_id(region: Mapping[str, Any]) -> str:
     return opaque_id(PLACE_SCAFFOLD_ID, place_scaffold_key(region), prefix="node")
 
@@ -608,8 +627,7 @@ class GraphRevision:
         }
         self.graph["edges"].append(edge)
         self.created_edges.append(version_id)
-        if template is not None:
-            self.templates.append(template)
+        self._record_edge_template(template)
         return edge
 
     def bind_edge(
@@ -628,8 +646,7 @@ class GraphRevision:
         provenance = f"{self.method_id}:{purpose}"
         if provenance not in current["provenance"]:
             current["provenance"].append(provenance)
-        if template is not None:
-            self.templates.append(template)
+        self._record_edge_template(template)
         return current
 
     def relink_edge(
@@ -665,21 +682,69 @@ class GraphRevision:
         self.templates.append("RELINK")
         return successor
 
+    def _record_edge_template(self, template: str | None) -> None:
+        """Only a trusted deterministic wrapper may leave an edge untemplated."""
+
+        if template is not None:
+            self.templates.append(template)
+            return
+        if self.method_id not in TRUSTED_SCAFFOLD_METHOD_IDS:
+            raise ValueError(
+                "untemplated edge operations are reserved for the trusted "
+                "place adjacency scaffold"
+            )
+
+    def _open_place_scaffold_index(self) -> dict[str, dict[str, Any]]:
+        index: dict[str, dict[str, Any]] = {}
+        for node in self.graph["nodes"]:
+            if node.get("valid_to") is not None or node.get("node_type") != "place":
+                continue
+            key = (observation_state(node) or {}).get("place_scaffold_key")
+            if type(key) is not str:
+                continue
+            if key in index:
+                raise ValueError("place scaffold key has multiple open nodes")
+            index[key] = node
+        return index
+
+    def _place_cell_size_m(self, nodes: Sequence[Mapping[str, Any]]) -> float:
+        sizes = set()
+        for node in nodes:
+            extent = (observation_state(node) or {}).get("extent_m")
+            if type(extent) is not list or len(extent) != 3:
+                raise ValueError("place scaffold node is missing its cell extent")
+            width = finite_number(extent[0], "place cell width")
+            depth = finite_number(extent[2], "place cell depth")
+            if width <= 0.0 or not math.isclose(width, depth, abs_tol=1e-9):
+                raise ValueError("place cells must be positive and square")
+            sizes.add(round(width, 9))
+        if len(sizes) != 1:
+            raise ValueError("open place scaffold cells disagree on cell size")
+        return float(next(iter(sizes)))
+
     def apply_place_adjacency(
         self, relations: Sequence[Mapping[str, Any]],
         region_node_ids: Mapping[str, str],
     ) -> dict[str, int]:
         """Maintain the deterministic adjacency of the shared place scaffold.
 
-        白话：这一步解决“地面格之间挨着不挨着，本来就由格坐标决定，不该让记忆
-        方法去猜”的问题。输入是本帧公开的 `adjacent_to` 观测和地点格到骨架节点
-        的对应，输出是骨架自己维护的相邻边及计数；例如格 (3,5) 与 (3,6) 同时被
-        观测到时直接建立一条规范相邻边，再次观测只附加证据。它不产生候选事务、
-        不判断可通行，也不处理 `located_at` 或 `supported_by`。
+        白话：这一步解决"地面格之间挨着不挨着，本来就由格坐标决定，不该让记忆
+        方法去猜"的问题。输入是本帧的地点格到骨架节点的对应和本帧公开的
+        `adjacent_to` 观测，输出是骨架自己维护的相邻边及计数；例如本帧新见的格
+        (3,6) 会直接与上一帧就已经在图里的格 (3,5) 建立相邻边，本帧同时可见的
+        一对则改用该观测的公开支持摘要。它不产生候选事务、不判断可通行，也不
+        处理 `located_at` 或 `supported_by`。
         """
 
-        counts = {"born": 0, "bound": 0, "deduplicated": 0}
-        seen: set[tuple[str, str, str]] = set()
+        counts = {
+            "born": 0, "bound": 0, "deduplicated": 0,
+            "observation_supported": 0, "coordinate_derived": 0,
+        }
+        index = self._open_place_scaffold_index()
+        node_to_key = {
+            str(node["node_id"]): key for key, node in index.items()
+        }
+        observed: dict[tuple[str, str], Mapping[str, Any]] = {}
         for relation in relations:
             if str(relation["relation"]) not in SCAFFOLD_RELATIONS:
                 continue
@@ -690,28 +755,70 @@ class GraphRevision:
                 raise ValueError(
                     "place adjacency endpoints must be current place regions"
                 )
-            source, target, relation_kind = canonical_relation_observation(
+            source, target, _ = canonical_relation_observation(
                 relation, region_node_ids,
             )
-            if not all(
-                _node_type(self.graph, node_id) == "place"
-                for node_id in (source, target)
-            ):
+            if not all(node_id in node_to_key for node_id in (source, target)):
                 raise ValueError(
                     "place adjacency requires two open place scaffold nodes"
                 )
-            signature = (source, target, str(relation["support_sha256"]))
-            if signature in seen:
-                counts["deduplicated"] += 1
-                continue
-            seen.add(signature)
-            normalized = dict(relation)
-            normalized["relation"] = relation_kind
+            observed[(source, target)] = relation
+
+        current_nodes = sorted(
+            {
+                node_id for node_id in region_node_ids.values()
+                if str(node_id) in node_to_key
+            },
+            key=str,
+        )
+        if not current_nodes:
+            return counts
+        cell = self._place_cell_size_m(
+            [index[node_to_key[str(node_id)]] for node_id in current_nodes]
+        )
+        pairs: list[tuple[str, str]] = []
+        for node_id in current_nodes:
+            centre_x, centre_z = (
+                float(part) for part in node_to_key[str(node_id)].split(":")
+            )
+            for offset_x, offset_z in (
+                (cell, 0.0), (-cell, 0.0), (0.0, cell), (0.0, -cell),
+            ):
+                neighbour = index.get(place_scaffold_key_from_centre(
+                    centre_x + offset_x, centre_z + offset_z,
+                ))
+                if neighbour is None:
+                    continue
+                pair = tuple(sorted((str(node_id), str(neighbour["node_id"]))))
+                if pair[0] == pair[1]:
+                    continue
+                if pair in pairs:
+                    counts["deduplicated"] += 1
+                    continue
+                pairs.append(pair)  # type: ignore[arg-type]
+
+        for source, target in sorted(pairs):
+            relation = observed.get((source, target))
+            if relation is None:
+                support = _sha256_json([
+                    "vsmt.place.scaffold.adjacency.v1",
+                    node_to_key[source], node_to_key[target],
+                ])
+                normalized = {
+                    "relation_id": f"scaffold-adjacency:{support[:16]}",
+                    "relation": "adjacent_to",
+                    "support_sha256": support,
+                }
+                counts["coordinate_derived"] += 1
+            else:
+                normalized = dict(relation)
+                normalized["relation"] = "adjacent_to"
+                counts["observation_supported"] += 1
             exact = sorted((
                 edge for edge in open_edges(self.graph)
                 if edge["source"] == source
                 and edge["target"] == target
-                and edge["relation"] == relation_kind
+                and edge["relation"] == "adjacent_to"
             ), key=lambda edge: str(edge["edge_id"]))
             if exact:
                 self.bind_edge(
