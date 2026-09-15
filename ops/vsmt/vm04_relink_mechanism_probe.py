@@ -199,7 +199,8 @@ def adapted_request(original, mode):
     return request
 
 
-def execute_trial(house, pose, original_slot, scan_top2, contract, mode):
+def execute_trial(house, pose, original_slot, scan_top2, contract, mode,
+                  *, physics_step_count=0):
     """Fresh controller; replay frozen camera path, change only one control."""
     target_id = original_slot["v3_target_instance_ids"][0]
     result = {"schema_version": "vsmt-vm04-private-relink-mechanism-trial-v1",
@@ -281,6 +282,21 @@ def execute_trial(house, pose, original_slot, scan_top2, contract, mode):
         result["control_actions"].append({"action": "Done",
             "diagnostic": generator.intervention_event_diagnostic(done),
             "target": target_snapshot(done, target_id)})
+        if physics_step_count:
+            require(mode == "registered_forced_physics_paused" and
+                    type(physics_step_count) is int and physics_step_count > 0,
+                    "manual physics requires the paused original request")
+            result["manual_physics_steps"] = []
+            for index in range(physics_step_count):
+                stepped = controller.step(action="AdvancePhysicsStep",
+                                          timeStep=0.01)
+                result["manual_physics_steps"].append({
+                    "index": index, "time_step_s": 0.01,
+                    "diagnostic": generator.intervention_event_diagnostic(stepped),
+                    "target": target_snapshot(stepped, target_id)})
+                if stepped.metadata.get("lastActionSuccess") is not True:
+                    result["status"] = "manual_physics_step_rejected"
+                    return result
         result["status"] = "recorded_full_registered_path"
         return result
     except Exception as error:
