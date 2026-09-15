@@ -935,6 +935,8 @@ D-176新生成职责沿用v2的固定两房36槽及`run_complete_requires`，每
 
 父stage代码已按`check/run/export`实现供审查（未在服务器执行）。`check.receipt.json`绑定两组独立纯测试与代码摘要；`run`先使用第一个原槽实际写raw同时采样RAM/GPU/磁盘/进程树占用，再按当前可见CPU和采样单worker需求选择最大安全并发（注册上限4），逐槽保存私有launch/log/exit和终止文件；硬资源停机后剩余原槽写`raw.not_started.json`，进程意外退出保留公开相机前缀摘要并写`raw.failure.json`。父`run.receipt.json`绑定36槽固定合并顺序、请求/实际worker、分片、退出、资源采样和`stop_reason`；匿名`results/*.json`出口只报family×program×complete/failure/not_started计数与RELINK缺口，不导出ID。例如第一个槽完整、四个RELINK失败、其余因磁盘保护未启动时报告分别保留这些状态，而不能说“36个有效样本”。这不等于真实服务器资源支持4并发、评价语义已验收或生成授权已打开；当前配置`run_authorized=false`。
 
+启动第一个场景之前，父入口还从D-135隔离模拟器Python读取实际`python/ai2thor/procthor`版本并逐项对照已绑定环境合同（3.9.25/5.0.0/0.0.1.dev2），差异先拒绝生成，父回执保存核对值。这解决“同一源码在换过模拟器的环境中生成却冒用旧端点证据”的问题；输入是已登记虚拟环境与合同，输出实际版本核验，例如AI2-THOR变5.1.0会在首scene前停止。它不是另做`PutObject` API smoke、验证Unity collider或发记忆RELINK正例。
+
 这里的版本号来自不同文件职责：`vm04_two_house_worker.py`是原两房raw **v2**写入器（名字未带v2）；视角扫描配置/receipt **v2**固定了两个family的18个pose；`vm04_target_selection_v3.py`与目标合同 **v3**只规定作者资产资格；新`vm04_fixed_slot_raw_stage_v1.json`里的**v1**是本次独立固定槽stage的schema起始号，不是退回原两房v1 worker。白话：它解决“看到v1/v2/v3就误以为三个worker轮流覆盖同一批数据”的混淆；输入是旧写入器、扫描回执和新目标规则，输出各自明确职责及新文件来源。例如新raw帧沿用旧v2的npy/camera布局，却由v3筛物理目标。这不等于旧v2样本已经有效，也不要求旧目录重写成v3。
 
 白话：输入是同一个冻结槽和它实际走到的最后一步；输出是可复核的成功或失败记录。例如前24帧已经拍到，但第24帧规定动作端点被碰撞拒绝，public保存已拍帧，private保存拒绝依据，报告说该槽失败。它不是把拍过前缀说成完整32帧episode，也不是隐去四个RELINK失败后宣称类别齐全。

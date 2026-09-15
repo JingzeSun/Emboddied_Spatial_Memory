@@ -1821,5 +1821,6 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 
 - 新封存入口纯连接原v2公私计划、固定两房pose/source与D-173四个原RELINK私有失败回执，只能产生36份原槽私有任务；公开manifest只列family/slot/episode，不列program、instance ID或私有任务hash。任何原碰撞证据缺失、slot变更或目标不一致先拒绝；任务目录存在时拒绝覆盖。
 - 新单槽worker复用旧v2 RGB-D文件写入和注册相机动作，物理程序才由v3作者资产集合选目标；NOOP/BIND/SPLIT/MERGE不给private target或干预。完整32帧只写`raw_complete=true,constructed=false`；原四RELINK仅写第0–23帧前缀和`raw.failure.json,relink_coverage_gap=true`，在第24帧前停止，不发新能力探针或`TeleportObject`。失败私有诊断与公开匿名摘要分文件、已有槽拒绝重跑。
-- 本地人工controller与真实v2文件写入的合同测试10/10通过；结合旧目标选择和两房运维边界共51/51，以及原动作/端点纯检查13/13通过。实际服务器模拟器、新36槽stage的真实资源worker/退出/`not_started`运行、公私结构语义评价、候选/teacher封存仍未运行或实现，0新episode/0训练；测试只能支持文件形状及失败保留代码审查，不能认证数据有效率。
+- 本地人工controller与真实v2文件写入的合同测试11/11通过；结合旧目标选择和两房运维边界共52/52，以及原动作/端点纯检查13/13通过。实际服务器模拟器、新36槽stage的真实资源worker/退出/`not_started`运行、公私结构语义评价、候选/teacher封存仍未运行或实现，0新episode/0训练；测试只能支持文件形状及失败保留代码审查，不能认证数据有效率。
 - 在精确干净本地提交`3549d66ea4c39452d0b943c0f0d4cc5375dda85e`执行新父入口`check`，两组独立纯检查requested/actual=2/2、47+8项退出0；本地check receipt摘要`5825f529cefb0ab4cfa64f8be954aaf63d97aa4edad9219c104ad8682b86bf19`，标记`episode_generation_performed=false`。此本地回执不替代服务器同版合同或用户代码审查，配置`run_authorized=false/generation_authorized=false`仍关闭。
+- D-135隔离环境版本核对已加入生成前置：冻结提交`4675744463ce515fe347a47ce03f56d48513c4bc`本地两组`check`请求/实际2/2、48+8项退出0，check receipt摘要`f90a4d49943aaedefe2193807da8bfb0b6c15529af4ddd9ad2ebcdfc92015e67`。前一`3549d66`回执只属于当时源码，不能认证新增版本核对；服务器真实环境版本及raw生成仍未执行。
