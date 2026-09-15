@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| VM-04目标边界与动作探针 | D-165旧16个完整episode首目标均非作者物体，新v2扫描top-2的72项中70项非作者物体；固定pose另有36/36槽至少2件可见作者资产与2件可移动资产。D-166四项目标语义已获实现口径批准，但v3探针/生成/训练闸门仍false；原D-164墙面目标探针继续先验拒绝。根因/资格/重复报告SHA-256见LOG-155–156；旧单进程JSON审计和65位计划摘要笔误在D-166如实登记；无新服务器物理干预或episode。 |
+| VM-04目标边界与动作探针 | D-165旧16个完整episode首目标均非作者物体，新v2扫描top-2的72项中70项非作者物体；固定pose另有36/36槽至少2件可见作者资产与2件可移动资产。D-166四项目标语义已获批准，D-167新目标探针代码已交审且本地纯测试43项通过，但v3探针/生成/训练闸门仍false；原D-164墙面目标探针继续先验拒绝。根因/资格/重复报告SHA-256见LOG-155–156，新探针代码范围见LOG-157；旧单进程JSON审计和65位计划摘要笔误在D-166如实登记；无新服务器物理干预或episode。 |
 | VSMT首篇/VM-01～04 | 旧两房stage及16完整/20构造失败封存。D-162仅开放v2固定两房、D=1.0 m纯视角扫描；服务器合同252/252及两family扫描均成功，各选18个pose、0 episode。原前18均来自18个位置，空间筛选降低top-2集合重复，但top-1仍重复10/11次；报告摘要`575d34d0…089f32`。生成/private、训练、validation效果、confirmation与L2继续关闭。LOG-152–153，D-162–163 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
 | R4三模型接入 | D完整适配16项通过（121/200全反向，0更新），W完整适配17项亦通过，F完整适配19项通过；真实公共接口27/27候选通过，0优化/真值读取。209bb34，LOG-123–127 |
@@ -1753,3 +1753,13 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 对已封存private profile做另一次只读导出，无控制器/渲染/动作。`authored_asset`几何top-1重复为family00 12/18、family01 10/18，top-2无序集合重复6/18、5/18；`movable_asset`对应11/18、10/18与5/18、4/18。重复仍只报告，不按结果调D、换pose/house或强制互异。[匿名重复报告](results/vsmt_vm04_target_repetition_audit_v1.json)SHA-256=`33839a011d03eb242030b26f5974ccc8f5ce03f29c727edd01f5bf056033caade`，绑定资格stage receipt及两私有profile摘要；旧v2扫描原top-2多数墙面，不能用原重复数代表新目标资格后的多样性。
 - 关闭式v3合同/条件验证器`0bef772`及固定pose纯私有物理干预目标函数`83eddff`已经按两种静态资产口径写出；`25a0c5f`消除完全同几何mask时以私有ID回退排序，`f7c8e92`确保作者归属∩当前metadata真实有限position先于几何排序。`d812011`根据结构记忆范围将资产门限于五个发动作程序，NOOP/BIND/SPLIT/MERGE的类型化结构目标单独待审；待审四个语义字段仍null，验证器可条件接受非干预/L1 oracle的两个显式可选口径。可审代码和人工墙/挂画/椅子/杯子正反例均在分支，服务器最新19项轻量标准库测试通过。它们不接入旧v2 worker，没有模拟器干预或新episode回执；v3执行位全false。若没有用户审查和新目标worker、动作/后态审计及公私材料化边界测试，不能把这份纯函数叫作新数据修复验收。
 - 白话：固定pose资格审计解决“把墙排除后，原36个相机会不会只剩一件可选物体”的问题。输入不变的两房和36个冻结相机位姿、当前匿名mask/私有作者层级，输出每房资格范围和不含ID的重复次数。例如family01最少仍有5件作者资产、3件可移动资产，但18个pose的作者资产top-1只来自8件不同目标。它不是模型识别、地图建成、动作成功或数据验收；重复次数不变成新的自动闸门。
+
+## LOG-157：VM-04受审v3目标动作探针代码（2026-09-15）
+
+- 类型：新阶段实现/代码审查准备，无服务器模拟器动作、无新episode或训练。用户审过D-166科学提交后只授权继续准备代码；D-167关闭式配置、父入口与family worker实现原两房36固定slot的动作能力诊断，原D-164阻断探针及v1/v2配置/stage不改。
+- 读写边界：父入口只在先验绑定v3合同文件、v2扫描receipt/report/scan-family SHA、旧两房计划有效manifest、source checkout/record及当时CPU quota/RAM/GPU/磁盘后，且新闸门与用户已审实现commit同时有效时才可能创建probe stage。worker在同pose比对v2旧top-2与live旧top-2以确认场景，真正动作对象由v3作者资产∩当前metadata有限position及匿名mask几何规则另选。非干预程序不启动controller或宣称类型化区域已验收；物理程序逐动作保存参数、`lastActionSuccess/errorMessage/errorCode`和poststate于private slot，失败也写原slot而不重选。
+- 动作证据限定：`DisableObject`成功但mask仍可见立即失败；BIRTH/REACTIVATE/REPLACE终态需目标再可见、RETRACT需目标mask消失。RELINK用原注册x+0.5 m与提案5 mm真实metadata终态容差核验，但注册`forceAction=true`且无碰撞/可达性检查，状态名直写`collision_unchecked`。所有slot明示`memory_history_checked=false/semantic_positive_label_issued=false`；这是动作能力与可见性诊断，不是记忆事务标签或物理可行性结果。
+- 时序核对：探针执行32个原注册相机动作，frame31之后才核验终态；隐藏期间每个相机事件也记私有目标mask，如果尚未注册Enable就重现，原槽记`disabled_target_reappeared_between_actions`。这补上最后干预到终态之间的空窗，不产生记忆标签。
+- 并发证据准备：未来family00原slot00先由单worker仅建场景/TeleportFull并退出，父入口记录私有日志/资源回执SHA-256、测得RSS及运行时逐GPU空闲显存最低值；4倍RSS和同GPU至少2倍观测显存下降量且8 GiB静态线达标，才派发两family。观测下降量为零或资源采样缺失时拒绝派发，不能推断GPU安全；目前没有服务器实测值。
+- 本地三组独立纯测试为合同/资格12、动作/后态22、阶段/导出9，合计43/43通过；新父入口`contract`读已批准D-166合同返回`execution=False/generation=false`，`run/export`在创建stage前拒绝，Python编译及diff/JSON检查通过。服务器模拟器环境下的同版三worker`check`回执、两worker动作run及公开导出均未发生；现在没有新的36条私有slot，也没有探针公开结果可验。
+- 白话：这批代码解决“选对作者资产后，模拟器到底能不能按原时序隐藏、重现或移动，而且失败时保留哪一步的真实诊断”的问题。输入是原两house/36pose/计划、当前私有资产资格及注册动作，输出将来的private动作和后态回执以及不含ID的public计数。例如REACTIVATE在frame16对挂画隐藏被拒时，private留下动作、错误码和先前相机动作，public只会多一条失败次数。它不是修好了视觉模型、构造了公开结构地图、确定REACTIVATE记忆语义或完成了VM-04数据验收。
