@@ -267,12 +267,15 @@ def load_pinned_asset_id_database():
     return _ASSET_ID_DATABASE
 
 
-def rank_visible_instance_ids(instance_masks):
+def rank_visible_instance_ids(instance_masks, object_ids=None):
     import numpy as np
 
     ranked = []
+    allowed = None if object_ids is None else {str(value) for value in object_ids}
     shape = None
     for private_id, raw in instance_masks.items():
+        if allowed is not None and str(private_id) not in allowed:
+            continue
         mask = np.asarray(raw, dtype=np.bool_)
         if mask.ndim != 2:
             continue
@@ -292,14 +295,17 @@ def rank_visible_instance_ids(instance_masks):
     return [row[-1] for row in ranked]
 
 
-def anonymous_mask_support(instance_masks):
+def anonymous_mask_support(instance_masks, object_ids=None):
     """Return ID-independent eligible-mask count and total pixel support."""
 
     import numpy as np
 
     eligible_pixels = []
+    allowed = None if object_ids is None else {str(value) for value in object_ids}
     shape = None
-    for raw in instance_masks.values():
+    for private_id, raw in instance_masks.items():
+        if allowed is not None and str(private_id) not in allowed:
+            continue
         mask = np.asarray(raw, dtype=np.bool_)
         if mask.ndim != 2:
             continue
@@ -348,7 +354,12 @@ def discover_initial_viewpoint(controller):
             )
             if event.metadata.get("lastActionSuccess") is not True:
                 continue
-            count, pixels = anonymous_mask_support(event.instance_masks)
+            object_ids = {
+                str(row["objectId"])
+                for row in event.metadata.get("objects", [])
+                if isinstance(row, dict) and "objectId" in row
+            }
+            count, pixels = anonymous_mask_support(event.instance_masks, object_ids)
             if count < 2:
                 continue
             candidates.append({
@@ -538,7 +549,12 @@ def run_episode(house, assignment, episode_root, family_byte_limit, start_pose):
         probe = teleport_to_initial_viewpoint(controller, start_pose)
         require(probe.metadata.get("lastActionSuccess") is True,
                 "initial simulator TeleportFull failed")
-        targets = rank_visible_instance_ids(probe.instance_masks)
+        object_ids = {
+            str(row["objectId"])
+            for row in probe.metadata.get("objects", [])
+            if isinstance(row, dict) and "objectId" in row
+        }
+        targets = rank_visible_instance_ids(probe.instance_masks, object_ids)
         required_targets = 2 if program in {"SPLIT", "REPLACE"} else 1
         require(len(targets) >= required_targets,
                 "insufficient anonymous visible targets for %s" % program)
@@ -626,26 +642,8 @@ def main():
                    if row["house_id"] == house_id)
     house = load_source_record(arguments.source_root, locator)
     family_root = stage / "execution" / arguments.family_id
-    start_pose = None
-    start_pose_error = None
-    search_controller = make_controller(house)
-    try:
-        start_pose = discover_initial_viewpoint(search_controller)
-    except Exception as error:
-        start_pose_error = "%s: %s" % (type(error).__name__, error)
-    finally:
-        search_controller.stop()
-    if start_pose is not None:
-        write_new_json(family_root / "initial_viewpoint.receipt.json", {
-            "schema_version": "vsmt-vm04-two-house-initial-viewpoint-v1",
-            "family_id": arguments.family_id,
-            "selection_rule": (
-                "maximize_eligible_mask_count_then_total_eligible_pixels_then_"
-                "lexicographic_x_y_z_yaw"
-            ),
-            "pose": start_pose, "success": True,
-        })
     results = []
+    viewpoint_receipts = []
     ordered_rows = sorted(public_rows, key=lambda row: row["slot"])
     resource_stopped = False
     for row_index, public in enumerate(ordered_rows):
@@ -654,7 +652,25 @@ def main():
         episode_root = family_root / "episodes" / public["episode_id"]
         episode_root.mkdir(parents=True)
         try:
-            require(start_pose_error is None, "initial viewpoint search failed: %s" % start_pose_error)
+            search_controller = make_controller(house)
+            try:
+                start_pose = discover_initial_viewpoint(search_controller)
+            finally:
+                search_controller.stop()
+            write_new_json(episode_root / "initial_viewpoint.receipt.json", {
+                "schema_version": "vsmt-vm04-two-house-initial-viewpoint-v2",
+                "family_id": arguments.family_id,
+                "episode_id": public["episode_id"],
+                "selection_rule": (
+                    "maximize_physical_object_mask_count_then_total_pixels_then_"
+                    "lexicographic_x_y_z_yaw"
+                ),
+                "pose": start_pose, "success": True,
+            })
+            viewpoint_receipts.append({
+                "episode_id": public["episode_id"],
+                "receipt_sha256": sha256(episode_root / "initial_viewpoint.receipt.json"),
+            })
             run_episode(
                 house, assignment, episode_root, arguments.family_byte_limit, start_pose,
             )
@@ -689,18 +705,14 @@ def main():
                     })
                 break
     write_new_json(family_root / "worker.receipt.json", {
-        "schema_version": "vsmt-vm04-two-house-family-worker-receipt-v1",
+        "schema_version": "vsmt-vm04-two-house-family-worker-receipt-v2",
         "family_id": arguments.family_id, "source_house_id": house_id,
         "episode_count": 18, "episodes": results,
         "completed_count": sum(row["status"] == "complete" for row in results),
         "failed_count": sum(row["status"] == "failed" for row in results),
         "not_started_count": sum(row["status"] == "not_started" for row in results),
         "resource_stopped": resource_stopped,
-        "initial_viewpoint_search_succeeded": start_pose is not None,
-        "initial_viewpoint_receipt_sha256": (
-            sha256(family_root / "initial_viewpoint.receipt.json")
-            if start_pose is not None else None
-        ),
+        "viewpoint_receipts": viewpoint_receipts,
         "family_bytes": directory_bytes(family_root), "success": True,
     })
     print("VM04_TWO_HOUSE_WORKER_OK family=%s slots=18" % arguments.family_id, flush=True)

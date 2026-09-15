@@ -197,6 +197,19 @@ class TwoHouseOpsTests(unittest.TestCase):
         self.assertEqual(first, ["private-z", "private-a"])
         self.assertEqual(second, ["renamed-a", "renamed-z"])
 
+    def test_worker_target_ranking_can_require_physical_object_ids(self) -> None:
+        import numpy as np
+
+        ceiling = np.zeros((224, 224), dtype=np.bool_)
+        object_mask = np.zeros((224, 224), dtype=np.bool_)
+        ceiling[:20, :20] = True
+        object_mask[40:60, 40:60] = True
+        ranked = WORKER.rank_visible_instance_ids(
+            {"ceiling|0": ceiling, "object|1": object_mask},
+            {"object|1"},
+        )
+        self.assertEqual(ranked, ["object|1"])
+
     def test_anonymous_view_support_ignores_ids_and_small_masks(self) -> None:
         import numpy as np
 
@@ -213,6 +226,12 @@ class TwoHouseOpsTests(unittest.TestCase):
         self.assertEqual(
             WORKER.anonymous_mask_support({"renamed-z": first, "renamed-y": second}),
             (2, 392),
+        )
+        self.assertEqual(
+            WORKER.anonymous_mask_support(
+                {"a": first, "b": second, "c": small}, {"b", "c"}
+            ),
+            (1, 196),
         )
 
     def test_initial_viewpoint_prefers_support_then_lexicographic_pose(self) -> None:
@@ -252,7 +271,13 @@ class TwoHouseOpsTests(unittest.TestCase):
                 self.teleports.append((action["x"], action["rotation"]["y"]))
                 count = 3 if action["x"] == 1 and action["rotation"]["y"] == 90 else 2
                 return SimpleNamespace(
-                    metadata={"lastActionSuccess": True},
+                    metadata={
+                        "lastActionSuccess": True,
+                        "objects": [
+                            {"objectId": "id-%s" % index}
+                            for index in range(count)
+                        ],
+                    },
                     instance_masks={"id-%s" % index: mask for index in range(count)},
                 )
 
