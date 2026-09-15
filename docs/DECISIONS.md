@@ -1720,3 +1720,11 @@
 - 必须审定的门：①公开类型化容器区域及其在动作前的固定排序/私有执行ID映射尚未实现，不能用`metadata.receptacle`私有oracle替代；②推拉力档、路径snap/真实位置容差未冻结，不能因四槽先前失败来调；③`PickupObject(manualInteract)`和`PutObject(placeStationary)`分别影响手前抽象传送与确定性/物理结算，需明确能力主张；④官方[交互动作说明](https://ai2thor.allenai.org/ithor/documentation/interactive-physics/)的`PutObject`例子与其“放入目标容器”的文字不够一致，上游[ProcTHOR问题记录](https://github.com/allenai/procthor-10k/issues/7)也显示旧build参数差异，故需在**固定已锁模拟器**上先留API smoke receipt再冻结入口。任一项缺失，proposal validator保持`probe_authorized=false`，未来填值走状态条件化，不悄悄解闸。
 - 三类失败例子：机器人从原位到最近格点的`MoveAhead`碰障碍，是**实际导航路径失败**，不归为目标端点碰撞；抓取成功但非强制放置被容器拒绝，是**交互/终点失败**，不能归为导航或识别；抓取/放置动作都成功且资产真实落下，但旧预测关系早已相同或公开后态证据不支持修订，是**可能的记忆语义问题**，本探针仍不签标签，须另核历史/版本事务。推拉成功但资产没动则只报告零位移，不以动作返回成功推断RELINK成立。
 - 白话：这项设计解决“同一批原物体能否通过机器人实际走近并交互，而不是靠强制传送假成功”的问题。输入原四个固定槽的公开匿名可见区域/可达格及私有动作目标ID，输出未来可审的导航、抓放或推拉逐步证据和匿名失败阶段报告。例如原槽12先沿公开格走到目标资产附近，再不强制抓取、放到动作前已选的公开容器区域，任一步失败就保留原槽。它不等于连续机械臂运动学、公开部署目标识别、记忆RELINK正确性、episode数据生成或训练结果。
+
+## D-175：公开容器证据、固定build API smoke与独立推拉力档的runner审查批次
+
+- 日期：2026-09-16；状态：用户认可公开容器证据原则、锁定版本API smoke和独立预登记推拉力档，并授权开始实现runner供D-059代码审查；**没有授权四槽动作运行、完整episode、训练或效果评估**。旧四槽/原house/pose/目标/24帧前缀不变。D-174提案执行位继续false。
+- 力档独立文件在任何新交互结果出现前固定20/80/160 N；三件仅可移动旧目标各用fresh controller跑推/拉×三力，共18个分支，另一个仅可拾取旧目标跑一组抓放，总19个分支。不按结果选方向、力、容器、目标或房；动作成功而零位移仍在分母。此档位是广覆盖的能力诊断口径，不是对各资产质量的优化或训练超参。
+- API smoke规格固定服务器simulator Python、AI2-THOR 5.0.0和已审CloudRendering build/zip摘要；`PickupObject.manualInteract=false`承认手前抽象传送，`PutObject.placeStationary=true`只测确定性放置能力，交互全部`forceAction=false`。官方[交互动作说明](https://ai2thor.allenai.org/ithor/documentation/interactive-physics/)给出这两个默认值，却在`PutObject.objectId`示例与目标容器文字上留有歧义；独立真实smoke必须看本build的动作返回、`isPickedUp`转换和`parentReceptacles`，拒绝或父容器不符均记inconclusive，不能从网页推断成功。当前只有锁定规格与人工事件纯测试，真实receipt为空。
+- runner审查核心先封存公开路线/公开类型化容器区域，后在私有执行侧映射容器ID、查真实能力并发动作；通用L1 `surface`不能直接等同可放置容器，当前公开类型化容器生成/验证仍是运行阻断项。逐动作记录请求、返回、机器人实际位姿及资产后态，区分导航拒绝、导航位置差、交互拒绝、抓放状态不符和推拉零位移；不发记忆正例。路径snap与实际位姿容差仍需在真实运行前独立冻结。D-059要求审查代码后才合并为运行依赖；服务器已关闭，本批仅本地纯验证。
+- 白话：这批解决“先定好怎么走、放到哪里、推多大力，并把动作返回与真实结果分开”的问题。输入是公开当前区域/可达格、旧四槽的私有执行ID和固定档位，输出可审的封存计划、动作函数与将来的逐分支失败。例如推20 N、80 N、160 N都没动，三个零位移全报；抓起后`PutObject`说成功却没有目标父容器，也只报不符。它不等于公开容器检测已完成、固定build实测smoke通过、19个分支已执行或记忆RELINK语义有效。

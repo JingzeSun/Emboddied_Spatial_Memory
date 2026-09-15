@@ -1,0 +1,17 @@
+{
+  "version": "vsmt-vm04-relink-force-prereg-v1",
+  "status": "frozen_for_runner_review_no_action_execution",
+  "fixed_slots_by_family": [[4, 11], [6, 12]],
+  "eligible_modality": "moveable_only_push_and_pull",
+  "force_unit": "newton",
+  "force_ladder_newtons": [20.0, 80.0, 160.0],
+  "selection_basis": "independent_broad_low_mid_high_capability_probe_before_new_interaction_outcomes",
+  "branch_policy": "every_direction_and_force_in_fresh_original_scene_no_adaptive_force_or_winner_selection",
+  "expected_moveable_targets": 3,
+  "expected_force_branches": 18,
+  "expected_pickup_put_branches": 1,
+  "zero_displacement_in_denominator": true,
+  "probe_authorized": false,
+  "generation_authorized": false,
+  "training_authorized": false
+}

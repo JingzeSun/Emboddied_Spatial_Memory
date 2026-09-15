@@ -1,0 +1,15 @@
+{
+  "version": "vsmt-vm04-relink-put-api-smoke-v1",
+  "status": "pinned_spec_real_smoke_pending",
+  "simulator_python": "/root/autodl-tmp/vsmt-envs/simulator-py39/bin/python",
+  "ai2thor_version": "5.0.0",
+  "cloud_rendering_build_commit": "f0825767cd50d69f666c7f282e54abfe58f1e917",
+  "cloud_rendering_zip_sha256": "1fd5f998644a6dd522a4cf6604c05360a75a5c27f450a7486c20e52dc2b67bb9",
+  "scope": "parameter_and_target_semantics_only_not_four_slot_capability",
+  "pickup_manual_interact": false,
+  "put_place_stationary": true,
+  "force_action": false,
+  "put_object_id_semantics": "target_receptacle_id_to_be_verified_on_pinned_build",
+  "real_smoke_receipt_sha256": null,
+  "interaction_probe_authorized": false
+}
