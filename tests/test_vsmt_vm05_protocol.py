@@ -11,6 +11,7 @@ from vsmt.vm05_protocol import (
     EXECUTABLE_STATUS,
     LEARNED_RANKERS,
     PAPER_MECHANISM_ADAPTERS,
+    REQUIRED_INPUTS,
     assert_vm05_action_authorized,
     validate_vm05_readiness,
 )
@@ -46,6 +47,9 @@ def frozen_config(*, action: str) -> dict:
     value["execution_classes"]["deterministic_internal_control"][
         "decision_formula"
     ] = {"fixture": "resolved"}
+    value["satisfied_input_sha256s"] = {
+        name: f"{index + 1:064x}" for index, name in enumerate(REQUIRED_INPUTS)
+    }
     return value
 
 
@@ -159,6 +163,71 @@ class VM05ReadinessTests(unittest.TestCase):
             mutate(value)
             with self.subTest(mutation=mutate), self.assertRaises(ValueError):
                 validate_vm05_readiness(value)
+
+    def test_paper_system_model_boundary_values_are_frozen(self) -> None:
+        mutations = (
+            lambda value: value["paper_system_model_boundary"]["TAF"].__setitem__(
+                "source_system", "Khronos"
+            ),
+            lambda value: value["paper_system_model_boundary"]["TAF"].__setitem__(
+                "source_system_uses_pretrained_perception_models", False
+            ),
+            lambda value: value["paper_system_model_boundary"].__setitem__("policy", ""),
+            lambda value: value["paper_system_model_boundary"]["WFR"].__setitem__(
+                "source_system_may_consume_external_or_pretrained_semantic_segmentation",
+                False,
+            ),
+        )
+        for mutate in mutations:
+            value = config()
+            mutate(value)
+            with self.subTest(mutation=mutate), self.assertRaises(ValueError):
+                validate_vm05_readiness(value)
+
+    def test_frozen_state_rejects_zero_or_empty_scientific_values(self) -> None:
+        mutations = (
+            lambda value: value["execution_classes"]["learned_candidate_rankers"].update(
+                training_steps=0
+            ),
+            lambda value: value["execution_classes"]["learned_candidate_rankers"].update(
+                seed_count=0
+            ),
+            lambda value: value["execution_classes"]["learned_candidate_rankers"].update(
+                architecture=False
+            ),
+            lambda value: value["execution_classes"]["learned_candidate_rankers"].update(
+                optimizer=""
+            ),
+            lambda value: value["execution_classes"][
+                "deterministic_mechanism_adapters"
+            ].update(configuration_spaces={}),
+            lambda value: value["execution_classes"][
+                "deterministic_internal_control"
+            ].update(decision_formula={}),
+        )
+        for mutate in mutations:
+            value = frozen_config(action="train")
+            mutate(value)
+            with self.subTest(mutation=mutate), self.assertRaises(ValueError):
+                assert_vm05_action_authorized(value, action="train")
+
+    def test_frozen_state_requires_all_external_input_digests(self) -> None:
+        missing = frozen_config(action="train")
+        missing["satisfied_input_sha256s"].pop(REQUIRED_INPUTS[0])
+        with self.assertRaisesRegex(ValueError, "bind every required input"):
+            assert_vm05_action_authorized(missing, action="train")
+
+        malformed = frozen_config(action="train")
+        malformed["satisfied_input_sha256s"][REQUIRED_INPUTS[0]] = "not-a-digest"
+        with self.assertRaisesRegex(ValueError, "lowercase SHA-256"):
+            assert_vm05_action_authorized(malformed, action="train")
+
+        planned = config()
+        planned["satisfied_input_sha256s"] = {
+            REQUIRED_INPUTS[0]: "1" * 64
+        }
+        with self.assertRaisesRegex(ValueError, "may not claim satisfied"):
+            validate_vm05_readiness(planned)
 
     def test_validation_never_mutates_or_shares_nested_source_state(self) -> None:
         source = config()

@@ -105,6 +105,8 @@ from .vm05_protocol import (
     DETERMINISTIC_CONTROLS,
     LEARNED_RANKERS,
     PAPER_MECHANISM_ADAPTERS,
+    PAPER_SYSTEM_MODEL_BOUNDARIES,
+    PAPER_SYSTEM_MODEL_BOUNDARY_POLICY,
     assert_vm05_action_authorized,
     validate_vm05_readiness,
 )
@@ -198,6 +200,8 @@ __all__ = [
     "DETERMINISTIC_CONTROLS",
     "LEARNED_RANKERS",
     "PAPER_MECHANISM_ADAPTERS",
+    "PAPER_SYSTEM_MODEL_BOUNDARIES",
+    "PAPER_SYSTEM_MODEL_BOUNDARY_POLICY",
     "assert_vm05_action_authorized",
     "validate_vm05_readiness",
 ]
