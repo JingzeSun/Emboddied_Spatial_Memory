@@ -1,18 +1,23 @@
 """Fail-closed VM-05 training/validation readiness contract.
 
 The contract distinguishes learned candidate rankers from deterministic
-mechanism adapters.  It performs no data access, model construction, training,
-validation, configuration search, simulation, or file writes.
+mechanism adapters.  Readiness validation performs no data access; action
+authorization reads only the eight registered prerequisite artifacts.  Neither
+path constructs models, trains, validates effects, searches configurations,
+runs simulation, or writes files.
 """
 
 from __future__ import annotations
 
 from collections.abc import Mapping
+import hashlib
+from os import PathLike
+from pathlib import Path
 import re
 from types import MappingProxyType
 from typing import Any
 
-from cpmt.hashing import clone_json
+from cpmt.hashing import canonical_json, clone_json
 
 
 def _freeze_json(value: Any) -> Any:
@@ -25,6 +30,18 @@ def _freeze_json(value: Any) -> Any:
     return value
 
 
+def _freeze_contract(value: dict[str, Any]) -> tuple[Mapping[str, Any], str]:
+    return _freeze_json(value), canonical_json(value)
+
+
+def _json_native(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return {key: _json_native(item) for key, item in value.items()}
+    if isinstance(value, tuple):
+        return [_json_native(item) for item in value]
+    return value
+
+
 LEARNED_RANKERS = ("VSMT", "DRCR", "NECS")
 DETERMINISTIC_ADAPTERS = ("TAF", "ELU", "WFR", "LOW")
 DETERMINISTIC_CONTROLS = ("PHR",)
@@ -33,7 +50,10 @@ PAPER_SYSTEM_MODEL_BOUNDARY_POLICY = (
     "upstream_perception_models_do_not_make_the_adapted_memory_mechanism_a_"
     "trainable_VM05_model"
 )
-PAPER_SYSTEM_MODEL_BOUNDARIES = _freeze_json({
+(
+    PAPER_SYSTEM_MODEL_BOUNDARIES,
+    _PAPER_SYSTEM_MODEL_BOUNDARIES_JSON,
+) = _freeze_contract({
     "TAF": {
         "source_system": "ConceptGraphs",
         "source_system_uses_pretrained_perception_models": True,
@@ -61,13 +81,19 @@ PAPER_SYSTEM_MODEL_BOUNDARIES = _freeze_json({
         ),
     },
 })
-SHARED_FRONTEND_CONTRACT = _freeze_json({
+(
+    SHARED_FRONTEND_CONTRACT,
+    _SHARED_FRONTEND_CONTRACT_JSON,
+) = _freeze_contract({
     "method_id": "frozen_DINOv2_and_shared_L1_or_L2_region_geometry_frontend",
     "gradient_updates": False,
     "method_private_perception_models_allowed": False,
     "identical_cached_input_bytes_for_all_methods": True,
 })
-LEARNED_RANKER_CONTRACT = _freeze_json({
+(
+    LEARNED_RANKER_CONTRACT,
+    _LEARNED_RANKER_CONTRACT_JSON,
+) = _freeze_contract({
     "methods": LEARNED_RANKERS,
     "requires_gradient_training": True,
     "same_online_architecture_for_all_three": True,
@@ -79,7 +105,10 @@ LEARNED_RANKER_CONTRACT = _freeze_json({
     "maximum_complete_configurations_per_method": 12,
     "blocking_reason": "freeze_after_VM04_candidate_capacity_and_yield_audit",
 })
-DETERMINISTIC_ADAPTER_CONTRACT = _freeze_json({
+(
+    DETERMINISTIC_ADAPTER_CONTRACT,
+    _DETERMINISTIC_ADAPTER_CONTRACT_JSON,
+) = _freeze_contract({
     "methods": DETERMINISTIC_ADAPTERS,
     "requires_gradient_training": False,
     "requires_finite_train_validation_configuration_selection": True,
@@ -88,7 +117,10 @@ DETERMINISTIC_ADAPTER_CONTRACT = _freeze_json({
         "freeze_finite_grids_after_VM04_audit_without_confirmation_access"
     ),
 })
-DETERMINISTIC_CONTROL_CONTRACT = _freeze_json({
+(
+    DETERMINISTIC_CONTROL_CONTRACT,
+    _DETERMINISTIC_CONTROL_CONTRACT_JSON,
+) = _freeze_contract({
     "methods": DETERMINISTIC_CONTROLS,
     "requires_gradient_training": False,
     "requires_finite_train_validation_configuration_selection": True,
@@ -97,7 +129,10 @@ DETERMINISTIC_CONTROL_CONTRACT = _freeze_json({
         "freeze_positive_negative_examples_and_S01_to_S12_consistent_formula"
     ),
 })
-FAIR_SELECTION_CONTRACT = _freeze_json({
+(
+    FAIR_SELECTION_CONTRACT,
+    _FAIR_SELECTION_CONTRACT_JSON,
+) = _freeze_contract({
     "same_train_families": True,
     "same_validation_families": True,
     "same_frozen_primary_selection_metric": True,
@@ -108,7 +143,10 @@ FAIR_SELECTION_CONTRACT = _freeze_json({
     "confirmation_may_not_select_or_change_any_value": True,
     "learned_and_deterministic_methods_are_not_forced_to_share_numeric_parameters": True,
 })
-MULTI_WORKER_EXECUTION_CONTRACT = _freeze_json({
+(
+    MULTI_WORKER_EXECUTION_CONTRACT,
+    _MULTI_WORKER_EXECUTION_CONTRACT_JSON,
+) = _freeze_contract({
     "policy": "maximum_safe_parallel_workers_for_every_independent_server_work_unit",
     "minimum_workers_when_at_least_two_independent_units_exist": 2,
     "worker_count_is_selected_by_capacity_probe": True,
@@ -139,7 +177,10 @@ MULTI_WORKER_EXECUTION_CONTRACT = _freeze_json({
         "canonical_merge_order",
     ),
 })
-RESOURCE_SAFETY_CONTRACT = _freeze_json({
+(
+    RESOURCE_SAFETY_CONTRACT,
+    _RESOURCE_SAFETY_CONTRACT_JSON,
+) = _freeze_contract({
     "wall_clock_timeout_allowed": False,
     "RAM_safety_check_required": True,
     "GPU_VRAM_safety_check_required": True,
@@ -193,10 +234,15 @@ def _exact_keys(value: Any, expected: set[str], name: str) -> Mapping[str, Any]:
 
 def _require_static_contract(
     value: Mapping[str, Any], expected: Mapping[str, Any], name: str,
-    *, dynamic_fields: tuple[str, ...] = (),
+    *, expected_json: str, dynamic_fields: tuple[str, ...] = (),
 ) -> None:
     static_value = {key: item for key, item in value.items() if key not in dynamic_fields}
-    _require(_freeze_json(static_value) == expected, f"{name} frozen values changed")
+    if canonical_json(static_value) == expected_json:
+        return
+    for key, item in static_value.items():
+        if canonical_json(item) != canonical_json(_json_native(expected[key])):
+            raise ValueError(f"{name}.{key} frozen value changed")
+    raise ValueError(f"{name} frozen values changed")
 
 
 def validate_vm05_readiness(record: Mapping[str, Any]) -> dict[str, Any]:
@@ -225,7 +271,10 @@ def validate_vm05_readiness(record: Mapping[str, Any]) -> dict[str, Any]:
         "method_id", "gradient_updates", "method_private_perception_models_allowed",
         "identical_cached_input_bytes_for_all_methods",
     }, "shared_frontend")
-    _require_static_contract(frontend, SHARED_FRONTEND_CONTRACT, "shared_frontend")
+    _require_static_contract(
+        frontend, SHARED_FRONTEND_CONTRACT, "shared_frontend",
+        expected_json=_SHARED_FRONTEND_CONTRACT_JSON,
+    )
 
     classes = _exact_keys(value["execution_classes"], {
         "learned_candidate_rankers", "deterministic_mechanism_adapters",
@@ -250,25 +299,30 @@ def validate_vm05_readiness(record: Mapping[str, Any]) -> dict[str, Any]:
     }, "deterministic_internal_control")
     _require_static_contract(
         learned, LEARNED_RANKER_CONTRACT, "learned_candidate_rankers",
+        expected_json=_LEARNED_RANKER_CONTRACT_JSON,
         dynamic_fields=("architecture", "optimizer", "training_steps", "seed_count"),
     )
     _require_static_contract(
         adapters, DETERMINISTIC_ADAPTER_CONTRACT,
-        "deterministic_mechanism_adapters", dynamic_fields=("configuration_spaces",),
+        "deterministic_mechanism_adapters",
+        expected_json=_DETERMINISTIC_ADAPTER_CONTRACT_JSON,
+        dynamic_fields=("configuration_spaces",),
     )
     _require_static_contract(
         controls, DETERMINISTIC_CONTROL_CONTRACT,
-        "deterministic_internal_control", dynamic_fields=("decision_formula",),
+        "deterministic_internal_control",
+        expected_json=_DETERMINISTIC_CONTROL_CONTRACT_JSON,
+        dynamic_fields=("decision_formula",),
     )
 
-    unresolved_values = (
-        *(learned[name] for name in (
-            "architecture", "optimizer", "training_steps", "seed_count"
-        )),
-        adapters["configuration_spaces"],
-        controls["decision_formula"],
-    )
     if value["status"] == PLANNED_STATUS:
+        unresolved_values = (
+            *(learned[name] for name in (
+                "architecture", "optimizer", "training_steps", "seed_count"
+            )),
+            adapters["configuration_spaces"],
+            controls["decision_formula"],
+        )
         _require(all(value[gate] is False for gate in (
             "training_authorized", "validation_effect_authorized",
             "confirmation_authorized",
@@ -309,11 +363,10 @@ def validate_vm05_readiness(record: Mapping[str, Any]) -> dict[str, Any]:
     }, "paper_system_model_boundary")
     _require(paper_boundary["policy"] == PAPER_SYSTEM_MODEL_BOUNDARY_POLICY,
              "paper system/model boundary policy changed")
-    _require(
-        _freeze_json({method: paper_boundary[method]
-                      for method in PAPER_MECHANISM_ADAPTERS})
-        == PAPER_SYSTEM_MODEL_BOUNDARIES,
-        "paper system/model boundaries changed",
+    _require_static_contract(
+        {method: paper_boundary[method] for method in PAPER_MECHANISM_ADAPTERS},
+        PAPER_SYSTEM_MODEL_BOUNDARIES, "paper_system_model_boundary",
+        expected_json=_PAPER_SYSTEM_MODEL_BOUNDARIES_JSON,
     )
 
     fair = _exact_keys(value["fair_selection"], {
@@ -326,7 +379,10 @@ def validate_vm05_readiness(record: Mapping[str, Any]) -> dict[str, Any]:
         "confirmation_may_not_select_or_change_any_value",
         "learned_and_deterministic_methods_are_not_forced_to_share_numeric_parameters",
     }, "fair_selection")
-    _require_static_contract(fair, FAIR_SELECTION_CONTRACT, "fair_selection")
+    _require_static_contract(
+        fair, FAIR_SELECTION_CONTRACT, "fair_selection",
+        expected_json=_FAIR_SELECTION_CONTRACT_JSON,
+    )
 
     workers = _exact_keys(value["multi_worker_execution"], {
         "policy", "minimum_workers_when_at_least_two_independent_units_exist",
@@ -337,6 +393,7 @@ def validate_vm05_readiness(record: Mapping[str, Any]) -> dict[str, Any]:
     }, "multi_worker_execution")
     _require_static_contract(
         workers, MULTI_WORKER_EXECUTION_CONTRACT, "multi_worker_execution",
+        expected_json=_MULTI_WORKER_EXECUTION_CONTRACT_JSON,
     )
     safety = _exact_keys(value["resource_safety"], {
         "wall_clock_timeout_allowed", "RAM_safety_check_required",
@@ -344,7 +401,10 @@ def validate_vm05_readiness(record: Mapping[str, Any]) -> dict[str, Any]:
         "OOM_or_disk_full_may_not_be_used_as_a_capacity_probe",
         "scientific_budget_is_frozen_by_samples_configurations_steps_and_stopping_rule_not_elapsed_time",
     }, "resource_safety")
-    _require_static_contract(safety, RESOURCE_SAFETY_CONTRACT, "resource_safety")
+    _require_static_contract(
+        safety, RESOURCE_SAFETY_CONTRACT, "resource_safety",
+        expected_json=_RESOURCE_SAFETY_CONTRACT_JSON,
+    )
     _require(tuple(value["required_inputs_before_executable"]) == REQUIRED_INPUTS,
              "VM-05 prerequisite list changed")
     _require(tuple(value["prohibited"]) == PROHIBITED,
@@ -352,10 +412,43 @@ def validate_vm05_readiness(record: Mapping[str, Any]) -> dict[str, Any]:
     return value
 
 
+def verify_vm05_satisfied_inputs(
+    record: Mapping[str, Any],
+    *,
+    artifact_paths: Mapping[str, str | PathLike[str]],
+) -> dict[str, Any]:
+    """Verify every frozen prerequisite digest against a real artifact file."""
+
+    value = validate_vm05_readiness(record)
+    _require(value["status"] == EXECUTABLE_STATUS,
+             "VM-05 inputs may only be verified for frozen_executable status")
+    _require(isinstance(artifact_paths, Mapping),
+             "VM-05 artifact_paths must be a mapping")
+    _require(set(artifact_paths) == set(REQUIRED_INPUTS),
+             "VM-05 artifact_paths must cover every required input exactly")
+    for name in REQUIRED_INPUTS:
+        raw_path = artifact_paths[name]
+        _require(isinstance(raw_path, (str, PathLike)),
+                 f"VM-05 artifact path for {name} is invalid")
+        path = Path(raw_path)
+        _require(path.is_file(), f"VM-05 artifact for {name} is not a file")
+        digest = hashlib.sha256()
+        try:
+            with path.open("rb") as stream:
+                for block in iter(lambda: stream.read(1024 * 1024), b""):
+                    digest.update(block)
+        except OSError as exc:
+            raise ValueError(f"VM-05 artifact for {name} could not be read") from exc
+        _require(digest.hexdigest() == value["satisfied_input_sha256s"][name],
+                 f"VM-05 artifact SHA-256 mismatch for {name}")
+    return value
+
+
 def assert_vm05_action_authorized(
     record: Mapping[str, Any], *, action: str,
+    artifact_paths: Mapping[str, str | PathLike[str]] | None = None,
 ) -> dict[str, Any]:
-    """Authorize only a later reviewed, fully resolved frozen configuration."""
+    """Authorize only a frozen action whose real prerequisite files verify."""
 
     value = validate_vm05_readiness(record)
     gates = {
@@ -367,4 +460,6 @@ def assert_vm05_action_authorized(
     _require(value["status"] == EXECUTABLE_STATUS,
              "VM-05 status is not frozen_executable")
     _require(value[gates[action]] is True, f"VM-05 {action} is not authorized")
-    return value
+    _require(artifact_paths is not None,
+             "VM-05 action authorization requires verified artifact_paths")
+    return verify_vm05_satisfied_inputs(value, artifact_paths=artifact_paths)

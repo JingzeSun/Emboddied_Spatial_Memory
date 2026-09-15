@@ -1580,6 +1580,7 @@
 - [机器readiness合同](../configs/vsmt/vm05_training_validation_readiness_v1.json)当前`training_authorized=false`、`validation_effect_authorized=false`、`confirmation_authorized=false`。白话：输入是本轮已知的方法性质和资源规则，输出是以后实现/运行不能混淆的任务清单；例如ELU跑12组阈值是调参，不会产生ELU checkpoint。它不等于VM-05已经能跑，也不允许抢在D-144结果前选有利网格。
 - Claude二次复核继续发现三项可执行性缺口：论文系统来源/预训练感知声明仍可篡改，frozen分支允许零步、零seed和空对象，八项前置只有名称清单而没有满足证据。修订把TAF/ELU/WFR的来源系统、预训练感知布尔、适配范围及总policy整行固定；frozen态要求`training_steps`/`seed_count`为正整数且四类配置对象非空；新增`satisfied_input_sha256s`，planned态必须为空，frozen态必须精确覆盖八项前置并全部为合法SHA-256。白话：这使未来授权必须引用外部审查产物，而不是让同一个JSON只靠把status改成可执行来自我批准；它不自动核验文件，正式入口仍须按摘要打开并比对实际产物。
 - Claude三次复核发现同类冻结缺口仍存在于共享前端、学习消融定义、公平选择、多worker和资源安全节。验证器改为把所有非待填字段与递归不可变的整节常量全等比较；八项前置摘要还必须互不相同且拒绝空文件摘要，顶层接口按注解接受任意`Mapping`并在内部深克隆。白话：输入仍是同一份readiness JSON，输出仍只是通过或明确拒绝；例如把`same_train_families`翻为false或把GPU策略改成单worker会立即失败。它不冻结仍为null的网络、训练步数或有限网格，也不代替正式入口核对真实文件摘要。
+- Claude四次复核发现Python数值相等会让布尔/整数与`1`/`1.0`混用，整节错误丢失字段定位，而且真实产物摘要核对仍只是文档承诺。修订改用canonical JSON锁定类型并报告首个变化字段；唯一动作授权函数强制接收八项产物路径并逐文件重算SHA-256，不再允许调用者跳过核验。白话：例如把12次预算写成12.0会在训练前明确指出该字段，把摘要字符串写对但文件内容不匹配也无法获得train授权。它只核验readiness前置证据，不表示当前planned记录已经开放VM-05。
 
 ## D-158：封存VM-04并审查20个失败slot的共同根因
 

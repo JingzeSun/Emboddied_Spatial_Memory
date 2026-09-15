@@ -109,6 +109,7 @@ from .vm05_protocol import (
     PAPER_SYSTEM_MODEL_BOUNDARY_POLICY,
     assert_vm05_action_authorized,
     validate_vm05_readiness,
+    verify_vm05_satisfied_inputs,
 )
 
 __all__ = [
@@ -204,4 +205,5 @@ __all__ = [
     "PAPER_SYSTEM_MODEL_BOUNDARY_POLICY",
     "assert_vm05_action_authorized",
     "validate_vm05_readiness",
+    "verify_vm05_satisfied_inputs",
 ]

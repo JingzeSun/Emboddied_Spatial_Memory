@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from types import MappingProxyType
 import unittest
 
@@ -16,6 +18,7 @@ from vsmt.vm05_protocol import (
     REQUIRED_INPUTS,
     assert_vm05_action_authorized,
     validate_vm05_readiness,
+    verify_vm05_satisfied_inputs,
 )
 
 
@@ -55,6 +58,18 @@ def frozen_config(*, action: str) -> dict:
     return value
 
 
+def frozen_config_with_artifacts(*, action: str, root: Path) -> tuple[dict, dict]:
+    value = frozen_config(action=action)
+    artifact_paths = {}
+    for index, name in enumerate(REQUIRED_INPUTS):
+        path = root / f"prerequisite-{index}.json"
+        payload = f'{{"fixture":{index}}}\n'.encode("utf-8")
+        path.write_bytes(payload)
+        artifact_paths[name] = path
+        value["satisfied_input_sha256s"][name] = hashlib.sha256(payload).hexdigest()
+    return value, artifact_paths
+
+
 class VM05ReadinessTests(unittest.TestCase):
     def test_method_taxonomy_separates_training_from_configuration_selection(self) -> None:
         value = validate_vm05_readiness(config())
@@ -80,16 +95,47 @@ class VM05ReadinessTests(unittest.TestCase):
                 assert_vm05_action_authorized(config(), action=action)
 
     def test_action_authorization_has_a_reachable_frozen_path(self) -> None:
-        for action in ("train", "validate", "confirm"):
-            with self.subTest(action=action):
-                result = assert_vm05_action_authorized(
-                    frozen_config(action=action), action=action,
+        with TemporaryDirectory() as directory:
+            for action in ("train", "validate", "confirm"):
+                with self.subTest(action=action):
+                    value, artifact_paths = frozen_config_with_artifacts(
+                        action=action, root=Path(directory),
+                    )
+                    result = assert_vm05_action_authorized(
+                        value, action=action, artifact_paths=artifact_paths,
+                    )
+                    self.assertTrue(result[{
+                        "train": "training_authorized",
+                        "validate": "validation_effect_authorized",
+                        "confirm": "confirmation_authorized",
+                    }[action]])
+
+    def test_action_authorization_requires_real_artifact_verification(self) -> None:
+        with TemporaryDirectory() as directory:
+            value, artifact_paths = frozen_config_with_artifacts(
+                action="train", root=Path(directory),
+            )
+            with self.assertRaisesRegex(ValueError, "requires verified artifact_paths"):
+                assert_vm05_action_authorized(value, action="train")
+
+            missing = dict(artifact_paths)
+            missing.pop(REQUIRED_INPUTS[0])
+            with self.assertRaisesRegex(ValueError, "cover every required input"):
+                assert_vm05_action_authorized(
+                    value, action="train", artifact_paths=missing,
                 )
-                self.assertTrue(result[{
-                    "train": "training_authorized",
-                    "validate": "validation_effect_authorized",
-                    "confirm": "confirmation_authorized",
-                }[action]])
+
+            Path(artifact_paths[REQUIRED_INPUTS[0]]).write_text(
+                "tampered", encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ValueError, "SHA-256 mismatch"):
+                assert_vm05_action_authorized(
+                    value, action="train", artifact_paths=artifact_paths,
+                )
+
+    def test_satisfied_input_verifier_rejects_planned_status(self) -> None:
+        with self.assertRaisesRegex(ValueError, "only be verified for frozen"):
+            verify_vm05_satisfied_inputs(config(), artifact_paths={})
 
     def test_wall_clock_timeout_is_forbidden_but_resource_safety_remains(self) -> None:
         value = validate_vm05_readiness(config())
@@ -232,6 +278,31 @@ class VM05ReadinessTests(unittest.TestCase):
             value = config()
             mutate(value)
             with self.subTest(mutation=mutate), self.assertRaises(ValueError):
+                validate_vm05_readiness(value)
+
+    def test_static_contract_comparison_is_json_type_strict_and_names_field(self) -> None:
+        mutations = (
+            ("fair_selection.same_train_families", lambda value: value[
+                "fair_selection"
+            ].__setitem__("same_train_families", 1)),
+            ("deterministic_mechanism_adapters.requires_gradient_training",
+             lambda value: value["execution_classes"][
+                 "deterministic_mechanism_adapters"
+             ].__setitem__("requires_gradient_training", 0)),
+            ("fair_selection.maximum_complete_configurations_per_primary_method",
+             lambda value: value["fair_selection"].__setitem__(
+                 "maximum_complete_configurations_per_primary_method", 12.0
+             )),
+            ("multi_worker_execution.minimum_workers", lambda value: value[
+                "multi_worker_execution"
+            ].__setitem__("minimum_workers_when_at_least_two_independent_units_exist", 2.0)),
+        )
+        for expected_field, mutate in mutations:
+            value = config()
+            mutate(value)
+            with self.subTest(expected_field=expected_field), self.assertRaisesRegex(
+                ValueError, expected_field
+            ):
                 validate_vm05_readiness(value)
 
     def test_frozen_state_rejects_zero_or_empty_scientific_values(self) -> None:
