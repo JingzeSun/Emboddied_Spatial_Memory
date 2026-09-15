@@ -22,7 +22,9 @@
 
 ### 当前指针
 
-**D-162当前指针：用户已审`feeadef`并冻结v2纯视角扫描，服务器尚未恢复或运行。** [v2合同](../configs/vsmt/vm04_l1_two_house_audit_proposal_v2.json)固定`D=1.0 m`三维pose间距、每可达位置最多一个yaw、公开物理mask资格门；目标集合互异和额外质量底线均不设硬门，只报告重复与支持分布。服务器恢复后先只读确认仓库实际路径、planning/source摘要及当时CPU/RAM/GPU/数据盘资源，再在受审同一提交上运行`contracts → viewpoint-scan → viewpoint-scan-export`；扫描只触及原两间固定house，两个family worker并行，产生0 episode、0干预、0训练，报告公开位置范围与private top-2统计摘要。旧v1合同、原stage及失败不动；v2 `generation_authorized=false`、`private_audit_authorized=false`，扫描报告验收后再审是否开放生成，train/validation/confirmation继续关闭。
+**D-162当前指针：用户已审`feeadef`并冻结v2纯视角扫描；服务器已恢复，扫描尚未运行。** [v2合同](../configs/vsmt/vm04_l1_two_house_audit_proposal_v2.json)固定`D=1.0 m`三维pose间距、每可达位置最多一个yaw、公开物理mask资格门；目标集合互异和额外质量底线均不设硬门，只报告重复与支持分布。运行前只读确认仓库实际路径、planning/source摘要及当时CPU/RAM/GPU/数据盘资源，再在受审同一提交上运行`contracts → viewpoint-scan → viewpoint-scan-export`；扫描只触及原两间固定house，两个family worker并行，产生0 episode、0干预、0训练，报告公开位置范围与private top-2统计摘要。旧v1合同、原stage及失败不动；v2 `generation_authorized=false`、`private_audit_authorized=false`，扫描报告验收后再审是否开放生成，train/validation/confirmation继续关闭。
+
+**D-163运维修复待服务器合同检查。** 服务器已经恢复；实际代码仓库为`/root/Emboddied_Spatial_Memory`，来源checkout与原planning stage均通过只读发现，原主checkout的未跟踪旧审计报告未覆盖；另建干净独立worktree同步扫描分支。正式合同测试将三个独立组按资源预检并行，固定顺序合并，scan-only仍为下一计算步。同步新运维修复后先取得当前HEAD和合同marker；只有合同成功且当时资源仍安全才运行固定两house扫描，报告验收前不运行generate。
 
 VM-05同时只做readiness准备：D-157区分VSMT/DRCR/NECS梯度训练与TAF/ELU/WFR/LOW/PHR有限配置选择，正式架构、网格、训练步数和seed仍须等失败归因与数据覆盖审查后冻结；当前不得启动训练或validation效果运行。
 

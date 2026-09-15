@@ -5,6 +5,7 @@ import inspect
 import json
 from pathlib import Path
 import tempfile
+import threading
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
@@ -107,6 +108,36 @@ class TwoHouseOpsTests(unittest.TestCase):
         self.assertFalse(value["private_audit_authorized"])
         self.assertFalse(value["training_authorized"])
         self.assertFalse(value["confirmation_authorized"])
+
+    def test_contract_groups_run_concurrently_and_merge_in_registered_order(self) -> None:
+        barrier = threading.Barrier(3)
+        expected_by_pattern = {pattern: expected for _, pattern, expected in OPS.TEST_GROUPS}
+
+        def fake_run(command, **_kwargs):
+            pattern = command[-2]
+            barrier.wait(timeout=5)
+            return {"exit_code": 0, "wall_seconds": 0.01,
+                    "output": "Ran %s tests in 0.01s\n\nOK\n" % expected_by_pattern[pattern]}
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            commit = "f" * 40
+            with patch.object(OPS, "verify_checkout", return_value=(commit, {})), \
+                    patch.object(OPS, "run_command", side_effect=fake_run), \
+                    patch.object(OPS.os, "cpu_count", return_value=16), \
+                    patch.object(OPS, "_cgroup_memory_headroom_bytes",
+                                 return_value=1 << 50), \
+                    patch.object(OPS.shutil, "disk_usage",
+                                 return_value=SimpleNamespace(free=1 << 50)):
+                OPS.run_contracts(commit, root)
+            receipt = json.loads((OPS.stage_directory(root, commit) /
+                                  "contracts.receipt.json").read_text())
+            self.assertEqual(receipt["actual_workers"], 3)
+            self.assertEqual(receipt["deterministic_merge_order"],
+                             [name for name, _, _ in OPS.TEST_GROUPS])
+            self.assertEqual([row["name"] for row in receipt["groups"]],
+                             receipt["deterministic_merge_order"])
+            self.assertTrue(receipt["success"])
 
     def test_capacity_resource_stop_is_fail_closed_before_dispatch(self) -> None:
         value = OPS.load_config()

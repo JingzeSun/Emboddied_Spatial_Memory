@@ -3,9 +3,9 @@
 
 Run boundaries are intentionally separate:
 
-``contracts`` -> ``inventory`` -> ``select`` -> user confirmation ->
-``capacity`` -> ``generate`` -> ``materialize`` -> ``public-seal`` ->
-``private-eval`` -> ``verify`` -> ``export``.
+The current v2 approval runs ``contracts`` -> ``viewpoint-scan`` ->
+``viewpoint-scan-export`` against the two previously selected houses.
+Generation and its dependent steps remain separately gated.
 
 The implementation may be reviewed while every action bit is closed.  The
 entrypoint never treats implementation authorization as permission to inspect
@@ -15,6 +15,7 @@ the source dataset or generate an episode.
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import gzip
 import hashlib
 import json
@@ -83,7 +84,7 @@ BOUND_PATHS = (
 TEST_GROUPS = (
     ("executor", "test_executor.py", 42),
     ("l1", "test_l1_*.py", 31),
-    ("vsmt", "test_vsmt_*.py", 178),
+    ("vsmt", "test_vsmt_*.py", 179),
 )
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
 
@@ -204,15 +205,37 @@ def _marker(stage: Path, name: str) -> tuple[dict[str, Any], dict[str, Any]]:
     return receipt, success
 
 
+def _cgroup_memory_headroom_bytes() -> int | None:
+    limit_path = Path("/sys/fs/cgroup/memory.max")
+    current_path = Path("/sys/fs/cgroup/memory.current")
+    if not limit_path.is_file() or not current_path.is_file():
+        return None
+    raw_limit = limit_path.read_text(encoding="utf-8").strip()
+    if not raw_limit.isdigit():
+        return None
+    return int(raw_limit) - int(current_path.read_text(encoding="utf-8").strip())
+
+
 def run_contracts(reviewed_code: str, output_root: Path) -> None:
     config = load_config()
     commit, bindings = verify_checkout(reviewed_code)
     stage = stage_directory(output_root, commit)
     require(not stage.exists(), f"stage directory already exists: {stage}")
+    resources = config["resource_and_worker_proposal"]
+    visible_cpus = os.cpu_count() or 0
+    requested_workers = len(TEST_GROUPS)
+    actual_workers = min(requested_workers, visible_cpus)
+    memory_headroom = _cgroup_memory_headroom_bytes()
+    free_disk = shutil.disk_usage(output_root.resolve()).free
+    require(actual_workers >= 2
+            and free_disk >= int(resources["minimum_free_data_disk_bytes_before_start"])
+            and (memory_headroom is None or memory_headroom >= int(
+                resources["maximum_process_tree_RSS_bytes"]
+            )), "parallel contract tests lack CPU, memory or data-disk reserve")
     stage.mkdir(parents=True)
-    maximum = int(config["resource_and_worker_proposal"]["maximum_report_bytes"])
+    maximum = int(resources["maximum_report_bytes"])
     write_new_json(stage / "started.json", {
-        "schema_version": "vsmt-vm04-two-house-started-v1",
+        "schema_version": "vsmt-vm04-two-house-started-v2",
         "stage_id": STAGE_ID,
         "reviewed_code": commit,
         "bound_sha256": bindings,
@@ -222,34 +245,57 @@ def run_contracts(reviewed_code: str, output_root: Path) -> None:
         "private_audit_authorized": config["private_audit_authorized"],
         "training_authorized": False,
         "confirmation_authorized": False,
+        "requested_test_workers": requested_workers,
+        "actual_test_workers": actual_workers,
+        "visible_cpu_count": visible_cpus,
+        "cgroup_memory_headroom_bytes": memory_headroom,
+        "free_data_disk_bytes_before_start": free_disk,
     }, maximum_bytes=maximum)
-    groups: list[dict[str, Any]] = []
     test_environment = dict(os.environ)
     test_environment["PYTHONPATH"] = os.pathsep.join(filter(None, (
         str(SRC_ROOT), test_environment.get("PYTHONPATH", ""),
     )))
-    for name, pattern, expected in TEST_GROUPS:
-        require(expected > 0, f"reviewed exact test count is unset for {name}")
-        result = run_command([
+    def run_group(pattern: str) -> dict[str, Any]:
+        return run_command([
             sys.executable, "-B", "-m", "unittest", "discover", "-s",
             str(PROJECT_ROOT / "tests"), "-p", pattern, "-v",
         ], environment=test_environment)
-        log_path = stage / f"contracts.{name}.unittest.log"
-        log_path.write_text(result["output"], encoding="utf-8")
-        print(result["output"], end="")
-        observed_values = re.findall(r"Ran (\d+) tests?", result["output"])
-        observed = int(observed_values[-1]) if observed_values else None
-        groups.append({
-            "name": name, "pattern": pattern, "expected_tests": expected,
-            "observed_tests": observed, "exit_code": result["exit_code"],
-            "success": result["exit_code"] == 0 and observed == expected,
-            "wall_seconds": result["wall_seconds"], "log_sha256": sha256(log_path),
-        })
+
+    rows_by_name: dict[str, dict[str, Any]] = {}
+    completion_order: list[str] = []
+    with ThreadPoolExecutor(max_workers=actual_workers) as pool:
+        futures = {}
+        for name, pattern, expected in TEST_GROUPS:
+            require(expected > 0, f"reviewed exact test count is unset for {name}")
+            futures[pool.submit(run_group, pattern)] = (name, pattern, expected)
+        for future in as_completed(futures):
+            name, pattern, expected = futures[future]
+            result = future.result()
+            log_path = stage / f"contracts.{name}.unittest.log"
+            log_path.write_text(result["output"], encoding="utf-8")
+            print(f"[{name}] completed exit={result['exit_code']}", flush=True)
+            print(result["output"], end="", flush=True)
+            observed_values = re.findall(r"Ran (\d+) tests?", result["output"])
+            observed = int(observed_values[-1]) if observed_values else None
+            rows_by_name[name] = {
+                "name": name, "pattern": pattern, "expected_tests": expected,
+                "observed_tests": observed, "exit_code": result["exit_code"],
+                "success": result["exit_code"] == 0 and observed == expected,
+                "wall_seconds": result["wall_seconds"], "log_sha256": sha256(log_path),
+            }
+            completion_order.append(name)
+    groups = [rows_by_name[name] for name, _, _ in TEST_GROUPS]
     success = all(row["success"] for row in groups)
     receipt = {
-        "schema_version": "vsmt-vm04-two-house-contract-receipt-v1",
+        "schema_version": "vsmt-vm04-two-house-contract-receipt-v2",
         "stage_id": STAGE_ID, "reviewed_code": commit,
         "bound_sha256": bindings, "groups": groups,
+        "requested_workers": requested_workers, "actual_workers": actual_workers,
+        "visible_cpu_count": visible_cpus,
+        "cgroup_memory_headroom_bytes": memory_headroom,
+        "free_data_disk_bytes_before_start": free_disk,
+        "worker_completion_order": completion_order,
+        "deterministic_merge_order": [name for name, _, _ in TEST_GROUPS],
         "observed_tests": sum(int(row["observed_tests"] or 0) for row in groups),
         "success": success, "source_inventory_performed": False,
         "selection_performed": False, "generation_performed": False,
@@ -261,7 +307,7 @@ def run_contracts(reviewed_code: str, output_root: Path) -> None:
     if not success:
         raise SystemExit(1)
     write_new_json(stage / "contracts.success.json", {
-        "schema_version": "vsmt-vm04-two-house-contract-success-v1",
+        "schema_version": "vsmt-vm04-two-house-contract-success-v2",
         "reviewed_code": commit, "receipt_sha256": sha256(receipt_path),
         "observed_tests": receipt["observed_tests"], "success": True,
     }, maximum_bytes=maximum)

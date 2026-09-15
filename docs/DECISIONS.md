@@ -1614,3 +1614,8 @@
 - 日期：2026-09-15；状态：用户已审实现提交`feeadef`并明确批准“预登记D=1.0 m；服务器恢复后只开放两间固定house的纯视角扫描，生成仍关闭”。v2配置据此置`status=frozen_executable`、`viewpoint_scan_authorized=true`、`minimum_position_spacing_m=1.0`及`spacing_value_status=frozen_pre_registered`；目标集合互异与额外质量底线显式false，保留原资格门和失败不替换原则。`generation_authorized`、`private_audit_authorized`、训练、validation效果及confirmation全部保持false。旧v1配置、原stage/结果不改。
 - 执行范围只限在服务器恢复后的受审提交上核对`contracts`并扫描固定两family，随后导出公开统计与摘要链。先只读取得实际远端仓库/source/planning/output路径，核验原selection、inventory、plan、source checkout和当时CPU/RAM/GPU/数据盘；两个family为全部两个独立扫描单元，曾在同机并行生成成功不替代恢复后的资源复核。扫描失败或不足18个pose都原样保留，不换house、不调D、不自动启动episode；报告验收与下一次用户审查之前不开放完整生成。
 - 白话：本次授权解决“先确认18个视角是否扎堆，再决定值不值得生成36条序列”的问题。输入是原两间房、公开物理mask几何和冻结1 m规则，输出是0 episode的视角分散度、支持范围、重复目标统计及文件摘要。例如某房原前18名只有5个位置，而间距筛选后有16个位置，报告会列出两者且不补齐剩余slot。它不是学会识别物体、判断事务语义、替换失败house或验收新数据。
+
+## D-163：VM-04合同测试按独立组并行（服务器运行前运维修复）
+
+- 日期：2026-09-15；状态：代码修复待服务器检查，D-162扫描范围不变。恢复后的服务器只读检查显示16个可见CPU、约62 GB cgroup内存额度、数据盘约27 GB空余、RTX 4080 SUPER约32 GB空闲显存；正式`contracts`入口仍把executor、L1、VSMT三个独立测试组串行运行，与跨阶段多worker规则冲突。改为按当时CPU/容器内存及数据盘预检启动最多三个独立测试worker，逐组保存退出码/日志摘要与实际完成顺序，回执按预登记executor→L1→VSMT顺序合并；原stage、生成方法、视角规则和D值不改。
+- 白话：这个运维修复解决“服务器有多个独立测试组，却只占一个worker”的问题。输入是受审checkout的三套合同测试及当时资源，输出是带worker数、分片、退出、日志摘要和固定合并顺序的合同回执。例如VSMT先完成、executor后完成，回执仍按executor、L1、VSMT列出。它不产生episode、不训练识别模型，也不表示真实house视角已经分散。
