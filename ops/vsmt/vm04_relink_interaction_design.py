@@ -112,6 +112,8 @@ def validate_proposal(value):
                     for force in value["push_pull_force_ladder_newtons"]) and
                 value["push_pull_force_ladder_newtons"] == sorted(set(
                     value["push_pull_force_ladder_newtons"])) and
+                value["push_pull_force_ladder_newtons"] ==
+                    [20.0, 80.0, 160.0] and
                 all(type(value[key]) is float and
                     math.isfinite(value[key]) and value[key] > 0
                     for key in open_fields[7:]) and
