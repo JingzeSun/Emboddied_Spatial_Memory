@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| VM-04目标边界与动作探针 | D-165旧16个完整episode首目标均非作者物体，新v2扫描top-2的72项中70项非作者物体；固定pose另有36/36槽至少2件可见作者资产与2件可移动资产。D-166四项目标语义已获批准，D-167新目标探针代码已交审且本地纯测试43项通过，但v3探针/生成/训练闸门仍false；原D-164墙面目标探针继续先验拒绝。根因/资格/重复报告SHA-256见LOG-155–156，新探针代码范围见LOG-157；旧单进程JSON审计和65位计划摘要笔误在D-166如实登记；无新服务器物理干预或episode。 |
+| VM-04目标边界与动作探针 | D-165旧16个完整episode首目标均非作者物体，新v2扫描top-2的72项中70项非作者物体；固定pose另有36/36槽至少2件可见作者资产与2件可移动资产。D-166四项目标语义已获批准，D-167新目标探针代码已交审且本地纯测试43项、服务器三worker纯check 43项通过，但v3探针/生成/训练闸门仍false；原D-164墙面目标探针继续先验拒绝。根因/资格/重复报告SHA-256见LOG-155–156，新探针代码范围见LOG-157；旧单进程JSON审计和65位计划摘要笔误在D-166如实登记；无新服务器物理干预或episode。 |
 | VSMT首篇/VM-01～04 | 旧两房stage及16完整/20构造失败封存。D-162仅开放v2固定两房、D=1.0 m纯视角扫描；服务器合同252/252及两family扫描均成功，各选18个pose、0 episode。原前18均来自18个位置，空间筛选降低top-2集合重复，但top-1仍重复10/11次；报告摘要`575d34d0…089f32`。生成/private、训练、validation效果、confirmation与L2继续关闭。LOG-152–153，D-162–163 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
 | R4三模型接入 | D完整适配16项通过（121/200全反向，0更新），W完整适配17项亦通过，F完整适配19项通过；真实公共接口27/27候选通过，0优化/真值读取。209bb34，LOG-123–127 |
@@ -1763,3 +1763,10 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 并发证据准备：未来family00原slot00先由单worker仅建场景/TeleportFull并退出，父入口记录私有日志/资源回执SHA-256、测得RSS及运行时逐GPU空闲显存最低值；4倍RSS和同GPU至少2倍观测显存下降量且8 GiB静态线达标，才派发两family。观测下降量为零或资源采样缺失时拒绝派发，不能推断GPU安全；目前没有服务器实测值。
 - 本地三组独立纯测试为合同/资格12、动作/后态22、阶段/导出9，合计43/43通过；新父入口`contract`读已批准D-166合同返回`execution=False/generation=false`，`run/export`在创建stage前拒绝，Python编译及diff/JSON检查通过。服务器模拟器环境下的同版三worker`check`回执、两worker动作run及公开导出均未发生；现在没有新的36条私有slot，也没有探针公开结果可验。
 - 白话：这批代码解决“选对作者资产后，模拟器到底能不能按原时序隐藏、重现或移动，而且失败时保留哪一步的真实诊断”的问题。输入是原两house/36pose/计划、当前私有资产资格及注册动作，输出将来的private动作和后态回执以及不含ID的public计数。例如REACTIVATE在frame16对挂画隐藏被拒时，private留下动作、错误码和先前相机动作，public只会多一条失败次数。它不是修好了视觉模型、构造了公开结构地图、确定REACTIVATE记忆语义或完成了VM-04数据验收。
+
+## LOG-158：VM-04新目标探针服务器纯检查（2026-09-15）
+
+- 类型/代码：只运行D-167 `check`，未运行`run/export`、模拟器动作、episode生成或训练。服务器原仓库实际路径由`git rev-parse --show-toplevel`确认是`/root/Emboddied_Spatial_Memory`；该仓库`main`留有未跟踪的旧`results/vsmt_vm04_l1_two_house_audit.json`，未切换或覆盖。通过已推送分支建立数据盘隔离worktree`/root/autodl-tmp/vsmt_vm04_v3_probe_review`，干净detached HEAD=`fe8b725b4b8617b7795ef916ec92d874c901233c`，检查后仍干净。
+- 启动前资源：CPU配额`1600000/100000=16`、cgroup内存上限`66571993088` bytes、当时已用`1636581376` bytes、数据盘约27 GiB可用；GPU可见1张，但纯检查没有GPU或模拟器任务。正式receipt记录可见CPU=16、当时cgroup剩余`64912850944` bytes、数据盘空闲`28517093376` bytes，未设墙钟失败上限。
+- 执行/退出：父入口按`contract_and_eligibility→action_and_terminal→stage_and_export`固定合并，requested/actual workers=`3/3`，测试各`12/22/9`，合计`43/43`，三个worker exit均0，父命令exit0。`check.receipt.json`SHA-256=`594e5435bb255a13aefa66aad9013449cc289b72e637efed0a7ff917252ca6f7`；`check.success.json`引用该值且三份日志各自与receipt登记摘要一致。服务器原产物保留在`outputs/vsmt/vsmt-vm04-v3-target-probe-check-v1-fe8b725b4b86/`，未重跑、未挪入Git；receipt登记`simulator_started=false/episodes_generated=0`。
+- 范围/白话：这一步解决“提交到服务器后纯合同、目标资格、动作失败保留和匿名导出边界会不会因环境不同而坏掉”的工程检查。输入是干净`fe8b725`代码与服务器CPU/内存/磁盘，输出带worker退出、资源和摘要的纯测试回执。例如REACTIVATE frame16拒绝后的错误码保留测试在服务器通过，但测试使用人工事件，**不是**真实house里该动作被模拟器接受或拒绝的证据。没有新36槽私有动作结果、公开探针报告、记忆历史标签、物理RELINK碰撞证据或VM-04数据验收；探针与生成闸门仍关闭。

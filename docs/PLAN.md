@@ -22,7 +22,7 @@
 
 ### 当前指针
 
-服务器`check`是可在精确干净代码提交和资源核验后单独运行的纯测试步骤，不创建动作probe stage，也不打开模拟器干预；本轮尚未运行。`run/export`仍需用户代码审查后另行冻结目标/探针执行闸门，不能把`check`通过自动解释成探针运行授权。
+服务器`check`是可在精确干净代码提交和资源核验后单独运行的纯测试步骤，不创建动作probe stage，也不打开模拟器干预；本轮已在隔离服务器worktree按精确提交fe8b725完成：3个worker、43/43纯测试，回执SHA-256为594e5435bb255a13aefa66aad9013449cc289b72e637efed0a7ff917252ca6f7。`run/export`仍需用户代码审查后另行冻结目标/探针执行闸门，不能把`check`通过自动解释成探针运行授权。
 
 **D-167新目标动作能力探针已写成独立、不可执行的审查批次。** [新配置](../configs/vsmt/vm04_target_action_probe_proposal_v1.json)、[父入口](../ops/vsmt/vm04_target_action_probe.py)与[私有family worker](../ops/vsmt/vm04_target_action_probe_worker.py)绑定D-166 v3合同、v2扫描回执/计划、原两间house与36个固定槽；未来可按`contract→check→run→export`顺序核验并复用，当前可调用无需stage的`contract`和本地纯测试，`run/export`在创建stage前拒绝。三组纯测试入口预设并行；未来`run`先用family00原slot00只建场景/TeleportFull、0干预的单worker测峰值RSS，要求剩余cgroup RAM至少为测得RSS的4倍、在场景预检运行时采样逐GPU空闲显存并要求派发时同设备不少于观测下降量2倍且不低于8 GiB，再复核CPU配额/GPU/磁盘，才并行两个独立family动作worker；没有预设墙钟强杀。不按结果换目标、pose、house或调D。私有逐槽记录注册相机和外界动作的诊断及干预后mask/metadata状态，公开报告只导出程序/状态次数、匿名重复次数与摘要。静态资产的记忆历史、NOOP/BIND/SPLIT/MERGE公开类型化区域、L1 oracle分流和RELINK碰撞/可达性都**不由这个动作探针证明**；尤其注册`forceAction=true`的RELINK只能报告动作与位置吻合、碰撞未查。5 mm终态位置容差、4倍RSS与2倍观测显存安全线是待用户代码审查的探针工程数值，不作为记忆评分阈值。新代码审过并取得必要服务器纯边界回执后才另议探针执行；生成/训练/validation/confirmation继续关闭，原D-164探针及旧stage不变。
 
