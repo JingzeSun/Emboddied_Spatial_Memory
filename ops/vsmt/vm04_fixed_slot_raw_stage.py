@@ -62,6 +62,7 @@ def check(reviewed_code, output_root):
     groups = [
         ("raw_file_boundary", ["tests.test_vm04_fixed_slot_raw_worker",
                                 "tests.test_vm04_fixed_slot_raw_manifest",
+                                "tests.test_vm04_fixed_slot_raw_stage",
                                 "tests.test_vsmt_two_house_ops"]),
         ("target_and_endpoint", ["tests.test_vm04_target_selection_v3",
                                  "tests.test_vm04_relink_endpoint_two_house_probe"]),
