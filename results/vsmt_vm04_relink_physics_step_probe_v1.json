@@ -1,0 +1,86 @@
+{
+  "actual_workers": 2,
+  "collider_geometry_independently_verified": false,
+  "episodes_generated": 0,
+  "manual_physics_replicas": [
+    {
+      "first_changed_step_index": 0,
+      "first_step_delta_xyz_m": {
+        "x": -0.039899,
+        "y": 0.000233,
+        "z": -0.010254
+      },
+      "initial_paused_delta_xyz_m": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "last_step_delta_xyz_m": {
+        "x": -0.049871,
+        "y": -0.000467,
+        "z": -0.014364
+      },
+      "manual_step_count": 50,
+      "memory_history_checked": false,
+      "moving_step_count": 12,
+      "replica": 0,
+      "robot_path_reachability_verified": false,
+      "semantic_positive_label_issued": false,
+      "status": "recorded_full_registered_path"
+    },
+    {
+      "first_changed_step_index": 0,
+      "first_step_delta_xyz_m": {
+        "x": -0.039899,
+        "y": 0.000233,
+        "z": -0.010254
+      },
+      "initial_paused_delta_xyz_m": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "last_step_delta_xyz_m": {
+        "x": -0.049871,
+        "y": -0.000467,
+        "z": -0.014364
+      },
+      "manual_step_count": 50,
+      "memory_history_checked": false,
+      "moving_step_count": 12,
+      "replica": 1,
+      "robot_path_reachability_verified": false,
+      "semantic_positive_label_issued": false,
+      "status": "recorded_full_registered_path"
+    }
+  ],
+  "memory_history_checked": false,
+  "physics_receipt_sha256": "2445fb96d161f13c19a85978df4f9dbacc5fb0839b8d9cd504c12177bcf145ea",
+  "private_ids_exported": false,
+  "requested_workers": 2,
+  "resource_evidence": {
+    "initial_cgroup_headroom_bytes": 64919740416,
+    "initial_data_disk_free_bytes": 28515815424,
+    "initial_gpu_free_bytes": 33795604480,
+    "private_samples_sha256": "d9c501b63228badd65fc4da9c911a3176d3feb010dcfec45728120f0c79655d4",
+    "source_sampled_cgroup_demand_bytes": 1050968064,
+    "source_sampled_gpu_demand_bytes": 1561329664,
+    "visible_cpu_count": 16
+  },
+  "reviewed_code": "815e775a63f47a24ace0cf1481fa45c4da1a04fd",
+  "robot_path_reachability_verified": false,
+  "schema_version": "vsmt-vm04-relink-physics-attribution-report-v1",
+  "semantic_positive_labels_issued": 0,
+  "simulator_collision_counterpart_identity_exported": false,
+  "simulator_final_pose_collision_reported": true,
+  "simulator_nonforced_rejection_category": "explicit_object_collision_after_teleport",
+  "source_mechanism_public_report_sha256": "9cb7d18f6fe4779ac9dd33a1332a146c9f04297d21dd99ca0bfad9a9fe3a47de",
+  "source_mechanism_receipt_sha256": "36e695cc74af4a396576adf19fa109d87fd9d490df358e6cafa6774b4aea3092",
+  "source_original_forced_immediate_delta_xyz_m": {
+    "x": -0.049812,
+    "y": 0.00062,
+    "z": -0.01423
+  },
+  "status": "one_fixed_slot_manual_physics_collision_diagnostic",
+  "training_steps": 0
+}
