@@ -1,0 +1,205 @@
+{
+  "actual_workers": 2,
+  "anonymous_target_repetition_by_family": [
+    {
+      "distinct_selected_target_set_count": 5,
+      "distinct_top1_count": 5,
+      "family_id": "audit-family:00",
+      "repeated_selected_target_set_count": 5,
+      "repeated_top1_count": 5,
+      "selected_physical_slot_count": 10
+    },
+    {
+      "distinct_selected_target_set_count": 9,
+      "distinct_top1_count": 8,
+      "family_id": "audit-family:01",
+      "repeated_selected_target_set_count": 1,
+      "repeated_top1_count": 2,
+      "selected_physical_slot_count": 10
+    }
+  ],
+  "counts_by_family_program_status": [
+    {
+      "count": 2,
+      "family_id": "audit-family:00",
+      "program": "BIND",
+      "status": "non_intervention_public_region_out_of_probe_scope"
+    },
+    {
+      "count": 2,
+      "family_id": "audit-family:00",
+      "program": "BIRTH",
+      "status": "visibility_action_terminal_verified_memory_unchecked"
+    },
+    {
+      "count": 2,
+      "family_id": "audit-family:00",
+      "program": "MERGE",
+      "status": "non_intervention_public_region_out_of_probe_scope"
+    },
+    {
+      "count": 2,
+      "family_id": "audit-family:00",
+      "program": "NOOP",
+      "status": "non_intervention_public_region_out_of_probe_scope"
+    },
+    {
+      "count": 2,
+      "family_id": "audit-family:00",
+      "program": "REACTIVATE",
+      "status": "visibility_action_terminal_verified_memory_unchecked"
+    },
+    {
+      "count": 2,
+      "family_id": "audit-family:00",
+      "program": "RELINK",
+      "status": "relink_forced_action_terminal_verified_collision_unchecked"
+    },
+    {
+      "count": 2,
+      "family_id": "audit-family:00",
+      "program": "REPLACE",
+      "status": "visibility_action_terminal_verified_memory_unchecked"
+    },
+    {
+      "count": 2,
+      "family_id": "audit-family:00",
+      "program": "RETRACT",
+      "status": "visibility_action_terminal_verified_memory_unchecked"
+    },
+    {
+      "count": 2,
+      "family_id": "audit-family:00",
+      "program": "SPLIT",
+      "status": "non_intervention_public_region_out_of_probe_scope"
+    },
+    {
+      "count": 2,
+      "family_id": "audit-family:01",
+      "program": "BIND",
+      "status": "non_intervention_public_region_out_of_probe_scope"
+    },
+    {
+      "count": 2,
+      "family_id": "audit-family:01",
+      "program": "BIRTH",
+      "status": "visibility_action_terminal_verified_memory_unchecked"
+    },
+    {
+      "count": 2,
+      "family_id": "audit-family:01",
+      "program": "MERGE",
+      "status": "non_intervention_public_region_out_of_probe_scope"
+    },
+    {
+      "count": 2,
+      "family_id": "audit-family:01",
+      "program": "NOOP",
+      "status": "non_intervention_public_region_out_of_probe_scope"
+    },
+    {
+      "count": 2,
+      "family_id": "audit-family:01",
+      "program": "REACTIVATE",
+      "status": "visibility_action_terminal_verified_memory_unchecked"
+    },
+    {
+      "count": 1,
+      "family_id": "audit-family:01",
+      "program": "RELINK",
+      "status": "relink_forced_action_terminal_verified_collision_unchecked"
+    },
+    {
+      "count": 1,
+      "family_id": "audit-family:01",
+      "program": "RELINK",
+      "status": "terminal_poststate_mismatch"
+    },
+    {
+      "count": 2,
+      "family_id": "audit-family:01",
+      "program": "REPLACE",
+      "status": "visibility_action_terminal_verified_memory_unchecked"
+    },
+    {
+      "count": 2,
+      "family_id": "audit-family:01",
+      "program": "RETRACT",
+      "status": "visibility_action_terminal_verified_memory_unchecked"
+    },
+    {
+      "count": 2,
+      "family_id": "audit-family:01",
+      "program": "SPLIT",
+      "status": "non_intervention_public_region_out_of_probe_scope"
+    }
+  ],
+  "episodes_generated": 0,
+  "frames_captured": 0,
+  "private_ids_exported": false,
+  "probe_receipt_sha256": "b328caa335857a8e85fe26ac994c069115ba5baa218c2f9a4bee41a87b424333",
+  "requested_workers": 2,
+  "resource_evidence": {
+    "benchmark_min_gpu_free_bytes_by_device": [
+      32225886208
+    ],
+    "benchmark_observed_gpu_device_index": 0,
+    "benchmark_observed_peak_gpu_bytes": 1569718272,
+    "cgroup_memory_headroom_bytes": 64931213312,
+    "free_data_disk_bytes": 28516753408,
+    "free_gpu_bytes_by_device": [
+      33795604480
+    ],
+    "free_gpu_bytes_on_one_device": 33795604480,
+    "minimum_gpu_headroom_to_observed_peak_ratio": 2.0,
+    "minimum_memory_headroom_to_peak_rss_ratio_for_two_workers": 4.0,
+    "post_benchmark_cgroup_memory_headroom_bytes": 64930111488,
+    "post_benchmark_gpu_free_bytes_by_device": [
+      33795604480
+    ],
+    "post_benchmark_resource_evidence": {
+      "cgroup_memory_headroom_bytes": 64930074624,
+      "free_data_disk_bytes": 28516741120,
+      "free_gpu_bytes_by_device": [
+        33795604480
+      ],
+      "free_gpu_bytes_on_one_device": 33795604480,
+      "prior_two_family_scan_receipt_sha256": "044fd705e998b1dea9bc62bdd730ff2fc583f9880901131f8927aefb10bb9fd5",
+      "visible_cpu_count": 16,
+      "visible_gpu_count": 1
+    },
+    "pre_benchmark_gpu_free_bytes_by_device": [
+      33795604480
+    ],
+    "prior_two_family_scan_receipt_sha256": "044fd705e998b1dea9bc62bdd730ff2fc583f9880901131f8927aefb10bb9fd5",
+    "single_worker_benchmark_peak_RSS_kib": 86920,
+    "visible_cpu_count": 16,
+    "visible_gpu_count": 1
+  },
+  "reviewed_code": "1749a3f066e40ad914092bef099087e73d109b58",
+  "scan_receipt_sha256": "044fd705e998b1dea9bc62bdd730ff2fc583f9880901131f8927aefb10bb9fd5",
+  "schema_version": "vsmt-vm04-v3-target-action-probe-public-report-v1",
+  "semantic_positive_labels_issued": 0,
+  "single_worker_benchmark": {
+    "actual_workers": 1,
+    "exit_code": 0,
+    "private_log_sha256": "5d5843c6cc8220862c3e20941237ab4d2ad465105afb03acaf6ce3d0c1e2cd0e",
+    "private_receipt_sha256": "c9951cafe8f1fd4c552b493155ffdf12f2a5a4911a1465338d3351bc279c1a04",
+    "requested_workers": 1
+  },
+  "status": "fixed_two_house_action_capability_diagnostic_only",
+  "training_steps": 0,
+  "v3_target_contract_sha256": "7d11335be9a8b85cc26dd1c2058c36f71c93d9db0cef4f33fdda2ec7cfa6dbac",
+  "worker_exits": [
+    {
+      "exit_code": 0,
+      "family_id": "audit-family:00",
+      "log_sha256": "714cd79a36fa78b2f7fbcc77247134185d3cdc30b0c8538ec6bd3e135b400619"
+    },
+    {
+      "exit_code": 0,
+      "family_id": "audit-family:01",
+      "log_sha256": "8f3ffcd7f4159073e6bc0a30ff2d4d6f1550c70517b4c528baed841dda2d9cdc"
+    }
+  ]
+}
