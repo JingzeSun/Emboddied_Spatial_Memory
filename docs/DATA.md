@@ -942,3 +942,9 @@ D-176新生成职责沿用v2的固定两房36槽及`run_complete_requires`，每
 这里的版本号来自不同文件职责：`vm04_two_house_worker.py`是原两房raw **v2**写入器（名字未带v2）；视角扫描配置/receipt **v2**固定了两个family的18个pose；`vm04_target_selection_v3.py`与目标合同 **v3**只规定作者资产资格；新`vm04_fixed_slot_raw_stage_v1.json`里的**v1**是本次独立固定槽stage的schema起始号，不是退回原两房v1 worker。白话：它解决“看到v1/v2/v3就误以为三个worker轮流覆盖同一批数据”的混淆；输入是旧写入器、扫描回执和新目标规则，输出各自明确职责及新文件来源。例如新raw帧沿用旧v2的npy/camera布局，却由v3筛物理目标。这不等于旧v2样本已经有效，也不要求旧目录重写成v3。
 
 白话：输入是同一个冻结槽和它实际走到的最后一步；输出是可复核的成功或失败记录。例如前24帧已经拍到，但第24帧规定动作端点被碰撞拒绝，public保存已拍帧，private保存拒绝依据，报告说该槽失败。它不是把拍过前缀说成完整32帧episode，也不是隐去四个RELINK失败后宣称类别齐全。
+
+### VM-04独立RELINK新数据版本的拟议公私文件（proposed，未批准运行）
+
+若另立版本，`public/action-plan.json`应在动作前封存匿名目标区域、公开旧`located_at(P1)`关系、目标格`P2`、机器人路线、全部固定分支/方向/力档及公开证据摘要；`private/action-map.json`才保存模拟器实例ID、实际动作参数与容器映射。每个fresh分支的`private/action-outcome.json`保留机器人逐步真实位姿、动作返回、目标物实际位移/拾取/父容器/稳定终态、完整失败和退出；`public/post-action-packet`仅由执行后的当前RGB-D与此前预测记忆生成匿名实体/地点/关系证据，不读取该私有后态。`public/candidate-seal.json`在任何teacher、private评价或未来观测打开前保存候选及摘要，`private/relation-verdict.json`此后才记录同一实例连续性、旧边前提、P1→P2物理关系、公开支持、候选是否遗漏、executor旧边关闭/新边建立/身份保留及逐层失败原因。公开汇总只报family×分支×物理/记忆状态与candidate miss，不暴露ID、真值位置或失败文字；原36槽及四个固定RELINK失败文件保持原样。
+
+白话：这些拟议文件解决“动作真的可执行”和“记忆关系真的改对”被一个成功位混淆的问题。输入是先登记的公开目标和动作、后来实际拍到的当前画面；输出是公开候选封存、隔离的私有物理/关系判定及完整失败。例如同一椅子从P1推到P2，但候选集没有合法RELINK，公开汇总记candidate miss，私有文件记录同一实例和真实终态；若旧记忆没有P1边则记事务前提缺口。它不等于已取得机器人路径证据、用私有ID生成候选、teacher补候选，或用新成功替换原碰撞槽。

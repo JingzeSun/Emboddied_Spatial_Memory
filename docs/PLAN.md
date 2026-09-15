@@ -16,13 +16,15 @@
 | VM-01 公私数据与共同适配合同（D-143工程基线已审） | D-122草案；固定结构类型、公开 proposal/descriptor、五通道文件和反作弊 gate | schema、正负例、private mutation invariance、无 private 推理及 candidate-before-teacher 测试；D-143固定服务器回执已覆盖当前字节，真实生成边界仍须下一职责实现与审查 |
 | VM-02 三种论文机制与朴素基线（D-143工程基线已审） | 共同接口；TAF、ELU、WFR、LOW 只消费相同 `ObservationPacket` | clean-room 适配器、显式无默认值配置、版本化共同输出包装及人工分支测试；未冻结阈值，不称官方复现或效果结果 |
 | VM-03 VSMT 无泄漏候选与 teacher（D-143工程基线已审） | VM-01接口；复用 executor/八原子语义，删除参考派生 query | public-only 九类程序、逐一真实执行、公开摘要排序、online evidence封存及封存后teacher；D-143固定服务器回执已覆盖当前字节，未生成真实house数据 |
-| VM-04 新数据数值冻结与开发生成（当前转入失败保留生成职责的代码审查） | [总协议提案](../configs/vsmt/vm04_data_protocol_proposal_v1.json)、[L1合同](../configs/vsmt/vm04_l1_contract_proposal_v1.json)、[动作对称合同](../configs/vsmt/vm04_l1_action_symmetry_v1.json)、[v2两房视角合同](../configs/vsmt/vm04_l1_two_house_audit_proposal_v2.json)及[隔离环境](../configs/vsmt/vm04_l1_environment_v1.json)；固定两间ProcTHOR house、匿名物理mask与D=1.0 m空间去重 | D-162纯扫描已完成：合同252/252、两个family各18/18、0 episode；D-176批准原36槽失败保留与RELINK缺口停止线。旧stage封存，新生成worker/固定入口仍须实现、代码审查及服务器合同，train/validation/confirmation阻断 |
+| VM-04 新数据数值冻结与开发生成（当前转入失败保留生成职责的代码审查） | [总协议提案](../configs/vsmt/vm04_data_protocol_proposal_v1.json)、[L1合同](../configs/vsmt/vm04_l1_contract_proposal_v1.json)、[动作对称合同](../configs/vsmt/vm04_l1_action_symmetry_v1.json)、[v2两房视角合同](../configs/vsmt/vm04_l1_two_house_audit_proposal_v2.json)及[隔离环境](../configs/vsmt/vm04_l1_environment_v1.json)；固定两间ProcTHOR house、匿名物理mask与D=1.0 m空间去重 | D-162纯扫描已完成：合同252/252、两个family各18/18、0 episode；D-176批准原36槽失败保留与RELINK缺口停止线。固定任务封存、单槽raw worker及父入口已实现供代码审查，服务器同版检查/运行、私有语义验收均未完成，train/validation/confirmation阻断 |
 | VM-05 公平训练与 validation | 数据验收；冻结各方法阈值、学习预算、停止规则、共同/完整任务指标；VSMT/DRCR/NECS做梯度训练，TAF/ELU/WFR/LOW/PHR只做有限配置选择 | 五个主臂在 L2 完全同前端输入主评；L1只作机制上界；确认前锁定全部选择；所有独立服务器单元采用容量允许的最大安全worker且不设墙钟强杀 |
 | VM-06 独立确认与论文证据 | 模型、前端、候选、评分和最小效果门冻结后另行授权 | 未见家族 confirmation、必要现实来源、逐类/共享能力/成本/失败报告；不能按 validation 结果改样本或门 |
 
 ### 当前指针
 
 **VM-04固定槽原始数据代码职责（D-176，正在交审）：** 新[任务封存入口](../ops/vsmt/vm04_fixed_slot_raw_manifest.py)只读原v2扫描/私有计划与D-173原四槽碰撞回执，逐字节绑定后封存36份私有任务；新[单槽worker](../ops/vsmt/vm04_fixed_slot_raw_worker.py)复用v2 RGB-D文件写入与已审v3作者资产选择，非干预四类不给私有目标，RELINK原四槽只留第0–23帧前缀并记覆盖缺口。输入是原house、固定pose、封存program/slot，输出各槽一次完整raw或失败raw；例如family00 slot04留下24帧与`raw.failure.json`，不发第24帧的强制传送。这不等于`constructed=true`、真实交互成功或训练样本。任务封存、单槽worker与[父入口](../ops/vsmt/vm04_fixed_slot_raw_stage.py)已本地纯测试，**父派发/资源/退出代码已写供审查，服务器合同与用户代码审查仍待完成**；新配置执行位false，0新episode。旧worker/stage及D-175探针继续保留。
+
+**独立RELINK新数据版本（proposed，D-176停止线未重开）：** [方法与正反例](METHOD.md)和[拟议公私字段](DATA.md)已记录机器人实际路径、公开旧/新关系、候选先封存及私有同一身份/后态的分层验收口径。输入只能是公开当前RGB-D、此前预测记忆和预登记动作；输出须分别报告物理失败、事务前提缺口、公开证据缺口、candidate miss和executor/teacher错误。例如原四槽仍保持碰撞失败，独立新版本即使找到一条推椅子到P2的路线也不得回填原槽。该版本尚无冻结配置、公开容器读取器、真实`PutObject` smoke、可执行机器人RELINK回执或记忆正例；执行新分支仍需单独裁决和代码审查。
 
 **D-176代码实施前的审查结论（历史）：** D-175 runner只是人工事件纯核心，缺真实公开类型容器来源和公私文件封存、原source/pose/slot核验、fresh controller与资源/出口回执，不能作为VM-04两房原始数据的依赖或真实交互证据；19个推拉/抓放能力分支和固定build`PutObject` smoke暂不运行、不追加探针。用户现批准原36固定槽一次构造，完整raw/`raw.failure`/硬资源`not_started`全数保留，RELINK原四槽已知碰撞按失败及覆盖缺口登记，不换目标、pose、动作或house。v2合同本来没有36/36有效样本门，但旧生成worker仍用可见instance mask选择建筑结构并强制传送RELINK，旧private construction评价还用私有ID给NOOP/BIND/SPLIT/MERGE定成立，旧stage执行位不能解；下一独立代码职责须绑定已审v3作者目标选择、公开非干预结构证据和已知失败前缀，交审后才运行新stage。0新episode，0训练/validation/confirmation。
 
