@@ -1809,3 +1809,10 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 新runner纯核心封存公开路线和当前RGB-D类型化容器候选后才接受私有ID映射，generic surface和注入的private objectId都会拒绝；逐动作记录返回/错误、机器人实际位置、目标位移/运动/拾取/父容器，失败不换原分支，不签记忆正例。模块实际入口在proposal `probe_authorized=false`时首动作前拒绝；测试只对注入的人工controller临时模拟已开闸语义，不改变磁盘提案。
 - 本地纯检查：新runner 8/8、旧设计5/5通过；Python编译、JSON和diff检查将与审查提交一起核验。0新模拟器真实动作、0真实API smoke、0公开容器前端产物、0 episode、0训练、0private confirmation。这个回执只能说明函数对人工正反例的行为，不能认证真实house能力、19分支资源并发、公开容器识别或记忆RELINK主张。
 - 白话：例如`PushObject(80 N)`返回成功但位置一毫米未变，runner记录零位移而不是成功RELINK；抓起后`PutObject`动作成功但`parentReceptacles`不含预先选的容器，也报后态不符。输入是公开封存计划与旧目标私有动作ID，输出供审查的逐步私有记录规则；它不等于运行了真实模拟器或生成了论文样本。
+
+## LOG-165：D-176停止线与runner只读审查（2026-09-16）
+
+- 用户批准原36槽一次构造、失败全留、RELINK不能成立就报缺口、不再追加能力探针。只读核现有v2两房合同：`run_complete_requires`要两family/36槽终止、worker退出、公私封存和顺序无关合并；`minimum_yield_or_recall_pass_gate=null`，构造失败和candidate miss不是重跑触发。由此19个D-175交互能力分支及固定build放置API smoke不再是**原始两房数据**前置步骤。本地旧两房运维纯测试37/37与runner人工事件纯测试8/8通过；其中合同入口mock输出252项不代表新生成worker/server验收。当前0新模拟器/0新episode/0训练。
+- runner审查发现它仍为纯核心而非可运行stage：public容器输入可由调用者自称类型/来源，内存hash没有公私文件读取/封存时序证据；没有固定原slot/source核验、资源/worker退出、真实API及匿名出口。它在当前`probe_authorized=false`会首动作前拒绝，也一律`semantic_positive_label_issued=false`，不能被生成器作为RELINK正例或原始数据依赖。审查结论是**停止扩runner，转独立生成职责**，不是宣称runner工程验收。
+- 生成真正阻断项仍在旧`vm04_two_house_worker`：它按所有可见instance mask挑目标，可能选建筑结构；RELINK第24帧仍`TeleportObject(forceAction=true)`与已证伪的x+0.5 m端点。旧`assess_private_construction`对NOOP/BIND/SPLIT/MERGE也用私有target ID/跨帧映射判是否成立，不能认证D-166公开类型化区域结构语义。v3固定pose作者资产选择已在动作worker使用，但未接到完整raw生成；下一职责须绑定它、公开非干预结构目标和D-173原RELINK失败依据，保存每槽`complete/failure/not_started`及公私摘要，交用户代码审查与新服务器合同后才运行。旧v2stage/结果原字节保留。
+- 白话：这次审查解决“是否非要先让机器人真实抓放才能开始两房数据”的阻断。输入是旧合同和runner/生成worker字节，输出明确的最短生成依赖与四个已知RELINK缺口。例如一个RELINK端点已经被模拟器拒绝，就把该固定槽记失败，继续核另外槽；它不等于已经生成或验收36个有效episode。
