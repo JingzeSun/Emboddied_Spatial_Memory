@@ -1,0 +1,23 @@
+{
+  "version": "vsmt-vm04-physical-relink-endpoint-contract-v1",
+  "status": "frozen_fixed_two_house_endpoint_probe_only",
+  "decision": "D-173-nonforced-physical-relink-endpoint-gate",
+  "fixed_two_house_endpoint_probe_authorized": true,
+  "generation_authorized": false,
+  "training_authorized": false,
+  "source_target_contract_sha256": "7d11335be9a8b85cc26dd1c2058c36f71c93d9db0cef4f33fdda2ec7cfa6dbac",
+  "fixed_house_ids": ["train:004270", "train:008243"],
+  "fixed_family_ids": ["audit-family:00", "audit-family:01"],
+  "fixed_relink_slots_per_family": 2,
+  "physical_target_requires_moveable_or_pickupable": true,
+  "registered_request_policy": "same_frozen_source_position_plus_0_5_x_no_target_or_destination_reselection",
+  "simulator_action": "TeleportObject",
+  "force_action": false,
+  "terminal_real_position_tolerance_m": 0.005,
+  "rejection_policy": "fail_original_fixed_slot_no_retry_no_substitute",
+  "success_claim": "simulator_nonforced_endpoint_accepted_and_real_poststate_matches_only",
+  "robot_manipulation_path_reachability_checked": false,
+  "memory_history_checked": false,
+  "semantic_positive_label_issued": false,
+  "private_error_message_policy": "retain_original_text_private_export_only_anonymous_reason_category"
+}
