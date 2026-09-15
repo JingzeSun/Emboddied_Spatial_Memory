@@ -1,0 +1,38 @@
+{
+  "actual_workers": 4,
+  "counts_by_family_status": [
+    {
+      "count": 2,
+      "family_id": "audit-family:00",
+      "status": "simulator_endpoint_collision_rejected"
+    },
+    {
+      "count": 2,
+      "family_id": "audit-family:01",
+      "status": "simulator_endpoint_collision_rejected"
+    }
+  ],
+  "endpoint_receipt_sha256": "1b912a1ecbf6d4de907bc176a9245d2c9dbbb460b3c9260f7760f1325befabd6",
+  "episodes_generated": 0,
+  "memory_history_checked": false,
+  "private_ids_exported": false,
+  "requested_workers": 4,
+  "resource_evidence": {
+    "initial_cgroup_headroom_bytes": 64917565440,
+    "initial_data_disk_free_bytes": 28515287040,
+    "initial_gpu_free_bytes": 33795604480,
+    "private_samples_sha256": "e18bcb89165e00fec294bd0e51bc1a8391a6f692d4ae167562720b9b9b563fd9",
+    "source_sampled_cgroup_demand_bytes": 1050968064,
+    "source_sampled_gpu_demand_bytes": 1561329664,
+    "visible_cpu_count": 16
+  },
+  "reviewed_code": "4fe6d3437d5044315b467e7930129010076897c2",
+  "robot_manipulation_path_reachability_checked": false,
+  "schema_version": "vsmt-vm04-relink-endpoint-two-house-public-report-v1",
+  "semantic_positive_labels_issued": 0,
+  "source_physics_attribution_public_report_sha256": "9957a63ce2a52b4638347ea0f5c9cc7fa45d5d37c825d1840730ae0ad0c07a21",
+  "source_v1_probe_receipt_sha256": "b328caa335857a8e85fe26ac994c069115ba5baa218c2f9a4bee41a87b424333",
+  "source_v2_scan_receipt_sha256": "044fd705e998b1dea9bc62bdd730ff2fc583f9880901131f8927aefb10bb9fd5",
+  "status": "all_four_original_relink_endpoint_diagnostic_only",
+  "training_steps": 0
+}
