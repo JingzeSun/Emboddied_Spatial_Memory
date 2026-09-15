@@ -135,6 +135,7 @@
     "per_version_template_attribution_for_common_post_update_audit",
     "server_capacity_probe_for_parallel_CPU_and_GPU_jobs"
   ],
+  "satisfied_input_sha256s": {},
   "prohibited": [
     "training_before_all_required_inputs_are_bound",
     "using_confirmation_to_select_thresholds_models_or_stopping",
