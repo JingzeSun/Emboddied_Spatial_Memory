@@ -22,7 +22,9 @@
 
 ### 当前指针
 
-**D-176当前指针：先结束runner审查，再交独立失败保留生成职责。** D-175 runner只是人工事件纯核心，缺真实公开类型容器来源和公私文件封存、原source/pose/slot核验、fresh controller与资源/出口回执，不能作为VM-04两房原始数据的依赖或真实交互证据；19个推拉/抓放能力分支和固定build`PutObject` smoke暂不运行、不追加探针。用户现批准原36固定槽一次构造，完整raw/`raw.failure`/硬资源`not_started`全数保留，RELINK原四槽已知碰撞按失败及覆盖缺口登记，不换目标、pose、动作或house。v2合同本来没有36/36有效样本门，但旧生成worker仍用可见instance mask选择建筑结构并强制传送RELINK，旧private construction评价还用私有ID给NOOP/BIND/SPLIT/MERGE定成立，旧stage执行位不能解；下一独立代码职责须绑定已审v3作者目标选择、公开非干预结构证据和已知失败前缀，交审后才运行新stage。0新episode，0训练/validation/confirmation。
+**VM-04固定槽原始数据代码职责（D-176，正在交审）：** 新[任务封存入口](../ops/vsmt/vm04_fixed_slot_raw_manifest.py)只读原v2扫描/私有计划与D-173原四槽碰撞回执，逐字节绑定后封存36份私有任务；新[单槽worker](../ops/vsmt/vm04_fixed_slot_raw_worker.py)复用v2 RGB-D文件写入与已审v3作者资产选择，非干预四类不给私有目标，RELINK原四槽只留第0–23帧前缀并记覆盖缺口。输入是原house、固定pose、封存program/slot，输出各槽一次完整raw或失败raw；例如family00 slot04留下24帧与`raw.failure.json`，不发第24帧的强制传送。这不等于`constructed=true`、真实交互成功或训练样本。任务封存、单槽worker与[父入口](../ops/vsmt/vm04_fixed_slot_raw_stage.py)已本地纯测试，**父派发/资源/退出代码已写供审查，服务器合同与用户代码审查仍待完成**；新配置执行位false，0新episode。旧worker/stage及D-175探针继续保留。
+
+**D-176代码实施前的审查结论（历史）：** D-175 runner只是人工事件纯核心，缺真实公开类型容器来源和公私文件封存、原source/pose/slot核验、fresh controller与资源/出口回执，不能作为VM-04两房原始数据的依赖或真实交互证据；19个推拉/抓放能力分支和固定build`PutObject` smoke暂不运行、不追加探针。用户现批准原36固定槽一次构造，完整raw/`raw.failure`/硬资源`not_started`全数保留，RELINK原四槽已知碰撞按失败及覆盖缺口登记，不换目标、pose、动作或house。v2合同本来没有36/36有效样本门，但旧生成worker仍用可见instance mask选择建筑结构并强制传送RELINK，旧private construction评价还用私有ID给NOOP/BIND/SPLIT/MERGE定成立，旧stage执行位不能解；下一独立代码职责须绑定已审v3作者目标选择、公开非干预结构证据和已知失败前缀，交审后才运行新stage。0新episode，0训练/validation/confirmation。
 
 **D-175当前指针：runner审查核心已落地，本轮只审代码。** 用户认可公开容器证据、锁定AI2-THOR 5.0.0/CloudRendering已审build的独立`PutObject` API smoke规格和20/80/160 N推拉力档。原四槽固定；三件仅可移动目标的推/拉×三力为18个fresh-scene分支，另有一件仅可拾取目标的抓放分支，结果不得挑赢家。`vm04_relink_interaction_runner`把公开路线/类型化容器区域先封存，私有ID仅供封存后模拟器动作；通用L1 surface不能冒充容器。现在只有本地人工事件纯测试，**真实固定build smoke、公开类型化容器读取器、路径容差、完整stage父入口/资源派发/匿名导出及用户代码审查尚未完成**；原proposal所有运行闸门仍false。不得用纯测试的`PutObject`父容器模拟结果替代真实API receipt；本轮不登录服务器执行动作，生成/训练/validation/confirmation继续关闭。
 

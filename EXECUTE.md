@@ -1816,3 +1816,9 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - runner审查发现它仍为纯核心而非可运行stage：public容器输入可由调用者自称类型/来源，内存hash没有公私文件读取/封存时序证据；没有固定原slot/source核验、资源/worker退出、真实API及匿名出口。它在当前`probe_authorized=false`会首动作前拒绝，也一律`semantic_positive_label_issued=false`，不能被生成器作为RELINK正例或原始数据依赖。审查结论是**停止扩runner，转独立生成职责**，不是宣称runner工程验收。
 - 生成真正阻断项仍在旧`vm04_two_house_worker`：它按所有可见instance mask挑目标，可能选建筑结构；RELINK第24帧仍`TeleportObject(forceAction=true)`与已证伪的x+0.5 m端点。旧`assess_private_construction`对NOOP/BIND/SPLIT/MERGE也用私有target ID/跨帧映射判是否成立，不能认证D-166公开类型化区域结构语义。v3固定pose作者资产选择已在动作worker使用，但未接到完整raw生成；下一职责须绑定它、公开非干预结构目标和D-173原RELINK失败依据，保存每槽`complete/failure/not_started`及公私摘要，交用户代码审查与新服务器合同后才运行。旧v2stage/结果原字节保留。
 - 白话：这次审查解决“是否非要先让机器人真实抓放才能开始两房数据”的阻断。输入是旧合同和runner/生成worker字节，输出明确的最短生成依赖与四个已知RELINK缺口。例如一个RELINK端点已经被模拟器拒绝，就把该固定槽记失败，继续核另外槽；它不等于已经生成或验收36个有效episode。
+
+## LOG-166：VM-04固定槽原始任务与单槽worker代码交审（2026-09-16）
+
+- 新封存入口纯连接原v2公私计划、固定两房pose/source与D-173四个原RELINK私有失败回执，只能产生36份原槽私有任务；公开manifest只列family/slot/episode，不列program、instance ID或私有任务hash。任何原碰撞证据缺失、slot变更或目标不一致先拒绝；任务目录存在时拒绝覆盖。
+- 新单槽worker复用旧v2 RGB-D文件写入和注册相机动作，物理程序才由v3作者资产集合选目标；NOOP/BIND/SPLIT/MERGE不给private target或干预。完整32帧只写`raw_complete=true,constructed=false`；原四RELINK仅写第0–23帧前缀和`raw.failure.json,relink_coverage_gap=true`，在第24帧前停止，不发新能力探针或`TeleportObject`。失败私有诊断与公开匿名摘要分文件、已有槽拒绝重跑。
+- 本地人工controller与真实v2文件写入的合同测试10/10通过；结合旧目标选择和两房运维边界共51/51，以及原动作/端点纯检查13/13通过。实际服务器模拟器、新36槽stage的真实资源worker/退出/`not_started`运行、公私结构语义评价、候选/teacher封存仍未运行或实现，0新episode/0训练；测试只能支持文件形状及失败保留代码审查，不能认证数据有效率。
