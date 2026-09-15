@@ -77,6 +77,11 @@ def validate_config(value):
             value["planning_selection_receipt_sha256"] ==
             "7aa29f63f0f71d04fa3cc2613867afb08f22559d7fbe1282225d23030e5f62b9",
             "fixed source scan/planning binding changed")
+    require(value["source_public_episode_manifest_sha256"] ==
+            "403a7039cea8d8097fca1344d0041bc021ee6a231cfbede38066e690ab1bf406" and
+            value["source_private_episode_manifest_sha256"] ==
+            "cb8e05aea4da7f92b9463adf411986e0183f8a6660217a4bd08f6b5ac36ecaa4",
+            "frozen source episode plans changed")
     require(value["fixed_family_ids"] == ["audit-family:00", "audit-family:01"] and
             value["fixed_source_house_ids"] == ["train:004270", "train:008243"],
             "fixed families/houses changed")
@@ -193,11 +198,9 @@ def scan_inputs(config, scan_stage, source_root):
     })
     require(len(plans["public"]["episodes"]) == 36 and
             plans["public"]["manifest_sha256"] ==
-            audit.load_config()["planning_stage_binding"][
-                "public_episode_manifest_sha256"] and
+            config["source_public_episode_manifest_sha256"] and
             plans["private"]["manifest_sha256"] ==
-            audit.load_config()["planning_stage_binding"][
-                "private_episode_manifest_sha256"],
+            config["source_private_episode_manifest_sha256"],
             "source scan episode plans changed")
     require(all(not (scan / "execution" / family / "episodes").exists()
                 for family in config["fixed_family_ids"]),

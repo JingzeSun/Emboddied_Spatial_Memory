@@ -45,6 +45,11 @@ class ActionProbeTests(unittest.TestCase):
         value = parent.load_config()
         self.assertFalse(value["probe_execution_authorized"])
         self.assertFalse(value["generation_authorized"])
+        self.assertEqual(len(value["source_public_episode_manifest_sha256"]), 64)
+        self.assertEqual(len(value["source_private_episode_manifest_sha256"]), 64)
+        changed = dict(value, source_public_episode_manifest_sha256="a" * 64)
+        with self.assertRaisesRegex(RuntimeError, "episode plans changed"):
+            parent.validate_config(changed)
         with mock.patch.object(parent, "verify_code") as verify:
             with self.assertRaisesRegex(RuntimeError, "closed pending user code review"):
                 parent.run("unreviewed", Path("scan"), Path("source"), Path("out"))
