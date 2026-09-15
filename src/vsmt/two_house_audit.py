@@ -532,7 +532,7 @@ def make_public_seal(
         _require(not (forbidden & set(row)),
                  f"public audit row {index} contains a private field")
         profiles = row.get("profiles")
-        _require(type(profiles) is dict and tuple(profiles) == ASSOCIATION_PROFILE_IDS,
+        _require(type(profiles) is dict and set(profiles) == set(ASSOCIATION_PROFILE_IDS),
                  f"public audit row {index} lacks the frozen association profiles")
         for profile in profiles.values():
             _require(type(profile) is dict and set(map(int, profile.get("catalogs", {})))
