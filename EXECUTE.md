@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| VM-04目标边界与动作探针 | D-165旧16个完整episode首目标均非作者物体，v2扫描72个top-2目标中70个非作者物体；固定pose 36/36槽有至少2件作者资产和2件可移动资产。D-168受审新目标探针已在原两房36槽运行：16个非干预槽范围外、16个可见性生命周期终态诊断、RELINK 3个位置吻合且碰撞未查、1个动作返回成功却少移动约5 cm；0新episode/训练/记忆正例，生成训练继续关闭。匿名报告见LOG-159；v1单worker RSS不覆盖模拟器子进程的RAM安全证据缺口按D-169保留，拟修复v2执行关闭；原D-164墙面目标探针仍阻断。 |
+| VM-04目标边界与动作探针 | D-165旧16个完整episode首目标均非作者物体，v2扫描72个top-2目标中70个非作者物体；固定pose 36/36槽有至少2件作者资产和2件可移动资产。D-168原两房动作探针中RELINK强制动作3槽位置吻合、1槽偏移；D-171/D-172原偏移槽由非强制碰撞拒绝、物理暂停及两次手动推进共同定位为强制放置冲突端点后的物理推离。D-173原两房四个RELINK同目标位置仅取消强制后全部被模拟器明确碰撞拒绝：原固定x+0.5 m规则无有效物理RELINK端点。0新episode/训练/记忆正例；端点以外机器人路径与记忆语义未核，生成继续关闭。LOG-159–162；原D-164墙面目标探针仍阻断。 |
 | VSMT首篇/VM-01～04 | 旧两房stage及16完整/20构造失败封存。D-162仅开放v2固定两房、D=1.0 m纯视角扫描；服务器合同252/252及两family扫描均成功，各选18个pose、0 episode。原前18均来自18个位置，空间筛选降低top-2集合重复，但top-1仍重复10/11次；报告摘要`575d34d0…089f32`。生成/private、训练、validation效果、confirmation与L2继续关闭。LOG-152–153，D-162–163 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
 | R4三模型接入 | D完整适配16项通过（121/200全反向，0更新），W完整适配17项亦通过，F完整适配19项通过；真实公共接口27/27候选通过，0优化/真值读取。209bb34，LOG-123–127 |
@@ -1779,3 +1779,21 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - RELINK失败的private只读复算不导出object ID：family01原slot12的frame24 `TeleportObject(forceAction=true)`返回`lastActionSuccess=true/errorCode=null`，但同一动作事件x已比注册目标少`0.049812 m`，随后frame24–31相机事件均保持同一偏差；y/z相差`+0.000620/-0.001423 m`。x超出D-168 5 mm终态容差，故原槽正确失败。动作返回与位置不一致被定位，原因仍未知：没有碰撞、接触或可达性证据，不能把偏差归于某一种物理机制，也与部署模型识别无关。
 - 资源勘误：benchmark公开链观测GPU空闲显存下降`1569718272` bytes、Python worker `RUSAGE_SELF.ru_maxrss=86920 KiB`，但v1门把后者乘4并在benchmark结束后才复核cgroup headroom；调用进程RSS不覆盖独立模拟器子进程，且没有运行期容器内存峰值采样。因此本轮虽然安全完成、两worker退出0，不能声称4倍**总**单worker RAM需求已经实测证明。服务器本容器未提供可用于事后核验的`memory.peak`接口；原代码/回执/报告不改，D-169登记勘误，未来关闭式v2监测需另经代码审查。
 - 白话：这次真实探针解决“给原镜头选真实作者资产后，模拟器能否按注册动作时序隐藏、重现或传送”的构造侧诊断。输入固定两house/36槽与真实当前mask/metadata，输出私有每次动作、后态和不含身份的公开次数。例如19个物理槽动作/终态达到探针定义的诊断状态，另一个RELINK即使动作返回成功也少移动约5 cm；这不是识别器训练结果、结构地图正确性、记忆历史核验、物理可行RELINK正例或VM-04完整数据验收。
+
+## LOG-160：VM-04原失败RELINK槽三控制复现（2026-09-16）
+
+- 隔离服务器stage：`/root/autodl-tmp/vsmt_vm04_v3_probe_review/outputs/vsmt/vsmt-vm04-relink-mechanism-v1-20d9682f1cab`；精确干净代码`20d9682f1cab0500470d81f8efd154aefff466f8`；父receipt SHA-256=`36e695cc74af4a396576adf19fa109d87fd9d490df358e6cafa6774b4aea3092`，私有轨迹保留。匿名[报告](results/vsmt_vm04_relink_mechanism_probe_v1.json) SHA-256=`9cb7d18f6fe4779ac9dd33a1332a146c9f04297d21dd99ca0bfad9a9fe3a47de`，原v1探针与v2扫描来源摘要已绑定；三独立分支worker实际/请求3/3，退出0；0 episode/训练/记忆正例。
+- 原注册`forceAction=true`成功回执，但即时与终态真实目标位置相对请求x=`−0.049812 m`、y=`+0.000620 m`、z=`−0.014230 m`且即时`isMoving=true`，重现原slot12。只把原请求`forceAction`改false后动作被拒、资产保留原处；私有错误原文明确报告传送后与另一件物体碰撞。强制动作前暂停物理则即时与后8帧位置都精确到点，`isMoving=false`。原LOG-159/D-169所写z=`−0.001423 m`为十倍小数错误，本次对原同帧private请求/后态复算为`−0.014230025 m`，旧原始文件不改。
+- 这三控制定位模拟器“返回成功与真实后态不一致”和“请求位置遭碰撞拒绝”；暂停控制尚不能单独证明恢复物理后必推开，故继续LOG-161。AABB角点在此元数据不可用，未独立重建Unity collider；机器人操作路径与记忆历史未测试。private错误含真实ID，公开报告不导出。
+
+## LOG-161：VM-04原失败RELINK槽手动物理复本（2026-09-16）
+
+- 隔离stage：`/root/autodl-tmp/vsmt_vm04_v3_probe_review/outputs/vsmt/vsmt-vm04-relink-physics-v1-815e775a63f4`；精确干净代码`815e775a63f47a24ace0cf1481fa45c4da1a04fd`；父receipt SHA-256=`2445fb96d161f13c19a85978df4f9dbacc5fb0839b8d9cd504c12177bcf145ea`。匿名[报告](results/vsmt_vm04_relink_physics_step_probe_v1.json) SHA-256=`9957a63ce2a52b4638347ea0f5c9cc7fa45d5d37c825d1840730ae0ad0c07a21`；两独立fresh controller worker请求/实际2/2、退出0；0 episode/训练/记忆正例，源LOG-160摘要串联。
+- 两复本都在暂停物理的原强制请求即时精确到点；固定50个`AdvancePhysicsStep(timeStep=0.01)`中**第1步**真实位移相对请求x=`−0.039899 m`、z=`−0.010254 m`，第50步x=`−0.049871 m`、z=`−0.014364 m`，12步标记运动。两复本逐结果相同，与原自动物理后的偏移方向/量级吻合；结合非强制动作明确碰撞拒绝，判原slot12是**冲突目标点强制传送后被模拟器物理系统推离**。这不是相机识别、地图构造或记忆RELINK判断的已测错误。
+- 直接碰撞错误仅证实该传送请求目标点与另一对象不合法，未提供独立碰撞体角点、机器人携物穿过环境的路径证书，也未核先前预测记忆/结构关系与事务状态；三层边界保持分开。原v1/LOG-159强制成功3槽同样不得据位置吻合宣布无碰撞，继续LOG-162。
+
+## LOG-162：VM-04两房原四个RELINK固定端点非强制复查（2026-09-16）
+
+- 精确干净代码`4fe6d3437d5044315b467e7930129010076897c2`，先核原v1动作probe、v2 scan、D-172报告/source/private slot摘要及当时资源；两独立纯检查worker共8项通过。独立stage：`/root/autodl-tmp/vsmt_vm04_v3_probe_review/outputs/vsmt/vsmt-vm04-relink-endpoint-v1-4fe6d3437d50`；父receipt SHA-256=`1b912a1ecbf6d4de907bc176a9245d2c9dbbb460b3c9260f7760f1325befabd6`，四原槽各独立controller worker请求/实际4/4、退出0，private错误/动作轨迹和资源采样保留，确定性family/slot次序。匿名[报告](results/vsmt_vm04_relink_endpoint_two_house_probe_v1.json) SHA-256=`c525ab69a2e7cc3f5b982d78cb11cecefb71e994710a1fb2102c9e244b4330f8`；公开`private_ids_exported=false`，0 episode/训练/记忆正例。
+- 原四槽固定为`audit-family:00`的4/11及`audit-family:01`的6/12。重放同house/pose/目标资产/注册相机序列、同x+0.5 m目的地，只改变frame24请求`forceAction=true→false`，两family各**2/2明确对象碰撞拒绝**，合计4/4；原强制动作曾有三槽位置吻合、一槽偏移，现可严格判原固定目的地规则对四槽均**没有合法的模拟器非强制端点**。失败不换目标、端点、pose、slot或房；任何强制传送成功回执不再作物理可执行正例。不能据4/4拒绝推断房内完全没有其他合法位置，另拟端点须独立预登记并重新审查。
+- 此报告使“碰撞证据缺失”从原v1未核验缩小为**原四个请求端点被模拟器明确报告碰撞**，但未独立检验Unity collider形状、机器人路径/抓取放置能力。记忆RELINK的关系前后、公开观测与旧记忆历史完全未执行，`memory_history_checked=false`；不能把动作构造失败归到识别器训练或记忆学习。完整生成、训练和效果验收仍关闭。

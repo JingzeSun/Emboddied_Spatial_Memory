@@ -1706,7 +1706,7 @@
 
 ## D-173：两房原RELINK槽的非强制端点校验
 
-- 日期：2026-09-16；状态：proposed fixed-scene diagnostic，依据用户本轮要求严格找出并修复原RELINK失配；只开放原固定两房四个原RELINK槽的端点复查，完整episode生成、训练、validation、confirmation与记忆正例全部关闭。D-171/D-172原失败slot12的非强制碰撞拒绝、暂停控制与两个手动物理复本已证明**原目标位置的模拟器后态失配根因**，不把此证据外推为另外三槽也碰撞、机器人路径可达或记忆语义已正确。
+- 日期：2026-09-16；状态：fixed-scene diagnostic已完成、报告见EXECUTE LOG-162，未成为生成科学基线；依据用户本轮要求严格找出并修复原RELINK失配，只开放原固定两房四个原RELINK槽的端点复查，完整episode生成、训练、validation、confirmation与记忆正例全部关闭。D-171/D-172原失败slot12的非强制碰撞拒绝、暂停控制与两个手动物理复本已证明**原目标位置的模拟器后态失配根因**，不把此证据外推为另外三槽也碰撞、机器人路径可达或记忆语义已正确。
 - 新`vm04_physical_relink_action`为私有服务器侧物理端点校验函数：输入已登记的原`TeleportObject(forceAction=true)`请求、原作者资产物性和冻结端点合同；输出只把`forceAction`置false的同请求，以及接受/拒绝、即时/终态真实`metadata.objects.position`、终态运动状态和匿名原因类别。原注册端点固定为初始真实x+0.5 m，真实位置容差5 mm；拒绝或偏差作为**原槽失败**，不得换目标、目的地、pose、slot或house，错误原文/object ID仅入private。仅检查模拟器可接受端点与实际后态，不证明机器人可实际把物体搬到此处。
 - 新四槽入口绑定原v1两房动作探针receipt、v2扫描receipt、D-172匿名报告和源house/pose/原private slot摘要；原两个family各2槽，每槽独立新controller并行，基于当时CPU/GPU/cgroup/磁盘和已实测单worker需求选择四个安全worker，记录requested/actual、分片、退出与family/slot确定性合并。各worker重放原32帧相机动作，仅改变frame24`forceAction`，保留private诊断并匿名导出family×状态计数；若资源不足则**启动前**停，不减worker静默跑；没有wall-clock强杀。
 - 三层判读：`lastActionSuccess`、即时与终态真实位置及物理步轨迹属于模拟器后态；非强制拒绝的私有明确碰撞错误说明该**请求端点**与另一对象冲突，不是独立验证Unity碰撞体几何、机器人路径或周边可达域；记忆RELINK语义另需公开历史、先前预测记忆、结构关系和版本化事务前后状态，本入口一律`memory_history_checked=false/semantic_positive_label_issued=false`。全部四槽结果只能决定当前端点规则是否可作为数据动作前提，不能通过识别器训练修补碰撞。
