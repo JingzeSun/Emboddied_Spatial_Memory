@@ -11,7 +11,12 @@ from vsmt.vm04_target_selection_v3 import select_private_targets_at_fixed_pose
 
 class TargetSelectionTests(unittest.TestCase):
     def setUp(self):
-        self.ranked = ["wall", "painting", "chair", "mug"]
+        def mask(first):
+            flat = [False] * 400
+            flat[first:first + 196] = [True] * 196
+            return [flat[index:index + 20] for index in range(0, 400, 20)]
+        self.masks = {"wall": mask(0), "painting": mask(20),
+                      "chair": mask(40), "mug": mask(60)}
         self.metadata = {
             "wall": {"position": {"x": 0, "y": 0, "z": 0}},
             "painting": {"position": {"x": 1, "y": 0, "z": 0}},
@@ -20,9 +25,9 @@ class TargetSelectionTests(unittest.TestCase):
         }
         self.authored = frozenset({"painting", "chair", "mug"})
 
-    def select(self, program, policy, ranked=None):
+    def select(self, program, policy, masks=None):
         return select_private_targets_at_fixed_pose(
-            program, self.ranked if ranked is None else ranked,
+            program, self.masks if masks is None else masks,
             self.metadata, self.authored,
             static_authored_asset_lifecycle_policy=policy,
             relink_requires_moveable_or_pickupable=True,
@@ -36,18 +41,37 @@ class TargetSelectionTests(unittest.TestCase):
         self.assertEqual(self.select("SPLIT", exclude), ["painting", "chair"])
         self.assertEqual(self.select("RELINK", allow), ["chair"])
         self.assertEqual(self.select("REPLACE", exclude), ["chair", "mug"])
+        self.assertEqual(self.select("SPLIT", exclude,
+                         dict(reversed(list(self.masks.items())))),
+                         ["painting", "chair"])
+        self.metadata["chair"]["objectType"] = "Wall"
+        self.assertEqual(self.select("RELINK", allow), ["chair"])
 
     def test_shortage_preserves_slot_failure_and_never_falls_back_to_wall(self):
         exclude = "exclude_static_assets_from_physical_lifecycle_targets"
         with self.assertRaisesRegex(ValueError, "original fixed slot"):
-            self.select("REPLACE", exclude, ["wall", "painting", "chair"])
+            self.select("REPLACE", exclude,
+                        {name: mask for name, mask in self.masks.items()
+                         if name in ("wall", "painting", "chair")})
         with self.assertRaisesRegex(ValueError, "original fixed slot"):
-            self.select("SPLIT", exclude, ["wall", "painting"])
+            self.select("SPLIT", exclude,
+                        {name: mask for name, mask in self.masks.items()
+                         if name in ("wall", "painting")})
         with self.assertRaisesRegex(ValueError, "explicit movable"):
             select_private_targets_at_fixed_pose(
-                "RELINK", self.ranked, self.metadata, self.authored,
+                "RELINK", self.masks, self.metadata, self.authored,
                 static_authored_asset_lifecycle_policy=exclude,
                 relink_requires_moveable_or_pickupable=False)
+
+    def test_indistinguishable_masks_fail_before_private_id_breaks_tie(self):
+        masks = dict(self.masks, copy_of_painting=self.masks["painting"])
+        authored = self.authored | {"copy_of_painting"}
+        with self.assertRaisesRegex(ValueError, "indistinguishable public geometry"):
+            select_private_targets_at_fixed_pose(
+                "BIND", masks, self.metadata, authored,
+                static_authored_asset_lifecycle_policy=
+                    "exclude_static_assets_from_physical_lifecycle_targets",
+                relink_requires_moveable_or_pickupable=True)
 
 
 if __name__ == "__main__":
