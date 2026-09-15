@@ -191,7 +191,7 @@ VM-05必须把“原系统用了预训练感知模型”和“本项目的记忆
 
 [VM-05 readiness合同](../configs/vsmt/vm05_training_validation_readiness_v1.json)当前只固定上述职责分类、每个VSMT/TAF/ELU/WFR/LOW主臂及DRCR/NECS/PHR内部对照各自最多12个完整配置的选择机会、多worker与无墙钟强杀规则；网络宽度、优化器、更新步数、seed数、PHR公式和各方法有限网格仍为`null`。所有独立服务器单元必须先用实测单worker的CPU/RAM/VRAM/I/O做容量探测，再采用最大安全worker数；单GPU有多个独立训练job且显存允许时并发learner，不允许时每个learner仍用多个数据worker。输入是资源实测与冻结任务清单，输出worker分片、退出码、产物摘要、实际完成顺序和规范合并顺序。例如显存只安全容纳一个learner时不硬塞两个GPU进程，但其数据预处理仍不能退回单worker。它不以跑得久为失败，也不允许用OOM或写满磁盘试探容量。
 
-readiness的八项前置不能由`status`自证。当前planned记录的`satisfied_input_sha256s`必须为空；未来改成`frozen_executable`时，它必须逐项覆盖VM-04审计回执、容量/yield解释、train/validation清单、S-01～S-12选择语义、有限网格、选择器训练规格、逐版本模板归属和服务器容量探测，并为每项登记一个合法SHA-256。冻结态还要求训练步数和seed数至少为1，架构、优化器、配置空间和PHR公式都是非空对象。白话：这解决“只改同一JSON里的状态和开关就给自己授权”的问题；输入八份已经审过的外部产物，输出它们的摘要映射，任何一份缺失或字节变化都拒绝运行。例如没有VM-04最终回执摘要时，即使`training_authorized=true`也不能训练。它不表示写一个任意摘要字符串就完成科学审查，正式入口还须读取实际文件并核对摘要。
+readiness的八项前置不能由`status`自证。当前planned记录的`satisfied_input_sha256s`必须为空；未来改成`frozen_executable`时，它必须逐项覆盖VM-04审计回执、容量/yield解释、train/validation清单、S-01～S-12选择语义、有限网格、选择器训练规格、逐版本模板归属和服务器容量探测，并为每项登记一个合法、互不相同且不是空文件摘要的SHA-256。冻结态还要求训练步数和seed数至少为1，架构、优化器、配置空间和PHR公式都是非空对象；共享前端、方法/消融定义、公平选择、多worker和资源安全等非待填字段必须与登记常量整节相等。白话：这解决“只改同一JSON里的状态和开关就给自己授权”的问题；输入八份已经审过的外部产物，输出它们的摘要映射，任何一份缺失或字节变化都拒绝运行。例如没有VM-04最终回执摘要时，即使`training_authorized=true`也不能训练。它不表示写一个任意摘要字符串就完成科学审查，正式入口还须读取实际文件并核对摘要。
 
 `L1MaskMaterialization`（L1匿名mask物化）只完成第一道隔离：临时输入当前帧`instance_id → binary mask`，把每个实例的全部可见像素保留为一个mask，按首个非零像素、像素数和mask摘要公开排序，输出逐帧匿名编号、mask缓存及支持不足的匿名失败。真实ID只进入单独私有映射摘要；空mask不公开，重叠instance mask整帧拒绝。例如同一椅子的椅背和两条腿被桌面隔开时仍输出一个区域，两只相似杯子仍输出两个区域。`l1_entities`再输入匿名mask、冻结patch token和公开depth/相机，输出共同区域记录。它不做跨帧跟踪、候选生成或事务选择；新实体物化代码仍须服务器回执认证。
 

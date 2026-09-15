@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from types import MappingProxyType
 import unittest
 
 from vsmt.vm05_protocol import (
@@ -11,6 +12,7 @@ from vsmt.vm05_protocol import (
     EXECUTABLE_STATUS,
     LEARNED_RANKERS,
     PAPER_MECHANISM_ADAPTERS,
+    PAPER_SYSTEM_MODEL_BOUNDARIES,
     REQUIRED_INPUTS,
     assert_vm05_action_authorized,
     validate_vm05_readiness,
@@ -184,6 +186,54 @@ class VM05ReadinessTests(unittest.TestCase):
             with self.subTest(mutation=mutate), self.assertRaises(ValueError):
                 validate_vm05_readiness(value)
 
+    def test_every_static_readiness_section_is_frozen(self) -> None:
+        mutations = (
+            lambda value: value["shared_frontend"].__setitem__(
+                "method_id", "per_method_private_frontend"
+            ),
+            lambda value: value["execution_classes"][
+                "learned_candidate_rankers"
+            ].__setitem__("differences", {}),
+            lambda value: value["execution_classes"]["learned_candidate_rankers"][
+                "differences"
+            ].__setitem__("NECS", "same_as_VSMT"),
+            lambda value: value["fair_selection"].__setitem__(
+                "same_train_families", False
+            ),
+            lambda value: value["fair_selection"].__setitem__(
+                "same_validation_families", False
+            ),
+            lambda value: value["fair_selection"].__setitem__(
+                "same_frozen_primary_selection_metric", False
+            ),
+            lambda value: value["fair_selection"].__setitem__(
+                "failed_configuration_counts_against_cap_unless_infrastructure_failure",
+                False,
+            ),
+            lambda value: value["multi_worker_execution"].__setitem__(
+                "record_required", []
+            ),
+            lambda value: value["multi_worker_execution"].__setitem__(
+                "capacity_inputs", []
+            ),
+            lambda value: value["multi_worker_execution"].__setitem__(
+                "gpu_policy", "single_worker"
+            ),
+            lambda value: value["resource_safety"].__setitem__(
+                "OOM_or_disk_full_may_not_be_used_as_a_capacity_probe", False
+            ),
+            lambda value: value["resource_safety"].__setitem__(
+                "scientific_budget_is_frozen_by_samples_configurations_steps_and_"
+                "stopping_rule_not_elapsed_time",
+                False,
+            ),
+        )
+        for mutate in mutations:
+            value = config()
+            mutate(value)
+            with self.subTest(mutation=mutate), self.assertRaises(ValueError):
+                validate_vm05_readiness(value)
+
     def test_frozen_state_rejects_zero_or_empty_scientific_values(self) -> None:
         mutations = (
             lambda value: value["execution_classes"]["learned_candidate_rankers"].update(
@@ -222,12 +272,34 @@ class VM05ReadinessTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "lowercase SHA-256"):
             assert_vm05_action_authorized(malformed, action="train")
 
+        duplicated = frozen_config(action="train")
+        duplicated["satisfied_input_sha256s"] = {
+            name: "0" * 64 for name in REQUIRED_INPUTS
+        }
+        with self.assertRaisesRegex(ValueError, "distinct SHA-256"):
+            assert_vm05_action_authorized(duplicated, action="train")
+
+        empty = frozen_config(action="train")
+        empty["satisfied_input_sha256s"][REQUIRED_INPUTS[0]] = (
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        )
+        with self.assertRaisesRegex(ValueError, "empty-file SHA-256"):
+            assert_vm05_action_authorized(empty, action="train")
+
         planned = config()
         planned["satisfied_input_sha256s"] = {
             REQUIRED_INPUTS[0]: "1" * 64
         }
         with self.assertRaisesRegex(ValueError, "may not claim satisfied"):
             validate_vm05_readiness(planned)
+
+    def test_registered_boundary_constant_is_recursively_immutable(self) -> None:
+        with self.assertRaises(TypeError):
+            PAPER_SYSTEM_MODEL_BOUNDARIES["TAF"]["source_system"] = "Khronos"
+
+    def test_validator_accepts_a_generic_mapping(self) -> None:
+        source = MappingProxyType(config())
+        self.assertEqual(validate_vm05_readiness(source), config())
 
     def test_validation_never_mutates_or_shares_nested_source_state(self) -> None:
         source = config()
