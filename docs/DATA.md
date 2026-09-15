@@ -937,6 +937,8 @@ D-176新生成职责沿用v2的固定两房36槽及`run_complete_requires`，每
 
 启动第一个场景之前，父入口还从D-135隔离模拟器Python读取实际`python/ai2thor/procthor`版本并逐项对照已绑定环境合同（3.9.25/5.0.0/0.0.1.dev2），差异先拒绝生成，父回执保存核对值。这解决“同一源码在换过模拟器的环境中生成却冒用旧端点证据”的问题；输入是已登记虚拟环境与合同，输出实际版本核验，例如AI2-THOR变5.1.0会在首scene前停止。它不是另做`PutObject` API smoke、验证Unity collider或发记忆RELINK正例。
 
+四个RELINK槽的`raw.failure.json`明确写`reason=prior_D173_fixed_endpoint_collision`、`relink_collision_observed_this_run=false`与原D-173端点receipt摘要；新父报告写`new_relink_collision_actions_executed=0/memory_history_checked=false`。这把“此前固定端点已被真实模拟器拒绝”和“本轮raw只留下前缀”分开：输入是原四槽已验回执及本轮第0–23帧，输出一个有来源的覆盖缺口。例如family00 slot04在本轮第24帧前退出，不能把失败字符串冒充新一次碰撞复现；也不等于找到机器人可执行的新RELINK路径或验证前后记忆关系。
+
 这里的版本号来自不同文件职责：`vm04_two_house_worker.py`是原两房raw **v2**写入器（名字未带v2）；视角扫描配置/receipt **v2**固定了两个family的18个pose；`vm04_target_selection_v3.py`与目标合同 **v3**只规定作者资产资格；新`vm04_fixed_slot_raw_stage_v1.json`里的**v1**是本次独立固定槽stage的schema起始号，不是退回原两房v1 worker。白话：它解决“看到v1/v2/v3就误以为三个worker轮流覆盖同一批数据”的混淆；输入是旧写入器、扫描回执和新目标规则，输出各自明确职责及新文件来源。例如新raw帧沿用旧v2的npy/camera布局，却由v3筛物理目标。这不等于旧v2样本已经有效，也不要求旧目录重写成v3。
 
 白话：输入是同一个冻结槽和它实际走到的最后一步；输出是可复核的成功或失败记录。例如前24帧已经拍到，但第24帧规定动作端点被碰撞拒绝，public保存已拍帧，private保存拒绝依据，报告说该槽失败。它不是把拍过前缀说成完整32帧episode，也不是隐去四个RELINK失败后宣称类别齐全。
