@@ -643,8 +643,9 @@ def run_parallel_private_evaluation(reviewed_code: str, output_root: Path) -> No
     verify_source_stage(stage, recovery)
     public_receipt, _ = core._marker(stage, "public-seal")
     core.require(
-        public_receipt.get("reviewed_code") == recovery["source_stage"]["reviewed_code"],
-        "public seal was not produced by the registered source stage",
+        public_receipt.get("source_stage_reviewed_code")
+        == recovery["source_stage"]["reviewed_code"],
+        "public seal was not produced for the registered source stage",
     )
     core.require(public_receipt["public_seal_sha256"] == core.sha256(stage / "public.seal.json"),
                  "public seal changed before private opening")
