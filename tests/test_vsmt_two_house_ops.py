@@ -93,7 +93,7 @@ class TwoHouseOpsTests(unittest.TestCase):
                 OPS.write_new_json(path, {"value": 2})
             self.assertEqual(json.loads(path.read_text()), {"value": 1})
 
-    def test_v2_config_blocks_generation_until_slot_rules_are_reviewed(self) -> None:
+    def test_v2_config_opens_only_frozen_viewpoint_scan(self) -> None:
         value = OPS.load_config()
         self.assertEqual(value["version"], "vsmt-vm04-l1-two-house-audit-proposal-v2")
         self.assertEqual(value["generator_initial_viewpoint"]["selection_rule"],
@@ -101,6 +101,8 @@ class TwoHouseOpsTests(unittest.TestCase):
         self.assertEqual(OPS.STAGE_ID, "vsmt-vm04-two-house-audit-v2")
         self.assertTrue(value["implementation_authorized"])
         self.assertTrue(value["source_inventory_authorized"])
+        self.assertTrue(value["viewpoint_scan_authorized"])
+        self.assertEqual(value["status"], "frozen_executable")
         self.assertFalse(value["generation_authorized"])
         self.assertFalse(value["private_audit_authorized"])
         self.assertFalse(value["training_authorized"])

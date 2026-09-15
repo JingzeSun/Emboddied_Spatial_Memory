@@ -72,6 +72,8 @@ D-161修订上述v2 slot分配为planned空间去重：完整有序候选仍封�
 
 预生成`viewpoint-scan`只让两个固定family worker执行该视角扫描，0帧episode、0干预；公开family文件不含object ID，`execution/<family>/private/viewpoint-target-audit.json`才保存原前18和空间去重前18的top-2真实目标ID。总`scan.receipt.json`分别输出top-1和top-2重复次数、包围盒、mask支持及两个worker的退出/摘要；top-1对应大多数单目标程序，top-2只对应需要两个目标的程序，扫描不读取程序分配来改视角。`viewpoint-scan-export`产生可回传的`results/vsmt_vm04_viewpoint_scan_v1.json`并核对来源摘要。白话：输入已封存的source house、episode计划和v2规则，输出能先判断位置是否扎堆及目标重复率的审计报告，例如公开报告显示去重后18个位置的top-1重复8次，原始ID仍只在private文件。它不是生成36个episode、不根据结果替换house，也不自动决定是否开放完整生成；未来`generate`先核验扫描receipt、同一规则与worker代码字节。
 
+D-162已把上述`D=1.0 m`从planned数值冻结为本次纯扫描规则：v2 `status=frozen_executable`只表示已审扫描可执行，`viewpoint_scan_authorized=true`，而`generation_authorized/private_audit_authorized/training_authorized/validation_effect_authorized/confirmation_authorized`均为false。目标集合互异和额外质量底线显式为false，不能拿private top-2结果筛掉house或调间距。白话：输入还是原两间固定house与公开mask几何，输出仅为带摘要的视角报告；例如筛选后某family只得到15个pose，就照实报告15，剩余3个slot不会在扫描时被补样。这不是完成数据生成或证明18个目标已经分散。
+
 D-154在加载后、创建Controller前对冻结source record做内存schema兼容：源`metadata.schema=0.0.1`按官方ProcTHOR `53d5bd4…`升级语义转换material、门窗洞口/asset位置、exterior wall和schema字段；门窗asset尺寸只读固定`procthor==0.0.1.dev2`安装包的`asset-database.json`。输出字典须确定且不能回写`train.jsonl.gz`；Controller初始事件失败或对象为空时不得继续当作可用场景。白话：输入同一原始房屋和固定asset表，输出模拟器5.0.0能识别的等价字段布局；它不改变房间、对象、材质选择或相机样本，也不从private结果修房。
 
 D-155在house创建成功后先把agent放到升级后记录自带的`metadata.agent` pose，再查询可达位置；该pose只作查询bootstrap，不能绕过D-153的匿名几何最终选择。输入字段是position/rotation/horizon/standing，输出是一次成功的生成前TeleportFull和可达点集合。例如首房从旧场景坐标查询会越界，从登记pose查询返回1299点。它不进入32帧序列、不作为模型额外输入，也不按对象或事务调整。
