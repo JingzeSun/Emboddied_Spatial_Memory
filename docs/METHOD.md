@@ -171,6 +171,8 @@ Free-space（可见自由空间）在packet v2保存由6个世界半空间定义
 
 2-house capacity audit（两房屋容量审计，入口已实现、运行尚未授权）分两层。公开层在不挂载private时统计各尺度free-space存活、RETRACT/REPLACE公开可得率、每桶截断前/后候选量、运行时间和峰值内存；全部public/candidate封存后，私有层才统计逐事务candidate recall和可用正例数。输入固定两house公开序列及随后独立打开的评价标签，输出容量和覆盖报告。例如公开层可发现16-tile截锥因无效depth几乎全灭，私有层再判断这是否造成RETRACT正确程序缺失。它不根据审计结果自动改阈值、替换house或生成训练数据；任何会改变正式数值、语义或house数的结论都须回到用户裁决。
 
+D-164动作能力探针（Action Capability Probe，动作能力探针，proposed、执行未获批准）先于新episode生成检查固定物理干预是否能在模拟器按原时序执行。它只使用D-162已封存的两house/36槽pose与私有top-2、原程序分配和同一注册相机旋转，在独立controller里运行至最后一次干预；真实`metadata.objects.position`可用于原`RELINK`的x+0.5 m物理动作，mask质心不能代替它。输出是每槽private错误/动作回执和不含object ID的公开次数汇总，不进入五方法的在线前端。白话：例如REACTIVATE在frame16的`DisableObject`失败，探针保留`lastActionSuccess/errorCode`以判断这是构造时动作拒绝；即使随后换一张图训练出更好的椅子识别，也不能让同一失败的模拟器动作自动变成功。若live mask目标与扫描私有目标不同，记原slot不一致而不按结果换目标。它不解释BIRTH与REACTIVATE的记忆语义，也不检查可执行候选、地图质量或学生模型表现。
+
 [D-144两房屋审计数值提案](../configs/vsmt/vm04_l1_two_house_audit_proposal_v1.json)把该审计收窄为36个固定slot：从ProcTHOR-10K作者`train`分区的完整来源清单中，只按来源manifest摘要、seed `260914`和house ID哈希选择前两个family；每family九类程序各两个重复、每episode 32帧且第24帧决策。合格性只查来源记录可解析、ID唯一和属于作者train分区，不看事务能否构造、候选数、private身份或未来；加载失败和construction failure均保留且不换house。白话：它解决“两间容易的房子是否被事后挑中”的问题；输入尚待只读封存的完整来源清单，输出两个预先承诺的开发house和36个不透明episode槽。例如首个house无法构造SPLIT时记两次失败，不能换第三间house。它不是训练/验证划分、功效分析或confirmation，也尚未授权读取来源或运行模拟器。
 
 审计不把测试smoke中的单个阈值升级为正式值，而预登记`strict/balanced/permissive_capacity_upper_bound`三组类型化关联profile，只用于重放容量边界；每组保存视觉相似度、米制质心距离、几何接近度、可靠性和枚举优先级原分量。候选按16/32/64三个cap重放，64仅是资源审计上限；SPLIT/REPLACE临时资源护栏为6个歧义关系变量、729个完整变体和32条总incident edge。历史支持包络临时用可靠性0.9、每边2 cm裕度；错失机会临时用可靠性0.9和连续3次，另只报告2/3/4次敏感计数。所有对应正式字段继续为`null`，私有结果不得从三个profile中选赢家。白话：输入同一封存公开分量，输出“阈值偏严/适中/偏松时目录有多大”；例如正确程序排在cap 32之后就记miss。它不是方法调参、teacher选择或确认集决策，包络裕度也不得为提高yield而缩小。

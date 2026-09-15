@@ -22,6 +22,8 @@
 
 ### 当前指针
 
+**D-164当前审查项：固定两房动作能力探针已做成独立代码提案，探针执行仍关闭。** `D=1.0 m`不变，重复目标只报告；探针只计划核验原36个固定slot的真实对象元数据与模拟器动作诊断，不保存episode或RGB-D。代码和D-164科学边界供用户审查，服务器真实house探针、完整生成、训练及效果实验尚无运行授权。下一步先审此实现，再另行决定是否开放仅探针执行；旧扫描和失败stage继续复用。
+
 **D-162当前指针：v2固定两房、D=1.0 m纯视角扫描已完成，完整生成仍关闭。** 受审`67099f2`合同252/252、两个family各选18个、0 episode；[报告](../results/vsmt_vm04_viewpoint_scan_v1.json)SHA-256=`575d34d0…089f32`并已本地复算。原前18在两房都来自18个位置，反驳“全在小簇”的推断，但原最小两两距离均0.25 m；空间去重提升间距和双目标集合多样性，单目标top-1仍重复10/11次。输入为原两间house和公开物理mask规则，输出仅是位置/支持与私有目标的匿名汇总；这不是episode、记忆地图、事务候选或训练结果。旧v1合同、原stage及20个失败不动，v2 `generation_authorized=false`、`private_audit_authorized=false`，train/validation/confirmation继续关闭。下一步需审重复目标与动作能力诊断的科学含义，再决定是否另行批准生成；不按扫描结果自动改D、换house或放开失败门。
 
 **D-163运维修复已获服务器合同回执。** 实际代码仓库为`/root/Emboddied_Spatial_Memory`，来源checkout与原planning stage经只读发现，原主checkout的未跟踪旧审计报告未覆盖；独立干净worktree在`67099f2`运行三组并行合同测试，requested/actual均3、全部退出0，按executor 42→L1 31→VSMT 179固定顺序合并。正式scan requested/actual均2、全部退出0、679.7秒；输出目录和worker回执留在数据盘。报告导出到审查分支，完整生成及下游步骤均未启动。

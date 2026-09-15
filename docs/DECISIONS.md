@@ -1619,3 +1619,12 @@
 
 - 日期：2026-09-15；状态：运维修复已取得服务器合同与扫描回执，D-162扫描范围不变。恢复后的服务器只读检查显示16个可见CPU、约62 GB cgroup内存额度、数据盘约27 GB空余、RTX 4080 SUPER约32 GB空闲显存；原`contracts`入口把executor、L1、VSMT三个独立测试组串行运行，与跨阶段多worker规则冲突。修订按当时CPU/容器内存及数据盘预检启动三个独立测试worker，逐组保存退出码/日志摘要与实际完成顺序，回执按预登记executor→L1→VSMT顺序合并；受审`67099f2`服务器252/252通过，随后原两house纯扫描也成功，实际数值见EXECUTE LOG-153。原stage、生成方法、视角规则和D值不改。
 - 白话：这个运维修复解决“服务器有多个独立测试组，却只占一个worker”的问题。输入是受审checkout的三套合同测试及当时资源，输出是带worker数、分片、退出、日志摘要和固定合并顺序的合同回执。例如VSMT先完成、executor后完成，回执仍按executor、L1、VSMT列出。它不产生episode、不训练识别模型，也不表示真实house视角已经分散。
+
+## D-164：固定两房动作能力探针代码审查（执行仍关闭）
+
+- 日期：2026-09-15；状态：implementation approved, probe execution proposed and closed。用户明确保持空间去重`D=1.0 m`、目标重复只报告，并要求准备固定两房的动作能力探针供代码审查；生成继续关闭。因此独立`vm04_action_capability_probe_proposal_v1.json`仅授权实现，`probe_execution_authorized=false`，不改v2扫描/生成配置、旧stage或事务语义。以后若获用户代码审查和探针运行批准，必须另发冻结闸门提交，绑定已审实现提交；这轮不在服务器运行。
+- 拟议探针的输入是受SHA-256绑定的原两房扫描receipt、18个固定pose与private top-2、原公开/私有episode plan的36个固定slot及同一ProcTHOR train checkout。每slot新建一份独立controller，live mask目标必须与扫描目标一致；不一致记录失败，不换目标。BIRTH、REACTIVATE、RELINK、RETRACT、REPLACE仅重放原注册的`-1/16/22/24`动作及此前的0.25°交替yaw，停在最后一次干预；NOOP、BIND、SPLIT、MERGE只审当前目标元数据，标为无物理干预，不把它们当动作成功。全程不截取RGB-D、不写episode、未来标签、teacher或记忆候选。
+- 预写步骤为`contract`只读合同、`check`把九项纯边界测试分成三个独立worker并写各组退出/日志摘要、经另行冻结后的`run`先验check/扫描/来源/CPU/cgroup RAM/GPU/数据盘再启动两个已实测可同机扫描的family worker、最后`export`核验36个private slot SHA-256并只导出公开次数。每个stage只创建一次；失败保留原目录、退出码及已写前缀，不自动重跑，也没有合法运行的墙钟强制上限。后续闸门提交可继承已审实现提交并须证明入口/worker/测试字节不变，避免把后续提交HEAD要求成自身内嵌的SHA-1。
+- 正例：RETRACT在frame22对原top-1的`DisableObject`返回成功，探针记成功并保留动作诊断；这只证明此固定姿态/动作路径在该模拟器可执行。反例：BIRTH在setup `DisableObject`返回`errorCode`，私有slot记录保留动作参数/错误，公开报告只多记一次失败；RELINK的真实`metadata.objects.position`缺失时记录`missing_action_precondition`，不拿mask centroid假装物理pose，也不发`TeleportObject`。若扫描目标和live目标不同，则固定slot停止，不使用较容易成功的另一个对象。
+- 待审科学界限：动作返回`lastActionSuccess=true`以及终态元数据位置，只是模拟器能力证据，不足以确定BIRTH/REACTIVATE/RETRACT等记忆事务的语义，也不证明生成后公开识别或结构地图可靠。重复目标仍只报告；探针失败不调D、不换house/slot/程序/目标，不自动开启生成。动作错误和真实object ID只在服务器private slot及private family回执；公开stage receipt保存摘要和worker资源/退出，导出的公开报告按family/program/status汇总36槽。
+- 白话：动作能力探针（proposed，未在真实house运行）解决“旧20个构造失败究竟是目标没有物理位置，还是模拟器拒绝固定动作”的问题。输入是已扫描的固定pose/真实对象元数据、固定程序和注册相机动作，输出每槽的私有动作诊断与公开次数汇总。例如两房各有一个RELINK槽缺真实position，公开报告显示对应程序`missing_action_precondition`次数，private文件才说明哪只对象。它不等于训练识别模型、构造记忆地图、生成episode或验收事务语义。
