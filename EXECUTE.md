@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| VM-04动作能力探针提案 | D-164独立合同与代码已准备供审查，固定两房、D=1.0 m、目标重复只报告；本地轻量边界测试通过，`probe_execution_authorized=false`。无服务器探针结果、无新episode；完整生成/训练仍关闭。LOG-154 |
+| VM-04目标边界与动作探针 | D-165旧16个完整episode首目标均非作者物体，新v2扫描top-2的72项中70项非作者物体；固定pose另有36/36槽至少2件可见作者资产与2件可移动资产。D-164原动作探针已封闭并先验拒绝，`probe_execution_authorized=false`；新生成/训练关闭。根因/资格/重复报告SHA-256见LOG-155–156；无服务器物理干预或新episode。 |
 | VSMT首篇/VM-01～04 | 旧两房stage及16完整/20构造失败封存。D-162仅开放v2固定两房、D=1.0 m纯视角扫描；服务器合同252/252及两family扫描均成功，各选18个pose、0 episode。原前18均来自18个位置，空间筛选降低top-2集合重复，但top-1仍重复10/11次；报告摘要`575d34d0…089f32`。生成/private、训练、validation效果、confirmation与L2继续关闭。LOG-152–153，D-162–163 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
 | R4三模型接入 | D完整适配16项通过（121/200全反向，0更新），W完整适配17项亦通过，F完整适配19项通过；真实公共接口27/27候选通过，0优化/真值读取。209bb34，LOG-123–127 |
@@ -1736,3 +1736,20 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - D-164只授权准备代码供用户审查，独立探针配置保持`approved_for_implementation_not_executable`和`probe_execution_authorized=false`。提案将原扫描/计划SHA-256、两固定house、36固定slot、D=1.0 m及原动作时序绑定；私有slot保留object ID、动作参数与模拟器诊断，公开stage/report只保留摘要、资源/退出和按程序/失败类别计数。未改旧v1/v2生成器或旧扫描stage。
 - 本地仅运行9项轻量标准库边界测试及语法/合同检查；没有启动服务器controller、探针、episode、teacher、训练、validation或confirmation。测试包含setup与frame16动作失败时保留`errorCode`、RELINK无真实position不发TeleportObject、RETRACT在frame22前重放注册yaw、REPLACE保持secondary setup/enable目标、扫描/live目标不一致不改目标、公开报告不含private ID和执行闸门关闭。后续`check`入口与SHA-256回执已预写，但无服务器回执；真实两房动作成功率与根因仍未知，待代码审查与另行授权后才能运行。
 - 白话：这份代码解决“下一次真实house动作拒绝时应留下可查证据，同时不借诊断悄悄生成数据”的准备问题。输入是已验收扫描和原程序分配，输出尚待运行的36槽动作诊断。比如BIRTH在setup失败会在private记录动作和错误码、公开只增加失败计数。它不是新的数据验收结果，也不能把旧20个失败解释为识别模型已经失败。
+
+## LOG-155：VM-04固定两房目标边界根因审计（2026-09-15）
+
+- 类型：只读来源/旧生成回执/v2纯扫描私有目标审计；未运行模拟器、动作探针、episode、teacher或训练。诊断实现`452e118`在服务器隔离checkout通过13项标准库边界测试，原stage/scan/source不改；[导出报告](results/vsmt_vm04_root_cause_audit_v1.json)由`3f1476d`回传，本地/服务器逐字节SHA-256均为`ecf4e6735016db4dea71873193d0a7fbdb606480a18237cb7871129f562ece73`。报告绑定旧generate=`fb914b38…d541ad4`、旧verify=`8a4ae4e7…f8a56536`、v2 scan=`044fd705…bb9fd5`（完整值见JSON）和source record摘要，公开报告没有真实instance ID。
+- 旧stage的36槽为16完整/20失败；两family各8完整/10失败。每个完整episode的top-1以及至少一个目标都不在作者`house.objects`（16/16），私有成功记录首位为`Ceiling_room`结构segmentation实例；SPLIT的次目标亦为天花板或墙。失败6个setup、4个frame16、6个frame22、4个RELINK缺初始position；20/20失败文件既无`private/intervention-attempts.json`也无逐动作`errorCode`。由于失败文件不含目标ID，只能结合每family共用冻结pose、相同目标排序、成功记录与动作时序归因为结构目标；不能声称每一失败已独立记录目标身份或模拟器错误码。
+- v2固定两房D=1.0 m纯扫描选定的36个pose的72个top-2条目，只有2个是作者`house.objects`递归资产，70个不是（family各1/36）；前一次临时只读模拟器检查见到69个`Wall`、1个`Window`、2个`Painting`，但此类型细分尚未进正式报告，故正式结论只用来源归属70/72。`metadata.objects`包含墙，其“具有objectId/position”不能证明是可用的记忆事务目标。旧16条虽完成采帧，结构目标使其不能当作实体生命周期语义正例；v2扫描pose的几何间距成立，不表示top-2可干预目标成立。
+- 修复提交保留旧v1/v2配置与stage字节，把原D-164动作探针状态改为阻断，父入口核验私有scan top-2和冻结来源`house.objects`后在创建stage/controller前拒绝建筑目标；worker再做独立拒绝。可信目标资格先做诊断性的`authored_asset`与`movable_asset`两份私有profile，保留原匿名几何排序且要求真实有限position；它们还不是新生成标签、事务语义或批准的target-selection rule。新v3目标合同、RELINK物理可移动约束、全36槽资格及动作能力需另行审查和冻结；目标重复只报告、不补样、不换房，生成/训练仍关闭。
+- 额外发现v1/v2机器配置的public/private episode manifest各长65字符，真实旧/v2封存计划各为64字符且彼此一致；原探针先验会在资产检查前误报。`17e5895`在独立关闭的探针配置登记真实64字符SHA-256，服务器13项轻量测试通过；只读调用先验检查现明确拒绝`v2 scan top2 includes architecture`。这既核实了阻断发生在stage/controller创建前，也不冒用旧65字符配置作为合法摘要。
+- 白话：这一步解决“渲染出来的一块mask究竟是能成为对象记忆案例的资产，还是房间墙面”的数据边界错误。输入是冻结ProcTHOR房屋作者的`objects`层级、旧失败/完成回执及v2私有扫描目标，输出带摘要的匿名计数和阻断闸门。例如墙有模拟器objectId和position，但不在作者物体层级，就不能因`DisableObject`返回成功而被算成杯子消失案例。它不是给部署模型提供私有ID，不是建图算法错误的证据，也不是训练识别器已失败的证据。
+
+## LOG-156：VM-04原36固定pose的私有作者资产资格与匿名重复（2026-09-15）
+
+- 待用户代码审查的只读入口`c431f9a`绑定LOG-155根因报告、旧stage、v2扫描pose/目标SHA-256与原source record，在服务器隔离checkout以requested/actual=2 family worker重建两间房，只做已冻结36个`TeleportFull`相机移动和224×224当前mask读取；0 `DisableObject/EnableObject/TeleportObject`、0保存frame、0新episode、0训练。成功stage为`/root/autodl-tmp/vsmt_outputs/vsmt-vm04-two-house-target-visibility-audit-v1`，receipt SHA-256=`0cdca070db04578a3c45e761cb64e253a6bc2cf923b82e52fb89dfc2b84aac24`，两worker退出success、确定性按family 00→01合并、耗时16.216秒。资源记录为affinity可见128 CPU、cgroup实际CPU quota16、内存headroom约65.27 GB、数据盘空余约28.89 GB、GPU空闲约33.8 GB；2 worker低于CPU quota与容量边界，affinity 128不得写成CPU配额128。
+- 每family原扫描私有top-2与同pose重新渲染的top-2均18/18一致，合计36/36、0 mismatch；两房作者递归资产分别148/86个，全部能在当前`metadata.objects`找到。按原≥196像素mask和匿名几何顺序，family00每pose可见作者资产7–14件、其中可移动5–11件；family01分别5–10件、3–9件。因此两房全部36固定slot至少各有2件作者资产与2件可移动资产。它只证明当前资格和来源覆盖，不证明物理动作会成功、静态资产消失的事务语义或L2识别率。公开[资格报告](results/vsmt_vm04_target_visibility_audit_v1.json)SHA-256=`fd2e7be438120baf436db00ace362096465f2200c185e95cf16cabaa21c2105a`，private ID列表与逐pose profile只在服务器stage内，公开报告仅含计数及private文件摘要。
+- 对已封存private profile做另一次只读导出，无控制器/渲染/动作。`authored_asset`几何top-1重复为family00 12/18、family01 10/18，top-2无序集合重复6/18、5/18；`movable_asset`对应11/18、10/18与5/18、4/18。重复仍只报告，不按结果调D、换pose/house或强制互异。[匿名重复报告](results/vsmt_vm04_target_repetition_audit_v1.json)SHA-256=`33839a011d03eb242030b26f5974ccc8f5ce03f29c727edd01f5bf056033caade`，绑定资格stage receipt及两私有profile摘要；旧v2扫描原top-2多数墙面，不能用原重复数代表新目标资格后的多样性。
+- 关闭式v3合同/条件验证器`0bef772`及固定pose纯私有目标函数`83eddff`已经按两种静态资产口径写出；`25a0c5f`消除完全同几何mask时以私有ID回退排序，`f7c8e92`确保作者归属∩当前metadata真实有限position先于几何排序。可审代码和人工墙/挂画/椅子/杯子正反例均在分支，服务器19项轻量标准库测试通过。它们不接入旧v2 worker，没有模拟器干预或新episode回执；v3执行位全false、三个语义字段null。若没有用户审查和新目标worker、动作/后态审计及公私材料化边界测试，不能把这份纯函数叫作新数据修复验收。
+- 白话：固定pose资格审计解决“把墙排除后，原36个相机会不会只剩一件可选物体”的问题。输入不变的两房和36个冻结相机位姿、当前匿名mask/私有作者层级，输出每房资格范围和不含ID的重复次数。例如family01最少仍有5件作者资产、3件可移动资产，但18个pose的作者资产top-1只来自8件不同目标。它不是模型识别、地图建成、动作成功或数据验收；重复次数不变成新的自动闸门。

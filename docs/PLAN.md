@@ -22,7 +22,9 @@
 
 ### 当前指针
 
-**D-164当前审查项：固定两房动作能力探针已做成独立代码提案，探针执行仍关闭。** `D=1.0 m`不变，重复目标只报告；探针只计划核验原36个固定slot的真实对象元数据与模拟器动作诊断，不保存episode或RGB-D。代码和D-164科学边界供用户审查，服务器真实house探针、完整生成、训练及效果实验尚无运行授权。下一步先审此实现，再另行决定是否开放仅探针执行；旧扫描和失败stage继续复用。
+**D-165当前阻断项：固定两房的目标来源边界错误已由只读摘要报告证实，D-164动作探针暂停。** `D=1.0 m`与“目标重复只报告”不变。旧16个完整episode的首目标均不属于作者`house.objects`，旧20个失败无逐动作诊断；v2纯扫描72个top-2条目中70个不是作者物体。当前探针入口已添加先验来源检查，扫描目标含建筑结构时在创建controller前拒绝执行，配置状态为`blocked_invalid_v2_scan_targets`。 [根因报告](../results/vsmt_vm04_root_cause_audit_v1.json)绑定旧generate/verify与v2扫描回执，0模拟器/0干预/0新episode；[固定pose资格报告](../results/vsmt_vm04_target_visibility_audit_v1.json)仅重建场景与相机移动，36/36槽均有至少两件可见作者资产和至少两件可移动资产，[匿名重复报告](../results/vsmt_vm04_target_repetition_audit_v1.json)只计数不改目标。下一步先冻结可信目标资格及RELINK物理前提的新合同与代码，再在固定两房上只运行受审的新目标动作能力探针；不得把v2墙面目标探针成功或失败当成有效事务证据。完整生成、训练、validation效果和confirmation保持关闭。
+
+**v3新目标边界已完成关闭式提案、条件化验证器与纯私有目标选择函数，尚无生成/动作worker。** [v3提案](../configs/vsmt/vm04_target_boundary_proposal_v3.json)固定两house/36 slot/D=1.0 m/v2 pose和不按private资产重新选择视角；[选择函数](../src/vsmt/vm04_target_selection_v3.py)仅在显式语义参数传入后从作者资产∩当前metadata真实position按原匿名mask几何排序筛目标。`RELINK`可移动前提、静态资产生命周期及L1实体/结构oracle分流三个科学字段保持`null`，执行位全false；未来`frozen_target_probe_only`先要求显式语义值且只能放目标动作探针，完整生成仍需新版本/用户代码审查及授权。这个提案不冒充已经修复并验收的36条新episode。
 
 **D-162当前指针：v2固定两房、D=1.0 m纯视角扫描已完成，完整生成仍关闭。** 受审`67099f2`合同252/252、两个family各选18个、0 episode；[报告](../results/vsmt_vm04_viewpoint_scan_v1.json)SHA-256=`575d34d0…089f32`并已本地复算。原前18在两房都来自18个位置，反驳“全在小簇”的推断，但原最小两两距离均0.25 m；空间去重提升间距和双目标集合多样性，单目标top-1仍重复10/11次。输入为原两间house和公开物理mask规则，输出仅是位置/支持与私有目标的匿名汇总；这不是episode、记忆地图、事务候选或训练结果。旧v1合同、原stage及20个失败不动，v2 `generation_authorized=false`、`private_audit_authorized=false`，train/validation/confirmation继续关闭。下一步需审重复目标与动作能力诊断的科学含义，再决定是否另行批准生成；不按扫描结果自动改D、换house或放开失败门。
 
