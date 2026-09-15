@@ -591,7 +591,7 @@ def evaluate_private_recall(
         constructed = row["constructed"] is True
         references = row["canonical_reference_key_sha256_by_profile"]
         if constructed:
-            _require(type(references) is dict and tuple(references) == ASSOCIATION_PROFILE_IDS,
+            _require(type(references) is dict and set(references) == set(ASSOCIATION_PROFILE_IDS),
                      "constructed row needs one reference key per profile")
             for profile_id, reference in references.items():
                 _hex64(reference, f"canonical_reference_key_sha256_by_profile.{profile_id}")

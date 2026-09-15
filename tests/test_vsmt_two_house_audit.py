@@ -238,6 +238,35 @@ class TwoHouseAuditContractTests(unittest.TestCase):
             result["episodes"][0]["candidate_miss_reason"]["strict"]["16"]
         )
 
+    def test_private_evaluation_accepts_json_round_trip_profile_key_order(self) -> None:
+        plan = plans()
+        key = hashlib.sha256(b"reference-key").hexdigest()
+        seal = make_public_seal(
+            public_rows(plan["public"]),
+            public_manifest_sha256=plan["public"]["manifest_sha256"],
+            capacities=[16, 32, 64], worker_completion_order=["f0", "f1"],
+        )
+        rows = []
+        for assignment in plan["private"]["assignments"]:
+            references = json.loads(json.dumps({
+                "strict": key,
+                "balanced": key,
+                "permissive_capacity_upper_bound": key,
+            }, sort_keys=True))
+            rows.append({
+                "episode_id": assignment["episode_id"],
+                "family_id": assignment["family_id"],
+                "program": assignment["program"],
+                "replicate": assignment["replicate"],
+                "constructed": True,
+                "construction_failure_reason": None,
+                "canonical_reference_key_sha256_by_profile": references,
+                "entity_retract_legal_at_margin_0_02": assignment["program"] == "RETRACT",
+                "entity_retract_legal_at_margin_0_05": False,
+            })
+        result = evaluate_private_recall(seal, rows)
+        self.assertEqual(result["episode_count"], 36)
+
     def test_capacity_probe_refuses_wrong_worker_count_but_not_long_runtime(self) -> None:
         value = capacity_probe(
             free_bytes=10_000_000_000, visible_cpu_count=12,
