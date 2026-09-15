@@ -31,7 +31,9 @@ def validate_target_boundary_proposal(value: Mapping[str, Any]) -> dict[str, Any
          "recursive_author_house_objects_ids_intersect_current_metadata_objects_with_finite_position"),
         ("private_target_rank",
          "existing_anonymous_mask_geometry_order_after_trusted_eligibility"),
-        ("minimum_qualified_visible_assets_per_pose", 2),
+        ("physical_intervention_programs",
+         ["BIRTH", "REACTIVATE", "RELINK", "RETRACT", "REPLACE"]),
+        ("minimum_qualified_visible_assets_for_replace", 2),
         ("minimum_mask_pixels", 196),
         ("target_repeat_policy",
          "report_only_no_target_pose_or_house_reselection"),
@@ -45,6 +47,7 @@ def validate_target_boundary_proposal(value: Mapping[str, Any]) -> dict[str, Any
             "v3 target proposal never authorizes training")
     choices = ("relink_requires_moveable_or_pickupable",
                "static_authored_asset_lifecycle_policy",
+               "non_intervention_typed_region_target_policy",
                "l1_oracle_entity_structure_separation_policy")
     if value.get("status") == "requires_semantic_review_not_executable":
         require(all(value.get(name) is None for name in choices),
@@ -57,8 +60,13 @@ def validate_target_boundary_proposal(value: Mapping[str, Any]) -> dict[str, Any
                 value["static_authored_asset_lifecycle_policy"] in (
                     "allow_visibility_lifecycle_if_simulator_action_and_poststate_verified",
                     "exclude_static_assets_from_physical_lifecycle_targets") and
-                value["l1_oracle_entity_structure_separation_policy"] ==
-                "author_assets_as_anonymous_entity_regions_architecture_as_public_structure_only",
+                value["l1_oracle_entity_structure_separation_policy"] in (
+                    "author_assets_as_anonymous_entity_regions_architecture_as_public_structure_only",
+                    "separate_l1_oracle_entity_and_structure_regions_both_anonymous_no_ids"),
+                "frozen v3 needs explicit semantic/source choices")
+        require(value["non_intervention_typed_region_target_policy"] in (
+                    "public_typed_region_evidence_no_simulator_action_target",
+                    "l1_oracle_private_segmentation_diagnostic_only_no_deployment_target"),
                 "frozen v3 needs explicit semantic/source choices")
         require(value["target_capability_probe_authorized"] is True and
                 value["generation_authorized"] is False,

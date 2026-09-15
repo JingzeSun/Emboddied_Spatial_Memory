@@ -33,17 +33,18 @@ class TargetSelectionTests(unittest.TestCase):
             relink_requires_moveable_or_pickupable=True,
         )
 
-    def test_static_policy_affects_lifecycle_but_not_structural_target_order(self):
+    def test_static_policy_affects_physical_lifecycle_and_relink_is_movable(self):
         allow = "allow_visibility_lifecycle_if_simulator_action_and_poststate_verified"
         exclude = "exclude_static_assets_from_physical_lifecycle_targets"
         self.assertEqual(self.select("BIRTH", allow), ["painting"])
         self.assertEqual(self.select("BIRTH", exclude), ["chair"])
-        self.assertEqual(self.select("SPLIT", exclude), ["painting", "chair"])
+        with self.assertRaisesRegex(ValueError, "no physical intervention"):
+            self.select("SPLIT", exclude)
         self.assertEqual(self.select("RELINK", allow), ["chair"])
         self.assertEqual(self.select("REPLACE", exclude), ["chair", "mug"])
-        self.assertEqual(self.select("SPLIT", exclude,
+        self.assertEqual(self.select("REPLACE", exclude,
                          dict(reversed(list(self.masks.items())))),
-                         ["painting", "chair"])
+                         ["chair", "mug"])
         self.metadata["chair"]["objectType"] = "Wall"
         self.assertEqual(self.select("RELINK", allow), ["chair"])
 
@@ -53,10 +54,6 @@ class TargetSelectionTests(unittest.TestCase):
             self.select("REPLACE", exclude,
                         {name: mask for name, mask in self.masks.items()
                          if name in ("wall", "painting", "chair")})
-        with self.assertRaisesRegex(ValueError, "original fixed slot"):
-            self.select("SPLIT", exclude,
-                        {name: mask for name, mask in self.masks.items()
-                         if name in ("wall", "painting")})
         with self.assertRaisesRegex(ValueError, "explicit movable"):
             select_private_targets_at_fixed_pose(
                 "RELINK", self.masks, self.metadata, self.authored,
@@ -70,16 +67,16 @@ class TargetSelectionTests(unittest.TestCase):
             "position": {"x": 4, "y": 0, "z": 0}}
         with self.assertRaisesRegex(ValueError, "indistinguishable public geometry"):
             select_private_targets_at_fixed_pose(
-                "BIND", masks, self.metadata, authored,
+                "BIRTH", masks, self.metadata, authored,
                 static_authored_asset_lifecycle_policy=
                     "exclude_static_assets_from_physical_lifecycle_targets",
                 relink_requires_moveable_or_pickupable=True)
         del self.metadata["copy_of_painting"]
         self.assertEqual(select_private_targets_at_fixed_pose(
-            "BIND", masks, self.metadata, authored,
+            "BIRTH", masks, self.metadata, authored,
             static_authored_asset_lifecycle_policy=
                 "exclude_static_assets_from_physical_lifecycle_targets",
-            relink_requires_moveable_or_pickupable=True), ["painting"])
+            relink_requires_moveable_or_pickupable=True), ["chair"])
 
 
 if __name__ == "__main__":

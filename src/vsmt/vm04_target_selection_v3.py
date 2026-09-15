@@ -11,9 +11,8 @@ from .vm04_target_eligibility import asset_target_profiles
 
 
 LIFECYCLE_PROGRAMS = frozenset({"BIRTH", "REACTIVATE", "RETRACT", "REPLACE"})
-TWO_TARGET_PROGRAMS = frozenset({"SPLIT", "REPLACE"})
-PROGRAMS = frozenset({"NOOP", "BIND", "BIRTH", "REACTIVATE", "RELINK",
-                      "RETRACT", "SPLIT", "MERGE", "REPLACE"})
+TWO_TARGET_PROGRAMS = frozenset({"REPLACE"})
+PHYSICAL_INTERVENTION_PROGRAMS = LIFECYCLE_PROGRAMS | {"RELINK"}
 MINIMUM_MASK_PIXELS = 196
 
 
@@ -72,8 +71,8 @@ def select_private_targets_at_fixed_pose(
     simulator probe or episode calls this function. A shortage is a hard
     construction failure for the original fixed slot.
     """
-    if program not in PROGRAMS:
-        raise ValueError("unknown VM-04 program")
+    if program not in PHYSICAL_INTERVENTION_PROGRAMS:
+        raise ValueError("program has no physical intervention target")
     if static_authored_asset_lifecycle_policy not in (
         "allow_visibility_lifecycle_if_simulator_action_and_poststate_verified",
         "exclude_static_assets_from_physical_lifecycle_targets",

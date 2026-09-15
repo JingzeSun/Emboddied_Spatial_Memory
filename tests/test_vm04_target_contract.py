@@ -36,8 +36,17 @@ class TargetContractTests(unittest.TestCase):
                 "exclude_static_assets_from_physical_lifecycle_targets",
             "l1_oracle_entity_structure_separation_policy":
                 "author_assets_as_anonymous_entity_regions_architecture_as_public_structure_only",
+            "non_intervention_typed_region_target_policy":
+                "public_typed_region_evidence_no_simulator_action_target",
         })
         self.assertFalse(validate_target_boundary_proposal(frozen)[
+            "generation_authorized"])
+        alternative = dict(frozen,
+            l1_oracle_entity_structure_separation_policy=
+                "separate_l1_oracle_entity_and_structure_regions_both_anonymous_no_ids",
+            non_intervention_typed_region_target_policy=
+                "l1_oracle_private_segmentation_diagnostic_only_no_deployment_target")
+        self.assertFalse(validate_target_boundary_proposal(alternative)[
             "generation_authorized"])
         frozen["generation_authorized"] = True
         with self.assertRaisesRegex(ValueError, "must not open generation"):
