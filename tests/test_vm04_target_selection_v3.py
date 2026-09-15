@@ -65,7 +65,8 @@ class TargetSelectionTests(unittest.TestCase):
         changed = dict(self.contract, relink_requires_moveable_or_pickupable=False)
         with self.assertRaisesRegex(ValueError, "approved v3 semantic"):
             self.select("RELINK", contract=changed)
-        changed = dict(self.contract, status="requires_semantic_review_not_executable")
+        changed = dict(self.contract, status="requires_semantic_review_not_executable",
+                       target_capability_probe_authorized=False)
         changed.update({name: None for name in (
             "relink_requires_moveable_or_pickupable",
             "static_authored_asset_lifecycle_policy",

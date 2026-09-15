@@ -21,12 +21,15 @@ class TargetContractTests(unittest.TestCase):
         changed = dict(self.value, private_asset_membership_may_affect_pose=True)
         with self.assertRaisesRegex(ValueError, "source/pose/eligibility"):
             validate_target_boundary_proposal(changed)
-        changed = dict(self.value, generation_authorized=True)
+        changed = dict(self.value, status="approved_semantics_implementation_only",
+                       target_capability_probe_authorized=False,
+                       generation_authorized=True)
         with self.assertRaisesRegex(ValueError, "must not run"):
             validate_target_boundary_proposal(changed)
 
     def test_proposal_requires_null_and_probe_only_still_blocks_generation(self):
-        proposal = dict(self.value, status="requires_semantic_review_not_executable")
+        proposal = dict(self.value, status="requires_semantic_review_not_executable",
+                        target_capability_probe_authorized=False)
         with self.assertRaisesRegex(ValueError, "must stay unresolved"):
             validate_target_boundary_proposal(proposal)
         proposal.update({name: None for name in (
@@ -59,7 +62,9 @@ class TargetContractTests(unittest.TestCase):
         bad = dict(self.value, minimum_mask_pixels=197)
         with self.assertRaisesRegex(ValueError, "source/pose/eligibility"):
             validate_target_boundary_proposal(bad)
-        bad = dict(self.value, target_capability_probe_authorized=True)
+        approved = dict(self.value, status="approved_semantics_implementation_only",
+                        target_capability_probe_authorized=False)
+        bad = dict(approved, target_capability_probe_authorized=True)
         with self.assertRaisesRegex(ValueError, "must not run"):
             validate_target_boundary_proposal(bad)
 
