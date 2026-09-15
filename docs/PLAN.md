@@ -26,6 +26,8 @@
 
 **独立RELINK新数据版本（proposed，D-176停止线未重开）：** [方法与正反例](METHOD.md)和[拟议公私字段](DATA.md)已记录机器人实际路径、公开旧/新关系、候选先封存及私有同一身份/后态的分层验收口径。输入只能是公开当前RGB-D、此前预测记忆和预登记动作；输出须分别报告物理失败、事务前提缺口、公开证据缺口、candidate miss和executor/teacher错误。例如原四槽仍保持碰撞失败，独立新版本即使找到一条推椅子到P2的路线也不得回填原槽。该版本尚无冻结配置、公开容器读取器、真实`PutObject` smoke、可执行机器人RELINK回执或记忆正例；执行新分支仍需单独裁决和代码审查。
 
+**D-177已定的标签口径：** 物理RELINK正例要求事后确认同一物理实体，并有公开旧、新关系证据；不合格原因分层保留。在线QUARANTINE不能读取私有同一身份结论，公开证据不足时是否暂存及其门尚未冻结。此口径不开放D-176原槽的新动作或独立版本运行。
+
 **D-176代码实施前的审查结论（历史）：** D-175 runner只是人工事件纯核心，缺真实公开类型容器来源和公私文件封存、原source/pose/slot核验、fresh controller与资源/出口回执，不能作为VM-04两房原始数据的依赖或真实交互证据；19个推拉/抓放能力分支和固定build`PutObject` smoke暂不运行、不追加探针。用户现批准原36固定槽一次构造，完整raw/`raw.failure`/硬资源`not_started`全数保留，RELINK原四槽已知碰撞按失败及覆盖缺口登记，不换目标、pose、动作或house。v2合同本来没有36/36有效样本门，但旧生成worker仍用可见instance mask选择建筑结构并强制传送RELINK，旧private construction评价还用私有ID给NOOP/BIND/SPLIT/MERGE定成立，旧stage执行位不能解；下一独立代码职责须绑定已审v3作者目标选择、公开非干预结构证据和已知失败前缀，交审后才运行新stage。0新episode，0训练/validation/confirmation。
 
 **D-175当前指针：runner审查核心已落地，本轮只审代码。** 用户认可公开容器证据、锁定AI2-THOR 5.0.0/CloudRendering已审build的独立`PutObject` API smoke规格和20/80/160 N推拉力档。原四槽固定；三件仅可移动目标的推/拉×三力为18个fresh-scene分支，另有一件仅可拾取目标的抓放分支，结果不得挑赢家。`vm04_relink_interaction_runner`把公开路线/类型化容器区域先封存，私有ID仅供封存后模拟器动作；通用L1 surface不能冒充容器。现在只有本地人工事件纯测试，**真实固定build smoke、公开类型化容器读取器、路径容差、完整stage父入口/资源派发/匿名导出及用户代码审查尚未完成**；原proposal所有运行闸门仍false。不得用纯测试的`PutObject`父容器模拟结果替代真实API receipt；本轮不登录服务器执行动作，生成/训练/validation/confirmation继续关闭。
