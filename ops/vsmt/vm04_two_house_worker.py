@@ -475,8 +475,12 @@ def audit_intervention_capabilities(program, targets, initial_objects):
             "is_interactable": value.get("isInteractable") if isinstance(value, dict) else None,
             "pickupable": value.get("pickupable") if isinstance(value, dict) else None,
             "moveable": value.get("moveable") if isinstance(value, dict) else None,
+            "has_axis_aligned_bounding_box": (
+                isinstance(value, dict)
+                and isinstance(value.get("axisAlignedBoundingBox"), dict)
+            ),
         })
-    return {
+    result = {
         "program": program,
         "target_count": len(targets),
         "required_target_count": required,
@@ -484,6 +488,26 @@ def audit_intervention_capabilities(program, targets, initial_objects):
         "relink_requires_position": program == "RELINK",
         "lifecycle_actions": program in {"BIRTH", "REACTIVATE", "RETRACT", "REPLACE"},
     }
+    if program == "RELINK" and records:
+        value = initial_objects.get(targets[0])
+        position = value.get("position") if isinstance(value, dict) else None
+        result["relink_pose_audit"] = {
+            "source_position": position,
+            "planned_offset_m": {"x": 0.5, "y": 0.0, "z": 0.0},
+            "planned_position": (
+                {
+                    "x": float(position["x"]) + 0.5,
+                    "y": float(position["y"]),
+                    "z": float(position["z"]),
+                }
+                if isinstance(position, dict)
+                and all(axis in position for axis in ("x", "y", "z"))
+                else None
+            ),
+            "collision_or_reachability_checked": False,
+            "force_action_used_by_executor": True,
+        }
+    return result
 
 
 def intervention_event_diagnostic(event):

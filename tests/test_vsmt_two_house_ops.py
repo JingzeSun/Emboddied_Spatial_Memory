@@ -221,6 +221,17 @@ class TwoHouseOpsTests(unittest.TestCase):
         self.assertTrue(audit["objects"][0]["present_in_metadata_objects"])
         self.assertFalse(audit["objects"][1]["present_in_metadata_objects"])
 
+    def test_relink_audit_records_planned_pose_without_claiming_collision_check(self) -> None:
+        audit = WORKER.audit_intervention_capabilities(
+            "RELINK", ["obj-a"],
+            {"obj-a": {"position": {"x": 1, "y": 2, "z": 3}}},
+        )
+        self.assertEqual(
+            audit["relink_pose_audit"]["planned_position"],
+            {"x": 1.5, "y": 2.0, "z": 3.0},
+        )
+        self.assertFalse(audit["relink_pose_audit"]["collision_or_reachability_checked"])
+
     def test_anonymous_view_support_ignores_ids_and_small_masks(self) -> None:
         import numpy as np
 
