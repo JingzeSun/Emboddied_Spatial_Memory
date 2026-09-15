@@ -922,3 +922,7 @@ D-111的`spatial-history-r4-pessimistic-map-v1`不再是正式输入schema。新
 拟议future private branch文件逐步登记原slot/分支/力档、请求和实际机器人位姿、资产实际position/`isMoving/isPickedUp`、父容器、`lastActionSuccess/errorMessage/errorCode`及完整失败；public exporter只汇总family×模式×失败阶段×力档计数、来源摘要、requested/actual workers及资源/退出，`private_ids_exported=false`。任何结果不得按成功方向、力值、容器、房或目标替换原槽；零位移也在分母。每个分支fresh controller，独立工作单元数在力档冻结后由原能力模式确定，实际并发由开机时安全资源测量决定。本提案未产生future branch文件、episode或训练数组。
 
 白话：例如原两房四槽里三件仅可移动资产会分成各自推/拉测试，一件可拾取资产会分成抓/放测试；私有文件保存每次动作的真实细节，公开文件只说每类失败多少。这样能判断“机器人没走到、互动被拒绝、东西没动、关系没变”哪层缺证据。它不是现在已经做完的物理互动实验，也不是公开模型能凭私有身份选目标的接口。
+
+D-175新增两个独立预登记文件：`vm04_relink_force_prereg_v1.json`固定三件可移动目标×推/拉×20/80/160 N共18个fresh-scene分支，另一个抓放分支；`vm04_relink_put_api_smoke_v1.json`固定simulator Python、AI2-THOR 5.0.0、CloudRendering build/zip摘要、`manualInteract=false/placeStationary=true/forceAction=false`，但真实`PutObject`参数与父容器语义回执为null。`vm04_relink_interaction_runner.py`生成的公开封存计划只含区域ID、public mask摘要、public类型来源、路线和digest；私有branch含目标/映射容器ID、动作请求/错误、实际位姿、目标位置/运动/拾取/父容器及失败。公开类型化容器输入必须来自当前公开RGB-D，单纯`surface`与私有`metadata.receptacle`均不能签发容器候选；现阶段该前端读取器未完成，不能运行四槽动作。原v1 proposal的执行档/真实smoke receipt等字段仍null，闸门false，不把预登记规格伪装成真实回执。
+
+白话：预登记力档解决“看到某个力成功后才换试验力”的问题；输入是旧四槽能力分流，输出19个固定分支。例如80 N推没有位移，仍保留这次失败和80 N档，不去挑160 N结果冒充同一次成功。版本API smoke解决“网页示例中的`PutObject.objectId`到底在本build指向谁”的问题；输入锁定环境和一个独立抓放场景，输出将来的私有动作与父容器证据。两者都不是新数据生成、已验证容器感知或记忆RELINK标签。

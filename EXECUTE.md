@@ -1802,3 +1802,10 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 用户只授权**先设计**抓取/放置及推/拉能力探针，生成和训练继续关闭。SSH只读检查原D-168 stage的四个封存RELINK private slot能力字段；原family00 slot4/11、family01 slot6均`pickupable=false/moveable=true`，原family01 slot12为`pickupable=true/moveable=false`。这只是旧目标能力分流，未读写新house动作、未选新目标/端点/房，也不把private asset ID或类别写入公开提案；SSH已退出，服务器可关闭。
 - 新[提案](configs/vsmt/vm04_relink_interaction_probe_proposal_v1.json)状态`requires_action_plan_review_not_executable`，`probe_authorized=false/generation_authorized=false/training_authorized=false`；公开可达格+匿名L1可见区域的单一路线纯函数、不强制动作模式分流及私有边界纯测试本地5/5通过。公开容器读取器、锁定模拟器PutObject API、力档及路径容差等尚为null；未产生真实机器人导航、抓放、推拉或记忆历史回执。本LOG只能认证**方案字节与纯函数**，不能预测四槽真实交互完成率。
 - 需保留的技术差异：AI2-THOR `GetReachablePositions`仅给占位可达点，不保证任意预选边实际导航成功，future worker仍须每个`MoveAhead`查真实agent后态；L1可见区域中心仅是靠近提示，不是真实物体位置；iTHOR默认PickupObject会把物体抽象移到手前，动作成功不能证明连续抓取轨迹。真实动作探针尚未审批执行，D-173原四端点失败和新生成关闭状态不变。
+
+## LOG-164：D-175交互runner核心及独立预登记（2026-09-16）
+
+- 用户明确认可公开容器证据、锁定版本API smoke和独立推拉力档，只授权实现供代码审查。新力档独立配置为20/80/160 N，三件仅可移动旧目标×推/拉×三档＝18个分支，另一件仅可拾取目标＝1个抓放分支；零位移计入。API规格绑定服务器Python、AI2-THOR 5.0.0及已审CloudRendering build/zip摘要，固定`manualInteract=false/placeStationary=true/forceAction=false`；真实build `PutObject.objectId`与父容器receipt还不存在。
+- 新runner纯核心封存公开路线和当前RGB-D类型化容器候选后才接受私有ID映射，generic surface和注入的private objectId都会拒绝；逐动作记录返回/错误、机器人实际位置、目标位移/运动/拾取/父容器，失败不换原分支，不签记忆正例。模块实际入口在proposal `probe_authorized=false`时首动作前拒绝；测试只对注入的人工controller临时模拟已开闸语义，不改变磁盘提案。
+- 本地纯检查：新runner 8/8、旧设计5/5通过；Python编译、JSON和diff检查将与审查提交一起核验。0新模拟器真实动作、0真实API smoke、0公开容器前端产物、0 episode、0训练、0private confirmation。这个回执只能说明函数对人工正反例的行为，不能认证真实house能力、19分支资源并发、公开容器识别或记忆RELINK主张。
+- 白话：例如`PushObject(80 N)`返回成功但位置一毫米未变，runner记录零位移而不是成功RELINK；抓起后`PutObject`动作成功但`parentReceptacles`不含预先选的容器，也报后态不符。输入是公开封存计划与旧目标私有动作ID，输出供审查的逐步私有记录规则；它不等于运行了真实模拟器或生成了论文样本。

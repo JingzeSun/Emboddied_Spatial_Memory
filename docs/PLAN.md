@@ -22,6 +22,8 @@
 
 ### 当前指针
 
+**D-175当前指针：runner审查核心已落地，本轮只审代码。** 用户认可公开容器证据、锁定AI2-THOR 5.0.0/CloudRendering已审build的独立`PutObject` API smoke规格和20/80/160 N推拉力档。原四槽固定；三件仅可移动目标的推/拉×三力为18个fresh-scene分支，另有一件仅可拾取目标的抓放分支，结果不得挑赢家。`vm04_relink_interaction_runner`把公开路线/类型化容器区域先封存，私有ID仅供封存后模拟器动作；通用L1 surface不能冒充容器。现在只有本地人工事件纯测试，**真实固定build smoke、公开类型化容器读取器、路径容差、完整stage父入口/资源派发/匿名导出及用户代码审查尚未完成**；原proposal所有运行闸门仍false。不得用纯测试的`PutObject`父容器模拟结果替代真实API receipt；本轮不登录服务器执行动作，生成/训练/validation/confirmation继续关闭。
+
 **D-174当前指针：只设计固定两房原四槽的真实交互能力探针供代码审查，服务器已关闭。** D-173四槽固定x+0.5 m端点均明确碰撞拒绝，原规则不能进入新生成；原私有能力字段仅作本探针模式分流：三槽`moveable=true/pickupable=false`走推、拉独立分支，一槽`pickupable=true/moveable=false`走抓取、放置；`moveable=false`本身不证明其他推力动作绝不可用。新提案把匿名L1可见区域+公开可达格用于**靠近目标**的单一路线，实际导航仅执行旋转/移动，原house/pose/target/slot不换；物理动作不强制，各阶段真实后态单独核。放置目标的公开类型化容器读取器、固定推拉力档、抓取`manualInteract`、放置物理结算及路径容差仍待审和固定模拟器API验证，提案执行位false；完整episode生成、训练及记忆语义标签继续关闭。不能把iTHOR抓取的手前传送称为连续物体路径，也不能用私有容器ID悄悄代替公开结构证据。D-170旧关闭worker/旧失败产物继续保留。
 
 **D-168已批准且只开放固定两房v3新目标动作探针。** 用户审过`fe8b725`、认可5 mm真实终态位置容差、4倍RSS/2倍观测显存安全线以及`forceAction=true`的RELINK仅作碰撞未核验能力诊断。两份v3配置只改`frozen_target_probe_only/frozen_probe_only`状态、探针执行位和受审代码SHA，生成/训练仍false。已在精确干净冻结提交核旧v2扫描/计划/source与环境资源，重新运行同版三worker纯`check`，再在唯一新stage先做单worker零干预资源测量；通过后已并行两house family原36槽，保留所有原槽失败并匿名导出。不得重用`fe8b725`旧check marker冒充新冻结提交的检查，不运行旧D-164探针或新episode；动作探针结果不成为记忆标签或数据验收。
