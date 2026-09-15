@@ -59,6 +59,7 @@ ENVIRONMENT_PATH = PROJECT_ROOT / "configs/vsmt/vm04_l1_environment_v1.json"
 ACTION_PATH = PROJECT_ROOT / "configs/vsmt/vm04_l1_action_symmetry_v1.json"
 STRUCTURE_PATH = PROJECT_ROOT / "configs/vsmt/vm04_l1_non_entity_geometry_review_v1.json"
 REPORT_PATH = PROJECT_ROOT / "results/vsmt_vm04_l1_two_house_audit_v2.json"
+VIEWPOINT_SCAN_REPORT_PATH = PROJECT_ROOT / "results/vsmt_vm04_viewpoint_scan_v1.json"
 BOUND_PATHS = (
     "configs/vsmt/vm04_l1_two_house_audit_proposal_v2.json",
     "configs/vsmt/vm04_public_seal_parallel_recovery_v1.json",
@@ -82,7 +83,7 @@ BOUND_PATHS = (
 TEST_GROUPS = (
     ("executor", "test_executor.py", 42),
     ("l1", "test_l1_*.py", 31),
-    ("vsmt", "test_vsmt_*.py", 171),
+    ("vsmt", "test_vsmt_*.py", 178),
 )
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
 
@@ -169,6 +170,10 @@ def verify_checkout(reviewed_code: str) -> tuple[str, dict[str, str]]:
 
 def stage_directory(output_root: Path, reviewed_code: str) -> Path:
     return output_root.resolve() / f"{STAGE_ID}-{reviewed_code[:12]}"
+
+
+def viewpoint_scan_directory(output_root: Path, reviewed_code: str) -> Path:
+    return output_root.resolve() / f"{STAGE_ID}-viewpoint-scan-{reviewed_code[:12]}"
 
 
 def run_command(
@@ -535,6 +540,274 @@ def _verify_frozen_selection(
                 f"frozen selection mismatch: {key}")
 
 
+def _duplicate_target_sets(rows: Sequence[Mapping[str, Any]], *, top_k: int) -> int:
+    seen: set[tuple[str, ...]] = set()
+    duplicates = 0
+    for row in rows:
+        target_set = tuple(sorted(str(value) for value in
+                                  row["target_instance_ids"][:top_k]))
+        if target_set in seen:
+            duplicates += 1
+        seen.add(target_set)
+    return duplicates
+
+
+def run_viewpoint_scan(
+    reviewed_code: str, output_root: Path, *, planning_stage: Path,
+    source_root: Path,
+) -> None:
+    """Two-family pre-generation scan with separate public and private output."""
+
+    config = assert_two_house_action_authorized(load_config(), action="viewpoint-scan")
+    commit, bindings = verify_checkout(reviewed_code)
+    _marker(stage_directory(output_root, commit), "contracts")
+    planning = planning_stage.resolve()
+    selection_receipt, _ = _marker(planning, "selection")
+    inventory_receipt, _ = _marker(planning, "inventory")
+    _verify_frozen_selection(config, selection_receipt)
+    require(hashlib.sha256(str(source_root.resolve()).encode("utf-8")).hexdigest()
+            == inventory_receipt["source_root_sha256"],
+            "viewpoint scan source root differs from frozen inventory")
+    require(git("rev-parse", "HEAD", cwd=source_root.resolve()) ==
+            config["source_inventory_proposal"]["data_release_commit"],
+            "viewpoint scan source checkout commit changed")
+    scan_stage = viewpoint_scan_directory(output_root, commit)
+    require(not scan_stage.exists(), "viewpoint scan stage already exists; preserve it")
+    resources = config["resource_and_worker_proposal"]
+    free_disk = shutil.disk_usage(output_root.resolve()).free
+    visible_cpus = os.cpu_count() or 0
+    require(visible_cpus >= 2 and free_disk >= int(resources[
+        "minimum_free_data_disk_bytes_before_start"
+    ]), "two-family scan lacks the required CPU or disk reserve")
+    input_relatives = (
+        "private/inventory.json", "private/episode_plan.json",
+        "public/episode_plan.json", "selection.json",
+    )
+    for relative in input_relatives:
+        require((planning / relative).is_file(),
+                f"planning scan input is missing: {relative}")
+    require(sha256(planning / "private/inventory.json") ==
+            inventory_receipt["private_inventory_sha256"],
+            "private source inventory changed after frozen receipt")
+    inventory = validate_source_inventory(read_json(planning / "private/inventory.json"))
+    selection = validate_house_selection(
+        read_json(planning / "selection.json"), inventory=inventory
+    )
+    require(selection["selection_sha256"] == selection_receipt["selection_sha256"],
+            "scan house selection changed after frozen receipt")
+    environment_config = read_json(ENVIRONMENT_PATH)
+    simulator_python = Path(environment_config["environment_separation"][
+        "simulator_process"
+    ]["environment_path"]) / "bin/python"
+    require(simulator_python.is_file(), "reviewed simulator Python is missing")
+    plans = validate_episode_plans({
+        "public": read_json(planning / "public/episode_plan.json"),
+        "private": read_json(planning / "private/episode_plan.json"),
+    })
+    require(plans["public"]["manifest_sha256"] ==
+            selection_receipt["public_episode_manifest_sha256"]
+            and plans["private"]["manifest_sha256"] ==
+            selection_receipt["private_episode_manifest_sha256"],
+            "scan episode plan changed after frozen selection")
+    family_ids = sorted({row["family_id"] for row in plans["public"]["episodes"]})
+    require(len(family_ids) == 2, "viewpoint scan needs the two frozen families")
+    scan_stage.mkdir(parents=True)
+    for relative in input_relatives:
+        write_new_bytes(scan_stage / relative, (planning / relative).read_bytes())
+    execution = scan_stage / "execution"
+    execution.mkdir()
+    environment = dict(os.environ, XDG_RUNTIME_DIR=str(output_root.resolve() / "runtime"),
+                       PYTHONUNBUFFERED="1", OMP_NUM_THREADS="1", OPENBLAS_NUM_THREADS="1")
+    Path(environment["XDG_RUNTIME_DIR"]).mkdir(parents=True, exist_ok=True)
+    started = time.monotonic()
+    children: dict[str, subprocess.Popen[str]] = {}
+    logs: dict[str, Any] = {}
+    exits: list[dict[str, Any]] = []
+    try:
+        for family_id in family_ids:
+            family_root = execution / family_id
+            family_root.mkdir()
+            log_path = family_root / "scan.worker.log"
+            with log_path.open("x", encoding="utf-8") as log:
+                child = subprocess.Popen([
+                    str(simulator_python), "-B",
+                    str(PROJECT_ROOT / "ops/vsmt/vm04_two_house_worker.py"),
+                    "--scan-only", "--run-stage", str(scan_stage),
+                    "--source-root", str(source_root.resolve()),
+                    "--family-id", family_id,
+                    "--family-byte-limit", str(resources["maximum_bytes_per_family"]),
+                    "--process-address-limit", str(resources[
+                        "maximum_process_tree_RSS_bytes"
+                    ]),
+                    "--minimum-pose-separation-m", str(config[
+                        "generator_initial_viewpoint"
+                    ]["minimum_position_spacing_m"]),
+                ], cwd=PROJECT_ROOT, env=environment, stdout=log,
+                   stderr=subprocess.STDOUT, text=True, start_new_session=True)
+            children[family_id] = child
+            logs[family_id] = log_path.open("r", encoding="utf-8", errors="replace")
+        active = set(family_ids)
+        while active:
+            _resource_checkpoint(scan_stage, config, started=started,
+                                 root_pids=(children[family_id].pid for family_id in active))
+            require(shutil.disk_usage(output_root.resolve()).free >= int(resources[
+                "minimum_free_data_disk_bytes_before_start"
+            ]), "viewpoint scan data-disk reserve crossed")
+            for family_id in sorted(active):
+                output = logs[family_id].read(8192)
+                if output:
+                    print(f"[{family_id}] {output}", end="", flush=True)
+                child = children[family_id]
+                if child.poll() is not None:
+                    child.wait()
+                    row = {"family_id": family_id, "exit_code": child.returncode,
+                           "pid": child.pid}
+                    exits.append(row)
+                    write_new_json(execution / family_id / "scan.exit.json", row)
+                    require(child.returncode == 0,
+                            f"viewpoint scan worker failed: {family_id}")
+                    active.remove(family_id)
+            if active:
+                time.sleep(0.1)
+    except BaseException as error:
+        for child in children.values():
+            if child.poll() is None:
+                _abort_process(child)
+        write_new_json(scan_stage / "scan.failure.json", {
+            "error_type": type(error).__name__, "error": str(error),
+            "requested_workers": 2, "launched_workers": len(children),
+            "exits": exits, "missing_exit": sorted(set(children) - {
+                row["family_id"] for row in exits
+            }), "wall_seconds": time.monotonic() - started,
+        })
+        raise
+    finally:
+        for family_id, handle in logs.items():
+            output = handle.read()
+            if output:
+                print(f"[{family_id}] {output}", end="", flush=True)
+            handle.close()
+    summaries = []
+    for family_id in family_ids:
+        family_root = execution / family_id
+        worker_path = family_root / "scan.worker.receipt.json"
+        worker = read_json(worker_path)
+        require(worker["episodes_generated"] == 0
+                and not (family_root / "episodes").exists(),
+                "viewpoint scan unexpectedly generated episode artifacts")
+        public_path = family_root / "initial_viewpoints.json"
+        private_path = family_root / "private/viewpoint-target-audit.json"
+        require(worker["family_viewpoints_sha256"] == sha256(public_path)
+                and worker["private_viewpoint_target_audit_sha256"] ==
+                sha256(private_path), "viewpoint scan worker digest chain is invalid")
+        public = read_json(public_path)
+        private = read_json(private_path)
+        require(public["ranked_poses"] == sorted(
+            public["ranked_poses"], key=public_viewpoint_rank_key
+        ) and "target_instance_ids" not in json.dumps(public),
+                "scan public viewpoint ordering or anonymity is invalid")
+        require([row["rank_index"] for row in private["spaced_top_18"]] ==
+                public["selected_pose_rank_indices"],
+                "private scan target rows differ from public selected poses")
+        require(public["selected_pose_rank_indices"] ==
+                recompute_spaced_viewpoint_indices(
+                    public["ranked_poses"], public["minimum_pose_separation_m"]
+                ), "scan selection differs from frozen public greedy rule")
+        summaries.append({
+            "family_id": family_id, "source_house_id": worker["source_house_id"],
+            "worker_receipt_sha256": sha256(worker_path),
+            "family_viewpoints_sha256": sha256(public_path),
+            "private_viewpoint_target_audit_sha256": sha256(private_path),
+            "eligible_pose_count": public["eligible_pose_count"],
+            "selected_pose_count": public["selected_pose_count"],
+            "raw_top_18_spread": public["raw_top_18_spread"],
+            "spaced_top_18_spread": public["spaced_top_18_spread"],
+            "raw_top_18_support": public["raw_top_18_support"],
+            "spaced_top_18_support": public["spaced_top_18_support"],
+            "raw_top_18_repeated_top1_targets": _duplicate_target_sets(
+                private["raw_top_18"], top_k=1
+            ),
+            "raw_top_18_repeated_top2_target_sets": _duplicate_target_sets(
+                private["raw_top_18"], top_k=2
+            ),
+            "spaced_top_18_repeated_top1_targets": _duplicate_target_sets(
+                private["spaced_top_18"], top_k=1
+            ),
+            "spaced_top_18_repeated_top2_target_sets": _duplicate_target_sets(
+                private["spaced_top_18"], top_k=2
+            ),
+            "search_succeeded": worker["search_succeeded"],
+        })
+    receipt_path = scan_stage / "scan.receipt.json"
+    write_new_json(receipt_path, {
+        "schema_version": "vsmt-vm04-viewpoint-scan-receipt-v1",
+        "stage_id": STAGE_ID, "reviewed_code": commit, "bound_sha256": bindings,
+        "planning_selection_receipt_sha256": sha256(
+            planning / "selection.receipt.json"
+        ), "requested_workers": 2, "actual_workers": len(children),
+        "viewpoint_rule_sha256": canonical_sha256(
+            config["generator_initial_viewpoint"]
+        ),
+        "worker_code_sha256": sha256(
+            PROJECT_ROOT / "ops/vsmt/vm04_two_house_worker.py"
+        ),
+        "visible_cpu_count": visible_cpus, "free_disk_bytes_before_start": free_disk,
+        "worker_exits": exits, "families": summaries,
+        "family_shards": family_ids, "deterministic_merge_order": family_ids,
+        "minimum_position_spacing_m": config["generator_initial_viewpoint"][
+            "minimum_position_spacing_m"
+        ], "wall_seconds": time.monotonic() - started,
+        "episode_generation_performed": False, "training_steps": 0,
+        "confirmation_opened": False, "success": True,
+    })
+    write_new_json(scan_stage / "scan.success.json", {
+        "schema_version": "vsmt-vm04-viewpoint-scan-success-v1",
+        "receipt_sha256": sha256(receipt_path), "success": True,
+    })
+    print(f"VM04_VIEWPOINT_SCAN_OK stage={scan_stage} families=2 episodes=0")
+
+
+def run_viewpoint_scan_export(reviewed_code: str, *, scan_stage: Path) -> None:
+    """Export a digest-bound public aggregate for local review."""
+
+    commit, bindings = verify_checkout(reviewed_code)
+    scan = scan_stage.resolve()
+    receipt, _ = _marker(scan, "scan")
+    require(not VIEWPOINT_SCAN_REPORT_PATH.exists(),
+            "viewpoint scan report already exists; preserve it")
+    families = []
+    for row in receipt["families"]:
+        family_root = scan / "execution" / row["family_id"]
+        require(sha256(family_root / "scan.worker.receipt.json") ==
+                row["worker_receipt_sha256"]
+                and sha256(family_root / "initial_viewpoints.json") ==
+                row["family_viewpoints_sha256"]
+                and sha256(family_root / "private/viewpoint-target-audit.json") ==
+                row["private_viewpoint_target_audit_sha256"],
+                "scan artifact digest changed before export")
+        families.append(row)
+    write_new_json(VIEWPOINT_SCAN_REPORT_PATH, {
+        "schema_version": "vsmt-vm04-viewpoint-scan-report-v1",
+        "reviewed_export_code": commit,
+        "source_scan_reviewed_code": receipt["reviewed_code"],
+        "bound_sha256": bindings,
+        "scan_receipt_sha256": sha256(scan / "scan.receipt.json"),
+        "planning_selection_receipt_sha256": receipt[
+            "planning_selection_receipt_sha256"
+        ],
+        "minimum_position_spacing_m": receipt["minimum_position_spacing_m"],
+        "requested_workers": receipt["requested_workers"],
+        "actual_workers": receipt["actual_workers"],
+        "families": families,
+        "episode_generation_performed": False, "training_steps": 0,
+        "confirmation_opened": False,
+    }, maximum_bytes=int(load_config()["resource_and_worker_proposal"][
+        "maximum_report_bytes"
+    ]))
+    print(f"VM04_VIEWPOINT_SCAN_EXPORT_OK report={VIEWPOINT_SCAN_REPORT_PATH} "
+          f"sha256={sha256(VIEWPOINT_SCAN_REPORT_PATH)}")
+
+
 def _directory_bytes(path: Path) -> int:
     return sum(item.stat().st_size for item in path.rglob("*") if item.is_file())
 
@@ -612,7 +885,7 @@ def _abort_process(child: subprocess.Popen[str]) -> None:
 
 def run_generation(
     reviewed_code: str, output_root: Path, *, planning_stage: Path,
-    source_root: Path,
+    source_root: Path, scan_stage: Path,
 ) -> None:
     config = assert_two_house_action_authorized(load_config(), action="generate")
     commit, bindings = verify_checkout(reviewed_code)
@@ -622,12 +895,40 @@ def run_generation(
     planning = planning_stage.resolve()
     selection_receipt, _ = _marker(planning, "selection")
     _verify_frozen_selection(config, selection_receipt)
+    frozen_scan = scan_stage.resolve()
+    scan_receipt, _ = _marker(frozen_scan, "scan")
+    require(scan_receipt["planning_selection_receipt_sha256"] == sha256(
+        planning / "selection.receipt.json"
+    ) and scan_receipt["viewpoint_rule_sha256"] == canonical_sha256(
+        config["generator_initial_viewpoint"]
+    ) and scan_receipt["worker_code_sha256"] == sha256(
+        PROJECT_ROOT / "ops/vsmt/vm04_two_house_worker.py"
+    ) and scan_receipt["requested_workers"] ==
+            scan_receipt["actual_workers"] == 2
+            and len(scan_receipt["families"]) == 2
+            and scan_receipt["episode_generation_performed"] is False,
+            "pre-generation viewpoint scan is missing or differs from frozen rule")
+    for family in scan_receipt["families"]:
+        family_root = frozen_scan / "execution" / family["family_id"]
+        require(sha256(family_root / "scan.worker.receipt.json") ==
+                family["worker_receipt_sha256"]
+                and sha256(family_root / "initial_viewpoints.json") ==
+                family["family_viewpoints_sha256"]
+                and sha256(family_root / "private/viewpoint-target-audit.json") ==
+                family["private_viewpoint_target_audit_sha256"],
+                "pre-generation scan artifact changed after receipt")
     require(not (stage / "execution").exists(),
             "generation execution already exists; preserve it and verify")
     inventory_receipt, _ = _marker(planning, "inventory")
+    require(sha256(planning / "private/inventory.json") ==
+            inventory_receipt["private_inventory_sha256"],
+            "generation source inventory changed after its receipt")
     require(hashlib.sha256(str(source_root.resolve()).encode("utf-8")).hexdigest()
             == inventory_receipt["source_root_sha256"],
             "generation source root differs from inventory")
+    require(git("rev-parse", "HEAD", cwd=source_root.resolve()) ==
+            config["source_inventory_proposal"]["data_release_commit"],
+            "generation source checkout commit changed")
     for relative in (
         "private/inventory.json", "private/episode_plan.json",
         "private/assignment_salt.bin", "public/episode_plan.json", "selection.json",
@@ -643,8 +944,22 @@ def run_generation(
         "public": read_json(stage / "public/episode_plan.json"),
         "private": read_json(stage / "private/episode_plan.json"),
     })
+    require(plans["public"]["manifest_sha256"] ==
+            selection_receipt["public_episode_manifest_sha256"]
+            and plans["private"]["manifest_sha256"] ==
+            selection_receipt["private_episode_manifest_sha256"],
+            "generation episode plan changed after frozen selection")
     family_ids = sorted({row["family_id"] for row in plans["public"]["episodes"]})
     require(len(family_ids) == 2, "generation needs exactly two families")
+    planned_house_by_family = {
+        row["family_id"]: row["source_house_id"]
+        for row in plans["private"]["assignments"]
+    }
+    require([(row["family_id"], row["source_house_id"])
+             for row in scan_receipt["families"]] ==
+            [(family_id, planned_house_by_family[family_id])
+             for family_id in family_ids],
+            "pre-generation scan used another frozen family or house")
     execution = stage / "execution"
     execution.mkdir()
     environment_config = read_json(ENVIRONMENT_PATH)
@@ -674,6 +989,9 @@ def run_generation(
                 "--family-id", family_id,
                 "--family-byte-limit", str(resources["maximum_bytes_per_family"]),
                 "--process-address-limit", str(resources["maximum_process_tree_RSS_bytes"]),
+                "--minimum-pose-separation-m", str(config[
+                    "generator_initial_viewpoint"
+                ]["minimum_position_spacing_m"]),
             ], cwd=PROJECT_ROOT, env=environment, stdout=log, stderr=subprocess.STDOUT,
                text=True, start_new_session=True)
             log.close()
@@ -746,6 +1064,8 @@ def run_generation(
         "stage_id": STAGE_ID, "reviewed_code": commit, "bound_sha256": bindings,
         "success": True, "planning_selection_receipt_sha256": sha256(
             planning / "selection.receipt.json"
+        ), "pre_generation_scan_receipt_sha256": sha256(
+            frozen_scan / "scan.receipt.json"
         ), "source_root_sha256": inventory_receipt["source_root_sha256"],
         "workers": process_record, "family_receipts": worker_receipts,
         "attempted_episode_count": sum(
@@ -1902,6 +2222,39 @@ def _terminal_episode_ids(receipt: Mapping[str, Any]) -> set[str]:
     }
 
 
+def recompute_spaced_viewpoint_indices(
+    ranked_poses: Sequence[Mapping[str, Any]], minimum_distance_m: float,
+) -> list[int]:
+    """Independently replay the public one-yaw and greedy spacing contract."""
+
+    seen_positions: set[tuple[float, float, float]] = set()
+    accepted: list[tuple[float, float, float]] = []
+    indices: list[int] = []
+    minimum_squared = minimum_distance_m * minimum_distance_m
+    for index, pose in enumerate(ranked_poses):
+        point = tuple(float(pose["position"][axis]) for axis in ("x", "y", "z"))
+        if point in seen_positions:
+            continue
+        seen_positions.add(point)
+        if all(sum((left - right) ** 2 for left, right in zip(point, prior)) >=
+               minimum_squared for prior in accepted):
+            accepted.append(point)
+            indices.append(index)
+            if len(indices) == 18:
+                break
+    return indices
+
+
+def public_viewpoint_rank_key(pose: Mapping[str, Any]) -> tuple[Any, ...]:
+    position = pose["position"]
+    return (
+        -int(pose["eligible_anonymous_mask_count"]),
+        -int(pose["total_eligible_anonymous_mask_pixels"]),
+        float(position["x"]), float(position["y"]), float(position["z"]),
+        int(pose["rotation_y_degrees"]),
+    )
+
+
 def verify_worker_artifact_chain(stage: Path, generation: Mapping[str, Any]) -> None:
     """Rehash v2 viewpoint, private diagnostic and terminal raw artifacts."""
 
@@ -1920,10 +2273,51 @@ def verify_worker_artifact_chain(stage: Path, generation: Mapping[str, Any]) -> 
                 "family viewpoint digest mismatch")
         viewpoints = read_json(viewpoint_path)
         require(viewpoints["selection_rule"] ==
-                "rank_physical_object_mask_support_then_pose_slot_index",
+                "rank_physical_support_one_yaw_per_position_spaced_pose_order",
                 "family viewpoint selection rule mismatch")
+        require(viewpoints["distance_metric"] == "euclidean_x_y_z_m"
+                and viewpoints["minimum_pose_separation_m"] == load_config()[
+                    "generator_initial_viewpoint"
+                ]["minimum_position_spacing_m"],
+                "family viewpoint spacing differs from contract")
         require(viewpoints["eligible_pose_count"] == len(viewpoints["ranked_poses"]),
                 "family viewpoint count mismatch")
+        require(viewpoints["ranked_poses"] == sorted(
+            viewpoints["ranked_poses"], key=public_viewpoint_rank_key
+        ) and all(row["eligible_anonymous_mask_count"] >= 2
+                  and row["total_eligible_anonymous_mask_pixels"] >=
+                  196 * row["eligible_anonymous_mask_count"]
+                  for row in viewpoints["ranked_poses"]),
+                "public viewpoint ranking or physical-mask support is invalid")
+        require("target_instance_ids" not in json.dumps(viewpoints),
+                "private target IDs entered public family viewpoints")
+        selected_indices = viewpoints["selected_pose_rank_indices"]
+        require(selected_indices == recompute_spaced_viewpoint_indices(
+            viewpoints["ranked_poses"], viewpoints["minimum_pose_separation_m"]
+        ), "selected pose list differs from greedy public ranking")
+        require(viewpoints["selected_pose_count"] == len(selected_indices)
+                and len(selected_indices) <= 18
+                and selected_indices == sorted(set(selected_indices))
+                and all(0 <= index < len(viewpoints["ranked_poses"])
+                        for index in selected_indices),
+                "selected viewpoint rank indices are invalid")
+        selected_positions = [tuple(float(viewpoints["ranked_poses"][index][
+            "position"][axis]) for axis in ("x", "y", "z")) for index in selected_indices]
+        minimum_squared = viewpoints["minimum_pose_separation_m"] ** 2
+        require(len(set(selected_positions)) == len(selected_positions)
+                and all(sum((a - b) ** 2 for a, b in zip(first, second)) >=
+                        minimum_squared
+                        for offset, first in enumerate(selected_positions)
+                        for second in selected_positions[offset + 1:]),
+                "selected viewpoints violate one-position or spacing rule")
+        private_viewpoint_path = family_root / "private/viewpoint-target-audit.json"
+        require(worker["private_viewpoint_target_audit_sha256"] ==
+                sha256(private_viewpoint_path),
+                "private viewpoint target audit digest mismatch")
+        private_viewpoints = read_json(private_viewpoint_path)
+        require([row["rank_index"] for row in private_viewpoints["spaced_top_18"]]
+                == selected_indices,
+                "private target audit refers to another pose selection")
         viewpoint_rows = {row["episode_id"]: row for row in worker["viewpoint_receipts"]}
         seen_target_sets: set[tuple[str, ...]] = set()
         recorded_target_sets = 0
@@ -1953,6 +2347,8 @@ def verify_worker_artifact_chain(stage: Path, generation: Mapping[str, Any]) -> 
                 pose = read_json(pose_path)
                 require(pose["family_viewpoints_sha256"] == viewpoint_sha
                         and pose["selection_rule"] == viewpoints["selection_rule"]
+                        and pose["selection_index"] == pose["slot"]
+                        and selected_indices[pose["slot"]] == pose["rank_index"]
                         and pose["pose"] == viewpoints["ranked_poses"][pose["rank_index"]],
                         "slot pose differs from frozen rank")
             capability_path = episode_root / "private/intervention-capability-audit.json"
@@ -2194,7 +2590,9 @@ def run_export(
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("mode", choices=(
-        "contracts", "inventory", "select", "capacity", "generate", "materialize",
+        "contracts", "inventory", "select", "capacity", "viewpoint-scan",
+        "viewpoint-scan-export",
+        "generate", "materialize",
         "public-seal", "private-eval", "verify", "export",
     ))
     parser.add_argument("--reviewed-code", required=True)
@@ -2205,6 +2603,7 @@ def main() -> None:
     parser.add_argument("--source-file", type=Path, action="append", default=[])
     parser.add_argument("--license-path", type=Path, action="append", default=[])
     parser.add_argument("--planning-stage", type=Path)
+    parser.add_argument("--scan-stage", type=Path)
     parser.add_argument("--predicted-wall-seconds", type=float)
     parser.add_argument("--predicted-stage-bytes", type=int)
     arguments = parser.parse_args()
@@ -2237,10 +2636,28 @@ def main() -> None:
         require(arguments.planning_stage is not None,
                 "generate requires --planning-stage")
         require(arguments.source_root is not None, "generate requires --source-root")
+        require(arguments.scan_stage is not None, "generate requires --scan-stage")
         run_generation(
             arguments.reviewed_code, arguments.output_root,
             planning_stage=arguments.planning_stage,
             source_root=arguments.source_root,
+            scan_stage=arguments.scan_stage,
+        )
+    elif arguments.mode == "viewpoint-scan":
+        require(arguments.planning_stage is not None,
+                "viewpoint-scan requires --planning-stage")
+        require(arguments.source_root is not None,
+                "viewpoint-scan requires --source-root")
+        run_viewpoint_scan(
+            arguments.reviewed_code, arguments.output_root,
+            planning_stage=arguments.planning_stage,
+            source_root=arguments.source_root,
+        )
+    elif arguments.mode == "viewpoint-scan-export":
+        require(arguments.scan_stage is not None,
+                "viewpoint-scan-export requires --scan-stage")
+        run_viewpoint_scan_export(
+            arguments.reviewed_code, scan_stage=arguments.scan_stage,
         )
     elif arguments.mode == "materialize":
         run_materializer(arguments.reviewed_code, arguments.output_root)

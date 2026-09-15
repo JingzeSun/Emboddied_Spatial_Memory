@@ -22,7 +22,7 @@
 
 ### 当前指针
 
-**D-160当前指针：旧VM-04结果封存；v2修复代码与合同已在本地形成，等待用户代码审查和slot质量口径裁决，服务器尚未运行。** 新worker每family仅扫一次公开可达pose，按物理对象mask数/像素和坐标排序，slot `k`取第`k`项；不足时固定slot失败，禁止回绕或换house。失败动作诊断留在private并进入摘要链；[v2合同](../configs/vsmt/vm04_l1_two_house_audit_proposal_v2.json)关闭generation/private-eval，v1合同和旧stage `vsmt-vm04-two-house-audit-v1-53d47367c7b3`保持原字节与结果。用户还需裁决目标集合是否须互异、是否设额外视角质量底线；在代码审查与v2数值冻结、服务器合同测试前不得生成新数据。训练/validation/confirmation继续关闭。
+**D-161当前指针：旧VM-04结果封存；v2视角空间去重与独立扫描入口已形成待审提案，服务器尚未运行。** [v2合同](../configs/vsmt/vm04_l1_two_house_audit_proposal_v2.json)暂以`D=1.0 m`为待用户冻结的最小三维pose间距：每个可达位置先保留最高分yaw，再按公开mask支持排序贪心领取间距合格的前18项；不足时固定slot失败，不回绕、换house或调D。`contracts → viewpoint-scan → viewpoint-scan-export`只扫描两间固定house，输出公开位置范围/支持分布与private top-2目标审计，不生成episode；完整`generate`必须核验已封存扫描、同一视角规则和worker摘要，且v2 generation/private-eval仍关闭。旧v1合同及stage `vsmt-vm04-two-house-audit-v1-53d47367c7b3`未改；用户需审代码并裁决D，服务器合同测试及扫描报告验收后才决定是否开放完整生成。训练/validation/confirmation继续关闭。
 
 VM-05同时只做readiness准备：D-157区分VSMT/DRCR/NECS梯度训练与TAF/ELU/WFR/LOW/PHR有限配置选择，正式架构、网格、训练步数和seed仍须等失败归因与数据覆盖审查后冻结；当前不得启动训练或validation效果运行。
 

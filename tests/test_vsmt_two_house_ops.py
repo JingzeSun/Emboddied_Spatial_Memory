@@ -130,7 +130,8 @@ class TwoHouseOpsTests(unittest.TestCase):
     def test_fixed_entry_lists_every_stage_in_order(self) -> None:
         source = ENTRY.read_text(encoding="utf-8")
         for name in (
-            "contracts", "inventory", "select", "capacity", "generate",
+            "contracts", "inventory", "select", "capacity", "viewpoint-scan",
+            "viewpoint-scan-export", "generate",
             "materialize", "public-seal", "private-eval", "verify", "export",
         ):
             self.assertIn(f'"{name}"', source)
@@ -214,6 +215,31 @@ class TwoHouseOpsTests(unittest.TestCase):
             {"object|1"},
         )
         self.assertEqual(ranked, ["object|1"])
+
+    def test_target_ranking_hashes_only_geometry_ties_without_changing_order(self) -> None:
+        import numpy as np
+
+        left = np.zeros((32, 32), dtype=np.bool_)
+        right = np.zeros((32, 32), dtype=np.bool_)
+        left[:14, :14] = True
+        right[16:30, 16:30] = True
+        with patch.object(WORKER.hashlib, "sha256",
+                          side_effect=AssertionError("untied masks need no digest")):
+            self.assertEqual(WORKER.rank_visible_instance_ids(
+                {"left": left, "right": right}
+            ), ["left", "right"])
+        shifted = np.zeros((32, 32), dtype=np.bool_)
+        shifted[0, 0] = True
+        shifted[1:14, 0:15] = True  # 196 pixels, same first index as left
+        self.assertEqual(int(np.count_nonzero(shifted)), 196)
+        pairs = []
+        for name, mask in (("left", left), ("shifted", shifted)):
+            payload = WORKER.canonical_json([32, 32] +
+                                             mask.reshape(-1).astype(int).tolist())
+            pairs.append((WORKER.hashlib.sha256(payload.encode()).hexdigest(), name))
+        self.assertEqual(WORKER.rank_visible_instance_ids(
+            {"left": left, "shifted": shifted}
+        ), [name for _, name in sorted(pairs)])
 
     def test_intervention_capability_audit_is_private_and_non_mutating(self) -> None:
         audit = WORKER.audit_intervention_capabilities(
@@ -322,10 +348,81 @@ class TwoHouseOpsTests(unittest.TestCase):
 
     def test_family_scan_precedes_slot_dispatch(self) -> None:
         source = inspect.getsource(WORKER.main)
-        self.assertEqual(source.count("discover_initial_viewpoint(search_controller)"), 1)
-        self.assertLess(source.index("discover_initial_viewpoint(search_controller)"),
+        scan_call = "discover_initial_viewpoint(\n                search_controller, collect_private_targets=True"
+        self.assertEqual(source.count(scan_call), 1)
+        self.assertLess(source.index(scan_call),
                         source.index("for row_index, public in enumerate(ordered_rows)"))
-        self.assertIn("slot_initial_viewpoint(ranked_poses", source)
+        self.assertIn("start_pose = slot_initial_viewpoint(", source)
+        self.assertIn("ranked_poses, int(public[\"slot\"]), selected_indices", source)
+
+    def test_scan_only_separates_private_targets_and_skips_episode_dispatch(self) -> None:
+        source = inspect.getsource(WORKER.main)
+        self.assertIn('"private/viewpoint-target-audit.json"', source)
+        self.assertLess(source.index("if arguments.scan_only:"),
+                        source.index("for row_index, public in enumerate(ordered_rows)"))
+        self.assertIn("private_viewpoint_target_audit_sha256", source)
+
+    def test_full_generation_requires_matching_pre_generation_scan(self) -> None:
+        source = inspect.getsource(OPS.run_generation)
+        self.assertIn('_marker(frozen_scan, "scan")', source)
+        self.assertIn('scan_receipt["viewpoint_rule_sha256"]', source)
+        self.assertIn('scan_receipt["worker_code_sha256"]', source)
+        self.assertIn('scan_receipt["episode_generation_performed"] is False', source)
+
+    def test_spaced_selection_removes_yaw_siblings_and_adjacent_positions(self) -> None:
+        def pose(x, yaw=0):
+            return {"position": {"x": x, "y": 0.0, "z": 0.0},
+                    "rotation_y_degrees": yaw}
+
+        ranked = [pose(0.0, 90), pose(0.0, 0), pose(0.25),
+                  pose(1.0), pose(2.0)]
+        selected = WORKER.select_spaced_viewpoint_indices(ranked, 1.0, limit=3)
+        self.assertEqual(selected, [0, 3, 4])
+        self.assertEqual(OPS.recompute_spaced_viewpoint_indices(ranked, 1.0),
+                         selected)
+        self.assertEqual(WORKER.slot_initial_viewpoint(ranked, 1, selected), ranked[3])
+
+    def test_greedy_spacing_does_not_claim_maximum_possible_yield(self) -> None:
+        ranked = [{"position": {"x": x, "y": 0.0, "z": 0.0}}
+                  for x in (0.0, -0.75, 0.75)]
+        selected = WORKER.select_spaced_viewpoint_indices(ranked, 1.0)
+        self.assertEqual(selected, [0])
+        self.assertGreater(abs(-0.75 - 0.75), 1.0)
+
+    def test_private_id_renaming_changes_only_scan_diagnostic(self) -> None:
+        import numpy as np
+
+        first = np.zeros((32, 32), dtype=np.bool_)
+        second = np.zeros((32, 32), dtype=np.bool_)
+        first[:14, :14] = True
+        second[16:30, 16:30] = True
+
+        class FakeController:
+            def __init__(self, prefix):
+                self.prefix = prefix
+
+            def step(self, **action):
+                if action["action"] == "GetReachablePositions":
+                    return SimpleNamespace(metadata={"lastActionSuccess": True,
+                        "actionReturn": [{"x": 0, "y": 0, "z": 0},
+                                         {"x": 1, "y": 0, "z": 0}]})
+                masks = {self.prefix + "1": first, self.prefix + "2": second}
+                return SimpleNamespace(
+                    metadata={"lastActionSuccess": True,
+                              "objects": [{"objectId": key} for key in masks]},
+                    instance_masks=masks,
+                )
+
+        public_a, private_a = WORKER.discover_initial_viewpoint(
+            FakeController("a"), collect_private_targets=True
+        )
+        public_b, private_b = WORKER.discover_initial_viewpoint(
+            FakeController("b"), collect_private_targets=True
+        )
+        self.assertEqual(public_a, public_b)
+        self.assertEqual(WORKER.select_spaced_viewpoint_indices(public_a, 1.0),
+                         WORKER.select_spaced_viewpoint_indices(public_b, 1.0))
+        self.assertNotEqual(private_a, private_b)
 
     def test_failed_intervention_keeps_private_action_diagnostic(self) -> None:
         import numpy as np
@@ -360,7 +457,8 @@ class TwoHouseOpsTests(unittest.TestCase):
             root = Path(directory)
             with patch.object(WORKER, "make_controller", return_value=fake):
                 with self.assertRaisesRegex(RuntimeError, "setup intervention failed"):
-                    WORKER.run_episode({}, assignment, root, 100000, start_pose)
+                    WORKER.run_episode({}, assignment, root, 100000, start_pose,
+                                       "0" * 64)
             attempts = json.loads((root / "private/intervention-attempts.json").read_text())
             self.assertEqual(attempts["actions"][0]["diagnostic"]["error_code"],
                              "UnsupportedAction")
@@ -379,7 +477,12 @@ class TwoHouseOpsTests(unittest.TestCase):
             OPS.write_new_json(viewpoints, {
                 "selection_rule": WORKER.SLOT_VIEWPOINT_SELECTION_RULE,
                 "eligible_pose_count": 0, "ranked_poses": [],
+                "distance_metric": "euclidean_x_y_z_m",
+                "minimum_pose_separation_m": 1.0,
+                "selected_pose_rank_indices": [], "selected_pose_count": 0,
             })
+            private_viewpoints = family / "private/viewpoint-target-audit.json"
+            OPS.write_new_json(private_viewpoints, {"spaced_top_18": []})
             capability = private / "intervention-capability-audit.json"
             attempts = private / "intervention-attempts.json"
             OPS.write_new_json(capability, {"program": "BIRTH"})
@@ -395,6 +498,7 @@ class TwoHouseOpsTests(unittest.TestCase):
             OPS.write_new_json(worker, {
                 "schema_version": "vsmt-vm04-two-house-family-worker-receipt-v2",
                 "initial_viewpoint_receipt_sha256": OPS.sha256(viewpoints),
+                "private_viewpoint_target_audit_sha256": OPS.sha256(private_viewpoints),
                 "viewpoint_receipts": [], "target_set_recorded_count": 1,
                 "repeated_target_set_count": 0,
                 "episodes": [{"episode_id": "opaque", "status": "failed",

@@ -25,7 +25,7 @@ class ResourceStop(RuntimeError):
 
 MINIMUM_ANONYMOUS_MASK_PIXELS = 196
 CARDINAL_YAW_DEGREES = (0, 90, 180, 270)
-SLOT_VIEWPOINT_SELECTION_RULE = "rank_physical_object_mask_support_then_pose_slot_index"
+SLOT_VIEWPOINT_SELECTION_RULE = "rank_physical_support_one_yaw_per_position_spaced_pose_order"
 _ASSET_ID_DATABASE = None
 
 
@@ -271,7 +271,7 @@ def load_pinned_asset_id_database():
 def rank_visible_instance_ids(instance_masks, object_ids=None):
     import numpy as np
 
-    ranked = []
+    groups = {}
     allowed = None if object_ids is None else {str(value) for value in object_ids}
     shape = None
     for private_id, raw in instance_masks.items():
@@ -286,14 +286,24 @@ def rank_visible_instance_ids(instance_masks, object_ids=None):
         indices = np.flatnonzero(flat)
         if len(indices) < MINIMUM_ANONYMOUS_MASK_PIXELS:
             continue
-        digest = hashlib.sha256(
-            canonical_json([mask.shape[0], mask.shape[1]] + flat.astype(int).tolist()).encode(
-                "utf-8"
-            )
-        ).hexdigest()
-        ranked.append((int(indices[0]), int(len(indices)), digest, str(private_id)))
-    ranked.sort()
-    return [row[-1] for row in ranked]
+        key = (int(indices[0]), int(len(indices)))
+        groups.setdefault(key, []).append((flat, str(private_id), tuple(mask.shape)))
+    ranked_ids = []
+    for key in sorted(groups):
+        rows = groups[key]
+        if len(rows) == 1:
+            ranked_ids.append(rows[0][1])
+            continue
+        tied = []
+        for flat, private_id, mask_shape in rows:
+            digest = hashlib.sha256(
+                canonical_json(list(mask_shape) + flat.astype(int).tolist()).encode(
+                    "utf-8"
+                )
+            ).hexdigest()
+            tied.append((digest, private_id))
+        ranked_ids.extend(private_id for _, private_id in sorted(tied))
+    return ranked_ids
 
 
 def anonymous_mask_support(instance_masks, object_ids=None):
@@ -331,11 +341,38 @@ def rank_initial_viewpoints(candidates):
 
 
 def select_initial_viewpoint(candidates):
+    """Legacy pure-function helper; the VM-04 worker selects spaced poses."""
     return rank_initial_viewpoints(candidates)[0]
 
 
-def discover_initial_viewpoint(controller):
-    """Scan reachable positions once and return ranked physical-object poses."""
+def select_spaced_viewpoint_indices(ranked_poses, minimum_separation_m, limit=18):
+    """Greedily choose one yaw per position, then enforce 3-D spacing."""
+
+    require(type(minimum_separation_m) in (int, float)
+            and math.isfinite(minimum_separation_m) and minimum_separation_m > 0,
+            "minimum viewpoint separation must be a positive finite distance")
+    require(type(limit) is int and limit > 0, "viewpoint limit must be positive")
+    seen_positions = set()
+    selected_positions = []
+    selected_indices = []
+    minimum_squared = float(minimum_separation_m) ** 2
+    for index, pose in enumerate(ranked_poses):
+        point = tuple(float(pose["position"][axis]) for axis in ("x", "y", "z"))
+        if point in seen_positions:
+            continue
+        seen_positions.add(point)
+        if any(sum((a - b) ** 2 for a, b in zip(point, prior)) < minimum_squared
+               for prior in selected_positions):
+            continue
+        selected_indices.append(index)
+        selected_positions.append(point)
+        if len(selected_indices) == limit:
+            break
+    return selected_indices
+
+
+def discover_initial_viewpoint(controller, *, collect_private_targets=False):
+    """Scan once; private object IDs are optional audit output only."""
 
     reachable = controller.step(action="GetReachablePositions")
     require(reachable.metadata.get("lastActionSuccess") is True,
@@ -350,6 +387,7 @@ def discover_initial_viewpoint(controller):
     })
     require(positions, "GetReachablePositions returned no valid positions")
     candidates = []
+    private_targets_by_pose = {}
     for x, y, z in positions:
         for yaw in CARDINAL_YAW_DEGREES:
             event = controller.step(
@@ -374,13 +412,60 @@ def discover_initial_viewpoint(controller):
                 "eligible_anonymous_mask_count": count,
                 "total_eligible_anonymous_mask_pixels": pixels,
             })
-    return rank_initial_viewpoints(candidates)
+            if collect_private_targets:
+                top_two = rank_visible_instance_ids(
+                    event.instance_masks, object_ids
+                )[:2]
+                require(len(top_two) == 2,
+                        "eligible physical mask support lacks two ranked targets")
+                private_targets_by_pose[(x, y, z, yaw)] = top_two
+    ranked = rank_initial_viewpoints(candidates)
+    if collect_private_targets:
+        private_rows = [private_targets_by_pose[
+            (float(pose["position"]["x"]), float(pose["position"]["y"]),
+             float(pose["position"]["z"]), int(pose["rotation_y_degrees"]))
+        ] for pose in ranked]
+        return ranked, private_rows
+    return ranked
 
 
-def slot_initial_viewpoint(candidates, slot):
+def slot_initial_viewpoint(candidates, slot, selected_indices=None):
     require(type(slot) is int and slot >= 0, "slot must be a nonnegative integer")
-    require(slot < len(candidates), "slot %s lacks a distinct eligible pose" % slot)
-    return candidates[slot]
+    indices = list(range(len(candidates))) if selected_indices is None else selected_indices
+    require(slot < len(indices), "slot %s lacks a distinct eligible pose" % slot)
+    return candidates[indices[slot]]
+
+
+def viewpoint_spread(poses):
+    """Return ID-free position count and axis-aligned extent in metres."""
+
+    points = [tuple(float(row["position"][axis]) for axis in ("x", "y", "z"))
+              for row in poses]
+    unique = set(points)
+    if not points:
+        return {"distinct_position_count": 0, "bounding_box_extent_m": None}
+    return {
+        "distinct_position_count": len(unique),
+        "bounding_box_extent_m": {
+            axis: max(point[index] for point in points)
+            - min(point[index] for point in points)
+            for index, axis in enumerate(("x", "y", "z"))
+        },
+    }
+
+
+def viewpoint_support_summary(poses):
+    """Summarize the public physical-mask support of selected viewpoints."""
+
+    if not poses:
+        return {"pose_count": 0, "mask_count_min": None,
+                "mask_count_max": None, "pixel_support_min": None,
+                "pixel_support_max": None}
+    counts = [int(row["eligible_anonymous_mask_count"]) for row in poses]
+    pixels = [int(row["total_eligible_anonymous_mask_pixels"]) for row in poses]
+    return {"pose_count": len(poses), "mask_count_min": min(counts),
+            "mask_count_max": max(counts), "pixel_support_min": min(pixels),
+            "pixel_support_max": max(pixels)}
 
 
 def bootstrap_house_agent(controller, upgraded_house):
@@ -605,7 +690,10 @@ def capture_frame(
     }
 
 
-def run_episode(house, assignment, episode_root, family_byte_limit, start_pose):
+def run_episode(
+    house, assignment, episode_root, family_byte_limit, start_pose,
+    family_viewpoints_sha256,
+):
     program = assignment["program"]
     public_directory = episode_root / "public"
     private_directory = episode_root / "private"
@@ -627,9 +715,9 @@ def run_episode(house, assignment, episode_root, family_byte_limit, start_pose):
         }
         targets = rank_visible_instance_ids(probe.instance_masks, object_ids)
         required_targets = 2 if program in {"SPLIT", "REPLACE"} else 1
+        targets = targets[:required_targets]
         require(len(targets) >= required_targets,
                 "insufficient anonymous visible targets for %s" % program)
-        targets = targets[:required_targets]
         initial_objects = {str(row["objectId"]): dict(row) for row in probe.metadata.get("objects", [])}
         capability_audit = audit_intervention_capabilities(program, targets, initial_objects)
         write_new_json(capability_path, capability_audit)
@@ -682,9 +770,7 @@ def run_episode(house, assignment, episode_root, family_byte_limit, start_pose):
             "initial_viewpoint_receipt_sha256": sha256(
                 episode_root / "initial_viewpoint.receipt.json"
             ),
-            "family_viewpoints_sha256": read_json(
-                episode_root / "initial_viewpoint.receipt.json"
-            )["family_viewpoints_sha256"],
+            "family_viewpoints_sha256": family_viewpoints_sha256,
             "capability_audit_sha256": sha256(capability_path),
             "private_intervention_sha256": sha256(intervention_path),
             "wall_seconds": time.monotonic() - started,
@@ -715,6 +801,8 @@ def main():
     parser.add_argument("--family-id", required=True)
     parser.add_argument("--family-byte-limit", type=int, required=True)
     parser.add_argument("--process-address-limit", type=int, required=True)
+    parser.add_argument("--minimum-pose-separation-m", type=float, required=True)
+    parser.add_argument("--scan-only", action="store_true")
     arguments = parser.parse_args()
     resource.setrlimit(resource.RLIMIT_AS, (
         arguments.process_address_limit, arguments.process_address_limit,
@@ -734,9 +822,18 @@ def main():
     house_ids = {row["source_house_id"] for row in private_by_id.values()}
     require(len(house_ids) == 1, "family worker must own one source house")
     house_id = next(iter(house_ids))
-    locator = next(row["source_locator"] for row in inventory["houses"]
-                   if row["house_id"] == house_id)
+    inventory_row = next(row for row in inventory["houses"]
+                         if row["house_id"] == house_id)
+    locator = inventory_row["source_locator"]
+    source_file = (arguments.source_root.resolve() /
+                   locator["relative_path"]).resolve()
+    require(arguments.source_root.resolve() in source_file.parents
+            and source_file.is_file(), "frozen source locator escapes or is missing")
+    require(sha256(source_file) == inventory_row["source_file_sha256"],
+            "frozen source file digest changed")
     house = load_source_record(arguments.source_root, locator)
+    require(canonical_sha256(house) == inventory_row["source_record_sha256"],
+            "frozen source house record digest changed")
     family_root = stage / "execution" / arguments.family_id
     results = []
     viewpoint_receipts = []
@@ -744,37 +841,90 @@ def main():
     resource_stopped = False
     family_root.mkdir(parents=True, exist_ok=True)
     ranked_poses = []
+    private_ranked_targets = []
     search_error = None
+    search_error_type = None
     try:
         search_controller = make_controller(house)
         try:
-            ranked_poses = discover_initial_viewpoint(search_controller)
+            ranked_poses, private_ranked_targets = discover_initial_viewpoint(
+                search_controller, collect_private_targets=True
+            )
         finally:
             search_controller.stop()
     except Exception as error:
-        search_error = "%s: %s" % (type(error).__name__, error)
+        search_error_type = type(error).__name__
+        search_error = str(error)
+    selected_indices = select_spaced_viewpoint_indices(
+        ranked_poses, arguments.minimum_pose_separation_m
+    )
+    selected_poses = [ranked_poses[index] for index in selected_indices]
+    private_viewpoint_path = family_root / "private/viewpoint-target-audit.json"
+    write_new_json(private_viewpoint_path, {
+        "schema_version": "vsmt-vm04-private-viewpoint-target-audit-v1",
+        "family_id": arguments.family_id,
+        "search_error": search_error,
+        "raw_top_18": [
+            {"rank_index": index, "target_instance_ids": private_ranked_targets[index]}
+            for index in range(min(18, len(private_ranked_targets)))
+        ],
+        "spaced_top_18": [
+            {"rank_index": index, "selection_index": slot,
+             "target_instance_ids": private_ranked_targets[index]}
+            for slot, index in enumerate(selected_indices)
+        ],
+    })
+    private_viewpoint_sha256 = sha256(private_viewpoint_path)
     family_viewpoints_path = family_root / "initial_viewpoints.json"
     write_new_json(family_viewpoints_path, {
         "schema_version": "vsmt-vm04-two-house-family-viewpoints-v2",
         "family_id": arguments.family_id,
         "selection_rule": SLOT_VIEWPOINT_SELECTION_RULE,
+        "distance_metric": "euclidean_x_y_z_m",
+        "minimum_pose_separation_m": arguments.minimum_pose_separation_m,
         "eligible_pose_count": len(ranked_poses), "ranked_poses": ranked_poses,
-        "search_succeeded": search_error is None, "search_error": search_error,
+        "selected_pose_rank_indices": selected_indices,
+        "selected_pose_count": len(selected_indices),
+        "raw_top_18_spread": viewpoint_spread(ranked_poses[:18]),
+        "spaced_top_18_spread": viewpoint_spread(selected_poses),
+        "raw_top_18_support": viewpoint_support_summary(ranked_poses[:18]),
+        "spaced_top_18_support": viewpoint_support_summary(selected_poses),
+        "search_succeeded": search_error is None,
+        "search_error_type": search_error_type,
     })
     family_viewpoints_sha256 = sha256(family_viewpoints_path)
+    if arguments.scan_only:
+        write_new_json(family_root / "scan.worker.receipt.json", {
+            "schema_version": "vsmt-vm04-viewpoint-scan-worker-receipt-v1",
+            "family_id": arguments.family_id, "source_house_id": house_id,
+            "family_viewpoints_sha256": family_viewpoints_sha256,
+            "private_viewpoint_target_audit_sha256": private_viewpoint_sha256,
+            "eligible_pose_count": len(ranked_poses),
+            "selected_pose_count": len(selected_indices),
+            "search_succeeded": search_error is None,
+            "episodes_generated": 0, "success": True,
+        })
+        print("VM04_VIEWPOINT_SCAN_OK family=%s eligible=%s selected=%s" % (
+            arguments.family_id, len(ranked_poses), len(selected_indices)
+        ), flush=True)
+        return
     for row_index, public in enumerate(ordered_rows):
         private = private_by_id[public["episode_id"]]
         assignment = dict(private, slot=public["slot"])
         episode_root = family_root / "episodes" / public["episode_id"]
         episode_root.mkdir(parents=True)
         try:
-            require(search_error is None, "family viewpoint search failed: %s" % search_error)
-            start_pose = slot_initial_viewpoint(ranked_poses, int(public["slot"]))
+            require(search_error is None, "family viewpoint search failed: %s" %
+                    search_error_type)
+            start_pose = slot_initial_viewpoint(
+                ranked_poses, int(public["slot"]), selected_indices
+            )
             write_new_json(episode_root / "initial_viewpoint.receipt.json", {
                 "schema_version": "vsmt-vm04-two-house-initial-viewpoint-v2",
                 "family_id": arguments.family_id,
                 "episode_id": public["episode_id"],
-                "slot": public["slot"], "rank_index": public["slot"],
+                "slot": public["slot"], "selection_index": public["slot"],
+                "rank_index": selected_indices[int(public["slot"])],
                 "selection_rule": SLOT_VIEWPOINT_SELECTION_RULE,
                 "family_viewpoints_sha256": family_viewpoints_sha256,
                 "pose": start_pose, "success": True,
@@ -784,7 +934,8 @@ def main():
                 "receipt_sha256": sha256(episode_root / "initial_viewpoint.receipt.json"),
             })
             run_episode(
-                house, assignment, episode_root, arguments.family_byte_limit, start_pose,
+                house, assignment, episode_root, arguments.family_byte_limit,
+                start_pose, family_viewpoints_sha256,
             )
             results.append({"episode_id": public["episode_id"], "status": "complete",
                             "receipt_sha256": sha256(episode_root / "raw.receipt.json")})
@@ -857,6 +1008,7 @@ def main():
         "resource_stopped": resource_stopped,
         "initial_viewpoint_search_succeeded": search_error is None,
         "initial_viewpoint_receipt_sha256": family_viewpoints_sha256,
+        "private_viewpoint_target_audit_sha256": private_viewpoint_sha256,
         "viewpoint_receipts": viewpoint_receipts,
         "target_set_recorded_count": recorded_target_sets,
         "repeated_target_set_count": repeated_target_sets,

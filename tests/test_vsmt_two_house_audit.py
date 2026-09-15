@@ -118,6 +118,28 @@ class TwoHouseAuditContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "v2 viewpoint rule changed"):
             validate_two_house_config(changed)
 
+    def test_v2_status_conditions_pending_and_frozen_viewpoint_values(self) -> None:
+        planned = json.loads(V2_CONFIG_PATH.read_text())
+        self.assertIsNone(planned["generator_initial_viewpoint"][
+            "unique_target_sets_required"
+        ])
+        with self.assertRaisesRegex(ValueError, "not authorized"):
+            assert_two_house_action_authorized(planned, action="viewpoint-scan")
+        frozen = deepcopy(planned)
+        frozen["status"] = "frozen_executable"
+        frozen["viewpoint_scan_authorized"] = True
+        viewpoint = frozen["generator_initial_viewpoint"]
+        viewpoint["spacing_value_status"] = "frozen_pre_registered"
+        viewpoint["unique_target_sets_required"] = False
+        viewpoint["additional_quality_floor"] = False
+        validate_two_house_config(frozen)
+        assert_two_house_action_authorized(frozen, action="viewpoint-scan")
+        with self.assertRaisesRegex(ValueError, "not authorized"):
+            assert_two_house_action_authorized(frozen, action="generate")
+        viewpoint["additional_quality_floor"] = None
+        with self.assertRaisesRegex(ValueError, "frozen viewpoint values"):
+            validate_two_house_config(frozen)
+
     def test_frozen_config_opens_registered_audit_pipeline(self) -> None:
         value = validate_two_house_config(config())
         self.assertEqual(value["status"], "generation_executable")

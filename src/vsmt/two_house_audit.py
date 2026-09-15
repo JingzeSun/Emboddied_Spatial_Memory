@@ -82,11 +82,17 @@ def validate_two_house_config(config: Mapping[str, Any]) -> dict[str, Any]:
              "D-144 audit numeric values are not approved")
     _require(record["implementation_authorized"] is True,
              "two-house implementation is not authorized")
-    _require(record["status"] in {
+    permitted_statuses = ({
+        "approved_for_implementation_not_executable", "frozen_executable",
+    } if slot_viewpoint_v2 else {
         "approved_for_implementation_not_executable",
-        "inventory_executable_generation_blocked",
-        "generation_executable",
-    }, "two-house status is unknown")
+        "inventory_executable_generation_blocked", "generation_executable",
+    })
+    _require(record["status"] in permitted_statuses,
+             "two-house status is unknown")
+    if slot_viewpoint_v2:
+        _require(type(record.get("viewpoint_scan_authorized")) is bool,
+                 "viewpoint_scan_authorized must be boolean")
     for name in (
         "source_inventory_authorized", "generation_authorized",
         "private_audit_authorized", "training_authorized",
@@ -135,23 +141,43 @@ def validate_two_house_config(config: Mapping[str, Any]) -> dict[str, Any]:
             "family_ranked_physical_viewpoints_and_sha256",
             "slot_rank_index_pose_and_viewpoint_receipt_sha256",
             "private_capability_and_failed_intervention_diagnostic_sha256",
+            "pre_generation_scan_spread_and_private_target_audit_sha256",
         } <= set(record["required_receipts"]),
                  "v2 viewpoint/diagnostic receipts are missing")
         _require(viewpoint["selection_rule"] ==
-                 "rank_physical_object_mask_support_then_pose_slot_index",
+                 "rank_physical_support_one_yaw_per_position_spaced_pose_order",
                  "v2 viewpoint rule changed")
         _require(viewpoint["search_once_per_house_family"] is True
                  and viewpoint["reuse_frozen_pose_for_all_family_slots"] is False
-                 and viewpoint["slot_pose_rule"] == "rank_index_equals_zero_based_slot"
+                 and viewpoint["slot_pose_rule"] ==
+                 "greedy_spaced_selection_index_equals_zero_based_slot"
+                 and viewpoint["one_yaw_per_reachable_position"] is True
+                 and viewpoint["distance_metric"] == "euclidean_x_y_z_m"
+                 and type(viewpoint["minimum_position_spacing_m"]) is float
+                 and math.isfinite(viewpoint["minimum_position_spacing_m"])
+                 and viewpoint["minimum_position_spacing_m"] == 1.0
                  and viewpoint["insufficient_ranked_poses"] ==
                  "fail_fixed_slot_without_wraparound_or_house_replacement"
                  and viewpoint["physical_object_filter"] ==
                  "instance_masks_intersection_metadata_objects"
                  and viewpoint["minimum_eligible_mask_semantics"] ==
-                 "physical_objects_only"
-                 and viewpoint["unique_target_sets_required"] is None
-                 and viewpoint["additional_quality_floor"] is None,
+                 "physical_objects_only",
                  "v2 slot-viewpoint contract changed")
+        if record["status"] == "approved_for_implementation_not_executable":
+            _require(viewpoint["spacing_value_status"] ==
+                     "proposed_pending_user_freeze_and_scan"
+                     and viewpoint["unique_target_sets_required"] is None
+                     and viewpoint["additional_quality_floor"] is None
+                     and record["viewpoint_scan_authorized"] is False
+                     and record["generation_authorized"] is False
+                     and record["private_audit_authorized"] is False,
+                     "v2 proposed status must keep scan and generation closed")
+        else:
+            _require(viewpoint["spacing_value_status"] == "frozen_pre_registered"
+                     and viewpoint["unique_target_sets_required"] is False
+                     and viewpoint["additional_quality_floor"] is False
+                     and record["viewpoint_scan_authorized"] is True,
+                     "v2 frozen viewpoint values are incomplete")
     else:
         _require(viewpoint["selection_rule"] == (
             "maximize_eligible_mask_count_then_total_eligible_pixels_then_"
@@ -239,15 +265,22 @@ def assert_two_house_action_authorized(
         "select": "source_inventory_authorized",
         "generate": "generation_authorized",
         "private-eval": "private_audit_authorized",
+        "viewpoint-scan": "viewpoint_scan_authorized",
     }
     _require(action in fields, f"unknown two-house action {action!r}")
+    if action == "viewpoint-scan":
+        _require(record["version"].endswith("-v2"),
+                 "viewpoint scan belongs only to v2")
     _require(record[fields[action]] is True, f"two-house {action} is not authorized")
     if action in {"inventory", "select"}:
         _require(record["status"] in {
             "inventory_executable_generation_blocked", "generation_executable",
         }, "inventory status gate is closed")
-    if action in {"generate", "private-eval"}:
-        _require(record["status"] == "generation_executable",
+    if action in {"generate", "private-eval", "viewpoint-scan"}:
+        _require(record["status"] == (
+            "frozen_executable" if record["version"].endswith("-v2")
+            else "generation_executable"
+        ),
                  "generation status gate is closed")
         source = record["source_inventory_proposal"]
         for name in (

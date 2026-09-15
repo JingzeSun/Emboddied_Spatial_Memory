@@ -68,6 +68,10 @@ D-153的生成器初始视点只在每个固定house开始时搜索一次：`Get
 
 D-160的[独立v2审计合同](../configs/vsmt/vm04_l1_two_house_audit_proposal_v2.json)为planned、generation关闭；原D-153/v1只解释旧stage。v2仍在每family扫描一次，但先与同帧`metadata.objects`求交，只数物理对象mask，再按合格mask数、像素和位姿排出全部候选；slot `k`取第`k`项并写`initial_viewpoint.receipt.json`，有序表写family级`initial_viewpoints.json`。初始门仍是至少2个各196像素的物理对象mask，额外质量门和目标集合互异均待裁决。例如两个pose各见同一两只物体仍是两个独立pose；若第18项不存在，固定第18 slot失败。它不保证干预可执行、目标集合不同或高排名以外的视角质量，且不允许按程序/未来/失败回执改排序。`intervention-capability-audit.json`与异常时`intervention-attempts.json`仅在private目录，公开raw回执只保存摘要；输入是实际干预动作事件，输出是保留`lastActionSuccess/errorMessage/errorCode`的可核对失败证据，例如DisableObject返回错误码时无需重跑即可审查。它不把私有object ID交给方法进程，也不是事务语义结果。
 
+D-161修订上述v2 slot分配为planned空间去重：完整有序候选仍封存在`initial_viewpoints.json`，但每个可达位置只保留最高排名yaw，然后顺序选与所有已选pose三维距离至少`D=1.0 m`的最多18项；该D是待用户冻结的预登记提案。文件新增`selected_pose_rank_indices`，slot `k`领取第`k`个入选项而非原始排序第`k`项，并记录原前18与去重前18的独立位置数、坐标包围盒、物理mask数量/像素的最小最大值。白话：输入公开合格视角排序和固定距离，输出分散的视角索引及可见支持摘要，例如排名第1、2项是同位置不同yaw，后者被跳过。它不等于跨视角目标已去重、入选视角质量相等或贪心一定找到18个可行位置；无第18项仍占原slot失败。
+
+预生成`viewpoint-scan`只让两个固定family worker执行该视角扫描，0帧episode、0干预；公开family文件不含object ID，`execution/<family>/private/viewpoint-target-audit.json`才保存原前18和空间去重前18的top-2真实目标ID。总`scan.receipt.json`分别输出top-1和top-2重复次数、包围盒、mask支持及两个worker的退出/摘要；top-1对应大多数单目标程序，top-2只对应需要两个目标的程序，扫描不读取程序分配来改视角。`viewpoint-scan-export`产生可回传的`results/vsmt_vm04_viewpoint_scan_v1.json`并核对来源摘要。白话：输入已封存的source house、episode计划和v2规则，输出能先判断位置是否扎堆及目标重复率的审计报告，例如公开报告显示去重后18个位置的top-1重复8次，原始ID仍只在private文件。它不是生成36个episode、不根据结果替换house，也不自动决定是否开放完整生成；未来`generate`先核验扫描receipt、同一规则与worker代码字节。
+
 D-154在加载后、创建Controller前对冻结source record做内存schema兼容：源`metadata.schema=0.0.1`按官方ProcTHOR `53d5bd4…`升级语义转换material、门窗洞口/asset位置、exterior wall和schema字段；门窗asset尺寸只读固定`procthor==0.0.1.dev2`安装包的`asset-database.json`。输出字典须确定且不能回写`train.jsonl.gz`；Controller初始事件失败或对象为空时不得继续当作可用场景。白话：输入同一原始房屋和固定asset表，输出模拟器5.0.0能识别的等价字段布局；它不改变房间、对象、材质选择或相机样本，也不从private结果修房。
 
 D-155在house创建成功后先把agent放到升级后记录自带的`metadata.agent` pose，再查询可达位置；该pose只作查询bootstrap，不能绕过D-153的匿名几何最终选择。输入字段是position/rotation/horizon/standing，输出是一次成功的生成前TeleportFull和可达点集合。例如首房从旧场景坐标查询会越界，从登记pose查询返回1299点。它不进入32帧序列、不作为模型额外输入，也不按对象或事务调整。
