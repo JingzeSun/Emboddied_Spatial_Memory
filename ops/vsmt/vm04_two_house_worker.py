@@ -461,6 +461,40 @@ def intervention_actions(program, frame_index, targets, initial_objects):
     return []
 
 
+def audit_intervention_capabilities(program, targets, initial_objects):
+    """Record private object/action prerequisites without changing semantics."""
+
+    required = 2 if program in {"SPLIT", "REPLACE"} else 1
+    records = []
+    for object_id in targets[:required]:
+        value = initial_objects.get(object_id)
+        records.append({
+            "object_id": object_id,
+            "present_in_metadata_objects": isinstance(value, dict),
+            "has_position": isinstance(value, dict) and isinstance(value.get("position"), dict),
+            "is_interactable": value.get("isInteractable") if isinstance(value, dict) else None,
+            "pickupable": value.get("pickupable") if isinstance(value, dict) else None,
+            "moveable": value.get("moveable") if isinstance(value, dict) else None,
+        })
+    return {
+        "program": program,
+        "target_count": len(targets),
+        "required_target_count": required,
+        "objects": records,
+        "relink_requires_position": program == "RELINK",
+        "lifecycle_actions": program in {"BIRTH", "REACTIVATE", "RETRACT", "REPLACE"},
+    }
+
+
+def intervention_event_diagnostic(event):
+    metadata = getattr(event, "metadata", {}) or {}
+    return {
+        "last_action_success": metadata.get("lastActionSuccess"),
+        "error_message": metadata.get("errorMessage"),
+        "error_code": metadata.get("errorCode"),
+    }
+
+
 def registered_agent_action(replicate, frame_index):
     """Return one predeclared public camera action and its numeric command."""
 
@@ -560,10 +594,13 @@ def run_episode(house, assignment, episode_root, family_byte_limit, start_pose):
                 "insufficient anonymous visible targets for %s" % program)
         targets = targets[:required_targets]
         initial_objects = {str(row["objectId"]): dict(row) for row in probe.metadata.get("objects", [])}
+        capability_audit = audit_intervention_capabilities(program, targets, initial_objects)
+        write_new_json(private_directory / "intervention-capability-audit.json", capability_audit)
         event = probe
         for action in intervention_actions(program, -1, targets, initial_objects):
             event = controller.step(**action)
-            actions.append(dict({"frame_index": -1, "success": event.metadata.get("lastActionSuccess")}, **action))
+            actions.append(dict({"frame_index": -1, "success": event.metadata.get("lastActionSuccess"),
+                                 "diagnostic": intervention_event_diagnostic(event)}, **action))
             require(event.metadata.get("lastActionSuccess") is True, "setup intervention failed")
         past_actions = []
         for frame_index in range(32):
@@ -571,7 +608,8 @@ def run_episode(house, assignment, episode_root, family_byte_limit, start_pose):
             for action in frame_actions:
                 event = controller.step(**action)
                 actions.append(dict({"frame_index": frame_index,
-                                     "success": event.metadata.get("lastActionSuccess")}, **action))
+                                     "success": event.metadata.get("lastActionSuccess"),
+                                     "diagnostic": intervention_event_diagnostic(event)}, **action))
                 require(event.metadata.get("lastActionSuccess") is True,
                         "intervention failed at frame %s" % frame_index)
             agent_action, command = registered_agent_action(

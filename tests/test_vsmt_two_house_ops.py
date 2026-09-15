@@ -210,6 +210,17 @@ class TwoHouseOpsTests(unittest.TestCase):
         )
         self.assertEqual(ranked, ["object|1"])
 
+    def test_intervention_capability_audit_is_private_and_non_mutating(self) -> None:
+        audit = WORKER.audit_intervention_capabilities(
+            "REPLACE",
+            ["obj-a", "obj-b"],
+            {"obj-a": {"position": {}, "isInteractable": True}},
+        )
+        self.assertEqual(audit["required_target_count"], 2)
+        self.assertEqual(audit["objects"][0]["object_id"], "obj-a")
+        self.assertTrue(audit["objects"][0]["present_in_metadata_objects"])
+        self.assertFalse(audit["objects"][1]["present_in_metadata_objects"])
+
     def test_anonymous_view_support_ignores_ids_and_small_masks(self) -> None:
         import numpy as np
 
