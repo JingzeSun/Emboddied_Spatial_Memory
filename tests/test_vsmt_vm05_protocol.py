@@ -8,7 +8,9 @@ import unittest
 
 from vsmt.vm05_protocol import (
     DETERMINISTIC_ADAPTERS,
+    EXECUTABLE_STATUS,
     LEARNED_RANKERS,
+    PAPER_MECHANISM_ADAPTERS,
     assert_vm05_action_authorized,
     validate_vm05_readiness,
 )
@@ -20,6 +22,31 @@ CONFIG = ROOT / "configs/vsmt/vm05_training_validation_readiness_v1.json"
 
 def config() -> dict:
     return json.loads(CONFIG.read_text(encoding="utf-8"))
+
+
+def frozen_config(*, action: str) -> dict:
+    value = config()
+    value["status"] = EXECUTABLE_STATUS
+    gate = {
+        "train": "training_authorized",
+        "validate": "validation_effect_authorized",
+        "confirm": "confirmation_authorized",
+    }[action]
+    value[gate] = True
+    learned = value["execution_classes"]["learned_candidate_rankers"]
+    learned.update({
+        "architecture": {"fixture": "resolved"},
+        "optimizer": {"fixture": "resolved"},
+        "training_steps": 1,
+        "seed_count": 1,
+    })
+    value["execution_classes"]["deterministic_mechanism_adapters"][
+        "configuration_spaces"
+    ] = {"fixture": "resolved"}
+    value["execution_classes"]["deterministic_internal_control"][
+        "decision_formula"
+    ] = {"fixture": "resolved"}
+    return value
 
 
 class VM05ReadinessTests(unittest.TestCase):
@@ -42,9 +69,21 @@ class VM05ReadinessTests(unittest.TestCase):
     def test_training_validation_and_confirmation_fail_closed(self) -> None:
         for action in ("train", "validate", "confirm"):
             with self.subTest(action=action), self.assertRaisesRegex(
-                ValueError, "not authorized"
+                ValueError, "not frozen_executable"
             ):
                 assert_vm05_action_authorized(config(), action=action)
+
+    def test_action_authorization_has_a_reachable_frozen_path(self) -> None:
+        for action in ("train", "validate", "confirm"):
+            with self.subTest(action=action):
+                result = assert_vm05_action_authorized(
+                    frozen_config(action=action), action=action,
+                )
+                self.assertTrue(result[{
+                    "train": "training_authorized",
+                    "validate": "validation_effect_authorized",
+                    "confirm": "confirmation_authorized",
+                }[action]])
 
     def test_wall_clock_timeout_is_forbidden_but_resource_safety_remains(self) -> None:
         value = validate_vm05_readiness(config())
@@ -71,6 +110,90 @@ class VM05ReadinessTests(unittest.TestCase):
         )
         self.assertIsNone(
             value["execution_classes"]["deterministic_internal_control"]["decision_formula"]
+        )
+
+    def test_required_null_fields_must_be_explicit(self) -> None:
+        paths = (
+            ("wall_clock_timeout_seconds",),
+            ("status",),
+            ("execution_classes", "learned_candidate_rankers", "architecture"),
+            ("execution_classes", "learned_candidate_rankers", "optimizer"),
+            ("execution_classes", "learned_candidate_rankers", "training_steps"),
+            ("execution_classes", "learned_candidate_rankers", "seed_count"),
+            ("execution_classes", "deterministic_mechanism_adapters", "configuration_spaces"),
+            ("execution_classes", "deterministic_internal_control", "decision_formula"),
+        )
+        for path in paths:
+            value = config()
+            target = value
+            for key in path[:-1]:
+                target = target[key]
+            del target[path[-1]]
+            with self.subTest(path=path), self.assertRaises(ValueError):
+                validate_vm05_readiness(value)
+
+    def test_frozen_lists_are_compared_by_content(self) -> None:
+        for key, replacement in (
+            ("required_inputs_before_executable", ["nothing_required"] * 8),
+            ("prohibited", []),
+        ):
+            value = config()
+            value[key] = replacement
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                validate_vm05_readiness(value)
+
+    def test_negative_method_boundary_tampering_is_rejected(self) -> None:
+        mutations = (
+            lambda value: value["execution_classes"][
+                "deterministic_mechanism_adapters"
+            ].__setitem__("requires_gradient_training", True),
+            lambda value: value["execution_classes"][
+                "learned_candidate_rankers"
+            ].__setitem__("architecture", {"hidden": 256}),
+            lambda value: value["paper_system_model_boundary"]["TAF"].__setitem__(
+                "adapted_memory_update_is_gradient_trained", True
+            ),
+        )
+        for mutate in mutations:
+            value = config()
+            mutate(value)
+            with self.subTest(mutation=mutate), self.assertRaises(ValueError):
+                validate_vm05_readiness(value)
+
+    def test_validation_never_mutates_or_shares_nested_source_state(self) -> None:
+        source = config()
+        original = json.loads(json.dumps(source))
+        validated = validate_vm05_readiness(source)
+        validated["execution_classes"]["learned_candidate_rankers"]["architecture"] = {
+            "mutated": True
+        }
+        self.assertEqual(source, original)
+        source["execution_classes"]["deterministic_mechanism_adapters"][
+            "requires_gradient_training"
+        ] = True
+        failing_input = json.loads(json.dumps(source))
+        with self.assertRaises(ValueError):
+            validate_vm05_readiness(source)
+        self.assertEqual(source, failing_input)
+
+    def test_paper_adapter_set_does_not_depend_on_low_position(self) -> None:
+        self.assertEqual(PAPER_MECHANISM_ADAPTERS, ("TAF", "ELU", "WFR"))
+        self.assertNotIn("LOW", PAPER_MECHANISM_ADAPTERS)
+
+    def test_all_learned_and_internal_controls_have_explicit_trial_caps(self) -> None:
+        value = validate_vm05_readiness(config())
+        classes = value["execution_classes"]
+        self.assertEqual(
+            classes["learned_candidate_rankers"]["maximum_complete_configurations_per_method"],
+            12,
+        )
+        self.assertEqual(
+            classes["deterministic_internal_control"]["maximum_complete_configurations_per_method"],
+            12,
+        )
+        self.assertEqual(
+            value["fair_selection"]["maximum_complete_configurations_per_internal_control"],
+            12,
         )
 
 

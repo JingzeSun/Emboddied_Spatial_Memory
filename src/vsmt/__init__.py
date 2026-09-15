@@ -104,6 +104,7 @@ from .vm05_protocol import (
     DETERMINISTIC_ADAPTERS,
     DETERMINISTIC_CONTROLS,
     LEARNED_RANKERS,
+    PAPER_MECHANISM_ADAPTERS,
     assert_vm05_action_authorized,
     validate_vm05_readiness,
 )
@@ -196,6 +197,7 @@ __all__ = [
     "DETERMINISTIC_ADAPTERS",
     "DETERMINISTIC_CONTROLS",
     "LEARNED_RANKERS",
+    "PAPER_MECHANISM_ADAPTERS",
     "assert_vm05_action_authorized",
     "validate_vm05_readiness",
 ]
