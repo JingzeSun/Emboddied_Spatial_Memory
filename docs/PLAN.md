@@ -22,7 +22,7 @@
 
 ### 当前指针
 
-**D-158当前指针：VM-04结果已封存，训练/validation/confirmation保持关闭；下一职责只审查20个失败slot的共同根因与修复提案。** 当前stage固定为`vsmt-vm04-two-house-audit-v1-53d47367c7b3`，导出报告为`results/vsmt_vm04_l1_two_house_audit.json`；不得覆盖已有结果、替换house/slot或按失败结果补样。新生成只有在形成独立合同、预算、输入输出例子和新stage方案并经用户审查后才可考虑。
+**D-159当前指针：旧VM-04结果封存；新stage已获实现授权但尚未服务器运行。** 事务语义保持冻结；新stage先实现并测试`instance_masks ∩ metadata.objects`物理目标过滤、slot级独立确定性视角、动作能力审计和细化失败诊断。旧stage固定为`vsmt-vm04-two-house-audit-v1-53d47367c7b3`，不得覆盖；服务器不可达或新stage合同未完成前不得生成新数据。训练/validation/confirmation继续关闭。
 
 VM-05同时只做readiness准备：D-157区分VSMT/DRCR/NECS梯度训练与TAF/ELU/WFR/LOW/PHR有限配置选择，正式架构、网格、训练步数和seed仍须等失败归因与数据覆盖审查后冻结；当前不得启动训练或validation效果运行。
 

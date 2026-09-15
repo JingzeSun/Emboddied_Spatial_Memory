@@ -1587,3 +1587,9 @@
 - 日期：2026-09-15；状态：VM-04结果封存，训练/validation/confirmation继续阻断。用户批准保留当前导出结果，不启动训练，另行审查20个失败slot的构造修复方案。现有stage、raw失败记录、16个完整episode、public seal、private evaluation、verify和export报告均不得覆盖、删除或重生成。
 - 下一职责仅做失败归因与修复提案审查：按固定house、family、program和失败阶段归类，核对是否存在共同工程根因；不得替换house/slot、按结果补样、打开teacher或训练输入。只有形成单职责代码/合同、输入输出例子、资源预算和独立stage方案，并经用户审查后，才可考虑新生成。
 - 白话：这一步解决“当前16个样本能否直接进入学习，还是20个失败暴露了共同数据缺口”的问题。输入是封存stage的失败回执和完整产物，输出是失败分类及是否值得另开修复stage的提案；它不等于重新生成数据，也不等于方法效果结论。
+
+## D-159：新stage按物理对象过滤并实行slot级视角独立
+
+- 日期：2026-09-15；状态：新stage实现授权，旧VM-04封存不覆盖。用户批准保留事务语义不变；公开mask候选必须先与同帧`metadata.objects`求交；动作能力审计作为第二道前提；每个slot独立按公开几何规则确定start pose和物理目标；不足时固定slot失败，不换house、不换目标、不用mask centroid替代真实pose。
+- 当前实现提交`b36153d`：`rank_visible_instance_ids`与匿名视点评分支持物理object ID白名单；视角搜索从family级移到slot级；每个slot写独立viewpoint receipt；旧stage、旧结果和旧代码绑定不变。动作结果细化记录与新stage完整配置仍须后续职责实现，不能把本地测试当作真实house复查。
+- 白话：这一步解决“墙/天花板mask被当成事务对象，以及18个slot共用同一目标”的问题。输入是每个slot自己的公开视点和同帧物理对象表，输出是可执行物理对象目标与独立视角回执；它不改变BIRTH、REACTIVATE等记忆语义，也不等于新数据已经生成。
