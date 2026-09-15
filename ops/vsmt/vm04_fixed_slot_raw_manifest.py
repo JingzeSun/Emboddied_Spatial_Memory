@@ -105,6 +105,8 @@ def frozen_tasks(scan_stage, endpoint_stage, source_root):
             config["fixed_slot_count"] == 36 and
             source_worker.sha256(raw_worker.TARGET_CONTRACT) ==
             config["source_target_contract_sha256"] and
+            audit.sha256(audit.ENVIRONMENT_PATH) ==
+            config["source_simulator_environment_contract_sha256"] and
             audit.sha256(scan_stage / "scan.receipt.json") ==
             config["source_v2_scan_receipt_sha256"] and
             audit.sha256(endpoint_stage / "endpoint.receipt.json") ==

@@ -11,6 +11,7 @@
   "source_v2_scan_receipt_sha256": "044fd705e998b1dea9bc62bdd730ff2fc583f9880901131f8927aefb10bb9fd5",
   "source_d173_endpoint_receipt_sha256": "1b912a1ecbf6d4de907bc176a9245d2c9dbbb460b3c9260f7760f1325befabd6",
   "source_target_contract_sha256": "7d11335be9a8b85cc26dd1c2058c36f71c93d9db0cef4f33fdda2ec7cfa6dbac",
+  "source_simulator_environment_contract_sha256": "acecc33b5f4982830219f7f325334fb9311579ddd75551a7de3a1f450c06000a",
   "nonintervention_private_target_ids_allowed": false,
   "relink_force_action_allowed": false,
   "relink_new_capability_probe_allowed": false,

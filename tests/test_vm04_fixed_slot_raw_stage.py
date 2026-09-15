@@ -13,6 +13,23 @@ import vm04_fixed_slot_raw_stage as stage
 
 
 class FixedSlotRawStageTests(unittest.TestCase):
+    def test_isolated_simulator_versions_must_match_existing_contract(self):
+        contract = {"environment_separation": {"simulator_process": {
+            "python": "3.9.25", "packages": {
+                "ai2thor": "5.0.0", "procthor": "0.0.1.dev2"}}}}
+        installed = {"python": "3.9.25", "ai2thor": "5.0.0",
+                     "procthor": "0.0.1.dev2"}
+        with patch.object(stage.subprocess, "check_output",
+                          return_value=json.dumps(installed)):
+            self.assertEqual(stage.verify_simulator_environment(
+                Path("/exact/simulator/bin/python"), contract), installed)
+        installed["ai2thor"] = "5.1.0"
+        with patch.object(stage.subprocess, "check_output",
+                          return_value=json.dumps(installed)):
+            with self.assertRaisesRegex(RuntimeError, "versions differ"):
+                stage.verify_simulator_environment(
+                    Path("/exact/simulator/bin/python"), contract)
+
     def test_current_config_rejects_generation_before_any_stage_output(self):
         with TemporaryDirectory() as temp, patch.object(stage, "bound_code",
                                                     return_value={}):

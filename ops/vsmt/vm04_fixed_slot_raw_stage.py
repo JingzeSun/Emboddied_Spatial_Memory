@@ -44,6 +44,7 @@ def bound_code(reviewed_code):
         "ops/vsmt/vm04_fixed_slot_raw_stage.py",
         "src/vsmt/vm04_target_selection_v3.py",
         "configs/vsmt/vm04_target_boundary_proposal_v3.json",
+        "configs/vsmt/vm04_l1_environment_v1.json",
         "tests/test_vm04_fixed_slot_raw_worker.py",
         "tests/test_vm04_fixed_slot_raw_manifest.py",
         "tests/test_vm04_fixed_slot_raw_stage.py",
@@ -109,6 +110,21 @@ def safe_worker_count(cpu_count, memory_headroom, memory_demand,
     gpu_capacity = max(0, gpu_free - emergency_gpu) // gpu_demand
     return max(0, min(cpu_count, memory_capacity, gpu_capacity,
                       empirical_cap))
+
+
+def verify_simulator_environment(simulator, contract):
+    """Read installed versions from the exact isolated Python before scene IO."""
+    script = ("import json,sys,importlib.metadata as m;"
+              "print(json.dumps({'python':sys.version.split()[0],"
+              "'ai2thor':m.version('ai2thor'),"
+              "'procthor':m.version('procthor')}))")
+    installed = json.loads(subprocess.check_output(
+        [str(simulator), "-c", script], text=True, cwd=ROOT))
+    expected = contract["environment_separation"]["simulator_process"]
+    require(installed == {"python": expected["python"],
+                          **expected["packages"]},
+            "isolated simulator Python/package versions differ from D-135")
+    return installed
 
 
 def episode_path(stage, task):
@@ -240,6 +256,11 @@ def run(reviewed_code, scan_stage, endpoint_stage, source_root, output_root):
         "environment_separation"]["simulator_process"][
             "environment_path"]) / "bin/python"
     require(simulator.is_file(), "pinned simulator Python missing")
+    require(audit.sha256(audit.ENVIRONMENT_PATH) ==
+            config["source_simulator_environment_contract_sha256"],
+            "D-135 isolated simulator environment contract changed")
+    simulator_versions = verify_simulator_environment(
+        simulator, audit.read_json(audit.ENVIRONMENT_PATH))
     initial_memory = audit._cgroup_memory_headroom_bytes()
     initial_gpu_devices = resource_probe.gpu_free_bytes_by_device()
     initial_disk = shutil.disk_usage(output_root).free
@@ -413,6 +434,7 @@ def run(reviewed_code, scan_stage, endpoint_stage, source_root, output_root):
     audit.write_new_json(receipt, {
         "schema_version": "vsmt-vm04-fixed-slot-raw-stage-receipt-v1",
         "reviewed_code": reviewed_code, "bound_sha256": bindings,
+        "simulator_versions": simulator_versions,
         "check_receipt_sha256": audit.sha256(stage / "check.receipt.json"),
         "private_task_manifest_sha256": audit.sha256(
             stage / "tasks/private/task-manifest.json"),
