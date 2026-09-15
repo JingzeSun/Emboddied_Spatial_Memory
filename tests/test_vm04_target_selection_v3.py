@@ -66,12 +66,20 @@ class TargetSelectionTests(unittest.TestCase):
     def test_indistinguishable_masks_fail_before_private_id_breaks_tie(self):
         masks = dict(self.masks, copy_of_painting=self.masks["painting"])
         authored = self.authored | {"copy_of_painting"}
+        self.metadata["copy_of_painting"] = {
+            "position": {"x": 4, "y": 0, "z": 0}}
         with self.assertRaisesRegex(ValueError, "indistinguishable public geometry"):
             select_private_targets_at_fixed_pose(
                 "BIND", masks, self.metadata, authored,
                 static_authored_asset_lifecycle_policy=
                     "exclude_static_assets_from_physical_lifecycle_targets",
                 relink_requires_moveable_or_pickupable=True)
+        del self.metadata["copy_of_painting"]
+        self.assertEqual(select_private_targets_at_fixed_pose(
+            "BIND", masks, self.metadata, authored,
+            static_authored_asset_lifecycle_policy=
+                "exclude_static_assets_from_physical_lifecycle_targets",
+            relink_requires_moveable_or_pickupable=True), ["painting"])
 
 
 if __name__ == "__main__":

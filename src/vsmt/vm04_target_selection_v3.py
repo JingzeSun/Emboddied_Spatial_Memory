@@ -81,7 +81,12 @@ def select_private_targets_at_fixed_pose(
         raise ValueError("static authored-asset lifecycle policy is unresolved")
     if relink_requires_moveable_or_pickupable is not True:
         raise ValueError("physical RELINK requires explicit movable-asset gate")
-    ranked_visible_ids = rank_visible_assets_by_geometry(instance_masks, authored_ids)
+    # The trusted author/metadata/finite-position intersection precedes rank.
+    eligible = asset_target_profiles(list(instance_masks),
+                                     current_metadata_objects, authored_ids)[
+                                         "authored_asset"]
+    ranked_visible_ids = rank_visible_assets_by_geometry(
+        instance_masks, frozenset(eligible))
     profiles = asset_target_profiles(ranked_visible_ids,
                                      current_metadata_objects, authored_ids)
     if program == "RELINK" or (program in LIFECYCLE_PROGRAMS and
