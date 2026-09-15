@@ -1,0 +1,81 @@
+{
+  "bound_sha256": {
+    "configs/vsmt/vm04_root_cause_audit_v1.json": "89a68097ea78cd5a5b6e4603c86242f018290c724dab8c4cce4338f78a759f5b",
+    "ops/vsmt/vm04_root_cause_audit.py": "38bcb69faf885e3d5113e9c4ddf9983ea8107e995b7e19eee4f1f8101e0a124a",
+    "src/vsmt/vm04_target_eligibility.py": "7cba9bc0886459e358e3070ab3993bc20b3b46afa7d38dd245b3617de36fe905"
+  },
+  "episodes_generated": 0,
+  "families": [
+    {
+      "author_asset_count_recursive": 148,
+      "family_id": "audit-family:00",
+      "old": {
+        "complete_any_target_not_authored_asset": 8,
+        "complete_episode_count": 8,
+        "complete_top1_not_authored_asset": 8,
+        "failed_without_action_diagnostic": 10,
+        "failed_without_private_intervention_attempts": 10
+      },
+      "old_failure_reasons": {
+        "RELINK target lacks an initial position": 2,
+        "intervention failed at frame 16": 2,
+        "intervention failed at frame 22": 2,
+        "setup intervention failed": 4
+      },
+      "private_v2_target_audit_sha256": "9945aac8faffb9b2f38a786c774c002448ea0b1031924dc179ebbd3a23e85300",
+      "source_house_id": "train:004270",
+      "source_record_sha256": "79a1cfe6c80e913305cc6d2ea047323bca1d05763b29a162cbef23c76b80026f",
+      "v2_scan_selected_top2": {
+        "authored_asset": 1,
+        "not_authored_asset": 35,
+        "selected_pose_count": 18
+      }
+    },
+    {
+      "author_asset_count_recursive": 86,
+      "family_id": "audit-family:01",
+      "old": {
+        "complete_any_target_not_authored_asset": 8,
+        "complete_episode_count": 8,
+        "complete_top1_not_authored_asset": 8,
+        "failed_without_action_diagnostic": 10,
+        "failed_without_private_intervention_attempts": 10
+      },
+      "old_failure_reasons": {
+        "RELINK target lacks an initial position": 2,
+        "intervention failed at frame 16": 2,
+        "intervention failed at frame 22": 4,
+        "setup intervention failed": 2
+      },
+      "private_v2_target_audit_sha256": "7fa44594565855d2f7aafca0364acf37a3d940dc13cd611d201c2281c803d375",
+      "source_house_id": "train:008243",
+      "source_record_sha256": "cdbd7bf8e91a6fc3a52b1a92487e22badc234793d23c74c0a59240d43980bea7",
+      "v2_scan_selected_top2": {
+        "authored_asset": 1,
+        "not_authored_asset": 35,
+        "selected_pose_count": 18
+      }
+    }
+  ],
+  "frozen_d_m": 1.0,
+  "interventions_performed": 0,
+  "old_generate_receipt_sha256": "fb914b3871e42a376d03cca5d110d1ab357ea4ae7a785f5e4a09ded92d541ad4",
+  "old_verify_receipt_sha256": "8a4ae4e74c294e6a392a8785ab0e5d7bbae37d85ceefa75b18216589f8a56536",
+  "private_ids_exported": false,
+  "schema_version": "vsmt-vm04-root-cause-audit-report-v1",
+  "simulator_started": false,
+  "status": "read_only_diagnostic_no_episode_or_action",
+  "target_repeat_policy": "report_only",
+  "totals": {
+    "complete_any_target_not_authored_asset": 16,
+    "complete_episode_count": 16,
+    "complete_top1_not_authored_asset": 16,
+    "failed_without_action_diagnostic": 20,
+    "failed_without_private_intervention_attempts": 20,
+    "v2_top2_authored_asset": 2,
+    "v2_top2_not_authored_asset": 70,
+    "v2_top2_selected_pose_count": 36
+  },
+  "v2_scan_receipt_sha256": "044fd705e998b1dea9bc62bdd730ff2fc583f9880901131f8927aefb10bb9fd5",
+  "v2_scan_report_sha256": "575d34d084864009bc847e4b91ba144279408dc6a28f0a3e8e1433157a089f32"
+}
