@@ -17,7 +17,9 @@ sys.path.insert(0, str(PROJECT_ROOT / "src"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import vm04_two_house_audit as audit  # noqa: E402
+import vm04_two_house_worker as generator  # noqa: E402
 from vsmt.two_house_audit import validate_episode_plans  # noqa: E402
+from vsmt.vm04_target_eligibility import authored_asset_ids  # noqa: E402
 
 CONFIG_PATH = PROJECT_ROOT / "configs/vsmt/vm04_action_capability_probe_proposal_v1.json"
 SCAN_REPORT_PATH = PROJECT_ROOT / "results/vsmt_vm04_viewpoint_scan_v1.json"
@@ -27,7 +29,9 @@ BOUND_FILES = (
     "ops/vsmt/vm04_action_probe.py",
     "ops/vsmt/vm04_action_probe_worker.py",
     "ops/vsmt/vm04_two_house_worker.py",
+    "src/vsmt/vm04_target_eligibility.py",
     "tests/test_vm04_action_probe.py",
+    "tests/test_vm04_target_eligibility.py",
 )
 CHECK_GROUPS = (
     ("contract", (
@@ -44,6 +48,11 @@ CHECK_GROUPS = (
         "test_reactivate_frame_16_failure_preserves_phase_and_code",
         "test_replace_keeps_secondary_setup_and_enable_target",
         "test_public_report_contains_counts_and_hash_not_private_ids",
+    )),
+    ("source_boundary", (
+        "tests.test_vm04_target_eligibility.TargetBoundaryTests.test_author_house_hierarchy_excludes_architecture_and_keeps_children",
+        "tests.test_vm04_target_eligibility.TargetBoundaryTests.test_profiles_preserve_geometry_rank_and_ignore_object_class_text",
+        "tests.test_vm04_target_eligibility.TargetBoundaryTests.test_missing_real_position_and_duplicate_rank_are_rejected",
     )),
 )
 
@@ -90,10 +99,15 @@ def validate_config(value):
             "action probe must never authorize generation or training")
     require(value["implementation_authorized"] is True,
             "probe implementation must be reviewed independently")
-    if value["status"] == "approved_for_implementation_not_executable":
+    if value["status"] in ("approved_for_implementation_not_executable",
+                            "blocked_invalid_v2_scan_targets"):
         require(value["probe_execution_authorized"] is False and
                 value["expected_reviewed_probe_code"] is None,
                 "closed proposed probe has an executable field")
+        if value["status"] == "blocked_invalid_v2_scan_targets":
+            require(value["blocking_reason"] ==
+                    "70_of_72_v2_scan_top2_are_not_author_house_objects_assets",
+                    "blocked invalid-scan reason changed")
     elif value["status"] == "frozen_executable":
         require(value["probe_execution_authorized"] is True and
                 isinstance(value["expected_reviewed_probe_code"], str) and
@@ -137,7 +151,9 @@ def verify_reviewed_implementation(config):
     require(ancestor.returncode == 0, "reviewed probe code is not an ancestor")
     implementation = ["ops/vsmt/vm04_action_probe.py",
                       "ops/vsmt/vm04_action_probe_worker.py",
-                      "tests/test_vm04_action_probe.py"]
+                      "src/vsmt/vm04_target_eligibility.py",
+                      "tests/test_vm04_action_probe.py",
+                      "tests/test_vm04_target_eligibility.py"]
     unchanged = subprocess.run(["git", "diff", "--quiet", reviewed, "HEAD", "--",
                                 *implementation], cwd=PROJECT_ROOT)
     require(unchanged.returncode == 0,
@@ -225,6 +241,27 @@ def scan_inputs(config, scan_stage, source_root):
     require(audit.git("rev-parse", "HEAD", cwd=source_root.resolve()) ==
             source_config["data_release_commit"],
             "source checkout release commit changed")
+    for family in families:
+        house_id = family["source_house_id"]
+        source_row = next(row for row in inventory["houses"]
+                          if row["house_id"] == house_id)
+        locator = source_row["source_locator"]
+        source_file = (source_root.resolve() / locator["relative_path"]).resolve()
+        require(source_root.resolve() in source_file.parents and
+                audit.sha256(source_file) == source_row["source_file_sha256"],
+                "frozen source asset file changed")
+        house = generator.load_source_record(source_root, locator)
+        require(generator.canonical_sha256(house) ==
+                source_row["source_record_sha256"],
+                "frozen source asset record changed")
+        asset_ids = authored_asset_ids(house)
+        private_rows = audit.read_json(
+            scan / "execution" / family["family_id"] /
+            "private/viewpoint-target-audit.json"
+        )["spaced_top_18"]
+        require(all(target_id in asset_ids for row in private_rows
+                    for target_id in row["target_instance_ids"][:2]),
+                "v2 scan top2 includes architecture: action probe is blocked")
     return receipt, families
 
 
@@ -258,7 +295,7 @@ def check(reviewed_code, output_root):
     cpus = os.cpu_count() or 0
     headroom = audit._cgroup_memory_headroom_bytes()
     free_disk = shutil.disk_usage(output_root.resolve()).free
-    require(cpus >= 3 and headroom is not None and headroom >= 3221225472 and
+    require(cpus >= 4 and headroom is not None and headroom >= 4294967296 and
             free_disk >= 1073741824,
             "probe check lacks capacity for three independent test workers")
     stage = output_root.resolve() / ("vsmt-vm04-action-probe-check-v1-" +
@@ -271,7 +308,9 @@ def check(reviewed_code, output_root):
     for group, names in CHECK_GROUPS:
         log_path = stage / (group + ".log")
         command = [sys.executable, "-B", "-m", "unittest", "-v", *[
-            "tests.test_vm04_action_probe.ActionProbeTests." + name for name in names
+            name if name.startswith("tests.") else
+            "tests.test_vm04_action_probe.ActionProbeTests." + name
+            for name in names
         ]]
         try:
             with log_path.open("x", encoding="utf-8") as handle:
@@ -292,20 +331,20 @@ def check(reviewed_code, output_root):
                       "expected_test_count": 3,
                       "passed_test_count": 3 if code == 0 and
                       "Ran 3 tests" in output and "FAILED" not in output else 0})
-    success = (dispatch_error is None and len(exits) == 3 and
+    success = (dispatch_error is None and len(exits) == 4 and
                all(row["passed_test_count"] == 3 for row in exits))
     receipt_path = stage / "check.receipt.json"
     audit.write_new_json(receipt_path, {
         "schema_version": "vsmt-vm04-action-probe-check-receipt-v1",
         "reviewed_code": reviewed_code, "bound_sha256": bindings,
         "config_status": config["status"],
-        "requested_workers": 3, "actual_workers": len(children),
+        "requested_workers": 4, "actual_workers": len(children),
         "worker_exits": exits, "dispatch_error": dispatch_error,
         "resource_evidence": {"visible_cpu_count": cpus,
                               "cgroup_memory_headroom_bytes": headroom,
                               "free_data_disk_bytes": free_disk},
         "deterministic_merge_order": [row[0] for row in CHECK_GROUPS],
-        "expected_test_count": 9,
+        "expected_test_count": 12,
         "passed_test_count": sum(row["passed_test_count"] for row in exits),
         "wall_seconds": time.monotonic() - started,
         "simulator_started": False, "episodes_generated": 0,
@@ -316,7 +355,7 @@ def check(reviewed_code, output_root):
             "schema_version": "vsmt-vm04-action-probe-check-success-v1",
             "receipt_sha256": audit.sha256(receipt_path), "success": True,
         })
-    print("VM04_ACTION_PROBE_CHECK_%s stage=%s workers=%s tests=%s/9" %
+    print("VM04_ACTION_PROBE_CHECK_%s stage=%s workers=%s tests=%s/12" %
           ("OK" if success else "FAILED", stage, len(children),
            sum(row["passed_test_count"] for row in exits)), flush=True)
     require(success, "probe check failed: preserve check stage")
@@ -334,9 +373,9 @@ def run(reviewed_code, scan_stage, source_root, output_root):
     check_receipt, _ = audit._marker(check_stage, "check")
     require(check_receipt["reviewed_code"] == reviewed_code and
             check_receipt["bound_sha256"] == bindings and
-            check_receipt["requested_workers"] == 3 and
-            check_receipt["actual_workers"] == 3 and
-            check_receipt["passed_test_count"] == 9 and
+            check_receipt["requested_workers"] == 4 and
+            check_receipt["actual_workers"] == 4 and
+            check_receipt["passed_test_count"] == 12 and
             check_receipt["deterministic_merge_order"] ==
             [group for group, _ in CHECK_GROUPS] and
             all(row["exit_code"] == 0 and

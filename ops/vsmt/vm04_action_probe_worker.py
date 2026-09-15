@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+import sys
 import time
 
 try:
@@ -13,6 +14,9 @@ except ImportError:  # local Windows pure-function tests; server runner requires
     resource = None
 
 import vm04_two_house_worker as generator
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
+from vsmt.vm04_target_eligibility import authored_asset_ids  # noqa: E402
 
 
 LAST_INTERVENTION_FRAME = {
@@ -182,6 +186,7 @@ def main():
     generator.require(generator.canonical_sha256(house) ==
                       inventory_row["source_record_sha256"],
                       "frozen house record digest mismatch")
+    asset_ids = authored_asset_ids(house)
     scan_family = scan / "execution" / family_id
     viewpoints = generator.read_json(scan_family / "initial_viewpoints.json")
     private_targets = generator.read_json(
@@ -192,6 +197,9 @@ def main():
                       [row["rank_index"] for row in private_targets] == selected and
                       [row["selection_index"] for row in private_targets] == list(range(18)),
                       "frozen scan pose/target slots mismatch")
+    generator.require(all(target_id in asset_ids for row in private_targets
+                          for target_id in row["target_instance_ids"][:2]),
+                      "v2 scan top2 includes architecture: refuse physical actions")
     family_root = arguments.probe_stage / "execution" / family_id
     family_root.mkdir(parents=True, exist_ok=False)
     results = []

@@ -1,0 +1,12 @@
+{
+  "version": "vsmt-vm04-root-cause-audit-v1",
+  "status": "read_only_diagnostic",
+  "generation_authorized": false,
+  "intervention_authorized": false,
+  "fixed_family_ids": ["audit-family:00", "audit-family:01"],
+  "fixed_source_house_ids": ["train:004270", "train:008243"],
+  "old_generate_receipt_sha256": "fb914b3871e42a376d03cca5d110d1ab357ea4ae7a785f5e4a09ded92d541ad4",
+  "old_verify_receipt_sha256": "8a4ae4e74c294e6a392a8785ab0e5d7bbae37d85ceefa75b18216589f8a56536",
+  "v2_scan_receipt_sha256": "044fd705e998b1dea9bc62bdd730ff2fc583f9880901131f8927aefb10bb9fd5",
+  "v2_scan_report_sha256": "575d34d084864009bc847e4b91ba144279408dc6a28f0a3e8e1433157a089f32"
+}
