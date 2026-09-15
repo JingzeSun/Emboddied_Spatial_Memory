@@ -1,0 +1,84 @@
+{
+  "actual_workers": 3,
+  "collision_or_reachability_verified": false,
+  "episodes_generated": 0,
+  "mechanism_receipt_sha256": "36e695cc74af4a396576adf19fa109d87fd9d490df358e6cafa6774b4aea3092",
+  "memory_history_checked": false,
+  "private_ids_exported": false,
+  "requested_workers": 3,
+  "resource_evidence": {
+    "observed_cgroup_demand_bytes": 1050968064,
+    "observed_gpu_demand_bytes": 1561329664,
+    "private_samples_sha256": "2ca1f6bb90ed9b864f114c2f3f77c4f6e4fc4649e582631e315caeb6affcab21",
+    "starting_disk_free_bytes": 28516040704,
+    "visible_cpu_count": 16
+  },
+  "reviewed_code": "20d9682f1cab0500470d81f8efd154aefff466f8",
+  "schema_version": "vsmt-vm04-relink-mechanism-public-report-v1",
+  "semantic_positive_labels_issued": 0,
+  "source_scan_receipt_sha256": "044fd705e998b1dea9bc62bdd730ff2fc583f9880901131f8927aefb10bb9fd5",
+  "source_v1_probe_receipt_sha256": "b328caa335857a8e85fe26ac994c069115ba5baa218c2f9a4bee41a87b424333",
+  "status": "one_fixed_relink_slot_controlled_diagnostic_only",
+  "training_steps": 0,
+  "trials": [
+    {
+      "actual_pose_aabb_intersection_count": null,
+      "collision_or_reachability_verified": false,
+      "error_code_present": false,
+      "immediate_delta_xyz_m": {
+        "x": -0.049812,
+        "y": 0.00062,
+        "z": -0.01423
+      },
+      "last_action_success": true,
+      "memory_history_checked": false,
+      "mode": "registered_forced",
+      "requested_pose_aabb_intersection_count": null,
+      "semantic_positive_label_issued": false,
+      "terminal_delta_xyz_m": {
+        "x": -0.049812,
+        "y": 0.00062,
+        "z": -0.01423
+      },
+      "trial_status": "recorded_full_registered_path"
+    },
+    {
+      "actual_pose_aabb_intersection_count": null,
+      "collision_or_reachability_verified": false,
+      "error_code_present": false,
+      "immediate_delta_xyz_m": {
+        "x": -0.5,
+        "y": 2e-06,
+        "z": -0.0
+      },
+      "last_action_success": false,
+      "memory_history_checked": false,
+      "mode": "same_request_nonforced",
+      "requested_pose_aabb_intersection_count": null,
+      "semantic_positive_label_issued": false,
+      "terminal_delta_xyz_m": null,
+      "trial_status": "simulator_action_rejected"
+    },
+    {
+      "actual_pose_aabb_intersection_count": null,
+      "collision_or_reachability_verified": false,
+      "error_code_present": false,
+      "immediate_delta_xyz_m": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "last_action_success": true,
+      "memory_history_checked": false,
+      "mode": "registered_forced_physics_paused",
+      "requested_pose_aabb_intersection_count": null,
+      "semantic_positive_label_issued": false,
+      "terminal_delta_xyz_m": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "trial_status": "recorded_full_registered_path"
+    }
+  ]
+}
