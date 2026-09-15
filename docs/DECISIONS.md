@@ -1580,3 +1580,9 @@
 - [机器readiness合同](../configs/vsmt/vm05_training_validation_readiness_v1.json)当前`training_authorized=false`、`validation_effect_authorized=false`、`confirmation_authorized=false`。白话：输入是本轮已知的方法性质和资源规则，输出是以后实现/运行不能混淆的任务清单；例如ELU跑12组阈值是调参，不会产生ELU checkpoint。它不等于VM-05已经能跑，也不允许抢在D-144结果前选有利网格。
 - Claude二次复核继续发现三项可执行性缺口：论文系统来源/预训练感知声明仍可篡改，frozen分支允许零步、零seed和空对象，八项前置只有名称清单而没有满足证据。修订把TAF/ELU/WFR的来源系统、预训练感知布尔、适配范围及总policy整行固定；frozen态要求`training_steps`/`seed_count`为正整数且四类配置对象非空；新增`satisfied_input_sha256s`，planned态必须为空，frozen态必须精确覆盖八项前置并全部为合法SHA-256。白话：这使未来授权必须引用外部审查产物，而不是让同一个JSON只靠把status改成可执行来自我批准；它不自动核验文件，正式入口仍须按摘要打开并比对实际产物。
 - Claude三次复核发现同类冻结缺口仍存在于共享前端、学习消融定义、公平选择、多worker和资源安全节。验证器改为把所有非待填字段与递归不可变的整节常量全等比较；八项前置摘要还必须互不相同且拒绝空文件摘要，顶层接口按注解接受任意`Mapping`并在内部深克隆。白话：输入仍是同一份readiness JSON，输出仍只是通过或明确拒绝；例如把`same_train_families`翻为false或把GPU策略改成单worker会立即失败。它不冻结仍为null的网络、训练步数或有限网格，也不代替正式入口核对真实文件摘要。
+
+## D-158：封存VM-04并审查20个失败slot的共同根因
+
+- 日期：2026-09-15；状态：VM-04结果封存，训练/validation/confirmation继续阻断。用户批准保留当前导出结果，不启动训练，另行审查20个失败slot的构造修复方案。现有stage、raw失败记录、16个完整episode、public seal、private evaluation、verify和export报告均不得覆盖、删除或重生成。
+- 下一职责仅做失败归因与修复提案审查：按固定house、family、program和失败阶段归类，核对是否存在共同工程根因；不得替换house/slot、按结果补样、打开teacher或训练输入。只有形成单职责代码/合同、输入输出例子、资源预算和独立stage方案，并经用户审查后，才可考虑新生成。
+- 白话：这一步解决“当前16个样本能否直接进入学习，还是20个失败暴露了共同数据缺口”的问题。输入是封存stage的失败回执和完整产物，输出是失败分类及是否值得另开修复stage的提案；它不等于重新生成数据，也不等于方法效果结论。

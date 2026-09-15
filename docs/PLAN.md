@@ -22,7 +22,9 @@
 
 ### 当前指针
 
-**D-156的12-worker public seal恢复正在服务器执行，源stage固定为`53d4736`，当前恢复实现为`ea8cb16`；214/214服务器合同已通过，48个公开重放任务已由12个worker启动且无墙钟超时。** 完成后同一服务器checkout直接执行12-worker private audit、verify与export，不重新生成16个完整episode，也不替换20个构造失败slot。VM-05同时只做readiness准备：D-157区分VSMT/DRCR/NECS梯度训练与TAF/ELU/WFR/LOW/PHR有限配置选择，正式架构、网格、训练步数和seed仍须等本次审计结果后冻结；当前不得启动训练或validation效果运行。
+**D-158当前指针：VM-04结果已封存，训练/validation/confirmation保持关闭；下一职责只审查20个失败slot的共同根因与修复提案。** 当前stage固定为`vsmt-vm04-two-house-audit-v1-53d47367c7b3`，导出报告为`results/vsmt_vm04_l1_two_house_audit.json`；不得覆盖已有结果、替换house/slot或按失败结果补样。新生成只有在形成独立合同、预算、输入输出例子和新stage方案并经用户审查后才可考虑。
+
+VM-05同时只做readiness准备：D-157区分VSMT/DRCR/NECS梯度训练与TAF/ELU/WFR/LOW/PHR有限配置选择，正式架构、网格、训练步数和seed仍须等失败归因与数据覆盖审查后冻结；当前不得启动训练或validation效果运行。
 
 **D-155正在完成真实source house的最后一个生成兼容点。** D-154内存升级已让两间房成功创建223/136个对象；AI2-THOR仍须先把agent放到house登记pose，才能成功返回可达点（首房实测1299个）。当前加入该确定性bootstrap，再执行D-153匿名视点搜索；新HEAD、新stage只有产生非零完整raw episode才继续materialize/seal/private/verify/export。前两个失败stage、固定house/slot均不变，训练、validation效果、confirmation和L2仍关闭。
 
