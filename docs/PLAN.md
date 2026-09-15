@@ -16,15 +16,15 @@
 | VM-01 公私数据与共同适配合同（D-143工程基线已审） | D-122草案；固定结构类型、公开 proposal/descriptor、五通道文件和反作弊 gate | schema、正负例、private mutation invariance、无 private 推理及 candidate-before-teacher 测试；D-143固定服务器回执已覆盖当前字节，真实生成边界仍须下一职责实现与审查 |
 | VM-02 三种论文机制与朴素基线（D-143工程基线已审） | 共同接口；TAF、ELU、WFR、LOW 只消费相同 `ObservationPacket` | clean-room 适配器、显式无默认值配置、版本化共同输出包装及人工分支测试；未冻结阈值，不称官方复现或效果结果 |
 | VM-03 VSMT 无泄漏候选与 teacher（D-143工程基线已审） | VM-01接口；复用 executor/八原子语义，删除参考派生 query | public-only 九类程序、逐一真实执行、公开摘要排序、online evidence封存及封存后teacher；D-143固定服务器回执已覆盖当前字节，未生成真实house数据 |
-| VM-04 新数据数值冻结与开发生成（当前只开放视角扫描） | [总协议提案](../configs/vsmt/vm04_data_protocol_proposal_v1.json)、[L1合同](../configs/vsmt/vm04_l1_contract_proposal_v1.json)、[动作对称合同](../configs/vsmt/vm04_l1_action_symmetry_v1.json)、[v2两房视角合同](../configs/vsmt/vm04_l1_two_house_audit_proposal_v2.json)及[隔离环境](../configs/vsmt/vm04_l1_environment_v1.json)；固定两间ProcTHOR house、匿名物理mask与D=1.0 m空间去重 | D-162已审v2视角代码并预登记D=1.0 m；服务器恢复后只运行`contracts → viewpoint-scan → viewpoint-scan-export`，报告0 episode/0干预及分散度/重复率。旧stage封存，generate/private、train/validation/confirmation继续阻断 |
+| VM-04 新数据数值冻结与开发生成（当前只开放视角扫描） | [总协议提案](../configs/vsmt/vm04_data_protocol_proposal_v1.json)、[L1合同](../configs/vsmt/vm04_l1_contract_proposal_v1.json)、[动作对称合同](../configs/vsmt/vm04_l1_action_symmetry_v1.json)、[v2两房视角合同](../configs/vsmt/vm04_l1_two_house_audit_proposal_v2.json)及[隔离环境](../configs/vsmt/vm04_l1_environment_v1.json)；固定两间ProcTHOR house、匿名物理mask与D=1.0 m空间去重 | D-162纯扫描已完成：合同252/252、两个family各18/18、0 episode，公开[报告](../results/vsmt_vm04_viewpoint_scan_v1.json)与摘要已验收；top-1仍重复10/11项。旧stage封存，generate/private、train/validation/confirmation继续阻断 |
 | VM-05 公平训练与 validation | 数据验收；冻结各方法阈值、学习预算、停止规则、共同/完整任务指标；VSMT/DRCR/NECS做梯度训练，TAF/ELU/WFR/LOW/PHR只做有限配置选择 | 五个主臂在 L2 完全同前端输入主评；L1只作机制上界；确认前锁定全部选择；所有独立服务器单元采用容量允许的最大安全worker且不设墙钟强杀 |
 | VM-06 独立确认与论文证据 | 模型、前端、候选、评分和最小效果门冻结后另行授权 | 未见家族 confirmation、必要现实来源、逐类/共享能力/成本/失败报告；不能按 validation 结果改样本或门 |
 
 ### 当前指针
 
-**D-162当前指针：用户已审`feeadef`并冻结v2纯视角扫描；服务器已恢复，扫描尚未运行。** [v2合同](../configs/vsmt/vm04_l1_two_house_audit_proposal_v2.json)固定`D=1.0 m`三维pose间距、每可达位置最多一个yaw、公开物理mask资格门；目标集合互异和额外质量底线均不设硬门，只报告重复与支持分布。运行前只读确认仓库实际路径、planning/source摘要及当时CPU/RAM/GPU/数据盘资源，再在受审同一提交上运行`contracts → viewpoint-scan → viewpoint-scan-export`；扫描只触及原两间固定house，两个family worker并行，产生0 episode、0干预、0训练，报告公开位置范围与private top-2统计摘要。旧v1合同、原stage及失败不动；v2 `generation_authorized=false`、`private_audit_authorized=false`，扫描报告验收后再审是否开放生成，train/validation/confirmation继续关闭。
+**D-162当前指针：v2固定两房、D=1.0 m纯视角扫描已完成，完整生成仍关闭。** 受审`67099f2`合同252/252、两个family各选18个、0 episode；[报告](../results/vsmt_vm04_viewpoint_scan_v1.json)SHA-256=`575d34d0…089f32`并已本地复算。原前18在两房都来自18个位置，反驳“全在小簇”的推断，但原最小两两距离均0.25 m；空间去重提升间距和双目标集合多样性，单目标top-1仍重复10/11次。输入为原两间house和公开物理mask规则，输出仅是位置/支持与私有目标的匿名汇总；这不是episode、记忆地图、事务候选或训练结果。旧v1合同、原stage及20个失败不动，v2 `generation_authorized=false`、`private_audit_authorized=false`，train/validation/confirmation继续关闭。下一步需审重复目标与动作能力诊断的科学含义，再决定是否另行批准生成；不按扫描结果自动改D、换house或放开失败门。
 
-**D-163运维修复待服务器合同检查。** 服务器已经恢复；实际代码仓库为`/root/Emboddied_Spatial_Memory`，来源checkout与原planning stage均通过只读发现，原主checkout的未跟踪旧审计报告未覆盖；另建干净独立worktree同步扫描分支。正式合同测试将三个独立组按资源预检并行，固定顺序合并，scan-only仍为下一计算步。同步新运维修复后先取得当前HEAD和合同marker；只有合同成功且当时资源仍安全才运行固定两house扫描，报告验收前不运行generate。
+**D-163运维修复已获服务器合同回执。** 实际代码仓库为`/root/Emboddied_Spatial_Memory`，来源checkout与原planning stage经只读发现，原主checkout的未跟踪旧审计报告未覆盖；独立干净worktree在`67099f2`运行三组并行合同测试，requested/actual均3、全部退出0，按executor 42→L1 31→VSMT 179固定顺序合并。正式scan requested/actual均2、全部退出0、679.7秒；输出目录和worker回执留在数据盘。报告导出到审查分支，完整生成及下游步骤均未启动。
 
 VM-05同时只做readiness准备：D-157区分VSMT/DRCR/NECS梯度训练与TAF/ELU/WFR/LOW/PHR有限配置选择，正式架构、网格、训练步数和seed仍须等失败归因与数据覆盖审查后冻结；当前不得启动训练或validation效果运行。
 
