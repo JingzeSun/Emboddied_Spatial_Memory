@@ -1714,3 +1714,11 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - D-154实现提交`8a0afcdab4752e7032e9faaa07c553a1769c1411`本地固定入口通过executor 42、L1 31、VSMT 135，共208/208；服务器只读模拟器探针确认`train:004270`和`train:008243`转换后分别创建223和136个对象，source未回写。
 - 同一探针发现Controller仍保留创建house前的agent坐标，直接`GetReachablePositions`越界；先按house `metadata.agent`执行成功的`TeleportFull`后，首房匿名mask支持为21个/48,757像素，可达点查询成功并返回1299项。因此场景和匿名视觉数据实际存在，剩余故障是查询bootstrap而非选房或对象缺失。
 - 白话：房屋已建成，但导航查询的起点还在屋外旧坐标。输入房屋自带agent pose，输出一个有效的寻路起点和可达点集合；这不是最终选定相机位姿，也没有按事务结果选择样本。D-155实现后才创建新正式stage。
+
+## LOG-152：VM-04封存结果的20个失败slot归因（2026-09-15）
+
+- D-158批准后只读审计封存stage `vsmt-vm04-two-house-audit-v1-53d47367c7b3`：20个失败均有独立 `raw.failure.json`，没有缺失或未登记slot。失败按固定两个family各出现一组对应任务，均为两个replicate，不是worker丢失或磁盘拷贝损坏。
+- 失败类型共三类：`setup intervention failed` 6个（BIRTH/REPLACE，及两family分布）；`intervention failed at frame 16` 4个（REACTIVATE）；`intervention failed at frame 22` 6个（RETRACT/REPLACE）；`RELINK target lacks an initial position` 4个（RELINK）。原始记录只保存错误类别，不包含完整私有异常，符合private错误隔离合同。
+- 失败发生在raw episode生成期间，随后只被materialize登记为`raw_generation_failed`；未进入public候选seal、teacher或方法评估。16个完整episode仅覆盖NOOP、BIND、SPLIT、MERGE，因此不能把失败归因于candidate miss或模型效果。
+- 静态代码对应关系为：setup调用`DisableObject`，frame 16对REACTIVATE调用`DisableObject`，frame 22对RETRACT/REPLACE调用`DisableObject`，RELINK在frame 24读取初始对象position后执行`TeleportObject`。因此下一修复提案应先用新stage做逐动作 simulator probe，区分动作失败、对象状态/可移动性约束和初始metadata缺失；当前证据不足以授权修改动作语义或重生成。
+- 白话：这次审计解决“20个失败是不是随机丢数据”的问题。输入是每个slot的失败回执和对应固定程序，输出是按动作阶段归类的失败清单；例如RELINK失败集中在目标没有初始位置，不能直接说是候选生成失败。它不等于已经找到可行修复，也不等于允许补样或训练。
