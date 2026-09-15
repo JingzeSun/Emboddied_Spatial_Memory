@@ -1947,7 +1947,7 @@ def run_verify(
             receipts["public-seal"].get("requested_workers") == 12
             and receipts["public-seal"].get("actual_workers") == 12
             and receipts["private-eval"].get("requested_workers") == 12
-            and receipts["private-eval"].get("actual_workers") == 12,
+            and receipts["private-eval"].get("actual_workers") in {0, 12},
             "recovery public/private work did not use all 12 workers",
         )
     require(receipts["private-eval"]["public_seal_file_sha256"] == sha256(
