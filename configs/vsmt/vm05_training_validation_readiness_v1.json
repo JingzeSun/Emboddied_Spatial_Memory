@@ -30,6 +30,7 @@
       "optimizer": null,
       "training_steps": null,
       "seed_count": null,
+      "maximum_complete_configurations_per_method": 12,
       "blocking_reason": "freeze_after_VM04_candidate_capacity_and_yield_audit"
     },
     "deterministic_mechanism_adapters": {
@@ -51,6 +52,7 @@
       ],
       "requires_gradient_training": false,
       "requires_finite_train_validation_configuration_selection": true,
+      "maximum_complete_configurations_per_method": 12,
       "decision_formula": null,
       "blocking_reason": "freeze_positive_negative_examples_and_S01_to_S12_consistent_formula"
     }
@@ -81,6 +83,7 @@
     "same_validation_families": true,
     "same_frozen_primary_selection_metric": true,
     "maximum_complete_configurations_per_primary_method": 12,
+    "maximum_complete_configurations_per_internal_control": 12,
     "unused_trials_need_not_be_spent": true,
     "failed_configuration_counts_against_cap_unless_infrastructure_failure": true,
     "confirmation_may_not_select_or_change_any_value": true,

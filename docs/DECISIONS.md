@@ -1574,6 +1574,7 @@
 
 - 日期：2026-09-15；状态：readiness protocol only, training and validation effects blocked。用户要求在D-156 public seal运行期间完善VM-05，并核查TAF、ELU、WFR三个论文方法究竟需要训练模型还是只采用机制；随后明确服务器任务不再限制运行时长。当前先固定职责分类和执行边界，不从尚未完成的D-144审计猜网络、网格、步数或seed。
 - 来源复核显示，ConceptGraphs、Fusion++/Dengler及Khronos完整系统可依赖SAM、Grounding DINO、Mask/Faster R-CNN或外部语义分割等预训练感知，但本项目采用的多视角阈值关联/融合、存在证据更新、窗口片段/全局协调属于算法机制。TAF、ELU、WFR和朴素LOW因此不做梯度训练，只在共同train/validation内从预登记有限配置选择；不能称官方模型复现。共享DINOv2与L1/L2前端冻结且五主臂逐字节一致，不能把上游私有感知模型带入某一对照。
-- 真正做梯度训练的是VSMT在线候选排序器及同架构DRCR、NECS两项因果消融；PHR是无学习公开启发式控制。三学习臂的架构、优化器、步数、seed数和五个确定性方法的有限网格当前保持null，须绑定VM-04完整审计、train/validation family、S-01～S-12选择语义及逐版本模板归属后另行冻结。每个主方法仍最多12个完整配置选择机会；没有梯度不等于没有选参。
+- 真正做梯度训练的是VSMT在线候选排序器及同架构DRCR、NECS两项因果消融；PHR是无学习公开启发式控制。三学习臂的架构、优化器、步数、seed数和五个确定性方法的有限网格当前保持null，须绑定VM-04完整审计、train/validation family、S-01～S-12选择语义及逐版本模板归属后另行冻结。每个VSMT/TAF/ELU/WFR/LOW主臂及DRCR/NECS/PHR内部对照各自最多12个完整配置选择机会；没有梯度不等于没有选参，内部消融也不得获得无界搜索预算。
+- Claude复审指出首版readiness验证器浅拷贝、缺少显式键/冻结清单检查、未消费status、授权成功路径不可达及论文方法集合依赖LOW排序；这些均属于契约强度缺口，不改变上述科学分类。修订要求深克隆返回、顶层及关键嵌套键显式存在、前置/禁止清单逐项相等、单列TAF/ELU/WFR论文机制集合，并把当前planned-null状态与未来`frozen_executable`状态条件化验证。Dengler检测器表述已按其论文III-A核实为TensorFlow预训练Faster R-CNN，可保留具体架构名。
 - VM-05所有服务器特征物化、配置搜索、训练和validation，只要有至少两个独立任务就先实测单任务CPU/RAM/VRAM/I/O，再采用最大安全worker数；GPU显存允许时并发独立learner，否则每个单learner仍使用多个数据worker。有效任务不设墙钟超时，资源安全只防RAM/VRAM溢出和磁盘写满；科学预算由固定样本、配置数、更新步数、seed及停止规则界定。输出必须记录worker分片、退出、产物摘要和与完成顺序无关的规范合并。
 - [机器readiness合同](../configs/vsmt/vm05_training_validation_readiness_v1.json)当前`training_authorized=false`、`validation_effect_authorized=false`、`confirmation_authorized=false`。白话：输入是本轮已知的方法性质和资源规则，输出是以后实现/运行不能混淆的任务清单；例如ELU跑12组阈值是调参，不会产生ELU checkpoint。它不等于VM-05已经能跑，也不允许抢在D-144结果前选有利网格。
