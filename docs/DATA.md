@@ -139,6 +139,8 @@ VM-04的目标来源诊断新增仅供可信私有生成器使用的`author_asse
 
 每条未来private `slot_XX.json`的`actions`同时保存32个注册相机动作的诊断和`target_poststate`；已注册Disable但未注册Enable时若目标mask提前重现，写`disabled_target_reappeared_between_actions`，终态从frame31事件读取。例如隐藏挂画后frame0重现，private留下原槽相机事件的196像素mask支持，public只计一次状态，不导出真实ID或逐帧mask。当前这些仍是输出字段设计，没有生成文件。
 
+D-168活动合同仅对固定两房动作探针开放：v3目标边界的`status=frozen_target_probe_only/target_capability_probe_authorized=true`及D-167探针的`status=frozen_probe_only/probe_execution_authorized=true`相互绑定；探针额外登记用户审过的实现commit `fe8b725b4b8617b7795ef916ec92d874c901233c`和活动v3文件SHA-256=`7d11335be9a8b85cc26dd1c2058c36f71c93d9db0cef4f33fdda2ec7cfa6dbac`。两份配置的`generation_authorized=false/training_authorized=false`未变。输入仍是原扫描/计划/house和真实当前动作事件，输出待运行的private逐槽动作诊断及只含匿名计数的公开探针报告。例如原槽干预失败保留动作错误码于private，公开只增加一次相应失败状态；它不等于新RGB-D episode或记忆正例，当前尚无新动作产物。
+
 匿名区域规范顺序为`structure_kind → row-major首个真像素 → 可见像素数 → binary mask SHA-256`，之后才赋`region:0000...`；mask摘要只覆盖`[height,width,row-major 0/1值]`的canonical JSON。输入mask枚举顺序任意，输出顺序和字节必须相同。例如一把椅子在画面左缘仍有220像素时保留，只有150像素时按支持不足拒绝。它不按instance ID、对象类别、文件路径或reference排序，也不把触边可见部分补成完整物体。
 
 DINO输入固定为224×224当前RGB；uint8除255后按均值`[0.485,0.456,0.406]`、标准差`[0.229,0.224,0.225]`归一化，不裁剪、不增强。ViT-S/14产生16×16×384 patch token；每个token权重等于对应14×14块中mask像素比例，按权重求均值并L2归一化为384维float32。区域总patch权重至少1.0，落盘float32向量的单位范数误差不超过`1e-5`，否则保留失败且不重采样。输入同一RGB和匿名mask，输出一次缓存、五方法逐字节共享的descriptor。例如半个patch权重0.5，单独不能通过。它不使用CLS/register token、不训练DINO，也没有方法私有视觉adapter。
