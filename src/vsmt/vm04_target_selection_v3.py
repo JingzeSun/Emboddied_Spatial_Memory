@@ -7,17 +7,13 @@ from typing import Any, Mapping
 
 from cpmt.hashing import canonical_json
 
+from .vm04_target_contract import validate_target_boundary_proposal
 from .vm04_target_eligibility import asset_target_profiles
 
 
-LIFECYCLE_PROGRAMS = frozenset({"BIRTH", "REACTIVATE", "RETRACT", "REPLACE"})
-TWO_TARGET_PROGRAMS = frozenset({"REPLACE"})
-PHYSICAL_INTERVENTION_PROGRAMS = LIFECYCLE_PROGRAMS | {"RELINK"}
-MINIMUM_MASK_PIXELS = 196
-
-
 def rank_visible_assets_by_geometry(
-    instance_masks: Mapping[str, Any], authored_ids: frozenset[str],
+    instance_masks: Mapping[str, Any], authored_ids: frozenset[str], *,
+    minimum_mask_pixels: int,
 ) -> list[str]:
     """Use mask geometry only; refuse indistinguishable ties instead of ID sort."""
     keys: dict[tuple[int, int, str], str] = {}
@@ -45,7 +41,7 @@ def rank_visible_assets_by_geometry(
                 else:
                     raise ValueError("asset mask contains nonbinary pixels")
         support = sum(flat)
-        if support < MINIMUM_MASK_PIXELS:
+        if support < minimum_mask_pixels:
             continue
         first = flat.index(1)
         digest = hashlib.sha256(
@@ -62,40 +58,35 @@ def select_private_targets_at_fixed_pose(
     program: str, instance_masks: Mapping[str, Any],
     current_metadata_objects: Mapping[str, Mapping[str, Any]],
     authored_ids: frozenset[str], *,
-    static_authored_asset_lifecycle_policy: str,
-    relink_requires_moveable_or_pickupable: bool,
+    contract: Mapping[str, Any],
 ) -> list[str]:
     """Filter the frozen geometry order in private construction; never choose pose.
 
-    The policy parameters must be explicitly frozen by the user before a
-    simulator probe or episode calls this function. A shortage is a hard
-    construction failure for the original fixed slot.
+    The validated contract is the only source for eligibility/program values.
+    This pure function does not authorize a simulator probe or generation.
+    A shortage is a hard construction failure for the original fixed slot.
     """
-    if program not in PHYSICAL_INTERVENTION_PROGRAMS:
+    policy = validate_target_boundary_proposal(contract)
+    if policy["status"] not in ("approved_semantics_implementation_only",
+                                "frozen_target_probe_only"):
+        raise ValueError("v3 target semantics have not been approved")
+    if program not in policy["physical_intervention_programs"]:
         raise ValueError("program has no physical intervention target")
-    if static_authored_asset_lifecycle_policy not in (
-        "allow_visibility_lifecycle_if_simulator_action_and_poststate_verified",
-        "exclude_static_assets_from_physical_lifecycle_targets",
-    ):
-        raise ValueError("static authored-asset lifecycle policy is unresolved")
-    if relink_requires_moveable_or_pickupable is not True:
-        raise ValueError("physical RELINK requires explicit movable-asset gate")
     # The trusted author/metadata/finite-position intersection precedes rank.
     eligible = asset_target_profiles(list(instance_masks),
                                      current_metadata_objects, authored_ids)[
                                          "authored_asset"]
     ranked_visible_ids = rank_visible_assets_by_geometry(
-        instance_masks, frozenset(eligible))
+        instance_masks, frozenset(eligible),
+        minimum_mask_pixels=policy["minimum_mask_pixels"])
     profiles = asset_target_profiles(ranked_visible_ids,
                                      current_metadata_objects, authored_ids)
-    if program == "RELINK" or (program in LIFECYCLE_PROGRAMS and
-        static_authored_asset_lifecycle_policy ==
-            "exclude_static_assets_from_physical_lifecycle_targets"
-    ):
+    if program == "RELINK":
         qualified = profiles["movable_asset"]
     else:
         qualified = profiles["authored_asset"]
-    required = 2 if program in TWO_TARGET_PROGRAMS else 1
+    required = (policy["minimum_qualified_visible_assets_for_replace"]
+                if program == "REPLACE" else 1)
     if len(qualified) < required:
         raise ValueError("original fixed slot has insufficient qualified assets")
     return qualified[:required]
