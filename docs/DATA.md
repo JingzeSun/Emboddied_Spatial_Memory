@@ -915,3 +915,10 @@ D-111的`spatial-history-r4-pessimistic-map-v1`不再是正式输入schema。新
 新版本只读取原v1两房动作探针private四个RELINK槽、v2匿名视角扫描的对应私有top-2、两份固定house JSON、D-172碰撞归因匿名报告及各receipt/摘要；源文件字节不修改。每槽独立新controller在`private/<family>/slot_NN.json`保存原请求、只把`forceAction`改false的请求、模拟器错误原文、目标真实position即时与后8帧终态，以及是否碰撞拒绝/真实到点/仍运动。公开`results/vsmt_vm04_relink_endpoint_two_house_probe_v1.json`只保存family×状态计数、worker/资源/来源摘要和`private_ids_exported=false`；错误原文、真实object ID、类别、pose与house细节不得进入公开报告或部署输入。`episodes_generated=0/training_steps=0/memory_history_checked=false/semantic_positive_labels_issued=0`是边界字段。
 
 白话：解决“看四个原RELINK动作能否按真实端点成立，却不能把物体私有身份泄漏到研究公开数据”的问题。输入是四个旧槽的封存请求和house，输出是四份仅私有的详细诊断及一份匿名状态表。例如某family两槽一槽碰撞拒绝、一槽真实到点，公开只出现两个状态各1，物体名字和碰撞对象仅留private。它不是36条新episode、训练标签、机器人可达路径证明或记忆关系前后核验。
+### VM-04真实交互能力探针提案字段（D-174，未执行）
+
+`configs/vsmt/vm04_relink_interaction_probe_proposal_v1.json`只登记原两房/四槽的来源receipt和报告SHA-256、固定视角/目标/相机前缀、匿名区域+公开可达格路线来源、不强制`PickupObject/PutObject/PushObject/PullObject`及public/private边界；`probe_authorized/generation_authorized/training_authorized=false`。`receptacle_target_source`、公开类型化容器读取器验证摘要、锁定模拟器`PutObject` API smoke摘要、私有动作runner摘要、推拉固定力档、抓取`manualInteract`、放置`placeStationary`和机器人位置容差均为null，验证器在待审态强制保持null。纯路线计划仅有公开路径点和匿名区域中心，不含object ID、真实asset pose、私有容器ID、动作结果或记忆标签。
+
+拟议future private branch文件逐步登记原slot/分支/力档、请求和实际机器人位姿、资产实际position/`isMoving/isPickedUp`、父容器、`lastActionSuccess/errorMessage/errorCode`及完整失败；public exporter只汇总family×模式×失败阶段×力档计数、来源摘要、requested/actual workers及资源/退出，`private_ids_exported=false`。任何结果不得按成功方向、力值、容器、房或目标替换原槽；零位移也在分母。每个分支fresh controller，独立工作单元数在力档冻结后由原能力模式确定，实际并发由开机时安全资源测量决定。本提案未产生future branch文件、episode或训练数组。
+
+白话：例如原两房四槽里三件仅可移动资产会分成各自推/拉测试，一件可拾取资产会分成抓/放测试；私有文件保存每次动作的真实细节，公开文件只说每类失败多少。这样能判断“机器人没走到、互动被拒绝、东西没动、关系没变”哪层缺证据。它不是现在已经做完的物理互动实验，也不是公开模型能凭私有身份选目标的接口。
