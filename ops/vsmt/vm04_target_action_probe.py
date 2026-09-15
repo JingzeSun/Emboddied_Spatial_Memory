@@ -22,12 +22,12 @@ import vm04_two_house_worker as generator  # noqa: E402
 from vsmt.two_house_audit import validate_episode_plans  # noqa: E402
 from vsmt.vm04_target_contract import validate_target_boundary_proposal  # noqa: E402
 
-CONFIG_PATH = ROOT / "configs/vsmt/vm04_target_action_probe_proposal_v1.json"
+CONFIG_PATH = ROOT / "configs/vsmt/vm04_target_action_probe_proposal_v2.json"
 TARGET_CONTRACT_PATH = ROOT / "configs/vsmt/vm04_target_boundary_proposal_v3.json"
 SCAN_REPORT_PATH = ROOT / "results/vsmt_vm04_viewpoint_scan_v1.json"
-EXPORT_PATH = ROOT / "results/vsmt_vm04_target_action_probe_v1.json"
+EXPORT_PATH = ROOT / "results/vsmt_vm04_target_action_probe_v2.json"
 BOUND_FILES = (
-    "configs/vsmt/vm04_target_action_probe_proposal_v1.json",
+    "configs/vsmt/vm04_target_action_probe_proposal_v2.json",
     "configs/vsmt/vm04_target_boundary_proposal_v3.json",
     "ops/vsmt/vm04_target_action_probe.py",
     "ops/vsmt/vm04_target_action_probe_worker.py",
@@ -72,7 +72,7 @@ def require(test, message):
 def load_config():
     value = audit.read_json(CONFIG_PATH)
     target = validate_target_boundary_proposal(audit.read_json(TARGET_CONTRACT_PATH))
-    require(value.get("version") == "vsmt-vm04-v3-target-action-probe-proposal-v1",
+    require(value.get("version") == "vsmt-vm04-v3-target-action-probe-proposal-v2",
             "wrong v3 target-probe version")
     require(value["v3_target_contract_sha256"] == audit.sha256(TARGET_CONTRACT_PATH),
             "v3 target contract digest changed")
@@ -108,6 +108,8 @@ def load_config():
         ("single_worker_resource_benchmark",
          "family00_slot00_scene_create_and_teleport_only_before_two_family_dispatch"),
         ("minimum_memory_headroom_to_peak_rss_ratio_for_two_workers", 4.0),
+        ("minimum_memory_headroom_to_sampled_cgroup_demand_ratio_for_two_workers", 4.0),
+        ("resource_benchmark_sample_interval_seconds", 0.25),
         ("minimum_gpu_headroom_to_measured_peak_ratio_for_two_workers", 2.0),
     ):
         require(type(value.get(key)) is type(expected) and value[key] == expected,
@@ -119,8 +121,9 @@ def load_config():
     if value["status"] == "implementation_only_not_executable":
         require(value["probe_execution_authorized"] is False and
                 value["expected_reviewed_probe_code"] is None and
-                target["status"] == "approved_semantics_implementation_only" and
-                target["target_capability_probe_authorized"] is False,
+                target["status"] == "frozen_target_probe_only" and
+                target["target_capability_probe_authorized"] is True and
+                target["generation_authorized"] is False,
                 "implementation-only v3 probe has an executable field")
     elif value["status"] == "frozen_probe_only":
         require(value["probe_execution_authorized"] is True and
@@ -326,10 +329,52 @@ def safe_visible_cpu_count():
 
 
 def memory_sufficient_for_two_workers(peak_rss_kib, headroom_bytes, ratio):
-    """Use measured one-worker RSS plus a preregistered safety multiple."""
+    """Auxiliary Python RSS gate; the cgroup gate also covers simulator children."""
     return (type(peak_rss_kib) is int and peak_rss_kib > 0 and
             type(headroom_bytes) is int and
             headroom_bytes >= peak_rss_kib * 1024 * ratio)
+
+
+def sampled_cgroup_demand_sufficient(baseline_headroom_bytes,
+                                      minimum_headroom_bytes,
+                                      dispatch_headroom_bytes, ratio):
+    """Fail closed unless sampled descendant-inclusive demand fits at dispatch."""
+    if not (all(type(value) is int and value > 0 for value in (
+            baseline_headroom_bytes, minimum_headroom_bytes,
+            dispatch_headroom_bytes)) and type(ratio) is float and ratio >= 1):
+        return False, 0
+    demand = max(0, baseline_headroom_bytes - minimum_headroom_bytes)
+    return demand > 0 and dispatch_headroom_bytes >= ratio * demand, demand
+
+
+def validate_cgroup_trace(trace, evidence):
+    """Recompute the sampled summary from the private trace before export."""
+    samples = trace["samples"]
+    running_gap = max((right["elapsed_seconds"] - left["elapsed_seconds"]
+                       for left, right in zip(samples, samples[1:-1])),
+                      default=0.0)
+    require(len(samples) >= 3 and samples[0]["phase"] == "baseline" and
+            samples[-1]["phase"] == "after_benchmark" and
+            all(sample["phase"] == "running" for sample in samples[1:-1]) and
+            all(type(sample["headroom_bytes"]) is int and
+                sample["headroom_bytes"] > 0 and
+                type(sample["elapsed_seconds"]) in (float, int)
+                for sample in samples) and
+            all(left["elapsed_seconds"] <= right["elapsed_seconds"]
+                for left, right in zip(samples, samples[1:])) and
+            samples[0]["headroom_bytes"] ==
+                evidence["pre_benchmark_cgroup_memory_headroom_bytes"] and
+            samples[-1]["headroom_bytes"] ==
+                evidence["post_benchmark_cgroup_memory_headroom_bytes"] and
+            min(sample["headroom_bytes"] for sample in samples) ==
+                evidence["benchmark_min_cgroup_memory_headroom_bytes"] and
+            len(samples) - 2 == trace["running_sample_count"] ==
+                evidence["benchmark_cgroup_sample_count"] and
+            trace["maximum_running_sample_gap_seconds"] ==
+                evidence["benchmark_maximum_cgroup_sample_gap_seconds"] and
+            abs(running_gap - trace[
+                "maximum_running_sample_gap_seconds"]) < 0.000001,
+            "v3 private cgroup trace/summary changed")
 
 
 def check(reviewed_code, output_root):
@@ -342,7 +387,7 @@ def check(reviewed_code, output_root):
     require(cpus >= 3 and memory is not None and memory >= 4294967296 and
             disk >= 1073741824,
             "v3 pure check lacks three safe independent test workers")
-    stage = output_root.resolve() / ("vsmt-vm04-v3-target-probe-check-v1-" +
+    stage = output_root.resolve() / ("vsmt-vm04-v3-target-probe-check-v2-" +
                                    reviewed_code[:12])
     require(not stage.exists(), "v3 check stage exists: preserve it")
     stage.mkdir(parents=True)
@@ -378,7 +423,7 @@ def check(reviewed_code, output_root):
                    for row in exits))
     receipt_path = stage / "check.receipt.json"
     audit.write_new_json(receipt_path, {
-        "schema_version": "vsmt-vm04-v3-target-probe-check-receipt-v1",
+        "schema_version": "vsmt-vm04-v3-target-probe-check-receipt-v2",
         "reviewed_code": reviewed_code, "bound_sha256": bindings,
         "config_status": config["status"],
         "requested_workers": len(CHECK_GROUPS),
@@ -395,7 +440,7 @@ def check(reviewed_code, output_root):
     })
     if success:
         audit.write_new_json(stage / "check.success.json", {
-            "schema_version": "vsmt-vm04-v3-target-probe-check-success-v1",
+            "schema_version": "vsmt-vm04-v3-target-probe-check-success-v2",
             "receipt_sha256": audit.sha256(receipt_path), "success": True,
         })
     print("VM04_V3_TARGET_PROBE_CHECK_%s stage=%s workers=%s tests=%s" %
@@ -414,7 +459,7 @@ def run(reviewed_code, scan_stage, source_root, output_root):
     bindings = verify_code(reviewed_code)
     verify_reviewed_implementation(config)
     check_stage = output_root.resolve() / (
-        "vsmt-vm04-v3-target-probe-check-v1-" + reviewed_code[:12])
+        "vsmt-vm04-v3-target-probe-check-v2-" + reviewed_code[:12])
     check_receipt, _ = audit._marker(check_stage, "check")
     require(check_receipt["reviewed_code"] == reviewed_code and
             check_receipt["bound_sha256"] == bindings and
@@ -431,7 +476,7 @@ def run(reviewed_code, scan_stage, source_root, output_root):
     simulator = Path(audit.read_json(audit.ENVIRONMENT_PATH)[
         "environment_separation"]["simulator_process"]["environment_path"]) / "bin/python"
     require(simulator.is_file(), "frozen simulator Python is missing")
-    stage = output_root.resolve() / ("vsmt-vm04-v3-target-probe-v1-" +
+    stage = output_root.resolve() / ("vsmt-vm04-v3-target-probe-v2-" +
                                    reviewed_code[:12])
     require(not stage.exists(), "v3 probe stage exists: preserve it")
     stage.mkdir(parents=True)
@@ -461,6 +506,14 @@ def run(reviewed_code, scan_stage, source_root, output_root):
     benchmark_receipt_sha256 = None
     initial_gpu_free = evidence["free_gpu_bytes_by_device"]
     minimum_gpu_free = list(initial_gpu_free)
+    baseline_cgroup_headroom = evidence["cgroup_memory_headroom_bytes"]
+    minimum_cgroup_headroom = baseline_cgroup_headroom
+    cgroup_sample_count = 0
+    sample_started = time.monotonic()
+    last_sample = sample_started
+    maximum_sample_gap_seconds = 0.0
+    cgroup_samples = [{"phase": "baseline", "elapsed_seconds": 0.0,
+                       "headroom_bytes": baseline_cgroup_headroom}]
     benchmark = None
     try:
         with benchmark_log.open("x", encoding="utf-8") as handle:
@@ -470,13 +523,27 @@ def run(reviewed_code, scan_stage, source_root, output_root):
                 "--benchmark-only",
             ], stdout=handle, stderr=subprocess.STDOUT, env=environment)
         while True:
+            sampled_at = time.monotonic()
+            maximum_sample_gap_seconds = max(
+                maximum_sample_gap_seconds, sampled_at - last_sample)
+            last_sample = sampled_at
+            sampled_memory = audit._cgroup_memory_headroom_bytes()
+            require(type(sampled_memory) is int and sampled_memory > 0,
+                    "cgroup memory unavailable during simulator benchmark")
+            minimum_cgroup_headroom = min(minimum_cgroup_headroom,
+                                          sampled_memory)
+            cgroup_sample_count += 1
+            cgroup_samples.append({"phase": "running",
+                                   "elapsed_seconds": sampled_at - sample_started,
+                                   "headroom_bytes": sampled_memory})
             sample = gpu_free_bytes_by_device()
             require(len(sample) == len(minimum_gpu_free),
                     "visible GPU inventory changed during benchmark")
             minimum_gpu_free = [min(old, new) for old, new in
                                 zip(minimum_gpu_free, sample)]
             try:
-                benchmark_exit = benchmark.wait(timeout=0.25)
+                benchmark_exit = benchmark.wait(timeout=config[
+                    "resource_benchmark_sample_interval_seconds"])
                 break
             except subprocess.TimeoutExpired:
                 continue
@@ -498,6 +565,18 @@ def run(reviewed_code, scan_stage, source_root, output_root):
                 benchmark_result = audit.read_json(benchmark_path)
                 peak_kib = benchmark_result["single_worker_peak_RSS_kib"]
                 fresh_memory = audit._cgroup_memory_headroom_bytes()
+                require(type(fresh_memory) is int and fresh_memory > 0,
+                        "cgroup memory unavailable after simulator benchmark")
+                minimum_cgroup_headroom = min(minimum_cgroup_headroom,
+                                              fresh_memory)
+                cgroup_samples.append({"phase": "after_benchmark",
+                                       "elapsed_seconds": time.monotonic() - sample_started,
+                                       "headroom_bytes": fresh_memory})
+                cgroup_safe, observed_cgroup_demand = (
+                    sampled_cgroup_demand_sufficient(
+                        baseline_cgroup_headroom, minimum_cgroup_headroom,
+                        fresh_memory, config[
+                            "minimum_memory_headroom_to_sampled_cgroup_demand_ratio_for_two_workers"]))
                 final_gpu_free = gpu_free_bytes_by_device()
                 gpu_safe, selected_gpu, observed_gpu_peak = measured_gpu_sufficient(
                     initial_gpu_free, minimum_gpu_free, final_gpu_free,
@@ -506,6 +585,16 @@ def run(reviewed_code, scan_stage, source_root, output_root):
                 evidence.update({
                     "single_worker_benchmark_peak_RSS_kib": peak_kib,
                     "post_benchmark_cgroup_memory_headroom_bytes": fresh_memory,
+                    "pre_benchmark_cgroup_memory_headroom_bytes": baseline_cgroup_headroom,
+                    "benchmark_min_cgroup_memory_headroom_bytes": minimum_cgroup_headroom,
+                    "benchmark_observed_cgroup_demand_bytes": observed_cgroup_demand,
+                    "benchmark_cgroup_sample_count": cgroup_sample_count,
+                    "benchmark_cgroup_sample_window_seconds": time.monotonic() - sample_started,
+                    "benchmark_maximum_cgroup_sample_gap_seconds": maximum_sample_gap_seconds,
+                    "benchmark_cgroup_sampling_interval_seconds": config[
+                        "resource_benchmark_sample_interval_seconds"],
+                    "minimum_memory_headroom_to_sampled_cgroup_demand_ratio": config[
+                        "minimum_memory_headroom_to_sampled_cgroup_demand_ratio_for_two_workers"],
                     "pre_benchmark_gpu_free_bytes_by_device": initial_gpu_free,
                     "benchmark_min_gpu_free_bytes_by_device": minimum_gpu_free,
                     "post_benchmark_gpu_free_bytes_by_device": final_gpu_free,
@@ -517,6 +606,7 @@ def run(reviewed_code, scan_stage, source_root, output_root):
                         config["minimum_memory_headroom_to_peak_rss_ratio_for_two_workers"],
                 })
                 if (benchmark_result["success"] is not True or not gpu_safe or
+                        not cgroup_safe or
                         not memory_sufficient_for_two_workers(
                             peak_kib, fresh_memory,
                             config["minimum_memory_headroom_to_peak_rss_ratio_for_two_workers"])):
@@ -527,6 +617,14 @@ def run(reviewed_code, scan_stage, source_root, output_root):
                         resource_evidence(config, output_root))
                     fresh_gpu = evidence["post_benchmark_resource_evidence"][
                         "free_gpu_bytes_by_device"]
+                    dispatch_memory = evidence["post_benchmark_resource_evidence"][
+                        "cgroup_memory_headroom_bytes"]
+                    dispatch_cgroup_safe, _ = sampled_cgroup_demand_sufficient(
+                        baseline_cgroup_headroom, minimum_cgroup_headroom,
+                        dispatch_memory, config[
+                            "minimum_memory_headroom_to_sampled_cgroup_demand_ratio_for_two_workers"])
+                    require(dispatch_cgroup_safe,
+                            "sampled simulator RAM lost safe headroom before dispatch")
                     require(len(fresh_gpu) == len(initial_gpu_free) and
                             fresh_gpu[selected_gpu] >= max(
                                 config["worker_policy"]["minimum_free_gpu_bytes"],
@@ -537,6 +635,14 @@ def run(reviewed_code, scan_stage, source_root, output_root):
                 dispatch_error = {"phase": "single_worker_benchmark",
                                   "error_type": type(error).__name__,
                                   "error": str(error)}
+    cgroup_samples_path = stage / "private/resource-benchmark.cgroup-samples.json"
+    audit.write_new_json(cgroup_samples_path, {
+        "schema_version": "vsmt-vm04-v3-target-probe-cgroup-samples-v2",
+        "samples": cgroup_samples,
+        "running_sample_count": cgroup_sample_count,
+        "maximum_running_sample_gap_seconds": maximum_sample_gap_seconds,
+    })
+    evidence["private_cgroup_samples_sha256"] = audit.sha256(cgroup_samples_path)
     print("VM04_V3_TARGET_PROBE_BENCHMARK exit=%s receipt=%s" %
           (benchmark_exit, benchmark_receipt_sha256 is not None), flush=True)
     if dispatch_error is None:
@@ -580,7 +686,7 @@ def run(reviewed_code, scan_stage, source_root, output_root):
                    for row in workers))
     terminal_path = stage / "probe.receipt.json"
     audit.write_new_json(terminal_path, {
-        "schema_version": "vsmt-vm04-v3-target-probe-receipt-v1",
+        "schema_version": "vsmt-vm04-v3-target-probe-receipt-v2",
         "reviewed_code": reviewed_code, "bound_sha256": bindings,
         "v3_target_contract_sha256": audit.sha256(TARGET_CONTRACT_PATH),
         "scan_receipt_sha256": audit.sha256(scan_stage / "scan.receipt.json"),
@@ -605,7 +711,7 @@ def run(reviewed_code, scan_stage, source_root, output_root):
     })
     if success:
         audit.write_new_json(stage / "probe.success.json", {
-            "schema_version": "vsmt-vm04-v3-target-probe-success-v1",
+            "schema_version": "vsmt-vm04-v3-target-probe-success-v2",
             "receipt_sha256": audit.sha256(terminal_path), "success": True,
         })
     print("VM04_V3_TARGET_PROBE_%s stage=%s workers=%s episodes=0" %
@@ -618,7 +724,7 @@ def public_report_payload(reviewed_code, receipt_sha256, receipt, rows,
     require(sum(row["count"] for row in rows) == 36,
             "v3 public probe report needs all 36 fixed slots")
     return {
-        "schema_version": "vsmt-vm04-v3-target-action-probe-public-report-v1",
+        "schema_version": "vsmt-vm04-v3-target-action-probe-public-report-v2",
         "status": "fixed_two_house_action_capability_diagnostic_only",
         "reviewed_code": reviewed_code,
         "probe_receipt_sha256": receipt_sha256,
@@ -671,7 +777,7 @@ def export(reviewed_code, stage):
             receipt["requested_workers"] == receipt["actual_workers"] == 2 and
             receipt["deterministic_merge_order"] == config["fixed_family_ids"],
             "v3 probe receipt/code/source/concurrency changed")
-    check_stage = stage.parent / ("vsmt-vm04-v3-target-probe-check-v1-" +
+    check_stage = stage.parent / ("vsmt-vm04-v3-target-probe-check-v2-" +
                                   reviewed_code[:12])
     check_receipt, _ = audit._marker(check_stage, "check")
     require(check_receipt["reviewed_code"] == reviewed_code and
@@ -688,11 +794,29 @@ def export(reviewed_code, stage):
             audit.sha256(benchmark_log) == benchmark["private_log_sha256"],
             "v3 resource benchmark receipt/log changed")
     benchmark_private = audit.read_json(benchmark_path)
+    memory_evidence = receipt["resource_evidence"]
+    samples_path = stage / "private/resource-benchmark.cgroup-samples.json"
+    require(audit.sha256(samples_path) ==
+            memory_evidence["private_cgroup_samples_sha256"],
+            "v3 private cgroup sampling trace changed")
+    trace = audit.read_json(samples_path)
+    validate_cgroup_trace(trace, memory_evidence)
+    sampled_safe, sampled_demand = sampled_cgroup_demand_sufficient(
+        memory_evidence["pre_benchmark_cgroup_memory_headroom_bytes"],
+        memory_evidence["benchmark_min_cgroup_memory_headroom_bytes"],
+        memory_evidence["post_benchmark_resource_evidence"][
+            "cgroup_memory_headroom_bytes"],
+        config["minimum_memory_headroom_to_sampled_cgroup_demand_ratio_for_two_workers"])
     require(benchmark_private["success"] is True and
             benchmark_private["external_interventions"] == 0 and
             benchmark_private["episodes_generated"] == 0 and
             benchmark_private["single_worker_peak_RSS_kib"] ==
-            receipt["resource_evidence"]["single_worker_benchmark_peak_RSS_kib"],
+            memory_evidence["single_worker_benchmark_peak_RSS_kib"] and
+            memory_evidence["benchmark_cgroup_sample_count"] > 0 and
+            memory_evidence["benchmark_cgroup_sampling_interval_seconds"] ==
+            config["resource_benchmark_sample_interval_seconds"] and
+            memory_evidence["benchmark_observed_cgroup_demand_bytes"] ==
+            sampled_demand and sampled_safe,
             "v3 resource benchmark pre-dispatch safety changed")
     aggregate = {}
     repetitions = []

@@ -20,9 +20,7 @@ class TargetActionProbeTests(unittest.TestCase):
         self.closed_config = dict(
             self.config, status="implementation_only_not_executable",
             probe_execution_authorized=False, expected_reviewed_probe_code=None)
-        self.closed_target = dict(
-            self.target, status="approved_semantics_implementation_only",
-            target_capability_probe_authorized=False)
+        self.closed_target = dict(self.target)
 
     def patched_load(self, changed):
         def read(path):
@@ -38,7 +36,7 @@ class TargetActionProbeTests(unittest.TestCase):
             self.assertEqual(config["status"],
                              "implementation_only_not_executable")
             self.assertEqual(closed_target["status"],
-                             "approved_semantics_implementation_only")
+                             "frozen_target_probe_only")
             with self.assertRaisesRegex(RuntimeError, "execution remains closed"):
                 probe.run("unused", Path("missing"), Path("missing"), Path("missing"))
             with self.assertRaisesRegex(RuntimeError, "export remains closed"):
@@ -106,6 +104,49 @@ class TargetActionProbeTests(unittest.TestCase):
             peak_kib, 8 * 1024 ** 3 - 1, 4.0))
         self.assertFalse(probe.memory_sufficient_for_two_workers(
             0, 16 * 1024 ** 3, 4.0))
+
+    def test_sampled_cgroup_gate_requires_observed_demand_and_fails_closed(self):
+        gib = 1024 ** 3
+        safe, demand = probe.sampled_cgroup_demand_sufficient(
+            20 * gib, 18 * gib, 8 * gib, 4.0)
+        self.assertTrue(safe)
+        self.assertEqual(demand, 2 * gib)
+        unsafe, demand = probe.sampled_cgroup_demand_sufficient(
+            20 * gib, 18 * gib, 8 * gib - 1, 4.0)
+        self.assertFalse(unsafe)
+        self.assertEqual(demand, 2 * gib)
+        for baseline, minimum, dispatch in (
+                (20 * gib, 20 * gib, 20 * gib),
+                (None, 18 * gib, 20 * gib),
+                (20 * gib, None, 20 * gib),
+                (20 * gib, 18 * gib, None)):
+            safe, _ = probe.sampled_cgroup_demand_sufficient(
+                baseline, minimum, dispatch, 4.0)
+            self.assertFalse(safe)
+
+    def test_private_cgroup_trace_must_match_exported_summary(self):
+        trace = {"samples": [
+            {"phase": "baseline", "elapsed_seconds": 0.0,
+             "headroom_bytes": 20},
+            {"phase": "running", "elapsed_seconds": 0.25,
+             "headroom_bytes": 18},
+            {"phase": "after_benchmark", "elapsed_seconds": 0.5,
+             "headroom_bytes": 20}],
+            "running_sample_count": 1,
+            "maximum_running_sample_gap_seconds": 0.25}
+        evidence = {
+            "pre_benchmark_cgroup_memory_headroom_bytes": 20,
+            "benchmark_min_cgroup_memory_headroom_bytes": 18,
+            "post_benchmark_cgroup_memory_headroom_bytes": 20,
+            "benchmark_cgroup_sample_count": 1,
+            "benchmark_maximum_cgroup_sample_gap_seconds": 0.25}
+        probe.validate_cgroup_trace(trace, evidence)
+        with self.assertRaisesRegex(RuntimeError, "trace/summary changed"):
+            probe.validate_cgroup_trace(trace, dict(
+                evidence, benchmark_min_cgroup_memory_headroom_bytes=19))
+        with self.assertRaisesRegex(RuntimeError, "trace/summary changed"):
+            probe.validate_cgroup_trace(dict(
+                trace, maximum_running_sample_gap_seconds=0.01), evidence)
 
     def test_sampled_gpu_demand_requires_twice_peak_and_static_headroom(self):
         gib = 1024 ** 3

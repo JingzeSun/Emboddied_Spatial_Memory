@@ -158,7 +158,7 @@ def probe_slot(house, assignment, pose, scan_top2, contract, *,
     """Probe the original slot at its frozen pose; no target or house fallback."""
     program = assignment["program"]
     result = {
-        "schema_version": "vsmt-vm04-private-target-action-probe-slot-v1",
+        "schema_version": "vsmt-vm04-private-target-action-probe-slot-v2",
         "episode_id": assignment["episode_id"], "slot": assignment["slot"],
         "program": program, "replicate": assignment["replicate"],
         "scan_top2_instance_ids": scan_top2[:2], "live_scan_top2_instance_ids": [],
@@ -238,7 +238,7 @@ def main():
     args = parser.parse_args()
     generator.require(resource is not None, "v3 probe worker requires Linux resource limits")
     contract_path = ROOT / "configs/vsmt/vm04_target_boundary_proposal_v3.json"
-    probe_config_path = ROOT / "configs/vsmt/vm04_target_action_probe_proposal_v1.json"
+    probe_config_path = ROOT / "configs/vsmt/vm04_target_action_probe_proposal_v2.json"
     contract = validate_target_boundary_proposal(generator.read_json(contract_path))
     probe_config = generator.read_json(probe_config_path)
     generator.require(contract["status"] == "frozen_target_probe_only" and
@@ -343,7 +343,7 @@ def main():
                                "error": str(error), "phase": "controller_stop"}
         path = args.probe_stage / "private/resource-benchmark.json"
         generator.write_new_json(path, {
-            "schema_version": "vsmt-vm04-v3-target-probe-resource-benchmark-v1",
+            "schema_version": "vsmt-vm04-v3-target-probe-resource-benchmark-v2",
             "family_id": family_id, "fixed_slot": 0,
             "initial_pose_diagnostic": diagnostic, "failure": failure,
             "single_worker_peak_RSS_kib":
@@ -380,7 +380,7 @@ def main():
         print("VM04_V3_TARGET_PROBE_SLOT family=%s slot=%s status=%s" %
               (family_id, slot, result["status"]), flush=True)
     generator.write_new_json(family_root / "private/worker.receipt.json", {
-        "schema_version": "vsmt-vm04-v3-target-probe-family-worker-receipt-v1",
+        "schema_version": "vsmt-vm04-v3-target-probe-family-worker-receipt-v2",
         "family_id": family_id, "source_house_id": house_id,
         "v3_target_contract_sha256": generator.sha256(contract_path),
         "scan_family_worker_receipt_sha256": generator.sha256(
