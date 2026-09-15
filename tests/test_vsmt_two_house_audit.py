@@ -33,6 +33,9 @@ from vsmt.two_house_audit import (  # noqa: E402
 CONFIG_PATH = (
     PROJECT_ROOT / "configs" / "vsmt" / "vm04_l1_two_house_audit_proposal_v1.json"
 )
+V2_CONFIG_PATH = (
+    PROJECT_ROOT / "configs" / "vsmt" / "vm04_l1_two_house_audit_proposal_v2.json"
+)
 
 
 def config() -> dict:
@@ -98,6 +101,23 @@ def public_rows(public_plan: dict) -> list[dict]:
 
 
 class TwoHouseAuditContractTests(unittest.TestCase):
+    def test_v1_and_v2_viewpoint_contracts_are_distinct(self) -> None:
+        old = validate_two_house_config(config())
+        new = validate_two_house_config(json.loads(V2_CONFIG_PATH.read_text()))
+        self.assertTrue(old["generator_initial_viewpoint"][
+            "reuse_frozen_pose_for_all_family_slots"
+        ])
+        self.assertFalse(new["generator_initial_viewpoint"][
+            "reuse_frozen_pose_for_all_family_slots"
+        ])
+        self.assertFalse(new["generation_authorized"])
+        changed = deepcopy(new)
+        changed["generator_initial_viewpoint"]["selection_rule"] = old[
+            "generator_initial_viewpoint"
+        ]["selection_rule"]
+        with self.assertRaisesRegex(ValueError, "v2 viewpoint rule changed"):
+            validate_two_house_config(changed)
+
     def test_frozen_config_opens_registered_audit_pipeline(self) -> None:
         value = validate_two_house_config(config())
         self.assertEqual(value["status"], "generation_executable")

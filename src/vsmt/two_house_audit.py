@@ -54,9 +54,14 @@ def _hex64(value: Any, name: str) -> str:
 
 
 def validate_two_house_config(config: Mapping[str, Any]) -> dict[str, Any]:
-    """Validate the frozen D-148 audit values without authorizing a run."""
+    """Validate v1 unchanged and the proposed slot-viewpoint v2 separately."""
 
     record = clone_json(dict(config))
+    _require(record.get("version") in {
+        "vsmt-vm04-l1-two-house-audit-proposal-v1",
+        "vsmt-vm04-l1-two-house-audit-proposal-v2",
+    }, "two-house config version is unknown")
+    slot_viewpoint_v2 = record["version"].endswith("-v2")
     required = {
         "version", "status", "decision", "engineering_baseline_reviewed_code",
         "engineering_receipt_sha256", "engineering_baseline_blocking_reason",
@@ -125,13 +130,36 @@ def validate_two_house_config(config: Mapping[str, Any]) -> dict[str, Any]:
     _require(viewpoint["minimum_anonymous_mask_pixels"] == 196
              and viewpoint["minimum_eligible_anonymous_masks"] == 2,
              "generator anonymous visibility threshold changed")
-    _require(viewpoint["selection_rule"] == (
-        "maximize_eligible_mask_count_then_total_eligible_pixels_then_"
-        "lexicographic_x_y_z_yaw"
-    ), "generator initial viewpoint selection rule changed")
-    _require(viewpoint["search_once_per_house_family"] is True
-             and viewpoint["reuse_frozen_pose_for_all_family_slots"] is True,
-             "generator viewpoint must be frozen once per family")
+    if slot_viewpoint_v2:
+        _require({
+            "family_ranked_physical_viewpoints_and_sha256",
+            "slot_rank_index_pose_and_viewpoint_receipt_sha256",
+            "private_capability_and_failed_intervention_diagnostic_sha256",
+        } <= set(record["required_receipts"]),
+                 "v2 viewpoint/diagnostic receipts are missing")
+        _require(viewpoint["selection_rule"] ==
+                 "rank_physical_object_mask_support_then_pose_slot_index",
+                 "v2 viewpoint rule changed")
+        _require(viewpoint["search_once_per_house_family"] is True
+                 and viewpoint["reuse_frozen_pose_for_all_family_slots"] is False
+                 and viewpoint["slot_pose_rule"] == "rank_index_equals_zero_based_slot"
+                 and viewpoint["insufficient_ranked_poses"] ==
+                 "fail_fixed_slot_without_wraparound_or_house_replacement"
+                 and viewpoint["physical_object_filter"] ==
+                 "instance_masks_intersection_metadata_objects"
+                 and viewpoint["minimum_eligible_mask_semantics"] ==
+                 "physical_objects_only"
+                 and viewpoint["unique_target_sets_required"] is None
+                 and viewpoint["additional_quality_floor"] is None,
+                 "v2 slot-viewpoint contract changed")
+    else:
+        _require(viewpoint["selection_rule"] == (
+            "maximize_eligible_mask_count_then_total_eligible_pixels_then_"
+            "lexicographic_x_y_z_yaw"
+        ), "generator initial viewpoint selection rule changed")
+        _require(viewpoint["search_once_per_house_family"] is True
+                 and viewpoint["reuse_frozen_pose_for_all_family_slots"] is True,
+                 "generator viewpoint must be frozen once per family")
     _require(viewpoint["private_instance_id_or_class_may_affect_pose"] is False
              and viewpoint["future_or_program_result_may_affect_pose"] is False
              and viewpoint["failed_search_replacement_house_allowed"] is False,

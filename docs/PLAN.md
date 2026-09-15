@@ -22,7 +22,7 @@
 
 ### 当前指针
 
-**D-159当前指针：旧VM-04结果封存；新stage已获实现授权但尚未服务器运行。** 事务语义保持冻结；新stage先实现并测试`instance_masks ∩ metadata.objects`物理目标过滤、slot级独立确定性视角、动作能力审计和细化失败诊断。旧stage固定为`vsmt-vm04-two-house-audit-v1-53d47367c7b3`，不得覆盖；服务器不可达或新stage合同未完成前不得生成新数据。训练/validation/confirmation继续关闭。
+**D-160当前指针：旧VM-04结果封存；v2修复代码与合同已在本地形成，等待用户代码审查和slot质量口径裁决，服务器尚未运行。** 新worker每family仅扫一次公开可达pose，按物理对象mask数/像素和坐标排序，slot `k`取第`k`项；不足时固定slot失败，禁止回绕或换house。失败动作诊断留在private并进入摘要链；[v2合同](../configs/vsmt/vm04_l1_two_house_audit_proposal_v2.json)关闭generation/private-eval，v1合同和旧stage `vsmt-vm04-two-house-audit-v1-53d47367c7b3`保持原字节与结果。用户还需裁决目标集合是否须互异、是否设额外视角质量底线；在代码审查与v2数值冻结、服务器合同测试前不得生成新数据。训练/validation/confirmation继续关闭。
 
 VM-05同时只做readiness准备：D-157区分VSMT/DRCR/NECS梯度训练与TAF/ELU/WFR/LOW/PHR有限配置选择，正式架构、网格、训练步数和seed仍须等失败归因与数据覆盖审查后冻结；当前不得启动训练或validation效果运行。
 

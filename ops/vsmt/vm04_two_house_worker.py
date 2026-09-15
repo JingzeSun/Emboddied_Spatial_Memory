@@ -25,6 +25,7 @@ class ResourceStop(RuntimeError):
 
 MINIMUM_ANONYMOUS_MASK_PIXELS = 196
 CARDINAL_YAW_DEGREES = (0, 90, 180, 270)
+SLOT_VIEWPOINT_SELECTION_RULE = "rank_physical_object_mask_support_then_pose_slot_index"
 _ASSET_ID_DATABASE = None
 
 
@@ -317,11 +318,11 @@ def anonymous_mask_support(instance_masks, object_ids=None):
     return len(eligible_pixels), sum(eligible_pixels)
 
 
-def select_initial_viewpoint(candidates):
-    """Select the frozen public start pose without using instance identities."""
+def rank_initial_viewpoints(candidates):
+    """Rank public physical-mask geometry, independent of private identities."""
 
     require(candidates, "no reachable viewpoint has two eligible anonymous masks")
-    return min(candidates, key=lambda row: (
+    return sorted(candidates, key=lambda row: (
         -int(row["eligible_anonymous_mask_count"]),
         -int(row["total_eligible_anonymous_mask_pixels"]),
         float(row["position"]["x"]), float(row["position"]["y"]),
@@ -329,8 +330,12 @@ def select_initial_viewpoint(candidates):
     ))
 
 
+def select_initial_viewpoint(candidates):
+    return rank_initial_viewpoints(candidates)[0]
+
+
 def discover_initial_viewpoint(controller):
-    """Scan reachable positions once and return one anonymous-geometry pose."""
+    """Scan reachable positions once and return ranked physical-object poses."""
 
     reachable = controller.step(action="GetReachablePositions")
     require(reachable.metadata.get("lastActionSuccess") is True,
@@ -369,7 +374,13 @@ def discover_initial_viewpoint(controller):
                 "eligible_anonymous_mask_count": count,
                 "total_eligible_anonymous_mask_pixels": pixels,
             })
-    return select_initial_viewpoint(candidates)
+    return rank_initial_viewpoints(candidates)
+
+
+def slot_initial_viewpoint(candidates, slot):
+    require(type(slot) is int and slot >= 0, "slot must be a nonnegative integer")
+    require(slot < len(candidates), "slot %s lacks a distinct eligible pose" % slot)
+    return candidates[slot]
 
 
 def bootstrap_house_agent(controller, upgraded_house):
@@ -603,6 +614,8 @@ def run_episode(house, assignment, episode_root, family_byte_limit, start_pose):
     controller = make_controller(house)
     started = time.monotonic()
     frames, actions = [], []
+    targets = []
+    capability_path = private_directory / "intervention-capability-audit.json"
     try:
         probe = teleport_to_initial_viewpoint(controller, start_pose)
         require(probe.metadata.get("lastActionSuccess") is True,
@@ -619,7 +632,7 @@ def run_episode(house, assignment, episode_root, family_byte_limit, start_pose):
         targets = targets[:required_targets]
         initial_objects = {str(row["objectId"]): dict(row) for row in probe.metadata.get("objects", [])}
         capability_audit = audit_intervention_capabilities(program, targets, initial_objects)
-        write_new_json(private_directory / "intervention-capability-audit.json", capability_audit)
+        write_new_json(capability_path, capability_audit)
         event = probe
         for action in intervention_actions(program, -1, targets, initial_objects):
             event = controller.step(**action)
@@ -649,8 +662,15 @@ def run_episode(house, assignment, episode_root, family_byte_limit, start_pose):
                                         frame_index, frame_actions, targets, past_actions))
             if directory_bytes(episode_root.parent) > family_byte_limit:
                 raise ResourceStop("family byte limit exceeded")
+        intervention_path = private_directory / "intervention.json"
+        write_new_json(intervention_path, {
+            "schema_version": "vsmt-vm04-private-intervention-v2",
+            "episode_id": assignment["episode_id"], "program": program,
+            "replicate": assignment["replicate"], "target_instance_ids": targets,
+            "actions": actions, "capability_audit_sha256": sha256(capability_path),
+        })
         receipt = {
-            "schema_version": "vsmt-vm04-two-house-raw-episode-v1",
+            "schema_version": "vsmt-vm04-two-house-raw-episode-v2",
             "episode_id": assignment["episode_id"], "family_id": assignment["family_id"],
             "slot": assignment["slot"], "attempted": True, "raw_complete": True,
             "frame_count": len(frames), "frames": frames,
@@ -659,15 +679,29 @@ def run_episode(house, assignment, episode_root, family_byte_limit, start_pose):
             "registered_agent_action_policy": "alternating_quarter_degree_yaw_by_replicate",
             "public_target_selection_rule": "anonymous_mask_canonical_order",
             "initial_viewpoint": start_pose,
+            "initial_viewpoint_receipt_sha256": sha256(
+                episode_root / "initial_viewpoint.receipt.json"
+            ),
+            "family_viewpoints_sha256": read_json(
+                episode_root / "initial_viewpoint.receipt.json"
+            )["family_viewpoints_sha256"],
+            "capability_audit_sha256": sha256(capability_path),
+            "private_intervention_sha256": sha256(intervention_path),
             "wall_seconds": time.monotonic() - started,
         }
         write_new_json(episode_root / "raw.receipt.json", receipt)
-        write_new_json(private_directory / "intervention.json", {
-            "episode_id": assignment["episode_id"], "program": program,
-            "replicate": assignment["replicate"], "target_instance_ids": targets,
-            "actions": actions,
-        })
         return receipt
+    except Exception:
+        if not (private_directory / "intervention.json").exists():
+            write_new_json(private_directory / "intervention-attempts.json", {
+                "schema_version": "vsmt-vm04-private-intervention-attempts-v2",
+                "episode_id": assignment["episode_id"], "program": program,
+                "replicate": assignment["replicate"], "target_instance_ids": targets,
+                "actions": actions,
+                "capability_audit_sha256": sha256(capability_path)
+                if capability_path.exists() else None,
+            })
+        raise
     finally:
         controller.stop()
 
@@ -708,25 +742,41 @@ def main():
     viewpoint_receipts = []
     ordered_rows = sorted(public_rows, key=lambda row: row["slot"])
     resource_stopped = False
+    family_root.mkdir(parents=True, exist_ok=True)
+    ranked_poses = []
+    search_error = None
+    try:
+        search_controller = make_controller(house)
+        try:
+            ranked_poses = discover_initial_viewpoint(search_controller)
+        finally:
+            search_controller.stop()
+    except Exception as error:
+        search_error = "%s: %s" % (type(error).__name__, error)
+    family_viewpoints_path = family_root / "initial_viewpoints.json"
+    write_new_json(family_viewpoints_path, {
+        "schema_version": "vsmt-vm04-two-house-family-viewpoints-v2",
+        "family_id": arguments.family_id,
+        "selection_rule": SLOT_VIEWPOINT_SELECTION_RULE,
+        "eligible_pose_count": len(ranked_poses), "ranked_poses": ranked_poses,
+        "search_succeeded": search_error is None, "search_error": search_error,
+    })
+    family_viewpoints_sha256 = sha256(family_viewpoints_path)
     for row_index, public in enumerate(ordered_rows):
         private = private_by_id[public["episode_id"]]
         assignment = dict(private, slot=public["slot"])
         episode_root = family_root / "episodes" / public["episode_id"]
         episode_root.mkdir(parents=True)
         try:
-            search_controller = make_controller(house)
-            try:
-                start_pose = discover_initial_viewpoint(search_controller)
-            finally:
-                search_controller.stop()
+            require(search_error is None, "family viewpoint search failed: %s" % search_error)
+            start_pose = slot_initial_viewpoint(ranked_poses, int(public["slot"]))
             write_new_json(episode_root / "initial_viewpoint.receipt.json", {
                 "schema_version": "vsmt-vm04-two-house-initial-viewpoint-v2",
                 "family_id": arguments.family_id,
                 "episode_id": public["episode_id"],
-                "selection_rule": (
-                    "maximize_physical_object_mask_count_then_total_pixels_then_"
-                    "lexicographic_x_y_z_yaw"
-                ),
+                "slot": public["slot"], "rank_index": public["slot"],
+                "selection_rule": SLOT_VIEWPOINT_SELECTION_RULE,
+                "family_viewpoints_sha256": family_viewpoints_sha256,
                 "pose": start_pose, "success": True,
             })
             viewpoint_receipts.append({
@@ -740,11 +790,24 @@ def main():
                             "receipt_sha256": sha256(episode_root / "raw.receipt.json")})
         except Exception as error:
             failure = {
-                "schema_version": "vsmt-vm04-two-house-raw-episode-failure-v1",
+                "schema_version": "vsmt-vm04-two-house-raw-episode-failure-v2",
                 "episode_id": public["episode_id"], "family_id": arguments.family_id,
                 "slot": public["slot"], "attempted": True, "raw_complete": False,
                 "error_type": type(error).__name__, "error": str(error),
+                "family_viewpoints_sha256": family_viewpoints_sha256,
             }
+            attempts_path = episode_root / "private/intervention-attempts.json"
+            capability_path = episode_root / "private/intervention-capability-audit.json"
+            if attempts_path.exists():
+                failure["private_intervention_attempts_sha256"] = sha256(attempts_path)
+            intervention_path = episode_root / "private/intervention.json"
+            if intervention_path.exists():
+                failure["private_intervention_sha256"] = sha256(intervention_path)
+            if capability_path.exists():
+                failure["capability_audit_sha256"] = sha256(capability_path)
+            viewpoint_path = episode_root / "initial_viewpoint.receipt.json"
+            if viewpoint_path.exists():
+                failure["initial_viewpoint_receipt_sha256"] = sha256(viewpoint_path)
             write_new_json(episode_root / "raw.failure.json", failure)
             results.append({"episode_id": public["episode_id"], "status": "failed",
                             "failure_sha256": sha256(episode_root / "raw.failure.json")})
@@ -766,6 +829,24 @@ def main():
                         "not_started_sha256": sha256(remaining_root / "raw.not-started.json"),
                     })
                 break
+    seen_target_sets = set()
+    recorded_target_sets = 0
+    repeated_target_sets = 0
+    for result in results:
+        private_root = family_root / "episodes" / result["episode_id"] / "private"
+        private_path = private_root / "intervention.json"
+        if not private_path.exists():
+            private_path = private_root / "intervention-attempts.json"
+        if not private_path.exists():
+            continue
+        targets = read_json(private_path)["target_instance_ids"]
+        if not targets:
+            continue
+        target_set = tuple(sorted(targets))
+        recorded_target_sets += 1
+        if target_set in seen_target_sets:
+            repeated_target_sets += 1
+        seen_target_sets.add(target_set)
     write_new_json(family_root / "worker.receipt.json", {
         "schema_version": "vsmt-vm04-two-house-family-worker-receipt-v2",
         "family_id": arguments.family_id, "source_house_id": house_id,
@@ -774,7 +855,11 @@ def main():
         "failed_count": sum(row["status"] == "failed" for row in results),
         "not_started_count": sum(row["status"] == "not_started" for row in results),
         "resource_stopped": resource_stopped,
+        "initial_viewpoint_search_succeeded": search_error is None,
+        "initial_viewpoint_receipt_sha256": family_viewpoints_sha256,
         "viewpoint_receipts": viewpoint_receipts,
+        "target_set_recorded_count": recorded_target_sets,
+        "repeated_target_set_count": repeated_target_sets,
         "family_bytes": directory_bytes(family_root), "success": True,
     })
     print("VM04_TWO_HOUSE_WORKER_OK family=%s slots=18" % arguments.family_id, flush=True)

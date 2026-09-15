@@ -7,6 +7,7 @@ from pathlib import Path
 import tempfile
 from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -92,12 +93,16 @@ class TwoHouseOpsTests(unittest.TestCase):
                 OPS.write_new_json(path, {"value": 2})
             self.assertEqual(json.loads(path.read_text()), {"value": 1})
 
-    def test_current_config_opens_registered_audit_pipeline(self) -> None:
+    def test_v2_config_blocks_generation_until_slot_rules_are_reviewed(self) -> None:
         value = OPS.load_config()
+        self.assertEqual(value["version"], "vsmt-vm04-l1-two-house-audit-proposal-v2")
+        self.assertEqual(value["generator_initial_viewpoint"]["selection_rule"],
+                         WORKER.SLOT_VIEWPOINT_SELECTION_RULE)
+        self.assertEqual(OPS.STAGE_ID, "vsmt-vm04-two-house-audit-v2")
         self.assertTrue(value["implementation_authorized"])
         self.assertTrue(value["source_inventory_authorized"])
-        self.assertTrue(value["generation_authorized"])
-        self.assertTrue(value["private_audit_authorized"])
+        self.assertFalse(value["generation_authorized"])
+        self.assertFalse(value["private_audit_authorized"])
         self.assertFalse(value["training_authorized"])
         self.assertFalse(value["confirmation_authorized"])
 
@@ -304,12 +309,103 @@ class TwoHouseOpsTests(unittest.TestCase):
                 )
 
         controller = FakeController()
-        pose = WORKER.discover_initial_viewpoint(controller)
+        poses = WORKER.discover_initial_viewpoint(controller)
+        pose = WORKER.slot_initial_viewpoint(poses, 0)
         self.assertEqual(pose["position"]["x"], 1.0)
         self.assertEqual(pose["rotation_y_degrees"], 90)
+        self.assertNotEqual(pose, WORKER.slot_initial_viewpoint(poses, 1))
+        with self.assertRaisesRegex(RuntimeError, "lacks a distinct eligible pose"):
+            WORKER.slot_initial_viewpoint(poses, len(poses))
         self.assertEqual(controller.teleports, [
             (x, yaw) for x in (0.0, 1.0) for yaw in (0, 90, 180, 270)
         ])
+
+    def test_family_scan_precedes_slot_dispatch(self) -> None:
+        source = inspect.getsource(WORKER.main)
+        self.assertEqual(source.count("discover_initial_viewpoint(search_controller)"), 1)
+        self.assertLess(source.index("discover_initial_viewpoint(search_controller)"),
+                        source.index("for row_index, public in enumerate(ordered_rows)"))
+        self.assertIn("slot_initial_viewpoint(ranked_poses", source)
+
+    def test_failed_intervention_keeps_private_action_diagnostic(self) -> None:
+        import numpy as np
+
+        mask = np.ones((14, 14), dtype=np.bool_)
+
+        class FakeController:
+            def __init__(self):
+                self.stopped = False
+
+            def step(self, **action):
+                if action["action"] == "TeleportFull":
+                    return SimpleNamespace(metadata={
+                        "lastActionSuccess": True,
+                        "objects": [{"objectId": "object|1", "position": {}}],
+                    }, instance_masks={"object|1": mask})
+                return SimpleNamespace(metadata={
+                    "lastActionSuccess": False, "errorMessage": "disabled failed",
+                    "errorCode": "UnsupportedAction",
+                })
+
+            def stop(self):
+                self.stopped = True
+
+        fake = FakeController()
+        assignment = {"episode_id": "opaque", "family_id": "family", "slot": 0,
+                      "program": "BIRTH", "replicate": 0}
+        start_pose = {"position": {"x": 0, "y": 0, "z": 0},
+                      "rotation_y_degrees": 0, "horizon_degrees": 0,
+                      "standing": True}
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with patch.object(WORKER, "make_controller", return_value=fake):
+                with self.assertRaisesRegex(RuntimeError, "setup intervention failed"):
+                    WORKER.run_episode({}, assignment, root, 100000, start_pose)
+            attempts = json.loads((root / "private/intervention-attempts.json").read_text())
+            self.assertEqual(attempts["actions"][0]["diagnostic"]["error_code"],
+                             "UnsupportedAction")
+            self.assertTrue((root / "private/intervention-capability-audit.json").exists())
+            self.assertFalse((root / "public/intervention-attempts.json").exists())
+            self.assertTrue(fake.stopped)
+
+    def test_worker_artifact_chain_rejects_changed_private_diagnostic(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            stage = Path(directory)
+            family = stage / "execution/family"
+            episode = family / "episodes/opaque"
+            private = episode / "private"
+            private.mkdir(parents=True)
+            viewpoints = family / "initial_viewpoints.json"
+            OPS.write_new_json(viewpoints, {
+                "selection_rule": WORKER.SLOT_VIEWPOINT_SELECTION_RULE,
+                "eligible_pose_count": 0, "ranked_poses": [],
+            })
+            capability = private / "intervention-capability-audit.json"
+            attempts = private / "intervention-attempts.json"
+            OPS.write_new_json(capability, {"program": "BIRTH"})
+            OPS.write_new_json(attempts, {"target_instance_ids": ["object|1"],
+                                              "actions": [{"error_code": "E"}]})
+            failure = episode / "raw.failure.json"
+            OPS.write_new_json(failure, {
+                "family_viewpoints_sha256": OPS.sha256(viewpoints),
+                "capability_audit_sha256": OPS.sha256(capability),
+                "private_intervention_attempts_sha256": OPS.sha256(attempts),
+            })
+            worker = family / "worker.receipt.json"
+            OPS.write_new_json(worker, {
+                "schema_version": "vsmt-vm04-two-house-family-worker-receipt-v2",
+                "initial_viewpoint_receipt_sha256": OPS.sha256(viewpoints),
+                "viewpoint_receipts": [], "target_set_recorded_count": 1,
+                "repeated_target_set_count": 0,
+                "episodes": [{"episode_id": "opaque", "status": "failed",
+                              "failure_sha256": OPS.sha256(failure)}],
+            })
+            generation = {"family_receipts": [{"family_id": "family",
+                                                "sha256": OPS.sha256(worker)}]}
+            OPS.verify_worker_artifact_chain(stage, generation)
+            attempts.write_text('{"target_instance_ids":["object|2"]}')
+            with self.assertRaisesRegex(RuntimeError, "private action diagnostic digest"):
+                OPS.verify_worker_artifact_chain(stage, generation)
 
     def test_legacy_house_upgrade_is_deterministic_and_does_not_mutate_source(self) -> None:
         source = {

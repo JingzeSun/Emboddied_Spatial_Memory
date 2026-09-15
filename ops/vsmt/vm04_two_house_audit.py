@@ -53,14 +53,14 @@ from vsmt.two_house_audit import (  # noqa: E402
 )
 
 
-STAGE_ID = "vsmt-vm04-two-house-audit-v1"
-CONFIG_PATH = PROJECT_ROOT / "configs/vsmt/vm04_l1_two_house_audit_proposal_v1.json"
+STAGE_ID = "vsmt-vm04-two-house-audit-v2"
+CONFIG_PATH = PROJECT_ROOT / "configs/vsmt/vm04_l1_two_house_audit_proposal_v2.json"
 ENVIRONMENT_PATH = PROJECT_ROOT / "configs/vsmt/vm04_l1_environment_v1.json"
 ACTION_PATH = PROJECT_ROOT / "configs/vsmt/vm04_l1_action_symmetry_v1.json"
 STRUCTURE_PATH = PROJECT_ROOT / "configs/vsmt/vm04_l1_non_entity_geometry_review_v1.json"
-REPORT_PATH = PROJECT_ROOT / "results/vsmt_vm04_l1_two_house_audit.json"
+REPORT_PATH = PROJECT_ROOT / "results/vsmt_vm04_l1_two_house_audit_v2.json"
 BOUND_PATHS = (
-    "configs/vsmt/vm04_l1_two_house_audit_proposal_v1.json",
+    "configs/vsmt/vm04_l1_two_house_audit_proposal_v2.json",
     "configs/vsmt/vm04_public_seal_parallel_recovery_v1.json",
     "configs/vsmt/vm04_l1_environment_v1.json",
     "configs/vsmt/vm04_l1_action_symmetry_v1.json",
@@ -82,7 +82,7 @@ BOUND_PATHS = (
 TEST_GROUPS = (
     ("executor", "test_executor.py", 42),
     ("l1", "test_l1_*.py", 31),
-    ("vsmt", "test_vsmt_*.py", 141),
+    ("vsmt", "test_vsmt_*.py", 171),
 )
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
 
@@ -172,7 +172,7 @@ def stage_directory(output_root: Path, reviewed_code: str) -> Path:
 
 
 def run_command(
-    command: Sequence[str], *, timeout: int, cwd: Path = PROJECT_ROOT,
+    command: Sequence[str], *, timeout: int | None = None, cwd: Path = PROJECT_ROOT,
     environment: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
     started = time.monotonic()
@@ -228,7 +228,7 @@ def run_contracts(reviewed_code: str, output_root: Path) -> None:
         result = run_command([
             sys.executable, "-B", "-m", "unittest", "discover", "-s",
             str(PROJECT_ROOT / "tests"), "-p", pattern, "-v",
-        ], timeout=600, environment=test_environment)
+        ], environment=test_environment)
         log_path = stage / f"contracts.{name}.unittest.log"
         log_path.write_text(result["output"], encoding="utf-8")
         print(result["output"], end="")
@@ -742,7 +742,7 @@ def run_generation(
     }
     write_new_json(execution / "processes.json", process_record)
     receipt = {
-        "schema_version": "vsmt-vm04-two-house-generation-receipt-v1",
+        "schema_version": "vsmt-vm04-two-house-generation-receipt-v2",
         "stage_id": STAGE_ID, "reviewed_code": commit, "bound_sha256": bindings,
         "success": True, "planning_selection_receipt_sha256": sha256(
             planning / "selection.receipt.json"
@@ -768,7 +768,7 @@ def run_generation(
     receipt_path = stage / "generate.receipt.json"
     write_new_json(receipt_path, receipt)
     write_new_json(stage / "generate.success.json", {
-        "schema_version": "vsmt-vm04-two-house-generation-success-v1",
+        "schema_version": "vsmt-vm04-two-house-generation-success-v2",
         "reviewed_code": commit, "receipt_sha256": sha256(receipt_path),
         "attempted_episode_count": receipt["attempted_episode_count"],
         "not_started_episode_count": receipt["raw_not_started_episode_count"],
@@ -1902,6 +1902,97 @@ def _terminal_episode_ids(receipt: Mapping[str, Any]) -> set[str]:
     }
 
 
+def verify_worker_artifact_chain(stage: Path, generation: Mapping[str, Any]) -> None:
+    """Rehash v2 viewpoint, private diagnostic and terminal raw artifacts."""
+
+    for family in generation["family_receipts"]:
+        family_root = stage / "execution" / family["family_id"]
+        worker_path = family_root / "worker.receipt.json"
+        require(sha256(worker_path) == family["sha256"],
+                "family worker receipt digest mismatch")
+        worker = read_json(worker_path)
+        require(worker["schema_version"] ==
+                "vsmt-vm04-two-house-family-worker-receipt-v2",
+                "family worker schema mismatch")
+        viewpoint_path = family_root / "initial_viewpoints.json"
+        viewpoint_sha = sha256(viewpoint_path)
+        require(worker["initial_viewpoint_receipt_sha256"] == viewpoint_sha,
+                "family viewpoint digest mismatch")
+        viewpoints = read_json(viewpoint_path)
+        require(viewpoints["selection_rule"] ==
+                "rank_physical_object_mask_support_then_pose_slot_index",
+                "family viewpoint selection rule mismatch")
+        require(viewpoints["eligible_pose_count"] == len(viewpoints["ranked_poses"]),
+                "family viewpoint count mismatch")
+        viewpoint_rows = {row["episode_id"]: row for row in worker["viewpoint_receipts"]}
+        seen_target_sets: set[tuple[str, ...]] = set()
+        recorded_target_sets = 0
+        repeated_target_sets = 0
+        for row in worker["episodes"]:
+            episode_root = family_root / "episodes" / row["episode_id"]
+            status = row["status"]
+            terminal_name = {
+                "complete": ("raw.receipt.json", "receipt_sha256"),
+                "failed": ("raw.failure.json", "failure_sha256"),
+                "not_started": ("raw.not-started.json", "not_started_sha256"),
+            }[status]
+            terminal_path = episode_root / terminal_name[0]
+            require(sha256(terminal_path) == row[terminal_name[1]],
+                    "terminal raw episode digest mismatch")
+            if status == "not_started":
+                continue
+            terminal = read_json(terminal_path)
+            require(terminal.get("family_viewpoints_sha256", viewpoint_sha) == viewpoint_sha,
+                    "raw episode references another family viewpoint scan")
+            pose_path = episode_root / "initial_viewpoint.receipt.json"
+            if pose_path.exists():
+                pose_sha = sha256(pose_path)
+                require(viewpoint_rows[row["episode_id"]]["receipt_sha256"] == pose_sha
+                        and terminal["initial_viewpoint_receipt_sha256"] == pose_sha,
+                        "slot viewpoint receipt digest mismatch")
+                pose = read_json(pose_path)
+                require(pose["family_viewpoints_sha256"] == viewpoint_sha
+                        and pose["selection_rule"] == viewpoints["selection_rule"]
+                        and pose["pose"] == viewpoints["ranked_poses"][pose["rank_index"]],
+                        "slot pose differs from frozen rank")
+            capability_path = episode_root / "private/intervention-capability-audit.json"
+            require(capability_path.exists() ==
+                    ("capability_audit_sha256" in terminal),
+                    "capability audit digest registration mismatch")
+            if "capability_audit_sha256" in terminal:
+                require(sha256(episode_root /
+                               "private/intervention-capability-audit.json") ==
+                        terminal["capability_audit_sha256"],
+                        "capability audit digest mismatch")
+            for private_key, private_name in (
+                ("private_intervention_sha256", "intervention.json"),
+                ("private_intervention_attempts_sha256", "intervention-attempts.json"),
+            ):
+                if private_key in terminal:
+                    require(sha256(episode_root / "private" / private_name) ==
+                            terminal[private_key], "private action diagnostic digest mismatch")
+            private_path = episode_root / "private/intervention.json"
+            if not private_path.exists():
+                private_path = episode_root / "private/intervention-attempts.json"
+            if private_path.exists():
+                digest_key = ("private_intervention_sha256"
+                              if private_path.name == "intervention.json"
+                              else "private_intervention_attempts_sha256")
+                require(digest_key in terminal,
+                        "private action diagnostic is missing from raw digest chain")
+            if private_path.exists():
+                targets = read_json(private_path)["target_instance_ids"]
+                if targets:
+                    target_set = tuple(sorted(targets))
+                    recorded_target_sets += 1
+                    if target_set in seen_target_sets:
+                        repeated_target_sets += 1
+                    seen_target_sets.add(target_set)
+        require(worker["target_set_recorded_count"] == recorded_target_sets
+                and worker["repeated_target_set_count"] == repeated_target_sets,
+                "worker target-set duplicate accounting mismatch")
+
+
 def run_verify(
     reviewed_code: str, output_root: Path, *, source_stage_reviewed_code: str | None = None,
 ) -> None:
@@ -1923,6 +2014,7 @@ def run_verify(
     })
     planned_ids = {row["episode_id"] for row in plans["public"]["episodes"]}
     generated_ids = _terminal_episode_ids(receipts["generate"])
+    verify_worker_artifact_chain(stage, receipts["generate"])
     require(planned_ids == generated_ids and len(generated_ids) == 36,
             "all 36 fixed slots need one terminal generation record")
     processes = read_json(stage / "execution/processes.json")
@@ -1976,7 +2068,7 @@ def run_verify(
         "receipt_sha256s": receipt_digests,
     })
     receipt = {
-        "schema_version": "vsmt-vm04-two-house-verify-receipt-v1",
+        "schema_version": "vsmt-vm04-two-house-verify-receipt-v2",
         "stage_id": STAGE_ID, "reviewed_code": commit,
         "source_stage_reviewed_code": stage_code, "bound_sha256": bindings,
         "receipt_sha256s": receipt_digests,
@@ -2006,7 +2098,7 @@ def run_verify(
     receipt_path = stage / "verify.receipt.json"
     write_new_json(receipt_path, receipt)
     write_new_json(stage / "verify.success.json", {
-        "schema_version": "vsmt-vm04-two-house-verify-success-v1",
+        "schema_version": "vsmt-vm04-two-house-verify-success-v2",
         "reviewed_code": commit, "receipt_sha256": sha256(receipt_path),
         "canonical_merged_output_digest": merged_digest, "success": True,
     })

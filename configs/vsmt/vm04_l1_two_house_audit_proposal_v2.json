@@ -1,0 +1,314 @@
+{
+  "version": "vsmt-vm04-l1-two-house-audit-proposal-v2",
+  "status": "approved_for_implementation_not_executable",
+  "decision": "D-159-slot-viewpoint-repair-pending-review",
+  "engineering_baseline_reviewed_code": "a8fa08a74bad99218a5be72d874841dd169695ab",
+  "engineering_receipt_sha256": "d29caeaaf88cf58d5829a7fe9bda4b61fd79c594439cff437ce7835ccce7879b",
+  "engineering_baseline_blocking_reason": null,
+  "superseded_engineering_baseline_reviewed_code": "33aec1c057a5e2a6d4f9b37a24c9f76f1873028c",
+  "superseded_engineering_receipt_sha256": "b5918086e5ee7f4e30d113b87b3b7546c5083f6431374abd7471e33562c68eff",
+  "audit_numeric_values_approved": true,
+  "implementation_authorized": true,
+  "source_inventory_authorized": true,
+  "generation_authorized": false,
+  "private_audit_authorized": false,
+  "training_authorized": false,
+  "validation_effect_authorized": false,
+  "confirmation_authorized": false,
+  "source_checkout_acquisition": {
+    "authorized": true,
+    "scope": "one_time_pre_inventory_provisioning_outside_the_audit_stage",
+    "repository": "https://github.com/allenai/procthor-10k.git",
+    "required_commit": "d54954a81e7126001e552c2d7904ee2e0d49eaae",
+    "allowed_materialized_paths": [
+      "LICENSE",
+      "train.jsonl.gz"
+    ],
+    "git_metadata_allowed": true,
+    "maximum_download_bytes": 67108864,
+    "validation_or_test_split_download_allowed": false,
+    "does_not_change_audit_stage_new_asset_download_bytes": true,
+    "completed": true,
+    "train_jsonl_gz_bytes": 52316238,
+    "train_jsonl_gz_sha256": "d64450ec821aef55351f62885e4d56b3f0d948693af467bb7f6532850ef4fa37",
+    "validation_or_test_split_downloaded": false
+  },
+  "planning_stage_binding": {
+    "reviewed_code": "a8fa08a74bad99218a5be72d874841dd169695ab",
+    "contract_receipt_sha256": "d29caeaaf88cf58d5829a7fe9bda4b61fd79c594439cff437ce7835ccce7879b",
+    "inventory_receipt_sha256": "6d30db1f8094cd5734e42d88919edf4b6ac1c21f49098d3bf8aec7989d8f0dfc",
+    "selection_receipt_sha256": "7aa29f63f0f71d04fa3cc2613867afb08f22559d7fbe1282225d23030e5f62b9",
+    "inventory_sha256": "eb3d5decc3397fe78bc48e77732a4f820abbd7191658265241c491861ee93e82",
+    "selection_sha256": "8fb750d8001c49b218945f6eb1d9bb79b1d53d779409ba45a732c815ed5a1e3d",
+    "public_episode_manifest_sha256": "403a7039cea8d8097fca1344d0041bc021ee6a231cffbede38066e690ab1bf406",
+    "private_episode_manifest_sha256": "cb8e05aea4dda7f92b9463adf411986e0183f8a6660217a4bd08f6b5ac36ecaa4"
+  },
+  "scope": {
+    "evidence_level": "L1_oracle_structured_diagnostic",
+    "purpose": "engineering_capacity_construction_yield_and_strict_candidate_recall_audit",
+    "power_analysis": false,
+    "formal_threshold_selection": false,
+    "method_effect_measurement": false,
+    "L2_frontend_in_scope": false,
+    "formal_values_remain_null_after_this_proposal": true
+  },
+  "source_inventory_proposal": {
+    "source": "ProcTHOR-10K",
+    "author_partition": "train",
+    "data_release_tag": "0.1.2",
+    "data_release_commit": "d54954a81e7126001e552c2d7904ee2e0d49eaae",
+    "generator_package": "procthor==0.0.1.dev2",
+    "generator_code_reviewed_commit": "53d5bd4c8c96a699e6a615dc390abb670cc9d353",
+    "ai2thor_version": "5.0.0",
+    "ai2thor_commit": "f0825767cd50d69f666c7f282e54abfe58f1e917",
+    "ai2thor_cloudrendering_sha256": "1fd5f998644a6dd522a4cf6604c05360a75a5c27f450a7486c20e52dc2b67bb9",
+    "source_manifest_sha256": "7db1df1edb714162089b56e62f5258a947c5c6ddc38ed2b7082582d4659269bd",
+    "license_snapshot_sha256": "3767827e4276d2ff806c1c76c587ff01e5d6e62a31577787f99bfac828eb9e52",
+    "eligible_house_ids_sha256": "31b9d819afafcbef8d9bc3466fa00d49e6605cfbe1af3827ddf1a25fa0fb6d87",
+    "audit_house_ids": [
+      "train:004270",
+      "train:008243"
+    ],
+    "mechanical_eligibility_only": [
+      "member_of_author_train_partition",
+      "unique_nonempty_house_id",
+      "source_record_parses_under_pinned_release_schema"
+    ],
+    "forbidden_eligibility_inputs": [
+      "registered_program_realization",
+      "candidate_count",
+      "candidate_recall",
+      "teacher_score",
+      "private_object_identity_or_future_outcome"
+    ],
+    "load_or_episode_failure_policy": "retain_failure_without_replacement",
+    "inventory_is_a_separate_read_only_step_before_generation": true,
+    "inventory_step_order": [
+      "read_only_source_and_license_inventory",
+      "freeze_source_manifest_sha256_and_eligible_house_ids_sha256",
+      "publish_audit_house_ids_from_the_frozen_manifest",
+      "only_then_review_and_authorize_generation"
+    ],
+    "house_selection_may_not_share_a_run_with_manifest_freezing": true,
+    "blocking_rule": "inventory_and_license_digests_must_be_pinned_before_generation_can_be_reviewed"
+  },
+  "family_selection_proposal": {
+    "split_seed": 260914,
+    "ordering_rule": "ascending_sha256_of_source_manifest_sha256_split_seed_and_house_id",
+    "audit_family_count": 2,
+    "programs_per_family": 9,
+    "replicates_per_program_per_family": 2,
+    "episodes_per_family": 18,
+    "total_episodes": 36,
+    "observations_per_episode": 32,
+    "total_observations": 1152,
+    "decision_observation_index_zero_based": 24,
+    "public_prefix_indices_inclusive": [0, 24],
+    "future_private_indices_inclusive": [25, 31],
+    "private_program_assignment_salt_generated_once_at_seal": true,
+    "private_program_assignment_salt_sha256": "159ded00f0ce6ebd8b438ff5fa19c855f05e95b1d597576dc95112ae7773721b",
+    "failed_family_or_episode_replacement": false,
+    "audit_families_may_enter_train_validation_or_confirmation": false
+  },
+  "generator_initial_viewpoint": {
+    "status": "authorized_runtime_fix_after_zero_of_36_default_spawn_failure",
+    "reachable_position_source": "AI2-THOR_GetReachablePositions",
+    "yaw_degrees": [0, 90, 180, 270],
+    "horizon_degrees": 0,
+    "minimum_anonymous_mask_pixels": 196,
+    "minimum_eligible_anonymous_masks": 2,
+    "minimum_eligible_mask_semantics": "physical_objects_only",
+    "physical_object_filter": "instance_masks_intersection_metadata_objects",
+    "selection_rule": "rank_physical_object_mask_support_then_pose_slot_index",
+    "slot_pose_rule": "rank_index_equals_zero_based_slot",
+    "insufficient_ranked_poses": "fail_fixed_slot_without_wraparound_or_house_replacement",
+    "unique_target_sets_required": null,
+    "additional_quality_floor": null,
+    "search_once_per_house_family": true,
+    "reuse_frozen_pose_for_all_family_slots": false,
+    "private_instance_id_or_class_may_affect_pose": false,
+    "future_or_program_result_may_affect_pose": false,
+    "failed_search_replacement_house_allowed": false
+  },
+  "source_house_schema_compatibility": {
+    "source_schema": "0.0.1",
+    "simulator_required_schema": "1.0.0",
+    "upgrade_semantics_source": "allenai/procthor procthor/utils/upgrade_house_version.py",
+    "upgrade_semantics_commit": "53d5bd4c8c96a699e6a615dc390abb670cc9d353",
+    "asset_dimensions_source": "installed_pinned_procthor_asset-database.json",
+    "source_record_mutation_allowed": false,
+    "upgraded_house_must_be_deterministic": true,
+    "controller_initial_event_success_required": true,
+    "controller_initial_objects_must_be_nonempty": true,
+    "reachable_position_bootstrap_pose_source": "upgraded_house_metadata_agent",
+    "bootstrap_pose_is_not_the_selected_public_start_pose": true,
+    "upgrade_may_read_program_future_or_private_evaluation": false
+  },
+  "audit_only_association_profiles": {
+    "role": "predeclared_capacity_brackets_not_formal_method_configurations",
+    "selection_from_private_results_allowed": false,
+    "score_formula": "visual_weight_times_visual_similarity_plus_geometry_weight_times_max_0_1_minus_centroid_distance_over_geometry_scale_m",
+    "profiles": [
+      {
+        "profile_id": "strict",
+        "entity": {"visual_weight": 0.75, "geometry_weight": 0.25, "geometry_scale_m": 0.5, "bind_threshold": 0.85, "merge_threshold": 0.92, "split_region_threshold": 0.85},
+        "surface": {"visual_weight": 0.25, "geometry_weight": 0.75, "geometry_scale_m": 0.25, "bind_threshold": 0.88, "merge_threshold": 0.92, "split_region_threshold": 0.88},
+        "fragment": {"visual_weight": 0.5, "geometry_weight": 0.5, "geometry_scale_m": 0.25, "bind_threshold": 0.85, "merge_threshold": 0.92, "split_region_threshold": 0.85}
+      },
+      {
+        "profile_id": "balanced",
+        "entity": {"visual_weight": 0.7, "geometry_weight": 0.3, "geometry_scale_m": 0.75, "bind_threshold": 0.8, "merge_threshold": 0.9, "split_region_threshold": 0.8},
+        "surface": {"visual_weight": 0.3, "geometry_weight": 0.7, "geometry_scale_m": 0.5, "bind_threshold": 0.82, "merge_threshold": 0.9, "split_region_threshold": 0.82},
+        "fragment": {"visual_weight": 0.5, "geometry_weight": 0.5, "geometry_scale_m": 0.5, "bind_threshold": 0.8, "merge_threshold": 0.9, "split_region_threshold": 0.8}
+      },
+      {
+        "profile_id": "permissive_capacity_upper_bound",
+        "entity": {"visual_weight": 0.6, "geometry_weight": 0.4, "geometry_scale_m": 1.0, "bind_threshold": 0.7, "merge_threshold": 0.82, "split_region_threshold": 0.7},
+        "surface": {"visual_weight": 0.2, "geometry_weight": 0.8, "geometry_scale_m": 1.0, "bind_threshold": 0.72, "merge_threshold": 0.82, "split_region_threshold": 0.72},
+        "fragment": {"visual_weight": 0.4, "geometry_weight": 0.6, "geometry_scale_m": 1.0, "bind_threshold": 0.7, "merge_threshold": 0.82, "split_region_threshold": 0.7}
+      }
+    ],
+    "required_raw_outputs": [
+      "visual_similarity",
+      "centroid_distance_m",
+      "geometry_proximity",
+      "public_reliability",
+      "enumeration_priority"
+    ]
+  },
+  "audit_only_lifecycle_and_capacity_values": {
+    "support_envelope_reliability_threshold": 0.9,
+    "support_envelope_margin_m_per_side": 0.02,
+    "support_margin_sensitivity_report_m_per_side": [0.02, 0.05],
+    "support_margin_may_be_reduced_to_improve_yield": false,
+    "opportunity_reliability_threshold": 0.9,
+    "opportunity_reliability_threshold_may_be_reduced_to_improve_yield": false,
+    "minimum_consecutive_missed_opportunities": 3,
+    "missed_opportunity_count_sensitivity_report": [2, 3, 4],
+    "missed_opportunity_count_may_be_reduced_to_improve_yield": false,
+    "formal_dormancy_selection_from_audit_allowed": false,
+    "candidate_capacity_replay_values": [16, 32, 64],
+    "primary_capacity_ceiling_for_resource_audit": 64,
+    "maximum_ambiguous_relation_variables": 6,
+    "maximum_relation_variants": 729,
+    "maximum_total_incident_edges": 32,
+    "guard_values_are_resource_safety_ceilings_not_semantic_rules": true,
+    "free_space_reliability_threshold": 0.9,
+    "minimum_free_space_time_separation_s": 0.25,
+    "free_space_target_expansion_m_per_side": 0.02,
+    "split_minimum_region_separation_m": 0.3,
+    "formal_candidate_cap": null,
+    "formal_support_envelope_reliability_threshold": null,
+    "formal_support_envelope_margin_m_per_side": null,
+    "formal_opportunity_reliability_threshold": null,
+    "formal_minimum_consecutive_missed_opportunities": null,
+    "formal_split_replace_guard_values": null
+  },
+  "two_layer_execution_proposal": {
+    "trusted_L1_materialization": {
+      "input_mounts": ["sealed_RGB", "sealed_public_depth", "sealed_public_pose", "private_current_frame_instance_masks"],
+      "output": "anonymous_L1_public_packets_and_private_mapping_commitment",
+      "forbidden_output": ["simulator_instance_id", "cross_frame_private_identity", "reference_program", "future_state"]
+    },
+    "public_capacity_layer": {
+      "input_mounts": ["public", "sealed_audit_only_profiles"],
+      "forbidden_mounts": ["teacher", "private_eval", "future_world_state", "reference_program"],
+      "seal_before_private_open": true,
+      "outputs": [
+        "free_space_survival_by_scale",
+        "visibility_survival_by_scale",
+        "retract_replace_public_availability",
+        "raw_association_component_distributions",
+        "pre_cap_group_and_candidate_counts_by_bucket",
+        "retained_truncated_cutoff_and_unused_capacity_at_16_32_64",
+        "split_replace_guard_rejections",
+        "relink_endpoint_pair_evaluation_count",
+        "runtime_and_peak_CPU_RAM_GPU_memory"
+      ]
+    },
+    "private_post_seal_layer": {
+      "may_open_only_after_public_seal": true,
+      "outputs": [
+        "attempted_constructed_failed_counts_by_family_program_and_replicate",
+        "strict_exact_canonical_reference_program_recall_at_16_32_64",
+        "entity_RETRACT_legal_candidate_recall_under_D143_semantics",
+        "entity_RETRACT_legal_candidate_recall_per_support_margin_0_02_and_0_05_m",
+        "construction_failure_reason",
+        "candidate_miss_reason"
+      ],
+      "semantic_equivalence_class_recall": null,
+      "blocking_reason_for_equivalence_recall": "BIND_BIRTH_REACTIVATE_RELINK_REPLACE_SPLIT_MERGE_equivalence_boundaries_remain_user_decisions",
+      "teacher_ranking_or_probability_computed": false,
+      "method_predictions_or_effects_computed": false
+    }
+  },
+  "completion_and_failure_policy": {
+    "run_complete_requires": [
+      "two_preselected_families_have_terminal_records",
+      "all_36_episode_slots_are_attempted_exactly_once_or_marked_not_started_after_a_hard_resource_stop",
+      "every_started_worker_has_an_exit_record",
+      "public_outputs_are_sealed_before_private_evaluation",
+      "canonical_merge_digest_is_independent_of_worker_completion_order"
+    ],
+    "construction_failure_or_candidate_miss_is_a_result_not_a_rerun_trigger": true,
+    "minimum_yield_or_recall_pass_gate": null,
+    "scientific_success_claim_allowed": false,
+    "infrastructure_failure": "preserve_prefix_and_stop_new_dispatch_without_automatic_retry",
+    "resource_limit_reached": "write_terminal_receipt_and_leave_unstarted_slots_explicit"
+  },
+  "resource_and_worker_proposal": {
+    "execution_mode": "foreground",
+    "hard_wall_clock_seconds": null,
+    "if_capacity_probe_predicts_over_1800_seconds": "continue_with_multiple_workers_and_record_actual_time_under_D-156",
+    "simulator_house_family_workers": 2,
+    "family_assignment": "one_preselected_house_family_per_worker",
+    "GPU_descriptor_consumers": 1,
+    "GPU_requests_from_family_workers": "deterministic_serial_queue",
+    "maximum_stage_bytes": 4294967296,
+    "maximum_bytes_per_family": 2147483648,
+    "maximum_report_bytes": 67108864,
+    "minimum_free_data_disk_bytes_before_start": 8589934592,
+    "maximum_process_tree_RSS_bytes": 42949672960,
+    "maximum_GPU_allocated_bytes": 25769803776,
+    "new_asset_download_bytes": 0,
+    "training_steps": 0,
+    "overwrite_existing_stage": false,
+    "resume_policy": "reuse_only_digest_bound_completed_family_then_continue_from_earliest_missing_slot"
+  },
+  "required_receipts": [
+    "source_inventory_and_license_snapshot",
+    "reviewed_code_config_and_asset_digests",
+    "requested_and_actual_worker_counts",
+    "capacity_probe",
+    "deterministic_family_and_episode_assignments",
+    "per_worker_start_exit_and_artifact_digests",
+    "family_ranked_physical_viewpoints_and_sha256",
+    "slot_rank_index_pose_and_viewpoint_receipt_sha256",
+    "private_capability_and_failed_intervention_diagnostic_sha256",
+    "public_seal",
+    "private_evaluator_start_after_public_seal",
+    "not_started_and_missing_exit_items",
+    "canonical_merged_output_digest",
+    "generation_training_private_confirmation_boundary_flags"
+  ],
+  "implementation_required_before_any_run": [
+    "read_only_source_inventory_and_license_snapshot_entry",
+    "immutable_two_family_and_36_slot_manifest_sealer",
+    "two_worker_simulator_generation_with_separate_public_and_private_outputs",
+    "trusted_L1_anonymizing_materializer_file_boundary",
+    "public_only_capacity_replay_and_seal",
+    "post_seal_private_strict_recall_evaluator",
+    "fixed_contract_capacity_export_entry",
+    "positive_negative_and_resource_stop_tests",
+    "user_code_review_and_new_server_contract_receipt"
+  ],
+  "still_blocked": [
+    "formal_threshold_or_cap_selection",
+    "semantic_equivalence_recall",
+    "train_validation_generation",
+    "selector_or_adapter_training",
+    "validation_effect_measurement",
+    "confirmation_generation_reveal_or_evaluation",
+    "L2_SAM_asset_or_materialization"
+  ]
+}
