@@ -1,0 +1,54 @@
+{
+  "bound_sha256": {
+    "ops/vsmt/vm04_target_repetition_export.py": "8b83ba6b06acad9edc6e6351a93d4aaef3d9deb7e13e700c1edcf5ac01f906a1"
+  },
+  "episodes_generated": 0,
+  "families": [
+    {
+      "authored_asset": {
+        "distinct_top1_count": 6,
+        "distinct_top2_set_count": 12,
+        "recorded_slot_count": 18,
+        "repeated_top1_count": 12,
+        "repeated_top2_set_count": 6
+      },
+      "family_id": "audit-family:00",
+      "movable_asset": {
+        "distinct_top1_count": 7,
+        "distinct_top2_set_count": 13,
+        "recorded_slot_count": 18,
+        "repeated_top1_count": 11,
+        "repeated_top2_set_count": 5
+      },
+      "private_profile_sha256": "eca95be2966879c1a783cce965f028f43c5178c7d52a329850cf35baf491c12f"
+    },
+    {
+      "authored_asset": {
+        "distinct_top1_count": 8,
+        "distinct_top2_set_count": 13,
+        "recorded_slot_count": 18,
+        "repeated_top1_count": 10,
+        "repeated_top2_set_count": 5
+      },
+      "family_id": "audit-family:01",
+      "movable_asset": {
+        "distinct_top1_count": 8,
+        "distinct_top2_set_count": 14,
+        "recorded_slot_count": 18,
+        "repeated_top1_count": 10,
+        "repeated_top2_set_count": 4
+      },
+      "private_profile_sha256": "f83ff4f5d1a8a915303cca881885b35dc15579af5e2364acdb7e3f2fe9d79bd8"
+    }
+  ],
+  "frozen_d_m": 1.0,
+  "interventions_performed": 0,
+  "private_ids_exported": false,
+  "reviewed_code": "e5e7fe89bf199c0efd9e2e1859b83834bf2f18f9",
+  "schema_version": "vsmt-vm04-target-repetition-audit-report-v1",
+  "simulator_started": false,
+  "source_stage_receipt_sha256": "0cdca070db04578a3c45e761cb64e253a6bc2cf923b82e52fb89dfc2b84aac24",
+  "source_visibility_report_sha256": "fd2e7be438120baf436db00ace362096465f2200c185e95cf16cabaa21c2105a",
+  "status": "read_only_export_from_existing_private_profiles",
+  "target_repeat_policy": "report_only"
+}
