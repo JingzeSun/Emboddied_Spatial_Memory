@@ -69,6 +69,7 @@ class FixedSlotRawStageTests(unittest.TestCase):
             self.assertFalse(row["attempted"])
             self.assertFalse(row["constructed"])
             self.assertTrue(row["relink_coverage_gap"])
+            self.assertFalse(row["relink_collision_observed_this_run"])
             self.assertNotIn("target_instance_ids", path.read_text())
             with self.assertRaisesRegex(RuntimeError, "cannot mark attempted"):
                 stage.not_started(root, task, "retry")
@@ -91,6 +92,7 @@ class FixedSlotRawStageTests(unittest.TestCase):
             self.assertEqual(failure["public_prefix_camera_sha256"],
                              [stage.audit.sha256(camera)])
             self.assertTrue(failure["relink_coverage_gap"])
+            self.assertFalse(failure["relink_collision_observed_this_run"])
             self.assertEqual(stage._terminal_after_exit(episode, task, 137),
                              terminal)
 

@@ -101,7 +101,7 @@ def _actions(program, frame_index, targets, metadata):
 
 def _failure_reason(error):
     if isinstance(error, KnownEndpointFailure):
-        return "registered_relink_endpoint_collision"
+        return "prior_D173_fixed_endpoint_collision"
     if isinstance(error, old.ResourceStop):
         return "resource_stop_with_prefix"
     if isinstance(error, ValueError):
@@ -229,6 +229,10 @@ def run_slot(house, task, episode_root, family_byte_limit, *,
                    "task_sha256": task_sha256,
                    "fixed_pose_sha256": fixed_pose_sha256,
                    "relink_coverage_gap": task["program"] == "RELINK",
+                   "relink_collision_observed_this_run": False,
+                   "relink_collision_evidence_source": (
+                       "registered_D173_nonforced_endpoint_receipt"
+                       if task["program"] == "RELINK" else None),
                    "registered_endpoint_receipt_sha256": (
                        task["endpoint_failure_evidence"]["endpoint_receipt_sha256"]
                        if task["program"] == "RELINK" else None),

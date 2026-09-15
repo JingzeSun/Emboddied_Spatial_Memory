@@ -142,12 +142,16 @@ class FixedSlotRawWorkerTests(unittest.TestCase):
                           return_value=["private-fixed-asset"]):
             output, result, controller = self._run(task)
         self.assertFalse(result["raw_complete"])
-        self.assertEqual(result["reason"], "registered_relink_endpoint_collision")
         self.assertEqual(result["public_prefix_frame_count"], 24)
         self.assertEqual(len(list((output / "public").glob("frame_*/camera.json"))), 24)
         self.assertEqual(len(list((output / "private").glob("frame_*/mapping.json"))), 24)
         self.assertFalse(any(row["action"] == "TeleportObject"
                              for row in controller.requests))
+        self.assertFalse(result["relink_collision_observed_this_run"])
+        self.assertEqual(result["reason"],
+                         "prior_D173_fixed_endpoint_collision")
+        self.assertEqual(result["relink_collision_evidence_source"],
+                         "registered_D173_nonforced_endpoint_receipt")
         self.assertNotIn("private-fixed-asset", (output / "raw.failure.json").read_text())
         self.assertIn("private-fixed-asset",
                       (output / "private/construction-failure.json").read_text())

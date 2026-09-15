@@ -146,6 +146,10 @@ def not_started(stage, task, reason):
         "fixed_pose_sha256": audit.canonical_sha256(task["fixed_pose"]),
         "family_viewpoints_sha256": task["family_viewpoints_sha256"],
         "relink_coverage_gap": task["program"] == "RELINK",
+        "relink_collision_observed_this_run": False,
+        "relink_collision_evidence_source": (
+            "registered_D173_nonforced_endpoint_receipt"
+            if task["program"] == "RELINK" else None),
         "semantic_positive_label_issued": False})
 
 
@@ -184,6 +188,10 @@ def _terminal_after_exit(episode, task, exit_code):
         "public_prefix_camera_sha256": [audit.sha256(path)
                                         for path in public_prefix],
         "relink_coverage_gap": task["program"] == "RELINK",
+        "relink_collision_observed_this_run": False,
+        "relink_collision_evidence_source": (
+            "registered_D173_nonforced_endpoint_receipt"
+            if task["program"] == "RELINK" else None),
         "semantic_positive_label_issued": False})
     return failure
 
@@ -456,6 +464,8 @@ def run(reviewed_code, scan_stage, endpoint_stage, source_root, output_root):
         "constructed_count": 0,
         "construction_assessment_pending": True,
         "semantic_positive_labels_issued": 0,
+        "new_relink_collision_actions_executed": 0,
+        "memory_history_checked": False,
         "training_steps": 0,
         "success": stop_reason is None})
     if stop_reason is None:
@@ -498,6 +508,12 @@ def export(reviewed_code, output_root, report):
                                          count in counts.items()
                                          if program == "RELINK" and
                                          kind != "raw.receipt.json"),
+        "relink_collision_evidence_source":
+            "registered_D173_nonforced_endpoint_receipt",
+        "source_endpoint_receipt_sha256": audit.read_json(CONFIG)[
+            "source_d173_endpoint_receipt_sha256"],
+        "new_relink_collision_actions_executed": 0,
+        "memory_history_checked": False,
         "requested_workers": receipt["requested_workers"],
         "actual_peak_workers": receipt["actual_peak_workers"],
         "stop_reason": receipt["stop_reason"],
