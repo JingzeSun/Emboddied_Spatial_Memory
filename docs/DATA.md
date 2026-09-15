@@ -910,3 +910,8 @@ D-111的`spatial-history-r4-pessimistic-map-v1`不再是正式输入schema。新
 白话：这些字段解决“预测撞墙”和“真的看见墙”被混写的问题。输入同一公开地图和控制，输出两种动力学的完整预测及每次阻挡的证据来源；例如M-PHYS在0.4秒撞到`body_occlusion_unknown`，表示它按悲观先验预测那里有障碍，不表示传感器观察到墙。它不读取私有XML、实际接触或未来机器人运动，独立评估只能在两种公开预测都封存后追加误差。
 
 白话：例如一条分支可同时给出“看过什么和要执行什么”以及“实际物块后来到哪里”，但前者放model_input、后者只放训练target。未来RGBD只帮助D/F/W重建自身状态，不包含推头真实未来位姿。这不是把标签变成部署输入，也不允许从audit身份查表预测。
+### VM-04两房四槽RELINK端点诊断产物（D-173）
+
+新版本只读取原v1两房动作探针private四个RELINK槽、v2匿名视角扫描的对应私有top-2、两份固定house JSON、D-172碰撞归因匿名报告及各receipt/摘要；源文件字节不修改。每槽独立新controller在`private/<family>/slot_NN.json`保存原请求、只把`forceAction`改false的请求、模拟器错误原文、目标真实position即时与后8帧终态，以及是否碰撞拒绝/真实到点/仍运动。公开`results/vsmt_vm04_relink_endpoint_two_house_probe_v1.json`只保存family×状态计数、worker/资源/来源摘要和`private_ids_exported=false`；错误原文、真实object ID、类别、pose与house细节不得进入公开报告或部署输入。`episodes_generated=0/training_steps=0/memory_history_checked=false/semantic_positive_labels_issued=0`是边界字段。
+
+白话：解决“看四个原RELINK动作能否按真实端点成立，却不能把物体私有身份泄漏到研究公开数据”的问题。输入是四个旧槽的封存请求和house，输出是四份仅私有的详细诊断及一份匿名状态表。例如某family两槽一槽碰撞拒绝、一槽真实到点，公开只出现两个状态各1，物体名字和碰撞对象仅留private。它不是36条新episode、训练标签、机器人可达路径证明或记忆关系前后核验。
