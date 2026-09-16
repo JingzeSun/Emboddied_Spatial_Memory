@@ -30,8 +30,13 @@ CONTRACT = json.loads((
 SHA = "0" * 64
 ACTION_REQUESTS = {
     "RotateRight": {"action": "RotateRight", "degrees": 30.0},
+    "RotateLeft": {"action": "RotateLeft", "degrees": 30.0},
     "MoveAhead": {"action": "MoveAhead", "moveMagnitude": 0.25},
+    "MoveBack": {"action": "MoveBack", "moveMagnitude": 0.25},
+    "MoveLeft": {"action": "MoveLeft", "moveMagnitude": 0.25},
     "MoveRight": {"action": "MoveRight", "moveMagnitude": 0.25},
+    "LookUp": {"action": "LookUp", "degrees": 30.0},
+    "LookDown": {"action": "LookDown", "degrees": 30.0},
 }
 
 

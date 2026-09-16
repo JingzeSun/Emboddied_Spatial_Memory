@@ -21,6 +21,7 @@ from vsmt.vm04_observation_runner import (
     public_route_projection,
     seal_formal_selection,
     validate_approved_contract,
+    validate_registered_action_request_templates,
     validate_route_plan,
 )
 
@@ -37,6 +38,20 @@ def _sha(value):
 
 def _contract():
     return json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+
+
+def _action_requests():
+    return {
+        action: {
+            "action": action,
+            ("moveMagnitude" if action.startswith("Move") else "degrees"):
+                (0.25 if action.startswith("Move") else 30.0),
+        }
+        for action in (
+            "MoveAhead", "MoveBack", "MoveLeft", "MoveRight",
+            "RotateLeft", "RotateRight", "LookUp", "LookDown",
+        )
+    }
 
 
 def _route(program="RELINK", branch="natural_occlusion_then_reobservation"):
@@ -246,6 +261,22 @@ class ObservationRunnerTests(unittest.TestCase):
         self.assertEqual(len(schema["oneOf"]), 6)
         self.assertIn("privateRoutePlan", schema["$defs"])
         self.assertIn("publicRoute", schema["$defs"])
+
+    def test_action_requests_cover_all_eight_without_force_or_defaults(self):
+        requests = _action_requests()
+        self.assertEqual(
+            validate_registered_action_request_templates(requests), requests,
+        )
+        incomplete = dict(requests)
+        incomplete.pop("LookDown")
+        with self.assertRaisesRegex(
+                ObservationConstructionError, "exactly eight"):
+            validate_registered_action_request_templates(incomplete)
+        forced = json.loads(json.dumps(requests))
+        forced["MoveAhead"]["forceAction"] = True
+        with self.assertRaisesRegex(
+                ObservationConstructionError, "unexpected fields"):
+            validate_registered_action_request_templates(forced)
 
 
 if __name__ == "__main__":

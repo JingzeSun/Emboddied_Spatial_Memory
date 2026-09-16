@@ -31,6 +31,10 @@ BRANCH_STATES = {
     "natural_occlusion_then_reobservation": "occluded",
     "out_of_view_then_reobservation": "out_of_view",
 }
+REGISTERED_CAMERA_ACTIONS = {
+    "MoveAhead", "MoveBack", "MoveLeft", "MoveRight",
+    "RotateLeft", "RotateRight", "LookUp", "LookDown",
+}
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
 
 
@@ -123,6 +127,37 @@ def validate_approved_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     return record
 
 
+def validate_registered_action_request_templates(
+    templates: Mapping[str, Any],
+) -> dict[str, dict[str, Any]]:
+    """Require an explicit, complete AI2-THOR request for all camera actions."""
+
+    _require(type(templates) is dict and set(templates) == REGISTERED_CAMERA_ACTIONS,
+             "registered action request templates must cover exactly eight actions")
+    result: dict[str, dict[str, Any]] = {}
+    for action in sorted(REGISTERED_CAMERA_ACTIONS):
+        raw = templates[action]
+        _require(type(raw) is dict, f"{action} request must be an object")
+        magnitude_name = (
+            "moveMagnitude" if action.startswith("Move") else "degrees"
+        )
+        _require(set(raw) == {"action", magnitude_name} and
+                 raw["action"] == action,
+                 f"{action} request has unexpected fields")
+        magnitude = raw[magnitude_name]
+        _require(type(magnitude) in {int, float} and
+                 math.isfinite(float(magnitude)) and float(magnitude) > 0.0,
+                 f"{action} magnitude must be finite and positive")
+        if action.startswith("Rotate"):
+            _require(float(magnitude) <= 180.0,
+                     f"{action} degrees exceed 180")
+        if action.startswith("Look"):
+            _require(float(magnitude) <= 90.0,
+                     f"{action} degrees exceed 90")
+        result[action] = clone_json(raw)
+    return result
+
+
 def assert_generation_authorized(contract: Mapping[str, Any]) -> None:
     """Reject simulator generation until review fields and authorization are open."""
 
@@ -153,6 +188,9 @@ def assert_generation_authorized(contract: Mapping[str, Any]) -> None:
     }
     unresolved = sorted(key for key, value in blockers.items() if value is None)
     _require(not unresolved, "unresolved generation fields: " + ",".join(unresolved))
+    validate_registered_action_request_templates(
+        blockers["registered_action_request_templates"]
+    )
     _require(record["status"] == "d183_frozen_executable",
              "observation contract is not executable")
     _require(record["authorization"].get("trajectory_implementation_authorized")

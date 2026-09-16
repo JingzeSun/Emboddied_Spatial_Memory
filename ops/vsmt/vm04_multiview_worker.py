@@ -24,6 +24,7 @@ from vsmt.vm04_observation_runner import (  # noqa: E402
     ObservationConstructionError,
     assess_route_receipt,
     assert_generation_authorized,
+    validate_registered_action_request_templates,
     validate_public_visibility_assessment,
     validate_route_plan,
 )
@@ -175,14 +176,11 @@ def _execute_route_core(
     intervention_executed = False
     private_record = None
     intervention_index = route["intervention_after_observation_index"]
-    _require(type(action_request_templates) is dict,
-             "registered action request templates are missing")
+    requests = validate_registered_action_request_templates(
+        action_request_templates
+    )
     for action_index, action_row in enumerate(route["registered_actions"]):
-        _require(type(action_request_templates.get(action_row["action"])) is dict,
-                 "registered action request template is missing")
-        request = dict(action_request_templates[action_row["action"]])
-        _require(request.get("action") == action_row["action"],
-                 "registered action request template changed action name")
+        request = dict(requests[action_row["action"]])
         event = controller.step(**request)
         observation_index = action_index + 1
         row = _capture_row(
