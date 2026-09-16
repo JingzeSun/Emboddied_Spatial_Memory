@@ -49,6 +49,7 @@ def make_materializer_receipt(
     materializer_code_sha256: str, materializer_config_sha256: str,
     public_frame_context_manifest_sha256: str,
     causal_prior_receipt_sha256: str, prior_memory_sha256: str,
+    materializer_assets_receipt_sha256: str,
 ) -> dict[str, Any]:
     """Seal contiguous raw-to-materialized frame bindings."""
 
@@ -63,6 +64,8 @@ def make_materializer_receipt(
             public_frame_context_manifest_sha256,
         "causal_prior_receipt_sha256": causal_prior_receipt_sha256,
         "prior_memory_sha256": prior_memory_sha256,
+        "materializer_assets_receipt_sha256":
+            materializer_assets_receipt_sha256,
     }
     for name, value in digests.items():
         _hex64(value, name)
@@ -101,6 +104,7 @@ def validate_materializer_receipt(
         "materializer_config_sha256",
         "public_frame_context_manifest_sha256",
         "causal_prior_receipt_sha256", "prior_memory_sha256",
+        "materializer_assets_receipt_sha256",
         "frame_count", "frames",
         "sealed_after_all_public_packets_and_private_crosswalks",
         "deployment_reader_may_open_private_crosswalks", "receipt_sha256",
@@ -125,6 +129,9 @@ def validate_materializer_receipt(
         ],
         causal_prior_receipt_sha256=record["causal_prior_receipt_sha256"],
         prior_memory_sha256=record["prior_memory_sha256"],
+        materializer_assets_receipt_sha256=record[
+            "materializer_assets_receipt_sha256"
+        ],
     )
     _require(record["frame_count"] == len(record["frames"]),
              "materializer frame count mismatch")

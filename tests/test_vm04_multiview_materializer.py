@@ -43,7 +43,10 @@ from vsmt.vm04_public_context import (  # noqa: E402
     make_public_frame_contexts,
 )
 from tests.test_vm04_public_frontend_sequence import bootstrap_config  # noqa: E402
-from tests.test_vm04_materializer_config import fixture as materializer_config  # noqa: E402
+from tests.test_vm04_materializer_config import (  # noqa: E402
+    asset_receipt,
+    fixture as materializer_config,
+)
 from tests.test_vm04_public_frontend_sequence import (  # noqa: E402
     context_bundle as sealed_context_bundle,
     tokens as patch_tokens,
@@ -52,6 +55,7 @@ from tests.test_vm04_public_frontend_sequence import (  # noqa: E402
 
 CODE_SHA = "a" * 64
 CONFIG_SHA = "b" * 64
+ASSET_SHA = "c" * 64
 
 
 def _build_raw_episode(episode_root):
@@ -175,6 +179,7 @@ class MultiviewMaterializerTests(unittest.TestCase):
                 episode, materialize_frame=_fixture_materializer(episode),
                 materializer_code_sha256=CODE_SHA,
                 materializer_config_sha256=CONFIG_SHA,
+                materializer_assets_receipt_sha256=ASSET_SHA,
             )
             self.assertEqual(result["status"], "materialized_complete")
             self.assertEqual(result["frame_count"], 6)
@@ -199,6 +204,7 @@ class MultiviewMaterializerTests(unittest.TestCase):
                 episode, materialize_frame=_fixture_materializer(episode),
                 materializer_code_sha256=CODE_SHA,
                 materializer_config_sha256=CONFIG_SHA,
+                materializer_assets_receipt_sha256=ASSET_SHA,
             )
             self.assertEqual(result["status"], "materialized_failure")
             self.assertEqual(result["frame_count"], 0)
@@ -223,6 +229,7 @@ class MultiviewMaterializerTests(unittest.TestCase):
                 episode, materialize_frame=fail_second,
                 materializer_code_sha256=CODE_SHA,
                 materializer_config_sha256=CONFIG_SHA,
+                materializer_assets_receipt_sha256=ASSET_SHA,
             )
             self.assertEqual(result["frame_count"], 1)
             self.assertTrue((
@@ -241,6 +248,7 @@ class MultiviewMaterializerTests(unittest.TestCase):
                 episode, materialize_frame=_materialize,
                 materializer_code_sha256=CODE_SHA,
                 materializer_config_sha256=CONFIG_SHA,
+                materializer_assets_receipt_sha256=ASSET_SHA,
             )
             self.assertEqual(result["status"], "materialized_failure")
             self.assertEqual(result["frame_count"], 6)
@@ -271,6 +279,7 @@ class MultiviewMaterializerTests(unittest.TestCase):
                 episode, materialize_frame=leak_private_id,
                 materializer_code_sha256=CODE_SHA,
                 materializer_config_sha256=CONFIG_SHA,
+                materializer_assets_receipt_sha256=ASSET_SHA,
             )
             self.assertEqual(result["status"], "materialized_failure")
             self.assertEqual(result["frame_count"], 0)
@@ -298,6 +307,7 @@ class MultiviewMaterializerTests(unittest.TestCase):
                 episode, materialize_frame=wrong_mask,
                 materializer_code_sha256=CODE_SHA,
                 materializer_config_sha256=CONFIG_SHA,
+                materializer_assets_receipt_sha256=ASSET_SHA,
             )
             self.assertEqual(result["status"], "materialized_failure")
             self.assertEqual(result["frame_count"], 0)
@@ -321,6 +331,7 @@ class MultiviewMaterializerTests(unittest.TestCase):
                     materialize_frame=_materialize,
                     materializer_code_sha256=CODE_SHA,
                     materializer_config_sha256=CONFIG_SHA,
+                    materializer_assets_receipt_sha256=ASSET_SHA,
                 )
             self.assertFalse(absent.exists())
 
@@ -346,6 +357,7 @@ class MultiviewMaterializerTests(unittest.TestCase):
                     private_frame_roles=["old", "new"],
                     patch_token_extractor=patch_tokens,
                     materializer_code_sha256=CODE_SHA,
+                    materializer_assets_receipt=asset_receipt(config),
                 )
             self.assertFalse(absent.exists())
 
@@ -357,6 +369,7 @@ class MultiviewMaterializerTests(unittest.TestCase):
                 episode, materialize_frame=_fixture_materializer(episode),
                 materializer_code_sha256=CODE_SHA,
                 materializer_config_sha256=CONFIG_SHA,
+                materializer_assets_receipt_sha256=ASSET_SHA,
             )
             self.assertEqual(result["status"], "materialized_complete")
             packet_path = episode / "materialized/public/frame_0000.json"
@@ -376,6 +389,7 @@ class MultiviewMaterializerTests(unittest.TestCase):
                 episode, materialize_frame=_fixture_materializer(episode),
                 materializer_code_sha256=CODE_SHA,
                 materializer_config_sha256=CONFIG_SHA,
+                materializer_assets_receipt_sha256=ASSET_SHA,
             )
             self.assertEqual(result["status"], "materialized_complete")
             prior_path = episode / "materialized/public/prior-memory.json"

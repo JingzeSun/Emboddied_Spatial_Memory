@@ -51,6 +51,11 @@ PUBLIC_CONSTANT_KEYS = {
     "coordinate_frame", "depth_unit", "descriptor_model_id",
     "proposal_model_id",
 }
+ASSET_RECEIPT_KEYS = {
+    "schema_version", "materializer_config_sha256", "model_id",
+    "repository_commit", "repository_worktree_clean", "checkpoint_sha256",
+    "network_access_required", "receipt_sha256",
+}
 T = TypeVar("T")
 
 
@@ -254,3 +259,32 @@ def verify_vm04_materializer_assets(
     }
     receipt["receipt_sha256"] = _sha(receipt)
     return receipt
+
+
+def validate_vm04_materializer_assets_receipt(
+    receipt: Mapping[str, Any], *,
+    parsed: ValidatedVm04MaterializerConfig,
+) -> dict[str, Any]:
+    """Validate a saved asset receipt against the same materializer config."""
+
+    _require(type(parsed) is ValidatedVm04MaterializerConfig,
+             "parsed materializer config has the wrong type")
+    _require(type(receipt) is dict and set(receipt) == ASSET_RECEIPT_KEYS,
+             "materializer assets receipt has unexpected fields")
+    record = clone_json(receipt)
+    _require(record["schema_version"] ==
+             "vsmt-vm04-materializer-assets-receipt-v1",
+             "wrong materializer assets receipt schema")
+    _require(record["materializer_config_sha256"] == parsed.config_sha256 and
+             record["model_id"] == parsed.model["model_id"] and
+             record["repository_commit"] == parsed.model["repository_commit"] and
+             record["checkpoint_sha256"] == parsed.model["checkpoint_sha256"],
+             "materializer assets receipt binds a different config or model")
+    _require(record["repository_worktree_clean"] is True and
+             record["network_access_required"] is False,
+             "materializer assets receipt does not attest an offline clean source")
+    claimed = record.pop("receipt_sha256")
+    _require(type(claimed) is str and HEX64.fullmatch(claimed) is not None and
+             claimed == _sha(record),
+             "materializer assets receipt digest mismatch")
+    return clone_json(receipt)

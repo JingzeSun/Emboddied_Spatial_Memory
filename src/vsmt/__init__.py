@@ -56,6 +56,7 @@ from .vm04_materializer_config import (
     ValidatedVm04MaterializerConfig,
     build_vm04_public_frontend_sequence,
     validate_vm04_materializer_config,
+    validate_vm04_materializer_assets_receipt,
     verify_vm04_materializer_assets,
 )
 from .l1_masks import (
@@ -163,6 +164,7 @@ __all__ = [
     "ValidatedVm04MaterializerConfig",
     "build_vm04_public_frontend_sequence",
     "validate_vm04_materializer_config",
+    "validate_vm04_materializer_assets_receipt",
     "verify_vm04_materializer_assets",
     "KEEP_SUPPORTED_BORDER_REGIONS",
     "REJECT_BORDER_REGIONS",

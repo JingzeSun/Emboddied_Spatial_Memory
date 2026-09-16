@@ -4,7 +4,7 @@
   "title": "VSMT VM-04 Trusted Materializer Receipt",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "episode_id", "route_plan_sha256", "raw_episode_manifest_sha256", "materializer_code_sha256", "materializer_config_sha256", "public_frame_context_manifest_sha256", "causal_prior_receipt_sha256", "prior_memory_sha256", "frame_count", "frames", "sealed_after_all_public_packets_and_private_crosswalks", "deployment_reader_may_open_private_crosswalks", "receipt_sha256"],
+  "required": ["schema_version", "episode_id", "route_plan_sha256", "raw_episode_manifest_sha256", "materializer_code_sha256", "materializer_config_sha256", "materializer_assets_receipt_sha256", "public_frame_context_manifest_sha256", "causal_prior_receipt_sha256", "prior_memory_sha256", "frame_count", "frames", "sealed_after_all_public_packets_and_private_crosswalks", "deployment_reader_may_open_private_crosswalks", "receipt_sha256"],
   "properties": {
     "schema_version": {"const": "vsmt-vm04-trusted-materializer-receipt-v2"},
     "episode_id": {"type": "string", "minLength": 1},
@@ -12,6 +12,7 @@
     "raw_episode_manifest_sha256": {"$ref": "#/$defs/sha256"},
     "materializer_code_sha256": {"$ref": "#/$defs/sha256"},
     "materializer_config_sha256": {"$ref": "#/$defs/sha256"},
+    "materializer_assets_receipt_sha256": {"$ref": "#/$defs/sha256"},
     "public_frame_context_manifest_sha256": {"$ref": "#/$defs/sha256"},
     "causal_prior_receipt_sha256": {"$ref": "#/$defs/sha256"},
     "prior_memory_sha256": {"$ref": "#/$defs/sha256"},

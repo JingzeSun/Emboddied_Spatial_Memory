@@ -32,6 +32,8 @@ from vsmt.vm04_materializer_receipt import (  # noqa: E402
 )
 from vsmt.vm04_materializer_config import (  # noqa: E402
     build_vm04_public_frontend_sequence,
+    validate_vm04_materializer_assets_receipt,
+    validate_vm04_materializer_config,
 )
 from vsmt.vm04_observation_runner import (  # noqa: E402
     ObservationConstructionError,
@@ -325,12 +327,15 @@ def _validated_sequence_result(
 def materialize_episode_core(
     episode_root: Path, *, materialize_frame: MaterializeFrame,
     materializer_code_sha256: str, materializer_config_sha256: str,
+    materializer_assets_receipt_sha256: str,
 ) -> dict[str, Any]:
     """Materialize one raw-complete episode; retain partial outputs on failure."""
 
     episode_root = Path(episode_root)
     _hex64(materializer_code_sha256, "materializer_code_sha256")
     _hex64(materializer_config_sha256, "materializer_config_sha256")
+    _hex64(materializer_assets_receipt_sha256,
+           "materializer_assets_receipt_sha256")
     public_manifest, private_manifest = _validate_manifests(episode_root)
     output_root = episode_root / "materialized"
     _require(not output_root.exists(), "materialized output already exists")
@@ -385,6 +390,8 @@ def materialize_episode_core(
                 episode_root / "private/raw.manifest.json"),
             materializer_code_sha256=materializer_code_sha256,
             materializer_config_sha256=materializer_config_sha256,
+            materializer_assets_receipt_sha256=
+                materializer_assets_receipt_sha256,
             public_frame_context_manifest_sha256=_sha_file(context_path),
             causal_prior_receipt_sha256=_sha_file(causal_path),
             prior_memory_sha256=_sha_file(prior_path),
@@ -530,6 +537,7 @@ def run_authorized_materializer(
     episode_root: Path, *, contract: Mapping[str, Any],
     materialize_frame: MaterializeFrame, materializer_code_sha256: str,
     materializer_config_sha256: str,
+    materializer_assets_receipt_sha256: str,
 ) -> dict[str, Any]:
     """Production entry: authorization precedes every output read or write."""
 
@@ -540,6 +548,8 @@ def run_authorized_materializer(
         episode_root, materialize_frame=materialize_frame,
         materializer_code_sha256=materializer_code_sha256,
         materializer_config_sha256=materializer_config_sha256,
+        materializer_assets_receipt_sha256=
+            materializer_assets_receipt_sha256,
     )
 
 
@@ -549,9 +559,14 @@ def run_authorized_materializer_from_config(
     public_frame_context_bundle: Mapping[str, Any],
     private_frame_roles: list[str], patch_token_extractor: Any,
     materializer_code_sha256: str,
+    materializer_assets_receipt: Mapping[str, Any],
 ) -> dict[str, Any]:
     """Build the stateful callback from one sealed config, then run it."""
 
+    parsed = validate_vm04_materializer_config(raw_materializer_config)
+    assets = validate_vm04_materializer_assets_receipt(
+        materializer_assets_receipt, parsed=parsed,
+    )
     callback, config_sha256 = build_vm04_public_frontend_sequence(
         raw_materializer_config,
         public_frame_context_bundle=public_frame_context_bundle,
@@ -564,4 +579,5 @@ def run_authorized_materializer_from_config(
         materialize_frame=callback,
         materializer_code_sha256=materializer_code_sha256,
         materializer_config_sha256=config_sha256,
+        materializer_assets_receipt_sha256=assets["receipt_sha256"],
     )

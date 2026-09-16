@@ -24,6 +24,7 @@ SEQUENCE_DIGESTS = {
     "public_frame_context_manifest_sha256": SHA,
     "causal_prior_receipt_sha256": SHA,
     "prior_memory_sha256": SHA,
+    "materializer_assets_receipt_sha256": SHA,
 }
 
 

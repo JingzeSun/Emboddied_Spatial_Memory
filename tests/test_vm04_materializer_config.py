@@ -25,6 +25,7 @@ from tests.test_vm04_public_frontend_sequence import (  # noqa: E402
 )
 from vsmt.vm04_materializer_config import (  # noqa: E402
     build_vm04_public_frontend_sequence,
+    validate_vm04_materializer_assets_receipt,
     validate_vm04_materializer_config,
     verify_vm04_materializer_assets,
 )
@@ -72,6 +73,22 @@ def fixture():
         },
         "builder_code_sha256": "9" * 64,
     })
+
+
+def asset_receipt(raw):
+    receipt = {
+        "schema_version": "vsmt-vm04-materializer-assets-receipt-v1",
+        "materializer_config_sha256": raw["config_sha256"],
+        "model_id": raw["model"]["model_id"],
+        "repository_commit": raw["model"]["repository_commit"],
+        "repository_worktree_clean": True,
+        "checkpoint_sha256": raw["model"]["checkpoint_sha256"],
+        "network_access_required": False,
+    }
+    receipt["receipt_sha256"] = hashlib.sha256(
+        canonical_json(receipt).encode("utf-8")
+    ).hexdigest()
+    return receipt
 
 
 class Vm04MaterializerConfigTests(unittest.TestCase):
@@ -182,10 +199,22 @@ class Vm04MaterializerConfigTests(unittest.TestCase):
             )
             self.assertTrue(receipt["repository_worktree_clean"])
             self.assertFalse(receipt["network_access_required"])
+            self.assertEqual(
+                validate_vm04_materializer_assets_receipt(
+                    receipt, parsed=parsed,
+                ),
+                receipt,
+            )
             schema = json.loads((ROOT / (
                 "schemas/vsmt_vm04_materializer_assets_receipt.schema.json"
             )).read_text(encoding="utf-8"))
             self.assertEqual(set(receipt), set(schema["required"]))
+            changed = deepcopy(receipt)
+            changed["checkpoint_sha256"] = "f" * 64
+            with self.assertRaisesRegex(ValueError, "different config or model"):
+                validate_vm04_materializer_assets_receipt(
+                    changed, parsed=parsed,
+                )
             (repository / "model.py").write_text("MODEL = 'changed'\n", encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "worktree is not clean"):
                 verify_vm04_materializer_assets(
