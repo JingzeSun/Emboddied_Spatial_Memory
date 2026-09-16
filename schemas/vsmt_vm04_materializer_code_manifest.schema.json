@@ -17,9 +17,9 @@
     "source_inventory_policy": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["entry_path", "package_roots", "recursive_suffix", "symlinks_allowed"],
+      "required": ["entry_paths", "package_roots", "recursive_suffix", "symlinks_allowed"],
       "properties": {
-        "entry_path": {"const": "ops/vsmt/vm04_multiview_materializer.py"},
+        "entry_paths": {"const": ["ops/vsmt/vm04_multiview_materializer.py", "ops/vsmt/vm04_observation_stage.py"]},
         "package_roots": {"const": ["src/cpmt", "src/vsmt"]},
         "recursive_suffix": {"const": ".py"},
         "symlinks_allowed": {"const": false}

@@ -15,6 +15,7 @@
     "route_plan_sealing_authorized": false,
     "formal_selection_sealing_authorized": false,
     "route_assessment_authorized": false,
+    "materializer_code_sealing_authorized": false,
     "materialization_authorized": false,
     "pilot_execution_authorized": false,
     "formal_execution_authorized": false,

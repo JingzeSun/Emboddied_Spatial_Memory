@@ -1960,3 +1960,10 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - RELINK gate不再检查crosswalk自报`old/new`。它先按公开seal绑定的old/post packet及对应crosswalk摘要在materializer receipt中找唯一帧，再用该receipt index核crosswalk；修改index并重签crosswalk/receipt的人工例仍因与公开选帧不一致而拒绝。
 - 受影响5模块30/30通过；VM-04 discover 176/176、VSMT 179/179、旧两房入口内嵌executor 42/L1 31/VSMT 179共252/252通过。0 source inventory、0模型读取、0controller、0episode、0materialization、0标签。
 - 白话：材料化器现在只写“这是第几帧”，不能替评价器写“这是旧证据还是新证据”。旧/新由公开proof seal选择，私有身份仍只在封存后评价。
+
+## LOG-185：父stage接入关闭的代码清单封存步骤（2026-09-16）
+
+- code manifest固定entry从materializer核心扩为materializer核心加`vm04_observation_stage.py`父入口，完整包inventory不变；临时Git仓库测试同时核两个入口、包内嵌套源码及commit字节。
+- 父stage `check`新增四类materializer schema草案检查；`seal-materializer-code`先核独立授权，再读取明确checkout/commit并生成、复验、独占写manifest。当前授权新增为false，不存在checkout的测试确认未创建路径或输出。
+- 定向27/27通过；VM-04 discover 177/177、VSMT 179/179、旧两房入口内嵌executor 42/L1 31/VSMT 179共252/252通过。0 source inventory、0模型读取、0controller、0episode、0materialization。
+- 白话：现在父stage已有生成源码装箱单的固定位置，而且它自己也在装箱单范围内。当前只验关闭行为，尚未真正扫描服务器代码或调度材料化worker。

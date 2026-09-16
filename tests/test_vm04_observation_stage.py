@@ -35,6 +35,20 @@ class ObservationStageTests(unittest.TestCase):
                 stage.seal_source_pool(missing, output)
             self.assertFalse(output.exists())
 
+    def test_code_manifest_gate_refuses_before_reading_checkout(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            absent = root / "absent-checkout"
+            output = root / "materializer-code.json"
+            with self.assertRaisesRegex(
+                    stage.ObservationConstructionError,
+                    "materializer_code_sealing_authorized is not authorized"):
+                stage.seal_materializer_code(
+                    absent, "f" * 40, output,
+                )
+            self.assertFalse(absent.exists())
+            self.assertFalse(output.exists())
+
     def test_formal_gate_refuses_before_reading_pilot_results(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

@@ -14,14 +14,17 @@ from cpmt.hashing import canonical_json, clone_json
 SCHEMA = "vsmt-vm04-materializer-code-manifest-v1"
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
-ENTRY_PATH = "ops/vsmt/vm04_multiview_materializer.py"
+ENTRY_PATHS = (
+    "ops/vsmt/vm04_multiview_materializer.py",
+    "ops/vsmt/vm04_observation_stage.py",
+)
 PACKAGE_ROOTS = ("src/cpmt", "src/vsmt")
 TOP_KEYS = {
     "schema_version", "reviewed_git_commit", "source_inventory_policy",
     "sources", "manifest_sha256",
 }
 POLICY = {
-    "entry_path": ENTRY_PATH,
+    "entry_paths": list(ENTRY_PATHS),
     "package_roots": list(PACKAGE_ROOTS),
     "recursive_suffix": ".py",
     "symlinks_allowed": False,
@@ -52,7 +55,7 @@ def _safe_source_path(value: Any) -> str:
 
 def _inventory(repository_root: Path) -> list[str]:
     root = repository_root.resolve(strict=True)
-    paths = [ENTRY_PATH]
+    paths = list(ENTRY_PATHS)
     for package_root in PACKAGE_ROOTS:
         directory = root / package_root
         _require(directory.is_dir() and not directory.is_symlink(),
@@ -157,7 +160,7 @@ def verify_vm04_materializer_code_checkout(
     ).splitlines()
     relevant_commit_paths = sorted(
         path for path in commit_paths
-        if path == ENTRY_PATH or any(
+        if path in ENTRY_PATHS or any(
             path.startswith(package_root + "/") and path.endswith(".py")
             for package_root in PACKAGE_ROOTS
         )
@@ -174,4 +177,3 @@ def verify_vm04_materializer_code_checkout(
         _require(committed_sha == row["sha256"],
                  f"materializer reviewed source changed: {relative}")
     return record
-

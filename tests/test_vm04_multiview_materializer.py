@@ -65,7 +65,10 @@ def _code_manifest():
         "schema_version": "vsmt-vm04-materializer-code-manifest-v1",
         "reviewed_git_commit": "d" * 40,
         "source_inventory_policy": {
-            "entry_path": "ops/vsmt/vm04_multiview_materializer.py",
+            "entry_paths": [
+                "ops/vsmt/vm04_multiview_materializer.py",
+                "ops/vsmt/vm04_observation_stage.py",
+            ],
             "package_roots": ["src/cpmt", "src/vsmt"],
             "recursive_suffix": ".py",
             "symlinks_allowed": False,

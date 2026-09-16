@@ -30,6 +30,7 @@ def _git(root, *arguments):
 def _repository(root):
     files = {
         "ops/vsmt/vm04_multiview_materializer.py": b"ENTRY = True\n",
+        "ops/vsmt/vm04_observation_stage.py": b"STAGE = True\n",
         "src/cpmt/__init__.py": b"CPMT = True\n",
         "src/vsmt/__init__.py": b"VSMT = True\n",
         "src/vsmt/nested/module.py": b"VALUE = 1\n",
@@ -64,6 +65,7 @@ class MaterializerCodeManifestTest(unittest.TestCase):
                 [row["path"] for row in verified["sources"]],
                 sorted([
                     "ops/vsmt/vm04_multiview_materializer.py",
+                    "ops/vsmt/vm04_observation_stage.py",
                     "src/cpmt/__init__.py",
                     "src/vsmt/__init__.py",
                     "src/vsmt/nested/module.py",
