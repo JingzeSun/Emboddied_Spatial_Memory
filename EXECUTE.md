@@ -1946,3 +1946,10 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 真实loader固定`dinov2_vits14(pretrained=false)`，checkpoint只以`weights_only=true`读CPU并`strict=true`装载，随后冻结参数、切换eval并移到CUDA；生产入口先核授权，再读模型资产，再读episode。人工fake model验证strict/eval/frozen/device调用，不访问真实GPU。
 - VM-04/VSMT相关247/247通过；旧合同executor 42/42、L1 31/31、VSMT 179/179，共252/252通过。测试使用临时Git仓库和小checkpoint字节，不读取服务器DINO资产；0 source inventory、0controller、0真实episode、0真实materialization、0训练。
 - 白话：正式worker以后只能从一份完整封存配置和一张实际模型文件回执启动，不能各自临时拼阈值或只相信文件名。当前仍没有正式阈值、时间/动作编码、代码源清单或父stage，所以所有运行位继续false。
+
+## LOG-183：materializer源码清单与受审commit核验（2026-09-16）
+
+- 新code manifest枚举materializer入口以及`src/cpmt`、`src/vsmt`中的全部Python文件，逐项保存相对路径和文件SHA-256，并绑定受审40位Git commit与manifest自身摘要。验证同时比较当前checkout inventory、commit inventory、checkout字节和commit字节，拒绝新增、删除、修改、符号链接和路径逃逸。
+- 最强真实模型生产入口移除了调用方可手填的`materializer_code_sha256`；它只用已验manifest摘要通过合同授权，随后才打开代码checkout、DINO仓库/checkpoint和episode。未授权人工测试传入不存在的三个路径，确认授权拒绝发生在任何文件读取或创建之前。
+- 定向16/16通过，覆盖manifest正例、工作树字节变化、新增/删除源码、路径逃逸、摘要篡改及materializer既有链；VM-04 discover 175/175、VSMT 179/179、旧两房入口内嵌executor 42/L1 31/VSMT 179共252/252通过。一次额外L1 discover因未设`PYTHONPATH=src`发生2个模块导入错误，按正式路径重跑31/31通过；该误调用不记作科学或实现失败。当前未生成正式manifest，因为合同`expected_materializer_code_sha256`仍为null、受审commit尚未由用户冻结；0 source inventory、0模型加载、0controller、0episode、0materialization、0训练。
+- 白话：这一步把“代码哈希”变成能逐文件复核的装箱单。例如运行机多出一个会被包初始化加载的Python文件，即使入口文件没变也会拒绝。它仍是代码审查产物，不是运行回执或数据证据。

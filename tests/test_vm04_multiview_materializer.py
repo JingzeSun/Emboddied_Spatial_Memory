@@ -1,6 +1,7 @@
 """Tests for append-only multiview raw-to-packet materialization."""
 
 import copy
+import hashlib
 import importlib.util
 import json
 from pathlib import Path
@@ -33,6 +34,7 @@ from tests.test_vm04_multiview_worker import (  # noqa: E402
 )
 from tests.test_vsmt_public_candidates import graph_fixture, packet_fixture  # noqa: E402
 from cpmt.errors import InvariantViolation  # noqa: E402
+from cpmt.hashing import canonical_json  # noqa: E402
 from vsmt.causal_prior import (  # noqa: E402
     advance_public_bootstrap,
     build_causal_prior,
@@ -56,6 +58,27 @@ from tests.test_vm04_public_frontend_sequence import (  # noqa: E402
 CODE_SHA = "a" * 64
 CONFIG_SHA = "b" * 64
 ASSET_SHA = "c" * 64
+
+
+def _code_manifest():
+    value = {
+        "schema_version": "vsmt-vm04-materializer-code-manifest-v1",
+        "reviewed_git_commit": "d" * 40,
+        "source_inventory_policy": {
+            "entry_path": "ops/vsmt/vm04_multiview_materializer.py",
+            "package_roots": ["src/cpmt", "src/vsmt"],
+            "recursive_suffix": ".py",
+            "symlinks_allowed": False,
+        },
+        "sources": [{
+            "path": "ops/vsmt/vm04_multiview_materializer.py",
+            "sha256": "e" * 64,
+        }],
+    }
+    value["manifest_sha256"] = hashlib.sha256(
+        canonical_json(value).encode("utf-8")
+    ).hexdigest()
+    return value
 
 
 def _build_raw_episode(episode_root):
@@ -363,10 +386,11 @@ class MultiviewMaterializerTests(unittest.TestCase):
 
     def test_verified_model_entry_authorizes_before_asset_or_episode_read(self):
         config = materializer_config()
+        code_manifest = _code_manifest()
         contract = copy.deepcopy(CONTRACT)
         contract["crosswalk_provenance"][
             "expected_materializer_code_sha256"
-        ] = CODE_SHA
+        ] = code_manifest["manifest_sha256"]
         contract["crosswalk_provenance"][
             "expected_materializer_config_sha256"
         ] = config["config_sha256"]
@@ -383,7 +407,8 @@ class MultiviewMaterializerTests(unittest.TestCase):
                     private_frame_roles=["old", "new"],
                     repository_root=root / "absent-repository",
                     checkpoint_path=root / "absent-checkpoint.pth",
-                    materializer_code_sha256=CODE_SHA,
+                    materializer_code_manifest=code_manifest,
+                    code_repository_root=root / "absent-code-repository",
                 )
             self.assertEqual(list(root.iterdir()), [])
 

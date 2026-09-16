@@ -1872,3 +1872,10 @@
 - 模型来源另有只读assets verifier：现场核DINO仓库精确40位commit、包含未跟踪文件在内的干净工作树和checkpoint文件SHA-256，输出离线资产回执；不联网、不下载、不启动模型。生产配置入口必须先验证这张回执与同一materializer config/model相符，回执内部摘要再进入每个episode的materializer v2 receipt，避免只在配置中声明checkpoint摘要却未核实际文件。
 - 生产包装现可由一份sealed config构造`Vm04PublicFrontendSequence`，而不是让调用方分别拼装前端与bootstrap对象；授权仍在读取模型资产和episode前检查。真实DINO loader只从已核本地仓库构造`dinov2_vits14(pretrained=false)`，以`weights_only=true/strict=true`加载checkpoint，随后冻结参数、切eval并移到CUDA；公开帧再调用既有固定预处理与`x_norm_patchtokens`提取。正式阈值、时间规则、动作编码、materializer代码源清单摘要和父stage资源派发仍未完成。
 - 白话：这一步解决“代码能跑，但每个worker可能拿了不同阈值或不同模型文件”的问题。输入一份完整配置、一个干净仓库和checkpoint，输出同一有状态材料化callback及资产回执。例如checkpoint字节变了，即使文件名相同也不能进入episode receipt。它不代表这些阈值已经科学批准，也没有加载GPU模型或生成数据。
+
+## D-194：materializer完整源码清单与受审commit绑定
+
+- 日期：2026-09-16；状态：继续D-183精确schema/实现审查，不批准source inventory、materialization、pilot或生成。新增`vsmt-vm04-materializer-code-manifest-v1`，保守枚举materializer入口及`src/cpmt/**/*.py`、`src/vsmt/**/*.py`全部Python文件；之所以绑定整个包，是因为导入任一`vsmt.*`前会执行包`__init__.py`并加载其余模块，单列直接import不足以描述真实代码边界。
+- manifest逐文件保存仓库相对POSIX路径与SHA-256，并绑定40位受审Git commit及固定inventory policy。验证器同时要求当前checkout和该commit中的相关文件集合完全相同、每个文件字节与manifest相同，拒绝新增、删除、符号链接、路径逃逸或字节变化。Python/NumPy/Torch等环境依赖不冒充仓库源码；DINO仓库和checkpoint继续由D-193独立assets receipt约束。
+- 最强生产入口不再接受调用方手填`materializer_code_sha256`；它先只核内存中的manifest seal与合同期望摘要并检查授权，授权成立后才读取代码checkout、模型资产和episode。基础合同的期望代码摘要仍为null，因此当前不能生成正式manifest或进入后续读取。正式动作幅度、时间/动作编码、前端数值、SPLIT/MERGE参数和父stage继续阻断。
+- 白话：这一步解决“收据写了一个代码哈希，但没人知道它覆盖哪些文件”的问题。输入用户审过的Git commit和同字节checkout，输出一张逐文件源码装箱单；例如有人在运行前新增一个会被`vsmt/__init__.py`加载的模块，inventory立刻不同并拒绝。它不批准这些代码成为运行基线，也不检查第三方包版本或产生任何数据。

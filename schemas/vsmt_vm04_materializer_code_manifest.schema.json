@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "vsmt_vm04_materializer_code_manifest.schema.json",
+  "title": "VM-04 materializer code manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "reviewed_git_commit",
+    "source_inventory_policy",
+    "sources",
+    "manifest_sha256"
+  ],
+  "properties": {
+    "schema_version": {"const": "vsmt-vm04-materializer-code-manifest-v1"},
+    "reviewed_git_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "source_inventory_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entry_path", "package_roots", "recursive_suffix", "symlinks_allowed"],
+      "properties": {
+        "entry_path": {"const": "ops/vsmt/vm04_multiview_materializer.py"},
+        "package_roots": {"const": ["src/cpmt", "src/vsmt"]},
+        "recursive_suffix": {"const": ".py"},
+        "symlinks_allowed": {"const": false}
+      }
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "sha256"],
+        "properties": {
+          "path": {"type": "string", "minLength": 1},
+          "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+        }
+      }
+    },
+    "manifest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}

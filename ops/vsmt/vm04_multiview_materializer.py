@@ -30,6 +30,10 @@ from vsmt.vm04_materializer_receipt import (  # noqa: E402
     make_materializer_receipt,
     validate_materializer_receipt,
 )
+from vsmt.vm04_materializer_code_manifest import (  # noqa: E402
+    validate_vm04_materializer_code_manifest,
+    verify_vm04_materializer_code_checkout,
+)
 from vsmt.vm04_materializer_config import (  # noqa: E402
     build_vm04_public_frontend_sequence,
     build_verified_vm04_public_frontend_sequence,
@@ -589,16 +593,21 @@ def run_authorized_materializer_with_verified_model(
     raw_materializer_config: Mapping[str, Any],
     public_frame_context_bundle: Mapping[str, Any],
     private_frame_roles: list[str], repository_root: Path,
-    checkpoint_path: Path, materializer_code_sha256: str,
+    checkpoint_path: Path, materializer_code_manifest: Mapping[str, Any],
+    code_repository_root: Path,
     device: str = "cuda",
 ) -> dict[str, Any]:
-    """Production path: authorize, verify/load assets, then read the episode."""
+    """Authorize a sealed manifest, then verify code/assets and read the episode."""
 
     parsed = validate_vm04_materializer_config(raw_materializer_config)
+    code = validate_vm04_materializer_code_manifest(materializer_code_manifest)
     assert_materialization_authorized(
         contract,
-        code_sha256=materializer_code_sha256,
+        code_sha256=code["manifest_sha256"],
         config_sha256=parsed.config_sha256,
+    )
+    code = verify_vm04_materializer_code_checkout(
+        code, repository_root=code_repository_root,
     )
     callback, assets = build_verified_vm04_public_frontend_sequence(
         parsed,
@@ -611,7 +620,7 @@ def run_authorized_materializer_with_verified_model(
     return materialize_episode_core(
         episode_root,
         materialize_frame=callback,
-        materializer_code_sha256=materializer_code_sha256,
+        materializer_code_sha256=code["manifest_sha256"],
         materializer_config_sha256=parsed.config_sha256,
         materializer_assets_receipt_sha256=assets["receipt_sha256"],
     )
