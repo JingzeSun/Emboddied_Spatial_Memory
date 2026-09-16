@@ -1837,5 +1837,5 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 ## LOG-168：D-179固定36槽raw开闸（2026-09-16）
 
 - 用户认可`0342098/6731f9f`并开放原36槽raw检查与运行；四个RELINK失败保留，物理正例硬门只供独立新版本。为避免真实配置开闸后旧测试因“当前配置必须关闭”自相矛盾，`18de869`只把该测试改为显式注入关闭配置，仍验证首输出前拒绝；raw算法、任务和stage字节不变。配置随后登记完整受审ref `18de8692ce9f352789336c07578eca51d17d0dcd`，状态`frozen_reviewed_generation`，只打开run/generation；private evaluation、training、confirmation保持false。
-- 开闸配置下本地固定raw/摘要/配置定向17项与D-177正例硬门5项通过，Python编译和diff检查通过；服务器同版`check/run/verify/export`尚未执行，0新episode、0语义正例、0训练。此开闸不运行旧D-175的19个交互分支，不要求公开容器或`PutObject` smoke来救原四槽。
+- 开闸配置下本地固定raw/摘要/配置定向17项与D-177正例硬门5项通过，Python编译和diff检查通过；精确干净开闸提交`67651b2a2070f8bde2469cf5ab3bb949d394619c`的父入口本地`check`请求/实际2/2，raw边界组52项、目标/端点组8项退出0，receipt摘要`1db12af42a58d0b334f85f28fa68012409a515b1eaccff05069b48e11d38472b`。服务器同版`check/run/verify/export`尚未执行，0新episode、0语义正例、0训练。此开闸不运行旧D-175的19个交互分支，不要求公开容器或`PutObject` smoke来救原四槽。
 - 白话：输入是用户已审实现和固定36个任务，输出一个服务器可执行但仍受前置回执/资源保护的raw入口。例如原RELINK slot04只保留24帧和失败，其余槽继续；它不等于四个RELINK修好、每槽可训练或已经有服务器结果。
