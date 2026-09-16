@@ -71,7 +71,7 @@ class ObservationSuitabilityContractTests(unittest.TestCase):
         provenance = self.contract["crosswalk_provenance"]
         self.assertEqual(
             provenance["status"],
-            "receipt_schema_and_gate_binding_implemented_materializer_executor_pending")
+            "receipt_schema_gate_and_executor_shell_implemented_real_frontend_and_reviewed_digests_pending")
         self.assertTrue(
             provenance["required_before_any_physical_relink_positive"])
         self.assertIn("private_crosswalk_sha256",
@@ -82,11 +82,21 @@ class ObservationSuitabilityContractTests(unittest.TestCase):
         self.assertIsNone(provenance["expected_materializer_code_sha256"])
         self.assertIsNone(provenance["expected_materializer_config_sha256"])
         self.assertIn(
-            "implement_and_review_trusted_materializer_executor_and_parent_stage_binding",
+            "implement_and_review_real_public_frontend_and_parent_stage_binding",
             self.contract["pre_generation_blockers"],
         )
         packet = self.contract["public_packet_materialization"]
+        self.assertEqual(
+            packet["status"],
+            "public_packet_prior_chain_builder_implemented_real_frontend_pending")
         self.assertIsNone(packet["decision_time_rule"])
+        self.assertEqual(
+            packet["prior_memory_ref_source"],
+            "previous_online_public_bootstrap_memory_only")
+        self.assertTrue(
+            packet["independent_causal_prior_replay_receipt_required"])
+        self.assertFalse(
+            packet["frontend_row_accepts_private_crosswalk_or_instance_identity"])
         self.assertFalse(
             packet["private_program_or_target_ids_allowed_in_public_frontend"])
         self.assertFalse(

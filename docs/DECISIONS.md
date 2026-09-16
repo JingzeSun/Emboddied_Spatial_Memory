@@ -1827,4 +1827,11 @@
 - 日期：2026-09-16；状态：继续实现D-183审查范围，不开放materialization或生成。执行核心只接受`raw_complete`且construction verdict为真的episode，先复核公私manifest、route、terminal、N动作/N+1帧、每个RGB/depth/camera/mask/mapping摘要和数组形状，再逐帧调用注入的trusted materializer回调。回调输出必须是合法公开ObservationPacket和私有crosswalk；crosswalk实例只能来自该帧私有mapping，并须唯一绑定packet中的entity region/mask，任何private ID出现在公开packet都拒绝。
 - 每帧packet与crosswalk用`O_EXCL`分写；回调或raw核验中途失败时保留已完成materialized前缀，公开失败只写匿名reason，私有失败保留异常，不生成receipt/success。全部帧完成后重新打开每个raw绑定，才生成D-186 receipt和success marker。独立verifier再从磁盘复核raw、packet、crosswalk、receipt和marker；receipt后改packet会拒绝。
 - 基础合同新增独立`materialization_authorized=false`，crosswalk状态改为“receipt schema/gate binding已实现、executor待审”，受审materializer代码/配置摘要仍为null并同时阻断generation与materialization。人工测试可注入packet fixture验证文件链，但实际公开前端、DINO token、结构区域、causal prior和逐帧角色生成尚未接入，不能把回调接口称作真实材料化完成。
+
+## D-188：公开packet与causal-prior序列绑定
+
+- 日期：2026-09-16；状态：继续D-183精确实现审查，不开放source inventory、materialization或生成。raw相机记录补齐世界坐标pose、四元数、FOV、图像尺寸和由同一公开记录计算的内参，使后续公开几何不必回读模拟器metadata；它仍不带object ID、mask或program。
+- 新`vm04_public_packet_builder.py`只接受十一项精确公开前端字段，不接收调用方提供的`prior_memory_ref`。每帧ref由上一帧公开bootstrap的已封存memory生成，随后用同一显式`PublicBootstrapConfig`在线推进；整段完成后从空memory独立重放并要求终态完全一致，输出既有causal-prior receipt。额外private/program/target字段、region内instance ID、时间倒退或memory摘要不匹配均拒绝。
+- 机器合同据实际进度把crosswalk状态改为“receipt/gate/executor shell已实现，真实前端与受审摘要待定”，将阻断项收窄为真实公开前端和父stage。`decision_time_s`规则、past-action向量编码、bootstrap阈值、真实DINO/结构区域、SPLIT/MERGE确定性伪影判据和materializer代码/配置摘要仍未冻结；旧静态两房private program注入明确禁止复用。所有授权位保持false。
+- 白话：这一步解决“第2帧的packet究竟引用哪一版旧记忆，以及材料化结束后能不能证明整段旧记忆是公开序列算出来的”。输入已匿名的逐帧公开感知，输出逐帧packet、共同旧记忆和重放收据。例如有人给第2帧偷偷塞进另一个有正确椅子关系的memory，builder会因为ref不由第1帧产生而拒绝。它不解决RGB-D怎样形成区域，也没有运行任何house。
 - 白话：输入一份已经完整落盘的公私raw episode，输出逐帧公开packet、隔离crosswalk和最终收据。例如第2帧回调报错时保留第0帧输出并写失败，但绝不拿单帧成功冒充整集receipt。它不决定公开前端怎样产生SPLIT/MERGE，也没有运行服务器。

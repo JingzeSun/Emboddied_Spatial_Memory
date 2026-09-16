@@ -131,7 +131,7 @@
     "multiview_policy": "must_use_a_pre_registered_terminal_reobservation_window_not_continuous_visibility_after_enable"
   },
   "crosswalk_provenance": {
-    "status": "receipt_schema_and_gate_binding_implemented_materializer_executor_pending",
+    "status": "receipt_schema_gate_and_executor_shell_implemented_real_frontend_and_reviewed_digests_pending",
     "required_before_any_physical_relink_positive": true,
     "planned_receipt_must_bind": [
       "public_raw_frame_sha256",
@@ -147,9 +147,13 @@
     "public_relink_proof_seal_must_bind_materializer_receipt_digest": true
   },
   "public_packet_materialization": {
+    "status": "public_packet_prior_chain_builder_implemented_real_frontend_pending",
     "camera_pose_and_calibration_source": "sealed_raw_public_camera_record",
     "past_actions_source": "sealed_public_route_prefix",
     "decision_time_rule": null,
+    "prior_memory_ref_source": "previous_online_public_bootstrap_memory_only",
+    "independent_causal_prior_replay_receipt_required": true,
+    "frontend_row_accepts_private_crosswalk_or_instance_identity": false,
     "private_program_or_target_ids_allowed_in_public_frontend": false,
     "old_static_SPLIT_MERGE_private_artifact_injection_allowed": false
   },
@@ -225,7 +229,7 @@
     "freeze_intervention_visibility_constraint_and_failure_reason",
     "implement_and_review_public_visibility_state_builder",
     "freeze_explicit_registered_action_request_templates",
-    "implement_and_review_trusted_materializer_executor_and_parent_stage_binding",
+    "implement_and_review_real_public_frontend_and_parent_stage_binding",
     "freeze_public_packet_decision_time_rule",
     "freeze_house_family_development_split_without_opening_confirmation",
     "freeze_exact_shared_probe_architecture_and_training_budget",
