@@ -107,6 +107,10 @@ class DisabledTargetReappeared(RuntimeError):
     """A disabled target became visible before its registered enable action."""
 
 
+class EnabledTargetDisappeared(RuntimeError):
+    """A re-enabled target disappeared again before the terminal frame."""
+
+
 def _target_mask_pixels(event, object_id):
     """Read private target support from the action event, never public output."""
     import numpy as np
@@ -139,16 +143,21 @@ def _validate_action_poststate(record):
 
 
 def _post_agent_lifecycle_records(event, frame_index, disabled_targets,
-                                  pending_enable_targets):
+                                  pending_enable_targets, enabled_targets):
     rows = []
-    for object_id in sorted(disabled_targets | pending_enable_targets):
+    active_targets = (disabled_targets | pending_enable_targets |
+                      enabled_targets)
+    for object_id in sorted(active_targets):
+        if object_id in pending_enable_targets:
+            expected_state = "visible_after_enable"
+        elif object_id in disabled_targets:
+            expected_state = "hidden_between_disable_and_enable"
+        else:
+            expected_state = "visible_after_enable_until_terminal"
         rows.append({
             "frame_index": frame_index,
             "target_instance_id": object_id,
-            "expected_state": (
-                "visible_after_enable"
-                if object_id in pending_enable_targets else
-                "hidden_between_disable_and_enable"),
+            "expected_state": expected_state,
             "target_mask_visible_pixels":
                 _target_mask_pixels(event, object_id),
         })
@@ -168,6 +177,11 @@ def _validate_post_agent_lifecycle(records):
             raise InterventionPoststateMismatch(
                 "EnableObject target remained absent after registered agent "
                 "action at frame %s" % record["frame_index"])
+        if (record["expected_state"] ==
+                "visible_after_enable_until_terminal" and support <= 0):
+            raise EnabledTargetDisappeared(
+                "enabled target disappeared before terminal frame %s" %
+                record["frame_index"])
 
 
 def _failure_reason(error):
@@ -177,6 +191,8 @@ def _failure_reason(error):
         return "intervention_poststate_mismatch"
     if isinstance(error, DisabledTargetReappeared):
         return "disabled_target_reappeared_between_actions"
+    if isinstance(error, EnabledTargetDisappeared):
+        return "enabled_target_disappeared_before_terminal"
     if isinstance(error, old.ResourceStop):
         return "resource_stop_with_prefix"
     if isinstance(error, ValueError):
@@ -206,7 +222,7 @@ def run_slot(house, task, episode_root, family_byte_limit, *,
     controller = None
     frames, actions, targets, past_actions = [], [], [], []
     lifecycle_checks = []
-    disabled_targets, pending_enable_targets = set(), set()
+    disabled_targets, pending_enable_targets, enabled_targets = set(), set(), set()
     started = time.monotonic()
     initial = None
     stop_error = None
@@ -232,6 +248,7 @@ def run_slot(house, task, episode_root, family_byte_limit, *,
             _validate_action_poststate(actions[-1])
             if request["action"] == "DisableObject":
                 disabled_targets.add(request["objectId"])
+                enabled_targets.discard(request["objectId"])
         for frame_index in range(32):
             if task["program"] == "RELINK" and frame_index == 24:
                 raise KnownEndpointFailure("D-173 fixed endpoint collision")
@@ -245,6 +262,7 @@ def run_slot(house, task, episode_root, family_byte_limit, *,
                 _validate_action_poststate(actions[-1])
                 if request["action"] == "DisableObject":
                     disabled_targets.add(request["objectId"])
+                    enabled_targets.discard(request["objectId"])
                 elif request["action"] == "EnableObject":
                     require(request["objectId"] in disabled_targets,
                             "registered enable lacks a disabled target")
@@ -257,9 +275,10 @@ def run_slot(house, task, episode_root, family_byte_limit, *,
                     "registered agent motion rejected")
             current_checks = _post_agent_lifecycle_records(
                 event, frame_index, disabled_targets,
-                pending_enable_targets)
+                pending_enable_targets, enabled_targets)
             lifecycle_checks.extend(current_checks)
             _validate_post_agent_lifecycle(current_checks)
+            enabled_targets.update(pending_enable_targets)
             pending_enable_targets.clear()
             past_actions.append({"end_time_s": frame_index * 0.3,
                                  "command": command})

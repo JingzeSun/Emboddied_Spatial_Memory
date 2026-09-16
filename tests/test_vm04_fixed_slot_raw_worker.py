@@ -70,12 +70,14 @@ class RejectedLifecycleController(LifecycleController):
 
 class DelayedEnableController(Controller):
     def __init__(self, *, reveal_after_camera=True,
-                 reappear_on_camera_index=None):
+                 reappear_on_camera_index=None,
+                 disappear_on_camera_index=None):
         super().__init__()
         self.event.instance_masks = {
             "private-fixed-asset": np.ones((4, 4), dtype=np.uint8)}
         self.reveal_after_camera = reveal_after_camera
         self.reappear_on_camera_index = reappear_on_camera_index
+        self.disappear_on_camera_index = disappear_on_camera_index
         self.pending_enable = False
         self.camera_index = -1
 
@@ -94,6 +96,8 @@ class DelayedEnableController(Controller):
             if self.camera_index == self.reappear_on_camera_index:
                 self.event.instance_masks = {
                     "private-fixed-asset": np.ones((4, 4), dtype=np.uint8)}
+            if self.camera_index == self.disappear_on_camera_index:
+                self.event.instance_masks = {}
         return self.event
 
 
@@ -176,10 +180,11 @@ class FixedSlotRawWorkerTests(unittest.TestCase):
         checks = json.loads(
             (output / "private/intervention.json").read_text())[
                 "post_agent_lifecycle_checks"]
-        self.assertEqual(len(checks), 25)
+        self.assertEqual(len(checks), 32)
         self.assertTrue(all(row["target_mask_visible_pixels"] == 0
-                            for row in checks[:-1]))
-        self.assertEqual(checks[-1]["target_mask_visible_pixels"], 16)
+                            for row in checks[:24]))
+        self.assertTrue(all(row["target_mask_visible_pixels"] == 16
+                            for row in checks[24:]))
 
     def test_enable_is_judged_after_following_registered_camera_action(self):
         task = dict(self.task, program="BIRTH")
@@ -228,6 +233,23 @@ class FixedSlotRawWorkerTests(unittest.TestCase):
         self.assertEqual(
             failure["post_agent_lifecycle_checks"][-1][
                 "target_mask_visible_pixels"], 0)
+
+    def test_enabled_target_is_checked_through_terminal_frame(self):
+        task = dict(self.task, program="BIRTH")
+        controller = DelayedEnableController(
+            reveal_after_camera=True, disappear_on_camera_index=27)
+        with patch.object(worker, "private_targets",
+                          return_value=["private-fixed-asset"]):
+            output, result, _ = self._run(task, controller)
+        self.assertEqual(
+            result["reason"], "enabled_target_disappeared_before_terminal")
+        failure = json.loads(
+            (output / "private/construction-failure.json").read_text())
+        self.assertEqual(
+            failure["post_agent_lifecycle_checks"][-1]["frame_index"], 27)
+        self.assertEqual(
+            failure["post_agent_lifecycle_checks"][-1]["expected_state"],
+            "visible_after_enable_until_terminal")
 
     def test_rejected_lifecycle_action_remains_in_private_failure(self):
         task = dict(self.task, program="BIRTH")
