@@ -15,6 +15,10 @@ if str(SRC_ROOT) not in sys.path:
 
 from tests.test_vm04_public_frontend import config as frontend_config  # noqa: E402
 from vsmt.causal_prior import PublicBootstrapConfig  # noqa: E402
+from vsmt.vm04_public_context import (  # noqa: E402
+    REGISTERED_ACTIONS,
+    make_public_frame_contexts,
+)
 from vsmt.vm04_public_frontend_sequence import (  # noqa: E402
     Vm04PublicFrontendSequence,
 )
@@ -37,23 +41,56 @@ def bootstrap_config() -> PublicBootstrapConfig:
     )
 
 
-def contexts() -> list[dict]:
+def context_bundle() -> dict:
     constants = {
         "coordinate_frame": "map",
         "depth_unit": "metre",
         "descriptor_model_id": "dinov2.vits14",
         "proposal_model_id": "l1.oracle-mask.public-depth.v1",
     }
-    return [
-        {
-            "sample_id_hash": f"{index + 1:x}" * 64,
-            "decision_time_s": float(index),
-            "robot_state": {"feature_names": [], "values": []},
-            "past_actions": [],
-            "public_constants": constants,
-        }
-        for index in range(2)
-    ]
+    route = {
+        "schema_version": "vsmt-vm04-public-observation-route-v1",
+        "consumer_scope": "construction_provenance_only_not_adapter_input",
+        "episode_id": "episode:sequence",
+        "branch_type": "out_of_view_then_reobservation",
+        "visibility_subject_kind": "target_track",
+        "visibility_subject_public_ref": "subject:0001",
+        "initial_pose": {"x_m": 0.0, "y_m": 0.9, "z_m": 0.0, "yaw_deg": 0.0},
+        "registered_actions": [{"step_index": 0, "action": "MoveAhead"}],
+        "phase_observation_indices": {
+            "precondition_visible": [0, 1],
+            "challenge_hidden": [0, 1],
+            "reobserved": [0, 1],
+        },
+        "planned_poses": {
+            name: {"x_m": 0.0, "y_m": 0.9, "z_m": 0.0, "yaw_deg": 0.0}
+            for name in ("precondition", "challenge", "reobservation")
+        },
+        "intervention_after_observation_index": None,
+        "terminal_reobservation_indices": [0, 1],
+        "private_route_plan_sha256": "d" * 64,
+    }
+    from cpmt.hashing import canonical_json
+    import hashlib
+    route["public_route_sha256"] = hashlib.sha256(
+        canonical_json(route).encode("utf-8")
+    ).hexdigest()
+    actions = sorted(REGISTERED_ACTIONS)
+    return make_public_frame_contexts(
+        route,
+        decision_times_s=[0.0, 1.0],
+        decision_time_rule_id="fixture.index-seconds.v1",
+        action_command_vectors={
+            action: [1.0 if row == column else 0.0 for column in range(8)]
+            for row, action in enumerate(actions)
+        },
+        action_encoding_id="fixture.one-hot.v1",
+        robot_states=[
+            {"feature_names": [], "values": []},
+            {"feature_names": [], "values": []},
+        ],
+        public_constants=constants,
+    )
 
 
 def raws(index: int):
@@ -91,7 +128,7 @@ def tokens(_rgb, _index):
 class Vm04PublicFrontendSequenceTests(unittest.TestCase):
     def test_contiguous_frames_build_and_replay_one_public_memory_chain(self):
         callback = Vm04PublicFrontendSequence(
-            public_frame_contexts=contexts(),
+            public_frame_context_bundle=context_bundle(),
             private_frame_roles=["old", "new"],
             patch_token_extractor=tokens,
             frontend_config=frontend_config(),
@@ -121,7 +158,7 @@ class Vm04PublicFrontendSequenceTests(unittest.TestCase):
 
     def test_out_of_order_or_incomplete_finalize_fails_closed(self):
         callback = Vm04PublicFrontendSequence(
-            public_frame_contexts=contexts(),
+            public_frame_context_bundle=context_bundle(),
             private_frame_roles=["old", "new"],
             patch_token_extractor=tokens,
             frontend_config=frontend_config(),
@@ -141,10 +178,12 @@ class Vm04PublicFrontendSequenceTests(unittest.TestCase):
             for name in names
             for token in ("program", "target", "teacher", "future")
         ))
-        with self.assertRaisesRegex(ValueError, "contain exactly"):
+        malformed = context_bundle()
+        malformed["contexts"][0]["private_program"] = "SPLIT"
+        with self.assertRaisesRegex(ValueError, "unexpected fields"):
             Vm04PublicFrontendSequence(
-                public_frame_contexts=[{**contexts()[0], "private_program": "SPLIT"}],
-                private_frame_roles=["old"],
+                public_frame_context_bundle=malformed,
+                private_frame_roles=["old", "new"],
                 patch_token_extractor=tokens,
                 frontend_config=frontend_config(),
                 bootstrap_config=bootstrap_config(),

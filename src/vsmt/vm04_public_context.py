@@ -12,6 +12,16 @@ REGISTERED_ACTIONS = {
     "MoveAhead", "MoveBack", "MoveLeft", "MoveRight",
     "RotateLeft", "RotateRight", "LookUp", "LookDown",
 }
+PUBLIC_FRAME_CONTEXT_KEYS = {
+    "sample_id_hash", "decision_time_s", "robot_state", "past_actions",
+    "public_constants",
+}
+PUBLIC_FRAME_CONTEXT_MANIFEST_KEYS = {
+    "schema_version", "public_route_sha256", "observation_count",
+    "decision_time_rule_id", "decision_times_sha256", "action_encoding_id",
+    "action_command_vectors_sha256", "ordered_context_sha256s",
+    "private_program_target_teacher_or_future_used", "manifest_sha256",
+}
 
 
 def _sha256(value: Any) -> str:
@@ -153,3 +163,47 @@ def make_public_frame_contexts(
     }
     manifest["manifest_sha256"] = _sha256(manifest)
     return {"contexts": contexts, "manifest": manifest}
+
+
+def validate_public_frame_context_bundle(
+    bundle: Mapping[str, Any], *, expected_public_route_sha256: str | None = None,
+) -> dict[str, Any]:
+    """Recompute every public context and manifest binding."""
+
+    if not isinstance(bundle, Mapping) or set(bundle) != {"contexts", "manifest"}:
+        raise ValueError("public frame context bundle has unexpected fields")
+    contexts = bundle["contexts"]
+    manifest = bundle["manifest"]
+    if not isinstance(contexts, list) or not contexts:
+        raise ValueError("public frame context bundle must be nonempty")
+    if not isinstance(manifest, Mapping) or set(
+        manifest
+    ) != PUBLIC_FRAME_CONTEXT_MANIFEST_KEYS:
+        raise ValueError("public frame context manifest has unexpected fields")
+    record = clone_json(dict(manifest))
+    if record["schema_version"] != "vsmt-vm04-public-frame-context-manifest-v1":
+        raise ValueError("wrong public frame context manifest schema")
+    if record["private_program_target_teacher_or_future_used"] is not False:
+        raise ValueError("public frame contexts used forbidden information")
+    if expected_public_route_sha256 is not None and (
+        record["public_route_sha256"] != expected_public_route_sha256
+    ):
+        raise ValueError("public frame contexts bind a different route")
+    if record["observation_count"] != len(contexts):
+        raise ValueError("public frame context count mismatch")
+    for context in contexts:
+        if type(context) is not dict or set(context) != PUBLIC_FRAME_CONTEXT_KEYS:
+            raise ValueError("public frame context has unexpected fields")
+    times = [float(context["decision_time_s"]) for context in contexts]
+    if any(left >= right for left, right in zip(times, times[1:])):
+        raise ValueError("public frame context times must be strictly increasing")
+    if record["decision_times_sha256"] != _sha256(times):
+        raise ValueError("public frame context decision-time digest mismatch")
+    if record["ordered_context_sha256s"] != [
+        _sha256(context) for context in contexts
+    ]:
+        raise ValueError("public frame context ordered digest mismatch")
+    claimed = record.pop("manifest_sha256")
+    if claimed != _sha256(record):
+        raise ValueError("public frame context manifest digest mismatch")
+    return clone_json(dict(bundle))

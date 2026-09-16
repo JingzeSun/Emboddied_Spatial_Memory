@@ -18,6 +18,7 @@ from vsmt.vm04_observation_runner import public_route_projection  # noqa: E402
 from vsmt.vm04_public_context import (  # noqa: E402
     REGISTERED_ACTIONS,
     make_public_frame_contexts,
+    validate_public_frame_context_bundle,
 )
 
 
@@ -53,6 +54,7 @@ def build(**updates):
 class Vm04PublicContextTests(unittest.TestCase):
     def test_contexts_contain_only_completed_action_prefix(self):
         result = build()
+        self.assertEqual(validate_public_frame_context_bundle(result), result)
         contexts = result["contexts"]
         self.assertEqual(len(contexts), 6)
         self.assertEqual(contexts[0]["past_actions"], [])
@@ -124,6 +126,16 @@ class Vm04PublicContextTests(unittest.TestCase):
         incomplete.pop("LookDown")
         with self.assertRaisesRegex(ValueError, "cover every registered action"):
             build(action_command_vectors=incomplete)
+
+    def test_context_or_manifest_tampering_is_rejected(self):
+        context_changed = deepcopy(build())
+        context_changed["contexts"][1]["decision_time_s"] = 1.5
+        with self.assertRaisesRegex(ValueError, "decision-time digest"):
+            validate_public_frame_context_bundle(context_changed)
+        manifest_changed = deepcopy(build())
+        manifest_changed["manifest"]["action_encoding_id"] = "changed.v2"
+        with self.assertRaisesRegex(ValueError, "manifest digest"):
+            validate_public_frame_context_bundle(manifest_changed)
 
 
 if __name__ == "__main__":

@@ -16,6 +16,7 @@ from .causal_prior import (
     empty_public_memory,
 )
 from .contracts import canonical_sha256
+from .vm04_public_context import validate_public_frame_context_bundle
 from .vm04_public_frontend import (
     Vm04PublicFrontendConfig,
     materialize_vm04_public_frontend_frame,
@@ -23,36 +24,19 @@ from .vm04_public_frontend import (
 from .vm04_public_packet_builder import make_public_packet
 
 
-PUBLIC_FRAME_CONTEXT_KEYS = {
-    "sample_id_hash",
-    "decision_time_s",
-    "robot_state",
-    "past_actions",
-    "public_constants",
-}
-
-
 class Vm04PublicFrontendSequence:
     """Consume contiguous raw frames and preserve the public memory chain."""
 
     def __init__(
-        self, *, public_frame_contexts: Sequence[Mapping[str, Any]],
+        self, *, public_frame_context_bundle: Mapping[str, Any],
         private_frame_roles: Sequence[str],
         patch_token_extractor: Callable[[np.ndarray, int], Any],
         frontend_config: Vm04PublicFrontendConfig,
         bootstrap_config: PublicBootstrapConfig,
         builder_code_sha256: str,
     ) -> None:
-        if isinstance(public_frame_contexts, (str, bytes)):
-            raise ValueError("public_frame_contexts must be an ordered sequence")
-        contexts = []
-        for raw in public_frame_contexts:
-            if not isinstance(raw, Mapping) or set(raw) != PUBLIC_FRAME_CONTEXT_KEYS:
-                raise ValueError(
-                    "each public frame context must contain exactly "
-                    f"{sorted(PUBLIC_FRAME_CONTEXT_KEYS)}"
-                )
-            contexts.append(clone_json(dict(raw)))
+        bundle = validate_public_frame_context_bundle(public_frame_context_bundle)
+        contexts = bundle["contexts"]
         roles = list(private_frame_roles)
         if not contexts or len(roles) != len(contexts):
             raise ValueError("private frame roles must match nonempty public contexts")
@@ -66,6 +50,7 @@ class Vm04PublicFrontendSequence:
             raise ValueError("bootstrap_config has the wrong type")
 
         self._contexts = contexts
+        self._context_manifest = bundle["manifest"]
         self._private_roles = roles
         self._extract_tokens = patch_token_extractor
         self._frontend_config = frontend_config
@@ -140,6 +125,9 @@ class Vm04PublicFrontendSequence:
             self._final = {
                 "prior_memory": clone_json(self._memory),
                 "causal_prior_receipt": clone_json(replay["receipt"]),
+                "public_frame_context_manifest": clone_json(
+                    self._context_manifest
+                ),
                 "ordered_public_packet_sha256s": [
                     canonical_sha256(packet) for packet in self._packets
                 ],
