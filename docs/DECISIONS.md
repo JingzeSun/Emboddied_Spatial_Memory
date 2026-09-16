@@ -1759,7 +1759,7 @@
 ## D-180：原36槽科学适用性阻断与服务器运行再关闭
 
 - 日期：2026-09-16；状态：根据用户要求复核“即使36槽全部成功能否支持VSMT主张”，在服务器尚未运行时重新关闭raw生成，等待新观察合同裁决。原两房、slot、失败和D-173四个RELINK证据不删除；`vm04_fixed_slot_raw_stage_v1.json`改为`reviewed_raw_paused_scientific_suitability`，`run_authorized/generation_authorized=false`且`expected_reviewed_code=null`，private evaluation/training/confirmation继续false。
-- 结论明确为**不能支持**。现有32帧注册相机策略在同一位置交替±0.25° yaw、净朝向回零且无平移，主要满足“每包跟随登记动作”的溯源形式，不能形成实质跨视角再识别、遮挡变化或自由空间负证据压力。四个RELINK固定为失败；NOOP/BIND/SPLIT/MERGE共12槽不发干预且公开类型化结构规则/语义验收尚未实现；生命周期16槽在固定镜头中心执行Disable/Enable；两house无独立未见family split，也没有五方法候选、预测或评分。因此36/36 raw成功至多支持writer、公私隔离、摘要链、失败保留和资源派发，不能进入L2主表、比较朴素当前帧基线或支撑VSMT候选贡献。
+- 结论明确为**不能支持**。现有32帧注册相机策略在同一位置交替±0.25° yaw、净朝向回零且无平移，主要满足“每包跟随登记动作”的溯源形式，不能形成实质跨视角再识别、遮挡变化或自由空间负证据压力。四个RELINK固定为失败；NOOP/BIND/SPLIT/MERGE共16槽不发干预；其中BIND/SPLIT/MERGE 12槽的公开类型化结构规则和NOOP 4槽的不变语义验收均尚未实现；生命周期16槽在固定镜头中心执行Disable/Enable；两house无独立未见family split，也没有五方法候选、预测或评分。因此36/36 raw成功至多支持writer、公私隔离、摘要链、失败保留和资源派发，不能进入L2主表、比较朴素当前帧基线或支撑VSMT候选贡献。
 - 生命周期后态属于既定动作证据的实现遗漏而非新科学口径：raw worker在每次`DisableObject/EnableObject`返回成功后读取私有target mask，分别要求0/>0像素；不符保留已发动作及mask支持并写`intervention_poststate_mismatch`。这避免把API success冒充真实可见性后态，但不把槽升级为记忆事务正例。
 - D-177硬门原实现把`old/new_region_id`与instance ID放在同一private outcome自报，未落实DATA所述trusted L1 crosswalk。修订后outcome不再指定entity region；gate必须从前后独立private crosswalk取得唯一instance→region→mask摘要绑定，并与已封存公开packet的entity mask逐项核对。P1/P2改用公开place mask和关系support摘要判不同，拒绝多条歧义关系，避免只看第一行和浮点centroid不等。该代码仍只供独立新版本审查，未接trusted materializer或真实数据。
 - 推荐下一口径：不运行当前静态36槽；先预登记有实际平移/显著视角变化、可见/遮挡/出视野分支与共同公开输入的开发数据版本，先用朴素当前帧基线做可辨识性检查，再决定VM-05规模。另一口径是仅将旧36槽作为一次工程writer回放运行并永久标`engineering_only`，会增加算力和文件但不增加论文主张证据；维持现设计进入L2不可接受。

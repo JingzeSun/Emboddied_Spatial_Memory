@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| VM-04目标边界与动作探针 | D-180确认原36槽即使raw全成功也不能支持VSMT主张：32帧仅同pose交替±0.25° yaw、四RELINK固定失败、12个公开结构槽语义未实现、两house无独立split。服务器运行前已重新关闸，0新episode/训练/记忆正例。生命周期API success后补私有mask后态门；D-177正例gate改用trusted L1 crosswalk绑定公开entity mask，均仍待用户代码审查。LOG-169。 |
+| VM-04目标边界与动作探针 | D-180确认原36槽即使raw全成功也不能支持VSMT主张：32帧仅同pose交替±0.25° yaw、四RELINK固定失败、16个零干预槽中12个BIND/SPLIT/MERGE结构语义及4个NOOP不变语义未验收、两house无独立split。服务器运行前已重新关闸，0新episode/训练/记忆正例。生命周期API success后补私有mask后态门；D-177正例gate改用trusted L1 crosswalk绑定公开entity mask，均仍待用户代码审查。LOG-169。 |
 | VSMT首篇/VM-01～04 | 旧两房stage及16完整/20构造失败封存。D-162仅开放v2固定两房、D=1.0 m纯视角扫描；服务器合同252/252及两family扫描均成功，各选18个pose、0 episode。原前18均来自18个位置，空间筛选降低top-2集合重复，但top-1仍重复10/11次；报告摘要`575d34d0…089f32`。生成/private、训练、validation效果、confirmation与L2继续关闭。LOG-152–153，D-162–163 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
 | R4三模型接入 | D完整适配16项通过（121/200全反向，0更新），W完整适配17项亦通过，F完整适配19项通过；真实公共接口27/27候选通过，0优化/真值读取。209bb34，LOG-123–127 |
