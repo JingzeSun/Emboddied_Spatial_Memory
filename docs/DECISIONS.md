@@ -1849,3 +1849,11 @@
 - 基础合同新增`action_command_encoding=null`和独立生成阻断，避免只冻结API request模板却忘记adapter看到的数值编码。人工测试使用一秒间隔/one-hot只验证前缀和shape，不写回正式合同。真实时间规则、编码值、DINO/config和父stage仍待审；授权位全false。
 - 白话：机器人已经执行前三步时，当前packet可以看到前三步，不能看到第四步；编码表决定“MoveAhead”等命令怎样变成共同数值输入。这个模块把规则做成必填并封存，但没有替用户选规则。
 - 白话：输入一份已经完整落盘的公私raw episode，输出逐帧公开packet、隔离crosswalk和最终收据。例如第2帧回调报错时保留第0帧输出并写失败，但绝不拿单帧成功冒充整集receipt。它不决定公开前端怎样产生SPLIT/MERGE，也没有运行服务器。
+
+
+## D-191：materializer整段公开记忆链与raw mask实绑定
+
+- 日期：2026-09-16；状态：继续D-183已批准的精确schema/实现审查，materialization、pilot、正式生成、训练和confirmation授权均保持false。D-190的context不再作为一组未验裸字典传给前端；stateful callback必须接收并重核完整bundle的route、帧数、时间、编码及逐context/manifest摘要，额外private program/target字段或任一摘要变化先拒绝。
+- crosswalk的`mask_sha256`现在由materializer从该帧sealed `instance_masks.npz`实际mask重算，并同时要求等于crosswalk绑定和公开entity region中的摘要。packet和crosswalk共同自报一个错误摘要不再能通过；私有instance ID仍只写private crosswalk。
+- trusted materializer receipt升级为v2。逐帧packet/crosswalk全写完后，回调还必须返回独立重放核验的causal-prior receipt、最终prior memory、context manifest和packet规范摘要序列；materializer逐项与磁盘packet、public route和最终graph交叉核对，写出三个公开文件并把文件摘要纳入总receipt。普通无状态逐帧函数即使完成所有帧，也只保留失败现场而不能写success；复验器重新打开并核整条链。
+- 白话：这一步解决“每帧文件看似正确，但整段记忆可能来自另一组packet或一张自报crosswalk”的问题。输入同一raw episode、sealed公开context和有状态前端，输出逐帧packet/crosswalk、最终公开旧记忆及一张共同收据。例如有人让packet与crosswalk都声称错误mask摘要，raw mask重算会立即拒绝；有人换掉第3帧packet，causal-prior序列也会不匹配。它不选择正式时间/动作编码、前端阈值或模型权重，也没有开放任何数据运行。

@@ -7,7 +7,7 @@
 | 事项 | 已知事实 |
 |---|---|
 | VM-04观察适用性 | 原静态36槽不运行；D-182/183只用于精确schema/实现审查。公开多视角路线、worker、公私raw、materializer外壳、RGB-D匿名前端、公开时间/动作context、packet/prior多帧callback和D-177 receipt门已实现；真实reachable扫描、DINO/config父stage绑定仍缺，时间/动作正式值、bootstrap、SPLIT/MERGE和probe规格未冻结。全部运行位关闭，0新episode/materialization/训练/记忆正例。LOG-169–179。 |
-| VSMT首篇/VM-01～04 | 旧两房stage及16完整/20构造失败封存。D-162仅开放v2固定两房、D=1.0 m纯视角扫描；服务器合同252/252及两family扫描均成功，各选18个pose、0 episode。原前18均来自18个位置，空间筛选降低top-2集合重复，但top-1仍重复10/11次；报告摘要`575d34d0…089f32`。生成/private、训练、validation效果、confirmation与L2继续关闭。LOG-152–153，D-162–163 |
+| VSMT首篇/VM-01～04 | 原静态36槽按D-180退役且未运行；D-183新多视角版本只开放精确实现审查。raw/公开路线/前端/context/packet/crosswalk/causal prior及materializer v2记忆链已实现本地人工回归，正式时间与动作编码、前端/bootstrap数值、DINO摘要、SPLIT/MERGE参数、共享probe和父stage仍阻断。生成/private评价、训练、validation效果、confirmation与L2全部关闭。LOG-180，D-191 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
 | R4三模型接入 | D完整适配16项通过（121/200全反向，0更新），W完整适配17项亦通过，F完整适配19项通过；真实公共接口27/27候选通过，0优化/真值读取。209bb34，LOG-123–127 |
 | R4前端v2r1 | 81bceed：19项通过，16历史/144名义预测/16选择完整，误标占据/自由0；物块平均误差9.59 cm、接触Brier 0.1152，全部涉及未知扫掠，正式M/P未就绪。LOG-121 |
@@ -1925,3 +1925,10 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 新context builder核sealed public route摘要，要求N+1严格递增时间、完整八动作显式编码、同长robot state和规则ID；输出N+1 context及绑定路线/时间/编码/逐帧摘要的manifest。观测0无动作，后续每帧只含已完成前缀；route额外program字段、摘要篡改、重复动作向量、缺编码和时间倒退均拒绝。
 - 合同新增`action_command_encoding=null`和对应生成硬阻断；人工测试中的一秒间隔与八维one-hot不进入配置。VM-04/VSMT相关243项、L1 31项、旧两房入口内嵌252项通过；0 source读取、0模拟器、0episode、0materialization。
 - 白话：现在 packet 的时间与动作历史也有固定装配位置，但正式数值仍空着。它防止实现者在生成时临时决定“这一帧算不算已经执行MoveAhead”，不表示已经选定时间尺度或动作表示。
+
+## LOG-180：materializer v2整段记忆链封存（2026-09-16）
+
+- materializer现从实际raw mask重算每个crosswalk mask摘要，拒绝packet/crosswalk共同自报错误摘要；公开context bundle在进入多帧前端前重核route、时序、动作编码、逐帧摘要和manifest摘要。全部帧完成后还须取得独立重放的causal-prior receipt与最终prior memory，并与磁盘packet规范摘要序列一致。
+- receipt升级为v2并新增`public-frame-context.manifest.json/causal-prior.receipt.json/prior-memory.json`三个公开文件摘要；verifier重开并核public route、观测数、graph hash、causal终态和packet序列。无`finalized_result`的逐帧函数即使写完全部帧也只能留下6帧失败前缀，不能签success；prior或packet事后变化均拒绝。
+- VM-04/VSMT相关240/240通过；旧两房合同组executor 42/42、L1 31/31、VSMT 179/179，共252/252通过。第一次直接调用两个discover组时漏设正式入口的`PYTHONPATH=src`，发生测试模块导入错误；补齐相同环境后上述31/31和179/179成功，未发生模拟器或科学执行失败。0 source inventory、0controller、0真实episode、0真实materialization、0训练。
+- 白话：现在不只是“每帧有文件”，还必须证明这些帧按封存context依次产生同一份公开旧记忆。它仍只完成可审实现；正式时间/动作编码、前端/bootstrap数值、模型摘要和父stage都未冻结，所有运行位继续false。
