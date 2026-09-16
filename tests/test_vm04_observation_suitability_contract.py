@@ -28,6 +28,7 @@ class ObservationSuitabilityContractTests(unittest.TestCase):
         route = self.contract["observation_trajectory"]
         self.assertIn("MoveAhead", route["registered_post_initial_actions"])
         self.assertIn("MoveLeft", route["registered_post_initial_actions"])
+        self.assertIsNone(route["registered_action_request_templates"])
         self.assertTrue(route["actual_pose_not_command_is_scored"])
         self.assertTrue(route["route_sealed_before_private_identity_and_action_outcome"])
         self.assertEqual(

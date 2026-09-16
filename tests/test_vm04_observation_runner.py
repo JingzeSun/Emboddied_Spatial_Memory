@@ -59,11 +59,13 @@ def _route(program="RELINK", branch="natural_occlusion_then_reobservation"):
         "branch_type": branch,
         "visibility_subject_kind": subject,
         "visibility_subject_public_ref": "public-subject:0001",
+        "initial_pose": {"x_m": 0.0, "y_m": 0.9, "z_m": 0.0,
+                         "yaw_deg": 0.0},
         "registered_actions": [
             {"step_index": index, "action": action}
             for index, action in enumerate([
                 "MoveAhead", "MoveAhead", "RotateRight",
-                "MoveRight", "MoveRight", "RotateLeft",
+                "MoveRight", "MoveRight",
             ])
         ],
         "phase_observation_indices": {
@@ -228,7 +230,7 @@ class ObservationRunnerTests(unittest.TestCase):
 
         plan = _route()
         plan["registered_actions"].append(
-            {"step_index": 6, "action": "MoveAhead"})
+            {"step_index": 5, "action": "MoveAhead"})
         plan["phase_observation_indices"]["reobserved"] = [4, 5, 6]
         plan["terminal_reobservation_indices"] = [4, 6]
         plan["route_plan_sha256"] = _sha({

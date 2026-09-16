@@ -128,6 +128,8 @@ def assert_generation_authorized(contract: Mapping[str, Any]) -> None:
 
     record = validate_approved_contract(contract)
     blockers = {
+        "registered_action_request_templates": record["observation_trajectory"]
+        ["registered_action_request_templates"],
         "shared_probe_architecture": record["l2_identifiability_admission_gate"]
         ["numeric_review_required_before_generation"]
         ["CFO_and_public_history_probe_architecture"],
@@ -375,7 +377,7 @@ def validate_route_plan(plan: Mapping[str, Any], *, contract: Mapping[str, Any])
     expected = {
         "schema_version", "episode_id", "program", "branch_type",
         "visibility_subject_kind", "visibility_subject_public_ref",
-        "registered_actions", "phase_observation_indices", "planned_poses",
+        "initial_pose", "registered_actions", "phase_observation_indices", "planned_poses",
         "intervention_after_observation_index", "terminal_reobservation_indices",
         "split_merge_artifact_plan", "route_plan_sha256",
     }
@@ -395,6 +397,7 @@ def validate_route_plan(plan: Mapping[str, Any], *, contract: Mapping[str, Any])
     _require(type(plan["visibility_subject_public_ref"]) is str and
              plan["visibility_subject_public_ref"],
              "visibility subject requires an anonymous public reference")
+    _pose(plan["initial_pose"], "initial pose")
 
     actions = plan["registered_actions"]
     allowed = set(approved["observation_trajectory"]["registered_post_initial_actions"])
@@ -420,7 +423,7 @@ def validate_route_plan(plan: Mapping[str, Any], *, contract: Mapping[str, Any])
                  f"{name} has too few public observations")
         _require(all(type(index) is int and index >= 0 for index in indices) and
                  indices == sorted(set(indices)), f"{name} indices are invalid")
-        _require(all(index < len(actions) for index in indices),
+        _require(all(index <= len(actions) for index in indices),
                  f"{name} index is outside the registered action sequence")
     _require(max(phases["precondition_visible"]) < min(phases["challenge_hidden"]) and
              max(phases["challenge_hidden"]) < min(phases["reobserved"]),
@@ -495,6 +498,7 @@ def public_route_projection(
         "branch_type": route["branch_type"],
         "visibility_subject_kind": route["visibility_subject_kind"],
         "visibility_subject_public_ref": route["visibility_subject_public_ref"],
+        "initial_pose": route["initial_pose"],
         "registered_actions": route["registered_actions"],
         "phase_observation_indices": route["phase_observation_indices"],
         "planned_poses": route["planned_poses"],
@@ -543,8 +547,8 @@ def assess_route_receipt(
         _require(type(row["registered_camera_action_success"]) is bool,
                  "camera action success must be boolean")
         by_index[index] = row
-    _require(set(by_index) == set(range(len(route["registered_actions"]))),
-             "route receipt must contain one observation per registered action")
+    _require(set(by_index) == set(range(len(route["registered_actions"]) + 1)),
+             "route receipt must contain observation zero plus one observation per registered action")
 
     failures = []
     for name, indices in route["phase_observation_indices"].items():

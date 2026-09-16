@@ -36,6 +36,7 @@
       "LookUp",
       "LookDown"
     ],
+    "registered_action_request_templates": null,
     "forbidden_patterns": [
       "same_pose_alternating_micro_yaw_as_the_only_episode_motion",
       "private_instance_id_or_future_outcome_used_to_choose_or_repair_route",
@@ -213,6 +214,7 @@
   "pre_generation_blockers": [
     "freeze_intervention_visibility_constraint_and_failure_reason",
     "implement_and_review_public_visibility_state_builder",
+    "freeze_explicit_registered_action_request_templates",
     "implement_and_review_trusted_materializer_receipt_binding",
     "freeze_house_family_development_split_without_opening_confirmation",
     "freeze_exact_shared_probe_architecture_and_training_budget",
