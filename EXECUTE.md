@@ -1943,5 +1943,6 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 
 - 新materializer config schema完整覆盖前端六组参数、关系阈值、entity/surface/fragment bootstrap规则、DINO模型声明、公开常量和builder代码摘要；解析器只接受`frozen_executable`且总摘要一致的完整对象，直接构造同一个stateful公开前端序列。null、额外private字段、模型token shape与descriptor不符及摘要后修改均拒绝。
 - 新assets verifier只读核模型仓库HEAD、包含untracked在内的干净工作树及checkpoint实际SHA-256，输出无需网络的资产回执。生产配置入口核该回执与同一config/model一致，episode materializer v2 receipt再绑定assets receipt摘要；测试覆盖脏仓库、错checkpoint声明及未授权时不存在episode目录不被读取/创建。
-- VM-04/VSMT相关246/246通过；旧合同executor 42/42、L1 31/31、VSMT 179/179，共252/252通过。测试使用临时Git仓库和小checkpoint字节，不读取服务器DINO资产、不加载GPU模型；0 source inventory、0controller、0真实episode、0真实materialization、0训练。
-- 白话：正式worker以后只能从一份完整封存配置和一张实际模型文件回执启动，不能各自临时拼阈值或只相信文件名。当前仍没有正式阈值、时间/动作编码或模型loader，所以所有运行位继续false。
+- 真实loader固定`dinov2_vits14(pretrained=false)`，checkpoint只以`weights_only=true`读CPU并`strict=true`装载，随后冻结参数、切换eval并移到CUDA；生产入口先核授权，再读模型资产，再读episode。人工fake model验证strict/eval/frozen/device调用，不访问真实GPU。
+- VM-04/VSMT相关247/247通过；旧合同executor 42/42、L1 31/31、VSMT 179/179，共252/252通过。测试使用临时Git仓库和小checkpoint字节，不读取服务器DINO资产；0 source inventory、0controller、0真实episode、0真实materialization、0训练。
+- 白话：正式worker以后只能从一份完整封存配置和一张实际模型文件回执启动，不能各自临时拼阈值或只相信文件名。当前仍没有正式阈值、时间/动作编码、代码源清单或父stage，所以所有运行位继续false。

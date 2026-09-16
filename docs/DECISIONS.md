@@ -1870,5 +1870,5 @@
 
 - 日期：2026-09-16；状态：继续D-183精确schema/实现审查，不批准materialization、pilot或生成。新增`vsmt-vm04-materializer-config-v1`，要求前端mask/descriptor/entity geometry/surface/place/free-space及关系阈值、三类bootstrap规则、公开常量、builder代码摘要和DINO模型来源一次性完整封存；无默认值、null、额外字段、模型shape与descriptor不符或总摘要不符均拒绝。当前没有把人工fixture阈值写成正式配置。
 - 模型来源另有只读assets verifier：现场核DINO仓库精确40位commit、包含未跟踪文件在内的干净工作树和checkpoint文件SHA-256，输出离线资产回执；不联网、不下载、不启动模型。生产配置入口必须先验证这张回执与同一materializer config/model相符，回执内部摘要再进入每个episode的materializer v2 receipt，避免只在配置中声明checkpoint摘要却未核实际文件。
-- 生产包装现可由一份sealed config构造`Vm04PublicFrontendSequence`，而不是让调用方分别拼装前端与bootstrap对象；授权仍在读取episode前检查。真实DINO loader、正式阈值、时间规则、动作编码、materializer代码源清单摘要和父stage资源派发尚未完成。
+- 生产包装现可由一份sealed config构造`Vm04PublicFrontendSequence`，而不是让调用方分别拼装前端与bootstrap对象；授权仍在读取模型资产和episode前检查。真实DINO loader只从已核本地仓库构造`dinov2_vits14(pretrained=false)`，以`weights_only=true/strict=true`加载checkpoint，随后冻结参数、切eval并移到CUDA；公开帧再调用既有固定预处理与`x_norm_patchtokens`提取。正式阈值、时间规则、动作编码、materializer代码源清单摘要和父stage资源派发仍未完成。
 - 白话：这一步解决“代码能跑，但每个worker可能拿了不同阈值或不同模型文件”的问题。输入一份完整配置、一个干净仓库和checkpoint，输出同一有状态材料化callback及资产回执。例如checkpoint字节变了，即使文件名相同也不能进入episode receipt。它不代表这些阈值已经科学批准，也没有加载GPU模型或生成数据。
