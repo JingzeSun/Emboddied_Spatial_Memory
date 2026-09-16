@@ -859,8 +859,12 @@ def materialize_public_visibility(
 
 def entity_regions_with_masks(
     entities: Sequence[L1EntityObservation], masks: Sequence[AnonymousMask],
+    *, proposal_source_id: str = "l1.oracle_mask.dinov2_vits14.public_depth.v1",
 ) -> tuple[MaterializedRegion, ...]:
     """Join already-anonymized entity records to their public masks by ordinal."""
+
+    if type(proposal_source_id) is not str or not proposal_source_id:
+        raise ValueError("proposal_source_id must be nonempty")
 
     mask_by_id = {item.region_id: item for item in masks}
     results: list[MaterializedRegion] = []
@@ -881,7 +885,7 @@ def entity_regions_with_masks(
             centroid_m=entity.geometry.centroid_m,
             extent_m=entity.geometry.extent_m,
             reliability=entity.geometry.reliability,
-            proposal_source_id="l1.oracle_mask.dinov2_vits14.public_depth.v1",
+            proposal_source_id=proposal_source_id,
         ))
     return tuple(results)
 

@@ -33,7 +33,15 @@ from vsmt.l1_structures import (  # noqa: E402
 )
 from vsmt.vm04_public_frontend import (  # noqa: E402
     Vm04PublicFrontendConfig,
+    materialize_vm04_l2_public_frontend_frame,
     materialize_vm04_public_frontend_frame,
+)
+from vsmt.vm04_l2_proposals import (  # noqa: E402
+    MODEL_ID,
+    PROMPT_POLICY,
+    PROPOSAL_SOURCE_ID as L2_PROPOSAL_SOURCE_ID,
+    Vm04L2ProposalConfig,
+    run_vm04_l2_proposal_frontend,
 )
 from vsmt.vm04_public_packet_builder import make_public_packet  # noqa: E402
 
@@ -208,6 +216,48 @@ class Vm04PublicFrontendTests(unittest.TestCase):
         ]
         self.assertEqual(rejected[0]["reason"], "below_minimum_visible_pixels")
         self.assertNotIn("Mug", json.dumps(rejected))
+
+    def test_l2_public_masks_materialize_without_private_crosswalk(self):
+        mask = np.zeros((224, 224), dtype=np.bool_)
+        mask[28:42, 28:42] = True
+
+        class Generator:
+            def generate(self, rgb):
+                return [{"segmentation": mask}]
+
+        proposal_config = Vm04L2ProposalConfig(
+            image_height=224, image_width=224, minimum_visible_pixels=196,
+            border_truncation_policy=KEEP_SUPPORTED_BORDER_REGIONS,
+            maximum_proposals_per_frame=64, model_id=MODEL_ID,
+            repository_commit="1" * 40, checkpoint_sha256="2" * 64,
+            automatic_mask_generator_config_sha256="3" * 64,
+            assets_receipt_sha256="4" * 64,
+            generator_code_sha256="5" * 64, prompt_policy=PROMPT_POLICY,
+            cross_frame_memory_enabled=False,
+            overlap_policy="preserve_independent_overlapping_proposals",
+        )
+        proposal = run_vm04_l2_proposal_frontend(
+            rgb=np.zeros((224, 224, 3), dtype=np.uint8),
+            public_rgb_file_sha256="2" * 64,
+            generator=Generator(), config=proposal_config,
+        )
+        values = inputs()
+        for key in ("private_instance_ids", "private_instance_masks"):
+            values.pop(key)
+        values.update({
+            "public_entity_masks": proposal["masks"],
+            "l2_proposal_receipt": proposal["receipt"],
+            "l2_proposal_config": proposal_config,
+        })
+        output = materialize_vm04_l2_public_frontend_frame(**values)
+        entities = [
+            row for row in output["frontend_row"]["region_observations"]
+            if row["structure_kind"] == "entity"
+        ]
+        self.assertEqual(len(entities), 1)
+        self.assertEqual(entities[0]["proposal_source_id"],
+                         L2_PROPOSAL_SOURCE_ID)
+        self.assertNotIn("private_crosswalk", output)
 
 
 if __name__ == "__main__":

@@ -24,7 +24,7 @@ from .l1_entities import (
     PublicGeometryConfig,
     materialize_l1_entity_observation,
 )
-from .l1_masks import L1MaskConfig, anonymize_instance_masks
+from .l1_masks import AnonymousMask, L1MaskConfig, anonymize_instance_masks
 from .l1_structures import (
     FreeSpaceFrustum,
     FreeSpaceMaterializationConfig,
@@ -38,6 +38,11 @@ from .l1_structures import (
     materialize_public_relations,
     materialize_public_surfaces,
     materialize_public_visibility,
+)
+from .vm04_l2_proposals import (
+    PROPOSAL_SOURCE_ID as L2_PROPOSAL_SOURCE_ID,
+    Vm04L2ProposalConfig,
+    validate_vm04_l2_proposal_receipt,
 )
 
 
@@ -291,6 +296,120 @@ def materialize_vm04_public_frontend_frame(
             "anonymous_mask_rejections": [
                 item.public_record() for item in anonymous.rejected
             ],
+            "place_rejections": [
+                item.public_record() for item in places.rejected
+            ],
+        },
+    }
+
+
+def materialize_vm04_l2_public_frontend_frame(
+    *, sample_id_hash: str, decision_time_s: float,
+    rgbd_refs: Mapping[str, Any], camera: Mapping[str, Any],
+    robot_state: Mapping[str, Any], past_actions: Sequence[Mapping[str, Any]],
+    depth_m: Any, patch_tokens: Any,
+    public_entity_masks: Sequence[AnonymousMask],
+    l2_proposal_receipt: Mapping[str, Any],
+    l2_proposal_config: Vm04L2ProposalConfig,
+    prior_free_space: Sequence[Sequence[FreeSpaceFrustum]],
+    public_constants: Mapping[str, Any], observation_index: int,
+    config: Vm04PublicFrontendConfig,
+) -> dict[str, Any]:
+    """Materialize one L2 row from a receipt-bound public RGB proposal set."""
+
+    if type(config) is not Vm04PublicFrontendConfig:
+        raise ValueError("config must be Vm04PublicFrontendConfig")
+    if type(observation_index) is not int or observation_index < 0:
+        raise ValueError("observation_index must be a nonnegative integer")
+    if not isinstance(camera, Mapping) or not {
+        "pose", "calibration",
+    }.issubset(camera):
+        raise ValueError("camera must contain public pose and calibration")
+    rgb_sha = str(rgbd_refs.get("rgb_sha256"))
+    receipt = validate_vm04_l2_proposal_receipt(
+        l2_proposal_receipt,
+        expected_public_rgb_file_sha256=rgb_sha,
+        expected_config=l2_proposal_config,
+    )
+    masks = tuple(public_entity_masks)
+    if any(type(mask) is not AnonymousMask for mask in masks):
+        raise ValueError("public_entity_masks must contain AnonymousMask values")
+    if [mask.mask_sha256 for mask in masks] != receipt["ordered_mask_sha256s"]:
+        raise ValueError("L2 public masks do not match their proposal receipt")
+
+    entities = tuple(
+        materialize_l1_entity_observation(
+            region, patch_tokens, depth_m, camera["calibration"], camera["pose"],
+            config.descriptor, config.entity_geometry,
+        )
+        for region in masks
+    )
+    surfaces = materialize_public_surfaces(
+        depth_m, camera["calibration"], camera["pose"], patch_tokens,
+        config.descriptor, config.surface,
+    )
+    places = materialize_public_places(
+        surfaces, depth_m, camera["calibration"], camera["pose"], patch_tokens,
+        config.descriptor, config.surface, config.place,
+    )
+    entity_regions = entity_regions_with_masks(
+        entities, masks, proposal_source_id=L2_PROPOSAL_SOURCE_ID,
+    )
+    region_records, indexed = assemble_region_records(
+        entity_regions, places.regions, surfaces,
+    )
+    relation_records = materialize_public_relations(
+        indexed, place_config=config.place,
+        supported_by_maximum_normal_angle_degrees=(
+            config.supported_by_maximum_normal_angle_degrees
+        ),
+        supported_by_minimum_gap_m=config.supported_by_minimum_gap_m,
+        supported_by_maximum_gap_m=config.supported_by_maximum_gap_m,
+        supported_by_minimum_projected_overlap=(
+            config.supported_by_minimum_projected_overlap
+        ),
+        supported_by_maximum_mask_overlap_fraction=(
+            config.supported_by_maximum_mask_overlap_fraction
+        ),
+    )
+    current_free_space = materialize_public_free_space(
+        depth_m, camera["calibration"], camera["pose"],
+        time_s=float(decision_time_s),
+        depth_sha256=str(rgbd_refs.get("depth_sha256")),
+        camera_calibration_and_pose_sha256=canonical_sha256({
+            "calibration": camera["calibration"], "pose": camera["pose"],
+        }), config=config.free_space,
+    )
+    free_space_records = assemble_free_space_history(
+        [*prior_free_space, current_free_space],
+        rolling_public_observation_times=(
+            config.free_space.rolling_public_observation_times
+        ),
+    )
+    visibility_records = materialize_public_visibility(
+        current_free_space,
+        surface_clearance_m=config.free_space.surface_clearance_m,
+    )
+    frontend_row = {
+        "sample_id_hash": sample_id_hash,
+        "decision_time_s": decision_time_s,
+        "rgbd_refs": clone_json(dict(rgbd_refs)),
+        "camera_pose": clone_json(dict(camera["pose"])),
+        "robot_state": clone_json(dict(robot_state)),
+        "past_actions": clone_json(list(past_actions)),
+        "region_observations": region_records,
+        "relation_observations": relation_records,
+        "free_space_observations": free_space_records,
+        "visibility_observations": visibility_records,
+        "public_constants": clone_json(dict(public_constants)),
+    }
+    return {
+        "frontend_row": frontend_row,
+        "l2_proposal_receipt_sha256": receipt["receipt_sha256"],
+        "current_free_space": current_free_space,
+        "public_frontend_diagnostics": {
+            "evidence_level": "L2_public_per_frame_RGB_proposals",
+            "accepted_entity_proposal_count": len(masks),
             "place_rejections": [
                 item.public_record() for item in places.rejected
             ],
