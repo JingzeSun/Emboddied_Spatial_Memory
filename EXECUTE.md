@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| VM-04观察适用性 | 原静态36槽不运行；D-182/183只用于精确schema/实现审查。D-199已形成L2公开RGB proposal、公开depth visibility、九类program必要前提及SPLIT/MERGE重复回执；D-200的visibility route/worker摘要绑定和无默认值公开充分matcher已获认可；D-201候选新增单episode matcher/materializer/causal-prior摘要绑定并保留construction failure。正式SAM/assets/全部matcher与visibility数值、edge RETRACT公开缺席证据、生产callback、父stage family聚合及pilot机械收据仍缺。全部运行位关闭，0新episode/materialization/训练/记忆正例。LOG-169–190。 |
+| VM-04观察适用性 | 原静态36槽不运行；D-182/183只用于精确schema/实现审查。D-199已形成L2公开RGB proposal、公开depth visibility、九类program必要前提及SPLIT/MERGE重复回执；D-200的visibility route/worker摘要绑定和无默认值公开充分matcher已获认可；D-201已获认可并绑定单episode matcher/materializer/causal prior，D-202候选在terminal raw帧加载前封存plan/prior并保留失败现场。父stage request公开派生和无提前terminal访问尚未证明，因此D-201 pending与family阻断未解除。正式SAM/assets/全部matcher与visibility数值、edge RETRACT公开缺席证据、生产callback、父stage family聚合及pilot机械收据仍缺。全部运行位关闭，0新episode/materialization/训练/记忆正例。LOG-169–191。 |
 | VSMT首篇/VM-01～04 | 原静态36槽按D-180退役且未运行；D-183新多视角版本只开放精确实现审查。现有instance-mask前端明确只作L1诊断，不得作为L2准入；L2公开proposal前端、九类真实构造、共享probe和完整父stage仍阻断。生成/private评价、identifiability、训练、validation效果与confirmation全部关闭。LOG-180–187，D-191–198 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
 | R4三模型接入 | D完整适配16项通过（121/200全反向，0更新），W完整适配17项亦通过，F完整适配19项通过；真实公共接口27/27候选通过，0优化/真值读取。209bb34，LOG-123–127 |
@@ -2000,3 +2000,10 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - matcher不通过写`construction_failure`并保留排序后的原原因；materializer完成不再能单独冒充program构造成功。二次时间边界审计确认离线audit不能证明construction plan在terminal observation前已由父stage封存，故matcher通过只写`public_match_satisfied_temporal_seal_pending`，并固定`construction_plan_pre_terminal_seal_established=false/eligible_for_parent_family_completion=false`。edge RETRACT继续只会得到充分证据失败，缺失artifact receipt的SPLIT/MERGE也可封存失败而不换标签或替换样本。
 - 定向单元/集成检查`Ran 35, OK (skipped=1)`，VM-04 discover `Ran 212, OK (skipped=1)`，VSMT入口179/179及旧两房入口252/252通过；覆盖派生状态不可翻转、artifact文件边界、materializer完成但matcher失败、错误causal prior拒绝及摘要链重放。全库discover另跑804项，旧M1源码封印/已删除旧文档及旧candidate/visual pilot区域仍有3项failure、8项error、1项skip，均不涉及本次改动文件，未为消除这些历史红灯修改旧科学路径。正式matcher/visibility数值仍为null，全部authorization仍为false；0模型加载、0controller、0episode、0materialization、0训练。
 - 白话：输入一次已完成的材料化及其公开历史，输出一张“这个episode是否达到公开构造最低条件”的审计收据。例如BIRTH终端packet仍匹配旧节点时，packet文件可以是完整的，但收据只能记构造失败。它不等于family完成、正式阈值已定或运行已开放。
+
+## LOG-191：D-202在线plan时间封存核心候选（2026-09-17）
+
+- 新增`vsmt-vm04-online-program-plan-request-v1`和`vsmt-vm04-online-program-plan-temporal-receipt-v1`。公开前端序列在完成`terminal-1`公开memory更新后仅可封存一次；materializer在打开terminal公开/私有raw帧前验请求和route，立即写出plan、prior、receipt和文件摘要marker。terminal加载后失败不回滚seal，也不写materializer success receipt。
+- 边界复核发现，该hook能证明受审materializer内部未先打开terminal帧，但不能证明调用方事先构造request时未读terminal数据。因此收据明确写`request_provenance_established_by_parent_stage=false/clears_episode_temporal_seal_pending=false`，离线episode receipt不消费该seal，正匹配仍不得计入family。
+- 定向检查30/30通过（含1项因本地缺`jsonschema`而跳过），父stage `check`仍报`execution_authorized=false`。覆盖正确时序、边界错位/收据篡改拒绝、callback单次调用和terminal RGB损坏后seal保留。VM-04 discover 217/217（含2项skip）、VSMT 179/179、旧两房入口内嵌executor 42/L1 31/VSMT 179共252/252通过；机器审计14个authorization全false，edge RETRACT仍阻断，request provenance pending、D-201 clear与family eligibility均false。0模型加载、0controller、0episode、0materialization、0训练。
+- 白话：输入最后一帧之前的公开记忆，输出是先于该帧写下的plan和时间证据。例如最后RGB已损坏，seal还在而episode仍失败。它不证明request的来源安全，不解除D-201或开放运行。

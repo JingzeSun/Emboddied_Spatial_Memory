@@ -1920,9 +1920,15 @@
 - matcher只签`program_public_match_satisfied`并固定`semantic_identity_truth_established=false/private_identity_used=false`；私有身份、teacher和参考事务不能参与构造或修补候选。当前packet没有跨时“关系应出现但缺席”的公开证据类型，因此edge RETRACT充分条件明确失败，不以一次没检测到关系替代。父stage/materializer尚未落盘并聚合matcher receipt，故九类生产验收清单不勾选。
 - 白话：这一步解决“遮挡判断是否真来自绑定的公开几何”和“写了program计划后最低公开证据是否够”的问题。输入是封存的公开subject、route、packet、prior和显式matcher参数，输出逐帧visibility收据与逐program构造收据。例如一帧自报`occluded`但receipt来自别的subject会在干预前失败；BIRTH若仍唯一匹配旧节点也会失败。它不等于物理身份已知、matcher数值已定、edge RETRACT已可构造或pilot获准运行。
 
-## D-201：episode construction receipt与matcher因果边界候选
+## D-201：episode construction receipt与matcher因果边界（已认可）
 
-- 日期：2026-09-17；状态：实现候选待用户科学口径与代码审查，不开放运行。新增`vsmt-vm04-episode-construction-receipt-v1`，把既有materializer receipt、causal-prior receipt、最后一个登记terminal observation的公开packet、该packet之前的因果prior、program construction plan、显式matcher config、matcher receipt及可选SPLIT/MERGE artifact receipt绑定到同一append-only audit目录。该audit明确禁止deployment reader打开。
+- 日期：2026-09-17；状态：用户已正式认可D-201科学口径与当前代码候选，不开放运行。新增`vsmt-vm04-episode-construction-receipt-v1`，把既有materializer receipt、causal-prior receipt、最后一个登记terminal observation的公开packet、该packet之前的因果prior、program construction plan、显式matcher config、matcher receipt及可选SPLIT/MERGE artifact receipt绑定到同一append-only audit目录。该audit明确禁止deployment reader打开。
 - matcher prior候选固定为“最后一个登记terminal observation之前的因果记忆”，其`graph_hash`必须等于causal receipt对应version-chain项，也必须等于terminal packet的`prior_memory_ref`和construction plan的prior摘要。选择干预时刻的更早memory会与当前packet合同不一致；接受任意外部prior则无法证明没有未来或错链。terminal当前packet本身仍只含公开输入，matcher receipt继续固定`private_identity_used=false/semantic_identity_truth_established=false`。
 - materialization完成与program公开匹配分开记录：matcher不通过（包括edge RETRACT或缺失SPLIT/MERGE artifact receipt）封存`construction_failure`及原失败原因，不抛弃、不改program、不替换样本；matcher通过当前只写`public_match_satisfied_temporal_seal_pending`。离线audit能核内容和因果次序，但不能自证construction plan在terminal observation前已由在线父stage封存，因此固定`construction_plan_pre_terminal_seal_established=false/eligible_for_parent_family_completion=false`。当前也未实现family覆盖集合与完成聚合，不能把本收据冒充`constructed`或pilot family完成证明。
 - 白话：这一步解决“公开packet已经写出来以后，matcher判断是否真对应同一次材料化和正确的历史版本”的问题。输入是材料化摘要链、终端公开packet、它之前的公开记忆、构造计划和显式matcher配置；输出一张只供审计的episode证据收据。例如BIRTH的RGB-D packet成功写出但仍匹配旧节点，结果会保留为`construction_failure`；即使matcher通过，在父stage补上终端观测前的plan封存证据以前也不能叫构造成功。它不等于family已经完成、身份真值正确、正式阈值已定或可以开始pilot。
+
+## D-202：终端帧加载前的在线plan时间封存候选
+
+- 日期：2026-09-17；状态：继承用户已认可的D-201边界实现一个独立代码候选，待用户审查，不开放运行。stateful materializer callback只能在`terminal-1`公开packet已更新causal memory、最后一个登记terminal observation的公开或私有raw帧尚未打开时封存construction plan、matcher prior和`vsmt-vm04-online-program-plan-temporal-receipt-v1`。四个文件与摘要marker立即以append-only方式写入`materialized/construction-plan-seal/`；后续terminal帧加载或materialization失败时保留该现场，不回滚或改标签。
+- 本收据只证明受审materializer调用内部的先后顺序：请求中的program、precondition refs和matcher config是否也由父stage在未预读terminal数据时从公开状态派生，当前尚无证明。因此receipt固定`request_provenance_established_by_parent_stage=false/clears_episode_temporal_seal_pending=false`，离线D-201 episode receipt也不消费该seal；正匹配仍为`public_match_satisfied_temporal_seal_pending`，不得计入family完成。
+- 白话：这一步解决“当前公开记忆是否在看最后一帧之前就已经被用来造plan”的局部时序问题。输入是terminal前的causal memory、sealed route和一张请求，输出plan、prior及时间收据。例如最后一帧RGB损坏时，plan seal仍已留存但episode继续按失败收口。它不等价于父stage没有曾经偷看terminal数据、D-201已解除阻断、matcher数值已冻结或运行已获批。
