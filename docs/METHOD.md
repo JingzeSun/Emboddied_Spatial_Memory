@@ -1496,6 +1496,12 @@ D-199的L2候选把entity proposal严格限定为当前公开RGB的单帧SAM 2.1
 
 九类program construction plan只登记公开前提和引用：BIND核open node，REACTIVATE核dormant node，RELINK核open entity/旧place/旧`located_at`，RETRACT核open node或edge，SPLIT/MERGE核预登记artifact plan，REPLACE核旧entity与新公开locus。NOOP的稳定充分性、BIRTH的新实体无匹配以及各类当前region匹配仍需冻结matcher回执，当前结构核验只是必要条件。SPLIT/MERGE的fresh replay receipt逐次绑定远近公开packet和region集合，任一次不满足注册的1→2或2→1即失败且不改标签。白话：这层防止“先看结果再选事务名”，但不会把一张写着node ID的计划当作程序已经发生。
 
+D-200新增`Public Construction Sufficiency Matcher`（公开构造充分性匹配器，proposed/待数值冻结）。它解决“结构计划里写了节点，但当前公开观测是否真的达到该program的最低构造证据”问题；输入是封存prior memory、当前L2 packet、route/visibility receipt、program plan和一份无默认值matcher配置，输出全部region对同类型open/dormant node的相似度与几何分量、唯一/歧义/无匹配状态以及逐program构造通过或失败原因。例如当前region唯一匹配登记的dormant杯子且与第二候选分差达到冻结门时，REACTIVATE构造通过；同一region若仍匹配open杯子，BIRTH构造失败。它不等于物理身份真值、teacher标签、最终事务选择或方法效果，私有同一身份仍只能在候选/构造封存后评价。
+
+matcher的当前候选充分条件为：NOOP要求所有达到可靠度门的当前非place结构都有唯一active匹配；BIND/REACTIVATE要求终端公开support唯一指向登记的active/dormant节点；BIRTH要求该support在完整同类型open/dormant范围内无达门匹配；RELINK还要求当前公开`located_at/contains`证据唯一落到与旧place不同、且由确定性place scaffold登记的新place版本；entity RETRACT要求登记节点没有达门正匹配，并有至少两条达到可靠度和时间间隔门的公开visible-empty覆盖；REPLACE同时要求上述旧entity负证据和新locus无匹配；SPLIT/MERGE继续以全部fresh replay的1→2/2→1 receipt为充分构造条件。正例是旧entity A在两次公开可靠空域证据中均被完整覆盖、当前新region又不匹配任何旧node，REPLACE可通过；反例是只有一次空域覆盖或当前region仍匹配A，必须记construction failure。它不把edge关系一次未出现当作可撤回证据，所以edge RETRACT目前明确阻断，须先新增可跨时复算的公开关系缺席证据类型。
+
+上述matcher数值仍全部为null：entity/surface/fragment关联权重、尺度与阈值，region/relation可靠度门，唯一分差，free-space可靠度、support envelope裕量、最小时间间隔及独立负证据条数都必须结果盲冻结。推荐复用D-139/D-140已批准的“分项记录、结构类型分别定值、无全局单分数”协议，但不能把当时两房容量审计的strict/balanced/permissive值直接升级为正式值。白话：代码现在能执行任何完整显式配置并生成可复算receipt，正式配置仍不存在；它不是用测试里的0.8、0.9等fixture替用户做了科学裁决。
+
 D-188新增公开packet/prior序列构造器。输入是公开前端逐帧给出的RGB-D摘要、相机pose、机器人状态、已结束动作、匿名区域/关系、自由空间/可见性和公开常量；输出是逐帧`ObservationPacket`、在线更新后的共同causal prior和独立重放receipt。调用方不能自报`prior_memory_ref`，每帧只能引用上一帧公开bootstrap实际封存的memory；完成后另从空memory重放同一packet序列，终态逐字节不一致即失败。例如第二帧看见相同外观和相近位置的匿名椅子时，packet引用第一帧产生的candidate memory，bootstrap才可能公开BIND并确认；它不允许private program、instance ID、teacher或未来观察帮忙绑定，也不等于真实DINO/结构前端已经实现。`decision_time_s`规则、动作向量编码和bootstrap阈值仍须事前冻结。
 
 D-189把真实公开前端算法核心接到该序列。可信进程只在单帧匿名化时读取instance mask/ID，并把ID留在private crosswalk；公开侧随后复用冻结DINO token、当前depth、相机内外参构造entity、surface、place、free-space、visibility及类型化关系。跨帧callback只保存公开free-space历史和公开bootstrap memory，每帧重新匿名化，不沿用private ID。例子：同一椅子的模拟器ID从`Chair|1`改成`opaque-x`且mask不变时，公开row逐字节相同，只有private crosswalk变化；旧代码按私有`SPLIT`合mask或按`MERGE`翻转descriptor的入口不存在。它不等于阈值、DINO checkpoint、时间/动作编码已冻结，也未运行真实帧。

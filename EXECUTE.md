@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| VM-04观察适用性 | 原静态36槽不运行；D-182/183只用于精确schema/实现审查。D-199已形成L2公开RGB proposal、公开depth visibility、九类program必要前提及SPLIT/MERGE重复回执的科学层候选；真实SAM loader/assets/数值、route/worker绑定、充分matcher、private intervention、父stage及pilot机械收据仍缺。全部运行位关闭，0新episode/materialization/训练/记忆正例。LOG-169–188。 |
+| VM-04观察适用性 | 原静态36槽不运行；D-182/183只用于精确schema/实现审查。D-199已形成L2公开RGB proposal、公开depth visibility、九类program必要前提及SPLIT/MERGE重复回执；D-200再补visibility route/worker摘要绑定和无默认值公开充分matcher候选。正式SAM/assets/全部matcher与visibility数值、edge RETRACT公开缺席证据、生产callback、父stage matcher聚合及pilot机械收据仍缺。全部运行位关闭，0新episode/materialization/训练/记忆正例。LOG-169–189。 |
 | VSMT首篇/VM-01～04 | 原静态36槽按D-180退役且未运行；D-183新多视角版本只开放精确实现审查。现有instance-mask前端明确只作L1诊断，不得作为L2准入；L2公开proposal前端、九类真实构造、共享probe和完整父stage仍阻断。生成/private评价、identifiability、训练、validation效果与confirmation全部关闭。LOG-180–187，D-191–198 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
 | R4三模型接入 | D完整适配16项通过（121/200全反向，0更新），W完整适配17项亦通过，F完整适配19项通过；真实公共接口27/27候选通过，0优化/真值读取。209bb34，LOG-123–127 |
@@ -1985,3 +1985,10 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 新增L2单帧公开RGB proposal核心与receipt：generator签名只接RGB，无prompt/history/program/private/future入口；mask规范排序、重复失败、重叠保留，并可在无private crosswalk的情况下生成现有公共packet entity格式。真实SAM loader、asset与全部proposal数值保持null。
 - 新增公开visibility几何核心：从先前公开mask/depth/camera封存世界点，后帧投影到当前公开depth；无效depth按未遮挡处理，终端重现必须另有当前公开proposal support。新增九类program结构前提计划；RELINK机械核open entity/old place/open located_at，SPLIT/MERGE逐fresh replay核1→2/2→1，失败禁止重贴标签或替换。
 - 新代码尚未接生产worker/route receipt，NOOP/BIRTH等充分matcher判据仍待冻结，故合同新增的SAM/visibility/program阻断项未解除，所有authorization仍为false。受影响8模块46/46、VM-04 discover 195/195、VSMT discover 179/179及旧两房入口内嵌executor 42/L1 31/VSMT 179共252/252通过；0 source inventory、0模型加载、0controller、0episode、0materialization、0训练。
+
+## LOG-189：D-200公开充分matcher与visibility receipt接线候选（2026-09-16）
+
+- route plan新增visibility subject seal和builder config摘要；公开扫描与worker逐帧记录必须携带builder receipt，`public_evidence_sha256`等于receipt摘要。subject/config/index/depth/camera/assessment/receipt任一错绑均拒绝，worker在private intervention前验收；反例测试确认即使攻击者重算篡改receipt自身摘要，也不能触发private动作。
+- 新增无默认值`Vm04ProgramMatcherConfig`与`vsmt-vm04-public-program-matcher-receipt-v1`。matcher复算全部可靠公开region对同类型open/dormant node的分项匹配，分别验NOOP、BIND、BIRTH、REACTIVATE、RELINK、entity RETRACT、SPLIT、MERGE、REPLACE；receipt重放验证拒绝篡改。RELINK绑定确定性新place版本，RETRACT/REPLACE复用公开support envelope和至少两条分时visible-empty证据；edge RETRACT因当前packet证据类型不足明确construction failure。该收据只证明公开构造最低条件，固定不证明身份真值。
+- 当前正式association/reliability/margin/free-space/support/time-separation/negative-count数值全部为null；fixture值未写入机器合同。父stage/materializer尚未落盘聚合matcher receipt，真实SAM/visibility callback也未接，因此pre-generation blocker与全部authorization保持关闭。定向50/50、VM-04 discover 205/205、VSMT discover 179/179及旧两房入口252/252通过；0模型加载、0controller、0episode、0materialization、0训练。
+- 白话：输入是D-199公开结构计划和真实可复算的公开收据，输出一条在动作前防visibility错绑、在构造后区分“唯一匹配/无匹配/负证据不足”的证据链。例如BIRTH看到旧节点唯一匹配就失败，不能靠预登记标签放行。它不等于阈值已选、身份真值已知或可以开始pilot。

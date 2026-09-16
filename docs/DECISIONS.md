@@ -1912,3 +1912,10 @@
 - 公开visibility核心从一个已经公开的mask、depth和camera封存稀疏世界点；后帧只用当前公开depth/camera投影。视野外、被更近公开depth完全挡住、公开proposal再次支撑分别产生`out_of_view/occluded/reobserved`；无效或缺失depth保守地按未遮挡处理，不能授权隐藏干预。采样步长、样本数和遮挡容差仍待审，builder receipt尚未接入route receipt。
 - 九类program构造计划为每类固定不同的公开前提槽，并对prior memory中的open/dormant node/edge机械核验。RELINK特别要求open entity、旧place和方向一致的open `located_at`边；SPLIT/MERGE在生成前封存geometry/frontend/远近pose和重复次数，每次fresh replay都必须实现1→2或2→1公开proposal转移，任一次不满足即保留construction failure，禁止换标签或替换样本。BIRTH/NOOP等涉及“无匹配/稳定”的最终充分判据仍须由冻结matcher与runner receipt绑定，当前结构计划不冒充完整构造成功。
 - 白话：输入是一帧公开RGB、已经公开的几何记忆以及生成前写死的程序计划，输出是公开proposal、遮挡状态和可追溯的程序前提。例如SPLIT必须事先登记“远处1块、近处2块”，连续两次重放有一次仍是1块就失败，不能改叫BIND。它不等于SAM已经装好、数值已定、house可生成或这些程序在真实模拟器中已经成立。
+
+## D-200：公开充分matcher与visibility route/worker摘要绑定候选
+
+- 日期：2026-09-16；状态：用户认可D-199三项科学口径并要求继续补充分matcher和route/worker receipt绑定，不开放运行。visibility route plan现封存公开subject与builder config摘要；路线扫描和worker逐帧记录必须携带`vsmt-vm04-public-visibility-builder-receipt-v1`，并让subject/config/observation index/depth/camera/assessment/receipt逐项一致。worker在任何private intervention前完成验证，不能先执行动作再在终态发现receipt无效。正式visibility数值和生产callback仍未冻结。
+- 新公开充分matcher采用显式无默认值配置，记录entity/surface/fragment逐region的visual/centroid/geometry/score分量、阈值、唯一/歧义/无匹配及逐program失败原因。BIND/BIRTH、REACTIVATE/BIRTH、RELINK/REPLACE按公开构造证据分流；RELINK的新place必须落到确定性place scaffold的登记版本；entity RETRACT/REPLACE要求至少两条满足冻结可靠度和时间间隔的visible-empty覆盖；SPLIT/MERGE继续绑定全部fresh replay artifact receipt。所有正式matcher数值保持null，测试值只作fixture。
+- matcher只签`program_public_match_satisfied`并固定`semantic_identity_truth_established=false/private_identity_used=false`；私有身份、teacher和参考事务不能参与构造或修补候选。当前packet没有跨时“关系应出现但缺席”的公开证据类型，因此edge RETRACT充分条件明确失败，不以一次没检测到关系替代。父stage/materializer尚未落盘并聚合matcher receipt，故九类生产验收清单不勾选。
+- 白话：这一步解决“遮挡判断是否真来自绑定的公开几何”和“写了program计划后最低公开证据是否够”的问题。输入是封存的公开subject、route、packet、prior和显式matcher参数，输出逐帧visibility收据与逐program构造收据。例如一帧自报`occluded`但receipt来自别的subject会在干预前失败；BIRTH若仍唯一匹配旧节点也会失败。它不等于物理身份已知、matcher数值已定、edge RETRACT已可构造或pilot获准运行。
