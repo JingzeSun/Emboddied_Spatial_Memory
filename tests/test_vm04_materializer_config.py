@@ -5,7 +5,9 @@ from dataclasses import asdict
 import hashlib
 import json
 from pathlib import Path
+import subprocess
 import sys
+import tempfile
 import unittest
 
 
@@ -24,6 +26,7 @@ from tests.test_vm04_public_frontend_sequence import (  # noqa: E402
 from vsmt.vm04_materializer_config import (  # noqa: E402
     build_vm04_public_frontend_sequence,
     validate_vm04_materializer_config,
+    verify_vm04_materializer_assets,
 )
 from vsmt.vm04_public_frontend_sequence import Vm04PublicFrontendSequence  # noqa: E402
 
@@ -139,6 +142,56 @@ class Vm04MaterializerConfigTests(unittest.TestCase):
                        if key != "config_sha256"})
         with self.assertRaisesRegex(ValueError, "shape does not match"):
             validate_vm04_materializer_config(shape)
+
+    def test_model_repository_and_checkpoint_are_verified_read_only(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            repository = root / "dinov2"
+            repository.mkdir()
+            subprocess.run(["git", "init", "-q"], cwd=repository, check=True)
+            subprocess.run(
+                ["git", "config", "user.email", "fixture@example.invalid"],
+                cwd=repository, check=True,
+            )
+            subprocess.run(
+                ["git", "config", "user.name", "Fixture"],
+                cwd=repository, check=True,
+            )
+            (repository / "model.py").write_text("MODEL = 'v1'\n", encoding="utf-8")
+            subprocess.run(["git", "add", "model.py"], cwd=repository, check=True)
+            subprocess.run(
+                ["git", "commit", "-q", "-m", "fixture"],
+                cwd=repository, check=True,
+            )
+            commit = subprocess.run(
+                ["git", "rev-parse", "HEAD"], cwd=repository, check=True,
+                capture_output=True, text=True,
+            ).stdout.strip()
+            checkpoint = root / "model.pth"
+            checkpoint.write_bytes(b"sealed checkpoint fixture")
+            checkpoint_sha = hashlib.sha256(checkpoint.read_bytes()).hexdigest()
+            raw = fixture()
+            raw["model"]["repository_commit"] = commit
+            raw["model"]["checkpoint_sha256"] = checkpoint_sha
+            raw = _seal({key: value for key, value in raw.items()
+                         if key != "config_sha256"})
+            parsed = validate_vm04_materializer_config(raw)
+            receipt = verify_vm04_materializer_assets(
+                parsed, repository_root=repository,
+                checkpoint_path=checkpoint,
+            )
+            self.assertTrue(receipt["repository_worktree_clean"])
+            self.assertFalse(receipt["network_access_required"])
+            schema = json.loads((ROOT / (
+                "schemas/vsmt_vm04_materializer_assets_receipt.schema.json"
+            )).read_text(encoding="utf-8"))
+            self.assertEqual(set(receipt), set(schema["required"]))
+            (repository / "model.py").write_text("MODEL = 'changed'\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "worktree is not clean"):
+                verify_vm04_materializer_assets(
+                    parsed, repository_root=repository,
+                    checkpoint_path=checkpoint,
+                )
 
 
 if __name__ == "__main__":

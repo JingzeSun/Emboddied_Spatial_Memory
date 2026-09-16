@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/embodied-memory/vsmt_vm04_materializer_assets_receipt.schema.json",
+  "title": "VSMT VM-04 Materializer Assets Receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "materializer_config_sha256", "model_id", "repository_commit", "repository_worktree_clean", "checkpoint_sha256", "network_access_required", "receipt_sha256"],
+  "properties": {
+    "schema_version": {"const": "vsmt-vm04-materializer-assets-receipt-v1"},
+    "materializer_config_sha256": {"$ref": "#/$defs/sha256"},
+    "model_id": {"type": "string", "minLength": 1},
+    "repository_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "repository_worktree_clean": {"const": true},
+    "checkpoint_sha256": {"$ref": "#/$defs/sha256"},
+    "network_access_required": {"const": false},
+    "receipt_sha256": {"$ref": "#/$defs/sha256"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}

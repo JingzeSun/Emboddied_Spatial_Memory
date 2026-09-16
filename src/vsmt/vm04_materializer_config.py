@@ -8,7 +8,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, fields
 import hashlib
+from pathlib import Path
 import re
+import subprocess
 from typing import Any, Mapping, TypeVar
 
 from cpmt.hashing import canonical_json, clone_json
@@ -205,3 +207,50 @@ def build_vm04_public_frontend_sequence(
         builder_code_sha256=parsed.builder_code_sha256,
     )
     return callback, parsed.config_sha256
+
+
+def verify_vm04_materializer_assets(
+    parsed: ValidatedVm04MaterializerConfig, *,
+    repository_root: Path, checkpoint_path: Path,
+) -> dict[str, Any]:
+    """Read-only verification of the frozen repository and checkpoint bytes."""
+
+    _require(type(parsed) is ValidatedVm04MaterializerConfig,
+             "parsed materializer config has the wrong type")
+    repository_root = Path(repository_root)
+    checkpoint_path = Path(checkpoint_path)
+    _require(repository_root.is_dir(), "model repository is missing")
+    _require(checkpoint_path.is_file(), "model checkpoint is missing")
+
+    def git(*arguments: str) -> str:
+        result = subprocess.run(
+            ["git", "-C", str(repository_root), *arguments],
+            check=False, capture_output=True, text=True,
+        )
+        _require(result.returncode == 0,
+                 "model repository Git verification failed")
+        return result.stdout.strip()
+
+    commit = git("rev-parse", "HEAD")
+    _require(commit == parsed.model["repository_commit"],
+             "model repository commit differs from sealed config")
+    _require(git("status", "--porcelain", "--untracked-files=all") == "",
+             "model repository worktree is not clean")
+    digest = hashlib.sha256()
+    with checkpoint_path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    checkpoint_sha256 = digest.hexdigest()
+    _require(checkpoint_sha256 == parsed.model["checkpoint_sha256"],
+             "model checkpoint digest differs from sealed config")
+    receipt = {
+        "schema_version": "vsmt-vm04-materializer-assets-receipt-v1",
+        "materializer_config_sha256": parsed.config_sha256,
+        "model_id": parsed.model["model_id"],
+        "repository_commit": commit,
+        "repository_worktree_clean": True,
+        "checkpoint_sha256": checkpoint_sha256,
+        "network_access_required": False,
+    }
+    receipt["receipt_sha256"] = _sha(receipt)
+    return receipt
