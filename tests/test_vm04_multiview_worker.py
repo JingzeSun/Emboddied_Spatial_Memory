@@ -238,9 +238,19 @@ class MultiviewWorkerTests(unittest.TestCase):
                 "id": "test_one_hot_v1", "dimension": 8,
             }
         numeric = contract["l2_identifiability_admission_gate"][
-            "numeric_review_required_before_generation"]
+            "pending_model_and_budget_fields"]
         numeric["CFO_and_public_history_probe_architecture"] = {"test": True}
         numeric["shared_probe_training_budget"] = {"test": True}
+        evidence = contract["l2_identifiability_admission_gate"][
+            "evidence_level"]
+        evidence["current_implemented_frontend"] = (
+            "L2_public_RGBD_proposal_frontend")
+        evidence["current_status"] = "reviewed_L2_frontend_bound_by_receipt"
+        evidence["reviewed_L2_frontend_receipt_sha256"] = "3" * 64
+        contract["development_pilot"][
+            "mechanical_completion_derivation_status"] = (
+                "implemented_and_reviewed_parent_stage_family_receipt_v1"
+            )
         construction = contract["deterministic_SPLIT_MERGE_construction"]
         construction["fresh_replay_repeat_count"] = 1
         construction["exact_geometry_parameters"] = {"test": True}

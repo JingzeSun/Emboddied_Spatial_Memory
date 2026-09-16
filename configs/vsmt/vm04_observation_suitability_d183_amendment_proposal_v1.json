@@ -9,6 +9,7 @@
     "approved_decision": "D-182",
     "base_execution_authorized": false
   },
+  "merged_into_base_contract_commit": "ac978b6457e2bb383aa2545705fc3cecd00c1929",
   "authorization": {
     "merge_into_base_contract_authorized": true,
     "schema_implementation_authorized": true,

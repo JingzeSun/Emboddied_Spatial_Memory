@@ -83,8 +83,7 @@ def validate_approved_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
         _require(all(value is False for value in authorization.values()),
                  "review contract must keep every execution authorization closed")
 
-    trajectory = record["observation_trajectory"][
-        "numeric_review_required_before_generation"]
+    trajectory = record["observation_trajectory"]["frozen_numeric_values"]
     _require(trajectory == {
         "minimum_key_pose_translation_m": 0.5,
         "minimum_reobservation_translation_m": 0.5,
@@ -110,6 +109,22 @@ def validate_approved_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
         "pilot_completed_4": 64,
         "pilot_completed_0_to_3": "stop_and_require_new_contract_version",
     }, "D-183 formal count rule changed")
+    _require(
+        pilot.get("family_completion_definition") ==
+        "all_pre_registered_routes_visibility_states_and_required_SPLIT_MERGE_artifacts_pass_without_replacement" and
+        pilot.get("family_completion_source") ==
+        "mechanically_derived_from_sealed_route_receipts_and_construction_verdicts" and
+        pilot.get("caller_supplied_completion_boolean_allowed") is False and
+        pilot.get("mechanical_completion_derivation_status") in {
+            "pending_parent_stage_family_receipt_implementation_and_review",
+            "implemented_and_reviewed_parent_stage_family_receipt_v1",
+        },
+        "pilot family completion boundary changed",
+    )
+    if status.endswith("review_only"):
+        _require(pilot["mechanical_completion_derivation_status"] ==
+                 "pending_parent_stage_family_receipt_implementation_and_review",
+                 "review-only contract cannot claim pilot derivation is reviewed")
     formal = record["formal_development_sampling"]
     _require(formal.get("source_houses_to_attempt") is None,
              "formal N must remain unset before pilot completion")
@@ -121,6 +136,39 @@ def validate_approved_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
              report.get("easy_class_blocks_whole_dataset") is False and
              report.get("post_result_program_removal_relabeling_or_resampling_allowed")
              is False, "D-183 easy-class rule changed")
+    level = record["l2_identifiability_admission_gate"]["evidence_level"]
+    _require(set(level) == {
+        "target_claim_level", "current_implemented_frontend",
+        "current_status", "L1_result_may_admit_L2_main_table",
+        "reviewed_L2_frontend_receipt_sha256",
+    } and level["target_claim_level"] == "L2_public_proposal_frontend" and
+             level["L1_result_may_admit_L2_main_table"] is False,
+             "L1/L2 evidence-level boundary changed")
+    l2_receipt = level["reviewed_L2_frontend_receipt_sha256"]
+    if status.endswith("review_only"):
+        _require(
+            level["current_implemented_frontend"] ==
+            "L1_oracle_entity_masks_plus_public_geometry" and
+            level["current_status"] ==
+            "blocked_L1_diagnostic_only_until_L2_frontend_is_implemented_and_reviewed" and
+            l2_receipt is None,
+            "review-only contract must remain an L1-only diagnostic",
+        )
+    else:
+        _require(
+            level["current_implemented_frontend"] ==
+            "L2_public_RGBD_proposal_frontend" and
+            level["current_status"] ==
+            "reviewed_L2_frontend_bound_by_receipt" and
+            type(l2_receipt) is str and HEX64.fullmatch(l2_receipt) is not None,
+            "executable contract lacks a reviewed L2 frontend receipt",
+        )
+    pending = record["l2_identifiability_admission_gate"][
+        "pending_model_and_budget_fields"]
+    _require(set(pending) == {
+        "CFO_and_public_history_probe_architecture",
+        "shared_probe_training_budget",
+    }, "identifiability pending fields changed")
     construction = record["deterministic_SPLIT_MERGE_construction"]
     _require(construction.get("posthoc_program_label_from_observed_artifact_allowed")
              is False, "post-hoc SPLIT/MERGE labels must remain forbidden")
@@ -174,10 +222,13 @@ def assert_generation_authorized(contract: Mapping[str, Any]) -> None:
         "public_packet_action_command_encoding": record[
             "public_packet_materialization"]["action_command_encoding"],
         "shared_probe_architecture": record["l2_identifiability_admission_gate"]
-        ["numeric_review_required_before_generation"]
+        ["pending_model_and_budget_fields"]
         ["CFO_and_public_history_probe_architecture"],
         "shared_probe_training_budget": record["l2_identifiability_admission_gate"]
-        ["numeric_review_required_before_generation"]["shared_probe_training_budget"],
+        ["pending_model_and_budget_fields"]["shared_probe_training_budget"],
+        "l2_proposal_frontend_receipt_sha256": record[
+            "l2_identifiability_admission_gate"]["evidence_level"]
+        ["reviewed_L2_frontend_receipt_sha256"],
         "split_merge_repeat_count": record["deterministic_SPLIT_MERGE_construction"]
         ["fresh_replay_repeat_count"],
         "split_merge_geometry": record["deterministic_SPLIT_MERGE_construction"]
@@ -191,6 +242,10 @@ def assert_generation_authorized(contract: Mapping[str, Any]) -> None:
     validate_registered_action_request_templates(
         blockers["registered_action_request_templates"]
     )
+    _require(record["development_pilot"].get(
+        "mechanical_completion_derivation_status") ==
+        "implemented_and_reviewed_parent_stage_family_receipt_v1",
+        "pilot family completion derivation is not implemented and reviewed")
     _require(record["status"] == "d183_frozen_executable",
              "observation contract is not executable")
     _require(record["authorization"].get("trajectory_implementation_authorized")
@@ -448,7 +503,7 @@ def validate_route_plan(plan: Mapping[str, Any], *, contract: Mapping[str, Any])
     actions = plan["registered_actions"]
     allowed = set(approved["observation_trajectory"]["registered_post_initial_actions"])
     maximum_steps = approved["observation_trajectory"][
-        "numeric_review_required_before_generation"]["maximum_route_steps"]
+        "frozen_numeric_values"]["maximum_route_steps"]
     _require(type(actions) is list and 1 <= len(actions) <= maximum_steps,
              "registered route length is outside the frozen bound")
     _require(all(type(row) is dict and set(row) == {"step_index", "action"}
@@ -462,7 +517,7 @@ def validate_route_plan(plan: Mapping[str, Any], *, contract: Mapping[str, Any])
     _require(set(phases) == {"precondition_visible", "challenge_hidden", "reobserved"},
              "route phases are incomplete")
     minimum = approved["observation_trajectory"][
-        "numeric_review_required_before_generation"]
+        "frozen_numeric_values"]
     for name, indices in phases.items():
         _require(type(indices) is list and len(indices) >=
                  minimum["minimum_public_observations_per_visibility_state"],
@@ -618,7 +673,7 @@ def assess_route_receipt(
             failures.append("intervention_visible_to_camera")
 
     tolerance = approved["observation_trajectory"][
-        "numeric_review_required_before_generation"]
+        "frozen_numeric_values"]
     anchors = {
         "precondition": route["phase_observation_indices"]["precondition_visible"][-1],
         "challenge": route["phase_observation_indices"]["challenge_hidden"][-1],

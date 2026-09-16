@@ -1897,3 +1897,11 @@
 - 日期：2026-09-16；状态：按外部审查Q修复已实现gate缺口，不开放任何运行。D-195虽然让old/post packet与crosswalk通过materializer receipt唯一反查机械帧号，但尚未要求old帧先于post帧；调用方仍可把动作后证据放进old文件、动作前证据放进post文件并重签所有摘要。
 - gate现要求`old_observation_index < post_observation_index`，并在读取私有outcome及判断同一实例前拒绝反向证据。人工反例交换两组packet/crosswalk在receipt中的帧位、同步修改crosswalk index并重签materializer/public proof，仍因时间反向拒绝。
 - 白话：RELINK必须先有P1证据、后有P2证据。输入两张都已封存且来源合法的帧，输出只接受时间向前的那一对；把两张照片交换名称不能把P2→P1冒充P1→P2。它不证明机器人动作成功，也不放松同一实体和两端公开关系硬门。
+
+## D-198：L1/L2层级、合同字段状态与pilot完成来源收紧
+
+- 日期：2026-09-16；状态：采纳外部审查O/P/R的阻断性修订，不改变D-182/D-183已批数值，不开放运行。当前`vm04_public_frontend`的entity proposal来自隔离private instance mask，按METHOD只能是L1 oracle结构诊断；合同此前却把可辨识性门输入写成L2 packet，存在把L1结果误当L2准入的风险。机器合同新增`evidence_level`，明确目标是L2公开proposal前端、当前实现仅L1、L1结果不得准入L2，并新增`implement_and_review_L2_proposal_frontend`生成前阻断项；`reviewed_L2_frontend_receipt_sha256=null`同时进入执行硬门，不能只改授权位绕过。
+- 两处混合命名的`numeric_review_required_before_generation`拆开：已批准的路线/统计数值原值不变并迁入`frozen_numeric_values`；仍为null的共享probe架构和训练预算迁入`pending_model_and_budget_fields`。`freeze_disjoint_pilot_and_formal_house_manifests`重新加入人审阻断列表。D-183修订记录补`merged_into_base_contract_commit=ac978b6...`，说明其内容已并入基础合同但仍不表示可执行。
+- 基础合同新增pilot family完成定义、只准由sealed route receipt/construction verdict机械派生、禁止调用方布尔自报，并登记机械派生仍待父stage family receipt实现。现有`seal-formal`生产模式在授权检查后也会明确拒绝旧布尔文件，且在拒绝前不读取pool/outcomes或写输出；48/64/停的纯规则函数保留作单元测试，不构成完成证明。
+- 采纳审查S的交付拆分：后续先交科学口径层（L2 proposal来源、visibility、program前提、SPLIT/MERGE和RELINK证据）供用户审查；在该层获得认可前不再向上叠加新的批量调度/摘要封装。已存在封装代码保留并继续fail closed，不把整批测试通过当作科学层获批。
+- 白话：这一步解决三种“名字看起来已经成立”的问题：oracle mask包不能叫L2，冻结数值不能和null架构混在同一袋里，pilot完成也不能由一张布尔表自报。输入仍是关闭合同和人工收据，输出更明确的阻断状态；它没有实现L2前端或pilot family收据，也没有删掉已审数值。

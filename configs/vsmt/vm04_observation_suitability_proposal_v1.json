@@ -48,7 +48,7 @@
     "actual_pose_not_command_is_scored": true,
     "failed_camera_action_retained": true,
     "route_sealed_before_private_identity_and_action_outcome": true,
-    "numeric_review_required_before_generation": {
+    "frozen_numeric_values": {
       "minimum_key_pose_translation_m": 0.5,
       "minimum_reobservation_translation_m": 0.5,
       "minimum_key_pose_yaw_change_degrees": 30.0,
@@ -166,6 +166,13 @@
   },
   "l2_identifiability_admission_gate": {
     "role": "hard_gate_after_development_materialization_before_VM05_training_or_main_table",
+    "evidence_level": {
+      "target_claim_level": "L2_public_proposal_frontend",
+      "current_implemented_frontend": "L1_oracle_entity_masks_plus_public_geometry",
+      "current_status": "blocked_L1_diagnostic_only_until_L2_frontend_is_implemented_and_reviewed",
+      "L1_result_may_admit_L2_main_table": false,
+      "reviewed_L2_frontend_receipt_sha256": null
+    },
     "rule_and_thresholds_frozen_before_generation": true,
     "result_blind_threshold_changes_allowed": false,
     "current_frame_only_probe": {
@@ -185,14 +192,16 @@
     "primary_unit": "house_family",
     "primary_metric": "family_aggregated_registered_program_type_accuracy",
     "required_pass_rule": "one_sided_family_interval_lower_bound_for_public_history_probe_minus_CFO_exceeds_frozen_minimum_gap_and_CFO_does_not_exceed_frozen_maximum_accuracy_and_sealed_catalog_oracle_recall_meets_its_frozen_minimum",
-    "numeric_review_required_before_generation": {
+    "frozen_numeric_values": {
       "minimum_accuracy_gap": 0.15,
       "maximum_CFO_accuracy": 0.6,
       "confidence_level": 0.95,
       "bootstrap_seed": 260916,
       "bootstrap_resamples": 10000,
       "minimum_development_families": 32,
-      "minimum_sealed_catalog_oracle_recall": 0.9,
+      "minimum_sealed_catalog_oracle_recall": 0.9
+    },
+    "pending_model_and_budget_fields": {
       "CFO_and_public_history_probe_architecture": null,
       "shared_probe_training_budget": null
     },
@@ -235,11 +244,14 @@
   "pre_generation_blockers": [
     "freeze_intervention_visibility_constraint_and_failure_reason",
     "implement_and_review_public_visibility_state_builder",
+    "implement_and_review_L2_proposal_frontend",
     "freeze_explicit_registered_action_request_templates",
     "freeze_public_frontend_config_context_code_manifest_and_model_assets_then_bind_parent_stage",
     "freeze_public_packet_decision_time_rule",
     "freeze_public_packet_action_command_encoding",
     "freeze_house_family_development_split_without_opening_confirmation",
+    "freeze_disjoint_pilot_and_formal_house_manifests",
+    "implement_and_review_mechanical_pilot_family_completion_derivation",
     "freeze_exact_shared_probe_architecture_and_training_budget",
     "freeze_exact_SPLIT_MERGE_geometry_and_public_frontend_artifact_criteria",
     "review_runner_and_failure_retention_before_server_use"
@@ -248,6 +260,10 @@
     "status": "proposed_not_authorized",
     "purpose": "early_route_visibility_and_construction_failure_detection_only",
     "family_count": 6,
+    "family_completion_definition": "all_pre_registered_routes_visibility_states_and_required_SPLIT_MERGE_artifacts_pass_without_replacement",
+    "family_completion_source": "mechanically_derived_from_sealed_route_receipts_and_construction_verdicts",
+    "caller_supplied_completion_boolean_allowed": false,
+    "mechanical_completion_derivation_status": "pending_parent_stage_family_receipt_implementation_and_review",
     "source_houses_disjoint_from_formal_development": true,
     "included_in_identifiability_gate": false,
     "included_in_VM05_training_or_validation": false,

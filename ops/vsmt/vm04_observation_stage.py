@@ -24,9 +24,7 @@ from cpmt.hashing import canonical_json  # noqa: E402
 from vsmt.vm04_observation_runner import (  # noqa: E402
     ObservationConstructionError,
     make_source_pool_manifest,
-    seal_formal_selection,
     validate_approved_contract,
-    validate_source_pool_manifest,
 )
 from vsmt.vm04_materializer_code_manifest import (  # noqa: E402
     make_vm04_materializer_code_manifest,
@@ -131,24 +129,10 @@ def seal_source_pool(input_path: Path, output_path: Path) -> None:
 def seal_formal(input_pool: Path, pilot_outcomes: Path, output_path: Path) -> None:
     contract = load_contract()
     require_gate(contract, "formal_selection_sealing_authorized")
-    pool = validate_source_pool_manifest(read_json(input_pool))
-    outcomes = read_json(pilot_outcomes)
-    if set(outcomes) != {"source_pool_manifest_sha256",
-                         "completion_by_pool_index"}:
-        raise ObservationConstructionError("pilot outcome has unexpected fields")
-    if outcomes["source_pool_manifest_sha256"] != pool["manifest_sha256"]:
-        raise ObservationConstructionError("pilot outcome does not bind source pool")
-    raw = outcomes["completion_by_pool_index"]
-    if type(raw) is not dict:
-        raise ObservationConstructionError("pilot completion must be an object")
-    completion = {}
-    for key, value in raw.items():
-        if type(key) is not str or not key.isdigit():
-            raise ObservationConstructionError("pilot pool index must be decimal text")
-        completion[int(key)] = value
-    selection = seal_formal_selection(
-        pool, pilot_completion_by_pool_index=completion)
-    write_new_json(output_path, selection)
+    raise ObservationConstructionError(
+        "mechanical pilot family completion derivation is not implemented; "
+        "caller-supplied booleans are forbidden"
+    )
 
 
 def main() -> None:

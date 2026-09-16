@@ -6,8 +6,8 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| VM-04观察适用性 | 原静态36槽不运行；D-182/183只用于精确schema/实现审查。公开多视角路线、worker、公私raw、materializer外壳、RGB-D匿名前端、公开时间/动作context、packet/prior多帧callback和D-177 receipt门已实现；真实reachable扫描、DINO/config父stage绑定仍缺，时间/动作正式值、bootstrap、SPLIT/MERGE和probe规格未冻结。全部运行位关闭，0新episode/materialization/训练/记忆正例。LOG-169–179。 |
-| VSMT首篇/VM-01～04 | 原静态36槽按D-180退役且未运行；D-183新多视角版本只开放精确实现审查。raw/公开路线/前端/context/packet/crosswalk/causal prior及materializer v2记忆链已实现本地人工回归，正式时间与动作编码、前端/bootstrap数值、DINO摘要、SPLIT/MERGE参数、共享probe和父stage仍阻断。生成/private评价、训练、validation效果、confirmation与L2全部关闭。LOG-180，D-191 |
+| VM-04观察适用性 | 原静态36槽不运行；D-182/183只用于精确schema/实现审查。公开多视角路线/worker/raw、L1 oracle前端、context、packet/prior、materializer v2、模型资产与代码清单外壳已实现；真实reachable/public capture/private intervention、L2公开proposal、父stage批量派发及pilot完成机械收据仍缺，正式时间/动作、前端/bootstrap、SPLIT/MERGE和probe规格未冻结。全部运行位关闭，0新episode/materialization/训练/记忆正例。LOG-169–187。 |
+| VSMT首篇/VM-01～04 | 原静态36槽按D-180退役且未运行；D-183新多视角版本只开放精确实现审查。现有instance-mask前端明确只作L1诊断，不得作为L2准入；L2公开proposal前端、九类真实构造、共享probe和完整父stage仍阻断。生成/private评价、identifiability、训练、validation效果与confirmation全部关闭。LOG-180–187，D-191–198 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
 | R4三模型接入 | D完整适配16项通过（121/200全反向，0更新），W完整适配17项亦通过，F完整适配19项通过；真实公共接口27/27候选通过，0优化/真值读取。209bb34，LOG-123–127 |
 | R4前端v2r1 | 81bceed：19项通过，16历史/144名义预测/16选择完整，误标占据/自由0；物块平均误差9.59 cm、接触Brier 0.1152，全部涉及未知扫掠，正式M/P未就绪。LOG-121 |
@@ -1972,3 +1972,10 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 
 - RELINK gate新增old receipt index严格小于post receipt index的断言，位置在packet/crosswalk摘要唯一反查之后、private outcome读取之前。即使交换两组packet/crosswalk帧位、同步修改crosswalk index并重签materializer receipt与public proof，反向证据仍拒绝。
 - 定向9/9通过；未运行source、模拟器、materializer或评价。白话：合法摘要链现在还必须时间向前，不能靠交换old/post文件名制造反向RELINK。
+
+## LOG-187：L1/L2与pilot完成自报阻断（2026-09-16）
+
+- 基础合同新增显式evidence level：现有instance-mask前端固定为L1 oracle诊断，L2门在公开proposal前端实现/审查前保持阻断，L1结果不得开放L2主表；`implement_and_review_L2_proposal_frontend`加入pre-generation blockers，null的受审L2前端receipt摘要同时进入生成硬门。
+- 已批路线/统计值原样移入`frozen_numeric_values`，两个null的probe架构/预算移入`pending_model_and_budget_fields`；恢复pilot/formal manifest分离阻断项。D-183修订文件补实际合并commit `ac978b6...`。
+- pilot family完成定义写入基础合同并禁止调用方布尔；机械family receipt尚未实现，故生产`seal-formal`即使授权为true也会在读取输入前拒绝。受影响4模块定向27/27、VM-04 discover 180/180、VSMT discover 179/179及旧两房入口内嵌executor 42/L1 31/VSMT 179共252/252通过。仓库全量772项另有旧CPMT封存/缺文件等8 error、3 failure，均不在本批文件且VM-04组独立通过；0 source、0模拟器、0episode、0materialization、0probe。
+- 白话：当前机器状态会直接说“这是L1、L2还缺”“这些数值已定、架构还没定”“pilot完成收据还没实现”，不再靠读者从null和函数名猜。

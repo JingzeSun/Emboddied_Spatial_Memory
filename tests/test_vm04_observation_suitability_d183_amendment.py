@@ -27,6 +27,10 @@ class D183AmendmentProposalTests(unittest.TestCase):
         self.assertFalse(self.amendment["authorization"]["pilot_authorized"])
         self.assertFalse(self.amendment["authorization"][
             "formal_generation_authorized"])
+        self.assertEqual(
+            self.amendment["merged_into_base_contract_commit"],
+            "ac978b6457e2bb383aa2545705fc3cecd00c1929",
+        )
         base = self.amendment["base_contract"]
         blob = subprocess.check_output([
             "git", "show", f"{base['git_commit']}:{base['path']}"

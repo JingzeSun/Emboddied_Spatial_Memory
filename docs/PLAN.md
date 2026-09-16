@@ -37,6 +37,7 @@
 - [ ] 冻结八种注册相机API请求的真实参数：四种Move的`moveMagnitude`、两种Rotate和两种Look的`degrees`；在锁定AI2-THOR 5.0.0/受审CloudRendering build上做只验证API语义的smoke，正式表不得使用默认参数或`forceAction`。
 - [ ] 冻结公开packet时间规则与动作编码：确定N+1个`decision_time_s`怎样由注册动作产生、八种动作共同向量怎样编码，并写入`decision_time_rule/action_command_encoding`；当前人工一秒间隔和one-hot仅是fixture。
 - [ ] 冻结完整materializer config：匿名mask、DINO descriptor、entity geometry、surface/place/free-space、关系阈值、entity/surface/fragment bootstrap、公开常量和builder摘要一次性定值并签`config_sha256`；不得从生成结果反调。
+- [ ] 实现并审查L2公开proposal前端：只从公开RGB-D产生entity proposal，给CFO/history门和五个L2主臂提供同字节packet；当前instance-mask前端明确只作L1 oracle诊断，L1结果不得开放L2主表。
 - [ ] 冻结DINO模型资产与执行环境：明确模型仓库commit、checkpoint摘要、Python/Torch/NumPy/CUDA及AI2-THOR/ProcTHOR版本，补环境回执；真实assets verifier须在服务器核干净仓库和checkpoint字节，不能只信文件名。
 - [ ] 冻结SPLIT/MERGE确定性构造：填写fresh replay次数、精确几何/相机参数和公开前端伪影判据；program在生成前登记，伪影未复现只记construction failure，不换标签、路线或house。
 - [ ] 冻结CFO（Current-Frame-Only，当前帧诊断器）与public-history probe共用的唯一架构、优化/训练预算和输入mask规则；这是生成前准入门规格，不运行probe，也不使用pilot选择结构。
@@ -68,6 +69,8 @@
 - [ ] 按离散规则填写`source_houses_to_attempt`，由用户先开放`formal_selection_sealing_authorized`生成并冻结formal selection manifest及其摘要，复核formal与pilot不相交、失败不补、少于32个完成family即停止；再单独开放`formal_execution_authorized`，其余下游授权仍关闭。
 
 以下工作不属于“开始生成前”的开闸条件，但属于生成后进入VM-05前的验收：逐program私有语义评价、sealed-catalog oracle recall、CFO/history按family配对的严格可辨识性门、easy-class标注、至少32个完成family、候选/teacher分层错误统计。它们不能反过来修改本版生成规则或补样。
+
+**当前用户交审拆分（按D-059停止继续堆叠）：** 下一批先只交科学口径层，包括L2 proposal来源、公开visibility判据、九类program公开前提、SPLIT/MERGE确定性伪影和RELINK时间/身份/两端关系证据；父stage批量派发、资源回执、摘要/导出等封装层随后单独交审。科学层未获用户认可前，不新增依赖它的上层运行代码；现有封装保持fail closed并保留测试。
 
 
 **独立RELINK新数据版本（proposed，D-176停止线未重开）：** [方法与正反例](METHOD.md)和[拟议公私字段](DATA.md)已记录机器人实际路径、公开旧/新关系、候选先封存及私有同一身份/后态的分层验收口径。输入只能是公开当前RGB-D、此前预测记忆和预登记动作；输出须分别报告物理失败、事务前提缺口、公开证据缺口、candidate miss和executor/teacher错误。例如原四槽仍保持碰撞失败，独立新版本即使找到一条推椅子到P2的路线也不得回填原槽。该版本尚无冻结配置、公开容器读取器、真实`PutObject` smoke、可执行机器人RELINK回执或记忆正例；执行新分支仍需单独裁决和代码审查。

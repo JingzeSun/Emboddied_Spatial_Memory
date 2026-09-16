@@ -6,6 +6,7 @@ from pathlib import Path
 import tempfile
 from contextlib import redirect_stdout
 import unittest
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -57,6 +58,23 @@ class ObservationStageTests(unittest.TestCase):
                     stage.ObservationConstructionError,
                     "formal_selection_sealing_authorized is not authorized"):
                 stage.seal_formal(root / "pool.json", root / "pilot.json", output)
+            self.assertFalse(output.exists())
+
+    def test_formal_sealing_rejects_boolean_input_even_if_gate_opens(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            output = root / "formal.json"
+            contract = stage.read_json(stage.CONFIG)
+            contract["authorization"][
+                "formal_selection_sealing_authorized"] = True
+            with patch.object(stage, "load_contract", return_value=contract):
+                with self.assertRaisesRegex(
+                        stage.ObservationConstructionError,
+                        "caller-supplied booleans are forbidden"):
+                    stage.seal_formal(
+                        root / "missing-pool.json",
+                        root / "missing-booleans.json", output,
+                    )
             self.assertFalse(output.exists())
 
 

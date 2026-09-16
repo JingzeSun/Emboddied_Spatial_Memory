@@ -1490,6 +1490,8 @@ D-187实现materializer的执行/失败保留/复验外壳，但把具体公开�
 
 D-195进一步删除materializer调用方提供的`private_frame_roles`。crosswalk只登记与raw/receipt一致的连续`observation_index`；RELINK中的old/post语义由公开proof seal已经选定的packet与crosswalk摘要唯一反查，不由私有crosswalk自报。白话：输入第0至N帧，输出同号的私有映射；例如第3帧只有在公开seal事先选择它作post时才承担新关系证据。它不让materializer替评价器挑一帧，也不改变正例必须是同一物理实体且公开旧、新关系都有证据的规则。
 
+D-198明确当前`vm04_public_frontend`是L1 oracle结构诊断，因为entity proposal由隔离private instance mask匿名化得到；其公开depth/pose/descriptor和后续记忆链干净，不会把proposal来源自动升级成L2。L2主实验仍须实现并审查只从公开RGB-D产生proposal的冻结前端，五个主臂及CFO/history门共用其同字节packet；此前L1门结果只能报告机制诊断。白话：真值mask可以回答“假设检测正确，记忆机制会不会更新”，不能回答“从相机输入出发整套方法是否需要历史”。它不否定L1实现价值，也不允许把L1候选缓存给L2。
+
 D-188新增公开packet/prior序列构造器。输入是公开前端逐帧给出的RGB-D摘要、相机pose、机器人状态、已结束动作、匿名区域/关系、自由空间/可见性和公开常量；输出是逐帧`ObservationPacket`、在线更新后的共同causal prior和独立重放receipt。调用方不能自报`prior_memory_ref`，每帧只能引用上一帧公开bootstrap实际封存的memory；完成后另从空memory重放同一packet序列，终态逐字节不一致即失败。例如第二帧看见相同外观和相近位置的匿名椅子时，packet引用第一帧产生的candidate memory，bootstrap才可能公开BIND并确认；它不允许private program、instance ID、teacher或未来观察帮忙绑定，也不等于真实DINO/结构前端已经实现。`decision_time_s`规则、动作向量编码和bootstrap阈值仍须事前冻结。
 
 D-189把真实公开前端算法核心接到该序列。可信进程只在单帧匿名化时读取instance mask/ID，并把ID留在private crosswalk；公开侧随后复用冻结DINO token、当前depth、相机内外参构造entity、surface、place、free-space、visibility及类型化关系。跨帧callback只保存公开free-space历史和公开bootstrap memory，每帧重新匿名化，不沿用private ID。例子：同一椅子的模拟器ID从`Chair|1`改成`opaque-x`且mask不变时，公开row逐字节相同，只有private crosswalk变化；旧代码按私有`SPLIT`合mask或按`MERGE`翻转descriptor的入口不存在。它不等于阈值、DINO checkpoint、时间/动作编码已冻结，也未运行真实帧。

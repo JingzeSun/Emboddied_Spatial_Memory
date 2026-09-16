@@ -123,7 +123,7 @@ def build_route_plan_from_public_graph(
     hidden_state = BRANCH_STATES[branch_type]
     numbers = (
         approved["observation_trajectory"]
-        ["numeric_review_required_before_generation"]
+        ["frozen_numeric_values"]
     )
     max_steps = numbers["maximum_route_steps"]
     minimum_each = numbers["minimum_public_observations_per_visibility_state"]

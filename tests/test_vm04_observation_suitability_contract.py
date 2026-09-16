@@ -1,11 +1,20 @@
 """Fail-closed checks for the proposed post-D-180 observation contract."""
 
+import copy
 import json
 from pathlib import Path
+import sys
 import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
+SRC = ROOT / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
+
+from vsmt.vm04_observation_runner import validate_approved_contract
+
+
 CONTRACT = ROOT / "configs/vsmt/vm04_observation_suitability_proposal_v1.json"
 
 
@@ -57,7 +66,7 @@ class ObservationSuitabilityContractTests(unittest.TestCase):
         self.assertIn(
             "old_relation_P1",
             route["program_specific_public_preconditions"]["RELINK"])
-        self.assertEqual(route["numeric_review_required_before_generation"], {
+        self.assertEqual(route["frozen_numeric_values"], {
             "minimum_key_pose_translation_m": 0.5,
             "minimum_reobservation_translation_m": 0.5,
             "minimum_key_pose_yaw_change_degrees": 30.0,
@@ -147,7 +156,16 @@ class ObservationSuitabilityContractTests(unittest.TestCase):
         self.assertEqual(
             gate["fail_action"],
             "dataset_version_is_engineering_or_easy_slice_only_and_cannot_enter_L2_main_table")
-        numbers = gate["numeric_review_required_before_generation"]
+        self.assertEqual(gate["evidence_level"], {
+            "target_claim_level": "L2_public_proposal_frontend",
+            "current_implemented_frontend":
+                "L1_oracle_entity_masks_plus_public_geometry",
+            "current_status":
+                "blocked_L1_diagnostic_only_until_L2_frontend_is_implemented_and_reviewed",
+            "L1_result_may_admit_L2_main_table": False,
+            "reviewed_L2_frontend_receipt_sha256": None,
+        })
+        numbers = gate["frozen_numeric_values"]
         self.assertEqual(numbers["minimum_accuracy_gap"], 0.15)
         self.assertEqual(numbers["maximum_CFO_accuracy"], 0.6)
         self.assertEqual(numbers["minimum_sealed_catalog_oracle_recall"], 0.9)
@@ -155,12 +173,43 @@ class ObservationSuitabilityContractTests(unittest.TestCase):
         self.assertEqual(numbers["bootstrap_seed"], 260916)
         self.assertEqual(numbers["bootstrap_resamples"], 10000)
         self.assertEqual(numbers["minimum_development_families"], 32)
-        self.assertIsNone(numbers["CFO_and_public_history_probe_architecture"])
-        self.assertIsNone(numbers["shared_probe_training_budget"])
+        pending = gate["pending_model_and_budget_fields"]
+        self.assertIsNone(pending["CFO_and_public_history_probe_architecture"])
+        self.assertIsNone(pending["shared_probe_training_budget"])
+        self.assertIn(
+            "implement_and_review_L2_proposal_frontend",
+            self.contract["pre_generation_blockers"],
+        )
+        self.assertIn(
+            "freeze_disjoint_pilot_and_formal_house_manifests",
+            self.contract["pre_generation_blockers"],
+        )
+
+    def test_executable_contract_cannot_bind_receipt_while_still_claiming_l1(self):
+        contract = copy.deepcopy(self.contract)
+        contract["status"] = "d183_frozen_executable"
+        contract["l2_identifiability_admission_gate"]["evidence_level"][
+            "reviewed_L2_frontend_receipt_sha256"] = "f" * 64
+        with self.assertRaisesRegex(
+                ValueError, "lacks a reviewed L2 frontend receipt"):
+            validate_approved_contract(contract)
 
     def test_pilot_is_disjoint_and_formal_failures_cannot_add_houses(self):
         pilot = self.contract["development_pilot"]
         self.assertEqual(pilot["family_count"], 6)
+        self.assertEqual(
+            pilot["family_completion_definition"],
+            "all_pre_registered_routes_visibility_states_and_required_SPLIT_MERGE_artifacts_pass_without_replacement",
+        )
+        self.assertEqual(
+            pilot["family_completion_source"],
+            "mechanically_derived_from_sealed_route_receipts_and_construction_verdicts",
+        )
+        self.assertFalse(pilot["caller_supplied_completion_boolean_allowed"])
+        self.assertEqual(
+            pilot["mechanical_completion_derivation_status"],
+            "pending_parent_stage_family_receipt_implementation_and_review",
+        )
         self.assertTrue(pilot["source_houses_disjoint_from_formal_development"])
         self.assertTrue(
             pilot["selection_rule_and_ordered_source_pool_sealed_before_pilot"])
