@@ -3,6 +3,7 @@
 import hashlib
 import json
 from pathlib import Path
+import subprocess
 import unittest
 
 
@@ -20,9 +21,15 @@ class D183AmendmentProposalTests(unittest.TestCase):
             self.amendment["status"], "requires_user_review_not_executable")
         self.assertTrue(all(value is False for value in
                             self.amendment["authorization"].values()))
+        base = self.amendment["base_contract"]
+        blob = subprocess.check_output([
+            "git", "show", f"{base['git_commit']}:{base['path']}"
+        ], cwd=ROOT)
         self.assertEqual(
-            self.amendment["base_contract"]["sha256"],
-            hashlib.sha256(CONTRACT.read_bytes()).hexdigest())
+            base["git_blob_content_sha256"], hashlib.sha256(blob).hexdigest())
+        self.assertEqual(
+            json.loads(blob.decode("utf-8")),
+            json.loads(CONTRACT.read_text(encoding="utf-8")))
 
     def test_pilot_count_rule_is_pre_registered_and_bounded(self):
         rule = self.amendment["L_pilot_determines_formal_N_proposal"]

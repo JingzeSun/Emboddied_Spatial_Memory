@@ -4,7 +4,8 @@
   "decision": "D-183-proposed",
   "base_contract": {
     "path": "configs/vsmt/vm04_observation_suitability_proposal_v1.json",
-    "sha256": "6fcde1f2739364cad94c1030f12d52c175d6f1172513185ce1b13bbea82551a3",
+    "git_commit": "7a3484e88fdc20ed464ec253874f17103965a00f",
+    "git_blob_content_sha256": "34f03360d4c44ba3660150812e17d136a31e220f55065528934740f3354b04ab",
     "approved_decision": "D-182",
     "base_execution_authorized": false
   },
