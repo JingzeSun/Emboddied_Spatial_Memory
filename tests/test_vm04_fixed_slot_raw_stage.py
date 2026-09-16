@@ -30,9 +30,21 @@ class FixedSlotRawStageTests(unittest.TestCase):
                 stage.verify_simulator_environment(
                     Path("/exact/simulator/bin/python"), contract)
 
-    def test_current_config_rejects_generation_before_any_stage_output(self):
-        with TemporaryDirectory() as temp, patch.object(stage, "bound_code",
-                                                    return_value={}):
+    def test_closed_gate_rejects_generation_before_any_stage_output(self):
+        closed = stage.audit.read_json(stage.CONFIG)
+        closed.update({"status": "implementation_only_not_executable",
+                       "run_authorized": False,
+                       "generation_authorized": False,
+                       "expected_reviewed_code": None})
+        original_read = stage.audit.read_json
+
+        def read_with_closed_gate(path):
+            return closed if Path(path) == stage.CONFIG else original_read(path)
+
+        with (TemporaryDirectory() as temp,
+              patch.object(stage, "bound_code", return_value={}),
+              patch.object(stage.audit, "read_json",
+                           side_effect=read_with_closed_gate)):
             root = Path(temp)
             with self.assertRaisesRegex(RuntimeError, "gate remain closed"):
                 stage.run("f" * 40, root / "scan", root / "endpoint",
