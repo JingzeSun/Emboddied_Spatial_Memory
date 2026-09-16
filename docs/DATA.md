@@ -1006,6 +1006,8 @@ D-200把visibility builder receipt正式嵌入每条route observation：route pl
 
 同一修订新增`vsmt-vm04-public-program-matcher-receipt-v1`及[机器schema](../schemas/vsmt_vm04_program_matcher.schema.json)。program plan新增`matcher_config_sha256`；receipt绑定plan、prior、当前packet、route plan/receipt/verdict、全量region匹配分量、终端support选中的region、负证据数、RELINK新place关系和可选SPLIT/MERGE artifact receipt。输出固定`private_identity_used=false/semantic_identity_truth_established=false/posthoc_relabel_or_replacement_used=false`。白话：输入封存的公开证据，输出“本槽最低公开构造条件是否满足”；例如BIRTH region对所有同类型旧节点都低于冻结门才可通过。它不等于参考事务正确，也不允许teacher修补候选。当前matcher全部正式数值仍为null，edge RETRACT因packet尚无跨时关系缺席证据明确失败。
 
+D-201候选新增`materialized/construction-audit/`及`vsmt-vm04-episode-construction-receipt-v1`。目录保存规范化construction plan、matcher config、terminal packet之前的matcher prior、program matcher receipt及可选artifact receipt；episode receipt再逐文件绑定这些字节和既有materializer/causal/terminal packet文件。目录固定`deployment_reader_may_open_construction_audit=false`，没有private instance ID、teacher或参考事务，但program名和构造判据属于审计元数据，不能作为部署模型额外输入。离线目录还固定`construction_plan_pre_terminal_seal_established=false/eligible_for_parent_family_completion=false`，matcher通过只写时间封存待补状态。白话：输入同一次材料化留下的公开证据文件，输出一张可重放的公开匹配/失败证明；例如篡改prior、终端packet或matcher receipt任一文件都会验收失败。它不等于这些文件可喂给adapter、plan时间顺序已经在线证明或整个family完整。
+
 同一修订把pilot完成固定为“该family全部预登记route、visibility状态及所需SPLIT/MERGE伪影均不替换通过”，来源只能是sealed route receipts与construction verdicts机械派生；调用方布尔禁止。父stage family receipt尚未实现，所以`seal-formal`当前即使开闸也拒绝旧布尔输入。白话：48/64/停的输入必须由六套完整施工收据计算，而不是人工写五个true；这不改变离散N规则。
 
 D-196在观察父stage登记独立`materializer_code_sealing_authorized`和`seal-materializer-code`输出。输出文件就是D-194 manifest，采用独占创建；输入路径和commit不写入其他状态文件。当前授权为false，所以不存在真实输出摘要。白话：父stage以后负责把审过的commit变成正式源码清单；现在只证明未授权时它不会读取传入checkout或写文件，不等于已经做过服务器source inventory。

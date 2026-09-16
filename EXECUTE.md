@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| VM-04观察适用性 | 原静态36槽不运行；D-182/183只用于精确schema/实现审查。D-199已形成L2公开RGB proposal、公开depth visibility、九类program必要前提及SPLIT/MERGE重复回执；D-200的visibility route/worker摘要绑定和无默认值公开充分matcher口径及当前代码候选已获用户认可。正式SAM/assets/全部matcher与visibility数值、edge RETRACT公开缺席证据、生产callback、父stage matcher聚合及pilot机械收据仍缺。全部运行位关闭，0新episode/materialization/训练/记忆正例。LOG-169–189。 |
+| VM-04观察适用性 | 原静态36槽不运行；D-182/183只用于精确schema/实现审查。D-199已形成L2公开RGB proposal、公开depth visibility、九类program必要前提及SPLIT/MERGE重复回执；D-200的visibility route/worker摘要绑定和无默认值公开充分matcher已获认可；D-201候选新增单episode matcher/materializer/causal-prior摘要绑定并保留construction failure。正式SAM/assets/全部matcher与visibility数值、edge RETRACT公开缺席证据、生产callback、父stage family聚合及pilot机械收据仍缺。全部运行位关闭，0新episode/materialization/训练/记忆正例。LOG-169–190。 |
 | VSMT首篇/VM-01～04 | 原静态36槽按D-180退役且未运行；D-183新多视角版本只开放精确实现审查。现有instance-mask前端明确只作L1诊断，不得作为L2准入；L2公开proposal前端、九类真实构造、共享probe和完整父stage仍阻断。生成/private评价、identifiability、训练、validation效果与confirmation全部关闭。LOG-180–187，D-191–198 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
 | R4三模型接入 | D完整适配16项通过（121/200全反向，0更新），W完整适配17项亦通过，F完整适配19项通过；真实公共接口27/27候选通过，0优化/真值读取。209bb34，LOG-123–127 |
@@ -1993,3 +1993,10 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 当前正式association/reliability/margin/free-space/support/time-separation/negative-count数值全部为null；fixture值未写入机器合同。父stage/materializer尚未落盘聚合matcher receipt，真实SAM/visibility callback也未接，因此pre-generation blocker与全部authorization保持关闭。定向50/50、VM-04 discover 205/205、VSMT discover 179/179及旧两房入口252/252通过；0模型加载、0controller、0episode、0materialization、0训练。
 - 用户于2026-09-16正式认可D-200科学口径与当前代码候选：matcher只作公开构造充分门，RELINK新place绑定确定性place scaffold版本，edge RETRACT继续阻断，正式matcher/visibility数值保持null且不开放运行。该认可不填写数值、不解除任何authorization，也不把父stage/materializer接线或九类生产验收改写为完成。
 - 白话：输入是D-199公开结构计划和真实可复算的公开收据，输出一条在动作前防visibility错绑、在构造后区分“唯一匹配/无匹配/负证据不足”的证据链。例如BIRTH看到旧节点唯一匹配就失败，不能靠预登记标签放行。它不等于阈值已选、身份真值已知或可以开始pilot。
+
+## LOG-190：D-201单episode matcher/materializer摘要绑定候选（2026-09-17）
+
+- 新增`vsmt-vm04-episode-construction-receipt-v1`及append-only `materialized/construction-audit/`。收据逐文件绑定materializer receipt、causal-prior receipt、最后一个登记terminal packet、该packet之前的causal prior、construction plan、显式matcher config、matcher receipt及可选SPLIT/MERGE artifact receipt；任一文件改动均使复验失败，deployment reader固定不得打开audit目录。
+- matcher不通过写`construction_failure`并保留排序后的原原因；materializer完成不再能单独冒充program构造成功。二次时间边界审计确认离线audit不能证明construction plan在terminal observation前已由父stage封存，故matcher通过只写`public_match_satisfied_temporal_seal_pending`，并固定`construction_plan_pre_terminal_seal_established=false/eligible_for_parent_family_completion=false`。edge RETRACT继续只会得到充分证据失败，缺失artifact receipt的SPLIT/MERGE也可封存失败而不换标签或替换样本。
+- 定向单元/集成检查`Ran 35, OK (skipped=1)`，VM-04 discover `Ran 212, OK (skipped=1)`，VSMT入口179/179及旧两房入口252/252通过；覆盖派生状态不可翻转、artifact文件边界、materializer完成但matcher失败、错误causal prior拒绝及摘要链重放。全库discover另跑804项，旧M1源码封印/已删除旧文档及旧candidate/visual pilot区域仍有3项failure、8项error、1项skip，均不涉及本次改动文件，未为消除这些历史红灯修改旧科学路径。正式matcher/visibility数值仍为null，全部authorization仍为false；0模型加载、0controller、0episode、0materialization、0训练。
+- 白话：输入一次已完成的材料化及其公开历史，输出一张“这个episode是否达到公开构造最低条件”的审计收据。例如BIRTH终端packet仍匹配旧节点时，packet文件可以是完整的，但收据只能记构造失败。它不等于family完成、正式阈值已定或运行已开放。
