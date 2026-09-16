@@ -147,10 +147,12 @@
     "public_relink_proof_seal_must_bind_materializer_receipt_digest": true
   },
   "public_packet_materialization": {
-    "status": "frontend_core_and_packet_prior_sequence_callback_implemented_frozen_context_and_model_loader_pending",
+    "status": "frontend_core_packet_prior_callback_and_context_builder_implemented_frozen_rules_and_model_loader_pending",
     "camera_pose_and_calibration_source": "sealed_raw_public_camera_record",
     "past_actions_source": "sealed_public_route_prefix",
     "decision_time_rule": null,
+    "action_command_encoding": null,
+    "public_frame_context_manifest_required": true,
     "prior_memory_ref_source": "previous_online_public_bootstrap_memory_only",
     "independent_causal_prior_replay_receipt_required": true,
     "frontend_row_accepts_private_crosswalk_or_instance_identity": false,
@@ -231,6 +233,7 @@
     "freeze_explicit_registered_action_request_templates",
     "freeze_public_frontend_config_context_and_model_loader_then_bind_parent_stage",
     "freeze_public_packet_decision_time_rule",
+    "freeze_public_packet_action_command_encoding",
     "freeze_house_family_development_split_without_opening_confirmation",
     "freeze_exact_shared_probe_architecture_and_training_budget",
     "freeze_exact_SPLIT_MERGE_geometry_and_public_frontend_artifact_criteria",

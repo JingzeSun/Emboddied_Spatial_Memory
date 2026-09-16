@@ -88,8 +88,10 @@ class ObservationSuitabilityContractTests(unittest.TestCase):
         packet = self.contract["public_packet_materialization"]
         self.assertEqual(
             packet["status"],
-            "frontend_core_and_packet_prior_sequence_callback_implemented_frozen_context_and_model_loader_pending")
+            "frontend_core_packet_prior_callback_and_context_builder_implemented_frozen_rules_and_model_loader_pending")
         self.assertIsNone(packet["decision_time_rule"])
+        self.assertIsNone(packet["action_command_encoding"])
+        self.assertTrue(packet["public_frame_context_manifest_required"])
         self.assertEqual(
             packet["prior_memory_ref_source"],
             "previous_online_public_bootstrap_memory_only")
@@ -101,6 +103,10 @@ class ObservationSuitabilityContractTests(unittest.TestCase):
             packet["private_program_or_target_ids_allowed_in_public_frontend"])
         self.assertFalse(
             packet["old_static_SPLIT_MERGE_private_artifact_injection_allowed"])
+        self.assertIn(
+            "freeze_public_packet_action_command_encoding",
+            self.contract["pre_generation_blockers"],
+        )
 
     def test_lifecycle_visibility_is_checked_until_terminal(self):
         policy = self.contract["lifecycle_poststate_policy"]

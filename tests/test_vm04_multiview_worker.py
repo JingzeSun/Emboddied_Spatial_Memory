@@ -228,6 +228,10 @@ class MultiviewWorkerTests(unittest.TestCase):
             "expected_materializer_config_sha256"] = "2" * 64
         contract["public_packet_materialization"][
             "decision_time_rule"] = "test_observation_index_seconds"
+        contract["public_packet_materialization"][
+            "action_command_encoding"] = {
+                "id": "test_one_hot_v1", "dimension": 8,
+            }
         numeric = contract["l2_identifiability_admission_gate"][
             "numeric_review_required_before_generation"]
         numeric["CFO_and_public_history_probe_architecture"] = {"test": True}

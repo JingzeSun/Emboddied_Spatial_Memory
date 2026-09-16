@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| VM-04观察适用性 | 原静态36槽不运行；D-182/183只用于精确schema/实现审查。公开多视角路线、worker、公私raw、materializer外壳、RGB-D匿名公开前端核心、packet/prior多帧callback和D-177 receipt门已实现；真实reachable扫描、DINO/config/context父stage绑定仍缺，动作时间/编码、bootstrap、SPLIT/MERGE和probe精确规格未冻结。全部运行位关闭，0新episode/materialization/训练/记忆正例。LOG-169–178。 |
+| VM-04观察适用性 | 原静态36槽不运行；D-182/183只用于精确schema/实现审查。公开多视角路线、worker、公私raw、materializer外壳、RGB-D匿名前端、公开时间/动作context、packet/prior多帧callback和D-177 receipt门已实现；真实reachable扫描、DINO/config父stage绑定仍缺，时间/动作正式值、bootstrap、SPLIT/MERGE和probe规格未冻结。全部运行位关闭，0新episode/materialization/训练/记忆正例。LOG-169–179。 |
 | VSMT首篇/VM-01～04 | 旧两房stage及16完整/20构造失败封存。D-162仅开放v2固定两房、D=1.0 m纯视角扫描；服务器合同252/252及两family扫描均成功，各选18个pose、0 episode。原前18均来自18个位置，空间筛选降低top-2集合重复，但top-1仍重复10/11次；报告摘要`575d34d0…089f32`。生成/private、训练、validation效果、confirmation与L2继续关闭。LOG-152–153，D-162–163 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
 | R4三模型接入 | D完整适配16项通过（121/200全反向，0更新），W完整适配17项亦通过，F完整适配19项通过；真实公共接口27/27候选通过，0优化/真值读取。209bb34，LOG-123–127 |
@@ -1919,3 +1919,9 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 新多帧callback从verified raw接收RGB/depth/camera/file digest，消费显式预封存公开context，逐帧生成packet和bootstrap memory，末帧独立重放causal prior；乱序、未完成和额外private-program context拒绝。与materializer联合9项通过；VM-04/VSMT相关239项、L1 31项及旧两房入口内嵌252项通过。
 - 尚未绑定真实DINO repository/checkpoint、正式前端/bootstrap config、decision time/past-action编码、sample/context封存和父stage；没有source读取、controller、真实materialization或episode。测试中的数值和patch token只作人工fixture，不是正式阈值或模型回执。
 - 白话：材料化回调现在已经能用真实算法把一串人工raw变成沿同一公开记忆链的packet，但“用哪个受审模型和数值、时间动作怎样编码、谁来调度整批”仍未冻结，所以不能开pilot。
+
+## LOG-179：公开frame context与动作前缀封存（2026-09-16）
+
+- 新context builder核sealed public route摘要，要求N+1严格递增时间、完整八动作显式编码、同长robot state和规则ID；输出N+1 context及绑定路线/时间/编码/逐帧摘要的manifest。观测0无动作，后续每帧只含已完成前缀；route额外program字段、摘要篡改、重复动作向量、缺编码和时间倒退均拒绝。
+- 合同新增`action_command_encoding=null`和对应生成硬阻断；人工测试中的一秒间隔与八维one-hot不进入配置。VM-04/VSMT相关243项、L1 31项、旧两房入口内嵌252项通过；0 source读取、0模拟器、0episode、0materialization。
+- 白话：现在 packet 的时间与动作历史也有固定装配位置，但正式数值仍空着。它防止实现者在生成时临时决定“这一帧算不算已经执行MoveAhead”，不表示已经选定时间尺度或动作表示。

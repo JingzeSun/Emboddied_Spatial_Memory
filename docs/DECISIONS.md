@@ -1841,4 +1841,11 @@
 - 单帧private ID只用于把原mask与输出entity mask摘要写入独立crosswalk；公开区域在每帧按mask内容重新编号。旧静态materializer的`SPLIT`前缀强制合并两个目标mask和`MERGE`中段翻转目标descriptor不复用，因为两者依赖私有program/target制造公开伪影，违反D-183确定性公开构造。
 - 新多帧callback从verified raw取得RGB/depth/camera及文件摘要，只把RGB和frame ordinal交给注入的DINO token extractor；时间、机器人状态、past actions、公开常量和sample摘要必须来自精确预封存context。它顺序生成packet、推进共同bootstrap并在末帧独立重放，乱序或未完成拒绝。真实DINO loader/checkpoint摘要、context生成规则、前端/bootstrap正式config和父stage仍待冻结绑定，授权位全false。
 - 白话：这一步把“真实公开区域怎样产生”从人工packet fixture换成现有L1算法，但没有偷偷决定数值。例如同一mask换了模拟器ID，公开packet不变；如果要构造SPLIT，必须靠事前几何和公开前端自然产生欠分，不能告诉前端当前标签叫SPLIT。它仍不是服务器数据或已验收科学样本。
+
+## D-190：公开时间与已结束动作context封存
+
+- 日期：2026-09-16；状态：继续D-183实现审查，不冻结时间或动作编码数值、不开放运行。新builder只读去掉program/伪影assignment的sealed public route，并要求调用者显式给出N+1个严格递增decision time、完整八动作编码表及其规则ID、同长公开robot state和公开常量。
+- 观测0固定无past action；观测i只加入route中0..i-1动作，结束时刻等于对应第i个decision time。八动作向量必须同维、有限、互异且完整覆盖，不能只为当前路线登记几个动作。manifest绑定public route、时间表、编码表和逐context摘要；额外program/private字段或改route不改摘要均拒绝。
+- 基础合同新增`action_command_encoding=null`和独立生成阻断，避免只冻结API request模板却忘记adapter看到的数值编码。人工测试使用一秒间隔/one-hot只验证前缀和shape，不写回正式合同。真实时间规则、编码值、DINO/config和父stage仍待审；授权位全false。
+- 白话：机器人已经执行前三步时，当前packet可以看到前三步，不能看到第四步；编码表决定“MoveAhead”等命令怎样变成共同数值输入。这个模块把规则做成必填并封存，但没有替用户选规则。
 - 白话：输入一份已经完整落盘的公私raw episode，输出逐帧公开packet、隔离crosswalk和最终收据。例如第2帧回调报错时保留第0帧输出并写失败，但绝不拿单帧成功冒充整集receipt。它不决定公开前端怎样产生SPLIT/MERGE，也没有运行服务器。
