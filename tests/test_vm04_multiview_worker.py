@@ -226,6 +226,8 @@ class MultiviewWorkerTests(unittest.TestCase):
             "expected_materializer_code_sha256"] = "1" * 64
         contract["crosswalk_provenance"][
             "expected_materializer_config_sha256"] = "2" * 64
+        contract["public_packet_materialization"][
+            "decision_time_rule"] = "test_observation_index_seconds"
         numeric = contract["l2_identifiability_admission_gate"][
             "numeric_review_required_before_generation"]
         numeric["CFO_and_public_history_probe_architecture"] = {"test": True}

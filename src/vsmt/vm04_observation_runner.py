@@ -134,6 +134,8 @@ def assert_generation_authorized(contract: Mapping[str, Any]) -> None:
         ["expected_materializer_code_sha256"],
         "materializer_config_sha256": record["crosswalk_provenance"]
         ["expected_materializer_config_sha256"],
+        "public_packet_decision_time_rule": record[
+            "public_packet_materialization"]["decision_time_rule"],
         "shared_probe_architecture": record["l2_identifiability_admission_gate"]
         ["numeric_review_required_before_generation"]
         ["CFO_and_public_history_probe_architecture"],

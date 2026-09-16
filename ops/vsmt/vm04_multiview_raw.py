@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import sys
@@ -105,10 +106,33 @@ def _camera_record(event: Any, observation_index: int) -> dict[str, Any]:
     }
     _require(all(type(value) in {int, float} for value in values.values()),
              "simulator camera values are not numeric")
+    frame = np.asarray(getattr(event, "frame", None))
+    _require(frame.ndim == 3 and frame.shape[2] == 3,
+             "camera record requires an HxWx3 RGB frame")
+    height, width = frame.shape[:2]
+    yaw = math.radians(float(values["yaw_deg"]))
+    pitch = math.radians(float(values["horizon_deg"]))
+    cy, sy = math.cos(yaw / 2.0), math.sin(yaw / 2.0)
+    cx, sx = math.cos(pitch / 2.0), math.sin(pitch / 2.0)
+    focal = 0.5 * float(width) / math.tan(
+        math.radians(float(values["vertical_fov_deg"])) / 2.0)
     return {
         "schema_version": "vsmt-vm04-raw-public-camera-v1",
         "observation_index": observation_index,
         **{key: float(value) for key, value in values.items()},
+        "image_height": int(height),
+        "image_width": int(width),
+        "pose": {
+            "position_m": [float(position[axis]) for axis in ("x", "y", "z")],
+            "quaternion_xyzw": [
+                float(sx * cy), float(cx * sy), float(-sx * sy), float(cx * cy),
+            ],
+        },
+        "calibration": {
+            "fx": focal, "fy": focal,
+            "cx": (float(width) - 1.0) / 2.0,
+            "cy": (float(height) - 1.0) / 2.0,
+        },
     }
 
 

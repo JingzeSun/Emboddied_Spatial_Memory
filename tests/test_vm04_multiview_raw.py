@@ -67,6 +67,12 @@ class MultiviewRawTests(unittest.TestCase):
                 episode / "public/raw/frame_0000/frame.json"
             ).read_text(encoding="utf-8"))
             self._assert_schema_keys("publicCamera", public_camera)
+            self.assertEqual(public_camera["image_height"], 2)
+            self.assertEqual(public_camera["image_width"], 3)
+            self.assertAlmostEqual(public_camera["calibration"]["fx"], 1.5)
+            self.assertAlmostEqual(public_camera["calibration"]["fy"], 1.5)
+            quaternion = public_camera["pose"]["quaternion_xyzw"]
+            self.assertAlmostEqual(sum(value * value for value in quaternion), 1.0)
             self._assert_schema_keys("publicFrame", public_record)
             self._assert_schema_keys("privateFrameMap", private_map)
             self.assertEqual(

@@ -85,6 +85,12 @@ class ObservationSuitabilityContractTests(unittest.TestCase):
             "implement_and_review_trusted_materializer_executor_and_parent_stage_binding",
             self.contract["pre_generation_blockers"],
         )
+        packet = self.contract["public_packet_materialization"]
+        self.assertIsNone(packet["decision_time_rule"])
+        self.assertFalse(
+            packet["private_program_or_target_ids_allowed_in_public_frontend"])
+        self.assertFalse(
+            packet["old_static_SPLIT_MERGE_private_artifact_injection_allowed"])
 
     def test_lifecycle_visibility_is_checked_until_terminal(self):
         policy = self.contract["lifecycle_poststate_policy"]

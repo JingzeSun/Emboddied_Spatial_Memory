@@ -41,7 +41,11 @@
         "z_m",
         "yaw_deg",
         "horizon_deg",
-        "vertical_fov_deg"
+        "vertical_fov_deg",
+        "image_height",
+        "image_width",
+        "pose",
+        "calibration"
       ],
       "properties": {
         "schema_version": {
@@ -68,6 +72,34 @@
         },
         "vertical_fov_deg": {
           "type": "number"
+        },
+        "image_height": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "image_width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "pose": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["position_m", "quaternion_xyzw"],
+          "properties": {
+            "position_m": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "number"}},
+            "quaternion_xyzw": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"type": "number"}}
+          }
+        },
+        "calibration": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["fx", "fy", "cx", "cy"],
+          "properties": {
+            "fx": {"type": "number", "exclusiveMinimum": 0},
+            "fy": {"type": "number", "exclusiveMinimum": 0},
+            "cx": {"type": "number"},
+            "cy": {"type": "number"}
+          }
         }
       }
     },
