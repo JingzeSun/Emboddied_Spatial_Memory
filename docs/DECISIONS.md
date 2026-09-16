@@ -1802,3 +1802,12 @@
 - 首版schema与纯runner完成来源池、正式N、私有构造路线、公开provenance路线、逐帧公开visibility assessment、route receipt和失败verdict。路线实际验收核注册动作、0.5 m平移、30°关键yaw、每状态两个公开时刻、不可观测干预、2 cm/1° pose容差及至少两个连续终端重现；失败不补路/房。公开状态从投影样本、depth可见体积与当前公开support重算，private mask/instance ID位必须false；公开路线删掉program和SPLIT/MERGE assignment，且不能进入adapter输入。
 - 当前精确停止点：真实reachable-position路线候选生成、多视角simulator worker、trusted materializer receipt尚未接；SPLIT/MERGE fresh replay次数、几何参数和冻结公开前端伪影判据，以及CFO/history共享probe精确结构与训练预算仍为null。`vm04_observation_stage.py check`只读通过；其他stage命令在读输入或写输出前因各自授权false拒绝。此停止点允许继续审实现，不构成pilot或生成许可。
 - 白话：这一步把“应该怎样生成”变成机器可拒绝的文件和函数。输入70个预排序house候选、预登记路线和之后拍到的公开证据，输出固定正式前缀与成功/失败记录。例如第4个pilot完成时只能取预排序后的64个formal候选，动作时公开投影仍可见则原episode失败，不能换路线。它不等于已经找到这些路线或启动了AI2-THOR。
+
+
+## D-185：公开多视角路线构造与执行核心
+
+- 日期：2026-09-16；状态：按D-183已批准的精确schema/实现审查继续实现，所有运行授权保持关闭。路线时序固定为初始`TeleportFull`产生观测0，之后N个注册Move/Rotate/Look动作产生观测1至N；因此一条N动作路线必须有N+1条观测。动作的精确AI2-THOR请求参数不使用默认值，机器合同新增`registered_action_request_templates=null`阻断项，待真实API口径审查后再冻结。
+- 新公开路线构造器只接收干预前公开pose扫描、匿名visibility assessment和注册动作有向图，按固定排序做最短路径搜索。每条扫描必须声明`pre_intervention_public_route_scan`、只表示干预前subject/locus支持且`future_or_action_outcome_used=false`；输入含private instance ID或未来/动作结果即拒绝。找到的路线依次满足至少两个visible、至少两个指定hidden分支和至少两个reobserved时刻，以及0.5 m/30°/24步门；找不到就保留构造失败，不换房或事后改标签。
+- 新多视角worker核心先执行初始定位，再逐个执行显式动作请求；只有公开hidden assessment封存后才把原始event交给私有干预回调。公开观测回调不直接接收含`objectId`/instance mask的模拟器event，而只接收可信提取器输出的RGB、depth、camera和来源摘要；相机拒绝、干预仍可见或终端重现不合格均保留已有公开前缀且`failed_route_replacement_allowed=false`。生产包装先核全部合同字段和授权，当前在创建任何episode前拒绝。
+- 当前停止点：可信提取器只有接口及人工测试，尚未实现公私raw落盘与materializer receipt；精确动作请求模板、SPLIT/MERGE几何/公开前端/replay次数和共享probe结构/预算仍为空。0 source inventory、0模拟器、0episode、0训练。
+- 白话：输入是干预前公开扫描形成的路线图和一条封存路线，输出按真实动作顺序得到的公开观察前缀或完整receipt。例如先在观测0看到椅子，移动两步到桌后确认遮挡，才允许私有执行器搬动物体，再移动到另一侧连续两次公开重见；如果第二步撞墙就保存前3个观测并失败。它不等于已连接真实AI2-THOR数据写盘、已知道SPLIT/MERGE精确几何或已获准跑pilot。
