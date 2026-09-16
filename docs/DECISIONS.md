@@ -1891,3 +1891,9 @@
 - 日期：2026-09-16；状态：只实现并审查父stage前置步骤，不批准实际source inventory、materialization、pilot或生成。`vm04_observation_stage.py check`现同时读取并核观察构造、materializer config、assets receipt、code manifest和episode receipt五类schema均为登记的JSON Schema草案；它不读取source house、模型或episode。
 - 新`seal-materializer-code`模式由独立`materializer_code_sealing_authorized`控制，并在读取`--code-root`或创建输出前先核合同。未来开闸后，它从明确`--reviewed-commit`生成清单、立即按同一checkout和commit复验，再以独占创建写manifest；父stage自身已纳入固定entry列表，避免调度入口落在清单外。当前该gate为false，测试用不存在checkout确认先拒绝。
 - 白话：这一步解决“谁来生成上一条逐文件装箱单，以及生成它的入口是否也被审”的问题。输入未来获批的commit和checkout，输出一份不可覆盖的code manifest；例如没有授权时即使传入一个路径也不会打开它。它不调度worker、不读取DINO、不材料化episode，正式批并发与资源回执仍待实现。
+
+## D-197：RELINK公开证据的严格时间方向
+
+- 日期：2026-09-16；状态：按外部审查Q修复已实现gate缺口，不开放任何运行。D-195虽然让old/post packet与crosswalk通过materializer receipt唯一反查机械帧号，但尚未要求old帧先于post帧；调用方仍可把动作后证据放进old文件、动作前证据放进post文件并重签所有摘要。
+- gate现要求`old_observation_index < post_observation_index`，并在读取私有outcome及判断同一实例前拒绝反向证据。人工反例交换两组packet/crosswalk在receipt中的帧位、同步修改crosswalk index并重签materializer/public proof，仍因时间反向拒绝。
+- 白话：RELINK必须先有P1证据、后有P2证据。输入两张都已封存且来源合法的帧，输出只接受时间向前的那一对；把两张照片交换名称不能把P2→P1冒充P1→P2。它不证明机器人动作成功，也不放松同一实体和两端公开关系硬门。

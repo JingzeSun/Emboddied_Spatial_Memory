@@ -996,4 +996,6 @@ D-194新增`vsmt-vm04-materializer-code-manifest-v1`。字段为`reviewed_git_co
 
 D-195把`vsmt-vm04-private-region-crosswalk-v1`的顶层字段收窄为`schema_version/observation_index/bindings`，删除调用方可写的`frame_role`。`observation_index`必须与raw manifest、materializer receipt同一连续帧号相等；RELINK proof seal用old/post公开packet摘要选择证据，私有gate再从receipt唯一反查对应crosswalk和帧号。白话：crosswalk只说“我是第3帧”，不能说“我是新关系帧”；输入哪帧属于old/post由先封存的公开proof决定。它不把observation index当实体身份，也不允许事后选择有利帧替换proof。
 
+D-197补充RELINK证据对的机器约束：materializer receipt中由old packet+crosswalk摘要唯一命中的`observation_index`必须严格小于post packet+crosswalk命中的index。相等、反向或多行命中都在读取private outcome前拒绝。白话：旧关系文件必须真来自更早帧，新关系文件必须真来自更晚帧；它不依赖文件名自报时间。
+
 D-196在观察父stage登记独立`materializer_code_sealing_authorized`和`seal-materializer-code`输出。输出文件就是D-194 manifest，采用独占创建；输入路径和commit不写入其他状态文件。当前授权为false，所以不存在真实输出摘要。白话：父stage以后负责把审过的commit变成正式源码清单；现在只证明未授权时它不会读取传入checkout或写文件，不等于已经做过服务器source inventory。

@@ -102,6 +102,9 @@ def evaluate_physical_relink(public_root: Path, private_outcome_path: Path,
     ]
     require(len(old_receipt_rows) == len(new_receipt_rows) == 1,
             "crosswalk provenance is not bound by the materializer receipt")
+    require(old_receipt_rows[0]["observation_index"] <
+            new_receipt_rows[0]["observation_index"],
+            "sealed RELINK old observation must precede post observation")
     old = validate_observation_packet(audit.read_json(old_path))
     prior = audit.read_json(prior_path)
     validate_graph(prior, verify_hash=True)

@@ -1967,3 +1967,8 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 父stage `check`新增四类materializer schema草案检查；`seal-materializer-code`先核独立授权，再读取明确checkout/commit并生成、复验、独占写manifest。当前授权新增为false，不存在checkout的测试确认未创建路径或输出。
 - 定向27/27通过；VM-04 discover 177/177、VSMT 179/179、旧两房入口内嵌executor 42/L1 31/VSMT 179共252/252通过。0 source inventory、0模型读取、0controller、0episode、0materialization。
 - 白话：现在父stage已有生成源码装箱单的固定位置，而且它自己也在装箱单范围内。当前只验关闭行为，尚未真正扫描服务器代码或调度材料化worker。
+
+## LOG-186：RELINK反向时间证据拒绝（2026-09-16）
+
+- RELINK gate新增old receipt index严格小于post receipt index的断言，位置在packet/crosswalk摘要唯一反查之后、private outcome读取之前。即使交换两组packet/crosswalk帧位、同步修改crosswalk index并重签materializer receipt与public proof，反向证据仍拒绝。
+- 定向9/9通过；未运行source、模拟器、materializer或评价。白话：合法摘要链现在还必须时间向前，不能靠交换old/post文件名制造反向RELINK。

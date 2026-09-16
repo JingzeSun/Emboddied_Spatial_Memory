@@ -16,16 +16,20 @@ import vm04_relink_positive_gate as gate
 
 
 class PhysicalRelinkPositiveGateTests(unittest.TestCase):
-    def reseal_materializer(self, public, old_crosswalk, new_crosswalk):
+    def reseal_materializer(
+        self, public, old_crosswalk, new_crosswalk, *, reverse_time=False,
+    ):
         materializer_path = public / "materializer.receipt.json"
         current = gate.audit.read_json(materializer_path)
         rows = current["frames"]
-        rows[0]["public_packet_sha256"] = gate.audit.sha256(
+        old_row, new_row = ((rows[1], rows[0]) if reverse_time else
+                            (rows[0], rows[1]))
+        old_row["public_packet_sha256"] = gate.audit.sha256(
             public / "old-observation-packet.json")
-        rows[0]["private_crosswalk_sha256"] = gate.audit.sha256(old_crosswalk)
-        rows[1]["public_packet_sha256"] = gate.audit.sha256(
+        old_row["private_crosswalk_sha256"] = gate.audit.sha256(old_crosswalk)
+        new_row["public_packet_sha256"] = gate.audit.sha256(
             public / "post-observation-packet.json")
-        rows[1]["private_crosswalk_sha256"] = gate.audit.sha256(new_crosswalk)
+        new_row["private_crosswalk_sha256"] = gate.audit.sha256(new_crosswalk)
         rebuilt = make_materializer_receipt(
             rows, episode_id=current["episode_id"],
             route_plan_sha256=current["route_plan_sha256"],
@@ -256,6 +260,21 @@ class PhysicalRelinkPositiveGateTests(unittest.TestCase):
             gate.audit.write_new_json(new_crosswalk, content)
             self.reseal_materializer(public, old_crosswalk, new_crosswalk)
             with self.assertRaisesRegex(RuntimeError, "crosswalk schema changed"):
+                gate.evaluate_physical_relink(
+                    public, private, old_crosswalk, new_crosswalk)
+
+    def test_relink_old_observation_must_precede_post_observation(self):
+        with TemporaryDirectory() as temp:
+            public, private, old_crosswalk, new_crosswalk = self.case(Path(temp))
+            for path, index in ((old_crosswalk, 1), (new_crosswalk, 0)):
+                content = gate.audit.read_json(path)
+                content["observation_index"] = index
+                path.unlink()
+                gate.audit.write_new_json(path, content)
+            self.reseal_materializer(
+                public, old_crosswalk, new_crosswalk, reverse_time=True,
+            )
+            with self.assertRaisesRegex(RuntimeError, "must precede"):
                 gate.evaluate_physical_relink(
                     public, private, old_crosswalk, new_crosswalk)
 
