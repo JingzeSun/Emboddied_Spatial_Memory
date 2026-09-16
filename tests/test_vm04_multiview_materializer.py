@@ -43,6 +43,11 @@ from vsmt.vm04_public_context import (  # noqa: E402
     make_public_frame_contexts,
 )
 from tests.test_vm04_public_frontend_sequence import bootstrap_config  # noqa: E402
+from tests.test_vm04_materializer_config import fixture as materializer_config  # noqa: E402
+from tests.test_vm04_public_frontend_sequence import (  # noqa: E402
+    context_bundle as sealed_context_bundle,
+    tokens as patch_tokens,
+)
 
 
 CODE_SHA = "a" * 64
@@ -316,6 +321,31 @@ class MultiviewMaterializerTests(unittest.TestCase):
                     materialize_frame=_materialize,
                     materializer_code_sha256=CODE_SHA,
                     materializer_config_sha256=CONFIG_SHA,
+                )
+            self.assertFalse(absent.exists())
+
+    def test_configured_production_entry_uses_sealed_config_digest(self):
+        config = materializer_config()
+        contract = copy.deepcopy(CONTRACT)
+        contract["crosswalk_provenance"][
+            "expected_materializer_code_sha256"
+        ] = CODE_SHA
+        contract["crosswalk_provenance"][
+            "expected_materializer_config_sha256"
+        ] = config["config_sha256"]
+        with tempfile.TemporaryDirectory() as temporary:
+            absent = Path(temporary) / "absent-episode"
+            with self.assertRaisesRegex(
+                    materializer.ObservationConstructionError,
+                    "materialization is not authorized"):
+                materializer.run_authorized_materializer_from_config(
+                    absent,
+                    contract=contract,
+                    raw_materializer_config=config,
+                    public_frame_context_bundle=sealed_context_bundle(),
+                    private_frame_roles=["old", "new"],
+                    patch_token_extractor=patch_tokens,
+                    materializer_code_sha256=CODE_SHA,
                 )
             self.assertFalse(absent.exists())
 

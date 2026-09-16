@@ -52,6 +52,11 @@ from .vm04_protocol import (
     validate_family_split_manifest,
     validate_vm04_protocol,
 )
+from .vm04_materializer_config import (
+    ValidatedVm04MaterializerConfig,
+    build_vm04_public_frontend_sequence,
+    validate_vm04_materializer_config,
+)
 from .l1_masks import (
     KEEP_SUPPORTED_BORDER_REGIONS,
     REJECT_BORDER_REGIONS,
@@ -154,6 +159,9 @@ __all__ = [
     "validate_episode_plan_manifests",
     "validate_family_split_manifest",
     "validate_vm04_protocol",
+    "ValidatedVm04MaterializerConfig",
+    "build_vm04_public_frontend_sequence",
+    "validate_vm04_materializer_config",
     "KEEP_SUPPORTED_BORDER_REGIONS",
     "REJECT_BORDER_REGIONS",
     "AnonymousMask",

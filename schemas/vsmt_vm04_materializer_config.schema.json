@@ -1,0 +1,177 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/embodied-memory/vsmt_vm04_materializer_config.schema.json",
+  "title": "VSMT VM-04 Frozen Materializer Config",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "status", "frontend", "bootstrap", "model", "public_constants", "builder_code_sha256", "config_sha256"],
+  "properties": {
+    "schema_version": {"const": "vsmt-vm04-materializer-config-v1"},
+    "status": {"const": "frozen_executable"},
+    "frontend": {"$ref": "#/$defs/frontend"},
+    "bootstrap": {"$ref": "#/$defs/bootstrap"},
+    "model": {"$ref": "#/$defs/model"},
+    "public_constants": {"$ref": "#/$defs/publicConstants"},
+    "builder_code_sha256": {"$ref": "#/$defs/sha256"},
+    "config_sha256": {"$ref": "#/$defs/sha256"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "gitCommit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "positiveNumber": {"type": "number", "exclusiveMinimum": 0},
+    "frontend": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mask", "descriptor", "entity_geometry", "surface", "place", "free_space", "supported_by_maximum_normal_angle_degrees", "supported_by_minimum_gap_m", "supported_by_maximum_gap_m", "supported_by_minimum_projected_overlap", "supported_by_maximum_mask_overlap_fraction"],
+      "properties": {
+        "mask": {"$ref": "#/$defs/mask"},
+        "descriptor": {"$ref": "#/$defs/descriptor"},
+        "entity_geometry": {"$ref": "#/$defs/entityGeometry"},
+        "surface": {"$ref": "#/$defs/surface"},
+        "place": {"$ref": "#/$defs/place"},
+        "free_space": {"$ref": "#/$defs/freeSpace"},
+        "supported_by_maximum_normal_angle_degrees": {"$ref": "#/$defs/positiveNumber"},
+        "supported_by_minimum_gap_m": {"type": "number"},
+        "supported_by_maximum_gap_m": {"type": "number"},
+        "supported_by_minimum_projected_overlap": {"type": "number", "exclusiveMinimum": 0, "maximum": 1},
+        "supported_by_maximum_mask_overlap_fraction": {"type": "number", "exclusiveMinimum": 0, "maximum": 1}
+      }
+    },
+    "mask": {
+      "type": "object", "additionalProperties": false,
+      "required": ["minimum_visible_pixels", "border_truncation_policy"],
+      "properties": {
+        "minimum_visible_pixels": {"type": "integer", "minimum": 1},
+        "border_truncation_policy": {"enum": ["keep_if_minimum_support", "reject_if_touches_border"]}
+      }
+    },
+    "descriptor": {
+      "type": "object", "additionalProperties": false,
+      "required": ["image_height", "image_width", "patch_size_pixels", "patch_token_dimension", "minimum_total_patch_weight", "unit_norm_validation_tolerance"],
+      "properties": {
+        "image_height": {"type": "integer", "minimum": 1},
+        "image_width": {"type": "integer", "minimum": 1},
+        "patch_size_pixels": {"type": "integer", "minimum": 1},
+        "patch_token_dimension": {"type": "integer", "minimum": 1},
+        "minimum_total_patch_weight": {"$ref": "#/$defs/positiveNumber"},
+        "unit_norm_validation_tolerance": {"type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1}
+      }
+    },
+    "entityGeometry": {
+      "type": "object", "additionalProperties": false,
+      "required": ["depth_convention", "minimum_depth_m", "maximum_depth_m", "absolute_minimum_valid_depth_points", "minimum_valid_depth_fraction"],
+      "properties": {
+        "depth_convention": {"const": "ai2thor_linear01_camera_axis_z_m"},
+        "minimum_depth_m": {"$ref": "#/$defs/positiveNumber"},
+        "maximum_depth_m": {"$ref": "#/$defs/positiveNumber"},
+        "absolute_minimum_valid_depth_points": {"type": "integer", "minimum": 1},
+        "minimum_valid_depth_fraction": {"type": "number", "exclusiveMinimum": 0, "maximum": 1}
+      }
+    },
+    "surface": {
+      "type": "object", "additionalProperties": false,
+      "required": ["tile_size_pixels", "minimum_valid_depth_fraction_per_tile", "initial_maximum_rms_point_to_plane_m", "initial_maximum_p95_point_to_plane_m", "merge_maximum_normal_angle_degrees", "merge_maximum_mutual_centroid_to_plane_m", "final_inlier_point_to_plane_m", "final_minimum_inlier_fraction", "final_maximum_rms_point_to_plane_m", "minimum_inlier_pixels", "minimum_depth_m", "maximum_depth_m"],
+      "properties": {
+        "tile_size_pixels": {"type": "integer", "minimum": 1},
+        "minimum_valid_depth_fraction_per_tile": {"type": "number", "exclusiveMinimum": 0, "maximum": 1},
+        "initial_maximum_rms_point_to_plane_m": {"$ref": "#/$defs/positiveNumber"},
+        "initial_maximum_p95_point_to_plane_m": {"$ref": "#/$defs/positiveNumber"},
+        "merge_maximum_normal_angle_degrees": {"$ref": "#/$defs/positiveNumber"},
+        "merge_maximum_mutual_centroid_to_plane_m": {"$ref": "#/$defs/positiveNumber"},
+        "final_inlier_point_to_plane_m": {"$ref": "#/$defs/positiveNumber"},
+        "final_minimum_inlier_fraction": {"type": "number", "exclusiveMinimum": 0, "maximum": 1},
+        "final_maximum_rms_point_to_plane_m": {"$ref": "#/$defs/positiveNumber"},
+        "minimum_inlier_pixels": {"type": "integer", "minimum": 1},
+        "minimum_depth_m": {"$ref": "#/$defs/positiveNumber"},
+        "maximum_depth_m": {"$ref": "#/$defs/positiveNumber"}
+      }
+    },
+    "place": {
+      "type": "object", "additionalProperties": false,
+      "required": ["maximum_floor_normal_angle_degrees", "maximum_support_height_difference_m", "cell_size_m", "grid_origin_m", "coverage_subcell_size_m", "minimum_covered_subcells", "minimum_mask_pixels", "camera_to_agent_center_y_m", "agent_half_height_m", "located_at_boundary_margin_m"],
+      "properties": {
+        "maximum_floor_normal_angle_degrees": {"$ref": "#/$defs/positiveNumber"},
+        "maximum_support_height_difference_m": {"$ref": "#/$defs/positiveNumber"},
+        "cell_size_m": {"$ref": "#/$defs/positiveNumber"},
+        "grid_origin_m": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "number"}},
+        "coverage_subcell_size_m": {"$ref": "#/$defs/positiveNumber"},
+        "minimum_covered_subcells": {"type": "integer", "minimum": 1},
+        "minimum_mask_pixels": {"type": "integer", "minimum": 1},
+        "camera_to_agent_center_y_m": {"$ref": "#/$defs/positiveNumber"},
+        "agent_half_height_m": {"$ref": "#/$defs/positiveNumber"},
+        "located_at_boundary_margin_m": {"$ref": "#/$defs/positiveNumber"}
+      }
+    },
+    "freeSpace": {
+      "type": "object", "additionalProperties": false,
+      "required": ["tile_size_pixels", "block_widths_in_tiles", "angular_boundary_erosion_pixels", "minimum_depth_m", "maximum_valid_depth_m", "near_axis_depth_m", "surface_clearance_m", "maximum_axis_depth_m", "minimum_longitudinal_thickness_m", "rolling_public_observation_times"],
+      "properties": {
+        "tile_size_pixels": {"type": "integer", "minimum": 1},
+        "block_widths_in_tiles": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "integer", "minimum": 1}},
+        "angular_boundary_erosion_pixels": {"type": "integer", "minimum": 0},
+        "minimum_depth_m": {"$ref": "#/$defs/positiveNumber"},
+        "maximum_valid_depth_m": {"$ref": "#/$defs/positiveNumber"},
+        "near_axis_depth_m": {"$ref": "#/$defs/positiveNumber"},
+        "surface_clearance_m": {"$ref": "#/$defs/positiveNumber"},
+        "maximum_axis_depth_m": {"$ref": "#/$defs/positiveNumber"},
+        "minimum_longitudinal_thickness_m": {"$ref": "#/$defs/positiveNumber"},
+        "rolling_public_observation_times": {"type": "integer", "minimum": 1}
+      }
+    },
+    "associationRule": {
+      "type": "object", "additionalProperties": false,
+      "required": ["visual_weight", "geometry_weight", "geometry_scale_m", "association_threshold"],
+      "properties": {
+        "visual_weight": {"type": "number", "minimum": 0, "maximum": 1},
+        "geometry_weight": {"type": "number", "minimum": 0, "maximum": 1},
+        "geometry_scale_m": {"$ref": "#/$defs/positiveNumber"},
+        "association_threshold": {"type": "number", "minimum": 0, "maximum": 1}
+      }
+    },
+    "bootstrap": {
+      "type": "object", "additionalProperties": false,
+      "required": ["association_rules", "support_envelope_reliability_threshold", "maximum_regions_per_packet", "builder_revision"],
+      "properties": {
+        "association_rules": {
+          "type": "object", "additionalProperties": false,
+          "required": ["entity", "surface", "fragment"],
+          "properties": {
+            "entity": {"$ref": "#/$defs/associationRule"},
+            "surface": {"$ref": "#/$defs/associationRule"},
+            "fragment": {"$ref": "#/$defs/associationRule"}
+          }
+        },
+        "support_envelope_reliability_threshold": {"type": "number", "minimum": 0, "maximum": 1},
+        "maximum_regions_per_packet": {"type": "integer", "minimum": 1},
+        "builder_revision": {"type": "string", "minLength": 1}
+      }
+    },
+    "model": {
+      "type": "object", "additionalProperties": false,
+      "required": ["model_id", "architecture", "repository_commit", "checkpoint_sha256", "patch_token_output_key", "input_image_height", "input_image_width", "patch_size_pixels", "patch_token_dimension", "evaluation_mode", "parameters_frozen"],
+      "properties": {
+        "model_id": {"type": "string", "minLength": 1},
+        "architecture": {"type": "string", "minLength": 1},
+        "repository_commit": {"$ref": "#/$defs/gitCommit"},
+        "checkpoint_sha256": {"$ref": "#/$defs/sha256"},
+        "patch_token_output_key": {"type": "string", "minLength": 1},
+        "input_image_height": {"type": "integer", "minimum": 1},
+        "input_image_width": {"type": "integer", "minimum": 1},
+        "patch_size_pixels": {"type": "integer", "minimum": 1},
+        "patch_token_dimension": {"type": "integer", "minimum": 1},
+        "evaluation_mode": {"const": true},
+        "parameters_frozen": {"const": true}
+      }
+    },
+    "publicConstants": {
+      "type": "object", "additionalProperties": false,
+      "required": ["coordinate_frame", "depth_unit", "descriptor_model_id", "proposal_model_id"],
+      "properties": {
+        "coordinate_frame": {"type": "string", "minLength": 1},
+        "depth_unit": {"type": "string", "minLength": 1},
+        "descriptor_model_id": {"type": "string", "minLength": 1},
+        "proposal_model_id": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

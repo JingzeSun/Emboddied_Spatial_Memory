@@ -30,6 +30,9 @@ from vsmt.vm04_materializer_receipt import (  # noqa: E402
     make_materializer_receipt,
     validate_materializer_receipt,
 )
+from vsmt.vm04_materializer_config import (  # noqa: E402
+    build_vm04_public_frontend_sequence,
+)
 from vsmt.vm04_observation_runner import (  # noqa: E402
     ObservationConstructionError,
     validate_approved_contract,
@@ -537,4 +540,28 @@ def run_authorized_materializer(
         episode_root, materialize_frame=materialize_frame,
         materializer_code_sha256=materializer_code_sha256,
         materializer_config_sha256=materializer_config_sha256,
+    )
+
+
+def run_authorized_materializer_from_config(
+    episode_root: Path, *, contract: Mapping[str, Any],
+    raw_materializer_config: Mapping[str, Any],
+    public_frame_context_bundle: Mapping[str, Any],
+    private_frame_roles: list[str], patch_token_extractor: Any,
+    materializer_code_sha256: str,
+) -> dict[str, Any]:
+    """Build the stateful callback from one sealed config, then run it."""
+
+    callback, config_sha256 = build_vm04_public_frontend_sequence(
+        raw_materializer_config,
+        public_frame_context_bundle=public_frame_context_bundle,
+        private_frame_roles=private_frame_roles,
+        patch_token_extractor=patch_token_extractor,
+    )
+    return run_authorized_materializer(
+        episode_root,
+        contract=contract,
+        materialize_frame=callback,
+        materializer_code_sha256=materializer_code_sha256,
+        materializer_config_sha256=config_sha256,
     )
