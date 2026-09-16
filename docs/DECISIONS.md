@@ -1794,3 +1794,11 @@
 - M项判断成立但改变逐原子主张资格，故仍是提案：九种登记program必须逐类报告CFO accuracy、history accuracy及配对差；任一program的CFO超过冻结60%上限时，该program标`easy_class`，仍保留在聚合门分母且不得重标/删除/补样，但不允许作为该原子的单独证据。它不自动阻断整批，聚合三门仍照D-182运行；若以后要改成任一easy class阻断整批，须新决议而不能看结果后选择。
 - N项判断成立且与既有SPLIT/MERGE语义一致，但精确构造仍未完成。程序分配必须在生成前由冻结几何、相机路线和公开前端确定：SPLIT从远距/遮挡pose的一个公开欠分区域转为近距重现的两个公开区域；MERGE从旧前缀预登记关联断裂形成的两个公开track转为重现时支持同一结构。private身份只可在public/candidate封存后评分；伪影不复现就记原program构造失败，绝不按观察结果改标签。fresh replay重复次数、几何参数和公开前端伪影判据仍为null并阻断schema实现完成及运行。
 - 白话：这条决议把已经批准的严格数字与仍待批准的改动分开。输入是D-182关闭合同和Claude的四项审查，输出一个可查的D-182冻结版本及一个全关的D-183提案。例如pilot完成4/6时，D-183建议从事前排序中用64个正式house；SPLIT欠分若第二次不出现就保留失败，不临时改成BIND。它不授权pilot、正式生成、probe训练、VM-05或confirmation。
+
+
+## D-184：D-183批准与观察规划runner首版实现
+
+- 日期：2026-09-16；用户明确批准D-183全部推荐口径，只进入精确schema/实现审查，不开放运行。D-183规则已合入D-182基础合同：pilot前按来源摘要和seed封存70个house顺序；6个pilot完成5–6/4/0–3时分别选择48/64/停止；逐program CFO超60%标easy但保留聚合分母；SPLIT/MERGE必须事前确定性构造，未实现即失败。来源池封存、route plan封存、正式选择、route assessment、pilot/formal执行、生成、private评价、probe训练和confirmation授权均为false。
+- 首版schema与纯runner完成来源池、正式N、私有构造路线、公开provenance路线、逐帧公开visibility assessment、route receipt和失败verdict。路线实际验收核注册动作、0.5 m平移、30°关键yaw、每状态两个公开时刻、不可观测干预、2 cm/1° pose容差及至少两个连续终端重现；失败不补路/房。公开状态从投影样本、depth可见体积与当前公开support重算，private mask/instance ID位必须false；公开路线删掉program和SPLIT/MERGE assignment，且不能进入adapter输入。
+- 当前精确停止点：真实reachable-position路线候选生成、多视角simulator worker、trusted materializer receipt尚未接；SPLIT/MERGE fresh replay次数、几何参数和冻结公开前端伪影判据，以及CFO/history共享probe精确结构与训练预算仍为null。`vm04_observation_stage.py check`只读通过；其他stage命令在读输入或写输出前因各自授权false拒绝。此停止点允许继续审实现，不构成pilot或生成许可。
+- 白话：这一步把“应该怎样生成”变成机器可拒绝的文件和函数。输入70个预排序house候选、预登记路线和之后拍到的公开证据，输出固定正式前缀与成功/失败记录。例如第4个pilot完成时只能取预排序后的64个formal候选，动作时公开投影仍可见则原episode失败，不能换路线。它不等于已经找到这些路线或启动了AI2-THOR。

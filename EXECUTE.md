@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| VM-04观察适用性 | D-181/182确认原静态36槽不运行；D-182设计/数值已批准用于精确schema/实现审查：真实平移、不可观测窗口内干预、自然遮挡/出视野后重现、crosswalk receipt、单probe配对CFO硬门、6个排除pilot、48个正式house及至少32个完成family。D-183的pilot自适应N、逐program easy-class规则及确定性SPLIT/MERGE构造仍待裁决；全部执行位关闭。0新episode/训练/记忆正例。LOG-169–172。 |
+| VM-04观察适用性 | 原静态36槽不运行；D-182/183设计与数值已批准用于精确schema/实现审查。70-house来源池、pilot的48/64/停止规则、逐program easy-class、确定性SPLIT/MERGE及多视角route/visibility/失败保留已有执行关闭的schema与纯runner；真实reachable路线构造器、simulator worker、SPLIT/MERGE精确参数、materializer receipt和共享probe规格仍阻断。全部运行位关闭，0新episode/训练/记忆正例。LOG-169–173。 |
 | VSMT首篇/VM-01～04 | 旧两房stage及16完整/20构造失败封存。D-162仅开放v2固定两房、D=1.0 m纯视角扫描；服务器合同252/252及两family扫描均成功，各选18个pose、0 episode。原前18均来自18个位置，空间筛选降低top-2集合重复，但top-1仍重复10/11次；报告摘要`575d34d0…089f32`。生成/private、训练、validation效果、confirmation与L2继续关闭。LOG-152–153，D-162–163 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
 | R4三模型接入 | D完整适配16项通过（121/200全反向，0更新），W完整适配17项亦通过，F完整适配19项通过；真实公共接口27/27候选通过，0优化/真值读取。209bb34，LOG-123–127 |
@@ -1872,3 +1872,11 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - L/M/N没有暗并入已批准D-182，另建执行关闭的D-183提案。建议pilot前封存至少70个house的确定顺序，仅由6个pilot的构造完成数决定正式前缀：5–6个取48、4个取64、0–3个停止；九类program逐类报告，CFO超60%的类保留总体分母但失去单独原子证据资格；SPLIT/MERGE必须由预登记几何、路线和冻结公开前端产生可复验伪影，未实现记失败而不改标签。精确伪影参数仍为null。
 - 本地机器合同定向测试12/12、全部`test_vm04_*`模块109/109及两房入口内嵌合同252/252通过；覆盖D-182授权全关、数值、固定视角scope、少于32的停止动作、D-183与D-182字节绑定、自适应N离散规则、easy class分流和SPLIT/MERGE禁止事后贴标签。入口只运行本地合同测试，未做source inventory；没有服务器连接、模拟器动作、episode、probe训练或confirmation。
 - 白话：本轮把已批准的严格门变成机器可查数字，同时把会改变48固定分母和逐原子证据资格的建议留在独立提案里。例如pilot只有4/6完成时，D-183建议事前固定顺序中取64个正式house；3/6则停止，而不是靠`32/成品率`得到一个大约一半概率不够数的N。它不批准pilot或正式生成。
+
+
+## LOG-173：D-183合入与观察规划runner首版（2026-09-16）
+
+- 用户批准D-183用于精确schema/实现审查且不运行。基础合同现包含70-house固定顺序、6-family pilot离散N、逐program easy-class规则和确定性SPLIT/MERGE构造；新增来源池/路线/receipt/verdict schema、纯runner核心及执行关闭stage入口。
+- runner确定性封存pilot 6 + formal候选64，formal选择只接六个构造完成布尔；route验收核24步、0.5 m/30°、每状态2时刻、隐藏干预、2 cm/1°实际pose及连续两帧终端重现。公开visibility状态由投影/未遮挡样本数与公开support重建并带摘要，不能靠receipt字符串自报；公开route provenance删除program和SPLIT/MERGE assignment且禁止进入adapter输入。失败固定保留、不换route/house。
+- 定向24项合同/runner/stage测试、全部VM-04模块121项及原两房入口并行合同252项通过；`vm04_observation_stage.py check`输出`execution_authorized=false`。来源池与正式选择入口在读取不存在输入前即分别因授权false拒绝；252项入口只跑本地executor/L1/VSMT合同，0来源读取、0服务器连接、0模拟器、0episode、0训练、0confirmation。
+- 白话：本轮输出已经是可审代码而非继续写原则；例如6个pilot完成4个时函数只会选事前顺序中的64个formal候选，完成3个直接停止。尚缺的是从真实公开reachable/geometry产生这些route及执行相机动作的worker，因此现在不能把“runner核心完成”说成“数据已经生成”。
