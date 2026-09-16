@@ -54,8 +54,6 @@ class PhysicalRelinkPositiveGateTests(unittest.TestCase):
         gate.audit.write_new_json(private, {
             "schema_version": "vsmt-vm04-relink-private-outcome-v1",
             "old_instance_id": "asset:A", "new_instance_id": new_instance,
-            "old_region_id": "region:0000",
-            "new_region_id": "region:0000",
             "old_place_region_id": "region:0002",
             "new_place_region_id": "region:0002",
             "prior_entity_node_id": "entity-a",
@@ -63,14 +61,29 @@ class PhysicalRelinkPositiveGateTests(unittest.TestCase):
             "unforced_robot_action_verified": True,
             "stable_actual_relation_changed": True,
         })
-        return public, private
+        old_crosswalk = root / "private/old-crosswalk.json"
+        new_crosswalk = root / "private/new-crosswalk.json"
+        for path, role, instance_id in (
+                (old_crosswalk, "old", "asset:A"),
+                (new_crosswalk, "new", new_instance)):
+            gate.audit.write_new_json(path, {
+                "schema_version": "vsmt-vm04-private-region-crosswalk-v1",
+                "frame_role": role,
+                "bindings": [{"instance_id": instance_id,
+                              "region_id": "region:0000",
+                              "mask_sha256": "5" * 64}],
+            })
+        return public, private, old_crosswalk, new_crosswalk
 
     def test_positive_requires_same_instance_and_both_public_relation_proofs(self):
         with TemporaryDirectory() as temp:
-            public, private = self.case(Path(temp))
-            verdict = gate.evaluate_physical_relink(public, private)
+            public, private, old_crosswalk, new_crosswalk = self.case(Path(temp))
+            verdict = gate.evaluate_physical_relink(
+                public, private, old_crosswalk, new_crosswalk)
             self.assertTrue(verdict["physical_relink_positive"])
             self.assertTrue(verdict["checks"]["same_physical_instance"])
+            self.assertTrue(
+                verdict["checks"]["private_crosswalk_bindings_verified"])
             self.assertTrue(verdict["checks"]["public_old_relation_supported"])
             self.assertTrue(verdict["checks"]["public_new_relation_supported"])
             self.assertFalse(verdict["candidate_or_teacher_evaluated"])
@@ -78,8 +91,10 @@ class PhysicalRelinkPositiveGateTests(unittest.TestCase):
 
     def test_different_instance_is_not_relink_or_automatic_quarantine(self):
         with TemporaryDirectory() as temp:
-            public, private = self.case(Path(temp), new_instance="asset:B")
-            verdict = gate.evaluate_physical_relink(public, private)
+            public, private, old_crosswalk, new_crosswalk = self.case(
+                Path(temp), new_instance="asset:B")
+            verdict = gate.evaluate_physical_relink(
+                public, private, old_crosswalk, new_crosswalk)
             self.assertFalse(verdict["physical_relink_positive"])
             self.assertEqual(verdict["failure_reasons"],
                              ["same_physical_instance"])
@@ -88,20 +103,22 @@ class PhysicalRelinkPositiveGateTests(unittest.TestCase):
     def test_missing_either_public_relation_prevents_positive(self):
         for missing in ("old", "new"):
             with self.subTest(missing=missing), TemporaryDirectory() as temp:
-                public, private = self.case(
+                public, private, old_crosswalk, new_crosswalk = self.case(
                     Path(temp), old_relation=missing != "old",
                     new_relation=missing != "new")
-                verdict = gate.evaluate_physical_relink(public, private)
+                verdict = gate.evaluate_physical_relink(
+                    public, private, old_crosswalk, new_crosswalk)
                 self.assertFalse(verdict["physical_relink_positive"])
                 self.assertIn("public_%s_relation_supported" % missing,
                               verdict["failure_reasons"])
 
     def test_same_public_place_is_not_a_relink_positive(self):
         with TemporaryDirectory() as temp:
-            public, private = self.case(Path(temp))
+            public, private, old_crosswalk, new_crosswalk = self.case(Path(temp))
             post_path = public / "post-observation-packet.json"
             post = gate.audit.read_json(post_path)
             post["region_observations"][2]["centroid_m"] = [1.0, 0.0, 0.0]
+            post["region_observations"][2]["mask_sha256"] = "7" * 64
             post_path.unlink()
             gate.audit.write_new_json(post_path, post)
             seal_path = public / "relink-proof.seal.json"
@@ -113,18 +130,34 @@ class PhysicalRelinkPositiveGateTests(unittest.TestCase):
             marker.unlink()
             gate.audit.write_new_json(
                 marker, {"receipt_sha256": gate.audit.sha256(seal_path)})
-            verdict = gate.evaluate_physical_relink(public, private)
+            verdict = gate.evaluate_physical_relink(
+                public, private, old_crosswalk, new_crosswalk)
             self.assertFalse(verdict["physical_relink_positive"])
             self.assertIn("public_places_distinct", verdict["failure_reasons"])
 
     def test_public_packet_tamper_after_seal_is_rejected_before_private_label(self):
         with TemporaryDirectory() as temp:
-            public, private = self.case(Path(temp))
+            public, private, old_crosswalk, new_crosswalk = self.case(Path(temp))
             (public / "post-observation-packet.json").write_text(
                 "{}", encoding="utf-8")
             with self.assertRaisesRegex(RuntimeError,
                                         "sealed public relation source bytes"):
-                gate.evaluate_physical_relink(public, private)
+                gate.evaluate_physical_relink(
+                    public, private, old_crosswalk, new_crosswalk)
+
+    def test_crosswalk_must_bind_private_instance_to_public_entity_mask(self):
+        with TemporaryDirectory() as temp:
+            public, private, old_crosswalk, new_crosswalk = self.case(Path(temp))
+            content = gate.audit.read_json(new_crosswalk)
+            content["bindings"][0]["mask_sha256"] = "6" * 64
+            new_crosswalk.unlink()
+            gate.audit.write_new_json(new_crosswalk, content)
+            verdict = gate.evaluate_physical_relink(
+                public, private, old_crosswalk, new_crosswalk)
+            self.assertFalse(verdict["physical_relink_positive"])
+            self.assertFalse(
+                verdict["checks"]["private_crosswalk_bindings_verified"])
+            self.assertIn("same_physical_instance", verdict["failure_reasons"])
 
 
 if __name__ == "__main__":

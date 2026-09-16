@@ -15,10 +15,12 @@ import vm04_two_house_audit as audit  # noqa: E402
 
 PRIVATE_KEYS = {
     "schema_version", "old_instance_id", "new_instance_id",
-    "old_region_id", "new_region_id", "old_place_region_id",
-    "new_place_region_id", "prior_entity_node_id", "prior_edge_id",
+    "old_place_region_id", "new_place_region_id",
+    "prior_entity_node_id", "prior_edge_id",
     "unforced_robot_action_verified", "stable_actual_relation_changed",
 }
+CROSSWALK_KEYS = {"schema_version", "frame_role", "bindings"}
+BINDING_KEYS = {"instance_id", "region_id", "mask_sha256"}
 
 
 def require(ok, message):
@@ -33,7 +35,36 @@ def _located_at(packet, source_region_id, place_region_id):
             relation["target_region_id"] == place_region_id]
 
 
-def evaluate_physical_relink(public_root: Path, private_outcome_path: Path) -> dict:
+def _crosswalk_region(path, role, instance_id, packet):
+    """Resolve a private instance through the trusted L1 crosswalk."""
+    crosswalk = audit.read_json(Path(path))
+    require(set(crosswalk) == CROSSWALK_KEYS and
+            crosswalk["schema_version"] ==
+            "vsmt-vm04-private-region-crosswalk-v1" and
+            crosswalk["frame_role"] == role and
+            type(crosswalk["bindings"]) is list,
+            "private L1 crosswalk schema changed")
+    rows = []
+    for row in crosswalk["bindings"]:
+        require(type(row) is dict and set(row) == BINDING_KEYS and
+                all(type(row[key]) is str and row[key] for key in BINDING_KEYS) and
+                len(row["mask_sha256"]) == 64,
+                "private L1 crosswalk binding changed")
+        if row["instance_id"] == instance_id:
+            rows.append(row)
+    if len(rows) != 1:
+        return None, False
+    row = rows[0]
+    public_regions = [region for region in packet["region_observations"]
+                      if region["region_id"] == row["region_id"] and
+                      region["structure_kind"] == "entity" and
+                      region["mask_sha256"] == row["mask_sha256"]]
+    return (row["region_id"], len(public_regions) == 1)
+
+
+def evaluate_physical_relink(public_root: Path, private_outcome_path: Path,
+                             old_crosswalk_path: Path,
+                             new_crosswalk_path: Path) -> dict:
     """Open private identity only after public packet/graph bytes are sealed."""
     public_root = Path(public_root)
     seal_path = public_root / "relink-proof.seal.json"
@@ -62,16 +93,19 @@ def evaluate_physical_relink(public_root: Path, private_outcome_path: Path) -> d
     require(set(private) == PRIVATE_KEYS and
             private["schema_version"] == "vsmt-vm04-relink-private-outcome-v1" and
             all(type(private[key]) is str and private[key] for key in (
-                "old_instance_id", "new_instance_id", "old_region_id",
-                "new_region_id", "old_place_region_id",
+                "old_instance_id", "new_instance_id", "old_place_region_id",
                 "new_place_region_id", "prior_entity_node_id",
                 "prior_edge_id")) and
             type(private["unforced_robot_action_verified"]) is bool and
             type(private["stable_actual_relation_changed"]) is bool,
             "private physical RELINK outcome schema changed")
-    old_rows = _located_at(old, private["old_region_id"],
+    old_region_id, old_binding = _crosswalk_region(
+        old_crosswalk_path, "old", private["old_instance_id"], old)
+    new_region_id, new_binding = _crosswalk_region(
+        new_crosswalk_path, "new", private["new_instance_id"], post)
+    old_rows = _located_at(old, old_region_id,
                            private["old_place_region_id"])
-    new_rows = _located_at(post, private["new_region_id"],
+    new_rows = _located_at(post, new_region_id,
                            private["new_place_region_id"])
     old_edges = [edge for edge in prior["edges"]
                  if edge["edge_id"] == private["prior_edge_id"] and
@@ -88,13 +122,16 @@ def evaluate_physical_relink(public_root: Path, private_outcome_path: Path) -> d
     old_place = old_regions.get(private["old_place_region_id"])
     new_place = new_regions.get(private["new_place_region_id"])
     distinct_public_places = bool(
-        old_place and new_place and old_rows and new_rows and
+        old_place and new_place and len(old_rows) == len(new_rows) == 1 and
         old_place["structure_kind"] == new_place["structure_kind"] == "place"
-        and old_place["centroid_m"] != new_place["centroid_m"]
+        and old_place["mask_sha256"] != new_place["mask_sha256"]
         and old_rows[0]["support_sha256"] != new_rows[0]["support_sha256"])
+    crosswalks_verified = old_binding and new_binding
     checks = {
         "same_physical_instance":
+            crosswalks_verified and
             private["old_instance_id"] == private["new_instance_id"],
+        "private_crosswalk_bindings_verified": crosswalks_verified,
         "public_old_relation_supported": old_supported,
         "public_new_relation_supported": bool(new_rows),
         "public_places_distinct": distinct_public_places,
@@ -107,6 +144,8 @@ def evaluate_physical_relink(public_root: Path, private_outcome_path: Path) -> d
         "schema_version": "vsmt-vm04-physical-relink-verdict-v1",
         "public_proof_seal_sha256": audit.sha256(seal_path),
         "private_outcome_sha256": audit.sha256(private_outcome_path),
+        "old_private_crosswalk_sha256": audit.sha256(old_crosswalk_path),
+        "new_private_crosswalk_sha256": audit.sha256(new_crosswalk_path),
         "physical_relink_positive": all(checks.values()),
         "checks": checks,
         "failure_reasons": sorted(key for key, passed in checks.items()
