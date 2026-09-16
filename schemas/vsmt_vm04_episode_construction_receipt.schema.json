@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/embodied-memory/vsmt_vm04_episode_construction_receipt.schema.json",
+  "title": "VSMT VM-04 Episode Construction Receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "episode_id", "program", "prior_cutoff_observation_index", "terminal_observation_index", "materializer_receipt_sha256", "program_matcher_receipt_sha256", "materializer_receipt_file_sha256", "causal_prior_receipt_file_sha256", "current_public_packet_file_sha256", "construction_plan_file_sha256", "matcher_config_file_sha256", "matcher_prior_memory_file_sha256", "program_matcher_receipt_file_sha256", "split_merge_artifact_receipt_file_sha256", "program_public_match_satisfied", "episode_construction_status", "construction_failure_reasons", "construction_plan_pre_terminal_seal_established", "eligible_for_parent_family_completion", "posthoc_relabel_or_replacement_used", "private_identity_used", "semantic_identity_truth_established", "deployment_reader_may_open_construction_audit", "receipt_sha256"],
+  "properties": {
+    "schema_version": {"const": "vsmt-vm04-episode-construction-receipt-v1"},
+    "episode_id": {"type": "string", "minLength": 1},
+    "program": {"enum": ["NOOP", "BIND", "BIRTH", "REACTIVATE", "RELINK", "RETRACT", "SPLIT", "MERGE", "REPLACE"]},
+    "prior_cutoff_observation_index": {"type": "integer", "minimum": 0},
+    "terminal_observation_index": {"type": "integer", "minimum": 0},
+    "materializer_receipt_sha256": {"$ref": "#/$defs/sha256"},
+    "program_matcher_receipt_sha256": {"$ref": "#/$defs/sha256"},
+    "materializer_receipt_file_sha256": {"$ref": "#/$defs/sha256"},
+    "causal_prior_receipt_file_sha256": {"$ref": "#/$defs/sha256"},
+    "current_public_packet_file_sha256": {"$ref": "#/$defs/sha256"},
+    "construction_plan_file_sha256": {"$ref": "#/$defs/sha256"},
+    "matcher_config_file_sha256": {"$ref": "#/$defs/sha256"},
+    "matcher_prior_memory_file_sha256": {"$ref": "#/$defs/sha256"},
+    "program_matcher_receipt_file_sha256": {"$ref": "#/$defs/sha256"},
+    "split_merge_artifact_receipt_file_sha256": {"oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
+    "program_public_match_satisfied": {"type": "boolean"},
+    "episode_construction_status": {"enum": ["public_match_satisfied_temporal_seal_pending", "construction_failure"]},
+    "construction_failure_reasons": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "construction_plan_pre_terminal_seal_established": {"const": false},
+    "eligible_for_parent_family_completion": {"const": false},
+    "posthoc_relabel_or_replacement_used": {"const": false},
+    "private_identity_used": {"const": false},
+    "semantic_identity_truth_established": {"const": false},
+    "deployment_reader_may_open_construction_audit": {"const": false},
+    "receipt_sha256": {"$ref": "#/$defs/sha256"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}
