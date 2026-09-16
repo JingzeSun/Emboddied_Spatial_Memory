@@ -1932,3 +1932,9 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - receipt升级为v2并新增`public-frame-context.manifest.json/causal-prior.receipt.json/prior-memory.json`三个公开文件摘要；verifier重开并核public route、观测数、graph hash、causal终态和packet序列。无`finalized_result`的逐帧函数即使写完全部帧也只能留下6帧失败前缀，不能签success；prior或packet事后变化均拒绝。
 - VM-04/VSMT相关240/240通过；旧两房合同组executor 42/42、L1 31/31、VSMT 179/179，共252/252通过。第一次直接调用两个discover组时漏设正式入口的`PYTHONPATH=src`，发生测试模块导入错误；补齐相同环境后上述31/31和179/179成功，未发生模拟器或科学执行失败。0 source inventory、0controller、0真实episode、0真实materialization、0训练。
 - 白话：现在不只是“每帧有文件”，还必须证明这些帧按封存context依次产生同一份公开旧记忆。它仍只完成可审实现；正式时间/动作编码、前端/bootstrap数值、模型摘要和父stage都未冻结，所有运行位继续false。
+
+## LOG-181：注册相机动作请求完整性门（2026-09-16）
+
+- 新验证器要求八种Move/Rotate/Look模板完整且字段精确；Move只接受显式`moveMagnitude`，Rotate/Look只接受显式`degrees`，拒绝`forceAction`、额外字段、动作名错配、缺项和非正/非有限幅度。多视角worker在初始Teleport之后、任何注册路线动作之前统一验证整张表。
+- 相关VM-04/VSMT本地回归241/241通过；其中测试用0.25 m/30°只是人工请求形状，没有写入正式机器合同。基础合同的`registered_action_request_templates`继续为null，0 source读取、0controller、0episode、0materialization、0训练。
+- 白话：runner现在已有“参数必须明确写全”的机械门，但尚未决定正式步长和角度；因此这是可审实现进度，不是运行许可。

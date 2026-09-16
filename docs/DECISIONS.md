@@ -1857,3 +1857,10 @@
 - crosswalk的`mask_sha256`现在由materializer从该帧sealed `instance_masks.npz`实际mask重算，并同时要求等于crosswalk绑定和公开entity region中的摘要。packet和crosswalk共同自报一个错误摘要不再能通过；私有instance ID仍只写private crosswalk。
 - trusted materializer receipt升级为v2。逐帧packet/crosswalk全写完后，回调还必须返回独立重放核验的causal-prior receipt、最终prior memory、context manifest和packet规范摘要序列；materializer逐项与磁盘packet、public route和最终graph交叉核对，写出三个公开文件并把文件摘要纳入总receipt。普通无状态逐帧函数即使完成所有帧，也只保留失败现场而不能写success；复验器重新打开并核整条链。
 - 白话：这一步解决“每帧文件看似正确，但整段记忆可能来自另一组packet或一张自报crosswalk”的问题。输入同一raw episode、sealed公开context和有状态前端，输出逐帧packet/crosswalk、最终公开旧记忆及一张共同收据。例如有人让packet与crosswalk都声称错误mask摘要，raw mask重算会立即拒绝；有人换掉第3帧packet，causal-prior序列也会不匹配。它不选择正式时间/动作编码、前端阈值或模型权重，也没有开放任何数据运行。
+
+
+## D-192：八种注册相机动作请求的完整性门
+
+- 日期：2026-09-16；状态：继续D-183精确实现审查，正式动作幅度仍未冻结，所有运行位不变。runner新增纯验证器，要求`MoveAhead/MoveBack/MoveLeft/MoveRight/RotateLeft/RotateRight/LookUp/LookDown`八种请求全部存在且不多不少；Move只允许`action+moveMagnitude`，Rotate/Look只允许`action+degrees`，数值须有限正数，Rotate不超过180°、Look不超过90°。`forceAction`、漏项、额外API参数和动作名错配均在controller调用前拒绝。
+- 多视角worker的测试核心也消费同一验证器，避免生产入口严格而人工路线核心仍可用不完整字典。人工fixture的0.25 m移动和30°旋转/俯仰仅覆盖请求形状；基础合同继续保持`registered_action_request_templates=null`，不能据此运行。
+- 白话：这一步解决“路线写了MoveAhead，但实际调用偷偷用了默认步长或forceAction”的问题。输入八张显式API请求模板，输出一份可执行且字段受限的请求表。例如少了LookDown，即使当前路线恰好没用它，整版配置也不能通过。它不替用户冻结0.25 m、30°或任何模拟器动作值，也没有发出真实动作。
