@@ -296,6 +296,14 @@ class ObservationSuitabilityContractTests(unittest.TestCase):
             "vsmt-vm04-online-program-plan-temporal-receipt-v1",
         )
         self.assertEqual(
+            program["parent_plan_request_spec_schema"],
+            "vsmt-vm04-parent-program-request-spec-v1",
+        )
+        self.assertEqual(
+            program["parent_plan_request_provenance_receipt_schema"],
+            "vsmt-vm04-parent-program-request-provenance-receipt-v1",
+        )
+        self.assertEqual(
             program["matcher_prior_boundary"],
             "causal_memory_immediately_before_registered_terminal_observation",
         )
@@ -320,6 +328,27 @@ class ObservationSuitabilityContractTests(unittest.TestCase):
             program["online_plan_request_provenance_status"],
             "pending_parent_stage_derivation_and_no_prior_terminal_access_proof",
         )
+        self.assertEqual(
+            program["parent_request_derivation_core_status"],
+            "implemented_review_pending_not_consumed_by_D202_temporal_receipt",
+        )
+        self.assertEqual(
+            program["parent_request_derivation_scope"],
+            "sealed_public_route_pre_registered_public_selectors_and_terminal_minus_one_causal_memory_only",
+        )
+        self.assertFalse(program[
+            "parent_request_caller_supplied_version_ids_allowed"
+        ])
+        self.assertFalse(program[
+            "parent_request_episode_root_or_raw_path_argument_available"
+        ])
+        self.assertEqual(
+            program["parent_selector_spec_temporal_registration_status"],
+            "pending_parent_orchestration_receipt_before_terminal_access",
+        )
+        self.assertFalse(program[
+            "parent_request_provenance_receipt_consumed_by_D202"
+        ])
         self.assertFalse(program[
             "online_temporal_receipt_clears_D201_pending"
         ])

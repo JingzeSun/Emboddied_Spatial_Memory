@@ -218,6 +218,11 @@ def validate_approved_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
         "vsmt-vm04-online-program-plan-request-v1" and
         program_candidate.get("online_plan_temporal_receipt_schema") ==
         "vsmt-vm04-online-program-plan-temporal-receipt-v1" and
+        program_candidate.get("parent_plan_request_spec_schema") ==
+        "vsmt-vm04-parent-program-request-spec-v1" and
+        program_candidate.get(
+            "parent_plan_request_provenance_receipt_schema"
+        ) == "vsmt-vm04-parent-program-request-provenance-receipt-v1" and
         program_candidate.get("matcher_role") ==
         "public_construction_sufficiency_gate_not_semantic_identity_oracle" and
         program_candidate.get("matcher_prior_boundary") ==
@@ -238,6 +243,22 @@ def validate_approved_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
         ) is True and
         program_candidate.get("online_plan_request_provenance_status") ==
         "pending_parent_stage_derivation_and_no_prior_terminal_access_proof" and
+        program_candidate.get("parent_request_derivation_core_status") ==
+        "implemented_review_pending_not_consumed_by_D202_temporal_receipt" and
+        program_candidate.get("parent_request_derivation_scope") ==
+        "sealed_public_route_pre_registered_public_selectors_and_terminal_minus_one_causal_memory_only" and
+        program_candidate.get(
+            "parent_request_caller_supplied_version_ids_allowed"
+        ) is False and
+        program_candidate.get(
+            "parent_request_episode_root_or_raw_path_argument_available"
+        ) is False and
+        program_candidate.get(
+            "parent_selector_spec_temporal_registration_status"
+        ) == "pending_parent_orchestration_receipt_before_terminal_access" and
+        program_candidate.get(
+            "parent_request_provenance_receipt_consumed_by_D202"
+        ) is False and
         program_candidate.get("online_temporal_receipt_clears_D201_pending") is False and
         program_candidate.get("offline_episode_receipt_consumes_online_temporal_seal") is False and
         program_candidate.get("episode_receipt_parent_family_eligibility") is False and
