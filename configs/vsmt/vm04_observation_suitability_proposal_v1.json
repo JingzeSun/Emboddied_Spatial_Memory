@@ -206,13 +206,27 @@
     }
   },
   "program_construction_review_candidate": {
-    "status": "nine_program_structural_precondition_and_SPLIT_MERGE_repeat_receipt_core_implemented_runner_binding_and_user_review_pending",
+    "status": "nine_program_structural_precondition_SPLIT_MERGE_and_public_sufficiency_matcher_core_implemented_numeric_freeze_and_parent_stage_binding_pending",
     "prior_memory_refs_are_mechanically_checked_open_or_dormant_as_registered": true,
     "RELINK_requires_open_entity_old_place_and_open_located_at_edge": true,
     "SPLIT_MERGE_artifact_plan_sealed_before_generation": true,
     "SPLIT_MERGE_every_fresh_replay_must_realize_registered_transition": true,
     "failed_artifact_action": "construction_failure_without_relabel_or_replacement",
-    "private_identity_used_for_program_assignment": false
+    "private_identity_used_for_program_assignment": false,
+    "matcher_receipt_schema": "vsmt-vm04-public-program-matcher-receipt-v1",
+    "matcher_role": "public_construction_sufficiency_gate_not_semantic_identity_oracle",
+    "edge_RETRACT_sufficiency_status": "blocked_because_current_public_packet_has_no_repeated_relation_absence_evidence_type",
+    "pending_matcher_numeric_fields": {
+      "association_rules_by_structure_kind": null,
+      "minimum_region_reliability": null,
+      "minimum_unique_score_margin": null,
+      "minimum_relation_reliability": null,
+      "free_space_reliability_threshold": null,
+      "support_envelope_reliability_threshold": null,
+      "support_envelope_margin_m": null,
+      "minimum_free_space_time_separation_s": null,
+      "minimum_independent_negative_observations": null
+    }
   },
   "l2_identifiability_admission_gate": {
     "role": "hard_gate_after_development_materialization_before_VM05_training_or_main_table",

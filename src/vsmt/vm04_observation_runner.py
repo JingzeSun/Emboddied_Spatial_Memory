@@ -209,7 +209,11 @@ def validate_approved_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
             "SPLIT_MERGE_every_fresh_replay_must_realize_registered_transition"
         ) is True and
         program_candidate.get("private_identity_used_for_program_assignment")
-        is False,
+        is False and
+        program_candidate.get("matcher_receipt_schema") ==
+        "vsmt-vm04-public-program-matcher-receipt-v1" and
+        program_candidate.get("matcher_role") ==
+        "public_construction_sufficiency_gate_not_semantic_identity_oracle",
         "program construction boundary changed",
     )
     if status.endswith("review_only"):
@@ -219,6 +223,9 @@ def validate_approved_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
         _require(all(value is None for value in
                      visibility_candidate["pending_fields"].values()),
                  "review-only visibility candidate cannot freeze unreviewed values")
+        _require(all(value is None for value in
+                     program_candidate["pending_matcher_numeric_fields"].values()),
+                 "review-only matcher cannot freeze unreviewed values")
     construction = record["deterministic_SPLIT_MERGE_construction"]
     _require(construction.get("posthoc_program_label_from_observed_artifact_allowed")
              is False, "post-hoc SPLIT/MERGE labels must remain forbidden")
@@ -287,6 +294,18 @@ def assert_generation_authorized(contract: Mapping[str, Any]) -> None:
             "deterministic_SPLIT_MERGE_construction"]
         ["frozen_frontend_artifact_criteria"],
     }
+    for name, value in record[
+        "l2_public_proposal_frontend_review_candidate"
+    ]["pending_fields"].items():
+        blockers[f"l2_proposal_{name}"] = value
+    for name, value in record[
+        "public_visibility_builder_review_candidate"
+    ]["pending_fields"].items():
+        blockers[f"public_visibility_{name}"] = value
+    for name, value in record[
+        "program_construction_review_candidate"
+    ]["pending_matcher_numeric_fields"].items():
+        blockers[f"program_matcher_{name}"] = value
     unresolved = sorted(key for key, value in blockers.items() if value is None)
     _require(not unresolved, "unresolved generation fields: " + ",".join(unresolved))
     validate_registered_action_request_templates(

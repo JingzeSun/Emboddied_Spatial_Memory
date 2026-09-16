@@ -167,6 +167,7 @@ class Vm04ProgramConstructionTests(unittest.TestCase):
                     prior_memory=graph, prior_memory_sha256=graph["graph_hash"],
                     precondition_refs=preconditions,
                     visibility_subject_seal_sha256="a" * 64,
+                    matcher_config_sha256="b" * 64,
                     artifact_plan=(split if program == "SPLIT" else
                                    merge if program == "MERGE" else None),
                 )
@@ -184,7 +185,8 @@ class Vm04ProgramConstructionTests(unittest.TestCase):
                 "old_place_node_version_id": "place-a@v0",
                 "new_place_public_ref": "place-public:P2",
             },
-            visibility_subject_seal_sha256="a" * 64, artifact_plan=None,
+            visibility_subject_seal_sha256="a" * 64,
+            matcher_config_sha256="b" * 64, artifact_plan=None,
         )
         self.assertEqual(plan["program"], "RELINK")
         self.assertFalse(plan["restricted_inputs_used"])
@@ -203,7 +205,8 @@ class Vm04ProgramConstructionTests(unittest.TestCase):
                     "old_place_node_version_id": "place-a@v0",
                     "new_place_public_ref": "place-public:P2",
                 },
-                visibility_subject_seal_sha256="a" * 64, artifact_plan=None,
+                visibility_subject_seal_sha256="a" * 64,
+                matcher_config_sha256="b" * 64, artifact_plan=None,
             )
 
     def test_split_artifact_must_repeat_without_relabel(self):
@@ -240,6 +243,7 @@ class Vm04ProgramConstructionTests(unittest.TestCase):
                 "undersegmented_prior_node_version_id": "entity-a@v0",
                 "artifact_plan_sha256": plan["artifact_plan_sha256"],
             }, visibility_subject_seal_sha256="a" * 64,
+            matcher_config_sha256="b" * 64,
             artifact_plan=plan,
         )
         self.assertEqual(construction["artifact_plan_sha256"],

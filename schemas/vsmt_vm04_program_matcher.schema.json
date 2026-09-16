@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/embodied-memory/vsmt_vm04_program_matcher.schema.json",
+  "title": "VSMT VM-04 Public Program Matcher",
+  "oneOf": [
+    {"$ref": "#/$defs/config"},
+    {"$ref": "#/$defs/receipt"}
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["visual_weight", "geometry_weight", "geometry_scale_m", "association_threshold"],
+      "properties": {
+        "visual_weight": {"type": "number", "minimum": 0, "maximum": 1},
+        "geometry_weight": {"type": "number", "minimum": 0, "maximum": 1},
+        "geometry_scale_m": {"type": "number", "exclusiveMinimum": 0},
+        "association_threshold": {"type": "number", "minimum": 0, "maximum": 1}
+      }
+    },
+    "config": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["association_rules", "minimum_region_reliability", "minimum_unique_score_margin", "minimum_relation_reliability", "free_space_reliability_threshold", "support_envelope_reliability_threshold", "support_envelope_margin_m", "minimum_free_space_time_separation_s", "minimum_independent_negative_observations"],
+      "properties": {
+        "association_rules": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["entity", "surface", "fragment"],
+          "properties": {
+            "entity": {"$ref": "#/$defs/rule"},
+            "surface": {"$ref": "#/$defs/rule"},
+            "fragment": {"$ref": "#/$defs/rule"}
+          }
+        },
+        "minimum_region_reliability": {"type": "number", "minimum": 0, "maximum": 1},
+        "minimum_unique_score_margin": {"type": "number", "minimum": 0, "maximum": 1},
+        "minimum_relation_reliability": {"type": "number", "minimum": 0, "maximum": 1},
+        "free_space_reliability_threshold": {"type": "number", "minimum": 0, "maximum": 1},
+        "support_envelope_reliability_threshold": {"type": "number", "minimum": 0, "maximum": 1},
+        "support_envelope_margin_m": {"type": "number", "minimum": 0},
+        "minimum_free_space_time_separation_s": {"type": "number", "exclusiveMinimum": 0},
+        "minimum_independent_negative_observations": {"type": "integer", "minimum": 2}
+      }
+    },
+    "comparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["node_version_id", "node_id", "lifecycle", "visual_similarity", "centroid_distance_m", "geometry_proximity", "association_score"],
+      "properties": {
+        "node_version_id": {"type": "string", "minLength": 1},
+        "node_id": {"type": "string", "minLength": 1},
+        "lifecycle": {"type": "string", "minLength": 1},
+        "visual_similarity": {"type": "number"},
+        "centroid_distance_m": {"type": "number", "minimum": 0},
+        "geometry_proximity": {"type": "number", "minimum": 0, "maximum": 1},
+        "association_score": {"type": "number"}
+      }
+    },
+    "matchRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["region_id", "mask_sha256", "structure_kind", "public_reliability", "association_threshold", "match_status", "selected_node_version_id", "comparisons"],
+      "properties": {
+        "region_id": {"type": "string", "pattern": "^region:[0-9]{4}$"},
+        "mask_sha256": {"$ref": "#/$defs/sha256"},
+        "structure_kind": {"enum": ["entity", "surface", "fragment"]},
+        "public_reliability": {"type": "number", "minimum": 0, "maximum": 1},
+        "association_threshold": {"type": "number", "minimum": 0, "maximum": 1},
+        "match_status": {"enum": ["unmatched", "ambiguous", "unique_match"]},
+        "selected_node_version_id": {"type": ["string", "null"]},
+        "comparisons": {"type": "array", "items": {"$ref": "#/$defs/comparison"}}
+      }
+    },
+    "relationEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["relation_id", "new_place_node_version_id", "support_sha256"],
+      "properties": {
+        "relation_id": {"type": "string", "minLength": 1},
+        "new_place_node_version_id": {"type": "string", "minLength": 1},
+        "support_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "episode_id", "program", "construction_plan_sha256", "matcher_config_sha256", "prior_memory_sha256", "current_packet_sha256", "route_plan_sha256", "route_receipt_sha256", "route_verdict_sha256", "region_match_rows", "target_region_id", "negative_evidence_count", "relation_evidence", "artifact_receipt_sha256", "program_public_match_satisfied", "construction_failure_reasons", "posthoc_relabel_or_replacement_used", "private_identity_used", "semantic_identity_truth_established", "receipt_sha256"],
+      "properties": {
+        "schema_version": {"const": "vsmt-vm04-public-program-matcher-receipt-v1"},
+        "episode_id": {"type": "string", "minLength": 1},
+        "program": {"enum": ["NOOP", "BIND", "BIRTH", "REACTIVATE", "RELINK", "RETRACT", "SPLIT", "MERGE", "REPLACE"]},
+        "construction_plan_sha256": {"$ref": "#/$defs/sha256"},
+        "matcher_config_sha256": {"$ref": "#/$defs/sha256"},
+        "prior_memory_sha256": {"$ref": "#/$defs/sha256"},
+        "current_packet_sha256": {"$ref": "#/$defs/sha256"},
+        "route_plan_sha256": {"$ref": "#/$defs/sha256"},
+        "route_receipt_sha256": {"$ref": "#/$defs/sha256"},
+        "route_verdict_sha256": {"$ref": "#/$defs/sha256"},
+        "region_match_rows": {"type": "array", "items": {"$ref": "#/$defs/matchRow"}},
+        "target_region_id": {"type": ["string", "null"]},
+        "negative_evidence_count": {"type": "integer", "minimum": 0},
+        "relation_evidence": {"oneOf": [{"$ref": "#/$defs/relationEvidence"}, {"type": "null"}]},
+        "artifact_receipt_sha256": {"oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
+        "program_public_match_satisfied": {"type": "boolean"},
+        "construction_failure_reasons": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+        "posthoc_relabel_or_replacement_used": {"const": false},
+        "private_identity_used": {"const": false},
+        "semantic_identity_truth_established": {"const": false},
+        "receipt_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    }
+  }
+}

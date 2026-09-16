@@ -195,6 +195,7 @@ def make_program_construction_plan(
     *, episode_id: str, family_id: str, program: str,
     prior_memory: Mapping[str, Any], prior_memory_sha256: str,
     precondition_refs: Mapping[str, Any], visibility_subject_seal_sha256: str,
+    matcher_config_sha256: str,
     artifact_plan: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
     """Verify program-specific public prerequisites and seal their references."""
@@ -281,6 +282,9 @@ def make_program_construction_plan(
         "precondition_refs": refs,
         "visibility_subject_seal_sha256": _hex(
             visibility_subject_seal_sha256, "visibility_subject_seal_sha256",
+        ),
+        "matcher_config_sha256": _hex(
+            matcher_config_sha256, "matcher_config_sha256",
         ),
         "artifact_plan_sha256": artifact_sha,
         "program_assignment_sealed_before_generation": True,

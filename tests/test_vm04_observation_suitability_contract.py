@@ -279,6 +279,14 @@ class ObservationSuitabilityContractTests(unittest.TestCase):
             "SPLIT_MERGE_every_fresh_replay_must_realize_registered_transition"])
         self.assertFalse(program[
             "private_identity_used_for_program_assignment"])
+        self.assertEqual(
+            program["matcher_receipt_schema"],
+            "vsmt-vm04-public-program-matcher-receipt-v1",
+        )
+        self.assertTrue(all(
+            value is None
+            for value in program["pending_matcher_numeric_fields"].values()
+        ))
 
 if __name__ == "__main__":
     unittest.main()

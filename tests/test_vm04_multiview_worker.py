@@ -328,6 +328,24 @@ class MultiviewWorkerTests(unittest.TestCase):
             "L2_public_RGBD_proposal_frontend")
         evidence["current_status"] = "reviewed_L2_frontend_bound_by_receipt"
         evidence["reviewed_L2_frontend_receipt_sha256"] = "3" * 64
+        l2_pending = contract[
+            "l2_public_proposal_frontend_review_candidate"
+        ]["pending_fields"]
+        for name in l2_pending:
+            l2_pending[name] = ({"test": True} if name.endswith("config_sha256")
+                                else 1)
+        visibility_pending = contract[
+            "public_visibility_builder_review_candidate"
+        ]["pending_fields"]
+        for name in visibility_pending:
+            visibility_pending[name] = 1
+        matcher_pending = contract[
+            "program_construction_review_candidate"
+        ]["pending_matcher_numeric_fields"]
+        for name in matcher_pending:
+            matcher_pending[name] = ({"test": True}
+                                     if name == "association_rules_by_structure_kind"
+                                     else 1)
         contract["development_pilot"][
             "mechanical_completion_derivation_status"] = (
                 "implemented_and_reviewed_parent_stage_family_receipt_v1"
