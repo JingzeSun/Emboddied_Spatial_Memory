@@ -164,6 +164,55 @@
     "private_program_or_target_ids_allowed_in_public_frontend": false,
     "old_static_SPLIT_MERGE_private_artifact_injection_allowed": false
   },
+  "l2_public_proposal_frontend_review_candidate": {
+    "status": "public_RGB_boundary_and_packet_materialization_core_implemented_real_SAM_loader_assets_numeric_config_and_user_review_pending",
+    "model_family": "SAM_2.1_hiera_small_per_frame_automatic_mask_generator",
+    "generator_input_fields": [
+      "current_public_RGB"
+    ],
+    "prompt_policy": "fixed_grid_only_no_text_no_private_points_or_boxes",
+    "cross_frame_video_memory_enabled": false,
+    "overlap_policy": "preserve_independent_overlapping_proposals",
+    "canonical_order": "first_true_pixel_then_visible_pixel_count_then_mask_sha256",
+    "duplicate_mask_action": "construction_failure",
+    "packet_entity_proposal_source_id": "l2.sam2.1_hiera_small.per_frame.public_rgb.v1",
+    "private_crosswalk_emitted": false,
+    "pending_fields": {
+      "repository_commit": null,
+      "checkpoint_sha256": null,
+      "automatic_mask_generator_config_sha256": null,
+      "minimum_visible_pixels": null,
+      "border_truncation_policy": null,
+      "maximum_proposals_per_frame": null,
+      "assets_receipt_sha256": null,
+      "generator_code_sha256": null
+    }
+  },
+  "public_visibility_builder_review_candidate": {
+    "status": "public_geometry_core_implemented_route_receipt_binding_and_numeric_review_pending",
+    "subject_source": "previously_sealed_public_mask_depth_camera_calibration_and_pose_only",
+    "current_frame_source": "current_public_depth_camera_calibration_and_pose_plus_current_public_proposal_support",
+    "invalid_or_missing_depth_policy": "treat_as_unoccluded_so_it_cannot_authorize_hidden_intervention",
+    "terminal_reobservation_requires_current_public_proposal_support": true,
+    "pending_fields": {
+      "minimum_depth_m": null,
+      "maximum_depth_m": null,
+      "occlusion_depth_tolerance_m": null,
+      "sampling_stride_pixels": null,
+      "maximum_subject_samples": null,
+      "minimum_subject_samples": null,
+      "route_receipt_binding_schema": null
+    }
+  },
+  "program_construction_review_candidate": {
+    "status": "nine_program_structural_precondition_and_SPLIT_MERGE_repeat_receipt_core_implemented_runner_binding_and_user_review_pending",
+    "prior_memory_refs_are_mechanically_checked_open_or_dormant_as_registered": true,
+    "RELINK_requires_open_entity_old_place_and_open_located_at_edge": true,
+    "SPLIT_MERGE_artifact_plan_sealed_before_generation": true,
+    "SPLIT_MERGE_every_fresh_replay_must_realize_registered_transition": true,
+    "failed_artifact_action": "construction_failure_without_relabel_or_replacement",
+    "private_identity_used_for_program_assignment": false
+  },
   "l2_identifiability_admission_gate": {
     "role": "hard_gate_after_development_materialization_before_VM05_training_or_main_table",
     "evidence_level": {
@@ -245,6 +294,9 @@
     "freeze_intervention_visibility_constraint_and_failure_reason",
     "implement_and_review_public_visibility_state_builder",
     "implement_and_review_L2_proposal_frontend",
+    "freeze_verify_and_review_L2_SAM_loader_assets_and_numeric_config",
+    "freeze_public_visibility_numeric_config_and_bind_builder_receipt_to_route",
+    "review_and_bind_nine_program_precondition_and_SPLIT_MERGE_receipt_core",
     "freeze_explicit_registered_action_request_templates",
     "freeze_public_frontend_config_context_code_manifest_and_model_assets_then_bind_parent_stage",
     "freeze_public_packet_decision_time_rule",

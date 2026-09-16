@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| VM-04观察适用性 | 原静态36槽不运行；D-182/183只用于精确schema/实现审查。公开多视角路线/worker/raw、L1 oracle前端、context、packet/prior、materializer v2、模型资产与代码清单外壳已实现；真实reachable/public capture/private intervention、L2公开proposal、父stage批量派发及pilot完成机械收据仍缺，正式时间/动作、前端/bootstrap、SPLIT/MERGE和probe规格未冻结。全部运行位关闭，0新episode/materialization/训练/记忆正例。LOG-169–187。 |
+| VM-04观察适用性 | 原静态36槽不运行；D-182/183只用于精确schema/实现审查。D-199已形成L2公开RGB proposal、公开depth visibility、九类program必要前提及SPLIT/MERGE重复回执的科学层候选；真实SAM loader/assets/数值、route/worker绑定、充分matcher、private intervention、父stage及pilot机械收据仍缺。全部运行位关闭，0新episode/materialization/训练/记忆正例。LOG-169–188。 |
 | VSMT首篇/VM-01～04 | 原静态36槽按D-180退役且未运行；D-183新多视角版本只开放精确实现审查。现有instance-mask前端明确只作L1诊断，不得作为L2准入；L2公开proposal前端、九类真实构造、共享probe和完整父stage仍阻断。生成/private评价、identifiability、训练、validation效果与confirmation全部关闭。LOG-180–187，D-191–198 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
 | R4三模型接入 | D完整适配16项通过（121/200全反向，0更新），W完整适配17项亦通过，F完整适配19项通过；真实公共接口27/27候选通过，0优化/真值读取。209bb34，LOG-123–127 |
@@ -1979,3 +1979,9 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 已批路线/统计值原样移入`frozen_numeric_values`，两个null的probe架构/预算移入`pending_model_and_budget_fields`；恢复pilot/formal manifest分离阻断项。D-183修订文件补实际合并commit `ac978b6...`。
 - pilot family完成定义写入基础合同并禁止调用方布尔；机械family receipt尚未实现，故生产`seal-formal`即使授权为true也会在读取输入前拒绝。受影响4模块定向27/27、VM-04 discover 180/180、VSMT discover 179/179及旧两房入口内嵌executor 42/L1 31/VSMT 179共252/252通过。仓库全量772项另有旧CPMT封存/缺文件等8 error、3 failure，均不在本批文件且VM-04组独立通过；0 source、0模拟器、0episode、0materialization、0probe。
 - 白话：当前机器状态会直接说“这是L1、L2还缺”“这些数值已定、架构还没定”“pilot完成收据还没实现”，不再靠读者从null和函数名猜。
+
+## LOG-188：D-199科学层实现候选（2026-09-16）
+
+- 新增L2单帧公开RGB proposal核心与receipt：generator签名只接RGB，无prompt/history/program/private/future入口；mask规范排序、重复失败、重叠保留，并可在无private crosswalk的情况下生成现有公共packet entity格式。真实SAM loader、asset与全部proposal数值保持null。
+- 新增公开visibility几何核心：从先前公开mask/depth/camera封存世界点，后帧投影到当前公开depth；无效depth按未遮挡处理，终端重现必须另有当前公开proposal support。新增九类program结构前提计划；RELINK机械核open entity/old place/open located_at，SPLIT/MERGE逐fresh replay核1→2/2→1，失败禁止重贴标签或替换。
+- 新代码尚未接生产worker/route receipt，NOOP/BIRTH等充分matcher判据仍待冻结，故合同新增的SAM/visibility/program阻断项未解除，所有authorization仍为false。受影响8模块46/46、VM-04 discover 195/195、VSMT discover 179/179及旧两房入口内嵌executor 42/L1 31/VSMT 179共252/252通过；0 source inventory、0模型加载、0controller、0episode、0materialization、0训练。

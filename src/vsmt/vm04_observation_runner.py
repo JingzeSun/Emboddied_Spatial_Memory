@@ -169,6 +169,48 @@ def validate_approved_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
         "CFO_and_public_history_probe_architecture",
         "shared_probe_training_budget",
     }, "identifiability pending fields changed")
+    l2_candidate = record["l2_public_proposal_frontend_review_candidate"]
+    _require(
+        l2_candidate.get("generator_input_fields") == ["current_public_RGB"] and
+        l2_candidate.get("prompt_policy") ==
+        "fixed_grid_only_no_text_no_private_points_or_boxes" and
+        l2_candidate.get("cross_frame_video_memory_enabled") is False and
+        l2_candidate.get("overlap_policy") ==
+        "preserve_independent_overlapping_proposals" and
+        l2_candidate.get("private_crosswalk_emitted") is False,
+        "L2 public proposal boundary changed",
+    )
+    visibility_candidate = record["public_visibility_builder_review_candidate"]
+    _require(
+        visibility_candidate.get("invalid_or_missing_depth_policy") ==
+        "treat_as_unoccluded_so_it_cannot_authorize_hidden_intervention" and
+        visibility_candidate.get(
+            "terminal_reobservation_requires_current_public_proposal_support"
+        ) is True,
+        "public visibility fail-closed policy changed",
+    )
+    program_candidate = record["program_construction_review_candidate"]
+    _require(
+        program_candidate.get(
+            "RELINK_requires_open_entity_old_place_and_open_located_at_edge"
+        ) is True and
+        program_candidate.get(
+            "SPLIT_MERGE_artifact_plan_sealed_before_generation"
+        ) is True and
+        program_candidate.get(
+            "SPLIT_MERGE_every_fresh_replay_must_realize_registered_transition"
+        ) is True and
+        program_candidate.get("private_identity_used_for_program_assignment")
+        is False,
+        "program construction boundary changed",
+    )
+    if status.endswith("review_only"):
+        _require(all(value is None for value in
+                     l2_candidate["pending_fields"].values()),
+                 "review-only L2 candidate cannot freeze unreviewed values")
+        _require(all(value is None for value in
+                     visibility_candidate["pending_fields"].values()),
+                 "review-only visibility candidate cannot freeze unreviewed values")
     construction = record["deterministic_SPLIT_MERGE_construction"]
     _require(construction.get("posthoc_program_label_from_observed_artifact_allowed")
              is False, "post-hoc SPLIT/MERGE labels must remain forbidden")

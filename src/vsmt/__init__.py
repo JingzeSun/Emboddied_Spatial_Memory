@@ -120,6 +120,21 @@ from .vm05_protocol import (
     validate_vm05_readiness,
     verify_vm05_satisfied_inputs,
 )
+from .vm04_l2_proposals import (
+    Vm04L2ProposalConfig,
+    run_vm04_l2_proposal_frontend,
+    validate_vm04_l2_proposal_receipt,
+)
+from .vm04_public_visibility import (
+    Vm04PublicVisibilityConfig,
+    assess_public_visibility_from_depth,
+    seal_public_visibility_subject,
+)
+from .vm04_program_construction import (
+    make_program_construction_plan,
+    make_split_merge_artifact_plan,
+    validate_split_merge_artifact_receipt,
+)
 
 __all__ = [
     "AdapterInput",
@@ -222,4 +237,13 @@ __all__ = [
     "assert_vm05_action_authorized",
     "validate_vm05_readiness",
     "verify_vm05_satisfied_inputs",
+    "Vm04L2ProposalConfig",
+    "run_vm04_l2_proposal_frontend",
+    "validate_vm04_l2_proposal_receipt",
+    "Vm04PublicVisibilityConfig",
+    "assess_public_visibility_from_depth",
+    "seal_public_visibility_subject",
+    "make_program_construction_plan",
+    "make_split_merge_artifact_plan",
+    "validate_split_merge_artifact_receipt",
 ]

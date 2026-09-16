@@ -1905,3 +1905,10 @@
 - 基础合同新增pilot family完成定义、只准由sealed route receipt/construction verdict机械派生、禁止调用方布尔自报，并登记机械派生仍待父stage family receipt实现。现有`seal-formal`生产模式在授权检查后也会明确拒绝旧布尔文件，且在拒绝前不读取pool/outcomes或写输出；48/64/停的纯规则函数保留作单元测试，不构成完成证明。
 - 采纳审查S的交付拆分：后续先交科学口径层（L2 proposal来源、visibility、program前提、SPLIT/MERGE和RELINK证据）供用户审查；在该层获得认可前不再向上叠加新的批量调度/摘要封装。已存在封装代码保留并继续fail closed，不把整批测试通过当作科学层获批。
 - 白话：这一步解决三种“名字看起来已经成立”的问题：oracle mask包不能叫L2，冻结数值不能和null架构混在同一袋里，pilot完成也不能由一张布尔表自报。输入仍是关闭合同和人工收据，输出更明确的阻断状态；它没有实现L2前端或pilot family收据，也没有删掉已审数值。
+
+## D-199：L2 proposal、公开visibility与九类program构造科学层候选
+
+- 日期：2026-09-16；状态：用户认可D-198科学口径层后形成的实现候选，等待代码审查，不开放运行、不冻结SAM资产或新增科学数值。L2 proposal核心只把当前公开RGB交给单帧无提示generator；禁用跨帧video memory，不接受depth、history、program、teacher、未来或private输入。输出mask按首像素/面积/摘要规范排序，重复mask直接构造失败，合法重叠proposal原样保留；receipt绑定RGB、SAM仓库commit、checkpoint、automatic-mask config、assets和generator代码摘要。真实SAM 2.1 loader、commit/checkpoint及全部mask数值仍为null，因此当前L2主表硬门不变。
+- 公开visibility核心从一个已经公开的mask、depth和camera封存稀疏世界点；后帧只用当前公开depth/camera投影。视野外、被更近公开depth完全挡住、公开proposal再次支撑分别产生`out_of_view/occluded/reobserved`；无效或缺失depth保守地按未遮挡处理，不能授权隐藏干预。采样步长、样本数和遮挡容差仍待审，builder receipt尚未接入route receipt。
+- 九类program构造计划为每类固定不同的公开前提槽，并对prior memory中的open/dormant node/edge机械核验。RELINK特别要求open entity、旧place和方向一致的open `located_at`边；SPLIT/MERGE在生成前封存geometry/frontend/远近pose和重复次数，每次fresh replay都必须实现1→2或2→1公开proposal转移，任一次不满足即保留construction failure，禁止换标签或替换样本。BIRTH/NOOP等涉及“无匹配/稳定”的最终充分判据仍须由冻结matcher与runner receipt绑定，当前结构计划不冒充完整构造成功。
+- 白话：输入是一帧公开RGB、已经公开的几何记忆以及生成前写死的程序计划，输出是公开proposal、遮挡状态和可追溯的程序前提。例如SPLIT必须事先登记“远处1块、近处2块”，连续两次重放有一次仍是1块就失败，不能改叫BIND。它不等于SAM已经装好、数值已定、house可生成或这些程序在真实模拟器中已经成立。

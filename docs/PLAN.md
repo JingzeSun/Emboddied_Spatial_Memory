@@ -38,6 +38,7 @@
 - [ ] 冻结公开packet时间规则与动作编码：确定N+1个`decision_time_s`怎样由注册动作产生、八种动作共同向量怎样编码，并写入`decision_time_rule/action_command_encoding`；当前人工一秒间隔和one-hot仅是fixture。
 - [ ] 冻结完整materializer config：匿名mask、DINO descriptor、entity geometry、surface/place/free-space、关系阈值、entity/surface/fragment bootstrap、公开常量和builder摘要一次性定值并签`config_sha256`；不得从生成结果反调。
 - [ ] 实现并审查L2公开proposal前端：只从公开RGB-D产生entity proposal，给CFO/history门和五个L2主臂提供同字节packet；当前instance-mask前端明确只作L1 oracle诊断，L1结果不得开放L2主表。
+  - D-199候选已实现当前公开RGB单帧无提示proposal边界、receipt及L2 packet materialization；真实SAM loader、commit/checkpoint、automatic-mask数值和用户代码审查仍缺，故本项不勾选。
 - [ ] 冻结DINO模型资产与执行环境：明确模型仓库commit、checkpoint摘要、Python/Torch/NumPy/CUDA及AI2-THOR/ProcTHOR版本，补环境回执；真实assets verifier须在服务器核干净仓库和checkpoint字节，不能只信文件名。
 - [ ] 冻结SPLIT/MERGE确定性构造：填写fresh replay次数、精确几何/相机参数和公开前端伪影判据；program在生成前登记，伪影未复现只记construction failure，不换标签、路线或house。
 - [ ] 冻结CFO（Current-Frame-Only，当前帧诊断器）与public-history probe共用的唯一架构、优化/训练预算和输入mask规则；这是生成前准入门规格，不运行probe，也不使用pilot选择结构。
@@ -47,7 +48,9 @@
 
 - [ ] 实现真实公开reachable-position扫描和路线候选生成：从同一house的公开可达格、RGB-D、camera pose/calibration及已封存匿名subject/locus产生路线；不得读取私有ID、program结果或失败后换路线。
 - [ ] 把当前注入式`public_capture`替换为生产visibility builder：逐帧仅用公开RGB-D/depth/pose和先前封存公开track/locus产生`visible/occluded/out_of_view/reobserved`与证据摘要，并实现自然遮挡、出视野及连续终端重现的真实验收。
+  - D-199候选已实现公开世界点封存与当前depth投影核心；数值未冻、builder receipt尚未接route/worker，故仍不勾选。
 - [ ] 实现九类program的公开前提构造与验收：NOOP/BIND及生命周期类须有对应公开旧记忆条件；SPLIT/MERGE只走上述预登记确定性几何；不能用旧静态worker的private target规则或事后标签。
+  - D-199候选已实现九类结构前提槽、prior graph必要条件核验及SPLIT/MERGE逐replay 1→2/2→1回执；NOOP/BIRTH等充分matcher判据和runner绑定仍缺，故仍不勾选。
 - [ ] 把当前注入式`private_intervention`替换为生产执行器：BIRTH/REACTIVATE/RETRACT/REPLACE逐动作保存真实API回执和后态；动作只可在已封存`occluded/out_of_view`窗口发生，失败保留且不补样。
 - [ ] 完成新RELINK物理路径：动作前由公开旧关系、可达格和匿名目标封存P1/P2及有限分支；执行不强制推/拉或经真实API smoke的抓放，逐步保留失败与真实后态。正例仍须同时满足同一物理实体、公开旧关系和公开新关系，原D-173四个碰撞槽不得回填。
 - [ ] 把raw→context→真实DINO/公开前端→packet/crosswalk→causal prior→materializer v2 receipt接成一个生产episode单元；crosswalk只含机械`observation_index`，部署reader不得打开private文件。

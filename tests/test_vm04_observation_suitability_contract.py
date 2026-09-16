@@ -249,5 +249,32 @@ class ObservationSuitabilityContractTests(unittest.TestCase):
         self.assertIsNone(construction["exact_geometry_parameters"])
         self.assertIsNone(construction["frozen_frontend_artifact_criteria"])
 
+    def test_d198_science_layer_candidates_are_public_only_and_still_blocked(self):
+        l2 = self.contract["l2_public_proposal_frontend_review_candidate"]
+        self.assertEqual(l2["generator_input_fields"], ["current_public_RGB"])
+        self.assertFalse(l2["cross_frame_video_memory_enabled"])
+        self.assertFalse(l2["private_crosswalk_emitted"])
+        self.assertTrue(all(value is None for value in
+                            l2["pending_fields"].values()))
+
+        visibility = self.contract[
+            "public_visibility_builder_review_candidate"]
+        self.assertEqual(
+            visibility["invalid_or_missing_depth_policy"],
+            "treat_as_unoccluded_so_it_cannot_authorize_hidden_intervention",
+        )
+        self.assertTrue(visibility[
+            "terminal_reobservation_requires_current_public_proposal_support"])
+        self.assertTrue(all(value is None for value in
+                            visibility["pending_fields"].values()))
+
+        program = self.contract["program_construction_review_candidate"]
+        self.assertTrue(program[
+            "RELINK_requires_open_entity_old_place_and_open_located_at_edge"])
+        self.assertTrue(program[
+            "SPLIT_MERGE_every_fresh_replay_must_realize_registered_transition"])
+        self.assertFalse(program[
+            "private_identity_used_for_program_assignment"])
+
 if __name__ == "__main__":
     unittest.main()

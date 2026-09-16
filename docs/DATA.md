@@ -1000,6 +1000,8 @@ D-197补充RELINK证据对的机器约束：materializer receipt中由old packet
 
 D-198将观察合同的数值状态拆为`observation_trajectory.frozen_numeric_values`和`l2_identifiability_admission_gate.frozen_numeric_values`，两者只保存已由D-182批准的数值；仍待冻结的`CFO_and_public_history_probe_architecture/shared_probe_training_budget`单列在`pending_model_and_budget_fields`且保持null。可辨识性门新增`evidence_level`：当前前端为`L1_oracle_entity_masks_plus_public_geometry`，目标主张层为`L2_public_proposal_frontend`，L1结果不得开放L2主表；`reviewed_L2_frontend_receipt_sha256`当前为null并由生成入口硬检查。白话：同一RGB-D序列可以以后生成L1/L2两种proposal视图，但当前只有oracle mask视图，不能换个packet名字冒充公开检测。
 
+D-199新增三个只供审查的科学层记录。`vsmt-vm04-l2-proposal-receipt-v1`绑定当前公开RGB文件/像素、SAM仓库commit、checkpoint、automatic-mask配置、assets、generator代码及有序mask摘要，不含crosswalk；`vsmt-vm04-public-visibility-subject-v1`绑定先前公开packet、mask/depth/camera和公开世界采样点，后帧builder receipt绑定当前depth/camera与assessment；`vsmt-vm04-public-program-construction-plan-v1`绑定prior memory和各program所需node/edge/locus/artifact引用。SPLIT/MERGE另有artifact plan/receipt，逐replay保存远近public packet摘要、region ID集合和转移证据。白话：这些文件让“proposal从哪里来、为什么说被挡住、为什么这一槽叫RELINK”都可复算；它们不保存私有实例ID，也不代表真实loader、数值或runner已获批。
+
 同一修订把pilot完成固定为“该family全部预登记route、visibility状态及所需SPLIT/MERGE伪影均不替换通过”，来源只能是sealed route receipts与construction verdicts机械派生；调用方布尔禁止。父stage family receipt尚未实现，所以`seal-formal`当前即使开闸也拒绝旧布尔输入。白话：48/64/停的输入必须由六套完整施工收据计算，而不是人工写五个true；这不改变离散N规则。
 
 D-196在观察父stage登记独立`materializer_code_sealing_authorized`和`seal-materializer-code`输出。输出文件就是D-194 manifest，采用独占创建；输入路径和commit不写入其他状态文件。当前授权为false，所以不存在真实输出摘要。白话：父stage以后负责把审过的commit变成正式源码清单；现在只证明未授权时它不会读取传入checkout或写文件，不等于已经做过服务器source inventory。

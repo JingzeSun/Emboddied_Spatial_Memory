@@ -1492,6 +1492,10 @@ D-195进一步删除materializer调用方提供的`private_frame_roles`。crossw
 
 D-198明确当前`vm04_public_frontend`是L1 oracle结构诊断，因为entity proposal由隔离private instance mask匿名化得到；其公开depth/pose/descriptor和后续记忆链干净，不会把proposal来源自动升级成L2。L2主实验仍须实现并审查只从公开RGB-D产生proposal的冻结前端，五个主臂及CFO/history门共用其同字节packet；此前L1门结果只能报告机制诊断。白话：真值mask可以回答“假设检测正确，记忆机制会不会更新”，不能回答“从相机输入出发整套方法是否需要历史”。它不否定L1实现价值，也不允许把L1候选缓存给L2。
 
+D-199的L2候选把entity proposal严格限定为当前公开RGB的单帧SAM 2.1 automatic-mask输出；无文字/点/框提示、无video memory、无private crosswalk，合法重叠mask不靠真值消歧。相同proposal随后才与公开depth、pose及冻结DINO token组合成现有公共region/relation格式。公开visibility另从先前公开mask/depth/pose封存世界点，在当前公开depth中投影；无效depth不能算遮挡，终端`reobserved`还必须有当前公开proposal支持。白话：proposal回答“这一帧像素能分出哪些区域”，visibility回答“先前公开区域现在在画外、被挡住还是重新出现”；两者都不看模拟器实例ID，也不等于跨帧身份已经正确。
+
+九类program construction plan只登记公开前提和引用：BIND核open node，REACTIVATE核dormant node，RELINK核open entity/旧place/旧`located_at`，RETRACT核open node或edge，SPLIT/MERGE核预登记artifact plan，REPLACE核旧entity与新公开locus。NOOP的稳定充分性、BIRTH的新实体无匹配以及各类当前region匹配仍需冻结matcher回执，当前结构核验只是必要条件。SPLIT/MERGE的fresh replay receipt逐次绑定远近公开packet和region集合，任一次不满足注册的1→2或2→1即失败且不改标签。白话：这层防止“先看结果再选事务名”，但不会把一张写着node ID的计划当作程序已经发生。
+
 D-188新增公开packet/prior序列构造器。输入是公开前端逐帧给出的RGB-D摘要、相机pose、机器人状态、已结束动作、匿名区域/关系、自由空间/可见性和公开常量；输出是逐帧`ObservationPacket`、在线更新后的共同causal prior和独立重放receipt。调用方不能自报`prior_memory_ref`，每帧只能引用上一帧公开bootstrap实际封存的memory；完成后另从空memory重放同一packet序列，终态逐字节不一致即失败。例如第二帧看见相同外观和相近位置的匿名椅子时，packet引用第一帧产生的candidate memory，bootstrap才可能公开BIND并确认；它不允许private program、instance ID、teacher或未来观察帮忙绑定，也不等于真实DINO/结构前端已经实现。`decision_time_s`规则、动作向量编码和bootstrap阈值仍须事前冻结。
 
 D-189把真实公开前端算法核心接到该序列。可信进程只在单帧匿名化时读取instance mask/ID，并把ID留在private crosswalk；公开侧随后复用冻结DINO token、当前depth、相机内外参构造entity、surface、place、free-space、visibility及类型化关系。跨帧callback只保存公开free-space历史和公开bootstrap memory，每帧重新匿名化，不沿用private ID。例子：同一椅子的模拟器ID从`Chair|1`改成`opaque-x`且mask不变时，公开row逐字节相同，只有private crosswalk变化；旧代码按私有`SPLIT`合mask或按`MERGE`翻转descriptor的入口不存在。它不等于阈值、DINO checkpoint、时间/动作编码已冻结，也未运行真实帧。
