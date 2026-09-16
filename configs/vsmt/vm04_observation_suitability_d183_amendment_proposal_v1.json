@@ -1,0 +1,89 @@
+{
+  "version": "vsmt-vm04-observation-suitability-d183-amendment-proposal-v1",
+  "status": "requires_user_review_not_executable",
+  "decision": "D-183-proposed",
+  "base_contract": {
+    "path": "configs/vsmt/vm04_observation_suitability_proposal_v1.json",
+    "sha256": "6fcde1f2739364cad94c1030f12d52c175d6f1172513185ce1b13bbea82551a3",
+    "approved_decision": "D-182",
+    "base_execution_authorized": false
+  },
+  "authorization": {
+    "merge_into_base_contract_authorized": false,
+    "schema_implementation_authorized": false,
+    "pilot_authorized": false,
+    "formal_generation_authorized": false,
+    "training_authorized": false,
+    "confirmation_authorized": false
+  },
+  "K_machine_contract_alignment": {
+    "status": "already_applied_as_non_scientific_scope_and_fail_closed_alignment",
+    "fixed_view_lifecycle_scope": "fixed_view_worker_only",
+    "multiview_terminal_reobservation_window": null,
+    "insufficient_completed_families_action": "fail_construction_gate_and_do_not_run_identifiability_VM05_or_VM06"
+  },
+  "L_pilot_determines_formal_N_proposal": {
+    "base_D182_fixed_formal_house_count": 48,
+    "pilot_family_count": 6,
+    "pilot_family_completion_definition": "all_pre_registered_routes_visibility_states_and_required_SPLIT_MERGE_artifacts_pass_without_replacement",
+    "selection_rule_and_ordered_source_pool_sealed_before_pilot": true,
+    "ordered_source_pool_minimum_eligible_houses": 70,
+    "pilot_house_prefix_sealed_before_pilot": true,
+    "formal_house_count_sealed_after_pilot_before_any_formal_generation": true,
+    "formal_house_prefix_is_the_next_N_eligible_houses_after_the_disjoint_pilot_prefix": true,
+    "count_rule": {
+      "pilot_completed_5_or_6": 48,
+      "pilot_completed_4": 64,
+      "pilot_completed_0_to_3": "stop_and_require_new_contract_version"
+    },
+    "reason_for_not_using_inverse_point_estimate": "ceil(32/pilot_yield)_has_about_even_odds_of_missing_32_when_the_point_estimate_is_exact_so_it_does_not_supply_a_construction_margin",
+    "maximum_N": 64,
+    "pilot_inputs_allowed_for_N": [
+      "construction_completion_boolean_per_family"
+    ],
+    "pilot_CFO_history_or_oracle_results_allowed_for_N": false,
+    "additional_houses_after_formal_failures_allowed": false
+  },
+  "M_per_program_identifiability_reporting_proposal": {
+    "required_programs": [
+      "NOOP",
+      "BIND",
+      "BIRTH",
+      "REACTIVATE",
+      "RELINK",
+      "RETRACT",
+      "SPLIT",
+      "MERGE",
+      "REPLACE"
+    ],
+    "required_metrics": [
+      "CFO_accuracy",
+      "public_history_probe_accuracy",
+      "paired_history_minus_CFO"
+    ],
+    "easy_class_threshold_source": "D182_frozen_maximum_CFO_accuracy",
+    "easy_class_action": "retain_in_aggregate_denominator_but_forbid_standalone_evidence_for_that_program",
+    "easy_class_blocks_whole_dataset": false,
+    "post_result_program_removal_relabeling_or_resampling_allowed": false
+  },
+  "N_deterministic_SPLIT_MERGE_artifact_proposal": {
+    "program_assignment_sealed_before_generation": true,
+    "source": "pre_registered_geometry_camera_route_and_frozen_public_frontend_only",
+    "SPLIT_required_transition": "one_public_undersegmented_region_at_far_or_occluded_pose_then_two_public_regions_at_near_reobservation_pose",
+    "MERGE_required_transition": "two_public_tracks_from_a_pre_registered_association_break_then_one_public_identity_supported_at_reobservation",
+    "private_identity_role": "post_seal_grading_only_never_program_assignment",
+    "artifact_not_realized_action": "construction_failure_keep_registered_program_never_relabel",
+    "posthoc_program_label_from_observed_artifact_allowed": false,
+    "pilot_must_check_fresh_replay_repeatability": true,
+    "recommended_pilot_repeat_count_not_frozen": 2,
+    "exact_geometry_parameters": null,
+    "frozen_frontend_artifact_criteria": null
+  },
+  "plain_language": {
+    "problem": "avoid_a_visible_intervention_ad_hoc_sample_count_program_aggregation_or_posthoc_SPLIT_MERGE_label_from_making_an_easy_dataset_look_memory_dependent",
+    "input": "D182_approved_closed_contract_and_six_disjoint_construction_only_pilot_families",
+    "output": "a_result_blind_formal_house_count_per_program_easy_class_report_and_pre_registered_SPLIT_MERGE_construction_rule",
+    "example": "if_four_of_six_pilot_families_construct_then_N_is_64_before_formal_generation;_three_or_fewer_stops_the_version;_a_SPLIT_artifact_that_does_not_repeat_is_a_failure_not_a_relabel",
+    "not_equal_to": "generation_training_confirmation_or_permission_to_change_the_15pp_gate"
+  }
+}
