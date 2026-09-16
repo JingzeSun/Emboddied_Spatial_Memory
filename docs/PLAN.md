@@ -22,7 +22,7 @@
 
 ### 当前指针
 
-**VM-04固定槽原始数据服务器批次（D-176/D-180，已暂停、服务器未运行）：** 代码仍固定原两房36槽、失败全留和四个RELINK缺口；新增生命周期动作即时私有mask后态门，`DisableObject`后仍可见或`EnableObject`后仍不可见均保留为`intervention_poststate_mismatch`。但原32帧只有交替±0.25°原地yaw、无平移，NOOP/BIND/SPLIT/MERGE没有已实现的公开类型化结构语义，四个RELINK全为预登记失败，且只有两间开发house。故即使36/36写出raw，也只能证明writer、公私隔离、摘要链、失败保留和资源派发，不能进入L2主表或支持VSMT优于适配器/朴素基线。配置现为`run_authorized=false/generation_authorized=false/expected_reviewed_code=null`；服务器0新episode。用户已认可不运行该批；D-181的新观察适用性合同现作为执行关闭的审查稿，包含真实平移、自然遮挡/出视野后重现分支、crosswalk来源阻断和进入L2前的当前帧可辨识性硬门。所有轨迹数值、probe预算及门值仍待本轮裁决，未开放生成。
+**VM-04固定槽原始数据服务器批次（D-176/D-180，已暂停、服务器未运行）：** 代码仍固定原两房36槽、失败全留和四个RELINK缺口；生命周期门现要求`DisableObject`即时隐藏、disabled期每个注册相机event持续隐藏，并在`EnableObject`后的下一注册相机event确认重现；失败均保留私有逐帧证据。但原32帧只有交替±0.25°原地yaw、无平移，NOOP/BIND/SPLIT/MERGE没有已实现的公开类型化结构语义，四个RELINK全为预登记失败，且只有两间开发house。故即使36/36写出raw，也只能证明writer、公私隔离、摘要链、失败保留和资源派发，不能进入L2主表或支持VSMT优于适配器/朴素基线。配置现为`run_authorized=false/generation_authorized=false/expected_reviewed_code=null`；服务器0新episode。用户已认可不运行该批；D-181的新观察适用性合同现作为执行关闭的审查稿，包含真实平移、自然遮挡/出视野后重现分支、crosswalk来源阻断和进入L2前的当前帧可辨识性硬门。所有轨迹数值、probe预算及门值仍待本轮裁决，未开放生成。
 
 **D-181新观察适用性合同（proposed、执行关闭）：** [机器合同](../configs/vsmt/vm04_observation_suitability_proposal_v1.json)把初始`TeleportFull`限制在观测0之前，之后路线只由公开可达信息预登记并用实际pose验收；每个family必须同时包含“自然遮挡后重现”和“出视野后重现”分支，每个episode从旧关系可见开始，经一个固定挑战分支，在至少一个真实平移后的pose重现。它是固定观察路线，不是active exploration。进入VM-05前另跑Current-Frame-Only（CFO，只有当前帧的诊断探针）和同预算公开历史probe；只有按house family聚合的历史优势下界超过冻结门、CFO不超过冻结上限且sealed-catalog oracle recall通过，数据版本才可进入L2。门的规则已硬化，推荐数值仍未批准；生成后不得改门。
 
