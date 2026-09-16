@@ -16,7 +16,7 @@ class ObservationSuitabilityContractTests(unittest.TestCase):
     def test_every_execution_authorization_is_closed(self):
         self.assertEqual(
             self.contract["status"],
-            "requires_numeric_and_code_review_not_executable")
+            "d182_design_and_numeric_values_approved_schema_review_only")
         self.assertTrue(all(value is False for value in
                             self.contract["authorization"].values()))
         self.assertFalse(
@@ -56,8 +56,15 @@ class ObservationSuitabilityContractTests(unittest.TestCase):
         self.assertIn(
             "old_relation_P1",
             route["program_specific_public_preconditions"]["RELINK"])
-        self.assertTrue(all(value is None for value in
-                            route["numeric_review_required_before_generation"].values()))
+        self.assertEqual(route["numeric_review_required_before_generation"], {
+            "minimum_key_pose_translation_m": 0.5,
+            "minimum_reobservation_translation_m": 0.5,
+            "minimum_key_pose_yaw_change_degrees": 30.0,
+            "minimum_public_observations_per_visibility_state": 2,
+            "maximum_route_steps": 24,
+            "pose_tolerance_m": 0.02,
+            "yaw_tolerance_degrees": 1.0,
+        })
 
     def test_crosswalk_provenance_is_an_explicit_positive_label_blocker(self):
         provenance = self.contract["crosswalk_provenance"]
@@ -81,6 +88,8 @@ class ObservationSuitabilityContractTests(unittest.TestCase):
         self.assertEqual(
             policy["enabled_terminal_disappearance_failure"],
             "enabled_target_disappeared_before_terminal")
+        self.assertEqual(policy["scope"], "fixed_view_worker_only")
+        self.assertIsNone(policy["multiview_terminal_reobservation_window"])
 
     def test_identifiability_is_a_result_blind_hard_gate(self):
         gate = self.contract["l2_identifiability_admission_gate"]
@@ -100,34 +109,37 @@ class ObservationSuitabilityContractTests(unittest.TestCase):
         self.assertEqual(
             gate["fail_action"],
             "dataset_version_is_engineering_or_easy_slice_only_and_cannot_enter_L2_main_table")
-        self.assertTrue(all(value is None for value in
-                            gate["numeric_review_required_before_generation"].values()))
+        numbers = gate["numeric_review_required_before_generation"]
+        self.assertEqual(numbers["minimum_accuracy_gap"], 0.15)
+        self.assertEqual(numbers["maximum_CFO_accuracy"], 0.6)
+        self.assertEqual(numbers["minimum_sealed_catalog_oracle_recall"], 0.9)
+        self.assertEqual(numbers["confidence_level"], 0.95)
+        self.assertEqual(numbers["bootstrap_seed"], 260916)
+        self.assertEqual(numbers["bootstrap_resamples"], 10000)
+        self.assertEqual(numbers["minimum_development_families"], 32)
+        self.assertIsNone(numbers["CFO_and_public_history_probe_architecture"])
+        self.assertIsNone(numbers["shared_probe_training_budget"])
 
     def test_pilot_is_disjoint_and_formal_failures_cannot_add_houses(self):
         pilot = self.contract["development_pilot"]
-        self.assertEqual(pilot["family_count"], None)
-        self.assertEqual(
-            pilot["recommended_family_count_for_review_not_frozen"], 6)
+        self.assertEqual(pilot["family_count"], 6)
         self.assertTrue(pilot["source_houses_disjoint_from_formal_development"])
         self.assertTrue(
             pilot["pilot_and_formal_house_manifests_sealed_before_pilot"])
         self.assertFalse(pilot["included_in_identifiability_gate"])
         self.assertFalse(pilot["included_in_VM05_training_or_validation"])
         formal = self.contract["formal_development_sampling"]
-        self.assertIsNone(formal["source_houses_to_attempt"])
+        self.assertEqual(formal["source_houses_to_attempt"], 48)
         self.assertEqual(
             formal["house_selection_rule"],
             "result_blind_manifest_hash_order_frozen_before_pilot")
-        self.assertEqual(
-            formal["recommended_values_for_review_not_frozen"][
-                "source_houses_to_attempt"], 48)
         self.assertFalse(
             formal["additional_houses_after_observed_failures_allowed"])
         self.assertEqual(
-            self.contract["l2_identifiability_admission_gate"][
-                "recommended_values_for_review_not_frozen"][
-                    "minimum_development_families"], 32)
-
+            formal["minimum_completed_families"], 32)
+        self.assertEqual(
+            formal["insufficient_completed_families_action"],
+            "fail_construction_gate_and_do_not_run_identifiability_VM05_or_VM06")
 
 if __name__ == "__main__":
     unittest.main()
