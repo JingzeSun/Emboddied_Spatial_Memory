@@ -39,6 +39,8 @@ MATERIALIZER_SCHEMAS = (
     ROOT / "schemas" / "vsmt_vm04_materializer_assets_receipt.schema.json",
     ROOT / "schemas" / "vsmt_vm04_materializer_code_manifest.schema.json",
     ROOT / "schemas" / "vsmt_vm04_materializer_receipt.schema.json",
+    ROOT / "schemas" / "vsmt_vm04_program_matcher.schema.json",
+    ROOT / "schemas" / "vsmt_vm04_episode_construction_receipt.schema.json",
 )
 
 

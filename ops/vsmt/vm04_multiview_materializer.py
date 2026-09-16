@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import re
 import sys
+from dataclasses import asdict
 from typing import Any, Callable, Mapping
 
 import numpy as np
@@ -30,6 +31,10 @@ from vsmt.vm04_materializer_receipt import (  # noqa: E402
     make_materializer_receipt,
     validate_materializer_receipt,
 )
+from vsmt.vm04_episode_construction_receipt import (  # noqa: E402
+    make_episode_construction_receipt,
+    validate_episode_construction_receipt,
+)
 from vsmt.vm04_materializer_code_manifest import (  # noqa: E402
     validate_vm04_materializer_code_manifest,
     verify_vm04_materializer_code_checkout,
@@ -43,6 +48,11 @@ from vsmt.vm04_materializer_config import (  # noqa: E402
 from vsmt.vm04_observation_runner import (  # noqa: E402
     ObservationConstructionError,
     validate_approved_contract,
+)
+from vsmt.vm04_program_matcher import (  # noqa: E402
+    Vm04ProgramMatcherConfig,
+    make_program_matcher_receipt,
+    validate_program_matcher_receipt,
 )
 from vsmt.vm04_public_context import (  # noqa: E402
     validate_public_frame_context_manifest,
@@ -96,8 +106,7 @@ def _hex64(value: Any, name: str) -> str:
 
 
 def _write_new_json(path: Path, value: Any) -> None:
-    payload = (json.dumps(value, sort_keys=True, indent=2,
-                          ensure_ascii=False) + "\n").encode("utf-8")
+    payload = _json_bytes(value)
     path.parent.mkdir(parents=True, exist_ok=True)
     descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     try:
@@ -108,6 +117,15 @@ def _write_new_json(path: Path, value: Any) -> None:
     except BaseException:
         path.unlink(missing_ok=True)
         raise
+
+
+def _json_bytes(value: Any) -> bytes:
+    return (json.dumps(value, sort_keys=True, indent=2,
+                       ensure_ascii=False) + "\n").encode("utf-8")
+
+
+def _sha_bytes(value: bytes) -> str:
+    return hashlib.sha256(value).hexdigest()
 
 
 def _validate_manifests(episode_root: Path) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -520,6 +538,289 @@ def verify_materialized_episode(
         "status": "materialized_verified",
         "frame_count": receipt["frame_count"],
         "receipt_sha256": _sha_file(receipt_path),
+    }
+
+
+def _replay_episode_program_matcher(
+    *, episode_root: Path, contract: Mapping[str, Any],
+    construction_plan: Mapping[str, Any],
+    matcher_prior_memory: Mapping[str, Any],
+    matcher_config: Vm04ProgramMatcherConfig,
+    artifact_receipt: Mapping[str, Any] | None,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Replay the matcher at the registered causal cut and terminal packet."""
+
+    route = _read_json(episode_root / "private/route-plan.json")
+    terminal = _read_json(episode_root / "public/raw.terminal.json")
+    materializer_path = (
+        episode_root / "materialized/public/materializer.receipt.json"
+    )
+    causal_path = episode_root / "materialized/public/causal-prior.receipt.json"
+    materializer_receipt = validate_materializer_receipt(
+        _read_json(materializer_path)
+    )
+    causal_receipt = validate_causal_prior_receipt(_read_json(causal_path))
+    terminal_indices = route.get("terminal_reobservation_indices")
+    _require(type(terminal_indices) is list and terminal_indices,
+             "route has no terminal reobservation index")
+    terminal_index = terminal_indices[-1]
+    intervention_index = route.get("intervention_after_observation_index")
+    prior_cutoff_index = terminal_index - 1
+    _require(type(terminal_index) is int and type(intervention_index) is int and
+             0 <= intervention_index <= prior_cutoff_index < terminal_index <
+             materializer_receipt["frame_count"],
+             "matcher causal cut or terminal observation is invalid")
+    packet_path = (
+        episode_root / "materialized/public" /
+        f"frame_{terminal_index:04d}.json"
+    )
+    _require(packet_path.is_file(), "terminal public packet is missing")
+    current_packet = _read_json(packet_path)
+    validate_graph(matcher_prior_memory, verify_hash=True)
+    _require(
+        materializer_receipt["episode_id"] == route.get("episode_id") ==
+        terminal.get("episode_id") == construction_plan.get("episode_id") and
+        materializer_receipt["route_plan_sha256"] ==
+        route.get("route_plan_sha256"),
+        "episode, route, construction plan and materializer bindings differ",
+    )
+    _require(
+        materializer_receipt["causal_prior_receipt_sha256"] ==
+        _sha_file(causal_path) and
+        materializer_receipt["frames"][terminal_index][
+            "public_packet_sha256"
+        ] == _sha_file(packet_path),
+        "materializer does not bind the matcher causal receipt or packet",
+    )
+    _require(
+        causal_receipt["packet_count"] == materializer_receipt["frame_count"] and
+        causal_receipt["ordered_public_packet_sha256s"][terminal_index] ==
+        canonical_sha256(current_packet),
+        "causal receipt does not bind the matcher terminal packet",
+    )
+    _require(
+        causal_receipt["version_chain_sha256s"][terminal_index] ==
+        matcher_prior_memory.get("graph_hash") and
+        construction_plan.get("prior_memory_sha256") ==
+        matcher_prior_memory.get("graph_hash"),
+        "matcher prior is not the causal memory immediately before terminal observation",
+    )
+    matcher_receipt = make_program_matcher_receipt(
+        construction_plan=construction_plan,
+        prior_memory=matcher_prior_memory,
+        current_packet=current_packet,
+        route_plan=route,
+        route_receipt=terminal["route_receipt"],
+        observation_contract=contract,
+        config=matcher_config,
+        artifact_plan=route.get("split_merge_artifact_plan"),
+        artifact_receipt=artifact_receipt,
+    )
+    context = {
+        "route": route,
+        "terminal": terminal,
+        "materializer_receipt": materializer_receipt,
+        "materializer_receipt_path": materializer_path,
+        "causal_receipt": causal_receipt,
+        "causal_receipt_path": causal_path,
+        "current_packet": current_packet,
+        "current_packet_path": packet_path,
+        "prior_cutoff_observation_index": prior_cutoff_index,
+        "terminal_observation_index": terminal_index,
+    }
+    return matcher_receipt, context
+
+
+def seal_episode_construction_evidence_core(
+    episode_root: Path, *, contract: Mapping[str, Any],
+    construction_plan: Mapping[str, Any],
+    matcher_prior_memory: Mapping[str, Any],
+    matcher_config: Vm04ProgramMatcherConfig,
+    artifact_receipt: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Seal a matcher verdict without treating materialization as construction."""
+
+    episode_root = Path(episode_root)
+    verify_materialized_episode(episode_root)
+    audit_root = episode_root / "materialized/construction-audit"
+    _require(not audit_root.exists(), "construction audit output already exists")
+    matcher_receipt, context = _replay_episode_program_matcher(
+        episode_root=episode_root, contract=contract,
+        construction_plan=construction_plan,
+        matcher_prior_memory=matcher_prior_memory,
+        matcher_config=matcher_config,
+        artifact_receipt=artifact_receipt,
+    )
+    values = {
+        "program-construction-plan.json": dict(construction_plan),
+        "program-matcher-config.json": asdict(matcher_config),
+        "matcher-prior-memory.json": dict(matcher_prior_memory),
+        "program-matcher.receipt.json": matcher_receipt,
+    }
+    if artifact_receipt is not None:
+        values["split-merge-artifact.receipt.json"] = dict(artifact_receipt)
+    payloads = {name: _json_bytes(value) for name, value in values.items()}
+    file_digests = {
+        "materializer_receipt_file_sha256": _sha_file(
+            context["materializer_receipt_path"]
+        ),
+        "causal_prior_receipt_file_sha256": _sha_file(
+            context["causal_receipt_path"]
+        ),
+        "current_public_packet_file_sha256": _sha_file(
+            context["current_packet_path"]
+        ),
+        "construction_plan_file_sha256": _sha_bytes(
+            payloads["program-construction-plan.json"]
+        ),
+        "matcher_config_file_sha256": _sha_bytes(
+            payloads["program-matcher-config.json"]
+        ),
+        "matcher_prior_memory_file_sha256": _sha_bytes(
+            payloads["matcher-prior-memory.json"]
+        ),
+        "program_matcher_receipt_file_sha256": _sha_bytes(
+            payloads["program-matcher.receipt.json"]
+        ),
+    }
+    receipt = make_episode_construction_receipt(
+        episode_id=matcher_receipt["episode_id"],
+        program=matcher_receipt["program"],
+        prior_cutoff_observation_index=context[
+            "prior_cutoff_observation_index"
+        ],
+        terminal_observation_index=context["terminal_observation_index"],
+        materializer_receipt_sha256=context["materializer_receipt"][
+            "receipt_sha256"
+        ],
+        program_matcher_receipt_sha256=matcher_receipt["receipt_sha256"],
+        file_digests=file_digests,
+        split_merge_artifact_receipt_file_sha256=(
+            _sha_bytes(payloads["split-merge-artifact.receipt.json"])
+            if artifact_receipt is not None else None
+        ),
+        program_public_match_satisfied=matcher_receipt[
+            "program_public_match_satisfied"
+        ],
+        construction_failure_reasons=matcher_receipt[
+            "construction_failure_reasons"
+        ],
+    )
+    audit_root.mkdir(parents=True)
+    for name, value in values.items():
+        _write_new_json(audit_root / name, value)
+    receipt_path = audit_root / "episode-construction.receipt.json"
+    _write_new_json(receipt_path, receipt)
+    _write_new_json(audit_root / "episode-construction.sealed.json", {
+        "receipt_file_sha256": _sha_file(receipt_path),
+        "episode_construction_status": receipt["episode_construction_status"],
+    })
+    return {
+        "status": "construction_evidence_sealed",
+        "episode_construction_status": receipt["episode_construction_status"],
+        "program_public_match_satisfied": receipt[
+            "program_public_match_satisfied"
+        ],
+        "receipt_file_sha256": _sha_file(receipt_path),
+    }
+
+
+def verify_episode_construction_evidence(
+    episode_root: Path, *, contract: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Re-open the audit bundle and replay its public-only matcher verdict."""
+
+    episode_root = Path(episode_root)
+    verify_materialized_episode(episode_root)
+    audit_root = episode_root / "materialized/construction-audit"
+    receipt_path = audit_root / "episode-construction.receipt.json"
+    sealed_path = audit_root / "episode-construction.sealed.json"
+    _require(receipt_path.is_file() and sealed_path.is_file(),
+             "construction receipt and sealed marker are required")
+    receipt = validate_episode_construction_receipt(_read_json(receipt_path))
+    paths = {
+        "construction_plan_file_sha256":
+            audit_root / "program-construction-plan.json",
+        "matcher_config_file_sha256":
+            audit_root / "program-matcher-config.json",
+        "matcher_prior_memory_file_sha256":
+            audit_root / "matcher-prior-memory.json",
+        "program_matcher_receipt_file_sha256":
+            audit_root / "program-matcher.receipt.json",
+        "materializer_receipt_file_sha256":
+            episode_root / "materialized/public/materializer.receipt.json",
+        "causal_prior_receipt_file_sha256":
+            episode_root / "materialized/public/causal-prior.receipt.json",
+        "current_public_packet_file_sha256":
+            episode_root / "materialized/public" /
+            f"frame_{receipt['terminal_observation_index']:04d}.json",
+    }
+    _require(all(path.is_file() for path in paths.values()),
+             "construction audit input file is missing")
+    _require(all(receipt[name] == _sha_file(path)
+                 for name, path in paths.items()),
+             "construction audit file digest changed")
+    artifact_path = audit_root / "split-merge-artifact.receipt.json"
+    expected_artifact_sha = receipt[
+        "split_merge_artifact_receipt_file_sha256"
+    ]
+    _require((expected_artifact_sha is None and not artifact_path.exists()) or
+             (expected_artifact_sha is not None and artifact_path.is_file() and
+              expected_artifact_sha == _sha_file(artifact_path)),
+             "construction artifact receipt file binding changed")
+    construction_plan = _read_json(paths["construction_plan_file_sha256"])
+    matcher_config = Vm04ProgramMatcherConfig(
+        **_read_json(paths["matcher_config_file_sha256"])
+    )
+    matcher_prior = _read_json(paths["matcher_prior_memory_file_sha256"])
+    artifact_receipt = (
+        _read_json(artifact_path) if expected_artifact_sha is not None else None
+    )
+    rebuilt_matcher, context = _replay_episode_program_matcher(
+        episode_root=episode_root, contract=contract,
+        construction_plan=construction_plan,
+        matcher_prior_memory=matcher_prior,
+        matcher_config=matcher_config,
+        artifact_receipt=artifact_receipt,
+    )
+    validate_program_matcher_receipt(
+        _read_json(paths["program_matcher_receipt_file_sha256"]),
+        construction_plan=construction_plan,
+        prior_memory=matcher_prior,
+        current_packet=context["current_packet"],
+        route_plan=context["route"],
+        route_receipt=context["terminal"]["route_receipt"],
+        observation_contract=contract,
+        config=matcher_config,
+        artifact_plan=context["route"].get("split_merge_artifact_plan"),
+        artifact_receipt=artifact_receipt,
+    )
+    _require(
+        receipt["prior_cutoff_observation_index"] ==
+        context["prior_cutoff_observation_index"] and
+        receipt["terminal_observation_index"] ==
+        context["terminal_observation_index"] and
+        receipt["materializer_receipt_sha256"] ==
+        context["materializer_receipt"]["receipt_sha256"] and
+        receipt["program_matcher_receipt_sha256"] ==
+        rebuilt_matcher["receipt_sha256"] and
+        receipt["program_public_match_satisfied"] ==
+        rebuilt_matcher["program_public_match_satisfied"] and
+        receipt["construction_failure_reasons"] ==
+        rebuilt_matcher["construction_failure_reasons"],
+        "episode construction receipt differs from replayed evidence",
+    )
+    _require(_read_json(sealed_path) == {
+        "receipt_file_sha256": _sha_file(receipt_path),
+        "episode_construction_status": receipt["episode_construction_status"],
+    }, "construction sealed marker does not bind the receipt")
+    return {
+        "status": "construction_evidence_verified",
+        "episode_construction_status": receipt["episode_construction_status"],
+        "program_public_match_satisfied": receipt[
+            "program_public_match_satisfied"
+        ],
+        "receipt_file_sha256": _sha_file(receipt_path),
     }
 
 

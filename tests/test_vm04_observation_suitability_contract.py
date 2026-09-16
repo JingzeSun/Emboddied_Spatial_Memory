@@ -283,6 +283,29 @@ class ObservationSuitabilityContractTests(unittest.TestCase):
             program["matcher_receipt_schema"],
             "vsmt-vm04-public-program-matcher-receipt-v1",
         )
+        self.assertEqual(
+            program["episode_construction_receipt_schema"],
+            "vsmt-vm04-episode-construction-receipt-v1",
+        )
+        self.assertEqual(
+            program["matcher_prior_boundary"],
+            "causal_memory_immediately_before_registered_terminal_observation",
+        )
+        self.assertTrue(program[
+            "episode_receipt_binds_materializer_causal_prior_terminal_packet_plan_config_prior_and_matcher"
+        ])
+        self.assertTrue(program[
+            "failed_matcher_is_retained_as_construction_failure_without_relabel_or_replacement"
+        ])
+        self.assertEqual(
+            program["construction_plan_pre_terminal_temporal_seal_status"],
+            "pending_online_parent_stage_implementation_no_offline_self_attestation",
+        )
+        self.assertFalse(program["episode_receipt_parent_family_eligibility"])
+        self.assertEqual(
+            program["parent_family_completion_aggregation_status"],
+            "pending_separate_review",
+        )
         self.assertTrue(all(
             value is None
             for value in program["pending_matcher_numeric_fields"].values()
