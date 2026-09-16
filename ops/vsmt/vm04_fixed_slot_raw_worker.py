@@ -220,7 +220,9 @@ def run_slot(house, task, episode_root, family_byte_limit, *,
                    "public_prefix_frame_count": len(frames),
                    "public_prefix_frame_receipts": [
                        {"frame_index": row["frame_index"],
-                        "public_camera_sha256": row["public_camera_sha256"]}
+                        "public_camera_sha256": row["public_camera_sha256"],
+                        "private_mapping_sha256":
+                            row["private_mapping_sha256"]}
                        for row in frames],
                    "private_failure_sha256": old.sha256(private_path),
                    "family_viewpoints_sha256":

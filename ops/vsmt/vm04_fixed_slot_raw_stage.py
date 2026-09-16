@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import hashlib
 import json
 import os
@@ -21,6 +22,7 @@ import vm04_two_house_audit as audit  # noqa: E402
 import vm04_target_action_probe as resource_probe  # noqa: E402
 import vm04_fixed_slot_raw_manifest as manifest  # noqa: E402
 import vm04_fixed_slot_raw_worker as worker  # noqa: E402
+import vm04_fixed_slot_raw_verify as raw_verify  # noqa: E402
 
 CONFIG = ROOT / "configs/vsmt/vm04_fixed_slot_raw_stage_v1.json"
 STAGE_PREFIX = "vsmt-vm04-fixed-slot-raw-v1-"
@@ -42,12 +44,14 @@ def bound_code(reviewed_code):
         "ops/vsmt/vm04_fixed_slot_raw_worker.py",
         "ops/vsmt/vm04_fixed_slot_raw_manifest.py",
         "ops/vsmt/vm04_fixed_slot_raw_stage.py",
+        "ops/vsmt/vm04_fixed_slot_raw_verify.py",
         "src/vsmt/vm04_target_selection_v3.py",
         "configs/vsmt/vm04_target_boundary_proposal_v3.json",
         "configs/vsmt/vm04_l1_environment_v1.json",
         "tests/test_vm04_fixed_slot_raw_worker.py",
         "tests/test_vm04_fixed_slot_raw_manifest.py",
         "tests/test_vm04_fixed_slot_raw_stage.py",
+        "tests/test_vm04_fixed_slot_raw_verify.py",
     )}
 
 
@@ -64,6 +68,7 @@ def check(reviewed_code, output_root):
         ("raw_file_boundary", ["tests.test_vm04_fixed_slot_raw_worker",
                                 "tests.test_vm04_fixed_slot_raw_manifest",
                                 "tests.test_vm04_fixed_slot_raw_stage",
+                                "tests.test_vm04_fixed_slot_raw_verify",
                                 "tests.test_vsmt_two_house_ops"]),
         ("target_and_endpoint", ["tests.test_vm04_target_selection_v3",
                                  "tests.test_vm04_relink_endpoint_two_house_probe"]),
@@ -173,6 +178,8 @@ def _terminal_after_exit(episode, task, exit_code):
         return receipt if receipt.is_file() else failure
     # The started slot and private log stay intact, even if Python/Unity died.
     public_prefix = sorted((episode / "public").glob("frame_*/camera.json"))
+    private_prefix = sorted((episode / "private").glob(
+        "frame_*/mapping.json"))
     audit.write_new_json(failure, {
         "schema_version": "vsmt-vm04-fixed-slot-process-failure-v1",
         "family_id": task["family_id"], "slot": task["slot"],
@@ -187,6 +194,10 @@ def _terminal_after_exit(episode, task, exit_code):
         "public_prefix_frame_count": len(public_prefix),
         "public_prefix_camera_sha256": [audit.sha256(path)
                                         for path in public_prefix],
+        "private_prefix_mapping_receipts": [
+            {"frame_index": int(path.parent.name[6:]),
+             "private_mapping_sha256": audit.sha256(path)}
+            for path in private_prefix],
         "relink_coverage_gap": task["program"] == "RELINK",
         "relink_collision_observed_this_run": False,
         "relink_collision_evidence_source": (
@@ -238,11 +249,13 @@ def run(reviewed_code, scan_stage, endpoint_stage, source_root, output_root):
     for relative in ("ops/vsmt/vm04_fixed_slot_raw_worker.py",
                      "ops/vsmt/vm04_fixed_slot_raw_manifest.py",
                      "ops/vsmt/vm04_fixed_slot_raw_stage.py",
+                     "ops/vsmt/vm04_fixed_slot_raw_verify.py",
                      "src/vsmt/vm04_target_selection_v3.py",
                      "configs/vsmt/vm04_target_boundary_proposal_v3.json",
                      "tests/test_vm04_fixed_slot_raw_worker.py",
                      "tests/test_vm04_fixed_slot_raw_manifest.py",
-                     "tests/test_vm04_fixed_slot_raw_stage.py"):
+                     "tests/test_vm04_fixed_slot_raw_stage.py",
+                     "tests/test_vm04_fixed_slot_raw_verify.py"):
         approved = subprocess.check_output(
             ["git", "show", "%s:%s" % (review_ref, relative)], cwd=ROOT)
         require(hashlib.sha256(approved).hexdigest() ==
@@ -476,12 +489,144 @@ def run(reviewed_code, scan_stage, endpoint_stage, source_root, output_root):
     require(stop_reason is None, "fixed stage stopped; preserve all slot outputs")
 
 
+def verify(reviewed_code, output_root, *, record=True):
+    """Read every sealed slot in parallel before exporting an anonymous report."""
+    stage = stage_path(output_root, reviewed_code)
+    require((stage / "verify.receipt.json").exists() != record,
+            "fixed slot verification marker state changed")
+    receipt_path = stage / "run.receipt.json"
+    receipt = audit.read_json(receipt_path)
+    ordered = receipt["deterministic_merge_order"]
+    require(receipt["reviewed_code"] == reviewed_code and
+            receipt["terminal_slot_count"] == len(ordered) == 36 and
+            audit.sha256(stage / "tasks/private/task-manifest.json") ==
+            receipt["private_task_manifest_sha256"],
+            "run or private task manifest changed before verification")
+    private_rows = audit.read_json(
+        stage / "tasks/private/task-manifest.json")["rows"]
+    public_rows = audit.read_json(
+        stage / "tasks/public/task-manifest.json")["rows"]
+    require(len(private_rows) == len(public_rows) == 36 and
+            [{"family_id": row["family_id"], "slot": row["slot"],
+              "episode_id": row["episode_id"]} for row in private_rows] ==
+            public_rows, "sealed public/private slot order changed")
+    tasks = {}
+    for row in private_rows:
+        task_path = stage / "tasks" / row["private_task_path"]
+        require(audit.sha256(task_path) == row["private_task_sha256"],
+                "sealed private task bytes changed")
+        tasks[(row["family_id"], row["slot"])] = audit.read_json(task_path)
+    require(len(tasks) == 36, "sealed slot key repeated")
+    memory = audit._cgroup_memory_headroom_bytes()
+    cpu = resource_probe.safe_visible_cpu_count()
+    disk = shutil.disk_usage(output_root).free
+    config = audit.read_json(CONFIG)
+    reserve = config["emergency_cgroup_headroom_bytes"]
+    # SHA reads one 1-MiB block at a time; 64 MiB per I/O thread is a
+    # conservative RAM allowance. There is one independent task per slot.
+    requested = (min(36, cpu, (memory - reserve) // (64 * 1024 * 1024))
+                 if type(memory) is int and type(cpu) is int else 0)
+    require(requested >= 1 and
+            disk >= config["emergency_data_disk_free_bytes"],
+            "CPU/RAM/disk capacity insufficient for fixed raw verification")
+    if requested == 1:
+        print("VM04_FIXED_SLOT_VERIFY_SINGLE_WORKER evidence=sampled_CPU_RAM "
+              "estimated_slots=36", flush=True)
+
+    def one(row):
+        key = (row["family_id"], row["slot"])
+        task = tasks[key]
+        require(row["program"] == task["program"],
+                "merge order program differs from sealed task")
+        episode = episode_path(stage, task)
+        result = raw_verify.verify_slot(
+            episode, task, episode / row["kind"], row["terminal_sha256"])
+        return {"family_id": row["family_id"], "slot": row["slot"],
+                **result}
+
+    results, failures = {}, []
+    with ThreadPoolExecutor(max_workers=requested) as pool:
+        future_rows = {pool.submit(one, row): row for row in ordered}
+        for future in as_completed(future_rows):
+            row = future_rows[future]
+            key = (row["family_id"], row["slot"])
+            try:
+                results[key] = future.result()
+            except Exception as error:
+                failures.append({"family_id": key[0], "slot": key[1],
+                                 "error_type": type(error).__name__,
+                                 "private_reason": str(error)})
+    success = not failures and len(results) == 36
+    verified_slots = [results[(row["family_id"], row["slot"])]
+                      for row in ordered if
+                      (row["family_id"], row["slot"]) in results]
+    if not record:
+        if failures:
+            audit.write_new_json(
+                stage / "private/export-verify-failures.json",
+                {"failures": sorted(
+                    failures, key=lambda row: (row["family_id"],
+                                               row["slot"]))})
+        require(success, "raw bytes changed after verify; preserve failure")
+        prior, _ = audit._marker(stage, "verify")
+        require(prior["verified_slots"] == verified_slots,
+                "raw slot verification changed before export")
+        print("VM04_FIXED_SLOT_EXPORT_REVERIFIED slots=36 workers=%s" %
+              requested, flush=True)
+        return
+    private_failure_sha256 = None
+    if failures:
+        private_failure_path = stage / "private/raw-verify-failures.json"
+        audit.write_new_json(private_failure_path, {"failures": sorted(
+            failures, key=lambda row: (row["family_id"], row["slot"]))})
+        private_failure_sha256 = audit.sha256(private_failure_path)
+    verify_receipt = stage / "verify.receipt.json"
+    audit.write_new_json(verify_receipt, {
+        "schema_version": "vsmt-vm04-fixed-slot-raw-verify-v1",
+        "reviewed_code": reviewed_code,
+        "run_receipt_sha256": audit.sha256(receipt_path),
+        "private_task_manifest_sha256":
+            receipt["private_task_manifest_sha256"],
+        "requested_workers": requested, "actual_workers": requested,
+        "resource_basis": {"visible_cpu": cpu,
+                           "cgroup_memory_headroom_bytes": memory,
+                           "disk_free_bytes": disk,
+                           "sha_block_bytes": 1024 * 1024,
+                           "ram_allowance_per_worker_bytes": 64 * 1024 * 1024,
+                           "io_policy": "one_read_only_stream_per_worker"},
+        "verified_slots": verified_slots,
+        "failures": [{"family_id": row["family_id"], "slot": row["slot"],
+                      "error_type": row["error_type"],
+                      "reason": "digest_or_file_boundary_failed"}
+                     for row in sorted(
+                         failures, key=lambda row: (row["family_id"],
+                                                  row["slot"]))],
+        "private_failure_sha256": private_failure_sha256,
+        "semantic_positive_labels_issued": 0,
+        "private_semantics_evaluated": False,
+        "success": success})
+    if success:
+        audit.write_new_json(stage / "verify.success.json", {
+            "receipt_sha256": audit.sha256(verify_receipt), "success": True})
+    print("VM04_FIXED_SLOT_VERIFY_TERMINAL stage=%s slots=%s workers=%s "
+          "success=%s" % (stage, len(results), requested, success), flush=True)
+    require(success, "fixed raw digest verification failed; preserve receipt")
+
+
 def export(reviewed_code, output_root, report):
     stage = stage_path(output_root, reviewed_code)
     receipt = audit.read_json(stage / "run.receipt.json")
+    verified, _ = audit._marker(stage, "verify")
+    require(verified["reviewed_code"] == reviewed_code and
+            verified["run_receipt_sha256"] ==
+            audit.sha256(stage / "run.receipt.json") and
+            len(verified["verified_slots"]) == 36 and
+            verified["private_semantics_evaluated"] is False,
+            "raw verification changed before export")
     require(receipt["reviewed_code"] == reviewed_code and
             receipt["terminal_slot_count"] == 36 and
             not Path(report).exists(), "fixed stage/report identity changed")
+    verify(reviewed_code, output_root, record=False)
     counts = {}
     for row in receipt["deterministic_merge_order"]:
         task = {"family_id": row["family_id"], "slot": row["slot"],
@@ -498,6 +643,9 @@ def export(reviewed_code, output_root, report):
         "schema_version": "vsmt-vm04-fixed-slot-raw-public-report-v1",
         "reviewed_code": reviewed_code,
         "run_receipt_sha256": audit.sha256(stage / "run.receipt.json"),
+        "raw_verify_receipt_sha256": audit.sha256(
+            stage / "verify.receipt.json"),
+        "raw_file_digests_verified": True,
         "terminal_slot_count": 36,
         "terminal_complete": True,
         "counts_by_family_program_kind": [
@@ -528,7 +676,7 @@ def export(reviewed_code, output_root, report):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("step", choices=("check", "run", "export"))
+    parser.add_argument("step", choices=("check", "run", "verify", "export"))
     parser.add_argument("--reviewed-code", required=True)
     parser.add_argument("--output-root", type=Path, required=True)
     parser.add_argument("--scan-stage", type=Path)
@@ -543,6 +691,8 @@ def main():
                 "run needs exact frozen scan/endpoint/source paths")
         run(args.reviewed_code, args.scan_stage, args.endpoint_stage,
             args.source_root, args.output_root)
+    elif args.step == "verify":
+        verify(args.reviewed_code, args.output_root)
     else:
         require(args.report is not None, "export needs a precise report path")
         export(args.reviewed_code, args.output_root, args.report)
