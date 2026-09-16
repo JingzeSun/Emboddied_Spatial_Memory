@@ -103,6 +103,10 @@ class InterventionPoststateMismatch(RuntimeError):
     """The simulator accepted a lifecycle action but its mask did not change."""
 
 
+class DisabledTargetReappeared(RuntimeError):
+    """A disabled target became visible before its registered enable action."""
+
+
 def _target_mask_pixels(event, object_id):
     """Read private target support from the action event, never public output."""
     import numpy as np
@@ -125,14 +129,45 @@ def _action_record(frame_index, request, event):
 
 def _validate_action_poststate(record):
     request = record["request"]
-    if request["action"] not in {"DisableObject", "EnableObject"}:
+    if request["action"] != "DisableObject":
         return
     support = record["target_mask_visible_pixels"]
-    expected_visible = request["action"] == "EnableObject"
-    if (support > 0) != expected_visible:
+    if support != 0:
         raise InterventionPoststateMismatch(
             "%s returned success but target mask support was %s" %
             (request["action"], support))
+
+
+def _post_agent_lifecycle_records(event, frame_index, disabled_targets,
+                                  pending_enable_targets):
+    rows = []
+    for object_id in sorted(disabled_targets | pending_enable_targets):
+        rows.append({
+            "frame_index": frame_index,
+            "target_instance_id": object_id,
+            "expected_state": (
+                "visible_after_enable"
+                if object_id in pending_enable_targets else
+                "hidden_between_disable_and_enable"),
+            "target_mask_visible_pixels":
+                _target_mask_pixels(event, object_id),
+        })
+    return rows
+
+
+def _validate_post_agent_lifecycle(records):
+    for record in records:
+        support = record["target_mask_visible_pixels"]
+        if (record["expected_state"] ==
+                "hidden_between_disable_and_enable" and support != 0):
+            raise DisabledTargetReappeared(
+                "disabled target mask reappeared at frame %s" %
+                record["frame_index"])
+        if (record["expected_state"] == "visible_after_enable" and
+                support <= 0):
+            raise InterventionPoststateMismatch(
+                "EnableObject target remained absent after registered agent "
+                "action at frame %s" % record["frame_index"])
 
 
 def _failure_reason(error):
@@ -140,6 +175,8 @@ def _failure_reason(error):
         return "prior_D173_fixed_endpoint_collision"
     if isinstance(error, InterventionPoststateMismatch):
         return "intervention_poststate_mismatch"
+    if isinstance(error, DisabledTargetReappeared):
+        return "disabled_target_reappeared_between_actions"
     if isinstance(error, old.ResourceStop):
         return "resource_stop_with_prefix"
     if isinstance(error, ValueError):
@@ -168,6 +205,8 @@ def run_slot(house, task, episode_root, family_byte_limit, *,
     (episode_root / "private").mkdir()
     controller = None
     frames, actions, targets, past_actions = [], [], [], []
+    lifecycle_checks = []
+    disabled_targets, pending_enable_targets = set(), set()
     started = time.monotonic()
     initial = None
     stop_error = None
@@ -191,6 +230,8 @@ def run_slot(house, task, episode_root, family_byte_limit, *,
             require(event.metadata.get("lastActionSuccess") is True,
                     "registered setup intervention rejected")
             _validate_action_poststate(actions[-1])
+            if request["action"] == "DisableObject":
+                disabled_targets.add(request["objectId"])
         for frame_index in range(32):
             if task["program"] == "RELINK" and frame_index == 24:
                 raise KnownEndpointFailure("D-173 fixed endpoint collision")
@@ -202,11 +243,24 @@ def run_slot(house, task, episode_root, family_byte_limit, *,
                 require(event.metadata.get("lastActionSuccess") is True,
                         "registered intervention rejected")
                 _validate_action_poststate(actions[-1])
+                if request["action"] == "DisableObject":
+                    disabled_targets.add(request["objectId"])
+                elif request["action"] == "EnableObject":
+                    require(request["objectId"] in disabled_targets,
+                            "registered enable lacks a disabled target")
+                    disabled_targets.remove(request["objectId"])
+                    pending_enable_targets.add(request["objectId"])
             agent_action, command = old.registered_agent_action(
                 task["replicate"], frame_index)
             event = controller.step(**agent_action)
             require(event.metadata.get("lastActionSuccess") is True,
                     "registered agent motion rejected")
+            current_checks = _post_agent_lifecycle_records(
+                event, frame_index, disabled_targets,
+                pending_enable_targets)
+            lifecycle_checks.extend(current_checks)
+            _validate_post_agent_lifecycle(current_checks)
+            pending_enable_targets.clear()
             past_actions.append({"end_time_s": frame_index * 0.3,
                                  "command": command})
             frames.append(capture_frame(
@@ -219,6 +273,7 @@ def run_slot(house, task, episode_root, family_byte_limit, *,
             "schema_version": "vsmt-vm04-fixed-slot-private-intervention-v1",
             "episode_id": task["episode_id"], "program": task["program"],
             "target_instance_ids": targets, "actions": actions,
+            "post_agent_lifecycle_checks": lifecycle_checks,
             "public_structure_semantics_checked": False,
             "semantic_positive_label_issued": False})
         receipt = {"schema_version": "vsmt-vm04-fixed-slot-raw-complete-v1",
@@ -246,6 +301,7 @@ def run_slot(house, task, episode_root, family_byte_limit, *,
             "family_id": task["family_id"], "slot": task["slot"],
             "episode_id": task["episode_id"], "program": task["program"],
             "target_instance_ids": targets, "actions": actions,
+            "post_agent_lifecycle_checks": lifecycle_checks,
             "endpoint_failure_evidence": task.get("endpoint_failure_evidence"),
             "error_type": type(error).__name__, "error": str(error),
             "semantic_positive_label_issued": False})

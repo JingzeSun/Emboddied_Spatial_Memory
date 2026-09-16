@@ -68,6 +68,35 @@ class RejectedLifecycleController(LifecycleController):
         return event
 
 
+class DelayedEnableController(Controller):
+    def __init__(self, *, reveal_after_camera=True,
+                 reappear_on_camera_index=None):
+        super().__init__()
+        self.event.instance_masks = {
+            "private-fixed-asset": np.ones((4, 4), dtype=np.uint8)}
+        self.reveal_after_camera = reveal_after_camera
+        self.reappear_on_camera_index = reappear_on_camera_index
+        self.pending_enable = False
+        self.camera_index = -1
+
+    def step(self, **request):
+        self.requests.append(request)
+        if request["action"] == "DisableObject":
+            self.event.instance_masks = {}
+        elif request["action"] == "EnableObject":
+            self.pending_enable = True
+        elif request["action"] in {"RotateLeft", "RotateRight"}:
+            self.camera_index += 1
+            if self.pending_enable and self.reveal_after_camera:
+                self.event.instance_masks = {
+                    "private-fixed-asset": np.ones((4, 4), dtype=np.uint8)}
+                self.pending_enable = False
+            if self.camera_index == self.reappear_on_camera_index:
+                self.event.instance_masks = {
+                    "private-fixed-asset": np.ones((4, 4), dtype=np.uint8)}
+        return self.event
+
+
 def fake_capture(event, public_dir, private_dir, index, actions, targets,
                  past_actions):
     public = public_dir / ("frame_%04d" % index)
@@ -144,6 +173,61 @@ class FixedSlotRawWorkerTests(unittest.TestCase):
             [(row["request"]["action"], row["target_mask_visible_pixels"])
              for row in actions],
             [("DisableObject", 0), ("EnableObject", 16)])
+        checks = json.loads(
+            (output / "private/intervention.json").read_text())[
+                "post_agent_lifecycle_checks"]
+        self.assertEqual(len(checks), 25)
+        self.assertTrue(all(row["target_mask_visible_pixels"] == 0
+                            for row in checks[:-1]))
+        self.assertEqual(checks[-1]["target_mask_visible_pixels"], 16)
+
+    def test_enable_is_judged_after_following_registered_camera_action(self):
+        task = dict(self.task, program="BIRTH")
+        controller = DelayedEnableController(reveal_after_camera=True)
+        with patch.object(worker, "private_targets",
+                          return_value=["private-fixed-asset"]):
+            output, result, _ = self._run(task, controller)
+        self.assertTrue(result["raw_complete"])
+        intervention = json.loads(
+            (output / "private/intervention.json").read_text())
+        self.assertEqual(
+            intervention["actions"][-1]["target_mask_visible_pixels"], 0)
+        self.assertEqual(
+            intervention["post_agent_lifecycle_checks"][-1][
+                "target_mask_visible_pixels"], 16)
+
+    def test_disabled_target_reappearance_between_actions_is_retained(self):
+        task = dict(self.task, program="BIRTH")
+        controller = DelayedEnableController(
+            reappear_on_camera_index=5)
+        with patch.object(worker, "private_targets",
+                          return_value=["private-fixed-asset"]):
+            output, result, _ = self._run(task, controller)
+        self.assertEqual(
+            result["reason"],
+            "disabled_target_reappeared_between_actions")
+        failure = json.loads(
+            (output / "private/construction-failure.json").read_text())
+        self.assertEqual(
+            failure["post_agent_lifecycle_checks"][-1]["frame_index"], 5)
+        self.assertEqual(
+            failure["post_agent_lifecycle_checks"][-1][
+                "target_mask_visible_pixels"], 16)
+
+    def test_enable_absent_after_registered_camera_action_is_failure(self):
+        task = dict(self.task, program="BIRTH")
+        controller = DelayedEnableController(reveal_after_camera=False)
+        with patch.object(worker, "private_targets",
+                          return_value=["private-fixed-asset"]):
+            output, result, _ = self._run(task, controller)
+        self.assertEqual(result["reason"], "intervention_poststate_mismatch")
+        failure = json.loads(
+            (output / "private/construction-failure.json").read_text())
+        self.assertEqual(
+            failure["post_agent_lifecycle_checks"][-1]["frame_index"], 24)
+        self.assertEqual(
+            failure["post_agent_lifecycle_checks"][-1][
+                "target_mask_visible_pixels"], 0)
 
     def test_rejected_lifecycle_action_remains_in_private_failure(self):
         task = dict(self.task, program="BIRTH")
