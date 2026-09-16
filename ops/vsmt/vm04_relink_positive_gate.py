@@ -10,6 +10,9 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from cpmt.executor import validate_graph  # noqa: E402
 from vsmt.contracts import validate_observation_packet  # noqa: E402
+from vsmt.vm04_materializer_receipt import (  # noqa: E402
+    validate_materializer_receipt,
+)
 import vm04_two_house_audit as audit  # noqa: E402
 
 
@@ -76,10 +79,25 @@ def evaluate_physical_relink(public_root: Path, private_outcome_path: Path,
     old_path = public_root / "old-observation-packet.json"
     prior_path = public_root / "prior-memory.json"
     post_path = public_root / "post-observation-packet.json"
+    materializer_path = public_root / "materializer.receipt.json"
     require(audit.sha256(old_path) == seal["old_packet_sha256"] and
             audit.sha256(prior_path) == seal["prior_memory_sha256"] and
-            audit.sha256(post_path) == seal["post_packet_sha256"],
+            audit.sha256(post_path) == seal["post_packet_sha256"] and
+            audit.sha256(materializer_path) ==
+            seal["materializer_receipt_sha256"],
             "sealed public relation source bytes changed")
+    materializer = validate_materializer_receipt(
+        audit.read_json(materializer_path))
+    expected_materialized_pairs = {
+        (audit.sha256(old_path), audit.sha256(old_crosswalk_path)),
+        (audit.sha256(post_path), audit.sha256(new_crosswalk_path)),
+    }
+    actual_materialized_pairs = {
+        (row["public_packet_sha256"], row["private_crosswalk_sha256"])
+        for row in materializer["frames"]
+    }
+    require(expected_materialized_pairs <= actual_materialized_pairs,
+            "crosswalk provenance is not bound by the materializer receipt")
     old = validate_observation_packet(audit.read_json(old_path))
     prior = audit.read_json(prior_path)
     validate_graph(prior, verify_hash=True)
@@ -144,6 +162,7 @@ def evaluate_physical_relink(public_root: Path, private_outcome_path: Path,
         "schema_version": "vsmt-vm04-physical-relink-verdict-v1",
         "public_proof_seal_sha256": audit.sha256(seal_path),
         "private_outcome_sha256": audit.sha256(private_outcome_path),
+        "materializer_receipt_sha256": audit.sha256(materializer_path),
         "old_private_crosswalk_sha256": audit.sha256(old_crosswalk_path),
         "new_private_crosswalk_sha256": audit.sha256(new_crosswalk_path),
         "physical_relink_positive": all(checks.values()),

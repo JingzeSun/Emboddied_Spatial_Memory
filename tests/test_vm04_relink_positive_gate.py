@@ -11,10 +11,45 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from cpmt.hashing import seal_graph
 from tests.test_vsmt_public_candidates import graph_fixture, packet_fixture
+from vsmt.vm04_materializer_receipt import make_materializer_receipt
 import vm04_relink_positive_gate as gate
 
 
 class PhysicalRelinkPositiveGateTests(unittest.TestCase):
+    def reseal_materializer(self, public, old_crosswalk, new_crosswalk):
+        materializer_path = public / "materializer.receipt.json"
+        current = gate.audit.read_json(materializer_path)
+        rows = current["frames"]
+        rows[0]["public_packet_sha256"] = gate.audit.sha256(
+            public / "old-observation-packet.json")
+        rows[0]["private_crosswalk_sha256"] = gate.audit.sha256(old_crosswalk)
+        rows[1]["public_packet_sha256"] = gate.audit.sha256(
+            public / "post-observation-packet.json")
+        rows[1]["private_crosswalk_sha256"] = gate.audit.sha256(new_crosswalk)
+        rebuilt = make_materializer_receipt(
+            rows, episode_id=current["episode_id"],
+            route_plan_sha256=current["route_plan_sha256"],
+            raw_episode_manifest_sha256=current["raw_episode_manifest_sha256"],
+            materializer_code_sha256=current["materializer_code_sha256"],
+            materializer_config_sha256=current["materializer_config_sha256"],
+        )
+        materializer_path.unlink()
+        gate.audit.write_new_json(materializer_path, rebuilt)
+        seal_path = public / "relink-proof.seal.json"
+        seal = gate.audit.read_json(seal_path)
+        seal["old_packet_sha256"] = gate.audit.sha256(
+            public / "old-observation-packet.json")
+        seal["post_packet_sha256"] = gate.audit.sha256(
+            public / "post-observation-packet.json")
+        seal["materializer_receipt_sha256"] = gate.audit.sha256(
+            materializer_path)
+        seal_path.unlink()
+        gate.audit.write_new_json(seal_path, seal)
+        marker = public / "relink-proof.seal.success.json"
+        marker.unlink()
+        gate.audit.write_new_json(
+            marker, {"receipt_sha256": gate.audit.sha256(seal_path)})
+
     def case(self, root, *, new_instance="asset:A", old_relation=True,
              new_relation=True):
         public = root / "public"
@@ -38,19 +73,6 @@ class PhysicalRelinkPositiveGateTests(unittest.TestCase):
         }
         for name, content in files.items():
             gate.audit.write_new_json(public / name, content)
-        seal = public / "relink-proof.seal.json"
-        gate.audit.write_new_json(seal, {
-            "schema_version": "vsmt-vm04-relink-public-proof-v1",
-            "old_packet_sha256": gate.audit.sha256(
-                public / "old-observation-packet.json"),
-            "prior_memory_sha256": gate.audit.sha256(
-                public / "prior-memory.json"),
-            "post_packet_sha256": gate.audit.sha256(
-                public / "post-observation-packet.json"),
-        })
-        gate.audit.write_new_json(
-            public / "relink-proof.seal.success.json",
-            {"receipt_sha256": gate.audit.sha256(seal)})
         gate.audit.write_new_json(private, {
             "schema_version": "vsmt-vm04-relink-private-outcome-v1",
             "old_instance_id": "asset:A", "new_instance_id": new_instance,
@@ -73,6 +95,47 @@ class PhysicalRelinkPositiveGateTests(unittest.TestCase):
                               "region_id": "region:0000",
                               "mask_sha256": "5" * 64}],
             })
+        materializer = public / "materializer.receipt.json"
+        gate.audit.write_new_json(materializer, make_materializer_receipt(
+            [
+                {
+                    "observation_index": 0,
+                    "raw_public_frame_sha256": "1" * 64,
+                    "raw_private_masks_sha256": "2" * 64,
+                    "public_packet_sha256": gate.audit.sha256(
+                        public / "old-observation-packet.json"),
+                    "private_crosswalk_sha256": gate.audit.sha256(
+                        old_crosswalk),
+                },
+                {
+                    "observation_index": 1,
+                    "raw_public_frame_sha256": "3" * 64,
+                    "raw_private_masks_sha256": "4" * 64,
+                    "public_packet_sha256": gate.audit.sha256(
+                        public / "post-observation-packet.json"),
+                    "private_crosswalk_sha256": gate.audit.sha256(
+                        new_crosswalk),
+                },
+            ],
+            episode_id="episode:relink", route_plan_sha256="5" * 64,
+            raw_episode_manifest_sha256="6" * 64,
+            materializer_code_sha256="7" * 64,
+            materializer_config_sha256="8" * 64,
+        ))
+        seal = public / "relink-proof.seal.json"
+        gate.audit.write_new_json(seal, {
+            "schema_version": "vsmt-vm04-relink-public-proof-v1",
+            "old_packet_sha256": gate.audit.sha256(
+                public / "old-observation-packet.json"),
+            "prior_memory_sha256": gate.audit.sha256(
+                public / "prior-memory.json"),
+            "post_packet_sha256": gate.audit.sha256(
+                public / "post-observation-packet.json"),
+            "materializer_receipt_sha256": gate.audit.sha256(materializer),
+        })
+        gate.audit.write_new_json(
+            public / "relink-proof.seal.success.json",
+            {"receipt_sha256": gate.audit.sha256(seal)})
         return public, private, old_crosswalk, new_crosswalk
 
     def test_positive_requires_same_instance_and_both_public_relation_proofs(self):
@@ -121,15 +184,7 @@ class PhysicalRelinkPositiveGateTests(unittest.TestCase):
             post["region_observations"][2]["mask_sha256"] = "7" * 64
             post_path.unlink()
             gate.audit.write_new_json(post_path, post)
-            seal_path = public / "relink-proof.seal.json"
-            seal = gate.audit.read_json(seal_path)
-            seal["post_packet_sha256"] = gate.audit.sha256(post_path)
-            seal_path.unlink()
-            gate.audit.write_new_json(seal_path, seal)
-            marker = public / "relink-proof.seal.success.json"
-            marker.unlink()
-            gate.audit.write_new_json(
-                marker, {"receipt_sha256": gate.audit.sha256(seal_path)})
+            self.reseal_materializer(public, old_crosswalk, new_crosswalk)
             verdict = gate.evaluate_physical_relink(
                 public, private, old_crosswalk, new_crosswalk)
             self.assertFalse(verdict["physical_relink_positive"])
@@ -152,12 +207,29 @@ class PhysicalRelinkPositiveGateTests(unittest.TestCase):
             content["bindings"][0]["mask_sha256"] = "6" * 64
             new_crosswalk.unlink()
             gate.audit.write_new_json(new_crosswalk, content)
+            self.reseal_materializer(public, old_crosswalk, new_crosswalk)
             verdict = gate.evaluate_physical_relink(
                 public, private, old_crosswalk, new_crosswalk)
             self.assertFalse(verdict["physical_relink_positive"])
             self.assertFalse(
                 verdict["checks"]["private_crosswalk_bindings_verified"])
             self.assertIn("same_physical_instance", verdict["failure_reasons"])
+
+    def test_crosswalk_change_after_materializer_receipt_is_rejected(self):
+        with TemporaryDirectory() as temp:
+            public, private, old_crosswalk, new_crosswalk = self.case(Path(temp))
+            content = gate.audit.read_json(new_crosswalk)
+            content["bindings"].append({
+                "instance_id": "asset:unused",
+                "region_id": "region:0000",
+                "mask_sha256": "5" * 64,
+            })
+            new_crosswalk.unlink()
+            gate.audit.write_new_json(new_crosswalk, content)
+            with self.assertRaisesRegex(
+                    RuntimeError, "crosswalk provenance"):
+                gate.evaluate_physical_relink(
+                    public, private, old_crosswalk, new_crosswalk)
 
 
 if __name__ == "__main__":
