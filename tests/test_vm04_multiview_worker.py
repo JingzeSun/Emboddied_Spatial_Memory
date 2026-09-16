@@ -222,6 +222,10 @@ class MultiviewWorkerTests(unittest.TestCase):
         contract["authorization"]["generation_authorized"] = True
         contract["observation_trajectory"][
             "registered_action_request_templates"] = ACTION_REQUESTS
+        contract["crosswalk_provenance"][
+            "expected_materializer_code_sha256"] = "1" * 64
+        contract["crosswalk_provenance"][
+            "expected_materializer_config_sha256"] = "2" * 64
         numeric = contract["l2_identifiability_admission_gate"][
             "numeric_review_required_before_generation"]
         numeric["CFO_and_public_history_probe_architecture"] = {"test": True}

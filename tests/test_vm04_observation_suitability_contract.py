@@ -71,14 +71,20 @@ class ObservationSuitabilityContractTests(unittest.TestCase):
         provenance = self.contract["crosswalk_provenance"]
         self.assertEqual(
             provenance["status"],
-            "pending_trusted_materializer_receipt_implementation")
+            "receipt_schema_and_gate_binding_implemented_materializer_executor_pending")
         self.assertTrue(
             provenance["required_before_any_physical_relink_positive"])
         self.assertIn("private_crosswalk_sha256",
                       provenance["planned_receipt_must_bind"])
         self.assertEqual(
             provenance["gate_behavior_until_implemented"],
-            "no_real_physical_relink_positive_may_be_issued")
+            "no_real_physical_relink_positive_may_be_issued_until_materializer_executor_is_reviewed_and_receipt_is_present")
+        self.assertIsNone(provenance["expected_materializer_code_sha256"])
+        self.assertIsNone(provenance["expected_materializer_config_sha256"])
+        self.assertIn(
+            "implement_and_review_trusted_materializer_executor_and_parent_stage_binding",
+            self.contract["pre_generation_blockers"],
+        )
 
     def test_lifecycle_visibility_is_checked_until_terminal(self):
         policy = self.contract["lifecycle_poststate_policy"]

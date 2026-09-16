@@ -130,6 +130,10 @@ def assert_generation_authorized(contract: Mapping[str, Any]) -> None:
     blockers = {
         "registered_action_request_templates": record["observation_trajectory"]
         ["registered_action_request_templates"],
+        "materializer_code_sha256": record["crosswalk_provenance"]
+        ["expected_materializer_code_sha256"],
+        "materializer_config_sha256": record["crosswalk_provenance"]
+        ["expected_materializer_config_sha256"],
         "shared_probe_architecture": record["l2_identifiability_admission_gate"]
         ["numeric_review_required_before_generation"]
         ["CFO_and_public_history_probe_architecture"],
