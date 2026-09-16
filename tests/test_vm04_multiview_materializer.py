@@ -60,6 +60,8 @@ def _materialize(public_raw, private_raw, index):
     entity = next(
         row for row in packet["region_observations"]
         if row["structure_kind"] == "entity")
+    entity["mask_sha256"] = materializer._mask_sha256(
+        private_raw["instance_masks"][0])
     return {
         "public_packet": packet,
         "private_crosswalk": {
@@ -167,6 +169,36 @@ class MultiviewMaterializerTests(unittest.TestCase):
                 "materialized/private/materializer.failure.json"
             )).read_text(encoding="utf-8"))
             self.assertIn("opaque ordinals", private_failure["exception_message"])
+
+    def test_crosswalk_cannot_bind_instance_to_a_different_public_mask(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            episode = Path(temporary) / "episode"
+            _build_raw_episode(episode)
+
+            def wrong_mask(public_raw, private_raw, index):
+                output = _materialize(public_raw, private_raw, index)
+                entity = next(
+                    row for row in output["public_packet"]["region_observations"]
+                    if row["structure_kind"] == "entity")
+                entity["mask_sha256"] = "f" * 64
+                output["private_crosswalk"]["bindings"][0][
+                    "mask_sha256"] = "f" * 64
+                return output
+
+            result = materializer.materialize_episode_core(
+                episode, materialize_frame=wrong_mask,
+                materializer_code_sha256=CODE_SHA,
+                materializer_config_sha256=CONFIG_SHA,
+            )
+            self.assertEqual(result["status"], "materialized_failure")
+            self.assertEqual(result["frame_count"], 0)
+            private_failure = json.loads((episode / (
+                "materialized/private/materializer.failure.json"
+            )).read_text(encoding="utf-8"))
+            self.assertIn(
+                "uniquely bind a public entity mask",
+                private_failure["exception_message"],
+            )
 
     def test_production_entry_refuses_before_read_or_output(self):
         contract = copy.deepcopy(CONTRACT)

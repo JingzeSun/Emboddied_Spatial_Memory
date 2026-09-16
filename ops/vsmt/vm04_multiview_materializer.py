@@ -58,6 +58,15 @@ def _sha_value(value: Any) -> str:
     return hashlib.sha256(canonical_json(value).encode("utf-8")).hexdigest()
 
 
+def _mask_sha256(mask: Any) -> str:
+    value = np.ascontiguousarray(mask, dtype=np.uint8)
+    _require(value.ndim == 2, "private instance mask must be two-dimensional")
+    height, width = value.shape
+    return _sha_value([
+        int(height), int(width), *value.reshape(-1).tolist(),
+    ])
+
+
 def _hex64(value: Any, name: str) -> str:
     _require(type(value) is str and HEX64.fullmatch(value) is not None,
              f"{name} must be a lowercase SHA-256")
@@ -213,7 +222,7 @@ def _load_verified_frame(
 
 
 def _validate_materialized_pair(
-    output: Mapping[str, Any], private_ids: list[str], index: int,
+    output: Mapping[str, Any], private_raw: Mapping[str, Any], index: int,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     _require(type(output) is dict and set(output) == {
         "public_packet", "private_crosswalk",
@@ -227,6 +236,15 @@ def _validate_materialized_pair(
              type(crosswalk["frame_role"]) is str and
              crosswalk["frame_role"] and type(crosswalk["bindings"]) is list,
              "private crosswalk schema changed")
+    private_ids = list(private_raw["private_instance_ids"])
+    private_masks = np.asarray(private_raw["instance_masks"])
+    _require(private_masks.ndim == 3 and
+             private_masks.shape[0] == len(private_ids),
+             "verified private raw mask stack changed")
+    raw_mask_sha256_by_instance = {
+        private_id: _mask_sha256(private_masks[private_index])
+        for private_index, private_id in enumerate(private_ids)
+    }
     private_set = set(private_ids)
     public_regions = {
         row["region_id"]: row for row in packet["region_observations"]
@@ -241,6 +259,8 @@ def _validate_materialized_pair(
                  row["instance_id"] not in seen_instances and
                  row["region_id"] not in seen_regions and
                  _hex64(row["mask_sha256"], "mask_sha256") and
+                 raw_mask_sha256_by_instance[row["instance_id"]] ==
+                 row["mask_sha256"] and
                  row["region_id"] in public_regions and
                  public_regions[row["region_id"]]["mask_sha256"] ==
                  row["mask_sha256"],
@@ -279,7 +299,7 @@ def materialize_episode_core(
                 episode_root, index, public_row, private_row)
             packet, crosswalk = _validate_materialized_pair(
                 materialize_frame(public_raw, private_raw, index),
-                private_raw["private_instance_ids"], index)
+                private_raw, index)
             packet_path = public_output / f"frame_{index:04d}.json"
             crosswalk_path = private_output / f"frame_{index:04d}.json"
             _write_new_json(packet_path, packet)
@@ -386,7 +406,7 @@ def verify_materialized_episode(
         _validate_materialized_pair({
             "public_packet": _read_json(packet_path),
             "private_crosswalk": _read_json(crosswalk_path),
-        }, private_raw["private_instance_ids"], index)
+        }, private_raw, index)
     return {
         "status": "materialized_verified",
         "frame_count": receipt["frame_count"],
