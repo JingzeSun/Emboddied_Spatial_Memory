@@ -1784,3 +1784,13 @@
 - 产出分两批但不共享house：先推荐6个pilot family，只查路线、visibility state和构造成品率，永久排除准入门、VM-05和VM-06；pilot与正式house清单均须在pilot前按result-blind manifest hash顺序封存且互不相交，pilot后若改合同必须新版本。正式批推荐一次性预登记48个source house，失败不补且观察结果后不得追加house；少于32个完成family则构造门失败，不运行可辨识性门。`pilot=6/source=48/completed=32`仍在推荐区，所有冻结字段为null。
 - 生命周期低优先缺口一并修复：Enable在下一注册相机event确认重现后进入enabled集合，剩余每个注册相机event持续要求可见至frame31；再次消失记`enabled_target_disappeared_before_terminal`。这只修原静态worker的D-168终态证据，未来多视角runner应按其预登记终端重现窗口另实现，不能机械复用“所有后续视角持续可见”。
 - 白话：输入是看不见动作的公开窗口、固定一套probe和预先列好的6+48个house，输出固定分母上的数据准入结论。例如pilot发现MoveAhead频繁撞墙，可以改合同并重开新版本，但这6个房永远不混进正式32个成功family。它不是允许看到失败后继续抽房，也没有开放服务器。
+
+
+## D-183：D-182审查冻结、机器口径对齐与后续修订提案
+
+- 日期：2026-09-16；状态：D-182设计和数值已获用户批准用于下一轮精确schema/实现审查，**不批准任何运行**。冻结的审查值为：关键pose与相对程序前提pose的终端重现各至少0.5 m平移、关键yaw差至少30°、每visibility state至少2个公开时刻、路线最多24步、实际pose容差2 cm/1°；CFO/history使用一个共同预登记结构并按house family配对，history−CFO单侧95%区间下界须>15个百分点，CFO≤60%，sealed-catalog oracle recall≥90%，family bootstrap 10000次、seed 260916；6个pilot永久排除统计/VM-05/VM-06，正式一次性登记48个source house且失败不补，至少32个完成family。24完成family并改为“均值≥15pp且下界>0”的省资源备选明确未采用，因为它削弱“历史优势至少15pp”的区间保证。
+- Claude审查K项是机器合同与D-182正文不一致，现直接对齐且不改变上述科学口径：旧固定视角worker的Enable后逐注册帧持续可见规则标为`scope=fixed_view_worker_only`；未来多视角runner的terminal reobservation window保持`null`并作为实现/运行阻断；少于32个完成family的机器动作固定为构造门失败，不运行可辨识性门、VM-05或VM-06。共享probe精确结构/训练预算、visibility builder、materializer receipt、终端窗口、runner及schema尚未实现；基础合同所有授权位继续false。
+- L项判断成立但会改变D-182固定48，因此只作为独立[D-183机器提案](../configs/vsmt/vm04_observation_suitability_d183_amendment_proposal_v1.json)，未获并入。为避免pilot后人工挑N，pilot前须封存至少70个合格house的确定顺序；pilot只能给出6个family的构造完成布尔。推荐离散规则为完成5–6个时正式N=48，完成4个时N=64，完成0–3个时停止并另立版本；正式house始终取pilot之后的前N个，不得按失败追加。没有采用`ceil(32/pilot_yield)`点估计公式，因为在4/6时仍给N=48，若点估计准确，完成数低于32的概率约一半，缺少构造余量。
+- M项判断成立但改变逐原子主张资格，故仍是提案：九种登记program必须逐类报告CFO accuracy、history accuracy及配对差；任一program的CFO超过冻结60%上限时，该program标`easy_class`，仍保留在聚合门分母且不得重标/删除/补样，但不允许作为该原子的单独证据。它不自动阻断整批，聚合三门仍照D-182运行；若以后要改成任一easy class阻断整批，须新决议而不能看结果后选择。
+- N项判断成立且与既有SPLIT/MERGE语义一致，但精确构造仍未完成。程序分配必须在生成前由冻结几何、相机路线和公开前端确定：SPLIT从远距/遮挡pose的一个公开欠分区域转为近距重现的两个公开区域；MERGE从旧前缀预登记关联断裂形成的两个公开track转为重现时支持同一结构。private身份只可在public/candidate封存后评分；伪影不复现就记原program构造失败，绝不按观察结果改标签。fresh replay重复次数、几何参数和公开前端伪影判据仍为null并阻断schema实现完成及运行。
+- 白话：这条决议把已经批准的严格数字与仍待批准的改动分开。输入是D-182关闭合同和Claude的四项审查，输出一个可查的D-182冻结版本及一个全关的D-183提案。例如pilot完成4/6时，D-183建议从事前排序中用64个正式house；SPLIT欠分若第二次不出现就保留失败，不临时改成BIND。它不授权pilot、正式生成、probe训练、VM-05或confirmation。

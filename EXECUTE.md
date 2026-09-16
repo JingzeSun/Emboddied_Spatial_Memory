@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| VM-04观察适用性 | D-181/182确认原静态36槽不运行；新合同要求真实平移、不可观测窗口内干预、自然遮挡/出视野后重现、crosswalk receipt及单probe配对CFO硬门。推荐6个排除pilot、48个固定正式house、至少32个完成family，均未冻结且全部执行位关闭。旧worker另补Enable后持续到终帧检查。0新episode/训练/记忆正例。LOG-169–171。 |
+| VM-04观察适用性 | D-181/182确认原静态36槽不运行；D-182设计/数值已批准用于精确schema/实现审查：真实平移、不可观测窗口内干预、自然遮挡/出视野后重现、crosswalk receipt、单probe配对CFO硬门、6个排除pilot、48个正式house及至少32个完成family。D-183的pilot自适应N、逐program easy-class规则及确定性SPLIT/MERGE构造仍待裁决；全部执行位关闭。0新episode/训练/记忆正例。LOG-169–172。 |
 | VSMT首篇/VM-01～04 | 旧两房stage及16完整/20构造失败封存。D-162仅开放v2固定两房、D=1.0 m纯视角扫描；服务器合同252/252及两family扫描均成功，各选18个pose、0 episode。原前18均来自18个位置，空间筛选降低top-2集合重复，但top-1仍重复10/11次；报告摘要`575d34d0…089f32`。生成/private、训练、validation效果、confirmation与L2继续关闭。LOG-152–153，D-162–163 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
 | R4三模型接入 | D完整适配16项通过（121/200全反向，0更新），W完整适配17项亦通过，F完整适配19项通过；真实公共接口27/27候选通过，0优化/真值读取。209bb34，LOG-123–127 |
@@ -1863,3 +1863,12 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 合同现要求world intervention前公开目标状态已封存为occluded/out-of-view，仍可见就记`intervention_visible_to_camera`；CFO/history共用单一结构，按family配对。推荐值改为6个永久排除pilot、48个预登记正式house、至少32个完成family；正式失败不追加house。所有实际字段仍null、执行位false。
 - 原固定raw worker在Enable后的第一帧通过后把目标转入enabled集合，随后每个注册相机event检查到终帧；frame27再次消失的人工例保留`enabled_target_disappeared_before_terminal`。该规则服务旧固定视角证据，不预先决定新多视角episode在非终端视角必须持续看见目标。
 - 白话：这次只把“什么时候允许动作、怎样公平比较当前帧与历史、失败房是否能补、Enable后是否稳定”写成不可偷换的合同和人工测试；没有产生可用数据，也没有批准6或48个house运行。
+
+
+## LOG-172：D-182审查数值冻结与D-183修订提案（2026-09-16）
+
+- 用户批准D-182设计和数值只进入下一轮精确schema/实现审查，明确不批准运行。机器合同现冻结0.5 m关键/重现平移、30° yaw、每状态2个公开时刻、24步、2 cm/1°容差，以及按family配对的history−CFO单侧95%下界>15pp、CFO≤60%、oracle recall≥90%、10000次bootstrap/seed 260916、6 pilot、48正式来源house和至少32完成family。24-family且“均值≥15pp、下界>0”的省资源备选未采用。共享probe精确结构/预算、多视角终端重现窗口、visibility builder、materializer receipt及runner仍为空或未实现；所有执行位false。
+- Claude的K项作为不改变科学含义的机器/文字对齐纳入D-182：Enable后持续可见规则显式限定`fixed_view_worker_only`，新多视角runner必须另冻终端重现窗口；少于32个完成family时机器动作明确为构造门失败且不运行可辨识性门、VM-05或VM-06。
+- L/M/N没有暗并入已批准D-182，另建执行关闭的D-183提案。建议pilot前封存至少70个house的确定顺序，仅由6个pilot的构造完成数决定正式前缀：5–6个取48、4个取64、0–3个停止；九类program逐类报告，CFO超60%的类保留总体分母但失去单独原子证据资格；SPLIT/MERGE必须由预登记几何、路线和冻结公开前端产生可复验伪影，未实现记失败而不改标签。精确伪影参数仍为null。
+- 本地机器合同定向测试12/12、全部`test_vm04_*`模块109/109及两房入口内嵌合同252/252通过；覆盖D-182授权全关、数值、固定视角scope、少于32的停止动作、D-183与D-182字节绑定、自适应N离散规则、easy class分流和SPLIT/MERGE禁止事后贴标签。入口只运行本地合同测试，未做source inventory；没有服务器连接、模拟器动作、episode、probe训练或confirmation。
+- 白话：本轮把已批准的严格门变成机器可查数字，同时把会改变48固定分母和逐原子证据资格的建议留在独立提案里。例如pilot只有4/6完成时，D-183建议事前固定顺序中取64个正式house；3/6则停止，而不是靠`32/成品率`得到一个大约一半概率不够数的N。它不批准pilot或正式生成。
