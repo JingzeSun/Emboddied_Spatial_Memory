@@ -99,9 +99,47 @@ def _actions(program, frame_index, targets, metadata):
     return old.intervention_actions(program, frame_index, targets, metadata)
 
 
+class InterventionPoststateMismatch(RuntimeError):
+    """The simulator accepted a lifecycle action but its mask did not change."""
+
+
+def _target_mask_pixels(event, object_id):
+    """Read private target support from the action event, never public output."""
+    import numpy as np
+
+    masks = getattr(event, "instance_masks", {}) or {}
+    mask = masks.get(object_id)
+    return 0 if mask is None else int(np.asarray(mask, dtype=np.bool_).sum())
+
+
+def _action_record(frame_index, request, event):
+    """Record the immediate private lifecycle poststate."""
+    diagnostic = old.intervention_event_diagnostic(event)
+    record = {"frame_index": frame_index, "request": request,
+              "diagnostic": diagnostic}
+    if request["action"] in {"DisableObject", "EnableObject"}:
+        support = _target_mask_pixels(event, request["objectId"])
+        record["target_mask_visible_pixels"] = support
+    return record
+
+
+def _validate_action_poststate(record):
+    request = record["request"]
+    if request["action"] not in {"DisableObject", "EnableObject"}:
+        return
+    support = record["target_mask_visible_pixels"]
+    expected_visible = request["action"] == "EnableObject"
+    if (support > 0) != expected_visible:
+        raise InterventionPoststateMismatch(
+            "%s returned success but target mask support was %s" %
+            (request["action"], support))
+
+
 def _failure_reason(error):
     if isinstance(error, KnownEndpointFailure):
         return "prior_D173_fixed_endpoint_collision"
+    if isinstance(error, InterventionPoststateMismatch):
+        return "intervention_poststate_mismatch"
     if isinstance(error, old.ResourceStop):
         return "resource_stop_with_prefix"
     if isinstance(error, ValueError):
@@ -149,10 +187,10 @@ def run_slot(house, task, episode_root, family_byte_limit, *,
         event = initial
         for request in _actions(task["program"], -1, targets, metadata):
             event = controller.step(**request)
-            actions.append({"frame_index": -1, "request": request,
-                            "diagnostic": old.intervention_event_diagnostic(event)})
+            actions.append(_action_record(-1, request, event))
             require(event.metadata.get("lastActionSuccess") is True,
                     "registered setup intervention rejected")
+            _validate_action_poststate(actions[-1])
         for frame_index in range(32):
             if task["program"] == "RELINK" and frame_index == 24:
                 raise KnownEndpointFailure("D-173 fixed endpoint collision")
@@ -160,10 +198,10 @@ def run_slot(house, task, episode_root, family_byte_limit, *,
                                      targets, metadata)
             for request in frame_actions:
                 event = controller.step(**request)
-                actions.append({"frame_index": frame_index, "request": request,
-                                "diagnostic": old.intervention_event_diagnostic(event)})
+                actions.append(_action_record(frame_index, request, event))
                 require(event.metadata.get("lastActionSuccess") is True,
                         "registered intervention rejected")
+                _validate_action_poststate(actions[-1])
             agent_action, command = old.registered_agent_action(
                 task["replicate"], frame_index)
             event = controller.step(**agent_action)

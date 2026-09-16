@@ -42,6 +42,32 @@ class Controller:
         self.stopped = True
 
 
+class LifecycleController(Controller):
+    def __init__(self, apply_poststate):
+        super().__init__()
+        self.apply_poststate = apply_poststate
+        self.event.instance_masks = {
+            "private-fixed-asset": np.ones((4, 4), dtype=np.uint8)}
+
+    def step(self, **request):
+        self.requests.append(request)
+        if self.apply_poststate and request["action"] == "DisableObject":
+            self.event.instance_masks = {}
+        if self.apply_poststate and request["action"] == "EnableObject":
+            self.event.instance_masks = {
+                "private-fixed-asset": np.ones((4, 4), dtype=np.uint8)}
+        return self.event
+
+
+class RejectedLifecycleController(LifecycleController):
+    def step(self, **request):
+        event = super().step(**request)
+        if request["action"] == "DisableObject":
+            event.metadata["lastActionSuccess"] = False
+            event.metadata["errorMessage"] = "rejected"
+        return event
+
+
 def fake_capture(event, public_dir, private_dir, index, actions, targets,
                  past_actions):
     public = public_dir / ("frame_%04d" % index)
@@ -77,11 +103,11 @@ class FixedSlotRawWorkerTests(unittest.TestCase):
                      "semantic_positive_label_issued": False,
                      "endpoint_failure_evidence": None}
 
-    def _run(self, task):
+    def _run(self, task, controller=None):
         temp = TemporaryDirectory()
         self.addCleanup(temp.cleanup)
         output = Path(temp.name) / "episode"
-        controller = Controller()
+        controller = controller or Controller()
         with patch.object(worker.old, "teleport_to_initial_viewpoint",
                           return_value=controller.event):
             result = worker.run_slot(
@@ -89,6 +115,48 @@ class FixedSlotRawWorkerTests(unittest.TestCase):
                 make_controller=lambda _: controller,
                 capture_frame=fake_capture)
         return output, result, controller
+
+    def test_lifecycle_api_success_without_mask_poststate_is_retained_failure(self):
+        task = dict(self.task, program="BIRTH")
+        controller = LifecycleController(apply_poststate=False)
+        with patch.object(worker, "private_targets",
+                          return_value=["private-fixed-asset"]):
+            output, result, _ = self._run(task, controller)
+        self.assertFalse(result["raw_complete"])
+        self.assertEqual(result["reason"], "intervention_poststate_mismatch")
+        failure = json.loads(
+            (output / "private/construction-failure.json").read_text())
+        self.assertEqual(failure["actions"][0]["request"]["action"],
+                         "DisableObject")
+        self.assertEqual(
+            failure["actions"][0]["target_mask_visible_pixels"], 16)
+
+    def test_lifecycle_requires_disable_and_enable_mask_poststates(self):
+        task = dict(self.task, program="BIRTH")
+        controller = LifecycleController(apply_poststate=True)
+        with patch.object(worker, "private_targets",
+                          return_value=["private-fixed-asset"]):
+            output, result, _ = self._run(task, controller)
+        self.assertTrue(result["raw_complete"])
+        actions = json.loads(
+            (output / "private/intervention.json").read_text())["actions"]
+        self.assertEqual(
+            [(row["request"]["action"], row["target_mask_visible_pixels"])
+             for row in actions],
+            [("DisableObject", 0), ("EnableObject", 16)])
+
+    def test_rejected_lifecycle_action_remains_in_private_failure(self):
+        task = dict(self.task, program="BIRTH")
+        controller = RejectedLifecycleController(apply_poststate=False)
+        with patch.object(worker, "private_targets",
+                          return_value=["private-fixed-asset"]):
+            output, result, _ = self._run(task, controller)
+        self.assertFalse(result["raw_complete"])
+        failure = json.loads(
+            (output / "private/construction-failure.json").read_text())
+        self.assertEqual(len(failure["actions"]), 1)
+        self.assertFalse(
+            failure["actions"][0]["diagnostic"]["last_action_success"])
 
     def test_nonintervention_writes_32_public_frames_with_no_private_target(self):
         output, result, controller = self._run(self.task)
