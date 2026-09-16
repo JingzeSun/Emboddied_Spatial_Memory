@@ -26,9 +26,9 @@
 
 **D-182新观察适用性合同（设计/数值已批准用于schema审查，执行关闭）：** [机器合同](../configs/vsmt/vm04_observation_suitability_proposal_v1.json)把初始`TeleportFull`限制在观测0之前，之后路线只由公开可达信息预登记并用实际pose验收；每个family必须同时包含“自然遮挡后重现”和“出视野后重现”分支，每个episode先满足对应程序的公开前提，再在公开封存的`occluded/out_of_view`窗口执行适用的world intervention，并从相对前提pose真实平移后的视角观察目标或关系。已批准审查值为关键/重现平移各≥0.5 m、关键yaw≥30°、每状态≥2个公开时刻、路线≤24步、pose容差2 cm/1°；严格门为按family配对的history−CFO单侧95%区间下界>15个百分点、CFO≤60%、sealed-catalog oracle recall≥90%、10000次bootstrap/seed 260916；6个pilot永久排除，48个正式house失败不补，少于32个完成family即停止。24-family且“均值≥15pp、下界>0”的省资源口径未采用，因为它不再保证历史优势下界超过15pp。固定视角worker的Enable后逐帧可见规则已标`fixed_view_worker_only`；多视角终端重现窗口仍为null，精确probe结构和训练预算也为null，因此机器合同继续fail closed且所有授权位为false。
 
-**D-183规则已批准并进入精确schema/实现审查，执行关闭：** [基础合同](../configs/vsmt/vm04_observation_suitability_proposal_v1.json)已合入70-house固定顺序、6-family pilot离散N、逐program easy-class和禁止SPLIT/MERGE事后贴标签。D-200已绑定visibility route/worker receipt并提供无默认值公开matcher；D-201已绑定terminal前causal prior、materializer与matcher audit，失败保留为`construction_failure`。D-202候选已在受审materializer内实现terminal raw加载前的plan/prior seal，但父stage request的公开派生与无提前terminal访问还未证明，因此正匹配仍为`temporal_seal_pending`且不得进入family。公开前端、context builder、多帧callback、materializer v2 receipt、assets receipt、真实DINO loader和逐文件代码manifest核心均已有关闭的受测实现；尚无真实reachable扫描采集和父stage资源派发。正式SAM/assets、matcher/visibility数值、edge RETRACT跨时负证据、动作幅度、时间/动作编码、前端/bootstrap值、受审commit/manifest摘要、SPLIT/MERGE参数及共享probe结构/预算继续未冻结，所有运行仍关闭。
+**D-183规则已批准并进入精确schema/实现审查，执行关闭：** [基础合同](../configs/vsmt/vm04_observation_suitability_proposal_v1.json)已合入70-house固定顺序、6-family pilot离散N、逐program easy-class和禁止SPLIT/MERGE事后贴标签。D-200已绑定visibility route/worker receipt与公开matcher；D-201已绑定terminal前causal prior、materializer与matcher audit；D-202已获认可并实现terminal raw加载前plan/prior seal与失败保留。D-203候选再从public route、预登记selector和`terminal-1` memory确定派生request refs，但selector spec的提前封存与D-202 receipt消费尚未实现，因此`temporal_seal_pending`与family阻断不变。公开前端、context builder、多帧callback、materializer v2 receipt、assets receipt、真实DINO loader和逐文件代码manifest核心均已有关闭的受测实现；尚无真实reachable扫描采集和父stage资源派发。正式SAM/assets、matcher/visibility数值、edge RETRACT跨时负证据、动作幅度、时间/动作编码、前端/bootstrap值、受审commit/manifest摘要、SPLIT/MERGE参数及共享probe结构/预算继续未冻结，所有运行仍关闭。
 
-**D-202在线plan时间封存候选：** materializer已可在`terminal-1`公开memory更新后、terminal公开/私有raw帧加载前封存construction plan与matcher prior，并在后续加载失败时保留append-only seal。但调用方request是否由父stage在未预读terminal数据时从公开状态派生尚未证明，离线episode receipt也尚不消费该seal。因此D-201正匹配仍保持`temporal_seal_pending`，family完成仍false，全部运行位不变。
+**D-202已认可，D-203父stage request派生核心候选：** materializer已可在`terminal-1`公开memory更新后、terminal公开/私有raw帧加载前封存plan/prior并保留失败现场。D-203再让父核心仅从sealed public route、预登记稳定public node ID/规则和`terminal-1` causal memory确定派生九类precondition version refs，其API不接受episode/raw path，也禁止调用者手填version ID。但selector spec的提前时间封存、D-202对D-203 receipt的消费和离线episode receipt升级都尚未实现，因此D-201仍保持`temporal_seal_pending`，family仍false，全部运行位不变。
 
 ### VM-04新数据生成前待做清单（当前执行关闭）
 
@@ -52,7 +52,7 @@
 - [ ] 把当前注入式`public_capture`替换为生产visibility builder：逐帧仅用公开RGB-D/depth/pose和先前封存公开track/locus产生`visible/occluded/out_of_view/reobserved`与证据摘要，并实现自然遮挡、出视野及连续终端重现的真实验收。
   - D-199候选已实现公开世界点封存与当前depth投影核心；D-200已把builder receipt接入route scan和worker并在private intervention前验subject/config/index/depth/camera/assessment摘要。正式数值未冻、生产callback仍未替换，故仍不勾选。
 - [ ] 实现九类program的公开前提构造与验收：NOOP/BIND及生命周期类须有对应公开旧记忆条件；SPLIT/MERGE只走上述预登记确定性几何；不能用旧静态worker的private target规则或事后标签。
-  - D-199候选已实现九类结构前提槽和SPLIT/MERGE逐replay回执；D-200新增无默认值公开充分matcher、route receipt绑定及九类正反例，明确不证明身份真值。D-201已把matcher receipt接到单episode materializer/causal/terminal packet摘要链并保留construction failure；D-202候选新增terminal raw加载前的plan/prior seal与失败现场，但父stage request公开派生和无提前terminal访问尚未证明，故仍不解除`temporal_seal_pending`或进入family。正式matcher数值、edge RETRACT跨时公开关系缺席证据和父stage family聚合仍缺，故仍不勾选。
+  - D-199已实现九类结构前提和SPLIT/MERGE回执，D-200已实现公开matcher和route receipt绑定，D-201/D-202已绑单episode audit与terminal前plan seal。D-203候选已覆盖九类公开selector→current version refs的确定派生，RELINK唯一复算open `located_at`，edge RETRACT仍阻断。selector spec提前封存、D-202消费D-203 receipt、正式matcher数值和family聚合仍缺，故仍不勾选。
 - [ ] 把当前注入式`private_intervention`替换为生产执行器：BIRTH/REACTIVATE/RETRACT/REPLACE逐动作保存真实API回执和后态；动作只可在已封存`occluded/out_of_view`窗口发生，失败保留且不补样。
 - [ ] 完成新RELINK物理路径：动作前由公开旧关系、可达格和匿名目标封存P1/P2及有限分支；执行不强制推/拉或经真实API smoke的抓放，逐步保留失败与真实后态。正例仍须同时满足同一物理实体、公开旧关系和公开新关系，原D-173四个碰撞槽不得回填。
 - [ ] 把raw→context→真实DINO/公开前端→packet/crosswalk→causal prior→materializer v2 receipt接成一个生产episode单元；crosswalk只含机械`observation_index`，部署reader不得打开private文件。
@@ -75,7 +75,7 @@
 
 以下工作不属于“开始生成前”的开闸条件，但属于生成后进入VM-05前的验收：逐program私有语义评价、sealed-catalog oracle recall、CFO/history按family配对的严格可辨识性门、easy-class标注、至少32个完成family、候选/teacher分层错误统计。它们不能反过来修改本版生成规则或补样。
 
-**当前用户交审拆分（按D-059停止继续堆叠）：** 用户已正式认可D-201；D-202现只交审materializer内部的在线plan时间封存与失败保留。它不证明父stage request来源安全，不消费D-201 offline receipt，不实现family完成聚合。下一批须等D-202口径与代码审查后，才可独立实现父stage从公开状态派生request且证明未提前访问terminal的收据链；仍不得越过null的matcher/visibility/SAM数值、edge RETRACT证据缺口或未审时序链去聚合family或开放运行父stage。现有封装保持fail closed并保留测试。
+**当前用户交审拆分（按D-059停止继续堆叠）：** 用户已正式认可D-202；D-203现只交审父核心从公开route、预登记selector和`terminal-1` memory确定派生request的边界。本批不把selector spec的字段选择自报写成时间证明，不让D-202消费D-203 receipt，不改D-201或family状态。下一批须等D-203审查后，才可独立实现selector spec在terminal前的父级编排seal和D-202收据链消费；仍不得越过null的matcher/visibility/SAM数值、edge RETRACT证据缺口或未审时序链去聚合family或开放运行。
 
 
 **独立RELINK新数据版本（proposed，D-176停止线未重开）：** [方法与正反例](METHOD.md)和[拟议公私字段](DATA.md)已记录机器人实际路径、公开旧/新关系、候选先封存及私有同一身份/后态的分层验收口径。输入只能是公开当前RGB-D、此前预测记忆和预登记动作；输出须分别报告物理失败、事务前提缺口、公开证据缺口、candidate miss和executor/teacher错误。例如原四槽仍保持碰撞失败，独立新版本即使找到一条推椅子到P2的路线也不得回填原槽。该版本尚无冻结配置、公开容器读取器、真实`PutObject` smoke、可执行机器人RELINK回执或记忆正例；执行新分支仍需单独裁决和代码审查。
