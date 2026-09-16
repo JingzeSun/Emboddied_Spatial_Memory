@@ -28,6 +28,8 @@ CONTRACT = json.loads((
     ROOT / "configs/vsmt/vm04_observation_suitability_proposal_v1.json"
 ).read_text(encoding="utf-8"))
 SHA = "0" * 64
+SUBJECT_SHA = "a" * 64
+VISIBILITY_CONFIG_SHA = "b" * 64
 ACTION_REQUESTS = {
     "RotateRight": {"action": "RotateRight", "degrees": 30.0},
     "RotateLeft": {"action": "RotateLeft", "degrees": 30.0},
@@ -53,6 +55,8 @@ def _plan():
         "branch_type": "natural_occlusion_then_reobservation",
         "visibility_subject_kind": "target_track",
         "visibility_subject_public_ref": "subject:0001",
+        "visibility_subject_seal_sha256": SUBJECT_SHA,
+        "visibility_builder_config_sha256": VISIBILITY_CONFIG_SHA,
         "initial_pose": {"x_m": 0.0, "y_m": 0.9, "z_m": 0.0,
                          "yaw_deg": 0.0},
         "registered_actions": [
@@ -116,8 +120,16 @@ class Controller:
 def _extract_public_frame(event, observation_index):
     return {
         "rgb": b"rgb",
-        "depth_m": (1.0,),
-        "camera": {"projection": "public"},
+        "depth_m": np.ones((2, 3), dtype=np.float32),
+        "camera": {
+            "calibration": {
+                "fx": 1.0, "fy": 1.0, "cx": 1.0, "cy": 0.5,
+            },
+            "pose": {
+                "position_m": [0.0, 0.9, 0.0],
+                "quaternion_xyzw": [0.0, 0.0, 0.0, 1.0],
+            },
+        },
         "source_frame_sha256": SHA,
         "private_fields_removed": True,
     }
@@ -141,17 +153,36 @@ def _capture(hidden_visible=False, seen_frames=None):
             projected, unoccluded, support = 5, 5, SHA
         else:
             projected, unoccluded, support = 5, 5, SHA
-        return {
-            "visibility_assessment": make_public_visibility_assessment(
-                subject_public_ref=subject_ref,
-                subject_reference_sealed_before_frame=True,
-                projected_public_sample_count=projected,
-                unoccluded_public_sample_count=unoccluded,
-                current_public_support_sha256=support,
-                terminal_reobservation_phase=terminal,
-            ),
-            "public_evidence_sha256": SHA,
+        assessment = make_public_visibility_assessment(
+            subject_public_ref=subject_ref,
+            subject_reference_sealed_before_frame=True,
+            projected_public_sample_count=projected,
+            unoccluded_public_sample_count=unoccluded,
+            current_public_support_sha256=support,
+            terminal_reobservation_phase=terminal,
+        )
+        receipt = {
+            "schema_version":
+                "vsmt-vm04-public-visibility-builder-receipt-v1",
+            "subject_seal_sha256": SUBJECT_SHA,
+            "current_observation_index": index,
+            "current_public_depth_sha256":
+                worker.public_depth_array_sha256(frame["depth_m"]),
+            "camera_calibration_and_pose_sha256":
+                worker.public_camera_calibration_and_pose_sha256(
+                    frame["camera"]["calibration"], frame["camera"]["pose"],
+                ),
+            "config_sha256": VISIBILITY_CONFIG_SHA,
+            "assessment_sha256": assessment["assessment_sha256"],
+            "invalid_or_missing_depth_treated_as_unoccluded": True,
         }
+        receipt["receipt_sha256"] = _sha(receipt)
+        return {
+            "visibility_assessment": assessment,
+            "visibility_builder_receipt": receipt,
+            "public_evidence_sha256": receipt["receipt_sha256"],
+        }
+
     return capture
 
 
@@ -191,6 +222,56 @@ class MultiviewWorkerTests(unittest.TestCase):
         self.assertEqual(result["reason"], "intervention_visible_to_camera")
         self.assertEqual(interventions, [])
         self.assertEqual(len(result["public_observation_prefix"]), 4)
+
+    def test_tampered_visibility_receipt_stops_before_private_action(self):
+        controller = Controller()
+        interventions = []
+        valid_capture = _capture()
+
+        def tampered(frame, index, subject_ref, terminal):
+            value = valid_capture(frame, index, subject_ref, terminal)
+            if index == 3:
+                value["visibility_builder_receipt"][
+                    "subject_seal_sha256"
+                ] = "f" * 64
+                receipt = value["visibility_builder_receipt"]
+                receipt["receipt_sha256"] = _sha({
+                    key: item for key, item in receipt.items()
+                    if key != "receipt_sha256"
+                })
+                value["public_evidence_sha256"] = receipt["receipt_sha256"]
+            return value
+
+        with self.assertRaisesRegex(
+                worker.ObservationConstructionError, "subject seal mismatch"):
+            worker._execute_route_core(
+                controller, plan=_plan(), contract=CONTRACT,
+                action_request_templates=ACTION_REQUESTS,
+                trusted_public_frame_extractor=_extract_public_frame,
+                public_capture=tampered,
+                private_intervention=lambda event, route: (
+                    interventions.append(True) or {}
+                ),
+            )
+        self.assertEqual(interventions, [])
+
+    def test_wrong_hidden_pose_stops_before_private_action(self):
+        controller = Controller()
+        controller.poses[3] = (0.1, 30.0)
+        interventions = []
+        result = worker._execute_route_core(
+            controller, plan=_plan(), contract=CONTRACT,
+            action_request_templates=ACTION_REQUESTS,
+            trusted_public_frame_extractor=_extract_public_frame,
+            public_capture=_capture(),
+            private_intervention=lambda event, route: (
+                interventions.append(True) or {}
+            ),
+        )
+        self.assertEqual(result["status"], "raw_failure")
+        self.assertEqual(result["reason"],
+                         "intervention_pose_outside_tolerance")
+        self.assertEqual(interventions, [])
 
     def test_failed_camera_action_keeps_prefix_and_does_not_continue(self):
         controller = Controller(fail_action_call=2)

@@ -265,6 +265,10 @@ class ObservationSuitabilityContractTests(unittest.TestCase):
         )
         self.assertTrue(visibility[
             "terminal_reobservation_requires_current_public_proposal_support"])
+        self.assertEqual(
+            visibility["route_receipt_binding_schema"],
+            "vsmt-vm04-public-visibility-builder-receipt-v1",
+        )
         self.assertTrue(all(value is None for value in
                             visibility["pending_fields"].values()))
 

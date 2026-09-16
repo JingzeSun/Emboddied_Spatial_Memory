@@ -20,6 +20,9 @@ FORMAL_SCHEMA = "vsmt-vm04-observation-formal-selection-v1"
 ROUTE_SCHEMA = "vsmt-vm04-observation-route-plan-v1"
 PUBLIC_ROUTE_SCHEMA = "vsmt-vm04-public-observation-route-v1"
 RECEIPT_SCHEMA = "vsmt-vm04-observation-route-receipt-v1"
+VISIBILITY_BUILDER_RECEIPT_SCHEMA = (
+    "vsmt-vm04-public-visibility-builder-receipt-v1"
+)
 PROGRAMS = (
     "NOOP", "BIND", "BIRTH", "REACTIVATE", "RELINK", "RETRACT", "SPLIT",
     "MERGE", "REPLACE",
@@ -186,6 +189,11 @@ def validate_approved_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
         "treat_as_unoccluded_so_it_cannot_authorize_hidden_intervention" and
         visibility_candidate.get(
             "terminal_reobservation_requires_current_public_proposal_support"
+        ) is True and
+        visibility_candidate.get("route_receipt_binding_schema") ==
+        VISIBILITY_BUILDER_RECEIPT_SCHEMA and
+        visibility_candidate.get(
+            "route_and_worker_must_match_subject_config_observation_assessment_and_receipt_digests"
         ) is True,
         "public visibility fail-closed policy changed",
     )
@@ -513,6 +521,54 @@ def validate_public_visibility_assessment(
     return clone_json(dict(assessment))
 
 
+def validate_visibility_builder_receipt_binding(
+    receipt: Mapping[str, Any], *, assessment: Mapping[str, Any],
+    observation_index: int, expected_subject_seal_sha256: str,
+    expected_config_sha256: str,
+    expected_current_public_depth_sha256: str | None = None,
+    expected_camera_calibration_and_pose_sha256: str | None = None,
+) -> dict[str, Any]:
+    """Validate one public geometry receipt without reopening private inputs."""
+
+    expected = {
+        "schema_version", "subject_seal_sha256", "current_observation_index",
+        "current_public_depth_sha256", "camera_calibration_and_pose_sha256",
+        "config_sha256", "assessment_sha256",
+        "invalid_or_missing_depth_treated_as_unoccluded", "receipt_sha256",
+    }
+    _require(type(receipt) is dict and set(receipt) == expected,
+             "visibility builder receipt has unexpected fields")
+    _require(receipt["schema_version"] == VISIBILITY_BUILDER_RECEIPT_SCHEMA,
+             "wrong visibility builder receipt schema")
+    _require(receipt["current_observation_index"] == observation_index,
+             "visibility builder receipt observation index mismatch")
+    _require(receipt["subject_seal_sha256"] == expected_subject_seal_sha256,
+             "visibility builder receipt subject seal mismatch")
+    _require(receipt["config_sha256"] == expected_config_sha256,
+             "visibility builder receipt config mismatch")
+    for name in (
+        "subject_seal_sha256", "current_public_depth_sha256",
+        "camera_calibration_and_pose_sha256", "config_sha256",
+        "assessment_sha256", "receipt_sha256",
+    ):
+        _hex64(receipt[name], name)
+    _require(receipt["assessment_sha256"] == assessment["assessment_sha256"],
+             "visibility builder receipt assessment mismatch")
+    if expected_current_public_depth_sha256 is not None:
+        _require(receipt["current_public_depth_sha256"] ==
+                 expected_current_public_depth_sha256,
+                 "visibility builder receipt depth mismatch")
+    if expected_camera_calibration_and_pose_sha256 is not None:
+        _require(receipt["camera_calibration_and_pose_sha256"] ==
+                 expected_camera_calibration_and_pose_sha256,
+                 "visibility builder receipt camera mismatch")
+    _require(receipt["invalid_or_missing_depth_treated_as_unoccluded"] is True,
+             "visibility builder receipt changed invalid-depth policy")
+    _require(receipt["receipt_sha256"] == _payload_sha(receipt),
+             "visibility builder receipt digest mismatch")
+    return clone_json(dict(receipt))
+
+
 def validate_route_plan(plan: Mapping[str, Any], *, contract: Mapping[str, Any]) -> dict[str, Any]:
     """Validate the private construction plan that binds a public route."""
 
@@ -520,6 +576,7 @@ def validate_route_plan(plan: Mapping[str, Any], *, contract: Mapping[str, Any])
     expected = {
         "schema_version", "episode_id", "program", "branch_type",
         "visibility_subject_kind", "visibility_subject_public_ref",
+        "visibility_subject_seal_sha256", "visibility_builder_config_sha256",
         "initial_pose", "registered_actions", "phase_observation_indices", "planned_poses",
         "intervention_after_observation_index", "terminal_reobservation_indices",
         "split_merge_artifact_plan", "route_plan_sha256",
@@ -540,6 +597,10 @@ def validate_route_plan(plan: Mapping[str, Any], *, contract: Mapping[str, Any])
     _require(type(plan["visibility_subject_public_ref"]) is str and
              plan["visibility_subject_public_ref"],
              "visibility subject requires an anonymous public reference")
+    _hex64(plan["visibility_subject_seal_sha256"],
+           "visibility_subject_seal_sha256")
+    _hex64(plan["visibility_builder_config_sha256"],
+           "visibility_builder_config_sha256")
     _pose(plan["initial_pose"], "initial pose")
 
     actions = plan["registered_actions"]
@@ -641,6 +702,10 @@ def public_route_projection(
         "branch_type": route["branch_type"],
         "visibility_subject_kind": route["visibility_subject_kind"],
         "visibility_subject_public_ref": route["visibility_subject_public_ref"],
+        "visibility_subject_seal_sha256":
+            route["visibility_subject_seal_sha256"],
+        "visibility_builder_config_sha256":
+            route["visibility_builder_config_sha256"],
         "initial_pose": route["initial_pose"],
         "registered_actions": route["registered_actions"],
         "phase_observation_indices": route["phase_observation_indices"],
@@ -674,7 +739,8 @@ def assess_route_receipt(
     for row in observations:
         _require(type(row) is dict and set(row) == {
             "observation_index", "visibility_assessment", "public_evidence_sha256",
-            "actual_pose", "registered_camera_action_success",
+            "visibility_builder_receipt", "actual_pose",
+            "registered_camera_action_success",
         }, "route observation row is malformed")
         index = row["observation_index"]
         _require(type(index) is int and index >= 0 and index not in by_index,
@@ -684,6 +750,17 @@ def assess_route_receipt(
             row["visibility_assessment"],
             expected_subject_public_ref=route["visibility_subject_public_ref"],
         )
+        builder_receipt = validate_visibility_builder_receipt_binding(
+            row["visibility_builder_receipt"], assessment=assessment,
+            observation_index=index,
+            expected_subject_seal_sha256=(
+                route["visibility_subject_seal_sha256"]
+            ),
+            expected_config_sha256=route["visibility_builder_config_sha256"],
+        )
+        _require(row["public_evidence_sha256"] ==
+                 builder_receipt["receipt_sha256"],
+                 "public evidence digest must bind the visibility builder receipt")
         row = clone_json(row)
         row["visibility_state"] = assessment["visibility_state"]
         _pose(row["actual_pose"], "actual pose")

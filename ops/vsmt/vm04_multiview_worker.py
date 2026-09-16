@@ -22,11 +22,18 @@ if str(OPS) not in sys.path:
 
 from vsmt.vm04_observation_runner import (  # noqa: E402
     ObservationConstructionError,
+    _translation,
+    _yaw_distance,
     assess_route_receipt,
     assert_generation_authorized,
     validate_registered_action_request_templates,
     validate_public_visibility_assessment,
+    validate_visibility_builder_receipt_binding,
     validate_route_plan,
+)
+from vsmt.vm04_public_visibility import (  # noqa: E402
+    public_camera_calibration_and_pose_sha256,
+    public_depth_array_sha256,
 )
 
 
@@ -103,19 +110,39 @@ def _capture_row(
     captured = dict(public_capture(
         frame, observation_index, route["visibility_subject_public_ref"], terminal,
     ))
-    _require(set(captured) == {"visibility_assessment", "public_evidence_sha256"},
+    _require(set(captured) == {
+        "visibility_assessment", "visibility_builder_receipt",
+        "public_evidence_sha256",
+    },
              "public capture returned unexpected fields")
     assessment = validate_public_visibility_assessment(
         captured["visibility_assessment"],
         expected_subject_public_ref=route["visibility_subject_public_ref"],
     )
+    builder_receipt = validate_visibility_builder_receipt_binding(
+        captured["visibility_builder_receipt"], assessment=assessment,
+        observation_index=observation_index,
+        expected_subject_seal_sha256=route["visibility_subject_seal_sha256"],
+        expected_config_sha256=route["visibility_builder_config_sha256"],
+        expected_current_public_depth_sha256=public_depth_array_sha256(
+            frame["depth_m"],
+        ),
+        expected_camera_calibration_and_pose_sha256=(
+            public_camera_calibration_and_pose_sha256(
+                frame["camera"]["calibration"], frame["camera"]["pose"],
+            )
+        ),
+    )
     evidence = captured["public_evidence_sha256"]
     _require(type(evidence) is str and len(evidence) == 64 and
              all(character in "0123456789abcdef" for character in evidence),
              "public evidence digest is invalid")
+    _require(evidence == builder_receipt["receipt_sha256"],
+             "public evidence does not bind the visibility builder receipt")
     return {
         "observation_index": observation_index,
         "visibility_assessment": assessment,
+        "visibility_builder_receipt": captured["visibility_builder_receipt"],
         "public_evidence_sha256": evidence,
         "actual_pose": _actual_pose(event),
         "registered_camera_action_success": _action_success(event),
@@ -202,6 +229,20 @@ def _execute_route_core(
                 return _prefix_failure(
                     route=route, observations=observations,
                     reason="intervention_visible_to_camera",
+                    intervention_executed=False,
+                    private_intervention_record=None,
+                )
+            tolerance = contract["observation_trajectory"][
+                "frozen_numeric_values"
+            ]
+            planned = route["planned_poses"]["challenge"]
+            actual = row["actual_pose"]
+            if (_translation(actual, planned) > tolerance["pose_tolerance_m"] or
+                    _yaw_distance(actual["yaw_deg"], planned["yaw_deg"]) >
+                    tolerance["yaw_tolerance_degrees"]):
+                return _prefix_failure(
+                    route=route, observations=observations,
+                    reason="intervention_pose_outside_tolerance",
                     intervention_executed=False,
                     private_intervention_record=None,
                 )

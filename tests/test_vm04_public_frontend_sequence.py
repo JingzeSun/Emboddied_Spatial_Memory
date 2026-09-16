@@ -55,6 +55,8 @@ def context_bundle() -> dict:
         "branch_type": "out_of_view_then_reobservation",
         "visibility_subject_kind": "target_track",
         "visibility_subject_public_ref": "subject:0001",
+        "visibility_subject_seal_sha256": "a" * 64,
+        "visibility_builder_config_sha256": "b" * 64,
         "initial_pose": {"x_m": 0.0, "y_m": 0.9, "z_m": 0.0, "yaw_deg": 0.0},
         "registered_actions": [{"step_index": 0, "action": "MoveAhead"}],
         "phase_observation_indices": {

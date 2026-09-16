@@ -25,6 +25,7 @@ from .vm04_observation_runner import (
     _yaw_distance,
     validate_approved_contract,
     validate_public_visibility_assessment,
+    validate_visibility_builder_receipt_binding,
     validate_route_plan,
 )
 
@@ -32,7 +33,8 @@ from .vm04_observation_runner import (
 def _validate_graph(
     pose_scans: Sequence[Mapping[str, Any]],
     edges: Sequence[Mapping[str, Any]], *,
-    subject_public_ref: str, contract: Mapping[str, Any],
+    subject_public_ref: str, subject_seal_sha256: str,
+    visibility_config_sha256: str, contract: Mapping[str, Any],
 ) -> tuple[dict[str, dict[str, Any]], dict[str, list[dict[str, str]]]]:
     approved = validate_approved_contract(contract)
     allowed_actions = set(approved["observation_trajectory"]
@@ -41,6 +43,9 @@ def _validate_graph(
     for raw in pose_scans:
         _require(type(raw) is dict and set(raw) == {
             "pose_id", "pose", "visibility_assessment", "public_evidence_sha256",
+            "visibility_builder_receipt",
+            "current_public_depth_sha256",
+            "camera_calibration_and_pose_sha256",
             "scan_phase", "support_role", "future_or_action_outcome_used",
         }, "public pose scan has unexpected fields")
         _require(raw["scan_phase"] == "pre_intervention_public_route_scan",
@@ -60,10 +65,24 @@ def _validate_graph(
             raw["visibility_assessment"],
             expected_subject_public_ref=subject_public_ref,
         )
+        builder_receipt = validate_visibility_builder_receipt_binding(
+            raw["visibility_builder_receipt"], assessment=assessment,
+            observation_index=raw["visibility_builder_receipt"].get(
+                "current_observation_index", -1,
+            ),
+            expected_subject_seal_sha256=subject_seal_sha256,
+            expected_config_sha256=visibility_config_sha256,
+            expected_current_public_depth_sha256=
+                raw["current_public_depth_sha256"],
+            expected_camera_calibration_and_pose_sha256=
+                raw["camera_calibration_and_pose_sha256"],
+        )
         evidence = raw["public_evidence_sha256"]
         _require(type(evidence) is str and len(evidence) == 64 and
                  all(character in "0123456789abcdef" for character in evidence),
                  "public pose evidence must be a lowercase SHA-256")
+        _require(evidence == builder_receipt["receipt_sha256"],
+                 "public pose evidence does not bind its visibility receipt")
         nodes[pose_id] = {
             "pose_id": pose_id,
             "pose": pose,
@@ -101,7 +120,8 @@ def _has_public_support(node: Mapping[str, Any]) -> bool:
 
 def build_route_plan_from_public_graph(
     *, episode_id: str, program: str, branch_type: str,
-    visibility_subject_public_ref: str,
+    visibility_subject_public_ref: str, visibility_subject_seal_sha256: str,
+    visibility_builder_config_sha256: str,
     pose_scans: Sequence[Mapping[str, Any]],
     edges: Sequence[Mapping[str, Any]],
     split_merge_artifact_plan: Mapping[str, Any] | None,
@@ -118,6 +138,8 @@ def build_route_plan_from_public_graph(
              "visibility subject public ref must be nonempty")
     nodes, adjacency = _validate_graph(
         pose_scans, edges, subject_public_ref=visibility_subject_public_ref,
+        subject_seal_sha256=visibility_subject_seal_sha256,
+        visibility_config_sha256=visibility_builder_config_sha256,
         contract=approved,
     )
     hidden_state = BRANCH_STATES[branch_type]
@@ -223,6 +245,10 @@ def build_route_plan_from_public_graph(
                     "visibility_subject_kind": subject_kind,
                     "visibility_subject_public_ref":
                         visibility_subject_public_ref,
+                    "visibility_subject_seal_sha256":
+                        visibility_subject_seal_sha256,
+                    "visibility_builder_config_sha256":
+                        visibility_builder_config_sha256,
                     "initial_pose": nodes[candidate["pose_ids"][0]]["pose"],
                     "registered_actions": actions,
                     "phase_observation_indices": {

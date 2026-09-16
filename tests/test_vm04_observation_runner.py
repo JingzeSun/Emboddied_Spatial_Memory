@@ -29,11 +29,28 @@ from vsmt.vm04_observation_runner import (
 CONTRACT_PATH = ROOT / "configs/vsmt/vm04_observation_suitability_proposal_v1.json"
 SCHEMA_PATH = ROOT / "schemas/vsmt_vm04_observation_construction.schema.json"
 ZERO_SHA = "0" * 64
+SUBJECT_SHA = "a" * 64
+VISIBILITY_CONFIG_SHA = "b" * 64
 
 
 def _sha(value):
     import hashlib
     return hashlib.sha256(canonical_json(value).encode("utf-8")).hexdigest()
+
+
+def _builder_receipt(assessment, index):
+    receipt = {
+        "schema_version": "vsmt-vm04-public-visibility-builder-receipt-v1",
+        "subject_seal_sha256": SUBJECT_SHA,
+        "current_observation_index": index,
+        "current_public_depth_sha256": f"{index + 1:x}" * 64,
+        "camera_calibration_and_pose_sha256": f"{index + 2:x}" * 64,
+        "config_sha256": VISIBILITY_CONFIG_SHA,
+        "assessment_sha256": assessment["assessment_sha256"],
+        "invalid_or_missing_depth_treated_as_unoccluded": True,
+    }
+    receipt["receipt_sha256"] = _sha(receipt)
+    return receipt
 
 
 def _contract():
@@ -74,6 +91,8 @@ def _route(program="RELINK", branch="natural_occlusion_then_reobservation"):
         "branch_type": branch,
         "visibility_subject_kind": subject,
         "visibility_subject_public_ref": "public-subject:0001",
+        "visibility_subject_seal_sha256": SUBJECT_SHA,
+        "visibility_builder_config_sha256": VISIBILITY_CONFIG_SHA,
         "initial_pose": {"x_m": 0.0, "y_m": 0.9, "z_m": 0.0,
                          "yaw_deg": 0.0},
         "registered_actions": [
@@ -136,19 +155,22 @@ def _receipt(plan, *, hidden_state="occluded"):
             current_public_support_sha256=support,
             terminal_reobservation_phase=terminal,
         )
+    observations = []
+    for index, state in enumerate(states):
+        value = assessment(state)
+        builder = _builder_receipt(value, index)
+        observations.append({
+            "observation_index": index,
+            "visibility_assessment": value,
+            "visibility_builder_receipt": builder,
+            "public_evidence_sha256": builder["receipt_sha256"],
+            "actual_pose": phase_pose[index],
+            "registered_camera_action_success": True,
+        })
     return {
         "schema_version": "vsmt-vm04-observation-route-receipt-v1",
         "route_plan_sha256": plan["route_plan_sha256"],
-        "observations": [
-            {
-                "observation_index": index,
-                "visibility_assessment": assessment(state),
-                "public_evidence_sha256": ZERO_SHA,
-                "actual_pose": phase_pose[index],
-                "registered_camera_action_success": True,
-            }
-            for index, state in enumerate(states)
-        ],
+        "observations": observations,
     }
 
 
@@ -205,8 +227,7 @@ class ObservationRunnerTests(unittest.TestCase):
     def test_visible_intervention_is_retained_as_failure(self):
         plan = _route()
         receipt = _receipt(plan)
-        receipt["observations"][3]["visibility_assessment"] = (
-            make_public_visibility_assessment(
+        value = make_public_visibility_assessment(
                 subject_public_ref=plan["visibility_subject_public_ref"],
                 subject_reference_sealed_before_frame=True,
                 projected_public_sample_count=5,
@@ -214,6 +235,11 @@ class ObservationRunnerTests(unittest.TestCase):
                 current_public_support_sha256=ZERO_SHA,
                 terminal_reobservation_phase=False,
             )
+        builder = _builder_receipt(value, 3)
+        receipt["observations"][3]["visibility_assessment"] = value
+        receipt["observations"][3]["visibility_builder_receipt"] = builder
+        receipt["observations"][3]["public_evidence_sha256"] = (
+            builder["receipt_sha256"]
         )
         verdict = assess_route_receipt(receipt, plan=plan, contract=_contract())
         self.assertFalse(verdict["constructed"])

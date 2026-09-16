@@ -73,6 +73,25 @@ def _array_sha(array: np.ndarray) -> str:
     })
 
 
+def public_depth_array_sha256(public_depth_m: Any) -> str:
+    """Return the canonical public-depth digest used by builder receipts."""
+
+    depth = np.asarray(public_depth_m)
+    if depth.ndim != 2 or not np.issubdtype(depth.dtype, np.floating):
+        raise ValueError("public depth must be a floating matrix")
+    return _array_sha(depth)
+
+
+def public_camera_calibration_and_pose_sha256(
+    camera_calibration: Mapping[str, Any], camera_pose: Mapping[str, Any],
+) -> str:
+    """Return the canonical public camera digest used by builder receipts."""
+
+    return _sha({
+        "calibration": dict(camera_calibration), "pose": dict(camera_pose),
+    })
+
+
 def seal_public_visibility_subject(
     *, subject_public_ref: str, source_public_packet_sha256: str,
     source_observation_index: int, public_mask: Any, public_depth_m: Any,
@@ -195,10 +214,12 @@ def assess_public_visibility_from_depth(
         "schema_version": RECEIPT_SCHEMA,
         "subject_seal_sha256": seal,
         "current_observation_index": current_observation_index,
-        "current_public_depth_sha256": _array_sha(depth),
-        "camera_calibration_and_pose_sha256": _sha({
-            "calibration": dict(camera_calibration), "pose": dict(camera_pose),
-        }),
+        "current_public_depth_sha256": public_depth_array_sha256(depth),
+        "camera_calibration_and_pose_sha256": (
+            public_camera_calibration_and_pose_sha256(
+                camera_calibration, camera_pose,
+            )
+        ),
         "config_sha256": _sha(asdict(config)),
         "assessment_sha256": assessment["assessment_sha256"],
         "invalid_or_missing_depth_treated_as_unoccluded": True,

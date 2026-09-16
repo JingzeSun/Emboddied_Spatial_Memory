@@ -80,6 +80,22 @@
         "assessment_sha256": {"$ref": "#/$defs/sha256"}
       }
     },
+    "visibilityBuilderReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "subject_seal_sha256", "current_observation_index", "current_public_depth_sha256", "camera_calibration_and_pose_sha256", "config_sha256", "assessment_sha256", "invalid_or_missing_depth_treated_as_unoccluded", "receipt_sha256"],
+      "properties": {
+        "schema_version": {"const": "vsmt-vm04-public-visibility-builder-receipt-v1"},
+        "subject_seal_sha256": {"$ref": "#/$defs/sha256"},
+        "current_observation_index": {"type": "integer", "minimum": 0},
+        "current_public_depth_sha256": {"$ref": "#/$defs/sha256"},
+        "camera_calibration_and_pose_sha256": {"$ref": "#/$defs/sha256"},
+        "config_sha256": {"$ref": "#/$defs/sha256"},
+        "assessment_sha256": {"$ref": "#/$defs/sha256"},
+        "invalid_or_missing_depth_treated_as_unoccluded": {"const": true},
+        "receipt_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
     "sourcePool": {
       "type": "object",
       "additionalProperties": false,
@@ -132,7 +148,7 @@
     "privateRoutePlan": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["schema_version", "episode_id", "program", "branch_type", "visibility_subject_kind", "visibility_subject_public_ref", "initial_pose", "registered_actions", "phase_observation_indices", "planned_poses", "intervention_after_observation_index", "terminal_reobservation_indices", "split_merge_artifact_plan", "route_plan_sha256"],
+      "required": ["schema_version", "episode_id", "program", "branch_type", "visibility_subject_kind", "visibility_subject_public_ref", "visibility_subject_seal_sha256", "visibility_builder_config_sha256", "initial_pose", "registered_actions", "phase_observation_indices", "planned_poses", "intervention_after_observation_index", "terminal_reobservation_indices", "split_merge_artifact_plan", "route_plan_sha256"],
       "properties": {
         "schema_version": {"const": "vsmt-vm04-observation-route-plan-v1"},
         "episode_id": {"type": "string", "minLength": 1},
@@ -140,6 +156,8 @@
         "branch_type": {"enum": ["natural_occlusion_then_reobservation", "out_of_view_then_reobservation"]},
         "visibility_subject_kind": {"enum": ["target_track", "reveal_locus", "old_track_and_new_reveal_locus"]},
         "visibility_subject_public_ref": {"type": "string", "minLength": 1},
+        "visibility_subject_seal_sha256": {"$ref": "#/$defs/sha256"},
+        "visibility_builder_config_sha256": {"$ref": "#/$defs/sha256"},
         "initial_pose": {"$ref": "#/$defs/pose"},
         "registered_actions": {"type": "array", "minItems": 1, "maxItems": 24, "items": {"$ref": "#/$defs/action"}},
         "phase_observation_indices": {"$ref": "#/$defs/phaseIndices"},
@@ -153,7 +171,7 @@
     "publicRoute": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["schema_version", "consumer_scope", "episode_id", "branch_type", "visibility_subject_kind", "visibility_subject_public_ref", "initial_pose", "registered_actions", "phase_observation_indices", "planned_poses", "intervention_after_observation_index", "terminal_reobservation_indices", "private_route_plan_sha256", "public_route_sha256"],
+      "required": ["schema_version", "consumer_scope", "episode_id", "branch_type", "visibility_subject_kind", "visibility_subject_public_ref", "visibility_subject_seal_sha256", "visibility_builder_config_sha256", "initial_pose", "registered_actions", "phase_observation_indices", "planned_poses", "intervention_after_observation_index", "terminal_reobservation_indices", "private_route_plan_sha256", "public_route_sha256"],
       "properties": {
         "schema_version": {"const": "vsmt-vm04-public-observation-route-v1"},
         "consumer_scope": {"const": "construction_provenance_only_not_adapter_input"},
@@ -161,6 +179,8 @@
         "branch_type": {"type": "string"},
         "visibility_subject_kind": {"type": "string"},
         "visibility_subject_public_ref": {"type": "string"},
+        "visibility_subject_seal_sha256": {"$ref": "#/$defs/sha256"},
+        "visibility_builder_config_sha256": {"$ref": "#/$defs/sha256"},
         "initial_pose": {"$ref": "#/$defs/pose"},
         "registered_actions": {"type": "array", "items": {"$ref": "#/$defs/action"}},
         "phase_observation_indices": {"$ref": "#/$defs/phaseIndices"},
@@ -184,10 +204,11 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["observation_index", "visibility_assessment", "public_evidence_sha256", "actual_pose", "registered_camera_action_success"],
+            "required": ["observation_index", "visibility_assessment", "visibility_builder_receipt", "public_evidence_sha256", "actual_pose", "registered_camera_action_success"],
             "properties": {
               "observation_index": {"type": "integer", "minimum": 0},
               "visibility_assessment": {"$ref": "#/$defs/visibilityAssessment"},
+              "visibility_builder_receipt": {"$ref": "#/$defs/visibilityBuilderReceipt"},
               "public_evidence_sha256": {"$ref": "#/$defs/sha256"},
               "actual_pose": {"$ref": "#/$defs/pose"},
               "registered_camera_action_success": {"type": "boolean"}

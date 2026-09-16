@@ -189,19 +189,20 @@
     }
   },
   "public_visibility_builder_review_candidate": {
-    "status": "public_geometry_core_implemented_route_receipt_binding_and_numeric_review_pending",
+    "status": "public_geometry_core_and_route_worker_receipt_binding_implemented_numeric_review_pending",
     "subject_source": "previously_sealed_public_mask_depth_camera_calibration_and_pose_only",
     "current_frame_source": "current_public_depth_camera_calibration_and_pose_plus_current_public_proposal_support",
     "invalid_or_missing_depth_policy": "treat_as_unoccluded_so_it_cannot_authorize_hidden_intervention",
     "terminal_reobservation_requires_current_public_proposal_support": true,
+    "route_receipt_binding_schema": "vsmt-vm04-public-visibility-builder-receipt-v1",
+    "route_and_worker_must_match_subject_config_observation_assessment_and_receipt_digests": true,
     "pending_fields": {
       "minimum_depth_m": null,
       "maximum_depth_m": null,
       "occlusion_depth_tolerance_m": null,
       "sampling_stride_pixels": null,
       "maximum_subject_samples": null,
-      "minimum_subject_samples": null,
-      "route_receipt_binding_schema": null
+      "minimum_subject_samples": null
     }
   },
   "program_construction_review_candidate": {
