@@ -20,6 +20,11 @@ from vsmt.vm04_materializer_receipt import (
 
 
 SHA = "0" * 64
+SEQUENCE_DIGESTS = {
+    "public_frame_context_manifest_sha256": SHA,
+    "causal_prior_receipt_sha256": SHA,
+    "prior_memory_sha256": SHA,
+}
 
 
 def _row(index):
@@ -38,6 +43,7 @@ class MaterializerReceiptTests(unittest.TestCase):
             [_row(0), _row(1)], episode_id="episode:001",
             route_plan_sha256=SHA, raw_episode_manifest_sha256=SHA,
             materializer_code_sha256=SHA, materializer_config_sha256=SHA,
+            **SEQUENCE_DIGESTS,
         )
         self.assertEqual(validate_materializer_receipt(receipt), receipt)
         self.assertFalse(receipt["deployment_reader_may_open_private_crosswalks"])
@@ -55,6 +61,7 @@ class MaterializerReceiptTests(unittest.TestCase):
                 [_row(0), _row(2)], episode_id="episode:001",
                 route_plan_sha256=SHA, raw_episode_manifest_sha256=SHA,
                 materializer_code_sha256=SHA, materializer_config_sha256=SHA,
+                **SEQUENCE_DIGESTS,
             )
 
     def test_rejects_tampered_crosswalk_binding(self):
@@ -62,6 +69,7 @@ class MaterializerReceiptTests(unittest.TestCase):
             [_row(0)], episode_id="episode:001",
             route_plan_sha256=SHA, raw_episode_manifest_sha256=SHA,
             materializer_code_sha256=SHA, materializer_config_sha256=SHA,
+            **SEQUENCE_DIGESTS,
         )
         changed = copy.deepcopy(receipt)
         changed["frames"][0]["private_crosswalk_sha256"] = "5" * 64

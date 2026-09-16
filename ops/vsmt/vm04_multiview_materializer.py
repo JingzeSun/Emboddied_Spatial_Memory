@@ -19,8 +19,13 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
+from cpmt.executor import validate_graph  # noqa: E402
 from cpmt.hashing import canonical_json  # noqa: E402
-from vsmt.contracts import validate_observation_packet  # noqa: E402
+from vsmt.causal_prior import validate_causal_prior_receipt  # noqa: E402
+from vsmt.contracts import (  # noqa: E402
+    canonical_sha256,
+    validate_observation_packet,
+)
 from vsmt.vm04_materializer_receipt import (  # noqa: E402
     make_materializer_receipt,
     validate_materializer_receipt,
@@ -29,12 +34,19 @@ from vsmt.vm04_observation_runner import (  # noqa: E402
     ObservationConstructionError,
     validate_approved_contract,
 )
+from vsmt.vm04_public_context import (  # noqa: E402
+    validate_public_frame_context_manifest,
+)
 
 
 MaterializeFrame = Callable[
     [Mapping[str, Any], Mapping[str, Any], int], Mapping[str, Any]
 ]
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
+SEQUENCE_RESULT_KEYS = {
+    "prior_memory", "causal_prior_receipt",
+    "public_frame_context_manifest", "ordered_public_packet_sha256s",
+}
 
 
 def _require(condition: bool, message: str) -> None:
@@ -275,6 +287,38 @@ def _validate_materialized_pair(
     return packet, crosswalk
 
 
+def _validated_sequence_result(
+    materialize_frame: MaterializeFrame, *, packets: list[Mapping[str, Any]],
+    public_route_sha256: str,
+) -> dict[str, Any]:
+    """Close and cross-check the stateful public sequence after its last frame."""
+
+    finalize = getattr(materialize_frame, "finalized_result", None)
+    _require(callable(finalize),
+             "materializer callback must expose finalized_result")
+    result = finalize()
+    _require(type(result) is dict and set(result) == SEQUENCE_RESULT_KEYS,
+             "materializer sequence result has unexpected fields")
+    prior = result["prior_memory"]
+    validate_graph(prior, verify_hash=True)
+    receipt = validate_causal_prior_receipt(
+        result["causal_prior_receipt"], final_memory=prior)
+    packet_digests = [canonical_sha256(packet) for packet in packets]
+    _require(result["ordered_public_packet_sha256s"] == packet_digests and
+             receipt["ordered_public_packet_sha256s"] == packet_digests,
+             "causal prior does not bind the materialized packet sequence")
+    manifest = validate_public_frame_context_manifest(
+        result["public_frame_context_manifest"],
+        expected_observation_count=len(packets),
+        expected_public_route_sha256=public_route_sha256,
+    )
+    return {
+        "prior_memory": prior,
+        "causal_prior_receipt": receipt,
+        "public_frame_context_manifest": manifest,
+    }
+
+
 def materialize_episode_core(
     episode_root: Path, *, materialize_frame: MaterializeFrame,
     materializer_code_sha256: str, materializer_config_sha256: str,
@@ -292,6 +336,7 @@ def materialize_episode_core(
     public_output.mkdir(parents=True)
     private_output.mkdir()
     bindings = []
+    packets = []
     try:
         for index, (public_row, private_row) in enumerate(zip(
                 public_manifest["frames"], private_manifest["frames"])):
@@ -304,6 +349,7 @@ def materialize_episode_core(
             crosswalk_path = private_output / f"frame_{index:04d}.json"
             _write_new_json(packet_path, packet)
             _write_new_json(crosswalk_path, crosswalk)
+            packets.append(packet)
             bindings.append({
                 "observation_index": index,
                 "raw_public_frame_sha256": public_raw["source_frame_sha256"],
@@ -317,6 +363,18 @@ def materialize_episode_core(
                 public_manifest["frames"], private_manifest["frames"])):
             _load_verified_frame(episode_root, index, public_row, private_row)
         route = _read_json(episode_root / "private/route-plan.json")
+        public_route = _read_json(episode_root / "public/route.json")
+        sequence = _validated_sequence_result(
+            materialize_frame,
+            packets=packets,
+            public_route_sha256=public_route["public_route_sha256"],
+        )
+        context_path = public_output / "public-frame-context.manifest.json"
+        causal_path = public_output / "causal-prior.receipt.json"
+        prior_path = public_output / "prior-memory.json"
+        _write_new_json(context_path, sequence["public_frame_context_manifest"])
+        _write_new_json(causal_path, sequence["causal_prior_receipt"])
+        _write_new_json(prior_path, sequence["prior_memory"])
         receipt = make_materializer_receipt(
             bindings, episode_id=public_manifest["episode_id"],
             route_plan_sha256=route["route_plan_sha256"],
@@ -324,6 +382,9 @@ def materialize_episode_core(
                 episode_root / "private/raw.manifest.json"),
             materializer_code_sha256=materializer_code_sha256,
             materializer_config_sha256=materializer_config_sha256,
+            public_frame_context_manifest_sha256=_sha_file(context_path),
+            causal_prior_receipt_sha256=_sha_file(causal_path),
+            prior_memory_sha256=_sha_file(prior_path),
         )
         receipt_path = public_output / "materializer.receipt.json"
         _write_new_json(receipt_path, receipt)
@@ -365,19 +426,43 @@ def verify_materialized_episode(
     output_root = episode_root / "materialized"
     receipt_path = output_root / "public/materializer.receipt.json"
     success_path = output_root / "public/materializer.success.json"
+    context_path = output_root / "public/public-frame-context.manifest.json"
+    causal_path = output_root / "public/causal-prior.receipt.json"
+    prior_path = output_root / "public/prior-memory.json"
     _require(receipt_path.is_file() and success_path.is_file(),
              "materializer receipt and success marker are required")
+    _require(context_path.is_file() and causal_path.is_file() and
+             prior_path.is_file(),
+             "materializer public sequence artifacts are required")
     receipt = validate_materializer_receipt(_read_json(receipt_path))
     _require(_read_json(success_path) == {
         "receipt_sha256": _sha_file(receipt_path),
     }, "materializer success marker does not bind the receipt")
     route = _read_json(episode_root / "private/route-plan.json")
+    public_route = _read_json(episode_root / "public/route.json")
     _require(receipt["episode_id"] == public_manifest["episode_id"] and
              receipt["route_plan_sha256"] == route["route_plan_sha256"] and
              receipt["raw_episode_manifest_sha256"] == _sha_file(
                  episode_root / "private/raw.manifest.json") and
              receipt["frame_count"] == public_manifest["frame_count"],
              "materializer receipt does not bind the raw episode")
+    prior = _read_json(prior_path)
+    validate_graph(prior, verify_hash=True)
+    causal = validate_causal_prior_receipt(
+        _read_json(causal_path), final_memory=prior,
+    )
+    validate_public_frame_context_manifest(
+        _read_json(context_path),
+        expected_observation_count=receipt["frame_count"],
+        expected_public_route_sha256=public_route["public_route_sha256"],
+    )
+    _require(
+        receipt["public_frame_context_manifest_sha256"] ==
+        _sha_file(context_path) and
+        receipt["causal_prior_receipt_sha256"] == _sha_file(causal_path) and
+        receipt["prior_memory_sha256"] == _sha_file(prior_path),
+        "materializer public sequence artifact binding changed",
+    )
     if contract is not None:
         approved = validate_approved_contract(contract)
         provenance = approved["crosswalk_provenance"]
@@ -407,6 +492,15 @@ def verify_materialized_episode(
             "public_packet": _read_json(packet_path),
             "private_crosswalk": _read_json(crosswalk_path),
         }, private_raw, index)
+    _require(
+        causal["ordered_public_packet_sha256s"] == [
+            canonical_sha256(_read_json(
+                output_root / "public" / f"frame_{index:04d}.json"
+            ))
+            for index in range(receipt["frame_count"])
+        ],
+        "causal prior packet sequence binding changed",
+    )
     return {
         "status": "materialized_verified",
         "frame_count": receipt["frame_count"],

@@ -32,6 +32,13 @@ class PhysicalRelinkPositiveGateTests(unittest.TestCase):
             raw_episode_manifest_sha256=current["raw_episode_manifest_sha256"],
             materializer_code_sha256=current["materializer_code_sha256"],
             materializer_config_sha256=current["materializer_config_sha256"],
+            public_frame_context_manifest_sha256=current[
+                "public_frame_context_manifest_sha256"
+            ],
+            causal_prior_receipt_sha256=current[
+                "causal_prior_receipt_sha256"
+            ],
+            prior_memory_sha256=current["prior_memory_sha256"],
         )
         materializer_path.unlink()
         gate.audit.write_new_json(materializer_path, rebuilt)
@@ -121,6 +128,11 @@ class PhysicalRelinkPositiveGateTests(unittest.TestCase):
             raw_episode_manifest_sha256="6" * 64,
             materializer_code_sha256="7" * 64,
             materializer_config_sha256="8" * 64,
+            public_frame_context_manifest_sha256="9" * 64,
+            causal_prior_receipt_sha256="a" * 64,
+            prior_memory_sha256=gate.audit.sha256(
+                public / "prior-memory.json"
+            ),
         ))
         seal = public / "relink-proof.seal.json"
         gate.audit.write_new_json(seal, {

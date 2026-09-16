@@ -32,6 +32,17 @@ from tests.test_vm04_multiview_worker import (  # noqa: E402
     worker,
 )
 from tests.test_vsmt_public_candidates import graph_fixture, packet_fixture  # noqa: E402
+from cpmt.errors import InvariantViolation  # noqa: E402
+from vsmt.causal_prior import (  # noqa: E402
+    advance_public_bootstrap,
+    build_causal_prior,
+    empty_public_memory,
+)
+from vsmt.vm04_public_context import (  # noqa: E402
+    REGISTERED_ACTIONS,
+    make_public_frame_contexts,
+)
+from tests.test_vm04_public_frontend_sequence import bootstrap_config  # noqa: E402
 
 
 CODE_SHA = "a" * 64
@@ -76,13 +87,87 @@ def _materialize(public_raw, private_raw, index):
     }
 
 
+class FixtureSequenceMaterializer:
+    def __init__(self, episode_root):
+        self.episode_root = Path(episode_root)
+        self.memory = empty_public_memory()
+        self.packets = []
+        self.config = bootstrap_config()
+
+    def __call__(self, public_raw, private_raw, index):
+        output = _materialize(public_raw, private_raw, index)
+        packet = packet_fixture(self.memory)
+        packet["sample_id_hash"] = f"{index + 1:x}" * 64
+        packet["decision_time_s"] = float(index + 1)
+        entity = next(
+            row for row in packet["region_observations"]
+            if row["structure_kind"] == "entity"
+        )
+        entity["mask_sha256"] = materializer._mask_sha256(
+            private_raw["instance_masks"][0]
+        )
+        output["public_packet"] = packet
+        output["private_crosswalk"]["bindings"][0]["region_id"] = entity[
+            "region_id"
+        ]
+        output["private_crosswalk"]["bindings"][0]["mask_sha256"] = entity[
+            "mask_sha256"
+        ]
+        advanced = advance_public_bootstrap(
+            packet, self.memory, config=self.config,
+        )
+        self.memory = advanced["post_memory"]
+        self.packets.append(packet)
+        return output
+
+    def finalized_result(self):
+        replay = build_causal_prior(
+            self.packets, config=self.config, builder_code_sha256=CODE_SHA,
+        )
+        route = json.loads((
+            self.episode_root / "public/route.json"
+        ).read_text(encoding="utf-8"))
+        actions = sorted(REGISTERED_ACTIONS)
+        bundle = make_public_frame_contexts(
+            route,
+            decision_times_s=[
+                float(index + 1) for index in range(len(self.packets))
+            ],
+            decision_time_rule_id="fixture.index-seconds.v1",
+            action_command_vectors={
+                action: [
+                    1.0 if row == column else 0.0 for column in range(8)
+                ]
+                for row, action in enumerate(actions)
+            },
+            action_encoding_id="fixture.one-hot.v1",
+            robot_states=[
+                {"feature_names": [], "values": []}
+                for _ in self.packets
+            ],
+            public_constants=self.packets[0]["public_constants"],
+        )
+        return {
+            "prior_memory": replay["prior_memory"],
+            "causal_prior_receipt": replay["receipt"],
+            "public_frame_context_manifest": bundle["manifest"],
+            "ordered_public_packet_sha256s": replay["receipt"][
+                "ordered_public_packet_sha256s"
+            ],
+        }
+
+
+def _fixture_materializer(episode_root):
+    return FixtureSequenceMaterializer(episode_root)
+
+
 class MultiviewMaterializerTests(unittest.TestCase):
     def test_materializes_all_frames_and_seals_receipt(self):
         with tempfile.TemporaryDirectory() as temporary:
             episode = Path(temporary) / "episode"
             _build_raw_episode(episode)
             result = materializer.materialize_episode_core(
-                episode, materialize_frame=_materialize,
+                episode, materialize_frame=_fixture_materializer(episode),
                 materializer_code_sha256=CODE_SHA,
                 materializer_config_sha256=CONFIG_SHA,
             )
@@ -106,7 +191,7 @@ class MultiviewMaterializerTests(unittest.TestCase):
             with (episode / "public/raw/frame_0000/rgb.npy").open("ab") as handle:
                 handle.write(b"tamper")
             result = materializer.materialize_episode_core(
-                episode, materialize_frame=_materialize,
+                episode, materialize_frame=_fixture_materializer(episode),
                 materializer_code_sha256=CODE_SHA,
                 materializer_config_sha256=CONFIG_SHA,
             )
@@ -142,6 +227,25 @@ class MultiviewMaterializerTests(unittest.TestCase):
                 "materialized/public/materializer.failure.json"
             )).read_text(encoding="utf-8")
             self.assertNotIn("private diagnostic detail", public_failure)
+
+    def test_stateless_callback_cannot_seal_a_complete_episode(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            episode = Path(temporary) / "episode"
+            _build_raw_episode(episode)
+            result = materializer.materialize_episode_core(
+                episode, materialize_frame=_materialize,
+                materializer_code_sha256=CODE_SHA,
+                materializer_config_sha256=CONFIG_SHA,
+            )
+            self.assertEqual(result["status"], "materialized_failure")
+            self.assertEqual(result["frame_count"], 6)
+            self.assertFalse((episode / (
+                "materialized/public/materializer.receipt.json"
+            )).exists())
+            failure = json.loads((episode / (
+                "materialized/private/materializer.failure.json"
+            )).read_text(encoding="utf-8"))
+            self.assertIn("finalized_result", failure["exception_message"])
 
     def test_private_instance_id_in_public_packet_is_rejected(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -220,7 +324,7 @@ class MultiviewMaterializerTests(unittest.TestCase):
             episode = Path(temporary) / "episode"
             _build_raw_episode(episode)
             result = materializer.materialize_episode_core(
-                episode, materialize_frame=_materialize,
+                episode, materialize_frame=_fixture_materializer(episode),
                 materializer_code_sha256=CODE_SHA,
                 materializer_config_sha256=CONFIG_SHA,
             )
@@ -232,6 +336,23 @@ class MultiviewMaterializerTests(unittest.TestCase):
             with self.assertRaisesRegex(
                     materializer.ObservationConstructionError,
                     "materialized frame binding changed"):
+                materializer.verify_materialized_episode(episode)
+
+    def test_verifier_rejects_prior_memory_changed_after_receipt(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            episode = Path(temporary) / "episode"
+            _build_raw_episode(episode)
+            result = materializer.materialize_episode_core(
+                episode, materialize_frame=_fixture_materializer(episode),
+                materializer_code_sha256=CODE_SHA,
+                materializer_config_sha256=CONFIG_SHA,
+            )
+            self.assertEqual(result["status"], "materialized_complete")
+            prior_path = episode / "materialized/public/prior-memory.json"
+            prior = json.loads(prior_path.read_text(encoding="utf-8"))
+            prior["graph_id"] = "graph:tampered"
+            prior_path.write_text(json.dumps(prior), encoding="utf-8")
+            with self.assertRaises(InvariantViolation):
                 materializer.verify_materialized_episode(episode)
 
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import math
+import re
 from typing import Any, Mapping, Sequence
 
 from cpmt.hashing import canonical_json, clone_json
@@ -12,6 +13,7 @@ REGISTERED_ACTIONS = {
     "MoveAhead", "MoveBack", "MoveLeft", "MoveRight",
     "RotateLeft", "RotateRight", "LookUp", "LookDown",
 }
+HEX64 = re.compile(r"^[0-9a-f]{64}$")
 PUBLIC_FRAME_CONTEXT_KEYS = {
     "sample_id_hash", "decision_time_s", "robot_state", "past_actions",
     "public_constants",
@@ -176,21 +178,11 @@ def validate_public_frame_context_bundle(
     manifest = bundle["manifest"]
     if not isinstance(contexts, list) or not contexts:
         raise ValueError("public frame context bundle must be nonempty")
-    if not isinstance(manifest, Mapping) or set(
-        manifest
-    ) != PUBLIC_FRAME_CONTEXT_MANIFEST_KEYS:
-        raise ValueError("public frame context manifest has unexpected fields")
-    record = clone_json(dict(manifest))
-    if record["schema_version"] != "vsmt-vm04-public-frame-context-manifest-v1":
-        raise ValueError("wrong public frame context manifest schema")
-    if record["private_program_target_teacher_or_future_used"] is not False:
-        raise ValueError("public frame contexts used forbidden information")
-    if expected_public_route_sha256 is not None and (
-        record["public_route_sha256"] != expected_public_route_sha256
-    ):
-        raise ValueError("public frame contexts bind a different route")
-    if record["observation_count"] != len(contexts):
-        raise ValueError("public frame context count mismatch")
+    record = validate_public_frame_context_manifest(
+        manifest,
+        expected_observation_count=len(contexts),
+        expected_public_route_sha256=expected_public_route_sha256,
+    )
     for context in contexts:
         if type(context) is not dict or set(context) != PUBLIC_FRAME_CONTEXT_KEYS:
             raise ValueError("public frame context has unexpected fields")
@@ -203,7 +195,50 @@ def validate_public_frame_context_bundle(
         _sha256(context) for context in contexts
     ]:
         raise ValueError("public frame context ordered digest mismatch")
+    return clone_json(dict(bundle))
+
+
+def validate_public_frame_context_manifest(
+    manifest: Mapping[str, Any], *, expected_observation_count: int,
+    expected_public_route_sha256: str | None = None,
+) -> dict[str, Any]:
+    """Validate the standalone public manifest written by the materializer."""
+
+    if not isinstance(manifest, Mapping) or set(
+        manifest
+    ) != PUBLIC_FRAME_CONTEXT_MANIFEST_KEYS:
+        raise ValueError("public frame context manifest has unexpected fields")
+    record = clone_json(dict(manifest))
+    if record["schema_version"] != "vsmt-vm04-public-frame-context-manifest-v1":
+        raise ValueError("wrong public frame context manifest schema")
+    if record["private_program_target_teacher_or_future_used"] is not False:
+        raise ValueError("public frame contexts used forbidden information")
+    if (type(record["observation_count"]) is not int or
+            record["observation_count"] != expected_observation_count):
+        raise ValueError("public frame context count mismatch")
+    for name in ("decision_time_rule_id", "action_encoding_id"):
+        if type(record[name]) is not str or not record[name]:
+            raise ValueError(f"public frame context {name} is malformed")
+    if expected_public_route_sha256 is not None and (
+        record["public_route_sha256"] != expected_public_route_sha256
+    ):
+        raise ValueError("public frame contexts bind a different route")
+    ordered = record["ordered_context_sha256s"]
+    if not isinstance(ordered, list) or len(ordered) != expected_observation_count:
+        raise ValueError("public frame context digest count mismatch")
+    digest_fields = {
+        "public_route_sha256", "decision_times_sha256",
+        "action_command_vectors_sha256", "manifest_sha256",
+    }
+    if any(
+        type(record[name]) is not str or HEX64.fullmatch(record[name]) is None
+        for name in digest_fields
+    ) or any(
+        type(value) is not str or HEX64.fullmatch(value) is None
+        for value in ordered
+    ):
+        raise ValueError("public frame context digest is malformed")
     claimed = record.pop("manifest_sha256")
     if claimed != _sha256(record):
         raise ValueError("public frame context manifest digest mismatch")
-    return clone_json(dict(bundle))
+    return clone_json(dict(manifest))
