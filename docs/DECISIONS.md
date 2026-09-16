@@ -1754,3 +1754,13 @@
 - 日期：2026-09-16；用户明确认可`0342098`逐帧raw验证和`6731f9f`物理RELINK正例硬门，并授权开放原36槽raw的服务器检查与运行。固定两房、36槽、v2 pose、原house、D=1.0 m及一次终止规则不变；四个原RELINK继续保存第0–23帧和D-173失败来源，不能换端点、目标、动作、pose或房，也不能由正例硬门补标签。`vm04_relink_positive_gate.py`只供以后独立新数据版本审查，原36槽stage不调用它。
 - 固定raw stage以`18de8692ce9f352789336c07578eca51d17d0dcd`为受审实现：该提交只把关闭闸门测试改成显式注入关闭配置，使同一测试在真实配置开闸后仍验证“首输出前拒绝”；算法、任务、worker与摘要规则不变。随后配置仅开放`run_authorized/generation_authorized=true`并登记该ref；`private_evaluation_authorized/training_authorized/confirmation_authorized`仍为false。运行顺序固定为同版`check→run→verify→export`，后一步核前一步marker和摘要；任何失败/资源停止保留现场，不静默重跑。
 - 白话：这项授权解决“代码已经审过，但配置仍永远拒绝服务器生成”的问题。输入是受审固定槽实现、旧扫描/端点回执和两间原house，输出36个完整、失败或未启动的raw终止记录及逐帧摘要验证。例如四个RELINK仍写失败，其余槽继续生成并接受文件核验。它不等于36个有效样本、`constructed=true`、公开结构语义通过、独立新RELINK动作、训练或confirmation获准。
+
+
+## D-180：原36槽科学适用性阻断与服务器运行再关闭
+
+- 日期：2026-09-16；状态：根据用户要求复核“即使36槽全部成功能否支持VSMT主张”，在服务器尚未运行时重新关闭raw生成，等待新观察合同裁决。原两房、slot、失败和D-173四个RELINK证据不删除；`vm04_fixed_slot_raw_stage_v1.json`改为`reviewed_raw_paused_scientific_suitability`，`run_authorized/generation_authorized=false`且`expected_reviewed_code=null`，private evaluation/training/confirmation继续false。
+- 结论明确为**不能支持**。现有32帧注册相机策略在同一位置交替±0.25° yaw、净朝向回零且无平移，主要满足“每包跟随登记动作”的溯源形式，不能形成实质跨视角再识别、遮挡变化或自由空间负证据压力。四个RELINK固定为失败；NOOP/BIND/SPLIT/MERGE共12槽不发干预且公开类型化结构规则/语义验收尚未实现；生命周期16槽在固定镜头中心执行Disable/Enable；两house无独立未见family split，也没有五方法候选、预测或评分。因此36/36 raw成功至多支持writer、公私隔离、摘要链、失败保留和资源派发，不能进入L2主表、比较朴素当前帧基线或支撑VSMT候选贡献。
+- 生命周期后态属于既定动作证据的实现遗漏而非新科学口径：raw worker在每次`DisableObject/EnableObject`返回成功后读取私有target mask，分别要求0/>0像素；不符保留已发动作及mask支持并写`intervention_poststate_mismatch`。这避免把API success冒充真实可见性后态，但不把槽升级为记忆事务正例。
+- D-177硬门原实现把`old/new_region_id`与instance ID放在同一private outcome自报，未落实DATA所述trusted L1 crosswalk。修订后outcome不再指定entity region；gate必须从前后独立private crosswalk取得唯一instance→region→mask摘要绑定，并与已封存公开packet的entity mask逐项核对。P1/P2改用公开place mask和关系support摘要判不同，拒绝多条歧义关系，避免只看第一行和浮点centroid不等。该代码仍只供独立新版本审查，未接trusted materializer或真实数据。
+- 推荐下一口径：不运行当前静态36槽；先预登记有实际平移/显著视角变化、可见/遮挡/出视野分支与共同公开输入的开发数据版本，先用朴素当前帧基线做可辨识性检查，再决定VM-05规模。另一口径是仅将旧36槽作为一次工程writer回放运行并永久标`engineering_only`，会增加算力和文件但不增加论文主张证据；维持现设计进入L2不可接受。
+- 白话：即使36个文件全写成功，也可能只是同一镜头里让物体消失再出现，普通单帧方法就能做对，无法测试版本化记忆是否解决身份传播和长期副作用。输入是现有静态worker与未实现语义项，输出是关闸和明确证据上限；它不是已经运行出的负结果，也不否定以后按新视角合同构造的VSMT数据。

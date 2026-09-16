@@ -1,7 +1,7 @@
 {
   "version": "vsmt-vm04-fixed-slot-raw-stage-v1",
-  "status": "frozen_reviewed_generation",
-  "decision": "D-179-reviewed-fixed-raw-generation-open",
+  "status": "reviewed_raw_paused_scientific_suitability",
+  "decision": "D-180-static-view-raw-paused-before-server-generation",
   "fixed_house_ids": [
     "train:004270",
     "train:008243"
@@ -41,10 +41,10 @@
   "emergency_gpu_free_bytes": 4294967296,
   "emergency_data_disk_free_bytes": 4294967296,
   "maximum_stage_bytes": 4294967296,
-  "run_authorized": true,
-  "generation_authorized": true,
+  "run_authorized": false,
+  "generation_authorized": false,
   "private_evaluation_authorized": false,
   "training_authorized": false,
   "confirmation_authorized": false,
-  "expected_reviewed_code": "18de8692ce9f352789336c07578eca51d17d0dcd"
+  "expected_reviewed_code": null
 }

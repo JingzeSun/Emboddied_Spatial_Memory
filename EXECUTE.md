@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| VM-04目标边界与动作探针 | D-165旧16个完整episode首目标均非作者物体，v2扫描72个top-2目标中70个非作者物体；固定pose 36/36槽有至少2件作者资产和2件可移动资产。D-168原两房动作探针中RELINK强制动作3槽位置吻合、1槽偏移；D-171/D-172原偏移槽由非强制碰撞拒绝、物理暂停及两次手动推进共同定位为强制放置冲突端点后的物理推离。D-173原两房四个RELINK同目标位置仅取消强制后全部被模拟器明确碰撞拒绝：原固定x+0.5 m规则无有效物理RELINK端点。0新episode/训练/记忆正例；端点以外机器人路径与记忆语义未核，生成继续关闭。LOG-159–162；原D-164墙面目标探针仍阻断。 |
+| VM-04目标边界与动作探针 | D-180确认原36槽即使raw全成功也不能支持VSMT主张：32帧仅同pose交替±0.25° yaw、四RELINK固定失败、12个公开结构槽语义未实现、两house无独立split。服务器运行前已重新关闸，0新episode/训练/记忆正例。生命周期API success后补私有mask后态门；D-177正例gate改用trusted L1 crosswalk绑定公开entity mask，均仍待用户代码审查。LOG-169。 |
 | VSMT首篇/VM-01～04 | 旧两房stage及16完整/20构造失败封存。D-162仅开放v2固定两房、D=1.0 m纯视角扫描；服务器合同252/252及两family扫描均成功，各选18个pose、0 episode。原前18均来自18个位置，空间筛选降低top-2集合重复，但top-1仍重复10/11次；报告摘要`575d34d0…089f32`。生成/private、训练、validation效果、confirmation与L2继续关闭。LOG-152–153，D-162–163 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
 | R4三模型接入 | D完整适配16项通过（121/200全反向，0更新），W完整适配17项亦通过，F完整适配19项通过；真实公共接口27/27候选通过，0优化/真值读取。209bb34，LOG-123–127 |
@@ -1839,3 +1839,11 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 用户认可`0342098/6731f9f`并开放原36槽raw检查与运行；四个RELINK失败保留，物理正例硬门只供独立新版本。为避免真实配置开闸后旧测试因“当前配置必须关闭”自相矛盾，`18de869`只把该测试改为显式注入关闭配置，仍验证首输出前拒绝；raw算法、任务和stage字节不变。配置随后登记完整受审ref `18de8692ce9f352789336c07578eca51d17d0dcd`，状态`frozen_reviewed_generation`，只打开run/generation；private evaluation、training、confirmation保持false。
 - 开闸配置下本地固定raw/摘要/配置定向17项与D-177正例硬门5项通过，Python编译和diff检查通过；精确干净开闸提交`67651b2a2070f8bde2469cf5ab3bb949d394619c`的父入口本地`check`请求/实际2/2，raw边界组52项、目标/端点组8项退出0，receipt摘要`1db12af42a58d0b334f85f28fa68012409a515b1eaccff05069b48e11d38472b`。服务器同版`check/run/verify/export`尚未执行，0新episode、0语义正例、0训练。此开闸不运行旧D-175的19个交互分支，不要求公开容器或`PutObject` smoke来救原四槽。
 - 白话：输入是用户已审实现和固定36个任务，输出一个服务器可执行但仍受前置回执/资源保护的raw入口。例如原RELINK slot04只保留24帧和失败，其余槽继续；它不等于四个RELINK修好、每槽可训练或已经有服务器结果。
+
+
+## LOG-169：原36槽科学适用性复核与运行前关闸（2026-09-16）
+
+- 对现有worker、METHOD/DATA和D-165～179逐项静态复核：`registered_agent_action`每帧只交替执行±0.25° yaw，无相机平移，偶数步返回原朝向；目标选择要求固定pose当前可见。故32帧不能形成实质跨视角身份或遮挡压力。四个RELINK在frame24前按D-173保留失败；NOOP/BIND/SPLIT/MERGE不发动作且公开类型化结构材料化/语义验收未实现；当前没有候选、teacher、五方法输出、训练/validation或未见family。结论是即使所有可写槽raw成功也只能认证工程文件链，不能支持VSMT相对主张或进入L2主表。
+- 服务器从未执行D-179的`run`；本地只有开闸版本纯测试回执。复核后配置已在生成前重新置`run_authorized=false/generation_authorized=false/expected_reviewed_code=null`，不会产生需要删除的新stage。旧D-179授权、实现和本地回执按原字节保留，不改写成实际服务器结果。
+- 两个直接工程缺口已形成供审提交：生命周期动作成功后即时读取私有target mask，Disable要求0、Enable要求>0，错配保留动作为`intervention_poststate_mismatch`；D-177 evaluator删除private outcome自报entity region，改由前后trusted L1 private crosswalk唯一映射instance→公开region/mask，并用离散place mask/relation support检查P1/P2。人工正反例合计12项通过；真实simulator、trusted materializer和服务器stage均未运行。
+- 白话：这次是运行前代码/设计审计。它发现“文件可能全写成，但题目太容易且关键事务没有正例”，因此先关闸；测试通过只说明新增拒绝条件按人工例工作，不说明新数据已经可信或VSMT有效。
