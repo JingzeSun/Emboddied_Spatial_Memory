@@ -214,6 +214,10 @@ def validate_approved_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
         "vsmt-vm04-public-program-matcher-receipt-v1" and
         program_candidate.get("episode_construction_receipt_schema") ==
         "vsmt-vm04-episode-construction-receipt-v1" and
+        program_candidate.get("online_plan_request_schema") ==
+        "vsmt-vm04-online-program-plan-request-v1" and
+        program_candidate.get("online_plan_temporal_receipt_schema") ==
+        "vsmt-vm04-online-program-plan-temporal-receipt-v1" and
         program_candidate.get("matcher_role") ==
         "public_construction_sufficiency_gate_not_semantic_identity_oracle" and
         program_candidate.get("matcher_prior_boundary") ==
@@ -226,7 +230,16 @@ def validate_approved_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
         ) is True and
         program_candidate.get(
             "construction_plan_pre_terminal_temporal_seal_status"
-        ) == "pending_online_parent_stage_implementation_no_offline_self_attestation" and
+        ) == "online_core_implemented_review_pending_not_consumed_by_episode_receipt" and
+        program_candidate.get("online_plan_seal_call_order") ==
+        "after_terminal_minus_one_public_memory_update_before_terminal_public_or_private_frame_load" and
+        program_candidate.get(
+            "online_plan_seal_retained_if_terminal_load_or_materialization_fails"
+        ) is True and
+        program_candidate.get("online_plan_request_provenance_status") ==
+        "pending_parent_stage_derivation_and_no_prior_terminal_access_proof" and
+        program_candidate.get("online_temporal_receipt_clears_D201_pending") is False and
+        program_candidate.get("offline_episode_receipt_consumes_online_temporal_seal") is False and
         program_candidate.get("episode_receipt_parent_family_eligibility") is False and
         program_candidate.get("parent_family_completion_aggregation_status") ==
         "pending_separate_review",

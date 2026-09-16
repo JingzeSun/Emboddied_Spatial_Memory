@@ -17,6 +17,7 @@ from .causal_prior import (
 )
 from .contracts import canonical_sha256
 from .vm04_public_context import validate_public_frame_context_bundle
+from .vm04_online_plan_seal import seal_online_program_construction_plan
 from .vm04_public_frontend import (
     Vm04PublicFrontendConfig,
     materialize_vm04_public_frontend_frame,
@@ -56,6 +57,29 @@ class Vm04PublicFrontendSequence:
         self._packets: list[dict[str, Any]] = []
         self._next_index = 0
         self._final: dict[str, Any] | None = None
+        self._online_plan_seal: dict[str, Any] | None = None
+
+    def seal_program_construction_plan_before_observation(
+        self, *, request: Mapping[str, Any], route_plan: Mapping[str, Any],
+        observation_index: int, materializer_code_sha256: str,
+    ) -> dict[str, Any]:
+        """Seal the current public memory before the terminal raw frame opens."""
+
+        if self._final is not None or self._online_plan_seal is not None:
+            raise ValueError("online construction plan may be sealed exactly once")
+        if observation_index != self._next_index or observation_index <= 0:
+            raise ValueError(
+                "online construction plan must seal at the next positive observation"
+            )
+        sealed = seal_online_program_construction_plan(
+            request=request,
+            route_plan=route_plan,
+            prior_memory=self._memory,
+            last_completed_observation_index=observation_index - 1,
+            materializer_code_sha256=materializer_code_sha256,
+        )
+        self._online_plan_seal = clone_json(sealed)
+        return clone_json(sealed)
 
     def __call__(
         self, public_raw: Mapping[str, Any], private_raw: Mapping[str, Any],

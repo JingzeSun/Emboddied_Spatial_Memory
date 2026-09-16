@@ -58,6 +58,10 @@ from vsmt.vm04_program_construction import (  # noqa: E402
     make_program_construction_plan,
 )
 from vsmt.vm04_program_matcher import matcher_config_sha256  # noqa: E402
+from vsmt.vm04_online_plan_seal import (  # noqa: E402
+    make_online_program_plan_request,
+    seal_online_program_construction_plan,
+)
 
 
 CODE_SHA = "a" * 64
@@ -104,6 +108,32 @@ def _build_raw_episode(episode_root, route_plan=None):
     )
     assert result["status"] == "raw_complete"
     store.finalize(result)
+
+
+def _birth_route():
+    route = _plan()
+    route["program"] = "BIRTH"
+    route["visibility_subject_kind"] = "reveal_locus"
+    route.pop("route_plan_sha256")
+    route["route_plan_sha256"] = hashlib.sha256(
+        canonical_json(route).encode("utf-8")
+    ).hexdigest()
+    return route
+
+
+def _online_birth_request(route):
+    return make_online_program_plan_request(
+        episode_id=route["episode_id"], family_id="family:fixture",
+        program="BIRTH", route_plan_sha256=route["route_plan_sha256"],
+        terminal_observation_index=route["terminal_reobservation_indices"][-1],
+        precondition_refs={
+            "reveal_locus_public_ref": "locus:fixture",
+            "absence_scope_sha256": "f" * 64,
+        },
+        visibility_subject_seal_sha256=
+            route["visibility_subject_seal_sha256"],
+        matcher_config_sha256=matcher_config_sha256(program_matcher_config()),
+    )
 
 
 def _materialize(public_raw, private_raw, index):
@@ -163,6 +193,17 @@ class FixtureSequenceMaterializer:
         self.packets.append(packet)
         return output
 
+    def seal_program_construction_plan_before_observation(
+        self, *, request, route_plan, observation_index,
+        materializer_code_sha256,
+    ):
+        return seal_online_program_construction_plan(
+            request=request, route_plan=route_plan,
+            prior_memory=self.memory,
+            last_completed_observation_index=observation_index - 1,
+            materializer_code_sha256=materializer_code_sha256,
+        )
+
     def finalized_result(self):
         replay = build_causal_prior(
             self.packets, config=self.config, builder_code_sha256=CODE_SHA,
@@ -205,16 +246,42 @@ def _fixture_materializer(episode_root):
 
 
 class MultiviewMaterializerTests(unittest.TestCase):
+    def test_online_plan_is_written_before_terminal_frame_load(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            episode = Path(temporary) / "episode"
+            route = _birth_route()
+            _build_raw_episode(episode, route)
+            terminal_rgb = episode / "public/raw/frame_0005/rgb.npy"
+            with terminal_rgb.open("ab") as handle:
+                handle.write(b"terminal-tamper")
+            result = materializer.materialize_episode_core(
+                episode, materialize_frame=_fixture_materializer(episode),
+                materializer_code_sha256=CODE_SHA,
+                materializer_config_sha256=CONFIG_SHA,
+                materializer_assets_receipt_sha256=ASSET_SHA,
+                online_construction_plan_request=_online_birth_request(route),
+            )
+            self.assertEqual(result["status"], "materialized_failure")
+            self.assertEqual(result["frame_count"], 5)
+            seal_root = episode / "materialized/construction-plan-seal"
+            self.assertTrue((
+                seal_root / "online-plan-temporal.sealed.json"
+            ).is_file())
+            temporal = json.loads((
+                seal_root / "online-plan-temporal.receipt.json"
+            ).read_text(encoding="utf-8"))
+            self.assertEqual(temporal["sealed_before_observation_index"], 5)
+            self.assertFalse(temporal[
+                "terminal_public_frame_opened_before_seal"
+            ])
+            self.assertFalse((episode / (
+                "materialized/public/materializer.receipt.json"
+            )).exists())
+
     def test_seals_failed_public_matcher_as_construction_failure(self):
         with tempfile.TemporaryDirectory() as temporary:
             episode = Path(temporary) / "episode"
-            route = _plan()
-            route["program"] = "BIRTH"
-            route["visibility_subject_kind"] = "reveal_locus"
-            route.pop("route_plan_sha256")
-            route["route_plan_sha256"] = hashlib.sha256(
-                canonical_json(route).encode("utf-8")
-            ).hexdigest()
+            route = _birth_route()
             _build_raw_episode(episode, route)
             callback = _fixture_materializer(episode)
             result = materializer.materialize_episode_core(
@@ -281,13 +348,7 @@ class MultiviewMaterializerTests(unittest.TestCase):
     def test_construction_audit_rejects_wrong_causal_prior(self):
         with tempfile.TemporaryDirectory() as temporary:
             episode = Path(temporary) / "episode"
-            route = _plan()
-            route["program"] = "BIRTH"
-            route["visibility_subject_kind"] = "reveal_locus"
-            route.pop("route_plan_sha256")
-            route["route_plan_sha256"] = hashlib.sha256(
-                canonical_json(route).encode("utf-8")
-            ).hexdigest()
+            route = _birth_route()
             _build_raw_episode(episode, route)
             callback = _fixture_materializer(episode)
             materializer.materialize_episode_core(

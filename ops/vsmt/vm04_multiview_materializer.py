@@ -49,6 +49,10 @@ from vsmt.vm04_observation_runner import (  # noqa: E402
     ObservationConstructionError,
     validate_approved_contract,
 )
+from vsmt.vm04_online_plan_seal import (  # noqa: E402
+    validate_online_program_plan_request,
+    validate_online_program_plan_seal,
+)
 from vsmt.vm04_program_matcher import (  # noqa: E402
     Vm04ProgramMatcherConfig,
     make_program_matcher_receipt,
@@ -351,6 +355,7 @@ def materialize_episode_core(
     episode_root: Path, *, materialize_frame: MaterializeFrame,
     materializer_code_sha256: str, materializer_config_sha256: str,
     materializer_assets_receipt_sha256: str,
+    online_construction_plan_request: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Materialize one raw-complete episode; retain partial outputs on failure."""
 
@@ -360,6 +365,20 @@ def materialize_episode_core(
     _hex64(materializer_assets_receipt_sha256,
            "materializer_assets_receipt_sha256")
     public_manifest, private_manifest = _validate_manifests(episode_root)
+    route = _read_json(episode_root / "private/route-plan.json")
+    online_request = None
+    terminal_plan_index = None
+    if online_construction_plan_request is not None:
+        online_request = validate_online_program_plan_request(
+            online_construction_plan_request
+        )
+        terminal_plan_index = online_request["terminal_observation_index"]
+        _require(
+            terminal_plan_index == public_manifest["frame_count"] - 1 and
+            route.get("terminal_reobservation_indices") and
+            route["terminal_reobservation_indices"][-1] == terminal_plan_index,
+            "online construction plan must seal before the final registered terminal frame",
+        )
     output_root = episode_root / "materialized"
     _require(not output_root.exists(), "materialized output already exists")
     public_output = output_root / "public"
@@ -371,6 +390,51 @@ def materialize_episode_core(
     try:
         for index, (public_row, private_row) in enumerate(zip(
                 public_manifest["frames"], private_manifest["frames"])):
+            if online_request is not None and index == terminal_plan_index:
+                seal = getattr(
+                    materialize_frame,
+                    "seal_program_construction_plan_before_observation",
+                    None,
+                )
+                _require(callable(seal),
+                         "materializer callback lacks online plan sealing")
+                plan_bundle = validate_online_program_plan_seal(
+                    seal(
+                        request=online_request, route_plan=route,
+                        observation_index=index,
+                        materializer_code_sha256=materializer_code_sha256,
+                    ),
+                    request=online_request, route_plan=route,
+                    materializer_code_sha256=materializer_code_sha256,
+                )
+                seal_root = output_root / "construction-plan-seal"
+                seal_root.mkdir()
+                seal_values = {
+                    "online-plan-request.json": online_request,
+                    "program-construction-plan.json":
+                        plan_bundle["construction_plan"],
+                    "matcher-prior-memory.json":
+                        plan_bundle["matcher_prior_memory"],
+                    "online-plan-temporal.receipt.json":
+                        plan_bundle["temporal_receipt"],
+                }
+                for name, value in seal_values.items():
+                    _write_new_json(seal_root / name, value)
+                _write_new_json(seal_root / "online-plan-temporal.sealed.json", {
+                    "request_file_sha256": _sha_file(
+                        seal_root / "online-plan-request.json"
+                    ),
+                    "construction_plan_file_sha256": _sha_file(
+                        seal_root / "program-construction-plan.json"
+                    ),
+                    "matcher_prior_memory_file_sha256": _sha_file(
+                        seal_root / "matcher-prior-memory.json"
+                    ),
+                    "temporal_receipt_file_sha256": _sha_file(
+                        seal_root / "online-plan-temporal.receipt.json"
+                    ),
+                    "sealed_before_terminal_frame_load": True,
+                })
             public_raw, private_raw = _load_verified_frame(
                 episode_root, index, public_row, private_row)
             packet, crosswalk = _validate_materialized_pair(
@@ -393,7 +457,6 @@ def materialize_episode_core(
         for index, (public_row, private_row) in enumerate(zip(
                 public_manifest["frames"], private_manifest["frames"])):
             _load_verified_frame(episode_root, index, public_row, private_row)
-        route = _read_json(episode_root / "private/route-plan.json")
         public_route = _read_json(episode_root / "public/route.json")
         sequence = _validated_sequence_result(
             materialize_frame,

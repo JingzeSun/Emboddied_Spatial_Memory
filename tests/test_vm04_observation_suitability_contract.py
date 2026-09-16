@@ -288,6 +288,14 @@ class ObservationSuitabilityContractTests(unittest.TestCase):
             "vsmt-vm04-episode-construction-receipt-v1",
         )
         self.assertEqual(
+            program["online_plan_request_schema"],
+            "vsmt-vm04-online-program-plan-request-v1",
+        )
+        self.assertEqual(
+            program["online_plan_temporal_receipt_schema"],
+            "vsmt-vm04-online-program-plan-temporal-receipt-v1",
+        )
+        self.assertEqual(
             program["matcher_prior_boundary"],
             "causal_memory_immediately_before_registered_terminal_observation",
         )
@@ -299,8 +307,25 @@ class ObservationSuitabilityContractTests(unittest.TestCase):
         ])
         self.assertEqual(
             program["construction_plan_pre_terminal_temporal_seal_status"],
-            "pending_online_parent_stage_implementation_no_offline_self_attestation",
+            "online_core_implemented_review_pending_not_consumed_by_episode_receipt",
         )
+        self.assertEqual(
+            program["online_plan_seal_call_order"],
+            "after_terminal_minus_one_public_memory_update_before_terminal_public_or_private_frame_load",
+        )
+        self.assertTrue(program[
+            "online_plan_seal_retained_if_terminal_load_or_materialization_fails"
+        ])
+        self.assertEqual(
+            program["online_plan_request_provenance_status"],
+            "pending_parent_stage_derivation_and_no_prior_terminal_access_proof",
+        )
+        self.assertFalse(program[
+            "online_temporal_receipt_clears_D201_pending"
+        ])
+        self.assertFalse(program[
+            "offline_episode_receipt_consumes_online_temporal_seal"
+        ])
         self.assertFalse(program["episode_receipt_parent_family_eligibility"])
         self.assertEqual(
             program["parent_family_completion_aggregation_status"],

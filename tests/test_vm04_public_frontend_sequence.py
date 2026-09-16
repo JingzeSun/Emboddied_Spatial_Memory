@@ -22,6 +22,9 @@ from vsmt.vm04_public_context import (  # noqa: E402
 from vsmt.vm04_public_frontend_sequence import (  # noqa: E402
     Vm04PublicFrontendSequence,
 )
+from vsmt.vm04_online_plan_seal import (  # noqa: E402
+    make_online_program_plan_request,
+)
 
 
 def bootstrap_config() -> PublicBootstrapConfig:
@@ -128,6 +131,53 @@ def tokens(_rgb, _index):
 
 
 class Vm04PublicFrontendSequenceTests(unittest.TestCase):
+    def test_online_plan_seals_current_memory_before_next_frame(self):
+        callback = Vm04PublicFrontendSequence(
+            public_frame_context_bundle=context_bundle(),
+            patch_token_extractor=tokens,
+            frontend_config=frontend_config(),
+            bootstrap_config=bootstrap_config(),
+            builder_code_sha256="c" * 64,
+        )
+        callback(*raws(0), 0)
+        route = {
+            "episode_id": "episode:sequence",
+            "program": "BIRTH",
+            "route_plan_sha256": "d" * 64,
+            "visibility_subject_seal_sha256": "a" * 64,
+            "terminal_reobservation_indices": [0, 1],
+            "split_merge_artifact_plan": None,
+        }
+        request = make_online_program_plan_request(
+            episode_id=route["episode_id"], family_id="family:fixture",
+            program="BIRTH", route_plan_sha256=route["route_plan_sha256"],
+            terminal_observation_index=1,
+            precondition_refs={
+                "reveal_locus_public_ref": "locus:fixture",
+                "absence_scope_sha256": "e" * 64,
+            },
+            visibility_subject_seal_sha256=
+                route["visibility_subject_seal_sha256"],
+            matcher_config_sha256="f" * 64,
+        )
+        sealed = callback.seal_program_construction_plan_before_observation(
+            request=request, route_plan=route, observation_index=1,
+            materializer_code_sha256="1" * 64,
+        )
+        self.assertEqual(
+            sealed["matcher_prior_memory"]["graph_hash"],
+            sealed["construction_plan"]["prior_memory_sha256"],
+        )
+        self.assertEqual(
+            sealed["temporal_receipt"]["last_completed_observation_index"], 0
+        )
+        with self.assertRaisesRegex(ValueError, "exactly once"):
+            callback.seal_program_construction_plan_before_observation(
+                request=request, route_plan=route, observation_index=1,
+                materializer_code_sha256="1" * 64,
+            )
+        callback(*raws(1), 1)
+
     def test_contiguous_frames_build_and_replay_one_public_memory_chain(self):
         callback = Vm04PublicFrontendSequence(
             public_frame_context_bundle=context_bundle(),
