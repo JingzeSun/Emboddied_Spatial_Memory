@@ -73,7 +73,7 @@
 
 以下工作不属于“开始生成前”的开闸条件，但属于生成后进入VM-05前的验收：逐program私有语义评价、sealed-catalog oracle recall、CFO/history按family配对的严格可辨识性门、easy-class标注、至少32个完成family、候选/teacher分层错误统计。它们不能反过来修改本版生成规则或补样。
 
-**当前用户交审拆分（按D-059停止继续堆叠）：** 用户已认可D-199科学层口径，并明确允许继续补公开充分matcher与visibility route/worker receipt绑定；D-200候选现完成这两项但仍待代码审查。下一批不得越过尚为null的matcher/visibility/SAM数值或edge RETRACT证据缺口去实现可运行父stage；父stage matcher聚合、批量派发、资源回执和摘要/导出仍须另作单一职责交审。现有封装保持fail closed并保留测试。
+**当前用户交审拆分（按D-059停止继续堆叠）：** 用户已正式认可D-200科学口径与当前代码候选：matcher仅作公开构造充分门，RELINK新place绑定确定性place scaffold版本，edge RETRACT继续阻断，正式matcher/visibility数值保持null且不开放运行。下一批不得越过这些null值、SAM资产缺口或edge RETRACT证据缺口去实现可运行父stage；父stage matcher聚合、批量派发、资源回执和摘要/导出仍须另作单一职责交审。现有封装保持fail closed并保留测试。
 
 
 **独立RELINK新数据版本（proposed，D-176停止线未重开）：** [方法与正反例](METHOD.md)和[拟议公私字段](DATA.md)已记录机器人实际路径、公开旧/新关系、候选先封存及私有同一身份/后态的分层验收口径。输入只能是公开当前RGB-D、此前预测记忆和预登记动作；输出须分别报告物理失败、事务前提缺口、公开证据缺口、candidate miss和executor/teacher错误。例如原四槽仍保持碰撞失败，独立新版本即使找到一条推椅子到P2的路线也不得回填原槽。该版本尚无冻结配置、公开容器读取器、真实`PutObject` smoke、可执行机器人RELINK回执或记忆正例；执行新分支仍需单独裁决和代码审查。
