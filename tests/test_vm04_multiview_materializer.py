@@ -93,6 +93,9 @@ class MultiviewMaterializerTests(unittest.TestCase):
             self.assertEqual(receipt["materializer_code_sha256"], CODE_SHA)
             self.assertFalse(
                 receipt["deployment_reader_may_open_private_crosswalks"])
+            verified = materializer.verify_materialized_episode(episode)
+            self.assertEqual(verified["status"], "materialized_verified")
+            self.assertEqual(verified["frame_count"], 6)
 
     def test_raw_tamper_retains_failure_without_success_receipt(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -179,6 +182,25 @@ class MultiviewMaterializerTests(unittest.TestCase):
                     materializer_config_sha256=CONFIG_SHA,
                 )
             self.assertFalse(absent.exists())
+
+    def test_verifier_rejects_packet_changed_after_receipt(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            episode = Path(temporary) / "episode"
+            _build_raw_episode(episode)
+            result = materializer.materialize_episode_core(
+                episode, materialize_frame=_materialize,
+                materializer_code_sha256=CODE_SHA,
+                materializer_config_sha256=CONFIG_SHA,
+            )
+            self.assertEqual(result["status"], "materialized_complete")
+            packet_path = episode / "materialized/public/frame_0000.json"
+            packet = json.loads(packet_path.read_text(encoding="utf-8"))
+            packet["decision_time_s"] += 1.0
+            packet_path.write_text(json.dumps(packet), encoding="utf-8")
+            with self.assertRaisesRegex(
+                    materializer.ObservationConstructionError,
+                    "materialized frame binding changed"):
+                materializer.verify_materialized_episode(episode)
 
 
 if __name__ == "__main__":

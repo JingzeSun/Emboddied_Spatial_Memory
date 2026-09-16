@@ -23,6 +23,7 @@ from cpmt.hashing import canonical_json  # noqa: E402
 from vsmt.contracts import validate_observation_packet  # noqa: E402
 from vsmt.vm04_materializer_receipt import (  # noqa: E402
     make_materializer_receipt,
+    validate_materializer_receipt,
 )
 from vsmt.vm04_observation_runner import (  # noqa: E402
     ObservationConstructionError,
@@ -330,6 +331,65 @@ def materialize_episode_core(
             "frame_count": len(bindings),
             "failure_reason": "materializer_or_raw_verification_failed",
         }
+
+
+def verify_materialized_episode(
+    episode_root: Path, *, contract: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Re-open raw, public packets, private crosswalks and the final receipt."""
+
+    episode_root = Path(episode_root)
+    public_manifest, private_manifest = _validate_manifests(episode_root)
+    output_root = episode_root / "materialized"
+    receipt_path = output_root / "public/materializer.receipt.json"
+    success_path = output_root / "public/materializer.success.json"
+    _require(receipt_path.is_file() and success_path.is_file(),
+             "materializer receipt and success marker are required")
+    receipt = validate_materializer_receipt(_read_json(receipt_path))
+    _require(_read_json(success_path) == {
+        "receipt_sha256": _sha_file(receipt_path),
+    }, "materializer success marker does not bind the receipt")
+    route = _read_json(episode_root / "private/route-plan.json")
+    _require(receipt["episode_id"] == public_manifest["episode_id"] and
+             receipt["route_plan_sha256"] == route["route_plan_sha256"] and
+             receipt["raw_episode_manifest_sha256"] == _sha_file(
+                 episode_root / "private/raw.manifest.json") and
+             receipt["frame_count"] == public_manifest["frame_count"],
+             "materializer receipt does not bind the raw episode")
+    if contract is not None:
+        approved = validate_approved_contract(contract)
+        provenance = approved["crosswalk_provenance"]
+        _require(receipt["materializer_code_sha256"] ==
+                 provenance.get("expected_materializer_code_sha256") and
+                 receipt["materializer_config_sha256"] ==
+                 provenance.get("expected_materializer_config_sha256"),
+                 "materializer receipt differs from reviewed code or config")
+    for index, (binding, public_row, private_row) in enumerate(zip(
+            receipt["frames"], public_manifest["frames"],
+            private_manifest["frames"])):
+        public_raw, private_raw = _load_verified_frame(
+            episode_root, index, public_row, private_row)
+        packet_path = output_root / "public" / f"frame_{index:04d}.json"
+        crosswalk_path = output_root / "private" / f"frame_{index:04d}.json"
+        _require(packet_path.is_file() and crosswalk_path.is_file(),
+                 "materialized frame output is missing")
+        _require(binding["raw_public_frame_sha256"] ==
+                 public_raw["source_frame_sha256"] and
+                 binding["raw_private_masks_sha256"] ==
+                 private_raw["instance_masks_sha256"] and
+                 binding["public_packet_sha256"] == _sha_file(packet_path) and
+                 binding["private_crosswalk_sha256"] ==
+                 _sha_file(crosswalk_path),
+                 "materialized frame binding changed")
+        _validate_materialized_pair({
+            "public_packet": _read_json(packet_path),
+            "private_crosswalk": _read_json(crosswalk_path),
+        }, private_raw["private_instance_ids"], index)
+    return {
+        "status": "materialized_verified",
+        "frame_count": receipt["frame_count"],
+        "receipt_sha256": _sha_file(receipt_path),
+    }
 
 
 def assert_materialization_authorized(
