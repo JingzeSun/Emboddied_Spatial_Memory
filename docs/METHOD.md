@@ -1474,3 +1474,6 @@ D-180确认原两房36固定槽不具备检验VSMT相对主张的观察压力。
 
 
 D-181将真实视角变化和可辨识性设为新VM-04版本的前置条件。初始pose之后，相机按公开信息预登记非自适应Move/Rotate/Look路线；同family分别构造自然遮挡后重现和出视野后重现分支，用真实pose而非动作命令证明发生平移。Current-Frame-Only probe（CFO，当前帧单独诊断器）与同预算public-history probe预测同一program type，按house family比较；历史优势、CFO上限和sealed-catalog oracle recall三门在生成前冻结，任一失败就把该版本限制为工程/easy slice，不进入L2。白话：如果只看最后一张图就能知道该做BIRTH还是RELINK，再复杂的记忆方法赢了也不能说明历史有用；输入当前帧或完整公开历史，输出两个可比诊断分数，它不等于LOW基线、VSMT训练或效果结论。当前推荐阈值和轨迹距离仍待用户审查，所有执行位关闭。
+
+
+D-182进一步规定所有世界干预都发生在公开已封存的不可观测窗口：目标须由当前公开RGB-D/pose与此前公开target track判为`occluded`或`out_of_view`，否则记`intervention_visible_to_camera`并停止原槽。CFO与history probe按同一house family配对，使用同一预登记结构和预算，CFO仅mask掉history/prior输入，禁止在门的family上分别从多个probe挑最大值。严格口径保留下界>15个百分点；推荐正式尝试48个预登记house、至少32个完成family，另用6个不相交且永久排除的pilot提前查路线/构造失败。白话：把椅子在镜头前搬走仍会把答案送给当前帧；只有在看不见动作时改变、之后从新视角重现，历史差异才有资格接受检验。pilot不进统计，正式失败也不能靠补房把分母洗掉。

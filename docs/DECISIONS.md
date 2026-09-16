@@ -1774,3 +1774,13 @@
 - 采纳可辨识性硬门，但不在本轮暗中冻结数值。CFO只读当前L2 packet；同预算public-history probe多读公开历史与causal prior，二者输出相同program type并按house family比较。进入L2须同时满足：历史减CFO的单侧区间下界超过冻结最小差、CFO不超过冻结上限、sealed-catalog oracle candidate recall超过冻结下限。规则和全部数值/模型/预算必须在生成前固定，结果后不得改。推荐审查值为差15个百分点、CFO≤60%、oracle recall≥90%、95%区间、10000次bootstrap、至少24个开发family；它们目前只在`recommended_values_for_review_not_frozen`，不是批准门。
 - 新路线不是active exploration：初始观测前可`TeleportFull`，其后路线由公开可达/几何信息在private ID和结果之前封存，失败不换路径。每family至少含自然遮挡后重现、出视野后重现两类分支，每episode从旧关系可见开始，经一个预登记挑战，再在真实平移后的pose重现。推荐审查值为关键pose和重现各至少0.5 m平移、至少30°关键yaw差、每visibility state至少2个公开时刻、最多24步、2 cm/1° pose验收容差；数值仍未批准。
 - 白话：新合同解决“数据文件完整但最后一帧已经泄露答案”的问题。输入固定多视角路线和两种只差历史访问权的诊断probe，输出是否值得进入L2的准入结论。例如当前帧都看到同一把椅子，但只有历史说明它是旧节点还是新节点时，history probe应稳定胜过CFO；这不等于VSMT已训练或一定获胜。
+
+
+## D-182：不可观测干预、单probe配对门与预登记pilot提案
+
+- 日期：2026-09-16；状态：根据D-181代码复核追加的执行关闭合同修订，未获生成/训练授权。所有带world intervention的程序必须在动作前由公开visibility builder将此前封存的匿名target track或公开预登记reveal locus判为`occluded`或`out_of_view`并封存；证据仍可见就以`intervention_visible_to_camera`保留原槽失败，不执行动作、不换pose/路径/house。重现0.5 m的参考pose明确为干预前对应程序的公开前提pose：RELINK等使用旧关系可见pose，BIRTH使用无既有目标节点时封存的公开reveal-locus pose。该约束防止“相机虽移动但动作仍在镜头前，当前帧直接看出答案”。
+- CFO/history门显式`paired_by_family=true`。取消“线性和两层set probe各自取validation较好者”；两侧必须用单一事前冻结的共享结构、参数容量和优化预算，CFO仅mask掉history/prior输入。不得用门所评family选结构。推荐结构是一个共享两层set probe，具体token/池化/优化预算仍为null，需另审；这比另划结构选择family更省样本且消除max-selection偏差。
+- 保持严格统计语义：按family配对的history−CFO单侧95%区间下界须超过15个百分点，不改成“均值15且下界>0”。明确该门通常要求观测均值差大于15个百分点；这是为减少误收无区分度数据，接受更高样本成本。推荐将完成development family从24提高到32。
+- 产出分两批但不共享house：先推荐6个pilot family，只查路线、visibility state和构造成品率，永久排除准入门、VM-05和VM-06；pilot与正式house清单均须在pilot前按result-blind manifest hash顺序封存且互不相交，pilot后若改合同必须新版本。正式批推荐一次性预登记48个source house，失败不补且观察结果后不得追加house；少于32个完成family则构造门失败，不运行可辨识性门。`pilot=6/source=48/completed=32`仍在推荐区，所有冻结字段为null。
+- 生命周期低优先缺口一并修复：Enable在下一注册相机event确认重现后进入enabled集合，剩余每个注册相机event持续要求可见至frame31；再次消失记`enabled_target_disappeared_before_terminal`。这只修原静态worker的D-168终态证据，未来多视角runner应按其预登记终端重现窗口另实现，不能机械复用“所有后续视角持续可见”。
+- 白话：输入是看不见动作的公开窗口、固定一套probe和预先列好的6+48个house，输出固定分母上的数据准入结论。例如pilot发现MoveAhead频繁撞墙，可以改合同并重开新版本，但这6个房永远不混进正式32个成功family。它不是允许看到失败后继续抽房，也没有开放服务器。

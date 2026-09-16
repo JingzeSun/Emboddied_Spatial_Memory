@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| VM-04观察适用性 | D-181确认原静态36槽不运行；新观察合同以真实平移、自然遮挡/出视野后重现、crosswalk materializer receipt和CFO可辨识性硬门为前置，全部执行位关闭、数值待审。生命周期worker已补跨帧disabled检查并把Enable验收移到下一注册相机event。0新episode/训练/记忆正例。LOG-169–170。 |
+| VM-04观察适用性 | D-181/182确认原静态36槽不运行；新合同要求真实平移、不可观测窗口内干预、自然遮挡/出视野后重现、crosswalk receipt及单probe配对CFO硬门。推荐6个排除pilot、48个固定正式house、至少32个完成family，均未冻结且全部执行位关闭。旧worker另补Enable后持续到终帧检查。0新episode/训练/记忆正例。LOG-169–171。 |
 | VSMT首篇/VM-01～04 | 旧两房stage及16完整/20构造失败封存。D-162仅开放v2固定两房、D=1.0 m纯视角扫描；服务器合同252/252及两family扫描均成功，各选18个pose、0 episode。原前18均来自18个位置，空间筛选降低top-2集合重复，但top-1仍重复10/11次；报告摘要`575d34d0…089f32`。生成/private、训练、validation效果、confirmation与L2继续关闭。LOG-152–153，D-162–163 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
 | R4三模型接入 | D完整适配16项通过（121/200全反向，0更新），W完整适配17项亦通过，F完整适配19项通过；真实公共接口27/27候选通过，0优化/真值读取。209bb34，LOG-123–127 |
@@ -1855,3 +1855,11 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 固定raw worker对生命周期状态新增逐注册相机event核验：Disable即时0像素后进入disabled集合，未Enable前任何一帧重现均保留为`disabled_target_reappeared_between_actions`；Enable即时mask仅记录，下一注册相机event才要求>0。private失败保留每帧`post_agent_lifecycle_checks`与实际像素，公开只留reason。人工controller覆盖即时成功、延迟到下一camera成功、隐藏期frame5重现、下一camera仍缺失及API拒绝。
 - crosswalk gate内容绑定不回退，但真实来源尚无materializer receipt；合同明确未实现前不得发真实RELINK正例。CFO硬门只测试“当前帧是否已足够”，不代替LOW或主比较；即使通过，也只允许数据进入后续VM-05审查，不证明VSMT有效。
 - 白话：本批输出是可审合同和拒绝错误数据的代码，不是新数据。比如Enable动作当下mask仍空、下一次相机渲染出现目标时现在会通过；若目标在正式Enable前自己出现则保留失败。
+
+
+## LOG-171：D-182合同偏差修订与Enable终态跟踪（2026-09-16）
+
+- 静态审查采纳六项剩余风险：干预可见会向CFO泄露答案；两个probe各取最大值会造成选择偏差；history−CFO必须明确按family配对；正式尝试house数和完成family门须分开；pilot若混入正式门会产生条件选择；Enable后仍须保留frame31终态证据。没有运行模拟器或任何数据/probe训练。
+- 合同现要求world intervention前公开目标状态已封存为occluded/out-of-view，仍可见就记`intervention_visible_to_camera`；CFO/history共用单一结构，按family配对。推荐值改为6个永久排除pilot、48个预登记正式house、至少32个完成family；正式失败不追加house。所有实际字段仍null、执行位false。
+- 原固定raw worker在Enable后的第一帧通过后把目标转入enabled集合，随后每个注册相机event检查到终帧；frame27再次消失的人工例保留`enabled_target_disappeared_before_terminal`。该规则服务旧固定视角证据，不预先决定新多视角episode在非终端视角必须持续看见目标。
+- 白话：这次只把“什么时候允许动作、怎样公平比较当前帧与历史、失败房是否能补、Enable后是否稳定”写成不可偷换的合同和人工测试；没有产生可用数据，也没有批准6或48个house运行。
