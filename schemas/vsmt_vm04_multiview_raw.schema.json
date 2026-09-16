@@ -1,0 +1,385 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/embodied-memory/vsmt_vm04_multiview_raw.schema.json",
+  "title": "VSMT VM-04 Multiview Raw and Materializer Receipt Records",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/publicCamera"
+    },
+    {
+      "$ref": "#/$defs/publicFrame"
+    },
+    {
+      "$ref": "#/$defs/privateFrameMap"
+    },
+    {
+      "$ref": "#/$defs/publicTerminal"
+    },
+    {
+      "$ref": "#/$defs/privateTerminal"
+    },
+    {
+      "$ref": "#/$defs/publicManifest"
+    },
+    {
+      "$ref": "#/$defs/privateManifest"
+    }
+  ],
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "publicCamera": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "observation_index",
+        "x_m",
+        "y_m",
+        "z_m",
+        "yaw_deg",
+        "horizon_deg",
+        "vertical_fov_deg"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "vsmt-vm04-raw-public-camera-v1"
+        },
+        "observation_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "x_m": {
+          "type": "number"
+        },
+        "y_m": {
+          "type": "number"
+        },
+        "z_m": {
+          "type": "number"
+        },
+        "yaw_deg": {
+          "type": "number"
+        },
+        "horizon_deg": {
+          "type": "number"
+        },
+        "vertical_fov_deg": {
+          "type": "number"
+        }
+      }
+    },
+    "publicFrame": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "observation_index",
+        "rgb_sha256",
+        "depth_m_sha256",
+        "camera_sha256",
+        "source_frame_sha256"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "vsmt-vm04-raw-public-frame-v1"
+        },
+        "observation_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rgb_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "depth_m_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "camera_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "source_frame_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "privateFrameMap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "observation_index",
+        "private_instance_ids",
+        "instance_masks_sha256",
+        "public_frame_record_sha256",
+        "public_source_frame_sha256"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "vsmt-vm04-raw-private-frame-map-v1"
+        },
+        "observation_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "private_instance_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "instance_masks_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "public_frame_record_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "public_source_frame_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "publicTerminal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "episode_id",
+        "status",
+        "reason",
+        "route_plan_sha256",
+        "route_receipt",
+        "construction_verdict",
+        "public_observation_prefix",
+        "failed_route_replacement_allowed"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "vsmt-vm04-multiview-raw-terminal-v1"
+        },
+        "episode_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "raw_complete",
+            "raw_failure"
+          ]
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "route_plan_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "route_receipt": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "construction_verdict": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "public_observation_prefix": {
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "failed_route_replacement_allowed": {
+          "const": false
+        }
+      }
+    },
+    "privateTerminal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "episode_id",
+        "status",
+        "intervention_executed",
+        "private_intervention_record",
+        "public_terminal_sha256"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "vsmt-vm04-multiview-private-terminal-v1"
+        },
+        "episode_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "raw_complete",
+            "raw_failure"
+          ]
+        },
+        "intervention_executed": {
+          "type": "boolean"
+        },
+        "private_intervention_record": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "public_terminal_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "publicFrameManifestRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "observation_index",
+        "rgb_sha256",
+        "depth_m_sha256",
+        "camera_sha256",
+        "source_frame_sha256",
+        "frame_record_sha256"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "vsmt-vm04-raw-public-frame-v1"
+        },
+        "observation_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rgb_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "depth_m_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "camera_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "source_frame_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "frame_record_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "privateFrameManifestRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observation_index",
+        "instance_masks_sha256",
+        "private_mapping_sha256",
+        "public_frame_record_sha256"
+      ],
+      "properties": {
+        "observation_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "instance_masks_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "private_mapping_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "public_frame_record_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "publicManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "episode_id",
+        "public_route_file_sha256",
+        "frame_count",
+        "frames",
+        "public_terminal_sha256"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "vsmt-vm04-raw-public-episode-manifest-v1"
+        },
+        "episode_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "public_route_file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "frame_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "frames": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/publicFrameManifestRow"
+          }
+        },
+        "public_terminal_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "privateManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "episode_id",
+        "private_route_plan_file_sha256",
+        "public_manifest_sha256",
+        "frame_count",
+        "frames",
+        "private_terminal_sha256"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "vsmt-vm04-raw-private-episode-manifest-v1"
+        },
+        "episode_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "private_route_plan_file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "public_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "frame_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "frames": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/privateFrameManifestRow"
+          }
+        },
+        "private_terminal_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    }
+  }
+}

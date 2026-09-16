@@ -14,8 +14,11 @@ from typing import Any, Callable, Mapping
 
 ROOT = Path(__file__).resolve().parents[2]
 SRC = ROOT / "src"
+OPS = Path(__file__).resolve().parent
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
+if str(OPS) not in sys.path:
+    sys.path.insert(0, str(OPS))
 
 from vsmt.vm04_observation_runner import (  # noqa: E402
     ObservationConstructionError,
@@ -26,7 +29,7 @@ from vsmt.vm04_observation_runner import (  # noqa: E402
 )
 
 
-TrustedPublicFrameExtractor = Callable[[Any], Mapping[str, Any]]
+TrustedPublicFrameExtractor = Callable[[Any, int], Mapping[str, Any]]
 PublicCapture = Callable[[Mapping[str, Any], int, str, bool], Mapping[str, Any]]
 PrivateIntervention = Callable[[Any, Mapping[str, Any]], Mapping[str, Any]]
 
@@ -71,9 +74,10 @@ def _action_success(event: Any) -> bool:
 
 
 def _public_frame(
-    event: Any, extractor: TrustedPublicFrameExtractor,
+    event: Any, observation_index: int,
+    extractor: TrustedPublicFrameExtractor,
 ) -> dict[str, Any]:
-    frame = dict(extractor(event))
+    frame = dict(extractor(event, observation_index))
     _require(set(frame) == PUBLIC_FRAME_KEYS,
              "trusted public frame extractor returned unexpected fields")
     _require(frame["private_fields_removed"] is True,
@@ -93,7 +97,8 @@ def _capture_row(
     public_capture: PublicCapture,
 ) -> dict[str, Any]:
     terminal = observation_index in route["terminal_reobservation_indices"]
-    frame = _public_frame(event, trusted_public_frame_extractor)
+    frame = _public_frame(
+        event, observation_index, trusted_public_frame_extractor)
     captured = dict(public_capture(
         frame, observation_index, route["visibility_subject_public_ref"], terminal,
     ))
@@ -225,19 +230,28 @@ def _execute_route_core(
 
 def run_authorized_route(
     controller: Any, *, plan: Mapping[str, Any], contract: Mapping[str, Any],
-    trusted_public_frame_extractor: TrustedPublicFrameExtractor,
+    episode_root: Path,
     public_capture: PublicCapture,
     private_intervention: PrivateIntervention | None,
 ) -> dict[str, Any]:
     """Production wrapper: fail before controller use until all gates are open."""
 
     assert_generation_authorized(contract)
+    from vm04_multiview_raw import RawEpisodeStore
+
     templates = contract["observation_trajectory"][
         "registered_action_request_templates"]
-    return _execute_route_core(
-        controller, plan=plan, contract=contract,
-        action_request_templates=templates,
-        trusted_public_frame_extractor=trusted_public_frame_extractor,
-        public_capture=public_capture,
-        private_intervention=private_intervention,
-    )
+    store = RawEpisodeStore(episode_root, plan=plan, contract=contract)
+    try:
+        result = _execute_route_core(
+            controller, plan=plan, contract=contract,
+            action_request_templates=templates,
+            trusted_public_frame_extractor=store.extract_public_frame,
+            public_capture=public_capture,
+            private_intervention=private_intervention,
+        )
+    except BaseException as error:
+        store.finalize_exception(error)
+        raise
+    raw_receipt = store.finalize(result)
+    return {"worker_result": result, "raw_receipt": raw_receipt}

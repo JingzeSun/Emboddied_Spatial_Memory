@@ -2,8 +2,10 @@
 
 import importlib.util
 import json
+import numpy as np
 from pathlib import Path
 import sys
+import tempfile
 import unittest
 
 
@@ -79,13 +81,18 @@ class Event:
     def __init__(self, pose, success=True):
         self.metadata = {
             "lastActionSuccess": success,
+            "fov": 90.0,
             "agent": {
                 "position": {"x": pose[0], "y": 0.9, "z": 0.0},
                 "rotation": {"x": 0.0, "y": pose[1], "z": 0.0},
             },
             "objects": [{"objectId": "private|object"}],
         }
-        self.instance_masks = {"private|object": object()}
+        self.frame = np.zeros((2, 3, 3), dtype=np.uint8)
+        self.depth_frame = np.ones((2, 3), dtype=np.float32)
+        self.instance_masks = {
+            "private|object": np.ones((2, 3), dtype=np.uint8),
+        }
 
 
 class Controller:
@@ -101,7 +108,7 @@ class Controller:
         return Event(self.poses[index], success=index != self.fail_action_call)
 
 
-def _extract_public_frame(event):
+def _extract_public_frame(event, observation_index):
     return {
         "rgb": b"rgb",
         "depth_m": (1.0,),
@@ -194,14 +201,49 @@ class MultiviewWorkerTests(unittest.TestCase):
 
     def test_production_wrapper_refuses_before_controller_use(self):
         controller = Controller()
-        with self.assertRaisesRegex(
-                worker.ObservationConstructionError, "unresolved generation fields"):
-            worker.run_authorized_route(
-                controller, plan=_plan(), contract=CONTRACT,
-                trusted_public_frame_extractor=_extract_public_frame,
-                public_capture=_capture(), private_intervention=lambda event, route: {},
-            )
+        with tempfile.TemporaryDirectory() as temporary:
+            episode_root = Path(temporary) / "must-not-be-created"
+            with self.assertRaisesRegex(
+                    worker.ObservationConstructionError,
+                    "unresolved generation fields"):
+                worker.run_authorized_route(
+                    controller, plan=_plan(), contract=CONTRACT,
+                    episode_root=episode_root,
+                    public_capture=_capture(),
+                    private_intervention=lambda event, route: {},
+                )
+            self.assertFalse(episode_root.exists())
         self.assertEqual(controller.calls, [])
+
+    def test_artificially_authorized_wrapper_persists_complete_episode(self):
+        contract = json.loads(json.dumps(CONTRACT))
+        contract["status"] = "d183_frozen_executable"
+        contract["authorization"]["trajectory_implementation_authorized"] = True
+        contract["authorization"]["generation_authorized"] = True
+        contract["observation_trajectory"][
+            "registered_action_request_templates"] = ACTION_REQUESTS
+        numeric = contract["l2_identifiability_admission_gate"][
+            "numeric_review_required_before_generation"]
+        numeric["CFO_and_public_history_probe_architecture"] = {"test": True}
+        numeric["shared_probe_training_budget"] = {"test": True}
+        construction = contract["deterministic_SPLIT_MERGE_construction"]
+        construction["fresh_replay_repeat_count"] = 1
+        construction["exact_geometry_parameters"] = {"test": True}
+        construction["frozen_frontend_artifact_criteria"] = {"test": True}
+        controller = Controller()
+        with tempfile.TemporaryDirectory() as temporary:
+            episode_root = Path(temporary) / "episode"
+            result = worker.run_authorized_route(
+                controller, plan=_plan(), contract=contract,
+                episode_root=episode_root, public_capture=_capture(),
+                private_intervention=lambda event, route: {
+                    "success": True, "private_id_exported": False,
+                },
+            )
+            self.assertEqual(result["worker_result"]["status"], "raw_complete")
+            self.assertEqual(result["raw_receipt"]["frame_count"], 6)
+            self.assertTrue((episode_root / "public/raw.manifest.json").is_file())
+            self.assertTrue((episode_root / "private/raw.manifest.json").is_file())
 
 
 if __name__ == "__main__":
