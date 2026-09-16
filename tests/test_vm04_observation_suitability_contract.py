@@ -16,7 +16,7 @@ class ObservationSuitabilityContractTests(unittest.TestCase):
     def test_every_execution_authorization_is_closed(self):
         self.assertEqual(
             self.contract["status"],
-            "d182_design_and_numeric_values_approved_schema_review_only")
+            "d183_design_and_numeric_values_approved_schema_review_only")
         self.assertTrue(all(value is False for value in
                             self.contract["authorization"].values()))
         self.assertFalse(
@@ -89,7 +89,11 @@ class ObservationSuitabilityContractTests(unittest.TestCase):
             policy["enabled_terminal_disappearance_failure"],
             "enabled_target_disappeared_before_terminal")
         self.assertEqual(policy["scope"], "fixed_view_worker_only")
-        self.assertIsNone(policy["multiview_terminal_reobservation_window"])
+        window = policy["multiview_terminal_reobservation_window"]
+        self.assertEqual(window["scope"], "new_multiview_runner_only")
+        self.assertEqual(window["minimum_registered_public_observations"], 2)
+        self.assertTrue(window["must_begin_after_reobservation_pose_arrival"])
+        self.assertTrue(window["observations_must_be_consecutive"])
 
     def test_identifiability_is_a_result_blind_hard_gate(self):
         gate = self.contract["l2_identifiability_admission_gate"]
@@ -125,11 +129,16 @@ class ObservationSuitabilityContractTests(unittest.TestCase):
         self.assertEqual(pilot["family_count"], 6)
         self.assertTrue(pilot["source_houses_disjoint_from_formal_development"])
         self.assertTrue(
-            pilot["pilot_and_formal_house_manifests_sealed_before_pilot"])
+            pilot["selection_rule_and_ordered_source_pool_sealed_before_pilot"])
+        self.assertTrue(
+            pilot["formal_house_count_sealed_after_pilot_before_formal_generation"])
+        self.assertEqual(pilot["ordered_source_pool_minimum_eligible_houses"], 70)
         self.assertFalse(pilot["included_in_identifiability_gate"])
         self.assertFalse(pilot["included_in_VM05_training_or_validation"])
         formal = self.contract["formal_development_sampling"]
-        self.assertEqual(formal["source_houses_to_attempt"], 48)
+        self.assertIsNone(formal["source_houses_to_attempt"])
+        self.assertEqual(formal["base_source_houses_to_attempt"], 48)
+        self.assertEqual(formal["maximum_source_houses_to_attempt"], 64)
         self.assertEqual(
             formal["house_selection_rule"],
             "result_blind_manifest_hash_order_frozen_before_pilot")
@@ -140,6 +149,22 @@ class ObservationSuitabilityContractTests(unittest.TestCase):
         self.assertEqual(
             formal["insufficient_completed_families_action"],
             "fail_construction_gate_and_do_not_run_identifiability_VM05_or_VM06")
+
+    def test_d183_program_and_split_merge_rules_are_merged_but_blocked(self):
+        gate = self.contract["l2_identifiability_admission_gate"]
+        report = gate["per_program_reporting"]
+        self.assertTrue(report["required"])
+        self.assertEqual(report["easy_class_CFO_threshold"], 0.6)
+        self.assertEqual(
+            report["easy_class_action"],
+            "retain_in_aggregate_denominator_but_forbid_standalone_evidence_for_that_program")
+        construction = self.contract["deterministic_SPLIT_MERGE_construction"]
+        self.assertTrue(construction["program_assignment_sealed_before_generation"])
+        self.assertFalse(construction[
+            "posthoc_program_label_from_observed_artifact_allowed"])
+        self.assertIsNone(construction["fresh_replay_repeat_count"])
+        self.assertIsNone(construction["exact_geometry_parameters"])
+        self.assertIsNone(construction["frozen_frontend_artifact_criteria"])
 
 if __name__ == "__main__":
     unittest.main()

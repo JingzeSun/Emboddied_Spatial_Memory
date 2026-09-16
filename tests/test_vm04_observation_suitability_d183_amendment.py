@@ -18,18 +18,21 @@ class D183AmendmentProposalTests(unittest.TestCase):
 
     def test_amendment_is_closed_and_binds_approved_d182_bytes(self):
         self.assertEqual(
-            self.amendment["status"], "requires_user_review_not_executable")
-        self.assertTrue(all(value is False for value in
-                            self.amendment["authorization"].values()))
+            self.amendment["status"],
+            "approved_for_schema_implementation_review_not_executable")
+        self.assertTrue(self.amendment["authorization"][
+            "merge_into_base_contract_authorized"])
+        self.assertTrue(self.amendment["authorization"][
+            "schema_implementation_authorized"])
+        self.assertFalse(self.amendment["authorization"]["pilot_authorized"])
+        self.assertFalse(self.amendment["authorization"][
+            "formal_generation_authorized"])
         base = self.amendment["base_contract"]
         blob = subprocess.check_output([
             "git", "show", f"{base['git_commit']}:{base['path']}"
         ], cwd=ROOT)
         self.assertEqual(
             base["git_blob_content_sha256"], hashlib.sha256(blob).hexdigest())
-        self.assertEqual(
-            json.loads(blob.decode("utf-8")),
-            json.loads(CONTRACT.read_text(encoding="utf-8")))
 
     def test_pilot_count_rule_is_pre_registered_and_bounded(self):
         rule = self.amendment["L_pilot_determines_formal_N_proposal"]

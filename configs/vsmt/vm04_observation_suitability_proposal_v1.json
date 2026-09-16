@@ -1,7 +1,7 @@
 {
   "version": "vsmt-vm04-observation-suitability-proposal-v1",
-  "status": "d182_design_and_numeric_values_approved_schema_review_only",
-  "decision": "D-181/D-182",
+  "status": "d183_design_and_numeric_values_approved_schema_review_only",
+  "decision": "D-181/D-182/D-183",
   "replaces_for_scientific_evidence": "vsmt-vm04-fixed-slot-raw-stage-v1",
   "old_static_36_policy": {
     "server_run_allowed": false,
@@ -11,6 +11,12 @@
   },
   "authorization": {
     "trajectory_implementation_authorized": false,
+    "source_pool_sealing_authorized": false,
+    "route_plan_sealing_authorized": false,
+    "formal_selection_sealing_authorized": false,
+    "route_assessment_authorized": false,
+    "pilot_execution_authorized": false,
+    "formal_execution_authorized": false,
     "generation_authorized": false,
     "private_evaluation_authorized": false,
     "identifiability_preflight_authorized": false,
@@ -112,7 +118,14 @@
     "enabled_target_checked_after_every_remaining_registered_camera_action": true,
     "enabled_terminal_disappearance_failure": "enabled_target_disappeared_before_terminal",
     "scope": "fixed_view_worker_only",
-    "multiview_terminal_reobservation_window": null,
+    "multiview_terminal_reobservation_window": {
+      "scope": "new_multiview_runner_only",
+      "minimum_registered_public_observations": 2,
+      "must_begin_after_reobservation_pose_arrival": true,
+      "observations_must_be_consecutive": true,
+      "target_or_relation_public_support_required": true,
+      "window_indices_sealed_before_private_evaluation": true
+    },
     "multiview_policy": "must_use_a_pre_registered_terminal_reobservation_window_not_continuous_visibility_after_enable"
   },
   "crosswalk_provenance": {
@@ -187,15 +200,23 @@
       "architecture_frozen_before_generation": true
     },
     "numeric_values_approved_for_schema_review": true,
-    "approved_probe_family_policy": "one_pre_registered_shared_probe_architecture_with_history_and_prior_inputs_masked_for_CFO"
+    "approved_probe_family_policy": "one_pre_registered_shared_probe_architecture_with_history_and_prior_inputs_masked_for_CFO",
+    "per_program_reporting": {
+      "required": true,
+      "metric": "family_aggregated_class_conditional_correct_program_rate",
+      "easy_class_CFO_threshold": 0.6,
+      "easy_class_action": "retain_in_aggregate_denominator_but_forbid_standalone_evidence_for_that_program",
+      "easy_class_blocks_whole_dataset": false,
+      "post_result_program_removal_relabeling_or_resampling_allowed": false
+    }
   },
   "pre_generation_blockers": [
     "freeze_intervention_visibility_constraint_and_failure_reason",
     "implement_and_review_public_visibility_state_builder",
     "implement_and_review_trusted_materializer_receipt_binding",
     "freeze_house_family_development_split_without_opening_confirmation",
-    "freeze_multiview_terminal_reobservation_window",
     "freeze_exact_shared_probe_architecture_and_training_budget",
+    "freeze_exact_SPLIT_MERGE_geometry_and_public_frontend_artifact_criteria",
     "review_runner_and_failure_retention_before_server_use"
   ],
   "development_pilot": {
@@ -208,14 +229,38 @@
     "included_in_VM06_confirmation": false,
     "may_change_contract_after_review": true,
     "changed_contract_requires_new_version_and_new_formal_house_list": true,
-    "pilot_and_formal_house_manifests_sealed_before_pilot": true
+    "ordered_source_pool_minimum_eligible_houses": 70,
+    "selection_rule_and_ordered_source_pool_sealed_before_pilot": true,
+    "formal_house_count_sealed_after_pilot_before_formal_generation": true,
+    "formal_count_rule": {
+      "pilot_completed_5_or_6": 48,
+      "pilot_completed_4": 64,
+      "pilot_completed_0_to_3": "stop_and_require_new_contract_version"
+    }
   },
   "formal_development_sampling": {
-    "source_houses_to_attempt": 48,
+    "base_source_houses_to_attempt": 48,
+    "maximum_source_houses_to_attempt": 64,
+    "source_houses_to_attempt": null,
+    "source_houses_to_attempt_is_sealed_only_after_pilot": true,
     "additional_houses_after_observed_failures_allowed": false,
     "failed_family_replacement_allowed": false,
     "house_selection_rule": "result_blind_manifest_hash_order_frozen_before_pilot",
     "insufficient_completed_families_action": "fail_construction_gate_and_do_not_run_identifiability_VM05_or_VM06",
     "minimum_completed_families": 32
+  },
+  "deterministic_SPLIT_MERGE_construction": {
+    "schema_review_approved": true,
+    "program_assignment_sealed_before_generation": true,
+    "source": "pre_registered_geometry_camera_route_and_frozen_public_frontend_only",
+    "SPLIT_required_transition": "one_public_undersegmented_region_at_far_or_occluded_pose_then_two_public_regions_at_near_reobservation_pose",
+    "MERGE_required_transition": "two_public_tracks_from_a_pre_registered_association_break_then_one_public_identity_supported_at_reobservation",
+    "private_identity_role": "post_seal_grading_only_never_program_assignment",
+    "artifact_not_realized_action": "construction_failure_keep_registered_program_never_relabel",
+    "posthoc_program_label_from_observed_artifact_allowed": false,
+    "pilot_must_check_fresh_replay_repeatability": true,
+    "fresh_replay_repeat_count": null,
+    "exact_geometry_parameters": null,
+    "frozen_frontend_artifact_criteria": null
   }
 }

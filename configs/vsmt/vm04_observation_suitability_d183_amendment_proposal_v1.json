@@ -1,7 +1,7 @@
 {
   "version": "vsmt-vm04-observation-suitability-d183-amendment-proposal-v1",
-  "status": "requires_user_review_not_executable",
-  "decision": "D-183-proposed",
+  "status": "approved_for_schema_implementation_review_not_executable",
+  "decision": "D-183-approved",
   "base_contract": {
     "path": "configs/vsmt/vm04_observation_suitability_proposal_v1.json",
     "git_commit": "7a3484e88fdc20ed464ec253874f17103965a00f",
@@ -10,8 +10,8 @@
     "base_execution_authorized": false
   },
   "authorization": {
-    "merge_into_base_contract_authorized": false,
-    "schema_implementation_authorized": false,
+    "merge_into_base_contract_authorized": true,
+    "schema_implementation_authorized": true,
     "pilot_authorized": false,
     "formal_generation_authorized": false,
     "training_authorized": false,
