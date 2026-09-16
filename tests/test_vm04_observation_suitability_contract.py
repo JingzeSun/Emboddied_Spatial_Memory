@@ -71,7 +71,7 @@ class ObservationSuitabilityContractTests(unittest.TestCase):
         provenance = self.contract["crosswalk_provenance"]
         self.assertEqual(
             provenance["status"],
-            "receipt_v2_executor_frontend_context_causal_chain_config_schema_asset_verifier_and_model_loader_implemented_frozen_values_code_manifest_and_parent_stage_pending")
+            "receipt_v2_executor_frontend_context_causal_chain_config_assets_model_loader_and_code_manifest_implemented_frozen_values_and_parent_stage_pending")
         self.assertTrue(
             provenance["required_before_any_physical_relink_positive"])
         self.assertIn("private_crosswalk_sha256",
@@ -83,17 +83,17 @@ class ObservationSuitabilityContractTests(unittest.TestCase):
             self.assertIn(digest, provenance["planned_receipt_must_bind"])
         self.assertEqual(
             provenance["gate_behavior_until_implemented"],
-            "no_real_physical_relink_positive_may_be_issued_until_materializer_executor_is_reviewed_and_receipt_is_present")
+            "no_real_physical_relink_positive_may_be_issued_until_reviewed_code_config_and_asset_digests_are_frozen_and_the_bound_receipt_is_present")
         self.assertIsNone(provenance["expected_materializer_code_sha256"])
         self.assertIsNone(provenance["expected_materializer_config_sha256"])
         self.assertIn(
-            "freeze_public_frontend_config_context_and_model_loader_then_bind_parent_stage",
+            "freeze_public_frontend_config_context_code_manifest_and_model_assets_then_bind_parent_stage",
             self.contract["pre_generation_blockers"],
         )
         packet = self.contract["public_packet_materialization"]
         self.assertEqual(
             packet["status"],
-            "frontend_core_packet_prior_sealed_context_materializer_config_schema_asset_verifier_and_model_loader_implemented_frozen_values_code_manifest_and_parent_stage_pending")
+            "frontend_core_packet_prior_sealed_context_config_assets_model_loader_and_code_manifest_implemented_frozen_values_and_parent_stage_pending")
         self.assertIsNone(packet["decision_time_rule"])
         self.assertIsNone(packet["action_command_encoding"])
         self.assertTrue(packet["public_frame_context_manifest_required"])

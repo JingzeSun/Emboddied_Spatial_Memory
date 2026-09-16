@@ -252,11 +252,11 @@ def _validate_materialized_pair(
     packet = validate_observation_packet(output["public_packet"])
     crosswalk = output["private_crosswalk"]
     _require(type(crosswalk) is dict and set(crosswalk) == {
-        "schema_version", "frame_role", "bindings",
+        "schema_version", "observation_index", "bindings",
     } and crosswalk["schema_version"] ==
              "vsmt-vm04-private-region-crosswalk-v1" and
-             type(crosswalk["frame_role"]) is str and
-             crosswalk["frame_role"] and type(crosswalk["bindings"]) is list,
+             crosswalk["observation_index"] == index and
+             type(crosswalk["bindings"]) is list,
              "private crosswalk schema changed")
     private_ids = list(private_raw["private_instance_ids"])
     private_masks = np.asarray(private_raw["instance_masks"])
@@ -562,7 +562,7 @@ def run_authorized_materializer_from_config(
     episode_root: Path, *, contract: Mapping[str, Any],
     raw_materializer_config: Mapping[str, Any],
     public_frame_context_bundle: Mapping[str, Any],
-    private_frame_roles: list[str], patch_token_extractor: Any,
+    patch_token_extractor: Any,
     materializer_code_sha256: str,
     materializer_assets_receipt: Mapping[str, Any],
 ) -> dict[str, Any]:
@@ -575,7 +575,6 @@ def run_authorized_materializer_from_config(
     callback, config_sha256 = build_vm04_public_frontend_sequence(
         raw_materializer_config,
         public_frame_context_bundle=public_frame_context_bundle,
-        private_frame_roles=private_frame_roles,
         patch_token_extractor=patch_token_extractor,
     )
     return run_authorized_materializer(
@@ -592,7 +591,7 @@ def run_authorized_materializer_with_verified_model(
     episode_root: Path, *, contract: Mapping[str, Any],
     raw_materializer_config: Mapping[str, Any],
     public_frame_context_bundle: Mapping[str, Any],
-    private_frame_roles: list[str], repository_root: Path,
+    repository_root: Path,
     checkpoint_path: Path, materializer_code_manifest: Mapping[str, Any],
     code_repository_root: Path,
     device: str = "cuda",
@@ -612,7 +611,6 @@ def run_authorized_materializer_with_verified_model(
     callback, assets = build_verified_vm04_public_frontend_sequence(
         parsed,
         public_frame_context_bundle=public_frame_context_bundle,
-        private_frame_roles=private_frame_roles,
         repository_root=repository_root,
         checkpoint_path=checkpoint_path,
         device=device,

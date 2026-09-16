@@ -129,7 +129,6 @@ class Vm04PublicFrontendSequenceTests(unittest.TestCase):
     def test_contiguous_frames_build_and_replay_one_public_memory_chain(self):
         callback = Vm04PublicFrontendSequence(
             public_frame_context_bundle=context_bundle(),
-            private_frame_roles=["old", "new"],
             patch_token_extractor=tokens,
             frontend_config=frontend_config(),
             bootstrap_config=bootstrap_config(),
@@ -138,6 +137,9 @@ class Vm04PublicFrontendSequenceTests(unittest.TestCase):
         first = callback(*raws(0), 0)
         second = callback(*raws(1), 1)
         final = callback.finalized_result()
+
+        self.assertEqual(first["private_crosswalk"]["observation_index"], 0)
+        self.assertEqual(second["private_crosswalk"]["observation_index"], 1)
 
         self.assertEqual(
             first["public_packet"]["prior_memory_ref"]["graph_sha256"],
@@ -159,7 +161,6 @@ class Vm04PublicFrontendSequenceTests(unittest.TestCase):
     def test_out_of_order_or_incomplete_finalize_fails_closed(self):
         callback = Vm04PublicFrontendSequence(
             public_frame_context_bundle=context_bundle(),
-            private_frame_roles=["old", "new"],
             patch_token_extractor=tokens,
             frontend_config=frontend_config(),
             bootstrap_config=bootstrap_config(),
@@ -183,7 +184,6 @@ class Vm04PublicFrontendSequenceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "unexpected fields"):
             Vm04PublicFrontendSequence(
                 public_frame_context_bundle=malformed,
-                private_frame_roles=["old", "new"],
                 patch_token_extractor=tokens,
                 frontend_config=frontend_config(),
                 bootstrap_config=bootstrap_config(),

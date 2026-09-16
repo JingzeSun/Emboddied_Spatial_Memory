@@ -131,7 +131,7 @@
     "multiview_policy": "must_use_a_pre_registered_terminal_reobservation_window_not_continuous_visibility_after_enable"
   },
   "crosswalk_provenance": {
-    "status": "receipt_v2_executor_frontend_context_causal_chain_config_schema_asset_verifier_and_model_loader_implemented_frozen_values_code_manifest_and_parent_stage_pending",
+    "status": "receipt_v2_executor_frontend_context_causal_chain_config_assets_model_loader_and_code_manifest_implemented_frozen_values_and_parent_stage_pending",
     "required_before_any_physical_relink_positive": true,
     "planned_receipt_must_bind": [
       "public_raw_frame_sha256",
@@ -147,11 +147,11 @@
     ],
     "expected_materializer_code_sha256": null,
     "expected_materializer_config_sha256": null,
-    "gate_behavior_until_implemented": "no_real_physical_relink_positive_may_be_issued_until_materializer_executor_is_reviewed_and_receipt_is_present",
+    "gate_behavior_until_implemented": "no_real_physical_relink_positive_may_be_issued_until_reviewed_code_config_and_asset_digests_are_frozen_and_the_bound_receipt_is_present",
     "public_relink_proof_seal_must_bind_materializer_receipt_digest": true
   },
   "public_packet_materialization": {
-    "status": "frontend_core_packet_prior_sealed_context_materializer_config_schema_asset_verifier_and_model_loader_implemented_frozen_values_code_manifest_and_parent_stage_pending",
+    "status": "frontend_core_packet_prior_sealed_context_config_assets_model_loader_and_code_manifest_implemented_frozen_values_and_parent_stage_pending",
     "camera_pose_and_calibration_source": "sealed_raw_public_camera_record",
     "past_actions_source": "sealed_public_route_prefix",
     "decision_time_rule": null,
@@ -235,7 +235,7 @@
     "freeze_intervention_visibility_constraint_and_failure_reason",
     "implement_and_review_public_visibility_state_builder",
     "freeze_explicit_registered_action_request_templates",
-    "freeze_public_frontend_config_context_and_model_loader_then_bind_parent_stage",
+    "freeze_public_frontend_config_context_code_manifest_and_model_assets_then_bind_parent_stage",
     "freeze_public_packet_decision_time_rule",
     "freeze_public_packet_action_command_encoding",
     "freeze_house_family_development_split_without_opening_confirmation",

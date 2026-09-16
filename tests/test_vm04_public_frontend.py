@@ -137,7 +137,7 @@ def inputs() -> dict:
             "descriptor_model_id": "dinov2.vits14",
             "proposal_model_id": "l1.oracle-mask.public-depth.v1",
         },
-        "frame_role": "current",
+        "observation_index": 0,
         "config": config(),
     }
 

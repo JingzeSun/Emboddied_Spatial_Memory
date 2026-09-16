@@ -22,7 +22,7 @@ PRIVATE_KEYS = {
     "prior_entity_node_id", "prior_edge_id",
     "unforced_robot_action_verified", "stable_actual_relation_changed",
 }
-CROSSWALK_KEYS = {"schema_version", "frame_role", "bindings"}
+CROSSWALK_KEYS = {"schema_version", "observation_index", "bindings"}
 BINDING_KEYS = {"instance_id", "region_id", "mask_sha256"}
 
 
@@ -38,13 +38,13 @@ def _located_at(packet, source_region_id, place_region_id):
             relation["target_region_id"] == place_region_id]
 
 
-def _crosswalk_region(path, role, instance_id, packet):
+def _crosswalk_region(path, observation_index, instance_id, packet):
     """Resolve a private instance through the trusted L1 crosswalk."""
     crosswalk = audit.read_json(Path(path))
     require(set(crosswalk) == CROSSWALK_KEYS and
             crosswalk["schema_version"] ==
             "vsmt-vm04-private-region-crosswalk-v1" and
-            crosswalk["frame_role"] == role and
+            crosswalk["observation_index"] == observation_index and
             type(crosswalk["bindings"]) is list,
             "private L1 crosswalk schema changed")
     rows = []
@@ -88,15 +88,19 @@ def evaluate_physical_relink(public_root: Path, private_outcome_path: Path,
             "sealed public relation source bytes changed")
     materializer = validate_materializer_receipt(
         audit.read_json(materializer_path))
-    expected_materialized_pairs = {
-        (audit.sha256(old_path), audit.sha256(old_crosswalk_path)),
-        (audit.sha256(post_path), audit.sha256(new_crosswalk_path)),
-    }
-    actual_materialized_pairs = {
-        (row["public_packet_sha256"], row["private_crosswalk_sha256"])
-        for row in materializer["frames"]
-    }
-    require(expected_materialized_pairs <= actual_materialized_pairs,
+    old_pair = (audit.sha256(old_path), audit.sha256(old_crosswalk_path))
+    new_pair = (audit.sha256(post_path), audit.sha256(new_crosswalk_path))
+    old_receipt_rows = [
+        row for row in materializer["frames"]
+        if (row["public_packet_sha256"], row["private_crosswalk_sha256"]) ==
+        old_pair
+    ]
+    new_receipt_rows = [
+        row for row in materializer["frames"]
+        if (row["public_packet_sha256"], row["private_crosswalk_sha256"]) ==
+        new_pair
+    ]
+    require(len(old_receipt_rows) == len(new_receipt_rows) == 1,
             "crosswalk provenance is not bound by the materializer receipt")
     old = validate_observation_packet(audit.read_json(old_path))
     prior = audit.read_json(prior_path)
@@ -118,9 +122,11 @@ def evaluate_physical_relink(public_root: Path, private_outcome_path: Path,
             type(private["stable_actual_relation_changed"]) is bool,
             "private physical RELINK outcome schema changed")
     old_region_id, old_binding = _crosswalk_region(
-        old_crosswalk_path, "old", private["old_instance_id"], old)
+        old_crosswalk_path, old_receipt_rows[0]["observation_index"],
+        private["old_instance_id"], old)
     new_region_id, new_binding = _crosswalk_region(
-        new_crosswalk_path, "new", private["new_instance_id"], post)
+        new_crosswalk_path, new_receipt_rows[0]["observation_index"],
+        private["new_instance_id"], post)
     old_rows = _located_at(old, old_region_id,
                            private["old_place_region_id"])
     new_rows = _located_at(post, new_region_id,

@@ -109,7 +109,7 @@ def _materialize(public_raw, private_raw, index):
         "public_packet": packet,
         "private_crosswalk": {
             "schema_version": "vsmt-vm04-private-region-crosswalk-v1",
-            "frame_role": "old" if index == 0 else "new",
+            "observation_index": index,
             "bindings": [{
                 "instance_id": private_raw["private_instance_ids"][0],
                 "region_id": entity["region_id"],
@@ -377,7 +377,6 @@ class MultiviewMaterializerTests(unittest.TestCase):
                     contract=contract,
                     raw_materializer_config=config,
                     public_frame_context_bundle=sealed_context_bundle(),
-                    private_frame_roles=["old", "new"],
                     patch_token_extractor=patch_tokens,
                     materializer_code_sha256=CODE_SHA,
                     materializer_assets_receipt=asset_receipt(config),
@@ -404,7 +403,6 @@ class MultiviewMaterializerTests(unittest.TestCase):
                     contract=contract,
                     raw_materializer_config=config,
                     public_frame_context_bundle=sealed_context_bundle(),
-                    private_frame_roles=["old", "new"],
                     repository_root=root / "absent-repository",
                     checkpoint_path=root / "absent-checkpoint.pth",
                     materializer_code_manifest=code_manifest,

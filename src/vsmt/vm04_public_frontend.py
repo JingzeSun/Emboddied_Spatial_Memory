@@ -149,15 +149,15 @@ def materialize_vm04_public_frontend_frame(
     depth_m: Any, patch_tokens: Any,
     private_instance_ids: Sequence[str], private_instance_masks: Any,
     prior_free_space: Sequence[Sequence[FreeSpaceFrustum]],
-    public_constants: Mapping[str, Any], frame_role: str,
+    public_constants: Mapping[str, Any], observation_index: int,
     config: Vm04PublicFrontendConfig,
 ) -> dict[str, Any]:
     """Materialize one anonymous public row plus its private crosswalk."""
 
     if type(config) is not Vm04PublicFrontendConfig:
         raise ValueError("config must be Vm04PublicFrontendConfig")
-    if type(frame_role) is not str or not frame_role:
-        raise ValueError("frame_role must be a nonempty token")
+    if type(observation_index) is not int or observation_index < 0:
+        raise ValueError("observation_index must be a nonnegative integer")
     if not isinstance(camera, Mapping) or not {
         "pose", "calibration",
     }.issubset(camera):
@@ -282,7 +282,7 @@ def materialize_vm04_public_frontend_frame(
         "frontend_row": frontend_row,
         "private_crosswalk": {
             "schema_version": "vsmt-vm04-private-region-crosswalk-v1",
-            "frame_role": frame_role,
+            "observation_index": observation_index,
             "bindings": bindings,
         },
         "current_free_space": current_free_space,

@@ -29,7 +29,6 @@ class Vm04PublicFrontendSequence:
 
     def __init__(
         self, *, public_frame_context_bundle: Mapping[str, Any],
-        private_frame_roles: Sequence[str],
         patch_token_extractor: Callable[[np.ndarray, int], Any],
         frontend_config: Vm04PublicFrontendConfig,
         bootstrap_config: PublicBootstrapConfig,
@@ -37,11 +36,8 @@ class Vm04PublicFrontendSequence:
     ) -> None:
         bundle = validate_public_frame_context_bundle(public_frame_context_bundle)
         contexts = bundle["contexts"]
-        roles = list(private_frame_roles)
-        if not contexts or len(roles) != len(contexts):
-            raise ValueError("private frame roles must match nonempty public contexts")
-        if any(type(role) is not str or not role for role in roles):
-            raise ValueError("private frame roles must be nonempty strings")
+        if not contexts:
+            raise ValueError("public contexts must be nonempty")
         if not callable(patch_token_extractor):
             raise ValueError("patch_token_extractor must be callable")
         if type(frontend_config) is not Vm04PublicFrontendConfig:
@@ -51,7 +47,6 @@ class Vm04PublicFrontendSequence:
 
         self._contexts = contexts
         self._context_manifest = bundle["manifest"]
-        self._private_roles = roles
         self._extract_tokens = patch_token_extractor
         self._frontend_config = frontend_config
         self._bootstrap_config = bootstrap_config
@@ -100,7 +95,7 @@ class Vm04PublicFrontendSequence:
             private_instance_masks=private_raw["instance_masks"],
             prior_free_space=self._prior_free_space,
             public_constants=context["public_constants"],
-            frame_role=self._private_roles[index],
+            observation_index=index,
             config=self._frontend_config,
         )
         packet = make_public_packet(materialized["frontend_row"], self._memory)

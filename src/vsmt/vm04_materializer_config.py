@@ -203,7 +203,6 @@ def validate_vm04_materializer_config(
 def build_vm04_public_frontend_sequence(
     raw_config: Mapping[str, Any], *,
     public_frame_context_bundle: Mapping[str, Any],
-    private_frame_roles: list[str],
     patch_token_extractor: Any,
 ) -> tuple[Vm04PublicFrontendSequence, str]:
     """Build the production callback only from one sealed executable config."""
@@ -214,7 +213,6 @@ def build_vm04_public_frontend_sequence(
 
     callback = Vm04PublicFrontendSequence(
         public_frame_context_bundle=public_frame_context_bundle,
-        private_frame_roles=private_frame_roles,
         patch_token_extractor=patch_token_extractor,
         frontend_config=parsed.frontend,
         bootstrap_config=parsed.bootstrap,
@@ -344,7 +342,7 @@ def load_verified_dinov2(
 def build_verified_vm04_public_frontend_sequence(
     parsed: ValidatedVm04MaterializerConfig, *,
     public_frame_context_bundle: Mapping[str, Any],
-    private_frame_roles: list[str], repository_root: Path,
+    repository_root: Path,
     checkpoint_path: Path, device: str = "cuda",
 ) -> tuple[Vm04PublicFrontendSequence, dict[str, Any]]:
     """Load verified assets and bind their model to the public sequence."""
@@ -363,7 +361,6 @@ def build_verified_vm04_public_frontend_sequence(
 
     callback = Vm04PublicFrontendSequence(
         public_frame_context_bundle=public_frame_context_bundle,
-        private_frame_roles=private_frame_roles,
         patch_token_extractor=extract,
         frontend_config=parsed.frontend,
         bootstrap_config=parsed.bootstrap,

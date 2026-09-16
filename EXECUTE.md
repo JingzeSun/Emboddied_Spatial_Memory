@@ -1953,3 +1953,10 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 最强真实模型生产入口移除了调用方可手填的`materializer_code_sha256`；它只用已验manifest摘要通过合同授权，随后才打开代码checkout、DINO仓库/checkpoint和episode。未授权人工测试传入不存在的三个路径，确认授权拒绝发生在任何文件读取或创建之前。
 - 定向16/16通过，覆盖manifest正例、工作树字节变化、新增/删除源码、路径逃逸、摘要篡改及materializer既有链；VM-04 discover 175/175、VSMT 179/179、旧两房入口内嵌executor 42/L1 31/VSMT 179共252/252通过。一次额外L1 discover因未设`PYTHONPATH=src`发生2个模块导入错误，按正式路径重跑31/31通过；该误调用不记作科学或实现失败。当前未生成正式manifest，因为合同`expected_materializer_code_sha256`仍为null、受审commit尚未由用户冻结；0 source inventory、0模型加载、0controller、0episode、0materialization、0训练。
 - 白话：这一步把“代码哈希”变成能逐文件复核的装箱单。例如运行机多出一个会被包初始化加载的Python文件，即使入口文件没变也会拒绝。它仍是代码审查产物，不是运行回执或数据证据。
+
+## LOG-184：crosswalk机械帧号替代私有语义角色（2026-09-16）
+
+- 公开前端序列、config构造器和生产materializer入口均删除`private_frame_roles`输入；每帧crosswalk只由序列当前位置写`observation_index`。执行核心拒绝index与当前raw帧不一致，现有receipt逐帧index继续提供外层绑定。
+- RELINK gate不再检查crosswalk自报`old/new`。它先按公开seal绑定的old/post packet及对应crosswalk摘要在materializer receipt中找唯一帧，再用该receipt index核crosswalk；修改index并重签crosswalk/receipt的人工例仍因与公开选帧不一致而拒绝。
+- 受影响5模块30/30通过；VM-04 discover 176/176、VSMT 179/179、旧两房入口内嵌executor 42/L1 31/VSMT 179共252/252通过。0 source inventory、0模型读取、0controller、0episode、0materialization、0标签。
+- 白话：材料化器现在只写“这是第几帧”，不能替评价器写“这是旧证据还是新证据”。旧/新由公开proof seal选择，私有身份仍只在封存后评价。

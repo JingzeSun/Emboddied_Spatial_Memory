@@ -107,7 +107,6 @@ class Vm04MaterializerConfigTests(unittest.TestCase):
         callback, digest = build_vm04_public_frontend_sequence(
             raw,
             public_frame_context_bundle=context_bundle(),
-            private_frame_roles=["old", "new"],
             patch_token_extractor=tokens,
         )
         self.assertIsInstance(callback, Vm04PublicFrontendSequence)

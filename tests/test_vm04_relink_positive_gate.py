@@ -95,12 +95,12 @@ class PhysicalRelinkPositiveGateTests(unittest.TestCase):
         })
         old_crosswalk = root / "private/old-crosswalk.json"
         new_crosswalk = root / "private/new-crosswalk.json"
-        for path, role, instance_id in (
-                (old_crosswalk, "old", "asset:A"),
-                (new_crosswalk, "new", new_instance)):
+        for path, observation_index, instance_id in (
+                (old_crosswalk, 0, "asset:A"),
+                (new_crosswalk, 1, new_instance)):
             gate.audit.write_new_json(path, {
                 "schema_version": "vsmt-vm04-private-region-crosswalk-v1",
-                "frame_role": role,
+                "observation_index": observation_index,
                 "bindings": [{"instance_id": instance_id,
                               "region_id": "region:0000",
                               "mask_sha256": "5" * 64}],
@@ -244,6 +244,18 @@ class PhysicalRelinkPositiveGateTests(unittest.TestCase):
             gate.audit.write_new_json(new_crosswalk, content)
             with self.assertRaisesRegex(
                     RuntimeError, "crosswalk provenance"):
+                gate.evaluate_physical_relink(
+                    public, private, old_crosswalk, new_crosswalk)
+
+    def test_crosswalk_cannot_self_report_old_or_new_semantic_role(self):
+        with TemporaryDirectory() as temp:
+            public, private, old_crosswalk, new_crosswalk = self.case(Path(temp))
+            content = gate.audit.read_json(new_crosswalk)
+            content["observation_index"] = 0
+            new_crosswalk.unlink()
+            gate.audit.write_new_json(new_crosswalk, content)
+            self.reseal_materializer(public, old_crosswalk, new_crosswalk)
+            with self.assertRaisesRegex(RuntimeError, "crosswalk schema changed"):
                 gate.evaluate_physical_relink(
                     public, private, old_crosswalk, new_crosswalk)
 
