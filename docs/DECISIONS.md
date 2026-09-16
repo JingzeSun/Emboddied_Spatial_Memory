@@ -1764,3 +1764,13 @@
 - D-177硬门原实现把`old/new_region_id`与instance ID放在同一private outcome自报，未落实DATA所述trusted L1 crosswalk。修订后outcome不再指定entity region；gate必须从前后独立private crosswalk取得唯一instance→region→mask摘要绑定，并与已封存公开packet的entity mask逐项核对。P1/P2改用公开place mask和关系support摘要判不同，拒绝多条歧义关系，避免只看第一行和浮点centroid不等。该代码仍只供独立新版本审查，未接trusted materializer或真实数据。
 - 推荐下一口径：不运行当前静态36槽；先预登记有实际平移/显著视角变化、可见/遮挡/出视野分支与共同公开输入的开发数据版本，先用朴素当前帧基线做可辨识性检查，再决定VM-05规模。另一口径是仅将旧36槽作为一次工程writer回放运行并永久标`engineering_only`，会增加算力和文件但不增加论文主张证据；维持现设计进入L2不可接受。
 - 白话：即使36个文件全写成功，也可能只是同一镜头里让物体消失再出现，普通单帧方法就能做对，无法测试版本化记忆是否解决身份传播和长期副作用。输入是现有静态worker与未实现语义项，输出是关闸和明确证据上限；它不是已经运行出的负结果，也不否定以后按新视角合同构造的VSMT数据。
+
+
+## D-181：静态36槽退役、新观察合同与可辨识性硬门提案
+
+- 日期：2026-09-16；状态：用户明确认可不运行原静态36槽，并要求先提交包含真实相机平移、遮挡/出视野/重现分支和当前帧朴素基线预检的新VM-04观察合同。原stage继续`run_authorized/generation_authorized=false`且`expected_reviewed_code=null`；D-173失败、D-179历史授权与本地回执保留。新`vm04_observation_suitability_proposal_v1.json`所有实现/生成/评价/训练/确认位为false，数值门为null，不能靠保存配置启动服务器。
+- 采纳生命周期审查①②。raw worker维护disabled与pending-enable集合：Disable成功立即要求mask=0，之后每个注册相机event都核disabled目标仍为0，提前出现记`disabled_target_reappeared_between_actions`；Enable动作event只记录即时mask，真正通过条件是紧随其后的注册相机event中mask>0。这样既保留D-168的跨帧检查，也避免假设Enable同一event必重渲染分割。所有逐帧目标支持只写private intervention/failure，公开terminal只写匿名reason。
+- 采纳crosswalk审查③的推荐层级：当前D-177 gate的内容绑定保留，但文档明确`crosswalk provenance pending materializer receipt`，不把文件名中的trusted当来源证据。新合同要求未来materializer receipt原子绑定raw public frame、private mask、public packet、private crosswalk、代码和配置摘要，并由public RELINK proof seal绑定receipt摘要；在实现、测试和用户审查前禁止真实物理RELINK正例。本轮不先改尚不存在的materializer schema/runner。
+- 采纳可辨识性硬门，但不在本轮暗中冻结数值。CFO只读当前L2 packet；同预算public-history probe多读公开历史与causal prior，二者输出相同program type并按house family比较。进入L2须同时满足：历史减CFO的单侧区间下界超过冻结最小差、CFO不超过冻结上限、sealed-catalog oracle candidate recall超过冻结下限。规则和全部数值/模型/预算必须在生成前固定，结果后不得改。推荐审查值为差15个百分点、CFO≤60%、oracle recall≥90%、95%区间、10000次bootstrap、至少24个开发family；它们目前只在`recommended_values_for_review_not_frozen`，不是批准门。
+- 新路线不是active exploration：初始观测前可`TeleportFull`，其后路线由公开可达/几何信息在private ID和结果之前封存，失败不换路径。每family至少含自然遮挡后重现、出视野后重现两类分支，每episode从旧关系可见开始，经一个预登记挑战，再在真实平移后的pose重现。推荐审查值为关键pose和重现各至少0.5 m平移、至少30°关键yaw差、每visibility state至少2个公开时刻、最多24步、2 cm/1° pose验收容差；数值仍未批准。
+- 白话：新合同解决“数据文件完整但最后一帧已经泄露答案”的问题。输入固定多视角路线和两种只差历史访问权的诊断probe，输出是否值得进入L2的准入结论。例如当前帧都看到同一把椅子，但只有历史说明它是旧节点还是新节点时，history probe应稳定胜过CFO；这不等于VSMT已训练或一定获胜。

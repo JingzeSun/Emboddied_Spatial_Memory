@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| VM-04目标边界与动作探针 | D-180确认原36槽即使raw全成功也不能支持VSMT主张：32帧仅同pose交替±0.25° yaw、四RELINK固定失败、16个零干预槽中12个BIND/SPLIT/MERGE结构语义及4个NOOP不变语义未验收、两house无独立split。服务器运行前已重新关闸，0新episode/训练/记忆正例。生命周期API success后补私有mask后态门；D-177正例gate改用trusted L1 crosswalk绑定公开entity mask，均仍待用户代码审查。LOG-169。 |
+| VM-04观察适用性 | D-181确认原静态36槽不运行；新观察合同以真实平移、自然遮挡/出视野后重现、crosswalk materializer receipt和CFO可辨识性硬门为前置，全部执行位关闭、数值待审。生命周期worker已补跨帧disabled检查并把Enable验收移到下一注册相机event。0新episode/训练/记忆正例。LOG-169–170。 |
 | VSMT首篇/VM-01～04 | 旧两房stage及16完整/20构造失败封存。D-162仅开放v2固定两房、D=1.0 m纯视角扫描；服务器合同252/252及两family扫描均成功，各选18个pose、0 episode。原前18均来自18个位置，空间筛选降低top-2集合重复，但top-1仍重复10/11次；报告摘要`575d34d0…089f32`。生成/private、训练、validation效果、confirmation与L2继续关闭。LOG-152–153，D-162–163 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
 | R4三模型接入 | D完整适配16项通过（121/200全反向，0更新），W完整适配17项亦通过，F完整适配19项通过；真实公共接口27/27候选通过，0优化/真值读取。209bb34，LOG-123–127 |
@@ -1847,3 +1847,11 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 服务器从未执行D-179的`run`；本地只有开闸版本纯测试回执。复核后配置已在生成前重新置`run_authorized=false/generation_authorized=false/expected_reviewed_code=null`，不会产生需要删除的新stage。旧D-179授权、实现和本地回执按原字节保留，不改写成实际服务器结果。
 - 两个直接工程缺口已形成供审提交：生命周期动作成功后即时读取私有target mask，Disable要求0、Enable要求>0，错配保留动作为`intervention_poststate_mismatch`；D-177 evaluator删除private outcome自报entity region，改由前后trusted L1 private crosswalk唯一映射instance→公开region/mask，并用离散place mask/relation support检查P1/P2。人工正反例合计12项通过；真实simulator、trusted materializer和服务器stage均未运行。
 - 白话：这次是运行前代码/设计审计。它发现“文件可能全写成，但题目太容易且关键事务没有正例”，因此先关闸；测试通过只说明新增拒绝条件按人工例工作，不说明新数据已经可信或VSMT有效。
+
+
+## LOG-170：D-181观察适用性合同与生命周期跨帧修订（2026-09-16）
+
+- 用户确认不运行原静态36槽。新机器合同只登记观察路线、公私时序、crosswalk receipt前提和L2可辨识性门；所有执行位false，实际距离/角度/帧数、CFO/history probe结构预算、统计门和family数保持null。合同另列推荐值供本轮审查，不能被runner当冻结值。没有服务器动作、episode、materialization、probe训练或confirmation。
+- 固定raw worker对生命周期状态新增逐注册相机event核验：Disable即时0像素后进入disabled集合，未Enable前任何一帧重现均保留为`disabled_target_reappeared_between_actions`；Enable即时mask仅记录，下一注册相机event才要求>0。private失败保留每帧`post_agent_lifecycle_checks`与实际像素，公开只留reason。人工controller覆盖即时成功、延迟到下一camera成功、隐藏期frame5重现、下一camera仍缺失及API拒绝。
+- crosswalk gate内容绑定不回退，但真实来源尚无materializer receipt；合同明确未实现前不得发真实RELINK正例。CFO硬门只测试“当前帧是否已足够”，不代替LOW或主比较；即使通过，也只允许数据进入后续VM-05审查，不证明VSMT有效。
+- 白话：本批输出是可审合同和拒绝错误数据的代码，不是新数据。比如Enable动作当下mask仍空、下一次相机渲染出现目标时现在会通过；若目标在正式Enable前自己出现则保留失败。

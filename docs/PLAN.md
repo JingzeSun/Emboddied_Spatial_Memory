@@ -22,7 +22,10 @@
 
 ### 当前指针
 
-**VM-04固定槽原始数据服务器批次（D-176/D-180，已暂停、服务器未运行）：** 代码仍固定原两房36槽、失败全留和四个RELINK缺口；新增生命周期动作即时私有mask后态门，`DisableObject`后仍可见或`EnableObject`后仍不可见均保留为`intervention_poststate_mismatch`。但原32帧只有交替±0.25°原地yaw、无平移，NOOP/BIND/SPLIT/MERGE没有已实现的公开类型化结构语义，四个RELINK全为预登记失败，且只有两间开发house。故即使36/36写出raw，也只能证明writer、公私隔离、摘要链、失败保留和资源派发，不能进入L2主表或支持VSMT优于适配器/朴素基线。配置现为`run_authorized=false/generation_authorized=false/expected_reviewed_code=null`；服务器0新episode。下一步须先冻结能产生实质视角变化和身份/遮挡难例的新数据合同，再交用户审查。
+**VM-04固定槽原始数据服务器批次（D-176/D-180，已暂停、服务器未运行）：** 代码仍固定原两房36槽、失败全留和四个RELINK缺口；新增生命周期动作即时私有mask后态门，`DisableObject`后仍可见或`EnableObject`后仍不可见均保留为`intervention_poststate_mismatch`。但原32帧只有交替±0.25°原地yaw、无平移，NOOP/BIND/SPLIT/MERGE没有已实现的公开类型化结构语义，四个RELINK全为预登记失败，且只有两间开发house。故即使36/36写出raw，也只能证明writer、公私隔离、摘要链、失败保留和资源派发，不能进入L2主表或支持VSMT优于适配器/朴素基线。配置现为`run_authorized=false/generation_authorized=false/expected_reviewed_code=null`；服务器0新episode。用户已认可不运行该批；D-181的新观察适用性合同现作为执行关闭的审查稿，包含真实平移、自然遮挡/出视野后重现分支、crosswalk来源阻断和进入L2前的当前帧可辨识性硬门。所有轨迹数值、probe预算及门值仍待本轮裁决，未开放生成。
+
+**D-181新观察适用性合同（proposed、执行关闭）：** [机器合同](../configs/vsmt/vm04_observation_suitability_proposal_v1.json)把初始`TeleportFull`限制在观测0之前，之后路线只由公开可达信息预登记并用实际pose验收；每个family必须同时包含“自然遮挡后重现”和“出视野后重现”分支，每个episode从旧关系可见开始，经一个固定挑战分支，在至少一个真实平移后的pose重现。它是固定观察路线，不是active exploration。进入VM-05前另跑Current-Frame-Only（CFO，只有当前帧的诊断探针）和同预算公开历史probe；只有按house family聚合的历史优势下界超过冻结门、CFO不超过冻结上限且sealed-catalog oracle recall通过，数据版本才可进入L2。门的规则已硬化，推荐数值仍未批准；生成后不得改门。
+
 
 **独立RELINK新数据版本（proposed，D-176停止线未重开）：** [方法与正反例](METHOD.md)和[拟议公私字段](DATA.md)已记录机器人实际路径、公开旧/新关系、候选先封存及私有同一身份/后态的分层验收口径。输入只能是公开当前RGB-D、此前预测记忆和预登记动作；输出须分别报告物理失败、事务前提缺口、公开证据缺口、candidate miss和executor/teacher错误。例如原四槽仍保持碰撞失败，独立新版本即使找到一条推椅子到P2的路线也不得回填原槽。该版本尚无冻结配置、公开容器读取器、真实`PutObject` smoke、可执行机器人RELINK回执或记忆正例；执行新分支仍需单独裁决和代码审查。
 
