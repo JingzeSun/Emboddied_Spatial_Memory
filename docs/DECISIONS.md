@@ -1811,3 +1811,12 @@
 - 新多视角worker核心先执行初始定位，再逐个执行显式动作请求；只有公开hidden assessment封存后才把原始event交给私有干预回调。公开观测回调不直接接收含`objectId`/instance mask的模拟器event，而只接收可信提取器输出的RGB、depth、camera和来源摘要；相机拒绝、干预仍可见或终端重现不合格均保留已有公开前缀且`failed_route_replacement_allowed=false`。生产包装先核全部合同字段和授权，当前在创建任何episode前拒绝。
 - 当前停止点：可信提取器只有接口及人工测试，尚未实现公私raw落盘与materializer receipt；精确动作请求模板、SPLIT/MERGE几何/公开前端/replay次数和共享probe结构/预算仍为空。0 source inventory、0模拟器、0episode、0训练。
 - 白话：输入是干预前公开扫描形成的路线图和一条封存路线，输出按真实动作顺序得到的公开观察前缀或完整receipt。例如先在观测0看到椅子，移动两步到桌后确认遮挡，才允许私有执行器搬动物体，再移动到另一侧连续两次公开重见；如果第二步撞墙就保存前3个观测并失败。它不等于已连接真实AI2-THOR数据写盘、已知道SPLIT/MERGE精确几何或已获准跑pilot。
+
+
+## D-186：多视角raw落盘与materializer来源绑定
+
+- 日期：2026-09-16；状态：继续执行D-183已批准的精确实现审查，未改变任何运行位。新raw writer在episode目录不存在时才创建，逐观测以`O_EXCL`写公开`rgb.npy/depth_m.npy/camera.json/frame.json`和私有`instance_masks.npz/mapping.json`；公开帧与私有mask按摘要交叉绑定，公开字节不含实例ID。逻辑失败、相机拒绝和未捕获异常都写唯一公私terminal及双manifest，保留已完成帧；跳号、第二次终止和覆盖已有episode拒绝。
+- 生产`run_authorized_route`在通过全部冻结字段和授权检查后才创建store，使用store的可信提取函数执行路线并落盘；当前基础合同因动作模板、SPLIT/MERGE和probe字段为null且授权false，会在目录创建和controller调用前拒绝。人工测试临时注入完整非磁盘合同，只验证六帧文件链，不构成真实运行。
+- 新trusted materializer receipt逐帧绑定raw公开帧摘要、raw私有mask摘要、公开packet摘要、私有crosswalk摘要，并绑定route、raw episode manifest、materializer代码和配置摘要；帧必须从0连续，部署reader不得打开private crosswalk。D-177 RELINK正例门现在要求公开proof seal绑定receipt，并要求旧/新packet与对应crosswalk摘要同时出现在receipt中；receipt之后改crosswalk会在读取私有标签前拒绝。
+- 当前边界：receipt生成/验证和D-177消费已实现，但从新多视角raw真实产生公开packet/private crosswalk的materializer执行器尚未实现，代码/配置摘要也尚未由父stage绑定受审提交；因此真实RELINK仍不能发正例。真实reachable扫描、精确动作模板、SPLIT/MERGE构造、共享probe和服务器父stage继续阻断。
+- 白话：这一步解决“动作走了一半失败时文件还在不在”和“crosswalk是不是由同一批raw经过受审materializer产生”。输入每个模拟器event，输出分开的公私raw文件及以后materialization的一张摘要收据。例如有人在收据生成后改了新帧crosswalk里的椅子ID，即使公开packet没变，RELINK gate也立即拒绝。它不等于materializer已经运行或pilot已经开放。

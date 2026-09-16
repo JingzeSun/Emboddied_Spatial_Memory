@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| VM-04观察适用性 | 原静态36槽不运行；D-182/183设计与数值已批准用于精确schema/实现审查。70-house来源池、pilot的48/64/停止规则、逐program easy-class、公开多视角路线搜索与worker核心已有执行关闭实现；路线扫描拒绝未来/动作结果，公开回调不接触模拟器私有metadata。raw公私落盘与materializer receipt、精确动作请求、SPLIT/MERGE参数和共享probe规格仍阻断。全部运行位关闭，0新episode/训练/记忆正例。LOG-169–174。 |
+| VM-04观察适用性 | 原静态36槽不运行；D-182/183只用于精确schema/实现审查。70-house/pilot规则、公开多视角路线、worker及append-only公私raw落盘已实现；materializer receipt逐帧绑定raw/packet/crosswalk，D-177正例门已消费该来源链。真实reachable扫描、新多视角materializer执行器/父stage、精确动作请求、SPLIT/MERGE参数和共享probe仍阻断。全部运行位关闭，0新episode/训练/记忆正例。LOG-169–175。 |
 | VSMT首篇/VM-01～04 | 旧两房stage及16完整/20构造失败封存。D-162仅开放v2固定两房、D=1.0 m纯视角扫描；服务器合同252/252及两family扫描均成功，各选18个pose、0 episode。原前18均来自18个位置，空间筛选降低top-2集合重复，但top-1仍重复10/11次；报告摘要`575d34d0…089f32`。生成/private、训练、validation效果、confirmation与L2继续关闭。LOG-152–153，D-162–163 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
 | R4三模型接入 | D完整适配16项通过（121/200全反向，0更新），W完整适配17项亦通过，F完整适配19项通过；真实公共接口27/27候选通过，0优化/真值读取。209bb34，LOG-123–127 |
@@ -1889,3 +1889,11 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 新多视角worker核心把模拟器event先经可信提取接口剥离为RGB-D/camera公开帧，再交公开capture；私有metadata/mask仍只在私有干预侧。干预只能发生在公开hidden状态封存后；相机动作失败、干预可见和终端验收失败均保留公开前缀。生产包装当前在controller使用前因未决字段/授权拒绝。
 - 定向27项通过：合同/时序/stage 18项、公开路线5项、worker 4项；包含输入顺序不影响路线、短平移拒绝、private ID与未来扫描拒绝、公开回调看不到event metadata、可见干预不发私有动作、相机失败留前缀和生产入口首动作前拒绝。全部`test_vm04_*`共130项通过；原两房合同入口内嵌executor 42、L1 31、VSMT 179，共252项通过。本轮0 source inventory、0模拟器、0episode、0训练。
 - 白话：这一步已经有“怎样选一条公开合格路线并逐步走”的代码。例如5个动作会留下6个观测，第三个观测确认遮挡后才执行私有干预；它还没有把真实帧写成公私文件，也没有冻结SPLIT/MERGE与probe剩余参数。
+
+
+## LOG-175：多视角raw文件链与crosswalk来源门（2026-09-16）
+
+- 新raw writer为每个观测原子分写公开RGB/depth/camera及私有mask/ID映射，以摘要互相绑定；只允许连续帧、唯一terminal和不存在的episode目录。失败或异常保留已完成帧和公私terminal，公开侧没有private ID或异常文字。生产包装先核授权再创建目录；当前真实配置仍首输出前拒绝。
+- 新materializer receipt schema/纯函数绑定route、raw private manifest、materializer代码/配置及逐帧raw公开帧、raw私有mask、公开packet、私有crosswalk摘要。D-177 gate要求公开proof seal绑定receipt，且旧/新packet与crosswalk组合必须在receipt出现；receipt后改crosswalk的人工例在private label前拒绝。
+- 人工注入测试18项通过；随后全部`test_vm04_*`为138/138，原两房入口executor 42、L1 31、VSMT 179共252/252通过。测试中的临时开放合同与fake controller只验证6帧落盘，不修改磁盘合同。0 source inventory、0真实模拟器、0episode、0materialization、0训练。
+- 白话：现在路线失败不再只返回内存字典，而会留下不可覆盖的公私文件；RELINK也不能再凭一份后来手写的crosswalk过门。仍缺把真实多视角raw转换成packet/crosswalk的执行器，所以这些通过项不是数据已经可用。
