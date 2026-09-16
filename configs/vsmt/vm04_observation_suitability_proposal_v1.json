@@ -1,0 +1,176 @@
+{
+  "version": "vsmt-vm04-observation-suitability-proposal-v1",
+  "status": "requires_numeric_and_code_review_not_executable",
+  "decision": "D-181",
+  "replaces_for_scientific_evidence": "vsmt-vm04-fixed-slot-raw-stage-v1",
+  "old_static_36_policy": {
+    "server_run_allowed": false,
+    "paper_main_table_allowed": false,
+    "role": "historical_engineering_design_only",
+    "retain_D173_relink_failures": true
+  },
+  "authorization": {
+    "trajectory_implementation_authorized": false,
+    "generation_authorized": false,
+    "private_evaluation_authorized": false,
+    "identifiability_preflight_authorized": false,
+    "training_authorized": false,
+    "confirmation_authorized": false
+  },
+  "observation_trajectory": {
+    "policy": "public_pre_registered_nonadaptive_observation_route_not_active_exploration",
+    "initial_pose": "TeleportFull_before_observation_zero_only",
+    "registered_post_initial_actions": [
+      "MoveAhead",
+      "MoveBack",
+      "MoveLeft",
+      "MoveRight",
+      "RotateLeft",
+      "RotateRight",
+      "LookUp",
+      "LookDown"
+    ],
+    "forbidden_patterns": [
+      "same_pose_alternating_micro_yaw_as_the_only_episode_motion",
+      "private_instance_id_or_future_outcome_used_to_choose_or_repair_route",
+      "route_endpoint_or_branch_changed_after_failure",
+      "failed_slot_replacement"
+    ],
+    "actual_pose_not_command_is_scored": true,
+    "failed_camera_action_retained": true,
+    "route_sealed_before_private_identity_and_action_outcome": true,
+    "numeric_review_required_before_generation": {
+      "minimum_key_pose_translation_m": null,
+      "minimum_reobservation_translation_m": null,
+      "minimum_key_pose_yaw_change_degrees": null,
+      "minimum_public_observations_per_visibility_state": null,
+      "maximum_route_steps": null,
+      "pose_tolerance_m": null,
+      "yaw_tolerance_degrees": null
+    },
+    "required_family_branch_types": [
+      "natural_occlusion_then_reobservation",
+      "out_of_view_then_reobservation"
+    ],
+    "required_episode_phases": [
+      "old_relation_visible_from_pre_action_pose",
+      "one_pre_registered_visibility_challenge_branch",
+      "target_reobserved_from_a_translated_pose",
+      "post_intervention_relation_observed_from_current_rgbd"
+    ],
+    "recommended_values_for_review_not_frozen": {
+      "minimum_key_pose_translation_m": 0.5,
+      "minimum_reobservation_translation_m": 0.5,
+      "minimum_key_pose_yaw_change_degrees": 30.0,
+      "minimum_public_observations_per_visibility_state": 2,
+      "maximum_route_steps": 24,
+      "pose_tolerance_m": 0.02,
+      "yaw_tolerance_degrees": 1.0
+    }
+  },
+  "public_visibility_states": {
+    "states": [
+      "visible",
+      "occluded",
+      "out_of_view",
+      "reobserved"
+    ],
+    "source": "current_public_rgbd_depth_camera_pose_and_calibration_only",
+    "sealed_before_private_evaluation": true,
+    "private_masks_allowed_to_grade_after_seal": true,
+    "disabled_object_absence_is_not_natural_occlusion": true,
+    "plain_language_example": "a chair seen from P1, hidden behind a table after a registered camera translation, outside the frustum at a third pose, and seen again from P2"
+  },
+  "lifecycle_poststate_policy": {
+    "disable_immediate_private_mask_pixels": 0,
+    "disabled_target_checked_after_every_registered_camera_action": true,
+    "disabled_reappearance_failure": "disabled_target_reappeared_between_actions",
+    "enable_immediate_mask_is_diagnostic_only": true,
+    "enable_acceptance_event": "first_registered_camera_event_after_EnableObject",
+    "enable_acceptance_minimum_private_mask_pixels": 1,
+    "failure_retained_without_resampling": true
+  },
+  "crosswalk_provenance": {
+    "status": "pending_trusted_materializer_receipt_implementation",
+    "required_before_any_physical_relink_positive": true,
+    "planned_receipt_must_bind": [
+      "public_raw_frame_sha256",
+      "private_instance_masks_sha256",
+      "public_observation_packet_sha256",
+      "private_crosswalk_sha256",
+      "materializer_code_sha256",
+      "materializer_config_sha256"
+    ],
+    "gate_behavior_until_implemented": "no_real_physical_relink_positive_may_be_issued",
+    "public_relink_proof_seal_must_bind_materializer_receipt_digest": true
+  },
+  "l2_identifiability_admission_gate": {
+    "role": "hard_gate_after_development_materialization_before_VM05_training_or_main_table",
+    "rule_and_thresholds_frozen_before_generation": true,
+    "result_blind_threshold_changes_allowed": false,
+    "current_frame_only_probe": {
+      "name": "CFO_current_frame_only_probe",
+      "input": "current_L2_public_observation_packet_only",
+      "forbidden_inputs": [
+        "prior_memory",
+        "observation_history",
+        "candidate_catalog",
+        "private_identity",
+        "teacher",
+        "future_observation"
+      ],
+      "output": "registered_program_type",
+      "not_equal_to": "LOW_memory_update_baseline"
+    },
+    "primary_unit": "house_family",
+    "primary_metric": "family_aggregated_registered_program_type_accuracy",
+    "required_pass_rule": "one_sided_family_interval_lower_bound_for_public_history_probe_minus_CFO_exceeds_frozen_minimum_gap_and_CFO_does_not_exceed_frozen_maximum_accuracy_and_sealed_catalog_oracle_recall_meets_its_frozen_minimum",
+    "numeric_review_required_before_generation": {
+      "minimum_accuracy_gap": null,
+      "maximum_CFO_accuracy": null,
+      "confidence_level": null,
+      "bootstrap_seed": null,
+      "bootstrap_resamples": null,
+      "minimum_development_families": null,
+      "minimum_sealed_catalog_oracle_recall": null,
+      "CFO_and_public_history_probe_architecture": null,
+      "shared_probe_training_budget": null
+    },
+    "fail_action": "dataset_version_is_engineering_or_easy_slice_only_and_cannot_enter_L2_main_table",
+    "pass_does_not_imply": [
+      "VSMT_outperforms_any_baseline",
+      "candidate_recall_is_sufficient",
+      "training_is_authorized",
+      "confirmation_is_open"
+    ],
+    "public_history_probe": {
+      "input": "sealed_public_history_causal_prior_memory_and_current_L2_packet",
+      "private_labels_used_only_for_training_or_post_seal_scoring": true,
+      "capacity_and_optimization_budget": "identical_to_CFO_except_for_registered_history_and_prior_inputs",
+      "output": "registered_program_type"
+    },
+    "sealed_catalog_oracle_diagnostic": {
+      "role": "separate_candidate_feasibility_ceiling_not_the_history_gap_comparator",
+      "private_reference_opened_only_after_candidate_seal": true,
+      "metric": "family_aggregated_unique_reference_candidate_recall"
+    },
+    "recommended_values_for_review_not_frozen": {
+      "minimum_accuracy_gap": 0.15,
+      "maximum_CFO_accuracy": 0.6,
+      "minimum_sealed_catalog_oracle_recall": 0.9,
+      "confidence_level": 0.95,
+      "bootstrap_seed": 260916,
+      "bootstrap_resamples": 10000,
+      "minimum_development_families": 24,
+      "probe_family": "take_the_better_validation_score_of_a_multinomial_linear_probe_and_a_two_layer_set_probe_with_identical_CFO_history_budgets"
+    }
+  },
+  "pre_generation_blockers": [
+    "freeze_all_trajectory_numeric_fields",
+    "implement_and_review_public_visibility_state_builder",
+    "implement_and_review_trusted_materializer_receipt_binding",
+    "freeze_all_identifiability_gate_numeric_and_model_fields",
+    "freeze_house_family_development_split_without_opening_confirmation",
+    "review_runner_and_failure_retention_before_server_use"
+  ]
+}
