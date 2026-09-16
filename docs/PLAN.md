@@ -28,6 +28,47 @@
 
 **D-183规则已批准并进入精确schema/实现审查，执行关闭：** [基础合同](../configs/vsmt/vm04_observation_suitability_proposal_v1.json)已合入70-house固定顺序、6-family pilot离散N、逐program easy-class和禁止SPLIT/MERGE事后贴标签；[公开路线构造器](../src/vsmt/vm04_public_route_builder.py)、[多视角worker](../ops/vsmt/vm04_multiview_worker.py)与[raw writer](../ops/vsmt/vm04_multiview_raw.py)可从干预前匿名扫描选路，按真实动作分写公开RGB-D/相机与私有mask/ID并保留失败前缀；八种相机动作请求已有完整性与禁`forceAction`门，但正式幅度仍为null。[公开前端核心](../src/vsmt/vm04_public_frontend.py)用本帧隔离mask生成匿名entity，并只从公开depth/pose/DINO token生成surface、place、free-space、visibility与关系；[公开context builder](../src/vsmt/vm04_public_context.py)按sealed public route生成N+1帧时间/已结束动作前缀和manifest，[多帧callback](../src/vsmt/vm04_public_frontend_sequence.py)再依次绑定上一版memory并独立重放causal prior。[materializer执行核心](../ops/vsmt/vm04_multiview_materializer.py)现要求该stateful callback完成全序列，逐帧把crosswalk的mask摘要反查到实际raw mask；crosswalk只写机械`observation_index`，不再接受未封存的`old/new`角色。context manifest、causal-prior receipt和最终prior memory作为公开文件写出且纳入v2 receipt；无状态逐帧函数即使写完全部帧也不能签success。[materializer config schema](../schemas/vsmt_vm04_materializer_config.schema.json)已能一次性构造前端/bootstrap对象，并用独立assets receipt核DINO仓库commit、干净工作树和checkpoint摘要，episode receipt再绑定该资产回执；真实loader以无网络、`pretrained=false/weights_only=true/strict=true`装载并冻结模型。[代码清单schema](../schemas/vsmt_vm04_materializer_code_manifest.schema.json)现逐文件绑定materializer与父stage入口和完整`cpmt/vsmt`包，并同时核当前checkout和受审commit；父stage已有独立关闭的`seal-materializer-code`步骤，最强入口不再接受自报代码摘要。当前尚无真实reachable扫描采集和父stage资源派发；动作请求幅度、`decision_time_s`规则、动作向量编码、前端/bootstrap正式值、受审commit及manifest期望摘要、SPLIT/MERGE参数及共享probe结构/预算继续未冻结，所以所有运行仍关闭。
 
+### VM-04新数据生成前待做清单（当前执行关闭）
+
+这里的“开始生成”指首次运行6个pilot family；原静态两房36槽已永久排除，不在此清单中复活。下面各项按依赖顺序关闭，勾选只表示已有受审代码/冻结产物和通过回归；只有最后的独立授权项完成后才可运行。白话：输入是当前D-182/D-183合同和已实现外壳，输出是一条从“仍有null和注入fixture”走到“可安全启动pilot”的固定路径；它不是把测试通过改写成数据已经可信。
+
+**A. 生成合同和科学数值冻结**
+
+- [ ] 冻结八种注册相机API请求的真实参数：四种Move的`moveMagnitude`、两种Rotate和两种Look的`degrees`；在锁定AI2-THOR 5.0.0/受审CloudRendering build上做只验证API语义的smoke，正式表不得使用默认参数或`forceAction`。
+- [ ] 冻结公开packet时间规则与动作编码：确定N+1个`decision_time_s`怎样由注册动作产生、八种动作共同向量怎样编码，并写入`decision_time_rule/action_command_encoding`；当前人工一秒间隔和one-hot仅是fixture。
+- [ ] 冻结完整materializer config：匿名mask、DINO descriptor、entity geometry、surface/place/free-space、关系阈值、entity/surface/fragment bootstrap、公开常量和builder摘要一次性定值并签`config_sha256`；不得从生成结果反调。
+- [ ] 冻结DINO模型资产与执行环境：明确模型仓库commit、checkpoint摘要、Python/Torch/NumPy/CUDA及AI2-THOR/ProcTHOR版本，补环境回执；真实assets verifier须在服务器核干净仓库和checkpoint字节，不能只信文件名。
+- [ ] 冻结SPLIT/MERGE确定性构造：填写fresh replay次数、精确几何/相机参数和公开前端伪影判据；program在生成前登记，伪影未复现只记construction failure，不换标签、路线或house。
+- [ ] 冻结CFO（Current-Frame-Only，当前帧诊断器）与public-history probe共用的唯一架构、优化/训练预算和输入mask规则；这是生成前准入门规格，不运行probe，也不使用pilot选择结构。
+- [ ] 冻结开发family与confirmation隔离规则：70-house来源池只能来自允许的开发来源，confirmation家族保持不可见；6个pilot及64个formal候选的确定顺序必须在pilot前封存。
+
+**B. 真实构造链实现与代码审查**
+
+- [ ] 实现真实公开reachable-position扫描和路线候选生成：从同一house的公开可达格、RGB-D、camera pose/calibration及已封存匿名subject/locus产生路线；不得读取私有ID、program结果或失败后换路线。
+- [ ] 把当前注入式`public_capture`替换为生产visibility builder：逐帧仅用公开RGB-D/depth/pose和先前封存公开track/locus产生`visible/occluded/out_of_view/reobserved`与证据摘要，并实现自然遮挡、出视野及连续终端重现的真实验收。
+- [ ] 实现九类program的公开前提构造与验收：NOOP/BIND及生命周期类须有对应公开旧记忆条件；SPLIT/MERGE只走上述预登记确定性几何；不能用旧静态worker的private target规则或事后标签。
+- [ ] 把当前注入式`private_intervention`替换为生产执行器：BIRTH/REACTIVATE/RETRACT/REPLACE逐动作保存真实API回执和后态；动作只可在已封存`occluded/out_of_view`窗口发生，失败保留且不补样。
+- [ ] 完成新RELINK物理路径：动作前由公开旧关系、可达格和匿名目标封存P1/P2及有限分支；执行不强制推/拉或经真实API smoke的抓放，逐步保留失败与真实后态。正例仍须同时满足同一物理实体、公开旧关系和公开新关系，原D-173四个碰撞槽不得回填。
+- [ ] 把raw→context→真实DINO/公开前端→packet/crosswalk→causal prior→materializer v2 receipt接成一个生产episode单元；crosswalk只含机械`observation_index`，部署reader不得打开private文件。
+- [ ] 实现父stage批量派发和确定性合并：先做单worker资源实测，再按CPU、GPU/显存、RAM、磁盘、I/O和并发安全性选择最大安全worker数；记录requested/actual worker、分片、设备、退出、资源依据和固定合并顺序，不设墙钟强杀。
+- [ ] 实现完整失败/续跑/复验/匿名导出：保留每个固定family的`complete/failure/not_started`与已写前缀，禁止覆盖和静默重跑；verify重新核全部公私摘要，export只输出不含ID/私有错误文字的计数与缺口。
+- [ ] 补生产边界测试和一次独立代码审查：覆盖私有字段变异、未来/teacher不可达、动作失败、遮挡误判、crosswalk错绑、源码/config/model篡改、部分写入、重连续跑及并行确定性；人工fake controller结果不能替代服务器smoke。
+
+**C. 受审字节与pilot开闸前置产物**
+
+- [ ] 用户审查上述单职责提交后冻结精确Git commit；用已实现但当前关闭的`seal-materializer-code`生成并复验逐文件源码manifest，把其摘要及正式config摘要写入新冻结合同。此步骤须另开`materializer_code_sealing_authorized`，当前仍为false。
+- [ ] 在精确干净checkout执行只读`check`：核代码manifest、合同/schema、环境、DINO assets、source manifest及磁盘/CPU/GPU可用性；保存check receipt，任何旧两房marker不得复用。
+- [ ] 经单独授权后封存70-house来源池及6+64固定顺序；只读source inventory不能观察构造成功率、program标签、private身份或confirmation家族。当前`source_pool_sealing_authorized=false`。
+- [ ] 生成前最终审计确认所有`pre_generation_blockers`非null、全部期望摘要匹配、父stage实为多worker且失败保留、0个confirmation输入被打开；随后用户只按6个pilot所需范围开放`trajectory_implementation_authorized`、`route_plan_sealing_authorized`、`route_assessment_authorized`、`materialization_authorized`、`pilot_execution_authorized`和`generation_authorized`，formal、private evaluation、identifiability preflight、训练和confirmation继续关闭。
+
+**D. pilot之后、正式开发数据生成之前**
+
+- [ ] 只统计6个pilot的构造完成布尔和工程失败：完成5–6个选固定formal前48，完成4个选前64，完成0–3个停止；不得看CFO、history、oracle或逐program效果决定N。
+- [ ] 若pilot暴露需要改变路线、visibility、动作、前端、SPLIT/MERGE或资源规则，开新数据版本并重新审代码/合同/正式house列表；不得在同一版本热修后继续。
+- [ ] 按离散规则填写`source_houses_to_attempt`，由用户先开放`formal_selection_sealing_authorized`生成并冻结formal selection manifest及其摘要，复核formal与pilot不相交、失败不补、少于32个完成family即停止；再单独开放`formal_execution_authorized`，其余下游授权仍关闭。
+
+以下工作不属于“开始生成前”的开闸条件，但属于生成后进入VM-05前的验收：逐program私有语义评价、sealed-catalog oracle recall、CFO/history按family配对的严格可辨识性门、easy-class标注、至少32个完成family、候选/teacher分层错误统计。它们不能反过来修改本版生成规则或补样。
+
 
 **独立RELINK新数据版本（proposed，D-176停止线未重开）：** [方法与正反例](METHOD.md)和[拟议公私字段](DATA.md)已记录机器人实际路径、公开旧/新关系、候选先封存及私有同一身份/后态的分层验收口径。输入只能是公开当前RGB-D、此前预测记忆和预登记动作；输出须分别报告物理失败、事务前提缺口、公开证据缺口、candidate miss和executor/teacher错误。例如原四槽仍保持碰撞失败，独立新版本即使找到一条推椅子到P2的路线也不得回填原槽。该版本尚无冻结配置、公开容器读取器、真实`PutObject` smoke、可执行机器人RELINK回执或记忆正例；执行新分支仍需单独裁决和代码审查。
 
