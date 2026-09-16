@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| VM-04观察适用性 | 原静态36槽不运行；D-182/183只用于精确schema/实现审查。70-house/pilot规则、公开多视角路线、worker及append-only公私raw落盘已实现；materializer receipt逐帧绑定raw/packet/crosswalk，D-177正例门已消费该来源链。真实reachable扫描、新多视角materializer执行器/父stage、精确动作请求、SPLIT/MERGE参数和共享probe仍阻断。全部运行位关闭，0新episode/训练/记忆正例。LOG-169–175。 |
+| VM-04观察适用性 | 原静态36槽不运行；D-182/183只用于精确schema/实现审查。公开多视角路线、worker、公私raw、materializer执行/复验外壳和D-177 receipt来源门已实现；真实reachable扫描、公开前端/causal-prior材料化回调及父stage仍缺，动作、SPLIT/MERGE和probe精确规格仍为空。全部运行位关闭，0新episode/materialization/训练/记忆正例。LOG-169–176。 |
 | VSMT首篇/VM-01～04 | 旧两房stage及16完整/20构造失败封存。D-162仅开放v2固定两房、D=1.0 m纯视角扫描；服务器合同252/252及两family扫描均成功，各选18个pose、0 episode。原前18均来自18个位置，空间筛选降低top-2集合重复，但top-1仍重复10/11次；报告摘要`575d34d0…089f32`。生成/private、训练、validation效果、confirmation与L2继续关闭。LOG-152–153，D-162–163 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
 | R4三模型接入 | D完整适配16项通过（121/200全反向，0更新），W完整适配17项亦通过，F完整适配19项通过；真实公共接口27/27候选通过，0优化/真值读取。209bb34，LOG-123–127 |
@@ -1897,3 +1897,11 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 新materializer receipt schema/纯函数绑定route、raw private manifest、materializer代码/配置及逐帧raw公开帧、raw私有mask、公开packet、私有crosswalk摘要。D-177 gate要求公开proof seal绑定receipt，且旧/新packet与crosswalk组合必须在receipt出现；receipt后改crosswalk的人工例在private label前拒绝。
 - 人工注入测试18项通过；随后全部`test_vm04_*`为138/138，原两房入口executor 42、L1 31、VSMT 179共252/252通过。测试中的临时开放合同与fake controller只验证6帧落盘，不修改磁盘合同。0 source inventory、0真实模拟器、0episode、0materialization、0训练。
 - 白话：现在路线失败不再只返回内存字典，而会留下不可覆盖的公私文件；RELINK也不能再凭一份后来手写的crosswalk过门。仍缺把真实多视角raw转换成packet/crosswalk的执行器，所以这些通过项不是数据已经可用。
+
+
+## LOG-176：多视角materializer执行与复验外壳（2026-09-16）
+
+- 新执行核心仅接受raw terminal完整、construction verdict为真且route/frame计数一致的episode；逐帧复核所有公私raw字节和数组形状，调用注入回调后验证ObservationPacket、公私ID隔离及crosswalk的instance→entity mask唯一绑定。全部输出完成后重核raw再签receipt；独立verifier重开raw、packet、crosswalk、receipt和success marker。
+- 回调/raw失败保留已完成materialized前缀，公侧匿名、私侧保留异常且不生成成功receipt；公开packet出现private instance ID、raw篡改及receipt后packet篡改的人工例均拒绝。生产入口新增materialization授权及预期代码/配置摘要三重门，当前均false/null并在输入读取和输出创建前拒绝。
+- 定向25项通过；全部`test_vm04_*`为144/144，原两房入口executor 42、L1 31、VSMT 179共252/252通过。测试只用fake controller和packet fixture，0 source inventory、0真实模拟器、0真实materialization、0episode、0训练。
+- 白话：材料化现在有完整的“读raw—写packet/crosswalk—失败保留—签收据—再复验”外壳，但里面负责真正从RGB-D产生匿名区域和causal prior的回调还没接，因此不能开始pilot。

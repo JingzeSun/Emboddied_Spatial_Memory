@@ -1820,3 +1820,11 @@
 - 新trusted materializer receipt逐帧绑定raw公开帧摘要、raw私有mask摘要、公开packet摘要、私有crosswalk摘要，并绑定route、raw episode manifest、materializer代码和配置摘要；帧必须从0连续，部署reader不得打开private crosswalk。D-177 RELINK正例门现在要求公开proof seal绑定receipt，并要求旧/新packet与对应crosswalk摘要同时出现在receipt中；receipt之后改crosswalk会在读取私有标签前拒绝。
 - 当前边界：receipt生成/验证和D-177消费已实现，但从新多视角raw真实产生公开packet/private crosswalk的materializer执行器尚未实现，代码/配置摘要也尚未由父stage绑定受审提交；因此真实RELINK仍不能发正例。真实reachable扫描、精确动作模板、SPLIT/MERGE构造、共享probe和服务器父stage继续阻断。
 - 白话：这一步解决“动作走了一半失败时文件还在不在”和“crosswalk是不是由同一批raw经过受审materializer产生”。输入每个模拟器event，输出分开的公私raw文件及以后materialization的一张摘要收据。例如有人在收据生成后改了新帧crosswalk里的椅子ID，即使公开packet没变，RELINK gate也立即拒绝。它不等于materializer已经运行或pilot已经开放。
+
+
+## D-187：多视角materializer执行与复验核心
+
+- 日期：2026-09-16；状态：继续实现D-183审查范围，不开放materialization或生成。执行核心只接受`raw_complete`且construction verdict为真的episode，先复核公私manifest、route、terminal、N动作/N+1帧、每个RGB/depth/camera/mask/mapping摘要和数组形状，再逐帧调用注入的trusted materializer回调。回调输出必须是合法公开ObservationPacket和私有crosswalk；crosswalk实例只能来自该帧私有mapping，并须唯一绑定packet中的entity region/mask，任何private ID出现在公开packet都拒绝。
+- 每帧packet与crosswalk用`O_EXCL`分写；回调或raw核验中途失败时保留已完成materialized前缀，公开失败只写匿名reason，私有失败保留异常，不生成receipt/success。全部帧完成后重新打开每个raw绑定，才生成D-186 receipt和success marker。独立verifier再从磁盘复核raw、packet、crosswalk、receipt和marker；receipt后改packet会拒绝。
+- 基础合同新增独立`materialization_authorized=false`，crosswalk状态改为“receipt schema/gate binding已实现、executor待审”，受审materializer代码/配置摘要仍为null并同时阻断generation与materialization。人工测试可注入packet fixture验证文件链，但实际公开前端、DINO token、结构区域、causal prior和逐帧角色生成尚未接入，不能把回调接口称作真实材料化完成。
+- 白话：输入一份已经完整落盘的公私raw episode，输出逐帧公开packet、隔离crosswalk和最终收据。例如第2帧回调报错时保留第0帧输出并写失败，但绝不拿单帧成功冒充整集receipt。它不决定公开前端怎样产生SPLIT/MERGE，也没有运行服务器。
