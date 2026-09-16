@@ -201,6 +201,8 @@ def _load_verified_frame(
     return ({
         "rgb": rgb, "depth_m": depth,
         "camera": _read_json(paths["camera"]),
+        "rgb_sha256": frame["rgb_sha256"],
+        "depth_sha256": frame["depth_m_sha256"],
         "source_frame_sha256": source_digest,
     }, {
         "instance_masks": masks,
