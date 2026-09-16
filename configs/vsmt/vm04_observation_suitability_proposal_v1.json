@@ -131,7 +131,7 @@
     "multiview_policy": "must_use_a_pre_registered_terminal_reobservation_window_not_continuous_visibility_after_enable"
   },
   "crosswalk_provenance": {
-    "status": "receipt_v2_executor_frontend_context_and_causal_memory_chain_implemented_reviewed_config_and_parent_stage_pending",
+    "status": "receipt_v2_executor_frontend_context_causal_chain_config_schema_and_asset_verifier_implemented_frozen_values_model_loader_and_parent_stage_pending",
     "required_before_any_physical_relink_positive": true,
     "planned_receipt_must_bind": [
       "public_raw_frame_sha256",
@@ -140,6 +140,7 @@
       "private_crosswalk_sha256",
       "materializer_code_sha256",
       "materializer_config_sha256",
+      "materializer_assets_receipt_sha256",
       "public_frame_context_manifest_sha256",
       "causal_prior_receipt_sha256",
       "prior_memory_sha256"
@@ -150,7 +151,7 @@
     "public_relink_proof_seal_must_bind_materializer_receipt_digest": true
   },
   "public_packet_materialization": {
-    "status": "frontend_core_packet_prior_sealed_context_and_materializer_memory_chain_implemented_frozen_rules_and_model_loader_pending",
+    "status": "frontend_core_packet_prior_sealed_context_materializer_config_schema_and_asset_verifier_implemented_frozen_values_model_loader_and_parent_stage_pending",
     "camera_pose_and_calibration_source": "sealed_raw_public_camera_record",
     "past_actions_source": "sealed_public_route_prefix",
     "decision_time_rule": null,

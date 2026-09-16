@@ -1864,3 +1864,11 @@
 - 日期：2026-09-16；状态：继续D-183精确实现审查，正式动作幅度仍未冻结，所有运行位不变。runner新增纯验证器，要求`MoveAhead/MoveBack/MoveLeft/MoveRight/RotateLeft/RotateRight/LookUp/LookDown`八种请求全部存在且不多不少；Move只允许`action+moveMagnitude`，Rotate/Look只允许`action+degrees`，数值须有限正数，Rotate不超过180°、Look不超过90°。`forceAction`、漏项、额外API参数和动作名错配均在controller调用前拒绝。
 - 多视角worker的测试核心也消费同一验证器，避免生产入口严格而人工路线核心仍可用不完整字典。人工fixture的0.25 m移动和30°旋转/俯仰仅覆盖请求形状；基础合同继续保持`registered_action_request_templates=null`，不能据此运行。
 - 白话：这一步解决“路线写了MoveAhead，但实际调用偷偷用了默认步长或forceAction”的问题。输入八张显式API请求模板，输出一份可执行且字段受限的请求表。例如少了LookDown，即使当前路线恰好没用它，整版配置也不能通过。它不替用户冻结0.25 m、30°或任何模拟器动作值，也没有发出真实动作。
+
+
+## D-193：materializer完整配置与模型资产回执
+
+- 日期：2026-09-16；状态：继续D-183精确schema/实现审查，不批准materialization、pilot或生成。新增`vsmt-vm04-materializer-config-v1`，要求前端mask/descriptor/entity geometry/surface/place/free-space及关系阈值、三类bootstrap规则、公开常量、builder代码摘要和DINO模型来源一次性完整封存；无默认值、null、额外字段、模型shape与descriptor不符或总摘要不符均拒绝。当前没有把人工fixture阈值写成正式配置。
+- 模型来源另有只读assets verifier：现场核DINO仓库精确40位commit、包含未跟踪文件在内的干净工作树和checkpoint文件SHA-256，输出离线资产回执；不联网、不下载、不启动模型。生产配置入口必须先验证这张回执与同一materializer config/model相符，回执内部摘要再进入每个episode的materializer v2 receipt，避免只在配置中声明checkpoint摘要却未核实际文件。
+- 生产包装现可由一份sealed config构造`Vm04PublicFrontendSequence`，而不是让调用方分别拼装前端与bootstrap对象；授权仍在读取episode前检查。真实DINO loader、正式阈值、时间规则、动作编码、materializer代码源清单摘要和父stage资源派发尚未完成。
+- 白话：这一步解决“代码能跑，但每个worker可能拿了不同阈值或不同模型文件”的问题。输入一份完整配置、一个干净仓库和checkpoint，输出同一有状态材料化callback及资产回执。例如checkpoint字节变了，即使文件名相同也不能进入episode receipt。它不代表这些阈值已经科学批准，也没有加载GPU模型或生成数据。

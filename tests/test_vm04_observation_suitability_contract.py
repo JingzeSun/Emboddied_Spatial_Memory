@@ -71,14 +71,15 @@ class ObservationSuitabilityContractTests(unittest.TestCase):
         provenance = self.contract["crosswalk_provenance"]
         self.assertEqual(
             provenance["status"],
-            "receipt_v2_executor_frontend_context_and_causal_memory_chain_implemented_reviewed_config_and_parent_stage_pending")
+            "receipt_v2_executor_frontend_context_causal_chain_config_schema_and_asset_verifier_implemented_frozen_values_model_loader_and_parent_stage_pending")
         self.assertTrue(
             provenance["required_before_any_physical_relink_positive"])
         self.assertIn("private_crosswalk_sha256",
                       provenance["planned_receipt_must_bind"])
         for digest in (
                 "public_frame_context_manifest_sha256",
-                "causal_prior_receipt_sha256", "prior_memory_sha256"):
+                "causal_prior_receipt_sha256", "prior_memory_sha256",
+                "materializer_assets_receipt_sha256"):
             self.assertIn(digest, provenance["planned_receipt_must_bind"])
         self.assertEqual(
             provenance["gate_behavior_until_implemented"],
@@ -92,7 +93,7 @@ class ObservationSuitabilityContractTests(unittest.TestCase):
         packet = self.contract["public_packet_materialization"]
         self.assertEqual(
             packet["status"],
-            "frontend_core_packet_prior_sealed_context_and_materializer_memory_chain_implemented_frozen_rules_and_model_loader_pending")
+            "frontend_core_packet_prior_sealed_context_materializer_config_schema_and_asset_verifier_implemented_frozen_values_model_loader_and_parent_stage_pending")
         self.assertIsNone(packet["decision_time_rule"])
         self.assertIsNone(packet["action_command_encoding"])
         self.assertTrue(packet["public_frame_context_manifest_required"])
