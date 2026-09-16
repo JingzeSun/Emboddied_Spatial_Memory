@@ -1834,4 +1834,11 @@
 - 新`vm04_public_packet_builder.py`只接受十一项精确公开前端字段，不接收调用方提供的`prior_memory_ref`。每帧ref由上一帧公开bootstrap的已封存memory生成，随后用同一显式`PublicBootstrapConfig`在线推进；整段完成后从空memory独立重放并要求终态完全一致，输出既有causal-prior receipt。额外private/program/target字段、region内instance ID、时间倒退或memory摘要不匹配均拒绝。
 - 机器合同据实际进度把crosswalk状态改为“receipt/gate/executor shell已实现，真实前端与受审摘要待定”，将阻断项收窄为真实公开前端和父stage。`decision_time_s`规则、past-action向量编码、bootstrap阈值、真实DINO/结构区域、SPLIT/MERGE确定性伪影判据和materializer代码/配置摘要仍未冻结；旧静态两房private program注入明确禁止复用。所有授权位保持false。
 - 白话：这一步解决“第2帧的packet究竟引用哪一版旧记忆，以及材料化结束后能不能证明整段旧记忆是公开序列算出来的”。输入已匿名的逐帧公开感知，输出逐帧packet、共同旧记忆和重放收据。例如有人给第2帧偷偷塞进另一个有正确椅子关系的memory，builder会因为ref不由第1帧产生而拒绝。它不解决RGB-D怎样形成区域，也没有运行任何house。
+
+## D-189：无私有program通道的真实公开前端核心
+
+- 日期：2026-09-16；状态：继续D-183实现审查，不开放source inventory、模拟器、materialization或生成。新前端核心复用既有L1匿名mask、DINO区域池化、公开depth几何、surface/place/free-space/visibility及关系函数；所有mask、描述、几何和关系阈值通过无默认值config显式提供。函数签名没有program、target、teacher或future字段。
+- 单帧private ID只用于把原mask与输出entity mask摘要写入独立crosswalk；公开区域在每帧按mask内容重新编号。旧静态materializer的`SPLIT`前缀强制合并两个目标mask和`MERGE`中段翻转目标descriptor不复用，因为两者依赖私有program/target制造公开伪影，违反D-183确定性公开构造。
+- 新多帧callback从verified raw取得RGB/depth/camera及文件摘要，只把RGB和frame ordinal交给注入的DINO token extractor；时间、机器人状态、past actions、公开常量和sample摘要必须来自精确预封存context。它顺序生成packet、推进共同bootstrap并在末帧独立重放，乱序或未完成拒绝。真实DINO loader/checkpoint摘要、context生成规则、前端/bootstrap正式config和父stage仍待冻结绑定，授权位全false。
+- 白话：这一步把“真实公开区域怎样产生”从人工packet fixture换成现有L1算法，但没有偷偷决定数值。例如同一mask换了模拟器ID，公开packet不变；如果要构造SPLIT，必须靠事前几何和公开前端自然产生欠分，不能告诉前端当前标签叫SPLIT。它仍不是服务器数据或已验收科学样本。
 - 白话：输入一份已经完整落盘的公私raw episode，输出逐帧公开packet、隔离crosswalk和最终收据。例如第2帧回调报错时保留第0帧输出并写失败，但绝不拿单帧成功冒充整集receipt。它不决定公开前端怎样产生SPLIT/MERGE，也没有运行服务器。

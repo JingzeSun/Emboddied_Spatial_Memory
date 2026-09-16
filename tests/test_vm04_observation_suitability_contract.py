@@ -71,7 +71,7 @@ class ObservationSuitabilityContractTests(unittest.TestCase):
         provenance = self.contract["crosswalk_provenance"]
         self.assertEqual(
             provenance["status"],
-            "receipt_schema_gate_and_executor_shell_implemented_real_frontend_and_reviewed_digests_pending")
+            "receipt_gate_executor_and_real_frontend_core_implemented_reviewed_config_and_parent_stage_pending")
         self.assertTrue(
             provenance["required_before_any_physical_relink_positive"])
         self.assertIn("private_crosswalk_sha256",
@@ -82,13 +82,13 @@ class ObservationSuitabilityContractTests(unittest.TestCase):
         self.assertIsNone(provenance["expected_materializer_code_sha256"])
         self.assertIsNone(provenance["expected_materializer_config_sha256"])
         self.assertIn(
-            "implement_and_review_real_public_frontend_and_parent_stage_binding",
+            "freeze_public_frontend_config_context_and_model_loader_then_bind_parent_stage",
             self.contract["pre_generation_blockers"],
         )
         packet = self.contract["public_packet_materialization"]
         self.assertEqual(
             packet["status"],
-            "public_packet_prior_chain_builder_implemented_real_frontend_pending")
+            "frontend_core_and_packet_prior_sequence_callback_implemented_frozen_context_and_model_loader_pending")
         self.assertIsNone(packet["decision_time_rule"])
         self.assertEqual(
             packet["prior_memory_ref_source"],

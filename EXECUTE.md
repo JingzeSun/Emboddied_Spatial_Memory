@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| VM-04观察适用性 | 原静态36槽不运行；D-182/183只用于精确schema/实现审查。公开多视角路线、worker、公私raw、materializer执行/复验外壳、公开packet/prior序列和D-177 receipt来源门已实现；真实reachable扫描、RGB-D匿名公开前端及父stage仍缺，动作时间/编码、bootstrap、SPLIT/MERGE和probe精确规格仍未冻结。全部运行位关闭，0新episode/materialization/训练/记忆正例。LOG-169–177。 |
+| VM-04观察适用性 | 原静态36槽不运行；D-182/183只用于精确schema/实现审查。公开多视角路线、worker、公私raw、materializer外壳、RGB-D匿名公开前端核心、packet/prior多帧callback和D-177 receipt门已实现；真实reachable扫描、DINO/config/context父stage绑定仍缺，动作时间/编码、bootstrap、SPLIT/MERGE和probe精确规格未冻结。全部运行位关闭，0新episode/materialization/训练/记忆正例。LOG-169–178。 |
 | VSMT首篇/VM-01～04 | 旧两房stage及16完整/20构造失败封存。D-162仅开放v2固定两房、D=1.0 m纯视角扫描；服务器合同252/252及两family扫描均成功，各选18个pose、0 episode。原前18均来自18个位置，空间筛选降低top-2集合重复，但top-1仍重复10/11次；报告摘要`575d34d0…089f32`。生成/private、训练、validation效果、confirmation与L2继续关闭。LOG-152–153，D-162–163 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
 | R4三模型接入 | D完整适配16项通过（121/200全反向，0更新），W完整适配17项亦通过，F完整适配19项通过；真实公共接口27/27候选通过，0优化/真值读取。209bb34，LOG-123–127 |
@@ -1912,3 +1912,10 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 机器合同将已完成的materializer shell与仍缺的真实前端分开记录；真实RGB-D→匿名区域/关系、decision time、动作向量编码、bootstrap阈值、SPLIT/MERGE判据、materializer受审摘要和父stage仍阻断运行。所有授权位继续false；没有读取source house、启动controller或写真实materialized episode。
 - 新构造器4项定向通过；包含相关VSMT/VM-04模块的本地回归232项通过，旧两房入口内嵌executor 42、L1 31、VSMT 179共252项通过。另一次手工命令引用两个不存在的旧测试模块而发生import error，随后用真实仓库入口成功重跑；该命令错误不作为科学或代码失败证据。
 - 白话：现在能保证“每帧公开包沿着公开旧记忆顺序往前走”，但还没有产生包内的真实区域。输入仍是人工公开前端行，输出packet、共同prior和重放收据；它不表示数据生成就绪。
+
+## LOG-178：真实公开前端核心与多帧callback（2026-09-16）
+
+- 新单帧核心用隔离instance mask生成匿名entity/private crosswalk，并用现有公开L1函数从depth/pose/DINO token生成surface、place、free-space、visibility和关系；全部config无默认值。旧私有program驱动的SPLIT mask合并和MERGE descriptor翻转没有迁移。私有ID/枚举置换公开不变、小mask匿名拒绝及合法packet人工例4/4通过。
+- 新多帧callback从verified raw接收RGB/depth/camera/file digest，消费显式预封存公开context，逐帧生成packet和bootstrap memory，末帧独立重放causal prior；乱序、未完成和额外private-program context拒绝。与materializer联合9项通过；VM-04/VSMT相关239项、L1 31项及旧两房入口内嵌252项通过。
+- 尚未绑定真实DINO repository/checkpoint、正式前端/bootstrap config、decision time/past-action编码、sample/context封存和父stage；没有source读取、controller、真实materialization或episode。测试中的数值和patch token只作人工fixture，不是正式阈值或模型回执。
+- 白话：材料化回调现在已经能用真实算法把一串人工raw变成沿同一公开记忆链的packet，但“用哪个受审模型和数值、时间动作怎样编码、谁来调度整批”仍未冻结，所以不能开pilot。
