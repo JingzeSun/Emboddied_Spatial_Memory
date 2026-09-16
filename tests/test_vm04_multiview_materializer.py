@@ -361,6 +361,32 @@ class MultiviewMaterializerTests(unittest.TestCase):
                 )
             self.assertFalse(absent.exists())
 
+    def test_verified_model_entry_authorizes_before_asset_or_episode_read(self):
+        config = materializer_config()
+        contract = copy.deepcopy(CONTRACT)
+        contract["crosswalk_provenance"][
+            "expected_materializer_code_sha256"
+        ] = CODE_SHA
+        contract["crosswalk_provenance"][
+            "expected_materializer_config_sha256"
+        ] = config["config_sha256"]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with self.assertRaisesRegex(
+                    materializer.ObservationConstructionError,
+                    "materialization is not authorized"):
+                materializer.run_authorized_materializer_with_verified_model(
+                    root / "absent-episode",
+                    contract=contract,
+                    raw_materializer_config=config,
+                    public_frame_context_bundle=sealed_context_bundle(),
+                    private_frame_roles=["old", "new"],
+                    repository_root=root / "absent-repository",
+                    checkpoint_path=root / "absent-checkpoint.pth",
+                    materializer_code_sha256=CODE_SHA,
+                )
+            self.assertEqual(list(root.iterdir()), [])
+
     def test_verifier_rejects_packet_changed_after_receipt(self):
         with tempfile.TemporaryDirectory() as temporary:
             episode = Path(temporary) / "episode"

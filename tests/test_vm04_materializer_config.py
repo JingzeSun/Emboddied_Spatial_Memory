@@ -25,6 +25,7 @@ from tests.test_vm04_public_frontend_sequence import (  # noqa: E402
 )
 from vsmt.vm04_materializer_config import (  # noqa: E402
     build_vm04_public_frontend_sequence,
+    load_verified_dinov2,
     validate_vm04_materializer_assets_receipt,
     validate_vm04_materializer_config,
     verify_vm04_materializer_assets,
@@ -209,6 +210,66 @@ class Vm04MaterializerConfigTests(unittest.TestCase):
                 "schemas/vsmt_vm04_materializer_assets_receipt.schema.json"
             )).read_text(encoding="utf-8"))
             self.assertEqual(set(receipt), set(schema["required"]))
+            class Parameter:
+                requires_grad = True
+
+            class Model:
+                def __init__(self):
+                    self.training = True
+                    self.parameter = Parameter()
+                    self.device = None
+                    self.strict = None
+
+                def load_state_dict(self, state, strict):
+                    self.strict = strict
+                    self.state = state
+
+                def requires_grad_(self, value):
+                    self.parameter.requires_grad = value
+                    return self
+
+                def eval(self):
+                    self.training = False
+                    return self
+
+                def to(self, device):
+                    self.device = device
+                    return self
+
+                def parameters(self):
+                    return [self.parameter]
+
+            class Cuda:
+                @staticmethod
+                def is_available():
+                    return True
+
+            class Torch:
+                cuda = Cuda()
+
+                @staticmethod
+                def load(path, *, map_location, weights_only):
+                    self.assertEqual(Path(path), checkpoint)
+                    self.assertEqual(map_location, "cpu")
+                    self.assertTrue(weights_only)
+                    return {"sealed": "state"}
+
+            def factory(*, pretrained):
+                self.assertFalse(pretrained)
+                return Model()
+
+            model, loaded_assets = load_verified_dinov2(
+                parsed,
+                repository_root=repository,
+                checkpoint_path=checkpoint,
+                model_factory=factory,
+                torch_module=Torch,
+            )
+            self.assertEqual(loaded_assets, receipt)
+            self.assertTrue(model.strict)
+            self.assertEqual(model.device, "cuda")
+            self.assertFalse(model.training)
+            self.assertFalse(model.parameter.requires_grad)
             changed = deepcopy(receipt)
             changed["checkpoint_sha256"] = "f" * 64
             with self.assertRaisesRegex(ValueError, "different config or model"):

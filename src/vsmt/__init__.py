@@ -55,6 +55,8 @@ from .vm04_protocol import (
 from .vm04_materializer_config import (
     ValidatedVm04MaterializerConfig,
     build_vm04_public_frontend_sequence,
+    build_verified_vm04_public_frontend_sequence,
+    load_verified_dinov2,
     validate_vm04_materializer_config,
     validate_vm04_materializer_assets_receipt,
     verify_vm04_materializer_assets,
@@ -163,6 +165,8 @@ __all__ = [
     "validate_vm04_protocol",
     "ValidatedVm04MaterializerConfig",
     "build_vm04_public_frontend_sequence",
+    "build_verified_vm04_public_frontend_sequence",
+    "load_verified_dinov2",
     "validate_vm04_materializer_config",
     "validate_vm04_materializer_assets_receipt",
     "verify_vm04_materializer_assets",

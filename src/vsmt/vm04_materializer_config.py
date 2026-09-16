@@ -11,12 +11,17 @@ import hashlib
 from pathlib import Path
 import re
 import subprocess
+import sys
 from typing import Any, Mapping, TypeVar
 
 from cpmt.hashing import canonical_json, clone_json
 
 from .causal_prior import PublicBootstrapConfig
-from .l1_entities import DINORegionConfig, PublicGeometryConfig
+from .l1_entities import (
+    DINORegionConfig,
+    PublicGeometryConfig,
+    extract_dinov2_patch_tokens,
+)
 from .l1_masks import L1MaskConfig
 from .l1_structures import (
     FreeSpaceMaterializationConfig,
@@ -160,6 +165,10 @@ def validate_vm04_materializer_config(
     _require(model["evaluation_mode"] is True and
              model["parameters_frozen"] is True,
              "materializer model must be frozen in evaluation mode")
+    _require(model["model_id"] == "dinov2.vits14" and
+             model["architecture"] == "dinov2_vits14_without_registers" and
+             model["patch_token_output_key"] == "x_norm_patchtokens",
+             "materializer model identity is not the reviewed DINOv2 variant")
     descriptor_shape = {
         "input_image_height": frontend.descriptor.image_height,
         "input_image_width": frontend.descriptor.image_width,
@@ -288,3 +297,76 @@ def validate_vm04_materializer_assets_receipt(
              claimed == _sha(record),
              "materializer assets receipt digest mismatch")
     return clone_json(receipt)
+
+
+def load_verified_dinov2(
+    parsed: ValidatedVm04MaterializerConfig, *, repository_root: Path,
+    checkpoint_path: Path, device: str = "cuda", model_factory: Any = None,
+    torch_module: Any = None,
+) -> tuple[Any, dict[str, Any]]:
+    """Load the reviewed DINOv2 bytes offline with strict state matching."""
+
+    _require(device == "cuda", "VM-04 DINOv2 loader requires device='cuda'")
+    assets = verify_vm04_materializer_assets(
+        parsed, repository_root=repository_root,
+        checkpoint_path=checkpoint_path,
+    )
+    if torch_module is None:
+        import torch as torch_module  # type: ignore[no-redef]
+    cuda = getattr(torch_module, "cuda", None)
+    _require(cuda is not None and callable(getattr(cuda, "is_available", None))
+             and cuda.is_available(), "CUDA is unavailable for DINOv2")
+    if model_factory is None:
+        repository_text = str(Path(repository_root).resolve())
+        sys.path.insert(0, repository_text)
+        try:
+            from dinov2.hub.backbones import dinov2_vits14
+        finally:
+            if sys.path and sys.path[0] == repository_text:
+                sys.path.pop(0)
+        model_factory = dinov2_vits14
+    _require(callable(model_factory), "DINOv2 model factory is not callable")
+    model = model_factory(pretrained=False)
+    state = torch_module.load(
+        Path(checkpoint_path), map_location="cpu", weights_only=True,
+    )
+    model.load_state_dict(state, strict=True)
+    model.requires_grad_(False)
+    model.eval()
+    model.to(device)
+    _require(getattr(model, "training", True) is False,
+             "loaded DINOv2 model did not enter evaluation mode")
+    _require(not any(parameter.requires_grad for parameter in model.parameters()),
+             "loaded DINOv2 parameters are not frozen")
+    return model, assets
+
+
+def build_verified_vm04_public_frontend_sequence(
+    parsed: ValidatedVm04MaterializerConfig, *,
+    public_frame_context_bundle: Mapping[str, Any],
+    private_frame_roles: list[str], repository_root: Path,
+    checkpoint_path: Path, device: str = "cuda",
+) -> tuple[Vm04PublicFrontendSequence, dict[str, Any]]:
+    """Load verified assets and bind their model to the public sequence."""
+
+    model, assets = load_verified_dinov2(
+        parsed,
+        repository_root=repository_root,
+        checkpoint_path=checkpoint_path,
+        device=device,
+    )
+
+    def extract(rgb: Any, _index: int) -> Any:
+        return extract_dinov2_patch_tokens(
+            model, rgb, parsed.frontend.descriptor, device=device,
+        )
+
+    callback = Vm04PublicFrontendSequence(
+        public_frame_context_bundle=public_frame_context_bundle,
+        private_frame_roles=private_frame_roles,
+        patch_token_extractor=extract,
+        frontend_config=parsed.frontend,
+        bootstrap_config=parsed.bootstrap,
+        builder_code_sha256=parsed.builder_code_sha256,
+    )
+    return callback, assets

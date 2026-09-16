@@ -32,6 +32,7 @@ from vsmt.vm04_materializer_receipt import (  # noqa: E402
 )
 from vsmt.vm04_materializer_config import (  # noqa: E402
     build_vm04_public_frontend_sequence,
+    build_verified_vm04_public_frontend_sequence,
     validate_vm04_materializer_assets_receipt,
     validate_vm04_materializer_config,
 )
@@ -579,5 +580,38 @@ def run_authorized_materializer_from_config(
         materialize_frame=callback,
         materializer_code_sha256=materializer_code_sha256,
         materializer_config_sha256=config_sha256,
+        materializer_assets_receipt_sha256=assets["receipt_sha256"],
+    )
+
+
+def run_authorized_materializer_with_verified_model(
+    episode_root: Path, *, contract: Mapping[str, Any],
+    raw_materializer_config: Mapping[str, Any],
+    public_frame_context_bundle: Mapping[str, Any],
+    private_frame_roles: list[str], repository_root: Path,
+    checkpoint_path: Path, materializer_code_sha256: str,
+    device: str = "cuda",
+) -> dict[str, Any]:
+    """Production path: authorize, verify/load assets, then read the episode."""
+
+    parsed = validate_vm04_materializer_config(raw_materializer_config)
+    assert_materialization_authorized(
+        contract,
+        code_sha256=materializer_code_sha256,
+        config_sha256=parsed.config_sha256,
+    )
+    callback, assets = build_verified_vm04_public_frontend_sequence(
+        parsed,
+        public_frame_context_bundle=public_frame_context_bundle,
+        private_frame_roles=private_frame_roles,
+        repository_root=repository_root,
+        checkpoint_path=checkpoint_path,
+        device=device,
+    )
+    return materialize_episode_core(
+        episode_root,
+        materialize_frame=callback,
+        materializer_code_sha256=materializer_code_sha256,
+        materializer_config_sha256=parsed.config_sha256,
         materializer_assets_receipt_sha256=assets["receipt_sha256"],
     )
