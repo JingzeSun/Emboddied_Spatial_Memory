@@ -84,6 +84,56 @@ raw 仍分三面，但 private 现在补齐以后无法从 RGB-D 恢复的事实
 
 D-212 同时修正自引用 Git 门。实现提交保持 expected implementation commit 为 `null`；用户审过后，另做一个只允许修改 v2 合同的 activation commit，并要求其 parent 等于受审实现提交。执行时核验 clean checkout、`HEAD^` 和一文件 allowlist。输入是两个真实可存在的 commit，输出是可验证的执行授权；它不再要求一个 commit 在自身内容中写出自己的 hash。
 
+#### D-213 统一稀疏版本图、类型门控八原子与五组消融（已批准，实现候选待审）
+
+VSMT 的正式架构不是“地点小图旁边再放一套实体图”，而是一张**统一稀疏版本图（unified sparse versioned graph）**：`place/entity/surface/fragment` 都是一等节点，`located_at/contains/supported_by/adjacent_to/route_transition` 都是一等版本边。它解决地点、物品、表面和路线更新互相脱节的问题；输入是当前公开 RGB-D 关键帧、内参、连续位姿信念、入边动作摘要及此前预测图，输出是一个局部事务候选、新版本图和可审计副作用。例如 P08 中椅子仍在第二个房间时，地点回环、`located_at` 端点和路线边须在同一图中保持一致。它不把每个像素或每个 0.5 m 格变成节点，也不让历史关闭版本参加普通活动检索。
+
+```text
+冻结 RGB-D 前端＋公开位姿信念＋动作边摘要
+                    ↓
+       当前关键帧结构证据＋旧预测记忆
+                    ↓
+  稀疏局部召回：活动节点/边；历史版本仅供审计
+                    ↓
+   结构类型 → 合法原子门 → 参数化候选 → 执行前封存
+                    ↓                         ↓
+          VSMT selector                 teacher 后开
+                    ↓
+       deterministic executor / rollback
+                    ↓
+  新图版本＋证据归属＋副作用＋图规模/候选规模指标
+```
+
+**类型化事务门（typed transaction gate）**解决“完整八原子是否意味着每个节点每帧都要竞争八种操作”的误解。输入是候选的结构作用域和由公开证据构造的事务程序，输出是封存前的允许/拒绝；例如 `place+RETRACT` 在 P0 直接拒绝，而 `surface+SPLIT`、`relation:located_at+RELINK` 可以在前置条件成立时进入候选。它不读取 teacher、future 或 private reference，不在正确候选遗漏后补槽，也不替 executor 的状态前置条件检查。
+
+| 作用域 | P0 可进入选择器的原子 | 语义边界 |
+|---|---|---|
+| 全局 | `NOOP` | 保持整张图；不是为每个节点复制一个 NOOP |
+| place | `NOOP/BIND/BIRTH/MERGE` | 继续当前地点、绑定旧地点、新建地点、合并重复地点；P0 不开放 place SPLIT/RETRACT/REACTIVATE/RELINK |
+| entity | 八原子的合法实例 | 实体可绑定、新生、重现、改关系、撤回、拆分或合并；`RELINK` 实际作用于实体关系边 |
+| surface / fragment | `NOOP/BIND/BIRTH/REACTIVATE/RETRACT/SPLIT/MERGE` | 可恢复、撤回和纠正感知分片；节点本身不做 RELINK |
+| relation | `NOOP/BIND/BIRTH/REACTIVATE/RELINK/RETRACT` | 积累证据、新建、恢复、改端点或关闭关系；关系不做 SPLIT/MERGE |
+
+关系首次新建统一编译为八原子中的 `BIRTH + ADD_EDGE`，不存在第九个 `CREATE`。`RELINK` 关闭旧边版本、以同一 `edge_id` 打开新端点版本；`REACTIVATE` 从已关闭历史边以同一关系身份和同一事实端点打开新版本；`RETRACT` 只在可靠负证据下关闭错误关系。`REPLACE` 仍是 `RETRACT+BIRTH` 复合程序，只有两个分量在该作用域都合法时才允许，不计作第九原子。白话：第一次发现“椅子在房间 A”是 BIRTH 一条边；后来发现其实在房间 B 是 RELINK；曾关闭后又有新证据支持同一事实才是 REACTIVATE。它不靠改名把同一动作重复计贡献。
+
+**稀疏与图增长控制。** 活动召回只看当前区域附近的活动节点与边；dormant、retracted、alias 的历史版本不进普通召回，但继续保存在审计层。`contained_entity_refs` 若物化，只能等于 `located_at/contains` 活动边推导出的排序缓存，不能成为独立真值。主结果除任务指标外强制报告按类型活动节点数、按关系活动边数、历史版本数、按作用域×原子的候选数、type-gate rejection、illegal transaction、峰值节点/候选、运行时间和峰值内存。它解决“多节点带来的提升是否只是无限长图”的疑问；例如 VSMT 减少 duplicate place 但活动节点反而翻倍，必须把这项代价同时报告。它不预设节点越少越好，也不把删历史冒充节省活动检索。
+
+**主比较公平性。** VSMT、TAF、ELU、WFR、LOW 使用完全相同的冻结 RGB-D 前端缓存、相同内参、公开位姿信念、动作摘要、序列/split和评价器；各方法保留自己的记忆组织、关联、生命周期和更新机制，不要求内部组件相同。输入控制回答“相同公开证据下哪种记忆更新更可靠”，内部机制差异正是被比较对象。若以后另做各论文原系统组件的 system-level 表，只能声称完整系统差异，不能把差值单独归因给 VSMT。这里的 RGB-D 是已批准机器口径；口语中的“同样 RGB”不能静默改成 RGB-only。
+
+五组事前消融固定如下：
+
+| 名称 | 精确定义 | 回答的问题 |
+|---|---|---|
+| `Place-4` | 只给模型地点节点和 place-place 边，地点四原子门；仍保留版本 | 地点记忆本身能做到什么 |
+| `VSMT-Typed` | 统一图、全局八原子词表、按作用域门控；主 VSMT 行 | 完整架构能否同时处理地点、实体和关系修订 |
+| `VSMT-Flat8` | 取消 selector 的类型 mask，八原子头对所有作用域开放；executor 前置条件和非法回滚仍保留 | 不加语义约束是否造成候选稀释和非法事务 |
+| `VSMT-NoPlace` | 模型视图删除 place 节点及其 incident edges，保留 entity-surface 等非地点关系 | 显式地点层是否帮助实体挂载、关系和回环 |
+| `VSMT-NoVersion` | 只给模型当前活动状态，移除历史版本字段和 transaction log；外部运行 provenance 仍保存 | 收益是否来自模型可用的版本历史，而非仅当前图 |
+
+`VSMT-Flat8` 不允许绕过 executor 直接写坏图；它允许 selector 提出类型不合适的原子并把 executor 拒绝计入 `illegal_transaction`，用于测量类型门本身的价值。`VSMT-NoVersion` 也不物理删除实验原始审计文件，只屏蔽模型输入里的历史，因此还能复核结果。五组消融共享同一前端、数据、候选公开来源、训练预算和评分；除被移除的组件外不得顺带缩模型或换阈值。
+
+机器合同为 [`vm04_d213_unified_typed_graph_v1.json`](../configs/vsmt/vm04_d213_unified_typed_graph_v1.json)，纯核心为 [`d213_unified_graph.py`](../src/vsmt/d213_unified_graph.py)。当前实现已经能在 candidate seal/teacher 之前检查作用域—原子合法性、复核 sealed catalog、验证统一图端点类型和派生缓存、构造五种模型可见 memory view、派生图复杂度指标；executor 新增历史关系 `REACTIVATE`，node `RETRACT` 扩展到 entity/surface/fragment，公开候选器可产生相应合法候选，并接受 `route_transition`。但 D-210 raw 关键帧到**非网格 place** 的实际 BIND/BIRTH/MERGE 候选构造仍需在单槽 raw 与 materializer 字节确定后接线；旧 `prepare_place_scaffold` 仅保留历史兼容，不能进入 D-213 主表。这一未接线项明确阻断 adapter materialization/训练，不把合同测试写成完整模型或效果已经完成。
+
 **D-206/D-207 历史口径（已由 D-210 取代主实验解释）。** D-205 曾因 place 由确定性骨架维护而把首篇收窄为“不主张地点修订”；D-206 随后发现 `camera_pose` 真值泄漏并改用带噪相对 pose，D-207 将地点路线增至 64 步并分离 provenance。这些发现继续有效，但“带噪 pose 量化成 0.5 m 格并把格当地点”的任务会把人为噪声当主要错误来源，且完整固定动作又可被精确积分抵消。故 D-210 保留世界 pose 私有、长路线和后续判别观测，撤销格地点真值、2% 人工噪声必须制造错误、place SPLIT 作为 P0 主操作及 64 步科学上限。旧合同与回执保留原字节，只作历史和诊断，不认证 D-210。
 
 整体采用成熟的双速率结构感知骨架，而不复制任何一个上游系统。共享前端参考 [ConceptGraphs](https://concept-graphs.github.io/) 的 posed RGB-D→区域→多视角关联；结构状态参考 [Hydra](https://www.roboticsproceedings.org/rss18/p050.html) 的实体、地点、房间等分层图；存在证据参考 [Fusion++](https://doi.org/10.1109/3DV.2018.00015) 的对象存在概率；短期片段与较慢全局协调参考 [Khronos](https://www.roboticsproceedings.org/rss20/p081.html) 的 active window / global reconciliation。VSMT 在这个骨架上新增的是统一事务空间、版本化真实执行、严格监督边界和相应误差分解；当前均为论文设计与工程候选，尚无实验支持“优于这些系统”。

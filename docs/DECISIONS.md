@@ -2052,3 +2052,14 @@
 - **执行门：** 废除不可满足的“HEAD必须等于其内容中写入的自身commit hash”。实现commit保持v2 expected为空；审查后仅允许一个改v2合同的activation child commit。执行核验clean HEAD、`HEAD^=reviewed implementation`及parent→HEAD文件列表恰为单文件allowlist。
 - **固定运行环境：** AI2-THOR 5.0.0、CloudRendering、224×224、FOV 90°、gridSize 0.25 m、snapToGrid、rotateStepDegrees 90°、depth及instance segmentation全部显式传入controller；安装版本不符即拒绝。
 - **仍未解锁：** 没有真实12-route bundle、没有route seal、没有slot-0 raw、没有12槽raw、adapter、teacher/private evaluation、metrics、训练、validation或confirmation。真实P08公开匿名实体region怎样由路线survey形成仍必须由公开RGB-D过程产出，不能拿private instance mask替代。
+
+## D-213：统一稀疏版本图、类型门控八原子与五组消融
+
+- 日期：2026-09-18；状态：用户已批准方法与工程实现，代码候选待审；全部生成/adapter/训练/validation/confirmation授权仍关闭。用户批准原文：“批准 VSMT 采用统一稀疏版本图与按结构类型门控的八原子事务；地点 P0 仅开放 NOOP/BIND/BIRTH/MERGE，其他原子只在实体、关系、表面和片段的合法事件中开放；主表各方法共享同一冻结 RGB-D 前端与公开输入，但保留各自内部记忆机制；加入 Place-4、Typed-8、Flat-8、NoPlace 和 NoVersion 消融。”机器名称将“Typed-8”规范为主行`VSMT-Typed`，其余为`Place-4/VSMT-Flat8/VSMT-NoPlace/VSMT-NoVersion`。
+- **统一图：** `place/entity/surface/fragment`为一等节点，`located_at/contains/supported_by/adjacent_to/route_transition`为一等版本边；活动检索稀疏，历史版本只供审计/训练证据/回滚。`contained_entity_refs`最多是活动关系推导缓存，不得作为独立真值。0.5 m格继续只作规划和候选召回，不定义place。
+- **类型门：** 全局原子词表仍恰好八个；place P0只允许NOOP/BIND/BIRTH/MERGE，surface/fragment不开放RELINK，relation不开放SPLIT/MERGE。门在candidate seal和teacher之前，只读公开当前观测、prior predicted memory、公开pose belief和动作边摘要；teacher不能改门或补candidate miss。
+- **关系编译：** 新关系=`BIRTH+ADD_EDGE`，错误端点修正=`RELINK`，关闭错误关系=`RETRACT`，恢复同一历史事实=`REACTIVATE`；`CREATE`不是原子，`REPLACE`保持`RETRACT+BIRTH`复合程序。executor与候选器据此补入relation REACTIVATE；node RETRACT从entity扩为entity/surface/fragment，place仍不允许。
+- **公平比较：** 主表VSMT/TAF/ELU/WFR/LOW共享完全相同的冻结RGB-D前端缓存和公开输入字节，禁止方法私有视觉前端；内部记忆组件允许不同，因为那正是比较对象。该表支持“共同前端下记忆更新机制差异”，不自动支持原系统端到端优劣，也没有改成RGB-only。
+- **五组消融：** `Place-4`只见地点和place-place边；`VSMT-Typed`为主VSMT；`VSMT-Flat8`取消selector类型mask但保留executor拒绝/回滚并报告illegal；`VSMT-NoPlace`删除place及incident edges但保留非地点关系；`VSMT-NoVersion`只给当前活动状态并屏蔽模型可读历史，外部审计provenance仍保留。除目标组件外前端、数据、预算和评分不变。
+- **节点膨胀指标：** 强制派生活动节点/边按类型计数、历史版本数、scope×atom候选数，并在正式episode汇总type-gate拒绝、illegal、峰值节点/候选、runtime和峰值内存；不把“任务分数上升但图无限增长”藏在总分后。
+- **工程边界：** 新合同/纯核心能验证图、候选门、sealed catalog、五种memory view和复杂度指标，现有公共候选器可选择启用该门。D-210 raw→关键帧→非网格place候选的实际materializer接线仍依赖单槽raw字节，旧确定性coordinate scaffold不得进入D-213主表；因此当前不是完整训练模型或效果证据，也不越过D-212的真实smoke顺序。

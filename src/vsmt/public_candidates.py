@@ -42,6 +42,7 @@ from .graph_ops import (
     validate_threshold,
 )
 from .place_scaffold import place_region_node_ids
+from .d213_unified_graph import validate_unsealed_candidate_rows
 
 
 TEMPLATE_ORDER = (
@@ -63,6 +64,8 @@ class PublicCandidateConfig:
     maximum_ambiguous_relation_variables: int
     maximum_relation_variants: int
     maximum_split_total_incident_edges: int
+    typed_gate_contract: Mapping[str, Any] | None = None
+    candidate_variant: str | None = None
 
     def __post_init__(self) -> None:
         if set(self.association_rules) != LEARNED_STRUCTURE_KINDS:
@@ -137,6 +140,10 @@ class PublicCandidateConfig:
         ):
             if type(value) is not int or value < 0:
                 raise ValueError(f"{name} must be a non-negative integer")
+        if (self.typed_gate_contract is None) != (self.candidate_variant is None):
+            raise ValueError(
+                "typed_gate_contract and candidate_variant must be supplied together"
+            )
 
     def rule(self, structure_kind: str) -> Mapping[str, float]:
         return self.association_rules[structure_kind]
@@ -429,6 +436,52 @@ def _relation_bind_program(
         },
     ]
     return program, {}
+
+
+def _relation_reactivate_program(
+    graph: Mapping[str, Any], public_hash: str, relation: Mapping[str, Any],
+    edge: Mapping[str, Any], tick: int,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Reopen one historical relation identity from current public support."""
+
+    program = _header(
+        graph, public_hash, "REACTIVATE", "ASSOCIATE",
+        edge["edge_version_id"], relation["relation_id"],
+    )
+    evidence = opaque_id(
+        relation["support_sha256"], edge["edge_version_id"],
+        "relation-reactivate", prefix="evidence",
+    )
+    successor = clone_json(dict(edge))
+    successor.update({
+        "edge_version_id": opaque_id(
+            edge["edge_id"], tick, relation["support_sha256"],
+            "reactivate", prefix="edge-version",
+        ),
+        "valid_from": tick,
+        "valid_to": None,
+        "evidence_refs": list(dict.fromkeys(
+            list(edge["evidence_refs"]) + [evidence]
+        )),
+        "provenance": list(dict.fromkeys(
+            list(edge["provenance"]) + [program["transaction_id"]]
+        )),
+    })
+    program["reactivation_target"] = {
+        "kind": "edge_version", "version_id": edge["edge_version_id"],
+    }
+    program["evidence_refs"] = [evidence]
+    program["operations"] = [{
+        "op_id": "relation-reactivate:add",
+        "op_type": "ADD_EDGE",
+        "arguments": {"edge": successor},
+    }]
+    return program, {evidence: _support_event(
+        evidence, time_index=tick,
+        viewpoint_id=str(relation["relation_id"]),
+        claim_ref=successor["edge_version_id"],
+        reliability=float(relation["reliability"]), visible_empty=False,
+    )}
 
 
 def _reactivate_program(
@@ -1479,6 +1532,9 @@ def generate_public_candidate_catalog(
         if node["lifecycle"] == "dormant" and node.get("node_type") != "place"
     ]
     edges = [edge for edge in prior_memory["edges"] if edge.get("valid_to") is None]
+    historical_edges = [
+        edge for edge in prior_memory["edges"] if edge.get("valid_to") is not None
+    ]
     incident_by_node: dict[str, list[Mapping[str, Any]]] = {}
     for edge in edges:
         for endpoint in {edge["source"], edge["target"]}:
@@ -1638,11 +1694,42 @@ def generate_public_candidate_catalog(
                         },
                     )
                     continue
+                historical_exact = [
+                    edge for edge in historical_edges
+                    if edge["source"] == source_id
+                    and edge["target"] == target_id
+                    and edge["relation"] == relation["relation"]
+                    and not any(
+                        current["edge_id"] == edge["edge_id"] for current in edges
+                    )
+                ]
+                if historical_exact:
+                    historical = sorted(
+                        historical_exact,
+                        key=lambda item: (
+                            int(item["valid_to"]), str(item["edge_version_id"]),
+                        ),
+                    )[-1]
+                    _append(
+                        rows, "REACTIVATE", f"relation:{relation['relation']}",
+                        relation_score, _relation_reactivate_program(
+                            prior_memory, deployable_hash, relation,
+                            historical, tick,
+                        ), capacity=capacity,
+                        priority_components={
+                            "relation_reliability": float(relation["reliability"]),
+                            "source_association_score": source_score,
+                            "target_association_score": target_score,
+                        },
+                    )
+                    continue
                 movable = [
                     edge for edge in edges
                     if edge["source"] == source_id
                     and edge["relation"] == relation["relation"]
-                    and relation["relation"] in {"located_at", "supported_by"}
+                    and relation["relation"] in {
+                        "located_at", "supported_by", "route_transition",
+                    }
                 ]
                 if movable:
                     _append(
@@ -1675,7 +1762,7 @@ def generate_public_candidate_catalog(
 
     for node in nodes:
         if (
-            node.get("node_type") != "entity"
+            node.get("node_type") not in LEARNED_STRUCTURE_KINDS
             or node.get("lifecycle") not in {"candidate", "confirmed", "dormant"}
         ):
             continue
@@ -1696,19 +1783,20 @@ def generate_public_candidate_catalog(
             incident_by_node.get(str(node["node_id"]), []),
             key=lambda edge: str(edge["edge_version_id"]),
         )
-        entity_rule = config.rule("entity")
+        structure_kind = str(node["node_type"])
+        structure_rule = config.rule(structure_kind)
         has_current_bind_region = any(
-            region["structure_kind"] == "entity"
+            region["structure_kind"] == structure_kind
             and association_score(
                 region, node,
-                visual_weight=entity_rule["visual_weight"],
-                geometry_weight=entity_rule["geometry_weight"],
-                geometry_scale_m=entity_rule["geometry_scale_m"],
-            ) >= entity_rule["bind_threshold"]
+                visual_weight=structure_rule["visual_weight"],
+                geometry_weight=structure_rule["geometry_weight"],
+                geometry_scale_m=structure_rule["geometry_scale_m"],
+            ) >= structure_rule["bind_threshold"]
             for region in regions
         )
         retract_bucket = rows.setdefault(
-            ("RETRACT", "entity"), _CandidateBucket(capacity),
+            ("RETRACT", structure_kind), _CandidateBucket(capacity),
         )
         if has_current_bind_region:
             retract_bucket.block_current_positive_node()
@@ -1722,6 +1810,8 @@ def generate_public_candidate_catalog(
                     "free_space_minimum_reliability": reliability,
                 })],
             )
+        if structure_kind != "entity":
+            continue
         for region in regions:
             if region["structure_kind"] != "entity":
                 continue
@@ -1958,6 +2048,15 @@ def generate_public_candidate_catalog(
     selected.sort(key=lambda item: hashlib.sha256(
         f"{deployable_hash}|{canonical_sha256(item[0])}".encode("utf-8")
     ).hexdigest())
+    if config.typed_gate_contract is not None:
+        validate_unsealed_candidate_rows(
+            [
+                {"program": program, "enumeration": enumeration}
+                for program, _, enumeration in selected
+            ],
+            variant=str(config.candidate_variant),
+            contract=config.typed_gate_contract,
+        )
     programs: list[dict[str, Any]] = []
     evidence_rows: list[dict[str, Any]] = []
     enumeration_rows: list[dict[str, Any]] = []

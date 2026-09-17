@@ -6,7 +6,8 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| D-212地点raw纠偏 | `e5d7bed`仅为阶段修复。v2候选现以内容重算reachable grid、逐步可达和P01–P08场景收据；raw逐动作journal，private逐帧保留pose、instance mask、稳定实体映射/状态/关系；自引用commit门改为reviewed implementation parent＋单文件activation child。13项针对性、全库634/634 unittest通过；尚未形成受审commit、未跑真实survey/seal/smoke，统一图/八原子候选/可信指标仍待后续。LOG-196。 |
+| D-213统一图/类型门 | 四节点/五关系统一图合同、seal前类型门、五种消融memory view、图复杂度派生、relation REACTIVATE及surface/fragment RETRACT已实现候选；真实place materializer仍待单槽raw后接线，全部运行位关闭；LOG-197。 |
+| D-212地点raw纠偏 | `e5d7bed`仅为阶段修复。v2候选现以内容重算reachable grid、逐步可达和P01–P08场景收据；raw逐动作journal，private逐帧保留pose、instance mask、稳定实体映射/状态/关系；自引用commit门改为reviewed implementation parent＋单文件activation child。13项针对性、全库634/634 unittest通过；尚未形成受审commit、未跑真实survey/seal/smoke，非网格place materializer和完整私评仍待后续。LOG-196/197。 |
 | VM-04观察适用性 | 原静态36槽不运行；D-182/183只用于精确schema/实现审查。D-199–202已形成L2公开proposal/visibility、program matcher/episode audit和terminal raw加载前plan seal，D-202已获认可。D-203候选禁止调用者手填version ID，从sealed public route、预登记selector和`terminal-1` causal memory确定派生九类online request refs；核心无episode/raw path参数，edge RETRACT仍阻断。selector spec的提前时间封存和D-202 receipt消费未实现，因此D-201 pending与family阻断未解除。正式SAM/assets/matcher/visibility数值、生产callback、父stage family聚合及pilot收据仍缺。全部运行位关闭，0新episode/materialization/训练/记忆正例。LOG-169–192。 |
 | VSMT首篇/VM-01～04 | 原静态36槽按D-180退役且未运行；D-183新多视角版本只开放精确实现审查。现有instance-mask前端明确只作L1诊断，不得作为L2准入；L2公开proposal前端、九类真实构造、共享probe和完整父stage仍阻断。生成/private评价、identifiability、训练、validation效果与confirmation全部关闭。LOG-180–187，D-191–198 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
@@ -2055,3 +2056,14 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 关系新建在新收据中明确编译为八原子`BIRTH + ADD_EDGE`，不是第九个`CREATE`；P06首次新增两支路不算RELINK。D-210 v1旧字段保留为历史字节；统一place/entity/surface/fragment版本图、全八原子候选、严格adapter和可信派生metrics尚未实施，不能由本批测试冒充完成。
 - 当前定向标准库unittest 13/13通过，覆盖全部12槽正例、P03精确逆行负例、缺reachable endpoint、伪摘要、非轴对齐起点、int/float digest、失败前缀、private mask/entity隔离和关闭stage；D-210＋D-212定向24/24通过。全库标准库discover **634/634通过**，耗时25.317 s，失败/错误/跳过均0，内嵌VSMT/executor/L1为179/42/31并汇总252。0服务器source读取、0真实survey/bundle/seal/controller/episode、0adapter/private evaluation/模型。
 - 白话：这批先保证以后拿到的照片不是“只有画面没有地图真相”，也保证所谓Z形、回环、T路口和8字环不是文件名。输入是真实扫描内容和路线，输出是可重算收据与三面raw；它不表示十二条真实路线已找到，更不表示完整VSMT模型已经接好。
+
+## LOG-197：D-213统一稀疏图、类型门控和五组消融实现候选（2026-09-18）
+
+- 用户批准统一稀疏版本图、按结构类型门控八原子、共同冻结RGB-D前端但保留各方法内部机制，并登记`Place-4/VSMT-Typed/VSMT-Flat8/VSMT-NoPlace/VSMT-NoVersion`。本批把口头架构落为机器合同、纯核心、候选接线和METHOD/DATA/PLAN/DECISIONS记录；全部运行授权保持false，0 raw、0 adapter文件、0训练、0效果结果。
+- 新合同`vm04_d213_unified_typed_graph_v1.json`固定四类一等节点、五类一等边、八原子词表、REPLACE复合规则和关系编译。place P0只开放NOOP/BIND/BIRTH/MERGE；surface/fragment不开放RELINK，relation不开放SPLIT/MERGE；门发生在candidate seal/teacher之前且无teacher/private/future输入。主方法固定为`VSMT-Typed`，Flat8只取消selector类型mask，不能绕过executor写坏图。
+- 新核心`d213_unified_graph.py`实现合同验证、scope→atom门、unsealed候选拒绝、sealed catalog只读复核、统一图端点类型和派生`contained_entity_refs`验证、五种模型可见memory view及图/候选复杂度派生。NoPlace删除place和incident edges但保留非地点关系；NoVersion只给当前活动记录并剥离模型可见版本字段/transaction log，外部审计历史不删除。
+- 公共候选器新增可选`typed_gate_contract+candidate_variant`，二者必须同时提供；启用时在seal和teacher之前检查全部候选。ObservationPacket关系白名单新增`route_transition(place→place)`，RELINK允许该关系改既有目标端点。旧调用不传D-213配置时保持历史行为，避免旧回执被新字节冒认。
+- executor新增关系REACTIVATE：当前公开证据只能把一个已关闭、当前无open版本的同一edge identity和同一事实端点重新打开；候选器从historical edge生成并真实preflight。node RETRACT从entity扩展到entity/surface/fragment，候选器也为surface/fragment生成可靠负证据撤回；place仍被类型门禁止。REPLACE仍只允许既有edge/entity语义，没有扩成第九原子。
+- D-213定向10/10、executor/public-candidate联合87/87通过；最终全库标准库discover从634增至**644/644通过**，耗时26.098 s，失败/错误/跳过均0，既有内嵌VSMT/executor/L1三组179/42/31并汇总252仍通过。测试覆盖place RETRACT在Typed门前拒绝但Flat8可提出、relation BIRTH必须含ADD_EDGE、CREATE拒绝、Place-4/NoPlace关系可见性相反、现有catalog门接线、route_transition端点、派生cache篡改拒绝、NoPlace/NoVersion精确投影、复杂度从图字节派生、relation REACTIVATE保留edge identity以及surface RETRACT而place不产生。
+- 明确未完成：现有历史`prepare_place_scaffold`仍是coordinate-defined兼容路径；D-210真实raw关键帧到非网格place的BIND/BIRTH/MERGE候选materializer必须在单槽smoke确定输入字节后接线，旧scaffold不得进主表。本批是架构和可执行边界，不是完整VSMT模型或“更多节点有效”的实验证据。
+- 白话：输入一张已有版本图和公开候选，输出先回答“这个结构能不能做这个动作”，再给五个消融生成严格不同但可复核的记忆视图；例如地点撤回在Typed里进不了候选，历史`located_at`重新被当前证据看到则可恢复同一边身份。它不拿答案决定门，也不靠删除审计文件假装NoVersion。

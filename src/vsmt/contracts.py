@@ -92,6 +92,7 @@ RELATION_ENDPOINT_KINDS = {
     "contains": ("place", "entity"),
     "supported_by": ("entity", "surface"),
     "adjacent_to": ("place", "place"),
+    "route_transition": ("place", "place"),
 }
 STRUCTURE_KINDS = {"entity", "place", "surface", "fragment"}
 PRIOR_REF_KEYS = {"graph_version", "graph_sha256"}

@@ -1,0 +1,109 @@
+{
+  "schema_version": "vsmt-d213-unified-typed-graph-v1",
+  "decision_id": "D-213",
+  "status": "approved_implementation_not_generation_authorized",
+  "authorization": {
+    "raw_generation": false,
+    "adapter_materialization": false,
+    "training": false,
+    "validation_effect": false,
+    "confirmation": false
+  },
+  "unified_graph": {
+    "node_types": ["place", "entity", "surface", "fragment"],
+    "relation_types": ["located_at", "contains", "supported_by", "adjacent_to", "route_transition"],
+    "active_retrieval_is_sparse": true,
+    "historical_versions_excluded_from_active_retrieval": true,
+    "contained_entity_refs_role": "derived_cache_only",
+    "place_identity_source": "learned_revisable_not_metric_grid"
+  },
+  "transaction_vocabulary": {
+    "atomic_templates": ["NOOP", "BIND", "BIRTH", "REACTIVATE", "RELINK", "RETRACT", "SPLIT", "MERGE"],
+    "replace_is_composite": ["RETRACT", "BIRTH"],
+    "create_is_atom": false
+  },
+  "typed_gate": {
+    "place": ["NOOP", "BIND", "BIRTH", "MERGE"],
+    "entity": ["NOOP", "BIND", "BIRTH", "REACTIVATE", "RELINK", "RETRACT", "SPLIT", "MERGE"],
+    "surface": ["NOOP", "BIND", "BIRTH", "REACTIVATE", "RETRACT", "SPLIT", "MERGE"],
+    "fragment": ["NOOP", "BIND", "BIRTH", "REACTIVATE", "RETRACT", "SPLIT", "MERGE"],
+    "relation": ["NOOP", "BIND", "BIRTH", "REACTIVATE", "RELINK", "RETRACT"],
+    "global": ["NOOP"],
+    "gate_stage": "before_candidate_seal_and_teacher",
+    "teacher_may_change_gate": false
+  },
+  "relation_compilation": {
+    "new_relation": "BIRTH+ADD_EDGE",
+    "endpoint_correction": "RELINK",
+    "close_wrong_relation": "RETRACT",
+    "restore_historical_relation": "REACTIVATE"
+  },
+  "candidate_boundary": {
+    "inputs": ["public_current_observation", "prior_predicted_memory", "public_pose_belief", "public_transition_action_summary"],
+    "private_teacher_future_visible": false,
+    "invalid_type_pairs": "rejected_before_scoring",
+    "candidate_miss_policy": "record_not_repair"
+  },
+  "shared_frontend": {
+    "input": "RGB-D+intrinsics+public_pose_belief+public_actions_summary",
+    "frozen": true,
+    "identical_cached_bytes_for_main_methods": true,
+    "method_private_frontend_allowed": false,
+    "internal_memory_mechanisms_may_differ": true
+  },
+  "main_comparison": {
+    "primary_method": "VSMT-Typed",
+    "methods": ["VSMT", "TAF", "ELU", "WFR", "LOW"],
+    "claim_scope": "memory_update_mechanism_under_shared_frontend"
+  },
+  "ablations": {
+    "Place-4": {
+      "node_scope": "place_and_place_relations_only",
+      "type_gate": "place_four_atoms",
+      "version_history_visible_to_model": true,
+      "role": "place_memory_capability_control",
+      "main_table": false
+    },
+    "VSMT-Typed": {
+      "node_scope": "unified_graph",
+      "type_gate": "enabled",
+      "version_history_visible_to_model": true,
+      "role": "primary_vsmt_method",
+      "main_table": true
+    },
+    "VSMT-Flat8": {
+      "node_scope": "unified_graph",
+      "type_gate": "disabled_atom_head_but_executor_preconditions_remain",
+      "version_history_visible_to_model": true,
+      "role": "negative_ablation_for_semantic_gating",
+      "main_table": false
+    },
+    "VSMT-NoPlace": {
+      "node_scope": "entity_surface_fragment_without_place_or_incident_edges",
+      "type_gate": "enabled",
+      "version_history_visible_to_model": true,
+      "role": "place_contribution_ablation",
+      "main_table": false
+    },
+    "VSMT-NoVersion": {
+      "node_scope": "unified_current_state_only",
+      "type_gate": "enabled",
+      "version_history_visible_to_model": false,
+      "role": "version_history_contribution_ablation",
+      "main_table": false
+    }
+  },
+  "complexity_metrics": [
+    "active_node_count_by_type",
+    "active_edge_count_by_relation",
+    "historical_node_version_count",
+    "historical_edge_version_count",
+    "candidate_count_by_scope_and_atom",
+    "type_gate_rejection_count",
+    "illegal_transaction_count",
+    "peak_active_node_count",
+    "peak_candidate_count",
+    "runtime_ms",
+    "peak_memory_bytes"
+  ]
+}

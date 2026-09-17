@@ -40,6 +40,14 @@ D-210 为地点/拓扑主实验建立独立于旧 VM-04 v1–v4 的数据版本�
 
 聚合文件分别保存 `all_p0_macro` 与 `headline_macro`；后者只含 P03/P04/P06/P07/P08，P01/P02 控制和 P05 支持场景不混入。精确动作积分、真值 pose 及历史 85.5% noisy-grid duplicate episode rate 都有独立诊断文件，不得拥有 `headline_eligible=true`，也不得进入 macro。85.5% 的单位固定为“3,000 个诊断回程中至少发生一次重复地点的 episode 比例”，不是错误率字段的通用定义、不是覆盖率，更不是模型分数。
 
+### D-213 统一图、类型门与消融读取视图（已批准，纯核心待审）
+
+[`vm04_d213_unified_typed_graph_v1.json`](../configs/vsmt/vm04_d213_unified_typed_graph_v1.json) 固定统一图节点/边类型、按作用域事务白名单、共同前端和五组消融。候选器在 seal 前把每项显式绑定为 `global/place/entity/surface/fragment/relation:<type>` 作用域；类型门只读公开当前观测、prior predicted memory、pose belief 和 transition action summary，输出候选计数及门审计摘要。teacher/private/future 不在函数参数中，封存后审计只验证而不编辑 catalog。白话：它先检查“地点能不能做 RETRACT”再让候选进入考场，答案文件只能给已经入场的候选评分；它不根据正确答案把被拒候选重新放回来。
+
+`vsmt-d213-ablation-memory-view-v1` 是模型实际可见的记忆投影：`Place-4`只含place与place-place边，`VSMT-NoPlace`删除place及incident edges但保留如`entity→surface supported_by`，`VSMT-NoVersion`只含活动记录并移除version ID、有效期、predecessor、provenance与transaction log；`VSMT-Typed/VSMT-Flat8`保留统一版本图，区别只在selector类型mask。每个view绑定source graph digest和自身digest。它不删除raw/provenance里的审计历史，也不允许不同消融读取不同RGB-D缓存。
+
+`vsmt-d213-graph-complexity-v1`从图和sealed catalog字节派生活动节点/边按类型计数、历史版本数及scope×atom候选数；正式episode还须由runner记录type-gate拒绝、illegal transaction、peak active nodes、peak candidates、runtime和peak memory。`contained_entity_refs`若出现，validator要求它精确等于活动`located_at/contains`边推导的排序实体集合。它不接受模型自报图规模，也不把缓存当真值。当前尚无真实episode文件；D-210 raw到非网格place候选的materializer接线仍关闭。
+
 ### D-211/D-212 执行封装与 raw smoke 文件（纠偏实现待审，真实文件未生成）
 
 [`vm04_d211_p0_seal_single_smoke_v2.json`](../configs/vsmt/vm04_d211_p0_seal_single_smoke_v2.json) 将两间开发 house 固定为 `train:004270`/`train:008243`，分别绑定 source record 摘要 `79a1…026f`/`cdbd…bea7`。v1 和 `e5d7bed` 只保留阶段历史，不是最终生成基线。来源证据仍是既有只读 root-cause 报告，报告本身记录 0 episode、0 intervention；D-212 不把它们改叫 confirmation，也不因路线或 smoke 失败换房。

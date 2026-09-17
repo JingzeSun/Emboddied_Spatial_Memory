@@ -1,8 +1,9 @@
 """Versioned deterministic execution for the CPMT C00-C11 M0 slice.
 
 Implemented templates: NOOP, BIND, BIRTH, REACTIVATE, RELINK, RETRACT,
-SPLIT, MERGE and COMPOSITE:REPLACE. RETRACT and REPLACE accept either an
-edge version or an entity node version. QUARANTINE remains unsupported.
+SPLIT, MERGE and COMPOSITE:REPLACE. RETRACT accepts an edge or an
+entity/surface/fragment node version; REPLACE accepts an edge or entity node.
+QUARANTINE remains unsupported.
 Execution always happens on a deep copy of an immutable base graph.
 """
 
@@ -719,20 +720,20 @@ def _validate_node_retraction(
 ) -> tuple[
     dict[str, Any], dict[str, Any], list[dict[str, Any]], int, list[str]
 ]:
-    """Validate the shared entity-retirement portion of RETRACT/REPLACE."""
+    """Validate the shared structural-retirement portion of RETRACT/REPLACE."""
 
     source = _node_version(graph, target_version_id)
     if source.get("valid_to") is not None:
         raise PreconditionError("RETRACT target node version is already closed")
     if _open_node(graph, source["node_id"])["node_version_id"] != target_version_id:
         raise PreconditionError("RETRACT must target the current open node version")
-    if source.get("node_type") != "entity":
+    if source.get("node_type") not in {"entity", "surface", "fragment"}:
         raise UnsupportedTemplateError(
-            "node-level RETRACT is currently limited to entity nodes"
+            "node-level RETRACT is limited to entity, surface, or fragment nodes"
         )
     if source.get("lifecycle") not in {"candidate", "confirmed", "dormant"}:
         raise PreconditionError(
-            "node-level RETRACT needs a candidate, confirmed, or dormant entity"
+            "node-level RETRACT needs a candidate, confirmed, or dormant structure"
         )
 
     node_closes = [
@@ -871,7 +872,7 @@ def _validate_node_retraction(
         )
     ):
         raise ContractError(
-            "node RETRACT provenance must cover only the source entity and "
+            "node RETRACT provenance must cover only the source structure and "
             "all retired incident edges"
         )
 
@@ -1224,10 +1225,62 @@ def _validate_template_preconditions(
             for operation in operations
             if operation["op_type"] == "OPEN_NODE_VERSION"
         ]
-        if len(closes) != 1 or len(opens) != 1:
+        adds = [
+            operation
+            for operation in operations
+            if operation["op_type"] == "ADD_EDGE"
+        ]
+        if not closes and not opens and len(adds) == 1:
+            target = program.get("reactivation_target")
+            if type(target) is not dict or target.get("kind") != "edge_version":
+                raise ContractError(
+                    "relation REACTIVATE must name one historical edge version"
+                )
+            old = _edge_version(graph, target.get("version_id"))
+            if old.get("valid_to") is None:
+                raise PreconditionError("relation REACTIVATE target is already open")
+            if _open_edges(graph, old["edge_id"]):
+                raise PreconditionError(
+                    "relation REACTIVATE identity already has an open version"
+                )
+            new = adds[0]["arguments"]["edge"]
+            expected = clone_json(old)
+            expected.update({
+                "edge_version_id": new.get("edge_version_id"),
+                "valid_from": new.get("valid_from"),
+                "valid_to": None,
+                "evidence_refs": list(dict.fromkeys(
+                    list(old.get("evidence_refs", []))
+                    + list(program.get("evidence_refs", []))
+                )),
+                "provenance": list(dict.fromkeys(
+                    list(old.get("provenance", []))
+                    + [program["transaction_id"]]
+                )),
+            })
+            if (
+                new.get("edge_version_id") == old["edge_version_id"]
+                or any(
+                    edge["edge_version_id"] == new.get("edge_version_id")
+                    for edge in graph["edges"]
+                )
+                or new != expected
+            ):
+                raise ContractError(
+                    "relation REACTIVATE must reopen the same edge identity and fact"
+                )
+            _open_node(graph, new["source"])
+            _open_node(graph, new["target"])
+            _validate_current_support_evidence_refs(
+                program.get("evidence_refs", []),
+                claim_refs={new["edge_id"], new["edge_version_id"]},
+                evidence_by_id=evidence_by_id,
+            )
+            return
+        if len(closes) != 1 or len(opens) != 1 or adds:
             raise ContractError(
-                "REACTIVATE needs exactly one CLOSE_NODE_VERSION "
-                "and one OPEN_NODE_VERSION"
+                "node REACTIVATE needs one CLOSE_NODE_VERSION and one "
+                "OPEN_NODE_VERSION; relation REACTIVATE needs one ADD_EDGE"
             )
         node_id = closes[0]["arguments"]["node_id"]
         old = _open_node(graph, node_id)

@@ -971,7 +971,7 @@ class DeterministicExecutorTests(unittest.TestCase):
         with self.assertRaises(DuplicateTransactionError):
             execute_transaction(committed, replay)
 
-    def test_node_retract_rejects_non_entity_target(self) -> None:
+    def test_surface_retract_requires_complete_versioned_program(self) -> None:
         base = load_world("C01")
         program = load_program("C01", "bind.json")
         program["transaction_id"] = "tx-unimplemented-retract"
@@ -982,7 +982,7 @@ class DeterministicExecutorTests(unittest.TestCase):
             "version_id": "wall-protected@v0",
         }
 
-        with self.assertRaises(UnsupportedTemplateError):
+        with self.assertRaises(ContractError):
             execute_transaction(base, program)
 
     def test_multiple_open_versions_violate_graph_contract(self) -> None:

@@ -165,6 +165,20 @@ from .d211_p0_smoke import (
     validate_route_execution_binding,
     validate_scenario_receipt,
 )
+from .d213_unified_graph import (
+    ABLATION_VARIANTS,
+    ATOMIC_TEMPLATES,
+    NODE_TYPES,
+    RELATION_TYPES,
+    D213Error,
+    allowed_templates,
+    audit_sealed_candidate_catalog,
+    build_ablation_memory_view,
+    graph_complexity_metrics,
+    validate_contract as validate_d213_contract,
+    validate_unified_graph,
+    validate_unsealed_candidate_rows,
+)
 
 __all__ = [
     "AdapterInput",
@@ -302,4 +316,16 @@ __all__ = [
     "validate_reachable_scan",
     "validate_route_execution_binding",
     "validate_scenario_receipt",
+    "ABLATION_VARIANTS",
+    "ATOMIC_TEMPLATES",
+    "NODE_TYPES",
+    "RELATION_TYPES",
+    "D213Error",
+    "allowed_templates",
+    "audit_sealed_candidate_catalog",
+    "build_ablation_memory_view",
+    "graph_complexity_metrics",
+    "validate_d213_contract",
+    "validate_unified_graph",
+    "validate_unsealed_candidate_rows",
 ]
