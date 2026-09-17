@@ -39,6 +39,14 @@ REGISTERED_CAMERA_ACTIONS = {
     "RotateLeft", "RotateRight", "LookUp", "LookDown",
 }
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
+REVIEW_ONLY_STATUS = "d183_design_and_numeric_values_approved_schema_review_only"
+NUMERIC_FROZEN_STATUS = "d205_numeric_frozen_artifacts_pending"
+PLACE_LAYER_STATUS = "d206_place_layer_frozen_artifacts_pending"
+EXECUTABLE_STATUS = "d183_frozen_executable"
+FROZEN_STATUSES = frozenset({
+    NUMERIC_FROZEN_STATUS, PLACE_LAYER_STATUS, EXECUTABLE_STATUS,
+})
+PILOT_COMPLETION_SCHEMA = "vsmt-vm04-pilot-family-completion-v1"
 
 
 class ObservationConstructionError(ValueError):
@@ -75,14 +83,12 @@ def validate_approved_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
 
     record = clone_json(dict(contract))
     status = record.get("status")
-    _require(status in {
-        "d183_design_and_numeric_values_approved_schema_review_only",
-        "d183_frozen_executable",
-    }, "observation contract is not a registered D-183 contract")
+    _require(status in {REVIEW_ONLY_STATUS} | set(FROZEN_STATUSES),
+             "observation contract is not a registered D-183 contract")
     authorization = record.get("authorization")
     _require(type(authorization) is dict and authorization,
              "authorization section is missing")
-    if status.endswith("review_only"):
+    if status in {REVIEW_ONLY_STATUS, NUMERIC_FROZEN_STATUS, PLACE_LAYER_STATUS}:
         _require(all(value is False for value in authorization.values()),
                  "review contract must keep every execution authorization closed")
 
@@ -120,11 +126,12 @@ def validate_approved_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
         pilot.get("caller_supplied_completion_boolean_allowed") is False and
         pilot.get("mechanical_completion_derivation_status") in {
             "pending_parent_stage_family_receipt_implementation_and_review",
+            "implemented_review_pending_parent_stage_family_receipt_v1",
             "implemented_and_reviewed_parent_stage_family_receipt_v1",
         },
         "pilot family completion boundary changed",
     )
-    if status.endswith("review_only"):
+    if status == REVIEW_ONLY_STATUS:
         _require(pilot["mechanical_completion_derivation_status"] ==
                  "pending_parent_stage_family_receipt_implementation_and_review",
                  "review-only contract cannot claim pilot derivation is reviewed")
@@ -148,14 +155,14 @@ def validate_approved_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
              level["L1_result_may_admit_L2_main_table"] is False,
              "L1/L2 evidence-level boundary changed")
     l2_receipt = level["reviewed_L2_frontend_receipt_sha256"]
-    if status.endswith("review_only"):
+    if status in {REVIEW_ONLY_STATUS, NUMERIC_FROZEN_STATUS, PLACE_LAYER_STATUS}:
         _require(
             level["current_implemented_frontend"] ==
             "L1_oracle_entity_masks_plus_public_geometry" and
             level["current_status"] ==
             "blocked_L1_diagnostic_only_until_L2_frontend_is_implemented_and_reviewed" and
             l2_receipt is None,
-            "review-only contract must remain an L1-only diagnostic",
+            "a contract without a real L2 frontend must remain an L1-only diagnostic",
         )
     else:
         _require(
@@ -166,12 +173,15 @@ def validate_approved_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
             type(l2_receipt) is str and HEX64.fullmatch(l2_receipt) is not None,
             "executable contract lacks a reviewed L2 frontend receipt",
         )
+    probe_fields = {"CFO_and_public_history_probe_architecture",
+                    "shared_probe_training_budget"}
     pending = record["l2_identifiability_admission_gate"][
         "pending_model_and_budget_fields"]
-    _require(set(pending) == {
-        "CFO_and_public_history_probe_architecture",
-        "shared_probe_training_budget",
-    }, "identifiability pending fields changed")
+    frozen_probe = record["l2_identifiability_admission_gate"].get(
+        "frozen_model_and_budget_values") or {}
+    _require(set(pending) | set(frozen_probe) == probe_fields and
+             not (set(pending) & set(frozen_probe)),
+             "identifiability probe fields changed")
     l2_candidate = record["l2_public_proposal_frontend_review_candidate"]
     _require(
         l2_candidate.get("generator_input_fields") == ["current_public_RGB"] and
@@ -268,7 +278,7 @@ def validate_approved_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
         "pending_separate_review",
         "program construction boundary changed",
     )
-    if status.endswith("review_only"):
+    if status == REVIEW_ONLY_STATUS:
         _require(all(value is None for value in
                      l2_candidate["pending_fields"].values()),
                  "review-only L2 candidate cannot freeze unreviewed values")
@@ -281,7 +291,289 @@ def validate_approved_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     construction = record["deterministic_SPLIT_MERGE_construction"]
     _require(construction.get("posthoc_program_label_from_observed_artifact_allowed")
              is False, "post-hoc SPLIT/MERGE labels must remain forbidden")
+    if status in FROZEN_STATUSES:
+        _validate_d205_numeric_freeze(record)
+    if status in {PLACE_LAYER_STATUS, EXECUTABLE_STATUS}:
+        _validate_d206_place_layer(record)
     return record
+
+
+def _validate_d206_place_layer(record: Mapping[str, Any]) -> None:
+    """Require the D-206 pose channel and place-layer freeze to stay honest."""
+
+    pose = record.get("public_pose_channel")
+    _require(type(pose) is dict and
+             pose.get("world_ground_truth_pose_in_public_packet") is False and
+             pose.get("world_ground_truth_pose_channel") ==
+             "private_evaluation_only" and
+             pose.get("public_pose_definition") ==
+             "episode_relative_dead_reckoning_from_registered_actions_with_"
+             "declared_noise_origin_at_observation_zero",
+             "D-206 public pose channel is missing or leaks world pose")
+    noise = pose.get("declared_odometry_noise_model")
+    _require(type(noise) is dict and
+             noise.get("seeded_and_reproducible") is True and
+             noise.get("simulator_executes_the_commanded_action_unchanged")
+             is True and
+             noise.get("may_be_increased_after_seeing_results") is False,
+             "declared odometry noise model is missing or adjustable")
+    for name in ("translation_relative_sigma", "translation_absolute_sigma_m",
+                 "rotation_relative_sigma", "rotation_absolute_sigma_deg",
+                 "lateral_slip_sigma_m"):
+        value = noise.get(name)
+        _require(type(value) in {int, float} and math.isfinite(float(value)) and
+                 float(value) > 0.0,
+                 f"odometry noise {name} must be a positive number")
+
+    place = record.get("place_identity_revision")
+    _require(type(place) is dict and
+             place.get("place_is_learnable") is True and
+             place.get("place_scaffold_deterministic_identity_retired") is True
+             and place.get("adjacent_to_source") ==
+             "evidence_based_not_coordinate_derived" and
+             place.get("new_error_category") ==
+             "place_misidentification_induced_entity_error",
+             "D-206 place identity revision block is missing or weakened")
+    z_route = place.get("z_route_family")
+    _require(type(z_route) is dict and
+             z_route.get("requires_two_registered_turns") is True and
+             z_route.get(
+                 "corridors_must_be_visually_similar_by_construction") is True
+             and z_route.get(
+                 "disambiguating_observation_required_after_arrival_at_B"
+             ) is not False and
+             type(z_route.get("required_later_disambiguation")) is str and
+             z_route.get("geometry_may_be_tuned_after_seeing_outcomes") is False,
+             "Z-route family must keep its later disambiguation requirement")
+    oracle = place.get("place_oracle_diagnostic_arm")
+    _require(type(oracle) is dict and
+             oracle.get("main_table_arm") == "inferred_place" and
+             oracle.get("oracle_arm_may_enter_the_main_table") is False,
+             "place oracle arm must stay a diagnostic")
+
+    probe = record["l2_identifiability_admission_gate"]["current_frame_only_probe"]
+    forbidden = probe.get("forbidden_inputs")
+    _require(type(forbidden) is list and
+             {"camera_pose", "past_actions"} <= set(forbidden),
+             "a current-frame-only probe must not receive pose or past actions")
+    masked = record["l2_identifiability_admission_gate"][
+        "frozen_model_and_budget_values"][
+            "CFO_and_public_history_probe_architecture"][
+                "history_and_prior_inputs_masked_for_CFO"]
+    _require({"pose_tokens", "past_action_tokens"} <= set(masked),
+             "CFO mask must cover pose and past-action tokens")
+
+
+def _artifact_digests(section: Mapping[str, Any], legacy_key: str) -> dict[str, Any]:
+    """Read the artifact-digest block, tolerating the pre-D-205 layout.
+
+    D-205 split each ``pending_fields`` block into frozen scientific numbers and
+    digests that only a real artifact can produce.  Contracts written before the
+    split keep every field in one bag, so both shapes stay readable here.
+    """
+
+    for key in ("pending_artifact_digests", legacy_key):
+        block = section.get(key)
+        if block is not None:
+            _require(type(block) is dict, f"{key} must be an object")
+            return dict(block)
+    return {}
+
+
+def _validate_d205_numeric_freeze(record: Mapping[str, Any]) -> None:
+    """Require every scientific value D-205 froze, and no invented digest."""
+
+    scope = record.get("first_paper_scope_boundary")
+    _require(type(scope) is dict and
+             type(scope.get("claim_level")) is str and
+             type(scope.get("learnable_structure_kinds")) is list and
+             type(scope.get("deterministic_shared_scaffold")) is list and
+             scope.get("first_paper_may_claim") and
+             scope.get("first_paper_may_not_claim"),
+             "first-paper scope boundary is missing")
+    kinds = set(scope["learnable_structure_kinds"])
+    scaffold = set(scope["deterministic_shared_scaffold"])
+    _require(kinds and kinds <= {"entity", "surface", "fragment", "place"} and
+             not (kinds & scaffold),
+             "a structure kind cannot be both learnable and a fixed scaffold")
+    place_is_scaffolded = any("place" in str(item) for item in scaffold)
+    _require(not (place_is_scaffolded and "place" in kinds),
+             "place cannot be learnable and a fixed scaffold at the same time")
+    if place_is_scaffolded:
+        # D-205 narrowing: place is given, so the paper may not claim topology.
+        _require({"place_or_room_identity_revision",
+                  "spatial_topology_or_connectivity_revision"} <=
+                 set(scope["first_paper_may_not_claim"]),
+                 "a contract with a deterministic place scaffold may not claim "
+                 "place or topology revision")
+    else:
+        # D-206: place became learnable, so the oracle must be genuinely gone.
+        _require("place" in kinds,
+                 "retiring the place scaffold requires making place learnable")
+
+    validate_registered_action_request_templates(
+        record["observation_trajectory"]["registered_action_request_templates"]
+    )
+
+    clock = record["public_packet_materialization"]["decision_time_rule"]
+    _require(type(clock) is dict and
+             clock.get("observation_zero_s") == 0.0 and
+             type(clock.get("seconds_per_registered_camera_action")) in
+             {int, float} and
+             float(clock["seconds_per_registered_camera_action"]) > 0.0 and
+             clock.get("strictly_increasing") is True and
+             clock.get("is_wall_clock_or_simulator_physics_time") is False,
+             "decision time rule must be a positive nominal registered-action clock")
+
+    encoding = record["public_packet_materialization"]["action_command_encoding"]
+    _require(type(encoding) is dict, "action command encoding must be an object")
+    order = encoding.get("component_order")
+    _require(type(order) is list and len(order) == len(set(order)) and
+             encoding.get("vector_length") == len(order) and
+             REGISTERED_CAMERA_ACTIONS.issubset(set(order)) and
+             encoding.get("private_or_program_fields_encoded") is False,
+             "action command encoding must cover eight distinct actions without "
+             "private fields")
+
+    l2_frozen = record["l2_public_proposal_frontend_review_candidate"].get(
+        "frozen_numeric_values")
+    _require(type(l2_frozen) is dict and
+             type(l2_frozen.get("minimum_visible_pixels")) is int and
+             l2_frozen["minimum_visible_pixels"] > 0 and
+             type(l2_frozen.get("maximum_proposals_per_frame")) is int and
+             l2_frozen["maximum_proposals_per_frame"] > 0 and
+             type(l2_frozen.get("border_truncation_policy")) is str,
+             "L2 proposal frontend numeric values are not frozen")
+    amg = record["l2_public_proposal_frontend_review_candidate"].get(
+        "frozen_automatic_mask_generator_config")
+    _require(type(amg) is dict and amg.get("box_nms_thresh") == 1.0 and
+             amg.get("crop_nms_thresh") == 1.0,
+             "automatic mask generator config must keep suppression disabled so "
+             "overlapping proposals survive the sealed overlap policy")
+
+    vis_frozen = record["public_visibility_builder_review_candidate"].get(
+        "frozen_numeric_values")
+    _require(type(vis_frozen) is dict and
+             set(vis_frozen) == {
+                 "minimum_depth_m", "maximum_depth_m",
+                 "occlusion_depth_tolerance_m", "sampling_stride_pixels",
+                 "maximum_subject_samples", "minimum_subject_samples",
+             } and
+             all(type(value) in {int, float} and math.isfinite(float(value)) and
+                 float(value) > 0.0 for value in vis_frozen.values()) and
+             float(vis_frozen["minimum_depth_m"]) <
+             float(vis_frozen["maximum_depth_m"]) and
+             int(vis_frozen["minimum_subject_samples"]) <=
+             int(vis_frozen["maximum_subject_samples"]),
+             "public visibility numeric values are not frozen or are inconsistent")
+
+    matcher = record["program_construction_review_candidate"].get(
+        "frozen_matcher_numeric_values")
+    _require(type(matcher) is dict, "matcher numeric values are not frozen")
+    rules = matcher.get("association_rules_by_structure_kind")
+    _require(type(rules) is dict and
+             {"entity", "surface", "fragment"} <= set(rules) <=
+             {"entity", "surface", "fragment", "place"},
+             "matcher rules must be typed per structure kind (D-139)")
+    _require(set(rules) == set(scope["learnable_structure_kinds"]),
+             "every learnable structure kind needs its own association rule")
+    for kind, rule in rules.items():
+        _require(type(rule) is dict and set(rule) == {
+            "visual_cosine_minimum", "maximum_centroid_distance_m",
+            "geometry_overlap_minimum", "visual_weight", "geometry_weight",
+            "combined_score_minimum",
+        }, f"{kind} association rule has unexpected fields")
+        _require(all(type(value) in {int, float} and
+                     math.isfinite(float(value)) and float(value) >= 0.0
+                     for value in rule.values()),
+                 f"{kind} association rule values must be finite and nonnegative")
+        _require(abs(float(rule["visual_weight"]) +
+                     float(rule["geometry_weight"]) - 1.0) < 1e-9,
+                 f"{kind} association weights must sum to one")
+    for name in ("minimum_region_reliability", "minimum_unique_score_margin",
+                 "minimum_relation_reliability", "free_space_reliability_threshold",
+                 "support_envelope_reliability_threshold",
+                 "support_envelope_margin_m",
+                 "minimum_free_space_time_separation_s"):
+        value = matcher.get(name)
+        _require(type(value) in {int, float} and math.isfinite(float(value)) and
+                 float(value) > 0.0, f"matcher {name} must be a positive number")
+    _require(type(matcher.get("minimum_independent_negative_observations")) is int
+             and matcher["minimum_independent_negative_observations"] >= 2,
+             "entity RETRACT still needs at least two independent negatives (D-022)")
+
+    gate = record["l2_identifiability_admission_gate"]
+    frozen_probe = gate.get("frozen_model_and_budget_values")
+    _require(type(frozen_probe) is dict, "shared probe values are not frozen")
+    architecture = frozen_probe.get("CFO_and_public_history_probe_architecture")
+    budget = frozen_probe.get("shared_probe_training_budget")
+    _require(type(architecture) is dict and
+             architecture.get("output_classes") == len(PROGRAMS) and
+             architecture.get("identical_parameter_count_for_both_probes") is True
+             and architecture.get("mask_is_the_only_difference") is True,
+             "shared probe architecture must differ only by the registered mask")
+    _require(type(budget) is dict and
+             type(budget.get("max_updates")) is int and
+             budget["max_updates"] > 0 and
+             type(budget.get("seeds")) is list and budget["seeds"] and
+             budget.get("configuration_selection") ==
+             "none_single_registered_configuration",
+             "shared probe budget must register exactly one configuration")
+    _require(gate["probe_structure_selection"].get("selection_family_split") ==
+             "none_single_registered_configuration_requires_no_selection_split",
+             "probe selection split must be retired by the single-configuration rule")
+
+    diagnostic = gate.get("pilot_report_only_diagnostic")
+    _require(type(diagnostic) is dict and
+             diagnostic.get("runs_on") == "six_pilot_families_only" and
+             diagnostic.get("may_change_gate_thresholds") is False and
+             diagnostic.get("may_change_formal_house_count") is False and
+             diagnostic.get("may_change_probe_architecture_or_budget") is False and
+             diagnostic.get("may_change_route_geometry_or_program_assignment")
+             is False and
+             diagnostic.get("pilot_results_excluded_from_all_formal_statistics")
+             is True and
+             diagnostic.get(
+                 "result_is_never_reported_as_the_admission_gate_outcome") is True,
+             "pilot report-only diagnostic must not be able to select anything")
+
+    construction = record["deterministic_SPLIT_MERGE_construction"]
+    _require(type(construction.get("fresh_replay_repeat_count")) is int and
+             construction["fresh_replay_repeat_count"] >= 2,
+             "fresh replay repeat count must be at least two")
+    _require(type(construction.get("exact_geometry_parameters")) is dict and
+             type(construction.get("frozen_frontend_artifact_criteria")) is dict,
+             "SPLIT/MERGE geometry and artifact criteria are not frozen")
+    criteria = construction["frozen_frontend_artifact_criteria"]
+    _require(criteria.get("measured_on") ==
+             "frozen_L2_public_proposal_masks_only" and
+             criteria.get("all_fresh_replays_must_match") is True and
+             criteria.get("private_mask_role") ==
+             "post_seal_coverage_measurement_only_never_program_assignment",
+             "SPLIT/MERGE artifact criteria must stay public and post-seal graded")
+    floor = construction.get("pilot_artifact_yield_floor")
+    _require(type(floor) is dict and
+             floor.get("measured_on") == "six_pilot_families_only" and
+             type(floor.get(
+                 "minimum_pilot_families_with_all_SPLIT_fresh_replays_realized"))
+             is int and
+             type(floor.get(
+                 "minimum_pilot_families_with_all_MERGE_fresh_replays_realized"))
+             is int and
+             floor.get("thresholds_may_change_after_seeing_pilot_results") is False
+             and floor.get("below_floor_may_change_geometry_or_criteria") is False,
+             "SPLIT/MERGE pilot yield floor is missing or adjustable")
+
+    for section, legacy in (
+        (record["l2_public_proposal_frontend_review_candidate"], "pending_fields"),
+        (record["public_visibility_builder_review_candidate"], "pending_fields"),
+        (record["program_construction_review_candidate"],
+         "pending_matcher_numeric_fields"),
+    ):
+        for name, value in _artifact_digests(section, legacy).items():
+            _require(value is None or
+                     (type(value) is str and value.strip() != ""),
+                     f"artifact digest {name} must be null or a real value")
 
 
 def validate_registered_action_request_templates(
@@ -315,6 +607,59 @@ def validate_registered_action_request_templates(
     return result
 
 
+def _probe_field(record: Mapping[str, Any], name: str) -> Any:
+    """Read a shared-probe field from the frozen block or the legacy block."""
+
+    gate = record["l2_identifiability_admission_gate"]
+    frozen = gate.get("frozen_model_and_budget_values") or {}
+    if name in frozen:
+        return frozen[name]
+    return (gate.get("pending_model_and_budget_fields") or {}).get(name)
+
+
+def assert_numeric_freeze_complete(contract: Mapping[str, Any]) -> dict[str, Any]:
+    """Report that every scientific choice is frozen and list what evidence remains.
+
+    This is deliberately weaker than :func:`assert_generation_authorized`.  It
+    answers "has the operator finished deciding?", not "may the simulator run?".
+    The remaining blockers it returns are digests of artifacts that do not exist
+    yet; inventing one would be fabricated evidence, so they stay null until the
+    real artifact is produced and reviewed.
+    """
+
+    record = validate_approved_contract(contract)
+    _require(record["status"] in FROZEN_STATUSES,
+             "contract has not reached the D-205 numeric freeze")
+    remaining = {
+        "materializer_code_sha256": record["crosswalk_provenance"]
+        ["expected_materializer_code_sha256"],
+        "materializer_config_sha256": record["crosswalk_provenance"]
+        ["expected_materializer_config_sha256"],
+        "reviewed_L2_frontend_receipt_sha256": record[
+            "l2_identifiability_admission_gate"]["evidence_level"]
+        ["reviewed_L2_frontend_receipt_sha256"],
+    }
+    for name, value in _artifact_digests(
+        record["l2_public_proposal_frontend_review_candidate"], "pending_fields"
+    ).items():
+        remaining[f"l2_proposal_{name}"] = value
+    return {
+        "schema_version": "vsmt-vm04-numeric-freeze-status-v1",
+        "contract_version": record.get("version"),
+        "status": record["status"],
+        "scientific_decisions_frozen": True,
+        "pending_artifact_digests": sorted(
+            key for key, value in remaining.items() if value is None
+        ),
+        "pilot_family_completion_reviewed": record["development_pilot"].get(
+            "mechanical_completion_derivation_status"
+        ) == "implemented_and_reviewed_parent_stage_family_receipt_v1",
+        "generation_authorized": record["authorization"].get(
+            "generation_authorized") is True,
+        "numeric_freeze_does_not_authorize_generation": True,
+    }
+
+
 def assert_generation_authorized(contract: Mapping[str, Any]) -> None:
     """Reject simulator generation until review fields and authorization are open."""
 
@@ -330,11 +675,10 @@ def assert_generation_authorized(contract: Mapping[str, Any]) -> None:
             "public_packet_materialization"]["decision_time_rule"],
         "public_packet_action_command_encoding": record[
             "public_packet_materialization"]["action_command_encoding"],
-        "shared_probe_architecture": record["l2_identifiability_admission_gate"]
-        ["pending_model_and_budget_fields"]
-        ["CFO_and_public_history_probe_architecture"],
-        "shared_probe_training_budget": record["l2_identifiability_admission_gate"]
-        ["pending_model_and_budget_fields"]["shared_probe_training_budget"],
+        "shared_probe_architecture": _probe_field(
+            record, "CFO_and_public_history_probe_architecture"),
+        "shared_probe_training_budget": _probe_field(
+            record, "shared_probe_training_budget"),
         "l2_proposal_frontend_receipt_sha256": record[
             "l2_identifiability_admission_gate"]["evidence_level"]
         ["reviewed_L2_frontend_receipt_sha256"],
@@ -346,18 +690,35 @@ def assert_generation_authorized(contract: Mapping[str, Any]) -> None:
             "deterministic_SPLIT_MERGE_construction"]
         ["frozen_frontend_artifact_criteria"],
     }
-    for name, value in record[
-        "l2_public_proposal_frontend_review_candidate"
-    ]["pending_fields"].items():
+    for name, value in _artifact_digests(
+        record["l2_public_proposal_frontend_review_candidate"], "pending_fields"
+    ).items():
         blockers[f"l2_proposal_{name}"] = value
-    for name, value in record[
-        "public_visibility_builder_review_candidate"
-    ]["pending_fields"].items():
+    for name, value in _artifact_digests(
+        record["public_visibility_builder_review_candidate"], "pending_fields"
+    ).items():
         blockers[f"public_visibility_{name}"] = value
-    for name, value in record[
-        "program_construction_review_candidate"
-    ]["pending_matcher_numeric_fields"].items():
+    for name, value in _artifact_digests(
+        record["program_construction_review_candidate"],
+        "pending_matcher_numeric_fields",
+    ).items():
         blockers[f"program_matcher_{name}"] = value
+    if record["status"] in FROZEN_STATUSES:
+        for name, value in (
+            ("l2_proposal_frozen_numeric_values",
+             record["l2_public_proposal_frontend_review_candidate"].get(
+                 "frozen_numeric_values")),
+            ("public_visibility_frozen_numeric_values",
+             record["public_visibility_builder_review_candidate"].get(
+                 "frozen_numeric_values")),
+            ("program_matcher_frozen_numeric_values",
+             record["program_construction_review_candidate"].get(
+                 "frozen_matcher_numeric_values")),
+            ("shared_probe_frozen_values",
+             record["l2_identifiability_admission_gate"].get(
+                 "frozen_model_and_budget_values")),
+        ):
+            blockers[name] = value
     unresolved = sorted(key for key, value in blockers.items() if value is None)
     _require(not unresolved, "unresolved generation fields: " + ",".join(unresolved))
     validate_registered_action_request_templates(

@@ -27,6 +27,9 @@ from vsmt.vm04_observation_runner import make_public_visibility_assessment  # no
 CONTRACT = json.loads((
     ROOT / "configs/vsmt/vm04_observation_suitability_proposal_v1.json"
 ).read_text(encoding="utf-8"))
+FROZEN_CONTRACT = json.loads((
+    ROOT / "configs/vsmt/vm04_observation_suitability_v3.json"
+).read_text(encoding="utf-8"))
 SHA = "0" * 64
 SUBJECT_SHA = "a" * 64
 VISIBILITY_CONFIG_SHA = "b" * 64
@@ -302,58 +305,37 @@ class MultiviewWorkerTests(unittest.TestCase):
         self.assertEqual(controller.calls, [])
 
     def test_artificially_authorized_wrapper_persists_complete_episode(self):
-        contract = json.loads(json.dumps(CONTRACT))
+        # Start from the D-205 contract whose scientific values are genuinely
+        # frozen, then supply only the artifact digests and authorizations that a
+        # real run would have to earn.
+        contract = json.loads(json.dumps(FROZEN_CONTRACT))
         contract["status"] = "d183_frozen_executable"
         contract["authorization"]["trajectory_implementation_authorized"] = True
         contract["authorization"]["generation_authorized"] = True
-        contract["observation_trajectory"][
-            "registered_action_request_templates"] = ACTION_REQUESTS
+        self.assertEqual(
+            contract["observation_trajectory"][
+                "registered_action_request_templates"],
+            ACTION_REQUESTS,
+        )
         contract["crosswalk_provenance"][
             "expected_materializer_code_sha256"] = "1" * 64
         contract["crosswalk_provenance"][
             "expected_materializer_config_sha256"] = "2" * 64
-        contract["public_packet_materialization"][
-            "decision_time_rule"] = "test_observation_index_seconds"
-        contract["public_packet_materialization"][
-            "action_command_encoding"] = {
-                "id": "test_one_hot_v1", "dimension": 8,
-            }
-        numeric = contract["l2_identifiability_admission_gate"][
-            "pending_model_and_budget_fields"]
-        numeric["CFO_and_public_history_probe_architecture"] = {"test": True}
-        numeric["shared_probe_training_budget"] = {"test": True}
         evidence = contract["l2_identifiability_admission_gate"][
             "evidence_level"]
         evidence["current_implemented_frontend"] = (
             "L2_public_RGBD_proposal_frontend")
         evidence["current_status"] = "reviewed_L2_frontend_bound_by_receipt"
         evidence["reviewed_L2_frontend_receipt_sha256"] = "3" * 64
-        l2_pending = contract[
+        digests = contract[
             "l2_public_proposal_frontend_review_candidate"
-        ]["pending_fields"]
-        for name in l2_pending:
-            l2_pending[name] = ({"test": True} if name.endswith("config_sha256")
-                                else 1)
-        visibility_pending = contract[
-            "public_visibility_builder_review_candidate"
-        ]["pending_fields"]
-        for name in visibility_pending:
-            visibility_pending[name] = 1
-        matcher_pending = contract[
-            "program_construction_review_candidate"
-        ]["pending_matcher_numeric_fields"]
-        for name in matcher_pending:
-            matcher_pending[name] = ({"test": True}
-                                     if name == "association_rules_by_structure_kind"
-                                     else 1)
+        ]["pending_artifact_digests"]
+        for index, name in enumerate(sorted(digests)):
+            digests[name] = str(index + 4) * 64
         contract["development_pilot"][
             "mechanical_completion_derivation_status"] = (
                 "implemented_and_reviewed_parent_stage_family_receipt_v1"
             )
-        construction = contract["deterministic_SPLIT_MERGE_construction"]
-        construction["fresh_replay_repeat_count"] = 1
-        construction["exact_geometry_parameters"] = {"test": True}
-        construction["frozen_frontend_artifact_criteria"] = {"test": True}
         controller = Controller()
         with tempfile.TemporaryDirectory() as temporary:
             episode_root = Path(temporary) / "episode"

@@ -23,8 +23,12 @@ if str(SRC) not in sys.path:
 from cpmt.hashing import canonical_json  # noqa: E402
 from vsmt.vm04_observation_runner import (  # noqa: E402
     ObservationConstructionError,
+    assert_numeric_freeze_complete,
     make_source_pool_manifest,
     validate_approved_contract,
+)
+from vsmt.vm04_pilot_family_completion import (  # noqa: E402
+    seal_formal_selection_from_pilot,
 )
 from vsmt.vm04_materializer_code_manifest import (  # noqa: E402
     make_vm04_materializer_code_manifest,
@@ -32,7 +36,11 @@ from vsmt.vm04_materializer_code_manifest import (  # noqa: E402
 )
 
 
-CONFIG = ROOT / "configs" / "vsmt" / "vm04_observation_suitability_proposal_v1.json"
+CONFIG = ROOT / "configs" / "vsmt" / "vm04_observation_suitability_v3.json"
+LEGACY_CONFIGS = (
+    ROOT / "configs" / "vsmt" / "vm04_observation_suitability_v2.json",
+    ROOT / "configs" / "vsmt" / "vm04_observation_suitability_proposal_v1.json",
+)
 SCHEMA = ROOT / "schemas" / "vsmt_vm04_observation_construction.schema.json"
 MATERIALIZER_SCHEMAS = (
     ROOT / "schemas" / "vsmt_vm04_materializer_config.schema.json",
@@ -130,19 +138,47 @@ def seal_source_pool(input_path: Path, output_path: Path) -> None:
     write_new_json(output_path, manifest)
 
 
+def freeze_status() -> None:
+    """Report whether every scientific choice is frozen, without opening work."""
+
+    contract = load_contract()
+    report = assert_numeric_freeze_complete(contract)
+    pending = report["pending_artifact_digests"]
+    print(
+        "VM04_NUMERIC_FREEZE_OK "
+        f"contract={report['contract_version']} status={report['status']} "
+        f"scientific_decisions_frozen=true pending_artifact_digests={len(pending)} "
+        f"pilot_completion_reviewed="
+        f"{str(report['pilot_family_completion_reviewed']).lower()} "
+        f"generation_authorized="
+        f"{str(report['generation_authorized']).lower()}"
+    )
+    for name in pending:
+        print(f"  pending_artifact_digest {name}")
+
+
 def seal_formal(input_pool: Path, pilot_outcomes: Path, output_path: Path) -> None:
+    """Seal the formal house count from mechanically derived pilot completion.
+
+    ``--pilot-outcomes`` must be a completion record produced by
+    :func:`vsmt.vm04_pilot_family_completion.derive_pilot_family_completion`
+    from sealed route receipts; a hand-written boolean table is rejected by the
+    record's own digest and provenance fields.
+    """
+
     contract = load_contract()
     require_gate(contract, "formal_selection_sealing_authorized")
-    raise ObservationConstructionError(
-        "mechanical pilot family completion derivation is not implemented; "
-        "caller-supplied booleans are forbidden"
-    )
+    pool = read_json(input_pool)
+    completion = read_json(pilot_outcomes)
+    selection = seal_formal_selection_from_pilot(pool, completion)
+    write_new_json(output_path, selection)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("mode", choices=(
-        "check", "seal-materializer-code", "seal-source-pool", "seal-formal",
+        "check", "freeze-status", "seal-materializer-code", "seal-source-pool",
+        "seal-formal",
     ))
     parser.add_argument("--input", type=Path)
     parser.add_argument("--code-root", type=Path)
@@ -152,6 +188,8 @@ def main() -> None:
     arguments = parser.parse_args()
     if arguments.mode == "check":
         check()
+    elif arguments.mode == "freeze-status":
+        freeze_status()
     elif arguments.mode == "seal-materializer-code":
         if (arguments.code_root is None or arguments.reviewed_commit is None or
                 arguments.output is None):

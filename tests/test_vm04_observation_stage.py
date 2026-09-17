@@ -2,6 +2,7 @@
 
 import importlib.util
 import io
+import json
 from pathlib import Path
 import tempfile
 from contextlib import redirect_stdout
@@ -61,20 +62,66 @@ class ObservationStageTests(unittest.TestCase):
             self.assertFalse(output.exists())
 
     def test_formal_sealing_rejects_boolean_input_even_if_gate_opens(self):
+        """D-205 implemented the derivation, so the boolean table must now be
+        rejected by the completion record's own schema rather than by a
+        not-implemented stub."""
+
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             output = root / "formal.json"
             contract = stage.read_json(stage.CONFIG)
             contract["authorization"][
                 "formal_selection_sealing_authorized"] = True
+            pool_path = root / "pool.json"
+            pool_path.write_text(json.dumps(stage.make_source_pool_manifest(
+                [f"train:{index:06d}" for index in range(70)],
+                source_manifest_sha256="a" * 64,
+                selection_seed=260916,
+            )), encoding="utf-8")
+            hand_written = root / "hand-written-booleans.json"
+            hand_written.write_text(json.dumps(
+                {str(index): True for index in range(6)}
+            ), encoding="utf-8")
             with patch.object(stage, "load_contract", return_value=contract):
                 with self.assertRaisesRegex(
                         stage.ObservationConstructionError,
-                        "caller-supplied booleans are forbidden"):
-                    stage.seal_formal(
-                        root / "missing-pool.json",
-                        root / "missing-booleans.json", output,
-                    )
+                        "wrong pilot family completion schema"):
+                    stage.seal_formal(pool_path, hand_written, output)
+            self.assertFalse(output.exists())
+
+    def test_formal_sealing_rejects_a_forged_completion_record(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            output = root / "formal.json"
+            contract = stage.read_json(stage.CONFIG)
+            contract["authorization"][
+                "formal_selection_sealing_authorized"] = True
+            pool = stage.make_source_pool_manifest(
+                [f"train:{index:06d}" for index in range(70)],
+                source_manifest_sha256="a" * 64,
+                selection_seed=260916,
+            )
+            pool_path = root / "pool.json"
+            pool_path.write_text(json.dumps(pool), encoding="utf-8")
+            forged = {
+                "schema_version": "vsmt-vm04-pilot-family-completion-v1",
+                "source_pool_manifest_sha256": pool["manifest_sha256"],
+                "families": [
+                    {"pool_index": index, "family_complete": True,
+                     "incompletion_reasons": []} for index in range(6)
+                ],
+                "pilot_completed_families": 6,
+                "caller_supplied_completion_boolean_used": False,
+                "model_or_identifiability_inputs_used": False,
+                "completion_sha256": "0" * 64,
+            }
+            forged_path = root / "forged.json"
+            forged_path.write_text(json.dumps(forged), encoding="utf-8")
+            with patch.object(stage, "load_contract", return_value=contract):
+                with self.assertRaisesRegex(
+                        stage.ObservationConstructionError,
+                        "pilot completion digest mismatch"):
+                    stage.seal_formal(pool_path, forged_path, output)
             self.assertFalse(output.exists())
 
 
