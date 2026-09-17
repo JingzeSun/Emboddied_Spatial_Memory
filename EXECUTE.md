@@ -2024,3 +2024,13 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 新阶段入口`vm04_d210_p0_stage.py`的`check`可运行；`seal-batch`要求合同状态`frozen_executable`且source-house binding/route sealing两个独立gate为true，当前会在读取外部house/route文件或创建输出目录前拒绝。它只封存manifest/provenance，不运行模拟器。`src/vsmt/__init__.py`公开上述纯接口。
 - 定向11/11通过，覆盖56步P01超过planning hint仍合法、128通过/129拒绝、每步0.25 m/90°请求、公私house隔离、summary不含action list、adapter嵌套world pose拒绝、0.35 m正例/1.5 m负例/中间带不标注、label-invariant perfect score、private reference绑定sealed candidate digest、headline排除control及关闭stage先拒绝。最终全库标准库discover由610增至**621/621通过**，耗时26.803 s；内部既有三worker合同组分别179/42/31通过并汇总252。一次`python -m pytest tests -q`因本机未安装pytest而在收集前退出，未改环境；随后用仓库可用的`unittest discover`完成上述全回归。
 - 白话：这批代码把“小地图”拆成一个不确定的连续位置层和一个可修订的地点关系图。输入是关键画面、粗略位姿和“怎么走来”的边摘要，输出是可审计的地点/关系更新；例如另一条路回到旧走廊要靠视觉—拓扑证据闭环，而不是把动作算回原坐标就宣告成功。它不等于已经找到两个合格house、生成12条路线、跑出模型结果或证明VSMT有效。
+
+## LOG-194：D-211两房/12路线封存与单槽raw smoke执行候选（2026-09-18）
+
+- 用户明确批准`8d6bd13`作为D-210 P0工程基线，并开放“两房与12条路线封存及单槽raw smoke”。该commit已fast-forward合入本地main，随后在独立分支实现本职责；未push远端。固定house为既有开发来源`train:004270`/`train:008243`，source record摘要分别为`79a1…026f`/`cdbd…bea7`，绑定既有0 episode/0 intervention只读来源报告；失败不换房。
+- 新D-211 overlay只开放source-house binding、12-route seal和slot 0/house 0/P01单槽raw smoke；12槽raw、adapter、private evaluation、metric、training、validation、confirmation全false。P01是工程control，不得写为headline效果。当前状态`authorized_scope_implementation_pending_reviewed_commit`且`expected_reviewed_code_commit=null`，所以真实seal/simulator继续在读取外部输入或创建输出前拒绝；这是新增执行代码的D-059审查门，不是撤回用户授权。
+- 发现并补齐D-210执行缺口：原route有完整动作但没有simulator起点。新execution binding逐slot绑定route摘要、私有axis-aligned initial pose、公开reachable scan摘要和公开RGB-D route evidence摘要；yaw须为90°倍数、horizon=0，声明无future/action outcome/private reference。12行必须按slot 0–11完整排序，输出公私manifest、12个provenance route、private route bindings及seal receipt；seal本身0 simulator/0 episode。
+- 新raw writer没有复用旧D-206 `DeclaredOdometry`，只保存公开RGB uint8、depth float32、无pose相机内参和frame摘要；完整注册动作route及实际请求/成功/错误文字摘要保存在provenance，原错误文字不落盘以免夹带私有坐标。setup teleport只保存动作类型、`forceAction=false`和private binding摘要引用，不复制起点坐标；不创建private目录，不保存world pose、instance masks、place/loop标签、teacher、adapter或metric。
+- 成功路径严格保存observation 0及每个成功注册动作后的观察，要求N动作/N+1帧；动作失败保存此前全部帧和本次失败回执后停止，不执行余下动作、不替换路线。controller由父stage fresh创建并始终stop；创建、worker、写盘或stop异常均保留raw或stage receipt。单worker因授权范围只有一个真实执行单元；无墙钟强杀，启动前要求8 GiB磁盘可用，4 GiB紧急余量，单smoke输出上限2 GiB。
+- 新定向9/9通过：授权只开三项、两house摘要、非轴对齐起点拒绝、12-route公私封存、成功N+1、第二动作失败保留前缀、非slot0拒绝、check关闭和外部文件读取前拒绝。D-210＋D-211定向20/20通过；最终全库从621增至**630/630通过**，耗时23.113 s；既有内部三worker合同组179/42/31并汇总252仍通过。0服务器source读取、0真实route bundle、0simulator、0episode、0模型。
+- 白话：这批把“路线文字”变成可以真实启动的任务单，但暂不替路线规划器做决定。输入是12条已经由公开扫描找到的路线和私有起点，输出可复核的封存文件；审查通过后只拿slot 0做一次读写冒烟。它不表示12条路线已找到，也不允许用smoke成败改选路线。

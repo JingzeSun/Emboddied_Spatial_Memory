@@ -150,6 +150,14 @@ from .d210_place_memory import (
     validate_route_plan,
     validate_transition_action_summary,
 )
+from .d211_p0_smoke import (
+    D211Error,
+    assert_single_slot_smoke_authorized,
+    build_sealed_route_batch,
+    seal_route_execution_binding,
+    validate_d211_contract,
+    validate_route_execution_binding,
+)
 
 __all__ = [
     "AdapterInput",
@@ -274,4 +282,10 @@ __all__ = [
     "validate_d210_contract",
     "validate_route_plan",
     "validate_transition_action_summary",
+    "D211Error",
+    "assert_single_slot_smoke_authorized",
+    "build_sealed_route_batch",
+    "seal_route_execution_binding",
+    "validate_d211_contract",
+    "validate_route_execution_binding",
 ]

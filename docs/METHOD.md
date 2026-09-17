@@ -70,6 +70,16 @@ P03/P04/P06/P07/P08 承担地点与拓扑修订的主证据；P01/P02 是工程�
 
 机器实现位于 [`vm04_d210_dual_layer_p0_v1.json`](../configs/vsmt/vm04_d210_dual_layer_p0_v1.json)、[`d210_place_memory.py`](../src/vsmt/d210_place_memory.py) 和 [`vm04_d210_p0_stage.py`](../ops/vsmt/vm04_d210_p0_stage.py)。当前合同状态是 `approved_implementation_not_generation_authorized`，五个授权位全为 false；这些文件是可审实现，不是已生成 12 条 episode、已运行指标或已有论文效果。
 
+#### D-211 两房/路线封存与单槽 raw smoke 执行层（用户已授权范围，实现待审）
+
+D-211 不修改 D-210 科学合同，而是在它外面增加最小执行绑定。它解决两个实际问题：D-210 route plan 有完整动作却没有 simulator 起始 pose，无法真实执行；旧 VM-04 raw writer 会重新注入 D-206 的 2% 人工里程计，与 D-210 冲突。输入是已审 D-210 基线、两间已有来源审计的开发 house、12 条只用执行前公开 reachable/RGB-D 构造的完整路线，以及每条路线的私有起始 pose；输出是不可变的公私 manifest、12 个 execution binding，随后只允许 slot 0/P01 产生一条 RGB-D raw smoke。比如 slot 0 从轴对齐起点开始执行封存的 0.25 m/90°动作，成功时保存 observation 0 和每个动作后的 RGB-D，第二个动作若被挡则保留 observation 0、第一步帧和第二步失败回执并停止。它不自动寻找 P01–P08 路线，不把旧 30°/2% noisy-odometry writer搬回来，也不开放剩余 11 条 raw、adapter、private evaluation、模型或指标。
+
+两间 source 固定复用 `train:004270` 与 `train:008243`，并绑定既有来源 record SHA-256；这是开发 house，不是 confirmation。route execution binding（路线执行绑定）输入一个 D-210 route digest，输出 `initial_pose + reachable_scan_sha256 + public_rgbd_route_evidence_sha256`；起始 horizon 固定 0°，yaw 必须为 90°倍数，每个平移终点须在执行前由公开 reachable scan 验过。它不把 initial pose 发给模型，也不能仅凭布尔自报取代后续真实 route-construction receipt；当前代码只验证并封存调用者提供的完整 bundle，实际 12 条路线仍须在服务器公共扫描阶段形成。
+
+single-slot raw smoke（单槽原始数据冒烟）解决“新动作和writer在真实模拟器上是否能写出完整前缀”这个工程问题。输入只限 sealed slot 0、对应 source record 和 fresh controller；输出公开 RGB、depth、无 pose 的相机内参、frame digest，以及 provenance 中的完整 route、动作请求/成功和终止回执。禁止输出 world pose、instance mask、reference place、loop label、teacher、adapter packet 与 model metric。单 worker 是因为获准执行单元只有一个，不是放弃服务器并行规则；无墙钟强杀，磁盘安全线仍生效。P01 是 control，smoke 成功不能成为地点/拓扑 headline 证据。
+
+D-211 机器合同当前为 `authorized_scope_implementation_pending_reviewed_commit`：用户已批准动作范围，但新执行代码仍须形成并经用户审查的 commit，再由后续合同填写 `expected_reviewed_code_commit` 和切换 `frozen_executable_seal_and_single_slot_smoke`。在此之前，`check` 可运行，`seal-routes/run-smoke` 都会在读取外部 route/source 或创建输出之前拒绝。这不是重新索要科学授权，而是落实 D-059 的代码审查门。
+
 **D-206/D-207 历史口径（已由 D-210 取代主实验解释）。** D-205 曾因 place 由确定性骨架维护而把首篇收窄为“不主张地点修订”；D-206 随后发现 `camera_pose` 真值泄漏并改用带噪相对 pose，D-207 将地点路线增至 64 步并分离 provenance。这些发现继续有效，但“带噪 pose 量化成 0.5 m 格并把格当地点”的任务会把人为噪声当主要错误来源，且完整固定动作又可被精确积分抵消。故 D-210 保留世界 pose 私有、长路线和后续判别观测，撤销格地点真值、2% 人工噪声必须制造错误、place SPLIT 作为 P0 主操作及 64 步科学上限。旧合同与回执保留原字节，只作历史和诊断，不认证 D-210。
 
 整体采用成熟的双速率结构感知骨架，而不复制任何一个上游系统。共享前端参考 [ConceptGraphs](https://concept-graphs.github.io/) 的 posed RGB-D→区域→多视角关联；结构状态参考 [Hydra](https://www.roboticsproceedings.org/rss18/p050.html) 的实体、地点、房间等分层图；存在证据参考 [Fusion++](https://doi.org/10.1109/3DV.2018.00015) 的对象存在概率；短期片段与较慢全局协调参考 [Khronos](https://www.roboticsproceedings.org/rss20/p081.html) 的 active window / global reconciliation。VSMT 在这个骨架上新增的是统一事务空间、版本化真实执行、严格监督边界和相应误差分解；当前均为论文设计与工程候选，尚无实验支持“优于这些系统”。

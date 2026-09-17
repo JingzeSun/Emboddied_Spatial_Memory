@@ -40,6 +40,24 @@ D-210 为地点/拓扑主实验建立独立于旧 VM-04 v1–v4 的数据版本�
 
 聚合文件分别保存 `all_p0_macro` 与 `headline_macro`；后者只含 P03/P04/P06/P07/P08，P01/P02 控制和 P05 支持场景不混入。精确动作积分、真值 pose 及历史 85.5% noisy-grid duplicate episode rate 都有独立诊断文件，不得拥有 `headline_eligible=true`，也不得进入 macro。85.5% 的单位固定为“3,000 个诊断回程中至少发生一次重复地点的 episode 比例”，不是错误率字段的通用定义、不是覆盖率，更不是模型分数。
 
+### D-211 执行封装与 raw smoke 文件（授权范围已定，真实文件未生成）
+
+[`vm04_d211_p0_seal_single_smoke_v1.json`](../configs/vsmt/vm04_d211_p0_seal_single_smoke_v1.json) 将两间开发 house 固定为 `train:004270`/`train:008243`，分别绑定 source record 摘要 `79a1…026f`/`cdbd…bea7`。来源证据仍是既有只读 root-cause 报告，报告本身记录 0 episode、0 intervention；D-211 只是复用已审开发来源，不把它们改叫 confirmation，也不因路线或 smoke 失败换房。
+
+待输入的 `vsmt-vm04-d211-route-bundle-v1` 恰好含按 slot 0–11 排序的 12 行。每行包含原 D-210 `route_plan` 及一个 `vsmt-vm04-d211-route-execution-binding-v1`：slot/house/scenario/route digest、私有 `initial_pose{x_m,y_m,z_m,yaw_deg,horizon_deg}`、公开 reachable scan 摘要、公开 RGB-D route evidence 摘要和四个无未来/无私有参考声明。起始 yaw 为 90°倍数且 horizon=0；binding 有自身摘要。白话：route plan 说“走哪些动作”，execution binding 说“在这间 house 的哪个起点执行并由哪次公开扫描证明可走”。它不包含地点答案，不进入 adapter，也不允许 smoke 失败后换另一条路线。
+
+`seal-routes` 生成：
+
+- `public/manifest.json`：12 个 opaque episode、scenario、route/action/frame/keyframe计数，无 house ID或起点；
+- `private/manifest.json`：episode 到固定 source house 的绑定；
+- `provenance/routes/slot_00.json`～`slot_11.json`：完整逐动作 route；
+- `private/route-bindings.json`：12 个起点及 route-evidence 摘要；
+- `route-seal.receipt.json`：上述文件摘要、`simulator_started=false/episodes_generated=0`。
+
+`run-smoke` 只能读取 slot 0/P01。输出 `public/raw/frame_NNNN/{rgb.npy,depth_m.npy,sensor-calibration.json,frame.json}`，其中 calibration 只有图像大小、FOV和内参，明确不含相机/agent pose；`provenance/route.json` 保留完整注册动作 route，`provenance/action-receipts.json` 保存每个实际尝试注册动作的完整请求、成功位和错误文字摘要（不保存可能夹带私有位置的原错误文字）。setup teleport只记动作类型、`forceAction=false`及“使用了哪个private execution-binding摘要”，不复制起点坐标；raw目录因此没有世界pose。终端 `smoke.receipt.json` 记录计划动作数、已完成动作数、成功动作后实际保存的观察数和文件摘要；父入口另写 `stage.receipt.json` 记录 fresh controller 是否正常停止，异常只存类型和消息摘要。没有 `private/` 输出目录。成功条件严格为 N 个注册动作全部成功且恰好 N+1 个观察；动作 k 失败时只保留 observation 0 至 k−1 的成功前缀及动作 k 失败回执，不写失败动作后的编号观察、不继续余下动作、不补样。
+
+当前 overlay 的 `expected_reviewed_code_commit=null`，所以实际 `seal-routes`/`run-smoke` 仍先拒绝；待本实现提交并审查后，只需在继任合同绑定该 commit，无需更改上述 house、槽、动作、文件或授权范围。
+
 ## 当前：VSMT 新数据边界（D-122/D-123，VM-01代码候选，尚未生成）
 
 新版数据解决旧合成 query 由参考事务参数派生、无法支撑无泄漏视觉实验的问题。输入源拟为受控具身 RGB-D 序列、公开相机/机器人位姿和已发生动作；输出分成不可互读的 `public`、`candidate`、`teacher`、`private_eval` 与 `provenance` 五类产物。例如一次 MERGE 样本的 `public` 只保存两个当前区域的 RGB-D/匿名特征及 prior memory，`candidate` 由这些公开值枚举可能 pair，真实 pair 只在 `private_eval`。它不复用旧 S5 query/data，也不把人工事务夹具当作视觉或物理结果。

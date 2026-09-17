@@ -1,0 +1,97 @@
+{
+  "schema_version": "vsmt-vm04-d211-p0-seal-single-smoke-contract-v1",
+  "decision_id": "D-211",
+  "status": "authorized_scope_implementation_pending_reviewed_commit",
+  "reviewed_baseline_commit": "8d6bd13158a5cfd56a110460dc5c926015e5b52c",
+  "expected_reviewed_code_commit": null,
+  "base_contract": {
+    "relative_path": "configs/vsmt/vm04_d210_dual_layer_p0_v1.json",
+    "file_sha256": "d93f43b654eac64469aa87d6e9b6542531ab3ab463588bb9a53199fef911b60c",
+    "validated_value_sha256": "1e526a9d8014cd2ce1154eb9cdf7e467d30f8bf5019af69e5740b4675e9cc864"
+  },
+  "authorization": {
+    "source_house_binding_authorized": true,
+    "twelve_route_sealing_authorized": true,
+    "single_slot_raw_smoke_authorized": true,
+    "twelve_slot_raw_generation_authorized": false,
+    "adapter_materialization_authorized": false,
+    "private_evaluation_authorized": false,
+    "training_authorized": false,
+    "validation_authorized": false,
+    "confirmation_authorized": false
+  },
+  "source_binding": {
+    "source": "ProcTHOR-10K_train_0.1.2",
+    "source_release_commit": "d54954a81e7126001e552c2d7904ee2e0d49eaae",
+    "source_report_relative_path": "results/vsmt_vm04_root_cause_audit_v1.json",
+    "source_report_file_sha256": "ecf4e6735016db4dea71873193d0a7fbdb606480a18237cb7871129f562ece73",
+    "houses": [
+      {
+        "house_slot": 0,
+        "source_house_id": "train:004270",
+        "source_record_sha256": "79a1cfe6c80e913305cc6d2ea047323bca1d05763b29a162cbef23c76b80026f"
+      },
+      {
+        "house_slot": 1,
+        "source_house_id": "train:008243",
+        "source_record_sha256": "cdbd7bf8e91a6fc3a52b1a92487e22badc234793d23c74c0a59240d43980bea7"
+      }
+    ],
+    "reuse_role": "already_audited_development_houses_only_not_confirmation",
+    "replacement_after_route_or_smoke_failure_allowed": false
+  },
+  "route_sealing": {
+    "slot_count": 12,
+    "complete_action_sequence_required": true,
+    "private_initial_pose_required": true,
+    "initial_yaw_multiple_degrees": 90.0,
+    "reachable_scan_and_public_rgbd_evidence_required": true,
+    "future_action_outcome_or_private_reference_allowed": false,
+    "all_planned_translation_endpoints_preverified_reachable": true,
+    "scenario_role_change_after_failure_allowed": false,
+    "route_replacement_after_smoke_outcome_allowed": false,
+    "sealed_output_is_immutable": true
+  },
+  "single_slot_smoke": {
+    "slot": 0,
+    "house_slot": 0,
+    "scenario_id": "P01",
+    "role": "engineering_only_not_headline_or_effect_evidence",
+    "fresh_controller_required": true,
+    "simulator_intervention_allowed": false,
+    "observation_zero_saved": true,
+    "observation_after_every_successful_registered_action_saved": true,
+    "failed_action_receipt_and_completed_prefix_retained": true,
+    "public_raw_channels": [
+      "rgb_uint8_npy",
+      "depth_m_float32_npy",
+      "sensor_calibration_json",
+      "frame_digest"
+    ],
+    "provenance_channels": [
+      "complete_sealed_route",
+      "registered_action_requests_and_success",
+      "source_record_digest",
+      "worker_terminal_receipt"
+    ],
+    "forbidden_outputs": [
+      "simulator_world_pose",
+      "instance_masks",
+      "reference_place_region",
+      "loop_pair_label",
+      "teacher_target",
+      "adapter_packet",
+      "model_metric"
+    ],
+    "success_condition": "observation_count_equals_planned_action_count_plus_one_and_all_registered_actions_succeed",
+    "failure_replacement_allowed": false
+  },
+  "resource_policy": {
+    "worker_count": 1,
+    "single_worker_reason": "the_authorized_smoke_contains_exactly_one_execution_unit",
+    "wall_clock_timeout_allowed": false,
+    "minimum_data_disk_free_bytes": 8589934592,
+    "emergency_data_disk_free_bytes": 4294967296,
+    "maximum_smoke_output_bytes": 2147483648
+  }
+}

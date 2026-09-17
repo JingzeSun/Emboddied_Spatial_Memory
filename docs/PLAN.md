@@ -22,13 +22,13 @@
 
 ### 当前指针
 
-**当前转入 D-210 双层地点 P0 实现审查，旧 D-205～D-209 执行指针暂停。** 用户已批准“动作可见、地点非网格真值”：完整逐动作只进 raw/provenance，模型读关键帧、连续位姿信念和边动作摘要；0.5 m 格只规划/召回；固定两开发 house 共 12 槽；P03/P04/P06/P07/P08 是 headline。机器合同、纯核心、适配输入、指标和关闭阶段入口已落地，但五个 D-210 授权位全 false，尚无 source house 绑定、封存路线、episode 或结果。下一步先审本批代码和数值是否逐项忠实，再只开放 source/route seal 与单槽 smoke；不得直接借旧 VM-04 v1–v4 的授权、路线、回执或 610 项历史测试开 12 槽批量。
+**当前是 D-211 两房/路线封存与单槽 raw smoke 实现审查。** 用户已批准 `8d6bd13` 为 D-210 P0 工程基线，并开放固定两房、12条完整路线封存和一个工程smoke槽；该基线已合入本地main。D-211固定复用`train:004270`/`train:008243`，smoke固定slot 0/P01，专用writer不再注入D-206的2%噪声，只写RGB-D/无pose内参和动作provenance。新代码尚待形成并审查commit，overlay的`expected_reviewed_code_commit`仍null，所以真实seal/simulator均未运行。12槽raw、adapter、private evaluation、训练/validation/confirmation继续关闭。
 
 | D-210 顺序 | 输入与工作 | 输出与继续条件 |
 |---|---|---|
-| **P0-A 实现审查（当前）** | D-210 合同、12 槽 manifest 核心、route seal、edge summary、adapter、metrics 和文档 | 核 0.25 m/90°/128 guard、无 24/64 科学上限、格不定义 place、五个 headline、adapter 禁止通道与 oracle 隔离；用户审过后才可形成新工程基线 |
-| **P0-B 两房与完整路线封存（关闭）** | 两个明确开发 house 的私有 source records；12 条从公开 reachable/RGB-D 形成且执行前完整登记的路线 | 公私 manifest、12 个不可变 provenance route 和 seal receipt；失败前不看 future/private outcome，不按成品率换房或路线角色 |
-| **P0-C 单槽 raw smoke（关闭）** | P0-B 封存产物、精确环境/代码/资源回执、生产 worker | 只验证 obs0＋逐完成动作保存、90° 转向、失败前缀、公私目录和续跑；不计算模型效果，不自动扩到 12 槽 |
+| **P0-A D-210基线（已批准，本地main）** | D-210 合同、12 槽 manifest 核心、route seal、edge summary、adapter、metrics 和文档 | `8d6bd13`；0.25 m/90°/128 guard、无24/64科学上限、格不定义place、五个headline和oracle隔离已受测 |
+| **P0-B 两房与完整路线封存（D-211范围获准，实现待审）** | 固定两house source record；12条从公开reachable/RGB-D形成且执行前完整登记的路线；每槽另绑私有axis-aligned起点 | 新核心/入口已实现候选；仍缺真实12条route bundle和reviewed commit pin。封存后输出公私manifest、12个不可变provenance route/binding和seal receipt；不启动simulator episode |
+| **P0-C 单槽 raw smoke（D-211范围获准，实现待审）** | P0-B封存产物、精确环境/代码/资源回执、slot 0 fresh controller | 新writer候选只写obs0＋逐成功动作RGB-D、无pose内参与完整动作回执；失败前缀全留。reviewed commit未pin，当前仍拒绝真实运行；不计算效果、不扩到12槽 |
 | **P0-D 12 槽 raw 与 adapter（关闭）** | 单槽 smoke 通过后另行授权；资源实测决定最大安全 workers | 固定 12 槽 raw/provenance、关键帧、belief/edge summary 与 adapter 文件；失败不补，确定性合并；private evaluation 仍独立开闸 |
 
 下面 D-209 的两项表与 D-205～D-207 状态保留为历史实现背景，不再是活动执行顺序；若其部件被 D-210 复用，必须经过 D-210 输入/动作/地点语义适配和新回执。
