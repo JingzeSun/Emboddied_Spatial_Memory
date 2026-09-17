@@ -1987,3 +1987,15 @@
 - **补上一条现有防线抓不到的不变量。** 既有的反泄漏测试是"改私有/参考/未来数据，公开字节必须逐字节不变"；而 route 文件本身就在公开侧，改私有数据不会改它，**所以该测试对这一类泄漏结构性失明**。新增直接的目录不变量：部署可读目录的字节里不得出现任何世界 pose 数值，也不得出现任何 episode phase 结构。
 - 是否接触 test 信息：否。未生成数据、未运行模拟器、未训练、未读取 validation/confirmation。
 - 验证方式：[`tests/test_vm04_d207_provenance_split.py`](../tests/test_vm04_d207_provenance_split.py) 14 项本地通过，覆盖 v3 字节未变、实体预算仍是 D-182 原值且不可经分层表抬高、地点预算覆盖 Z 路线所需步数、实体层拒绝 50 步路线而地点层接受、地点层仍有 64 步天花板、未登记 family layer 被拒、公开投影无世界 pose 而私有 plan 保留、route 写在 provenance 而非 public、**部署可读字节中既无世界 pose 也无 phase 结构**、私有侧仍持有世界真值。VM04/VSMT 全量 480 项通过；服务器全量回归与用户代码审查仍 pending。
+
+## D-208：工作树收敛到活跃 VSMT 线，旧两条路线移入归档分支
+
+- 日期：2026-09-17；状态：accepted（仓库整理，不改任何科学口径、数值、门或授权位）。用户要求"加两个分支，一个CPMT，一个SpatialWorldModel，把相关文件都送进去，目前仓库文件太多，每次耗费TOKEN太多"。
+- 归档分支在删除**之前**从当时 HEAD 建立并推送，因此两个分支各自包含完整快照：`archive/cpmt-m1-20260917`、`archive/spatial-world-model-20260917`。这沿用 D-017 把旧工作树推到 `archive/pslm-pre-ctt-20260904` 的先例，以及 D-060"原文固定在某提交、不复制进新 archive"的处置；**没有任何文件被销毁**，全部可由分支或历史取回。
+- 移出活跃工作树的两块：**SpatialWorldModel 区**（D-062 空间世界模型路线，已由 D-122 暂停）含 `src/spatial_world_model/`、`ops/spatial_history/`、`tests/spatial_world_model/`、`configs/spatial_history/`、`literature/`；**CPMT/M1 区**（旧 M1/S5，已 no-go）含 20 个 `src/cpmt/m1_*|dev_*|visual_pilot|run_provenance` 模块、对应测试、`ops/` 中非 vsmt 脚本、非 vsmt 的 configs/results/schemas，以及 `scripts/`、`prototype/`、`data/manifests/`、experiments 的文档与模板。跟踪文件由 **719 降到 210**。
+- **保留的 cpmt 核心是活跃依赖而非遗留**：`__init__`、`errors`、`hashing`、`executor`、`equivalence`、`maintenance`、`pending` 七个模块构成闭包，`src/vsmt` 与 `ops/vsmt` 只 import `cpmt.executor` 与 `cpmt.hashing`，而包 `__init__` 连带 equivalence/maintenance/pending。METHOD 把旧 C00–C11 的职责降为 `L0 symbolic regression`（执行器语义、回滚、版本/provenance 与 S-01～S-12 边界回归），所以这七个模块和 `experiments/counterfactual_transaction_learning/fixtures/` 的 69 个 C00–C11 夹具**属于活跃线**，一并保留。第一次归档时误删了这批夹具、导致 executor/equivalence/pending 共 63 项失败，已按此口径恢复。
+- 归档判据是**基于实际 import 而不是文件名**：凡 import `cpmt.m1_*|dev_*|visual_pilot|run_provenance` 的测试一律归档，因此 `test_ctl_dev.py`、`test_run_provenance.py`、`test_visual_pilot.py` 这些名字里没有 `m1` 的也被正确识别；`test_export_run_report.py` 因 import 已归档的 `scripts/` 包一并移出。
+- **旧 M1 的 3 个已知失败测试随本次归档移出活跃线，这不是把失败藏起来**：它们连同全部 M1 源码、配置、结果与回执完整保留在 `archive/cpmt-m1-20260917`，旧 S5 no-go 结论不变、旧结果不重新解释。活跃线的回归从"466 通过 + 3 个历史失败"变为 **578 项全通过**。
+- 不改变的内容：VSMT 全部科学数值与阻断项分类（D-205）、地点层口径与 pose 通道（D-206）、分层预算与 provenance 分离（D-207）、合同 v1–v4 字节、全部十四个授权位（仍为 false）、旧 test 封存、D-062 与旧 M1 的历史结论。
+- 是否接触 test 信息：否。未生成数据、未运行模拟器、未训练。
+- 验证方式：删除后活跃线 `pytest tests/` 578 项全通过；`src/cpmt` 保留模块的 import 闭包经 AST 复算确认不含归档模块；两个归档分支已推送且各含完整快照。

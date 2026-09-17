@@ -22,6 +22,16 @@
 
 ### 当前指针
 
+**下一步只有两项工程接线（②③），其余科学裁决已由 D-205～D-207 冻结。** 细粒度状态见[实验证据链 §10.3](VSMT_EXPERIMENT_EVIDENCE_CHAIN.md)，此处只维护阶段级顺序。
+
+| 项 | 输入与工作 | 输出与继续条件 |
+|---|---|---|
+| **② 真实公开 reachable 扫描与路线构造** | 已冻结的八种注册动作模板、公开可达格、干预前匿名 visibility 扫描；实体层与地点层两种 family | 真实可达点扫描回执；**每个计划步预先验证落在可达格上**（这是长路线的成品率护栏，不是放宽容差）；实体层路线走既有 `vm04_public_route_builder`，新增 **Z 路线 family 构造器**（两次注册转弯、两条视觉相似走廊、强制的后续可判别观测）。找不到合法路线即构造失败，不换房、不换目标 |
+| **③ 父 stage 多 worker 调度与 receipt 合并** | ② 的路线、已实现的 raw writer/materializer/matcher 外壳、D-205 的 pilot 完成度机械派生 | 先单 worker 实测 CPU/RAM/VRAM/IO，再按最大安全并发派发；记录 requested/actual worker、分片、退出、资源依据与**与完成顺序无关的确定性合并**；逐 episode 的 `complete/failure/not_started` 全数保留，失败不补样、不覆盖、不静默重跑 |
+
+②③ 完成后剩余阻断项只有 8 个真实产物摘要（SAM checkpoint/commit、assets/generator/AMG config 摘要、materializer code/config 摘要、L2 前端 receipt）与用户对 pilot 完成度派生的代码审查；届时才可按 pilot 范围开闸。**②③ 都不解除任何授权位。**
+
+
 > **细粒度指针的唯一维护处是 [VSMT_EXPERIMENT_EVIDENCE_CHAIN.md](VSMT_EXPERIMENT_EVIDENCE_CHAIN.md) 的 §10.3（D-205）。** 本节只保留阶段级状态与历史指针，不再重复叙述叶节点；两处一旦冲突，以证据链 §10.3 为准。
 
 **D-207分层路线预算与provenance通道分离（当前阶段级状态）：** 活动合同为[v4](../configs/vsmt/vm04_observation_suitability_v4.json)（状态`d207_place_layer_budget_and_provenance_split_artifacts_pending`，v1/v2/v3保持原字节）。发现D-206的Z路线在D-182合同下无法表达：冻结几何按0.25 m/步、30°/步展开需要50步，而`maximum_route_steps=24`。24是为实体层短分支定的，当时没有地点层family。新增`maximum_route_steps_by_family_layer={entity:24, place:64}`，`frozen_numeric_values`逐字节不变且验证器要求分层表的entity项等于它；route plan新增必填`family_layer`。实测漂移显示同一数字也决定科学分量：24步时航向漂移横向误差约0.16 m（远小于0.5 m格，place身份永不含糊），64步时约0.50 m（恰好一个格）。**提步数的代价是成品率不是精度**——路线验收只在三个锚点逐点绝对比较、不累积，AI2-THOR离散动作要么精确成功要么被挡住失败；缓解靠每步预先验证可达，**不得放宽容差**。这与第一次VM-04失败无关：那是物体被传送进被占据位置、物理结算推出约5 cm的落点选址问题（D-169/D-171/D-172）。同时把sealed route从`public/`移到`provenance/route.json`并从公开投影去掉`initial_pose`/`planned_poses`（验收比的是私有plan），因为证据链§7把route归在provenance通道而`public/`此前同时意味着"非私有"和"部署可读"。留在provenance的`phase_observation_indices`/`branch_type`/`visibility_subject_public_ref`比pose更敏感。既有反泄漏测试对这类失明（route本就在公开侧），故另立目录不变量：部署可读字节中不得出现世界pose或phase结构。全部授权位仍为false。
