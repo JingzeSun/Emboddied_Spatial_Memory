@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Append-only raw RGB-D writer for the one D-211 authorized smoke slot.
+"""Append-only RGB-D/provenance/private-pose writer for D-211 slot zero.
 
-The writer deliberately does not create a private-evaluation directory.  It
-stores no simulator world pose, instance mask, place label, adapter packet or
-metric.  A failed registered action keeps all earlier frames and its action
+Public raw contains RGB-D and camera intrinsics; provenance contains the sealed
+route and every attempted registered action.  Simulator agent/camera poses are
+captured in a separate private ground-truth file which deployable readers must
+not mount.  No place label, instance mask, adapter packet or metric is built.
+A failed registered action keeps all earlier observations and its action
 receipt, then terminates without substituting another route or house.
 """
 
@@ -123,7 +125,10 @@ def _sensor_calibration(event: Any, observation_index: int) -> dict[str, Any]:
     _require(rgb.ndim == 3 and rgb.shape[2] == 3,
              "smoke RGB frame must be HxWx3")
     height, width = rgb.shape[:2]
-    focal = 0.5 * float(width) / math.tan(math.radians(float(vertical_fov)) / 2.0)
+    # AI2-THOR exposes a vertical field of view. With square pixels the image
+    # height, not the width, determines both focal lengths in pixels.
+    focal = 0.5 * float(height) / math.tan(
+        math.radians(float(vertical_fov)) / 2.0)
     return {
         "schema_version": "vsmt-vm04-d211-public-sensor-calibration-v1",
         "observation_index": observation_index,
@@ -134,6 +139,55 @@ def _sensor_calibration(event: Any, observation_index: int) -> dict[str, Any]:
         "cy": (float(height) - 1.0) / 2.0,
         "contains_camera_or_agent_pose": False,
     }
+
+
+def _finite_number(value: Any, name: str) -> float:
+    _require(type(value) in {int, float} and math.isfinite(float(value)),
+             f"{name} is missing or non-finite")
+    return float(value)
+
+
+def _xyz(value: Any, name: str) -> dict[str, float]:
+    _require(type(value) is dict, f"{name} is missing")
+    return {axis: _finite_number(value.get(axis), f"{name}.{axis}")
+            for axis in ("x", "y", "z")}
+
+
+def _private_pose(
+    event: Any, observation_index: int, public_frame_sha256: str,
+) -> dict[str, Any]:
+    """Extract simulator truth without exposing it to public/provenance files."""
+
+    metadata = _event_metadata(event)
+    agent = metadata.get("agent")
+    _require(type(agent) is dict, "simulator agent pose is missing")
+    rotation = agent.get("rotation")
+    horizon = _finite_number(agent.get("cameraHorizon"),
+                             "agent.cameraHorizon")
+    value = {
+        "schema_version": "vsmt-vm04-d211-private-simulator-pose-v1",
+        "observation_index": observation_index,
+        "public_frame_sha256": public_frame_sha256,
+        "agent_world_pose": {
+            "position_m": _xyz(agent.get("position"), "agent.position"),
+            "rotation_deg": _xyz(rotation, "agent.rotation"),
+            "camera_horizon_deg": horizon,
+        },
+        "camera_world_pose": {
+            "position_m": _xyz(metadata.get("cameraPosition"),
+                               "cameraPosition"),
+            "yaw_deg": _finite_number(
+                rotation.get("y") if type(rotation) is dict else None,
+                "agent.rotation.y"),
+            "horizon_deg": horizon,
+            "orientation_source":
+                "metadata.agent.rotation.y_plus_agent.cameraHorizon",
+        },
+        "private_ground_truth_only": True,
+        "candidate_or_model_reader_allowed": False,
+    }
+    value["pose_sha256"] = _sha_value(value)
+    return value
 
 
 class D211RawSmokeStore:
@@ -151,8 +205,10 @@ class D211RawSmokeStore:
         self.root.mkdir(parents=True)
         self.public_root = self.root / "public"
         self.provenance_root = self.root / "provenance"
+        self.private_root = self.root / "private"
         self.public_root.mkdir()
         self.provenance_root.mkdir()
+        self.private_root.mkdir()
         self.route = dict(route)
         self.binding = dict(execution_binding)
         self.source_record_sha256 = source_record_sha256
@@ -162,6 +218,7 @@ class D211RawSmokeStore:
         self.episode_id = episode_id
         self.maximum_output_bytes = maximum_output_bytes
         self.frames: list[dict[str, Any]] = []
+        self.private_poses: list[dict[str, Any]] = []
         self.action_receipts: list[dict[str, Any]] = []
         self.finalized = False
         _write_new_json(self.provenance_root / "route.json", self.route)
@@ -190,6 +247,9 @@ class D211RawSmokeStore:
                  depth.ndim == 2 and depth.shape == rgb.shape[:2],
                  "smoke RGB-D shapes are invalid")
         calibration = _sensor_calibration(event, observation_index)
+        # Validate the private pose before creating any files for this frame.
+        private_pose = _private_pose(
+            event, observation_index, "0" * 64)
         frame_root = self.public_root / "raw" / f"frame_{observation_index:04d}"
         rgb_path = frame_root / "rgb.npy"
         depth_path = frame_root / "depth_m.npy"
@@ -207,8 +267,12 @@ class D211RawSmokeStore:
             "contains_instance_masks": False,
         }
         record["frame_sha256"] = _sha_value(record)
+        private_pose["public_frame_sha256"] = record["frame_sha256"]
+        private_pose.pop("pose_sha256")
+        private_pose["pose_sha256"] = _sha_value(private_pose)
         _write_new_json(frame_root / "frame.json", record)
         self.frames.append(record)
+        self.private_poses.append(private_pose)
         _require(self._bytes_written() <= self.maximum_output_bytes,
                  "smoke output crossed the registered byte safety limit")
         return record
@@ -219,6 +283,8 @@ class D211RawSmokeStore:
                  "smoke terminal status is invalid")
         _require((reason is None) == (status == "raw_smoke_complete"),
                  "smoke reason/status disagree")
+        _require(len(self.private_poses) == len(self.frames),
+                 "public observations and private poses lost alignment")
         action_path = self.provenance_root / "action-receipts.json"
         action_record = {
             "schema_version": "vsmt-vm04-d211-action-receipts-v1",
@@ -227,6 +293,19 @@ class D211RawSmokeStore:
             "complete_per_action_sequence_retained": True,
         }
         _write_new_json(action_path, action_record)
+        private_pose_path = self.private_root / "simulator-poses.json"
+        private_pose_record = {
+            "schema_version":
+                "vsmt-vm04-d211-private-simulator-pose-series-v1",
+            "episode_id": self.episode_id,
+            "route_plan_sha256": self.route["route_plan_sha256"],
+            "observation_count": len(self.private_poses),
+            "poses": self.private_poses,
+            "opened_after_candidate_seal": True,
+            "candidate_or_model_reader_allowed": False,
+            "contains_place_or_loop_labels": False,
+        }
+        _write_new_json(private_pose_path, private_pose_record)
         public_manifest = {
             "schema_version": "vsmt-vm04-d211-public-raw-smoke-manifest-v1",
             "episode_id": self.episode_id,
@@ -258,6 +337,8 @@ class D211RawSmokeStore:
             "observation_count": len(self.frames),
             "public_raw_manifest_sha256": _sha_file(public_path),
             "action_receipts_sha256": _sha_file(action_path),
+            "private_simulator_poses_sha256": _sha_file(private_pose_path),
+            "private_simulator_pose_count": len(self.private_poses),
             "failed_route_replacement_allowed": False,
             "twelve_slot_generation_started": False,
             "adapter_materialized": False,

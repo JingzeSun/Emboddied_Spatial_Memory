@@ -13,6 +13,7 @@
     "source_house_binding_authorized": true,
     "twelve_route_sealing_authorized": true,
     "single_slot_raw_smoke_authorized": true,
+    "private_simulator_pose_capture_authorized": true,
     "twelve_slot_raw_generation_authorized": false,
     "adapter_materialization_authorized": false,
     "private_evaluation_authorized": false,
@@ -68,13 +69,18 @@
       "sensor_calibration_json",
       "frame_digest"
     ],
+    "private_ground_truth_channels": [
+      "per_observation_agent_world_pose",
+      "per_observation_camera_world_pose",
+      "public_frame_digest_binding"
+    ],
     "provenance_channels": [
       "complete_sealed_route",
       "registered_action_requests_and_success",
       "source_record_digest",
       "worker_terminal_receipt"
     ],
-    "forbidden_outputs": [
+    "forbidden_public_and_provenance_outputs": [
       "simulator_world_pose",
       "instance_masks",
       "reference_place_region",

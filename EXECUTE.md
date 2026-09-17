@@ -2034,3 +2034,12 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 成功路径严格保存observation 0及每个成功注册动作后的观察，要求N动作/N+1帧；动作失败保存此前全部帧和本次失败回执后停止，不执行余下动作、不替换路线。controller由父stage fresh创建并始终stop；创建、worker、写盘或stop异常均保留raw或stage receipt。单worker因授权范围只有一个真实执行单元；无墙钟强杀，启动前要求8 GiB磁盘可用，4 GiB紧急余量，单smoke输出上限2 GiB。
 - 新定向9/9通过：授权只开三项、两house摘要、非轴对齐起点拒绝、12-route公私封存、成功N+1、第二动作失败保留前缀、非slot0拒绝、check关闭和外部文件读取前拒绝。D-210＋D-211定向20/20通过；最终全库从621增至**630/630通过**，耗时23.113 s；既有内部三worker合同组179/42/31并汇总252仍通过。0服务器source读取、0真实route bundle、0simulator、0episode、0模型。
 - 白话：这批把“路线文字”变成可以真实启动的任务单，但暂不替路线规划器做决定。输入是12条已经由公开扫描找到的路线和私有起点，输出可复核的封存文件；审查通过后只拿slot 0做一次读写冒烟。它不表示12条路线已找到，也不允许用smoke成败改选路线。
+
+## LOG-195：D-211 raw三面证据修正候选（2026-09-18）
+
+- 用户复核LOG-194时指出：若只存RGB而没有内参、动作provenance和位姿，便不符合D-210双层实验。核查确认`3092413`实际已保存RGB-D、每帧内参、完整route和逐动作请求/成功/失败；截图中的“无pose相机内参”表示“内参不夹带pose”，不是“不保存内参”。但核查也确认一个真实缺口：writer把simulator pose完全丢弃，与D-210已经登记的private simulator pose和true-pose oracle不一致。
+- 修正后按文件权限分三面：`public`逐观察保存RGB-D、图像尺寸、垂直FOV及`fx,fy,cx,cy`；`provenance`保存封存route和每次实际尝试动作；`private/simulator-poses.json`逐观察保存agent世界位置/旋转、camera世界位置/yaw/horizon，并以`public_frame_sha256`对齐。private记录强制`candidate_or_model_reader_allowed=false`且只能在candidate seal后打开；采集真值不等于运行private evaluation，不生成place/loop/teacher/metric。
+- 同时修复内参数学：AI2-THOR字段是垂直FOV，方形像素下焦距应为`0.5*image_height/tan(vertical_fov/2)`；原候选误用了image width，在非方形图像会给出错误焦距。4×6、90°测试帧现要求`fx=fy=2.0`而不是3.0。
+- 成功和失败路径都要求公开观察数等于private pose数；正常动作失败保留此前全部RGB-D/内参/pose和本次失败动作回执，不保存失败动作后的编号观察。公开与provenance测试仍核验不出现agent world pose或私有起点。
+- 定向D-210＋D-211为20/20通过；全库仍为**630/630通过**，耗时23.619 s，内嵌VSMT/executor/L1三组179/42/31及两房汇总252均通过。0服务器source读取、0真实route、0simulator、0episode、0模型。
+- 白话：输入同一个模拟器event，输出三份用途不同、彼此隔离的证据——模型用画面和估计，小地图边知道“怎么走来”，评价器事后才知道“实际走到哪里”。它不把真值pose伪装成连续位姿信念，也不表示adapter或评价已经实现。

@@ -22,13 +22,13 @@
 
 ### 当前指针
 
-**当前是 D-211 两房/路线封存与单槽 raw smoke 实现审查。** 用户已批准 `8d6bd13` 为 D-210 P0 工程基线，并开放固定两房、12条完整路线封存和一个工程smoke槽；该基线已合入本地main。D-211固定复用`train:004270`/`train:008243`，smoke固定slot 0/P01，专用writer不再注入D-206的2%噪声，只写RGB-D/无pose内参和动作provenance。新代码尚待形成并审查commit，overlay的`expected_reviewed_code_commit`仍null，所以真实seal/simulator均未运行。12槽raw、adapter、private evaluation、训练/validation/confirmation继续关闭。
+**当前是 D-211 两房/路线封存与单槽 raw smoke 实现修正审查。** 用户已批准 `8d6bd13` 为 D-210 P0 工程基线，并开放固定两房、12条完整路线封存和一个工程smoke槽；该基线已合入本地main。D-211固定复用`train:004270`/`train:008243`，smoke固定slot 0/P01。专用writer不再注入D-206的2%噪声：公开侧逐帧保存RGB-D与无世界pose的相机内参，provenance保存完整路线和逐动作请求/成败，private ground truth逐帧保存simulator agent/camera世界pose并以公开frame摘要对齐。该private采集只为以后评价/oracle留证，不开放private evaluation、更不进入模型。修正版代码仍待形成并审查commit，overlay的`expected_reviewed_code_commit`仍null，所以真实seal/simulator均未运行。12槽raw、adapter、private evaluation执行、训练/validation/confirmation继续关闭。
 
 | D-210 顺序 | 输入与工作 | 输出与继续条件 |
 |---|---|---|
 | **P0-A D-210基线（已批准，本地main）** | D-210 合同、12 槽 manifest 核心、route seal、edge summary、adapter、metrics 和文档 | `8d6bd13`；0.25 m/90°/128 guard、无24/64科学上限、格不定义place、五个headline和oracle隔离已受测 |
 | **P0-B 两房与完整路线封存（D-211范围获准，实现待审）** | 固定两house source record；12条从公开reachable/RGB-D形成且执行前完整登记的路线；每槽另绑私有axis-aligned起点 | 新核心/入口已实现候选；仍缺真实12条route bundle和reviewed commit pin。封存后输出公私manifest、12个不可变provenance route/binding和seal receipt；不启动simulator episode |
-| **P0-C 单槽 raw smoke（D-211范围获准，实现待审）** | P0-B封存产物、精确环境/代码/资源回执、slot 0 fresh controller | 新writer候选只写obs0＋逐成功动作RGB-D、无pose内参与完整动作回执；失败前缀全留。reviewed commit未pin，当前仍拒绝真实运行；不计算效果、不扩到12槽 |
+| **P0-C 单槽 raw smoke（D-211范围获准，修正待审）** | P0-B封存产物、精确环境/代码/资源回执、slot 0 fresh controller | 公开侧写obs0＋逐成功动作RGB-D/内参，provenance写完整route/逐动作回执，private侧写逐观察simulator agent/camera pose并绑定公开frame摘要；失败前缀三面全留。reviewed commit未pin，当前仍拒绝真实运行；不计算效果、不扩到12槽 |
 | **P0-D 12 槽 raw 与 adapter（关闭）** | 单槽 smoke 通过后另行授权；资源实测决定最大安全 workers | 固定 12 槽 raw/provenance、关键帧、belief/edge summary 与 adapter 文件；失败不补，确定性合并；private evaluation 仍独立开闸 |
 
 下面 D-209 的两项表与 D-205～D-207 状态保留为历史实现背景，不再是活动执行顺序；若其部件被 D-210 复用，必须经过 D-210 输入/动作/地点语义适配和新回执。

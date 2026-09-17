@@ -54,7 +54,7 @@ D-210 为地点/拓扑主实验建立独立于旧 VM-04 v1–v4 的数据版本�
 - `private/route-bindings.json`：12 个起点及 route-evidence 摘要；
 - `route-seal.receipt.json`：上述文件摘要、`simulator_started=false/episodes_generated=0`。
 
-`run-smoke` 只能读取 slot 0/P01。输出 `public/raw/frame_NNNN/{rgb.npy,depth_m.npy,sensor-calibration.json,frame.json}`，其中 calibration 只有图像大小、FOV和内参，明确不含相机/agent pose；`provenance/route.json` 保留完整注册动作 route，`provenance/action-receipts.json` 保存每个实际尝试注册动作的完整请求、成功位和错误文字摘要（不保存可能夹带私有位置的原错误文字）。setup teleport只记动作类型、`forceAction=false`及“使用了哪个private execution-binding摘要”，不复制起点坐标；raw目录因此没有世界pose。终端 `smoke.receipt.json` 记录计划动作数、已完成动作数、成功动作后实际保存的观察数和文件摘要；父入口另写 `stage.receipt.json` 记录 fresh controller 是否正常停止，异常只存类型和消息摘要。没有 `private/` 输出目录。成功条件严格为 N 个注册动作全部成功且恰好 N+1 个观察；动作 k 失败时只保留 observation 0 至 k−1 的成功前缀及动作 k 失败回执，不写失败动作后的编号观察、不继续余下动作、不补样。
+`run-smoke` 只能读取 slot 0/P01，并把同一次event拆成三种不可互读的文件面。`public/raw/frame_NNNN/{rgb.npy,depth_m.npy,sensor-calibration.json,frame.json}` 保存RGB-D、图像大小、垂直FOV和由图像高度正确计算的`fx=fy`及`cx,cy`，明确不含相机/agent世界pose。`provenance/route.json`保留完整注册动作route，`provenance/action-receipts.json`保存每个实际尝试动作的完整请求、成功位和错误文字摘要；setup teleport只记动作类型、`forceAction=false`及使用的private execution-binding摘要，不复制起点坐标。`private/simulator-poses.json`逐观察保存agent位置/旋转、camera位置/yaw/horizon，并以`public_frame_sha256`逐帧绑定；`candidate_or_model_reader_allowed=false`，只有候选封存后的私有评价器或true-pose oracle可打开。白话：公开面让模型看见画面和相机“尺子”，provenance让实验可重放“怎么走的”，private让我们事后知道“实际上走到哪”；它不把真实坐标塞进连续位姿信念。终端receipt记录三面文件摘要和pose数。成功条件严格为N动作/N+1观察/N+1私有pose；动作k失败时只保留此前成功观察/pose和动作k失败回执，不写失败动作后的编号观察、不继续余下动作、不补样。
 
 当前 overlay 的 `expected_reviewed_code_commit=null`，所以实际 `seal-routes`/`run-smoke` 仍先拒绝；待本实现提交并审查后，只需在继任合同绑定该 commit，无需更改上述 house、槽、动作、文件或授权范围。
 

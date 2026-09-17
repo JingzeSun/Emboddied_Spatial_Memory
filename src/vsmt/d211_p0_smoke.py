@@ -113,6 +113,7 @@ def validate_d211_contract(
         "source_house_binding_authorized": True,
         "twelve_route_sealing_authorized": True,
         "single_slot_raw_smoke_authorized": True,
+        "private_simulator_pose_capture_authorized": True,
         "twelve_slot_raw_generation_authorized": False,
         "adapter_materialization_authorized": False,
         "private_evaluation_authorized": False,
@@ -173,11 +174,16 @@ def validate_d211_contract(
             "rgb_uint8_npy", "depth_m_float32_npy",
             "sensor_calibration_json", "frame_digest",
         ],
+        "private_ground_truth_channels": [
+            "per_observation_agent_world_pose",
+            "per_observation_camera_world_pose",
+            "public_frame_digest_binding",
+        ],
         "provenance_channels": [
             "complete_sealed_route", "registered_action_requests_and_success",
             "source_record_digest", "worker_terminal_receipt",
         ],
-        "forbidden_outputs": [
+        "forbidden_public_and_provenance_outputs": [
             "simulator_world_pose", "instance_masks", "reference_place_region",
             "loop_pair_label", "teacher_target", "adapter_packet", "model_metric",
         ],

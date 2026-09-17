@@ -30,6 +30,14 @@ class FakeEvent:
             "lastActionSuccess": success,
             "errorMessage": "" if success else "blocked",
             "fov": 90.0,
+            "agent": {
+                "position": {"x": float(value), "y": 0.9, "z": 2.0},
+                "rotation": {"x": 0.0, "y": 90.0, "z": 0.0},
+                "cameraHorizon": 0.0,
+            },
+            "cameraPosition": {
+                "x": float(value), "y": 1.575, "z": 2.0,
+            },
         }
         self.frame = np.full((4, 6, 3), value, dtype=np.uint8)
         self.depth_frame = np.full((4, 6), 1.0 + value, dtype=np.float32)
@@ -82,6 +90,7 @@ class D211P0SealSmokeTests(unittest.TestCase):
         self.assertTrue(auth["source_house_binding_authorized"])
         self.assertTrue(auth["twelve_route_sealing_authorized"])
         self.assertTrue(auth["single_slot_raw_smoke_authorized"])
+        self.assertTrue(auth["private_simulator_pose_capture_authorized"])
         self.assertFalse(auth["twelve_slot_raw_generation_authorized"])
         self.assertFalse(auth["adapter_materialization_authorized"])
         self.assertFalse(auth["private_evaluation_authorized"])
@@ -141,11 +150,13 @@ class D211P0SealSmokeTests(unittest.TestCase):
             self.assertEqual(4, receipt["completed_registered_action_count"])
             self.assertEqual(5, len(controller.requests))
             self.assertEqual(90.0, controller.requests[2]["degrees"])
-            self.assertFalse((root / "private").exists())
+            self.assertTrue((root / "private/simulator-poses.json").is_file())
             calibration = json.loads((root / "public/raw/frame_0000/"
                                       "sensor-calibration.json").read_text())
             self.assertNotIn("pose", calibration)
             self.assertFalse(calibration["contains_camera_or_agent_pose"])
+            self.assertAlmostEqual(2.0, calibration["fx"])
+            self.assertAlmostEqual(2.0, calibration["fy"])
             manifest = json.loads((root / "public/raw-smoke.manifest.json")
                                   .read_text())
             self.assertFalse(manifest["adapter_materialized"])
@@ -157,6 +168,15 @@ class D211P0SealSmokeTests(unittest.TestCase):
             self.assertNotIn('"z_m"', provenance_text)
             self.assertIn('"initial_pose_copied_to_raw_smoke":false',
                           provenance_text)
+            private_poses = json.loads((
+                root / "private/simulator-poses.json").read_text())
+            self.assertEqual(5, private_poses["observation_count"])
+            self.assertTrue(all(row["candidate_or_model_reader_allowed"] is False
+                                for row in private_poses["poses"]))
+            self.assertEqual(
+                manifest["frames"][0]["frame_sha256"],
+                private_poses["poses"][0]["public_frame_sha256"])
+            self.assertNotIn("agent_world_pose", provenance_text)
 
     def test_failed_action_keeps_completed_prefix_and_stops(self):
         route = self.route(0)
@@ -175,6 +195,7 @@ class D211P0SealSmokeTests(unittest.TestCase):
             self.assertEqual("raw_smoke_failure", receipt["status"])
             self.assertEqual(2, receipt["observation_count"])
             self.assertEqual(1, receipt["completed_registered_action_count"])
+            self.assertEqual(2, receipt["private_simulator_pose_count"])
             actions = json.loads((root / "provenance/action-receipts.json")
                                  .read_text())["receipts"]
             self.assertEqual(3, len(actions))  # setup + success + failed action
@@ -203,6 +224,8 @@ class D211P0SealSmokeTests(unittest.TestCase):
         report = json.loads(completed.stdout)
         self.assertFalse(report["execution_authorized"])
         self.assertEqual(0, report["raw_smoke_slot"])
+        self.assertTrue(report[
+            "private_simulator_pose_capture_authorized"])
         self.assertFalse(report["twelve_slot_raw_generation_authorized"])
 
     def test_seal_rejects_before_reading_external_bundle_or_writing(self):

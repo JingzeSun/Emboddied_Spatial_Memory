@@ -128,6 +128,8 @@ def check() -> dict[str, Any]:
         "route_slot_count": base["batch"]["episode_count"],
         "raw_smoke_slot": overlay["single_slot_smoke"]["slot"],
         "raw_smoke_scenario": overlay["single_slot_smoke"]["scenario_id"],
+        "private_simulator_pose_capture_authorized": overlay["authorization"]
+        ["private_simulator_pose_capture_authorized"],
         "twelve_slot_raw_generation_authorized": False,
         "adapter_materialization_authorized": False,
         "private_evaluation_authorized": False,
