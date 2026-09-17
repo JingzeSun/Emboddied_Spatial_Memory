@@ -44,7 +44,7 @@ VSMT 的核心候选贡献是三个部分的组合：
 | 阻断 | 条件未满足时必须失败关闭，不能生成、训练或计入 family |
 | 运行后判断 | 必须依靠真实 pilot、开发、validation 或 confirmation 结果，文档和单测不能预先证明 |
 
-截至 D-203，所有生成、训练和 confirmation 授权仍为 `false`。当前工作树中的 D-204 局部代码只算未提交草稿，不能列为已实现候选。
+截至 D-204 候选，所有生成、训练和 confirmation 授权仍为 `false`。D-204 已完成纯核心与 schema，但生产父 stage、raw writer/materializer 文件编排和 D-201 离线消费仍未实现。
 
 ## 3. 论文主张拆成哪些可检验证据
 
@@ -188,11 +188,11 @@ terminal−1 memory 更新完成后、terminal 公开/私有 raw 尚未加载时
 
 例子：RELINK selector 只登记 entity A 和旧 place P1。核心必须从 terminal−1 memory 唯一解析 A、P1 及方向一致的 open `located_at`；零条或多条都失败，调用者不能手填一个恰好有利的 edge version。
 
-它不等于：D-203 已经解除时间阻断。D-203 只证明核心 API 没有 raw/private 路径；selector 自身的提前封存和 D-202 receipt 消费仍是当前 D-204 职责。
+它不等于：D-204 已经解除时间阻断。D-204 证明纯核心可把提前 selector receipt、D-203 provenance 和 D-202 receipt 串起来；真实生产父 stage 尚未按此顺序落盘，D-201 也尚未消费该链。
 
 对应论文作用：这是 C3 最关键的调用时序证据，防止“函数内部没读答案，但调用者看完答案再选 refs”。
 
-当前状态：D-202 和 D-203 已认可/候选；D-204 局部草稿尚未提交、未接生产 writer/materializer，D-201 仍为 `temporal_seal_pending`。
+当前状态：D-202 和 D-203 已认可，D-204 纯核心候选已实现；尚未接生产 parent stage/raw writer/materializer，也未升级D-201，故仍为 `temporal_seal_pending`。
 
 ### 阶段 G：只在公开不可观测窗口执行 world intervention
 
@@ -216,7 +216,7 @@ terminal 公开 packet 形成后，public matcher 用显式配置比较 region �
 
 对应论文作用：保证九类样本在公共接口上有明确、可重复的最低条件，为 C1、C3、C5 建立一致任务定义。
 
-当前状态：matcher 核心和 D-201 episode audit 已认可；正式 matcher 数值、D-202/D-203 时间链消费和 family 聚合仍阻断。
+当前状态：matcher 核心和 D-201 episode audit 已认可；D-204 已在纯核心中消费 D-202/D-203 时间链，但生产文件接线、D-201 在线seal消费、正式 matcher 数值和 family 聚合仍阻断。
 
 ### 阶段 I：封存候选并从同一旧版本真实执行
 
@@ -368,7 +368,7 @@ teacher 本身给错分时另记 teacher error；executor 拒绝 reference 时�
 4. 固定 DINO 资产/环境摘要，以及 proposal、geometry、visibility、matcher 正式数值。
 5. 冻结 SPLIT/MERGE 几何、前端伪影判据和 fresh replay 次数。
 6. 冻结 CFO/history 共用 probe 架构、输入 mask 和训练预算；此时只冻结规格，不运行 probe。
-7. 完成 D-204：selector spec 的 terminal 前父级 seal，并让 D-202 消费 D-203 provenance receipt。
+7. 把 D-204 纯核心接入生产父 stage/raw writer/materializer，并升级 D-201 离线 episode receipt 消费在线seal。
 8. 把 production visibility、materializer、intervention、RELINK、candidate/teacher 接入同一真实 episode 纵向链。
 9. 实现真实 reachable scan、父 stage 多 worker、确定性合并、失败恢复、verify/export。
 10. 封存 70-house 顺序、审查固定 commit/manifest/assets 摘要，完成最终开闸审计。
@@ -385,13 +385,14 @@ D-201 episode audit
        D-202 materializer 内部：terminal raw 加载前封存 plan/prior
          └─ 仍等待父 request 来源证明
               D-203：只从 sealed route + selector + terminal−1 memory 派生 refs
-                └─ 当前下一步 D-204：
-                     ① selector spec 在 terminal 前由父 stage 封存
-                     ② D-202 receipt 消费 D-203 provenance receipt
-                     ③ 仍不解除 matcher 数值、family 聚合和运行阻断
+                └─ D-204纯核心：selector在raw观测0前seal，D-202消费D-203 v2摘要
+                     └─ 当前下一步：
+                          ① 生产父stage在raw writer前落盘selector/spec/receipt
+                          ② materializer按同一任务消费整链
+                          ③ D-201离线receipt核验D-202 v2，但family仍另审
 ```
 
-D-204 完成后，D-201 才可能从 `temporal_seal_pending` 升级为“时间来源链成立”；它仍不能自动把 episode 计入 family，因为正式 matcher/visibility 数值、真实生产 callback 和 family 覆盖聚合尚未成立。
+D-204 只让“时间来源链”在纯核心中可复算，尚不能升级 D-201。生产接线和 D-201 v2 完成后，单 episode 才可能解除这一个 pending；它仍不能自动计入 family，因为正式 matcher/visibility 数值、真实生产 callback 和 family 覆盖聚合尚未成立。
 
 ## 11. 后续每轮怎样更新这份记录
 
@@ -429,7 +430,7 @@ D-204 完成后，D-201 才可能从 `temporal_seal_pending` 升级为“时间�
 | episode 因果内容审计 | D-201 | terminal packet、terminal−1 prior、matcher 和 materializer 的同 episode 绑定 |
 | materializer 内部时间顺序 | D-202 | terminal raw 加载前封存 plan/prior，但父 request 来源仍 pending |
 | 父级 request 公开派生 | D-203 | 禁止手填 version ID，从公开 selector 和 causal memory 唯一解析 refs |
-| 当前下一职责 | D-204（尚未形成正式 decision） | selector 提前 seal，并把 D-203 provenance 接入 D-202 时间 receipt |
+| selector与父来源时间链 | D-204（实现候选） | selector提前seal，并把D-203 v2 provenance接入D-202 v2；生产接线和D-201消费仍缺 |
 
 ## 13. 为什么新版 VM-04 比第一次复杂
 

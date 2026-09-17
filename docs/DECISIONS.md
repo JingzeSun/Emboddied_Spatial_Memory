@@ -1939,3 +1939,10 @@
 - 九类program均用稳定公开node ID/规则摘要作selector，调用者禁止直接传`node_version_id/edge_version_id`。核心在当前causal memory上唯一解析open version；RELINK还必须唯一解析方向一致的open `located_at`边。RETRACT只开放entity selector，edge RETRACT仍无入口。收据可证明本核心未获得raw路径且refs由公开memory确定派生。
 - 边界仍保守：selector spec自身是否在terminal之前由父级编排封存尚无时间收据，D-203 receipt也尚未被D-202 temporal receipt消费。因此固定`selector_spec_pre_terminal_registration_established=false/consumed_by_D202_temporal_receipt=false/clears_D201_temporal_seal_pending=false`，不计入family。
 - 白话：这一步解决“调用者能不能看完结果后手填一个有利的version ID”的问题。输入是公开路线、早先选定的稳定节点名和terminal前记忆，输出精确version refs、online request和来源收据。例如RELINK只登记entity A和place P1，核心自动找当前open版本及A→P1的open `located_at`；若有零条或多条则失败。它不等价于selector已证明提前封存、D-202已接入该receipt、D-201已解锁或运行已开放。
+
+## D-204：父级selector时间seal与D-202父来源消费候选
+
+- 日期：2026-09-17；状态：用户认可D-203候选并明确要求继续实现父级selector时间seal与D-202 receipt绑定，保持D-201/family阻断且不开放运行。新增`vsmt-vm04-parent-selector-temporal-receipt-v1`；父级纯核心把selector spec、sealed public route/private route commitment和父代码摘要绑定为raw观测0前、双方raw帧数均为0的时间收据。D-203 provenance升v2并绑定该selector receipt，仍不接受version ID、episode/raw path、terminal/future/teacher/reference/private输入。
+- D-202 temporal receipt升v2并消费D-203 v2 receipt摘要；消费前逐项核episode/program/route/request、`terminal-1` prior、terminal index、确定性公开派生、selector提前登记及全部禁止通道。只改禁止位后重算摘要也必须拒绝。父receipt自身保持append-only的`consumed_by_D202=false`创建状态，由D-202 v2另记实际消费，避免回写旧receipt。
+- 本批仍不让`clears_episode_temporal_seal_pending`变true：selector receipt尚未由真实生产父stage在raw writer前落盘，materializer尚未从该父任务读取整链，D-201离线episode receipt也未消费D-202 v2。正式matcher/visibility/SAM数值、edge RETRACT证据、family聚合和所有运行位不变。
+- 白话：这一步解决“selector是否先登记”和“D-202是否真的拿到了父来源证明”的核心接口。输入是观测0前的selector/route和terminal前的causal memory，输出三段相互绑定的时间/来源收据；例如有人看完terminal后改BIRTH absence scope，原selector摘要就无法复用。它不等于真实父stage已经按这个顺序写文件、D-201已解除pending、episode可计入family或pilot获准运行。
