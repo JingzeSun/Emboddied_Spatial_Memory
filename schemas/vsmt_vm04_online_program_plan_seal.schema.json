@@ -4,7 +4,8 @@
   "title": "VSMT VM-04 Online Program Plan Temporal Seal",
   "oneOf": [
     {"$ref": "#/$defs/request"},
-    {"$ref": "#/$defs/receipt"}
+    {"$ref": "#/$defs/receipt"},
+    {"$ref": "#/$defs/receiptV2"}
   ],
   "$defs": {
     "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
@@ -51,6 +52,35 @@
         "reference_transaction_opened_before_seal": {"const": false},
         "private_identity_used": {"const": false},
         "request_provenance_established_by_parent_stage": {"const": false},
+        "clears_episode_temporal_seal_pending": {"const": false},
+        "receipt_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "receiptV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "episode_id", "program", "request_sha256", "route_plan_sha256", "construction_plan_sha256", "matcher_prior_memory_sha256", "matcher_config_sha256", "materializer_code_sha256", "last_completed_observation_index", "sealed_before_observation_index", "terminal_public_frame_opened_before_seal", "terminal_private_frame_opened_before_seal", "future_observation_opened_before_seal", "teacher_opened_before_seal", "reference_transaction_opened_before_seal", "private_identity_used", "request_provenance_established_by_parent_stage", "parent_request_provenance_receipt_sha256", "parent_request_provenance_consumed_by_D202", "clears_episode_temporal_seal_pending", "receipt_sha256"],
+      "properties": {
+        "schema_version": {"const": "vsmt-vm04-online-program-plan-temporal-receipt-v2"},
+        "episode_id": {"type": "string", "minLength": 1},
+        "program": {"$ref": "#/$defs/program"},
+        "request_sha256": {"$ref": "#/$defs/sha256"},
+        "route_plan_sha256": {"$ref": "#/$defs/sha256"},
+        "construction_plan_sha256": {"$ref": "#/$defs/sha256"},
+        "matcher_prior_memory_sha256": {"$ref": "#/$defs/sha256"},
+        "matcher_config_sha256": {"$ref": "#/$defs/sha256"},
+        "materializer_code_sha256": {"$ref": "#/$defs/sha256"},
+        "last_completed_observation_index": {"type": "integer", "minimum": 0},
+        "sealed_before_observation_index": {"type": "integer", "minimum": 1},
+        "terminal_public_frame_opened_before_seal": {"const": false},
+        "terminal_private_frame_opened_before_seal": {"const": false},
+        "future_observation_opened_before_seal": {"const": false},
+        "teacher_opened_before_seal": {"const": false},
+        "reference_transaction_opened_before_seal": {"const": false},
+        "private_identity_used": {"const": false},
+        "request_provenance_established_by_parent_stage": {"const": true},
+        "parent_request_provenance_receipt_sha256": {"$ref": "#/$defs/sha256"},
+        "parent_request_provenance_consumed_by_D202": {"const": true},
         "clears_episode_temporal_seal_pending": {"const": false},
         "receipt_sha256": {"$ref": "#/$defs/sha256"}
       }

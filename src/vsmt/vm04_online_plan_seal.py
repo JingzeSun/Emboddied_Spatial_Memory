@@ -20,6 +20,7 @@ from .vm04_program_construction import make_program_construction_plan
 
 REQUEST_SCHEMA = "vsmt-vm04-online-program-plan-request-v1"
 RECEIPT_SCHEMA = "vsmt-vm04-online-program-plan-temporal-receipt-v1"
+RECEIPT_SCHEMA_V2 = "vsmt-vm04-online-program-plan-temporal-receipt-v2"
 BUNDLE_KEYS = {"construction_plan", "matcher_prior_memory", "temporal_receipt"}
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
 PROGRAMS = {
@@ -58,6 +59,64 @@ def _payload_sha(value: Mapping[str, Any], seal_name: str) -> str:
     payload = clone_json(dict(value))
     payload.pop(seal_name, None)
     return _sha(payload)
+
+
+def _validate_parent_request_provenance_receipt(
+    receipt: Mapping[str, Any], *, request: Mapping[str, Any],
+    route_plan: Mapping[str, Any], prior_memory: Mapping[str, Any],
+    last_completed_observation_index: int,
+) -> dict[str, Any]:
+    """Validate the reviewed D-203/D-204 boundary before D-202 consumes it."""
+
+    record = clone_json(dict(receipt))
+    terminal = request["terminal_observation_index"]
+    _require(
+        record.get("schema_version") ==
+        "vsmt-vm04-parent-program-request-provenance-receipt-v2" and
+        record.get("receipt_sha256") ==
+        _payload_sha(record, "receipt_sha256"),
+        "parent request provenance receipt is invalid",
+    )
+    _require(
+        record.get("episode_id") == request["episode_id"] ==
+        route_plan.get("episode_id") and
+        record.get("program") == request["program"] ==
+        route_plan.get("program") and
+        record.get("route_plan_sha256") ==
+        request["route_plan_sha256"] == route_plan.get("route_plan_sha256") and
+        record.get("request_sha256") == request["request_sha256"] and
+        record.get("prior_memory_sha256") == prior_memory["graph_hash"] and
+        record.get("last_completed_observation_index") ==
+        last_completed_observation_index and
+        record.get("sealed_before_observation_index") == terminal,
+        "parent request provenance bindings differ",
+    )
+    for name in (
+        "precondition_refs_derived_deterministically_from_public_memory",
+        "request_provenance_established_by_parent_core",
+        "selector_spec_pre_terminal_registration_established",
+    ):
+        _require(record.get(name) is True,
+                 "parent request provenance proof is incomplete")
+    for name in (
+        "caller_supplied_precondition_refs_used",
+        "episode_root_or_raw_path_argument_available",
+        "terminal_public_or_private_frame_opened",
+        "future_observation_opened",
+        "teacher_reference_or_private_identity_used",
+        "consumed_by_D202_temporal_receipt",
+        "clears_D201_temporal_seal_pending",
+    ):
+        _require(record.get(name) is False,
+                 "parent request provenance used a forbidden channel")
+    _hex64(record.get("spec_sha256"), "parent spec_sha256")
+    _hex64(record.get("public_route_sha256"),
+           "parent public_route_sha256")
+    _hex64(record.get("parent_stage_code_sha256"),
+           "parent parent_stage_code_sha256")
+    _hex64(record.get("selector_temporal_receipt_sha256"),
+           "parent selector_temporal_receipt_sha256")
+    return record
 
 
 def make_online_program_plan_request(
@@ -135,6 +194,7 @@ def seal_online_program_construction_plan(
     *, request: Mapping[str, Any], route_plan: Mapping[str, Any],
     prior_memory: Mapping[str, Any], last_completed_observation_index: int,
     materializer_code_sha256: str,
+    parent_request_provenance_receipt: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Create the plan and timing receipt before the terminal frame is read."""
 
@@ -171,8 +231,17 @@ def seal_online_program_construction_plan(
         matcher_config_sha256=registered["matcher_config_sha256"],
         artifact_plan=artifact_plan,
     )
+    parent_receipt = None
+    if parent_request_provenance_receipt is not None:
+        parent_receipt = _validate_parent_request_provenance_receipt(
+            parent_request_provenance_receipt,
+            request=registered,
+            route_plan=route_plan,
+            prior_memory=memory,
+            last_completed_observation_index=last_completed_observation_index,
+        )
     receipt = {
-        "schema_version": RECEIPT_SCHEMA,
+        "schema_version": RECEIPT_SCHEMA_V2 if parent_receipt else RECEIPT_SCHEMA,
         "episode_id": registered["episode_id"],
         "program": registered["program"],
         "request_sha256": registered["request_sha256"],
@@ -189,9 +258,14 @@ def seal_online_program_construction_plan(
         "teacher_opened_before_seal": False,
         "reference_transaction_opened_before_seal": False,
         "private_identity_used": False,
-        "request_provenance_established_by_parent_stage": False,
+        "request_provenance_established_by_parent_stage": parent_receipt is not None,
         "clears_episode_temporal_seal_pending": False,
     }
+    if parent_receipt is not None:
+        receipt["parent_request_provenance_receipt_sha256"] = parent_receipt[
+            "receipt_sha256"
+        ]
+        receipt["parent_request_provenance_consumed_by_D202"] = True
     receipt["receipt_sha256"] = _sha(receipt)
     return {
         "construction_plan": plan,
@@ -203,6 +277,7 @@ def seal_online_program_construction_plan(
 def validate_online_program_plan_seal(
     bundle: Mapping[str, Any], *, request: Mapping[str, Any],
     route_plan: Mapping[str, Any], materializer_code_sha256: str,
+    parent_request_provenance_receipt: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Rebuild a temporal seal from its exact prior memory and request."""
 
@@ -211,7 +286,10 @@ def validate_online_program_plan_seal(
     record = clone_json(dict(bundle))
     receipt = record["temporal_receipt"]
     _require(type(receipt) is dict and
-             receipt.get("schema_version") == RECEIPT_SCHEMA and
+             receipt.get("schema_version") == (
+                 RECEIPT_SCHEMA_V2 if parent_request_provenance_receipt
+                 is not None else RECEIPT_SCHEMA
+             ) and
              receipt.get("receipt_sha256") ==
              _payload_sha(receipt, "receipt_sha256"),
              "online program plan temporal receipt is invalid")
@@ -222,11 +300,13 @@ def validate_online_program_plan_seal(
         "teacher_opened_before_seal",
         "reference_transaction_opened_before_seal",
         "private_identity_used",
-        "request_provenance_established_by_parent_stage",
         "clears_episode_temporal_seal_pending",
     ):
         _require(receipt.get(name) is False,
                  "online plan temporal receipt used a forbidden channel")
+    _require(receipt.get("request_provenance_established_by_parent_stage") is
+             (parent_request_provenance_receipt is not None),
+             "online plan parent provenance state changed")
     rebuilt = seal_online_program_construction_plan(
         request=request, route_plan=route_plan,
         prior_memory=record["matcher_prior_memory"],
@@ -234,6 +314,7 @@ def validate_online_program_plan_seal(
             "last_completed_observation_index"
         ],
         materializer_code_sha256=materializer_code_sha256,
+        parent_request_provenance_receipt=parent_request_provenance_receipt,
     )
     _require(record == rebuilt, "online program plan seal does not reproduce")
     return record
