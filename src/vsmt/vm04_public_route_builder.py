@@ -14,6 +14,7 @@ from cpmt.hashing import clone_json
 
 from .vm04_observation_runner import (
     BRANCH_STATES,
+    FAMILY_LAYERS,
     PROGRAMS,
     ROUTE_SCHEMA,
     WORLD_INTERVENTION_PROGRAMS,
@@ -126,10 +127,17 @@ def build_route_plan_from_public_graph(
     edges: Sequence[Mapping[str, Any]],
     split_merge_artifact_plan: Mapping[str, Any] | None,
     contract: Mapping[str, Any],
+    family_layer: str = "entity",
 ) -> dict[str, Any]:
-    """Return the shortest deterministic route satisfying D-182/D-183."""
+    """Return the shortest deterministic route satisfying D-182/D-183.
+
+    ``family_layer`` selects the D-207 registered action budget: the entity
+    layer keeps the frozen D-182 cap, the place layer gets the longer budget a
+    Z-route needs.
+    """
 
     approved = validate_approved_contract(contract)
+    _require(family_layer in FAMILY_LAYERS, "family layer is not registered")
     _require(program in PROGRAMS, "program is not registered")
     _require(branch_type in BRANCH_STATES, "branch type is not registered")
     _require(type(episode_id) is str and episode_id, "episode_id must be nonempty")
@@ -267,6 +275,7 @@ def build_route_plan_from_public_graph(
                     ),
                     "terminal_reobservation_indices":
                         candidate["reobserved_indices"][-minimum_each:],
+                    "family_layer": family_layer,
                     "split_merge_artifact_plan": (
                         clone_json(split_merge_artifact_plan)
                         if split_merge_artifact_plan is not None else None

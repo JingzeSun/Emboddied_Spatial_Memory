@@ -25,10 +25,10 @@ from vsmt.vm04_observation_runner import make_public_visibility_assessment  # no
 
 
 CONTRACT = json.loads((
-    ROOT / "configs/vsmt/vm04_observation_suitability_v3.json"
+    ROOT / "configs/vsmt/vm04_observation_suitability_v4.json"
 ).read_text(encoding="utf-8"))
 FROZEN_CONTRACT = json.loads((
-    ROOT / "configs/vsmt/vm04_observation_suitability_v3.json"
+    ROOT / "configs/vsmt/vm04_observation_suitability_v4.json"
 ).read_text(encoding="utf-8"))
 SHA = "0" * 64
 SUBJECT_SHA = "a" * 64
@@ -83,6 +83,7 @@ def _plan():
         },
         "intervention_after_observation_index": 3,
         "terminal_reobservation_indices": [4, 5],
+        "family_layer": "entity",
         "split_merge_artifact_plan": None,
     }
     plan["route_plan_sha256"] = _sha(plan)

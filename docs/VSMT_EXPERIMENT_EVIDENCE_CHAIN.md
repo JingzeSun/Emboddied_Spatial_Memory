@@ -62,7 +62,7 @@ D-205 曾把首篇收窄为"不主张地点身份修订"。随后发现那个收
 | 阻断 | 条件未满足时必须失败关闭，不能生成、训练或计入 family |
 | 运行后判断 | 必须依靠真实 pilot、开发、validation 或 confirmation 结果，文档和单测不能预先证明 |
 
-截至 D-206，所有生成、训练和 confirmation 授权仍为 `false`。全部**科学数值**已冻结在活动合同 [v3](../configs/vsmt/vm04_observation_suitability_v3.json)（状态 `d206_place_layer_frozen_artifacts_pending`）：D-205 冻结了动作、时钟、编码、proposal、visibility、matcher、SPLIT/MERGE 与 probe，D-206 追加了 pose 通道、里程计噪声、place 关联与 Z 路线。剩余阻断项只有需要真实产物才能算出的 8 个摘要，以及 §10.2 的 C 类工程接线。v1/v2 保持原字节，不再是活动合同。
+截至 D-207，所有生成、训练和 confirmation 授权仍为 `false`。全部**科学数值**已冻结在活动合同 [v4](../configs/vsmt/vm04_observation_suitability_v4.json)（状态 `d207_place_layer_budget_and_provenance_split_artifacts_pending`）：D-205 冻结了动作、时钟、编码、proposal、visibility、matcher、SPLIT/MERGE 与 probe，D-206 追加了 pose 通道、里程计噪声、place 关联与 Z 路线，D-207 追加了分层路线预算与 provenance 通道分离。剩余阻断项只有需要真实产物才能算出的 8 个摘要，以及 §10.2 的 C 类工程接线。v1/v2/v3 保持原字节，不再是活动合同。
 
 本文件的"当前细粒度指针"（§10.3）是唯一维护处；[PLAN.md](PLAN.md) 只保留阶段级状态并链接到这里，不再重复叙述叶节点。
 
@@ -304,6 +304,8 @@ SPLIT/MERGE 的表面现象很容易由 SAM 随机抖动产生。如果看完结
 | private evaluation | instance identity、真值 mask、真实干预后态、语义判定 | 封存后 evaluator | 评价公开决定，不构造候选 |
 | provenance | raw/materializer/route/plan/receipt/code/config/assets 摘要及失败 | 审计工具；deployment reader 不打开 | 证明时序和来源，不作为模型特征 |
 
+**D-207 的目录语义修正：** sealed route 此前写在 episode 的 `public/` 下，与上表矛盾——`public/` 同时被当成"非私有"和"部署可读"。现在 route 移到 `provenance/route.json`，公开投影另去掉 `initial_pose`/`planned_poses`（验收比的是私有 plan）。留在 provenance 的 `phase_observation_indices`/`branch_type`/`visibility_subject_public_ref` 比 pose 更敏感——它们直接说明这条 episode 在考什么。既有反泄漏测试对这一类失明（route 本就在公开侧，改私有数据不会改它），因此另立目录不变量：部署可读字节中不得出现世界 pose 数值或 episode phase 结构。
+
 关键不变性是：只改变 private identity、reference 或 future，而保持 public 相同，prior、selector request、candidate catalog、候选顺序和在线 logits 必须不变。private 标签允许变化，因为它正是独立评价内容。
 
 ## 8. L0、L1、L2 各自回答什么
@@ -369,7 +371,7 @@ history 门失败说明终帧已经泄露答案或历史无辨识力；oracle re
 
 teacher 本身给错分时另记 teacher error；executor 拒绝 reference 时另记语义或执行合同错误。
 
-## 10. 当前实现地图（截至 D-206）
+## 10. 当前实现地图（截至 D-207）
 
 ### 10.1 已有并保留的底座
 
@@ -476,6 +478,7 @@ D-201→D-204 时间封存链（纯核心可复算，仍 temporal_seal_pending�
 | selector与父来源时间链 | D-204（实现候选） | selector提前seal，并把D-203 v2 provenance接入D-202 v2；生产接线和D-201消费仍缺 |
 | 数值冻结与首篇口径 | D-205 | 科学裁决一次性冻结、阻断项按性质分 A/B/C、place 收窄、pilot 只报告诊断与 SPLIT/MERGE 成品率下限、family 完成度机械派生 |
 | 地点层 oracle 收回 | D-206 | 公开 pose 改相对带噪里程计、place 变可学习、Z 路线 family、CFO 掩码补漏、oracle 诊断臂 |
+| 分层预算与通道分离 | D-207 | 地点层 64 步/实体层 24 步、route 移入 provenance、公开投影去世界锚点、目录不变量 |
 
 ## 13. 为什么新版 VM-04 比第一次复杂
 

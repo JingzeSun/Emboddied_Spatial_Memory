@@ -42,11 +42,19 @@ HEX64 = re.compile(r"^[0-9a-f]{64}$")
 REVIEW_ONLY_STATUS = "d183_design_and_numeric_values_approved_schema_review_only"
 NUMERIC_FROZEN_STATUS = "d205_numeric_frozen_artifacts_pending"
 PLACE_LAYER_STATUS = "d206_place_layer_frozen_artifacts_pending"
+BUDGET_SPLIT_STATUS = (
+    "d207_place_layer_budget_and_provenance_split_artifacts_pending"
+)
 EXECUTABLE_STATUS = "d183_frozen_executable"
+PLACE_LAYER_STATUSES = frozenset({
+    PLACE_LAYER_STATUS, BUDGET_SPLIT_STATUS, EXECUTABLE_STATUS,
+})
 FROZEN_STATUSES = frozenset({
-    NUMERIC_FROZEN_STATUS, PLACE_LAYER_STATUS, EXECUTABLE_STATUS,
+    NUMERIC_FROZEN_STATUS, PLACE_LAYER_STATUS, BUDGET_SPLIT_STATUS,
+    EXECUTABLE_STATUS,
 })
 PILOT_COMPLETION_SCHEMA = "vsmt-vm04-pilot-family-completion-v1"
+FAMILY_LAYERS = frozenset({"entity", "place"})
 
 
 class ObservationConstructionError(ValueError):
@@ -88,7 +96,7 @@ def validate_approved_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     authorization = record.get("authorization")
     _require(type(authorization) is dict and authorization,
              "authorization section is missing")
-    if status in {REVIEW_ONLY_STATUS, NUMERIC_FROZEN_STATUS, PLACE_LAYER_STATUS}:
+    if status != EXECUTABLE_STATUS:
         _require(all(value is False for value in authorization.values()),
                  "review contract must keep every execution authorization closed")
 
@@ -155,7 +163,7 @@ def validate_approved_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
              level["L1_result_may_admit_L2_main_table"] is False,
              "L1/L2 evidence-level boundary changed")
     l2_receipt = level["reviewed_L2_frontend_receipt_sha256"]
-    if status in {REVIEW_ONLY_STATUS, NUMERIC_FROZEN_STATUS, PLACE_LAYER_STATUS}:
+    if status != EXECUTABLE_STATUS:
         _require(
             level["current_implemented_frontend"] ==
             "L1_oracle_entity_masks_plus_public_geometry" and
@@ -293,7 +301,7 @@ def validate_approved_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
              is False, "post-hoc SPLIT/MERGE labels must remain forbidden")
     if status in FROZEN_STATUSES:
         _validate_d205_numeric_freeze(record)
-    if status in {PLACE_LAYER_STATUS, EXECUTABLE_STATUS}:
+    if status in PLACE_LAYER_STATUSES:
         _validate_d206_place_layer(record)
     return record
 
@@ -1001,6 +1009,33 @@ def validate_visibility_builder_receipt_binding(
     return clone_json(dict(receipt))
 
 
+def _route_step_budget(approved: Mapping[str, Any], family_layer: str) -> int:
+    """Return the registered action budget for this family layer (D-207).
+
+    The entity layer keeps the D-182 value of 24 unchanged.  The place layer
+    gets its own budget because a Z-route through two corridors and a
+    connecting segment needs roughly fifty registered actions at 0.25 m and 30
+    degrees per action, so it could not be expressed under the entity cap.
+    """
+
+    trajectory = approved["observation_trajectory"]
+    entity_budget = trajectory["frozen_numeric_values"]["maximum_route_steps"]
+    by_layer = trajectory.get("maximum_route_steps_by_family_layer")
+    if by_layer is None:
+        _require(family_layer == "entity",
+                 "this contract registers no place-layer route budget")
+        return int(entity_budget)
+    _require(type(by_layer) is dict and set(by_layer) == FAMILY_LAYERS,
+             "route step budgets must cover exactly the registered layers")
+    _require(by_layer["entity"] == entity_budget,
+             "the entity-layer budget must stay the frozen D-182 value")
+    budget = by_layer[family_layer]
+    _require(type(budget) is int and budget >= entity_budget,
+             "a family layer budget must be a positive integer at least the "
+             "entity budget")
+    return int(budget)
+
+
 def validate_route_plan(plan: Mapping[str, Any], *, contract: Mapping[str, Any]) -> dict[str, Any]:
     """Validate the private construction plan that binds a public route."""
 
@@ -1011,10 +1046,12 @@ def validate_route_plan(plan: Mapping[str, Any], *, contract: Mapping[str, Any])
         "visibility_subject_seal_sha256", "visibility_builder_config_sha256",
         "initial_pose", "registered_actions", "phase_observation_indices", "planned_poses",
         "intervention_after_observation_index", "terminal_reobservation_indices",
-        "split_merge_artifact_plan", "route_plan_sha256",
+        "split_merge_artifact_plan", "family_layer", "route_plan_sha256",
     }
     _require(set(plan) == expected, "route plan has unexpected fields")
     _require(plan["schema_version"] == ROUTE_SCHEMA, "wrong route plan schema")
+    _require(plan["family_layer"] in FAMILY_LAYERS,
+             "route plan must declare a registered family layer")
     _require(type(plan["episode_id"]) is str and plan["episode_id"],
              "episode_id must be nonempty")
     program = plan["program"]
@@ -1037,8 +1074,7 @@ def validate_route_plan(plan: Mapping[str, Any], *, contract: Mapping[str, Any])
 
     actions = plan["registered_actions"]
     allowed = set(approved["observation_trajectory"]["registered_post_initial_actions"])
-    maximum_steps = approved["observation_trajectory"][
-        "frozen_numeric_values"]["maximum_route_steps"]
+    maximum_steps = _route_step_budget(approved, plan["family_layer"])
     _require(type(actions) is list and 1 <= len(actions) <= maximum_steps,
              "registered route length is outside the frozen bound")
     _require(all(type(row) is dict and set(row) == {"step_index", "action"}
@@ -1124,13 +1160,22 @@ def validate_route_plan(plan: Mapping[str, Any], *, contract: Mapping[str, Any])
 def public_route_projection(
     plan: Mapping[str, Any], *, contract: Mapping[str, Any],
 ) -> dict[str, Any]:
-    """Remove program and artifact assignments from the observable route file."""
+    """Strip program, artifact assignment and world pose from the route file.
+
+    D-207: this projection is a *provenance* record, not a deployment input.
+    The world-frame ``initial_pose`` and ``planned_poses`` are dropped because
+    route acceptance scores the actual pose against the private route plan,
+    which keeps both, so the projection never needed them and publishing them
+    would leave a world-frame anchor on the non-private side.
+    """
 
     route = validate_route_plan(plan, contract=contract)
     public = {
         "schema_version": PUBLIC_ROUTE_SCHEMA,
         "consumer_scope": "construction_provenance_only_not_adapter_input",
+        "world_pose_excluded": True,
         "episode_id": route["episode_id"],
+        "family_layer": route["family_layer"],
         "branch_type": route["branch_type"],
         "visibility_subject_kind": route["visibility_subject_kind"],
         "visibility_subject_public_ref": route["visibility_subject_public_ref"],
@@ -1138,10 +1183,8 @@ def public_route_projection(
             route["visibility_subject_seal_sha256"],
         "visibility_builder_config_sha256":
             route["visibility_builder_config_sha256"],
-        "initial_pose": route["initial_pose"],
         "registered_actions": route["registered_actions"],
         "phase_observation_indices": route["phase_observation_indices"],
-        "planned_poses": route["planned_poses"],
         "intervention_after_observation_index":
             route["intervention_after_observation_index"],
         "terminal_reobservation_indices":

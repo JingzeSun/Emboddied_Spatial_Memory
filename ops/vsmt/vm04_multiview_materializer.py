@@ -138,7 +138,7 @@ def _validate_manifests(episode_root: Path) -> tuple[dict[str, Any], dict[str, A
     terminal_path = episode_root / "public/raw.terminal.json"
     private_terminal_path = episode_root / "private/raw.terminal.json"
     route_path = episode_root / "private/route-plan.json"
-    public_route_path = episode_root / "public/route.json"
+    public_route_path = episode_root / "provenance/route.json"
     _require(public_path.is_file() and private_path.is_file() and
              terminal_path.is_file() and private_terminal_path.is_file() and
              route_path.is_file() and public_route_path.is_file(),
@@ -462,7 +462,7 @@ def materialize_episode_core(
         for index, (public_row, private_row) in enumerate(zip(
                 public_manifest["frames"], private_manifest["frames"])):
             _load_verified_frame(episode_root, index, public_row, private_row)
-        public_route = _read_json(episode_root / "public/route.json")
+        public_route = _read_json(episode_root / "provenance/route.json")
         sequence = _validated_sequence_result(
             materialize_frame,
             packets=packets,
@@ -540,7 +540,7 @@ def verify_materialized_episode(
         "receipt_sha256": _sha_file(receipt_path),
     }, "materializer success marker does not bind the receipt")
     route = _read_json(episode_root / "private/route-plan.json")
-    public_route = _read_json(episode_root / "public/route.json")
+    public_route = _read_json(episode_root / "provenance/route.json")
     _require(receipt["episode_id"] == public_manifest["episode_id"] and
              receipt["route_plan_sha256"] == route["route_plan_sha256"] and
              receipt["raw_episode_manifest_sha256"] == _sha_file(

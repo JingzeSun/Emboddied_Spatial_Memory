@@ -120,6 +120,7 @@ def _route(program="RELINK", branch="natural_occlusion_then_reobservation"):
             else None
         ),
         "terminal_reobservation_indices": [4, 5],
+        "family_layer": "entity",
         "split_merge_artifact_plan": artifact,
     }
     plan["route_plan_sha256"] = _sha(plan)

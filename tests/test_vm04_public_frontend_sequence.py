@@ -54,22 +54,19 @@ def context_bundle() -> dict:
     route = {
         "schema_version": "vsmt-vm04-public-observation-route-v1",
         "consumer_scope": "construction_provenance_only_not_adapter_input",
+        "world_pose_excluded": True,
         "episode_id": "episode:sequence",
+        "family_layer": "entity",
         "branch_type": "out_of_view_then_reobservation",
         "visibility_subject_kind": "target_track",
         "visibility_subject_public_ref": "subject:0001",
         "visibility_subject_seal_sha256": "a" * 64,
         "visibility_builder_config_sha256": "b" * 64,
-        "initial_pose": {"x_m": 0.0, "y_m": 0.9, "z_m": 0.0, "yaw_deg": 0.0},
         "registered_actions": [{"step_index": 0, "action": "MoveAhead"}],
         "phase_observation_indices": {
             "precondition_visible": [0, 1],
             "challenge_hidden": [0, 1],
             "reobserved": [0, 1],
-        },
-        "planned_poses": {
-            name: {"x_m": 0.0, "y_m": 0.9, "z_m": 0.0, "yaw_deg": 0.0}
-            for name in ("precondition", "challenge", "reobservation")
         },
         "intervention_after_observation_index": None,
         "terminal_reobservation_indices": [0, 1],

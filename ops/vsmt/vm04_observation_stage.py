@@ -36,7 +36,7 @@ from vsmt.vm04_materializer_code_manifest import (  # noqa: E402
 )
 
 
-CONFIG = ROOT / "configs" / "vsmt" / "vm04_observation_suitability_v3.json"
+CONFIG = ROOT / "configs" / "vsmt" / "vm04_observation_suitability_v4.json"
 LEGACY_CONFIGS = (
     ROOT / "configs" / "vsmt" / "vm04_observation_suitability_v2.json",
     ROOT / "configs" / "vsmt" / "vm04_observation_suitability_proposal_v1.json",

@@ -209,7 +209,7 @@ class FixtureSequenceMaterializer:
             self.packets, config=self.config, builder_code_sha256=CODE_SHA,
         )
         route = json.loads((
-            self.episode_root / "public/route.json"
+            self.episode_root / "provenance/route.json"
         ).read_text(encoding="utf-8"))
         actions = sorted(REGISTERED_ACTIONS)
         bundle = make_public_frame_contexts(

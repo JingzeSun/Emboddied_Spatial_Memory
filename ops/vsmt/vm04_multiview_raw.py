@@ -192,9 +192,13 @@ class RawEpisodeStore:
         self.public_route = public_route_projection(plan, contract=contract)
         self.public_root = self.root / "public"
         self.private_root = self.root / "private"
+        self.provenance_root = self.root / "provenance"
         self.public_root.mkdir(parents=True)
         self.private_root.mkdir()
-        _write_new_json(self.public_root / "route.json", self.public_route)
+        self.provenance_root.mkdir()
+        # D-207: the route is a provenance record, not a deployment input, so
+        # public/ now means deployment readable and nothing else.
+        _write_new_json(self.provenance_root / "route.json", self.public_route)
         _write_new_json(self.private_root / "route-plan.json", self.route)
         self.public_frames: list[dict[str, Any]] = []
         self.private_frames: list[dict[str, Any]] = []
@@ -333,7 +337,7 @@ class RawEpisodeStore:
             "schema_version": "vsmt-vm04-raw-public-episode-manifest-v1",
             "episode_id": self.route["episode_id"],
             "public_route_file_sha256": _sha_file(
-                self.public_root / "route.json"),
+                self.provenance_root / "route.json"),
             "frame_count": len(self.public_frames),
             "frames": self.public_frames,
             "public_terminal_sha256": _sha_file(public_terminal_path),

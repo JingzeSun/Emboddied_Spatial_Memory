@@ -1973,3 +1973,17 @@
 - 预期代价，事前记录：噪声会让部分 episode 的公开证据不足以支撑任何合法程序，构造成品率下降，六个 pilot family 更容易触发 0–3 的停止规则。用户已在知情下选择科学分量优先。若 pilot 因此停止，按既有规则另开合同版本，**不得调小噪声来提高成品率**。
 - 是否接触 test 信息：否。未生成数据、未运行模拟器、未训练、未读取 validation/confirmation。
 - 验证方式：[`tests/test_vm04_d206_place_layer.py`](../tests/test_vm04_d206_place_layer.py) 17 项本地通过，覆盖 v2 字节未变、授权全闭、不新增产物摘要、真值 pose 不得回到公开 packet、噪声为正且不可上调、**零噪声被拒绝**（否则退化为积分题）、place 不能同时可学又是骨架、退役骨架必须使place可学、每个可学结构类型都要有自己的关联规则、CFO 不得重新获得 pose、Z 路线不得去掉后续判别、oracle 臂不得进主表、D-205 冻结值未漂移、新增阻断项仅为工程类。服务器全量回归与用户代码审查仍 pending。
+
+## D-207：地点层路线预算与 provenance 通道分离
+
+- 日期：2026-09-17；状态：科学数值与通道边界已冻结，实现待用户审查，全部授权位仍为 false。用户批准两件事：地点层路线步数上限提到 64（实体层保持 24），以及立即处理 `public/route.json` 的残留隐患。合同为从 v3 逐字段派生的 [v4](../configs/vsmt/vm04_observation_suitability_v4.json)（v3 保持原字节，SHA-256=`31d2e156b8a4c1ca39837aadc004c804a3e016e0bf9d55c0d211f96054130723`），状态 `d207_place_layer_budget_and_provenance_split_artifacts_pending`。D-205 的数值冻结与 A/B/C 阻断项分类、D-206 的 pose 通道与 place 层全部保留。
+- **发现的硬冲突：D-206 的 Z 路线在 D-182 合同下无法表达。** 冻结的 Z 几何是走廊 4 m ＋ 连接段 3 m ＋ 走廊 4 m 加两次 90° 转弯；按已冻结的 0.25 m/步、30°/步展开需要 44 个平移加 6 个旋转共 **50 步**，而 D-182 冻结的 `maximum_route_steps=24`。24 这个值是为实体层"可见→遮挡→重现"短分支定的，当时还没有地点层 family。
+- **同一个数字还决定科学分量。** 实测漂移：24 步（行进 4.5 m）时航向漂移在臂长上的横向误差约 0.16 m，远小于 0.5 m 的 place 格，place 身份**永远不会真正含糊**；64 步（行进 14.5 m）时约 0.50 m，恰好一个格。所以让 Z 路线可表达的同一个改动，也把漂移带进了地点身份开始真正不确定的量级。
+- **处理方式：分层预算，不动 D-182 的已批准值。** 新增 `maximum_route_steps_by_family_layer = {entity: 24, place: 64}`；`frozen_numeric_values.maximum_route_steps` 保持 24 逐字节不变，验证器要求分层表里的 entity 项必须等于它。route plan 新增必填 `family_layer` 字段，`_route_step_budget` 按层选预算。白话：实体层的规则一个字没改，地点层是新增的预算，不是放宽旧的。
+- **提步数的代价是成品率，不是精度——这一点必须写清楚，因为它容易和第一次 VM-04 的失败混淆。** 路线验收只在 precondition/challenge/reobservation 三个锚点逐点绝对比较实际 pose 与计划 pose，**不累积**；AI2-THOR 的离散动作要么精确成功要么被挡住失败（后者由 `registered_camera_action_success` 直接判路线失败）。所以更长的路线不会让每个锚点变得更不准，只会提高"某一个动作被挡住"的概率。缓解办法是每个计划步必须落在实测可达格上，在封存路线之前就排掉绝大多数阻挡；**不得通过放宽容差提高成品率**。
+- **与 D-169 那次失败的区分。** 第一次 VM-04 的误差失败是**物体终态误差**：`TeleportObject(forceAction=true)` 返回成功但物体真实 x 比请求少 `0.049812 m`、z 少 `0.014230 m`，超过 5 mm 容差记 `terminal_poststate_mismatch`。D-171/D-172 已把根因钉死为物体被传送进被占据的位置、物理结算把它推出约 5 cm（同请求改 `forceAction=false` 被明确拒绝并写"传送后与另一件物体碰撞"，请求前暂停物理则三轴误差全零）。**那是落点选址问题，与路线长度无关**，后续干预执行器必须先用公开 free-space 证据验证落点为空并使用非强制动作，被拒绝就记构造失败。
+- **provenance 通道分离。** 此前 sealed route 写在 episode 的 `public/` 目录下，而证据链 §7 的五通道模型明确把 route/plan/receipt 归在 **provenance 通道**，其读取规则是"deployment reader 不打开"。也就是说 `public/` 同时被当成"非私有"和"部署可读"，这两个含义不一样。现在 route 文件移到 `provenance/route.json`，`public/` 从此只意味着部署可读。
+- **公开投影同时去掉世界锚点。** `initial_pose` 与 `planned_poses` 从公开投影删除——路线验收比的是**私有** route plan，它保留这两项，所以公开投影从来不需要它们。更值得注意的是另外三个字段：`phase_observation_indices` 说明哪几帧是 precondition/challenge_hidden/reobserved，`branch_type` 说明是遮挡还是出视野分支，`visibility_subject_public_ref` 点名干预主体——**泄漏 phase 结构比泄漏 pose 严重**，因为它直接说明这条 episode 在考什么。这三项留在 provenance，不进部署可读侧。
+- **补上一条现有防线抓不到的不变量。** 既有的反泄漏测试是"改私有/参考/未来数据，公开字节必须逐字节不变"；而 route 文件本身就在公开侧，改私有数据不会改它，**所以该测试对这一类泄漏结构性失明**。新增直接的目录不变量：部署可读目录的字节里不得出现任何世界 pose 数值，也不得出现任何 episode phase 结构。
+- 是否接触 test 信息：否。未生成数据、未运行模拟器、未训练、未读取 validation/confirmation。
+- 验证方式：[`tests/test_vm04_d207_provenance_split.py`](../tests/test_vm04_d207_provenance_split.py) 14 项本地通过，覆盖 v3 字节未变、实体预算仍是 D-182 原值且不可经分层表抬高、地点预算覆盖 Z 路线所需步数、实体层拒绝 50 步路线而地点层接受、地点层仍有 64 步天花板、未登记 family layer 被拒、公开投影无世界 pose 而私有 plan 保留、route 写在 provenance 而非 public、**部署可读字节中既无世界 pose 也无 phase 结构**、私有侧仍持有世界真值。VM04/VSMT 全量 480 项通过；服务器全量回归与用户代码审查仍 pending。

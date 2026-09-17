@@ -3,111 +3,312 @@
   "$id": "https://example.org/embodied-memory/vsmt_vm04_observation_construction.schema.json",
   "title": "VSMT VM-04 Post-D-183 Observation Construction Records",
   "oneOf": [
-    {"$ref": "#/$defs/sourcePool"},
-    {"$ref": "#/$defs/formalSelection"},
-    {"$ref": "#/$defs/privateRoutePlan"},
-    {"$ref": "#/$defs/publicRoute"},
-    {"$ref": "#/$defs/routeReceipt"},
-    {"$ref": "#/$defs/constructionVerdict"}
+    {
+      "$ref": "#/$defs/sourcePool"
+    },
+    {
+      "$ref": "#/$defs/formalSelection"
+    },
+    {
+      "$ref": "#/$defs/privateRoutePlan"
+    },
+    {
+      "$ref": "#/$defs/publicRoute"
+    },
+    {
+      "$ref": "#/$defs/routeReceipt"
+    },
+    {
+      "$ref": "#/$defs/constructionVerdict"
+    }
   ],
   "$defs": {
-    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
     "pose": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["x_m", "y_m", "z_m", "yaw_deg"],
+      "required": [
+        "x_m",
+        "y_m",
+        "z_m",
+        "yaw_deg"
+      ],
       "properties": {
-        "x_m": {"type": "number"},
-        "y_m": {"type": "number"},
-        "z_m": {"type": "number"},
-        "yaw_deg": {"type": "number"}
+        "x_m": {
+          "type": "number"
+        },
+        "y_m": {
+          "type": "number"
+        },
+        "z_m": {
+          "type": "number"
+        },
+        "yaw_deg": {
+          "type": "number"
+        }
       }
     },
     "action": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["step_index", "action"],
+      "required": [
+        "step_index",
+        "action"
+      ],
       "properties": {
-        "step_index": {"type": "integer", "minimum": 0, "maximum": 23},
-        "action": {"enum": ["MoveAhead", "MoveBack", "MoveLeft", "MoveRight", "RotateLeft", "RotateRight", "LookUp", "LookDown"]}
+        "step_index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 23
+        },
+        "action": {
+          "enum": [
+            "MoveAhead",
+            "MoveBack",
+            "MoveLeft",
+            "MoveRight",
+            "RotateLeft",
+            "RotateRight",
+            "LookUp",
+            "LookDown"
+          ]
+        }
       }
     },
     "phaseIndices": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["precondition_visible", "challenge_hidden", "reobserved"],
+      "required": [
+        "precondition_visible",
+        "challenge_hidden",
+        "reobserved"
+      ],
       "properties": {
-        "precondition_visible": {"type": "array", "minItems": 2, "uniqueItems": true, "items": {"type": "integer", "minimum": 0}},
-        "challenge_hidden": {"type": "array", "minItems": 2, "uniqueItems": true, "items": {"type": "integer", "minimum": 0}},
-        "reobserved": {"type": "array", "minItems": 2, "uniqueItems": true, "items": {"type": "integer", "minimum": 0}}
+        "precondition_visible": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "challenge_hidden": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "reobserved": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
       }
     },
     "plannedPoses": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["precondition", "challenge", "reobservation"],
+      "required": [
+        "precondition",
+        "challenge",
+        "reobservation"
+      ],
       "properties": {
-        "precondition": {"$ref": "#/$defs/pose"},
-        "challenge": {"$ref": "#/$defs/pose"},
-        "reobservation": {"$ref": "#/$defs/pose"}
+        "precondition": {
+          "$ref": "#/$defs/pose"
+        },
+        "challenge": {
+          "$ref": "#/$defs/pose"
+        },
+        "reobservation": {
+          "$ref": "#/$defs/pose"
+        }
       }
     },
     "artifactPlan": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["program", "assignment_sealed_before_generation", "geometry_parameters_sha256", "frontend_criteria_sha256"],
+      "required": [
+        "program",
+        "assignment_sealed_before_generation",
+        "geometry_parameters_sha256",
+        "frontend_criteria_sha256"
+      ],
       "properties": {
-        "program": {"enum": ["SPLIT", "MERGE"]},
-        "assignment_sealed_before_generation": {"const": true},
-        "geometry_parameters_sha256": {"$ref": "#/$defs/sha256"},
-        "frontend_criteria_sha256": {"$ref": "#/$defs/sha256"}
+        "program": {
+          "enum": [
+            "SPLIT",
+            "MERGE"
+          ]
+        },
+        "assignment_sealed_before_generation": {
+          "const": true
+        },
+        "geometry_parameters_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "frontend_criteria_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
       }
     },
     "visibilityAssessment": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["schema_version", "subject_public_ref", "subject_reference_sealed_before_frame", "projected_public_sample_count", "unoccluded_public_sample_count", "current_public_support_sha256", "terminal_reobservation_phase", "visibility_state", "private_mask_or_instance_id_used", "assessment_sha256"],
+      "required": [
+        "schema_version",
+        "subject_public_ref",
+        "subject_reference_sealed_before_frame",
+        "projected_public_sample_count",
+        "unoccluded_public_sample_count",
+        "current_public_support_sha256",
+        "terminal_reobservation_phase",
+        "visibility_state",
+        "private_mask_or_instance_id_used",
+        "assessment_sha256"
+      ],
       "properties": {
-        "schema_version": {"const": "vsmt-vm04-public-visibility-assessment-v1"},
-        "subject_public_ref": {"type": "string", "minLength": 1},
-        "subject_reference_sealed_before_frame": {"const": true},
-        "projected_public_sample_count": {"type": "integer", "minimum": 0},
-        "unoccluded_public_sample_count": {"type": "integer", "minimum": 0},
-        "current_public_support_sha256": {"oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
-        "terminal_reobservation_phase": {"type": "boolean"},
-        "visibility_state": {"enum": ["visible", "occluded", "out_of_view", "reobserved"]},
-        "private_mask_or_instance_id_used": {"const": false},
-        "assessment_sha256": {"$ref": "#/$defs/sha256"}
+        "schema_version": {
+          "const": "vsmt-vm04-public-visibility-assessment-v1"
+        },
+        "subject_public_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subject_reference_sealed_before_frame": {
+          "const": true
+        },
+        "projected_public_sample_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unoccluded_public_sample_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "current_public_support_sha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "terminal_reobservation_phase": {
+          "type": "boolean"
+        },
+        "visibility_state": {
+          "enum": [
+            "visible",
+            "occluded",
+            "out_of_view",
+            "reobserved"
+          ]
+        },
+        "private_mask_or_instance_id_used": {
+          "const": false
+        },
+        "assessment_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
       }
     },
     "visibilityBuilderReceipt": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["schema_version", "subject_seal_sha256", "current_observation_index", "current_public_depth_sha256", "camera_calibration_and_pose_sha256", "config_sha256", "assessment_sha256", "invalid_or_missing_depth_treated_as_unoccluded", "receipt_sha256"],
+      "required": [
+        "schema_version",
+        "subject_seal_sha256",
+        "current_observation_index",
+        "current_public_depth_sha256",
+        "camera_calibration_and_pose_sha256",
+        "config_sha256",
+        "assessment_sha256",
+        "invalid_or_missing_depth_treated_as_unoccluded",
+        "receipt_sha256"
+      ],
       "properties": {
-        "schema_version": {"const": "vsmt-vm04-public-visibility-builder-receipt-v1"},
-        "subject_seal_sha256": {"$ref": "#/$defs/sha256"},
-        "current_observation_index": {"type": "integer", "minimum": 0},
-        "current_public_depth_sha256": {"$ref": "#/$defs/sha256"},
-        "camera_calibration_and_pose_sha256": {"$ref": "#/$defs/sha256"},
-        "config_sha256": {"$ref": "#/$defs/sha256"},
-        "assessment_sha256": {"$ref": "#/$defs/sha256"},
-        "invalid_or_missing_depth_treated_as_unoccluded": {"const": true},
-        "receipt_sha256": {"$ref": "#/$defs/sha256"}
+        "schema_version": {
+          "const": "vsmt-vm04-public-visibility-builder-receipt-v1"
+        },
+        "subject_seal_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "current_observation_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "current_public_depth_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "camera_calibration_and_pose_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "config_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "assessment_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "invalid_or_missing_depth_treated_as_unoccluded": {
+          "const": true
+        },
+        "receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
       }
     },
     "sourcePool": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["schema_version", "source_manifest_sha256", "selection_seed", "eligible_house_count", "sealed_pool_count", "pilot_count", "maximum_formal_candidate_count", "houses", "manifest_sha256"],
+      "required": [
+        "schema_version",
+        "source_manifest_sha256",
+        "selection_seed",
+        "eligible_house_count",
+        "sealed_pool_count",
+        "pilot_count",
+        "maximum_formal_candidate_count",
+        "houses",
+        "manifest_sha256"
+      ],
       "properties": {
-        "schema_version": {"const": "vsmt-vm04-observation-source-pool-v1"},
-        "source_manifest_sha256": {"$ref": "#/$defs/sha256"},
-        "selection_seed": {"type": "integer", "minimum": 0},
-        "eligible_house_count": {"type": "integer", "minimum": 70},
-        "sealed_pool_count": {"const": 70},
-        "pilot_count": {"const": 6},
-        "maximum_formal_candidate_count": {"const": 64},
+        "schema_version": {
+          "const": "vsmt-vm04-observation-source-pool-v1"
+        },
+        "source_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "selection_seed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "eligible_house_count": {
+          "type": "integer",
+          "minimum": 70
+        },
+        "sealed_pool_count": {
+          "const": 70
+        },
+        "pilot_count": {
+          "const": 6
+        },
+        "maximum_formal_candidate_count": {
+          "const": 64
+        },
         "houses": {
           "type": "array",
           "minItems": 70,
@@ -115,103 +316,361 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["pool_index", "cohort", "source_house_id", "source_house_commitment"],
+            "required": [
+              "pool_index",
+              "cohort",
+              "source_house_id",
+              "source_house_commitment"
+            ],
             "properties": {
-              "pool_index": {"type": "integer", "minimum": 0, "maximum": 69},
-              "cohort": {"enum": ["pilot", "formal_candidate"]},
-              "source_house_id": {"type": "string", "minLength": 1},
-              "source_house_commitment": {"$ref": "#/$defs/sha256"}
+              "pool_index": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 69
+              },
+              "cohort": {
+                "enum": [
+                  "pilot",
+                  "formal_candidate"
+                ]
+              },
+              "source_house_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source_house_commitment": {
+                "$ref": "#/$defs/sha256"
+              }
             }
           }
         },
-        "manifest_sha256": {"$ref": "#/$defs/sha256"}
+        "manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
       }
     },
     "formalSelection": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["schema_version", "source_pool_manifest_sha256", "pilot_completed_families", "status", "formal_source_house_count", "selected_pool_indices", "selected_source_house_commitments", "pilot_inputs_used", "CFO_history_or_oracle_inputs_used", "formal_failure_replacement_allowed", "manifest_sha256"],
+      "required": [
+        "schema_version",
+        "source_pool_manifest_sha256",
+        "pilot_completed_families",
+        "status",
+        "formal_source_house_count",
+        "selected_pool_indices",
+        "selected_source_house_commitments",
+        "pilot_inputs_used",
+        "CFO_history_or_oracle_inputs_used",
+        "formal_failure_replacement_allowed",
+        "manifest_sha256"
+      ],
       "properties": {
-        "schema_version": {"const": "vsmt-vm04-observation-formal-selection-v1"},
-        "source_pool_manifest_sha256": {"$ref": "#/$defs/sha256"},
-        "pilot_completed_families": {"type": "integer", "minimum": 0, "maximum": 6},
-        "status": {"enum": ["sealed", "stopped_new_contract_required"]},
-        "formal_source_house_count": {"enum": [0, 48, 64]},
-        "selected_pool_indices": {"type": "array", "items": {"type": "integer", "minimum": 6, "maximum": 69}},
-        "selected_source_house_commitments": {"type": "array", "items": {"$ref": "#/$defs/sha256"}},
-        "pilot_inputs_used": {"const": "construction_completion_boolean_only"},
-        "CFO_history_or_oracle_inputs_used": {"const": false},
-        "formal_failure_replacement_allowed": {"const": false},
-        "manifest_sha256": {"$ref": "#/$defs/sha256"}
+        "schema_version": {
+          "const": "vsmt-vm04-observation-formal-selection-v1"
+        },
+        "source_pool_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "pilot_completed_families": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6
+        },
+        "status": {
+          "enum": [
+            "sealed",
+            "stopped_new_contract_required"
+          ]
+        },
+        "formal_source_house_count": {
+          "enum": [
+            0,
+            48,
+            64
+          ]
+        },
+        "selected_pool_indices": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 6,
+            "maximum": 69
+          }
+        },
+        "selected_source_house_commitments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/sha256"
+          }
+        },
+        "pilot_inputs_used": {
+          "const": "construction_completion_boolean_only"
+        },
+        "CFO_history_or_oracle_inputs_used": {
+          "const": false
+        },
+        "formal_failure_replacement_allowed": {
+          "const": false
+        },
+        "manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
       }
     },
     "privateRoutePlan": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["schema_version", "episode_id", "program", "branch_type", "visibility_subject_kind", "visibility_subject_public_ref", "visibility_subject_seal_sha256", "visibility_builder_config_sha256", "initial_pose", "registered_actions", "phase_observation_indices", "planned_poses", "intervention_after_observation_index", "terminal_reobservation_indices", "split_merge_artifact_plan", "route_plan_sha256"],
+      "required": [
+        "schema_version",
+        "episode_id",
+        "program",
+        "branch_type",
+        "visibility_subject_kind",
+        "visibility_subject_public_ref",
+        "visibility_subject_seal_sha256",
+        "visibility_builder_config_sha256",
+        "initial_pose",
+        "registered_actions",
+        "phase_observation_indices",
+        "planned_poses",
+        "intervention_after_observation_index",
+        "terminal_reobservation_indices",
+        "family_layer",
+        "split_merge_artifact_plan",
+        "route_plan_sha256"
+      ],
       "properties": {
-        "schema_version": {"const": "vsmt-vm04-observation-route-plan-v1"},
-        "episode_id": {"type": "string", "minLength": 1},
-        "program": {"enum": ["NOOP", "BIND", "BIRTH", "REACTIVATE", "RELINK", "RETRACT", "SPLIT", "MERGE", "REPLACE"]},
-        "branch_type": {"enum": ["natural_occlusion_then_reobservation", "out_of_view_then_reobservation"]},
-        "visibility_subject_kind": {"enum": ["target_track", "reveal_locus", "old_track_and_new_reveal_locus"]},
-        "visibility_subject_public_ref": {"type": "string", "minLength": 1},
-        "visibility_subject_seal_sha256": {"$ref": "#/$defs/sha256"},
-        "visibility_builder_config_sha256": {"$ref": "#/$defs/sha256"},
-        "initial_pose": {"$ref": "#/$defs/pose"},
-        "registered_actions": {"type": "array", "minItems": 1, "maxItems": 24, "items": {"$ref": "#/$defs/action"}},
-        "phase_observation_indices": {"$ref": "#/$defs/phaseIndices"},
-        "planned_poses": {"$ref": "#/$defs/plannedPoses"},
-        "intervention_after_observation_index": {"type": ["integer", "null"], "minimum": 0},
-        "terminal_reobservation_indices": {"type": "array", "minItems": 2, "items": {"type": "integer", "minimum": 0}},
-        "split_merge_artifact_plan": {"oneOf": [{"$ref": "#/$defs/artifactPlan"}, {"type": "null"}]},
-        "route_plan_sha256": {"$ref": "#/$defs/sha256"}
+        "schema_version": {
+          "const": "vsmt-vm04-observation-route-plan-v1"
+        },
+        "episode_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "program": {
+          "enum": [
+            "NOOP",
+            "BIND",
+            "BIRTH",
+            "REACTIVATE",
+            "RELINK",
+            "RETRACT",
+            "SPLIT",
+            "MERGE",
+            "REPLACE"
+          ]
+        },
+        "branch_type": {
+          "enum": [
+            "natural_occlusion_then_reobservation",
+            "out_of_view_then_reobservation"
+          ]
+        },
+        "visibility_subject_kind": {
+          "enum": [
+            "target_track",
+            "reveal_locus",
+            "old_track_and_new_reveal_locus"
+          ]
+        },
+        "visibility_subject_public_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "visibility_subject_seal_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "visibility_builder_config_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "initial_pose": {
+          "$ref": "#/$defs/pose"
+        },
+        "registered_actions": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 24,
+          "items": {
+            "$ref": "#/$defs/action"
+          }
+        },
+        "phase_observation_indices": {
+          "$ref": "#/$defs/phaseIndices"
+        },
+        "planned_poses": {
+          "$ref": "#/$defs/plannedPoses"
+        },
+        "intervention_after_observation_index": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "terminal_reobservation_indices": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "split_merge_artifact_plan": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/artifactPlan"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "route_plan_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "family_layer": {
+          "enum": [
+            "entity",
+            "place"
+          ]
+        }
       }
     },
     "publicRoute": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["schema_version", "consumer_scope", "episode_id", "branch_type", "visibility_subject_kind", "visibility_subject_public_ref", "visibility_subject_seal_sha256", "visibility_builder_config_sha256", "initial_pose", "registered_actions", "phase_observation_indices", "planned_poses", "intervention_after_observation_index", "terminal_reobservation_indices", "private_route_plan_sha256", "public_route_sha256"],
+      "required": [
+        "schema_version",
+        "consumer_scope",
+        "family_layer",
+        "world_pose_excluded",
+        "episode_id",
+        "branch_type",
+        "visibility_subject_kind",
+        "visibility_subject_public_ref",
+        "visibility_subject_seal_sha256",
+        "visibility_builder_config_sha256",
+        "registered_actions",
+        "phase_observation_indices",
+        "intervention_after_observation_index",
+        "terminal_reobservation_indices",
+        "private_route_plan_sha256",
+        "public_route_sha256"
+      ],
       "properties": {
-        "schema_version": {"const": "vsmt-vm04-public-observation-route-v1"},
-        "consumer_scope": {"const": "construction_provenance_only_not_adapter_input"},
-        "episode_id": {"type": "string", "minLength": 1},
-        "branch_type": {"type": "string"},
-        "visibility_subject_kind": {"type": "string"},
-        "visibility_subject_public_ref": {"type": "string"},
-        "visibility_subject_seal_sha256": {"$ref": "#/$defs/sha256"},
-        "visibility_builder_config_sha256": {"$ref": "#/$defs/sha256"},
-        "initial_pose": {"$ref": "#/$defs/pose"},
-        "registered_actions": {"type": "array", "items": {"$ref": "#/$defs/action"}},
-        "phase_observation_indices": {"$ref": "#/$defs/phaseIndices"},
-        "planned_poses": {"$ref": "#/$defs/plannedPoses"},
-        "intervention_after_observation_index": {"type": ["integer", "null"]},
-        "terminal_reobservation_indices": {"type": "array", "items": {"type": "integer"}},
-        "private_route_plan_sha256": {"$ref": "#/$defs/sha256"},
-        "public_route_sha256": {"$ref": "#/$defs/sha256"}
+        "schema_version": {
+          "const": "vsmt-vm04-public-observation-route-v1"
+        },
+        "consumer_scope": {
+          "const": "construction_provenance_only_not_adapter_input"
+        },
+        "episode_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "branch_type": {
+          "type": "string"
+        },
+        "visibility_subject_kind": {
+          "type": "string"
+        },
+        "visibility_subject_public_ref": {
+          "type": "string"
+        },
+        "visibility_subject_seal_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "visibility_builder_config_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "registered_actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/action"
+          }
+        },
+        "phase_observation_indices": {
+          "$ref": "#/$defs/phaseIndices"
+        },
+        "intervention_after_observation_index": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "terminal_reobservation_indices": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "private_route_plan_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "public_route_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "world_pose_excluded": {
+          "const": true
+        },
+        "family_layer": {
+          "enum": [
+            "entity",
+            "place"
+          ]
+        }
       }
     },
     "routeReceipt": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["schema_version", "route_plan_sha256", "observations"],
+      "required": [
+        "schema_version",
+        "route_plan_sha256",
+        "observations"
+      ],
       "properties": {
-        "schema_version": {"const": "vsmt-vm04-observation-route-receipt-v1"},
-        "route_plan_sha256": {"$ref": "#/$defs/sha256"},
+        "schema_version": {
+          "const": "vsmt-vm04-observation-route-receipt-v1"
+        },
+        "route_plan_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
         "observations": {
           "type": "array",
           "minItems": 1,
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["observation_index", "visibility_assessment", "visibility_builder_receipt", "public_evidence_sha256", "actual_pose", "registered_camera_action_success"],
+            "required": [
+              "observation_index",
+              "visibility_assessment",
+              "visibility_builder_receipt",
+              "public_evidence_sha256",
+              "actual_pose",
+              "registered_camera_action_success"
+            ],
             "properties": {
-              "observation_index": {"type": "integer", "minimum": 0},
-              "visibility_assessment": {"$ref": "#/$defs/visibilityAssessment"},
-              "visibility_builder_receipt": {"$ref": "#/$defs/visibilityBuilderReceipt"},
-              "public_evidence_sha256": {"$ref": "#/$defs/sha256"},
-              "actual_pose": {"$ref": "#/$defs/pose"},
-              "registered_camera_action_success": {"type": "boolean"}
+              "observation_index": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "visibility_assessment": {
+                "$ref": "#/$defs/visibilityAssessment"
+              },
+              "visibility_builder_receipt": {
+                "$ref": "#/$defs/visibilityBuilderReceipt"
+              },
+              "public_evidence_sha256": {
+                "$ref": "#/$defs/sha256"
+              },
+              "actual_pose": {
+                "$ref": "#/$defs/pose"
+              },
+              "registered_camera_action_success": {
+                "type": "boolean"
+              }
             }
           }
         }
@@ -220,16 +679,46 @@
     "constructionVerdict": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["schema_version", "route_plan_sha256", "constructed", "failure_reasons", "failed_route_replacement_allowed", "actual_observation_count", "terminal_reobservation_satisfied", "verdict_sha256"],
+      "required": [
+        "schema_version",
+        "route_plan_sha256",
+        "constructed",
+        "failure_reasons",
+        "failed_route_replacement_allowed",
+        "actual_observation_count",
+        "terminal_reobservation_satisfied",
+        "verdict_sha256"
+      ],
       "properties": {
-        "schema_version": {"const": "vsmt-vm04-observation-construction-verdict-v1"},
-        "route_plan_sha256": {"$ref": "#/$defs/sha256"},
-        "constructed": {"type": "boolean"},
-        "failure_reasons": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
-        "failed_route_replacement_allowed": {"const": false},
-        "actual_observation_count": {"type": "integer", "minimum": 0},
-        "terminal_reobservation_satisfied": {"type": "boolean"},
-        "verdict_sha256": {"$ref": "#/$defs/sha256"}
+        "schema_version": {
+          "const": "vsmt-vm04-observation-construction-verdict-v1"
+        },
+        "route_plan_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "constructed": {
+          "type": "boolean"
+        },
+        "failure_reasons": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "failed_route_replacement_allowed": {
+          "const": false
+        },
+        "actual_observation_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "terminal_reobservation_satisfied": {
+          "type": "boolean"
+        },
+        "verdict_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
       }
     }
   }

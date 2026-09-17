@@ -32,8 +32,8 @@ PUBLIC_ROUTE_KEYS = {
     "schema_version", "consumer_scope", "episode_id", "branch_type",
     "visibility_subject_kind", "visibility_subject_public_ref",
     "visibility_subject_seal_sha256", "visibility_builder_config_sha256",
-    "initial_pose",
-    "registered_actions", "phase_observation_indices", "planned_poses",
+    "world_pose_excluded", "family_layer",
+    "registered_actions", "phase_observation_indices",
     "intervention_after_observation_index", "terminal_reobservation_indices",
     "private_route_plan_sha256", "public_route_sha256",
 }
