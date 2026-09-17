@@ -154,9 +154,16 @@ from .d211_p0_smoke import (
     D211Error,
     assert_single_slot_smoke_authorized,
     build_sealed_route_batch,
+    nominal_route_poses,
+    seal_public_route_evidence,
+    seal_reachable_scan,
     seal_route_execution_binding,
+    seal_scenario_receipt,
     validate_d211_contract,
+    validate_public_route_evidence,
+    validate_reachable_scan,
     validate_route_execution_binding,
+    validate_scenario_receipt,
 )
 
 __all__ = [
@@ -285,7 +292,14 @@ __all__ = [
     "D211Error",
     "assert_single_slot_smoke_authorized",
     "build_sealed_route_batch",
+    "nominal_route_poses",
+    "seal_public_route_evidence",
+    "seal_reachable_scan",
     "seal_route_execution_binding",
+    "seal_scenario_receipt",
     "validate_d211_contract",
+    "validate_public_route_evidence",
+    "validate_reachable_scan",
     "validate_route_execution_binding",
+    "validate_scenario_receipt",
 ]

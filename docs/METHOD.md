@@ -70,15 +70,19 @@ P03/P04/P06/P07/P08 承担地点与拓扑修订的主证据；P01/P02 是工程�
 
 机器实现位于 [`vm04_d210_dual_layer_p0_v1.json`](../configs/vsmt/vm04_d210_dual_layer_p0_v1.json)、[`d210_place_memory.py`](../src/vsmt/d210_place_memory.py) 和 [`vm04_d210_p0_stage.py`](../ops/vsmt/vm04_d210_p0_stage.py)。当前合同状态是 `approved_implementation_not_generation_authorized`，五个授权位全为 false；这些文件是可审实现，不是已生成 12 条 episode、已运行指标或已有论文效果。
 
-#### D-211 两房/路线封存与单槽 raw smoke 执行层（用户已授权范围，实现待审）
+#### D-211/D-212 两房路线封存与单槽 raw smoke（纠偏实现待审）
 
-D-211 不修改 D-210 科学合同，而是在它外面增加最小执行绑定。它解决两个实际问题：D-210 route plan 有完整动作却没有 simulator 起始 pose，无法真实执行；旧 VM-04 raw writer 会重新注入 D-206 的 2% 人工里程计，与 D-210 冲突。输入是已审 D-210 基线、两间已有来源审计的开发 house、12 条只用执行前公开 reachable/RGB-D 构造的完整路线，以及每条路线的私有起始 pose；输出是不可变的公私 manifest、12 个 execution binding，随后只允许 slot 0/P01 产生一条三面隔离的 raw smoke。比如 slot 0 从轴对齐起点执行封存的 0.25 m/90°动作：公开面保存 observation 0 和每个成功动作后的 RGB-D/内参，provenance面保存路线和每次动作请求/成败，private ground-truth面保存同一观察的真实agent/camera pose并绑定公开frame摘要；第二个动作若被挡，三面都只保留已发生前缀和失败回执。它不自动寻找 P01–P08 路线，不把旧 30°/2% noisy-odometry writer搬回来，也不开放剩余 11 条 raw、adapter、private evaluation执行、模型或指标。
+D-211 最初只给 route binding 保存两个调用者提供的摘要和四个布尔声明，且 raw private 只留 pose。D-212 根据用户复核把它改成可复算证据链：输入仍是 D-210 固定两房/12槽、执行前公开 reachable 查询、执行前公开 RGB-D survey、完整动作和私有起点；输出新增完整 reachable-grid 记录、逐观察可达回执、公开 RGB-D 描述记录和 P01–P08 各自的场景收据。比如 P03 必须由动作积分证明终点回到起点且不是精确逆行动作，P06 必须重访同一 junction 且两个 branch endpoint 位于相反支路，P07 两个环除共享中心外不得共享计划格。它不再允许把同一四步路线复制十二次，也不把格式正确的假 SHA 当作路线证据。
 
-两间 source 固定复用 `train:004270` 与 `train:008243`，并绑定既有来源 record SHA-256；这是开发 house，不是 confirmation。route execution binding（路线执行绑定）输入一个 D-210 route digest，输出 `initial_pose + reachable_scan_sha256 + public_rgbd_route_evidence_sha256`；起始 horizon 固定 0°，yaw 必须为 90°倍数，每个平移终点须在执行前由公开 reachable scan 验过。它不把 initial pose 发给模型，也不能仅凭布尔自报取代后续真实 route-construction receipt；当前代码只验证并封存调用者提供的完整 bundle，实际 12 条路线仍须在服务器公共扫描阶段形成。
+P04 不暗中新增外观相似度阈值：在名义距离至少 1.5 m 的公开 survey 对中固定选择 cosine top-1，并记录绝对分数供路线审查；阈值保持 `null`。输入是执行前 RGB-D 派生 descriptor，输出是确定性的候选对。例如三个相距足够远的视角里只封存余弦最高的一对。它不保证该 pair 已达到足以支撑论文主张的绝对视觉混淆强度，真实 route seal 仍需审查画面和分数。
 
-single-slot raw smoke（单槽原始数据冒烟）解决“新动作和writer在真实模拟器上是否能把实验所需三类证据完整且隔离地写出”这个工程问题。输入只限 sealed slot 0、对应 source record 和 fresh controller；输出为：`public`中的 RGB、depth、图像尺寸/FOV/`fx,fy,cx,cy` 内参及frame digest；`provenance`中的完整route、逐动作请求/成功和终止回执；`private`中的每观察 simulator agent/camera世界pose及其公开frame摘要绑定。例如公开第17帧只告诉模型图像和标定，私有第17条可在候选封存后判断定位误差，provenance则能复算第16→17帧执行了什么。它不等于把真值pose喂给连续位姿信念：adapter不得挂载private/provenance，private capture也不等于已经执行private evaluation。instance mask、reference place、loop label、teacher、adapter packet 与 model metric仍不生成。单 worker 是因为获准执行单元只有一个；无墙钟强杀，磁盘安全线仍生效。P01 是control，smoke成功不能成为地点/拓扑headline证据。
+关系新建不再作为第九个原子 `CREATE`：统一 VSMT 中首次添加 `adjacent_to/located_at/contains/supported_by` 等关系编译为 `BIRTH` 的 `ADD_EDGE`，`RELINK` 只用于保留关系身份并修正既有端点。D-210 v1 的 `relation_operations=[CREATE,RELINK]` 保留为历史字节，D-212 已把 P06 两条新支路登记为 `BIRTH_ADD_EDGE_not_RELINK`；后续统一图合同将正式替换旧词。它不把地点 P0 的 `NOOP/BIND/BIRTH/MERGE` 子集冒充完整八原子覆盖：entity/surface/fragment 的 REACTIVATE、RETRACT、SPLIT 及完整关系生命周期仍由后续统一候选链承担。
 
-D-211 机器合同当前为 `authorized_scope_implementation_pending_reviewed_commit`：用户已批准动作范围，但新执行代码仍须形成并经用户审查的 commit，再由后续合同填写 `expected_reviewed_code_commit` 和切换 `frozen_executable_seal_and_single_slot_smoke`。在此之前，`check` 可运行，`seal-routes/run-smoke` 都会在读取外部 route/source 或创建输出之前拒绝。这不是重新索要科学授权，而是落实 D-059 的代码审查门。
+raw 仍分三面，但 private 现在补齐以后无法从 RGB-D 恢复的事实。public 逐帧保存 RGB-D、内参和 frame digest；provenance 为每个 setup/注册动作立即写 append-only journal，含动作/观察序号和单调时钟；private 每帧立即写 agent/camera pose、instance-mask stack、simulator object ID 到稳定私有 entity ID 的映射，以及位置、旋转、visibility、pickup/move 状态和 receptacle 关系，并绑定同一个公开 frame digest。例如进程在第七步硬退出，前六步 action journal 与已完成 private frame 仍可直接审计。它不生成 reference place、loop label、teacher 或模型指标，private 目录也不允许 candidate/model reader 挂载。
+
+两间 source 仍固定为 `train:004270` 与 `train:008243`。controller 显式固定 AI2-THOR 5.0.0、CloudRendering、224×224、垂直 FOV 90°、`gridSize=0.25`、`snapToGrid=true`、`rotateStepDegrees=90`、depth 和 instance segmentation；不依赖安装默认值。单槽 smoke 仍只允许 slot 0/P01，剩余 11 条 raw、adapter、private evaluation、训练、validation、confirmation继续关闭。
+
+D-212 同时修正自引用 Git 门。实现提交保持 expected implementation commit 为 `null`；用户审过后，另做一个只允许修改 v2 合同的 activation commit，并要求其 parent 等于受审实现提交。执行时核验 clean checkout、`HEAD^` 和一文件 allowlist。输入是两个真实可存在的 commit，输出是可验证的执行授权；它不再要求一个 commit 在自身内容中写出自己的 hash。
 
 **D-206/D-207 历史口径（已由 D-210 取代主实验解释）。** D-205 曾因 place 由确定性骨架维护而把首篇收窄为“不主张地点修订”；D-206 随后发现 `camera_pose` 真值泄漏并改用带噪相对 pose，D-207 将地点路线增至 64 步并分离 provenance。这些发现继续有效，但“带噪 pose 量化成 0.5 m 格并把格当地点”的任务会把人为噪声当主要错误来源，且完整固定动作又可被精确积分抵消。故 D-210 保留世界 pose 私有、长路线和后续判别观测，撤销格地点真值、2% 人工噪声必须制造错误、place SPLIT 作为 P0 主操作及 64 步科学上限。旧合同与回执保留原字节，只作历史和诊断，不认证 D-210。
 

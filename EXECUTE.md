@@ -6,6 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
+| D-212地点raw纠偏 | `e5d7bed`仅为阶段修复。v2候选现以内容重算reachable grid、逐步可达和P01–P08场景收据；raw逐动作journal，private逐帧保留pose、instance mask、稳定实体映射/状态/关系；自引用commit门改为reviewed implementation parent＋单文件activation child。13项针对性、全库634/634 unittest通过；尚未形成受审commit、未跑真实survey/seal/smoke，统一图/八原子候选/可信指标仍待后续。LOG-196。 |
 | VM-04观察适用性 | 原静态36槽不运行；D-182/183只用于精确schema/实现审查。D-199–202已形成L2公开proposal/visibility、program matcher/episode audit和terminal raw加载前plan seal，D-202已获认可。D-203候选禁止调用者手填version ID，从sealed public route、预登记selector和`terminal-1` causal memory确定派生九类online request refs；核心无episode/raw path参数，edge RETRACT仍阻断。selector spec的提前时间封存和D-202 receipt消费未实现，因此D-201 pending与family阻断未解除。正式SAM/assets/matcher/visibility数值、生产callback、父stage family聚合及pilot收据仍缺。全部运行位关闭，0新episode/materialization/训练/记忆正例。LOG-169–192。 |
 | VSMT首篇/VM-01～04 | 原静态36槽按D-180退役且未运行；D-183新多视角版本只开放精确实现审查。现有instance-mask前端明确只作L1诊断，不得作为L2准入；L2公开proposal前端、九类真实构造、共享probe和完整父stage仍阻断。生成/private评价、identifiability、训练、validation效果与confirmation全部关闭。LOG-180–187，D-191–198 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
@@ -2043,3 +2044,14 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 成功和失败路径都要求公开观察数等于private pose数；正常动作失败保留此前全部RGB-D/内参/pose和本次失败动作回执，不保存失败动作后的编号观察。公开与provenance测试仍核验不出现agent world pose或私有起点。
 - 定向D-210＋D-211为20/20通过；全库仍为**630/630通过**，耗时23.619 s，内嵌VSMT/executor/L1三组179/42/31及两房汇总252均通过。0服务器source读取、0真实route、0simulator、0episode、0模型。
 - 白话：输入同一个模拟器event，输出三份用途不同、彼此隔离的证据——模型用画面和估计，小地图边知道“怎么走来”，评价器事后才知道“实际走到哪里”。它不把真值pose伪装成连续位姿信念，也不表示adapter或评价已经实现。
+
+## LOG-196：D-212路线语义、不可再生实体真值与执行门纠偏候选（2026-09-18）
+
+- 用户要求按完整VSMT方向重审，核查确认executor、版本化执行和candidate-before-teacher仍在，但D-210/D-211形成了孤立地点小栈：旧候选仍排除place并自动建网格scaffold；新adapter没有接回entity/surface/fragment或八原子；D-211允许12槽复用同一四步路线和任意格式合法摘要；raw没有instance/object truth；执行commit pin自引用不可满足；指标仍可读预测自报错误分解。用户批准先纠正raw、路线语义和执行门，单槽smoke后再统一图/候选/指标，并明确`e5d7bed`不是最终基线。
+- 新v2合同与核心把route bundle改为五件内容：D-210 route、完整pre-execution reachable scan、public RGB-D evidence、scenario receipt、execution binding。seal从起点对0.25 m/90°动作积分，逐观察核真实格成员；P01–P08分别验证Z前缀、精确逆行、非逆替代回环、≥1.5 m公开cosine top-1、同地反向、T字相反支路、只共享中心的双环、公开room-corridor-room及匿名实体region。P04绝对阈值保持null并报告分数，未偷偷发明新科学阈值。
+- execution binding现在绑定scan/evidence/step/scenario四类可复算摘要，不能用布尔自报；同时在摘要生成前规范化int/float起点，修复`1`被validator改成`1.0`后自身digest失配。seal输出逐槽evidence文件及统一index，smoke加载时重新核文件摘要和语义。
+- raw writer为每次动作立即fsync独立journal；每个成功观察立即写private pose、instance mask stack、source-record绑定的稳定私有entity ID、原simulator ID mapping、位置/旋转/visible/interactable/pickup/move状态及parent/receptacle关系。public/provenance不出现identity或world pose，private逐帧绑定public frame。正常final aggregate仍保留；硬退出时已完成journal不依赖finalize才存在。
+- controller显式固定AI2-THOR 5.0.0、CloudRendering、224×224、FOV90、gridSize0.25、snapToGrid、rotateStep90及depth/instance rendering。执行门改为“受审实现commit＋只改v2合同的activation child”，运行要求clean HEAD、`HEAD^`精确等于受审实现、diff文件列表精确等于allowlist，消除self-hash死锁。
+- 关系新建在新收据中明确编译为八原子`BIRTH + ADD_EDGE`，不是第九个`CREATE`；P06首次新增两支路不算RELINK。D-210 v1旧字段保留为历史字节；统一place/entity/surface/fragment版本图、全八原子候选、严格adapter和可信派生metrics尚未实施，不能由本批测试冒充完成。
+- 当前定向标准库unittest 13/13通过，覆盖全部12槽正例、P03精确逆行负例、缺reachable endpoint、伪摘要、非轴对齐起点、int/float digest、失败前缀、private mask/entity隔离和关闭stage；D-210＋D-212定向24/24通过。全库标准库discover **634/634通过**，耗时25.317 s，失败/错误/跳过均0，内嵌VSMT/executor/L1为179/42/31并汇总252。0服务器source读取、0真实survey/bundle/seal/controller/episode、0adapter/private evaluation/模型。
+- 白话：这批先保证以后拿到的照片不是“只有画面没有地图真相”，也保证所谓Z形、回环、T路口和8字环不是文件名。输入是真实扫描内容和路线，输出是可重算收据与三面raw；它不表示十二条真实路线已找到，更不表示完整VSMT模型已经接好。

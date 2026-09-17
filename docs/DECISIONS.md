@@ -2041,3 +2041,14 @@
 - **为何不用旧 raw writer，以及用户复核后的三面修正：** 旧 `vm04_multiview_raw.py` 会按 D-206 的2%声明噪声生成相对pose，与D-210撤销人为noisy-grid地点任务冲突。最初D-211候选已保存公开RGB-D/无世界pose内参和provenance完整route/逐动作回执，但把simulator pose全部不落盘；用户指出这会失去D-210已登记的true-pose oracle和定位/地点推理误差分解。修正口径是公开面仍无世界pose，provenance仍保留完整动作，新增隔离的private per-observation agent/camera pose并绑定公开frame摘要；采集private truth不等于运行private evaluation，adapter/candidate reader均不得读取。instance masks、reference place、loop label、teacher、adapter packet和metric仍不生成。另修正垂直FOV焦距公式使用图像高度而非宽度。动作失败保留成功观察/pose前缀和失败动作回执后终止。
 - **工程门：** 用户本次授权科学/运行范围，但D-059仍要求新增执行代码先成可审commit。故 [`vm04_d211_p0_seal_single_smoke_v1.json`](../configs/vsmt/vm04_d211_p0_seal_single_smoke_v1.json) 当前状态为`authorized_scope_implementation_pending_reviewed_commit`、`expected_reviewed_code_commit=null`；`check`可运行，`seal-routes/run-smoke`在碰外部输入或创建输出前拒绝。审查通过后只填该commit并切换`frozen_executable_seal_and_single_slot_smoke`，不重新裁决已批准的house/slot/动作范围。
 - **单worker理由：** 获准的真实执行单元只有一个slot，因此本次smoke本质串行；这不是给未来12槽批量预设单worker。无墙钟超时，执行前核磁盘≥8 GiB，4 GiB为紧急余量，单smoke最多2 GiB；controller创建/运行/停止失败均保留终端或stage receipt。
+
+## D-212：D-211 生成前纠偏——可复算路线、不可再生私有真值与两提交执行门
+
+- 日期：2026-09-18；状态：用户已批准纠偏顺序，工程实现待提交审查，未运行 simulator。用户批准原文：“批准按‘先补齐不可再生 raw、路线语义与执行门，再做单槽 smoke；通过后开放两房 12 路线，同时统一地点、关系、实体与八原子适配器及可信指标’的顺序纠偏；e5d7bed 仅作阶段性提交，不作为最终 D-211 基线。”
+- **路线证据：** `vsmt-vm04-d211-route-bundle-v2` 每槽必须含完整 reachable scan、执行前 public RGB-D evidence、P01–P08 场景收据和 execution binding。seal 从私有起点按0.25 m/90°注册动作重算 N+1 计划姿态并验证格成员，不接受“已验证=true”或任意64位字符串。P01 Z前缀、P02精确逆行、P03非逆替代回环、P04分离pair公开cosine top-1、P05同位置反向、P06 T两支、P07只共享中心的双环、P08公开房间—走廊—房间与匿名实体区域均有独立条件。
+- **P04边界：** 没有新增未经批准的绝对相似度阈值；只固定≥1.5 m pair中的公开top-1选择并保存绝对分数。该路线即使封存成功也只证明“按固定规则选出本house最像的非回返点”，不自动证明足以成为强视觉alias论文证据。
+- **raw三面：** public仍只有RGB-D/内参/frame digest；provenance动作逐条append-only落盘；private每观察保存agent/camera pose、instance mask、simulator object ID↔稳定私有entity ID、对象状态和parent/receptacle关系，并与public frame digest绑定。private采集不等于private evaluation授权，candidate/model reader仍禁止挂载。
+- **关系与八原子：** 关系首次新建编译成八原子中的`BIRTH + ADD_EDGE`，不引入`CREATE`第九原子；`RELINK`只修正已有关系端点。D-210 v1旧字段留作历史字节，D-212先在P06 receipt写清该编译；完整place/entity/surface/fragment统一图、八原子候选及可信评价器在单槽smoke之后实施，当前未声称完成。
+- **执行门：** 废除不可满足的“HEAD必须等于其内容中写入的自身commit hash”。实现commit保持v2 expected为空；审查后仅允许一个改v2合同的activation child commit。执行核验clean HEAD、`HEAD^=reviewed implementation`及parent→HEAD文件列表恰为单文件allowlist。
+- **固定运行环境：** AI2-THOR 5.0.0、CloudRendering、224×224、FOV 90°、gridSize 0.25 m、snapToGrid、rotateStepDegrees 90°、depth及instance segmentation全部显式传入controller；安装版本不符即拒绝。
+- **仍未解锁：** 没有真实12-route bundle、没有route seal、没有slot-0 raw、没有12槽raw、adapter、teacher/private evaluation、metrics、训练、validation或confirmation。真实P08公开匿名实体region怎样由路线survey形成仍必须由公开RGB-D过程产出，不能拿private instance mask替代。

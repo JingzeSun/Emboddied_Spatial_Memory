@@ -62,9 +62,9 @@ D-205 曾把首篇收窄为"不主张地点身份修订"。随后发现那个收
 | 阻断 | 条件未满足时必须失败关闭，不能生成、训练或计入 family |
 | 运行后判断 | 必须依靠真实 pilot、开发、validation 或 confirmation 结果，文档和单测不能预先证明 |
 
-截至 D-207，所有生成、训练和 confirmation 授权仍为 `false`。全部**科学数值**已冻结在活动合同 [v4](../configs/vsmt/vm04_observation_suitability_v4.json)（状态 `d207_place_layer_budget_and_provenance_split_artifacts_pending`）：D-205 冻结了动作、时钟、编码、proposal、visibility、matcher、SPLIT/MERGE 与 probe，D-206 追加了 pose 通道、里程计噪声、place 关联与 Z 路线，D-207 追加了分层路线预算与 provenance 通道分离。剩余阻断项只有需要真实产物才能算出的 8 个摘要，以及 §10.2 的 C 类工程接线。v1/v2/v3 保持原字节，不再是活动合同。
+截至 D-212，旧 D-205～D-209 路线只作历史实现背景；当前活动方向是 D-210 双层地点记忆及 D-212 生成前纠偏。真实 route survey、seal、raw、adapter、private evaluation、训练和 confirmation 均未运行。D-210 固定“连续位姿信念只作候选先验，版本化拓扑地点图负责身份，0.5 m格不定义地点”；D-212 又要求12条路线的reachable/视觉/场景语义可复算，并补齐private instance/entity truth。旧 v4 的30°/64步/noisy-grid口径不得认证新批次。
 
-本文件的"当前细粒度指针"（§10.3）是唯一维护处；[PLAN.md](PLAN.md) 只保留阶段级状态并链接到这里，不再重复叙述叶节点。
+[PLAN.md](PLAN.md) 是当前指针唯一维护处；本文件只解释主张—证据链。若本文件后续历史段落仍提到固定place scaffold、D-207活动合同或旧VM-04阻断，应按D-210/D-212和PLAN当前指针理解，不得反向覆盖新决定。
 
 ## 3. 论文主张拆成哪些可检验证据
 
@@ -182,9 +182,9 @@ L1 使用隔离的 simulator instance mask，再去除真实 ID，只作 oracle 
 
 ### 阶段 D：从公开 RGB-D 形成 `ObservationPacket`
 
-共享前端给每个匿名 region 计算冻结 DINOv2 descriptor、公开 depth/pose 几何、surface/place/free-space/visibility 和关系观测。place 由确定性世界格 scaffold 建立，关系只表达公开可计算的 `located_at`、`contains`、`supported_by` 和 `adjacent_to`。公开 packet 不含 instance ID、类别真值、reference program 或 future。
+共享前端给每个匿名 region 计算冻结 descriptor、公开 depth/因果pose-belief几何、surface/fragment/entity/free-space/visibility 和关系观测。D-210之后，0.5 m格只作规划与候选召回，place 必须成为与 entity/surface/fragment 共存的可版本化一等节点；`located_at`、`contains`、`supported_by`、`adjacent_to` 和路线转移是显式边。公开 packet 不含 instance ID、类别真值、reference program、世界真值pose或 future。
 
-例子：一个椅子区域通过 depth 反投影得到可见质心和 extent，并与确定性地点格形成 `located_at` 支持；extent 只是当前可见部分，不能用真值 bbox 补齐。
+例子：一个椅子区域通过 depth 反投影得到可见质心和 extent，并向当前地点候选提供 `located_at` 支持；地点是否沿用旧节点由视觉—拓扑证据与事务决定，而不是由所在格直接决定。extent 只是当前可见部分，不能用真值 bbox 补齐。
 
 它不等于：region 已跨帧获得真实身份。跨帧身份仍由各方法从公开描述、几何和旧记忆推断。
 
@@ -371,7 +371,7 @@ history 门失败说明终帧已经泄露答案或历史无辨识力；oracle re
 
 teacher 本身给错分时另记 teacher error；executor 拒绝 reference 时另记语义或执行合同错误。
 
-## 10. 当前实现地图（截至 D-207）
+## 10. 当前实现地图（D-212纠偏后的解释）
 
 ### 10.1 已有并保留的底座
 

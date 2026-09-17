@@ -40,23 +40,29 @@ D-210 为地点/拓扑主实验建立独立于旧 VM-04 v1–v4 的数据版本�
 
 聚合文件分别保存 `all_p0_macro` 与 `headline_macro`；后者只含 P03/P04/P06/P07/P08，P01/P02 控制和 P05 支持场景不混入。精确动作积分、真值 pose 及历史 85.5% noisy-grid duplicate episode rate 都有独立诊断文件，不得拥有 `headline_eligible=true`，也不得进入 macro。85.5% 的单位固定为“3,000 个诊断回程中至少发生一次重复地点的 episode 比例”，不是错误率字段的通用定义、不是覆盖率，更不是模型分数。
 
-### D-211 执行封装与 raw smoke 文件（授权范围已定，真实文件未生成）
+### D-211/D-212 执行封装与 raw smoke 文件（纠偏实现待审，真实文件未生成）
 
-[`vm04_d211_p0_seal_single_smoke_v1.json`](../configs/vsmt/vm04_d211_p0_seal_single_smoke_v1.json) 将两间开发 house 固定为 `train:004270`/`train:008243`，分别绑定 source record 摘要 `79a1…026f`/`cdbd…bea7`。来源证据仍是既有只读 root-cause 报告，报告本身记录 0 episode、0 intervention；D-211 只是复用已审开发来源，不把它们改叫 confirmation，也不因路线或 smoke 失败换房。
+[`vm04_d211_p0_seal_single_smoke_v2.json`](../configs/vsmt/vm04_d211_p0_seal_single_smoke_v2.json) 将两间开发 house 固定为 `train:004270`/`train:008243`，分别绑定 source record 摘要 `79a1…026f`/`cdbd…bea7`。v1 和 `e5d7bed` 只保留阶段历史，不是最终生成基线。来源证据仍是既有只读 root-cause 报告，报告本身记录 0 episode、0 intervention；D-212 不把它们改叫 confirmation，也不因路线或 smoke 失败换房。
 
-待输入的 `vsmt-vm04-d211-route-bundle-v1` 恰好含按 slot 0–11 排序的 12 行。每行包含原 D-210 `route_plan` 及一个 `vsmt-vm04-d211-route-execution-binding-v1`：slot/house/scenario/route digest、私有 `initial_pose{x_m,y_m,z_m,yaw_deg,horizon_deg}`、公开 reachable scan 摘要、公开 RGB-D route evidence 摘要和四个无未来/无私有参考声明。起始 yaw 为 90°倍数且 horizon=0；binding 有自身摘要。白话：route plan 说“走哪些动作”，execution binding 说“在这间 house 的哪个起点执行并由哪次公开扫描证明可走”。它不包含地点答案，不进入 adapter，也不允许 smoke 失败后换另一条路线。
+待输入的 `vsmt-vm04-d211-route-bundle-v2` 恰好含按 slot 0–11 排序的 12 行。每行不再只有 route 和摘要，而是包含 `route_plan`、完整 `reachable_scan`、执行前 `public_route_evidence`、`scenario_receipt` 及 `execution_binding`。reachable scan 保存 `GetReachablePositions` 的规范整数格键，seal 时从私有起点重算 N+1 名义姿态并逐个检查可达；public evidence 为选定 survey 观察保存 RGB/depth/calibration 摘要、非零 place descriptor、公开 room/corridor/unknown 角色和匿名 `region:*` 实体区域引用；scenario receipt 对 P01–P08 分别重算 Z形、精确逆行、替代回环、top-1视觉别名、同地反向、T分支、8字双环及房间—走廊—房间条件。白话：route plan 说“怎么走”，scan 证明“计划步都落在可达格”，公开 evidence 证明“路线为什么从画面上被选中”，scenario receipt 证明“它确实是哪一种挑战”。它不包含模型地点答案，也不能用布尔自报或假摘要替代内容。
+
+P04 的 route seal 只采用预登记的排序规则：从名义间隔至少 1.5 m 的 survey pair 中取公开 descriptor cosine top-1，绝对阈值为 `null` 并原样记录实际分数。这个字段用于防止路线结果出来后挑 pair；它不把“本房间最像”自动解释成“论文意义上足够难”。P08 两个 room anchor 必须各有至少一个从公开 RGB-D 路线 survey 得到的匿名 `region:*` 引用，中间观察须登记为 corridor；这些引用不是 simulator object ID，也不是完整 L2 前端输出。
 
 `seal-routes` 生成：
 
 - `public/manifest.json`：12 个 opaque episode、scenario、route/action/frame/keyframe计数，无 house ID或起点；
 - `private/manifest.json`：episode 到固定 source house 的绑定；
 - `provenance/routes/slot_00.json`～`slot_11.json`：完整逐动作 route；
+- `provenance/route-evidence/slot_XX.json`：执行前公开 RGB-D 路线证据；
+- `private/reachable-scans/slot_XX.json` 与 `private/scenario-receipts/slot_XX.json`：可达格及场景语义收据；
 - `private/route-bindings.json`：12 个起点及 route-evidence 摘要；
-- `route-seal.receipt.json`：上述文件摘要、`simulator_started=false/episodes_generated=0`。
+- `private/route-evidence-index.json` 与 `route-seal.receipt.json`：逐槽证据文件摘要、`simulator_started=false/episodes_generated=0`。
 
-`run-smoke` 只能读取 slot 0/P01，并把同一次event拆成三种不可互读的文件面。`public/raw/frame_NNNN/{rgb.npy,depth_m.npy,sensor-calibration.json,frame.json}` 保存RGB-D、图像大小、垂直FOV和由图像高度正确计算的`fx=fy`及`cx,cy`，明确不含相机/agent世界pose。`provenance/route.json`保留完整注册动作route，`provenance/action-receipts.json`保存每个实际尝试动作的完整请求、成功位和错误文字摘要；setup teleport只记动作类型、`forceAction=false`及使用的private execution-binding摘要，不复制起点坐标。`private/simulator-poses.json`逐观察保存agent位置/旋转、camera位置/yaw/horizon，并以`public_frame_sha256`逐帧绑定；`candidate_or_model_reader_allowed=false`，只有候选封存后的私有评价器或true-pose oracle可打开。白话：公开面让模型看见画面和相机“尺子”，provenance让实验可重放“怎么走的”，private让我们事后知道“实际上走到哪”；它不把真实坐标塞进连续位姿信念。终端receipt记录三面文件摘要和pose数。成功条件严格为N动作/N+1观察/N+1私有pose；动作k失败时只保留此前成功观察/pose和动作k失败回执，不写失败动作后的编号观察、不继续余下动作、不补样。
+`run-smoke` 只能读取 slot 0/P01，并把同一次 event 拆成三种不可互读的文件面。`public/raw/frame_NNNN/{rgb.npy,depth_m.npy,sensor-calibration.json,frame.json}` 保存 RGB-D、垂直FOV和由图像高度计算的 `fx=fy`，不含世界pose或identity。`provenance/action-journal/attempt_NNNN.json` 在每次动作后立即落盘完整公开请求、success、错误摘要、attempt ordinal 和 monotonic timestamp，最终 `action-receipts.json` 只是聚合索引。`private/raw/frame_NNNN/` 立即写 `simulator-pose.json`、`instance-masks.npz`、`entity-state.json` 和绑定三者与 public frame 的 `frame.json`；stable private entity ID 由 source record digest 与 simulator object ID 单向摘要得到，mapping 和原 simulator ID 只留 private。实体状态含 position/rotation、visible、interactable、pickupable/moveable、picked-up/moving 及 parent/receptacle 私有关系。白话：公开面供模型看，provenance回答“怎么走”，private回答“实际在哪、画面里是哪一个实体以及关系怎样”；private 同批采集不等于模型可读，也不等于已经运行 teacher/evaluator。
 
-当前 overlay 的 `expected_reviewed_code_commit=null`，所以实际 `seal-routes`/`run-smoke` 仍先拒绝；待本实现提交并审查后，只需在继任合同绑定该 commit，无需更改上述 house、槽、动作、文件或授权范围。
+成功条件仍为 N 动作、N+1 公开观察、N+1 private pose 和 N+1 private scene frame；动作 k 失败时保留此前成功前缀和失败动作 journal，不写失败动作后的观察，不继续、不换路线。硬进程死亡可能来不及写 terminal aggregate，但已经 fsync 的逐动作/逐帧 journal 仍是可审现场，不得静默覆盖后重跑。
+
+当前 v2 overlay 的 `expected_reviewed_implementation_commit=null`，所以实际 `seal-routes`/`run-smoke` 仍先拒绝。待实现提交经用户审查后，只做一个单文件 activation commit：写入受审实现 parent hash 并切换 executable 状态；运行入口要求 clean `HEAD`、`HEAD^` 等于受审实现且两提交间只改 v2 合同。该两提交门替代不可实现的“提交内容包含自身 hash”。
 
 ## 当前：VSMT 新数据边界（D-122/D-123，VM-01代码候选，尚未生成）
 

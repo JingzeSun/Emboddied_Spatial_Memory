@@ -22,13 +22,13 @@
 
 ### 当前指针
 
-**当前是 D-211 两房/路线封存与单槽 raw smoke 实现修正审查。** 用户已批准 `8d6bd13` 为 D-210 P0 工程基线，并开放固定两房、12条完整路线封存和一个工程smoke槽；该基线已合入本地main。D-211固定复用`train:004270`/`train:008243`，smoke固定slot 0/P01。专用writer不再注入D-206的2%噪声：公开侧逐帧保存RGB-D与无世界pose的相机内参，provenance保存完整路线和逐动作请求/成败，private ground truth逐帧保存simulator agent/camera世界pose并以公开frame摘要对齐。该private采集只为以后评价/oracle留证，不开放private evaluation、更不进入模型。修正版代码仍待形成并审查commit，overlay的`expected_reviewed_code_commit`仍null，所以真实seal/simulator均未运行。12槽raw、adapter、private evaluation执行、训练/validation/confirmation继续关闭。
+**当前是 D-212 对 D-211 的生成前纠偏实现审查。** 用户已明确判定 `e5d7bed` 仅为阶段性修复，不是最终 D-211 基线，并批准依次完成“不可再生 raw＋路线语义＋可激活执行门→单槽 smoke→12槽 raw→统一地点/关系/实体八原子适配器与可信指标”。v2 现在要求封存完整 reachable-grid、重算 N+1 计划步可达性、执行前公开 RGB-D evidence 和 P01–P08 场景专属 receipt；同一路线复制十二槽、假摘要或布尔自报均拒绝。raw public 保存 RGB-D/内参，provenance 逐动作立即 journal，private 每帧立即保存 pose、instance masks、稳定私有实体映射、对象状态及 receptacle 关系。真实 simulator 尚未运行，v2 的 expected implementation commit 仍为 null；12槽 raw、adapter、private evaluation、训练/validation/confirmation继续关闭。
 
 | D-210 顺序 | 输入与工作 | 输出与继续条件 |
 |---|---|---|
 | **P0-A D-210基线（已批准，本地main）** | D-210 合同、12 槽 manifest 核心、route seal、edge summary、adapter、metrics 和文档 | `8d6bd13`；0.25 m/90°/128 guard、无24/64科学上限、格不定义place、五个headline和oracle隔离已受测 |
-| **P0-B 两房与完整路线封存（D-211范围获准，实现待审）** | 固定两house source record；12条从公开reachable/RGB-D形成且执行前完整登记的路线；每槽另绑私有axis-aligned起点 | 新核心/入口已实现候选；仍缺真实12条route bundle和reviewed commit pin。封存后输出公私manifest、12个不可变provenance route/binding和seal receipt；不启动simulator episode |
-| **P0-C 单槽 raw smoke（D-211范围获准，修正待审）** | P0-B封存产物、精确环境/代码/资源回执、slot 0 fresh controller | 公开侧写obs0＋逐成功动作RGB-D/内参，provenance写完整route/逐动作回执，private侧写逐观察simulator agent/camera pose并绑定公开frame摘要；失败前缀三面全留。reviewed commit未pin，当前仍拒绝真实运行；不计算效果、不扩到12槽 |
+| **P0-B 两房与完整路线封存（D-212纠偏实现待审）** | 固定两house source record；12条执行前完整路线；每槽绑定真实reachable scan、public RGB-D route evidence、scenario receipt与私有axis-aligned起点 | 纯核心已拒绝假摘要/同构路线并可重算P01–P08语义；仍缺真实服务器survey形成的12条bundle和reviewed implementation pin。封存不启动episode |
+| **P0-C 单槽 raw smoke（D-212纠偏实现待审）** | P0-B封存产物、显式AI2-THOR/controller配置、slot 0 fresh controller | public写obs0＋逐成功动作RGB-D/内参；provenance逐动作fsync journal；private逐帧写pose＋instance mask＋entity mapping/state；失败前缀全留。当前expected implementation commit为空，仍拒绝真实运行 |
 | **P0-D 12 槽 raw 与 adapter（关闭）** | 单槽 smoke 通过后另行授权；资源实测决定最大安全 workers | 固定 12 槽 raw/provenance、关键帧、belief/edge summary 与 adapter 文件；失败不补，确定性合并；private evaluation 仍独立开闸 |
 
 下面 D-209 的两项表与 D-205～D-207 状态保留为历史实现背景，不再是活动执行顺序；若其部件被 D-210 复用，必须经过 D-210 输入/动作/地点语义适配和新回执。
@@ -38,12 +38,12 @@
 | **历史② 真实公开 reachable 扫描与路线构造**（D-209 已实现） | 旧 v4 的八种注册动作模板、公开可达格、干预前匿名 visibility 扫描；实体层与地点层两种 family | 可达扫描与逐步验证核心可供 D-210 适配；旧 30° body turn、64 步预算及单一 Z family 不直接进入 D-210 |
 | **历史③ 父 stage 多 worker 调度与 receipt 合并** | D-209 路线、旧 raw writer/materializer/matcher 外壳、D-205 pilot 完成度派生 | 尚未实现；D-210 后续 stage 仍须资源实测、多 worker、确定性合并和失败保留，但不继承旧 pilot 完成度选择规则 |
 
-旧“②③ 完成后只剩 8 个摘要即可开 pilot”的判断不再适用于 D-210。D-210 还需审连续 pose-belief estimator、关键帧规则、P01–P08 路线构造、CREATE/RELINK 关系证据和新的两房绑定；任何旧摘要仅在输入与字节仍相同且有显式新合同引用时才能复用。
+旧“②③ 完成后只剩 8 个摘要即可开 pilot”的判断不再适用于 D-210。D-210/D-212 还需审连续 pose-belief estimator、关键帧规则、真实 P01–P08 路线构造、关系 `BIRTH(ADD_EDGE)`/`RELINK` 证据和新的两房绑定；任何旧摘要仅在输入与字节仍相同且有显式新合同引用时才能复用。
 
 
 **D-209 ② 已实现待审（当前阶段级状态）：** 新增 `vm04_reachable_scan`（真实 `GetReachablePositions` 封存成整数格键、格距由合同 `moveMagnitude` 派生、逐步可达验证遇挡即失败关闭）、`vm04_place_route_builder`（Z 路线 family：两次反向注册转弯、视觉相似走廊、**强制的后续可判别观测**、走廊 B 内非空的模糊承诺窗口）和只在 `trajectory_implementation_authorized` 之后才碰 controller 的扫描 worker。实测冻结几何恰好 50 个注册动作，64 步地点层预算给后续可判别观测留下**恰好 14 步**。顺带修掉一个使 D-207 分层预算失效的缺陷：`vm04_public_route_builder` 读的是实体层的 24 而不是按层取预算，`family_layer="place"` 此前存在但无效。合同零改动、十四个授权位仍 false、剩余产物摘要仍是 8 个；阻断项按 D-059 须经用户审查才可勾掉。**一处留给用户裁决的缺口：** 合同把 place MERGE/SPLIT 列为地点层纠正程序，但已冻结的 SPLIT/MERGE artifact 判据是实体层前端伪影的定义，用不上；构造器只接受调用者预登记的 artifact plan、绝不自行发明，因此当前可用的地点层 program 只有 BIND 与 BIRTH。
 
-> **细粒度指针的唯一维护处是 [VSMT_EXPERIMENT_EVIDENCE_CHAIN.md](VSMT_EXPERIMENT_EVIDENCE_CHAIN.md) 的 §10.3（D-205）。** 本节只保留阶段级状态与历史指针，不再重复叙述叶节点；两处一旦冲突，以证据链 §10.3 为准。
+> D-205～D-209 以下段落是历史实现背景；活动指针只看本文件顶部的 D-212 当前指针。证据链文档解释“主张需要什么证据”，不再覆盖本文件的当前状态。
 
 **D-207分层路线预算与provenance通道分离（当前阶段级状态）：** 活动合同为[v4](../configs/vsmt/vm04_observation_suitability_v4.json)（状态`d207_place_layer_budget_and_provenance_split_artifacts_pending`，v1/v2/v3保持原字节）。发现D-206的Z路线在D-182合同下无法表达：冻结几何按0.25 m/步、30°/步展开需要50步，而`maximum_route_steps=24`。24是为实体层短分支定的，当时没有地点层family。新增`maximum_route_steps_by_family_layer={entity:24, place:64}`，`frozen_numeric_values`逐字节不变且验证器要求分层表的entity项等于它；route plan新增必填`family_layer`。实测漂移显示同一数字也决定科学分量：24步时航向漂移横向误差约0.16 m（远小于0.5 m格，place身份永不含糊），64步时约0.50 m（恰好一个格）。**提步数的代价是成品率不是精度**——路线验收只在三个锚点逐点绝对比较、不累积，AI2-THOR离散动作要么精确成功要么被挡住失败；缓解靠每步预先验证可达，**不得放宽容差**。这与第一次VM-04失败无关：那是物体被传送进被占据位置、物理结算推出约5 cm的落点选址问题（D-169/D-171/D-172）。同时把sealed route从`public/`移到`provenance/route.json`并从公开投影去掉`initial_pose`/`planned_poses`（验收比的是私有plan），因为证据链§7把route归在provenance通道而`public/`此前同时意味着"非私有"和"部署可读"。留在provenance的`phase_observation_indices`/`branch_type`/`visibility_subject_public_ref`比pose更敏感。既有反泄漏测试对这类失明（route本就在公开侧），故另立目录不变量：部署可读字节中不得出现世界pose或phase结构。全部授权位仍为false。
 

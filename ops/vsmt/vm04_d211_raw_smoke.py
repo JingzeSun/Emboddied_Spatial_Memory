@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Append-only RGB-D/provenance/private-pose writer for D-211 slot zero.
+"""Append-only RGB-D/provenance/private-scene writer for D-212 slot zero.
 
 Public raw contains RGB-D and camera intrinsics; provenance contains the sealed
-route and every attempted registered action.  Simulator agent/camera poses are
-captured in a separate private ground-truth file which deployable readers must
-not mount.  No place label, instance mask, adapter packet or metric is built.
+route and every attempted registered action.  Simulator pose, instance masks
+and entity states are captured under a separate private root which deployable
+readers must not mount.  No place label, adapter packet or metric is built.
 A failed registered action keeps all earlier observations and its action
 receipt, then terminates without substituting another route or house.
 """
@@ -17,6 +17,7 @@ import math
 import os
 from pathlib import Path
 import sys
+import time
 from typing import Any, Mapping
 
 import numpy as np
@@ -82,6 +83,19 @@ def _write_new_npy(path: Path, array: np.ndarray) -> None:
         raise
 
 
+def _write_new_npz(path: Path, **arrays: np.ndarray) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    try:
+        with os.fdopen(descriptor, "wb") as handle:
+            np.savez_compressed(handle, **arrays)
+            handle.flush()
+            os.fsync(handle.fileno())
+    except BaseException:
+        path.unlink(missing_ok=True)
+        raise
+
+
 def _event_metadata(event: Any) -> Mapping[str, Any]:
     metadata = getattr(event, "metadata", None)
     _require(type(metadata) is dict, "simulator event metadata is missing")
@@ -112,6 +126,7 @@ def _action_receipt(
             error_message.encode("utf-8")).hexdigest(),
         "contains_world_pose": False,
         "contains_private_label": False,
+        "capture_monotonic_time_ns": time.monotonic_ns(),
     }
 
 
@@ -190,6 +205,98 @@ def _private_pose(
     return value
 
 
+def _private_entity_id(source_record_sha256: str, simulator_object_id: str) -> str:
+    digest = hashlib.sha256((source_record_sha256 + "\0" +
+                             simulator_object_id).encode("utf-8")).hexdigest()
+    return "entity:" + digest[:32]
+
+
+def _optional_xyz(value: Any, name: str) -> dict[str, float] | None:
+    if value is None:
+        return None
+    return _xyz(value, name)
+
+
+def _private_entity_state(
+    event: Any, *, observation_index: int, public_frame_sha256: str,
+    source_record_sha256: str,
+) -> tuple[np.ndarray, dict[str, Any]]:
+    """Extract private identities and state without deriving public proposals."""
+
+    metadata = _event_metadata(event)
+    objects = metadata.get("objects")
+    masks = getattr(event, "instance_masks", None)
+    _require(type(objects) is list, "simulator object metadata is missing")
+    _require(type(masks) is dict, "simulator instance masks are missing")
+    by_id: dict[str, Mapping[str, Any]] = {}
+    entity_rows = []
+    for index, raw in enumerate(objects):
+        _require(type(raw) is dict and type(raw.get("objectId")) is str and
+                 raw["objectId"], f"simulator object {index} lacks objectId")
+        object_id = raw["objectId"]
+        _require(object_id not in by_id, "simulator object IDs repeat")
+        by_id[object_id] = raw
+        parents = raw.get("parentReceptacles") or []
+        receptacles = raw.get("receptacleObjectIds") or []
+        _require(type(parents) is list and type(receptacles) is list,
+                 "simulator receptacle relations are invalid")
+        entity_rows.append({
+            "private_entity_id": _private_entity_id(
+                source_record_sha256, object_id),
+            "simulator_object_id": object_id,
+            "object_type": raw.get("objectType"),
+            "position_m": _optional_xyz(raw.get("position"),
+                                         f"objects[{index}].position"),
+            "rotation_deg": _optional_xyz(raw.get("rotation"),
+                                           f"objects[{index}].rotation"),
+            "visible": raw.get("visible"),
+            "is_interactable": raw.get("isInteractable"),
+            "pickupable": raw.get("pickupable"),
+            "moveable": raw.get("moveable"),
+            "is_picked_up": raw.get("isPickedUp"),
+            "is_moving": raw.get("isMoving"),
+            "parent_private_entity_ids": sorted(
+                _private_entity_id(source_record_sha256, str(item))
+                for item in parents),
+            "receptacle_private_entity_ids": sorted(
+                _private_entity_id(source_record_sha256, str(item))
+                for item in receptacles),
+        })
+    entity_rows.sort(key=lambda row: row["private_entity_id"])
+
+    mask_rows = []
+    for simulator_object_id, raw_mask in masks.items():
+        object_id = str(simulator_object_id)
+        _require(object_id in by_id,
+                 "instance mask has no matching simulator object metadata")
+        array = np.asarray(raw_mask, dtype=np.uint8)
+        _require(array.ndim == 2, "instance mask must be HxW")
+        mask_rows.append((_private_entity_id(source_record_sha256, object_id),
+                          object_id, array))
+    mask_rows.sort(key=lambda row: row[0])
+    if mask_rows:
+        shape = mask_rows[0][2].shape
+        _require(all(row[2].shape == shape for row in mask_rows),
+                 "instance masks have inconsistent shapes")
+        stack = np.stack([row[2] for row in mask_rows], axis=0)
+    else:
+        rgb = np.asarray(getattr(event, "frame", None))
+        _require(rgb.ndim == 3, "RGB frame is missing for empty mask stack")
+        stack = np.zeros((0, rgb.shape[0], rgb.shape[1]), dtype=np.uint8)
+    record = {
+        "schema_version": "vsmt-vm04-d212-private-entity-state-v1",
+        "observation_index": observation_index,
+        "public_frame_sha256": public_frame_sha256,
+        "private_mask_entity_ids": [row[0] for row in mask_rows],
+        "private_mask_to_simulator_object_id": [row[1] for row in mask_rows],
+        "entities": entity_rows,
+        "private_ground_truth_only": True,
+        "candidate_or_model_reader_allowed": False,
+        "contains_reference_place_or_transaction_label": False,
+    }
+    return stack, record
+
+
 class D211RawSmokeStore:
     """Write one immutable RGB-D prefix and its action provenance."""
 
@@ -219,6 +326,7 @@ class D211RawSmokeStore:
         self.maximum_output_bytes = maximum_output_bytes
         self.frames: list[dict[str, Any]] = []
         self.private_poses: list[dict[str, Any]] = []
+        self.private_scene_frames: list[dict[str, Any]] = []
         self.action_receipts: list[dict[str, Any]] = []
         self.finalized = False
         _write_new_json(self.provenance_root / "route.json", self.route)
@@ -235,7 +343,13 @@ class D211RawSmokeStore:
 
     def append_action_receipt(self, receipt: Mapping[str, Any]) -> None:
         _require(not self.finalized, "smoke store is finalized")
-        self.action_receipts.append(dict(receipt))
+        row = dict(receipt)
+        row["attempt_ordinal"] = len(self.action_receipts)
+        row["receipt_sha256"] = _sha_value(row)
+        _write_new_json(
+            self.provenance_root / "action-journal" /
+            f"attempt_{len(self.action_receipts):04d}.json", row)
+        self.action_receipts.append(row)
 
     def capture(self, event: Any, observation_index: int) -> dict[str, Any]:
         _require(not self.finalized, "smoke store is finalized")
@@ -271,8 +385,37 @@ class D211RawSmokeStore:
         private_pose.pop("pose_sha256")
         private_pose["pose_sha256"] = _sha_value(private_pose)
         _write_new_json(frame_root / "frame.json", record)
+        capture_ns = time.monotonic_ns()
+        private_frame_root = (self.private_root / "raw" /
+                              f"frame_{observation_index:04d}")
+        masks, entity_state = _private_entity_state(
+            event, observation_index=observation_index,
+            public_frame_sha256=record["frame_sha256"],
+            source_record_sha256=self.source_record_sha256)
+        mask_path = private_frame_root / "instance-masks.npz"
+        state_path = private_frame_root / "entity-state.json"
+        pose_path = private_frame_root / "simulator-pose.json"
+        _write_new_npz(mask_path, masks=masks)
+        entity_state["instance_masks_sha256"] = _sha_file(mask_path)
+        entity_state["entity_state_sha256"] = _sha_value(entity_state)
+        _write_new_json(state_path, entity_state)
+        _write_new_json(pose_path, private_pose)
+        private_frame = {
+            "schema_version": "vsmt-vm04-d212-private-frame-journal-v1",
+            "observation_index": observation_index,
+            "capture_monotonic_time_ns": capture_ns,
+            "public_frame_sha256": record["frame_sha256"],
+            "simulator_pose_sha256": _sha_file(pose_path),
+            "instance_masks_sha256": _sha_file(mask_path),
+            "entity_state_sha256": _sha_file(state_path),
+            "visible_instance_count": int(masks.shape[0]),
+            "candidate_or_model_reader_allowed": False,
+        }
+        private_frame["private_frame_sha256"] = _sha_value(private_frame)
+        _write_new_json(private_frame_root / "frame.json", private_frame)
         self.frames.append(record)
         self.private_poses.append(private_pose)
+        self.private_scene_frames.append(private_frame)
         _require(self._bytes_written() <= self.maximum_output_bytes,
                  "smoke output crossed the registered byte safety limit")
         return record
@@ -285,9 +428,11 @@ class D211RawSmokeStore:
                  "smoke reason/status disagree")
         _require(len(self.private_poses) == len(self.frames),
                  "public observations and private poses lost alignment")
+        _require(len(self.private_scene_frames) == len(self.frames),
+                 "public observations and private scene truth lost alignment")
         action_path = self.provenance_root / "action-receipts.json"
         action_record = {
-            "schema_version": "vsmt-vm04-d211-action-receipts-v1",
+            "schema_version": "vsmt-vm04-d212-action-receipts-v1",
             "route_plan_sha256": self.route["route_plan_sha256"],
             "receipts": self.action_receipts,
             "complete_per_action_sequence_retained": True,
@@ -306,14 +451,27 @@ class D211RawSmokeStore:
             "contains_place_or_loop_labels": False,
         }
         _write_new_json(private_pose_path, private_pose_record)
+        private_scene_path = self.private_root / "scene-truth.manifest.json"
+        private_scene_record = {
+            "schema_version": "vsmt-vm04-d212-private-scene-truth-manifest-v1",
+            "episode_id": self.episode_id,
+            "route_plan_sha256": self.route["route_plan_sha256"],
+            "observation_count": len(self.private_scene_frames),
+            "frames": self.private_scene_frames,
+            "opened_after_candidate_seal": True,
+            "candidate_or_model_reader_allowed": False,
+            "contains_reference_place_or_transaction_labels": False,
+        }
+        _write_new_json(private_scene_path, private_scene_record)
         public_manifest = {
-            "schema_version": "vsmt-vm04-d211-public-raw-smoke-manifest-v1",
+            "schema_version": "vsmt-vm04-d212-public-raw-smoke-manifest-v1",
             "episode_id": self.episode_id,
             "slot": self.route["slot"],
             "scenario_id": self.route["scenario_id"],
             "status": status, "reason": reason,
             "frame_count": len(self.frames), "frames": self.frames,
             "world_pose_exported": False, "instance_masks_exported": False,
+            "private_scene_truth_exported_to_public": False,
             "adapter_materialized": False, "private_evaluation_performed": False,
         }
         public_path = self.public_root / "raw-smoke.manifest.json"
@@ -323,7 +481,7 @@ class D211RawSmokeStore:
             row.get("success") is True
             for row in self.action_receipts)
         receipt = {
-            "schema_version": "vsmt-vm04-d211-raw-smoke-receipt-v1",
+            "schema_version": "vsmt-vm04-d212-raw-smoke-receipt-v1",
             "status": status, "reason": reason,
             "slot": self.route["slot"],
             "route_plan_sha256": self.route["route_plan_sha256"],
@@ -339,6 +497,10 @@ class D211RawSmokeStore:
             "action_receipts_sha256": _sha_file(action_path),
             "private_simulator_poses_sha256": _sha_file(private_pose_path),
             "private_simulator_pose_count": len(self.private_poses),
+            "private_scene_truth_manifest_sha256":
+                _sha_file(private_scene_path),
+            "private_scene_truth_observation_count":
+                len(self.private_scene_frames),
             "failed_route_replacement_allowed": False,
             "twelve_slot_generation_started": False,
             "adapter_materialized": False,
@@ -353,7 +515,10 @@ class D211RawSmokeStore:
 def run_raw_smoke_core(
     controller: Any, *, route_plan: Mapping[str, Any],
     execution_binding: Mapping[str, Any], d211_contract: Mapping[str, Any],
-    base_contract: Mapping[str, Any], output_root: Path,
+    reachable_scan: Mapping[str, Any],
+    public_route_evidence: Mapping[str, Any],
+    scenario_receipt: Mapping[str, Any], base_contract: Mapping[str, Any],
+    output_root: Path,
     source_record_sha256: str, public_manifest_sha256: str,
     episode_id: str,
 ) -> dict[str, Any]:
@@ -363,7 +528,9 @@ def run_raw_smoke_core(
                                       base_contract=base_contract)
     route = validate_route_plan(route_plan, base_contract)
     binding = validate_route_execution_binding(
-        execution_binding, route_plan=route, contract=approved,
+        execution_binding, route_plan=route, reachable_scan=reachable_scan,
+        public_route_evidence=public_route_evidence,
+        scenario_receipt=scenario_receipt, contract=approved,
         base_contract=base_contract)
     smoke = approved["single_slot_smoke"]
     _require((route["slot"], route["house_slot"], route["scenario_id"]) ==
