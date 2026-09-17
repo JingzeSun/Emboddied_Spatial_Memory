@@ -20,6 +20,8 @@ from .vm04_online_plan_seal import make_online_program_plan_request
 
 SPEC_SCHEMA = "vsmt-vm04-parent-program-request-spec-v1"
 RECEIPT_SCHEMA = "vsmt-vm04-parent-program-request-provenance-receipt-v1"
+RECEIPT_SCHEMA_V2 = "vsmt-vm04-parent-program-request-provenance-receipt-v2"
+SELECTOR_TEMPORAL_SCHEMA = "vsmt-vm04-parent-selector-temporal-receipt-v1"
 PUBLIC_ROUTE_SCHEMA = "vsmt-vm04-public-observation-route-v1"
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
 
@@ -175,6 +177,48 @@ def validate_parent_program_request_spec(
     return record
 
 
+def seal_parent_selector_spec_before_raw_capture(
+    *, spec: Mapping[str, Any], public_route: Mapping[str, Any],
+    parent_stage_code_sha256: str,
+) -> dict[str, Any]:
+    """Seal selector bytes before the trusted raw writer accepts frame zero."""
+
+    route = _validate_public_route(public_route)
+    registered = validate_parent_program_request_spec(spec, public_route=route)
+    receipt = {
+        "schema_version": SELECTOR_TEMPORAL_SCHEMA,
+        "episode_id": registered["episode_id"],
+        "program": registered["program"],
+        "spec_sha256": registered["spec_sha256"],
+        "public_route_sha256": route["public_route_sha256"],
+        "route_plan_sha256": route["private_route_plan_sha256"],
+        "parent_stage_code_sha256": _hex(
+            parent_stage_code_sha256, "parent_stage_code_sha256"
+        ),
+        "sealed_before_raw_observation_index": 0,
+        "public_raw_frame_count_before_seal": 0,
+        "private_raw_frame_count_before_seal": 0,
+        "terminal_public_or_private_frame_opened": False,
+        "future_observation_opened": False,
+        "selector_spec_pre_terminal_registration_established": True,
+    }
+    receipt["receipt_sha256"] = _sha(receipt)
+    return receipt
+
+
+def validate_parent_selector_temporal_receipt(
+    receipt: Mapping[str, Any], *, spec: Mapping[str, Any],
+    public_route: Mapping[str, Any], parent_stage_code_sha256: str,
+) -> dict[str, Any]:
+    rebuilt = seal_parent_selector_spec_before_raw_capture(
+        spec=spec, public_route=public_route,
+        parent_stage_code_sha256=parent_stage_code_sha256,
+    )
+    _require(clone_json(dict(receipt)) == rebuilt,
+             "parent selector temporal receipt does not reproduce")
+    return rebuilt
+
+
 def _open_node(memory: Mapping[str, Any], node_id: str, name: str) -> Mapping[str, Any]:
     rows = [row for row in memory["nodes"]
             if row["node_id"] == node_id and row["valid_to"] is None]
@@ -255,6 +299,7 @@ def derive_parent_online_program_plan_request(
     *, spec: Mapping[str, Any], public_route: Mapping[str, Any],
     prior_memory: Mapping[str, Any], last_completed_observation_index: int,
     parent_stage_code_sha256: str,
+    selector_temporal_receipt: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Derive exact version refs without accepting an episode path or raw frame."""
 
@@ -278,8 +323,16 @@ def derive_parent_online_program_plan_request(
             registered["visibility_subject_seal_sha256"],
         matcher_config_sha256=registered["matcher_config_sha256"],
     )
+    selector_receipt = None
+    if selector_temporal_receipt is not None:
+        selector_receipt = validate_parent_selector_temporal_receipt(
+            selector_temporal_receipt, spec=registered, public_route=route,
+            parent_stage_code_sha256=parent_stage_code_sha256,
+        )
     receipt = {
-        "schema_version": RECEIPT_SCHEMA,
+        "schema_version": (
+            RECEIPT_SCHEMA_V2 if selector_receipt is not None else RECEIPT_SCHEMA
+        ),
         "episode_id": registered["episode_id"],
         "program": registered["program"],
         "spec_sha256": registered["spec_sha256"],
@@ -297,10 +350,15 @@ def derive_parent_online_program_plan_request(
         "future_observation_opened": False,
         "teacher_reference_or_private_identity_used": False,
         "request_provenance_established_by_parent_core": True,
-        "selector_spec_pre_terminal_registration_established": False,
+        "selector_spec_pre_terminal_registration_established":
+            selector_receipt is not None,
         "consumed_by_D202_temporal_receipt": False,
         "clears_D201_temporal_seal_pending": False,
     }
+    if selector_receipt is not None:
+        receipt["selector_temporal_receipt_sha256"] = selector_receipt[
+            "receipt_sha256"
+        ]
     receipt["receipt_sha256"] = _sha(receipt)
     return {"online_request": request, "provenance_receipt": receipt}
 
@@ -309,18 +367,23 @@ def validate_parent_online_program_plan_request(
     bundle: Mapping[str, Any], *, spec: Mapping[str, Any],
     public_route: Mapping[str, Any], prior_memory: Mapping[str, Any],
     parent_stage_code_sha256: str,
+    selector_temporal_receipt: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     _require(type(bundle) is dict and
              set(bundle) == {"online_request", "provenance_receipt"},
              "parent request bundle has unexpected fields")
     receipt = bundle["provenance_receipt"]
-    _require(type(receipt) is dict and receipt.get("schema_version") == RECEIPT_SCHEMA and
+    expected_schema = (
+        RECEIPT_SCHEMA_V2 if selector_temporal_receipt is not None else RECEIPT_SCHEMA
+    )
+    _require(type(receipt) is dict and receipt.get("schema_version") == expected_schema and
              receipt.get("receipt_sha256") == _payload_sha(receipt, "receipt_sha256"),
              "parent request provenance receipt is invalid")
     rebuilt = derive_parent_online_program_plan_request(
         spec=spec, public_route=public_route, prior_memory=prior_memory,
         last_completed_observation_index=receipt["last_completed_observation_index"],
         parent_stage_code_sha256=parent_stage_code_sha256,
+        selector_temporal_receipt=selector_temporal_receipt,
     )
     _require(clone_json(dict(bundle)) == rebuilt,
              "parent request provenance bundle does not reproduce")

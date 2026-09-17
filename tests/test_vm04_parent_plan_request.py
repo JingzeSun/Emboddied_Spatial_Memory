@@ -19,7 +19,9 @@ from vsmt.vm04_parent_plan_request import (  # noqa: E402
     ParentPlanRequestError,
     derive_parent_online_program_plan_request,
     make_parent_program_request_spec,
+    seal_parent_selector_spec_before_raw_capture,
     validate_parent_online_program_plan_request,
+    validate_parent_selector_temporal_receipt,
 )
 
 
@@ -120,6 +122,33 @@ class ParentPlanRequestTests(unittest.TestCase):
         self.assertEqual(refs["old_located_at_edge_version_id"],
                          "edge:located@v0")
 
+    def test_selector_temporal_receipt_upgrades_parent_provenance(self):
+        route, spec = inputs("BIRTH")
+        temporal = seal_parent_selector_spec_before_raw_capture(
+            spec=spec, public_route=route, parent_stage_code_sha256=CODE_SHA,
+        )
+        self.assertEqual(validate_parent_selector_temporal_receipt(
+            temporal, spec=spec, public_route=route,
+            parent_stage_code_sha256=CODE_SHA,
+        ), temporal)
+        result = derive_parent_online_program_plan_request(
+            spec=spec, public_route=route, prior_memory=memory(),
+            last_completed_observation_index=4,
+            parent_stage_code_sha256=CODE_SHA,
+            selector_temporal_receipt=temporal,
+        )
+        receipt = result["provenance_receipt"]
+        self.assertEqual(receipt["schema_version"],
+                         "vsmt-vm04-parent-program-request-provenance-receipt-v2")
+        self.assertTrue(receipt[
+            "selector_spec_pre_terminal_registration_established"
+        ])
+        self.assertEqual(validate_parent_online_program_plan_request(
+            result, spec=spec, public_route=route, prior_memory=memory(),
+            parent_stage_code_sha256=CODE_SHA,
+            selector_temporal_receipt=temporal,
+        ), result)
+
     def test_caller_version_ids_wrong_boundary_and_tamper_are_rejected(self):
         route, spec = inputs("BIND")
         changed = copy.deepcopy(spec)
@@ -170,6 +199,17 @@ class ParentPlanRequestTests(unittest.TestCase):
         ).read_text(encoding="utf-8"))
         jsonschema.validate(spec, schema)
         jsonschema.validate(result["provenance_receipt"], schema)
+        temporal = seal_parent_selector_spec_before_raw_capture(
+            spec=spec, public_route=route, parent_stage_code_sha256=CODE_SHA,
+        )
+        upgraded = derive_parent_online_program_plan_request(
+            spec=spec, public_route=route, prior_memory=memory(),
+            last_completed_observation_index=4,
+            parent_stage_code_sha256=CODE_SHA,
+            selector_temporal_receipt=temporal,
+        )
+        jsonschema.validate(temporal, schema)
+        jsonschema.validate(upgraded["provenance_receipt"], schema)
 
 
 if __name__ == "__main__":
