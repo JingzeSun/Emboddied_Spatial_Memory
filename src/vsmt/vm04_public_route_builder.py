@@ -21,6 +21,7 @@ from .vm04_observation_runner import (
     ObservationConstructionError,
     _pose,
     _require,
+    _route_step_budget,
     _sha,
     _translation,
     _yaw_distance,
@@ -29,6 +30,7 @@ from .vm04_observation_runner import (
     validate_visibility_builder_receipt_binding,
     validate_route_plan,
 )
+from .vm04_reachable_scan import ReachableGrid
 
 
 def _validate_graph(
@@ -36,6 +38,7 @@ def _validate_graph(
     edges: Sequence[Mapping[str, Any]], *,
     subject_public_ref: str, subject_seal_sha256: str,
     visibility_config_sha256: str, contract: Mapping[str, Any],
+    reachable_grid: ReachableGrid | None = None,
 ) -> tuple[dict[str, dict[str, Any]], dict[str, list[dict[str, str]]]]:
     approved = validate_approved_contract(contract)
     allowed_actions = set(approved["observation_trajectory"]
@@ -84,6 +87,11 @@ def _validate_graph(
                  "public pose evidence must be a lowercase SHA-256")
         _require(evidence == builder_receipt["receipt_sha256"],
                  "public pose evidence does not bind its visibility receipt")
+        # D-207 per-step yield guard: a scanned pose that is not a verified
+        # reachable cell cannot be a planned observation, because the route
+        # would only discover the blocked action once the simulator runs.
+        _require(reachable_grid is None or reachable_grid.pose_is_reachable(pose),
+                 f"scanned pose {pose_id} is not on a verified reachable cell")
         nodes[pose_id] = {
             "pose_id": pose_id,
             "pose": pose,
@@ -128,12 +136,19 @@ def build_route_plan_from_public_graph(
     split_merge_artifact_plan: Mapping[str, Any] | None,
     contract: Mapping[str, Any],
     family_layer: str = "entity",
+    reachable_scan: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Return the shortest deterministic route satisfying D-182/D-183.
 
     ``family_layer`` selects the D-207 registered action budget: the entity
     layer keeps the frozen D-182 cap, the place layer gets the longer budget a
     Z-route needs.
+
+    Passing ``reachable_scan`` restricts the search to poses that a real sealed
+    ``GetReachablePositions`` scan verified, which is the D-207 per-step yield
+    guard for this builder: every scanned pose the search may plan through is
+    already a reachable cell.  It is optional only so that the pure schema
+    tests can keep running without a scan; production callers pass one.
     """
 
     approved = validate_approved_contract(contract)
@@ -144,18 +159,20 @@ def build_route_plan_from_public_graph(
     _require(type(visibility_subject_public_ref) is str and
              visibility_subject_public_ref,
              "visibility subject public ref must be nonempty")
+    grid = (None if reachable_scan is None else
+            ReachableGrid(reachable_scan, contract=approved))
     nodes, adjacency = _validate_graph(
         pose_scans, edges, subject_public_ref=visibility_subject_public_ref,
         subject_seal_sha256=visibility_subject_seal_sha256,
         visibility_config_sha256=visibility_builder_config_sha256,
-        contract=approved,
+        contract=approved, reachable_grid=grid,
     )
     hidden_state = BRANCH_STATES[branch_type]
     numbers = (
         approved["observation_trajectory"]
         ["frozen_numeric_values"]
     )
-    max_steps = numbers["maximum_route_steps"]
+    max_steps = _route_step_budget(approved, family_layer)
     minimum_each = numbers["minimum_public_observations_per_visibility_state"]
 
     starts = sorted(

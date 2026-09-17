@@ -30,6 +30,10 @@ from vsmt.vm04_observation_runner import (  # noqa: E402
 from vsmt.vm04_pilot_family_completion import (  # noqa: E402
     seal_formal_selection_from_pilot,
 )
+from vsmt.vm04_reachable_scan import (  # noqa: E402
+    seal_public_reachable_scan,
+    seal_route_step_reachability,
+)
 from vsmt.vm04_materializer_code_manifest import (  # noqa: E402
     make_vm04_materializer_code_manifest,
     verify_vm04_materializer_code_checkout,
@@ -138,6 +142,45 @@ def seal_source_pool(input_path: Path, output_path: Path) -> None:
     write_new_json(output_path, manifest)
 
 
+def seal_reachable_scan(input_path: Path, output_path: Path) -> None:
+    """Seal a captured public reachable scan into its replayable receipt.
+
+    ``--input`` is the raw public ``GetReachablePositions`` capture written by
+    :mod:`vm04_reachable_scan_worker`; this command only re-checks and seals it,
+    so the simulator gate lives with the worker and the sealing gate lives here.
+    """
+
+    contract = load_contract()
+    require_gate(contract, "route_plan_sealing_authorized")
+    source = read_json(input_path)
+    if set(source) != {"house_id", "positions"}:
+        raise ObservationConstructionError(
+            "reachable scan input has unexpected fields")
+    scan = seal_public_reachable_scan(
+        house_id=source["house_id"], raw_positions=source["positions"],
+        contract=contract,
+    )
+    write_new_json(output_path, scan)
+
+
+def verify_route_reachability(
+    route_path: Path, scan_path: Path, output_path: Path,
+) -> None:
+    """Check every planned step of a sealed route against a sealed scan.
+
+    This is the D-207 yield guard: a blocked step is a construction failure of
+    that route, so this command refuses rather than trimming or re-planning.
+    """
+
+    contract = load_contract()
+    require_gate(contract, "route_plan_sealing_authorized")
+    receipt = seal_route_step_reachability(
+        plan=read_json(route_path), scan=read_json(scan_path),
+        contract=contract,
+    )
+    write_new_json(output_path, receipt)
+
+
 def freeze_status() -> None:
     """Report whether every scientific choice is frozen, without opening work."""
 
@@ -178,9 +221,11 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("mode", choices=(
         "check", "freeze-status", "seal-materializer-code", "seal-source-pool",
-        "seal-formal",
+        "seal-formal", "seal-reachable-scan", "verify-route-reachability",
     ))
     parser.add_argument("--input", type=Path)
+    parser.add_argument("--route", type=Path)
+    parser.add_argument("--scan", type=Path)
     parser.add_argument("--code-root", type=Path)
     parser.add_argument("--reviewed-commit")
     parser.add_argument("--pilot-outcomes", type=Path)
@@ -204,6 +249,18 @@ def main() -> None:
         if arguments.input is None or arguments.output is None:
             parser.error("seal-source-pool requires --input and --output")
         seal_source_pool(arguments.input, arguments.output)
+    elif arguments.mode == "seal-reachable-scan":
+        if arguments.input is None or arguments.output is None:
+            parser.error("seal-reachable-scan requires --input and --output")
+        seal_reachable_scan(arguments.input, arguments.output)
+    elif arguments.mode == "verify-route-reachability":
+        if (arguments.route is None or arguments.scan is None or
+                arguments.output is None):
+            parser.error(
+                "verify-route-reachability requires --route, --scan and --output"
+            )
+        verify_route_reachability(
+            arguments.route, arguments.scan, arguments.output)
     else:
         if (arguments.input is None or arguments.pilot_outcomes is None or
                 arguments.output is None):
