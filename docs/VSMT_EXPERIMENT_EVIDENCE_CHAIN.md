@@ -31,6 +31,24 @@ VSMT 的核心候选贡献是三个部分的组合：
 
 任何一段缺失，都只能缩小结论范围，不能由后续步骤“补证明”。例如，executor 测试全过只能证明事务机械语义，不证明 L2 数据需要历史；CFO/history 门通过只能证明数据有历史信息，不证明 VSMT 优于 TAF、ELU、WFR 或 LOW。
 
+### 1.1 首篇口径边界（D-206，取代 D-205 的收窄）
+
+D-205 曾把首篇收窄为"不主张地点身份修订"。随后发现那个收窄建立在一个信息边界漏洞之上：`build_adapter_input` 把**模拟器真值世界 `camera_pose`** 直接发给每个方法，`_camera_record` 也把它写进公开相机记录，而 CFO 的禁止列表里既没有 `camera_pose` 也没有 `past_actions`。所以地点身份不是"被排除在学习之外"，是**被无偿给出**；CFO 也不是当前帧诊断器。D-206 的处理是**收回这个 oracle**，而不是围绕它收窄主张。
+
+| 第一篇可以主张 | 第一篇不能主张 |
+|---|---|
+| 四类结构（entity/surface/fragment/**place**）上的类型化可执行事务选择 | 度量 SLAM 或全局位姿图优化 |
+| 版本化状态与副作用的可审计性 | 超出声明里程计模型之外的传感噪声鲁棒性 |
+| candidate-before-teacher 监督边界 | 真实机器人/真实传感器泛化 |
+| **地点身份修订，含假回环的纠正** | 主动探索或主动寻找回环 |
+| 统一事务空间把四类已有机制作为特例包含 | |
+
+公开 pose 改为"以观测 0 为原点、由注册动作推算、叠加 2% 声明噪声"的相对位姿；真值世界位姿只进私有评价通道。place 保留 0.5 m 格量子，但格坐标表达在漂移的相对系里——于是同一物理地点可能落进不同格（假回环，需 place MERGE），两个物理地点可能落进同一格（混淆，需 place SPLIT）。**这两种失效模式在 D-205 的定义下根本不可能发生**，因为格坐标是精确的纯函数。
+
+这条边界写在机器合同 `first_paper_scope_boundary` / `public_pose_channel` / `place_identity_revision` 里并由验证器拒绝弱化：真值 pose 不得回到公开 packet，噪声不得调小到零（否则退化为里程计积分题），place 不得同时"可学"又"是骨架"。
+
+**为什么这是二区而不是三区的论据：** TAF/ELU/WFR/LOW 都不维护可修订的地点身份，再多训练预算也补不上——这是表达能力差距，不是预算差距。合同里登记为 `structural_capability_gap_argument`。
+
 ## 2. 状态词怎样读
 
 本文统一使用以下状态，避免“代码存在”被误读成“科学主张成立”。
@@ -44,7 +62,9 @@ VSMT 的核心候选贡献是三个部分的组合：
 | 阻断 | 条件未满足时必须失败关闭，不能生成、训练或计入 family |
 | 运行后判断 | 必须依靠真实 pilot、开发、validation 或 confirmation 结果，文档和单测不能预先证明 |
 
-截至 D-204 候选，所有生成、训练和 confirmation 授权仍为 `false`。D-204 已完成纯核心与 schema，但生产父 stage、raw writer/materializer 文件编排和 D-201 离线消费仍未实现。
+截至 D-206，所有生成、训练和 confirmation 授权仍为 `false`。全部**科学数值**已冻结在活动合同 [v3](../configs/vsmt/vm04_observation_suitability_v3.json)（状态 `d206_place_layer_frozen_artifacts_pending`）：D-205 冻结了动作、时钟、编码、proposal、visibility、matcher、SPLIT/MERGE 与 probe，D-206 追加了 pose 通道、里程计噪声、place 关联与 Z 路线。剩余阻断项只有需要真实产物才能算出的 8 个摘要，以及 §10.2 的 C 类工程接线。v1/v2 保持原字节，不再是活动合同。
+
+本文件的"当前细粒度指针"（§10.3）是唯一维护处；[PLAN.md](PLAN.md) 只保留阶段级状态并链接到这里，不再重复叙述叶节点。
 
 ## 3. 论文主张拆成哪些可检验证据
 
@@ -349,7 +369,7 @@ history 门失败说明终帧已经泄露答案或历史无辨识力；oracle re
 
 teacher 本身给错分时另记 teacher error；executor 拒绝 reference 时另记语义或执行合同错误。
 
-## 10. 当前实现地图（截至 D-203）
+## 10. 当前实现地图（截至 D-206）
 
 ### 10.1 已有并保留的底座
 
@@ -362,37 +382,60 @@ teacher 本身给错分时另记 teacher error；executor 拒绝 reference 时�
 
 ### 10.2 当前真正阻断 pilot 的缺口
 
-1. 冻结八种 camera action 的真实请求参数，并做固定 AI2-THOR API smoke。
-2. 冻结 `decision_time_s`、past-action encoding 和完整 materializer/frontend/bootstrap 配置。
-3. 接入真实 SAM loader、checkpoint/commit/assets receipt 和 automatic-mask 数值。
-4. 固定 DINO 资产/环境摘要，以及 proposal、geometry、visibility、matcher 正式数值。
-5. 冻结 SPLIT/MERGE 几何、前端伪影判据和 fresh replay 次数。
-6. 冻结 CFO/history 共用 probe 架构、输入 mask 和训练预算；此时只冻结规格，不运行 probe。
-7. 把 D-204 纯核心接入生产父 stage/raw writer/materializer，并升级 D-201 离线 episode receipt 消费在线seal。
+D-205 把这张清单按性质分成三类。**混在一起是此前它无法被任何一次审查清空的原因**：科学裁决可以一次开会定完，产物摘要必须等真实产物存在，工程接线要写代码。
+
+**A. 科学数值裁决 —— 已由 D-205 全部冻结。**
+
+- ~~八种 camera action 的真实请求参数~~（Move 0.25 m，Rotate/Look 30°，禁用 `forceAction` 与默认值；固定 build 的 API smoke 仍是执行前必需）
+- ~~`decision_time_s` 规则与 past-action encoding~~（名义注册动作时钟 1.0 s/动作；9 维 one-hot 加观测 0 标志位）
+- ~~L2 proposal 数值与 automatic-mask 配置~~（196 像素、每帧至多 64 个、NMS 关闭以保留重叠 proposal）
+- ~~公开 visibility 数值~~（0.05–20 m、遮挡容差 0.05 m、步长 4、样本 32–512）
+- ~~matcher 正式数值~~（按 entity/surface/fragment 分别定值，分差 0.10，包络裕度 0.02 m，负证据 ≥2 条且间隔 ≥2.0 s）
+- ~~SPLIT/MERGE 几何、前端伪影判据、fresh replay 次数~~（3 次，判据只在冻结 L2 公开 proposal 上测量）
+- ~~CFO/history 共用 probe 架构与训练预算~~（单一注册配置，无任何选择，因此不需要预留选择 family）
+
+**B. 真实产物摘要 —— 只能由真实产物产生，凭空填写即伪造证据。**
+
+1. SAM 2.1 仓库 commit 与 checkpoint SHA-256。
+2. automatic-mask config、assets receipt 与 generator 代码摘要。
+3. materializer 代码与 config 摘要（须先封存 source manifest）。
+4. 已审 L2 前端 receipt 摘要。
+
+**C. 工程接线 —— D-206 新增两项，其余范围不变。**
+
+5. **（D-206 新增）** 把 raw writer 的公开相机记录从真值世界 pose 换成 episode 相对的带噪里程计，真值位姿改写私有评价通道。
+6. **（D-206 新增）** 把确定性 place 骨架降级为 oracle 诊断臂，并实现基于证据的 place 关联与 `adjacent_to`。
+7. 把 D-204 纯核心接入生产父 stage/raw writer/materializer，并升级 D-201 离线 episode receipt 消费在线 seal。
 8. 把 production visibility、materializer、intervention、RELINK、candidate/teacher 接入同一真实 episode 纵向链。
-9. 实现真实 reachable scan、父 stage 多 worker、确定性合并、失败恢复、verify/export。
-10. 封存 70-house 顺序、审查固定 commit/manifest/assets 摘要，完成最终开闸审计。
+9. 实现真实 reachable scan、父 stage 多 worker、确定性合并、失败恢复、verify/export，以及 **Z 路线 family 构造器**。
+10. 用户审查 pilot family 完成度的机械派生（已实现，见 §10.3）。
+11. 封存互不相交的 pilot 与正式 house manifest，完成最终开闸审计。
+
+D-206 **不新增任何 B 类产物摘要**——剩余 null 与 D-205 完全相同。
 
 edge RETRACT 继续作为明确覆盖缺口阻断，不应在没有新公开关系负证据类型时被“顺手实现”。
 
 ### 10.3 当前细粒度指针
 
-当前最近的因果链是：
+D-206 之后，最近的因果链是：
 
 ```text
-D-201 episode audit
-  └─ 等待 construction plan 的 terminal 前来源证明
-       D-202 materializer 内部：terminal raw 加载前封存 plan/prior
-         └─ 仍等待父 request 来源证明
-              D-203：只从 sealed route + selector + terminal−1 memory 派生 refs
-                └─ D-204纯核心：selector在raw观测0前seal，D-202消费D-203 v2摘要
-                     └─ 当前下一步：
-                          ① 生产父stage在raw writer前落盘selector/spec/receipt
-                          ② materializer按同一任务消费整链
-                          ③ D-201离线receipt核验D-202 v2，但family仍另审
+D-201→D-204 时间封存链（纯核心可复算，仍 temporal_seal_pending）
+  └─ D-205：科学数值一次性冻结，阻断项按性质分为 A/B/C 三类
+       └─ D-206：收回地点层 oracle，place 变为可学习
+            ├─ A 科学裁决：已完成（含 pose 通道、噪声模型、place matcher、Z 路线）
+            ├─ pilot family 完成度机械派生：已实现，待用户审查
+            └─ 当前下一步（按对生成数据的贡献排序）：
+                 ① raw writer 换 pose 通道（C，阻塞后续全部 raw）
+                 ② 真实 reachable scan + 路线构造 → 第一条真实 episode
+                 ③ 生产父 stage 多 worker 调度与 receipt 合并
+                 ④ 取得真实 SAM 资产并冻结 B 类 4 组摘要（L2 与 SPLIT/MERGE 需要）
+                 ⑤ 封存 70-house 顺序，开闸跑 6 个 pilot family
 ```
 
-D-204 只让“时间来源链”在纯核心中可复算，尚不能升级 D-201。生产接线和 D-201 v2 完成后，单 episode 才可能解除这一个 pending；它仍不能自动计入 family，因为正式 matcher/visibility 数值、真实生产 callback 和 family 覆盖聚合尚未成立。
+①②③ 不需要 SAM：路线、visibility、干预、raw 写盘都只依赖公开 RGB-D 与几何。因此**可以在 SAM 资产到位之前先跑通并产出真实多视角 raw episode**，作为工程可行性运行（显式不是科学样本），这是目前"尽快看到真实数据"的最短路径。
+
+科学裁决完成不等于可以运行：`assert_numeric_freeze_complete` 只回答“操作者是否已经决定完”，`assert_generation_authorized` 继续要求 B 类摘要、pilot 派生的用户审查和授权位，两者不可互相代替。pilot 跑完后，`pilot_report_only_diagnostic` 会在正式生成前给出一次只报告、不可用于任何选择的 CFO/history 早期信号。
 
 ## 11. 后续每轮怎样更新这份记录
 
@@ -431,6 +474,8 @@ D-204 只让“时间来源链”在纯核心中可复算，尚不能升级 D-20
 | materializer 内部时间顺序 | D-202 | terminal raw 加载前封存 plan/prior，但父 request 来源仍 pending |
 | 父级 request 公开派生 | D-203 | 禁止手填 version ID，从公开 selector 和 causal memory 唯一解析 refs |
 | selector与父来源时间链 | D-204（实现候选） | selector提前seal，并把D-203 v2 provenance接入D-202 v2；生产接线和D-201消费仍缺 |
+| 数值冻结与首篇口径 | D-205 | 科学裁决一次性冻结、阻断项按性质分 A/B/C、place 收窄、pilot 只报告诊断与 SPLIT/MERGE 成品率下限、family 完成度机械派生 |
+| 地点层 oracle 收回 | D-206 | 公开 pose 改相对带噪里程计、place 变可学习、Z 路线 family、CFO 掩码补漏、oracle 诊断臂 |
 
 ## 13. 为什么新版 VM-04 比第一次复杂
 

@@ -1,0 +1,674 @@
+{
+  "version": "vsmt-vm04-observation-suitability-v2",
+  "status": "d205_numeric_frozen_artifacts_pending",
+  "decision": "D-181/D-182/D-183/D-205",
+  "replaces_for_scientific_evidence": "vsmt-vm04-fixed-slot-raw-stage-v1",
+  "old_static_36_policy": {
+    "server_run_allowed": false,
+    "paper_main_table_allowed": false,
+    "role": "historical_engineering_design_only",
+    "retain_D173_relink_failures": true
+  },
+  "authorization": {
+    "trajectory_implementation_authorized": false,
+    "source_pool_sealing_authorized": false,
+    "route_plan_sealing_authorized": false,
+    "formal_selection_sealing_authorized": false,
+    "route_assessment_authorized": false,
+    "materializer_code_sealing_authorized": false,
+    "materialization_authorized": false,
+    "pilot_execution_authorized": false,
+    "formal_execution_authorized": false,
+    "generation_authorized": false,
+    "private_evaluation_authorized": false,
+    "identifiability_preflight_authorized": false,
+    "training_authorized": false,
+    "confirmation_authorized": false
+  },
+  "observation_trajectory": {
+    "policy": "public_pre_registered_nonadaptive_observation_route_not_active_exploration",
+    "initial_pose": "TeleportFull_before_observation_zero_only",
+    "registered_post_initial_actions": [
+      "MoveAhead",
+      "MoveBack",
+      "MoveLeft",
+      "MoveRight",
+      "RotateLeft",
+      "RotateRight",
+      "LookUp",
+      "LookDown"
+    ],
+    "registered_action_request_templates": {
+      "MoveAhead": {
+        "action": "MoveAhead",
+        "moveMagnitude": 0.25
+      },
+      "MoveBack": {
+        "action": "MoveBack",
+        "moveMagnitude": 0.25
+      },
+      "MoveLeft": {
+        "action": "MoveLeft",
+        "moveMagnitude": 0.25
+      },
+      "MoveRight": {
+        "action": "MoveRight",
+        "moveMagnitude": 0.25
+      },
+      "RotateLeft": {
+        "action": "RotateLeft",
+        "degrees": 30.0
+      },
+      "RotateRight": {
+        "action": "RotateRight",
+        "degrees": 30.0
+      },
+      "LookUp": {
+        "action": "LookUp",
+        "degrees": 30.0
+      },
+      "LookDown": {
+        "action": "LookDown",
+        "degrees": 30.0
+      }
+    },
+    "forbidden_patterns": [
+      "same_pose_alternating_micro_yaw_as_the_only_episode_motion",
+      "private_instance_id_or_future_outcome_used_to_choose_or_repair_route",
+      "route_endpoint_or_branch_changed_after_failure",
+      "failed_slot_replacement"
+    ],
+    "actual_pose_not_command_is_scored": true,
+    "failed_camera_action_retained": true,
+    "route_sealed_before_private_identity_and_action_outcome": true,
+    "frozen_numeric_values": {
+      "minimum_key_pose_translation_m": 0.5,
+      "minimum_reobservation_translation_m": 0.5,
+      "minimum_key_pose_yaw_change_degrees": 30.0,
+      "minimum_public_observations_per_visibility_state": 2,
+      "maximum_route_steps": 24,
+      "pose_tolerance_m": 0.02,
+      "yaw_tolerance_degrees": 1.0
+    },
+    "required_family_branch_types": [
+      "natural_occlusion_then_reobservation",
+      "out_of_view_then_reobservation"
+    ],
+    "required_episode_phases": [
+      "program_specific_public_precondition_established",
+      "one_pre_registered_visibility_challenge_branch",
+      "world_intervention_while_visibility_subject_is_unobservable_if_applicable",
+      "target_or_relation_observed_from_a_translated_pose"
+    ],
+    "reobservation_translation_reference": "pre_intervention_program_specific_public_precondition_pose",
+    "intervention_visibility_constraint": {
+      "applies_to": "programs_with_a_world_intervention_only",
+      "allowed_public_states_at_intervention": [
+        "occluded",
+        "out_of_view"
+      ],
+      "state_must_be_sealed_before_intervention": true,
+      "failure_reason": "intervention_visible_to_camera",
+      "nonintervention_programs": "not_applicable",
+      "visibility_subject_by_program": {
+        "BIRTH": "pre_registered_public_reveal_locus_because_no_public_target_track_exists",
+        "REACTIVATE_RELINK_RETRACT": "previously_sealed_public_target_track",
+        "REPLACE": "old_public_target_track_and_pre_registered_new_reveal_locus"
+      },
+      "pre_episode_private_setup": "allowed_only_to_establish_initial_state_and_never_counts_as_the_causal_transaction_or_public_evidence"
+    },
+    "program_specific_public_preconditions": {
+      "NOOP": "public_history_and_current_observation_support_no_persistent_change",
+      "BIND": "one_existing_open_node_has_prior_public_evidence_and_is_reobserved",
+      "BIRTH": "no_prior_entity_node_or_relation_for_the_not_yet_publicly_revealed_target",
+      "REACTIVATE": "one_dormant_node_was_established_from_earlier_public_evidence",
+      "RELINK": "one_open_entity_node_has_a_publicly_supported_old_relation_P1",
+      "RETRACT": "one_open_entity_or_relation_has_prior_public_support_before_reliable_absence",
+      "SPLIT": "one_prior_node_was_created_from_a_pre_registered_public_undersegmentation",
+      "MERGE": "two_prior_nodes_were_created_from_a_pre_registered_public_association_break",
+      "REPLACE": "one_open_old_entity_has_public_support_and_the_new_entity_has_no_prior_identity"
+    },
+    "numeric_values_approved_for_schema_review": true,
+    "registered_action_request_rationale": {
+      "move_magnitude_m": "0.25 matches the GetReachablePositions grid already used by the sealed public route scan so a planned grid step equals one registered action",
+      "rotate_degrees": "30 equals the frozen minimum_key_pose_yaw_change_degrees so one registered rotation can satisfy the key-pose yaw gate and a full turn costs twelve of the twenty-four step budget",
+      "look_degrees": "30 is the AI2-THOR horizon increment",
+      "forceAction_allowed": false,
+      "defaults_allowed": false,
+      "api_smoke_still_required_before_execution": true
+    }
+  },
+  "public_visibility_states": {
+    "states": [
+      "visible",
+      "occluded",
+      "out_of_view",
+      "reobserved"
+    ],
+    "source": "current_public_rgbd_depth_camera_pose_calibration_plus_previously_sealed_public_target_track_or_pre_registered_public_reveal_locus",
+    "sealed_before_private_evaluation": true,
+    "private_masks_allowed_to_grade_after_seal": true,
+    "disabled_object_absence_is_not_natural_occlusion": true,
+    "plain_language_example": "a chair seen from P1, hidden behind a table after a registered camera translation, outside the frustum at a third pose, and seen again from P2"
+  },
+  "lifecycle_poststate_policy": {
+    "disable_immediate_private_mask_pixels": 0,
+    "disabled_target_checked_after_every_registered_camera_action": true,
+    "disabled_reappearance_failure": "disabled_target_reappeared_between_actions",
+    "enable_immediate_mask_is_diagnostic_only": true,
+    "enable_acceptance_event": "first_registered_camera_event_after_EnableObject",
+    "enable_acceptance_minimum_private_mask_pixels": 1,
+    "failure_retained_without_resampling": true,
+    "enabled_target_checked_after_every_remaining_registered_camera_action": true,
+    "enabled_terminal_disappearance_failure": "enabled_target_disappeared_before_terminal",
+    "scope": "fixed_view_worker_only",
+    "multiview_terminal_reobservation_window": {
+      "scope": "new_multiview_runner_only",
+      "minimum_registered_public_observations": 2,
+      "must_begin_after_reobservation_pose_arrival": true,
+      "observations_must_be_consecutive": true,
+      "target_or_relation_public_support_required": true,
+      "window_indices_sealed_before_private_evaluation": true
+    },
+    "multiview_policy": "must_use_a_pre_registered_terminal_reobservation_window_not_continuous_visibility_after_enable"
+  },
+  "crosswalk_provenance": {
+    "status": "receipt_v2_executor_frontend_context_causal_chain_config_assets_model_loader_and_code_manifest_implemented_frozen_values_and_parent_stage_pending",
+    "required_before_any_physical_relink_positive": true,
+    "planned_receipt_must_bind": [
+      "public_raw_frame_sha256",
+      "private_instance_masks_sha256",
+      "public_observation_packet_sha256",
+      "private_crosswalk_sha256",
+      "materializer_code_sha256",
+      "materializer_config_sha256",
+      "materializer_assets_receipt_sha256",
+      "public_frame_context_manifest_sha256",
+      "causal_prior_receipt_sha256",
+      "prior_memory_sha256"
+    ],
+    "expected_materializer_code_sha256": null,
+    "expected_materializer_config_sha256": null,
+    "gate_behavior_until_implemented": "no_real_physical_relink_positive_may_be_issued_until_reviewed_code_config_and_asset_digests_are_frozen_and_the_bound_receipt_is_present",
+    "public_relink_proof_seal_must_bind_materializer_receipt_digest": true
+  },
+  "public_packet_materialization": {
+    "status": "frontend_core_packet_prior_sealed_context_config_assets_model_loader_and_code_manifest_implemented_frozen_values_and_parent_stage_pending",
+    "camera_pose_and_calibration_source": "sealed_raw_public_camera_record",
+    "past_actions_source": "sealed_public_route_prefix",
+    "decision_time_rule": {
+      "rule_id": "nominal_registered_action_clock_v1",
+      "observation_zero_s": 0.0,
+      "seconds_per_registered_camera_action": 1.0,
+      "strictly_increasing": true,
+      "derivation": "decision_time_s[i] = 1.0 * i over the sealed route prefix",
+      "is_wall_clock_or_simulator_physics_time": false,
+      "meaning": "a nominal ordering clock so free-space time separation and dormancy are expressed in registered observation counts",
+      "must_be_reversioned_if_actions_gain_variable_duration": true
+    },
+    "action_command_encoding": {
+      "encoding_id": "registered_camera_action_onehot_v1",
+      "vector_length": 9,
+      "component_order": [
+        "LookDown",
+        "LookUp",
+        "MoveAhead",
+        "MoveBack",
+        "MoveLeft",
+        "MoveRight",
+        "RotateLeft",
+        "RotateRight",
+        "no_registered_action_observation_zero"
+      ],
+      "ordering_rule": "sorted_action_names_then_the_observation_zero_flag",
+      "observation_zero_vector": "all_action_components_zero_and_flag_one",
+      "all_eight_actions_distinct": true,
+      "magnitude_component_included": false,
+      "magnitude_component_omitted_because": "each registered action has exactly one frozen magnitude, so a magnitude slot would be constant; the encoding must be reversioned if magnitudes ever vary",
+      "private_or_program_fields_encoded": false
+    },
+    "public_frame_context_manifest_required": true,
+    "prior_memory_ref_source": "previous_online_public_bootstrap_memory_only",
+    "independent_causal_prior_replay_receipt_required": true,
+    "frontend_row_accepts_private_crosswalk_or_instance_identity": false,
+    "private_program_or_target_ids_allowed_in_public_frontend": false,
+    "old_static_SPLIT_MERGE_private_artifact_injection_allowed": false
+  },
+  "l2_public_proposal_frontend_review_candidate": {
+    "status": "public_RGB_boundary_and_packet_materialization_core_implemented_real_SAM_loader_assets_numeric_config_and_user_review_pending",
+    "model_family": "SAM_2.1_hiera_small_per_frame_automatic_mask_generator",
+    "generator_input_fields": [
+      "current_public_RGB"
+    ],
+    "prompt_policy": "fixed_grid_only_no_text_no_private_points_or_boxes",
+    "cross_frame_video_memory_enabled": false,
+    "overlap_policy": "preserve_independent_overlapping_proposals",
+    "canonical_order": "first_true_pixel_then_visible_pixel_count_then_mask_sha256",
+    "duplicate_mask_action": "construction_failure",
+    "packet_entity_proposal_source_id": "l2.sam2.1_hiera_small.per_frame.public_rgb.v1",
+    "private_crosswalk_emitted": false,
+    "frozen_numeric_values": {
+      "minimum_visible_pixels": 196,
+      "border_truncation_policy": "retain_if_minimum_visible_pixels_met",
+      "maximum_proposals_per_frame": 64,
+      "overflow_action": "construction_failure_never_silent_truncation"
+    },
+    "frozen_automatic_mask_generator_config": {
+      "points_per_side": 32,
+      "points_per_batch": 64,
+      "pred_iou_thresh": 0.8,
+      "stability_score_thresh": 0.95,
+      "stability_score_offset": 1.0,
+      "box_nms_thresh": 1.0,
+      "crop_n_layers": 0,
+      "crop_nms_thresh": 1.0,
+      "min_mask_region_area": 0,
+      "output_mode": "binary_mask",
+      "nms_disabled_because": "the sealed overlap policy preserves independent overlapping proposals, so suppression would introduce an unfrozen attribution rule; exact duplicates are still a construction failure",
+      "postprocessing_disabled_because": "small-region filtering is done by the frozen minimum_visible_pixels so there is one auditable size rule"
+    },
+    "pending_artifact_digests": {
+      "repository_commit": null,
+      "checkpoint_sha256": null,
+      "automatic_mask_generator_config_sha256": null,
+      "assets_receipt_sha256": null,
+      "generator_code_sha256": null
+    }
+  },
+  "public_visibility_builder_review_candidate": {
+    "status": "public_geometry_core_and_route_worker_receipt_binding_implemented_numeric_review_pending",
+    "subject_source": "previously_sealed_public_mask_depth_camera_calibration_and_pose_only",
+    "current_frame_source": "current_public_depth_camera_calibration_and_pose_plus_current_public_proposal_support",
+    "invalid_or_missing_depth_policy": "treat_as_unoccluded_so_it_cannot_authorize_hidden_intervention",
+    "terminal_reobservation_requires_current_public_proposal_support": true,
+    "route_receipt_binding_schema": "vsmt-vm04-public-visibility-builder-receipt-v1",
+    "route_and_worker_must_match_subject_config_observation_assessment_and_receipt_digests": true,
+    "frozen_numeric_values": {
+      "minimum_depth_m": 0.05,
+      "maximum_depth_m": 20.0,
+      "occlusion_depth_tolerance_m": 0.05,
+      "sampling_stride_pixels": 4,
+      "maximum_subject_samples": 512,
+      "minimum_subject_samples": 32
+    },
+    "frozen_numeric_rationale": {
+      "depth_range": "identical to the L1 public entity geometry valid range",
+      "occlusion_depth_tolerance_m": "5 cm must exceed depth quantisation on a surface before a nearer surface counts as an occluder, so grazing self-depth cannot authorise a hidden intervention",
+      "minimum_subject_samples": "32 matches the L1 minimum valid depth point count for a region",
+      "may_be_reduced_to_improve_yield": false
+    },
+    "pending_artifact_digests": {}
+  },
+  "program_construction_review_candidate": {
+    "status": "nine_program_public_sufficiency_and_D204_parent_selector_D202_provenance_core_implemented_numeric_and_production_integration_pending",
+    "prior_memory_refs_are_mechanically_checked_open_or_dormant_as_registered": true,
+    "RELINK_requires_open_entity_old_place_and_open_located_at_edge": true,
+    "SPLIT_MERGE_artifact_plan_sealed_before_generation": true,
+    "SPLIT_MERGE_every_fresh_replay_must_realize_registered_transition": true,
+    "failed_artifact_action": "construction_failure_without_relabel_or_replacement",
+    "private_identity_used_for_program_assignment": false,
+    "matcher_receipt_schema": "vsmt-vm04-public-program-matcher-receipt-v1",
+    "episode_construction_receipt_schema": "vsmt-vm04-episode-construction-receipt-v1",
+    "online_plan_request_schema": "vsmt-vm04-online-program-plan-request-v1",
+    "online_plan_temporal_receipt_schema": "vsmt-vm04-online-program-plan-temporal-receipt-v2",
+    "parent_plan_request_spec_schema": "vsmt-vm04-parent-program-request-spec-v1",
+    "parent_selector_temporal_receipt_schema": "vsmt-vm04-parent-selector-temporal-receipt-v1",
+    "parent_plan_request_provenance_receipt_schema": "vsmt-vm04-parent-program-request-provenance-receipt-v2",
+    "matcher_role": "public_construction_sufficiency_gate_not_semantic_identity_oracle",
+    "matcher_prior_boundary": "causal_memory_immediately_before_registered_terminal_observation",
+    "episode_receipt_binds_materializer_causal_prior_terminal_packet_plan_config_prior_and_matcher": true,
+    "failed_matcher_is_retained_as_construction_failure_without_relabel_or_replacement": true,
+    "construction_plan_pre_terminal_temporal_seal_status": "online_core_implemented_review_pending_not_consumed_by_episode_receipt",
+    "online_plan_seal_call_order": "after_terminal_minus_one_public_memory_update_before_terminal_public_or_private_frame_load",
+    "online_plan_seal_retained_if_terminal_load_or_materialization_fails": true,
+    "online_plan_request_provenance_status": "parent_selector_and_request_receipts_bound_by_D202_core_review_pending_production_orchestration",
+    "parent_request_derivation_core_status": "selector_temporal_receipt_bound_and_consumed_by_D202_core_review_pending",
+    "parent_request_derivation_scope": "sealed_public_route_pre_registered_public_selectors_and_terminal_minus_one_causal_memory_only",
+    "parent_request_caller_supplied_version_ids_allowed": false,
+    "parent_request_episode_root_or_raw_path_argument_available": false,
+    "parent_selector_spec_temporal_registration_status": "receipt_core_seals_spec_before_raw_observation_zero_production_parent_stage_pending",
+    "parent_request_provenance_receipt_consumed_by_D202": true,
+    "online_temporal_receipt_clears_D201_pending": false,
+    "offline_episode_receipt_consumes_online_temporal_seal": false,
+    "episode_receipt_parent_family_eligibility": false,
+    "parent_family_completion_aggregation_status": "pending_separate_review",
+    "edge_RETRACT_sufficiency_status": "blocked_because_current_public_packet_has_no_repeated_relation_absence_evidence_type",
+    "frozen_matcher_numeric_values": {
+      "association_rules_by_structure_kind": {
+        "entity": {
+          "visual_cosine_minimum": 0.55,
+          "maximum_centroid_distance_m": 0.75,
+          "geometry_overlap_minimum": 0.1,
+          "visual_weight": 0.6,
+          "geometry_weight": 0.4,
+          "combined_score_minimum": 0.6
+        },
+        "surface": {
+          "visual_cosine_minimum": 0.45,
+          "maximum_centroid_distance_m": 0.35,
+          "geometry_overlap_minimum": 0.3,
+          "visual_weight": 0.4,
+          "geometry_weight": 0.6,
+          "combined_score_minimum": 0.6
+        },
+        "fragment": {
+          "visual_cosine_minimum": 0.6,
+          "maximum_centroid_distance_m": 0.3,
+          "geometry_overlap_minimum": 0.2,
+          "visual_weight": 0.5,
+          "geometry_weight": 0.5,
+          "combined_score_minimum": 0.65
+        }
+      },
+      "minimum_region_reliability": 0.5,
+      "minimum_unique_score_margin": 0.1,
+      "minimum_relation_reliability": 0.5,
+      "free_space_reliability_threshold": 0.9,
+      "support_envelope_reliability_threshold": 0.9,
+      "support_envelope_margin_m": 0.02,
+      "minimum_free_space_time_separation_s": 2.0,
+      "minimum_independent_negative_observations": 2
+    },
+    "frozen_matcher_numeric_rationale": {
+      "per_structure_kind_because": "a movable entity may legally translate between observations while a 0.5 m place-anchored surface may not, so one shared visual-plus-centroid score across kinds is not admissible (D-139)",
+      "maximum_centroid_distance_m_entity": "0.75 admits an intra-room displacement as a BIND candidate and leaves the identity decision to the margin rule rather than to distance alone",
+      "minimum_unique_score_margin": "top-1 minus top-2 must exceed 0.10 or the match is ambiguous and the program records a construction failure instead of guessing",
+      "support_envelope_margin_m": "2 cm per edge, promoted from the D-144 audit provisional value; D-145 forbids reducing it to improve yield",
+      "minimum_free_space_time_separation_s": "2.0 under the nominal one-second registered action clock means the two independent visible-empty observations are at least two registered camera actions apart",
+      "may_be_changed_after_seeing_results": false
+    },
+    "pending_matcher_artifact_digests": {}
+  },
+  "l2_identifiability_admission_gate": {
+    "role": "hard_gate_after_development_materialization_before_VM05_training_or_main_table",
+    "evidence_level": {
+      "target_claim_level": "L2_public_proposal_frontend",
+      "current_implemented_frontend": "L1_oracle_entity_masks_plus_public_geometry",
+      "current_status": "blocked_L1_diagnostic_only_until_L2_frontend_is_implemented_and_reviewed",
+      "L1_result_may_admit_L2_main_table": false,
+      "reviewed_L2_frontend_receipt_sha256": null
+    },
+    "rule_and_thresholds_frozen_before_generation": true,
+    "result_blind_threshold_changes_allowed": false,
+    "current_frame_only_probe": {
+      "name": "CFO_current_frame_only_probe",
+      "input": "current_L2_public_observation_packet_only",
+      "forbidden_inputs": [
+        "prior_memory",
+        "observation_history",
+        "candidate_catalog",
+        "private_identity",
+        "teacher",
+        "future_observation"
+      ],
+      "output": "registered_program_type",
+      "not_equal_to": "LOW_memory_update_baseline"
+    },
+    "primary_unit": "house_family",
+    "primary_metric": "family_aggregated_registered_program_type_accuracy",
+    "required_pass_rule": "one_sided_family_interval_lower_bound_for_public_history_probe_minus_CFO_exceeds_frozen_minimum_gap_and_CFO_does_not_exceed_frozen_maximum_accuracy_and_sealed_catalog_oracle_recall_meets_its_frozen_minimum",
+    "frozen_numeric_values": {
+      "minimum_accuracy_gap": 0.15,
+      "maximum_CFO_accuracy": 0.6,
+      "confidence_level": 0.95,
+      "bootstrap_seed": 260916,
+      "bootstrap_resamples": 10000,
+      "minimum_development_families": 32,
+      "minimum_sealed_catalog_oracle_recall": 0.9
+    },
+    "pending_model_and_budget_fields": {},
+    "fail_action": "dataset_version_is_engineering_or_easy_slice_only_and_cannot_enter_L2_main_table",
+    "pass_does_not_imply": [
+      "VSMT_outperforms_any_baseline",
+      "candidate_recall_is_sufficient",
+      "training_is_authorized",
+      "confirmation_is_open"
+    ],
+    "public_history_probe": {
+      "input": "sealed_public_history_causal_prior_memory_and_current_L2_packet",
+      "private_labels_used_only_for_training_or_post_seal_scoring": true,
+      "capacity_and_optimization_budget": "identical_to_CFO_except_for_registered_history_and_prior_inputs",
+      "output": "registered_program_type"
+    },
+    "sealed_catalog_oracle_diagnostic": {
+      "role": "separate_candidate_feasibility_ceiling_not_the_history_gap_comparator",
+      "private_reference_opened_only_after_candidate_seal": true,
+      "metric": "family_aggregated_unique_reference_candidate_recall"
+    },
+    "paired_by_family": true,
+    "probe_structure_selection": {
+      "single_shared_architecture_required": true,
+      "choose_better_model_on_gate_families_allowed": false,
+      "selection_family_split": "none_single_registered_configuration_requires_no_selection_split",
+      "architecture_frozen_before_generation": true
+    },
+    "numeric_values_approved_for_schema_review": true,
+    "approved_probe_family_policy": "one_pre_registered_shared_probe_architecture_with_history_and_prior_inputs_masked_for_CFO",
+    "per_program_reporting": {
+      "required": true,
+      "metric": "family_aggregated_class_conditional_correct_program_rate",
+      "easy_class_CFO_threshold": 0.6,
+      "easy_class_action": "retain_in_aggregate_denominator_but_forbid_standalone_evidence_for_that_program",
+      "easy_class_blocks_whole_dataset": false,
+      "post_result_program_removal_relabeling_or_resampling_allowed": false
+    },
+    "frozen_model_and_budget_values": {
+      "CFO_and_public_history_probe_architecture": {
+        "name": "shared_region_set_transformer_v1",
+        "token_source": "L2_public_observation_packet_region_records",
+        "token_dim": 256,
+        "layers": 2,
+        "heads": 4,
+        "ffn_dim": 512,
+        "dropout": 0.0,
+        "pooling": "mean_over_tokens",
+        "output_classes": 9,
+        "output_space": "registered_program_type",
+        "history_and_prior_inputs_masked_for_CFO": [
+          "prior_memory_tokens",
+          "observation_history_tokens"
+        ],
+        "identical_parameter_count_for_both_probes": true,
+        "mask_is_the_only_difference": true
+      },
+      "shared_probe_training_budget": {
+        "optimizer": "AdamW",
+        "learning_rate": 0.0003,
+        "weight_decay": 0.01,
+        "batch_size": 16,
+        "max_updates": 4000,
+        "gradient_clip_norm": 1.0,
+        "seeds": [
+          7,
+          19,
+          31
+        ],
+        "early_stopping": "none_fixed_budget",
+        "configuration_selection": "none_single_registered_configuration",
+        "checkpoint_selection": "final_update_only"
+      }
+    },
+    "frozen_model_and_budget_rationale": {
+      "single_configuration_because": "registering exactly one architecture, one budget and one checkpoint rule removes max-selection bias entirely, so no gate families have to be spent on probe selection (D-182)",
+      "three_seeds_are_averaged_not_selected": true,
+      "budget_shortfall_is_reported_as_probe_underfitting_not_as_a_history_result": true
+    },
+    "pilot_report_only_diagnostic": {
+      "decision": "D-205",
+      "role": "pre_registered_report_only_early_signal_on_pilot_families_only",
+      "why_this_is_not_selection": "the six pilot families are permanently excluded from the identifiability gate, VM-05 and VM-06, so nothing measured on them can enter or move a formal statistic",
+      "runs_on": "six_pilot_families_only",
+      "uses": "the_same_single_registered_shared_architecture_and_budget",
+      "reported_quantities": [
+        "pilot_CFO_accuracy",
+        "pilot_public_history_accuracy",
+        "pilot_paired_family_gap",
+        "pilot_per_program_accuracy"
+      ],
+      "may_change_gate_thresholds": false,
+      "may_change_formal_house_count": false,
+      "may_change_probe_architecture_or_budget": false,
+      "may_change_route_geometry_or_program_assignment": false,
+      "may_change_matcher_or_visibility_numerics": false,
+      "permitted_responses": [
+        "continue_to_formal_generation_unchanged",
+        "stop_and_open_a_new_contract_version_under_the_existing_pilot_rule"
+      ],
+      "operator_go_no_go_required_when": {
+        "pilot_paired_family_gap_at_or_below": 0.0,
+        "or_pilot_CFO_accuracy_at_or_above": 0.8
+      },
+      "trigger_values_are_deliberately_loose_because": "they are meant to catch only a catastrophic design failure before 48 to 64 houses are generated; they are not the admission gate and are too loose to act as a selection device",
+      "result_is_never_reported_as_the_admission_gate_outcome": true,
+      "pilot_results_excluded_from_all_formal_statistics": true,
+      "n_of_pilot_families": 6
+    }
+  },
+  "pre_generation_blockers": [
+    "download_and_verify_the_real_SAM_2_1_hiera_small_checkpoint_and_repository_commit",
+    "compute_and_freeze_the_L2_proposal_assets_receipt_and_generator_code_digests",
+    "compute_and_freeze_the_automatic_mask_generator_config_digest",
+    "compute_and_freeze_the_reviewed_L2_frontend_receipt_digest",
+    "seal_the_materializer_source_manifest_and_freeze_its_code_and_config_digests",
+    "implement_and_review_the_production_parent_stage_raw_writer_and_materializer_wiring",
+    "upgrade_the_offline_D201_episode_receipt_to_consume_the_online_temporal_seal",
+    "implement_the_real_public_reachable_position_route_scan",
+    "user_review_of_the_pilot_family_completion_derivation",
+    "seal_the_disjoint_pilot_and_formal_house_manifests",
+    "final_pre_generation_audit_then_open_only_the_pilot_authorizations"
+  ],
+  "development_pilot": {
+    "status": "proposed_not_authorized",
+    "purpose": "early_route_visibility_and_construction_failure_detection_only",
+    "family_count": 6,
+    "family_completion_definition": "all_pre_registered_routes_visibility_states_and_required_SPLIT_MERGE_artifacts_pass_without_replacement",
+    "family_completion_source": "mechanically_derived_from_sealed_route_receipts_and_construction_verdicts",
+    "caller_supplied_completion_boolean_allowed": false,
+    "mechanical_completion_derivation_status": "implemented_review_pending_parent_stage_family_receipt_v1",
+    "source_houses_disjoint_from_formal_development": true,
+    "included_in_identifiability_gate": false,
+    "included_in_VM05_training_or_validation": false,
+    "included_in_VM06_confirmation": false,
+    "may_change_contract_after_review": true,
+    "changed_contract_requires_new_version_and_new_formal_house_list": true,
+    "ordered_source_pool_minimum_eligible_houses": 70,
+    "selection_rule_and_ordered_source_pool_sealed_before_pilot": true,
+    "formal_house_count_sealed_after_pilot_before_formal_generation": true,
+    "formal_count_rule": {
+      "pilot_completed_5_or_6": 48,
+      "pilot_completed_4": 64,
+      "pilot_completed_0_to_3": "stop_and_require_new_contract_version"
+    },
+    "family_completion_receipt_schema": "vsmt-vm04-pilot-family-completion-v1"
+  },
+  "formal_development_sampling": {
+    "base_source_houses_to_attempt": 48,
+    "maximum_source_houses_to_attempt": 64,
+    "source_houses_to_attempt": null,
+    "source_houses_to_attempt_is_sealed_only_after_pilot": true,
+    "additional_houses_after_observed_failures_allowed": false,
+    "failed_family_replacement_allowed": false,
+    "house_selection_rule": "result_blind_manifest_hash_order_frozen_before_pilot",
+    "insufficient_completed_families_action": "fail_construction_gate_and_do_not_run_identifiability_VM05_or_VM06",
+    "minimum_completed_families": 32
+  },
+  "deterministic_SPLIT_MERGE_construction": {
+    "schema_review_approved": true,
+    "program_assignment_sealed_before_generation": true,
+    "source": "pre_registered_geometry_camera_route_and_frozen_public_frontend_only",
+    "SPLIT_required_transition": "one_public_undersegmented_region_at_far_or_occluded_pose_then_two_public_regions_at_near_reobservation_pose",
+    "MERGE_required_transition": "two_public_tracks_from_a_pre_registered_association_break_then_one_public_identity_supported_at_reobservation",
+    "private_identity_role": "post_seal_grading_only_never_program_assignment",
+    "artifact_not_realized_action": "construction_failure_keep_registered_program_never_relabel",
+    "posthoc_program_label_from_observed_artifact_allowed": false,
+    "pilot_must_check_fresh_replay_repeatability": true,
+    "fresh_replay_repeat_count": 3,
+    "exact_geometry_parameters": {
+      "SPLIT": {
+        "authored_asset_pair_center_separation_m": 0.08,
+        "assets_share_one_supporting_surface": true,
+        "far_observation_distance_m": 3.0,
+        "near_observation_distance_m": 1.0,
+        "camera_horizon_deg": 30.0
+      },
+      "MERGE": {
+        "single_authored_asset_occluder_gap_m": 0.06,
+        "occluder_splits_the_asset_into_two_visible_islands_at_far_pose": true,
+        "occluder_removed_before_near_observation": false,
+        "far_observation_distance_m": 3.0,
+        "near_observation_distance_m": 1.0,
+        "camera_horizon_deg": 30.0
+      },
+      "placement_is_pre_registered_per_family_before_generation": true,
+      "geometry_may_be_tuned_after_seeing_artifact_outcomes": false
+    },
+    "frozen_frontend_artifact_criteria": {
+      "measured_on": "frozen_L2_public_proposal_masks_only",
+      "SPLIT_far_required_proposal_count_covering_the_asset_pair": 1,
+      "SPLIT_near_required_proposal_count_covering_the_asset_pair": 2,
+      "MERGE_far_required_proposal_count_covering_the_asset": 2,
+      "MERGE_near_required_proposal_count_covering_the_asset": 1,
+      "coverage_rule": "a public proposal covers an authored asset when the intersection over that asset private mask is at least the coverage minimum",
+      "coverage_minimum": 0.5,
+      "private_mask_role": "post_seal_coverage_measurement_only_never_program_assignment",
+      "all_fresh_replays_must_match": true,
+      "any_replay_mismatch_action": "construction_failure_keep_registered_program_never_relabel"
+    },
+    "pilot_artifact_yield_floor": {
+      "decision": "D-205",
+      "problem": "D-142 pins two of the three confirmatory atoms on SPLIT and MERGE, whose construction depends on a frontend artifact reproducing across every fresh replay; without a pilot floor that risk is only discovered after the full formal generation budget is spent",
+      "measured_on": "six_pilot_families_only",
+      "minimum_pilot_families_with_all_SPLIT_fresh_replays_realized": 3,
+      "minimum_pilot_families_with_all_MERGE_fresh_replays_realized": 3,
+      "below_floor_action": "record the demotion of that program from the confirmatory set to descriptive-only for this dataset version before formal generation",
+      "below_floor_may_change_geometry_or_criteria": false,
+      "thresholds_may_change_after_seeing_pilot_results": false,
+      "remaining_confirmatory_atoms_after_a_demotion": "the confirmatory set shrinks to the surviving atoms and the reduced power is reported, it is not repaired by adding families"
+    }
+  },
+  "derived_from": {
+    "source_config": "configs/vsmt/vm04_observation_suitability_proposal_v1.json",
+    "source_config_sha256": "2d99d51995e1b8f0ded5e66f1f0df9b8fab94c452655324ba289105eb38ba4c3",
+    "source_bytes_unchanged": true,
+    "derivation": "field_wise_copy_then_D205_freeze_only",
+    "unchanged_fields_are_byte_identical_after_canonical_json": true
+  },
+  "first_paper_scope_boundary": {
+    "decision": "D-205",
+    "problem": "place identity and place-to-place adjacency are maintained identically for all five arms by the deterministic place_scaffold and are excluded from learned BIND/MERGE/SPLIT, so the first paper cannot test spatial topology revision even though D-061 asked for it",
+    "claim_level": "structural memory transactions over a deterministic place scaffold",
+    "learnable_structure_kinds": [
+      "entity",
+      "surface",
+      "fragment"
+    ],
+    "deterministic_shared_scaffold": [
+      "place_identity",
+      "place_to_place_adjacent_to"
+    ],
+    "place_identity_source": "exact_simulator_camera_pose_projected_to_a_fixed_world_grid",
+    "first_paper_may_claim": [
+      "typed_executable_transaction_selection_over_entity_surface_fragment",
+      "versioned_state_and_side_effect_auditability",
+      "candidate_before_teacher_supervision_boundary",
+      "entity_identity_lifecycle_and_entity_to_place_relation_revision"
+    ],
+    "first_paper_may_not_claim": [
+      "place_or_room_identity_revision",
+      "spatial_topology_or_connectivity_revision",
+      "robustness_to_pose_estimation_or_SLAM_drift",
+      "corridor_level_structural_memory_as_described_in_D_061"
+    ],
+    "deferred_to": "M2",
+    "d061_goal_status": "retained_and_deferred_not_withdrawn",
+    "rationale_for_deferring_rather_than_relearning_place": "making place learnable requires a new public place-negative-evidence type and its own gates, which would add pre-generation blockers instead of removing them"
+  },
+  "blocker_taxonomy": {
+    "decision": "D-205",
+    "problem": "the v1 blocker list mixed scientific choices the operator must make with digests only a real artifact can produce, so the list could not be cleared by any single review session",
+    "scientific_numeric_decisions": "all_frozen_by_D205",
+    "artifact_evidence_digests": "cannot_be_invented_and_stay_null_until_the_real_artifact_exists_and_is_reviewed",
+    "engineering_wiring": "listed_above_and_unchanged_in_scope",
+    "invented_digest_is_fabricated_evidence": true
+  }
+}

@@ -22,6 +22,12 @@
 
 ### 当前指针
 
+> **细粒度指针的唯一维护处是 [VSMT_EXPERIMENT_EVIDENCE_CHAIN.md](VSMT_EXPERIMENT_EVIDENCE_CHAIN.md) 的 §10.3（D-205）。** 本节只保留阶段级状态与历史指针，不再重复叙述叶节点；两处一旦冲突，以证据链 §10.3 为准。
+
+**D-206收回地点层oracle，首篇纳入地点身份修订（当前阶段级状态）：** 活动合同为[v3](../configs/vsmt/vm04_observation_suitability_v3.json)（状态`d206_place_layer_frozen_artifacts_pending`，v1/v2保持原字节）。发现`build_adapter_input`把模拟器真值世界`camera_pose`直接发给每个方法、`_camera_record`也把它写进公开相机记录，而CFO禁止列表未覆盖`camera_pose`与`past_actions`——地点身份不是被排除在学习之外，是被无偿给出。D-206收回该oracle：公开pose改为以观测0为原点、由注册动作推算并叠加2%声明噪声的相对位姿，真值位姿只进私有评价通道；place保留0.5 m格量子但表达在漂移的相对系里，假回环（需place MERGE）与地点混淆（需place SPLIT）第一次成为可纠正的错误；`adjacent_to`改为证据形成；确定性骨架降级为place-oracle诊断臂，不进主表；新增误差类别`place_misidentification_induced_entity_error`。Z型路线family为地点层判别原型，**必须附带后续可判别观测**，否则只检验一次性关联而非记忆修订。CFO禁止列表与probe掩码补齐pose/past-actions。公平性口径按用户判断改为"统一事务空间涵盖四类机制"＋`structural_capability_gap_argument`，共同能力子集按对报告（五方交集只有BIND/BIRTH）。本条不新增B类产物摘要，新增三条C类工程项。事前记录的代价：噪声会降低构造成品率，pilot更易触发0–3停止规则，用户在知情下选择科学分量优先，**不得调小噪声提高成品率**。
+
+**D-205一次性数值冻结（口径部分已由D-206取代，数值冻结与阻断项分类保留）：** 全部科学数值已冻结在 [合同v2](../configs/vsmt/vm04_observation_suitability_v2.json)（状态`d205_numeric_frozen_artifacts_pending`，v1保持原字节）：八种相机动作请求、`decision_time_s`规则与动作编码、L2 proposal与automatic-mask数值、公开visibility数值、按结构类型分别定值的matcher、SPLIT/MERGE几何与3次fresh replay、单一注册的CFO/history共用probe架构与预算。阻断项按性质分为A科学裁决（已完成）、B真实产物摘要（8项，凭空填写即伪造证据，保持null）、C工程接线（范围不变）。首篇口径显式收窄：place身份与place间`adjacent_to`是五方法共享的确定性骨架，因此本篇不主张地点身份修订、空间拓扑修订或对pose/SLAM漂移的鲁棒性，D-061目标保留并推迟到M2。新增pilot只报告的CFO/history早期诊断与SPLIT/MERGE成品率下限，把48–64房的风险前移到6房。pilot family完成度的机械派生已实现待审。全部14个授权位仍为false；`assert_numeric_freeze_complete`只回答"是否决定完"，不代替`assert_generation_authorized`。
+
 **VM-04固定槽原始数据服务器批次（D-176/D-180，已暂停、服务器未运行）：** 代码仍固定原两房36槽、失败全留和四个RELINK缺口；生命周期门现要求`DisableObject`即时隐藏、disabled期每个注册相机event持续隐藏，并在`EnableObject`后的下一注册相机event确认重现；失败均保留私有逐帧证据。但原32帧只有交替±0.25°原地yaw、无平移，NOOP/BIND/SPLIT/MERGE没有已实现的公开类型化结构语义，四个RELINK全为预登记失败，且只有两间开发house。故即使36/36写出raw，也只能证明writer、公私隔离、摘要链、失败保留和资源派发，不能进入L2主表或支持VSMT优于适配器/朴素基线。配置现为`run_authorized=false/generation_authorized=false/expected_reviewed_code=null`；服务器0新episode。用户已认可不运行该批。D-182/183新观察合同只获准做精确schema/实现审查；多视角raw、materializer执行/receipt外壳和公开packet/prior序列构造现已实现，但真实公开前端、共享probe结构/预算及SPLIT/MERGE构造参数仍未完成，未开放生成。
 
 **D-182新观察适用性合同（设计/数值已批准用于schema审查，执行关闭）：** [机器合同](../configs/vsmt/vm04_observation_suitability_proposal_v1.json)把初始`TeleportFull`限制在观测0之前，之后路线只由公开可达信息预登记并用实际pose验收；每个family必须同时包含“自然遮挡后重现”和“出视野后重现”分支，每个episode先满足对应程序的公开前提，再在公开封存的`occluded/out_of_view`窗口执行适用的world intervention，并从相对前提pose真实平移后的视角观察目标或关系。已批准审查值为关键/重现平移各≥0.5 m、关键yaw≥30°、每状态≥2个公开时刻、路线≤24步、pose容差2 cm/1°；严格门为按family配对的history−CFO单侧95%区间下界>15个百分点、CFO≤60%、sealed-catalog oracle recall≥90%、10000次bootstrap/seed 260916；6个pilot永久排除，48个正式house失败不补，少于32个完成family即停止。24-family且“均值≥15pp、下界>0”的省资源口径未采用，因为它不再保证历史优势下界超过15pp。固定视角worker的Enable后逐帧可见规则已标`fixed_view_worker_only`；多视角终端重现窗口仍为null，精确probe结构和训练预算也为null，因此机器合同继续fail closed且所有授权位为false。
@@ -34,17 +40,17 @@
 
 这里的“开始生成”指首次运行6个pilot family；原静态两房36槽已永久排除，不在此清单中复活。下面各项按依赖顺序关闭，勾选只表示已有受审代码/冻结产物和通过回归；只有最后的独立授权项完成后才可运行。白话：输入是当前D-182/D-183合同和已实现外壳，输出是一条从“仍有null和注入fixture”走到“可安全启动pilot”的固定路径；它不是把测试通过改写成数据已经可信。
 
-**A. 生成合同和科学数值冻结**
+**A. 生成合同和科学数值冻结（D-205 已完成，逐项见[合同v2](../configs/vsmt/vm04_observation_suitability_v2.json)）**
 
-- [ ] 冻结八种注册相机API请求的真实参数：四种Move的`moveMagnitude`、两种Rotate和两种Look的`degrees`；在锁定AI2-THOR 5.0.0/受审CloudRendering build上做只验证API语义的smoke，正式表不得使用默认参数或`forceAction`。
-- [ ] 冻结公开packet时间规则与动作编码：确定N+1个`decision_time_s`怎样由注册动作产生、八种动作共同向量怎样编码，并写入`decision_time_rule/action_command_encoding`；当前人工一秒间隔和one-hot仅是fixture。
-- [ ] 冻结完整materializer config：匿名mask、DINO descriptor、entity geometry、surface/place/free-space、关系阈值、entity/surface/fragment bootstrap、公开常量和builder摘要一次性定值并签`config_sha256`；不得从生成结果反调。
+- [x] 冻结八种注册相机API请求的真实参数：Move全部`moveMagnitude=0.25 m`（与公开可达栅格一致），Rotate/Look全部`degrees=30`（等于已冻结的关键pose偏航门）；禁用默认参数与`forceAction`。**在锁定AI2-THOR 5.0.0/受审CloudRendering build上只验证API语义的smoke仍是执行前必需，尚未做。**
+- [x] 冻结公开packet时间规则与动作编码：`decision_time_s`为名义注册动作时钟（观测0为0.0 s，每动作+1.0 s，显式标注非墙钟/非物理时间）；动作编码为9维——8个按名排序的one-hot加一个"观测0无注册动作"标志位，互异、无幅度分量、不含private/program字段。
+- [ ] 冻结完整materializer config：匿名mask、DINO descriptor、entity geometry、surface/place/free-space、关系阈值、entity/surface/fragment bootstrap、公开常量和builder摘要一次性定值并签`config_sha256`；不得从生成结果反调。（数值部分已由D-205冻结；`config_sha256`属B类产物摘要，须对真实config文件计算。）
 - [ ] 实现并审查L2公开proposal前端：只从公开RGB-D产生entity proposal，给CFO/history门和五个L2主臂提供同字节packet；当前instance-mask前端明确只作L1 oracle诊断，L1结果不得开放L2主表。
-  - D-199候选已实现当前公开RGB单帧无提示proposal边界、receipt及L2 packet materialization；真实SAM loader、commit/checkpoint、automatic-mask数值和用户代码审查仍缺，故本项不勾选。
-- [ ] 冻结DINO模型资产与执行环境：明确模型仓库commit、checkpoint摘要、Python/Torch/NumPy/CUDA及AI2-THOR/ProcTHOR版本，补环境回执；真实assets verifier须在服务器核干净仓库和checkpoint字节，不能只信文件名。
-- [ ] 冻结SPLIT/MERGE确定性构造：填写fresh replay次数、精确几何/相机参数和公开前端伪影判据；program在生成前登记，伪影未复现只记construction failure，不换标签、路线或house。
-- [ ] 冻结CFO（Current-Frame-Only，当前帧诊断器）与public-history probe共用的唯一架构、优化/训练预算和输入mask规则；这是生成前准入门规格，不运行probe，也不使用pilot选择结构。
-- [ ] 冻结开发family与confirmation隔离规则：70-house来源池只能来自允许的开发来源，confirmation家族保持不可见；6个pilot及64个formal候选的确定顺序必须在pilot前封存。
+  - D-199候选已实现当前公开RGB单帧无提示proposal边界、receipt及L2 packet materialization；D-205已冻结196像素/每帧至多64个/NMS关闭（保留重叠proposal）等数值；真实SAM loader、commit/checkpoint、assets receipt和用户代码审查仍缺，故本项不勾选。
+- [ ] 冻结DINO模型资产与执行环境：明确模型仓库commit、checkpoint摘要、Python/Torch/NumPy/CUDA及AI2-THOR/ProcTHOR版本，补环境回执；真实assets verifier须在服务器核干净仓库和checkpoint字节，不能只信文件名。（B类产物摘要。）
+- [x] 冻结SPLIT/MERGE确定性构造：`fresh_replay_repeat_count=3`，远/近pose与几何全部显式，伪影判据只在冻结L2公开proposal mask上测量、覆盖度0.5、private mask仅作封存后覆盖度量；伪影未复现只记construction failure，不换标签、路线或house。另按D-205新增pilot成品率下限（SPLIT/MERGE各需≥3个pilot family全部replay复现，否则在正式生成前记录该原子降为描述性）。
+- [x] 冻结CFO（Current-Frame-Only，当前帧诊断器）与public-history probe共用的唯一架构、优化/训练预算和输入mask规则：`shared_region_set_transformer_v1`，256维/2层4头/FFN512/mean pooling/9类，CFO与history参数量完全相同且唯一差别是mask；AdamW 3e-4、batch 16、4000步、seed 7·19·31，**只登记一个配置、不做任何选择**，因此不再需要预留选择family。新增只在6个pilot family上运行、不可用于任何选择的报告型早期诊断。
+- [ ] 冻结开发family与confirmation隔离规则：70-house来源池只能来自允许的开发来源，confirmation家族保持不可见；6个pilot及64个formal候选的确定顺序必须在pilot前封存。（规则与派生代码已就位，实际封存须在取得真实来源清单后执行。）
 
 **B. 真实构造链实现与代码审查**
 
@@ -75,7 +81,7 @@
 
 以下工作不属于“开始生成前”的开闸条件，但属于生成后进入VM-05前的验收：逐program私有语义评价、sealed-catalog oracle recall、CFO/history按family配对的严格可辨识性门、easy-class标注、至少32个完成family、候选/teacher分层错误统计。它们不能反过来修改本版生成规则或补样。
 
-**当前用户交审拆分（按D-059停止继续堆叠）：** 用户已正式认可D-203边界并授权继续实现selector时间seal与D-202绑定；D-204现只交审raw观测0前selector receipt、D-203 v2父来源收据和D-202 v2摘要消费。它不升级D-201离线episode receipt，不实现生产父stage/raw writer/materializer文件编排，也不改family状态。下一批须等D-204审查后，才可把该链接入真实父stage并另行升级D-201消费；仍不得越过null的matcher/visibility/SAM数值、edge RETRACT证据缺口或未审时序链去聚合family或开放运行。
+**当前用户交审拆分（按D-059停止继续堆叠）：** 用户审查整体审计后接受五条建议并给出优先级"先生成数据再看缺陷"，D-205据此交审：合同v2的全部冻结数值、阻断项A/B/C分类与`assert_numeric_freeze_complete`、首篇place口径收窄、pilot只报告诊断、SPLIT/MERGE成品率下限，以及pilot family完成度的机械派生实现。它不取得真实SAM资产、不实现生产父stage/raw writer/materializer文件编排、不升级D-201离线消费、不封存来源池，也不改任何授权位。下一批须等D-205审查后，按证据链§10.2的B类（真实产物摘要）与C类（工程接线）顺序推进；仍不得越过B类null摘要、edge RETRACT证据缺口或未审时序链去聚合family或开放运行。
 
 
 **独立RELINK新数据版本（proposed，D-176停止线未重开）：** [方法与正反例](METHOD.md)和[拟议公私字段](DATA.md)已记录机器人实际路径、公开旧/新关系、候选先封存及私有同一身份/后态的分层验收口径。输入只能是公开当前RGB-D、此前预测记忆和预登记动作；输出须分别报告物理失败、事务前提缺口、公开证据缺口、candidate miss和executor/teacher错误。例如原四槽仍保持碰撞失败，独立新版本即使找到一条推椅子到P2的路线也不得回填原槽。该版本尚无冻结配置、公开容器读取器、真实`PutObject` smoke、可执行机器人RELINK回执或记忆正例；执行新分支仍需单独裁决和代码审查。

@@ -14,6 +14,8 @@ REPLACE 继续定义为 RETRACT+BIRTH 复合程序，不计入八个原子模板
 2. **candidate-before-teacher 的反事实学习边界。** 在线候选只由公开观测前缀和系统自己形成的旧记忆产生并先封存；训练 teacher 随后才可用未来/参考证据比较这些已执行后状态。它解决未来监督通过 `merge_queries` 偷给候选身份的问题；输入固定候选目录和私有后验，输出原槽位上的排序/软目标。例如正确 MERGE pair 未被公开生成时只能记 `candidate_miss`。它不等于 teacher 可以补候选，也不预设旧 CTL 已经有效。
 3. **状态、历史与副作用的联合可审计评价。** VSMT 同时保留新图、旧版本、证据归属、非法/回滚和无关结构变化，并把 candidate miss、teacher error、amortization error 分开。它解决终点图偶然正确却修订过程不可追溯的问题；输入每步预测/执行日志和私有评价，输出结构错误、持续时间、provenance、collateral 与成本分项。例如先错绑两帧再修复与始终正确不会得到同一过程分。它不等于事后挑一个有利的总分；S-01～S-12 语义及权重仍须事前冻结。
 
+**首篇口径边界（D-206，取代 D-205 的收窄）。** 上面三项主张的检验范围是 entity、surface、fragment、**place** 四类结构。D-205 曾因 place 由确定性骨架维护而把首篇收窄为"不主张地点修订"；随后发现该收窄建立在一个信息边界漏洞上——`build_adapter_input` 把模拟器真值世界 `camera_pose` 直接发给每个方法，`_camera_record` 也把它写进公开相机记录，CFO 的禁止列表又没有覆盖 `camera_pose` 与 `past_actions`。所以地点身份不是被排除在学习之外，是被无偿给出。D-206 改为收回该 oracle：公开 pose 变为以观测 0 为原点、由注册动作推算并叠加 2% 声明噪声的相对位姿，真值世界位姿只进私有评价通道；place 保留 0.5 m 格量子但表达在漂移的相对系里，于是假回环（同一地点落进不同格，需 place MERGE）和地点混淆（两地点落进同一格，需 place SPLIT）第一次成为可纠正的错误。确定性骨架降级为 place-oracle 诊断臂，用于把地点层误差与实体层误差分开归因，不进主表。白话：机器人走 A → 左转 → 右转 → 长得像 A 的 B，问题是"我绕回来了吗"；在 D-205 下这个问题不存在，因为世界坐标直接给了答案，在 D-206 下它需要靠动作历史和后续可判别观测来回答，答错了还要能靠 SPLIT 修回来。首篇仍不主张度量 SLAM、超出声明噪声的鲁棒性、真实机器人泛化或主动探索。这一边界由 `validate_approved_contract` 拒绝弱化，不是论文阶段的措辞选择。
+
 整体采用成熟的双速率结构感知骨架，而不复制任何一个上游系统。共享前端参考 [ConceptGraphs](https://concept-graphs.github.io/) 的 posed RGB-D→区域→多视角关联；结构状态参考 [Hydra](https://www.roboticsproceedings.org/rss18/p050.html) 的实体、地点、房间等分层图；存在证据参考 [Fusion++](https://doi.org/10.1109/3DV.2018.00015) 的对象存在概率；短期片段与较慢全局协调参考 [Khronos](https://www.roboticsproceedings.org/rss20/p081.html) 的 active window / global reconciliation。VSMT 在这个骨架上新增的是统一事务空间、版本化真实执行、严格监督边界和相应误差分解；当前均为论文设计与工程候选，尚无实验支持“优于这些系统”。
 
 ```text
