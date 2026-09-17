@@ -293,15 +293,19 @@ class ObservationSuitabilityContractTests(unittest.TestCase):
         )
         self.assertEqual(
             program["online_plan_temporal_receipt_schema"],
-            "vsmt-vm04-online-program-plan-temporal-receipt-v1",
+            "vsmt-vm04-online-program-plan-temporal-receipt-v2",
         )
         self.assertEqual(
             program["parent_plan_request_spec_schema"],
             "vsmt-vm04-parent-program-request-spec-v1",
         )
         self.assertEqual(
+            program["parent_selector_temporal_receipt_schema"],
+            "vsmt-vm04-parent-selector-temporal-receipt-v1",
+        )
+        self.assertEqual(
             program["parent_plan_request_provenance_receipt_schema"],
-            "vsmt-vm04-parent-program-request-provenance-receipt-v1",
+            "vsmt-vm04-parent-program-request-provenance-receipt-v2",
         )
         self.assertEqual(
             program["matcher_prior_boundary"],
@@ -326,11 +330,11 @@ class ObservationSuitabilityContractTests(unittest.TestCase):
         ])
         self.assertEqual(
             program["online_plan_request_provenance_status"],
-            "pending_parent_stage_derivation_and_no_prior_terminal_access_proof",
+            "parent_selector_and_request_receipts_bound_by_D202_core_review_pending_production_orchestration",
         )
         self.assertEqual(
             program["parent_request_derivation_core_status"],
-            "implemented_review_pending_not_consumed_by_D202_temporal_receipt",
+            "selector_temporal_receipt_bound_and_consumed_by_D202_core_review_pending",
         )
         self.assertEqual(
             program["parent_request_derivation_scope"],
@@ -344,9 +348,9 @@ class ObservationSuitabilityContractTests(unittest.TestCase):
         ])
         self.assertEqual(
             program["parent_selector_spec_temporal_registration_status"],
-            "pending_parent_orchestration_receipt_before_terminal_access",
+            "receipt_core_seals_spec_before_raw_observation_zero_production_parent_stage_pending",
         )
-        self.assertFalse(program[
+        self.assertTrue(program[
             "parent_request_provenance_receipt_consumed_by_D202"
         ])
         self.assertFalse(program[
