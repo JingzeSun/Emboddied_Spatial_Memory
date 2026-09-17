@@ -25,7 +25,7 @@ from vsmt.vm04_observation_runner import make_public_visibility_assessment  # no
 
 
 CONTRACT = json.loads((
-    ROOT / "configs/vsmt/vm04_observation_suitability_proposal_v1.json"
+    ROOT / "configs/vsmt/vm04_observation_suitability_v3.json"
 ).read_text(encoding="utf-8"))
 FROZEN_CONTRACT = json.loads((
     ROOT / "configs/vsmt/vm04_observation_suitability_v3.json"

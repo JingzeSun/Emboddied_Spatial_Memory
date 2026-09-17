@@ -36,39 +36,22 @@
       "required": [
         "schema_version",
         "observation_index",
-        "x_m",
-        "y_m",
-        "z_m",
-        "yaw_deg",
-        "horizon_deg",
         "vertical_fov_deg",
         "image_height",
         "image_width",
+        "pose_frame",
+        "is_world_pose",
+        "noise_model_id",
         "pose",
         "calibration"
       ],
       "properties": {
         "schema_version": {
-          "const": "vsmt-vm04-raw-public-camera-v1"
+          "const": "vsmt-vm04-raw-public-camera-v2"
         },
         "observation_index": {
           "type": "integer",
           "minimum": 0
-        },
-        "x_m": {
-          "type": "number"
-        },
-        "y_m": {
-          "type": "number"
-        },
-        "z_m": {
-          "type": "number"
-        },
-        "yaw_deg": {
-          "type": "number"
-        },
-        "horizon_deg": {
-          "type": "number"
         },
         "vertical_fov_deg": {
           "type": "number"
@@ -81,24 +64,63 @@
           "type": "integer",
           "minimum": 1
         },
+        "pose_frame": {
+          "const": "episode_relative_observation_zero_origin"
+        },
+        "is_world_pose": {
+          "const": false
+        },
+        "noise_model_id": {
+          "const": "registered_action_odometry_noise_v1"
+        },
         "pose": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["position_m", "quaternion_xyzw"],
+          "required": [
+            "position_m",
+            "quaternion_xyzw"
+          ],
           "properties": {
-            "position_m": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "number"}},
-            "quaternion_xyzw": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"type": "number"}}
+            "position_m": {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 3,
+              "items": {
+                "type": "number"
+              }
+            },
+            "quaternion_xyzw": {
+              "type": "array",
+              "minItems": 4,
+              "maxItems": 4,
+              "items": {
+                "type": "number"
+              }
+            }
           }
         },
         "calibration": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["fx", "fy", "cx", "cy"],
+          "required": [
+            "fx",
+            "fy",
+            "cx",
+            "cy"
+          ],
           "properties": {
-            "fx": {"type": "number", "exclusiveMinimum": 0},
-            "fy": {"type": "number", "exclusiveMinimum": 0},
-            "cx": {"type": "number"},
-            "cy": {"type": "number"}
+            "fx": {
+              "type": "number"
+            },
+            "fy": {
+              "type": "number"
+            },
+            "cx": {
+              "type": "number"
+            },
+            "cy": {
+              "type": "number"
+            }
           }
         }
       }
@@ -144,6 +166,7 @@
         "observation_index",
         "private_instance_ids",
         "instance_masks_sha256",
+        "camera_truth_sha256",
         "public_frame_record_sha256",
         "public_source_frame_sha256"
       ],
@@ -170,6 +193,9 @@
           "$ref": "#/$defs/sha256"
         },
         "public_source_frame_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "camera_truth_sha256": {
           "$ref": "#/$defs/sha256"
         }
       }
@@ -410,6 +436,62 @@
         },
         "private_terminal_sha256": {
           "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "privateCameraTruth": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "observation_index",
+        "world_pose",
+        "role"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "vsmt-vm04-raw-private-camera-truth-v1"
+        },
+        "observation_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "world_pose": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "position_m",
+            "quaternion_xyzw",
+            "yaw_deg",
+            "horizon_deg"
+          ],
+          "properties": {
+            "position_m": {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 3,
+              "items": {
+                "type": "number"
+              }
+            },
+            "quaternion_xyzw": {
+              "type": "array",
+              "minItems": 4,
+              "maxItems": 4,
+              "items": {
+                "type": "number"
+              }
+            },
+            "yaw_deg": {
+              "type": "number"
+            },
+            "horizon_deg": {
+              "type": "number"
+            }
+          }
+        },
+        "role": {
+          "const": "post_seal_evaluation_only_never_a_deployment_input"
         }
       }
     }

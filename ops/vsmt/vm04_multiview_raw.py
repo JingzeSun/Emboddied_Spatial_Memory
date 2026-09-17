@@ -20,6 +20,7 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from cpmt.hashing import canonical_json  # noqa: E402
+from vsmt.vm04_odometry import DeclaredOdometry  # noqa: E402
 from vsmt.vm04_observation_runner import (  # noqa: E402
     ObservationConstructionError,
     public_route_projection,
@@ -89,7 +90,7 @@ def _write_new_npz(path: Path, **arrays: np.ndarray) -> None:
         raise
 
 
-def _camera_record(event: Any, observation_index: int) -> dict[str, Any]:
+def _simulator_camera_values(event: Any) -> dict[str, Any]:
     metadata = getattr(event, "metadata", None)
     _require(type(metadata) is dict, "simulator event metadata is missing")
     agent = metadata.get("agent")
@@ -110,28 +111,70 @@ def _camera_record(event: Any, observation_index: int) -> dict[str, Any]:
     _require(frame.ndim == 3 and frame.shape[2] == 3,
              "camera record requires an HxWx3 RGB frame")
     height, width = frame.shape[:2]
-    yaw = math.radians(float(values["yaw_deg"]))
-    pitch = math.radians(float(values["horizon_deg"]))
+    return {
+        **{key: float(value) for key, value in values.items()},
+        "image_height": int(height), "image_width": int(width),
+    }
+
+
+def _private_camera_truth(event: Any, observation_index: int) -> dict[str, Any]:
+    """The true world pose, written to the private evaluation side only (D-206)."""
+
+    values = _simulator_camera_values(event)
+    yaw = math.radians(values["yaw_deg"])
+    pitch = math.radians(values["horizon_deg"])
     cy, sy = math.cos(yaw / 2.0), math.sin(yaw / 2.0)
     cx, sx = math.cos(pitch / 2.0), math.sin(pitch / 2.0)
-    focal = 0.5 * float(width) / math.tan(
-        math.radians(float(values["vertical_fov_deg"])) / 2.0)
     return {
-        "schema_version": "vsmt-vm04-raw-public-camera-v1",
+        "schema_version": "vsmt-vm04-raw-private-camera-truth-v1",
         "observation_index": observation_index,
-        **{key: float(value) for key, value in values.items()},
-        "image_height": int(height),
-        "image_width": int(width),
-        "pose": {
-            "position_m": [float(position[axis]) for axis in ("x", "y", "z")],
+        "world_pose": {
+            "position_m": [values["x_m"], values["y_m"], values["z_m"]],
             "quaternion_xyzw": [
                 float(sx * cy), float(cx * sy), float(-sx * sy), float(cx * cy),
             ],
+            "yaw_deg": values["yaw_deg"],
+            "horizon_deg": values["horizon_deg"],
+        },
+        "role": "post_seal_evaluation_only_never_a_deployment_input",
+    }
+
+
+def _public_camera_record(
+    event: Any, observation_index: int, relative_pose: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Public camera record carrying calibration and the relative estimate only.
+
+    D-206: the simulator world pose is not published.  Intrinsics stay public
+    because they are a fixed sensor property rather than a localisation answer,
+    and the public depth geometry needs them.
+    """
+
+    values = _simulator_camera_values(event)
+    width = values["image_width"]
+    focal = 0.5 * float(width) / math.tan(
+        math.radians(values["vertical_fov_deg"]) / 2.0)
+    _require(relative_pose.get("observation_index") == observation_index,
+             "relative pose does not match this observation index")
+    _require(relative_pose.get("is_world_pose") is False,
+             "public camera record may not carry a world pose")
+    return {
+        "schema_version": "vsmt-vm04-raw-public-camera-v2",
+        "observation_index": observation_index,
+        "vertical_fov_deg": values["vertical_fov_deg"],
+        "image_height": values["image_height"],
+        "image_width": width,
+        "pose_frame": relative_pose["frame"],
+        "is_world_pose": False,
+        "noise_model_id": relative_pose["noise_model_id"],
+        "pose": {
+            "position_m": list(relative_pose["position_m"]),
+            "quaternion_xyzw": list(relative_pose["quaternion_xyzw"]),
         },
         "calibration": {
             "fx": focal, "fy": focal,
             "cx": (float(width) - 1.0) / 2.0,
-            "cy": (float(height) - 1.0) / 2.0,
+            "cy": (float(values["image_height"]) - 1.0) / 2.0,
         },
     }
 
@@ -156,6 +199,17 @@ class RawEpisodeStore:
         self.public_frames: list[dict[str, Any]] = []
         self.private_frames: list[dict[str, Any]] = []
         self.finalized = False
+        pose_channel = contract.get("public_pose_channel")
+        _require(type(pose_channel) is dict,
+                 "D-206 public pose channel is missing from the contract")
+        self.odometry = DeclaredOdometry(
+            noise_model=pose_channel["declared_odometry_noise_model"],
+            action_request_templates=contract["observation_trajectory"][
+                "registered_action_request_templates"],
+            episode_seed_material=(
+                f"{self.route['episode_id']}|{self.route['route_plan_sha256']}"
+            ),
+        )
 
     def extract_public_frame(
         self, event: Any, observation_index: int,
@@ -171,7 +225,13 @@ class RawEpisodeStore:
                  "public RGB frame must be HxWx3")
         _require(depth.ndim == 2 and depth.shape == rgb.shape[:2],
                  "public depth frame must match RGB height and width")
-        camera = _camera_record(event, observation_index)
+        if observation_index == 0:
+            relative_pose = self.odometry.pose()
+        else:
+            action = self.route["registered_actions"][observation_index - 1]
+            relative_pose = self.odometry.advance(action["action"])
+        camera = _public_camera_record(event, observation_index, relative_pose)
+        camera_truth = _private_camera_truth(event, observation_index)
 
         name = f"frame_{observation_index:04d}"
         public_directory = self.public_root / "raw" / name
@@ -209,11 +269,14 @@ class RawEpisodeStore:
                  np.empty((0, *depth.shape), dtype=np.uint8))
         masks_path = private_directory / "instance_masks.npz"
         _write_new_npz(masks_path, masks=stack)
+        truth_path = private_directory / "camera_truth.json"
+        _write_new_json(truth_path, camera_truth)
         mapping = {
             "schema_version": "vsmt-vm04-raw-private-frame-map-v1",
             "observation_index": observation_index,
             "private_instance_ids": private_ids,
             "instance_masks_sha256": _sha_file(masks_path),
+            "camera_truth_sha256": _sha_file(truth_path),
             "public_frame_record_sha256": public_record["frame_record_sha256"],
             "public_source_frame_sha256": public_record["source_frame_sha256"],
         }
@@ -222,6 +285,7 @@ class RawEpisodeStore:
         private_record = {
             "observation_index": observation_index,
             "instance_masks_sha256": mapping["instance_masks_sha256"],
+            "camera_truth_sha256": mapping["camera_truth_sha256"],
             "private_mapping_sha256": _sha_file(mapping_path),
             "public_frame_record_sha256": public_record["frame_record_sha256"],
         }

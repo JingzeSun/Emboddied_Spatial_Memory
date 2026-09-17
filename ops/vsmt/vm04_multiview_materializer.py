@@ -229,12 +229,17 @@ def _load_verified_frame(
              "raw public frame bytes changed")
     _require(set(mapping) == {
         "schema_version", "observation_index", "private_instance_ids",
-        "instance_masks_sha256", "public_frame_record_sha256",
-        "public_source_frame_sha256",
+        "instance_masks_sha256", "camera_truth_sha256",
+        "public_frame_record_sha256", "public_source_frame_sha256",
     } and mapping["schema_version"] ==
              "vsmt-vm04-raw-private-frame-map-v1" and
              mapping["observation_index"] == index,
              "raw private mapping changed")
+    # D-206: the true world pose lives on the private side and must stay bound,
+    # so a swapped or edited camera truth is caught before materialization.
+    _require(mapping["camera_truth_sha256"] ==
+             _sha_file(paths["mapping"].parent / "camera_truth.json"),
+             "private camera truth changed")
     _require(mapping["instance_masks_sha256"] == _sha_file(paths["masks"]) ==
              private_row.get("instance_masks_sha256") and
              private_row.get("private_mapping_sha256") ==
