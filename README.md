@@ -10,17 +10,18 @@
 
 第一篇主实验计划比较 `VSMT / TAF / ELU / WFR / LOW`。所有方法共享固定 RGB-D 前端及同一 `ObservationPacket → MemoryUpdateResult` 流水线；旧 C00–C11 只保留为执行器语义与反作弊回归，不进入主结果。旧 LATENT 是合成结构 token/哈希查询，不是视觉 latent；它只能作为 `oracle_structured` 诊断，不能替代新的 RGB-D 主实验。具体分层见 [docs/METHOD.md](docs/METHOD.md) 与 [docs/DATA.md](docs/DATA.md)。
 
-## 五个日常入口
+## 阅读入口
 
 | 你要看什么 | 唯一位置 |
 |---|---|
+| 实验怎样构造、各模块怎样组合成论文证据 | [docs/VSMT_EXPERIMENT_EVIDENCE_CHAIN.md](docs/VSMT_EXPERIMENT_EVIDENCE_CHAIN.md) |
 | 下一步、阶段计划和代码审查节点 | [docs/PLAN.md](docs/PLAN.md) |
 | 当前方法候选、对照及旧方法合同 | [docs/METHOD.md](docs/METHOD.md) |
 | 数据来源、字段、split 和适配检查 | [docs/DATA.md](docs/DATA.md) |
 | 已发生的实验、失败、结果与主张状态 | [EXECUTE.md](EXECUTE.md) |
 | 方法、预算与工作规则的变更理由 | [docs/DECISIONS.md](docs/DECISIONS.md) |
 
-新对话先读 [AGENTS.md](AGENTS.md)、PLAN 的当前指针，再读 EXECUTE 看板和最新 LOG。不再另建导航页、词典、确认表、周报模板或平行计划；新内容归入以上职责。
+新对话先读 [AGENTS.md](AGENTS.md)、PLAN 的当前指针，再读 EXECUTE 看板和最新 LOG。需要理解“为什么这些细粒度步骤能支撑论文”时，再读实验证据链。该文件只作解释性总图，不成为第二份计划或数值合同。不再另建导航页、词典、确认表、周报模板或平行计划；新内容归入以上职责。
 
 ## 实现与证据
 

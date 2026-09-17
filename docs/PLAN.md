@@ -1,6 +1,6 @@
 # 版本化结构记忆事务研究计划
 
-本文件是阶段、审查节点和当前指针的唯一维护处。方法见 [METHOD.md](METHOD.md)，字段见 [DATA.md](DATA.md)，证据见 [EXECUTE.md](../EXECUTE.md)，当前优先级依据为 D-122；D-062 空间世界模型路线暂停但完整保留。
+本文件是阶段、审查节点和当前指针的唯一维护处。方法见 [METHOD.md](METHOD.md)，字段见 [DATA.md](DATA.md)，证据见 [EXECUTE.md](../EXECUTE.md)；若要按实验流程理解这些部件怎样组合支撑论文主张，见解释性总图 [VSMT_EXPERIMENT_EVIDENCE_CHAIN.md](VSMT_EXPERIMENT_EVIDENCE_CHAIN.md)。当前优先级依据为 D-122；D-062 空间世界模型路线暂停但完整保留。
 
 ## 当前目标与授权（D-122/D-125）
 
