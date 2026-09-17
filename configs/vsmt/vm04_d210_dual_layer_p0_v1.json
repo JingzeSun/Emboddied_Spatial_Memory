@@ -1,0 +1,234 @@
+{
+  "schema_version": "vsmt-vm04-d210-dual-layer-p0-contract-v1",
+  "decision_id": "D-210",
+  "status": "approved_implementation_not_generation_authorized",
+  "authorization": {
+    "source_house_binding_authorized": false,
+    "route_plan_sealing_authorized": false,
+    "raw_generation_authorized": false,
+    "adapter_materialization_authorized": false,
+    "private_evaluation_authorized": false
+  },
+  "scope": {
+    "purpose": "two_house_twelve_episode_raw_engineering_pilot",
+    "training_allowed": false,
+    "validation_allowed": false,
+    "confirmation_allowed": false,
+    "paper_effect_table_allowed": false,
+    "place_identity_is_a_metric_grid_cell": false,
+    "claims_metric_slam_or_pose_estimation": false
+  },
+  "movement": {
+    "move_magnitude_m": 0.25,
+    "body_rotation_degrees": 90.0,
+    "camera_pitch_degrees": 30.0,
+    "snap_to_grid": true,
+    "force_action": false,
+    "scientific_maximum_route_actions": null,
+    "mechanical_route_action_guard": 128,
+    "guard_checked_before_route_seal": true,
+    "runtime_truncation_allowed": false,
+    "observation_zero_before_actions": true,
+    "raw_observation_after_every_completed_action": true,
+    "failed_action_retained_with_terminal_failure": true,
+    "registered_action_requests": {
+      "MoveAhead": {"action": "MoveAhead", "moveMagnitude": 0.25},
+      "MoveBack": {"action": "MoveBack", "moveMagnitude": 0.25},
+      "MoveLeft": {"action": "MoveLeft", "moveMagnitude": 0.25},
+      "MoveRight": {"action": "MoveRight", "moveMagnitude": 0.25},
+      "RotateLeft": {"action": "RotateLeft", "degrees": 90.0},
+      "RotateRight": {"action": "RotateRight", "degrees": 90.0},
+      "LookUp": {"action": "LookUp", "degrees": 30.0},
+      "LookDown": {"action": "LookDown", "degrees": 30.0}
+    }
+  },
+  "memory_layers": {
+    "continuous_pose_belief": {
+      "role": "causal_metric_prior_for_retrieval_not_place_identity_truth",
+      "frame": "episode_relative_observation_zero_origin",
+      "required_fields": [
+        "observation_index",
+        "mean_x_y_z_yaw",
+        "covariance_diagonal",
+        "source_id",
+        "belief_sha256"
+      ],
+      "world_pose_allowed": false,
+      "fixed_grid_quantization_may_define_place_identity": false
+    },
+    "versioned_topological_place_graph": {
+      "role": "learned_and_revisable_place_relation_entity_memory",
+      "place_node_fields": [
+        "place_id",
+        "lifecycle",
+        "visual_geometry_summary",
+        "pose_belief_envelope",
+        "contained_entity_refs",
+        "evidence_refs",
+        "version"
+      ],
+      "transition_edge_fields": [
+        "edge_id",
+        "from_place_id",
+        "to_place_id",
+        "action_summary",
+        "estimated_delta_distribution",
+        "evidence_refs",
+        "confidence",
+        "version"
+      ],
+      "place_operations": ["NOOP", "BIND", "BIRTH", "MERGE"],
+      "relation_operations": ["CREATE", "RELINK"],
+      "place_split_in_p0": false,
+      "new_relation_is_relink": false
+    }
+  },
+  "information_channels": {
+    "raw_and_provenance": {
+      "stores_complete_per_action_sequence": true,
+      "stores_every_raw_observation": true,
+      "deployable_adapter_may_read_complete_per_action_sequence": false,
+      "purpose": "reproduction_audit_and_exact_action_oracle_only"
+    },
+    "deployable_adapter": {
+      "reads": [
+        "current_keyframe",
+        "continuous_pose_belief",
+        "incoming_transition_action_summary",
+        "public_region_and_relation_observations",
+        "prior_predicted_memory",
+        "public_constants"
+      ],
+      "forbidden": [
+        "raw_action_sequence",
+        "past_actions",
+        "world_pose",
+        "simulator_pose",
+        "fixed_grid_place_identity",
+        "private_reference_place",
+        "future_observation",
+        "teacher_target",
+        "route_phase_label"
+      ]
+    },
+    "private_evaluation": {
+      "opened_after_candidate_seal": true,
+      "stores": [
+        "simulator_pose",
+        "reference_place_region",
+        "reference_reachable_component",
+        "loop_pair_label",
+        "reference_relation_endpoint",
+        "reference_entity_place_attachment"
+      ]
+    }
+  },
+  "action_summary": {
+    "schema_version": "vsmt-d210-transition-action-summary-v1",
+    "required_fields": [
+      "start_observation_index",
+      "end_observation_index",
+      "step_count",
+      "action_histogram",
+      "ordered_quarter_turns",
+      "nominal_translation_m_total",
+      "estimated_delta_mean_x_z_yaw",
+      "estimated_delta_covariance_diagonal",
+      "confidence",
+      "raw_action_span_sha256",
+      "summary_sha256"
+    ],
+    "contains_per_step_action_sequence": false,
+    "may_directly_assign_place_identity": false
+  },
+  "reference_policy": {
+    "planner_grid_size_m": 0.5,
+    "planner_grid_role": "route_planning_and_candidate_retrieval_only",
+    "loop_positive_max_position_error_m": 0.35,
+    "loop_positive_requires_same_reachable_component": true,
+    "loop_positive_requires_same_yaw": false,
+    "negative_minimum_position_separation_m": 1.5,
+    "negative_alternative": "pre_registered_distinct_branch_or_room",
+    "unlabelled_distance_gap_m": [0.35, 1.5],
+    "reference_regions_private_only": true,
+    "reference_regions_may_generate_candidates": false
+  },
+  "batch": {
+    "house_count": 2,
+    "episode_count": 12,
+    "failed_episode_replacement_allowed": false,
+    "failed_route_role_change_allowed": false,
+    "p01_to_p04_each_run_in_both_houses": true,
+    "p05_to_p08_each_run_once": true,
+    "p09_p10_deferred_to_p1": true
+  },
+  "scenarios": {
+    "P01": {"name": "z_frontier_nonrevisit", "phase": "P0", "planning_action_count_hint": [20, 32], "evidence_role": "control", "claim": "new_places_and_transition_relations_expand_without_false_merge"},
+    "P02": {"name": "inverse_path_return", "phase": "P0", "planning_action_count_hint": [42, 68], "evidence_role": "control", "claim": "inverse_action_evidence_supports_bind_or_merge"},
+    "P03": {"name": "alternate_path_return", "phase": "P0", "planning_action_count_hint": [28, 54], "evidence_role": "headline", "claim": "loop_closure_requires_visual_topological_evidence_not_inverse_actions"},
+    "P04": {"name": "perceptual_alias_nonreturn", "phase": "P0", "planning_action_count_hint": [24, 52], "evidence_role": "headline", "claim": "similar_appearance_must_not_force_false_merge"},
+    "P05": {"name": "same_place_opposite_heading", "phase": "P0", "planning_action_count_hint": [28, 56], "evidence_role": "supporting", "claim": "place_identity_is_yaw_invariant"},
+    "P06": {"name": "t_junction_shared_prefix_two_branches", "phase": "P0", "planning_action_count_hint": [28, 52], "evidence_role": "headline", "claim": "one_place_supports_multiple_new_transition_relations_without_relink"},
+    "P07": {"name": "figure_eight_two_loops_shared_center", "phase": "P0", "planning_action_count_hint": [56, 92], "evidence_role": "headline", "claim": "multiple_loop_closures_reuse_one_center_without_collapsing_two_loops"},
+    "P08": {"name": "room_corridor_room_with_entities", "phase": "P0", "planning_action_count_hint": [24, 56], "evidence_role": "headline", "claim": "place_relation_and_entity_attachment_revisions_remain_consistent"},
+    "P09": {"name": "same_place_appearance_change", "phase": "P1", "planning_action_count_hint": [32, 64], "evidence_role": "deferred", "claim": "place_identity_survives_local_appearance_change"},
+    "P10": {"name": "ambiguous_relation_endpoint_correction", "phase": "P1", "planning_action_count_hint": [36, 72], "evidence_role": "deferred", "claim": "relink_corrects_a_wrong_existing_endpoint"}
+  },
+  "slot_plan": [
+    {"slot": 0, "house_slot": 0, "scenario_id": "P01", "seed": 26091800},
+    {"slot": 1, "house_slot": 0, "scenario_id": "P02", "seed": 26091801},
+    {"slot": 2, "house_slot": 0, "scenario_id": "P03", "seed": 26091802},
+    {"slot": 3, "house_slot": 0, "scenario_id": "P04", "seed": 26091803},
+    {"slot": 4, "house_slot": 1, "scenario_id": "P01", "seed": 26091804},
+    {"slot": 5, "house_slot": 1, "scenario_id": "P02", "seed": 26091805},
+    {"slot": 6, "house_slot": 1, "scenario_id": "P03", "seed": 26091806},
+    {"slot": 7, "house_slot": 1, "scenario_id": "P04", "seed": 26091807},
+    {"slot": 8, "house_slot": 0, "scenario_id": "P05", "seed": 26091808},
+    {"slot": 9, "house_slot": 0, "scenario_id": "P07", "seed": 26091809},
+    {"slot": 10, "house_slot": 1, "scenario_id": "P06", "seed": 26091810},
+    {"slot": 11, "house_slot": 1, "scenario_id": "P08", "seed": 26091811}
+  ],
+  "metrics": {
+    "primary": [
+      "place_pairwise_precision",
+      "place_pairwise_recall",
+      "place_pairwise_f1",
+      "duplicate_place_rate",
+      "false_merge_rate",
+      "loop_closure_precision",
+      "loop_closure_recall",
+      "topology_edge_endpoint_f1",
+      "entity_place_attachment_accuracy",
+      "contamination_auc"
+    ],
+    "error_decomposition": [
+      "candidate_miss",
+      "teacher_error",
+      "amortization_error",
+      "illegal_transaction",
+      "collateral_change"
+    ],
+    "headline_scenarios": ["P03", "P04", "P06", "P07", "P08"],
+    "control_scenarios": ["P01", "P02"],
+    "supporting_scenarios": ["P05"],
+    "p09_p10_excluded_from_p0": true
+  },
+  "diagnostic_oracles": {
+    "exact_action_integration": {
+      "input_advantage": "complete_per_step_action_sequence",
+      "main_table": false,
+      "role": "show_which_inverse_or_nominal_routes_collapse_under_exact_command_integration"
+    },
+    "true_pose": {
+      "input_advantage": "private_simulator_world_pose",
+      "main_table": false,
+      "role": "separate_place_reasoning_error_from_localization_upper_bound"
+    },
+    "d206_noisy_grid_duplicate_rate": {
+      "registered_observation": 0.855,
+      "unit": "episode_fraction_with_at_least_one_duplicate_place_in_3000_diagnostic_round_trips",
+      "main_metric": false,
+      "role": "historical_diagnostic_not_model_accuracy_or_coverage"
+    }
+  }
+}

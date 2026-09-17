@@ -2014,3 +2014,13 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 派生API不接受episode root/raw path或帧，receipt绑定public route、spec、prior、request和代码摘要，并固定未使terminal/future/teacher/reference/private。但selector spec的字段选择是否在terminal前封存尚无编排收据，D-202也尚不消费该receipt，故D-201/family状态不变。
 - 定向检查34/34通过（含2项skip），父stage `check`仍报`execution_authorized=false`。VM-04 discover 221/221（含3项skip）、VSMT 179/179、旧两房入口内嵌executor 42/L1 31/VSMT 179共252/252通过。机器审计14个authorization全false，selector temporal registration pending，D-202消费、D-201 clear与family eligibility均false，edge RETRACT仍阻断。0模型加载、0controller、0episode、0materialization、0训练。
 - 白话：输入只说“找公开节点A”，输出才由当前公开记忆确定它是`A@v3`。这防止调用者手挑version，但还没证明“A”本身在看terminal前就选好，也不开放运行。
+
+## LOG-193：D-210双层地点记忆、12槽合同、适配输入与指标实现（2026-09-18）
+
+- 用户批准“动作可见、地点非网格真值”：完整逐动作只作raw/provenance；模型读取RGB-D关键帧、连续位姿信念和关键帧间边动作摘要；0.5 m格只用于路线规划和候选召回，不定义地点身份。历史3,000回程的85.5% noisy-grid duplicate episode比例降为诊断，精确动作积分与真值pose各作单列oracle，三者不进入主表/headline。
+- 新合同`vm04_d210_dual_layer_p0_v1.json`固定两个开发house/12槽：P01–P04各在两房一次，P05/P07在house 0，P06/P08在house 1，P09/P10延后；P03/P04/P06/P07/P08为headline，P01/P02为control、P05为supporting。动作固定0.25 m平移、90° body turn、30° camera pitch、`snapToGrid=true/forceAction=false`；删除24/64科学上限，scenario动作范围只作planning hint，128为执行前机械保护线，运行中不可截断。五个授权位全false，0 source绑定、0路线封存、0模拟器、0 episode、0评价、0训练。
+- 新纯核心`d210_place_memory.py`实现合同验证、完整route seal、12槽公私manifest、动作边摘要、唯一部署adapter和地点/拓扑指标。动作边只含step count、八动作直方图、合并有序90°转向段、名义平移、估计delta/covariance/confidence及raw span摘要；不含逐步动作、不直接分配place。adapter递归拒绝完整动作史、world/simulator pose、grid place truth、private/future/teacher/phase和instance/object ID。地点操作限NOOP/BIND/BIRTH/MERGE，关系区分CREATE与RELINK，P0不使用place SPLIT。
+- 指标对place节点名字置换不敏感，分别报告place pairwise P/R/F1、duplicate、false merge、loop P/R、relation endpoint F1、entity-place attachment accuracy、contamination AUC及五类错误分解；拓扑/实体评分先按公开observation membership overlap在私有评价器内对齐任意预测节点名。聚合同时输出all-P0与只含五个headline场景的macro，并硬拒oracle混入。
+- 新阶段入口`vm04_d210_p0_stage.py`的`check`可运行；`seal-batch`要求合同状态`frozen_executable`且source-house binding/route sealing两个独立gate为true，当前会在读取外部house/route文件或创建输出目录前拒绝。它只封存manifest/provenance，不运行模拟器。`src/vsmt/__init__.py`公开上述纯接口。
+- 定向11/11通过，覆盖56步P01超过planning hint仍合法、128通过/129拒绝、每步0.25 m/90°请求、公私house隔离、summary不含action list、adapter嵌套world pose拒绝、0.35 m正例/1.5 m负例/中间带不标注、label-invariant perfect score、private reference绑定sealed candidate digest、headline排除control及关闭stage先拒绝。最终全库标准库discover由610增至**621/621通过**，耗时26.803 s；内部既有三worker合同组分别179/42/31通过并汇总252。一次`python -m pytest tests -q`因本机未安装pytest而在收集前退出，未改环境；随后用仓库可用的`unittest discover`完成上述全回归。
+- 白话：这批代码把“小地图”拆成一个不确定的连续位置层和一个可修订的地点关系图。输入是关键画面、粗略位姿和“怎么走来”的边摘要，输出是可审计的地点/关系更新；例如另一条路回到旧走廊要靠视觉—拓扑证据闭环，而不是把动作算回原坐标就宣告成功。它不等于已经找到两个合格house、生成12条路线、跑出模型结果或证明VSMT有效。

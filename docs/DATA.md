@@ -1,5 +1,45 @@
 # 数据与观测合同
 
+## D-210 地点 P0 数据合同（已批准，实现待审，生成关闭）
+
+D-210 为地点/拓扑主实验建立独立于旧 VM-04 v1–v4 的数据版本。它解决旧合同一边把完整固定动作保存在可见 packet、一边用人为带噪格制造地点错误的冲突；输入是两个开发 house 的公开可达扫描、执行前封存的 12 条完整路线及真实逐步 RGB-D，输出 raw/provenance、部署适配输入和候选封存后才可读的 private evaluation。具体例子是 56 步 8 字路线：raw 保存 57 个观察和 56 个动作回执，模型只在关键帧接收连续位姿信念与若干边摘要。它不复用旧 24/64 步上限，不把 0.5 m 格、路线 phase 或 source house ID 当模型特征，也不表示当前已经生成任何 episode。
+
+活动机器合同为 [`vm04_d210_dual_layer_p0_v1.json`](../configs/vsmt/vm04_d210_dual_layer_p0_v1.json)，纯核心为 [`d210_place_memory.py`](../src/vsmt/d210_place_memory.py)，关闭的阶段入口为 [`vm04_d210_p0_stage.py`](../ops/vsmt/vm04_d210_p0_stage.py)。当前五个授权位全为 false：source house 绑定、route plan 封存、raw 生成、adapter materialization 和 private evaluation 均未开放；`check` 可读合同，`seal-batch` 会在读取外部 house/route 文件和创建输出目录之前拒绝。
+
+### 固定 12 槽与路线记录
+
+槽 0–3 是 house slot 0 的 P01–P04，槽 4–7 是 house slot 1 的 P01–P04，槽 8/9 是 house slot 0 的 P05/P07，槽 10/11 是 house slot 1 的 P06/P08；seed 固定为 26091800–26091811。P09/P10 不进入 P0。每条 `vsmt-vm04-d210-p0-route-plan-v1` 必须在执行前包含：固定 slot/house slot/scenario/seed，完整有序 `actions`，每步显式 API request，`planned_action_count`、N+1 `observation_count`、关键帧 observation indices、公开构造来源声明和 SHA-256。平移请求只可为 0.25 m，RotateLeft/Right 只可为 90°，LookUp/Down 为 30°；`snapToGrid=true`、`forceAction=false`。
+
+场景 `planning_action_count_hint` 只帮助路线搜索排序，不能拒绝一条结构条件成立的更长路线。没有 24 或 64 动作的科学上限；1–128 个动作均可封存，129 个在执行前因机械保护线拒绝，运行中不得截断。白话：128 防止坏规划器无限写动作，不表示 127 步比 129 步更有科学意义。例如 P01 的提示上沿是 32，但一条合法的 56 步 P01 仍必须被接受。它不授权为了塞进 128 而删掉回环或后续判别段。
+
+`public/manifest.json` 只列 opaque `episode_id`、slot、scenario、route digest、动作/观察/关键帧数；不含 source house ID。`private/manifest.json` 才绑定 house slot、真实 source house ID 与 route digest。完整 `provenance/routes/slot_XX.json` 不属于部署目录；动作失败时保存已经完成的 raw 前缀和终止失败，禁止改 scenario、换 house 或补一个成功样本。
+
+### 三种读取面
+
+| 读取面 | 必须保存/可读 | 明确禁止 |
+|---|---|---|
+| raw / provenance | 观测 0；每个完成动作后的 RGB-D、动作请求/回执、成功或终止失败；完整 route；代码/配置/资源/worker 摘要 | 不直接作为模型输入；不得因失败覆盖、截断或补样 |
+| deployable adapter | 当前 RGB-D 关键帧摘要、公开视觉几何/区域/关系、连续位姿信念、入边动作摘要、prior predicted memory、公共常数 | 完整逐动作序列、past actions、世界/模拟器 pose、grid place ID、private reference、future、teacher、route phase、instance/object ID |
+| private evaluator | 模拟器连续 pose、reference place region/可达分量、回环 pair、真实关系端点、实体—地点挂载 | 候选生成前读取；排序、插入、删除或修补候选；进入任一模型值 |
+
+白话：三种读取面解决“完整保存以便复现”和“不能把答案喂给模型”不是一回事。输入同一 episode 字节，raw reader 可重放第 17 个 RotateRight，adapter reader只能看到它所在关键帧边的压缩摘要，evaluator 在候选摘要封存后才看到该帧是否真回到旧地点。它不靠删 raw 来防泄漏，也不允许 adapter 通过文件路径间接打开 provenance。
+
+### 关键帧、连续位姿信念与边动作摘要
+
+`vsmt-d210-public-keyframe-v1` 只含 observation index、RGB/depth/公开视觉几何摘要、排序去重的公开 entity refs 和自身摘要。`vsmt-d210-continuous-pose-belief-v1` 含同一 observation index、以 observation 0 为原点的 episode-relative frame、`mean_x_y_z_yaw`、四维协方差对角、公开 source ID，以及强制为 false 的 `is_world_pose/defines_place_identity`。位姿信念是估计分布，不得从 simulator metadata 复制真值；正式 belief estimator 的代码/资产与误差校准仍须在 raw 运行前另审。
+
+`vsmt-d210-transition-action-summary-v1` 连接两个关键帧，字段固定为起止 observation index、step count、八动作 histogram、有序且相邻同向合并的 90° quarter-turn 段、名义平移总长、估计 `delta x/z/yaw` 均值、三维协方差对角、置信度、对应 raw action span 摘要及自身摘要。它不含 `actions` 数组，`contains_per_step_action_sequence=false`、`may_directly_assign_place_identity=false`。例如 8 次 MoveAhead＋1 次 RotateLeft＋4 次 MoveAhead 输出 12 次平移、1 个 left quarter-turn 和 3 m 名义路程；它不告诉模型终点是 `place_7`。
+
+唯一部署包 `vsmt-d210-place-adapter-packet-v1` 精确接收 `decision_time_s,current_keyframe,pose_belief,incoming_transition_action_summary,region_observations,relation_observations,prior_memory_ref,public_constants`。observation 0 的 incoming summary 必须为 null；其他关键帧的 summary 终点必须等于当前 observation index。prior 必须以 graph version 和整图摘要绑定。递归字段扫描拒绝禁止通道，即使它们藏在 region 或 prior 的嵌套对象里也失败关闭。
+
+### 私有地点参考与指标文件
+
+私有地点参考不保存“0.5 m cell = place”。同地点正例需连续位置误差≤0.35 m 且属于同一 reachable component；负例需距离≥1.5 m，或在路线封存前已登记为不同支路/房间；中间距离带不产生强制同异标签，yaw 不参与地点同一性。0.5 m grid 只能出现在 route planner/candidate retrieval 的公共常数与回执中，不能作为参考 place ID 或 adapter 的 node label。
+
+每个 `vsmt-d210-place-episode-metrics-v1` 接收模型 place membership、回环 pair 判断、关系类型与端点、实体挂载、逐关键帧污染比例和五类错误分解；reference 在预测封存后打开。place pairwise 指标对任意节点改名不敏感；拓扑端点和实体挂载在评价器内部先按 observation overlap 对齐预测/参考节点名再计分。输出 pairwise P/R/F1、duplicate place、false merge、loop P/R、edge endpoint F1、entity attachment accuracy、contamination AUC 和 `candidate_miss/teacher_error/amortization_error/illegal_transaction/collateral_change`。
+
+聚合文件分别保存 `all_p0_macro` 与 `headline_macro`；后者只含 P03/P04/P06/P07/P08，P01/P02 控制和 P05 支持场景不混入。精确动作积分、真值 pose 及历史 85.5% noisy-grid duplicate episode rate 都有独立诊断文件，不得拥有 `headline_eligible=true`，也不得进入 macro。85.5% 的单位固定为“3,000 个诊断回程中至少发生一次重复地点的 episode 比例”，不是错误率字段的通用定义、不是覆盖率，更不是模型分数。
+
 ## 当前：VSMT 新数据边界（D-122/D-123，VM-01代码候选，尚未生成）
 
 新版数据解决旧合成 query 由参考事务参数派生、无法支撑无泄漏视觉实验的问题。输入源拟为受控具身 RGB-D 序列、公开相机/机器人位姿和已发生动作；输出分成不可互读的 `public`、`candidate`、`teacher`、`private_eval` 与 `provenance` 五类产物。例如一次 MERGE 样本的 `public` 只保存两个当前区域的 RGB-D/匿名特征及 prior memory，`candidate` 由这些公开值枚举可能 pair，真实 pair 只在 `private_eval`。它不复用旧 S5 query/data，也不把人工事务夹具当作视觉或物理结果。

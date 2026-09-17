@@ -135,6 +135,21 @@ from .vm04_program_construction import (
     make_split_merge_artifact_plan,
     validate_split_merge_artifact_receipt,
 )
+from .d210_place_memory import (
+    D210Error,
+    aggregate_p0_metrics,
+    build_continuous_pose_belief,
+    build_p0_manifests,
+    build_place_adapter_input,
+    build_public_keyframe,
+    build_route_plan,
+    build_transition_action_summary,
+    classify_private_loop_pair,
+    evaluate_place_episode,
+    validate_contract as validate_d210_contract,
+    validate_route_plan,
+    validate_transition_action_summary,
+)
 
 __all__ = [
     "AdapterInput",
@@ -246,4 +261,17 @@ __all__ = [
     "make_program_construction_plan",
     "make_split_merge_artifact_plan",
     "validate_split_merge_artifact_receipt",
+    "D210Error",
+    "aggregate_p0_metrics",
+    "build_continuous_pose_belief",
+    "build_p0_manifests",
+    "build_place_adapter_input",
+    "build_public_keyframe",
+    "build_route_plan",
+    "build_transition_action_summary",
+    "classify_private_loop_pair",
+    "evaluate_place_episode",
+    "validate_d210_contract",
+    "validate_route_plan",
+    "validate_transition_action_summary",
 ]

@@ -22,14 +22,23 @@
 
 ### 当前指针
 
-**下一步只有两项工程接线（②③），其余科学裁决已由 D-205～D-207 冻结。** 细粒度状态见[实验证据链 §10.3](VSMT_EXPERIMENT_EVIDENCE_CHAIN.md)，此处只维护阶段级顺序。
+**当前转入 D-210 双层地点 P0 实现审查，旧 D-205～D-209 执行指针暂停。** 用户已批准“动作可见、地点非网格真值”：完整逐动作只进 raw/provenance，模型读关键帧、连续位姿信念和边动作摘要；0.5 m 格只规划/召回；固定两开发 house 共 12 槽；P03/P04/P06/P07/P08 是 headline。机器合同、纯核心、适配输入、指标和关闭阶段入口已落地，但五个 D-210 授权位全 false，尚无 source house 绑定、封存路线、episode 或结果。下一步先审本批代码和数值是否逐项忠实，再只开放 source/route seal 与单槽 smoke；不得直接借旧 VM-04 v1–v4 的授权、路线、回执或 610 项历史测试开 12 槽批量。
+
+| D-210 顺序 | 输入与工作 | 输出与继续条件 |
+|---|---|---|
+| **P0-A 实现审查（当前）** | D-210 合同、12 槽 manifest 核心、route seal、edge summary、adapter、metrics 和文档 | 核 0.25 m/90°/128 guard、无 24/64 科学上限、格不定义 place、五个 headline、adapter 禁止通道与 oracle 隔离；用户审过后才可形成新工程基线 |
+| **P0-B 两房与完整路线封存（关闭）** | 两个明确开发 house 的私有 source records；12 条从公开 reachable/RGB-D 形成且执行前完整登记的路线 | 公私 manifest、12 个不可变 provenance route 和 seal receipt；失败前不看 future/private outcome，不按成品率换房或路线角色 |
+| **P0-C 单槽 raw smoke（关闭）** | P0-B 封存产物、精确环境/代码/资源回执、生产 worker | 只验证 obs0＋逐完成动作保存、90° 转向、失败前缀、公私目录和续跑；不计算模型效果，不自动扩到 12 槽 |
+| **P0-D 12 槽 raw 与 adapter（关闭）** | 单槽 smoke 通过后另行授权；资源实测决定最大安全 workers | 固定 12 槽 raw/provenance、关键帧、belief/edge summary 与 adapter 文件；失败不补，确定性合并；private evaluation 仍独立开闸 |
+
+下面 D-209 的两项表与 D-205～D-207 状态保留为历史实现背景，不再是活动执行顺序；若其部件被 D-210 复用，必须经过 D-210 输入/动作/地点语义适配和新回执。
 
 | 项 | 输入与工作 | 输出与继续条件 |
 |---|---|---|
-| **② 真实公开 reachable 扫描与路线构造**（D-209 已实现，待审） | 已冻结的八种注册动作模板、公开可达格、干预前匿名 visibility 扫描；实体层与地点层两种 family | 真实可达点扫描回执；**每个计划步预先验证落在可达格上**（这是长路线的成品率护栏，不是放宽容差）；实体层路线走既有 `vm04_public_route_builder`，新增 **Z 路线 family 构造器**（两次注册转弯、两条视觉相似走廊、强制的后续可判别观测）。找不到合法路线即构造失败，不换房、不换目标 |
-| **③ 父 stage 多 worker 调度与 receipt 合并** | ② 的路线、已实现的 raw writer/materializer/matcher 外壳、D-205 的 pilot 完成度机械派生 | 先单 worker 实测 CPU/RAM/VRAM/IO，再按最大安全并发派发；记录 requested/actual worker、分片、退出、资源依据与**与完成顺序无关的确定性合并**；逐 episode 的 `complete/failure/not_started` 全数保留，失败不补样、不覆盖、不静默重跑 |
+| **历史② 真实公开 reachable 扫描与路线构造**（D-209 已实现） | 旧 v4 的八种注册动作模板、公开可达格、干预前匿名 visibility 扫描；实体层与地点层两种 family | 可达扫描与逐步验证核心可供 D-210 适配；旧 30° body turn、64 步预算及单一 Z family 不直接进入 D-210 |
+| **历史③ 父 stage 多 worker 调度与 receipt 合并** | D-209 路线、旧 raw writer/materializer/matcher 外壳、D-205 pilot 完成度派生 | 尚未实现；D-210 后续 stage 仍须资源实测、多 worker、确定性合并和失败保留，但不继承旧 pilot 完成度选择规则 |
 
-②③ 完成后剩余阻断项只有 8 个真实产物摘要（SAM checkpoint/commit、assets/generator/AMG config 摘要、materializer code/config 摘要、L2 前端 receipt）与用户对 pilot 完成度派生的代码审查；届时才可按 pilot 范围开闸。**②③ 都不解除任何授权位。**
+旧“②③ 完成后只剩 8 个摘要即可开 pilot”的判断不再适用于 D-210。D-210 还需审连续 pose-belief estimator、关键帧规则、P01–P08 路线构造、CREATE/RELINK 关系证据和新的两房绑定；任何旧摘要仅在输入与字节仍相同且有显式新合同引用时才能复用。
 
 
 **D-209 ② 已实现待审（当前阶段级状态）：** 新增 `vm04_reachable_scan`（真实 `GetReachablePositions` 封存成整数格键、格距由合同 `moveMagnitude` 派生、逐步可达验证遇挡即失败关闭）、`vm04_place_route_builder`（Z 路线 family：两次反向注册转弯、视觉相似走廊、**强制的后续可判别观测**、走廊 B 内非空的模糊承诺窗口）和只在 `trajectory_implementation_authorized` 之后才碰 controller 的扫描 worker。实测冻结几何恰好 50 个注册动作，64 步地点层预算给后续可判别观测留下**恰好 14 步**。顺带修掉一个使 D-207 分层预算失效的缺陷：`vm04_public_route_builder` 读的是实体层的 24 而不是按层取预算，`family_layer="place"` 此前存在但无效。合同零改动、十四个授权位仍 false、剩余产物摘要仍是 8 个；阻断项按 D-059 须经用户审查才可勾掉。**一处留给用户裁决的缺口：** 合同把 place MERGE/SPLIT 列为地点层纠正程序，但已冻结的 SPLIT/MERGE artifact 判据是实体层前端伪影的定义，用不上；构造器只接受调用者预登记的 artifact plan、绝不自行发明，因此当前可用的地点层 program 只有 BIND 与 BIRTH。
