@@ -26,11 +26,13 @@
 
 | 项 | 输入与工作 | 输出与继续条件 |
 |---|---|---|
-| **② 真实公开 reachable 扫描与路线构造** | 已冻结的八种注册动作模板、公开可达格、干预前匿名 visibility 扫描；实体层与地点层两种 family | 真实可达点扫描回执；**每个计划步预先验证落在可达格上**（这是长路线的成品率护栏，不是放宽容差）；实体层路线走既有 `vm04_public_route_builder`，新增 **Z 路线 family 构造器**（两次注册转弯、两条视觉相似走廊、强制的后续可判别观测）。找不到合法路线即构造失败，不换房、不换目标 |
+| **② 真实公开 reachable 扫描与路线构造**（D-209 已实现，待审） | 已冻结的八种注册动作模板、公开可达格、干预前匿名 visibility 扫描；实体层与地点层两种 family | 真实可达点扫描回执；**每个计划步预先验证落在可达格上**（这是长路线的成品率护栏，不是放宽容差）；实体层路线走既有 `vm04_public_route_builder`，新增 **Z 路线 family 构造器**（两次注册转弯、两条视觉相似走廊、强制的后续可判别观测）。找不到合法路线即构造失败，不换房、不换目标 |
 | **③ 父 stage 多 worker 调度与 receipt 合并** | ② 的路线、已实现的 raw writer/materializer/matcher 外壳、D-205 的 pilot 完成度机械派生 | 先单 worker 实测 CPU/RAM/VRAM/IO，再按最大安全并发派发；记录 requested/actual worker、分片、退出、资源依据与**与完成顺序无关的确定性合并**；逐 episode 的 `complete/failure/not_started` 全数保留，失败不补样、不覆盖、不静默重跑 |
 
 ②③ 完成后剩余阻断项只有 8 个真实产物摘要（SAM checkpoint/commit、assets/generator/AMG config 摘要、materializer code/config 摘要、L2 前端 receipt）与用户对 pilot 完成度派生的代码审查；届时才可按 pilot 范围开闸。**②③ 都不解除任何授权位。**
 
+
+**D-209 ② 已实现待审（当前阶段级状态）：** 新增 `vm04_reachable_scan`（真实 `GetReachablePositions` 封存成整数格键、格距由合同 `moveMagnitude` 派生、逐步可达验证遇挡即失败关闭）、`vm04_place_route_builder`（Z 路线 family：两次反向注册转弯、视觉相似走廊、**强制的后续可判别观测**、走廊 B 内非空的模糊承诺窗口）和只在 `trajectory_implementation_authorized` 之后才碰 controller 的扫描 worker。实测冻结几何恰好 50 个注册动作，64 步地点层预算给后续可判别观测留下**恰好 14 步**。顺带修掉一个使 D-207 分层预算失效的缺陷：`vm04_public_route_builder` 读的是实体层的 24 而不是按层取预算，`family_layer="place"` 此前存在但无效。合同零改动、十四个授权位仍 false、剩余产物摘要仍是 8 个；阻断项按 D-059 须经用户审查才可勾掉。**一处留给用户裁决的缺口：** 合同把 place MERGE/SPLIT 列为地点层纠正程序，但已冻结的 SPLIT/MERGE artifact 判据是实体层前端伪影的定义，用不上；构造器只接受调用者预登记的 artifact plan、绝不自行发明，因此当前可用的地点层 program 只有 BIND 与 BIRTH。
 
 > **细粒度指针的唯一维护处是 [VSMT_EXPERIMENT_EVIDENCE_CHAIN.md](VSMT_EXPERIMENT_EVIDENCE_CHAIN.md) 的 §10.3（D-205）。** 本节只保留阶段级状态与历史指针，不再重复叙述叶节点；两处一旦冲突，以证据链 §10.3 为准。
 

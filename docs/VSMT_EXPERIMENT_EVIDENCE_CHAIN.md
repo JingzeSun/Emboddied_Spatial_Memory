@@ -156,7 +156,7 @@ pilot 前先按 result-blind manifest hash 和固定 seed 封存至少 70 个合
 
 对应论文作用：阻止事后贴标签和按结果换路线，为 C3、C4 提供事前性证据。
 
-当前状态：route/schema 核心已有实现候选；真实 reachable scan、正式动作幅度、decision time、action encoding、selector 的 terminal 前父级时间封存仍待完成。
+当前状态：route/schema 核心已有实现候选；**真实 reachable scan 与逐步可达验证、Z 路线 family 构造器已由 D-209 实现（待审）**，动作幅度/decision time/action encoding 已由 D-205 冻结；selector 的 terminal 前父级时间封存仍待接生产父 stage。
 
 ### 阶段 B：按真实相机动作写 raw
 
@@ -409,7 +409,7 @@ D-205 把这张清单按性质分成三类。**混在一起是此前它无法被
 6. **（D-206 新增）** 把确定性 place 骨架降级为 oracle 诊断臂，并实现基于证据的 place 关联与 `adjacent_to`。
 7. 把 D-204 纯核心接入生产父 stage/raw writer/materializer，并升级 D-201 离线 episode receipt 消费在线 seal。
 8. 把 production visibility、materializer、intervention、RELINK、candidate/teacher 接入同一真实 episode 纵向链。
-9. 实现真实 reachable scan、父 stage 多 worker、确定性合并、失败恢复、verify/export，以及 **Z 路线 family 构造器**。
+9. ~~实现真实 reachable scan 与 **Z 路线 family 构造器**~~（D-209 已实现待审：真实 `GetReachablePositions` 封存、逐步可达验证、Z family 构造器；阻断项按 D-059 待用户审查后才可勾掉）；父 stage 多 worker、确定性合并、失败恢复、verify/export 仍缺。
 10. 用户审查 pilot family 完成度的机械派生（已实现，见 §10.3）。
 11. 封存互不相交的 pilot 与正式 house manifest，完成最终开闸审计。
 
@@ -421,7 +421,7 @@ edge RETRACT 继续作为明确覆盖缺口阻断，不应在没有新公开关�
 
 科学裁决已由 D-205～D-207 全部冻结，剩下的 C 类阻断项收敛成两项：
 
-**② 真实公开 reachable 扫描与路线构造。** 解决"路线目前只有 schema 和纯核心，没有真实可达点来源"的问题。输入是已冻结的八种注册动作模板、公开可达格和干预前匿名 visibility 扫描；输出是真实扫描回执与两类 family 的封存路线。例如一条地点层 Z 路线要走完 4 m 走廊、转 90°、走 3 m 连接段、反向转 90°、再走 4 m 走廊，约 50 个注册动作，落在 D-207 的地点层 64 步预算内。**每个计划步必须预先验证落在可达格上**——这是长路线的成品率护栏，因为路线验收是逐锚点绝对比较、不累积，长路线的真实风险是某一个动作被挡住而整条失败，而不是精度下降。它不等于主动探索：路线由干预前的公开信息预登记，找不到合法路线就记构造失败，不换房、不换目标。
+**② 真实公开 reachable 扫描与路线构造 —— D-209 已实现，待用户审查。** 解决"路线目前只有 schema 和纯核心，没有真实可达点来源"的问题。输入是已冻结的八种注册动作模板、公开可达格和干预前匿名 visibility 扫描；输出是真实扫描回执与两类 family 的封存路线。例如一条地点层 Z 路线要走完 4 m 走廊、转 90°、走 3 m 连接段、反向转 90°、再走 4 m 走廊，约 50 个注册动作，落在 D-207 的地点层 64 步预算内。**每个计划步必须预先验证落在可达格上**——这是长路线的成品率护栏，因为路线验收是逐锚点绝对比较、不累积，长路线的真实风险是某一个动作被挡住而整条失败，而不是精度下降。它不等于主动探索：路线由干预前的公开信息预登记，找不到合法路线就记构造失败，不换房、不换目标。
 
 **③ 父 stage 多 worker 调度与 receipt 合并。** 解决"单 episode 的 writer/materializer 外壳都在，但没有东西按 family 把它们跑起来"的问题。输入是 ② 的路线、已实现的 raw writer/materializer/matcher 外壳和 D-205 的 pilot 完成度机械派生；输出是逐 family 的并发执行与确定性合并回执。先单 worker 实测 CPU/RAM/VRAM/IO，再按最大安全并发派发；记录 requested/actual worker、分片、退出与资源依据，合并顺序与完成顺序无关。逐 episode 的 `complete/failure/not_started` 全数保留。它不等于开闸：失败保留、不补样、不覆盖、不静默重跑的规则不变。
 
@@ -437,12 +437,13 @@ D-201→D-204 时间封存链（纯核心可复算，仍 temporal_seal_pending�
        └─ D-206：收回地点层 oracle，place 变为可学习
             ├─ A 科学裁决：已完成（含 pose 通道、噪声模型、place matcher、Z 路线）
             ├─ pilot family 完成度机械派生：已实现，待用户审查
-            └─ 当前下一步（按对生成数据的贡献排序）：
-                 ① raw writer 换 pose 通道（C，阻塞后续全部 raw）
-                 ② 真实 reachable scan + 路线构造 → 第一条真实 episode
-                 ③ 生产父 stage 多 worker 调度与 receipt 合并
-                 ④ 取得真实 SAM 资产并冻结 B 类 4 组摘要（L2 与 SPLIT/MERGE 需要）
-                 ⑤ 封存 70-house 顺序，开闸跑 6 个 pilot family
+            ├─ D-207：地点层 64 步预算、route 移入 provenance
+            └─ D-209：真实 reachable scan ＋ 逐步可达验证 ＋ Z 路线 family 构造器（②，已实现待审）
+                 └─ 当前下一步（按对生成数据的贡献排序）：
+                      ③ 生产父 stage 多 worker 调度与 receipt 合并 ← 下一条
+                      ④ 取得真实 SAM 资产并冻结 B 类 4 组摘要（L2 与 SPLIT/MERGE 需要）
+                      ⑤ 封存 70-house 顺序，开闸跑 6 个 pilot family
+                 （① raw writer 换 pose 通道已完成；②③ 完成后 ①②③ 合起来可在 SAM 之前产出真实 raw）
 ```
 
 ①②③ 不需要 SAM：路线、visibility、干预、raw 写盘都只依赖公开 RGB-D 与几何。因此**可以在 SAM 资产到位之前先跑通并产出真实多视角 raw episode**，作为工程可行性运行（显式不是科学样本），这是目前"尽快看到真实数据"的最短路径。
@@ -489,6 +490,7 @@ D-201→D-204 时间封存链（纯核心可复算，仍 temporal_seal_pending�
 | 数值冻结与首篇口径 | D-205 | 科学裁决一次性冻结、阻断项按性质分 A/B/C、place 收窄、pilot 只报告诊断与 SPLIT/MERGE 成品率下限、family 完成度机械派生 |
 | 地点层 oracle 收回 | D-206 | 公开 pose 改相对带噪里程计、place 变可学习、Z 路线 family、CFO 掩码补漏、oracle 诊断臂 |
 | 分层预算与通道分离 | D-207 | 地点层 64 步/实体层 24 步、route 移入 provenance、公开投影去世界锚点、目录不变量 |
+| 真实可达扫描与地点层路线 | D-209 | 真实 `GetReachablePositions` 封存、逐步可达验证作为长路线成品率护栏、Z 路线 family 构造器与强制后续可判别观测 |
 
 ## 13. 为什么新版 VM-04 比第一次复杂
 

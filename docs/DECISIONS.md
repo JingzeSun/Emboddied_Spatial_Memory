@@ -1999,3 +1999,24 @@
 - 不改变的内容：VSMT 全部科学数值与阻断项分类（D-205）、地点层口径与 pose 通道（D-206）、分层预算与 provenance 分离（D-207）、合同 v1–v4 字节、全部十四个授权位（仍为 false）、旧 test 封存、D-062 与旧 M1 的历史结论。
 - 是否接触 test 信息：否。未生成数据、未运行模拟器、未训练。
 - 验证方式：删除后活跃线 `pytest tests/` 578 项全通过；`src/cpmt` 保留模块的 import 闭包经 AST 复算确认不含归档模块；两个归档分支已推送且各含完整快照。
+
+## D-209：真实公开 reachable 扫描、逐步可达验证与 Z 路线 family 构造器（②）
+
+- 日期：2026-09-17；状态：工程接线已实现，待用户代码审查；未改任何科学数值、未改任何合同字节、全部十四个授权位仍为 false。这是证据链 §10.2b 的 ② 项，对应 v4 `pre_generation_blockers` 里的 `implement_the_real_public_reachable_position_route_scan_with_per_step_reachability_verification_and_the_Z_route_family_builder`。该阻断项**不由本实现清空**，按 D-059 须由用户审查后才能改写。
+- 解决的问题：路线此前只有 schema 和纯核心，没有真实可达点来源——`build_route_plan_from_public_graph` 接到的 pose 图是调用者递进来的，没有任何东西保证图上的姿态真的可达。同时 D-206 登记的 Z 路线 family 只有文字形状，没有构造器。D-207 又把这两件事绑在一起：地点层 64 步预算把"某一个动作被挡住"变成长路线的主要失败模式，而唯一不放宽容差的缓解就是每个计划步预先验证落在可达格上。
+- 允许的输入：公开 `GetReachablePositions` 返回、已冻结的八种注册动作请求模板、干预前匿名 visibility 扫描、预登记并封存的 Z 几何。不读 private instance ID、program 结果、teacher、future，也不读任何动作执行结果——扫描是干预前的公开查询，计划姿态是对冻结模板的纯运动学展开。
+- 产生的输出：
+  - [`src/vsmt/vm04_reachable_scan.py`](../src/vsmt/vm04_reachable_scan.py)：`seal_public_reachable_scan` 把一次真实公开查询封存成整数格键的回执（浮点不进摘要，所以同一房屋两次扫描逐字节可比）；格距**由合同的 `moveMagnitude` 派生而非硬编码**，所以未来改动幅度不可能与扫描格悄悄不一致。`nominal_route_poses` 给出 N+1 个无噪声计划姿态；`seal_route_step_reachability` 逐步验证并封存回执，遇到第一个被挡住的步就失败关闭。
+  - [`src/vsmt/vm04_place_route_builder.py`](../src/vsmt/vm04_place_route_builder.py)：Z 路线 family 构造器。几何是**输入**不是搜索结果——使地点层 family 成立的正是那个事前登记的形状，而不是某条恰好好用的路线。
+  - [`ops/vsmt/vm04_reachable_scan_worker.py`](../ops/vsmt/vm04_reachable_scan_worker.py)：唯一接触模拟器的入口，**先查 `trajectory_implementation_authorized` 再碰 controller**，而不是先拿到位置再检查。查询失败是拒绝，不是空格子。
+  - `vm04_observation_stage.py` 新增 `seal-reachable-scan` 与 `verify-route-reachability`，两者都要 `route_plan_sealing_authorized`（当前 false）。
+- **AI2-THOR 的可达格是轴对齐的，而冻结的旋转步长是 30°，所以从非 90° 倍数航向发出的平移按构造就会离开格子。** 这不是本决定新增的限制，是 0.25 m 与 30° 两个已冻结值相遇的既有后果；本实现把它变成一个具名的规划期失败（`translates from a heading that is not axis aligned`），而不是一条只有在服务器上跑起来才会失败的路线。实体层路线因此在提供扫描时被约束到轴对齐平移；Z 路线的 90° 转弯（3×30°）本来就满足。
+- **Z 路线的三条结构要求，都是实体层 schema 表达不了的：** 两次方向相反的注册转弯（一次只是拐角，两次相反才把走廊 B 摆到走廊 A 旁边）；**强制的后续可判别观测**（D-206 明确：没有它只检验一次性关联，有了它才检验早期错误的地点承诺能否被修订、以及污染多久，这正是 contamination AUC 测量的东西；构造器对空的 disambiguation 直接拒绝）；**走廊 B 内非空的模糊承诺窗口**（如果路线从未在锚点隐藏时观测走廊 B，就没有错误承诺可供修订）。三者连同几何摘要、可达扫描摘要、逐步验证摘要一起写进 `z_route_family_receipt`。
+- **实测：冻结几何恰好占满预算。** 4 m 走廊＋90° 转弯＋3 m 连接段＋反向 90°＋4 m 走廊 = 16+3+12+3+16 = **50 个注册动作**，与 D-207 的算术一致；地点层 64 步预算给后续可判别观测留下**恰好 14 步**（例如掉头 6 步＋回走 2 m 的 8 步）。这不是余量，是刚好够。若某个 pilot house 的可判别观测需要多于 14 步，那是构造失败，按规则保留，不得提预算。
+- **顺带修掉一个会让 D-207 分层预算失效的缺陷：** `vm04_public_route_builder` 读的是 `frozen_numeric_values.maximum_route_steps`（实体层的 24），而不是 D-207 的 `_route_step_budget(approved, family_layer)`。于是 `family_layer="place"` 这个参数存在但无效，任何超过 24 步的地点层路线都会被静默判为"找不到合法路线"。现已改为按层取预算，并加了一条回归：同一条 27 步链在实体层被拒、在地点层通过。
+- 它解锁：可以从真实房屋取得可达格、按可达格预先筛掉绝大多数被挡住的路线、并构造出符合 D-206/D-207 全部登记要求的地点层 Z 路线 family。①②合起来使"在 SAM 资产到位之前先跑通并产出真实多视角 raw episode"成为只差 ③ 的路径。
+- 它仍不解锁：不解除任何授权位；不封存来源池；不产生任何 episode；不动八个 B 类产物摘要；不实现父 stage 多 worker 调度与 receipt 合并（③）；不实现 place 关联与 `adjacent_to` 证据化（D-206 的第 6 项 C 类工程项）。edge RETRACT 继续阻断。
+- **一处需要用户裁决的缺口（未自行决定）：** 合同 `place_identity_revision.corrective_programs` 把 place MERGE 与 place SPLIT 列为地点层的纠正程序，但 `validate_route_plan` 对 SPLIT/MERGE 要求一个 `split_merge_artifact_plan`，而已冻结的 `deterministic_SPLIT_MERGE_construction` 是**实体层前端伪影**的定义（在 L2 公开 proposal mask 上按覆盖度 0.5 测量、3 次 fresh replay）。地点层的 SPLIT/MERGE 不是前端过分割，是漂移造成的格冲突，用不上那套判据。本实现的处理是：构造器接受一个由调用者预登记并传入的 artifact plan，**绝不自行发明**；不传就拒绝。真正的地点层 SPLIT/MERGE artifact plan 语义需要单独裁决。当前可用的地点层 program 只有 BIND 与 BIRTH。
+- 下一条依赖：③ 父 stage 多 worker 调度与确定性 receipt 合并。
+- 是否接触 test 信息：否。未生成数据、未运行模拟器、未训练、未读取 validation/confirmation。
+- 验证方式：[`tests/test_vm04_reachable_scan_and_z_route.py`](../tests/test_vm04_reachable_scan_and_z_route.py) 32 项本地通过，覆盖十四位授权仍全 false、剩余产物摘要仍为 8 个、v1/v2/v3 逐字节未变、扫描格等于冻结 move 幅度、空/失败查询被拒、离格点被拒、重复格与多层被拒、摘要与三条无污染声明被篡改即拒、运动学与冻结模板一致、非轴对齐平移被拒、单个被挡住的格使整条路线失败、验证回执可复算且篡改被拒、Z 几何恰好占满 64 步预算且几何本身为 50 步、去掉后续可判别观测被拒、走廊不相似或同引用被拒、事后调参被拒、非整步长度与转角被拒、超预算几何被拒、走廊 B 全程可见（无模糊承诺）被拒、扫描姿态偏离计划姿态被拒、非地点层 program 被拒、place SPLIT/MERGE 缺 artifact plan 被拒、扫描缺观测被拒、公开投影仍无世界锚点，以及分层预算回归（27 步链实体层拒、地点层通过）与离格扫描姿态被拒。活跃线全量 `pytest tests/` 由 578 升至 **610 项全通过**。服务器全量回归与用户代码审查仍 pending。
