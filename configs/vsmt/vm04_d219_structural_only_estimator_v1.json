@@ -1,0 +1,261 @@
+{
+  "schema_version": "vsmt-vm04-d219-structural-only-estimator-v1",
+  "decision_id": "D-219",
+  "status": "implementation_pending_review_all_execution_closed",
+  "reviewed_baseline_commit": "3f73aee59d76db3585aa05c4bb0a9bb94e003a74",
+  "expected_reviewed_implementation_commit": null,
+  "supersedes": {
+    "reason": "the semantic room/corridor head has no consumer anywhere in the pipeline, so its 35776 human judgements buy no paper evidence",
+    "d215_clauses_replaced": [
+      "semantic_structural_estimator.architecture.semantic_head",
+      "semantic_structural_estimator.architecture.semantic_labels",
+      "semantic_structural_estimator.training.loss",
+      "semantic_structural_estimator.training.early_stopping_metric",
+      "semantic_structural_estimator.label_boundary.semantic_training_label",
+      "semantic_structural_estimator.label_boundary.semantic_annotators_receive_scenario_or_house_identity",
+      "semantic_structural_estimator.inference_config_sha256"
+    ],
+    "d216_clauses_replaced": [
+      "training_bundle.semantic_labels",
+      "training_bundle.semantic_annotation_receipt_sha256",
+      "training_bundle.semantic_annotation_receipt_schema",
+      "early_stopping_metric_sum_over_two_heads",
+      "artifact_seal.semantic_weights_bias_temperature"
+    ],
+    "d218_clauses_replaced": [
+      "authorization.annotation_package_export",
+      "authorization.annotation_submission_import",
+      "annotation"
+    ],
+    "predecessor_bytes_must_not_change": true,
+    "supersession_is_by_reference_not_by_rewrite": true
+  },
+  "frozen_predecessor_bindings": {
+    "chain_note": "d216 binds d215; d217 binds d216; d218 binds d215 and d217. E-01..E-03 and E-05 already executed against these exact bytes, so D-219 must never rewrite them; a byte change would invalidate completed server receipts and block resume or re-verification.",
+    "d215_relative_path": "configs/vsmt/vm04_d215_frontend_freeze_v1.json",
+    "d215_file_sha256": "c3d6736f67b300eca03882c081e56e6bf4d65ad1913bcc411df8477fbd188db8",
+    "d216_relative_path": "configs/vsmt/vm04_d216_estimator_training_seal_v1.json",
+    "d216_file_sha256": "22b85ed79ae6b89e2c05a55b7878962171d47e9b7a49202ff10d4d09f00c04ea",
+    "d217_relative_path": "configs/vsmt/vm04_d217_estimator_development_rgbd_v1.json",
+    "d217_file_sha256": "1499806b8a34eb71ec0785128111b28236f8cee8b95b61a94f624c608702643d",
+    "d218_relative_path": "configs/vsmt/vm04_d218_estimator_annotation_features_v1.json",
+    "d218_file_sha256": "309c5ae03d272c456f1a12def5610d7dbc59eb63cb87db999e0ebaf52ea6d734",
+    "d217_generation_activation_commit": "0c4f9851006dbb996864c9af82d60ff4b28c09b2",
+    "d218_activation_commit": "94904c92d1706dfec6fe1455afe87ed1c79afa84"
+  },
+  "d214_in_place_edit": {
+    "relative_path": "configs/vsmt/vm04_d214_shared_rgbd_frontend_v1.json",
+    "pre_d219_file_sha256": "542776d876d357af2c0eb04eab04c130c888a5fc89b2215b22a463c7d5aeab19",
+    "no_contract_binds_d214_bytes": true,
+    "edit_is_safe_because": "no predecessor contract records a d214 file digest, so removing the dead semantic fields cannot break the executed d215->d216->d217->d218 chain",
+    "fields_removed_from_place_observation": [
+      "semantic_probabilities",
+      "semantic_class_defines_identity",
+      "semantic_model_receipt_sha256"
+    ],
+    "fields_removed_from_assets": [
+      "semantic_structural_estimator.semantic_labels"
+    ],
+    "p08_qualification_receipt_field_removed": "room_corridor_semantics_used_for_place_identity"
+  },
+  "removed_semantic_head": {
+    "removed_entirely": true,
+    "constant_unknown_placeholder_allowed": false,
+    "human_annotation_stopped": true,
+    "evidence_that_no_consumer_exists": [
+      "src/vsmt/d214_shared_frontend.py:460 place observation records semantic_class_defines_identity=False",
+      "src/vsmt/d214_shared_frontend.py:883 P08 qualification records room_corridor_semantics_used_for_place_identity=False",
+      "P08 qualification reads only basin/bottleneck probabilities, fragment DINO cosine and centroid distance",
+      "no adapter, candidate generator, d213 unified graph, teacher or evaluator reads semantic probabilities"
+    ],
+    "fairness_impact": "all five arms lose the same three-dimensional field, so no sealed comparison is disturbed",
+    "e04_artifacts": {
+      "retained_as_history": true,
+      "annotation_package_root": "<E_STAGE_ROOT>/annotation",
+      "approximate_size_gib": 1.1,
+      "downloaded": false,
+      "annotated": false,
+      "enters_training": false
+    },
+    "paper_claim_withdrawn": "the paper no longer claims recognition of real rooms and corridors; it claims only publicly inferred basin-bottleneck-basin structure plus anonymous multi-view fragments"
+  },
+  "structural_estimator": {
+    "model_id": "d219.dinov2_geometry_single_structural_head.v1",
+    "scenario_blind": true,
+    "shared_for_all_p01_to_p08": true,
+    "architecture": {
+      "dinov2_descriptor_dimension": 384,
+      "public_geometry_feature_dimension": 12,
+      "concatenated_feature_dimension": 396,
+      "hidden_layers": 0,
+      "structural_head": "affine_396_to_3_then_temperature_softmax",
+      "structural_labels": [
+        "basin",
+        "bottleneck",
+        "unknown"
+      ],
+      "semantic_head": null
+    },
+    "public_geometry_feature_order_inherited_from": "D-215",
+    "public_geometry_feature_order_unchanged": true,
+    "normalization": "train_split_per_feature_mean_and_population_std_floor_1e-6",
+    "forbidden_features": [
+      "scenario_id",
+      "scenario_role",
+      "route_index",
+      "house_id",
+      "reachable_grid",
+      "room_metadata",
+      "instance_mask",
+      "object_id",
+      "semantic_label",
+      "teacher",
+      "future"
+    ],
+    "training": {
+      "numerics_inherited_from": [
+        "D-215",
+        "D-216"
+      ],
+      "numerics_changed_by_d219": [
+        "loss",
+        "early_stopping_metric",
+        "checkpoint_choice",
+        "temperature_calibration"
+      ],
+      "optimizer": "AdamW",
+      "seed": 26091815,
+      "maximum_epochs": 100,
+      "batch_size": 512,
+      "learning_rate": 0.001,
+      "weight_decay": 0.0001,
+      "adamw_betas": [
+        0.9,
+        0.999
+      ],
+      "adamw_epsilon": 1e-08,
+      "parameter_initialization": "zero_weights_and_zero_bias",
+      "epoch_shuffle": "cpu_randperm_with_seed_plus_epoch",
+      "class_weights": "train_only_inverse_sqrt_class_frequency_clipped_0_5_to_4_not_renormalized",
+      "loss": "structural_cross_entropy_only",
+      "early_stopping_metric": "calibration_split_structural_nll",
+      "early_stopping_patience_epochs": 10,
+      "early_stopping_minimum_delta": 0.0001,
+      "checkpoint_choice": "lowest_calibration_split_structural_nll_then_earliest_epoch",
+      "temperature_calibration": "one_positive_scalar_fit_on_calibration_split_after_checkpoint_choice",
+      "temperature_search": "golden_section_96_rounds_over_log_temperature_minus_6_to_6",
+      "p08_route_yield_may_select_checkpoint_or_temperature": false,
+      "results_may_not_change_any_number_above": true
+    },
+    "inference_config_sha256": null,
+    "normalization_receipt_sha256": null,
+    "weights_sha256": null,
+    "training_receipt_sha256": null
+  },
+  "label_boundary": {
+    "structural_training_label": "training_only_reference_reachable_free_space_basin_bottleneck_unknown",
+    "structural_reference_rule_inherited_from": "D-215",
+    "structural_reference_rule_sha256": "4fa32f8940cb22516d0c004f9c4b8d7a6cb5c1cd9a85dfb6f63ef6178dd34774",
+    "private_reachable_grid_permitted_scope": [
+      "train_split_label_generation",
+      "calibration_split_label_generation",
+      "audit_split_label_generation"
+    ],
+    "private_reachable_grid_forbidden_scope": [
+      "inference",
+      "production_cache",
+      "p04_p08_qualification",
+      "route_construction",
+      "deployment_reader"
+    ],
+    "inference_inputs": "public_rgbd_and_camera_intrinsics_only",
+    "reference_labels_available_to_inference_or_cache": false,
+    "p08_may_read_reachable_grid_truth": false,
+    "plain_statement": "the private reachable graph only writes labels at training and audit time; at inference the structural head still predicts basin/bottleneck/unknown from public RGB-D alone, so the public front-end claim is preserved",
+    "human_semantic_annotation_required": false,
+    "unknown_required_for_ambiguous_structural_label": true
+  },
+  "e05_feature_reuse": {
+    "rerun_dinov2_or_geometry": false,
+    "reason": "the 396-dimensional features are label-free, so removing a head cannot change a single feature byte",
+    "feature_dimension": 396,
+    "observations": 17888,
+    "houses": 559,
+    "source_activation_commit": "94904c92d1706dfec6fe1455afe87ed1c79afa84",
+    "failed_e03_houses_replaced": false
+  },
+  "e07_scale_decision": {
+    "decided_now": true,
+    "choice": "freeze_512_train_64_calibration_64_audit",
+    "full_house_expansion": false,
+    "reason": "a 396-to-3 linear head does not need more than 512 development houses, and expansion would invalidate every existing RGB-D, feature and receipt",
+    "e07_remains_an_open_gate": false
+  },
+  "e08_audit": {
+    "human_judgements_required": 0,
+    "audit_label_source": "private_reference_reachable_grid_same_frozen_rule",
+    "model_inputs": "public_rgbd_and_camera_intrinsics_only",
+    "audit_houses": 64,
+    "observations_per_house": 32,
+    "planned_observations": 2048,
+    "run_once": true,
+    "prereg_metrics": [
+      "structural_nll",
+      "structural_accuracy",
+      "calibration_error",
+      "per_class_interval",
+      "per_house_interval"
+    ],
+    "audit_failure_may_add_houses_change_model_or_thresholds": false,
+    "failure_and_resource_receipts_required": true
+  },
+  "p08_qualification": {
+    "four_numbers_inherited_from": "D-215",
+    "basin_probability_minimum": 0.7,
+    "bottleneck_probability_minimum": 0.7,
+    "fragment_descriptor_cosine_minimum": 0.85,
+    "fragment_centroid_distance_maximum_m": 0.35,
+    "numbers_changed_by_d219": false,
+    "may_be_tuned_by_route_yield": false,
+    "structural_probabilities_source": "d219_structural_head_public_inference",
+    "dry_run_scheduling": {
+      "run_on_two_development_houses_before_freezing_formal_data_budget": true,
+      "development_houses_only": true,
+      "audit_or_test_houses_used": false,
+      "failure_response": "redesign_route_or_scenario_or_record_construction_failure_never_adjust_thresholds"
+    }
+  },
+  "authorization": {
+    "structural_training": false,
+    "audit_open_or_generation": false,
+    "full_house_expansion": false,
+    "production_reader": false,
+    "p04_p08_qualification": false,
+    "route_or_raw_generation": false,
+    "private_evaluation": false
+  },
+  "run_authorization_policy": {
+    "governed_by": "D-220",
+    "active_status": "frozen_executable_structural_training",
+    "separate_single_file_activation_commit_required": false,
+    "parent_commit_must_equal_reviewed_implementation_commit": false,
+    "clean_checkout_required_for_real_runs": true,
+    "authorization_is_reviewed_by_the_user_before_the_run": true,
+    "must_remain_false": [
+      "full_house_expansion",
+      "production_reader",
+      "p04_p08_qualification",
+      "route_or_raw_generation",
+      "private_evaluation"
+    ]
+  },
+  "closed_downstream": {
+    "semantic_weights_produced": false,
+    "structural_weights_produced": false,
+    "audit_opened": false,
+    "production_cache_produced": false,
+    "p04_p08_requalified": false,
+    "route_or_raw_generated": false,
+    "private_evaluation_run": false
+  }
+}

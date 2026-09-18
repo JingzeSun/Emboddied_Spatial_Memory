@@ -2099,3 +2099,22 @@
 - **E-05边界：** 384维描述固定为DINOv2 ViT-S/14全帧patch token均值后L2归一化；12维几何的分位数、frustum体积、开口、clearance、D-205 surface统计公式和截断值全部登记。实际模型加载只接受既有冻结commit、干净仓库和checkpoint SHA；一个GPU进程推理，多worker并行public NPZ I/O和CPU几何且有界预取。
 - **失败与隔离：** annotation/feature只接public root，显式拒绝audit目录；feature逐public sample保留失败且不补样。private structural标签要到后续D-216 evidence组装才可由隔离流程加入，不得进入本阶段标注页面或feature数组。
 - **仍关闭：** D-218实现提交不授权真实任务包、人工提交导入或feature运行；后续即使只改合同激活这三项，audit、Estimator训练、full-house扩展、production reader、P04/P08、route/raw和private evaluation也必须保持false。真实E-04/E-05收据需另审，不能由代码测试替代。
+
+## D-219：删除semantic头，Estimator收窄为公开RGB-D结构单头
+
+- 日期：2026-09-18；状态：用户批准“停止E-04人工语义标注、删除semantic头、保留structural头、精简流程但保留公平比较/独立test/防泄漏实质”。本批只交机器合同[`vm04_d219_structural_only_estimator_v1.json`](../configs/vsmt/vm04_d219_structural_only_estimator_v1.json)与本决策文本供审查；代码、训练和服务器执行仍全部关闭。
+- **为什么删semantic头：** `room/corridor/unknown`不定义地点身份（[d214_shared_frontend.py:460](../src/vsmt/d214_shared_frontend.py#L460)），P08资格只读basin/bottleneck概率、fragment DINO cosine和质心距离，并显式记录语义未用于身份（[同文件:883](../src/vsmt/d214_shared_frontend.py#L883)）。全库除D-214/D-215/D-216前端合同、训练实现和测试外没有任何方法消费者：adapter、候选生成器、D-213统一图、teacher和evaluator都不读它。因此17,888帧×2人＝35,776次判断买不到论文证据。不得用恒定`unknown`冒充模型输出；已导出的约1.1 GiB任务包保留为历史产物，不下载、不标注、不进训练。五个臂同等地少掉这三维，已封存比较不受扰动。论文相应收回“识别真实房间与走廊”的口径，只主张公开RGB-D推断的basin→bottleneck→basin及其中的匿名多视角fragment。
+- **为什么不能连structural头一起删：** P08部署时不能查reference reachable grid。私有可达图只允许在train/calibration/audit生成标签，推理仍只读公开RGB-D与内参。删掉结构头会让P08退回grid真值或工程启发式，直接破坏“公开前端”主张。该边界写入D-219的`label_boundary`并给出允许/禁止两份显式scope，不再散落在正文各处。
+- **为什么不就地改d215/d216：** d216绑d215、d217绑d216、d218绑d215与d217，而E-01～E-03和E-05已按这些确切字节执行完毕。就地编辑会同时打断三层绑定，并使已完成的服务器receipt无法复验或续跑。D-219因此按当前哈希绑定四份前置合同、以引用方式supersede，永不重写它们；d214没有任何合同绑定其字节，故可就地删除三个死字段。
+- **范围与规模：** E-05的396维特征本身无标签，逐字节复用，不重跑DINO与几何。E-07就此裁决为冻结512/64/64，不做full-house扩展，该门不再保留为未决选择。E-08改为零人工：审计标签由同一冻结规则从私有可达图自动生成，模型输入仍只有公开RGB-D，只跑一次；审计失败不得加house、改模型或改阈值。
+- **P08四数不动：** 0.70/0.70/0.85/0.35与唯一argmax全部沿用D-215，不因路线成品率调整。新增的是排期要求：E-08之后先在两间开发house上做P08 dry-run，在冻结正式数据预算前暴露不合格风险；不合格时改路线/场景设计或如实记construction failure，而不是动阈值。
+- **仍关闭：** `structural_training`、`audit_open_or_generation`、`full_house_expansion`、`production_reader`、`p04_p08_qualification`、`route_or_raw_generation`和`private_evaluation`全为false。本批0训练、0权重、0审计、0服务器运行；真实E-06/E-08收据需另审，不能由代码测试替代。
+
+## D-220：协议精简——执行闸门、独立test、消融集合与两房smoke
+
+- 日期：2026-09-18；状态：用户批准“精简流程但保留公平比较、独立test和防泄漏实质”。本批只交机器合同[`vm05_d220_protocol_simplification_v1.json`](../configs/vsmt/vm05_d220_protocol_simplification_v1.json)与本决策文本供审查；训练、validation效果、test、route/raw和private evaluation全部关闭。D-219的`activation_policy`已同批改为`run_authorization_policy`并指向本决策，避免同一批内两套激活规则并存。
+- **执行闸门：** 取消D-212确立的“已审实现提交＋只改一个文件的激活提交＋父提交必须精确等于已审提交”三重门。该门已被实证证伪：D-218授权后，仅仅一个文档提交`c8b4c68`就把`HEAD^`推离已审实现提交，使E-04/E-05的执行命令从此无法再跑。替代规则是每个VM里程碑一个清晰提交、真实运行记录git commit/合同/输入/产物摘要与资源和失败、真实运行仍要求clean checkout、授权由步骤合同里的布尔位表达并由用户在运行前审。不变量照旧：不按结果改split/阈值/house集合、失败保留不补样、test和audit只读一次。
+- **独立test：** confirmation降为普通独立test。取消隐藏house ID、承诺摘要、salt打乱的episode ID和reveal接口；保留house级train/validation/test互斥、test只跑一次、test不得选择配置/阈值/checkpoint、主指标与停止规则在test前冻结、全部seed与失败如实报告。文档与代码中的`confirmation`统一改称`test`，VM-06相应改称test stage。
+- **消融集合：** 五个主臂VSMT/TAF/ELU/WFR/LOW全部保留，且不得因某个强基线表现好而删除。VSMT消融只保留`VSMT-Typed`（主行）、`VSMT-Flat8`（度量类型门价值）、`VSMT-NoVersion`（度量版本历史价值），内部对照只保留`NECS`（“可执行修订空间”主张的唯一因果反事实）。`Place-4`、`VSMT-NoPlace`、`DRCR`、`PHR`移出必做集合，可作低成本附录。学习式排序器训练路径由VSMT/DRCR/NECS三条降为VSMT/NECS两条。被移出的臂在看过test之后不得再补回来。
+- **两房P0：** 降为工程smoke，取消12槽逐路线封存与资格回执仪式，只保留P01（采集、三面raw与共享cache）、P04（冻结DINO place描述子通路）和P08（结构头＋多视角fragment完整链）三条代表性端到端检查，其余路线由单测或正式数据运行覆盖。实质不变：两房结果不得进入任何论文表、不得据以选择headline赢家、construction failure照实保留并报告。
+- **不可再精简的底线（八条）：** 五个主臂读取逐字节相同的冻结公开前端cache；house级train/validation/test分离；test只跑一次且不得据以改模型；候选必须在teacher/private truth打开之前生成并封存；candidate miss、teacher error和selector摊销误差分开报告；多seed、置信区间、失败样本和资源成本齐备；P08私有metadata只在预测与路线固定之后打开；强基线不得因效果好被删除。这八条足以应付正常二区评审，本决策不触碰其中任何一条。

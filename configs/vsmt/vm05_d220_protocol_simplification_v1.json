@@ -1,0 +1,141 @@
+{
+  "schema_version": "vsmt-vm05-d220-protocol-simplification-v1",
+  "decision_id": "D-220",
+  "status": "implementation_pending_review_all_execution_closed",
+  "reviewed_baseline_commit": "3f73aee59d76db3585aa05c4bb0a9bb94e003a74",
+  "scope": "execution gates, held-out split ceremony, ablation set and two-house P0, for every VM-04 and VM-05 step from D-219 onward",
+  "motivation": "the 12-20 week estimate was dominated by self-imposed protocol, not by science; a second-quartile journal reviewer never sees the ceremony, only the fairness floor",
+  "run_authorization_policy": {
+    "replaces": {
+      "d212_two_commit_gate": "reviewed implementation commit plus a separate single-file activation commit whose parent must equal the reviewed commit",
+      "applied_in": ["D-217", "D-218", "D-219"],
+      "observed_failure": "the D-218 gate became unsatisfiable at docs commit c8b4c688d9f9e0e73c2490271daf332b3439d953, because one documentation commit moved HEAD^ away from the reviewed implementation commit and locked an already authorized stage"
+    },
+    "replacement": {
+      "one_clear_commit_per_vm_milestone": true,
+      "separate_single_file_activation_commit_required": false,
+      "parent_commit_must_equal_reviewed_implementation_commit": false,
+      "clean_checkout_required_for_real_runs": true,
+      "every_real_run_records": [
+        "git_commit",
+        "contract_file_sha256",
+        "input_data_sha256",
+        "output_artifact_sha256",
+        "worker_count_exit_codes_and_failures",
+        "resource_usage"
+      ],
+      "authorization_is_expressed_by": "the authorization booleans in the step contract, reviewed by the user before the run"
+    },
+    "unchanged_invariants": [
+      "no results-driven change to split, threshold, house set or sample replacement",
+      "failures are retained without substitution or resampling",
+      "test and audit are read once"
+    ]
+  },
+  "held_out_split": {
+    "replaces": "sealed confirmation family with hidden house IDs, commitment digests, salt-shuffled episode IDs and a reveal interface",
+    "replacement": {
+      "split_unit": "house_id",
+      "splits": ["train", "validation", "test"],
+      "mutually_exclusive": true,
+      "manifest_visible_to_the_author": true,
+      "hidden_ids_required": false,
+      "commitment_digest_required": false,
+      "reveal_interface_required": false
+    },
+    "retained_substance": {
+      "test_runs_once": true,
+      "test_may_not_select_model_configuration_threshold_or_checkpoint": true,
+      "primary_metric_and_stopping_rule_frozen_before_test": true,
+      "all_seeds_and_failures_reported": true
+    },
+    "renaming": {
+      "confirmation": "test",
+      "vm06_confirmation_stage": "test_stage"
+    }
+  },
+  "method_and_ablation_set": {
+    "primary_arms_unchanged": ["VSMT", "TAF", "ELU", "WFR", "LOW"],
+    "primary_arms_may_be_dropped_for_performing_well": false,
+    "vsmt_ablations_required": {
+      "VSMT-Typed": "primary vsmt row",
+      "VSMT-Flat8": "measures the value of the typed transaction gate",
+      "VSMT-NoVersion": "measures the value of model-visible version history"
+    },
+    "internal_controls_required": {
+      "NECS": "sealed teacher targets without candidate post-state or delta features; the single causal ablation for the executable revision space claim"
+    },
+    "removed_from_required_set": {
+      "Place-4": "low_cost_appendix_or_dropped",
+      "VSMT-NoPlace": "low_cost_appendix_or_dropped",
+      "DRCR": "low_cost_appendix_or_dropped",
+      "PHR": "low_cost_appendix_or_dropped"
+    },
+    "learned_ranker_training_paths": {
+      "before": ["VSMT", "DRCR", "NECS"],
+      "after": ["VSMT", "NECS"]
+    },
+    "removed_arms_may_not_be_reinstated_after_seeing_test": true,
+    "shared_budget_unchanged": "every retained arm and ablation keeps the same frontend, data, candidate source, training budget and scoring"
+  },
+  "two_house_p0": {
+    "replaces": "twelve sealed slots with per-route seals, qualification receipts and a full ceremony",
+    "replacement": {
+      "role": "engineering_smoke_only",
+      "retained_scenarios": {
+        "P01": "capture, three-face raw writing and shared cache",
+        "P04": "frozen DINO place descriptor path",
+        "P08": "structural head plus multi-view fragment full chain"
+      },
+      "remaining_routes_covered_by": ["unit_tests", "the formal data run"],
+      "route_seal_ceremony_required": false
+    },
+    "retained_substance": {
+      "two_house_results_may_not_enter_any_paper_table": true,
+      "two_house_results_may_not_select_a_headline_winner": true,
+      "construction_failures_are_retained_and_reported": true
+    }
+  },
+  "fairness_floor_may_not_be_simplified": [
+    "all five primary arms read identical frozen public front-end cache bytes",
+    "house-level separation of train, validation and test",
+    "test is run once and may not change the model",
+    "candidates are generated and sealed before any teacher or private truth is opened",
+    "candidate miss, teacher error and selector amortization error are reported separately",
+    "multiple seeds, confidence intervals, failure cases and resource cost are reported",
+    "P08 private metadata is opened only after predictions and routes are fixed",
+    "a strong baseline may not be removed because it performs well"
+  ],
+  "superseded_contract_clauses": {
+    "vm05_training_validation_readiness_v1": [
+      "execution_classes.learned_candidate_rankers.methods",
+      "execution_classes.deterministic_internal_control",
+      "confirmation_authorized",
+      "required_inputs_before_executable.frozen_S01_to_S12_selection_semantics"
+    ],
+    "vm04_d213_unified_typed_graph_v1": [
+      "ablations.Place-4",
+      "ablations.VSMT-NoPlace"
+    ],
+    "d219_activation_policy": "the single-file activation commit requirement is replaced by run_authorization_policy above",
+    "predecessor_bytes_must_not_change": true,
+    "supersession_is_by_reference_not_by_rewrite": true
+  },
+  "frozen_predecessor_bindings": {
+    "d213_relative_path": "configs/vsmt/vm04_d213_unified_typed_graph_v1.json",
+    "d219_relative_path": "configs/vsmt/vm04_d219_structural_only_estimator_v1.json",
+    "vm05_readiness_relative_path": "configs/vsmt/vm05_training_validation_readiness_v1.json"
+  },
+  "authorization": {
+    "training": false,
+    "validation_effect": false,
+    "test_run": false,
+    "route_or_raw_generation": false,
+    "private_evaluation": false
+  },
+  "closed_downstream": {
+    "any_arm_trained": false,
+    "any_validation_effect_read": false,
+    "test_opened": false
+  }
+}
