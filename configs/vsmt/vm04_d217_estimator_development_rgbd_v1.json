@@ -1,18 +1,18 @@
 {
   "schema_version": "vsmt-vm04-d217-estimator-development-rgbd-v1",
   "decision_id": "D-217",
-  "status": "implementation_pending_review_all_execution_closed",
+  "status": "frozen_executable_development_plan_and_train_calibration_rgbd",
   "reviewed_baseline_commit": "7927e252e30d87773c7830fcfc902a58c07644f7",
-  "expected_reviewed_implementation_commit": null,
+  "expected_reviewed_implementation_commit": "503e9450938944226d3994aa2120dddd65ba62bf",
   "d216_binding": {
     "relative_path": "configs/vsmt/vm04_d216_estimator_training_seal_v1.json",
     "file_sha256": "22b85ed79ae6b89e2c05a55b7878962171d47e9b7a49202ff10d4d09f00c04ea"
   },
   "authorization": {
-    "development_plan_sealing": false,
-    "capacity_probe": false,
-    "train_rgbd_generation": false,
-    "calibration_rgbd_generation": false,
+    "development_plan_sealing": true,
+    "capacity_probe": true,
+    "train_rgbd_generation": true,
+    "calibration_rgbd_generation": true,
     "audit_open_or_generation": false,
     "semantic_annotation": false,
     "feature_materialization": false,
