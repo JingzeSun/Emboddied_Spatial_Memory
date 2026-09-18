@@ -1,7 +1,7 @@
 {
   "schema_version": "vsmt-vm04-d221-estimator-scale-rule-v1",
   "decision_id": "D-221",
-  "status": "rule_frozen_measurement_pending",
+  "status": "measured_decision_pending_user_review",
   "supersedes": {
     "d219_clause": "e07_scale_decision",
     "reason_for_revisiting": "premise_changed_not_result_driven",
@@ -15,7 +15,10 @@
     "source": "the 559 E-03 private house receipts already on the server",
     "field": "structural_label_counts",
     "new_simulation_required": false,
-    "splits_read": ["train", "calibration"],
+    "splits_read": [
+      "train",
+      "calibration"
+    ],
     "audit_split_read": false,
     "model_output_read": false,
     "registered_as_e07_input": "train and calibration construction yield"
@@ -23,13 +26,20 @@
   "frozen_decision_rule": {
     "statistic": "bottleneck_frame_count_over_the_existing_17888_train_and_calibration_frames",
     "thresholds": [
-      {"bottleneck_frames_at_least": 1000,
-       "decision": "keep_512_train_64_calibration_64_audit",
-       "d219_e07_unchanged": true},
-      {"bottleneck_frames_at_least": 300, "bottleneck_frames_below": 1000,
-       "decision": "expand_to_2048_train_128_calibration_128_audit"},
-      {"bottleneck_frames_below": 300,
-       "decision": "expand_to_4096_train_256_calibration_256_audit"}
+      {
+        "bottleneck_frames_at_least": 1000,
+        "decision": "keep_512_train_64_calibration_64_audit",
+        "d219_e07_unchanged": true
+      },
+      {
+        "bottleneck_frames_at_least": 300,
+        "bottleneck_frames_below": 1000,
+        "decision": "expand_to_2048_train_128_calibration_128_audit"
+      },
+      {
+        "bottleneck_frames_below": 300,
+        "decision": "expand_to_4096_train_256_calibration_256_audit"
+      }
     ],
     "full_house_expansion_permitted": false,
     "full_house_refusal_reason": "about 20.6 GiB of RGB-D plus features against 25 GiB free on the shared 50 GiB data disk, while the P-02 formal paper raw still has to fit on the same disk; the front-end is explicitly not a paper contribution and may not consume the data budget of the experiment it serves",
@@ -69,13 +79,84 @@
     "audit participates in no selection and is read once",
     "P08 keeps 0.70, 0.70, 0.85 and 0.35 and may not be retuned"
   ],
-  "measurement": null,
-  "resulting_decision": null,
+  "measurement": {
+    "read_at_commit_after": "f9b3b9c",
+    "source_receipts": 559,
+    "successful_houses": {
+      "train": 498,
+      "calibration": 61
+    },
+    "frames": 17888,
+    "structural_label_frames": {
+      "basin": 8864,
+      "bottleneck": 856,
+      "unknown": 8168
+    },
+    "structural_label_percent": {
+      "basin": 49.553,
+      "bottleneck": 4.785,
+      "unknown": 45.662
+    },
+    "bottleneck_frames_by_split": {
+      "train": 756,
+      "calibration": 100
+    },
+    "houses_with_zero_bottleneck": 394,
+    "houses_contributing_any_bottleneck": 165,
+    "maximum_bottleneck_frames_in_one_house": 12,
+    "audit_split_read": false,
+    "model_output_read": false,
+    "new_simulation_run": false
+  },
+  "resulting_decision": {
+    "rule_branch_taken": "bottleneck_frames_at_least_300_and_below_1000",
+    "observed_bottleneck_frames": 856,
+    "decision": "expand_to_2048_train_128_calibration_128_audit",
+    "rule_was_frozen_before_the_measurement_was_read": true,
+    "thresholds_unchanged_after_reading": true,
+    "full_house_still_refused": true,
+    "projected": {
+      "total_houses": 2304,
+      "incremental_houses": 1664,
+      "incremental_generation_hours_at_8_workers": 1.2,
+      "incremental_storage_gib": 3.4,
+      "projected_free_disk_gib_after": 21.7,
+      "projected_bottleneck_frames_train": 3024,
+      "projected_bottleneck_frames_calibration": 200,
+      "projected_houses_contributing_bottleneck": 680
+    },
+    "primary_justification": "70.5 percent of houses contribute no bottleneck frame at all, so only 165 houses carry any bottleneck evidence; house-level coverage of the rare class that gates P08 at 0.70 is the risk this expansion buys down",
+    "existing_bytes_reused": true,
+    "implementation_requirement": "the expansion must verify that the already generated houses are exactly the leading entries of the frozen hash order in each split, so no existing RGB-D or feature byte is invalidated and no house is dropped or reordered"
+  },
   "authorization": {
     "structural_rgbd_expansion": false,
     "structural_training": false,
     "audit_open_or_generation": false,
     "production_reader": false,
     "route_or_raw_generation": false
+  },
+  "measured_throughput_and_storage": {
+    "source": "E-02 capacity receipt probe_results and E-03/E-05 directory sizes",
+    "probe_wall_seconds_per_house": {
+      "1_worker": 9.7,
+      "2_workers": 7.6,
+      "4_workers": 3.9,
+      "8_workers": 2.6
+    },
+    "selected_workers": 8,
+    "generation_seconds_per_house_at_8_workers": 2.6,
+    "corrects_earlier_estimate": "the pre-D-219 analysis guessed one to four days for full-house generation; the measured rate makes full-house generation about seven hours, so elapsed time was never the binding constraint",
+    "measured_directory_gib": {
+      "public_rgbd": 1.1,
+      "private": 0.008,
+      "features": 0.031,
+      "annotation_now_dead_weight": 1.1
+    },
+    "data_disk_gib": {
+      "total": 50,
+      "used": 26,
+      "free": 25
+    }
   }
 }
