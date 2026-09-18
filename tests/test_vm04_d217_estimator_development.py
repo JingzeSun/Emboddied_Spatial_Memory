@@ -262,13 +262,19 @@ class D217EstimatorDevelopmentTests(unittest.TestCase):
             self.assertFalse(reused["success"])
             self.assertTrue(reused["reused"])
 
-    def test_stage_refuses_before_reading_external_inputs(self):
+    def test_stage_respects_activation_before_reading_external_inputs(self):
         with tempfile.TemporaryDirectory() as directory:
             missing = Path(directory) / "missing.json"
-            with self.assertRaisesRegex(RuntimeError, "closed pending review"):
-                stage.seal_plan(
-                    source_inventory_path=missing,
-                    output_root=Path(directory) / "output")
+            if self.d217["status"] == self.d217["activation_policy"][
+                    "active_status"]:
+                expected_error = FileNotFoundError
+            else:
+                expected_error = RuntimeError
+            with self.assertRaises(expected_error) as raised:
+                stage.seal_plan(source_inventory_path=missing,
+                                output_root=Path(directory) / "output")
+            if expected_error is RuntimeError:
+                self.assertIn("closed pending review", str(raised.exception))
 
 
 if __name__ == "__main__":
