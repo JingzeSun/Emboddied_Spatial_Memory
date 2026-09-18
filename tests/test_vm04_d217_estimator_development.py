@@ -93,11 +93,25 @@ class D217EstimatorDevelopmentTests(unittest.TestCase):
         }
 
     def test_review_candidate_closes_execution_and_later_science(self):
-        self.assertFalse(any(self.d217["authorization"].values()))
-        self.assertIsNone(self.d217["expected_reviewed_implementation_commit"])
+        active_status = self.d217["activation_policy"]["active_status"]
+        if self.d217["status"] == active_status:
+            self.assertEqual(
+                {"development_plan_sealing", "capacity_probe",
+                 "train_rgbd_generation", "calibration_rgbd_generation"},
+                {name for name, enabled in self.d217["authorization"].items()
+                 if enabled},
+            )
+            self.assertRegex(
+                self.d217["expected_reviewed_implementation_commit"],
+                r"^[0-9a-f]{40}$",
+            )
+        else:
+            self.assertFalse(any(self.d217["authorization"].values()))
+            self.assertIsNone(
+                self.d217["expected_reviewed_implementation_commit"])
         changed = deepcopy(self.d217)
-        changed["authorization"]["train_rgbd_generation"] = True
-        with self.assertRaisesRegex(D217Error, "execution closed"):
+        changed["authorization"]["audit_open_or_generation"] = True
+        with self.assertRaises(D217Error):
             validate_d217_contract(changed)
         changed = deepcopy(self.d217)
         changed["activation_policy"]["active_true_authorizations"].append(
