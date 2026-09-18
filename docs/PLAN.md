@@ -16,28 +16,29 @@ VM-02 论文机制适配器与朴素基线
 VM-03 VSMT 候选、executor 与 teacher 边界
   ↓
 VM-04 新数据和共享前端
-  ├─ VM-04.E  E-01 → E-02 → E-03 ─┬→ E-04 ─┐
-  │                                └→ E-05 ─┴→ E-06 → E-07 → E-08
+  ├─ VM-04.E  E-01 → E-02 → E-03 → E-05 → E-06 → E-08
   └─ VM-04.F  F-01 → F-02 → F-03 → F-04 → F-05
   ↓
 VM-05 开发比较、正式数据、训练与 validation
   ├─ VM-05.M  M-01 → M-02 → M-03
   └─ VM-05.P  P-01 → P-02 → P-03 → P-04
   ↓
-VM-06 独立 confirmation 与论文证据
+VM-06 独立 test 与论文证据
   └─ P-05 → P-06
 ```
 
-当前执行点：VM-04.E 的 E-01～E-03 已在服务器完成；576 个固定 house 中 559 个成功、17 个失败且未替换，共有 17,888 帧公开 RGB-D。D-218 以激活提交 `94904c92d1706dfec6fe1455afe87ed1c79afa84` 只开放 E-04 标注包导出/提交导入和 E-05 特征物化。E-04 已导出覆盖全部 17,888 帧的 A/B 双盲离线任务包，人工判断仍为 0；E-05 已用 8 个 CPU/I/O worker 和一个冻结 DINO GPU 进程完成 559/559 个 house、17,888 帧的 396 维特征，失败为 0。当前应由两名不同人员分别完成 E-04；64-house audit、Estimator训练、full-house扩展、production reader、P04/P08、route/raw和private evaluation继续关闭。
+当前执行点：VM-04.E 的 E-01～E-03、E-05 已在服务器完成；576 个固定 house 中 559 个成功、17 个失败且未替换，共有 17,888 帧公开 RGB-D 和 559/559 个 house 的 396 维特征，失败为 0。D-219 已删除 semantic 头并**取消 E-04 全部人工标注**（已导出的约 1.1 GiB 任务包保留为历史产物，不下载、不标注、不进训练），E-07 已裁决为冻结 512/64/64、不做 full-house 扩展。D-220 已取消每步的双提交激活闸门、把 confirmation 降为普通独立 test、把必做消融收窄为 VSMT-Typed/Flat8/NoVersion 加 NECS、把两房 P0 降为 P01/P04/P08 工程 smoke。下一步是按 D-219 实现 structural 单头（改 d214、新训练模块与 stage、测试），再跑 E-06 与 E-08。audit、Estimator 训练、production reader、P04/P08、route/raw 和 private evaluation 继续关闭。
 
 ## 二、状态和执行规则
 
 | 状态 | 含义 |
 |---|---|
 | 已完成 | 代码和必要测试已经受审，或已有可复用的真实证据 |
-| 已实现待激活 | 代码已提交并通过测试，但真实服务器执行位仍关闭 |
+| 已实现待授权 | 代码已提交并通过测试，但步骤合同中的真实执行授权位仍为 false |
 | 未开始 | 依赖未满足，尚不能产生正式产物 |
 | 封存 | 已确定但当前阶段禁止打开或使用 |
+
+自 D-220 起，真实运行的授权由步骤合同里的布尔位表达并由用户在运行前审，不再要求“已审实现提交＋只改一个文件的激活提交＋父提交精确匹配”这套三重门；真实运行仍要求 clean checkout，并逐次记录 git commit、合同摘要、输入摘要、产物摘要、worker 数与退出码、资源用量和全部失败。
 
 表格中的“动作”是必须完整执行的规范，不是可以挑着做的菜单。不能运行成功的 house、路线或槽位必须留下失败 receipt，不得省略、替换或补样。测试夹具只证明代码行为；真实步骤只有服务器产物、摘要和退出回执齐全才算完成。
 
@@ -76,7 +77,7 @@ VM-06 独立 confirmation 与论文证据
 | 数据 | 用途 | 当前规模 | 不能支持的结论 |
 |---|---|---:|---|
 | Estimator RGB-D | 训练、校准和一次性审计共享前端的 semantic/structural estimator | 开发口径 512/64/64 house × 32 帧，共 20,480 帧 | 不能作为 P01～P08 路线 raw，也不能比较五种记忆方法 |
-| 两房 P0 raw | 检查 P01～P08 路线、三面文件、共享 cache 和五方法接线 | 两间固定开发 house、12 个槽 | 不能作为论文独立 validation 或 confirmation |
+| 两房 P0 raw | 检查 P01/P04/P08 路线、三面文件、共享 cache 和五方法接线 | 两间固定开发 house、三条代表性路线 | 不能作为论文独立 validation 或 test |
 | 正式论文 raw | 训练、选择和独立确认 VSMT 与对照 | VM-05.P 的 P-01 根据构造成品率和功效冻结 | 不能用当前两房数据代替 |
 
 ### VM-04.E：共享 Estimator 数据、训练和审计
@@ -94,6 +95,8 @@ VM-06 独立 confirmation 与论文证据
 | 继续门 | 0 个观察被打开；公共文件没有 confirmation ID；所有摘要可重算 |
 
 512/64/64 分别是 512 个训练 house、64 个校准 house 和 64 个最终 audit house，不是帧数。每个 house 后续固定取 32 帧。
+
+本节保留 E-01 实际产出时的字段名。D-220 把 `confirmation` 这一角色改称 `test`：已封存的 64-house 候选池和承诺摘要照原样保留为历史产物，此后直接当作 test manifest 使用，不再执行隐藏 ID 与 reveal 仪式，但 test 只跑一次、且不得用于选参这两条不变。
 
 #### E-02 服务器容量探测
 
@@ -122,63 +125,61 @@ E-02 不是随便跑一个 smoke。它决定 E-03 实际并发数，并把 probe
 
 E-03 会完整执行 576 个固定 house，不会为了省工程量只跑一部分。audit 的 64 个 house 此时故意不生成，这是防止开发期看到最终评估集，不是漏做；它们在 E-08 一次性打开。
 
-#### E-04 制作语义标注包并完成人工双盲标注
+#### E-04 人工语义标注（D-219 已取消）
 
 | 项 | 内容 |
 |---|---|
-| 状态 | 标注包导出已完成；17,888帧A/B双盲任务包已封存，人工标签和仲裁仍为0 |
-| 运行位置 | 标注包由服务器从 E-03 public RGB-D 导出；人工在本地离线浏览器界面完成 |
-| 输入 | E-03 成功的 train/calibration 公共帧；标注者不得看到 house、scenario、route、世界 pose 或私有结构标签 |
-| 完整动作 | 两名不同标注者分别对每帧选择 `room`、`corridor` 或 `unknown`；两人不看彼此结果；分歧进入独立仲裁；每次判断绑定 annotator、observation、label 和任务包摘要 |
-| 输出 | 盲化任务包、annotator-A JSONL、annotator-B JSONL、分歧表、仲裁 JSONL 和逐观察 semantic receipt |
-| 数量 | 按 E-03 实际 17,888 帧，需要 35,776 次独立初始判断；失败 house 不产生伪造帧，也不补 house |
-| 继续门 | 所有成功帧都有两个独立判断和最终标签；未解决分歧只能标为 `unknown`；不能覆盖旧判断 |
+| 状态 | 已取消；不再是任何下游步骤的依赖 |
+| 取消理由 | `room/corridor/unknown` 不定义地点身份，P08 资格只读 basin/bottleneck 概率与多视角 fragment，全库没有任何方法消费者读取 semantic 概率 |
+| 历史产物 | 覆盖 17,888 帧的 A/B 双盲任务包（约 1.1 GiB）保留在服务器 `<E_STAGE_ROOT>/annotation`，不下载、不标注、不进训练 |
+| 省下的成本 | 本阶段 35,776 次人工初始判断，加 E-08 原定的 4,096 次，全部不再需要 |
+| 不允许 | 不得用恒定 `unknown` 冒充模型输出；不得在看到 E-08 或 test 结果后把 semantic 头补回来 |
 
-E-04 确实需要人工。离线页面的实现入口为 `ops/vsmt/vm04_d218_estimator_annotation_stage.py`，正式任务包已位于服务器 `<E_STAGE_ROOT>/annotation/packages/annotator_a/index.html` 和 `annotator_b/index.html`。两份页面只显示无损RGB、固定色标depth和opaque observation ID，支持键盘标注、本地续存和JSON下载。你可以担任一名标注者，但第二名必须是另一位独立人员；同一个人标两遍会被收据拒绝。
+论文相应收回“识别真实房间与走廊”的口径，只主张公开 RGB-D 推断的 basin→bottleneck→basin 及其中的匿名多视角 fragment。理由与证据见 [DECISIONS.md](DECISIONS.md) 的 D-219。
 
 #### E-05 冻结公开特征算法并提取特征
 
 | 项 | 内容 |
 |---|---|
-| 状态 | 已完成；559/559个成功house均生成32×396维feature shard，失败0 |
+| 状态 | 已完成；559/559 个成功 house 均生成 32×396 维 feature shard，失败 0 |
 | 输入 | E-03 固定 RGB-D、冻结 DINOv2 资产和 12 维公开几何定义 |
 | 完整动作 | 每帧提取 384 维 DINO 描述和 12 维 depth/free-space/visibility/opening/clearance/surface 几何；不得读 E-03 private 文件 |
 | 输出 | 396 维 feature shard、逐帧输入摘要、模型和算法摘要 |
 | 继续门 | 同一 RGB-D 重复提取字节一致；不接收 scenario ID、instance/object、teacher 或 future |
 
-白话：E-05 把固定图像变成 Estimator 能训练的数字。例如走廊开口宽度只能由深度计算，不能查模拟器房间类型。它不直接决定这是房间还是走廊。
+白话：E-05 把固定图像变成 Estimator 能训练的数字。例如走廊开口宽度只能由深度计算，不能查模拟器房间类型。特征本身不带标签，因此 D-219 删除 semantic 头不改变其中任何一个字节，不需要重跑。
 
-#### E-06 训练并封存 Estimator
+#### E-06 训练并封存 structural Estimator
 
 | 项 | 内容 |
 |---|---|
-| 状态 | 训练/封存核心已实现；等待 E-04、E-05 真实输入 |
-| 输入 | E-04 semantic receipt、E-05 396 维特征、E-01 split |
-| 完整动作 | 只用 train 计算 normalization 和拟合两个 3×396 线性头；calibration 只选 checkpoint 与 temperature；保存逐 epoch 历史和失败 |
-| 输出 | normalization、semantic/structural weights、bias、temperature、训练 receipt 和互绑摘要 |
+| 状态 | 待按 D-219 实现 structural 单头；E-05 输入已就绪 |
+| 输入 | E-05 的 17,888×396 特征、E-01 split、由私有可达图按冻结规则自动生成的 basin/bottleneck/unknown 标签 |
+| 完整动作 | 只用 train 计算 normalization 和拟合一个 3×396 线性头；calibration 只选 checkpoint 与单个 temperature；保存逐 epoch 历史和失败 |
+| 输出 | normalization、structural weights、bias、temperature、训练 receipt 和互绑摘要 |
 | 继续门 | audit 未读取；真实权重和训练 receipt 经审；production reader 仍关闭 |
 
-#### E-07 一次性选择开发规模或全量扩展
+标签边界：私有可达图只在 train/calibration/audit 写标签；推理时结构头仍然只凭公开 RGB-D 与内参预测，不查 grid 真值。除 loss、early stopping 指标、checkpoint 选择和 temperature 由两头改为单头外，AdamW、seed、epoch、batch、学习率、权重衰减、零初始化和类权重截断全部沿用 D-215/D-216 原值，不因结果调整。
+
+#### E-07 开发规模（D-219 已裁决）
 
 | 项 | 内容 |
 |---|---|
-| 状态 | 未开始 |
-| 输入 | E-03～E-06 的 train/calibration 成品率、标注成本、校准诊断和工程失败；禁止读取 audit |
-| 选择 A | 冻结 512 版，最快进入 E-08 和两房 raw，统计覆盖较小 |
-| 选择 B | 在打开 audit 前扩展全部允许 house；所有 RGB-D、标注、特征、normalization、weights、temperature 从零重做，512 cache 失效 |
-| 继续门 | 只能选择一次，并在 audit、production reader、P04/P08 资格和任何正式 raw 之前登记 |
+| 状态 | 已裁决；不再是未决门 |
+| 裁决 | 冻结 512 train / 64 calibration / 64 audit，不做 full-house 扩展 |
+| 理由 | 一个 396→3 线性头不需要超过 512 间开发 house；扩展会使现有全部 RGB-D、特征和 receipt 失效 |
 
 #### E-08 一次性 audit
 
 | 项 | 内容 |
 |---|---|
 | 状态 | 封存，未打开 |
-| 输入 | E-07 后完全冻结的最终 Estimator、E-01 私有 64-house audit seal |
-| 完整动作 | 首次生成 2,048 个 audit RGB-D 观察；使用与 E-04 相同的双人盲标和仲裁规则产生 4,096 次初始判断；只运行预登记指标 |
-| 输出 | NLL、accuracy、calibration、类别和 house 级区间、完整失败与资源 receipt |
+| 输入 | 完全冻结的最终 structural Estimator、E-01 私有 64-house audit seal |
+| 完整动作 | 首次生成 2,048 个 audit RGB-D 观察；审计标签由同一冻结规则从私有可达图自动生成，**零人工判断**；模型输入仍只有公开 RGB-D 与内参；只运行预登记指标 |
+| 输出 | structural NLL、accuracy、calibration、类别和 house 级区间、完整失败与资源 receipt |
 | 继续门 | 结果只报告；不得因为 audit 失败而增加 house、改模型、改阈值或重新训练 |
 
-audit 不是 E-04。E-04 是 train/calibration 的人工标签，可用于训练和发现问题；E-08 是模型冻结后的独立最终前端评估，只能看一次，不能用于修模型。
+E-08 之后、冻结正式数据预算之前，先在两间开发 house 上做一次 P08 dry-run，把结构头校准不足导致的路线不合格风险提前暴露。不合格时改路线/场景设计或如实记 construction failure，不得调整 0.70/0.70/0.85/0.35 这四个数。
 
 ### VM-04.F：生产共享前端与两房 P0 raw
 
@@ -192,35 +193,37 @@ audit 不是 E-04。E-04 是 train/calibration 的人工标签，可用于训练
 | 输出 | 五种方法读取的完全相同 cache bytes 和逐帧 receipt |
 | 继续门 | reader 签名没有 scenario/private/teacher/future；真实小样本逐字段审查通过 |
 
-#### F-02 P01～P08 路线调查与资格
+#### F-02 P01/P04/P08 路线构造与资格（D-220 已降为工程 smoke）
 
 | 项 | 内容 |
 |---|---|
 | 状态 | 未开始 |
 | 输入 | F-01 reader、两间固定 P0 house、公开 reachable grid |
-| 完整动作 | 构造并固定 12 条路线；P04 使用冻结 DINO top-1；P08 要求 basin→bottleneck→basin 和两端稳定多视角 fragment |
-| 输出 | 12-route bundle、共享 cache 证据和逐路线成功/失败 |
+| 完整动作 | 只构造 P01、P04、P08 三条代表性路线；P04 使用冻结 DINO top-1；P08 要求 basin→bottleneck→basin 和两端稳定多视角 fragment |
+| 输出 | 三条 route bundle、共享 cache 证据和逐路线成功/失败 |
 | 继续门 | 不换 house、起点、路线或场景；不根据结果调 0.70/0.85/0.35；不合格照实保留 |
 
-#### F-03 路线封存与 slot-0 smoke
+其余 P02/P03/P05/P06/P07 路线由单测或后续正式数据运行覆盖，不在两房阶段做逐路线封存仪式。这三条各自负责一件事：P01 检查采集、三面 raw 与共享 cache，P04 检查冻结 DINO place 描述子通路，P08 检查结构头加多视角 fragment 的完整链。
+
+#### F-03 路线封存与单槽 smoke
 
 | 项 | 内容 |
 |---|---|
 | 状态 | 未开始 |
 | 输入 | F-02 bundle、三面 raw writer |
-| 完整动作 | 先封存全部 12 路线，再只运行 slot-0/P01 |
+| 完整动作 | 先封存三条路线，再只运行 P01 单槽 |
 | 输出 | public RGB-D/内参、provenance 动作 journal、private pose/mask/entity state 和摘要 |
 | 继续门 | 单槽文件完整、动作失败前缀保留、公私绑定可复验 |
 
-#### F-04 两房 12 槽 raw
+#### F-04 两房三路线 raw
 
 | 项 | 内容 |
 |---|---|
 | 状态 | 未开始 |
 | 输入 | F-03 成功、服务器容量探测和运行授权 |
-| 完整动作 | 对固定 12 槽完整生成；每槽接 F-01 相同 reader；失败不补 |
-| 输出 | 12 个成功或失败终态、共享 cache、三面文件和批次 receipt |
-| 继续门 | 所有固定槽都有终态；private evaluator 仍独立开闸 |
+| 完整动作 | 对 P01/P04/P08 完整生成；每槽接 F-01 相同 reader；失败不补 |
+| 输出 | 每槽成功或失败终态、共享 cache、三面文件和批次 receipt |
+| 继续门 | 所有固定槽都有终态；private evaluator 仍独立开闸；两房结果不得进入任何论文表，也不得据以选择 headline 赢家 |
 
 #### F-05 旧网格产物退役
 
@@ -241,7 +244,7 @@ audit 不是 E-04。E-04 是 train/calibration 的人工标签，可用于训练
 |---|---|
 | 状态 | 未开始 |
 | 输入 | F-04 raw/cache、统一类型门 |
-| 完整动作 | 构造 place/entity/surface/fragment 节点、五类边、候选前类型门和五种消融 view |
+| 完整动作 | 构造 place/entity/surface/fragment 节点、五类边、候选前类型门和 D-220 保留的三种消融 view（Typed/Flat8/NoVersion）|
 | 输出 | 五方法共同 AdapterInput、初始图、逐时 packet 和复杂度基线 |
 | 继续门 | 非网格 place 的 BIND/BIRTH/MERGE 全部生产接通；旧 coordinate scaffold 不进入主表 |
 
@@ -261,7 +264,7 @@ audit 不是 E-04。E-04 是 train/calibration 的人工标签，可用于训练
 |---|---|
 | 状态 | 未开始 |
 | 输入 | VSMT、TAF、ELU、WFR、LOW 的同 cache、同公开输入和冻结开发预算 |
-| 完整动作 | 运行两房 12 槽端到端训练/推理和逐例失败分析 |
+| 完整动作 | 运行两房 P01/P04/P08 端到端训练/推理和逐例失败分析 |
 | 输出 | 第一张五方法工程表、图膨胀、runtime、memory 和接口问题清单 |
 | 继续门 | 只用于发现工程与候选问题；不得据两间 house 选择论文 headline 赢家 |
 
@@ -273,9 +276,11 @@ audit 不是 E-04。E-04 是 train/calibration 的人工标签，可用于训练
 |---|---|
 | 状态 | 未开始 |
 | 输入 | F/M 阶段构造成品率、九程序覆盖、所需最小效果和 house-level 方差 |
-| 完整动作 | 事前冻结正式 train/validation/confirmation house-family 数、episode 数、seed、主指标、bootstrap 和停止规则 |
+| 完整动作 | 事前冻结正式 train/validation/test 的 house-family 数、episode 数、seed、主指标、bootstrap 和停止规则 |
 | 输出 | 三者互斥 manifest、总帧预算和功效说明 |
-| 继续门 | confirmation ID 仍不可见；不能照搬旧数据规模 |
+| 继续门 | 三个 split 按 house 互斥；主指标与停止规则在跑 test 之前冻结；不能照搬旧数据规模 |
+
+D-220 起 test manifest 对作者可见，不再做隐藏 ID、承诺摘要和 reveal 接口；保留的实质是 test 只跑一次、且不得用于选择配置、阈值或 checkpoint。
 
 #### P-02 生成正式 raw 和共享 cache
 
@@ -283,7 +288,7 @@ audit 不是 E-04。E-04 是 train/calibration 的人工标签，可用于训练
 |---|---|
 | 状态 | 未开始 |
 | 输入 | P-01 manifest、F-04/M-02 验收链 |
-| 完整动作 | 按服务器实测最大安全 worker 生成正式 train 和 validation；confirmation 只保存承诺，不打开 |
+| 完整动作 | 按服务器实测最大安全 worker 生成正式 train 和 validation；test 数据生成后不读取 |
 | 输出 | 多 house 正式 raw、共享 cache、公私文件、失败和资源 receipt |
 | 继续门 | 固定样本全部有终态；任何失败不替换 |
 
@@ -293,9 +298,9 @@ audit 不是 E-04。E-04 是 train/calibration 的人工标签，可用于训练
 |---|---|
 | 状态 | 未开始 |
 | 输入 | P-02 train、共同前端/候选/teacher、各方法冻结预算 |
-| 完整动作 | 训练学习方法；规则方法只在预登记有限配置中选择；VSMT 消融使用同预算 |
+| 完整动作 | 训练学习方法（VSMT 与 NECS 两条学习路径）；规则方法只在预登记有限配置中选择；VSMT 消融使用同预算 |
 | 输出 | checkpoint、配置、训练曲线、资源和完整失败 |
-| 继续门 | 不读取 confirmation；不按单一场景临时增配 |
+| 继续门 | 不读取 test；不按单一场景临时增配 |
 
 #### P-04 validation 后冻结
 
@@ -304,20 +309,20 @@ audit 不是 E-04。E-04 是 train/calibration 的人工标签，可用于训练
 | 状态 | 未开始 |
 | 输入 | P-03 全部候选和只读 validation |
 | 完整动作 | 选择最终 method config、threshold 和 checkpoint |
-| 输出 | 最终冻结 receipt 和 confirmation 可执行代码摘要 |
+| 输出 | 最终冻结 receipt 和 test 可执行代码摘要 |
 | 继续门 | 此后不得改算法、数据、阈值、指标或预算 |
 
-## 六、VM-06：独立 confirmation 与论文证据
+## 六、VM-06：独立 test 与论文证据
 
-### P-05 confirmation 一次性运行
+### P-05 test 一次性运行
 
 | 项 | 内容 |
 |---|---|
 | 状态 | 封存，未打开 |
-| 输入 | P-04 冻结字节和 P-01 私有 confirmation manifest |
-| 完整动作 | 一次性生成/读取 confirmation，运行五方法、配对统计和 house-level bootstrap |
+| 输入 | P-04 冻结字节和 P-01 的 test manifest |
+| 完整动作 | 一次性读取 test，运行五方法、配对统计和 house-level bootstrap |
 | 输出 | 主指标、五个 headline 场景 macro、candidate/teacher/amortization、复杂度和逐例失败 |
-| 继续门 | 失败照实报告，不换样本、不改方法、不改指标 |
+| 继续门 | 只跑一次；失败照实报告，不换样本、不改方法、不改指标；被 D-220 移出必做集的臂不得在此之后补回来 |
 
 ### P-06 论文表和主张审计
 
@@ -331,16 +336,22 @@ audit 不是 E-04。E-04 是 train/calibration 的人工标签，可用于训练
 
 ## 七、时间与最近动作
 
+下表按 D-219/D-220 精简后的路径重估。真正的不确定项已不再是人工标注，而是 P08 成品率和五个方法的接线。
+
 | 里程碑 | 从当前起的现实估计 | 主要不确定项 |
 |---|---:|---|
-| E-03 train/calibration RGB-D 完成 | 已完成 | 559/576 house 成功，17 个失败按合同保留 |
-| E-08 最终 Estimator audit 完成 | 约 7～14 个工作日 | 35,776 次 E-04 人工判断、E-05真实特征运行 |
-| F-04 两房 P0 raw 完成 | 约 10～18 个工作日 | 标注进度、production reader、P04/P08 资格 |
-| M-03 第一份五方法开发表 | 约 4～7 周 | 非网格 place 接线、teacher/evaluator 和调试 |
-| P-05 第一份论文级 confirmation | 约 12～20 周 | P-01 正式规模、构造成品率、五方法训练和统计功效 |
+| E-03 RGB-D、E-05 特征完成 | 已完成 | 559/576 house 成功，17 个失败按合同保留 |
+| D-219 structural 单头重构与测试 | 约 0.5～1.5 天 | d214 删字段的连带测试面 |
+| E-06 训练与 calibration | 约 0.5～1 天 | 计算只有几分钟，成本在核验 |
+| E-08 自动结构审计 | 约 0.5～1.5 天 | 64 house × 32 帧的生成时间 |
+| F-04 production reader 加 P01/P04/P08 smoke | 约 3～7 天 | reader 接线、P08 资格 |
+| M-03 第一份五方法开发表 | 约 1～2 周 | 非网格 place 接线、teacher/evaluator 和调试 |
+| P-05 第一份论文级 test | 约 5～8 周 | P-01 正式规模、构造成品率、五方法训练和统计功效 |
+
+6～7 周可以作为积极目标，但不承诺：P08 若在 dry-run 不合格，需要改路线或场景设计，那会另外占用时间。
 
 最近动作按顺序为：
 
-1. 把 annotator-A 和 annotator-B 离线页面分别交给两名不同标注者；两人独立完成全部17,888帧并分别导出JSON。
-2. 使用已激活的submission import入口核验两份完整提交；一致项直接定稿，分歧项交给不同第三人仲裁，未解决项固定为unknown。
-3. 审查E-04语义receipt和已完成的E-05真实特征receipt，再单独决定是否开放E-06训练；audit和全部下游路线继续关闭。
+1. 按 D-219 实现 structural 单头：就地改 d214 删掉三个死的 semantic 字段，新增 d219 训练模块与 stage 入口，补相应测试；d215/d216/d217/d218 字节一律不动。
+2. 用现有 E-05 特征和私有可达图自动标签跑 E-06，审训练 receipt 与权重，再单独决定是否开放 E-08。
+3. 跑 E-08 零人工结构审计，随后在两间开发 house 做 P08 dry-run；只有这两项都有回执，才进入 P-01 的正式数据预算冻结。
