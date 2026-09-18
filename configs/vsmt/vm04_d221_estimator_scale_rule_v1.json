@@ -1,0 +1,81 @@
+{
+  "schema_version": "vsmt-vm04-d221-estimator-scale-rule-v1",
+  "decision_id": "D-221",
+  "status": "rule_frozen_measurement_pending",
+  "supersedes": {
+    "d219_clause": "e07_scale_decision",
+    "reason_for_revisiting": "premise_changed_not_result_driven",
+    "premise_that_changed": "D-219 removed the semantic head, so the 639872 human judgements that dominated the original 512/64/64 cost argument became zero; the scale question is now a compute and disk question",
+    "no_model_result_has_been_seen": true,
+    "e06_not_yet_trained": true,
+    "audit_split_never_generated": true
+  },
+  "why_this_is_the_last_clean_moment": "once E-06 reports a calibration NLL, changing the sample size becomes a results-driven change and is forbidden by the D-220 fairness floor",
+  "measurement_to_be_read": {
+    "source": "the 559 E-03 private house receipts already on the server",
+    "field": "structural_label_counts",
+    "new_simulation_required": false,
+    "splits_read": ["train", "calibration"],
+    "audit_split_read": false,
+    "model_output_read": false,
+    "registered_as_e07_input": "train and calibration construction yield"
+  },
+  "frozen_decision_rule": {
+    "statistic": "bottleneck_frame_count_over_the_existing_17888_train_and_calibration_frames",
+    "thresholds": [
+      {"bottleneck_frames_at_least": 1000,
+       "decision": "keep_512_train_64_calibration_64_audit",
+       "d219_e07_unchanged": true},
+      {"bottleneck_frames_at_least": 300, "bottleneck_frames_below": 1000,
+       "decision": "expand_to_2048_train_128_calibration_128_audit"},
+      {"bottleneck_frames_below": 300,
+       "decision": "expand_to_4096_train_256_calibration_256_audit"}
+    ],
+    "full_house_expansion_permitted": false,
+    "full_house_refusal_reason": "about 20.6 GiB of RGB-D plus features against 25 GiB free on the shared 50 GiB data disk, while the P-02 formal paper raw still has to fit on the same disk; the front-end is explicitly not a paper contribution and may not consume the data budget of the experiment it serves",
+    "rule_frozen_before_reading_the_measurement": true,
+    "thresholds_may_not_be_adjusted_after_reading": true
+  },
+  "expansion_is_additive_not_a_rebuild": {
+    "correction_to_plan_e07_text": "the PLAN E-07 table said an expansion forces every RGB-D, feature, normalization, weight and temperature to be redone from zero; that is too conservative",
+    "actual_cost": "splits are prefix-truncated in frozen hash order, so the existing 559 houses are exactly the leading entries and their RGB-D and 396-dimensional features are reused byte-for-byte; E-05 already reuses shards by digest",
+    "what_must_be_refit": [
+      "train_only_per_feature_mean_and_std",
+      "structural_head_weights_and_bias",
+      "temperature"
+    ],
+    "refit_cost": "minutes of CPU on the existing features"
+  },
+  "storage_model_from_measured_e03_and_e05": {
+    "rgbd_mib_per_house": 2.0,
+    "features_mib_per_house": 0.055,
+    "source": "E-03 stage directory about 1.1 GiB and E-05 features about 31 MiB over 559 successful houses",
+    "projected_total_gib": {
+      "640_houses_current": 1.3,
+      "2304_houses": 4.7,
+      "4608_houses": 9.5,
+      "9998_houses_full": 20.6
+    },
+    "server_free_gib_at_decision_time": 25
+  },
+  "unchanged_boundaries": [
+    "house level split before any image or label is seen",
+    "no house crosses train, calibration or audit",
+    "P0 and VM04 validation and test houses stay excluded",
+    "sampled houses are chosen by the frozen hash prefix, never by class, route yield or model effect",
+    "eight positions by four yaws per selected house",
+    "failed houses are retained without replacement",
+    "calibration selects only the checkpoint and the temperature",
+    "audit participates in no selection and is read once",
+    "P08 keeps 0.70, 0.70, 0.85 and 0.35 and may not be retuned"
+  ],
+  "measurement": null,
+  "resulting_decision": null,
+  "authorization": {
+    "structural_rgbd_expansion": false,
+    "structural_training": false,
+    "audit_open_or_generation": false,
+    "production_reader": false,
+    "route_or_raw_generation": false
+  }
+}
