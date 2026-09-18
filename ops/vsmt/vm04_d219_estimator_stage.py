@@ -220,10 +220,20 @@ def build_bundle(*, public_root: Path, feature_root: Path,
 
 
 def _load_split_arrays(bundle_root: Path) -> dict[str, dict[str, Any]]:
+    """Load the bundle splits that exist.
+
+    E-06 runs before E-08, so ``audit.npz`` is legitimately absent: the audit
+    houses have never been generated.  Train and calibration are required; audit
+    is loaded only if a later step has already produced it.
+    """
+
     arrays: dict[str, dict[str, Any]] = {}
     for split in SPLITS:
         path = bundle_root / f"{split}.npz"
-        _require(path.is_file(), f"D-219 bundle is missing {split}.npz")
+        if not path.is_file():
+            _require(split == "audit",
+                     f"D-219 bundle is missing {split}.npz")
+            continue
         with np.load(path, allow_pickle=False) as loaded:
             _require(set(loaded.files) == set(NPZ_ARRAY_NAMES),
                      f"D-219 {split}.npz arrays differ from the exact schema")
