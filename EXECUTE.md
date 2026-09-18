@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| D-214～D-218共享RGB-D前端 | D-217 E-01～E-03 已在服务器完成：559/576 house成功，17,888帧公开RGB-D逐文件复验通过。D-218 E-04离线双盲标注器和E-05冻结396维特征提取器已形成关闭态实现候选；真实任务包、人工标签、特征、权重、audit和production reader仍为0。LOG-199～203。 |
+| D-214～D-218共享RGB-D前端 | D-217 E-01～E-03 已在服务器完成：559/576 house成功，17,888帧公开RGB-D逐文件复验通过。D-218 E-04已导出17,888帧A/B双盲任务包，人工标签仍为0；E-05已完成559/559 house的396维冻结特征，失败0。权重、audit和production reader仍为0。LOG-199～204。 |
 | D-213统一图/类型门 | 四节点/五关系统一图合同、seal前类型门、五种消融memory view、图复杂度派生、relation REACTIVATE及surface/fragment RETRACT已实现候选；数据接线现改为等待D-214冻结cache，不再以单槽raw后定义前端，全部运行位关闭；LOG-197/199。 |
 | D-212地点raw纠偏 | v2已补公开grid模板＋RGB-D route survey生产入口、P01–P08可复算收据、raw三面journal与两提交执行门；D-214已重新阻断activation，旧P04/P08工程描述不得获论文资格。真实survey/seal/smoke均为0；LOG-196/198/199。 |
 | VM-04观察适用性 | 原静态36槽不运行；D-182/183只用于精确schema/实现审查。D-199–202已形成L2公开proposal/visibility、program matcher/episode audit和terminal raw加载前plan seal，D-202已获认可。D-203候选禁止调用者手填version ID，从sealed public route、预登记selector和`terminal-1` causal memory确定派生九类online request refs；核心无episode/raw path参数，edge RETRACT仍阻断。selector spec的提前时间封存和D-202 receipt消费未实现，因此D-201 pending与family阻断未解除。正式SAM/assets/matcher/visibility数值、生产callback、父stage family聚合及pilot收据仍缺。全部运行位关闭，0新episode/materialization/训练/记忆正例。LOG-169–192。 |
@@ -2121,3 +2121,12 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 真实feature入口只接受冻结DINO commit的干净仓库与checkpoint SHA，一个GPU模型进程批量推理，每次只预取至多一个worker批次；至少两个worker并行public NPZ I/O和CPU几何，确定性按train→calibration→sample合并。每个既有shard恢复前重开NPZ、复算核心receipt和文件SHA；失败绑定原public receipt并固定不替换、无墙钟强杀。
 - 新D-218定向9/9，D-214～D-218联合39/39通过。第一次全库687项出现一个既有public-candidate测试的进程内污染：内建`any`被临时替成`set_iterator`；该单项立即独立通过，未改科学代码。修正D-217旧测试对activation child的错误假设并完成有界并发后，最终全新进程全库**687/687通过**，失败/错误/跳过均0；内嵌VSMT/executor/L1仍为179/42/31且两房汇总252通过。
 - 白话：输入是已经生成的公开RGB-D，输出以后可让两个人独立点击的盲化页面，以及不带标签的396维训练特征。例如服务器中断在第300个house，重启会先验前300个shard再从缺口继续。它不表示人已经标完、DINO已经跑过、Estimator有权重或P04/P08已经恢复资格。
+
+## LOG-204：D-218 E-04任务包导出与E-05特征物化完成（2026-09-18）
+
+- 用户批准`1c85f6db3d1b6234df8d4cb898ba4c61c1d262a0`作为D-218实现基线，并只授权annotation package export、annotation submission import和feature materialization。单文件激活提交为`94904c92d1706dfec6fe1455afe87ed1c79afa84`，父提交精确为已审实现；服务器checkout干净。audit、Estimator训练、full-house扩展、production reader、P04/P08、route/raw及private evaluation仍为false。
+- E-04从E-03 public root导出17,888个observation、35,776个共享无损RGB/depth媒体文件和A/B两套完整乱序离线页面；人工判断仍为0。导出回执SHA-256=`5ea9bf19f20bc5aa0745bdeb86639e7fe1926e445355d51c56f31c16ad4e2dc4`，A/B package摘要分别为`f72a45847afebb77679793b95cd4cbfd11f68f2ccc900cc97c4e6d998f70d7be8`和`6bc5075ec690e88491ec5ab9421e883112a1d45301c36b04c73e11d57e6ec0030`；回执明确`private_input_read=false`。
+- E-05复用冻结DINOv2源码commit=`7764ea0f912e53c92e82eb78a2a1631e92725fc8`和checkpoint SHA-256=`b938bf1bc15cd2ec0feacfe3a1bb553fe8ea9ca46a7e1d8d00217f29aef60cd9`。首次用模拟器Python启动时因该环境没有`torch`，在模型加载前退出1且产生0个feature文件；失败日志和退出码保留。随后只切换到服务器已有PyTorch 2.8.0+cu128环境，未下载或改权重，以一个GPU进程和8个CPU/I/O worker完成正式运行并退出0。
+- 正式E-05结果为559/559个house成功、失败0、共17,888帧。逐一重开559个NPZ，全部为`(32,396) float32`有限值，observation ID和public digest均为32项；559份shard receipt齐全。总回执SHA-256=`53d0b50a3c5bd70d019f163cadf128f0fe2bf74f1255631bc6745e82db70931d`且自哈希有效，记录requested/actual worker=`8/8`、private label/metadata read=false、audit opened=false、later stages run=false、wall-clock timeout=false。
+- 产物位于服务器`/root/autodl-tmp/vsmt_outputs/vsmt-vm04-estimator-development-0c4f9851006d/annotation`和同级`features`；annotation约1.1GiB，features约31MiB，完成后数据盘仍余约25GiB。17个E-03失败house未替换、未补样；E-05只处理559个已有公开house。
+- 白话：现在机器端需要的公开图片包和固定数字特征已经做好。下一步是两名不同人员各自给同一批17,888帧标room/corridor/unknown，再导入并处理分歧；当前没有训练Estimator，也没有查看最终audit，更没有恢复P04/P08或开始路线raw。

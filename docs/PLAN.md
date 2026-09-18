@@ -28,7 +28,7 @@ VM-06 独立 confirmation 与论文证据
   └─ P-05 → P-06
 ```
 
-当前执行点：VM-04.E 的 E-01～E-03 已在服务器完成。激活提交为 `0c4f9851006dbb996864c9af82d60ff4b28c09b2`；E-02 实测选择 8 worker；E-03 的 576 个固定 house 全部取得终态，559 个成功、17 个失败且未替换，共生成并逐文件复验 17,888 帧公开 RGB-D。E-04 离线双盲标注器和 E-05 冻结特征提取器已形成关闭态实现候选，尚未激活或读取服务器 RGB-D；64-house audit、Estimator训练、production reader、P04/P08和raw继续关闭。
+当前执行点：VM-04.E 的 E-01～E-03 已在服务器完成；576 个固定 house 中 559 个成功、17 个失败且未替换，共有 17,888 帧公开 RGB-D。D-218 以激活提交 `94904c92d1706dfec6fe1455afe87ed1c79afa84` 只开放 E-04 标注包导出/提交导入和 E-05 特征物化。E-04 已导出覆盖全部 17,888 帧的 A/B 双盲离线任务包，人工判断仍为 0；E-05 已用 8 个 CPU/I/O worker 和一个冻结 DINO GPU 进程完成 559/559 个 house、17,888 帧的 396 维特征，失败为 0。当前应由两名不同人员分别完成 E-04；64-house audit、Estimator训练、full-house扩展、production reader、P04/P08、route/raw和private evaluation继续关闭。
 
 ## 二、状态和执行规则
 
@@ -126,7 +126,7 @@ E-03 会完整执行 576 个固定 house，不会为了省工程量只跑一部�
 
 | 项 | 内容 |
 |---|---|
-| 状态 | 关闭态实现候选待审；真实任务包、人工标签和仲裁均为 0 |
+| 状态 | 标注包导出已完成；17,888帧A/B双盲任务包已封存，人工标签和仲裁仍为0 |
 | 运行位置 | 标注包由服务器从 E-03 public RGB-D 导出；人工在本地离线浏览器界面完成 |
 | 输入 | E-03 成功的 train/calibration 公共帧；标注者不得看到 house、scenario、route、世界 pose 或私有结构标签 |
 | 完整动作 | 两名不同标注者分别对每帧选择 `room`、`corridor` 或 `unknown`；两人不看彼此结果；分歧进入独立仲裁；每次判断绑定 annotator、observation、label 和任务包摘要 |
@@ -134,13 +134,13 @@ E-03 会完整执行 576 个固定 house，不会为了省工程量只跑一部�
 | 数量 | 按 E-03 实际 17,888 帧，需要 35,776 次独立初始判断；失败 house 不产生伪造帧，也不补 house |
 | 继续门 | 所有成功帧都有两个独立判断和最终标签；未解决分歧只能标为 `unknown`；不能覆盖旧判断 |
 
-E-04 确实需要人工。离线页面的实现入口为 `ops/vsmt/vm04_d218_estimator_annotation_stage.py`，但当前合同仍关闭，因此服务器上还没有可点击的正式任务包。激活后产物位于 `<E_STAGE_ROOT>/annotation/`：A/B两份页面只显示无损RGB、固定色标depth和opaque observation ID，支持键盘标注、本地续存和JSON下载。你可以担任一名标注者，但第二名必须是另一位独立人员；同一个人标两遍会被收据拒绝。
+E-04 确实需要人工。离线页面的实现入口为 `ops/vsmt/vm04_d218_estimator_annotation_stage.py`，正式任务包已位于服务器 `<E_STAGE_ROOT>/annotation/packages/annotator_a/index.html` 和 `annotator_b/index.html`。两份页面只显示无损RGB、固定色标depth和opaque observation ID，支持键盘标注、本地续存和JSON下载。你可以担任一名标注者，但第二名必须是另一位独立人员；同一个人标两遍会被收据拒绝。
 
 #### E-05 冻结公开特征算法并提取特征
 
 | 项 | 内容 |
 |---|---|
-| 状态 | 关闭态实现候选待审；真实 DINO 加载、feature shard 和收据均为 0 |
+| 状态 | 已完成；559/559个成功house均生成32×396维feature shard，失败0 |
 | 输入 | E-03 固定 RGB-D、冻结 DINOv2 资产和 12 维公开几何定义 |
 | 完整动作 | 每帧提取 384 维 DINO 描述和 12 维 depth/free-space/visibility/opening/clearance/surface 几何；不得读 E-03 private 文件 |
 | 输出 | 396 维 feature shard、逐帧输入摘要、模型和算法摘要 |
@@ -341,8 +341,6 @@ audit 不是 E-04。E-04 是 train/calibration 的人工标签，可用于训练
 
 最近动作按顺序为：
 
-1. 审查 E-04/E-05 的关闭态实现提交；确认盲化字段、12维公式、DINO资产、断点复验和activation allowlist。
-2. 审查通过后只改D-218合同做一次activation；仍不得打开audit、Estimator训练、production reader、P04/P08或raw。
-3. 服务器同步一次，导出两份独立人工标注任务包，并以一个GPU模型进程＋多worker公共NPZ读取提取17,888帧特征。
-4. 两名独立标注者完成E-04，分歧由第三人仲裁或落为unknown；E-05逐shard摘要复验通过。
-5. 另行审查E-04/E-05真实收据后，才可决定是否开放E-06训练；audit和下游路线仍关闭。
+1. 把 annotator-A 和 annotator-B 离线页面分别交给两名不同标注者；两人独立完成全部17,888帧并分别导出JSON。
+2. 使用已激活的submission import入口核验两份完整提交；一致项直接定稿，分歧项交给不同第三人仲裁，未解决项固定为unknown。
+3. 审查E-04语义receipt和已完成的E-05真实特征receipt，再单独决定是否开放E-06训练；audit和全部下游路线继续关闭。
