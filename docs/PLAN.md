@@ -28,7 +28,7 @@ VM-06 独立 confirmation 与论文证据
   └─ P-05 → P-06
 ```
 
-当前执行点：VM-04.E 的 E-01～E-03 已实现待激活，提交为 `33f3decf2a10ff435604d8892df09d76815ca7b2`；全库 678 项测试通过；服务器尚未运行，真实生成帧数为 0。E-04 以后均未获执行授权。
+当前执行点：VM-04.E 的 E-01～E-03 已在服务器完成。激活提交为 `0c4f9851006dbb996864c9af82d60ff4b28c09b2`；E-02 实测选择 8 worker；E-03 的 576 个固定 house 全部取得终态，559 个成功、17 个失败且未替换，共生成并逐文件复验 17,888 帧公开 RGB-D。64-house audit 仍封存，E-04 以后均未获执行授权。
 
 ## 二、状态和执行规则
 
@@ -85,7 +85,7 @@ VM-06 独立 confirmation 与论文证据
 
 | 项 | 内容 |
 |---|---|
-| 状态 | 已实现待激活 |
+| 状态 | 已完成；服务器已封存 512/64/64、12 个 validation house 和私有 confirmation/audit 候选池 |
 | 运行位置 | 服务器，只读完整 ProcTHOR-10K author-train source inventory |
 | 输入 | 10,000-house inventory、冻结 house-level split 规则、两间 P0 house |
 | 完整动作 | 对全部 house 计算 train/calibration/audit split；先保留 12 个 validation house 和私有 64-house confirmation 候选池；再在各 split 内按冻结 hash 顺序截取 512/64/64 |
@@ -99,7 +99,7 @@ VM-06 独立 confirmation 与论文证据
 
 | 项 | 内容 |
 |---|---|
-| 状态 | 已实现待激活；取得真实服务器回执后才算完成 |
+| 状态 | 已完成；1/2/4/8 worker 探测均结束，正式生成采用 8 worker |
 | 运行位置 | 与正式生成相同的服务器、AI2-THOR 5.0.0、CloudRendering |
 | 输入 | E-01 的正式 train 前缀 house，不使用额外测试 house |
 | 完整动作 | 依次运行 1、2、4、8 worker；记录 CPU、可用 RAM、GPU 名称/总显存/空闲显存、磁盘和每组退出；成功 probe house 直接成为 E-03 正式数据 |
@@ -112,11 +112,11 @@ E-02 不是随便跑一个 smoke。它决定 E-03 实际并发数，并把 probe
 
 | 项 | 内容 |
 |---|---|
-| 状态 | 已实现待激活 |
+| 状态 | 已完成；498/512 train house、61/64 calibration house 成功，17 个失败保留且未补样 |
 | 运行位置 | 服务器，多 worker 数只能来自 E-02 receipt |
 | 输入 | 512 个 train house、64 个 calibration house；每 house 固定 8 个相距至少 1 m 的 reachable 位置和 4 个 cardinal yaw |
 | 完整动作 | 对全部 576 个 house 逐一生成或记录失败；断点重启先复验已有 NPZ、公私 receipt 和摘要，禁止仅凭文件存在就跳过 |
-| 公共输出 | 18,432 帧 RGB、米制 depth、相机内参和 opaque observation ID；不含 house ID、世界 pose、reachable grid、room metadata、instance/object/scenario/teacher/future |
+| 公共输出 | 计划上限 18,432 帧；实际 17,888 帧 RGB、米制 depth、相机内参和 opaque observation ID；不含 house ID、世界 pose、reachable grid、room metadata、instance/object/scenario/teacher/future |
 | 私有输出 | house/source 绑定、选中世界位置、reachable 摘要、训练用 structural label 和逐 house receipt |
 | 继续门 | 576 个固定 house 每个都有成功或失败终态；失败不补；64 个 audit house 仍未打开 |
 
@@ -333,7 +333,7 @@ audit 不是 E-04。E-04 是 train/calibration 的人工标签，可用于训练
 
 | 里程碑 | 从当前起的现实估计 | 主要不确定项 |
 |---|---:|---|
-| E-03 train/calibration RGB-D 完成 | 激活后约 0.5～2 个服务器工作日 | E-02 实测并发、house 加载失败、I/O |
+| E-03 train/calibration RGB-D 完成 | 已完成 | 559/576 house 成功，17 个失败按合同保留 |
 | E-08 最终 Estimator audit 完成 | 约 7～14 个工作日 | 36,864 次 E-04 人工判断、E-05 特征实现 |
 | F-04 两房 P0 raw 完成 | 约 10～18 个工作日 | 标注进度、production reader、P04/P08 资格 |
 | M-03 第一份五方法开发表 | 约 4～7 周 | 非网格 place 接线、teacher/evaluator 和调试 |
@@ -341,8 +341,8 @@ audit 不是 E-04。E-04 是 train/calibration 的人工标签，可用于训练
 
 最近动作按顺序为：
 
-1. 审查并激活 E-01～E-03 实现提交；只开放 plan sealing、capacity probe、train/calibration RGB-D generation。
-2. 服务器同步一次后运行 E-01，核对 512/64/64、12 validation 和私有 confirmation/audit seal。
-3. 运行 E-02，以真实资源回执确定 E-03 worker 数。
-4. 立即运行 E-03；完成后导出成功/失败、帧数、磁盘和摘要报告。
-5. E-03 运行期间并行实现 E-04 离线标注器和 E-05 特征提取器，但不得提前打开 audit 或 production reader。
+1. 审查并实现 E-04 离线盲化标注器；它只读取 E-03 public RGB-D，不允许标注者看到 house、scenario、route、世界 pose 或私有结构标签。
+2. 同一实现批次完成 E-05 冻结 DINOv2＋12 维公开几何特征提取器；不得读取 E-03 private 文件。
+3. 工程审查通过后导出两份独立人工标注任务包，并以多 worker 提取 17,888 帧特征。
+4. 两名独立标注者完成 E-04，分歧经仲裁；E-05 字节复验通过后才能进入 E-06 真实 Estimator 训练。
+5. audit、production reader、P04/P08 资格和正式 raw 在 E-07 最终规模选择前继续关闭。

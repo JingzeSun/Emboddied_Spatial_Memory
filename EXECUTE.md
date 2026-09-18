@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| D-214～D-216共享RGB-D前端 | `7dd44d2`已获批为D-215冻结基线；D-216完整house split、精确NPZ训练包、双头拟合及四件互绑artifact的关闭实现候选已形成。实际partition/人工标签/normalization/weights/training receipt与production reader仍空，全部运行位关闭；LOG-199～201。 |
+| D-214～D-217共享RGB-D前端 | D-217 E-01～E-03 已在服务器完成：8 worker，576个固定house全部终态，559成功/17失败且未替换，17,888帧公开RGB-D逐文件复验通过；audit、人工标签、特征、权重和production reader仍未打开。LOG-199～202。 |
 | D-213统一图/类型门 | 四节点/五关系统一图合同、seal前类型门、五种消融memory view、图复杂度派生、relation REACTIVATE及surface/fragment RETRACT已实现候选；数据接线现改为等待D-214冻结cache，不再以单槽raw后定义前端，全部运行位关闭；LOG-197/199。 |
 | D-212地点raw纠偏 | v2已补公开grid模板＋RGB-D route survey生产入口、P01–P08可复算收据、raw三面journal与两提交执行门；D-214已重新阻断activation，旧P04/P08工程描述不得获论文资格。真实survey/seal/smoke均为0；LOG-196/198/199。 |
 | VM-04观察适用性 | 原静态36槽不运行；D-182/183只用于精确schema/实现审查。D-199–202已形成L2公开proposal/visibility、program matcher/episode audit和terminal raw加载前plan seal，D-202已获认可。D-203候选禁止调用者手填version ID，从sealed public route、预登记selector和`terminal-1` causal memory确定派生九类online request refs；核心无episode/raw path参数，edge RETRACT仍阻断。selector spec的提前时间封存和D-202 receipt消费未实现，因此D-201 pending与family阻断未解除。正式SAM/assets/matcher/visibility数值、生产callback、父stage family聚合及pilot收据仍缺。全部运行位关闭，0新episode/materialization/训练/记忆正例。LOG-169–192。 |
@@ -2100,3 +2100,14 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - split实现强制先封存三类保留house，完整10,000 house逐一留行；不读frame/label/route/yield。训练包只接受固定八数组NPZ，逐house核split，绑定公开观察、双人semantic仲裁和structural rule receipt；两个线性头的所有框架默认补项均明确入合同，audit不参与checkpoint或temperature。阶段入口支持`check/seal-split/seal-bundle/train-seal`、分片并行hash/加载、确定性合并、无覆盖和两提交激活门；production reader、训练帧生成与旧grid删除没有实现或开放。
 - 定向D-216 **7/7通过**：覆盖全部关闭门、三角色/P0排除、10,000 house完整manifest、额外scenario字段和跨split house拒绝、标签与盲标注/结构receipt逐观察对账、CPU小样本两次权重/receipt逐字节确定及外部输入打开前拒绝。这里的9行/组人工数组只测工程边界，不是实际权重或准确率；0服务器、0真实partition、0RGB-D训练帧、0人工标注、0真实训练。回归期间一次调用只返回进度点而无summary/exit，不计成功或失败；在最终按类占比解释inverse-sqrt后，一轮旧套件中途显示`E`并以Windows access violation `-1073741819`退出、无测试名/traceback，保留为本机不稳定失败。同一最终字节随后标准discover **671/671通过**，耗时40.278 s、exit=0，失败/错误/跳过均0，内嵌VSMT/executor/L1三组179/42/31及两房汇总252仍通过。
 - 白话：输入是官方资产字节、结果前的前端设计和固定house清单摘要，输出可复算的模型/划分/资格合同；例如0.849999的fragment相似度直接失败，不会因为P08产率低就改成0.84。它不表示权重已经训练，也不允许production reader用fixture概率运行。
+
+## LOG-202：D-217 Estimator开发RGB-D服务器生成完成（2026-09-18）
+
+- 用户授权按512/64/64开发口径尽快生成Estimator训练RGB-D。本次服务器checkout精确绑定激活提交`0c4f9851006dbb996864c9af82d60ff4b28c09b2`，只开放development plan sealing、capacity probe、train RGB-D和calibration RGB-D四项；audit、人工semantic标注、特征物化、Estimator训练、production reader、P04/P08资格、route/raw及private evaluation保持关闭。
+- E-01读取完整10,000-house source inventory并完成house级封存：train/calibration/audit固定为512/64/64，另封存12个validation house和私有64-house confirmation候选池；公共侧未出现confirmation ID，观察和标签读取数为0。
+- E-02在同一AI2-THOR 5.0.0环境依次完成1/2/4/8 worker探测，选择8个实际worker。15个probe house中14个成功、1个因不足8个相隔至少1 m的公开可达位置失败；成功probe直接复用于E-03，没有重复生成。
+- E-03把576个固定house全部推进到成功或失败终态：train为498成功/14失败，calibration为61成功/3失败，共559成功/17失败。15个失败是公开可达位置不足，另2个train house在`TeleportFull`时模拟器超时；所有失败均保留原rank和receipt，未换house、未补样、未设墙钟强杀。
+- 559个成功house生成17,888帧公开数据。逐文件重开559个NPZ，全部严格包含32帧`224×224×3 uint8` RGB、`224×224 float32`米制depth、每帧4个`float64`相机内参和opaque observation ID；坏文件0，数组schema变体1。公共NPZ与公共receipt均为559份，私有成功receipt 559份、失败receipt 17份。
+- 最终generation receipt记录`all_planned_houses_finished=true`、`all_planned_houses_succeeded=false`、`actual_workers=8`；没有伪造`generation.success.json`。显式检查确认不存在public/private audit目录，semantic annotation、feature materialization和production reader/route/raw标志全为false。
+- 服务器阶段目录占用约1.1 GiB；完成时数据盘约50 GiB总量、26 GiB可用，未发现残留生成进程。服务器目标测试7/7通过；本地激活字节最终全库678/678通过。一次早期全库测试受无关fixture污染失败，单项及随后全库重跑均通过，未据此修改科学合同。
+- 白话：这一批已经把固定train/calibration house变成可训练前端使用的公开RGB-D；例如某个house没有8个合格位置，就留下失败记录而不是偷偷换成容易的house。它还不是人工room/corridor标签、DINO/几何特征、Estimator权重、audit结果或论文raw。
