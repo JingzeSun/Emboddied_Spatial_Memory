@@ -245,12 +245,14 @@
     "clean_checkout_required_for_real_runs": true,
     "authorization_is_reviewed_by_the_user_before_the_run": true,
     "must_remain_false": [
+      "audit_open_or_generation",
       "full_house_expansion",
       "production_reader",
       "p04_p08_qualification",
       "route_or_raw_generation",
       "private_evaluation"
-    ]
+    ],
+    "must_remain_false_gap_fixed": "audit_open_or_generation was missing from this list, so the validator would not have stopped the audit gate being opened alongside training; E-06's whole point is that audit stays unread, so it is now enforced first"
   },
   "closed_downstream": {
     "semantic_weights_produced": false,
