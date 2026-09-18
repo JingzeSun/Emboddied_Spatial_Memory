@@ -27,7 +27,7 @@ VM-06 独立 test 与论文证据
   └─ P-05 → P-06
 ```
 
-当前执行点：VM-04.E 的 E-01～E-03、E-05 已在服务器完成；576 个固定 house 中 559 个成功、17 个失败且未替换，共有 17,888 帧公开 RGB-D 和 559/559 个 house 的 396 维特征，失败为 0。D-219 已删除 semantic 头并**取消 E-04 全部人工标注**（已导出的约 1.1 GiB 任务包保留为历史产物，不下载、不标注、不进训练），E-07 已裁决为冻结 512/64/64、不做 full-house 扩展。D-220 已取消每步的双提交激活闸门、把 confirmation 降为普通独立 test、把必做消融收窄为 VSMT-Typed/Flat8/NoVersion 加 NECS、把两房 P0 降为 P01/P04/P08 工程 smoke。下一步是按 D-219 实现 structural 单头（改 d214、新训练模块与 stage、测试），再跑 E-06 与 E-08。audit、Estimator 训练、production reader、P04/P08、route/raw 和 private evaluation 继续关闭。
+当前执行点：VM-04.E 的 E-01～E-03、E-05 已在服务器完成；576 个固定 house 中 559 个成功、17 个失败且未替换，共有 17,888 帧公开 RGB-D 和 559/559 个 house 的 396 维特征，失败为 0。D-219 已删除 semantic 头并**取消 E-04 全部人工标注**（已导出的约 1.1 GiB 任务包保留为历史产物，不下载、不标注、不进训练），E-07 先由 D-219 裁决为 512/64/64，再由 D-221 依据事前冻结的规则重新裁决为 **2048/128/128**（仍不做 full-house 扩展）。D-220 已取消每步的双提交激活闸门、把 confirmation 降为普通独立 test、把必做消融收窄为 VSMT-Typed/Flat8/NoVersion 加 NECS、把两房 P0 降为 P01/P04/P08 工程 smoke。D-219 的代码已实现（d214 已删语义字段、d219 训练模块与 stage 已交付并通过测试）。下一步是实现并运行 D-221 的前缀扩展（+1,664 个 house 的 RGB-D 与特征），再跑 E-06 与 E-08。audit、Estimator 训练、production reader、P04/P08、route/raw 和 private evaluation 继续关闭。
 
 ## 二、状态和执行规则
 
@@ -76,7 +76,7 @@ VM-06 独立 test 与论文证据
 
 | 数据 | 用途 | 当前规模 | 不能支持的结论 |
 |---|---|---:|---|
-| Estimator RGB-D | 训练、校准和一次性审计共享前端的 semantic/structural estimator | 开发口径 512/64/64 house × 32 帧，共 20,480 帧 | 不能作为 P01～P08 路线 raw，也不能比较五种记忆方法 |
+| Estimator RGB-D | 训练、校准和一次性审计共享前端的 structural estimator | 开发口径 2048/128/128 house × 32 帧（D-221）| 不能作为 P01～P08 路线 raw，也不能比较五种记忆方法 |
 | 两房 P0 raw | 检查 P01/P04/P08 路线、三面文件、共享 cache 和五方法接线 | 两间固定开发 house、三条代表性路线 | 不能作为论文独立 validation 或 test |
 | 正式论文 raw | 训练、选择和独立确认 VSMT 与对照 | VM-05.P 的 P-01 根据构造成品率和功效冻结 | 不能用当前两房数据代替 |
 
@@ -161,13 +161,17 @@ E-03 会完整执行 576 个固定 house，不会为了省工程量只跑一部�
 
 标签边界：私有可达图只在 train/calibration/audit 写标签；推理时结构头仍然只凭公开 RGB-D 与内参预测，不查 grid 真值。除 loss、early stopping 指标、checkpoint 选择和 temperature 由两头改为单头外，AdamW、seed、epoch、batch、学习率、权重衰减、零初始化和类权重截断全部沿用 D-215/D-216 原值，不因结果调整。
 
-#### E-07 开发规模（D-219 已裁决）
+#### E-07 开发规模（D-221 已重新裁决为 2048/128/128）
 
 | 项 | 内容 |
 |---|---|
-| 状态 | 已裁决；不再是未决门 |
-| 裁决 | 冻结 512 train / 64 calibration / 64 audit，不做 full-house 扩展 |
-| 理由 | 一个 396→3 线性头不需要超过 512 间开发 house；扩展会使现有全部 RGB-D、特征和 receipt 失效 |
+| 状态 | 已裁决；规则事前冻结、测量后机械触发 |
+| 裁决 | **2048 train / 128 calibration / 128 audit**，仍不做 full-house 扩展 |
+| 触发依据 | 现有 17,888 帧中 bottleneck 仅 856 帧（4.785%），且 559 个 house 中 394 个一帧都没有；规则的 `[300,1000)` 分支选中 2048/128/128 |
+| 成本 | 增量 1,664 个 house、约 1.2 小时（实测 8 worker 下 2.6 秒/house）、约 +3.4 GiB |
+| 为何不全量 | 全量约 20.6 GiB 而盘只剩 25 GiB，且 P-02 正式 raw 要用同一块盘；且读过直方图后再松动该约束属于"看完数据改标准" |
+
+D-219 原先裁决的 512/64/64 由 D-221 取代，原因是删除 semantic 头使人工成本归零、实测速率又证明时间从来不是约束。**前缀延长不是 full-house 扩展**：选择规则是固定 hash 前缀，rank 0–511 的 house ID、rank 和 public ref 逐字节不变，现有 RGB-D 与特征全部复用，只追加 rank 512–2047；`full_house_expansion` 布尔在所有合同中继续为 false。运行时必须逐条复验这一不变性。
 
 #### E-08 一次性 audit
 

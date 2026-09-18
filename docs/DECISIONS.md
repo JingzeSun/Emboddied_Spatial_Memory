@@ -2118,3 +2118,14 @@
 - **消融集合：** 五个主臂VSMT/TAF/ELU/WFR/LOW全部保留，且不得因某个强基线表现好而删除。VSMT消融只保留`VSMT-Typed`（主行）、`VSMT-Flat8`（度量类型门价值）、`VSMT-NoVersion`（度量版本历史价值），内部对照只保留`NECS`（“可执行修订空间”主张的唯一因果反事实）。`Place-4`、`VSMT-NoPlace`、`DRCR`、`PHR`移出必做集合，可作低成本附录。学习式排序器训练路径由VSMT/DRCR/NECS三条降为VSMT/NECS两条。被移出的臂在看过test之后不得再补回来。
 - **两房P0：** 降为工程smoke，取消12槽逐路线封存与资格回执仪式，只保留P01（采集、三面raw与共享cache）、P04（冻结DINO place描述子通路）和P08（结构头＋多视角fragment完整链）三条代表性端到端检查，其余路线由单测或正式数据运行覆盖。实质不变：两房结果不得进入任何论文表、不得据以选择headline赢家、construction failure照实保留并报告。
 - **不可再精简的底线（八条）：** 五个主臂读取逐字节相同的冻结公开前端cache；house级train/validation/test分离；test只跑一次且不得据以改模型；候选必须在teacher/private truth打开之前生成并封存；candidate miss、teacher error和selector摊销误差分开报告；多seed、置信区间、失败样本和资源成本齐备；P08私有metadata只在预测与路线固定之后打开；强基线不得因效果好被删除。这八条足以应付正常二区评审，本决策不触碰其中任何一条。
+
+## D-221：按事前冻结的规则把开发规模从512/64/64扩到2048/128/128
+
+- 日期：2026-09-18；状态：规则与测量均已完成，用户批准按规则执行；机器合同[`vm04_d221_estimator_scale_rule_v1.json`](../configs/vsmt/vm04_d221_estimator_scale_rule_v1.json)。只开放`structural_rgbd_expansion`，Estimator训练、audit、production reader、route/raw和private evaluation继续false。
+- **为什么重开这个已裁决的门：** D-219删除semantic头后，原本主导512决策的639,872次人工判断成本归零；同时从E-02容量回执取回实测速率为8 worker下**2.6秒/house**，全量生成只需约7小时，而当初估计是1–4天。也就是说支撑512的两条主要理由——人工成本和墙钟时间——都不再成立。这是**前提变化**，不是看到不利结果后改口：E-06尚未训练，audit的64个house从未生成，没有任何模型输出被读取过。
+- **顺序可审：** 先在提交`f9b3b9c`冻结决策规则且`measurement`为null，再读服务器上已有的559份私有receipt，最后在`2fcd2a6`填入测量与规则触发的结果。阈值在读数后未作任何调整。
+- **测量结果：** 现有17,888帧中basin 8,864（49.55%）、**bottleneck 856（4.785%）**、unknown 8,168（45.66%）。关键不是这个比例，而是**559个house里有394个（70.5%）一帧bottleneck都没有**，单house最多12帧——整个bottleneck证据只由165个house承担，而P08的硬门正卡在bottleneck概率≥0.70上。零新仿真，未读audit，未读任何模型输出。
+- **规则触发：** 856落入`[300,1000)`，选择2048/128/128。增量1,664个house、约1.2小时生成、约+3.4 GiB；预计bottleneck训练帧756→约3,024，贡献bottleneck的house 165→约680。
+- **拒绝全量：** 全量约需20.6 GiB而数据盘只剩25 GiB，且P-02的正式论文raw要用同一块盘；要腾空间只能删另一条研究线18 GiB的原始物理数据。更重要的是，读过直方图之后再松动这个约束就是"看完数据改标准"，本决策明令禁止。科学上，3,024→约13,000个bottleneck帧对一个1,191参数的线性头也已过边际收益拐点。
+- **扩展是纯增量，不是重做：** 选择规则为`ascending_sha256(sampling_salt|split|house_id)`取固定前缀，`sample_rank`是排序下标，`public_house_ref`哈希`{scope,split,sample_rank,partition}`。因此rank 0–511的house ID、rank和public ref逐字节不变，新house只是追加rank 512–2047，现有RGB-D与396维特征全部复用。运行时仍须逐条复验这一不变性，不得仅凭构造假设。PLAN原E-07表中"从零重做、512 cache失效"的说法只适用于`full_house_expansion`，不适用于前缀延长；该布尔在D-217/D-218/D-219和本决策中继续为false。
+- **未变边界：** house级split先于任何图像或标签、house不跨split、P0与VM04 validation/test house继续排除、采样house只由冻结hash决定、每house仍8位置×4朝向、失败house保留不补样、calibration只选checkpoint与temperature、audit不参与任何选择且只读一次、P08的0.70/0.70/0.85/0.35不得重调。

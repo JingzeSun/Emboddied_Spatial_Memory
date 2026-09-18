@@ -1,7 +1,7 @@
 {
   "schema_version": "vsmt-vm04-d221-estimator-scale-rule-v1",
   "decision_id": "D-221",
-  "status": "measured_decision_pending_user_review",
+  "status": "frozen_executable_structural_rgbd_expansion",
   "supersedes": {
     "d219_clause": "e07_scale_decision",
     "reason_for_revisiting": "premise_changed_not_result_driven",
@@ -127,10 +127,17 @@
     },
     "primary_justification": "70.5 percent of houses contribute no bottleneck frame at all, so only 165 houses carry any bottleneck evidence; house-level coverage of the rare class that gates P08 at 0.70 is the risk this expansion buys down",
     "existing_bytes_reused": true,
-    "implementation_requirement": "the expansion must verify that the already generated houses are exactly the leading entries of the frozen hash order in each split, so no existing RGB-D or feature byte is invalidated and no house is dropped or reordered"
+    "implementation_requirement": "the expansion must verify that the already generated houses are exactly the leading entries of the frozen hash order in each split, so no existing RGB-D or feature byte is invalidated and no house is dropped or reordered",
+    "user_reviewed_and_approved": true,
+    "approved_scale": {
+      "train": 2048,
+      "calibration": 128,
+      "audit": 128
+    },
+    "user_override_of_frozen_rule": false
   },
   "authorization": {
-    "structural_rgbd_expansion": false,
+    "structural_rgbd_expansion": true,
     "structural_training": false,
     "audit_open_or_generation": false,
     "production_reader": false,
@@ -158,5 +165,13 @@
       "used": 26,
       "free": 25
     }
-  }
+  },
+  "prefix_invariance_proof": {
+    "selection_rule": "ascending_sha256(sampling_salt|split|house_id) fixed prefix",
+    "sampling_salt": "d217-estimator-development-sample-v1",
+    "why_additive": "sample_rank is the index in the deterministically sorted candidate list and public_house_ref hashes {scope, split, sample_rank, partition}; extending the prefix appends ranks 512..2047 and leaves ranks 0..511 byte-identical",
+    "must_be_verified_at_run_time": "the extension stage recomputes the ordering and refuses unless every already generated house keeps its exact split, sample_rank, house_id and public_house_ref",
+    "eligible_house_ids_reproduced_locally": true
+  },
+  "distinct_from_full_house_expansion": "this is a prefix extension inside the frozen hash order; the separate full_house_expansion boolean stays false in D-217, D-218, D-219 and here"
 }

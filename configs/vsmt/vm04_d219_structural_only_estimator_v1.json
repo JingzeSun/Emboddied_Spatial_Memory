@@ -189,7 +189,10 @@
     "choice": "freeze_512_train_64_calibration_64_audit",
     "full_house_expansion": false,
     "reason": "a 396-to-3 linear head does not need more than 512 development houses, and expansion would invalidate every existing RGB-D, feature and receipt",
-    "e07_remains_an_open_gate": false
+    "e07_remains_an_open_gate": false,
+    "superseded_by": "D-221",
+    "superseded_reason": "removing the semantic head took the human annotation cost to zero and the measured generation rate is 2.6 s per house, so the original cost argument for 512 no longer held; D-221 froze a rule before reading the structural class histogram and that rule selected 2048/128/128",
+    "superseding_choice": "expand_to_2048_train_128_calibration_128_audit"
   },
   "e08_audit": {
     "human_judgements_required": 0,
