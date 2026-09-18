@@ -1,1065 +1,348 @@
-# 版本化结构记忆事务研究计划
+# VSMT 从实现到论文结果的完整计划
 
-本文件是阶段、审查节点和当前指针的唯一维护处。方法见 [METHOD.md](METHOD.md)，字段见 [DATA.md](DATA.md)，证据见 [EXECUTE.md](../EXECUTE.md)；若要按实验流程理解这些部件怎样组合支撑论文主张，见解释性总图 [VSMT_EXPERIMENT_EVIDENCE_CHAIN.md](VSMT_EXPERIMENT_EVIDENCE_CHAIN.md)。当前优先级依据为 D-122；D-062 空间世界模型路线暂停但完整保留。
+本文件只维护 Versioned Structural Memory Transactions（VSMT，版本化结构记忆事务）从当前代码到论文结果的步骤链、依赖、状态和交付物。决策依据写在 [DECISIONS.md](DECISIONS.md)，运行与证据写在 [EXECUTE.md](../EXECUTE.md)，方法定义写在 [METHOD.md](METHOD.md)，数据字段写在 [DATA.md](DATA.md)。历史路线和旧服务器命令不再堆在本文件；需要时从上述文件或 Git 历史查找。
 
-## 当前目标与授权（D-122/D-125）
+## 一、最终目标与总链路
 
-第一篇论文已收敛为 Versioned Structural Memory Transactions（VSMT，版本化结构记忆事务）：比较 VSMT、三类论文机制适配和一个朴素基线，核心候选贡献是“类型化可执行事务＋版本化状态/副作用审计＋candidate-before-teacher 学习边界”的组合，而不是 DINOv2、场景图、executor 或事务名称本身。旧 S5 A 对 C/E no-go、旧 test 封存和全部复现路径不改写。论文定位、C00–C11/LATENT/RGB 边界及 VM-01～VM-03 已先行收口；D-180已在服务器运行前重新关闭原两房36固定槽raw：即使36槽全部raw成功，当前近静止视角、零合法RELINK和未实现公开结构语义也不能支持VSMT主张。新视角合同、独立RELINK版本、私有语义评价、split、训练预算、validation和confirmation仍未授权。
+在同一冻结公开 RGB-D 前端、同一在线记忆输入、同一候选空间和同一评价协议下，比较 VSMT、TAF、ELU、WFR 和 LOW，回答类型化可执行事务、版本化状态/副作用审计以及 candidate-before-teacher 边界能否改进具身空间记忆修订。
 
-白话：当前阶段解决“到底比较哪些记忆更新机制，以及怎样保证没有 teacher 偷给答案”的问题。输入是旧 executor/八事务、旧失败记录和论文机制，输出可审的方法、数据、对照与反作弊合同。例如先证明 MERGE pair 只由当前区域和旧记忆产生，再允许写候选生成器。它不是生成数据、训练模型或宣布新方法有效。
+```text
+VM-00 来源与旧实现审计
+  ↓
+VM-01 公私输入和共同接口
+  ↓
+VM-02 论文机制适配器与朴素基线
+  ↓
+VM-03 VSMT 候选、executor 与 teacher 边界
+  ↓
+VM-04 新数据和共享前端
+  ├─ VM-04.E  E-01 → E-02 → E-03 ─┬→ E-04 ─┐
+  │                                └→ E-05 ─┴→ E-06 → E-07 → E-08
+  └─ VM-04.F  F-01 → F-02 → F-03 → F-04 → F-05
+  ↓
+VM-05 开发比较、正式数据、训练与 validation
+  ├─ VM-05.M  M-01 → M-02 → M-03
+  └─ VM-05.P  P-01 → P-02 → P-03 → P-04
+  ↓
+VM-06 独立 confirmation 与论文证据
+  └─ P-05 → P-06
+```
 
-## VSMT 分阶段交付
+当前执行点：VM-04.E 的 E-01～E-03 已实现待激活，提交为 `33f3decf2a10ff435604d8892df09d76815ca7b2`；全库 678 项测试通过；服务器尚未运行，真实生成帧数为 0。E-04 以后均未获执行授权。
 
-| 步骤 ID | 输入与工作 | 输出与继续条件 |
+## 二、状态和执行规则
+
+| 状态 | 含义 |
+|---|---|
+| 已完成 | 代码和必要测试已经受审，或已有可复用的真实证据 |
+| 已实现待激活 | 代码已提交并通过测试，但真实服务器执行位仍关闭 |
+| 未开始 | 依赖未满足，尚不能产生正式产物 |
+| 封存 | 已确定但当前阶段禁止打开或使用 |
+
+表格中的“动作”是必须完整执行的规范，不是可以挑着做的菜单。不能运行成功的 house、路线或槽位必须留下失败 receipt，不得省略、替换或补样。测试夹具只证明代码行为；真实步骤只有服务器产物、摘要和退出回执齐全才算完成。
+
+## 三、VM-00～VM-03：方法和输入边界基础
+
+### VM-00 来源与泄漏审计
+
+| 状态 | 输入与动作 | 输出与继续条件 |
 |---|---|---|
-| VM-00 来源与泄漏审计（已完成） | 旧 M1 generator/online/teacher 数据流，同行评审论文与官方许可证 | 已明确 `merge_queries` 等风险、可独立实现的机制和非官方复现边界；提交 e460fc8 |
-| VM-01 公私数据与共同适配合同（D-143工程基线已审） | D-122草案；固定结构类型、公开 proposal/descriptor、五通道文件和反作弊 gate | schema、正负例、private mutation invariance、无 private 推理及 candidate-before-teacher 测试；D-143固定服务器回执已覆盖当前字节，真实生成边界仍须下一职责实现与审查 |
-| VM-02 三种论文机制与朴素基线（D-143工程基线已审） | 共同接口；TAF、ELU、WFR、LOW 只消费相同 `ObservationPacket` | clean-room 适配器、显式无默认值配置、版本化共同输出包装及人工分支测试；未冻结阈值，不称官方复现或效果结果 |
-| VM-03 VSMT 无泄漏候选与 teacher（D-143工程基线已审） | VM-01接口；复用 executor/八原子语义，删除参考派生 query | public-only 九类程序、逐一真实执行、公开摘要排序、online evidence封存及封存后teacher；D-143固定服务器回执已覆盖当前字节，未生成真实house数据 |
-| VM-04 新数据数值冻结与开发生成（D-180已暂停固定槽raw服务器批次） | [总协议提案](../configs/vsmt/vm04_data_protocol_proposal_v1.json)、[L1合同](../configs/vsmt/vm04_l1_contract_proposal_v1.json)、[动作对称合同](../configs/vsmt/vm04_l1_action_symmetry_v1.json)、[v2两房视角合同](../configs/vsmt/vm04_l1_two_house_audit_proposal_v2.json)及[隔离环境](../configs/vsmt/vm04_l1_environment_v1.json)；固定两间ProcTHOR house、匿名物理mask与D=1.0 m空间去重 | D-176固定36槽失败保留；D-180确认该批最多是工程文件证据并已在服务器运行前关闸。四个RELINK保留失败，视角科学合同、私有语义验收、train/validation/confirmation仍阻断 |
-| VM-05 公平训练与 validation | 数据验收；冻结各方法阈值、学习预算、停止规则、共同/完整任务指标；VSMT/DRCR/NECS做梯度训练，TAF/ELU/WFR/LOW/PHR只做有限配置选择 | 五个主臂在 L2 完全同前端输入主评；L1只作机制上界；确认前锁定全部选择；所有独立服务器单元采用容量允许的最大安全worker且不设墙钟强杀 |
-| VM-06 独立确认与论文证据 | 模型、前端、候选、评分和最小效果门冻结后另行授权 | 未见家族 confirmation、必要现实来源、逐类/共享能力/成本/失败报告；不能按 validation 结果改样本或门 |
+| 已完成 | 审计旧 generator、online、teacher 数据流，确认参考派生 query、未来观测和私有真值泄漏风险 | 明确禁止复用的旧输入；确定论文机制适配器只依据公开论文独立实现 |
 
-### 当前指针
+### VM-01 公私数据与共同接口
 
-**当前是 D-217 Estimator开发规模、audit封存与E-01～E-03生成实现审查。** 用户批准512/64/64作为开发阶段：train/calibration可用于发现和修正问题，64-house audit在最终前端选择前保持封存；是否扩展全部house只能在audit、production reader、P04/P08资格与正式raw之前决定一次，扩展须从零重算normalization/weights/temperature。另冻结12个VM04 validation house与私有confirmation候选池。D-217审查候选已实现固定计划封存、容量探测、train/calibration RGB-D多worker生成、失败不补及逐分片摘要复验，全库678项测试通过；执行位仍全关、服务器0运行、0真实帧。下面“D-217到论文结果统一关键路径”是后续执行的唯一计划口径，不能把前端RGB-D、两房P0 raw或正式论文raw混叫同一批数据。
-
-### D-217 到论文结果统一关键路径（512/64/64口径）
-
-#### 三种“数据生成”先分清
-
-| 名称 | 解决什么问题 | 规模与输出 | 不等于什么 |
-|---|---|---|---|
-| Estimator训练RGB-D | 给共享semantic/structural前端提供训练、校准和最终audit观察 | 开发阶段512/64/64 house×32帧，共20,480帧；public RGB/depth/内参与opaque observation ID，private仅训练管理和结构标签证据 | 不是P01–P08路线raw，不含SAM fragment，不训练VSMT |
-| 两房P0路线raw | 验证固定两间开发house中P01–P08路线、公开/私有/provenance三面与共享cache能完整工作 | 当前12槽，先slot-0 smoke再全12槽；P04/P08须由冻结前端重新资格审核 | 不是论文独立validation/confirmation，不能仅凭两间house宣布方法有效 |
-| 正式论文raw | 在独立house family上训练/选择VSMT及对照并做confirmation | house family数、episode数与最终confirmation功效预算尚未按D-210～D-217重冻 | 不是当前20,480帧Estimator数据，也不是旧36槽或旧S5数据 |
-
-白话：Estimator RGB-D教“共同眼睛”输出概率，两房P0 raw检查“整条管线能不能工作”，正式论文raw才回答“VSMT是否优于对照”。例如20,480帧全部成功也只证明前端数据齐了，不能当作五方法比较结果。
-
-#### A. Estimator开发前端：从计划到真实权重
-
-| 步骤 | 输入 | 实现/运行与输出 | 继续门 | 估计时间 |
-|---|---|---|---|---:|
-| E-01 冻结保留与采样 | 完整10,000-house source inventory、D-215 split规则 | 全量house→split私有manifest；12个validation ID；私有64-house confirmation候选池；train/calibration/audit固定hash前缀512/64/64 | 用户审实现；公共侧不得出现confirmation ID；0观察被打开 | 0.5–1工作日 |
-| E-02 容量探测 | E-01 plan、AI2-THOR 5.0.0服务器环境 | 用正式train前缀house依次实测1/2/4/8 worker；记录CPU/RAM/GPU/磁盘和实际最大安全worker；成功probe house直接复用 | 至少1个安全worker；失败现场不删、不换house；不设墙钟强杀 | 0.5工作日 |
-| E-03 生成train/calibration RGB-D | 512 train＋64 calibration house；每house固定8位置×4 yaw | 18,432帧public RGB/depth/内参/opaque ID；private house/世界位置/reachable摘要/structural训练标签；house失败保留不补 | 576个house均有成功或失败receipt；audit 64 house仍不开 | 0.5–2工作日，须以E-02实测更新 |
-| E-04 semantic标注包与双盲标注 | E-03 public帧；标注者不可见house/scenario/route | 两名独立`room/corridor/unknown`判断、分歧仲裁、逐观察receipt；train/calibration共36,864次判断 | 标注schema、盲化和仲裁receipt通过；修改规范须整批重版本，不能覆盖 | 3–7工作日（两名标注者，取决于每帧速度/分歧） |
-| E-05 冻结12维几何算法并提特征 | E-03 RGB-D、冻结DINOv2、D-215结构标签规则 | 每帧384维DINO＋12维公开几何；精确定义depth范围、free/visibility体积、开口/clearance、surface count/normal；生成NPZ和内容摘要 | 同RGB-D重复提取字节稳定；不读room metadata/instance/scenario/future | 实现审查1–2工作日，服务器提取0.5–1工作日 |
-| E-06 bundle与Estimator训练封存 | E-04标签receipt、E-05特征、E-01 split | train-only normalization；两个3×396线性头、bias、temperature、逐epoch历史和互绑receipt | calibration只能选checkpoint/temperature；audit仍不开；真实权重receipt用户审查 | 0.5–1工作日 |
-| E-07 最终前端选择 | E-03～E-06的train/calibration工程与校准诊断 | 一次性登记“冻结512版”或“扩展全部house” | 必须在audit/reader/P04/P08/raw前决定；不能看audit或方法排名 | 审议0.5工作日 |
-| E-08 audit一次性打开 | 已冻结的最终前端；封存64 audit house | 2,048 audit帧及4,096次双人判断，或全量扩展时对应完整audit；只报告NLL/accuracy/calibration/类别与house级区间 | audit失败照实失败；不得加house、改模型或阈值救结果 | 1–3工作日（512版） |
-
-E-03先保存可复用RGB-D的含义：DINO和12维几何都是这些公开帧的确定性派生，后续算法bug修复可重新提特征而不重跑模拟器；它不允许在几何算法未冻结时训练或把临时特征接入production reader。E-05仍是正式必经步骤，预计是数天级代码而非数周级研究，人工标注才是本段主要墙钟。
-
-若E-07选择全量扩展：保留完整失败历史，从全部非保留house重新生成/标注/提特征，normalization、weights、temperature从零训练；512版cache全部失效。两名标注者预计额外5–9周，约8名并行标注者预计2–3周。扩展不能由E-08 audit、P08 yield或后续方法效果触发。
-
-#### B. 生产共享前端与两房P0 raw
-
-| 步骤 | 输入 | 输出 | 继续门 | 估计时间 |
-|---|---|---|---|---:|
-| F-01 production reader | E-06真实权重receipt已审，E-08 audit已完成且不再修改 | 同一公开RGB-D生成SAM匿名fragment、DINO描述、12维几何、surface/free-space/visibility、semantic/structural概率和非网格place observation；五方法读取同一cache字节 | 不接收scenario ID；不读instance/object/teacher/future；真实小样本cache逐字段审查 | 2–4工作日 |
-| F-02 P01–P08 route survey与资格 | F-01前端、两间固定P0 house、旧grid只作路线搜索 | P01–P08共享cache证据；P04冻结DINO top-1；P08 basin→bottleneck→basin＋两端多视角fragment；12路线bundle | 失败不换house/槽/路线，不调0.70/0.85/0.35；P04/P08不合格照实保留 | 1–2工作日＋服务器数小时 |
-| F-03 路线封存与slot-0 smoke | F-02 bundle、D-212三面raw writer | 12槽路线seal；只运行slot-0/P01一次public/private/provenance工程smoke | RGB-D、内参、动作journal、私有pose/mask/entity状态完整且摘要匹配 | 0.5–1工作日 |
-| F-04 两房12槽raw | F-03通过、另行运行授权、容量探测 | 固定12槽完整raw；失败槽保留不补；每槽生成共享前端cache与绑定receipt | 12槽均有成功/失败终态；private评价仍不开 | 0.5–1工作日服务器运行＋审查 |
-| F-05 旧grid退役 | 全新cache、P04/P08重验、路线重绑完成 | 精确目标只读readiness receipt；经审后才删除明确旧路径 | 无复现依赖、无通配符、Git历史保留 | 0.5工作日；不在生成关键路径上 |
-
-到F-04才是此前所说“正式P0 raw已经生成”。按512版、不扩全量、两名标注者和无重大失败估计，从现在约 **10–18个工作日**；此前6–10日估计没有计足12维几何冻结、audit和完整production reader审查，本表用更保守且可交付的口径替代。
-
-#### C. 从两房工程raw到第一轮五方法可比结果
-
-| 步骤 | 输入 | 输出与科学作用 | 当前缺口 | 估计时间 |
-|---|---|---|---|---:|
-| M-01 raw→共同公开cache→统一图 | F-04 raw、D-213统一图/类型门 | place/entity/surface/fragment节点、五类边、候选前类型门、五种消融view | 非网格place BIND/BIRTH/MERGE生产接线尚未完成 | 2–4工作日 |
-| M-02 private teacher/evaluator | 公开候选先封存；private pose/mask/entity/route truth后打开 | 只给既有候选打标签；输出candidate miss/teacher/amortization及地点/关系/挂载指标 | P08 private room/entity只可在route seal后评价 | 2–4工作日 |
-| M-03 两房端到端开发比较 | VSMT/TAF/ELU/WFR/LOW同cache、同公开输入、D-213复杂度指标 | 12槽逐例失败表、五方法工程分数、图膨胀/runtime/memory；用于发现接口与候选问题 | 两间house不是独立论文样本，不能据此选headline赢家 | 3–7工作日（含训练/调试） |
-
-M-03是“第一份能把五方法放在同一表里跑通”的结果，乐观约在现在后 **4–7周**。它仍是开发结果，不是论文最终表。
-
-#### D. 正式训练、validation、confirmation与论文表
-
-| 步骤 | 必须先冻结的内容 | 输出 | 当前状态 | 估计时间 |
-|---|---|---|---|---:|
-| P-01 正式数据预算 | 新P0 family构造成功率、独立house数、九程序/场景覆盖、confirmation功效；不能直接复用旧36槽/旧48-12提案 | D-210～D-217兼容的train/validation/confirmation house-family manifest和总episode/帧预算 | **尚未冻结，是论文时间最大不确定项** | 科学审议2–4工作日；生成量另算 |
-| P-02 正式raw与共同cache | P-01 manifest、F/M全链通过、容量实测 | 多house正式train＋validation raw/cache/private隔离文件；confirmation只封存承诺 | 未授权 | 1–3周，取决于最终house/episode规模与构造成品率 |
-| P-03 五方法训练与有限选参 | 共同前端、候选、teacher、预算、每方法≤冻结配置数；VSMT消融同预算 | VSMT及学习臂checkpoint、TAF/ELU/WFR/LOW冻结配置、完整失败与资源receipt | 正式学习预算/seed/停止门仍须重冻 | 1–3周单GPU，需按实测更新 |
-| P-04 validation冻结 | P-03所有候选；只读validation | 最终方法/config/threshold/checkpoint选择和冻结receipt；不得再改算法 | 未授权 | 2–5工作日 |
-| P-05 confirmation一次性运行 | P-04冻结字节、私有confirmation house揭示授权 | 主指标、五headline场景macro、candidate/teacher/amortization、复杂度与失败；house-level bootstrap/配对统计 | confirmation family数仍须按P-01功效冻结 | 3–7工作日运行与核验 |
-| P-06 论文表与主张审计 | P-05不可变结果、全部失败、资源与版本证据 | 主表、消融表、场景表、失败分析、限制；只写证据支持的主张 | 若主门失败则报告no-go，不换数据/指标 | 3–7工作日 |
-
-从现在到“第一份论文级confirmation结果”的现实区间是 **12–20周**，前提是：使用512前端而不扩全量、两名标注者能连续工作、单GPU/模拟器服务器稳定、P08和正式family构造没有根本失败、P-01在两房开发后及时冻结。若扩展全部Estimator house，或正式family构造成品率低，需在此基础上增加对应周数；不得用压缩审查、打开audit或减少强对照来伪造更短时间。
-
-#### 当前最短关键路径与并行项
-
-顺序硬依赖为：`E-01 → E-02 → E-03 → E-04/E-05并行 → E-06 → E-07 → E-08 → F-01 → F-02 → F-03 → F-04 → M-01/M-02 → M-03 → P-01…P-06`。
-
-可并行的是：E-03生成完成的分片可陆续进入E-04标注；E-04人工标注与E-05算法实现/特征提取可并行；F-01代码可在E-06前实现但不能产生正式cache；P-01的候选预算分析可在M-03工程运行期间准备，但不能在看到validation/confirmation后改。不可并行越过的是audit打开、P04/P08资格、production cache和正式raw，它们都必须等最终Estimator选择与真实权重receipt。
-
-| D-210 顺序 | 输入与工作 | 输出与继续条件 |
+| 状态 | 输入与动作 | 输出与继续条件 |
 |---|---|---|
-| **P0-A D-210基线（已批准，本地main）** | D-210 合同、12 槽 manifest 核心、route seal、edge summary、adapter、metrics 和文档 | `8d6bd13`；0.25 m/90°/128 guard、无24/64科学上限、格不定义place、五个headline和oracle隔离已受测 |
-| **P0-A2 D-214～D-216共享前端（D-215已批准，D-216训练封存实现待审）** | 每个保存的公开RGB-D观察、内参、因果相对pose/belief、动作边摘要；冻结SAM/DINO、双线性semantic/structural estimator、house级训练划分与P08四数；D-216完整partition及训练artifact seal | P01–P08同schema缓存；fragment不冒充entity、place不由格或语义类定义。D-216代码可封存split/NPZ bundle/权重，但当前执行位全关、0真实权重；真实receipt受审后才可另接production reader |
-| **P0-B 两房与完整路线封存（D-214前端完成前阻断）** | 固定两house source record；旧grid只作路线搜索；D-214共享cache；12条执行前完整路线；每槽绑定真实reachable scan、public evidence、scenario receipt与私有axis-aligned起点 | 生产入口已补齐但0次真实运行；不得直接activation。先冻结并接通D-214真实资产/数值/reader，再重验P04/P08并把P01–P08全部重绑同一cache；旧P08工程语义无headline资格 |
-| **P0-C 单槽 raw smoke（D-212纠偏实现待审）** | P0-B封存产物、显式AI2-THOR/controller配置、slot 0 fresh controller | public写obs0＋逐成功动作RGB-D/内参；provenance逐动作fsync journal；private逐帧写pose＋instance mask＋entity mapping/state；失败前缀全留。当前expected implementation commit为空，仍拒绝真实运行 |
-| **P0-D 12 槽 raw 与 adapter（关闭）** | 单槽 smoke 通过后另行授权；资源实测决定最大安全 workers | 固定 12 槽 raw/provenance、关键帧、belief/edge summary 与 adapter 文件；失败不补，确定性合并；private evaluation 仍独立开闸 |
-| **P0-E 统一图与五消融接线（D-213纯核心已实现待审，数据接线关闭）** | D-213类型门/统一图/消融视图；D-214冻结cache与materializer字节 | 纯核心拒绝place RETRACT、CREATE第九原子和错误端点类型，可派生图规模；D-214真实cache生成后还须把非网格place BIND/BIRTH/MERGE接入adapter，旧coordinate scaffold不得进入主表 |
+| 已完成 | 定义公开 ObservationPacket、先前预测记忆、公开/私有/provenance 文件边界和禁止字段 | 五种方法只能读取同一公开输入；pose/mask/entity truth、teacher、future 不进入部署输入 |
 
-下面 D-209 的两项表与 D-205～D-207 状态保留为历史实现背景，不再是活动执行顺序；若其部件被 D-210 复用，必须经过 D-210 输入/动作/地点语义适配和新回执。
+### VM-02 论文机制适配器与朴素基线
 
-| 项 | 输入与工作 | 输出与继续条件 |
+| 状态 | 输入与动作 | 输出与继续条件 |
 |---|---|---|
-| **历史② 真实公开 reachable 扫描与路线构造**（D-209 已实现） | 旧 v4 的八种注册动作模板、公开可达格、干预前匿名 visibility 扫描；实体层与地点层两种 family | 可达扫描与逐步验证核心可供 D-210 适配；旧 30° body turn、64 步预算及单一 Z family 不直接进入 D-210 |
-| **历史③ 父 stage 多 worker 调度与 receipt 合并** | D-209 路线、旧 raw writer/materializer/matcher 外壳、D-205 pilot 完成度派生 | 尚未实现；D-210 后续 stage 仍须资源实测、多 worker、确定性合并和失败保留，但不继承旧 pilot 完成度选择规则 |
+| 已完成 | 在共同接口上实现 TAF、ELU、WFR 和 LOW，不复制上游源码和默认配置 | 四个对照与 VSMT 使用同一输入输出包装；正式阈值和预算留到 VM-05 冻结 |
 
-旧“②③ 完成后只剩 8 个摘要即可开 pilot”的判断不再适用于 D-210。D-210/D-212 还需审连续 pose-belief estimator、关键帧规则、真实 P01–P08 路线构造、关系 `BIRTH(ADD_EDGE)`/`RELINK` 证据和新的两房绑定；D-213须改为消费D-214冻结cache，而不是等待单槽raw后再定义前端。任何旧摘要仅在输入与字节仍相同且有显式新合同引用时才能复用。
+### VM-03 VSMT 候选、executor 与 teacher 边界
 
-
-**D-209 ② 已实现待审（当前阶段级状态）：** 新增 `vm04_reachable_scan`（真实 `GetReachablePositions` 封存成整数格键、格距由合同 `moveMagnitude` 派生、逐步可达验证遇挡即失败关闭）、`vm04_place_route_builder`（Z 路线 family：两次反向注册转弯、视觉相似走廊、**强制的后续可判别观测**、走廊 B 内非空的模糊承诺窗口）和只在 `trajectory_implementation_authorized` 之后才碰 controller 的扫描 worker。实测冻结几何恰好 50 个注册动作，64 步地点层预算给后续可判别观测留下**恰好 14 步**。顺带修掉一个使 D-207 分层预算失效的缺陷：`vm04_public_route_builder` 读的是实体层的 24 而不是按层取预算，`family_layer="place"` 此前存在但无效。合同零改动、十四个授权位仍 false、剩余产物摘要仍是 8 个；阻断项按 D-059 须经用户审查才可勾掉。**一处留给用户裁决的缺口：** 合同把 place MERGE/SPLIT 列为地点层纠正程序，但已冻结的 SPLIT/MERGE artifact 判据是实体层前端伪影的定义，用不上；构造器只接受调用者预登记的 artifact plan、绝不自行发明，因此当前可用的地点层 program 只有 BIND 与 BIRTH。
-
-> D-205～D-209 以下段落是历史实现背景；活动指针只看本文件顶部的 D-212 当前指针。证据链文档解释“主张需要什么证据”，不再覆盖本文件的当前状态。
-
-**D-207分层路线预算与provenance通道分离（当前阶段级状态）：** 活动合同为[v4](../configs/vsmt/vm04_observation_suitability_v4.json)（状态`d207_place_layer_budget_and_provenance_split_artifacts_pending`，v1/v2/v3保持原字节）。发现D-206的Z路线在D-182合同下无法表达：冻结几何按0.25 m/步、30°/步展开需要50步，而`maximum_route_steps=24`。24是为实体层短分支定的，当时没有地点层family。新增`maximum_route_steps_by_family_layer={entity:24, place:64}`，`frozen_numeric_values`逐字节不变且验证器要求分层表的entity项等于它；route plan新增必填`family_layer`。实测漂移显示同一数字也决定科学分量：24步时航向漂移横向误差约0.16 m（远小于0.5 m格，place身份永不含糊），64步时约0.50 m（恰好一个格）。**提步数的代价是成品率不是精度**——路线验收只在三个锚点逐点绝对比较、不累积，AI2-THOR离散动作要么精确成功要么被挡住失败；缓解靠每步预先验证可达，**不得放宽容差**。这与第一次VM-04失败无关：那是物体被传送进被占据位置、物理结算推出约5 cm的落点选址问题（D-169/D-171/D-172）。同时把sealed route从`public/`移到`provenance/route.json`并从公开投影去掉`initial_pose`/`planned_poses`（验收比的是私有plan），因为证据链§7把route归在provenance通道而`public/`此前同时意味着"非私有"和"部署可读"。留在provenance的`phase_observation_indices`/`branch_type`/`visibility_subject_public_ref`比pose更敏感。既有反泄漏测试对这类失明（route本就在公开侧），故另立目录不变量：部署可读字节中不得出现世界pose或phase结构。全部授权位仍为false。
-
-**D-206收回地点层oracle，首篇纳入地点身份修订（口径保留，步数上限已由D-207分层）：** 活动合同为[v3](../configs/vsmt/vm04_observation_suitability_v3.json)（状态`d206_place_layer_frozen_artifacts_pending`，v1/v2保持原字节）。发现`build_adapter_input`把模拟器真值世界`camera_pose`直接发给每个方法、`_camera_record`也把它写进公开相机记录，而CFO禁止列表未覆盖`camera_pose`与`past_actions`——地点身份不是被排除在学习之外，是被无偿给出。D-206收回该oracle：公开pose改为以观测0为原点、由注册动作推算并叠加2%声明噪声的相对位姿，真值位姿只进私有评价通道；place保留0.5 m格量子但表达在漂移的相对系里，假回环（需place MERGE）与地点混淆（需place SPLIT）第一次成为可纠正的错误；`adjacent_to`改为证据形成；确定性骨架降级为place-oracle诊断臂，不进主表；新增误差类别`place_misidentification_induced_entity_error`。Z型路线family为地点层判别原型，**必须附带后续可判别观测**，否则只检验一次性关联而非记忆修订。CFO禁止列表与probe掩码补齐pose/past-actions。公平性口径按用户判断改为"统一事务空间涵盖四类机制"＋`structural_capability_gap_argument`，共同能力子集按对报告（五方交集只有BIND/BIRTH）。本条不新增B类产物摘要，新增三条C类工程项。事前记录的代价：噪声会降低构造成品率，pilot更易触发0–3停止规则，用户在知情下选择科学分量优先，**不得调小噪声提高成品率**。
-
-**D-205一次性数值冻结（口径部分已由D-206取代，数值冻结与阻断项分类保留）：** 全部科学数值已冻结在 [合同v2](../configs/vsmt/vm04_observation_suitability_v2.json)（状态`d205_numeric_frozen_artifacts_pending`，v1保持原字节）：八种相机动作请求、`decision_time_s`规则与动作编码、L2 proposal与automatic-mask数值、公开visibility数值、按结构类型分别定值的matcher、SPLIT/MERGE几何与3次fresh replay、单一注册的CFO/history共用probe架构与预算。阻断项按性质分为A科学裁决（已完成）、B真实产物摘要（8项，凭空填写即伪造证据，保持null）、C工程接线（范围不变）。首篇口径显式收窄：place身份与place间`adjacent_to`是五方法共享的确定性骨架，因此本篇不主张地点身份修订、空间拓扑修订或对pose/SLAM漂移的鲁棒性，D-061目标保留并推迟到M2。新增pilot只报告的CFO/history早期诊断与SPLIT/MERGE成品率下限，把48–64房的风险前移到6房。pilot family完成度的机械派生已实现待审。全部14个授权位仍为false；`assert_numeric_freeze_complete`只回答"是否决定完"，不代替`assert_generation_authorized`。
-
-**VM-04固定槽原始数据服务器批次（D-176/D-180，已暂停、服务器未运行）：** 代码仍固定原两房36槽、失败全留和四个RELINK缺口；生命周期门现要求`DisableObject`即时隐藏、disabled期每个注册相机event持续隐藏，并在`EnableObject`后的下一注册相机event确认重现；失败均保留私有逐帧证据。但原32帧只有交替±0.25°原地yaw、无平移，NOOP/BIND/SPLIT/MERGE没有已实现的公开类型化结构语义，四个RELINK全为预登记失败，且只有两间开发house。故即使36/36写出raw，也只能证明writer、公私隔离、摘要链、失败保留和资源派发，不能进入L2主表或支持VSMT优于适配器/朴素基线。配置现为`run_authorized=false/generation_authorized=false/expected_reviewed_code=null`；服务器0新episode。用户已认可不运行该批。D-182/183新观察合同只获准做精确schema/实现审查；多视角raw、materializer执行/receipt外壳和公开packet/prior序列构造现已实现，但真实公开前端、共享probe结构/预算及SPLIT/MERGE构造参数仍未完成，未开放生成。
-
-**D-182新观察适用性合同（设计/数值已批准用于schema审查，执行关闭）：** [机器合同](../configs/vsmt/vm04_observation_suitability_proposal_v1.json)把初始`TeleportFull`限制在观测0之前，之后路线只由公开可达信息预登记并用实际pose验收；每个family必须同时包含“自然遮挡后重现”和“出视野后重现”分支，每个episode先满足对应程序的公开前提，再在公开封存的`occluded/out_of_view`窗口执行适用的world intervention，并从相对前提pose真实平移后的视角观察目标或关系。已批准审查值为关键/重现平移各≥0.5 m、关键yaw≥30°、每状态≥2个公开时刻、路线≤24步、pose容差2 cm/1°；严格门为按family配对的history−CFO单侧95%区间下界>15个百分点、CFO≤60%、sealed-catalog oracle recall≥90%、10000次bootstrap/seed 260916；6个pilot永久排除，48个正式house失败不补，少于32个完成family即停止。24-family且“均值≥15pp、下界>0”的省资源口径未采用，因为它不再保证历史优势下界超过15pp。固定视角worker的Enable后逐帧可见规则已标`fixed_view_worker_only`；多视角终端重现窗口仍为null，精确probe结构和训练预算也为null，因此机器合同继续fail closed且所有授权位为false。
-
-**D-183规则已批准并进入精确schema/实现审查，执行关闭：** [基础合同](../configs/vsmt/vm04_observation_suitability_proposal_v1.json)已合入70-house固定顺序、6-family pilot离散N、逐program easy-class和禁止SPLIT/MERGE事后贴标签。D-200已绑定visibility route/worker receipt与公开matcher；D-201已绑定terminal前causal prior、materializer与matcher audit；D-202已获认可并实现terminal raw加载前plan/prior seal与失败保留。D-203从public route、预登记selector和`terminal-1` memory确定派生request refs；D-204候选再增加raw观测0前的selector receipt，并让D-202 v2逐项核验和绑定D-203 v2 provenance。生产父stage尚未把这些文件接入raw writer/materializer，离线D-201也未消费在线seal，因此`temporal_seal_pending`与family阻断不变。公开前端、context builder、多帧callback、materializer v2 receipt、assets receipt、真实DINO loader和逐文件代码manifest核心均已有关闭的受测实现；尚无真实reachable扫描采集和父stage资源派发。正式SAM/assets、matcher/visibility数值、edge RETRACT跨时负证据、动作幅度、时间/动作编码、前端/bootstrap值、受审commit/manifest摘要、SPLIT/MERGE参数及共享probe结构/预算继续未冻结，所有运行仍关闭。
-
-**D-204父级selector时间seal与D-202 provenance消费候选：** 父级核心现可在raw观测0之前封存selector spec/public route/父代码摘要；D-203 v2把该时间receipt绑定到由`terminal-1` causal memory派生的request，D-202 v2再核验program、route、prior、terminal边界及全部禁止通道后绑定父receipt摘要。该链只完成纯核心和schema审查：生产父stage尚未把selector receipt写入真实raw任务，materializer也未从真实父任务消费它，离线D-201 receipt仍未升级。因此`clears_episode_temporal_seal_pending=false`、family仍false，全部运行位不变。
-
-### VM-04新数据生成前待做清单（当前执行关闭）
-
-这里的“开始生成”指首次运行6个pilot family；原静态两房36槽已永久排除，不在此清单中复活。下面各项按依赖顺序关闭，勾选只表示已有受审代码/冻结产物和通过回归；只有最后的独立授权项完成后才可运行。白话：输入是当前D-182/D-183合同和已实现外壳，输出是一条从“仍有null和注入fixture”走到“可安全启动pilot”的固定路径；它不是把测试通过改写成数据已经可信。
-
-**A. 生成合同和科学数值冻结（D-205 已完成，逐项见[合同v2](../configs/vsmt/vm04_observation_suitability_v2.json)）**
-
-- [x] 冻结八种注册相机API请求的真实参数：Move全部`moveMagnitude=0.25 m`（与公开可达栅格一致），Rotate/Look全部`degrees=30`（等于已冻结的关键pose偏航门）；禁用默认参数与`forceAction`。**在锁定AI2-THOR 5.0.0/受审CloudRendering build上只验证API语义的smoke仍是执行前必需，尚未做。**
-- [x] 冻结公开packet时间规则与动作编码：`decision_time_s`为名义注册动作时钟（观测0为0.0 s，每动作+1.0 s，显式标注非墙钟/非物理时间）；动作编码为9维——8个按名排序的one-hot加一个"观测0无注册动作"标志位，互异、无幅度分量、不含private/program字段。
-- [ ] 冻结完整materializer config：匿名mask、DINO descriptor、entity geometry、surface/place/free-space、关系阈值、entity/surface/fragment bootstrap、公开常量和builder摘要一次性定值并签`config_sha256`；不得从生成结果反调。（数值部分已由D-205冻结；`config_sha256`属B类产物摘要，须对真实config文件计算。）
-- [ ] 实现并审查L2公开proposal前端：只从公开RGB-D产生entity proposal，给CFO/history门和五个L2主臂提供同字节packet；当前instance-mask前端明确只作L1 oracle诊断，L1结果不得开放L2主表。
-  - D-199候选已实现当前公开RGB单帧无提示proposal边界、receipt及L2 packet materialization；D-205已冻结196像素/每帧至多64个/NMS关闭（保留重叠proposal）等数值；真实SAM loader、commit/checkpoint、assets receipt和用户代码审查仍缺，故本项不勾选。
-- [ ] 冻结DINO模型资产与执行环境：明确模型仓库commit、checkpoint摘要、Python/Torch/NumPy/CUDA及AI2-THOR/ProcTHOR版本，补环境回执；真实assets verifier须在服务器核干净仓库和checkpoint字节，不能只信文件名。（B类产物摘要。）
-- [x] 冻结SPLIT/MERGE确定性构造：`fresh_replay_repeat_count=3`，远/近pose与几何全部显式，伪影判据只在冻结L2公开proposal mask上测量、覆盖度0.5、private mask仅作封存后覆盖度量；伪影未复现只记construction failure，不换标签、路线或house。另按D-205新增pilot成品率下限（SPLIT/MERGE各需≥3个pilot family全部replay复现，否则在正式生成前记录该原子降为描述性）。
-- [x] 冻结CFO（Current-Frame-Only，当前帧诊断器）与public-history probe共用的唯一架构、优化/训练预算和输入mask规则：`shared_region_set_transformer_v1`，256维/2层4头/FFN512/mean pooling/9类，CFO与history参数量完全相同且唯一差别是mask；AdamW 3e-4、batch 16、4000步、seed 7·19·31，**只登记一个配置、不做任何选择**，因此不再需要预留选择family。新增只在6个pilot family上运行、不可用于任何选择的报告型早期诊断。
-- [ ] 冻结开发family与confirmation隔离规则：70-house来源池只能来自允许的开发来源，confirmation家族保持不可见；6个pilot及64个formal候选的确定顺序必须在pilot前封存。（规则与派生代码已就位，实际封存须在取得真实来源清单后执行。）
-
-**B. 真实构造链实现与代码审查**
-
-- [ ] 实现真实公开reachable-position扫描和路线候选生成：从同一house的公开可达格、RGB-D、camera pose/calibration及已封存匿名subject/locus产生路线；不得读取私有ID、program结果或失败后换路线。
-- [ ] 把当前注入式`public_capture`替换为生产visibility builder：逐帧仅用公开RGB-D/depth/pose和先前封存公开track/locus产生`visible/occluded/out_of_view/reobserved`与证据摘要，并实现自然遮挡、出视野及连续终端重现的真实验收。
-  - D-199候选已实现公开世界点封存与当前depth投影核心；D-200已把builder receipt接入route scan和worker并在private intervention前验subject/config/index/depth/camera/assessment摘要。正式数值未冻、生产callback仍未替换，故仍不勾选。
-- [ ] 实现九类program的公开前提构造与验收：NOOP/BIND及生命周期类须有对应公开旧记忆条件；SPLIT/MERGE只走上述预登记确定性几何；不能用旧静态worker的private target规则或事后标签。
-  - D-199已实现九类结构前提和SPLIT/MERGE回执，D-200已实现公开matcher和route receipt绑定，D-201/D-202已绑单episode audit与terminal前plan seal。D-203覆盖九类公开selector→current version refs的确定派生，D-204候选补selector提前seal与D-202父receipt摘要消费；RELINK唯一复算open `located_at`，edge RETRACT仍阻断。生产父stage/materializer文件接线、D-201在线seal消费、正式matcher数值和family聚合仍缺，故仍不勾选。
-- [ ] 把当前注入式`private_intervention`替换为生产执行器：BIRTH/REACTIVATE/RETRACT/REPLACE逐动作保存真实API回执和后态；动作只可在已封存`occluded/out_of_view`窗口发生，失败保留且不补样。
-- [ ] 完成新RELINK物理路径：动作前由公开旧关系、可达格和匿名目标封存P1/P2及有限分支；执行不强制推/拉或经真实API smoke的抓放，逐步保留失败与真实后态。正例仍须同时满足同一物理实体、公开旧关系和公开新关系，原D-173四个碰撞槽不得回填。
-- [ ] 把raw→context→真实DINO/公开前端→packet/crosswalk→causal prior→materializer v2 receipt接成一个生产episode单元；crosswalk只含机械`observation_index`，部署reader不得打开private文件。
-- [ ] 实现父stage批量派发和确定性合并：先做单worker资源实测，再按CPU、GPU/显存、RAM、磁盘、I/O和并发安全性选择最大安全worker数；记录requested/actual worker、分片、设备、退出、资源依据和固定合并顺序，不设墙钟强杀。
-- [ ] 实现完整失败/续跑/复验/匿名导出：保留每个固定family的`complete/failure/not_started`与已写前缀，禁止覆盖和静默重跑；verify重新核全部公私摘要，export只输出不含ID/私有错误文字的计数与缺口。
-- [ ] 补生产边界测试和一次独立代码审查：覆盖私有字段变异、未来/teacher不可达、动作失败、遮挡误判、crosswalk错绑、源码/config/model篡改、部分写入、重连续跑及并行确定性；人工fake controller结果不能替代服务器smoke。
-
-**C. 受审字节与pilot开闸前置产物**
-
-- [ ] 用户审查上述单职责提交后冻结精确Git commit；用已实现但当前关闭的`seal-materializer-code`生成并复验逐文件源码manifest，把其摘要及正式config摘要写入新冻结合同。此步骤须另开`materializer_code_sealing_authorized`，当前仍为false。
-- [ ] 在精确干净checkout执行只读`check`：核代码manifest、合同/schema、环境、DINO assets、source manifest及磁盘/CPU/GPU可用性；保存check receipt，任何旧两房marker不得复用。
-- [ ] 经单独授权后封存70-house来源池及6+64固定顺序；只读source inventory不能观察构造成功率、program标签、private身份或confirmation家族。当前`source_pool_sealing_authorized=false`。
-- [ ] 生成前最终审计确认所有`pre_generation_blockers`非null、全部期望摘要匹配、父stage实为多worker且失败保留、0个confirmation输入被打开；随后用户只按6个pilot所需范围开放`trajectory_implementation_authorized`、`route_plan_sealing_authorized`、`route_assessment_authorized`、`materialization_authorized`、`pilot_execution_authorized`和`generation_authorized`，formal、private evaluation、identifiability preflight、训练和confirmation继续关闭。
-
-**D. pilot之后、正式开发数据生成之前**
-
-- [ ] 只统计6个pilot的构造完成布尔和工程失败：完成5–6个选固定formal前48，完成4个选前64，完成0–3个停止；不得看CFO、history、oracle或逐program效果决定N。
-- [ ] 若pilot暴露需要改变路线、visibility、动作、前端、SPLIT/MERGE或资源规则，开新数据版本并重新审代码/合同/正式house列表；不得在同一版本热修后继续。
-- [ ] 按离散规则填写`source_houses_to_attempt`，由用户先开放`formal_selection_sealing_authorized`生成并冻结formal selection manifest及其摘要，复核formal与pilot不相交、失败不补、少于32个完成family即停止；再单独开放`formal_execution_authorized`，其余下游授权仍关闭。
-
-以下工作不属于“开始生成前”的开闸条件，但属于生成后进入VM-05前的验收：逐program私有语义评价、sealed-catalog oracle recall、CFO/history按family配对的严格可辨识性门、easy-class标注、至少32个完成family、候选/teacher分层错误统计。它们不能反过来修改本版生成规则或补样。
-
-**当前用户交审拆分（按D-059停止继续堆叠）：** 用户审查整体审计后接受五条建议并给出优先级"先生成数据再看缺陷"，D-205据此交审：合同v2的全部冻结数值、阻断项A/B/C分类与`assert_numeric_freeze_complete`、首篇place口径收窄、pilot只报告诊断、SPLIT/MERGE成品率下限，以及pilot family完成度的机械派生实现。它不取得真实SAM资产、不实现生产父stage/raw writer/materializer文件编排、不升级D-201离线消费、不封存来源池，也不改任何授权位。下一批须等D-205审查后，按证据链§10.2的B类（真实产物摘要）与C类（工程接线）顺序推进；仍不得越过B类null摘要、edge RETRACT证据缺口或未审时序链去聚合family或开放运行。
-
-
-**独立RELINK新数据版本（proposed，D-176停止线未重开）：** [方法与正反例](METHOD.md)和[拟议公私字段](DATA.md)已记录机器人实际路径、公开旧/新关系、候选先封存及私有同一身份/后态的分层验收口径。输入只能是公开当前RGB-D、此前预测记忆和预登记动作；输出须分别报告物理失败、事务前提缺口、公开证据缺口、candidate miss和executor/teacher错误。例如原四槽仍保持碰撞失败，独立新版本即使找到一条推椅子到P2的路线也不得回填原槽。该版本尚无冻结配置、公开容器读取器、真实`PutObject` smoke、可执行机器人RELINK回执或记忆正例；执行新分支仍需单独裁决和代码审查。
-
-**D-177已定的标签口径：** 物理RELINK正例要求事后确认同一物理实体，并有公开旧、新关系证据；不合格原因分层保留。该必要条件已有[独立评价硬门](../ops/vsmt/vm04_relink_positive_gate.py)和人工正反例供审查：公开旧包/prior/新包先封存，随后分别用trusted L1私有crosswalk把前后instance绑定到公开entity mask，再让私有身份/后态参与全真判定；尚未接真实stage、候选/executor或发标签。在线QUARANTINE不能读取私有同一身份结论，弱公开证据暂存原则已由D-178批准，具体数值门未冻结。此口径不开放D-176原槽的新动作或独立版本运行。
-
-**D-178在线暂存原则已定、数值门未定：** 可归属的弱公开证据不足以提交时暂存pending且persistent world不变；物理失败和事后私有身份不连续只分层记录，不自动QUARANTINE。输入限公开当前观察、先前预测记忆与封存候选，输出待定证据和不变世界；例如只见凳子边缘可留下匿名线索，不写P2关系。它不等于已实现在线gate或开启新RELINK数据版本。VM-04固定槽raw现有[只读逐帧验证器](../ops/vsmt/vm04_fixed_slot_raw_verify.py)与父入口`verify`步骤，`export`需同版验证marker；D-180已重新关闭raw配置，服务器未运行。
-
-**D-176代码实施前的审查结论（历史）：** D-175 runner只是人工事件纯核心，缺真实公开类型容器来源和公私文件封存、原source/pose/slot核验、fresh controller与资源/出口回执，不能作为VM-04两房原始数据的依赖或真实交互证据；19个推拉/抓放能力分支和固定build`PutObject` smoke暂不运行、不追加探针。用户现批准原36固定槽一次构造，完整raw/`raw.failure`/硬资源`not_started`全数保留，RELINK原四槽已知碰撞按失败及覆盖缺口登记，不换目标、pose、动作或house。v2合同本来没有36/36有效样本门，但旧生成worker仍用可见instance mask选择建筑结构并强制传送RELINK，旧private construction评价还用私有ID给NOOP/BIND/SPLIT/MERGE定成立，旧stage执行位不能解；下一独立代码职责须绑定已审v3作者目标选择、公开非干预结构证据和已知失败前缀，交审后才运行新stage。0新episode，0训练/validation/confirmation。
-
-**D-175当前指针：runner审查核心已落地，本轮只审代码。** 用户认可公开容器证据、锁定AI2-THOR 5.0.0/CloudRendering已审build的独立`PutObject` API smoke规格和20/80/160 N推拉力档。原四槽固定；三件仅可移动目标的推/拉×三力为18个fresh-scene分支，另有一件仅可拾取目标的抓放分支，结果不得挑赢家。`vm04_relink_interaction_runner`把公开路线/类型化容器区域先封存，私有ID仅供封存后模拟器动作；通用L1 surface不能冒充容器。现在只有本地人工事件纯测试，**真实固定build smoke、公开类型化容器读取器、路径容差、完整stage父入口/资源派发/匿名导出及用户代码审查尚未完成**；原proposal所有运行闸门仍false。不得用纯测试的`PutObject`父容器模拟结果替代真实API receipt；本轮不登录服务器执行动作，生成/训练/validation/confirmation继续关闭。
-
-**D-174当前指针：只设计固定两房原四槽的真实交互能力探针供代码审查，服务器已关闭。** D-173四槽固定x+0.5 m端点均明确碰撞拒绝，原规则不能进入新生成；原私有能力字段仅作本探针模式分流：三槽`moveable=true/pickupable=false`走推、拉独立分支，一槽`pickupable=true/moveable=false`走抓取、放置；`moveable=false`本身不证明其他推力动作绝不可用。新提案把匿名L1可见区域+公开可达格用于**靠近目标**的单一路线，实际导航仅执行旋转/移动，原house/pose/target/slot不换；物理动作不强制，各阶段真实后态单独核。放置目标的公开类型化容器读取器、固定推拉力档、抓取`manualInteract`、放置物理结算及路径容差仍待审和固定模拟器API验证，提案执行位false；完整episode生成、训练及记忆语义标签继续关闭。不能把iTHOR抓取的手前传送称为连续物体路径，也不能用私有容器ID悄悄代替公开结构证据。D-170旧关闭worker/旧失败产物继续保留。
-
-**D-168已批准且只开放固定两房v3新目标动作探针。** 用户审过`fe8b725`、认可5 mm真实终态位置容差、4倍RSS/2倍观测显存安全线以及`forceAction=true`的RELINK仅作碰撞未核验能力诊断。两份v3配置只改`frozen_target_probe_only/frozen_probe_only`状态、探针执行位和受审代码SHA，生成/训练仍false。已在精确干净冻结提交核旧v2扫描/计划/source与环境资源，重新运行同版三worker纯`check`，再在唯一新stage先做单worker零干预资源测量；通过后已并行两house family原36槽，保留所有原槽失败并匿名导出。不得重用`fe8b725`旧check marker冒充新冻结提交的检查，不运行旧D-164探针或新episode；动作探针结果不成为记忆标签或数据验收。
-
-服务器`check`是可在精确干净代码提交和资源核验后单独运行的纯测试步骤，不创建动作probe stage，也不打开模拟器干预；此前已在隔离服务器worktree按精确提交fe8b725完成：3个worker、43/43纯测试，回执SHA-256为594e5435bb255a13aefa66aad9013449cc289b72e637efed0a7ff917252ca6f7。D-168探针执行闸门现已由用户批准，但该旧marker不能代替新冻结提交的`check`。
-
-**D-167新目标动作能力探针已写成独立、已审且仅探针可执行的批次。** [新配置](../configs/vsmt/vm04_target_action_probe_proposal_v1.json)、[父入口](../ops/vsmt/vm04_target_action_probe.py)与[私有family worker](../ops/vsmt/vm04_target_action_probe_worker.py)绑定D-166 v3合同、v2扫描回执/计划、原两间house与36个固定槽；本轮已按`contract→check→run→export`顺序核验并复用，当前可调用无需stage的`contract`和本地纯测试，`run/export`现受D-168执行范围和前置回执/资源条件约束。三组纯测试入口预设并行；未来`run`先用family00原slot00只建场景/TeleportFull、0干预的单worker测峰值RSS，要求剩余cgroup RAM至少为测得RSS的4倍、在场景预检运行时采样逐GPU空闲显存并要求派发时同设备不少于观测下降量2倍且不低于8 GiB，再复核CPU配额/GPU/磁盘，才并行两个独立family动作worker；没有预设墙钟强杀。不按结果换目标、pose、house或调D。私有逐槽记录注册相机和外界动作的诊断及干预后mask/metadata状态，公开报告只导出程序/状态次数、匿名重复次数与摘要。静态资产的记忆历史、NOOP/BIND/SPLIT/MERGE公开类型化区域、L1 oracle分流和RELINK碰撞/可达性都**不由这个动作探针证明**；尤其注册`forceAction=true`的RELINK只能报告动作与位置吻合、碰撞未查。5 mm终态位置容差、4倍RSS与2倍观测显存安全线已由用户认可、仅用于探针的工程数值，不作为记忆评分阈值。D-168用户已审代码、服务器纯check通过且仅两房探针获准执行；生成/训练/validation/confirmation继续关闭，原D-164探针及旧stage不变。
-
-**D-166四项目标语义已获用户明确裁决，D-168现只开放两房动作探针。** v3合同状态为`frozen_target_probe_only`：物理RELINK只用可移动/可拾取的作者资产；静态作者资产仅可作为待核验的可见性生命周期干预目标，动作与终态已有D-168两房真实探针诊断，记忆历史核验仍未实现；NOOP/BIND/SPLIT/MERGE只用公开类型化区域证据；L1仅实体区域用匿名oracle，结构仍从公开证据产生。目标选择纯函数从已验证合同读取196像素、REPLACE两目标和五个物理干预程序，不再二次维护数值。固定两房/v2 pose、D=1.0 m、重复只报告不变；新目标动作worker已在D-167审查批次实现，已由用户审过fe8b725，仅D-168新目标动作探针闸门true，episode生成、训练及效果闸门继续false。旧v1/v2配置的两个65位manifest字段已登记erratum，不改旧字节；原两个单worker只读报告也保留真实旧回执，不事后补虚构worker数，未来需要新版本并行只读重放。现以LOG-159保留动作回执并按D-169登记资源勘误；不得用旧D-164墙面目标探针。
-
-**D-165已证实的阻断项：固定两房的目标来源边界错误，原D-164动作探针暂停。** `D=1.0 m`与“目标重复只报告”不变。旧16个完整episode的首目标均不属于作者`house.objects`，旧20个失败无逐动作诊断；v2纯扫描72个top-2条目中70个不是作者物体。原探针入口已添加先验来源检查，扫描目标含建筑结构时在创建controller前拒绝执行，配置状态为`blocked_invalid_v2_scan_targets`。 [根因报告](../results/vsmt_vm04_root_cause_audit_v1.json)绑定旧generate/verify与v2扫描回执，0模拟器/0干预/0新episode；[固定pose资格报告](../results/vsmt_vm04_target_visibility_audit_v1.json)仅重建场景与相机移动，36/36槽均有至少两件可见作者资产和至少两件可移动资产，[匿名重复报告](../results/vsmt_vm04_target_repetition_audit_v1.json)只计数不改目标。后续只可按D-168固定两房范围执行新目标动作能力探针；不得把v2墙面目标探针成功或失败当成有效事务证据。完整生成、训练、validation效果和confirmation保持关闭。
-
-**v3新目标边界已完成关闭式语义合同、条件化验证器与纯私有物理干预目标选择函数，尚无生成worker，动作worker已由用户审过并在D-168仅探针范围开放。** [v3合同](../configs/vsmt/vm04_target_boundary_proposal_v3.json)固定两house/36 slot/D=1.0 m/v2 pose和不按private资产重新选择视角；[选择函数](../src/vsmt/vm04_target_selection_v3.py)仅给BIRTH/REACTIVATE/RELINK/RETRACT/REPLACE读取已验证语义和数值后筛作者资产∩当前metadata真实position。NOOP/BIND/SPLIT/MERGE不发物理动作，公开类型化实体/结构观测规则仍待实现与审查。四个科学字段已按D-166批准值填入，但只有D-168目标能力探针位true，生成/训练位仍false；当前`frozen_target_probe_only`仅授权两房新目标动作能力探针，完整生成仍需新版本及授权。这个合同不冒充已经修复并验收的36条新episode。
-
-**D-162当前指针：v2固定两房、D=1.0 m纯视角扫描已完成，完整生成仍关闭。** 受审`67099f2`合同252/252、两个family各选18个、0 episode；[报告](../results/vsmt_vm04_viewpoint_scan_v1.json)SHA-256=`575d34d0…089f32`并已本地复算。原前18在两房都来自18个位置，反驳“全在小簇”的推断，但原最小两两距离均0.25 m；空间去重提升间距和双目标集合多样性，单目标top-1仍重复10/11次。输入为原两间house和公开物理mask规则，输出仅是位置/支持与私有目标的匿名汇总；这不是episode、记忆地图、事务候选或训练结果。旧v1合同、原stage及20个失败不动，v2 `generation_authorized=false`、`private_audit_authorized=false`，train/validation/confirmation继续关闭。下一步需审重复目标与动作能力诊断的科学含义，再决定是否另行批准生成；不按扫描结果自动改D、换house或放开失败门。
-
-**D-163运维修复已获服务器合同回执。** 实际代码仓库为`/root/Emboddied_Spatial_Memory`，来源checkout与原planning stage经只读发现，原主checkout的未跟踪旧审计报告未覆盖；独立干净worktree在`67099f2`运行三组并行合同测试，requested/actual均3、全部退出0，按executor 42→L1 31→VSMT 179固定顺序合并。正式scan requested/actual均2、全部退出0、679.7秒；输出目录和worker回执留在数据盘。报告导出到审查分支，完整生成及下游步骤均未启动。
-
-VM-05同时只做readiness准备：D-157区分VSMT/DRCR/NECS梯度训练与TAF/ELU/WFR/LOW/PHR有限配置选择，正式架构、网格、训练步数和seed仍须等失败归因与数据覆盖审查后冻结；当前不得启动训练或validation效果运行。
-
-**D-155正在完成真实source house的最后一个生成兼容点。** D-154内存升级已让两间房成功创建223/136个对象；AI2-THOR仍须先把agent放到house登记pose，才能成功返回可达点（首房实测1299个）。当前加入该确定性bootstrap，再执行D-153匿名视点搜索；新HEAD、新stage只有产生非零完整raw episode才继续materialize/seal/private/verify/export。前两个失败stage、固定house/slot均不变，训练、validation效果、confirmation和L2仍关闭。
-
-**D-147已完成实现、服务器固定入口与回执绑定：公开边create/bind不再允许调用者抑制模板；无模板骨架邻接改走先验验证的专用入口，非受信任create/bind及受信任非邻接三类失败均保持revision逐字节不变，捕获异常后`finish`仍是真NOOP。**协议/实现/运维绑定提交依次为`0be2854`、`122cea6`、`74161b6`；服务器在受审`33aec1c`上通过executor 42、L1 31、VSMT 106共179项及61关系边/6候选/9桶/0截断/341可见截锥smoke，[工程报告](../results/vsmt_vm04_l1_capacity_scaffold.json)摘要为`b5918086…c68eff`并由`7641509`回传。D-144工程基线已绑定该代码与报告；2-house提案仍不可执行，来源inventory、审计实现/运行、生成、private、训练和confirmation均未授权。
-
-**D-146按GPT审查续修并待复审：不记模板的边操作只保留给受信任确定性包装，骨架相邻补齐跨帧坐标邻接（对角不相邻），共同post-update审计升`v2`，新stage五个receipt/success schema改名，机会可靠性阈值加不得下调条款；逐版本模板归属暂缓并登记为五方法主比较前的阻断项。**本地executor 42、L1 31、VSMT 104共177项与smoke干跑通过，仍未推送。
-
-**D-145实现已在本地完成并待用户/GPT审查：候选严格截断改为与枚举顺序无关，place间`adjacent_to`归入确定性骨架，共同审计标注result级语义放宽，D-144提案同步收紧inventory前置步骤、机会次数不得下调、entity RETRACT recall按0.02/0.05分档、protected拓扑仅作评价期指标。**本地executor 42、L1 31、VSMT 101共174项与smoke干跑通过，合成packet候选目录从26项/截断40项降为6项/截断0项；固定入口改用新stage `vsmt-vm04-l1-capacity-scaffold-v1`，服务器回执与D-144工程基线摘要待重新取得。本地通过不代替服务器验收或D-059代码审查。
-
-**用户在D-143回执交付后回复“继续”，按上一轮明示推荐口径登记为认可D-140～D-143工程基线，并只授权制定2-house开发审计数值；[D-144提案](../configs/vsmt/vm04_l1_two_house_audit_proposal_v1.json)现为`requires_user_review_not_executable`。** 推荐固定两个来源哈希预选house、36个episode/1,152帧、三个仅供容量边界的类型化关联profile、cap 16/32/64、审计临时包络0.9＋2 cm、连续3次0.9可靠机会、SPLIT/REPLACE资源护栏6/729/32、两个family worker、前台1800秒和4 GiB stage上限。正式阈值继续为null；先只读封存source manifest/license，再实现并审查固定入口，均须另行批准。当前0新来源读取、0模拟器、0数据生成、0训练、0private/confirmation访问。
-
-## 上一 D-062 路线（暂停，以下保留复现）
-
-### 原目标与授权
-
-2026-09-11 用户认可严格成对的空间历史候选，并明确“可以，开始吧，必要的时候重构整个工作区”。当前开始执行；持久三维状态和动态预测不预设为创新，CTL 不预设为新机制。旧科学 no-go、test 封存、源码和结果原路径保留。
-
-白话：先让两个世界的近期输入相同、旧观察揭示的隐藏结构不同，再看同一控制的后果预测和动作选择。例如推杆把物块推向此前见过而当前不可见的挡板；模型应利用过去分清受阻和通过。这不是给出物块未来运动再生成图像，也不是立即建设通用机器人。
-
-D-059 的逐职责代码审查继续有效：当前批次可实现及做必要服务器工程测试，用户审过后才进入依赖它的下一科学批次。仅执行已确定的本阶段，不提前写未确定模型/损失/预算。
-
-## 分阶段交付
-
-| 步骤 ID | 输入与工作 | 输出、继续条件 |
+| 状态 | 输入与动作 | 输出与继续条件 |
 |---|---|---|
-| SH-01 成对数据合同 | 已认可的候选；实现严格字段/时序/成对校验和模型输入提取，提供手工正负例 | 可读提交、具体输入输出、服务器回执；用户审查当前批次后进入 SH-02。不是物理案例 |
-| SH-02 物理生成器 | 已审合同；选择并固定模拟器版本、坐标/相机、控制器/饱和、物理参数、接触语义、场景和观察路径 | 单职责模拟器实现及必要服务器测试；真实快照恢复、控制执行、渲染和重放。实现审过才生成开发审计案例 |
-| SH-03 小规模物理审计 | SH-02 审查与工程通过；D-065固定16对开发世界，64条不同分支及64次独立重放，不因结果增样本 | 完整场景、快照、原始传感器、原始轨迹、失败、可视化和来源摘要。16对全部满足原物理/输入条件才通过；必要修复新版本，不覆盖 |
-| SH-04 研究问题与基础对照协议 | 物理审计通过；先核查近邻/旧架构及场景信息需求，再固定划分、监督、对照、评分和预算 | 基础架构、原论文设定核验、任务适配分别交证据；D-068暂停v1实施，不以首帧可解模板承担主结论 |
-| SH-05 复现并定位失败 | 已审基础对照与服务器检查；保持相同数据、信息与动作选择规则 | 逐例预测/接触/动作效果、独立场景组成对统计、成本。短历史的必然失败不算新发现；强对照成功则如实收口 |
-| SH-06 决定改进机制 | SH-05 确认并复现的具体失败 | 单一机制假设、对照与预算；不预先绑定 CTL，不靠扩场景/模型追正结果 |
-| SH-07 独立确认与交付 | 前阶段已审方法和冻结协议 | 未见场景确认、适当现实来源验证及论文/artifact；目前均 planned，不能视为已授权 test 解封 |
-
-SH-03预算由D-065固定：128次4.9 s模拟执行，新产物2 GiB，按案例边界检查；预计5–10分钟前台，实际耗时待服务器记录。SH-04及以后不预设训练规模、模型架构或实验胜者。测试与计算仅在服务器；本轮D-090/091按用户授权由代理直接SSH执行。本地只做源码、文档、Git和标准库静态核查。
-
-## D-062 暂停指针
-
-**当前R4-4三模型工程接通已验收，进入R4-5学习合同与资源审查。** 用户选择DINO-WM替代PointWorld，当前三条为DreamerV3(D)、FloWM(F)、DINO-WM(W)。D16/W17/F19项完整121历史/200未来及反向传播全部通过，分别回传6a150e2/5813ff5/3167fd9；W公开DINOv2严格加载，原计算与缓存的值/梯度对拍通过，用户无需另行下载。D-096真实接口报告209bb34已核验：原清单首条公开历史、27模型-候选/162原始推演/200步全部完整，33证据和57原源码绑定一致，0训练/0真值读取；LOG-127明确engineering_ready=true、trained_model_ready=false。
-
-前端v2r1名义工程验收81bceed仍有效：16历史/144名义预测/16选择完整，误标占据/自由为0；物块平均误差9.59 cm、接触Brier0.1152，16世界名义选择恰好均选中真实成功动作，但全144分支涉及未知扫掠，formal_model_ready=false。它不证明地图完整或正式M可用，LOG-121保留实际缺口。
-
-用户的持续SSH/接三模型及系统盘授权按D-091–096执行，旧CPMT数据未删，原PLAN局部编辑保留。之后R4-5先对齐现有训练提案：原protocol_r4_v1仍含P/64像素/4候选，与当前W/80像素/9候选不一致，不能直接成为训练入口；需要可审的统一学习合同、容量/预算与阶段入口。既定L/R/M强对照、训练充分性和E1–E4仍必需，不能凭三模型随机前向启动主张。24小时在线窗口不等于拟议56 GPU小时已批准；确认集继续封存。
-
-已完成证据：[SH-03/v2报告](../results/spatial_history_development_audit_v2_wall_clearance.json)为12项/16对通过，原科学提交57d01aa、报告ce5b3f1，LOG-107；原v1失败保留于LOG-106。它们只供工程/输入审计，不能拆分成训练/确认。当前协议文档有新增内容，不借旧SH-03回执认证；旧产物按原代码/合同摘要复用。
-
-### SH-04交付与继续条件
-
-白话：先确认题目确需整合历史，再给成熟架构和已有方法公平机会。例如两个视角分别提供几何证据，需要检验单帧不足，以及公开历史能否恢复可用几何；这不是为了让检索失败而堆长视频。旧SH-03只保留原工程证据。本批复用既有隔离环境，阶段开始同步一次，下方命令顺序运行。
-
-| 职责批次 | 固定工作与读写范围 | 输出与继续条件 |
-|---|---|---|
-| SH-04-R1 文献与旧架构评估（已交付） | 原文/官方源码与旧实现/结果只读核查，更新现有文献索引与方法边界 | 直接重合、真实输入/监督、可运行资产、旧模块复用边界；阅读不当作复现 |
-| SH-04-R2 场景可识别性合同（工程验收及用户审查通过） | D-070/D-071的代码、完整运行与只读验收已交付，用户于34121aa后要求下一步 | 已审批次合并main至cd31dd1；固定构造证据见LOG-108，公开几何正向对照及正式连续组合仍另审 |
-| SH-04-R3 公开输入及论文资产核验 | R2合同审过后，按职责交公开输入/标签隔离、原SH-03视觉读取、独立环境及官方版本锁；依D-073先审DreamerV3后果评分、PointWorld三维动力学、FloWM历史记忆的适配条件，不再默认先运行DINO-WM | 先形成输入/动作/监督/历史/读出与资产差异清单，再审具体运行职责及资源；前向、官方checkpoint重评、原训练复现分列。条件不符或资产缺失如实登记 |
-| SH-04-R4 公平对照与数据/评分冻结 | 前批审过后交完整历史、RSSM、合法检索、共享地图/动力学及论文适配接口；按D-075冻结主体/探针的独立学习预算和诊断读取位置 | 信息/标签一致；历史/未来时序、接触与选择评分、误差容差、家族划分及统计固定，必要服务器检查通过；旧96对/18次不沿用 |
-| SH-05 复现失败与定位 | 三条独立适配与必需强对照进入同一历史→控制后果→候选选择流程；按已审条件报告成功、失败及感知/历史/控制/动力学/读出归因 | 保留各方法原机制诊断；适配或训练不足时结论未定。简单方法足够则收口，只有定位且重复的失败才进入SH-06 |
-| SH-06/07 单一机制与独立验证 | 一次只改对应失败的一处；后续在独立公开具身任务/来源核验适用范围，具体来源待审 | 不能只靠同一生成器的小参数变化支撑通用主张；不承诺会议录用，不扩第二应用领域或解封旧test |
-
-资源落实先只读核验实际GPU显存、系统/数据盘可用量与租赁配额，再按精确文件选择权重和依赖。旧MuJoCo环境及CPMT数据保留；新依赖独立。候选论文方法的完整适配成本尚未实测，不能承诺旧6 GPU小时容纳新增比较。首次资源核验和小样例预计短任务，默认前台；具体运行预算随该职责冻结。
-
-R2原**预算已获D-070批准**：1个工程家族、4世界、每世界1条真实历史、16条首次控制分支及16次新实例反序重放；0训练步、0新权重下载，复用旧隔离环境。新数据上限2 GiB、生成墙钟上限30分钟；实际耗时见LOG-108。必要检查单独计时，不把其短零控制夹具算入16条完整执行；预算不转借R3训练。
-
-首个Linux运行目录`/root/autodl-tmp/spatial-history/sh04-r2-two-gate-engineering-v1`已在`history-LL`前失败并封存，先导出诊断，绝不覆盖或重跑。D-071的新目录为`/root/autodl-tmp/spatial-history/sh04-r2-two-gate-engineering-v1-lfsha1`，报告为`results/spatial_history_two_gate_engineering_v1_lfsha1.json`；check通过才允许run。每步封存退出/manifest后再启动下一步。完整物理/信息审计失败仍保存固定清单全部结果，运行异常或预算到达则停止并标清未运行项。写前字节预检及父进程墙钟/磁盘监控持续生效，含静默子进程；保留1 MiB给失败证据和manifest。终检计入生成时间。失败和无回执的中断拒绝自动重试/覆盖，已封存成功步骤按原绑定复用；独立重放不是新增样本。
-
-工程只报告来源/物理/观察/动作信息是否成立。数值审核不等于科学代码审过；R3公共RGBD几何恢复和R4观测地图动力学正向对照缺失时，不能把工程通过升级为“完整历史足够”或启动未授权的模型效果实验。
-
-原[baseline_protocol_v1.json](../configs/spatial_history/baseline_protocol_v1.json)保留原数值供审查，状态为requires_revision_not_executable且training_authorized=false；该旧提案没有数据/下载/训练授权。D-070只批准新双门工程批次。后续学习曲线检查不能成为无限加算力或挑最好种子的入口。
-
-未来SH-05仍先在train/validation完成登记选参，再锁定模型/算法/数据/评分；confirmation在该阶段授权后才生成并评估，不能用其结果修方法。原50 GB数据盘中的CPMT数据与SH-03失败/通过产物均保留。新主张范围随证据决定，不预设持续3D、CTL或某个架构必胜。
-
-SH-05按D-074保留DreamerV3、PointWorld、FloWM三条本任务适配路线；D-079已交适配/训练规格提案，实现和运行环境仍待核验。D-073核查见[文献记录](../literature/notes/spatial_world_models_2026.md#reviewed-baselines-20260912)。DINO-WM保留为有条件的视觉特征预测参照；ParticleFormer因官方实现未核得而暂不承诺复现。长历史预测器、合法历史检索、地图加简单动力学仍是必需主对照。正式比较前逐方法登记作者commit/checkpoint、原任务重评、改动、完整历史覆盖、监督与评分、训练充分性和预算；仅有论文名字不满足进入SH-05的条件。
-
-源码审核发现的缺口已纳入[D-079三份适配合同](METHOD.md#r4-adapters)：PointWorld的历史地图/特征、控制到机器人运动及长推演；FloWM的连续相机/独立推头控制及后果目标；Dreamer的RGBD、完整历史和离线世界模型职责分离。三仓库审查commit及权重元数据已记录，均未运行。实现按依赖逐职责交付，不因难度将其中两条移出本任务；合同登记不代替科学模块审查。三系统先独立比较，之后仅针对已定位的错误审查模块组合；FloWM记忆＋PointWorld动力学是示例，不预定最终架构，不启动全排列实验。
-
-D-075诊断实验包括E0公开几何恢复、E1编码/保留读出、E2同控制单门配对、E3全时域推演、E4成功读出与选择。方法见[METHOD](METHOD.md#history-use-diagnostic)，字段见DATA。E0使用D-078[并行活动配置](../configs/spatial_history/public_geometry_parallel_v1.json)，原D-077串行配置与D-076[数值提案](../configs/spatial_history/public_geometry_proposal_v1.json)保持原字节。E0通过只提供公开几何可读的正向参照；D-079已登记三模型原生状态读取位置和独立探针规格，不能用真值补齐缺失状态。E1–E4及主模型效果仍需各自代码/新家族/预算审过后运行，原工程四世界不用于拟合或独立确认。
-
-SH-01审查批准已登记于9044074。SH-02科学提交e3a1d71及通过报告f6b8c58完成核验后，用户明确要求“下一步”，据上下文登记对该批次的审查通过，允许合并main并实施SH-03固定开发审计。此授权不包括SH-04训练协议或模型效果实验。
-
-### SH-04-R4逐职责交付
-
-白话：本阶段先把“输入什么、保留什么机制、预测什么、怎样判断失败”写到同一份可审协议。输入是已验收工程条件和三条作者源码接口，输出共同合同、具体适配和预算；例如PointWorld控制模块误差与场景点流误差分列。这不是已接好三个模型，也不能从E0回执推定新家族或新适配通过。
-
-| 顺序 | 具体交付及依赖 | 允许继续的证据 |
-|---|---|---|
-| R4-0 规格提案 | 本次METHOD/DATA及protocol_r4_v1.json，D-079登记；六系统、64家族、E1–E4与有限预算 | 数值提案可供审查，尚无学习、生成、下载或确认授权 |
-| R4-1 共同查询与评分（已验收并准许继续） | `r4_query.py`/`r4_scoring.py`实现公开schema、训练标签分离、区间接触、候选选择/缺失分母、家族统计；`r4_contract_check.py`只运行解析正负例及check/verify/export | 23项通过及用户继续授权见LOG-111；不是模型/物理证据 |
-| R4-2 新家族生成/存储 | 固定清单、连续因素、变观察时序、无损分片、E0/物理/121帧信息门及重放 | 先审代码/数值和资源，固定train前4家族工程子批通过才继续原清单；不按结果替换样本 |
-| R4-3 公共前端与控制（D-085审议稿） | v2观测覆盖检索、当前对象公开关联、静态地图、有限力近似预测及独立评估逐职责交付；细目见下方 | 每职责先定数值再交可审代码/手算例/必要服务器检查；P只获公共预测机器人路径，不获M物块轨迹或实际未来 |
-| R4-4 三模型适配 | D、F、P各自可审提交，绑定作者版本，保留机制/新增模块/梯度/原生状态接口；独立环境及资产锁 | 全历史/200步、克隆/随机性/对拍/无未来输入检查；未过者留未就绪，不用弱替身替代 |
-| R4-5 资源与学习放行 | 固定配方20主路径、独立探针和全部成本；完整阶段入口一次交付 | 容量和预算经具体审查后，用户服务器手动运行；小型拟合与训练充分性不合格不作机制失败归因 |
-| SH-05 确认/归因 | 已锁主体/探针/评分，独立确认步骤另放行 | 三条适配和L/R/M同流程报告；简单方法成功收口，失败依E1–E4证据定位，不能自动扩模型 |
-
-R4-0只固定规格；现已按顺序交付R4-1及R4-2，后续职责仍planned。拟议总上限56 GPU小时/64 GiB新增存储需要真实容量核验；旧50 GB数据盘不能按此假定够用，预算不足先登记不可执行，不删旧产物或静默缩科学规模。
-
-<a id="r4-3-delivery"></a>
-
-### R4-3逐职责交付与继续条件（D-085，proposed）
-
-白话：将已通过的数据工程转成可审的模型输入处理。输入是原v2公共记录及已明确的方法边界，输出先为职责规格，之后才是独立实现和回执。例如检索先证明按公共覆盖取帧，再检查建图是否把未知补成自由；这不是把一次数据验收当作整个模型前端验收。
-
-| 步骤 | 本职责输出与先决条件 | 审查/检查重点及继续条件 |
-|---|---|---|
-| R4-3a 公共反投影与覆盖检索（工程验收通过） | `r4_coverage.py`深度专用值函数，19项科学人工例及8项运维检查同版27项通过，报告908e370绑定26c8da8，LOG-117 | 11项来源与三份原证据已核验；按原字节复用，不重跑。不以人工选中10帧推定真实门证据恢复；下一职责数值另审 |
-| R4-3b 当前对象公开关联（人工工程验收通过） | 报告bf8c05d绑定原66e4f6d，24+8=32项通过；12项来源和三份原证据核验完整，LOG-118 | 原字节复用，不重跑；自旋/瞬时速度仍未观测，人工例不认证实际16历史覆盖 |
-| R4-3c 历史静态地图（D-089工程实现） | 02bce57实现逐帧动态排除、观测面片与名义地面/墙/未知及来源 | 本批full历史16次；格中心插值不是全格自由证据，完整几何包络准入尚未完成 |
-| R4-3d 有限力预测与公共任务读出（D-089工程实现） | 25d0bff实现平面有限力、摩擦/接触、未知扫掠及公开开口/停稳读出；九次独立同初态 | 只保存名义诊断及未决；main_prediction=null、eligible_for_P=false，未把后向均速和零自旋当真实瞬时观测 |
-| R4-3e 本批独立工程审计（流程完成，预测链路未通） | c3aaae2回传原41a9936，36项检查及320原输入/16历史/144分支审计完整 | 775c050原证据已取回核验，侧壁表面归属及可见短墙片排除两个缺口已定位；144/144仍感知未决，修订待审。LOG-119 |
-
-a/b人工例不认证真实动力学；D-089按用户明确范围开放本组c/d与必要独立只读评估的一次工程交付。科学代码分职责可审，阶段同步一次，成功步骤只核验复用；不因本批联合交付而自动开放R4-4、训练或确认。
-
-D-085/086/088的原预算及回执保留；本批D-089新登记36项人工检查和16/144只读工程计算，额度见下方及METHOD，不冒用旧marker或待审GPU预算。R4-4仍须另审80像素编码器适配、九候选曝光、PointWorld资产和完整不确定性边界，其余家族生成与模型效果不由工程通过自动放行。
-
-
-<a id="r4-cd-server"></a>
-
-### R4前端v2r1自主服务器工程阶段（D-090，当前步骤）
-
-白话：输入仍是已封存的原16历史与144指令，输出修订后的名义关联/地图/轨迹/接触/选择及独立误差。先运行19项人工/隔离反例，再保存全部公开预测并取得子进程退出0，之后才读私有真值。它不新生成样本、不训练、不调控制，也不认证正式不确定性。
-
-本轮用户已授权代理直接SSH执行，无需用户逐步复制命令。先在已核验且空闲的`/root/Emboddied_Spatial_Memory`同步review/spatial-history-baselines一次；使用原`/root/autodl-tmp/spatial-history-venv-v1/bin/python`，不安装新依赖。v2首次中断目录保留；本版stage目录为`/root/autodl-tmp/spatial-history/sh04-r4-frontend-v2r1`，失败/中断原样保留，已成功步骤只核验复用。完整命令保留复现：
-
-```bash
-/root/autodl-tmp/spatial-history-venv-v1/bin/python -B ops/spatial_history/r4_frontend_stage_v2r1.py run
-/root/autodl-tmp/spatial-history-venv-v1/bin/python -B ops/spatial_history/r4_frontend_stage_v2r1.py verify
-/root/autodl-tmp/spatial-history-venv-v1/bin/python -B ops/spatial_history/r4_frontend_stage_v2r1.py export
-```
-
-每步成功并核对退出证据后继续；run中的父进程自动检查前步退出/receipt，不绕过失败。完整运行上限7200 s、进程4 GiB、阶段加报告2 GiB、报告32 MiB，19项check上限300 s，计算窗口至2026-09-13T18:14:12Z。预计前台，可直接看进度；只有实测预计超过30分钟才转后台安排。0新生成/训练/下载/确认。工程链路验收必须同时达到16对象状态、16两门口、144完整轨迹/任务读出、16世界选择有值及误标自由/占据均0；status=passed仅表示执行完整，还必须看engineering_accepted。未知扫掠、实际误差和formal_model_ready=false仍保留。
-
-输出为`results/spatial_history_r4_frontend_v2r1.json`，由代理取回后核验，再按原精确路径Git收尾；无需用户再手工pull/export。原服务器产物不删除/覆盖，正式模型准入不随工程通过自动开放。
-
-### R4-c/d前端原证据回传（775c050已核验；以下保留复现命令，无需重跑）
-
-用户要求先看服务器已有的6个未排除分量与墙面遗漏证据。入口为`ops/spatial_history/r4_frontend_evidence.py`，仅使用标准库复制原字节及核对摘要；不导入科学模块，不重跑旧check/run/export。它读取已记录的两个原目录，核验父报告d3635655…、原22项Git源码、6份阶段marker，以及16份地图/16份公开历史/16份评估XML，共54个服务器文件。输出单一`results/spatial_history_r4_frontend_evidence_v1.json`，48个原文件负载，保留原schema和压缩字节；base64仅为JSON内的无损字节编码。例如地图内近期两帧的分量支持像素、外环、高度、尺寸和拒绝原因原样回传，整段历史与地图面片来源用于后续区分未见区域和处理遗漏。这不是新的关联规则或修订后的预测；XML始终是封存后评估证据。
-
-原文件不写入；报告上限32 MiB，原地图与公开输入压缩字节共10,582,109 bytes。实际报告14,193,917 bytes，已按775c050原负载/摘要核验，exit_code=0，归因见LOG-119。原命令前台300 s/512 MiB、0新模拟/训练/下载/分割/建图/预测；报告没有保存实际导出耗时。完全相同的已有报告只核验复用，不覆盖；不完整或不同内容拒绝并保留。首次7cffa68类型检查失败及c1658f9修复保留记录，无需再次同步或执行下方命令。判据修订仍待审。
-
-在已核实、无运行任务的服务器checkout同步一次；不猜测或改写远端仓库路径：
-
-```bash
-git rev-parse --show-toplevel
-git status --short
-git pull --ff-only origin review/spatial-history-baselines
-```
-
-工作树干净且同步成功后，运行当前唯一计算步骤（只是原字节导出）：
-
-```bash
-/root/autodl-tmp/spatial-history-venv-v1/bin/python -B ops/spatial_history/r4_frontend_evidence.py
-```
-
-继续条件：`sh04-r4-frontend-evidence-v1 EXPORTED payloads=48 inputs=54 ... exit=0`，或相同内容的`REUSED`。失败保留原文件和终端错误，不启动旧run或自行改判据。成功后纯Git回传：
-
-```bash
-git add -- results/spatial_history_r4_frontend_evidence_v1.json
-git commit -m "results: export sealed R4 frontend evidence"
-git push origin review/spatial-history-baselines
-```
-
-### R4-c/d同版服务器阶段（D-089，36项及16/144已完成；以下保留复现命令，无需重跑）
-
-白话：输入是本次三份科学提交、固定数值和已验收原产物，输出人工检查、封存预测与逐例误差报告。例如第一个世界关联失败仍保留其九个未决分支；这不是换场景重试或开始训练。方法/限制见[METHOD](METHOD.md#r4-map-control-engineering)，字段见[DATA](DATA.md#r4-map-control-engineering-data)。本地不运行科学函数或测试，服务器由用户前台执行。
-
-**同步一次。** 先审本批代码，在没有运行任务的既有服务器checkout核对实际路径、当前分支及未提交内容；不根据本地路径猜服务器路径：
-
-```bash
-git rev-parse --show-toplevel
-git branch --show-current
-git status --short
-```
-
-确认当前为review/spatial-history-baselines、工作树干净后同步，之后check/run/export不再pull：
-
-```bash
-git pull --ff-only origin review/spatial-history-baselines
-git rev-parse HEAD
-```
-
-**SH-04-R4-cd-v1/check。** 读22项绑定来源，运行23项科学人工例及13项运维检查；旧真实报告只用于摘要绑定，不读物理outputs。新固定目录sh04-r4-cd-audit-v1/check已有时只核验，失败/中断拒绝重跑。前台、300 s、512 MiB，人工阶段额度8 MiB：
-
-```bash
-/root/autodl-tmp/spatial-history-venv-v1/bin/python -B ops/spatial_history/r4_map_control_check.py check
-```
-
-继续条件：`SH-04-R4-cd-v1 VERIFIED tests=36 exit=0`。失败则直接执行下方export回传诊断，不启动run。
-
-**同阶段/run。** 复用同版check和原成功生成回执摘要；原目录为已记录的`/root/autodl-tmp/spatial-history/sh04-r4-engineering-subset-v2`。仅读登记的320个文件，先公开预测后独立评估。运行前核可用内存至少2.5 GiB、盘至少1 GiB；总1800 s上限，进程2 GiB上限，阶段连导出1 GiB、报告32 MiB并预留失败证据1 MiB。前台显示144项公共状态及16项审计进度，失败/中断保留现场、已有run只verify：
-
-```bash
-/root/autodl-tmp/spatial-history-venv-v1/bin/python -B ops/spatial_history/r4_map_control_check.py run
-```
-
-成功标志：`SH-04-R4-cd-v1 VERIFIED histories=16 branches=144 formal_ready=False exit=0`。run已做终检，完成后直接export；只有重连核验原完成产物时才需同版verify，不执行科学函数：
-
-```bash
-/root/autodl-tmp/spatial-history-venv-v1/bin/python -B ops/spatial_history/r4_map_control_check.py verify
-```
-
-**同阶段/export。** check或run完成/失败退出后均可导出，不重跑也不覆盖不同内容的报告：
-
-```bash
-/root/autodl-tmp/spatial-history-venv-v1/bin/python -B ops/spatial_history/r4_map_control_check.py export
-```
-
-目标`results/spatial_history_r4_map_control_v1.json`；成功工程报告须`SH-04-R4-cd-v1 EXPORTED status=passed ... exit=0`。failed_or_incomplete也保留并回传。passed仅指本批执行和证据完整，须另读nominal_complete/readout/未决分母与误差；formal_model_ready和P准入仍false，没有准确率的科学通过门。
-
-**纯Git收尾。** 报告写成后按精确路径提交，不提交服务器大地图/轨迹。之后本地pull只读验收；没有中间新版本同步：
-
-```bash
-git add -- results/spatial_history_r4_map_control_v1.json
-git commit -m "results: export R4 joint map and control engineering audit"
-git push origin review/spatial-history-baselines
-```
-
-### R4-3b固定服务器人工检查阶段（D-088，32项已验收；以下为原66e4f6d复现命令，无需重跑）
-
-白话：输入已交付源码、已审数值与完整人工深度例，输出绑定同版代码的检查回执和小报告。例如两个圆面被错误选成一个会留下失败日志；这不读取原16历史，也不验证真实刚体状态。预计短任务，默认前台，显示逐项结果和退出；逐命令≤300 s、地址空间/峰值RSS≤512 MiB、阶段加报告≤8 MiB，真实查询/模拟/训练/下载均0。
-
-**同步一次。** 审查当前科学职责后，在既有服务器仓库、没有运行任务的checkout核对路径和未提交内容；不安装依赖，不重跑旧阶段：
-
-```bash
-git rev-parse --show-toplevel
-git status --short
-```
-
-工作树干净时同步并记录完整提交：
-
-```bash
-git pull --ff-only origin review/spatial-history-baselines
-git rev-parse HEAD
-```
-
-**SH-04-R4-3b-object-v1/run。** 读取12项绑定来源及已审D-087提案，运行24项科学人工例和8项运维检查；不读旧物理outputs或借旧marker。入口核对当前源码与本次完整Git提交，绑定文件须已提交且干净。新固定目录为`/root/autodl-tmp/spatial-history/sh04-r4-3b-object-v1`，已存在仅verify，失败/中断不自动重试或覆盖：
-
-```bash
-/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/r4_object_association_check.py run
-```
-
-成功标志：`SH-04-R4-3b-object-v1 VERIFIED tests=32 exit=0`。run已终检；重连只用同版verify核原证据，不重新执行科学函数或测试：
-
-```bash
-/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/r4_object_association_check.py verify
-```
-
-**同阶段/export。** 完成或失败退出后导出原证据；失败只保留诊断，不启动依赖任务。不同内容的已有报告拒绝覆盖：
-
-```bash
-/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/r4_object_association_check.py export
-```
-
-导出目标为`results/spatial_history_r4_object_association_v1.json`；成功需`SH-04-R4-3b-object-v1 EXPORTED status=passed ... exit=0`，`failed_or_incomplete`仍回传原诊断。报告包含测试身份、原日志/回执文本与摘要、实际时间/资源和零真实查询范围；人工例通过不表示真实对象关联或地图/控制就绪。
-
-**纯Git收尾。** 通过或失败报告都保留，精确提交同一文件，之后本地pull核验证据：
-
-```bash
-git add -- results/spatial_history_r4_object_association_v1.json
-git commit -m "results: export R4 public object association checks"
-git push origin review/spatial-history-baselines
-```
-
-b的原代码/回执已核验，后续按D-089联合工程阶段执行；此处历史命令不应在修改后的METHOD/DATA上重跑，原32项也不认证新c/d。
-
-### R4-3a固定服务器检查阶段（D-086，27项已验收；以下保留复现命令，无需重跑）
-
-白话：输入已交付的本职责源码/固定配置和人工例，输出可复核的测试回执与小报告。例如裁剪深度误计覆盖会留下失败及原日志；这不是对原16条真实历史重新选帧，更不运行动力学。预计短任务，前台显示逐项结果和退出；单命令≤300 s，地址空间/峰值RSS≤512 MiB，阶段连报告≤8 MiB，0新模拟/训练/下载。
-
-**同步一次。** 在已经核实的服务器仓库、没有运行任务的checkout核对并同步；本阶段只用既有隔离环境，不安装依赖。
-
-```bash
-git rev-parse --show-toplevel
-git status --short
-```
-
-工作树干净时：
-
-```bash
-git pull --ff-only origin review/spatial-history-baselines
-git rev-parse HEAD
-```
-
-**SH-04-R4-3a-coverage-v1/run。** 只读取绑定源码/共享配置，运行27项人工/运维检查；不依赖原v2物理目录或旧测试marker。入口自动核对11项来源的当前字节和本次Git提交，禁止未提交的绑定文件。固定写新目录`/root/autodl-tmp/spatial-history/sh04-r4-3a-coverage-v1`；已存在只verify，失败/中断不重跑或覆盖。
-
-```bash
-/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/r4_coverage_check.py run
-```
-
-成功标志：`SH-04-R4-3a-coverage-v1 VERIFIED tests=27 exit=0`。run已终检；重连只需同版`verify`核原回执，不再执行选择或测试：
-
-```bash
-/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/r4_coverage_check.py verify
-```
-
-**同阶段/export。** 成功或失败均导出已有证据；失败/中断只保留诊断，不启动依赖步骤。源码改变导致核验不通过会标明，不能借旧回执认证新版本。不同内容的已有报告拒绝覆盖。
-
-```bash
-/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/r4_coverage_check.py export
-```
-
-完整验收需`EXPORTED status=passed`及退出0；`failed_or_incomplete`仍回传诊断。导出目标固定为`results/spatial_history_r4_coverage_v1.json`，含原始证据文本/摘要、完整测试身份及资源/范围。这一检查通过只允许下一职责审议，不执行对象/地图/模型；其实际运行预算和代码审查独立。
-
-**纯Git收尾。** 报告成功导出后（通过或失败都保留），精确提交同一文件，不修改科学代码或重建阶段：
-
-```bash
-git add -- results/spatial_history_r4_coverage_v1.json
-git commit -m "results: export R4 public coverage contract checks"
-git push origin review/spatial-history-baselines
-```
-
-### R4 v2完整服务器阶段（D-084，已完成验收；以下保留复现命令，无需重跑）
-
-白话：同一版本先核人工合同与工程接线，再生成固定四家族，最后验收/导出。输入是已审完整提交和真实租赁剩余额度，输出完整原生数据及含失败细节的小报告；例如推头碰门后整批未通过，也能直接导出原接触摘要。这不是自动扩跑64家族或训练。预计生成耗时只能参考旧批外推，默认前台；7200 s是硬上限，不是实测预计时长。
-
-**同步一次。** 在已核实的仓库工作目录中、checkout没有运行任务时先检查；有未提交文件先保留处理。这里不重新猜测服务器仓库路径。
-
-```bash
-git rev-parse --show-toplevel
-git status --short
-```
-
-工作树干净且本批代码审过后：
-
-```bash
-git pull --ff-only origin review/spatial-history-baselines
-git rev-parse HEAD
-```
-
-记录打印的完整40位提交用于后续明确放行。从这一步到导出不再pull、不改绑定文件、不在中途提交报告。
-
-**SH-04-R4-contract-v2。** 使用既有隔离环境，33项标准库人工例；只写新合同目录`/root/autodl-tmp/spatial-history/sh04-r4-contract-v2`及`results/spatial_history_r4_contract_v2.json`，不访问物理现场。已有目录只verify，不重跑；失败/中断保留。
-
-```bash
-/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/r4_contract_check_v2.py run
-```
-
-继续条件：`SH-04-R4-contract-v2 VERIFIED tests=33 exit=0`。run已终检，不必重复verify；成功或失败都可以用同版导出：
-
-```bash
-/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/r4_contract_check_v2.py export
-```
-
-只有`EXPORTED status=passed`才继续。失败报告仍保留原日志/回执，先回传诊断，不启动依赖步骤。单步≤300 s、512 MiB地址空间/RSS、阶段加报告≤8 MiB，0模拟/渲染/训练/下载。
-
-**SH-04-R4-2-engineering-subset-v2/capacity。** 只读可见cgroup CPU/内存和数据盘空间，不预留资源，df不代替租赁配额：
-
-```bash
-/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/r4_generation_check_v2.py capacity --workers 4
-```
-
-**同阶段/check。** 自动验证同提交v2合同回执、旧R4-1/E0报告原Git来源、v1失败报告与旧现场清单、保留空间和耗时账本，再检查新64行设计及37项测试。编译MuJoCo XML而不积分/渲染；只写新目录`/root/autodl-tmp/spatial-history/sh04-r4-engineering-subset-v2`。
-
-```bash
-/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/r4_generation_check_v2.py check
-```
-
-继续条件：`SH-04-R4-2-engineering-subset-v2 CHECKED tests=37 exit=0`。失败先export。新目录已存在则只核验原check；中断和失败不自动重跑，不删除现场。
-
-**同阶段/run。** 前提：上面完整提交已经审过、两组新检查通过、4路容量通过，并且租赁后台确认用于本批的剩余新数据额度至少8 GiB。`--reviewed-code`必须逐字等于check记录的完整提交；不能用短hash、旧提交或另一次测试marker。下面两个输入由本次人工放行填写，未填写或非法值会拒绝运行；历史截图/df空闲量不能代填。
-
-```bash
-read -r -p '已审的完整40位提交: ' R4_V2_REVIEWED_CODE
-read -r -p '租赁后台确认的本批剩余新数据额度 GiB: ' R4_V2_NEW_DATA_GIB
-```
-
-```bash
-/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/r4_generation_check_v2.py run --workers 4 --reviewed-code "$R4_V2_REVIEWED_CODE" --available-new-data-gib "$R4_V2_NEW_DATA_GIB"
-```
-
-每个家族前台显示history/branch/write及退出，父进程约30秒显示资源进度。固定16历史/144首次/144重放；每家族原生数组/轨迹保存在execution/对应ID/data。运行连首次export≤7200 s；每家族384 MiB含1 MiB失败保留、阶段连报告8 GiB、每进程6 GiB、树30 GiB。旧批268.25082197599113 s计入8小时总生成预算，旧现场/报告保留在1 GiB共享池预留内。压缩率由本批真实核验，超限停止保留前缀，不能临时增额或少存数组。
-
-`COMPLETED accepted=True|False exit=0`表示固定工作已完整结束，false表示工程条件失败；异常退出保留failure/未启动项。已有execution时run只核验，绝不续算或重复模拟。无论真/假，完成后均进入验收和导出，不再逐步询问。
-
-**同阶段/verify。** 只读核验同源回执、三个渠道清单、全部36标签/72组数组每家族、原生形状/无损摘要、候选控制槽、重放与总门；不模拟。
-
-```bash
-/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/r4_generation_check_v2.py verify
-```
-
-完整证据标志`VERIFIED accepted=True|False exit=0`；不完整/异常也继续导出失败证据，不重跑。类别交集全非空会让总accepted=false，即使family_gates_passed=true；任何报告都不自动开放其余60家族/学习。
-
-**同阶段/export。** 输出固定`results/spatial_history_r4_engineering_subset_v2.json`，原始数组留数据盘。包含全部家族结果、E0计数、接触摘要、来源/manifest/退出/失败与固定预览；无需追加诊断脚本。已有相同报告核验复用，不覆盖不同报告。
-
-```bash
-/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/r4_generation_check_v2.py export
-```
-
-`EXPORTED status=passed|failed|failed_or_incomplete|integrity_failed ... exit=0`是导出状态，不代表模型有效。生成前check失败也用此命令保存现场。全部计算停止、两份报告实际存在后一次Git收尾；若前一步合同就失败，仅提交实际存在的合同报告，不假造第二份：
-
-```bash
-git add -- results/spatial_history_r4_contract_v2.json results/spatial_history_r4_engineering_subset_v2.json
-git commit -m "results: export R4 v2 contract and engineering subset audit"
-git push origin review/spatial-history-baselines
-```
-
-本地pull后按原提交来源只读验收。失败保留，不按结果换家族/改控制/阈值；通过也只说明这四家族工程条件，不代表任何模型接入或有效。
-
-### R4-2失败诊断（已完成，保留复用说明）
-
-白话：这里读取已经完成的失败现场，区分“公开几何缺少可用墙顶像素”和“推头或物块实际碰到什么”。输入是原报告绑定的压缩预测和64条首次轨迹；输出仅为已有拒绝计数、接触对及首末/峰值时刻的状态。例如`gate_contact_steps=0`只排除了物块碰门，仍需检查`pusher/gate_*`接触。这不是重跑模拟、重评分或批准改变相机/门宽/控制。
-
-步骤ID为`SH-04-R4-2/failure-diagnostics`。新入口`ops/spatial_history/r4_failure_diagnostics.py`是补齐原export未包含的只读诊断能力，不修改原入口或其来源绑定。前提是原失败报告SHA与封存目录一致；按报告清单核验每项读取的字节/SHA，核对原几何候选数和轨迹终点，结束前再次核对输入。覆盖全部4家族×16条主分支及4家族×16个E0查询，不挑成功/失败例，不再次读取重放轨迹。原重放证据沿用原报告。
-
-`positive_steps`是同一几何体对发生正力接触的时间步数，每步多个求解接触点只计一次；`first/last/peak`保存对应实际状态，不能把首末之间所有时间都算作持续接触；`peak_point_normal_force_n`是单个接触点的峰值法向力，不是接触对总力。阈值读取原提交的`contact_force_min_n=1e-6`；几何`rejected_counts/incomplete_reasons`来自已保存预测，不重跑提取器。
-
-本次运维上限300 s、512 MiB进程地址空间、8 MiB报告；预计短任务，前台显示逐家族进度。只写`results/spatial_history_r4_failure_diagnostics_v1.json`，原服务器目录只读；无断点续算，已存在诊断报告拒绝覆盖。中断未写出报告时可重新只读汇总；已有报告先核对完整性，不删除现场。0模拟/训练/下载。入口尚未在服务器执行，本地只做AST、输入键/路径及报告静态核查。
-
-checkout当前无任务运行时同步一次并执行：
-
-```bash
-git pull --ff-only origin review/spatial-history-baselines
-/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/r4_failure_diagnostics.py
-```
-
-继续条件是终行`SH-04-R4-2 DIAGNOSTICS EXPORTED families=4 branches=64 geometry=64 ... exit=0`；之后仅提交该新诊断报告：
-
-```bash
-git add -- results/spatial_history_r4_failure_diagnostics_v1.json
-git commit -m "results: export R4 failure contact and geometry diagnostics"
-git push origin review/spatial-history-baselines
-```
-
-回传后核验输入来源并定位接触；任何科学配置/代码修订需另行具体登记与审查，不自动重跑或替换首4家族。
-
-### R4-2固定交付与服务器步骤（原版已完成，供复用核验）
-
-白话：本阶段输入是事前固定的4个家族，输出完整物理/存储审计。比如先做不模拟的源码检查，审过后生成原清单首4家族，再核验和导出。它不是自动生成64家族的一键流水线；后续60家族没有入口。每步都使用这次同步的同一份代码，不为导出另改脚本或要求pull。
-
-沿用已核实仓库及隔离环境。checkout空闲且`git status --short`没有输出时同步一次；有未提交内容先保留处理：
-
-```bash
-cd /root/Emboddied_Spatial_Memory
-git status --short
-git pull --ff-only origin review/spatial-history-baselines
-```
-
-**R4-2/capacity**只读CPU/cgroup/RAM和文件系统容量，不创建阶段、不模拟；4路需要30 GiB可见可用内存加512 MiB余量。容量不够不静默降并发，可明确选择1–3路重新核容量；最多4路是本工程子批只有4家族，不改D-079后续最多12路提案。`df`不是实际租赁配额，生成时需另明报可用于本批的剩余新增数据额度。
-
-```bash
-/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/r4_generation_check.py capacity --workers 4
-```
-
-**R4-2/check**允许先执行：核验旧R4-1/E0原Git报告和现有环境锁，运行22项新检查，包括小型人工轨迹、无损字节、配置和XML编译；0模拟步、0渲染、0训练、0下载。目录固定为`/root/autodl-tmp/spatial-history/sh04-r4-engineering-subset-v1`，不接受自选运行目录。成功标志`SH-04-R4-2-engineering-subset-v1 CHECKED tests=22 exit=0`。已有目录只核验成功回执，失败/无回执不重试；必要时直接用本版export保留诊断。
-
-```bash
-/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/r4_generation_check.py check
-```
-
-**R4-2/run**仅在用户审过代码、[METHOD首批资源](METHOD.md#r4-generation)且check成功后执行。入口必填`--reviewed-code`，值为check记录的完整40位提交；必填`--available-new-data-gib`为已核实剩余新增数据额度，至少8，不根据底层df猜测。完整调用形式为`.../bin/python ops/spatial_history/r4_generation_check.py run --workers 4 --reviewed-code <已审完整提交> --available-new-data-gib <实际额度>`；尖括号为说明位，当前不能直接粘贴执行。该显式调用记录首批工程放行，不合并main、不解封确认。耗时尚未实测，先前台显示进度及每个家族退出；7200 s是保守上限，不据上限假定实际需后台。各家族完整16首次+16反序重放及E0/信息门后，成功运行打印`COMPLETED accepted=True|False exit=0`；False是完整工程失败，不是运行异常，也不能进入学习。
-
-**R4-2/verify**只读复查所有文件/三渠道清单、完整解压字节和回执；不是重跑物理。成功封存计算复用；缺run回执则拒绝，不补造完成。独立verify/重复export的只读运维时间另计，不重复消耗生成预算。
-
-```bash
-/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/r4_generation_check.py verify
-```
-
-**R4-2/export**首次成功导出与run合计≤7200 s，使用剩余时间；报告固定为`results/spatial_history_r4_engineering_subset_v1.json`。完整成功/失败、运行中断及check失败分别导出状态；失败诊断不能升级为通过。重复导出只核验同一报告和来源，不覆盖；pending未发布不自动重试。原始大数组留服务器，先生成报告再进行精确Git收尾。
-
-```bash
-/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/r4_generation_check.py export
-```
-
-继续条件：4家族全工程门成立、无损存储及实际资源验收、用户代码审查。类别捷径未排除时如实标工程小试；384 MiB/家族的事前硬上限只提供完整64家族原始产物24 GiB的分配上界，不证明剩余家族都能完成，也不代替服务器租赁剩余配额。首批实际来源/输出可继续复用，但其余60家族和confirmation仍需后续明确放行；本版本不会自动启动。
-
-### SH-04-R3/E0 并行版本固定交付与服务器命令（已完成，保留复现路径）
-
-白话：这一阶段先检查“历史里有的信息，是否能由只读公开深度的方法恢复出来”。输入是已验收R2的四份公共历史及原R3读取器，输出是16份封存的几何预测和独立评估；例如4个worker分别处理4项独立查询，每项仍从空状态恢复自己的观察。worker是处理任务的独立子进程，不表示4个模型或4份新样本。具体输入输出和误差含义见[METHOD](METHOD.md#e0-public-geometry)。
-
-同阶段入口已完整交付，不需为测试、验收或导出再同步代码。沿用已核实仓库及隔离环境；checkout空闲且`git status --short`无输出时同步一次，若有改动先保留处理，不覆盖：
-
-```bash
-cd /root/Emboddied_Spatial_Memory
-git status --short
-git fetch origin
-git switch review/spatial-history-baselines
-git pull --ff-only origin review/spatial-history-baselines
-```
-
-**E0/capacity**：用户要求先确认如何选worker数。同步后先运行这条只读命令；它不创建阶段目录、不运行测试或恢复任务：
-
-```bash
-/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/public_geometry_check.py capacity
-```
-
-输出`cpu_capacity`、`available_memory_gib`、可行的`feasible_workers`、资源允许上限`maximum_feasible_workers`和起步建议`recommended_initial_workers`。起步建议至多4路；例如CPU/RAM只容纳2路就建议2，可容纳12路时仍先建议4，同时列出12的资源上限。它只核验可见资源，不是吞吐测速，不声称建议值最快；正式run会重新核验配额。
-
-**E0/run**：先核验请求worker数对应的CPU affinity、可见cgroup配额和可用内存；不足时在创建运行目录和启动测试前拒绝，不静默降并发。核验R2/R3原Git绑定、报告、服务器回执和公共文件摘要后，先运行97项新检查，再对4世界×full/A/B/recent共16项公共查询并行派发。所有公共子进程正常退出、预测完整封存后才解析私有XML并逐项验收；测试和私有评估阶段仍串行。不会重跑原R2物理生成或R3测试。
-
-```bash
-/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/public_geometry_check.py run --workers 4
-```
-
-默认4路；开工前可将上条命令的数值改为1至16，例如`--workers 8`，不能在同一已启动阶段更换并发数，也不同时运行多条run。前台显示97项检查、乱序完成的16条公开恢复与16条私有评估；回执按固定查询ID排序。新目录`/root/autodl-tmp/spatial-history/sh04-r3-e0-public-geometry-parallel-v1`，报告为`results/spatial_history_public_geometry_parallel_v1.json`；原R2/R3及0b1640f串行版路径保持原样。若旧E0目录已存在，新入口停止，不能以换版本为由重复计算。成功标志`SH-04-R3-E0-public-geometry-parallel-v1 VERIFIED tests=97 queries=16 workers=4 exit=0`（workers显示实际登记数）。已有完整成功只核验复用；失败、中断或未发布临时回执不自动重试。
-
-正式run（含测试、来源核验、恢复、评估和终检）与首次成功export合计上限1800 s，各自计入1 s文件收尾保守上界；首次export只能使用剩余时间。新阶段文件加导出报告总计≤64 MiB。每个进程的地址空间上限512 MiB，整个进程树的RSS按`(workers+1)×512 MiB`保护：4/8/16路分别为2.5/4.5/8.5 GiB；启动时还要求额外512 MiB机器可用余量，因此最低可用内存分别为3/5/9 GiB。原512 MiB整体限制明确由D-078变更，不能称全部预算不变。50 ms采样和存活进程高水位之和作保守保护，不冒称连续精确峰值；可见容器限制核验不代表不可见宿主约束或资源预留。run回执保存终检统计；export区分序列化前观测峰值和包括写入的保护上界。0模拟、0训练、0权重、0新划分，不新增依赖。
-
-**E0/export**：run有正式回执后导出；成功需再次核验完整来源、封存预测及独立匹配，失败只导出诊断，不冒充通过或预算通过。每份实际XML文本/摘要及恢复区间、像素支持都进入审查报告，私有内容不进入恢复器。
-
-```bash
-/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/public_geometry_check.py export
-```
-
-继续条件为`EXPORTED status=passed|failed ... exit=0`；其中failed仅表示失败诊断已导出。正式回执/报告先写临时文件，收尾门通过后才发布；无正式回执的硬中断不能补造成功，已有`.pending.json`不得自动重试。重复导出仅核验并复用同一报告，内容不同则拒绝覆盖。必要时可独立只读核验：
-
-```bash
-/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/public_geometry_check.py verify
-```
-
-verify/export自动恢复原回执登记的worker数和资源门，无需再加`--workers`；不会以默认4覆盖已登记8路。独立verify、成功复用与重复导出是可选的运维核验，不再运行恢复器；每次另受1800 s和原登记内存上限保护并显示耗时，不能隐去首次正式导出的成本。首次导出预算耗尽时保留run回执，不能重新给实验1800 s。失败诊断导出另受单次保护，仍保持失败。
-
-完成导出后精确回传同一文件：
-
-```bash
-git add -- results/spatial_history_public_geometry_parallel_v1.json
-git commit -m "results: export parallel E0 public geometry audit"
-git push origin review/spatial-history-baselines
-```
-
-报告回传后先做只读证据审查。即使E0全部通过，也不自动运行三模型适配、探针或SH-05，不改变旧报告的false字段。
-
-### SH-04-R3/public-input 历史服务器命令（已完成，保留复现路径）
-
-本批是D-072登记的独立公开读取职责，代码位于`public_reader.py`，必要检查与实际文件审计位于`public_input_check.py`。原运行88c42b7、报告a9275e7的18项服务器检查及32次真实查询已经完成并只读核验，见LOG-109，不重跑；下列保留复现命令。原R2回执不能认证新读取器。方法及具体输入输出见METHOD/DATA。
-
-白话：输入是已验收R2的4个公共文件，输出是只能包含历史、数值速度和目标的查询与可核对摘要。例如读LL文件、查询LR控制时，控制名称和文件路径不会传给后续方法。它不恢复门洞几何，也不代表已运行学习模型；读完输入边界并审查后，才交依赖它的下一科学职责。
-
-阶段一次同步后按顺序运行；以下路径沿用已核实仓库，不重建环境。checkout空闲且工作树干净时：
-
-```bash
-cd /root/Emboddied_Spatial_Memory
-git status --short
-git fetch origin
-git switch review/spatial-history-baselines
-git pull --ff-only origin review/spatial-history-baselines
-```
-
-**SH-04-R3/public-input/run**：父进程只读R2已验收报告、原Git来源、启动/完成/4历史回执及4个public.json；先核验原摘要，子进程运行18项新检查，然后对4世界×4控制各构造完整历史与最近2帧查询，共32次。仅返回查询摘要、字段/形状、不变性检查、耗时和峰值内存；不打开原XML、快照内容、未来数组或轨迹。读取器本身只打开显式公共文件；来源核验属于外层审计权限。
-
-```bash
-/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/public_input_check.py run
-```
-
-预计数分钟，前台显示测试和32次读取，失败以非零状态返回；子进程上限30分钟，新持久产物上限8 MiB，0模拟步/0权重下载/0训练步，不新增依赖。新目录为`/root/autodl-tmp/spatial-history/sh04-r3-public-input-v1`，原R2两个目录只读。成功标志`SH-04-R3-public-input-v1 VERIFIED tests=18 queries=32 exit=0`。已有成功回执只验证复用，失败或无回执的中断保留，不重新运行。独立查看验收可用同入口`verify`，不必重跑`run`。
-
-**SH-04-R3/public-input/export**：run保存父回执后导出成功或失败证据；核验原提交绑定及新产物摘要。没有父回执的中断停止诊断，不能补造成功。不同内容的已有报告拒绝覆盖。
-
-```bash
-/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/public_input_check.py export
-```
-
-导出标志`SH-04-R3-public-input-v1 EXPORTED status=passed|failed ... exit=0`仅表示导出完成。纯Git回传使用同一版本的精确文件：
-
-```bash
-git add -- results/spatial_history_public_input_v1.json
-git commit -m "results: export R3 public input boundary audit"
-git push origin review/spatial-history-baselines
-```
-
-本节为原公开读取批次的复现路径；E0的当前交付及命令见上节。原SH-03视觉读取、论文资产/资源与独立环境锁仍依D-073的适用性审查分别交付；训练与强对照协议在R4另审，不沿用暂停v1的特征/数据/训练预算。
-
-### SH-04-R2 历史服务器固定命令（已完成，保留复现路径）
-
-本批已完成并按原绑定验收，无需重跑或再次check；下列仅为历史命令，不是当前R3入口。
-
-白话：同一版本包含检查、生成、验收和导出，输入是已批准配置及原SH-03来源，输出完整成功或失败证据。例如第一个世界的某条控制没送达，仍运行其余固定分支并在最后给失败清单；程序异常则立即保存现场。这不是自动调参或训练流水线。
-
-仓库与环境沿用已核实路径。checkout空闲、无运行任务，且`git status --short`无输出时同步；若有输出先保留并处理未提交工作，不reset或覆盖。明确切换到本批分支，不能在main上直接pull审查分支：
-
-```bash
-cd /root/Emboddied_Spatial_Memory
-git status --short
-git fetch origin
-git switch review/spatial-history-baselines
-git pull --ff-only origin review/spatial-history-baselines
-```
-
-**SH-04-R2/check**：只读核验旧SH-03原提交/摘要、冻结提案与当前配置、环境及数据盘；独立验证真实EGL，执行旧公共帧测试及四个新模块的必要测试。新科学代码不借旧回执通过。本批测试身份由源码静态清单与实际unittest清单双重核对，失败/跳过均不通过；只写新目录的环境、check回执及短传感器夹具，不执行16条完整任务。
-
-```bash
-/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/two_gate_check.py check
-```
-
-继续条件：出现`SH-04-R2 CHECK VERIFIED tests=... renderer=... exit=0`。失败先export，不反复check重跑。已有同源成功回执只核验复用。
-
-**SH-04-R2/run**：自动核验check成功和来源，再前台按37步完成4历史、16首次执行、16新实例反序重放及汇总。只消费本批公开/私有文件，不读旧test，不下载或训练。新阶段科学判定false与运行异常分开记录。
-
-```bash
-/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/two_gate_check.py run
-```
-
-通过标志：`SH-04-R2 VERIFIED unique_branches=16 replay_branches=16 exit=0`。成功完成后重复run只核验复用；完整失败、部分失败或中断不能自动重跑。单独只读验收可用同入口`verify`，不必为查询状态重跑物理。
-
-**SH-04-R2/export**：成功或失败均用同一命令，只读核验原Git来源、manifest与退出/中断状态，导出完整诊断及原图，数组仍在数据盘。报告已存在且内容不同则拒绝覆盖。
-
-```bash
-/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/two_gate_check.py export
-```
-
-导出标志：`SH-04-R2 EXPORTED status=passed|failed ... exit=0`；export成功不等于实验通过。固定批次完成或停止后，按精确路径回传：
-
-```bash
-git add -- results/spatial_history_two_gate_engineering_v1_lfsha1.json
-git commit -m "results: export SH-04-R2 two-gate engineering audit lfsha1"
-git push origin review/spatial-history-baselines
-```
-
-本地拉取后只读核验来源、全部4×4实际成功矩阵、物理异常/可见性、121个信息检查和原图，再解释是否满足本批构造。没有完整公共几何恢复和成熟对照结果时，不进入模型有效性结论。
-
-### SH-03/v2 历史服务器固定命令
-
-以下仅保留原版本57d01aa的操作说明，不是当前待执行任务；METHOD/DATA已进入新提案，不能在当前checkout冒用旧绑定重跑。原成功回执已经验收，无需再次同步或导出。
-
-白话：同一次同步提供“检查新适配→生成完整16例→核验和导出”，避免步骤切换再改入口。输入已验收SH-02报告/源码与固定登记，输出独立案例回执；例如某例完整生成但没有预期碰撞，会保留为audit_failed并继续余下固定例。这不是自动调参或训练流水线。
-
-已核实服务器仓库`/root/Emboddied_Spatial_Memory`，环境`/root/autodl-tmp/spatial-history-venv-v1`；复用环境和EGL，无需安装或删除旧数据。当前已在review/spatial-history-development分支，checkout空闲且`git status --short`无输出时同步一次：
-
-```bash
-cd /root/Emboddied_Spatial_Memory
-git status --short
-git pull --ff-only origin review/spatial-history-development
-```
-
-若当前分支或路径与已核实状态不同，先只读核对，不用reset；本阶段同步后不再pull。新运行目录固定`/root/autodl-tmp/spatial-history/sh03-development-v2-wall-clearance`。旧v1原始目录与报告不改；新METHOD/DATA和适配源码不借旧回执认证。
-
-SH-03/check：检查已验收SH-02原Git绑定、原模拟器未变、v1完整失败报告及原Git来源、环境freeze和新阶段来源，然后服务器执行原8项加新增4项（共12项）。写新目录的环境/启动记录和`check/`，只读旧报告及源码；不模拟16例。成功标志`SH-03 CHECK VERIFIED tests=12 exit=0`，同版成功回执复用，失败不重跑。
-
-```bash
-/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/development_check.py check
-```
-
-SH-03/run：只在上述成功后运行，自动核验依赖。用新墙位置前台生成原固定16对，每例保存4条原始分支和4次反序重放；预计5–10分钟。每例完成先写退出回执/摘要，再启动下一例；新版本已有完整回执只核验复用，从最早未启动例继续，不借v1的12例通过状态。完整物理审计失败仍记录并做完固定清单；运行异常停止余下案例。启动后无回执的中断现场拒绝覆盖或自动重试，须先诊断。只写本阶段新数据盘目录，不访问旧outputs或封存test。
-
-```bash
-/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/development_check.py run
-```
-
-成功标志`SH-03 VERIFIED cases=16 unique_branches=64 replay_branches=64 exit=0`。否则保留全部已生成数据，导出诊断，不扩大计算；2 GiB按案例边界检查，底层df不代表租赁配额。无需重复run来查询结果，独立`verify`可只读核验。
-
-SH-03/export：通过或已保存退出回执的失败均可导出；自动核验逐例manifest、完整状态和新代码绑定，不重模拟。导出成功只表示报告生成，审计看`status`。父进程中断没有退出回执时先诊断，不补造成功证据。
-
-```bash
-/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/development_check.py export
-```
-
-成功标志`SH-03 EXPORTED status=passed|failed ... exit=0`。不同内容的同名报告不覆盖；固定批次完成或停止后回传这一份报告：
-
-```bash
-git add -- results/spatial_history_development_audit_v2_wall_clearance.json
-git commit -m "results: export SH-03 wall-clearance revision audit"
-git push origin review/spatial-history-development
-```
-
-本地pull后只核验导出摘要、逐项失败和原PNG，不本地跑测试/模拟。通过仍只证明这16种开发设置的物理与输入条件，不能宣称模型利用了空间历史；下一科学协议须本批验收和审查后交付。
-
-### SH-02 已验收背景（历史记录，不是当前执行指令）
-
-依据：初次EGL环境问题已解决，实际renderer为RTX 4080 SUPER、驱动595.71.05。球形推头版的两份失败报告d087389和只读接触诊断0c4335e均已回传核验，具体失败证据见LOG-105。物块与推头约2.916 s开始接触、约4.05–4.08 s最后接触，随后物块停止，推头继续移动；对应挡板布局约5.048 s出现推头–墙接触。物块全过程y≤0.214694 m，未到墙近侧面0.575 m。这足以定位原预期的持续推动没有实现，不把机器人撞墙改记成物块撞墙。
-
-本次单一科学改动：球形推头改为宽0.30 m、前后厚0.05 m、高0.05 m的平面推头；原质量/初始中心、速度控制、物块、墙/屏、相机、求解器和通过门保留。配置文件名沿用v1接口，内容version/model已标v2，原球形配置由原提交与失败产物复现。v2在同一固定工程对上已产生预期物块撞墙/通过对照，成对终点距离约0.292881/0.319261 m；不是对任意新场景的可靠性结论。
-
-后续评分边界：目前goal半径0.5 m仅作为查询字段，四个终点都在该半径内，不能直接把本次“受阻/通过”当成目标成功/失败或动作选择收益。SH-04仍须事先冻结与任务相符的评分、阈值和预算；当前不据此更改工程配置或重跑。
-
-### SH-02/v2 历史固定命令
-
-以下仅保留复现路径。SH-03已扩充METHOD/DATA，不能在新checkout重跑这些命令来借用旧回执；旧完成任务按原版本复用，当前命令仅为上面的SH-03。
-
-用户服务器已核实仓库为 `/root/Emboddied_Spatial_Memory`，数据盘为 `/root/autodl-tmp`。复用已验收EGL的环境 `/root/autodl-tmp/spatial-history-venv-v1`；新产物 `/root/autodl-tmp/spatial-history/sh02-engineering-v2-flat-pusher`，新报告 `results/spatial_history_physics_v2_flat_pusher.json`，默认路径已随修复更新，原失败目录/报告不覆盖。当前审查checkout无任务运行、工作树干净时同步一次：
-
-```bash
-cd /root/Emboddied_Spatial_Memory
-git status --short
-git pull --ff-only origin review/spatial-history-physics
-```
-
-后续本阶段全部使用这次交付版本，无需步骤间pull。32项检查和全部物理/控制源码字节不因推头配置修复改写。
-
-SH-02/setup：本机服务器环境已经安装且通过GPU EGL探测，依赖清单未变，当前可直接run，其内部会检查freeze。新服务器重建时才需要本步骤及系统EGL依赖和上下文检查：读取已提交依赖清单，用Linux Python 3.11/3.12创建隔离环境；前台显示安装输出、记录freeze和退出状态。成功且匹配的环境只核验复用，失败/中断目录拒绝重建覆盖。
-
-```bash
-python ops/spatial_history/physics_check.py setup
-```
-
-继续条件：`SH-02 ENV READY ... exit=0` 或 `SH-02 ENV VERIFIED ... exit=0`。安装失败停在当前步骤并保留日志，不启动依赖计算。
-
-SH-02/run：自动核验已批准SH-01回执、原实现字节未变、当前源码提交干净和隔离环境，再前台启动独立Linux进程。固定1对世界、4条首次控制分支、4条反序独立重放；每分支4.9 s模拟时长、2450物理步，15帧历史。原20项回归与12项物理检查一并执行。v1实测套件11.830 s，v2需实际计时，前台逐分支报告。
-
-```bash
-/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/physics_check.py run
-```
-
-读边界：SH-02绑定清单、SH-01导出、隔离环境；不访问旧outputs或封存test。写边界：上述SH-02新产物目录，另由安装步骤写新环境。成功标志 `SH-02 VERIFIED tests=32 original_commit=... exit=0`；`receipt.json`保存实际时间、退出、源码/合同绑定和所有产物摘要。再次run只verify，不重做。失败或进程崩溃保留现场、返回非零并允许导出诊断；不静默换后端/场景/目录重试。
-
-SH-02/export：成功、普通断言失败或子进程崩溃后只要父进程已写receipt均可导出。自动验证原始产物manifest，不重跑；报告包含环境/来源摘要、实际测试结果、每分支诊断、8张无损真实图像预览，以及首次分支的控制末尾位置和各接触对起止/步数/最大力。只读摘要复用已有诊断函数，省略完整逐接触段列表以控制报告大小；原trace保留。失败附日志尾部，`status=failed`不会变成物理通过。
-
-```bash
-/root/autodl-tmp/spatial-history-venv-v1/bin/python ops/spatial_history/physics_check.py export
-```
-
-成功导出标志 `SH-02 EXPORTED status=passed|failed ... exit=0`；这个exit只表示导出完成，物理是否通过看status与报告receipt。若用户中断了父进程导致没有receipt，目录保留并需先诊断，不能用export补造运行成功。可独立使用同入口 `verify` 检查成功目录，无需重复run。
-
-纯Git回传（只提交这份明确报告）：
-
-```bash
-git add -- results/spatial_history_physics_v2_flat_pusher.json
-git commit -m "results: export SH-02 flat-pusher engineering checks"
-git push origin review/spatial-history-physics
-```
-
-本地pull后只核验摘要、读失败诊断和原始PNG预览，不在本机重跑科学测试。继续条件为服务器检查通过、用户审查本批实现与画面；其后才交SH-03。若失败，先定位具体渲染/接口/物理问题，记录必要修复和新版本路径；失败样本不覆盖，不借用旧回执。训练、候选评分和大规模生成均不在本阶段。
-
-### SH-01 已验收实现及历史命令
-
-SH-01阅读顺序：
-
-1. [METHOD 的当前候选与第一职责批次](METHOD.md#第一职责批次成对输入边界)和 [DATA 的字段合同](DATA.md#当前空间历史成对记录-v1d-062)。
-2. [手工输入](../data/fixtures/spatial_history/manual_pair.json)：两个世界3帧，其中末2帧相同；每世界2条控制分支。2×2像素和未来坐标均手工指定。
-3. [核心模块](../src/spatial_world_model/pair_contract.py)：`audit_pair → model_input`；[测试](../tests/spatial_world_model/test_pair_contract.py)验证20项合同性质。
-4. [服务器入口](../ops/spatial_history/contract_check.py)：`run → verify → export` 已一次交付；不含生成/训练步骤。
-
-已验收例子：`audit_pair` 返回 `contract_valid=true`、`early_visual_evidence_differs=true`、两个 `outcomes_differ_by_action=true`，但 `physics_and_visibility_verified=false`。同一候选的两个短历史查询完全相同；完整历史查询只因早期视觉证据不同而不同。改变私有未来标签不改变提取结果。[服务器回执](../results/spatial_history_contract_v1.json)只认证原提交的合同，不认证后续模拟器。
-
-### SH-01 服务器固定命令
-
-以下仅保留原提交492a7b6的运行记录/复现入口，不是当前同步指令。SH-02扩充了METHOD/DATA，原SH-01回执绑定旧文档字节；不能在新checkout上冒用旧verify认证新文档。SH-02读取不可变旧导出并重新运行原20项合同回归，使用全新来源绑定。
-
-前提：在实际服务器仓库内、无运行中的任务使用该 checkout；先只读确认位置和工作树，不根据提示符猜路径。
-
-```bash
-pwd -P
-git rev-parse --show-toplevel
-git status --short
-```
-
-仅在该 checkout 空闲且工作树干净时同步一次（若已有同名本地审查分支，先检查提交，不重置它）：
-
-```bash
-git fetch origin review/spatial-history-contract
-git switch --track origin/review/spatial-history-contract
-git rev-parse HEAD
-python --version
-```
-
-SH-01/run：Python 3.11或3.12，标准库即可；无需安装旧 Torch/NumPy 或新模拟器。预计为短检查，前台显示每项测试、结果和退出；未测速，不承诺实际时长。
-
-```bash
-python ops/spatial_history/contract_check.py run
-```
-
-成功标志：`SH-01 VERIFIED tests=20 ... exit=0`，实际测试名和计数从套件生成并写回执，不沿用旧 marker。读边界仅新模块、测试、夹具与 METHOD/DATA；写边界 `outputs/spatial-history/contract-v1/`，保存 started、日志、退出回执、输入输出和 hash。不会导入旧 CPMT、调用模拟器或读取旧 run/test。成功目录再次 run 只核验；失败或中断目录保留并拒绝静默重跑，不删除后“再试”。
-
-SH-01/verify、export：只在 run 成功后执行；源码、合同和产物摘要须匹配。独立 verify 可用于重连，不重跑测试。export 自动包含 verify，日常无需重复调用：
-
-```bash
-python ops/spatial_history/contract_check.py export
-```
-
-导出 `results/spatial_history_contract_v1.json`，含完整服务器回执、实际测试名、源码/合同绑定、产物摘要和示例。不同已有报告拒绝覆盖；确需运行修复版本时先登记修复和新路径，再用 `--run-dir outputs/spatial-history/<明确新版本>` 及 export 的 `--report results/<明确新版本>.json` 保存新证据，不能用换目录静默重试同一失败。
-
-继续条件：工程检查成功、用户审查 SH-01 代码与例子；其后才实现 SH-02。当前没有依赖的效果实验或下一科学模块被执行。审查批准须登记具体提交；后续改变科学语义重新审查。
-
-## 工作区复用与历史保留
-
-- 保留全部 `src/cpmt`、旧配置/schema/fixtures/tests/scripts/ops/results 路径与字节；新包独立，不导入旧 query、候选、教师或能量。
-- 可复用来源登记、文件摘要、运行证据的工程思路；不为复用而耦合旧训练依赖。新代码用新回执，不能冒用旧 source hash。
-- 第一轮没有必要搬迁旧源码或删除文件；大重构需明确解决实际依赖问题后再做。用户许可重构不等于要求清空工作区或服务器 outputs。
-- ARKitScenes/ADT 已下载开发预览和 [来源清单](../data/manifests/visual_source_review.json)保留，完整接入暂缓；它们不能直接提供所需的机器人控制反事实分支。
-- D-059/D-061 的32步旧计划由本计划替代为暂停状态；完整原文在 [转向前版本](https://github.com/JingzeSun/Emboddied_Spatial_Memory/blob/5f4fd115ed89876c0045d325af290d2636171e73/docs/PLAN.md)。不另建 archive/进度文件。
-
-
-### R4-4资产环境阶段命令（D-091）
-
-此版本只获取并核查源码/环境，不包含模型前向或训练。三份官方源码已锁/root/sh05-assets-v1；实际代码和环境变化后的独立接线入口另按该职责交付。当前主仓库同步一次后顺序执行，前一步exit=0才继续；失败现场保留，export读取现场不重跑。
-
-```bash
-python -B ops/spatial_history/r4_model_assets_v1.py sources
-python -B ops/spatial_history/r4_model_assets_v1.py env_flowm
-python -B ops/spatial_history/r4_model_assets_v1.py env_dreamer
-python -B ops/spatial_history/r4_model_assets_v1.py export
-```
-
-
-### R4-4 D/F原生接口检查（D-091，待服务器）
-
-资产环境回执成功且来源摘要一致后同步本职责，依次运行，预计每项小于20分钟，前台保留失败。仅人工原生模块检查，非本任务模型效果。
-
-```bash
-/root/sh05-assets-v1/flowm-env-v1/bin/python -B ops/spatial_history/r4_native_models_v1.py support_flowm
-/root/sh05-assets-v1/flowm-env-v1/bin/python -B ops/spatial_history/r4_native_models_v1.py flowm
-/root/sh05-assets-v1/dreamer-env-v1/bin/python -B ops/spatial_history/r4_native_models_v1.py dreamer
-python -B ops/spatial_history/r4_native_models_v1.py export
-```
-
-
-### DINO-WM替代后的资产/原生阶段（D-092）
-
-D/F原生回执已验，W锁定源码及以下入口同步一次后按顺序；前步exit=0且回执/权重摘要一致才继续。原生3帧不替代随后121帧任务适配，未启动训练或新数据。
-
-```bash
-/root/sh05-assets-v1/flowm-env-v1/bin/python -B ops/spatial_history/r4_dinowm_assets_v1.py download
-/root/sh05-assets-v1/flowm-env-v1/bin/python -B ops/spatial_history/r4_dinowm_assets_v1.py native
-python -B ops/spatial_history/r4_dinowm_assets_v1.py export
-```
-
-
-### D完整任务适配检查（D-093，待服务器）
-
-Dreamer原生检查已通过；本职责公共值转换与RGBD/RSSM/统一读出/分离训练loss分开可读，完整人工121/200前向和反向不做优化更新。同步一次后运行，失败保留，export不重算：
-
-```bash
-/root/sh05-assets-v1/dreamer-env-v1/bin/python -B ops/spatial_history/r4_dreamer_adapter_check_v1.py run
-/root/sh05-assets-v1/dreamer-env-v1/bin/python -B ops/spatial_history/r4_dreamer_adapter_check_v1.py export
-```
-
-
-### W完整任务适配工程阶段（D-094，当前）
-
-D完整任务适配16项已通过并回传6a150e2，0优化更新；W原生7项亦通过。W新公共Torch读出和完整因果缓存适配已实现，按17项人工check验证全部121/200、原计算/梯度对拍、分支与时序及全反向。F完整适配继续实现。当前三条为D/F/W；前面历史D-073/074/079条款中的P保留为当时方案，按D-092后置。L/R/M及训练充分性/独立确认要求保持。
-
-```bash
-/root/sh05-assets-v1/flowm-env-v1/bin/python -B ops/spatial_history/r4_dinowm_adapter_check_v1.py run
-/root/sh05-assets-v1/flowm-env-v1/bin/python -B ops/spatial_history/r4_dinowm_adapter_check_v1.py export
-```
-
-运行目录dinowm-adapter-check-v1首次失败保留，已成功仅核验导出；单次1800 s、RSS12 GiB/CUDA28 GiB、新证据64 MiB。预计前台，source/hash和原生权重回执自动检查，整个项目数据读取被守卫拒绝。未开放optimizer/新样本/确认/main合并；完整任务有效性仍需后续具体学习与评分证据。
-
-
-### F完整任务适配工程阶段（D-095，当前）
-
-D16项/W17项完整121/200及反向均已通过；F按D-095完成独立实现，运行19项人工检查后再交三模型统一公共查询出口。当前不等于SH-05学习效果验收。系统盘已有全部资产，未删旧数据。
-
-```bash
-/root/sh05-assets-v1/flowm-env-v1/bin/python -B ops/spatial_history/r4_flowm_adapter_check_v1.py run
-/root/sh05-assets-v1/flowm-env-v1/bin/python -B ops/spatial_history/r4_flowm_adapter_check_v1.py export
-```
-
-新flowm-adapter-check-v1目录，前台1800 s、RSS12 GiB/CUDA28 GiB、新证据64 MiB。先自动核原作者源/native成功，再运行完整人工例；失败只导出保留，不重试旧目录或截短输入。0优化/真实预测/新生成/确认，合同及绑定随本职责同步一次。
-
-
-### 三模型真实公共接口核验（D-096，已完成，命令供复现）
-
-D16/W17/F19项人工工程和本节统一真实接口均已通过，报告209bb34已核；下一职责为学习预算/正式数据与诊断。成功目录只核验原字节，不重新执行下面的run。三个步骤均只读固定public文件，0训练/真值读取；每步保存退出0后才启动下一步，任何失败保留。
-
-```bash
-/root/sh05-assets-v1/dreamer-env-v1/bin/python -B ops/spatial_history/r4_three_model_public_check_v1.py D
-/root/sh05-assets-v1/flowm-env-v1/bin/python -B ops/spatial_history/r4_three_model_public_check_v1.py F
-/root/sh05-assets-v1/flowm-env-v1/bin/python -B ops/spatial_history/r4_three_model_public_check_v1.py W
-/root/sh05-assets-v1/flowm-env-v1/bin/python -B ops/spatial_history/r4_three_model_public_check_v1.py export
-```
-
-三模型run/export同版同步一次，不在运行中pull。新目录three-model-public-check-v1；逐模型1800 s前台、RSS12 GiB/CUDA28 GiB，阶段512 MiB/报告16 MiB。D保存16随机样本，F/W确定性各1，完整27模型-候选出值仍只认证工程，不能声明学习、独立确认或有效性通过。
-
-
-### R4-5实际待审范围（当前下一职责）
-
-三条科学实现已形成可读提交、人工完整反向与真实输入输出；接通验收不替代用户对新科学基线的审查。先把旧学习提案中P/64像素/4候选更新为当前D/F/W、80像素/9候选，登记W冻结视觉预训练与D/F从头初始化的差别，以及全部原生状态/探针接口；不直接改写或执行旧proposal。
-
-之后固定可执行的有限拟合/学习规格与总资源、L/R完整强对照和M正式不确定性范围。现有32/8/8/8/4/4家族划分及原四个model_train工程家族保持；剩余家族生成、拟合、训练、诊断和确认需要相应阶段前提，不能把工程首条公开查询变成确认结果或拿52项检查代替效果实验。现有56 GPU小时是旧全比较提案，无法由一个24小时在线窗口自动满足；不能据当前前向耗时承诺完整科学验收日期。
+| 已完成 | 由当前公开观测和先前预测记忆生成并封存候选，再开放私有 teacher；候选逐一真实执行 | teacher 只能给既有候选打标签；正确候选缺失计 candidate miss；共同版本和副作用可审计 |
+
+白话：VM-00～VM-03 解决“所有方法看什么、能改什么，以及 teacher 什么时候出现”。例如 teacher 认为 MERGE 正确，也不能临时插入一个原本没有的 MERGE 候选。它们不负责生成真实 RGB-D，也不证明 VSMT 更好。
+
+## 四、VM-04：新数据和共享 RGB-D 前端
+
+### VM-04 的三类数据
+
+| 数据 | 用途 | 当前规模 | 不能支持的结论 |
+|---|---|---:|---|
+| Estimator RGB-D | 训练、校准和一次性审计共享前端的 semantic/structural estimator | 开发口径 512/64/64 house × 32 帧，共 20,480 帧 | 不能作为 P01～P08 路线 raw，也不能比较五种记忆方法 |
+| 两房 P0 raw | 检查 P01～P08 路线、三面文件、共享 cache 和五方法接线 | 两间固定开发 house、12 个槽 | 不能作为论文独立 validation 或 confirmation |
+| 正式论文 raw | 训练、选择和独立确认 VSMT 与对照 | VM-05.P 的 P-01 根据构造成品率和功效冻结 | 不能用当前两房数据代替 |
+
+### VM-04.E：共享 Estimator 数据、训练和审计
+
+#### E-01 冻结保留集合与 512/64/64 样本
+
+| 项 | 内容 |
+|---|---|
+| 状态 | 已实现待激活 |
+| 运行位置 | 服务器，只读完整 ProcTHOR-10K author-train source inventory |
+| 输入 | 10,000-house inventory、冻结 house-level split 规则、两间 P0 house |
+| 完整动作 | 对全部 house 计算 train/calibration/audit split；先保留 12 个 validation house 和私有 64-house confirmation 候选池；再在各 split 内按冻结 hash 顺序截取 512/64/64 |
+| 公共输出 | development plan、12 个 validation ID、confirmation 数量与承诺摘要、512/64/64 计数 |
+| 私有输出 | 全量 partition、保留清单、576 个 train/calibration source locator、64 个 audit ID seal、64 个 confirmation ID seal |
+| 继续门 | 0 个观察被打开；公共文件没有 confirmation ID；所有摘要可重算 |
+
+512/64/64 分别是 512 个训练 house、64 个校准 house 和 64 个最终 audit house，不是帧数。每个 house 后续固定取 32 帧。
+
+#### E-02 服务器容量探测
+
+| 项 | 内容 |
+|---|---|
+| 状态 | 已实现待激活；取得真实服务器回执后才算完成 |
+| 运行位置 | 与正式生成相同的服务器、AI2-THOR 5.0.0、CloudRendering |
+| 输入 | E-01 的正式 train 前缀 house，不使用额外测试 house |
+| 完整动作 | 依次运行 1、2、4、8 worker；记录 CPU、可用 RAM、GPU 名称/总显存/空闲显存、磁盘和每组退出；成功 probe house 直接成为 E-03 正式数据 |
+| 输出 | capacity receipt、每个 probe house 的成功或失败文件、实际 batch worker 数 |
+| 继续门 | 至少一个 worker 安全完成；遇资源或进程失败就在该级停止；不删除失败、不换 house、不设墙钟强杀 |
+
+E-02 不是随便跑一个 smoke。它决定 E-03 实际并发数，并把 probe 数据计入 512 个 train house，避免重复生成。
+
+#### E-03 生成 train/calibration RGB-D
+
+| 项 | 内容 |
+|---|---|
+| 状态 | 已实现待激活 |
+| 运行位置 | 服务器，多 worker 数只能来自 E-02 receipt |
+| 输入 | 512 个 train house、64 个 calibration house；每 house 固定 8 个相距至少 1 m 的 reachable 位置和 4 个 cardinal yaw |
+| 完整动作 | 对全部 576 个 house 逐一生成或记录失败；断点重启先复验已有 NPZ、公私 receipt 和摘要，禁止仅凭文件存在就跳过 |
+| 公共输出 | 18,432 帧 RGB、米制 depth、相机内参和 opaque observation ID；不含 house ID、世界 pose、reachable grid、room metadata、instance/object/scenario/teacher/future |
+| 私有输出 | house/source 绑定、选中世界位置、reachable 摘要、训练用 structural label 和逐 house receipt |
+| 继续门 | 576 个固定 house 每个都有成功或失败终态；失败不补；64 个 audit house 仍未打开 |
+
+E-03 会完整执行 576 个固定 house，不会为了省工程量只跑一部分。audit 的 64 个 house 此时故意不生成，这是防止开发期看到最终评估集，不是漏做；它们在 E-08 一次性打开。
+
+#### E-04 制作语义标注包并完成人工双盲标注
+
+| 项 | 内容 |
+|---|---|
+| 状态 | 未开始；标注工具和正式目录尚未实现 |
+| 运行位置 | 标注包由服务器从 E-03 public RGB-D 导出；人工在本地离线浏览器界面完成 |
+| 输入 | E-03 成功的 train/calibration 公共帧；标注者不得看到 house、scenario、route、世界 pose 或私有结构标签 |
+| 完整动作 | 两名不同标注者分别对每帧选择 `room`、`corridor` 或 `unknown`；两人不看彼此结果；分歧进入独立仲裁；每次判断绑定 annotator、observation、label 和任务包摘要 |
+| 输出 | 盲化任务包、annotator-A JSONL、annotator-B JSONL、分歧表、仲裁 JSONL 和逐观察 semantic receipt |
+| 数量 | 若 E-03 的 18,432 帧全部成功，需要 36,864 次独立初始判断；失败 house 不产生伪造帧，也不补 house |
+| 继续门 | 所有成功帧都有两个独立判断和最终标签；未解决分歧只能标为 `unknown`；不能覆盖旧判断 |
+
+E-04 确实需要人工。当前还没有可以开始点击的正式页面，所以现在不要手改 JSON。E-03 完成后先实现并审查离线标注器；计划入口为 `ops/vsmt/vm04_estimator_annotation_stage.py`，计划产物位于 `<E_STAGE_ROOT>/annotation/`，浏览器只显示盲化图片和 opaque observation ID。你可以担任一名标注者，但第二名必须是另一位独立人员；同一个人标两遍不算双盲。
+
+#### E-05 冻结公开特征算法并提取特征
+
+| 项 | 内容 |
+|---|---|
+| 状态 | 未开始 |
+| 输入 | E-03 固定 RGB-D、冻结 DINOv2 资产和 12 维公开几何定义 |
+| 完整动作 | 每帧提取 384 维 DINO 描述和 12 维 depth/free-space/visibility/opening/clearance/surface 几何；不得读 E-03 private 文件 |
+| 输出 | 396 维 feature shard、逐帧输入摘要、模型和算法摘要 |
+| 继续门 | 同一 RGB-D 重复提取字节一致；不接收 scenario ID、instance/object、teacher 或 future |
+
+白话：E-05 把固定图像变成 Estimator 能训练的数字。例如走廊开口宽度只能由深度计算，不能查模拟器房间类型。它不直接决定这是房间还是走廊。
+
+#### E-06 训练并封存 Estimator
+
+| 项 | 内容 |
+|---|---|
+| 状态 | 训练/封存核心已实现；等待 E-04、E-05 真实输入 |
+| 输入 | E-04 semantic receipt、E-05 396 维特征、E-01 split |
+| 完整动作 | 只用 train 计算 normalization 和拟合两个 3×396 线性头；calibration 只选 checkpoint 与 temperature；保存逐 epoch 历史和失败 |
+| 输出 | normalization、semantic/structural weights、bias、temperature、训练 receipt 和互绑摘要 |
+| 继续门 | audit 未读取；真实权重和训练 receipt 经审；production reader 仍关闭 |
+
+#### E-07 一次性选择开发规模或全量扩展
+
+| 项 | 内容 |
+|---|---|
+| 状态 | 未开始 |
+| 输入 | E-03～E-06 的 train/calibration 成品率、标注成本、校准诊断和工程失败；禁止读取 audit |
+| 选择 A | 冻结 512 版，最快进入 E-08 和两房 raw，统计覆盖较小 |
+| 选择 B | 在打开 audit 前扩展全部允许 house；所有 RGB-D、标注、特征、normalization、weights、temperature 从零重做，512 cache 失效 |
+| 继续门 | 只能选择一次，并在 audit、production reader、P04/P08 资格和任何正式 raw 之前登记 |
+
+#### E-08 一次性 audit
+
+| 项 | 内容 |
+|---|---|
+| 状态 | 封存，未打开 |
+| 输入 | E-07 后完全冻结的最终 Estimator、E-01 私有 64-house audit seal |
+| 完整动作 | 首次生成 2,048 个 audit RGB-D 观察；使用与 E-04 相同的双人盲标和仲裁规则产生 4,096 次初始判断；只运行预登记指标 |
+| 输出 | NLL、accuracy、calibration、类别和 house 级区间、完整失败与资源 receipt |
+| 继续门 | 结果只报告；不得因为 audit 失败而增加 house、改模型、改阈值或重新训练 |
+
+audit 不是 E-04。E-04 是 train/calibration 的人工标签，可用于训练和发现问题；E-08 是模型冻结后的独立最终前端评估，只能看一次，不能用于修模型。
+
+### VM-04.F：生产共享前端与两房 P0 raw
+
+#### F-01 production reader
+
+| 项 | 内容 |
+|---|---|
+| 状态 | 未开始 |
+| 输入 | E-06 真实权重、E-08 audit 报告、冻结 SAM/DINO/几何配置 |
+| 完整动作 | 从公开 RGB-D 产生匿名 fragment、DINO 描述、surface/free-space/visibility、semantic/structural 概率和非网格 place observation；只写一次共享 cache |
+| 输出 | 五种方法读取的完全相同 cache bytes 和逐帧 receipt |
+| 继续门 | reader 签名没有 scenario/private/teacher/future；真实小样本逐字段审查通过 |
+
+#### F-02 P01～P08 路线调查与资格
+
+| 项 | 内容 |
+|---|---|
+| 状态 | 未开始 |
+| 输入 | F-01 reader、两间固定 P0 house、公开 reachable grid |
+| 完整动作 | 构造并固定 12 条路线；P04 使用冻结 DINO top-1；P08 要求 basin→bottleneck→basin 和两端稳定多视角 fragment |
+| 输出 | 12-route bundle、共享 cache 证据和逐路线成功/失败 |
+| 继续门 | 不换 house、起点、路线或场景；不根据结果调 0.70/0.85/0.35；不合格照实保留 |
+
+#### F-03 路线封存与 slot-0 smoke
+
+| 项 | 内容 |
+|---|---|
+| 状态 | 未开始 |
+| 输入 | F-02 bundle、三面 raw writer |
+| 完整动作 | 先封存全部 12 路线，再只运行 slot-0/P01 |
+| 输出 | public RGB-D/内参、provenance 动作 journal、private pose/mask/entity state 和摘要 |
+| 继续门 | 单槽文件完整、动作失败前缀保留、公私绑定可复验 |
+
+#### F-04 两房 12 槽 raw
+
+| 项 | 内容 |
+|---|---|
+| 状态 | 未开始 |
+| 输入 | F-03 成功、服务器容量探测和运行授权 |
+| 完整动作 | 对固定 12 槽完整生成；每槽接 F-01 相同 reader；失败不补 |
+| 输出 | 12 个成功或失败终态、共享 cache、三面文件和批次 receipt |
+| 继续门 | 所有固定槽都有终态；private evaluator 仍独立开闸 |
+
+#### F-05 旧网格产物退役
+
+| 项 | 内容 |
+|---|---|
+| 状态 | 未开始 |
+| 输入 | 新 cache、P04/P08 重验、12 路线重绑和只读 readiness receipt |
+| 完整动作 | 显示并核对精确旧路径后删除，不使用通配符，不删除 Git 历史或复现依赖 |
+| 输出 | 旧网格不再进入当前生产输入；删除清单和可恢复性说明 |
+
+## 五、VM-05：开发比较、正式数据、训练和 validation
+
+### VM-05.M：两房端到端开发比较
+
+#### M-01 raw 到统一图
+
+| 项 | 内容 |
+|---|---|
+| 状态 | 未开始 |
+| 输入 | F-04 raw/cache、统一类型门 |
+| 完整动作 | 构造 place/entity/surface/fragment 节点、五类边、候选前类型门和五种消融 view |
+| 输出 | 五方法共同 AdapterInput、初始图、逐时 packet 和复杂度基线 |
+| 继续门 | 非网格 place 的 BIND/BIRTH/MERGE 全部生产接通；旧 coordinate scaffold 不进入主表 |
+
+#### M-02 private teacher 与 evaluator
+
+| 项 | 内容 |
+|---|---|
+| 状态 | 未开始 |
+| 输入 | M-01 已封存公开候选；随后才打开 private pose/mask/entity/route truth |
+| 完整动作 | 只给既有候选打标签并执行统一评价 |
+| 输出 | candidate miss、teacher error、amortization error、地点/关系/挂载指标 |
+| 继续门 | 修改 private truth 不能改变候选 bytes；P08 私有房间/实体只在路线封存后评价 |
+
+#### M-03 五方法开发比较
+
+| 项 | 内容 |
+|---|---|
+| 状态 | 未开始 |
+| 输入 | VSMT、TAF、ELU、WFR、LOW 的同 cache、同公开输入和冻结开发预算 |
+| 完整动作 | 运行两房 12 槽端到端训练/推理和逐例失败分析 |
+| 输出 | 第一张五方法工程表、图膨胀、runtime、memory 和接口问题清单 |
+| 继续门 | 只用于发现工程与候选问题；不得据两间 house 选择论文 headline 赢家 |
+
+### VM-05.P：正式数据、训练和 validation
+
+#### P-01 冻结正式数据和统计预算
+
+| 项 | 内容 |
+|---|---|
+| 状态 | 未开始 |
+| 输入 | F/M 阶段构造成品率、九程序覆盖、所需最小效果和 house-level 方差 |
+| 完整动作 | 事前冻结正式 train/validation/confirmation house-family 数、episode 数、seed、主指标、bootstrap 和停止规则 |
+| 输出 | 三者互斥 manifest、总帧预算和功效说明 |
+| 继续门 | confirmation ID 仍不可见；不能照搬旧数据规模 |
+
+#### P-02 生成正式 raw 和共享 cache
+
+| 项 | 内容 |
+|---|---|
+| 状态 | 未开始 |
+| 输入 | P-01 manifest、F-04/M-02 验收链 |
+| 完整动作 | 按服务器实测最大安全 worker 生成正式 train 和 validation；confirmation 只保存承诺，不打开 |
+| 输出 | 多 house 正式 raw、共享 cache、公私文件、失败和资源 receipt |
+| 继续门 | 固定样本全部有终态；任何失败不替换 |
+
+#### P-03 五方法训练和有限选参
+
+| 项 | 内容 |
+|---|---|
+| 状态 | 未开始 |
+| 输入 | P-02 train、共同前端/候选/teacher、各方法冻结预算 |
+| 完整动作 | 训练学习方法；规则方法只在预登记有限配置中选择；VSMT 消融使用同预算 |
+| 输出 | checkpoint、配置、训练曲线、资源和完整失败 |
+| 继续门 | 不读取 confirmation；不按单一场景临时增配 |
+
+#### P-04 validation 后冻结
+
+| 项 | 内容 |
+|---|---|
+| 状态 | 未开始 |
+| 输入 | P-03 全部候选和只读 validation |
+| 完整动作 | 选择最终 method config、threshold 和 checkpoint |
+| 输出 | 最终冻结 receipt 和 confirmation 可执行代码摘要 |
+| 继续门 | 此后不得改算法、数据、阈值、指标或预算 |
+
+## 六、VM-06：独立 confirmation 与论文证据
+
+### P-05 confirmation 一次性运行
+
+| 项 | 内容 |
+|---|---|
+| 状态 | 封存，未打开 |
+| 输入 | P-04 冻结字节和 P-01 私有 confirmation manifest |
+| 完整动作 | 一次性生成/读取 confirmation，运行五方法、配对统计和 house-level bootstrap |
+| 输出 | 主指标、五个 headline 场景 macro、candidate/teacher/amortization、复杂度和逐例失败 |
+| 继续门 | 失败照实报告，不换样本、不改方法、不改指标 |
+
+### P-06 论文表和主张审计
+
+| 项 | 内容 |
+|---|---|
+| 状态 | 未开始 |
+| 输入 | P-05 不可变结果、全部失败、版本和资源证据 |
+| 完整动作 | 生成主表、消融表、场景表、失败分析、成本与限制，并逐条检查证据是否支持主张 |
+| 输出 | 第一篇论文结果包和可复现实验索引 |
+| 继续门 | 主门失败就报告 no-go，不通过换数据或缩减强对照制造成功 |
+
+## 七、时间与最近动作
+
+| 里程碑 | 从当前起的现实估计 | 主要不确定项 |
+|---|---:|---|
+| E-03 train/calibration RGB-D 完成 | 激活后约 0.5～2 个服务器工作日 | E-02 实测并发、house 加载失败、I/O |
+| E-08 最终 Estimator audit 完成 | 约 7～14 个工作日 | 36,864 次 E-04 人工判断、E-05 特征实现 |
+| F-04 两房 P0 raw 完成 | 约 10～18 个工作日 | 标注进度、production reader、P04/P08 资格 |
+| M-03 第一份五方法开发表 | 约 4～7 周 | 非网格 place 接线、teacher/evaluator 和调试 |
+| P-05 第一份论文级 confirmation | 约 12～20 周 | P-01 正式规模、构造成品率、五方法训练和统计功效 |
+
+最近动作按顺序为：
+
+1. 审查并激活 E-01～E-03 实现提交；只开放 plan sealing、capacity probe、train/calibration RGB-D generation。
+2. 服务器同步一次后运行 E-01，核对 512/64/64、12 validation 和私有 confirmation/audit seal。
+3. 运行 E-02，以真实资源回执确定 E-03 worker 数。
+4. 立即运行 E-03；完成后导出成功/失败、帧数、磁盘和摘要报告。
+5. E-03 运行期间并行实现 E-04 离线标注器和 E-05 特征提取器，但不得提前打开 audit 或 production reader。
