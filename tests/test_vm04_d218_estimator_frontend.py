@@ -60,11 +60,23 @@ class D218EstimatorFrontendTests(unittest.TestCase):
         cls.contract = validate_d218_contract(json.loads(
             CONTRACT_PATH.read_text(encoding="utf-8")))
 
-    def test_review_candidate_keeps_annotation_features_and_downstream_closed(self):
+    def test_activated_annotation_and_features_keep_downstream_closed(self):
+        """The contract was activated in 94904c9; only three gates opened.
+
+        D-219 later cancelled E-04 itself, but the D-218 bytes stay frozen
+        because E-03 and E-05 already executed against them.
+        """
+
         self.assertEqual(
-            "implementation_pending_review_all_execution_closed",
+            "frozen_executable_train_calibration_annotation_and_features",
             self.contract["status"])
-        self.assertFalse(any(self.contract["authorization"].values()))
+        authorization = self.contract["authorization"]
+        self.assertEqual(
+            {"annotation_package_export", "annotation_submission_import",
+             "feature_materialization"},
+            {name for name, value in authorization.items() if value is True})
+        for name in self.contract["activation_policy"]["must_remain_false"]:
+            self.assertFalse(authorization[name], name)
         self.assertFalse(any(self.contract["closed_downstream"].values()))
         changed = deepcopy(self.contract)
         changed["authorization"]["p04_p08_qualification"] = True
@@ -277,12 +289,13 @@ class D218EstimatorFrontendTests(unittest.TestCase):
     def test_closed_stages_reject_before_missing_external_paths(self):
         with tempfile.TemporaryDirectory() as directory:
             missing = Path(directory) / "missing"
-            with self.assertRaisesRegex(
-                    RuntimeError, "closed pending implementation review"):
+            # The refusal reason moved from the closed status to the git
+            # activation gate once 94904c9 activated the contract; either way
+            # the stage must refuse before it touches a missing path.
+            with self.assertRaises(RuntimeError):
                 annotation_stage.export_packages(
                     public_root=missing, output_root=missing / "output")
-            with self.assertRaisesRegex(
-                    RuntimeError, "closed pending implementation review"):
+            with self.assertRaises(RuntimeError):
                 feature_stage.materialize(
                     public_root=missing, output_root=missing / "features",
                     dino_repository=missing / "dino",
