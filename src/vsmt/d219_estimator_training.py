@@ -67,6 +67,10 @@ NPZ_ARRAY_NAMES = (
 FORBIDDEN_ARRAY_NAMES = (
     "semantic_labels", "semantic_annotation_receipt_sha256",
 )
+REQUIRED_SPLITS = ("train", "calibration")
+# The audit split stays sealed until E-08, so E-06 trains on train and
+# calibration only.  Audit arrays are accepted but never required, and they
+# may never influence the checkpoint or the temperature.
 
 
 class D219Error(ValueError):
@@ -252,11 +256,13 @@ def make_structural_bundle_manifest(
 
     validate_d219_contract(d219_contract)
     partition = validate_house_split_manifest(partition_manifest)
-    _require(set(split_arrays) == set(SPLITS),
-             "structural bundle must contain train, calibration, and audit")
+    present = tuple(split for split in SPLITS if split in split_arrays)
+    _require(set(REQUIRED_SPLITS) <= set(present) and
+             set(present) <= set(SPLITS),
+             "structural bundle must contain train and calibration")
     summaries = {}
     all_ids: list[str] = []
-    for split in SPLITS:
+    for split in present:
         summary = validate_structural_shard_arrays(
             split_arrays[split], split=split, partition_manifest=partition)
         all_ids.extend(summary.pop("observation_ids"))
@@ -270,14 +276,16 @@ def make_structural_bundle_manifest(
         "feature_dimension": 396,
         "array_names": list(NPZ_ARRAY_NAMES),
         "semantic_arrays_present": False,
+        "splits_present": list(present),
+        "audit_split_present": "audit" in present,
         "row_counts": {split: summaries[split]["row_count"]
-                       for split in SPLITS},
+                       for split in present},
         "structural_class_counts": {
             split: summaries[split]["structural_class_counts"]
-            for split in SPLITS
+            for split in present
         },
         "split_array_content_sha256": {
-            split: summaries[split]["array_content_sha256"] for split in SPLITS
+            split: summaries[split]["array_content_sha256"] for split in present
         },
         "global_observation_ids_sha256": _sha(sorted(all_ids)),
         "scenario_route_private_or_future_fields_present": False,
@@ -293,6 +301,7 @@ def validate_structural_bundle_manifest(
         "schema_version", "partition_manifest_receipt_sha256",
         "feature_dimension", "array_names", "semantic_arrays_present",
         "row_counts", "structural_class_counts", "split_array_content_sha256",
+        "splits_present", "audit_split_present",
         "global_observation_ids_sha256",
         "scenario_route_private_or_future_fields_present",
         "structural_bundle_sha256",
@@ -303,9 +312,12 @@ def validate_structural_bundle_manifest(
              value["semantic_arrays_present"] is False and
              value["scenario_route_private_or_future_fields_present"] is False,
              "D-219 structural bundle boundary changed")
-    _require(set(value["row_counts"]) == set(SPLITS) and
-             set(value["split_array_content_sha256"]) == set(SPLITS) and
-             set(value["structural_class_counts"]) == set(SPLITS),
+    present = tuple(value["splits_present"])
+    _require(set(REQUIRED_SPLITS) <= set(present) <= set(SPLITS) and
+             value["audit_split_present"] == ("audit" in present) and
+             set(value["row_counts"]) == set(present) and
+             set(value["split_array_content_sha256"]) == set(present) and
+             set(value["structural_class_counts"]) == set(present),
              "D-219 structural bundle split coverage changed")
     digest = value.pop("structural_bundle_sha256")
     _require(digest == _sha(value), "D-219 structural bundle digest mismatch")
@@ -333,11 +345,12 @@ def fit_and_seal_structural_estimator(
              len(implementation_commit) == 40 and
              all(char in "0123456789abcdef" for char in implementation_commit),
              "implementation commit must be a lowercase 40-hex git commit")
-    _require(set(split_arrays) == set(SPLITS),
-             "fit input must contain exactly train/calibration/audit")
+    present = tuple(bundle["splits_present"])
+    _require(set(split_arrays) == set(present),
+             "fit input must match the splits the bundle sealed")
 
     validated: dict[str, dict[str, np.ndarray]] = {}
-    for split in SPLITS:
+    for split in present:
         validate_structural_shard_arrays(
             split_arrays[split], split=split, partition_manifest=partition)
         validated[split] = {
@@ -385,7 +398,7 @@ def fit_and_seal_structural_estimator(
     labels = {
         split: torch.as_tensor(validated[split]["structural_labels"],
                                dtype=torch.long, device=target_device)
-        for split in SPLITS
+        for split in present
     }
     weight_matrix = torch.nn.Parameter(
         torch.zeros((3, 396), device=target_device))
@@ -459,7 +472,7 @@ def fit_and_seal_structural_estimator(
         split: _probability_metrics(
             numpy_logits(split),
             validated[split]["structural_labels"].astype(int), temperature)
-        for split in SPLITS
+        for split in present
     }
 
     normalization = _sealed({
@@ -506,6 +519,8 @@ def fit_and_seal_structural_estimator(
         "early_stopped": len(history) < training["maximum_epochs"],
         "structural_train_class_weights": class_weights.tolist(),
         "history": history, "post_temperature_metrics": metrics,
+        "splits_used": list(present),
+        "audit_split_present": "audit" in present,
         "semantic_head_trained": False,
         "human_annotation_consumed": False,
         "audit_used_for_checkpoint_or_temperature": False,

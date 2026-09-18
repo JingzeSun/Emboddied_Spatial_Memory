@@ -26,7 +26,10 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from cpmt.hashing import canonical_json  # noqa: E402
-from vsmt.d215_frontend_freeze import validate_d215_contract  # noqa: E402
+from vsmt.d215_frontend_freeze import (  # noqa: E402
+    STRUCTURAL_LABELS,
+    validate_d215_contract,
+)
 from vsmt.d219_estimator_training import (  # noqa: E402
     ACTIVE_STATUS,
     FROZEN_PREDECESSORS,
@@ -126,6 +129,96 @@ def check() -> dict[str, Any]:
     }
 
 
+def build_bundle(*, public_root: Path, feature_root: Path,
+                 private_root: Path, bundle_root: Path) -> dict[str, Any]:
+    """Join public features with the private structural labels.
+
+    The features carry no label, and the labels live only in the private house
+    receipts, so this trusted step performs the join and writes one NPZ per
+    split.  It is the only place the private reachable-graph labels enter
+    training, exactly as the D-219 label boundary registers.  The audit split is
+    never read: it stays sealed until E-08.
+    """
+
+    contract = _load_contract()
+    provenance = _run_provenance(contract)
+    bundle_root.mkdir(parents=True, exist_ok=True)
+    summary: dict[str, Any] = {}
+    for split in ("train", "calibration"):
+        rows: list[dict[str, Any]] = []
+        for sample in sorted((feature_root / split).glob("sample_*")):
+            name = sample.name
+            feature_path = sample / "features.npz"
+            private_path = private_root / split / name / "receipt.json"
+            public_path = public_root / split / name / "receipt.json"
+            _require(feature_path.is_file() and private_path.is_file() and
+                     public_path.is_file(),
+                     f"D-219 bundle input is incomplete for {split}/{name}")
+            private = _read_json(private_path)
+            public = _read_json(public_path)
+            _require(private["public_receipt_sha256"] ==
+                     public["public_receipt_sha256"],
+                     f"private and public receipts disagree for {split}/{name}")
+            label_by_id = {row["observation_id"]: row["structural_label"]
+                           for row in private["observations"]}
+            receipt_digest = private["private_receipt_sha256"]
+            with np.load(feature_path, allow_pickle=False) as arrays:
+                features = arrays["features_float32"]
+                ids = [str(item) for item in arrays["observation_ids"]]
+                publics = [str(item)
+                           for item in arrays["public_observation_sha256"]]
+            _require(len(ids) == features.shape[0] == len(publics),
+                     f"feature shard arrays disagree for {split}/{name}")
+            for index, observation_id in enumerate(ids):
+                label = label_by_id.get(observation_id)
+                _require(label in STRUCTURAL_LABELS,
+                         f"no structural label for observation {observation_id}")
+                rows.append({
+                    "features": features[index],
+                    "structural_label": STRUCTURAL_LABELS.index(label),
+                    "house_id": private["house_id"],
+                    "observation_id": observation_id,
+                    "public_observation_sha256": publics[index],
+                    "structural_label_receipt_sha256": receipt_digest,
+                })
+        _require(rows, f"D-219 bundle found no rows for {split}")
+        payload = {
+            "features": np.stack([row["features"] for row in rows]
+                                 ).astype(np.float32),
+            "structural_labels": np.asarray(
+                [row["structural_label"] for row in rows], dtype=np.uint8),
+            "house_ids": np.asarray([row["house_id"] for row in rows]),
+            "observation_ids": np.asarray(
+                [row["observation_id"] for row in rows]),
+            "public_observation_sha256": np.asarray(
+                [row["public_observation_sha256"] for row in rows]),
+            "structural_label_receipt_sha256": np.asarray(
+                [row["structural_label_receipt_sha256"] for row in rows]),
+        }
+        target = bundle_root / f"{split}.npz"
+        _require(not target.exists(), f"D-219 bundle {split}.npz already exists")
+        np.savez(target, **payload)
+        counts = [int((payload["structural_labels"] == index).sum())
+                  for index in range(3)]
+        summary[split] = {
+            "rows": len(rows), "houses": len(set(payload["house_ids"].tolist())),
+            "class_counts": dict(zip(STRUCTURAL_LABELS, counts)),
+            "npz_sha256": _sha256_file(target),
+        }
+    receipt = {
+        "schema_version": "vsmt-vm04-d219-bundle-build-receipt-v1",
+        "run_provenance": provenance,
+        "splits": summary,
+        "audit_split_read": False,
+        "semantic_labels_present": False,
+        "private_labels_used_for": "train_and_calibration_label_assembly_only",
+    }
+    receipt["bundle_build_receipt_sha256"] = hashlib.sha256(
+        canonical_json(receipt).encode("utf-8")).hexdigest()
+    _write_new(bundle_root / "bundle.build.receipt.json", receipt)
+    return receipt
+
+
 def _load_split_arrays(bundle_root: Path) -> dict[str, dict[str, Any]]:
     arrays: dict[str, dict[str, Any]] = {}
     for split in SPLITS:
@@ -186,6 +279,11 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("check")
+    builder = commands.add_parser("build-bundle")
+    builder.add_argument("--public-root", type=Path, required=True)
+    builder.add_argument("--feature-root", type=Path, required=True)
+    builder.add_argument("--private-root", type=Path, required=True)
+    builder.add_argument("--bundle-root", type=Path, required=True)
     trainer = commands.add_parser("train")
     trainer.add_argument("--bundle-root", type=Path, required=True)
     trainer.add_argument("--partition-manifest", type=Path, required=True)
@@ -194,6 +292,10 @@ def main() -> int:
     args = parser.parse_args()
     if args.command == "check":
         result = check()
+    elif args.command == "build-bundle":
+        result = build_bundle(
+            public_root=args.public_root, feature_root=args.feature_root,
+            private_root=args.private_root, bundle_root=args.bundle_root)
     else:
         result = train(
             bundle_root=args.bundle_root,

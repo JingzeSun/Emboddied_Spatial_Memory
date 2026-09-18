@@ -103,9 +103,11 @@ class D219StructuralOnlyEstimatorTests(unittest.TestCase):
             for split in ("train", "calibration", "audit")
         }
 
-    def split_arrays(self):
-        return {split: arrays_for(split, house)
-                for split, house in self.house_by_split.items()}
+    def split_arrays(self, splits=("train", "calibration")):
+        """E-06 trains on train+calibration; audit stays sealed until E-08."""
+
+        return {split: arrays_for(split, self.house_by_split[split])
+                for split in splits}
 
     def bundle(self, split_arrays):
         return make_structural_bundle_manifest(
@@ -114,17 +116,28 @@ class D219StructuralOnlyEstimatorTests(unittest.TestCase):
 
     # ---- contract ----------------------------------------------------
 
-    def test_closed_contract_keeps_every_gate_false(self):
-        self.assertEqual("implementation_pending_review_all_execution_closed",
+    def test_activated_training_keeps_every_downstream_gate_false(self):
+        """E-06 is authorized; everything after it must stay shut."""
+
+        self.assertEqual("frozen_executable_structural_training",
                          self.d219["status"])
-        self.assertFalse(any(self.d219["authorization"].values()))
+        self.assertTrue(self.d219["authorization"]["structural_training"])
+        for name in self.d219["run_authorization_policy"]["must_remain_false"]:
+            self.assertFalse(self.d219["authorization"][name], name)
+        self.assertFalse(
+            self.d219["authorization"]["audit_open_or_generation"])
         self.assertFalse(any(self.d219["closed_downstream"].values()))
-        self.assertIsNone(
-            self.d219["expected_reviewed_implementation_commit"])
         opened = deepcopy(self.d219)
-        opened["authorization"]["structural_training"] = True
-        with self.assertRaisesRegex(D219Error, "must keep every run gate"):
+        opened["authorization"]["audit_open_or_generation"] = True
+        with self.assertRaisesRegex(D219Error, "must keep"):
             validate_d219_contract(opened)
+
+    def test_closed_contract_would_keep_every_gate_false(self):
+        closed = deepcopy(self.d219)
+        closed["status"] = "implementation_pending_review_all_execution_closed"
+        closed["authorization"]["structural_training"] = True
+        with self.assertRaisesRegex(D219Error, "must keep every run gate"):
+            validate_d219_contract(closed)
 
     def test_contract_pins_single_head_and_public_only_inference(self):
         architecture = self.d219["structural_estimator"]["architecture"]
@@ -199,7 +212,7 @@ class D219StructuralOnlyEstimatorTests(unittest.TestCase):
         split_arrays = self.split_arrays()
         bundle = self.bundle(split_arrays)
         self.assertFalse(bundle["semantic_arrays_present"])
-        self.assertEqual({"train": 9, "calibration": 9, "audit": 9},
+        self.assertEqual({"train": 9, "calibration": 9},
                          bundle["row_counts"])
         self.assertEqual([3, 3, 3],
                          bundle["structural_class_counts"]["train"])
@@ -210,6 +223,29 @@ class D219StructuralOnlyEstimatorTests(unittest.TestCase):
             validate_structural_bundle_manifest(tampered)
 
     # ---- training ------------------------------------------------------
+
+    def test_bundle_and_fit_work_while_the_audit_split_is_still_sealed(self):
+        """E-06 runs before E-08, so audit arrays do not exist yet."""
+
+        split_arrays = self.split_arrays()
+        bundle = self.bundle(split_arrays)
+        self.assertEqual(["train", "calibration"], bundle["splits_present"])
+        self.assertFalse(bundle["audit_split_present"])
+        sealed = fit_and_seal_structural_estimator(
+            split_arrays=split_arrays, partition_manifest=self.partition,
+            structural_bundle_manifest=bundle,
+            d215_contract=self.d215, d219_contract=self.d219,
+            implementation_commit=COMMIT)
+        receipt = sealed["training_receipt"]
+        self.assertEqual(["train", "calibration"], receipt["splits_used"])
+        self.assertFalse(receipt["audit_split_present"])
+        self.assertNotIn("audit", receipt["post_temperature_metrics"])
+        self.assertFalse(receipt["audit_used_for_checkpoint_or_temperature"])
+
+    def test_bundle_still_requires_train_and_calibration(self):
+        with self.assertRaisesRegex(D219Error, "train and calibration"):
+            self.bundle({"train": arrays_for(
+                "train", self.house_by_split["train"])})
 
     def test_fit_produces_one_head_and_no_semantic_artifact(self):
         split_arrays = self.split_arrays()

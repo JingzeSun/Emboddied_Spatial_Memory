@@ -1,7 +1,7 @@
 {
   "schema_version": "vsmt-vm04-d219-structural-only-estimator-v1",
   "decision_id": "D-219",
-  "status": "implementation_pending_review_all_execution_closed",
+  "status": "frozen_executable_structural_training",
   "reviewed_baseline_commit": "3f73aee59d76db3585aa05c4bb0a9bb94e003a74",
   "expected_reviewed_implementation_commit": null,
   "supersedes": {
@@ -229,7 +229,7 @@
     }
   },
   "authorization": {
-    "structural_training": false,
+    "structural_training": true,
     "audit_open_or_generation": false,
     "full_house_expansion": false,
     "production_reader": false,
@@ -260,5 +260,15 @@
     "p04_p08_requalified": false,
     "route_or_raw_generated": false,
     "private_evaluation_run": false
+  },
+  "e06_training_inputs": {
+    "splits_used": [
+      "train",
+      "calibration"
+    ],
+    "audit_split_sealed_until_e08": true,
+    "audit_arrays_required_at_training_time": false,
+    "correction": "the first implementation inherited D-216's shape and demanded audit arrays at fit time; that contradicted the E-06 before E-08 ordering and the 'audit not read' continue gate, so the audit split is now optional and its metrics are deferred to E-08",
+    "scale": "D-221 2048/128 prefix, 2121 successful houses, 67872 frames"
   }
 }
