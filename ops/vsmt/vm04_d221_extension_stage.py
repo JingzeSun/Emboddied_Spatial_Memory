@@ -275,6 +275,23 @@ def features(*, public_root: Path, output_root: Path, dino_repository: Path,
 
     contract = _contract()
     commit = _run_gate(contract)
+
+    # E-05 left a terminal stage receipt covering only the 559 original houses.
+    # D-218 returns it unchanged when it is present, so the extension would
+    # silently skip the new houses.  Archive it first; the 512/64 feature
+    # evidence behind LOG-204 is kept, never deleted.
+    archived = {}
+    final_path = output_root / "stage.receipt.json"
+    if final_path.is_file():
+        archive = output_root / "archive_512_64"
+        archive.mkdir(parents=True, exist_ok=True)
+        target = archive / final_path.name
+        _require(not target.exists(),
+                 "D-221 feature archive already holds stage.receipt.json")
+        archived[final_path.name] = _sha_file(final_path)
+        shutil.copy2(final_path, target)
+        final_path.unlink()
+
     result = d218_stage.materialize(
         public_root=public_root, output_root=output_root,
         dino_repository=dino_repository, dino_checkpoint=dino_checkpoint,
@@ -282,6 +299,7 @@ def features(*, public_root: Path, output_root: Path, dino_repository: Path,
     return {
         "schema_version": "vsmt-vm04-d221-feature-stage-receipt-v1",
         "run_commit": commit,
+        "archived_file_sha256": archived,
         "feature_receipt": result,
         "audit_opened": False,
         "estimator_training_run": False,
