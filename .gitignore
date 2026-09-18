@@ -35,6 +35,7 @@ __pycache__/
 .uv-python/
 .vscode/
 .idea/
+.claude/
 .DS_Store
 Thumbs.db
 
