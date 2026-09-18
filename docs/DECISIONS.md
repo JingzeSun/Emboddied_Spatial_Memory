@@ -2075,3 +2075,11 @@
 - **实现状态不能合并概括：** 本次只把公开派生输出组合、cache封存和资格核心记为已实现；真实SAM/DINOv2/semantic推理编排、production raw reader与服务器执行在机器合同中分别保持false。public/forbidden input列表逐项冻结，episode复核重新检查时间单调及动作边终点，避免scenario通道或重封摘要绕过。
 - **旧grid删除：** 用户已授权在新产物完成后删除，但不是现在。必须先全部生成D-214 cache、核验摘要、P04/P08重验、P01–P08路线重绑、审查精确无通配符目标且确认没有复现依赖；只读readiness receipt通过后再执行。Git历史和原始研究资料保留。
 - **仍未完成：** SAM checkpoint/config/assets receipt、place semantic head模型/训练split/权重/推理config、P08四个数值、真实asset loader编排、raw reader、adapter转换、两房真实cache与路线重封均不存在；当前0服务器、0模型推理、0episode、0效果证据。
+
+## D-215：冻结SAM资产、场景盲双头估计器、house级训练划分与P08四数
+
+- 日期：2026-09-18；状态：用户明确要求先冻结上述内容，再接production reader；本轮只形成独立合同/纯核心候选，不开放训练、reader、route、raw或评价。用户原文：“先冻结 SAM checkpoint/config、场景盲 semantic/structural estimator、训练划分和 P08 四个阈值，再接生产 reader”。
+- **SAM资产：** 固定官方SAM 2.1 Hiera Small commit `2b90b9f…`、官方YAML SHA-256=`0f36b91e…b6f55`、checkpoint 184,416,285 bytes且SHA-256=`6d1aa6f3…c4d38`。automatic-mask复用旧VM-04已登记数值：32点/边、batch64、IoU 0.8、stability 0.95、无crop、无NMS归属抑制、binary mask；最小196像素、最多64 proposals，超限失败不截断。仅在本机临时目录下载核摘要后删除，未安装、未复制到服务器。
+- **Estimator与划分：** 一个共享的场景盲模型读取384维冻结DINO描述＋12维固定公开几何，输出semantic和structural两个三类线性温度softmax。固定house级哈希80/10/10 train/calibration/audit；两间P0 house及VM-04 validation/confirmation排除。每house按hash固定8个相距≥1 m的位置×4 yaw；结构训练标签由固定2 m局部可达图切口规则产生，semantic标注者不见scenario/house身份。任何标签/grid/metadata不进推理/cache。实际partition manifest、normalization、weights和training receipt保持null并阻断推理。
+- **P08：** 四数固定为0.70/0.70/0.85/0.35 m，等号通过、结构类须唯一argmax、每端至少两个不同观察。数值不按路线yield调；失败保留原槽，不换路线/house，不重新解释room/corridor为identity。
+- **下一顺序：** 先审本提交；随后单独材料化split manifest并生成/训练/封存前端权重，审过真实receipts后才实现production reader。D-212 activation和旧grid删除继续关闭。

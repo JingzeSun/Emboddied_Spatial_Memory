@@ -201,6 +201,12 @@ from .d214_shared_frontend import (
     validate_episode_cache as validate_d214_episode_cache,
     validate_frame_cache as validate_d214_frame_cache,
 )
+from .d215_frontend_freeze import (
+    D215Error,
+    assign_estimator_house_split,
+    run_frozen_two_head_estimator,
+    validate_d215_contract,
+)
 
 __all__ = [
     "AdapterInput",
@@ -368,4 +374,8 @@ __all__ = [
     "validate_d214_contract",
     "validate_d214_episode_cache",
     "validate_d214_frame_cache",
+    "D215Error",
+    "assign_estimator_house_split",
+    "run_frozen_two_head_estimator",
+    "validate_d215_contract",
 ]

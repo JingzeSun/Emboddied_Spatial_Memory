@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| D-214共享RGB-D前端 | P01–P08场景盲共同cache、fragment/surface/free-space/visibility、非网格place observation、语义/结构概率、P04/P08资格和旧grid退役只读门已形成实现候选；SAM/semantic assets及P08四数仍空，全部运行位关闭；LOG-199。 |
+| D-214/D-215共享RGB-D前端 | P01–P08场景盲共同cache核心已形成；SAM checkpoint/YAML/automatic-mask、双线性semantic/structural estimator、house级80/10/10划分规则及P08四数已冻结候选。实际partition manifest/normalization/weights/training receipt与production reader仍空，全部运行位关闭；LOG-199/200。 |
 | D-213统一图/类型门 | 四节点/五关系统一图合同、seal前类型门、五种消融memory view、图复杂度派生、relation REACTIVATE及surface/fragment RETRACT已实现候选；数据接线现改为等待D-214冻结cache，不再以单槽raw后定义前端，全部运行位关闭；LOG-197/199。 |
 | D-212地点raw纠偏 | v2已补公开grid模板＋RGB-D route survey生产入口、P01–P08可复算收据、raw三面journal与两提交执行门；D-214已重新阻断activation，旧P04/P08工程描述不得获论文资格。真实survey/seal/smoke均为0；LOG-196/198/199。 |
 | VM-04观察适用性 | 原静态36槽不运行；D-182/183只用于精确schema/实现审查。D-199–202已形成L2公开proposal/visibility、program matcher/episode audit和terminal raw加载前plan seal，D-202已获认可。D-203候选禁止调用者手填version ID，从sealed public route、预登记selector和`terminal-1` causal memory确定派生九类online request refs；核心无episode/raw path参数，edge RETRACT仍阻断。selector spec的提前时间封存和D-202 receipt消费未实现，因此D-201 pending与family阻断未解除。正式SAM/assets/matcher/visibility数值、生产callback、父stage family聚合及pilot收据仍缺。全部运行位关闭，0新episode/materialization/训练/记忆正例。LOG-169–192。 |
@@ -2086,3 +2086,11 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 用户请求的新产物完成后旧grid删除被实现为只读readiness gate：要求新cache全部生成、摘要核验、P04/P08重验、全路线重绑、精确无通配符目标且无复现依赖；函数永不删除且当前所有条件未满足。本批未删除任何文件、目录或历史。
 - 定向D-214 **10/10通过**；一次手工按模块名联合运行因三个旧测试文件自身不设置`src`导入路径而产生3个collection/import error，D-213/D-214当时已执行的19项均通过；最终在本机限制OpenBLAS/OMP/MKL各1线程后，标准`python -m unittest discover -s tests -p "test*.py"`全库**658/658通过**，耗时24.118 s，失败/错误/跳过均0，既有内嵌VSMT/executor/L1三组179/42/31及两房汇总252仍通过。限制测试进程线程只规避本机资源波动，不改变科学配置；0模型资产下载、0真实SAM/DINO/semantic推理、0服务器、0route/cache/raw/adapter/private evaluation/训练。
 - 白话：输入每个场景都相同的公开RGB-D派生证据，输出所有方法共用的一份不可变观察缓存；例如P08只检查缓存是否真的包含两个结构盆地、一个瓶颈和两端稳定fragment，不会因为名字叫P08多开一个模型。它不表示真实语义头、正式阈值或服务器数据已经完成。
+
+## LOG-200：D-215前端资产、Estimator划分与P08数值冻结候选（2026-09-18）
+
+- 用户要求先冻结SAM checkpoint/config、场景盲semantic/structural estimator、训练划分和P08四个阈值，再接production reader。本批新建D-215机器合同和纯核心，D-214引用值同步收紧；全部下载/安装/训练/reader/route/raw/evaluation授权仍false，0服务器、0cache、0route、0episode、0训练。
+- 官方SAM 2.1 Hiera Small checkpoint只在本机系统临时目录下载核验，字节数184,416,285、SHA-256=`6d1aa6f30de5c92224f8172114de081d104bbd23dd9dc5c58996f0cad5dc4d38`；固定commit YAML为3,761 bytes、SHA-256=`0f36b91e86e58d06c87e42997166212468b88b98b60e4d816d5e4d4d088b6f55`。两份临时文件核验后已删除；未安装SAM、未保存checkpoint进Git、未触碰服务器。
+- automatic-mask复用旧VM-04已审数值并封摘要；Estimator固定为384维DINO＋12维公开RGB-D几何的两个无隐藏层线性softmax头。source manifest固定，house级哈希80/10/10，P0两house及VM-04 validation/confirmation排除；每house按hash取8个相距≥1 m位置×4 yaw，结构标签使用固定2 m局部可达图切口规则。实际partition receipt、normalization、weights及training receipt保持null，推理入口会先拒绝。
+- P08固定`basin≥0.70`、`bottleneck≥0.70`、fragment cosine≥0.85、centroid distance≤0.35 m，等号通过、结构类唯一argmax、两端至少两个观察。失败保留原槽，不得调阈值或换路线/house。定向D-214+D-215 **16/16通过**。一次全库在D-214重复构造测试中出现本机非稳定`clone_json` ValueError（663通过/1错误），同字节立即重跑通过；补齐固定抽帧和结构标签规则后的最终标准discover **664/664通过**，耗时33.060 s，失败/错误/跳过均0，内嵌VSMT/executor/L1三组179/42/31及两房汇总252仍通过。该本地不稳定回执保留，不改科学合同，也未在服务器运行。
+- 白话：输入是官方资产字节、结果前的前端设计和固定house清单摘要，输出可复算的模型/划分/资格合同；例如0.849999的fragment相似度直接失败，不会因为P08产率低就改成0.84。它不表示权重已经训练，也不允许production reader用fixture概率运行。

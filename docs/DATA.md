@@ -60,6 +60,12 @@ P04回执保存所选两帧、公开名义距离、DINO cosine和“未用绝对
 
 `vsmt-vm04-d214-legacy-grid-retirement-readiness-v1`只在新cache全部生成、摘要验证、P04/P08重验、全路线重绑、有精确无通配符目标且无复现依赖时置`ready_for_user_requested_deletion=true`；`deletion_performed`始终false。它是删除前证据，不执行删除。
 
+### D-215前端冻结资产、划分和训练后回执
+
+[`vm04_d215_frontend_freeze_v1.json`](../configs/vsmt/vm04_d215_frontend_freeze_v1.json)保存SAM仓库/官方YAML/checkpoint字节与SHA-256、automatic-mask和proposal boundary摘要、双线性head的精确feature顺序/训练预算、house级split规则及P08四数。`asset_receipt_sha256`只覆盖实际核过的SAM来源和配置；`split_rule_sha256`覆盖决定性划分算法；`inference_config_sha256`覆盖架构、公开输入、训练/校准规则和标签隔离。输入是结果前合同，输出三类可复算摘要；它不把尚未生成的weights或partition manifest伪写成receipt。
+
+`actual_partition_manifest_receipt_sha256`、`normalization_receipt_sha256`、`weights_sha256`和`training_receipt_sha256`当前必须为null。后续训练阶段须先按源manifest完整列出house→split并封存，再按位置hash、1 m最小间距、每house 8位置×4 yaw生成32帧，拟合train-only标准化和两个线性头，用calibration split选最低总NLL checkpoint并各拟合一个正温度；audit split只作冻结后诊断。任一P0/validation/confirmation house混入、frame级随机拆分、按P08 yield选checkpoint或改阈值均失败。白话：合同已经决定“谁能进哪一组、看哪些帧和怎样选模型”，但还没有声称模型训练完成；production reader仍不能读取一组零权重fixture冒充正式概率。
+
 ### D-211/D-212 执行封装与 raw smoke 文件（纠偏实现待审，真实文件未生成）
 
 [`vm04_d211_p0_seal_single_smoke_v2.json`](../configs/vsmt/vm04_d211_p0_seal_single_smoke_v2.json) 将两间开发 house 固定为 `train:004270`/`train:008243`，分别绑定 source record 摘要 `79a1…026f`/`cdbd…bea7`。v1 和 `e5d7bed` 只保留阶段历史，不是最终生成基线。来源证据仍是既有只读 root-cause 报告，报告本身记录 0 episode、0 intervention；D-212 不把它们改叫 confirmation，也不因路线或 smoke 失败换房。

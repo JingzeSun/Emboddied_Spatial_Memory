@@ -139,7 +139,7 @@ def validate_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     _require(value["schema_version"] == CONTRACT_SCHEMA and
              value["decision_id"] == "D-214" and
              value["status"] ==
-             "approved_implementation_assets_and_numeric_review_pending",
+             "d215_assets_estimator_split_and_p08_thresholds_frozen_reader_pending",
              "D-214 contract identity or status changed")
     _exact(value["authorization"], AUTHORIZATION_KEYS,
            "D-214 authorization")
@@ -189,18 +189,30 @@ def validate_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     _require(assets["sam2"] == {
         "model_id": "sam2.1.hiera_small.per_frame_automatic_mask_generator",
         "repository_commit": "2b90b9f5ceec907a1c18123530e92e794ad901a4",
-        "checkpoint_sha256": None,
-        "automatic_mask_generator_config_sha256": None,
-        "assets_receipt_sha256": None,
-    }, "D-214 pending SAM2 asset state changed")
-    _require(assets["place_semantic_head"] == {
-        "labels": ["room", "corridor", "unknown"],
-        "model_id": None,
-        "training_source_and_split_receipt_sha256": None,
+        "official_model_config_sha256":
+            "0f36b91e86e58d06c87e42997166212468b88b98b60e4d816d5e4d4d088b6f55",
+        "checkpoint_sha256":
+            "6d1aa6f30de5c92224f8172114de081d104bbd23dd9dc5c58996f0cad5dc4d38",
+        "automatic_mask_generator_config_sha256":
+            "df828bcfac74c8dc0dcb0d82731c978f8a17958755822aa44c90e5ac23db2c33",
+        "assets_receipt_sha256":
+            "6b6e1705ee81ec71475fb0c1b28696c98d2f30740e92a0a380554e9e85bb6a33",
+    }, "D-214 frozen SAM2 asset state changed")
+    _require(assets["semantic_structural_estimator"] == {
+        "semantic_labels": ["room", "corridor", "unknown"],
+        "structural_labels": ["basin", "bottleneck", "unknown"],
+        "model_id": "d215.dinov2_geometry_two_linear_heads.v1",
+        "training_source_manifest_sha256":
+            "7db1df1edb714162089b56e62f5258a947c5c6ddc38ed2b7082582d4659269bd",
+        "split_rule_sha256":
+            "4fa32f8940cb22516d0c004f9c4b8d7a6cb5c1cd9a85dfb6f63ef6178dd34774",
+        "actual_partition_manifest_receipt_sha256": None,
         "weights_sha256": None,
-        "inference_config_sha256": None,
-        "assets_receipt_sha256": None,
-    }, "D-214 pending semantic-head asset state changed")
+        "normalization_receipt_sha256": None,
+        "training_receipt_sha256": None,
+        "inference_config_sha256":
+            "4cd2bc00e8af7b4897d00d9ad90a69bdb389b1d1dd310705c1c44c5e6b720c70",
+    }, "D-214 frozen estimator state changed")
     qualification = value["scenario_qualification"]
     _require(set(qualification) == {
         "P04", "P08", "P01_P02_P03_P05_P06_P07",
@@ -213,12 +225,12 @@ def validate_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     p08 = value["scenario_qualification"]["P08"]
     _require(p08["minimum_distinct_views_per_basin"] == 2 and
              p08["room_corridor_semantics_are_reported_not_identity"] is True and
-             all(p08[name] is None for name in (
-                 "basin_probability_minimum",
-                 "bottleneck_probability_minimum",
-                 "fragment_descriptor_cosine_minimum",
-                 "fragment_centroid_distance_maximum_m",
-             )), "D-214 pending P08 numbers were silently filled")
+             p08["basin_probability_minimum"] == 0.7 and
+             p08["bottleneck_probability_minimum"] == 0.7 and
+             p08["fragment_descriptor_cosine_minimum"] == 0.85 and
+             p08["fragment_centroid_distance_maximum_m"] == 0.35 and
+             p08["qualifying_role_must_be_unique_argmax"] is True,
+             "D-214 frozen P08 qualification changed")
     _require(qualification["P01_P02_P03_P05_P06_P07"] == {
         "existing_geometric_route_templates_may_be_reused": True,
         "must_rebind_to_d214_cache": True,
@@ -260,6 +272,7 @@ class P08EligibilityConfig:
     fragment_descriptor_cosine_minimum: float
     fragment_centroid_distance_maximum_m: float
     minimum_distinct_views_per_basin: int = 2
+    qualifying_role_must_be_unique_argmax: bool = True
 
     def __post_init__(self) -> None:
         for name in (
@@ -275,6 +288,15 @@ class P08EligibilityConfig:
         _require(type(self.minimum_distinct_views_per_basin) is int and
                  self.minimum_distinct_views_per_basin >= 2,
                  "P08 needs at least two distinct views per basin")
+        _require(self.qualifying_role_must_be_unique_argmax is True,
+                 "D-215 requires a unique structural-role argmax")
+        _require((self.basin_probability_minimum,
+                  self.bottleneck_probability_minimum,
+                  self.fragment_descriptor_cosine_minimum,
+                  self.fragment_centroid_distance_maximum_m,
+                  self.minimum_distinct_views_per_basin) ==
+                 (0.7, 0.7, 0.85, 0.35, 2),
+                 "D-215 P08 thresholds are frozen")
 
 
 def _probabilities(value: Mapping[str, Any], labels: tuple[str, ...], name: str) -> dict[str, float]:
@@ -779,6 +801,18 @@ def _stable_fragment_pair(
     return None
 
 
+def _qualifies_structural_role(
+    probabilities: Mapping[str, float], role: str, threshold: float,
+) -> bool:
+    """Require both the frozen probability floor and a unique winning role."""
+
+    value = probabilities[role]
+    return value >= threshold and all(
+        value > probability for label, probability in probabilities.items()
+        if label != role
+    )
+
+
 def qualify_p08(
     episode_cache: Mapping[str, Any], *, config: P08EligibilityConfig,
 ) -> dict[str, Any]:
@@ -791,12 +825,16 @@ def qualify_p08(
     _require(type(frames) is list and len(frames) >= 5,
              "D-214 P08 needs a nontrivial ordered sequence")
     basin = [
-        frame["place_observation"]["structural_role_probabilities"]["basin"]
-        >= config.basin_probability_minimum for frame in frames
+        _qualifies_structural_role(
+            frame["place_observation"]["structural_role_probabilities"],
+            "basin", config.basin_probability_minimum,
+        ) for frame in frames
     ]
     bottleneck = [
-        frame["place_observation"]["structural_role_probabilities"]["bottleneck"]
-        >= config.bottleneck_probability_minimum for frame in frames
+        _qualifies_structural_role(
+            frame["place_observation"]["structural_role_probabilities"],
+            "bottleneck", config.bottleneck_probability_minimum,
+        ) for frame in frames
     ]
     bottleneck_runs: list[list[int]] = []
     active: list[int] = []
@@ -854,6 +892,8 @@ def qualify_p08(
                 config.fragment_centroid_distance_maximum_m,
             "minimum_distinct_views_per_basin":
                 config.minimum_distinct_views_per_basin,
+            "qualifying_role_must_be_unique_argmax":
+                config.qualifying_role_must_be_unique_argmax,
         },
     }
     value["qualification_sha256"] = _sha(value)

@@ -154,6 +154,16 @@ P04 与 P08 是同一缓存上的两种资格检查，不是两套前端。P04 �
 
 旧grid产物只在新D-214缓存全部生成、摘要核验、P04/P08重验、P01–P08路线重绑、精确删除目标经审查且不存在复现依赖后才可删除；删除不使用通配符，Git历史和原始研究资料保留。白话：输入是新产物完成证据和待删精确路径，输出只读readiness receipt；例如还有一个旧报告引用grid目录时门保持false。它不表示本提交已删除任何文件，也不允许为省空间提前破坏复现。
 
+#### D-215 资产、场景盲估计器、训练划分与P08数值冻结（实现候选待审）
+
+SAM固定为官方commit `2b90b9f…`下的SAM 2.1 Hiera Small、对应官方YAML和184,416,285-byte checkpoint；每帧automatic-mask沿用已登记的32×32点网格、IoU 0.8、稳定度0.95、无crop、无NMS归属抑制，随后按196像素下限和64 proposal上限做公开规范化。输入只是一帧当前public RGB，输出匿名mask；例如返回第65个proposal即整帧construction failure，不截断成看似成功的64个。它不用视频memory、文本、private point/box，也不等于每个mask是真实实体。
+
+**semantic/structural estimator（语义/结构估计器）**解决“同一公开观察怎样给出room/corridor/unknown及basin/bottleneck/unknown概率”。输入为384维冻结DINOv2全帧描述和12个固定顺序的公开RGB-D几何量，输出两个独立的三类温度softmax；架构是无隐藏层的两个线性头。具体例子是较大横向开口、较远前向clearance和大厅外观可提高basin/room概率，但输出仍只是概率，不创建place ID。它不接收scenario、route、house、reachable grid、metadata、instance、teacher或future；当前weights、normalization和training receipt仍为空，所以推理入口必须拒绝。
+
+训练划分以house为不可拆单位，在已封存ProcTHOR author-train manifest上按固定salt哈希：0–79为train、80–89为calibration、90–99为audit；`train:004270`和`train:008243`以及VM-04 validation/confirmation角色永久排除。每house按位置hash、至少1 m间距固定8个位置×4个朝向，不按标签或产率选帧。semantic标签由只看单帧public RGB-D的两名独立标注者和仲裁产生，歧义进unknown；structural标签在训练house的0.25 m reference可达图上，以2 m局部图删除0.35 m anchor圆盘后是否形成至少两个足够大的远端分量标bottleneck，非bottleneck且1 m内至少37个可达点标basin，其余unknown。标签、grid和metadata不进入推理/cache。白话：同一house的任何帧不会一部分训练、一部分校准；它不按P08是否成功换house，也不拿两间P0开发房训练前端。
+
+P08固定`basin≥0.70`、`bottleneck≥0.70`、跨视角fragment DINO cosine≥0.85、三维质心距离≤0.35 m，等号通过且结构角色须为唯一最大概率。正例是两端各两帧fragment达到0.85/0.35且中间bottleneck为0.70；任一值0.849999或0.350001即失败。该四数来自结果前的保守合同，不由路线成品率选择；若P08不满足，保留原槽construction failure，不调阈值、不换路线/house。它不是私有room/object真值确认，也不保证当前固定路线一定合格。
+
 **D-206/D-207 历史口径（已由 D-210 取代主实验解释）。** D-205 曾因 place 由确定性骨架维护而把首篇收窄为“不主张地点修订”；D-206 随后发现 `camera_pose` 真值泄漏并改用带噪相对 pose，D-207 将地点路线增至 64 步并分离 provenance。这些发现继续有效，但“带噪 pose 量化成 0.5 m 格并把格当地点”的任务会把人为噪声当主要错误来源，且完整固定动作又可被精确积分抵消。故 D-210 保留世界 pose 私有、长路线和后续判别观测，撤销格地点真值、2% 人工噪声必须制造错误、place SPLIT 作为 P0 主操作及 64 步科学上限。旧合同与回执保留原字节，只作历史和诊断，不认证 D-210。
 
 整体采用成熟的双速率结构感知骨架，而不复制任何一个上游系统。共享前端参考 [ConceptGraphs](https://concept-graphs.github.io/) 的 posed RGB-D→区域→多视角关联；结构状态参考 [Hydra](https://www.roboticsproceedings.org/rss18/p050.html) 的实体、地点、房间等分层图；存在证据参考 [Fusion++](https://doi.org/10.1109/3DV.2018.00015) 的对象存在概率；短期片段与较慢全局协调参考 [Khronos](https://www.roboticsproceedings.org/rss20/p081.html) 的 active window / global reconciliation。VSMT 在这个骨架上新增的是统一事务空间、版本化真实执行、严格监督边界和相应误差分解；当前均为论文设计与工程候选，尚无实验支持“优于这些系统”。

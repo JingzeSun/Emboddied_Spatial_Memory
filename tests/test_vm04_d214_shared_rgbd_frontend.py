@@ -182,8 +182,9 @@ class D214SharedRgbdFrontendTests(unittest.TestCase):
         tampered["public_inputs"].append("scenario_id")
         with self.assertRaisesRegex(D214Error, "input boundary"):
             validate_contract(tampered)
-        self.assertIsNone(self.contract["asset_state"]["sam2"]["checkpoint_sha256"])
-        self.assertIsNone(self.contract["asset_state"]["place_semantic_head"]
+        self.assertEqual("6d1aa6f30de5c92224f8172114de081d104bbd23dd9dc5c58996f0cad5dc4d38",
+                         self.contract["asset_state"]["sam2"]["checkpoint_sha256"])
+        self.assertIsNone(self.contract["asset_state"]["semantic_structural_estimator"]
                           ["weights_sha256"])
 
     def test_materializer_signature_has_no_scenario_private_teacher_or_future(self):
@@ -275,10 +276,10 @@ class D214SharedRgbdFrontendTests(unittest.TestCase):
         ]
         sealed = episode(frames)
         eligibility = P08EligibilityConfig(
-            basin_probability_minimum=0.8,
-            bottleneck_probability_minimum=0.8,
-            fragment_descriptor_cosine_minimum=0.95,
-            fragment_centroid_distance_maximum_m=0.1,
+            basin_probability_minimum=0.7,
+            bottleneck_probability_minimum=0.7,
+            fragment_descriptor_cosine_minimum=0.85,
+            fragment_centroid_distance_maximum_m=0.35,
         )
         receipt = qualify_p08(sealed, config=eligibility)
         self.assertEqual([2, 3], receipt["bottleneck_observation_indices"])
@@ -300,7 +301,7 @@ class D214SharedRgbdFrontendTests(unittest.TestCase):
             frame(2, role="bottleneck", x=1.00),
             frame(3, role="basin", x=2.00), frame(4, role="basin", x=2.02),
         ]
-        config_value = P08EligibilityConfig(0.8, 0.8, 0.95, 0.1)
+        config_value = P08EligibilityConfig(0.7, 0.7, 0.85, 0.35)
         first = qualify_p08(episode(frames), config=config_value)
         changed = []
         for item in frames:
