@@ -427,11 +427,17 @@ def _string_vector(value: Any, length: int, name: str) -> list[str]:
     return result
 
 
-def _array_content_digest(arrays: Mapping[str, Any]) -> str:
-    """Hash exact numeric bytes and logical string values without JSON bulk."""
+def _array_content_digest(arrays: Mapping[str, Any],
+                          names: Sequence[str] = NPZ_ARRAY_NAMES) -> str:
+    """Hash exact numeric bytes and logical string values without JSON bulk.
+
+    ``names`` defaults to the D-216 two-head schema.  D-219 passes its own
+    structural-only tuple so both decisions share one hashing implementation
+    and cannot drift apart.
+    """
 
     rows: list[dict[str, Any]] = []
-    for name in NPZ_ARRAY_NAMES:
+    for name in names:
         array = np.asarray(arrays[name])
         if array.dtype.kind in {"U", "S"}:
             logical = [item.decode("utf-8") if isinstance(item, bytes)
