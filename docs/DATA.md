@@ -48,15 +48,27 @@ D-210 为地点/拓扑主实验建立独立于旧 VM-04 v1–v4 的数据版本�
 
 `vsmt-d213-graph-complexity-v1`从图和sealed catalog字节派生活动节点/边按类型计数、历史版本数及scope×atom候选数；正式episode还须由runner记录type-gate拒绝、illegal transaction、peak active nodes、peak candidates、runtime和peak memory。`contained_entity_refs`若出现，validator要求它精确等于活动`located_at/contains`边推导的排序实体集合。它不接受模型自报图规模，也不把缓存当真值。当前尚无真实episode文件；D-210 raw到非网格place候选的materializer接线仍关闭。
 
+### D-214共享RGB-D缓存与资格回执
+
+`vsmt-vm04-d214-shared-rgbd-frame-cache-v1`逐保存观察包含：observation/time、RGB/depth/calibration摘要、连续pose belief、可选入边动作摘要、packet-local匿名fragment、surface、单个非网格place observation、滚动free-space、当前visibility、SAM/semantic/config receipt摘要及整帧摘要。place observation含全帧DINO描述、belief均值/协方差、surface/free-space支持、`basin/bottleneck/unknown`和`room/corridor/unknown`归一概率；`persistent_place_id=null`、`identity_assigned=false`、`metric_grid_identity_used=false`、`semantic_class_defines_identity=false`。白话：输入当前公开画面和估计，输出一份谁都能读但谁都不能改的结构证据；例如`room=0.7`只表示当前语义估计，不会生成`place:kitchen`。它不含raw路径、mask像素、instance/object ID、场景名或private crosswalk。
+
+`vsmt-vm04-d214-shared-rgbd-episode-cache-v1`按0开始连续封存frame，绑定DINO/SAM/semantic资产receipt和单一config摘要；`identical_method_cache_views`给VSMT/TAF/ELU/WFR/LOW独立clone并核canonical摘要完全相同。输入是同一episode的有序frame cache，输出五份等字节视图；它不允许方法私有前端或按P08附加字段。当前测试用显式概率和fixture token只验证代码边界，正式模型资产尚未产生，因此没有真实cache文件。
+
+合同的`implementation_boundary`显式登记：公开派生输出组合与cache核心已实现，SAM/DINOv2/semantic真实推理编排、production raw reader和服务器执行均未实现。白话：测试可以证明同一组已验证mask/token/概率会被无泄漏地封成共同cache，但还不能把服务器上的原始RGB-D直接变成正式cache；这不是用`implemented=true`概括一半完成的前端。
+
+P04回执保存所选两帧、公开名义距离、DINO cosine和“未用绝对阈值/未用旧四象限描述子”布尔；P08回执保存两段连续basin观察、其中连续bottleneck段、两端各一对跨帧稳定fragment及显式资格配置。room/corridor概率不进入P08 identity gate，private metadata只在seal后评价。四个P08数值在合同中仍为null，测试值不是冻结值。
+
+`vsmt-vm04-d214-legacy-grid-retirement-readiness-v1`只在新cache全部生成、摘要验证、P04/P08重验、全路线重绑、有精确无通配符目标且无复现依赖时置`ready_for_user_requested_deletion=true`；`deletion_performed`始终false。它是删除前证据，不执行删除。
+
 ### D-211/D-212 执行封装与 raw smoke 文件（纠偏实现待审，真实文件未生成）
 
 [`vm04_d211_p0_seal_single_smoke_v2.json`](../configs/vsmt/vm04_d211_p0_seal_single_smoke_v2.json) 将两间开发 house 固定为 `train:004270`/`train:008243`，分别绑定 source record 摘要 `79a1…026f`/`cdbd…bea7`。v1 和 `e5d7bed` 只保留阶段历史，不是最终生成基线。来源证据仍是既有只读 root-cause 报告，报告本身记录 0 episode、0 intervention；D-212 不把它们改叫 confirmation，也不因路线或 smoke 失败换房。
 
 `survey-routes` 生成目录包含 `route-bundle.json` 与 `survey.receipt.json`。前者是 `vsmt-vm04-d211-route-bundle-v2`，恰好含按 slot 0–11 排序的 12 行；每行包含 `route_plan`、完整 `reachable_scan`、执行前 `public_route_evidence`、`scenario_receipt` 及 `execution_binding`。后者保存算法摘要、请求/实际worker数、CPU/RAM/GPU/磁盘依据、固定合并顺序、每槽完成动作数和失败摘要；失败时 bundle 不产生，receipt 保留且同目录不得覆盖。reachable scan 保存 `GetReachablePositions` 的规范整数格键，seal 时从私有起点重算 N+1 名义姿态并逐个检查可达；public evidence 为选定 survey 观察保存 RGB/depth/calibration 摘要、非零 place descriptor、公开 room/corridor/unknown 角色和匿名 `region:*` 实体区域引用；scenario receipt 对 P01–P08 分别重算 Z形、精确逆行、替代回环、top-1视觉别名、同地反向、T分支、8字双环及房间—走廊—房间条件。白话：route plan 说“怎么走”，scan 证明“计划步都落在可达格”，公开 evidence 证明“路线为什么从画面上被选中”，scenario receipt 证明“它确实是哪一种挑战”。它不包含模型地点答案，也不能用布尔自报或假摘要替代内容。
 
-P04 的 route seal 只采用预登记的排序规则：从名义间隔至少 1.5 m 的 survey pair 中取公开 descriptor cosine top-1，绝对阈值为 `null` 并原样记录实际分数。这个字段用于防止路线结果出来后挑 pair；它不把“本房间最像”自动解释成“论文意义上足够难”。P08 两个 room anchor 必须各有至少一个从公开 RGB-D 路线 survey 得到的匿名 `region:*` 引用，中间观察须登记为 corridor；这些引用不是 simulator object ID，也不是完整 L2 前端输出。
+以下D-212规则仅描述被D-214取代的工程survey收据，不再允许直接获得路线资格：P04 曾从名义间隔至少 1.5 m 的 pair 中用四象限工程descriptor取top-1；P08 曾要求两个room-like anchor各有匿名`region:*`且中间登记为corridor。D-214生效后，P04必须改用冻结DINO place descriptor重验，P08必须改用basin→bottleneck→basin和多视角稳定fragment重验；旧字段只可追溯，不能冒充完整L2前端输出或headline资格。
 
-本轮 survey 不保存 instance mask/object ID，也不把 `instance_masks` 属性传给纯构造器；四象限小描述子和匿名区域只服务路线工程筛选。P08 的 room-like/corridor-like 来自公开 reachable-grid 局部开阔度，仍须在后续共享冻结 RGB-D 前端接线后复核，未经复核不得给该槽 `headline_eligible=true`。
+本轮旧survey不保存instance mask/object ID，也不把`instance_masks`属性传给纯构造器；四象限小描述子和匿名区域现在只作历史工程诊断。P08的room-like/corridor-like来自公开reachable-grid局部开阔度，D-214明确禁止它继续充当资格条件；未经新cache复核不得给该槽`headline_eligible=true`。
 
 `seal-routes` 生成：
 

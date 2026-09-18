@@ -2064,3 +2064,14 @@
 - **五组消融：** `Place-4`只见地点和place-place边；`VSMT-Typed`为主VSMT；`VSMT-Flat8`取消selector类型mask但保留executor拒绝/回滚并报告illegal；`VSMT-NoPlace`删除place及incident edges但保留非地点关系；`VSMT-NoVersion`只给当前活动状态并屏蔽模型可读历史，外部审计provenance仍保留。除目标组件外前端、数据、预算和评分不变。
 - **节点膨胀指标：** 强制派生活动节点/边按类型计数、历史版本数、scope×atom候选数，并在正式episode汇总type-gate拒绝、illegal、峰值节点/候选、runtime和峰值内存；不把“任务分数上升但图无限增长”藏在总分后。
 - **工程边界：** 新合同/纯核心能验证图、候选门、sealed catalog、五种memory view和复杂度指标，现有公共候选器可选择启用该门。D-210 raw→关键帧→非网格place候选的实际materializer接线仍依赖单槽raw字节，旧确定性coordinate scaffold不得进入D-213主表；因此当前不是完整训练模型或效果证据，也不越过D-212的真实smoke顺序。
+
+## D-214：P01–P08全局场景盲共享RGB-D前端，P04/P08重验并延后服务器
+
+- 日期：2026-09-18；状态：用户已批准方法边界，本轮形成合同与纯核心实现候选；全部服务器、材料化、评价和训练授权保持false。用户批准原文：“批准 D-214 作为 P01–P08 全局、场景无关的共享 RGB-D 前端；前端不得读取 scenario ID，所有方法读取同一冻结缓存；P04 与 P08 必须重新做前端资格审核，其余路线重新绑定同一缓存，生成完新的之后旧的网格可以直接删了。”
+- **不是P08特供：** 每个保存观察都产出同一schema，VSMT/TAF/ELU/WFR/LOW读取逐字节相同cache；scenario ID、headline/control角色不进入材料化API或cache。P08只能运行cache上的资格谓词，不能获得额外模型、字段或视角。P09/P10执行继续延后，但schema不得为它们另开分支。
+- **观察而非身份：** SAM单帧mask统一称fragment，冻结DINO描述和公开depth只给可见几何；非网格place observation聚合全帧DINO、因果pose belief、surface/free-space支持和两组概率，但persistent place ID保持null。room/corridor/unknown只作属性，basin/bottleneck/unknown只作公开结构角色；二者都不能定义地点身份。entity/place持久身份只能由后续记忆机制形成。
+- **P04/P08资格：** P04保留≥1.5 m且无绝对相似阈值的口径，但top-1改读冻结DINO地点描述；四象限工程描述退出论文资格。P08要求连续basin→bottleneck→basin，且两端各有至少两个不同观察支持同一匿名fragment稳定匹配；语义概率只报告。正式P08四数仍为null，测试值不是批准值。
+- **服务器顺序：** 撤回立即激活D-212的顺序；`63efba3`保留route/raw工程能力，但在真实SAM/semantic assets、P08数值、生产reader和缓存字节受审前不创建activation child、不跑survey/seal/smoke。
+- **实现状态不能合并概括：** 本次只把公开派生输出组合、cache封存和资格核心记为已实现；真实SAM/DINOv2/semantic推理编排、production raw reader与服务器执行在机器合同中分别保持false。public/forbidden input列表逐项冻结，episode复核重新检查时间单调及动作边终点，避免scenario通道或重封摘要绕过。
+- **旧grid删除：** 用户已授权在新产物完成后删除，但不是现在。必须先全部生成D-214 cache、核验摘要、P04/P08重验、P01–P08路线重绑、审查精确无通配符目标且确认没有复现依赖；只读readiness receipt通过后再执行。Git历史和原始研究资料保留。
+- **仍未完成：** SAM checkpoint/config/assets receipt、place semantic head模型/训练split/权重/推理config、P08四个数值、真实asset loader编排、raw reader、adapter转换、两房真实cache与路线重封均不存在；当前0服务器、0模型推理、0episode、0效果证据。

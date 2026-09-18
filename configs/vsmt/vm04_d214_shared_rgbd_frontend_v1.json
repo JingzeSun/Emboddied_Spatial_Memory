@@ -1,0 +1,139 @@
+{
+  "schema_version": "vsmt-vm04-d214-shared-rgbd-frontend-contract-v1",
+  "decision_id": "D-214",
+  "status": "approved_implementation_assets_and_numeric_review_pending",
+  "authorization": {
+    "route_survey": false,
+    "route_sealing": false,
+    "raw_generation": false,
+    "frontend_materialization": false,
+    "adapter_materialization": false,
+    "private_evaluation": false,
+    "training": false,
+    "validation_effect": false,
+    "confirmation": false
+  },
+  "implementation_boundary": {
+    "public_output_composition_and_cache_core_implemented": true,
+    "sam_dinov2_semantic_inference_orchestration_implemented": false,
+    "production_raw_reader_implemented": false,
+    "server_executable": false
+  },
+  "global_scope": {
+    "covered_scenarios": ["P01", "P02", "P03", "P04", "P05", "P06", "P07", "P08"],
+    "frontend_receives_scenario_id": false,
+    "one_schema_for_every_scenario": true,
+    "identical_cached_bytes_for_main_methods": ["VSMT", "TAF", "ELU", "WFR", "LOW"],
+    "method_private_frontend_allowed": false,
+    "keyframe_policy": "every_saved_public_observation",
+    "p09_p10_schema_compatible_but_execution_deferred": true
+  },
+  "public_inputs": [
+    "current_rgb_uint8",
+    "current_depth_m_float32",
+    "camera_intrinsics",
+    "causal_episode_relative_camera_pose",
+    "continuous_pose_belief",
+    "incoming_transition_action_summary",
+    "prior_public_free_space"
+  ],
+  "forbidden_inputs": [
+    "scenario_id",
+    "scenario_role",
+    "simulator_world_pose",
+    "reachable_grid_place_identity",
+    "room_metadata",
+    "instance_mask",
+    "object_id",
+    "private_entity_id",
+    "teacher",
+    "reference_transaction",
+    "future_observation",
+    "future_state"
+  ],
+  "shared_outputs": {
+    "place_observation": {
+      "identity_source": "none_observation_only",
+      "metric_grid_defines_identity": false,
+      "descriptor": "frozen_dinov2_full_frame_pool",
+      "pose": "causal_belief_envelope",
+      "structural_role_probabilities": ["basin", "bottleneck", "unknown"],
+      "semantic_probabilities": ["room", "corridor", "unknown"],
+      "semantic_class_defines_place_identity": false
+    },
+    "fragment_observation": {
+      "source": "sam2_1_hiera_small_single_frame_public_rgb",
+      "descriptor": "frozen_dinov2_mask_pool",
+      "geometry": "public_depth_and_causal_pose",
+      "persistent_entity_identity_assigned": false
+    },
+    "surface_observation": "public_depth_planar_surface",
+    "free_space_observation": "public_depth_conservative_frusta",
+    "visibility_observation": "public_depth_occlusion_bounded_frusta",
+    "cache": {
+      "content_addressed": true,
+      "immutable": true,
+      "contains_raw_paths": false,
+      "contains_private_crosswalk": false
+    }
+  },
+  "asset_state": {
+    "dinov2": {
+      "model_id": "dinov2.vits14",
+      "repository_commit": "7764ea0f912e53c92e82eb78a2a1631e92725fc8",
+      "checkpoint_sha256": "b938bf1bc15cd2ec0feacfe3a1bb553fe8ea9ca46a7e1d8d00217f29aef60cd9"
+    },
+    "sam2": {
+      "model_id": "sam2.1.hiera_small.per_frame_automatic_mask_generator",
+      "repository_commit": "2b90b9f5ceec907a1c18123530e92e794ad901a4",
+      "checkpoint_sha256": null,
+      "automatic_mask_generator_config_sha256": null,
+      "assets_receipt_sha256": null
+    },
+    "place_semantic_head": {
+      "labels": ["room", "corridor", "unknown"],
+      "model_id": null,
+      "training_source_and_split_receipt_sha256": null,
+      "weights_sha256": null,
+      "inference_config_sha256": null,
+      "assets_receipt_sha256": null
+    }
+  },
+  "scenario_qualification": {
+    "P04": {
+      "selector": "top_cosine_pair_from_frozen_dinov2_place_descriptors",
+      "minimum_public_nominal_separation_m": 1.5,
+      "absolute_similarity_threshold": null,
+      "old_quadrant_rgbd_descriptor_allowed": false
+    },
+    "P08": {
+      "hard_condition": "ordered_basin_bottleneck_basin_and_multiview_stable_fragment_in_each_basin",
+      "room_corridor_semantics_are_reported_not_identity": true,
+      "basin_probability_minimum": null,
+      "bottleneck_probability_minimum": null,
+      "fragment_descriptor_cosine_minimum": null,
+      "fragment_centroid_distance_maximum_m": null,
+      "minimum_distinct_views_per_basin": 2,
+      "private_metadata_role": "post_seal_evaluation_only"
+    },
+    "P01_P02_P03_P05_P06_P07": {
+      "existing_geometric_route_templates_may_be_reused": true,
+      "must_rebind_to_d214_cache": true,
+      "reachable_grid_role": "route_planning_and_mechanical_verification_only"
+    }
+  },
+  "legacy_grid_retirement": {
+    "retirement_requested_by_user": true,
+    "delete_now": false,
+    "preconditions": [
+      "all_new_d214_caches_generated",
+      "all_cache_and_source_digests_verified",
+      "p04_and_p08_requalified",
+      "p01_to_p08_routes_rebound",
+      "reviewed_retirement_receipt_lists_exact_targets",
+      "no_reproduction_dependency_points_to_targets"
+    ],
+    "git_history_and_original_research_material_preserved": true,
+    "wildcard_deletion_allowed": false
+  }
+}

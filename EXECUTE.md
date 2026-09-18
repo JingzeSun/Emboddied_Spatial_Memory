@@ -6,8 +6,9 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| D-213统一图/类型门 | 四节点/五关系统一图合同、seal前类型门、五种消融memory view、图复杂度派生、relation REACTIVATE及surface/fragment RETRACT已实现候选；真实place materializer仍待单槽raw后接线，全部运行位关闭；LOG-197。 |
-| D-212地点raw纠偏 | v2已补公开grid模板＋RGB-D route survey生产入口、P01–P08可复算收据、raw三面journal与两提交执行门；P08 survey仍仅工程资格。真实survey/seal/smoke均为0，非网格place materializer和完整私评待后续；LOG-196/198。 |
+| D-214共享RGB-D前端 | P01–P08场景盲共同cache、fragment/surface/free-space/visibility、非网格place observation、语义/结构概率、P04/P08资格和旧grid退役只读门已形成实现候选；SAM/semantic assets及P08四数仍空，全部运行位关闭；LOG-199。 |
+| D-213统一图/类型门 | 四节点/五关系统一图合同、seal前类型门、五种消融memory view、图复杂度派生、relation REACTIVATE及surface/fragment RETRACT已实现候选；数据接线现改为等待D-214冻结cache，不再以单槽raw后定义前端，全部运行位关闭；LOG-197/199。 |
+| D-212地点raw纠偏 | v2已补公开grid模板＋RGB-D route survey生产入口、P01–P08可复算收据、raw三面journal与两提交执行门；D-214已重新阻断activation，旧P04/P08工程描述不得获论文资格。真实survey/seal/smoke均为0；LOG-196/198/199。 |
 | VM-04观察适用性 | 原静态36槽不运行；D-182/183只用于精确schema/实现审查。D-199–202已形成L2公开proposal/visibility、program matcher/episode audit和terminal raw加载前plan seal，D-202已获认可。D-203候选禁止调用者手填version ID，从sealed public route、预登记selector和`terminal-1` causal memory确定派生九类online request refs；核心无episode/raw path参数，edge RETRACT仍阻断。selector spec的提前时间封存和D-202 receipt消费未实现，因此D-201 pending与family阻断未解除。正式SAM/assets/matcher/visibility数值、生产callback、父stage family聚合及pilot收据仍缺。全部运行位关闭，0新episode/materialization/训练/记忆正例。LOG-169–192。 |
 | VSMT首篇/VM-01～04 | 原静态36槽按D-180退役且未运行；D-183新多视角版本只开放精确实现审查。现有instance-mask前端明确只作L1诊断，不得作为L2准入；L2公开proposal前端、九类真实构造、共享probe和完整父stage仍阻断。生成/private评价、identifiability、训练、validation效果与confirmation全部关闭。LOG-180–187，D-191–198 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
@@ -2075,3 +2076,13 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 新`survey-routes`在固定路线后走一次公开RGB-D survey，保存frame/calibration摘要、四象限RGB均值＋depth均值的工程描述子和匿名RGB-D区域引用；不读取instance masks/object IDs。survey动作失败即保留失败receipt且不换路线、起点、房或角色。两house达到CPU/RAM/GPU安全线时以2 worker并行，否则记录资源理由后单worker，按house slot确定合并；无墙钟强杀。
 - 科学限制显式保留：轻量survey descriptor不是论文共享冻结前端；P08的room-like/corridor-like当前由公开reachable局部开阔度给出，匿名region也只是工程proposal。在共享冻结RGB-D前端复核前，P08 route即使seal成功也不能直接成为headline效果证据。本批仍是0真实simulator、0 route bundle、0 seal、0 raw episode。
 - 本地新增route planner/descriptor测试覆盖12个固定槽、RGB-D-only区域引用及非零网格原点下的P07双环；最终全库标准库discover **648/648通过**，耗时33.126 s，失败/错误/跳过均0，既有内嵌VSMT/executor/L1三组179/42/31及两房汇总252仍通过。白话：输入是两间已固定房子的公开可达格和画面，输出是服务器真正能消费的12条路线文件；它只把“能不能按合同采到原始证据”推进到可运行状态，不表示地点模型、实体语义或论文提升已经成立。
+
+## LOG-199：D-214全P0场景盲共享RGB-D前端实现候选（2026-09-18）
+
+- 用户批准D-214覆盖P01–P08，前端API和cache不得读取scenario ID，五个主方法必须读取同一冻结字节；P04/P08重做前端资格，其余路线重绑；D-212服务器activation重新阻断。新增机器合同把九个运行位全置false，真实SAM checkpoint/配置/receipt、semantic head模型/训练split/权重/配置/receipt及P08四个资格数值保持null。
+- 新核心`d214_shared_frontend.py`从调用者已由受审资产产生的SAM匿名mask与DINO patch token，加公开depth、内参、因果相对pose/belief和动作边摘要，形成fragment、surface、滚动free-space/current visibility及非网格place observation。place只含内容寻址观察、belief包络、DINO描述、结构/语义概率和支持摘要；persistent ID为null，格和semantic class均不得定义身份。材料化函数签名无scenario/private/teacher/future参数，嵌套禁止键、摘要、region ordinal和资产/config绑定失败关闭。
+- episode cache绑定DINO/SAM/semantic资产receipt和单一config摘要，五方法分别得到独立clone但canonical摘要相同。P04只在公开名义分离≥1.5 m pair上用DINO place descriptor取cosine top-1，无绝对阈值；P08只接受连续basin→bottleneck→basin及两端跨至少两帧的稳定fragment。把room/corridor概率全部改成unknown不会改变P08结构资格，证明语义类没有偷成place identity。
+- 机器合同将实现状态拆开登记：公开输出组合/cache核心为true，真实SAM/DINOv2/semantic推理编排、production raw reader和server executable均为false；validator逐项锁死public/forbidden input，frame/episode重核动作边终点与时间单调，不能靠改摘要接受漂移。
+- 用户请求的新产物完成后旧grid删除被实现为只读readiness gate：要求新cache全部生成、摘要核验、P04/P08重验、全路线重绑、精确无通配符目标且无复现依赖；函数永不删除且当前所有条件未满足。本批未删除任何文件、目录或历史。
+- 定向D-214 **10/10通过**；一次手工按模块名联合运行因三个旧测试文件自身不设置`src`导入路径而产生3个collection/import error，D-213/D-214当时已执行的19项均通过；最终在本机限制OpenBLAS/OMP/MKL各1线程后，标准`python -m unittest discover -s tests -p "test*.py"`全库**658/658通过**，耗时24.118 s，失败/错误/跳过均0，既有内嵌VSMT/executor/L1三组179/42/31及两房汇总252仍通过。限制测试进程线程只规避本机资源波动，不改变科学配置；0模型资产下载、0真实SAM/DINO/semantic推理、0服务器、0route/cache/raw/adapter/private evaluation/训练。
+- 白话：输入每个场景都相同的公开RGB-D派生证据，输出所有方法共用的一份不可变观察缓存；例如P08只检查缓存是否真的包含两个结构盆地、一个瓶颈和两端稳定fragment，不会因为名字叫P08多开一个模型。它不表示真实语义头、正式阈值或服务器数据已经完成。

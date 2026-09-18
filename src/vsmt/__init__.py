@@ -187,6 +187,20 @@ from .d213_unified_graph import (
     validate_unified_graph,
     validate_unsealed_candidate_rows,
 )
+from .d214_shared_frontend import (
+    D214Error,
+    D214FrontendConfig,
+    P08EligibilityConfig,
+    identical_method_cache_views,
+    legacy_grid_retirement_readiness,
+    materialize_shared_rgbd_frame,
+    qualify_p04,
+    qualify_p08,
+    seal_episode_cache as seal_d214_episode_cache,
+    validate_contract as validate_d214_contract,
+    validate_episode_cache as validate_d214_episode_cache,
+    validate_frame_cache as validate_d214_frame_cache,
+)
 
 __all__ = [
     "AdapterInput",
@@ -342,4 +356,16 @@ __all__ = [
     "validate_d213_contract",
     "validate_unified_graph",
     "validate_unsealed_candidate_rows",
+    "D214Error",
+    "D214FrontendConfig",
+    "P08EligibilityConfig",
+    "identical_method_cache_views",
+    "legacy_grid_retirement_readiness",
+    "materialize_shared_rgbd_frame",
+    "qualify_p04",
+    "qualify_p08",
+    "seal_d214_episode_cache",
+    "validate_d214_contract",
+    "validate_d214_episode_cache",
+    "validate_d214_frame_cache",
 ]

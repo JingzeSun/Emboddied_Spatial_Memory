@@ -22,15 +22,16 @@
 
 ### 当前指针
 
-**当前是 D-212 公共路线 survey→12-route seal→slot-0 raw smoke 的执行候选审查。** 用户已批准开始边界明确的执行门激活、服务器路线封存和单槽raw工程验证。实现现补齐从固定两房的公开reachable grid与RGB-D生成12行bundle的入口、失败不替换、两house资源自适应worker和确定性合并；D-213统一图纯核心保持不变。真实 simulator 尚未运行，v2 expected implementation commit 仍为 null；须先形成受审实现提交，再以只改v2合同的activation child开闸。非网格place候选materializer、12槽raw、adapter、private evaluation、训练/validation/confirmation继续关闭。
+**当前是 D-214 全 P0、场景盲共享 RGB-D 前端实现候选审查；D-212 服务器路线执行重新阻断。** 用户明确批准 P01–P08 全部使用同一前端缓存，前端不得接收 scenario ID，VSMT/TAF/ELU/WFR/LOW 读取逐字节相同缓存；P04 改由冻结 DINOv2 地点描述复核，P08 以公开 basin→bottleneck→basin 和两端多视角稳定 fragment 为硬准入，room/corridor/unknown 只作语义概率且不定义 place identity。当前实现候选可从公开 depth、因果相对 pose、SAM 匿名 mask 与 DINO patch token 形成 fragment、surface、非网格 place observation、free-space/visibility 和内容寻址缓存；真实 SAM checkpoint、semantic head 权重、P08 四个数值仍为 null，全部运行位为 false。`63efba3` 的 route survey/raw writer 保留为工程基础但不激活；0真实前端缓存、0路线重封、0raw、0模型。
 
 | D-210 顺序 | 输入与工作 | 输出与继续条件 |
 |---|---|---|
 | **P0-A D-210基线（已批准，本地main）** | D-210 合同、12 槽 manifest 核心、route seal、edge summary、adapter、metrics 和文档 | `8d6bd13`；0.25 m/90°/128 guard、无24/64科学上限、格不定义place、五个headline和oracle隔离已受测 |
-| **P0-B 两房与完整路线封存（执行候选待审）** | 固定两house source record；公开grid模板规划＋RGB-D survey；12条执行前完整路线；每槽绑定真实reachable scan、public evidence、scenario receipt与私有axis-aligned起点 | 生产入口已补齐但0次真实运行；审查后以单文件activation开闸，服务器先生成bundle再seal。P08当前仅工程room-like/corridor-like，未获headline资格 |
+| **P0-A2 D-214共享前端（当前实现候选待审）** | 每个保存的公开RGB-D观察、内参、因果相对pose/belief、动作边摘要；冻结SAM/DINO与待定semantic head | P01–P08同schema缓存；fragment不冒充entity、place不由格或语义类定义；P04/P08新资格回执。真实资产/数值/生产reader未冻结，服务器关闭 |
+| **P0-B 两房与完整路线封存（D-214前端完成前阻断）** | 固定两house source record；旧grid只作路线搜索；D-214共享cache；12条执行前完整路线；每槽绑定真实reachable scan、public evidence、scenario receipt与私有axis-aligned起点 | 生产入口已补齐但0次真实运行；不得直接activation。先冻结并接通D-214真实资产/数值/reader，再重验P04/P08并把P01–P08全部重绑同一cache；旧P08工程语义无headline资格 |
 | **P0-C 单槽 raw smoke（D-212纠偏实现待审）** | P0-B封存产物、显式AI2-THOR/controller配置、slot 0 fresh controller | public写obs0＋逐成功动作RGB-D/内参；provenance逐动作fsync journal；private逐帧写pose＋instance mask＋entity mapping/state；失败前缀全留。当前expected implementation commit为空，仍拒绝真实运行 |
 | **P0-D 12 槽 raw 与 adapter（关闭）** | 单槽 smoke 通过后另行授权；资源实测决定最大安全 workers | 固定 12 槽 raw/provenance、关键帧、belief/edge summary 与 adapter 文件；失败不补，确定性合并；private evaluation 仍独立开闸 |
-| **P0-E 统一图与五消融接线（D-213纯核心已实现待审，数据接线关闭）** | D-213类型门/统一图/消融视图；单槽smoke确定的关键帧与materializer字节 | 纯核心拒绝place RETRACT、CREATE第九原子和错误端点类型，可派生图规模；仍须把D-210非网格place BIND/BIRTH/MERGE接入真实adapter，旧coordinate scaffold不得进入主表 |
+| **P0-E 统一图与五消融接线（D-213纯核心已实现待审，数据接线关闭）** | D-213类型门/统一图/消融视图；D-214冻结cache与materializer字节 | 纯核心拒绝place RETRACT、CREATE第九原子和错误端点类型，可派生图规模；D-214真实cache生成后还须把非网格place BIND/BIRTH/MERGE接入adapter，旧coordinate scaffold不得进入主表 |
 
 下面 D-209 的两项表与 D-205～D-207 状态保留为历史实现背景，不再是活动执行顺序；若其部件被 D-210 复用，必须经过 D-210 输入/动作/地点语义适配和新回执。
 
@@ -39,7 +40,7 @@
 | **历史② 真实公开 reachable 扫描与路线构造**（D-209 已实现） | 旧 v4 的八种注册动作模板、公开可达格、干预前匿名 visibility 扫描；实体层与地点层两种 family | 可达扫描与逐步验证核心可供 D-210 适配；旧 30° body turn、64 步预算及单一 Z family 不直接进入 D-210 |
 | **历史③ 父 stage 多 worker 调度与 receipt 合并** | D-209 路线、旧 raw writer/materializer/matcher 外壳、D-205 pilot 完成度派生 | 尚未实现；D-210 后续 stage 仍须资源实测、多 worker、确定性合并和失败保留，但不继承旧 pilot 完成度选择规则 |
 
-旧“②③ 完成后只剩 8 个摘要即可开 pilot”的判断不再适用于 D-210。D-210/D-212 还需审连续 pose-belief estimator、关键帧规则、真实 P01–P08 路线构造、关系 `BIRTH(ADD_EDGE)`/`RELINK` 证据和新的两房绑定；D-213还需在单槽raw后接入非网格place候选。任何旧摘要仅在输入与字节仍相同且有显式新合同引用时才能复用。
+旧“②③ 完成后只剩 8 个摘要即可开 pilot”的判断不再适用于 D-210。D-210/D-212 还需审连续 pose-belief estimator、关键帧规则、真实 P01–P08 路线构造、关系 `BIRTH(ADD_EDGE)`/`RELINK` 证据和新的两房绑定；D-213须改为消费D-214冻结cache，而不是等待单槽raw后再定义前端。任何旧摘要仅在输入与字节仍相同且有显式新合同引用时才能复用。
 
 
 **D-209 ② 已实现待审（当前阶段级状态）：** 新增 `vm04_reachable_scan`（真实 `GetReachablePositions` 封存成整数格键、格距由合同 `moveMagnitude` 派生、逐步可达验证遇挡即失败关闭）、`vm04_place_route_builder`（Z 路线 family：两次反向注册转弯、视觉相似走廊、**强制的后续可判别观测**、走廊 B 内非空的模糊承诺窗口）和只在 `trajectory_implementation_authorized` 之后才碰 controller 的扫描 worker。实测冻结几何恰好 50 个注册动作，64 步地点层预算给后续可判别观测留下**恰好 14 步**。顺带修掉一个使 D-207 分层预算失效的缺陷：`vm04_public_route_builder` 读的是实体层的 24 而不是按层取预算，`family_layer="place"` 此前存在但无效。合同零改动、十四个授权位仍 false、剩余产物摘要仍是 8 个；阻断项按 D-059 须经用户审查才可勾掉。**一处留给用户裁决的缺口：** 合同把 place MERGE/SPLIT 列为地点层纠正程序，但已冻结的 SPLIT/MERGE artifact 判据是实体层前端伪影的定义，用不上；构造器只接受调用者预登记的 artifact plan、绝不自行发明，因此当前可用的地点层 program 只有 BIND 与 BIRTH。

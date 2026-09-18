@@ -140,7 +140,19 @@ VSMT 的正式架构不是“地点小图旁边再放一套实体图”，而是
 
 `VSMT-Flat8` 不允许绕过 executor 直接写坏图；它允许 selector 提出类型不合适的原子并把 executor 拒绝计入 `illegal_transaction`，用于测量类型门本身的价值。`VSMT-NoVersion` 也不物理删除实验原始审计文件，只屏蔽模型输入里的历史，因此还能复核结果。五组消融共享同一前端、数据、候选公开来源、训练预算和评分；除被移除的组件外不得顺带缩模型或换阈值。
 
-机器合同为 [`vm04_d213_unified_typed_graph_v1.json`](../configs/vsmt/vm04_d213_unified_typed_graph_v1.json)，纯核心为 [`d213_unified_graph.py`](../src/vsmt/d213_unified_graph.py)。当前实现已经能在 candidate seal/teacher 之前检查作用域—原子合法性、复核 sealed catalog、验证统一图端点类型和派生缓存、构造五种模型可见 memory view、派生图复杂度指标；executor 新增历史关系 `REACTIVATE`，node `RETRACT` 扩展到 entity/surface/fragment，公开候选器可产生相应合法候选，并接受 `route_transition`。但 D-210 raw 关键帧到**非网格 place** 的实际 BIND/BIRTH/MERGE 候选构造仍需在单槽 raw 与 materializer 字节确定后接线；旧 `prepare_place_scaffold` 仅保留历史兼容，不能进入 D-213 主表。这一未接线项明确阻断 adapter materialization/训练，不把合同测试写成完整模型或效果已经完成。
+机器合同为 [`vm04_d213_unified_typed_graph_v1.json`](../configs/vsmt/vm04_d213_unified_typed_graph_v1.json)，纯核心为 [`d213_unified_graph.py`](../src/vsmt/d213_unified_graph.py)。当前实现已经能在 candidate seal/teacher 之前检查作用域—原子合法性、复核 sealed catalog、验证统一图端点类型和派生缓存、构造五种模型可见 memory view、派生图复杂度指标；executor 新增历史关系 `REACTIVATE`，node `RETRACT` 扩展到 entity/surface/fragment，公开候选器可产生相应合法候选，并接受 `route_transition`。但 **非网格 place** 的实际 BIND/BIRTH/MERGE 候选构造现须消费冻结的D-214缓存后再接线；旧 `prepare_place_scaffold` 仅保留历史兼容，不能进入 D-213 主表。这一未接线项明确阻断 adapter materialization/训练，不把合同测试写成完整模型或效果已经完成。
+
+#### D-214 全 P0、场景盲共享 RGB-D 前端（已批准，实现候选待审）
+
+D-214 不是 P08 专用语义分支，而是 P01–P08 每个保存观察共同经过的唯一前端。输入为当前公开 RGB-D、内参、因果 episode-relative 相机 pose、连续位姿 belief、入边动作摘要和此前公开 free-space；输出为匿名 `fragment`、公开深度 `surface/free-space/visibility`、非网格 `place observation`、DINOv2 描述、`basin/bottleneck/unknown`结构概率及`room/corridor/unknown`语义概率。例如 SAM 在同一把椅子上给出两个 mask 时，前端只输出两个 fragment，是否属于同一 entity 仍由后续 BIND/MERGE 机制决定。它不接收 scenario ID，不把 mask 叫永久实体，不由0.5 m格或room类别分配place ID，也不读取private metadata、teacher或future。
+
+`place observation`（地点观察）解决“当前画面和可见空间提供了怎样的地点证据”，输入是全帧冻结DINO描述、因果pose belief、surface/free-space支持及两组概率，输出只是本帧内容寻址的观察记录。例如朝向相反但处于同一大厅的两帧可以形成两个观察，记忆机制随后决定BIND到旧地点；它不等于每帧新建一个地点，也不等于语义类别是真值身份。所有保存观察暂按`every_saved_public_observation`进入缓存，避免在资产和正式数据出现前引入另一组结果相关关键帧阈值；这会增加缓存和推理成本，不改变raw逐动作保存规则。
+
+P04 与 P08 是同一缓存上的两种资格检查，不是两套前端。P04 从名义分离至少1.5 m的pair中取冻结DINO place descriptor cosine top-1，绝对阈值仍为null；旧四象限RGB-D小描述子退出论文资格，仅保留工程诊断。P08 要求时序上连续的 basin→bottleneck→basin，且两端各至少两个不同观察中存在达到同一冻结外观—三维稳定规则的匿名fragment；room/corridor概率完整报告但不参与place identity。它解决“P08是否真的有公开结构和匿名区域证据”，输入只有共享缓存，输出资格回执；它不允许通过P08名称触发额外模型，也不允许私有room/object真值修路线。
+
+机器合同为 [`vm04_d214_shared_rgbd_frontend_v1.json`](../configs/vsmt/vm04_d214_shared_rgbd_frontend_v1.json)，纯核心为 [`d214_shared_frontend.py`](../src/vsmt/d214_shared_frontend.py)。当前候选已实现场景盲函数签名、fragment/depth结构材料化、非网格place observation、逐帧/episode摘要、五方法同字节cache view、P04/P08资格算法和旧grid只读退役门；合同还把“公开输出组合/缓存核心已实现”和“真实模型编排、production raw reader、服务器执行未实现”分成四个显式布尔，防止状态被概括错。它尚不等于完整可运行模型：SAM checkpoint/config/assets receipt、place semantic head模型/训练split/权重、P08 basin/bottleneck及fragment稳定四个数值仍为空；生产raw reader、真实模型loader编排和adapter转换也未开。所有运行授权保持false。
+
+旧grid产物只在新D-214缓存全部生成、摘要核验、P04/P08重验、P01–P08路线重绑、精确删除目标经审查且不存在复现依赖后才可删除；删除不使用通配符，Git历史和原始研究资料保留。白话：输入是新产物完成证据和待删精确路径，输出只读readiness receipt；例如还有一个旧报告引用grid目录时门保持false。它不表示本提交已删除任何文件，也不允许为省空间提前破坏复现。
 
 **D-206/D-207 历史口径（已由 D-210 取代主实验解释）。** D-205 曾因 place 由确定性骨架维护而把首篇收窄为“不主张地点修订”；D-206 随后发现 `camera_pose` 真值泄漏并改用带噪相对 pose，D-207 将地点路线增至 64 步并分离 provenance。这些发现继续有效，但“带噪 pose 量化成 0.5 m 格并把格当地点”的任务会把人为噪声当主要错误来源，且完整固定动作又可被精确积分抵消。故 D-210 保留世界 pose 私有、长路线和后续判别观测，撤销格地点真值、2% 人工噪声必须制造错误、place SPLIT 作为 P0 主操作及 64 步科学上限。旧合同与回执保留原字节，只作历史和诊断，不认证 D-210。
 
