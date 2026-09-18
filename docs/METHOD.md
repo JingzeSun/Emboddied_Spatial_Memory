@@ -174,6 +174,14 @@ D-215已固定AdamW、学习率、batch、epoch、patience和选择准则；D-21
 
 机器合同[`vm04_d216_estimator_training_seal_v1.json`](../configs/vsmt/vm04_d216_estimator_training_seal_v1.json)、纯核心[`d216_estimator_training.py`](../src/vsmt/d216_estimator_training.py)和阶段入口[`vm04_d216_estimator_stage.py`](../ops/vsmt/vm04_d216_estimator_stage.py)均已实现候选。当前合同处于`implementation_pending_review_all_execution_closed`，只有`check`可执行；split、标注导入、bundle、训练和artifact seal须在审查后由只改合同的一次activation commit开启。训练帧生成、production reader、route/raw/private evaluation和旧grid删除即使activation后也必须保持false。当前0真实训练、0服务器权重，代码测试只证明边界和确定性，不证明semantic/structural准确率。
 
+#### D-218 E-04双盲标注与E-05冻结公开特征（实现候选待审）
+
+**离线双盲标注器**解决“怎样让两个人只看同一单帧公开RGB-D，而不从文件名或界面获知house、split、scenario、route、世界pose或结构标签”。输入是E-03 public NPZ和public receipt，输出一份内容寻址共享媒体、A/B两种独立哈希顺序的离线页面、两份完整提交及仲裁收据；RGB使用无损PNG，depth使用固定0.05–20 m对数色标，页面不联网。例如A选room、B选corridor且没有第三人处理时，最终标签只能是unknown；同一annotator ID提交A/B会被拒绝。它不自动产生语义真值，不读取private structural label，也不等于E-08 audit。
+
+**冻结396维特征提取器**解决“D-215写下的384＋12究竟怎样从每帧公开字节确定地产生”。DINO部分固定为ViT-S/14 `x_norm_patchtokens`的全帧占据加权均值再L2归一化；几何部分固定为有效深度比例、10/50/90分位数、逐像素相机frustum可见/净空体积、横向开口、前/左/右10% clearance、D-205公开平面surface数和平均绝对法向y。体积、距离和surface数分别按合同截到0–50 m³、0–10 m和0–64；无任何有效depth则该观察构造失败。输入只有depth、内参和同帧DINO patch token，输出`float32[396]`及逐观察/逐shard摘要；例如恒定2 m深度平面会有确定的2 m分位数和公开平面统计。它不读取house、reachable grid、semantic/structural label、teacher或future，也不运行双头Estimator。
+
+D-218真实运行采用一个冻结DINO GPU模型进程和至少两个公共NPZ I/O worker；有界预取每次最多保留一个worker批次，避免把559个house一次装入内存。媒体和feature shard均先核摘要再复用；失败按原public sample保留、不换house、不补观察、无墙钟强杀。机器合同、纯核心、标注入口和特征入口当前全部是关闭态，audit、E-06训练、production reader、P04/P08、route/raw和private evaluation即使未来激活E-04/E-05也保持false。白话：本批把“怎么标、怎么算特征”变成可运行且可续跑的工具，但尚未真正生成任务包、人工标签或DINO特征，更没有产生模型准确率。
+
 **D-206/D-207 历史口径（已由 D-210 取代主实验解释）。** D-205 曾因 place 由确定性骨架维护而把首篇收窄为“不主张地点修订”；D-206 随后发现 `camera_pose` 真值泄漏并改用带噪相对 pose，D-207 将地点路线增至 64 步并分离 provenance。这些发现继续有效，但“带噪 pose 量化成 0.5 m 格并把格当地点”的任务会把人为噪声当主要错误来源，且完整固定动作又可被精确积分抵消。故 D-210 保留世界 pose 私有、长路线和后续判别观测，撤销格地点真值、2% 人工噪声必须制造错误、place SPLIT 作为 P0 主操作及 64 步科学上限。旧合同与回执保留原字节，只作历史和诊断，不认证 D-210。
 
 整体采用成熟的双速率结构感知骨架，而不复制任何一个上游系统。共享前端参考 [ConceptGraphs](https://concept-graphs.github.io/) 的 posed RGB-D→区域→多视角关联；结构状态参考 [Hydra](https://www.roboticsproceedings.org/rss18/p050.html) 的实体、地点、房间等分层图；存在证据参考 [Fusion++](https://doi.org/10.1109/3DV.2018.00015) 的对象存在概率；短期片段与较慢全局协调参考 [Khronos](https://www.roboticsproceedings.org/rss20/p081.html) 的 active window / global reconciliation。VSMT 在这个骨架上新增的是统一事务空间、版本化真实执行、严格监督边界和相应误差分解；当前均为论文设计与工程候选，尚无实验支持“优于这些系统”。

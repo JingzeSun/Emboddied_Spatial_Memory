@@ -1,0 +1,143 @@
+{
+  "schema_version": "vsmt-vm04-d218-estimator-annotation-features-v1",
+  "decision_id": "D-218",
+  "status": "implementation_pending_review_all_execution_closed",
+  "reviewed_baseline_commit": "af7aa8059bf235b7c812f2685e770f830dd5ae51",
+  "expected_reviewed_implementation_commit": null,
+  "bindings": {
+    "d215_relative_path": "configs/vsmt/vm04_d215_frontend_freeze_v1.json",
+    "d215_file_sha256": "c3d6736f67b300eca03882c081e56e6bf4d65ad1913bcc411df8477fbd188db8",
+    "d217_relative_path": "configs/vsmt/vm04_d217_estimator_development_rgbd_v1.json",
+    "d217_file_sha256": "1499806b8a34eb71ec0785128111b28236f8cee8b95b61a94f624c608702643d",
+    "d217_generation_activation_commit": "0c4f9851006dbb996864c9af82d60ff4b28c09b2"
+  },
+  "authorization": {
+    "annotation_package_export": false,
+    "annotation_submission_import": false,
+    "feature_materialization": false,
+    "audit_open_or_generation": false,
+    "estimator_training": false,
+    "full_house_expansion": false,
+    "production_reader": false,
+    "p04_p08_qualification": false,
+    "route_or_raw_generation": false,
+    "private_evaluation": false
+  },
+  "activation_policy": {
+    "active_status": "frozen_executable_train_calibration_annotation_and_features",
+    "activation_commit_may_change_only": [
+      "configs/vsmt/vm04_d218_estimator_annotation_features_v1.json"
+    ],
+    "active_true_authorizations": [
+      "annotation_package_export",
+      "annotation_submission_import",
+      "feature_materialization"
+    ],
+    "must_remain_false": [
+      "audit_open_or_generation",
+      "estimator_training",
+      "full_house_expansion",
+      "production_reader",
+      "p04_p08_qualification",
+      "route_or_raw_generation",
+      "private_evaluation"
+    ]
+  },
+  "annotation": {
+    "input": "single_frame_public_rgbd_only",
+    "labels": ["room", "corridor", "unknown"],
+    "package_roles": ["annotator_a", "annotator_b"],
+    "independent_distinct_annotator_ids_required": true,
+    "task_order": "ascending_sha256(package_role|observation_id)",
+    "shared_media_content_addressed": true,
+    "rgb_media": "lossless_rgb_png",
+    "depth_media": "fixed_log_depth_false_color_png",
+    "depth_valid_range_m": [0.05, 20.0],
+    "browser_network_dependency": false,
+    "browser_persistence": "local_storage_and_explicit_json_download",
+    "disagreement_policy": "independent_adjudicator_or_unknown",
+    "annotator_forbidden_fields": [
+      "house_id",
+      "split",
+      "sample_rank",
+      "scenario_id",
+      "scenario_role",
+      "route_index",
+      "world_pose",
+      "reachable_grid",
+      "room_metadata",
+      "instance_mask",
+      "object_id",
+      "structural_label",
+      "teacher",
+      "future"
+    ]
+  },
+  "features": {
+    "output_dimension": 396,
+    "dinov2": {
+      "model_id": "dinov2.vits14",
+      "repository_url": "https://github.com/facebookresearch/dinov2",
+      "repository_commit": "7764ea0f912e53c92e82eb78a2a1631e92725fc8",
+      "checkpoint_sha256": "b938bf1bc15cd2ec0feacfe3a1bb553fe8ea9ca46a7e1d8d00217f29aef60cd9",
+      "input_shape": [224, 224, 3],
+      "patch_size_pixels": 14,
+      "patch_grid": [16, 16],
+      "patch_token_dimension": 384,
+      "descriptor": "l2_normalized_full_frame_occupancy_weighted_mean_of_x_norm_patchtokens",
+      "preprocessing": "uint8_srgb_to_float_0_1_then_imagenet_mean_std",
+      "model_eval_and_parameters_frozen": true
+    },
+    "geometry": {
+      "feature_order_source": "D-215",
+      "valid_depth_range_m": [0.05, 20.0],
+      "depth_quantile_method": "numpy_linear",
+      "frustum_volume_formula": "sum_over_valid_pixels_of_axis_depth_cubed_divided_by_3_fx_fy",
+      "free_space_surface_clearance_m": 0.1,
+      "volume_clip_m3": [0.0, 50.0],
+      "horizontal_opening_rows_fraction": [0.4, 0.6],
+      "horizontal_opening_width_formula": "valid_column_span_at_median_valid_depth_divided_by_fx",
+      "clearance_quantile": 0.1,
+      "forward_column_fraction": [0.4, 0.6],
+      "left_column_fraction": [0.0, 0.3333333333333333],
+      "right_column_fraction": [0.6666666666666666, 1.0],
+      "clearance_clip_m": [0.0, 10.0],
+      "surface_algorithm": "D-205_frozen_public_depth_planar_surface_v1",
+      "surface_tile_pixels": 14,
+      "surface_count_clip": [0.0, 64.0],
+      "no_valid_depth_action": "construction_failure",
+      "no_surface_mean_absolute_normal_y": 0.0
+    },
+    "public_output_arrays": [
+      "features_float32",
+      "observation_ids",
+      "public_observation_sha256"
+    ],
+    "forbidden_inputs": [
+      "house_id",
+      "scenario_id",
+      "scenario_role",
+      "route_index",
+      "world_pose",
+      "reachable_grid",
+      "room_metadata",
+      "instance_mask",
+      "object_id",
+      "semantic_label",
+      "structural_label",
+      "teacher",
+      "future"
+    ],
+    "failure_policy": "retain_per_public_house_failure_without_replacement",
+    "overwrite_allowed": false,
+    "wall_clock_timeout_allowed": false
+  },
+  "closed_downstream": {
+    "audit_opened": false,
+    "estimator_weights_produced": false,
+    "production_cache_produced": false,
+    "p04_p08_requalified": false,
+    "route_or_raw_generated": false,
+    "private_evaluation_run": false
+  }
+}

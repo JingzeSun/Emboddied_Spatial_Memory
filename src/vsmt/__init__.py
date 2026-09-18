@@ -228,6 +228,19 @@ from .d217_estimator_development import (
     structural_label_from_reachable,
     validate_d217_contract,
 )
+from .d218_estimator_frontend import (
+    D218Error,
+    adjudicate_annotations,
+    make_annotation_package,
+    make_annotation_submission,
+    make_feature_shard_receipt,
+    materialize_estimator_feature,
+    public_geometry_features,
+    public_observation_sha256,
+    validate_annotation_package,
+    validate_annotation_submission,
+    validate_d218_contract,
+)
 
 __all__ = [
     "AdapterInput",
@@ -416,4 +429,15 @@ __all__ = [
     "select_reachable_positions",
     "structural_label_from_reachable",
     "validate_d217_contract",
+    "D218Error",
+    "adjudicate_annotations",
+    "make_annotation_package",
+    "make_annotation_submission",
+    "make_feature_shard_receipt",
+    "materialize_estimator_feature",
+    "public_geometry_features",
+    "public_observation_sha256",
+    "validate_annotation_package",
+    "validate_annotation_submission",
+    "validate_d218_contract",
 ]

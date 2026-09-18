@@ -4,6 +4,7 @@ from copy import deepcopy
 import hashlib
 import json
 from pathlib import Path
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -265,8 +266,20 @@ class D217EstimatorDevelopmentTests(unittest.TestCase):
     def test_stage_respects_activation_before_reading_external_inputs(self):
         with tempfile.TemporaryDirectory() as directory:
             missing = Path(directory) / "missing.json"
-            if self.d217["status"] == self.d217["activation_policy"][
-                    "active_status"]:
+            head = subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+            parent = subprocess.check_output(
+                ["git", "rev-parse", "HEAD^"], cwd=ROOT, text=True).strip()
+            changed = subprocess.check_output(
+                ["git", "diff-tree", "--no-commit-id", "--name-only", "-r",
+                 head], cwd=ROOT, text=True).strip().splitlines()
+            exact_activation_checkout = (
+                self.d217["status"] == self.d217["activation_policy"][
+                    "active_status"] and
+                parent == self.d217["expected_reviewed_implementation_commit"] and
+                changed == self.d217["activation_policy"]
+                ["activation_commit_may_change_only"])
+            if exact_activation_checkout:
                 expected_error = FileNotFoundError
             else:
                 expected_error = RuntimeError
@@ -274,7 +287,11 @@ class D217EstimatorDevelopmentTests(unittest.TestCase):
                 stage.seal_plan(source_inventory_path=missing,
                                 output_root=Path(directory) / "output")
             if expected_error is RuntimeError:
-                self.assertIn("closed pending review", str(raised.exception))
+                expected_message = (
+                    "activation" if self.d217["status"] ==
+                    self.d217["activation_policy"]["active_status"] else
+                    "closed pending review")
+                self.assertIn(expected_message, str(raised.exception))
 
 
 if __name__ == "__main__":

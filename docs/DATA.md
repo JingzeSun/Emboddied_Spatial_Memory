@@ -74,6 +74,14 @@ P04回执保存所选两帧、公开名义距离、DINO cosine和“未用绝对
 
 真实训练目录拟生成`normalization.json`、`weights.json`、`training_receipt.json`、`success.json`及`stage_receipt.json`。normalization含396项train均值/标准差；weights含两个3×396矩阵、bias和temperature但不含house/观察/路径；training receipt含代码commit、partition/bundle/artifact摘要、seed、torch/device、epoch历史、best epoch、类权重及三split冻结指标；success只汇总互相绑定的receipt且固定`real_weight_receipt_reviewed=false/production_reader_authorized=false`。当前这些都尚未真实生成；测试fixture输出不得写回D-215的null字段或供production reader使用。
 
+### D-218 E-04标注包与E-05公开特征分片
+
+`vsmt-vm04-d218-blind-annotation-package-v1`逐任务只保存role-specific task ID、opaque observation ID、public observation摘要以及共享RGB/depth PNG的相对路径和摘要；不保存split/sample/house/scenario/route、世界pose、reachable grid、room metadata、instance/object、structural label、teacher或future。A/B包覆盖同一观察集合但按`SHA256(package_role|observation_id)`独立排序。浏览器只向本地存储写进度，并显式下载绑定package摘要的raw JSON；正式导入后生成不可变submission。输入是public RGB-D，输出人的room/corridor/unknown判断；它不允许同一标注者冒充两人，也不把文件目录当标签。
+
+`vsmt-vm04-d218-semantic-adjudication-v1`逐观察保存A/B标签、最终标签、是否未决和`agreement/independent_adjudication/unresolved_unknown`来源。第三名仲裁者必须不同于A/B，且只能填写真实分歧；未提供的分歧强制为unknown。该输出以后可与private structural receipt在D-216 evidence index中汇合，但本阶段不打开private目录，也不生成训练NPZ。
+
+E-05每个成功public house产生一个只含`features_float32[N,396]`、`observation_ids`和`public_observation_sha256`的NPZ及`vsmt-vm04-d218-public-feature-shard-v1`收据。public observation摘要同时绑定单帧RGB原字节、depth原字节、四项内参和opaque observation ID；feature收据绑定D-215 inference config、DINO commit/checkpoint和来源public receipt。路径中的train/calibration只作数据管理，不进入数组或模型输入。既有shard恢复前重开NPZ、重算全部核心摘要和文件SHA；失败文件绑定原public receipt并固定`replacement_allowed=false`。当前真实shard数仍为0。
+
 ### D-211/D-212 执行封装与 raw smoke 文件（纠偏实现待审，真实文件未生成）
 
 [`vm04_d211_p0_seal_single_smoke_v2.json`](../configs/vsmt/vm04_d211_p0_seal_single_smoke_v2.json) 将两间开发 house 固定为 `train:004270`/`train:008243`，分别绑定 source record 摘要 `79a1…026f`/`cdbd…bea7`。v1 和 `e5d7bed` 只保留阶段历史，不是最终生成基线。来源证据仍是既有只读 root-cause 报告，报告本身记录 0 episode、0 intervention；D-212 不把它们改叫 confirmation，也不因路线或 smoke 失败换房。

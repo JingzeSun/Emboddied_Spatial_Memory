@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| D-214～D-217共享RGB-D前端 | D-217 E-01～E-03 已在服务器完成：8 worker，576个固定house全部终态，559成功/17失败且未替换，17,888帧公开RGB-D逐文件复验通过；audit、人工标签、特征、权重和production reader仍未打开。LOG-199～202。 |
+| D-214～D-218共享RGB-D前端 | D-217 E-01～E-03 已在服务器完成：559/576 house成功，17,888帧公开RGB-D逐文件复验通过。D-218 E-04离线双盲标注器和E-05冻结396维特征提取器已形成关闭态实现候选；真实任务包、人工标签、特征、权重、audit和production reader仍为0。LOG-199～203。 |
 | D-213统一图/类型门 | 四节点/五关系统一图合同、seal前类型门、五种消融memory view、图复杂度派生、relation REACTIVATE及surface/fragment RETRACT已实现候选；数据接线现改为等待D-214冻结cache，不再以单槽raw后定义前端，全部运行位关闭；LOG-197/199。 |
 | D-212地点raw纠偏 | v2已补公开grid模板＋RGB-D route survey生产入口、P01–P08可复算收据、raw三面journal与两提交执行门；D-214已重新阻断activation，旧P04/P08工程描述不得获论文资格。真实survey/seal/smoke均为0；LOG-196/198/199。 |
 | VM-04观察适用性 | 原静态36槽不运行；D-182/183只用于精确schema/实现审查。D-199–202已形成L2公开proposal/visibility、program matcher/episode audit和terminal raw加载前plan seal，D-202已获认可。D-203候选禁止调用者手填version ID，从sealed public route、预登记selector和`terminal-1` causal memory确定派生九类online request refs；核心无episode/raw path参数，edge RETRACT仍阻断。selector spec的提前时间封存和D-202 receipt消费未实现，因此D-201 pending与family阻断未解除。正式SAM/assets/matcher/visibility数值、生产callback、父stage family聚合及pilot收据仍缺。全部运行位关闭，0新episode/materialization/训练/记忆正例。LOG-169–192。 |
@@ -2111,3 +2111,13 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 最终generation receipt记录`all_planned_houses_finished=true`、`all_planned_houses_succeeded=false`、`actual_workers=8`；没有伪造`generation.success.json`。显式检查确认不存在public/private audit目录，semantic annotation、feature materialization和production reader/route/raw标志全为false。
 - 服务器阶段目录占用约1.1 GiB；完成时数据盘约50 GiB总量、26 GiB可用，未发现残留生成进程。服务器目标测试7/7通过；本地激活字节最终全库678/678通过。一次早期全库测试受无关fixture污染失败，单项及随后全库重跑均通过，未据此修改科学合同。
 - 白话：这一批已经把固定train/calibration house变成可训练前端使用的公开RGB-D；例如某个house没有8个合格位置，就留下失败记录而不是偷偷换成容易的house。它还不是人工room/corridor标签、DINO/几何特征、Estimator权重、audit结果或论文raw。
+
+## LOG-203：D-218 E-04离线双盲标注器与E-05冻结特征实现候选（2026-09-18）
+
+- 用户批准实现并提交E-04/E-05，同时明确不得打开audit、Estimator训练、production reader、P04/P08或raw。新D-218合同把annotation package export、submission import和feature materialization也保持false；只预写后续单文件activation allowlist，七个下游门即使激活E-04/E-05也必须继续false。当前0服务器读取、0任务包、0人工判断、0真实DINO、0feature shard、0训练。
+- E-04纯核心和入口只接E-03 public root，若存在`public/audit`立即拒绝。每帧内容摘要绑定RGB、depth、四项内参和opaque observation ID；共享媒体为无损RGB PNG和固定0.05–20 m对数色标depth PNG。A/B包覆盖同一观察但role-specific hash顺序不同，页面离线运行、localStorage续存并下载JSON，不出现house/split/sample/scenario/route/世界pose/reachable/metadata/instance/object/structural label/teacher/future。
+- A/B submission必须完整覆盖各自package且annotator ID不同；一致标签直接采用，真实分歧只允许不同第三人仲裁，未解决分歧固定为unknown。同一人标两遍、漏任务、额外任务、仲裁非分歧或看过另一份结果的自报均拒绝。媒体/manifest/UI已有字节先核摘要再复用，支持中断后继续但禁止覆盖漂移文件。
+- E-05固定384维DINOv2 ViT-S/14全帧patch-token均值L2描述和12维公开camera-frame几何。几何含depth有效率与10/50/90分位、逐像素frustum visibility/free-space体积、横向开口、前/左/右10% clearance、D-205公开平面surface数及平均绝对normal-y；精确公式、有效范围和截断写入合同。feature NPZ只含`features_float32/observation_ids/public_observation_sha256`，不含house或任何标签。
+- 真实feature入口只接受冻结DINO commit的干净仓库与checkpoint SHA，一个GPU模型进程批量推理，每次只预取至多一个worker批次；至少两个worker并行public NPZ I/O和CPU几何，确定性按train→calibration→sample合并。每个既有shard恢复前重开NPZ、复算核心receipt和文件SHA；失败绑定原public receipt并固定不替换、无墙钟强杀。
+- 新D-218定向9/9，D-214～D-218联合39/39通过。第一次全库687项出现一个既有public-candidate测试的进程内污染：内建`any`被临时替成`set_iterator`；该单项立即独立通过，未改科学代码。修正D-217旧测试对activation child的错误假设并完成有界并发后，最终全新进程全库**687/687通过**，失败/错误/跳过均0；内嵌VSMT/executor/L1仍为179/42/31且两房汇总252通过。
+- 白话：输入是已经生成的公开RGB-D，输出以后可让两个人独立点击的盲化页面，以及不带标签的396维训练特征。例如服务器中断在第300个house，重启会先验前300个shard再从缺口继续。它不表示人已经标完、DINO已经跑过、Estimator有权重或P04/P08已经恢复资格。

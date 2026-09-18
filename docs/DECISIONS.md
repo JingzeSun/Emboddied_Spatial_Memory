@@ -2091,3 +2091,11 @@
 - **训练输入与封存：** 训练只消费精确八数组NPZ及逐观察receipt，house ID只做split管理，模型输入恒为396维公开特征。封存输出为normalization、weights/temperatures、training receipt和success四件互绑artifact；audit只在选择/温度都冻结后报告。额外scenario/private/future字段、跨split house、重复观察、换包或覆盖目录均失败。
 - **补全而非换模型：** 为消除PyTorch默认值歧义，本决策显式登记零初始化、AdamW β/ε、seed+epoch shuffle、类权重不再归一化、early-stop精确定义及log-temperature golden-section范围/轮数。这些值须作为本实现的一部分受审；不宣称它们是创新，也不允许按P08表现调整。
 - **仍关闭：** 训练帧/人工标注的真实生成尚未授权；production reader、route survey/seal/raw、private evaluation、P04/P08资格重验和旧grid删除继续false。审过本实现后才可用一次只改合同的activation commit开放split/bundle/train/seal；审过真实权重receipt后另立reader职责。
+
+## D-218：批准实现E-04离线双盲标注器和E-05冻结特征提取器
+
+- 日期：2026-09-18；状态：用户明确批准“实现并提交 VM-04.E 的 E-04 离线双盲标注器和 E-05 冻结特征提取器；不得打开 audit、Estimator 训练、production reader、P04/P08 或 raw”。本批因此只形成关闭态机器合同、纯核心、两个阶段入口和测试，尚未读取服务器E-03产物。
+- **E-04边界：** 两份包覆盖相同public观察，但按role独立排序；界面只显示无损RGB、固定对数色标depth和opaque observation ID。A/B必须是两个不同annotator ID；一致直接采用，分歧只能由不同第三人仲裁，未处理则unknown。package/submission/adjudication均内容寻址、无覆盖、可从已核媒体断点继续。
+- **E-05边界：** 384维描述固定为DINOv2 ViT-S/14全帧patch token均值后L2归一化；12维几何的分位数、frustum体积、开口、clearance、D-205 surface统计公式和截断值全部登记。实际模型加载只接受既有冻结commit、干净仓库和checkpoint SHA；一个GPU进程推理，多worker并行public NPZ I/O和CPU几何且有界预取。
+- **失败与隔离：** annotation/feature只接public root，显式拒绝audit目录；feature逐public sample保留失败且不补样。private structural标签要到后续D-216 evidence组装才可由隔离流程加入，不得进入本阶段标注页面或feature数组。
+- **仍关闭：** D-218实现提交不授权真实任务包、人工提交导入或feature运行；后续即使只改合同激活这三项，audit、Estimator训练、full-house扩展、production reader、P04/P08、route/raw和private evaluation也必须保持false。真实E-04/E-05收据需另审，不能由代码测试替代。
