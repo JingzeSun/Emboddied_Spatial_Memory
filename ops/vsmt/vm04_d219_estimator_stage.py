@@ -266,8 +266,10 @@ def train(*, bundle_root: Path, partition_manifest_path: Path,
         "run_provenance": provenance,
         "input_npz_sha256": {
             split: _sha256_file(bundle_root / f"{split}.npz")
-            for split in SPLITS
+            for split in split_arrays
         },
+        "splits_used": sorted(split_arrays),
+        "audit_split_present": "audit" in split_arrays,
         "partition_manifest_sha256": _sha256_file(partition_manifest_path),
         "structural_bundle_sha256": bundle["structural_bundle_sha256"],
         "weights_sha256": sealed["weights"]["weights_sha256"],
