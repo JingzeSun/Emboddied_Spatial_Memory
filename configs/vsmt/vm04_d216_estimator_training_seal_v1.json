@@ -1,0 +1,130 @@
+{
+  "schema_version": "vsmt-vm04-d216-estimator-training-seal-v1",
+  "decision_id": "D-216",
+  "status": "implementation_pending_review_all_execution_closed",
+  "reviewed_baseline_commit": "7dd44d2b95f5eb2a28393e9825b197f476026322",
+  "expected_reviewed_implementation_commit": null,
+  "d215_binding": {
+    "relative_path": "configs/vsmt/vm04_d215_frontend_freeze_v1.json",
+    "file_sha256": "c3d6736f67b300eca03882c081e56e6bf4d65ad1913bcc411df8477fbd188db8",
+    "source_manifest_sha256": "7db1df1edb714162089b56e62f5258a947c5c6ddc38ed2b7082582d4659269bd",
+    "eligible_house_ids_sha256": "31b9d819afafcbef8d9bc3466fa00d49e6605cfbe1af3827ddf1a25fa0fb6d87",
+    "split_rule_sha256": "4fa32f8940cb22516d0c004f9c4b8d7a6cb5c1cd9a85dfb6f63ef6178dd34774",
+    "inference_config_sha256": "4cd2bc00e8af7b4897d00d9ad90a69bdb389b1d1dd310705c1c44c5e6b720c70"
+  },
+  "authorization": {
+    "split_manifest_materialization": false,
+    "training_frame_generation": false,
+    "semantic_annotation_import": false,
+    "training_bundle_sealing": false,
+    "estimator_training": false,
+    "artifact_sealing": false,
+    "production_reader": false,
+    "route_survey": false,
+    "raw_generation": false,
+    "private_evaluation": false
+  },
+  "activation_policy": {
+    "active_status": "frozen_executable_split_and_estimator_training_seal",
+    "activation_commit_may_change_only": [
+      "configs/vsmt/vm04_d216_estimator_training_seal_v1.json"
+    ],
+    "active_true_authorizations": [
+      "split_manifest_materialization",
+      "semantic_annotation_import",
+      "training_bundle_sealing",
+      "estimator_training",
+      "artifact_sealing"
+    ],
+    "must_remain_false": [
+      "training_frame_generation",
+      "production_reader",
+      "route_survey",
+      "raw_generation",
+      "private_evaluation"
+    ]
+  },
+  "split_manifest": {
+    "schema_version": "vsmt-vm04-d216-house-split-manifest-v1",
+    "reserved_house_manifest_schema": "vsmt-vm04-d216-reserved-house-manifest-v1",
+    "required_reserved_roles": [
+      "P0_route_and_raw_development",
+      "VM04_validation",
+      "VM04_confirmation"
+    ],
+    "p0_house_ids": ["train:004270", "train:008243"],
+    "include_every_eligible_house_exactly_once": true,
+    "excluded_rows_remain_in_manifest": true,
+    "assignment_reads_frames_labels_or_route_yield": false,
+    "cross_split_house_overlap_allowed": false
+  },
+  "training_bundle": {
+    "schema_version": "vsmt-vm04-d216-estimator-training-bundle-v1",
+    "shard_schema_version": "vsmt-vm04-d216-estimator-shard-v1",
+    "training_evidence_index_schema": "vsmt-vm04-d216-training-evidence-index-v1",
+    "semantic_annotation_receipt_schema": "vsmt-vm04-d216-semantic-annotation-receipt-v1",
+    "structural_label_receipt_schema": "vsmt-vm04-d216-structural-label-receipt-v1",
+    "required_splits": ["train", "calibration", "audit"],
+    "npz_array_names": [
+      "features",
+      "semantic_labels",
+      "structural_labels",
+      "house_ids",
+      "observation_ids",
+      "public_observation_sha256",
+      "semantic_annotation_receipt_sha256",
+      "structural_label_receipt_sha256"
+    ],
+    "feature_dtype": "float32",
+    "feature_dimension": 396,
+    "label_dtype": "uint8",
+    "semantic_labels": ["room", "corridor", "unknown"],
+    "structural_labels": ["basin", "bottleneck", "unknown"],
+    "forbidden_fields": [
+      "scenario_id",
+      "scenario_role",
+      "route_index",
+      "reachable_grid",
+      "room_metadata",
+      "instance_mask",
+      "object_id",
+      "teacher",
+      "future"
+    ],
+    "semantic_annotation_policy": "two_independent_public_rgbd_annotations_then_adjudication_unknown_on_unresolved_disagreement",
+    "structural_label_policy": "d215_frozen_training_only_reference_reachable_free_space_rule",
+    "house_id_is_training_management_only_and_never_a_model_feature": true
+  },
+  "optimizer_completion": {
+    "implementation": "torch_adamw_two_affine_heads",
+    "parameter_initialization": "all_weights_and_biases_zero",
+    "adamw_beta1": 0.9,
+    "adamw_beta2": 0.999,
+    "adamw_epsilon": 1e-8,
+    "batch_order": "torch_cpu_randperm_seed_plus_epoch",
+    "class_weight_rule": "inverse_sqrt_train_class_fraction_clipped_0_5_to_4_without_renormalization",
+    "early_stopping_metric_expansion": "mean_semantic_nll_plus_mean_structural_nll_on_calibration",
+    "minimum_delta_resets_patience_only": true,
+    "checkpoint_always_tracks_strict_lowest_metric": true,
+    "temperature_fit": "golden_section_on_log_temperature",
+    "temperature_log_bounds": [-6.0, 6.0],
+    "temperature_iterations": 96,
+    "audit_split_affects_checkpoint_or_temperature": false,
+    "deterministic_algorithms_required": true,
+    "wall_clock_timeout_allowed": false
+  },
+  "sealed_outputs": {
+    "normalization_schema": "vsmt-vm04-d216-normalization-v1",
+    "weights_schema": "vsmt-vm04-d216-two-head-weights-v1",
+    "training_receipt_schema": "vsmt-vm04-d216-training-receipt-v1",
+    "success_schema": "vsmt-vm04-d216-training-success-v1",
+    "overwrite_allowed": false,
+    "raw_features_labels_house_ids_or_paths_in_weight_artifacts": false
+  },
+  "reader_boundary": {
+    "production_reader_implemented_in_this_decision": false,
+    "reader_may_start_before_real_weight_receipts_are_reviewed": false,
+    "route_or_raw_execution_opened": false,
+    "legacy_grid_deletion_opened": false
+  }
+}

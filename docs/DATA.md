@@ -66,6 +66,14 @@ P04回执保存所选两帧、公开名义距离、DINO cosine和“未用绝对
 
 `actual_partition_manifest_receipt_sha256`、`normalization_receipt_sha256`、`weights_sha256`和`training_receipt_sha256`当前必须为null。后续训练阶段须先按源manifest完整列出house→split并封存，再按位置hash、1 m最小间距、每house 8位置×4 yaw生成32帧，拟合train-only标准化和两个线性头，用calibration split选最低总NLL checkpoint并各拟合一个正温度；audit split只作冻结后诊断。任一P0/validation/confirmation house混入、frame级随机拆分、按P08 yield选checkpoint或改阈值均失败。白话：合同已经决定“谁能进哪一组、看哪些帧和怎样选模型”，但还没有声称模型训练完成；production reader仍不能读取一组零权重fixture冒充正式概率。
 
+### D-216 split、训练包与真实权重回执
+
+`vsmt-vm04-d216-reserved-house-manifest-v1`含排序的`rows[{house_id,roles}]`、按角色计数及自身receipt。角色词表恰为`P0_route_and_raw_development/VM04_validation/VM04_confirmation`，两间P0 house必须显式出现，三种角色必须在split前全部绑定。`vsmt-vm04-d216-house-split-manifest-v1`再绑定source inventory、D-215 split-rule和reserved receipt；10,000行逐一保存`house_id/split/hash_bucket/exclusion_roles/planned_observations`，excluded行不删除。输入是来源与保留角色，输出不可变partition；例如validation house仍在总行数内但`planned_observations=0`。它不含RGB-D、标签、路线或产率。
+
+训练NPZ分片只允许八个数组：`features[N,396] float32`、`semantic_labels[N] uint8`、`structural_labels[N] uint8`、`house_ids/observation_ids`及`public_observation_sha256/semantic_annotation_receipt_sha256/structural_label_receipt_sha256`三个定长字符串向量。`house_ids`只用于检查整house split，拟合张量只有`features`；额外`scenario_id`等字段不是“忽略”，而是整片拒绝。`vsmt-vm04-d216-training-evidence-index-v1`逐观察保存两名盲标注者标签、仲裁/未决状态及D-215结构规则标签的内容寻址子receipt；bundle seal逐行核标签值和三个摘要，未决semantic分歧只能写`unknown`。`vsmt-vm04-d216-estimator-training-bundle-v1`保存每个分片相对路径、文件SHA-256、split、行/house/类别计数和各receipt向量摘要，并要求train/calibration/audit齐全、观察ID全局不重复。白话：evidence index证明标签摘要指向什么，bundle像封条防止训练时把另一个NPZ悄悄换进来；二者都不把标注或reference grid复制到推理cache。
+
+真实训练目录拟生成`normalization.json`、`weights.json`、`training_receipt.json`、`success.json`及`stage_receipt.json`。normalization含396项train均值/标准差；weights含两个3×396矩阵、bias和temperature但不含house/观察/路径；training receipt含代码commit、partition/bundle/artifact摘要、seed、torch/device、epoch历史、best epoch、类权重及三split冻结指标；success只汇总互相绑定的receipt且固定`real_weight_receipt_reviewed=false/production_reader_authorized=false`。当前这些都尚未真实生成；测试fixture输出不得写回D-215的null字段或供production reader使用。
+
 ### D-211/D-212 执行封装与 raw smoke 文件（纠偏实现待审，真实文件未生成）
 
 [`vm04_d211_p0_seal_single_smoke_v2.json`](../configs/vsmt/vm04_d211_p0_seal_single_smoke_v2.json) 将两间开发 house 固定为 `train:004270`/`train:008243`，分别绑定 source record 摘要 `79a1…026f`/`cdbd…bea7`。v1 和 `e5d7bed` 只保留阶段历史，不是最终生成基线。来源证据仍是既有只读 root-cause 报告，报告本身记录 0 episode、0 intervention；D-212 不把它们改叫 confirmation，也不因路线或 smoke 失败换房。

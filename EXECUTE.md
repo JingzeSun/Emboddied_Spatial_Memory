@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| D-214/D-215共享RGB-D前端 | P01–P08场景盲共同cache核心已形成；SAM checkpoint/YAML/automatic-mask、双线性semantic/structural estimator、house级80/10/10划分规则及P08四数已冻结候选。实际partition manifest/normalization/weights/training receipt与production reader仍空，全部运行位关闭；LOG-199/200。 |
+| D-214～D-216共享RGB-D前端 | `7dd44d2`已获批为D-215冻结基线；D-216完整house split、精确NPZ训练包、双头拟合及四件互绑artifact的关闭实现候选已形成。实际partition/人工标签/normalization/weights/training receipt与production reader仍空，全部运行位关闭；LOG-199～201。 |
 | D-213统一图/类型门 | 四节点/五关系统一图合同、seal前类型门、五种消融memory view、图复杂度派生、relation REACTIVATE及surface/fragment RETRACT已实现候选；数据接线现改为等待D-214冻结cache，不再以单槽raw后定义前端，全部运行位关闭；LOG-197/199。 |
 | D-212地点raw纠偏 | v2已补公开grid模板＋RGB-D route survey生产入口、P01–P08可复算收据、raw三面journal与两提交执行门；D-214已重新阻断activation，旧P04/P08工程描述不得获论文资格。真实survey/seal/smoke均为0；LOG-196/198/199。 |
 | VM-04观察适用性 | 原静态36槽不运行；D-182/183只用于精确schema/实现审查。D-199–202已形成L2公开proposal/visibility、program matcher/episode audit和terminal raw加载前plan seal，D-202已获认可。D-203候选禁止调用者手填version ID，从sealed public route、预登记selector和`terminal-1` causal memory确定派生九类online request refs；核心无episode/raw path参数，edge RETRACT仍阻断。selector spec的提前时间封存和D-202 receipt消费未实现，因此D-201 pending与family阻断未解除。正式SAM/assets/matcher/visibility数值、生产callback、父stage family聚合及pilot收据仍缺。全部运行位关闭，0新episode/materialization/训练/记忆正例。LOG-169–192。 |
@@ -2093,4 +2093,10 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 官方SAM 2.1 Hiera Small checkpoint只在本机系统临时目录下载核验，字节数184,416,285、SHA-256=`6d1aa6f30de5c92224f8172114de081d104bbd23dd9dc5c58996f0cad5dc4d38`；固定commit YAML为3,761 bytes、SHA-256=`0f36b91e86e58d06c87e42997166212468b88b98b60e4d816d5e4d4d088b6f55`。两份临时文件核验后已删除；未安装SAM、未保存checkpoint进Git、未触碰服务器。
 - automatic-mask复用旧VM-04已审数值并封摘要；Estimator固定为384维DINO＋12维公开RGB-D几何的两个无隐藏层线性softmax头。source manifest固定，house级哈希80/10/10，P0两house及VM-04 validation/confirmation排除；每house按hash取8个相距≥1 m位置×4 yaw，结构标签使用固定2 m局部可达图切口规则。实际partition receipt、normalization、weights及training receipt保持null，推理入口会先拒绝。
 - P08固定`basin≥0.70`、`bottleneck≥0.70`、fragment cosine≥0.85、centroid distance≤0.35 m，等号通过、结构类唯一argmax、两端至少两个观察。失败保留原槽，不得调阈值或换路线/house。定向D-214+D-215 **16/16通过**。一次全库在D-214重复构造测试中出现本机非稳定`clone_json` ValueError（663通过/1错误），同字节立即重跑通过；补齐固定抽帧和结构标签规则后的最终标准discover **664/664通过**，耗时33.060 s，失败/错误/跳过均0，内嵌VSMT/executor/L1三组179/42/31及两房汇总252仍通过。该本地不稳定回执保留，不改科学合同，也未在服务器运行。
+
+## LOG-201：D-216 split manifest与Estimator训练封存实现候选（2026-09-18）
+
+- 用户批准`7dd44d2`作为D-215冻结基线，并限定下一步只实现split manifest与Estimator训练封存，真实权重receipt受审后才接production reader。新D-216合同绑定D-215文件/source/eligible/split/inference摘要；当前expected reviewed commit为空，split、标注导入、bundle、训练、artifact、reader、route/raw/private evaluation全部false。
+- split实现强制先封存三类保留house，完整10,000 house逐一留行；不读frame/label/route/yield。训练包只接受固定八数组NPZ，逐house核split，绑定公开观察、双人semantic仲裁和structural rule receipt；两个线性头的所有框架默认补项均明确入合同，audit不参与checkpoint或temperature。阶段入口支持`check/seal-split/seal-bundle/train-seal`、分片并行hash/加载、确定性合并、无覆盖和两提交激活门；production reader、训练帧生成与旧grid删除没有实现或开放。
+- 定向D-216 **7/7通过**：覆盖全部关闭门、三角色/P0排除、10,000 house完整manifest、额外scenario字段和跨split house拒绝、标签与盲标注/结构receipt逐观察对账、CPU小样本两次权重/receipt逐字节确定及外部输入打开前拒绝。这里的9行/组人工数组只测工程边界，不是实际权重或准确率；0服务器、0真实partition、0RGB-D训练帧、0人工标注、0真实训练。回归期间一次调用只返回进度点而无summary/exit，不计成功或失败；在最终按类占比解释inverse-sqrt后，一轮旧套件中途显示`E`并以Windows access violation `-1073741819`退出、无测试名/traceback，保留为本机不稳定失败。同一最终字节随后标准discover **671/671通过**，耗时40.278 s、exit=0，失败/错误/跳过均0，内嵌VSMT/executor/L1三组179/42/31及两房汇总252仍通过。
 - 白话：输入是官方资产字节、结果前的前端设计和固定house清单摘要，输出可复算的模型/划分/资格合同；例如0.849999的fragment相似度直接失败，不会因为P08产率低就改成0.84。它不表示权重已经训练，也不允许production reader用fixture概率运行。

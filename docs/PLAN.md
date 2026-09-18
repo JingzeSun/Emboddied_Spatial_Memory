@@ -22,12 +22,12 @@
 
 ### 当前指针
 
-**当前是 D-215 共享前端资产、Estimator划分与P08数值冻结候选审查；production reader与D-212服务器路线继续阻断。** D-214的P01–P08同schema/同cache边界不变。SAM 2.1 Hiera Small官方checkpoint、固定commit YAML、旧VM-04 automatic-mask数值及内容摘要现已冻结；场景盲semantic/structural estimator固定为冻结DINO全帧描述＋12维公开RGB-D几何的两个线性softmax头，house级80/10/10哈希划分永久排除两间P0 house。P08四数预先固定为0.70/0.70/0.85/0.35 m且结构角色须唯一argmax。实际partition manifest、normalization、weights和training receipt仍为null，训练/reader/路线/raw全部关闭；0真实前端cache、0路线重封、0raw、0模型训练。
+**当前是 D-216 split manifest 与 Estimator 训练封存实现审查；production reader与D-212服务器路线继续阻断。** 用户已批准`7dd44d2`作为D-215冻结基线。D-216实现候选要求在分组前先提供显式P0/VM04-validation/VM04-confirmation保留house清单，再对完整10,000个author-train house逐一登记train/calibration/audit/excluded；训练只接收固定NPZ schema和逐观察公开/标注receipt，按D-215预算拟合两个线性头并封存normalization、weights、temperature、逐epoch历史及训练成功receipt。当前机器合同全部授权false，尚无真实split manifest、训练帧、人工semantic标签、权重或服务器回执；production reader、route/raw、P04/P08重验及旧grid删除均不在本职责。
 
 | D-210 顺序 | 输入与工作 | 输出与继续条件 |
 |---|---|---|
 | **P0-A D-210基线（已批准，本地main）** | D-210 合同、12 槽 manifest 核心、route seal、edge summary、adapter、metrics 和文档 | `8d6bd13`；0.25 m/90°/128 guard、无24/64科学上限、格不定义place、五个headline和oracle隔离已受测 |
-| **P0-A2 D-214/D-215共享前端（资产/数值冻结候选待审）** | 每个保存的公开RGB-D观察、内参、因果相对pose/belief、动作边摘要；冻结SAM/DINO、双线性semantic/structural estimator、house级训练划分与P08四数 | P01–P08同schema缓存；fragment不冒充entity、place不由格或语义类定义；P04/P08新资格回执。SAM资产和数值已冻结，实际split manifest/权重/receipt及production reader未生成，服务器关闭 |
+| **P0-A2 D-214～D-216共享前端（D-215已批准，D-216训练封存实现待审）** | 每个保存的公开RGB-D观察、内参、因果相对pose/belief、动作边摘要；冻结SAM/DINO、双线性semantic/structural estimator、house级训练划分与P08四数；D-216完整partition及训练artifact seal | P01–P08同schema缓存；fragment不冒充entity、place不由格或语义类定义。D-216代码可封存split/NPZ bundle/权重，但当前执行位全关、0真实权重；真实receipt受审后才可另接production reader |
 | **P0-B 两房与完整路线封存（D-214前端完成前阻断）** | 固定两house source record；旧grid只作路线搜索；D-214共享cache；12条执行前完整路线；每槽绑定真实reachable scan、public evidence、scenario receipt与私有axis-aligned起点 | 生产入口已补齐但0次真实运行；不得直接activation。先冻结并接通D-214真实资产/数值/reader，再重验P04/P08并把P01–P08全部重绑同一cache；旧P08工程语义无headline资格 |
 | **P0-C 单槽 raw smoke（D-212纠偏实现待审）** | P0-B封存产物、显式AI2-THOR/controller配置、slot 0 fresh controller | public写obs0＋逐成功动作RGB-D/内参；provenance逐动作fsync journal；private逐帧写pose＋instance mask＋entity mapping/state；失败前缀全留。当前expected implementation commit为空，仍拒绝真实运行 |
 | **P0-D 12 槽 raw 与 adapter（关闭）** | 单槽 smoke 通过后另行授权；资源实测决定最大安全 workers | 固定 12 槽 raw/provenance、关键帧、belief/edge summary 与 adapter 文件；失败不补，确定性合并；private evaluation 仍独立开闸 |

@@ -2083,3 +2083,11 @@
 - **Estimator与划分：** 一个共享的场景盲模型读取384维冻结DINO描述＋12维固定公开几何，输出semantic和structural两个三类线性温度softmax。固定house级哈希80/10/10 train/calibration/audit；两间P0 house及VM-04 validation/confirmation排除。每house按hash固定8个相距≥1 m的位置×4 yaw；结构训练标签由固定2 m局部可达图切口规则产生，semantic标注者不见scenario/house身份。任何标签/grid/metadata不进推理/cache。实际partition manifest、normalization、weights和training receipt保持null并阻断推理。
 - **P08：** 四数固定为0.70/0.70/0.85/0.35 m，等号通过、结构类须唯一argmax、每端至少两个不同观察。数值不按路线yield调；失败保留原槽，不换路线/house，不重新解释room/corridor为identity。
 - **下一顺序：** 先审本提交；随后单独材料化split manifest并生成/训练/封存前端权重，审过真实receipts后才实现production reader。D-212 activation和旧grid删除继续关闭。
+
+## D-216：批准D-215基线，只实现split manifest与Estimator训练封存
+
+- 日期：2026-09-18；状态：用户明确批准`7dd44d2`作为D-215冻结基线，并要求“下一步只实现split manifest与Estimator训练封存，审过真实权重回执后再接production reader”。本批是独立审查分支的实现候选，全部真实执行位仍关闭，0服务器/partition/训练/权重。
+- **split先决条件：** D-215只冻结了保留角色，仓库尚未公开绑定VM04 validation/confirmation具体house；D-216因此要求先输入三角色齐全的reserved manifest，两间P0 house也必须显式列出。完整eligible universe每house恰有一行，排除项留行说明原因，分组算法不读观察、标签、路线或yield。
+- **训练输入与封存：** 训练只消费精确八数组NPZ及逐观察receipt，house ID只做split管理，模型输入恒为396维公开特征。封存输出为normalization、weights/temperatures、training receipt和success四件互绑artifact；audit只在选择/温度都冻结后报告。额外scenario/private/future字段、跨split house、重复观察、换包或覆盖目录均失败。
+- **补全而非换模型：** 为消除PyTorch默认值歧义，本决策显式登记零初始化、AdamW β/ε、seed+epoch shuffle、类权重不再归一化、early-stop精确定义及log-temperature golden-section范围/轮数。这些值须作为本实现的一部分受审；不宣称它们是创新，也不允许按P08表现调整。
+- **仍关闭：** 训练帧/人工标注的真实生成尚未授权；production reader、route survey/seal/raw、private evaluation、P04/P08资格重验和旧grid删除继续false。审过本实现后才可用一次只改合同的activation commit开放split/bundle/train/seal；审过真实权重receipt后另立reader职责。

@@ -207,6 +207,20 @@ from .d215_frontend_freeze import (
     run_frozen_two_head_estimator,
     validate_d215_contract,
 )
+from .d216_estimator_training import (
+    D216Error,
+    fit_and_seal_estimator,
+    make_house_split_manifest,
+    make_reserved_house_manifest,
+    make_training_bundle_manifest,
+    make_training_evidence_index,
+    validate_d216_contract,
+    validate_house_split_manifest,
+    validate_reserved_house_manifest,
+    validate_training_bundle_manifest,
+    validate_training_evidence_index,
+    validate_training_shard_arrays,
+)
 
 __all__ = [
     "AdapterInput",
@@ -378,4 +392,16 @@ __all__ = [
     "assign_estimator_house_split",
     "run_frozen_two_head_estimator",
     "validate_d215_contract",
+    "D216Error",
+    "fit_and_seal_estimator",
+    "make_house_split_manifest",
+    "make_reserved_house_manifest",
+    "make_training_bundle_manifest",
+    "make_training_evidence_index",
+    "validate_d216_contract",
+    "validate_house_split_manifest",
+    "validate_reserved_house_manifest",
+    "validate_training_bundle_manifest",
+    "validate_training_evidence_index",
+    "validate_training_shard_arrays",
 ]
