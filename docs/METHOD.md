@@ -264,29 +264,29 @@ flowchart TB
 
 **主比较公平性。** VSMT、TAF、ELU、WFR、LOW 使用完全相同的冻结 RGB-D 前端缓存、相同内参、公开位姿信念、动作摘要、序列/split和评价器；各方法保留自己的记忆组织、关联、生命周期和更新机制，不要求内部组件相同。输入控制回答“相同公开证据下哪种记忆更新更可靠”，内部机制差异正是被比较对象。若以后另做各论文原系统组件的 system-level 表，只能声称完整系统差异，不能把差值单独归因给 VSMT。这里的 RGB-D 是已批准机器口径；口语中的“同样 RGB”不能静默改成 RGB-only。
 
-五组事前消融固定如下：
+D-220 把事前消融的必做集合收窄为三组，理由是首篇要回答的是“类型化可执行事务和版本历史是否有用”，而不是穷举架构变体：
 
 | 名称 | 精确定义 | 回答的问题 |
 |---|---|---|
-| `Place-4` | 只给模型地点节点和 place-place 边，地点四原子门；仍保留版本 | 地点记忆本身能做到什么 |
 | `VSMT-Typed` | 统一图、全局八原子词表、按作用域门控；主 VSMT 行 | 完整架构能否同时处理地点、实体和关系修订 |
 | `VSMT-Flat8` | 取消 selector 的类型 mask，八原子头对所有作用域开放；executor 前置条件和非法回滚仍保留 | 不加语义约束是否造成候选稀释和非法事务 |
-| `VSMT-NoPlace` | 模型视图删除 place 节点及其 incident edges，保留 entity-surface 等非地点关系 | 显式地点层是否帮助实体挂载、关系和回环 |
 | `VSMT-NoVersion` | 只给模型当前活动状态，移除历史版本字段和 transaction log；外部运行 provenance 仍保存 | 收益是否来自模型可用的版本历史，而非仅当前图 |
 
-`VSMT-Flat8` 不允许绕过 executor 直接写坏图；它允许 selector 提出类型不合适的原子并把 executor 拒绝计入 `illegal_transaction`，用于测量类型门本身的价值。`VSMT-NoVersion` 也不物理删除实验原始审计文件，只屏蔽模型输入里的历史，因此还能复核结果。五组消融共享同一前端、数据、候选公开来源、训练预算和评分；除被移除的组件外不得顺带缩模型或换阈值。
+`Place-4`（只给地点节点和 place-place 边）与 `VSMT-NoPlace`（模型视图删除 place 节点及其 incident edges）移出必做集合，可作低成本附录；它们回答的是“地点层本身值多少”，对首篇主张不是必需。被移出的消融在看过 test 之后不得补回来，否则等于按结果挑消融。
 
-机器合同为 [`vm04_d213_unified_typed_graph_v1.json`](../configs/vsmt/vm04_d213_unified_typed_graph_v1.json)，纯核心为 [`d213_unified_graph.py`](../src/vsmt/d213_unified_graph.py)。当前实现已经能在 candidate seal/teacher 之前检查作用域—原子合法性、复核 sealed catalog、验证统一图端点类型和派生缓存、构造五种模型可见 memory view、派生图复杂度指标；executor 新增历史关系 `REACTIVATE`，node `RETRACT` 扩展到 entity/surface/fragment，公开候选器可产生相应合法候选，并接受 `route_transition`。但 **非网格 place** 的实际 BIND/BIRTH/MERGE 候选构造现须消费冻结的D-214缓存后再接线；旧 `prepare_place_scaffold` 仅保留历史兼容，不能进入 D-213 主表。这一未接线项明确阻断 adapter materialization/训练，不把合同测试写成完整模型或效果已经完成。
+`VSMT-Flat8` 不允许绕过 executor 直接写坏图；它允许 selector 提出类型不合适的原子并把 executor 拒绝计入 `illegal_transaction`，用于测量类型门本身的价值。`VSMT-NoVersion` 也不物理删除实验原始审计文件，只屏蔽模型输入里的历史，因此还能复核结果。保留的消融共享同一前端、数据、候选公开来源、训练预算和评分；除被移除的组件外不得顺带缩模型或换阈值。
+
+机器合同为 [`vm04_d213_unified_typed_graph_v1.json`](../configs/vsmt/vm04_d213_unified_typed_graph_v1.json)，纯核心为 [`d213_unified_graph.py`](../src/vsmt/d213_unified_graph.py)。当前实现已经能在 candidate seal/teacher 之前检查作用域—原子合法性、复核 sealed catalog、验证统一图端点类型和派生缓存、构造模型可见 memory view、派生图复杂度指标；executor 新增历史关系 `REACTIVATE`，node `RETRACT` 扩展到 entity/surface/fragment，公开候选器可产生相应合法候选，并接受 `route_transition`。但 **非网格 place** 的实际 BIND/BIRTH/MERGE 候选构造现须消费冻结的D-214缓存后再接线；旧 `prepare_place_scaffold` 仅保留历史兼容，不能进入 D-213 主表。这一未接线项明确阻断 adapter materialization/训练，不把合同测试写成完整模型或效果已经完成。
 
 #### D-214 全 P0、场景盲共享 RGB-D 前端（已批准，实现候选待审）
 
-D-214 不是 P08 专用语义分支，而是 P01–P08 每个保存观察共同经过的唯一前端。输入为当前公开 RGB-D、内参、因果 episode-relative 相机 pose、连续位姿 belief、入边动作摘要和此前公开 free-space；输出为匿名 `fragment`、公开深度 `surface/free-space/visibility`、非网格 `place observation`、DINOv2 描述、`basin/bottleneck/unknown`结构概率及`room/corridor/unknown`语义概率。例如 SAM 在同一把椅子上给出两个 mask 时，前端只输出两个 fragment，是否属于同一 entity 仍由后续 BIND/MERGE 机制决定。它不接收 scenario ID，不把 mask 叫永久实体，不由0.5 m格或room类别分配place ID，也不读取private metadata、teacher或future。
+D-214 不是 P08 专用语义分支，而是 P01–P08 每个保存观察共同经过的唯一前端。输入为当前公开 RGB-D、内参、因果 episode-relative 相机 pose、连续位姿 belief、入边动作摘要和此前公开 free-space；输出为匿名 `fragment`、公开深度 `surface/free-space/visibility`、非网格 `place observation`、DINOv2 描述和 `basin/bottleneck/unknown` 结构概率。D-219 已删除原先并列的 `room/corridor/unknown` 语义概率：它不定义地点身份，也没有任何下游消费者，保留只会留下一个无科学意义的伪输出。例如 SAM 在同一把椅子上给出两个 mask 时，前端只输出两个 fragment，是否属于同一 entity 仍由后续 BIND/MERGE 机制决定。它不接收 scenario ID，不把 mask 叫永久实体，不由0.5 m格或room类别分配place ID，也不读取private metadata、teacher或future。
 
-`place observation`（地点观察）解决“当前画面和可见空间提供了怎样的地点证据”，输入是全帧冻结DINO描述、因果pose belief、surface/free-space支持及两组概率，输出只是本帧内容寻址的观察记录。例如朝向相反但处于同一大厅的两帧可以形成两个观察，记忆机制随后决定BIND到旧地点；它不等于每帧新建一个地点，也不等于语义类别是真值身份。所有保存观察暂按`every_saved_public_observation`进入缓存，避免在资产和正式数据出现前引入另一组结果相关关键帧阈值；这会增加缓存和推理成本，不改变raw逐动作保存规则。
+`place observation`（地点观察）解决“当前画面和可见空间提供了怎样的地点证据”，输入是全帧冻结DINO描述、因果pose belief、surface/free-space支持及结构概率，输出只是本帧内容寻址的观察记录。例如朝向相反但处于同一大厅的两帧可以形成两个观察，记忆机制随后决定BIND到旧地点；它不等于每帧新建一个地点，也不等于结构类别是真值身份。所有保存观察暂按`every_saved_public_observation`进入缓存，避免在资产和正式数据出现前引入另一组结果相关关键帧阈值；这会增加缓存和推理成本，不改变raw逐动作保存规则。
 
-P04 与 P08 是同一缓存上的两种资格检查，不是两套前端。P04 从名义分离至少1.5 m的pair中取冻结DINO place descriptor cosine top-1，绝对阈值仍为null；旧四象限RGB-D小描述子退出论文资格，仅保留工程诊断。P08 要求时序上连续的 basin→bottleneck→basin，且两端各至少两个不同观察中存在达到同一冻结外观—三维稳定规则的匿名fragment；room/corridor概率完整报告但不参与place identity。它解决“P08是否真的有公开结构和匿名区域证据”，输入只有共享缓存，输出资格回执；它不允许通过P08名称触发额外模型，也不允许私有room/object真值修路线。
+P04 与 P08 是同一缓存上的两种资格检查，不是两套前端。P04 从名义分离至少1.5 m的pair中取冻结DINO place descriptor cosine top-1，绝对阈值仍为null；旧四象限RGB-D小描述子退出论文资格，仅保留工程诊断。P08 要求时序上连续的 basin→bottleneck→basin，且两端各至少两个不同观察中存在达到同一冻结外观—三维稳定规则的匿名fragment。结构概率只由公开 RGB-D 推断，不查 reachable grid 真值。它解决“P08是否真的有公开结构和匿名区域证据”，输入只有共享缓存，输出资格回执；它不允许通过P08名称触发额外模型，也不允许私有room/object真值修路线。
 
-机器合同为 [`vm04_d214_shared_rgbd_frontend_v1.json`](../configs/vsmt/vm04_d214_shared_rgbd_frontend_v1.json)，纯核心为 [`d214_shared_frontend.py`](../src/vsmt/d214_shared_frontend.py)。当前候选已实现场景盲函数签名、fragment/depth结构材料化、非网格place observation、逐帧/episode摘要、五方法同字节cache view、P04/P08资格算法和旧grid只读退役门；合同还把“公开输出组合/缓存核心已实现”和“真实模型编排、production raw reader、服务器执行未实现”分成四个显式布尔，防止状态被概括错。它尚不等于完整可运行模型：SAM checkpoint/config/assets receipt、place semantic head模型/训练split/权重、P08 basin/bottleneck及fragment稳定四个数值仍为空；生产raw reader、真实模型loader编排和adapter转换也未开。所有运行授权保持false。
+机器合同为 [`vm04_d214_shared_rgbd_frontend_v1.json`](../configs/vsmt/vm04_d214_shared_rgbd_frontend_v1.json)，纯核心为 [`d214_shared_frontend.py`](../src/vsmt/d214_shared_frontend.py)。当前候选已实现场景盲函数签名、fragment/depth结构材料化、非网格place observation、逐帧/episode摘要、五方法同字节cache view、P04/P08资格算法和旧grid只读退役门（D-219 后须按单头结构概率就地删除三个语义字段）；合同还把“公开输出组合/缓存核心已实现”和“真实模型编排、production raw reader、服务器执行未实现”分成四个显式布尔，防止状态被概括错。它尚不等于完整可运行模型：SAM checkpoint/config/assets receipt、structural head模型/训练split/权重仍为空，P08 basin/bottleneck及fragment稳定四个数值已由D-215冻结；生产raw reader、真实模型loader编排和adapter转换也未开。所有运行授权保持false。
 
 旧grid产物只在新D-214缓存全部生成、摘要核验、P04/P08重验、P01–P08路线重绑、精确删除目标经审查且不存在复现依赖后才可删除；删除不使用通配符，Git历史和原始研究资料保留。白话：输入是新产物完成证据和待删精确路径，输出只读readiness receipt；例如还有一个旧报告引用grid目录时门保持false。它不表示本提交已删除任何文件，也不允许为省空间提前破坏复现。
 
@@ -294,9 +294,11 @@ P04 与 P08 是同一缓存上的两种资格检查，不是两套前端。P04 �
 
 SAM固定为官方commit `2b90b9f…`下的SAM 2.1 Hiera Small、对应官方YAML和184,416,285-byte checkpoint；每帧automatic-mask沿用已登记的32×32点网格、IoU 0.8、稳定度0.95、无crop、无NMS归属抑制，随后按196像素下限和64 proposal上限做公开规范化。输入只是一帧当前public RGB，输出匿名mask；例如返回第65个proposal即整帧construction failure，不截断成看似成功的64个。它不用视频memory、文本、private point/box，也不等于每个mask是真实实体。
 
-**semantic/structural estimator（语义/结构估计器）**解决“同一公开观察怎样给出room/corridor/unknown及basin/bottleneck/unknown概率”。输入为384维冻结DINOv2全帧描述和12个固定顺序的公开RGB-D几何量，输出两个独立的三类温度softmax；架构是无隐藏层的两个线性头。具体例子是较大横向开口、较远前向clearance和大厅外观可提高basin/room概率，但输出仍只是概率，不创建place ID。它不接收scenario、route、house、reachable grid、metadata、instance、teacher或future；当前weights、normalization和training receipt仍为空，所以推理入口必须拒绝。
+**structural estimator（结构估计器；D-219 已把 D-215 的双头收窄为单头）**解决“同一公开观察怎样给出basin/bottleneck/unknown概率”。输入为384维冻结DINOv2全帧描述和12个固定顺序的公开RGB-D几何量，输出一个三类温度softmax；架构是无隐藏层的单个线性头。具体例子是较大横向开口和较远前向clearance可提高basin概率，但输出仍只是概率，不创建place ID。它不接收scenario、route、house、reachable grid、metadata、instance、teacher或future；当前weights、normalization和training receipt仍为空，所以推理入口必须拒绝。
 
-训练划分以house为不可拆单位，在已封存ProcTHOR author-train manifest上按固定salt哈希：0–79为train、80–89为calibration、90–99为audit；`train:004270`和`train:008243`以及VM-04 validation/confirmation角色永久排除。每house按位置hash、至少1 m间距固定8个位置×4个朝向，不按标签或产率选帧。semantic标签由只看单帧public RGB-D的两名独立标注者和仲裁产生，歧义进unknown；structural标签在训练house的0.25 m reference可达图上，以2 m局部图删除0.35 m anchor圆盘后是否形成至少两个足够大的远端分量标bottleneck，非bottleneck且1 m内至少37个可达点标basin，其余unknown。标签、grid和metadata不进入推理/cache。白话：同一house的任何帧不会一部分训练、一部分校准；它不按P08是否成功换house，也不拿两间P0开发房训练前端。
+原D-215并列的room/corridor语义头由D-219整体删除，不保留字段、不以恒定`unknown`占位。删除理由是它不定义地点身份、P08资格不读它、全库没有任何方法消费者，因此其35,776次人工判断买不到论文证据。五个主臂同等地少掉这三维，已封存比较不受扰动；论文相应收回“识别真实房间与走廊”的口径。
+
+训练划分以house为不可拆单位，在已封存ProcTHOR author-train manifest上按固定salt哈希：0–79为train、80–89为calibration、90–99为audit；`train:004270`和`train:008243`以及VM-04 validation/confirmation（D-220后改称test）角色永久排除。每house按位置hash、至少1 m间距固定8个位置×4个朝向，不按标签或产率选帧。D-219删除semantic头后不再需要任何人工标注；structural标签在训练house的0.25 m reference可达图上，以2 m局部图删除0.35 m anchor圆盘后是否形成至少两个足够大的远端分量标bottleneck，非bottleneck且1 m内至少37个可达点标basin，其余unknown。标签、grid和metadata不进入推理/cache：私有可达图只在train/calibration/audit写标签，推理时结构头仍然只凭公开RGB-D与内参预测，不查grid真值。白话：同一house的任何帧不会一部分训练、一部分校准；它不按P08是否成功换house，也不拿两间P0开发房训练前端。
 
 P08固定`basin≥0.70`、`bottleneck≥0.70`、跨视角fragment DINO cosine≥0.85、三维质心距离≤0.35 m，等号通过且结构角色须为唯一最大概率。正例是两端各两帧fragment达到0.85/0.35且中间bottleneck为0.70；任一值0.849999或0.350001即失败。该四数来自结果前的保守合同，不由路线成品率选择；若P08不满足，保留原槽construction failure，不调阈值、不换路线/house。它不是私有room/object真值确认，也不保证当前固定路线一定合格。
 
@@ -304,19 +306,36 @@ P08固定`basin≥0.70`、`bottleneck≥0.70`、跨视角fragment DINO cosine≥
 
 **house split manifest（房屋分组清单）**解决“冻结的80/10/10规则究竟把每间house放到哪里，以及哪些house必须永远排除”。输入是D-215绑定的完整source inventory和一份先封存的P0/VM04-validation/VM04-confirmation保留清单，输出按house ID排序的10,000行，每行只有`train/calibration/audit/excluded`、哈希桶、排除角色和计划观察数。例如`train:004270`即使哈希落入train也以`excluded`保留在清单并写明P0角色；它不删除失败house、不看帧、标签、路线或P08产率，也不允许日后补排除项改变已生成划分。
 
-**Estimator训练封存**解决“怎样把已审公开特征/标签变成可复核且不能被换包的真实双头权重”。输入是与partition receipt绑定的NPZ分片：396维`float32`特征、两个`uint8`三类标签、训练管理专用house ID、观察ID及三类逐观察receipt；输出train-only均值/总体标准差、两个3×396线性头和bias、两个正温度、逐epoch校准NLL、audit冻结后诊断以及相互引用的content digest。具体例子是一个calibration分片的house若实际属于train，封存会在训练前拒绝；它不接收scenario/route/private/future字段，不把house ID当模型特征，也不把测试用零权重或未审NPZ叫真实模型。
+**Estimator训练封存**解决“怎样把已审公开特征/标签变成可复核且不能被换包的真实权重”。输入是与partition receipt绑定的NPZ分片：396维`float32`特征、`uint8`三类structural标签、训练管理专用house ID、观察ID及逐观察receipt；输出train-only均值/总体标准差、一个3×396线性头和bias、一个正温度、逐epoch校准NLL、audit冻结后诊断以及相互引用的content digest。D-219后bundle不再含semantic标签与semantic annotation receipt。具体例子是一个calibration分片的house若实际属于train，封存会在训练前拒绝；它不接收scenario/route/private/future字段，不把house ID当模型特征，也不把测试用零权重或未审NPZ叫真实模型。
 
-D-215已固定AdamW、学习率、batch、epoch、patience和选择准则；D-216把原先可能落入框架默认值的实现细节显式补全为：权重/bias全零初始化，AdamW `β=(0.9,0.999), ε=1e-8`，每epoch用`seed+epoch`的CPU `randperm`，按train类占比计算inverse-sqrt权重、截到`[0.5,4]`且不再归一化，early-stop指标展开为两个head的calibration mean NLL之和，最低值始终留checkpoint而`1e-4`只控制patience重置，温度在log区间`[-6,6]`做96轮golden-section。白话：这些数值只让同一冻结规格能产生确定、可审的权重字节；它们不是新增模型技巧，也不得根据P08成品率调整。
+D-215已固定AdamW、学习率、batch、epoch、patience和选择准则；D-216把原先可能落入框架默认值的实现细节显式补全为：权重/bias全零初始化，AdamW `β=(0.9,0.999), ε=1e-8`，每epoch用`seed+epoch`的CPU `randperm`，按train类占比计算inverse-sqrt权重、截到`[0.5,4]`且不再归一化，early-stop指标在D-219后为structural head的calibration mean NLL（原为两个head之和），最低值始终留checkpoint而`1e-4`只控制patience重置，温度在log区间`[-6,6]`做96轮golden-section。白话：这些数值只让同一冻结规格能产生确定、可审的权重字节；它们不是新增模型技巧，也不得根据P08成品率调整。
 
-机器合同[`vm04_d216_estimator_training_seal_v1.json`](../configs/vsmt/vm04_d216_estimator_training_seal_v1.json)、纯核心[`d216_estimator_training.py`](../src/vsmt/d216_estimator_training.py)和阶段入口[`vm04_d216_estimator_stage.py`](../ops/vsmt/vm04_d216_estimator_stage.py)均已实现候选。当前合同处于`implementation_pending_review_all_execution_closed`，只有`check`可执行；split、标注导入、bundle、训练和artifact seal须在审查后由只改合同的一次activation commit开启。训练帧生成、production reader、route/raw/private evaluation和旧grid删除即使activation后也必须保持false。当前0真实训练、0服务器权重，代码测试只证明边界和确定性，不证明semantic/structural准确率。
+机器合同[`vm04_d216_estimator_training_seal_v1.json`](../configs/vsmt/vm04_d216_estimator_training_seal_v1.json)、纯核心[`d216_estimator_training.py`](../src/vsmt/d216_estimator_training.py)和阶段入口[`vm04_d216_estimator_stage.py`](../ops/vsmt/vm04_d216_estimator_stage.py)均已实现候选。当前合同处于`implementation_pending_review_all_execution_closed`，只有`check`可执行；split、bundle、训练和artifact seal须在审查后开启（D-220已取消“只改合同的一次activation commit”这套双提交闸门，改为由步骤合同的授权布尔位表达、运行前由用户审、真实运行仍要求clean checkout并逐次记录摘要与失败）。训练帧生成、production reader、route/raw/private evaluation和旧grid删除即使授权后也必须保持false。当前0真实训练、0服务器权重，代码测试只证明边界和确定性，不证明structural准确率。
 
-#### D-218 E-04双盲标注与E-05冻结公开特征（实现候选待审）
+#### D-218 E-05冻结公开特征（E-04双盲标注器已由D-219取消）
 
-**离线双盲标注器**解决“怎样让两个人只看同一单帧公开RGB-D，而不从文件名或界面获知house、split、scenario、route、世界pose或结构标签”。输入是E-03 public NPZ和public receipt，输出一份内容寻址共享媒体、A/B两种独立哈希顺序的离线页面、两份完整提交及仲裁收据；RGB使用无损PNG，depth使用固定0.05–20 m对数色标，页面不联网。例如A选room、B选corridor且没有第三人处理时，最终标签只能是unknown；同一annotator ID提交A/B会被拒绝。它不自动产生语义真值，不读取private structural label，也不等于E-08 audit。
+**离线双盲标注器（历史口径，已由 D-219 取消）。**解决“怎样让两个人只看同一单帧公开RGB-D，而不从文件名或界面获知house、split、scenario、route、世界pose或结构标签”。输入是E-03 public NPZ和public receipt，输出一份内容寻址共享媒体、A/B两种独立哈希顺序的离线页面、两份完整提交及仲裁收据；RGB使用无损PNG，depth使用固定0.05–20 m对数色标，页面不联网。例如A选room、B选corridor且没有第三人处理时，最终标签只能是unknown；同一annotator ID提交A/B会被拒绝。它不自动产生语义真值，不读取private structural label，也不等于E-08 audit。该工具已按合同导出覆盖17,888帧的任务包，但D-219删除semantic头后不再有人执行标注：任务包保留为历史产物，0次人工判断进入训练，实现与页面字节原样保留供复核。
 
-**冻结396维特征提取器**解决“D-215写下的384＋12究竟怎样从每帧公开字节确定地产生”。DINO部分固定为ViT-S/14 `x_norm_patchtokens`的全帧占据加权均值再L2归一化；几何部分固定为有效深度比例、10/50/90分位数、逐像素相机frustum可见/净空体积、横向开口、前/左/右10% clearance、D-205公开平面surface数和平均绝对法向y。体积、距离和surface数分别按合同截到0–50 m³、0–10 m和0–64；无任何有效depth则该观察构造失败。输入只有depth、内参和同帧DINO patch token，输出`float32[396]`及逐观察/逐shard摘要；例如恒定2 m深度平面会有确定的2 m分位数和公开平面统计。它不读取house、reachable grid、semantic/structural label、teacher或future，也不运行双头Estimator。
+**冻结396维特征提取器**解决“D-215写下的384＋12究竟怎样从每帧公开字节确定地产生”。DINO部分固定为ViT-S/14 `x_norm_patchtokens`的全帧占据加权均值再L2归一化；几何部分固定为有效深度比例、10/50/90分位数、逐像素相机frustum可见/净空体积、横向开口、前/左/右10% clearance、D-205公开平面surface数和平均绝对法向y。体积、距离和surface数分别按合同截到0–50 m³、0–10 m和0–64；无任何有效depth则该观察构造失败。输入只有depth、内参和同帧DINO patch token，输出`float32[396]`及逐观察/逐shard摘要；例如恒定2 m深度平面会有确定的2 m分位数和公开平面统计。它不读取house、reachable grid、structural label、teacher或future，也不运行Estimator。
 
-D-218真实运行采用一个冻结DINO GPU模型进程和至少两个公共NPZ I/O worker；有界预取每次最多保留一个worker批次，避免把559个house一次装入内存。媒体和feature shard均先核摘要再复用；失败按原public sample保留、不换house、不补观察、无墙钟强杀。机器合同、纯核心、标注入口和特征入口当前全部是关闭态，audit、E-06训练、production reader、P04/P08、route/raw和private evaluation即使未来激活E-04/E-05也保持false。白话：本批把“怎么标、怎么算特征”变成可运行且可续跑的工具，但尚未真正生成任务包、人工标签或DINO特征，更没有产生模型准确率。
+D-218真实运行采用一个冻结DINO GPU模型进程和至少两个公共NPZ I/O worker；有界预取每次最多保留一个worker批次，避免把559个house一次装入内存。媒体和feature shard均先核摘要再复用；失败按原public sample保留、不换house、不补观察、无墙钟强杀。E-05已在服务器完成559/559个house、17,888帧的396维特征，失败0；audit、E-06训练、production reader、P04/P08、route/raw和private evaluation继续保持false。特征本身不带标签，因此D-219删除semantic头不改变其中任何一个字节，不需要重跑。白话：这批把“怎么算特征”变成可运行且可续跑的工具并真的跑完了，但尚未训练任何模型，也没有产生准确率。
+
+#### D-219/D-220 结构单头与协议精简（已批准，实现待审）
+
+D-219 把共享前端的估计器从语义＋结构双头收窄为结构单头，理由与证据见上文 D-214/D-215/D-216 各节已更新的定义；它同时取消 E-04 全部人工标注，并把开发规模一次性裁决为冻结 512/64/64。D-220 精简执行协议：取消每步“已审实现提交＋单文件激活提交＋父提交精确匹配”的三重门（该门已被实证证伪——一个文档提交就能把已授权阶段锁死），把 confirmation 降为普通独立 test，把必做消融收窄为上表三组加内部对照 NECS，把两房 P0 降为 P01/P04/P08 工程 smoke。
+
+这两条只精简过程，不动下面八条公平性底线；本文件此后不再在各节重复它们：
+
+1. 五个主臂读取逐字节相同的冻结公开前端 cache；
+2. house 级 train/validation/test 分离；
+3. test 只跑一次且不得据以改模型；
+4. 候选必须在 teacher/private truth 打开之前生成并封存；
+5. candidate miss、teacher error 和 selector 摊销误差分开报告；
+6. 多 seed、置信区间、失败样本和资源成本齐备；
+7. P08 私有 metadata 只在预测与路线固定之后打开；
+8. 强基线不得因效果好被删除。
+
+机器合同为 [`vm04_d219_structural_only_estimator_v1.json`](../configs/vsmt/vm04_d219_structural_only_estimator_v1.json) 和 [`vm05_d220_protocol_simplification_v1.json`](../configs/vsmt/vm05_d220_protocol_simplification_v1.json)，完整理由见 [DECISIONS.md](DECISIONS.md)。两份合同的全部授权位仍为 false：0 训练、0 权重、0 审计、0 服务器运行。D-219 按当前哈希绑定 d215/d216/d217/d218 并以引用方式 supersede，永不重写它们的字节，因为 E-01～E-03 与 E-05 已按那些确切字节执行完毕。
 
 **D-206/D-207 历史口径（已由 D-210 取代主实验解释）。** D-205 曾因 place 由确定性骨架维护而把首篇收窄为“不主张地点修订”；D-206 随后发现 `camera_pose` 真值泄漏并改用带噪相对 pose，D-207 将地点路线增至 64 步并分离 provenance。这些发现继续有效，但“带噪 pose 量化成 0.5 m 格并把格当地点”的任务会把人为噪声当主要错误来源，且完整固定动作又可被精确积分抵消。故 D-210 保留世界 pose 私有、长路线和后续判别观测，撤销格地点真值、2% 人工噪声必须制造错误、place SPLIT 作为 P0 主操作及 64 步科学上限。旧合同与回执保留原字节，只作历史和诊断，不认证 D-210。
 
@@ -392,7 +411,7 @@ VM-03 的 `generate_public_candidate_catalog`（公开候选目录生成器）�
 
 VM-04阈值审计发现，当前同一个“视觉相似度＋质心距离”分数跨`entity/surface/place/fragment`使用，会把含义不同的结构硬塞进同一尺度；正式方案拟改为先分别记录余弦相似度、米制距离、归一化几何接近度、结构类型和公开可靠性，再由每种结构的显式无默认值配置组合。它解决“地面格外观都像地板、移动实体却可合法位移”不能共用一个门的问题；输入仍是同一冻结描述和公开几何，输出可审的分量及类型内关联分。例如两个相距0.4 m但外观几乎相同的实体可以保留为待判候选，而两个不同0.5 m地面格不能只因纹理相同就BIND。它不使用类别、instance ID或teacher，也不等于这些类型化数值已冻结；正式数值仍须在S-01～S-12相关语义先确定后按共同train/validation选择。
 
-候选分数拆成两个不可互换的量。`enumeration_priority`（枚举优先级）已随catalog v2封存，只在同一类型化容量桶内决定保留组；`decision_heuristic_score`（决策启发式分）仍为planned，只供PHR跨模板选择最终事务，不能改变已封存候选。每个候选另保存公开视觉相似度、质心距离、几何接近度、权重或可靠性分量；每桶保存截断前候选/组数、保留数、超大整组数、两类SPLIT护栏拒绝数和最低保留优先级，catalog顶层另保存全部桶的总容量、截断前总量、保留总量和未保留总量。它解决NOOP枚举值固定为1.0、若误作决策分便会永远压过低于1.0的真实修订，以及“分桶后总目录到底多大”不可见的问题；例如一个SPLIT左右后继的三种关系分配是同一整组，容量放不下时全部记miss，不能按程序hash随机留一个。它不等于PHR公式已经实现，也不允许用validation或confirmation偷偷重排目录。
+候选分数拆成两个不可互换的量。`enumeration_priority`（枚举优先级）已随catalog v2封存，只在同一类型化容量桶内决定保留组；`decision_heuristic_score`（决策启发式分）仍为planned，只供附录的PHR跨模板选择最终事务，不能改变已封存候选；D-220把PHR移出必做集合后，该分数不再是主结果的前置项。每个候选另保存公开视觉相似度、质心距离、几何接近度、权重或可靠性分量；每桶保存截断前候选/组数、保留数、超大整组数、两类SPLIT护栏拒绝数和最低保留优先级，catalog顶层另保存全部桶的总容量、截断前总量、保留总量和未保留总量。它解决NOOP枚举值固定为1.0、若误作决策分便会永远压过低于1.0的真实修订，以及“分桶后总目录到底多大”不可见的问题；例如一个SPLIT左右后继的三种关系分配是同一整组，容量放不下时全部记miss，不能按程序hash随机留一个。它不等于PHR公式已经实现，也不允许用validation或confirmation偷偷重排目录。
 
 阈值公平性拟定义为“同数据、同冻结选择指标、每方法至多12个完整配置”，而不是五种机制被迫共用同一个数值。受控轨道的bootstrap只选一次并逐字节共享；TAF、ELU、WFR、LOW和VSMT公开候选器可各用适合自身机制的配置，但任何一方都不能超出12次完整配置选择，没必要为了凑数用满。输入是预登记有限配置和共同train/validation，输出每方法一个冻结配置及完整试验清单。例如ELU可以调存在分数门而LOW只能调距离门，但二者拥有相同最多12次选择机会。它不声称相同阈值就是公平，也不授权现在生成house或根据confirmation改值；完整审议稿见[`vm04_l1_threshold_review_v1.json`](../configs/vsmt/vm04_l1_threshold_review_v1.json)。
 
@@ -449,13 +468,15 @@ VM-04 v1拟把单步机制比较和长期自反馈分开。`controlled_revision`
 
 受控轨道的 `public_bootstrap_v1`（公开旧记忆构建器）已通过服务器合同检查：从同一个空图依时间顺序只做公开 BIRTH/BIND，并给每一步保存原公开包摘要、剥离审计身份后的适配输入摘要、提交更新摘要和版本链 SHA-256；构建函数签名没有 private、teacher、future 或路径参数，运行阶段还必须用仅挂载 `public` 的进程守卫。输入第 0–23 帧的公开 packet，输出第 24 帧之前的封存旧图和 `causal_prior_receipt`。例如只改变样本摘要或RGB-D文件摘要时，构建出的图和实际适配输入摘要不变，但外层公开文件绑定摘要会变化；以后交换 private simulator ID 或未来帧则因这些值根本不可达而不应改变任何回执字节。它不使用 reference transaction 初始化“正确旧图”，也不等于 bootstrap 自己是主对照；关联阈值尚未冻结，所以当前模块不能成为数据生成入口。
 
-`VM04ProtocolGate`（VM-04协议执行闸门）和标签独立清单已通过服务器合同检查。闸门输入完整协议及拟执行动作，只有状态为`frozen_executable`、数值/实现/对应动作授权均为真、所有来源/前端/语义/泄漏字段非空且待审清单为空时才放行；当前提案对下载、生成、confirmation和训练全部拒绝。family清单按来源manifest摘要、split seed和house ID确定排序，整house不跨split；开发行可见实际ID，confirmation行只有摘要和空ID，真实ID的reveal接口先检查confirmation授权。公开episode ID只由协议、family和槽位生成，事务分配另用只存于私有编排清单的salt打乱。例如更换私有salt会改变每个槽对应的MERGE/BIRTH，却不能改变任何公开episode ID。它解决确认家族提前暴露及路径/候选编号暗示答案的问题，不等于nuisance probe已经通过，也不生成一帧图像；confirmation ID与episode计划在对应授权前都拒绝创建。
+`VM04ProtocolGate`（VM-04协议执行闸门）和标签独立清单已通过服务器合同检查。闸门输入完整协议及拟执行动作，只有状态为`frozen_executable`、数值/实现/对应动作授权均为真、所有来源/前端/语义/泄漏字段非空且待审清单为空时才放行；当前提案对下载、生成、test（原称confirmation）和训练全部拒绝。family清单按来源manifest摘要、split seed和house ID确定排序，整house不跨split；开发行可见实际ID，confirmation行只有摘要和空ID，真实ID的reveal接口先检查confirmation授权。公开episode ID只由协议、family和槽位生成，事务分配另用只存于私有编排清单的salt打乱。例如更换私有salt会改变每个槽对应的MERGE/BIRTH，却不能改变任何公开episode ID。它解决确认家族提前暴露及路径/候选编号暗示答案的问题，不等于nuisance probe已经通过，也不生成一帧图像；confirmation ID与episode计划在对应授权前都拒绝创建。
 
 `VM04Preflight`（VM-04服务器预检）已在提交`5e125ba`完成固定三步：`contracts`精确运行53项VSMT测试，`source-audit`只查询官方ref/元数据、现有DINO资产、模块/库/GPU/磁盘，`export`在前两步有摘要绑定成功标志后生成[报告](../results/vsmt_vm04_preflight.json)。输入是同一Git提交和只读审计配置，输出started、日志、receipt、success及小报告；前两次测试/PyPI来源错误的目录继续保留。它没有执行pip/conda安装、下载checkpoint主体、启动AI2-THOR、生成样本或训练，预检通过也不等于L1环境或数据已经就绪。
 
 关系感知 SPLIT 一次原子完成“关闭源节点、追加terminal retracted版本、关闭全部开放incident edges、创建两个后继、按候选assignment重建边”。每条旧边可给左、右或二者；若当前公开`relation_observations`只支持左、只支持右或同时支持两者，生成器确定性收窄到该分配；若没有公开支持，则三种分配全部作为同一不可拆容量组保留。合同允许在至少两份已登记公开负证据下均不继承，但生成器仍不提出这一分支，避免暗定关系负证据。D-143让SPLIT与REPLACE共用`maximum_ambiguous_relation_variables`和`maximum_relation_variants`，前者只计没有唯一公开支持的关系变量，后者限制完整变体数；SPLIT另受`maximum_split_total_incident_edges`限制整笔原子规模。正式值须由开发度数/容量审计后冻结，不再把“最多2条边”写成方法语义；源自环仍拒绝。输入一个待拆节点、两个公开区域、旧开放边和当前公开关系，输出完整合法的SPLIT后状态；例如只有左侧新区域公开显示仍位于原地点时，`located_at`只给左后继。它不是teacher事后补边，也不是哈希随机决定哪种关系分配活下来。
 
-VM-05把三个同架构内部对照列为解释论文胜负的一等实验，但不替代五个主臂。Direct Reference Candidate Ranker（DRCR，直接参考候选排序器）使用同一在线网络和已封存catalog，训练标签直接来自参考等价组，不使用执行后未来teacher；No-Execution Candidate Scorer（NECS，无执行候选评分器）使用同一catalog和teacher target，但不编码候选执行后的图；Public Heuristic Ranker（PHR，公开启发式排序器）完全不学习，只按另行冻结的公开决策分排序。三者输入边界与VSMT相同，输出候选槽位。例如NECS若已经解释全部收益，说明“执行候选后再比较”没有获得独立支持。它们是VSMT因果消融，不是ConceptGraphs/Fusion++/Khronos的替代；主报告必须同时给candidate recall，先区分候选遗漏、teacher错误和学生摊销错误。
+VM-05把一个同架构内部对照列为解释论文胜负的一等实验，但不替代五个主臂。No-Execution Candidate Scorer（NECS，无执行候选评分器）使用同一在线网络、同一已封存catalog和同一teacher target，但不编码候选执行后的图。它的输入边界与VSMT相同，输出候选槽位；例如NECS若已经解释全部收益，说明“执行候选后再比较”没有获得独立支持——这正是“可执行的类型化修订空间”这一创新点的唯一因果反事实，因此不可省略。它是VSMT因果消融，不是ConceptGraphs/Fusion++/Khronos的替代；主报告必须同时给candidate recall，先区分候选遗漏、teacher错误和学生摊销错误。
+
+D-220把Direct Reference Candidate Ranker（DRCR，用参考等价组直接训练）和Public Heuristic Ranker（PHR，完全不学习、只按冻结公开决策分排序）移出必做集合，可作低成本附录。二者回答的是“换一种监督来源会怎样”和“不学习能走多远”，对首篇主张不是必需；移出后学习式排序器的训练路径由三条降为VSMT与NECS两条。被移出的对照在看过test之后不得补回来。
 
 ### L1-first共同机制诊断合同（D-132～D-138，完整物化实现候选）
 
@@ -511,15 +532,15 @@ Resource stop（资源停止）是数据入口的保留现场规则：capacity p
 
 VSMT Online Candidate Selector（VSMT在线候选选择器，planned）拟对每个已封存候选独立复用同一个打分器：分别编码类型化prior摘要、程序/在线证据、候选触及的执行前子图、真实执行后的子图和规范delta，再用逐候选MLP输出一个logit；不接受candidate slot、目录顺序、路径或样本名。所有候选从同一基图真实执行并封存后才打分，最大logit提交，严格并列按程序规范摘要排序。例如把同一候选集合换序时，每个程序的logit跟着程序而不是槽号移动，最终选择不变。它不让teacher生成候选，也不是DINO视觉adapter；隐藏宽度、层数、参数和训练预算仍未冻结。
 
-同架构对照按该选择器边界解释：DRCR保留全部在线输入但用直接reference等价标签训练；NECS把post-state和delta分支替换为固定零张量且不能打开post graph；PHR只用封存前的公开候选分数。五个主臂中TAF/ELU/WFR/LOW仍直接从同一`AdapterInput`产生图更新，不经过VSMT选择器。输入都是同一L1区域与prior，输出各自`MemoryUpdateResult`；例如ELU仍只能在公开自由空间完整覆盖时降低存在分数。它不强迫四个机制适配器伪装成候选分类器，也不赋予任何一方额外视觉信息。
+同架构对照按该选择器边界解释：NECS把post-state和delta分支替换为固定零张量且不能打开post graph。五个主臂中TAF/ELU/WFR/LOW仍直接从同一`AdapterInput`产生图更新，不经过VSMT选择器。输入都是同一L1区域与prior，输出各自`MemoryUpdateResult`；例如ELU仍只能在公开自由空间完整覆盖时降低存在分数。它不强迫四个机制适配器伪装成候选分类器，也不赋予任何一方额外视觉信息。
 
 VM-05必须把“原系统用了预训练感知模型”和“本项目的记忆更新器需要梯度训练”分开。ConceptGraphs官方系统组合通用实例分割、开放词汇检测/视觉语义特征与多视角关联，官方仓库列出SAM、Grounding DINO、RAM/Tag2Text、CLIP/OpenCLIP等预训练依赖；本项目TAF只取其阈值关联、增量融合和周期去重机制。Fusion++用Mask R-CNN提供实例观测，Dengler等使用预训练Faster R-CNN，但存在概率、正负观测更新和几何关联是算法状态更新；本项目ELU不训练检测器或存在网络。Khronos把active window与较慢的全局因子图协调分开，语义分割可来自真值、预录结果或外部预训练推理；本项目WFR只取窗口片段与周期协调。白话：这些来源系统确实“用模型看图”，但它们的记忆修订机制不是三套要在VM-05从头拟合的神经网络；输入统一改为本项目冻结前端后，TAF/ELU/WFR只剩有限配置选择。它不表示上游完整系统没有学习组件，也不允许删掉对照的train/validation选参。
 
-因此VM-05的梯度训练对象固定为VSMT、DRCR和NECS三个同在线架构的候选排序器；PHR、TAF、ELU、WFR和LOW不做梯度更新，只在共同train/validation上从预登记有限配置中选择。共享DINOv2及L1/L2 proposal/几何前端全程冻结且逐方法输入字节一致。输入是封存的train/validation family、公开catalog或`AdapterInput`和私有训练标签，输出三个学习排序器的checkpoint以及五个确定性方法的冻结配置。例如ELU的十二个配置试验只是比较存在阈值与证据增量，不会保存神经网络权重。它不把“没有梯度”误写成“没有拟合选择”，也不把VSMT训练预算转借给基线或反过来。
+因此VM-05的梯度训练对象固定为VSMT和NECS两个同在线架构的候选排序器；TAF、ELU、WFR和LOW不做梯度更新，只在共同train/validation上从预登记有限配置中选择。共享DINOv2及L1/L2 proposal/几何前端全程冻结且逐方法输入字节一致。输入是封存的train/validation family、公开catalog或`AdapterInput`和私有训练标签，输出两个学习排序器的checkpoint以及四个确定性方法的冻结配置。例如ELU的十二个配置试验只是比较存在阈值与证据增量，不会保存神经网络权重。它不把“没有梯度”误写成“没有拟合选择”，也不把VSMT训练预算转借给基线或反过来。
 
-[VM-05 readiness合同](../configs/vsmt/vm05_training_validation_readiness_v1.json)当前只固定上述职责分类、每个VSMT/TAF/ELU/WFR/LOW主臂及DRCR/NECS/PHR内部对照各自最多12个完整配置的选择机会、多worker与无墙钟强杀规则；网络宽度、优化器、更新步数、seed数、PHR公式和各方法有限网格仍为`null`。所有独立服务器单元必须先用实测单worker的CPU/RAM/VRAM/I/O做容量探测，再采用最大安全worker数；单GPU有多个独立训练job且显存允许时并发learner，不允许时每个learner仍用多个数据worker。输入是资源实测与冻结任务清单，输出worker分片、退出码、产物摘要、实际完成顺序和规范合并顺序。例如显存只安全容纳一个learner时不硬塞两个GPU进程，但其数据预处理仍不能退回单worker。它不以跑得久为失败，也不允许用OOM或写满磁盘试探容量。
+[VM-05 readiness合同](../configs/vsmt/vm05_training_validation_readiness_v1.json)当前只固定上述职责分类、每个VSMT/TAF/ELU/WFR/LOW主臂及NECS内部对照各自最多12个完整配置的选择机会、多worker与无墙钟强杀规则；网络宽度、优化器、更新步数、seed数和各方法有限网格仍为`null`。该合同的`confirmation_authorized`按D-220改称test授权，隐藏ID与reveal仪式取消，但“test只跑一次、不得用于选参”不变。所有独立服务器单元必须先用实测单worker的CPU/RAM/VRAM/I/O做容量探测，再采用最大安全worker数；单GPU有多个独立训练job且显存允许时并发learner，不允许时每个learner仍用多个数据worker。输入是资源实测与冻结任务清单，输出worker分片、退出码、产物摘要、实际完成顺序和规范合并顺序。例如显存只安全容纳一个learner时不硬塞两个GPU进程，但其数据预处理仍不能退回单worker。它不以跑得久为失败，也不允许用OOM或写满磁盘试探容量。
 
-readiness的八项前置不能由`status`自证。当前planned记录的`satisfied_input_sha256s`必须为空；未来改成`frozen_executable`时，它必须逐项覆盖VM-04审计回执、容量/yield解释、train/validation清单、S-01～S-12选择语义、有限网格、选择器训练规格、逐版本模板归属和服务器容量探测，并为每项登记一个合法、互不相同且不是空文件摘要的SHA-256。冻结态还要求训练步数和seed数至少为1，架构、优化器、配置空间和PHR公式都是非空对象；共享前端、方法/消融定义、公平选择、多worker和资源安全等非待填字段必须按canonical JSON与登记常量整节同值同类型，错误须指出首个变化字段。`assert_vm05_action_authorized`必须同时接收八项真实产物路径，并通过`verify_vm05_satisfied_inputs`逐文件计算SHA-256；只有JSON声明而没有真实文件核对不能授权任何动作。白话：这解决“只改同一JSON里的状态和开关就给自己授权”的问题；输入八份已经审过的外部产物及其路径，输出完整核验后的动作授权，任何一份缺失或字节变化都拒绝运行。例如没有VM-04最终回执文件时，即使`training_authorized=true`且摘要格式正确也不能训练。它不表示readiness已经开放，也不会读取训练数据、运行模型或执行模拟器。
+readiness的八项前置不能由`status`自证。当前planned记录的`satisfied_input_sha256s`必须为空；未来改成`frozen_executable`时，它必须逐项覆盖VM-04审计回执、容量/yield解释、train/validation清单、S-01～S-12选择语义、有限网格、选择器训练规格、逐版本模板归属和服务器容量探测（D-220把其中的执行授权方式改为步骤合同布尔位，前置产物本身不减），并为每项登记一个合法、互不相同且不是空文件摘要的SHA-256。冻结态还要求训练步数和seed数至少为1，架构、优化器、配置空间和PHR公式都是非空对象；共享前端、方法/消融定义、公平选择、多worker和资源安全等非待填字段必须按canonical JSON与登记常量整节同值同类型，错误须指出首个变化字段。`assert_vm05_action_authorized`必须同时接收八项真实产物路径，并通过`verify_vm05_satisfied_inputs`逐文件计算SHA-256；只有JSON声明而没有真实文件核对不能授权任何动作。白话：这解决“只改同一JSON里的状态和开关就给自己授权”的问题；输入八份已经审过的外部产物及其路径，输出完整核验后的动作授权，任何一份缺失或字节变化都拒绝运行。例如没有VM-04最终回执文件时，即使`training_authorized=true`且摘要格式正确也不能训练。它不表示readiness已经开放，也不会读取训练数据、运行模型或执行模拟器。
 
 `L1MaskMaterialization`（L1匿名mask物化）只完成第一道隔离：临时输入当前帧`instance_id → binary mask`，把每个实例的全部可见像素保留为一个mask，按首个非零像素、像素数和mask摘要公开排序，输出逐帧匿名编号、mask缓存及支持不足的匿名失败。真实ID只进入单独私有映射摘要；空mask不公开，重叠instance mask整帧拒绝。例如同一椅子的椅背和两条腿被桌面隔开时仍输出一个区域，两只相似杯子仍输出两个区域。`l1_entities`再输入匿名mask、冻结patch token和公开depth/相机，输出共同区域记录。它不做跨帧跟踪、候选生成或事务选择；新实体物化代码仍须服务器回执认证。
 
