@@ -1,7 +1,7 @@
 {
-  "schema_version": "vsmt-vm04-d214-shared-rgbd-frontend-contract-v1",
+  "schema_version": "vsmt-vm04-d214-shared-rgbd-frontend-contract-v2",
   "decision_id": "D-214",
-  "status": "d215_assets_estimator_split_and_p08_thresholds_frozen_reader_pending",
+  "status": "d219_structural_only_estimator_and_p08_thresholds_frozen_reader_pending",
   "authorization": {
     "route_survey": false,
     "route_sealing": false,
@@ -15,7 +15,7 @@
   },
   "implementation_boundary": {
     "public_output_composition_and_cache_core_implemented": true,
-    "sam_dinov2_semantic_inference_orchestration_implemented": false,
+    "sam_dinov2_structural_inference_orchestration_implemented": false,
     "production_raw_reader_implemented": false,
     "server_executable": false
   },
@@ -58,8 +58,7 @@
       "descriptor": "frozen_dinov2_full_frame_pool",
       "pose": "causal_belief_envelope",
       "structural_role_probabilities": ["basin", "bottleneck", "unknown"],
-      "semantic_probabilities": ["room", "corridor", "unknown"],
-      "semantic_class_defines_place_identity": false
+      "structural_class_defines_place_identity": false
     },
     "fragment_observation": {
       "source": "sam2_1_hiera_small_single_frame_public_rgb",
@@ -91,17 +90,16 @@
       "automatic_mask_generator_config_sha256": "df828bcfac74c8dc0dcb0d82731c978f8a17958755822aa44c90e5ac23db2c33",
       "assets_receipt_sha256": "6b6e1705ee81ec71475fb0c1b28696c98d2f30740e92a0a380554e9e85bb6a33"
     },
-    "semantic_structural_estimator": {
-      "semantic_labels": ["room", "corridor", "unknown"],
+    "structural_estimator": {
       "structural_labels": ["basin", "bottleneck", "unknown"],
-      "model_id": "d215.dinov2_geometry_two_linear_heads.v1",
+      "model_id": "d219.dinov2_geometry_single_structural_head.v1",
       "training_source_manifest_sha256": "7db1df1edb714162089b56e62f5258a947c5c6ddc38ed2b7082582d4659269bd",
       "split_rule_sha256": "4fa32f8940cb22516d0c004f9c4b8d7a6cb5c1cd9a85dfb6f63ef6178dd34774",
       "actual_partition_manifest_receipt_sha256": null,
       "weights_sha256": null,
       "normalization_receipt_sha256": null,
       "training_receipt_sha256": null,
-      "inference_config_sha256": "4cd2bc00e8af7b4897d00d9ad90a69bdb389b1d1dd310705c1c44c5e6b720c70"
+      "inference_config_sha256": null
     }
   },
   "scenario_qualification": {
@@ -113,7 +111,6 @@
     },
     "P08": {
       "hard_condition": "ordered_basin_bottleneck_basin_and_multiview_stable_fragment_in_each_basin",
-      "room_corridor_semantics_are_reported_not_identity": true,
       "basin_probability_minimum": 0.7,
       "bottleneck_probability_minimum": 0.7,
       "fragment_descriptor_cosine_minimum": 0.85,

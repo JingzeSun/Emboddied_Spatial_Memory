@@ -113,13 +113,12 @@ def pose_belief(index: int, x: float = 0.0) -> dict:
 
 
 def frame(index: int, *, role: str = "basin", descriptor_axis: int = 0,
-          x: float = 0.0, semantics=None) -> dict:
+          x: float = 0.0) -> dict:
     tokens = np.zeros((4, 4, 4), dtype=np.float32)
     tokens[..., descriptor_axis] = 1.0
     structural = {"basin": 0.05, "bottleneck": 0.05, "unknown": 0.90}
     structural[role] = 0.90
     structural["unknown"] = 0.05
-    semantic = semantics or {"room": 0.6, "corridor": 0.2, "unknown": 0.2}
     return materialize_shared_rgbd_frame(
         observation_index=index, decision_time_s=float(index),
         rgb_sha256=f"{index + 1:x}" * 64,
@@ -142,9 +141,8 @@ def frame(index: int, *, role: str = "basin", descriptor_axis: int = 0,
         depth_m=np.full((56, 56), 2.0, dtype=np.float32),
         patch_tokens=tokens, public_fragment_masks=[mask()],
         l2_proposal_receipt_sha256="c" * 64,
-        semantic_probabilities=semantic,
         structural_role_probabilities=structural,
-        semantic_model_receipt_sha256="d" * 64,
+        structural_model_receipt_sha256="d" * 64,
         prior_free_space=[], config=config(),
     )
 
@@ -154,7 +152,7 @@ def episode(frames) -> dict:
         frames, episode_public_id="episode:fixture",
         dinov2_assets_receipt_sha256="e" * 64,
         sam2_assets_receipt_sha256="f" * 64,
-        semantic_assets_receipt_sha256="1" * 64,
+        structural_assets_receipt_sha256="1" * 64,
     )
 
 
@@ -184,8 +182,11 @@ class D214SharedRgbdFrontendTests(unittest.TestCase):
             validate_contract(tampered)
         self.assertEqual("6d1aa6f30de5c92224f8172114de081d104bbd23dd9dc5c58996f0cad5dc4d38",
                          self.contract["asset_state"]["sam2"]["checkpoint_sha256"])
-        self.assertIsNone(self.contract["asset_state"]["semantic_structural_estimator"]
-                          ["weights_sha256"])
+        estimator = self.contract["asset_state"]["structural_estimator"]
+        self.assertIsNone(estimator["weights_sha256"])
+        self.assertNotIn("semantic_labels", estimator)
+        self.assertEqual(["basin", "bottleneck", "unknown"],
+                         estimator["structural_labels"])
 
     def test_materializer_signature_has_no_scenario_private_teacher_or_future(self):
         names = materializer_parameter_names()
@@ -207,8 +208,10 @@ class D214SharedRgbdFrontendTests(unittest.TestCase):
         place = value["place_observation"]
         self.assertIsNone(place["persistent_place_id"])
         self.assertFalse(place["metric_grid_identity_used"])
-        self.assertFalse(place["semantic_class_defines_identity"])
-        self.assertAlmostEqual(1.0, sum(place["semantic_probabilities"].values()))
+        self.assertFalse(place["structural_class_defines_identity"])
+        self.assertNotIn("semantic_probabilities", place)
+        self.assertAlmostEqual(
+            1.0, sum(place["structural_role_probabilities"].values()))
         self.assertTrue(value["surface_observations"])
         self.assertTrue(value["free_space_observations"])
         self.assertTrue(value["visibility_observations"])
@@ -267,10 +270,8 @@ class D214SharedRgbdFrontendTests(unittest.TestCase):
         frames = [
             frame(0, role="basin", x=0.00),
             frame(1, role="basin", x=0.02),
-            frame(2, role="bottleneck", x=1.00,
-                  semantics={"room": 0.1, "corridor": 0.8, "unknown": 0.1}),
-            frame(3, role="bottleneck", x=1.10,
-                  semantics={"room": 0.1, "corridor": 0.8, "unknown": 0.1}),
+            frame(2, role="bottleneck", x=1.00),
+            frame(3, role="bottleneck", x=1.10),
             frame(4, role="basin", x=2.00),
             frame(5, role="basin", x=2.02),
         ]
@@ -283,7 +284,7 @@ class D214SharedRgbdFrontendTests(unittest.TestCase):
         )
         receipt = qualify_p08(sealed, config=eligibility)
         self.assertEqual([2, 3], receipt["bottleneck_observation_indices"])
-        self.assertFalse(receipt["room_corridor_semantics_used_for_place_identity"])
+        self.assertFalse(receipt["structural_class_used_for_place_identity"])
         broken = episode([
             frame(0, role="basin", descriptor_axis=0, x=0.00),
             frame(1, role="basin", descriptor_axis=1, x=0.02),
@@ -295,34 +296,27 @@ class D214SharedRgbdFrontendTests(unittest.TestCase):
         with self.assertRaisesRegex(D214Error, "stable fragments"):
             qualify_p08(broken, config=eligibility)
 
-    def test_semantics_are_recorded_but_do_not_gate_p08_identity(self):
-        frames = [
-            frame(0, role="basin", x=0.00), frame(1, role="basin", x=0.02),
-            frame(2, role="bottleneck", x=1.00),
-            frame(3, role="basin", x=2.00), frame(4, role="basin", x=2.02),
-        ]
-        config_value = P08EligibilityConfig(0.7, 0.7, 0.85, 0.35)
-        first = qualify_p08(episode(frames), config=config_value)
-        changed = []
-        for item in frames:
-            copy = deepcopy(item)
-            copy["place_observation"]["semantic_probabilities"] = {
-                "room": 0.0, "corridor": 0.0, "unknown": 1.0,
-            }
-            copy["place_observation"]["place_observation_sha256"] = _sha({
-                key: value for key, value in copy["place_observation"].items()
-                if key != "place_observation_sha256"
-            })
-            copy["frame_cache_sha256"] = _sha({
-                key: value for key, value in copy.items()
-                if key != "frame_cache_sha256"
-            })
-            changed.append(copy)
-        second = qualify_p08(episode(changed), config=config_value)
-        self.assertEqual(first["first_basin_observation_indices"],
-                         second["first_basin_observation_indices"])
-        self.assertEqual(first["second_basin_observation_indices"],
-                         second["second_basin_observation_indices"])
+    def test_semantic_head_is_removed_and_cannot_be_smuggled_back(self):
+        """D-219: the semantic head is gone, not defaulted to a constant."""
+
+        self.assertNotIn(
+            "semantic_probabilities",
+            inspect.signature(materialize_shared_rgbd_frame).parameters)
+        self.assertFalse(any(
+            "semantic" in name.lower()
+            for name in materializer_parameter_names()))
+        value = frame(0)
+        self.assertNotIn("semantic_model_receipt_sha256", value)
+        self.assertIn("structural_model_receipt_sha256", value)
+        sealed = episode([frame(index) for index in range(3)])
+        self.assertNotIn("semantic_assets_receipt_sha256", sealed)
+        self.assertIn("structural_assets_receipt_sha256", sealed)
+        smuggled = deepcopy(value)
+        smuggled["place_observation"]["semantic_probabilities"] = {
+            "room": 0.0, "corridor": 0.0, "unknown": 1.0,
+        }
+        with self.assertRaisesRegex(D214Error, "place observation"):
+            validate_frame_cache(smuggled)
 
     def test_grid_retirement_is_read_only_and_requires_every_precondition(self):
         blocked = legacy_grid_retirement_readiness(

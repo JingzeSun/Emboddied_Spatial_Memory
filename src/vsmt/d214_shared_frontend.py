@@ -6,7 +6,7 @@ summary.  It emits observations, not persistent identities.  In particular a
 SAM proposal is a ``fragment`` and a full-frame place descriptor is a
 ``place_observation``; neither becomes an entity or place ID here.
 
-Real SAM, DINOv2, and place-semantic assets are verified by their own loaders.
+Real SAM, DINOv2, and structural-estimator assets are verified by their own loaders.
 This module composes their public outputs, seals identical method caches, and
 implements the P04/P08 qualification algorithms without accepting a scenario
 identifier in the materialization API.
@@ -43,11 +43,11 @@ from .l1_structures import (
 )
 
 
-CONTRACT_SCHEMA = "vsmt-vm04-d214-shared-rgbd-frontend-contract-v1"
-FRAME_SCHEMA = "vsmt-vm04-d214-shared-rgbd-frame-cache-v1"
-EPISODE_SCHEMA = "vsmt-vm04-d214-shared-rgbd-episode-cache-v1"
+CONTRACT_SCHEMA = "vsmt-vm04-d214-shared-rgbd-frontend-contract-v2"
+FRAME_SCHEMA = "vsmt-vm04-d214-shared-rgbd-frame-cache-v2"
+EPISODE_SCHEMA = "vsmt-vm04-d214-shared-rgbd-episode-cache-v2"
 P04_SCHEMA = "vsmt-vm04-d214-p04-qualification-v1"
-P08_SCHEMA = "vsmt-vm04-d214-p08-qualification-v1"
+P08_SCHEMA = "vsmt-vm04-d214-p08-qualification-v2"
 RETIREMENT_SCHEMA = "vsmt-vm04-d214-legacy-grid-retirement-readiness-v1"
 FRAGMENT_SOURCE_ID = "l2.sam2.1_hiera_small.fragment.dinov2_vits14.public_depth.v1"
 PLACE_SOURCE_ID = "l2.dinov2_vits14.public_rgbd.non_grid_place_observation.v1"
@@ -139,7 +139,7 @@ def validate_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     _require(value["schema_version"] == CONTRACT_SCHEMA and
              value["decision_id"] == "D-214" and
              value["status"] ==
-             "d215_assets_estimator_split_and_p08_thresholds_frozen_reader_pending",
+             "d219_structural_only_estimator_and_p08_thresholds_frozen_reader_pending",
              "D-214 contract identity or status changed")
     _exact(value["authorization"], AUTHORIZATION_KEYS,
            "D-214 authorization")
@@ -147,7 +147,7 @@ def validate_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
              "D-214 implementation contract must keep every run gate closed")
     _require(value["implementation_boundary"] == {
         "public_output_composition_and_cache_core_implemented": True,
-        "sam_dinov2_semantic_inference_orchestration_implemented": False,
+        "sam_dinov2_structural_inference_orchestration_implemented": False,
         "production_raw_reader_implemented": False,
         "server_executable": False,
     }, "D-214 implementation boundary changed")
@@ -168,7 +168,7 @@ def validate_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     outputs = value["shared_outputs"]
     _require(outputs["place_observation"]["metric_grid_defines_identity"] is False
              and outputs["place_observation"]
-             ["semantic_class_defines_place_identity"] is False and
+             ["structural_class_defines_place_identity"] is False and
              outputs["fragment_observation"]
              ["persistent_entity_identity_assigned"] is False,
              "D-214 output identity boundary changed")
@@ -198,10 +198,9 @@ def validate_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
         "assets_receipt_sha256":
             "6b6e1705ee81ec71475fb0c1b28696c98d2f30740e92a0a380554e9e85bb6a33",
     }, "D-214 frozen SAM2 asset state changed")
-    _require(assets["semantic_structural_estimator"] == {
-        "semantic_labels": ["room", "corridor", "unknown"],
+    _require(assets["structural_estimator"] == {
         "structural_labels": ["basin", "bottleneck", "unknown"],
-        "model_id": "d215.dinov2_geometry_two_linear_heads.v1",
+        "model_id": "d219.dinov2_geometry_single_structural_head.v1",
         "training_source_manifest_sha256":
             "7db1df1edb714162089b56e62f5258a947c5c6ddc38ed2b7082582d4659269bd",
         "split_rule_sha256":
@@ -210,8 +209,7 @@ def validate_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
         "weights_sha256": None,
         "normalization_receipt_sha256": None,
         "training_receipt_sha256": None,
-        "inference_config_sha256":
-            "4cd2bc00e8af7b4897d00d9ad90a69bdb389b1d1dd310705c1c44c5e6b720c70",
+        "inference_config_sha256": None,
     }, "D-214 frozen estimator state changed")
     qualification = value["scenario_qualification"]
     _require(set(qualification) == {
@@ -224,7 +222,6 @@ def validate_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
              "D-214 P04 qualification changed")
     p08 = value["scenario_qualification"]["P08"]
     _require(p08["minimum_distinct_views_per_basin"] == 2 and
-             p08["room_corridor_semantics_are_reported_not_identity"] is True and
              p08["basin_probability_minimum"] == 0.7 and
              p08["bottleneck_probability_minimum"] == 0.7 and
              p08["fragment_descriptor_cosine_minimum"] == 0.85 and
@@ -356,9 +353,8 @@ def materialize_shared_rgbd_frame(
     depth_m: Any, patch_tokens: Any,
     public_fragment_masks: Sequence[AnonymousMask],
     l2_proposal_receipt_sha256: str,
-    semantic_probabilities: Mapping[str, Any],
     structural_role_probabilities: Mapping[str, Any],
-    semantic_model_receipt_sha256: str,
+    structural_model_receipt_sha256: str,
     prior_free_space: Sequence[Sequence[FreeSpaceFrustum]],
     config: D214FrontendConfig,
 ) -> dict[str, Any]:
@@ -376,14 +372,10 @@ def materialize_shared_rgbd_frame(
     _hex64(rgb_sha256, "D-214 RGB digest")
     _hex64(depth_sha256, "D-214 depth digest")
     _hex64(l2_proposal_receipt_sha256, "D-214 proposal receipt digest")
-    _hex64(semantic_model_receipt_sha256, "D-214 semantic receipt digest")
+    _hex64(structural_model_receipt_sha256, "D-214 structural receipt digest")
     _require(type(config) is D214FrontendConfig, "D-214 config type is invalid")
     belief = _pose_belief(pose_belief, observation_index)
     geometry_pose = _camera_pose(causal_camera_pose)
-    semantics = _probabilities(
-        semantic_probabilities, ("room", "corridor", "unknown"),
-        "D-214 semantic probabilities",
-    )
     structural = _probabilities(
         structural_role_probabilities, ("basin", "bottleneck", "unknown"),
         "D-214 structural probabilities",
@@ -456,9 +448,8 @@ def materialize_shared_rgbd_frame(
         "pose_belief_mean_x_y_z_yaw": clone_json(belief["mean_x_y_z_yaw"]),
         "pose_belief_covariance_diagonal": clone_json(
             belief["covariance_diagonal"]),
-        "semantic_probabilities": semantics,
-        "semantic_class_defines_identity": False,
         "structural_role_probabilities": structural,
+        "structural_class_defines_identity": False,
         "surface_support_sha256s": surface_support,
         "free_space_support_sha256": _sha(free_space),
         "reliability": valid_fraction,
@@ -489,7 +480,7 @@ def materialize_shared_rgbd_frame(
         "free_space_observations": free_space,
         "visibility_observations": visibility,
         "l2_proposal_receipt_sha256": l2_proposal_receipt_sha256,
-        "semantic_model_receipt_sha256": semantic_model_receipt_sha256,
+        "structural_model_receipt_sha256": structural_model_receipt_sha256,
         "frontend_config_sha256": config.frontend_config_sha256,
         "public_only": True,
     }
@@ -507,7 +498,7 @@ def validate_frame_cache(frame: Mapping[str, Any]) -> dict[str, Any]:
         "incoming_transition_action_summary", "fragment_observations",
         "surface_observations", "place_observation",
         "free_space_observations", "visibility_observations",
-        "l2_proposal_receipt_sha256", "semantic_model_receipt_sha256",
+        "l2_proposal_receipt_sha256", "structural_model_receipt_sha256",
         "frontend_config_sha256", "public_only", "frame_cache_sha256",
     }, "D-214 frame cache")
     _require(value["schema_version"] == FRAME_SCHEMA and
@@ -519,7 +510,7 @@ def validate_frame_cache(frame: Mapping[str, Any]) -> dict[str, Any]:
     _pose_belief(value["pose_belief"], index)
     for field in (
         "rgb_sha256", "depth_sha256", "camera_calibration_sha256",
-        "l2_proposal_receipt_sha256", "semantic_model_receipt_sha256",
+        "l2_proposal_receipt_sha256", "structural_model_receipt_sha256",
         "frontend_config_sha256", "frame_cache_sha256",
     ):
         _hex64(value[field], field)
@@ -561,15 +552,15 @@ def validate_frame_cache(frame: Mapping[str, Any]) -> dict[str, Any]:
         "place_observation_id", "observation_index", "persistent_place_id",
         "identity_assigned", "metric_grid_identity_used", "descriptor",
         "pose_belief_sha256", "pose_belief_mean_x_y_z_yaw",
-        "pose_belief_covariance_diagonal", "semantic_probabilities",
-        "semantic_class_defines_identity", "structural_role_probabilities",
+        "pose_belief_covariance_diagonal", "structural_role_probabilities",
+        "structural_class_defines_identity",
         "surface_support_sha256s", "free_space_support_sha256", "reliability",
         "proposal_source_id", "place_observation_sha256",
     }, "D-214 place observation")
     _require(place["persistent_place_id"] is None and
              place["identity_assigned"] is False and
              place["metric_grid_identity_used"] is False and
-             place["semantic_class_defines_identity"] is False,
+             place["structural_class_defines_identity"] is False,
              "D-214 place observation assigned an identity")
     _require(place["observation_index"] == index and
              place["place_observation_id"] ==
@@ -593,8 +584,6 @@ def validate_frame_cache(frame: Mapping[str, Any]) -> dict[str, Any]:
         _hex64(digest, "D-214 place surface support")
     _require(0.0 <= _finite(place["reliability"], "D-214 place reliability")
              <= 1.0, "D-214 place reliability must lie in [0, 1]")
-    _probabilities(place["semantic_probabilities"],
-                   ("room", "corridor", "unknown"), "semantic probabilities")
     _probabilities(place["structural_role_probabilities"],
                    ("basin", "bottleneck", "unknown"), "structural probabilities")
     _require(place["place_observation_sha256"] ==
@@ -631,7 +620,7 @@ def validate_frame_cache(frame: Mapping[str, Any]) -> dict[str, Any]:
 def seal_episode_cache(
     frames: Sequence[Mapping[str, Any]], *, episode_public_id: str,
     dinov2_assets_receipt_sha256: str, sam2_assets_receipt_sha256: str,
-    semantic_assets_receipt_sha256: str,
+    structural_assets_receipt_sha256: str,
 ) -> dict[str, Any]:
     """Seal one scenario-free ordered cache shared by all five methods."""
 
@@ -646,7 +635,7 @@ def seal_episode_cache(
     for name, digest in (
         ("DINOv2 assets receipt", dinov2_assets_receipt_sha256),
         ("SAM2 assets receipt", sam2_assets_receipt_sha256),
-        ("semantic assets receipt", semantic_assets_receipt_sha256),
+        ("structural assets receipt", structural_assets_receipt_sha256),
     ):
         _hex64(digest, name)
     _require(len({row["frontend_config_sha256"] for row in rows}) == 1,
@@ -662,7 +651,7 @@ def seal_episode_cache(
         "frontend_config_sha256": rows[0]["frontend_config_sha256"],
         "dinov2_assets_receipt_sha256": dinov2_assets_receipt_sha256,
         "sam2_assets_receipt_sha256": sam2_assets_receipt_sha256,
-        "semantic_assets_receipt_sha256": semantic_assets_receipt_sha256,
+        "structural_assets_receipt_sha256": structural_assets_receipt_sha256,
         "scenario_blind_materialization": True,
         "restricted_information_used": False,
         "main_methods": list(MAIN_METHODS),
@@ -678,7 +667,7 @@ def validate_episode_cache(episode_cache: Mapping[str, Any]) -> dict[str, Any]:
         "schema_version", "episode_public_id", "frame_count", "frames",
         "ordered_frame_cache_sha256s", "frontend_config_sha256",
         "dinov2_assets_receipt_sha256", "sam2_assets_receipt_sha256",
-        "semantic_assets_receipt_sha256", "scenario_blind_materialization",
+        "structural_assets_receipt_sha256", "scenario_blind_materialization",
         "restricted_information_used", "main_methods", "episode_cache_sha256",
     }, "D-214 episode cache")
     _require(value["schema_version"] == EPISODE_SCHEMA and
@@ -703,7 +692,7 @@ def validate_episode_cache(episode_cache: Mapping[str, Any]) -> dict[str, Any]:
              "D-214 episode cache frame binding mismatch")
     for field in (
         "frontend_config_sha256", "dinov2_assets_receipt_sha256",
-        "sam2_assets_receipt_sha256", "semantic_assets_receipt_sha256",
+        "sam2_assets_receipt_sha256", "structural_assets_receipt_sha256",
         "episode_cache_sha256",
     ):
         _hex64(value[field], field)
@@ -880,7 +869,7 @@ def qualify_p08(
         "second_basin_observation_indices": right,
         "first_basin_stable_fragment": left_pair,
         "second_basin_stable_fragment": right_pair,
-        "room_corridor_semantics_used_for_place_identity": False,
+        "structural_class_used_for_place_identity": False,
         "private_metadata_used": False,
         "configuration": {
             "basin_probability_minimum": config.basin_probability_minimum,
