@@ -285,9 +285,18 @@ def _existing_result(
 def materialize(
     *, public_root: Path, output_root: Path, dino_repository: Path,
     dino_checkpoint: Path, requested_io_workers: int,
+    authorization_check=None,
 ) -> dict[str, Any]:
+    """Materialize the frozen 396-dimensional features.
+
+    ``authorization_check`` lets D-221 substitute the simpler D-220 run gate for
+    the retired two-commit activation gate without forking this loop.  When it
+    is None the original D-218 gate applies unchanged.
+    """
+
     _, _, contract = _load_contracts()
-    activation = _execution_checkout(contract)
+    activation = (_execution_checkout(contract) if authorization_check is None
+                  else authorization_check(contract))
     final_path = output_root / "stage.receipt.json"
     if final_path.is_file():
         existing_stage = _read_json(final_path)

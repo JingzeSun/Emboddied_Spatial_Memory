@@ -309,13 +309,25 @@ def _existing_result(output_root: Path, row: dict[str, Any]) -> dict[str, Any] |
     return None
 
 
-def generate_train_calibration(*, output_root: Path,
-                               source_root: Path) -> dict[str, Any]:
+def generate_train_calibration(
+    *, output_root: Path, source_root: Path, authorization_check=None,
+) -> dict[str, Any]:
+    """Generate the planned train/calibration RGB-D.
+
+    ``authorization_check`` lets D-221 substitute the simpler D-220 run gate
+    (contract booleans plus a clean checkout) for the retired two-commit
+    activation gate, without forking this orchestration loop.  When it is None
+    the original D-217 gate applies unchanged.
+    """
+
     _, _, contract = load_contracts()
-    activation = _execution_checkout(contract)
-    _require(contract["authorization"]["train_rgbd_generation"] is True and
-             contract["authorization"]["calibration_rgbd_generation"] is True,
-             "D-217 train/calibration RGB-D generation is not authorized")
+    if authorization_check is None:
+        activation = _execution_checkout(contract)
+        _require(contract["authorization"]["train_rgbd_generation"] is True and
+                 contract["authorization"]["calibration_rgbd_generation"] is True,
+                 "D-217 train/calibration RGB-D generation is not authorized")
+    else:
+        activation = authorization_check(contract)
     final_receipt_path = output_root / "private/generation.receipt.json"
     if final_receipt_path.is_file():
         return read_json(final_receipt_path)

@@ -94,10 +94,19 @@ class D221ScaleExtensionTests(unittest.TestCase):
                 })
         return {"partition_manifest_receipt_sha256": self.receipt, "rows": rows}
 
-    def extend(self, existing=None, d221=None):
+    def source_rows(self):
+        return {f"train:{index:06d}": {
+            "source_file_sha256": f"{index:064x}",
+            "source_record_sha256": f"{index + 1:064x}",
+            "source_locator": f"procthor/train/{index:06d}",
+        } for index in range(10000)}
+
+    def extend(self, existing=None, d221=None, sources=None):
         return plan_prefix_extension(
             partition_manifest=self.partition,
             existing_private_plan=existing or self.existing_plan(),
+            source_rows_by_house=(self.source_rows() if sources is None
+                                  else sources),
             d217_contract=self.d217, d221_contract=d221 or self.d221)
 
     # ---- contract -----------------------------------------------------
@@ -207,6 +216,17 @@ class D221ScaleExtensionTests(unittest.TestCase):
         with self.assertRaisesRegex(D221Error, "without a change of scale"):
             self.extend(d221=same)
 
+    def test_extension_refuses_when_the_source_inventory_lacks_a_house(self):
+        with self.assertRaisesRegex(D221Error, "no record for"):
+            self.extend(sources={})
+
+    def test_new_rows_carry_the_source_binding_the_worker_needs(self):
+        row = self.extend()["rows_to_generate"][0]
+        self.assertEqual(
+            {"split", "sample_rank", "house_id", "source_file_sha256",
+             "source_record_sha256", "source_locator", "public_house_ref"},
+            set(row))
+
     def test_extension_is_deterministic(self):
         self.assertEqual(self.extend()["extension_plan_sha256"],
                          self.extend()["extension_plan_sha256"])
@@ -217,6 +237,44 @@ class D221ScaleExtensionTests(unittest.TestCase):
         tampered["generate_row_count"] = 1
         with self.assertRaisesRegex(D221Error, "generate rows"):
             validate_extension_plan(tampered)
+
+
+class D221ExtensionStageTests(unittest.TestCase):
+    """The stage must refuse before it touches any external path."""
+
+    @classmethod
+    def setUpClass(cls):
+        sys.path.insert(0, str(ROOT / "ops" / "vsmt"))
+        import vm04_d221_extension_stage as stage
+        cls.stage = stage
+
+    def test_check_reports_the_selected_scale_without_writing(self):
+        result = self.stage.check()
+        self.assertEqual({"train": 2048, "calibration": 128, "audit": 128},
+                         result["selected_house_counts"])
+        self.assertEqual({"train": 512, "calibration": 64, "audit": 64},
+                         result["previous_house_counts"])
+        self.assertFalse(result["full_house_expansion"])
+
+    def test_run_gate_refuses_a_closed_contract(self):
+        closed = deepcopy(json.loads(D221_PATH.read_text(encoding="utf-8")))
+        closed["status"] = "measured_decision_pending_user_review"
+        closed["authorization"]["structural_rgbd_expansion"] = False
+        with self.assertRaisesRegex(RuntimeError, "closed pending user review"):
+            self.stage._run_gate(validate_d221_contract(closed))
+
+    def test_run_gate_refuses_when_a_downstream_gate_is_open(self):
+        opened = deepcopy(json.loads(D221_PATH.read_text(encoding="utf-8")))
+        opened["authorization"]["audit_open_or_generation"] = True
+        with self.assertRaises(D221Error):
+            validate_d221_contract(opened)
+
+    def test_generate_refuses_before_touching_a_missing_root(self):
+        missing = Path(__file__).resolve().parent / "no-such-d221-root"
+        self.assertFalse(missing.exists())
+        with self.assertRaises(RuntimeError):
+            self.stage.generate(output_root=missing, source_root=missing)
+        self.assertFalse(missing.exists())
 
 
 if __name__ == "__main__":  # pragma: no cover

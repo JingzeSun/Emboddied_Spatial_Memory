@@ -139,6 +139,7 @@ def selected_house_counts(contract: Mapping[str, Any]) -> dict[str, int]:
 def plan_prefix_extension(
     *, partition_manifest: Mapping[str, Any],
     existing_private_plan: Mapping[str, Any],
+    source_rows_by_house: Mapping[str, Mapping[str, Any]],
     d217_contract: Mapping[str, Any], d221_contract: Mapping[str, Any],
 ) -> dict[str, Any]:
     """Extend the sampled prefix and prove the existing ranks are untouched.
@@ -185,14 +186,23 @@ def plan_prefix_extension(
             reference = public_house_ref(
                 split=split, sample_rank=rank,
                 partition_manifest_receipt_sha256=partition_receipt)
-            row = {"split": split, "sample_rank": rank, "house_id": house_id,
-                   "public_house_ref": reference}
             previous = existing_by_key.pop((split, rank), None)
             if previous is None:
                 _require(rank >= old_counts[split],
                          f"{split} rank {rank} vanished from the existing plan")
-                to_generate.append(row)
+                source = source_rows_by_house.get(house_id)
+                _require(source is not None,
+                         f"source inventory has no record for {house_id}")
+                to_generate.append({
+                    "split": split, "sample_rank": rank, "house_id": house_id,
+                    "source_file_sha256": source["source_file_sha256"],
+                    "source_record_sha256": source["source_record_sha256"],
+                    "source_locator": source["source_locator"],
+                    "public_house_ref": reference,
+                })
                 continue
+            row = {"split": split, "sample_rank": rank, "house_id": house_id,
+                   "public_house_ref": reference}
             _require(previous["house_id"] == house_id,
                      f"{split} rank {rank} changed house under the extension")
             _require(previous["public_house_ref"] == reference,
