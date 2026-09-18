@@ -22,7 +22,7 @@
 
 ### 当前指针
 
-**当前是 D-217 Estimator开发规模、audit封存与端到端关键路径冻结；先审完整计划，再完成RGB-D生成实现。** 用户批准512/64/64作为开发阶段：train/calibration可用于发现和修正问题，64-house audit在最终前端选择前保持封存；是否扩展全部house只能在audit、production reader、P04/P08资格与正式raw之前决定一次，扩展须从零重算normalization/weights/temperature。另冻结12个VM04 validation house与私有confirmation候选池。当前D-217生成代码仍在本地未提交工作中，服务器0运行；下面“D-217到论文结果统一关键路径”是后续执行的唯一计划口径，不能把前端RGB-D、两房P0 raw或正式论文raw混叫同一批数据。
+**当前是 D-217 Estimator开发规模、audit封存与E-01～E-03生成实现审查。** 用户批准512/64/64作为开发阶段：train/calibration可用于发现和修正问题，64-house audit在最终前端选择前保持封存；是否扩展全部house只能在audit、production reader、P04/P08资格与正式raw之前决定一次，扩展须从零重算normalization/weights/temperature。另冻结12个VM04 validation house与私有confirmation候选池。D-217审查候选已实现固定计划封存、容量探测、train/calibration RGB-D多worker生成、失败不补及逐分片摘要复验，全库678项测试通过；执行位仍全关、服务器0运行、0真实帧。下面“D-217到论文结果统一关键路径”是后续执行的唯一计划口径，不能把前端RGB-D、两房P0 raw或正式论文raw混叫同一批数据。
 
 ### D-217 到论文结果统一关键路径（512/64/64口径）
 

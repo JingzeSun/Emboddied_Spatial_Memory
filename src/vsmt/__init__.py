@@ -221,6 +221,13 @@ from .d216_estimator_training import (
     validate_training_evidence_index,
     validate_training_shard_arrays,
 )
+from .d217_estimator_development import (
+    D217Error,
+    make_development_plan,
+    select_reachable_positions,
+    structural_label_from_reachable,
+    validate_d217_contract,
+)
 
 __all__ = [
     "AdapterInput",
@@ -404,4 +411,9 @@ __all__ = [
     "validate_training_bundle_manifest",
     "validate_training_evidence_index",
     "validate_training_shard_arrays",
+    "D217Error",
+    "make_development_plan",
+    "select_reachable_positions",
+    "structural_label_from_reachable",
+    "validate_d217_contract",
 ]

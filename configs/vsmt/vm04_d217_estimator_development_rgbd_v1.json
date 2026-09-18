@@ -1,0 +1,114 @@
+{
+  "schema_version": "vsmt-vm04-d217-estimator-development-rgbd-v1",
+  "decision_id": "D-217",
+  "status": "implementation_pending_review_all_execution_closed",
+  "reviewed_baseline_commit": "7927e252e30d87773c7830fcfc902a58c07644f7",
+  "expected_reviewed_implementation_commit": null,
+  "d216_binding": {
+    "relative_path": "configs/vsmt/vm04_d216_estimator_training_seal_v1.json",
+    "file_sha256": "22b85ed79ae6b89e2c05a55b7878962171d47e9b7a49202ff10d4d09f00c04ea"
+  },
+  "authorization": {
+    "development_plan_sealing": false,
+    "capacity_probe": false,
+    "train_rgbd_generation": false,
+    "calibration_rgbd_generation": false,
+    "audit_open_or_generation": false,
+    "semantic_annotation": false,
+    "feature_materialization": false,
+    "estimator_training": false,
+    "full_house_expansion": false,
+    "production_reader": false,
+    "p04_p08_qualification": false,
+    "route_or_raw_generation": false,
+    "private_evaluation": false
+  },
+  "activation_policy": {
+    "active_status": "frozen_executable_development_plan_and_train_calibration_rgbd",
+    "activation_commit_may_change_only": [
+      "configs/vsmt/vm04_d217_estimator_development_rgbd_v1.json"
+    ],
+    "active_true_authorizations": [
+      "development_plan_sealing",
+      "capacity_probe",
+      "train_rgbd_generation",
+      "calibration_rgbd_generation"
+    ],
+    "must_remain_false": [
+      "audit_open_or_generation",
+      "semantic_annotation",
+      "feature_materialization",
+      "estimator_training",
+      "full_house_expansion",
+      "production_reader",
+      "p04_p08_qualification",
+      "route_or_raw_generation",
+      "private_evaluation"
+    ]
+  },
+  "vm04_reservations": {
+    "ordering": "ascending_sha256(source_manifest_sha256|260914|house_id)",
+    "ordering_seed": 260914,
+    "p0_house_ids": ["train:004270", "train:008243"],
+    "validation_house_count": 12,
+    "private_confirmation_candidate_pool_count": 64,
+    "validation_precedes_confirmation_pool_in_order": true,
+    "confirmation_ids_public": false,
+    "confirmation_public_fields": ["count", "commitment_list_sha256", "private_manifest_sha256"]
+  },
+  "development_sample": {
+    "sampling_salt": "d217-estimator-development-sample-v1",
+    "selection": "ascending_sha256(sampling_salt|d215_split|house_id)_fixed_prefix",
+    "house_counts": {"train": 512, "calibration": 64, "audit": 64},
+    "observations_per_house": 32,
+    "train_observation_count": 16384,
+    "calibration_observation_count": 2048,
+    "audit_observation_count": 2048,
+    "audit_ids_and_observations_open_before_final_frontend_choice": false,
+    "unselected_houses_may_be_added_after_audit_open": false,
+    "failure_replacement_allowed": false
+  },
+  "expansion_policy": {
+    "train_and_calibration_may_be_used_for_debugging": true,
+    "audit_may_be_used_for_debugging": false,
+    "full_house_expansion_choice_count": 1,
+    "choice_deadline": "before_audit_open_production_reader_p04_p08_route_or_raw",
+    "full_expansion_restarts_normalization_weights_and_temperatures_from_zero": true,
+    "development_cache_valid_after_full_expansion": false,
+    "audit_failure_may_trigger_more_data_or_model_changes": false
+  },
+  "rgbd_generation": {
+    "simulator": "AI2-THOR",
+    "ai2thor_version": "5.0.0",
+    "platform": "CloudRendering",
+    "width": 224,
+    "height": 224,
+    "vertical_fov_degrees": 90.0,
+    "grid_size_m": 0.25,
+    "snap_to_grid": true,
+    "rotate_step_degrees": 90.0,
+    "render_depth_image": true,
+    "render_instance_segmentation": false,
+    "position_order": "ascending_sha256(d215_split_salt|house_id|x_y_z_rounded_6_decimals)",
+    "minimum_position_separation_m": 1.0,
+    "positions_per_house": 8,
+    "yaw_degrees": [0, 90, 180, 270],
+    "horizon_degrees": 0.0,
+    "standing": true,
+    "public_arrays": ["rgb_uint8", "depth_m_float32", "camera_intrinsics_float64", "observation_ids"],
+    "public_forbidden": ["house_id", "world_pose", "reachable_grid", "room_metadata", "instance_mask", "object_id", "scenario_id", "teacher", "future"],
+    "private_fields": ["house_id", "source_record_sha256", "reachable_grid_sha256", "selected_world_positions", "structural_labels"],
+    "house_failure_policy": "retain_failure_without_replacement",
+    "overwrite_allowed": false
+  },
+  "resource_policy": {
+    "capacity_probe_required_before_batch": true,
+    "probe_worker_counts": [1, 2, 4, 8],
+    "batch_workers_source": "largest_probe_worker_count_passing_cpu_ram_gpu_and_disk_guards",
+    "worker_unit": "whole_house",
+    "merge_order": "split_then_sample_rank",
+    "wall_clock_timeout_allowed": false,
+    "minimum_free_disk_bytes_before_batch": 17179869184,
+    "emergency_free_disk_bytes": 8589934592
+  }
+}
