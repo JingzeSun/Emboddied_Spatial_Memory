@@ -112,6 +112,142 @@ VSMT 的正式架构不是“地点小图旁边再放一套实体图”，而是
   新图版本＋证据归属＋副作用＋图规模/候选规模指标
 ```
 
+**VSMT 从部署输入到结构认知输出的完整架构图。** 下图中的实线是部署时可走的数据流，虚线是只在候选封存后开放的训练/评价支路。结构认知输出不是额外的真值标签或自然语言模块，而是 `MemoryUpdateResult` 中可供下游查询的当前活动结构图，加上与其分离保存的历史版本、证据归属和事务审计。当前 D-213 已批准统一图、类型门、候选封存、确定性执行和审计合同；生产共享前端、非网格 place 候选接线及在线 selector 的真实训练/效果仍为 planned 或未开放运行，不能把本图当作已取得实验效果。
+
+```mermaid
+flowchart TB
+    subgraph A["A. 部署可见输入：截至决策时刻 t"]
+        RGBD["当前/历史公开 RGB-D<br/>相机内参"]
+        POSE["因果连续位姿信念<br/>均值・协方差・置信度"]
+        ACT["机器人状态＋已完成动作<br/>关键帧间 transition summary"]
+        PREV["此前预测得到的版本化记忆 M_t<br/>不是 reference graph"]
+        CONST["冻结公共常数与前端配置"]
+    end
+
+    subgraph B["B. 冻结、共享、场景盲 RGB-D 前端"]
+        FE["同一前端 cache bytes<br/>VSMT / TAF / ELU / WFR / LOW 共用"]
+        OBS["匿名公开结构证据<br/>fragment proposals＋DINO descriptor<br/>surface / free-space / visibility<br/>non-grid place observation＋relation observation"]
+        PACKET["ObservationPacket → AdapterInput<br/>去掉仅作文件对齐的 ref / hash 字段"]
+        FE --> OBS --> PACKET
+    end
+
+    RGBD --> FE
+    POSE --> FE
+    ACT --> PACKET
+    CONST --> FE
+
+    subgraph C["C. 统一稀疏版本图：模型的旧结构记忆"]
+        ACTIVE["活动层：只召回当前局部的开放节点/边"]
+        P["place 地点/区域节点"]
+        E["entity 实体节点"]
+        S["surface 表面节点"]
+        F["fragment 观测碎片节点"]
+        R["五类版本边<br/>located_at・contains・supported_by<br/>adjacent_to・route_transition"]
+        HIST["审计层：关闭的历史版本<br/>validity・predecessor・provenance・transaction log<br/>不参加普通活动检索"]
+        ACTIVE --> P
+        ACTIVE --> E
+        ACTIVE --> S
+        ACTIVE --> F
+        P --- R
+        E --- R
+        S --- R
+        F --- R
+        ACTIVE --> HIST
+    end
+
+    PREV --> ACTIVE
+    PACKET --> RETRIEVE
+    ACTIVE --> RETRIEVE
+
+    RETRIEVE["公开稀疏局部召回<br/>当前观察 × 活动节点/边"]
+
+    subgraph D["D. 类型化事务门：先定作用域，再决定哪些原子有资格出现"]
+        GLOBAL["全图共享：NOOP<br/>只保留一个，不按节点复制"]
+        GP["place<br/>BIND・BIRTH・MERGE<br/>＋共享 NOOP"]
+        GE["entity<br/>BIND・BIRTH・REACTIVATE・RELINK*<br/>RETRACT・SPLIT・MERGE<br/>＋共享 NOOP"]
+        GS["surface<br/>BIND・BIRTH・REACTIVATE<br/>RETRACT・SPLIT・MERGE<br/>＋共享 NOOP；无 RELINK"]
+        GF["fragment<br/>BIND・BIRTH・REACTIVATE<br/>RETRACT・SPLIT・MERGE<br/>＋共享 NOOP；无 RELINK"]
+        GR["relation edge<br/>BIND・BIRTH・REACTIVATE・RELINK・RETRACT<br/>＋共享 NOOP；无 SPLIT / MERGE"]
+    end
+
+    RETRIEVE --> GLOBAL
+    RETRIEVE --> GP
+    RETRIEVE --> GE
+    RETRIEVE --> GS
+    RETRIEVE --> GF
+    RETRIEVE --> GR
+
+    GLOBAL --> BUILD
+    GP --> BUILD
+    GE --> BUILD
+    GS --> BUILD
+    GF --> BUILD
+    GR --> BUILD
+
+    BUILD["公开参数化候选程序<br/>preconditions＋online evidence＋scope＋provenance<br/>REPLACE = RETRACT + BIRTH；不是第九原子"]
+    EXECALL["候选级确定性执行<br/>每个候选从同一 immutable M_t 克隆<br/>检查前置条件/端点/保护状态/不变量<br/>失败则整笔原子回滚"]
+    AFTER["每个候选的 after-state<br/>normalized delta＋副作用＋illegal/rollback"]
+    SEAL["CandidateCatalog v2 封存<br/>固定候选 ID、顺序、证据摘要、容量与截断审计<br/>正确项缺失只能记 candidate miss"]
+    BUILD --> EXECALL --> AFTER --> SEAL
+
+    subgraph ESEL["E. 在线选择与提交：部署时绝不读取 teacher / future / private truth"]
+        ENCODE["共享逐候选编码<br/>typed prior＋program/evidence<br/>执行前局部子图＋执行后局部子图＋delta"]
+        SCORE["VSMT selector：每候选一个 logit<br/>不读 slot、目录顺序、路径或样本名<br/>当前网络规模/训练预算仍 planned"]
+        PICK["最大 logit；严格并列按程序规范摘要确定"]
+        COMMIT["提交获胜候选的合法 after-state<br/>或全局 NOOP；再次核摘要"]
+        ENCODE --> SCORE --> PICK --> COMMIT
+    end
+
+    SEAL --> ENCODE
+    COMMIT --> RESULT
+
+    RESULT["MemoryUpdateResult<br/>post_memory M_t+1＋post hash<br/>normalized_delta＋confidence＋runtime＋diagnostics"]
+
+    subgraph OUT["F. 最终可查询的结构认知状态"]
+        NOW["当前活动认知<br/>这里是什么 place？有哪些 entity / surface / fragment？<br/>它们位于、包含、支撑或连接到什么？"]
+        WHY["版本与证据认知<br/>何时建立/绑定/重激活/改接/撤回/拆分/合并？<br/>证据来自哪一帧，旧版本为何关闭？"]
+        AUDIT["边界与成本认知<br/>副作用、非法事务、回滚、图增长、候选规模<br/>candidate miss / teacher error / amortization error 分开"]
+        NEXT["M_t+1 回馈下一时刻，形成持续在线记忆"]
+    end
+
+    RESULT --> NOW
+    RESULT --> WHY
+    RESULT --> AUDIT
+    RESULT --> NEXT
+    NEXT --> PREV
+
+    subgraph TRAIN["G. 仅训练时：封存后才开放的 teacher 支路"]
+        PRIVATE["private_eval / future / reference<br/>与部署读取器物理分离"]
+        TEACH["比较已执行 after-state<br/>只给原有槽位打分/soft target"]
+        TARGET["TeacherTargets<br/>候选数量、ID、顺序完全不变"]
+        LEARN["训练 selector；部署时移除 teacher 支路"]
+        PRIVATE --> TEACH --> TARGET --> LEARN
+    end
+
+    SEAL -. "先封存" .-> TEACH
+    LEARN -. "只更新打分器参数，不回写候选" .-> SCORE
+
+    subgraph EVAL["H. 仅评价时：预测提交后开放"]
+        PE["PrivateEvaluation"]
+        METRIC["结构/地点/关系/挂载/污染指标<br/>candidate・teacher・amortization・illegal・collateral 分解"]
+        PE --> METRIC
+    end
+
+    RESULT -. "先冻结预测" .-> METRIC
+```
+
+图中四类节点的有效事务集合可压缩为下表；`NOOP` 是全图共享退路，配置允许各作用域校验它，但候选目录不能为每个节点复制一份。`entity` 行的 `RELINK` 保留实体身份、实际关闭并重开的是实体参与的关系边，不能理解为把节点本体“移动到另一个 ID”。
+
+| 图元素 | 可进入 `VSMT-Typed` selector 的有效原子 | 明确不开放的原子 |
+|---|---|---|
+| `place` 节点 | `BIND / BIRTH / MERGE` ＋共享 `NOOP` | `REACTIVATE / RELINK / RETRACT / SPLIT` |
+| `entity` 节点 | `BIND / BIRTH / REACTIVATE / RELINK / RETRACT / SPLIT / MERGE` ＋共享 `NOOP` | 无；但 `RELINK` 必须落到合法关系边 |
+| `surface` 节点 | `BIND / BIRTH / REACTIVATE / RETRACT / SPLIT / MERGE` ＋共享 `NOOP` | `RELINK` |
+| `fragment` 节点 | `BIND / BIRTH / REACTIVATE / RETRACT / SPLIT / MERGE` ＋共享 `NOOP` | `RELINK` |
+| `relation` 版本边（不是第五类节点） | `BIND / BIRTH / REACTIVATE / RELINK / RETRACT` ＋共享 `NOOP` | `SPLIT / MERGE` |
+
+一轮在线更新的白话例子：当前公开 RGB-D 中出现一把椅子，前端只产生匿名 fragment、表面和几何证据；旧图里有一个 dormant entity，局部召回后类型门允许 `entity+REACTIVATE`、`entity+BIRTH` 等候选，但不会给 surface 生成 `RELINK`。所有候选从同一个 `M_t` 分别执行并封存，selector 选出一个，合法结果提交为 `M_t+1`，随后可回答“椅子在哪个地点、由什么表面支撑、证据来自哪些观测、此前为何 dormant”。它不等于前端已经知道这是同一把真值椅子，也不允许 teacher 在候选缺失时补一个 `REACTIVATE`。
+
 **类型化事务门（typed transaction gate）**解决“完整八原子是否意味着每个节点每帧都要竞争八种操作”的误解。输入是候选的结构作用域和由公开证据构造的事务程序，输出是封存前的允许/拒绝；例如 `place+RETRACT` 在 P0 直接拒绝，而 `surface+SPLIT`、`relation:located_at+RELINK` 可以在前置条件成立时进入候选。它不读取 teacher、future 或 private reference，不在正确候选遗漏后补槽，也不替 executor 的状态前置条件检查。
 
 | 作用域 | P0 可进入选择器的原子 | 语义边界 |
