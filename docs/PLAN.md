@@ -22,7 +22,77 @@
 
 ### 当前指针
 
-**当前是 D-216 split manifest 与 Estimator 训练封存实现审查；production reader与D-212服务器路线继续阻断。** 用户已批准`7dd44d2`作为D-215冻结基线。D-216实现候选要求在分组前先提供显式P0/VM04-validation/VM04-confirmation保留house清单，再对完整10,000个author-train house逐一登记train/calibration/audit/excluded；训练只接收固定NPZ schema和逐观察公开/标注receipt，按D-215预算拟合两个线性头并封存normalization、weights、temperature、逐epoch历史及训练成功receipt。当前机器合同全部授权false，尚无真实split manifest、训练帧、人工semantic标签、权重或服务器回执；production reader、route/raw、P04/P08重验及旧grid删除均不在本职责。
+**当前是 D-217 Estimator开发规模、audit封存与端到端关键路径冻结；先审完整计划，再完成RGB-D生成实现。** 用户批准512/64/64作为开发阶段：train/calibration可用于发现和修正问题，64-house audit在最终前端选择前保持封存；是否扩展全部house只能在audit、production reader、P04/P08资格与正式raw之前决定一次，扩展须从零重算normalization/weights/temperature。另冻结12个VM04 validation house与私有confirmation候选池。当前D-217生成代码仍在本地未提交工作中，服务器0运行；下面“D-217到论文结果统一关键路径”是后续执行的唯一计划口径，不能把前端RGB-D、两房P0 raw或正式论文raw混叫同一批数据。
+
+### D-217 到论文结果统一关键路径（512/64/64口径）
+
+#### 三种“数据生成”先分清
+
+| 名称 | 解决什么问题 | 规模与输出 | 不等于什么 |
+|---|---|---|---|
+| Estimator训练RGB-D | 给共享semantic/structural前端提供训练、校准和最终audit观察 | 开发阶段512/64/64 house×32帧，共20,480帧；public RGB/depth/内参与opaque observation ID，private仅训练管理和结构标签证据 | 不是P01–P08路线raw，不含SAM fragment，不训练VSMT |
+| 两房P0路线raw | 验证固定两间开发house中P01–P08路线、公开/私有/provenance三面与共享cache能完整工作 | 当前12槽，先slot-0 smoke再全12槽；P04/P08须由冻结前端重新资格审核 | 不是论文独立validation/confirmation，不能仅凭两间house宣布方法有效 |
+| 正式论文raw | 在独立house family上训练/选择VSMT及对照并做confirmation | house family数、episode数与最终confirmation功效预算尚未按D-210～D-217重冻 | 不是当前20,480帧Estimator数据，也不是旧36槽或旧S5数据 |
+
+白话：Estimator RGB-D教“共同眼睛”输出概率，两房P0 raw检查“整条管线能不能工作”，正式论文raw才回答“VSMT是否优于对照”。例如20,480帧全部成功也只证明前端数据齐了，不能当作五方法比较结果。
+
+#### A. Estimator开发前端：从计划到真实权重
+
+| 步骤 | 输入 | 实现/运行与输出 | 继续门 | 估计时间 |
+|---|---|---|---|---:|
+| E-01 冻结保留与采样 | 完整10,000-house source inventory、D-215 split规则 | 全量house→split私有manifest；12个validation ID；私有64-house confirmation候选池；train/calibration/audit固定hash前缀512/64/64 | 用户审实现；公共侧不得出现confirmation ID；0观察被打开 | 0.5–1工作日 |
+| E-02 容量探测 | E-01 plan、AI2-THOR 5.0.0服务器环境 | 用正式train前缀house依次实测1/2/4/8 worker；记录CPU/RAM/GPU/磁盘和实际最大安全worker；成功probe house直接复用 | 至少1个安全worker；失败现场不删、不换house；不设墙钟强杀 | 0.5工作日 |
+| E-03 生成train/calibration RGB-D | 512 train＋64 calibration house；每house固定8位置×4 yaw | 18,432帧public RGB/depth/内参/opaque ID；private house/世界位置/reachable摘要/structural训练标签；house失败保留不补 | 576个house均有成功或失败receipt；audit 64 house仍不开 | 0.5–2工作日，须以E-02实测更新 |
+| E-04 semantic标注包与双盲标注 | E-03 public帧；标注者不可见house/scenario/route | 两名独立`room/corridor/unknown`判断、分歧仲裁、逐观察receipt；train/calibration共36,864次判断 | 标注schema、盲化和仲裁receipt通过；修改规范须整批重版本，不能覆盖 | 3–7工作日（两名标注者，取决于每帧速度/分歧） |
+| E-05 冻结12维几何算法并提特征 | E-03 RGB-D、冻结DINOv2、D-215结构标签规则 | 每帧384维DINO＋12维公开几何；精确定义depth范围、free/visibility体积、开口/clearance、surface count/normal；生成NPZ和内容摘要 | 同RGB-D重复提取字节稳定；不读room metadata/instance/scenario/future | 实现审查1–2工作日，服务器提取0.5–1工作日 |
+| E-06 bundle与Estimator训练封存 | E-04标签receipt、E-05特征、E-01 split | train-only normalization；两个3×396线性头、bias、temperature、逐epoch历史和互绑receipt | calibration只能选checkpoint/temperature；audit仍不开；真实权重receipt用户审查 | 0.5–1工作日 |
+| E-07 最终前端选择 | E-03～E-06的train/calibration工程与校准诊断 | 一次性登记“冻结512版”或“扩展全部house” | 必须在audit/reader/P04/P08/raw前决定；不能看audit或方法排名 | 审议0.5工作日 |
+| E-08 audit一次性打开 | 已冻结的最终前端；封存64 audit house | 2,048 audit帧及4,096次双人判断，或全量扩展时对应完整audit；只报告NLL/accuracy/calibration/类别与house级区间 | audit失败照实失败；不得加house、改模型或阈值救结果 | 1–3工作日（512版） |
+
+E-03先保存可复用RGB-D的含义：DINO和12维几何都是这些公开帧的确定性派生，后续算法bug修复可重新提特征而不重跑模拟器；它不允许在几何算法未冻结时训练或把临时特征接入production reader。E-05仍是正式必经步骤，预计是数天级代码而非数周级研究，人工标注才是本段主要墙钟。
+
+若E-07选择全量扩展：保留完整失败历史，从全部非保留house重新生成/标注/提特征，normalization、weights、temperature从零训练；512版cache全部失效。两名标注者预计额外5–9周，约8名并行标注者预计2–3周。扩展不能由E-08 audit、P08 yield或后续方法效果触发。
+
+#### B. 生产共享前端与两房P0 raw
+
+| 步骤 | 输入 | 输出 | 继续门 | 估计时间 |
+|---|---|---|---|---:|
+| F-01 production reader | E-06真实权重receipt已审，E-08 audit已完成且不再修改 | 同一公开RGB-D生成SAM匿名fragment、DINO描述、12维几何、surface/free-space/visibility、semantic/structural概率和非网格place observation；五方法读取同一cache字节 | 不接收scenario ID；不读instance/object/teacher/future；真实小样本cache逐字段审查 | 2–4工作日 |
+| F-02 P01–P08 route survey与资格 | F-01前端、两间固定P0 house、旧grid只作路线搜索 | P01–P08共享cache证据；P04冻结DINO top-1；P08 basin→bottleneck→basin＋两端多视角fragment；12路线bundle | 失败不换house/槽/路线，不调0.70/0.85/0.35；P04/P08不合格照实保留 | 1–2工作日＋服务器数小时 |
+| F-03 路线封存与slot-0 smoke | F-02 bundle、D-212三面raw writer | 12槽路线seal；只运行slot-0/P01一次public/private/provenance工程smoke | RGB-D、内参、动作journal、私有pose/mask/entity状态完整且摘要匹配 | 0.5–1工作日 |
+| F-04 两房12槽raw | F-03通过、另行运行授权、容量探测 | 固定12槽完整raw；失败槽保留不补；每槽生成共享前端cache与绑定receipt | 12槽均有成功/失败终态；private评价仍不开 | 0.5–1工作日服务器运行＋审查 |
+| F-05 旧grid退役 | 全新cache、P04/P08重验、路线重绑完成 | 精确目标只读readiness receipt；经审后才删除明确旧路径 | 无复现依赖、无通配符、Git历史保留 | 0.5工作日；不在生成关键路径上 |
+
+到F-04才是此前所说“正式P0 raw已经生成”。按512版、不扩全量、两名标注者和无重大失败估计，从现在约 **10–18个工作日**；此前6–10日估计没有计足12维几何冻结、audit和完整production reader审查，本表用更保守且可交付的口径替代。
+
+#### C. 从两房工程raw到第一轮五方法可比结果
+
+| 步骤 | 输入 | 输出与科学作用 | 当前缺口 | 估计时间 |
+|---|---|---|---|---:|
+| M-01 raw→共同公开cache→统一图 | F-04 raw、D-213统一图/类型门 | place/entity/surface/fragment节点、五类边、候选前类型门、五种消融view | 非网格place BIND/BIRTH/MERGE生产接线尚未完成 | 2–4工作日 |
+| M-02 private teacher/evaluator | 公开候选先封存；private pose/mask/entity/route truth后打开 | 只给既有候选打标签；输出candidate miss/teacher/amortization及地点/关系/挂载指标 | P08 private room/entity只可在route seal后评价 | 2–4工作日 |
+| M-03 两房端到端开发比较 | VSMT/TAF/ELU/WFR/LOW同cache、同公开输入、D-213复杂度指标 | 12槽逐例失败表、五方法工程分数、图膨胀/runtime/memory；用于发现接口与候选问题 | 两间house不是独立论文样本，不能据此选headline赢家 | 3–7工作日（含训练/调试） |
+
+M-03是“第一份能把五方法放在同一表里跑通”的结果，乐观约在现在后 **4–7周**。它仍是开发结果，不是论文最终表。
+
+#### D. 正式训练、validation、confirmation与论文表
+
+| 步骤 | 必须先冻结的内容 | 输出 | 当前状态 | 估计时间 |
+|---|---|---|---|---:|
+| P-01 正式数据预算 | 新P0 family构造成功率、独立house数、九程序/场景覆盖、confirmation功效；不能直接复用旧36槽/旧48-12提案 | D-210～D-217兼容的train/validation/confirmation house-family manifest和总episode/帧预算 | **尚未冻结，是论文时间最大不确定项** | 科学审议2–4工作日；生成量另算 |
+| P-02 正式raw与共同cache | P-01 manifest、F/M全链通过、容量实测 | 多house正式train＋validation raw/cache/private隔离文件；confirmation只封存承诺 | 未授权 | 1–3周，取决于最终house/episode规模与构造成品率 |
+| P-03 五方法训练与有限选参 | 共同前端、候选、teacher、预算、每方法≤冻结配置数；VSMT消融同预算 | VSMT及学习臂checkpoint、TAF/ELU/WFR/LOW冻结配置、完整失败与资源receipt | 正式学习预算/seed/停止门仍须重冻 | 1–3周单GPU，需按实测更新 |
+| P-04 validation冻结 | P-03所有候选；只读validation | 最终方法/config/threshold/checkpoint选择和冻结receipt；不得再改算法 | 未授权 | 2–5工作日 |
+| P-05 confirmation一次性运行 | P-04冻结字节、私有confirmation house揭示授权 | 主指标、五headline场景macro、candidate/teacher/amortization、复杂度与失败；house-level bootstrap/配对统计 | confirmation family数仍须按P-01功效冻结 | 3–7工作日运行与核验 |
+| P-06 论文表与主张审计 | P-05不可变结果、全部失败、资源与版本证据 | 主表、消融表、场景表、失败分析、限制；只写证据支持的主张 | 若主门失败则报告no-go，不换数据/指标 | 3–7工作日 |
+
+从现在到“第一份论文级confirmation结果”的现实区间是 **12–20周**，前提是：使用512前端而不扩全量、两名标注者能连续工作、单GPU/模拟器服务器稳定、P08和正式family构造没有根本失败、P-01在两房开发后及时冻结。若扩展全部Estimator house，或正式family构造成品率低，需在此基础上增加对应周数；不得用压缩审查、打开audit或减少强对照来伪造更短时间。
+
+#### 当前最短关键路径与并行项
+
+顺序硬依赖为：`E-01 → E-02 → E-03 → E-04/E-05并行 → E-06 → E-07 → E-08 → F-01 → F-02 → F-03 → F-04 → M-01/M-02 → M-03 → P-01…P-06`。
+
+可并行的是：E-03生成完成的分片可陆续进入E-04标注；E-04人工标注与E-05算法实现/特征提取可并行；F-01代码可在E-06前实现但不能产生正式cache；P-01的候选预算分析可在M-03工程运行期间准备，但不能在看到validation/confirmation后改。不可并行越过的是audit打开、P04/P08资格、production cache和正式raw，它们都必须等最终Estimator选择与真实权重receipt。
 
 | D-210 顺序 | 输入与工作 | 输出与继续条件 |
 |---|---|---|
