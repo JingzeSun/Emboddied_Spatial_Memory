@@ -179,6 +179,36 @@ def _ordered_house_ids(ids: Sequence[str], source_sha: str, seed: int) -> list[s
         f"{source_sha}|{seed}|{house_id}".encode("utf-8")).hexdigest())
 
 
+def ordered_sample_candidates(
+    partition_rows: Sequence[Mapping[str, Any]], *, split: str,
+    sampling_salt: str,
+) -> list[str]:
+    """Return one split's candidate houses in the frozen sampling order.
+
+    D-221 extends the sampled prefix, so it must order candidates with exactly
+    this key.  Keeping one implementation guarantees that ranks 0..N-1 stay
+    identical when the prefix grows.
+    """
+
+    candidates = [row["house_id"] for row in partition_rows
+                  if row["split"] == split]
+    candidates.sort(key=lambda house_id: hashlib.sha256(
+        f"{sampling_salt}|{split}|{house_id}".encode("utf-8")).hexdigest())
+    return candidates
+
+
+def public_house_ref(
+    *, split: str, sample_rank: int, partition_manifest_receipt_sha256: str,
+) -> str:
+    """Opaque public handle for one sampled house."""
+
+    return _sha({
+        "scope": "d217-public-house", "split": split,
+        "sample_rank": sample_rank,
+        "partition": partition_manifest_receipt_sha256,
+    })
+
+
 def make_development_plan(
     *, source_inventory: Mapping[str, Any], d215_contract: Mapping[str, Any],
     d216_contract: Mapping[str, Any], d217_contract: Mapping[str, Any],
@@ -218,11 +248,9 @@ def make_development_plan(
     sample_policy = d217["development_sample"]
     selected: dict[str, list[str]] = {}
     for split in SPLITS:
-        candidates = [row["house_id"] for row in partition["rows"]
-                      if row["split"] == split]
-        candidates.sort(key=lambda house_id: hashlib.sha256(
-            f"{sample_policy['sampling_salt']}|{split}|{house_id}".encode(
-                "utf-8")).hexdigest())
+        candidates = ordered_sample_candidates(
+            partition["rows"], split=split,
+            sampling_salt=sample_policy["sampling_salt"])
         count = sample_policy["house_counts"][split]
         _require(len(candidates) >= count,
                  f"insufficient {split} houses for frozen prefix")
@@ -236,11 +264,10 @@ def make_development_plan(
                 "source_file_sha256": source["source_file_sha256"],
                 "source_record_sha256": source["source_record_sha256"],
                 "source_locator": source["source_locator"],
-                "public_house_ref": _sha({
-                    "scope": "d217-public-house", "split": split,
-                    "sample_rank": rank,
-                    "partition": partition["partition_manifest_receipt_sha256"],
-                }),
+                "public_house_ref": public_house_ref(
+                    split=split, sample_rank=rank,
+                    partition_manifest_receipt_sha256=partition[
+                        "partition_manifest_receipt_sha256"]),
             })
     private_plan = _seal({
         "schema_version": PRIVATE_PLAN_SCHEMA,
