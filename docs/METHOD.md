@@ -82,6 +82,14 @@ raw 仍分三面，但 private 现在补齐以后无法从 RGB-D 恢复的事实
 
 两间 source 仍固定为 `train:004270` 与 `train:008243`。controller 显式固定 AI2-THOR 5.0.0、CloudRendering、224×224、垂直 FOV 90°、`gridSize=0.25`、`snapToGrid=true`、`rotateStepDegrees=90`、depth 和 instance segmentation；不依赖安装默认值。单槽 smoke 仍只允许 slot 0/P01，剩余 11 条 raw、adapter、private evaluation、训练、validation、confirmation继续关闭。
 
+**公开路线 survey（工程候选）。** 它解决“执行门已经开了，但12条路线仍靠人手填 bundle”的空转问题。输入只含两间固定 house 的公开 `GetReachablePositions`、固定场景槽和逐路线 RGB-D；输出是恰好12行的 route bundle、每槽完整动作、公开描述子、匿名区域引用、场景收据和失败前缀。例如 P01 在可达格上先确定“两次方向相反的90°转弯＋三段平移”的 Z 模板，之后才走一遍路线采集公开 RGB-D；动作失败则整槽和整批失败，不换起点、模板、房或场景。它不读取 instance mask、object ID、teacher、reference place 或 raw episode 的未来结果，也不等于模型以后共享的冻结 RGB-D 前端。
+
+路线模板按场景固定语义而非固定绝对坐标：P02 是一段公开路径及其严格逆序逆动作，P03 是非逆矩形闭环，P06 是同一中心的两条相反支路，P07 是仅共享中心的两个方向相反矩形环；搜索只是在当前 reachable grid 上找第一个完整可放置模板。P04 对已固定路线的全部公开帧使用四象限 RGB 均值＋depth 均值的 L2 归一化小描述子，只执行“相距至少1.5 m的cosine top-1”预登记排序。该描述子是**路线工程选择器**，不是论文表中的共享 DINO/视觉前端，不能用其分数声称视觉地点识别有效。
+
+P08 当前同样只达到 raw 工程验证口径：端点/中段由公开可达格的局部开阔度排序为 room-like/corridor-like，匿名 `region:*` 由 RGB-D 四象限内的颜色变化和有限深度确定；代码从不读取 simulator instance segmentation。输入是公开格与画面，输出是可复算的工程候选，例如两个开阔端点间最窄的路径位置被登记为 corridor-like。它不等于语义房间分割或最终 entity proposal；在共享冻结 RGB-D 前端复核这些角色与区域之前，P08 route seal 只允许支持单槽/写盘工程验证，不能直接进入 headline 效果证据。
+
+两间 house 是两个独立 survey 单元。入口先记录 CPU、可用RAM、GPU空闲显存和输出盘；达到 `CPU≥4、RAM≥12 GiB、GPU free≥6 GiB` 时并行两个 worker，否则记录资源原因并降为一个 worker，仍按 house slot 0→1 确定性合并。该阈值只防止本次工程 survey 把服务器拖垮，不是训练预算或论文超参数；正式12槽 raw 的 worker 数仍须在单槽实测后另算。
+
 D-212 同时修正自引用 Git 门。实现提交保持 expected implementation commit 为 `null`；用户审过后，另做一个只允许修改 v2 合同的 activation commit，并要求其 parent 等于受审实现提交。执行时核验 clean checkout、`HEAD^` 和一文件 allowlist。输入是两个真实可存在的 commit，输出是可验证的执行授权；它不再要求一个 commit 在自身内容中写出自己的 hash。
 
 #### D-213 统一稀疏版本图、类型门控八原子与五组消融（已批准，实现候选待审）

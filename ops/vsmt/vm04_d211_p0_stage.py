@@ -4,9 +4,11 @@
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ProcessPoolExecutor
 import hashlib
 import importlib.metadata
 import json
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -31,6 +33,11 @@ from vsmt.d211_p0_smoke import (  # noqa: E402
     validate_route_execution_binding,
 )
 from vm04_d211_raw_smoke import run_raw_smoke_core  # noqa: E402
+from vm04_d212_route_survey import (  # noqa: E402
+    make_bundle,
+    make_stage_receipt,
+    survey_house,
+)
 import vm04_two_house_audit as source_audit  # noqa: E402
 import vm04_two_house_worker as source_worker  # noqa: E402
 
@@ -133,6 +140,8 @@ def check() -> dict[str, Any]:
         "source_house_ids": [row["source_house_id"]
                              for row in overlay["source_binding"]["houses"]],
         "route_slot_count": base["batch"]["episode_count"],
+        "route_public_survey_authorized": overlay["authorization"]
+        ["twelve_route_public_survey_authorized"],
         "raw_smoke_slot": overlay["single_slot_smoke"]["slot"],
         "raw_smoke_scenario": overlay["single_slot_smoke"]["scenario_id"],
         "private_simulator_pose_capture_authorized": overlay["authorization"]
@@ -216,6 +225,143 @@ def seal_routes(
     return receipt
 
 
+def _available_memory_bytes() -> int | None:
+    if hasattr(os, "sysconf"):
+        try:
+            return int(os.sysconf("SC_AVPHYS_PAGES") *
+                       os.sysconf("SC_PAGE_SIZE"))
+        except (OSError, ValueError, TypeError):
+            pass
+    return None
+
+
+def _gpu_free_bytes() -> int | None:
+    try:
+        output = subprocess.check_output([
+            "nvidia-smi", "--query-gpu=memory.free",
+            "--format=csv,noheader,nounits",
+        ], text=True, timeout=10)
+        values = [int(row.strip()) * 1024 * 1024
+                  for row in output.splitlines() if row.strip()]
+        return max(values) if values else None
+    except (FileNotFoundError, subprocess.SubprocessError, ValueError):
+        return None
+
+
+def _survey_worker_count(output_parent: Path) -> tuple[int, dict[str, Any]]:
+    cpu_count = os.cpu_count() or 1
+    memory_free = _available_memory_bytes()
+    gpu_free = _gpu_free_bytes()
+    disk_free = shutil.disk_usage(output_parent.resolve()).free
+    reasons = []
+    safe = 2
+    if cpu_count < 4:
+        safe, reasons = 1, ["fewer_than_four_logical_cpus"]
+    if memory_free is not None and memory_free < 12 * 1024 ** 3:
+        safe = 1
+        reasons.append("less_than_12_gib_available_ram")
+    if gpu_free is None or gpu_free < 6 * 1024 ** 3:
+        safe = 1
+        reasons.append("less_than_6_gib_verified_free_gpu_memory")
+    return safe, {
+        "logical_cpu_count": cpu_count,
+        "available_memory_bytes": memory_free,
+        "free_gpu_memory_bytes": gpu_free,
+        "free_output_disk_bytes": disk_free,
+        "selection_rule":
+            "two_house_workers_only_with_cpu>=4_ram>=12GiB_gpu_free>=6GiB",
+        "single_worker_reasons": reasons,
+    }
+
+
+def _survey_house_job(source_stage: str, source_root: str,
+                      house_slot: int) -> dict[str, Any]:
+    controller = None
+    try:
+        base, overlay = load_contracts()
+        house, _ = _load_source_house(
+            source_stage=Path(source_stage), source_root=Path(source_root),
+            overlay=overlay, house_slot=house_slot)
+        controller = _make_d212_controller(house, overlay)
+        slots = [row["slot"] for row in base["slot_plan"]
+                 if row["house_slot"] == house_slot]
+        source_id = overlay["source_binding"]["houses"][house_slot][
+            "source_house_id"]
+        return survey_house(
+            controller, house_slot=house_slot, source_house_id=source_id,
+            slots=slots, contract=overlay, base_contract=base)
+    except BaseException as error:
+        return {
+            "status": "route_survey_failure", "rows": [],
+            "slot_receipts": [], "worker_error": {
+                "type": type(error).__name__,
+                "message_sha256": hashlib.sha256(
+                    str(error).encode("utf-8")).hexdigest(),
+            },
+        }
+    finally:
+        if controller is not None:
+            try:
+                controller.stop()
+            except BaseException:
+                pass
+
+
+def survey_routes(*, source_stage: Path, source_root: Path,
+                  output_root: Path, reviewed_code: str) -> dict[str, Any]:
+    base, overlay = load_contracts()
+    activation = _execution_checkout(overlay, reviewed_code)
+    _require(overlay["authorization"]
+             ["twelve_route_public_survey_authorized"] is True,
+             "D-212 public route survey is not authorized")
+    _require(not output_root.exists(),
+             "D-212 route-survey output exists; never overwrite it")
+    _require(output_root.parent.exists(),
+             "D-212 route-survey output parent does not exist")
+    actual_workers, resource_basis = _survey_worker_count(output_root.parent)
+    _require(resource_basis["free_output_disk_bytes"] >=
+             overlay["resource_policy"]["minimum_data_disk_free_bytes"],
+             "D-212 route survey has insufficient output disk space")
+    arguments = [(str(source_stage), str(source_root), house_slot)
+                 for house_slot in (0, 1)]
+    if actual_workers == 2:
+        with ProcessPoolExecutor(max_workers=2) as executor:
+            futures = [executor.submit(_survey_house_job, *item)
+                       for item in arguments]
+            house_results = []
+            for future in futures:
+                try:
+                    house_results.append(future.result())
+                except BaseException as error:
+                    house_results.append({
+                        "status": "route_survey_failure", "rows": [],
+                        "slot_receipts": [], "worker_error": {
+                            "type": type(error).__name__,
+                            "message_sha256": hashlib.sha256(
+                                str(error).encode("utf-8")).hexdigest(),
+                        },
+                    })
+    else:
+        house_results = [_survey_house_job(*item) for item in arguments]
+    receipt = make_stage_receipt(
+        house_results=house_results, requested_workers=2,
+        actual_workers=actual_workers, resource_basis=resource_basis)
+    receipt["reviewed_implementation_commit"] = reviewed_code
+    receipt["activation_commit"] = activation
+    output_root.mkdir(parents=True, exist_ok=False)
+    if receipt["status"] == "route_survey_complete":
+        bundle = make_bundle(house_results)
+        write_new_json(output_root / "route-bundle.json", bundle)
+        receipt["route_bundle_sha256"] = sha256(
+            output_root / "route-bundle.json")
+    else:
+        receipt["route_bundle_sha256"] = None
+    write_new_json(output_root / "survey.receipt.json", receipt)
+    _require(receipt["status"] == "route_survey_complete",
+             "D-212 route survey failed; retained immutable failure receipt")
+    return receipt
+
+
 def _load_sealed_smoke_inputs(
     sealed_root: Path, *, base: dict[str, Any], overlay: dict[str, Any],
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any],
@@ -282,9 +428,11 @@ def _load_sealed_smoke_inputs(
 
 def _load_source_house(
     *, source_stage: Path, source_root: Path, overlay: dict[str, Any],
+    house_slot: int = 0,
 ) -> tuple[dict[str, Any], str]:
     inventory = read_json(source_stage / "private/inventory.json")
-    expected = overlay["source_binding"]["houses"][0]
+    _require(house_slot in {0, 1}, "D-212 source house slot is invalid")
+    expected = overlay["source_binding"]["houses"][house_slot]
     row = next(item for item in inventory["houses"]
                if item["house_id"] == expected["source_house_id"])
     _require(row["source_record_sha256"] == expected["source_record_sha256"],
@@ -422,6 +570,11 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("check")
+    survey = subparsers.add_parser("survey-routes")
+    survey.add_argument("--source-stage", type=Path, required=True)
+    survey.add_argument("--source-root", type=Path, required=True)
+    survey.add_argument("--output-root", type=Path, required=True)
+    survey.add_argument("--reviewed-implementation", required=True)
     seal = subparsers.add_parser("seal-routes")
     seal.add_argument("--route-bundle", type=Path, required=True)
     seal.add_argument("--output-root", type=Path, required=True)
@@ -435,6 +588,12 @@ def main() -> int:
     arguments = parser.parse_args()
     if arguments.command == "check":
         result = check()
+    elif arguments.command == "survey-routes":
+        result = survey_routes(
+            source_stage=arguments.source_stage,
+            source_root=arguments.source_root,
+            output_root=arguments.output_root,
+            reviewed_code=arguments.reviewed_implementation)
     elif arguments.command == "seal-routes":
         result = seal_routes(
             route_bundle_path=arguments.route_bundle,

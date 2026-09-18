@@ -18,6 +18,7 @@
   },
   "authorization": {
     "source_house_binding_authorized": true,
+    "twelve_route_public_survey_authorized": true,
     "twelve_route_sealing_authorized": true,
     "single_slot_raw_smoke_authorized": true,
     "private_simulator_pose_capture_authorized": true,

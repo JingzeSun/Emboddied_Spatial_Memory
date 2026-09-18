@@ -22,12 +22,12 @@
 
 ### 当前指针
 
-**当前是 D-212 raw/路线执行纠偏与 D-213 统一图纯核心的联合代码审查，下一真实运行仍是 D-212 单槽 smoke。** 用户已明确判定 `e5d7bed` 仅为阶段性修复，不是最终 D-211 基线；随后批准统一稀疏版本图、按结构类型门控八原子、共同冻结 RGB-D 前端及 Place-4/VSMT-Typed/VSMT-Flat8/VSMT-NoPlace/VSMT-NoVersion 五组消融。D-212 v2 要求完整 reachable-grid、N+1 计划步可达性、执行前公开 RGB-D evidence 和 P01–P08 场景 receipt；D-213 纯核心现已实现门控审计、统一图验证、消融memory view、复杂度指标、关系REACTIVATE及surface/fragment RETRACT候选。真实 simulator 尚未运行，v2 expected implementation commit 仍为 null；非网格place候选materializer、12槽raw、adapter、private evaluation、训练/validation/confirmation继续关闭。
+**当前是 D-212 公共路线 survey→12-route seal→slot-0 raw smoke 的执行候选审查。** 用户已批准开始边界明确的执行门激活、服务器路线封存和单槽raw工程验证。实现现补齐从固定两房的公开reachable grid与RGB-D生成12行bundle的入口、失败不替换、两house资源自适应worker和确定性合并；D-213统一图纯核心保持不变。真实 simulator 尚未运行，v2 expected implementation commit 仍为 null；须先形成受审实现提交，再以只改v2合同的activation child开闸。非网格place候选materializer、12槽raw、adapter、private evaluation、训练/validation/confirmation继续关闭。
 
 | D-210 顺序 | 输入与工作 | 输出与继续条件 |
 |---|---|---|
 | **P0-A D-210基线（已批准，本地main）** | D-210 合同、12 槽 manifest 核心、route seal、edge summary、adapter、metrics 和文档 | `8d6bd13`；0.25 m/90°/128 guard、无24/64科学上限、格不定义place、五个headline和oracle隔离已受测 |
-| **P0-B 两房与完整路线封存（D-212纠偏实现待审）** | 固定两house source record；12条执行前完整路线；每槽绑定真实reachable scan、public RGB-D route evidence、scenario receipt与私有axis-aligned起点 | 纯核心已拒绝假摘要/同构路线并可重算P01–P08语义；仍缺真实服务器survey形成的12条bundle和reviewed implementation pin。封存不启动episode |
+| **P0-B 两房与完整路线封存（执行候选待审）** | 固定两house source record；公开grid模板规划＋RGB-D survey；12条执行前完整路线；每槽绑定真实reachable scan、public evidence、scenario receipt与私有axis-aligned起点 | 生产入口已补齐但0次真实运行；审查后以单文件activation开闸，服务器先生成bundle再seal。P08当前仅工程room-like/corridor-like，未获headline资格 |
 | **P0-C 单槽 raw smoke（D-212纠偏实现待审）** | P0-B封存产物、显式AI2-THOR/controller配置、slot 0 fresh controller | public写obs0＋逐成功动作RGB-D/内参；provenance逐动作fsync journal；private逐帧写pose＋instance mask＋entity mapping/state；失败前缀全留。当前expected implementation commit为空，仍拒绝真实运行 |
 | **P0-D 12 槽 raw 与 adapter（关闭）** | 单槽 smoke 通过后另行授权；资源实测决定最大安全 workers | 固定 12 槽 raw/provenance、关键帧、belief/edge summary 与 adapter 文件；失败不补，确定性合并；private evaluation 仍独立开闸 |
 | **P0-E 统一图与五消融接线（D-213纯核心已实现待审，数据接线关闭）** | D-213类型门/统一图/消融视图；单槽smoke确定的关键帧与materializer字节 | 纯核心拒绝place RETRACT、CREATE第九原子和错误端点类型，可派生图规模；仍须把D-210非网格place BIND/BIRTH/MERGE接入真实adapter，旧coordinate scaffold不得进入主表 |

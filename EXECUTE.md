@@ -7,7 +7,7 @@
 | 事项 | 已知事实 |
 |---|---|
 | D-213统一图/类型门 | 四节点/五关系统一图合同、seal前类型门、五种消融memory view、图复杂度派生、relation REACTIVATE及surface/fragment RETRACT已实现候选；真实place materializer仍待单槽raw后接线，全部运行位关闭；LOG-197。 |
-| D-212地点raw纠偏 | `e5d7bed`仅为阶段修复。v2候选现以内容重算reachable grid、逐步可达和P01–P08场景收据；raw逐动作journal，private逐帧保留pose、instance mask、稳定实体映射/状态/关系；自引用commit门改为reviewed implementation parent＋单文件activation child。13项针对性、全库634/634 unittest通过；尚未形成受审commit、未跑真实survey/seal/smoke，非网格place materializer和完整私评仍待后续。LOG-196/197。 |
+| D-212地点raw纠偏 | v2已补公开grid模板＋RGB-D route survey生产入口、P01–P08可复算收据、raw三面journal与两提交执行门；P08 survey仍仅工程资格。真实survey/seal/smoke均为0，非网格place materializer和完整私评待后续；LOG-196/198。 |
 | VM-04观察适用性 | 原静态36槽不运行；D-182/183只用于精确schema/实现审查。D-199–202已形成L2公开proposal/visibility、program matcher/episode audit和terminal raw加载前plan seal，D-202已获认可。D-203候选禁止调用者手填version ID，从sealed public route、预登记selector和`terminal-1` causal memory确定派生九类online request refs；核心无episode/raw path参数，edge RETRACT仍阻断。selector spec的提前时间封存和D-202 receipt消费未实现，因此D-201 pending与family阻断未解除。正式SAM/assets/matcher/visibility数值、生产callback、父stage family聚合及pilot收据仍缺。全部运行位关闭，0新episode/materialization/训练/记忆正例。LOG-169–192。 |
 | VSMT首篇/VM-01～04 | 原静态36槽按D-180退役且未运行；D-183新多视角版本只开放精确实现审查。现有instance-mask前端明确只作L1诊断，不得作为L2准入；L2公开proposal前端、九类真实构造、共享probe和完整父stage仍阻断。生成/private评价、identifiability、训练、validation效果与confirmation全部关闭。LOG-180–187，D-191–198 |
 | R4-5学习准备 | v2学习合同已对齐D/F/W、80×80、9候选和32/8/8/8/4/4家族划分；L/R同构强对照21项及Dreamer CUDA完整反向通过；48家族多worker生成stage的44项检查通过；真实学习reader核4164源文件、144分支及允许辅助数组通过。训练、剩余家族生成和确认均未启动，正式M仍未就绪。LOG-128–131 |
@@ -2067,3 +2067,11 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - D-213定向10/10、executor/public-candidate联合87/87通过；最终全库标准库discover从634增至**644/644通过**，耗时26.098 s，失败/错误/跳过均0，既有内嵌VSMT/executor/L1三组179/42/31并汇总252仍通过。测试覆盖place RETRACT在Typed门前拒绝但Flat8可提出、relation BIRTH必须含ADD_EDGE、CREATE拒绝、Place-4/NoPlace关系可见性相反、现有catalog门接线、route_transition端点、派生cache篡改拒绝、NoPlace/NoVersion精确投影、复杂度从图字节派生、relation REACTIVATE保留edge identity以及surface RETRACT而place不产生。
 - 明确未完成：现有历史`prepare_place_scaffold`仍是coordinate-defined兼容路径；D-210真实raw关键帧到非网格place的BIND/BIRTH/MERGE候选materializer必须在单槽smoke确定输入字节后接线，旧scaffold不得进主表。本批是架构和可执行边界，不是完整VSMT模型或“更多节点有效”的实验证据。
 - 白话：输入一张已有版本图和公开候选，输出先回答“这个结构能不能做这个动作”，再给五个消融生成严格不同但可复核的记忆视图；例如地点撤回在Typed里进不了候选，历史`located_at`重新被当前证据看到则可恢复同一边身份。它不拿答案决定门，也不靠删除审计文件假装NoVersion。
+
+## LOG-198：D-212公开路线survey与可执行激活前补齐（2026-09-18）
+
+- 用户批准开始“边界明确的执行门激活、服务器路线封存和单槽raw工程验证”。激活前核查发现两处会使服务器流程空转：测试把`expected_reviewed_implementation_commit=null`写死，单文件激活后全库会失败；stage只有`seal-routes`，没有从真实reachable/RGB-D生成其12行输入bundle的生产入口。
+- 测试现同时接受pending与activated两种合法状态，并明确拒绝“pending却pin commit”及“executable却无commit”两种组合。新增纯公开route planner：P01固定Z语义，P02严格逆动作，P03非逆闭环，P04长路线后公开cosine top-1，P05同位反向，P06相反支路，P07两个只共享中心的环，P08公开开阔端点—窄中段路径；模板只在reachable grid上按固定顺序寻找第一个完整放置，不读private或后续raw结果。
+- 新`survey-routes`在固定路线后走一次公开RGB-D survey，保存frame/calibration摘要、四象限RGB均值＋depth均值的工程描述子和匿名RGB-D区域引用；不读取instance masks/object IDs。survey动作失败即保留失败receipt且不换路线、起点、房或角色。两house达到CPU/RAM/GPU安全线时以2 worker并行，否则记录资源理由后单worker，按house slot确定合并；无墙钟强杀。
+- 科学限制显式保留：轻量survey descriptor不是论文共享冻结前端；P08的room-like/corridor-like当前由公开reachable局部开阔度给出，匿名region也只是工程proposal。在共享冻结RGB-D前端复核前，P08 route即使seal成功也不能直接成为headline效果证据。本批仍是0真实simulator、0 route bundle、0 seal、0 raw episode。
+- 本地新增route planner/descriptor测试覆盖12个固定槽、RGB-D-only区域引用及非零网格原点下的P07双环；最终全库标准库discover **648/648通过**，耗时33.126 s，失败/错误/跳过均0，既有内嵌VSMT/executor/L1三组179/42/31及两房汇总252仍通过。白话：输入是两间已固定房子的公开可达格和画面，输出是服务器真正能消费的12条路线文件；它只把“能不能按合同采到原始证据”推进到可运行状态，不表示地点模型、实体语义或论文提升已经成立。

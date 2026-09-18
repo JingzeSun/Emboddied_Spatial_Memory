@@ -2052,6 +2052,7 @@
 - **执行门：** 废除不可满足的“HEAD必须等于其内容中写入的自身commit hash”。实现commit保持v2 expected为空；审查后仅允许一个改v2合同的activation child commit。执行核验clean HEAD、`HEAD^=reviewed implementation`及parent→HEAD文件列表恰为单文件allowlist。
 - **固定运行环境：** AI2-THOR 5.0.0、CloudRendering、224×224、FOV 90°、gridSize 0.25 m、snapToGrid、rotateStepDegrees 90°、depth及instance segmentation全部显式传入controller；安装版本不符即拒绝。
 - **仍未解锁：** 没有真实12-route bundle、没有route seal、没有slot-0 raw、没有12槽raw、adapter、teacher/private evaluation、metrics、训练、validation或confirmation。真实P08公开匿名实体region怎样由路线survey形成仍必须由公开RGB-D过程产出，不能拿private instance mask替代。
+- **执行候选补齐：** 用户随后批准开始执行门激活、服务器路线封存和单槽raw工程验证。激活前核查发现原入口只能验证外部bundle，不能从两房生成它；因此先新增公开route survey作为同一受审实现的一部分，激活子提交仍只改v2合同。模板选择只读reachable grid，路线固定后才采公开RGB-D；P04采用无绝对阈值的top-1，P08匿名region不读instance mask。任一survey动作失败保留收据且不换模板/起点/house。P08的grid开阔度角色和轻量RGB-D区域只具有raw工程资格，正式headline仍被共享冻结前端复核阻断。
 
 ## D-213：统一稀疏版本图、类型门控八原子与五组消融
 

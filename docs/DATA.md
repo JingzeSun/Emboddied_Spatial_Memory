@@ -52,9 +52,11 @@ D-210 为地点/拓扑主实验建立独立于旧 VM-04 v1–v4 的数据版本�
 
 [`vm04_d211_p0_seal_single_smoke_v2.json`](../configs/vsmt/vm04_d211_p0_seal_single_smoke_v2.json) 将两间开发 house 固定为 `train:004270`/`train:008243`，分别绑定 source record 摘要 `79a1…026f`/`cdbd…bea7`。v1 和 `e5d7bed` 只保留阶段历史，不是最终生成基线。来源证据仍是既有只读 root-cause 报告，报告本身记录 0 episode、0 intervention；D-212 不把它们改叫 confirmation，也不因路线或 smoke 失败换房。
 
-待输入的 `vsmt-vm04-d211-route-bundle-v2` 恰好含按 slot 0–11 排序的 12 行。每行不再只有 route 和摘要，而是包含 `route_plan`、完整 `reachable_scan`、执行前 `public_route_evidence`、`scenario_receipt` 及 `execution_binding`。reachable scan 保存 `GetReachablePositions` 的规范整数格键，seal 时从私有起点重算 N+1 名义姿态并逐个检查可达；public evidence 为选定 survey 观察保存 RGB/depth/calibration 摘要、非零 place descriptor、公开 room/corridor/unknown 角色和匿名 `region:*` 实体区域引用；scenario receipt 对 P01–P08 分别重算 Z形、精确逆行、替代回环、top-1视觉别名、同地反向、T分支、8字双环及房间—走廊—房间条件。白话：route plan 说“怎么走”，scan 证明“计划步都落在可达格”，公开 evidence 证明“路线为什么从画面上被选中”，scenario receipt 证明“它确实是哪一种挑战”。它不包含模型地点答案，也不能用布尔自报或假摘要替代内容。
+`survey-routes` 生成目录包含 `route-bundle.json` 与 `survey.receipt.json`。前者是 `vsmt-vm04-d211-route-bundle-v2`，恰好含按 slot 0–11 排序的 12 行；每行包含 `route_plan`、完整 `reachable_scan`、执行前 `public_route_evidence`、`scenario_receipt` 及 `execution_binding`。后者保存算法摘要、请求/实际worker数、CPU/RAM/GPU/磁盘依据、固定合并顺序、每槽完成动作数和失败摘要；失败时 bundle 不产生，receipt 保留且同目录不得覆盖。reachable scan 保存 `GetReachablePositions` 的规范整数格键，seal 时从私有起点重算 N+1 名义姿态并逐个检查可达；public evidence 为选定 survey 观察保存 RGB/depth/calibration 摘要、非零 place descriptor、公开 room/corridor/unknown 角色和匿名 `region:*` 实体区域引用；scenario receipt 对 P01–P08 分别重算 Z形、精确逆行、替代回环、top-1视觉别名、同地反向、T分支、8字双环及房间—走廊—房间条件。白话：route plan 说“怎么走”，scan 证明“计划步都落在可达格”，公开 evidence 证明“路线为什么从画面上被选中”，scenario receipt 证明“它确实是哪一种挑战”。它不包含模型地点答案，也不能用布尔自报或假摘要替代内容。
 
 P04 的 route seal 只采用预登记的排序规则：从名义间隔至少 1.5 m 的 survey pair 中取公开 descriptor cosine top-1，绝对阈值为 `null` 并原样记录实际分数。这个字段用于防止路线结果出来后挑 pair；它不把“本房间最像”自动解释成“论文意义上足够难”。P08 两个 room anchor 必须各有至少一个从公开 RGB-D 路线 survey 得到的匿名 `region:*` 引用，中间观察须登记为 corridor；这些引用不是 simulator object ID，也不是完整 L2 前端输出。
+
+本轮 survey 不保存 instance mask/object ID，也不把 `instance_masks` 属性传给纯构造器；四象限小描述子和匿名区域只服务路线工程筛选。P08 的 room-like/corridor-like 来自公开 reachable-grid 局部开阔度，仍须在后续共享冻结 RGB-D 前端接线后复核，未经复核不得给该槽 `headline_eligible=true`。
 
 `seal-routes` 生成：
 

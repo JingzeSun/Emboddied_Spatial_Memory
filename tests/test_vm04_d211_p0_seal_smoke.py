@@ -196,6 +196,7 @@ class D211P0SealSmokeTests(unittest.TestCase):
     def test_authorization_opens_only_seal_and_one_smoke(self):
         auth = self.overlay["authorization"]
         self.assertTrue(auth["source_house_binding_authorized"])
+        self.assertTrue(auth["twelve_route_public_survey_authorized"])
         self.assertTrue(auth["twelve_route_sealing_authorized"])
         self.assertTrue(auth["single_slot_raw_smoke_authorized"])
         self.assertTrue(auth["private_simulator_pose_capture_authorized"])
@@ -204,8 +205,33 @@ class D211P0SealSmokeTests(unittest.TestCase):
         self.assertFalse(auth["twelve_slot_raw_generation_authorized"])
         self.assertFalse(auth["adapter_materialization_authorized"])
         self.assertFalse(auth["private_evaluation_authorized"])
-        self.assertIsNone(self.overlay[
-            "expected_reviewed_implementation_commit"])
+        expected = self.overlay["expected_reviewed_implementation_commit"]
+        if self.overlay["status"] == (
+                "authorized_scope_implementation_pending_reviewed_commit"):
+            self.assertIsNone(expected)
+        else:
+            self.assertEqual("frozen_executable_seal_and_single_slot_smoke",
+                             self.overlay["status"])
+            self.assertRegex(expected, r"^[0-9a-f]{40}$")
+
+    def test_activation_status_and_reviewed_commit_must_change_together(self):
+        pending = json.loads((
+            ROOT / "configs/vsmt/vm04_d211_p0_seal_single_smoke_v2.json"
+        ).read_text(encoding="utf-8"))
+        activated = dict(pending)
+        activated["status"] = "frozen_executable_seal_and_single_slot_smoke"
+        activated["expected_reviewed_implementation_commit"] = "a" * 40
+        validate_d211_contract(activated, base_contract=self.base)
+
+        invalid_pending = dict(pending)
+        invalid_pending["expected_reviewed_implementation_commit"] = "a" * 40
+        with self.assertRaisesRegex(D211Error, "cannot pin code"):
+            validate_d211_contract(invalid_pending, base_contract=self.base)
+
+        invalid_active = dict(activated)
+        invalid_active["expected_reviewed_implementation_commit"] = None
+        with self.assertRaisesRegex(D211Error, "needs a reviewed code commit"):
+            validate_d211_contract(invalid_active, base_contract=self.base)
 
     def test_two_source_houses_are_fixed_to_audited_record_digests(self):
         houses = self.overlay["source_binding"]["houses"]
@@ -415,13 +441,17 @@ class D211P0SealSmokeTests(unittest.TestCase):
                     public_manifest_sha256="c" * 64,
                     episode_id="d210:p0:" + "3" * 24)
 
-    def test_stage_check_is_closed_pending_reviewed_commit(self):
+    def test_stage_check_matches_contract_activation_state(self):
         completed = subprocess.run(
             [sys.executable, str(ROOT / "ops/vsmt/vm04_d211_p0_stage.py"),
              "check"], cwd=ROOT, check=True, capture_output=True, text=True)
         report = json.loads(completed.stdout)
-        self.assertFalse(report["execution_authorized"])
+        self.assertEqual(
+            self.overlay["status"] ==
+            "frozen_executable_seal_and_single_slot_smoke",
+            report["execution_authorized"])
         self.assertEqual(0, report["raw_smoke_slot"])
+        self.assertTrue(report["route_public_survey_authorized"])
         self.assertTrue(report[
             "private_simulator_pose_capture_authorized"])
         self.assertFalse(report["twelve_slot_raw_generation_authorized"])
@@ -437,7 +467,12 @@ class D211P0SealSmokeTests(unittest.TestCase):
                 "--reviewed-implementation", "f" * 40,
             ], cwd=ROOT, check=False, capture_output=True, text=True)
             self.assertNotEqual(0, completed.returncode)
-            self.assertIn("not executable", completed.stderr)
+            if self.overlay["status"] == (
+                    "authorized_scope_implementation_pending_reviewed_commit"):
+                self.assertIn("not executable", completed.stderr)
+            else:
+                self.assertIn("reviewed implementation commit mismatch",
+                              completed.stderr)
             self.assertFalse((root / "sealed").exists())
 
 

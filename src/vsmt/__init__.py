@@ -165,6 +165,14 @@ from .d211_p0_smoke import (
     validate_route_execution_binding,
     validate_scenario_receipt,
 )
+from .d212_route_survey import (
+    D212RouteSurveyError,
+    build_route_bundle_row,
+    plan_route_from_reachable_scan,
+    public_frame_descriptor,
+    public_region_refs,
+    survey_algorithm_sha256,
+)
 from .d213_unified_graph import (
     ABLATION_VARIANTS,
     ATOMIC_TEMPLATES,
@@ -316,6 +324,12 @@ __all__ = [
     "validate_reachable_scan",
     "validate_route_execution_binding",
     "validate_scenario_receipt",
+    "D212RouteSurveyError",
+    "build_route_bundle_row",
+    "plan_route_from_reachable_scan",
+    "public_frame_descriptor",
+    "public_region_refs",
+    "survey_algorithm_sha256",
     "ABLATION_VARIANTS",
     "ATOMIC_TEMPLATES",
     "NODE_TYPES",

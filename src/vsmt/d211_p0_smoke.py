@@ -124,6 +124,7 @@ def validate_d211_contract(
     }, "D-211 base D-210 binding changed")
     _require(value["authorization"] == {
         "source_house_binding_authorized": True,
+        "twelve_route_public_survey_authorized": True,
         "twelve_route_sealing_authorized": True,
         "single_slot_raw_smoke_authorized": True,
         "private_simulator_pose_capture_authorized": True,
@@ -716,7 +717,8 @@ def seal_scenario_receipt(
             _require(_position_distance(poses[start], center) <= 1e-9 and
                      _position_distance(poses[end], center) <= 1e-9,
                      "P07 loop does not return to the shared center")
-            cells = {(round(row["x_m"] / .25), round(row["z_m"] / .25))
+            cells = {(round((row["x_m"] - center["x_m"]) / .25),
+                      round((row["z_m"] - center["z_m"]) / .25))
                      for row in poses[start:end + 1]
                      if _position_distance(row, center) > 1e-9}
             _require(cells, "P07 loop has no non-center cells")
