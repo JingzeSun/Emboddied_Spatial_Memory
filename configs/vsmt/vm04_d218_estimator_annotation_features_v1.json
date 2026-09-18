@@ -1,9 +1,9 @@
 {
   "schema_version": "vsmt-vm04-d218-estimator-annotation-features-v1",
   "decision_id": "D-218",
-  "status": "implementation_pending_review_all_execution_closed",
+  "status": "frozen_executable_train_calibration_annotation_and_features",
   "reviewed_baseline_commit": "af7aa8059bf235b7c812f2685e770f830dd5ae51",
-  "expected_reviewed_implementation_commit": null,
+  "expected_reviewed_implementation_commit": "1c85f6db3d1b6234df8d4cb898ba4c61c1d262a0",
   "bindings": {
     "d215_relative_path": "configs/vsmt/vm04_d215_frontend_freeze_v1.json",
     "d215_file_sha256": "c3d6736f67b300eca03882c081e56e6bf4d65ad1913bcc411df8477fbd188db8",
@@ -12,9 +12,9 @@
     "d217_generation_activation_commit": "0c4f9851006dbb996864c9af82d60ff4b28c09b2"
   },
   "authorization": {
-    "annotation_package_export": false,
-    "annotation_submission_import": false,
-    "feature_materialization": false,
+    "annotation_package_export": true,
+    "annotation_submission_import": true,
+    "feature_materialization": true,
     "audit_open_or_generation": false,
     "estimator_training": false,
     "full_house_expansion": false,
