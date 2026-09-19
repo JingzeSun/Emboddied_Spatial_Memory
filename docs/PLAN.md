@@ -27,7 +27,7 @@ VM-06 独立 test 与论文证据
   └─ P-05 → P-06
 ```
 
-当前执行点：VM-04.E 的 E-01～E-03、E-05 已在服务器完成；576 个固定 house 中 559 个成功、17 个失败且未替换，共有 17,888 帧公开 RGB-D 和 559/559 个 house 的 396 维特征，失败为 0。D-219 已删除 semantic 头并**取消 E-04 全部人工标注**（已导出的约 1.1 GiB 任务包保留为历史产物，不下载、不标注、不进训练），E-07 先由 D-219 裁决为 512/64/64，再由 D-221 依据事前冻结的规则重新裁决为 **2048/128/128**（仍不做 full-house 扩展）。D-220 已取消每步的双提交激活闸门、把 confirmation 降为普通独立 test、把必做消融收窄为 VSMT-Typed/Flat8/NoVersion 加 NECS、把两房 P0 降为 P01/P04/P08 工程 smoke。D-219 的代码已实现（d214 已删语义字段、d219 训练模块与 stage 已交付并通过测试）。下一步是实现并运行 D-221 的前缀扩展（+1,664 个 house 的 RGB-D 与特征），再跑 E-06 与 E-08。audit、Estimator 训练、production reader、P04/P08、route/raw 和 private evaluation 继续关闭。
+当前执行点：VM-04.E 的 E-01～E-03、E-05、E-06 已在服务器完成（证据见 [LOG-205](../EXECUTE.md)）。D-219 删除 semantic 头并取消 E-04 全部人工标注；D-221 依据事前冻结的规则把规模扩到 **2048/128**，2,176 个计划 house 中 2,121 成功、55 失败（含 1 次人为终止，已用独立 schema 标记），共 67,872 帧公开 RGB-D 和 396 维特征。bottleneck 训练帧从 756 增至 3,104。E-06 已训出结构单头：35 epoch early stop，temperature 0.84413，calibration NLL 0.70479 / accuracy 0.6958。D-220 已取消双提交激活闸门、把 confirmation 降为普通独立 test、把必做消融收窄为 VSMT-Typed/Flat8/NoVersion 加 NECS、把两房 P0 降为 P01/P04/P08 工程 smoke。下一步是 E-08 零人工结构审计，再做 P08 dry-run。audit、production reader、P04/P08、route/raw 和 private evaluation 继续关闭；audit 的 128 个 house 从未生成。
 
 ## 二、状态和执行规则
 
@@ -153,7 +153,7 @@ E-03 会完整执行 576 个固定 house，不会为了省工程量只跑一部�
 
 | 项 | 内容 |
 |---|---|
-| 状态 | 待按 D-219 实现 structural 单头；E-05 输入已就绪 |
+| 状态 | 已完成；见 [LOG-205](../EXECUTE.md)。35 epoch early stop、temperature 0.84413、calibration accuracy 0.6958 |
 | 输入 | E-05 的 17,888×396 特征、E-01 split、由私有可达图按冻结规则自动生成的 basin/bottleneck/unknown 标签 |
 | 完整动作 | 只用 train 计算 normalization 和拟合一个 3×396 线性头；calibration 只选 checkpoint 与单个 temperature；保存逐 epoch 历史和失败 |
 | 输出 | normalization、structural weights、bias、temperature、训练 receipt 和互绑摘要 |
