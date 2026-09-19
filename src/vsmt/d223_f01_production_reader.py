@@ -192,7 +192,7 @@ def validate_f01_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     value = clone_json(dict(contract))
     _require(set(value) == {
         "schema_version", "decision_id", "stage_id", "status",
-        "reviewed_baseline_commit", "expected_reviewed_implementation_commit",
+        "reviewed_baseline_commit",
         "bindings", "authorization", "activation_policy",
         "public_input_boundary", "compatibility_input_adapter", "assets", "frontend",
         "production_output_boundary", "implementation_boundary",
@@ -214,7 +214,7 @@ def validate_f01_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
         "f00_contract_relative_path":
             "configs/vsmt/vm04_d223_f00_topology_precheck_v1.json",
         "f00_contract_file_sha256":
-            "ec3ddd9949a713853e591f92ec6188a0b7627ac24af2094b7d59160f94d4176b",
+            "52c5daef8cee309cb99fc0e4edaf98ffafc8e0f4a3c0ae4c1ce85ee6391591dd",
         "f00_public_summary_relative_path":
             "results/vsmt_vm04_f00_topology_precheck.json",
         "f00_public_summary_file_sha256":
@@ -254,23 +254,26 @@ def validate_f01_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
         "d217_public_compat_bundle_generation",
         "real_asset_verification_and_loading", "real_public_input_read",
         "production_cache_generation"}
+    _require(set(policy) == {
+        "active_status", "active_true_authorizations", "must_remain_false",
+        "executable_checkout_must_be_clean", "execution_protocol",
+        "run_receipt_must_record",
+    }, "F-01 activation policy fields changed")
     _require(policy["active_status"] == active and
              set(policy["active_true_authorizations"]) == active_true and
              set(policy["must_remain_false"]) == expected_auth - active_true and
-             policy["activation_commit_may_change_only"] == [
-                 "configs/vsmt/vm04_d223_f01_production_reader_v1.json"] and
              policy["executable_checkout_must_be_clean"] is True and
-             policy["executable_checkout_parent_must_equal_reviewed_implementation_commit"]
-             is True, "F-01 activation policy changed")
+             policy["execution_protocol"] ==
+             "d220_contract_bits_plus_clean_checkout_plus_run_receipt" and
+             policy["run_receipt_must_record"] == [
+                 "execution_commit", "contract_sha256", "input_digests",
+                 "output_digests", "resource_basis", "failures"],
+             "F-01 activation policy changed")
     if value["status"] == pending:
-        _require(value["expected_reviewed_implementation_commit"] is None and
-                 not any(authorization.values()),
+        _require(not any(authorization.values()),
                  "F-01 review candidate must keep execution closed")
     else:
-        _require(type(value["expected_reviewed_implementation_commit"]) is str and
-                 HEX40.fullmatch(value["expected_reviewed_implementation_commit"])
-                 is not None and
-                 {name for name, enabled in authorization.items() if enabled} ==
+        _require({name for name, enabled in authorization.items() if enabled} ==
                  active_true, "F-01 active scope changed")
 
     public = value["public_input_boundary"]

@@ -2200,3 +2200,12 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 输出NPZ以固定成员顺序、固定ZIP时间戳和无压缩格式确定性写入，只含observation 0的RGB/depth。manifest只含匿名内容寻址episode ID、公开数组摘要、内参、零位置与单位四元数的episode-relative origin pose、四维零均值/零协方差pose belief、`transition=null`；source rank、public receipt/NPZ/observation摘要只在bundle外诊断回执中，raw observation ID和public house ref不进入方法输入。回执明确`compatibility_only=true`、正式/P04/P08/论文资格false、private/calibration/audit读取false。
 - 新`prepare-d217-compat`与正式`run`共用F-01 activation-child和clean-checkout门；合同仍是pending且全部十个授权位false，所以CLI在查看外部source/output路径前拒绝。本次同时补了active合同分支测试，避免以后合法activation因“测试只接受pending”产生假失败；activation只可打开兼容bundle生成、真实公开输入读取、冻结资产加载和production cache生成四项，全部下游仍false。
 - 本地定向 **18/18通过**；最终标准库discover **762/762通过**，耗时53.175秒、exit=0；compileall与`git diff --check`通过。测试覆盖最低rank选择、损坏早样本不回退、private标志/额外数组拒绝、确定性NPZ、单帧origin pose、方法manifest匿名化、诊断回执边界和关闭门先于外部路径。白话：输入是已经公私分离的D-217公开house文件，输出只是让F-01 reader能吃的一帧诊断录像；例如rank 3是最早成功项，就只取其第0帧并把相机原点定义为本episode原点。它不是正式路线、时序记忆样本、P04/P08资格或方法效果证据，也没有证明服务器真实字节或SAM2能跑通。
+
+## LOG-212：撤除F-00/F-01违反D-220的activation-commit门并为共享核心重构钉住cache摘要（2026-09-19）
+
+- 用户裁决：F-00与F-01重新引入的"已审实现提交＋单文件activation子提交＋父提交精确匹配"三重门违反D-220，须撤除。D-220当初取消它的理由已被本线自己复现——`a7d52697…9f41e`（F-00）与`9260cf2757…725266`（F-01）两个提交的全部内容就是开门，`e2508a09…`随后又把门关回去，而它们守护的那次运行仍因缺SAM2资产停止。这三个提交连同本条记录一并**保留在历史中不重写**，此处注明它们是违反D-220的旧门产物。
+- 撤除范围只限两个D-223阶段：`ops/vsmt/vm04_d223_f00_topology_precheck.py`与`ops/vsmt/vm04_d223_f01_production_reader.py`不再读`HEAD^`或比对allowlist，两份合同删除`activation_commit_may_change_only`、`executable_checkout_parent_must_equal_reviewed_implementation_commit`与`expected_reviewed_implementation_commit`，改为显式记录`execution_protocol = d220_contract_bits_plus_clean_checkout_plus_run_receipt`和六项`run_receipt_must_record`。运行授权仍是合同布尔位加干净checkout，回执仍记实际commit、合同、输入、输出、资源与失败。历史D-211/D-216/D-217/D-218阶段**不动**：它们确实在旧协议下执行过，且其合同字节被哈希互绑。
+- F-00合同字节因此改变，其file digest由`ec3ddd99…4176b`变为`52c5daef…1591dd`；F-01合同与核心中的绑定同步更新。F-00已导出的公开结论与产物不重跑、不失效——同一批可达位置、同一条冻结拓扑规则，只是运行前的门变了。
+- 新增`tests/test_vm04_d220_execution_protocol.py`作为回归护栏：两份D-223合同不得再出现三个已废字段，必须声明D-220协议与回执字段，两个stage不得读`HEAD^`，且仍必须要求干净checkout。
+- 另在重构共享核心**之前**先钉住两套cache profile的封印摘要（`tests/test_vm04_shared_frontend_cache_goldens.py`）：D-214 frame 0/1与episode为`1efd0da1…`/`f8c3c70e…`/`82beccf7…`，F-01 frame 0与episode为`7b233723…`/`b269d859…`。原因是两个模块此前都没有任何断言固定输出摘要，抽取共享核心可以在所有结构断言仍通过的情况下静默改变封印字节。D-214字节还要解释已执行的回执，必须一字不动。
+- 定向测试46/46通过（连跑三次稳定）；其中一次出现`_reject_forbidden_keys`内f-string把int插成function的`TypeError`，位置与逻辑无关，是本机已知CPU退化的损坏特征，非代码缺陷，权威全量仍以服务器为准。本批未连接服务器、未下载SAM2、未运行F-00/F-01、未生成任何cache。

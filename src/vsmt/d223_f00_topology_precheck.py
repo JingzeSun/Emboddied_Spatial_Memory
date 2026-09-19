@@ -64,7 +64,7 @@ def validate_f00_contract(
     value = clone_json(dict(contract))
     _require(set(value) == {
         "schema_version", "decision_id", "stage_id", "status",
-        "reviewed_baseline_commit", "expected_reviewed_implementation_commit",
+        "reviewed_baseline_commit",
         "bindings", "authorization", "activation_policy", "fixed_houses",
         "topology_rule", "simulator_query", "output_boundary",
         "resource_policy", "stop_policy", "completion",
@@ -122,25 +122,23 @@ def validate_f00_contract(
         "must_remain_false": [
             "route_or_raw_generation", "production_reader",
             "private_evaluation", "estimator_retraining", "audit_rerun"],
-        "activation_commit_may_change_only": [
-            "configs/vsmt/vm04_d223_f00_topology_precheck_v1.json"],
         "executable_checkout_must_be_clean": True,
-        "executable_checkout_parent_must_equal_reviewed_implementation_commit": True,
+        "execution_protocol":
+            "d220_contract_bits_plus_clean_checkout_plus_run_receipt",
+        "run_receipt_must_record": [
+            "execution_commit", "contract_sha256", "input_digests",
+            "output_digests", "resource_basis", "failures"],
     }, "F-00 activation policy changed")
     if value["status"] == pending:
-        _require(value["expected_reviewed_implementation_commit"] is None and
-                 not any(authorization.values()) and value["completion"] is None,
+        _require(not any(authorization.values()) and
+                 value["completion"] is None,
                  "F-00 review candidate must keep real execution closed")
     elif value["status"] == active:
-        _hex(value["expected_reviewed_implementation_commit"], HEX40,
-             "reviewed implementation commit")
         _require({name for name, enabled in authorization.items() if enabled} ==
                  {"real_two_house_topology_precheck"} and
                  value["completion"] is None,
                  "F-00 active authorization scope changed")
     else:
-        _hex(value["expected_reviewed_implementation_commit"], HEX40,
-             "reviewed implementation commit")
         _require(not any(authorization.values()) and value["completion"] == {
             "real_run_count": 1,
             "execution_commit": "a7d52697380760a371a86796517fc7c3df29f41e",

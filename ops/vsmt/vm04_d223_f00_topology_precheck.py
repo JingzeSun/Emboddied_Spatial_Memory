@@ -114,18 +114,19 @@ def check() -> dict[str, Any]:
 
 
 def _execution_checkout(contract: dict[str, Any]) -> str:
+    """Authorize one real F-00 run under the D-220 execution protocol.
+
+    The earlier activation-child gate is gone; see the same function in
+    ``vm04_d223_f01_production_reader.py`` for why D-220 removed it.  The
+    already exported F-00 result stays valid: it was produced from these same
+    reachable positions and the same frozen rule, and only the gate around the
+    run changed.
+    """
+
     assert_real_precheck_authorized(contract)
-    expected = contract["expected_reviewed_implementation_commit"]
-    head, parent = git("rev-parse", "HEAD"), git("rev-parse", "HEAD^")
-    _require(parent == expected and head != expected,
-             "F-00 requires one activation child of reviewed implementation")
-    changed = git("diff", "--name-only", expected, head).splitlines()
-    _require(changed == contract["activation_policy"]
-             ["activation_commit_may_change_only"],
-             "F-00 activation changed files outside its allowlist")
     _require(not git("status", "--porcelain"),
              "F-00 execution requires a clean checkout")
-    return head
+    return git("rev-parse", "HEAD")
 
 
 def _resource_snapshot(path: Path) -> dict[str, Any]:

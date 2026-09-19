@@ -4,7 +4,6 @@
   "stage_id": "F-00",
   "status": "completed_real_two_house_topology_precheck_all_execution_closed",
   "reviewed_baseline_commit": "569ce605983acf1586339189caddde20e93e2492",
-  "expected_reviewed_implementation_commit": "3d425a9b3fbb69ac306168e25f1faea1ced79855",
   "bindings": {
     "d223_relative_path": "configs/vsmt/vm04_d223_p08_topological_qualification_v1.json",
     "d223_file_sha256": "737b4a7e108dca30931884460d294d36cc571c2d50fe5bc12daa0ebf9f288b18",
@@ -33,11 +32,16 @@
       "estimator_retraining",
       "audit_rerun"
     ],
-    "activation_commit_may_change_only": [
-      "configs/vsmt/vm04_d223_f00_topology_precheck_v1.json"
-    ],
     "executable_checkout_must_be_clean": true,
-    "executable_checkout_parent_must_equal_reviewed_implementation_commit": true
+    "execution_protocol": "d220_contract_bits_plus_clean_checkout_plus_run_receipt",
+    "run_receipt_must_record": [
+      "execution_commit",
+      "contract_sha256",
+      "input_digests",
+      "output_digests",
+      "resource_basis",
+      "failures"
+    ]
   },
   "fixed_houses": [
     {

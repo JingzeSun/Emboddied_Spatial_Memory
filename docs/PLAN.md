@@ -191,7 +191,7 @@ E-08没有评价VSMT，也没有评价实体—地点关联。D-223后不再运�
 
 | 项 | 内容 |
 |---|---|
-| 状态 | 已完成并重新关闭；两房均成功且存在合格拓扑，公开报告见[`vsmt_vm04_f00_topology_precheck.json`](../results/vsmt_vm04_f00_topology_precheck.json) |
+| 状态 | 已完成并重新关闭；两房均成功且存在合格拓扑，公开报告见[`vsmt_vm04_f00_topology_precheck.json`](../results/vsmt_vm04_f00_topology_precheck.json)；执行门已按 D-220 撤除 activation-commit 三重门，结论与产物不受影响 |
 | 输入 | 两间固定P0 house、生成器已获构造权限的`GetReachablePositions`、D-215原拓扑规则 |
 | 完整动作 | 不启动production reader、不生成raw，只在两间房的可达图上计算逐位置basin/bottleneck/unknown并检查是否存在可规划的basin→bottleneck→basin路径 |
 | 输出 | 两房逐类计数、候选路径存在性、固定规则/代码/输入摘要和逐house成功或失败 |
@@ -203,7 +203,7 @@ E-08没有评价VSMT，也没有评价实体—地点关联。D-223后不再运�
 
 | 项 | 内容 |
 |---|---|
-| 状态 | reader本地实现已审；D-217单帧兼容适配器已实现待审；服务器前次预检因缺冻结SAM2资产和兼容公开bundle停止，真实执行位全关闭，cache为0 |
+| 状态 | reader本地实现已审；D-217单帧兼容适配器已实现待审；服务器前次预检因缺冻结SAM2资产和兼容公开bundle停止，真实执行位全关闭，cache为0；执行门已按 D-220 撤除 activation-commit 三重门；cache 摘要已在共享核心重构前钉住 |
 | 输入 | 兼容性预检仅从D-217 `public/train`按rank取首个成功sample的observation 0并构造origin pose；reader再读冻结SAM/DINO/几何配置、公开RGB-D、内参、因果pose belief与动作摘要；**不加载E-06权重** |
 | 完整动作 | 从公开RGB-D产生匿名fragment、DINO描述、surface/free-space/visibility和不含语义/结构类别概率的非网格place observation；只写一次共享cache |
 | 输出 | 五种方法读取的完全相同 cache bytes 和逐帧 receipt |

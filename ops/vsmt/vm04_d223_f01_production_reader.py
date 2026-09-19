@@ -143,18 +143,19 @@ def check() -> dict[str, Any]:
 
 
 def _execution_checkout(contract: dict[str, Any]) -> str:
+    """Authorize one real F-01 run under the D-220 execution protocol.
+
+    D-220 removed the "reviewed implementation commit plus a single-file
+    activation child plus an exact parent match" gate after it was empirically
+    falsified: one unrelated documentation commit was enough to lock an already
+    authorized stage.  Authorization is now the contract's own boolean bits
+    plus a clean checkout, and the run receipt records the actual commit.
+    """
+
     assert_real_f01_authorized(contract)
-    expected = contract["expected_reviewed_implementation_commit"]
-    head, parent = git("rev-parse", "HEAD"), git("rev-parse", "HEAD^")
-    _require(parent == expected and head != expected,
-             "F-01 requires one activation child of reviewed implementation")
-    changed = git("diff", "--name-only", expected, head).splitlines()
-    _require(changed == contract["activation_policy"]
-             ["activation_commit_may_change_only"],
-             "F-01 activation changed files outside its allowlist")
     _require(not git("status", "--porcelain"),
              "F-01 execution requires a clean checkout")
-    return head
+    return git("rev-parse", "HEAD")
 
 
 def _nearest_existing_parent(path: Path) -> Path:
@@ -236,8 +237,8 @@ def run(
     contract = load_contract()
     execution_commit = _execution_checkout(contract)
 
-    # All user-supplied paths remain unopened until the closed execution gate,
-    # activation-child check, and clean-checkout check have succeeded.
+    # All user-supplied paths remain unopened until the contract's execution
+    # bits and the clean-checkout check have succeeded.
     _require(not output_root.exists(), "F-01 output root already exists")
     disk = shutil.disk_usage(_nearest_existing_parent(output_root)).free
     _require(disk >= contract["resource_policy"]["minimum_free_disk_bytes"],

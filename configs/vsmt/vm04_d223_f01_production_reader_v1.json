@@ -4,12 +4,11 @@
   "stage_id": "F-01",
   "status": "implementation_pending_review_all_execution_closed",
   "reviewed_baseline_commit": "757127b1b7d56a140e96c4264d8e362eebcdbfe3",
-  "expected_reviewed_implementation_commit": null,
   "bindings": {
     "d223_relative_path": "configs/vsmt/vm04_d223_p08_topological_qualification_v1.json",
     "d223_file_sha256": "737b4a7e108dca30931884460d294d36cc571c2d50fe5bc12daa0ebf9f288b18",
     "f00_contract_relative_path": "configs/vsmt/vm04_d223_f00_topology_precheck_v1.json",
-    "f00_contract_file_sha256": "ec3ddd9949a713853e591f92ec6188a0b7627ac24af2094b7d59160f94d4176b",
+    "f00_contract_file_sha256": "52c5daef8cee309cb99fc0e4edaf98ffafc8e0f4a3c0ae4c1ce85ee6391591dd",
     "f00_public_summary_relative_path": "results/vsmt_vm04_f00_topology_precheck.json",
     "f00_public_summary_file_sha256": "81050c8cbe8306b54c0f9621e014199e860f948f3f3de237dab06885f24ac181",
     "d215_relative_path": "configs/vsmt/vm04_d215_frontend_freeze_v1.json",
@@ -49,11 +48,16 @@
       "training",
       "audit_rerun"
     ],
-    "activation_commit_may_change_only": [
-      "configs/vsmt/vm04_d223_f01_production_reader_v1.json"
-    ],
     "executable_checkout_must_be_clean": true,
-    "executable_checkout_parent_must_equal_reviewed_implementation_commit": true
+    "execution_protocol": "d220_contract_bits_plus_clean_checkout_plus_run_receipt",
+    "run_receipt_must_record": [
+      "execution_commit",
+      "contract_sha256",
+      "input_digests",
+      "output_digests",
+      "resource_basis",
+      "failures"
+    ]
   },
   "public_input_boundary": {
     "fields": [
@@ -92,7 +96,10 @@
     "selection_order": "ascending_sample_rank_first_present_public_sample",
     "selected_sample_incomplete_or_malformed_policy": "fail_do_not_skip",
     "selected_observation_index": 0,
-    "source_required_files": ["receipt.json", "rgbd.npz"],
+    "source_required_files": [
+      "receipt.json",
+      "rgbd.npz"
+    ],
     "source_npz_arrays": [
       "rgb_uint8",
       "depth_m_float32",
@@ -101,8 +108,18 @@
     ],
     "pose_policy": {
       "frame": "episode_relative_observation_zero_origin",
-      "mean_x_y_z_yaw": [0.0, 0.0, 0.0, 0.0],
-      "covariance_diagonal": [0.0, 0.0, 0.0, 0.0],
+      "mean_x_y_z_yaw": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "covariance_diagonal": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
       "is_world_pose": false,
       "incoming_transition_action_summary": null
     },
@@ -116,7 +133,11 @@
       "model_id": "dinov2.vits14",
       "repository_commit": "7764ea0f912e53c92e82eb78a2a1631e92725fc8",
       "checkpoint_sha256": "b938bf1bc15cd2ec0feacfe3a1bb553fe8ea9ca46a7e1d8d00217f29aef60cd9",
-      "input_shape": [224, 224, 3],
+      "input_shape": [
+        224,
+        224,
+        3
+      ],
       "patch_size_pixels": 14,
       "patch_token_dimension": 384,
       "parameters_frozen": true,
@@ -160,7 +181,7 @@
       "patch_size_pixels": 14,
       "patch_token_dimension": 384,
       "minimum_total_patch_weight": 1.0,
-      "unit_norm_validation_tolerance": 0.00001
+      "unit_norm_validation_tolerance": 1e-05
     },
     "fragment_geometry": {
       "depth_convention": "ai2thor_linear01_camera_axis_z_m",
@@ -185,7 +206,13 @@
     },
     "free_space": {
       "tile_size_pixels": 14,
-      "block_widths_in_tiles": [1, 2, 4, 8, 16],
+      "block_widths_in_tiles": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ],
       "angular_boundary_erosion_pixels": 1,
       "minimum_depth_m": 0.05,
       "maximum_valid_depth_m": 20.0,

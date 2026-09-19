@@ -114,7 +114,6 @@ class D223F01ProductionReaderTests(unittest.TestCase):
         self.assertFalse(value["assets"]["e06_structural_estimator_loaded"])
         if value["status"] == "implementation_pending_review_all_execution_closed":
             self.assertFalse(any(value["authorization"].values()))
-            self.assertIsNone(value["expected_reviewed_implementation_commit"])
             with self.assertRaisesRegex(D223F01Error, "closed pending review"):
                 assert_real_f01_authorized(value)
         else:
@@ -127,7 +126,6 @@ class D223F01ProductionReaderTests(unittest.TestCase):
 
         active = contract()
         active["status"] = "frozen_real_f01_single_episode_reader"
-        active["expected_reviewed_implementation_commit"] = "a" * 40
         for name in active["activation_policy"]["active_true_authorizations"]:
             active["authorization"][name] = True
         validated_active = validate_f01_contract(active)
