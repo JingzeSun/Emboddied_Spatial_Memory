@@ -1,0 +1,163 @@
+{
+  "schema_version": "vsmt-lean-s0-assignment-v1",
+  "decision_id": "D-224",
+  "stage_id": "S0-03",
+  "status": "implementation_candidate_pending_user_code_review",
+  "plain_language_zh": "本合同定义一帧画面怎样变成一次分配。输入是冻结前端的一帧、此前预测的记忆和一组无默认值的规则数值；输出是召回集合、三张特征矩阵、代价矩阵和一次确定性求解。例如两个相似色块同时匹配一个旧实体时，只有一个拿到它，另一个被推向新建列。它不训练模型（S2-03）、不定义标签与指标（S0-04），也不定义对照臂参数（S0-05）。",
+  "pure_core_relative_path": "src/vsmt/lean_assignment.py",
+  "depends_on": {
+    "s0_01_contract": "configs/vsmt/lean_s0_entity_memory_v1.json",
+    "s0_02_contract": "configs/vsmt/lean_s0_intervention_data_v1.json"
+  },
+  "authorization": {
+    "frontend_cache_generation": false,
+    "feature_extraction": false,
+    "reid_adapter_head_training": false,
+    "model_training": false,
+    "private_evaluation": false,
+    "server_run": false
+  },
+  "cache_frame_fields": [
+    "frame_digest", "tick", "camera_position_m", "camera_forward",
+    "fragments", "entity_geometry"
+  ],
+  "fragment_fields": [
+    "fragment_id", "descriptor", "centroid_m", "aabb_min_m", "aabb_max_m",
+    "pixel_count", "depth_valid_ratio", "supported_by"
+  ],
+  "entity_geometry_fields": [
+    "should_be_visible_ratio", "free_space_coverage_ratio"
+  ],
+  "entity_geometry_note_zh": "应可见比例是实体包围盒体素落入本帧可见体积的比例；自由空间覆盖比例是这些体素被可靠深度射线穿过的比例。两者都由冻结前端在公开深度上算出，五个臂拿到逐字节相同的值。例如被橱柜门挡住的杯子，两个比例都接近零，因此不构成撤回证据。",
+  "recall_rule": {
+    "active_ranked_by_descriptor_cosine": true,
+    "active_has_distance_limit": true,
+    "dormant_and_retracted_have_no_distance_limit": true,
+    "tie_break": "smaller_entity_id",
+    "order": "active_block_then_dormant_and_retracted_block",
+    "active_count": null,
+    "dormant_count": null,
+    "active_radius_m": null,
+    "birth_neighbourhood_radius_m": null,
+    "plain_language_zh": "活动实体按余弦取前 k 个且质心距离不超过登记半径；休眠与已撤回实体按余弦取前 k′ 个且不设距离上限，因为被搬走的物体可以出现在很远处。例如杯子从厨房搬到卧室后，只有不设上限的那一路才能把旧杯子召回来。并列按 entity_id 字典序，顺序不依赖记忆列表的排列。四个数值待冻结，当前为 null。"
+  },
+  "association_feature_order": [
+    "cosine_to_descriptor_mean",
+    "cosine_to_best_view_descriptor",
+    "centroid_distance_m",
+    "aabb_iou",
+    "log_size_ratio",
+    "ticks_since_last_seen",
+    "missed_opportunity_count",
+    "state_is_active",
+    "state_is_dormant",
+    "state_is_retracted",
+    "cosine_rank_within_recall",
+    "cosine_margin_to_runner_up",
+    "mutual_best",
+    "supported_by_agrees"
+  ],
+  "existence_feature_order": [
+    "should_be_visible_ratio",
+    "free_space_coverage_ratio",
+    "camera_distance_m",
+    "camera_view_cosine",
+    "missed_opportunity_count",
+    "observation_count",
+    "ticks_since_last_seen",
+    "best_fragment_cosine",
+    "best_fragment_still_unassigned",
+    "state_is_active",
+    "state_is_dormant",
+    "state_is_retracted"
+  ],
+  "birth_feature_order": [
+    "best_cosine_to_any_entity",
+    "active_entities_within_radius",
+    "pixel_count",
+    "depth_valid_ratio"
+  ],
+  "feature_rules": {
+    "no_private_future_teacher_or_reference_input": true,
+    "no_path_slot_index_or_sample_name_input": true,
+    "field_order_is_positional_and_frozen": true,
+    "plain_language_zh": "三张特征表的字段顺序是冻结的，下游按位置取值，改顺序即改合同。所有特征只由公开 cache 与此前预测的记忆算出；不接受私有标注、未来、teacher、参考答案，也不接受路径、槽号或样本名。"
+  },
+  "cost_matrix": {
+    "rows": "fragments_in_frame_order",
+    "columns": "recalled_entity_ids_sorted_then_one_birth_column_per_fragment",
+    "cost": "negative_log_sigmoid_of_head_logit",
+    "association_logit_key": "<fragment_id>|<entity_id>",
+    "birth_logit_key": "<fragment_id>",
+    "non_recalled_pair_cost": 1000000000.0,
+    "birth_column_is_private_to_its_fragment": true,
+    "existence_threshold_tau_r": null,
+    "plain_language_zh": "行是本帧色块，列是被召回的实体加上每个色块自己的新建列；代价是头输出 logit 的 −log sigmoid。召回之外的组合给一个有限但很大的代价，求解器因此永远不会选它，同时矩阵仍然良定义。每个新建列只属于它自己的色块，别的色块不能占用。存在阈值 τ_r 属 VSMT-lean 的 12 个配置之一，待冻结，当前为 null。"
+  },
+  "solver": {
+    "name": "rectangular_minimum_cost_assignment",
+    "implementation": "self_written_no_new_dependency",
+    "algorithm": "shortest_augmenting_path_with_potentials",
+    "complexity": "O(rows^2 * columns)",
+    "tie_break": "smaller_column_index",
+    "requires_columns_at_least_rows": true,
+    "plain_language_zh": "求解器自写而不用 scipy：scipy 不是本项目依赖，而且并列必须由我们自己定，否则同一矩阵在不同库版本下可能返回不同的最优解。并列一律取较小列号，结果只依赖矩阵本身与调用方的规范行列顺序。因为每个色块都有自己的新建列，列数永远不少于行数。"
+  },
+  "seal": {
+    "sealed_before_any_model_runs": true,
+    "sealed_before_any_private_file_is_opened": true,
+    "sealed_payload": [
+      "frame_digest", "tick", "rows", "columns", "recall",
+      "association_rows", "birth_rows", "association_feature_order",
+      "birth_feature_order"
+    ],
+    "existence_features_computed_after_the_solve": true,
+    "private_mutation_must_not_change_public_bytes": true,
+    "invariant_public_products": [
+      "recall_order", "association_feature_matrix", "seal_sha256",
+      "reference_untrained_scores"
+    ],
+    "reference_score_seed": null,
+    "plain_language_zh": "召回集合与关联/新建特征矩阵在任何模型运行前、任何私有文件打开前算完并写摘要。存在特征在求解之后才算，因为其中一项是‘最相似色块是否仍未被分配’，分配之前没有定义；它仍然只用公开量。不变性要求是：只改私有标注而公开输入不变时，召回顺序、特征矩阵、封存摘要和参考分数必须逐字节相同。参考分数不是真模型，只是让这句话可被测试的确定性替身；其 seed 待冻结，当前为 null。"
+  },
+  "reid_adapter_head": {
+    "decision_id": "D-224-E",
+    "status": "registered_optional_frontend_not_trained",
+    "input": "frozen_dinov2_descriptor",
+    "output": "l2_normalised_projection",
+    "training_data_scope": "train_split_houses_only",
+    "trained_once_then_frozen": true,
+    "shared_bytes_across_all_arms": true,
+    "counts_against_config_budget": false,
+    "selection_stage": "S1-05",
+    "selection_rule": "highest_cross_view_separation_on_the_development_split",
+    "must_report_frozen_descriptor_baseline_if_selected": true,
+    "output_dimension": null,
+    "selection_rule_threshold": null,
+    "plain_language_zh": "共享 ReID 适配头是冻结 DINO 描述子之上的一个投影，用 train 划分 house 的实例级对比损失训练一次后冻结，五个臂逐字节共用同一投影，因此不是 VSMT-lean 的私有优势。它在 S1-04 与原始冻结描述子一同量跨视角分离度，由 S1-05 二选一；不计入任何方法的 12 个配置额度。若被选中，论文必须同时报告冻结描述子基线。输出维度与选择阈值待冻结，当前为 null。"
+  },
+  "not_in_this_stage": [
+    "teacher_labels",
+    "metrics",
+    "arm_parameters",
+    "training_recipe",
+    "dagger_rounds"
+  ],
+  "policy_values_without_defaults": [
+    "recall_rule.active_count",
+    "recall_rule.dormant_count",
+    "recall_rule.active_radius_m",
+    "recall_rule.birth_neighbourhood_radius_m",
+    "cost_matrix.existence_threshold_tau_r",
+    "seal.reference_score_seed",
+    "reid_adapter_head.output_dimension",
+    "reid_adapter_head.selection_rule_threshold"
+  ],
+  "continue_gate": {
+    "private_mutation_leaves_recall_features_and_logits_byte_identical": true,
+    "solver_is_deterministic_and_optimal": true,
+    "feature_order_is_frozen_and_tested": true,
+    "existence_features_come_after_the_solve": true,
+    "plain_language_zh": "S0-03 的继续门是：换私有文件而公开输入不变时召回顺序、特征矩阵与未训练 logits 逐字节相同；求解器确定且最优；三张特征表字段顺序由本合同固定并有测试；存在特征在求解之后计算。检查通过不等于特征有用，也不等于数值合适。"
+  }
+}
