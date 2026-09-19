@@ -2,9 +2,9 @@
   "schema_version": "vsmt-vm04-d223-f01-production-reader-v1",
   "decision_id": "D-223",
   "stage_id": "F-01",
-  "status": "implementation_pending_review_all_execution_closed",
+  "status": "frozen_real_f01_single_episode_reader",
   "reviewed_baseline_commit": "757127b1b7d56a140e96c4264d8e362eebcdbfe3",
-  "expected_reviewed_implementation_commit": null,
+  "expected_reviewed_implementation_commit": "b16007193428ed166360b57396e97678e8a4848f",
   "bindings": {
     "d223_relative_path": "configs/vsmt/vm04_d223_p08_topological_qualification_v1.json",
     "d223_file_sha256": "737b4a7e108dca30931884460d294d36cc571c2d50fe5bc12daa0ebf9f288b18",
@@ -20,9 +20,9 @@
     "public_non_entity_geometry_file_sha256": "9ef7bdfdade97b50a2e1da53ad8b11183427bf9b383feea4f223d9bf4eee5148"
   },
   "authorization": {
-    "real_asset_verification_and_loading": false,
-    "real_public_input_read": false,
-    "production_cache_generation": false,
+    "real_asset_verification_and_loading": true,
+    "real_public_input_read": true,
+    "production_cache_generation": true,
     "p04_p08_qualification": false,
     "route_or_raw_generation": false,
     "adapter_materialization": false,
