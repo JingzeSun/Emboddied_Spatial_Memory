@@ -58,7 +58,7 @@ episode cache按0开始连续封存frame，绑定DINO/SAM/几何资产receipt和
 
 P04回执保存所选两帧、公开名义距离、DINO cosine和“未用绝对阈值/未用旧四象限描述子”布尔。D-223后的P08资格由两份不可混读证据组成：`topology_qualification_receipt`由数据生成器保存逐位置拓扑角色、冻结规则摘要和basin→bottleneck→basin命中段；`fragment_qualification_receipt`只读共享cache，保存两端各一对跨帧稳定fragment及0.85/0.35配置。合并回执只引用两者摘要，不把可达图复制到public cache或adapter。白话：生成器证明“题目确有瓶颈”，公开fragment证明“两端确有可供记忆的匿名实体证据”；它不把前者喂给方法，也不把后者当真实实体ID。
 
-F-00现把每个house的完整可达位置、逐点`basin/bottleneck/unknown`、见证路径、source house ID和source record摘要只写入private receipt；public summary只含`house_slot`、逐类/连通分量计数、是否存在签名及private receipt摘要。输入是两份固定house的生成器可达图，输出是一份确定性合并的两行公开状态；例如某house模拟器查询失败，公开侧只记该slot失败而不泄露错误文本或house ID，且不能继续F-01。它不等于production cache、raw RGB-D或private evaluation。实现已完成但真实回执尚不存在，服务器查询仍未授权。
+F-00把每个house的完整可达位置、逐点`basin/bottleneck/unknown`、见证路径、source house ID和source record摘要只写入private receipt；public summary只含`house_slot`、逐类/连通分量计数、是否存在签名及private receipt摘要。输入是两份固定house的生成器可达图，输出是一份确定性合并的两行公开状态；例如某house模拟器查询失败，公开侧只记该slot失败而不泄露错误文本或house ID，且不能继续F-01。它不等于production cache、raw RGB-D或private evaluation。真实运行已完成：两份private receipt留在服务器，公开报告为[`vsmt_vm04_f00_topology_precheck.json`](../results/vsmt_vm04_f00_topology_precheck.json)，文件SHA-256为`81050c8c…c181`，内部summary摘要为`3fa209ef…5ff8`；二者不要混写。
 
 `vsmt-vm04-d214-legacy-grid-retirement-readiness-v1`只在新cache全部生成、摘要验证、P04/P08重验、全路线重绑、有精确无通配符目标且无复现依赖时置`ready_for_user_requested_deletion=true`；`deletion_performed`始终false。它是删除前证据，不执行删除。
 

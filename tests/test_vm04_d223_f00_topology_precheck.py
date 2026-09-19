@@ -81,18 +81,30 @@ class D223F00TopologyPrecheckTests(unittest.TestCase):
         cls.d215 = validate_d215_contract(_load(D215_PATH))
         cls.d211 = _load(D211_PATH)
 
-    def test_contract_records_approval_but_keeps_real_execution_closed(self):
+    def test_completed_contract_records_result_and_closes_execution(self):
         validated = validate_f00_contract(
             self.f00, d223_contract=self.d223, d215_contract=self.d215,
             d211_contract=self.d211)
         self.assertEqual("approved_design_all_execution_closed",
                          self.d223["status"])
         self.assertFalse(any(validated["authorization"].values()))
+        self.assertEqual(1, validated["completion"]["real_run_count"])
+        self.assertTrue(validated["completion"]["continue_to_f01"])
         with self.assertRaisesRegex(D223F00Error, "pending code review"):
             assert_real_precheck_authorized(validated)
+
+        active = deepcopy(validated)
+        active["status"] = active["activation_policy"]["active_status"]
+        active["authorization"]["real_two_house_topology_precheck"] = True
+        active["completion"] = None
+        validate_f00_contract(
+            active, d223_contract=self.d223, d215_contract=self.d215,
+            d211_contract=self.d211)
+        assert_real_precheck_authorized(active)
+
         changed = deepcopy(validated)
-        changed["authorization"]["real_two_house_topology_precheck"] = True
-        with self.assertRaisesRegex(D223F00Error, "keep real execution closed"):
+        changed["authorization"]["route_or_raw_generation"] = True
+        with self.assertRaisesRegex(D223F00Error, "completed state"):
             validate_f00_contract(
                 changed, d223_contract=self.d223, d215_contract=self.d215,
                 d211_contract=self.d211)

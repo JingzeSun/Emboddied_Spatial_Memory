@@ -67,14 +67,16 @@ def validate_f00_contract(
         "reviewed_baseline_commit", "expected_reviewed_implementation_commit",
         "bindings", "authorization", "activation_policy", "fixed_houses",
         "topology_rule", "simulator_query", "output_boundary",
-        "resource_policy", "stop_policy",
+        "resource_policy", "stop_policy", "completion",
     }, "F-00 contract has unexpected fields")
     _require(value["schema_version"] == CONTRACT_SCHEMA and
              value["decision_id"] == "D-223" and value["stage_id"] == "F-00",
              "F-00 contract identity changed")
     pending = "implementation_pending_review_all_execution_closed"
     active = "frozen_real_two_house_topology_precheck"
-    _require(value["status"] in {pending, active}, "F-00 status changed")
+    completed = "completed_real_two_house_topology_precheck_all_execution_closed"
+    _require(value["status"] in {pending, active, completed},
+             "F-00 status changed")
     _hex(value["reviewed_baseline_commit"], HEX40, "reviewed baseline commit")
 
     bindings = value["bindings"]
@@ -127,14 +129,31 @@ def validate_f00_contract(
     }, "F-00 activation policy changed")
     if value["status"] == pending:
         _require(value["expected_reviewed_implementation_commit"] is None and
-                 not any(authorization.values()),
+                 not any(authorization.values()) and value["completion"] is None,
                  "F-00 review candidate must keep real execution closed")
-    else:
+    elif value["status"] == active:
         _hex(value["expected_reviewed_implementation_commit"], HEX40,
              "reviewed implementation commit")
         _require({name for name, enabled in authorization.items() if enabled} ==
-                 {"real_two_house_topology_precheck"},
+                 {"real_two_house_topology_precheck"} and
+                 value["completion"] is None,
                  "F-00 active authorization scope changed")
+    else:
+        _hex(value["expected_reviewed_implementation_commit"], HEX40,
+             "reviewed implementation commit")
+        _require(not any(authorization.values()) and value["completion"] == {
+            "real_run_count": 1,
+            "execution_commit": "a7d52697380760a371a86796517fc7c3df29f41e",
+            "public_summary_relative_path":
+                "results/vsmt_vm04_f00_topology_precheck.json",
+            "public_summary_file_sha256":
+                "81050c8cbe8306b54c0f9621e014199e860f948f3f3de237dab06885f24ac181",
+            "public_summary_sha256":
+                "3fa209ef83799edeb1e8c96a574f9d53e5576ecfd911751908c3209780d55ff8",
+            "successful_house_count": 2, "failed_house_count": 0,
+            "houses_with_qualifying_signature": 2,
+            "continue_to_f01": True, "automatic_f01_started": False,
+        }, "F-00 completed state or result binding changed")
 
     _require(value["topology_rule"] == {
         "implementation":
