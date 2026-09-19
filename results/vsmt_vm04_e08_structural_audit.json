@@ -1,0 +1,229 @@
+{
+  "decision_id": "D-222",
+  "exported_without_rerunning_the_audit": true,
+  "manifest": {
+    "bundle_houses": 118,
+    "bundle_rows": 3776,
+    "class_counts": {
+      "basin": 1860,
+      "bottleneck": 164,
+      "unknown": 1752
+    },
+    "failed_houses": 10,
+    "feature_shards": 118,
+    "planned_houses": 128,
+    "replacement_performed": false,
+    "successful_houses": 118
+  },
+  "provenance": {
+    "audit_npz_sha256": "cdac4262154da9958351c304152ceba1dc484616dc0e46a666414119366900ec",
+    "audit_report_sha256": "3e652a45a95dfbcd6411c182daf571808675118ce6c4f1d3beb15cd28000b142",
+    "bundle_receipt_sha256": "4ac0ffed4b579c0eb2402acbb7508053e084548b6a8da029f7f776a463ae1808",
+    "feature_receipt_sha256": "309b84a30898be8d5d777793366d704ced8bf9534ae2c9b8a9cded0d3a5f3732",
+    "frozen_model": {
+      "normalization_receipt_sha256": "cce06993172c8df2affa9a07e4d0831474419ea1ce9d16afce4c73d577004c3a",
+      "training_receipt_sha256": "874ccf82507e712bc41ef6638da2a293c8f5c524fe89d12d1ef025b57a315887",
+      "weights_sha256": "e5fca2f29c695df22b550243a64a6444d80a03ce8dd407360a90e28e68cc22c5"
+    },
+    "generation_receipt_sha256": "df930fba94d53d94eb13e0a96ab0a14f04d1dd766179ac412251848e0a7869f4",
+    "on_disk_report_file_sha256": "819d44a575ffa4088bf35cd90c104b4d2adb52faa0bbaf27d24dde7c25c3ff41",
+    "run_commit": "2648a0153751d06c48e42d948c22ed527b2b4090",
+    "server_output_root": "/root/autodl-tmp/vsmt_outputs/vsmt-vm04-estimator-development-0c4f9851006d"
+  },
+  "report": {
+    "argmax_tie_count": 0,
+    "audit_report_sha256": "3e652a45a95dfbcd6411c182daf571808675118ce6c4f1d3beb15cd28000b142",
+    "audit_used_to_select_anything": false,
+    "bootstrap": {
+      "percentiles": [
+        2.5,
+        97.5
+      ],
+      "resamples": 10000,
+      "seed": 260919,
+      "unit": "house"
+    },
+    "calibration_bin_table": [
+      {
+        "accuracy": null,
+        "bin_high": 0.06666666666666667,
+        "bin_low": 0.0,
+        "count": 0,
+        "mean_confidence": null
+      },
+      {
+        "accuracy": null,
+        "bin_high": 0.13333333333333333,
+        "bin_low": 0.06666666666666667,
+        "count": 0,
+        "mean_confidence": null
+      },
+      {
+        "accuracy": null,
+        "bin_high": 0.2,
+        "bin_low": 0.13333333333333333,
+        "count": 0,
+        "mean_confidence": null
+      },
+      {
+        "accuracy": null,
+        "bin_high": 0.26666666666666666,
+        "bin_low": 0.2,
+        "count": 0,
+        "mean_confidence": null
+      },
+      {
+        "accuracy": null,
+        "bin_high": 0.3333333333333333,
+        "bin_low": 0.26666666666666666,
+        "count": 0,
+        "mean_confidence": null
+      },
+      {
+        "accuracy": 0.4878048780487805,
+        "bin_high": 0.4,
+        "bin_low": 0.3333333333333333,
+        "count": 41,
+        "mean_confidence": 0.38061303488532744
+      },
+      {
+        "accuracy": 0.46808510638297873,
+        "bin_high": 0.4666666666666667,
+        "bin_low": 0.4,
+        "count": 188,
+        "mean_confidence": 0.4409380685261558
+      },
+      {
+        "accuracy": 0.5375586854460094,
+        "bin_high": 0.5333333333333333,
+        "bin_low": 0.4666666666666667,
+        "count": 426,
+        "mean_confidence": 0.5008805643714556
+      },
+      {
+        "accuracy": 0.5675675675675675,
+        "bin_high": 0.6,
+        "bin_low": 0.5333333333333333,
+        "count": 481,
+        "mean_confidence": 0.5671414736845349
+      },
+      {
+        "accuracy": 0.647982062780269,
+        "bin_high": 0.6666666666666666,
+        "bin_low": 0.6,
+        "count": 446,
+        "mean_confidence": 0.6345724596827393
+      },
+      {
+        "accuracy": 0.7148846960167715,
+        "bin_high": 0.7333333333333333,
+        "bin_low": 0.6666666666666666,
+        "count": 477,
+        "mean_confidence": 0.6995212138261842
+      },
+      {
+        "accuracy": 0.7579365079365079,
+        "bin_high": 0.8,
+        "bin_low": 0.7333333333333333,
+        "count": 504,
+        "mean_confidence": 0.7676318105461655
+      },
+      {
+        "accuracy": 0.7910750507099391,
+        "bin_high": 0.8666666666666667,
+        "bin_low": 0.8,
+        "count": 493,
+        "mean_confidence": 0.832181334632443
+      },
+      {
+        "accuracy": 0.8870292887029289,
+        "bin_high": 0.9333333333333333,
+        "bin_low": 0.8666666666666667,
+        "count": 478,
+        "mean_confidence": 0.9003510005353973
+      },
+      {
+        "accuracy": 0.8760330578512396,
+        "bin_high": 1.0,
+        "bin_low": 0.9333333333333333,
+        "count": 242,
+        "mean_confidence": 0.9570875658988913
+      }
+    ],
+    "calibration_error": 0.023774418194174994,
+    "class_support": {
+      "basin": 1860,
+      "bottleneck": 164,
+      "unknown": 1752
+    },
+    "frozen_model": {
+      "normalization_receipt_sha256": "cce06993172c8df2affa9a07e4d0831474419ea1ce9d16afce4c73d577004c3a",
+      "training_receipt_sha256": "874ccf82507e712bc41ef6638da2a293c8f5c524fe89d12d1ef025b57a315887",
+      "weights_sha256": "e5fca2f29c695df22b550243a64a6444d80a03ce8dd407360a90e28e68cc22c5"
+    },
+    "houses": 118,
+    "metrics_outside_the_frozen_list_computed": false,
+    "model_refitted_during_audit": false,
+    "observations": 3776,
+    "per_class_interval": {
+      "basin": {
+        "mean_nll": [
+          0.5745073852215581,
+          0.6626789086979286
+        ],
+        "precision": [
+          0.6837109560909085,
+          0.751131393376774
+        ],
+        "recall": [
+          0.7307223206210431,
+          0.7813176198804328
+        ]
+      },
+      "bottleneck": {
+        "mean_nll": [
+          1.8302290366582183,
+          2.237529130618441
+        ],
+        "precision": [
+          0.12244897959183673,
+          0.3728813559322034
+        ],
+        "recall": [
+          0.04310344827586207,
+          0.15
+        ]
+      },
+      "unknown": {
+        "mean_nll": [
+          0.6408992765516264,
+          0.7338858994501494
+        ],
+        "precision": [
+          0.6617973689672791,
+          0.733222458377936
+        ],
+        "recall": [
+          0.6726441125415884,
+          0.7265454948824178
+        ]
+      }
+    },
+    "per_house_interval": {
+      "structural_accuracy": [
+        0.6800847457627118,
+        0.7229872881355932
+      ],
+      "structural_nll": [
+        0.6720731907457853,
+        0.7488926396591374
+      ]
+    },
+    "reachable_grid_read_at_inference": false,
+    "run_commit": "2648a0153751d06c48e42d948c22ed527b2b4090",
+    "schema_version": "vsmt-vm04-d222-audit-report-v1",
+    "structural_accuracy": 0.701271186440678,
+    "structural_nll": 0.7102302987346759
+  },
+  "schema_version": "vsmt-vm04-e08-audit-export-v1"
+}
