@@ -31,6 +31,7 @@ from vsmt.lean_assignment import (  # noqa: E402
     CACHE_FRAME_FIELDS,
     CONTRACT_SCHEMA_VERSION,
     EXISTENCE_FEATURES,
+    UP_AXIS_INDEX,
     LeanAssignmentError,
     assert_private_mutation_invariance,
     assignment_cost,
@@ -817,6 +818,14 @@ class TestReviewRegressions(unittest.TestCase):
         with self.assertRaises(LeanAssignmentError) as caught:
             validate_assignment_contract(broken)
         self.assertEqual(str(caught.exception), "contract_cost_transform_mismatch")
+
+    def test_the_up_axis_is_registered_and_bound(self) -> None:
+        self.assertEqual(UP_AXIS_INDEX, 1)
+        broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        broken["feature_rules"]["up_axis_index"] = 2
+        with self.assertRaises(LeanAssignmentError) as caught:
+            validate_assignment_contract(broken)
+        self.assertEqual(str(caught.exception), "contract_up_axis_mismatch")
 
     def test_the_association_head_uses_geometry_not_a_surface_identity(self) -> None:
         """supported_by ids would need cross-frame surface tracking to help."""

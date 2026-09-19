@@ -96,6 +96,11 @@ ENTITY_GEOMETRY_FIELDS = (
 #: A virtual BIRTH column is named after its fragment, never after a slot.
 BIRTH_COLUMN_PREFIX = "birth:"
 
+#: Index of the vertical axis in every 3-vector (AI2-THOR / ProcTHOR are
+#: y-up).  The support-height feature reads this axis; registering it here
+#: keeps the convention out of a bare literal.
+UP_AXIS_INDEX = 1
+
 
 class LeanAssignmentError(ValueError):
     """Raised for any malformed frame, memory view, rule value or matrix."""
@@ -377,7 +382,10 @@ def association_feature_vector(
         # a persistent surface identity -- exactly the capability D-224 took
         # out of the first paper.  The bottom-face height carries the same
         # public cue with no identity and no threshold.
-        abs(float(fragment["aabb_min_m"][1]) - float(entity["aabb_min_m"][1])),
+        abs(
+            float(fragment["aabb_min_m"][UP_AXIS_INDEX])
+            - float(entity["aabb_min_m"][UP_AXIS_INDEX])
+        ),
     ]
     _require(len(row) == len(ASSOCIATION_FEATURES), "association_feature_arity")
     return row
@@ -1067,6 +1075,10 @@ def validate_assignment_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
         "contract_cost_transform_mismatch",
     )
     _require(
+        contract["feature_rules"]["up_axis_index"] == UP_AXIS_INDEX,
+        "contract_up_axis_mismatch",
+    )
+    _require(
         contract["solver"]["implementation"] == "self_written_no_new_dependency",
         "contract_solver_source_mismatch",
     )
@@ -1107,6 +1119,7 @@ __all__ = [
     "ASSOCIATION_FEATURES",
     "BIRTH_COLUMN_PREFIX",
     "BIRTH_FEATURES",
+    "UP_AXIS_INDEX",
     "CACHE_FRAME_FIELDS",
     "CONTRACT_SCHEMA_VERSION",
     "EXISTENCE_FEATURES",

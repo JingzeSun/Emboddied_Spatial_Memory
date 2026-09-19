@@ -95,7 +95,8 @@
     "no_private_future_teacher_or_reference_input": true,
     "no_path_slot_index_or_sample_name_input": true,
     "field_order_is_positional_and_frozen": true,
-    "plain_language_zh": "三张特征表的字段顺序是冻结的，下游按位置取值，改顺序即改合同。所有特征只由公开 cache 与此前预测的记忆算出；不接受私有标注、未来、teacher、参考答案，也不接受路径、槽号或样本名。"
+    "up_axis_index": 1,
+    "plain_language_zh": "竖直轴是三维向量的第二维（索引 1，AI2-THOR/ProcTHOR 的 y 向上约定），支撑面高度差特征按此轴取包围盒底面高度。三张特征表的字段顺序是冻结的，下游按位置取值，改顺序即改合同。所有特征只由公开 cache 与此前预测的记忆算出；不接受私有标注、未来、teacher、参考答案，也不接受路径、槽号或样本名。"
   },
   "cost_matrix": {
     "rows": "fragments_sorted_by_fragment_id",
