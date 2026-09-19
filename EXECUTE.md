@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| D-224 精简方向 | 2026-09-19 用户批准裁决 A～D 与 E/F/G：首篇改为实体生命周期版本化事务，帧级联合分配＋三个约 4 万参数的 MLP 代价头，ProcTHOR 干预序列并对齐 Dyn-THOR 指标，正式规模 300/50/100 house；共享 ReID 头为可选前端、`VSMT-lean-ctx` 为可选臂、实体 token schema 已冻结。旧方向归档到分支 `archive/pre-d224-unified-graph`，`main` 重写 METHOD/PLAN/DATA。**S0-01～S0-03 已审通过（S0-03 返工版经 D-224-R 复审通过，53 项自测）；S0-04 teacher/评价器/指标合同经审核重写（78 项测试、41 条布尔声称全绑定）已实现待审，六项口径已由 D-224-LQ 裁决；S0-05 对照、消融与配置网格合同进行中**；四个 lean 模块 213 项加相关旧模块共 300 项本地通过，全量 discover 仍受本机 segfault 影响、待服务器复核；无数据、无训练、无服务器运行，六个授权位全 false。LOG-214～217。 |
+| D-224 精简方向 | 2026-09-19 用户批准裁决 A～D 与 E/F/G：首篇改为实体生命周期版本化事务，帧级联合分配＋三个约 4 万参数的 MLP 代价头，ProcTHOR 干预序列并对齐 Dyn-THOR 指标，正式规模 300/50/100 house；共享 ReID 头为可选前端、`VSMT-lean-ctx` 为可选臂、实体 token schema 已冻结。旧方向归档到分支 `archive/pre-d224-unified-graph`，`main` 重写 METHOD/PLAN/DATA。**S0-01～S0-03 已审通过（S0-03 返工版经 D-224-R 复审通过，53 项自测）；S0-04 teacher/评价器/指标合同经审核重写（78 项测试、41 条布尔声称全绑定）已实现待审，六项口径已由 D-224-LQ 裁决；S0-05 对照、消融与配置网格合同已实现待审（42 项测试、60 条布尔声称全绑定），五项口径已由 D-224-SW 裁决；S0-06 用户合同审查进行中**；四个 lean 模块 213 项加相关旧模块共 300 项本地通过，全量 discover 仍受本机 segfault 影响、待服务器复核；无数据、无训练、无服务器运行，六个授权位全 false。LOG-214～217。 |
 | D-214～D-223共享RGB-D前端 | Estimator历史路线已完成并由E-08证伪其P08硬门用途；F-00两房拓扑预检通过。D-223/F-01 reader本地实现已审；一次服务器真实预检只读定位后因缺冻结SAM2资产和兼容公开bundle停止。D-217 public observation-0兼容适配器已本地实现待审，尚未读取真实数据或运行服务器；模型加载/cache仍为0，执行位全关闭。P04/P08、route/raw、method adapter、private evaluation、训练与audit重跑均未运行。LOG-199～211。 |
 | D-213统一图/类型门 | 四节点/五关系统一图合同、seal前类型门、五种消融memory view、图复杂度派生、relation REACTIVATE及surface/fragment RETRACT已实现候选；数据接线现改为等待D-214冻结cache，不再以单槽raw后定义前端，全部运行位关闭；LOG-197/199。 |
 | D-212地点raw纠偏 | v2已补公开grid模板＋RGB-D route survey生产入口、P01–P08可复算收据、raw三面journal与两提交执行门；D-214已重新阻断activation，旧P04/P08工程描述不得获论文资格。真实survey/seal/smoke均为0；LOG-196/198/199。 |
@@ -2280,3 +2280,20 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - **2026-09-20 补记。** 用户批准裁决 L～Q 全部按推荐口径执行，登记为 D-224-LQ。据此更正 METHOD 第六节第 5 步（存在判定改为 `active` 或 `dormant`）、第八节 S0-04 段、第十一节指标表与统计段，以及 DATA 第六节标签定义与第七节评价文件字段；合同把 `pending_user_rulings` 改为 `user_rulings` 并由校验器绑定 `decision_id = D-224-LQ`；代码只改注释与这一处绑定，并加一项绑定的反例测试；标签与指标语义不变，S0-04 78 项、四个 lean 模块 214 项重跑通过。
 - **2026-09-20 补记二。** 主 agent 由 Codex 换为本会话。按用户要求判断 D-224-S03 三处语义变化是否改变对照公平性：结论是都不改变，变化一反而消除 `AssocOnly` 的既有混杂；同时指出三条 S0-05 定义风险（规则臂二值代价会被字典序并列规则支配、距离门网格须含宽门、不合格格须用哨兵 logit）。用户批准 D-224-R：S0-03 复审通过并提交，三条约束登记为 S0-05 前提，S0-03 合同补 `up_axis_index`（代码常量 `UP_AXIS_INDEX`、校验器绑定、一项反例测试，S0-03 自测 53 项通过）。S0-04 代码仍待用户审查。
 - 下一步：S0-05 对照、消融与配置网格合同；用户审 S0-04。未申请任何运行授权。
+
+## LOG-218：S0-05 对照、消融与配置网格合同实现（待代码审查）（2026-09-20）
+
+- 类型：一份科学代码交付；**不是实验结果**。未生成任何数据、未训练、未连接服务器；本批未提交（用户未要求）。
+- 授权：D-224-R 批准 S0-03 复审通过并开始 S0-05，三条规则臂约束（门内分级代价、网格含无门选项、哨兵 logit）作为前提。
+- **交付。** 纯核心 [`lean_arms.py`](src/vsmt/lean_arms.py)、合同 [`lean_s0_arms_v1.json`](configs/vsmt/lean_s0_arms_v1.json)、测试 [`test_vsmt_lean_arms.py`](tests/test_vsmt_lean_arms.py)。规则臂只产生喂给 S0-03 求解器的 logit 与逐实体存在决定，特征按封存的字段顺序取位置，不写死下标。
+  - **代价接口。** TAF/ELU-P/RAC/HandCost 共用余弦门：门内 logit = 余弦、新建 logit = θ_a，于是"最大余弦 ≥ θ_a 则绑定、否则新建"在联合分配下成立，两个合格实体之间由余弦高低而不是 entity_id 顺序决定；LOW 门内 logit = −质心距离、新建 = −d_low。门外一律登记哨兵 −1e6；d_a / d_low 为 null 表示无距离门。RAC 不复活 retracted（DSG 适配把被删节点重建），ELU-P 复活。
+  - **存在判定。** 候选门五臂共享：active 或 dormant、且应可见比例不低于新登记的 `should_be_visible_min_ratio`（null），被排除者分两类计数。TAF/LOW 恒 NOOP；ELU-P 逐实体 log-odds（初值、持续性衰减、匹配增益只在 train 拟合、不进网格；自由空间权重与撤回门进网格）；RAC 连续负渲染计数，渲染即共享前端的自由空间测试；学习臂 σ(r) ≥ τ_r；AssocOnly 跳过整个存在步，因此没有 NOOP、没有错失计数、没有 dormancy。
+  - **编译与词表。** 分配编译为 BIND/REACTIVATE/BIRTH，存在决定成为 RETRACT/NOOP，任何原子超出臂词表即拒；AssocOnly 只有 BIND/BIRTH，TAF/LOW 无 RETRACT，不复活 retracted 的臂分到 retracted 实体即拒。NoVersion 在提交后物理删除 retracted 并重新封存。
+  - **网格与守门。** 配置按登记参数顺序枚举笛卡尔积，超过 12 拒；规则臂距离门网格必须含 null；LLM-op 只允许 validation；`VSMT-lean-ctx` 只在 S2-05 三分解中 amortization_error 严格最大时准入。
+  - **合同。** 61 条布尔声称全绑定，其中逐臂复活位与无门声明由代码表生成，合同无法与代码漂移；哨兵值、12 上限与 D-224 冻结的训练常量（lr 1e-3、20 epoch、5 seed、2 轮 DAgger、主表第 1 轮）按值绑定；七个待冻结数值为 null（应可见下限、weight decay、seed 列表、ELU-P 三个拟合量、选配指标）。填入网格值后校验器自动检查预算与无门选项。
+- **与真实 S0-03 求解器的集成测试。** 分级代价让余弦更高的色块拿到被争抢的实体，而把门内代价改平后同一帧改由行序决定，正是 D-224-R 前提一要防的；无门选项让 5 m 外的被搬动物体重新关联，紧门则新建；全部不合格时只新建、哨兵永不被选；ELU-P 复活 retracted 实体而 RAC 只能新建。
+- **测试。** S0-05 **38 项**通过；五个 lean 模块共 **253 项**本地通过。本机跨模块间歇段错误问题（LOG-214～216）未变，本地跨模块结果不作回执。
+- **边界。** 不证明任何臂有效、参数合适或对照公平已实现完毕；METHOD 第九、十节未改，HandCost 与 HeuristicLabel 的定义待裁决后再改。
+- **待用户裁决（写在对话正文）。** 其一，HandCost 按 METHOD 现文是 ELU-P 的手写代价，而精简设计下五臂共用求解器与执行器，它与 ELU-P 对照重合；其二，HeuristicLabel 的标签来源按 METHOD 是 TAF，TAF 从不撤回，存在头只会学到 present；其三，RAC 不复活 retracted；其四，validation 上一方法一配置的选配指标；其五，`should_be_visible_min_ratio` 作为新的共享 null 值登记在 S0-05。
+- **2026-09-20 补记。** 用户批准 D-224-SW，五项按推荐执行：HandCost 重定义为无时间累积的手写分数（余弦、θ_b、当帧自由空间覆盖过 ρ_h），退出余弦门臂与无门参数表；HeuristicLabel 标签来源改 ELU-P 并由校验器绑定；RAC 不复活维持；选配指标冻结为 validation 节点 F1；应可见下限留 S0-05。合同 `user_rulings` 绑定 D-224-SW；新增 HandCost 三项测试与绑定反例，S0-05 **42 项**通过，60 条布尔声称、6 个 null。METHOD 第九、十节据此更正。用户要求提交推送并进入 S0-06。
+- 下一步：S0-06 用户逐份审查 S0-04 与 S0-05；跨合同一致性由新增测试机器核对。未申请任何运行授权。
