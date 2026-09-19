@@ -280,11 +280,11 @@ D-220 把事前消融的必做集合收窄为三组，理由是首篇要回答�
 
 #### D-214 全 P0、场景盲共享 RGB-D 前端（已批准，实现候选待审）
 
-D-214 不是 P08 专用语义分支，而是 P01–P08 每个保存观察共同经过的唯一前端。输入为当前公开 RGB-D、内参、因果 episode-relative 相机 pose、连续位姿 belief、入边动作摘要和此前公开 free-space；输出为匿名 `fragment`、公开深度 `surface/free-space/visibility`、非网格 `place observation`、DINOv2 描述和 `basin/bottleneck/unknown` 结构概率。D-219 已删除原先并列的 `room/corridor/unknown` 语义概率：它不定义地点身份，也没有任何下游消费者，保留只会留下一个无科学意义的伪输出。例如 SAM 在同一把椅子上给出两个 mask 时，前端只输出两个 fragment，是否属于同一 entity 仍由后续 BIND/MERGE 机制决定。它不接收 scenario ID，不把 mask 叫永久实体，不由0.5 m格或room类别分配place ID，也不读取private metadata、teacher或future。
+D-214 不是 P08 专用语义分支，而是 P01–P08 每个保存观察共同经过的唯一前端。输入为当前公开 RGB-D、内参、因果 episode-relative 相机 pose、连续位姿 belief、入边动作摘要和此前公开 free-space；输出为匿名 `fragment`、公开深度 `surface/free-space/visibility`、非网格 `place observation` 和 DINOv2 描述。D-219 删除了 `room/corridor/unknown` 语义概率；**D-223 进一步让 `basin/bottleneck/unknown` 结构概率退出 production**，理由见下文 D-223 节。前端因此不含任何在本项目内训练的组件，只有冻结 SAM、冻结 DINOv2 和确定性深度几何。例如 SAM 在同一把椅子上给出两个 mask 时，前端只输出两个 fragment，是否属于同一 entity 仍由后续 BIND/MERGE 机制决定。它不接收 scenario ID，不把 mask 叫永久实体，不由0.5 m格或room类别分配place ID，也不读取private metadata、teacher或future。
 
-`place observation`（地点观察）解决“当前画面和可见空间提供了怎样的地点证据”，输入是全帧冻结DINO描述、因果pose belief、surface/free-space支持及结构概率，输出只是本帧内容寻址的观察记录。例如朝向相反但处于同一大厅的两帧可以形成两个观察，记忆机制随后决定BIND到旧地点；它不等于每帧新建一个地点，也不等于结构类别是真值身份。所有保存观察暂按`every_saved_public_observation`进入缓存，避免在资产和正式数据出现前引入另一组结果相关关键帧阈值；这会增加缓存和推理成本，不改变raw逐动作保存规则。
+`place observation`（地点观察）解决“当前画面和可见空间提供了怎样的地点证据”，输入是全帧冻结DINO描述、因果pose belief和surface/free-space支持，输出只是本帧内容寻址的观察记录。例如朝向相反但处于同一大厅的两帧可以形成两个观察，记忆机制随后决定BIND到旧地点；它不等于每帧新建一个地点。D-223后该记录不再携带任何结构或语义类别概率。所有保存观察暂按`every_saved_public_observation`进入缓存，避免在资产和正式数据出现前引入另一组结果相关关键帧阈值；这会增加缓存和推理成本，不改变raw逐动作保存规则。
 
-P04 与 P08 是同一缓存上的两种资格检查，不是两套前端。P04 从名义分离至少1.5 m的pair中取冻结DINO place descriptor cosine top-1，绝对阈值仍为null；旧四象限RGB-D小描述子退出论文资格，仅保留工程诊断。P08 要求时序上连续的 basin→bottleneck→basin，且两端各至少两个不同观察中存在达到同一冻结外观—三维稳定规则的匿名fragment。结构概率只由公开 RGB-D 推断，不查 reachable grid 真值。它解决“P08是否真的有公开结构和匿名区域证据”，输入只有共享缓存，输出资格回执；它不允许通过P08名称触发额外模型，也不允许私有room/object真值修路线。
+P04 与 P08 是同一缓存上的两种资格检查，不是两套前端。P04 从名义分离至少1.5 m的pair中取冻结DINO place descriptor cosine top-1，绝对阈值仍为null；旧四象限RGB-D小描述子退出论文资格，仅保留工程诊断。P08 要求时序上连续的 basin→bottleneck→basin，且两端各至少两个不同观察中存在达到同一冻结外观—三维稳定规则的匿名fragment。**D-223 后前一项由构造期公开可达图上的冻结拓扑规则判定，不再由学习式结构头的概率充当门**；后一项（fragment 判据）完全不变。它解决“P08是否真的有公开结构和匿名区域证据”，输入只有共享缓存，输出资格回执；它不允许通过P08名称触发额外模型，也不允许私有room/object真值修路线。
 
 机器合同为 [`vm04_d214_shared_rgbd_frontend_v1.json`](../configs/vsmt/vm04_d214_shared_rgbd_frontend_v1.json)，纯核心为 [`d214_shared_frontend.py`](../src/vsmt/d214_shared_frontend.py)。当前候选已实现场景盲函数签名、fragment/depth结构材料化、非网格place observation、逐帧/episode摘要、五方法同字节cache view、P04/P08资格算法和旧grid只读退役门（D-219 后须按单头结构概率就地删除三个语义字段）；合同还把“公开输出组合/缓存核心已实现”和“真实模型编排、production raw reader、服务器执行未实现”分成四个显式布尔，防止状态被概括错。它尚不等于完整可运行模型：SAM checkpoint/config/assets receipt、structural head模型/训练split/权重仍为空，P08 basin/bottleneck及fragment稳定四个数值已由D-215冻结；生产raw reader、真实模型loader编排和adapter转换也未开。所有运行授权保持false。
 
@@ -300,7 +300,7 @@ SAM固定为官方commit `2b90b9f…`下的SAM 2.1 Hiera Small、对应官方YAM
 
 训练划分以house为不可拆单位，在已封存ProcTHOR author-train manifest上按固定salt哈希：0–79为train、80–89为calibration、90–99为audit；`train:004270`和`train:008243`以及VM-04 validation/confirmation（D-220后改称test）角色永久排除。每house按位置hash、至少1 m间距固定8个位置×4个朝向，不按标签或产率选帧。D-219删除semantic头后不再需要任何人工标注；structural标签在训练house的0.25 m reference可达图上，以2 m局部图删除0.35 m anchor圆盘后是否形成至少两个足够大的远端分量标bottleneck，非bottleneck且1 m内至少37个可达点标basin，其余unknown。标签、grid和metadata不进入推理/cache：私有可达图只在train/calibration/audit写标签，推理时结构头仍然只凭公开RGB-D与内参预测，不查grid真值。白话：同一house的任何帧不会一部分训练、一部分校准；它不按P08是否成功换house，也不拿两间P0开发房训练前端。
 
-P08固定`basin≥0.70`、`bottleneck≥0.70`、跨视角fragment DINO cosine≥0.85、三维质心距离≤0.35 m，等号通过且结构角色须为唯一最大概率。正例是两端各两帧fragment达到0.85/0.35且中间bottleneck为0.70；任一值0.849999或0.350001即失败。该四数来自结果前的保守合同，不由路线成品率选择；若P08不满足，保留原槽construction failure，不调阈值、不换路线/house。它不是私有room/object真值确认，也不保证当前固定路线一定合格。
+P08原固定`basin≥0.70`、`bottleneck≥0.70`、跨视角fragment DINO cosine≥0.85、三维质心距离≤0.35 m，等号通过且结构角色须为唯一最大概率。**其中前两个概率门已由D-223退役**（它们管的是不再充当门的那个头，是退役而非重调）；`0.85`与`0.35`两个fragment判据原样保留。正例是两端各两帧fragment达到0.85/0.35且中间bottleneck为0.70；任一值0.849999或0.350001即失败。该四数来自结果前的保守合同，不由路线成品率选择；若P08不满足，保留原槽construction failure，不调阈值、不换路线/house。它不是私有room/object真值确认，也不保证当前固定路线一定合格。
 
 #### D-216 split manifest 与 Estimator 训练封存（实现候选待审）
 
@@ -336,6 +336,20 @@ D-219 把共享前端的估计器从语义＋结构双头收窄为结构单头�
 8. 强基线不得因效果好被删除。
 
 机器合同为 [`vm04_d219_structural_only_estimator_v1.json`](../configs/vsmt/vm04_d219_structural_only_estimator_v1.json) 和 [`vm05_d220_protocol_simplification_v1.json`](../configs/vsmt/vm05_d220_protocol_simplification_v1.json)，完整理由见 [DECISIONS.md](DECISIONS.md)。两份合同的全部授权位仍为 false：0 训练、0 权重、0 审计、0 服务器运行。D-219 按当前哈希绑定 d215/d216/d217/d218 并以引用方式 supersede，永不重写它们的字节，因为 E-01～E-03 与 E-05 已按那些确切字节执行完毕。
+
+#### D-223 P08 改用构造期拓扑资格，结构头退出 production（post-audit 提案待审）
+
+E-08 一次性审计的结论是：冻结的单帧线性结构头**不适合充当 P08 的 bottleneck 资格门**。3,776 帧、118 个 house 上整体 accuracy 0.7013，但该数主要来自 basin 与 unknown；bottleneck 的 95% recall 区间为 0.043–0.150，NLL 区间 1.830–2.238，明显差于三类均匀猜测的 1.099。审计报告摘要`3e652a45…b142`，只跑过一次，权重与报告字节此后不变。
+
+**根因是标签与可见证据错配。** 标签由`structural_label_from_reachable(reachable, position)`按位置算一次，再复制给同一位置的四个朝向；站在瓶颈位置但面朝墙的那些帧画面里没有通道证据，却带着 bottleneck 标签。train 0.7049 / calibration 0.6958 / audit 0.7013 三者一致，排除了过拟合，但**不能**分离标签错配、线性容量与类别不平衡三者各自的贡献。准确表述是：在冻结特征、线性模型与单帧输入合同下，扩充数据没有使 bottleneck 达到作为硬门所需的可靠性。以下三点不得过度解读：0.150 是区间上界而非确定性天花板；逐帧低 recall 不足以证明整条路线必然失败，路线级成品率须由 dry-run 测量；"更多数据无用"是该冻结合同下的观察，不是普遍结论。
+
+**改法：P08 的结构角色由构造期判定，零新增参数。** 数据生成器在构造路线时拿到该 house 的公开`GetReachablePositions`，直接套用 D-215 已冻结的那条拓扑规则（rule sha `4fa32f89…4774`，十个常量原样继承），判断路线是否依次经过 basin、bottleneck、basin。判据不是该定义的近似，**它就是那个定义**。METHOD 原已登记 reachable positions 在路线规划上是公开的；D-223 明确它是**生成器专用的构造信息**，不是部署期公开观察——它不进入共享 cache、不给五个方法、不给候选生成器、不给 selector。
+
+**结构头完全退出 production。** 它不再由 production reader 计算、不出现在 place observation、不被 selector/候选生成器/adapter 读取。不保留为"五方法共同特征"的理由是：逐字节相同的输入只保证**接口一致**，不保证**影响中性**——不同机制可能以不同方式利用一个噪声输入，因此一个弱组件不会自动公平。E-05 特征、E-06 权重与训练回执、E-08 审计报告全部封存保留，作为开发期阴性结果；不重训、不重跑。论文主方法只描述实际使用的输入（SAM proposal、冻结 DINOv2 描述子、公开深度几何、因果位姿信念），单帧结构头可在附录如实披露为未被采用的尝试，不包装成贡献。
+
+**口径收缩必须报告。** 论文此后不得声称"P08 的结构角色可由单帧公开 RGB-D 推断"，只能声称"该固定路线确实具有 basin—bottleneck—basin 拓扑，由构造期公开可达几何认证"。P08 的名称相应收紧为**"两个 basin 经拓扑 bottleneck 连接、含实体"**，不再称为经视觉识别的"房间—走廊—房间"。若在该判据下 P08 仍不合格，记 construction failure 并如实报告，不弱化判据、不换路线、不换 house；再次替换 P08 的门需要新决策。
+
+机器合同为 [`vm04_d223_p08_topological_qualification_v1.json`](../configs/vsmt/vm04_d223_p08_topological_qualification_v1.json)，当前为 post-audit 提案，六个授权位全 false。
 
 **D-206/D-207 历史口径（已由 D-210 取代主实验解释）。** D-205 曾因 place 由确定性骨架维护而把首篇收窄为“不主张地点修订”；D-206 随后发现 `camera_pose` 真值泄漏并改用带噪相对 pose，D-207 将地点路线增至 64 步并分离 provenance。这些发现继续有效，但“带噪 pose 量化成 0.5 m 格并把格当地点”的任务会把人为噪声当主要错误来源，且完整固定动作又可被精确积分抵消。故 D-210 保留世界 pose 私有、长路线和后续判别观测，撤销格地点真值、2% 人工噪声必须制造错误、place SPLIT 作为 P0 主操作及 64 步科学上限。旧合同与回执保留原字节，只作历史和诊断，不认证 D-210。
 
