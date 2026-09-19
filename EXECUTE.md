@@ -6,6 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
+| D-224 精简方向 | 2026-09-19 用户批准裁决 A～D 与 E/F/G：首篇改为实体生命周期版本化事务，帧级联合分配＋三个约 4 万参数的 MLP 代价头，ProcTHOR 干预序列并对齐 Dyn-THOR 指标，正式规模 300/50/100 house；共享 ReID 头为可选前端、`VSMT-lean-ctx` 为可选臂、实体 token schema 已冻结。旧方向归档到分支 `archive/pre-d224-unified-graph`，`main` 重写 METHOD/PLAN/DATA。**S0-01 已审通过（含三处语义选择）；S0-02 干预数据合同与 41 项只读检查已实现待审；早期四项裁决的前三项已补进文档**；相关 126 项回归通过，全量 discover 首次 826 通过但随后稳定 segfault，已隔离证明与本批无关，待服务器复核；无数据、无训练、无服务器运行，五个授权位全 false。LOG-214。 |
 | D-214～D-223共享RGB-D前端 | Estimator历史路线已完成并由E-08证伪其P08硬门用途；F-00两房拓扑预检通过。D-223/F-01 reader本地实现已审；一次服务器真实预检只读定位后因缺冻结SAM2资产和兼容公开bundle停止。D-217 public observation-0兼容适配器已本地实现待审，尚未读取真实数据或运行服务器；模型加载/cache仍为0，执行位全关闭。P04/P08、route/raw、method adapter、private evaluation、训练与audit重跑均未运行。LOG-199～211。 |
 | D-213统一图/类型门 | 四节点/五关系统一图合同、seal前类型门、五种消融memory view、图复杂度派生、relation REACTIVATE及surface/fragment RETRACT已实现候选；数据接线现改为等待D-214冻结cache，不再以单槽raw后定义前端，全部运行位关闭；LOG-197/199。 |
 | D-212地点raw纠偏 | v2已补公开grid模板＋RGB-D route survey生产入口、P01–P08可复算收据、raw三面journal与两提交执行门；D-214已重新阻断activation，旧P04/P08工程描述不得获论文资格。真实survey/seal/smoke均为0；LOG-196/198/199。 |
@@ -2220,3 +2221,29 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - **G2a已补**：核对冻结commit `2b90b9f5…`下`SAM2AutomaticMaskGenerator.__init__`的真实签名（未凭记忆填值），其17个参数中D-215只钉了10个，余下6个此前落库默认值且无记录：`mask_threshold=0.0`、`crop_overlap_ratio=512/1500`、`crop_n_points_downscale_factor=1`、`point_grids=None`、`use_m2m=False`、**`multimask_output=True`**。最后一个直接决定单个网格点能否返回多个mask，正是64上限所约束的量。六个值原样抄录进F-01合同（值不改，D-215字节不动），reader改为显式传全部16个参数，并在加载时核对库默认值未漂移、且每个参数都是构造器**具名**参数——后者堵住`**kwargs`把拼错的合同键静默吞掉的漏洞。
 - **G2b已补**：合同`retain_if_minimum_visible_pixels_met`到执行常量`keep_if_minimum_support`的映射此前是builder里一个无解释的硬编码常量；现由合同新字段`border_truncation_policy_execution_constant`承载，validator核对它等于`KEEP_SUPPORTED_BORDER_REGIONS`，并有测试断言传入`Vm04L2ProposalConfig`的就是它。
 - 全量本地测试**775/775通过**（skipped 3）。同一棵树上另两次全量运行分别以 segfault(139) 和 C10 dispatcher abort 中途死亡、无traceback无汇总，位置不固定，是本机已知CPU退化特征而非代码缺陷；权威全量仍以服务器为准。本批未连接服务器、未下载SAM2、未运行F-00/F-01、未生成任何cache，十个F-01授权位与F-00授权位全部保持false。
+
+## LOG-214：D-224精简方向落文档，S0-01实体记忆核心实现（本地测试通过，待代码审查）（2026-09-19）
+
+- 类型：方向切换的文档重写与一份科学代码交付；**不是实验结果**。未生成任何数据、未下载资产、未训练、未连接服务器。
+- 授权：用户批准 D-224 裁决 A～D（首篇精简为实体生命周期版本化事务、帧级联合分配加学习代价头、对齐 Dyn-THOR 干预与指标、正式规模 300/50/100 house），随后批准 D-224-E/F/G（共享 ReID 适配头登记为 S1-05 可选前端、`VSMT-lean-ctx` 登记为可选臂、S0-01 固定实体 token schema）与执行顺序（S0 只冻结看数据前必须定的项，五臂一起在 50 house 跑通，再按三分解决定是否启用 E/F），并要求把旧方向归档到分支后在 `main` 上重写文档、先删减再加。
+- 文档：旧工作树归档为分支 `archive/pre-d224-unified-graph`（指向 `e1c19f6`）。`main` 上 METHOD 由 1,862 行重写为 180 行、PLAN 由 409 行重写为 300 行、DATA 由 1,133 行重写为 91 行，只含精简版；README 与 AGENTS 顶部换为 D-224 方向；`docs/VSMT_EXPERIMENT_EVIDENCE_CHAIN.md` 因整篇描述旧设计而删除，删除前确认无其他文件引用，归档分支仍可读。DECISIONS 与 EXECUTE 按 append-only 保留全部历史。
+- 代码：新增纯核心 [`lean_memory.py`](src/vsmt/lean_memory.py) 与机器合同 [`lean_s0_entity_memory_v1.json`](configs/vsmt/lean_s0_entity_memory_v1.json)。实现实体记录 schema、`active/dormant/retracted` 状态机、逐实体版本链、五原子结构前条件、REPLACE 复合展开、帧程序原子提交与回滚、五方法逐字节共享的 dormancy 与确定性去重、D-224-G 实体 token 与帧级稀疏残差，以及合同与实现的一致性校验。
+- **为什么另写核心而不是收窄 `GraphRevision`：** 读过实现后确认它与 `cpmt.executor.validate_graph` 绑定 place scaffold、五类关系边、`graph_hash` 与统一图 lifecycle，收窄等于把这些一并带入，与 D-224 削减流程的目的相反。因此只复用不会产生第二套数值语义的纯函数（`canonical_json`、`clone_json`、`cosine_similarity`、`centroid_distance`、`opaque_id`）；`GraphRevision`、place scaffold、关系边与 `public_candidates.py` 不被当前入口导入。旧模块与其测试原样保留；METHOD 第十三节已据此更正，原文那句"收窄到实体子集"作废。
+- 测试：新增 [`test_vsmt_lean_memory.py`](tests/test_vsmt_lean_memory.py)，**43 项全部通过**（约 0.02 秒）。覆盖五原子各自的正例与反例、REPLACE 两半合法性、非法程序整帧回滚后旧记忆逐字节相同、同帧内 fragment 与实体不得复用、描述子维度不一致被拒、摘要被篡改被拒、dormancy 在登记次数触发且任一匹配清零、去重折向较早身份且缺任一数值即拒、token 字段顺序冻结且不含私有或场景标识、帧残差不把 NOOP 计作改动。
+- 回归（分两层如实记）：显式指定的 `test_executor`、`test_vsmt_contracts`、`test_vsmt_baselines`、`test_l1_structures`、`test_vsmt_public_candidates` 共 **126 项通过**。全量 `PYTHONPATH=src python -m unittest discover -s tests -t tests -p "test_*.py"` 首次运行为 **826 项通过、3 skipped**（约 37.7 秒），**但随后稳定以 exit 139（segmentation fault）中止**，止于 `test_vsmt_public_candidates.PublicCandidateTests.test_node_bind_versions_raw_aabb_and_monotonic_envelope`。已隔离确认该中止**与本批无关**：该模块单跑 35 项通过、该单个 test 单跑通过；把本批新增测试文件移出后仍稳定 segfault；把工作树里那处非本批的 `l1_structures.py` 改动 stash 回 HEAD 后也仍稳定 segfault。因此全量本地跑通当前**不能作为回执**，建议在服务器上跑全量（本机 CPU 不稳定已有登记）。
+- 边界：本地 `unittest` 通过只证明机械语义与合同一致，**不证明** VSMT-lean 有效、数据可构造或任何数值合适。合同内 `dormancy_missed_opportunity_limit` 与去重四个数值全为 `null`，五个授权位全为 false，实现对这些值不设默认，因此未冻结的数值无法悄悄成为实验常量。服务器测试尚未运行。
+- 三处写死但可改的语义选择（已登记在 D-224-EFG，待用户裁决）：版本记录只存几何与计数快照、不存描述子；执行器只检查结构前条件，"应可见"与 σ(r)≥τ_r 属决策层并原样记入 `decision_basis`；去重 canonical 取首版本最早、并列取 `entity_id` 字典序最小。
+- 另：工作树中 `src/vsmt/l1_structures.py` 有一处非本批改动的未提交修改（把范数改为逐项平方和以保证跨机器逐位一致），本批未触碰，建议单独提交。
+- 下一步：用户代码审查 S0-01；通过后写 S0-02 干预数据生成合同。未申请任何运行授权。
+
+## LOG-215：S0-01 通过、补齐早期三项裁决、S0-02 干预数据合同实现（待代码审查）（2026-09-19）
+
+- 类型：一份决策补齐与一份科学代码交付；**不是实验结果**。未生成任何数据、未下载资产、未训练、未连接服务器。
+- 授权：用户审过 S0-01 并采纳其中三处语义选择；批准 D-224-H/I/J（`NoVersion` 与 `AssocOnly` 提前到 S2-05、新增必做消融 `AssocOnly` 并与主比较并列、`LLM-op` 收口为必做附录臂），把外部基准第二张表（裁决 K）推迟到 S2-05 之后再裁；随后批准开始 S0-02。
+- **文档补齐。** METHOD 第九节把 `LLM-op` 从"可选"改为"必做附录臂"并加一段口径说明；第十节消融由三组改为四组，新增 `AssocOnly`（同一学习关联头、同一求解器，词表只剩 BIND 与 BIRTH），并写明它是贡献 1 的唯一因果反事实、主表必须并列报告。PLAN 的 S0-05、S2-02、S2-03、S2-05、S3-03、S3-05 相应改写；S2-05 现在与五臂一起跑 `NoVersion` 与 `AssocOnly`，兑现早期第四项裁决的第三件事，并写明开发差只作风险读数、不得据以选赢家或改设计。
+- **补记一处冲突。** 早期裁决 1 曾建议"保留自建 P0 作机制诊断"，但 D-224 裁决 B 已把 P0 整体砍掉，当前文档中已无 P0 字样；当时未指出这一冲突，已在 D-224-HIJ 补记。
+- **S0-02 交付。** 新增只读检查核心 [`lean_intervention.py`](src/vsmt/lean_intervention.py) 与机器合同 [`lean_s0_intervention_data_v1.json`](configs/vsmt/lean_s0_intervention_data_v1.json)。实现 house 划分纯函数与清单重算、路线计划校验、三类干预计划校验、不可观测窗口断言、三面文件互斥与部署读取器白名单、公开帧记录的禁用标识扫描、失败回执与成品率记账、合同与实现一致性校验。本阶段不新写几何：窗口判定沿用已审的 `vm04_public_visibility`，本模块只要求调用方把逐观察判定连同该帧深度摘要一并交来，并检查其完整、连续且一律为不可见。
+- **测试。** 新增 [`test_vsmt_lean_intervention.py`](tests/test_vsmt_lean_intervention.py)，**41 项全部通过**。反例覆盖：清单把 house 从 test 挪到 train、未登记动作、观察数与动作数不符、超出机械保护上限、remove 带 target、move 源目标相同、同一物体被干预两次、超出每 episode 上限、窗口越界、container_refs 漏掉源或目标、窗口内一帧可见、判定缺失、判定缺深度帧摘要、`visible` 为 `0` 而非严格 `False`、同一文件出现在两面、路径越出所属面、部署读取器请求 private、公开帧内层出现 `scene_name`、失败 house 声称已替换、失败原因不在封闭清单、计划数与成功加失败对不上、合同多一个动作、合同放宽窗口规则、合同数值提前填非 null、合同授权位为真。
+- **回归与本机稳定性（如实记）。** `test_vsmt_lean_memory`、`test_vsmt_lean_intervention` 与五个相关旧模块共 **214 项**，连续三次全部通过。其间出现过一次**不可复现**的 `TypeError: 'set_iterator' object is not callable`，位置在旧代码 `contracts.py` 的 `_reject_forbidden_keys` 内、与本批无关；同一命令随后三次全绿。该现象与 LOG-214 记录的全量 discover segfault 属同一类，符合本机 CPU 不稳定的已登记特征。**结论：本地全量跑通当前不能作为回执，须在服务器复核。**
+- 边界：只读检查通过只证明判据会拒绝该拒绝的东西，**不证明** 干预可构造、成品率可接受或 VSMT-lean 有效。合同内十个数值全为 `null`，六个授权位全 false，实现对这些值不设默认。
+- 下一步：用户代码审查 S0-02；通过后写 S0-03 特征、召回与分配合同。未申请任何运行授权。

@@ -1,42 +1,37 @@
-# VSMT: Versioned Structural Memory Transactions
+# VSMT-lean: Versioned Structural Memory Transactions（精简版）
 
-当前第一篇论文唯一主题是 **Versioned Structural Memory Transactions（VSMT，版本化结构记忆事务）**：机器人持续接收 RGB-D 观测时，不只向地图追加特征，而是从公开证据提出 NOOP、BIND、BIRTH、REACTIVATE、RELINK、RETRACT、SPLIT、MERGE 八种原子修订，先在同一不可变旧版本上真实执行候选，再选择并提交一个可追溯的新记忆版本。REPLACE 是 RETRACT+BIRTH 复合程序，不算第九个原子。当前为 proposed 方法；工程合同已实现，效果尚未验证。
+当前第一篇论文唯一主题是 **VSMT-lean（实体生命周期版本化事务，D-224，2026-09-19 批准）**：机器人持续接收 RGB-D 观测并重访时，对象级记忆里的每个实体应当保持、绑定新证据、新建、撤回还是恢复，由一次帧级联合分配给出 NOOP、BIND、BIRTH、RETRACT、REACTIVATE 组成的程序，在同一不可变旧版本上提交为可追溯的新版本。REPLACE 是 RETRACT+BIRTH 复合程序；MERGE 降为五方法共享的确定性去重；SPLIT、RELINK 与地点/关系修订不进入首篇。当前为 proposed 方法；机器合同、数据与训练均未开始。
 
-白话：它解决“新看到的东西应该并入旧记忆、新建、恢复、改关系、撤回、拆开还是合并”的问题。输入是截止当前时刻的 RGB-D 派生匿名区域、公开几何/自由空间和系统自己此前形成的结构记忆，输出是一个合法事务程序及新版本。例如两个旧节点后来被公开多视角证据证明是同一结构，系统可执行 MERGE，同时保留两个旧版本和证据来源。它不等于普通对象跟踪，不限定节点必须是对象，也不把 DINOv2、场景图、确定性执行器或八个动作名字单独当作创新。
+白话：它解决"原来那把椅子现在看不见，是被挡住、走出视野、检测漏了，还是真的被搬走"的判断。输入是截至当前帧的 RGB-D 派生匿名 fragment、公开几何/自由空间/可见体积和系统自己此前预测的实体记忆，输出是本帧一个合法程序及新记忆版本。例如杯子原位置连续被可靠自由空间覆盖、另一张桌面出现高相似 fragment，程序应把旧杯子恢复到新位置而不是删旧建新。它不等于普通对象跟踪的别名，不训练视觉前端，也不把 executor、DINOv2 或五个操作名字单独当作创新。
 
 ## 论文收敛口径
 
-论文的核心候选创新是：**把长期具身记忆更新建模为有类型、可执行、版本化且可审计的结构事务选择，并用严格的 candidate-before-teacher 边界学习选择，而不是让未来监督参与候选构造。** 成熟架构只作为骨架和对照来源：ConceptGraphs 风格前端负责 RGB-D 区域关联，Fusion++ 风格分数负责存在更新，Khronos 风格快窗口/慢协调负责片段修订，Hydra 风格分层图允许实体、地点、表面和关系共存；VSMT 的论文主张必须由同输入实验支持，不能由架构描述自行成立。
+核心候选贡献是：**用私有实例真值做 hindsight 监督、以可逆版本记录对象级记忆的生命周期修订，并在共享冻结 RGB-D 前端下用 recall miss / teacher error / amortization error 分解说明胜负来自哪里。** 底层模型是冻结 SAM 2.1 加 DINOv2 描述子、三个约 4 万参数的 MLP 代价头和一次匈牙利分配，不是 VLM 或图网络。
 
-第一篇主实验计划比较 `VSMT / TAF / ELU / WFR / LOW`。所有方法共享固定 RGB-D 前端及同一 `ObservationPacket → MemoryUpdateResult` 流水线；旧 C00–C11 只保留为执行器语义与反作弊回归，不进入主结果。旧 LATENT 是合成结构 token/哈希查询，不是视觉 latent；它只能作为 `oracle_structured` 诊断，不能替代新的 RGB-D 主实验。具体分层见 [docs/METHOD.md](docs/METHOD.md) 与 [docs/DATA.md](docs/DATA.md)。
+主实验比较 `VSMT-lean / TAF / ELU-P / RAC / LOW`，可选零训练 LLM 选操作臂；消融 `NoVersion / HandCost / HeuristicLabel`。数据为 ProcTHOR 多 house 覆盖式重访加不可观测窗口干预，指标对齐 Dyn-THOR 的节点 P/R/F1 与 Missing 残留率，另报假撤回率、身份连续率、恢复延迟。
+
+## 分支说明
+
+`main` 只含精简版文档；旧 CPMT、空间世界模型、地点双层记忆、统一四类图、八原子枚举与结构估计器的全部文档、代码说明与证据链保留在分支 `archive/pre-d224-unified-graph`（HEAD e1c19f6）。旧源码文件仍在本分支树中，只作历史与复用来源，不进入任何当前入口。
 
 ## 阅读入口
 
 | 你要看什么 | 唯一位置 |
 |---|---|
-| 实验怎样构造、各模块怎样组合成论文证据 | [docs/VSMT_EXPERIMENT_EVIDENCE_CHAIN.md](docs/VSMT_EXPERIMENT_EVIDENCE_CHAIN.md) |
 | 下一步、阶段计划和代码审查节点 | [docs/PLAN.md](docs/PLAN.md) |
-| 当前方法候选、对照及旧方法合同 | [docs/METHOD.md](docs/METHOD.md) |
-| 数据来源、字段、split 和适配检查 | [docs/DATA.md](docs/DATA.md) |
+| 方法、模型、对照、消融与指标 | [docs/METHOD.md](docs/METHOD.md) |
+| 数据来源、划分、干预、字段与泄漏检查 | [docs/DATA.md](docs/DATA.md) |
 | 已发生的实验、失败、结果与主张状态 | [EXECUTE.md](EXECUTE.md) |
 | 方法、预算与工作规则的变更理由 | [docs/DECISIONS.md](docs/DECISIONS.md) |
 
-新对话先读 [AGENTS.md](AGENTS.md)、PLAN 的当前指针，再读 EXECUTE 看板和最新 LOG。需要理解“为什么这些细粒度步骤能支撑论文”时，再读实验证据链。该文件只作解释性总图，不成为第二份计划或数值合同。不再另建导航页、词典、确认表、周报模板或平行计划；新内容归入以上职责。
+新对话先读 [AGENTS.md](AGENTS.md)、PLAN 的当前指针，再读 EXECUTE 看板和最新 LOG。不再另建导航页、词典、确认表、周报模板或平行计划。
 
 ## 实现与证据
 
 | 目录 | 职责 |
 |---|---|
-| `src/vsmt/` | 当前 VSMT 公私合同、共同图包装、论文机制适配器和公开候选/teacher 边界 |
-| `ops/vsmt/` | 当前 VSMT 服务器工程检查；尚无数据生成或训练入口 |
-| `src/spatial_world_model/` | 暂停的 D-062 空间世界模型实现，保留复现，不是当前入口 |
-| `src/cpmt/`、`schemas/` | 保留的旧科学实现和机器接口 |
-| `tests/`、`configs/` | 合同/回归检查、版本化科学配置 |
-| `scripts/`、`ops/` | 正式运行和服务器运维；历史入口不自动是当前命令 |
+| `src/vsmt/` | 执行器、合同、前端 reader、可见性、规则对照；D-224 后新增的 lean 模块按 S0～S2 交付 |
+| `ops/vsmt/` | 服务器工程入口；当前无 lean 入口 |
+| `tests/`、`configs/` | 合同/回归检查、版本化科学配置；lean 合同以 `configs/vsmt/lean_*` 命名 |
 | `data/`、`outputs/`、`results/` | 来源/split、服务器大产物、可复算导出 |
-| `experiments/counterfactual_transaction_learning/` | 旧 M1/开发合同、结果快照和 fixtures，保留复现路径 |
-| `literature/`、`docs/source/`、`prototype/` | 文献、原始资料及原型来源 |
-
-旧源码、配置和 run 报告保留原路径。已被合并的细分文档、重复确认表和两套旧方案副本从工作树删除，原文可在[重组前提交](https://github.com/JingzeSun/Emboddied_Spatial_Memory/tree/c24ced2f4a5513f5a8944b98139857cfc27909ff)查看，不在新目录再复制一套。
-
-VSMT VM-01～VM-03 已完成服务器合同验收并合并 `main`；VM-04旧[L1结构报告](results/vsmt_vm04_l1_structures.json)绑定130/130合同与合成packet。D-140～D-143随后把place改为五方法共同的确定性坐标scaffold，补齐关系感知SPLIT/MERGE、entity RETRACT/REPLACE、节点规范版本BIND、原始AABB单调包络、packet v3匿名可见体积、按错失观测机会的共享dormancy、模板diff封闭审计、语义编辑记账和有界候选容量；实现提交`8ea0e13`的本地固定分组为42/42 executor、31/31 L1、91/91 VSMT，但服务器尚未开启，不能借旧报告认证。当前仍不生成house、不打开confirmation、不训练；正式阈值、候选cap、dormancy门、选择器、teacher/evaluator及S-01～S-12剩余数值口径尚待冻结。统计以family为独立单位，总体为主确认结论，逐类型确认只预登记SPLIT/MERGE/entity RETRACT；confirmation family数待开发成品率反推。旧CPMT的S5 no-go、旧test封存、D-062世界模型代码与全部复现路径保留。
+| `src/cpmt/`、`src/spatial_world_model/`、`experiments/`、`schemas/`、`literature/`、`docs/source/`、`prototype/` | 历史实现、原始资料与文献，保留不删 |
