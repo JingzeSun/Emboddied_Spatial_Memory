@@ -2140,3 +2140,14 @@
 - **模型字节绑定：** 合同按摘要绑定 E-06 的 weights=`e5fca2f2…22c5`、normalization=`cce06993…04c3a`、training receipt=`874ccf82…5887`；任一字节变化即拒绝运行，确保审计的确实是那份冻结权重，且审计期间不发生任何重训或重拟合。
 - **审计不是通过门：** 本决策不登记任何及格线。它描述冻结前端的表现，不决定论文是否继续；P08 路线是否合格由 D-215 冻结的 0.70/0.70/0.85/0.35 另行判定。
 - **边界未变：** audit 的 128 个 house 在本决策前从未生成；标签仍由私有可达图按同一冻结规则自动产生，零人工判断；模型输入仍只有公开 RGB-D 与内参，推理不查 grid 真值；失败 house 保留不补样。`estimator_retraining`、`production_reader`、`p04_p08_qualification`、`route_or_raw_generation`、`private_evaluation` 全程 false。
+
+## D-223：P08 资格改用已冻结的拓扑规则（post-audit 决策，提案待审）
+
+- 日期：2026-09-19；状态：**提案**，六个授权位全 false；机器合同[`vm04_d223_p08_topological_qualification_v1.json`](../configs/vsmt/vm04_d223_p08_topological_qualification_v1.json)。
+- **本决策写于审计结果已知之后，必须按 post-audit 阅读。** 绑定审计报告摘要`3e652a45…b142`；当时已知结构头整体 accuracy 0.7013，但 bottleneck recall 区间为 0.043–0.150、NLL 区间 1.830–2.238，比三类均匀猜测的 1.099 还差。它不是被禁止的修补：不加 house、不改模型、不调阈值，estimator 保持被审计的原字节，审计报告不重跑，P08 的 fragment 判据 0.85/0.35 不动。变的只是"由哪个公开来源认证路线的结构角色"，而这是因为审计证伪了"单帧 90° 视场能恢复 360° 拓扑性质"这个前提。
+- **根因是标签与输入不匹配，不是数据不足：** 标签是 `f(位置)`，输入是 `f(位置, 朝向)`。[vm04_d217_rgbd_worker.py](../ops/vsmt/vm04_d217_rgbd_worker.py) 每个位置调一次 `structural_label_from_reachable(reachable, position)`，然后把同一标签复制给四个 yaw；站在门口面朝墙的那些帧画面里没有任何通道证据，却带着 bottleneck 标签。train 0.7049 / calibration 0.6958 / audit 0.7013 三者几乎相同，模型连自己的训练集都拟合不到 0.71，说明这是信息或容量天花板而非样本不足，因此增加 house 不可能改善。**实现者在审计前没有核对这一点**；D-221 那次扩展生成的 1,664 个 house 所要买的 bottleneck 覆盖，从一开始就买不到。
+- **改法与零新增参数：** P08 不再以学习式结构头概率为门，改为在**构造期**对公开 `GetReachablePositions` 直接应用 D-215 已冻结的拓扑规则（rule sha `4fa32f89…4774`，十个常量原样继承）。判据不是 bottleneck 定义的近似，**它就是那个定义**，因此引入 0 个新数值。所需签名仍是时序上连续的 basin→bottleneck→basin，与 D-214 一致。
+- **权限边界：** METHOD 两处明写路线 survey 的输入是"两间固定 house 的公开 `GetReachablePositions`"，且"0.5 m 格只服务于在公开 reachable positions 上规划合法路线与候选召回"。因此构造期使用它是既有权限，不是新开口子。部署期推理与共享前端 cache 中仍然禁止，私有 room/object 真值仍然不用。D-214 当初的顾虑是"不得用私有模拟器房间标签认证 P08"，本方案不触碰该顾虑。
+- **必须报告的口径收缩：** 论文此后**不得声称**"P08 的结构角色可由单帧公开 RGB-D 推断"，只能声称"该固定路线确实具有 basin-bottleneck-basin 拓扑，由构造期公开可达几何认证"。结构头在 P08 路线上仍可作为诊断报告，但不再充当任何门。
+- **结构头不删除，只降级：** 与语义头不同，它在部署期仍是可用证据——推理时只有公开 RGB-D、算不了拓扑规则，而它 basin 与 unknown 的 recall 区间 0.731–0.781 与 0.673–0.727 仍有信息。它从 P08 资格门降级为 place observation 中五臂同读的特征，其 bottleneck 弱点照实写入论文。权重不重训、审计不重跑。
+- **防二次调参：** 判据须在任何 P08 路线被评估之前冻结；路线成品率不得改变判据或其常量。若在该判据下 P08 仍不合格，记 construction failure 并如实报告，不弱化判据、不换路线、不换 house；再次替换 P08 的门需要新决策。
