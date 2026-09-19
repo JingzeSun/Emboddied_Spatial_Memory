@@ -27,7 +27,7 @@ VM-06 独立 test 与论文证据
   └─ P-05 → P-06
 ```
 
-当前执行点：VM-04.E 全部完成，E-08 报告已导出并由 [LOG-206](../EXECUTE.md) 收口。D-221 最终得到2,121个成功house、55个失败house、67,872帧公开RGB-D与396维特征；E-06结构单头完成训练，但E-08显示它不适合作P08 bottleneck硬门（整体accuracy 0.7013，bottleneck recall区间0.043–0.150）。用户已批准D-223并完成F-00真实两房预检：两房均成功，分别存在2条和1条合格拓扑签名，因此拓扑继续门通过。F-00已重新关闭，且没有自动启动F-01。下一步等待用户裁决是否只实现F-01 production reader；P04/P08完整资格、route/raw、private evaluation、重训和audit重跑仍关闭。
+当前执行点：VM-04.E 全部完成，E-08 报告已导出并由 [LOG-206](../EXECUTE.md) 收口。D-221 最终得到2,121个成功house、55个失败house、67,872帧公开RGB-D与396维特征；E-06结构单头完成训练，但E-08显示它不适合作P08 bottleneck硬门（整体accuracy 0.7013，bottleneck recall区间0.043–0.150）。用户已批准D-223并完成F-00真实两房预检：两房均成功，分别存在2条和1条合格拓扑签名，因此拓扑继续门通过。F-01 production reader 已按授权完成本地实现与边界测试，真实资产加载、真实公开输入读取和production cache生成仍关闭，等待代码审查后的单独授权；P04/P08完整资格、route/raw、adapter materialization、private evaluation、重训和audit重跑也仍关闭。
 
 ## 二、状态和执行规则
 
@@ -203,7 +203,7 @@ E-08没有评价VSMT，也没有评价实体—地点关联。D-223后不再运�
 
 | 项 | 内容 |
 |---|---|
-| 状态 | 未开始 |
+| 状态 | 本地实现候选与边界测试已完成，真实服务器读取待代码审查后另行授权 |
 | 输入 | 冻结SAM/DINO/几何配置、公开RGB-D、内参、因果pose belief与动作摘要；**不加载E-06权重** |
 | 完整动作 | 从公开RGB-D产生匿名fragment、DINO描述、surface/free-space/visibility和不含语义/结构类别概率的非网格place observation；只写一次共享cache |
 | 输出 | 五种方法读取的完全相同 cache bytes 和逐帧 receipt |
@@ -361,7 +361,8 @@ VM-04.E 已全部完成。下表只估计**剩余**步骤；最大的不确定�
 | E-08 一次性审计 | 已完成并封存 | accuracy 0.7013；bottleneck recall 区间 0.043–0.150 |
 | D-223 文档与合同修订 | 已批准 | F-00真实预检完成且执行门重新关闭 |
 | 两间 P0 house 拓扑可构造性预检 | 已完成 | 两房成功，合格签名数分别为2和1；未生成raw、未向方法暴露可达图 |
-| F-01 production reader 加 P01/P04/P08 smoke | 约 3～7 天 | SAM proposal 数分布、跨视角 DINO 区分度、P08 资格 |
+| F-01 production reader | 本地实现候选完成；真实单episode读取待授权 | SAM proposal数与cache字段须在真实小样本复核 |
+| F-02 P01/P04/P08 smoke | 约 3～7 天，未授权 | 跨视角DINO区分度、P08 fragment资格 |
 | M-03 第一份五方法开发表 | 约 1～2 周 | 非网格 place 接线、teacher/evaluator 和调试 |
 | P-05 第一份论文级 test | 约 5～8 周 | P-01 正式规模、构造成品率、五方法训练和统计功效 |
 
@@ -369,9 +370,9 @@ VM-04.E 已全部完成。下表只估计**剩余**步骤；最大的不确定�
 
 最近动作按顺序为：
 
-1. 用户审查F-00真实回执及结论边界；F-00已关闭且F-01未自动开始。
-2. 用户另行裁决是否只实现并测试F-01 production reader；这不等于授权真实raw、P08完整资格或方法效果实验。
-3. F-01若获批，先实现不含结构/语义概率的production reader并做本地边界测试，真实服务器读取仍需在代码审查后另行授权。
+1. 用户审查F-01实现提交、机器合同、公开输入schema和本地负向测试；当前所有真实执行位关闭。
+2. 若审查通过，只用单一config activation子提交开放F-01的真实资产校验、单episode公开输入读取和共享cache生成；仍不得生成route/raw或运行P04/P08资格。
+3. F-01真实小样本逐字段验收后再决定是否进入F-02；F-01成功不会自动启动F-02。
 
 ## 八、失败时的暂停点与待触发裁决
 

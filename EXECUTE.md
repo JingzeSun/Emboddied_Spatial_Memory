@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| D-214～D-218共享RGB-D前端 | D-217 E-01～E-03 已在服务器完成：559/576 house成功，17,888帧公开RGB-D逐文件复验通过。D-218 E-04已导出17,888帧A/B双盲任务包，人工标签仍为0；E-05已完成559/559 house的396维冻结特征，失败0。权重、audit和production reader仍为0。LOG-199～204。 |
+| D-214～D-223共享RGB-D前端 | Estimator历史路线已完成并由E-08证伪其P08硬门用途；F-00两房拓扑预检通过。D-223/F-01不含结构/语义输出的production reader本地实现候选与边界测试完成，真实资产/episode/cache执行仍为0，P04/P08、route/raw、adapter、private evaluation、训练与audit重跑均关闭。LOG-199～209。 |
 | D-213统一图/类型门 | 四节点/五关系统一图合同、seal前类型门、五种消融memory view、图复杂度派生、relation REACTIVATE及surface/fragment RETRACT已实现候选；数据接线现改为等待D-214冻结cache，不再以单槽raw后定义前端，全部运行位关闭；LOG-197/199。 |
 | D-212地点raw纠偏 | v2已补公开grid模板＋RGB-D route survey生产入口、P01–P08可复算收据、raw三面journal与两提交执行门；D-214已重新阻断activation，旧P04/P08工程描述不得获论文资格。真实survey/seal/smoke均为0；LOG-196/198/199。 |
 | VM-04观察适用性 | 原静态36槽不运行；D-182/183只用于精确schema/实现审查。D-199–202已形成L2公开proposal/visibility、program matcher/episode audit和terminal raw加载前plan seal，D-202已获认可。D-203候选禁止调用者手填version ID，从sealed public route、预登记selector和`terminal-1` causal memory确定派生九类online request refs；核心无episode/raw path参数，edge RETRACT仍阻断。selector spec的提前时间封存和D-202 receipt消费未实现，因此D-201 pending与family阻断未解除。正式SAM/assets/matcher/visibility数值、生产callback、父stage family聚合及pilot收据仍缺。全部运行位关闭，0新episode/materialization/训练/记忆正例。LOG-169–192。 |
@@ -2174,3 +2174,12 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - slot 0共有1,299个reachable位置：basin 680、bottleneck 66、unknown 553；basin/bottleneck/unknown连通分量为5/16/35，找到2条合格签名，确定性最短见证含3个位置。slot 1共有1,721个位置：basin 1,183、bottleneck 31、unknown 507；分量为2/6/32，找到1条签名，见证含7个位置。两房均成功且`qualifying_path_exists=true`，所以`continue_to_f01=true`；`automatic_f01_started=false`。
 - 两份private receipt逐字节重算封印，公开summary由它们重新生成后完全相等。公开泄漏扫描对真实house ID及`source_house_id`、`selected_witness_path`、`position_labels`字段均为0命中；`raw_generated=false`、`production_reader_started=false`、可达图未提供给cache/candidate/selector/adapter。公开报告[`vsmt_vm04_f00_topology_precheck.json`](results/vsmt_vm04_f00_topology_precheck.json)由提交`bae1437`导出；文件SHA-256=`81050c8cbe8306b54c0f9621e014199e860f948f3f3de237dab06885f24ac181`，内部summary摘要=`3fa209ef83799edeb1e8c96a574f9d53e5576ecfd911751908c3209780d55ff8`。
 - activation后发现一项测试只接受pending合同，会对合法active/terminal状态产生假失败；这不影响已运行的validator、worker或拓扑算法。收口补充active/terminal分支测试，并把F-00改为绑定上述唯一结果的completed状态、所有执行位重新false，防止把本次授权用于第二次预检。定向9/9通过；最终标准库discover **744/744通过**，耗时83.609 s、exit=0，compileall通过。白话：F-00现在证明两间固定house都能构造“两个不同basin经连续bottleneck连接”的题目；它不证明RGB-D里有合格fragment、不表示P08完整资格通过，更不表示VSMT优于任何基线。
+
+## LOG-209：D-223/F-01 production reader本地实现候选（2026-09-19）
+
+- 用户在F-00完成后批准继续，只实现并本地测试F-01；本批未连接服务器、未打开真实SAM/DINO资产或真实两房episode、未写production cache。P04/P08完整资格、route/raw、adapter materialization、private evaluation、训练和audit重跑均未获授权。
+- F-01使用独立`vsmt-vm04-d223-f01-production-frame-cache-v1`覆盖schema，不修改或冒用历史D-214 schema。函数签名只接受当前公开RGB-D、内参、因果episode-relative相机pose、连续pose belief、可选入边动作摘要；输出匿名fragment、公开surface/free-space/visibility、无持久身份的非网格place observation和冻结DINO描述。输出字节中没有semantic/structural概率或模型receipt，E-06结构头不加载。
+- 单episode输入bundle只允许`manifest.json`和`arrays.npz`，NPZ固定为`rgb_uint8`与`depth_m_float32`；manifest递归拒绝scenario/house/route/world pose/reachable/room/instance/object/teacher/reference/future/semantic/structural字段。SAM只收到当前RGB，DINO extractor也只收到当前RGB；prior free-space由reader按帧顺序内部积累，不作为外部真值输入。
+- 冻结资产校验绑定DINOv2/SAM2源码commit、clean worktree、checkpoint摘要、SAM官方YAML大小与摘要；模型加载后DINO强制eval且所有参数`requires_grad=false`，SAM关闭跨帧memory。真实`run`在查看任一用户给定外部路径前，先要求F-01合同进入只开放三项权限的active状态、当前提交是受审实现的单一config子提交且checkout干净。
+- 本地合成测试覆盖：全关闭合同与E-06缺席、冻结SAM配置漂移与下游门误开拒绝、reader签名禁限字段、公开RGB-D材料化无语义/结构cache、五方法canonical bytes相同且clone互不共享、fragment/surface集合越界拒绝、free-space/visibility半空间几何重验证、manifest嵌套私有字段拒绝、`check`只读状态及未激活CLI在外部路径读取和输出前失败。定向测试10/10通过；最终标准库discover **754/754通过**，耗时86.458秒、exit=0，compileall和`git diff --check`通过。真实服务器兼容、真实proposal数、真实cache字段逐项验收和下游adapter兼容性尚未验证。
+- 白话：这一批做出的是“只吃已经公私分离的单条公开录像，并把它变成五种方法共享证据”的读取器。例如一帧里的椅子只会成为匿名fragment，不会自带物体ID、房间类别或瓶颈答案。它不是数据采集、路线资格、方法效果实验，也不证明真实权重和服务器环境已经能跑通。

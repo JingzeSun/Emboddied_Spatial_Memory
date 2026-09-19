@@ -1,0 +1,219 @@
+{
+  "schema_version": "vsmt-vm04-d223-f01-production-reader-v1",
+  "decision_id": "D-223",
+  "stage_id": "F-01",
+  "status": "implementation_pending_review_all_execution_closed",
+  "reviewed_baseline_commit": "757127b1b7d56a140e96c4264d8e362eebcdbfe3",
+  "expected_reviewed_implementation_commit": null,
+  "bindings": {
+    "d223_relative_path": "configs/vsmt/vm04_d223_p08_topological_qualification_v1.json",
+    "d223_file_sha256": "737b4a7e108dca30931884460d294d36cc571c2d50fe5bc12daa0ebf9f288b18",
+    "f00_contract_relative_path": "configs/vsmt/vm04_d223_f00_topology_precheck_v1.json",
+    "f00_contract_file_sha256": "ec3ddd9949a713853e591f92ec6188a0b7627ac24af2094b7d59160f94d4176b",
+    "f00_public_summary_relative_path": "results/vsmt_vm04_f00_topology_precheck.json",
+    "f00_public_summary_file_sha256": "81050c8cbe8306b54c0f9621e014199e860f948f3f3de237dab06885f24ac181",
+    "d215_relative_path": "configs/vsmt/vm04_d215_frontend_freeze_v1.json",
+    "d215_file_sha256": "c3d6736f67b300eca03882c081e56e6bf4d65ad1913bcc411df8477fbd188db8",
+    "public_entity_geometry_relative_path": "configs/vsmt/vm04_l1_environment_v1.json",
+    "public_entity_geometry_file_sha256": "acecc33b5f4982830219f7f325334fb9311579ddd75551a7de3a1f450c06000a",
+    "public_non_entity_geometry_relative_path": "configs/vsmt/vm04_l1_non_entity_geometry_review_v1.json",
+    "public_non_entity_geometry_file_sha256": "9ef7bdfdade97b50a2e1da53ad8b11183427bf9b383feea4f223d9bf4eee5148"
+  },
+  "authorization": {
+    "real_asset_verification_and_loading": false,
+    "real_public_input_read": false,
+    "production_cache_generation": false,
+    "p04_p08_qualification": false,
+    "route_or_raw_generation": false,
+    "adapter_materialization": false,
+    "private_evaluation": false,
+    "training": false,
+    "audit_rerun": false
+  },
+  "activation_policy": {
+    "active_status": "frozen_real_f01_single_episode_reader",
+    "active_true_authorizations": [
+      "real_asset_verification_and_loading",
+      "real_public_input_read",
+      "production_cache_generation"
+    ],
+    "must_remain_false": [
+      "p04_p08_qualification",
+      "route_or_raw_generation",
+      "adapter_materialization",
+      "private_evaluation",
+      "training",
+      "audit_rerun"
+    ],
+    "activation_commit_may_change_only": [
+      "configs/vsmt/vm04_d223_f01_production_reader_v1.json"
+    ],
+    "executable_checkout_must_be_clean": true,
+    "executable_checkout_parent_must_equal_reviewed_implementation_commit": true
+  },
+  "public_input_boundary": {
+    "fields": [
+      "current_rgb_uint8",
+      "current_depth_m_float32",
+      "camera_intrinsics",
+      "causal_episode_relative_camera_pose",
+      "continuous_pose_belief",
+      "incoming_transition_action_summary",
+      "prior_public_free_space"
+    ],
+    "forbidden": [
+      "scenario_id",
+      "scenario_role",
+      "house_id",
+      "route_index",
+      "simulator_world_pose",
+      "reachable_grid",
+      "room_metadata",
+      "instance_mask",
+      "object_id",
+      "private_entity_id",
+      "semantic_label_or_probability",
+      "structural_label_or_probability",
+      "teacher",
+      "reference_transaction",
+      "future_observation_or_state"
+    ],
+    "input_bundle_schema": "vsmt-vm04-d223-f01-public-episode-input-v1",
+    "single_episode_per_run": true
+  },
+  "assets": {
+    "dinov2": {
+      "model_id": "dinov2.vits14",
+      "repository_commit": "7764ea0f912e53c92e82eb78a2a1631e92725fc8",
+      "checkpoint_sha256": "b938bf1bc15cd2ec0feacfe3a1bb553fe8ea9ca46a7e1d8d00217f29aef60cd9",
+      "input_shape": [224, 224, 3],
+      "patch_size_pixels": 14,
+      "patch_token_dimension": 384,
+      "parameters_frozen": true,
+      "evaluation_mode": true
+    },
+    "sam2": {
+      "model_id": "sam2.1.hiera_small.per_frame_automatic_mask_generator",
+      "repository_commit": "2b90b9f5ceec907a1c18123530e92e794ad901a4",
+      "official_model_config_path": "sam2/configs/sam2.1/sam2.1_hiera_s.yaml",
+      "official_model_config_bytes": 3761,
+      "official_model_config_sha256": "0f36b91e86e58d06c87e42997166212468b88b98b60e4d816d5e4d4d088b6f55",
+      "checkpoint_bytes": 184416285,
+      "checkpoint_sha256": "6d1aa6f30de5c92224f8172114de081d104bbd23dd9dc5c58996f0cad5dc4d38",
+      "automatic_mask_generator": {
+        "points_per_side": 32,
+        "points_per_batch": 64,
+        "pred_iou_thresh": 0.8,
+        "stability_score_thresh": 0.95,
+        "stability_score_offset": 1.0,
+        "box_nms_thresh": 1.0,
+        "crop_n_layers": 0,
+        "crop_nms_thresh": 1.0,
+        "min_mask_region_area": 0,
+        "output_mode": "binary_mask"
+      },
+      "minimum_visible_pixels": 196,
+      "maximum_proposals_per_frame": 64,
+      "border_truncation_policy": "retain_if_minimum_visible_pixels_met",
+      "prompt_policy": "fixed_grid_only_no_text_no_private_points_or_boxes",
+      "cross_frame_memory_enabled": false,
+      "overlap_policy": "preserve_independent_overlapping_proposals",
+      "asset_receipt_sha256": "6b6e1705ee81ec71475fb0c1b28696c98d2f30740e92a0a380554e9e85bb6a33",
+      "automatic_mask_and_boundary_config_sha256": "df828bcfac74c8dc0dcb0d82731c978f8a17958755822aa44c90e5ac23db2c33"
+    },
+    "e06_structural_estimator_loaded": false
+  },
+  "frontend": {
+    "descriptor": {
+      "image_height": 224,
+      "image_width": 224,
+      "patch_size_pixels": 14,
+      "patch_token_dimension": 384,
+      "minimum_total_patch_weight": 1.0,
+      "unit_norm_validation_tolerance": 0.00001
+    },
+    "fragment_geometry": {
+      "depth_convention": "ai2thor_linear01_camera_axis_z_m",
+      "minimum_depth_m": 0.05,
+      "maximum_depth_m": 20.0,
+      "absolute_minimum_valid_depth_points": 32,
+      "minimum_valid_depth_fraction": 0.25
+    },
+    "surface": {
+      "tile_size_pixels": 14,
+      "minimum_valid_depth_fraction_per_tile": 0.9,
+      "initial_maximum_rms_point_to_plane_m": 0.015,
+      "initial_maximum_p95_point_to_plane_m": 0.03,
+      "merge_maximum_normal_angle_degrees": 10.0,
+      "merge_maximum_mutual_centroid_to_plane_m": 0.03,
+      "final_inlier_point_to_plane_m": 0.02,
+      "final_minimum_inlier_fraction": 0.9,
+      "final_maximum_rms_point_to_plane_m": 0.01,
+      "minimum_inlier_pixels": 784,
+      "minimum_depth_m": 0.05,
+      "maximum_depth_m": 20.0
+    },
+    "free_space": {
+      "tile_size_pixels": 14,
+      "block_widths_in_tiles": [1, 2, 4, 8, 16],
+      "angular_boundary_erosion_pixels": 1,
+      "minimum_depth_m": 0.05,
+      "maximum_valid_depth_m": 20.0,
+      "near_axis_depth_m": 0.1,
+      "surface_clearance_m": 0.1,
+      "maximum_axis_depth_m": 5.0,
+      "minimum_longitudinal_thickness_m": 0.1,
+      "rolling_public_observation_times": 4
+    },
+    "frontend_config_sha256": "f1fb5839b196591429c052f04681b3aa3500f3cf53c201032983642e2ebb2337"
+  },
+  "production_output_boundary": {
+    "frame_schema": "vsmt-vm04-d223-f01-production-frame-cache-v1",
+    "episode_schema": "vsmt-vm04-d223-f01-production-episode-cache-v1",
+    "outputs": [
+      "anonymous_fragment_observations",
+      "public_depth_surface_observations",
+      "public_free_space_observations",
+      "public_visibility_observations",
+      "non_grid_place_observation",
+      "frozen_dinov2_descriptors"
+    ],
+    "semantic_or_structural_probabilities_present": false,
+    "semantic_or_structural_model_receipts_present": false,
+    "persistent_entity_or_place_identity_assigned": false,
+    "reachable_graph_present": false,
+    "raw_paths_or_private_crosswalk_present": false,
+    "identical_method_cache_views": [
+      "VSMT",
+      "TAF",
+      "ELU",
+      "WFR",
+      "LOW"
+    ]
+  },
+  "implementation_boundary": {
+    "post_d223_frame_core_implemented": true,
+    "post_d223_episode_cache_implemented": true,
+    "frozen_asset_verifier_and_loader_implemented": true,
+    "public_input_bundle_reader_implemented": true,
+    "real_assets_or_public_inputs_opened": false,
+    "server_executed": false
+  },
+  "resource_policy": {
+    "single_episode_execution_unit": true,
+    "one_dinov2_model_and_one_sam2_generator_on_one_gpu": true,
+    "frame_order_must_be_sequential_for_causal_free_space_history": true,
+    "wall_clock_timeout_allowed": false,
+    "minimum_free_disk_bytes": 4294967296
+  },
+  "closed_downstream": {
+    "production_cache_produced": false,
+    "p04_p08_requalified": false,
+    "route_or_raw_generated": false,
+    "adapter_materialized": false,
+    "private_evaluation_run": false,
+    "training_run": false,
+    "audit_rerun": false,
+    "f01_success_does_not_automatically_start_f02": true
+  }
+}

@@ -2151,3 +2151,4 @@
 - **必须报告的口径收缩：** 论文此后**不得声称**"P08 的结构角色可由单帧公开 RGB-D 推断"，只能声称"固定路线确实具有 basin-bottleneck-basin 拓扑，由构造期生成器专用可达几何认证"。场景名称收紧为“两个 basin 经拓扑 bottleneck 连接、含实体”，不再称为经视觉识别的“房间—走廊—房间”。
 - **结构头退出 production：** production reader 不计算它，place observation 不携带它，selector、候选生成器和 adapter 均不得读取。逐字节相同的弱特征只保证接口一致，不保证对五种机制影响中性，故不因已有成本而强留。E-05 特征、E-06 权重/回执和 E-08 报告全部封存保留，不重训、不重跑；论文主方法只描述实际使用的 SAM proposal、冻结 DINOv2、公开深度几何与因果位姿信念，结构头至多在附录作为未采用的开发尝试披露。
 - **防二次调参：** 判据须在任何 P08 路线被评估之前冻结；路线成品率不得改变判据或其常量。若在该判据下 P08 仍不合格，记 construction failure 并如实报告，不弱化判据、不换路线、不换 house；再次替换 P08 的门需要新决策。
+- **F-01实现边界（2026-09-19补充，未开放真实运行）：** 用户在F-00完成后批准只实现并本地测试production reader。实现采用独立D-223覆盖schema而不修改历史D-214字节，删除结构/语义概率及其模型receipt，保留冻结SAM/DINO、公开深度几何、因果pose belief和非网格place observation；五方法读取同一episode cache的独立等字节clone。`check`只读复核合同与F-00公开证据，`run`在任何外部输入/资产路径打开前强制验证单文件activation child与干净checkout。当前真实资产加载、真实公开输入读取、cache生成、P04/P08资格、route/raw、adapter、private evaluation、训练与audit重跑全为false；F-01成功也不自动授权F-02。

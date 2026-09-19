@@ -52,9 +52,11 @@ D-210 为地点/拓扑主实验建立独立于旧 VM-04 v1–v4 的数据版本�
 
 历史`vsmt-vm04-d214-shared-rgbd-frame-cache-v1`逐保存观察曾包含结构/语义概率字段；其冻结字节只用于复核旧实现。**D-223后的production cache必须由覆盖层删除这些字段**，保留observation/time、RGB/depth/calibration摘要、连续pose belief、可选入边动作摘要、packet-local匿名fragment、surface、单个非网格place observation、滚动free-space、当前visibility、SAM/DINO/几何/config receipt摘要及整帧摘要。place observation只含全帧DINO描述、belief均值/协方差和surface/free-space支持；`persistent_place_id=null`、`identity_assigned=false`、`metric_grid_identity_used=false`。白话：输入当前公开画面和因果估计，输出五种方法共同读取的匿名视觉—几何证据。例如大厅的全帧DINO与可见平面可支持以后BIND到旧地点，但cache不会直接写“这是basin”或“这是房间”。它不含raw路径、mask像素、instance/object ID、场景名、可达图或private crosswalk。
 
-episode cache按0开始连续封存frame，绑定DINO/SAM/几何资产receipt和单一config摘要；`identical_method_cache_views`给VSMT/TAF/ELU/WFR/LOW独立clone并核canonical摘要完全相同。输入是同一episode的有序frame cache，输出五份等字节视图；它不允许方法私有前端、结构头概率或按P08附加字段。真实production schema/reader仍未实现，现有D-214 fixture只证明历史边界，不能生成D-223后的正式cache。
+episode cache按0开始连续封存frame，绑定DINO/SAM/几何资产receipt和单一config摘要；`identical_method_cache_views`给VSMT/TAF/ELU/WFR/LOW独立clone并核canonical摘要完全相同。输入是同一episode的有序frame cache，输出五份等字节视图；它不允许方法私有前端、结构头概率或按P08附加字段。D-223后的schema/reader已在F-01实现候选中落地，但目前只用合成公开数组测试，尚未读取真实episode或生成正式cache；现有D-214 fixture仍只证明历史边界。
 
-当前实现边界是：公开fragment/depth材料化与cache核心已有历史实现，真实SAM/DINOv2编排、D-223覆盖schema、production raw reader和服务器执行均未实现。白话：测试可以证明一组已验证mask/token/几何能被无泄漏地封成共同cache，但还不能把服务器原始RGB-D直接变成最终production cache，也不能继续用fixture结构概率冒充正式输入。
+F-01公开输入bundle固定只含`manifest.json`与`arrays.npz`：后者仅允许`rgb_uint8[N,224,224,3]`和`depth_m_float32[N,224,224]`，前者保存匿名episode ID、连续观察序号、时间、两数组来源摘要、内参、因果episode-relative相机pose、连续pose belief和可选入边动作摘要，并以自身摘要绑定NPZ摘要。输入是已经完成公私分离的单个episode，输出是F-01 reader可顺序消费的公开帧；例如第0帧可没有入边动作，第1帧的摘要必须从更早观察结束于第1帧。它不等于route/raw：F-01不会从模拟器取数，也不接受额外sidecar、house/scenario、world pose、reachable、room、instance/object、teacher/reference/future字段。
+
+当前实现边界是：F-01已有D-223覆盖schema、冻结SAM/DINOv2校验与加载编排、公开bundle reader、逐帧/episode封印及五方法等字节视图；关闭入口在检查任何外部路径前要求受审实现的单一activation子提交和干净checkout。白话：本地测试已经证明合成RGB-D能变成不含结构/语义概率的共同cache，并证明关闭状态不会碰真实路径；它还没有证明服务器资产可加载、真实bundle字段正确、真实SAM proposal数量合适或产物可供后续adapter使用。真实运行、P04/P08、route/raw、adapter、private evaluation和训练仍是不同的后续权限。
 
 P04回执保存所选两帧、公开名义距离、DINO cosine和“未用绝对阈值/未用旧四象限描述子”布尔。D-223后的P08资格由两份不可混读证据组成：`topology_qualification_receipt`由数据生成器保存逐位置拓扑角色、冻结规则摘要和basin→bottleneck→basin命中段；`fragment_qualification_receipt`只读共享cache，保存两端各一对跨帧稳定fragment及0.85/0.35配置。合并回执只引用两者摘要，不把可达图复制到public cache或adapter。白话：生成器证明“题目确有瓶颈”，公开fragment证明“两端确有可供记忆的匿名实体证据”；它不把前者喂给方法，也不把后者当真实实体ID。
 
