@@ -20,11 +20,15 @@ if str(SRC) not in sys.path:
 
 from cpmt.hashing import canonical_json  # noqa: E402
 from vsmt.d223_f01_production_reader import (  # noqa: E402
+    BORDER_POLICY_EXECUTION_CONSTANT,
     D223F01Error,
     F01ProductionReader,
+    SAM_RECORDED_DEFAULTS,
     assert_real_f01_authorized,
     build_observation_zero_compat_input,
+    build_l2_proposal_config,
     identical_method_cache_views,
+    resolve_generator_arguments,
     select_first_d217_public_train_sample,
     validate_episode_cache,
     validate_f01_contract,
@@ -458,6 +462,97 @@ class D223F01D217CompatibilityInputTests(unittest.TestCase):
             provenance["formal_data_p04_p08_or_paper_eligible"])
         self.assertFalse(provenance["private_input_read"])
         self.assertFalse(provenance["calibration_or_audit_input_read"])
+
+
+class FakeGenerator:
+    """The SAM2AutomaticMaskGenerator signature at the pinned commit."""
+
+    def __init__(
+        self, model, points_per_side=32, points_per_batch=64,
+        pred_iou_thresh=0.8, stability_score_thresh=0.95,
+        stability_score_offset=1.0, mask_threshold=0.0, box_nms_thresh=0.7,
+        crop_n_layers=0, crop_nms_thresh=0.7, crop_overlap_ratio=512 / 1500,
+        crop_n_points_downscale_factor=1, point_grids=None,
+        min_mask_region_area=0, output_mode="binary_mask", use_m2m=False,
+        multimask_output=True, **kwargs,
+    ) -> None:
+        self.arguments = dict(kwargs)
+
+
+class DriftedGenerator:
+    """The same signature with one default moved, as a library bump would."""
+
+    def __init__(
+        self, model, points_per_side=32, points_per_batch=64,
+        pred_iou_thresh=0.8, stability_score_thresh=0.95,
+        stability_score_offset=1.0, mask_threshold=0.0, box_nms_thresh=0.7,
+        crop_n_layers=0, crop_nms_thresh=0.7, crop_overlap_ratio=512 / 1500,
+        crop_n_points_downscale_factor=1, point_grids=None,
+        min_mask_region_area=0, output_mode="binary_mask", use_m2m=False,
+        multimask_output=False, **kwargs,
+    ) -> None:
+        self.arguments = dict(kwargs)
+
+
+class D223F01FrozenGeneratorArgumentTests(unittest.TestCase):
+    """Nothing that changes which masks come back may rest on a library default.
+
+    D-215 froze ten generator arguments.  Six more affect the returned masks --
+    ``multimask_output`` most of all, since it is why one grid point can yield
+    several proposals and therefore what the 64-proposal ceiling bounds.  The
+    contract records those six at their pinned-commit values, and the reader
+    passes all of them explicitly.
+    """
+
+    def test_contract_records_every_remaining_generator_argument(self):
+        sam = validate_f01_contract(contract())["assets"]["sam2"]
+        recorded = sam["automatic_mask_generator_recorded_defaults"]
+        self.assertEqual(SAM_RECORDED_DEFAULTS, recorded)
+        self.assertEqual(
+            "sam2/automatic_mask_generator.py::SAM2AutomaticMaskGenerator.__init__",
+            sam["automatic_mask_generator_argument_source"])
+        self.assertTrue(sam["automatic_mask_generator_recorded_defaults_note"])
+
+    def test_recorded_defaults_never_restate_a_d215_frozen_value(self):
+        sam = validate_f01_contract(contract())["assets"]["sam2"]
+        self.assertFalse(
+            set(sam["automatic_mask_generator"]) & set(SAM_RECORDED_DEFAULTS))
+
+    def test_resolved_arguments_cover_the_full_pinned_signature(self):
+        sam = validate_f01_contract(contract())["assets"]["sam2"]
+        arguments = resolve_generator_arguments(sam, FakeGenerator)
+        parameters = inspect.signature(FakeGenerator.__init__).parameters
+        expected = {name for name, item in parameters.items()
+                    if name not in {"self", "model"}
+                    and item.kind is not inspect.Parameter.VAR_KEYWORD}
+        self.assertEqual(expected, set(arguments))
+        self.assertTrue(arguments["multimask_output"])
+        self.assertEqual(1.0, arguments["box_nms_thresh"])
+
+    def test_a_drifted_library_default_is_refused(self):
+        sam = validate_f01_contract(contract())["assets"]["sam2"]
+        with self.assertRaisesRegex(D223F01Error, "multimask_output drifted"):
+            resolve_generator_arguments(sam, DriftedGenerator)
+
+    def test_an_argument_the_constructor_does_not_name_is_refused(self):
+        sam = json.loads(canonical_json(
+            validate_f01_contract(contract())["assets"]["sam2"]))
+        sam["automatic_mask_generator_recorded_defaults"][
+            "multimask_ouput"] = True
+        with self.assertRaisesRegex(D223F01Error, "does not name"):
+            resolve_generator_arguments(sam, FakeGenerator)
+
+    def test_border_policy_name_maps_onto_the_executed_constant(self):
+        value = validate_f01_contract(contract())
+        sam = value["assets"]["sam2"]
+        self.assertEqual("retain_if_minimum_visible_pixels_met",
+                         sam["border_truncation_policy"])
+        self.assertEqual(BORDER_POLICY_EXECUTION_CONSTANT,
+                         sam["border_truncation_policy_execution_constant"])
+        config = build_l2_proposal_config(
+            value, generator_code_sha256="a" * 64)
+        self.assertEqual(BORDER_POLICY_EXECUTION_CONSTANT,
+                         config.border_truncation_policy)
 
 
 if __name__ == "__main__":

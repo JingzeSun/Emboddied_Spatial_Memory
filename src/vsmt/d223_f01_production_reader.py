@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 import hashlib
+import inspect
 import io
 import json
 import math
@@ -50,6 +51,18 @@ CONTRACT_SCHEMA = "vsmt-vm04-d223-f01-production-reader-v1"
 FRAME_SCHEMA = "vsmt-vm04-d223-f01-production-frame-cache-v1"
 EPISODE_SCHEMA = "vsmt-vm04-d223-f01-production-episode-cache-v1"
 INPUT_SCHEMA = "vsmt-vm04-d223-f01-public-episode-input-v1"
+# Every remaining SAM2AutomaticMaskGenerator.__init__ argument at the pinned
+# commit that affects which masks come back.  D-215 froze ten arguments and
+# these six fell through to library defaults; they are recorded, not changed.
+SAM_RECORDED_DEFAULTS = {
+    "mask_threshold": 0.0,
+    "crop_overlap_ratio": 512 / 1500,
+    "crop_n_points_downscale_factor": 1,
+    "point_grids": None,
+    "use_m2m": False,
+    "multimask_output": True,
+}
+BORDER_POLICY_EXECUTION_CONSTANT = "keep_if_minimum_support"
 D217_PUBLIC_SCHEMA = "vsmt-vm04-d217-public-rgbd-house-v1"
 D217_SAMPLE_DIRECTORY = re.compile(r"^sample_([0-9]{4})$")
 D217_OBSERVATION_COUNT = 32
@@ -186,7 +199,9 @@ def build_l2_proposal_config(
         image_height=contract["frontend"]["descriptor"]["image_height"],
         image_width=contract["frontend"]["descriptor"]["image_width"],
         minimum_visible_pixels=sam["minimum_visible_pixels"],
-        border_truncation_policy=KEEP_SUPPORTED_BORDER_REGIONS,
+        # The contract's policy name and the executed constant are two
+        # vocabularies for one rule; the mapping is recorded, not implied.
+        border_truncation_policy=sam["border_truncation_policy_execution_constant"],
         maximum_proposals_per_frame=sam["maximum_proposals_per_frame"],
         model_id=sam["model_id"],
         repository_commit=sam["repository_commit"],
@@ -350,9 +365,17 @@ def validate_f01_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
             "stability_score_offset": 1.0, "box_nms_thresh": 1.0,
             "crop_n_layers": 0, "crop_nms_thresh": 1.0,
             "min_mask_region_area": 0, "output_mode": "binary_mask"},
+        "automatic_mask_generator_recorded_defaults": dict(
+            SAM_RECORDED_DEFAULTS),
+        "automatic_mask_generator_recorded_defaults_note":
+            sam.get("automatic_mask_generator_recorded_defaults_note"),
+        "automatic_mask_generator_argument_source":
+            "sam2/automatic_mask_generator.py::SAM2AutomaticMaskGenerator.__init__",
         "minimum_visible_pixels": 196, "maximum_proposals_per_frame": 64,
         "border_truncation_policy":
             "retain_if_minimum_visible_pixels_met",
+        "border_truncation_policy_execution_constant":
+            BORDER_POLICY_EXECUTION_CONSTANT,
         "prompt_policy": PROMPT_POLICY,
         "cross_frame_memory_enabled": False,
         "overlap_policy": "preserve_independent_overlapping_proposals",
@@ -373,6 +396,16 @@ def validate_f01_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     } and sam == expected_sam and
         assets["e06_structural_estimator_loaded"] is False,
         "F-01 frozen asset policy changed")
+    _require(type(sam[
+        "automatic_mask_generator_recorded_defaults_note"]) is str and
+        sam["automatic_mask_generator_recorded_defaults_note"],
+        "F-01 recorded generator defaults need their provenance note")
+    _require(BORDER_POLICY_EXECUTION_CONSTANT ==
+             KEEP_SUPPORTED_BORDER_REGIONS,
+             "F-01 border policy no longer maps onto a known constant")
+    _require(not (set(SAM_RECORDED_DEFAULTS) &
+                  set(sam["automatic_mask_generator"])),
+             "F-01 recorded defaults must not restate a D-215 frozen value")
     build_frontend_config(value)
     output = value["production_output_boundary"]
     _require(set(output) == {
@@ -928,6 +961,39 @@ def verify_frozen_assets(
     }, "frozen_assets_receipt_sha256")
 
 
+def resolve_generator_arguments(
+    sam: Mapping[str, Any], factory: Any,
+) -> dict[str, Any]:
+    """Merge the frozen and recorded generator arguments, refusing drift.
+
+    D-215 froze ten arguments; the contract additionally records the six
+    remaining ones that affect which masks come back.  Every argument is
+    passed explicitly so the call never depends on a library default, and
+    two failure modes are refused outright: an argument the constructor does
+    not name -- its ``**kwargs`` would otherwise swallow a misspelled
+    contract key -- and a recorded default whose library value has moved away
+    from the pinned commit.
+    """
+
+    frozen = dict(sam["automatic_mask_generator"])
+    recorded = dict(sam["automatic_mask_generator_recorded_defaults"])
+    overlap = sorted(set(frozen) & set(recorded))
+    _require(not overlap,
+             f"F-01 recorded defaults restate frozen values: {overlap}")
+    arguments = {**frozen, **recorded}
+    parameters = inspect.signature(factory.__init__).parameters
+    missing = sorted(name for name in arguments if name not in parameters)
+    _require(not missing,
+             f"F-01 generator does not name these arguments: {missing}")
+    for name, expected in recorded.items():
+        default = parameters[name].default
+        _require(default == expected,
+                 f"F-01 recorded generator default {name} drifted from the "
+                 f"pinned commit: library has {default!r}, contract "
+                 f"has {expected!r}")
+    return arguments
+
+
 def load_frozen_processors(
     contract: Mapping[str, Any], *, dino_repository: Path,
     dino_checkpoint: Path, sam_repository: Path, sam_checkpoint: Path,
@@ -982,8 +1048,8 @@ def load_frozen_processors(
         sam_model.requires_grad_(False)
     if hasattr(sam_model, "eval"):
         sam_model.eval()
-    sam_generator = sam_generator_factory(
-        sam_model, **sam["automatic_mask_generator"])
+    arguments = resolve_generator_arguments(sam, sam_generator_factory)
+    sam_generator = sam_generator_factory(sam_model, **arguments)
     descriptor_config = build_frontend_config(value).descriptor
 
     def extract(rgb: np.ndarray) -> np.ndarray:

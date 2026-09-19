@@ -170,7 +170,18 @@
       "cross_frame_memory_enabled": false,
       "overlap_policy": "preserve_independent_overlapping_proposals",
       "asset_receipt_sha256": "6b6e1705ee81ec71475fb0c1b28696c98d2f30740e92a0a380554e9e85bb6a33",
-      "automatic_mask_and_boundary_config_sha256": "df828bcfac74c8dc0dcb0d82731c978f8a17958755822aa44c90e5ac23db2c33"
+      "automatic_mask_and_boundary_config_sha256": "df828bcfac74c8dc0dcb0d82731c978f8a17958755822aa44c90e5ac23db2c33",
+      "automatic_mask_generator_recorded_defaults": {
+        "mask_threshold": 0.0,
+        "crop_overlap_ratio": 0.3413333333333333,
+        "crop_n_points_downscale_factor": 1,
+        "point_grids": null,
+        "use_m2m": false,
+        "multimask_output": true
+      },
+      "automatic_mask_generator_recorded_defaults_note": "D-215 froze ten generator arguments; these six are the remaining arguments of SAM2AutomaticMaskGenerator.__init__ at repository_commit that affect which masks come back. Their values are the library defaults at that commit, recorded here so they are auditable and so a later library change is caught rather than silently absorbed by the constructor's **kwargs. multimask_output=true is why one grid point can yield more than one proposal, which is what the 64-proposal ceiling bounds. Recording them changes no value and leaves D-215 bytes untouched.",
+      "automatic_mask_generator_argument_source": "sam2/automatic_mask_generator.py::SAM2AutomaticMaskGenerator.__init__",
+      "border_truncation_policy_execution_constant": "keep_if_minimum_support"
     },
     "e06_structural_estimator_loaded": false
   },
