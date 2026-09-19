@@ -337,7 +337,7 @@ D-219 把共享前端的估计器从语义＋结构双头收窄为结构单头�
 
 机器合同为 [`vm04_d219_structural_only_estimator_v1.json`](../configs/vsmt/vm04_d219_structural_only_estimator_v1.json) 和 [`vm05_d220_protocol_simplification_v1.json`](../configs/vsmt/vm05_d220_protocol_simplification_v1.json)，完整理由见 [DECISIONS.md](DECISIONS.md)。它们解释 E-06 训练前与协议精简时的历史状态，原字节不重写；真实执行证据见 LOG-205/LOG-206。当前关闭的是 D-223 的 production reader、P08资格、route/raw和private evaluation，不是把已发生的训练与审计重新表述为0。
 
-#### D-223 P08 改用构造期拓扑资格，结构头退出 production（post-audit 提案待审）
+#### D-223 P08 改用构造期拓扑资格，结构头退出 production（post-audit 决策已批准）
 
 E-08 一次性审计的结论是：冻结的单帧线性结构头**不适合充当 P08 的 bottleneck 资格门**。3,776 帧、118 个 house 上整体 accuracy 0.7013，但该数主要来自 basin 与 unknown；bottleneck 的 95% recall 区间为 0.043–0.150，NLL 区间 1.830–2.238，明显差于三类均匀猜测的 1.099。审计报告摘要`3e652a45…b142`，只跑过一次，权重与报告字节此后不变。
 
@@ -349,7 +349,9 @@ E-08 一次性审计的结论是：冻结的单帧线性结构头**不适合充�
 
 **口径收缩必须报告。** 论文此后不得声称"P08 的结构角色可由单帧公开 RGB-D 推断"，只能声称"该固定路线确实具有 basin—bottleneck—basin 拓扑，由构造期生成器专用可达几何认证"。P08 的名称相应收紧为**"两个 basin 经拓扑 bottleneck 连接、含实体"**，不再称为经视觉识别的"房间—走廊—房间"。若在该判据下 P08 仍不合格，记 construction failure 并如实报告，不弱化判据、不换路线、不换 house；再次替换 P08 的门需要新决策。
 
-机器合同为 [`vm04_d223_p08_topological_qualification_v1.json`](../configs/vsmt/vm04_d223_p08_topological_qualification_v1.json)，当前为 post-audit 提案，六个授权位全 false。
+机器合同为 [`vm04_d223_p08_topological_qualification_v1.json`](../configs/vsmt/vm04_d223_p08_topological_qualification_v1.json)。用户已批准修订稿，但六个执行授权位仍全 false；当前只实现并本地测试 F-00，真实两房服务器预检须经代码审查后另行授权。
+
+**F-00拓扑预检（已实现、未真实运行）**解决“固定house的可达图里是否真有可规划的两端开阔区—中间瓶颈”。输入是单个house由生成器查询的`GetReachablePositions`，逐点原样调用D-215的`structural_label_from_reachable`，输出私有逐点标签/最短见证路径和不含坐标、house ID的公开计数摘要。例如左右两个互不连通的basin标签分量都紧邻同一个连续bottleneck标签分量时，见证路径为`basin→一个或多个bottleneck→basin`；若两端仍属于同一basin分量，或中间必须跨`unknown`，则不算命中。它不等于新增拓扑分类器、不把可达图交给方法，也不表示P08的多视角fragment条件或VSMT效果已经通过。纯核心为[`d223_f00_topology_precheck.py`](../src/vsmt/d223_f00_topology_precheck.py)，阶段入口为[`vm04_d223_f00_topology_precheck.py`](../ops/vsmt/vm04_d223_f00_topology_precheck.py)；当前合同的真实预检位为false。
 
 **D-206/D-207 历史口径（已由 D-210 取代主实验解释）。** D-205 曾因 place 由确定性骨架维护而把首篇收窄为“不主张地点修订”；D-206 随后发现 `camera_pose` 真值泄漏并改用带噪相对 pose，D-207 将地点路线增至 64 步并分离 provenance。这些发现继续有效，但“带噪 pose 量化成 0.5 m 格并把格当地点”的任务会把人为噪声当主要错误来源，且完整固定动作又可被精确积分抵消。故 D-210 保留世界 pose 私有、长路线和后续判别观测，撤销格地点真值、2% 人工噪声必须制造错误、place SPLIT 作为 P0 主操作及 64 步科学上限。旧合同与回执保留原字节，只作历史和诊断，不认证 D-210。
 

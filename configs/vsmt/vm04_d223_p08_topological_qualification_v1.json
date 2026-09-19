@@ -1,7 +1,7 @@
 {
   "schema_version": "vsmt-vm04-d223-p08-topological-qualification-v1",
   "decision_id": "D-223",
-  "status": "revised_proposal_pending_user_review_all_execution_closed",
+  "status": "approved_design_all_execution_closed",
   "reviewed_baseline_commit": "2648a01",
   "this_is_a_post_audit_decision": {
     "declared_openly": true,

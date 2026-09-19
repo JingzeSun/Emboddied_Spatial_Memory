@@ -2158,3 +2158,11 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - **根因：** 标签由 `structural_label_from_reachable(reachable, position)` 按位置算一次并复制给同一位置的四个朝向，而模型输入是逐 yaw 的单帧 90° 视场；站在瓶颈位置面朝墙的帧不含通道证据却带 bottleneck 标签。准确表述是：在冻结特征、线性模型与单帧输入合同下，扩充数据未使 bottleneck 达到作为硬门所需的可靠性，该表示存在明显的标签—可见证据错配。实现者在审计前未核对这一点；D-221 那次扩展生成的 1,664 个 house 所要买的 bottleneck 覆盖因此无法用作硬门。
 - **后续处置（提案，未执行）：** D-223把P08的结构角色判定改为数据生成器在构造期对已获权限的`GetReachablePositions`应用同一条冻结拓扑规则（零新增参数），并让结构头完全退出production——不由reader计算、不进place observation、不被selector/候选生成器/adapter读取。可达图是generator-only construction information，不进入共享cache或任何方法输入。不保留结构头为“五方法共同特征”的理由是逐字节相同的输入只保证接口一致、不保证影响中性。E-05特征、E-06权重与回执、E-08报告全部封存保留作为开发期阴性结果；不重训、不重跑。
 - **白话：** 这一批把冻结前端的结构分类头送进了唯一一次独立体检，结果是它在“窄通道”这一类上不可用，而 P08 的路线资格恰恰押在这一类上。它**不是** VSMT 的效果、**不是**“物体属于哪个地点”的主链结论，也**不能**据此判断 P08 路线最终能否构造——那要等按 D-223 走拓扑判定后的 dry-run。
+
+## LOG-207：D-223批准与F-00拓扑预检实现候选（2026-09-19）
+
+- 用户批准D-223修订稿，并只授权实现、测试F-00；真实两房服务器预检明确留到代码审查后另行授权。D-223机器合同状态改为`approved_design_all_execution_closed`，原六个执行位仍全false；新增F-00合同的真实预检、route/raw、production reader、private evaluation、重训和audit重跑也全false。本批未连接服务器、未查询真实house、未生成真实回执。
+- F-00纯核心对每个reachable位置直接调用既有D-215 `structural_label_from_reachable`，没有复制或近似十个冻结常量。命中条件固定为两个**不同**basin标签连通分量都与同一个连续bottleneck标签分量相邻；见证路径中间只允许bottleneck，`unknown`不能补洞，同一basin绕进绕出不能制造假阳性。这里新增的是无数值的路线签名语义，不是新分类阈值。
+- 私有house回执保存source绑定、完整位置/逐点标签、分量计数、确定性最短见证路径、输入/规则/实现摘要；公开summary只保留house slot、计数、成功/失败、路径存在性和私有回执摘要，不含坐标、source house ID或失败文本。任一固定house查询失败都会保留失败回执并阻止继续F-01；即使有合格路径，也只设置继续条件，不自动启动F-01。
+- 服务器入口预写`check/run`：`run`先验证受审实现的单文件activation child、干净checkout和唯一开放的真实预检位，再读source inventory或创建输出；两house固定以2 worker并行，CPU/RAM/磁盘预检不足则在启动模拟器前停止，无墙钟强杀，按slot 0/1确定性合并。当前`check`确认真实查询与输出均为false，`run`用不存在的source路径测试仍先被关闭门拒绝且不创建目录。
+- 合成测试覆盖双basin—连续bottleneck正例、单开阔区反例、同一basin两侧绕入的假阳性拒绝、乱序输入逐字节确定、非有限/0.25 m格碰撞拒绝、私有/公开分层、worker只发`GetReachablePositions`且关闭controller、CLI只读检查及关闭门顺序，共9/9通过。最终标准库discover **744/744通过**，耗时77.961 s、exit=0，失败/错误/跳过均0；compileall通过。白话：输入目前只是人工构造的可达格，输出证明判定器和权限边界按合同工作；它不说明两间真实house一定有P08拓扑，也不评价任何记忆方法。

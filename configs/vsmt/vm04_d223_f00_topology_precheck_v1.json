@@ -1,0 +1,106 @@
+{
+  "schema_version": "vsmt-vm04-d223-f00-topology-precheck-v1",
+  "decision_id": "D-223",
+  "stage_id": "F-00",
+  "status": "implementation_pending_review_all_execution_closed",
+  "reviewed_baseline_commit": "569ce605983acf1586339189caddde20e93e2492",
+  "expected_reviewed_implementation_commit": null,
+  "bindings": {
+    "d223_relative_path": "configs/vsmt/vm04_d223_p08_topological_qualification_v1.json",
+    "d223_file_sha256": "737b4a7e108dca30931884460d294d36cc571c2d50fe5bc12daa0ebf9f288b18",
+    "d215_relative_path": "configs/vsmt/vm04_d215_frontend_freeze_v1.json",
+    "d215_file_sha256": "c3d6736f67b300eca03882c081e56e6bf4d65ad1913bcc411df8477fbd188db8",
+    "d211_source_binding_relative_path": "configs/vsmt/vm04_d211_p0_seal_single_smoke_v2.json",
+    "d211_source_binding_file_sha256": "9742dba79f2e72880221fe5cd5d63b00a219ebf77a8160461b9ef960e21e8711"
+  },
+  "authorization": {
+    "real_two_house_topology_precheck": false,
+    "route_or_raw_generation": false,
+    "production_reader": false,
+    "private_evaluation": false,
+    "estimator_retraining": false,
+    "audit_rerun": false
+  },
+  "activation_policy": {
+    "active_status": "frozen_real_two_house_topology_precheck",
+    "active_true_authorizations": [
+      "real_two_house_topology_precheck"
+    ],
+    "must_remain_false": [
+      "route_or_raw_generation",
+      "production_reader",
+      "private_evaluation",
+      "estimator_retraining",
+      "audit_rerun"
+    ],
+    "activation_commit_may_change_only": [
+      "configs/vsmt/vm04_d223_f00_topology_precheck_v1.json"
+    ],
+    "executable_checkout_must_be_clean": true,
+    "executable_checkout_parent_must_equal_reviewed_implementation_commit": true
+  },
+  "fixed_houses": [
+    {
+      "house_slot": 0,
+      "source_house_id": "train:004270",
+      "source_record_sha256": "79a1cfe6c80e913305cc6d2ea047323bca1d05763b29a162cbef23c76b80026f"
+    },
+    {
+      "house_slot": 1,
+      "source_house_id": "train:008243",
+      "source_record_sha256": "cdbd7bf8e91a6fc3a52b1a92487e22badc234793d23c74c0a59240d43980bea7"
+    }
+  ],
+  "topology_rule": {
+    "implementation": "vsmt.d217_estimator_development.structural_label_from_reachable",
+    "d215_structural_reference_rule_sha256": "4fa32f8940cb22516d0c004f9c4b8d7a6cb5c1cd9a85dfb6f63ef6178dd34774",
+    "new_numeric_parameters": 0,
+    "required_signature": [
+      "basin",
+      "bottleneck",
+      "basin"
+    ],
+    "basin_runs_must_belong_to_distinct_basin_components": true,
+    "unknown_may_bridge_signature": false,
+    "route_path_must_use_cardinal_reachable_edges": true
+  },
+  "simulator_query": {
+    "package": "ai2thor",
+    "package_version": "5.0.0",
+    "platform": "CloudRendering",
+    "action": "GetReachablePositions",
+    "grid_size_m": 0.25,
+    "render_depth_image": false,
+    "render_instance_segmentation": false,
+    "rgb_depth_or_instance_arrays_read_or_saved": false
+  },
+  "output_boundary": {
+    "private_house_receipt_contains_positions_and_labels": true,
+    "public_summary_contains_positions_or_source_house_ids": false,
+    "reachable_graph_supplied_to_method_cache_candidate_selector_or_adapter": false,
+    "raw_generated": false,
+    "production_reader_started": false,
+    "private_room_or_object_truth_used": false,
+    "overwrite_existing_output_allowed": false
+  },
+  "resource_policy": {
+    "independent_house_units": 2,
+    "requested_worker_count": 2,
+    "actual_worker_count_rule": "two_or_stop_before_simulator_query_if_preflight_fails",
+    "minimum_available_ram_bytes": 4294967296,
+    "minimum_free_disk_bytes": 4294967296,
+    "wall_clock_timeout_allowed": false,
+    "deterministic_merge_order": [
+      0,
+      1
+    ]
+  },
+  "stop_policy": {
+    "both_fixed_house_queries_must_succeed_before_continuation": true,
+    "continue_to_f01_if_any_house_has_signature": true,
+    "if_neither_house_has_signature": "pause_for_scene_design_decision",
+    "automatic_house_replacement": false,
+    "automatic_rule_or_threshold_change": false,
+    "automatic_f01_start": false
+  }
+}

@@ -2141,9 +2141,9 @@
 - **审计不是通过门：** 本决策不登记任何及格线。它描述冻结前端的表现，不决定论文是否继续；P08 路线是否合格由 D-215 冻结的 0.70/0.70/0.85/0.35 另行判定。
 - **边界未变：** audit 的 128 个 house 在本决策前从未生成；标签仍由私有可达图按同一冻结规则自动产生，零人工判断；模型输入仍只有公开 RGB-D 与内参，推理不查 grid 真值；失败 house 保留不补样。`estimator_retraining`、`production_reader`、`p04_p08_qualification`、`route_or_raw_generation`、`private_evaluation` 全程 false。
 
-## D-223：P08 资格改用已冻结的拓扑规则（post-audit 决策，提案待审）
+## D-223：P08 资格改用已冻结的拓扑规则（post-audit 决策，已批准）
 
-- 日期：2026-09-19；状态：**提案**，六个授权位全 false；机器合同[`vm04_d223_p08_topological_qualification_v1.json`](../configs/vsmt/vm04_d223_p08_topological_qualification_v1.json)。
+- 日期：2026-09-19；状态：**修订稿已由用户批准**，六个执行授权位仍全 false；批准范围只允许实现并本地测试 F-00，真实两房服务器预检须在代码审查后另行授权。机器合同[`vm04_d223_p08_topological_qualification_v1.json`](../configs/vsmt/vm04_d223_p08_topological_qualification_v1.json)。
 - **本决策写于审计结果已知之后，必须按 post-audit 阅读。** 绑定审计报告摘要`3e652a45…b142`；当时已知结构头整体 accuracy 0.7013，但 bottleneck recall 区间为 0.043–0.150、NLL 区间 1.830–2.238，比三类均匀猜测的 1.099 还差。它不是被禁止的修补：不加 house、不改模型、不调阈值，estimator 保持被审计的原字节，审计报告不重跑，P08 的 fragment 判据 0.85/0.35 不动。变的只是"由哪个公开来源认证路线的结构角色"，而这是因为审计证伪了"单帧 90° 视场能恢复 360° 拓扑性质"这个前提。
 - **诊断边界：** 标签是 `f(位置)`，输入是 `f(位置, 朝向)`。[vm04_d217_rgbd_worker.py](../ops/vsmt/vm04_d217_rgbd_worker.py) 每个位置调一次 `structural_label_from_reachable(reachable, position)`，然后把同一标签复制给四个 yaw；站在瓶颈位置面朝墙的帧可能没有通道证据却仍带 bottleneck 标签，存在明确的标签—可见证据错配。train 0.7049 / calibration 0.6958 / audit 0.7013 接近，只说明整体 accuracy 没有明显泛化间隙，不能严格排除所有过拟合，也不能分离该错配、线性容量和类别不平衡的各自贡献。准确结论是：在冻结特征、线性模型和单帧输入合同下，扩充数据没有让 bottleneck 达到作为 P08 硬门所需的可靠性。0.150 是 95% 区间上界而非确定性天花板；逐帧低 recall 也不等于整条路线必然失败。**实现者在审计前没有核对这项错配**；D-221 增加的 1,664 个 house 未能把该头变成可用硬门。
 - **改法与零新增参数：** P08 不再以学习式结构头概率为门，改为由**数据生成器在构造期**对 `GetReachablePositions` 可达图直接应用 D-215 已冻结的拓扑规则（rule sha `4fa32f89…4774`，十个常量原样继承）。判据不是 bottleneck 定义的近似，**它就是那个定义**，因此引入 0 个新数值。所需签名仍是时序上连续的 basin→bottleneck→basin，与 D-214 一致。
