@@ -18,7 +18,7 @@ S3 正式数据、训练、validation 与一次性 test（S3-01 → S3-06）
 S4 论文
 ```
 
-当前执行点：**S0-01 已审通过，S0-02 已实现待审**（LOG-214、LOG-215）。D-224 与 D-224-E/F/G 已批准，S0-02～S4 未开始；旧方向已归档到 `archive/pre-d224-unified-graph`，`main` 只含精简版文档。当前没有任何数据生成、训练或服务器运行授权。
+当前执行点：**S0-01、S0-02 已审通过，S0-03 已实现待审**（LOG-214、LOG-215、LOG-216）。D-224 与 D-224-E/F/G 已批准，S0-02～S4 未开始；旧方向已归档到 `archive/pre-d224-unified-graph`，`main` 只含精简版文档。当前没有任何数据生成、训练或服务器运行授权。
 
 ## 二、状态和执行规则
 
@@ -47,7 +47,7 @@ S4 论文
 
 | 项 | 内容 |
 |---|---|
-| 状态 | **已实现待审**（LOG-215；本地 41 项只读检查通过） |
+| 状态 | **已完成**（2026-09-19 用户审过；LOG-215。本地 41 项只读检查通过） |
 | 输入 | DATA 第一～四节；D-199～D-204 的不可观测窗口机制 |
 | 完整动作 | 写 house 来源、哈希前缀划分、覆盖式重访路线模板、三类干预及其窗口判定、public/private/provenance 三面 schema、失败保留规则的机器合同；全部数值先登记为 null 或 proposed |
 | 输出 | [`lean_s0_intervention_data_v1.json`](../configs/vsmt/lean_s0_intervention_data_v1.json)、只读检查核心 [`lean_intervention.py`](../src/vsmt/lean_intervention.py)、测试 [`test_vsmt_lean_intervention.py`](../tests/test_vsmt_lean_intervention.py) |
@@ -57,10 +57,10 @@ S4 论文
 
 | 项 | 内容 |
 |---|---|
-| 状态 | 未开始 |
+| 状态 | **已实现待审**（LOG-216；本地 37 项测试通过，含求解器对暴力最优解的比对） |
 | 输入 | METHOD 第五～七节 |
 | 完整动作 | 写前端 cache 字段、应可见与自由空间覆盖比例、召回规则 k/k′/R_active、三个头的特征列表与顺序、代价矩阵与并列规则、封存 digest、私有扰动不变性检查的机器合同；**登记共享 ReID 适配头（D-224-E）的架构、训练数据范围与 S1-05 二选一规则** |
-| 输出 | `configs/vsmt/lean_s0_assignment_v1.json`、特征单元测试、不变性测试 |
+| 输出 | [`lean_s0_assignment_v1.json`](../configs/vsmt/lean_s0_assignment_v1.json)、纯核心 [`lean_assignment.py`](../src/vsmt/lean_assignment.py)、测试 [`test_vsmt_lean_assignment.py`](../tests/test_vsmt_lean_assignment.py) |
 | 继续门 | 同一公开输入换 private 文件后召回顺序、特征矩阵与未训练 logits 逐字节相同 |
 
 ### S0-04 teacher、评价器与指标合同
@@ -284,7 +284,8 @@ S4 论文
 1. 2026-09-19 用户批准 D-224 裁决 A～D，并要求把旧方向归档到分支 `archive/pre-d224-unified-graph`、在 `main` 上重写 METHOD/PLAN/DATA。已完成文档重写，未生成数据、未训练、未连接服务器。
 2. 2026-09-19 用户批准 D-224-E/F/G：共享 ReID 适配头登记为 S1-05 可选前端、`VSMT-lean-ctx` 登记为可选臂、S0-01 固定实体 token schema；并确认执行顺序为先只冻结看数据前必须定的项，五臂一起在 50 house 跑通，再按三分解决定是否启用 E/F。
 3. 2026-09-19 用户审过 S0-01 并采纳其中三处语义选择；同时批准把对话初期四项裁决中的前三项补进文档（`NoVersion` 与 `AssocOnly` 提前到 S2-05、新增必做消融 `AssocOnly` 并与主比较并列、`LLM-op` 收口为必做附录臂），外部基准第二张表推迟到 S2-05 后再裁。
-4. 进行中 S0-02：干预数据合同与只读检查已实现，待用户代码审查；随后写 S0-03 特征、召回与分配合同。
+4. 2026-09-19 用户审过 S0-02，并确认 `LLM-op` 维持必做附录臂。
+5. 进行中 S0-03：特征、召回、代价矩阵与自写矩形匈牙利求解器已实现，待用户代码审查；随后写 S0-04 teacher、评价器与指标合同。
 3. S0-06 通过后申请 S1-01 资产与容量授权。
 
 ## 九、失败时的暂停点与待触发裁决

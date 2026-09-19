@@ -182,4 +182,4 @@ VSMT-lean 解决的问题是：机器人在多视角历史中重访时，对象�
 
 **为什么执行器另写一份核心而不是收窄 `GraphRevision`。** 读过实现后确认：`GraphRevision` 与 `cpmt.executor.validate_graph` 绑定了 place scaffold、五类关系边、`graph_hash` 与统一图 lifecycle，收窄它等于把这些一起带进来，与 D-224 削减流程的目的相反。因此实体记忆核心是一个自足的新模块，**只复用不会产生第二套数值语义的纯函数**：规范 JSON 与深拷贝、余弦、质心距离、AABB、不透明 ID。`GraphRevision`、place scaffold、关系边与旧 `public_candidates.py` 不被本分支任何入口导入。它不等于旧执行器被删除，旧模块与其测试原样保留。
 
-新增依赖：scipy（`linear_sum_assignment`）或自写匈牙利，S0 登记。
+**求解器已在 S0-03 登记为自写，不新增依赖。** scipy 不在本项目依赖里，而且并列必须由我们自己定：一个矩形分配通常有多个最优解，返回哪一个不能取决于字典顺序、浮点噪声或库版本。实现是带势的最短增广路方法，复杂度 `O(行^2 × 列)`，并列一律取较小列号；因为每个 fragment 都有自己的 BIRTH 列，列数永远不少于行数。测试用 40 个随机矩阵与暴力枚举的最优值逐一比对。它不比 scipy 更快，只保证同一矩阵永远给出同一组列号。
