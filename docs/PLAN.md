@@ -203,8 +203,8 @@ E-08没有评价VSMT，也没有评价实体—地点关联。D-223后不再运�
 
 | 项 | 内容 |
 |---|---|
-| 状态 | reader本地实现已审；D-217单帧兼容适配器已实现待审；服务器前次预检因缺冻结SAM2资产和兼容公开bundle停止，真实执行位全关闭，cache为0；执行门已按 D-220 撤除 activation-commit 三重门；cache 摘要已在共享核心重构前钉住 |
-| 输入 | 兼容性预检仅从D-217 `public/train`按rank取首个成功sample的observation 0并构造origin pose；reader再读冻结SAM/DINO/几何配置、公开RGB-D、内参、因果pose belief与动作摘要；**不加载E-06权重** |
+| 状态 | reader 本地实现已审，已与 D-214 共用同一 cache 核心，D-217 兼容输入已并入reader 的输入模式；服务器前次预检因缺冻结SAM2资产停止，真实执行位全关闭，cache为0；执行门已按 D-220 撤除 activation-commit 三重门；两套 cache 摘要已钉住 |
+| 输入 | reader 读冻结SAM/DINO/几何配置、公开RGB-D、内参、因果pose belief与动作摘要；公开输入或是已成形的F-01 bundle，或由同一 reader 从D-217 `public/train`按rank取首个成功sample的observation 0就地构造；**不加载E-06权重** |
 | 完整动作 | 从公开RGB-D产生匿名fragment、DINO描述、surface/free-space/visibility和不含语义/结构类别概率的非网格place observation；只写一次共享cache |
 | 输出 | 五种方法读取的完全相同 cache bytes 和逐帧 receipt |
 | 继续门 | reader 签名没有 scenario/private/teacher/future；真实小样本逐字段审查通过 |

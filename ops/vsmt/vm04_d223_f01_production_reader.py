@@ -24,17 +24,14 @@ if str(SRC) not in sys.path:
 
 from cpmt.hashing import canonical_json  # noqa: E402
 import vsmt.vm04_l2_proposals as proposal_module  # noqa: E402
-from vsmt.d223_f01_compat_input import (  # noqa: E402
-    build_observation_zero_compat_bundle,
-    select_first_d217_public_train_sample,
-)
 from vsmt.d223_f01_production_reader import (  # noqa: E402
     F01ProductionReader,
     MAIN_METHODS,
     assert_real_f01_authorized,
+    build_observation_zero_compat_input,
     identical_method_cache_views,
     load_frozen_processors,
-    public_array_sha256,
+    select_first_d217_public_train_sample,
     validate_episode_cache,
     validate_f01_contract,
     validate_public_input_manifest,
@@ -137,7 +134,7 @@ def check() -> dict[str, Any]:
         "bound_f00_two_house_qualification": True,
         "real_assets_opened": False,
         "real_public_inputs_opened": False,
-        "compatibility_bundle_generated": False,
+        "d217_compatibility_input_built": False,
         "outputs_written": False,
     }
 
@@ -195,45 +192,44 @@ def _read_public_bundle(
     return manifest, rgb, depth
 
 
-def prepare_d217_compat(
-    *, d217_public_root: Path, output_root: Path, receipt_path: Path,
-) -> dict[str, Any]:
-    contract = load_contract()
-    execution_commit = _execution_checkout(contract)
+def _build_d217_compat_input(
+    d217_public_root: Path, contract: dict[str, Any], output_root: Path,
+) -> tuple[dict[str, Any], np.ndarray, np.ndarray, dict[str, Any]]:
+    """Turn one D-217 public sample into the F-01 input bundle, in place.
 
-    # External source and output paths remain unopened until all execution and
-    # checkout gates have succeeded.
-    _require(not output_root.exists(),
-             "F-01 compatibility output root already exists")
-    _require(not receipt_path.exists(),
-             "F-01 compatibility receipt already exists")
-    output_resolved, receipt_resolved = output_root.resolve(), receipt_path.resolve()
-    _require(receipt_resolved != output_resolved and
-             output_resolved not in receipt_resolved.parents,
-             "F-01 compatibility receipt must be outside the input bundle")
-    _require(receipt_path.parent.is_dir(),
-             "F-01 compatibility receipt parent is missing")
-    disk = shutil.disk_usage(_nearest_existing_parent(output_root)).free
-    _require(disk >= contract["resource_policy"]["minimum_free_disk_bytes"],
-             "F-01 compatibility free disk guard failed")
+    The bundle is written under the run's own output root so the exact bytes
+    the reader consumed stay auditable, and its provenance is returned for
+    the single F-01 run receipt rather than a receipt of its own.
+    """
+
     _selected, source_receipt, source_arrays = (
         select_first_d217_public_train_sample(d217_public_root))
-    npz_bytes, manifest, receipt = build_observation_zero_compat_bundle(
+    npz_bytes, manifest, provenance = build_observation_zero_compat_input(
         source_receipt=source_receipt, source_arrays=source_arrays,
-        frontend_config_sha256=contract["frontend"]["frontend_config_sha256"],
-        execution_commit=execution_commit)
-    output_root.mkdir(parents=True, exist_ok=False)
-    write_new_bytes(output_root / "arrays.npz", npz_bytes)
-    write_new_json(output_root / "manifest.json", manifest)
-    write_new_json(receipt_path, receipt)
-    return receipt
+        frontend_config_sha256=contract["frontend"]["frontend_config_sha256"])
+    bundle_root = output_root / "input_bundle"
+    bundle_root.mkdir(parents=True, exist_ok=False)
+    write_new_bytes(bundle_root / "arrays.npz", npz_bytes)
+    write_new_json(bundle_root / "manifest.json", manifest)
+    manifest, rgb, depth = _read_public_bundle(bundle_root, contract)
+    return manifest, rgb, depth, provenance
 
 
 def run(
-    *, input_root: Path, output_root: Path,
-    dino_repository: Path, dino_checkpoint: Path,
+    *, output_root: Path, dino_repository: Path, dino_checkpoint: Path,
     sam_repository: Path, sam_checkpoint: Path,
+    input_root: Path | None = None, d217_public_root: Path | None = None,
 ) -> dict[str, Any]:
+    """Read one public episode into the shared cache.
+
+    Exactly one input mode is allowed: a bundle already in the F-01 input
+    schema, or a D-217 public root the reader converts first.  Either way a
+    single run receipt records the source provenance next to the cache
+    digests.
+    """
+
+    _require((input_root is None) != (d217_public_root is None),
+             "F-01 needs exactly one of --input-root and --d217-public-root")
     contract = load_contract()
     execution_commit = _execution_checkout(contract)
 
@@ -243,7 +239,17 @@ def run(
     disk = shutil.disk_usage(_nearest_existing_parent(output_root)).free
     _require(disk >= contract["resource_policy"]["minimum_free_disk_bytes"],
              "F-01 free disk guard failed")
-    manifest, rgb, depth = _read_public_bundle(input_root, contract)
+    output_root.mkdir(parents=True, exist_ok=False)
+    if d217_public_root is not None:
+        manifest, rgb, depth, source = _build_d217_compat_input(
+            d217_public_root, contract, output_root)
+    else:
+        manifest, rgb, depth = _read_public_bundle(input_root, contract)
+        source = {"mode": "prebuilt_f01_input_bundle",
+                  "compatibility_only": False,
+                  "formal_data_p04_p08_or_paper_eligible": False,
+                  "private_input_read": False,
+                  "calibration_or_audit_input_read": False}
     sam_generator, token_extractor, assets_receipt = load_frozen_processors(
         contract, dino_repository=dino_repository,
         dino_checkpoint=dino_checkpoint, sam_repository=sam_repository,
@@ -287,6 +293,7 @@ def run(
         "execution_commit": execution_commit,
         "input_manifest_sha256": manifest["manifest_sha256"],
         "input_arrays_npz_sha256": manifest["arrays_npz_sha256"],
+        "public_input_source": source,
         "episode_cache_sha256": episode["episode_cache_sha256"],
         "frame_count": episode["frame_count"],
         "method_cache_view_sha256s": view_digests,
@@ -302,7 +309,6 @@ def run(
         "training_run": False,
         "audit_rerun": False,
     }, "run_receipt_sha256")
-    output_root.mkdir(parents=True, exist_ok=False)
     write_new_json(output_root / "episode_cache.json", episode)
     write_new_json(output_root / "run_receipt.json", receipt)
     return receipt
@@ -312,12 +318,10 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("check")
-    compat_parser = subparsers.add_parser("prepare-d217-compat")
-    compat_parser.add_argument("--d217-public-root", type=Path, required=True)
-    compat_parser.add_argument("--output-root", type=Path, required=True)
-    compat_parser.add_argument("--receipt-path", type=Path, required=True)
     run_parser = subparsers.add_parser("run")
-    run_parser.add_argument("--input-root", type=Path, required=True)
+    source_group = run_parser.add_mutually_exclusive_group(required=True)
+    source_group.add_argument("--input-root", type=Path)
+    source_group.add_argument("--d217-public-root", type=Path)
     run_parser.add_argument("--output-root", type=Path, required=True)
     run_parser.add_argument("--dino-repository", type=Path, required=True)
     run_parser.add_argument("--dino-checkpoint", type=Path, required=True)
@@ -326,14 +330,10 @@ def main() -> int:
     arguments = parser.parse_args()
     if arguments.command == "check":
         result = check()
-    elif arguments.command == "prepare-d217-compat":
-        result = prepare_d217_compat(
-            d217_public_root=arguments.d217_public_root,
-            output_root=arguments.output_root,
-            receipt_path=arguments.receipt_path)
     else:
         result = run(
             input_root=arguments.input_root,
+            d217_public_root=arguments.d217_public_root,
             output_root=arguments.output_root,
             dino_repository=arguments.dino_repository,
             dino_checkpoint=arguments.dino_checkpoint,
