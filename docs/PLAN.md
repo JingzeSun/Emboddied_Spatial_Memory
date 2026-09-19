@@ -17,7 +17,7 @@ VM-03 VSMT 候选、executor 与 teacher 边界
   ↓
 VM-04 新数据和共享前端
   ├─ VM-04.E  E-01 → E-02 → E-03 → E-05 → E-06 → E-08
-  └─ VM-04.F  F-01 → F-02 → F-03 → F-04 → F-05
+  └─ VM-04.F  F-00 → F-01 → F-02 → F-03 → F-04 → F-05
   ↓
 VM-05 开发比较、正式数据、训练与 validation
   ├─ VM-05.M  M-01 → M-02 → M-03
@@ -27,7 +27,7 @@ VM-06 独立 test 与论文证据
   └─ P-05 → P-06
 ```
 
-当前执行点：VM-04.E 全部完成。D-219 删除 semantic 头、取消 E-04 人工标注；D-221 把规模扩到 2048/128，2,121 个 house 成功、55 失败，共 67,872 帧公开 RGB-D 与 396 维特征；E-06 训出 structural 单头；E-08 一次性审计已跑完并封存（整体 accuracy 0.7013，bottleneck recall 区间 0.043–0.150）。因审计证伪"单帧可恢复结构角色"，D-223 提案把 P08 路线认证改为构造期公开可达图上的拓扑规则，结构头降为不设门的特征。下一步是 F-01 production reader 与 P01/P04/P08 工程 smoke。证据见 [LOG-205](../EXECUTE.md) 与 E-08 审计报告；production reader、P04/P08、route/raw 和 private evaluation 仍关闭。
+当前执行点：VM-04.E 全部完成，E-08 报告已导出并由 [LOG-206](../EXECUTE.md) 收口。D-221 最终得到2,121个成功house、55个失败house、67,872帧公开RGB-D与396维特征；E-06结构单头完成训练，但E-08显示它不适合作P08 bottleneck硬门（整体accuracy 0.7013，bottleneck recall区间0.043–0.150）。D-223修订提案因此让该头完全退出production，并用生成器专用可达图上的原冻结拓扑规则认证P08；所有执行授权仍为false。下一步先审D-223，再实现F-00两房拓扑可构造性预检；通过后才进入F-01 production reader。P04/P08正式资格、route/raw和private evaluation仍关闭。
 
 ## 二、状态和执行规则
 
@@ -76,7 +76,7 @@ VM-06 独立 test 与论文证据
 
 | 数据 | 用途 | 当前规模 | 不能支持的结论 |
 |---|---|---:|---|
-| Estimator RGB-D | 训练、校准和一次性审计共享前端的 structural estimator | 开发口径 2048/128/128 house × 32 帧（D-221）| 不能作为 P01～P08 路线 raw，也不能比较五种记忆方法 |
+| Estimator RGB-D | 历史上训练、校准和一次性审计 structural estimator；D-223 后只作封存的开发证据 | 2048/128/128 house × 32 帧计划；实际见E-06/E-08回执 | 不能作为P01～P08路线raw、不能比较五种记忆方法、不能再作为production依赖 |
 | 两房 P0 raw | 检查 P01/P04/P08 路线、三面文件、共享 cache 和五方法接线 | 两间固定开发 house、三条代表性路线 | 不能作为论文独立 validation 或 test |
 | 正式论文 raw | 训练、选择和独立确认 VSMT 与对照 | VM-05.P 的 P-01 根据构造成品率和功效冻结 | 不能用当前两房数据代替 |
 
@@ -141,8 +141,8 @@ E-03 会完整执行 576 个固定 house，不会为了省工程量只跑一部�
 
 | 项 | 内容 |
 |---|---|
-| 状态 | 已完成；559/559 个成功 house 均生成 32×396 维 feature shard，失败 0 |
-| 输入 | E-03 固定 RGB-D、冻结 DINOv2 资产和 12 维公开几何定义 |
+| 状态 | 已完成；经D-221扩展后2,121个成功house均生成32×396维feature shard，feature失败0 |
+| 输入 | E-03及D-221固定RGB-D、冻结DINOv2资产和12维公开几何定义 |
 | 完整动作 | 每帧提取 384 维 DINO 描述和 12 维 depth/free-space/visibility/opening/clearance/surface 几何；不得读 E-03 private 文件 |
 | 输出 | 396 维 feature shard、逐帧输入摘要、模型和算法摘要 |
 | 继续门 | 同一 RGB-D 重复提取字节一致；不接收 scenario ID、instance/object、teacher 或 future |
@@ -153,13 +153,13 @@ E-03 会完整执行 576 个固定 house，不会为了省工程量只跑一部�
 
 | 项 | 内容 |
 |---|---|
-| 状态 | 已完成；见 [LOG-205](../EXECUTE.md)。35 epoch early stop、temperature 0.84413、calibration accuracy 0.6958 |
-| 输入 | E-05 的 17,888×396 特征、E-01 split、由私有可达图按冻结规则自动生成的 basin/bottleneck/unknown 标签 |
+| 状态 | 已完成；见 [LOG-205](../EXECUTE.md)。35 epoch early stop、temperature 0.84413、calibration accuracy 0.6958；D-223后仅作历史开发组件 |
+| 输入 | E-05累计67,872×396特征中的train/calibration分片、house split、由可达图按冻结规则生成的basin/bottleneck/unknown标签 |
 | 完整动作 | 只用 train 计算 normalization 和拟合一个 3×396 线性头；calibration 只选 checkpoint 与单个 temperature；保存逐 epoch 历史和失败 |
 | 输出 | normalization、structural weights、bias、temperature、训练 receipt 和互绑摘要 |
 | 继续门 | audit 未读取；真实权重和训练 receipt 经审；production reader 仍关闭 |
 
-标签边界：私有可达图只在 train/calibration/audit 写标签；推理时结构头仍然只凭公开 RGB-D 与内参预测，不查 grid 真值。除 loss、early stopping 指标、checkpoint 选择和 temperature 由两头改为单头外，AdamW、seed、epoch、batch、学习率、权重衰减、零初始化和类权重截断全部沿用 D-215/D-216 原值，不因结果调整。
+历史标签边界：E-06训练和E-08审计时，可达图只写train/calibration/audit标签，结构头推理只读公开RGB-D派生特征、不查grid真值。除loss、early stopping指标、checkpoint选择和temperature由两头改为单头外，AdamW、seed、epoch、batch、学习率、权重衰减、零初始化和类权重截断全部沿用D-215/D-216原值，不因结果调整。D-223后production不再运行该推理。
 
 #### E-07 开发规模（D-221 已重新裁决为 2048/128/128）
 
@@ -177,23 +177,35 @@ D-219 原先裁决的 512/64/64 由 D-221 取代，原因是删除 semantic 头�
 
 | 项 | 内容 |
 |---|---|
-| 状态 | 已完成并封存；只跑了一次 |
+| 状态 | 已完成并封存；只跑了一次；报告已导出到[`results/vsmt_vm04_e08_structural_audit.json`](../results/vsmt_vm04_e08_structural_audit.json) |
 | 输入 | 完全冻结的最终 structural Estimator、扩展后的 128-house audit seal |
-| 完整动作 | 首次生成 2,048 个 audit RGB-D 观察；审计标签由同一冻结规则从私有可达图自动生成，**零人工判断**；模型输入仍只有公开 RGB-D 与内参；只运行预登记指标 |
+| 完整动作 | 对128个固定audit house逐一生成或留失败；118个成功house形成3,776个RGB-D观察，10个失败不补。审计标签由同一冻结规则从可达图自动生成，**零人工判断**；模型输入仍只有公开RGB-D与内参；只运行预登记指标 |
 | 输出 | structural NLL、accuracy、calibration、类别和 house 级区间、完整失败与资源 receipt |
 | 继续门 | 结果只报告；不得因为 audit 失败而增加 house、改模型、改阈值或重新训练 |
 
-E-08 之后、冻结正式数据预算之前，先在两间开发 house 上做一次 P08 dry-run，把结构头校准不足导致的路线不合格风险提前暴露。不合格时改路线/场景设计或如实记 construction failure，不得调整 0.70/0.70/0.85/0.35 这四个数。
+E-08没有评价VSMT，也没有评价实体—地点关联。D-223后不再运行结构头路线门；冻结正式数据预算之前，先执行F-00，在两间开发house上只读检查原拓扑规则能否构造 basin→bottleneck→basin。若失败，按第八章暂停并触发场景设计裁决；不得自动换house或弱化规则。
 
 ### VM-04.F：生产共享前端与两房 P0 raw
+
+#### F-00 P08拓扑可构造性预检（D-223提案待审）
+
+| 项 | 内容 |
+|---|---|
+| 状态 | 未开始；D-223与真实执行均待用户审 |
+| 输入 | 两间固定P0 house、生成器已获构造权限的`GetReachablePositions`、D-215原拓扑规则 |
+| 完整动作 | 不启动production reader、不生成raw，只在两间房的可达图上计算逐位置basin/bottleneck/unknown并检查是否存在可规划的basin→bottleneck→basin路径 |
+| 输出 | 两房逐类计数、候选路径存在性、固定规则/代码/输入摘要和逐house成功或失败 |
+| 继续门 | 至少存在一条合格P08拓扑才继续F-01；否则暂停并触发场景设计裁决，不自动换house |
+
+白话：F-00解决“在开发完整视觉reader之前，两间固定house里究竟有没有P08需要的拓扑”。输入只是数据生成器的可达图，输出是可否构造路线。例如某房有两个开阔区但中间没有满足原定义的瓶颈，就记失败。它不拍RGB-D、不向方法提供地图、不评价VSMT，也不保证后续fragment条件通过。
 
 #### F-01 production reader
 
 | 项 | 内容 |
 |---|---|
 | 状态 | 未开始 |
-| 输入 | E-06 真实权重、E-08 audit 报告、冻结 SAM/DINO/几何配置 |
-| 完整动作 | 从公开 RGB-D 产生匿名 fragment、DINO 描述、surface/free-space/visibility、semantic/structural 概率和非网格 place observation；只写一次共享 cache |
+| 输入 | 冻结SAM/DINO/几何配置、公开RGB-D、内参、因果pose belief与动作摘要；**不加载E-06权重** |
+| 完整动作 | 从公开RGB-D产生匿名fragment、DINO描述、surface/free-space/visibility和不含语义/结构类别概率的非网格place observation；只写一次共享cache |
 | 输出 | 五种方法读取的完全相同 cache bytes 和逐帧 receipt |
 | 继续门 | reader 签名没有 scenario/private/teacher/future；真实小样本逐字段审查通过 |
 
@@ -202,12 +214,12 @@ E-08 之后、冻结正式数据预算之前，先在两间开发 house 上做�
 | 项 | 内容 |
 |---|---|
 | 状态 | 未开始 |
-| 输入 | F-01 reader、两间固定 P0 house、公开 reachable grid |
-| 完整动作 | 只构造 P01、P04、P08 三条代表性路线；P04 使用冻结 DINO top-1；P08 要求 basin→bottleneck→basin 和两端稳定多视角 fragment |
+| 输入 | F-00拓扑回执、F-01 reader、两间固定P0 house；可达图只由生成器读取，不进入cache |
+| 完整动作 | 只构造P01、P04、P08三条代表性路线；P04使用冻结DINO top-1；P08组合F-00的basin→bottleneck→basin拓扑回执和两端稳定多视角fragment |
 | 输出 | 三条 route bundle、共享 cache 证据和逐路线成功/失败 |
-| 继续门 | 不换 house、起点、路线或场景；不根据结果调 0.70/0.85/0.35；不合格照实保留 |
+| 继续门 | 不换house、起点、路线或场景；不根据结果改拓扑常量或fragment的0.85/0.35；不合格照实保留 |
 
-其余 P02/P03/P05/P06/P07 路线由单测或后续正式数据运行覆盖，不在两房阶段做逐路线封存仪式。这三条各自负责一件事：P01 检查采集、三面 raw 与共享 cache，P04 检查冻结 DINO place 描述子通路，P08 检查结构头加多视角 fragment 的完整链。
+其余P02/P03/P05/P06/P07路线由单测或后续正式数据运行覆盖，不在两房阶段做逐路线封存仪式。这三条各自负责一件事：P01检查采集、三面raw与共享cache，P04检查冻结DINO place描述子通路，P08检查“生成器拓扑资格＋共享cache多视角fragment＋后续实体—地点链”的完整接线；结构头不再参与。
 
 #### F-03 路线封存与单槽 smoke
 
@@ -260,7 +272,7 @@ E-08 之后、冻结正式数据预算之前，先在两间开发 house 上做�
 | 输入 | M-01 已封存公开候选；随后才打开 private pose/mask/entity/route truth |
 | 完整动作 | 只给既有候选打标签并执行统一评价 |
 | 输出 | candidate miss、teacher error、amortization error、地点/关系/挂载指标 |
-| 继续门 | 修改 private truth 不能改变候选 bytes；P08 私有房间/实体只在路线封存后评价 |
+| 继续门 | 修改private truth不能改变候选bytes；P08私有地点/实体参考只在路线与候选封存后评价 |
 
 #### M-03 五方法开发比较
 
@@ -347,8 +359,8 @@ VM-04.E 已全部完成。下表只估计**剩余**步骤；最大的不确定�
 | E-01～E-03、E-05 | 已完成 | 2,121/2,176 house 成功，55 失败按合同保留 |
 | E-06 structural 单头训练 | 已完成 | CPU 105 秒；calibration accuracy 0.6958 |
 | E-08 一次性审计 | 已完成并封存 | accuracy 0.7013；bottleneck recall 区间 0.043–0.150 |
-| D-223 文档与合同修订 | 进行中 | 提案待用户审；无服务器执行 |
-| 两间 P0 house 拓扑可构造性预检 | 约 0.5 天 | 只读公开可达图，不训练、不生成 raw |
+| D-223 文档与合同修订 | 进行中 | 修订稿待用户审；无服务器执行 |
+| 两间 P0 house 拓扑可构造性预检 | 约 0.5 天 | 生成器只读可达图，不训练、不生成raw、不向方法暴露 |
 | F-01 production reader 加 P01/P04/P08 smoke | 约 3～7 天 | SAM proposal 数分布、跨视角 DINO 区分度、P08 资格 |
 | M-03 第一份五方法开发表 | 约 1～2 周 | 非网格 place 接线、teacher/evaluator 和调试 |
 | P-05 第一份论文级 test | 约 5～8 周 | P-01 正式规模、构造成品率、五方法训练和统计功效 |
@@ -357,9 +369,9 @@ VM-04.E 已全部完成。下表只估计**剩余**步骤；最大的不确定�
 
 最近动作按顺序为：
 
-1. 审查 D-223 修订稿（P08 改用构造期拓扑资格、结构头退出 production、根因表述收紧），并同步 METHOD/PLAN。
-2. 从服务器已有产物导出 E-08 报告到 `results/` 并补 LOG-206，**不重跑 audit**。
-3. 实现并运行两间 P0 house 的纯拓扑可构造性预检；若存在合格路线再开 F-01，若不存在则按第八章暂停并触发场景设计裁决。
+1. 用户审查D-223修订稿（P08改用构造期拓扑资格、结构头退出production、根因表述收紧）。
+2. 审查通过后实现并测试F-00两房纯拓扑可构造性预检；真实服务器执行仍需单独核对授权与并发资源。
+3. 若存在合格路线再实现F-01；若不存在则按第八章暂停并触发场景设计裁决。
 
 ## 八、失败时的暂停点与待触发裁决
 
@@ -376,7 +388,7 @@ E-08 是本章的来源：当时没有预先登记暂停点，结果一次审计
 | 步骤 | 失败长什么样 | 暂停点与必须触发的裁决 |
 |---|---|---|
 | F-01 production reader | SAM 每帧 proposal 过多或过少；冻结 DINO 描述子跨视角区分度不足（同一物体两视角 cosine 低于同场景不同物体） | 暂停并报告逐帧 proposal 数分布与跨视角 cosine 分布。触发**证据层级裁决**：是否把首篇从 L2 降到 L1 oracle 层。这会把论文主张从"可部署 RGB-D 条件下的比较"改为"感知正确前提下的机制诊断"，**属于改变论文声称什么，必须用户批准** |
-| F-02 P08 拓扑资格 | D-223 判据下两间 P0 house 找不到 basin→bottleneck→basin 路径 | 暂停并报告两间房的逐位置拓扑分布。触发**场景设计裁决**：重新设计实体—地点场景，或接受 P08 缺失。**不得自动换 house，也不得未经裁决就把实体观测嫁接到 P01/P03/P05**——那需要各自的数据合同与成功条件，目前都不存在 |
+| F-00 P08 拓扑预检 | D-223 判据下两间 P0 house 找不到 basin→bottleneck→basin 路径 | 暂停并报告两间房的逐位置拓扑分布。触发**场景设计裁决**：重新设计实体—地点场景，或接受 P08 缺失。**不得自动换 house，也不得未经裁决就把实体观测嫁接到 P01/P03/P05**——那需要各自的数据合同与成功条件，目前都不存在 |
 | F-02 P04 资格 | 冻结 DINO top-1 选出的 pair 视觉混淆强度不足 | 保留原 pair 并如实记录绝对 cosine 分数。触发**headline 组成裁决**：P04 是否降为 supporting |
 | F-04 两房 raw | 路线执行中动作被拒、raw 写入不完整 | 保留失败前缀继续。两房本就只是工程 smoke，结果不进任何论文表，**无需裁决** |
 
@@ -394,4 +406,3 @@ E-08 是本章的来源：当时没有预先登记暂停点，结果一次审计
 | P-02 正式 raw | 构造成品率远低于 P-01 预算假设 | 按 P-01 已冻结的停止规则收口，用实际样本量运行，功效不足写入限制章节。**不得事后加样本，不得因样本少而改主指标** |
 | P-03 selector 训练 | 不收敛，或预算内明显未充分训练 | 按已登记的 `training_sufficiency_unverified` 判据标注，照常进入 validation，同时报告 NECS 结果。不得把训练不足写成"方法失败" |
 | P-05 test 主比较 | VSMT 在主指标上不优于 TAF/ELU/WFR/LOW | **如实报告 no-go**，不换数据、不缩减强对照。论文能保留哪些贡献**不能事前保证**，须在看到完整结果与误差分解后逐条审查证据是否支持主张，这正是 P-06 的职责 |
-

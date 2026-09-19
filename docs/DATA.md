@@ -2,7 +2,7 @@
 
 ## D-210 地点 P0 数据合同（已批准，实现待审，生成关闭）
 
-D-210 为地点/拓扑主实验建立独立于旧 VM-04 v1–v4 的数据版本。它解决旧合同一边把完整固定动作保存在可见 packet、一边用人为带噪格制造地点错误的冲突；输入是两个开发 house 的公开可达扫描、执行前封存的 12 条完整路线及真实逐步 RGB-D，输出 raw/provenance、部署适配输入和候选封存后才可读的 private evaluation。具体例子是 56 步 8 字路线：raw 保存 57 个观察和 56 个动作回执，模型只在关键帧接收连续位姿信念与若干边摘要。它不复用旧 24/64 步上限，不把 0.5 m 格、路线 phase 或 source house ID 当模型特征，也不表示当前已经生成任何 episode。
+D-210 为地点/拓扑主实验建立独立于旧 VM-04 v1–v4 的数据版本。它解决旧合同一边把完整固定动作保存在可见 packet、一边用人为带噪格制造地点错误的冲突；输入是两个开发 house 的**生成器专用可达扫描**、执行前封存的12条完整路线及真实逐步RGB-D，输出raw/provenance、部署适配输入和候选封存后才可读的private evaluation。具体例子是56步8字路线：raw保存57个观察和56个动作回执，模型只在关键帧接收连续位姿信念与若干边摘要。可达扫描只用于构造/封存路线，不进入部署包；它不复用旧24/64步上限，不把0.5 m格、route phase或source house ID当模型特征，也不表示当前已经生成任何episode。
 
 活动机器合同为 [`vm04_d210_dual_layer_p0_v1.json`](../configs/vsmt/vm04_d210_dual_layer_p0_v1.json)，纯核心为 [`d210_place_memory.py`](../src/vsmt/d210_place_memory.py)，关闭的阶段入口为 [`vm04_d210_p0_stage.py`](../ops/vsmt/vm04_d210_p0_stage.py)。当前五个授权位全为 false：source house 绑定、route plan 封存、raw 生成、adapter materialization 和 private evaluation 均未开放；`check` 可读合同，`seal-batch` 会在读取外部 house/route 文件和创建输出目录之前拒绝。
 
@@ -34,7 +34,7 @@ D-210 为地点/拓扑主实验建立独立于旧 VM-04 v1–v4 的数据版本�
 
 ### 私有地点参考与指标文件
 
-私有地点参考不保存“0.5 m cell = place”。同地点正例需连续位置误差≤0.35 m 且属于同一 reachable component；负例需距离≥1.5 m，或在路线封存前已登记为不同支路/房间；中间距离带不产生强制同异标签，yaw 不参与地点同一性。0.5 m grid 只能出现在 route planner/candidate retrieval 的公共常数与回执中，不能作为参考 place ID 或 adapter 的 node label。
+私有地点参考不保存“0.5 m cell = place”。同地点正例需连续位置误差≤0.35 m且属于同一reachable component；负例需距离≥1.5 m，或在路线封存前已登记为不同支路/房间；中间距离带不产生强制同异标签，yaw不参与地点同一性。生成器的完整`GetReachablePositions`图只能出现在route planner/topology receipt的构造或provenance面；方法若用0.5 m局部索引召回候选，只能由自己的连续pose belief和prior predicted memory建立，不能读取该图。二者都不能作为reference place ID或adapter node label。
 
 每个 `vsmt-d210-place-episode-metrics-v1` 接收模型 place membership、回环 pair 判断、关系类型与端点、实体挂载、逐关键帧污染比例和五类错误分解；reference 在预测封存后打开。place pairwise 指标对任意节点改名不敏感；拓扑端点和实体挂载在评价器内部先按 observation overlap 对齐预测/参考节点名再计分。输出 pairwise P/R/F1、duplicate place、false merge、loop P/R、edge endpoint F1、entity attachment accuracy、contamination AUC 和 `candidate_miss/teacher_error/amortization_error/illegal_transaction/collateral_change`。
 
@@ -50,29 +50,29 @@ D-210 为地点/拓扑主实验建立独立于旧 VM-04 v1–v4 的数据版本�
 
 ### D-214共享RGB-D缓存与资格回执
 
-`vsmt-vm04-d214-shared-rgbd-frame-cache-v1`逐保存观察包含：observation/time、RGB/depth/calibration摘要、连续pose belief、可选入边动作摘要、packet-local匿名fragment、surface、单个非网格place observation、滚动free-space、当前visibility、SAM/semantic/config receipt摘要及整帧摘要。place observation含全帧DINO描述、belief均值/协方差、surface/free-space支持、`basin/bottleneck/unknown`和`room/corridor/unknown`归一概率；`persistent_place_id=null`、`identity_assigned=false`、`metric_grid_identity_used=false`、`semantic_class_defines_identity=false`。白话：输入当前公开画面和估计，输出一份谁都能读但谁都不能改的结构证据；例如`room=0.7`只表示当前语义估计，不会生成`place:kitchen`。它不含raw路径、mask像素、instance/object ID、场景名或private crosswalk。
+历史`vsmt-vm04-d214-shared-rgbd-frame-cache-v1`逐保存观察曾包含结构/语义概率字段；其冻结字节只用于复核旧实现。**D-223后的production cache必须由覆盖层删除这些字段**，保留observation/time、RGB/depth/calibration摘要、连续pose belief、可选入边动作摘要、packet-local匿名fragment、surface、单个非网格place observation、滚动free-space、当前visibility、SAM/DINO/几何/config receipt摘要及整帧摘要。place observation只含全帧DINO描述、belief均值/协方差和surface/free-space支持；`persistent_place_id=null`、`identity_assigned=false`、`metric_grid_identity_used=false`。白话：输入当前公开画面和因果估计，输出五种方法共同读取的匿名视觉—几何证据。例如大厅的全帧DINO与可见平面可支持以后BIND到旧地点，但cache不会直接写“这是basin”或“这是房间”。它不含raw路径、mask像素、instance/object ID、场景名、可达图或private crosswalk。
 
-`vsmt-vm04-d214-shared-rgbd-episode-cache-v1`按0开始连续封存frame，绑定DINO/SAM/semantic资产receipt和单一config摘要；`identical_method_cache_views`给VSMT/TAF/ELU/WFR/LOW独立clone并核canonical摘要完全相同。输入是同一episode的有序frame cache，输出五份等字节视图；它不允许方法私有前端或按P08附加字段。当前测试用显式概率和fixture token只验证代码边界，正式模型资产尚未产生，因此没有真实cache文件。
+episode cache按0开始连续封存frame，绑定DINO/SAM/几何资产receipt和单一config摘要；`identical_method_cache_views`给VSMT/TAF/ELU/WFR/LOW独立clone并核canonical摘要完全相同。输入是同一episode的有序frame cache，输出五份等字节视图；它不允许方法私有前端、结构头概率或按P08附加字段。真实production schema/reader仍未实现，现有D-214 fixture只证明历史边界，不能生成D-223后的正式cache。
 
-合同的`implementation_boundary`显式登记：公开派生输出组合与cache核心已实现，SAM/DINOv2/semantic真实推理编排、production raw reader和服务器执行均未实现。白话：测试可以证明同一组已验证mask/token/概率会被无泄漏地封成共同cache，但还不能把服务器上的原始RGB-D直接变成正式cache；这不是用`implemented=true`概括一半完成的前端。
+当前实现边界是：公开fragment/depth材料化与cache核心已有历史实现，真实SAM/DINOv2编排、D-223覆盖schema、production raw reader和服务器执行均未实现。白话：测试可以证明一组已验证mask/token/几何能被无泄漏地封成共同cache，但还不能把服务器原始RGB-D直接变成最终production cache，也不能继续用fixture结构概率冒充正式输入。
 
-P04回执保存所选两帧、公开名义距离、DINO cosine和“未用绝对阈值/未用旧四象限描述子”布尔；P08回执保存两段连续basin观察、其中连续bottleneck段、两端各一对跨帧稳定fragment及显式资格配置。room/corridor概率不进入P08 identity gate，private metadata只在seal后评价。四个P08数值在合同中仍为null，测试值不是冻结值。
+P04回执保存所选两帧、公开名义距离、DINO cosine和“未用绝对阈值/未用旧四象限描述子”布尔。D-223后的P08资格由两份不可混读证据组成：`topology_qualification_receipt`由数据生成器保存逐位置拓扑角色、冻结规则摘要和basin→bottleneck→basin命中段；`fragment_qualification_receipt`只读共享cache，保存两端各一对跨帧稳定fragment及0.85/0.35配置。合并回执只引用两者摘要，不把可达图复制到public cache或adapter。白话：生成器证明“题目确有瓶颈”，公开fragment证明“两端确有可供记忆的匿名实体证据”；它不把前者喂给方法，也不把后者当真实实体ID。
 
 `vsmt-vm04-d214-legacy-grid-retirement-readiness-v1`只在新cache全部生成、摘要验证、P04/P08重验、全路线重绑、有精确无通配符目标且无复现依赖时置`ready_for_user_requested_deletion=true`；`deletion_performed`始终false。它是删除前证据，不执行删除。
 
 ### D-215前端冻结资产、划分和训练后回执
 
-[`vm04_d215_frontend_freeze_v1.json`](../configs/vsmt/vm04_d215_frontend_freeze_v1.json)保存SAM仓库/官方YAML/checkpoint字节与SHA-256、automatic-mask和proposal boundary摘要、双线性head的精确feature顺序/训练预算、house级split规则及P08四数。`asset_receipt_sha256`只覆盖实际核过的SAM来源和配置；`split_rule_sha256`覆盖决定性划分算法；`inference_config_sha256`覆盖架构、公开输入、训练/校准规则和标签隔离。输入是结果前合同，输出三类可复算摘要；它不把尚未生成的weights或partition manifest伪写成receipt。
+[`vm04_d215_frontend_freeze_v1.json`](../configs/vsmt/vm04_d215_frontend_freeze_v1.json)保存当时冻结的SAM资产、Estimator feature/训练预算、house级split规则及旧P08四数；其原字节解释E-01～E-08历史，不直接定义D-223后的production。`asset_receipt_sha256`、`split_rule_sha256`和`inference_config_sha256`仍用于复核历史产物；D-223只继承拓扑规则常量以及fragment的0.85/0.35，不继承旧结构概率门。
 
-`actual_partition_manifest_receipt_sha256`、`normalization_receipt_sha256`、`weights_sha256`和`training_receipt_sha256`当前必须为null。后续训练阶段须先按源manifest完整列出house→split并封存，再按位置hash、1 m最小间距、每house 8位置×4 yaw生成32帧，拟合train-only标准化和两个线性头，用calibration split选最低总NLL checkpoint并各拟合一个正温度；audit split只作冻结后诊断。任一P0/validation/confirmation house混入、frame级随机拆分、按P08 yield选checkpoint或改阈值均失败。白话：合同已经决定“谁能进哪一组、看哪些帧和怎样选模型”，但还没有声称模型训练完成；production reader仍不能读取一组零权重fixture冒充正式概率。
+后续D-219/D-221/D-222已经生成真实partition、normalization、结构单头weights、training receipt和唯一一次audit报告；摘要见LOG-205/LOG-206。它们全部封存，不写回D-215历史合同的原字段，也不供production reader读取。白话：这些文件证明那次Estimator尝试怎样训练、为什么退出，不表示最终前端仍有该模型。
 
 ### D-216 split、训练包与真实权重回执
 
 `vsmt-vm04-d216-reserved-house-manifest-v1`含排序的`rows[{house_id,roles}]`、按角色计数及自身receipt。角色词表恰为`P0_route_and_raw_development/VM04_validation/VM04_confirmation`，两间P0 house必须显式出现，三种角色必须在split前全部绑定。`vsmt-vm04-d216-house-split-manifest-v1`再绑定source inventory、D-215 split-rule和reserved receipt；10,000行逐一保存`house_id/split/hash_bucket/exclusion_roles/planned_observations`，excluded行不删除。输入是来源与保留角色，输出不可变partition；例如validation house仍在总行数内但`planned_observations=0`。它不含RGB-D、标签、路线或产率。
 
-训练NPZ分片只允许八个数组：`features[N,396] float32`、`semantic_labels[N] uint8`、`structural_labels[N] uint8`、`house_ids/observation_ids`及`public_observation_sha256/semantic_annotation_receipt_sha256/structural_label_receipt_sha256`三个定长字符串向量。`house_ids`只用于检查整house split，拟合张量只有`features`；额外`scenario_id`等字段不是“忽略”，而是整片拒绝。`vsmt-vm04-d216-training-evidence-index-v1`逐观察保存两名盲标注者标签、仲裁/未决状态及D-215结构规则标签的内容寻址子receipt；bundle seal逐行核标签值和三个摘要，未决semantic分歧只能写`unknown`。`vsmt-vm04-d216-estimator-training-bundle-v1`保存每个分片相对路径、文件SHA-256、split、行/house/类别计数和各receipt向量摘要，并要求train/calibration/audit齐全、观察ID全局不重复。白话：evidence index证明标签摘要指向什么，bundle像封条防止训练时把另一个NPZ悄悄换进来；二者都不把标注或reference grid复制到推理cache。
+D-216原双头训练NPZ schema属于历史；D-219实际结构单头bundle只保留`features[N,396] float32`、`structural_labels[N] uint8`、house/observation ID及公开观察/结构标签摘要。`house_ids`只用于检查整house split，拟合张量只有features；额外scenario/route字段整片拒绝。bundle像封条防止把另一个NPZ换进E-06；它不把标签或reference grid复制到任何production cache。
 
-真实训练目录拟生成`normalization.json`、`weights.json`、`training_receipt.json`、`success.json`及`stage_receipt.json`。normalization含396项train均值/标准差；weights含两个3×396矩阵、bias和temperature但不含house/观察/路径；training receipt含代码commit、partition/bundle/artifact摘要、seed、torch/device、epoch历史、best epoch、类权重及三split冻结指标；success只汇总互相绑定的receipt且固定`real_weight_receipt_reviewed=false/production_reader_authorized=false`。当前这些都尚未真实生成；测试fixture输出不得写回D-215的null字段或供production reader使用。
+E-06真实目录已经生成normalization、一个3×396结构权重矩阵、bias、temperature、training/stage receipt；E-08另生成并导出audit报告。它们不含house/观察/路径模型特征，并在D-223后固定`production_reader_authorized=false`。测试fixture和真实权重都不得写入最终production cache。
 
 ### D-218 E-04标注包与E-05公开特征分片
 
@@ -80,17 +80,17 @@ P04回执保存所选两帧、公开名义距离、DINO cosine和“未用绝对
 
 `vsmt-vm04-d218-semantic-adjudication-v1`逐观察保存A/B标签、最终标签、是否未决和`agreement/independent_adjudication/unresolved_unknown`来源。第三名仲裁者必须不同于A/B，且只能填写真实分歧；未提供的分歧强制为unknown。该输出以后可与private structural receipt在D-216 evidence index中汇合，但本阶段不打开private目录，也不生成训练NPZ。
 
-E-05每个成功public house产生一个只含`features_float32[N,396]`、`observation_ids`和`public_observation_sha256`的NPZ及`vsmt-vm04-d218-public-feature-shard-v1`收据。public observation摘要同时绑定单帧RGB原字节、depth原字节、四项内参和opaque observation ID；feature收据绑定D-215 inference config、DINO commit/checkpoint和来源public receipt。路径中的train/calibration只作数据管理，不进入数组或模型输入。既有shard恢复前重开NPZ、重算全部核心摘要和文件SHA；失败文件绑定原public receipt并固定`replacement_allowed=false`。当前真实shard数仍为0。
+E-05每个成功public house产生一个只含`features_float32[N,396]`、`observation_ids`和`public_observation_sha256`的NPZ及收据。经D-221扩展后累计2,121个真实shard、67,872帧、feature失败0；路径中的train/calibration只作历史数据管理，不进入模型张量。D-223后这些shard继续封存以复核E-06/E-08，production只复用其DINO/公开几何算法定义，不加载结构头产物。
 
 ### D-211/D-212 执行封装与 raw smoke 文件（纠偏实现待审，真实文件未生成）
 
 [`vm04_d211_p0_seal_single_smoke_v2.json`](../configs/vsmt/vm04_d211_p0_seal_single_smoke_v2.json) 将两间开发 house 固定为 `train:004270`/`train:008243`，分别绑定 source record 摘要 `79a1…026f`/`cdbd…bea7`。v1 和 `e5d7bed` 只保留阶段历史，不是最终生成基线。来源证据仍是既有只读 root-cause 报告，报告本身记录 0 episode、0 intervention；D-212 不把它们改叫 confirmation，也不因路线或 smoke 失败换房。
 
-`survey-routes` 生成目录包含 `route-bundle.json` 与 `survey.receipt.json`。前者是 `vsmt-vm04-d211-route-bundle-v2`，恰好含按 slot 0–11 排序的 12 行；每行包含 `route_plan`、完整 `reachable_scan`、执行前 `public_route_evidence`、`scenario_receipt` 及 `execution_binding`。后者保存算法摘要、请求/实际worker数、CPU/RAM/GPU/磁盘依据、固定合并顺序、每槽完成动作数和失败摘要；失败时 bundle 不产生，receipt 保留且同目录不得覆盖。reachable scan 保存 `GetReachablePositions` 的规范整数格键，seal 时从私有起点重算 N+1 名义姿态并逐个检查可达；public evidence 为选定 survey 观察保存 RGB/depth/calibration 摘要、非零 place descriptor、公开 room/corridor/unknown 角色和匿名 `region:*` 实体区域引用；scenario receipt 对 P01–P08 分别重算 Z形、精确逆行、替代回环、top-1视觉别名、同地反向、T分支、8字双环及房间—走廊—房间条件。白话：route plan 说“怎么走”，scan 证明“计划步都落在可达格”，公开 evidence 证明“路线为什么从画面上被选中”，scenario receipt 证明“它确实是哪一种挑战”。它不包含模型地点答案，也不能用布尔自报或假摘要替代内容。
+历史`survey-routes`定义保存`route-bundle.json`与`survey.receipt.json`，其中reachable scan来自`GetReachablePositions`并留在构造/provenance侧。D-223沿用这个构造权限新增P08拓扑回执，但明确该scan不得进入public cache或adapter。route plan说明“怎么走”，topology receipt证明“路线确实经过两个basin及其间bottleneck”，共享RGB-D fragment回执再证明“两端存在匿名多视角实体证据”。三者不能用布尔自报或假摘要替代，也不能把构造图冒充模型地点答案。
 
-以下D-212规则仅描述被D-214取代的工程survey收据，不再允许直接获得路线资格：P04 曾从名义间隔至少 1.5 m 的 pair 中用四象限工程descriptor取top-1；P08 曾要求两个room-like anchor各有匿名`region:*`且中间登记为corridor。D-214生效后，P04必须改用冻结DINO place descriptor重验，P08必须改用basin→bottleneck→basin和多视角稳定fragment重验；旧字段只可追溯，不能冒充完整L2前端输出或headline资格。
+以下D-212规则只描述历史工程survey收据：P04曾用四象限descriptor，P08曾用room-like/corridor-like。当前P04必须用冻结DINO place descriptor；P08必须组合D-223构造期拓扑回执与共享cache多视角稳定fragment。旧字段只可追溯，不能冒充完整L2前端输出或headline资格。
 
-本轮旧survey不保存instance mask/object ID，也不把`instance_masks`属性传给纯构造器；四象限小描述子和匿名区域现在只作历史工程诊断。P08的room-like/corridor-like来自公开reachable-grid局部开阔度，D-214明确禁止它继续充当资格条件；未经新cache复核不得给该槽`headline_eligible=true`。
+旧survey不保存instance mask/object ID，也不把`instance_masks`属性传给纯构造器；四象限小描述子和room-like/corridor-like只作历史工程诊断。D-223允许同一构造侧reachable scan按D-215拓扑规则产生新回执，但只有再通过共享cache的fragment条件，P08才可获得资格；二者都不提供真实实体身份。
 
 `seal-routes` 生成：
 

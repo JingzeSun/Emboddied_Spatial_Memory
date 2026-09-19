@@ -8,14 +8,14 @@
     "the_audit_result_was_already_known_when_this_was_written": true,
     "audit_report_sha256": "3e652a45a95dfbcd6411c182daf571808675118ce6c4f1d3beb15cd28000b142",
     "what_the_audit_showed": "the frozen structural head reaches 0.7013 overall accuracy but its bottleneck recall interval is 0.043 to 0.150 and its bottleneck NLL interval is 1.830 to 2.238, which is worse than a uniform three-class guess at 1.099",
-    "why_this_is_not_a_forbidden_repair": "D-219, D-221 and D-222 forbid adding houses, changing the model or retuning thresholds so that the number improves; this decision does none of those. The estimator keeps its exact audited bytes, the audit report is never rerun, and the P08 fragment numbers are untouched. What changes is which public source certifies a route's structural role, and it changes because the audit falsified the premise that a single 90-degree frame can recover a 360-degree topological property.",
+    "why_this_is_not_a_forbidden_repair": "D-219, D-221 and D-222 forbid adding houses, changing the model or retuning thresholds so that the number improves; this decision does none of those. The estimator keeps its exact audited bytes, the audit report is never rerun, and the P08 fragment numbers are untouched. What changes is which construction-time source certifies a route's structural role, and it changes because the audit falsified the premise that a single 90-degree frame can reliably recover a 360-degree topological property for this gate.",
     "reader_must_judge_this_as_post_audit": true
   },
   "root_cause": {
     "label_is_a_function_of": "position only",
     "model_input_is_a_function_of": "position and yaw",
     "evidence_in_code": "ops/vsmt/vm04_d217_rgbd_worker.py computes structural_label_from_reachable(reachable, position) once per position and appends the same label for all four yaws",
-    "consequence": "at a bottleneck position the frames whose yaw faces the wall carry no visible passage evidence yet carry the bottleneck label, so part of the training signal is unlearnable from its own input",
+    "consequence": "at a bottleneck position, frames whose yaw faces a wall may carry no visible passage evidence yet still carry the bottleneck label, so part of the training signal is not identifiable from that single frame",
     "missed_before_the_audit_by_the_implementer": true,
     "cost_of_the_miss": "the D-221 prefix extension generated 1664 extra houses to buy bottleneck coverage that this mismatch made unusable as a hard gate",
     "observed_accuracies": {
@@ -23,7 +23,7 @@
       "calibration": 0.6958,
       "audit": 0.7013
     },
-    "what_the_accuracies_do_and_do_not_show": "train, calibration and audit agree, which rules out overfitting; it does not separate the label mismatch from linear capacity or class imbalance",
+    "what_the_accuracies_do_and_do_not_show": "train, calibration and audit agree closely, so there is no material generalization gap in the reported aggregate accuracy; this does not rule out every form of overfitting and does not separate the label mismatch from linear capacity or class imbalance",
     "precise_statement": "under the frozen feature set, the linear model and the single-frame input contract, scaling the training data did not make bottleneck reliable enough to serve as the P08 hard gate, and the representation has a clear label to visible-evidence mismatch",
     "what_must_not_be_overstated": [
       "0.150 is the upper end of a 95 percent recall interval, not a deterministic ceiling",
@@ -33,7 +33,7 @@
   },
   "change": {
     "what_p08_qualification_stops_using": "the learned structural head probabilities as a gate",
-    "what_p08_qualification_starts_using": "the already frozen D-215 topological rule, evaluated at route construction time on the public GetReachablePositions grid",
+    "what_p08_qualification_starts_using": "the already frozen D-215 topological rule, evaluated by the data generator at route construction time on the construction-authorized GetReachablePositions graph",
     "new_numeric_parameters_introduced": 0,
     "why_zero": "the predicate is not an approximation of the bottleneck definition, it is that definition; D-215 froze every constant it needs",
     "d215_structural_reference_rule_sha256": "4fa32f8940cb22516d0c004f9c4b8d7a6cb5c1cd9a85dfb6f63ef6178dd34774",
@@ -57,15 +57,15 @@
     "required_signature": "an ordered basin then bottleneck then basin run along the route, unchanged from D-214"
   },
   "permission_boundary": {
-    "reachable_positions_are_public_at_route_construction": true,
+    "reachable_positions_are_authorized_only_for_route_construction": true,
     "method_basis": [
-      "the public route survey takes the two fixed houses' public GetReachablePositions",
-      "the 0.5 m grid serves route planning on public reachable positions and local candidate recall only"
+      "the route survey is already authorized to query GetReachablePositions for the two fixed houses while constructing and sealing routes",
+      "the resulting graph may certify the planned scenario and support route planning, but is not a deployable observation"
     ],
     "reachable_grid_at_deployment_inference": false,
     "reachable_grid_in_the_shared_frontend_cache": false,
     "private_room_or_object_truth_used": false,
-    "why_this_is_not_cheating": "the original D-214 concern was that P08 must not be certified by private simulator room labels; GetReachablePositions is public geometry that route planning already consumes, and the memory methods still never see it",
+    "why_this_is_not_cheating": "the topology is a data-construction condition shared by every method, not a prediction supplied to a method. It uses no simulator room or object label, and the reachable graph is absent from every deployable input and method cache",
     "reachable_graph_is_generator_only_construction_information": true,
     "reachable_graph_is_not_a_deployment_public_observation": true,
     "never_supplied_to": [
@@ -78,7 +78,7 @@
   },
   "scope_reduction_that_must_be_reported": {
     "the_paper_may_no_longer_claim": "that P08's structural role was publicly inferable from single-frame RGB-D",
-    "the_paper_may_claim": "that the fixed P08 route genuinely has a basin bottleneck basin topology, certified by public reachable geometry at construction time",
+    "the_paper_may_claim": "that the fixed P08 route genuinely has a basin bottleneck basin topology, certified by generator-only reachable geometry at construction time",
     "p08_renamed_to": "two basins connected through a topological bottleneck, containing entities",
     "p08_may_no_longer_be_called": "a visually recognised room-corridor-room traverse",
     "the_structural_head_is_absent_from_production_so_it_reports_nothing_on_routes": true

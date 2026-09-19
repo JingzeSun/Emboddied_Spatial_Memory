@@ -2104,7 +2104,7 @@
 
 - 日期：2026-09-18；状态：用户批准“停止E-04人工语义标注、删除semantic头、保留structural头、精简流程但保留公平比较/独立test/防泄漏实质”。本批只交机器合同[`vm04_d219_structural_only_estimator_v1.json`](../configs/vsmt/vm04_d219_structural_only_estimator_v1.json)与本决策文本供审查；代码、训练和服务器执行仍全部关闭。
 - **为什么删semantic头：** `room/corridor/unknown`不定义地点身份（[d214_shared_frontend.py:460](../src/vsmt/d214_shared_frontend.py#L460)），P08资格只读basin/bottleneck概率、fragment DINO cosine和质心距离，并显式记录语义未用于身份（[同文件:883](../src/vsmt/d214_shared_frontend.py#L883)）。全库除D-214/D-215/D-216前端合同、训练实现和测试外没有任何方法消费者：adapter、候选生成器、D-213统一图、teacher和evaluator都不读它。因此17,888帧×2人＝35,776次判断买不到论文证据。不得用恒定`unknown`冒充模型输出；已导出的约1.1 GiB任务包保留为历史产物，不下载、不标注、不进训练。五个臂同等地少掉这三维，已封存比较不受扰动。论文相应收回“识别真实房间与走廊”的口径，只主张公开RGB-D推断的basin→bottleneck→basin及其中的匿名多视角fragment。
-- **为什么不能连structural头一起删：** P08部署时不能查reference reachable grid。私有可达图只允许在train/calibration/audit生成标签，推理仍只读公开RGB-D与内参。删掉结构头会让P08退回grid真值或工程启发式，直接破坏“公开前端”主张。该边界写入D-219的`label_boundary`并给出允许/禁止两份显式scope，不再散落在正文各处。
+- **为什么当时没有连structural头一起删（历史判断，后由D-223取代）：** D-219当时认为P08部署时不能查reference reachable grid，因此保留只读公开RGB-D的结构头。E-08随后证明该头不适合作硬门；D-223把“构造期认证场景”和“部署期方法输入”分开，结构头最终退出production。此处只解释D-219当时为何如此设计，不再代表当前方法。
 - **为什么不就地改d215/d216：** d216绑d215、d217绑d216、d218绑d215与d217，而E-01～E-03和E-05已按这些确切字节执行完毕。就地编辑会同时打断三层绑定，并使已完成的服务器receipt无法复验或续跑。D-219因此按当前哈希绑定四份前置合同、以引用方式supersede，永不重写它们；d214没有任何合同绑定其字节，故可就地删除三个死字段。
 - **范围与规模：** E-05的396维特征本身无标签，逐字节复用，不重跑DINO与几何。E-07就此裁决为冻结512/64/64，不做full-house扩展，该门不再保留为未决选择。E-08改为零人工：审计标签由同一冻结规则从私有可达图自动生成，模型输入仍只有公开RGB-D，只跑一次；审计失败不得加house、改模型或改阈值。
 - **P08四数不动：** 0.70/0.70/0.85/0.35与唯一argmax全部沿用D-215，不因路线成品率调整。新增的是排期要求：E-08之后先在两间开发house上做P08 dry-run，在冻结正式数据预算前暴露不合格风险；不合格时改路线/场景设计或如实记construction failure，而不是动阈值。
@@ -2116,7 +2116,7 @@
 - **执行闸门：** 取消D-212确立的“已审实现提交＋只改一个文件的激活提交＋父提交必须精确等于已审提交”三重门。该门已被实证证伪：D-218授权后，仅仅一个文档提交`c8b4c68`就把`HEAD^`推离已审实现提交，使E-04/E-05的执行命令从此无法再跑。替代规则是每个VM里程碑一个清晰提交、真实运行记录git commit/合同/输入/产物摘要与资源和失败、真实运行仍要求clean checkout、授权由步骤合同里的布尔位表达并由用户在运行前审。不变量照旧：不按结果改split/阈值/house集合、失败保留不补样、test和audit只读一次。
 - **独立test：** confirmation降为普通独立test。取消隐藏house ID、承诺摘要、salt打乱的episode ID和reveal接口；保留house级train/validation/test互斥、test只跑一次、test不得选择配置/阈值/checkpoint、主指标与停止规则在test前冻结、全部seed与失败如实报告。文档与代码中的`confirmation`统一改称`test`，VM-06相应改称test stage。
 - **消融集合：** 五个主臂VSMT/TAF/ELU/WFR/LOW全部保留，且不得因某个强基线表现好而删除。VSMT消融只保留`VSMT-Typed`（主行）、`VSMT-Flat8`（度量类型门价值）、`VSMT-NoVersion`（度量版本历史价值），内部对照只保留`NECS`（“可执行修订空间”主张的唯一因果反事实）。`Place-4`、`VSMT-NoPlace`、`DRCR`、`PHR`移出必做集合，可作低成本附录。学习式排序器训练路径由VSMT/DRCR/NECS三条降为VSMT/NECS两条。被移出的臂在看过test之后不得再补回来。
-- **两房P0：** 降为工程smoke，取消12槽逐路线封存与资格回执仪式，只保留P01（采集、三面raw与共享cache）、P04（冻结DINO place描述子通路）和P08（结构头＋多视角fragment完整链）三条代表性端到端检查，其余路线由单测或正式数据运行覆盖。实质不变：两房结果不得进入任何论文表、不得据以选择headline赢家、construction failure照实保留并报告。
+- **两房P0（历史口径，P08部分后由D-223取代）：** 降为工程smoke，只保留P01、P04和P08三条代表性端到端检查。D-220当时把P08写成“结构头＋多视角fragment”；D-223现改为“生成器拓扑回执＋共享cache多视角fragment”，两房结果仍不得进入任何论文表、不得据以选择headline赢家、construction failure照实保留并报告。
 - **不可再精简的底线（八条）：** 五个主臂读取逐字节相同的冻结公开前端cache；house级train/validation/test分离；test只跑一次且不得据以改模型；候选必须在teacher/private truth打开之前生成并封存；candidate miss、teacher error和selector摊销误差分开报告；多seed、置信区间、失败样本和资源成本齐备；P08私有metadata只在预测与路线固定之后打开；强基线不得因效果好被删除。这八条足以应付正常二区评审，本决策不触碰其中任何一条。
 
 ## D-221：按事前冻结的规则把开发规模从512/64/64扩到2048/128/128
@@ -2145,9 +2145,9 @@
 
 - 日期：2026-09-19；状态：**提案**，六个授权位全 false；机器合同[`vm04_d223_p08_topological_qualification_v1.json`](../configs/vsmt/vm04_d223_p08_topological_qualification_v1.json)。
 - **本决策写于审计结果已知之后，必须按 post-audit 阅读。** 绑定审计报告摘要`3e652a45…b142`；当时已知结构头整体 accuracy 0.7013，但 bottleneck recall 区间为 0.043–0.150、NLL 区间 1.830–2.238，比三类均匀猜测的 1.099 还差。它不是被禁止的修补：不加 house、不改模型、不调阈值，estimator 保持被审计的原字节，审计报告不重跑，P08 的 fragment 判据 0.85/0.35 不动。变的只是"由哪个公开来源认证路线的结构角色"，而这是因为审计证伪了"单帧 90° 视场能恢复 360° 拓扑性质"这个前提。
-- **根因是标签与输入不匹配，不是数据不足：** 标签是 `f(位置)`，输入是 `f(位置, 朝向)`。[vm04_d217_rgbd_worker.py](../ops/vsmt/vm04_d217_rgbd_worker.py) 每个位置调一次 `structural_label_from_reachable(reachable, position)`，然后把同一标签复制给四个 yaw；站在门口面朝墙的那些帧画面里没有任何通道证据，却带着 bottleneck 标签。train 0.7049 / calibration 0.6958 / audit 0.7013 三者几乎相同，模型连自己的训练集都拟合不到 0.71，说明这是信息或容量天花板而非样本不足，因此增加 house 不可能改善。**实现者在审计前没有核对这一点**；D-221 那次扩展生成的 1,664 个 house 所要买的 bottleneck 覆盖，从一开始就买不到。
-- **改法与零新增参数：** P08 不再以学习式结构头概率为门，改为在**构造期**对公开 `GetReachablePositions` 直接应用 D-215 已冻结的拓扑规则（rule sha `4fa32f89…4774`，十个常量原样继承）。判据不是 bottleneck 定义的近似，**它就是那个定义**，因此引入 0 个新数值。所需签名仍是时序上连续的 basin→bottleneck→basin，与 D-214 一致。
-- **权限边界：** METHOD 两处明写路线 survey 的输入是"两间固定 house 的公开 `GetReachablePositions`"，且"0.5 m 格只服务于在公开 reachable positions 上规划合法路线与候选召回"。因此构造期使用它是既有权限，不是新开口子。部署期推理与共享前端 cache 中仍然禁止，私有 room/object 真值仍然不用。D-214 当初的顾虑是"不得用私有模拟器房间标签认证 P08"，本方案不触碰该顾虑。
-- **必须报告的口径收缩：** 论文此后**不得声称**"P08 的结构角色可由单帧公开 RGB-D 推断"，只能声称"该固定路线确实具有 basin-bottleneck-basin 拓扑，由构造期公开可达几何认证"。结构头在 P08 路线上仍可作为诊断报告，但不再充当任何门。
-- **结构头不删除，只降级：** 与语义头不同，它在部署期仍是可用证据——推理时只有公开 RGB-D、算不了拓扑规则，而它 basin 与 unknown 的 recall 区间 0.731–0.781 与 0.673–0.727 仍有信息。它从 P08 资格门降级为 place observation 中五臂同读的特征，其 bottleneck 弱点照实写入论文。权重不重训、审计不重跑。
+- **诊断边界：** 标签是 `f(位置)`，输入是 `f(位置, 朝向)`。[vm04_d217_rgbd_worker.py](../ops/vsmt/vm04_d217_rgbd_worker.py) 每个位置调一次 `structural_label_from_reachable(reachable, position)`，然后把同一标签复制给四个 yaw；站在瓶颈位置面朝墙的帧可能没有通道证据却仍带 bottleneck 标签，存在明确的标签—可见证据错配。train 0.7049 / calibration 0.6958 / audit 0.7013 接近，只说明整体 accuracy 没有明显泛化间隙，不能严格排除所有过拟合，也不能分离该错配、线性容量和类别不平衡的各自贡献。准确结论是：在冻结特征、线性模型和单帧输入合同下，扩充数据没有让 bottleneck 达到作为 P08 硬门所需的可靠性。0.150 是 95% 区间上界而非确定性天花板；逐帧低 recall 也不等于整条路线必然失败。**实现者在审计前没有核对这项错配**；D-221 增加的 1,664 个 house 未能把该头变成可用硬门。
+- **改法与零新增参数：** P08 不再以学习式结构头概率为门，改为由**数据生成器在构造期**对 `GetReachablePositions` 可达图直接应用 D-215 已冻结的拓扑规则（rule sha `4fa32f89…4774`，十个常量原样继承）。判据不是 bottleneck 定义的近似，**它就是那个定义**，因此引入 0 个新数值。所需签名仍是时序上连续的 basin→bottleneck→basin，与 D-214 一致。
+- **权限边界：** 可达图是 generator-only construction information（生成器专用构造信息）：输入是路线构造器已获准查询的可达位置，输出只是固定路线是否满足场景条件。例如构造器可据此拒绝一条没有拓扑瓶颈的路线；它不等于部署机器人得到地图。可达图不得进入共享 cache、五个方法、candidate generator、selector 或任何 adapter input；私有 room/object 真值仍然不用。因此 C2 只保证试题结构，不替任何方法答题。
+- **必须报告的口径收缩：** 论文此后**不得声称**"P08 的结构角色可由单帧公开 RGB-D 推断"，只能声称"固定路线确实具有 basin-bottleneck-basin 拓扑，由构造期生成器专用可达几何认证"。场景名称收紧为“两个 basin 经拓扑 bottleneck 连接、含实体”，不再称为经视觉识别的“房间—走廊—房间”。
+- **结构头退出 production：** production reader 不计算它，place observation 不携带它，selector、候选生成器和 adapter 均不得读取。逐字节相同的弱特征只保证接口一致，不保证对五种机制影响中性，故不因已有成本而强留。E-05 特征、E-06 权重/回执和 E-08 报告全部封存保留，不重训、不重跑；论文主方法只描述实际使用的 SAM proposal、冻结 DINOv2、公开深度几何与因果位姿信念，结构头至多在附录作为未采用的开发尝试披露。
 - **防二次调参：** 判据须在任何 P08 路线被评估之前冻结；路线成品率不得改变判据或其常量。若在该判据下 P08 仍不合格，记 construction failure 并如实报告，不弱化判据、不换路线、不换 house；再次替换 P08 的门需要新决策。
