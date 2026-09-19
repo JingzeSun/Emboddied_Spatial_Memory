@@ -667,7 +667,14 @@ def materialize_public_places(
 def _normalized_halfspace(
     normal: np.ndarray, offset: float,
 ) -> tuple[np.ndarray, float]:
-    norm = float(np.linalg.norm(normal))
+    # ``np.linalg.norm`` delegates to the BLAS nrm2 kernel, whose scaling and
+    # SIMD accumulation are not bit-reproducible across builds: numpy 2.3.2 on
+    # Linux and 2.2.6 on Windows disagree by one ULP on the very slopes this
+    # frustum uses, which moved the sealed cache digests between machines.  A
+    # correctly rounded sqrt over an explicit left-to-right sum of squares is
+    # identical on both, and reproduces the pinned bytes rather than moving
+    # them.
+    norm = math.sqrt(sum(float(value) * float(value) for value in normal))
     if not math.isfinite(norm) or norm <= 0.0:
         raise L1StructureConstructionError("degenerate_free_space_halfspace")
     return normal / norm, float(offset / norm)
