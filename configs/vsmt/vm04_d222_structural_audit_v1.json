@@ -1,0 +1,113 @@
+{
+  "schema_version": "vsmt-vm04-d222-structural-audit-v1",
+  "decision_id": "D-222",
+  "status": "metrics_frozen_audit_closed",
+  "reviewed_baseline_commit": "ab77dbd",
+  "purpose": "the one-shot E-08 audit of the frozen structural estimator on the 128 sealed audit houses",
+  "why_a_separate_contract": {
+    "reason": "D-219 governs E-06 and correctly lists audit_open_or_generation in its must_remain_false; opening the audit from inside D-219 would defeat the gate that keeps training from reading it",
+    "d219_e08_clause_implemented_here": "e08_audit",
+    "d219_bytes_must_not_change": true
+  },
+  "one_shot": {
+    "audit_runs_once": true,
+    "terminal_receipt_blocks_a_second_run": true,
+    "audit_failure_may_add_houses_change_model_or_thresholds": false,
+    "audit_may_not_select_a_checkpoint_a_temperature_or_a_threshold": true,
+    "a_disappointing_audit_is_reported_as_is": true
+  },
+  "frozen_model_binding": {
+    "note": "the audit evaluates exactly the E-06 weights; any byte change refuses the run",
+    "weights_sha256": "e5fca2f29c695df22b550243a64a6444d80a03ce8dd407360a90e28e68cc22c5",
+    "normalization_receipt_sha256": "cce06993172c8df2affa9a07e4d0831474419ea1ce9d16afce4c73d577004c3a",
+    "training_receipt_sha256": "874ccf82507e712bc41ef6638da2a293c8f5c524fe89d12d1ef025b57a315887",
+    "d219_contract_relative_path": "configs/vsmt/vm04_d219_structural_only_estimator_v1.json",
+    "d221_contract_relative_path": "configs/vsmt/vm04_d221_estimator_scale_rule_v1.json",
+    "model_id": "d219.dinov2_geometry_single_structural_head.v1",
+    "retraining_or_refitting_during_audit": false
+  },
+  "audit_sample": {
+    "split": "audit",
+    "house_count": 128,
+    "observations_per_house": 32,
+    "planned_observations": 4096,
+    "source": "the D-221 extended prefix, audit rank 0..127 in the frozen hash order",
+    "houses_never_generated_before_this_decision": true,
+    "failure_policy": "retain_per_house_failure_without_replacement",
+    "human_judgements_required": 0,
+    "label_source": "private_reference_reachable_grid_same_frozen_d215_rule",
+    "model_inputs": "public_rgbd_and_camera_intrinsics_only",
+    "reachable_grid_read_at_inference": false
+  },
+  "frozen_metric_definitions": {
+    "frozen_before_any_audit_observation_existed": true,
+    "no_metric_outside_this_list_may_be_computed_or_reported": true,
+    "probabilities": "the frozen structural head logits divided by the frozen temperature, then softmax",
+    "structural_nll": {
+      "definition": "mean over audit observations of the negative natural log of the probability assigned to the private reference class",
+      "probability_floor": 1e-300
+    },
+    "structural_accuracy": {
+      "definition": "fraction of audit observations whose argmax class equals the private reference class",
+      "argmax_tie_policy": "lowest class index wins, recorded as a tie count"
+    },
+    "calibration_error": {
+      "definition": "expected calibration error over the maximum class probability",
+      "bins": 15,
+      "bin_edges": "equal width over the closed interval 0 to 1",
+      "weighting": "bin observation count divided by total observations",
+      "also_report_bin_table": true
+    },
+    "per_class_interval": {
+      "classes": ["basin", "bottleneck", "unknown"],
+      "statistics": ["recall", "precision", "mean_nll", "support"],
+      "interval": "house level cluster bootstrap percentile interval"
+    },
+    "per_house_interval": {
+      "statistics": ["structural_accuracy", "structural_nll"],
+      "interval": "house level cluster bootstrap percentile interval"
+    },
+    "bootstrap": {
+      "unit": "house",
+      "method": "resample houses with replacement, keeping every observation of a resampled house",
+      "resamples": 10000,
+      "seed": 260919,
+      "percentiles": [2.5, 97.5],
+      "rationale": "observations inside one house are correlated, so the interval must be taken over houses and not over frames"
+    }
+  },
+  "reported_but_not_a_gate": {
+    "note": "the audit describes the frozen front-end; it does not decide whether the paper proceeds",
+    "no_pass_threshold_is_registered": true,
+    "p08_route_qualification_is_decided_separately_by_its_own_frozen_numbers": true
+  },
+  "authorization": {
+    "audit_rgbd_generation": false,
+    "audit_feature_materialization": false,
+    "audit_evaluation": false,
+    "estimator_retraining": false,
+    "production_reader": false,
+    "p04_p08_qualification": false,
+    "route_or_raw_generation": false,
+    "private_evaluation": false
+  },
+  "run_authorization_policy": {
+    "governed_by": "D-220",
+    "active_status": "frozen_executable_audit",
+    "separate_single_file_activation_commit_required": false,
+    "clean_checkout_required_for_real_runs": true,
+    "must_remain_false": [
+      "estimator_retraining",
+      "production_reader",
+      "p04_p08_qualification",
+      "route_or_raw_generation",
+      "private_evaluation"
+    ]
+  },
+  "closed_downstream": {
+    "audit_opened": false,
+    "audit_metrics_computed": false,
+    "estimator_retrained_after_audit": false,
+    "production_cache_produced": false
+  }
+}

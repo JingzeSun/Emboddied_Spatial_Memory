@@ -2129,3 +2129,14 @@
 - **拒绝全量：** 全量约需20.6 GiB而数据盘只剩25 GiB，且P-02的正式论文raw要用同一块盘；要腾空间只能删另一条研究线18 GiB的原始物理数据。更重要的是，读过直方图之后再松动这个约束就是"看完数据改标准"，本决策明令禁止。科学上，3,024→约13,000个bottleneck帧对一个1,191参数的线性头也已过边际收益拐点。
 - **扩展是纯增量，不是重做：** 选择规则为`ascending_sha256(sampling_salt|split|house_id)`取固定前缀，`sample_rank`是排序下标，`public_house_ref`哈希`{scope,split,sample_rank,partition}`。因此rank 0–511的house ID、rank和public ref逐字节不变，新house只是追加rank 512–2047，现有RGB-D与396维特征全部复用。运行时仍须逐条复验这一不变性，不得仅凭构造假设。PLAN原E-07表中"从零重做、512 cache失效"的说法只适用于`full_house_expansion`，不适用于前缀延长；该布尔在D-217/D-218/D-219和本决策中继续为false。
 - **未变边界：** house级split先于任何图像或标签、house不跨split、P0与VM04 validation/test house继续排除、采样house只由冻结hash决定、每house仍8位置×4朝向、失败house保留不补样、calibration只选checkpoint与temperature、audit不参与任何选择且只读一次、P08的0.70/0.70/0.85/0.35不得重调。
+
+## D-222：E-08 一次性结构审计，指标定义先于数据冻结
+
+- 日期：2026-09-19；状态：指标定义已冻结、audit 仍关闭；机器合同[`vm04_d222_structural_audit_v1.json`](../configs/vsmt/vm04_d222_structural_audit_v1.json)。用户批准建立并执行 E-08。
+- **为什么另立合同而不改 D-219：** D-219 的 `must_remain_false` 现在含 `audit_open_or_generation`，那条正是用来阻止训练阶段顺手读 audit 的。从 D-219 内部开 audit 会废掉这道门，因此 E-08 由 D-222 单独治理，D-219 字节不动。
+- **指标必须现在定义，不能看完数据再定：** D-219 只登记了指标名称（NLL、accuracy、calibration error、类别与 house 级区间），没有规定 ECE 用几个 bin、bootstrap 多少次、什么 seed。本决策把这些补全并在任何 audit 观察存在之前提交：ECE 取 15 个等宽置信度 bin 并附完整 bin 表；bootstrap 以 **house 为单位** cluster 重采样 10,000 次、seed 260919、取 2.5/97.5 百分位；逐类报告 recall/precision/mean NLL/support。**本清单之外的任何指标不得计算或报告**——否则就是看到结果后挑一个好看的口径。
+- **为什么 bootstrap 必须按 house 而不是按帧：** 同一 house 的 32 帧高度相关，按帧重采样会把区间做得虚假地窄。
+- **一次性与不可回头：** `audit_runs_once=true`，终态回执阻止第二次运行；`audit_failure_may_add_houses_change_model_or_thresholds=false`；audit 不得用于选择 checkpoint、temperature 或阈值。审计结果不好就如实报告，不回头加数据、不调参、不换 house。
+- **模型字节绑定：** 合同按摘要绑定 E-06 的 weights=`e5fca2f2…22c5`、normalization=`cce06993…04c3a`、training receipt=`874ccf82…5887`；任一字节变化即拒绝运行，确保审计的确实是那份冻结权重，且审计期间不发生任何重训或重拟合。
+- **审计不是通过门：** 本决策不登记任何及格线。它描述冻结前端的表现，不决定论文是否继续；P08 路线是否合格由 D-215 冻结的 0.70/0.70/0.85/0.35 另行判定。
+- **边界未变：** audit 的 128 个 house 在本决策前从未生成；标签仍由私有可达图按同一冻结规则自动产生，零人工判断；模型输入仍只有公开 RGB-D 与内参，推理不查 grid 真值；失败 house 保留不补样。`estimator_retraining`、`production_reader`、`p04_p08_qualification`、`route_or_raw_generation`、`private_evaluation` 全程 false。
