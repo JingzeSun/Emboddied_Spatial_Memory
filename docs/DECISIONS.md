@@ -2154,3 +2154,14 @@
 - **防二次调参：** 判据须在任何 P08 路线被评估之前冻结；路线成品率不得改变判据或其常量。若在该判据下 P08 仍不合格，记 construction failure 并如实报告，不弱化判据、不换路线、不换 house；再次替换 P08 的门需要新决策。
 - **F-01实现边界（2026-09-19补充，未开放真实运行）：** 用户在F-00完成后批准只实现并本地测试production reader。实现采用独立D-223覆盖schema而不修改历史D-214字节，删除结构/语义概率及其模型receipt，保留冻结SAM/DINO、公开深度几何、因果pose belief和非网格place observation；五方法读取同一episode cache的独立等字节clone。`check`只读复核合同与F-00公开证据，`run`在任何外部输入/资产路径打开前强制验证单文件activation child与干净checkout。当前真实资产加载、真实公开输入读取、cache生成、P04/P08资格、route/raw、adapter、private evaluation、训练与audit重跑全为false；F-01成功也不自动授权F-02。
 - **F-01 D-217公开兼容输入（2026-09-19补充，已授权实现与本地测试）：**服务器只读定位确认不存在F-01精确bundle后，用户批准实现D-217 public适配。它**不是独立阶段或新方法概念，而是F-01 reader的一种输入模式**：只读`public/train`，按数值rank取首个实际存在且receipt成功的sample，只取observation 0，构造单帧episode-relative origin pose、零协方差belief和无入边动作的输入；所选最早sample若不完整或畸形立即失败，禁止向后跳过。来源rank与源摘要只写入同一份F-01 run receipt，不另建receipt schema；方法manifest不携带house/ref/raw observation ID。该输入只用于冻结资产与reader兼容性预检，不进入正式数据、P04/P08或论文结果；不读取private/calibration/audit，不生成route/raw。SAM2下载、真实D-217读取、服务器运行与cache生成仍须另行授权；F-02及全部下游继续关闭。
+
+## D-224：按引用开启 D-215 的资产下载与依赖安装两位（已批准）
+
+- 日期：2026-09-19；状态：**用户已批准**；三个获取位已开启，F-01 的十个执行位仍全 false。机器合同[`vm04_d224_frozen_sam2_asset_acquisition_v1.json`](../configs/vsmt/vm04_d224_frozen_sam2_asset_acquisition_v1.json)。本决策只让 D-215 自己钉死的 SAM2 字节落到服务器磁盘上，不启动 reader、不读公开输入、不写 cache、不开 F-01 的任何执行位。
+- **为什么必须先补这一条：** F-01 的 `verify_frozen_assets` 要核 SAM2 仓库 commit、官方 YAML 的 3,761 字节与 checkpoint 的 184,416,285 字节，而服务器上这三样一样都没有（[LOG-210](../EXECUTE.md) 的两条独立零命中证据）。把它们弄上去正好落在 D-215 的 `authorization.server_asset_download` 与 `dependency_install` 两位，而这两位现在都是 false。不补决策就下载，等于绕过一条还在生效的关闭位。
+- **为什么不就地改 d215：** 与 D-219 当初的理由逐字相同——d216 绑 d215、d217 绑 d216、d218 绑 d215 与 d217，且 E-01～E-03、E-05、E-06、E-08 都已按这些确切字节执行完毕。改一个字节会同时打断三层绑定，并使已完成的服务器 receipt 无法复验。因此沿用 D-219 的先例**按引用 supersede**：绑定当前 d215 摘要 `c3d6736f…88db8`，只替换那两位，其余七位授权位和 `sam2`/`p08_qualification` 等全部条款原样不动，d215/d216/d217/d218 一个字节都不改。
+- **只开三位，且不含任何 F-01 执行位：** `sam2_repository_clone`、`sam2_checkpoint_download`、`sam2_import_dependency_install`。同时显式关死五位：摘要不符时替换资产、失败时换版本或找镜像、升级/重装 torch 或改 CUDA、向已钉住的 worktree 做 editable/build 安装、重新获取或改动 DINOv2 资产。F-01 的十个授权位继续由 F-01 合同单独治理，**获取资产不等于获得运行权**。
+- **摘要不符就停：** `digest_mismatch_policy.action = stop_and_report_verbatim`。钉住的字节就是这个实验的对照；摘要不符意味着拿到的前端不是被冻结的那个前端，而"换一个能干净下载的版本"正是在悄悄替换它。不换版本、不找镜像、不接受部分校验通过的资产。
+- **为什么禁止 `pip install -e .`：** F-01 用 `git status --porcelain --untracked-files=all` 核 SAM2 worktree，editable 安装写进 clone 的 `*.egg-info` 或任何构建产物都会让冻结资产检查直接失败。仓库改为从源码树经 `sys.path` 导入，依赖装进 `/root/miniconda3` 环境，torch 2.8.0+cu128 不得变动。
+- **F-01 怎样强制这条：** F-01 合同新增 `d224_relative_path` 与 `d224_supersession_core_sha256` 两个 binding，`load_contract` 在打开任何外部路径之前重算并比对。绑的是**治理核心的摘要而不是整文件摘要**——这样日后开启、事后再关闭三个获取位都不会打断绑定，而两个被替换的条款名、所绑的 d215 摘要和预期资产字节一旦挪动就会立刻失败。D-224 不反向绑定 F-01 的摘要，避免两份合同互相哈希成环；绑定方向仍是下游绑上游。
+- **边界：** 本决策把冻结字节放到磁盘上，不证明 SAM proposal 数量合理、不证明 DINO 描述子跨视角可分、也不证明 VSMT 有效。F-02 及全部下游继续关闭。

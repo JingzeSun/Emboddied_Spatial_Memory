@@ -18,7 +18,9 @@
     "public_non_entity_geometry_relative_path": "configs/vsmt/vm04_l1_non_entity_geometry_review_v1.json",
     "public_non_entity_geometry_file_sha256": "9ef7bdfdade97b50a2e1da53ad8b11183427bf9b383feea4f223d9bf4eee5148",
     "d217_relative_path": "configs/vsmt/vm04_d217_estimator_development_rgbd_v1.json",
-    "d217_file_sha256": "1499806b8a34eb71ec0785128111b28236f8cee8b95b61a94f624c608702643d"
+    "d217_file_sha256": "1499806b8a34eb71ec0785128111b28236f8cee8b95b61a94f624c608702643d",
+    "d224_relative_path": "configs/vsmt/vm04_d224_frozen_sam2_asset_acquisition_v1.json",
+    "d224_supersession_core_sha256": "cd825cad1c95c53eb404c851a2d8b1d08cccfbc3d86e5c8b438b9635ba9238b4"
   },
   "authorization": {
     "d217_public_compat_bundle_generation": false,

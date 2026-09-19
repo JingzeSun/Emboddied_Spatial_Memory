@@ -32,6 +32,7 @@ from vsmt.d223_f01_production_reader import (  # noqa: E402
     identical_method_cache_views,
     load_frozen_processors,
     select_first_d217_public_train_sample,
+    validate_d224_supersession,
     validate_episode_cache,
     validate_f01_contract,
     validate_public_input_manifest,
@@ -113,6 +114,17 @@ def load_contract() -> dict[str, Any]:
         path = ROOT / bindings[path_field]
         _require(path.is_file() and sha256(path) == bindings[digest_field],
                  f"bound evidence bytes changed: {path.name}")
+    # D-224 is bound by the digest of its governance core rather than by a
+    # whole-file digest, so opening and later reclosing its acquisition bits
+    # cannot break this binding while the two superseded D-215 clause names,
+    # the bound D-215 digest and the expected asset bytes stay fixed.
+    d224_path = ROOT / bindings["d224_relative_path"]
+    _require(d224_path.is_file(), "D-224 supersession contract is missing")
+    _require(validate_d224_supersession(
+        read_json(d224_path),
+        expected_d215_file_sha256=bindings["d215_file_sha256"]) ==
+        bindings["d224_supersession_core_sha256"],
+        "D-224 supersession core changed")
     f00 = read_json(ROOT / bindings["f00_public_summary_relative_path"])
     _require(f00.get("continue_to_f01") is True and
              f00.get("production_reader_started") is False and

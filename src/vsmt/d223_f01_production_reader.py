@@ -51,6 +51,7 @@ CONTRACT_SCHEMA = "vsmt-vm04-d223-f01-production-reader-v1"
 FRAME_SCHEMA = "vsmt-vm04-d223-f01-production-frame-cache-v1"
 EPISODE_SCHEMA = "vsmt-vm04-d223-f01-production-episode-cache-v1"
 INPUT_SCHEMA = "vsmt-vm04-d223-f01-public-episode-input-v1"
+D224_SCHEMA = "vsmt-vm04-d224-frozen-sam2-asset-acquisition-v1"
 # Every remaining SAM2AutomaticMaskGenerator.__init__ argument at the pinned
 # commit that affects which masks come back.  D-215 froze ten arguments and
 # these six fell through to library defaults; they are recorded, not changed.
@@ -63,6 +64,24 @@ SAM_RECORDED_DEFAULTS = {
     "multimask_output": True,
 }
 BORDER_POLICY_EXECUTION_CONSTANT = "keep_if_minimum_support"
+# The frozen SAM2 asset bytes D-215 pinned.  D-224 must restate exactly these
+# when it opens the download and dependency bits by reference, so that the
+# acquisition cannot quietly aim at a different commit, config or checkpoint.
+SAM_FROZEN_ASSET_BYTES = {
+    "sam2_repository_url": "https://github.com/facebookresearch/sam2",
+    "sam2_repository_commit": "2b90b9f5ceec907a1c18123530e92e794ad901a4",
+    "sam2_official_model_config_path":
+        "sam2/configs/sam2.1/sam2.1_hiera_s.yaml",
+    "sam2_official_model_config_bytes": 3761,
+    "sam2_official_model_config_sha256":
+        "0f36b91e86e58d06c87e42997166212468b88b98b60e4d816d5e4d4d088b6f55",
+    "sam2_checkpoint_url":
+        "https://dl.fbaipublicfiles.com/segment_anything_2/092824/"
+        "sam2.1_hiera_small.pt",
+    "sam2_checkpoint_bytes": 184416285,
+    "sam2_checkpoint_sha256":
+        "6d1aa6f30de5c92224f8172114de081d104bbd23dd9dc5c58996f0cad5dc4d38",
+}
 D217_PUBLIC_SCHEMA = "vsmt-vm04-d217-public-rgbd-house-v1"
 D217_SAMPLE_DIRECTORY = re.compile(r"^sample_([0-9]{4})$")
 D217_OBSERVATION_COUNT = 32
@@ -216,6 +235,60 @@ def build_l2_proposal_config(
     )
 
 
+def validate_d224_supersession(
+    contract: Mapping[str, Any], *, expected_d215_file_sha256: str,
+) -> str:
+    """Check the D-224 by-reference supersession and return its core digest.
+
+    D-215 closed ``server_asset_download`` and ``dependency_install``, but its
+    bytes are hash-bound by d216, d217 and d218 and were already executed
+    against, so the two bits are reopened by reference in D-224 rather than by
+    rewriting D-215 -- the same shape D-219 used for its own D-215 clauses.
+    F-01 binds the digest of the governance core alone, so opening and later
+    reclosing the acquisition bits cannot break the binding, while the two
+    superseded clause names, the bound D-215 digest and the expected asset
+    bytes cannot move without breaking it.
+    """
+
+    value = clone_json(dict(contract))
+    _require(value.get("schema_version") == D224_SCHEMA and
+             value.get("decision_id") == "D-224",
+             "D-224 supersession contract identity changed")
+    core = value.get("supersession_core")
+    _require(type(core) is dict, "D-224 supersession core is missing")
+    superseded = core.get("supersedes")
+    _require(type(superseded) is dict and
+             superseded.get("d215_clauses_replaced") == [
+                 "authorization.server_asset_download",
+                 "authorization.dependency_install"] and
+             superseded.get("predecessor_bytes_must_not_change") is True and
+             superseded.get("supersession_is_by_reference_not_by_rewrite") is True,
+             "D-224 must supersede exactly the two D-215 bits by reference")
+    predecessor = core.get("frozen_predecessor_bindings")
+    _require(type(predecessor) is dict and
+             predecessor.get("d215_relative_path") ==
+             "configs/vsmt/vm04_d215_frontend_freeze_v1.json" and
+             predecessor.get("d215_file_sha256") == expected_d215_file_sha256,
+             "D-224 binds different D-215 bytes than F-01 does")
+    expected = core.get("expected_assets")
+    sam = SAM_FROZEN_ASSET_BYTES
+    _require(type(expected) is dict and
+             all(expected.get(name) == expected_value
+                 for name, expected_value in sam.items()),
+             "D-224 expected SAM2 asset bytes differ from the frozen pins")
+    _require(core.get("digest_mismatch_policy", {}).get("action") ==
+             "stop_and_report_verbatim" and
+             not any(flag for name, flag in
+                     core.get("digest_mismatch_policy", {}).items()
+                     if name != "action" and type(flag) is bool),
+             "D-224 must stop on a digest mismatch rather than substitute")
+    digest = _sha(core)
+    _require(_hex64(value.get("supersession_core_sha256"),
+                    "D-224 supersession_core_sha256") == digest,
+             "D-224 supersession core digest does not match its own bytes")
+    return digest
+
+
 def validate_f01_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     value = clone_json(dict(contract))
     _require(set(value) == {
@@ -263,6 +336,10 @@ def validate_f01_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
             "configs/vsmt/vm04_d217_estimator_development_rgbd_v1.json",
         "d217_file_sha256":
             "1499806b8a34eb71ec0785128111b28236f8cee8b95b61a94f624c608702643d",
+        "d224_relative_path":
+            "configs/vsmt/vm04_d224_frozen_sam2_asset_acquisition_v1.json",
+        "d224_supersession_core_sha256":
+            "cd825cad1c95c53eb404c851a2d8b1d08cccfbc3d86e5c8b438b9635ba9238b4",
     }
     _require(value["bindings"] == expected_bindings,
              "F-01 frozen evidence bindings changed")

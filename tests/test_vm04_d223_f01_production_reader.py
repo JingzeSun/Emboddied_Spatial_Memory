@@ -23,6 +23,7 @@ from vsmt.d223_f01_production_reader import (  # noqa: E402
     BORDER_POLICY_EXECUTION_CONSTANT,
     D223F01Error,
     F01ProductionReader,
+    SAM_FROZEN_ASSET_BYTES,
     SAM_RECORDED_DEFAULTS,
     assert_real_f01_authorized,
     build_observation_zero_compat_input,
@@ -30,6 +31,7 @@ from vsmt.d223_f01_production_reader import (  # noqa: E402
     identical_method_cache_views,
     resolve_generator_arguments,
     select_first_d217_public_train_sample,
+    validate_d224_supersession,
     validate_episode_cache,
     validate_f01_contract,
     validate_frame_cache,
@@ -40,10 +42,21 @@ from vsmt.d223_f01_production_reader import (  # noqa: E402
 CONTRACT_PATH = (
     ROOT / "configs/vsmt/vm04_d223_f01_production_reader_v1.json")
 STAGE_PATH = ROOT / "ops/vsmt/vm04_d223_f01_production_reader.py"
+D224_PATH = (
+    ROOT / "configs/vsmt/vm04_d224_frozen_sam2_asset_acquisition_v1.json")
+D215_PATH = ROOT / "configs/vsmt/vm04_d215_frontend_freeze_v1.json"
 
 
 def contract() -> dict:
     return json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+
+
+def d224() -> dict:
+    return json.loads(D224_PATH.read_text(encoding="utf-8"))
+
+
+def d215_file_sha256() -> str:
+    return hashlib.sha256(D215_PATH.read_bytes()).hexdigest()
 
 
 def seal(value: dict, field: str) -> dict:
@@ -553,6 +566,113 @@ class D223F01FrozenGeneratorArgumentTests(unittest.TestCase):
             value, generator_code_sha256="a" * 64)
         self.assertEqual(BORDER_POLICY_EXECUTION_CONSTANT,
                          config.border_truncation_policy)
+
+
+class D224AssetAcquisitionSupersessionTests(unittest.TestCase):
+    """D-215 closed the download and dependency bits and its bytes are
+    hash-bound by d216, d217 and d218, so F-01 may only acquire the frozen
+    SAM2 assets under a by-reference supersession, never by editing D-215."""
+
+    def test_d215_bytes_and_closed_bits_are_untouched(self):
+        value = json.loads(D215_PATH.read_text(encoding="utf-8"))
+        self.assertFalse(value["authorization"]["server_asset_download"])
+        self.assertFalse(value["authorization"]["dependency_install"])
+        self.assertEqual(
+            validate_f01_contract(contract())["bindings"]["d215_file_sha256"],
+            d215_file_sha256())
+
+    def test_supersession_is_by_reference_over_exactly_two_bits(self):
+        core = d224()["supersession_core"]
+        self.assertEqual(
+            ["authorization.server_asset_download",
+             "authorization.dependency_install"],
+            core["supersedes"]["d215_clauses_replaced"])
+        self.assertTrue(
+            core["supersedes"]["predecessor_bytes_must_not_change"])
+        self.assertTrue(
+            core["supersedes"]["supersession_is_by_reference_not_by_rewrite"])
+        self.assertEqual(
+            d215_file_sha256(),
+            core["frozen_predecessor_bindings"]["d215_file_sha256"])
+
+    def test_f01_binds_the_core_digest_and_the_digest_matches(self):
+        bindings = validate_f01_contract(contract())["bindings"]
+        self.assertEqual(
+            bindings["d224_supersession_core_sha256"],
+            validate_d224_supersession(
+                d224(),
+                expected_d215_file_sha256=bindings["d215_file_sha256"]))
+
+    def test_core_digest_survives_opening_and_reclosing_the_bits(self):
+        opened = d224()
+        opened["status"] = opened["activation_policy"]["active_status"]
+        for name in opened["activation_policy"]["active_true_authorizations"]:
+            opened["authorization"][name] = True
+        self.assertEqual(
+            d224()["supersession_core_sha256"],
+            validate_d224_supersession(
+                opened, expected_d215_file_sha256=d215_file_sha256()))
+
+    def test_expected_assets_restate_the_frozen_pins_exactly(self):
+        expected = d224()["supersession_core"]["expected_assets"]
+        for name, value in SAM_FROZEN_ASSET_BYTES.items():
+            self.assertEqual(value, expected[name])
+        sam = validate_f01_contract(contract())["assets"]["sam2"]
+        self.assertEqual(sam["repository_commit"],
+                         expected["sam2_repository_commit"])
+        self.assertEqual(sam["checkpoint_sha256"],
+                         expected["sam2_checkpoint_sha256"])
+        self.assertEqual(sam["checkpoint_bytes"],
+                         expected["sam2_checkpoint_bytes"])
+        self.assertEqual(sam["official_model_config_sha256"],
+                         expected["sam2_official_model_config_sha256"])
+
+    def test_a_retargeted_or_widened_supersession_is_refused(self):
+        for mutate, pattern in (
+            (lambda value: value["supersession_core"]["supersedes"][
+                "d215_clauses_replaced"].append(
+                    "authorization.private_evaluation"),
+             "exactly the two D-215 bits"),
+            (lambda value: value["supersession_core"][
+                "frozen_predecessor_bindings"].__setitem__(
+                    "d215_file_sha256", "0" * 64),
+             "different D-215 bytes"),
+            (lambda value: value["supersession_core"][
+                "expected_assets"].__setitem__(
+                    "sam2_repository_commit", "b" * 40),
+             "differ from the frozen pins"),
+            (lambda value: value["supersession_core"][
+                "digest_mismatch_policy"].__setitem__(
+                    "may_try_a_mirror_or_reupload", True),
+             "stop on a digest mismatch"),
+        ):
+            value = d224()
+            mutate(value)
+            with self.assertRaisesRegex(D223F01Error, pattern):
+                validate_d224_supersession(
+                    value, expected_d215_file_sha256=d215_file_sha256())
+
+    def test_a_silently_edited_core_is_refused(self):
+        value = d224()
+        value["supersession_core"]["boundary_note"] = "anything else"
+        with self.assertRaisesRegex(D223F01Error, "does not match its own"):
+            validate_d224_supersession(
+                value, expected_d215_file_sha256=d215_file_sha256())
+
+    def test_acquisition_does_not_authorize_any_f01_or_downstream_run(self):
+        value = d224()
+        self.assertEqual(
+            {"sam2_repository_clone", "sam2_checkpoint_download",
+             "sam2_import_dependency_install"},
+            set(value["activation_policy"]["active_true_authorizations"]))
+        for name in ("f01_real_asset_verification_and_loading",
+                     "f01_production_cache_generation",
+                     "p04_p08_qualification", "route_or_raw_generation",
+                     "private_evaluation", "training", "audit_rerun",
+                     "f02_and_all_downstream_stages"):
+            self.assertIn(name, value["supersession_core"]["does_not_authorize"])
+        for name in value["activation_policy"]["must_remain_false"]:
+            self.assertFalse(value["authorization"][name])
 
 
 if __name__ == "__main__":

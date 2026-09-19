@@ -1,0 +1,129 @@
+{
+  "schema_version": "vsmt-vm04-d224-frozen-sam2-asset-acquisition-v1",
+  "decision_id": "D-224",
+  "status": "approved_frozen_sam2_asset_acquisition",
+  "reviewed_baseline_commit": "7262b64371bb134b07403e3f6726ee5e7c2b82c5",
+  "supersession_core": {
+    "supersedes": {
+      "reason": "F-01 cannot verify or load the frozen SAM 2.1 assets that D-215 itself pinned, because the server holds none of them and D-215 closed both the download and the dependency-install bits. Opening exactly those two bits is the only way to put the already frozen bytes on the machine; no frozen value, threshold or argument changes.",
+      "d215_clauses_replaced": [
+        "authorization.server_asset_download",
+        "authorization.dependency_install"
+      ],
+      "replacement_scope": "sam2_repository_checkpoint_and_import_dependencies_only",
+      "d215_clauses_not_touched": [
+        "authorization.training_data_generation",
+        "authorization.estimator_training",
+        "authorization.production_reader",
+        "authorization.route_survey",
+        "authorization.route_sealing",
+        "authorization.raw_generation",
+        "authorization.private_evaluation",
+        "sam2",
+        "semantic_structural_estimator",
+        "p08_qualification",
+        "production_reader_preconditions"
+      ],
+      "predecessor_bytes_must_not_change": true,
+      "supersession_is_by_reference_not_by_rewrite": true,
+      "precedent": "D-219 superseded seven D-215 clauses, five D-216 clauses and three D-218 clauses by reference for the same structural reason and never rewrote a predecessor byte."
+    },
+    "frozen_predecessor_bindings": {
+      "chain_note": "d216 binds d215; d217 binds d216; d218 binds d215 and d217; D-219 and the F-01 stage contract bind d215 by digest. E-01..E-03, E-05, E-06 and E-08 already executed against these exact bytes, so an in-place edit of d215 would break three layers of binding at once and invalidate completed server receipts. D-224 therefore binds the current d215 digest and supersedes two of its authorization bits by reference only.",
+      "d215_relative_path": "configs/vsmt/vm04_d215_frontend_freeze_v1.json",
+      "d215_file_sha256": "c3d6736f67b300eca03882c081e56e6bf4d65ad1913bcc411df8477fbd188db8",
+      "d215_superseded_bit_values_at_binding": {
+        "server_asset_download": false,
+        "dependency_install": false
+      }
+    },
+    "consuming_stage": {
+      "stage_id": "F-01",
+      "relative_path": "configs/vsmt/vm04_d223_f01_production_reader_v1.json",
+      "digest_intentionally_absent": "The F-01 stage contract binds this file's digest, so binding the F-01 digest here would make the two contracts mutually circular and unhashable. The binding direction is downstream-binds-upstream, as it is everywhere else in this chain.",
+      "asset_verification_entry_point": "src/vsmt/d223_f01_production_reader.py::verify_frozen_assets"
+    },
+    "expected_assets": {
+      "note": "Every value below is copied from the d215 bytes bound above and from the F-01 stage contract. D-224 introduces no new number, URL or commit; it only states what the acquisition must produce so that a mismatch is a stop, not a negotiation.",
+      "sam2_repository_url": "https://github.com/facebookresearch/sam2",
+      "sam2_repository_commit": "2b90b9f5ceec907a1c18123530e92e794ad901a4",
+      "sam2_official_model_config_path": "sam2/configs/sam2.1/sam2.1_hiera_s.yaml",
+      "sam2_official_model_config_bytes": 3761,
+      "sam2_official_model_config_sha256": "0f36b91e86e58d06c87e42997166212468b88b98b60e4d816d5e4d4d088b6f55",
+      "sam2_checkpoint_url": "https://dl.fbaipublicfiles.com/segment_anything_2/092824/sam2.1_hiera_small.pt",
+      "sam2_checkpoint_bytes": 184416285,
+      "sam2_checkpoint_sha256": "6d1aa6f30de5c92224f8172114de081d104bbd23dd9dc5c58996f0cad5dc4d38",
+      "dinov2_already_verified_on_server": {
+        "repository_commit": "7764ea0f912e53c92e82eb78a2a1631e92725fc8",
+        "checkpoint_sha256": "b938bf1bc15cd2ec0feacfe3a1bb553fe8ea9ca46a7e1d8d00217f29aef60cd9",
+        "verified_by": "LOG-210"
+      }
+    },
+    "digest_mismatch_policy": {
+      "action": "stop_and_report_verbatim",
+      "may_try_another_version_tag_or_branch": false,
+      "may_try_a_mirror_or_reupload": false,
+      "may_proceed_with_a_partially_verified_asset": false,
+      "rationale": "The pinned bytes are the experiment's control. A mismatch means the frozen front end is not the front end that was frozen, and swapping in whatever downloads cleanly would silently replace it."
+    },
+    "dependency_policy": {
+      "install_target": "/root/miniconda3 environment, not the project venv and not the pinned worktree",
+      "allowed_packages_note": "The minimum set that makes `import sam2.build_sam` and `import sam2.automatic_mask_generator` succeed at the pinned commit, as determined by that commit's own requirements rather than by memory. hydra-core, omegaconf and iopath are the known-missing three.",
+      "torch_must_not_change": "2.8.0+cu128",
+      "torchvision_must_not_change": true,
+      "numpy_must_not_change": true,
+      "editable_install_forbidden_reason": "F-01 verifies the SAM2 worktree with `git status --porcelain --untracked-files=all`, so a `pip install -e .` egg-info directory or any build artifact written into the clone would make the frozen-asset check fail. The repository is imported from its source tree via sys.path instead.",
+      "network_scope": "the pinned GitHub repository and the pinned checkpoint URL only"
+    },
+    "does_not_authorize": [
+      "f01_real_asset_verification_and_loading",
+      "f01_real_public_input_read",
+      "f01_production_cache_generation",
+      "p04_p08_qualification",
+      "route_or_raw_generation",
+      "adapter_materialization",
+      "private_evaluation",
+      "training",
+      "audit_rerun",
+      "f02_and_all_downstream_stages"
+    ],
+    "boundary_note": "D-224 puts frozen bytes on a disk. It does not start the reader, does not read a public input, does not write a cache, and does not grant F-01 its own execution bits, which remain governed by the F-01 stage contract and must be opened separately. Acquiring the asset is not evidence that SAM proposals, DINO descriptors or VSMT work."
+  },
+  "supersession_core_sha256": "cd825cad1c95c53eb404c851a2d8b1d08cccfbc3d86e5c8b438b9635ba9238b4",
+  "core_digest_note": "The F-01 stage contract binds this digest, not this file's whole-file digest, so that opening and later reclosing the acquisition bits below cannot break the binding while the governance core stays fixed.",
+  "authorization": {
+    "sam2_repository_clone": true,
+    "sam2_checkpoint_download": true,
+    "sam2_import_dependency_install": true,
+    "asset_substitution_on_digest_mismatch": false,
+    "alternate_version_or_mirror_on_failure": false,
+    "torch_upgrade_reinstall_or_cuda_change": false,
+    "editable_or_build_install_into_the_pinned_worktree": false,
+    "dinov2_asset_refetch_or_modification": false
+  },
+  "activation_policy": {
+    "active_status": "approved_frozen_sam2_asset_acquisition",
+    "active_true_authorizations": [
+      "sam2_repository_clone",
+      "sam2_checkpoint_download",
+      "sam2_import_dependency_install"
+    ],
+    "must_remain_false": [
+      "asset_substitution_on_digest_mismatch",
+      "alternate_version_or_mirror_on_failure",
+      "torch_upgrade_reinstall_or_cuda_change",
+      "editable_or_build_install_into_the_pinned_worktree",
+      "dinov2_asset_refetch_or_modification"
+    ],
+    "execution_protocol": "d220_contract_bits_plus_clean_checkout_plus_run_receipt",
+    "acquisition_receipt_must_record": [
+      "repository_commit",
+      "repository_worktree_clean_including_untracked",
+      "official_model_config_bytes_and_sha256",
+      "checkpoint_bytes_and_sha256",
+      "installed_dependency_versions",
+      "torch_version_before_and_after",
+      "failures"
+    ]
+  }
+}
