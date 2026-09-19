@@ -196,7 +196,7 @@ class D223F01ProductionReaderTests(unittest.TestCase):
             canonical_json({key: value for key, value in frame.items()
                             if key != "frame_cache_sha256"}).encode("utf-8")
         ).hexdigest()
-        with self.assertRaisesRegex(D223F01Error, "crossed"):
+        with self.assertRaisesRegex(D223F01Error, "changed structure kind"):
             validate_frame_cache(frame)
 
     def test_frame_revalidates_public_volume_geometry(self):

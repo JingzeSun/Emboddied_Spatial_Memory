@@ -1,9 +1,12 @@
 """D-223/F-01 scenario-blind production RGB-D reader.
 
-This overlay deliberately does not call the historical D-214 frame builder:
-that schema requires structural probabilities and their model receipt.  F-01
-uses the same reviewed public geometry primitives while removing every learned
-semantic/structural field from both its function signature and cache bytes.
+This is the production cache profile.  It shares its composition and sealing
+mechanics with the legacy D-214 profile through ``shared_frontend_core``, and
+differs from it only where D-223 says it must: no learned semantic or
+structural field appears in this profile's signatures or cache bytes, and the
+E-06 structural head is never loaded.  The two profiles seal different schemas
+on purpose, so each keeps its own explicit validator with its own literal
+field set rather than one validator that accepts both layouts.
 """
 
 from __future__ import annotations
@@ -24,19 +27,14 @@ from .l1_entities import (
     DINORegionConfig,
     PublicGeometryConfig,
     extract_dinov2_patch_tokens,
-    materialize_l1_entity_observation,
-    pool_dinov2_region_descriptor,
 )
 from .l1_masks import AnonymousMask, KEEP_SUPPORTED_BORDER_REGIONS
 from .l1_structures import (
     FreeSpaceFrustum,
     FreeSpaceMaterializationConfig,
     SurfaceMaterializationConfig,
-    assemble_free_space_history,
-    materialize_public_free_space,
-    materialize_public_surfaces,
-    materialize_public_visibility,
 )
+from . import shared_frontend_core as core
 from .vm04_l2_proposals import (
     PROMPT_POLICY,
     Vm04L2ProposalConfig,
@@ -48,9 +46,9 @@ CONTRACT_SCHEMA = "vsmt-vm04-d223-f01-production-reader-v1"
 FRAME_SCHEMA = "vsmt-vm04-d223-f01-production-frame-cache-v1"
 EPISODE_SCHEMA = "vsmt-vm04-d223-f01-production-episode-cache-v1"
 INPUT_SCHEMA = "vsmt-vm04-d223-f01-public-episode-input-v1"
-MAIN_METHODS = ("VSMT", "TAF", "ELU", "WFR", "LOW")
+MAIN_METHODS = core.MAIN_METHODS
 FRAGMENT_SOURCE_ID = "d223.sam2.1_hiera_small.fragment.dinov2_vits14.public_depth.v1"
-SURFACE_SOURCE_ID = "l1.public_depth.planar_surface.v1"
+SURFACE_SOURCE_ID = core.SURFACE_SOURCE_ID
 PLACE_SOURCE_ID = "d223.dinov2_vits14.public_rgbd.non_grid_place_observation.v1"
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
@@ -426,44 +424,12 @@ def assert_real_f01_authorized(contract: Mapping[str, Any]) -> None:
 
 
 def _pose_belief(value: Mapping[str, Any], index: int) -> dict[str, Any]:
-    record = clone_json(dict(value))
-    _require(set(record) == {
-        "schema_version", "observation_index", "frame", "mean_x_y_z_yaw",
-        "covariance_diagonal", "source_id", "is_world_pose",
-        "defines_place_identity", "belief_sha256",
-    }, "F-01 pose belief fields changed")
-    _require(record["observation_index"] == index and
-             record["frame"] == "episode_relative_observation_zero_origin" and
-             record["is_world_pose"] is False and
-             record["defines_place_identity"] is False and
-             record["belief_sha256"] ==
-             _payload_sha(record, "belief_sha256"),
-             "F-01 pose belief is not sealed causal public evidence")
-    _require(len(record["mean_x_y_z_yaw"]) == 4 and
-             len(record["covariance_diagonal"]) == 4 and
-             all(_finite(item, "pose belief mean") == float(item)
-                 for item in record["mean_x_y_z_yaw"]) and
-             all(_finite(item, "pose belief covariance") >= 0.0
-                 for item in record["covariance_diagonal"]),
-             "F-01 pose belief values changed")
-    return record
+    return core.validate_pose_belief(
+        value, index, error=D223F01Error, label="F-01")
 
 
 def _geometry_pose(value: Mapping[str, Any]) -> dict[str, Any]:
-    record = clone_json(dict(value))
-    _require(set(record) == {
-        "position_m", "quaternion_xyzw", "is_world_pose", "source_id"},
-        "F-01 causal camera pose fields changed")
-    _require(record["is_world_pose"] is False and
-             type(record["source_id"]) is str and record["source_id"],
-             "F-01 camera pose must be causal and episode-relative")
-    position = [_finite(item, "camera position") for item in record["position_m"]]
-    quaternion = [_finite(item, "camera quaternion")
-                  for item in record["quaternion_xyzw"]]
-    _require(len(position) == 3 and len(quaternion) == 4 and
-             abs(math.sqrt(sum(item * item for item in quaternion)) - 1.0)
-             <= 1e-6, "F-01 camera pose is invalid")
-    return {"position_m": position, "quaternion_xyzw": quaternion}
+    return core.validate_causal_pose(value, error=D223F01Error, label="F-01")
 
 
 def _validate_volume_records(
@@ -533,51 +499,29 @@ def _materialize_frame(
              "F-01 camera calibration changed")
     belief = _pose_belief(pose_belief, observation_index)
     geometry_pose = _geometry_pose(causal_camera_pose)
-    masks = tuple(public_fragment_masks)
-    _require(all(type(item) is AnonymousMask for item in masks),
-             "F-01 fragments must be anonymous public masks")
-
-    fragments = []
-    for mask in masks:
-        observed = materialize_l1_entity_observation(
-            mask, patch_tokens, depth, calibration, geometry_pose,
-            config.descriptor, config.fragment_geometry)
-        fragments.append({
-            "region_id": "", "structure_kind": "fragment",
-            "mask_sha256": observed.mask_sha256,
-            "descriptor": list(observed.descriptor.values),
-            "centroid_m": list(observed.geometry.centroid_m),
-            "extent_m": list(observed.geometry.extent_m),
-            "reliability": observed.geometry.reliability,
-            "proposal_source_id": FRAGMENT_SOURCE_ID,
-        })
-    fragments.sort(key=lambda row: (row["mask_sha256"], row["centroid_m"]))
-    surfaces = materialize_public_surfaces(
-        depth, calibration, geometry_pose, patch_tokens,
-        config.descriptor, config.surface)
-    surface_records = [item.public_record("") for item in surfaces]
-    surface_records.sort(key=lambda row: (row["mask_sha256"], row["centroid_m"]))
+    fragments, surface_records = core.materialize_public_regions(
+        masks=tuple(public_fragment_masks), patch_tokens=patch_tokens,
+        depth_m=depth, calibration=calibration,
+        geometry_pose=geometry_pose, descriptor=config.descriptor,
+        fragment_geometry=config.fragment_geometry, surface=config.surface,
+        fragment_source_id=FRAGMENT_SOURCE_ID, error=D223F01Error,
+        label="F-01",
+    )
     regions = [*fragments, *surface_records]
-    for ordinal, record in enumerate(regions):
-        record["region_id"] = f"region:{ordinal:04d}"
-
-    full_mask = np.ones(expected_shape, dtype=np.bool_)
-    place_descriptor = pool_dinov2_region_descriptor(
-        patch_tokens, full_mask, config.descriptor)
     pose_digest = _sha({"calibration": calibration,
                         "causal_pose": geometry_pose})
-    current_free_space = materialize_public_free_space(
-        depth, calibration, geometry_pose, time_s=time_s,
-        depth_sha256=depth_source_sha256,
-        camera_calibration_and_pose_sha256=pose_digest,
-        config=config.free_space)
-    free_space = assemble_free_space_history(
-        [*prior_free_space, current_free_space],
-        rolling_public_observation_times=
-            config.free_space.rolling_public_observation_times)
-    visibility = materialize_public_visibility(
-        current_free_space,
-        surface_clearance_m=config.free_space.surface_clearance_m)
+    support = core.materialize_place_support(
+        depth_m=depth, calibration=calibration,
+        geometry_pose=geometry_pose, patch_tokens=patch_tokens,
+        descriptor=config.descriptor, free_space=config.free_space,
+        time_s=time_s, depth_sha256=depth_source_sha256,
+        calibration_and_pose_sha256=pose_digest,
+        prior_free_space=prior_free_space,
+    )
+    current_free_space = support.current_free_space
+    free_space, visibility = support.free_space, support.visibility
+    # Production reliability clips depth to the configured range as well as
+    # requiring it finite; the legacy D-214 profile only requires finite.
     valid_depth = (np.isfinite(depth) &
                    (depth >= config.fragment_geometry.minimum_depth_m) &
                    (depth <= config.fragment_geometry.maximum_depth_m))
@@ -586,7 +530,7 @@ def _materialize_frame(
         "observation_index": observation_index,
         "persistent_place_id": None, "identity_assigned": False,
         "metric_grid_identity_used": False,
-        "descriptor": list(place_descriptor.values),
+        "descriptor": support.place_descriptor,
         "pose_belief_sha256": belief["belief_sha256"],
         "pose_belief_mean_x_y_z_yaw": clone_json(
             belief["mean_x_y_z_yaw"]),
@@ -660,41 +604,11 @@ def validate_frame_cache(frame: Mapping[str, Any]) -> dict[str, Any]:
         "frontend_config_sha256", "frame_cache_sha256",
     ):
         _hex64(value[field], field)
-    _require(all(row.get("structure_kind") == "fragment"
-                 for row in value["fragment_observations"]) and
-             all(row.get("structure_kind") == "surface"
-                 for row in value["surface_observations"]),
-             "F-01 region crossed its fragment/surface collection")
-    regions = [*value["fragment_observations"],
-               *value["surface_observations"]]
-    _require([row.get("region_id") for row in regions] == [
-        f"region:{index:04d}" for index in range(len(regions))],
-        "F-01 region ordinals changed")
-    expected_region_keys = {
-        "region_id", "structure_kind", "mask_sha256", "descriptor",
-        "centroid_m", "extent_m", "reliability", "proposal_source_id"}
-    for ordinal, row in enumerate(regions):
-        _require(set(row) == expected_region_keys,
-                 f"F-01 region {ordinal} fields changed")
-        kind = row["structure_kind"]
-        _require(kind in {"fragment", "surface"} and
-                 row["proposal_source_id"] ==
-                 (FRAGMENT_SOURCE_ID if kind == "fragment" else
-                  SURFACE_SOURCE_ID),
-                 "F-01 region kind or source changed")
-        _hex64(row["mask_sha256"], "F-01 region mask")
-        descriptor = [_finite(item, "region descriptor")
-                      for item in row["descriptor"]]
-        centroid = [_finite(item, "region centroid")
-                    for item in row["centroid_m"]]
-        extent = [_finite(item, "region extent")
-                  for item in row["extent_m"]]
-        _require(descriptor and
-                 abs(math.sqrt(sum(item * item for item in descriptor)) - 1.0)
-                 <= 1e-5 and len(centroid) == 3 and len(extent) == 3 and
-                 all(item >= 0.0 for item in extent) and
-                 0.0 <= _finite(row["reliability"], "region reliability") <= 1.0,
-                 "F-01 region geometry or descriptor changed")
+    core.validate_region_records(
+        value["fragment_observations"], value["surface_observations"],
+        fragment_source_id=FRAGMENT_SOURCE_ID,
+        require_unit_descriptor=True, error=D223F01Error, label="F-01",
+    )
     place = value["place_observation"]
     _require(set(place) == {
         "place_observation_id", "observation_index", "persistent_place_id",
@@ -834,34 +748,24 @@ def seal_episode_cache(
     frames: Sequence[Mapping[str, Any]], *, episode_public_id: str,
     frozen_assets_receipt_sha256: str,
 ) -> dict[str, Any]:
-    _require(type(episode_public_id) is str and episode_public_id,
-             "F-01 episode public ID is missing")
     _hex64(frozen_assets_receipt_sha256, "F-01 frozen assets receipt")
-    rows = [validate_frame_cache(frame) for frame in frames]
-    _require(rows and [row["observation_index"] for row in rows] ==
-             list(range(len(rows))),
-             "F-01 episode frames must be contiguous from zero")
-    _require(all(left["decision_time_s"] < right["decision_time_s"]
-                 for left, right in zip(rows, rows[1:])),
-             "F-01 episode times must increase")
-    _require(len({row["frontend_config_sha256"] for row in rows}) == 1 and
-             {row["frozen_assets_receipt_sha256"] for row in rows} ==
+    episode = core.seal_ordered_episode(
+        frames, schema_version=EPISODE_SCHEMA,
+        episode_public_id=episode_public_id,
+        extra_fields={
+            "frozen_assets_receipt_sha256": frozen_assets_receipt_sha256,
+            "public_only_materialization": True,
+            "restricted_information_used": False,
+        },
+        frame_validator=validate_frame_cache,
+        reject_forbidden_keys=_reject_forbidden_keys,
+        error=D223F01Error, label="F-01",
+    )
+    _require({row["frozen_assets_receipt_sha256"]
+              for row in episode["frames"]} ==
              {frozen_assets_receipt_sha256},
-             "F-01 frames used different config or assets")
-    episode = {
-        "schema_version": EPISODE_SCHEMA,
-        "episode_public_id": episode_public_id,
-        "frame_count": len(rows), "frames": rows,
-        "ordered_frame_cache_sha256s": [row["frame_cache_sha256"]
-                                         for row in rows],
-        "frontend_config_sha256": rows[0]["frontend_config_sha256"],
-        "frozen_assets_receipt_sha256": frozen_assets_receipt_sha256,
-        "public_only_materialization": True,
-        "restricted_information_used": False,
-        "main_methods": list(MAIN_METHODS),
-    }
-    _reject_forbidden_keys(episode)
-    return _seal(episode, "episode_cache_sha256")
+             "F-01 frames used a different frozen assets receipt")
+    return episode
 
 
 def validate_episode_cache(episode: Mapping[str, Any]) -> dict[str, Any]:
@@ -883,8 +787,10 @@ def validate_episode_cache(episode: Mapping[str, Any]) -> dict[str, Any]:
 def identical_method_cache_views(
     episode: Mapping[str, Any],
 ) -> dict[str, dict[str, Any]]:
-    value = validate_episode_cache(episode)
-    return {method: clone_json(value) for method in MAIN_METHODS}
+    return core.identical_method_cache_views(
+        episode, episode_validator=validate_episode_cache,
+        error=D223F01Error, label="F-01",
+    )
 
 
 def validate_public_input_manifest(manifest: Mapping[str, Any]) -> dict[str, Any]:

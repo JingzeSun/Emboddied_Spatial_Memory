@@ -10,6 +10,12 @@ Real SAM, DINOv2, and structural-estimator assets are verified by their own load
 This module composes their public outputs, seals identical method caches, and
 implements the P04/P08 qualification algorithms without accepting a scenario
 identifier in the materialization API.
+
+The mechanical composition and sealing steps live in ``shared_frontend_core``
+and are shared with the D-223/F-01 production profile.  This module is the
+legacy profile: its frame and episode schemas still carry the structural
+probabilities and their receipt, and its sealed bytes explain receipts that
+were already executed, so they must not move.
 """
 
 from __future__ import annotations
@@ -25,22 +31,14 @@ import numpy as np
 
 from cpmt.hashing import canonical_json, clone_json
 
-from .l1_entities import (
-    DINORegionConfig,
-    PublicGeometryConfig,
-    materialize_l1_entity_observation,
-    pool_dinov2_region_descriptor,
-)
+from .l1_entities import DINORegionConfig, PublicGeometryConfig
 from .l1_masks import AnonymousMask
 from .l1_structures import (
     FreeSpaceFrustum,
     FreeSpaceMaterializationConfig,
     SurfaceMaterializationConfig,
-    assemble_free_space_history,
-    materialize_public_free_space,
-    materialize_public_surfaces,
-    materialize_public_visibility,
 )
+from . import shared_frontend_core as core
 
 
 CONTRACT_SCHEMA = "vsmt-vm04-d214-shared-rgbd-frontend-contract-v2"
@@ -51,7 +49,7 @@ P08_SCHEMA = "vsmt-vm04-d214-p08-qualification-v2"
 RETIREMENT_SCHEMA = "vsmt-vm04-d214-legacy-grid-retirement-readiness-v1"
 FRAGMENT_SOURCE_ID = "l2.sam2.1_hiera_small.fragment.dinov2_vits14.public_depth.v1"
 PLACE_SOURCE_ID = "l2.dinov2_vits14.public_rgbd.non_grid_place_observation.v1"
-MAIN_METHODS = ("VSMT", "TAF", "ELU", "WFR", "LOW")
+MAIN_METHODS = core.MAIN_METHODS
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
 FORBIDDEN_KEY_TOKENS = (
     "scenario_id", "scenario_role", "world_pose", "reachable_grid",
@@ -306,42 +304,12 @@ def _probabilities(value: Mapping[str, Any], labels: tuple[str, ...], name: str)
 
 
 def _pose_belief(value: Mapping[str, Any], observation_index: int) -> dict[str, Any]:
-    record = clone_json(dict(value))
-    _exact(record, {
-        "schema_version", "observation_index", "frame", "mean_x_y_z_yaw",
-        "covariance_diagonal", "source_id", "is_world_pose",
-        "defines_place_identity", "belief_sha256",
-    }, "D-214 pose belief")
-    _require(record["observation_index"] == observation_index and
-             record["frame"] == "episode_relative_observation_zero_origin" and
-             record["is_world_pose"] is False and
-             record["defines_place_identity"] is False,
-             "D-214 pose belief is not causal episode-relative evidence")
-    mean = [_finite(item, "pose belief mean") for item in record["mean_x_y_z_yaw"]]
-    covariance = [_finite(item, "pose belief covariance")
-                  for item in record["covariance_diagonal"]]
-    _require(len(mean) == 4 and len(covariance) == 4 and
-             all(item >= 0.0 for item in covariance),
-             "D-214 pose belief needs four means and variances")
-    _require(record["belief_sha256"] == _payload_sha(record, "belief_sha256"),
-             "D-214 pose belief digest mismatch")
-    return record
+    return core.validate_pose_belief(
+        value, observation_index, error=D214Error, label="D-214")
 
 
 def _camera_pose(value: Mapping[str, Any]) -> dict[str, Any]:
-    record = clone_json(dict(value))
-    _exact(record, {"position_m", "quaternion_xyzw", "is_world_pose", "source_id"},
-           "D-214 causal camera pose")
-    _require(record["is_world_pose"] is False and
-             type(record["source_id"]) is str and record["source_id"],
-             "D-214 camera pose must be causal and episode-relative")
-    position = [_finite(item, "camera position") for item in record["position_m"]]
-    quaternion = [_finite(item, "camera quaternion")
-                  for item in record["quaternion_xyzw"]]
-    _require(len(position) == 3 and len(quaternion) == 4 and
-             abs(math.sqrt(sum(item * item for item in quaternion)) - 1.0) <= 1e-6,
-             "D-214 camera pose shape or quaternion is invalid")
-    return {"position_m": position, "quaternion_xyzw": quaternion}
+    return core.validate_causal_pose(value, error=D214Error, label="D-214")
 
 
 def materialize_shared_rgbd_frame(
@@ -380,62 +348,29 @@ def materialize_shared_rgbd_frame(
         structural_role_probabilities, ("basin", "bottleneck", "unknown"),
         "D-214 structural probabilities",
     )
-    masks = tuple(public_fragment_masks)
-    _require(all(type(item) is AnonymousMask for item in masks),
-             "D-214 fragment proposals must be AnonymousMask values")
-
-    fragments = []
-    for mask in masks:
-        observed = materialize_l1_entity_observation(
-            mask, patch_tokens, depth_m, camera_calibration, geometry_pose,
-            config.descriptor, config.fragment_geometry,
-        )
-        fragments.append({
-            "region_id": "",
-            "structure_kind": "fragment",
-            "mask_sha256": observed.mask_sha256,
-            "descriptor": list(observed.descriptor.values),
-            "centroid_m": list(observed.geometry.centroid_m),
-            "extent_m": list(observed.geometry.extent_m),
-            "reliability": observed.geometry.reliability,
-            "proposal_source_id": FRAGMENT_SOURCE_ID,
-        })
-    fragments.sort(key=lambda row: (row["mask_sha256"], row["centroid_m"]))
-
-    surfaces = materialize_public_surfaces(
-        depth_m, camera_calibration, geometry_pose, patch_tokens,
-        config.descriptor, config.surface,
+    fragments, surface_records = core.materialize_public_regions(
+        masks=tuple(public_fragment_masks), patch_tokens=patch_tokens,
+        depth_m=depth_m, calibration=camera_calibration,
+        geometry_pose=geometry_pose, descriptor=config.descriptor,
+        fragment_geometry=config.fragment_geometry, surface=config.surface,
+        fragment_source_id=FRAGMENT_SOURCE_ID, error=D214Error,
+        label="D-214",
     )
-    surface_records = [item.public_record("") for item in surfaces]
-    surface_records.sort(key=lambda row: (row["mask_sha256"], row["centroid_m"]))
     region_records = [*fragments, *surface_records]
-    for index, record in enumerate(region_records):
-        record["region_id"] = f"region:{index:04d}"
-
-    full_mask = np.ones(
-        (config.descriptor.image_height, config.descriptor.image_width),
-        dtype=np.bool_,
-    )
-    place_descriptor = pool_dinov2_region_descriptor(
-        patch_tokens, full_mask, config.descriptor,
-    )
-    current_free_space = materialize_public_free_space(
-        depth_m, camera_calibration, geometry_pose,
+    support = core.materialize_place_support(
+        depth_m=depth_m, calibration=camera_calibration,
+        geometry_pose=geometry_pose, patch_tokens=patch_tokens,
+        descriptor=config.descriptor, free_space=config.free_space,
         time_s=time_s, depth_sha256=depth_sha256,
-        camera_calibration_and_pose_sha256=_sha({
+        calibration_and_pose_sha256=_sha({
             "calibration": clone_json(dict(camera_calibration)),
             "causal_pose": geometry_pose,
-        }), config=config.free_space,
+        }), prior_free_space=prior_free_space,
     )
-    free_space = assemble_free_space_history(
-        [*prior_free_space, current_free_space],
-        rolling_public_observation_times=config.free_space.rolling_public_observation_times,
-    )
-    visibility = materialize_public_visibility(
-        current_free_space, surface_clearance_m=config.free_space.surface_clearance_m,
-    )
-    finite_depth = np.asarray(depth_m)
-    valid_fraction = float(np.isfinite(finite_depth).mean())
+    free_space, visibility = support.free_space, support.visibility
+    # Legacy reliability: the fraction of finite depth, without the
+    # depth-range clip the production profile applies.  Kept as executed.
+    valid_fraction = float(np.isfinite(np.asarray(depth_m)).mean())
     surface_support = sorted(record["mask_sha256"] for record in surface_records)
     place = {
         "place_observation_id": f"place-observation:{observation_index:04d}",
@@ -443,7 +378,7 @@ def materialize_shared_rgbd_frame(
         "persistent_place_id": None,
         "identity_assigned": False,
         "metric_grid_identity_used": False,
-        "descriptor": list(place_descriptor.values),
+        "descriptor": support.place_descriptor,
         "pose_belief_sha256": belief["belief_sha256"],
         "pose_belief_mean_x_y_z_yaw": clone_json(belief["mean_x_y_z_yaw"]),
         "pose_belief_covariance_diagonal": clone_json(
@@ -514,39 +449,11 @@ def validate_frame_cache(frame: Mapping[str, Any]) -> dict[str, Any]:
         "frontend_config_sha256", "frame_cache_sha256",
     ):
         _hex64(value[field], field)
-    fragments = value["fragment_observations"]
-    surfaces = value["surface_observations"]
-    _require(type(fragments) is list and type(surfaces) is list,
-             "D-214 region observations must be arrays")
-    regions = [*fragments, *surfaces]
-    _require([row["region_id"] for row in regions] == [
-        f"region:{ordinal:04d}" for ordinal in range(len(regions))
-    ], "D-214 regions must use contiguous packet-local ordinals")
-    _require(all(row["structure_kind"] == "fragment" for row in fragments) and
-             all(row["structure_kind"] == "surface" for row in surfaces),
-             "D-214 fragments or surfaces changed structure kind")
-    region_keys = {
-        "region_id", "structure_kind", "mask_sha256", "descriptor",
-        "centroid_m", "extent_m", "reliability", "proposal_source_id",
-    }
-    for ordinal, row in enumerate(regions):
-        _exact(row, region_keys, f"D-214 region {ordinal}")
-        _hex64(row["mask_sha256"], f"D-214 region {ordinal} mask digest")
-        descriptor = [_finite(item, "D-214 region descriptor")
-                      for item in row["descriptor"]]
-        centroid = [_finite(item, "D-214 region centroid")
-                    for item in row["centroid_m"]]
-        extent = [_finite(item, "D-214 region extent")
-                  for item in row["extent_m"]]
-        reliability = _finite(row["reliability"], "D-214 region reliability")
-        _require(descriptor and len(centroid) == 3 and len(extent) == 3 and
-                 all(item >= 0.0 for item in extent) and
-                 0.0 <= reliability <= 1.0,
-                 "D-214 region geometry or reliability is invalid")
-        expected_source = (FRAGMENT_SOURCE_ID if row["structure_kind"] == "fragment"
-                           else "l1.public_depth.planar_surface.v1")
-        _require(row["proposal_source_id"] == expected_source,
-                 "D-214 region proposal source changed")
+    core.validate_region_records(
+        value["fragment_observations"], value["surface_observations"],
+        fragment_source_id=FRAGMENT_SOURCE_ID,
+        require_unit_descriptor=False, error=D214Error, label="D-214",
+    )
     place = value["place_observation"]
     _exact(place, {
         "place_observation_id", "observation_index", "persistent_place_id",
@@ -624,41 +531,27 @@ def seal_episode_cache(
 ) -> dict[str, Any]:
     """Seal one scenario-free ordered cache shared by all five methods."""
 
-    _require(type(episode_public_id) is str and episode_public_id,
-             "D-214 episode public ID is invalid")
-    rows = [validate_frame_cache(frame) for frame in frames]
-    _require(rows and [row["observation_index"] for row in rows] ==
-             list(range(len(rows))), "D-214 frames must be contiguous from zero")
-    _require(all(left["decision_time_s"] < right["decision_time_s"]
-                 for left, right in zip(rows, rows[1:])),
-             "D-214 frame times must be strictly increasing")
     for name, digest in (
         ("DINOv2 assets receipt", dinov2_assets_receipt_sha256),
         ("SAM2 assets receipt", sam2_assets_receipt_sha256),
         ("structural assets receipt", structural_assets_receipt_sha256),
     ):
         _hex64(digest, name)
-    _require(len({row["frontend_config_sha256"] for row in rows}) == 1,
-             "D-214 frames used different front-end configs")
-    value = {
-        "schema_version": EPISODE_SCHEMA,
-        "episode_public_id": episode_public_id,
-        "frame_count": len(rows),
-        "frames": rows,
-        "ordered_frame_cache_sha256s": [
-            row["frame_cache_sha256"] for row in rows
-        ],
-        "frontend_config_sha256": rows[0]["frontend_config_sha256"],
-        "dinov2_assets_receipt_sha256": dinov2_assets_receipt_sha256,
-        "sam2_assets_receipt_sha256": sam2_assets_receipt_sha256,
-        "structural_assets_receipt_sha256": structural_assets_receipt_sha256,
-        "scenario_blind_materialization": True,
-        "restricted_information_used": False,
-        "main_methods": list(MAIN_METHODS),
-    }
-    value["episode_cache_sha256"] = _sha(value)
-    _reject_forbidden_keys(value)
-    return value
+    return core.seal_ordered_episode(
+        frames, schema_version=EPISODE_SCHEMA,
+        episode_public_id=episode_public_id,
+        extra_fields={
+            "dinov2_assets_receipt_sha256": dinov2_assets_receipt_sha256,
+            "sam2_assets_receipt_sha256": sam2_assets_receipt_sha256,
+            "structural_assets_receipt_sha256":
+                structural_assets_receipt_sha256,
+            "scenario_blind_materialization": True,
+            "restricted_information_used": False,
+        },
+        frame_validator=validate_frame_cache,
+        reject_forbidden_keys=_reject_forbidden_keys,
+        error=D214Error, label="D-214",
+    )
 
 
 def validate_episode_cache(episode_cache: Mapping[str, Any]) -> dict[str, Any]:
@@ -675,19 +568,16 @@ def validate_episode_cache(episode_cache: Mapping[str, Any]) -> dict[str, Any]:
              value["restricted_information_used"] is False and
              value["main_methods"] == list(MAIN_METHODS),
              "D-214 episode cache boundary changed")
-    frames = [validate_frame_cache(frame) for frame in value["frames"]]
+    frames = core.validate_ordered_frames(
+        value["frames"], frame_validator=validate_frame_cache,
+        error=D214Error, label="D-214 episode cache",
+    )
     _require(type(value["frame_count"]) is int and
-             value["frame_count"] == len(frames) and frames and
-             [frame["observation_index"] for frame in frames] ==
-             list(range(len(frames))),
+             value["frame_count"] == len(frames),
              "D-214 episode cache frame sequence is invalid")
-    _require(all(left["decision_time_s"] < right["decision_time_s"]
-                 for left, right in zip(frames, frames[1:])),
-             "D-214 episode cache times must be strictly increasing")
     _require(value["ordered_frame_cache_sha256s"] == [
         frame["frame_cache_sha256"] for frame in frames
-    ] and len({frame["frontend_config_sha256"] for frame in frames}) == 1 and
-             value["frontend_config_sha256"] ==
+    ] and value["frontend_config_sha256"] ==
              frames[0]["frontend_config_sha256"],
              "D-214 episode cache frame binding mismatch")
     for field in (
@@ -708,11 +598,10 @@ def identical_method_cache_views(
 ) -> dict[str, dict[str, Any]]:
     """Return five independent clones whose canonical bytes are identical."""
 
-    value = validate_episode_cache(episode_cache)
-    views = {method: clone_json(value) for method in MAIN_METHODS}
-    _require(len({_sha(item) for item in views.values()}) == 1,
-             "D-214 main methods received different cache bytes")
-    return views
+    return core.identical_method_cache_views(
+        episode_cache, episode_validator=validate_episode_cache,
+        error=D214Error, label="D-214",
+    )
 
 
 def _cosine(left: Sequence[float], right: Sequence[float]) -> float:
