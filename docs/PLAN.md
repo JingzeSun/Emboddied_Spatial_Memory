@@ -27,7 +27,7 @@ VM-06 独立 test 与论文证据
   └─ P-05 → P-06
 ```
 
-当前执行点：VM-04.E 全部完成，E-08 报告已导出并由 [LOG-206](../EXECUTE.md) 收口。D-221 最终得到2,121个成功house、55个失败house、67,872帧公开RGB-D与396维特征；E-06结构单头完成训练，但E-08显示它不适合作P08 bottleneck硬门（整体accuracy 0.7013，bottleneck recall区间0.043–0.150）。用户已批准D-223并完成F-00真实两房预检：两房均成功，分别存在2条和1条合格拓扑签名，因此拓扑继续门通过。F-01 production reader 已按授权完成本地实现与边界测试，真实资产加载、真实公开输入读取和production cache生成仍关闭，等待代码审查后的单独授权；P04/P08完整资格、route/raw、adapter materialization、private evaluation、重训和audit重跑也仍关闭。
+当前执行点：VM-04.E 全部完成，E-08 报告已导出并由 [LOG-206](../EXECUTE.md) 收口。D-221 最终得到2,121个成功house、55个失败house、67,872帧公开RGB-D与396维特征；E-06结构单头完成训练，但E-08显示它不适合作P08 bottleneck硬门（整体accuracy 0.7013，bottleneck recall区间0.043–0.150）。用户已批准D-223并完成F-00真实两房预检：两房均成功，分别存在2条和1条合格拓扑签名，因此拓扑继续门通过。F-01 production reader 本地实现已审；一次服务器真实预检在输入读取前停止：冻结DINO仓库/checkpoint存在且摘要正确，但冻结SAM2仓库/checkpoint和F-01精确schema的公开单episode bundle均不存在。没有下载、没有生成route/raw、没有模型加载或cache输出，三个F-01执行位已重新关闭。下一步须先裁决是否允许取得SAM2冻结资产，以及怎样产生不含私有字段的兼容公开bundle；其余下游继续关闭。
 
 ## 二、状态和执行规则
 
@@ -203,7 +203,7 @@ E-08没有评价VSMT，也没有评价实体—地点关联。D-223后不再运�
 
 | 项 | 内容 |
 |---|---|
-| 状态 | 本地实现候选与边界测试已完成，真实服务器读取待代码审查后另行授权 |
+| 状态 | 本地实现已审；服务器只读预检因缺冻结SAM2资产和兼容公开bundle停止，真实执行位已重新关闭，cache为0 |
 | 输入 | 冻结SAM/DINO/几何配置、公开RGB-D、内参、因果pose belief与动作摘要；**不加载E-06权重** |
 | 完整动作 | 从公开RGB-D产生匿名fragment、DINO描述、surface/free-space/visibility和不含语义/结构类别概率的非网格place observation；只写一次共享cache |
 | 输出 | 五种方法读取的完全相同 cache bytes 和逐帧 receipt |
@@ -370,9 +370,9 @@ VM-04.E 已全部完成。下表只估计**剩余**步骤；最大的不确定�
 
 最近动作按顺序为：
 
-1. 用户审查F-01实现提交、机器合同、公开输入schema和本地负向测试；当前所有真实执行位关闭。
-2. 若审查通过，只用单一config activation子提交开放F-01的真实资产校验、单episode公开输入读取和共享cache生成；仍不得生成route/raw或运行P04/P08资格。
-3. F-01真实小样本逐字段验收后再决定是否进入F-02；F-01成功不会自动启动F-02。
+1. 用户裁决是否允许获取合同已冻结但服务器缺失的SAM2官方仓库/checkpoint；不改变commit、YAML、checkpoint摘要或生成器参数。
+2. 用户裁决兼容公开bundle来源：另行实现只读适配一个既有公开开发观察，或等待后续获批的新route/raw；不得临时手写manifest冒充真实输入。
+3. 资产和输入来源获批并完成代码审查后，重新形成一次性F-01 activation；真实小样本逐字段验收后再决定是否进入F-02，F-01成功不自动启动F-02。
 
 ## 八、失败时的暂停点与待触发裁决
 

@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| D-214～D-223共享RGB-D前端 | Estimator历史路线已完成并由E-08证伪其P08硬门用途；F-00两房拓扑预检通过。D-223/F-01不含结构/语义输出的production reader本地实现候选与边界测试完成，真实资产/episode/cache执行仍为0，P04/P08、route/raw、adapter、private evaluation、训练与audit重跑均关闭。LOG-199～209。 |
+| D-214～D-223共享RGB-D前端 | Estimator历史路线已完成并由E-08证伪其P08硬门用途；F-00两房拓扑预检通过。D-223/F-01 reader本地实现已审；一次服务器真实预检只读定位后因缺冻结SAM2资产和兼容公开bundle停止，模型加载/cache仍为0，执行位重新关闭。P04/P08、route/raw、adapter、private evaluation、训练与audit重跑均未运行。LOG-199～210。 |
 | D-213统一图/类型门 | 四节点/五关系统一图合同、seal前类型门、五种消融memory view、图复杂度派生、relation REACTIVATE及surface/fragment RETRACT已实现候选；数据接线现改为等待D-214冻结cache，不再以单槽raw后定义前端，全部运行位关闭；LOG-197/199。 |
 | D-212地点raw纠偏 | v2已补公开grid模板＋RGB-D route survey生产入口、P01–P08可复算收据、raw三面journal与两提交执行门；D-214已重新阻断activation，旧P04/P08工程描述不得获论文资格。真实survey/seal/smoke均为0；LOG-196/198/199。 |
 | VM-04观察适用性 | 原静态36槽不运行；D-182/183只用于精确schema/实现审查。D-199–202已形成L2公开proposal/visibility、program matcher/episode audit和terminal raw加载前plan seal，D-202已获认可。D-203候选禁止调用者手填version ID，从sealed public route、预登记selector和`terminal-1` causal memory确定派生九类online request refs；核心无episode/raw path参数，edge RETRACT仍阻断。selector spec的提前时间封存和D-202 receipt消费未实现，因此D-201 pending与family阻断未解除。正式SAM/assets/matcher/visibility数值、生产callback、父stage family聚合及pilot收据仍缺。全部运行位关闭，0新episode/materialization/训练/记忆正例。LOG-169–192。 |
@@ -2183,3 +2183,12 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 冻结资产校验绑定DINOv2/SAM2源码commit、clean worktree、checkpoint摘要、SAM官方YAML大小与摘要；模型加载后DINO强制eval且所有参数`requires_grad=false`，SAM关闭跨帧memory。真实`run`在查看任一用户给定外部路径前，先要求F-01合同进入只开放三项权限的active状态、当前提交是受审实现的单一config子提交且checkout干净。
 - 本地合成测试覆盖：全关闭合同与E-06缺席、冻结SAM配置漂移与下游门误开拒绝、reader签名禁限字段、公开RGB-D材料化无语义/结构cache、五方法canonical bytes相同且clone互不共享、fragment/surface集合越界拒绝、free-space/visibility半空间几何重验证、manifest嵌套私有字段拒绝、`check`只读状态及未激活CLI在外部路径读取和输出前失败。定向测试10/10通过；最终标准库discover **754/754通过**，耗时86.458秒、exit=0，compileall和`git diff --check`通过。真实服务器兼容、真实proposal数、真实cache字段逐项验收和下游adapter兼容性尚未验证。
 - 白话：这一批做出的是“只吃已经公私分离的单条公开录像，并把它变成五种方法共享证据”的读取器。例如一帧里的椅子只会成为匿名fragment，不会自带物体ID、房间类别或瓶颈答案。它不是数据采集、路线资格、方法效果实验，也不证明真实权重和服务器环境已经能跑通。
+
+## LOG-210：F-01服务器真实预检因缺资产与兼容输入停止（2026-09-19）
+
+- 用户批准提交`b16007193428ed166360b57396e97678e8a4848f`，并只授权F-01单episode服务器真实预检：冻结资产校验、已公私分离公开输入读取和共享cache生成；允许先只读定位输入，明确要求不存在兼容输入就停止。F-02、P04/P08完整资格、route/raw、adapter materialization、private evaluation、训练和audit重跑均未授权。
+- 单文件activation提交`9260cf2757b64892532e9ad1ed1b1d282b725266`的父提交精确为受审实现，除F-01合同外没有变化；只开放`real_asset_verification_and_loading`、`real_public_input_read`、`production_cache_generation`，其余六项仍false。服务器仓库实际路径`/root/Emboddied_Spatial_Memory`从干净`757127b…`一次fast-forward到该提交，此后只做检查，没有修改服务器工作树。
+- 环境入口核对：系统`python3`没有NumPy，`/root/miniconda3/bin/python`提供NumPy 2.3.2、PyTorch 2.8.0+cu128且CUDA可用；GPU为RTX 4080 SUPER，32,760 MiB总显存、检查时30,721 MiB空闲；数据盘可用22,666,739,712 bytes，超过F-01的4 GiB安全线。F-01 `check`通过并确认只开放上述三位、F-00绑定有效、尚未打开真实输入或写输出。
+- 冻结DINOv2仓库存在于`/root/sh05-assets-v1/dinov2`，HEAD精确为`7764ea0f…5fc8`且工作树干净；checkpoint`/root/sh05-assets-v1/dinowm-native-v1/download/dinov2_vits14_pretrain.pth`的SHA-256精确为`b938bf1b…0cd9`。这只证明DINO资产可用，没有加载模型。
+- 两条独立停止证据：在`/root`与`/root/autodl-tmp`精确查找官方`sam2.1_hiera_s.yaml`、名为`sam2`的源码目录和184,416,285-byte checkpoint均为0命中；在`/root/autodl-tmp/vsmt_outputs`的全部`manifest.json`中查找`vsmt-vm04-d223-f01-public-episode-input-v1`也为0命中。因此服务器既没有合同冻结的SAM2完整资产，也没有reader可合法消费的精确schema公开bundle。
+- 按用户停止条件，本次没有下载SAM2、没有从E阶段数据临时拼manifest、没有生成route/raw、没有调用模型loader、没有创建F-01 output root或cache。服务器最终工作树仍干净，SSH正常退出；本地随后把三个F-01执行位重新关闭。白话：这次只确认“机器和DINO够用，但正式reader缺另一半模型和合法输入包”；它不是reader运行失败，更不是SAM proposal或方法效果失败，因为真正的reader尚未启动。
