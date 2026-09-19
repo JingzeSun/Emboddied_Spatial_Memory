@@ -27,7 +27,7 @@ VM-06 独立 test 与论文证据
   └─ P-05 → P-06
 ```
 
-当前执行点：VM-04.E 全部完成，E-08 报告已导出并由 [LOG-206](../EXECUTE.md) 收口。D-221 最终得到2,121个成功house、55个失败house、67,872帧公开RGB-D与396维特征；E-06结构单头完成训练，但E-08显示它不适合作P08 bottleneck硬门（整体accuracy 0.7013，bottleneck recall区间0.043–0.150）。用户已批准D-223并完成F-00真实两房预检：两房均成功，分别存在2条和1条合格拓扑签名，因此拓扑继续门通过。F-01 production reader 本地实现已审；一次服务器真实预检在输入读取前停止：冻结DINO仓库/checkpoint存在且摘要正确，但冻结SAM2仓库/checkpoint和F-01精确schema的公开单episode bundle均不存在。没有下载、没有生成route/raw、没有模型加载或cache输出，三个F-01执行位已重新关闭。下一步须先裁决是否允许取得SAM2冻结资产，以及怎样产生不含私有字段的兼容公开bundle；其余下游继续关闭。
+当前执行点：VM-04.E 全部完成，E-08 报告已导出并由 [LOG-206](../EXECUTE.md) 收口。D-221 最终得到2,121个成功house、55个失败house、67,872帧公开RGB-D与396维特征；E-06结构单头完成训练，但E-08显示它不适合作P08 bottleneck硬门（整体accuracy 0.7013，bottleneck recall区间0.043–0.150）。用户已批准D-223并完成F-00真实两房预检：两房均成功，分别存在2条和1条合格拓扑签名，因此拓扑继续门通过。F-01 production reader 本地实现已审；一次服务器真实预检在输入读取前停止：冻结DINO仓库/checkpoint存在且摘要正确，但冻结SAM2仓库/checkpoint和F-01精确schema的公开单episode bundle均不存在。现已按用户授权实现D-217 `public/train`首成功sample的observation 0→单帧origin-pose诊断bundle适配器，等待代码审查；没有读取真实D-217数据、下载SAM2、连接服务器、生成route/raw、加载模型或写cache，F-01执行位仍全关闭。下一步只在用户批准本实现后，另行裁决SAM2获取与一次服务器F-01真实预检；其余下游继续关闭。
 
 ## 二、状态和执行规则
 
@@ -203,8 +203,8 @@ E-08没有评价VSMT，也没有评价实体—地点关联。D-223后不再运�
 
 | 项 | 内容 |
 |---|---|
-| 状态 | 本地实现已审；服务器只读预检因缺冻结SAM2资产和兼容公开bundle停止，真实执行位已重新关闭，cache为0 |
-| 输入 | 冻结SAM/DINO/几何配置、公开RGB-D、内参、因果pose belief与动作摘要；**不加载E-06权重** |
+| 状态 | reader本地实现已审；D-217单帧兼容适配器已实现待审；服务器前次预检因缺冻结SAM2资产和兼容公开bundle停止，真实执行位全关闭，cache为0 |
+| 输入 | 兼容性预检仅从D-217 `public/train`按rank取首个成功sample的observation 0并构造origin pose；reader再读冻结SAM/DINO/几何配置、公开RGB-D、内参、因果pose belief与动作摘要；**不加载E-06权重** |
 | 完整动作 | 从公开RGB-D产生匿名fragment、DINO描述、surface/free-space/visibility和不含语义/结构类别概率的非网格place observation；只写一次共享cache |
 | 输出 | 五种方法读取的完全相同 cache bytes 和逐帧 receipt |
 | 继续门 | reader 签名没有 scenario/private/teacher/future；真实小样本逐字段审查通过 |
@@ -361,7 +361,7 @@ VM-04.E 已全部完成。下表只估计**剩余**步骤；最大的不确定�
 | E-08 一次性审计 | 已完成并封存 | accuracy 0.7013；bottleneck recall 区间 0.043–0.150 |
 | D-223 文档与合同修订 | 已批准 | F-00真实预检完成且执行门重新关闭 |
 | 两间 P0 house 拓扑可构造性预检 | 已完成 | 两房成功，合格签名数分别为2和1；未生成raw、未向方法暴露可达图 |
-| F-01 production reader | 本地实现候选完成；真实单episode读取待授权 | SAM proposal数与cache字段须在真实小样本复核 |
+| F-01 production reader | reader已审；D-217兼容适配器本地实现候选完成；真实单episode读取待授权 | SAM2资产、真实适配字节、proposal数与cache字段须在真实小样本复核 |
 | F-02 P01/P04/P08 smoke | 约 3～7 天，未授权 | 跨视角DINO区分度、P08 fragment资格 |
 | M-03 第一份五方法开发表 | 约 1～2 周 | 非网格 place 接线、teacher/evaluator 和调试 |
 | P-05 第一份论文级 test | 约 5～8 周 | P-01 正式规模、构造成品率、五方法训练和统计功效 |
@@ -370,9 +370,9 @@ VM-04.E 已全部完成。下表只估计**剩余**步骤；最大的不确定�
 
 最近动作按顺序为：
 
-1. 用户裁决是否允许获取合同已冻结但服务器缺失的SAM2官方仓库/checkpoint；不改变commit、YAML、checkpoint摘要或生成器参数。
-2. 用户裁决兼容公开bundle来源：另行实现只读适配一个既有公开开发观察，或等待后续获批的新route/raw；不得临时手写manifest冒充真实输入。
-3. 资产和输入来源获批并完成代码审查后，重新形成一次性F-01 activation；真实小样本逐字段验收后再决定是否进入F-02，F-01成功不自动启动F-02。
+1. 用户代码审查D-217 public兼容适配实现；当前不得读取真实D-217目录或生成真实bundle。
+2. 审查通过后，用户另行裁决是否允许获取合同已冻结但服务器缺失的SAM2官方仓库/checkpoint，并是否激活一次F-01服务器真实预检；不改变commit、YAML、checkpoint摘要或生成器参数。
+3. 获批后形成一次性F-01 activation，先生成单帧诊断bundle再运行reader；真实小样本逐字段验收后停止并报告，另行决定是否进入F-02。F-01成功不自动启动F-02，诊断bundle不进入正式数据、P04/P08或论文结果。
 
 ## 八、失败时的暂停点与待触发裁决
 

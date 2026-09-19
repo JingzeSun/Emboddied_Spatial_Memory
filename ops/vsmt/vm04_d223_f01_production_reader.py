@@ -24,6 +24,10 @@ if str(SRC) not in sys.path:
 
 from cpmt.hashing import canonical_json  # noqa: E402
 import vsmt.vm04_l2_proposals as proposal_module  # noqa: E402
+from vsmt.d223_f01_compat_input import (  # noqa: E402
+    build_observation_zero_compat_bundle,
+    select_first_d217_public_train_sample,
+)
 from vsmt.d223_f01_production_reader import (  # noqa: E402
     F01ProductionReader,
     MAIN_METHODS,
@@ -82,6 +86,14 @@ def write_new_json(path: Path, value: Any) -> None:
         os.fsync(handle.fileno())
 
 
+def write_new_bytes(path: Path, value: bytes) -> None:
+    descriptor = os.open(str(path), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+    with os.fdopen(descriptor, "wb") as handle:
+        handle.write(value)
+        handle.flush()
+        os.fsync(handle.fileno())
+
+
 def git(*arguments: str) -> str:
     return subprocess.check_output(
         ["git", *arguments], cwd=ROOT, text=True).strip()
@@ -99,6 +111,7 @@ def load_contract() -> dict[str, Any]:
          "public_entity_geometry_file_sha256"),
         ("public_non_entity_geometry_relative_path",
          "public_non_entity_geometry_file_sha256"),
+        ("d217_relative_path", "d217_file_sha256"),
     ):
         path = ROOT / bindings[path_field]
         _require(path.is_file() and sha256(path) == bindings[digest_field],
@@ -124,6 +137,7 @@ def check() -> dict[str, Any]:
         "bound_f00_two_house_qualification": True,
         "real_assets_opened": False,
         "real_public_inputs_opened": False,
+        "compatibility_bundle_generated": False,
         "outputs_written": False,
     }
 
@@ -178,6 +192,40 @@ def _read_public_bundle(
              depth.shape == (frame_count, *expected_image[:2]),
              "F-01 bundled depth dtype or shape changed")
     return manifest, rgb, depth
+
+
+def prepare_d217_compat(
+    *, d217_public_root: Path, output_root: Path, receipt_path: Path,
+) -> dict[str, Any]:
+    contract = load_contract()
+    execution_commit = _execution_checkout(contract)
+
+    # External source and output paths remain unopened until all execution and
+    # checkout gates have succeeded.
+    _require(not output_root.exists(),
+             "F-01 compatibility output root already exists")
+    _require(not receipt_path.exists(),
+             "F-01 compatibility receipt already exists")
+    output_resolved, receipt_resolved = output_root.resolve(), receipt_path.resolve()
+    _require(receipt_resolved != output_resolved and
+             output_resolved not in receipt_resolved.parents,
+             "F-01 compatibility receipt must be outside the input bundle")
+    _require(receipt_path.parent.is_dir(),
+             "F-01 compatibility receipt parent is missing")
+    disk = shutil.disk_usage(_nearest_existing_parent(output_root)).free
+    _require(disk >= contract["resource_policy"]["minimum_free_disk_bytes"],
+             "F-01 compatibility free disk guard failed")
+    _selected, source_receipt, source_arrays = (
+        select_first_d217_public_train_sample(d217_public_root))
+    npz_bytes, manifest, receipt = build_observation_zero_compat_bundle(
+        source_receipt=source_receipt, source_arrays=source_arrays,
+        frontend_config_sha256=contract["frontend"]["frontend_config_sha256"],
+        execution_commit=execution_commit)
+    output_root.mkdir(parents=True, exist_ok=False)
+    write_new_bytes(output_root / "arrays.npz", npz_bytes)
+    write_new_json(output_root / "manifest.json", manifest)
+    write_new_json(receipt_path, receipt)
+    return receipt
 
 
 def run(
@@ -263,6 +311,10 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("check")
+    compat_parser = subparsers.add_parser("prepare-d217-compat")
+    compat_parser.add_argument("--d217-public-root", type=Path, required=True)
+    compat_parser.add_argument("--output-root", type=Path, required=True)
+    compat_parser.add_argument("--receipt-path", type=Path, required=True)
     run_parser = subparsers.add_parser("run")
     run_parser.add_argument("--input-root", type=Path, required=True)
     run_parser.add_argument("--output-root", type=Path, required=True)
@@ -273,6 +325,11 @@ def main() -> int:
     arguments = parser.parse_args()
     if arguments.command == "check":
         result = check()
+    elif arguments.command == "prepare-d217-compat":
+        result = prepare_d217_compat(
+            d217_public_root=arguments.d217_public_root,
+            output_root=arguments.output_root,
+            receipt_path=arguments.receipt_path)
     else:
         result = run(
             input_root=arguments.input_root,

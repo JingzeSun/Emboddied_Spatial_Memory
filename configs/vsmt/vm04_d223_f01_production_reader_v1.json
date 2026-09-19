@@ -17,9 +17,12 @@
     "public_entity_geometry_relative_path": "configs/vsmt/vm04_l1_environment_v1.json",
     "public_entity_geometry_file_sha256": "acecc33b5f4982830219f7f325334fb9311579ddd75551a7de3a1f450c06000a",
     "public_non_entity_geometry_relative_path": "configs/vsmt/vm04_l1_non_entity_geometry_review_v1.json",
-    "public_non_entity_geometry_file_sha256": "9ef7bdfdade97b50a2e1da53ad8b11183427bf9b383feea4f223d9bf4eee5148"
+    "public_non_entity_geometry_file_sha256": "9ef7bdfdade97b50a2e1da53ad8b11183427bf9b383feea4f223d9bf4eee5148",
+    "d217_relative_path": "configs/vsmt/vm04_d217_estimator_development_rgbd_v1.json",
+    "d217_file_sha256": "1499806b8a34eb71ec0785128111b28236f8cee8b95b61a94f624c608702643d"
   },
   "authorization": {
+    "d217_public_compat_bundle_generation": false,
     "real_asset_verification_and_loading": false,
     "real_public_input_read": false,
     "production_cache_generation": false,
@@ -33,6 +36,7 @@
   "activation_policy": {
     "active_status": "frozen_real_f01_single_episode_reader",
     "active_true_authorizations": [
+      "d217_public_compat_bundle_generation",
       "real_asset_verification_and_loading",
       "real_public_input_read",
       "production_cache_generation"
@@ -80,6 +84,32 @@
     ],
     "input_bundle_schema": "vsmt-vm04-d223-f01-public-episode-input-v1",
     "single_episode_per_run": true
+  },
+  "compatibility_input_adapter": {
+    "source_schema": "vsmt-vm04-d217-public-rgbd-house-v1",
+    "source_split": "train",
+    "sample_directory_regex": "^sample_[0-9]{4}$",
+    "selection_order": "ascending_sample_rank_first_present_public_sample",
+    "selected_sample_incomplete_or_malformed_policy": "fail_do_not_skip",
+    "selected_observation_index": 0,
+    "source_required_files": ["receipt.json", "rgbd.npz"],
+    "source_npz_arrays": [
+      "rgb_uint8",
+      "depth_m_float32",
+      "camera_intrinsics_float64",
+      "observation_ids"
+    ],
+    "pose_policy": {
+      "frame": "episode_relative_observation_zero_origin",
+      "mean_x_y_z_yaw": [0.0, 0.0, 0.0, 0.0],
+      "covariance_diagonal": [0.0, 0.0, 0.0, 0.0],
+      "is_world_pose": false,
+      "incoming_transition_action_summary": null
+    },
+    "output_bundle_schema": "vsmt-vm04-d223-f01-public-episode-input-v1",
+    "diagnostic_compatibility_only": true,
+    "eligible_for_formal_data_p04_p08_or_paper_results": false,
+    "private_root_or_sidecar_read_allowed": false
   },
   "assets": {
     "dinov2": {
@@ -196,6 +226,7 @@
     "post_d223_episode_cache_implemented": true,
     "frozen_asset_verifier_and_loader_implemented": true,
     "public_input_bundle_reader_implemented": true,
+    "d217_public_compat_adapter_implemented": true,
     "real_assets_or_public_inputs_opened": false,
     "server_executed": false
   },

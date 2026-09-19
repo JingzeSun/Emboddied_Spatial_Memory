@@ -194,7 +194,7 @@ def validate_f01_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
         "schema_version", "decision_id", "stage_id", "status",
         "reviewed_baseline_commit", "expected_reviewed_implementation_commit",
         "bindings", "authorization", "activation_policy",
-        "public_input_boundary", "assets", "frontend",
+        "public_input_boundary", "compatibility_input_adapter", "assets", "frontend",
         "production_output_boundary", "implementation_boundary",
         "resource_policy", "closed_downstream",
     }, "F-01 contract has unexpected fields")
@@ -231,11 +231,16 @@ def validate_f01_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
             "configs/vsmt/vm04_l1_non_entity_geometry_review_v1.json",
         "public_non_entity_geometry_file_sha256":
             "9ef7bdfdade97b50a2e1da53ad8b11183427bf9b383feea4f223d9bf4eee5148",
+        "d217_relative_path":
+            "configs/vsmt/vm04_d217_estimator_development_rgbd_v1.json",
+        "d217_file_sha256":
+            "1499806b8a34eb71ec0785128111b28236f8cee8b95b61a94f624c608702643d",
     }
     _require(value["bindings"] == expected_bindings,
              "F-01 frozen evidence bindings changed")
     authorization = value["authorization"]
     expected_auth = {
+        "d217_public_compat_bundle_generation",
         "real_asset_verification_and_loading", "real_public_input_read",
         "production_cache_generation", "p04_p08_qualification",
         "route_or_raw_generation", "adapter_materialization",
@@ -246,6 +251,7 @@ def validate_f01_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
              "F-01 authorization fields changed")
     policy = value["activation_policy"]
     active_true = {
+        "d217_public_compat_bundle_generation",
         "real_asset_verification_and_loading", "real_public_input_read",
         "production_cache_generation"}
     _require(policy["active_status"] == active and
@@ -284,6 +290,31 @@ def validate_f01_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
         set(public) == {"fields", "forbidden", "input_bundle_schema",
                         "single_episode_per_run"},
         "F-01 public input boundary changed")
+    _require(value["compatibility_input_adapter"] == {
+        "source_schema": "vsmt-vm04-d217-public-rgbd-house-v1",
+        "source_split": "train",
+        "sample_directory_regex": "^sample_[0-9]{4}$",
+        "selection_order":
+            "ascending_sample_rank_first_present_public_sample",
+        "selected_sample_incomplete_or_malformed_policy":
+            "fail_do_not_skip",
+        "selected_observation_index": 0,
+        "source_required_files": ["receipt.json", "rgbd.npz"],
+        "source_npz_arrays": [
+            "rgb_uint8", "depth_m_float32", "camera_intrinsics_float64",
+            "observation_ids"],
+        "pose_policy": {
+            "frame": "episode_relative_observation_zero_origin",
+            "mean_x_y_z_yaw": [0.0, 0.0, 0.0, 0.0],
+            "covariance_diagonal": [0.0, 0.0, 0.0, 0.0],
+            "is_world_pose": False,
+            "incoming_transition_action_summary": None,
+        },
+        "output_bundle_schema": INPUT_SCHEMA,
+        "diagnostic_compatibility_only": True,
+        "eligible_for_formal_data_p04_p08_or_paper_results": False,
+        "private_root_or_sidecar_read_allowed": False,
+    }, "F-01 D-217 compatibility adapter boundary changed")
     assets = value["assets"]
     dino, sam = assets["dinov2"], assets["sam2"]
     expected_sam = {
@@ -355,6 +386,7 @@ def validate_f01_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
         "post_d223_episode_cache_implemented": True,
         "frozen_asset_verifier_and_loader_implemented": True,
         "public_input_bundle_reader_implemented": True,
+        "d217_public_compat_adapter_implemented": True,
         "real_assets_or_public_inputs_opened": False,
         "server_executed": False,
     }, "F-01 implementation boundary changed")

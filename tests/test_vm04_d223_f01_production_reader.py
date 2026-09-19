@@ -109,13 +109,29 @@ def materialized_episode():
 
 
 class D223F01ProductionReaderTests(unittest.TestCase):
-    def test_contract_is_closed_and_e06_is_not_loaded(self):
+    def test_contract_state_machine_and_e06_is_not_loaded(self):
         value = validate_f01_contract(contract())
-        self.assertFalse(any(value["authorization"].values()))
         self.assertFalse(value["assets"]["e06_structural_estimator_loaded"])
-        self.assertIsNone(value["expected_reviewed_implementation_commit"])
-        with self.assertRaisesRegex(D223F01Error, "closed pending review"):
+        if value["status"] == "implementation_pending_review_all_execution_closed":
+            self.assertFalse(any(value["authorization"].values()))
+            self.assertIsNone(value["expected_reviewed_implementation_commit"])
+            with self.assertRaisesRegex(D223F01Error, "closed pending review"):
+                assert_real_f01_authorized(value)
+        else:
+            enabled = {name for name, flag in value["authorization"].items()
+                       if flag}
+            self.assertEqual(
+                enabled,
+                set(value["activation_policy"]["active_true_authorizations"]))
             assert_real_f01_authorized(value)
+
+        active = contract()
+        active["status"] = "frozen_real_f01_single_episode_reader"
+        active["expected_reviewed_implementation_commit"] = "a" * 40
+        for name in active["activation_policy"]["active_true_authorizations"]:
+            active["authorization"][name] = True
+        validated_active = validate_f01_contract(active)
+        assert_real_f01_authorized(validated_active)
 
     def test_contract_rejects_asset_drift_and_downstream_opening(self):
         changed = contract()
@@ -228,6 +244,9 @@ class D223F01ProductionReaderTests(unittest.TestCase):
             validate_public_input_manifest(smuggled)
 
     def test_closed_stage_rejects_before_opening_external_paths(self):
+        if contract()["status"] != (
+                "implementation_pending_review_all_execution_closed"):
+            self.skipTest("checked-in F-01 contract is active")
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary) / "must-not-exist"
             result = subprocess.run([
@@ -249,9 +268,18 @@ class D223F01ProductionReaderTests(unittest.TestCase):
             capture_output=True, text=True, check=False)
         self.assertEqual(result.returncode, 0, result.stderr)
         report = json.loads(result.stdout)
-        self.assertFalse(any(report["authorization"].values()))
+        checked_contract = contract()
+        if checked_contract["status"] == (
+                "implementation_pending_review_all_execution_closed"):
+            self.assertFalse(any(report["authorization"].values()))
+        else:
+            self.assertEqual(
+                {name for name, flag in report["authorization"].items() if flag},
+                set(checked_contract["activation_policy"]
+                    ["active_true_authorizations"]))
         self.assertFalse(report["real_assets_opened"])
         self.assertFalse(report["real_public_inputs_opened"])
+        self.assertFalse(report["compatibility_bundle_generated"])
         self.assertFalse(report["outputs_written"])
 
 

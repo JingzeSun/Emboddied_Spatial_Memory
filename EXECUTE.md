@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| D-214～D-223共享RGB-D前端 | Estimator历史路线已完成并由E-08证伪其P08硬门用途；F-00两房拓扑预检通过。D-223/F-01 reader本地实现已审；一次服务器真实预检只读定位后因缺冻结SAM2资产和兼容公开bundle停止，模型加载/cache仍为0，执行位重新关闭。P04/P08、route/raw、adapter、private evaluation、训练与audit重跑均未运行。LOG-199～210。 |
+| D-214～D-223共享RGB-D前端 | Estimator历史路线已完成并由E-08证伪其P08硬门用途；F-00两房拓扑预检通过。D-223/F-01 reader本地实现已审；一次服务器真实预检只读定位后因缺冻结SAM2资产和兼容公开bundle停止。D-217 public observation-0兼容适配器已本地实现待审，尚未读取真实数据或运行服务器；模型加载/cache仍为0，执行位全关闭。P04/P08、route/raw、method adapter、private evaluation、训练与audit重跑均未运行。LOG-199～211。 |
 | D-213统一图/类型门 | 四节点/五关系统一图合同、seal前类型门、五种消融memory view、图复杂度派生、relation REACTIVATE及surface/fragment RETRACT已实现候选；数据接线现改为等待D-214冻结cache，不再以单槽raw后定义前端，全部运行位关闭；LOG-197/199。 |
 | D-212地点raw纠偏 | v2已补公开grid模板＋RGB-D route survey生产入口、P01–P08可复算收据、raw三面journal与两提交执行门；D-214已重新阻断activation，旧P04/P08工程描述不得获论文资格。真实survey/seal/smoke均为0；LOG-196/198/199。 |
 | VM-04观察适用性 | 原静态36槽不运行；D-182/183只用于精确schema/实现审查。D-199–202已形成L2公开proposal/visibility、program matcher/episode audit和terminal raw加载前plan seal，D-202已获认可。D-203候选禁止调用者手填version ID，从sealed public route、预登记selector和`terminal-1` causal memory确定派生九类online request refs；核心无episode/raw path参数，edge RETRACT仍阻断。selector spec的提前时间封存和D-202 receipt消费未实现，因此D-201 pending与family阻断未解除。正式SAM/assets/matcher/visibility数值、生产callback、父stage family聚合及pilot收据仍缺。全部运行位关闭，0新episode/materialization/训练/记忆正例。LOG-169–192。 |
@@ -2192,3 +2192,11 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 冻结DINOv2仓库存在于`/root/sh05-assets-v1/dinov2`，HEAD精确为`7764ea0f…5fc8`且工作树干净；checkpoint`/root/sh05-assets-v1/dinowm-native-v1/download/dinov2_vits14_pretrain.pth`的SHA-256精确为`b938bf1b…0cd9`。这只证明DINO资产可用，没有加载模型。
 - 两条独立停止证据：在`/root`与`/root/autodl-tmp`精确查找官方`sam2.1_hiera_s.yaml`、名为`sam2`的源码目录和184,416,285-byte checkpoint均为0命中；在`/root/autodl-tmp/vsmt_outputs`的全部`manifest.json`中查找`vsmt-vm04-d223-f01-public-episode-input-v1`也为0命中。因此服务器既没有合同冻结的SAM2完整资产，也没有reader可合法消费的精确schema公开bundle。
 - 按用户停止条件，本次没有下载SAM2、没有从E阶段数据临时拼manifest、没有生成route/raw、没有调用模型loader、没有创建F-01 output root或cache。服务器最终工作树仍干净，SSH正常退出；本地随后把三个F-01执行位重新关闭。白话：这次只确认“机器和DINO够用，但正式reader缺另一半模型和合法输入包”；它不是reader运行失败，更不是SAM proposal或方法效果失败，因为真正的reader尚未启动。
+
+## LOG-211：F-01 D-217公开单帧兼容适配器本地实现候选（2026-09-19）
+
+- 用户批准只实现并本地测试兼容适配器：从既有D-217 public数据按固定顺序取首个成功sample的observation 0，构造单帧origin-pose bundle；明确限定只作兼容性预检，不进入正式数据、P04/P08或论文结果。SAM2下载和服务器运行仍须代码审查后另行授权。本批未连接服务器、未读取真实D-217目录、未下载资产、未生成真实bundle或cache。
+- 适配器只接受名为`public`的根及其`train`子目录，按四位`sample_rank`数值升序选最低的现存public sample。选中目录必须精确只有`receipt.json`与`rgbd.npz`；receipt自摘要、NPZ摘要、32个observation ID承诺、四个数组名/shape/dtype与内参有限性逐项复核。最早现存sample若不完整或畸形立即失败，不跳到更晚sample；calibration、audit和同级private均不枚举。
+- 输出NPZ以固定成员顺序、固定ZIP时间戳和无压缩格式确定性写入，只含observation 0的RGB/depth。manifest只含匿名内容寻址episode ID、公开数组摘要、内参、零位置与单位四元数的episode-relative origin pose、四维零均值/零协方差pose belief、`transition=null`；source rank、public receipt/NPZ/observation摘要只在bundle外诊断回执中，raw observation ID和public house ref不进入方法输入。回执明确`compatibility_only=true`、正式/P04/P08/论文资格false、private/calibration/audit读取false。
+- 新`prepare-d217-compat`与正式`run`共用F-01 activation-child和clean-checkout门；合同仍是pending且全部十个授权位false，所以CLI在查看外部source/output路径前拒绝。本次同时补了active合同分支测试，避免以后合法activation因“测试只接受pending”产生假失败；activation只可打开兼容bundle生成、真实公开输入读取、冻结资产加载和production cache生成四项，全部下游仍false。
+- 本地定向 **18/18通过**；最终标准库discover **762/762通过**，耗时53.175秒、exit=0；compileall与`git diff --check`通过。测试覆盖最低rank选择、损坏早样本不回退、private标志/额外数组拒绝、确定性NPZ、单帧origin pose、方法manifest匿名化、诊断回执边界和关闭门先于外部路径。白话：输入是已经公私分离的D-217公开house文件，输出只是让F-01 reader能吃的一帧诊断录像；例如rank 3是最早成功项，就只取其第0帧并把相机原点定义为本episode原点。它不是正式路线、时序记忆样本、P04/P08资格或方法效果证据，也没有证明服务器真实字节或SAM2能跑通。

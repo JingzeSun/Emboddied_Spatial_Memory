@@ -56,7 +56,9 @@ episode cache按0开始连续封存frame，绑定DINO/SAM/几何资产receipt和
 
 F-01公开输入bundle固定只含`manifest.json`与`arrays.npz`：后者仅允许`rgb_uint8[N,224,224,3]`和`depth_m_float32[N,224,224]`，前者保存匿名episode ID、连续观察序号、时间、两数组来源摘要、内参、因果episode-relative相机pose、连续pose belief和可选入边动作摘要，并以自身摘要绑定NPZ摘要。输入是已经完成公私分离的单个episode，输出是F-01 reader可顺序消费的公开帧；例如第0帧可没有入边动作，第1帧的摘要必须从更早观察结束于第1帧。它不等于route/raw：F-01不会从模拟器取数，也不接受额外sidecar、house/scenario、world pose、reachable、room、instance/object、teacher/reference/future字段。
 
-当前实现边界是：F-01已有D-223覆盖schema、冻结SAM/DINOv2校验与加载编排、公开bundle reader、逐帧/episode封印及五方法等字节视图；关闭入口在检查任何外部路径前要求受审实现的单一activation子提交和干净checkout。白话：本地测试已经证明合成RGB-D能变成不含结构/语义概率的共同cache，并证明关闭状态不会碰真实路径；它还没有证明服务器资产可加载、真实bundle字段正确、真实SAM proposal数量合适或产物可供后续adapter使用。真实运行、P04/P08、route/raw、adapter、private evaluation和训练仍是不同的后续权限。
+D-217兼容适配只读`public/train/sample_NNNN/{receipt.json,rgbd.npz}`。源NPZ必须精确含32帧`rgb_uint8[32,224,224,3]`、`depth_m_float32[32,224,224]`、`camera_intrinsics_float64[32,4]`和32个已承诺的公开observation ID；按数值`sample_rank`取最低的现存public sample，选中项缺文件、摘要不符或数组漂移就失败，不向后挑“能跑的”样本。方法输入只保存第0帧、匿名episode ID、公开数组摘要、内参、零位置/单位四元数origin pose、四维零均值/零协方差pose belief和`transition=null`；来源rank与源receipt/NPZ/observation承诺只在bundle外的兼容回执中出现。输入是既有公开D-217字节，输出是单帧诊断bundle；例如rank 3成功时只取其observation 0。它不读取同级`private`、calibration/audit、house/world pose/结构标签，不产生正式episode或为任何P04/P08/论文表提供样本。
+
+当前实现边界是：F-01已有D-223覆盖schema、冻结SAM/DINOv2校验与加载编排、公开bundle reader、D-217公开单帧兼容适配、逐帧/episode封印及五方法等字节视图；关闭入口在检查任何外部路径前要求受审实现的单一activation子提交和干净checkout。白话：本地测试已经证明合成D-217 public样本可确定性变成origin-pose诊断bundle，再由合成RGB-D变成不含结构/语义概率的共同cache，并证明关闭状态不会碰真实路径；它还没有证明服务器D-217真实字节通过适配、SAM2资产可加载、真实proposal数量合适或cache逐字段正确。SAM2下载、服务器适配/reader运行、P04/P08、route/raw、method adapter、private evaluation和训练仍是不同的后续权限。
 
 P04回执保存所选两帧、公开名义距离、DINO cosine和“未用绝对阈值/未用旧四象限描述子”布尔。D-223后的P08资格由两份不可混读证据组成：`topology_qualification_receipt`由数据生成器保存逐位置拓扑角色、冻结规则摘要和basin→bottleneck→basin命中段；`fragment_qualification_receipt`只读共享cache，保存两端各一对跨帧稳定fragment及0.85/0.35配置。合并回执只引用两者摘要，不把可达图复制到public cache或adapter。白话：生成器证明“题目确有瓶颈”，公开fragment证明“两端确有可供记忆的匿名实体证据”；它不把前者喂给方法，也不把后者当真实实体ID。
 
