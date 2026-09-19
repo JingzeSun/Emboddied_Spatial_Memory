@@ -67,14 +67,14 @@
 | `feature_matrix.npz` | 关联头、存在头、新建头的特征矩阵与列顺序、digest | private 打开前 |
 | `labels.npz` | 逐 fragment 目标列（哪个实体或 BIRTH）、逐实体"已不在"标签、`recall_miss` 标记 | 封存后 |
 
-标签定义：fragment 主导实例 ID 等于实体 provenance 多数实例 ID 为关联正例；实体对应实例已被 `remove`、或 `move` 后位移超过 `δ_moved`（proposed 0.5 m）为"已不在"正例；正确实体不在召回集合记 `recall_miss`。修改任何 private 文件而保持 public 不变时，`recall_seal` 与 `feature_matrix` 逐字节不变。
+标签定义（D-224-LQ 裁决 N、P、Q）：fragment 的主导实例按实例 mask 重叠占比判定，分母是 fragment 全部像素；主导实例等于实体证据的严格多数实例为关联正例；实体对应实例已被 `remove`、或其当前质心离实体记住的质心超过 `δ_moved`（proposed 0.5 m，合同内为 null）为"已不在"正例，只对 `active` 与 `dormant` 候选给出；正确实体不在召回集合记 `recall_miss`。修改任何 private 文件而保持 public 不变时，`recall_seal` 与 `feature_matrix` 逐字节不变。
 
 ## 七、评价文件
 
 | 粒度 | 内容 |
 |---|---|
-| 逐帧 | 真值当前活动物体框、预测活动实体框、匈牙利匹配（3D IoU 0.3）、每个真值物体的 Stable/Appeared/Missing/Moved 状态、MRR 分子分母 |
-| 逐实体 | 是否假撤回、身份是否连续、恢复延迟 |
+| 逐帧 | 真值物体表（本帧在场且自 episode 开始至少可观察过一次的物体，含框与质心；裁决 Q）、仍在记忆里（`active` 或 `dormant`；裁决 L）的实体框、最大权匹配（3D IoU 0.3）、每个真值物体的 Stable/Appeared/Missing/Moved 状态、已移走/搬动物体的原位置与原位置是否已对方法可观察、MRR 分子分母、污染占比 |
+| 逐实体 | 是否假撤回、身份是否连续（搬动前承载实体列表与首次带标签重见的分配；裁决 M）、恢复延迟（自干预处首次可观察帧起；裁决 O） |
 | 逐 episode | contamination AUC、活动实体数、历史版本数、每帧运行时间、峰值内存、三分解计数 |
 | 逐 house | 上述量的聚合，供配对 bootstrap |
 
