@@ -2,9 +2,9 @@
   "schema_version": "vsmt-vm04-d223-f00-topology-precheck-v1",
   "decision_id": "D-223",
   "stage_id": "F-00",
-  "status": "implementation_pending_review_all_execution_closed",
+  "status": "frozen_real_two_house_topology_precheck",
   "reviewed_baseline_commit": "569ce605983acf1586339189caddde20e93e2492",
-  "expected_reviewed_implementation_commit": null,
+  "expected_reviewed_implementation_commit": "3d425a9b3fbb69ac306168e25f1faea1ced79855",
   "bindings": {
     "d223_relative_path": "configs/vsmt/vm04_d223_p08_topological_qualification_v1.json",
     "d223_file_sha256": "737b4a7e108dca30931884460d294d36cc571c2d50fe5bc12daa0ebf9f288b18",
@@ -14,7 +14,7 @@
     "d211_source_binding_file_sha256": "9742dba79f2e72880221fe5cd5d63b00a219ebf77a8160461b9ef960e21e8711"
   },
   "authorization": {
-    "real_two_house_topology_precheck": false,
+    "real_two_house_topology_precheck": true,
     "route_or_raw_generation": false,
     "production_reader": false,
     "private_evaluation": false,
