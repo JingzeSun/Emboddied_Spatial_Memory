@@ -34,7 +34,7 @@ VSMT-lean 解决的问题是：机器人在多视角历史中重访时，对象�
 | `observation_count`、`last_seen_t` | 观察次数与上次观察帧号 | BIND/BIRTH/REACTIVATE |
 | `missed_opportunity_count` | 连续"应可见却未匹配"次数；任一次匹配清零 | 共享 dormancy 规则 |
 | `evidence[]` | `(frame_digest, fragment_id)` 列表 | BIND/BIRTH/REACTIVATE |
-| `supported_by` | 几何派生的支撑面 ID 或 null；五方法共享同一确定性规则 | 共享几何规则 |
+| `supported_by` | 几何派生的支撑面 ID 或 null；五方法共享同一确定性规则。它是 D-224 裁决 B 明确保留的几何派生属性，但**不进入关联特征**：按 ID 比较只有在表面 ID 跨帧稳定时才有信息，而跨帧稳定的表面 ID 等于维持一个持久表面身份，那正是首篇移除的能力。关联头改用纯几何的支撑面高度差 | 共享几何规则 |
 | `provenance` | 创建/关闭该版本的事务 ID 与决策时刻 | executor |
 
 **状态机。** `active` ⇄ `dormant` 由五方法共享的确定性 dormancy 规则决定：连续错失的应可见次数达到 `n_dormant`（null）转 dormant，任一次匹配转回 active。`active`/`dormant` → `retracted` 只由 RETRACT 触发；`dormant`/`retracted` → `active` 只由 REACTIVATE 触发。BIND 只能落到 `active` 实体。NoVersion 消融把 `retracted` 改为物理删除。白话：dormant 是"很久没看见但没有证据说它不在"，retracted 是"有证据说它不在原处"；两者都不删档案。
@@ -80,14 +80,16 @@ VSMT-lean 解决的问题是：机器人在多视角历史中重访时，对象�
 
 步骤：
 
-1. **召回。** 对每个 fragment f：按描述子余弦取前 `k` 个 `active` 实体，且质心距离 ≤ `R_active`（null）；按余弦取前 `k′` 个 `dormant`/`retracted` 实体，不设距离上限（被搬动的物体可以很远）。召回集合、顺序及其 digest 在此封存。
-2. **代价矩阵。** 行为 F；列为召回的实体并集加 |F| 个 BIRTH 虚拟列。`C[f,e] = −log σ(a(f,e))`，`C[f,birth_f] = −log σ(b(f))`，其余为 +∞。
-3. **矩形分配。** `linear_sum_assignment` 求最小总代价；严格并列按 `(代价, entity_id, fragment_id)` 字典序确定，不依赖运行顺序。
+1. **召回（两条通道取并集）。** 对每个 fragment f：本地通道按描述子余弦取前 `k` 个质心距离 ≤ `R_local`（null）的实体；全局通道**对 active/dormant/retracted 一视同仁**、不设距离上限、按余弦取前 `k′`（null）个。两者去重合并，并列按 `entity_id`。召回集合、顺序及其 digest 在此封存。全局通道不分状态，是因为 `AssocOnly` 根本没有 dormant/retracted 状态：若只给这两种状态远距资格，它的旧实体会留在原地被距离门挡成 BIRTH，比较就同时混入了「有没有生命周期词表」和「有没有远距候选资格」，而 D-224-HIJ 要的是前者的纯反事实。候选资格因此与状态无关且五臂共享；状态只决定分配编译成哪个原子。
+2. **代价矩阵。** 行为按 `fragment_id` 排序的 F；列为召回的实体并集加 |F| 个 BIRTH 虚拟列。`C[f,e] = −a(f,e)`，`C[f,birth_f] = −b(f)`。取 logit 的相反数而不是 `−log σ(·)`：softmax 训练学到的是 `p(列|行) ∝ exp(logit)`，最大化联合对数似然等价于最小化 `Σ(−logit)`，归一化常数是每行常量不影响联合最优；`−log σ` 是非线性单调变换，会改变跨行竞争下的最优配对，实测约十分之一的随机二乘二case给出不同答案。召回之外的组合用由当前矩阵最大/最小合法代价和行数算出的禁止代价，保证任何含禁止格的分配严格更贵；固定写一个大常数不安全，因为极端 logit 能产生同样大的合法代价。
+3. **矩形分配。** 自写求解器取最小总代价，并把结果规范化为**字典序最小的那个最优解**；行序按 `fragment_id` 而非 SAM 返回顺序，因此交换本帧色块顺序不会换掉并列结果。
 4. **编译。** f→active e 记 BIND；f→dormant/retracted e 记 REACTIVATE；f→birth 记 BIRTH。
 5. **存在决定。** 对每个 `active` 且本帧应可见、且未被分配的实体 e：σ(r(e)) ≥ `τ_r`（null，属 VSMT-lean 的 ≤12 配置之一）记 RETRACT，否则记 NOOP 并累计错失次数。
 6. **提交。** 执行器在 M_{t−1} 的克隆上原子执行全部原子，失败整帧回滚并记 `illegal_program`；随后共享 dormancy 规则与共享去重按登记周期运行。
 
 白话：这一步把"谁是谁、谁是新的、谁没了"变成一次分配求解，学习部件只提供每格的代价；对手方法用手写阈值填同一张表，因此差别只在代价怎么来。
+
+**封存为什么分两阶段。** 阶段 A 在任何模型运行前、任何私有文件打开前封存召回集合与关联/新建特征。阶段 B 在求解之后封存分配回执与存在特征，因为存在头有一项是「最相似色块是否仍未被分配」，求解之前没有定义。只封存阶段 A 会让三分之一的模型输入落在不变性保证之外，「三张特征表逐字节不变」这句话就不成立。两份摘要都写完，teacher 才可以打开 private；训练时喂给存在特征的分配必须来自当前策略或登记的规则臂，**绝不能用 teacher 的分配**，否则学生在训练时看到的是它自己在部署时拿不到的东西。
 
 ## 七、学习代价头
 
@@ -95,7 +97,7 @@ VSMT-lean 解决的问题是：机器人在多视角历史中重访时，对象�
 
 | 头 | 输入特征（全部由公开 cache 与 M_{t−1} 计算） | 输出 |
 |---|---|---|
-| 关联头 a(f,e) | 与 `descriptor_mean` 的余弦；与 `best_view_descriptor` 的余弦；质心距离；AABB 三维 IoU；尺寸对数比；`t − last_seen_t`；`missed_opportunity_count`；状态 one-hot；e 在 f 的召回中的余弦名次；次优余弦差；是否互为最佳；`supported_by` 是否一致 | 关联 logit |
+| 关联头 a(f,e) | 与 `descriptor_mean` 的余弦；与 `best_view_descriptor` 的余弦；质心距离；AABB 三维 IoU；尺寸对数比；`t − last_seen_t`；`missed_opportunity_count`；状态 one-hot；e 在 f 的召回中的余弦名次；次优余弦差；是否互为最佳；支撑面高度差 | 关联 logit |
 | 存在头 r(e) | 应可见比例；自由空间覆盖比例；相机到质心距离与视角余弦；`missed_opportunity_count`；`observation_count`；`t − last_seen_t`；与当前任一 fragment 的最高余弦及该 fragment 是否仍未匹配；状态 one-hot | "已不在原处" logit |
 | 新建头 b(f) | 对任一实体的最高余弦；1 m 内活动实体数；fragment 像素数；深度有效率 | 新建 logit |
 
@@ -136,7 +138,7 @@ VSMT-lean 解决的问题是：机器人在多视角历史中重访时，对象�
 
 | 名称 | 精确定义 | 回答的问题 |
 |---|---|---|
-| `NoVersion` | RETRACT 改为物理删除，`retracted` 集合不参加召回，再出现只能 BIRTH；代价头与训练不变 | 可逆版本对被搬动物体身份连续率值多少 |
+| `NoVersion` | RETRACT 改为物理删除，被删实体不再存在于记忆中因此也无从召回，再出现只能 BIRTH；召回规则、代价头与训练不变 | 可逆版本对被搬动物体身份连续率值多少 |
 | `HandCost` | 把三个代价头替换为 ELU-P 的手写代价，分配求解器与执行器不变 | 学习代价相对手写代价的贡献 |
 | `HeuristicLabel` | 用 TAF 在公开数据上的决定当标签训练同一网络 | 私有实例真值相对公开启发式标签的贡献 |
 | `AssocOnly` | 同一个学习关联头与同一求解器，但事务词表只剩 `BIND` 与 `BIRTH`：不撤回、不恢复、无 dormancy，`retracted` 集合不存在 | 生命周期词表本身值多少，而不是学到的关联值多少 |

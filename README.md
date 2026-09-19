@@ -1,6 +1,6 @@
 # VSMT-lean: Versioned Structural Memory Transactions（精简版）
 
-当前第一篇论文唯一主题是 **VSMT-lean（实体生命周期版本化事务，D-224，2026-09-19 批准）**：机器人持续接收 RGB-D 观测并重访时，对象级记忆里的每个实体应当保持、绑定新证据、新建、撤回还是恢复，由一次帧级联合分配给出 NOOP、BIND、BIRTH、RETRACT、REACTIVATE 组成的程序，在同一不可变旧版本上提交为可追溯的新版本。REPLACE 是 RETRACT+BIRTH 复合程序；MERGE 降为五方法共享的确定性去重；SPLIT、RELINK 与地点/关系修订不进入首篇。当前为 proposed 方法；机器合同、数据与训练均未开始。
+当前第一篇论文唯一主题是 **VSMT-lean（实体生命周期版本化事务，D-224，2026-09-19 批准）**：机器人持续接收 RGB-D 观测并重访时，对象级记忆里的每个实体应当保持、绑定新证据、新建、撤回还是恢复，由一次帧级联合分配给出 NOOP、BIND、BIRTH、RETRACT、REACTIVATE 组成的程序，在同一不可变旧版本上提交为可追溯的新版本。REPLACE 是 RETRACT+BIRTH 复合程序；MERGE 降为五方法共享的确定性去重；SPLIT、RELINK 与地点/关系修订不进入首篇。当前为 proposed 方法；S0-01～S0-03 三份机器合同已实现，数据生成与训练均未开始。
 
 白话：它解决"原来那把椅子现在看不见，是被挡住、走出视野、检测漏了，还是真的被搬走"的判断。输入是截至当前帧的 RGB-D 派生匿名 fragment、公开几何/自由空间/可见体积和系统自己此前预测的实体记忆，输出是本帧一个合法程序及新记忆版本。例如杯子原位置连续被可靠自由空间覆盖、另一张桌面出现高相似 fragment，程序应把旧杯子恢复到新位置而不是删旧建新。它不等于普通对象跟踪的别名，不训练视觉前端，也不把 executor、DINOv2 或五个操作名字单独当作创新。
 
@@ -8,7 +8,7 @@
 
 核心候选贡献是：**用私有实例真值做 hindsight 监督、以可逆版本记录对象级记忆的生命周期修订，并在共享冻结 RGB-D 前端下用 recall miss / teacher error / amortization error 分解说明胜负来自哪里。** 底层模型是冻结 SAM 2.1 加 DINOv2 描述子、三个约 4 万参数的 MLP 代价头和一次匈牙利分配，不是 VLM 或图网络。
 
-主实验比较 `VSMT-lean / TAF / ELU-P / RAC / LOW`，可选零训练 LLM 选操作臂；消融 `NoVersion / HandCost / HeuristicLabel`。数据为 ProcTHOR 多 house 覆盖式重访加不可观测窗口干预，指标对齐 Dyn-THOR 的节点 P/R/F1 与 Missing 残留率，另报假撤回率、身份连续率、恢复延迟。
+主实验比较 `VSMT-lean / TAF / ELU-P / RAC / LOW`；四组消融 `NoVersion / HandCost / HeuristicLabel / AssocOnly`，其中 `AssocOnly` 是核心贡献的唯一因果反事实，主表必须并列报告。`LLM-op` 是必做附录臂，只在 validation 上跑、不进主表也不进 test；`VSMT-lean-ctx` 是可选臂。数据为 ProcTHOR 多 house 覆盖式重访加不可观测窗口干预，指标对齐 Dyn-THOR 的节点 P/R/F1 与 Missing 残留率，另报假撤回率、身份连续率、恢复延迟。
 
 ## 分支说明
 

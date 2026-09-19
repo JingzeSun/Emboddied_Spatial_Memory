@@ -55,7 +55,7 @@ ASSOCIATION_FEATURES = (
     "cosine_rank_within_recall",
     "cosine_margin_to_runner_up",
     "mutual_best",
-    "supported_by_agrees",
+    "support_height_difference_m",
 )
 
 #: Frozen feature order for the existence head r(e), computed after the solve.
@@ -95,11 +95,6 @@ ENTITY_GEOMETRY_FIELDS = (
 
 #: A virtual BIRTH column is named after its fragment, never after a slot.
 BIRTH_COLUMN_PREFIX = "birth:"
-
-#: Cost used for a pair the recall rule did not return.  It is finite so the
-#: solver stays well defined, and large enough that any legal pairing or any
-#: birth is preferred to it.
-FORBIDDEN_COST = 1.0e9
 
 
 class LeanAssignmentError(ValueError):
@@ -264,55 +259,67 @@ def validate_cache_frame(frame: Mapping[str, Any]) -> dict[str, Any]:
 
 def recall_for_fragment(
     fragment: Mapping[str, Any], memory: Mapping[str, Any], *,
-    active_count: int, dormant_count: int, active_radius_m: float,
+    local_count: int, global_count: int, local_radius_m: float,
 ) -> list[str]:
     """Return the recalled entity ids for one fragment, in a fixed order.
 
-    白话：输入一个色块和旧记忆，输出这次要为它考虑的实体列表。活动实体按余弦取
-    前 k 个且质心距离不超过登记半径；休眠与已撤回实体按余弦取前 k′ 个且**不设距
-    离上限**，因为被搬走的物体可以出现在很远处。例如杯子从厨房搬到卧室后，只有
-    不设上限的那一路才能把旧杯子召回来。它不判断谁是正确答案，也不读取私有身份。
+    白话：输入一个色块和旧记忆，输出这次要为它考虑的实体列表。两条通道取并集：本
+    地通道在登记半径内按余弦取前 k 个，全局通道**对全部状态一视同仁**、不设距离
+    上限、按余弦取前 k′ 个。例如杯子从厨房搬到卧室后，全局通道仍能把旧杯子召回来。
+    它不判断谁是正确答案，也不读取私有身份。
+
+    Why the global channel ignores state.  An earlier version gave the
+    distance-free channel only to dormant and retracted entities.  That
+    silently confounded the ``AssocOnly`` ablation: ``AssocOnly`` has no
+    dormant or retracted state at all, so a carried-away object would stay
+    active at its old place, fall outside the local radius, and be forced to
+    BIRTH.  The comparison would then measure "does it have the lifecycle
+    vocabulary" *and* "is it allowed distant candidates" together, which is
+    not the causal counterfactual D-224-HIJ made mandatory.  Candidate
+    eligibility is now state-independent and identical for all five arms;
+    state only decides which atom an assignment compiles to.
 
     Ties in cosine are broken by ``entity_id`` so the order never depends on
     dict iteration or on the order entities happen to sit in the memory list.
     """
 
-    k_active = _int(active_count, "recall_active_count_invalid", minimum=0)
-    k_dormant = _int(dormant_count, "recall_dormant_count_invalid", minimum=0)
-    radius = _finite(active_radius_m, "recall_active_radius_invalid")
-    _require(radius > 0.0, "recall_active_radius_invalid")
+    k_local = _int(local_count, "recall_local_count_invalid", minimum=0)
+    k_global = _int(global_count, "recall_global_count_invalid", minimum=0)
+    radius = _finite(local_radius_m, "recall_local_radius_invalid")
+    _require(radius > 0.0, "recall_local_radius_invalid")
 
     descriptor = fragment["descriptor"]
     centroid = fragment["centroid_m"]
-    active: list[tuple[float, str]] = []
-    resting: list[tuple[float, str]] = []
+    local: list[tuple[float, str]] = []
+    everywhere: list[tuple[float, str]] = []
     for entity in memory["entities"]:
         entity_id = str(entity["entity_id"])
         cosine = cosine_similarity(descriptor, entity["descriptor_mean"])
-        if entity["state"] == "active":
-            if _distance(centroid, entity["centroid_m"]) <= radius:
-                active.append((cosine, entity_id))
-        else:
-            resting.append((cosine, entity_id))
+        everywhere.append((cosine, entity_id))
+        if _distance(centroid, entity["centroid_m"]) <= radius:
+            local.append((cosine, entity_id))
 
-    active.sort(key=lambda item: (-item[0], item[1]))
-    resting.sort(key=lambda item: (-item[0], item[1]))
-    return (
-        [item[1] for item in active[:k_active]]
-        + [item[1] for item in resting[:k_dormant]]
-    )
+    local.sort(key=lambda item: (-item[0], item[1]))
+    everywhere.sort(key=lambda item: (-item[0], item[1]))
+    ordered: list[str] = []
+    seen: set[str] = set()
+    for _, entity_id in local[:k_local] + everywhere[:k_global]:
+        if entity_id not in seen:
+            seen.add(entity_id)
+            ordered.append(entity_id)
+    return ordered
 
 
 def build_recall(
     frame: Mapping[str, Any], memory: Mapping[str, Any], *,
-    active_count: int, dormant_count: int, active_radius_m: float,
+    local_count: int, global_count: int, local_radius_m: float,
 ) -> dict[str, list[str]]:
     """Recall for every fragment of the frame, keyed by fragment id."""
 
     return {
         str(fragment["fragment_id"]): recall_for_fragment(
-            fragment, memory, active_count=active_count,
-            dormant_count=dormant_count, active_radius_m=active_radius_m,
+            fragment, memory, local_count=local_count,
+            global_count=global_count, local_radius_m=local_radius_m,
         )
         for fragment in frame["fragments"]
     }
@@ -364,7 +371,13 @@ def association_feature_vector(
         float(rank),
         margin,
         1.0 if mutual_best else 0.0,
-        1.0 if fragment["supported_by"] == entity["supported_by"] else 0.0,
+        # Height of the supporting plane, as a pure geometric difference.
+        # Comparing ``supported_by`` ids instead would only be informative if
+        # surface ids were stable across frames, which would mean maintaining
+        # a persistent surface identity -- exactly the capability D-224 took
+        # out of the first paper.  The bottom-face height carries the same
+        # public cue with no identity and no threshold.
+        abs(float(fragment["aabb_min_m"][1]) - float(entity["aabb_min_m"][1])),
     ]
     _require(len(row) == len(ASSOCIATION_FEATURES), "association_feature_arity")
     return row
@@ -459,14 +472,15 @@ def existence_feature_vector(
 
 def build_assignment_inputs(
     frame: Mapping[str, Any], memory: Mapping[str, Any], *,
-    active_count: int, dormant_count: int, active_radius_m: float,
+    local_count: int, global_count: int, local_radius_m: float,
     birth_neighbourhood_radius_m: float,
 ) -> dict[str, Any]:
-    """Build recall, the association rows and the birth rows, then seal them.
+    """Stage A: build recall, the association rows and the birth rows, and seal.
 
     白话：输入一帧和旧记忆，输出召回集合、两张特征矩阵、列顺序和一个封存摘要。
     它在任何模型运行前、任何私有文件打开前完成；此后私有数据怎么变，这份摘要都
-    必须逐字节不变。例如只换模拟器实例映射，摘要必须一模一样。
+    必须逐字节不变。例如只换模拟器实例映射，摘要必须一模一样。存在特征不在这一
+    阶段，它要等求解之后由 `seal_solution_and_existence` 封存。
     """
 
     checked_frame = validate_cache_frame(frame)
@@ -477,18 +491,33 @@ def build_assignment_inputs(
     by_id = {
         str(entity["entity_id"]): entity for entity in checked_memory["entities"]
     }
+    # A descriptor of the wrong width silently scores -1 against every entity,
+    # which would look like "nothing matches" instead of a broken frontend.
+    if checked_memory["entities"] and checked_frame["fragments"]:
+        width = len(checked_memory["entities"][0]["descriptor_mean"])
+        for fragment in checked_frame["fragments"]:
+            _require(
+                len(fragment["descriptor"]) == width,
+                "frame_descriptor_width_differs_from_memory",
+            )
+
     recall = build_recall(
-        checked_frame, checked_memory, active_count=active_count,
-        dormant_count=dormant_count, active_radius_m=active_radius_m,
+        checked_frame, checked_memory, local_count=local_count,
+        global_count=global_count, local_radius_m=local_radius_m,
     )
 
     cosines: dict[str, dict[str, float]] = {}
+    all_cosines: dict[str, dict[str, float]] = {}
     for fragment in checked_frame["fragments"]:
         fragment_id = str(fragment["fragment_id"])
-        cosines[fragment_id] = {
-            entity_id: cosine_similarity(
-                fragment["descriptor"], by_id[entity_id]["descriptor_mean"],
+        all_cosines[fragment_id] = {
+            str(entity["entity_id"]): cosine_similarity(
+                fragment["descriptor"], entity["descriptor_mean"],
             )
+            for entity in checked_memory["entities"]
+        }
+        cosines[fragment_id] = {
+            entity_id: all_cosines[fragment_id][entity_id]
             for entity_id in recall[fragment_id]
         }
 
@@ -500,9 +529,16 @@ def build_assignment_inputs(
             if current is None or (-value, fragment_id) < (-current[0], current[1]):
                 best_for_entity[entity_id] = (value, fragment_id)
 
+    # Canonical row order: the fragment id, not the order SAM happened to
+    # return masks in.  Without this, swapping two fragments in the frame can
+    # swap which of two equal-cost optima the solver returns.
+    ordered_fragments = sorted(
+        checked_frame["fragments"], key=lambda item: str(item["fragment_id"]),
+    )
+
     association_rows: list[dict[str, Any]] = []
     birth_rows: list[dict[str, Any]] = []
-    for fragment in checked_frame["fragments"]:
+    for fragment in ordered_fragments:
         fragment_id = str(fragment["fragment_id"])
         table = cosines[fragment_id]
         order = recall[fragment_id]
@@ -528,7 +564,7 @@ def build_assignment_inputs(
         birth_rows.append({
             "fragment_id": fragment_id,
             "features": birth_feature_vector(
-                fragment, checked_memory, cosines=table,
+                fragment, checked_memory, cosines=all_cosines[fragment_id],
                 neighbourhood_radius_m=birth_neighbourhood_radius_m,
             ),
         })
@@ -536,7 +572,7 @@ def build_assignment_inputs(
     columns = sorted({row["entity_id"] for row in association_rows})
     columns += [
         f"{BIRTH_COLUMN_PREFIX}{str(fragment['fragment_id'])}"
-        for fragment in checked_frame["fragments"]
+        for fragment in ordered_fragments
     ]
     payload = {
         "frame_digest": checked_frame["frame_digest"],
@@ -562,58 +598,106 @@ def build_assignment_inputs(
 def build_cost_matrix(
     inputs: Mapping[str, Any], *,
     association_logits: Mapping[str, float], birth_logits: Mapping[str, float],
-) -> list[list[float]]:
-    """Turn head outputs into the rectangular cost matrix ``-log sigmoid(x)``.
+) -> dict[str, Any]:
+    """Turn head outputs into the rectangular cost matrix, cost = ``-logit``.
 
     白话：输入封存好的特征矩阵和三个头给出的 logit，输出代价矩阵：行是色块，列是
-    被召回的实体加上每个色块自己的新建列。召回之外的组合给一个有限但很大的代价，
-    因此求解器永远不会选它。例如一个实体没有被某个色块召回，它们就不可能配对。
-    它不决定 logit 怎么来，也不做任何学习。
+    被召回的实体加上每个色块自己的新建列。代价取 logit 的相反数，而不是
+    `-log sigmoid(logit)`。例如两个色块竞争同一个实体时，用哪种变换会改出不同的
+    最优配对。它不决定 logit 怎么来，也不做任何学习。
+
+    Why ``-logit`` and not ``-log sigmoid(logit)``.  METHOD trains the
+    association and birth heads with a per-fragment softmax cross-entropy, so
+    the model learns ``p(column | row) ∝ exp(logit)``.  Maximising the joint
+    log-likelihood of an assignment means minimising ``sum(-logit)``: the
+    softmax normaliser is a per-row constant and every row picks exactly one
+    column, so it cannot change which assignment wins.  ``-log sigmoid`` is a
+    *nonlinear* monotone map of ``-logit``, so it reorders joint assignments
+    across rows.  On 200,000 random two-by-two cases the two transforms chose
+    a different optimum about one time in ten, and the gap in joint logit was
+    not small, so this is a correctness bug rather than a scaling choice.
     """
 
     rows = list(inputs["rows"])
     columns = list(inputs["columns"])
-    _require(bool(columns), "cost_matrix_has_no_column")
     _require(len(columns) >= len(rows), "cost_matrix_more_rows_than_columns")
+    if not rows:
+        # A frame with no fragment is legal: the robot may be facing a blank
+        # wall.  It yields an empty assignment and the existence pass still
+        # runs, so this is not a construction failure.
+        return {"rows": [], "columns": columns, "matrix": [], "forbidden_cost": 0.0}
 
     index_of_column = {name: index for index, name in enumerate(columns)}
     index_of_row = {name: index for index, name in enumerate(rows)}
-    matrix = [[FORBIDDEN_COST] * len(columns) for _ in rows]
+    legal: list[tuple[int, int, float]] = []
     for row_index, fragment_id in enumerate(rows):
         birth_column = index_of_column[f"{BIRTH_COLUMN_PREFIX}{fragment_id}"]
-        matrix[row_index][birth_column] = _neg_log_sigmoid(
-            _finite(birth_logits[fragment_id], "birth_logit_invalid")
-        )
+        legal.append((row_index, birth_column, -_finite(
+            birth_logits[fragment_id], "birth_logit_invalid",
+        )))
     for item in inputs["association_rows"]:
         row_index = index_of_row[str(item["fragment_id"])]
         column_index = index_of_column[str(item["entity_id"])]
         key = f"{item['fragment_id']}|{item['entity_id']}"
-        matrix[row_index][column_index] = _neg_log_sigmoid(
-            _finite(association_logits[key], "association_logit_invalid")
-        )
-    return matrix
+        legal.append((row_index, column_index, -_finite(
+            association_logits[key], "association_logit_invalid",
+        )))
+
+    forbidden = _forbidden_cost([value for _, _, value in legal], rows=len(rows))
+    matrix = [[forbidden] * len(columns) for _ in rows]
+    for row_index, column_index, value in legal:
+        matrix[row_index][column_index] = value
+    return {
+        "rows": rows, "columns": columns, "matrix": matrix,
+        "forbidden_cost": forbidden,
+    }
 
 
-def _neg_log_sigmoid(logit: float) -> float:
-    # softplus(-x), evaluated in the numerically stable branch.
-    if logit >= 0.0:
-        return math.log1p(math.exp(-logit))
-    return -logit + math.log1p(math.exp(logit))
+def _forbidden_cost(legal_values: Sequence[float], *, rows: int) -> float:
+    """A cost no optimal assignment can ever prefer, derived from the matrix.
+
+    白话：召回之外的组合需要一个"永远不会被选"的代价。固定写 1e9 不安全，因为一
+    个足够极端的 logit 会产生同样大甚至更大的合法代价。这里改为由当前矩阵的最大/
+    最小合法代价和行数算出来，保证任何含禁止格的分配都严格贵于任意全合法分配。
+    例如全部合法代价都在 [-5, 5] 且有 3 行时，禁止代价取 21。它不是一个可调参数。
+
+    Any all-legal assignment costs at most ``rows * hi``.  An assignment that
+    uses one forbidden cell costs at least ``B + (rows - 1) * lo``.  Requiring
+    the second to exceed the first gives ``B > rows * hi - (rows - 1) * lo``.
+    A fully legal assignment always exists because every fragment owns a birth
+    column, so the bound is never vacuous.
+    """
+
+    _require(rows >= 1, "forbidden_cost_needs_a_row")
+    _require(bool(legal_values), "forbidden_cost_needs_a_legal_value")
+    hi = max(legal_values)
+    lo = min(legal_values)
+    return rows * hi - (rows - 1) * lo + 1.0
 
 
 def solve_rectangular_assignment(matrix: Sequence[Sequence[float]]) -> list[int]:
-    """Minimum-cost assignment of every row to a distinct column.
+    """Minimum-cost assignment, canonicalised to the lexicographic optimum.
 
-    白话：输入行数不超过列数的代价矩阵，输出每一行选中的列号，使总代价最小。例
-    如两个色块都最像同一个实体时，只有一个能拿到它，另一个会被推向次优列或新建
-    列。它是确定性的：同样的矩阵永远给出同一组列号。
+    白话：输入行数不超过列数的代价矩阵，输出每一行选中的列号，使总代价最小；若存
+    在多个代价相同的最优解，固定返回"按行依次取可行的最小列号"的那一个。例如两个
+    色块都最像同一个实体时，只有一个能拿到它，另一个会被推向次优列或新建列。它是
+    确定性的，且不依赖行列的偶然输入顺序。
 
-    This is the Jonker-Volgenant style shortest augmenting path method with
-    potentials, O(rows^2 * columns).  It is written here because scipy is not
-    a dependency and because the tie-breaking must be ours: ties are resolved
-    towards the smaller column index, so the result depends only on the
-    matrix and on the caller's own canonical row and column order.
+    Written here rather than taken from scipy: scipy is not a dependency, and
+    the tie-breaking has to be ours because a rectangular assignment usually
+    has several optima.  The raw solve is a shortest-augmenting-path method
+    with potentials; the canonicalisation afterwards is what makes the
+    declared "smaller column first" semantics actually true, which the raw
+    solve alone does not deliver.
     """
+
+    return _lexicographically_smallest_optimum(
+        matrix, _solve_rectangular_core(matrix),
+    )
+
+
+def _solve_rectangular_core(matrix: Sequence[Sequence[float]]) -> list[int]:
+    """One optimal assignment, with no guarantee about which optimum."""
 
     rows = len(matrix)
     _require(rows > 0, "assignment_matrix_empty")
@@ -678,6 +762,54 @@ def solve_rectangular_assignment(matrix: Sequence[Sequence[float]]) -> list[int]
     return result
 
 
+def _lexicographically_smallest_optimum(
+    matrix: Sequence[Sequence[float]], seed: Sequence[int],
+) -> list[int]:
+    """Canonicalise an optimum to the lexicographically smallest one.
+
+    白话：一个矩形分配通常有多个代价相同的最优解。这一步把结果收敛到"按行依次取
+    可行的最小列号"的那一个，使返回值只由矩阵和规范行列顺序决定。例如
+    `[[1,0],[1,0]]` 的两个最优解 `[1,0]` 与 `[0,1]` 代价都是 1，这里固定返回
+    `[0,1]`。它不改变最优代价，只消除并列时的任意性。
+
+    Row by row, try the smallest unused column first and keep it if the rest of
+    the problem can still reach the optimal total.  Forbidden alternatives are
+    priced with the same derived big-M used elsewhere, so the sub-solves stay
+    finite and the accepted total is comparable to the seed total.
+    """
+
+    rows = len(matrix)
+    columns = len(matrix[0])
+    target = sum(float(matrix[row][col]) for row, col in enumerate(seed))
+    flat = [float(value) for row in matrix for value in row]
+    big = _forbidden_cost(flat, rows=rows) + abs(max(flat)) * rows + 1.0
+    tolerance = max(1.0, abs(target)) * 1e-9
+
+    chosen: list[int] = []
+    used: set[int] = set()
+    for row in range(rows):
+        for candidate in range(columns):
+            if candidate in used:
+                continue
+            trial = [list(values) for values in matrix]
+            for fixed_row, fixed_column in enumerate(chosen):
+                for column in range(columns):
+                    if column != fixed_column:
+                        trial[fixed_row][column] = big
+            for column in range(columns):
+                if column != candidate:
+                    trial[row][column] = big
+            probe = _solve_rectangular_core(trial)
+            total = sum(float(trial[r][c]) for r, c in enumerate(probe))
+            if total <= target + tolerance:
+                chosen.append(candidate)
+                used.add(candidate)
+                break
+        else:  # pragma: no cover - a feasible column always exists
+            raise LeanAssignmentError("assignment_canonicalisation_failed")
+    return chosen
+
+
 def assignment_cost(
     matrix: Sequence[Sequence[float]], columns: Sequence[int],
 ) -> float:
@@ -697,12 +829,21 @@ def solve_frame(
     调用方按 S0-01 的执行器完成。
     """
 
-    matrix = build_cost_matrix(
+    built = build_cost_matrix(
         inputs, association_logits=association_logits, birth_logits=birth_logits,
     )
-    chosen = solve_rectangular_assignment(matrix)
+    matrix = built["matrix"]
     rows = list(inputs["rows"])
     columns = list(inputs["columns"])
+    if not rows:
+        return {
+            "frame_digest": inputs["frame_digest"],
+            "assignment": {},
+            "total_cost": 0.0,
+            "forbidden_cost": built["forbidden_cost"],
+            "stage_a_seal_sha256": inputs["seal_sha256"],
+        }
+    chosen = solve_rectangular_assignment(matrix)
     assignment = {
         rows[index]: columns[column] for index, column in enumerate(chosen)
     }
@@ -716,8 +857,74 @@ def solve_frame(
         "frame_digest": inputs["frame_digest"],
         "assignment": assignment,
         "total_cost": assignment_cost(matrix, chosen),
-        "seal_sha256": inputs["seal_sha256"],
+        "forbidden_cost": built["forbidden_cost"],
+        "stage_a_seal_sha256": inputs["seal_sha256"],
     }
+
+
+def seal_solution_and_existence(
+    solution: Mapping[str, Any], frame: Mapping[str, Any],
+    memory: Mapping[str, Any], *, inputs: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Stage B: seal the solve receipt together with the existence rows.
+
+    白话：输入 stage A 的封存、当前帧、旧记忆和求解结果，输出第二份封存：分配回执
+    加上每个"本帧应可见却未被分配"的实体的存在特征。两份封存都完成后，teacher 才
+    可以打开 private。例如一个实体的最佳色块已经绑给别人，这条线索就落在这一份里。
+    它不做存在判定（那要 τ_r），也不读取私有数据。
+
+    The split exists because one existence feature is "the best-matching
+    fragment is still unassigned", which has no meaning before the solve.
+    Sealing only stage A would leave a third of the model's inputs outside the
+    invariance guarantee, so the contract's claim about the feature tables
+    would not actually hold.  During training the assignment fed in here must
+    be the current policy's or a registered rule arm's, never the teacher's.
+    """
+
+    checked_frame = validate_cache_frame(frame)
+    checked_memory = validate_memory(memory)
+    _require(
+        str(solution["stage_a_seal_sha256"]) == str(inputs["seal_sha256"]),
+        "stage_b_does_not_follow_stage_a",
+    )
+    _require(
+        str(solution["frame_digest"]) == str(checked_frame["frame_digest"]),
+        "stage_b_frame_mismatch",
+    )
+    tick = int(checked_frame["tick"])
+    assignment = dict(solution["assignment"])
+    taken = {
+        value for value in assignment.values()
+        if not str(value).startswith(BIRTH_COLUMN_PREFIX)
+    }
+
+    existence_rows: list[dict[str, Any]] = []
+    for entity in sorted(
+        checked_memory["entities"], key=lambda item: str(item["entity_id"]),
+    ):
+        entity_id = str(entity["entity_id"])
+        if entity_id in taken or entity_id not in checked_frame["entity_geometry"]:
+            continue
+        existence_rows.append({
+            "entity_id": entity_id,
+            "features": existence_feature_vector(
+                entity, checked_frame, assignment=assignment, tick=tick,
+            ),
+        })
+
+    payload = {
+        "frame_digest": str(checked_frame["frame_digest"]),
+        "tick": tick,
+        "stage_a_seal_sha256": str(inputs["seal_sha256"]),
+        "assignment": {key: str(value) for key, value in sorted(assignment.items())},
+        "total_cost": float(solution["total_cost"]),
+        "existence_rows": existence_rows,
+        "existence_feature_order": list(EXISTENCE_FEATURES),
+    }
+    payload["seal_sha256"] = hashlib.sha256(
+        canonical_json(payload).encode("utf-8")
+    ).hexdigest()
+    return payload
 
 
 # --------------------------------------------------------------------------
@@ -733,8 +940,10 @@ def reference_untrained_scores(inputs: Mapping[str, Any], *, seed: int) -> list[
     """
 
     _int(seed, "reference_seed_invalid", minimum=0)
+    rows = list(inputs.get("association_rows", [])) + list(inputs.get("birth_rows", []))
+    rows += list(inputs.get("existence_rows", []))
     scores: list[float] = []
-    for item in list(inputs["association_rows"]) + list(inputs["birth_rows"]):
+    for item in rows:
         payload = canonical_json([seed, item["features"]]).encode("utf-8")
         raw = int(hashlib.sha256(payload).hexdigest()[:8], 16)
         scores.append(raw / 0xFFFFFFFF)
@@ -755,20 +964,24 @@ def assert_private_mutation_invariance(
     _require(len(runs) >= 2, "invariance_needs_two_runs")
     baseline = runs[0]
     baseline_scores = reference_untrained_scores(baseline, seed=seed)
+    guarded = ("recall", "association_rows", "birth_rows", "existence_rows",
+               "assignment", "columns", "rows")
     for index, candidate in enumerate(runs[1:], start=1):
         _require(
             candidate["seal_sha256"] == baseline["seal_sha256"],
             f"seal_changed_under_private_mutation:{index}",
         )
         _require(
-            canonical_json(candidate["recall"]) == canonical_json(baseline["recall"]),
-            f"recall_changed_under_private_mutation:{index}",
+            set(candidate.keys()) == set(baseline.keys()),
+            f"payload_shape_changed_under_private_mutation:{index}",
         )
-        _require(
-            canonical_json(candidate["association_rows"])
-            == canonical_json(baseline["association_rows"]),
-            f"features_changed_under_private_mutation:{index}",
-        )
+        for name in guarded:
+            if name not in baseline:
+                continue
+            _require(
+                canonical_json(candidate[name]) == canonical_json(baseline[name]),
+                f"{name}_changed_under_private_mutation:{index}",
+            )
         _require(
             reference_untrained_scores(candidate, seed=seed) == baseline_scores,
             f"logits_changed_under_private_mutation:{index}",
@@ -777,6 +990,7 @@ def assert_private_mutation_invariance(
         "runs": len(runs),
         "seal_sha256": baseline["seal_sha256"],
         "score_count": len(baseline_scores),
+        "guarded_fields": [name for name in guarded if name in baseline],
     }
 
 
@@ -819,24 +1033,45 @@ def validate_assignment_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
         tuple(contract["birth_feature_order"]) == BIRTH_FEATURES,
         "contract_birth_feature_order_mismatch",
     )
+    # Every boolean below is a claim the implementation actually enforces, so
+    # flipping one in the contract must fail rather than quietly widen what the
+    # paper is allowed to say.  An earlier version only checked three of them
+    # and accepted "no local distance limit", "forbidden cost 42" and "not
+    # sealed before private opens".
+    for section, name, expected, code in (
+        ("recall_rule", "global_channel_covers_every_state", True,
+         "contract_recall_state_independence_weakened"),
+        ("recall_rule", "global_channel_has_no_distance_limit", True,
+         "contract_recall_distance_rule_weakened"),
+        ("recall_rule", "local_channel_has_distance_limit", True,
+         "contract_recall_local_channel_weakened"),
+        ("recall_rule", "identical_for_all_five_arms", True,
+         "contract_recall_sharing_weakened"),
+        ("seal", "existence_features_computed_after_the_solve", True,
+         "contract_existence_ordering_weakened"),
+        ("seal", "private_mutation_must_not_change_public_bytes", True,
+         "contract_invariance_weakened"),
+        ("seal", "sealed_before_any_model_runs", True,
+         "contract_stage_a_timing_weakened"),
+        ("seal", "sealed_before_any_private_file_is_opened", True,
+         "contract_private_timing_weakened"),
+        ("seal", "teacher_assignment_must_not_feed_existence_features", True,
+         "contract_teacher_assignment_leak_allowed"),
+        ("cost_matrix", "forbidden_cost_is_derived_from_the_matrix", True,
+         "contract_forbidden_cost_must_stay_derived"),
+    ):
+        _require(contract[section][name] is expected, code)
+
     _require(
-        contract["recall_rule"]["dormant_and_retracted_have_no_distance_limit"] is True,
-        "contract_recall_distance_rule_weakened",
-    )
-    _require(
-        contract["seal"]["existence_features_computed_after_the_solve"] is True,
-        "contract_existence_ordering_weakened",
-    )
-    _require(
-        contract["seal"]["private_mutation_must_not_change_public_bytes"] is True,
-        "contract_invariance_weakened",
+        contract["cost_matrix"]["cost"] == "negative_logit",
+        "contract_cost_transform_mismatch",
     )
     _require(
         contract["solver"]["implementation"] == "self_written_no_new_dependency",
         "contract_solver_source_mismatch",
     )
     _require(
-        contract["solver"]["tie_break"] == "smaller_column_index",
+        contract["solver"]["tie_break"] == "lexicographically_smallest_optimum",
         "contract_solver_tie_break_mismatch",
     )
     _require(
@@ -849,7 +1084,7 @@ def validate_assignment_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     )
 
     for section, names in (
-        ("recall_rule", ("active_count", "dormant_count", "active_radius_m",
+        ("recall_rule", ("local_count", "global_count", "local_radius_m",
                          "birth_neighbourhood_radius_m")),
         ("cost_matrix", ("existence_threshold_tau_r",)),
         ("seal", ("reference_score_seed",)),
@@ -875,7 +1110,6 @@ __all__ = [
     "CACHE_FRAME_FIELDS",
     "CONTRACT_SCHEMA_VERSION",
     "EXISTENCE_FEATURES",
-    "FORBIDDEN_COST",
     "LeanAssignmentError",
     "assert_private_mutation_invariance",
     "assignment_cost",
@@ -887,6 +1121,7 @@ __all__ = [
     "existence_feature_vector",
     "recall_for_fragment",
     "reference_untrained_scores",
+    "seal_solution_and_existence",
     "solve_frame",
     "solve_rectangular_assignment",
     "validate_assignment_contract",
