@@ -1,7 +1,7 @@
 {
   "schema_version": "vsmt-vm04-d222-structural-audit-v1",
   "decision_id": "D-222",
-  "status": "metrics_frozen_audit_closed",
+  "status": "frozen_executable_audit",
   "reviewed_baseline_commit": "ab77dbd",
   "purpose": "the one-shot E-08 audit of the frozen structural estimator on the 128 sealed audit houses",
   "why_a_separate_contract": {
@@ -37,7 +37,16 @@
     "human_judgements_required": 0,
     "label_source": "private_reference_reachable_grid_same_frozen_d215_rule",
     "model_inputs": "public_rgbd_and_camera_intrinsics_only",
-    "reachable_grid_read_at_inference": false
+    "reachable_grid_read_at_inference": false,
+    "seal_extension": {
+      "user_choice": "A",
+      "previous_sealed_house_count": 64,
+      "extended_house_count": 128,
+      "reason": "D-221's prefix extension rewrote only the train and calibration plan rows, so the audit seal stayed at the original 64 while the contracts said 128; the extension uses the same fixed hash prefix and the original 64 must remain the leading entries",
+      "decided_before_any_audit_observation_existed": true,
+      "prefix_invariance_verified_at_run_time": true,
+      "original_seal_archived_not_deleted": true
+    }
   },
   "frozen_metric_definitions": {
     "frozen_before_any_audit_observation_existed": true,
@@ -59,12 +68,24 @@
       "also_report_bin_table": true
     },
     "per_class_interval": {
-      "classes": ["basin", "bottleneck", "unknown"],
-      "statistics": ["recall", "precision", "mean_nll", "support"],
+      "classes": [
+        "basin",
+        "bottleneck",
+        "unknown"
+      ],
+      "statistics": [
+        "recall",
+        "precision",
+        "mean_nll",
+        "support"
+      ],
       "interval": "house level cluster bootstrap percentile interval"
     },
     "per_house_interval": {
-      "statistics": ["structural_accuracy", "structural_nll"],
+      "statistics": [
+        "structural_accuracy",
+        "structural_nll"
+      ],
       "interval": "house level cluster bootstrap percentile interval"
     },
     "bootstrap": {
@@ -72,7 +93,10 @@
       "method": "resample houses with replacement, keeping every observation of a resampled house",
       "resamples": 10000,
       "seed": 260919,
-      "percentiles": [2.5, 97.5],
+      "percentiles": [
+        2.5,
+        97.5
+      ],
       "rationale": "observations inside one house are correlated, so the interval must be taken over houses and not over frames"
     }
   },
@@ -82,9 +106,9 @@
     "p08_route_qualification_is_decided_separately_by_its_own_frozen_numbers": true
   },
   "authorization": {
-    "audit_rgbd_generation": false,
-    "audit_feature_materialization": false,
-    "audit_evaluation": false,
+    "audit_rgbd_generation": true,
+    "audit_feature_materialization": true,
+    "audit_evaluation": true,
     "estimator_retraining": false,
     "production_reader": false,
     "p04_p08_qualification": false,
