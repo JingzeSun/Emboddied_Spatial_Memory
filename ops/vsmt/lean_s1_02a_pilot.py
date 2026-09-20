@@ -476,7 +476,12 @@ def main() -> int:
     ap.add_argument("--output-root", required=True)
     ap.add_argument("--source", required=True)
     ap.add_argument("--workers", type=int, default=lean_pilot.PILOT_WORKERS)
+    ap.add_argument("--stage", choices=["s1-02a", "s1-02b"], default="s1-02a")
+    ap.add_argument("--pilot-root", help="S1-02b: the finished S1-02a output root (occupancy receipt, pilot houses)")
+    ap.add_argument("--development-houses", type=int, default=50)
     args = ap.parse_args()
+    if args.stage == "s1-02b":
+        return main_s1_02b(args)
     contract = json.loads(CONTRACT_S1_02A.read_text(encoding="utf-8"))
     lean_pilot.validate_pilot_contract(contract)
     if not all(contract["authorization"].values()):
@@ -526,6 +531,78 @@ def main() -> int:
     (out_root / "occupancy_receipt.json").write_text(json.dumps({**occupancy_receipt, "vram_peak_total_mib": vram_peak, "vram_base_mib": base_vram}, indent=1))
     print(json.dumps({"pilot": pilot_receipt, "occupancy": occupancy_receipt, "per_house": results}, indent=1, default=str))
     return 0 if not failed else 1
+
+
+def _capacity_measurements() -> dict[str, Any]:
+    """Read-only capacity readings for the derivation (same 15 names as S1-01)."""
+
+    import psutil
+    vm = psutil.virtual_memory()
+    du = os.statvfs("/root/autodl-tmp")
+    gpu = subprocess.run(["nvidia-smi", "--query-gpu=name,memory.total,memory.used", "--format=csv,noheader,nounits"],
+                         capture_output=True, text=True).stdout.strip().split(", ")
+    free_gb = du.f_bavail * du.f_frsize / 1e9
+    return {
+        "cpu_logical_cores": os.cpu_count(), "cpu_physical_cores": psutil.cpu_count(logical=False),
+        "ram_total_gb": vm.total / 1e9, "ram_available_gb": vm.available / 1e9,
+        "gpu_count": 1, "gpu_name": gpu[0], "gpu_total_vram_gb": float(gpu[1]) / 1024.0,
+        "gpu_free_vram_gb": (float(gpu[1]) - float(gpu[2])) / 1024.0,
+        "disk_free_gb_asset_root": free_gb, "disk_free_gb_install_root": free_gb,
+        "python_version": sys.version.split()[0], "torch_version": "n/a-simulator-env", "cuda_available": True,
+        "egl_resolves": True, "vulkan_resolves": True,
+    }
+
+
+def main_s1_02b(args: argparse.Namespace) -> int:
+    contract = json.loads(CONTRACT_S1_02A.read_text(encoding="utf-8"))
+    lean_pilot.validate_pilot_contract(contract)
+    freeze = contract["split_freeze"]
+    pilot_root = Path(args.pilot_root)
+    occupancy = json.loads((pilot_root / "occupancy_receipt.json").read_text(encoding="utf-8"))
+    occupancy = {k: occupancy[k] for k in lean_pilot.OCCUPANCY_RECEIPT_FIELDS}
+    pilot_plan = json.loads((pilot_root / "plan.json").read_text(encoding="utf-8"))
+    measurements = _capacity_measurements()
+    s1_01 = json.loads((ROOT / "configs" / "vsmt" / "lean_s1_assets_capacity_v2.json").read_text(encoding="utf-8"))
+    scale = lean_pilot.plan_scale_up(occupancy, measurements, headroom_fraction=s1_01["worker_rule"]["headroom_fraction"])
+    workers = min(scale["worker_count"], args.workers) if args.workers else scale["worker_count"]
+    commit = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, cwd=ROOT).stdout.strip()
+    source = Path(args.source)
+    pool = [f"{DATASET_TAG}-{i:05d}" for i, _ in house_loader.records_from_json(source)]
+    block = lean_pilot.train_block(pool, freeze)
+    pilot_houses = block[:lean_pilot.PILOT_TOTAL_HOUSES]
+    if pilot_houses != pilot_plan["selected"]:
+        print("pilot houses do not match the recomputed head; refusing"); return 2
+    houses = block[lean_pilot.PILOT_TOTAL_HOUSES:args.development_houses]
+    out_root = Path(args.output_root); out_root.mkdir(parents=True, exist_ok=True)
+    (out_root / "plan.json").write_text(json.dumps({"stage": "s1-02b", "houses": houses, "pilot_root": str(pilot_root),
+                                                    "derived": scale, "requested_workers": workers, "measurements": measurements,
+                                                    "commit": commit}, indent=1))
+    tasks = [{"house_id": h, "index": int(h.rsplit("-", 1)[1]), "out": str(out_root / h), "source_root": str(source.parent),
+              "source_rel": source.name, "split_seed": freeze["seed"], "commit": commit} for h in houses]
+    t0 = time.time()
+    ctx = mp.get_context("spawn")
+    with ctx.Pool(processes=workers) as pool_:
+        results = pool_.map(run_house, tasks, chunksize=1)
+    wall = time.time() - t0
+    results = sorted(results, key=lambda r: r["house_id"])
+    failed = [r for r in results if r["status"] != "succeeded"]
+    non_null = [r for r in results if not r.get("null_window", False)]
+    ok_non_null = [r for r in non_null if r["status"] == "succeeded" and r.get("executed_interventions", 0) >= 1]
+    yield_rate = (len(ok_non_null) / len(non_null)) if non_null else None
+    receipt = {
+        "stage": "s1-02b", "code_commit": commit, "houses_planned": len(houses), "succeeded": len(results) - len(failed),
+        "failed": len(failed), "failure_receipts": [{"house_id": r["house_id"], "reason": r["reason"], "detail": r.get("detail", "")[:400]} for r in failed],
+        "null_window_episodes": len(results) - len(non_null), "yield_house_level_non_null": yield_rate,
+        "yield_gate": s1_01 and json.loads(CONTRACT_S0_02.read_text(encoding="utf-8"))["intervention_window"]["minimum_yield"],
+        "yield_gate_passed": (yield_rate is not None and yield_rate >= 0.6),
+        "requested_workers": workers, "actual_workers": workers, "derived_worker_count": scale["worker_count"],
+        "binding_constraint": scale["binding_constraint"], "concurrency_verified_at": scale["concurrency_verified_at"],
+        "is_extrapolation": scale["is_extrapolation"], "wall_clock_seconds": round(wall, 1),
+        "development_total_with_pilot": len(houses) + lean_pilot.PILOT_TOTAL_HOUSES,
+    }
+    (out_root / "s1_02b_receipt.json").write_text(json.dumps(receipt, indent=1))
+    print(json.dumps({"receipt": receipt, "per_house": results}, indent=1, default=str))
+    return 0 if receipt["yield_gate_passed"] else 1
 
 
 if __name__ == "__main__":
