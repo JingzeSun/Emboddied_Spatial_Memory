@@ -1,0 +1,201 @@
+{
+  "schema_version": "vsmt-lean-s0-intervention-data-v3",
+  "decision_id": "D-224",
+  "stage_id": "S0-02",
+  "status": "route_magnitudes_frozen_pending_user_code_review",
+  "supersedes_contract_v2": {
+    "path": "configs/vsmt/lean_s0_intervention_data_v2.json",
+    "v2_sha256": "b74ecb00bfc512309af4b13820267e5ac508aa18f26625fe19e32e40cc092fa6",
+    "v2_bytes_frozen": true,
+    "note_zh": "v2 已于 2026-09-20 经用户代码审查通过，字节冻结不改。v3 只冻结三个路线幅度，其余一字未动。三个值都与合同里已有的值对齐，不是新选的：`translation_m`=0.25 等于 `source.grid_size_m`，否则 snap-to-grid 会和步长打架；`rotation_degrees`=90 等于 `source.rotate_step_degrees`；`look_degrees`=30 由用户给定。路线动作上限与两个干预数值仍为 null，未冻结前不得生成任何 episode。"
+  },
+  "plain_language_zh": "本合同定义 VSMT-lean 的数据怎样被构造才算合规。输入是 house 来源与划分规则、覆盖式重访路线、三类不可观测窗口干预、三面文件划分和失败保留规则；输出是每条 episode 通过或拒绝的判据。例如一次干预的源容器在窗口内任何一帧仍可见，整条 episode 失败。它不生成数据、不调用模拟器、不定义特征或标签（那是 S0-03/S0-04），也不定义对照臂（S0-05）。",
+  "pure_core_relative_path": "src/vsmt/lean_intervention.py",
+  "depends_on": {
+    "s0_01_contract": "configs/vsmt/lean_s0_entity_memory_v1.json",
+    "visibility_mechanism": "src/vsmt/vm04_public_visibility.py",
+    "note_zh": "不可观测窗口的判定沿用 D-199～D-204 已审的公开可见性机制，本阶段不新写一套几何。"
+  },
+  "authorization": {
+    "house_pool_read": false,
+    "route_construction": false,
+    "episode_generation": false,
+    "frontend_cache_generation": false,
+    "private_evaluation": false,
+    "server_run": false
+  },
+  "source": {
+    "dataset": "ProcTHOR-10K",
+    "partition": "train",
+    "simulator": "AI2-THOR",
+    "simulator_version": "5.0.0",
+    "platform": "CloudRendering",
+    "image_size": [
+      224,
+      224
+    ],
+    "vertical_fov_degrees": 90,
+    "grid_size_m": 0.25,
+    "snap_to_grid": true,
+    "force_action": false,
+    "rotate_step_degrees": 90,
+    "depth_enabled": true,
+    "instance_segmentation_enabled": true,
+    "plain_language_zh": "来源固定为 ProcTHOR-10K 作者 train 分区，渲染参数显式写死不依赖安装默认值。例如 forceAction 必须为 false，被拒的动作要如实失败而不是强行执行。"
+  },
+  "split_rule": {
+    "key": "sha256(canonical_json([seed, house_id]))",
+    "order": "ascending_hash_then_house_id",
+    "prefix_assignment": [
+      "test",
+      "validation",
+      "train"
+    ],
+    "mutually_exclusive_by_house": true,
+    "recomputable_from_manifest": true,
+    "train_houses": null,
+    "validation_houses": null,
+    "test_houses": null,
+    "seed": null,
+    "plain_language_zh": "划分是 (seed, house_id) 的纯函数：先算哈希键排序，再按前缀切成三份，顺序是先 test、再 validation、最后 train（裁决 X6）。例如同一批 house 与同一 seed 在任何机器上得到同一划分；S3-01 若按成品率把 train 从 300 下调到 250，test 与 validation 的成员一个都不变，因为它们在 train 前面。代价是 test/validation 的规模与 seed 必须在 S1-02 第一条 episode 生成前冻结（改它们会挪动 train 的起点），S1 的 50 个开发 house 就是 train 块的前 50 个。三份规模与 seed 当前仍为 null。",
+    "test_and_validation_sizes_and_seed_frozen_before_first_generation": true,
+    "train_size_may_only_decrease_after_registration": true,
+    "development_houses_are_the_first_houses_of_the_train_block": true
+  },
+  "route": {
+    "actions": [
+      "MoveAhead",
+      "MoveBack",
+      "MoveLeft",
+      "MoveRight",
+      "RotateLeft",
+      "RotateRight",
+      "LookUp",
+      "LookDown"
+    ],
+    "registered_before_execution": true,
+    "observation_count_equals_actions_plus_one": true,
+    "coverage_revisit_required_for_every_intervened_container": true,
+    "maximum_actions": null,
+    "translation_m": 0.25,
+    "rotation_degrees": 90,
+    "look_degrees": 30,
+    "plain_language_zh": "路线是执行前登记的完整动作序列，只能使用这八个动作；观察 0 先于任何动作，因此观察数恰为动作数加一。每个被干预的容器在干预后至少重访一次，否则记忆没有机会修正。动作幅度已由 D-224-S1 冻结：平移 0.25 m、转向 90°、俯仰 30°。前两个与 `source` 段里已登记的 `grid_size_m` 与 `rotate_step_degrees` 相同，这不是巧合而是必须——`snap_to_grid` 为 true 时，步长与格子不一致会让机器人要么走不到格点、要么每步被悄悄吸附到别处，两种都会让「同一条路线」在不同 house 上走出不同轨迹。`maximum_actions` 仍为 null：它只防止无限长 episode，不是科学预算，但它一旦真的把路线截断，覆盖与重访就不成立了，因此**触顶必须记为构造失败而不是截断**。",
+    "magnitudes_frozen_by": "D-224-S1",
+    "magnitudes_match_the_source_grid": true
+  },
+  "intervention_kinds": [
+    "remove",
+    "move",
+    "add"
+  ],
+  "intervention_window": {
+    "verdict_source": "vm04_public_visibility.assess_public_visibility_from_depth",
+    "every_container_every_frame_must_be_invisible": true,
+    "verdict_must_name_its_depth_frame_digest": true,
+    "window_must_be_contiguous_and_complete": true,
+    "shortening_the_window_to_pass_is_forbidden": true,
+    "object_used_by_at_most_one_intervention": true,
+    "maximum_interventions_per_episode": null,
+    "minimum_yield": null,
+    "plain_language_zh": "干预只在涉及的全部容器于窗口内每一帧都被判为不可见时执行，判定必须由已审的公开可见性机制在公开深度上产生并附上该帧摘要。例如源容器在窗口中间重新进入视野，整条 episode 失败，不缩短窗口、不换物体、不换 house。每 episode 干预数上限与成品率下限待冻结，当前为 null。"
+  },
+  "planes": [
+    "public",
+    "private",
+    "provenance"
+  ],
+  "deployment_readable_planes": [
+    "public"
+  ],
+  "public_frame_fields": [
+    "observation_index",
+    "rgb_path",
+    "depth_path",
+    "intrinsics",
+    "relative_pose",
+    "action_summary",
+    "frame_digest"
+  ],
+  "private_frame_fields": [
+    "observation_index",
+    "instance_mask_path",
+    "object_id_to_entity_id",
+    "object_poses",
+    "object_visibility",
+    "frame_digest"
+  ],
+  "forbidden_public_keys": [
+    "house_id",
+    "scene_name",
+    "scenario",
+    "object_id",
+    "instance_id",
+    "entity_id",
+    "intervention",
+    "intervention_log",
+    "teacher",
+    "label",
+    "reference",
+    "future",
+    "split"
+  ],
+  "plane_rules": {
+    "each_file_belongs_to_exactly_one_plane": true,
+    "path_prefix_must_match_its_plane": true,
+    "deployment_reader_may_not_mount_private_or_provenance": true,
+    "provenance_is_append_only": true,
+    "plain_language_zh": "三面各自独立成文件：public 是机器人自己拿得到的，private 是只有上帝视角才知道的答案，provenance 是操作流水。任何候选或模型读取器请求 private 或 provenance 即拒绝；例如候选特征计算器要 instance mask 会被拒。"
+  },
+  "failure_reasons": [
+    "house_load_failed",
+    "route_not_placeable",
+    "action_rejected",
+    "intervention_window_unavailable",
+    "intervention_execution_failed",
+    "frame_write_failed"
+  ],
+  "failure_rules": {
+    "failed_house_keeps_a_receipt": true,
+    "failed_house_is_never_replaced": true,
+    "kept_prefix_is_preserved": true,
+    "planned_equals_succeeded_plus_failed": true,
+    "plain_language_zh": "失败的 house 留下回执并保留已完成前缀，绝不替换、绝不补样。例如计划 50 条成功 47 条，就必须恰好有 3 份失败回执，否则说明有 episode 被静默丢弃。成品率是结果，不是可以凑出来的目标。"
+  },
+  "not_in_this_stage": [
+    "feature_definitions",
+    "recall_rule",
+    "cost_matrix",
+    "teacher_labels",
+    "metrics",
+    "arm_parameters",
+    "reid_adapter_head_training"
+  ],
+  "policy_values_without_defaults": [
+    "split_rule.train_houses",
+    "split_rule.validation_houses",
+    "split_rule.test_houses",
+    "split_rule.seed",
+    "route.maximum_actions",
+    "intervention_window.maximum_interventions_per_episode",
+    "intervention_window.minimum_yield"
+  ],
+  "continue_gate": {
+    "intervention_runs_only_while_every_container_is_unobservable": true,
+    "private_and_provenance_never_in_a_reader_whitelist": true,
+    "split_is_recomputable_and_mutually_exclusive": true,
+    "failures_are_kept_and_counted": true,
+    "plain_language_zh": "S0-02 的继续门是：干预只在全部相关容器不可见时执行、private 与 provenance 不进任何部署读取器白名单、划分可重算且三份互斥、失败被保留并计入成品率。只读检查通过不等于数据已生成，也不等于这些数值合适。"
+  },
+  "supersedes_contract": {
+    "path": "configs/vsmt/lean_s0_intervention_data_v1.json",
+    "v1_sha256": "ca951ff941abc1fa920f52b292902a3904fb751aa7a39ff4328cd6be576dddd8",
+    "v1_bytes_frozen": true,
+    "note_zh": "v1 已于 2026-09-19 经用户审查通过，字节冻结不改；v2 按 D-224-X 裁决 X6 把哈希前缀分配顺序改为 test→validation→train，并登记 test/validation 规模与 seed 必须在第一条 episode 生成前冻结、train 规模登记后只能下调。路线、干预窗口、三面与失败规则逐字不变。"
+  },
+  "user_rulings": {
+    "decision_id": "D-224-X",
+    "X6_split_order": "prefix allocation is test, validation, train; test and validation sizes plus the seed freeze before the first generated episode; train may only shrink afterwards",
+    "plain_language_zh": "该口径由用户于 2026-09-20 以 D-224-X 批准（裁决 X6）。"
+  }
+}

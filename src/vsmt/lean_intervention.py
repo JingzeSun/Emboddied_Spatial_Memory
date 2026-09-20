@@ -35,7 +35,7 @@ from typing import Any, Mapping, Sequence
 from cpmt.hashing import canonical_json, clone_json
 
 
-CONTRACT_SCHEMA_VERSION = "vsmt-lean-s0-intervention-data-v2"
+CONTRACT_SCHEMA_VERSION = "vsmt-lean-s0-intervention-data-v3"
 
 #: The three reading faces.  A file belongs to exactly one.
 PLANES = ("public", "private", "provenance")
@@ -582,6 +582,11 @@ def validate_intervention_data_contract(contract: Mapping[str, Any]) -> dict[str
             f"contract_split_rule_{name}_weakened",
         )
 
+    # A registered value is either still open, and then it must say so in
+    # policy_values_without_defaults, or frozen, and then it must have left
+    # that list.  Requiring null outright would have made it impossible to
+    # ever record the value the contract was written to carry.
+    open_values = contract["policy_values_without_defaults"]
     for section, names in (
         ("split_rule", ("train_houses", "validation_houses", "test_houses", "seed")),
         ("route", ("maximum_actions", "translation_m", "rotation_degrees",
@@ -590,10 +595,31 @@ def validate_intervention_data_contract(contract: Mapping[str, Any]) -> dict[str
                                  "minimum_yield")),
     ):
         for name in names:
-            _require(
-                contract[section][name] is None,
-                f"contract_{section}_{name}_must_be_null_before_freeze",
-            )
+            registered = f"{section}.{name}"
+            if contract[section][name] is None:
+                _require(registered in open_values,
+                         f"contract_{section}_{name}_null_but_not_registered_as_open")
+            else:
+                _require(registered not in open_values,
+                         f"contract_{section}_{name}_frozen_but_still_listed_as_open")
+
+    # The step magnitudes must agree with the source grid.  snap_to_grid is
+    # on, so a step that is not the grid size leaves the agent unable to
+    # reach grid points, or silently snapped somewhere else -- either way
+    # one route walks differently in different houses.
+    route = contract["route"]
+    source = contract["source"]
+    if route["translation_m"] is not None:
+        _require(route["translation_m"] == source["grid_size_m"],
+                 "contract_step_does_not_match_the_source_grid")
+        _require(route["rotation_degrees"] == source["rotate_step_degrees"],
+                 "contract_turn_does_not_match_the_source_rotation")
+        _require(route.get("magnitudes_frozen_by") not in (None, ""),
+                 "contract_magnitudes_frozen_without_naming_the_ruling")
+        for name in ("route.translation_m", "route.rotation_degrees",
+                     "route.look_degrees"):
+            _require(name not in contract["policy_values_without_defaults"],
+                     "contract_magnitude_frozen_but_still_listed_as_open")
 
     _require(
         all(value is False for value in contract["authorization"].values()),

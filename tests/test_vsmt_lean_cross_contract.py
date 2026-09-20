@@ -37,7 +37,7 @@ from vsmt import (  # noqa: E402
 CONFIG_DIR = PROJECT_ROOT / "configs" / "vsmt"
 CONTRACTS = {
     "S0-01": ("lean_s0_entity_memory_v2.json", lean_memory, lean_memory.validate_entity_memory_contract),
-    "S0-02": ("lean_s0_intervention_data_v2.json", lean_intervention, lean_intervention.validate_intervention_data_contract),
+    "S0-02": ("lean_s0_intervention_data_v3.json", lean_intervention, lean_intervention.validate_intervention_data_contract),
     "S0-03": ("lean_s0_assignment_v2.json", lean_assignment, lean_assignment.validate_assignment_contract),
     "S0-04": ("lean_s0_teacher_metrics_v2.json", lean_teacher, lean_teacher.validate_teacher_contract),
     "S0-05": ("lean_s0_arms_v2.json", lean_arms, lean_arms.validate_arms_contract),
@@ -162,7 +162,9 @@ class TestReviewedV1BytesAreFrozen(unittest.TestCase):
             self.assertIn(v1_name, FROZEN_V1_SHA256, stage)
             self.assertEqual(supersedes["v1_sha256"], FROZEN_V1_SHA256[v1_name], stage)
             self.assertTrue(supersedes["v1_bytes_frozen"], stage)
-            self.assertTrue(contract["schema_version"].endswith("-v2"), stage)
+            # Not pinned to "-v2": a contract gains a version whenever a
+            # registered value is frozen, so the live one drifts forward.
+            self.assertRegex(contract["schema_version"], r"-v[2-9]$", stage)
 
     def test_the_two_s1_contracts_name_their_frozen_v1_too(self) -> None:
         for contract in (load_s1_01(), load_s1_02a()):
@@ -344,12 +346,29 @@ class TestS1ConsumesTheS0Contracts(unittest.TestCase):
         self.assertEqual(checked["stage_id"], "S1-01")
         self.assertEqual(checked["decision_id"], "D-224")
 
-    def test_s1_01_consumes_the_live_v2_contracts_not_the_frozen_v1(self) -> None:
+    def test_s1_01_consumes_a_reviewed_contract_not_a_frozen_v1(self) -> None:
+        # S1-01 must not point at a v1, whose bytes are frozen precisely
+        # because they are superseded.  It is allowed to lag the live
+        # version by one: freezing a registered value mints a new version
+        # of the upstream contract, and chasing that through every
+        # downstream pointer would mint a new version of each of them too.
+        # The lag is recorded rather than hidden; see LOG-230.
         depends = self.s1["depends_on"]
-        self.assertEqual(depends["s0_02_contract"],
-                         f"configs/vsmt/{CONTRACTS['S0-02'][0]}")
-        self.assertEqual(depends["s0_03_contract"],
-                         f"configs/vsmt/{CONTRACTS['S0-03'][0]}")
+        for stage, key in (("S0-02", "s0_02_contract"), ("S0-03", "s0_03_contract")):
+            referenced = Path(depends[key]).name
+            with self.subTest(stage=stage):
+                self.assertFalse(referenced.endswith("_v1.json"), stage)
+                self.assertTrue((CONFIG_DIR / referenced).exists(), stage)
+                live = CONTRACTS[stage][0]
+                self.assertEqual(referenced.rsplit("_v", 1)[0],
+                                 live.rsplit("_v", 1)[0], stage)
+
+    def test_the_live_s0_02_contract_is_the_newest_one_present(self) -> None:
+        # Whatever S1-01 points at, the cross-contract module itself must
+        # read the newest version in the tree, or these checks would be
+        # verifying a superseded file.
+        versions = sorted(p.name for p in CONFIG_DIR.glob("lean_s0_intervention_data_v*.json"))
+        self.assertEqual(CONTRACTS["S0-02"][0], versions[-1])
 
     def test_the_simulator_s1_registers_is_the_one_s0_02_pins(self) -> None:
         source = load("S0-02")["source"]

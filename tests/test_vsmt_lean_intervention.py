@@ -46,7 +46,7 @@ from vsmt.lean_intervention import (  # noqa: E402
 )
 
 
-CONTRACT_PATH = PROJECT_ROOT / "configs" / "vsmt" / "lean_s0_intervention_data_v2.json"
+CONTRACT_PATH = PROJECT_ROOT / "configs" / "vsmt" / "lean_s0_intervention_data_v3.json"
 
 SEED = 260919
 POOL = [f"house-{index:04d}" for index in range(40)]
@@ -505,7 +505,9 @@ class TestMachineContract(unittest.TestCase):
         broken["split_rule"]["seed"] = 260919
         with self.assertRaises(LeanInterventionError) as caught:
             validate_intervention_data_contract(broken)
-        self.assertIn("must_be_null_before_freeze", str(caught.exception))
+        # A registered value is open or frozen; either way it must agree
+        # with policy_values_without_defaults.
+        self.assertIn("still_listed_as_open", str(caught.exception))
 
     def test_every_authorization_bit_is_false(self) -> None:
         broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
