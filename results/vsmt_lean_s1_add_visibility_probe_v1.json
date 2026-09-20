@@ -1,0 +1,507 @@
+{
+ "probe": "lean_s1_add_visibility_probe",
+ "house_index": 9339,
+ "object_id": "Newspaper|surface|7|20",
+ "destination": "TVStand|2|3|0___5",
+ "code": {
+  "v2": "6f29398",
+  "v3": "90e74d4",
+  "v4": "f7f1f2f"
+ },
+ "trials": [
+  {
+   "object_id": "Newspaper|surface|7|20",
+   "destination": "TVStand|2|3|0___5",
+   "anywhere": true,
+   "asset_id": "Newspaper_2",
+   "destination_openable": false,
+   "destination_isOpen": false,
+   "spawn_points": 441,
+   "point": {
+    "x": 4.291308403015137,
+    "y": 0.7220652103424072,
+    "z": 0.6010509729385376
+   },
+   "destination_bbox_center": {
+    "x": 4.155449390411377,
+    "y": 0.4462316036224365,
+    "z": 0.33709293603897095
+   },
+   "destination_bbox_size": {
+    "x": 0.26849937438964844,
+    "y": 0.5649948120117188,
+    "z": 0.5369995832443237
+   },
+   "view": {
+    "viewpoint": {
+     "cell": [
+      15,
+      4
+     ],
+     "yaw": 180,
+     "pitch": 30,
+     "distance_m": 0.7771
+    },
+    "teleport_ok": true
+   },
+   "spawn": {
+    "seconds": 0.103,
+    "success": true,
+    "error": "",
+    "actionReturn": {
+     "id": "dup_probe_000000",
+     "worldSpaceCenter": {
+      "x": 2.2045912742614746,
+      "y": 0.37134823203086853,
+      "z": 0.3155863285064697
+     },
+     "radius": 2.2578125
+    }
+   },
+   "objects_before_after": [
+    129,
+    130
+   ],
+   "new_object_ids": [
+    "dup_probe_000000"
+   ],
+   "dup": {
+    "objectId": "dup_probe_000000",
+    "assetId": "Newspaper_2",
+    "position": {
+     "x": 4.291308403015137,
+     "y": 0.7220652103424072,
+     "z": 0.6010509729385376
+    },
+    "visible": true,
+    "parentReceptacles": [
+     "TVStand|2|3|0___5",
+     "TVStand|2|3|0___2"
+    ],
+    "isPickedUp": false
+   },
+   "mask_keys_added_at_spawn": [],
+   "dup_pixels_at_spawn": 0,
+   "dup_positions_after_5_pass": [
+    {
+     "x": 4.291308403015137,
+     "y": 0.7220652103424072,
+     "z": 0.6010509729385376
+    },
+    {
+     "x": 4.291308403015137,
+     "y": 0.7220652103424072,
+     "z": 0.6010509729385376
+    },
+    {
+     "x": 4.291308403015137,
+     "y": 0.7220652103424072,
+     "z": 0.6010509729385376
+    },
+    {
+     "x": 4.291308403015137,
+     "y": 0.7220652103424072,
+     "z": 0.6010509729385376
+    },
+    {
+     "x": 4.291308403015137,
+     "y": 0.7220652103424072,
+     "z": 0.6010509729385376
+    }
+   ],
+   "mask_keys_added_after_pass": [],
+   "dup_pixels_after_pass": 0,
+   "view_again": {
+    "viewpoint": {
+     "cell": [
+      15,
+      4
+     ],
+     "yaw": 180,
+     "pitch": 30,
+     "distance_m": 0.7771
+    },
+    "teleport_ok": true
+   },
+   "dup_pixels_from_viewpoint": 0,
+   "max_new_key_pixels_from_viewpoint": 0,
+   "view_point": {
+    "viewpoint": {
+     "cell": [
+      20,
+      1
+     ],
+     "yaw": 270,
+     "pitch": 30,
+     "distance_m": 0.7909
+    },
+    "teleport_ok": true
+   },
+   "dup_pixels_from_point_view": 0,
+   "new_keys_from_point_view": {
+    "Painting|2|8": 154,
+    "Chair|2|2|2": 171,
+    "Book|surface|2|39": 12,
+    "wall|2|0.00|0.00|0.00|3.82": 4394,
+    "DiningTable|2|2|0": 28,
+    "Ceiling_room|2|0|2.582315|0": 1806,
+    "Watch|surface|2|35": 11,
+    "wall|2|0.00|3.82|3.82|3.82": 525,
+    "Pillow|surface|2|37": 50,
+    "Chair|2|2|3": 25,
+    "ArmChair|2|5|0": 7
+   },
+   "source_report": "add_probe_09339_v2"
+  },
+  {
+   "object_id": "Newspaper|surface|7|20",
+   "destination": "TVStand|2|3|0___5",
+   "anywhere": false,
+   "asset_id": "Newspaper_2",
+   "destination_openable": false,
+   "destination_isOpen": false,
+   "spawn_points": 0,
+   "source_report": "add_probe_09339_v2"
+  },
+  {
+   "trial": "render_diff",
+   "object_id": "Newspaper|surface|7|20",
+   "destination": "TVStand|2|3|0___5",
+   "view_dst": {
+    "viewpoint": {
+     "cell": [
+      15,
+      4
+     ],
+     "yaw": 180,
+     "pitch": 30,
+     "distance_m": 0.7771
+    },
+    "teleport_ok": true
+   },
+   "view_origin": {
+    "viewpoint": {
+     "cell": [
+      1,
+      7
+     ],
+     "yaw": 180,
+     "pitch": 30,
+     "distance_m": 1.7066
+    },
+    "teleport_ok": true
+   },
+   "spawn": {
+    "success": true,
+    "actionReturn": {
+     "id": "dup_probe_000001",
+     "worldSpaceCenter": {
+      "x": 2.2045912742614746,
+      "y": 0.37134823203086853,
+      "z": 0.3155863285064697
+     },
+     "radius": 2.2578125
+    }
+   },
+   "view_origin_again": {
+    "viewpoint": {
+     "cell": [
+      1,
+      7
+     ],
+     "yaw": 180,
+     "pitch": 30,
+     "distance_m": 1.7066
+    },
+    "teleport_ok": true
+   },
+   "view_dst_again": {
+    "viewpoint": {
+     "cell": [
+      15,
+      4
+     ],
+     "yaw": 180,
+     "pitch": 30,
+     "distance_m": 0.7771
+    },
+    "teleport_ok": true
+   },
+   "diff_at_destination_view": {
+    "rgb_pixels_changed": 0,
+    "depth_pixels_changed": 0,
+    "mask_keys_added": [],
+    "det_added": []
+   },
+   "diff_at_origin_view": {
+    "rgb_pixels_changed": 0,
+    "depth_pixels_changed": 0,
+    "mask_keys_added": [],
+    "det_added": []
+   },
+   "dup_meta": {
+    "position": {
+     "x": 4.291308403015137,
+     "y": 0.7220652103424072,
+     "z": 0.6010509729385376
+    },
+    "visible": true,
+    "aabb": {
+     "cornerPoints": [
+      [
+       4.413966178894043,
+       0.7403097152709961,
+       0.632892906665802
+      ],
+      [
+       4.413966178894043,
+       0.7403097152709961,
+       0.5580475926399231
+      ],
+      [
+       4.413966178894043,
+       0.7210373878479004,
+       0.632892906665802
+      ],
+      [
+       4.413966178894043,
+       0.7210373878479004,
+       0.5580475926399231
+      ],
+      [
+       4.1686506271362305,
+       0.7403097152709961,
+       0.632892906665802
+      ],
+      [
+       4.1686506271362305,
+       0.7403097152709961,
+       0.5580475926399231
+      ],
+      [
+       4.1686506271362305,
+       0.7210373878479004,
+       0.632892906665802
+      ],
+      [
+       4.1686506271362305,
+       0.7210373878479004,
+       0.5580475926399231
+      ]
+     ],
+     "center": {
+      "x": 4.291308403015137,
+      "y": 0.7306735515594482,
+      "z": 0.5954702496528625
+     },
+     "size": {
+      "x": 0.2453155517578125,
+      "y": 0.019272327423095703,
+      "z": 0.0748453140258789
+     }
+    },
+    "objectOrientedBoundingBox": {
+     "cornerPoints": [
+      [
+       4.413966178894043,
+       0.7210373878479004,
+       0.632892906665802
+      ],
+      [
+       4.1686506271362305,
+       0.7210373878479004,
+       0.632892906665802
+      ],
+      [
+       4.1686506271362305,
+       0.7210373878479004,
+       0.5580475926399231
+      ],
+      [
+       4.413966178894043,
+       0.7210373878479004,
+       0.5580475926399231
+      ],
+      [
+       4.413966178894043,
+       0.7403097748756409,
+       0.632892906665802
+      ],
+      [
+       4.1686506271362305,
+       0.7403097748756409,
+       0.632892906665802
+      ],
+      [
+       4.1686506271362305,
+       0.7403097748756409,
+       0.5580475926399231
+      ],
+      [
+       4.413966178894043,
+       0.7403097748756409,
+       0.5580475926399231
+      ]
+     ]
+    }
+   },
+   "control_place_existing": {
+    "success": false,
+    "error": "Spawn area not clear (TVStand|2|3|0) is in the way), can't place object at that point"
+   },
+   "view_dst_control": {
+    "viewpoint": {
+     "cell": [
+      15,
+      4
+     ],
+     "yaw": 180,
+     "pitch": 30,
+     "distance_m": 0.7771
+    },
+    "teleport_ok": true
+   },
+   "control_existing_pixels_from_dst_view": 0,
+   "control_diff_vs_post_dst": {
+    "rgb_pixels_changed": 0,
+    "depth_pixels_changed": 0,
+    "mask_keys_added": [],
+    "det_added": []
+   },
+   "source_report": "add_probe_09339_v2"
+  },
+  {
+   "trial": "spawn_in_front",
+   "object_id": "Newspaper|surface|7|20",
+   "point": {
+    "x": 3.6,
+    "y": 1.525,
+    "z": 5.0
+   },
+   "spawn": {
+    "success": true,
+    "error": "",
+    "actionReturn": {
+     "id": "dup_probe_000002",
+     "worldSpaceCenter": {
+      "x": 1.8589370250701904,
+      "y": 0.7728155851364136,
+      "z": 2.5150609016418457
+     },
+     "radius": 3.2215559482574463
+    }
+   },
+   "diff_immediately": {
+    "rgb_pixels_changed": 152,
+    "depth_pixels_changed": 152,
+    "mask_keys_added": [],
+    "det_added": []
+   },
+   "diff_after_pass": {
+    "rgb_pixels_changed": 152,
+    "depth_pixels_changed": 152,
+    "mask_keys_added": [],
+    "det_added": []
+   },
+   "dup_position_after_pass": {
+    "x": 3.5999999046325684,
+    "y": 1.524999976158142,
+    "z": 5.0
+   },
+   "dup_visible_flag": true,
+   "dup_pixels": 0,
+   "control_place_existing_here": {
+    "success": true,
+    "error": ""
+   },
+   "control_diff": {
+    "rgb_pixels_changed": 292,
+    "depth_pixels_changed": 272,
+    "mask_keys_added": [
+     "Newspaper|surface|7|20"
+    ],
+    "det_added": [
+     "Newspaper|surface|7|20"
+    ]
+   },
+   "control_pixels": 140,
+   "source_report": "add_probe_09339_v3"
+  },
+  {
+   "trial": "spawn_in_front",
+   "object_id": "Newspaper|surface|7|20",
+   "point": {
+    "x": 3.6,
+    "y": 1.525,
+    "z": 5.0
+   },
+   "spawn": {
+    "success": true,
+    "error": "",
+    "actionReturn": {
+     "id": "dup_probe_000002",
+     "worldSpaceCenter": {
+      "x": 1.8589370250701904,
+      "y": 0.7728155851364136,
+      "z": 2.5150609016418457
+     },
+     "radius": 3.2215559482574463
+    }
+   },
+   "diff_immediately": {
+    "rgb_pixels_changed": 152,
+    "depth_pixels_changed": 152,
+    "mask_keys_added": [],
+    "det_added": []
+   },
+   "diff_after_pass": {
+    "rgb_pixels_changed": 152,
+    "depth_pixels_changed": 152,
+    "mask_keys_added": [],
+    "det_added": []
+   },
+   "dup_position_after_pass": {
+    "x": 3.5999999046325684,
+    "y": 1.524999976158142,
+    "z": 5.0
+   },
+   "dup_visible_flag": true,
+   "dup_pixels": 0,
+   "control_place_existing_here": {
+    "success": true,
+    "error": ""
+   },
+   "control_diff": {
+    "rgb_pixels_changed": 292,
+    "depth_pixels_changed": 272,
+    "mask_keys_added": [
+     "Newspaper|surface|7|20"
+    ],
+    "det_added": [
+     "Newspaper|surface|7|20"
+    ]
+   },
+   "control_pixels": 140,
+   "source_report": "add_probe_09339_v4"
+  },
+  {
+   "trial": "reinit_segmentation",
+   "object_id": "Newspaper|surface|7|20",
+   "pixels_before_reinit": 0,
+   "initialize": {
+    "success": true,
+    "error": ""
+   },
+   "pixels_after_reinit": 0,
+   "mask_keys_added_vs_pre": [],
+   "objects_same_count": true,
+   "agent_pose_unchanged": false,
+   "dup_still_listed": true,
+   "existing_key_overlap": [
+    12,
+    12
+   ],
+   "source_report": "add_probe_09339_v4"
+  }
+ ]
+}
