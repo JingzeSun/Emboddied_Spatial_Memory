@@ -187,5 +187,28 @@ class TestSelection(unittest.TestCase):
         self.assertTrue(300 < hits < 500, hits)
 
 
+class TestBlockedEdges(unittest.TestCase):
+    def test_a_blocked_edge_forces_a_detour(self) -> None:
+        cells = rt.reachable_cells(open_room(4, 4))
+        direct = rt.bfs_path(cells, (0, 0), (0, 3))
+        self.assertEqual(len(direct) - 1, 3)
+        detour = rt.bfs_path(cells, (0, 0), (0, 3), {rt.edge((0, 1), (0, 2))})
+        self.assertGreater(len(detour) - 1, 3)
+        self.assertNotIn(((0, 1), (0, 2)), list(zip(detour, detour[1:])))
+
+    def test_blocking_every_edge_raises_instead_of_guessing(self) -> None:
+        cells = rt.reachable_cells(open_room(2, 2))
+        blocked = {rt.edge((0, 0), (0, 1)), rt.edge((0, 0), (1, 0))}
+        with self.assertRaises(rt.LeanRouteError):
+            rt.bfs_path(cells, (0, 0), (1, 1), blocked)
+
+    def test_plan_route_records_the_blocklist(self) -> None:
+        containers = {"c": {"x": 1.0, "y": 0.9, "z": 2.0}}
+        plan = rt.plan_route(reachable=open_room(), start_pose=START, camera_height_m=CAM, containers=containers,
+                             revisit_sequence=[], blocked={rt.edge((0, 0), (0, 1))})
+        self.assertEqual(plan["blocked_edges"], [[[0, 0], [0, 1]]])
+        self.assertNotIn("MoveLeft", plan["actions"])
+
+
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()

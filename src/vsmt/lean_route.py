@@ -79,12 +79,21 @@ def neighbours(cell: tuple[int, int]) -> list[tuple[int, int]]:
     return [(ix, iz + 1), (ix + 1, iz), (ix, iz - 1), (ix - 1, iz)]
 
 
+Edge = frozenset  # an undirected grid edge: frozenset({cell_a, cell_b})
+
+
+def edge(a: tuple[int, int], b: tuple[int, int]) -> frozenset:
+    return frozenset((a, b))
+
+
 def bfs_path(cells: set[tuple[int, int]], start: tuple[int, int],
-             goal: tuple[int, int]) -> list[tuple[int, int]]:
+             goal: tuple[int, int], blocked: frozenset | set = frozenset()) -> list[tuple[int, int]]:
     """Shortest grid path from start to goal, ties broken by grid order.
 
     白话：在可达格子上找最短路。并列时按 (ix, iz) 的字典序展开，因此同一对起
-    终点在任何机器上得到同一条路。找不到就报错，不绕行、不猜。
+    终点在任何机器上得到同一条路。找不到就报错，不绕行、不猜。`blocked` 是执行中
+    被模拟器拒绝过的格间边（例如两格之间有把椅子），带着它重算就是绕行——绕行本
+    身也是确定性的，因为拒绝是模拟器对同一 house 的确定答案。
     """
 
     if start not in cells or goal not in cells:
@@ -96,7 +105,7 @@ def bfs_path(cells: set[tuple[int, int]], start: tuple[int, int],
     while queue:
         here = queue.popleft()
         for nxt in sorted(neighbours(here)):
-            if nxt in cells and nxt not in parent:
+            if nxt in cells and nxt not in parent and edge(here, nxt) not in blocked:
                 parent[nxt] = here
                 if nxt == goal:
                     path = [goal]
@@ -254,6 +263,7 @@ def plan_route(
     transition_cell: tuple[int, int] | None = None,
     grid: float = GRID_M,
     max_actions: int = MAXIMUM_ACTIONS,
+    blocked: frozenset | set = frozenset(),
 ) -> dict[str, Any]:
     """Plan sweep one, the transition and sweep two as one action sequence.
 
@@ -284,7 +294,7 @@ def plan_route(
     def visit(cid: str) -> None:
         nonlocal here, yaw, pitch
         vp = viewpoints[cid]
-        path = bfs_path(cells, here, vp["cell"])
+        path = bfs_path(cells, here, vp["cell"], blocked)
         moved, yaw = encode_path(path, yaw)
         actions.extend(moved)
         actions.extend(turn_actions(yaw, vp["yaw"]))
@@ -300,7 +310,7 @@ def plan_route(
 
     first = len(actions)
     if transition_cell is not None:
-        path = bfs_path(cells, here, transition_cell)
+        path = bfs_path(cells, here, transition_cell, blocked)
         moved, yaw = encode_path(path, yaw)
         actions.extend(moved)
         here = transition_cell
@@ -323,6 +333,7 @@ def plan_route(
         "sweep_one_order": [ids[i] for i in order],
         "revisit_sequence": list(revisit_sequence),
         "start_cell": list(start_cell),
+        "blocked_edges": sorted([list(c) for c in sorted(e)] for e in blocked),
     }
 
 
@@ -334,6 +345,7 @@ __all__ = [
     "best_pitch",
     "best_yaw",
     "bfs_path",
+    "edge",
     "encode_path",
     "look_actions",
     "nearest_neighbour_tour",
