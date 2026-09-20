@@ -18,7 +18,7 @@ S3 正式数据、训练、validation 与一次性 test（S3-01 → S3-06）
 S4 论文
 ```
 
-当前执行点：**S0 五份合同全部审查通过（LOG-214～LOG-219），S1-01 资产与容量授权申请材料已实现待审**（LOG-220），**D-224-S1 九项裁决已批准并落地，服务器冻结资产已只读核验通过**（LOG-221）。D-224 与 D-224-E/F/G 已批准；旧方向已归档到 `archive/pre-d224-unified-graph`，`main` 只含精简版文档。**四项已知冲突全部消解并各有回执**：Python 按两解释器分工、Vulkan 可枚举到 NVIDIA GPU、ProcTHOR-10K 定为 0.1.2（以上 LOG-221），ViT-B/14 完成一次性摘要登记（LOG-223）；基础环境缺 hydra 的阻塞已于 LOG-222 解除。S1-01 里待冻结的 null 只剩 `worker_rule.headroom_fraction`。当前开四个位（三只读/本地登记加一依赖安装），没有任何资产放置、数据生成或训练授权。**S1-01 的 worker 推导死锁已按 D-224-S1 裁决 14 解开**：占用测量移入新拆出的 S1-02a（4 worker × 1 house，4 条 episode 计入正式 50 条），S1-02b 再按算出的 worker 数补齐其余 46 个；S1-01 只保留推导规则。数据盘已由用户清理并经只读核验，22 G → 43 G 可用（LOG-224）。S1-02a 尚未获得运行授权。**2026-09-20 用户批准 D-224-X 裁决 X1～X6**（S0 合同隐患审查的六项修正）：S0-01/02/03/04/05 各追加 v2 合同、v1 字节冻结并由测试钉住摘要，S0-03 求解器与 S0-04 评价器按逐列等价重写；本会话复审修正四处后八个 lean 模块分进程共 386 项本地通过，五份 v2 已按用户批准提交推送（LOG-225）。S1-02a 开工前新增一项前置冻结：S0-02 v2 要求 seed 与 test/validation 规模在第一条 episode 前给定。**2026-09-20 用户审过 S1-01 v1 并把 `headroom_fraction` 定为 0.2**；随之发现 S0 转 v2 后 S1-01 仍指着 v1，已追加 S1-01 v2 改指 v2 并把 S1↔S0 一致性纳入跨合同测试（LOG-226）。S1-01 待冻结 null 已清零。**2026-09-20 用户审过 S1-01 v2 与五份 S0 v2**，并已实现 S1-02a 合同（LOG-227）；该合同把划分复用 S0-02 的 `assign_split`、worker 推导复用 S1-01 的 `derive_worker_count`，不另写第二套。**S1-02a 开工尚缺三个数：seed、validation 规模、test 规模**，用户给定前合同里保持 null，任何生成都被拒。
+当前执行点：**S0 五份合同全部审查通过（LOG-214～LOG-219），S1-01 资产与容量授权申请材料已实现待审**（LOG-220），**D-224-S1 九项裁决已批准并落地，服务器冻结资产已只读核验通过**（LOG-221）。D-224 与 D-224-E/F/G 已批准；旧方向已归档到 `archive/pre-d224-unified-graph`，`main` 只含精简版文档。**四项已知冲突全部消解并各有回执**：Python 按两解释器分工、Vulkan 可枚举到 NVIDIA GPU、ProcTHOR-10K 定为 0.1.2（以上 LOG-221），ViT-B/14 完成一次性摘要登记（LOG-223）；基础环境缺 hydra 的阻塞已于 LOG-222 解除。S1-01 里待冻结的 null 只剩 `worker_rule.headroom_fraction`。当前开四个位（三只读/本地登记加一依赖安装），没有任何资产放置、数据生成或训练授权。**S1-01 的 worker 推导死锁已按 D-224-S1 裁决 14 解开**：占用测量移入新拆出的 S1-02a（4 worker × 1 house，4 条 episode 计入正式 50 条），S1-02b 再按算出的 worker 数补齐其余 46 个；S1-01 只保留推导规则。数据盘已由用户清理并经只读核验，22 G → 43 G 可用（LOG-224）。S1-02a 尚未获得运行授权。**2026-09-20 用户批准 D-224-X 裁决 X1～X6**（S0 合同隐患审查的六项修正）：S0-01/02/03/04/05 各追加 v2 合同、v1 字节冻结并由测试钉住摘要，S0-03 求解器与 S0-04 评价器按逐列等价重写；本会话复审修正四处后八个 lean 模块分进程共 386 项本地通过，五份 v2 已按用户批准提交推送（LOG-225）。S1-02a 开工前新增一项前置冻结：S0-02 v2 要求 seed 与 test/validation 规模在第一条 episode 前给定。**2026-09-20 用户审过 S1-01 v1 并把 `headroom_fraction` 定为 0.2**；随之发现 S0 转 v2 后 S1-01 仍指着 v1，已追加 S1-01 v2 改指 v2 并把 S1↔S0 一致性纳入跨合同测试（LOG-226）。S1-01 待冻结 null 已清零。**2026-09-20 用户审过 S1-01 v2 与五份 S0 v2**，并已实现 S1-02a 合同（LOG-227）；该合同把划分复用 S0-02 的 `assign_split`、worker 推导复用 S1-01 的 `derive_worker_count`，不另写第二套。**2026-09-20 用户冻结划分：seed=20260920、validation=50、test=100**（LOG-228）。test 与 validation 的成员、train 块起点与 S1 的开发 house 至此全部确定；`train_houses` 留到 S3-01 登记且只能下调。这三个值只登记在 S1-02a v2 一处，S0-02 v2 的值槽保持 null 并由跨合同测试钉住。S1-02a 六个授权位仍全为 false，尚未获运行授权。
 
 ## 二、状态和执行规则
 
@@ -109,10 +109,10 @@ S4 论文
 
 | 项 | 内容 |
 |---|---|
-| 状态 | **合同已实现待审**（LOG-227；本地 49 项只读检查通过，九个 lean 模块分进程共 450 项通过。六个授权位全为 false；**seed 与 test/validation 规模仍为 null，等用户冻结**） |
+| 状态 | **v1 已审通过、v2 已提交待审；划分已冻结**（LOG-227/228；seed=20260920、validation=50、test=100 于 2026-09-20 冻结，`train_houses` 留到 S3-01；本地 54 项只读检查通过，九个 lean 模块分进程共 464 项通过。六个授权位仍全为 false，未跑任何 episode） |
 | 输入 | S0-02 v2 合同（**seed 与 test/validation 规模须先冻结**，因为 v2 把分配顺序改为 test→validation→train，train 块的起点由它们决定；裁决 X6）、S1-01 容量读数与 worker 推导规则 |
 | 完整动作 | 取 train 块哈希前缀最前的 **4 个 house，4 个 worker 各跑 1 条 episode**：覆盖式重访路线、不可观测窗口干预、public/private/provenance 三面写盘；同时实测 `cpu_cores_per_worker`、`ram_gb_per_worker`、`vram_gb_per_worker`、`disk_gb_per_worker` 与 4 路并发是否安全；失败 house 保留 receipt 不替换 |
-| 输出 | [`lean_s1_02a_pilot_v1.json`](../configs/vsmt/lean_s1_02a_pilot_v1.json)、纯核心 [`lean_pilot.py`](../src/vsmt/lean_pilot.py)、测试 [`test_vsmt_lean_pilot.py`](../tests/test_vsmt_lean_pilot.py)；授权后另出 4 条 raw、pilot 生成回执与**占用回执**（含 `concurrency_verified_at=4`、峰值 RSS/显存/磁盘、墙钟与退出码） |
+| 输出 | [`lean_s1_02a_pilot_v2.json`](../configs/vsmt/lean_s1_02a_pilot_v2.json)（v1 字节冻结）、纯核心 [`lean_pilot.py`](../src/vsmt/lean_pilot.py)、测试 [`test_vsmt_lean_pilot.py`](../tests/test_vsmt_lean_pilot.py)；授权后另出 4 条 raw、pilot 生成回执与**占用回执**（含 `concurrency_verified_at=4`、峰值 RSS/显存/磁盘、墙钟与退出码） |
 | 继续门 | 四条全部有终态；占用五项齐全才允许推导 worker 数。**这 4 条是正式 S1-02 样本的一部分，计入 50，不得跑完丢弃重生成**；pilot 失败不构成"重试到好为止"的理由 |
 
 **白话：为什么先跑 4 个。** 它解决的是"worker 数要由实测决定，可实测又必须先跑起来"这个先有鸡还是先有蛋。输入是 4 个 house 和 4 个并发 worker，输出是能不能跑通加一份占用读数。例如实测每 worker 峰值 6 GB 内存、2 GB 显存，就能算出这台机器还能开多少个。它**不等于**已经证明更大并发安全：pilot 只验证了 4 路，`concurrency_verified_at` 与算出来的 `derived_worker_count` 必须分开记；扩产后若出现不稳定，如实报告，不得事后把数字悄悄改小当没发生。
@@ -311,6 +311,7 @@ S4 论文
 16. 2026-09-20 用户清理数据盘（22 G → 43 G 可用，保留清单九项经只读核验全在），并批准补充裁决 14：S1-01 的 worker 死锁按方案 A 解开，占用测量移入 S1-02a（4 worker × 1 house）、S1-02b 扩到 50 house；pilot 的 4 条计入正式样本，`concurrency_verified_at` 与 `derived_worker_count` 分开记（LOG-224）。
 17. 2026-09-20 用户审过 S1-01 v1、定 `headroom_fraction`＝0.2，并要求核对 S0 转 v2 是否连带影响 S1。核出三处：S1-01 `depends_on` 仍指 v1、headroom 待冻结、S1 从未进入跨合同核对。追加 S1-01 v2（v1 字节冻结并钉住摘要），跨合同测试加 9 项 S1↔S0 检查；PLAN 的 S1-02a 前置冻结与 S1-04 的 IoU 诊断在 v2 那批已同步，无需再改（LOG-226）。
 18. 2026-09-20 用户审过 S1-01 v2 与五份 S0 v2，并要求写 S1-02a 合同。合同、纯核心与测试已实现待审（LOG-227）：pilot 形状固定为 4 worker × 1 house，4 条计入 50 条且禁止看过结果后重生成；占用取峰值、在完整 episode 上量、并把 `concurrency_verified_at` 与算出来的 worker 数分开记。**seed 与 test/validation 规模用户未给定，合同中保持 null，须冻结后才能跑第一条 episode。**
+19. 2026-09-20 用户审过 S1-02a 并冻结划分：seed=20260920、validation=50、test=100。追加 S1-02a v2（v1 字节冻结并钉住摘要），校验器改为「三个值要么全开要么全冻」，跨合同测试加 9 项钉住「划分只在一处登记、S0-02 值槽保持 null」（LOG-228）。
 17. 2026-09-20 S0 合同隐患审查后用户批准 D-224-X 裁决 X1～X6：同帧重复色块记 `duplicate_of_labelled`、未定义 house 按指标排除并计数、AssocOnly 同配方重训、预登记 ELU-P `rollout_config` 与拟合程序、求解器规范化改等式子图（64×500 单帧 125 秒 → 0.01 秒）与评价器分连通块匹配、划分顺序 test→validation→train、折叠记录归档口径、生命周期版本数、真值表 `in_scope`。五份 v2 合同追加、v1 字节冻结并钉摘要，八个 lean 模块分进程 382 项通过；本会话复审修正四处（X1 组级记账、X2 不适用臂例外、HeuristicLabel 私有依赖声称、范围外实体退出精确率分母）后 386 项通过，五份 v2 已按用户批准提交推送（LOG-225）。
 
 ## 九、失败时的暂停点与待触发裁决
