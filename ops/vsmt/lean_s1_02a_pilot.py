@@ -237,14 +237,42 @@ def _reject_forbidden(record: Any) -> None:
 # worker
 # --------------------------------------------------------------------------
 
-def _execute(controller: Any, ep: Episode, actions: list[str]) -> None:
-    for a in actions:
+MAX_REPLANS = 32
+
+
+def _agent_cell_yaw(controller: Any) -> tuple[tuple[int, int], int]:
+    a = controller.last_event.metadata["agent"]
+    return (lean_route.snap(a["position"]["x"]), lean_route.snap(a["position"]["z"])), int(round(a["rotation"]["y"])) % 360
+
+
+def _execute(controller: Any, ep: Episode, actions: list[str], *, blocked: set, replans: list[dict[str, Any]],
+             replan: Any = None) -> None:
+    """Execute actions; on a rejected MoveAhead, block that edge and let the caller replan.
+
+    ``replan(blocked)`` must return the remaining action list from the real pose.
+    A rejection without a replanner, or more than MAX_REPLANS, is a failure.
+    """
+
+    queue = list(actions)
+    while queue:
+        a = queue.pop(0)
         if len(ep.actions_done) > MAXIMUM_ACTIONS:
             raise PilotFailure("route_not_placeable", "action cap hit; not truncating")
         event = controller.step(action=a)
         ep.capture(event, a)
-        if event.metadata.get("lastActionSuccess") is not True:
-            raise PilotFailure("action_rejected", f"{a} @ {ep.index}: {event.metadata.get('errorMessage')}")
+        if event.metadata.get("lastActionSuccess") is True:
+            continue
+        msg = str(event.metadata.get("errorMessage"))
+        if a != "MoveAhead" or replan is None:
+            raise PilotFailure("action_rejected", f"{a} @ {ep.index}: {msg}")
+        here, yaw = _agent_cell_yaw(controller)
+        dx, dz = lean_route._HEADING[yaw]
+        blocked_edge = lean_route.edge(here, (here[0] + dx, here[1] + dz))
+        if blocked_edge in blocked or len(replans) >= MAX_REPLANS:
+            raise PilotFailure("route_not_placeable", f"edge blocked twice or too many replans @ {ep.index}: {msg}")
+        blocked.add(blocked_edge)
+        replans.append({"observation_index": ep.index, "cell": list(here), "yaw": yaw, "message": msg[:160]})
+        queue = replan(blocked)
 
 
 def _containers(meta: dict[str, Any]) -> dict[str, dict[str, float]]:
@@ -308,30 +336,45 @@ def _invisible_set(ep: Episode, subjects: dict[str, dict[str, Any]], transition:
     return invisible, verdicts
 
 
-def _prescreen(controller: Any, containers: dict[str, Any]) -> tuple[dict[str, bool], dict[str, Any]]:
+MAX_PLACEMENT_TRIES = 8
+
+
+def _prescreen(controller: Any, containers: dict[str, Any], tries: int = 1) -> tuple[dict[str, bool], dict[str, Any]]:
     ok, points = {}, {}
     for cid in sorted(containers):
         ev = controller.step(action="GetSpawnCoordinatesAboveReceptacle", objectId=cid, anywhere=True)
         pts = ev.metadata.get("actionReturn") or []
         ok[cid] = bool(ev.metadata.get("lastActionSuccess")) and len(pts) > 0
         if ok[cid]:
-            points[cid] = pts[0]
+            points[cid] = pts[:max(1, min(tries, MAX_PLACEMENT_TRIES))]
     return ok, points
+
+
+def _place(controller: Any, action: str, candidates: list[Any], **kw: Any) -> tuple[Any, int]:
+    """Try the candidate points in order; return the first success and how many were tried."""
+
+    ev = None
+    for n, pt in enumerate(candidates, start=1):
+        ev = controller.step(action=action, position=pt, **kw)
+        if ev.metadata.get("lastActionSuccess") is True:
+            return ev, n
+    return ev, len(candidates)
 
 
 def _apply_interventions(controller: Any, rows: list[dict[str, Any]], spawn_points: dict[str, Any]) -> list[dict[str, Any]]:
     log = []
     for row in rows:
         kind = row["kind"]
+        tries = 1
         if kind == "remove":
             ev = controller.step(action="RemoveFromScene", objectId=row["object_id"])
         elif kind == "move":
-            ev = controller.step(action="PlaceObjectAtPoint", objectId=row["object_id"], position=spawn_points[row["destination"]])
+            ev, tries = _place(controller, "PlaceObjectAtPoint", spawn_points[row["destination"]], objectId=row["object_id"])
         else:
-            ev = controller.step(action="SpawnAsset", assetId=row["asset_id"], generatedId=row["generated_id"],
-                                 position=spawn_points[row["destination"]], rotation={"x": 0, "y": 0, "z": 0})
+            ev, tries = _place(controller, "SpawnAsset", spawn_points[row["destination"]], assetId=row["asset_id"],
+                               generatedId=row["generated_id"], rotation={"x": 0, "y": 0, "z": 0})
         ok = ev.metadata.get("lastActionSuccess") is True
-        log.append({**row, "executed": ok, "error": (ev.metadata.get("errorMessage") or "")[:300]})
+        log.append({**row, "executed": ok, "placement_tries": tries, "error": (ev.metadata.get("errorMessage") or "")[:300]})
         if not ok:
             raise PilotFailure("intervention_execution_failed", f"{kind} {row['object_id']}: {ev.metadata.get('errorMessage')}")
     return log
@@ -341,6 +384,9 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
     house_id, index, out = task["house_id"], task["index"], Path(task["out"])
     t0 = time.time()
     receipt: dict[str, Any] = {"house_id": house_id, "source_index": index, "code_commit": task["commit"]}
+    replan_on = bool(task.get("replan_blocked_edges", False))
+    placement_tries = int(task.get("placement_tries", 1))
+    receipt["options"] = {"replan_blocked_edges": replan_on, "placement_tries": placement_tries}
     controller = None
     try:
         house = house_loader.load_source_record(task["source_root"], {"relative_path": task["source_rel"], "index": index})
@@ -377,11 +423,33 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
                                       revisit_sequence=[], transition_cell=None)
         last_cell = tuple(plan1["viewpoints"][plan1["sweep_one_order"][-1]]["cell"])
         far = max(sorted(cells), key=lambda c: (len(lean_route.bfs_path(cells, last_cell, c)), c))
+        blocked: set = set(); replans: list[dict[str, Any]] = []
         plan1 = lean_route.plan_route(reachable=reach, start_pose=start, camera_height_m=cam_h, containers=usable,
                                       revisit_sequence=[], transition_cell=far)
+        # sweep one is executed waypoint by waypoint so a blocked edge only replans the remainder
+        order = plan1["sweep_one_order"]
+        s1_start = len(ep.actions_done) - 1
+        for k, cid in enumerate(order):
+            vp = plan1["viewpoints"][cid]
+            def _remaining(bl, _vp=vp):
+                here, yaw = _agent_cell_yaw(controller)
+                pitch = int(round(controller.last_event.metadata["agent"]["cameraHorizon"]))
+                path = lean_route.bfs_path(cells, here, tuple(_vp["cell"]), bl)
+                moved, yaw2 = lean_route.encode_path(path, yaw)
+                return moved + lean_route.turn_actions(yaw2, _vp["yaw"]) + lean_route.look_actions(pitch, _vp["pitch"])
+            _execute(controller, ep, _remaining(blocked), blocked=blocked, replans=replans,
+                     replan=_remaining if replan_on else None)
+        s1 = [s1_start, len(ep.actions_done) - 1]
+        def _to_far(bl):
+            here, yaw = _agent_cell_yaw(controller)
+            path = lean_route.bfs_path(cells, here, far, bl)
+            return lean_route.encode_path(path, yaw)[0]
+        tr_start = len(ep.actions_done) - 1
+        _execute(controller, ep, _to_far(blocked), blocked=blocked, replans=replans, replan=_to_far if replan_on else None)
+        tr = [tr_start, len(ep.actions_done) - 1]
+        plan1 = dict(plan1, segments={"sweep_one": s1, "transition": tr}, blocked_edges=sorted([list(c) for c in sorted(e)] for e in blocked),
+                     replans=replans, executed_actions=len(ep.actions_done) - 1)
         (ep.prov / "route_stage1.json").write_text(json.dumps(plan1, indent=1))
-        s1 = plan1["segments"]["sweep_one"]; tr = plan1["segments"]["transition"]
-        _execute(controller, ep, plan1["actions"])
         window_frames = tr[1] - tr[0]
         # which frame is each container's viewpoint frame: the last frame of its visit in sweep one
         # viewpoint frame = last sweep-one frame in which the agent stands on that viewpoint cell
@@ -403,11 +471,14 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
                 raise PilotFailure("intervention_window_unavailable", f"window {window_frames} < {MINIMUM_WINDOW_FRAMES}")
             objects = _object_table(controller.last_event.metadata)
             eligible = sel.eligible_objects(objects, ep.visible_pixels)
-            ok, spawn_points = _prescreen(controller, {c: usable[c] for c in usable})
+            ok, spawn_points = _prescreen(controller, {c: usable[c] for c in usable}, tries=placement_tries)
             feasible = sel.feasible_triples(eligible, list(usable), invisible, ok)
             if not feasible:
                 raise PilotFailure("intervention_window_unavailable", f"feasible set empty; U={len(invisible)} eligible={len(eligible)}")
             interventions = sel.sample_interventions(feasible, split_seed=task["split_seed"], house_id=house_id)
+            (ep.prov / "interventions_sampled.json").write_text(json.dumps(
+                {"feasible_set_size": len(feasible), "invisible_container_set_size": len(invisible),
+                 "eligible_object_count": len(eligible), "sampled": interventions}, indent=1))
             try:
                 log = _apply_interventions(controller, interventions, spawn_points)
             except PilotFailure:
@@ -425,9 +496,19 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
                                        containers={c: usable[c] for c in revisit} if revisit else {},
                                        revisit_sequence=[], transition_cell=None,
                                        max_actions=max(1, MAXIMUM_ACTIONS - len(plan1["actions"])))
-        actions2 = plan2b["actions"]
-        (ep.prov / "route_stage2.json").write_text(json.dumps({"revisit_sequence": revisit, "plan": plan2b}, indent=1))
-        _execute(controller, ep, actions2)
+        for cid in revisit:
+            vp = plan2b["viewpoints"][cid]
+            def _remaining2(bl, _vp=vp):
+                here, yaw = _agent_cell_yaw(controller)
+                pitch = int(round(controller.last_event.metadata["agent"]["cameraHorizon"]))
+                path = lean_route.bfs_path(cells, here, tuple(_vp["cell"]), bl)
+                moved, yaw2 = lean_route.encode_path(path, yaw)
+                return moved + lean_route.turn_actions(yaw2, _vp["yaw"]) + lean_route.look_actions(pitch, _vp["pitch"])
+            _execute(controller, ep, _remaining2(blocked), blocked=blocked, replans=replans,
+                     replan=_remaining2 if replan_on else None)
+        (ep.prov / "route_stage2.json").write_text(json.dumps({"revisit_sequence": revisit, "plan": plan2b,
+                                                                "blocked_edges": sorted([list(c) for c in sorted(e)] for e in blocked),
+                                                                "replans": replans}, indent=1))
         (ep.prov / "reachable.json").write_text(json.dumps(reach))
         (ep.prov / "interventions.json").write_text(json.dumps({"null_window": null_window, "feasible_set_size": len(feasible),
                                                                 "invisible_container_set_size": len(invisible), "executed": log,
@@ -436,6 +517,8 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
                         "null_window": null_window, "executed_interventions": len(log), "feasible_set_size": len(feasible),
                         "invisible_container_set_size": len(invisible), "window_frames": window_frames,
                         "containers_usable": len(usable), "containers_dropped": len(dropped)})
+    except lean_route.LeanRouteError as f:
+        receipt.update({"status": "failed", "reason": "route_not_placeable", "detail": f"{f} | {traceback.format_exc()[-600:]}"})
     except PilotFailure as f:
         receipt.update({"status": "failed", "reason": f.reason, "detail": f.detail})
     except Exception as e:  # noqa: BLE001
@@ -487,6 +570,10 @@ def main() -> int:
     ap.add_argument("--resume", action="store_true",
                     help="S1-02b: skip houses with a receipt; mark interrupted dirs failed; never regenerate")
     ap.add_argument("--house-timeout-s", type=int, default=1800, help="safety line per house, not a budget")
+    ap.add_argument("--replan-blocked-edges", action="store_true",
+                    help="R1 refinement (needs a ruling): on a rejected MoveAhead, block that edge and replan the rest")
+    ap.add_argument("--placement-tries", type=int, default=1,
+                    help="move/add: try up to N prescreened spawn points in order (1 = current behaviour)")
     args = ap.parse_args()
     if args.stage == "s1-02b":
         return main_s1_02b(args)
@@ -503,7 +590,8 @@ def main() -> int:
     out_root = Path(args.output_root); out_root.mkdir(parents=True, exist_ok=True)
     (out_root / "plan.json").write_text(json.dumps({"selected": selected, "split": freeze, "commit": commit, "pool_size": len(pool)}, indent=1))
     tasks = [{"house_id": h, "index": int(h.rsplit("-", 1)[1]), "out": str(out_root / h), "source_root": str(source.parent),
-              "source_rel": source.name, "split_seed": freeze["seed"], "commit": commit} for h in selected]
+              "source_rel": source.name, "split_seed": freeze["seed"], "commit": commit,
+              "replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries} for h in selected]
     base_vram = float(subprocess.run(["nvidia-smi", "--query-gpu=memory.used", "--format=csv,noheader,nounits"], capture_output=True, text=True).stdout.strip().split("\n")[0])
     stop, q = mp.Event(), mp.Queue()
     sampler = mp.Process(target=_vram_peak_sampler, args=(stop, q), daemon=True); sampler.start()
@@ -634,7 +722,8 @@ def main_s1_02b(args: argparse.Namespace) -> int:
                                                     "derived": scale, "requested_workers": workers, "measurements": measurements,
                                                     "commit": commit}, indent=1))
     tasks = [{"house_id": h, "index": int(h.rsplit("-", 1)[1]), "out": str(out_root / h), "source_root": str(source.parent),
-              "source_rel": source.name, "split_seed": freeze["seed"], "commit": commit} for h in houses]
+              "source_rel": source.name, "split_seed": freeze["seed"], "commit": commit,
+              "replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries} for h in houses]
     prior: list[dict[str, Any]] = []
     if args.resume:
         pending = []
@@ -667,6 +756,7 @@ def main_s1_02b(args: argparse.Namespace) -> int:
         "null_window_episodes": len(results) - len(non_null), "yield_house_level_non_null": yield_rate,
         "yield_gate": s1_01 and json.loads(CONTRACT_S0_02.read_text(encoding="utf-8"))["intervention_window"]["minimum_yield"],
         "yield_gate_passed": (yield_rate is not None and yield_rate >= 0.6),
+        "options": {"replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries},
         "requested_workers": workers, "actual_workers": workers, "derived_worker_count": scale["worker_count"],
         "binding_constraint": scale["binding_constraint"], "concurrency_verified_at": scale["concurrency_verified_at"],
         "is_extrapolation": scale["is_extrapolation"], "wall_clock_seconds": round(wall, 1),
