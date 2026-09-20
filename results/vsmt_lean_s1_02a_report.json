@@ -1,0 +1,125 @@
+{
+ "schema_version": "vsmt-lean-s1-02b-report-v1",
+ "stage": null,
+ "reviewed_code": "3272d118bace590ee56381a137f133677857b6fd",
+ "stage_receipt_sha256": "de9a073c83362fcd98fa833cc25e96d836fd2dc7da904d6360729adb5c944583",
+ "output_root": "/root/autodl-tmp/vsmt_outputs/lean-s1-02a-3272d11",
+ "exported_at": "2026-09-20T19:30:42+0800",
+ "houses_planned": null,
+ "succeeded": 3,
+ "failed": 1,
+ "null_window_episodes": null,
+ "yield_house_level_non_null": null,
+ "yield_gate": null,
+ "yield_gate_passed": null,
+ "requested_workers": null,
+ "actual_workers": null,
+ "derived_worker_count": null,
+ "binding_constraint": null,
+ "is_extrapolation": null,
+ "wall_clock_seconds": 474.8,
+ "failures_by_reason": {
+  "intervention_window_unavailable": 1
+ },
+ "intervention_kinds_sampled_in_successes": {
+  "add": 6
+ },
+ "intervention_kinds_executed": {
+  "add": 6
+ },
+ "window_frames_of_successes": [
+  42,
+  120,
+  204
+ ],
+ "bytes_written_total": 915600769,
+ "houses": [
+  {
+   "house_id": "procthor10k-0.1.2-train-00460",
+   "source_index": 460,
+   "status": "succeeded",
+   "reason": null,
+   "detail": "",
+   "null_window": false,
+   "invisible_container_set_size": 1,
+   "feasible_set_size": 11,
+   "observations": 171,
+   "window_frames": 42,
+   "containers_usable": 7,
+   "containers_dropped": 0,
+   "wall_seconds": 28.7,
+   "peak_rss_gb": 0.311012,
+   "bytes_written": 43956073,
+   "receipt_sha256": "e338ae60635d4503a21da20abdf195b410e184e23854ee7f6bac444cea23eedb",
+   "eligible_object_count": null,
+   "sampled_kinds": {
+    "add": 6
+   },
+   "executed_kinds": {
+    "add": 6
+   }
+  },
+  {
+   "house_id": "procthor10k-0.1.2-train-01451",
+   "source_index": 1451,
+   "status": "succeeded",
+   "reason": null,
+   "detail": "",
+   "null_window": true,
+   "invisible_container_set_size": 19,
+   "feasible_set_size": 0,
+   "observations": 1916,
+   "window_frames": 204,
+   "containers_usable": 99,
+   "containers_dropped": 0,
+   "wall_seconds": 473.7,
+   "peak_rss_gb": 3.234808,
+   "bytes_written": 486428867,
+   "receipt_sha256": "6ffda618d793ae667f2c0632ccafc512f090752fa86b35ee3de52de05c84d15f",
+   "eligible_object_count": null,
+   "sampled_kinds": {},
+   "executed_kinds": {}
+  },
+  {
+   "house_id": "procthor10k-0.1.2-train-03394",
+   "source_index": 3394,
+   "status": "succeeded",
+   "reason": null,
+   "detail": "",
+   "null_window": true,
+   "invisible_container_set_size": 4,
+   "feasible_set_size": 0,
+   "observations": 869,
+   "window_frames": 120,
+   "containers_usable": 37,
+   "containers_dropped": 0,
+   "wall_seconds": 130.8,
+   "peak_rss_gb": 1.044276,
+   "bytes_written": 215812742,
+   "receipt_sha256": "ff3063b77da26ef3d78db2cf57323612a824b75781a34b6578bd10fcf53dc760",
+   "eligible_object_count": null,
+   "sampled_kinds": {},
+   "executed_kinds": {}
+  },
+  {
+   "house_id": "procthor10k-0.1.2-train-08566",
+   "source_index": 8566,
+   "status": "failed",
+   "reason": "intervention_window_unavailable",
+   "detail": "feasible set empty; U=0 eligible=19",
+   "null_window": null,
+   "invisible_container_set_size": null,
+   "feasible_set_size": null,
+   "observations": null,
+   "window_frames": null,
+   "containers_usable": null,
+   "containers_dropped": null,
+   "wall_seconds": 112.4,
+   "peak_rss_gb": 0.875984,
+   "bytes_written": 169403087,
+   "receipt_sha256": "49a843c7c6adacae4ea3a0052b026a624c21443c228c5d68fac1a2ad352f196a",
+   "sampled_kinds": {},
+   "executed_kinds": {}
+  }
+ ]
+}
