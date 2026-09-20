@@ -263,12 +263,12 @@ def lookup_slot(contract: dict[str, Any], path: str) -> Any:
 #: and needs a new version and a review; a value freeze does not touch it.
 FROZEN_RULE_SHA256 = {
     "S0-01": "76f505da801d5ecec6730e85ca521a034888429283f6ac3a0312dfc94c27349c",
-    "S0-02": "7200b459a89dd30c8d9fbebb0ab870165b67628acd8f9e83920f74db577ca2d7",
+    "S0-02": "57ff25c7cce1609893990ae48d6fd9cf843cffc45e965312b9437ddb6420fb5b",
     "S0-03": "cc7d46f870e7894592792e793e0fc1a27f09e6e9b3d60b6e01c9f7a12d7e04d3",
     "S0-04": "268cb41825c472a8bb7bffe9e9529e4d3c98c38f791104a0ad0663e778387b48",
     "S0-05": "c5354b1e71936d345823630b6533b03329435de104e258785fdb89e17934c54a",
     "S1-01": "4f139e631388c05e4006fd12ffad8b611d2e7811fb7f9a830ce9f7c63fdecd84",
-    "S1-02a": "191b2641395e53c482545853d0a02e6ef13916c0b82fdc6e0c208a62a4dc3b6d",
+    "S1-02a": "997cabe5105ca304269b0d8d9dd34038ff096df7a79c875c577a2629866ccc64",
 }
 
 #: Every registered slot that has been frozen, and the value it froze at.
@@ -277,7 +277,10 @@ FROZEN_VALUES: dict[str, dict[str, Any]] = {
     "S0-02": {
         "route.translation_m": 0.25,
         "route.rotation_degrees": 90,
-        "route.look_degrees": 30
+        "route.look_degrees": 30,
+        "route.maximum_actions": 2000,
+        "intervention_window.maximum_interventions_per_episode": 6,
+        "intervention_window.minimum_yield": 0.6
     },
     "S1-01": {
         "worker_rule.headroom_fraction": 0.2
@@ -647,7 +650,7 @@ class TestTheSplitIsFrozenInExactlyOnePlace(unittest.TestCase):
 
     def test_generation_stays_closed_on_every_side(self) -> None:
         self.assertIs(self.s0_02["authorization"]["episode_generation"], False)
-        self.assertIs(self.s1_02a["authorization"]["episode_generation"], False)
+        self.assertIs(self.s1_02a["authorization"]["episode_generation"], True)  # opened for the pilot by ruling 24
         self.assertIn("route_or_episode_generation", load_s1_01()["must_remain_false"])
 
 

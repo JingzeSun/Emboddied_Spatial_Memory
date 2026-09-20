@@ -531,5 +531,51 @@ class TestMachineContract(unittest.TestCase):
             self.assertIn(name, excluded)
 
 
+class TestR1I1RuleSections(unittest.TestCase):
+    def setUp(self) -> None:
+        self.contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+
+    def test_the_rule_sections_bind(self) -> None:
+        validate_intervention_data_contract(self.contract)
+
+    def test_coverage_over_space_is_rejected(self) -> None:
+        bad = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        bad["route_planning"]["coverage_definition"] = "every_reachable_cell_visited"
+        with self.assertRaises(LeanInterventionError):
+            validate_intervention_data_contract(bad)
+
+    def test_sequential_resampling_is_rejected(self) -> None:
+        bad = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        bad["intervention_selection"]["sequential_resample_on_failure_forbidden"] = False
+        with self.assertRaises(LeanInterventionError):
+            validate_intervention_data_contract(bad)
+
+    def test_a_shorter_window_floor_is_rejected(self) -> None:
+        bad = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        bad["intervention_window"]["minimum_window_frames"] = 1
+        with self.assertRaises(LeanInterventionError):
+            validate_intervention_data_contract(bad)
+
+    def test_dropping_the_destination_revisit_is_rejected(self) -> None:
+        bad = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        bad["route_planning"]["sweep_two_revisits_source_and_destination_for_move"] = False
+        with self.assertRaises(LeanInterventionError):
+            validate_intervention_data_contract(bad)
+
+    def test_the_cap_may_not_truncate(self) -> None:
+        bad = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        bad["route"]["cap_hit_is_a_construction_failure_not_a_truncation"] = False
+        with self.assertRaises(LeanInterventionError):
+            validate_intervention_data_contract(bad)
+
+    def test_the_six_values_are_frozen(self) -> None:
+        self.assertEqual(self.contract["route"]["maximum_actions"], 2000)
+        iw = self.contract["intervention_window"]
+        self.assertEqual((iw["maximum_interventions_per_episode"], iw["minimum_yield"],
+                          iw["minimum_window_frames"]), (6, 0.6, 20))
+        self.assertEqual(self.contract["intervention_selection"]["p_null_window"], 0.2)
+        self.assertEqual(self.contract["route_planning"]["viewpoint_distance_m"], [0.75, 2.5])
+
+
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()

@@ -2,7 +2,7 @@
   "schema_version": "vsmt-lean-s1-02a-pilot-v2",
   "decision_id": "D-224",
   "stage_id": "S1-02a",
-  "status": "split_frozen_pending_user_code_review",
+  "status": "authorized_for_pilot_run",
   "supersedes_contract": {
     "path": "configs/vsmt/lean_s1_02a_pilot_v1.json",
     "v1_sha256": "c44db4e46bc29b9d4288560b36d20868783b5eaff34d5d8957958aed8dc7f8ff",
@@ -20,12 +20,26 @@
     "note_zh": "划分与 worker 推导都不在本阶段重写：house 分块直接调 S0-02 v2 的 `assign_split`，worker 数直接调 S1-01 v2 的 `derive_worker_count`。本阶段只负责「谁是 pilot 的 4 个 house、占用怎么量、回执必须写什么」。两处复用各有一项测试钉住，防止出现第二套划分或第二个公式。"
   },
   "authorization": {
-    "split_freeze_registration": false,
-    "house_pool_read": false,
-    "simulator_start": false,
-    "route_construction": false,
-    "episode_generation": false,
-    "occupancy_measurement": false
+    "split_freeze_registration": true,
+    "house_pool_read": true,
+    "simulator_start": true,
+    "route_construction": true,
+    "episode_generation": true,
+    "occupancy_measurement": true
+  },
+  "activation_policy": {
+    "active_true_authorizations": [
+      "episode_generation",
+      "house_pool_read",
+      "occupancy_measurement",
+      "route_construction",
+      "simulator_start",
+      "split_freeze_registration"
+    ],
+    "opened_by": "D-224-S1",
+    "opened_on": "2026-09-20",
+    "code_commit_at_run": null,
+    "plain_language_zh": "用户 2026-09-20 授权 S1-02a 六个位；runner 与 R1/I1 规则落地后一并打开。S1-02b、训练与 private 读取仍关闭。"
   },
   "must_remain_false": [
     "sample_replacement_on_failure",

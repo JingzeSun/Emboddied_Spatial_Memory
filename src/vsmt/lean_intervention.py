@@ -90,6 +90,21 @@ FAILURE_REASONS = (
     "frame_write_failed",
 )
 
+#: R1 / I1 rule constants (D-224-S1 rulings 23/24).  The contract binds them.
+COVERAGE_DEFINITION = "every_eligible_container_observed_once_before_and_once_after"
+VIEWPOINT_DISTANCE_M = (0.75, 2.5)
+VIEWPOINT_PITCH_OPTIONS = (-30, 0, 30)
+ROUTE_STRUCTURE = ("sweep_one", "transition", "sweep_two")
+PATH_ENCODING = "turn_then_move_ahead_no_strafe"
+MIN_VISIBLE_PIXELS = 196
+RNG_PURPOSE_TAGS = ("intervention", "revisit_order", "null_window")
+ADD_SOURCE = "duplicate_existing_object_via_SpawnAsset_same_assetId_new_generatedId"
+P_NULL_WINDOW = 0.2
+MINIMUM_WINDOW_FRAMES = 20
+MAXIMUM_ACTIONS = 2000
+MAXIMUM_INTERVENTIONS_PER_EPISODE = 6
+MINIMUM_YIELD = 0.6
+
 
 class LeanInterventionError(ValueError):
     """Raised for any inadmissible split, route, intervention or layout."""
@@ -621,6 +636,42 @@ def validate_intervention_data_contract(contract: Mapping[str, Any]) -> dict[str
             _require(name not in contract["policy_values_without_defaults"],
                      "contract_magnitude_frozen_but_still_listed_as_open")
 
+
+    # R1 / I1 rule sections: every constant the planner and selector will
+    # read is bound here, so the contract cannot drift from the code.
+    rp = contract["route_planning"]
+    _require(rp["coverage_definition"] == COVERAGE_DEFINITION, "contract_coverage_changed")
+    _require(rp["coverage_is_over_entities_not_space"] is True, "contract_coverage_over_space")
+    _require(tuple(rp["viewpoint_distance_m"]) == VIEWPOINT_DISTANCE_M, "contract_viewpoint_distance_changed")
+    _require(rp["viewpoint_distance_is_a_search_range_not_a_target"] is True, "contract_viewpoint_range_semantics")
+    _require(tuple(rp["viewpoint_pitch_options_degrees"]) == VIEWPOINT_PITCH_OPTIONS, "contract_pitch_options_changed")
+    _require(tuple(rp["structure"]) == ROUTE_STRUCTURE, "contract_route_structure_changed")
+    _require(rp["path_encoding"] == PATH_ENCODING, "contract_path_encoding_changed")
+    _require(rp["no_local_search_after_tour"] is True, "contract_local_search_allowed")
+    _require(rp["sweep_two_revisits_source_and_destination_for_move"] is True, "contract_move_revisit_weakened")
+    _require(rp["move_revisit_order"] == "seeded_random_per_intervention", "contract_revisit_order_changed")
+    _require(rp["reachable_set_written_to_provenance_only"] is True, "contract_reachable_set_leaks")
+    _require(rp["route_is_a_pure_function_of_house_and_frozen_parameters"] is True, "contract_route_not_pure")
+    sel = contract["intervention_selection"]
+    _require(sel["eligible_object"]["observed_in_sweep_one_with_min_visible_pixels"] == MIN_VISIBLE_PIXELS,
+             "contract_min_visible_pixels_changed")
+    _require(sel["enumerate_then_sample"] is True and sel["sequential_resample_on_failure_forbidden"] is True,
+             "contract_sampling_rule_weakened")
+    _require(tuple(sel["rng_purpose_tags"]) == RNG_PURPOSE_TAGS, "contract_rng_tags_changed")
+    _require(sel["no_new_seed"] is True, "contract_new_seed_allowed")
+    _require(sel["add_source"] == ADD_SOURCE, "contract_add_source_changed")
+    _require(sel["placement_prescreen_during_enumeration"] is True, "contract_prescreen_dropped")
+    _require(sel["p_null_window"] == P_NULL_WINDOW, "contract_p_null_changed")
+    iw = contract["intervention_window"]
+    _require(iw["minimum_window_frames"] == MINIMUM_WINDOW_FRAMES, "contract_min_window_changed")
+    _require(iw["window_is_the_whole_transition_segment"] is True, "contract_window_not_whole_transition")
+    _require(iw["feasible_set_is_computed_for_the_shared_window"] is True, "contract_feasible_set_not_joint")
+    _require(iw["maximum_interventions_per_episode"] == MAXIMUM_INTERVENTIONS_PER_EPISODE, "contract_max_interventions_changed")
+    _require(iw["minimum_yield"] == MINIMUM_YIELD, "contract_min_yield_changed")
+    _require(contract["route"]["maximum_actions"] == MAXIMUM_ACTIONS, "contract_max_actions_changed")
+    _require(contract["route"]["cap_hit_is_a_construction_failure_not_a_truncation"] is True,
+             "contract_cap_truncates")
+
     _require(
         all(value is False for value in contract["authorization"].values()),
         "contract_authorization_must_be_all_false",
@@ -630,6 +681,19 @@ def validate_intervention_data_contract(contract: Mapping[str, Any]) -> dict[str
 
 __all__ = [
     "ACTIONS",
+    "ADD_SOURCE",
+    "COVERAGE_DEFINITION",
+    "MAXIMUM_ACTIONS",
+    "MAXIMUM_INTERVENTIONS_PER_EPISODE",
+    "MINIMUM_WINDOW_FRAMES",
+    "MINIMUM_YIELD",
+    "MIN_VISIBLE_PIXELS",
+    "PATH_ENCODING",
+    "P_NULL_WINDOW",
+    "RNG_PURPOSE_TAGS",
+    "ROUTE_STRUCTURE",
+    "VIEWPOINT_DISTANCE_M",
+    "VIEWPOINT_PITCH_OPTIONS",
     "CONTRACT_SCHEMA_VERSION",
     "DEPLOYMENT_READABLE_PLANES",
     "FAILURE_REASONS",

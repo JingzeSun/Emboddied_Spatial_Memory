@@ -318,13 +318,13 @@ class TestContract(unittest.TestCase):
         checked = validate_pilot_contract(self.contract)
         self.assertEqual(checked["stage_id"], "S1-02a")
 
-    def test_every_authorization_bit_is_false(self) -> None:
-        self.assertTrue(all(value is False
-                            for value in self.contract["authorization"].values()))
+    def test_the_six_bits_are_open_under_the_ruling(self) -> None:
+        self.assertTrue(all(self.contract["authorization"].values()))
+        self.assertEqual(self.contract["activation_policy"]["opened_by"], "D-224-S1")
 
-    def test_an_opened_bit_is_rejected(self) -> None:
+    def test_a_bit_outside_the_policy_is_rejected(self) -> None:
         opened = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
-        opened["authorization"]["episode_generation"] = True
+        opened["authorization"]["extra_bit"] = True
         with self.assertRaises(LeanPilotError):
             validate_pilot_contract(opened)
 
@@ -384,7 +384,7 @@ class TestContract(unittest.TestCase):
         selected = select_pilot_houses(POOL, frozen)
         self.assertEqual(selected, select_pilot_houses(list(POOL), frozen))
         self.assertEqual(len(selected), 4)
-        self.assertIs(self.contract["authorization"]["house_pool_read"], False)
+        self.assertIs(self.contract["authorization"]["house_pool_read"], True)
 
     def test_dropping_the_pilot_from_the_fifty_is_rejected(self) -> None:
         sneaky = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))

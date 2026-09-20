@@ -425,8 +425,14 @@ def validate_pilot_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
              and len(supersedes["v1_sha256"]) == 64,
              "contract_superseded_digest_invalid")
 
-    _require(all(value is False for value in contract["authorization"].values()),
-             "contract_authorization_must_be_all_false")
+    policy = contract.get("activation_policy")
+    opened = set(policy["active_true_authorizations"]) if policy else set()
+    if policy:
+        _require(type(policy.get("opened_by")) is str and bool(policy["opened_by"]),
+                 "contract_activation_unbound")
+    for name, value in contract["authorization"].items():
+        _require(type(value) is bool, "contract_authorization_not_boolean")
+        _require(value is False or name in opened, f"contract_bit_opened_without_a_ruling:{name}")
     return clone_json(dict(contract))
 
 
