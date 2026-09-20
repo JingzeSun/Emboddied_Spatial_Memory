@@ -2,7 +2,8 @@
 
 Usage (server, simulator env):
     python ops/vsmt/lean_s1_02a_pilot.py --output-root /root/autodl-tmp/vsmt_outputs/lean-s1-02a-<commit> \
-        --source /root/autodl-tmp/vsmt_sources/procthor-10k-0.1.2/train.jsonl.gz --workers 4
+        --source /root/autodl-tmp/vsmt_sources/procthor-10k-0.1.2/train.jsonl.gz --workers 4 \
+        --private-salt-file /root/autodl-tmp/vsmt_private/null_window_salt.txt
 
 What one worker does, in order, and what it writes:
   1. load the house, upgrade its schema (reused from vm04_two_house_worker),
@@ -12,10 +13,14 @@ What one worker does, in order, and what it writes:
      three planes every frame; sweep one gives each object's max visible
      pixels (private instance masks), the transition gives, for every
      container, a public-visibility verdict per frame (S0-02 verdict source);
-  3. U = containers invisible in every transition frame; enumerate the
-     feasible triples (lean_interventions), pre-screen placement, sample,
-     execute the interventions at the transition cell;
-  4. plan sweep two from the sampled interventions, execute it;
+  3. U = containers invisible in every transition frame (subjects sealed from
+     the best sweep-one frame, ruling 35); enumerate the feasible triples
+     (lean_interventions), dry-run the placements, sample, draw the control
+     containers (ruling 34); execute the interventions at the transition cell
+     unless the episode is a salted null draw (ruling 37), which keeps the
+     sample and the controls and skips only the execution;
+  4. sweep two visits the intervened containers and the controls, interleaved
+     by the seeded RNG;
   5. write provenance (route, reachable set, interventions, verdicts) and a
      per-house receipt; a failure of any kind leaves a failure receipt with
      a registered reason and keeps the prefix.
@@ -58,8 +63,8 @@ from cpmt.hashing import canonical_json  # noqa: E402
 from vsmt import lean_interventions as sel  # noqa: E402
 from vsmt import lean_pilot, lean_route  # noqa: E402
 from vsmt.lean_intervention import (  # noqa: E402
-    DRY_RUN_MAX_POINTS, FAILURE_REASONS, MAX_REPLANS, MAXIMUM_ACTIONS, MINIMUM_WINDOW_FRAMES, MIN_VISIBLE_PIXELS,
-    PUBLIC_FRAME_FIELDS,
+    DRY_RUN_MAX_POINTS, FAILURE_REASONS, MAX_REPLANS, MAXIMUM_ACTIONS, MINIMUM_WINDOW_FRAMES, MIN_SUBJECT_PIXELS,
+    MIN_VISIBLE_PIXELS, PUBLIC_FRAME_FIELDS, check_move_minimum,
     PRIVATE_FRAME_FIELDS, FORBIDDEN_PUBLIC_KEYS,
 )
 from vsmt.vm04_public_visibility import (  # noqa: E402
@@ -159,6 +164,7 @@ class Episode:
         self.origin: dict[str, Any] | None = None
         self.frames: list[dict[str, Any]] = []          # per-frame private geometry we keep in memory
         self.visible_pixels: dict[str, int] = {}
+        self.pixels_by_frame: list[dict[str, int]] = []   # per frame: object id -> private mask pixels (visible only)
         self.bytes_written = 0
         self.actions_done: list[dict[str, Any]] = []
 
@@ -227,6 +233,7 @@ class Episode:
         }
         assert tuple(private_record) == PRIVATE_FRAME_FIELDS
         self._write(self.private / f"{idx:04d}.frame.json", (json.dumps(private_record) + "\n").encode())
+        self.pixels_by_frame.append(dict(private_record["object_visibility"]))
         self.frames.append({"index": idx, "pose": pose, "depth": depth, "masks": masks,
                             "camera_position": dict(meta["cameraPosition"]), "frame_digest": public_record["frame_digest"]})
         self.actions_done.append({"index": idx, "action": action, "success": bool(meta.get("lastActionSuccess")),
@@ -285,8 +292,14 @@ def _execute(controller: Any, ep: Episode, actions: list[str], *, blocked: set, 
 
 
 def _containers(meta: dict[str, Any]) -> dict[str, dict[str, float]]:
+    """Non-pickupable receptacles.  The room floor carries AI2-THOR's receptacle flag but is not a
+    container in the paper's sense (its "viewpoint" is the house centre); it is excluded and the
+    exclusion is written to the receipt."""
+
     out = {}
     for o in meta["objects"]:
+        if o.get("objectType") == "Floor":
+            continue
         if o.get("receptacle") and not o.get("pickupable"):
             bb = o.get("axisAlignedBoundingBox") or {}
             c = bb.get("center") or o["position"]
@@ -304,25 +317,50 @@ def _object_table(meta: dict[str, Any]) -> list[dict[str, Any]]:
     return rows
 
 
-def _seal_container_subjects(ep: Episode, containers: dict[str, Any], sweep_one: tuple[int, int],
-                             viewpoint_frames: dict[str, int]) -> dict[str, dict[str, Any]]:
-    """Seal one visibility subject per container from its sweep-one viewpoint frame (private mask, provenance only)."""
+def _max_pixels(ep: Episode, lo: int, hi: int) -> dict[str, int]:
+    """Per object: the most private mask pixels in frames lo..hi inclusive."""
 
-    subjects = {}
+    out: dict[str, int] = {}
+    for fr in ep.pixels_by_frame[lo:hi + 1]:
+        for oid, px in fr.items():
+            if px > out.get(oid, 0):
+                out[oid] = px
+    return out
+
+
+def _seal_container_subjects(ep: Episode, containers: dict[str, Any],
+                             sweep_one: tuple[int, int]) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
+    """Seal one visibility subject per container from the sweep-one frame with the most container
+    pixels (ruling 35); private mask, provenance only.  Returns (subjects, per-container frame record).
+
+    白话：以前用"最后一次站在视点格上的那一帧"封印，结果 972/1521 个容器在那一帧里是
+    0 像素（几个容器共用一个视点格、或后来路过了那个格子），只有 411 个能封印，U 因此
+    极小且偏向抽屉。现在取扫掠一里该容器像素最多的那一帧，≥512 像素才封印。
+    """
+
+    subjects, frames = {}, {}
     calib = intrinsics()
-    for cid, fidx in viewpoint_frames.items():
-        fr = ep.frames[fidx]
-        mask = np.asarray(fr["masks"].get(cid, np.zeros((HEIGHT, WIDTH), bool)), dtype=bool)
-        if int(mask.sum()) < VIS_CONFIG.minimum_subject_samples * VIS_CONFIG.sampling_stride_pixels ** 2:
+    lo, hi = sweep_one
+    for cid in sorted(containers):
+        best_px, best_idx = 0, None
+        for idx in range(lo, hi + 1):
+            px = ep.pixels_by_frame[idx].get(cid, 0)
+            if px > best_px:
+                best_px, best_idx = px, idx
+        frames[cid] = {"frame": best_idx, "pixels": best_px, "sealed": False}
+        if best_idx is None or best_px < MIN_SUBJECT_PIXELS:
             continue
+        fr = ep.frames[best_idx]
+        mask = np.asarray(fr["masks"][cid], dtype=bool)
         try:
             subjects[cid] = seal_public_visibility_subject(
                 subject_public_ref=f"container:{sha(cid)[:16]}", source_public_packet_sha256=fr["frame_digest"],
-                source_observation_index=fidx, public_mask=mask, public_depth_m=fr["depth"],
+                source_observation_index=best_idx, public_mask=mask, public_depth_m=fr["depth"],
                 camera_calibration=calib, camera_pose=fr["pose"], config=VIS_CONFIG)
-        except ValueError:
-            continue
-    return subjects
+            frames[cid]["sealed"] = True
+        except ValueError as exc:
+            frames[cid]["seal_error"] = str(exc)
+    return subjects, frames
 
 
 def _invisible_set(ep: Episode, subjects: dict[str, dict[str, Any]], transition: tuple[int, int]) -> tuple[set[str], list[dict[str, Any]]]:
@@ -494,65 +532,120 @@ def _dry_run_pairs(controller: Any, candidates: list[dict[str, Any]], u_containe
             drift = (math.dist([now["x"], now["y"], now["z"]], [orig_pos["x"], orig_pos["y"], orig_pos["z"]]) if now else None)
             table.append({"object_id": oid, "destination": dst, "tries": tried, "placed_any": placed_any, "best_pixels": best,
                           "feasible": found is not None, "revert_ok": revert_ok, "revert_first_error": revert_error,
-                          "revert_drift_m": None if drift is None else round(drift, 4)})
+                          "revert_drift_m": None if drift is None else round(drift, 4),
+                          "original_position": orig_pos, "original_rotation": orig_rot})
             if found is not None:
                 ok[(oid, dst)] = {"point": found, "pixels": best, "tries": tried}
     return ok, table
 
 
-def _apply_interventions(controller: Any, rows: list[dict[str, Any]], spawn_points: dict[str, Any], *,
-                         viewpoints: dict[str, Any] | None = None, verify: bool = False) -> list[dict[str, Any]]:
+def _object_pose(controller: Any, oid: str) -> dict[str, Any] | None:
+    o = next((x for x in controller.last_event.metadata["objects"] if x["objectId"] == oid), None)
+    return None if o is None else {"position": dict(o["position"]), "rotation": dict(o["rotation"])}
+
+
+def _apply_interventions(controller: Any, rows: list[dict[str, Any]], *, viewpoints: dict[str, Any],
+                         attempts: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Execute the sampled interventions.  Every row's attempt record is appended to ``attempts``
+    before anything can raise, so a failed house still leaves the full attempt table.
+
+    白话：执行放置时先试 dry-run 记住的那个点并偷看；若放不下或看不见（4bff1a8 里有 3 个
+    house 是这样），不再只在旧的 32 个点里找，而是重新向模拟器要当前状态下的生成点、
+    再均匀取 32 个逐点试放并偷看。每个点的错误、放置前物体的真实位姿都写进 provenance，
+    失败也写，这样下次能定因。
+    """
+
     log = []
     for row in rows:
         kind = row["kind"]
-        tries, seen_px = 1, None
-        vp = (viewpoints or {}).get(row.get("destination") or "")
+        oid = row["object_id"]
+        vp = viewpoints.get(row.get("destination") or "")
+        record: dict[str, Any] = {**row, "pose_before_execution": _object_pose(controller, oid), "attempts": []}
+        attempts.append(record)
+        seen_px, point_source, ev = None, None, None
         if kind == "remove":
             # RemoveFromScene hangs Unity in Procedural scenes (NullReferenceException while generating
             # metadata; reproduced on a fresh controller, LOG-236).  DisableObject deactivates the
             # GameObject: 0 px in instance segmentation, no collider, still listed in simulator
             # metadata with visible=false.  Private frame records are built from instance masks,
             # so a disabled object never appears in them.
-            ev = controller.step(action="DisableObject", objectId=row["object_id"])
-        elif (kind == "move" or row.get("add_source") == "unseen_existing") and row.get("point") is not None:
-            # dry-run prescreened pair: the verified point first; if the scene shifted since the dry run
-            # (objects nudged, an egg cracked), the other spread points with the same peek check
-            ev = controller.step(action="PlaceObjectAtPoint", objectId=row["object_id"], position=row["point"])
-            point_source = "dry_run"
-            if ev.metadata.get("lastActionSuccess") is True and vp is not None:
-                seen_px = _peek_pixels(controller, vp, row["object_id"])
-            if (ev.metadata.get("lastActionSuccess") is not True or (seen_px is not None and seen_px < MIN_VISIBLE_PIXELS)) and vp is not None:
-                others = [pt for pt in spawn_points.get(row["destination"], []) if pt != row["point"]]
-                ev, tries, seen_px = _place_verified(controller, "PlaceObjectAtPoint", others, object_id=row["object_id"],
-                                                     viewpoint=vp, min_px=MIN_VISIBLE_PIXELS, objectId=row["object_id"])
-                point_source = f"fallback_after_stale_dry_run_point"
-            row = {**row, "point_source": point_source}
-        elif kind == "move" or row.get("add_source") == "unseen_existing":
-            if verify and vp is not None:
-                ev, tries, seen_px = _place_verified(controller, "PlaceObjectAtPoint", spawn_points[row["destination"]],
-                                                     object_id=row["object_id"], viewpoint=vp, min_px=MIN_VISIBLE_PIXELS,
-                                                     objectId=row["object_id"])
-            else:
-                ev, tries = _place(controller, "PlaceObjectAtPoint", spawn_points[row["destination"]], objectId=row["object_id"])
+            ev = controller.step(action="DisableObject", objectId=oid)
+            ok = ev.metadata.get("lastActionSuccess") is True
+            record["attempts"].append({"executor": "DisableObject", "ok": ok, "error": (ev.metadata.get("errorMessage") or "")[:300]})
+            executor = "DisableObject"
         else:
-            ev, tries = _place(controller, "SpawnAsset", spawn_points[row["destination"]], assetId=row["asset_id"],
-                               generatedId=row["generated_id"], rotation={"x": 0, "y": 0, "z": 0})
-        ok = ev.metadata.get("lastActionSuccess") is True
-        executor = {"remove": "DisableObject", "move": "PlaceObjectAtPoint", "add": "SpawnAsset"}[kind]
-        if row.get("add_source") == "unseen_existing":
-            executor = "PlaceObjectAtPoint(unseen_existing)"
-        log.append({**row, "executed": ok, "placement_tries": tries, "executor": executor, "verified_pixels": seen_px,
-                    "error": (ev.metadata.get("errorMessage") or "")[:300]})
+            assert kind == "move" or row.get("add_source") == "unseen_existing", row
+            if vp is None:
+                raise PilotFailure("intervention_execution_failed", f"{kind} {oid}: destination has no viewpoint")
+            candidates: list[tuple[str, Any]] = []
+            if row.get("point") is not None:
+                candidates.append(("dry_run", row["point"]))
+            fresh = controller.step(action="GetSpawnCoordinatesAboveReceptacle", objectId=row["destination"],
+                                    anywhere=True).metadata.get("actionReturn") or []
+            candidates += [("fresh_spawn_points", pt) for pt in _spread(fresh, DRY_RUN_MAX_POINTS) if pt != row.get("point")]
+            record["fresh_spawn_point_count"] = len(fresh)
+            for source, pt in candidates:
+                ev = controller.step(action="PlaceObjectAtPoint", objectId=oid, position=pt)
+                placed = ev.metadata.get("lastActionSuccess") is True
+                att = {"source": source, "point": pt, "placed": placed, "error": (ev.metadata.get("errorMessage") or "")[:200], "pixels": None}
+                if placed:
+                    att["pixels"] = _peek_pixels(controller, vp, oid)
+                record["attempts"].append(att)
+                if placed and att["pixels"] >= MIN_VISIBLE_PIXELS:
+                    seen_px, point_source = att["pixels"], source
+                    break
+            ok = point_source is not None
+            if not ok and ev is not None and ev.metadata.get("lastActionSuccess") is True:
+                best = max((att["pixels"] or 0) for att in record["attempts"])
+                ev.metadata["lastActionSuccess"] = False
+                ev.metadata["errorMessage"] = f"placed but not visible from the viewpoint at any of {len(candidates)} points (best {best} px)"
+            executor = "PlaceObjectAtPoint(unseen_existing)" if row.get("add_source") == "unseen_existing" else "PlaceObjectAtPoint"
+        record.update({"executed": ok, "placement_tries": len(record["attempts"]), "executor": executor,
+                       "verified_pixels": seen_px, "point_source": point_source,
+                       "error": ("" if ok else (ev.metadata.get("errorMessage") or "")[:300])})
+        log.append({k: v for k, v in record.items() if k not in ("attempts", "pose_before_execution")})
         if not ok:
-            raise PilotFailure("intervention_execution_failed", f"{kind} {row['object_id']}: {ev.metadata.get('errorMessage')}")
+            raise PilotFailure("intervention_execution_failed", f"{kind} {oid}: {record['error']}")
     return log
+
+
+def _remaining_to(controller: Any, ep: Episode, cells: set, blocked: set, vp_box: dict[str, Any], *, cid: str,
+                  center: dict[str, float], cam_h: float, reselections: list[dict[str, Any]], phase: str) -> list[str]:
+    """Actions from the real pose to the container's viewpoint under the blocklist.  If the blocklist
+    has cut the viewpoint cell off, the nearest admissible viewpoint inside the reachable component
+    is selected instead and the change is recorded (00975 in the 4bff1a8 run).
+
+    白话：被拒绝的格间边可能把视点格割开（视点在椅子后面的死角）。以前只换路不换视点，
+    走不到就整条作废；现在在"带黑名单还走得到"的格子里重选最近的合格视点，并把新旧视点
+    写进 provenance。规则没变（最近合格视点、并列按网格序），只是"可达"改为按实测算。
+    """
+
+    here, yaw = _agent_cell_yaw(controller)
+    pitch = int(round(controller.last_event.metadata["agent"]["cameraHorizon"]))
+    vp = vp_box["vp"]
+    try:
+        path = lean_route.bfs_path(cells, here, tuple(vp["cell"]), blocked)
+    except lean_route.LeanRouteError as exc:
+        if "bfs_no_path" not in str(exc):
+            raise
+        component = lean_route.reachable_component(cells, here, blocked)
+        new_vp = lean_route.select_viewpoint(center, cells, camera_height_m=cam_h, component=component)
+        new_vp = dict(new_vp, cell=list(new_vp["cell"]))
+        if tuple(new_vp["cell"]) == tuple(vp["cell"]):
+            raise
+        reselections.append({"phase": phase, "container": cid, "observation_index": ep.index,
+                             "old": dict(vp), "new": dict(new_vp), "blocked_edges": len(blocked)})
+        vp_box["vp"] = vp = new_vp
+        path = lean_route.bfs_path(cells, here, tuple(vp["cell"]), blocked)
+    moved, yaw2 = lean_route.encode_path(path, yaw)
+    return moved + lean_route.turn_actions(yaw2, vp["yaw"]) + lean_route.look_actions(pitch, vp["pitch"])
 
 
 def run_house(task: dict[str, Any]) -> dict[str, Any]:
     house_id, index, out = task["house_id"], task["index"], Path(task["out"])
     t0 = time.time()
     receipt: dict[str, Any] = {"house_id": house_id, "source_index": index, "code_commit": task["commit"]}
-    # defaults are the contract rules after rulings 25-32; the old values remain selectable only to replay s1-02b/159654f
+    # defaults are the contract rules after rulings 25-38; the old values remain selectable only to replay s1-02b/159654f
     replan_on = bool(task.get("replan_blocked_edges", True))
     placement_tries = int(task.get("placement_tries", DRY_RUN_MAX_POINTS))
     add_source = str(task.get("add_source", "unseen_existing"))
@@ -561,8 +654,15 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
     receipt["options"] = {"replan_blocked_edges": replan_on, "placement_tries": placement_tries,
                           "stratify_by_kind": bool(task.get("stratify_by_kind", True)),
                           "add_source": add_source, "destination_points": destination_points,
-                          "placement_prescreen": placement_prescreen}
+                          "placement_prescreen": placement_prescreen, "twin_control": True,
+                          "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"}
+    # ruling 37: the null draw is salted; the salt never enters the receipt, only its digest
+    null_window = sel.is_null_window(task["split_seed"], house_id, task["private_salt"])
+    receipt["null_window"] = null_window
+    receipt["null_window_salt_sha256"] = sha_bytes(task["private_salt"].encode("utf-8"))
     controller = None
+    attempts: list[dict[str, Any]] = []
+    reselections: list[dict[str, Any]] = []
     try:
         house = house_loader.load_source_record(task["source_root"], {"relative_path": task["source_rel"], "index": index})
         upgraded = house_loader.upgrade_house_schema_v1(house, house_loader.load_pinned_asset_id_database())
@@ -584,12 +684,15 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
         start = {"position": meta["agent"]["position"], "rotation": meta["agent"]["rotation"], "horizon": meta["agent"]["cameraHorizon"]}
         cam_h = float(meta["cameraPosition"]["y"])
         containers = _containers(meta)
-        # viewpoints reachable? drop containers without one (recorded)
+        floor_excluded = sorted(o["objectId"] for o in meta["objects"] if o.get("objectType") == "Floor" and o.get("receptacle"))
+        # viewpoints reachable from the start cell? drop containers without one (recorded)
         cells = lean_route.reachable_cells(reach)
+        start_cell = (lean_route.snap(start["position"]["x"]), lean_route.snap(start["position"]["z"]))
+        component0 = lean_route.reachable_component(cells, start_cell) if start_cell in cells else None
         usable, dropped = {}, []
         for cid, c in sorted(containers.items()):
             try:
-                lean_route.select_viewpoint(c, cells, camera_height_m=cam_h); usable[cid] = c
+                lean_route.select_viewpoint(c, cells, camera_height_m=cam_h, component=component0); usable[cid] = c
             except lean_route.LeanRouteError:
                 dropped.append(cid)
         if not usable:
@@ -605,16 +708,14 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
         # sweep one is executed waypoint by waypoint so a blocked edge only replans the remainder
         order = plan1["sweep_one_order"]
         s1_start = len(ep.actions_done) - 1
-        for k, cid in enumerate(order):
-            vp = plan1["viewpoints"][cid]
-            def _remaining(bl, _vp=vp):
-                here, yaw = _agent_cell_yaw(controller)
-                pitch = int(round(controller.last_event.metadata["agent"]["cameraHorizon"]))
-                path = lean_route.bfs_path(cells, here, tuple(_vp["cell"]), bl)
-                moved, yaw2 = lean_route.encode_path(path, yaw)
-                return moved + lean_route.turn_actions(yaw2, _vp["yaw"]) + lean_route.look_actions(pitch, _vp["pitch"])
+        for cid in order:
+            vp_box = {"vp": plan1["viewpoints"][cid]}
+            def _remaining(bl, _box=vp_box, _cid=cid):
+                return _remaining_to(controller, ep, cells, bl, _box, cid=_cid, center=usable[_cid], cam_h=cam_h,
+                                     reselections=reselections, phase="sweep_one")
             _execute(controller, ep, _remaining(blocked), blocked=blocked, replans=replans,
                      replan=_remaining if replan_on else None)
+            plan1["viewpoints"][cid] = vp_box["vp"]
         s1 = [s1_start, len(ep.actions_done) - 1]
         def _to_far(bl):
             here, yaw = _agent_cell_yaw(controller)
@@ -624,95 +725,102 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
         _execute(controller, ep, _to_far(blocked), blocked=blocked, replans=replans, replan=_to_far if replan_on else None)
         tr = [tr_start, len(ep.actions_done) - 1]
         plan1 = dict(plan1, segments={"sweep_one": s1, "transition": tr}, blocked_edges=sorted([list(c) for c in sorted(e)] for e in blocked),
-                     replans=replans, executed_actions=len(ep.actions_done) - 1)
+                     replans=replans, executed_actions=len(ep.actions_done) - 1, viewpoint_reselections=list(reselections),
+                     floor_excluded=floor_excluded)
         (ep.prov / "route_stage1.json").write_text(json.dumps(plan1, indent=1))
         window_frames = tr[1] - tr[0]
-        # which frame is each container's viewpoint frame: the last frame of its visit in sweep one
-        # viewpoint frame = last sweep-one frame in which the agent stands on that viewpoint cell
-        vp_frames: dict[str, int] = {}
-        for cid in plan1["sweep_one_order"]:
-            vp = plan1["viewpoints"][cid]
-            for fr in ep.frames[s1[0]:s1[1] + 1]:
-                cp = fr["camera_position"]
-                if (lean_route.snap(cp["x"]), lean_route.snap(cp["z"])) == tuple(vp["cell"]):
-                    vp_frames[cid] = fr["index"]
-        null_window = sel.is_null_window(task["split_seed"], house_id)
-        subjects = _seal_container_subjects(ep, usable, s1, vp_frames)
+        # ruling 35: subjects sealed from the best sweep-one frame; U = invisible in every transition frame
+        subjects, subject_frames = _seal_container_subjects(ep, usable, tuple(s1))
         invisible, verdicts = _invisible_set(ep, subjects, tr)
-        (ep.prov / "window_verdicts.json").write_text(json.dumps({"window": tr, "frames": window_frames, "invisible": sorted(invisible), "verdicts": verdicts}, indent=1))
-        interventions: list[dict[str, Any]] = []
-        feasible: list[dict[str, Any]] = []
-        if not null_window:
-            if window_frames < MINIMUM_WINDOW_FRAMES:
-                raise PilotFailure("intervention_window_unavailable", f"window {window_frames} < {MINIMUM_WINDOW_FRAMES}")
-            objects = _object_table(controller.last_event.metadata)
-            eligible = sel.eligible_objects(objects, ep.visible_pixels)
-            unseen = sel.unseen_objects(objects, ep.visible_pixels) if add_source == "unseen_existing" else None
-            ok, spawn_points = _prescreen(controller, {c: usable[c] for c in usable}, tries=placement_tries,
-                                          anywhere=(destination_points != "top"))
-            pair_ok, dry_run_table = None, None
-            if placement_prescreen == "dry_run":
-                cand = [o for o in eligible if o["parent_receptacle"] in invisible] + list(unseen or [])
-                pair_ok, dry_run_table = _dry_run_pairs(controller, cand, invisible, spawn_points, plan1["viewpoints"],
-                                                        MIN_VISIBLE_PIXELS, beat=ep.beat)
-                (ep.prov / "placement_dry_run.json").write_text(json.dumps(dry_run_table, indent=1))
-            feasible = sel.feasible_triples(eligible, list(usable), invisible, ok, unseen=unseen, pair_ok=pair_ok)
-            if not feasible:
-                raise PilotFailure("intervention_window_unavailable", f"feasible set empty; U={len(invisible)} eligible={len(eligible)}")
-            interventions = sel.sample_interventions(feasible, split_seed=task["split_seed"], house_id=house_id,
-                                                     stratify_by_kind=bool(task.get("stratify_by_kind", True)),
-                                                     one_placement_per_destination=(placement_prescreen == "dry_run"))
-            feasible_by_kind: dict[str, int] = {}
-            for row in feasible:
-                feasible_by_kind[row["kind"]] = feasible_by_kind.get(row["kind"], 0) + 1
-            (ep.prov / "interventions_sampled.json").write_text(json.dumps(
-                {"feasible_set_size": len(feasible), "feasible_by_kind": feasible_by_kind,
-                 "invisible_container_set_size": len(invisible),
-                 "eligible_object_count": len(eligible), "unseen_object_count": (len(unseen) if unseen is not None else None),
-                 "destinations_with_points": sum(1 for c in invisible if ok.get(c)),
-                 "dry_run_pairs_tested": (len(dry_run_table) if dry_run_table is not None else None),
-                 "dry_run_pairs_feasible": (len(pair_ok) if pair_ok is not None else None), "sampled": interventions}, indent=1))
+        (ep.prov / "window_verdicts.json").write_text(json.dumps({"window": tr, "frames": window_frames, "invisible": sorted(invisible),
+                                                                   "subjects": subject_frames, "verdicts": verdicts}, indent=1))
+        # ruling 34 (twin control): every episode, null or not, builds U, F, the sample and the controls;
+        # a null episode skips only the execution
+        if window_frames < MINIMUM_WINDOW_FRAMES:
+            raise PilotFailure("intervention_window_unavailable", f"window {window_frames} < {MINIMUM_WINDOW_FRAMES}")
+        objects = _object_table(controller.last_event.metadata)
+        px_sweep_one = _max_pixels(ep, s1[0], s1[1])        # ruling 38: eligibility counts sweep-one frames only
+        px_before_window = _max_pixels(ep, 0, tr[1])        # unseen: never rendered before the window
+        eligible = sel.eligible_objects(objects, px_sweep_one)
+        unseen = sel.unseen_objects(objects, px_before_window) if add_source == "unseen_existing" else None
+        ok, spawn_points = _prescreen(controller, {c: usable[c] for c in usable}, tries=placement_tries,
+                                      anywhere=(destination_points != "top"))
+        pair_ok, dry_run_table = None, None
+        if placement_prescreen == "dry_run":
+            cand = [o for o in eligible if o["parent_receptacle"] in invisible] + list(unseen or [])
+            pair_ok, dry_run_table = _dry_run_pairs(controller, cand, invisible, spawn_points, plan1["viewpoints"],
+                                                    MIN_VISIBLE_PIXELS, beat=ep.beat)
+            (ep.prov / "placement_dry_run.json").write_text(json.dumps(dry_run_table, indent=1))
+        feasible = sel.feasible_triples(eligible, list(usable), invisible, ok, unseen=unseen, pair_ok=pair_ok)
+        if not feasible:
+            raise PilotFailure("intervention_window_unavailable", f"feasible set empty; U={len(invisible)} eligible={len(eligible)}")
+        interventions = sel.sample_interventions(feasible, split_seed=task["split_seed"], house_id=house_id,
+                                                 stratify_by_kind=bool(task.get("stratify_by_kind", True)),
+                                                 one_placement_per_destination=(placement_prescreen == "dry_run"))
+        controls = sel.select_controls(eligible, list(usable), invisible, interventions,
+                                       split_seed=task["split_seed"], house_id=house_id)
+        feasible_by_kind: dict[str, int] = {}
+        for row in feasible:
+            feasible_by_kind[row["kind"]] = feasible_by_kind.get(row["kind"], 0) + 1
+        (ep.prov / "interventions_sampled.json").write_text(json.dumps(
+            {"null_window": null_window, "feasible_set_size": len(feasible), "feasible_by_kind": feasible_by_kind,
+             "invisible_container_set_size": len(invisible),
+             "eligible_object_count": len(eligible), "unseen_object_count": (len(unseen) if unseen is not None else None),
+             "destinations_with_points": sum(1 for c in invisible if ok.get(c)),
+             "dry_run_pairs_tested": (len(dry_run_table) if dry_run_table is not None else None),
+             "dry_run_pairs_feasible": (len(pair_ok) if pair_ok is not None else None), "sampled": interventions,
+             "controls": controls}, indent=1))
+        if null_window:
+            log = []   # twin: the sample and the controls are kept, nothing is executed
+        else:
             try:
-                log = _apply_interventions(controller, interventions, spawn_points, viewpoints=plan1["viewpoints"],
-                                           verify=(destination_points == "verified"))
+                log = _apply_interventions(controller, interventions, viewpoints=plan1["viewpoints"], attempts=attempts)
             except PilotFailure:
+                (ep.prov / "interventions_attempted.json").write_text(json.dumps(attempts, indent=1))
                 raise
             except Exception as exc:  # noqa: BLE001 - a simulator-side timeout is an intervention failure, not a write failure
+                (ep.prov / "interventions_attempted.json").write_text(json.dumps(attempts, indent=1))
                 raise PilotFailure("intervention_execution_failed", f"simulator: {exc!r}"[:400]) from exc
-        else:
-            log = []
-            eligible = []
-        # stage 2: sweep two
-        revisit = sel.revisit_sequence(interventions, split_seed=task["split_seed"], house_id=house_id)
+        # stage 2: sweep two visits the intervened containers and the controls, interleaved by the seeded RNG
+        control_ids = [c["container"] for c in controls["controls"]]
+        revisit = sel.revisit_sequence(interventions, split_seed=task["split_seed"], house_id=house_id, controls=control_ids)
         here = controller.last_event.metadata["agent"]
         start2 = {"position": here["position"], "rotation": here["rotation"], "horizon": here["cameraHorizon"]}
-        # sweep two: from the real pose, visit exactly the revisit sequence (its "sweep one" IS the revisit)
+        executed_so_far = len(ep.actions_done) - 1
         plan2b = lean_route.plan_route(reachable=reach, start_pose=start2, camera_height_m=cam_h,
                                        containers={c: usable[c] for c in revisit} if revisit else {},
                                        revisit_sequence=[], transition_cell=None,
-                                       max_actions=max(1, MAXIMUM_ACTIONS - len(plan1["actions"])))
+                                       max_actions=max(1, MAXIMUM_ACTIONS - executed_so_far))
+        s2_start = len(ep.actions_done) - 1
         for cid in revisit:
-            vp = plan2b["viewpoints"][cid]
-            def _remaining2(bl, _vp=vp):
-                here, yaw = _agent_cell_yaw(controller)
-                pitch = int(round(controller.last_event.metadata["agent"]["cameraHorizon"]))
-                path = lean_route.bfs_path(cells, here, tuple(_vp["cell"]), bl)
-                moved, yaw2 = lean_route.encode_path(path, yaw)
-                return moved + lean_route.turn_actions(yaw2, _vp["yaw"]) + lean_route.look_actions(pitch, _vp["pitch"])
+            vp_box = {"vp": plan1["viewpoints"][cid]}   # the viewpoint the dry-run peeked from (after any sweep-one reselection)
+            def _remaining2(bl, _box=vp_box, _cid=cid):
+                return _remaining_to(controller, ep, cells, bl, _box, cid=_cid, center=usable[_cid], cam_h=cam_h,
+                                     reselections=reselections, phase="sweep_two")
             _execute(controller, ep, _remaining2(blocked), blocked=blocked, replans=replans,
                      replan=_remaining2 if replan_on else None)
-        (ep.prov / "route_stage2.json").write_text(json.dumps({"revisit_sequence": revisit, "plan": plan2b,
+        s2 = [s2_start, len(ep.actions_done) - 1]
+        moves = [r for r in log if r["kind"] == "move"]
+        moves_source_first = sum(1 for r in moves if revisit.index(r["source"]) < revisit.index(r["destination"]))
+        (ep.prov / "route_stage2.json").write_text(json.dumps({"revisit_sequence": revisit, "plan": plan2b, "segments": {"sweep_two": s2},
+                                                                "viewpoints_used": {c: plan1["viewpoints"][c] for c in revisit},
                                                                 "blocked_edges": sorted([list(c) for c in sorted(e)] for e in blocked),
-                                                                "replans": replans}, indent=1))
+                                                                "replans": replans, "viewpoint_reselections": reselections}, indent=1))
         (ep.prov / "reachable.json").write_text(json.dumps(reach))
         (ep.prov / "interventions.json").write_text(json.dumps({"null_window": null_window, "feasible_set_size": len(feasible),
                                                                 "eligible_object_count": len(eligible),
                                                                 "invisible_container_set_size": len(invisible), "executed": log,
-                                                                "dropped_containers_no_viewpoint": dropped}, indent=1))
+                                                                "sampled": interventions, "controls": controls,
+                                                                "moves_executed": len(moves), "moves_source_first": moves_source_first,
+                                                                "attempts": attempts,
+                                                                "dropped_containers_no_viewpoint": dropped, "floor_excluded": floor_excluded}, indent=1))
         receipt.update({"status": "succeeded", "observations": ep.index + 1, "actions": len(ep.actions_done) - 1,
-                        "null_window": null_window, "executed_interventions": len(log), "feasible_set_size": len(feasible),
-                        "invisible_container_set_size": len(invisible), "window_frames": window_frames,
-                        "containers_usable": len(usable), "containers_dropped": len(dropped)})
+                        "null_window": null_window, "executed_interventions": len(log), "sampled_interventions": len(interventions),
+                        "feasible_set_size": len(feasible), "invisible_container_set_size": len(invisible), "window_frames": window_frames,
+                        "containers_usable": len(usable), "containers_dropped": len(dropped), "containers_sealed": len(subjects),
+                        "controls": len(control_ids), "controls_outside_U": controls["from_outside_U"], "controls_shortfall": controls["shortfall"],
+                        "moves_executed": len(moves), "moves_source_first": moves_source_first,
+                        "viewpoint_reselections": len(reselections), "sweep_two_actions": s2[1] - s2[0]})
     except lean_route.LeanRouteError as f:
         receipt.update({"status": "failed", "reason": "route_not_placeable", "detail": f"{f} | {traceback.format_exc()[-600:]}"})
     except PilotFailure as f:
@@ -782,7 +890,11 @@ def main() -> int:
                     help="rulings 31/32: real placement + viewpoint peek + revert during the window, one placement per destination")
     ap.add_argument("--destination-points", choices=["anywhere", "top", "verified"], default="anywhere",
                     help="kept for the smoke record; dry_run supersedes it")
+    ap.add_argument("--private-salt-file", required=True,
+                    help="ruling 37: a file outside the repository holding the private salt mixed into the "
+                         "null-window draw; only its sha256 is written to plan.json and the receipts")
     args = ap.parse_args()
+    args.private_salt = _read_private_salt(args.private_salt_file)
     if args.stage == "s1-02b":
         return main_s1_02b(args)
     contract = json.loads(CONTRACT_S1_02A.read_text(encoding="utf-8"))
@@ -796,9 +908,10 @@ def main() -> int:
     selected = lean_pilot.select_pilot_houses(pool, freeze)
     lean_pilot.validate_pilot_plan({"workers": args.workers, "houses_per_worker": 1, "house_ids": selected}, pool, freeze)
     out_root = Path(args.output_root); out_root.mkdir(parents=True, exist_ok=True)
-    (out_root / "plan.json").write_text(json.dumps({"selected": selected, "split": freeze, "commit": commit, "pool_size": len(pool)}, indent=1))
+    (out_root / "plan.json").write_text(json.dumps({"selected": selected, "split": freeze, "commit": commit, "pool_size": len(pool),
+                                                    "null_window_salt_sha256": sha_bytes(args.private_salt.encode("utf-8"))}, indent=1))
     tasks = [{"house_id": h, "index": int(h.rsplit("-", 1)[1]), "out": str(out_root / h), "source_root": str(source.parent),
-              "source_rel": source.name, "split_seed": freeze["seed"], "commit": commit,
+              "source_rel": source.name, "split_seed": freeze["seed"], "commit": commit, "private_salt": args.private_salt,
               "replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries, "stratify_by_kind": args.stratify_by_kind, "add_source": args.add_source, "destination_points": args.destination_points, "placement_prescreen": args.placement_prescreen} for h in selected]
     base_vram = float(subprocess.run(["nvidia-smi", "--query-gpu=memory.used", "--format=csv,noheader,nounits"], capture_output=True, text=True).stdout.strip().split("\n")[0])
     stop, q = mp.Event(), mp.Queue()
@@ -839,6 +952,18 @@ def main() -> int:
     (out_root / "occupancy_receipt.json").write_text(json.dumps({**occupancy_receipt, "vram_peak_total_mib": vram_peak, "vram_base_mib": base_vram}, indent=1))
     print(json.dumps({"pilot": pilot_receipt, "occupancy": occupancy_receipt, "per_house": results}, indent=1, default=str))
     return 0 if not failed else 1
+
+
+def _read_private_salt(path: str) -> str:
+    """The private null-window salt (ruling 37).  Lives outside the repository; never printed."""
+
+    p = Path(path).resolve()
+    if ROOT in p.parents:
+        raise SystemExit("the private salt must not live inside the repository")
+    salt = p.read_text(encoding="utf-8").strip()
+    if len(salt) < 32:
+        raise SystemExit("the private salt must be at least 32 characters")
+    return salt
 
 
 def _capacity_measurements() -> dict[str, Any]:
@@ -967,13 +1092,15 @@ def main_s1_02b(args: argparse.Namespace) -> int:
     pilot_houses = block[:lean_pilot.PILOT_TOTAL_HOUSES]
     if pilot_houses != pilot_plan["selected"]:
         print("pilot houses do not match the recomputed head; refusing"); return 2
+    if pilot_plan.get("null_window_salt_sha256") != sha_bytes(args.private_salt.encode("utf-8")):
+        print("the private salt differs from the pilot's; refusing"); return 2
     houses = block[lean_pilot.PILOT_TOTAL_HOUSES:args.development_houses]
     out_root = Path(args.output_root); out_root.mkdir(parents=True, exist_ok=True)
     (out_root / "plan.json").write_text(json.dumps({"stage": "s1-02b", "houses": houses, "pilot_root": str(pilot_root),
                                                     "derived": scale, "requested_workers": workers, "measurements": measurements,
-                                                    "commit": commit}, indent=1))
+                                                    "commit": commit, "null_window_salt_sha256": sha_bytes(args.private_salt.encode("utf-8"))}, indent=1))
     tasks = [{"house_id": h, "index": int(h.rsplit("-", 1)[1]), "out": str(out_root / h), "source_root": str(source.parent),
-              "source_rel": source.name, "split_seed": freeze["seed"], "commit": commit,
+              "source_rel": source.name, "split_seed": freeze["seed"], "commit": commit, "private_salt": args.private_salt,
               "replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries, "stratify_by_kind": args.stratify_by_kind, "add_source": args.add_source, "destination_points": args.destination_points, "placement_prescreen": args.placement_prescreen} for h in houses]
     prior: list[dict[str, Any]] = []
     if args.resume:
@@ -1001,10 +1128,19 @@ def main_s1_02b(args: argparse.Namespace) -> int:
     non_null = [r for r in results if not r.get("null_window", False)]
     ok_non_null = [r for r in non_null if r["status"] == "succeeded" and r.get("executed_interventions", 0) >= 1]
     yield_rate = (len(ok_non_null) / len(non_null)) if non_null else None
+    null_failed = [r for r in results if r.get("null_window", False) and r["status"] != "succeeded"]
+    moves = sum(int(r.get("moves_executed") or 0) for r in results)
+    moves_first = sum(int(r.get("moves_source_first") or 0) for r in results)
     receipt = {
         "stage": "s1-02b", "code_commit": commit, "houses_planned": len(houses), "succeeded": len(results) - len(failed),
         "failed": len(failed), "failure_receipts": [{"house_id": r["house_id"], "reason": r["reason"], "detail": r.get("detail", "")[:400]} for r in failed],
-        "null_window_episodes": len(results) - len(non_null), "yield_house_level_non_null": yield_rate,
+        "null_window_episodes": len(results) - len(non_null), "null_window_failed": len(null_failed),
+        "yield_house_level_non_null": yield_rate,
+        "moves_executed": moves, "moves_source_first": moves_first,
+        "move_minimum": check_move_minimum(moves, moves_first, is_train_block=False),
+        "controls_total": sum(int(r.get("controls") or 0) for r in results),
+        "controls_outside_U": sum(int(r.get("controls_outside_U") or 0) for r in results),
+        "null_window_salt_sha256": sha_bytes(args.private_salt.encode("utf-8")),
         "yield_gate": s1_01 and json.loads(CONTRACT_S0_02.read_text(encoding="utf-8"))["intervention_window"]["minimum_yield"],
         "yield_gate_passed": (yield_rate is not None and yield_rate >= 0.6),
         "options": {"replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries, "stratify_by_kind": args.stratify_by_kind, "add_source": args.add_source, "destination_points": args.destination_points, "placement_prescreen": args.placement_prescreen},

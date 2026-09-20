@@ -21,7 +21,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-SCHEMA_VERSION = "vsmt-lean-s1-02b-report-v1"
+SCHEMA_VERSION = "vsmt-lean-s1-02b-report-v2"
 
 
 def _sha256(path: Path) -> str:
@@ -49,15 +49,29 @@ def _house_rows(root: Path) -> list[dict[str, Any]]:
         log_path = base / "provenance" / "interventions.json"
         sampled = collections.Counter()
         executed = collections.Counter()
+        twin = collections.Counter()
         if log_path.exists():
             log = json.loads(log_path.read_text(encoding="utf-8"))
             for item in log.get("executed", []):
                 sampled[item["kind"]] += 1
                 if item.get("executed"):
                     executed[item["kind"]] += 1
+            for item in log.get("sampled", []):
+                twin[item["kind"]] += 1
             row["eligible_object_count"] = log.get("eligible_object_count")
+            controls = log.get("controls") or {}
+            row["controls"] = [c["container"] for c in controls.get("controls", [])]
+            row["controls_from_U"] = controls.get("from_U")
+            row["controls_outside_U"] = controls.get("from_outside_U")
+            row["controls_shortfall"] = controls.get("shortfall")
+            row["moves_executed"] = log.get("moves_executed")
+            row["moves_source_first"] = log.get("moves_source_first")
         row["sampled_kinds"] = dict(sampled)
         row["executed_kinds"] = dict(executed)
+        row["twin_sampled_kinds"] = dict(twin)   # ruling 34: a null episode keeps its would-be sample
+        for key in ("containers_sealed", "controls_outside_U", "viewpoint_reselections", "sweep_two_actions", "null_window_salt_sha256"):
+            if key in d and key not in row:
+                row[key] = d.get(key)
         rows.append(row)
     return rows
 
@@ -94,6 +108,13 @@ def build_report(root: Path, stage_receipt_name: str) -> dict[str, Any]:
         "is_extrapolation": receipt.get("is_extrapolation"),
         "wall_clock_seconds": receipt.get("wall_clock_seconds"),
         "failures_by_reason": dict(by_reason),
+        "null_window_failed": receipt.get("null_window_failed"),
+        "moves_executed": receipt.get("moves_executed"),
+        "moves_source_first": receipt.get("moves_source_first"),
+        "move_minimum": receipt.get("move_minimum"),
+        "controls_total": receipt.get("controls_total"),
+        "controls_outside_U": receipt.get("controls_outside_U"),
+        "null_window_salt_sha256": receipt.get("null_window_salt_sha256"),
         "intervention_kinds_sampled_in_successes": dict(sampled_total),
         "intervention_kinds_executed": dict(executed_total),
         "window_frames_of_successes": windows,
