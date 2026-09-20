@@ -184,14 +184,45 @@ def admissible_viewpoints(
 
 
 def select_viewpoint(container_center: Mapping[str, float], cells: set[tuple[int, int]],
-                     *, camera_height_m: float, grid: float = GRID_M) -> dict[str, Any]:
-    """The nearest admissible viewpoint, ties broken by grid order."""
+                     *, camera_height_m: float, grid: float = GRID_M,
+                     component: set[tuple[int, int]] | None = None) -> dict[str, Any]:
+    """The nearest admissible viewpoint, ties broken by grid order.
+
+    ``component`` restricts the candidates to cells the agent can still reach (see
+    :func:`reachable_component`); ``None`` means every reachable cell is a candidate.
+    """
 
     candidates = admissible_viewpoints(container_center, cells,
                                        camera_height_m=camera_height_m, grid=grid)
+    if component is not None:
+        candidates = [v for v in candidates if v["cell"] in component]
     if not candidates:
         raise LeanRouteError("no_admissible_viewpoint")
     return min(candidates, key=lambda v: (v["distance_m"], v["cell"]))
+
+
+def reachable_component(cells: set[tuple[int, int]], start: tuple[int, int],
+                        blocked: frozenset | set = frozenset()) -> set[tuple[int, int]]:
+    """Every cell reachable from ``start`` without crossing a blocked edge.
+
+    白话：被模拟器拒绝过的格间边可能把一个视点格从当前位置"割开"（例如视点在椅
+    子后面的死角）。这个函数从当前格出发做一次 BFS，返回带着黑名单还走得到的全部
+    格子；`select_viewpoint(..., component=...)` 只在这些格子里选视点，因此重选出的
+    视点仍是"最近的可达合格视点"，规则不变，只是把"可达"从事先全知改成带着实测黑
+    名单算。它不删黑名单、不猜边是否真的能走。
+    """
+
+    if start not in cells:
+        raise LeanRouteError("bfs_endpoint_not_reachable")
+    seen = {start}
+    queue: deque[tuple[int, int]] = deque([start])
+    while queue:
+        here = queue.popleft()
+        for nxt in sorted(neighbours(here)):
+            if nxt in cells and nxt not in seen and edge(here, nxt) not in blocked:
+                seen.add(nxt)
+                queue.append(nxt)
+    return seen
 
 
 # --------------------------------------------------------------------------
@@ -324,7 +355,7 @@ def plan_route(
     segments["sweep_two"] = [first, len(actions)]
 
     if len(actions) > max_actions:
-        raise LeanRouteError("route_cap_hit")
+        raise LeanRouteError(f"route_cap_hit:planned={len(actions)}:cap={max_actions}")
     return {
         "actions": actions,
         "observation_count": len(actions) + 1,
@@ -351,6 +382,7 @@ __all__ = [
     "nearest_neighbour_tour",
     "plan_route",
     "reachable_cells",
+    "reachable_component",
     "select_viewpoint",
     "snap",
     "turn_actions",
