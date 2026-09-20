@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| D-224 精简方向 | 2026-09-19 用户批准裁决 A～D 与 E/F/G：首篇改为实体生命周期版本化事务，帧级联合分配＋三个约 4 万参数的 MLP 代价头，ProcTHOR 干预序列并对齐 Dyn-THOR 指标，正式规模 300/50/100 house；共享 ReID 头为可选前端、`VSMT-lean-ctx` 为可选臂、实体 token schema 已冻结。旧方向归档到分支 `archive/pre-d224-unified-graph`，`main` 重写 METHOD/PLAN/DATA。**S0-01～S0-03 已审通过（S0-03 返工版经 D-224-R 复审通过，53 项自测）；S0-04 teacher/评价器/指标合同经审核重写（78 项测试、41 条布尔声称全绑定）已实现待审，六项口径已由 D-224-LQ 裁决；S0-01～S0-05 全部已审通过，S0-06 用户合同审查已完成**；四个 lean 模块 213 项加相关旧模块共 300 项本地通过，全量 discover 仍受本机 segfault 影响、待服务器复核；无数据、无训练、无服务器运行，六个授权位全 false。LOG-214～217。 |
+| D-224 精简方向 | 2026-09-19 用户批准裁决 A～D 与 E/F/G：首篇改为实体生命周期版本化事务，帧级联合分配＋三个约 4 万参数的 MLP 代价头，ProcTHOR 干预序列并对齐 Dyn-THOR 指标，正式规模 300/50/100 house；共享 ReID 头为可选前端、`VSMT-lean-ctx` 为可选臂、实体 token schema 已冻结。旧方向归档到分支 `archive/pre-d224-unified-graph`，`main` 重写 METHOD/PLAN/DATA。**S0-01～S0-05 五份机器合同全部经用户审查通过，S0-06 收口**；S1-01 资产与容量授权申请材料已实现待审；D-224-S1 九项裁决已落地。服务器只读核验确认 SAM 2.1、DINOv2、ProcTHOR-10K 0.1.2 与 AI2-THOR CloudRendering 七项标识**全部与登记值一致**（LOG-221），Python 与 Vulkan 两项冲突消解，仅 ViT-B/14 未登记仍挡住 S1-03～05，基础环境缺 hydra 的阻塞已按 D-224 已有授权解除（LOG-222：装 hydra-core/omegaconf/iopath，torch/torchvision/numpy 与 SAM2 工作树均未变，`import sam2.build_sam` 成功，生成器 17 个具名参数与登记一致）；9-19 那次未记录的资产放置已凭 reflog 追认。六个 lean 模块加新增边界测试共 350 项本地通过；全量 discover 仍受本机已知 segfault 影响（定位在旧 `test_vm04_d211_p0_seal_smoke.py`，重跑不复现），待服务器复核。无数据、无训练、无 episode、无 cache；S0 五份合同授权位全 false，S1-01 按 D-224-S1 开四个位（三只读/本地登记加一依赖安装）。LOG-214～222。 |
 | D-214～D-223共享RGB-D前端 | Estimator历史路线已完成并由E-08证伪其P08硬门用途；F-00两房拓扑预检通过。D-223/F-01 reader本地实现已审；一次服务器真实预检只读定位后因缺冻结SAM2资产和兼容公开bundle停止。D-217 public observation-0兼容适配器已本地实现待审，尚未读取真实数据或运行服务器；模型加载/cache仍为0，执行位全关闭。P04/P08、route/raw、method adapter、private evaluation、训练与audit重跑均未运行。LOG-199～211。 |
 | D-213统一图/类型门 | 四节点/五关系统一图合同、seal前类型门、五种消融memory view、图复杂度派生、relation REACTIVATE及surface/fragment RETRACT已实现候选；数据接线现改为等待D-214冻结cache，不再以单槽raw后定义前端，全部运行位关闭；LOG-197/199。 |
 | D-212地点raw纠偏 | v2已补公开grid模板＋RGB-D route survey生产入口、P01–P08可复算收据、raw三面journal与两提交执行门；D-214已重新阻断activation，旧P04/P08工程描述不得获论文资格。真实survey/seal/smoke均为0；LOG-196/198/199。 |
@@ -2306,3 +2306,94 @@ D16/W17/F19均只是完整人工工程成功。D-096交共同预测schema转换�
 - 六个授权位（S0-01～S0-05 各自的授权段）全部保持 false；**本次未申请、未获得任何数据生成、训练或服务器运行授权**。
 - 用户明确要求：S1-01 资产与容量授权的申请材料留到下一次会话准备，本次会话到此为止，不推进 S1。
 - 下一步（下次会话）：准备 S1-01 资产与容量授权申请材料（SAM 2.1、DINOv2 资产来源与许可、服务器容量核验方式），提交用户审批后方可申请任何运行授权。
+
+## LOG-220：S1 开始前的产物归属检查，S1-01 资产与容量授权申请材料实现（待代码审查）（2026-09-20）
+
+- 类型：一次只读审计加一份科学代码交付；**不是实验结果**。未下载任何资产、未安装依赖、未连接服务器、未生成数据、未训练；本批未提交（用户未要求）。
+- 授权：无。S0 已收口，S1 的九个授权位全部保持 false。
+- **产物归属检查（用户要求「不要分错」）。** S0 合同阶段（commit `bddd7d7`…`33a63b2`）恰好产出 16 个文件：五份 `configs/vsmt/lean_s0_*.json`、五个 `src/vsmt/lean_*.py` 纯核心、六个 `tests/test_vsmt_lean_*.py`（含 S0-06 跨合同一致性）。五份合同 schema/decision/stage 号自洽，授权位全 false，null 待冻结值分别为 5/10/8/5/6 项，UTF-8 无 BOM 且无乱码。
+  - **易混项一：`vm04_*` 里有三份是 S1 的活依赖，不是历史。** `vm04_d215_frontend_freeze_v1.json`（冻结前端数值）、`vm04_d224_frozen_sam2_asset_acquisition_v1.json`（D-224 资产获取合同，**三个获取位已批准为 true 且从未执行**）、`vm04_d223_f01_production_reader_v1.json`（F-01 reader，十个执行位全 false）。F-01 按字节绑定其中七个文件加 `results/vsmt_vm04_f00_topology_precheck.json`，本地逐一重算 sha256 **全部匹配**。这八个文件不得归档、移动或改字节。
+  - **易混项二：S0 纯核心通过 `vsmt.graph_ops` 传递性 import 了 `cpmt.executor.validate_graph`。** 实际只调用三个纯函数（`cosine_similarity`、`centroid_distance`、`opaque_id`，共约 20 行，`cpmt.hashing` 亦为纯标准库），数值语义没有泄漏；但 METHOD 第十三节「GraphRevision … 不被本分支任何入口导入」在模块层面并不严格成立，且 `graph_ops` 同文件定义 `GraphRevision` 与 place scaffold。已作为裁决项列出，未自行改动已审字节。
+  - **无多余产物可归档。** 工作树干净、无未跟踪文件；`scripts/`、`prototype/`、`tmp/` 无跟踪文件；`experiments/` 69 个文件是旧 C00–C11 夹具，按 AGENTS.md 留树标历史。唯一可清理的是本地未跟踪字节码：`tests/__pycache__` 有 35 个 `.pyc` 其源文件已在 `d7159ba` 归档删除，`tests/spatial_world_model/` 目录**只剩** `__pycache__`、无任何 `.py`。两者都被 gitignore，未擅自删除。
+  - **文档残留。** `tests/README.md` 仍逐段描述 `test_ctl_dev.py` 与六个 `test_m1_*.py`，这七个文件已在 `d7159ba` 随 CPMT/M1 归档删除。因 AGENTS.md 规定 `tests/` 内 README 字节可能进入源码 hash，未擅自删改，列为裁决项。
+  - **本机 segfault 复核。** 全量 `discover` 再次以 exit=139 中断，定位在旧 `test_vm04_d211_p0_seal_smoke.py`（numpy 相关）；单独重跑三次，第一次段错误、后两次 14/14 通过，崩溃点在两种跑法下还不一致。与 LOG-212、LOG-213 及 LOG-214～216 登记的本机 CPU 退化特征一致，**不是代码缺陷**，权威全量仍以服务器为准。六个 lean 模块单独跑 **330/330 通过**。
+- **交付。** 纯核心 [`lean_assets.py`](src/vsmt/lean_assets.py)、合同 [`lean_s1_assets_capacity_v1.json`](configs/vsmt/lean_s1_assets_capacity_v1.json)、测试 [`test_vsmt_lean_assets.py`](tests/test_vsmt_lean_assets.py)。模块只 import `math`/`typing`/`cpmt.hashing`，不开 socket、不起子进程、不 import torch、不读机器、不写文件，测试用 AST 核对这一点。
+  - **资产登记九项**，标识全部抄自 D-215 与 LOG-136 来源回执，本阶段不新增任何 URL、tag 或摘要：SAM2 仓库/官方 YAML/checkpoint（D-215）、DINOv2 仓库与 ViT-S/14 权重（LOG-136，已在服务器上）、DINOv2 ViT-B/14（**未登记**）、AI2-THOR 5.0.0、ProcTHOR 代码、ProcTHOR-10K（**tag 未选**）。
+  - **四条规则。** 登记在获取之前，回执只比对不回写；摘要/字节数/许可证/越界写入/torch 变动一律 `stop_and_report_verbatim`，两个逃生口（换镜像、部分核验）按值绑死为 false；worker 数由实测读数除以实测单 worker 占用取下整、各项取最小并命名瓶颈，装不下一个 worker 时报错而不是回落到 1；成功与失败都留回执。
+  - **授权拆细。** 批准 SAM 不等于批准 DINOv2，也不等于批准模拟器；授权位打开也救不了 `registration_incomplete` 的 ViT-B/14 与 ProcTHOR-10K。
+  - **四项已知冲突登记在案、resolution 全为 null。** Python 版本（ProcTHOR classifier 止于 3.9、SAM2 需 ≥3.10、服务器基础 3.12.3）、CloudRendering 依赖 libvulkan 而服务器 Vulkan 未解析、ViT-B/14 未登记、ProcTHOR-10K 的 0.1.0 与 0.1.2 从未选定。后两项直接挡住 S1-02/S1-03。
+- **测试。** S1-01 **61 项**通过；六个 lean 模块共 **330 项**本地通过，`compileall` 与 `git diff --check` 通过。本机跨模块间歇段错误问题未变，本地跨模块结果不作回执。
+- **边界。** 合同自洽不等于资产已在服务器上、机器够用或前端可运行；三个 D-224 获取位虽为 true，但本阶段与 F-01 的执行位仍全 false，没有任何一步被授权运行。
+- **待用户裁决（写在对话正文）。** 六项：S1-01 资产范围是否含模拟器侧；ViT-B/14 如何登记或是否退出首篇；ProcTHOR-10K 选 0.1.0 还是 0.1.2；Python 版本冲突的解决路线；CloudRendering 与 libvulkan 的核实方式；许可证何时填。另有三项工程项：`tests/README.md` 的七段失效描述是否清理、`tests/spatial_world_model/` 只剩字节码是否删除、S0 纯核心是否切断对 `cpmt.executor` 的传递性 import。
+- 下一步：用户审 S1-01 代码与合同并给出六项裁决；裁决落定后才补齐登记、申请具体授权位。未申请任何运行授权。
+
+## LOG-221：D-224-S1 九项裁决落地，服务器冻结资产只读核验与容量探测（2026-09-20）
+
+- 类型：一次只读服务器核验加一批按裁决执行的代码/文档改动；**不是实验结果**。未下载资产、未安装依赖、未生成数据、未训练、未读取 private；本批未提交（用户未要求）。
+- 授权：D-224-S1 开三个位——已登记资产只读核验、只读容量探测、ViT-B/14 本地摘要登记（第三项尚未执行）。下载、安装、生成、训练、private 与 test 读取七个位仍为 false。
+- **重要发现：三类冻结资产其实早已在服务器上。** LOG-211 当时报告"SAM2 全资产 0 命中"，但 9-19 晚间（LOG-211 之后）有人按 D-224 已批准的三个获取位把资产放上去了，此前没有任何 LOG 记录这件事。本次逐一核验：
+
+| 资产 | 登记值 | 实测值 | 结论 |
+|---|---|---|---|
+| SAM2 仓库 | commit `2b90b9f5…` | 同，且 `--untracked-files=all` 工作树干净 | 一致 |
+| SAM2 官方 YAML | 3,761 / `0f36b91e…` | 3,761 / `0f36b91e…` | 一致 |
+| SAM2 checkpoint | 184,416,285 / `6d1aa6f3…` | 同 | 一致 |
+| DINOv2 仓库 | commit `7764ea0f…` | 同 | 一致 |
+| DINOv2 ViT-S/14 | `b938bf1b…` | 同，88,283,115 字节 | 一致 |
+| ProcTHOR-10K 0.1.2 | commit `d54954a8…` | 同 | 一致 |
+| AI2-THOR CloudRendering | commit `f0825767…` | 构建包 835,983,275 字节已就位 | 一致 |
+
+- **一次误报的澄清。** ProcTHOR-10K 的 `git status` 报 `M train.jsonl.gz`，按 S1-01 合同这是 `worktree_dirty_after_acquisition` 停止条件。查清原因：仓库里 committed 的是 133 字节 git-lfs 指针，声明 `oid sha256:d64450ec…`、`size 52316238`；磁盘上的真实 gzip 恰好就是这两个值，而服务器**没装 `git lfs`**，所以 git 把已展开的文件报成 modified。资产是对的，合同据此补一条登记规则：LFS 展开不算工作树脏，这类资产按文件摘要而不是 clone 干净度核验。
+- **容量探测（只读，15 项）。** CPU 128 逻辑核；内存 1,007 GB 总 / 894 GB 可用；GPU 单卡 NVIDIA GeForce RTX 4080，32,760 MiB 总 / 32,230 MiB 空闲；系统盘 30 G 用 5.0 G 余 26 G，数据盘 `/root/autodl-tmp` 50 G 用 29 G 余 22 G；基础 Python 3.12.3、torch 2.8.0+cu128、CUDA 可用。**这些是探测读数，不是单 worker 实测占用**，因此还不能据此算 worker 数——`single_worker_occupancy_measurement` 位仍为 false。
+- **两项环境冲突消解，一项仍在。** libvulkan.so.1 可解析，`vulkaninfo --summary` 枚举出 NVIDIA GeForce RTX 4080（driverName=NVIDIA、apiVersion 1.4.329）及 llvmpipe 软件后备，CloudRendering 缺 Vulkan 的冲突消解；Python 冲突由既有的两解释器布局消解——`vsmt-envs/simulator-py39`（3.9.25）里 ai2thor 5.0.0 与 procthor 0.0.1.dev2 都已装好，前端侧留在 3.12.3。**注意这只说明 Vulkan 看得到 GPU，不等于 CloudRendering 渲染过一帧。** ViT-B/14 仍未登记，继续挡住 S1-03～S1-05。
+- **一个新的阻塞项。** 基础环境 `import sam2.build_sam` 失败于 `ModuleNotFoundError: No module named 'hydra'`；DINOv2 可正常 import。D-224 资产合同的 `sam2_import_dependency_install` 位本就为 true 且点名 hydra-core / omegaconf / iopath 三个包，但本次**没有执行安装**，如实报告等用户决定。
+- **按裁决执行的改动。** 裁决 3 把 ProcTHOR-10K 登记补全；裁决 2/4/5 写成三态冲突记录；S1-01 合同加 `activation_policy` 与 `user_rulings`，校验器由"授权位必须全 false"改为"只有裁决开的位可以为 true，关死的位任何时候不得为 true，声称执行过的位必须是开着的"。裁决 7 把 `tests/README.md` 从 104 行清到 40 行，移除七个已归档测试的描述与 M1/M2/M3 三节，现存每个被点名的测试文件都真实存在。裁决 8 删除 84 个孤儿字节码文件（`tests/spatial_world_model/` 49 个、`tests/__pycache__/` 35 个），全部 gitignore，仓库字节不变。裁决 9 新增 `src/vsmt/lean_geometry.py`，三个纯函数逐字复制，`lean_memory.py` 与 `lean_assignment.py` 改指向它。
+- **测试。** S1-01 **72 项**、新增边界测试 **12 项**，六个 lean 模块加新模块共 **350 项**本地通过；`compileall` 与 `git diff --check` 通过。本机已知的跨模块间歇段错误未变。
+- **未执行的部分。** 服务器过期数据清理已完成只读勘定（见下），但删除命令被本地安全策略拦下，未执行，也未尝试绕过。
+- **待用户处理（写在对话正文）。** 其一，9-19 晚间那次资产放置没有留下 LOG，是否补一条追认记录。其二，是否授权按 D-224 已开的位安装 hydra-core / omegaconf / iopath。其三，服务器清理的九条删除命令需用户自行执行或放开权限。
+- 下一步：用户审 S1-01 代码与合同；ViT-B/14 本地登记可随时执行。未申请任何新的运行授权。
+
+## LOG-222：9-19 资产放置追认，SAM 2.1 import 依赖安装（2026-09-20）
+
+- 类型：一次对既成事实的追认登记加一次经授权的依赖安装；**不是实验结果**。未下载资产、未生成数据、未训练、未读取 private。本批未提交（用户未要求）。
+- 授权：用户 2026-09-20 批准四条补充裁决（追认资产放置、安装三个 import 依赖、清理由用户自己执行、estimator 5.5 GB 保留），登记在 D-224-S1 补充裁决 10～13。安装的实质授权来自 D-224 资产合同自己的 `sam2_import_dependency_install` 位（本就为 true）。
+
+### 一、9-19 资产放置的追认记录
+
+LOG-211 记载"服务器既没有合同冻结的 SAM2 完整资产，也没有 reader 可合法消费的公开 bundle"，随后**同一天晚间有人执行了 D-224 已批准的三个获取位，但没有写 LOG**。本次用只读证据重建时间线，不依赖记忆：
+
+| 证据来源 | 内容 |
+|---|---|
+| `git reflog`（SAM2 clone） | `clone: from https://github.com/facebookresearch/sam2.git` @ **2026-09-19 19:52:51 +0800**；紧接 `checkout: moving from main to 2b90b9f5ceec907a1c18123530e92e794ad901a4` @ 19:52:52 |
+| `git remote -v` | `origin https://github.com/facebookresearch/sam2.git`，与 D-215 登记的 `https://github.com/facebookresearch/sam2` 同一仓库（仅差 `.git` 后缀） |
+| 目录 mtime | 官方 YAML 19:52:52，`sam2-assets/` 19:53:46，checkpoint 落盘 19:55:08 |
+| `/root/.bash_history` | 只有 LOG-211 那次 `find … -name sam2` 的搜索命令，**没有 clone 或下载命令**，说明放置发生在另一个未记录 history 的会话里 |
+
+结论：放置动作本身**合规**——用的是 D-215 钉死的 URL 与 commit、先 clone 再 checkout 到 pinned commit，且 LOG-221 已逐一核验字节一致。缺的只是记录。本条即为追认；**追认的是"这件事发生过且事后核验通过"，不是"当时按流程留了证据"**。教训登记为：已开的授权位被执行时必须当场写 LOG，否则证据链上会出现一段只能靠 reflog 事后拼回来的空白。
+
+### 二、依赖安装回执
+
+- 入口：`/root/miniconda3/bin/python -m pip install hydra-core omegaconf iopath`，index 为服务器 pip 配置的 `http://mirrors.aliyun.com/pypi/simple`（`/etc/network_turbo`），非官方 pypi.org，因此下方逐包记录 sha256 以便审计。
+- **先 dry-run 再安装**：dry-run 输出 `Would install antlr4-python3-runtime-4.9.3 hydra-core-1.3.7 iopath-0.1.10 omegaconf-2.3.1 portalocker-4.3.2`，torch/torchvision/numpy 不在其中，确认后才真装。
+
+| 包 | 版本 | sha256 |
+|---|---|---|
+| hydra-core | 1.3.7 | `83606c4a05c770f1e026e0489875f28989829d151799eabd8cfa8cbe82164515` |
+| omegaconf | 2.3.1 | `3d701d14e9a8828f1edd28bb70b725908b34277cdd72cf7d6a83f94dadc6b6a0` |
+| iopath | 0.1.10 | `3311c16a4d9137223e20f141655759933e1eda24f8bff166af834af3c645ef01` |
+| antlr4-python3-runtime（传递） | 4.9.3 | `f224469b4168294902bb1efa80a8bf7855f24c99aef99cbefc1bcd3cce77881b` |
+| portalocker（传递） | 4.3.2 | `42f0362e7343af78b25eb095c0cde300e746a0ab6647a835cc30764918490c93` |
+
+- **钉住项前后一致**：torch `2.8.0+cu128` → `2.8.0+cu128`；torchvision `0.23.0+cu128` → `0.23.0+cu128`；numpy `2.3.2` → `2.3.2`；`torch.cuda.is_available()` 安装后仍为 True。`pip` 退出码 0。
+- **被钉住的 SAM2 工作树安装后仍然干净**：`git status --porcelain --untracked-files=all` 为空，HEAD 仍是 `2b90b9f5…`，没有 egg-info 或任何构建产物——D-224 禁止 editable/build 安装进该工作树的条款成立。仓库是通过 `sys.path` 引入的，没有被 pip 安装。
+- **阻塞解除**：`import sam2.build_sam` 与 `import sam2.automatic_mask_generator` 现在都成功。
+- **附带的独立确认**：`SAM2AutomaticMaskGenerator.__init__` 的真实签名是 **17 个具名参数 + `**kwargs`**（model, points_per_side, points_per_batch, pred_iou_thresh, stability_score_thresh, stability_score_offset, mask_threshold, box_nms_thresh, crop_n_layers, crop_nms_thresh, crop_overlap_ratio, crop_n_points_downscale_factor, point_grids, min_mask_region_area, output_mode, use_m2m, multimask_output），与 LOG-213/F-01 合同登记的 17 个逐一对上，冻结签名没有漂移。这不是 SAM 能跑通的证据，只是签名没变的证据。
+
+### 三、另外两条裁决
+
+- **清理由用户自己执行。** 九条删除命令已在对话正文给出（四个注册 worktree 用 `git worktree remove --force`，五个普通目录用精确路径 `rm -rf`），预计释放 21.9 GB。本会话未执行，删除动作被本地安全策略拦下且未尝试绕过。
+- **estimator 5.5 GB 保留。** `vsmt_outputs/vsmt-vm04-estimator-development-0c4f9851006d` 虽属被 E-08 证伪、被 D-224 取代的旧线，但仓库中仍在用的 F-01 兼容适配器读它的 `public` 树造单帧 bundle；删了就无法在 S1-02 数据产出前跑 F-01 预检。
+
+- **合同同步。** S1-01 的 `import_dependency_install` 位按引用打开并进入 `activation_policy.exercised_so_far`，新增 `import_dependency_scope` 段写明治理来源、安装目标、三个包、两个传递包与两条禁止项。六个 lean 模块加边界测试共 **351 项**本地通过。
+- **仍然没有的东西。** ViT-B/14 未登记（继续挡 S1-03～05）；单 worker 实测占用未测（worker 数仍算不出）；CloudRendering 没渲染过一帧；没有任何 episode、cache、训练或 private 读取。
+- 下一步：用户审 S1-01 代码与合同；ViT-B/14 本地登记可随时执行。未申请任何新的运行授权。

@@ -2248,3 +2248,22 @@
 - **裁决 W（采纳）：应可见下限 `should_be_visible_min_ratio` 作为五臂共享值留在 S0-05。** 它决定谁累计错失次数、谁休眠，此前任何合同都没登记；数值随其他阈值在开发集后冻结。被拒的备选：移到 S0-01 的 dormancy 规则，需另开 S0-01 版本。
 - **文档与合同同步。** METHOD 第九节补选参规则、分级代价与共享候选门，第十节 HandCost 与 HeuristicLabel 两行改写；S0-05 合同 `user_rulings.decision_id` 绑定为 `D-224-SW`，`selection_metric` 由 null 改为冻结常量 `node_f1`，HandCost 网格改为 `theta_b`、`rho_h`；代码新增 `hand_cost_association_logits` 与 `hand_cost_existence`，HandCost 退出余弦门臂与无门参数表；测试 42 项通过。
 - 白话：这次裁决解决"四组消融各自到底在问什么、参数按什么选"。输入是 LOG-218 列出的推荐与备选，输出是五条冻结口径。例如现在 HandCost 和 ELU-P 一个问"学习值多少"、一个问"随时间遗忘值多少"，不再是同一个臂。它不表示任何臂已经实现或验证，也不改变 D-224 的主张边界。
+## D-224-S1：S1 开工九项裁决（已批准）
+
+- 日期：2026-09-20；状态：**用户一次性批准全部九项并要求按推荐执行**；同时授权到服务器上只读核验与清理过期数据。本条是 D-224 的第七份修正案，只开只读与本地登记位，仍无数据生成、安装、训练或 private 读取授权。
+- **裁决 1（采纳）：S1-01 的资产范围含模拟器侧。** AI2-THOR 5.0.0、ProcTHOR 代码与 ProcTHOR-10K 数据集与 SAM/DINO 一并由 S1-01 登记核验。PLAN 的 S1-01 行原本只写 SAM/DINO，而 S1-02 离不开模拟器侧；不扩范围就要再开一轮申请才能进 S1-02。
+- **裁决 2（采纳）：ViT-B/14 用一次本地临时登记。** 授权在本地临时目录下载一次、只记录 url/字节数/sha256 后删除，再写回 S1-01 合同，沿用 SAM 2.1 checkpoint 的同一先例；登记完成前该资产保持 `registration_incomplete` 且不可获取。被拒的备选：把 ViT-B/14 退出首篇、只用 ViT-S/14，代价是 S1-05 的"二选一"退化为无选择，METHOD 第五节要改。
+- **裁决 3（采纳）：ProcTHOR-10K 选 0.1.2。** commit `d54954a81e7126001e552c2d7904ee2e0d49eaae`。house 池文件 `train.jsonl.gz` 的标识**取自上游仓库内 133 字节 git-lfs 指针声明的 oid 与 size**（52,316,238 字节 / `d64450ec…`），因此是上游声明而不是我们对下载结果的观测，满足"登记在获取之前"。该 tag 只登记在 S1-01 合同，不写进 S0-02 已审字节。
+- **裁决 4（采纳）：Python 冲突按角色分两个解释器。** 模拟器侧（AI2-THOR + procthor）在 `vsmt-envs/simulator-py39`（3.9.25），前端侧（SAM 2.1 + DINOv2 + torch 2.8.0+cu128）在基础 3.12.3；两侧只通过磁盘上的 public/private/provenance 文件交接，不在同一进程内互相 import。LOG-221 核验两侧都已就位，冲突消解。被拒的备选：找一个能同时装下三者的版本——不存在。
+- **裁决 5（采纳）：授权只读容量探测并顺带确认渲染后端。** LOG-221 已执行：`libvulkan.so.1` 可解析，`vulkaninfo --summary` 枚举出 NVIDIA GeForce RTX 4080（driverName=NVIDIA，apiVersion 1.4.329），另有 llvmpipe 软件后备。**这只说明 Vulkan 能看到这块 GPU，不等于 CloudRendering 已成功渲染过一帧**，那要到 S1-02 首次真实渲染才算证据。
+- **裁决 6（采纳）：许可证本阶段留 null。** 九个资产的四项许可证字段在具体获取授权通过时一并填入，本阶段只固定字段清单与"未登记即不可获取"的规则。
+- **裁决 7（采纳）：清理 `tests/README.md`。** 移除 `test_ctl_dev.py` 与六个 `test_m1_*.py` 的段落及 M1/M2/M3 三节——这些文件已在 `d7159ba` 随 CPMT/M1 归档删除。文件从 104 行减到 40 行，现存每个被点名的测试文件都真实存在。AGENTS.md 关于"`tests/` 内 README 字节可能进入源码 hash"的顾虑由用户裁决解除：旧 run 的 hash 已记录在案，不受本次改动影响。
+- **裁决 8（采纳）：删除孤儿字节码。** `tests/spatial_world_model/` 只剩 `__pycache__`、无任何 `.py`（49 个文件），`tests/__pycache__` 另有 35 个源文件已删的 `.pyc`，共 84 个文件。全部被 gitignore，删除不改变仓库任何字节。
+- **裁决 9（采纳）：切断 S0 纯核心对旧执行器的传递性 import。** `lean_memory.py` 原先 `from vsmt.graph_ops import ...`，而 `graph_ops` 在文件顶部 `from cpmt.executor import validate_graph`、并在同一文件定义 `GraphRevision` 与 place scaffold，于是为了 20 行纯函数把整条已归档的统一图代码拉进了当前入口，METHOD 第十三节"不被本分支任何入口导入"在模块层面并不成立。现将 `cosine_similarity`、`centroid_distance`、`opaque_id` **逐字复制**到 `src/vsmt/lean_geometry.py`；实际从未被调用的 `observation_aabb` 从复用清单移除。**数值未变**：`test_vsmt_lean_geometry.py` 在 200 组随机向量、200 组随机点、五种退化输入和四组 ID 片段上逐值比对两份实现，并用 AST 守住七个 lean 模块的 import 边界与传递闭包。这动了 S0 已审字节，依据是本裁决；`graph_ops` 与 `cpmt.executor` 原样保留供旧模块和旧测试使用。
+- **合同与文档同步。** S1-01 合同 `user_rulings.decision_id` 绑定 `D-224-S1`，新增 `activation_policy`（三个 true 位：已登记资产只读核验、只读容量探测、ViT-B/14 本地摘要登记），四项已知冲突改为"未裁决／已裁决未执行／已执行"三态并各自校验，registry_rules 补两条（上游声明算登记、LFS 展开不算工作树脏）；METHOD 第十三节更正；`tests/README.md` 重写。六个 lean 模块共 **350 项**本地通过。
+- **补充裁决 10～13（同日批准，LOG-222）。**
+  - **10（采纳）：追认 9-19 的资产放置。** reflog 证明 SAM2 于 2026-09-19 19:52:51 从 D-215 钉死的 URL clone、19:52:52 checkout 到 pinned commit，checkpoint 19:55:08 落盘，LOG-221 已核验字节一致；缺的只是当时没写 LOG。**追认的是"发生过且事后核验通过"，不是"当时留了证据"**。登记教训：已开的授权位被执行时必须当场写 LOG。
+  - **11（采纳）：安装 hydra-core / omegaconf / iopath。** 实质授权来自 D-224 资产合同本就为 true 的 `sam2_import_dependency_install` 位；S1-01 的同名位按引用打开，免得两份合同对同一动作各说各话。先 dry-run 确认 torch/torchvision/numpy 不在变更清单内才安装；装后三者版本与 CUDA 可用性不变，被钉住的 SAM2 工作树仍然干净，`import sam2.build_sam` 成功。逐包 sha256 记在 LOG-222，因为 index 是 aliyun 镜像而非官方 pypi.org。
+  - **12（采纳）：数据盘清理由用户自己执行。** 九条精确命令已交付，预计释放 21.9 GB；本会话不执行。
+  - **13（采纳）：`vsmt-vm04-estimator-development-0c4f9851006d`（5.5 GB）保留。** 它虽属被 E-08 证伪的旧线，但仓库中仍在用的 F-01 兼容适配器读它的 `public` 树；删了就无法在 S1-02 数据产出前跑 F-01 预检。
+- 白话：这次裁决解决"S1 正式开工前，资产范围、未登记项、环境冲突和历史残留各自怎么办"。输入是 LOG-220 列出的九项推荐与备选，输出是九条冻结口径和三个被打开的只读位。例如 ProcTHOR-10K 以后固定用 0.1.2，而且它的字节数不是"下载到多少算多少"，是上游 LFS 指针先声明好的。它不表示任何数据已生成、任何依赖已安装或前端已跑通。
