@@ -33,7 +33,7 @@ from typing import Any, Mapping, Sequence
 
 from cpmt.hashing import canonical_json, clone_json
 
-from vsmt.graph_ops import cosine_similarity
+from vsmt.lean_geometry import cosine_similarity
 from vsmt.lean_memory import ENTITY_STATES, validate_memory
 
 

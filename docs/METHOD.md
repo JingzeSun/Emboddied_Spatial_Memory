@@ -177,13 +177,13 @@ VSMT-lean 解决的问题是：机器人在多视角历史中重访时，对象�
 
 | 用途 | 复用来源 | 处理 |
 |---|---|---|
-| 执行器、版本链、不变量 | 新模块 `src/vsmt/lean_memory.py`；只复用纯函数 `cpmt.hashing.canonical_json/clone_json` 与 `graph_ops.cosine_similarity/centroid_distance/observation_aabb/opaque_id` | 见下方说明 |
+| 执行器、版本链、不变量 | 新模块 `src/vsmt/lean_memory.py`；只复用纯函数 `cpmt.hashing.canonical_json/clone_json`，以及逐字复制到 `src/vsmt/lean_geometry.py` 的 `cosine_similarity/centroid_distance/opaque_id` | 见下方说明 |
 | 冻结前端 reader | `src/vsmt/d223_f01_production_reader.py`、`src/vsmt/shared_frontend_core.py` | 去掉 place observation |
 | 可见体积、错失机会、共同审计 | `src/vsmt/vm04_public_visibility.py`、SharedMemoryWrapper、CommonPostUpdateAudit | 沿用 |
 | 不可观测窗口干预与路线 | `src/vsmt/vm04_program_construction.py`、`src/vsmt/vm04_observation_runner.py` 及 D-199～D-204 机制 | 改为随机干预生成器 |
 | 规则对照 | `src/vsmt/baselines.py` | 补 ELU-P 与 RAC |
 | 地点、统一图、八原子枚举、结构估计器 | `d210_*`、`d211_*`、`d212_*`、`d213_*`、`d214_*`～`d219_*`、`public_candidates.py` | 留在树中不删，标历史；不进入本分支任何入口 |
 
-**为什么执行器另写一份核心而不是收窄 `GraphRevision`。** 读过实现后确认：`GraphRevision` 与 `cpmt.executor.validate_graph` 绑定了 place scaffold、五类关系边、`graph_hash` 与统一图 lifecycle，收窄它等于把这些一起带进来，与 D-224 削减流程的目的相反。因此实体记忆核心是一个自足的新模块，**只复用不会产生第二套数值语义的纯函数**：规范 JSON 与深拷贝、余弦、质心距离、AABB、不透明 ID。`GraphRevision`、place scaffold、关系边与旧 `public_candidates.py` 不被本分支任何入口导入。它不等于旧执行器被删除，旧模块与其测试原样保留。
+**为什么执行器另写一份核心而不是收窄 `GraphRevision`。** 读过实现后确认：`GraphRevision` 与 `cpmt.executor.validate_graph` 绑定了 place scaffold、五类关系边、`graph_hash` 与统一图 lifecycle，收窄它等于把这些一起带进来，与 D-224 削减流程的目的相反。因此实体记忆核心是一个自足的新模块，**只复用不会产生第二套数值语义的纯函数**：规范 JSON 与深拷贝、余弦、质心距离、不透明 ID。**D-224-S1 裁决 9 的更正。** 这四个函数原先是从 `vsmt.graph_ops` import 的，而那个模块在文件顶部 `from cpmt.executor import validate_graph`、并在同一文件里定义 `GraphRevision` 与 place scaffold；于是为了 20 行纯函数，整条已归档的统一图代码被传递性地拉进了当前入口，原文「不被本分支任何入口导入」在模块层面并不成立。现在后三个函数逐字复制到 `src/vsmt/lean_geometry.py`，`test_vsmt_lean_geometry.py` 逐值比对两份实现并用 AST 守住边界；实际从未被调用的 `observation_aabb` 一并从复用清单中移除。因此今天的情况是：没有任何 lean 模块 import `vsmt.graph_ops` 或 `cpmt.executor`，唯一允许的 cpmt 子模块是纯标准库的 `cpmt.hashing`。数值没有变化，`GraphRevision`、place scaffold、关系边与旧 `public_candidates.py` 原样保留在树中供旧模块和旧测试使用。
 
 **求解器已在 S0-03 登记为自写，不新增依赖。** scipy 不在本项目依赖里，而且并列必须由我们自己定：一个矩形分配通常有多个最优解，返回哪一个不能取决于字典顺序、浮点噪声或库版本。实现是带势的最短增广路方法，复杂度 `O(行^2 × 列)`，并列一律取较小列号；因为每个 fragment 都有自己的 BIRTH 列，列数永远不少于行数。测试用 40 个随机矩阵与暴力枚举的最优值逐一比对。它不比 scipy 更快，只保证同一矩阵永远给出同一组列号。

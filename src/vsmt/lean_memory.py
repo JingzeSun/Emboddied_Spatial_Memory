@@ -36,7 +36,7 @@ from typing import Any, Mapping, Sequence
 
 from cpmt.hashing import canonical_json, clone_json
 
-from vsmt.graph_ops import centroid_distance, cosine_similarity, opaque_id
+from vsmt.lean_geometry import centroid_distance, cosine_similarity, opaque_id
 
 
 SCHEMA_VERSION = "vsmt-lean-entity-memory-v1"
