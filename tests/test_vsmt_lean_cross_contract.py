@@ -29,7 +29,8 @@ if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
 from vsmt import (  # noqa: E402
-    lean_arms, lean_assets, lean_assignment, lean_intervention, lean_memory, lean_teacher,
+    lean_arms, lean_assets, lean_assignment, lean_intervention, lean_memory,
+    lean_pilot, lean_teacher,
 )
 
 
@@ -50,6 +51,7 @@ FROZEN_V1_SHA256 = {
     "lean_s0_teacher_metrics_v1.json": "700452d1ed57153f1aaf6be631c97094b6111242dca3dd2ae1ba4506a1c24c85",
     "lean_s0_arms_v1.json": "32c1d16e33ac49da389147fd08804c9e53d18fae5ece7becdd83161c8d5b27d3",
     "lean_s1_assets_capacity_v1.json": "a85c98a8d92a9e4a2fd48d3ee20fcf898decfb8afa6c74aa00ecd2578508c6af",
+    "lean_s1_02a_pilot_v1.json": "c44db4e46bc29b9d4288560b36d20868783b5eaff34d5d8957958aed8dc7f8ff",
 }
 
 #: S1-01 is not one of the five S0 contracts and does not share their
@@ -59,6 +61,16 @@ S1_01_CONTRACT = "lean_s1_assets_capacity_v2.json"
 
 def load_s1_01() -> dict[str, Any]:
     return json.loads((CONFIG_DIR / S1_01_CONTRACT).read_text(encoding="utf-8"))
+
+
+#: S1-02a carries the frozen split values.  S0-02 defines the split rule but
+#: deliberately keeps its value slots null: a method-level contract should
+#: not carry one run's seed.
+S1_02A_CONTRACT = "lean_s1_02a_pilot_v2.json"
+
+
+def load_s1_02a() -> dict[str, Any]:
+    return json.loads((CONFIG_DIR / S1_02A_CONTRACT).read_text(encoding="utf-8"))
 
 
 def load(stage: str) -> dict[str, Any]:
@@ -339,6 +351,72 @@ class TestS1ConsumesTheS0Contracts(unittest.TestCase):
     def test_s1_01_keeps_no_open_policy_value_behind(self) -> None:
         self.assertEqual(self.s1["policy_values_without_defaults"], [])
         self.assertEqual(self.s1["worker_rule"]["headroom_fraction"], 0.2)
+
+
+class TestTheSplitIsFrozenInExactlyOnePlace(unittest.TestCase):
+    """S0-02 defines how the split works; S1-02a records which split this
+    run uses.  Two registered copies of a seed is the failure mode worth
+    preventing, because nothing would say which one generated the data."""
+
+    def setUp(self) -> None:
+        self.s0_02 = load("S0-02")
+        self.s1_02a = load_s1_02a()
+
+    def test_s1_02a_passes_its_own_validator(self) -> None:
+        checked = lean_pilot.validate_pilot_contract(self.s1_02a)
+        self.assertEqual(checked["stage_id"], "S1-02a")
+
+    def test_s0_02_keeps_its_value_slots_null(self) -> None:
+        rule = self.s0_02["split_rule"]
+        for name in ("seed", "validation_houses", "test_houses", "train_houses"):
+            self.assertIsNone(rule[name], name)
+
+    def test_s1_02a_declares_itself_the_single_registered_location(self) -> None:
+        freeze = self.s1_02a["split_freeze"]
+        self.assertIs(freeze["is_the_single_registered_location"], True)
+        for name in lean_pilot.FROZEN_BEFORE_GENERATION:
+            self.assertIsNotNone(freeze[name], name)
+
+    def test_the_frozen_split_satisfies_the_s0_02_rule(self) -> None:
+        rule = self.s0_02["split_rule"]
+        freeze = self.s1_02a["split_freeze"]
+        self.assertIs(rule["test_and_validation_sizes_and_seed_frozen_before_first_generation"],
+                      True)
+        self.assertIs(freeze["frozen_before_first_episode"], True)
+        self.assertIs(rule["train_size_may_only_decrease_after_registration"], True)
+        self.assertIs(freeze["train_size_may_only_decrease_afterwards"], True)
+        self.assertIs(rule["development_houses_are_the_first_houses_of_the_train_block"],
+                      True)
+        self.assertIs(freeze["development_houses_are_the_first_of_the_train_block"], True)
+
+    def test_both_sides_allocate_test_then_validation_then_train(self) -> None:
+        self.assertEqual(list(self.s0_02["split_rule"]["prefix_assignment"]),
+                         ["test", "validation", "train"])
+
+    def test_the_pilot_selection_uses_the_frozen_values_end_to_end(self) -> None:
+        pool = [f"house-{index:04d}" for index in range(400)]
+        selected = lean_pilot.select_pilot_houses(pool, self.s1_02a["split_freeze"])
+        split = lean_intervention.assign_split(
+            pool,
+            seed=self.s1_02a["split_freeze"]["seed"],
+            train=len(pool) - 150,
+            validation=self.s1_02a["split_freeze"]["validation_houses"],
+            test=self.s1_02a["split_freeze"]["test_houses"],
+        )
+        self.assertEqual(selected, split["train"][:4])
+        self.assertFalse(set(selected) & set(split["test"]))
+
+    def test_s1_02a_reuses_the_s1_01_worker_derivation(self) -> None:
+        self.assertIs(lean_pilot.derive_worker_count, lean_assets.derive_worker_count)
+
+    def test_s1_02a_reuses_the_s0_02_failure_reasons(self) -> None:
+        self.assertEqual(tuple(self.s1_02a["failure_reasons"]),
+                         lean_intervention.FAILURE_REASONS)
+
+    def test_generation_stays_closed_on_every_side(self) -> None:
+        self.assertIs(self.s0_02["authorization"]["episode_generation"], False)
+        self.assertIs(self.s1_02a["authorization"]["episode_generation"], False)
+        self.assertIn("route_or_episode_generation", load_s1_01()["must_remain_false"])
 
 
 if __name__ == "__main__":  # pragma: no cover
