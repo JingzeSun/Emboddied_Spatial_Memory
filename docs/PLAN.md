@@ -9,7 +9,7 @@
 ```text
 S0 合同冻结（S0-01 → S0-06）
   ↓
-S1 前端与数据小试（S1-01 → S1-05）
+S1 前端与数据小试（S1-01 → S1-02a → S1-02b → S1-05）
   ↓
 S2 五臂开发表（S2-01 → S2-05）
   ↓
@@ -18,7 +18,7 @@ S3 正式数据、训练、validation 与一次性 test（S3-01 → S3-06）
 S4 论文
 ```
 
-当前执行点：**S0 五份合同全部审查通过（LOG-214～LOG-219），S1-01 资产与容量授权申请材料已实现待审**（LOG-220），**D-224-S1 九项裁决已批准并落地，服务器冻结资产已只读核验通过**（LOG-221）。D-224 与 D-224-E/F/G 已批准；旧方向已归档到 `archive/pre-d224-unified-graph`，`main` 只含精简版文档。**四项已知冲突全部消解并各有回执**：Python 按两解释器分工、Vulkan 可枚举到 NVIDIA GPU、ProcTHOR-10K 定为 0.1.2（以上 LOG-221），ViT-B/14 完成一次性摘要登记（LOG-223）；基础环境缺 hydra 的阻塞已于 LOG-222 解除。S1-01 里待冻结的 null 只剩 `worker_rule.headroom_fraction`。当前开四个位（三只读/本地登记加一依赖安装），没有任何资产放置、数据生成或训练授权；单 worker 实测占用尚未测量，因此 worker 数仍算不出，S1-02 也尚未获得授权。
+当前执行点：**S0 五份合同全部审查通过（LOG-214～LOG-219），S1-01 资产与容量授权申请材料已实现待审**（LOG-220），**D-224-S1 九项裁决已批准并落地，服务器冻结资产已只读核验通过**（LOG-221）。D-224 与 D-224-E/F/G 已批准；旧方向已归档到 `archive/pre-d224-unified-graph`，`main` 只含精简版文档。**四项已知冲突全部消解并各有回执**：Python 按两解释器分工、Vulkan 可枚举到 NVIDIA GPU、ProcTHOR-10K 定为 0.1.2（以上 LOG-221），ViT-B/14 完成一次性摘要登记（LOG-223）；基础环境缺 hydra 的阻塞已于 LOG-222 解除。S1-01 里待冻结的 null 只剩 `worker_rule.headroom_fraction`。当前开四个位（三只读/本地登记加一依赖安装），没有任何资产放置、数据生成或训练授权。**S1-01 的 worker 推导死锁已按 D-224-S1 裁决 14 解开**：占用测量移入新拆出的 S1-02a（4 worker × 1 house，4 条 episode 计入正式 50 条），S1-02b 再按算出的 worker 数补齐其余 46 个；S1-01 只保留推导规则。数据盘已由用户清理并经只读核验，22 G → 43 G 可用（LOG-224）。S1-02a 尚未获得运行授权。
 
 ## 二、状态和执行规则
 
@@ -105,22 +105,34 @@ S4 论文
 | 输出 | [`lean_s1_assets_capacity_v1.json`](../configs/vsmt/lean_s1_assets_capacity_v1.json)、纯核心 [`lean_assets.py`](../src/vsmt/lean_assets.py)、测试 [`test_vsmt_lean_assets.py`](../tests/test_vsmt_lean_assets.py)；授权后另出资产回执与容量回执 |
 | 继续门 | 登记在获取之前；标识不全的资产不可获取（当前九项全部登记完整）；摘要不符即停且不得换镜像、换版本或先用着；worker 数有实测依据并写进回执——容量读数已有，但单 worker 实测占用尚未测量，因此 worker 数仍不可算 |
 
-### S1-02 50 house 干预 episode 生成
+### S1-02a 4-worker pilot 与占用实测
 
 | 项 | 内容 |
 |---|---|
 | 状态 | 未开始 |
-| 输入 | S0-02 合同、S1-01 容量 |
-| 完整动作 | 从 train 划分取哈希前缀前 50 个 house，各生成一条 episode：覆盖式重访路线、不可观测窗口干预、public/private/provenance 三面写盘；失败 house 保留 receipt 不替换 |
-| 输出 | 50 条 raw、生成回执、干预成品率 |
-| 继续门 | 成品率写入回执；低于 S0-02 登记下限触发规模裁决 |
+| 输入 | S0-02 合同、S1-01 容量读数与 worker 推导规则 |
+| 完整动作 | 取 train 划分哈希前缀最前的 **4 个 house，4 个 worker 各跑 1 条 episode**：覆盖式重访路线、不可观测窗口干预、public/private/provenance 三面写盘；同时实测 `cpu_cores_per_worker`、`ram_gb_per_worker`、`vram_gb_per_worker`、`disk_gb_per_worker` 与 4 路并发是否安全；失败 house 保留 receipt 不替换 |
+| 输出 | 4 条 raw、pilot 生成回执、**占用回执**（含 `concurrency_verified_at=4`、峰值 RSS/显存/磁盘、墙钟与退出码） |
+| 继续门 | 四条全部有终态；占用五项齐全才允许推导 worker 数。**这 4 条是正式 S1-02 样本的一部分，计入 50，不得跑完丢弃重生成**；pilot 失败不构成"重试到好为止"的理由 |
+
+**白话：为什么先跑 4 个。** 它解决的是"worker 数要由实测决定，可实测又必须先跑起来"这个先有鸡还是先有蛋。输入是 4 个 house 和 4 个并发 worker，输出是能不能跑通加一份占用读数。例如实测每 worker 峰值 6 GB 内存、2 GB 显存，就能算出这台机器还能开多少个。它**不等于**已经证明更大并发安全：pilot 只验证了 4 路，`concurrency_verified_at` 与算出来的 `derived_worker_count` 必须分开记；扩产后若出现不稳定，如实报告，不得事后把数字悄悄改小当没发生。
+
+### S1-02b 扩到 50 house
+
+| 项 | 内容 |
+|---|---|
+| 状态 | 未开始 |
+| 输入 | S1-02a 占用回执；S1-01 的 worker 推导规则与 `headroom_fraction` |
+| 完整动作 | 按 S1-01 公式算出最大安全 worker 数并记下瓶颈项，用该并发补齐哈希前缀其余 **46 个 house**，各生成一条 episode；失败 house 保留 receipt 不替换 |
+| 输出 | 合计 50 条 raw、生成回执、干预成品率、`requested/actual` worker 数与资源用量 |
+| 继续门 | 计划数＝成功数＋失败数；成品率写入回执；低于 S0-02 登记下限触发规模裁决，**不得换 house 挑好样本** |
 
 ### S1-03 共享前端 cache
 
 | 项 | 内容 |
 |---|---|
 | 状态 | 未开始 |
-| 输入 | S1-02 public 面、S1-01 资产 |
+| 输入 | S1-02b public 面、S1-01 资产 |
 | 完整动作 | 跑 F-01 reader 生成 fragment、几何、自由空间、可见体积；同时提取 ViT-S/14 与 ViT-B/14 两套描述子；写逐帧与逐 episode 封印 |
 | 输出 | 50 条 cache、fragment 成品率、每帧 proposal 数分布 |
 | 继续门 | 任一帧 proposal 溢出即该 episode construction failure |
@@ -296,6 +308,7 @@ S4 论文
 13. 2026-09-20 用户一次批准 D-224-S1 九项裁决并授权服务器只读核验与清理。九项全部落地（ProcTHOR-10K 定 0.1.2、ViT-B/14 本地登记待执行、两解释器分工、只读探测渲染后端、许可证留后、清理 tests/README、删 84 个孤儿字节码、切断 lean 对 cpmt.executor 的传递性 import）。服务器核验七项冻结资产标识全部一致，Vulkan 能枚举到 NVIDIA GPU，simulator-py39 已备齐 ai2thor/procthor；新发现基础环境缺 hydra 使 SAM2 无法 import。数据盘清理已只读勘定 21.9 GB，删除命令被本地安全策略拦下未执行（LOG-221）。
 14. 2026-09-20 用户批准补充裁决 10～13：追认 9-19 资产放置（凭 reflog 重建时间线）、按 D-224 已有授权安装 hydra-core/omegaconf/iopath（torch 与 SAM2 工作树未变，SAM2 可 import，生成器 17 参数与登记一致）、数据盘清理由用户自己执行、estimator 5.5 GB 因 F-01 兼容适配器仍在用而保留（LOG-222）。
 15. 2026-09-20 执行裁决 2：ViT-B/14 一次性摘要登记完成（URL 由钉死 dinov2 commit 源码推导并经 ViT-S/14 回执实证，346,378,731 字节 / `0b8b82f8…`，核对 768 维/patch 14/12 层/86.58M 参数后删除临时文件）。四项已知冲突至此全部拿到回执，S1-01 待冻结 null 只剩 `worker_rule.headroom_fraction`（LOG-223）。
+16. 2026-09-20 用户清理数据盘（22 G → 43 G 可用，保留清单九项经只读核验全在），并批准补充裁决 14：S1-01 的 worker 死锁按方案 A 解开，占用测量移入 S1-02a（4 worker × 1 house）、S1-02b 扩到 50 house；pilot 的 4 条计入正式样本，`concurrency_verified_at` 与 `derived_worker_count` 分开记（LOG-224）。
 
 ## 九、失败时的暂停点与待触发裁决
 
@@ -304,8 +317,8 @@ S4 论文
 | 步骤 | 失败长什么样 | 暂停点与必须触发的裁决 |
 |---|---|---|
 | S1-01 | 资产摘要与 D-215/LOG-136 登记值不符 | 原样停下报告，**不得**换镜像、换 tag 或先用着；是否重新冻结前端由用户裁决 |
-| S1-02 | CloudRendering 虽能看到 Vulkan 与 GPU，但实际起不来或只落到 llvmpipe 软件光栅 | 触发**渲染后端裁决**：改后端等于动 S0-02 已审字节，须另开版本并经用户批准；不得默默接受软件光栅的吞吐 |
-| S1-02 | 干预成品率远低于登记下限；路线无法保证重访 | 触发**规模裁决**：下调 house 数或改路线模板；不得换 house 挑好样本 |
+| S1-02a | CloudRendering 虽能看到 Vulkan 与 GPU，但实际起不来或只落到 llvmpipe 软件光栅 | 触发**渲染后端裁决**：改后端等于动 S0-02 已审字节，须另开版本并经用户批准；不得默默接受软件光栅的吞吐 |
+| S1-02b | 干预成品率远低于登记下限；路线无法保证重访 | 触发**规模裁决**：下调 house 数或改路线模板；不得换 house 挑好样本 |
 | S1-04 | 两套描述子的跨视角分离度都不足 | 触发**证据层级裁决**：是否降到 L1 oracle mask。这会把主张从"可部署 RGB-D 条件下的比较"改为"感知正确前提下的机制诊断"，属改变论文声称什么，须用户批准 |
 | S2-05 | VSMT-lean 在 50 house 上不优于对照 | 不构成结论，照常进入 S3，无需裁决 |
 | S3-02 | 成品率低于 S3-01 假设 | 按已冻结停止规则收口，用实际样本量运行，功效不足写入限制；不得事后加样本 |

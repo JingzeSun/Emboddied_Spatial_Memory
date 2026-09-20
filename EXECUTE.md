@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| D-224 精简方向 | 2026-09-19 用户批准裁决 A～D 与 E/F/G：首篇改为实体生命周期版本化事务，帧级联合分配＋三个约 4 万参数的 MLP 代价头，ProcTHOR 干预序列并对齐 Dyn-THOR 指标，正式规模 300/50/100 house；共享 ReID 头为可选前端、`VSMT-lean-ctx` 为可选臂、实体 token schema 已冻结。旧方向归档到分支 `archive/pre-d224-unified-graph`，`main` 重写 METHOD/PLAN/DATA。**S0-01～S0-05 五份机器合同全部经用户审查通过，S0-06 收口**；S1-01 资产与容量授权申请材料已实现待审；D-224-S1 九项裁决已落地。服务器只读核验确认 SAM 2.1、DINOv2、ProcTHOR-10K 0.1.2 与 AI2-THOR CloudRendering 七项标识**全部与登记值一致**（LOG-221），Python 与 Vulkan 两项冲突消解，仅 ViT-B/14 未登记仍挡住 S1-03～05，基础环境缺 hydra 的阻塞已解除（LOG-222：torch/torchvision/numpy 与 SAM2 工作树均未变，`import sam2.build_sam` 成功，生成器 17 个具名参数与登记一致）；9-19 那次未记录的资产放置已凭 reflog 追认；ViT-B/14 已完成一次性摘要登记（LOG-223：346,378,731 字节 / `0b8b82f8…`，核对 768 维、patch 14、12 层）。**S1-01 四项已知冲突现已全部拿到回执，没有仍在阻挡后续步骤的冲突**；待冻结 null 只剩 `worker_rule.headroom_fraction`。六个 lean 模块加新增边界测试共 350 项本地通过；全量 discover 仍受本机已知 segfault 影响（定位在旧 `test_vm04_d211_p0_seal_smoke.py`，重跑不复现），待服务器复核。无数据、无训练、无 episode、无 cache；S0 五份合同授权位全 false，S1-01 按 D-224-S1 开四个位（三只读/本地登记加一依赖安装）。LOG-214～223。 |
+| D-224 精简方向 | 2026-09-19 用户批准裁决 A～D 与 E/F/G：首篇改为实体生命周期版本化事务，帧级联合分配＋三个约 4 万参数的 MLP 代价头，ProcTHOR 干预序列并对齐 Dyn-THOR 指标，正式规模 300/50/100 house；共享 ReID 头为可选前端、`VSMT-lean-ctx` 为可选臂、实体 token schema 已冻结。旧方向归档到分支 `archive/pre-d224-unified-graph`，`main` 重写 METHOD/PLAN/DATA。**S0-01～S0-05 五份机器合同全部经用户审查通过，S0-06 收口**；S1-01 资产与容量授权申请材料已实现待审；D-224-S1 九项裁决已落地。服务器只读核验确认 SAM 2.1、DINOv2、ProcTHOR-10K 0.1.2 与 AI2-THOR CloudRendering 七项标识**全部与登记值一致**（LOG-221），Python 与 Vulkan 两项冲突消解，仅 ViT-B/14 未登记仍挡住 S1-03～05，基础环境缺 hydra 的阻塞已解除（LOG-222：torch/torchvision/numpy 与 SAM2 工作树均未变，`import sam2.build_sam` 成功，生成器 17 个具名参数与登记一致）；9-19 那次未记录的资产放置已凭 reflog 追认；ViT-B/14 已完成一次性摘要登记（LOG-223：346,378,731 字节 / `0b8b82f8…`，核对 768 维、patch 14、12 层）。**S1-01 四项已知冲突现已全部拿到回执，没有仍在阻挡后续步骤的冲突**；待冻结 null 只剩 `worker_rule.headroom_fraction`。文档审查另发现 S1-01 的 worker 推导死锁（占用只能靠跑 episode 测，而 episode 生成在本阶段 must_remain_false 里），已按裁决 14 把测量移入新拆出的 S1-02a（4 worker × 1 house）并由 S1-02b 扩到 50 house；数据盘已由用户清理，22 G → 43 G 可用，保留清单九项全在（LOG-224）。六个 lean 模块加新增边界测试共 350 项本地通过；全量 discover 仍受本机已知 segfault 影响（定位在旧 `test_vm04_d211_p0_seal_smoke.py`，重跑不复现），待服务器复核。无数据、无训练、无 episode、无 cache；S0 五份合同授权位全 false，S1-01 按 D-224-S1 开四个位（三只读/本地登记加一依赖安装）。LOG-214～224。 |
 | D-214～D-223共享RGB-D前端 | Estimator历史路线已完成并由E-08证伪其P08硬门用途；F-00两房拓扑预检通过。D-223/F-01 reader本地实现已审；一次服务器真实预检只读定位后因缺冻结SAM2资产和兼容公开bundle停止。D-217 public observation-0兼容适配器已本地实现待审，尚未读取真实数据或运行服务器；模型加载/cache仍为0，执行位全关闭。P04/P08、route/raw、method adapter、private evaluation、训练与audit重跑均未运行。LOG-199～211。 |
 | D-213统一图/类型门 | 四节点/五关系统一图合同、seal前类型门、五种消融memory view、图复杂度派生、relation REACTIVATE及surface/fragment RETRACT已实现候选；数据接线现改为等待D-214冻结cache，不再以单槽raw后定义前端，全部运行位关闭；LOG-197/199。 |
 | D-212地点raw纠偏 | v2已补公开grid模板＋RGB-D route survey生产入口、P01–P08可复算收据、raw三面journal与两提交执行门；D-214已重新阻断activation，旧P04/P08工程描述不得获论文资格。真实survey/seal/smoke均为0；LOG-196/198/199。 |
@@ -2417,3 +2417,35 @@ LOG-211 记载"服务器既没有合同冻结的 SAM2 完整资产，也没有 r
 - **边界。** 登记完成只表示"知道该核验什么"，不表示权重已在服务器上、能加载或有用；ViT-S/14 与 ViT-B/14 的取舍仍在 S1-05 按 S1-04 的分离度报告决定。
 - **四项已知冲突现已全部拿到回执**（三项 LOG-221、一项 LOG-223），S1-01 合同里不再有任何仍在阻挡后续步骤的冲突。
 - 下一步：用户审 S1-01 代码与合同。仍未申请单 worker 占用测量、资产放置、episode 生成或任何训练授权。
+
+## LOG-224：数据盘清理核验，S1-01 worker 死锁按裁决 14 解开（2026-09-20）
+
+- 类型：一次只读核验加一次阶段边界修正；**不是实验结果**。未生成数据、未训练、未放置资产。
+- **用户已自行执行清理，本条只做只读核验。**
+
+| 项 | 清理前 | 清理后 |
+|---|---|---|
+| `/root/autodl-tmp` 已用 / 可用 | 29 G / 22 G | **8.0 G / 43 G** |
+| `spatial-history` 及三个伴生目录 | 18.6 G | 已删 |
+| `m1_formal`、`cpmt_worktrees`、`target_ab`、`vsmt_vm04_v3_probe_review` | 约 0.6 G | 已删 |
+| `vsmt_outputs` | 8.1 G | 5.5 G（two-house audit 已删，estimator 按裁决 13 保留） |
+
+保留清单九项逐一存在：AI2-THOR releases、`simulator-py39/bin/python`、ProcTHOR-10K 的 `train.jsonl.gz`、SAM2 仓库与 checkpoint、DINOv2 仓库与 ViT-S/14 权重、estimator 目录、主仓库 `.git`。`git worktree list` 只剩主 checkout 与两个系统盘上的旧 worktree（本就不在清理范围内），数据盘上的四个登记已随 `git worktree remove` 干净摘除，没有悬挂条目。系统盘不变，26 G 可用。
+
+**容量读数因此更新**：`disk_free_gb_asset_root` 与 `disk_free_gb_install_root` 同为 43 GB（两者都在 `/root/autodl-tmp` 下），其余 14 项与 LOG-221 相同。
+
+### S1-01 的 worker 死锁
+
+审查自己写的合同时发现一处**阶段划分错误，不是漏填数值**：`worker_rule` 要求 worker 数由实测单 worker 占用推导，而 `cpu_cores_per_worker` 等五个量只能靠真跑一条 episode 得到；但 `route_or_episode_generation` 就在同一份合同的 `must_remain_false` 里。**S1-01 按自己的条款永远测不出占用，worker 数永远算不出来。**
+
+用户裁决取方案 A 并给出 pilot 形状（D-224-S1 补充裁决 14）：
+
+- **S1-02a**：4 个 worker 各跑 1 个 house（合计 4 条 episode），跑通管线并实测占用与 4 路并发安全性。
+- **S1-02b**：按 S1-01 公式算出最大安全 worker 数，用该并发补齐其余 46 个 house。
+- S1-01 只保留推导规则与输入清单，删掉 `single_worker_occupancy_measurement` 位；校验器新增一条，禁止该位以任何名义回到这份合同，并把 `measurement_stage` 绑死为 `S1-02a`。
+
+两条配套约束写进 PLAN 与合同：**pilot 的 4 条 episode 计入正式 50 条**，不得跑完丢弃重生成（否则就是按结果挑样本）；`concurrency_verified_at=4` 与 `derived_worker_count` 必须分开记——pilot 只证明 4 路安全，算出来的更大并发是外推，扩产后若不稳定要如实报告，不得事后把数字悄悄改小当没发生。
+
+- **测试。** 新增 3 项边界测试（测量位已离开本阶段、以任何名义重开即拒、推导规则仍留在本阶段），S1-01 共 **77 项**，六个 lean 模块加边界测试共 **354 项**本地通过。
+- **边界。** 死锁是被文档审查发现的，不是被运行发现的；修正只改阶段归属，不改推导公式、不改任何阈值，也没有让任何一步变得可以运行。S1-02a 仍未获授权。
+- 下一步：用户审 S1-01 代码与合同；通过后才谈 S1-02a 的运行授权。
