@@ -370,7 +370,11 @@ class TestContract(unittest.TestCase):
         supersedes = self.contract["supersedes_contract"]
         self.assertTrue(supersedes["v1_bytes_frozen"])
         reviewed = PROJECT_ROOT / supersedes["path"]
-        self.assertEqual(hashlib.sha256(reviewed.read_bytes()).hexdigest(),
+        # By content, not by line endings: .gitattributes stores .json with
+        # LF, so a Windows working tree can hold CRLF while every Linux
+        # checkout holds LF.
+        frozen = reviewed.read_bytes().replace(b"\r\n", b"\n")
+        self.assertEqual(hashlib.sha256(frozen).hexdigest(),
                          supersedes["v1_sha256"])
 
     def test_the_frozen_split_determines_the_pilot(self) -> None:

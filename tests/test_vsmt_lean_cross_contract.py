@@ -43,16 +43,35 @@ CONTRACTS = {
     "S0-05": ("lean_s0_arms_v2.json", lean_arms, lean_arms.validate_arms_contract),
 }
 
-#: The reviewed v1 contracts, byte-frozen (D-224-X: "追加 v2 不改已审字节").
+#: The reviewed v1 contracts, frozen by content (D-224-X: 追加 v2 不改已审字节).
+#: Digests are taken over LF-normalised bytes so they mean the same thing on
+#: every platform.  .gitattributes stores every .json with LF, so a Windows
+#: working tree can hold CRLF while the repository and every Linux checkout
+#: hold LF; hashing the raw bytes pinned that artefact instead of the content
+#: and fired on the server, where the real runs happen.
 FROZEN_V1_SHA256 = {
     "lean_s0_entity_memory_v1.json": "b9d23c33a63dffcc722584ac9d3db700bfe3bbfc054f90390e505775292d8220",
     "lean_s0_intervention_data_v1.json": "ca951ff941abc1fa920f52b292902a3904fb751aa7a39ff4328cd6be576dddd8",
     "lean_s0_assignment_v1.json": "e6d8e3808365e4bd2f99b15d7394c4b13399e311f85d41e0ade30443861db6ca",
-    "lean_s0_teacher_metrics_v1.json": "700452d1ed57153f1aaf6be631c97094b6111242dca3dd2ae1ba4506a1c24c85",
-    "lean_s0_arms_v1.json": "32c1d16e33ac49da389147fd08804c9e53d18fae5ece7becdd83161c8d5b27d3",
-    "lean_s1_assets_capacity_v1.json": "a85c98a8d92a9e4a2fd48d3ee20fcf898decfb8afa6c74aa00ecd2578508c6af",
+    "lean_s0_teacher_metrics_v1.json": "cf2b4426dab8e5d7a4e19859b5e6a44ef2b6d4403740335fed47d0a19d17c32c",
+    "lean_s0_arms_v1.json": "498f063b5ba3920d7771ed36a96443678f67d04d0f5dc982ee7448c47738a203",
+    "lean_s1_assets_capacity_v1.json": "3414efef90a6f354b0a6c600626371b0ab6b3da92faddb77176fb19bfa12eff8",
     "lean_s1_02a_pilot_v1.json": "c44db4e46bc29b9d4288560b36d20868783b5eaff34d5d8957958aed8dc7f8ff",
 }
+
+
+def reviewed_digest_of_bytes(raw: bytes) -> str:
+    """Digest contract bytes by content, ignoring line endings."""
+
+    return hashlib.sha256(raw.replace(b"\r\n", b"\n")).hexdigest()
+
+
+def reviewed_digest(path: Path) -> str:
+    """Digest a reviewed contract by content, ignoring line endings."""
+
+    return hashlib.sha256(
+        path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
+
 
 #: S1-01 is not one of the five S0 contracts and does not share their
 #: all-false rule, so it is loaded separately rather than added to CONTRACTS.
@@ -132,8 +151,8 @@ class TestEveryContractValidates(unittest.TestCase):
 class TestReviewedV1BytesAreFrozen(unittest.TestCase):
     def test_each_v1_contract_still_has_its_reviewed_digest(self) -> None:
         for name, expected in FROZEN_V1_SHA256.items():
-            digest = hashlib.sha256((CONFIG_DIR / name).read_bytes()).hexdigest()
-            self.assertEqual(digest, expected, name)
+            with self.subTest(contract=name):
+                self.assertEqual(reviewed_digest(CONFIG_DIR / name), expected, name)
 
     def test_each_v2_contract_names_its_frozen_v1(self) -> None:
         for stage in CONTRACTS:
@@ -145,6 +164,29 @@ class TestReviewedV1BytesAreFrozen(unittest.TestCase):
             self.assertTrue(supersedes["v1_bytes_frozen"], stage)
             self.assertTrue(contract["schema_version"].endswith("-v2"), stage)
 
+    def test_the_two_s1_contracts_name_their_frozen_v1_too(self) -> None:
+        for contract in (load_s1_01(), load_s1_02a()):
+            supersedes = contract["supersedes_contract"]
+            v1_name = Path(supersedes["path"]).name
+            with self.subTest(contract=v1_name):
+                self.assertIn(v1_name, FROZEN_V1_SHA256)
+                self.assertEqual(supersedes["v1_sha256"], FROZEN_V1_SHA256[v1_name])
+                self.assertTrue(supersedes["v1_bytes_frozen"])
+
+    def test_a_digest_means_the_same_thing_on_every_platform(self) -> None:
+        # .gitattributes stores every .json with LF, so a Windows working
+        # tree can hold CRLF while the repository and every Linux checkout
+        # hold LF.  Hashing the raw bytes pinned that artefact rather than
+        # the content, and fired on the server, where the real runs happen.
+        for name in FROZEN_V1_SHA256:
+            raw = (CONFIG_DIR / name).read_bytes()
+            as_lf = raw.replace(b"\r\n", b"\n")
+            as_crlf = as_lf.replace(b"\n", b"\r\n")
+            with self.subTest(contract=name):
+                self.assertEqual(reviewed_digest_of_bytes(as_crlf),
+                                 reviewed_digest_of_bytes(as_lf))
+                self.assertEqual(reviewed_digest(CONFIG_DIR / name),
+                                 reviewed_digest_of_bytes(as_lf))
 
 class TestSharedFacts(unittest.TestCase):
     def test_atoms_states_and_birth_prefix_agree_across_modules(self) -> None:

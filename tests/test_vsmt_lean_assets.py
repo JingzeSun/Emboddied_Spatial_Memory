@@ -644,7 +644,11 @@ class TestContract(unittest.TestCase):
         supersedes = self.contract["supersedes_contract"]
         self.assertTrue(supersedes["v1_bytes_frozen"])
         v1 = PROJECT_ROOT / supersedes["path"]
-        self.assertEqual(hashlib.sha256(v1.read_bytes()).hexdigest(),
+        # By content, not by line endings: .gitattributes stores .json with
+        # LF, so a Windows working tree can hold CRLF while every Linux
+        # checkout holds LF.
+        frozen = v1.read_bytes().replace(b"\r\n", b"\n")
+        self.assertEqual(hashlib.sha256(frozen).hexdigest(),
                          supersedes["v1_sha256"])
 
     def test_the_s0_dependencies_point_at_the_v2_contracts(self) -> None:

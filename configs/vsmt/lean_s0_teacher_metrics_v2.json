@@ -339,7 +339,7 @@
   },
   "supersedes_contract": {
     "path": "configs/vsmt/lean_s0_teacher_metrics_v1.json",
-    "v1_sha256": "700452d1ed57153f1aaf6be631c97094b6111242dca3dd2ae1ba4506a1c24c85",
+    "v1_sha256": "cf2b4426dab8e5d7a4e19859b5e6a44ef2b6d4403740335fed47d0a19d17c32c",
     "v1_bytes_frozen": true,
     "note_zh": "v1 已于 2026-09-20 经用户审查通过（LOG-219），字节冻结不改；v2 按 D-224-X 落实裁决 X1（同帧重复色块）、X2（未定义 house）、X5（评价器匹配分连通块）与 X6（生命周期版本数、真值表 in_scope 标志）。六项 D-224-LQ 口径逐字不变。"
   },

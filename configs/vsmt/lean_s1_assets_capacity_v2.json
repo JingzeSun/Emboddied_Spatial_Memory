@@ -5,7 +5,7 @@
   "status": "v2_pending_user_code_review",
   "supersedes_contract": {
     "path": "configs/vsmt/lean_s1_assets_capacity_v1.json",
-    "v1_sha256": "a85c98a8d92a9e4a2fd48d3ee20fcf898decfb8afa6c74aa00ecd2578508c6af",
+    "v1_sha256": "3414efef90a6f354b0a6c600626371b0ab6b3da92faddb77176fb19bfa12eff8",
     "v1_bytes_frozen": true,
     "note_zh": "v1 已于 2026-09-20 经用户代码审查通过，字节冻结不改。v2 只做三件事，都不是新规则：把 `depends_on` 从 S0-02/S0-03 的 v1 改指 v2（D-224-X 之后五个纯核心都已绑 v2，只剩这份合同还指着 v1，再不改就会出现 S1 按 v1 语义登记、S0 按 v2 语义执行的错位）；把 `worker_rule.headroom_fraction` 由 null 冻结为 0.2；并把 S1 与 S0 的跨合同一致性交给 `test_vsmt_lean_cross_contract.py` 机器核对。资产登记表、停止条件、授权位与 worker 推导公式一字未动。"
   },

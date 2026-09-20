@@ -448,7 +448,7 @@
   },
   "supersedes_contract": {
     "path": "configs/vsmt/lean_s0_arms_v1.json",
-    "v1_sha256": "32c1d16e33ac49da389147fd08804c9e53d18fae5ece7becdd83161c8d5b27d3",
+    "v1_sha256": "498f063b5ba3920d7771ed36a96443678f67d04d0f5dc982ee7448c47738a203",
     "v1_bytes_frozen": true,
     "note_zh": "v1 已于 2026-09-20 经用户审查通过（LOG-219），字节冻结不改；v2 按 D-224-X 落实裁决 X3（AssocOnly 与 HeuristicLabel 为同配方重训而非复用权重）与 X4（预登记 ELU-P 轨迹配置供第 0 轮 DAgger 与 HeuristicLabel 标签，登记三个拟合量的估计程序）。五项 D-224-SW 口径与全部网格逐字不变。"
   },
