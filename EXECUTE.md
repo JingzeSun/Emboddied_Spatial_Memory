@@ -2736,3 +2736,49 @@ LOG-232 的修订一以"一帧窗口 → dormancy 永远不触发"立论。**这
 
 - **待用户裁决（写在对话正文）。** `minimum_window_frames` 的值；版本级联提案是否采纳；`add`=(b) 的只读签名探测授权；上一提交 `Co-Authored-By` 尾行是否 amend 删除。
 - 下一步：四项落定后一次性冻结全部登记值，再写 runner。
+
+## LOG-234：CloudRendering 首次真实启动；复制动作签名探测；治理三条落地（2026-09-20）
+
+- 类型：一次经授权的只读签名探测、一次治理机制实现；**不是实验结果**。未读 ProcTHOR house、未生成 episode、未写任何数据面。探测脚本放在 `/root/autodl-tmp/vsmt-runtime/probe_spawn.py`，只向 stdout 打印 JSON。
+- 授权：D-224-S1 裁决 24（用户 2026-09-20：`minimum_window_frames`=20；版本级联三条采纳；授权签名探测；删除署名）。
+
+### 一、CloudRendering 第一次真实启动成功
+
+在 `simulator-py39` 里以 D-215/S0-02 登记的参数（224×224、FOV 90、grid 0.25、snapToGrid、rotate 90、depth 与 instance segmentation 开启）起 `Controller(platform=CloudRendering, commit_id=f0825767…)`，用内置场景 `FloorPlan1`：
+
+| 项 | 实测 |
+|---|---|
+| 启动耗时 | 5.94 s |
+| `lastActionSuccess` | true，场景 `FloorPlan1_physics` |
+| RGB | (224, 224, 3) |
+| depth / instance segmentation | 均在 |
+| `GetReachablePositions` | 成功，返回 list |
+| 整个探测含停机 | 7.26 s |
+
+这是本项目**第一次在服务器上真实渲染**。它解除的是 PLAN 第九节"CloudRendering 起不来或只落到 llvmpipe"的风险——Vulkan 已枚举到 NVIDIA（LOG-221），现在确认构建能起、三路帧都有。**它不是 S1-02a 运行**：用的是 iTHOR 内置场景，没有载入任何 ProcTHOR house，也没有走任何路线。
+
+### 二、复制动作签名：`add`=(b) 可冻
+
+| 动作 | 结果 | 用途 |
+|---|---|---|
+| `SpawnAsset` | 真动作，缺参报 `assetId, generatedId` | **`add`=(b) 的机制**：ProcTHOR 每个物体自带 `assetId`，复制＝同 `assetId` 配派生的新 `generatedId` |
+| `PlaceObjectAtPoint` | 缺参报 `objectId, position` | 放置 |
+| `PutObject` | 缺参报 `objectId` | 放进容器 |
+| `RemoveFromScene` | 缺参报 `objectId` | `remove` |
+| `GetSpawnCoordinatesAboveReceptacle` | 存在（无参时空引用） | 修订六 (i) 的可放置预筛 |
+| `CreateObject` | 存在但走 iTHOR prefab 表，`Mug` 触发索引越界 | **不用** |
+| `CreateObjectAtLocation` | 存在，要 SimObjType | 不用 |
+
+结论：修订八的前提成立，`add`=(b) 以 `SpawnAsset` 实现，可与其余值一起冻结。
+
+### 三、治理三条落地（裁决 24）
+
+跨合同测试新增 `rule_digest`：对合同做三步遮蔽后计算摘要——(a) v1 登记的全部值槽置 null（`registered_value_slots` 取自冻结的 v1 文件，永不变），(b) 去掉 `status`／`policy_values_without_defaults`／`user_rulings`／`supersedes_contract*`／`activation_policy`／`known_conflicts` 等过程记录与 `*frozen_by`／`*frozen_on` 类冻结元数据，(c) 去掉所有 `*_zh` 白话解释。七份现行合同的规则摘要钉入 `FROZEN_RULE_SHA256`；已填的值槽全部进 `FROZEN_VALUES` 台账。三条性质各有测试：填一个值槽不动规则摘要；改一条规则必动；改白话与冻结元数据不动。此外：填了值却没进台账即拒（静默冻结），台账里的值与现行合同不符即拒，台账项必须是该阶段登记过的槽。
+
+从此：**只有规则变了才开新版本并重审；填已登记的空格就地填、记裁决、进台账。** 既有 v2/v3 文件保留作历史。
+
+### 四、署名删除未能由我完成
+
+两处带 `Co-Authored-By` 的提交已在本地重写为树逐字节相同、无尾行的版本（`389e141`、`82c429e`），但 `git reset --hard` 与 `push --force-with-lease` 均被本地安全策略拦下。本地 main 已分叉于 origin；`fcd18b0` 在一次失败的命令里被顺带 amend 为 `08f1841`（树相同，仅消息去尾空行）。force-push 由用户执行，命令在对话正文。
+
+- 下一步：S0-02 v4（R1／I1 作为新规则加入，随同一次冻结全部登记值），然后 runner。
