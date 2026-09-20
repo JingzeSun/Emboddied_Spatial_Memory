@@ -192,6 +192,48 @@ def probe_render(upgraded: dict[str, Any], object_id: str, destination: str) -> 
     return r
 
 
+def probe_in_front(upgraded: dict[str, Any], object_id: str) -> dict[str, Any]:
+    """Decisive: spawn the duplicate in open air 0.6 m in front of the camera; does anything render?"""
+
+    import math
+
+    r: dict[str, Any] = {"trial": "spawn_in_front", "object_id": object_id}
+    c = None
+    try:
+        c = _controller(upgraded)
+        src = _find(c.last_event.metadata, object_id)
+        c.step(action="Pass"); pre = _capture(c)
+        a = c.last_event.metadata["agent"]; cam = c.last_event.metadata["cameraPosition"]
+        yaw = math.radians(a["rotation"]["y"])
+        pt = {"x": a["position"]["x"] + 0.6 * math.sin(yaw), "y": cam["y"] - 0.1, "z": a["position"]["z"] + 0.6 * math.cos(yaw)}
+        r["point"] = pt
+        gid = "dup_probe_000002"
+        ev = c.step(action="SpawnAsset", assetId=src.get("assetId"), generatedId=gid, position=pt, rotation={"x": 0, "y": 0, "z": 0})
+        r["spawn"] = {"success": ev.metadata.get("lastActionSuccess"), "error": (ev.metadata.get("errorMessage") or "")[:200],
+                      "actionReturn": ev.metadata.get("actionReturn")}
+        r["diff_immediately"] = _diff(pre, _capture(c))
+        c.step(action="Pass"); r["diff_after_pass"] = _diff(pre, _capture(c))
+        d = _find(c.last_event.metadata, gid)
+        r["dup_position_after_pass"] = d["position"] if d else None
+        r["dup_visible_flag"] = d.get("visible") if d else None
+        r["dup_pixels"] = _capture(c)["keys"].get(gid, 0)
+        # the same asset as an existing object moved into the same spot, for contrast
+        ev = c.step(action="PlaceObjectAtPoint", objectId=object_id, position=pt)
+        r["control_place_existing_here"] = {"success": ev.metadata.get("lastActionSuccess"), "error": (ev.metadata.get("errorMessage") or "")[:200]}
+        c.step(action="Pass"); post = _capture(c)
+        r["control_diff"] = _diff(pre, post); r["control_pixels"] = post["keys"].get(object_id, 0)
+    except Exception as exc:  # noqa: BLE001
+        import traceback
+        r["exception"] = repr(exc)[:400]; r["traceback"] = traceback.format_exc()[-600:]
+    finally:
+        if c is not None:
+            try:
+                c.stop()
+            except Exception:  # noqa: BLE001
+                pass
+    return r
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--source", required=True)
@@ -199,16 +241,20 @@ def main() -> int:
     ap.add_argument("--object-id", required=True)
     ap.add_argument("--destination", required=True)
     ap.add_argument("--out", required=True)
+    ap.add_argument("--only-in-front", action="store_true")
     args = ap.parse_args()
     src = Path(args.source)
     house = house_loader.load_source_record(str(src.parent), {"relative_path": src.name, "index": args.house_index})
     upgraded = house_loader.upgrade_house_schema_v1(house, house_loader.load_pinned_asset_id_database())
     report = {"probe": "lean_s1_add_visibility_probe", "house_index": args.house_index,
               "started": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "trials": []}
-    for anywhere in (True, False):
-        t = probe(upgraded, args.object_id, args.destination, anywhere)
+    if not args.only_in_front:
+        for anywhere in (True, False):
+            t = probe(upgraded, args.object_id, args.destination, anywhere)
+            report["trials"].append(t); print(json.dumps(t, default=str), flush=True)
+        t = probe_render(upgraded, args.object_id, args.destination)
         report["trials"].append(t); print(json.dumps(t, default=str), flush=True)
-    t = probe_render(upgraded, args.object_id, args.destination)
+    t = probe_in_front(upgraded, args.object_id)
     report["trials"].append(t); print(json.dumps(t, default=str), flush=True)
     out = Path(args.out); out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report, indent=1, default=str))
