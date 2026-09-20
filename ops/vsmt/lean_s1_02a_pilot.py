@@ -498,14 +498,18 @@ def main() -> int:
               "source_rel": source.name, "split_seed": freeze["seed"], "commit": commit} for h in selected]
     base_vram = float(subprocess.run(["nvidia-smi", "--query-gpu=memory.used", "--format=csv,noheader,nounits"], capture_output=True, text=True).stdout.strip().split("\n")[0])
     stop, q = mp.Event(), mp.Queue()
-    sampler = mp.Process(target=_vram_peak_sampler, args=(stop, q)); sampler.start()
+    sampler = mp.Process(target=_vram_peak_sampler, args=(stop, q), daemon=True); sampler.start()
     t0 = time.time()
     ctx = mp.get_context("spawn")
     with ctx.Pool(processes=args.workers) as pool_:
         results = pool_.map(run_house, tasks)
     wall = time.time() - t0
-    stop.set(); sampler.join(timeout=30)
-    vram_peak = q.get() if not q.empty() else base_vram
+    stop.set()
+    try:
+        vram_peak = q.get(timeout=30)
+    except Exception:  # noqa: BLE001 - sampler died or never sampled
+        vram_peak = base_vram
+    sampler.join(timeout=5)
     results = sorted(results, key=lambda r: r["house_id"])  # deterministic merge order
     failed = [r for r in results if r["status"] != "succeeded"]
     pilot_receipt = {
