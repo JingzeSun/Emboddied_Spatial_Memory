@@ -384,6 +384,14 @@ def _invisible_set(ep: Episode, subjects: dict[str, dict[str, Any]], transition:
 
 
 MAX_PLACEMENT_TRIES = 64  # hard cap on --placement-tries; the contract value is DRY_RUN_MAX_POINTS
+#: A reverted object is back when it is within this distance of the pose it held when the dry run
+#: started.  It is an engineering epsilon for "the same place", not a science parameter: after a
+#: kinematic teleport the pose is exact, and physics settling moves a resting object by under a
+#: millimetre.  S0-02 already says a failed revert fails the house; checking lastActionSuccess
+#: alone did not implement that -- in the 4bff1a8 run TeleportObject reported success while
+#: leaving objects 0.05 m to 10.9 m away (eggs that crack, objects ejected by a collider), in
+#: three episodes that were then recorded as successes (LOG-239).
+REVERT_TOLERANCE_M = 0.01
 
 
 def _prescreen(controller: Any, containers: dict[str, Any], tries: int = 1,
@@ -413,6 +421,46 @@ def _spread(pts: list[Any], n: int) -> list[Any]:
         return list(pts[:n])
     idx = sorted({round(k * (len(pts) - 1) / (n - 1)) for k in range(n)})
     return [pts[i] for i in idx]
+
+
+def _object_position(controller: Any, oid: str) -> dict[str, float] | None:
+    o = next((x for x in controller.last_event.metadata["objects"] if x["objectId"] == oid), None)
+    return None if o is None else dict(o["position"])
+
+
+def _distance(a: dict[str, float] | None, b: dict[str, float] | None) -> float | None:
+    if a is None or b is None:
+        return None
+    return math.dist([a["x"], a["y"], a["z"]], [b["x"], b["y"], b["z"]])
+
+
+def _revert_object(controller: Any, oid: str, orig_pos: dict[str, float], orig_rot: dict[str, float]) -> dict[str, Any]:
+    """Put a dry-run object back and verify it is there; never leave an unregistered change behind.
+
+    白话：试放之后必须把物体放回原位。`TeleportObject` 报告成功并不等于物体真的回去了——
+    4bff1a8 的数据里有报告成功却停在 0.05 m 到 10.9 m 外的（鸡蛋摔碎、被碰撞体弹开），其中
+    三条还被记成成功的 episode。窗口内任何没有登记的位移都是污染：teacher 会在扫掠二看到
+    一个"没人动过却换了地方"的物体。现在逐次核对真实位置，先普通放回、不行再运动学放回，
+    仍然超过 1 cm 就让整条 episode 失败（S0-02 的 revert_failure_fails_the_house）。
+    """
+
+    log: list[dict[str, Any]] = []
+    for attempt, kinematic in enumerate(((False,), (True,)), start=1):
+        step: dict[str, Any] = {"action": "TeleportObject", "objectId": oid, "position": orig_pos,
+                                "rotation": orig_rot, "forceAction": True}
+        if kinematic[0]:
+            step["forceKinematic"] = True
+        event = controller.step(**step)
+        if kinematic[0]:
+            controller.step(action="Pass")
+        drift = _distance(_object_position(controller, oid), orig_pos)
+        log.append({"attempt": attempt, "force_kinematic": bool(kinematic[0]),
+                    "action_success": event.metadata.get("lastActionSuccess") is True,
+                    "error": (event.metadata.get("errorMessage") or "")[:160],
+                    "drift_m": None if drift is None else round(drift, 4)})
+        if drift is not None and drift <= REVERT_TOLERANCE_M:
+            return {"ok": True, "drift_m": round(drift, 4), "attempts": log}
+    return {"ok": False, "drift_m": log[-1]["drift_m"], "attempts": log}
 
 
 def _place(controller: Any, action: str, candidates: list[Any], **kw: Any) -> tuple[Any, int]:
@@ -479,7 +527,8 @@ def _peek_pixels(controller: Any, viewpoint: dict[str, Any], object_id: str) -> 
 
 
 def _dry_run_pairs(controller: Any, candidates: list[dict[str, Any]], u_containers: set[str], spawn_points: dict[str, Any],
-                   viewpoints: dict[str, Any], min_px: int, beat: Any = None) -> tuple[dict[tuple[str, str], dict[str, Any]], list[dict[str, Any]]]:
+                   viewpoints: dict[str, Any], min_px: int, beat: Any = None,
+                   table: list[dict[str, Any]] | None = None) -> tuple[dict[tuple[str, str], dict[str, Any]], list[dict[str, Any]]]:
     """Try every (object, U destination) placement for real, peek, and put the object back.
 
     白话（裁决 31，proposed）：可行集里的 move／add 不再靠"容器有生成点"猜，而是在窗口
@@ -491,7 +540,7 @@ def _dry_run_pairs(controller: Any, candidates: list[dict[str, Any]], u_containe
     meta = controller.last_event.metadata
     objs = {o["objectId"]: o for o in meta["objects"]}
     ok: dict[tuple[str, str], dict[str, Any]] = {}
-    table: list[dict[str, Any]] = []
+    table = [] if table is None else table
     for row in candidates:
         if beat is not None:
             beat()
@@ -513,27 +562,26 @@ def _dry_run_pairs(controller: Any, candidates: list[dict[str, Any]], u_containe
                 best = max(best, px)
                 if px >= min_px:
                     found = pt; break
-            revert_error = ""
+            revert: dict[str, Any] = {"ok": None, "drift_m": None, "attempts": []}
             if placed_any:
-                back = controller.step(action="TeleportObject", objectId=oid, position=orig_pos, rotation=orig_rot, forceAction=True)
-                if back.metadata.get("lastActionSuccess") is not True:
-                    revert_error = (back.metadata.get("errorMessage") or "")[:200]
-                    back = controller.step(action="TeleportObject", objectId=oid, position=orig_pos, rotation=orig_rot,
-                                           forceAction=True, forceKinematic=True)
-                    controller.step(action="Pass")
-                if back.metadata.get("lastActionSuccess") is not True:
-                    # never leave an unrecorded state change behind
-                    raise PilotFailure("intervention_execution_failed",
-                                       f"dry-run revert failed for {oid}: {revert_error} / {back.metadata.get('errorMessage')}")
-                revert_ok = True
+                revert = _revert_object(controller, oid, orig_pos, orig_rot)
             else:
-                revert_ok = None  # nothing was moved
-            now = next((x["position"] for x in controller.last_event.metadata["objects"] if x["objectId"] == oid), None)
-            drift = (math.dist([now["x"], now["y"], now["z"]], [orig_pos["x"], orig_pos["y"], orig_pos["z"]]) if now else None)
+                # nothing was moved, but verify anyway: a rejected placement can still nudge the object
+                drift = _distance(_object_position(controller, oid), orig_pos)
+                revert = {"ok": (drift is not None and drift <= REVERT_TOLERANCE_M), "drift_m": None if drift is None else round(drift, 4),
+                          "attempts": [], "nothing_was_placed": True}
+                if revert["ok"]:
+                    revert["ok"] = None   # nothing to revert, and nothing moved
             table.append({"object_id": oid, "destination": dst, "tries": tried, "placed_any": placed_any, "best_pixels": best,
-                          "feasible": found is not None, "revert_ok": revert_ok, "revert_first_error": revert_error,
-                          "revert_drift_m": None if drift is None else round(drift, 4),
+                          "feasible": found is not None, "revert_ok": revert["ok"], "revert_drift_m": revert["drift_m"],
+                          "revert_attempts": revert["attempts"],
                           "original_position": orig_pos, "original_rotation": orig_rot})
+            if revert["ok"] is False:
+                raise PilotFailure(
+                    "intervention_execution_failed",
+                    f"dry-run revert left {oid} {revert['drift_m']} m from its original pose "
+                    f"(tolerance {REVERT_TOLERANCE_M} m); an unregistered displacement inside the window "
+                    f"would corrupt the labels, so the house fails: {revert['attempts']}"[:400])
             if found is not None:
                 ok[(oid, dst)] = {"point": found, "pixels": best, "tries": tried}
     return ok, table
@@ -748,9 +796,12 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
         pair_ok, dry_run_table = None, None
         if placement_prescreen == "dry_run":
             cand = [o for o in eligible if o["parent_receptacle"] in invisible] + list(unseen or [])
-            pair_ok, dry_run_table = _dry_run_pairs(controller, cand, invisible, spawn_points, plan1["viewpoints"],
-                                                    MIN_VISIBLE_PIXELS, beat=ep.beat)
-            (ep.prov / "placement_dry_run.json").write_text(json.dumps(dry_run_table, indent=1))
+            dry_run_table = []
+            try:
+                pair_ok, dry_run_table = _dry_run_pairs(controller, cand, invisible, spawn_points, plan1["viewpoints"],
+                                                        MIN_VISIBLE_PIXELS, beat=ep.beat, table=dry_run_table)
+            finally:
+                (ep.prov / "placement_dry_run.json").write_text(json.dumps(dry_run_table, indent=1))
         feasible = sel.feasible_triples(eligible, list(usable), invisible, ok, unseen=unseen, pair_ok=pair_ok)
         if not feasible:
             raise PilotFailure("intervention_window_unavailable", f"feasible set empty; U={len(invisible)} eligible={len(eligible)}")
