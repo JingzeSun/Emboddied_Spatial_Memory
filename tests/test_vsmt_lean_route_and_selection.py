@@ -26,6 +26,7 @@ def open_room(width: int = 12, depth: int = 12) -> list[dict[str, float]]:
 
 START = {"position": {"x": 0.0, "y": 0.95, "z": 0.0}, "rotation": {"x": 0, "y": 0, "z": 0}, "horizon": 0}
 CAM = 1.576
+SALT = "unit-test-private-salt-0123456789abcdef0123456789abcdef"
 
 
 class TestGridAndPaths(unittest.TestCase):
@@ -183,8 +184,21 @@ class TestSelection(unittest.TestCase):
             sel.derive_rng(1, "h", "anything_else")
 
     def test_null_window_rate_is_about_p(self) -> None:
-        hits = sum(sel.is_null_window(20260920, f"house-{i}") for i in range(2000))
+        hits = sum(sel.is_null_window(20260920, f"house-{i}", SALT) for i in range(2000))
         self.assertTrue(300 < hits < 500, hits)
+
+    def test_null_draw_needs_the_private_salt_and_changes_with_it(self) -> None:
+        """Ruling 37: seed and house id are public, so the draw mixes a private salt."""
+        with self.assertRaises(sel.LeanSelectionError):
+            sel.derive_rng(1, "h", "null_window")
+        with self.assertRaises(sel.LeanSelectionError):
+            sel.derive_rng(1, "h", "intervention", SALT)
+        with self.assertRaises(sel.LeanSelectionError):
+            sel.is_null_window(1, "h", "short")
+        a = [sel.is_null_window(20260920, f"house-{i}", SALT) for i in range(300)]
+        b = [sel.is_null_window(20260920, f"house-{i}", SALT[::-1]) for i in range(300)]
+        self.assertEqual(a, [sel.is_null_window(20260920, f"house-{i}", SALT) for i in range(300)])
+        self.assertNotEqual(a, b)
 
 
 class TestBlockedEdges(unittest.TestCase):
@@ -303,6 +317,102 @@ class TestDryRunPrescreen(unittest.TestCase):
         self.assertEqual(sum(1 for r in s if r["kind"] == "remove"), 1)
         s2 = sel.sample_interventions(f, split_seed=5, house_id="h", one_placement_per_destination=False)
         self.assertEqual(len(s2), 6)
+
+
+class TestTwinControls(unittest.TestCase):
+    """Ruling 34: sweep two revisits the intervened containers plus equal seeded controls."""
+
+    def setUp(self) -> None:
+        self.eligible = [
+            {"object_id": "Mug|1", "parent_receptacle": "U_src"},
+            {"object_id": "Cup|1", "parent_receptacle": "U_ctrl_a"},
+            {"object_id": "Pen|1", "parent_receptacle": "U_ctrl_b"},
+            {"object_id": "Book|1", "parent_receptacle": "V_seen"},
+        ]
+        self.receptacles = ["U_src", "U_dst", "U_ctrl_a", "U_ctrl_b", "U_empty", "V_seen", "V_empty"]
+        self.U = {"U_src", "U_dst", "U_ctrl_a", "U_ctrl_b", "U_empty"}
+        self.interventions = [{"kind": "move", "object_id": "Mug|1", "source": "U_src", "destination": "U_dst"}]
+
+    def test_controls_come_from_U_hold_a_seen_object_and_match_the_count(self) -> None:
+        c = sel.select_controls(self.eligible, self.receptacles, self.U, self.interventions, split_seed=1, house_id="h")
+        self.assertEqual(c["wanted"], 2)             # move: source and destination
+        self.assertEqual(c["intervened_containers"], ["U_dst", "U_src"])
+        names = {x["container"] for x in c["controls"]}
+        self.assertTrue(names <= {"U_ctrl_a", "U_ctrl_b"}, names)   # never U_empty, never V_*, never intervened
+        self.assertEqual(c["from_U"], 2)
+        self.assertEqual(c["from_outside_U"], 0)
+        self.assertEqual(c["shortfall"], 0)
+        self.assertEqual(c, sel.select_controls(self.eligible, self.receptacles, self.U, self.interventions, split_seed=1, house_id="h"))
+
+    def test_outside_U_is_used_only_when_U_is_exhausted_and_is_counted(self) -> None:
+        U = {"U_src", "U_dst", "U_ctrl_a", "U_empty"}
+        c = sel.select_controls(self.eligible, self.receptacles, U, self.interventions, split_seed=1, house_id="h")
+        names = [x["container"] for x in c["controls"]]
+        self.assertIn("U_ctrl_a", names)
+        self.assertEqual(c["from_outside_U"], 1)
+        outside = [x["container"] for x in c["controls"] if not x["from_U"]]
+        self.assertIn(outside[0], {"V_seen", "U_ctrl_b"})   # both hold a seen object and are outside this U
+
+    def test_shortfall_is_recorded_not_filled_with_empty_containers(self) -> None:
+        c = sel.select_controls(self.eligible[:1], self.receptacles, self.U, self.interventions, split_seed=1, house_id="h")
+        self.assertEqual(c["controls"], [])
+        self.assertEqual(c["shortfall"], 2)
+
+    def test_revisit_interleaves_controls_deterministically(self) -> None:
+        rows = [{"kind": "move", "object_id": "o1", "source": "A", "destination": "B"},
+                {"kind": "remove", "object_id": "o2", "source": "C", "destination": None}]
+        seq = sel.revisit_sequence(rows, split_seed=3, house_id="h", controls=["K1", "K2"])
+        self.assertEqual(sorted(seq), ["A", "B", "C", "K1", "K2"])
+        self.assertEqual(seq, sel.revisit_sequence(rows, split_seed=3, house_id="h", controls=["K1", "K2"]))
+        positions = [sel.revisit_sequence(rows, split_seed=seed, house_id="h", controls=["K1", "K2"]).index("K1")
+                     for seed in range(40)]
+        self.assertGreater(len(set(positions)), 1)   # controls are not always last
+        with self.assertRaises(sel.LeanSelectionError):
+            sel.revisit_sequence(rows, split_seed=3, house_id="h", controls=["A"])
+
+    def test_control_rng_tag_is_registered(self) -> None:
+        sel.derive_rng(1, "h", "control_revisit")
+
+
+class TestViewpointReselection(unittest.TestCase):
+    """Mechanism fix of LOG-239: a blocked edge that cuts the viewpoint cell off reselects inside the component."""
+
+    def test_component_respects_the_blocklist(self) -> None:
+        cells = rt.reachable_cells(open_room(2, 3))   # a 2x3 strip
+        comp = rt.reachable_component(cells, (0, 0), {rt.edge((0, 0), (0, 1)), rt.edge((1, 0), (1, 1))})
+        self.assertEqual(comp, {(0, 0), (1, 0)})
+        self.assertEqual(rt.reachable_component(cells, (0, 0)), cells)
+        with self.assertRaises(rt.LeanRouteError):
+            rt.reachable_component(cells, (9, 9))
+
+    def test_select_viewpoint_inside_a_component_picks_the_nearest_reachable_one(self) -> None:
+        cells = rt.reachable_cells(open_room())
+        centre = {"x": 1.0, "y": 0.9, "z": 2.0}
+        free = rt.select_viewpoint(centre, cells, camera_height_m=CAM)
+        comp = {c for c in cells if c[1] <= 4}   # pretend everything north of z=1.0 m is cut off
+        restricted = rt.select_viewpoint(centre, cells, camera_height_m=CAM, component=comp)
+        self.assertIn(restricted["cell"], comp)
+        self.assertGreaterEqual(restricted["distance_m"], free["distance_m"])
+        with self.assertRaises(rt.LeanRouteError):   # (11, 0) is 2.66 m from the centre: outside the search range
+            rt.select_viewpoint(centre, cells, camera_height_m=CAM, component={(11, 0)})
+
+    def test_cap_error_names_the_counts(self) -> None:
+        containers = {"c": {"x": 1.0, "y": 0.9, "z": 2.0}}
+        with self.assertRaises(rt.LeanRouteError) as ctx:
+            rt.plan_route(reachable=open_room(), start_pose=START, camera_height_m=CAM, containers=containers,
+                          revisit_sequence=[], max_actions=2)
+        self.assertRegex(str(ctx.exception), r"route_cap_hit:planned=\d+:cap=2")
+
+
+class TestMoveMinimum(unittest.TestCase):
+    def test_gate_applies_only_to_the_train_block(self) -> None:
+        from vsmt.lean_intervention import check_move_minimum
+        s1 = check_move_minimum(11, 7, is_train_block=False)
+        self.assertIsNone(s1["below_minimum"])
+        self.assertEqual((s1["moves"], s1["moves_source_first"]), (11, 7))
+        self.assertTrue(check_move_minimum(119, 60, is_train_block=True)["below_minimum"])
+        self.assertTrue(check_move_minimum(120, 59, is_train_block=True)["below_minimum"])
+        self.assertFalse(check_move_minimum(120, 60, is_train_block=True)["below_minimum"])
 
 
 if __name__ == "__main__":  # pragma: no cover

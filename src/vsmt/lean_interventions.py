@@ -33,24 +33,76 @@ class LeanSelectionError(ValueError):
     """Raised for an inadmissible object table or an unregistered RNG tag."""
 
 
-def derive_rng(split_seed: int, house_id: str, purpose: str) -> random.Random:
-    """A Random seeded from (split seed, house id, purpose tag) and nothing else.
+def derive_rng(split_seed: int, house_id: str, purpose: str, private_salt: str | None = None) -> random.Random:
+    """A Random seeded from (split seed, house id, purpose tag) and, for the null draw only, a private salt.
 
     白话：随机数不引入新种子，全部由已冻结的划分 seed、house id 和一个用途标签
     派生。同一 house 在任何机器上抽到同样的干预；换个用途标签就得到另一条互不
-    重叠的随机流。标签不在登记表里就报错。
+    重叠的随机流。标签不在登记表里就报错。唯一例外是空窗口抽签（裁决 37）：seed
+    写在公开合同里、house id 就是目录名，两者都拿得到，所以再混入一个只存在于仓库
+    外的私有盐；provenance 只登记盐的 sha256。
     """
 
     if purpose not in RNG_PURPOSE_TAGS:
         raise LeanSelectionError(f"rng_purpose_not_registered:{purpose}")
-    digest = hashlib.sha256(canonical_json([split_seed, house_id, purpose]).encode("utf-8")).hexdigest()
+    if (purpose == "null_window") != (private_salt is not None):
+        raise LeanSelectionError("private_salt_is_required_for_null_window_and_forbidden_elsewhere")
+    parts: list[Any] = [split_seed, house_id, purpose]
+    if private_salt is not None:
+        if type(private_salt) is not str or len(private_salt) < 32:
+            raise LeanSelectionError("private_salt_must_be_a_string_of_at_least_32_characters")
+        parts.append(private_salt)
+    digest = hashlib.sha256(canonical_json(parts).encode("utf-8")).hexdigest()
     return random.Random(int(digest[:16], 16))
 
 
-def is_null_window(split_seed: int, house_id: str) -> bool:
-    """Whether this episode executes zero interventions by design (p = 0.2)."""
+def is_null_window(split_seed: int, house_id: str, private_salt: str) -> bool:
+    """Whether this episode executes zero interventions by design (p = 0.2), salted (ruling 37)."""
 
-    return derive_rng(split_seed, house_id, "null_window").random() < P_NULL_WINDOW
+    return derive_rng(split_seed, house_id, "null_window", private_salt).random() < P_NULL_WINDOW
+
+
+def select_controls(
+    eligible: Sequence[Mapping[str, Any]], receptacles: Sequence[str], invisible_containers: set[str],
+    interventions: Sequence[Mapping[str, Any]], *, split_seed: int, house_id: str,
+) -> dict[str, Any]:
+    """The unintervened control containers sweep two revisits (ruling 34, twin control).
+
+    白话：扫掠二若只重访被干预的容器，"被重访 ⇒ 有变化"就是 100% 的结构捷径。这里
+    为每个被干预容器配一个对照容器：从 U（过渡段全程看不见）里去掉被干预集合、只留
+    至少持有一个扫掠一里看见过的合格物体的容器，用派生 RNG 无放回抽取同样多个；U 里
+    不够时才从 U 外的持物容器补，并把补的数目登记出来。对照容器上什么都没动，重访
+    它考的是"没变就不该撤回"。输入是合格物体表、全部容器、U、本条抽中的干预（空窗口
+    episode 也传"本该执行"的那份）；输出对照列表、来源计数和缺口。它不改变干预抽样，
+    不从空容器里挑对照——重访一个空抽屉什么也测不到。
+    """
+
+    involved: set[str] = set()
+    for row in interventions:
+        for key in ("source", "destination"):
+            if row.get(key):
+                involved.add(row[key])
+    holders: dict[str, list[str]] = {}
+    for obj in eligible:
+        holders.setdefault(obj["parent_receptacle"], []).append(obj["object_id"])
+    intervened = sorted({c for c in involved if c in set(receptacles)})
+    wanted = len({row.get("destination") or row.get("source") for row in interventions if row.get("kind")}
+                 | {row["source"] for row in interventions if row.get("kind") == "move"})
+    inside = [c for c in sorted(receptacles) if c in invisible_containers and c not in involved and holders.get(c)]
+    outside = [c for c in sorted(receptacles) if c not in invisible_containers and c not in involved and holders.get(c)]
+    rng = derive_rng(split_seed, house_id, "control_revisit")
+    chosen: list[dict[str, Any]] = []
+    pool = list(inside)
+    while pool and len(chosen) < wanted:
+        c = pool.pop(rng.randrange(len(pool)))
+        chosen.append({"container": c, "from_U": True, "seen_objects": sorted(holders[c])})
+    pool = list(outside)
+    while pool and len(chosen) < wanted:
+        c = pool.pop(rng.randrange(len(pool)))
+        chosen.append({"container": c, "from_U": False, "seen_objects": sorted(holders[c])})
+    return {"controls": chosen, "wanted": wanted, "intervened_containers": intervened,
+            "from_U": sum(1 for c in chosen if c["from_U"]), "from_outside_U": sum(1 for c in chosen if not c["from_U"]),
+            "shortfall": wanted - len(chosen), "candidates_in_U": len(inside), "candidates_outside_U": len(outside)}
 
 
 def eligible_objects(
@@ -210,11 +262,14 @@ def sample_interventions(
 
 def revisit_sequence(
     interventions: Sequence[Mapping[str, Any]], *, split_seed: int, house_id: str,
+    controls: Sequence[str] = (),
 ) -> list[str]:
-    """Containers sweep two revisits, in order; move's two ends ordered by RNG.
+    """Containers sweep two revisits, in order; move's two ends ordered by RNG; controls interleaved.
 
     白话：扫掠二要重访的容器序列。remove 重访源，add 重访目标，move 两端都重
-    访，先源还是先目标由派生 RNG 逐个决定。重复容器只保留第一次出现。
+    访，先源还是先目标由派生 RNG 逐个决定。重复容器只保留第一次出现。对照容器
+    （裁决 34）再由同一条随机流逐个插到序列的随机位置，因此"变的先、不变的后"这
+    种顺序信息不存在。
     """
 
     rng = derive_rng(split_seed, house_id, "revisit_order")
@@ -231,6 +286,10 @@ def revisit_sequence(
         for c in ends:
             if c not in seq:
                 seq.append(c)
+    for c in controls:
+        if c in seq:
+            raise LeanSelectionError(f"control_is_also_intervened:{c}")
+        seq.insert(rng.randrange(len(seq) + 1), c)
     return seq
 
 
@@ -242,4 +301,5 @@ __all__ = [
     "is_null_window",
     "revisit_sequence",
     "sample_interventions",
+    "select_controls",
 ]
