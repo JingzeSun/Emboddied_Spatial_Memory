@@ -37,11 +37,13 @@ from vsmt.lean_teacher import (  # noqa: E402
     MAIN_GATE,
     METRICS,
     METRIC_FIELDS,
+    METRIC_NOT_APPLICABLE_RULE,
     NULL_POLICY_PATHS,
     NUISANCE_FIELDS,
     RULINGS_DECISION_ID,
     LeanTeacherError,
     _max_weight_matching,
+    _max_weight_matching_dense,
     ablation_report,
     assert_private_gate,
     assert_report_keys,
@@ -65,11 +67,12 @@ from vsmt.lean_teacher import (  # noqa: E402
     run_nuisance_probes,
     size_and_cost,
     strongest_control,
+    undefined_houses,
     validate_teacher_contract,
 )
 
 
-CONTRACT_PATH = PROJECT_ROOT / "configs" / "vsmt" / "lean_s0_teacher_metrics_v1.json"
+CONTRACT_PATH = PROJECT_ROOT / "configs" / "vsmt" / "lean_s0_teacher_metrics_v2.json"
 MODULE_PATH = PROJECT_ROOT / "src" / "vsmt" / "lean_teacher.py"
 METHOD_ID = "vsmt.lean.test.v1"
 DOMINANCE = 0.6
@@ -93,11 +96,12 @@ def frag(fragment_id: str, *, descriptor: list[float], centroid: list[float]) ->
     }
 
 
-def box(centroid: list[float], *, half: float = 0.1, present: bool = True) -> dict[str, Any]:
+def box(centroid: list[float], *, half: float = 0.1, present: bool = True, in_scope: bool = True) -> dict[str, Any]:
     if not present:
-        return {"present": False}
+        return {"present": False, "in_scope": in_scope}
     return {
         "present": True,
+        "in_scope": in_scope,
         "centroid_m": list(centroid),
         "aabb_min_m": [value - half for value in centroid],
         "aabb_max_m": [value + half for value in centroid],
@@ -139,8 +143,11 @@ def evidence_map(memory: Mapping[str, Any], keys: Mapping[str, str | None]) -> d
     return out
 
 
-def overlap(**shares: float) -> dict[str, Any]:
-    return {"overlap": {key.replace("_", ":"): value for key, value in shares.items()}}
+def overlap(pixel_count: int = 400, **shares: float) -> dict[str, Any]:
+    return {
+        "overlap": {key.replace("_", ":"): value for key, value in shares.items()},
+        "pixel_count": pixel_count,
+    }
 
 
 def gate() -> dict[str, Any]:
@@ -356,6 +363,103 @@ class TestAssociationTargets(unittest.TestCase):
         self._targets(memory, recall, {"region:0002": overlap(obj_mug=0.9), "region:0003": overlap(obj_book=0.9)})
         self.assertEqual(json.dumps(recall, sort_keys=True), before)
 
+    def test_two_fragments_of_one_object_keep_one_target(self) -> None:
+        """D-224-X ruling X1: the fragment with the most pixels on the object keeps it."""
+
+        memory, mug, book = two_entity_memory()
+        recall = {"region:0002": [mug], "region:0003": [mug]}
+        instance = {"region:0002": overlap(obj_mug=0.9, pixel_count=500), "region:0003": overlap(obj_mug=0.95, pixel_count=300)}
+        targets = self._targets(memory, recall, instance)
+        # 0.9 * 500 = 450 object pixels beats 0.95 * 300 = 285.
+        self.assertEqual((targets["region:0002"]["status"], targets["region:0002"]["target"]), ("labelled", mug))
+        self.assertEqual(targets["region:0003"]["status"], "duplicate_of_labelled")
+        self.assertIsNone(targets["region:0003"]["target"])
+        self.assertEqual(targets["region:0003"]["duplicate_of"], "region:0002")
+        self.assertEqual(targets["region:0003"]["displaced_target"], mug)
+        decomposed = decompose_frame(
+            targets=targets, assignment={"region:0002": mug, "region:0003": "birth:region:0003"},
+            existence={}, decisions={},
+        )
+        self.assertEqual(decomposed["totals"]["amortization_error"], 0)
+        self.assertEqual(decomposed["totals"]["correct"], 1)
+        self.assertEqual(decomposed["totals"]["duplicate_of_labelled"], 1)
+        self.assertEqual(decomposed["totals"]["decisions"], 2)
+
+    def test_the_student_may_carry_the_object_through_any_member_of_the_group(self) -> None:
+        """Review correction (LOG-225): binding the smaller fragment to the target is not an error."""
+
+        memory, mug, book = two_entity_memory()
+        recall = {"region:0002": [mug, book], "region:0003": [mug, book]}
+        instance = {"region:0002": overlap(obj_mug=0.9, pixel_count=500), "region:0003": overlap(obj_mug=0.9, pixel_count=300)}
+        targets = self._targets(memory, recall, instance)
+        self.assertEqual(targets["region:0002"]["status"], "labelled")
+        self.assertEqual(targets["region:0003"]["status"], "duplicate_of_labelled")
+        # The small fragment takes the mug, the keeper births: the object reached its entity.
+        via_duplicate = decompose_frame(
+            targets=targets, assignment={"region:0002": "birth:region:0002", "region:0003": mug},
+            existence={}, decisions={},
+        )
+        self.assertEqual((via_duplicate["totals"]["correct"], via_duplicate["totals"]["amortization_error"]), (1, 0))
+        # Nobody takes the mug: one error, charged once.
+        nobody = decompose_frame(
+            targets=targets, assignment={"region:0002": "birth:region:0002", "region:0003": "birth:region:0003"},
+            existence={}, decisions={},
+        )
+        self.assertEqual((nobody["totals"]["correct"], nobody["totals"]["amortization_error"]), (0, 1))
+        # The duplicate takes the mug but the keeper is bound to the book: a wrong binding, still one error.
+        misbound = decompose_frame(
+            targets=targets, assignment={"region:0002": book, "region:0003": mug},
+            existence={}, decisions={},
+        )
+        self.assertEqual((misbound["totals"]["correct"], misbound["totals"]["amortization_error"]), (0, 1))
+        self.assertEqual(misbound["totals"]["duplicate_of_labelled"], 1)
+        self.assertEqual(misbound["totals"]["decisions"], 2)
+
+    def test_duplicate_tie_breaks_are_pixel_count_then_fragment_id(self) -> None:
+        memory, mug, _ = two_entity_memory()
+        recall = {"region:0002": [mug], "region:0003": [mug], "region:0004": [mug]}
+        instance = {
+            "region:0002": overlap(obj_mug=0.8, pixel_count=400),
+            "region:0003": overlap(obj_mug=0.64, pixel_count=500),
+            "region:0004": overlap(obj_mug=0.8, pixel_count=400),
+        }
+        targets = self._targets(memory, recall, instance)
+        # 320 object pixels each (0.8 * 400 and 0.64 * 500); region:0003 has the larger fragment.
+        self.assertEqual(targets["region:0003"]["status"], "labelled")
+        self.assertEqual(targets["region:0002"]["status"], "duplicate_of_labelled")
+        self.assertEqual(targets["region:0004"]["status"], "duplicate_of_labelled")
+        instance["region:0003"] = overlap(obj_mug=0.8, pixel_count=400)
+        targets = self._targets(memory, recall, instance)
+        self.assertEqual(targets["region:0002"]["status"], "labelled")
+        self.assertEqual(targets["region:0003"]["status"], "duplicate_of_labelled")
+
+    def test_fragments_with_different_targets_or_birth_targets_are_not_folded(self) -> None:
+        memory, mug, book = two_entity_memory()
+        memory = step(memory, "f2", [
+            {"atom": "BIRTH", "fragment": frag("region:0005", descriptor=[1.0, 0.0], centroid=[0.05, 0.0, 0.0])},
+        ])
+        duplicate = [str(item["entity_id"]) for item in memory["entities"] if item["evidence"][0]["fragment_id"] == "region:0005"][0]
+        keys = {**KEYS, "region:0005": "obj:mug"}
+        # Same object, but each fragment recalls a different carrier: both can be satisfied.
+        targets = self._targets(memory, {"region:0006": [mug], "region:0007": [duplicate]},
+                                {"region:0006": overlap(obj_mug=0.9), "region:0007": overlap(obj_mug=0.9)}, keys)
+        self.assertEqual({targets["region:0006"]["status"], targets["region:0007"]["status"]}, {"labelled"})
+        self.assertNotEqual(targets["region:0006"]["target"], targets["region:0007"]["target"])
+        # Two fragments of a new object each get their own birth column.
+        births = self._targets(memory, {"region:0008": [mug], "region:0009": [mug]},
+                               {"region:0008": overlap(obj_lamp=0.9), "region:0009": overlap(obj_lamp=0.9)}, keys)
+        self.assertEqual({births["region:0008"]["status"], births["region:0009"]["status"]}, {"birth"})
+        # Two recall misses stay recall misses: the student is not charged either way.
+        misses = self._targets(memory, {"region:0010": [book], "region:0011": [book]},
+                               {"region:0010": overlap(obj_mug=0.9), "region:0011": overlap(obj_mug=0.9)}, keys)
+        self.assertEqual({misses["region:0010"]["status"], misses["region:0011"]["status"]}, {"recall_miss"})
+
+    def test_a_fragment_instance_without_pixel_count_is_rejected(self) -> None:
+        memory, mug, _ = two_entity_memory()
+        with self.assertRaises(LeanTeacherError) as caught:
+            self._targets(memory, {"region:0002": [mug]}, {"region:0002": {"overlap": {"obj:mug": 0.9}}})
+        self.assertIn("fragment_instance_missing", str(caught.exception))
+
     def test_a_recalled_unknown_entity_is_rejected(self) -> None:
         memory, mug, _ = two_entity_memory()
         with self.assertRaises(LeanTeacherError) as caught:
@@ -446,7 +550,7 @@ class TestDecomposition(unittest.TestCase):
         self.assertEqual(out["existence"], {"candidates": 3, "teacher_error": 1, "correct": 0, "false_retract": 1, "missed_retract": 1})
         totals = out["totals"]
         self.assertEqual(totals, {
-            "recall_miss": 1, "teacher_error": 2, "amortization_error": 3, "correct": 2, "unlabelled": 1, "decisions": 9,
+            "recall_miss": 1, "teacher_error": 2, "amortization_error": 3, "correct": 2, "unlabelled": 1, "duplicate_of_labelled": 0, "decisions": 9,
         })
         self.assertEqual(sum(totals[name] for name in DECOMPOSITION) + totals["correct"] + totals["unlabelled"], totals["decisions"])
 
@@ -489,6 +593,38 @@ class TestEvaluatorMatching(unittest.TestCase):
             self.assertAlmostEqual(got, best, places=9)
             self.assertEqual(len({r for r, _ in pairs}), len(pairs))
             self.assertEqual(len({c for _, c in pairs}), len(pairs))
+
+    def test_component_matching_equals_the_v1_dense_solve(self) -> None:
+        """D-224-X ruling X5: per-component solves return the v1 pairs on tie-free weights."""
+
+        rng = random.Random(9090)
+        for _ in range(40):
+            rows = rng.randint(0, 30)
+            columns = rng.randint(0, 12)
+            weights = [[0.0] * columns for _ in range(rows)]
+            for row in range(rows):
+                if columns and rng.random() < 0.9:
+                    weights[row][rng.randrange(columns)] = rng.uniform(0.3, 1.0)
+                if columns and rng.random() < 0.2:
+                    weights[row][rng.randrange(columns)] = rng.uniform(0.3, 1.0)
+            got = _max_weight_matching(weights)
+            expected = _max_weight_matching_dense(weights) if rows and columns else []
+            self.assertEqual(got, expected)
+
+    def test_component_matching_keeps_the_v1_count_and_weight_under_ties(self) -> None:
+        rng = random.Random(6060)
+        for _ in range(40):
+            rows = rng.randint(1, 12)
+            columns = rng.randint(1, 8)
+            weights = [[rng.choice([0.0, 0.0, 0.31, 0.5, 0.8]) for _ in range(columns)] for _ in range(rows)]
+            got = _max_weight_matching(weights)
+            expected = _max_weight_matching_dense(weights)
+            self.assertEqual(len(got), len(expected))
+            self.assertAlmostEqual(
+                sum(weights[r][c] for r, c in got), sum(weights[r][c] for r, c in expected), places=9,
+            )
+            self.assertEqual(len({r for r, _ in got}), len(got))
+            self.assertEqual(len({c for _, c in got}), len(got))
 
     def _evaluate(self, memory: Mapping[str, Any], truth: Mapping[str, Mapping[str, Any]]) -> dict[str, Any]:
         return evaluate_frame(
@@ -540,6 +676,31 @@ class TestEvaluatorMatching(unittest.TestCase):
         out = self._evaluate(with_surface, truth)
         for key in ("node_precision", "node_recall", "node_f1", "matched", "predicted", "truth", "contamination_fraction"):
             self.assertEqual(out[key], baseline[key], key)
+
+    def test_out_of_scope_objects_are_neither_truth_nodes_nor_stale(self) -> None:
+        """D-224-X ruling X6: the table carries in_scope; the evaluator applies the scope."""
+
+        memory, mug, book = two_entity_memory()
+        truth = {"obj:mug": box([0.0, 0.0, 0.0]), "obj:book": box([1.0, 0.0, 0.0], in_scope=False)}
+        out = self._evaluate(memory, truth)
+        self.assertEqual(out["truth"], 1)
+        # Review correction (LOG-225): the book's entity resolves to a present
+        # object outside the scope, so it leaves the precision denominator too.
+        self.assertEqual(out["predicted"], 1)
+        self.assertAlmostEqual(out["node_precision"], 1.0)
+        self.assertEqual(out["out_of_scope_entities"], [book])
+        self.assertEqual(out["stale_entities"], [])
+        self.assertEqual(out["wrongly_absent_objects"], [])
+        self.assertAlmostEqual(out["contamination_fraction"], 0.0)
+        # An absent out-of-scope object still makes its entity stale.
+        gone = self._evaluate(memory, {"obj:mug": box([0.0, 0.0, 0.0]), "obj:book": box([1.0, 0.0, 0.0], present=False, in_scope=False)})
+        self.assertEqual(gone["stale_entities"], [book])
+        with self.assertRaises(LeanTeacherError) as caught:
+            self._evaluate(memory, {"obj:mug": box([0.0, 0.0, 0.0])})
+        self.assertIn("truth_object_unknown", str(caught.exception))
+        with self.assertRaises(LeanTeacherError) as caught:
+            self._evaluate(memory, {"obj:mug": {"present": True, "centroid_m": [0.0, 0.0, 0.0], "aabb_min_m": [-0.1] * 3, "aabb_max_m": [0.1] * 3}, "obj:book": box([1.0, 0.0, 0.0])})
+        self.assertIn("truth_object_in_scope_invalid", str(caught.exception))
 
     def test_empty_frames_report_none_not_zero(self) -> None:
         out = evaluate_frame(
@@ -638,7 +799,15 @@ class TestLifecycleMetrics(unittest.TestCase):
         memory, mug, _ = two_entity_memory()
         memory = step(memory, "f2", [{"atom": "RETRACT", "entity_id": mug}])
         out = size_and_cost(memory, runtime_per_frame_s=0.02, peak_memory_bytes=1024)
-        self.assertEqual(out, {"active_entity_count": 1, "version_count": 3, "runtime_per_frame_s": 0.02, "peak_memory_bytes": 1024})
+        self.assertEqual(out, {"active_entity_count": 1, "lifecycle_version_count": 3, "runtime_per_frame_s": 0.02, "peak_memory_bytes": 1024})
+        # Three BINDs open three more versions but no lifecycle version (D-224-X X6).
+        bound = memory
+        for index, seed in enumerate(("f3", "f4", "f5")):
+            active = [e["entity_id"] for e in bound["entities"] if e["state"] == "active"][0]
+            bound = step(bound, seed, [{"atom": "BIND", "entity_id": active,
+                                        "fragment": frag(f"region:001{index}", descriptor=[0.0, 1.0], centroid=[1.0, 0.0, 0.0])}])
+        self.assertEqual(sum(len(e["versions"]) for e in bound["entities"]), 6)
+        self.assertEqual(size_and_cost(bound, runtime_per_frame_s=0.0, peak_memory_bytes=0)["lifecycle_version_count"], 3)
         with self.assertRaises(LeanTeacherError):
             size_and_cost(memory, runtime_per_frame_s=-1.0, peak_memory_bytes=1024)
 
@@ -695,6 +864,58 @@ class TestStatistics(unittest.TestCase):
         with self.assertRaises(LeanTeacherError) as caught:
             paired_house_bootstrap({"h": {"VSMT-lean": 1.0, "TAF": 2.0}}, arm="VSMT-lean", control="TAF", iterations=10, seed=0, direction="lower")
         self.assertEqual(str(caught.exception), "bootstrap_needs_two_houses")
+
+    def test_an_undefined_house_is_excluded_for_every_arm_and_counted(self) -> None:
+        """D-224-X ruling X2."""
+
+        houses = self._houses()
+        houses["house-004"]["TAF"] = None
+        houses["house-009"]["VSMT-lean"] = None
+        excluded = undefined_houses(houses, arms=["VSMT-lean", "TAF", "LOW", "NoVersion"])
+        self.assertEqual(excluded, ["house-004", "house-009"])
+        out = paired_house_bootstrap(houses, arm="VSMT-lean", control="LOW", iterations=50, seed=1, direction="lower", excluded_houses=excluded)
+        self.assertEqual(out["houses"], 18)
+        self.assertEqual(out["excluded_undefined"], 2)
+        self.assertEqual(out["excluded_houses"], ["house-004", "house-009"])
+        with self.assertRaises(LeanTeacherError) as caught:
+            paired_house_bootstrap(houses, arm="VSMT-lean", control="TAF", iterations=50, seed=1, direction="lower")
+        self.assertEqual(str(caught.exception), "bootstrap_house_metric_undefined:house-004")
+        with self.assertRaises(LeanTeacherError) as caught:
+            strongest_control(houses, controls=["TAF", "LOW"], direction="lower")
+        self.assertEqual(str(caught.exception), "bootstrap_house_metric_undefined:house-004")
+        self.assertEqual(strongest_control(houses, controls=["TAF", "LOW"], direction="lower", excluded_houses=excluded), "LOW")
+        report = ablation_report(houses, direction="lower", seed=3, iterations=20, ablations=["NoVersion"], excluded_houses=excluded)
+        self.assertEqual(report["per_ablation"]["NoVersion"]["excluded_undefined"], 2)
+        missing = self._houses()
+        del missing["house-002"]["LOW"]
+        with self.assertRaises(LeanTeacherError) as caught:
+            undefined_houses(missing, arms=["VSMT-lean", "LOW"])
+        self.assertEqual(str(caught.exception), "bootstrap_house_missing_arm:house-002")
+
+    def test_a_metric_undefined_by_construction_excludes_only_the_applicable_arms(self) -> None:
+        """Review correction (LOG-225): never-retracting arms report false_retract_rate as not applicable."""
+
+        self.assertEqual(METRIC_NOT_APPLICABLE_RULE["false_retract_rate"], "arms_whose_vocabulary_lacks_RETRACT")
+        houses = self._houses()
+        for house in houses:
+            houses[house]["TAF"] = None  # TAF never retracts: undefined in every house
+        # Without the carve-out every house is excluded and nothing can be paired.
+        self.assertEqual(len(undefined_houses(houses, arms=["VSMT-lean", "TAF", "LOW", "NoVersion"])), 20)
+        excluded = undefined_houses(houses, arms=["VSMT-lean", "TAF", "LOW", "NoVersion"], not_applicable=["TAF"])
+        self.assertEqual(excluded, [])
+        out = paired_house_bootstrap(houses, arm="VSMT-lean", control="LOW", iterations=50, seed=1, direction="lower", excluded_houses=excluded, not_applicable=["TAF"])
+        self.assertEqual(out["houses"], 20)
+        with self.assertRaises(LeanTeacherError) as caught:
+            paired_house_bootstrap(houses, arm="VSMT-lean", control="TAF", iterations=50, seed=1, direction="lower", not_applicable=["TAF"])
+        self.assertEqual(str(caught.exception), "bootstrap_arm_not_applicable:TAF")
+        self.assertEqual(strongest_control(houses, controls=["TAF", "LOW"], direction="lower", not_applicable=["TAF"]), "LOW")
+        with self.assertRaises(LeanTeacherError):
+            strongest_control(houses, controls=["TAF"], direction="lower", not_applicable=["TAF"])
+        report = ablation_report(houses, direction="lower", seed=3, iterations=20, ablations=["NoVersion", "TAF"], not_applicable=["TAF"])
+        self.assertEqual(report["per_ablation"]["TAF"], {"not_applicable": True})
+        self.assertEqual(report["per_ablation"]["NoVersion"]["houses"], 20)
+        with self.assertRaises(LeanTeacherError):
+            undefined_houses(houses, arms=["TAF"], not_applicable=["TAF"])
 
     def test_the_strongest_control_is_picked_per_direction(self) -> None:
         self.assertEqual(strongest_control(self._houses(), controls=["TAF", "LOW"], direction="lower"), "LOW")

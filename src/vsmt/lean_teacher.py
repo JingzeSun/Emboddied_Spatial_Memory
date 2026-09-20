@@ -46,7 +46,7 @@ from cpmt.hashing import clone_json
 from vsmt.lean_memory import validate_memory
 
 
-CONTRACT_SCHEMA_VERSION = "vsmt-lean-s0-teacher-metrics-v1"
+CONTRACT_SCHEMA_VERSION = "vsmt-lean-s0-teacher-metrics-v2"
 
 #: The decision that froze the six evaluation semantics this module implements.
 RULINGS_DECISION_ID = "D-224-LQ"
@@ -56,7 +56,15 @@ BIRTH_COLUMN_PREFIX = "birth:"
 ENTITY_STATES = ("active", "dormant", "retracted")
 
 #: Per-fragment association label statuses.  Every fragment gets exactly one.
-ASSOCIATION_STATUSES = ("labelled", "birth", "recall_miss", "unlabelled", "identity_ambiguous")
+#: ``duplicate_of_labelled`` (D-224-X ruling X1): a second fragment of the
+#: same object aimed at the same target entity in the same frame; the
+#: executor lets an entity take one fragment per frame, so only the fragment
+#: with the most pixels on the object keeps the target and the others are
+#: excluded from the loss and charged to no error class.
+ASSOCIATION_STATUSES = (
+    "labelled", "birth", "recall_miss", "unlabelled", "identity_ambiguous",
+    "duplicate_of_labelled",
+)
 
 #: Per-entity existence label statuses.
 EXISTENCE_STATUSES = ("gone", "present", "identity_ambiguous")
@@ -91,11 +99,26 @@ METRIC_FIELDS: dict[str, tuple[str, ...]] = {
     "identity_continuity": ("identity_continuity", "kept", "judged", "no_prior_carrier"),
     "recovery_latency_frames": ("recovery_latency_frames", "recovered", "unrecovered", "never_observable", "per_object"),
     "contamination_auc": ("contamination_auc", "frames"),
-    "size_and_cost": ("active_entity_count", "version_count", "runtime_per_frame_s", "peak_memory_bytes"),
+    "size_and_cost": ("active_entity_count", "lifecycle_version_count", "runtime_per_frame_s", "peak_memory_bytes"),
 }
+
+#: Versions opened by BIND are one-per-observation bookkeeping, not lifecycle
+#: events; the size metric counts the others (D-224-X ruling X6).
+LIFECYCLE_VERSION_EXCLUDES = ("bind",)
 
 #: Three-way decomposition of every wrong decision.
 DECOMPOSITION = ("recall_miss", "teacher_error", "amortization_error")
+
+#: Metrics some arms cannot define by construction (D-224-X ruling X2 as
+#: corrected after review, LOG-225).  An arm named by the rule reports the
+#: metric as "not applicable": it never enters that metric's exclusion
+#: list, its pairings or its strongest-control choice.  Without this, the
+#: three never-retracting arms would make false_retract_rate undefined in
+#: every house and the whole column would be excluded for everyone.  The
+#: rule names the vocabulary test; the arms contract supplies the arms.
+METRIC_NOT_APPLICABLE_RULE: dict[str, str] = {
+    "false_retract_rate": "arms_whose_vocabulary_lacks_RETRACT",
+}
 
 #: Fields a nuisance probe may see.  If any of them predicts a label better
 #: than the majority class, the data leaks through metadata.
@@ -392,9 +415,15 @@ def association_targets(
             ambiguous_keys.update(identity["keys_seen"])
 
     targets: dict[str, dict[str, Any]] = {}
+    object_pixels: dict[str, float] = {}
+    pixel_counts: dict[str, int] = {}
     for fragment_id in sorted(recall):
         instance = fragment_instance.get(fragment_id)
-        _require(type(instance) is dict and "overlap" in instance, f"fragment_instance_missing:{fragment_id}")
+        _require(
+            type(instance) is dict and "overlap" in instance and "pixel_count" in instance,
+            f"fragment_instance_missing:{fragment_id}",
+        )
+        pixel_counts[fragment_id] = _int(instance["pixel_count"], f"fragment_pixel_count_invalid:{fragment_id}", minimum=1)
         recalled = [str(item) for item in recall[fragment_id]]
         for entity_id in recalled:
             _require(entity_id in known_ids, f"recall_entity_unknown:{entity_id}")
@@ -424,7 +453,36 @@ def association_targets(
             record.update({"status": "identity_ambiguous", "target": None, "reason": "entity_identity"})
         else:
             record.update({"status": "birth", "target": f"{BIRTH_COLUMN_PREFIX}{fragment_id}"})
+        object_pixels[fragment_id] = float(dominance["share"]) * pixel_counts[fragment_id]
         targets[fragment_id] = record
+
+    # D-224-X ruling X1.  SAM routinely cuts one object into several
+    # fragments (seat and back of a chair).  If two of them resolve to the
+    # same object and the same target entity in one frame, the executor's
+    # one-fragment-per-entity rule makes it impossible to satisfy both, and
+    # charging the second to amortization error would blame the student for
+    # a structural impossibility.  The fragment with the most pixels on the
+    # object keeps the target (ties: larger fragment, then smaller id); the
+    # rest become ``duplicate_of_labelled``: excluded from the loss, charged
+    # to no class, counted.  Fragments with different targets, birth targets
+    # or recall misses are left alone because nothing structural stops them.
+    groups: dict[tuple[str, str], list[str]] = {}
+    for fragment_id, record in targets.items():
+        if record["status"] == "labelled":
+            groups.setdefault((str(record["key"]), str(record["target"])), []).append(fragment_id)
+    for (_key, keeper_target), members in sorted(groups.items()):
+        if len(members) < 2:
+            continue
+        ranked = sorted(
+            members,
+            key=lambda item: (-object_pixels[item], -pixel_counts[item], item),
+        )
+        for fragment_id in ranked[1:]:
+            targets[fragment_id].update({
+                "status": "duplicate_of_labelled", "target": None,
+                "duplicate_of": ranked[0], "reason": "same_object_same_target_this_frame",
+            })
+            targets[fragment_id]["displaced_target"] = keeper_target
     _require(clone_json(dict(recall)) == recall_snapshot, "teacher_edited_recall")
     return targets
 
@@ -490,16 +548,33 @@ def decompose_frame(
     实体不在召回里，学生无从选起；teacher_error 是标签本身含糊、无法评判；
     amortization_error 是标签明确、候选也在，学生仍然选错（含假撤回与漏撤回）。
     每个决定恰好落入 recall_miss / teacher_error / amortization_error / correct /
-    unlabelled 之一，五类之和等于决定总数；分配与标签、决定与候选的集合必须一一对
-    应，缺一个或多一个都拒绝。它不把未标注色块算进任何错误。
+    unlabelled / duplicate_of_labelled 之一，六类之和等于决定总数；分配与标签、决定
+    与候选的集合必须一一对应，缺一个或多一个都拒绝。它不把未标注色块算进任何错误。
+    同帧被折叠的重复色块和它的保留块按一组判：组内任一块分到了目标实体、且没有一块
+    被绑到别的既有实体，保留块记 correct；否则记 amortization_error。哪一块去承载物
+    体是学生的选择，teacher 只挑保留块来放标签，不能反过来因此扣分。
     """
 
     _require(set(assignment) == set(targets), "assignment_fragments_differ_from_targets")
     _require(set(decisions) == set(existence), "decisions_differ_from_existence_candidates")
 
+    # D-224-X ruling X1, group accounting (correction after review, LOG-225).
+    # The keeper carries the target for the whole group; the student may put
+    # the object on the target through any member.  Duplicates stay charged
+    # to no class; the keeper is judged on the group.
+    groups: dict[str, list[str]] = {}
+    for fragment_id, target in targets.items():
+        if target["status"] == "duplicate_of_labelled":
+            keeper = str(target["duplicate_of"])
+            _require(
+                keeper in targets and targets[keeper]["status"] == "labelled",
+                f"duplicate_keeper_invalid:{fragment_id}",
+            )
+            groups.setdefault(keeper, []).append(str(fragment_id))
+
     association = {
-        "fragments": 0, "unlabelled": 0, "recall_miss": 0, "teacher_error": 0,
-        "correct": 0, "amortization_error": 0, "birth_targets": 0,
+        "fragments": 0, "unlabelled": 0, "duplicate_of_labelled": 0, "recall_miss": 0,
+        "teacher_error": 0, "correct": 0, "amortization_error": 0, "birth_targets": 0,
     }
     for fragment_id in sorted(targets):
         target = targets[fragment_id]
@@ -514,6 +589,8 @@ def decompose_frame(
         association["fragments"] += 1
         if status == "unlabelled":
             association["unlabelled"] += 1
+        elif status == "duplicate_of_labelled":
+            association["duplicate_of_labelled"] += 1
         elif status == "recall_miss":
             association["recall_miss"] += 1
         elif status == "identity_ambiguous":
@@ -521,7 +598,15 @@ def decompose_frame(
         else:
             if status == "birth":
                 association["birth_targets"] += 1
-            if chosen == target["target"]:
+            wanted = str(target["target"])
+            members = [fragment_id] + sorted(groups.get(fragment_id, []))
+            reached = any(str(assignment[member]) == wanted for member in members)
+            misbound = any(
+                not str(assignment[member]).startswith(BIRTH_COLUMN_PREFIX)
+                and str(assignment[member]) != wanted
+                for member in members
+            )
+            if reached and not misbound:
                 association["correct"] += 1
             else:
                 association["amortization_error"] += 1
@@ -557,11 +642,13 @@ def decompose_frame(
         ),
         "correct": association["correct"] + existence_counts["correct"],
         "unlabelled": association["unlabelled"],
+        "duplicate_of_labelled": association["duplicate_of_labelled"],
         "decisions": association["fragments"] + existence_counts["candidates"],
     }
     _require(
         totals["recall_miss"] + totals["teacher_error"] + totals["amortization_error"]
-        + totals["correct"] + totals["unlabelled"] == totals["decisions"],
+        + totals["correct"] + totals["unlabelled"] + totals["duplicate_of_labelled"]
+        == totals["decisions"],
         "decomposition_not_additive",
     )
     return {"association": association, "existence": existence_counts, "totals": totals}
@@ -577,6 +664,13 @@ def _max_weight_matching(weights: Sequence[Sequence[float]]) -> list[tuple[int, 
     A plain augmenting-path assignment on ``-weight`` with zero-weight cells
     treated as unmatched.  It is written here on purpose: the numbers that
     judge the method's solver must not be produced by that solver.
+
+    D-224-X ruling X5: the dense solve is applied per connected component of
+    the positive-weight graph instead of to the whole padded matrix.  Most
+    components are one entity against one truth box, so the cubic cost of
+    the padded solve (measured 3.1 s per frame at 300 entities × 100 truth
+    objects) collapses; the matched count and total weight are identical,
+    which is all any metric reads.
     """
 
     rows = len(weights)
@@ -585,6 +679,60 @@ def _max_weight_matching(weights: Sequence[Sequence[float]]) -> list[tuple[int, 
     columns = len(weights[0])
     if columns == 0:
         return []
+    pairs: list[tuple[int, int]] = []
+    for component_rows, component_columns in _positive_components(weights):
+        block = [
+            [float(weights[row][column]) for column in component_columns]
+            for row in component_rows
+        ]
+        for local_row, local_column in _max_weight_matching_dense(block):
+            pairs.append((component_rows[local_row], component_columns[local_column]))
+    return sorted(pairs)
+
+
+def _positive_components(
+    weights: Sequence[Sequence[float]],
+) -> list[tuple[list[int], list[int]]]:
+    """Connected components of the bipartite graph of positive cells, in row order."""
+
+    rows = len(weights)
+    columns = len(weights[0])
+    row_edges = [[c for c in range(columns) if float(weights[r][c]) > 0.0] for r in range(rows)]
+    column_edges: dict[int, list[int]] = {}
+    for row, cells in enumerate(row_edges):
+        for column in cells:
+            column_edges.setdefault(column, []).append(row)
+    seen_rows: set[int] = set()
+    seen_columns: set[int] = set()
+    components: list[tuple[list[int], list[int]]] = []
+    for start in range(rows):
+        if start in seen_rows or not row_edges[start]:
+            continue
+        stack_rows = [start]
+        seen_rows.add(start)
+        component_rows: list[int] = []
+        component_columns: set[int] = set()
+        while stack_rows:
+            row = stack_rows.pop()
+            component_rows.append(row)
+            for column in row_edges[row]:
+                if column in seen_columns:
+                    continue
+                seen_columns.add(column)
+                component_columns.add(column)
+                for other in column_edges[column]:
+                    if other not in seen_rows:
+                        seen_rows.add(other)
+                        stack_rows.append(other)
+        components.append((sorted(component_rows), sorted(component_columns)))
+    return components
+
+
+def _max_weight_matching_dense(weights: Sequence[Sequence[float]]) -> list[tuple[int, int]]:
+    """The padded square Hungarian solve, applied to one component."""
+
+    rows = len(weights)
+    columns = len(weights[0])
     size = rows + columns
     cost = [[0.0] * size for _ in range(size)]
     for row in range(rows):
@@ -641,7 +789,8 @@ def _truth_table(truth_objects: Mapping[str, Mapping[str, Any]]) -> dict[str, di
         record = truth_objects[key]
         _require(type(key) is str and key and type(record) is dict, f"truth_object_invalid:{key}")
         _require(record.get("present") in {True, False}, f"truth_object_present_invalid:{key}")
-        entry: dict[str, Any] = {"present": record["present"]}
+        _require(record.get("in_scope") in {True, False}, f"truth_object_in_scope_invalid:{key}")
+        entry: dict[str, Any] = {"present": record["present"], "in_scope": record["in_scope"]}
         if record["present"]:
             entry["centroid_m"] = _vector3(record.get("centroid_m"), f"truth_object_centroid_invalid:{key}")
             lower = _vector3(record.get("aabb_min_m"), f"truth_object_aabb_invalid:{key}")
@@ -674,8 +823,29 @@ def evaluate_frame(
     states = _states(present_states, "present_states_invalid")
     truth = _truth_table(truth_objects)
     identities = entity_identities(checked, evidence_instance)
-    predictions = [entity for entity in checked["entities"] if entity["state"] in states]
-    present_keys = [key for key in sorted(truth) if truth[key]["present"]]
+    in_memory = [entity for entity in checked["entities"] if entity["state"] in states]
+    # D-224-X ruling X6: the table carries every private object any entity can
+    # resolve to, with an ``in_scope`` flag; the truth node scope (present and
+    # observable at least once) is applied here, not by pre-filtering the
+    # table, so an entity resolving to an out-of-scope object is a counted
+    # case instead of a crash.
+    present_keys = [key for key in sorted(truth) if truth[key]["present"] and truth[key]["in_scope"]]
+    # Correction after review (LOG-225): the scope rule removed those objects
+    # from the recall side, so an entity that resolves to a *present* object
+    # outside the scope leaves the precision denominator too, instead of
+    # being counted as a false positive it can never match.  It is counted.
+    # An entity whose object is absent stays in and is judged stale as usual.
+    out_of_scope: list[str] = []
+    predictions: list[Mapping[str, Any]] = []
+    for entity in in_memory:
+        identity = identities[str(entity["entity_id"])]
+        if identity["resolvable"]:
+            key = identity["key"]
+            _require(key in truth, f"truth_object_unknown:{key}")
+            if truth[key]["present"] is True and truth[key]["in_scope"] is not True:
+                out_of_scope.append(str(entity["entity_id"]))
+                continue
+        predictions.append(entity)
 
     weights = [
         [
@@ -715,6 +885,7 @@ def evaluate_frame(
         elif _distance(record["centroid_m"], entity["centroid_m"]) > delta:
             stale.append(entity_id)
         else:
+            _require(key in carriers_near, f"truth_object_scope_inconsistent:{key}")
             carriers_near[key] = True
     wrongly_absent = [key for key in present_keys if not carriers_near[key]]
     denominator = len(predictions) + len(wrongly_absent)
@@ -730,6 +901,7 @@ def evaluate_frame(
         "stale_entities": stale,
         "wrongly_absent_objects": wrongly_absent,
         "identity_ambiguous_entities": ambiguous,
+        "out_of_scope_entities": out_of_scope,
         "contamination_fraction": contamination,
     }
 
@@ -940,7 +1112,15 @@ def size_and_cost(
     _require(runtime >= 0.0, "runtime_per_frame_invalid")
     return {
         "active_entity_count": sum(1 for entity in checked["entities"] if entity["state"] == "active"),
-        "version_count": sum(len(entity["versions"]) for entity in checked["entities"]),
+        # Lifecycle versions only (birth, retract, reactivate, dormant, dedup):
+        # a BIND opens a version per observation, which would make this number
+        # track observation count instead of lifecycle churn (D-224-X X6).
+        "lifecycle_version_count": sum(
+            1
+            for entity in checked["entities"]
+            for version in entity["versions"]
+            if version["opened_by"] not in LIFECYCLE_VERSION_EXCLUDES
+        ),
         "runtime_per_frame_s": runtime,
         "peak_memory_bytes": _int(peak_memory_bytes, "peak_memory_invalid", minimum=0),
     }
@@ -975,10 +1155,40 @@ def micro_average(
 # 5. house-level paired bootstrap, the strongest control and the main gate
 # --------------------------------------------------------------------------
 
+def undefined_houses(
+    per_house: Mapping[str, Mapping[str, Any]], *, arms: Sequence[str],
+    not_applicable: Sequence[str] = (),
+) -> list[str]:
+    """Houses whose metric is undefined (``None``) for any applicable reported arm.
+
+    白话：输入每个 house 上各臂的某项指标值和本表要报告的全部臂，输出该指标在任一
+    臂上"没法算"（值为 None，例如这个 house 里没有一件被搬走后重访过的物体）的
+    house 清单。这份清单按指标算一次、对所有臂一并生效（D-224-X 裁决 X2），配对
+    bootstrap 与最强对照选取都必须传入同一份，主表报告有效 house 数。缺臂仍然是错
+    误而不是"未定义"。它不填补、不猜值。
+    按构造就没法算的臂（例如从不撤回的臂之于假撤回率）以 ``not_applicable`` 传入，
+    它们不参与清单计算、也不进入这项指标的任何配对，表里报"不适用"；否则三个从不
+    撤回的臂会让每个 house 都被排除，整列对谁都报不出来（复审修订，LOG-225）。
+    """
+
+    skipped = {str(item) for item in not_applicable}
+    names = [str(item) for item in arms if str(item) not in skipped]
+    _require(bool(names), "undefined_houses_needs_arms")
+    out: list[str] = []
+    for house in sorted(per_house):
+        values = per_house[house]
+        for name in names:
+            _require(name in values, f"bootstrap_house_missing_arm:{house}")
+        if any(values[name] is None for name in names):
+            out.append(house)
+    return out
+
+
 def paired_house_bootstrap(
     per_house: Mapping[str, Mapping[str, float]], *, arm: str, control: str,
     seed: int, direction: str, iterations: int = BOOTSTRAP_ITERATIONS,
-    confidence: float = CONFIDENCE_ONE_SIDED,
+    confidence: float = CONFIDENCE_ONE_SIDED, excluded_houses: Sequence[str] = (),
+    not_applicable: Sequence[str] = (),
 ) -> dict[str, Any]:
     """One-sided lower bound on the paired house-level advantage of ``arm``.
 
@@ -987,6 +1197,13 @@ def paired_house_bootstrap(
     界大于零永远表示臂更好。某个 house 缺了任一臂就拒绝而不是跳过，否则配对被悄悄
     打破。例如 100 个 house 上 VSMT 的残留率平均低 0.08、下界 0.03，则本项过门。
     它不做多重比较校正，那在 S3-01 冻结。
+
+    Undefined values (D-224-X ruling X2).  A house can legitimately have no
+    judged object for a metric, and then its value is ``None``.  Such a
+    house must be named in ``excluded_houses`` (computed once per metric by
+    :func:`undefined_houses` over every reported arm) and is skipped for
+    every pair; a ``None`` outside that list is an error, never imputed.
+    The result reports the effective house count and the exclusions.
     """
 
     _require(direction in {"higher", "lower"}, "bootstrap_direction_invalid")
@@ -994,10 +1211,21 @@ def paired_house_bootstrap(
     _int(seed, "bootstrap_seed_invalid", minimum=0)
     level = _finite(confidence, "bootstrap_confidence_invalid")
     _require(0.5 < level < 1.0, "bootstrap_confidence_invalid")
+    for name in (arm, control):
+        _require(str(name) not in {str(item) for item in not_applicable}, f"bootstrap_arm_not_applicable:{name}")
+    excluded = {str(item) for item in excluded_houses}
     diffs: list[float] = []
+    skipped: list[str] = []
     for house in sorted(per_house):
         values = per_house[house]
         _require(arm in values and control in values, f"bootstrap_house_missing_arm:{house}")
+        if house in excluded:
+            skipped.append(house)
+            continue
+        _require(
+            values[arm] is not None and values[control] is not None,
+            f"bootstrap_house_metric_undefined:{house}",
+        )
         a = _finite(values[arm], "bootstrap_value_invalid")
         c = _finite(values[control], "bootstrap_value_invalid")
         diffs.append(a - c if direction == "higher" else c - a)
@@ -1019,23 +1247,37 @@ def paired_house_bootstrap(
         "confidence": level,
         "iterations": iterations,
         "seed": seed,
+        "excluded_undefined": len(skipped),
+        "excluded_houses": skipped,
     }
 
 
 def strongest_control(
     per_house: Mapping[str, Mapping[str, float]], *, controls: Sequence[str], direction: str,
+    excluded_houses: Sequence[str] = (), not_applicable: Sequence[str] = (),
 ) -> str:
-    """The control arm with the best house mean on one metric; ties go to the smallest name."""
+    """The control arm with the best house mean on one metric; ties go to the smallest name.
+
+    The mean is taken over the same houses the paired bootstrap uses, so the
+    same ``excluded_houses`` list (ruling X2) must be passed here.  Controls
+    for which the metric is not applicable by construction are skipped.
+    """
 
     _require(direction in {"higher", "lower"}, "control_direction_invalid")
-    _require(len(list(controls)) >= 1 and len(per_house) >= 1, "control_selection_needs_input")
+    skipped = {str(item) for item in not_applicable}
+    controls = [str(item) for item in controls if str(item) not in skipped]
+    _require(len(controls) >= 1 and len(per_house) >= 1, "control_selection_needs_input")
+    excluded = {str(item) for item in excluded_houses}
+    houses = [house for house in sorted(per_house) if house not in excluded]
+    _require(bool(houses), "control_selection_needs_input")
     means: dict[str, float] = {}
     for control in controls:
         total = 0.0
-        for house in sorted(per_house):
+        for house in houses:
             _require(control in per_house[house], f"bootstrap_house_missing_arm:{house}")
+            _require(per_house[house][control] is not None, f"bootstrap_house_metric_undefined:{house}")
             total += _finite(per_house[house][control], "bootstrap_value_invalid")
-        means[str(control)] = total / len(per_house)
+        means[str(control)] = total / len(houses)
     sign = -1.0 if direction == "higher" else 1.0
     return sorted(means.items(), key=lambda item: (sign * item[1], item[0]))[0][0]
 
@@ -1053,16 +1295,25 @@ def main_gate(bounds: Mapping[str, float]) -> dict[str, Any]:
 def ablation_report(
     per_house: Mapping[str, Mapping[str, float]], *, direction: str, seed: int,
     iterations: int = BOOTSTRAP_ITERATIONS, ablations: Sequence[str] = ABLATION_ARMS,
+    excluded_houses: Sequence[str] = (), not_applicable: Sequence[str] = (),
 ) -> dict[str, Any]:
-    """VSMT-lean against each ablation with the same paired bootstrap; reported, never gated."""
+    """VSMT-lean against each ablation with the same paired bootstrap; reported, never gated.
 
-    rows = {
-        str(ablation): paired_house_bootstrap(
+    An ablation for which the metric is not applicable by construction gets a
+    ``not_applicable`` row instead of a bootstrap.
+    """
+
+    skipped = {str(item) for item in not_applicable}
+    rows: dict[str, Any] = {}
+    for ablation in ablations:
+        if str(ablation) in skipped:
+            rows[str(ablation)] = {"not_applicable": True}
+            continue
+        rows[str(ablation)] = paired_house_bootstrap(
             per_house, arm=METHOD_ARM, control=str(ablation), seed=seed,
-            direction=direction, iterations=iterations,
+            direction=direction, iterations=iterations, excluded_houses=excluded_houses,
+            not_applicable=not_applicable,
         )
-        for ablation in ablations
-    }
     return {"per_ablation": rows, "gated": False, "in_main_table": ["AssocOnly"]}
 
 
@@ -1169,7 +1420,24 @@ EXPECTED_BOOLEAN_CLAIMS: dict[str, bool] = {
     "continue_gate.every_label_is_resolvable_or_counted": True,
     "continue_gate.evaluator_matching_independent_and_brute_force_checked": True,
     "continue_gate.every_boolean_claim_is_bound_by_the_validator": True,
+    # D-224-X (v2)
+    "supersedes_contract.v1_bytes_frozen": True,
+    "labels.same_frame_duplicates.excluded_from_loss_and_counted": True,
+    "labels.same_frame_duplicates.only_labelled_fragments_with_the_same_target_are_folded": True,
+    "decomposition.duplicate_fragments_charged_to_no_class": True,
+    "metrics.node_prf1.truth_table_carries_in_scope_flag": True,
+    "metrics.node_prf1.present_out_of_scope_entities_excluded_from_precision_denominator": True,
+    "labels.same_frame_duplicates.keeper_correct_iff_any_member_reaches_the_target_and_none_is_misbound": True,
+    "statistics.undefined_house_rule_over_applicable_arms_only": True,
+    "metrics.size_and_cost.bind_versions_excluded_from_lifecycle_version_count": True,
+    "metrics.evaluator_matching_per_component_equals_dense_solve": True,
+    "statistics.undefined_house_excluded_for_all_arms_and_counted": True,
+    "statistics.undefined_house_never_imputed": True,
 }
+
+#: D-224-X rulings this v2 implements; the contract must name them.
+V2_RULINGS_DECISION_ID = "D-224-X"
+V2_RULING_KEYS = ("X1", "X2", "X5", "X6")
 
 #: Policy values that must still be null; each is a number the user freezes later.
 NULL_POLICY_PATHS = (
@@ -1274,6 +1542,21 @@ def validate_teacher_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     _require(set(contract["user_rulings"]) >= {"L", "M", "N", "O", "P", "Q"}, "contract_rulings_incomplete")
     _require(tuple(contract["nuisance_probe"]["fields"]) == NUISANCE_FIELDS, "contract_nuisance_fields_mismatch")
     _require(tuple(contract["nuisance_probe"]["labels"]) == NUISANCE_LABELS, "contract_nuisance_labels_mismatch")
+    v2 = contract.get("user_rulings_v2")
+    _require(type(v2) is dict and v2.get("decision_id") == V2_RULINGS_DECISION_ID, "contract_v2_rulings_decision_mismatch")
+    _require(set(v2) >= set(V2_RULING_KEYS), "contract_v2_rulings_incomplete")
+    _require(
+        tuple(metrics["size_and_cost"]["lifecycle_version_excludes"]) == LIFECYCLE_VERSION_EXCLUDES,
+        "contract_lifecycle_version_excludes_mismatch",
+    )
+    _require(
+        labels["same_frame_duplicates"]["others_status"] == "duplicate_of_labelled",
+        "contract_duplicate_status_mismatch",
+    )
+    _require(
+        dict(statistics["metric_not_applicable_rule"]) == METRIC_NOT_APPLICABLE_RULE,
+        "contract_metric_not_applicable_rule_mismatch",
+    )
 
     for path, expected_value, _source in FROZEN_CONSTANTS:
         _require(_lookup(contract, path) == expected_value, f"contract_frozen_constant_mismatch:{path}")
@@ -1305,12 +1588,14 @@ __all__ = [
     "EXPECTED_BOOLEAN_CLAIMS",
     "FROZEN_CONSTANTS",
     "IOU_MIN",
+    "LIFECYCLE_VERSION_EXCLUDES",
     "LeanTeacherError",
     "MAIN_GATE",
     "MEMORY_PRESENT_STATES",
     "METHOD_ARM",
     "METRICS",
     "METRIC_FIELDS",
+    "METRIC_NOT_APPLICABLE_RULE",
     "NULL_POLICY_PATHS",
     "NUISANCE_FIELDS",
     "NUISANCE_LABELS",
@@ -1340,5 +1625,6 @@ __all__ = [
     "run_nuisance_probes",
     "size_and_cost",
     "strongest_control",
+    "undefined_houses",
     "validate_teacher_contract",
 ]

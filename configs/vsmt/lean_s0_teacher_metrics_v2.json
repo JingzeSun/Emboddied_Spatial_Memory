@@ -1,0 +1,355 @@
+{
+  "schema_version": "vsmt-lean-s0-teacher-metrics-v2",
+  "decision_id": "D-224",
+  "stage_id": "S0-04",
+  "status": "v2_pending_user_code_review",
+  "plain_language_zh": "本合同定义答案怎么来、错在哪一层、论文表上的每个数怎么算。输入是 S0-03 两段封存之后的召回与分配、旧记忆和当前帧的私有实例真值；输出是逐色块与逐实体的标签、三分解计数、七项指标与 house 级配对 bootstrap。例如一个色块的主导实例是旧杯子、旧杯子实体也在召回里、学生却把它分到新建列，这一例记为 amortization error 而不是 recall miss。它不生成候选、不改召回、不进入部署推理，也不定义对照臂参数（S0-05）。合同里的每一个布尔值都被校验器绑定：翻转、缺失或新增任何一条都会被拒。",
+  "pure_core_relative_path": "src/vsmt/lean_teacher.py",
+  "depends_on": {
+    "s0_01_contract": "configs/vsmt/lean_s0_entity_memory_v1.json",
+    "s0_02_contract": "configs/vsmt/lean_s0_intervention_data_v1.json",
+    "s0_03_contract": "configs/vsmt/lean_s0_assignment_v1.json",
+    "s0_03_interface_zh": "只依赖 S0-03 产物的数据形状：召回字典（fragment_id → 实体 ID 列表，五臂共享、与实体状态无关）、分配字典（值是 entity_id 或 birth:<fragment_id>）、阶段 B 的存在候选列表、以及阶段 A 与阶段 B 两段封存摘要。不导入 S0-03 的任何函数。关联特征里没有 supported_by_agrees，只有 support_height_difference_m；本阶段评价器不读任何表面 ID。"
+  },
+  "authorization": {
+    "private_truth_read": false,
+    "label_generation": false,
+    "evaluation_run": false,
+    "bootstrap_run": false,
+    "test_split_read": false,
+    "server_run": false
+  },
+  "private_gate": {
+    "requires_both_stage_seals": true,
+    "receipt_fields": [
+      "frame_digest",
+      "stage_a_seal_sha256",
+      "stage_b_seal_sha256",
+      "private_may_open"
+    ],
+    "teacher_never_opens_files_itself": true,
+    "teacher_uses_current_policy_assignment_not_its_own": true,
+    "teacher_never_edits_recall": true,
+    "plain_language_zh": "teacher 与评价器只能拿着 S0-03 的放行回执打开私有数据，回执必须同时写明阶段 A（召回与关联/新建特征）和阶段 B（分配回执与存在特征，带阶段 A 摘要）两段封存摘要；缺任一段、链条断裂或指向另一帧都不发回执。teacher 本身不打开任何文件。训练时喂给存在特征的分配来自当前策略或登记的规则臂，teacher 不产生也不替换分配。teacher 不增删、不重排召回。"
+  },
+  "private_truth_inputs": {
+    "fragment_instance": "per fragment: {overlap: {private object key: share of the fragment's pixels on that instance}, pixel_count: int}; the unlisted remainder is background; pixel_count is the public mask size and is only used to rank same-frame duplicates",
+    "evidence_instance": "per (frame_digest|fragment_id) of every past evidence item: private object key or null",
+    "object_state": "per private object key: {present: bool, centroid_m: [x,y,z] when present}",
+    "truth_objects": "per private object key in the truth node scope this frame: {present: bool, aabb_min_m, aabb_max_m, centroid_m when present}",
+    "missing_objects": "per removed or moved object: {old_centroid_m, old_place_observable_since_intervention: bool}",
+    "carriers_before_move": "per moved object: every entity id whose identity resolved to it at the last frame before the move",
+    "derived_from": "S0-02 private plane: instance_mask_path, object_id_to_entity_id, object_poses, intervention log",
+    "plain_language_zh": "私有输入全部由 S0-02 的 private 面派生：色块的实例重叠表来自 instance mask，物体位置来自逐帧 object_poses，缺失物体与可观察性来自干预日志和公开可见体积。任何一项都不进入部署读取器。"
+  },
+  "labels": {
+    "association_statuses": [
+      "labelled",
+      "birth",
+      "recall_miss",
+      "unlabelled",
+      "identity_ambiguous",
+      "duplicate_of_labelled"
+    ],
+    "existence_statuses": [
+      "gone",
+      "present",
+      "identity_ambiguous"
+    ],
+    "entity_identity_rule": "strict_majority_over_keyed_evidence",
+    "entity_identity_has_no_threshold": true,
+    "canonical_target_is_earliest_first_version_then_smallest_id": true,
+    "recalled_duplicate_may_be_target": true,
+    "ambiguous_identity_is_teacher_error_not_a_guess": true,
+    "unlabelled_fragments_excluded_from_loss_and_counted": true,
+    "fragment_dominance": {
+      "denominator": "all_fragment_pixels_background_included",
+      "no_instance_is_unlabelled": "a fragment overlapping no private instance is unlabelled",
+      "two_or_more_instances_below_threshold_is_identity_ambiguous": "a fragment overlapping two or more instances whose top share is below dominance_min_share is identity_ambiguous",
+      "tie_at_the_top_is_ambiguous": true,
+      "single_instance_below_threshold_is_unlabelled": "a fragment overlapping one instance whose share is below dominance_min_share is mostly background and is unlabelled",
+      "dominance_min_share": null
+    },
+    "existence": {
+      "candidate_states": [
+        "active",
+        "dormant"
+      ],
+      "ineligible_candidate_state_is_rejected_not_skipped": true,
+      "gone_rule": "object absent from the scene, or its current centroid farther than delta_moved_m from the entity's remembered centroid",
+      "displacement_reference": "entity_remembered_centroid",
+      "delta_moved_m": null
+    },
+    "plain_language_zh": "实体身份取其全部带物体证据的严格多数（超过一半），没有严格多数即身份含糊，不另设阈值；背景证据不投票。色块目标列的规则：先按实例重叠表判主导物体——没有物体记 unlabelled，覆盖两个及以上物体且最大占比低于阈值或并列记 identity_ambiguous，只覆盖一个物体但占比低于阈值记 unlabelled；主导物体成立后，记忆里没有这个物体记 birth，有但没被召回记 recall_miss，有且被召回则目标是它（重复实体取首版本最早、并列取 ID 最小的那个，若只有重复实体被召回则以被召回者为目标），这个物体的证据只落在身份含糊的实体里记 identity_ambiguous 而不是猜 birth。存在标签：物体不在场景中、或已离开实体记住的位置超过 delta_moved_m 即 gone，否则 present，身份含糊记 identity_ambiguous；候选状态只允许 active 与 dormant（S0-01 允许 RETRACT dormant；裁决 P），retracted 候选直接拒绝。以上口径由 D-224-LQ 裁决 N、P、Q 冻结。两个数值待冻结，当前为 null。 v2 新增 duplicate_of_labelled（裁决 X1，见 same_frame_duplicates）。",
+    "same_frame_duplicates": {
+      "rule": "among fragments of one frame that are labelled with the same dominant object and the same target entity, the fragment with the most pixels on that object keeps the target",
+      "tie_break": "larger_pixel_count_then_smaller_fragment_id",
+      "others_status": "duplicate_of_labelled",
+      "excluded_from_loss_and_counted": true,
+      "only_labelled_fragments_with_the_same_target_are_folded": true,
+      "plain_language_zh": "SAM 常把一个物体切成几块（椅座和椅背）。若同一帧两块都判定为同一物体、目标又是同一个实体，执行器规定一个实体每帧只收一块，第二块无论如何都满足不了；把它记成 amortization error 是把结构性不可能算到学生头上。因此只有物体上像素最多的那块保留目标（并列取整块像素多者，再取 fragment_id 小者），其余记 duplicate_of_labelled：不进损失、不记任何错误类、单独计数（裁决 X1）。目标不同、目标是新建列、或 recall_miss 的色块不折叠，因为它们没有结构性冲突。复审修订（LOG-225）：记账时保留块和它的重复块按一组判，组内任一块分到了目标实体、且没有一块被绑到别的既有实体，保留块就记 correct；学生把物体绑到椅背而不是椅座，不再算错。",
+      "keeper_correct_iff_any_member_reaches_the_target_and_none_is_misbound": true,
+      "group_accounting": "the keeper and its duplicates are judged as one group: the keeper counts as correct iff some member is assigned to the target entity and no member is bound to a different existing entity; duplicates are charged to no class"
+    }
+  },
+  "decomposition": {
+    "classes": [
+      "recall_miss",
+      "teacher_error",
+      "amortization_error"
+    ],
+    "per_frame": true,
+    "mutually_exclusive_and_additive": true,
+    "unlabelled_fragments_charged_to_no_class": true,
+    "recall_miss": "the correct entity exists in memory but was not recalled; the student is not charged",
+    "teacher_error": "the label is unresolvable (fragment dominance or entity identity ambiguous); the decision is counted, not guessed",
+    "amortization_error": "the label is resolvable, the target was available, and the student still chose otherwise; includes false and missed retracts",
+    "identity": "recall_miss + teacher_error + amortization_error + correct + unlabelled + duplicate_of_labelled == fragments + existence candidates, checked on every frame",
+    "plain_language_zh": "每帧记账，每一个决定恰好落入一类：正确实体没被召回是 recall miss，学生无从选起；标签本身含糊是 teacher error，只计数不猜；标签明确、候选也在、学生仍选错是 amortization error。未标注色块不算进任何错误但单独计数。五类之和必须等于决定总数，分配与标签、决定与候选的集合必须一一对应。 同帧重复色块与未标注色块一样不算进任何错误，单独计数（裁决 X1）。",
+    "duplicate_fragments_charged_to_no_class": true
+  },
+  "metrics": {
+    "names": [
+      "node_prf1",
+      "missing_residual_rate",
+      "false_retract_rate",
+      "identity_continuity",
+      "recovery_latency_frames",
+      "contamination_auc",
+      "size_and_cost"
+    ],
+    "reported_fields": {
+      "node_prf1": [
+        "node_precision",
+        "node_recall",
+        "node_f1",
+        "matched",
+        "predicted",
+        "truth"
+      ],
+      "missing_residual_rate": [
+        "missing_residual_rate",
+        "residual",
+        "judged",
+        "not_yet_observable"
+      ],
+      "false_retract_rate": [
+        "false_retract_rate",
+        "false_retracts",
+        "judged_retracts",
+        "ambiguous_retracts"
+      ],
+      "identity_continuity": [
+        "identity_continuity",
+        "kept",
+        "judged",
+        "no_prior_carrier"
+      ],
+      "recovery_latency_frames": [
+        "recovery_latency_frames",
+        "recovered",
+        "unrecovered",
+        "never_observable",
+        "per_object"
+      ],
+      "contamination_auc": [
+        "contamination_auc",
+        "frames"
+      ],
+      "size_and_cost": [
+        "active_entity_count",
+        "lifecycle_version_count",
+        "runtime_per_frame_s",
+        "peak_memory_bytes"
+      ]
+    },
+    "no_metric_outside_this_list_may_be_reported": true,
+    "no_composite_score": true,
+    "evaluator_matching_is_independent_of_method_solver": true,
+    "evaluator_reads_no_surface_ids": true,
+    "memory_present_states": [
+      "active",
+      "dormant"
+    ],
+    "house_aggregation": "micro: sum of numerators over sum of denominators across the house's frames; recovery latency is the mean over recovered objects; contamination and size/cost are means over frames",
+    "node_prf1": {
+      "numerator": "matched pairs of an in-memory entity box and a present truth box with 3D AABB IoU >= iou_min, under the evaluator's own maximum-weight matching",
+      "precision_denominator": "entities whose state is in memory_present_states, minus entities that resolve to a present object outside the truth node scope; those are reported in out_of_scope_entities (an entity whose object is absent stays in and is stale)",
+      "recall_denominator": "present truth objects in the truth node scope",
+      "matching": "maximum total 3D IoU matching, pairs below iou_min excluded, evaluator-owned code",
+      "iou_min": 0.3,
+      "dormant_counts_as_in_memory": true,
+      "truth_node_scope": "objects_present_at_t_that_have_been_observable_at_least_once_since_episode_start",
+      "empty_denominator": "null, never zero",
+      "truth_table_carries_in_scope_flag": true,
+      "truth_table": "every private object any entity's evidence can resolve to, each with present, in_scope and (when present) box and centroid; the scope rule is applied by the evaluator, never by pre-filtering the table",
+      "present_out_of_scope_entities_excluded_from_precision_denominator": true
+    },
+    "missing_residual_rate": {
+      "numerator": "removed or moved objects with an in-memory entity of that identity within delta_moved_m of the old position",
+      "denominator": "removed or moved objects whose old place has been observable to the method since the intervention",
+      "dormant_counts_as_in_memory": true,
+      "not_yet_observable_objects_excluded_and_counted": true,
+      "headline_time": "episode end; the per-frame series is diagnostic, not a separate metric",
+      "alignment": "Dyn-THOR MRR"
+    },
+    "false_retract_rate": {
+      "numerator": "RETRACT decisions whose existence label is present",
+      "denominator": "RETRACT decisions with a resolvable existence label",
+      "ambiguous": "RETRACT decisions on identity-ambiguous entities are counted, not judged",
+      "not_applicable": "arms whose vocabulary lacks RETRACT report not_applicable; they enter neither the exclusion list nor any pairing on this metric"
+    },
+    "identity_continuity": {
+      "numerator": "moved objects whose fragment at the first labelled re-observation after the move is assigned to any entity that carried the object before the move",
+      "denominator": "moved objects re-observed with a label after the move that had at least one carrier before the move",
+      "judged_at": "first_labelled_reobservation_after_move",
+      "canonical_of_folding_recognised": false,
+      "any_prior_carrier_counts": true,
+      "no_prior_carrier": "moved objects never carried before the move are excluded and counted"
+    },
+    "recovery_latency_frames": {
+      "start": "first_frame_the_intervened_place_is_observable_to_the_method",
+      "end": "first frame at which the memory state for the object is correct",
+      "correct_state": "removed: no in-memory entity of that identity within delta_moved_m of the old position; added: one within delta_moved_m of the new position; moved: both conditions",
+      "starts_at_first_observable_frame_not_intervention_frame": true,
+      "unrecovered_reported_separately_never_averaged": true,
+      "never_observable": "objects whose intervened place is never observable are listed, not averaged"
+    },
+    "contamination_auc": {
+      "series": "per frame: (stale in-memory entities + wrongly absent truth objects) / (in-memory entities + wrongly absent truth objects)",
+      "stale": "an in-memory entity whose resolved object is absent or farther than delta_moved_m from the entity's remembered centroid",
+      "wrongly_absent": "a present truth object in scope with no in-memory entity of that identity within delta_moved_m of its position",
+      "integration": "trapezoid_over_frames_normalised_to_unit_length"
+    },
+    "size_and_cost": {
+      "active_entity_count": "entities in state active after the frame commits",
+      "runtime_per_frame_s": "wall-clock seconds of the method's per-frame call, excluding the shared frontend",
+      "peak_memory_bytes": "peak resident memory of the method process over the episode",
+      "lifecycle_version_count": "versions across all entities, including retracted ones, whose opened_by is not in lifecycle_version_excludes (birth, retract, reactivate, dormant and dedup count; bind does not)",
+      "lifecycle_version_excludes": [
+        "bind"
+      ],
+      "bind_versions_excluded_from_lifecycle_version_count": true
+    },
+    "plain_language_zh": "七项指标分项报告，不合成单一总分，清单外的不得计算或报告。以下口径由 D-224-LQ 裁决 L～Q 冻结：dormant 实体算“仍在记忆里”，在节点 P/R/F1 里进预测集合、在 Missing 残留率里算残留，因为 dormancy 是无证据的共享规则，不能当作正确的“不在”判断记功；身份连续率在搬动后第一次带标签重见时按当时的分配判定，不承认此后共享去重的 canonical_of 折叠；恢复延迟从干预处第一次对方法可观察的帧起算，而不是从干预发生的帧起算；未恢复与从未可观察的物体单独列出，不进平均。节点匹配是评价器自己写的最大权匹配，故意不复用方法的分配求解器，且不读任何表面 ID。交并比下限 0.3 由 D-224 裁决 C 冻结，不是待调数值。 v2：规模指标里的“历史版本数”改为生命周期版本数，不数 BIND 打开的逐观察版本，否则它约等于观察次数（裁决 X6）；评价器匹配改为按非零 IoU 的连通块分别求解，匹配数与总权重与整张矩阵求解相同（裁决 X5）；真值表带 in_scope 标志，范围规则由评价器套用（裁决 X6）。",
+    "evaluator_matching_per_component_equals_dense_solve": true
+  },
+  "statistics": {
+    "unit": "house",
+    "paired": true,
+    "resampling": "house-level paired bootstrap with a registered seed",
+    "bootstrap_iterations": 10000,
+    "confidence_one_sided": 0.95,
+    "bootstrap_seed": null,
+    "main_gate": [
+      [
+        "missing_residual_rate",
+        "lower"
+      ],
+      [
+        "identity_continuity",
+        "higher"
+      ]
+    ],
+    "main_gate_rule": "one-sided 95% lower bound of the paired advantage of VSMT-lean over the strongest control must exceed 0 on both metrics",
+    "main_gate_effect_size": null,
+    "method_arm": "VSMT-lean",
+    "controls": [
+      "TAF",
+      "ELU-P",
+      "RAC",
+      "LOW"
+    ],
+    "strongest_control_rule": "best_house_mean_per_metric_among_controls_ties_to_smallest_name",
+    "ablations": [
+      "NoVersion",
+      "HandCost",
+      "HeuristicLabel",
+      "AssocOnly"
+    ],
+    "ablations_reported_not_gated": true,
+    "assoc_only_reported_in_main_table": true,
+    "ablation_rule": "each ablation is compared with VSMT-lean by the same paired bootstrap and reported as a lower bound; ablations never enter the main gate; AssocOnly is the causal counterfactual of contribution one and must sit in the main table next to the four controls",
+    "appendix_arm": "LLM-op",
+    "appendix_arm_validation_only_never_main_table_or_test": true,
+    "optional_arm": "VSMT-lean-ctx",
+    "test_read_once": true,
+    "multiple_comparison_correction": "frozen in S3-01",
+    "plain_language_zh": "统计以 house 为配对与重采样单位，bootstrap 10,000 次、单侧 95% 下界由 METHOD 第十一节冻结；seed 与效应量在 S3-01 冻结，当前为 null。主门是 VSMT-lean 相对最强对照在 Missing 残留率（越低越好）和身份连续率（越高越好）两项的单侧 95% 下界都大于零；最强对照按该指标在同一划分上的 house 均值逐指标选取。四组消融与 VSMT-lean 用同一配对 bootstrap 比较并报告下界，不设门；AssocOnly 必须与四个对照并列进主表。LLM-op 只在 validation 上跑、只进附录、不进 test。某个 house 缺任一臂即拒绝，不悄悄跳过。test 只读一次。 某个 house 在某项指标上没法算（例如没有一件被搬走后重访过的物体，值为 null）时，该 house 在该指标上对所有臂一并排除、报告有效 house 数，绝不填 0 或 1；S3-01 的功效预算按有效数算（裁决 X2）。复审修订（LOG-225）：按构造没法算的臂不参与排除清单，例如从不撤回的 TAF、LOW、AssocOnly 之于假撤回率，它们在这项上报不适用；否则每个 house 都会被排除，整列对谁都报不出来。",
+    "undefined_house_rule": "a house whose value is null for any applicable reported arm on a metric is excluded from that metric's pairing for every arm; the exclusion list is computed once per metric over the applicable reported arms, passed to every bootstrap and to the strongest-control selection, and the effective house count is reported; null is never imputed. An arm for which the metric is not applicable by construction (metric_not_applicable_rule) reports not_applicable and enters neither the exclusion list nor any pairing on that metric",
+    "undefined_house_excluded_for_all_arms_and_counted": true,
+    "undefined_house_never_imputed": true,
+    "strongest_control_evaluated_on": "the split of the comparison over the same effective houses; on test this is a post hoc maximum over the four controls and is therefore conservative for the method",
+    "undefined_house_rule_over_applicable_arms_only": true,
+    "metric_not_applicable_rule": {
+      "false_retract_rate": "arms_whose_vocabulary_lacks_RETRACT"
+    }
+  },
+  "nuisance_probe": {
+    "fields": [
+      "path",
+      "seed",
+      "frame_index",
+      "house_index"
+    ],
+    "labels": [
+      "association_status",
+      "association_target_is_birth",
+      "existence_status"
+    ],
+    "method": "leave-one-out majority label per field value versus global majority, every field against every label kind",
+    "maximum_advantage": null,
+    "plain_language_zh": "只用路径、seed、帧号、house 序号去猜三种标签（色块目标状态、目标是否为新建列、存在标签），留一法准确率不得明显高于只猜多数类的准确率。例如帧号能猜出撤回标签，说明干预总在固定帧发生。允许的最大优势待冻结，当前为 null。"
+  },
+  "not_in_this_stage": [
+    "arm_parameters",
+    "training_recipe",
+    "config_grids",
+    "llm_op_prompt"
+  ],
+  "frozen_by_decision": [
+    "metrics.node_prf1.iou_min",
+    "statistics.bootstrap_iterations",
+    "statistics.confidence_one_sided"
+  ],
+  "policy_values_without_defaults": [
+    "labels.fragment_dominance.dominance_min_share",
+    "labels.existence.delta_moved_m",
+    "statistics.bootstrap_seed",
+    "statistics.main_gate_effect_size",
+    "nuisance_probe.maximum_advantage"
+  ],
+  "user_rulings": {
+    "decision_id": "D-224-LQ",
+    "L": "dormant entities count as in memory for node P/R/F1 and MRR",
+    "M": "identity continuity judged at the first labelled re-observation by the assignment; canonical_of folding not recognised",
+    "N": "fragment dominance over all fragment pixels, two-or-more instances below threshold or tied is ambiguous; entity identity is a strict majority with no second threshold",
+    "O": "recovery latency starts at the first frame the intervened place is observable to the method",
+    "P": "existence candidates are active and dormant; retracted is rejected",
+    "Q": "truth nodes are present objects observable at least once since episode start; displacement is measured from the entity's remembered centroid",
+    "plain_language_zh": "六项口径由用户于 2026-09-20 以 D-224-LQ 批准，全部按 LOG-217 的推荐口径执行；本合同的状态集合、规则字符串与布尔声称即其机器形式。"
+  },
+  "continue_gate": {
+    "metric_list_frozen_before_any_data_generation": true,
+    "private_opens_only_against_a_two_seal_receipt": true,
+    "every_label_is_resolvable_or_counted": true,
+    "evaluator_matching_independent_and_brute_force_checked": true,
+    "every_boolean_claim_is_bound_by_the_validator": true,
+    "plain_language_zh": "S0-04 的继续门是：指标清单在任何数据生成前冻结、清单外指标不得计算或报告；私有数据只能凭两段封存回执打开；每个标签要么可判要么被计数；评价器的匹配独立于方法求解器并与暴力枚举比对过；合同里的每一个布尔声称都被校验器绑定。检查通过不等于指标有区分度，也不等于数值合适。"
+  },
+  "supersedes_contract": {
+    "path": "configs/vsmt/lean_s0_teacher_metrics_v1.json",
+    "v1_sha256": "700452d1ed57153f1aaf6be631c97094b6111242dca3dd2ae1ba4506a1c24c85",
+    "v1_bytes_frozen": true,
+    "note_zh": "v1 已于 2026-09-20 经用户审查通过（LOG-219），字节冻结不改；v2 按 D-224-X 落实裁决 X1（同帧重复色块）、X2（未定义 house）、X5（评价器匹配分连通块）与 X6（生命周期版本数、真值表 in_scope 标志）。六项 D-224-LQ 口径逐字不变。"
+  },
+  "user_rulings_v2": {
+    "decision_id": "D-224-X",
+    "X1": "same-frame fragments of one object aimed at one target entity: the most-object-pixels fragment keeps the target, the rest are duplicate_of_labelled, excluded from the loss and charged to no class",
+    "X2": "a house with an undefined metric value is excluded from that metric for every arm and counted; never imputed",
+    "X5": "the evaluator's maximum-weight matching runs per connected component of positive IoU cells and returns the same count and weight as the dense solve",
+    "X6": "size metric counts lifecycle versions excluding bind; the truth table carries an in_scope flag",
+    "plain_language_zh": "四项口径由用户于 2026-09-20 以 D-224-X 批准。",
+    "review_corrections": "2026-09-20 second review (LOG-225): X1 group accounting for the keeper; X2 exclusion over applicable arms only with a not-applicable rule; X6 present out-of-scope entities excluded from the precision denominator"
+  }
+}
