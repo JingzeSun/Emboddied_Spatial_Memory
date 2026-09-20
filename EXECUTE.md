@@ -2831,7 +2831,7 @@ U={Fridge}，F=11，抽中 6 个全是 `add`（复制 Statue／SoapBottle／Pan�
 
 ## LOG-236：S1-02b 46 house 跑完——成品率门未过，失败几乎全是执行机制；删除动作挂死已定位并有替代（2026-09-20）
 
-- 类型：**真实运行＋只读探测**。服务器 checkout `159654f`（分支 `s1-02a-runner`），`simulator-py39`，4 worker（S1-01 公式推导值，瓶颈＝模拟器并发 4，非外推），46 个 house＝train 块 [4:50]，墙钟 1265 s，产物 5.3 GB 在 `/root/autodl-tmp/vsmt_outputs/lean-s1-02b-159654f/`。顶层与逐 house 回执导出到 `results/vsmt_lean_s1_02b_receipts_159654f.json`（detail 截断到 400 字符）。
+- 类型：**真实运行＋只读探测**。服务器 checkout `159654f`（分支 `s1-02a-runner`），`simulator-py39`，4 worker（S1-01 公式推导值，瓶颈＝模拟器并发 4，非外推），46 个 house＝train 块 [4:50]，墙钟 1265 s，产物 5.3 GB 在 `/root/autodl-tmp/vsmt_outputs/lean-s1-02b-159654f/`。顶层与逐 house 回执由并行会话的导出器（`2145344`／`bdc60c3`）导出到 `results/vsmt_lean_s1_02b_report.json`（含阶段 commit 与回执摘要）；本会话最初的原样拷贝已删，不留两份。
 - 授权：同 LOG-235（D-224-S1 裁决 24 的六个位）。没有任何 cache、前端、训练或 private 评价。
 
 ### 总结果
@@ -2863,7 +2863,7 @@ Unity 日志里的对应痕迹：`NullReferenceException at BaseFPSAgentControll
 2. **`action_rejected` 里有 3 个是自家复制件挡路。** `SpawnAsset` 用 `anywhere=True` 的预筛点，复制件可能落在回访路径上；这不是模拟器 bug，是 R1 假设"相邻可达格之间可走"与 I1 的放置点没有互相约束。修订 27 的重规划同时解决椅子与复制件两种挡路。
 3. **门未过是执行机制问题，不是路线模板或 house 数的问题。** 21/23 个失败属于机制；3 个步数上限与 2 个 U＝0 按合同本就是构造失败。因此推荐的规模裁决是"修机制后同 seed 重生成全部 50 条"，而不是下调 house 数；重生成必须整批、在新提交下、进新输出根，旧运行整份保留。
 
-### 只读探测（`770171b`，house 04388，`TeddyBear|surface|2|6`，每次新控制器；`results/vsmt_lean_s1_remove_action_probe_04388.json`）
+### 只读探测（`770171b`，house 04388，`TeddyBear|surface|2|6`，每次新控制器；`results/vsmt_lean_s1_remove_action_probe_v1.json`，由并行会话从服务器同一份探测输出导出）
 
 | 试验 | 结果 |
 |---|---|
