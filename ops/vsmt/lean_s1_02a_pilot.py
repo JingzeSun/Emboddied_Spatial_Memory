@@ -414,6 +414,67 @@ def _place_verified(controller: Any, action: str, candidates: list[Any], *, obje
     return ev, len(candidates), best
 
 
+def _peek_pixels(controller: Any, viewpoint: dict[str, Any], object_id: str) -> int:
+    """Off-route private render from a container's viewpoint; the agent is put back exactly."""
+
+    a = controller.last_event.metadata["agent"]
+    home = {"position": dict(a["position"]), "rotation": dict(a["rotation"]), "horizon": a["cameraHorizon"],
+            "standing": bool(a.get("isStanding", True))}
+    vp_pos = {"x": viewpoint["cell"][0] * lean_route.GRID_M, "y": a["position"]["y"], "z": viewpoint["cell"][1] * lean_route.GRID_M}
+    peek = controller.step(action="Teleport", position=vp_pos, rotation={"x": 0, "y": viewpoint["yaw"], "z": 0},
+                           horizon=viewpoint["pitch"], standing=True, forceAction=True)
+    px = int(np.asarray((peek.instance_masks or {}).get(object_id, np.zeros((1,), dtype=bool))).sum())
+    back = controller.step(action="Teleport", position=home["position"], rotation=home["rotation"],
+                           horizon=home["horizon"], standing=home["standing"], forceAction=True)
+    if back.metadata.get("lastActionSuccess") is not True:
+        raise PilotFailure("intervention_execution_failed", f"could not teleport back after a peek: {back.metadata.get('errorMessage')}")
+    return px
+
+
+def _dry_run_pairs(controller: Any, candidates: list[dict[str, Any]], u_containers: set[str], spawn_points: dict[str, Any],
+                   viewpoints: dict[str, Any], min_px: int) -> tuple[dict[tuple[str, str], dict[str, Any]], list[dict[str, Any]]]:
+    """Try every (object, U destination) placement for real, peek, and put the object back.
+
+    白话（裁决 31，proposed）：可行集里的 move／add 不再靠"容器有生成点"猜，而是在窗口
+    内真的把物体放过去一次、从该容器的重访视点偷看一眼（私有渲染，≥196 像素才算），再
+    用 TeleportObject 把物体放回原位。只有真放得下且看得见的 (物体, 目的容器) 对才进 F，
+    并记住那个点。窗口内容器本就不可见、干预之间不采帧，所以试放不会进入 public。
+    """
+
+    meta = controller.last_event.metadata
+    objs = {o["objectId"]: o for o in meta["objects"]}
+    ok: dict[tuple[str, str], dict[str, Any]] = {}
+    table: list[dict[str, Any]] = []
+    for row in candidates:
+        oid = row["object_id"]; o = objs.get(oid)
+        if o is None:
+            continue
+        orig_pos, orig_rot = dict(o["position"]), dict(o["rotation"])
+        for dst in sorted(u_containers):
+            if dst == row.get("parent_receptacle") or dst not in spawn_points or dst not in viewpoints:
+                continue
+            found, best, tried, placed_any = None, 0, 0, False
+            for n, pt in enumerate(spawn_points[dst], start=1):
+                tried = n
+                ev = controller.step(action="PlaceObjectAtPoint", objectId=oid, position=pt)
+                if ev.metadata.get("lastActionSuccess") is not True:
+                    continue
+                placed_any = True
+                px = _peek_pixels(controller, viewpoints[dst], oid)
+                best = max(best, px)
+                if px >= min_px:
+                    found = pt; break
+            back = controller.step(action="TeleportObject", objectId=oid, position=orig_pos, rotation=orig_rot, forceAction=True)
+            now = next((x["position"] for x in back.metadata["objects"] if x["objectId"] == oid), None)
+            drift = (math.dist([now["x"], now["y"], now["z"]], [orig_pos["x"], orig_pos["y"], orig_pos["z"]]) if now else None)
+            table.append({"object_id": oid, "destination": dst, "tries": tried, "placed_any": placed_any, "best_pixels": best,
+                          "feasible": found is not None, "revert_ok": back.metadata.get("lastActionSuccess") is True,
+                          "revert_drift_m": None if drift is None else round(drift, 4)})
+            if found is not None:
+                ok[(oid, dst)] = {"point": found, "pixels": best, "tries": tried}
+    return ok, table
+
+
 def _apply_interventions(controller: Any, rows: list[dict[str, Any]], spawn_points: dict[str, Any], *,
                          viewpoints: dict[str, Any] | None = None, verify: bool = False) -> list[dict[str, Any]]:
     log = []
@@ -428,6 +489,11 @@ def _apply_interventions(controller: Any, rows: list[dict[str, Any]], spawn_poin
             # metadata with visible=false.  Private frame records are built from instance masks,
             # so a disabled object never appears in them.
             ev = controller.step(action="DisableObject", objectId=row["object_id"])
+        elif (kind == "move" or row.get("add_source") == "unseen_existing") and row.get("point") is not None:
+            # dry-run prescreened pair: one attempt at the verified point
+            ev = controller.step(action="PlaceObjectAtPoint", objectId=row["object_id"], position=row["point"])
+            if ev.metadata.get("lastActionSuccess") is True and vp is not None:
+                seen_px = _peek_pixels(controller, vp, row["object_id"])
         elif kind == "move" or row.get("add_source") == "unseen_existing":
             if verify and vp is not None:
                 ev, tries, seen_px = _place_verified(controller, "PlaceObjectAtPoint", spawn_points[row["destination"]],
@@ -457,9 +523,11 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
     placement_tries = int(task.get("placement_tries", 1))
     add_source = str(task.get("add_source", "spawn_asset"))
     destination_points = str(task.get("destination_points", "anywhere"))
+    placement_prescreen = str(task.get("placement_prescreen", "spawn_points"))
     receipt["options"] = {"replan_blocked_edges": replan_on, "placement_tries": placement_tries,
                           "stratify_by_kind": bool(task.get("stratify_by_kind", False)),
-                          "add_source": add_source, "destination_points": destination_points}
+                          "add_source": add_source, "destination_points": destination_points,
+                          "placement_prescreen": placement_prescreen}
     controller = None
     try:
         house = house_loader.load_source_record(task["source_root"], {"relative_path": task["source_rel"], "index": index})
@@ -547,11 +615,18 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
             unseen = sel.unseen_objects(objects, ep.visible_pixels) if add_source == "unseen_existing" else None
             ok, spawn_points = _prescreen(controller, {c: usable[c] for c in usable}, tries=placement_tries,
                                           anywhere=(destination_points != "top"))
-            feasible = sel.feasible_triples(eligible, list(usable), invisible, ok, unseen=unseen)
+            pair_ok, dry_run_table = None, None
+            if placement_prescreen == "dry_run":
+                cand = [o for o in eligible if o["parent_receptacle"] in invisible] + list(unseen or [])
+                pair_ok, dry_run_table = _dry_run_pairs(controller, cand, invisible, spawn_points, plan1["viewpoints"],
+                                                        MIN_VISIBLE_PIXELS)
+                (ep.prov / "placement_dry_run.json").write_text(json.dumps(dry_run_table, indent=1))
+            feasible = sel.feasible_triples(eligible, list(usable), invisible, ok, unseen=unseen, pair_ok=pair_ok)
             if not feasible:
                 raise PilotFailure("intervention_window_unavailable", f"feasible set empty; U={len(invisible)} eligible={len(eligible)}")
             interventions = sel.sample_interventions(feasible, split_seed=task["split_seed"], house_id=house_id,
-                                                     stratify_by_kind=bool(task.get("stratify_by_kind", False)))
+                                                     stratify_by_kind=bool(task.get("stratify_by_kind", False)),
+                                                     one_placement_per_destination=(placement_prescreen == "dry_run"))
             feasible_by_kind: dict[str, int] = {}
             for row in feasible:
                 feasible_by_kind[row["kind"]] = feasible_by_kind.get(row["kind"], 0) + 1
@@ -559,7 +634,9 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
                 {"feasible_set_size": len(feasible), "feasible_by_kind": feasible_by_kind,
                  "invisible_container_set_size": len(invisible),
                  "eligible_object_count": len(eligible), "unseen_object_count": (len(unseen) if unseen is not None else None),
-                 "destinations_with_points": sum(1 for c in invisible if ok.get(c)), "sampled": interventions}, indent=1))
+                 "destinations_with_points": sum(1 for c in invisible if ok.get(c)),
+                 "dry_run_pairs_tested": (len(dry_run_table) if dry_run_table is not None else None),
+                 "dry_run_pairs_feasible": (len(pair_ok) if pair_ok is not None else None), "sampled": interventions}, indent=1))
             try:
                 log = _apply_interventions(controller, interventions, spawn_points, viewpoints=plan1["viewpoints"],
                                            verify=(destination_points == "verified"))
@@ -662,6 +739,9 @@ def main() -> int:
                     help="I1 refinement (ruling 29, needs a ruling): draw the kind first, then the triple")
     ap.add_argument("--add-source", choices=["spawn_asset", "unseen_existing"], default="spawn_asset",
                     help="ruling 30 (needs a ruling): add = SpawnAsset duplicate (frozen) or relocate a never-seen real object")
+    ap.add_argument("--placement-prescreen", choices=["spawn_points", "dry_run"], default="spawn_points",
+                    help="ruling 31 (needs a ruling): F's move/add pairs by spawn-point existence (frozen) or by a real "
+                         "placement + viewpoint peek + revert during the window; dry_run also limits one placement per destination")
     ap.add_argument("--destination-points", choices=["anywhere", "top", "verified"], default="anywhere",
                     help="ruling 31 (needs a ruling): any receptacle box (frozen), top surface only, or any box but each "
                          "placement verified visible (>=196 px) from the container's viewpoint by an off-route private render")
@@ -682,7 +762,7 @@ def main() -> int:
     (out_root / "plan.json").write_text(json.dumps({"selected": selected, "split": freeze, "commit": commit, "pool_size": len(pool)}, indent=1))
     tasks = [{"house_id": h, "index": int(h.rsplit("-", 1)[1]), "out": str(out_root / h), "source_root": str(source.parent),
               "source_rel": source.name, "split_seed": freeze["seed"], "commit": commit,
-              "replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries, "stratify_by_kind": args.stratify_by_kind, "add_source": args.add_source, "destination_points": args.destination_points} for h in selected]
+              "replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries, "stratify_by_kind": args.stratify_by_kind, "add_source": args.add_source, "destination_points": args.destination_points, "placement_prescreen": args.placement_prescreen} for h in selected]
     base_vram = float(subprocess.run(["nvidia-smi", "--query-gpu=memory.used", "--format=csv,noheader,nounits"], capture_output=True, text=True).stdout.strip().split("\n")[0])
     stop, q = mp.Event(), mp.Queue()
     sampler = mp.Process(target=_vram_peak_sampler, args=(stop, q), daemon=True); sampler.start()
@@ -814,7 +894,7 @@ def main_s1_02b(args: argparse.Namespace) -> int:
                                                     "commit": commit}, indent=1))
     tasks = [{"house_id": h, "index": int(h.rsplit("-", 1)[1]), "out": str(out_root / h), "source_root": str(source.parent),
               "source_rel": source.name, "split_seed": freeze["seed"], "commit": commit,
-              "replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries, "stratify_by_kind": args.stratify_by_kind, "add_source": args.add_source, "destination_points": args.destination_points} for h in houses]
+              "replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries, "stratify_by_kind": args.stratify_by_kind, "add_source": args.add_source, "destination_points": args.destination_points, "placement_prescreen": args.placement_prescreen} for h in houses]
     prior: list[dict[str, Any]] = []
     if args.resume:
         pending = []
@@ -847,7 +927,7 @@ def main_s1_02b(args: argparse.Namespace) -> int:
         "null_window_episodes": len(results) - len(non_null), "yield_house_level_non_null": yield_rate,
         "yield_gate": s1_01 and json.loads(CONTRACT_S0_02.read_text(encoding="utf-8"))["intervention_window"]["minimum_yield"],
         "yield_gate_passed": (yield_rate is not None and yield_rate >= 0.6),
-        "options": {"replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries, "stratify_by_kind": args.stratify_by_kind, "add_source": args.add_source, "destination_points": args.destination_points},
+        "options": {"replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries, "stratify_by_kind": args.stratify_by_kind, "add_source": args.add_source, "destination_points": args.destination_points, "placement_prescreen": args.placement_prescreen},
         "requested_workers": workers, "actual_workers": workers, "derived_worker_count": scale["worker_count"],
         "binding_constraint": scale["binding_constraint"], "concurrency_verified_at": scale["concurrency_verified_at"],
         "is_extrapolation": scale["is_extrapolation"], "wall_clock_seconds": round(wall, 1),

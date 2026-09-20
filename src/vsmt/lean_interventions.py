@@ -106,6 +106,7 @@ def feasible_triples(
     invisible_containers: set[str],
     placement_ok: Mapping[str, bool],
     unseen: Sequence[Mapping[str, Any]] | None = None,
+    pair_ok: Mapping[tuple[str, str], Mapping[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     """Every (object, kind, ...) whose involved containers are all in U.
 
@@ -138,6 +139,18 @@ def feasible_triples(
                     continue
                 out.append({"kind": "add", "object_id": obj["object_id"], "asset_id": obj.get("asset_id"),
                             "source": obj["parent_receptacle"], "destination": dst, "add_source": "unseen_existing"})
+    if pair_ok is not None:
+        # dry-run prescreen (ruling 31, proposed): a move/add is feasible only if the simulator
+        # actually placed the object there and it was visible from the destination's viewpoint
+        kept = []
+        for row in out:
+            if row["kind"] == "remove":
+                kept.append(row); continue
+            hit = pair_ok.get((row["object_id"], row["destination"]))
+            if hit is None:
+                continue
+            kept.append({**row, "point": hit["point"], "verified_pixels": hit["pixels"], "dry_run_tries": hit["tries"]})
+        out = kept
     for t in out:
         if t["kind"] not in INTERVENTION_KINDS:
             raise LeanSelectionError("unregistered_kind")
@@ -147,6 +160,7 @@ def feasible_triples(
 def sample_interventions(
     feasible: Sequence[Mapping[str, Any]], *, split_seed: int, house_id: str,
     maximum: int = MAXIMUM_INTERVENTIONS_PER_EPISODE, stratify_by_kind: bool = False,
+    one_placement_per_destination: bool = False,
 ) -> list[dict[str, Any]]:
     """Draw up to ``maximum`` triples without replacement, one object at most once.
 
@@ -162,7 +176,12 @@ def sample_interventions(
     pool = list(feasible)
     chosen: list[dict[str, Any]] = []
     used: set[str] = set()
+    placed: set[str] = set()
     while pool and len(chosen) < maximum:
+        if one_placement_per_destination:
+            pool = [t for t in pool if t["kind"] == "remove" or t["destination"] not in placed]
+            if not pool:
+                break
         if stratify_by_kind:
             pool = [t for t in pool if t["object_id"] not in used]
             if not pool:
@@ -176,6 +195,8 @@ def sample_interventions(
         if pick["object_id"] in used:
             continue
         used.add(pick["object_id"])
+        if pick["kind"] != "remove":
+            placed.add(pick["destination"])
         row = dict(pick)
         row["index"] = len(chosen)
         if row["kind"] == "add" and row.get("add_source") != "unseen_existing":

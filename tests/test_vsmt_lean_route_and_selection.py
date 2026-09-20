@@ -280,5 +280,28 @@ class TestUnseenAddSource(unittest.TestCase):
         self.assertTrue(all("generated_id" not in row for row in s))
 
 
+class TestDryRunPrescreen(unittest.TestCase):
+    def test_pair_ok_filters_placements_and_attaches_the_point(self) -> None:
+        objs = [{"object_id": "O|0", "asset_id": "A", "pickupable": True, "parent_receptacle": "U0", "is_agent": False, "is_structure": False},
+                {"object_id": "O|9", "asset_id": "B", "pickupable": True, "parent_receptacle": "V", "is_agent": False, "is_structure": False}]
+        px = {"O|0": 400, "O|9": 0}
+        U = {"U0", "U1"}; ok = {"U0": True, "U1": True, "V": True}
+        pair_ok = {("O|0", "U1"): {"point": {"x": 1, "y": 1, "z": 1}, "pixels": 250, "tries": 3}}
+        f = sel.feasible_triples(sel.eligible_objects(objs, px), sorted(ok), U, ok, unseen=sel.unseen_objects(objs, px), pair_ok=pair_ok)
+        kinds = sorted((t["kind"], t["object_id"], t["destination"]) for t in f)
+        self.assertEqual(kinds, [("move", "O|0", "U1"), ("remove", "O|0", None)])
+        mv = next(t for t in f if t["kind"] == "move")
+        self.assertEqual(mv["point"], {"x": 1, "y": 1, "z": 1}); self.assertEqual(mv["verified_pixels"], 250)
+
+    def test_one_placement_per_destination(self) -> None:
+        f = [{"kind": "add", "object_id": f"O|{i}", "asset_id": "A", "source": "V", "destination": "U0", "add_source": "unseen_existing"} for i in range(5)]
+        f += [{"kind": "remove", "object_id": "O|7", "asset_id": "A", "source": "U0", "destination": None}]
+        s = sel.sample_interventions(f, split_seed=5, house_id="h", one_placement_per_destination=True)
+        self.assertEqual(sum(1 for r in s if r["kind"] == "add"), 1)
+        self.assertEqual(sum(1 for r in s if r["kind"] == "remove"), 1)
+        s2 = sel.sample_interventions(f, split_seed=5, house_id="h")
+        self.assertEqual(len(s2), 6)
+
+
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()
