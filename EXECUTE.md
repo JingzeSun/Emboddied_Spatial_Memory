@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| D-224 精简方向 | 2026-09-19 用户批准裁决 A～D 与 E/F/G：首篇改为实体生命周期版本化事务，帧级联合分配＋三个约 4 万参数的 MLP 代价头，ProcTHOR 干预序列并对齐 Dyn-THOR 指标，正式规模 300/50/100 house；共享 ReID 头为可选前端、`VSMT-lean-ctx` 为可选臂、实体 token schema 已冻结。旧方向归档到分支 `archive/pre-d224-unified-graph`，`main` 重写 METHOD/PLAN/DATA。**S0-01～S0-05 五份机器合同全部经用户审查通过，S0-06 收口**；S1-01 资产与容量授权申请材料已实现待审；D-224-S1 九项裁决已落地。服务器只读核验确认 SAM 2.1、DINOv2、ProcTHOR-10K 0.1.2 与 AI2-THOR CloudRendering 七项标识**全部与登记值一致**（LOG-221），Python 与 Vulkan 两项冲突消解，仅 ViT-B/14 未登记仍挡住 S1-03～05，基础环境缺 hydra 的阻塞已解除（LOG-222：torch/torchvision/numpy 与 SAM2 工作树均未变，`import sam2.build_sam` 成功，生成器 17 个具名参数与登记一致）；9-19 那次未记录的资产放置已凭 reflog 追认；ViT-B/14 已完成一次性摘要登记（LOG-223：346,378,731 字节 / `0b8b82f8…`，核对 768 维、patch 14、12 层）。**S1-01 四项已知冲突现已全部拿到回执，没有仍在阻挡后续步骤的冲突**；待冻结 null 只剩 `worker_rule.headroom_fraction`。用户已审过 S1-01 v1/v2、五份 S0 v2 并定 `headroom_fraction`=0.2；S1-02a pilot 合同已实现待审（4 worker × 1 house，划分与推导均复用上游、4 条计入 50 条、占用取峰值，LOG-227），**划分已于 2026-09-20 冻结：seed=20260920、validation=50、test=100**，test/validation 成员与 train 块起点至此固定，`train_houses` 留到 S3-01 且只能下调；三值只登记在 S1-02a v2 一处并由跨合同测试钉住（LOG-228）；服务器已同步到受审提交，权威全量 **1249/1249 首次全绿**，并查出冻结摘要钉的是 CRLF/LF 行尾而非内容、三处坏钉已修（LOG-229）；S1-02a 因缺 runner 与 S0-02 六个路线/干预数值而仍不可运行；S0 转 v2 后核出 S1 三处连带失效（depends_on 仍指 v1、headroom 无法冻结、S1 从未进跨合同核对），已追加 S1-01 v2 并把 S1↔S0 一致性纳入测试（LOG-226）。文档审查另发现 S1-01 的 worker 推导死锁（占用只能靠跑 episode 测，而 episode 生成在本阶段 must_remain_false 里），已按裁决 14 把测量移入新拆出的 S1-02a（4 worker × 1 house）并由 S1-02b 扩到 50 house；数据盘已由用户清理，22 G → 43 G 可用，保留清单九项全在（LOG-224）。**2026-09-20 用户批准 D-224-X 裁决 X1～X6**（LOG-225）：S0-01～S0-05 各追加 v2 合同、v1 字节冻结并由测试钉住摘要；S0-03 求解器规范化改等式子图（64×500 单帧 125 秒 → 0.01 秒）、S0-04 评价器匹配分连通块（300×100 单帧 3.1 秒 → 毫秒级），均与 v1 逐列等价；同帧重复色块记 `duplicate_of_labelled`、未定义 house 按指标排除计数、AssocOnly 同配方重训、预登记 ELU-P `rollout_config`、划分顺序 test→validation→train、生命周期版本数与真值表 `in_scope` 落地；本会话复审后修正四处（X1 组级记账、X2 不适用臂例外、HeuristicLabel 私有依赖声称、范围外实体退出精确率分母），八个 lean 模块分进程共 386 项本地通过，五份 v2 已按用户批准提交推送。合跑一次段错误，与本机已知 CPU 不稳定一致，待服务器复核。无数据、无训练、无 episode、无 cache；S0 五份合同授权位全 false，S1-01 按 D-224-S1 开四个位（三只读/本地登记加一依赖安装）。LOG-214～224。 |
+| D-224 精简方向 | 2026-09-19 用户批准裁决 A～D 与 E/F/G：首篇改为实体生命周期版本化事务，帧级联合分配＋三个约 4 万参数的 MLP 代价头，ProcTHOR 干预序列并对齐 Dyn-THOR 指标，正式规模 300/50/100 house；共享 ReID 头为可选前端、`VSMT-lean-ctx` 为可选臂、实体 token schema 已冻结。旧方向归档到分支 `archive/pre-d224-unified-graph`，`main` 重写 METHOD/PLAN/DATA。**S0-01～S0-05 五份机器合同全部经用户审查通过，S0-06 收口**；S1-01 资产与容量授权申请材料已实现待审；D-224-S1 九项裁决已落地。服务器只读核验确认 SAM 2.1、DINOv2、ProcTHOR-10K 0.1.2 与 AI2-THOR CloudRendering 七项标识**全部与登记值一致**（LOG-221），Python 与 Vulkan 两项冲突消解，仅 ViT-B/14 未登记仍挡住 S1-03～05，基础环境缺 hydra 的阻塞已解除（LOG-222：torch/torchvision/numpy 与 SAM2 工作树均未变，`import sam2.build_sam` 成功，生成器 17 个具名参数与登记一致）；9-19 那次未记录的资产放置已凭 reflog 追认；ViT-B/14 已完成一次性摘要登记（LOG-223：346,378,731 字节 / `0b8b82f8…`，核对 768 维、patch 14、12 层）。**S1-01 四项已知冲突现已全部拿到回执，没有仍在阻挡后续步骤的冲突**；待冻结 null 只剩 `worker_rule.headroom_fraction`。用户已审过 S1-01 v1/v2、五份 S0 v2 并定 `headroom_fraction`=0.2；S1-02a pilot 合同已实现待审（4 worker × 1 house，划分与推导均复用上游、4 条计入 50 条、占用取峰值，LOG-227），**划分已于 2026-09-20 冻结：seed=20260920、validation=50、test=100**，test/validation 成员与 train 块起点至此固定，`train_houses` 留到 S3-01 且只能下调；三值只登记在 S1-02a v2 一处并由跨合同测试钉住（LOG-228）；服务器已同步到受审提交，权威全量 **1249/1249 首次全绿**，并查出冻结摘要钉的是 CRLF/LF 行尾而非内容、三处坏钉已修（LOG-229）；S1-02a 因缺 runner 与 S0-02 六个路线/干预数值而仍不可运行；S0 转 v2 后核出 S1 三处连带失效（depends_on 仍指 v1、headroom 无法冻结、S1 从未进跨合同核对），已追加 S1-01 v2 并把 S1↔S0 一致性纳入测试（LOG-226）。文档审查另发现 S1-01 的 worker 推导死锁（占用只能靠跑 episode 测，而 episode 生成在本阶段 must_remain_false 里），已按裁决 14 把测量移入新拆出的 S1-02a（4 worker × 1 house）并由 S1-02b 扩到 50 house；数据盘已由用户清理，22 G → 43 G 可用，保留清单九项全在（LOG-224）。**2026-09-20 用户批准 D-224-X 裁决 X1～X6**（LOG-225）：S0-01～S0-05 各追加 v2 合同、v1 字节冻结并由测试钉住摘要；S0-03 求解器规范化改等式子图（64×500 单帧 125 秒 → 0.01 秒）、S0-04 评价器匹配分连通块（300×100 单帧 3.1 秒 → 毫秒级），均与 v1 逐列等价；同帧重复色块记 `duplicate_of_labelled`、未定义 house 按指标排除计数、AssocOnly 同配方重训、预登记 ELU-P `rollout_config`、划分顺序 test→validation→train、生命周期版本数与真值表 `in_scope` 落地；本会话复审后修正四处（X1 组级记账、X2 不适用臂例外、HeuristicLabel 私有依赖声称、范围外实体退出精确率分母），八个 lean 模块分进程共 386 项本地通过，五份 v2 已按用户批准提交推送。合跑一次段错误，与本机已知 CPU 不稳定一致，待服务器复核。无数据、无训练、无 episode、无 cache；S0 五份合同授权位全 false，S1-01 按 D-224-S1 开四个位（三只读/本地登记加一依赖安装）。LOG-214～224。 **S1-02a pilot 与 S1-02b 46 house 已真实运行（LOG-235／236）：02b 非空成品率 14/37＝0.378 ＜ 0.6，门未过；23 个失败里 21 个是执行机制（`RemoveFromScene` 挂死 7、`MoveAhead` 被椅/门/自家复制件挡 7、放置点 4、步数上限 3），81 个执行成功的干预全是 `add`，数据里至今没有 remove／move；只读探测证实 `DisableObject` 可替代删除。四项机制修正已写成代码待裁（25～29），重生成未授权。** |
 | D-214～D-223共享RGB-D前端 | Estimator历史路线已完成并由E-08证伪其P08硬门用途；F-00两房拓扑预检通过。D-223/F-01 reader本地实现已审；一次服务器真实预检只读定位后因缺冻结SAM2资产和兼容公开bundle停止。D-217 public observation-0兼容适配器已本地实现待审，尚未读取真实数据或运行服务器；模型加载/cache仍为0，执行位全关闭。P04/P08、route/raw、method adapter、private evaluation、训练与audit重跑均未运行。LOG-199～211。 |
 | D-213统一图/类型门 | 四节点/五关系统一图合同、seal前类型门、五种消融memory view、图复杂度派生、relation REACTIVATE及surface/fragment RETRACT已实现候选；数据接线现改为等待D-214冻结cache，不再以单槽raw后定义前端，全部运行位关闭；LOG-197/199。 |
 | D-212地点raw纠偏 | v2已补公开grid模板＋RGB-D route survey生产入口、P01–P08可复算收据、raw三面journal与两提交执行门；D-214已重新阻断activation，旧P04/P08工程描述不得获论文资格。真实survey/seal/smoke均为0；LOG-196/198/199。 |
@@ -2828,3 +2828,54 @@ U={Fridge}，F=11，抽中 6 个全是 `add`（复制 Statue／SoapBottle／Pan�
 - **更正（同日）。** 提交 `710bd5c` 的说明称 02a 编排进程写完回执后未退出并遗留一个 Unity 进程；复查发现那是 `pgrep -f` 匹配到了检查用的 shell 自身的命令行（其中含被搜索的字符串），02a 编排进程实际已正常退出，02b 启动后的进程树为 1 主进程＋4 worker＋4 Unity，无泄漏。被误杀的只是那个检查用 shell（exit 255），02b 未受影响。`710bd5c` 里把 sampler 改为 daemon、先读队列再 join 的改动仍保留——它是正确的卫生措施，但当时的诊断依据是错的。
 - **S1-02b 已启动**：checkout `159654f`（同一 worker，加 02b 模式），46 个 house＝train 块 [4:50]，worker=4（推导值），输出 `/root/autodl-tmp/vsmt_outputs/lean-s1-02b-159654f/`。成品率门（house 级、非空、0.6）在此判。
 - 未做：任何 cache、前端、训练、private 评价。
+
+## LOG-236：S1-02b 46 house 跑完——成品率门未过，失败几乎全是执行机制；删除动作挂死已定位并有替代（2026-09-20）
+
+- 类型：**真实运行＋只读探测**。服务器 checkout `159654f`（分支 `s1-02a-runner`），`simulator-py39`，4 worker（S1-01 公式推导值，瓶颈＝模拟器并发 4，非外推），46 个 house＝train 块 [4:50]，墙钟 1265 s，产物 5.3 GB 在 `/root/autodl-tmp/vsmt_outputs/lean-s1-02b-159654f/`。顶层与逐 house 回执导出到 `results/vsmt_lean_s1_02b_receipts_159654f.json`（detail 截断到 400 字符）。
+- 授权：同 LOG-235（D-224-S1 裁决 24 的六个位）。没有任何 cache、前端、训练或 private 评价。
+
+### 总结果
+
+| 量 | 值 |
+|---|---|
+| 计划／成功／失败 | 46／23／23（计划数＝成功＋失败，恰好一份回执） |
+| 空窗口 episode（按设计成功） | 9 |
+| 非空且执行了干预的成功 | 14 |
+| **非空成品率（house 级）** | **14/37＝0.378，门 0.6 未过**，runner 退出码 1 |
+| 执行成功的干预 | 81 个，**全部是 `add`** |
+| 成功 episode 窗口帧 | 24～140（中位约 69），观察总数 11,376 |
+
+### 失败分类（按真实原因；本次回执里的标签有 10 处是错的，见下）
+
+| 真实原因 | 数 | house | 回执标签 |
+|---|---|---|---|
+| `remove` → `RemoveFromScene` 让 Unity 挂死，客户端 100 s 超时 | 7 | 00702 04146 04388 04801 05879 08422 09423 | 误标 `frame_write_failed`（`c6b1344` 起改记 `intervention_execution_failed`） |
+| `MoveAhead` 被挡：椅子 3、门 1、**我们自己 `add` 出来的复制件 3** | 7 | 00406 01259 05806 07815 ／ 00975 08398 09488 | `action_rejected` |
+| `move` → `PlaceObjectAtPoint` 第一个预筛点"spawn area not clear" | 4 | 00236 03361 04742 06453 | `intervention_execution_failed` |
+| 2000 步上限（00950 在扫掠二；01289、08790 在扫掠一**规划期**就超） | 3 | 00950 01289 08790 | 误标 `frame_write_failed`（`770171b` 起改记 `route_not_placeable`） |
+| U＝0，可行集空 | 2 | 03986 07367 | `intervention_window_unavailable` |
+
+Unity 日志里的对应痕迹：`NullReferenceException at BaseFPSAgentController.ObjectMetadataFromSimObjPhysics ← generateObjectMetadata ← AgentManager.EmitFrame`，即删除物体后生成元数据时引用了已销毁的组件，帧发不出来，客户端等到超时。
+
+### 三件必须如实说的事
+
+1. **数据里至今没有一个 remove／move。** 抽到 remove／move 的 11 个 house 全部在机制上失败，活下来的 14 条非空 episode 的 81 个干预全是 `add`。就算机制修好，F 按三元组均匀抽也会被 add 淹没（add 三元组＝合格物体×U 容器，例如 01543：F＝135、U＝5）。RETRACT 正例是否够用，取决于裁决 29 的分层抽样，不能靠现状。
+2. **`action_rejected` 里有 3 个是自家复制件挡路。** `SpawnAsset` 用 `anywhere=True` 的预筛点，复制件可能落在回访路径上；这不是模拟器 bug，是 R1 假设"相邻可达格之间可走"与 I1 的放置点没有互相约束。修订 27 的重规划同时解决椅子与复制件两种挡路。
+3. **门未过是执行机制问题，不是路线模板或 house 数的问题。** 21/23 个失败属于机制；3 个步数上限与 2 个 U＝0 按合同本就是构造失败。因此推荐的规模裁决是"修机制后同 seed 重生成全部 50 条"，而不是下调 house 数；重生成必须整批、在新提交下、进新输出根，旧运行整份保留。
+
+### 只读探测（`770171b`，house 04388，`TeddyBear|surface|2|6`，每次新控制器；`results/vsmt_lean_s1_remove_action_probe_04388.json`）
+
+| 试验 | 结果 |
+|---|---|
+| A `RemoveFromScene` | 100.1 s 后同样超时——**确定性复现**，与并发无关 |
+| B `DisableObject` | 0.04 s 成功；物体仍在元数据里但 `visible=false`；从其视点看，私有实例分割像素 **927 → 0**（`Pass` 重渲染仍为 0）；随后 12 步元数据正常、`GetReachablePositions` 正常；`EnableObject` 恢复到 927 px |
+| C `PlaceObjectAtPoint` 依次试前 8 个预筛点 | `Bed|2|0` 0/8（4 次"couldn't come to rest"、4 次笔记本挡）；`Bed|2|2|0` 第 4 个成功；`Dresser|2|1` 第 4 个成功；`Dresser|2|1___0` 0/8（被父抽屉柜挡）。只试第一个点会丢掉可行目标；子容器（`___n`）常放不下 |
+
+### 已备好但默认关闭／未运行的代码（分支 `s1-02a-runner`）
+
+- `4481b4d` 探测脚本 `ops/vsmt/lean_s1_remove_action_probe.py`（只读，不写数据集）。
+- `f9409ab` `lean_route.bfs_path/plan_route` 接受被拒绝格间边黑名单并记入计划；无人传非空集合时行为不变，3 项新测试。
+- `770171b` runner 新增 `--replan-blocked-edges`（默认关）与 `--placement-tries N`（默认 1）；`route_cap_hit` 改记 `route_not_placeable`；抽样结果在执行前写 `provenance/interventions_sampled.json`（本次失败 house 没有留下抽样，是本条修的缺口）。
+- 本条提交：`remove` 执行器改为 `DisableObject`，干预行记 `executor`。
+- 未写：裁决 29 的类型分层抽样（等裁决后改 `sample_interventions` 与 S0-02 v3 规则文、重钉规则摘要）。
+- 本地六个 lean 测试模块分进程 269 项通过；服务器全量未在新提交上重跑。

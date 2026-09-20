@@ -1,0 +1,208 @@
+{
+ "probe": "lean_s1_remove_action_probe",
+ "house_index": 4388,
+ "object_id": "TeddyBear|surface|2|6",
+ "started": "2026-09-20T19:24:19+0800",
+ "A_remove": {
+  "action": "RemoveFromScene",
+  "object_id": "TeddyBear|surface|2|6",
+  "seconds": 100.1,
+  "exception": "TimeoutError(\"Error encountered when running action {'action': 'RemoveFromScene', 'objectId': 'TeddyBear|surface|2|6', 'sequenceId': 5} in scene Procedural.\")"
+ },
+ "B_disable": {
+  "action": "DisableObject",
+  "object_id": "TeddyBear|surface|2|6",
+  "view": {
+   "viewpoint": {
+    "cell": [
+     6,
+     27
+    ],
+    "yaw": 0,
+    "pitch": 30,
+    "distance_m": 1.0844
+   },
+   "teleport_ok": true
+  },
+  "pixels_before": 927,
+  "seconds": 0.04,
+  "success": true,
+  "error": "",
+  "still_listed": true,
+  "listed_visible": false,
+  "pixels_after": 0,
+  "pixels_after_pass": 0,
+  "health": {
+   "steps": 12,
+   "metadata_present": 12,
+   "seconds": 0.58
+  },
+  "reachable_ok": true,
+  "enable_success": true,
+  "view_back": {
+   "viewpoint": {
+    "cell": [
+     6,
+     27
+    ],
+    "yaw": 0,
+    "pitch": 30,
+    "distance_m": 1.0844
+   },
+   "teleport_ok": true
+  },
+  "pixels_after_enable": 927
+ },
+ "C_place": {
+  "action": "PlaceObjectAtPoint",
+  "object_id": "TeddyBear|surface|2|6",
+  "containers": [
+   {
+    "container": "Bed|2|0",
+    "points": 441,
+    "tries": [
+     {
+      "n": 1,
+      "ok": false,
+      "error": "object couldn't come to rest"
+     },
+     {
+      "n": 2,
+      "ok": false,
+      "error": "object couldn't come to rest"
+     },
+     {
+      "n": 3,
+      "ok": false,
+      "error": "object couldn't come to rest"
+     },
+     {
+      "n": 4,
+      "ok": false,
+      "error": "object couldn't come to rest"
+     },
+     {
+      "n": 5,
+      "ok": false,
+      "error": "Spawn area not clear (Laptop|surface|2|10) is in the way), can't place object at that point"
+     },
+     {
+      "n": 6,
+      "ok": false,
+      "error": "Spawn area not clear (Laptop|surface|2|10) is in the way), can't place object at that point"
+     },
+     {
+      "n": 7,
+      "ok": false,
+      "error": "Spawn area not clear (Laptop|surface|2|10) is in the way), can't place object at that point"
+     },
+     {
+      "n": 8,
+      "ok": false,
+      "error": "Spawn area not clear (Laptop|surface|2|10) is in the way), can't place object at that point"
+     }
+    ]
+   },
+   {
+    "container": "Bed|2|2|0",
+    "points": 441,
+    "tries": [
+     {
+      "n": 1,
+      "ok": false,
+      "error": "Spawn area not clear (wall|2|0.00|8.38|6.28|8.38) is in the way), can't place object at that point"
+     },
+     {
+      "n": 2,
+      "ok": false,
+      "error": "Spawn area not clear (wall|2|0.00|8.38|6.28|8.38) is in the way), can't place object at that point"
+     },
+     {
+      "n": 3,
+      "ok": false,
+      "error": "Spawn area not clear (wall|2|0.00|8.38|6.28|8.38) is in the way), can't place object at that point"
+     },
+     {
+      "n": 4,
+      "ok": true,
+      "error": ""
+     }
+    ],
+    "first_success": 4
+   },
+   {
+    "container": "Dresser|2|1",
+    "points": 441,
+    "tries": [
+     {
+      "n": 1,
+      "ok": false,
+      "error": "Spawn area not clear (Dresser|2|1___4) is in the way), can't place object at that point"
+     },
+     {
+      "n": 2,
+      "ok": false,
+      "error": "Spawn area not clear (wall|2|0.00|8.38|6.28|8.38) is in the way), can't place object at that point"
+     },
+     {
+      "n": 3,
+      "ok": false,
+      "error": "Spawn area not clear (wall|2|0.00|8.38|6.28|8.38) is in the way), can't place object at that point"
+     },
+     {
+      "n": 4,
+      "ok": true,
+      "error": ""
+     }
+    ],
+    "first_success": 4
+   },
+   {
+    "container": "Dresser|2|1___0",
+    "points": 441,
+    "tries": [
+     {
+      "n": 1,
+      "ok": false,
+      "error": "Spawn area not clear (Dresser|2|1) is in the way), can't place object at that point"
+     },
+     {
+      "n": 2,
+      "ok": false,
+      "error": "Spawn area not clear (Dresser|2|1) is in the way), can't place object at that point"
+     },
+     {
+      "n": 3,
+      "ok": false,
+      "error": "Spawn area not clear (Dresser|2|1) is in the way), can't place object at that point"
+     },
+     {
+      "n": 4,
+      "ok": false,
+      "error": "Spawn area not clear (Dresser|2|1) is in the way), can't place object at that point"
+     },
+     {
+      "n": 5,
+      "ok": false,
+      "error": "Spawn area not clear (Dresser|2|1) is in the way), can't place object at that point"
+     },
+     {
+      "n": 6,
+      "ok": false,
+      "error": "Spawn area not clear (Dresser|2|1) is in the way), can't place object at that point"
+     },
+     {
+      "n": 7,
+      "ok": false,
+      "error": "Spawn area not clear (Dresser|2|1) is in the way), can't place object at that point"
+     },
+     {
+      "n": 8,
+      "ok": false,
+      "error": "Spawn area not clear (Dresser|2|1) is in the way), can't place object at that point"
+     }
+    ]
+   }
+  ]
+ }
+}
