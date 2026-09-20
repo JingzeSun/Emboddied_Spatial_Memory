@@ -346,8 +346,22 @@ def _prescreen(controller: Any, containers: dict[str, Any], tries: int = 1) -> t
         pts = ev.metadata.get("actionReturn") or []
         ok[cid] = bool(ev.metadata.get("lastActionSuccess")) and len(pts) > 0
         if ok[cid]:
-            points[cid] = pts[:max(1, min(tries, MAX_PLACEMENT_TRIES))]
+            points[cid] = _spread(pts, max(1, min(tries, MAX_PLACEMENT_TRIES)))
     return ok, points
+
+
+def _spread(pts: list[Any], n: int) -> list[Any]:
+    """The first point, then points evenly spaced over the simulator's list.
+
+    The list returned by GetSpawnCoordinatesAboveReceptacle is ordered by trigger box and
+    position, so its first eight entries sit in one corner of one box (often a closed drawer);
+    taking evenly spaced indices covers the other boxes and the top surface.  Deterministic.
+    """
+
+    if n <= 1 or len(pts) <= n:
+        return list(pts[:n])
+    idx = sorted({round(k * (len(pts) - 1) / (n - 1)) for k in range(n)})
+    return [pts[i] for i in idx]
 
 
 def _place(controller: Any, action: str, candidates: list[Any], **kw: Any) -> tuple[Any, int]:
