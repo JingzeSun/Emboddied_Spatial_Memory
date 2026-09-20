@@ -336,7 +336,7 @@ def _invisible_set(ep: Episode, subjects: dict[str, dict[str, Any]], transition:
     return invisible, verdicts
 
 
-MAX_PLACEMENT_TRIES = 8
+MAX_PLACEMENT_TRIES = 64
 
 
 def _prescreen(controller: Any, containers: dict[str, Any], tries: int = 1,
