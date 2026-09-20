@@ -159,17 +159,19 @@ def feasible_triples(
 
 def sample_interventions(
     feasible: Sequence[Mapping[str, Any]], *, split_seed: int, house_id: str,
-    maximum: int = MAXIMUM_INTERVENTIONS_PER_EPISODE, stratify_by_kind: bool = False,
-    one_placement_per_destination: bool = False,
+    maximum: int = MAXIMUM_INTERVENTIONS_PER_EPISODE, stratify_by_kind: bool = True,
+    one_placement_per_destination: bool = True,
 ) -> list[dict[str, Any]]:
     """Draw up to ``maximum`` triples without replacement, one object at most once.
 
     白话：从 F 里用派生 RNG 无放回抽，抽到的物体不再抽第二次（add 复制它算用过
     它）。输出带序号的干预列表；复制件的新 id 由 (house, 物体, 序号) 派生。
 
-    ``stratify_by_kind``（裁决 29，proposed，默认关）：每个名额先在"还有可用三元组"
-    的类型里均匀抽一个类型，再在该类型里均匀抽三元组。默认关时与冻结行为逐字节
-    相同（按三元组均匀抽），add 因三元组数量占优而几乎总被抽中。
+    ``stratify_by_kind``（裁决 29，已采纳，默认开）：每个名额先在"还有可用三元组"
+    的类型里均匀抽一个类型，再在该类型里均匀抽三元组。关掉即回到 S1-02b 首跑的按
+    三元组均匀抽，add 因三元组数量占优而几乎总被抽中——只用于复算旧运行。
+    ``one_placement_per_destination``（裁决 32，已采纳，默认开）：每个目的容器每条
+    episode 至多一次放置，remove 不限。
     """
 
     rng = derive_rng(split_seed, house_id, "intervention")

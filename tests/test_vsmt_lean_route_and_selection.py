@@ -223,11 +223,13 @@ class TestStratifiedSampling(unittest.TestCase):
         self.assertEqual(kinds, {"remove": 3, "move": 12, "add": 125})
         return f
 
-    def test_default_is_the_frozen_uniform_draw(self) -> None:
+    def test_default_is_the_contract_stratified_draw_and_the_old_draw_is_still_replayable(self) -> None:
         f = self.feasible()
         a = sel.sample_interventions(f, split_seed=20260920, house_id="h")
-        b = sel.sample_interventions(f, split_seed=20260920, house_id="h", stratify_by_kind=False)
+        b = sel.sample_interventions(f, split_seed=20260920, house_id="h", stratify_by_kind=True, one_placement_per_destination=True)
         self.assertEqual(a, b)
+        old = sel.sample_interventions(f, split_seed=20260920, house_id="h", stratify_by_kind=False, one_placement_per_destination=False)
+        self.assertNotEqual(a, old)
 
     def test_stratified_draw_mixes_kinds_and_is_deterministic(self) -> None:
         f = self.feasible()
@@ -238,9 +240,9 @@ class TestStratifiedSampling(unittest.TestCase):
         self.assertEqual(len({r["object_id"] for r in s1}), 6)
         self.assertGreaterEqual(len({r["kind"] for r in s1}), 2)
         # over many houses, add is no longer nine tenths of the draws
-        kinds = [r["kind"] for h in range(60) for r in sel.sample_interventions(f, split_seed=1, house_id=f"h{h}", stratify_by_kind=True)]
+        kinds = [r["kind"] for h in range(60) for r in sel.sample_interventions(f, split_seed=1, house_id=f"h{h}", stratify_by_kind=True, one_placement_per_destination=False)]
         self.assertLess(kinds.count("add") / len(kinds), 0.6)
-        uniform = [r["kind"] for h in range(60) for r in sel.sample_interventions(f, split_seed=1, house_id=f"h{h}")]
+        uniform = [r["kind"] for h in range(60) for r in sel.sample_interventions(f, split_seed=1, house_id=f"h{h}", stratify_by_kind=False, one_placement_per_destination=False)]
         self.assertGreater(uniform.count("add") / len(uniform), 0.8)
 
     def test_stratified_draw_never_invents_a_kind(self) -> None:
@@ -276,7 +278,7 @@ class TestUnseenAddSource(unittest.TestCase):
         self.assertEqual([t["destination"] for t in adds if t["object_id"] == "O|4"], ["U0"])
         # remove/move rows are unchanged by the add source
         self.assertEqual([t for t in default if t["kind"] != "add"], [t for t in f if t["kind"] != "add"])
-        s = sel.sample_interventions(adds, split_seed=1, house_id="h")
+        s = sel.sample_interventions(adds, split_seed=1, house_id="h", one_placement_per_destination=False)
         self.assertTrue(all("generated_id" not in row for row in s))
 
 
@@ -299,7 +301,7 @@ class TestDryRunPrescreen(unittest.TestCase):
         s = sel.sample_interventions(f, split_seed=5, house_id="h", one_placement_per_destination=True)
         self.assertEqual(sum(1 for r in s if r["kind"] == "add"), 1)
         self.assertEqual(sum(1 for r in s if r["kind"] == "remove"), 1)
-        s2 = sel.sample_interventions(f, split_seed=5, house_id="h")
+        s2 = sel.sample_interventions(f, split_seed=5, house_id="h", one_placement_per_destination=False)
         self.assertEqual(len(s2), 6)
 
 

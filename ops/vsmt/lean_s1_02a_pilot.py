@@ -58,7 +58,8 @@ from cpmt.hashing import canonical_json  # noqa: E402
 from vsmt import lean_interventions as sel  # noqa: E402
 from vsmt import lean_pilot, lean_route  # noqa: E402
 from vsmt.lean_intervention import (  # noqa: E402
-    FAILURE_REASONS, MAXIMUM_ACTIONS, MINIMUM_WINDOW_FRAMES, MIN_VISIBLE_PIXELS, PUBLIC_FRAME_FIELDS,
+    DRY_RUN_MAX_POINTS, FAILURE_REASONS, MAX_REPLANS, MAXIMUM_ACTIONS, MINIMUM_WINDOW_FRAMES, MIN_VISIBLE_PIXELS,
+    PUBLIC_FRAME_FIELDS,
     PRIVATE_FRAME_FIELDS, FORBIDDEN_PUBLIC_KEYS,
 )
 from vsmt.vm04_public_visibility import (  # noqa: E402
@@ -237,9 +238,6 @@ def _reject_forbidden(record: Any) -> None:
 # worker
 # --------------------------------------------------------------------------
 
-MAX_REPLANS = 32
-
-
 def _agent_cell_yaw(controller: Any) -> tuple[tuple[int, int], int]:
     a = controller.last_event.metadata["agent"]
     return (lean_route.snap(a["position"]["x"]), lean_route.snap(a["position"]["z"])), int(round(a["rotation"]["y"])) % 360
@@ -336,7 +334,7 @@ def _invisible_set(ep: Episode, subjects: dict[str, dict[str, Any]], transition:
     return invisible, verdicts
 
 
-MAX_PLACEMENT_TRIES = 64
+MAX_PLACEMENT_TRIES = 64  # hard cap on --placement-tries; the contract value is DRY_RUN_MAX_POINTS
 
 
 def _prescreen(controller: Any, containers: dict[str, Any], tries: int = 1,
@@ -533,13 +531,14 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
     house_id, index, out = task["house_id"], task["index"], Path(task["out"])
     t0 = time.time()
     receipt: dict[str, Any] = {"house_id": house_id, "source_index": index, "code_commit": task["commit"]}
-    replan_on = bool(task.get("replan_blocked_edges", False))
-    placement_tries = int(task.get("placement_tries", 1))
-    add_source = str(task.get("add_source", "spawn_asset"))
+    # defaults are the contract rules after rulings 25-32; the old values remain selectable only to replay s1-02b/159654f
+    replan_on = bool(task.get("replan_blocked_edges", True))
+    placement_tries = int(task.get("placement_tries", DRY_RUN_MAX_POINTS))
+    add_source = str(task.get("add_source", "unseen_existing"))
     destination_points = str(task.get("destination_points", "anywhere"))
-    placement_prescreen = str(task.get("placement_prescreen", "spawn_points"))
+    placement_prescreen = str(task.get("placement_prescreen", "dry_run"))
     receipt["options"] = {"replan_blocked_edges": replan_on, "placement_tries": placement_tries,
-                          "stratify_by_kind": bool(task.get("stratify_by_kind", False)),
+                          "stratify_by_kind": bool(task.get("stratify_by_kind", True)),
                           "add_source": add_source, "destination_points": destination_points,
                           "placement_prescreen": placement_prescreen}
     controller = None
@@ -639,7 +638,7 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
             if not feasible:
                 raise PilotFailure("intervention_window_unavailable", f"feasible set empty; U={len(invisible)} eligible={len(eligible)}")
             interventions = sel.sample_interventions(feasible, split_seed=task["split_seed"], house_id=house_id,
-                                                     stratify_by_kind=bool(task.get("stratify_by_kind", False)),
+                                                     stratify_by_kind=bool(task.get("stratify_by_kind", True)),
                                                      one_placement_per_destination=(placement_prescreen == "dry_run"))
             feasible_by_kind: dict[str, int] = {}
             for row in feasible:
@@ -745,20 +744,20 @@ def main() -> int:
     ap.add_argument("--resume", action="store_true",
                     help="S1-02b: skip houses with a receipt; mark interrupted dirs failed; never regenerate")
     ap.add_argument("--house-timeout-s", type=int, default=1800, help="safety line per house, not a budget")
-    ap.add_argument("--replan-blocked-edges", action="store_true",
-                    help="R1 refinement (needs a ruling): on a rejected MoveAhead, block that edge and replan the rest")
-    ap.add_argument("--placement-tries", type=int, default=1,
-                    help="move/add: try up to N prescreened spawn points in order (1 = current behaviour)")
-    ap.add_argument("--stratify-by-kind", action="store_true",
-                    help="I1 refinement (ruling 29, needs a ruling): draw the kind first, then the triple")
-    ap.add_argument("--add-source", choices=["spawn_asset", "unseen_existing"], default="spawn_asset",
-                    help="ruling 30 (needs a ruling): add = SpawnAsset duplicate (frozen) or relocate a never-seen real object")
-    ap.add_argument("--placement-prescreen", choices=["spawn_points", "dry_run"], default="spawn_points",
-                    help="ruling 31 (needs a ruling): F's move/add pairs by spawn-point existence (frozen) or by a real "
-                         "placement + viewpoint peek + revert during the window; dry_run also limits one placement per destination")
+    # Defaults are the S0-02 v3 rules after D-224-S1 rulings 25-32.  The pre-ruling values stay
+    # selectable only to replay the s1-02b/159654f run; they are not a second protocol.
+    ap.add_argument("--replan-blocked-edges", action=argparse.BooleanOptionalAction, default=True,
+                    help="ruling 27: on a rejected MoveAhead, block that edge and replan the rest")
+    ap.add_argument("--placement-tries", type=int, default=DRY_RUN_MAX_POINTS,
+                    help="ruling 31: spread candidate points per destination in the dry run")
+    ap.add_argument("--stratify-by-kind", action=argparse.BooleanOptionalAction, default=True,
+                    help="ruling 29: draw the kind first, then the triple")
+    ap.add_argument("--add-source", choices=["spawn_asset", "unseen_existing"], default="unseen_existing",
+                    help="ruling 30: relocate a never-rendered real object (spawn_asset = pre-ruling, unobservable)")
+    ap.add_argument("--placement-prescreen", choices=["spawn_points", "dry_run"], default="dry_run",
+                    help="rulings 31/32: real placement + viewpoint peek + revert during the window, one placement per destination")
     ap.add_argument("--destination-points", choices=["anywhere", "top", "verified"], default="anywhere",
-                    help="ruling 31 (needs a ruling): any receptacle box (frozen), top surface only, or any box but each "
-                         "placement verified visible (>=196 px) from the container's viewpoint by an off-route private render")
+                    help="kept for the smoke record; dry_run supersedes it")
     args = ap.parse_args()
     if args.stage == "s1-02b":
         return main_s1_02b(args)
