@@ -43,7 +43,7 @@ from vsmt.lean_pilot import (  # noqa: E402
 )
 
 
-CONTRACT_PATH = PROJECT_ROOT / "configs" / "vsmt" / "lean_s1_02a_pilot_v1.json"
+CONTRACT_PATH = PROJECT_ROOT / "configs" / "vsmt" / "lean_s1_02a_pilot_v2.json"
 
 POOL = [f"house-{index:04d}" for index in range(200)]
 
@@ -328,17 +328,59 @@ class TestContract(unittest.TestCase):
         with self.assertRaises(LeanPilotError):
             validate_pilot_contract(opened)
 
-    def test_the_three_values_the_user_must_freeze_are_still_null(self) -> None:
+    def test_the_split_is_frozen_at_the_values_the_user_gave(self) -> None:
+        frozen = self.contract["split_freeze"]
+        self.assertEqual(frozen["seed"], 20260920)
+        self.assertEqual(frozen["validation_houses"], 50)
+        self.assertEqual(frozen["test_houses"], 100)
+        self.assertEqual(frozen["frozen_by"], "D-224-S1")
+        self.assertIs(frozen["is_the_single_registered_location"], True)
         for name in ("seed", "validation_houses", "test_houses"):
-            self.assertIsNone(self.contract["split_freeze"][name], name)
-            self.assertIn(f"split_freeze.{name}",
-                          self.contract["policy_values_without_defaults"])
+            self.assertNotIn(f"split_freeze.{name}",
+                             self.contract["policy_values_without_defaults"])
 
-    def test_a_pre_filled_seed_is_rejected_before_the_user_freezes_it(self) -> None:
-        early = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
-        early["split_freeze"]["seed"] = 1
+    def test_the_train_size_stays_open_for_s3_01(self) -> None:
+        self.assertIsNone(self.contract["split_freeze"]["train_houses"])
+        self.assertIn("split_freeze.train_houses",
+                      self.contract["policy_values_without_defaults"])
+
+    def test_a_half_frozen_split_is_rejected(self) -> None:
+        # The dangerous state: it looks decided, yet filling the missing one
+        # still moves where the train block starts.
+        for name in ("seed", "validation_houses", "test_houses"):
+            half = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+            half["split_freeze"][name] = None
+            with self.assertRaises(LeanPilotError):
+                validate_pilot_contract(half)
+
+    def test_a_frozen_value_still_advertised_as_open_is_rejected(self) -> None:
+        stale = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        stale["policy_values_without_defaults"].append("split_freeze.seed")
         with self.assertRaises(LeanPilotError):
-            validate_pilot_contract(early)
+            validate_pilot_contract(stale)
+
+    def test_a_freeze_that_names_no_ruling_is_rejected(self) -> None:
+        loose = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        del loose["split_freeze"]["frozen_by"]
+        with self.assertRaises(LeanPilotError):
+            validate_pilot_contract(loose)
+
+    def test_the_contract_supersedes_its_reviewed_v1(self) -> None:
+        import hashlib
+        supersedes = self.contract["supersedes_contract"]
+        self.assertTrue(supersedes["v1_bytes_frozen"])
+        reviewed = PROJECT_ROOT / supersedes["path"]
+        self.assertEqual(hashlib.sha256(reviewed.read_bytes()).hexdigest(),
+                         supersedes["v1_sha256"])
+
+    def test_the_frozen_split_determines_the_pilot(self) -> None:
+        # With the split frozen the four houses follow from the pool alone;
+        # reading that pool is still a closed bit.
+        frozen = self.contract["split_freeze"]
+        selected = select_pilot_houses(POOL, frozen)
+        self.assertEqual(selected, select_pilot_houses(list(POOL), frozen))
+        self.assertEqual(len(selected), 4)
+        self.assertIs(self.contract["authorization"]["house_pool_read"], False)
 
     def test_dropping_the_pilot_from_the_fifty_is_rejected(self) -> None:
         sneaky = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))

@@ -1,0 +1,156 @@
+{
+  "schema_version": "vsmt-lean-s1-02a-pilot-v2",
+  "decision_id": "D-224",
+  "stage_id": "S1-02a",
+  "status": "split_frozen_pending_user_code_review",
+  "supersedes_contract": {
+    "path": "configs/vsmt/lean_s1_02a_pilot_v1.json",
+    "v1_sha256": "c44db4e46bc29b9d4288560b36d20868783b5eaff34d5d8957958aed8dc7f8ff",
+    "v1_bytes_frozen": true,
+    "note_zh": "v1 已于 2026-09-20 经用户代码审查通过，字节冻结不改。v2 只做一件事：把 `split_freeze` 的 seed 与 test/validation 规模由 null 冻结为用户给定的值。pilot 形状、占用口径、回执字段、失败规则与停止条件一字未动。这次冻结是本阶段最不可逆的一步：test 与 validation 的成员从此固定，train 块的起点随之固定，S1 的开发 house 也就定了。"
+  },
+  "plain_language_zh": "本合同定义 S1-02a 这一步怎样才算合规：用 4 个 worker 各跑 1 个 house，把管线跑通，并实测单 worker 占用与 4 路并发是否安全。输入是已冻结的划分参数、house 池、pilot 计划与运行回执；输出是通过或拒绝，以及一份能喂给 S1-01 推导公式的占用读数。例如有人跑完看了结果觉得不好又重新生成同样 4 个 house，会被拒。它本身不启动模拟器、不生成 episode、不写任何数据面、不读 private，六个授权位全为 false；检查通过也不表示 pilot 已经跑过、CloudRendering 能起来或干预在科学上可构造。",
+  "pure_core_relative_path": "src/vsmt/lean_pilot.py",
+  "depends_on": {
+    "s0_02_contract": "configs/vsmt/lean_s0_intervention_data_v2.json",
+    "s1_01_contract": "configs/vsmt/lean_s1_assets_capacity_v2.json",
+    "split_implementation": "src/vsmt/lean_intervention.py::assign_split",
+    "worker_derivation": "src/vsmt/lean_assets.py::derive_worker_count",
+    "ruling": "D-224-S1 裁决 14",
+    "note_zh": "划分与 worker 推导都不在本阶段重写：house 分块直接调 S0-02 v2 的 `assign_split`，worker 数直接调 S1-01 v2 的 `derive_worker_count`。本阶段只负责「谁是 pilot 的 4 个 house、占用怎么量、回执必须写什么」。两处复用各有一项测试钉住，防止出现第二套划分或第二个公式。"
+  },
+  "authorization": {
+    "split_freeze_registration": false,
+    "house_pool_read": false,
+    "simulator_start": false,
+    "route_construction": false,
+    "episode_generation": false,
+    "occupancy_measurement": false
+  },
+  "must_remain_false": [
+    "sample_replacement_on_failure",
+    "regeneration_after_inspection",
+    "house_selection_by_hand",
+    "private_plane_read_for_selection",
+    "test_split_read",
+    "frontend_cache_generation",
+    "reid_adapter_head_training",
+    "model_training",
+    "route_template_change_after_first_episode"
+  ],
+  "split_freeze": {
+    "seed": 20260920,
+    "validation_houses": 50,
+    "test_houses": 100,
+    "train_houses": null,
+    "frozen_before_first_episode": true,
+    "test_and_validation_membership_is_final": true,
+    "train_size_may_only_decrease_afterwards": true,
+    "development_houses_are_the_first_of_the_train_block": true,
+    "recomputable_from_manifest": true,
+    "plain_language_zh": "S0-02 v2 把前缀分配顺序改成 test→validation→train，于是 seed 与 test/validation 规模一旦定下，test 与 validation 的成员就永远不变，而 train 块的起点也随之固定。用户于 2026-09-20 冻结：seed=20260920、validation=50、test=100（规模沿用 D-224 在 PLAN S3-01 登记的 300/50/100）。`train_houses` 仍为 null，到 S3-01 才登记，且此后只能下调——下调只从 train 块尾部截短，不碰前面任何一份。**这三个值只登记在这里一处**：S0-02 v2 定的是构造规则（方法层面，不该带某一次运行的 seed），值属于运行层面，因此由本合同承载，跨合同测试钉住「S0-02 的值槽保持 null、本合同是唯一登记处」以防出现两个互相矛盾的 seed。白话：先把答案卷封好再开始答题，而不是答完再决定哪些算考题。",
+    "frozen_by": "D-224-S1",
+    "frozen_on": "2026-09-20",
+    "is_the_single_registered_location": true
+  },
+  "pilot": {
+    "workers": 4,
+    "houses_per_worker": 1,
+    "total_houses": 4,
+    "house_selection": "first_four_of_the_train_block_by_split_key",
+    "selection_is_deterministic_not_chosen": true,
+    "counts_toward_the_development_fifty": true,
+    "regeneration_after_inspection_forbidden": true,
+    "plain_language_zh": "pilot 的 4 个 house 不是挑出来的，是按 S0-02 的划分键排序后 train 块最前面的 4 个，任何人换一个都会被重算抓到。这 4 条 episode **计入 S1 的 50 条开发样本**，不是热身后丢掉的草稿：跑完、看过结果、再重新生成同样的 house，等于按结果挑样本，因此被显式禁止。例如第 3 个 house 干预窗口不可用而失败，它就以失败回执的身份留在 50 条里，由 S1-02b 补足其余 46 个而不是另找一个好 house 顶上。"
+  },
+  "occupancy_measurement": {
+    "measured_under_concurrency": 4,
+    "concurrency_verified_at_is_not_the_derived_count": true,
+    "derived_count_above_verified_concurrency_must_be_declared_an_extrapolation": true,
+    "values": [
+      "cpu_cores_per_worker",
+      "ram_gb_per_worker",
+      "vram_gb_per_worker",
+      "disk_gb_per_worker",
+      "simulator_concurrency_limit"
+    ],
+    "statistic": "peak_not_average",
+    "workload": "a_full_episode_including_three_plane_write",
+    "synthetic_microbenchmark_forbidden": true,
+    "feeds": "configs/vsmt/lean_s1_assets_capacity_v2.json::worker_rule",
+    "plain_language_zh": "五个量都取峰值而不是均值——按均值配出来的并发在高峰期会把机器挤爆；都在真实完整 episode（含三面写盘）上量，不许用合成小基准代替，因为模拟器启动与渲染才是大头。`simulator_concurrency_limit` 记的是「实测到 4 路并发安全」，它和后面算出来的 worker 数是两回事：算出来的数若大于 4，回执必须显式写明这是从单 worker 成本外推的，扩产后出现不稳定要如实报告，不得事后把数字悄悄改小当没发生。"
+  },
+  "receipts": {
+    "pilot_receipt_fields": [
+      "split_seed",
+      "split_sizes",
+      "selected_house_ids",
+      "planned",
+      "succeeded",
+      "failed",
+      "failure_receipts",
+      "wall_clock_seconds",
+      "exit_codes",
+      "code_commit"
+    ],
+    "occupancy_receipt_fields": [
+      "concurrency_verified_at",
+      "cpu_cores_per_worker",
+      "ram_gb_per_worker",
+      "vram_gb_per_worker",
+      "disk_gb_per_worker",
+      "simulator_concurrency_limit",
+      "statistic",
+      "workload",
+      "failures"
+    ],
+    "receipt_is_written_even_on_failure": true,
+    "plain_language_zh": "两份回执各有固定字段：pilot 回执必须同时写下划分参数、被选中的 house、计划数、成功数、失败数与每份失败回执，因为「计划 4 条成功 3 条」必须恰好对应 1 份失败回执，否则说明有 episode 被静默丢弃；占用回执必须写清是在几路并发下量的、取的是峰值还是均值、跑的是什么负载。失败也必须留回执。"
+  },
+  "failure_reasons": [
+    "house_load_failed",
+    "route_not_placeable",
+    "action_rejected",
+    "intervention_window_unavailable",
+    "intervention_execution_failed",
+    "frame_write_failed"
+  ],
+  "failure_rules": {
+    "failed_house_keeps_a_receipt": true,
+    "failed_house_is_never_replaced": true,
+    "kept_prefix_is_preserved": true,
+    "planned_equals_succeeded_plus_failed": true,
+    "pilot_failure_is_not_grounds_for_retrying_until_good": true,
+    "plain_language_zh": "失败规则与 S0-02 完全一致，不在本阶段另立一套。额外加一条：pilot 失败不是「再试一次直到跑通」的理由——重试同一个 house 只有在失败原因是登记过的基础设施故障（例如 SSH 断线）且未产生任何部分产物时才允许，干预窗口不可用、动作被拒这类科学原因必须以失败告终。"
+  },
+  "stop_conditions": {
+    "split_not_frozen_before_generation": "stop_and_report_verbatim",
+    "selected_houses_do_not_match_the_recomputed_head": "stop_and_report_verbatim",
+    "planned_does_not_equal_succeeded_plus_failed": "stop_and_report_verbatim",
+    "occupancy_value_missing_after_a_successful_pilot": "stop_and_report_verbatim",
+    "regeneration_of_an_already_generated_house": "stop_and_report_verbatim",
+    "may_replace_a_failed_house": false,
+    "may_pick_houses_by_hand": false,
+    "plain_language_zh": "以上任何一种都只有一个动作：原样停下并如实报告。例如算出来的 pilot house 与回执里写的不一致，正确做法是报告而不是把回执改成算出来的那四个。"
+  },
+  "not_in_this_stage": [
+    "frontend_cache_generation",
+    "descriptor_extraction",
+    "separation_diagnostics",
+    "arm_implementation",
+    "teacher_labels",
+    "metrics",
+    "training"
+  ],
+  "policy_values_without_defaults": [
+    "split_freeze.train_houses"
+  ],
+  "continue_gate": {
+    "split_is_frozen_before_the_first_episode": true,
+    "pilot_houses_are_recomputed_not_chosen": true,
+    "pilot_episodes_count_toward_the_fifty": true,
+    "occupancy_is_complete_before_any_derivation": true,
+    "failures_are_kept_and_counted": true,
+    "plain_language_zh": "S1-02a 的继续门是：划分在第一条 episode 前冻结、4 个 pilot house 由划分键重算而不是挑选、这 4 条计入 50、五项占用齐全才允许推导 worker 数、失败被保留并计入。全部通过只说明这一步的规则自洽，不说明 pilot 已经跑过或跑得通。"
+  }
+}

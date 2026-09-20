@@ -44,7 +44,7 @@ from vsmt.lean_assets import derive_worker_count
 from vsmt.lean_intervention import FAILURE_REASONS, assign_split
 
 
-CONTRACT_SCHEMA_VERSION = "vsmt-lean-s1-02a-pilot-v1"
+CONTRACT_SCHEMA_VERSION = "vsmt-lean-s1-02a-pilot-v2"
 
 #: The pilot shape the user fixed: four workers, one house each.
 PILOT_WORKERS = 4
@@ -322,6 +322,7 @@ def validate_pilot_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
         "split_freeze", "pilot", "occupancy_measurement", "receipts",
         "failure_reasons", "failure_rules", "stop_conditions", "authorization",
         "must_remain_false", "policy_values_without_defaults", "continue_gate",
+        "supersedes_contract",
     }
     missing = sorted(required - set(contract.keys()))
     _require(not missing, f"contract_missing_sections:{','.join(missing)}")
@@ -386,11 +387,43 @@ def validate_pilot_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
             _require(action == "stop_and_report_verbatim",
                      f"contract_stop_action_weakened:{name}")
 
-    for name in FROZEN_BEFORE_GENERATION:
-        _require(contract["split_freeze"][name] is None,
-                 f"contract_{name}_must_be_null_until_the_user_freezes_it")
-        _require(f"split_freeze.{name}" in contract["policy_values_without_defaults"],
-                 f"contract_{name}_not_registered_as_open")
+    # The three values are either all still open or all frozen together.
+    # Half-frozen is the dangerous state: it looks decided, yet filling the
+    # missing one still moves where the train block starts.
+    freeze = contract["split_freeze"]
+    open_values = contract["policy_values_without_defaults"]
+    frozen = [name for name in FROZEN_BEFORE_GENERATION if freeze[name] is not None]
+    _require(len(frozen) in (0, len(FROZEN_BEFORE_GENERATION)),
+             "contract_split_half_frozen")
+    if not frozen:
+        for name in FROZEN_BEFORE_GENERATION:
+            _require(f"split_freeze.{name}" in open_values,
+                     f"contract_{name}_not_registered_as_open")
+    else:
+        validate_split_freeze(freeze)
+        frozen_by = freeze.get("frozen_by")
+        _require(type(frozen_by) is str and frozen_by != "",
+                 "contract_split_frozen_without_naming_the_ruling")
+        _require(freeze.get("is_the_single_registered_location") is True,
+                 "contract_split_not_declared_the_single_location")
+        for name in FROZEN_BEFORE_GENERATION:
+            _require(f"split_freeze.{name}" not in open_values,
+                     f"contract_{name}_frozen_but_still_listed_as_open")
+    # train_houses is registered at S3-01, so it stays open either way.
+    _require("split_freeze.train_houses" in open_values
+             or freeze["train_houses"] is not None,
+             "contract_train_size_neither_open_nor_registered")
+
+    supersedes = contract["supersedes_contract"]
+    _require(type(supersedes) is dict, "contract_supersedes_not_object")
+    _require(supersedes["v1_bytes_frozen"] is True,
+             "contract_superseded_bytes_not_frozen")
+    _require(type(supersedes["path"]) is str
+             and supersedes["path"].endswith("_v1.json"),
+             "contract_superseded_path_invalid")
+    _require(type(supersedes["v1_sha256"]) is str
+             and len(supersedes["v1_sha256"]) == 64,
+             "contract_superseded_digest_invalid")
 
     _require(all(value is False for value in contract["authorization"].values()),
              "contract_authorization_must_be_all_false")
