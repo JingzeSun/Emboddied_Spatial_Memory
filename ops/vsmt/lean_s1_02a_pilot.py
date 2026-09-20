@@ -873,6 +873,10 @@ def main() -> int:
     ap.add_argument("--development-houses", type=int, default=50)
     ap.add_argument("--resume", action="store_true",
                     help="S1-02b: skip houses with a receipt; mark interrupted dirs failed; never regenerate")
+    ap.add_argument("--simulator-concurrency-limit", type=int, default=None,
+                    help="S1-02b: the Unity concurrency assumed safe for the worker derivation when it exceeds "
+                         "the pilot-verified count; the derivation still takes the minimum over CPU/RAM/VRAM/disk, "
+                         "and the receipt records the assumption and is_extrapolation=true (S1-01 worker rule)")
     ap.add_argument("--stall-timeout-s", type=int, default=1800,
                     help="a started house with no heartbeat for this long is a stalled worker and is failed; "
                          "queued houses are never timed out; this is not a compute budget")
@@ -1080,6 +1084,11 @@ def main_s1_02b(args: argparse.Namespace) -> int:
     pilot_root = Path(args.pilot_root)
     occupancy = json.loads((pilot_root / "occupancy_receipt.json").read_text(encoding="utf-8"))
     occupancy = {k: occupancy[k] for k in lean_pilot.OCCUPANCY_RECEIPT_FIELDS}
+    verified_limit = occupancy["simulator_concurrency_limit"]
+    if args.simulator_concurrency_limit is not None:
+        # the pilot only proves that its own worker count runs; a larger assumed limit is an
+        # extrapolation from single-worker cost and is recorded as one, never quietly lowered later
+        occupancy["simulator_concurrency_limit"] = max(int(args.simulator_concurrency_limit), 1)
     pilot_plan = json.loads((pilot_root / "plan.json").read_text(encoding="utf-8"))
     measurements = _capacity_measurements()
     s1_01 = json.loads((ROOT / "configs" / "vsmt" / "lean_s1_assets_capacity_v2.json").read_text(encoding="utf-8"))
@@ -1098,6 +1107,8 @@ def main_s1_02b(args: argparse.Namespace) -> int:
     out_root = Path(args.output_root); out_root.mkdir(parents=True, exist_ok=True)
     (out_root / "plan.json").write_text(json.dumps({"stage": "s1-02b", "houses": houses, "pilot_root": str(pilot_root),
                                                     "derived": scale, "requested_workers": workers, "measurements": measurements,
+                                                    "simulator_concurrency_limit_verified": verified_limit,
+                                                    "simulator_concurrency_limit_assumed": occupancy["simulator_concurrency_limit"],
                                                     "commit": commit, "null_window_salt_sha256": sha_bytes(args.private_salt.encode("utf-8"))}, indent=1))
     tasks = [{"house_id": h, "index": int(h.rsplit("-", 1)[1]), "out": str(out_root / h), "source_root": str(source.parent),
               "source_rel": source.name, "split_seed": freeze["seed"], "commit": commit, "private_salt": args.private_salt,
@@ -1146,6 +1157,8 @@ def main_s1_02b(args: argparse.Namespace) -> int:
         "options": {"replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries, "stratify_by_kind": args.stratify_by_kind, "add_source": args.add_source, "destination_points": args.destination_points, "placement_prescreen": args.placement_prescreen},
         "requested_workers": workers, "actual_workers": workers, "derived_worker_count": scale["worker_count"],
         "binding_constraint": scale["binding_constraint"], "concurrency_verified_at": scale["concurrency_verified_at"],
+        "simulator_concurrency_limit_verified": verified_limit,
+        "simulator_concurrency_limit_assumed": occupancy["simulator_concurrency_limit"],
         "is_extrapolation": scale["is_extrapolation"], "wall_clock_seconds": round(wall, 1),
         "development_total_with_pilot": len(houses) + lean_pilot.PILOT_TOTAL_HOUSES,
     }
