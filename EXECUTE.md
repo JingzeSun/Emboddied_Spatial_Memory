@@ -2825,5 +2825,6 @@ LOG-232 的修订一以"一帧窗口 → dormancy 永远不触发"立论。**这
 
 U={Fridge}，F=11，抽中 6 个全是 `add`（复制 Statue／SoapBottle／Pan／Bowl／SprayBottle／Mug 到 Fridge，`SpawnAsset` 全部成功），扫掠二重访 Fridge。三面文件字段与合同逐一相同，public 帧无任何禁止键。**它证明管线端到端通了，不证明干预在视觉上可辨或 SAM 能分割出复制件。**
 
+- **更正（同日）。** 提交 `710bd5c` 的说明称 02a 编排进程写完回执后未退出并遗留一个 Unity 进程；复查发现那是 `pgrep -f` 匹配到了检查用的 shell 自身的命令行（其中含被搜索的字符串），02a 编排进程实际已正常退出，02b 启动后的进程树为 1 主进程＋4 worker＋4 Unity，无泄漏。被误杀的只是那个检查用 shell（exit 255），02b 未受影响。`710bd5c` 里把 sampler 改为 daemon、先读队列再 join 的改动仍保留——它是正确的卫生措施，但当时的诊断依据是错的。
 - **S1-02b 已启动**：checkout `159654f`（同一 worker，加 02b 模式），46 个 house＝train 块 [4:50]，worker=4（推导值），输出 `/root/autodl-tmp/vsmt_outputs/lean-s1-02b-159654f/`。成品率门（house 级、非空、0.6）在此判。
 - 未做：任何 cache、前端、训练、private 评价。
