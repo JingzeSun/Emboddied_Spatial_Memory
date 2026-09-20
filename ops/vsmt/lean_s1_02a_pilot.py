@@ -476,8 +476,12 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
             if not feasible:
                 raise PilotFailure("intervention_window_unavailable", f"feasible set empty; U={len(invisible)} eligible={len(eligible)}")
             interventions = sel.sample_interventions(feasible, split_seed=task["split_seed"], house_id=house_id)
+            feasible_by_kind: dict[str, int] = {}
+            for row in feasible:
+                feasible_by_kind[row["kind"]] = feasible_by_kind.get(row["kind"], 0) + 1
             (ep.prov / "interventions_sampled.json").write_text(json.dumps(
-                {"feasible_set_size": len(feasible), "invisible_container_set_size": len(invisible),
+                {"feasible_set_size": len(feasible), "feasible_by_kind": feasible_by_kind,
+                 "invisible_container_set_size": len(invisible),
                  "eligible_object_count": len(eligible), "sampled": interventions}, indent=1))
             try:
                 log = _apply_interventions(controller, interventions, spawn_points)
@@ -487,6 +491,7 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
                 raise PilotFailure("intervention_execution_failed", f"simulator: {exc!r}"[:400]) from exc
         else:
             log = []
+            eligible = []
         # stage 2: sweep two
         revisit = sel.revisit_sequence(interventions, split_seed=task["split_seed"], house_id=house_id)
         here = controller.last_event.metadata["agent"]
@@ -511,6 +516,7 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
                                                                 "replans": replans}, indent=1))
         (ep.prov / "reachable.json").write_text(json.dumps(reach))
         (ep.prov / "interventions.json").write_text(json.dumps({"null_window": null_window, "feasible_set_size": len(feasible),
+                                                                "eligible_object_count": len(eligible),
                                                                 "invisible_container_set_size": len(invisible), "executed": log,
                                                                 "dropped_containers_no_viewpoint": dropped}, indent=1))
         receipt.update({"status": "succeeded", "observations": ep.index + 1, "actions": len(ep.actions_done) - 1,
