@@ -510,11 +510,28 @@ class TestContract(unittest.TestCase):
         registry = validate_asset_registry(self.contract["asset_registry"])
         self.assertEqual(set(registry), set(AUTHORIZATION_OF_ASSET))
 
-    def test_vit_b14_is_the_only_asset_still_blocked(self) -> None:
+    def test_no_asset_is_blocked_on_its_registration_any_more(self) -> None:
         registry = validate_asset_registry(self.contract["asset_registry"])
         blocked = sorted(name for name, row in registry.items()
                          if row["acquisition_status"] == "registration_incomplete")
-        self.assertEqual(blocked, ["dinov2_vit_b14_checkpoint"])
+        self.assertEqual(blocked, [])
+
+    def test_vit_b14_carries_the_identity_recorded_in_log_223(self) -> None:
+        registry = validate_asset_registry(self.contract["asset_registry"])
+        row = registry["dinov2_vit_b14_checkpoint"]
+        self.assertEqual(
+            row["source_url"],
+            "https://dl.fbaipublicfiles.com/dinov2/dinov2_vitb14/dinov2_vitb14_pretrain.pth")
+        self.assertEqual(row["bytes"], 346378731)
+        self.assertEqual(
+            row["sha256"],
+            "0b8b82f85de91b424aded121c7e1dcc2b7bc6d0adeea651bf73a13307fad8c73")
+        self.assertEqual(row["registered_by"], "D-224-S1")
+        # Registered now means it follows the ordinary file path, but placing
+        # it on the server is still a separate, closed bit.
+        self.assertEqual(row["acquisition_mode"], "download_to_server")
+        self.assertIs(self.contract["authorization"]
+                      ["dinov2_vit_b14_asset_placement_on_server"], False)
 
     def test_the_house_pool_carries_the_upstream_lfs_identity(self) -> None:
         registry = validate_asset_registry(self.contract["asset_registry"])
@@ -590,28 +607,25 @@ class TestContract(unittest.TestCase):
         with self.assertRaises(LeanAssetsError):
             validate_assets_capacity_contract(early)
 
-    def test_vit_b14_is_ruled_but_not_yet_executed_so_it_still_blocks(self) -> None:
-        pending = [c for c in self.contract["known_conflicts"]
-                   if c["evidence_of_resolution"] is None]
-        self.assertEqual([c["conflict_id"] for c in pending], ["vit_b14_unregistered"])
-        self.assertIsNotNone(pending[0]["resolution"])
-        self.assertIn("D-224-S1", pending[0]["resolution"])
-        self.assertEqual(pending[0]["blocks"], ["S1-03", "S1-04", "S1-05"])
-
-    def test_the_three_discharged_conflicts_stopped_blocking(self) -> None:
-        discharged = [c for c in self.contract["known_conflicts"]
-                      if c["evidence_of_resolution"] is not None]
-        self.assertEqual(sorted(c["conflict_id"] for c in discharged),
+    def test_all_four_conflicts_are_discharged_and_none_still_blocks(self) -> None:
+        discharged = {c["conflict_id"]: c for c in self.contract["known_conflicts"]
+                      if c["evidence_of_resolution"] is not None}
+        self.assertEqual(sorted(discharged),
                          ["cloudrendering_requires_vulkan", "procthor_10k_tag_unchosen",
-                          "python_version_conflict"])
-        for conflict in discharged:
+                          "python_version_conflict", "vit_b14_unregistered"])
+        for conflict in discharged.values():
             self.assertEqual(conflict["blocks"], [], conflict["conflict_id"])
-            self.assertEqual(conflict["evidence_of_resolution"], "LOG-221")
+        self.assertEqual(discharged["vit_b14_unregistered"]["evidence_of_resolution"],
+                         "LOG-223")
+        for name in ("cloudrendering_requires_vulkan", "procthor_10k_tag_unchosen",
+                     "python_version_conflict"):
+            self.assertEqual(discharged[name]["evidence_of_resolution"], "LOG-221")
 
     def test_a_ruling_that_stopped_blocking_before_it_ran_is_rejected(self) -> None:
         early = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
         target = next(c for c in early["known_conflicts"]
                       if c["conflict_id"] == "vit_b14_unregistered")
+        target["evidence_of_resolution"] = None
         target["blocks"] = []
         with self.assertRaises(LeanAssetsError):
             validate_assets_capacity_contract(early)

@@ -38,7 +38,8 @@
     "exercised_so_far": [
       "frozen_asset_readonly_verification",
       "server_capacity_probe",
-      "import_dependency_install"
+      "import_dependency_install",
+      "dinov2_vit_b14_digest_registration"
     ],
     "import_dependency_scope": {
       "governed_by": "configs/vsmt/vm04_d224_frozen_sam2_asset_acquisition_v1.json::authorization.sam2_import_dependency_install",
@@ -49,7 +50,7 @@
       "editable_or_build_install_into_the_pinned_worktree": false,
       "receipt": "LOG-222"
     },
-    "plain_language_zh": "只有列在 active_true_authorizations 里的位可以为 true，其余位为 true 即拒。当前开四项：对已在服务器上的已登记资产做只读核验、只读容量探测、ViT-B/14 的一次本地摘要登记，以及让 SAM 2.1 能被 import 的三个依赖安装。第一、二项在 LOG-221 执行，第四项在 LOG-222 执行，ViT-B/14 登记尚未执行。第四项的实质授权来自 D-224 资产合同自己的 `sam2_import_dependency_install` 位，这里按引用打开以免两份合同对同一动作各说各话；它只允许装那三个包，不允许动 torch/torchvision/numpy，也不允许把任何东西装进被钉住的 SAM2 工作树。开这四项不等于批准下载资产、生成数据、训练或读取 private。"
+    "plain_language_zh": "只有列在 active_true_authorizations 里的位可以为 true，其余位为 true 即拒。当前开四项：对已在服务器上的已登记资产做只读核验、只读容量探测、ViT-B/14 的一次本地摘要登记，以及让 SAM 2.1 能被 import 的三个依赖安装。第一、二项在 LOG-221 执行，第四项在 LOG-222 执行，ViT-B/14 的本地摘要登记在 LOG-223 执行，四项都已用过。第四项的实质授权来自 D-224 资产合同自己的 `sam2_import_dependency_install` 位，这里按引用打开以免两份合同对同一动作各说各话；它只允许装那三个包，不允许动 torch/torchvision/numpy，也不允许把任何东西装进被钉住的 SAM2 工作树。开这四项不等于批准下载资产、生成数据、训练或读取 private。"
   },
   "must_remain_false": [
     "asset_substitution_on_digest_mismatch",
@@ -97,6 +98,7 @@
     "on_server_unverified_in_this_stage",
     "registration_incomplete"
   ],
+  "acquisition_mode_note_zh": "`register_then_place_on_server` 是尚未登记的资产的临时模式：它按定义不可能算作登记完整，因此挡住任何获取。一旦一次性登记步骤给出 url、字节数与 sha256，该资产就转为普通的 `download_to_server`，此后与其他文件类资产走同一条核验路径。ViT-B/14 在 LOG-223 完成这次转换。",
   "asset_registry": [
     {
       "asset_id": "sam2_repository",
@@ -144,7 +146,7 @@
       "asset_id": "dinov2_repository",
       "role": "descriptor_source_code",
       "required_by": "S1-03",
-      "source_url": null,
+      "source_url": "https://github.com/facebookresearch/dinov2.git",
       "pinned_ref": "7764ea0f912e53c92e82eb78a2a1631e92725fc8",
       "pinned_path": "/root/sh05-assets-v1/dinov2",
       "bytes": null,
@@ -172,15 +174,15 @@
       "asset_id": "dinov2_vit_b14_checkpoint",
       "role": "descriptor_weights_768d_optional_upgrade",
       "required_by": "S1-03",
-      "source_url": null,
+      "source_url": "https://dl.fbaipublicfiles.com/dinov2/dinov2_vitb14/dinov2_vitb14_pretrain.pth",
       "pinned_ref": null,
       "pinned_path": null,
-      "bytes": null,
-      "sha256": null,
-      "registered_by": null,
+      "bytes": 346378731,
+      "sha256": "0b8b82f85de91b424aded121c7e1dcc2b7bc6d0adeea651bf73a13307fad8c73",
+      "registered_by": "D-224-S1",
       "license": null,
-      "acquisition_mode": "register_then_place_on_server",
-      "acquisition_status": "registration_incomplete"
+      "acquisition_mode": "download_to_server",
+      "acquisition_status": "registered_not_acquired"
     },
     {
       "asset_id": "ai2thor",
@@ -233,7 +235,7 @@
     "unlisted_asset_may_not_be_acquired": true,
     "upstream_declared_identity_counts_as_registration": true,
     "lfs_pointer_materialization_is_not_a_dirty_worktree": true,
-    "plain_language_zh": "登记在前、获取在后：一个资产必须先有登记好的来源与标识，才允许放到服务器上；下载回来的字节只能用来核对，不能反过来改写登记值。例如 ViT-B/14 现在来源、字节数、摘要全是 null，因此现在不可获取，必须先有一次单独授权的登记步骤。这条规则防止「下载到什么就把什么当成冻结资产」。两条补充：上游自己声明的标识算登记（ProcTHOR-10K 的 `train.jsonl.gz` 由仓库内 133 字节的 git-lfs 指针声明 oid 与 size，这是上游的声明而不是我们对下载结果的观测）；服务器未装 `git lfs` 时，已展开的 LFS 文件会被 git 报成 modified，只要其字节与指针声明一致就不算工作树脏，因此这类资产按文件摘要而不是按 clone 干净度核验。"
+    "plain_language_zh": "登记在前、获取在后：一个资产必须先有登记好的来源与标识，才允许放到服务器上；下载回来的字节只能用来核对，不能反过来改写登记值。例如 ViT-B/14 在 LOG-223 之前来源、字节数、摘要全是 null，因此不可获取；登记完成后它才变成 registered_not_acquired，但放置到服务器仍要另一个位。这条规则防止「下载到什么就把什么当成冻结资产」。两条补充：上游自己声明的标识算登记（ProcTHOR-10K 的 `train.jsonl.gz` 由仓库内 133 字节的 git-lfs 指针声明 oid 与 size，这是上游的声明而不是我们对下载结果的观测）；服务器未装 `git lfs` 时，已展开的 LFS 文件会被 git 报成 modified，只要其字节与指针声明一致就不算工作树脏，因此这类资产按文件摘要而不是按 clone 干净度核验。"
   },
   "license_registry": {
     "must_record_per_asset": [
@@ -350,9 +352,9 @@
       "conflict_id": "vit_b14_unregistered",
       "statement_zh": "METHOD 第五节要求 S1 同时提取 ViT-B/14 描述子并在 S1-05 与 ViT-S/14 二选一，但 D-215 只冻结了 384 维 ViT-S/14，ViT-B/14 的来源、字节数与摘要尚未登记，因此当前不可获取。",
       "evidence": "D-215",
-      "resolution": "D-224-S1 裁决 2：授权一次本地临时目录下载，只为记录 url、字节数与 sha256，记完即删，沿用 SAM 2.1 checkpoint 在 LOG-207 的同一先例；登记值写回本合同后，服务器侧才按已登记摘要核验。登记步骤未执行前，本资产仍为 registration_incomplete 且不可获取。",
-      "evidence_of_resolution": null,
-      "blocks": ["S1-03", "S1-04", "S1-05"]
+      "resolution": "D-224-S1 裁决 2 已执行（LOG-223）。URL 由钉死的 dinov2 commit 7764ea0f 自己的 `_DINOV2_BASE_URL + /{base}/{full}_pretrain.pth` 构造得出，并经 ViT-S/14 的既有下载回执实证同一模式，不是猜的；本地临时目录下载一次后记录 346,378,731 字节与 `0b8b82f8…`，核对 embed_dim=768、patch=14、depth=12、86,580,480 参数确属 ViT-B/14，随即删除临时文件。服务器侧放置仍需 `dinov2_vit_b14_asset_placement_on_server`，该位仍为 false。",
+      "evidence_of_resolution": "LOG-223",
+      "blocks": []
     },
     {
       "conflict_id": "procthor_10k_tag_unchosen",
@@ -373,11 +375,7 @@
     "training"
   ],
   "policy_values_without_defaults": [
-    "worker_rule.headroom_fraction",
-    "asset_registry.dinov2_vit_b14_checkpoint.source_url",
-    "asset_registry.dinov2_vit_b14_checkpoint.bytes",
-    "asset_registry.dinov2_vit_b14_checkpoint.sha256",
-    "known_conflicts.vit_b14_unregistered.evidence_of_resolution"
+    "worker_rule.headroom_fraction"
   ],
   "user_rulings": {
     "decision_id": "D-224-S1",
