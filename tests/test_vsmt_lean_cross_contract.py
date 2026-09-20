@@ -1,4 +1,4 @@
-"""D-224 / S0-06 cross-contract consistency checks over the five S0 contracts.
+"""D-224 / S0-06 cross-contract consistency checks over the S0 and S1-01 contracts.
 
 S0-06 is the user's review of S0-01 to S0-05.  This module is the machine
 part of that review: every contract validates against its own module, and
@@ -7,8 +7,10 @@ arms read, the two-seal rule, the candidate states, the all-false
 authorisation bits and the still-null policy values) agree across files.
 Since D-224-X the live contracts are the ``_v2`` files; the reviewed ``_v1``
 bytes stay in the tree frozen, and this module pins their digests so a
-silent edit of a reviewed contract is caught.  Nothing here is a result and
-nothing here approves a contract.
+silent edit of a reviewed contract is caught.  S1-01 is checked here too:
+it consumes S0-02 and S0-03, and nothing else verifies that the simulator
+and descriptor identities it registers are the ones those contracts assume.
+Nothing here is a result and nothing here approves a contract.
 """
 
 from __future__ import annotations
@@ -26,7 +28,9 @@ SRC_ROOT = PROJECT_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
-from vsmt import lean_arms, lean_assignment, lean_intervention, lean_memory, lean_teacher  # noqa: E402
+from vsmt import (  # noqa: E402
+    lean_arms, lean_assets, lean_assignment, lean_intervention, lean_memory, lean_teacher,
+)
 
 
 CONFIG_DIR = PROJECT_ROOT / "configs" / "vsmt"
@@ -45,7 +49,16 @@ FROZEN_V1_SHA256 = {
     "lean_s0_assignment_v1.json": "e6d8e3808365e4bd2f99b15d7394c4b13399e311f85d41e0ade30443861db6ca",
     "lean_s0_teacher_metrics_v1.json": "700452d1ed57153f1aaf6be631c97094b6111242dca3dd2ae1ba4506a1c24c85",
     "lean_s0_arms_v1.json": "32c1d16e33ac49da389147fd08804c9e53d18fae5ece7becdd83161c8d5b27d3",
+    "lean_s1_assets_capacity_v1.json": "a85c98a8d92a9e4a2fd48d3ee20fcf898decfb8afa6c74aa00ecd2578508c6af",
 }
+
+#: S1-01 is not one of the five S0 contracts and does not share their
+#: all-false rule, so it is loaded separately rather than added to CONTRACTS.
+S1_01_CONTRACT = "lean_s1_assets_capacity_v2.json"
+
+
+def load_s1_01() -> dict[str, Any]:
+    return json.loads((CONFIG_DIR / S1_01_CONTRACT).read_text(encoding="utf-8"))
 
 
 def load(stage: str) -> dict[str, Any]:
@@ -262,6 +275,70 @@ class TestD224XRulingsAgreeAcrossContracts(unittest.TestCase):
         self.assertEqual(load("S0-04")["user_rulings_v2"]["decision_id"], "D-224-X")
         self.assertEqual(load("S0-05")["user_rulings_v2"]["decision_id"], "D-224-X")
         self.assertEqual(load("S0-03")["review_history"][-1]["decision_id"], "D-224-X")
+
+
+class TestS1ConsumesTheS0Contracts(unittest.TestCase):
+    """S1-01 registers the assets S0-02 and S0-03 assume.  Nothing else checks
+    that the two sides still name the same simulator, dataset and weights."""
+
+    def setUp(self) -> None:
+        self.s1 = load_s1_01()
+        self.registry = {row["asset_id"]: row for row in self.s1["asset_registry"]}
+
+    def test_s1_01_passes_its_own_validator(self) -> None:
+        checked = lean_assets.validate_assets_capacity_contract(self.s1)
+        self.assertEqual(checked["stage_id"], "S1-01")
+        self.assertEqual(checked["decision_id"], "D-224")
+
+    def test_s1_01_consumes_the_live_v2_contracts_not_the_frozen_v1(self) -> None:
+        depends = self.s1["depends_on"]
+        self.assertEqual(depends["s0_02_contract"],
+                         f"configs/vsmt/{CONTRACTS['S0-02'][0]}")
+        self.assertEqual(depends["s0_03_contract"],
+                         f"configs/vsmt/{CONTRACTS['S0-03'][0]}")
+
+    def test_the_simulator_s1_registers_is_the_one_s0_02_pins(self) -> None:
+        source = load("S0-02")["source"]
+        ai2thor = self.registry["ai2thor"]
+        self.assertEqual(source["simulator"], "AI2-THOR")
+        # S0-02 pins the version; S1-01 pins the tag that version resolves to.
+        self.assertIn(source["simulator_version"], ai2thor["pinned_path"])
+        self.assertEqual(self.registry["procthor_10k_dataset"]["role"], "house_pool")
+        self.assertIn(source["dataset"].split("-")[0].lower(),
+                      self.registry["procthor_10k_dataset"]["source_url"])
+
+    def test_the_frozen_descriptors_s1_registers_match_d215(self) -> None:
+        d215 = json.loads((CONFIG_DIR / "vm04_d215_frontend_freeze_v1.json")
+                          .read_text(encoding="utf-8"))
+        self.assertEqual(self.registry["sam2_checkpoint"]["sha256"],
+                         d215["sam2"]["checkpoint_sha256"])
+        self.assertEqual(self.registry["sam2_repository"]["pinned_ref"],
+                         d215["sam2"]["repository_commit"])
+
+    def test_both_descriptor_sizes_s0_03_may_choose_between_are_registered(self) -> None:
+        # S0-03 registers a ReID head over the frozen descriptor and leaves the
+        # choice to S1-05, so both candidates must exist as registered assets.
+        reid = load("S0-03")["reid_adapter_head"]
+        self.assertEqual(reid["input"], "frozen_dinov2_descriptor")
+        self.assertEqual(reid["selection_stage"], "S1-05")
+        for asset_id in ("dinov2_vit_s14_checkpoint", "dinov2_vit_b14_checkpoint"):
+            row = self.registry[asset_id]
+            self.assertIsNotNone(row["sha256"], asset_id)
+            self.assertIsNotNone(row["bytes"], asset_id)
+
+    def test_generation_is_closed_on_both_sides(self) -> None:
+        # S1-01 may not generate episodes, and S0-02 has not been authorised
+        # to either; if one side opened, the other would be stale.
+        self.assertIn("route_or_episode_generation", self.s1["must_remain_false"])
+        self.assertIs(load("S0-02")["authorization"]["episode_generation"], False)
+
+    def test_the_occupancy_measurement_is_owned_by_the_stage_that_can_run(self) -> None:
+        self.assertEqual(self.s1["worker_rule"]["measurement_stage"], "S1-02a")
+        self.assertNotIn("single_worker_occupancy_measurement", self.s1["authorization"])
+
+    def test_s1_01_keeps_no_open_policy_value_behind(self) -> None:
+        self.assertEqual(self.s1["policy_values_without_defaults"], [])
+        self.assertEqual(self.s1["worker_rule"]["headroom_fraction"], 0.2)
 
 
 if __name__ == "__main__":  # pragma: no cover
