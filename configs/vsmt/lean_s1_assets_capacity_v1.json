@@ -1,0 +1,406 @@
+{
+  "schema_version": "vsmt-lean-s1-assets-capacity-v1",
+  "decision_id": "D-224",
+  "stage_id": "S1-01",
+  "status": "rulings_applied_pending_user_code_review",
+  "plain_language_zh": "本合同是 S1-01 的授权申请材料：把「要把哪些冻结资产放到服务器上、怎样核对、怎样量机器容量、怎样定最大安全 worker 数」写成机器可检查的条款。输入是资产登记表、许可证登记、容量探测清单和单 worker 实测占用；输出是通过或拒绝，以及一个可复算的 worker 数。例如 SAM 2.1 checkpoint 下载后字节数不是 184,416,285，就必须原样停下报告，不许换镜像、换版本或先用着。它本身不下载任何东西、不安装任何包、不读取公开输入、不生成 cache；按 D-224-S1 开四个位（已登记资产的只读核验、只读容量探测、ViT-B/14 本地摘要登记，以及让 SAM 2.1 能 import 的三个依赖安装），资产下载、模拟器安装、单 worker 占用测量、生成、训练与 private 读取六个位仍为 false。检查通过也不等于资产已经在服务器上，更不等于前端能跑通。",
+  "pure_core_relative_path": "src/vsmt/lean_assets.py",
+  "depends_on": {
+    "s0_02_contract": "configs/vsmt/lean_s0_intervention_data_v1.json",
+    "s0_03_contract": "configs/vsmt/lean_s0_assignment_v1.json",
+    "d215_frozen_frontend": "configs/vsmt/vm04_d215_frontend_freeze_v1.json",
+    "d224_asset_acquisition": "configs/vsmt/vm04_d224_frozen_sam2_asset_acquisition_v1.json",
+    "d224_supersession_core_sha256": "cd825cad1c95c53eb404c851a2d8b1d08cccfbc3d86e5c8b438b9635ba9238b4",
+    "f01_reader_contract": "configs/vsmt/vm04_d223_f01_production_reader_v1.json",
+    "source_receipt": "results/vsmt_vm04_preflight.json",
+    "note_zh": "SAM 2.1 的三项获取授权已由 D-224 资产合同批准并保持 true，本阶段按引用消费，不重写那份合同的任何字节，也不把它的 true 位当作 F-01 或本阶段的运行授权。D-215 冻结数值与 LOG-136 来源回执同样只读不改；下表所有 URL、tag、commit 与摘要均抄自这两处，本阶段不新增任何来源标识。"
+  },
+  "authorization": {
+    "frozen_asset_readonly_verification": true,
+    "server_capacity_probe": true,
+    "dinov2_vit_b14_digest_registration": true,
+    "sam2_asset_placement_on_server": false,
+    "dinov2_existing_asset_verification": false,
+    "dinov2_vit_b14_asset_placement_on_server": false,
+    "simulator_asset_installation": false,
+    "import_dependency_install": true,
+    "single_worker_occupancy_measurement": false,
+    "server_run": false
+  },
+  "activation_policy": {
+    "active_true_authorizations": [
+      "frozen_asset_readonly_verification",
+      "server_capacity_probe",
+      "dinov2_vit_b14_digest_registration",
+      "import_dependency_install"
+    ],
+    "opened_by": "D-224-S1",
+    "exercised_so_far": [
+      "frozen_asset_readonly_verification",
+      "server_capacity_probe",
+      "import_dependency_install"
+    ],
+    "import_dependency_scope": {
+      "governed_by": "configs/vsmt/vm04_d224_frozen_sam2_asset_acquisition_v1.json::authorization.sam2_import_dependency_install",
+      "target": "/root/miniconda3",
+      "packages": ["hydra-core", "omegaconf", "iopath"],
+      "resolved_transitively": ["antlr4-python3-runtime", "portalocker"],
+      "torch_torchvision_numpy_must_not_change": true,
+      "editable_or_build_install_into_the_pinned_worktree": false,
+      "receipt": "LOG-222"
+    },
+    "plain_language_zh": "只有列在 active_true_authorizations 里的位可以为 true，其余位为 true 即拒。当前开四项：对已在服务器上的已登记资产做只读核验、只读容量探测、ViT-B/14 的一次本地摘要登记，以及让 SAM 2.1 能被 import 的三个依赖安装。第一、二项在 LOG-221 执行，第四项在 LOG-222 执行，ViT-B/14 登记尚未执行。第四项的实质授权来自 D-224 资产合同自己的 `sam2_import_dependency_install` 位，这里按引用打开以免两份合同对同一动作各说各话；它只允许装那三个包，不允许动 torch/torchvision/numpy，也不允许把任何东西装进被钉住的 SAM2 工作树。开这四项不等于批准下载资产、生成数据、训练或读取 private。"
+  },
+  "must_remain_false": [
+    "asset_substitution_on_digest_mismatch",
+    "alternate_version_or_mirror_on_failure",
+    "torch_upgrade_reinstall_or_cuda_change",
+    "editable_or_build_install_into_the_pinned_worktree",
+    "server_base_python_mutation",
+    "route_or_episode_generation",
+    "frontend_cache_generation",
+    "reid_adapter_head_training",
+    "model_training",
+    "private_plane_read",
+    "test_split_read"
+  ],
+  "install_roots": {
+    "allowed_asset_root": "/root/autodl-tmp/vsmt-assets",
+    "allowed_install_root": "/root/autodl-tmp/vsmt-envs",
+    "registered_by": "LOG-136",
+    "writing_outside_these_roots_is_forbidden": true,
+    "plain_language_zh": "资产与隔离环境只能写进这两个已登记的目录，不许装进系统 Python、项目 venv 或被钉住的源码工作树。例如 SAM2 的 clone 放在 vsmt-assets 下、兼容解释器放在 vsmt-envs 下；越界写入即停。这不保证磁盘够用，容量由探测决定。"
+  },
+  "asset_entry_fields": [
+    "asset_id",
+    "role",
+    "required_by",
+    "source_url",
+    "pinned_ref",
+    "pinned_path",
+    "bytes",
+    "sha256",
+    "registered_by",
+    "license",
+    "acquisition_mode",
+    "acquisition_status"
+  ],
+  "acquisition_modes": [
+    "clone_to_server",
+    "download_to_server",
+    "install_package",
+    "verify_already_on_server",
+    "register_then_place_on_server"
+  ],
+  "acquisition_statuses": [
+    "registered_not_acquired",
+    "on_server_unverified_in_this_stage",
+    "registration_incomplete"
+  ],
+  "asset_registry": [
+    {
+      "asset_id": "sam2_repository",
+      "role": "proposal_source_code",
+      "required_by": "S1-03",
+      "source_url": "https://github.com/facebookresearch/sam2",
+      "pinned_ref": "2b90b9f5ceec907a1c18123530e92e794ad901a4",
+      "pinned_path": null,
+      "bytes": null,
+      "sha256": null,
+      "registered_by": "D-215",
+      "license": null,
+      "acquisition_mode": "clone_to_server",
+      "acquisition_status": "registered_not_acquired"
+    },
+    {
+      "asset_id": "sam2_model_config",
+      "role": "proposal_official_config",
+      "required_by": "S1-03",
+      "source_url": "https://github.com/facebookresearch/sam2",
+      "pinned_ref": "2b90b9f5ceec907a1c18123530e92e794ad901a4",
+      "pinned_path": "sam2/configs/sam2.1/sam2.1_hiera_s.yaml",
+      "bytes": 3761,
+      "sha256": "0f36b91e86e58d06c87e42997166212468b88b98b60e4d816d5e4d4d088b6f55",
+      "registered_by": "D-215",
+      "license": null,
+      "acquisition_mode": "clone_to_server",
+      "acquisition_status": "registered_not_acquired"
+    },
+    {
+      "asset_id": "sam2_checkpoint",
+      "role": "proposal_weights",
+      "required_by": "S1-03",
+      "source_url": "https://dl.fbaipublicfiles.com/segment_anything_2/092824/sam2.1_hiera_small.pt",
+      "pinned_ref": null,
+      "pinned_path": null,
+      "bytes": 184416285,
+      "sha256": "6d1aa6f30de5c92224f8172114de081d104bbd23dd9dc5c58996f0cad5dc4d38",
+      "registered_by": "D-215",
+      "license": null,
+      "acquisition_mode": "download_to_server",
+      "acquisition_status": "registered_not_acquired"
+    },
+    {
+      "asset_id": "dinov2_repository",
+      "role": "descriptor_source_code",
+      "required_by": "S1-03",
+      "source_url": null,
+      "pinned_ref": "7764ea0f912e53c92e82eb78a2a1631e92725fc8",
+      "pinned_path": "/root/sh05-assets-v1/dinov2",
+      "bytes": null,
+      "sha256": null,
+      "registered_by": "LOG-136",
+      "license": null,
+      "acquisition_mode": "verify_already_on_server",
+      "acquisition_status": "on_server_unverified_in_this_stage"
+    },
+    {
+      "asset_id": "dinov2_vit_s14_checkpoint",
+      "role": "descriptor_weights_384d",
+      "required_by": "S1-03",
+      "source_url": null,
+      "pinned_ref": null,
+      "pinned_path": "/root/sh05-assets-v1/dinowm-native-v1/download/dinov2_vits14_pretrain.pth",
+      "bytes": 88283115,
+      "sha256": "b938bf1bc15cd2ec0feacfe3a1bb553fe8ea9ca46a7e1d8d00217f29aef60cd9",
+      "registered_by": "LOG-136",
+      "license": null,
+      "acquisition_mode": "verify_already_on_server",
+      "acquisition_status": "on_server_unverified_in_this_stage"
+    },
+    {
+      "asset_id": "dinov2_vit_b14_checkpoint",
+      "role": "descriptor_weights_768d_optional_upgrade",
+      "required_by": "S1-03",
+      "source_url": null,
+      "pinned_ref": null,
+      "pinned_path": null,
+      "bytes": null,
+      "sha256": null,
+      "registered_by": null,
+      "license": null,
+      "acquisition_mode": "register_then_place_on_server",
+      "acquisition_status": "registration_incomplete"
+    },
+    {
+      "asset_id": "ai2thor",
+      "role": "simulator",
+      "required_by": "S1-02",
+      "source_url": "https://github.com/allenai/ai2thor.git",
+      "pinned_ref": "f0825767cd50d69f666c7f282e54abfe58f1e917",
+      "pinned_path": "refs/tags/5.0.0^{}",
+      "bytes": null,
+      "sha256": null,
+      "registered_by": "LOG-136",
+      "license": null,
+      "acquisition_mode": "install_package",
+      "acquisition_status": "registered_not_acquired"
+    },
+    {
+      "asset_id": "procthor_code",
+      "role": "house_pool_loader",
+      "required_by": "S1-02",
+      "source_url": "https://github.com/allenai/procthor.git",
+      "pinned_ref": "53d5bd4c8c96a699e6a615dc390abb670cc9d353",
+      "pinned_path": null,
+      "bytes": null,
+      "sha256": null,
+      "registered_by": "LOG-136",
+      "license": null,
+      "acquisition_mode": "install_package",
+      "acquisition_status": "registered_not_acquired"
+    },
+    {
+      "asset_id": "procthor_10k_dataset",
+      "role": "house_pool",
+      "required_by": "S1-02",
+      "source_url": "https://github.com/allenai/procthor-10k.git",
+      "pinned_ref": "d54954a81e7126001e552c2d7904ee2e0d49eaae",
+      "pinned_path": "train.jsonl.gz",
+      "bytes": 52316238,
+      "sha256": "d64450ec821aef55351f62885e4d56b3f0d948693af467bb7f6532850ef4fa37",
+      "registered_by": "D-224-S1",
+      "license": null,
+      "acquisition_mode": "download_to_server",
+      "acquisition_status": "registered_not_acquired"
+    }
+  ],
+  "registry_rules": {
+    "registration_precedes_acquisition": true,
+    "an_asset_without_a_registered_identity_may_not_be_acquired": true,
+    "a_registered_digest_may_not_be_rewritten_by_an_acquisition": true,
+    "license_must_be_recorded_before_acquisition": true,
+    "unlisted_asset_may_not_be_acquired": true,
+    "upstream_declared_identity_counts_as_registration": true,
+    "lfs_pointer_materialization_is_not_a_dirty_worktree": true,
+    "plain_language_zh": "登记在前、获取在后：一个资产必须先有登记好的来源与标识，才允许放到服务器上；下载回来的字节只能用来核对，不能反过来改写登记值。例如 ViT-B/14 现在来源、字节数、摘要全是 null，因此现在不可获取，必须先有一次单独授权的登记步骤。这条规则防止「下载到什么就把什么当成冻结资产」。两条补充：上游自己声明的标识算登记（ProcTHOR-10K 的 `train.jsonl.gz` 由仓库内 133 字节的 git-lfs 指针声明 oid 与 size，这是上游的声明而不是我们对下载结果的观测）；服务器未装 `git lfs` 时，已展开的 LFS 文件会被 git 报成 modified，只要其字节与指针声明一致就不算工作树脏，因此这类资产按文件摘要而不是按 clone 干净度核验。"
+  },
+  "license_registry": {
+    "must_record_per_asset": [
+      "license_name",
+      "license_url_or_file_path",
+      "redistribution_allowed",
+      "research_use_allowed"
+    ],
+    "unrecorded_license_blocks_acquisition": true,
+    "license_is_not_inferred_from_the_repository_name": true,
+    "plain_language_zh": "每个资产在获取前必须登记许可证名称、许可证出处、是否允许再分发、是否允许研究使用四项。例如 SAM 2.1 权重的许可证必须从官方文件读到并记下来，不能因为它是大公司开源项目就默认可用。它不构成法律意见，只保证论文能如实说明来源与限制。"
+  },
+  "capacity_probe": {
+    "read_only": true,
+    "may_load_a_model": false,
+    "may_read_a_public_input": false,
+    "may_write_outside_the_receipt_path": false,
+    "measurements": [
+      "cpu_logical_cores",
+      "cpu_physical_cores",
+      "ram_total_gb",
+      "ram_available_gb",
+      "gpu_count",
+      "gpu_name",
+      "gpu_total_vram_gb",
+      "gpu_free_vram_gb",
+      "disk_free_gb_asset_root",
+      "disk_free_gb_install_root",
+      "python_version",
+      "torch_version",
+      "cuda_available",
+      "egl_resolves",
+      "vulkan_resolves"
+    ],
+    "plain_language_zh": "容量探测只看机器有什么，不跑模型、不读数据、不写回执以外的任何文件。输入是服务器本身，输出是上面这 15 项读数。例如它报告 GPU 空闲显存约 32,230 MiB、Vulkan 未解析；后者直接决定 CloudRendering 能不能起来。它不是性能基准，也不证明任何一步跑得动。"
+  },
+  "worker_rule": {
+    "worker_count_is_derived_not_assumed": true,
+    "derivation_requires_measured_single_worker_occupancy": true,
+    "receipt_records_requested_and_actual": true,
+    "merge_order_is_deterministic_and_independent_of_completion_order": true,
+    "serial_fallback_requires_a_stated_reason_and_evidence": true,
+    "derivation_inputs": [
+      "cpu_cores_per_worker",
+      "ram_gb_per_worker",
+      "vram_gb_per_worker",
+      "disk_gb_per_worker",
+      "simulator_concurrency_limit"
+    ],
+    "headroom_fraction": null,
+    "minimum_workers": 1,
+    "plain_language_zh": "最大安全 worker 数由实测的单 worker 占用和实测的机器资源算出来，取各项瓶颈的最小值再留一段余量，而不是先拍一个数字。输入是单 worker 实测的 CPU/内存/显存/磁盘占用与模拟器并发上限，输出是一个可复算的整数以及是谁卡住了它。例如内存允许 12 个而模拟器只能安全并发 4 个，就取 4 并在回执里写明瓶颈是模拟器。它不保证这个数跑起来不出问题，只保证这个数有依据、可复算、可审计；余量比例待冻结，当前为 null。"
+  },
+  "receipts": {
+    "asset_receipt_fields": [
+      "asset_id",
+      "acquisition_mode",
+      "source_url",
+      "pinned_ref",
+      "observed_bytes",
+      "observed_sha256",
+      "registered_bytes",
+      "registered_sha256",
+      "match",
+      "worktree_clean_including_untracked",
+      "installed_dependency_versions",
+      "torch_version_before",
+      "torch_version_after",
+      "failures"
+    ],
+    "capacity_receipt_fields": [
+      "measurements",
+      "single_worker_occupancy",
+      "derived_worker_count",
+      "binding_constraint",
+      "requested_workers",
+      "actual_workers",
+      "failures"
+    ],
+    "receipt_is_written_even_on_failure": true,
+    "plain_language_zh": "两份回执各自有固定字段：资产回执必须同时写下登记值和实测值以及两者是否一致，容量回执必须写下读数、单 worker 占用、算出的 worker 数和被哪一项卡住。例如 checkpoint 少了 100 字节，回执里 match 为 false 且 failures 非空，而不是只留一句「下载完成」。失败也必须写回执，不许静默重试或覆盖现场。"
+  },
+  "stop_conditions": {
+    "digest_mismatch": "stop_and_report_verbatim",
+    "byte_count_mismatch": "stop_and_report_verbatim",
+    "missing_license_record": "stop_and_report_verbatim",
+    "unlisted_asset_requested": "stop_and_report_verbatim",
+    "incomplete_registration_requested": "stop_and_report_verbatim",
+    "torch_or_cuda_would_change": "stop_and_report_verbatim",
+    "worktree_dirty_after_acquisition": "stop_and_report_verbatim",
+    "write_outside_allowed_roots": "stop_and_report_verbatim",
+    "may_retry_with_another_version_or_mirror": false,
+    "may_proceed_with_a_partially_verified_asset": false,
+    "plain_language_zh": "以上任何一种情况都只有一个动作：原样停下并如实报告，等用户裁决。例如官方 URL 改版导致摘要不符，正确做法是报告，不是去找一个能下下来的镜像。冻结资产是实验的对照基准，换掉它等于悄悄换掉整篇论文的前端。"
+  },
+  "known_conflicts": [
+    {
+      "conflict_id": "python_version_conflict",
+      "statement_zh": "ProcTHOR 已发布的 classifier 只到 Python 3.9，SAM 2.1 要求 Python ≥ 3.10，服务器基础环境为 Python 3.12.3，三者不能同时满足于同一个解释器；LOG-136 已把候选隔离版本登记为 3.10 与 3.11，但未选定、未安装。",
+      "evidence": "LOG-136",
+      "resolution": "按角色分成两个解释器，而不是找一个能同时装下三者的版本：模拟器侧（AI2-THOR 5.0.0 + procthor 0.0.1.dev2）跑在 /root/autodl-tmp/vsmt-envs/simulator-py39（Python 3.9.25），前端侧（SAM 2.1 + DINOv2 + torch 2.8.0+cu128）跑在基础 /root/miniconda3（Python 3.12.3）。LOG-221 只读核验两侧都已就位。两侧只通过写在磁盘上的 public/private/provenance 文件交接，不在同一进程内互相 import，因此版本冲突不再存在。",
+      "evidence_of_resolution": "LOG-221",
+      "blocks": []
+    },
+    {
+      "conflict_id": "cloudrendering_requires_vulkan",
+      "statement_zh": "S0-02 把平台固定为 CloudRendering，LOG-136 已登记 CloudRendering 依赖 libvulkan，而同一次只读核查显示服务器上 EGL/GL 可解析、Vulkan 未解析。未解决前 S1-02 无法按合同渲染。",
+      "evidence": "LOG-136",
+      "resolution": "已不成立。LOG-221 只读核验显示 libvulkan.so.1 可解析，`vulkaninfo --summary` 枚举出 deviceName=NVIDIA GeForce RTX 4080、driverName=NVIDIA、apiVersion 1.4.329，另有 llvmpipe 软件后备；AI2-THOR 的 CloudRendering 构建 thor-CloudRendering-f0825767… 也已在 /root/autodl-tmp/vsmt-assets/ai2thor 就位。它只说明 Vulkan 能看到这块 GPU，不等于 CloudRendering 已经成功起过一帧——那要到 S1-02 首次真实渲染才算证据。",
+      "evidence_of_resolution": "LOG-221",
+      "blocks": []
+    },
+    {
+      "conflict_id": "vit_b14_unregistered",
+      "statement_zh": "METHOD 第五节要求 S1 同时提取 ViT-B/14 描述子并在 S1-05 与 ViT-S/14 二选一，但 D-215 只冻结了 384 维 ViT-S/14，ViT-B/14 的来源、字节数与摘要尚未登记，因此当前不可获取。",
+      "evidence": "D-215",
+      "resolution": "D-224-S1 裁决 2：授权一次本地临时目录下载，只为记录 url、字节数与 sha256，记完即删，沿用 SAM 2.1 checkpoint 在 LOG-207 的同一先例；登记值写回本合同后，服务器侧才按已登记摘要核验。登记步骤未执行前，本资产仍为 registration_incomplete 且不可获取。",
+      "evidence_of_resolution": null,
+      "blocks": ["S1-03", "S1-04", "S1-05"]
+    },
+    {
+      "conflict_id": "procthor_10k_tag_unchosen",
+      "statement_zh": "LOG-136 对 ProcTHOR-10K 的 0.1.0 与 0.1.2 两个 tag 都做了核对并都匹配，但从未选定其一；S0-02 只固定了数据集名称与 train 分区，没有固定 tag。house 池的字节因此尚未确定。",
+      "evidence": "LOG-136",
+      "resolution": "D-224-S1 裁决 3：选 0.1.2（commit d54954a81e7126001e552c2d7904ee2e0d49eaae）。house 池文件 train.jsonl.gz 的标识取自该 tag 仓库内 133 字节 git-lfs 指针声明的 oid 与 size，已登记为 52,316,238 字节 / d64450ec…；LOG-221 只读核验服务器上的同名文件与登记值逐位一致。该 tag 不写进 S0-02 已审字节，只登记在本合同。",
+      "evidence_of_resolution": "LOG-221",
+      "blocks": []
+    }
+  ],
+  "not_in_this_stage": [
+    "episode_generation",
+    "frontend_cache_generation",
+    "descriptor_extraction",
+    "separation_diagnostics",
+    "descriptor_selection",
+    "arm_implementation",
+    "training"
+  ],
+  "policy_values_without_defaults": [
+    "worker_rule.headroom_fraction",
+    "asset_registry.dinov2_vit_b14_checkpoint.source_url",
+    "asset_registry.dinov2_vit_b14_checkpoint.bytes",
+    "asset_registry.dinov2_vit_b14_checkpoint.sha256",
+    "known_conflicts.vit_b14_unregistered.evidence_of_resolution"
+  ],
+  "user_rulings": {
+    "decision_id": "D-224-S1",
+    "approved_on": "2026-09-20",
+    "rulings": [
+      "1 资产范围含模拟器侧：AI2-THOR、ProcTHOR 代码与 ProcTHOR-10K 数据集一并由 S1-01 登记与核验。",
+      "2 授权一次本地临时目录下载 ViT-B/14，只记录 url/bytes/sha256 后删除，再写回本合同；未登记前不可获取。",
+      "3 ProcTHOR-10K 选 0.1.2，标识取自上游 git-lfs 指针，不改 S0-02 已审字节。",
+      "4 Python 冲突按角色分两个解释器解决：模拟器 py39、前端 py312，两侧只通过磁盘文件交接。",
+      "5 授权只读容量探测顺带确认渲染后端；已确认 Vulkan 能枚举到本机 NVIDIA GPU。",
+      "6 九个资产的许可证本阶段仍留 null，在具体获取授权通过时一并填入。",
+      "7 清理 tests/README.md 中已被 d7159ba 归档删除的七个测试段落。",
+      "8 删除只剩字节码的 tests/spatial_world_model/ 与孤儿 .pyc。",
+      "9 切断 S0 纯核心对 vsmt.graph_ops 与 cpmt.executor 的传递性 import，三个纯函数逐字复制到 lean_geometry.py。"
+    ],
+    "plain_language_zh": "这九条是用户在 2026-09-20 一次性批准的裁决，合同里任何非 null 的 resolution 都必须挂在这个编号下。例如 ProcTHOR-10K 的 tag 之所以能从 null 变成 0.1.2，依据是裁决 3 而不是实现者的判断。它不追认任何运行，也不放开任何仍为 false 的授权位。"
+  },
+  "continue_gate": {
+    "every_authorization_bit_is_false_until_the_user_opens_it": true,
+    "registration_precedes_acquisition": true,
+    "a_mismatch_stops_and_never_substitutes": true,
+    "worker_count_is_derived_from_measurement_and_recorded": true,
+    "receipts_exist_for_success_and_failure": true,
+    "plain_language_zh": "S1-01 的继续门是：授权位默认全关、登记在获取之前、摘要不符就停、worker 数有实测依据且写进回执、成功和失败都留回执。全部通过只说明申请材料自洽，不说明资产已经到位、机器够用或前端可运行。"
+  }
+}
