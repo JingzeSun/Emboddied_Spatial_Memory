@@ -133,6 +133,65 @@ def probe(upgraded: dict[str, Any], object_id: str, destination: str, anywhere: 
     return r
 
 
+def _capture(controller: Any) -> dict[str, Any]:
+    ev = controller.last_event
+    return {"rgb": np.asarray(ev.frame, dtype=np.int16), "depth": np.asarray(ev.depth_frame, dtype=np.float32),
+            "keys": _mask_keys(ev), "det": sorted((ev.instance_detections2D or {}).keys())}
+
+
+def _diff(a: dict[str, Any], b: dict[str, Any]) -> dict[str, Any]:
+    rgb = int((np.abs(a["rgb"] - b["rgb"]).max(axis=2) > 10).sum())
+    depth = int((np.abs(a["depth"] - b["depth"]) > 0.01).sum())
+    return {"rgb_pixels_changed": rgb, "depth_pixels_changed": depth,
+            "mask_keys_added": sorted(set(b["keys"]) - set(a["keys"])), "det_added": sorted(set(b["det"]) - set(a["det"]))}
+
+
+def probe_render(upgraded: dict[str, Any], object_id: str, destination: str) -> dict[str, Any]:
+    """Does the spawned duplicate render at all (RGB/depth), and where?"""
+
+    r: dict[str, Any] = {"trial": "render_diff", "object_id": object_id, "destination": destination}
+    c = None
+    try:
+        c = _controller(upgraded)
+        meta = c.last_event.metadata
+        src = _find(meta, object_id); dst = _find(meta, destination)
+        pts = c.step(action="GetSpawnCoordinatesAboveReceptacle", objectId=destination, anywhere=True).metadata["actionReturn"]
+        pt = pts[0]
+        center = (dst.get("axisAlignedBoundingBox") or {}).get("center") or dst["position"]
+        # pre-captures: destination viewpoint and world-origin viewpoint
+        r["view_dst"] = _teleport_to_view(c, center); pre_dst = _capture(c)
+        origin = {"x": 0.1, "y": 0.5, "z": 0.05}
+        r["view_origin"] = _teleport_to_view(c, origin); pre_org = _capture(c)
+        gid = "dup_probe_000001"
+        ev = c.step(action="SpawnAsset", assetId=src.get("assetId"), generatedId=gid, position=pt, rotation={"x": 0, "y": 0, "z": 0})
+        r["spawn"] = {"success": ev.metadata.get("lastActionSuccess"), "actionReturn": ev.metadata.get("actionReturn")}
+        c.step(action="Pass")
+        # post-captures from the same two poses
+        r["view_origin_again"] = _teleport_to_view(c, origin); post_org = _capture(c)
+        r["view_dst_again"] = _teleport_to_view(c, center); post_dst = _capture(c)
+        r["diff_at_destination_view"] = _diff(pre_dst, post_dst)
+        r["diff_at_origin_view"] = _diff(pre_org, post_org)
+        d = _find(c.last_event.metadata, gid)
+        r["dup_meta"] = {"position": d["position"], "visible": d.get("visible"),
+                         "aabb": d.get("axisAlignedBoundingBox"), "objectOrientedBoundingBox": d.get("objectOrientedBoundingBox")} if d else None
+        # a control: the SAME asset moved by PlaceObjectAtPoint (an existing object) does register
+        ev = c.step(action="PlaceObjectAtPoint", objectId=object_id, position=pts[min(8, len(pts) - 1)])
+        r["control_place_existing"] = {"success": ev.metadata.get("lastActionSuccess"), "error": (ev.metadata.get("errorMessage") or "")[:200]}
+        r["view_dst_control"] = _teleport_to_view(c, center); post_ctrl = _capture(c)
+        r["control_existing_pixels_from_dst_view"] = post_ctrl["keys"].get(object_id, 0)
+        r["control_diff_vs_post_dst"] = _diff(post_dst, post_ctrl)
+    except Exception as exc:  # noqa: BLE001
+        import traceback
+        r["exception"] = repr(exc)[:400]; r["traceback"] = traceback.format_exc()[-600:]
+    finally:
+        if c is not None:
+            try:
+                c.stop()
+            except Exception:  # noqa: BLE001
+                pass
+    return r
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--source", required=True)
@@ -149,6 +208,8 @@ def main() -> int:
     for anywhere in (True, False):
         t = probe(upgraded, args.object_id, args.destination, anywhere)
         report["trials"].append(t); print(json.dumps(t, default=str), flush=True)
+    t = probe_render(upgraded, args.object_id, args.destination)
+    report["trials"].append(t); print(json.dumps(t, default=str), flush=True)
     out = Path(args.out); out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report, indent=1, default=str))
     print(f"wrote {out}")
