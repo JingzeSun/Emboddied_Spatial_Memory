@@ -24,7 +24,6 @@
     "dinov2_vit_b14_asset_placement_on_server": false,
     "simulator_asset_installation": false,
     "import_dependency_install": true,
-    "single_worker_occupancy_measurement": false,
     "server_run": false
   },
   "activation_policy": {
@@ -275,6 +274,9 @@
   "worker_rule": {
     "worker_count_is_derived_not_assumed": true,
     "derivation_requires_measured_single_worker_occupancy": true,
+    "measurement_stage": "S1-02a",
+    "measurement_is_not_authorized_in_this_stage": true,
+    "concurrency_verified_at_is_not_the_derived_count": true,
     "receipt_records_requested_and_actual": true,
     "merge_order_is_deterministic_and_independent_of_completion_order": true,
     "serial_fallback_requires_a_stated_reason_and_evidence": true,
@@ -287,7 +289,7 @@
     ],
     "headroom_fraction": null,
     "minimum_workers": 1,
-    "plain_language_zh": "最大安全 worker 数由实测的单 worker 占用和实测的机器资源算出来，取各项瓶颈的最小值再留一段余量，而不是先拍一个数字。输入是单 worker 实测的 CPU/内存/显存/磁盘占用与模拟器并发上限，输出是一个可复算的整数以及是谁卡住了它。例如内存允许 12 个而模拟器只能安全并发 4 个，就取 4 并在回执里写明瓶颈是模拟器。它不保证这个数跑起来不出问题，只保证这个数有依据、可复算、可审计；余量比例待冻结，当前为 null。"
+    "plain_language_zh": "最大安全 worker 数由实测的单 worker 占用和实测的机器资源算出来，取各项瓶颈的最小值再留一段余量，而不是先拍一个数字。输入是单 worker 实测的 CPU/内存/显存/磁盘占用与模拟器并发上限，输出是一个可复算的整数以及是谁卡住了它。例如内存允许 12 个而模拟器只能安全并发 4 个，就取 4 并在回执里写明瓶颈是模拟器。它不保证这个数跑起来不出问题，只保证这个数有依据、可复算、可审计；余量比例待冻结，当前为 null。**测量不在本阶段。** 这五个量只能靠真跑一条 episode 得到，而 `route_or_episode_generation` 在本合同的 `must_remain_false` 里，所以 S1-01 按自己的条款永远测不出占用；按 D-224-S1 补充裁决 14，测量移到 S1-02a 的 4-worker pilot，本合同只保留这条推导规则和它的输入清单。另注意 pilot 只证明 4 路并发是安全的，`concurrency_verified_at` 与算出来的 `derived_worker_count` 是两回事，回执必须分开记；扩到更大并发后出现不稳定要如实报告，不得事后把数字悄悄调小当作没发生。"
   },
   "receipts": {
     "asset_receipt_fields": [

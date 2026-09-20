@@ -86,7 +86,11 @@ CAPACITY_MEASUREMENTS = (
     "vulkan_resolves",
 )
 
-#: Per-worker costs that must be measured, never guessed.
+#: Per-worker costs that must be measured, never guessed.  The measurement
+#: itself belongs to S1-02a, not here: every one of these can only be read
+#: off a real episode run, and route_or_episode_generation is on this
+#: stage's closed list, so S1-01 could never have measured them without
+#: breaking its own guarantee (D-224-S1 ruling 14).
 WORKER_DERIVATION_INPUTS = (
     "cpu_cores_per_worker", "ram_gb_per_worker", "vram_gb_per_worker",
     "disk_gb_per_worker", "simulator_concurrency_limit",
@@ -625,6 +629,16 @@ def validate_assets_capacity_contract(contract: Mapping[str, Any]) -> dict[str, 
         _require(name not in MUST_REMAIN_FALSE, f"contract_opened_a_closed_bit:{name}")
     for name in policy["exercised_so_far"]:
         _require(name in opened, f"contract_exercised_a_bit_that_is_not_open:{name}")
+
+    # The occupancy measurement may not be re-opened here: it needs an
+    # episode run, which this stage keeps closed, so authorising it in this
+    # contract would promise something the same contract forbids.
+    _require("single_worker_occupancy_measurement" not in contract["authorization"],
+             "contract_reopened_the_measurement_this_stage_cannot_perform")
+    _require(contract["worker_rule"]["measurement_stage"] == "S1-02a",
+             "contract_measurement_stage_moved")
+    _require(contract["worker_rule"]["measurement_is_not_authorized_in_this_stage"] is True,
+             "contract_measurement_claimed_in_this_stage")
     for name in MUST_REMAIN_FALSE:
         _require(contract["authorization"].get(name) is not True,
                  f"contract_closed_bit_opened:{name}")

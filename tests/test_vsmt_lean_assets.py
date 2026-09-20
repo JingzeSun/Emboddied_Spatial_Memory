@@ -470,9 +470,31 @@ class TestContract(unittest.TestCase):
     def test_every_acquisition_and_run_bit_is_still_closed(self) -> None:
         for name in ("sam2_asset_placement_on_server",
                      "dinov2_vit_b14_asset_placement_on_server",
-                     "simulator_asset_installation",
-                     "single_worker_occupancy_measurement", "server_run"):
+                     "simulator_asset_installation", "server_run"):
             self.assertIs(self.contract["authorization"][name], False, name)
+
+    def test_the_occupancy_measurement_left_this_stage(self) -> None:
+        # It needs an episode run, which this stage keeps closed, so it
+        # belongs to S1-02a and may not reappear here under any name.
+        self.assertNotIn("single_worker_occupancy_measurement",
+                         self.contract["authorization"])
+        self.assertEqual(self.contract["worker_rule"]["measurement_stage"], "S1-02a")
+        self.assertIn("route_or_episode_generation", self.contract["must_remain_false"])
+
+    def test_reopening_the_measurement_here_is_rejected(self) -> None:
+        reopened = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        reopened["authorization"]["single_worker_occupancy_measurement"] = False
+        reopened["activation_policy"]["active_true_authorizations"].append(
+            "single_worker_occupancy_measurement")
+        with self.assertRaises(LeanAssetsError):
+            validate_assets_capacity_contract(reopened)
+
+    def test_the_derivation_rule_stays_here_even_though_the_measurement_moved(self) -> None:
+        rule = self.contract["worker_rule"]
+        self.assertEqual(tuple(rule["derivation_inputs"]), WORKER_DERIVATION_INPUTS)
+        self.assertIs(rule["derivation_requires_measured_single_worker_occupancy"], True)
+        self.assertIs(rule["concurrency_verified_at_is_not_the_derived_count"], True)
+        self.assertIsNone(rule["headroom_fraction"])
 
     def test_a_bit_opened_outside_the_ruling_is_rejected(self) -> None:
         opened = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
