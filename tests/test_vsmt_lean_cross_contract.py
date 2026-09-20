@@ -15,6 +15,7 @@ Nothing here is a result and nothing here approves a contract.
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 from pathlib import Path
@@ -27,6 +28,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = PROJECT_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
+
+from cpmt.hashing import canonical_json  # noqa: E402
 
 from vsmt import (  # noqa: E402
     lean_arms, lean_assets, lean_assignment, lean_intervention, lean_memory,
@@ -117,6 +120,174 @@ def lookup(contract: dict[str, Any], path: str) -> Any:
     if len(hits) != 1:
         raise KeyError(f"{path}: found {len(hits)} times")
     return hits[0]
+
+
+#: v1 file per stage; the v1 list of open slots is the registration of record.
+FROZEN_V1_NAME = {
+    "S0-01": "lean_s0_entity_memory_v1.json",
+    "S0-02": "lean_s0_intervention_data_v1.json",
+    "S0-03": "lean_s0_assignment_v1.json",
+    "S0-04": "lean_s0_teacher_metrics_v1.json",
+    "S0-05": "lean_s0_arms_v1.json",
+    "S1-01": "lean_s1_assets_capacity_v1.json",
+    "S1-02a": "lean_s1_02a_pilot_v1.json",
+}
+
+#: Live contract per stage, including the two S1 contracts.
+LIVE_CONTRACT = {
+    "S0-01": "lean_s0_entity_memory_v2.json",
+    "S0-02": "lean_s0_intervention_data_v3.json",
+    "S0-03": "lean_s0_assignment_v2.json",
+    "S0-04": "lean_s0_teacher_metrics_v2.json",
+    "S0-05": "lean_s0_arms_v2.json",
+    "S1-01": "lean_s1_assets_capacity_v2.json",
+    "S1-02a": "lean_s1_02a_pilot_v2.json",
+}
+
+
+def load_stage(stage: str) -> dict[str, Any]:
+    return json.loads((CONFIG_DIR / LIVE_CONTRACT[stage]).read_text(encoding="utf-8"))
+
+# ----------------------------------------------------------------------------
+# Value-freeze governance (D-224-S1 ruling 24).
+#
+# A reviewed contract is a set of RULES plus registered VALUE SLOTS that were
+# null at review time and are filled later by ruling.  Filling a slot is the
+# contract doing what it said it would; changing a rule is a revision.  The
+# two used to share one file digest, so every fill staled every pointer.
+# Here the rule digest masks the slots and the bookkeeping, and a separate
+# ledger holds every value ever frozen, which may then never change.
+# ----------------------------------------------------------------------------
+
+#: Top-level keys that record process, not rules.
+BOOKKEEPING_KEYS = frozenset({
+    "status", "policy_values_without_defaults", "user_rulings",
+    "pending_user_rulings", "supersedes_contract", "supersedes_contract_v2",
+    "activation_policy", "known_conflicts", "review_history",
+})
+#: Keys anywhere in the tree that only say when/by whom a value was frozen.
+FREEZE_META_KEYS = frozenset({"is_the_single_registered_location"})
+FREEZE_META_SUFFIXES = ("frozen_by", "frozen_on")
+#: Prose keys: explanation, not machine-checked rules.
+PROSE_SUFFIX = "_zh"
+#: List items are addressed by one of these id fields in a dotted path.
+LIST_ID_FIELDS = ("asset_id", "conflict_id", "arm", "name", "id")
+
+
+def registered_value_slots(stage: str) -> tuple[str, ...]:
+    """The slots a contract registered as open at v1: fixed for all time."""
+
+    v1 = json.loads((CONFIG_DIR / FROZEN_V1_NAME[stage]).read_text(encoding="utf-8"))
+    return tuple(v1["policy_values_without_defaults"])
+
+
+def _resolve(node: Any, part: str) -> tuple[Any, Any]:
+    """Return (container, key) for one path segment, handling id-addressed lists."""
+
+    if isinstance(node, dict) and part in node:
+        return node, part
+    if isinstance(node, list):
+        for index, item in enumerate(node):
+            if isinstance(item, dict) and any(item.get(f) == part for f in LIST_ID_FIELDS):
+                return node, index
+    raise KeyError(part)
+
+
+def _null_slot(tree: Any, path: str) -> None:
+    if "." in path:
+        node = tree
+        parts = path.split(".")
+        for part in parts[:-1]:
+            container, key = _resolve(node, part)
+            node = container[key]
+        container, key = _resolve(node, parts[-1])
+        container[key] = None
+        return
+    hits: list[tuple[Any, str]] = []
+
+    def walk(value: Any) -> None:
+        if isinstance(value, dict):
+            for key, item in value.items():
+                if key == path:
+                    hits.append((value, key))
+                walk(item)
+        elif isinstance(value, list):
+            for item in value:
+                walk(item)
+
+    walk(tree)
+    if len(hits) != 1:
+        raise KeyError(f"{path}: found {len(hits)} times")
+    container, key = hits[0]
+    container[key] = None
+
+
+def _strip(value: Any) -> Any:
+    if isinstance(value, dict):
+        out = {}
+        for key, item in value.items():
+            if key in FREEZE_META_KEYS or key.endswith(FREEZE_META_SUFFIXES):
+                continue
+            if key.endswith(PROSE_SUFFIX):
+                continue
+            out[key] = _strip(item)
+        return out
+    if isinstance(value, list):
+        return [_strip(item) for item in value]
+    return value
+
+
+def rule_digest(stage: str, contract: dict[str, Any]) -> str:
+    """Digest the rules of a contract: slots nulled, bookkeeping and prose gone."""
+
+    tree = copy.deepcopy(contract)
+    for key in BOOKKEEPING_KEYS:
+        tree.pop(key, None)
+    for slot in registered_value_slots(stage):
+        _null_slot(tree, slot)
+    return hashlib.sha256(canonical_json(_strip(tree)).encode("utf-8")).hexdigest()
+
+
+def lookup_slot(contract: dict[str, Any], path: str) -> Any:
+    tree = copy.deepcopy(contract)
+    if "." in path:
+        node = tree
+        for part in path.split("."):
+            container, key = _resolve(node, part)
+            node = container[key]
+        return node
+    return lookup(tree, path)
+
+
+#: The rules of each live contract, pinned.  A change here is a revision
+#: and needs a new version and a review; a value freeze does not touch it.
+FROZEN_RULE_SHA256 = {
+    "S0-01": "76f505da801d5ecec6730e85ca521a034888429283f6ac3a0312dfc94c27349c",
+    "S0-02": "7200b459a89dd30c8d9fbebb0ab870165b67628acd8f9e83920f74db577ca2d7",
+    "S0-03": "cc7d46f870e7894592792e793e0fc1a27f09e6e9b3d60b6e01c9f7a12d7e04d3",
+    "S0-04": "268cb41825c472a8bb7bffe9e9529e4d3c98c38f791104a0ad0663e778387b48",
+    "S0-05": "c5354b1e71936d345823630b6533b03329435de104e258785fdb89e17934c54a",
+    "S1-01": "4f139e631388c05e4006fd12ffad8b611d2e7811fb7f9a830ce9f7c63fdecd84",
+    "S1-02a": "191b2641395e53c482545853d0a02e6ef13916c0b82fdc6e0c208a62a4dc3b6d",
+}
+
+#: Every registered slot that has been frozen, and the value it froze at.
+#: An entry may be added by a reviewed edit of this file; it may never change.
+FROZEN_VALUES: dict[str, dict[str, Any]] = {
+    "S0-02": {
+        "route.translation_m": 0.25,
+        "route.rotation_degrees": 90,
+        "route.look_degrees": 30
+    },
+    "S1-01": {
+        "worker_rule.headroom_fraction": 0.2
+    },
+    "S1-02a": {
+        "split_freeze.seed": 20260920,
+        "split_freeze.validation_houses": 50,
+        "split_freeze.test_houses": 100
+    }
+}
 
 
 class TestEveryContractValidates(unittest.TestCase):
@@ -478,6 +649,93 @@ class TestTheSplitIsFrozenInExactlyOnePlace(unittest.TestCase):
         self.assertIs(self.s0_02["authorization"]["episode_generation"], False)
         self.assertIs(self.s1_02a["authorization"]["episode_generation"], False)
         self.assertIn("route_or_episode_generation", load_s1_01()["must_remain_false"])
+
+
+class TestRulesArePinnedAndValuesAreLedgered(unittest.TestCase):
+    """Ruling 24: rules change only by revision; values change only by ledger."""
+
+    def test_each_live_contract_has_the_pinned_rule_digest(self) -> None:
+        for stage, expected in FROZEN_RULE_SHA256.items():
+            with self.subTest(stage=stage):
+                self.assertEqual(rule_digest(stage, load_stage(stage)), expected)
+
+    def test_every_filled_slot_is_in_the_ledger_with_the_same_value(self) -> None:
+        # A slot that is filled but not ledgered is a silent freeze.
+        for stage in FROZEN_RULE_SHA256:
+            contract = load_stage(stage)
+            for slot in registered_value_slots(stage):
+                value = lookup_slot(contract, slot)
+                with self.subTest(stage=stage, slot=slot):
+                    if value is None:
+                        self.assertNotIn(slot, FROZEN_VALUES.get(stage, {}))
+                        self.assertIn(slot, contract["policy_values_without_defaults"])
+                    else:
+                        self.assertIn(slot, FROZEN_VALUES.get(stage, {}))
+                        self.assertEqual(value, FROZEN_VALUES[stage][slot])
+                        self.assertNotIn(slot, contract["policy_values_without_defaults"])
+
+    def test_every_ledger_entry_is_a_registered_slot_of_that_stage(self) -> None:
+        for stage, values in FROZEN_VALUES.items():
+            slots = set(registered_value_slots(stage))
+            for slot in values:
+                with self.subTest(stage=stage, slot=slot):
+                    self.assertIn(slot, slots)
+
+    def test_filling_a_slot_does_not_move_the_rule_digest(self) -> None:
+        # The whole point: a value freeze is not a revision.
+        for stage in FROZEN_RULE_SHA256:
+            contract = load_stage(stage)
+            slots = registered_value_slots(stage)
+            if not slots:
+                continue
+            altered = copy.deepcopy(contract)
+            container, key = _resolve_path(altered, slots[0])
+            container[key] = 424242
+            with self.subTest(stage=stage, slot=slots[0]):
+                self.assertEqual(rule_digest(stage, altered), rule_digest(stage, contract))
+
+    def test_changing_a_rule_does_move_the_rule_digest(self) -> None:
+        for stage in FROZEN_RULE_SHA256:
+            contract = load_stage(stage)
+            altered = copy.deepcopy(contract)
+            altered["authorization"] = dict(altered["authorization"])
+            altered["authorization"]["__injected_rule__"] = True
+            with self.subTest(stage=stage):
+                self.assertNotEqual(rule_digest(stage, altered), rule_digest(stage, contract))
+
+    def test_prose_and_freeze_metadata_are_not_rules(self) -> None:
+        for stage in FROZEN_RULE_SHA256:
+            contract = load_stage(stage)
+            altered = copy.deepcopy(contract)
+            altered["plain_language_zh"] = "edited explanation"
+            altered["__frozen_by"] = "x"
+            with self.subTest(stage=stage):
+                self.assertEqual(rule_digest(stage, altered), rule_digest(stage, contract))
+
+
+def _resolve_path(tree: Any, path: str) -> tuple[Any, Any]:
+    node = tree
+    parts = path.split(".") if "." in path else [path]
+    if len(parts) == 1:
+        hits: list[tuple[Any, str]] = []
+
+        def walk(value: Any) -> None:
+            if isinstance(value, dict):
+                for key, item in value.items():
+                    if key == path:
+                        hits.append((value, key))
+                    walk(item)
+            elif isinstance(value, list):
+                for item in value:
+                    walk(item)
+
+        walk(tree)
+        assert len(hits) == 1, path
+        return hits[0]
+    for part in parts[:-1]:
+        container, key = _resolve(node, part)
+        node = container[key]
+    return _resolve(node, parts[-1])
 
 
 if __name__ == "__main__":  # pragma: no cover
