@@ -234,6 +234,49 @@ def probe_in_front(upgraded: dict[str, Any], object_id: str) -> dict[str, Any]:
     return r
 
 
+def probe_reinit(upgraded: dict[str, Any], object_id: str) -> dict[str, Any]:
+    """Can a mid-episode Initialize re-register the spawned object with instance segmentation?"""
+
+    import math
+
+    r: dict[str, Any] = {"trial": "reinit_segmentation", "object_id": object_id}
+    c = None
+    try:
+        c = _controller(upgraded)
+        src = _find(c.last_event.metadata, object_id)
+        c.step(action="Pass"); pre = _capture(c)
+        a = c.last_event.metadata["agent"]; cam = c.last_event.metadata["cameraPosition"]
+        yaw = math.radians(a["rotation"]["y"])
+        pt = {"x": a["position"]["x"] + 0.6 * math.sin(yaw), "y": cam["y"] - 0.1, "z": a["position"]["z"] + 0.6 * math.cos(yaw)}
+        gid = "dup_probe_000003"
+        c.step(action="SpawnAsset", assetId=src.get("assetId"), generatedId=gid, position=pt, rotation={"x": 0, "y": 0, "z": 0})
+        c.step(action="Pass"); r["pixels_before_reinit"] = _capture(c)["keys"].get(gid, 0)
+        n_obj = len(c.last_event.metadata["objects"]); pose_before = dict(c.last_event.metadata["agent"])
+        ev = c.step(action="Initialize", gridSize=0.25, snapToGrid=True, rotateStepDegrees=90, fieldOfView=FOV,
+                    renderDepthImage=True, renderInstanceSegmentation=True)
+        r["initialize"] = {"success": ev.metadata.get("lastActionSuccess"), "error": (ev.metadata.get("errorMessage") or "")[:200]}
+        c.step(action="Pass"); post = _capture(c)
+        r["pixels_after_reinit"] = post["keys"].get(gid, 0)
+        r["mask_keys_added_vs_pre"] = sorted(set(post["keys"]) - set(pre["keys"]))
+        r["objects_same_count"] = len(c.last_event.metadata["objects"]) == n_obj
+        pa = c.last_event.metadata["agent"]
+        r["agent_pose_unchanged"] = (pa["position"] == pose_before["position"] and pa["rotation"] == pose_before["rotation"]
+                                     and pa["cameraHorizon"] == pose_before["cameraHorizon"])
+        r["dup_still_listed"] = _find(c.last_event.metadata, gid) is not None
+        # do other objects keep their ids and masks after Initialize?
+        r["existing_key_overlap"] = len(set(post["keys"]) & set(pre["keys"])), len(pre["keys"])
+    except Exception as exc:  # noqa: BLE001
+        import traceback
+        r["exception"] = repr(exc)[:400]; r["traceback"] = traceback.format_exc()[-600:]
+    finally:
+        if c is not None:
+            try:
+                c.stop()
+            except Exception:  # noqa: BLE001
+                pass
+    return r
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--source", required=True)
@@ -255,6 +298,8 @@ def main() -> int:
         t = probe_render(upgraded, args.object_id, args.destination)
         report["trials"].append(t); print(json.dumps(t, default=str), flush=True)
     t = probe_in_front(upgraded, args.object_id)
+    report["trials"].append(t); print(json.dumps(t, default=str), flush=True)
+    t = probe_reinit(upgraded, args.object_id)
     report["trials"].append(t); print(json.dumps(t, default=str), flush=True)
     out = Path(args.out); out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report, indent=1, default=str))
