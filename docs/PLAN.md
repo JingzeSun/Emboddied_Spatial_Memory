@@ -18,7 +18,7 @@ S3 正式数据、训练、validation 与一次性 test（S3-01 → S3-06）
 S4 论文
 ```
 
-当前执行点：**S0 五份合同全部审查通过（LOG-214～LOG-219），S1-01 资产与容量授权申请材料已实现待审**（LOG-220），**D-224-S1 九项裁决已批准并落地，服务器冻结资产已只读核验通过**（LOG-221）。D-224 与 D-224-E/F/G 已批准；旧方向已归档到 `archive/pre-d224-unified-graph`，`main` 只含精简版文档。**四项已知冲突全部消解并各有回执**：Python 按两解释器分工、Vulkan 可枚举到 NVIDIA GPU、ProcTHOR-10K 定为 0.1.2（以上 LOG-221），ViT-B/14 完成一次性摘要登记（LOG-223）；基础环境缺 hydra 的阻塞已于 LOG-222 解除。S1-01 里待冻结的 null 只剩 `worker_rule.headroom_fraction`。当前开四个位（三只读/本地登记加一依赖安装），没有任何资产放置、数据生成或训练授权。**S1-01 的 worker 推导死锁已按 D-224-S1 裁决 14 解开**：占用测量移入新拆出的 S1-02a（4 worker × 1 house，4 条 episode 计入正式 50 条），S1-02b 再按算出的 worker 数补齐其余 46 个；S1-01 只保留推导规则。数据盘已由用户清理并经只读核验，22 G → 43 G 可用（LOG-224）。S1-02a 尚未获得运行授权。**2026-09-20 用户批准 D-224-X 裁决 X1～X6**（S0 合同隐患审查的六项修正）：S0-01/02/03/04/05 各追加 v2 合同、v1 字节冻结并由测试钉住摘要，S0-03 求解器与 S0-04 评价器按逐列等价重写；本会话复审修正四处后八个 lean 模块分进程共 386 项本地通过，五份 v2 已按用户批准提交推送（LOG-225）。S1-02a 开工前新增一项前置冻结：S0-02 v2 要求 seed 与 test/validation 规模在第一条 episode 前给定。
+当前执行点：**S0 五份合同全部审查通过（LOG-214～LOG-219），S1-01 资产与容量授权申请材料已实现待审**（LOG-220），**D-224-S1 九项裁决已批准并落地，服务器冻结资产已只读核验通过**（LOG-221）。D-224 与 D-224-E/F/G 已批准；旧方向已归档到 `archive/pre-d224-unified-graph`，`main` 只含精简版文档。**四项已知冲突全部消解并各有回执**：Python 按两解释器分工、Vulkan 可枚举到 NVIDIA GPU、ProcTHOR-10K 定为 0.1.2（以上 LOG-221），ViT-B/14 完成一次性摘要登记（LOG-223）；基础环境缺 hydra 的阻塞已于 LOG-222 解除。S1-01 里待冻结的 null 只剩 `worker_rule.headroom_fraction`。当前开四个位（三只读/本地登记加一依赖安装），没有任何资产放置、数据生成或训练授权。**S1-01 的 worker 推导死锁已按 D-224-S1 裁决 14 解开**：占用测量移入新拆出的 S1-02a（4 worker × 1 house，4 条 episode 计入正式 50 条），S1-02b 再按算出的 worker 数补齐其余 46 个；S1-01 只保留推导规则。数据盘已由用户清理并经只读核验，22 G → 43 G 可用（LOG-224）。S1-02a 尚未获得运行授权。**2026-09-20 用户批准 D-224-X 裁决 X1～X6**（S0 合同隐患审查的六项修正）：S0-01/02/03/04/05 各追加 v2 合同、v1 字节冻结并由测试钉住摘要，S0-03 求解器与 S0-04 评价器按逐列等价重写；本会话复审修正四处后八个 lean 模块分进程共 386 项本地通过，五份 v2 已按用户批准提交推送（LOG-225）。S1-02a 开工前新增一项前置冻结：S0-02 v2 要求 seed 与 test/validation 规模在第一条 episode 前给定。**2026-09-20 用户审过 S1-01 v1 并把 `headroom_fraction` 定为 0.2**；随之发现 S0 转 v2 后 S1-01 仍指着 v1，已追加 S1-01 v2 改指 v2 并把 S1↔S0 一致性纳入跨合同测试（LOG-226）。S1-01 待冻结 null 已清零。
 
 ## 二、状态和执行规则
 
@@ -99,10 +99,10 @@ S4 论文
 
 | 项 | 内容 |
 |---|---|
-| 状态 | **已实现待审；资产已核验、依赖已装、九项资产全部登记完整**（LOG-220～223；本地 75 项只读检查通过，六个 lean 模块加边界测试共 351 项通过。七项冻结资产标识与登记值逐一一致，ViT-B/14 已补齐登记；按 D-224-S1 开四个位——三个只读/本地登记加一个依赖安装，未放置任何资产、未装模拟器） |
+| 状态 | **v1 已审通过（2026-09-20 用户代码审查）、v2 已提交待审**（LOG-220～224、226；v1 字节冻结并由跨合同测试钉住摘要；v2 只做三件事：`depends_on` 改指 S0 v2、`headroom_fraction` 冻结为 0.2、S1↔S0 一致性交给 `test_vsmt_lean_cross_contract.py` 机器核对（+9 项）。S1-01 本身 83 项、八个 lean 模块分进程共 401 项本地通过；九项资产登记完整、四项冲突全部有回执、**待冻结 null 已清零**；按 D-224-S1 开四个位，未放置任何资产、未装模拟器） |
 | 输入 | D-215 冻结的 SAM 2.1 摘要；LOG-136 来源回执登记的 DINOv2、AI2-THOR、ProcTHOR 标识；ProcTHOR-10K 由 D-224-S1 定为 0.1.2 并按上游 LFS 指针登记；DINOv2 ViT-B/14 由 LOG-223 一次性登记，URL 从钉死的 dinov2 commit 源码推导并经 ViT-S/14 回执实证 |
 | 完整动作 | 写资产登记、许可证登记、容量探测清单、worker 推导规则、两份回执字段与停止条件的机器合同；用户授权后才下载并核对资产摘要；探测 CPU、RAM、GPU 显存、磁盘、渲染后端；按单 worker 实测占用定最大安全 worker 数 |
-| 输出 | [`lean_s1_assets_capacity_v1.json`](../configs/vsmt/lean_s1_assets_capacity_v1.json)、纯核心 [`lean_assets.py`](../src/vsmt/lean_assets.py)、测试 [`test_vsmt_lean_assets.py`](../tests/test_vsmt_lean_assets.py)；授权后另出资产回执与容量回执 |
+| 输出 | [`lean_s1_assets_capacity_v2.json`](../configs/vsmt/lean_s1_assets_capacity_v2.json)（v1 字节冻结）、纯核心 [`lean_assets.py`](../src/vsmt/lean_assets.py)、测试 [`test_vsmt_lean_assets.py`](../tests/test_vsmt_lean_assets.py)；授权后另出资产回执与容量回执 |
 | 继续门 | 登记在获取之前；标识不全的资产不可获取（当前九项全部登记完整）；摘要不符即停且不得换镜像、换版本或先用着；worker 数有实测依据并写进回执——容量读数已有，但单 worker 实测占用尚未测量，因此 worker 数仍不可算 |
 
 ### S1-02a 4-worker pilot 与占用实测
@@ -122,7 +122,7 @@ S4 论文
 | 项 | 内容 |
 |---|---|
 | 状态 | 未开始 |
-| 输入 | S1-02a 占用回执；S1-01 的 worker 推导规则与 `headroom_fraction` |
+| 输入 | S1-02a 占用回执；S1-01 的 worker 推导规则与已冻结的 `headroom_fraction`＝0.2（每项可用资源打八折再除以单 worker 占用） |
 | 完整动作 | 按 S1-01 公式算出最大安全 worker 数并记下瓶颈项，用该并发补齐哈希前缀其余 **46 个 house**，各生成一条 episode；失败 house 保留 receipt 不替换 |
 | 输出 | 合计 50 条 raw、生成回执、干预成品率、`requested/actual` worker 数与资源用量 |
 | 继续门 | 计划数＝成功数＋失败数；成品率写入回执；低于 S0-02 登记下限触发规模裁决，**不得换 house 挑好样本** |
@@ -309,6 +309,7 @@ S4 论文
 14. 2026-09-20 用户批准补充裁决 10～13：追认 9-19 资产放置（凭 reflog 重建时间线）、按 D-224 已有授权安装 hydra-core/omegaconf/iopath（torch 与 SAM2 工作树未变，SAM2 可 import，生成器 17 参数与登记一致）、数据盘清理由用户自己执行、estimator 5.5 GB 因 F-01 兼容适配器仍在用而保留（LOG-222）。
 15. 2026-09-20 执行裁决 2：ViT-B/14 一次性摘要登记完成（URL 由钉死 dinov2 commit 源码推导并经 ViT-S/14 回执实证，346,378,731 字节 / `0b8b82f8…`，核对 768 维/patch 14/12 层/86.58M 参数后删除临时文件）。四项已知冲突至此全部拿到回执，S1-01 待冻结 null 只剩 `worker_rule.headroom_fraction`（LOG-223）。
 16. 2026-09-20 用户清理数据盘（22 G → 43 G 可用，保留清单九项经只读核验全在），并批准补充裁决 14：S1-01 的 worker 死锁按方案 A 解开，占用测量移入 S1-02a（4 worker × 1 house）、S1-02b 扩到 50 house；pilot 的 4 条计入正式样本，`concurrency_verified_at` 与 `derived_worker_count` 分开记（LOG-224）。
+17. 2026-09-20 用户审过 S1-01 v1、定 `headroom_fraction`＝0.2，并要求核对 S0 转 v2 是否连带影响 S1。核出三处：S1-01 `depends_on` 仍指 v1、headroom 待冻结、S1 从未进入跨合同核对。追加 S1-01 v2（v1 字节冻结并钉住摘要），跨合同测试加 9 项 S1↔S0 检查；PLAN 的 S1-02a 前置冻结与 S1-04 的 IoU 诊断在 v2 那批已同步，无需再改（LOG-226）。
 17. 2026-09-20 S0 合同隐患审查后用户批准 D-224-X 裁决 X1～X6：同帧重复色块记 `duplicate_of_labelled`、未定义 house 按指标排除并计数、AssocOnly 同配方重训、预登记 ELU-P `rollout_config` 与拟合程序、求解器规范化改等式子图（64×500 单帧 125 秒 → 0.01 秒）与评价器分连通块匹配、划分顺序 test→validation→train、折叠记录归档口径、生命周期版本数、真值表 `in_scope`。五份 v2 合同追加、v1 字节冻结并钉摘要，八个 lean 模块分进程 382 项通过；本会话复审修正四处（X1 组级记账、X2 不适用臂例外、HeuristicLabel 私有依赖声称、范围外实体退出精确率分母）后 386 项通过，五份 v2 已按用户批准提交推送（LOG-225）。
 
 ## 九、失败时的暂停点与待触发裁决
