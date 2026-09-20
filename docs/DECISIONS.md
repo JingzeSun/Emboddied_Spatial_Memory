@@ -2252,7 +2252,7 @@
 
 - 日期：2026-09-20；状态：**用户一次性批准全部九项并要求按推荐执行**；同时授权到服务器上只读核验与清理过期数据。本条是 D-224 的第七份修正案，只开只读与本地登记位，仍无数据生成、安装、训练或 private 读取授权。
 - **裁决 1（采纳）：S1-01 的资产范围含模拟器侧。** AI2-THOR 5.0.0、ProcTHOR 代码与 ProcTHOR-10K 数据集与 SAM/DINO 一并由 S1-01 登记核验。PLAN 的 S1-01 行原本只写 SAM/DINO，而 S1-02 离不开模拟器侧；不扩范围就要再开一轮申请才能进 S1-02。
-- **裁决 2（采纳）：ViT-B/14 用一次本地临时登记。** 授权在本地临时目录下载一次、只记录 url/字节数/sha256 后删除，再写回 S1-01 合同，沿用 SAM 2.1 checkpoint 的同一先例；登记完成前该资产保持 `registration_incomplete` 且不可获取。被拒的备选：把 ViT-B/14 退出首篇、只用 ViT-S/14，代价是 S1-05 的"二选一"退化为无选择，METHOD 第五节要改。
+- **裁决 2（采纳）：ViT-B/14 用一次本地临时登记。** 授权在本地临时目录下载一次、只记录 url/字节数/sha256 后删除，再写回 S1-01 合同，沿用 SAM 2.1 checkpoint 的同一先例；登记完成前该资产保持 `registration_incomplete` 且不可获取。被拒的备选：把 ViT-B/14 退出首篇、只用 ViT-S/14，代价是 S1-05 的"二选一"退化为无选择，METHOD 第五节要改。**已于 LOG-223 执行**：URL 从钉死的 dinov2 commit 自己的源码推导并经 ViT-S/14 的既有下载回执实证同一模式，登记 346,378,731 字节 / `0b8b82f8…`，核对 embed_dim 768、patch 14、depth 12、86,580,480 参数确属 ViT-B/14 后删除临时文件；服务器放置仍需另一个仍为 false 的位。
 - **裁决 3（采纳）：ProcTHOR-10K 选 0.1.2。** commit `d54954a81e7126001e552c2d7904ee2e0d49eaae`。house 池文件 `train.jsonl.gz` 的标识**取自上游仓库内 133 字节 git-lfs 指针声明的 oid 与 size**（52,316,238 字节 / `d64450ec…`），因此是上游声明而不是我们对下载结果的观测，满足"登记在获取之前"。该 tag 只登记在 S1-01 合同，不写进 S0-02 已审字节。
 - **裁决 4（采纳）：Python 冲突按角色分两个解释器。** 模拟器侧（AI2-THOR + procthor）在 `vsmt-envs/simulator-py39`（3.9.25），前端侧（SAM 2.1 + DINOv2 + torch 2.8.0+cu128）在基础 3.12.3；两侧只通过磁盘上的 public/private/provenance 文件交接，不在同一进程内互相 import。LOG-221 核验两侧都已就位，冲突消解。被拒的备选：找一个能同时装下三者的版本——不存在。
 - **裁决 5（采纳）：授权只读容量探测并顺带确认渲染后端。** LOG-221 已执行：`libvulkan.so.1` 可解析，`vulkaninfo --summary` 枚举出 NVIDIA GeForce RTX 4080（driverName=NVIDIA，apiVersion 1.4.329），另有 llvmpipe 软件后备。**这只说明 Vulkan 能看到这块 GPU，不等于 CloudRendering 已成功渲染过一帧**，那要到 S1-02 首次真实渲染才算证据。

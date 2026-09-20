@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| D-224 精简方向 | 2026-09-19 用户批准裁决 A～D 与 E/F/G：首篇改为实体生命周期版本化事务，帧级联合分配＋三个约 4 万参数的 MLP 代价头，ProcTHOR 干预序列并对齐 Dyn-THOR 指标，正式规模 300/50/100 house；共享 ReID 头为可选前端、`VSMT-lean-ctx` 为可选臂、实体 token schema 已冻结。旧方向归档到分支 `archive/pre-d224-unified-graph`，`main` 重写 METHOD/PLAN/DATA。**S0-01～S0-05 五份机器合同全部经用户审查通过，S0-06 收口**；S1-01 资产与容量授权申请材料已实现待审；D-224-S1 九项裁决已落地。服务器只读核验确认 SAM 2.1、DINOv2、ProcTHOR-10K 0.1.2 与 AI2-THOR CloudRendering 七项标识**全部与登记值一致**（LOG-221），Python 与 Vulkan 两项冲突消解，仅 ViT-B/14 未登记仍挡住 S1-03～05，基础环境缺 hydra 的阻塞已按 D-224 已有授权解除（LOG-222：装 hydra-core/omegaconf/iopath，torch/torchvision/numpy 与 SAM2 工作树均未变，`import sam2.build_sam` 成功，生成器 17 个具名参数与登记一致）；9-19 那次未记录的资产放置已凭 reflog 追认。六个 lean 模块加新增边界测试共 350 项本地通过；全量 discover 仍受本机已知 segfault 影响（定位在旧 `test_vm04_d211_p0_seal_smoke.py`，重跑不复现），待服务器复核。无数据、无训练、无 episode、无 cache；S0 五份合同授权位全 false，S1-01 按 D-224-S1 开四个位（三只读/本地登记加一依赖安装）。LOG-214～222。 |
+| D-224 精简方向 | 2026-09-19 用户批准裁决 A～D 与 E/F/G：首篇改为实体生命周期版本化事务，帧级联合分配＋三个约 4 万参数的 MLP 代价头，ProcTHOR 干预序列并对齐 Dyn-THOR 指标，正式规模 300/50/100 house；共享 ReID 头为可选前端、`VSMT-lean-ctx` 为可选臂、实体 token schema 已冻结。旧方向归档到分支 `archive/pre-d224-unified-graph`，`main` 重写 METHOD/PLAN/DATA。**S0-01～S0-05 五份机器合同全部经用户审查通过，S0-06 收口**；S1-01 资产与容量授权申请材料已实现待审；D-224-S1 九项裁决已落地。服务器只读核验确认 SAM 2.1、DINOv2、ProcTHOR-10K 0.1.2 与 AI2-THOR CloudRendering 七项标识**全部与登记值一致**（LOG-221），Python 与 Vulkan 两项冲突消解，仅 ViT-B/14 未登记仍挡住 S1-03～05，基础环境缺 hydra 的阻塞已解除（LOG-222：torch/torchvision/numpy 与 SAM2 工作树均未变，`import sam2.build_sam` 成功，生成器 17 个具名参数与登记一致）；9-19 那次未记录的资产放置已凭 reflog 追认；ViT-B/14 已完成一次性摘要登记（LOG-223：346,378,731 字节 / `0b8b82f8…`，核对 768 维、patch 14、12 层）。**S1-01 四项已知冲突现已全部拿到回执，没有仍在阻挡后续步骤的冲突**；待冻结 null 只剩 `worker_rule.headroom_fraction`。六个 lean 模块加新增边界测试共 350 项本地通过；全量 discover 仍受本机已知 segfault 影响（定位在旧 `test_vm04_d211_p0_seal_smoke.py`，重跑不复现），待服务器复核。无数据、无训练、无 episode、无 cache；S0 五份合同授权位全 false，S1-01 按 D-224-S1 开四个位（三只读/本地登记加一依赖安装）。LOG-214～223。 |
 | D-214～D-223共享RGB-D前端 | Estimator历史路线已完成并由E-08证伪其P08硬门用途；F-00两房拓扑预检通过。D-223/F-01 reader本地实现已审；一次服务器真实预检只读定位后因缺冻结SAM2资产和兼容公开bundle停止。D-217 public observation-0兼容适配器已本地实现待审，尚未读取真实数据或运行服务器；模型加载/cache仍为0，执行位全关闭。P04/P08、route/raw、method adapter、private evaluation、训练与audit重跑均未运行。LOG-199～211。 |
 | D-213统一图/类型门 | 四节点/五关系统一图合同、seal前类型门、五种消融memory view、图复杂度派生、relation REACTIVATE及surface/fragment RETRACT已实现候选；数据接线现改为等待D-214冻结cache，不再以单槽raw后定义前端，全部运行位关闭；LOG-197/199。 |
 | D-212地点raw纠偏 | v2已补公开grid模板＋RGB-D route survey生产入口、P01–P08可复算收据、raw三面journal与两提交执行门；D-214已重新阻断activation，旧P04/P08工程描述不得获论文资格。真实survey/seal/smoke均为0；LOG-196/198/199。 |
@@ -2397,3 +2397,23 @@ LOG-211 记载"服务器既没有合同冻结的 SAM2 完整资产，也没有 r
 - **合同同步。** S1-01 的 `import_dependency_install` 位按引用打开并进入 `activation_policy.exercised_so_far`，新增 `import_dependency_scope` 段写明治理来源、安装目标、三个包、两个传递包与两条禁止项。六个 lean 模块加边界测试共 **351 项**本地通过。
 - **仍然没有的东西。** ViT-B/14 未登记（继续挡 S1-03～05）；单 worker 实测占用未测（worker 数仍算不出）；CloudRendering 没渲染过一帧；没有任何 episode、cache、训练或 private 读取。
 - 下一步：用户审 S1-01 代码与合同；ViT-B/14 本地登记可随时执行。未申请任何新的运行授权。
+
+## LOG-223：DINOv2 ViT-B/14 一次性摘要登记（2026-09-20）
+
+- 类型：一次经授权的本地登记步骤；**不是实验结果**。未在服务器上放置任何东西、未生成数据、未训练。
+- 授权：D-224-S1 裁决 2，S1-01 的 `dinov2_vit_b14_digest_registration` 位。服务器放置位 `dinov2_vit_b14_asset_placement_on_server` 仍为 false。
+- **URL 是推导出来的，不是猜的。** 从钉死的 dinov2 commit `7764ea0f…` 自己的源码读出构造规则：`dinov2/hub/utils.py` 里 `_DINOV2_BASE_URL = "https://dl.fbaipublicfiles.com/dinov2"`，`_make_dinov2_model_name` 把 `arch_name.replace("_","")[:4]` 加 patch size 拼成名字（`vit_base` → `vitb`，故 `dinov2_vitb14`），`dinov2/hub/backbones.py:71` 拼成 `{base}/{full}_pretrain.pth`。**并经实证交叉确认**：服务器上 ViT-S/14 的既有下载回执记的正是 `https://dl.fbaipublicfiles.com/dinov2/dinov2_vits14/dinov2_vits14_pretrain.pth`，同一模式。
+- **登记值。**
+
+| 项 | 值 |
+|---|---|
+| url | `https://dl.fbaipublicfiles.com/dinov2/dinov2_vitb14/dinov2_vitb14_pretrain.pth` |
+| bytes | 346,378,731 |
+| sha256 | `0b8b82f85de91b424aded121c7e1dcc2b7bc6d0adeea651bf73a13307fad8c73` |
+
+- **登记前核对这确实是 ViT-B/14，而不是"下载下来的某个文件"。** torch 归档根目录名为 `vitb14_pretrain`；载入后 `cls_token` 形状 (1,1,**768**)、`patch_embed.proj.weight` 形状 (768,3,**14**,14)、深度 **12**、参数 **86,580,480**、`pos_embed` 1370 项（1 cls + 1369 patch，无 register token）。与 METHOD 第五节要求的 768 维 ViT-B/14 逐项吻合。
+- **临时文件已删。** 下载只落在本机会话临时目录，记完摘要即删除，未进 Git、未上服务器、未装任何包，沿用 SAM 2.1 checkpoint 的同一先例。
+- **合同同步。** ViT-B/14 由 `registration_incomplete` 转为 `registered_not_acquired`，获取模式随之由 `register_then_place_on_server` 转为普通的 `download_to_server`（合同新增一段说明这个转换的含义）；`vit_b14_unregistered` 冲突拿到回执 LOG-223 并停止阻挡 S1-03～05；顺带把 `dinov2_repository` 的 `source_url` 按服务器上已有的 `dino_sources_v1.json` 补为 `https://github.com/facebookresearch/dinov2.git`。**待冻结 null 值从五项减到一项，只剩 `worker_rule.headroom_fraction`。** 六个 lean 模块加边界测试共 **351 项**本地通过。
+- **边界。** 登记完成只表示"知道该核验什么"，不表示权重已在服务器上、能加载或有用；ViT-S/14 与 ViT-B/14 的取舍仍在 S1-05 按 S1-04 的分离度报告决定。
+- **四项已知冲突现已全部拿到回执**（三项 LOG-221、一项 LOG-223），S1-01 合同里不再有任何仍在阻挡后续步骤的冲突。
+- 下一步：用户审 S1-01 代码与合同。仍未申请单 worker 占用测量、资产放置、episode 生成或任何训练授权。
