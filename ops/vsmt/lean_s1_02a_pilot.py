@@ -152,6 +152,8 @@ class Episode:
         self.public, self.private, self.prov = out / "public", out / "private", out / "provenance"
         for d in (self.public, self.private, self.prov):
             d.mkdir(parents=True, exist_ok=True)
+        (out / "started.json").write_text(json.dumps({"worker_pid": os.getpid(), "started": time.time()}))
+        self.beat()
         self.house = house
         self.index = -1
         self.origin: dict[str, Any] | None = None
@@ -160,12 +162,21 @@ class Episode:
         self.bytes_written = 0
         self.actions_done: list[dict[str, Any]] = []
 
+    def beat(self) -> None:
+        """Progress heartbeat for the orchestrator's stall detector (not a compute budget)."""
+
+        try:
+            (self.out / "heartbeat").write_text(str(time.time()))
+        except OSError:
+            pass
+
     def _write(self, path: Path, data: bytes) -> str:
         path.write_bytes(data)
         self.bytes_written += len(data)
         return sha_bytes(data)
 
     def capture(self, event: Any, action: str | None) -> dict[str, Any]:
+        self.beat()
         self.index += 1
         idx = self.index
         meta = event.metadata
@@ -430,7 +441,7 @@ def _peek_pixels(controller: Any, viewpoint: dict[str, Any], object_id: str) -> 
 
 
 def _dry_run_pairs(controller: Any, candidates: list[dict[str, Any]], u_containers: set[str], spawn_points: dict[str, Any],
-                   viewpoints: dict[str, Any], min_px: int) -> tuple[dict[tuple[str, str], dict[str, Any]], list[dict[str, Any]]]:
+                   viewpoints: dict[str, Any], min_px: int, beat: Any = None) -> tuple[dict[tuple[str, str], dict[str, Any]], list[dict[str, Any]]]:
     """Try every (object, U destination) placement for real, peek, and put the object back.
 
     白话（裁决 31，proposed）：可行集里的 move／add 不再靠"容器有生成点"猜，而是在窗口
@@ -444,6 +455,8 @@ def _dry_run_pairs(controller: Any, candidates: list[dict[str, Any]], u_containe
     ok: dict[tuple[str, str], dict[str, Any]] = {}
     table: list[dict[str, Any]] = []
     for row in candidates:
+        if beat is not None:
+            beat()
         oid = row["object_id"]; o = objs.get(oid)
         if o is None:
             continue
@@ -502,10 +515,18 @@ def _apply_interventions(controller: Any, rows: list[dict[str, Any]], spawn_poin
             # so a disabled object never appears in them.
             ev = controller.step(action="DisableObject", objectId=row["object_id"])
         elif (kind == "move" or row.get("add_source") == "unseen_existing") and row.get("point") is not None:
-            # dry-run prescreened pair: one attempt at the verified point
+            # dry-run prescreened pair: the verified point first; if the scene shifted since the dry run
+            # (objects nudged, an egg cracked), the other spread points with the same peek check
             ev = controller.step(action="PlaceObjectAtPoint", objectId=row["object_id"], position=row["point"])
+            point_source = "dry_run"
             if ev.metadata.get("lastActionSuccess") is True and vp is not None:
                 seen_px = _peek_pixels(controller, vp, row["object_id"])
+            if (ev.metadata.get("lastActionSuccess") is not True or (seen_px is not None and seen_px < MIN_VISIBLE_PIXELS)) and vp is not None:
+                others = [pt for pt in spawn_points.get(row["destination"], []) if pt != row["point"]]
+                ev, tries, seen_px = _place_verified(controller, "PlaceObjectAtPoint", others, object_id=row["object_id"],
+                                                     viewpoint=vp, min_px=MIN_VISIBLE_PIXELS, objectId=row["object_id"])
+                point_source = f"fallback_after_stale_dry_run_point"
+            row = {**row, "point_source": point_source}
         elif kind == "move" or row.get("add_source") == "unseen_existing":
             if verify and vp is not None:
                 ev, tries, seen_px = _place_verified(controller, "PlaceObjectAtPoint", spawn_points[row["destination"]],
@@ -554,6 +575,7 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
             raise PilotFailure("house_load_failed", str(controller.last_event.metadata.get("errorMessage")))
         ev = house_loader.bootstrap_house_agent(controller, upgraded)
         ep = Episode(house_id, out, upgraded)
+        _note_unity_pid(out, controller)
         ep.capture(ev, None)
         reach = controller.step(action="GetReachablePositions").metadata.get("actionReturn") or []
         if not reach:
@@ -632,7 +654,7 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
             if placement_prescreen == "dry_run":
                 cand = [o for o in eligible if o["parent_receptacle"] in invisible] + list(unseen or [])
                 pair_ok, dry_run_table = _dry_run_pairs(controller, cand, invisible, spawn_points, plan1["viewpoints"],
-                                                        MIN_VISIBLE_PIXELS)
+                                                        MIN_VISIBLE_PIXELS, beat=ep.beat)
                 (ep.prov / "placement_dry_run.json").write_text(json.dumps(dry_run_table, indent=1))
             feasible = sel.feasible_triples(eligible, list(usable), invisible, ok, unseen=unseen, pair_ok=pair_ok)
             if not feasible:
@@ -743,7 +765,9 @@ def main() -> int:
     ap.add_argument("--development-houses", type=int, default=50)
     ap.add_argument("--resume", action="store_true",
                     help="S1-02b: skip houses with a receipt; mark interrupted dirs failed; never regenerate")
-    ap.add_argument("--house-timeout-s", type=int, default=1800, help="safety line per house, not a budget")
+    ap.add_argument("--stall-timeout-s", type=int, default=1800,
+                    help="a started house with no heartbeat for this long is a stalled worker and is failed; "
+                         "queued houses are never timed out; this is not a compute budget")
     # Defaults are the S0-02 v3 rules after D-224-S1 rulings 25-32.  The pre-ruling values stay
     # selectable only to replay the s1-02b/159654f run; they are not a second protocol.
     ap.add_argument("--replan-blocked-edges", action=argparse.BooleanOptionalAction, default=True,
@@ -837,8 +861,23 @@ def _capacity_measurements() -> dict[str, Any]:
     }
 
 
-def _run_with_timeout(tasks: list[dict[str, Any]], workers: int, limit_s: int, commit: str) -> list[dict[str, Any]]:
-    """Run tasks on a spawn pool; a task past the wall limit is recorded failed, never hung on."""
+def _last_progress(out_dir: str) -> float | None:
+    """When the house last made progress: heartbeat, else started.json; None if it has not started."""
+
+    for name in ("heartbeat", "started.json"):
+        f = Path(out_dir) / name
+        if f.exists():
+            try:
+                return f.stat().st_mtime
+            except OSError:
+                return None
+    return None
+
+
+def _run_with_timeout(tasks: list[dict[str, Any]], workers: int, stall_s: int, commit: str) -> list[dict[str, Any]]:
+    """Run tasks on a spawn pool.  A task is failed only when its worker has stalled: it started and
+    has made no progress (no heartbeat) for ``stall_s``.  Queued tasks are never timed out, and
+    the wall clock is not a compute budget.  A stalled task's own Unity/worker pids are killed."""
 
     if not tasks:
         return []
@@ -846,7 +885,6 @@ def _run_with_timeout(tasks: list[dict[str, Any]], workers: int, limit_s: int, c
     results: list[dict[str, Any]] = []
     with ctx.Pool(processes=workers) as pool_:
         pending = {pool_.apply_async(run_house, (task,)): task for task in tasks}
-        started = {id(a): time.time() for a in pending}
         while pending:
             for async_result, task in list(pending.items()):
                 if async_result.ready():
@@ -855,10 +893,12 @@ def _run_with_timeout(tasks: list[dict[str, Any]], workers: int, limit_s: int, c
                     except Exception as exc:  # noqa: BLE001 - worker died; record, do not hang
                         results.append(_timeout_receipt(task, commit, f"worker_error: {exc!r}"[:400]))
                     del pending[async_result]
-                elif time.time() - started[id(async_result)] > limit_s:
-                    results.append(_timeout_receipt(task, commit, f"worker_timeout_{limit_s}s"))
+                    continue
+                last = _last_progress(task["out"])
+                if last is not None and time.time() - last > stall_s:
+                    killed = _kill_stalled(task["out"])
+                    results.append(_timeout_receipt(task, commit, f"worker_stalled_{stall_s}s_without_progress; killed {killed}"))
                     del pending[async_result]
-                    _kill_unity_for(task["out"])
             time.sleep(5)
         pool_.terminate()
     return results
@@ -873,12 +913,39 @@ def _timeout_receipt(task: dict[str, Any], commit: str, detail: str) -> dict[str
     return r
 
 
-def _kill_unity_for(out_dir: str) -> None:
-    # best effort: any Unity whose cwd/cmdline mentions nothing we can match; kill orphans older than the limit
+def _note_unity_pid(out: Path, controller: Any) -> None:
+    pid = getattr(controller, "unity_pid", None)
+    if pid is None:
+        proc = getattr(getattr(controller, "server", None), "unity_proc", None)
+        pid = getattr(proc, "pid", None)
     try:
-        subprocess.run(["pkill", "-f", "thor-CloudRendering"], timeout=10)
-    except Exception:  # noqa: BLE001
+        d = json.loads((out / "started.json").read_text())
+        d["unity_pid"] = pid
+        (out / "started.json").write_text(json.dumps(d))
+    except (OSError, ValueError):
         pass
+
+
+def _kill_stalled(out_dir: str) -> dict[str, Any]:
+    """Kill only the stalled house's Unity and worker processes, as recorded in its started.json."""
+
+    import signal
+
+    killed: dict[str, Any] = {}
+    try:
+        d = json.loads((Path(out_dir) / "started.json").read_text())
+    except (OSError, ValueError):
+        return {"error": "no started.json"}
+    for key in ("unity_pid", "worker_pid"):
+        pid = d.get(key)
+        if not pid:
+            continue
+        try:
+            os.kill(int(pid), signal.SIGKILL)
+            killed[key] = int(pid)
+        except (OSError, ValueError) as exc:
+            killed[key] = f"{pid}: {exc!r}"[:80]
+    return killed
 
 
 def main_s1_02b(args: argparse.Namespace) -> int:
@@ -927,7 +994,7 @@ def main_s1_02b(args: argparse.Namespace) -> int:
         print(f"resume: {len(prior)} terminal, {len(pending)} pending", flush=True)
         tasks = pending
     t0 = time.time()
-    results = list(prior) + _run_with_timeout(tasks, workers, args.house_timeout_s, commit)
+    results = list(prior) + _run_with_timeout(tasks, workers, args.stall_timeout_s, commit)
     wall = time.time() - t0
     results = sorted(results, key=lambda r: r["house_id"])
     failed = [r for r in results if r["status"] != "succeeded"]
