@@ -1,0 +1,918 @@
+{
+ "schema_version": "vsmt-lean-s1-smoke-report-v1",
+ "purpose": "engineering smoke of the prepared runner flags on previously failed houses; not dataset output",
+ "smokes": [
+  {
+   "code_commit": "86291fe",
+   "flags": "replan+tries8+stratify",
+   "houses": [
+    {
+     "house_id": "procthor10k-0.1.2-train-00236",
+     "status": "failed",
+     "reason": "intervention_execution_failed",
+     "detail": "move SoapBottle|surface|6|21: Spawn area not clear (Dresser|4|1) is in the way), can't place object at that point",
+     "executed_interventions": null,
+     "feasible_by_kind": {
+      "add": 65,
+      "remove": 3,
+      "move": 12
+     },
+     "sampled_kinds": [
+      "add",
+      "remove",
+      "move",
+      "remove",
+      "add",
+      "add"
+     ],
+     "executed": null,
+     "unseen": null,
+     "dry_run": null,
+     "window_frames": null,
+     "observations": null
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-00406",
+     "status": "failed",
+     "reason": "intervention_execution_failed",
+     "detail": "move SprayBottle|surface|5|11: Spawn area not clear (Dresser|4|1___9) is in the way), can't place object at that point",
+     "executed_interventions": null,
+     "feasible_by_kind": {
+      "add": 120,
+      "remove": 1,
+      "move": 4
+     },
+     "sampled_kinds": [
+      "add",
+      "move",
+      "add",
+      "add",
+      "add",
+      "add"
+     ],
+     "executed": null,
+     "unseen": null,
+     "dry_run": null,
+     "window_frames": null,
+     "observations": null
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-04388",
+     "status": "succeeded",
+     "reason": null,
+     "detail": null,
+     "executed_interventions": 6,
+     "feasible_by_kind": {
+      "add": 14,
+      "remove": 3
+     },
+     "sampled_kinds": [
+      "add",
+      "add",
+      "remove",
+      "add",
+      "add",
+      "add"
+     ],
+     "executed": [
+      [
+       "add",
+       true,
+       1,
+       "SpawnAsset"
+      ],
+      [
+       "add",
+       true,
+       1,
+       "SpawnAsset"
+      ],
+      [
+       "remove",
+       true,
+       1,
+       "DisableObject"
+      ],
+      [
+       "add",
+       true,
+       1,
+       "SpawnAsset"
+      ],
+      [
+       "add",
+       true,
+       1,
+       "SpawnAsset"
+      ],
+      [
+       "add",
+       true,
+       1,
+       "SpawnAsset"
+      ]
+     ],
+     "unseen": null,
+     "dry_run": null,
+     "window_frames": 68,
+     "observations": 309
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-00975",
+     "status": "succeeded",
+     "reason": null,
+     "detail": null,
+     "executed_interventions": 6,
+     "feasible_by_kind": {
+      "add": 40,
+      "remove": 5,
+      "move": 5
+     },
+     "sampled_kinds": [
+      "remove",
+      "remove",
+      "remove",
+      "remove",
+      "add",
+      "add"
+     ],
+     "executed": [
+      [
+       "remove",
+       true,
+       1,
+       "DisableObject"
+      ],
+      [
+       "remove",
+       true,
+       1,
+       "DisableObject"
+      ],
+      [
+       "remove",
+       true,
+       1,
+       "DisableObject"
+      ],
+      [
+       "remove",
+       true,
+       1,
+       "DisableObject"
+      ],
+      [
+       "add",
+       true,
+       1,
+       "SpawnAsset"
+      ],
+      [
+       "add",
+       true,
+       1,
+       "SpawnAsset"
+      ]
+     ],
+     "unseen": null,
+     "dry_run": null,
+     "window_frames": 72,
+     "observations": 631
+    }
+   ],
+   "observability_total": "TOTAL kind:[observable(>=196 px in sweep two; remove: 0 px in two and >0 in one), weak(1..195), unobservable] {\"add\": [0, 0, 7], \"remove\": [5, 0, 0], \"move\": [0, 0, 0]}",
+   "dry_run": {}
+  },
+  {
+   "code_commit": "2a2af17",
+   "flags": "replan+tries8(spread)+stratify",
+   "houses": [
+    {
+     "house_id": "procthor10k-0.1.2-train-00236",
+     "status": "failed",
+     "reason": "intervention_execution_failed",
+     "detail": "move SoapBottle|surface|6|21: Spawn area not clear (Dresser|4|1___0) is in the way), can't place object at that point",
+     "executed_interventions": null,
+     "feasible_by_kind": {
+      "add": 65,
+      "remove": 3,
+      "move": 12
+     },
+     "sampled_kinds": [
+      "add",
+      "remove",
+      "move",
+      "remove",
+      "add",
+      "add"
+     ],
+     "executed": null,
+     "unseen": null,
+     "dry_run": null,
+     "window_frames": null,
+     "observations": null
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-03361",
+     "status": "failed",
+     "reason": "intervention_execution_failed",
+     "detail": "move Pillow|6|0|1: Spawn area not clear (Sofa|5|0|1) is in the way), can't place object at that point",
+     "executed_interventions": null,
+     "feasible_by_kind": {
+      "remove": 3,
+      "add": 63,
+      "move": 6
+     },
+     "sampled_kinds": [
+      "add",
+      "move",
+      "move",
+      "add",
+      "move",
+      "add"
+     ],
+     "executed": null,
+     "unseen": null,
+     "dry_run": null,
+     "window_frames": null,
+     "observations": null
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-00406",
+     "status": "failed",
+     "reason": "intervention_execution_failed",
+     "detail": "move SprayBottle|surface|5|11: Spawn area not clear (Dresser|4|1) is in the way), can't place object at that point",
+     "executed_interventions": null,
+     "feasible_by_kind": {
+      "add": 120,
+      "remove": 1,
+      "move": 4
+     },
+     "sampled_kinds": [
+      "add",
+      "move",
+      "add",
+      "add",
+      "add",
+      "add"
+     ],
+     "executed": null,
+     "unseen": null,
+     "dry_run": null,
+     "window_frames": null,
+     "observations": null
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-06453",
+     "status": "succeeded",
+     "reason": null,
+     "detail": null,
+     "executed_interventions": 6,
+     "feasible_by_kind": {
+      "add": 51,
+      "remove": 2,
+      "move": 4
+     },
+     "sampled_kinds": [
+      "move",
+      "move",
+      "add",
+      "add",
+      "add",
+      "add"
+     ],
+     "executed": [
+      [
+       "move",
+       true,
+       1,
+       "PlaceObjectAtPoint"
+      ],
+      [
+       "move",
+       true,
+       1,
+       "PlaceObjectAtPoint"
+      ],
+      [
+       "add",
+       true,
+       1,
+       "SpawnAsset"
+      ],
+      [
+       "add",
+       true,
+       1,
+       "SpawnAsset"
+      ],
+      [
+       "add",
+       true,
+       1,
+       "SpawnAsset"
+      ],
+      [
+       "add",
+       true,
+       1,
+       "SpawnAsset"
+      ]
+     ],
+     "unseen": null,
+     "dry_run": null,
+     "window_frames": 58,
+     "observations": 489
+    }
+   ],
+   "observability_total": "TOTAL kind:[observable(>=196 px in sweep two; remove: 0 px in two and >0 in one), weak(1..195), unobservable] {\"add\": [0, 0, 4], \"remove\": [0, 0, 0], \"move\": [1, 0, 1]}",
+   "dry_run": {}
+  },
+  {
+   "code_commit": "3fdc3ec",
+   "flags": "+unseen_add+top_points",
+   "houses": [
+    {
+     "house_id": "procthor10k-0.1.2-train-00406",
+     "status": "succeeded",
+     "reason": null,
+     "detail": null,
+     "executed_interventions": 1,
+     "feasible_by_kind": {
+      "remove": 1
+     },
+     "sampled_kinds": [
+      "remove"
+     ],
+     "executed": [
+      [
+       "remove",
+       true,
+       1,
+       "DisableObject"
+      ]
+     ],
+     "unseen": 9,
+     "dry_run": null,
+     "window_frames": 91,
+     "observations": 713
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-04388",
+     "status": "succeeded",
+     "reason": null,
+     "detail": null,
+     "executed_interventions": 3,
+     "feasible_by_kind": {
+      "remove": 3
+     },
+     "sampled_kinds": [
+      "remove",
+      "remove",
+      "remove"
+     ],
+     "executed": [
+      [
+       "remove",
+       true,
+       1,
+       "DisableObject"
+      ],
+      [
+       "remove",
+       true,
+       1,
+       "DisableObject"
+      ],
+      [
+       "remove",
+       true,
+       1,
+       "DisableObject"
+      ]
+     ],
+     "unseen": 1,
+     "dry_run": null,
+     "window_frames": 68,
+     "observations": 309
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-06453",
+     "status": "succeeded",
+     "reason": null,
+     "detail": null,
+     "executed_interventions": 2,
+     "feasible_by_kind": {
+      "remove": 2
+     },
+     "sampled_kinds": [
+      "remove",
+      "remove"
+     ],
+     "executed": [
+      [
+       "remove",
+       true,
+       1,
+       "DisableObject"
+      ],
+      [
+       "remove",
+       true,
+       1,
+       "DisableObject"
+      ]
+     ],
+     "unseen": 8,
+     "dry_run": null,
+     "window_frames": 58,
+     "observations": 406
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-08905",
+     "status": "succeeded",
+     "reason": null,
+     "detail": null,
+     "executed_interventions": 4,
+     "feasible_by_kind": {
+      "remove": 4
+     },
+     "sampled_kinds": [
+      "remove",
+      "remove",
+      "remove",
+      "remove"
+     ],
+     "executed": [
+      [
+       "remove",
+       true,
+       1,
+       "DisableObject"
+      ],
+      [
+       "remove",
+       true,
+       1,
+       "DisableObject"
+      ],
+      [
+       "remove",
+       true,
+       1,
+       "DisableObject"
+      ],
+      [
+       "remove",
+       true,
+       1,
+       "DisableObject"
+      ]
+     ],
+     "unseen": 20,
+     "dry_run": null,
+     "window_frames": 34,
+     "observations": 194
+    }
+   ],
+   "observability_total": "TOTAL kind:[observable(>=196 px in sweep two; remove: 0 px in two and >0 in one), weak(1..195), unobservable] {\"add\": [0, 0, 0], \"remove\": [10, 0, 0], \"move\": [0, 0, 0]}",
+   "dry_run": {}
+  },
+  {
+   "code_commit": "36bcc06",
+   "flags": "+unseen_add+verified(8)",
+   "houses": [
+    {
+     "house_id": "procthor10k-0.1.2-train-00406",
+     "status": "failed",
+     "reason": "intervention_execution_failed",
+     "detail": "add Bowl|surface|4|7: Spawn area not clear (Dresser|4|1) is in the way), can't place object at that point",
+     "executed_interventions": null,
+     "feasible_by_kind": {
+      "remove": 1,
+      "move": 4,
+      "add": 42
+     },
+     "sampled_kinds": [
+      "add",
+      "move",
+      "add",
+      "add",
+      "add",
+      "add"
+     ],
+     "executed": null,
+     "unseen": 9,
+     "dry_run": null,
+     "window_frames": null,
+     "observations": null
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-04388",
+     "status": "failed",
+     "reason": "intervention_execution_failed",
+     "detail": "add CD|surface|2|7: placed but not visible from the viewpoint at any of 8 points (best 0 px)",
+     "executed_interventions": null,
+     "feasible_by_kind": {
+      "remove": 3,
+      "add": 1
+     },
+     "sampled_kinds": [
+      "add",
+      "remove",
+      "remove",
+      "remove"
+     ],
+     "executed": null,
+     "unseen": 1,
+     "dry_run": null,
+     "window_frames": null,
+     "observations": null
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-06453",
+     "status": "failed",
+     "reason": "intervention_execution_failed",
+     "detail": "add Tomato|surface|6|32: Spawn area not clear (wall|7|5.18|0.00|5.18|3.45) is in the way), can't place object at that point",
+     "executed_interventions": null,
+     "feasible_by_kind": {
+      "remove": 2,
+      "move": 4,
+      "add": 24
+     },
+     "sampled_kinds": [
+      "move",
+      "move",
+      "add",
+      "add",
+      "add",
+      "add"
+     ],
+     "executed": null,
+     "unseen": 8,
+     "dry_run": null,
+     "window_frames": null,
+     "observations": null
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-08905",
+     "status": "failed",
+     "reason": "intervention_execution_failed",
+     "detail": "add Plunger|5|2: Spawn area not clear (Book|surface|7|44) is in the way), can't place object at that point",
+     "executed_interventions": null,
+     "feasible_by_kind": {
+      "remove": 4,
+      "move": 8,
+      "add": 60
+     },
+     "sampled_kinds": [
+      "remove",
+      "remove",
+      "add",
+      "move",
+      "add",
+      "remove"
+     ],
+     "executed": null,
+     "unseen": 20,
+     "dry_run": null,
+     "window_frames": null,
+     "observations": null
+    }
+   ],
+   "observability_total": "TOTAL kind:[observable(>=196 px in sweep two; remove: 0 px in two and >0 in one), weak(1..195), unobservable] {\"add\": [0, 0, 0], \"remove\": [0, 0, 0], \"move\": [0, 0, 0]}",
+   "dry_run": {}
+  },
+  {
+   "code_commit": "d09178b",
+   "flags": "+unseen_add+verified(32)",
+   "houses": [
+    {
+     "house_id": "procthor10k-0.1.2-train-00406",
+     "status": "failed",
+     "reason": "intervention_execution_failed",
+     "detail": "add Bowl|surface|4|7: Spawn area not clear (Dresser|4|1) is in the way), can't place object at that point",
+     "executed_interventions": null,
+     "feasible_by_kind": {
+      "remove": 1,
+      "move": 4,
+      "add": 42
+     },
+     "sampled_kinds": [
+      "add",
+      "move",
+      "add",
+      "add",
+      "add",
+      "add"
+     ],
+     "executed": null,
+     "unseen": 9,
+     "dry_run": null,
+     "window_frames": null,
+     "observations": null
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-04388",
+     "status": "failed",
+     "reason": "intervention_execution_failed",
+     "detail": "add CD|surface|2|7: placed but not visible from the viewpoint at any of 32 points (best 0 px)",
+     "executed_interventions": null,
+     "feasible_by_kind": {
+      "remove": 3,
+      "add": 1
+     },
+     "sampled_kinds": [
+      "add",
+      "remove",
+      "remove",
+      "remove"
+     ],
+     "executed": null,
+     "unseen": 1,
+     "dry_run": null,
+     "window_frames": null,
+     "observations": null
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-06453",
+     "status": "failed",
+     "reason": "intervention_execution_failed",
+     "detail": "add Book|surface|4|11: Spawn area not clear (GarbageCan|5|1) is in the way), can't place object at that point",
+     "executed_interventions": null,
+     "feasible_by_kind": {
+      "remove": 2,
+      "move": 4,
+      "add": 24
+     },
+     "sampled_kinds": [
+      "move",
+      "move",
+      "add",
+      "add",
+      "add",
+      "add"
+     ],
+     "executed": null,
+     "unseen": 8,
+     "dry_run": null,
+     "window_frames": null,
+     "observations": null
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-08905",
+     "status": "failed",
+     "reason": "intervention_execution_failed",
+     "detail": "add Plunger|5|2: Spawn area not clear (Book|surface|7|44) is in the way), can't place object at that point",
+     "executed_interventions": null,
+     "feasible_by_kind": {
+      "remove": 4,
+      "move": 8,
+      "add": 60
+     },
+     "sampled_kinds": [
+      "remove",
+      "remove",
+      "add",
+      "move",
+      "add",
+      "remove"
+     ],
+     "executed": null,
+     "unseen": 20,
+     "dry_run": null,
+     "window_frames": null,
+     "observations": null
+    }
+   ],
+   "observability_total": "TOTAL kind:[observable(>=196 px in sweep two; remove: 0 px in two and >0 in one), weak(1..195), unobservable] {\"add\": [0, 0, 0], \"remove\": [0, 0, 0], \"move\": [0, 0, 0]}",
+   "dry_run": {}
+  },
+  {
+   "code_commit": "e240076",
+   "flags": "+unseen_add+dry_run_prescreen(32)",
+   "houses": [
+    {
+     "house_id": "procthor10k-0.1.2-train-00406",
+     "status": "succeeded",
+     "reason": null,
+     "detail": null,
+     "executed_interventions": 2,
+     "feasible_by_kind": {
+      "remove": 1,
+      "add": 2
+     },
+     "sampled_kinds": [
+      "add",
+      "remove"
+     ],
+     "executed": [
+      [
+       "add",
+       true,
+       1,
+       "PlaceObjectAtPoint(unseen_existing)",
+       204
+      ],
+      [
+       "remove",
+       true,
+       1,
+       "DisableObject",
+       null
+      ]
+     ],
+     "unseen": 9,
+     "dry_run": [
+      46,
+      2
+     ],
+     "window_frames": 91,
+     "observations": 713
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-04388",
+     "status": "succeeded",
+     "reason": null,
+     "detail": null,
+     "executed_interventions": 3,
+     "feasible_by_kind": {
+      "remove": 3
+     },
+     "sampled_kinds": [
+      "remove",
+      "remove",
+      "remove"
+     ],
+     "executed": [
+      [
+       "remove",
+       true,
+       1,
+       "DisableObject",
+       null
+      ],
+      [
+       "remove",
+       true,
+       1,
+       "DisableObject",
+       null
+      ],
+      [
+       "remove",
+       true,
+       1,
+       "DisableObject",
+       null
+      ]
+     ],
+     "unseen": 1,
+     "dry_run": [
+      1,
+      0
+     ],
+     "window_frames": 68,
+     "observations": 309
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-06453",
+     "status": "succeeded",
+     "reason": null,
+     "detail": null,
+     "executed_interventions": 3,
+     "feasible_by_kind": {
+      "remove": 2,
+      "move": 2,
+      "add": 9
+     },
+     "sampled_kinds": [
+      "move",
+      "remove",
+      "add"
+     ],
+     "executed": [
+      [
+       "move",
+       true,
+       1,
+       "PlaceObjectAtPoint",
+       670
+      ],
+      [
+       "remove",
+       true,
+       1,
+       "DisableObject",
+       null
+      ],
+      [
+       "add",
+       true,
+       1,
+       "PlaceObjectAtPoint(unseen_existing)",
+       213
+      ]
+     ],
+     "unseen": 8,
+     "dry_run": [
+      28,
+      11
+     ],
+     "window_frames": 58,
+     "observations": 429
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-08905",
+     "status": "succeeded",
+     "reason": null,
+     "detail": null,
+     "executed_interventions": 5,
+     "feasible_by_kind": {
+      "remove": 4,
+      "move": 4,
+      "add": 22
+     },
+     "sampled_kinds": [
+      "remove",
+      "remove",
+      "add",
+      "move",
+      "remove"
+     ],
+     "executed": [
+      [
+       "remove",
+       true,
+       1,
+       "DisableObject",
+       null
+      ],
+      [
+       "remove",
+       true,
+       1,
+       "DisableObject",
+       null
+      ],
+      [
+       "add",
+       true,
+       1,
+       "PlaceObjectAtPoint(unseen_existing)",
+       308
+      ],
+      [
+       "move",
+       true,
+       1,
+       "PlaceObjectAtPoint",
+       202
+      ],
+      [
+       "remove",
+       true,
+       1,
+       "DisableObject",
+       null
+      ]
+     ],
+     "unseen": 20,
+     "dry_run": [
+      68,
+      26
+     ],
+     "window_frames": 34,
+     "observations": 229
+    }
+   ],
+   "observability_total": "TOTAL kind:[observable(>=196 px in sweep two; remove: 0 px in two and >0 in one), weak(1..195), unobservable] {\"add\": [3, 0, 0], \"remove\": [8, 0, 0], \"move\": [2, 0, 0]}",
+   "dry_run": {
+    "procthor10k-0.1.2-train-00406": {
+     "pairs": 46,
+     "feasible": 2,
+     "placed_any": 40,
+     "revert_failed": 1
+    },
+    "procthor10k-0.1.2-train-04388": {
+     "pairs": 1,
+     "feasible": 0,
+     "placed_any": 1,
+     "revert_failed": 0
+    },
+    "procthor10k-0.1.2-train-06453": {
+     "pairs": 28,
+     "feasible": 11,
+     "placed_any": 24,
+     "revert_failed": 0
+    },
+    "procthor10k-0.1.2-train-08905": {
+     "pairs": 68,
+     "feasible": 26,
+     "placed_any": 57,
+     "revert_failed": 2
+    }
+   }
+  }
+ ]
+}
