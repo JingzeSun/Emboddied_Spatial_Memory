@@ -24,7 +24,13 @@ MIN_PX = 196
 root = sys.argv[1]
 tot = {"add": [0, 0, 0], "remove": [0, 0, 0], "move": [0, 0, 0]}  # observable, weak(1..195), zero
 ctrl_tot = {"controls": 0, "controls_with_a_seen_object_reobserved": 0, "control_objects": 0, "control_objects_reobserved": 0}
-twin_tot = {"null_episodes": 0, "would_be_containers": 0, "would_be_containers_with_a_seen_object_reobserved": 0}
+# a null episode kept its would-be sample and executed nothing, so in sweep two every object that
+# would have been removed or moved must still be there.  An add destination has no such object --
+# the would-be object sits elsewhere and is never placed -- so it is counted apart rather than
+# scored against a denominator it cannot satisfy.
+twin_tot = {"null_episodes": 0, "would_be_source_containers": 0, "would_be_sources_intact": 0,
+            "would_be_source_objects": 0, "would_be_source_objects_reobserved": 0,
+            "would_be_destination_containers_nothing_to_check": 0}
 per_house = {}
 dest_types = {}
 for ip in sorted(glob.glob(os.path.join(root, "procthor10k-*/provenance/interventions.json"))):
@@ -74,23 +80,28 @@ for ip in sorted(glob.glob(os.path.join(root, "procthor10k-*/provenance/interven
     twin_row = []
     if L.get("null_window"):
         twin_tot["null_episodes"] += 1
-        would = {}
-        for s in L.get("sampled", []):
-            for key in ("source", "destination"):
-                if s.get(key) and (s["kind"] != "add" or key == "destination"):
-                    would.setdefault(s[key], set())
-            if s["kind"] in ("remove", "move"):
-                would.setdefault(s["source"], set()).add(s["object_id"])
-        for cont, objs in would.items():
-            twin_tot["would_be_containers"] += 1
-            re = [o for o in objs if vis.get(o, [0, 0])[1] >= MIN_PX]
-            twin_tot["would_be_containers_with_a_seen_object_reobserved"] += int(bool(re))
-            twin_row.append(f"twin:{cont.split('|')[0]}[{len(re)}/{len(objs)}]")
+        sources, destinations = {}, set()
+        for row in L.get("sampled", []):
+            if row["kind"] in ("remove", "move") and row.get("source"):
+                sources.setdefault(row["source"], set()).add(row["object_id"])
+            if row["kind"] in ("add", "move") and row.get("destination"):
+                destinations.add(row["destination"])
+        for cont, objs in sorted(sources.items()):
+            back = [o for o in objs if vis.get(o, [0, 0])[1] >= MIN_PX]
+            twin_tot["would_be_source_containers"] += 1
+            twin_tot["would_be_sources_intact"] += int(bool(back))
+            twin_tot["would_be_source_objects"] += len(objs)
+            twin_tot["would_be_source_objects_reobserved"] += len(back)
+            twin_row.append(f"twin_src:{cont.split('|')[0]}[{len(back)}/{len(objs)}]")
+        for cont in sorted(destinations - set(sources)):
+            twin_tot["would_be_destination_containers_nothing_to_check"] += 1
+            twin_row.append(f"twin_dst:{cont.split('|')[0]}[-]")
     print(h, ("NULL " if L.get("null_window") else ""), " ".join(rows + crow + twin_row))
     per_house[h] = {"null_window": bool(L.get("null_window")), "interventions": rows, "controls": crow, "twin": twin_row}
 print("TOTAL kind:[observable(>=196 px in sweep two; remove: 0 px in two and >0 in one), weak(1..195), unobservable]", json.dumps(tot))
 print("CONTROLS", json.dumps(ctrl_tot))
-print("TWIN", json.dumps(twin_tot))
+print("TWIN (null episodes: would-be sources must still hold their object; would-be destinations have nothing to check)",
+      json.dumps(twin_tot))
 print("BY DESTINATION TYPE kind -> {type: [count, observable]}", json.dumps(dest_types))
 if len(sys.argv) > 2:
     json.dump({"schema_version": "vsmt-lean-s1-observability-audit-v2", "output_root": root, "totals": tot,
