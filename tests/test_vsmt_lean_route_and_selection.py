@@ -249,5 +249,36 @@ class TestStratifiedSampling(unittest.TestCase):
         self.assertEqual({r["kind"] for r in s}, {"add"})
 
 
+class TestUnseenAddSource(unittest.TestCase):
+    def objects(self) -> list[dict]:
+        mk = lambda i, parent, seen: ({"object_id": f"O|{i}", "asset_id": f"A{i % 3}", "pickupable": True,
+                                       "parent_receptacle": parent, "is_agent": False, "is_structure": False}, seen)
+        rows = [mk(0, "U0", 500), mk(1, "V", 300), mk(2, "Fridge", 0), mk(3, "Cabinet", 0), mk(4, "U1", 0)]
+        self.px = {o["object_id"]: s for o, s in rows}
+        return [o for o, _ in rows]
+
+    def test_unseen_means_zero_pixels_so_far(self) -> None:
+        objs = self.objects()
+        self.assertEqual([o["object_id"] for o in sel.unseen_objects(objs, self.px)], ["O|2", "O|3", "O|4"])
+        self.assertEqual([o["object_id"] for o in sel.eligible_objects(objs, self.px)], ["O|0", "O|1"])
+
+    def test_add_rows_come_from_unseen_objects_and_are_real_relocations(self) -> None:
+        objs = self.objects(); U = {"U0", "U1"}
+        ok = {"U0": True, "U1": True, "V": True, "Fridge": True, "Cabinet": True}
+        default = sel.feasible_triples(sel.eligible_objects(objs, self.px), sorted(ok), U, ok)
+        self.assertEqual({t["object_id"] for t in default if t["kind"] == "add"}, {"O|0", "O|1"})
+        f = sel.feasible_triples(sel.eligible_objects(objs, self.px), sorted(ok), U, ok, unseen=sel.unseen_objects(objs, self.px))
+        adds = [t for t in f if t["kind"] == "add"]
+        self.assertTrue(all(t["add_source"] == "unseen_existing" for t in adds))
+        self.assertEqual({t["object_id"] for t in adds}, {"O|2", "O|3", "O|4"})
+        self.assertTrue(all(t["destination"] in U and t["destination"] != t["source"] for t in adds))
+        # O|4 already sits on U1, so its only add destination is U0
+        self.assertEqual([t["destination"] for t in adds if t["object_id"] == "O|4"], ["U0"])
+        # remove/move rows are unchanged by the add source
+        self.assertEqual([t for t in default if t["kind"] != "add"], [t for t in f if t["kind"] != "add"])
+        s = sel.sample_interventions(adds, split_seed=1, house_id="h")
+        self.assertTrue(all("generated_id" not in row for row in s))
+
+
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()

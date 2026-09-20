@@ -78,11 +78,34 @@ def eligible_objects(
     return sorted(out, key=lambda o: o["object_id"])
 
 
+def unseen_objects(objects: Sequence[Mapping[str, Any]], visible_pixels: Mapping[str, int]) -> list[dict[str, Any]]:
+    """Pickupable objects on a receptacle that have never been rendered so far (0 px).
+
+    白话（裁决 30，proposed）：`add` 的另一种来源——不是复制已见物体，而是把 house 里
+    一个**从未出现在任何私有掩码里**的真实物体搬到 U 容器上。对记忆来说它就是新实体
+    （BIRTH），而且它是真实 prefab，实例分割能登记它。输入是物体表和"每个物体至今最
+    多可见像素"，输出 0 像素的合格物体（按 id 排序）。它不等于"没看清"的物体：哪怕
+    1 个像素也算见过。
+    """
+
+    out: list[dict[str, Any]] = []
+    for obj in objects:
+        if not obj.get("pickupable") or obj.get("parent_receptacle") is None:
+            continue
+        if obj.get("is_agent") or obj.get("is_structure"):
+            continue
+        if visible_pixels.get(obj["object_id"], 0) > 0:
+            continue
+        out.append(dict(obj))
+    return sorted(out, key=lambda o: o["object_id"])
+
+
 def feasible_triples(
     eligible: Sequence[Mapping[str, Any]],
     receptacles: Sequence[str],
     invisible_containers: set[str],
     placement_ok: Mapping[str, bool],
+    unseen: Sequence[Mapping[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     """Every (object, kind, ...) whose involved containers are all in U.
 
@@ -105,8 +128,16 @@ def feasible_triples(
             if dst != src and src in invisible_containers:
                 out.append({"kind": "move", "object_id": oid, "asset_id": obj.get("asset_id"),
                             "source": src, "destination": dst})
-            out.append({"kind": "add", "object_id": oid, "asset_id": obj.get("asset_id"),
-                        "source": None, "destination": dst})
+            if unseen is None:
+                out.append({"kind": "add", "object_id": oid, "asset_id": obj.get("asset_id"),
+                            "source": None, "destination": dst})
+    if unseen is not None:
+        for obj in unseen:
+            for dst in sorted_receptacles:
+                if dst not in invisible_containers or not placement_ok.get(dst, False) or dst == obj["parent_receptacle"]:
+                    continue
+                out.append({"kind": "add", "object_id": obj["object_id"], "asset_id": obj.get("asset_id"),
+                            "source": obj["parent_receptacle"], "destination": dst, "add_source": "unseen_existing"})
     for t in out:
         if t["kind"] not in INTERVENTION_KINDS:
             raise LeanSelectionError("unregistered_kind")
@@ -147,7 +178,7 @@ def sample_interventions(
         used.add(pick["object_id"])
         row = dict(pick)
         row["index"] = len(chosen)
-        if row["kind"] == "add":
+        if row["kind"] == "add" and row.get("add_source") != "unseen_existing":
             tag = hashlib.sha256(canonical_json([house_id, row["object_id"], row["index"]]).encode("utf-8")).hexdigest()[:12]
             row["generated_id"] = f"dup_{tag}"
         chosen.append(row)

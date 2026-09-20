@@ -339,10 +339,14 @@ def _invisible_set(ep: Episode, subjects: dict[str, dict[str, Any]], transition:
 MAX_PLACEMENT_TRIES = 8
 
 
-def _prescreen(controller: Any, containers: dict[str, Any], tries: int = 1) -> tuple[dict[str, bool], dict[str, Any]]:
+def _prescreen(controller: Any, containers: dict[str, Any], tries: int = 1,
+               anywhere: bool = True) -> tuple[dict[str, bool], dict[str, Any]]:
+    """Destination prescreen.  anywhere=False keeps only top-surface spawn points (ruling 31, proposed):
+    a closed drawer or an enclosed shelf is a legal spawn box but nothing placed there is observable."""
+
     ok, points = {}, {}
     for cid in sorted(containers):
-        ev = controller.step(action="GetSpawnCoordinatesAboveReceptacle", objectId=cid, anywhere=True)
+        ev = controller.step(action="GetSpawnCoordinatesAboveReceptacle", objectId=cid, anywhere=anywhere)
         pts = ev.metadata.get("actionReturn") or []
         ok[cid] = bool(ev.metadata.get("lastActionSuccess")) and len(pts) > 0
         if ok[cid]:
@@ -389,12 +393,16 @@ def _apply_interventions(controller: Any, rows: list[dict[str, Any]], spawn_poin
             ev = controller.step(action="DisableObject", objectId=row["object_id"])
         elif kind == "move":
             ev, tries = _place(controller, "PlaceObjectAtPoint", spawn_points[row["destination"]], objectId=row["object_id"])
+        elif row.get("add_source") == "unseen_existing":
+            ev, tries = _place(controller, "PlaceObjectAtPoint", spawn_points[row["destination"]], objectId=row["object_id"])
         else:
             ev, tries = _place(controller, "SpawnAsset", spawn_points[row["destination"]], assetId=row["asset_id"],
                                generatedId=row["generated_id"], rotation={"x": 0, "y": 0, "z": 0})
         ok = ev.metadata.get("lastActionSuccess") is True
-        log.append({**row, "executed": ok, "placement_tries": tries,
-                    "executor": {"remove": "DisableObject", "move": "PlaceObjectAtPoint", "add": "SpawnAsset"}[kind],
+        executor = {"remove": "DisableObject", "move": "PlaceObjectAtPoint", "add": "SpawnAsset"}[kind]
+        if row.get("add_source") == "unseen_existing":
+            executor = "PlaceObjectAtPoint(unseen_existing)"
+        log.append({**row, "executed": ok, "placement_tries": tries, "executor": executor,
                     "error": (ev.metadata.get("errorMessage") or "")[:300]})
         if not ok:
             raise PilotFailure("intervention_execution_failed", f"{kind} {row['object_id']}: {ev.metadata.get('errorMessage')}")
@@ -407,8 +415,11 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
     receipt: dict[str, Any] = {"house_id": house_id, "source_index": index, "code_commit": task["commit"]}
     replan_on = bool(task.get("replan_blocked_edges", False))
     placement_tries = int(task.get("placement_tries", 1))
+    add_source = str(task.get("add_source", "spawn_asset"))
+    destination_points = str(task.get("destination_points", "anywhere"))
     receipt["options"] = {"replan_blocked_edges": replan_on, "placement_tries": placement_tries,
-                          "stratify_by_kind": bool(task.get("stratify_by_kind", False))}
+                          "stratify_by_kind": bool(task.get("stratify_by_kind", False)),
+                          "add_source": add_source, "destination_points": destination_points}
     controller = None
     try:
         house = house_loader.load_source_record(task["source_root"], {"relative_path": task["source_rel"], "index": index})
@@ -493,8 +504,10 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
                 raise PilotFailure("intervention_window_unavailable", f"window {window_frames} < {MINIMUM_WINDOW_FRAMES}")
             objects = _object_table(controller.last_event.metadata)
             eligible = sel.eligible_objects(objects, ep.visible_pixels)
-            ok, spawn_points = _prescreen(controller, {c: usable[c] for c in usable}, tries=placement_tries)
-            feasible = sel.feasible_triples(eligible, list(usable), invisible, ok)
+            unseen = sel.unseen_objects(objects, ep.visible_pixels) if add_source == "unseen_existing" else None
+            ok, spawn_points = _prescreen(controller, {c: usable[c] for c in usable}, tries=placement_tries,
+                                          anywhere=(destination_points == "anywhere"))
+            feasible = sel.feasible_triples(eligible, list(usable), invisible, ok, unseen=unseen)
             if not feasible:
                 raise PilotFailure("intervention_window_unavailable", f"feasible set empty; U={len(invisible)} eligible={len(eligible)}")
             interventions = sel.sample_interventions(feasible, split_seed=task["split_seed"], house_id=house_id,
@@ -505,7 +518,8 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
             (ep.prov / "interventions_sampled.json").write_text(json.dumps(
                 {"feasible_set_size": len(feasible), "feasible_by_kind": feasible_by_kind,
                  "invisible_container_set_size": len(invisible),
-                 "eligible_object_count": len(eligible), "sampled": interventions}, indent=1))
+                 "eligible_object_count": len(eligible), "unseen_object_count": (len(unseen) if unseen is not None else None),
+                 "destinations_with_points": sum(1 for c in usable if ok.get(c)), "sampled": interventions}, indent=1))
             try:
                 log = _apply_interventions(controller, interventions, spawn_points)
             except PilotFailure:
@@ -605,6 +619,10 @@ def main() -> int:
                     help="move/add: try up to N prescreened spawn points in order (1 = current behaviour)")
     ap.add_argument("--stratify-by-kind", action="store_true",
                     help="I1 refinement (ruling 29, needs a ruling): draw the kind first, then the triple")
+    ap.add_argument("--add-source", choices=["spawn_asset", "unseen_existing"], default="spawn_asset",
+                    help="ruling 30 (needs a ruling): add = SpawnAsset duplicate (frozen) or relocate a never-seen real object")
+    ap.add_argument("--destination-points", choices=["anywhere", "top"], default="anywhere",
+                    help="ruling 31 (needs a ruling): destination spawn points from any receptacle box or top surface only")
     args = ap.parse_args()
     if args.stage == "s1-02b":
         return main_s1_02b(args)
@@ -622,7 +640,7 @@ def main() -> int:
     (out_root / "plan.json").write_text(json.dumps({"selected": selected, "split": freeze, "commit": commit, "pool_size": len(pool)}, indent=1))
     tasks = [{"house_id": h, "index": int(h.rsplit("-", 1)[1]), "out": str(out_root / h), "source_root": str(source.parent),
               "source_rel": source.name, "split_seed": freeze["seed"], "commit": commit,
-              "replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries, "stratify_by_kind": args.stratify_by_kind} for h in selected]
+              "replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries, "stratify_by_kind": args.stratify_by_kind, "add_source": args.add_source, "destination_points": args.destination_points} for h in selected]
     base_vram = float(subprocess.run(["nvidia-smi", "--query-gpu=memory.used", "--format=csv,noheader,nounits"], capture_output=True, text=True).stdout.strip().split("\n")[0])
     stop, q = mp.Event(), mp.Queue()
     sampler = mp.Process(target=_vram_peak_sampler, args=(stop, q), daemon=True); sampler.start()
@@ -754,7 +772,7 @@ def main_s1_02b(args: argparse.Namespace) -> int:
                                                     "commit": commit}, indent=1))
     tasks = [{"house_id": h, "index": int(h.rsplit("-", 1)[1]), "out": str(out_root / h), "source_root": str(source.parent),
               "source_rel": source.name, "split_seed": freeze["seed"], "commit": commit,
-              "replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries, "stratify_by_kind": args.stratify_by_kind} for h in houses]
+              "replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries, "stratify_by_kind": args.stratify_by_kind, "add_source": args.add_source, "destination_points": args.destination_points} for h in houses]
     prior: list[dict[str, Any]] = []
     if args.resume:
         pending = []
@@ -787,7 +805,7 @@ def main_s1_02b(args: argparse.Namespace) -> int:
         "null_window_episodes": len(results) - len(non_null), "yield_house_level_non_null": yield_rate,
         "yield_gate": s1_01 and json.loads(CONTRACT_S0_02.read_text(encoding="utf-8"))["intervention_window"]["minimum_yield"],
         "yield_gate_passed": (yield_rate is not None and yield_rate >= 0.6),
-        "options": {"replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries, "stratify_by_kind": args.stratify_by_kind},
+        "options": {"replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries, "stratify_by_kind": args.stratify_by_kind, "add_source": args.add_source, "destination_points": args.destination_points},
         "requested_workers": workers, "actual_workers": workers, "derived_worker_count": scale["worker_count"],
         "binding_constraint": scale["binding_constraint"], "concurrency_verified_at": scale["concurrency_verified_at"],
         "is_extrapolation": scale["is_extrapolation"], "wall_clock_seconds": round(wall, 1),
