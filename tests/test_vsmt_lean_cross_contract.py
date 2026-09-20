@@ -259,11 +259,13 @@ def lookup_slot(contract: dict[str, Any], path: str) -> Any:
     return lookup(tree, path)
 
 
-#: The rules of each live contract, pinned.  A change here is a revision
-#: and needs a new version and a review; a value freeze does not touch it.
+#: The rules of each live contract, pinned.  A change here is a revision of
+#: the rules and needs a ruling recorded in DECISIONS plus a review; it is
+#: made in place (ruling 24: no version cascade).  A value freeze does not
+#: touch it.  S0-02 was re-pinned for rulings 25-32 (2026-09-20).
 FROZEN_RULE_SHA256 = {
     "S0-01": "76f505da801d5ecec6730e85ca521a034888429283f6ac3a0312dfc94c27349c",
-    "S0-02": "57ff25c7cce1609893990ae48d6fd9cf843cffc45e965312b9437ddb6420fb5b",
+    "S0-02": "2895f0318e85969db4b4e4a91278cbecbc3cce929c95494487f33a93bd7c8ca8",
     "S0-03": "cc7d46f870e7894592792e793e0fc1a27f09e6e9b3d60b6e01c9f7a12d7e04d3",
     "S0-04": "268cb41825c472a8bb7bffe9e9529e4d3c98c38f791104a0ad0663e778387b48",
     "S0-05": "c5354b1e71936d345823630b6533b03329435de104e258785fdb89e17934c54a",

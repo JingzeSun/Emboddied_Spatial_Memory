@@ -98,7 +98,12 @@ ROUTE_STRUCTURE = ("sweep_one", "transition", "sweep_two")
 PATH_ENCODING = "turn_then_move_ahead_no_strafe"
 MIN_VISIBLE_PIXELS = 196
 RNG_PURPOSE_TAGS = ("intervention", "revisit_order", "null_window")
-ADD_SOURCE = "duplicate_existing_object_via_SpawnAsset_same_assetId_new_generatedId"
+ADD_SOURCE = "relocate_never_rendered_existing_object_via_PlaceObjectAtPoint"
+REMOVE_EXECUTOR = "DisableObject"
+SAMPLING = "kind_first_uniform_over_kinds_with_remaining_triples_then_triple_uniform"
+PLACEMENT_PRESCREEN = "dry_run_place_peek_revert_in_window"
+DRY_RUN_MAX_POINTS = 32
+MAX_REPLANS = 32
 P_NULL_WINDOW = 0.2
 MINIMUM_WINDOW_FRAMES = 20
 MAXIMUM_ACTIONS = 2000
@@ -661,6 +666,19 @@ def validate_intervention_data_contract(contract: Mapping[str, Any]) -> dict[str
     _require(sel["no_new_seed"] is True, "contract_new_seed_allowed")
     _require(sel["add_source"] == ADD_SOURCE, "contract_add_source_changed")
     _require(sel["placement_prescreen_during_enumeration"] is True, "contract_prescreen_dropped")
+    _require(sel["remove_executor"] == REMOVE_EXECUTOR, "contract_remove_executor_changed")
+    _require(sel["sampling"] == SAMPLING, "contract_sampling_changed")
+    pp = sel["placement_prescreen"]
+    _require(pp["method"] == PLACEMENT_PRESCREEN, "contract_prescreen_method_changed")
+    _require(pp["maximum_points_per_destination"] == DRY_RUN_MAX_POINTS, "contract_dry_run_points_changed")
+    _require(pp["peek_min_visible_pixels"] == MIN_VISIBLE_PIXELS, "contract_peek_threshold_changed")
+    _require(pp["peek_is_a_private_off_route_render_never_captured"] is True, "contract_peek_leaks_to_public")
+    _require(pp["one_placement_per_destination_per_episode"] is True, "contract_multi_placement_allowed")
+    _require(pp["revert_failure_fails_the_house"] is True, "contract_revert_failure_tolerated")
+    _require(sel["unseen_object"]["never_rendered_in_any_private_mask_before_the_window"] is True, "contract_unseen_weakened")
+    be = rp["blocked_edge_replanning"]
+    _require(be["maximum_replans_per_episode"] == MAX_REPLANS, "contract_max_replans_changed")
+    _require(be["blocklist_and_replans_written_to_provenance"] is True, "contract_replans_unrecorded")
     _require(sel["p_null_window"] == P_NULL_WINDOW, "contract_p_null_changed")
     iw = contract["intervention_window"]
     _require(iw["minimum_window_frames"] == MINIMUM_WINDOW_FRAMES, "contract_min_window_changed")
@@ -682,6 +700,11 @@ def validate_intervention_data_contract(contract: Mapping[str, Any]) -> dict[str
 __all__ = [
     "ACTIONS",
     "ADD_SOURCE",
+    "DRY_RUN_MAX_POINTS",
+    "MAX_REPLANS",
+    "PLACEMENT_PRESCREEN",
+    "REMOVE_EXECUTOR",
+    "SAMPLING",
     "COVERAGE_DEFINITION",
     "MAXIMUM_ACTIONS",
     "MAXIMUM_INTERVENTIONS_PER_EPISODE",
