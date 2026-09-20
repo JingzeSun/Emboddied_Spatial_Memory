@@ -1,0 +1,255 @@
+{
+  "schema_version": "vsmt-lean-s0-assignment-v2",
+  "decision_id": "D-224",
+  "stage_id": "S0-03",
+  "status": "v2_pending_user_code_review",
+  "plain_language_zh": "本合同定义一帧画面怎样变成一次分配。输入是冻结前端的一帧、此前预测的记忆和一组无默认值的规则数值；输出是召回集合、三张特征矩阵、代价矩阵和一次确定性求解。例如两个相似色块同时匹配一个旧实体时，只有一个拿到它，另一个被推向新建列。它不训练模型（S2-03）、不定义标签与指标（S0-04），也不定义对照臂参数（S0-05）。",
+  "pure_core_relative_path": "src/vsmt/lean_assignment.py",
+  "depends_on": {
+    "s0_01_contract": "configs/vsmt/lean_s0_entity_memory_v1.json",
+    "s0_02_contract": "configs/vsmt/lean_s0_intervention_data_v1.json"
+  },
+  "authorization": {
+    "frontend_cache_generation": false,
+    "feature_extraction": false,
+    "reid_adapter_head_training": false,
+    "model_training": false,
+    "private_evaluation": false,
+    "server_run": false
+  },
+  "cache_frame_fields": [
+    "frame_digest",
+    "tick",
+    "camera_position_m",
+    "camera_forward",
+    "fragments",
+    "entity_geometry"
+  ],
+  "fragment_fields": [
+    "fragment_id",
+    "descriptor",
+    "centroid_m",
+    "aabb_min_m",
+    "aabb_max_m",
+    "pixel_count",
+    "depth_valid_ratio",
+    "supported_by"
+  ],
+  "entity_geometry_fields": [
+    "should_be_visible_ratio",
+    "free_space_coverage_ratio"
+  ],
+  "entity_geometry_note_zh": "应可见比例是实体包围盒体素落入本帧可见体积的比例；自由空间覆盖比例是这些体素被可靠深度射线穿过的比例。两者都由冻结前端在公开深度上算出，五个臂拿到逐字节相同的值。例如被橱柜门挡住的杯子，两个比例都接近零，因此不构成撤回证据。",
+  "recall_rule": {
+    "local_channel_ranked_by_descriptor_cosine": true,
+    "local_channel_has_distance_limit": true,
+    "global_channel_covers_every_state": true,
+    "global_channel_has_no_distance_limit": true,
+    "identical_for_all_five_arms": true,
+    "result_is_the_union_of_both_channels": true,
+    "tie_break": "smaller_entity_id",
+    "order": "local_block_then_global_block_deduplicated",
+    "local_count": null,
+    "global_count": null,
+    "local_radius_m": null,
+    "birth_neighbourhood_radius_m": null,
+    "plain_language_zh": "召回取两条通道的并集：本地通道在登记半径内按余弦取前 k 个；全局通道对 active/dormant/retracted 一视同仁、不设距离上限、按余弦取前 k′ 个。例如杯子从厨房搬到卧室后，全局通道仍能把旧杯子召回来。全局通道之所以不分状态，是因为 AssocOnly 消融根本没有 dormant/retracted 状态：若只给这两种状态远距资格，AssocOnly 的旧实体会留在原地被距离门挡成 BIRTH，比较就同时混入了“有没有生命周期词表”和“有没有远距候选资格”两件事，而 D-224-HIJ 要的是前者的纯反事实。并列按 entity_id 字典序。四个数值待冻结，当前为 null。"
+  },
+  "association_feature_order": [
+    "cosine_to_descriptor_mean",
+    "cosine_to_best_view_descriptor",
+    "centroid_distance_m",
+    "aabb_iou",
+    "log_size_ratio",
+    "ticks_since_last_seen",
+    "missed_opportunity_count",
+    "state_is_active",
+    "state_is_dormant",
+    "state_is_retracted",
+    "cosine_rank_within_recall",
+    "cosine_margin_to_runner_up",
+    "mutual_best",
+    "support_height_difference_m"
+  ],
+  "existence_feature_order": [
+    "should_be_visible_ratio",
+    "free_space_coverage_ratio",
+    "camera_distance_m",
+    "camera_view_cosine",
+    "missed_opportunity_count",
+    "observation_count",
+    "ticks_since_last_seen",
+    "best_fragment_cosine",
+    "best_fragment_still_unassigned",
+    "state_is_active",
+    "state_is_dormant",
+    "state_is_retracted"
+  ],
+  "birth_feature_order": [
+    "best_cosine_to_any_entity",
+    "active_entities_within_radius",
+    "pixel_count",
+    "depth_valid_ratio"
+  ],
+  "feature_rules": {
+    "no_private_future_teacher_or_reference_input": true,
+    "no_path_slot_index_or_sample_name_input": true,
+    "field_order_is_positional_and_frozen": true,
+    "up_axis_index": 1,
+    "plain_language_zh": "竖直轴是三维向量的第二维（索引 1，AI2-THOR/ProcTHOR 的 y 向上约定），支撑面高度差特征按此轴取包围盒底面高度。三张特征表的字段顺序是冻结的，下游按位置取值，改顺序即改合同。所有特征只由公开 cache 与此前预测的记忆算出；不接受私有标注、未来、teacher、参考答案，也不接受路径、槽号或样本名。"
+  },
+  "cost_matrix": {
+    "rows": "fragments_sorted_by_fragment_id",
+    "columns": "recalled_entity_ids_sorted_then_one_birth_column_per_fragment",
+    "cost": "negative_logit",
+    "association_logit_key": "<fragment_id>|<entity_id>",
+    "birth_logit_key": "<fragment_id>",
+    "forbidden_cost_is_derived_from_the_matrix": true,
+    "forbidden_cost_formula": "rows * max(legal) - (rows - 1) * min(legal) + 1",
+    "birth_column_is_private_to_its_fragment": true,
+    "empty_fragment_frame_is_legal": true,
+    "existence_threshold_tau_r": null,
+    "plain_language_zh": "行是本帧色块按 fragment_id 排序，列是被召回的实体加上每个色块自己的新建列；代价取 logit 的相反数。之所以不是 −log sigmoid(logit)：METHOD 用逐色块 softmax 交叉熵训练，模型学到的是 p(列|行) ∝ exp(logit)，最大化联合对数似然等价于最小化 sum(−logit)，softmax 归一化常数是每行常量不影响联合最优；而 −log sigmoid 是 −logit 的非线性单调变换，会改变跨行竞争下的最优配对。在 20 万次随机 2×2 上两种变换约十分之一给出不同最优解，差距不小。召回之外的组合用由当前矩阵最大/最小合法代价和行数算出的禁止代价，保证任何含禁止格的分配都严格贵于任意全合法分配；固定写 1e9 不安全，因为极端 logit 能产生同样大的合法代价。没有 fragment 的一帧是合法的，产生空分配并继续存在判定。"
+  },
+  "solver": {
+    "name": "rectangular_minimum_cost_assignment",
+    "implementation": "self_written_no_new_dependency",
+    "algorithm": "shortest_augmenting_path_with_potentials_then_lexicographic_canonicalisation_on_the_equality_subgraph",
+    "complexity": "O(rows^2 * columns) for the one solve; canonicalisation tries only zero-reduced-cost cells and checks each with two augmenting-path bipartite matchings, never a full re-solve",
+    "tie_break": "lexicographically_smallest_optimum",
+    "requires_columns_at_least_rows": true,
+    "row_order_is_canonical_not_frame_order": true,
+    "plain_language_zh": "求解器自写而不用 scipy：scipy 不是本项目依赖，而且并列必须由我们自己定。原始最短增广路解只保证最优，不保证返回哪一个最优解：`[[1,0],[1,0]]` 会返回 `[1,0]` 而不是较小列优先的 `[0,1]`，两者代价相同。因此在最优解之后加一步字典序规范化，按行依次取仍能达到最优总代价的最小列号，使“较小列优先”这句声称真正成立；行序也按 fragment_id 排序，这样交换本帧色块顺序不会换掉并列结果。v1 的规范化每试一列就把整张矩阵重解一次：本机实测 30×100 浮点代价 1,337 次子求解、1.2 秒，64×500 时 13,055 次、约两分钟，而原始求解只要几毫秒（D-224-X）。v2 改用原始求解结束时的最优势 (u, v)：按互补松弛，最优分配只能用约化代价为零的格、且势为负的列必须被匹配，所以只需在这张稀疏的等式子图上按行试最小列，用两次增广路匹配判断“剩下的行还能不能补全”（Mendelsohn–Dulmage 保证两者可同时满足）。返回的列与 v1 逐列相同，测试用 v1 实现逐字比对；变的只是工作量。",
+    "canonicalisation_never_re_solves_the_matrix": true,
+    "columns_identical_to_v1_canonicalisation": true
+  },
+  "seal": {
+    "two_stage": true,
+    "stage_a": "recall_plus_association_and_birth_features",
+    "stage_b": "solve_receipt_plus_existence_features",
+    "sealed_before_any_model_runs": true,
+    "sealed_before_any_private_file_is_opened": true,
+    "stage_a_sealed_payload": [
+      "frame_digest",
+      "tick",
+      "rows",
+      "columns",
+      "recall",
+      "association_rows",
+      "birth_rows",
+      "association_feature_order",
+      "birth_feature_order"
+    ],
+    "stage_b_sealed_payload": [
+      "frame_digest",
+      "tick",
+      "stage_a_seal_sha256",
+      "assignment",
+      "total_cost",
+      "existence_rows",
+      "existence_feature_order"
+    ],
+    "existence_features_computed_after_the_solve": true,
+    "teacher_assignment_must_not_feed_existence_features": true,
+    "private_mutation_must_not_change_public_bytes": true,
+    "invariant_public_products": [
+      "recall_order",
+      "association_feature_matrix",
+      "birth_feature_matrix",
+      "existence_feature_matrix",
+      "assignment",
+      "stage_a_seal_sha256",
+      "stage_b_seal_sha256",
+      "reference_untrained_scores"
+    ],
+    "teacher_may_open_private_only_after": "both_stage_seals_exist",
+    "reference_score_seed": null,
+    "plain_language_zh": "封存分两阶段。阶段 A 在任何模型运行前、任何私有文件打开前封存召回集合与关联/新建特征。阶段 B 在求解之后封存分配回执与存在特征——存在头有一项是“最相似色块是否仍未被分配”，求解之前没有定义。只封存阶段 A 会让三分之一的模型输入落在不变性保证之外，合同关于三张特征表的声称就不成立。两份摘要都写完，teacher 才可以打开 private。训练时喂给存在特征的分配必须来自当前策略或登记的规则臂，绝不能用 teacher 的分配。参考分数不是真模型，只是让“未训练 logits 逐字节不变”可被测试的确定性替身；其 seed 待冻结，当前为 null。"
+  },
+  "reid_adapter_head": {
+    "decision_id": "D-224-E",
+    "status": "registered_optional_frontend_not_trained",
+    "input": "frozen_dinov2_descriptor",
+    "output": "l2_normalised_projection",
+    "training_data_scope": "train_split_houses_only",
+    "trained_once_then_frozen": true,
+    "shared_bytes_across_all_arms": true,
+    "counts_against_config_budget": false,
+    "selection_stage": "S1-05",
+    "selection_rule": "highest_cross_view_separation_on_the_development_split",
+    "must_report_frozen_descriptor_baseline_if_selected": true,
+    "output_dimension": null,
+    "selection_rule_threshold": null,
+    "plain_language_zh": "共享 ReID 适配头是冻结 DINO 描述子之上的一个投影，用 train 划分 house 的实例级对比损失训练一次后冻结，五个臂逐字节共用同一投影，因此不是 VSMT-lean 的私有优势。它在 S1-04 与原始冻结描述子一同量跨视角分离度，由 S1-05 二选一；不计入任何方法的 12 个配置额度。若被选中，论文必须同时报告冻结描述子基线。输出维度与选择阈值待冻结，当前为 null。"
+  },
+  "not_in_this_stage": [
+    "teacher_labels",
+    "metrics",
+    "arm_parameters",
+    "training_recipe",
+    "dagger_rounds"
+  ],
+  "policy_values_without_defaults": [
+    "recall_rule.local_count",
+    "recall_rule.global_count",
+    "recall_rule.local_radius_m",
+    "recall_rule.birth_neighbourhood_radius_m",
+    "cost_matrix.existence_threshold_tau_r",
+    "seal.reference_score_seed",
+    "reid_adapter_head.output_dimension",
+    "reid_adapter_head.selection_rule_threshold"
+  ],
+  "continue_gate": {
+    "private_mutation_leaves_every_feature_table_and_logits_byte_identical": true,
+    "solver_is_optimal_and_returns_the_lexicographically_smallest_optimum": true,
+    "feature_order_is_frozen_and_tested": true,
+    "existence_features_come_after_the_solve_and_are_sealed_in_stage_b": true,
+    "cost_transform_matches_the_training_loss": true,
+    "plain_language_zh": "S0-03 的继续门是：换私有文件而公开输入不变时三张特征表、分配与未训练 logits 逐字节相同；求解器最优且返回字典序最小的最优解；三张特征表字段顺序由本合同固定并有测试；存在特征在求解之后计算并由阶段 B 封存；代价变换与训练损失一致。检查通过不等于特征有用，也不等于数值合适。"
+  },
+  "review_history": [
+    {
+      "date": "2026-09-19",
+      "outcome": "rejected_then_revised",
+      "blocking_findings_accepted": [
+        "cost_transform_inconsistent_with_softmax_training_loss",
+        "declared_tie_break_not_delivered_by_the_raw_solver",
+        "stage_b_seal_and_existence_invariance_missing",
+        "recall_rule_confounded_the_assoconly_counterfactual",
+        "birth_feature_named_any_entity_but_used_recalled_entities_only",
+        "empty_fragment_frame_failed_instead_of_yielding_an_empty_assignment",
+        "descriptor_width_mismatch_accepted_and_silently_scored_minus_one",
+        "fixed_forbidden_cost_not_always_above_legal_costs",
+        "contract_validator_did_not_bind_its_own_key_claims"
+      ],
+      "finding_not_accepted": {
+        "claim": "supported_by reintroduces surface and relation information that D-224 removed",
+        "reason_zh": "D-224 裁决 B 原文同时写了“surface 一等节点与五类关系边退出首篇”和“supported_by 作为几何派生属性五方法共享”，因此 supported_by 字段本身是被明确保留的，不构成与 D-224 的冲突。但该意见指出的底层风险成立：按 ID 比较 supported_by 只有在表面 ID 跨帧稳定时才有信息，而跨帧稳定的表面 ID 等于维持了一个持久表面身份。因此把特征从 supported_by_agrees 改为纯几何的 support_height_difference_m，保留公开线索、去掉身份需求，也不需要新阈值。"
+      }
+    },
+    {
+      "date": "2026-09-20",
+      "outcome": "v2_issued_after_s0_hazard_review",
+      "decision_id": "D-224-X",
+      "changes": [
+        "canonicalisation_rewritten_on_the_equality_subgraph_without_full_re_solves",
+        "columns_pinned_equal_to_v1_by_test"
+      ],
+      "unchanged": [
+        "recall_rule",
+        "feature_orders",
+        "cost_matrix",
+        "seal",
+        "reid_adapter_head",
+        "policy_values_without_defaults",
+        "continue_gate"
+      ]
+    }
+  ],
+  "supersedes_contract": {
+    "path": "configs/vsmt/lean_s0_assignment_v1.json",
+    "v1_sha256": "e6d8e3808365e4bd2f99b15d7394c4b13399e311f85d41e0ade30443861db6ca",
+    "v1_bytes_frozen": true,
+    "note_zh": "v1 已于 2026-09-20 经用户审查通过（D-224-R），字节冻结不改；v2 只更新求解器规范化的描述与复杂度（D-224-X 裁决 X5），召回、特征、代价矩阵、封存与继续门逐字不变。"
+  }
+}

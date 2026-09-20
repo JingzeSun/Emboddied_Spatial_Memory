@@ -33,6 +33,8 @@ from vsmt.lean_assignment import (  # noqa: E402
     EXISTENCE_FEATURES,
     UP_AXIS_INDEX,
     LeanAssignmentError,
+    _forbidden_cost,
+    _solve_rectangular_core,
     assert_private_mutation_invariance,
     assignment_cost,
     build_assignment_inputs,
@@ -50,7 +52,7 @@ from vsmt.lean_assignment import (  # noqa: E402
 from vsmt.lean_memory import apply_program, empty_memory  # noqa: E402
 
 
-CONTRACT_PATH = PROJECT_ROOT / "configs" / "vsmt" / "lean_s0_assignment_v1.json"
+CONTRACT_PATH = PROJECT_ROOT / "configs" / "vsmt" / "lean_s0_assignment_v2.json"
 
 RECALL = {"local_count": 3, "global_count": 2, "local_radius_m": 2.0}
 BIRTH_RADIUS = 1.0
@@ -128,8 +130,14 @@ def memory_with_two_entities() -> tuple[dict[str, Any], str, str]:
         },
         method_id="vsmt.lean.test.v1", dormancy_missed_opportunity_limit=2,
     )
-    ids = sorted(str(entity["entity_id"]) for entity in memory["entities"])
-    return memory, ids[0], ids[1]
+    # Identify the two entities by the fragment that created them, not by the
+    # sort order of their opaque ids: that order is a hash of the memory bytes
+    # and flips whenever the schema changes (it did in S0-01 v2).
+    by_fragment = {
+        str(entity["evidence"][0]["fragment_id"]): str(entity["entity_id"])
+        for entity in memory["entities"]
+    }
+    return memory, by_fragment["region:0000"], by_fragment["region:0001"]
 
 
 def inputs_for(memory: Mapping[str, Any], frame: Mapping[str, Any]) -> dict[str, Any]:
@@ -832,6 +840,139 @@ class TestReviewRegressions(unittest.TestCase):
 
         self.assertIn("support_height_difference_m", ASSOCIATION_FEATURES)
         self.assertNotIn("supported_by_agrees", ASSOCIATION_FEATURES)
+
+def reference_lexicographic_optimum(
+    matrix: list[list[float]], seed: list[int],
+) -> list[int]:
+    """The S0-03 v1 canonicalisation, kept verbatim as the equivalence reference.
+
+    It re-solves the whole matrix once per tried column (D-224-X measured
+    13,055 sub-solves at 64×500).  The equality-subgraph version in the module
+    must return exactly these columns; this copy exists only to pin that.
+    """
+
+    rows = len(matrix)
+    columns = len(matrix[0])
+    target = sum(float(matrix[row][col]) for row, col in enumerate(seed))
+    flat = [float(value) for row in matrix for value in row]
+    big = _forbidden_cost(flat, rows=rows) + abs(max(flat)) * rows + 1.0
+    tolerance = max(1.0, abs(target)) * 1e-9
+    chosen: list[int] = []
+    used: set[int] = set()
+    for row in range(rows):
+        for candidate in range(columns):
+            if candidate in used:
+                continue
+            trial = [list(values) for values in matrix]
+            for fixed_row, fixed_column in enumerate(chosen):
+                for column in range(columns):
+                    if column != fixed_column:
+                        trial[fixed_row][column] = big
+            for column in range(columns):
+                if column != candidate:
+                    trial[row][column] = big
+            probe = _solve_rectangular_core(trial)
+            total = sum(float(trial[r][c]) for r, c in enumerate(probe))
+            if total <= target + tolerance:
+                chosen.append(candidate)
+                used.add(candidate)
+                break
+        else:
+            raise AssertionError("reference canonicalisation failed")
+    return chosen
+
+
+class TestSolverEquivalenceWithV1(unittest.TestCase):
+    """D-224-X ruling X5: the new canonicalisation returns the v1 columns."""
+
+    def _check(self, matrix: list[list[float]]) -> None:
+        seed = _solve_rectangular_core(matrix)
+        expected = reference_lexicographic_optimum(matrix, seed)
+        got = solve_rectangular_assignment(matrix)
+        self.assertEqual(got, expected)
+        self.assertAlmostEqual(
+            assignment_cost(matrix, got), assignment_cost(matrix, seed), places=9,
+        )
+
+    def test_float_costs_match_the_v1_columns(self) -> None:
+        rng = random.Random(2024)
+        for _ in range(60):
+            rows = rng.randint(1, 12)
+            columns = rng.randint(rows, rows + 15)
+            self._check([
+                [rng.uniform(-5.0, 5.0) for _ in range(columns)] for _ in range(rows)
+            ])
+
+    def test_rule_arm_style_costs_with_sentinels_match_the_v1_columns(self) -> None:
+        """Many exact ties: rounded cosines, a constant birth logit, sentinel cells."""
+
+        rng = random.Random(4096)
+        for _ in range(60):
+            rows = rng.randint(1, 8)
+            entities = rng.randint(0, 6)
+            matrix = []
+            for row in range(rows):
+                cells = [
+                    -rng.choice([0.2, 0.5, 0.8, -1.0e6]) for _ in range(entities)
+                ]
+                births = [0.0] * rows
+                births[row] = -0.5
+                matrix.append(cells + births)
+            forbidden = _forbidden_cost(
+                [value for line in matrix for value in line if value != 0.0],
+                rows=rows,
+            )
+            for row in range(rows):
+                for column in range(entities, entities + rows):
+                    if column != entities + row:
+                        matrix[row][column] = forbidden
+            self._check(matrix)
+
+    def test_larger_float_matrices_match_the_v1_columns(self) -> None:
+        rng = random.Random(777)
+        for rows, columns in ((20, 60), (24, 90), (30, 100)):
+            self._check([
+                [rng.uniform(-5.0, 5.0) for _ in range(columns)] for _ in range(rows)
+            ])
+
+    def test_brute_force_lexicographic_optima_up_to_five_rows(self) -> None:
+        rng = random.Random(5150)
+        for _ in range(40):
+            rows = rng.randint(1, 5)
+            columns = rng.randint(rows, rows + 3)
+            matrix = [
+                [float(rng.randint(0, 5)) for _ in range(columns)]
+                for _ in range(rows)
+            ]
+            perms = [list(p) for p in itertools.permutations(range(columns), rows)]
+            best = min(sum(matrix[i][c] for i, c in enumerate(p)) for p in perms)
+            lexicographic = min(
+                p for p in perms
+                if abs(sum(matrix[i][c] for i, c in enumerate(p)) - best) < 1e-9
+            )
+            self.assertEqual(solve_rectangular_assignment(matrix), lexicographic)
+
+    def test_the_canonicalisation_never_re_solves_the_matrix(self) -> None:
+        """The v1 version called the core once per tried column; v2 calls it once."""
+
+        import vsmt.lean_assignment as module
+
+        calls = {"n": 0}
+        original = module._solve_rectangular_core_with_potentials
+
+        def counting(matrix: Any) -> Any:
+            calls["n"] += 1
+            return original(matrix)
+
+        module._solve_rectangular_core_with_potentials = counting
+        try:
+            rng = random.Random(1)
+            matrix = [[rng.uniform(-5.0, 5.0) for _ in range(120)] for _ in range(30)]
+            solve_rectangular_assignment(matrix)
+        finally:
+            module._solve_rectangular_core_with_potentials = original
+        self.assertEqual(calls["n"], 1)
+
 
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()

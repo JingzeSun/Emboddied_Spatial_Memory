@@ -37,7 +37,7 @@ from vsmt.lean_geometry import cosine_similarity
 from vsmt.lean_memory import ENTITY_STATES, validate_memory
 
 
-CONTRACT_SCHEMA_VERSION = "vsmt-lean-s0-assignment-v1"
+CONTRACT_SCHEMA_VERSION = "vsmt-lean-s0-assignment-v2"
 
 #: Frozen feature order for the association head a(f, e).  Downstream code
 #: indexes by position, so changing this order is a contract change.
@@ -696,16 +696,33 @@ def solve_rectangular_assignment(matrix: Sequence[Sequence[float]]) -> list[int]
     has several optima.  The raw solve is a shortest-augmenting-path method
     with potentials; the canonicalisation afterwards is what makes the
     declared "smaller column first" semantics actually true, which the raw
-    solve alone does not deliver.
+    solve alone does not deliver.  The canonicalisation works on the equality
+    subgraph of the raw solve's optimal potentials (D-224-X, ruling X5), so it
+    never re-solves the whole matrix; the returned columns are identical to
+    the earlier re-solving version, which the tests pin.
     """
 
-    return _lexicographically_smallest_optimum(
-        matrix, _solve_rectangular_core(matrix),
-    )
+    seed, u, v = _solve_rectangular_core_with_potentials(matrix)
+    return _lexicographically_smallest_optimum(matrix, seed, u, v)
 
 
 def _solve_rectangular_core(matrix: Sequence[Sequence[float]]) -> list[int]:
     """One optimal assignment, with no guarantee about which optimum."""
+
+    return _solve_rectangular_core_with_potentials(matrix)[0]
+
+
+def _solve_rectangular_core_with_potentials(
+    matrix: Sequence[Sequence[float]],
+) -> tuple[list[int], list[float], list[float]]:
+    """One optimal assignment plus the optimal dual potentials ``(u, v)``.
+
+    ``u`` has one entry per row and ``v`` one per column, zero-indexed.  At
+    termination every cell satisfies ``matrix[r][c] - u[r] - v[c] >= 0``,
+    every matched cell has reduced cost zero, ``v[c] <= 0`` everywhere and
+    ``v[c] == 0`` for every unmatched column; that is exactly a dual optimum
+    of the rectangular assignment LP, which the canonicalisation relies on.
+    """
 
     rows = len(matrix)
     _require(rows > 0, "assignment_matrix_empty")
@@ -767,11 +784,12 @@ def _solve_rectangular_core(matrix: Sequence[Sequence[float]]) -> list[int]:
     for column in range(1, columns + 1):
         if column_match[column] != 0:
             result[column_match[column] - 1] = column - 1
-    return result
+    return result, u[1:], v[1:]
 
 
 def _lexicographically_smallest_optimum(
     matrix: Sequence[Sequence[float]], seed: Sequence[int],
+    u: Sequence[float], v: Sequence[float],
 ) -> list[int]:
     """Canonicalise an optimum to the lexicographically smallest one.
 
@@ -780,42 +798,115 @@ def _lexicographically_smallest_optimum(
     `[[1,0],[1,0]]` 的两个最优解 `[1,0]` 与 `[0,1]` 代价都是 1，这里固定返回
     `[0,1]`。它不改变最优代价，只消除并列时的任意性。
 
-    Row by row, try the smallest unused column first and keep it if the rest of
-    the problem can still reach the optimal total.  Forbidden alternatives are
-    priced with the same derived big-M used elsewhere, so the sub-solves stay
-    finite and the accepted total is comparable to the seed total.
+    Why the equality subgraph and not a re-solve per candidate.  The earlier
+    version re-solved the whole matrix once per *tried* column, which is
+    O(rows × columns) full solves: measured 1,337 sub-solves and 1.2 s at
+    30×100 with float costs, 13,055 sub-solves and about two minutes at
+    64×500 (D-224-X).  By complementary slackness, an assignment is optimal
+    if and only if it uses only cells whose reduced cost ``matrix - u - v``
+    is zero and matches every column whose potential ``v`` is negative.  So
+    the search only has to try zero-reduced-cost cells, and "can the rest
+    still be completed" is two bipartite matchings on that sparse graph
+    (one saturating the remaining rows, one saturating the still-unmatched
+    forced columns; Mendelsohn–Dulmage guarantees a common matching exists).
+    The columns returned are the same as before; only the work changes.
     """
 
     rows = len(matrix)
     columns = len(matrix[0])
-    target = sum(float(matrix[row][col]) for row, col in enumerate(seed))
-    flat = [float(value) for row in matrix for value in row]
-    big = _forbidden_cost(flat, rows=rows) + abs(max(flat)) * rows + 1.0
-    tolerance = max(1.0, abs(target)) * 1e-9
+    scale = max(
+        [1.0]
+        + [abs(float(value)) for value in u]
+        + [abs(float(value)) for value in v]
+        + [abs(float(matrix[row][column])) for row, column in enumerate(seed)]
+    )
+    tolerance = 1e-9 * scale
+
+    zero_columns: list[list[int]] = []
+    for row in range(rows):
+        cells: list[int] = []
+        for column in range(columns):
+            reduced = float(matrix[row][column]) - float(u[row]) - float(v[column])
+            _require(reduced >= -tolerance, "assignment_dual_infeasible")
+            if reduced <= tolerance:
+                cells.append(column)
+        zero_columns.append(cells)
+    forced = frozenset(
+        column for column in range(columns) if float(v[column]) < -tolerance
+    )
 
     chosen: list[int] = []
     used: set[int] = set()
     for row in range(rows):
-        for candidate in range(columns):
+        for candidate in zero_columns[row]:
             if candidate in used:
                 continue
-            trial = [list(values) for values in matrix]
-            for fixed_row, fixed_column in enumerate(chosen):
-                for column in range(columns):
-                    if column != fixed_column:
-                        trial[fixed_row][column] = big
-            for column in range(columns):
-                if column != candidate:
-                    trial[row][column] = big
-            probe = _solve_rectangular_core(trial)
-            total = sum(float(trial[r][c]) for r, c in enumerate(probe))
-            if total <= target + tolerance:
+            if _rest_is_feasible(
+                zero_columns, first_row=row + 1, used=used | {candidate},
+                forced=forced,
+            ):
                 chosen.append(candidate)
                 used.add(candidate)
                 break
-        else:  # pragma: no cover - a feasible column always exists
+        else:
             raise LeanAssignmentError("assignment_canonicalisation_failed")
+
+    target = sum(float(matrix[row][column]) for row, column in enumerate(seed))
+    total = sum(float(matrix[row][column]) for row, column in enumerate(chosen))
+    _require(
+        abs(total - target) <= rows * tolerance + 1e-9 * max(1.0, abs(target)),
+        "assignment_canonicalisation_failed",
+    )
     return chosen
+
+
+def _rest_is_feasible(
+    zero_columns: Sequence[Sequence[int]], *, first_row: int,
+    used: set[int], forced: frozenset[int],
+) -> bool:
+    """Can rows ``first_row..`` still be completed into an optimum?
+
+    Optimal completions use zero-reduced-cost cells only, must cover every
+    remaining row and must cover every forced column not already used.  Both
+    coverings are plain maximum bipartite matchings; if each exists on its
+    own, a matching achieving both exists (Mendelsohn–Dulmage).
+    """
+
+    remaining = list(range(first_row, len(zero_columns)))
+    adjacency = {
+        row: [column for column in zero_columns[row] if column not in used]
+        for row in remaining
+    }
+    if _matching_size(remaining, adjacency) != len(remaining):
+        return False
+    pending = sorted(forced - used)
+    if not pending:
+        return True
+    reverse = {
+        column: [row for row in remaining if column in adjacency[row]]
+        for column in pending
+    }
+    return _matching_size(pending, reverse) == len(pending)
+
+
+def _matching_size(
+    left: Sequence[int], adjacency: Mapping[int, Sequence[int]],
+) -> int:
+    """Size of a maximum bipartite matching (Kuhn's augmenting paths)."""
+
+    match_right: dict[int, int] = {}
+
+    def augment(node: int, seen: set[int]) -> bool:
+        for other in adjacency[node]:
+            if other in seen:
+                continue
+            seen.add(other)
+            if other not in match_right or augment(match_right[other], seen):
+                match_right[other] = node
+                return True
+        return False
+
+    return sum(1 for node in left if augment(node, set()))
 
 
 def assignment_cost(
@@ -1067,6 +1158,10 @@ def validate_assignment_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
          "contract_teacher_assignment_leak_allowed"),
         ("cost_matrix", "forbidden_cost_is_derived_from_the_matrix", True,
          "contract_forbidden_cost_must_stay_derived"),
+        ("solver", "canonicalisation_never_re_solves_the_matrix", True,
+         "contract_solver_canonicalisation_claim_weakened"),
+        ("solver", "columns_identical_to_v1_canonicalisation", True,
+         "contract_solver_equivalence_claim_weakened"),
     ):
         _require(contract[section][name] is expected, code)
 
