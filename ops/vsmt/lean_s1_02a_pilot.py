@@ -408,7 +408,12 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
             if not feasible:
                 raise PilotFailure("intervention_window_unavailable", f"feasible set empty; U={len(invisible)} eligible={len(eligible)}")
             interventions = sel.sample_interventions(feasible, split_seed=task["split_seed"], house_id=house_id)
-            log = _apply_interventions(controller, interventions, spawn_points)
+            try:
+                log = _apply_interventions(controller, interventions, spawn_points)
+            except PilotFailure:
+                raise
+            except Exception as exc:  # noqa: BLE001 - a simulator-side timeout is an intervention failure, not a write failure
+                raise PilotFailure("intervention_execution_failed", f"simulator: {exc!r}"[:400]) from exc
         else:
             log = []
         # stage 2: sweep two
@@ -479,6 +484,9 @@ def main() -> int:
     ap.add_argument("--stage", choices=["s1-02a", "s1-02b"], default="s1-02a")
     ap.add_argument("--pilot-root", help="S1-02b: the finished S1-02a output root (occupancy receipt, pilot houses)")
     ap.add_argument("--development-houses", type=int, default=50)
+    ap.add_argument("--resume", action="store_true",
+                    help="S1-02b: skip houses with a receipt; mark interrupted dirs failed; never regenerate")
+    ap.add_argument("--house-timeout-s", type=int, default=1800, help="safety line per house, not a budget")
     args = ap.parse_args()
     if args.stage == "s1-02b":
         return main_s1_02b(args)
@@ -557,6 +565,50 @@ def _capacity_measurements() -> dict[str, Any]:
     }
 
 
+def _run_with_timeout(tasks: list[dict[str, Any]], workers: int, limit_s: int, commit: str) -> list[dict[str, Any]]:
+    """Run tasks on a spawn pool; a task past the wall limit is recorded failed, never hung on."""
+
+    if not tasks:
+        return []
+    ctx = mp.get_context("spawn")
+    results: list[dict[str, Any]] = []
+    with ctx.Pool(processes=workers) as pool_:
+        pending = {pool_.apply_async(run_house, (task,)): task for task in tasks}
+        started = {id(a): time.time() for a in pending}
+        while pending:
+            for async_result, task in list(pending.items()):
+                if async_result.ready():
+                    try:
+                        results.append(async_result.get())
+                    except Exception as exc:  # noqa: BLE001 - worker died; record, do not hang
+                        results.append(_timeout_receipt(task, commit, f"worker_error: {exc!r}"[:400]))
+                    del pending[async_result]
+                elif time.time() - started[id(async_result)] > limit_s:
+                    results.append(_timeout_receipt(task, commit, f"worker_timeout_{limit_s}s"))
+                    del pending[async_result]
+                    _kill_unity_for(task["out"])
+            time.sleep(5)
+        pool_.terminate()
+    return results
+
+
+def _timeout_receipt(task: dict[str, Any], commit: str, detail: str) -> dict[str, Any]:
+    out = Path(task["out"]); out.mkdir(parents=True, exist_ok=True)
+    r = {"house_id": task["house_id"], "source_index": task["index"], "code_commit": commit,
+         "status": "failed", "reason": "frame_write_failed", "detail": detail,
+         "occupancy": {"peak_rss_gb": 0.0, "cpu_seconds": 0.0, "wall_seconds": 0.0, "bytes_written": _dir_bytes(out)}}
+    (out / "receipt.json").write_text(json.dumps(r, indent=1))
+    return r
+
+
+def _kill_unity_for(out_dir: str) -> None:
+    # best effort: any Unity whose cwd/cmdline mentions nothing we can match; kill orphans older than the limit
+    try:
+        subprocess.run(["pkill", "-f", "thor-CloudRendering"], timeout=10)
+    except Exception:  # noqa: BLE001
+        pass
+
+
 def main_s1_02b(args: argparse.Namespace) -> int:
     contract = json.loads(CONTRACT_S1_02A.read_text(encoding="utf-8"))
     lean_pilot.validate_pilot_contract(contract)
@@ -583,10 +635,26 @@ def main_s1_02b(args: argparse.Namespace) -> int:
                                                     "commit": commit}, indent=1))
     tasks = [{"house_id": h, "index": int(h.rsplit("-", 1)[1]), "out": str(out_root / h), "source_root": str(source.parent),
               "source_rel": source.name, "split_seed": freeze["seed"], "commit": commit} for h in houses]
+    prior: list[dict[str, Any]] = []
+    if args.resume:
+        pending = []
+        for task in tasks:
+            d = Path(task["out"])
+            if (d / "receipt.json").exists():
+                prior.append(json.loads((d / "receipt.json").read_text(encoding="utf-8")))
+            elif d.exists():
+                # interrupted before a receipt: terminal failure, partial output kept, never rerun
+                r = {"house_id": task["house_id"], "source_index": task["index"], "code_commit": commit,
+                     "status": "failed", "reason": "frame_write_failed", "detail": "interrupted_before_receipt",
+                     "occupancy": {"peak_rss_gb": 0.0, "cpu_seconds": 0.0, "wall_seconds": 0.0, "bytes_written": _dir_bytes(d)}}
+                (d / "receipt.json").write_text(json.dumps(r, indent=1))
+                prior.append(r)
+            else:
+                pending.append(task)
+        print(f"resume: {len(prior)} terminal, {len(pending)} pending", flush=True)
+        tasks = pending
     t0 = time.time()
-    ctx = mp.get_context("spawn")
-    with ctx.Pool(processes=workers) as pool_:
-        results = pool_.map(run_house, tasks, chunksize=1)
+    results = list(prior) + _run_with_timeout(tasks, workers, args.house_timeout_s, commit)
     wall = time.time() - t0
     results = sorted(results, key=lambda r: r["house_id"])
     failed = [r for r in results if r["status"] != "succeeded"]
