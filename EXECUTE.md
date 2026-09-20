@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| D-224 精简方向 | 2026-09-19 用户批准裁决 A～D 与 E/F/G：首篇改为实体生命周期版本化事务，帧级联合分配＋三个约 4 万参数的 MLP 代价头，ProcTHOR 干预序列并对齐 Dyn-THOR 指标，正式规模 300/50/100 house；共享 ReID 头为可选前端、`VSMT-lean-ctx` 为可选臂、实体 token schema 已冻结。旧方向归档到分支 `archive/pre-d224-unified-graph`，`main` 重写 METHOD/PLAN/DATA。**S0-01～S0-05 五份机器合同全部经用户审查通过，S0-06 收口**；S1-01 资产与容量授权申请材料已实现待审；D-224-S1 九项裁决已落地。服务器只读核验确认 SAM 2.1、DINOv2、ProcTHOR-10K 0.1.2 与 AI2-THOR CloudRendering 七项标识**全部与登记值一致**（LOG-221），Python 与 Vulkan 两项冲突消解，仅 ViT-B/14 未登记仍挡住 S1-03～05，基础环境缺 hydra 的阻塞已解除（LOG-222：torch/torchvision/numpy 与 SAM2 工作树均未变，`import sam2.build_sam` 成功，生成器 17 个具名参数与登记一致）；9-19 那次未记录的资产放置已凭 reflog 追认；ViT-B/14 已完成一次性摘要登记（LOG-223：346,378,731 字节 / `0b8b82f8…`，核对 768 维、patch 14、12 层）。**S1-01 四项已知冲突现已全部拿到回执，没有仍在阻挡后续步骤的冲突**；待冻结 null 只剩 `worker_rule.headroom_fraction`。文档审查另发现 S1-01 的 worker 推导死锁（占用只能靠跑 episode 测，而 episode 生成在本阶段 must_remain_false 里），已按裁决 14 把测量移入新拆出的 S1-02a（4 worker × 1 house）并由 S1-02b 扩到 50 house；数据盘已由用户清理，22 G → 43 G 可用，保留清单九项全在（LOG-224）。六个 lean 模块加新增边界测试共 350 项本地通过；全量 discover 仍受本机已知 segfault 影响（定位在旧 `test_vm04_d211_p0_seal_smoke.py`，重跑不复现），待服务器复核。无数据、无训练、无 episode、无 cache；S0 五份合同授权位全 false，S1-01 按 D-224-S1 开四个位（三只读/本地登记加一依赖安装）。LOG-214～224。 |
+| D-224 精简方向 | 2026-09-19 用户批准裁决 A～D 与 E/F/G：首篇改为实体生命周期版本化事务，帧级联合分配＋三个约 4 万参数的 MLP 代价头，ProcTHOR 干预序列并对齐 Dyn-THOR 指标，正式规模 300/50/100 house；共享 ReID 头为可选前端、`VSMT-lean-ctx` 为可选臂、实体 token schema 已冻结。旧方向归档到分支 `archive/pre-d224-unified-graph`，`main` 重写 METHOD/PLAN/DATA。**S0-01～S0-05 五份机器合同全部经用户审查通过，S0-06 收口**；S1-01 资产与容量授权申请材料已实现待审；D-224-S1 九项裁决已落地。服务器只读核验确认 SAM 2.1、DINOv2、ProcTHOR-10K 0.1.2 与 AI2-THOR CloudRendering 七项标识**全部与登记值一致**（LOG-221），Python 与 Vulkan 两项冲突消解，仅 ViT-B/14 未登记仍挡住 S1-03～05，基础环境缺 hydra 的阻塞已解除（LOG-222：torch/torchvision/numpy 与 SAM2 工作树均未变，`import sam2.build_sam` 成功，生成器 17 个具名参数与登记一致）；9-19 那次未记录的资产放置已凭 reflog 追认；ViT-B/14 已完成一次性摘要登记（LOG-223：346,378,731 字节 / `0b8b82f8…`，核对 768 维、patch 14、12 层）。**S1-01 四项已知冲突现已全部拿到回执，没有仍在阻挡后续步骤的冲突**；待冻结 null 只剩 `worker_rule.headroom_fraction`。文档审查另发现 S1-01 的 worker 推导死锁（占用只能靠跑 episode 测，而 episode 生成在本阶段 must_remain_false 里），已按裁决 14 把测量移入新拆出的 S1-02a（4 worker × 1 house）并由 S1-02b 扩到 50 house；数据盘已由用户清理，22 G → 43 G 可用，保留清单九项全在（LOG-224）。**2026-09-20 用户批准 D-224-X 裁决 X1～X6**（LOG-225）：S0-01～S0-05 各追加 v2 合同、v1 字节冻结并由测试钉住摘要；S0-03 求解器规范化改等式子图（64×500 单帧 125 秒 → 0.01 秒）、S0-04 评价器匹配分连通块（300×100 单帧 3.1 秒 → 毫秒级），均与 v1 逐列等价；同帧重复色块记 `duplicate_of_labelled`、未定义 house 按指标排除计数、AssocOnly 同配方重训、预登记 ELU-P `rollout_config`、划分顺序 test→validation→train、生命周期版本数与真值表 `in_scope` 落地；本会话复审后修正四处（X1 组级记账、X2 不适用臂例外、HeuristicLabel 私有依赖声称、范围外实体退出精确率分母），八个 lean 模块分进程共 386 项本地通过，五份 v2 已按用户批准提交推送。合跑一次段错误，与本机已知 CPU 不稳定一致，待服务器复核。无数据、无训练、无 episode、无 cache；S0 五份合同授权位全 false，S1-01 按 D-224-S1 开四个位（三只读/本地登记加一依赖安装）。LOG-214～224。 |
 | D-214～D-223共享RGB-D前端 | Estimator历史路线已完成并由E-08证伪其P08硬门用途；F-00两房拓扑预检通过。D-223/F-01 reader本地实现已审；一次服务器真实预检只读定位后因缺冻结SAM2资产和兼容公开bundle停止。D-217 public observation-0兼容适配器已本地实现待审，尚未读取真实数据或运行服务器；模型加载/cache仍为0，执行位全关闭。P04/P08、route/raw、method adapter、private evaluation、训练与audit重跑均未运行。LOG-199～211。 |
 | D-213统一图/类型门 | 四节点/五关系统一图合同、seal前类型门、五种消融memory view、图复杂度派生、relation REACTIVATE及surface/fragment RETRACT已实现候选；数据接线现改为等待D-214冻结cache，不再以单槽raw后定义前端，全部运行位关闭；LOG-197/199。 |
 | D-212地点raw纠偏 | v2已补公开grid模板＋RGB-D route survey生产入口、P01–P08可复算收据、raw三面journal与两提交执行门；D-214已重新阻断activation，旧P04/P08工程描述不得获论文资格。真实survey/seal/smoke均为0；LOG-196/198/199。 |
@@ -2449,3 +2449,24 @@ LOG-211 记载"服务器既没有合同冻结的 SAM2 完整资产，也没有 r
 - **测试。** 新增 3 项边界测试（测量位已离开本阶段、以任何名义重开即拒、推导规则仍留在本阶段），S1-01 共 **77 项**，六个 lean 模块加边界测试共 **354 项**本地通过。
 - **边界。** 死锁是被文档审查发现的，不是被运行发现的；修正只改阶段归属，不改推导公式、不改任何阈值，也没有让任何一步变得可以运行。S1-02a 仍未获授权。
 - 下一步：用户审 S1-01 代码与合同；通过后才谈 S1-02a 的运行授权。
+## LOG-225：S0 合同隐患审查落地为 D-224-X，五份 v2 合同与两处等价重写（2026-09-20）
+
+- 类型：一次合同/纯核心审查加按裁决落地；**不是实验结果**。未生成数据、未训练、未连接服务器。
+- **审查范围。** PLAN 第三节 S0-01～S0-05 五份合同、五个 `lean_*` 纯核心与测试，对照 METHOD/DATA 逐条核对声称与实现。会影响主张的四处（同帧重复色块记账、未定义 house、AssocOnly 头的含义、第 0 轮 ELU-P 配置）加一处划分脆弱性交用户裁决为 X1～X6；纯工程的两处复杂度悬崖并入 X5。
+
+| 探针（本机，CPU 已知降级，绝对值偏悲观） | v1 | v2 |
+|---|---|---|
+| 求解器 30×100 浮点代价 | 1.17 s，1,337 次子求解 | < 0.01 s，1 次核心求解 |
+| 求解器 30×100 规则臂式并列 | 0.33 s，117 次 | 0.01 s |
+| 求解器 48×300 | 27.5 s，6,364 次 | 0.01 s |
+| 求解器 64×500 | 125 s，13,055 次 | 0.01 s |
+| 评价器匹配 200 实体×80 真值 | 1.05 s | < 0.01 s |
+| 评价器匹配 300 实体×100 真值 | 3.11 s | < 0.01 s |
+| 一个实体、两个同主导实例色块，最优分配 | `amortization_error: 1` | `amortization_error: 0, duplicate_of_labelled: 1` |
+| 某 house 指标为 null 时配对 bootstrap | `bootstrap_value_invalid` 崩溃 | 清单内排除并计数；清单外 `bootstrap_house_metric_undefined:<house>` |
+
+- **落地。** S0-01 v2：版本记录加 `opened_by`（六种打开方式各绑一个状态，首版本必是 birth），折叠记录归档口径写进合同并绑定。S0-02 v2：`assign_split` 按 test→validation→train 切前缀，顺序与两条冻结声称绑定。S0-03 v2：字典序规范化改到最优势的等式子图上，两次增广路匹配代替全量重解；v1 实现留在测试里逐列比对（60 个随机浮点矩阵、60 个含哨兵矩阵、三个 20～30 行矩阵、5 行以内暴力枚举）。S0-04 v2：`duplicate_of_labelled` 状态与同帧折叠规则、`undefined_houses` 与 `excluded_houses` 参数、`lifecycle_version_count`、真值表 `in_scope`、评价器分连通块匹配（与整张矩阵求解逐对/逐数比对）。S0-05 v2：`rollout_config` 与成员检查、拟合程序三条声称、AssocOnly/HeuristicLabel 重训声称。跨合同测试改为读五份 v2、钉住五份 v1 的 sha256、新增六项 D-224-X 一致性检查。
+- **测试。** 分进程：memory 47、intervention 43、assignment 58、teacher 86、arms 43、cross_contract 20、geometry 9、assets 76，共 **382 项**通过。八个模块合跑一次在约 300 项后段错误，与 LOG-214 以来记录的本机 CPU 不稳定一致，模块各自重跑均通过；须在服务器复核。
+- **边界。** 五份 v1 合同一个字节未改（测试钉住摘要）；S0-03 的召回、特征、代价矩阵与封存逐字不变，S0-04 的六项 D-224-LQ 口径逐字不变，S0-05 的网格与 D-224-SW 五项口径逐字不变。v2 全部待用户代码审查；所有授权位仍为 false；S1-02a 开工前新增前置冻结（seed 与 test/validation 规模）。
+- **复审修订（2026-09-20）。** 本会话逐条核对五份 v2 与两处等价重写：合规（v1 字节钉住、决策已登记）、求解器等价测试确有 v1 副本逐列比对、X3/X4/X5/X6 主体无误；发现四处并经用户批准按推荐修正——（1）X1 记账改为按组，用真实代码复现的反例是学生把椅子实体绑到椅背块、椅座块新建，原记 `amortization_error: 1`，现记 `correct: 1`；（2）X2 排除清单只对按构造可定义的臂计算，反例是假撤回率对 TAF/LOW/AssocOnly 在每个 house 都为 null，原规则把整列对所有臂排除，现这三个臂报不适用、其余臂正常配对，合同登记 `metric_not_applicable_rule`，S0-05 提供 `arms_without_atom`；（3）HeuristicLabel 的“只用公开数据”布尔声称改为写明唯一私有依赖（ELU-P 三个拟合量在 train 私有真值上估计）；（4）解析到在场但范围外物体的实体退出精确率分母并计数，物体已缺席的仍算陈旧。测试分进程：memory 47、intervention 43、assignment 58、teacher 88、arms 44、cross_contract 21、geometry 9、assets 76，共 **386 项**通过；teacher 合同 53 条、arms 合同 73 条布尔声称全绑定。五份 v2、两处等价重写与文档按六笔提交推送。
+- 下一步：S1-02a 开工前冻结 S0-02 v2 的 seed 与 test/validation 规模（推荐 test 100、validation 50，seed 由用户给定）；随后 S1-02a 运行授权申请。

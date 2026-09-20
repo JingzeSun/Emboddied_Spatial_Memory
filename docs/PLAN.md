@@ -18,7 +18,7 @@ S3 正式数据、训练、validation 与一次性 test（S3-01 → S3-06）
 S4 论文
 ```
 
-当前执行点：**S0 五份合同全部审查通过（LOG-214～LOG-219），S1-01 资产与容量授权申请材料已实现待审**（LOG-220），**D-224-S1 九项裁决已批准并落地，服务器冻结资产已只读核验通过**（LOG-221）。D-224 与 D-224-E/F/G 已批准；旧方向已归档到 `archive/pre-d224-unified-graph`，`main` 只含精简版文档。**四项已知冲突全部消解并各有回执**：Python 按两解释器分工、Vulkan 可枚举到 NVIDIA GPU、ProcTHOR-10K 定为 0.1.2（以上 LOG-221），ViT-B/14 完成一次性摘要登记（LOG-223）；基础环境缺 hydra 的阻塞已于 LOG-222 解除。S1-01 里待冻结的 null 只剩 `worker_rule.headroom_fraction`。当前开四个位（三只读/本地登记加一依赖安装），没有任何资产放置、数据生成或训练授权。**S1-01 的 worker 推导死锁已按 D-224-S1 裁决 14 解开**：占用测量移入新拆出的 S1-02a（4 worker × 1 house，4 条 episode 计入正式 50 条），S1-02b 再按算出的 worker 数补齐其余 46 个；S1-01 只保留推导规则。数据盘已由用户清理并经只读核验，22 G → 43 G 可用（LOG-224）。S1-02a 尚未获得运行授权。
+当前执行点：**S0 五份合同全部审查通过（LOG-214～LOG-219），S1-01 资产与容量授权申请材料已实现待审**（LOG-220），**D-224-S1 九项裁决已批准并落地，服务器冻结资产已只读核验通过**（LOG-221）。D-224 与 D-224-E/F/G 已批准；旧方向已归档到 `archive/pre-d224-unified-graph`，`main` 只含精简版文档。**四项已知冲突全部消解并各有回执**：Python 按两解释器分工、Vulkan 可枚举到 NVIDIA GPU、ProcTHOR-10K 定为 0.1.2（以上 LOG-221），ViT-B/14 完成一次性摘要登记（LOG-223）；基础环境缺 hydra 的阻塞已于 LOG-222 解除。S1-01 里待冻结的 null 只剩 `worker_rule.headroom_fraction`。当前开四个位（三只读/本地登记加一依赖安装），没有任何资产放置、数据生成或训练授权。**S1-01 的 worker 推导死锁已按 D-224-S1 裁决 14 解开**：占用测量移入新拆出的 S1-02a（4 worker × 1 house，4 条 episode 计入正式 50 条），S1-02b 再按算出的 worker 数补齐其余 46 个；S1-01 只保留推导规则。数据盘已由用户清理并经只读核验，22 G → 43 G 可用（LOG-224）。S1-02a 尚未获得运行授权。**2026-09-20 用户批准 D-224-X 裁决 X1～X6**（S0 合同隐患审查的六项修正）：S0-01/02/03/04/05 各追加 v2 合同、v1 字节冻结并由测试钉住摘要，S0-03 求解器与 S0-04 评价器按逐列等价重写；本会话复审修正四处后八个 lean 模块分进程共 386 项本地通过，五份 v2 已按用户批准提交推送（LOG-225）。S1-02a 开工前新增一项前置冻结：S0-02 v2 要求 seed 与 test/validation 规模在第一条 episode 前给定。
 
 ## 二、状态和执行规则
 
@@ -37,57 +37,57 @@ S4 论文
 
 | 项 | 内容 |
 |---|---|
-| 状态 | **已完成**（2026-09-19 用户审过；LOG-214。本地 43 项合同测试通过，126 项相关回归通过；全量 discover 当前存在与本批无关的 segfault，待服务器复核） |
+| 状态 | **v1 已完成、v2 已提交（本会话复审后用户批准，LOG-225）**（v1 于 2026-09-19 用户审过，LOG-214；v2 按 D-224-X 裁决 X6 给版本记录加 `opened_by` 并写明折叠记录归档口径，本地 47 项通过，LOG-225） |
 | 输入 | METHOD 第三、四节；`cpmt.hashing` 与 `graph_ops` 的纯函数 |
 | 完整动作 | 写实体记录 schema、状态机、版本链、五原子结构前条件、REPLACE 复合、帧程序原子提交与回滚、共享去重与 dormancy 规则、**实体 token 序列化 schema 与帧级稀疏残差（D-224-G）** 的机器合同；实现自足的实体记忆核心并补测试 |
-| 输出 | [`lean_s0_entity_memory_v1.json`](../configs/vsmt/lean_s0_entity_memory_v1.json)、纯核心 [`lean_memory.py`](../src/vsmt/lean_memory.py)、合同测试 [`test_vsmt_lean_memory.py`](../tests/test_vsmt_lean_memory.py) |
+| 输出 | [`lean_s0_entity_memory_v2.json`](../configs/vsmt/lean_s0_entity_memory_v2.json)（v1 字节冻结）、纯核心 [`lean_memory.py`](../src/vsmt/lean_memory.py)、合同测试 [`test_vsmt_lean_memory.py`](../tests/test_vsmt_lean_memory.py) |
 | 继续门 | 五原子正反例各至少一组通过；非法程序整帧回滚且 M_{t−1} 逐字节不变；token 字段顺序由合同固定并有测试 |
 
 ### S0-02 干预数据生成合同
 
 | 项 | 内容 |
 |---|---|
-| 状态 | **已完成**（2026-09-19 用户审过；LOG-215。本地 41 项只读检查通过） |
+| 状态 | **v1 已完成、v2 已提交（本会话复审后用户批准，LOG-225）**（v1 于 2026-09-19 用户审过，LOG-215；v2 按 D-224-X 裁决 X6 把前缀分配顺序改为 test→validation→train，本地 43 项通过，LOG-225） |
 | 输入 | DATA 第一～四节；D-199～D-204 的不可观测窗口机制 |
 | 完整动作 | 写 house 来源、哈希前缀划分、覆盖式重访路线模板、三类干预及其窗口判定、public/private/provenance 三面 schema、失败保留规则的机器合同；全部数值先登记为 null 或 proposed |
-| 输出 | [`lean_s0_intervention_data_v1.json`](../configs/vsmt/lean_s0_intervention_data_v1.json)、只读检查核心 [`lean_intervention.py`](../src/vsmt/lean_intervention.py)、测试 [`test_vsmt_lean_intervention.py`](../tests/test_vsmt_lean_intervention.py) |
+| 输出 | [`lean_s0_intervention_data_v2.json`](../configs/vsmt/lean_s0_intervention_data_v2.json)（v1 字节冻结）、只读检查核心 [`lean_intervention.py`](../src/vsmt/lean_intervention.py)、测试 [`test_vsmt_lean_intervention.py`](../tests/test_vsmt_lean_intervention.py) |
 | 继续门 | 干预只在涉及容器不在视锥内的窗口执行；private 与 provenance 不进任何 reader 白名单 |
 
 ### S0-03 特征、召回与分配合同
 
 | 项 | 内容 |
 |---|---|
-| 状态 | **已审通过**（2026-09-20，D-224-R；返工内容见 D-224-S03；本地 53 项测试通过，含求解器对暴力最优解的比对、两阶段封存不变性与 up_axis 绑定） |
+| 状态 | **v1 已审通过、v2 已提交（本会话复审后用户批准，LOG-225）**（v1 于 2026-09-20 通过，D-224-R；v2 按 D-224-X 裁决 X5 把字典序规范化改到等式子图上、与 v1 逐列等价，64×500 单帧 125 秒 → 0.01 秒，本地 58 项通过，LOG-225） |
 | 输入 | METHOD 第五～七节 |
 | 完整动作 | 写前端 cache 字段、应可见与自由空间覆盖比例、召回规则 k/k′/R_active、三个头的特征列表与顺序、代价矩阵与并列规则、封存 digest、私有扰动不变性检查的机器合同；**登记共享 ReID 适配头（D-224-E）的架构、训练数据范围与 S1-05 二选一规则** |
-| 输出 | [`lean_s0_assignment_v1.json`](../configs/vsmt/lean_s0_assignment_v1.json)、纯核心 [`lean_assignment.py`](../src/vsmt/lean_assignment.py)、测试 [`test_vsmt_lean_assignment.py`](../tests/test_vsmt_lean_assignment.py) |
+| 输出 | [`lean_s0_assignment_v2.json`](../configs/vsmt/lean_s0_assignment_v2.json)（v1 字节冻结）、纯核心 [`lean_assignment.py`](../src/vsmt/lean_assignment.py)、测试 [`test_vsmt_lean_assignment.py`](../tests/test_vsmt_lean_assignment.py) |
 | 继续门 | 同一公开输入换 private 文件后召回顺序、特征矩阵与未训练 logits 逐字节相同 |
 
 ### S0-04 teacher、评价器与指标合同
 
 | 项 | 内容 |
 |---|---|
-| 状态 | **已实现待审**（LOG-217；本地 77 项测试通过，评价器匹配与暴力枚举比对通过，合同 41 条布尔声称全绑定；dormant 归属、canonical_of 折叠、主导度阈值语义、恢复延迟起点、存在候选状态、真值范围六项口径已由 D-224-LQ 裁决 L～Q 冻结） |
+| 状态 | **v1 已审通过、v2 已提交（本会话复审后用户批准，LOG-225）**（v1 于 2026-09-20 通过，LOG-219；v2 按 D-224-X 落实 X1 同帧重复色块、X2 未定义 house、X5 评价器分连通块匹配、X6 生命周期版本数与真值表 `in_scope`，合同 53 条布尔声称全绑定，本地 88 项通过，LOG-225；复审修正 X1 组级记账、X2 不适用臂例外、范围外实体退出精确率分母） |
 | 输入 | METHOD 第八、十一节；DATA 第六、七节 |
 | 完整动作 | 写标签定义、δ_moved、七项指标、匈牙利匹配口径、bootstrap 与主门、三分解记账、nuisance probe 的机器合同 |
-| 输出 | [`lean_s0_teacher_metrics_v1.json`](../configs/vsmt/lean_s0_teacher_metrics_v1.json)、纯核心 [`lean_teacher.py`](../src/vsmt/lean_teacher.py)、测试 [`test_vsmt_lean_teacher.py`](../tests/test_vsmt_lean_teacher.py)；只依赖 S0-03 产物的数据形状，不导入其函数 |
+| 输出 | [`lean_s0_teacher_metrics_v2.json`](../configs/vsmt/lean_s0_teacher_metrics_v2.json)（v1 字节冻结）、纯核心 [`lean_teacher.py`](../src/vsmt/lean_teacher.py)、测试 [`test_vsmt_lean_teacher.py`](../tests/test_vsmt_lean_teacher.py)；只依赖 S0-03 产物的数据形状，不导入其函数 |
 | 继续门 | 指标清单在任何数据生成前冻结；清单外指标不得计算或报告 |
 
 ### S0-05 对照、消融与配置网格合同
 
 | 项 | 内容 |
 |---|---|
-| 状态 | **已实现待审**（LOG-218；本地 42 项测试通过，规则臂已在真实 S0-03 求解器上验证三项 D-224-R 前提，合同 60 条布尔声称全绑定；HandCost 重定义、HeuristicLabel 标签来源、RAC 不复活、选配指标、应可见下限五项已由 D-224-SW 裁决） |
+| 状态 | **v1 已审通过、v2 已提交（本会话复审后用户批准，LOG-225）**（v1 于 2026-09-20 通过，LOG-219；v2 按 D-224-X 落实 X3 AssocOnly/HeuristicLabel 同配方重训不复用权重、X4 预登记 ELU-P `rollout_config` 与三个拟合量的估计程序，合同 73 条布尔声称全绑定，本地 44 项通过，LOG-225；复审修正 HeuristicLabel 私有依赖声称） |
 | 输入 | METHOD 第九、十节；D-224-R 三项前提：规则臂门内分级代价（−余弦 / 质心距离）、每个规则臂网格含宽门或无门选项、不合格格用登记的哨兵 logit 表达 |
 | 完整动作 | 写 TAF/ELU-P/RAC/LOW 的机制、参数与有限网格，VSMT-lean 训练配方与 τ_r 网格，**四组**消融（NoVersion/HandCost/HeuristicLabel/**AssocOnly**）定义，每方法 ≤12 配置规则，**必做附录臂 `LLM-op` 的 validation-only 口径**与可选臂 **`VSMT-lean-ctx`（D-224-F）** 的准入条件与单列报告规则 |
-| 输出 | [`lean_s0_arms_v1.json`](../configs/vsmt/lean_s0_arms_v1.json)、纯核心 [`lean_arms.py`](../src/vsmt/lean_arms.py)、测试 [`test_vsmt_lean_arms.py`](../tests/test_vsmt_lean_arms.py)；规则臂只产生喂给 S0-03 求解器的 logit 与存在决定，特征按封存顺序取位置 |
+| 输出 | [`lean_s0_arms_v2.json`](../configs/vsmt/lean_s0_arms_v2.json)（v1 字节冻结）、纯核心 [`lean_arms.py`](../src/vsmt/lean_arms.py)、测试 [`test_vsmt_lean_arms.py`](../tests/test_vsmt_lean_arms.py)；规则臂只产生喂给 S0-03 求解器的 logit 与存在决定，特征按封存顺序取位置 |
 | 继续门 | 每方法网格 ≤12 且预登记；规则臂无梯度 |
 
 ### S0-06 用户合同审查
 
 | 项 | 内容 |
 |---|---|
-| 状态 | **已通过**（2026-09-20；用户批准 S0-04 与 S0-05，S0-01～S0-03 此前已批准，S0-01～S0-05 全部审查通过；跨合同一致性由 `test_vsmt_lean_cross_contract.py` 机器核对，12 项通过） |
+| 状态 | **v1 已通过；v2 已提交（本会话复审后用户批准，LOG-225）**（2026-09-20 用户批准 S0-01～S0-05 v1；同日 D-224-X 隐患审查后五份 v2 待用户代码审查；跨合同一致性由 `test_vsmt_lean_cross_contract.py` 机器核对，20 项通过，含五份 v1 的 sha256 钉住与 D-224-X 六项跨合同一致性） |
 | 输入 | S0-01～S0-05 全部合同与测试 |
 | 完整动作 | 用户逐份审查；修改只能追加新版本，不改已审字节 |
 | 输出 | 审查回执；S1 授权位仍为 false |
@@ -110,8 +110,8 @@ S4 论文
 | 项 | 内容 |
 |---|---|
 | 状态 | 未开始 |
-| 输入 | S0-02 合同、S1-01 容量读数与 worker 推导规则 |
-| 完整动作 | 取 train 划分哈希前缀最前的 **4 个 house，4 个 worker 各跑 1 条 episode**：覆盖式重访路线、不可观测窗口干预、public/private/provenance 三面写盘；同时实测 `cpu_cores_per_worker`、`ram_gb_per_worker`、`vram_gb_per_worker`、`disk_gb_per_worker` 与 4 路并发是否安全；失败 house 保留 receipt 不替换 |
+| 输入 | S0-02 v2 合同（**seed 与 test/validation 规模须先冻结**，因为 v2 把分配顺序改为 test→validation→train，train 块的起点由它们决定；裁决 X6）、S1-01 容量读数与 worker 推导规则 |
+| 完整动作 | 取 train 块哈希前缀最前的 **4 个 house，4 个 worker 各跑 1 条 episode**：覆盖式重访路线、不可观测窗口干预、public/private/provenance 三面写盘；同时实测 `cpu_cores_per_worker`、`ram_gb_per_worker`、`vram_gb_per_worker`、`disk_gb_per_worker` 与 4 路并发是否安全；失败 house 保留 receipt 不替换 |
 | 输出 | 4 条 raw、pilot 生成回执、**占用回执**（含 `concurrency_verified_at=4`、峰值 RSS/显存/磁盘、墙钟与退出码） |
 | 继续门 | 四条全部有终态；占用五项齐全才允许推导 worker 数。**这 4 条是正式 S1-02 样本的一部分，计入 50，不得跑完丢弃重生成**；pilot 失败不构成"重试到好为止"的理由 |
 
@@ -143,9 +143,9 @@ S4 论文
 |---|---|
 | 状态 | 未开始 |
 | 输入 | S1-03 cache；private 只在特征封存后打开 |
-| 完整动作 | 量冻结描述子（ViT-S/14、ViT-B/14）与共享 ReID 投影三者的跨视角分离度分布，即同物体跨视角余弦减异物体余弦；按 S0-03 召回规则算 recall_miss@k；统计应可见、自由空间覆盖比例分布 |
-| 输出 | 分离度报告、recall_miss 报告 |
-| 继续门 | 分离度低于 S0-03 登记下限触发证据层级裁决，不得就地调前端 |
+| 完整动作 | 量冻结描述子（ViT-S/14、ViT-B/14）与共享 ReID 投影三者的跨视角分离度分布，即同物体跨视角余弦减异物体余弦；按 S0-03 召回规则算 recall_miss@k；统计应可见、自由空间覆盖比例分布；**统计单视角 fragment AABB 对真值整物体 AABB 的三维 IoU 分布**（BIND 用单视角 AABB 覆盖实体 AABB，而节点匹配用裁决 C 冻结的 IoU 0.3、选配置又用节点 F1；若中位 IoU 不到 0.3，所有臂的 F1 接近 0，选参变噪声；D-224-X） |
+| 输出 | 分离度报告、recall_miss 报告、fragment-真值 IoU 报告 |
+| 继续门 | 分离度低于 S0-03 登记下限触发证据层级裁决，不得就地调前端；fragment-真值中位 IoU 低于 0.3 触发匹配口径裁决，不得在 S2 就地改 AABB 累积规则 |
 
 ### S1-05 描述子选择与 S1 收口
 
@@ -165,7 +165,7 @@ S4 论文
 |---|---|
 | 状态 | 未开始 |
 | 输入 | S0-01、S0-03 合同；S1-05 cache |
-| 完整动作 | 实现 `cache 帧 + M_{t−1} → 帧程序 → M_t` 的共同 runner；共享召回、去重、dormancy、应可见判定与共同更新后审计 |
+| 完整动作 | 实现 `cache 帧 + M_{t−1} → 帧程序 → M_t` 的共同 runner；共享召回、去重、dormancy、应可见判定与共同更新后审计；**`entity_geometry` 由五臂共用的确定性函数从（公开体素集，M_{t−1}）在线算出并有纯函数测试**；**非法程序回滚后对该帧提交空程序**（tick 推进、维护规则照常）并计数（D-224-X） |
 | 输出 | runner、接口测试 |
 | 继续门 | 五臂读取逐字节相同的 cache clone |
 
@@ -185,7 +185,7 @@ S4 论文
 |---|---|
 | 状态 | 未开始 |
 | 输入 | S0-03、S0-05 合同 |
-| 完整动作 | 实现三个代价头、代价矩阵、矩形分配、编译与提交；训练循环与两轮 DAgger；实现 `NoVersion` 与 `AssocOnly` 两个消融开关（同一代码路径、同一训练预算）；不读 slot/路径/样本名 |
+| 完整动作 | 实现三个代价头、代价矩阵、矩形分配、编译与提交；训练循环与两轮 DAgger；实现 `NoVersion` 与 `AssocOnly` 两个消融开关（同一代码路径、同一训练预算；**AssocOnly 同配方重训、去掉存在损失项，不复用 VSMT-lean 权重**，裁决 X3）；第 0 轮 DAgger 的 ELU-P 轨迹取 S0-05 v2 预登记的 `rollout_config`（裁决 X4）；不读 slot/路径/样本名 |
 | 输出 | 模型代码、训练入口、单元测试 |
 | 继续门 | 候选换序后每个实体的 logit 跟着实体走、最终程序不变 |
 
@@ -195,7 +195,7 @@ S4 论文
 |---|---|
 | 状态 | 未开始 |
 | 输入 | S0-04 合同 |
-| 完整动作 | 实现封存后标签器、七项指标、三分解、nuisance probe、私有扰动不变性检查 |
+| 完整动作 | 实现封存后标签器（含同帧重复色块的 `duplicate_of_labelled`，裁决 X1）、七项指标、三分解、nuisance probe、私有扰动不变性检查；评价器收到的真值表含所有可解析物体并带 `in_scope` 标志（裁决 X6）；每项指标的未定义 house 清单按 `undefined_houses` 算一次并传给全部配对比较（裁决 X2） |
 | 输出 | 评价器代码与测试 |
 | 继续门 | 修改 private 不改变任何公开产物字节 |
 
@@ -217,7 +217,7 @@ S4 论文
 |---|---|
 | 状态 | 未开始 |
 | 输入 | S1 成品率、S2 开发表 |
-| 完整动作 | 冻结 train/validation/test = 300/50/100 house 的 manifest（可按成品率下调，只能此时改）、bootstrap seed、主门效应量、停止规则 |
+| 完整动作 | 冻结 train/validation/test = 300/50/100 house 的 manifest（seed 与 test/validation 规模已在 S1-02a 前冻结，此处只允许按成品率下调 train，裁决 X6）、bootstrap seed、主门效应量、停止规则；登记未定义 house 的排除规则与功效按有效 house 数计算（裁决 X2）、最强对照在 test 上逐指标后验选取的口径、回执里钉住 Python 版本（bootstrap 依赖 `random.Random`） |
 | 输出 | 三个互斥 manifest、功效说明 |
 | 继续门 | test manifest 此后只读一次 |
 
@@ -237,7 +237,7 @@ S4 论文
 |---|---|
 | 状态 | 未开始 |
 | 输入 | S3-02 train；S0-05 网格 |
-| 完整动作 | VSMT-lean 两轮 DAgger × 5 seed；四组消融同预算；规则臂各 ≤12 配置；`LLM-op` 只在 validation 上跑一次；只读 validation 选择 |
+| 完整动作 | 先在 train 上按 S0-05 v2 登记的程序估 ELU-P 三个拟合量，并用预登记的 `rollout_config` 产生第 0 轮轨迹与 HeuristicLabel 标签（裁决 X4）；再 VSMT-lean 两轮 DAgger × 5 seed；四组消融同预算（AssocOnly 重训，裁决 X3）；规则臂各 ≤12 配置；`LLM-op` 只在 validation 上跑一次；只读 validation 选择 |
 | 输出 | checkpoint、配置、训练曲线、完整失败 |
 | 继续门 | 不读 test；不按单一场景临时增配 |
 
@@ -309,6 +309,7 @@ S4 论文
 14. 2026-09-20 用户批准补充裁决 10～13：追认 9-19 资产放置（凭 reflog 重建时间线）、按 D-224 已有授权安装 hydra-core/omegaconf/iopath（torch 与 SAM2 工作树未变，SAM2 可 import，生成器 17 参数与登记一致）、数据盘清理由用户自己执行、estimator 5.5 GB 因 F-01 兼容适配器仍在用而保留（LOG-222）。
 15. 2026-09-20 执行裁决 2：ViT-B/14 一次性摘要登记完成（URL 由钉死 dinov2 commit 源码推导并经 ViT-S/14 回执实证，346,378,731 字节 / `0b8b82f8…`，核对 768 维/patch 14/12 层/86.58M 参数后删除临时文件）。四项已知冲突至此全部拿到回执，S1-01 待冻结 null 只剩 `worker_rule.headroom_fraction`（LOG-223）。
 16. 2026-09-20 用户清理数据盘（22 G → 43 G 可用，保留清单九项经只读核验全在），并批准补充裁决 14：S1-01 的 worker 死锁按方案 A 解开，占用测量移入 S1-02a（4 worker × 1 house）、S1-02b 扩到 50 house；pilot 的 4 条计入正式样本，`concurrency_verified_at` 与 `derived_worker_count` 分开记（LOG-224）。
+17. 2026-09-20 S0 合同隐患审查后用户批准 D-224-X 裁决 X1～X6：同帧重复色块记 `duplicate_of_labelled`、未定义 house 按指标排除并计数、AssocOnly 同配方重训、预登记 ELU-P `rollout_config` 与拟合程序、求解器规范化改等式子图（64×500 单帧 125 秒 → 0.01 秒）与评价器分连通块匹配、划分顺序 test→validation→train、折叠记录归档口径、生命周期版本数、真值表 `in_scope`。五份 v2 合同追加、v1 字节冻结并钉摘要，八个 lean 模块分进程 382 项通过；本会话复审修正四处（X1 组级记账、X2 不适用臂例外、HeuristicLabel 私有依赖声称、范围外实体退出精确率分母）后 386 项通过，五份 v2 已按用户批准提交推送（LOG-225）。
 
 ## 九、失败时的暂停点与待触发裁决
 
@@ -319,6 +320,7 @@ S4 论文
 | S1-01 | 资产摘要与 D-215/LOG-136 登记值不符 | 原样停下报告，**不得**换镜像、换 tag 或先用着；是否重新冻结前端由用户裁决 |
 | S1-02a | CloudRendering 虽能看到 Vulkan 与 GPU，但实际起不来或只落到 llvmpipe 软件光栅 | 触发**渲染后端裁决**：改后端等于动 S0-02 已审字节，须另开版本并经用户批准；不得默默接受软件光栅的吞吐 |
 | S1-02b | 干预成品率远低于登记下限；路线无法保证重访 | 触发**规模裁决**：下调 house 数或改路线模板；不得换 house 挑好样本 |
+| S1-04 | 单视角 fragment AABB 对真值整物体框的中位 IoU 低于 0.3 | 触发**匹配口径裁决**：裁决 C 冻结的 0.3 与裁决 V 的节点 F1 选参会同时失效；备选是 BIND 时按并集累积 AABB 或改用质心距离匹配，都动已审字节，须用户批准 |
 | S1-04 | 两套描述子的跨视角分离度都不足 | 触发**证据层级裁决**：是否降到 L1 oracle mask。这会把主张从"可部署 RGB-D 条件下的比较"改为"感知正确前提下的机制诊断"，属改变论文声称什么，须用户批准 |
 | S2-05 | VSMT-lean 在 50 house 上不优于对照 | 不构成结论，照常进入 S3，无需裁决 |
 | S3-02 | 成品率低于 S3-01 假设 | 按已冻结停止规则收口，用实际样本量运行，功效不足写入限制；不得事后加样本 |

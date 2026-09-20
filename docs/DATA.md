@@ -8,7 +8,7 @@
 
 | 项 | 规则 |
 |---|---|
-| 划分 | 对 house ID 与登记 seed 的哈希取前缀排序；前 300 个入 train、随后 50 个入 validation、再 100 个入 test（proposed，S3-01 可按成品率下调） |
+| 划分 | 对 house ID 与登记 seed 的哈希取前缀排序；**先** 100 个入 test、随后 50 个入 validation、再 300 个入 train（proposed；D-224-X 裁决 X6 把分配顺序改为 test→validation→train，这样 S3-01 按成品率下调 train 时 test 与 validation 成员一个都不变）。代价是 seed 与 test/validation 规模必须在 S1-02a 第一条 episode 生成前冻结，此后只允许 train 下调；S1 的 50 个开发 house 就是 train 块的前 50 个 |
 | 小试 | S1 只取 train 前缀前 50 个 house |
 | 互斥 | 按 house；同一 house 只生成一条 episode |
 | 失败 | 生成失败的 house 保留 receipt，不替换、不补样 |
@@ -67,16 +67,16 @@
 | `feature_matrix.npz` | 关联头、存在头、新建头的特征矩阵与列顺序、digest | private 打开前 |
 | `labels.npz` | 逐 fragment 目标列（哪个实体或 BIRTH）、逐实体"已不在"标签、`recall_miss` 标记 | 封存后 |
 
-标签定义（D-224-LQ 裁决 N、P、Q）：fragment 的主导实例按实例 mask 重叠占比判定，分母是 fragment 全部像素；主导实例等于实体证据的严格多数实例为关联正例；实体对应实例已被 `remove`、或其当前质心离实体记住的质心超过 `δ_moved`（proposed 0.5 m，合同内为 null）为"已不在"正例，只对 `active` 与 `dormant` 候选给出；正确实体不在召回集合记 `recall_miss`。修改任何 private 文件而保持 public 不变时，`recall_seal` 与 `feature_matrix` 逐字节不变。
+标签定义（D-224-LQ 裁决 N、P、Q）：fragment 的主导实例按实例 mask 重叠占比判定，分母是 fragment 全部像素；主导实例等于实体证据的严格多数实例为关联正例；实体对应实例已被 `remove`、或其当前质心离实体记住的质心超过 `δ_moved`（proposed 0.5 m，合同内为 null）为"已不在"正例，只对 `active` 与 `dormant` 候选给出；正确实体不在召回集合记 `recall_miss`。修改任何 private 文件而保持 public 不变时，`recall_seal` 与 `feature_matrix` 逐字节不变。同一帧内判定为同一物体、目标又是同一实体的多个 fragment，只有物体上像素最多的那个保留目标，其余记 `duplicate_of_labelled`（不进损失、不记任何错误类、单独计数；D-224-X 裁决 X1）；为此 teacher 的逐 fragment 私有输入除重叠表外还带公开的 `pixel_count`。
 
 ## 七、评价文件
 
 | 粒度 | 内容 |
 |---|---|
-| 逐帧 | 真值物体表（本帧在场且自 episode 开始至少可观察过一次的物体，含框与质心；裁决 Q）、仍在记忆里（`active` 或 `dormant`；裁决 L）的实体框、最大权匹配（3D IoU 0.3）、每个真值物体的 Stable/Appeared/Missing/Moved 状态、已移走/搬动物体的原位置与原位置是否已对方法可观察、MRR 分子分母、污染占比 |
+| 逐帧 | 真值物体表（所有能被实体证据解析到的私有物体，各带 `present` 与 `in_scope` 标志，在场且自 episode 开始至少可观察过一次者为范围内；范围规则由评价器套用，裁决 Q 与 D-224-X 裁决 X6）、仍在记忆里（`active` 或 `dormant`；裁决 L）的实体框、最大权匹配（3D IoU 0.3）、每个真值物体的 Stable/Appeared/Missing/Moved 状态、已移走/搬动物体的原位置与原位置是否已对方法可观察、MRR 分子分母、污染占比、范围外实体数（解析到在场但范围外物体的实体，不进精确率分母；复审修订，LOG-225） |
 | 逐实体 | 是否假撤回、身份是否连续（搬动前承载实体列表与首次带标签重见的分配；裁决 M）、恢复延迟（自干预处首次可观察帧起；裁决 O） |
-| 逐 episode | contamination AUC、活动实体数、历史版本数、每帧运行时间、峰值内存、三分解计数 |
-| 逐 house | 上述量的聚合，供配对 bootstrap |
+| 逐 episode | contamination AUC、活动实体数、生命周期版本数（不含 BIND 版本；裁决 X6）、每帧运行时间、峰值内存、三分解计数（含 `duplicate_of_labelled` 计数） |
+| 逐 house | 上述量的聚合，供配对 bootstrap；某项指标在任一臂上为 null 的 house 在该指标上对所有臂一并排除并计数，绝不填补（裁决 X2） |
 
 ## 八、强制泄漏检查
 
