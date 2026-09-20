@@ -1,0 +1,462 @@
+{
+  "schema_version": "vsmt-lean-s0-arms-v2",
+  "decision_id": "D-224",
+  "stage_id": "S0-05",
+  "status": "v2_pending_user_code_review",
+  "plain_language_zh": "本合同定义五个主表臂、四组消融、一个附录臂和一个可选臂各自怎样填同一张代价表、怎样做同一个存在判定，以及每个方法的配置网格上限。输入是 S0-03 封存的特征行与各臂登记参数；输出是喂给 S0-03 求解器的 logit、逐实体的 RETRACT/NOOP 决定和编译后的原子程序。例如 TAF 对余弦 0.8 的合格候选给 logit 0.8、对不合格候选给哨兵值，ELU-P 对连续被自由空间覆盖的实体把 log-odds 压到门下记 RETRACT。它不训练、不选参、不读私有数据；所有数值待冻结为 null。合同里的每一个布尔值都被校验器绑定。",
+  "pure_core_relative_path": "src/vsmt/lean_arms.py",
+  "depends_on": {
+    "s0_01_contract": "configs/vsmt/lean_s0_entity_memory_v1.json",
+    "s0_02_contract": "configs/vsmt/lean_s0_intervention_data_v1.json",
+    "s0_03_contract": "configs/vsmt/lean_s0_assignment_v1.json",
+    "s0_04_contract": "configs/vsmt/lean_s0_teacher_metrics_v1.json",
+    "d224_r_preconditions": [
+      "graded_costs_inside_rule_arm_gates",
+      "wide_or_absent_gate_option_in_every_rule_arm_grid",
+      "registered_sentinel_logit_for_ineligible_pairs"
+    ]
+  },
+  "authorization": {
+    "arm_implementation_run": false,
+    "grid_selection": false,
+    "training": false,
+    "llm_op_run": false,
+    "test_split_read": false,
+    "server_run": false
+  },
+  "shared": {
+    "same_frontend_recall_dedup_dormancy_executor_and_evaluator": true,
+    "all_arms_fill_the_same_cost_matrix_and_use_the_same_solver": true,
+    "rule_arms_have_no_gradient": true,
+    "existence_candidates_are_active_or_dormant_and_should_be_visible": true,
+    "should_be_visible_min_ratio": null,
+    "plain_language_zh": "五个臂与四组消融共用冻结前端、S0-03 召回与求解器、S0-01 执行器、共享去重与 dormancy 规则、S0-04 评价器；差别只在 logit 怎么来、存在决定怎么做。存在判定候选是 active 或 dormant、且本帧应可见比例不低于登记下限的未分配实体；这个下限五臂共享，因为它决定谁会累计错失次数、谁会休眠。下限待冻结，当前为 null。"
+  },
+  "cost_interface": {
+    "logit_transform": "negative_logit_per_s0_03",
+    "rule_arm_costs_are_graded_inside_the_gate": true,
+    "ineligible_pairs_use_the_registered_sentinel": true,
+    "ineligible_logit": -1000000.0,
+    "sentinel_never_wins_because_a_birth_column_always_exists": true,
+    "feature_positions_read_from_the_sealed_order": true,
+    "plain_language_zh": "规则臂在门内给分级代价（余弦或负距离），门外给登记的哨兵 logit −1e6。S0-03 的代价矩阵要求每个被召回的对都有 logit，哨兵就是“不可选”的表达；每个色块都有自己的新建列且其 logit 有界，所以哨兵格永远不会进入最优分配，派生的禁止代价自动高于它。特征按 S0-03 封存的字段顺序取位置，不按写死的下标。"
+  },
+  "arms": {
+    "method": "VSMT-lean",
+    "controls": [
+      "TAF",
+      "ELU-P",
+      "RAC",
+      "LOW"
+    ],
+    "main_table": [
+      "VSMT-lean",
+      "TAF",
+      "ELU-P",
+      "RAC",
+      "LOW",
+      "AssocOnly"
+    ],
+    "VSMT-lean": {
+      "kind": "learned",
+      "vocabulary": [
+        "NOOP",
+        "BIND",
+        "BIRTH",
+        "RETRACT",
+        "REACTIVATE"
+      ],
+      "association_and_birth": "learned heads a(f,e) and b(f) from METHOD section 7",
+      "existence": "sigmoid(r(e)) >= tau_r retracts, else NOOP",
+      "retracts": true,
+      "reactivates_retracted": true,
+      "grid": {
+        "tau_r": {
+          "values": null,
+          "range": "(0,1)"
+        }
+      },
+      "training": {
+        "optimizer": "AdamW",
+        "learning_rate": 0.001,
+        "weight_decay": null,
+        "epochs": 20,
+        "early_stopping_on_validation_loss": true,
+        "batch": "per_frame",
+        "loss": "per-fragment softmax cross-entropy over [recalled columns..., BIRTH column] plus per-entity existence binary cross-entropy, equal weights",
+        "seed_count": 5,
+        "seeds": null,
+        "seeds_are_not_configurations": true,
+        "dagger_rounds": 2,
+        "dagger_round_0_memory_source": "ELU-P",
+        "main_table_round": 1,
+        "dagger_round_0_memory_config": "arms.ELU-P.rollout_config",
+        "dagger_round_0_uses_the_registered_rollout_config": true
+      },
+      "plain_language_zh": "VSMT-lean 的配置只有 τ_r 一个维度，网络配方按 D-224 冻结：AdamW、学习率 1e-3、20 轮、按 validation loss 早停、5 个 seed、两轮 DAgger 且主表用第 1 轮；weight decay 与具体 seed 值待冻结（METHOD 提议 1e-4 与 7/19/31/43/59）。seed 不算配置。 v2：第 0 轮 DAgger 的记忆轨迹由 ELU-P 在预登记的 rollout_config 那一格上产生，S2-05 与 S3-03 用同一格，与 validation 选参无关（裁决 X4）。"
+    },
+    "TAF": {
+      "kind": "rule",
+      "gradient": "none",
+      "source": "ConceptGraphs-style threshold association and fusion; unofficial adapter",
+      "vocabulary": [
+        "NOOP",
+        "BIND",
+        "BIRTH",
+        "REACTIVATE"
+      ],
+      "association": "logit = cosine if cosine >= theta_a and centroid distance <= d_a (d_a null means no distance gate), else the sentinel",
+      "birth": "logit = theta_a, so the best cosine binds iff it reaches theta_a",
+      "existence": "never retracts; every eligible candidate gets NOOP and misses accumulate under the shared dormancy rule",
+      "retracts": false,
+      "reactivates_retracted": false,
+      "grid": {
+        "theta_a": {
+          "values": null,
+          "range": "[-1,1]"
+        },
+        "d_a": {
+          "values": null,
+          "range": "(0,inf) or null",
+          "must_include_none_meaning_no_gate": true
+        }
+      },
+      "plain_language_zh": "TAF 回答“像就并、不像就新建”够不够。门内 logit 是余弦本身而不是常数 0，否则两个合格实体之间会由求解器的字典序并列规则（按不透明 entity_id）决定绑谁。d_a 网格必须含 null（无距离门）。"
+    },
+    "ELU-P": {
+      "kind": "rule",
+      "gradient": "none",
+      "source": "Fusion++ existence log-odds with a Perpetua-style persistence decay; unofficial adapter",
+      "vocabulary": [
+        "NOOP",
+        "BIND",
+        "BIRTH",
+        "RETRACT",
+        "REACTIVATE"
+      ],
+      "association": "same gate as TAF",
+      "birth": "same as TAF",
+      "existence": "per entity log-odds L: on each eligible unmatched frame L -= persistence_log_decay_per_tick + free_space_weight * free_space_coverage_ratio; RETRACT when L < retract_threshold; a match adds match_gain; a matched retracted entity is REACTIVATED by the shared compile step",
+      "retracts": true,
+      "reactivates_retracted": true,
+      "fitted_quantities_never_grid_searched": true,
+      "fitted": {
+        "initial_log_odds": null,
+        "persistence_log_decay_per_tick": null,
+        "match_gain": null
+      },
+      "fitted_on": "train split only",
+      "grid": {
+        "theta_a": {
+          "values": null,
+          "range": "[-1,1]"
+        },
+        "d_a": {
+          "values": null,
+          "range": "(0,inf) or null",
+          "must_include_none_meaning_no_gate": true
+        },
+        "free_space_weight": {
+          "values": null,
+          "range": "[0,inf)"
+        },
+        "retract_threshold": {
+          "values": null,
+          "range": "(-inf,inf)"
+        }
+      },
+      "plain_language_zh": "ELU-P 回答“按概率慢慢忘”够不够。初始 log-odds、持续性衰减与匹配增益只在 train 上拟合，不进网格；网格只有门参数、自由空间权重和撤回门。 v2 登记了 rollout_config（第 0 轮 DAgger 与 HeuristicLabel 标签的固定一格，须是本网格成员且 d_a=None）和三个拟合量的估计程序（裁决 X4）。",
+      "rollout_config": {
+        "theta_a": null,
+        "free_space_weight": null,
+        "retract_threshold": null
+      },
+      "rollout_config_is_a_grid_member_with_no_distance_gate": true,
+      "rollout_config_independent_of_validation_selection": true,
+      "fitting_procedure": {
+        "quantities": {
+          "initial_log_odds": "logit of the train-split prior that an object still stands within delta_moved_m of its last-observed centroid at the first frame after an unobserved gap in which its place should be visible again; the ratio of such object-frames where it does over all such object-frames, from train private truth",
+          "persistence_log_decay_per_tick": "-log(1 - h), where h is the per-tick hazard that a train-split object observable at least once is removed or moved: intervention events over the object-ticks those objects spend in the episode, from the train intervention logs",
+          "match_gain": "log-likelihood ratio log(p_hit / p_false): p_hit is the fraction of should-be-visible frames of a present, in-place train object in which the ELU-P association gate at the registered rollout_config binds some fragment to that object's carrier entity; p_false is the same fraction over frames in which the object is absent or moved and its old place should be visible; both from the train split, the entity identity resolved by the S0-04 teacher after the train feature seals"
+        },
+        "uses_train_private_truth_only": true,
+        "runs_after_the_train_split_feature_seals": true,
+        "match_gain_fitted_at_the_rollout_config_and_shared_by_every_config": true,
+        "plain_language_zh": "三个拟合量只在 train 上估一次、不进网格：初始 log-odds 是“看不见一阵子之后物体还在原处”的先验；持续性衰减由每帧被移走/搬动的风险率算出；匹配增益是“物体在时门内能配上”对“物体不在时门内仍配上”的对数似然比，门取登记的 rollout_config，因此所有 ELU-P 配置共用同一个增益。估计代码属 S2-02，数值待冻结。"
+      }
+    },
+    "RAC": {
+      "kind": "rule",
+      "gradient": "none",
+      "source": "DSG-style render-and-compare; unofficial adapter",
+      "vocabulary": [
+        "NOOP",
+        "BIND",
+        "BIRTH",
+        "RETRACT",
+        "REACTIVATE"
+      ],
+      "association": "same gate as TAF; a retracted entity is ineligible because the DSG adapter re-creates removed nodes",
+      "birth": "same as TAF",
+      "existence": "free_space_coverage_ratio >= rho_rac counts one negative render, otherwise the count resets; n_rac consecutive negatives RETRACT",
+      "retracts": true,
+      "reactivates_retracted": false,
+      "rendering_is_the_shared_frontend_free_space_test": true,
+      "grid": {
+        "theta_a": {
+          "values": null,
+          "range": "[-1,1]"
+        },
+        "d_a": {
+          "values": null,
+          "range": "(0,inf) or null",
+          "must_include_none_meaning_no_gate": true
+        },
+        "rho_rac": {
+          "values": null,
+          "range": "(0,1]"
+        },
+        "n_rac": {
+          "values": null,
+          "range": "integer >= 1"
+        }
+      },
+      "plain_language_zh": "RAC 回答“把记忆画出来和现在比”够不够。渲染比对由共享前端完成：实体包围盒体素被可靠深度射线穿过的比例就是“观测深度比记忆表面更远”的像素比例，深度 margin 是前端共享值；RAC 与 ELU-P 的差别只在决策规则。它不复活 retracted 实体，被删节点重见只能新建，这是 DSG 适配的定义。"
+    },
+    "LOW": {
+      "kind": "rule",
+      "gradient": "none",
+      "source": "last-observation-wins overwrite; deliberately weak control",
+      "vocabulary": [
+        "NOOP",
+        "BIND",
+        "BIRTH",
+        "REACTIVATE"
+      ],
+      "association": "logit = -centroid distance if distance <= d_low, else the sentinel; the nearest entity wins",
+      "birth": "logit = -d_low; with no gate, one below the farthest recalled distance of that fragment so any recalled entity beats birth",
+      "existence": "never retracts",
+      "retracts": false,
+      "reactivates_retracted": false,
+      "grid": {
+        "d_low": {
+          "values": null,
+          "range": "(0,inf) or null",
+          "must_include_none_meaning_no_gate": true
+        }
+      },
+      "plain_language_zh": "LOW 回答最简单的覆盖能到哪：最近的实体拿到色块、超过 d_low 就新建、从不撤回。它不读描述子。"
+    }
+  },
+  "ablations": {
+    "names": [
+      "NoVersion",
+      "HandCost",
+      "HeuristicLabel",
+      "AssocOnly"
+    ],
+    "NoVersion": {
+      "base": "VSMT-lean",
+      "vocabulary": [
+        "NOOP",
+        "BIND",
+        "BIRTH",
+        "RETRACT",
+        "REACTIVATE"
+      ],
+      "modification": "after every commit, retracted entities are physically deleted and the memory resealed; they no longer exist, so they cannot be recalled and a re-appearance can only BIRTH",
+      "retracted_entities_physically_deleted": true,
+      "recall_heads_and_training_unchanged": true,
+      "reactivates_retracted": false,
+      "grid": {
+        "tau_r": {
+          "values": null,
+          "range": "(0,1)"
+        }
+      },
+      "plain_language_zh": "NoVersion 回答可逆版本对被搬动物体的身份连续率值多少：撤回等于删除。"
+    },
+    "HandCost": {
+      "base": "VSMT-lean pipeline",
+      "kind": "rule",
+      "gradient": "none",
+      "cost_source": "stateless_hand_scores_in_the_three_head_slots",
+      "vocabulary": [
+        "NOOP",
+        "BIND",
+        "BIRTH",
+        "RETRACT",
+        "REACTIVATE"
+      ],
+      "association": "logit = cosine for every recalled pair, no distance gate; a retracted entity may be reactivated",
+      "birth": "logit = theta_b",
+      "existence": "this frame's free_space_coverage_ratio >= rho_h retracts, else NOOP; no temporal state",
+      "modification": "the three learned heads are replaced by cosine, a constant and the current free-space coverage; solver, executor, vocabulary and reactivation are VSMT-lean's",
+      "no_gradient": true,
+      "reactivates_retracted": true,
+      "grid": {
+        "theta_b": {
+          "values": null,
+          "range": "[-1,1]"
+        },
+        "rho_h": {
+          "values": null,
+          "range": "(0,1]"
+        }
+      },
+      "plain_language_zh": "HandCost 回答“同一决策结构下学习代价值多少”（D-224-SW 裁决 S）：结构、求解器、词表与复活都是 VSMT-lean 的，只把三个学习头换成余弦、常数和当帧自由空间覆盖比例三个手写分数，没有时间累积。ELU-P 回答的是另一件事——时间累积的概率遗忘值多少——所以两者不再重合。"
+    },
+    "HeuristicLabel": {
+      "base": "VSMT-lean",
+      "vocabulary": [
+        "NOOP",
+        "BIND",
+        "BIRTH",
+        "RETRACT",
+        "REACTIVATE"
+      ],
+      "label_source_arm": "ELU-P",
+      "modification": "the same network is trained on the label-source arm's public decisions instead of private instance truth",
+      "labels_are_the_public_decisions_of_the_rollout_arm": true,
+      "private_truth_enters_only_through_the_rollout_arms_three_fitted_scalars": true,
+      "label_source_private_dependence": "the labels are ELU-P's decisions on public inputs at the registered rollout_config; that arm's three fitted scalars (initial_log_odds, persistence_log_decay_per_tick, match_gain) are estimated on train private truth, and this is the only path by which private truth reaches HeuristicLabel's labels",
+      "reactivates_retracted": true,
+      "grid": {
+        "tau_r": {
+          "values": null,
+          "range": "(0,1)"
+        }
+      },
+      "plain_language_zh": "HeuristicLabel 回答私有实例真值相对公开启发式标签的贡献。标签来源是 ELU-P 在预登记 rollout_config 那一格上、对公开输入做出的决定（D-224-SW 裁决 T；D-224-X 裁决 X3/X4），同架构、同配方重训，不复用 VSMT-lean 权重。TAF 从不撤回，存在头会没有 gone 样本可学，所以不用它当标签源。复审修订（LOG-225）：ELU-P 的三个拟合量在 train 私有真值上估计，所以这些标签不是严格只用公开数据，私有信息只通过这三个标量进入；合同不再声称\"只用公开数据\"，而是写明这唯一的一条私有依赖。",
+      "label_source_config": "arms.ELU-P.rollout_config",
+      "labels_from_the_registered_rollout_config": true,
+      "retrained_not_weight_reuse": true
+    },
+    "AssocOnly": {
+      "base": "VSMT-lean association head and solver",
+      "vocabulary": [
+        "BIND",
+        "BIRTH"
+      ],
+      "modification": "the existence step is skipped entirely: no RETRACT, no NOOP, therefore no missed-opportunity count, no dormancy and no retracted set; every entity stays active",
+      "existence_step_skipped_so_no_dormancy": true,
+      "reported_in_main_table": true,
+      "reactivates_retracted": false,
+      "grid": {},
+      "plain_language_zh": "AssocOnly 是贡献一的唯一因果反事实：同一个学习关联头、同一求解器、同一召回，词表只剩 BIND 与 BIRTH。它没有配置维度，必须与四个对照并列进主表。 “同一个学习关联头”指同架构同配方同预算重训，而不是复用 VSMT-lean 训好的权重：复用会让输入分布全变（状态 one-hot 恒为 active、错失次数恒为 0），反事实里混进分布偏移（裁决 X3）。",
+      "association_head_training": "the same architecture, optimizer, learning rate, epochs, early stopping, seeds, budget and two DAgger rounds as VSMT-lean, retrained on AssocOnly's own memory rollouts with the existence loss term removed; VSMT-lean's weights are never reused",
+      "retrained_not_weight_reuse": true,
+      "existence_loss_term_removed": true,
+      "same_architecture_recipe_budget_and_dagger_rounds": true
+    }
+  },
+  "appendix_arm": {
+    "name": "LLM-op",
+    "vocabulary": [
+      "NOOP",
+      "BIND",
+      "BIRTH",
+      "RETRACT",
+      "REACTIVATE"
+    ],
+    "splits_allowed": [
+      "validation"
+    ],
+    "validation_only": true,
+    "never_in_main_table": true,
+    "never_in_test": true,
+    "config_budget_not_applicable": true,
+    "reactivates_retracted": true,
+    "input": "the same sealed feature tables rendered as text; a frozen LLM chooses one atom per row",
+    "prompt": "not in this stage",
+    "plain_language_zh": "LLM-op 必做，但只在 validation 上跑、只进附录、不进 test。它的成本与 prompt 敏感性使每方法 ≤12 配置的公平预算对它不成立，所以不进主表。"
+  },
+  "optional_arm": {
+    "name": "VSMT-lean-ctx",
+    "vocabulary": [
+      "NOOP",
+      "BIND",
+      "BIRTH",
+      "RETRACT",
+      "REACTIVATE"
+    ],
+    "admission_requires_amortization_error_largest_in_s2_05": true,
+    "shares_training_budget_and_config_count_with_mlp": true,
+    "reported_separately": true,
+    "may_not_replace_main_row_after_test": true,
+    "reactivates_retracted": true,
+    "grid": {
+      "tau_r": {
+        "values": null,
+        "range": "(0,1)"
+      }
+    },
+    "plain_language_zh": "上下文臂只在 S2-05 开发表上 VSMT-lean 的 amortization error 是三分解中最大一类时才启用；与 MLP 版共享训练预算与配置额度，结果单列，不得在看过 test 后替换主表行。"
+  },
+  "budget": {
+    "max_full_configs_per_method": 12,
+    "grids_preregistered_before_any_run": true,
+    "every_rule_arm_grid_includes_a_no_gate_option": true,
+    "thresholds_selected_on_validation_only": true,
+    "no_values_copied_from_other_datasets": true,
+    "test_never_selects": true,
+    "selection_metric": "node_f1",
+    "selection_rule": "one configuration per method by node F1 on validation (D-224-SW ruling V); ties to the smallest configuration index; main-gate metrics never select",
+    "plain_language_zh": "每方法至多 12 个完整配置，网格在任何运行前预登记，参数只在 validation 上选，不抄论文在别的数据集上的数值。每个规则臂的距离门网格必须含 null（无门）。选配置的指标是 validation 上的节点 F1（裁决 V）：它是 Dyn-THOR 的主指标且不是主门指标，避免朝主门选参。"
+  },
+  "not_in_this_stage": [
+    "arm_runner",
+    "llm_op_prompt",
+    "training_code",
+    "data_generation"
+  ],
+  "frozen_by_decision": [
+    "cost_interface.ineligible_logit",
+    "budget.max_full_configs_per_method",
+    "budget.selection_metric",
+    "arms.VSMT-lean.training.learning_rate",
+    "arms.VSMT-lean.training.epochs",
+    "arms.VSMT-lean.training.seed_count",
+    "arms.VSMT-lean.training.dagger_rounds",
+    "arms.VSMT-lean.training.main_table_round"
+  ],
+  "policy_values_without_defaults": [
+    "shared.should_be_visible_min_ratio",
+    "arms.VSMT-lean.training.weight_decay",
+    "arms.VSMT-lean.training.seeds",
+    "arms.ELU-P.fitted.initial_log_odds",
+    "arms.ELU-P.fitted.persistence_log_decay_per_tick",
+    "arms.ELU-P.fitted.match_gain",
+    "arms.ELU-P.rollout_config.theta_a",
+    "arms.ELU-P.rollout_config.free_space_weight",
+    "arms.ELU-P.rollout_config.retract_threshold"
+  ],
+  "user_rulings": {
+    "decision_id": "D-224-SW",
+    "S": "HandCost is redefined as stateless hand scores in VSMT-lean's three head slots (cosine, theta_b, current free-space coverage against rho_h); it no longer coincides with ELU-P",
+    "T": "HeuristicLabel takes ELU-P's public decisions as labels",
+    "U": "RAC does not reactivate retracted entities, following the DSG adapter",
+    "V": "one configuration per method is selected on validation by node F1; main-gate metrics never select",
+    "W": "should_be_visible_min_ratio stays a shared null value registered in S0-05",
+    "plain_language_zh": "五项口径由用户于 2026-09-20 以 D-224-SW 批准，全部按 LOG-218 的推荐口径执行；本合同的臂定义、网格参数名与常量即其机器形式。"
+  },
+  "continue_gate": {
+    "every_method_grid_at_most_twelve_and_preregistered": true,
+    "rule_arms_no_gradient": true,
+    "every_boolean_claim_is_bound_by_the_validator": true,
+    "plain_language_zh": "S0-05 的继续门是：每方法网格 ≤12 且预登记；规则臂无梯度；合同里的每一个布尔声称都被校验器绑定。检查通过不等于任何臂有效，也不等于数值合适。"
+  },
+  "supersedes_contract": {
+    "path": "configs/vsmt/lean_s0_arms_v1.json",
+    "v1_sha256": "32c1d16e33ac49da389147fd08804c9e53d18fae5ece7becdd83161c8d5b27d3",
+    "v1_bytes_frozen": true,
+    "note_zh": "v1 已于 2026-09-20 经用户审查通过（LOG-219），字节冻结不改；v2 按 D-224-X 落实裁决 X3（AssocOnly 与 HeuristicLabel 为同配方重训而非复用权重）与 X4（预登记 ELU-P 轨迹配置供第 0 轮 DAgger 与 HeuristicLabel 标签，登记三个拟合量的估计程序）。五项 D-224-SW 口径与全部网格逐字不变。"
+  },
+  "user_rulings_v2": {
+    "decision_id": "D-224-X",
+    "X3": "AssocOnly (and HeuristicLabel) retrain the same architecture with the same recipe, budget and DAgger rounds on their own rollouts; AssocOnly drops the existence loss term; no weight reuse",
+    "X4": "one pre-registered no-gate ELU-P grid member is the rollout configuration for DAgger round 0 and HeuristicLabel labels in S2-05 and S3-03; the three fitted quantities have a registered estimation procedure on the train split",
+    "plain_language_zh": "两项口径由用户于 2026-09-20 以 D-224-X 批准。",
+    "review_corrections": "2026-09-20 second review (LOG-225): HeuristicLabel's public-data claim replaced by the exact statement of its single private dependence through ELU-P's three fitted scalars; arms_without_atom registered for the S0-04 not-applicable rule"
+  }
+}

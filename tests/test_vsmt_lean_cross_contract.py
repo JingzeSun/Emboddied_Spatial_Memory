@@ -5,11 +5,15 @@ part of that review: every contract validates against its own module, and
 the facts the contracts share (arm names, atoms, states, feature names the
 arms read, the two-seal rule, the candidate states, the all-false
 authorisation bits and the still-null policy values) agree across files.
-Nothing here is a result and nothing here approves a contract.
+Since D-224-X the live contracts are the ``_v2`` files; the reviewed ``_v1``
+bytes stay in the tree frozen, and this module pins their digests so a
+silent edit of a reviewed contract is caught.  Nothing here is a result and
+nothing here approves a contract.
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 import sys
@@ -27,11 +31,20 @@ from vsmt import lean_arms, lean_assignment, lean_intervention, lean_memory, lea
 
 CONFIG_DIR = PROJECT_ROOT / "configs" / "vsmt"
 CONTRACTS = {
-    "S0-01": ("lean_s0_entity_memory_v1.json", lean_memory, lean_memory.validate_entity_memory_contract),
-    "S0-02": ("lean_s0_intervention_data_v1.json", lean_intervention, lean_intervention.validate_intervention_data_contract),
-    "S0-03": ("lean_s0_assignment_v1.json", lean_assignment, lean_assignment.validate_assignment_contract),
-    "S0-04": ("lean_s0_teacher_metrics_v1.json", lean_teacher, lean_teacher.validate_teacher_contract),
-    "S0-05": ("lean_s0_arms_v1.json", lean_arms, lean_arms.validate_arms_contract),
+    "S0-01": ("lean_s0_entity_memory_v2.json", lean_memory, lean_memory.validate_entity_memory_contract),
+    "S0-02": ("lean_s0_intervention_data_v2.json", lean_intervention, lean_intervention.validate_intervention_data_contract),
+    "S0-03": ("lean_s0_assignment_v2.json", lean_assignment, lean_assignment.validate_assignment_contract),
+    "S0-04": ("lean_s0_teacher_metrics_v2.json", lean_teacher, lean_teacher.validate_teacher_contract),
+    "S0-05": ("lean_s0_arms_v2.json", lean_arms, lean_arms.validate_arms_contract),
+}
+
+#: The reviewed v1 contracts, byte-frozen (D-224-X: "追加 v2 不改已审字节").
+FROZEN_V1_SHA256 = {
+    "lean_s0_entity_memory_v1.json": "b9d23c33a63dffcc722584ac9d3db700bfe3bbfc054f90390e505775292d8220",
+    "lean_s0_intervention_data_v1.json": "ca951ff941abc1fa920f52b292902a3904fb751aa7a39ff4328cd6be576dddd8",
+    "lean_s0_assignment_v1.json": "e6d8e3808365e4bd2f99b15d7394c4b13399e311f85d41e0ade30443861db6ca",
+    "lean_s0_teacher_metrics_v1.json": "700452d1ed57153f1aaf6be631c97094b6111242dca3dd2ae1ba4506a1c24c85",
+    "lean_s0_arms_v1.json": "32c1d16e33ac49da389147fd08804c9e53d18fae5ece7becdd83161c8d5b27d3",
 }
 
 
@@ -89,6 +102,23 @@ class TestEveryContractValidates(unittest.TestCase):
         for stage in CONTRACTS:
             relative = load(stage)["pure_core_relative_path"]
             self.assertTrue((PROJECT_ROOT / relative).is_file(), f"{stage}:{relative}")
+
+
+class TestReviewedV1BytesAreFrozen(unittest.TestCase):
+    def test_each_v1_contract_still_has_its_reviewed_digest(self) -> None:
+        for name, expected in FROZEN_V1_SHA256.items():
+            digest = hashlib.sha256((CONFIG_DIR / name).read_bytes()).hexdigest()
+            self.assertEqual(digest, expected, name)
+
+    def test_each_v2_contract_names_its_frozen_v1(self) -> None:
+        for stage in CONTRACTS:
+            contract = load(stage)
+            supersedes = contract["supersedes_contract"]
+            v1_name = Path(supersedes["path"]).name
+            self.assertIn(v1_name, FROZEN_V1_SHA256, stage)
+            self.assertEqual(supersedes["v1_sha256"], FROZEN_V1_SHA256[v1_name], stage)
+            self.assertTrue(supersedes["v1_bytes_frozen"], stage)
+            self.assertTrue(contract["schema_version"].endswith("-v2"), stage)
 
 
 class TestSharedFacts(unittest.TestCase):
@@ -149,12 +179,29 @@ class TestSharedFacts(unittest.TestCase):
         self.assertEqual(kept["excluded_retracted"], ["entity:retracted"])
         self.assertTrue(load("S0-05")["shared"]["existence_candidates_are_active_or_dormant_and_should_be_visible"])
 
+    def test_the_not_applicable_rule_matches_the_arm_vocabularies(self) -> None:
+        """Review correction (LOG-225): false_retract_rate is not applicable to arms without RETRACT."""
+
+        rule = load("S0-04")["statistics"]["metric_not_applicable_rule"]
+        self.assertEqual(rule, {"false_retract_rate": "arms_whose_vocabulary_lacks_RETRACT"})
+        self.assertEqual(rule, lean_teacher.METRIC_NOT_APPLICABLE_RULE)
+        never = lean_arms.arms_without_atom("RETRACT")
+        self.assertEqual(never, ("TAF", "LOW", "AssocOnly"))
+        for arm in never:
+            self.assertFalse(load("S0-05")["arms"].get(arm, load("S0-05")["ablations"].get(arm, {})).get("retracts", False), arm)
+        houses = {f"h{i}": {"VSMT-lean": 0.1, "ELU-P": 0.2, "TAF": None, "LOW": None, "AssocOnly": None} for i in range(3)}
+        self.assertEqual(lean_teacher.undefined_houses(houses, arms=list(houses["h0"]), not_applicable=never), [])
+        self.assertEqual(len(lean_teacher.undefined_houses(houses, arms=list(houses["h0"]))), 3)
+
     def test_the_assoc_only_counterfactual_is_stated_consistently(self) -> None:
         self.assertEqual(lean_arms.VOCABULARY["AssocOnly"], ("BIND", "BIRTH"))
         self.assertTrue(load("S0-05")["ablations"]["AssocOnly"]["reported_in_main_table"])
         self.assertTrue(load("S0-04")["statistics"]["assoc_only_reported_in_main_table"])
         self.assertTrue(load("S0-03")["recall_rule"]["global_channel_covers_every_state"])
         self.assertTrue(load("S0-03")["recall_rule"]["identical_for_all_five_arms"])
+        # D-224-X ruling X3: the counterfactual retrains, it does not reuse weights.
+        self.assertTrue(load("S0-05")["ablations"]["AssocOnly"]["retrained_not_weight_reuse"])
+        self.assertTrue(load("S0-05")["ablations"]["AssocOnly"]["existence_loss_term_removed"])
 
     def test_the_selection_metric_is_a_reported_metric_and_not_a_main_gate_metric(self) -> None:
         metric = load("S0-05")["budget"]["selection_metric"]
@@ -168,6 +215,53 @@ class TestSharedFacts(unittest.TestCase):
         for stage in ("S0-02", "S0-03", "S0-04"):
             text = json.dumps(load(stage))
             self.assertNotIn("should_be_visible_min_ratio", text, stage)
+
+
+class TestD224XRulingsAgreeAcrossContracts(unittest.TestCase):
+    """The v2 changes touch more than one contract; the shared facts must line up."""
+
+    def test_lifecycle_version_count_excludes_exactly_the_bind_versions_s0_01_defines(self) -> None:
+        opened_by = tuple(load("S0-01")["version_record"]["opened_by_values"])
+        self.assertEqual(opened_by, lean_memory.VERSION_OPENED_BY)
+        excludes = tuple(load("S0-04")["metrics"]["size_and_cost"]["lifecycle_version_excludes"])
+        self.assertEqual(excludes, lean_teacher.LIFECYCLE_VERSION_EXCLUDES)
+        self.assertTrue(set(excludes) < set(opened_by))
+        self.assertIn("lifecycle_version_count", load("S0-04")["metrics"]["reported_fields"]["size_and_cost"])
+
+    def test_the_duplicate_status_is_a_registered_association_status(self) -> None:
+        statuses = tuple(load("S0-04")["labels"]["association_statuses"])
+        self.assertEqual(statuses, lean_teacher.ASSOCIATION_STATUSES)
+        self.assertIn("duplicate_of_labelled", statuses)
+        self.assertEqual(load("S0-04")["labels"]["same_frame_duplicates"]["others_status"], "duplicate_of_labelled")
+        # S0-01 is what makes the duplicate structural: one fragment per entity per frame.
+        self.assertTrue(load("S0-01")["frame_program"]["each_entity_at_most_once"])
+
+    def test_the_rollout_config_is_an_elu_p_grid_shape_with_the_gate_left_out(self) -> None:
+        s05 = load("S0-05")
+        rollout = s05["arms"]["ELU-P"]["rollout_config"]
+        grid = s05["arms"]["ELU-P"]["grid"]
+        self.assertEqual(set(rollout) | {lean_arms.ROLLOUT_CONFIG_GATE_PARAMETER}, set(grid))
+        self.assertEqual(s05["arms"]["VSMT-lean"]["training"]["dagger_round_0_memory_source"], lean_arms.ROLLOUT_CONFIG_ARM)
+        self.assertEqual(s05["ablations"]["HeuristicLabel"]["label_source_arm"], lean_arms.ROLLOUT_CONFIG_ARM)
+
+    def test_the_split_prefix_order_puts_train_last(self) -> None:
+        self.assertEqual(tuple(load("S0-02")["split_rule"]["prefix_assignment"]), ("test", "validation", "train"))
+        self.assertEqual(lean_intervention.SPLIT_PREFIX_ORDER, ("test", "validation", "train"))
+
+    def test_the_solver_and_evaluator_rewrites_are_declared_equivalent(self) -> None:
+        self.assertTrue(load("S0-03")["solver"]["columns_identical_to_v1_canonicalisation"])
+        self.assertTrue(load("S0-03")["solver"]["canonicalisation_never_re_solves_the_matrix"])
+        self.assertTrue(load("S0-04")["metrics"]["evaluator_matching_per_component_equals_dense_solve"])
+
+    def test_every_v2_contract_carries_the_d224x_rulings_it_implements(self) -> None:
+        for stage, keys in (("S0-01", ("X6_version_opened_by", "X6_dedup_fold")), ("S0-02", ("X6_split_order",))):
+            rulings = load(stage)["user_rulings"]
+            self.assertEqual(rulings["decision_id"], "D-224-X", stage)
+            for key in keys:
+                self.assertIn(key, rulings, f"{stage}:{key}")
+        self.assertEqual(load("S0-04")["user_rulings_v2"]["decision_id"], "D-224-X")
+        self.assertEqual(load("S0-05")["user_rulings_v2"]["decision_id"], "D-224-X")
+        self.assertEqual(load("S0-03")["review_history"][-1]["decision_id"], "D-224-X")
 
 
 if __name__ == "__main__":  # pragma: no cover

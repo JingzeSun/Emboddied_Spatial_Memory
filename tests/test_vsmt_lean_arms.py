@@ -46,6 +46,7 @@ from vsmt.lean_arms import (  # noqa: E402
     VOCABULARY,
     LeanArmsError,
     apply_no_version,
+    arms_without_atom,
     assert_config_budget,
     assert_no_gate_option,
     assert_no_sentinel_chosen,
@@ -70,7 +71,7 @@ from vsmt.lean_arms import (  # noqa: E402
 )
 
 
-CONTRACT_PATH = PROJECT_ROOT / "configs" / "vsmt" / "lean_s0_arms_v1.json"
+CONTRACT_PATH = PROJECT_ROOT / "configs" / "vsmt" / "lean_s0_arms_v2.json"
 METHOD_ID = "vsmt.lean.test.v1"
 RECALL = {"local_count": 2, "global_count": 2, "local_radius_m": 1.0}
 BIRTH_RADIUS = 1.0
@@ -443,6 +444,14 @@ class TestHandCost(unittest.TestCase):
         self.assertEqual(str(caught.exception), "arm_has_no_distance_gate:HandCost")
 
 
+class TestArmsWithoutAtom(unittest.TestCase):
+    def test_the_never_retracting_arms_are_named_for_the_not_applicable_rule(self) -> None:
+        self.assertEqual(arms_without_atom("RETRACT"), ("TAF", "LOW", "AssocOnly"))
+        self.assertEqual(arms_without_atom("BIND"), ())
+        with self.assertRaises(LeanArmsError):
+            arms_without_atom("MERGE")
+
+
 class TestNoVersion(unittest.TestCase):
     def test_retracted_entities_are_deleted_and_the_memory_resealed(self) -> None:
         memory, mug, book = two_entity_memory()
@@ -554,7 +563,7 @@ class TestMachineContract(unittest.TestCase):
             self.assertEqual(str(caught.exception), f"contract_frozen_constant_mismatch:{path}")
 
     def test_policy_values_must_still_be_null(self) -> None:
-        self.assertEqual(len(NULL_POLICY_PATHS), 6)
+        self.assertEqual(len(NULL_POLICY_PATHS), 9)  # six v1 values plus the three rollout_config values (D-224-X X4)
         for path in NULL_POLICY_PATHS:
             broken = self._fresh()
             self._set(broken, path, 0.5)
@@ -592,6 +601,44 @@ class TestMachineContract(unittest.TestCase):
         with self.assertRaises(LeanArmsError) as caught:
             validate_arms_contract(frozen)
         self.assertEqual(str(caught.exception), "config_budget_exceeded:15>12")
+
+    def test_the_registered_rollout_config_must_be_a_no_gate_grid_member(self) -> None:
+        """D-224-X ruling X4."""
+
+        from vsmt.lean_arms import ROLLOUT_CONFIG_PATH, assert_rollout_config
+
+        contract = self._fresh()
+        self.assertEqual(contract["arms"]["VSMT-lean"]["training"]["dagger_round_0_memory_config"], ROLLOUT_CONFIG_PATH)
+        self.assertEqual(contract["ablations"]["HeuristicLabel"]["label_source_config"], ROLLOUT_CONFIG_PATH)
+        grid = {"theta_a": [0.5, 0.7], "d_a": [1.0, None], "free_space_weight": [0.5], "retract_threshold": [-1.0, -2.0]}
+        full = assert_rollout_config({"theta_a": 0.7, "free_space_weight": 0.5, "retract_threshold": -2.0}, grid)
+        self.assertEqual(full, {"theta_a": 0.7, "free_space_weight": 0.5, "retract_threshold": -2.0, "d_a": None})
+        with self.assertRaises(LeanArmsError) as caught:
+            assert_rollout_config({"theta_a": 0.6, "free_space_weight": 0.5, "retract_threshold": -2.0}, grid)
+        self.assertEqual(str(caught.exception), "rollout_config_not_a_grid_member")
+        with self.assertRaises(LeanArmsError) as caught:
+            assert_rollout_config({"theta_a": 0.7, "d_a": 1.0, "free_space_weight": 0.5, "retract_threshold": -2.0}, grid)
+        self.assertEqual(str(caught.exception), "rollout_config_parameters_mismatch")
+        # Inside the contract: a frozen grid plus a registered config that is not a member is rejected.
+        frozen = self._fresh()
+        for name, values in grid.items():
+            frozen["arms"]["ELU-P"]["grid"][name]["values"] = values
+        validate_arms_contract(frozen)  # grid frozen, rollout still null: allowed
+        frozen["arms"]["ELU-P"]["rollout_config"] = {"theta_a": 0.6, "free_space_weight": 0.5, "retract_threshold": -2.0}
+        with self.assertRaises(LeanArmsError) as caught:
+            validate_arms_contract(frozen)
+        self.assertEqual(str(caught.exception), "rollout_config_not_a_grid_member")
+        # A member is accepted by the membership check and then stopped by the
+        # still-in-force null rule: filling it is a freeze and needs a new version.
+        frozen["arms"]["ELU-P"]["rollout_config"]["theta_a"] = 0.7
+        with self.assertRaises(LeanArmsError) as caught:
+            validate_arms_contract(frozen)
+        self.assertIn("rollout_config_theta_a_must_be_null_before_freeze", str(caught.exception))
+        broken = self._fresh()
+        broken["ablations"]["HeuristicLabel"]["label_source_config"] = "arms.TAF.grid"
+        with self.assertRaises(LeanArmsError) as caught:
+            validate_arms_contract(broken)
+        self.assertEqual(str(caught.exception), "contract_heuristic_label_config_mismatch")
 
     def test_the_rulings_and_the_label_source_are_bound(self) -> None:
         self.assertEqual(RULINGS_DECISION_ID, "D-224-SW")

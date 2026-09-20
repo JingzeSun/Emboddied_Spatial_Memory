@@ -44,7 +44,7 @@ from cpmt.hashing import clone_json
 from vsmt.lean_memory import seal_memory, validate_memory
 
 
-CONTRACT_SCHEMA_VERSION = "vsmt-lean-s0-arms-v1"
+CONTRACT_SCHEMA_VERSION = "vsmt-lean-s0-arms-v2"
 
 BIRTH_COLUMN_PREFIX = "birth:"
 ATOMS = ("NOOP", "BIND", "BIRTH", "RETRACT", "REACTIVATE")
@@ -139,6 +139,16 @@ NO_GATE_PARAMETER: dict[str, str] = {
 
 #: ELU-P quantities fitted once on the train split, not grid-searched.
 ELU_P_FITTED = ("initial_log_odds", "persistence_log_decay_per_tick", "match_gain")
+
+#: D-224-X ruling X4: one pre-registered ELU-P configuration produces the
+#: memory rollouts for VSMT-lean's DAgger round 0 and the public decisions
+#: HeuristicLabel trains on, in S2-05 and S3-03 alike.  It is a member of
+#: the ELU-P grid with no distance gate, and it is fixed before any run, so
+#: the learned arms' training data never depends on validation selection.
+ROLLOUT_CONFIG_ARM = "ELU-P"
+ROLLOUT_CONFIG_PATH = "arms.ELU-P.rollout_config"
+ROLLOUT_CONFIG_PARAMETERS = ("theta_a", "free_space_weight", "retract_threshold")
+ROLLOUT_CONFIG_GATE_PARAMETER = "d_a"
 
 SPLIT_ALLOWED: dict[str, tuple[str, ...]] = {
     **{arm: SPLITS for arm in ALL_ARMS},
@@ -574,6 +584,41 @@ def assert_no_gate_option(arm: str, grid: Mapping[str, Sequence[Any]]) -> None:
     _require(None in list(grid.get(parameter, [])), f"grid_lacks_no_gate_option:{name}.{parameter}")
 
 
+def assert_rollout_config(
+    rollout: Mapping[str, Any], grid: Mapping[str, Sequence[Any]],
+) -> dict[str, Any]:
+    """The registered ELU-P rollout configuration must be a no-gate member of the grid.
+
+    白话：输入登记的 ELU-P 轨迹配置（三个数值）和已冻结的 ELU-P 网格，输出补上
+    d_a=None 的完整配置，并在它不是网格里的一格时拒绝（D-224-X 裁决 X4）。它用来
+    生成 VSMT-lean 第 0 轮 DAgger 的记忆轨迹和 HeuristicLabel 的公开标签，在
+    S2-05 与 S3-03 都用同一格，与 validation 选参无关。它不选参数。
+    """
+
+    _require(tuple(rollout.keys()) == ROLLOUT_CONFIG_PARAMETERS, "rollout_config_parameters_mismatch")
+    for name in ROLLOUT_CONFIG_PARAMETERS:
+        _finite(rollout[name], f"rollout_config_value_invalid:{name}")
+    full = {**{name: rollout[name] for name in ROLLOUT_CONFIG_PARAMETERS}, ROLLOUT_CONFIG_GATE_PARAMETER: None}
+    members = enumerate_configs(ROLLOUT_CONFIG_ARM, grid)
+    _require(
+        any(all(member[key] == full[key] for key in member) for member in members),
+        "rollout_config_not_a_grid_member",
+    )
+    return full
+
+
+def arms_without_atom(atom: str) -> tuple[str, ...]:
+    """Arms whose vocabulary lacks ``atom``, in registered order.
+
+    白话：输入一个原子名，输出词表里没有它的臂。对 RETRACT 就是 TAF、LOW、AssocOnly：
+    它们从不撤回，假撤回率对它们按构造没法算，S0-04 的排除清单与配对要把它们当
+    "不适用"处理（D-224-X 裁决 X2 复审修订，LOG-225）。它不判断任何臂好坏。
+    """
+
+    _require(atom in ATOMS, f"atom_unknown:{atom}")
+    return tuple(arm for arm in ALL_ARMS if atom not in VOCABULARY[arm])
+
+
 def assert_split_allowed(arm: str, split: str) -> None:
     """LLM-op runs on validation only; every other arm may see each split (test read once, S0-04)."""
 
@@ -646,7 +691,8 @@ EXPECTED_BOOLEAN_CLAIMS: dict[str, bool] = {
     "ablations.NoVersion.retracted_entities_physically_deleted": True,
     "ablations.NoVersion.recall_heads_and_training_unchanged": True,
     "ablations.HandCost.no_gradient": True,
-    "ablations.HeuristicLabel.labels_from_public_data_only": True,
+    "ablations.HeuristicLabel.labels_are_the_public_decisions_of_the_rollout_arm": True,
+    "ablations.HeuristicLabel.private_truth_enters_only_through_the_rollout_arms_three_fitted_scalars": True,
     "ablations.AssocOnly.existence_step_skipped_so_no_dormancy": True,
     "ablations.AssocOnly.reported_in_main_table": True,
     "appendix_arm.validation_only": True,
@@ -665,7 +711,24 @@ EXPECTED_BOOLEAN_CLAIMS: dict[str, bool] = {
     "continue_gate.every_method_grid_at_most_twelve_and_preregistered": True,
     "continue_gate.rule_arms_no_gradient": True,
     "continue_gate.every_boolean_claim_is_bound_by_the_validator": True,
+    # D-224-X (v2)
+    "supersedes_contract.v1_bytes_frozen": True,
+    "arms.VSMT-lean.training.dagger_round_0_uses_the_registered_rollout_config": True,
+    "arms.ELU-P.rollout_config_is_a_grid_member_with_no_distance_gate": True,
+    "arms.ELU-P.rollout_config_independent_of_validation_selection": True,
+    "arms.ELU-P.fitting_procedure.uses_train_private_truth_only": True,
+    "arms.ELU-P.fitting_procedure.runs_after_the_train_split_feature_seals": True,
+    "arms.ELU-P.fitting_procedure.match_gain_fitted_at_the_rollout_config_and_shared_by_every_config": True,
+    "ablations.HeuristicLabel.labels_from_the_registered_rollout_config": True,
+    "ablations.HeuristicLabel.retrained_not_weight_reuse": True,
+    "ablations.AssocOnly.retrained_not_weight_reuse": True,
+    "ablations.AssocOnly.existence_loss_term_removed": True,
+    "ablations.AssocOnly.same_architecture_recipe_budget_and_dagger_rounds": True,
 }
+
+#: D-224-X rulings this v2 implements; the contract must name them.
+V2_RULINGS_DECISION_ID = "D-224-X"
+V2_RULING_KEYS = ("X3", "X4")
 EXPECTED_BOOLEAN_CLAIMS.update({
     f"{_arm_section_path(arm)}.reactivates_retracted": flag
     for arm, flag in REACTIVATES_RETRACTED.items()
@@ -683,6 +746,9 @@ NULL_POLICY_PATHS = (
     "arms.ELU-P.fitted.initial_log_odds",
     "arms.ELU-P.fitted.persistence_log_decay_per_tick",
     "arms.ELU-P.fitted.match_gain",
+    "arms.ELU-P.rollout_config.theta_a",
+    "arms.ELU-P.rollout_config.free_space_weight",
+    "arms.ELU-P.rollout_config.retract_threshold",
 )
 
 FROZEN_CONSTANTS = (
@@ -773,6 +839,30 @@ def validate_arms_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
         contract["ablations"]["HeuristicLabel"]["label_source_arm"] == HEURISTIC_LABEL_SOURCE,
         "contract_heuristic_label_source_mismatch",
     )
+    # D-224-X ruling X4: the registered rollout configuration.
+    rollout = arms[ROLLOUT_CONFIG_ARM]["rollout_config"]
+    _require(tuple(rollout.keys()) == ROLLOUT_CONFIG_PARAMETERS, "contract_rollout_config_parameters_mismatch")
+    _require(
+        arms[METHOD_ARM]["training"]["dagger_round_0_memory_source"] == ROLLOUT_CONFIG_ARM
+        and arms[METHOD_ARM]["training"]["dagger_round_0_memory_config"] == ROLLOUT_CONFIG_PATH,
+        "contract_dagger_round_0_source_mismatch",
+    )
+    _require(
+        contract["ablations"]["HeuristicLabel"]["label_source_config"] == ROLLOUT_CONFIG_PATH,
+        "contract_heuristic_label_config_mismatch",
+    )
+    _require(
+        tuple(arms[ROLLOUT_CONFIG_ARM]["fitting_procedure"]["quantities"].keys()) == ELU_P_FITTED,
+        "contract_fitting_procedure_mismatch",
+    )
+    elu_grid = {name: spec.get("values") for name, spec in arms[ROLLOUT_CONFIG_ARM]["grid"].items()}
+    if all(values is not None for values in elu_grid.values()) and all(
+        rollout[name] is not None for name in ROLLOUT_CONFIG_PARAMETERS
+    ):
+        assert_rollout_config(rollout, elu_grid)
+    v2 = contract.get("user_rulings_v2")
+    _require(type(v2) is dict and v2.get("decision_id") == V2_RULINGS_DECISION_ID, "contract_v2_rulings_decision_mismatch")
+    _require(set(v2) >= set(V2_RULING_KEYS), "contract_v2_rulings_incomplete")
     _require(contract["user_rulings"]["decision_id"] == RULINGS_DECISION_ID, "contract_rulings_decision_mismatch")
     _require(set(contract["user_rulings"]) >= {"S", "T", "U", "V", "W"}, "contract_rulings_incomplete")
 
@@ -813,14 +903,20 @@ __all__ = [
     "OPTIONAL_ARM",
     "REACTIVATES_RETRACTED",
     "RULINGS_DECISION_ID",
+    "ROLLOUT_CONFIG_ARM",
+    "ROLLOUT_CONFIG_GATE_PARAMETER",
+    "ROLLOUT_CONFIG_PARAMETERS",
+    "ROLLOUT_CONFIG_PATH",
     "SELECTION_METRIC",
     "RULE_ARMS",
     "SPLIT_ALLOWED",
     "VOCABULARY",
     "apply_no_version",
+    "arms_without_atom",
     "assert_config_budget",
     "assert_no_gate_option",
     "assert_no_sentinel_chosen",
+    "assert_rollout_config",
     "assert_split_allowed",
     "compile_program",
     "ctx_admission",
