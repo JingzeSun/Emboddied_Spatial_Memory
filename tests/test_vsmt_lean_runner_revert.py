@@ -128,5 +128,71 @@ class TestFloorIsNotAContainer(unittest.TestCase):
         self.assertEqual(sorted(out), ["Dresser|2|1"])
 
 
+class TestFinalSweep(unittest.TestCase):
+    """Testing one object can knock another off a surface after that object's own row is done."""
+
+    def sweep(self, script, positions):
+        c = FakeController(script)
+        c.positions = positions
+
+        def object_position(controller, oid):
+            return controller.positions.get(oid)
+
+        original = runner._object_position
+        runner._object_position = object_position
+        try:
+            table = []
+            runner._sweep_back(c, {oid: (dict(ORIGIN), dict(ROTATION)) for oid in positions}, table)
+            return table, c
+        finally:
+            runner._object_position = original
+
+    def test_a_world_that_did_not_move_needs_no_teleport(self) -> None:
+        table, c = self.sweep([], {"A|1": dict(ORIGIN), "B|1": dict(ORIGIN)})
+        self.assertEqual(table[-1]["final_sweep"], [])
+        self.assertEqual(table[-1]["objects_checked"], 2)
+        self.assertEqual(c.calls, [])
+
+    def test_a_knocked_object_is_restored_and_recorded(self) -> None:
+        knocked = {"x": 1.0, "y": 0.0, "z": 5.0}
+
+        c = FakeController([(True, ORIGIN)])
+        positions = {"A|1": dict(ORIGIN), "B|1": dict(knocked)}
+
+        def object_position(controller, oid):
+            return dict(ORIGIN) if oid == "A|1" else dict(controller.position) if controller.calls else dict(knocked)
+
+        original = runner._object_position
+        runner._object_position = object_position
+        try:
+            table = []
+            runner._sweep_back(c, {oid: (dict(ORIGIN), dict(ROTATION)) for oid in positions}, table)
+        finally:
+            runner._object_position = original
+        rows = table[-1]["final_sweep"]
+        self.assertEqual([r["object_id"] for r in rows], ["B|1"])
+        self.assertTrue(rows[0]["restored"])
+        self.assertAlmostEqual(rows[0]["drift_before_m"], 3.1321, places=3)
+
+    def test_an_unrestorable_object_fails_the_house(self) -> None:
+        far = {"x": 13.2, "y": 0.9, "z": 2.0}
+        c = FakeController([(True, far), (True, far)])
+
+        def object_position(controller, oid):
+            return dict(far)
+
+        original = runner._object_position
+        runner._object_position = object_position
+        try:
+            table = []
+            with self.assertRaises(runner.PilotFailure) as ctx:
+                runner._sweep_back(c, {"B|1": (dict(ORIGIN), dict(ROTATION))}, table)
+            self.assertEqual(ctx.exception.reason, "intervention_execution_failed")
+            self.assertIn("final sweep", str(ctx.exception))
+            self.assertIn("final_sweep", table[-1])       # the evidence is kept for provenance
+        finally:
+            runner._object_position = original
+
+
 if __name__ == "__main__":
     unittest.main()

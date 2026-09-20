@@ -539,6 +539,10 @@ def _dry_run_pairs(controller: Any, candidates: list[dict[str, Any]], u_containe
 
     meta = controller.last_event.metadata
     objs = {o["objectId"]: o for o in meta["objects"]}
+    # every object's pose before the dry run touches anything: the dry run must leave the world
+    # exactly here.  Testing one object can knock another off a surface, and that object's own row
+    # may already be behind us, so the whole set is swept once at the end.
+    before = {oid: (dict(o["position"]), dict(o["rotation"])) for oid, o in objs.items() if o.get("pickupable")}
     ok: dict[tuple[str, str], dict[str, Any]] = {}
     table = [] if table is None else table
     for row in candidates:
@@ -562,16 +566,17 @@ def _dry_run_pairs(controller: Any, candidates: list[dict[str, Any]], u_containe
                 best = max(best, px)
                 if px >= min_px:
                     found = pt; break
-            revert: dict[str, Any] = {"ok": None, "drift_m": None, "attempts": []}
-            if placed_any:
+            # A rejected PlaceObjectAtPoint can still have moved the object: in the 12d4209 pilot a
+            # teddy bear ended 12.2 m from its pose with no placement ever reported as successful.
+            # So the pose is verified and, if it moved at all, restored -- whether or not anything
+            # was placed.  Only a restore that fails fails the house.
+            observed = _distance(_object_position(controller, oid), orig_pos)
+            if placed_any or observed is None or observed > REVERT_TOLERANCE_M:
                 revert = _revert_object(controller, oid, orig_pos, orig_rot)
+                revert["moved_without_a_successful_placement"] = (not placed_any)
+                revert["drift_before_revert_m"] = None if observed is None else round(observed, 4)
             else:
-                # nothing was moved, but verify anyway: a rejected placement can still nudge the object
-                drift = _distance(_object_position(controller, oid), orig_pos)
-                revert = {"ok": (drift is not None and drift <= REVERT_TOLERANCE_M), "drift_m": None if drift is None else round(drift, 4),
-                          "attempts": [], "nothing_was_placed": True}
-                if revert["ok"]:
-                    revert["ok"] = None   # nothing to revert, and nothing moved
+                revert = {"ok": None, "drift_m": round(observed, 4), "attempts": [], "nothing_moved": True}
             table.append({"object_id": oid, "destination": dst, "tries": tried, "placed_any": placed_any, "best_pixels": best,
                           "feasible": found is not None, "revert_ok": revert["ok"], "revert_drift_m": revert["drift_m"],
                           "revert_attempts": revert["attempts"],
@@ -579,12 +584,41 @@ def _dry_run_pairs(controller: Any, candidates: list[dict[str, Any]], u_containe
             if revert["ok"] is False:
                 raise PilotFailure(
                     "intervention_execution_failed",
-                    f"dry-run revert left {oid} {revert['drift_m']} m from its original pose "
-                    f"(tolerance {REVERT_TOLERANCE_M} m); an unregistered displacement inside the window "
-                    f"would corrupt the labels, so the house fails: {revert['attempts']}"[:400])
+                    f"dry-run could not put {oid} back: {revert['drift_m']} m from its original pose after "
+                    f"{len(revert['attempts'])} teleports (tolerance {REVERT_TOLERANCE_M} m, moved without a "
+                    f"successful placement={revert.get('moved_without_a_successful_placement')}); an unregistered "
+                    f"displacement inside the window would corrupt the labels, so the house fails"[:400])
             if found is not None:
                 ok[(oid, dst)] = {"point": found, "pixels": best, "tries": tried}
+    _sweep_back(controller, before, table)
     return ok, table
+
+
+def _sweep_back(controller: Any, before: dict[str, tuple[dict[str, float], dict[str, float]]],
+                table: list[dict[str, Any]]) -> None:
+    """Every pickupable object must end the dry run where it began; restore the ones that did not.
+
+    白话：试放某个物体时可能把旁边的物体碰下桌子，而那个物体自己那一行可能早就测完了，
+    逐行核对抓不到它。所以 dry-run 结束时把全部可拾取物体和开工前的快照比一遍，动了的
+    放回去并登记，放不回去就整条作废。这样"窗口里除了登记的干预之外什么都没变"才是可证
+    的，而不是假定的——裁决 34 的对照容器正是靠这一条成立。
+    """
+
+    moved = []
+    for oid, (pos, rot) in sorted(before.items()):
+        drift = _distance(_object_position(controller, oid), pos)
+        if drift is None or drift > REVERT_TOLERANCE_M:
+            outcome = _revert_object(controller, oid, pos, rot)
+            moved.append({"object_id": oid, "drift_before_m": None if drift is None else round(drift, 4),
+                          "restored": outcome["ok"], "drift_after_m": outcome["drift_m"]})
+            if outcome["ok"] is False:
+                table.append({"final_sweep": moved})
+                raise PilotFailure(
+                    "intervention_execution_failed",
+                    f"dry-run final sweep could not put {oid} back: {outcome['drift_m']} m from its original "
+                    f"pose (tolerance {REVERT_TOLERANCE_M} m); the window would contain an unregistered "
+                    f"displacement, so the house fails"[:400])
+    table.append({"final_sweep": moved, "objects_checked": len(before)})
 
 
 def _object_pose(controller: Any, oid: str) -> dict[str, Any] | None:
@@ -818,7 +852,8 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
              "invisible_container_set_size": len(invisible),
              "eligible_object_count": len(eligible), "unseen_object_count": (len(unseen) if unseen is not None else None),
              "destinations_with_points": sum(1 for c in invisible if ok.get(c)),
-             "dry_run_pairs_tested": (len(dry_run_table) if dry_run_table is not None else None),
+             "dry_run_pairs_tested": (sum(1 for r in dry_run_table if "object_id" in r) if dry_run_table is not None else None),
+             "dry_run_final_sweep": next((r for r in (dry_run_table or []) if "final_sweep" in r), None),
              "dry_run_pairs_feasible": (len(pair_ok) if pair_ok is not None else None), "sampled": interventions,
              "controls": controls}, indent=1))
         if null_window:
