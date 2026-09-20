@@ -58,7 +58,7 @@ from cpmt.hashing import canonical_json  # noqa: E402
 from vsmt import lean_interventions as sel  # noqa: E402
 from vsmt import lean_pilot, lean_route  # noqa: E402
 from vsmt.lean_intervention import (  # noqa: E402
-    FAILURE_REASONS, MAXIMUM_ACTIONS, MINIMUM_WINDOW_FRAMES, PUBLIC_FRAME_FIELDS,
+    FAILURE_REASONS, MAXIMUM_ACTIONS, MINIMUM_WINDOW_FRAMES, MIN_VISIBLE_PIXELS, PUBLIC_FRAME_FIELDS,
     PRIVATE_FRAME_FIELDS, FORBIDDEN_PUBLIC_KEYS,
 )
 from vsmt.vm04_public_visibility import (  # noqa: E402
@@ -379,11 +379,48 @@ def _place(controller: Any, action: str, candidates: list[Any], **kw: Any) -> tu
     return ev, len(candidates)
 
 
-def _apply_interventions(controller: Any, rows: list[dict[str, Any]], spawn_points: dict[str, Any]) -> list[dict[str, Any]]:
+def _place_verified(controller: Any, action: str, candidates: list[Any], *, object_id: str,
+                    viewpoint: dict[str, Any], min_px: int, **kw: Any) -> tuple[Any, int, int]:
+    """Like _place, but a point only counts if the object is then visible (>= min_px) from the
+    container's sweep-two viewpoint, checked by an off-route private render (ruling 31, proposed).
+
+    白话：放下之后先"偷看"一眼——把 agent 瞬移到该容器的重访视点渲染一帧，看私有实例
+    分割里这个物体有没有 ≥196 像素，再瞬移回原位。偷看的帧不进 public，也不计入观察序
+    列；它只保证被添加/移动的物体在扫掠二确实看得见，否则换下一个点。
+    """
+
+    a = controller.last_event.metadata["agent"]
+    home = {"position": dict(a["position"]), "rotation": dict(a["rotation"]), "horizon": a["cameraHorizon"],
+            "standing": bool(a.get("isStanding", True))}
+    vp_pos = {"x": viewpoint["cell"][0] * lean_route.GRID_M, "y": a["position"]["y"], "z": viewpoint["cell"][1] * lean_route.GRID_M}
+    ev, best = None, 0
+    for n, pt in enumerate(candidates, start=1):
+        ev = controller.step(action=action, position=pt, **kw)
+        if ev.metadata.get("lastActionSuccess") is not True:
+            continue
+        peek = controller.step(action="Teleport", position=vp_pos, rotation={"x": 0, "y": viewpoint["yaw"], "z": 0},
+                               horizon=viewpoint["pitch"], standing=True, forceAction=True)
+        px = int(np.asarray((peek.instance_masks or {}).get(object_id, np.zeros((1,), dtype=bool))).sum())
+        back = controller.step(action="Teleport", position=home["position"], rotation=home["rotation"],
+                               horizon=home["horizon"], standing=home["standing"], forceAction=True)
+        if back.metadata.get("lastActionSuccess") is not True:
+            raise PilotFailure("intervention_execution_failed", f"could not teleport back after the visibility peek: {back.metadata.get('errorMessage')}")
+        best = max(best, px)
+        if px >= min_px:
+            return ev, n, px
+    if ev is not None and ev.metadata.get("lastActionSuccess") is True:
+        ev.metadata["lastActionSuccess"] = False
+        ev.metadata["errorMessage"] = f"placed but not visible from the viewpoint at any of {len(candidates)} points (best {best} px)"
+    return ev, len(candidates), best
+
+
+def _apply_interventions(controller: Any, rows: list[dict[str, Any]], spawn_points: dict[str, Any], *,
+                         viewpoints: dict[str, Any] | None = None, verify: bool = False) -> list[dict[str, Any]]:
     log = []
     for row in rows:
         kind = row["kind"]
-        tries = 1
+        tries, seen_px = 1, None
+        vp = (viewpoints or {}).get(row.get("destination") or "")
         if kind == "remove":
             # RemoveFromScene hangs Unity in Procedural scenes (NullReferenceException while generating
             # metadata; reproduced on a fresh controller, LOG-236).  DisableObject deactivates the
@@ -391,10 +428,13 @@ def _apply_interventions(controller: Any, rows: list[dict[str, Any]], spawn_poin
             # metadata with visible=false.  Private frame records are built from instance masks,
             # so a disabled object never appears in them.
             ev = controller.step(action="DisableObject", objectId=row["object_id"])
-        elif kind == "move":
-            ev, tries = _place(controller, "PlaceObjectAtPoint", spawn_points[row["destination"]], objectId=row["object_id"])
-        elif row.get("add_source") == "unseen_existing":
-            ev, tries = _place(controller, "PlaceObjectAtPoint", spawn_points[row["destination"]], objectId=row["object_id"])
+        elif kind == "move" or row.get("add_source") == "unseen_existing":
+            if verify and vp is not None:
+                ev, tries, seen_px = _place_verified(controller, "PlaceObjectAtPoint", spawn_points[row["destination"]],
+                                                     object_id=row["object_id"], viewpoint=vp, min_px=MIN_VISIBLE_PIXELS,
+                                                     objectId=row["object_id"])
+            else:
+                ev, tries = _place(controller, "PlaceObjectAtPoint", spawn_points[row["destination"]], objectId=row["object_id"])
         else:
             ev, tries = _place(controller, "SpawnAsset", spawn_points[row["destination"]], assetId=row["asset_id"],
                                generatedId=row["generated_id"], rotation={"x": 0, "y": 0, "z": 0})
@@ -402,7 +442,7 @@ def _apply_interventions(controller: Any, rows: list[dict[str, Any]], spawn_poin
         executor = {"remove": "DisableObject", "move": "PlaceObjectAtPoint", "add": "SpawnAsset"}[kind]
         if row.get("add_source") == "unseen_existing":
             executor = "PlaceObjectAtPoint(unseen_existing)"
-        log.append({**row, "executed": ok, "placement_tries": tries, "executor": executor,
+        log.append({**row, "executed": ok, "placement_tries": tries, "executor": executor, "verified_pixels": seen_px,
                     "error": (ev.metadata.get("errorMessage") or "")[:300]})
         if not ok:
             raise PilotFailure("intervention_execution_failed", f"{kind} {row['object_id']}: {ev.metadata.get('errorMessage')}")
@@ -506,7 +546,7 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
             eligible = sel.eligible_objects(objects, ep.visible_pixels)
             unseen = sel.unseen_objects(objects, ep.visible_pixels) if add_source == "unseen_existing" else None
             ok, spawn_points = _prescreen(controller, {c: usable[c] for c in usable}, tries=placement_tries,
-                                          anywhere=(destination_points == "anywhere"))
+                                          anywhere=(destination_points != "top"))
             feasible = sel.feasible_triples(eligible, list(usable), invisible, ok, unseen=unseen)
             if not feasible:
                 raise PilotFailure("intervention_window_unavailable", f"feasible set empty; U={len(invisible)} eligible={len(eligible)}")
@@ -519,9 +559,10 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
                 {"feasible_set_size": len(feasible), "feasible_by_kind": feasible_by_kind,
                  "invisible_container_set_size": len(invisible),
                  "eligible_object_count": len(eligible), "unseen_object_count": (len(unseen) if unseen is not None else None),
-                 "destinations_with_points": sum(1 for c in usable if ok.get(c)), "sampled": interventions}, indent=1))
+                 "destinations_with_points": sum(1 for c in invisible if ok.get(c)), "sampled": interventions}, indent=1))
             try:
-                log = _apply_interventions(controller, interventions, spawn_points)
+                log = _apply_interventions(controller, interventions, spawn_points, viewpoints=plan1["viewpoints"],
+                                           verify=(destination_points == "verified"))
             except PilotFailure:
                 raise
             except Exception as exc:  # noqa: BLE001 - a simulator-side timeout is an intervention failure, not a write failure
@@ -621,8 +662,9 @@ def main() -> int:
                     help="I1 refinement (ruling 29, needs a ruling): draw the kind first, then the triple")
     ap.add_argument("--add-source", choices=["spawn_asset", "unseen_existing"], default="spawn_asset",
                     help="ruling 30 (needs a ruling): add = SpawnAsset duplicate (frozen) or relocate a never-seen real object")
-    ap.add_argument("--destination-points", choices=["anywhere", "top"], default="anywhere",
-                    help="ruling 31 (needs a ruling): destination spawn points from any receptacle box or top surface only")
+    ap.add_argument("--destination-points", choices=["anywhere", "top", "verified"], default="anywhere",
+                    help="ruling 31 (needs a ruling): any receptacle box (frozen), top surface only, or any box but each "
+                         "placement verified visible (>=196 px) from the container's viewpoint by an off-route private render")
     args = ap.parse_args()
     if args.stage == "s1-02b":
         return main_s1_02b(args)
