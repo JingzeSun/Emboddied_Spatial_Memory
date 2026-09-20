@@ -2869,6 +2869,7 @@ Unity 日志里的对应痕迹：`NullReferenceException at BaseFPSAgentControll
 |---|---|
 | A `RemoveFromScene` | 100.1 s 后同样超时——**确定性复现**，与并发无关 |
 | B `DisableObject` | 0.04 s 成功；物体仍在元数据里但 `visible=false`；从其视点看，私有实例分割像素 **927 → 0**（`Pass` 重渲染仍为 0）；随后 12 步元数据正常、`GetReachablePositions` 正常；`EnableObject` 恢复到 927 px |
+| B2 禁用后的实例掩码键（追加只读核验） | 同一位姿 `Pass` 重渲染后，`instance_masks` 的键从 7 个减到 6 个，被禁用物体的 **键整个消失**（不是留一个 0 像素的掩码）。private 帧记录的 `object_id_to_entity_id`／`object_poses`／`object_visibility` 都由 `sorted(masks)` 生成，所以禁用物体不会以 0 像素实体的形式留在私有真值里；它仍留在模拟器 `metadata['objects']` 里（`visible=false`），但那条通道不写进任何一面 |
 | C `PlaceObjectAtPoint` 依次试前 8 个预筛点 | `Bed|2|0` 0/8（4 次"couldn't come to rest"、4 次笔记本挡）；`Bed|2|2|0` 第 4 个成功；`Dresser|2|1` 第 4 个成功；`Dresser|2|1___0` 0/8（被父抽屉柜挡）。只试第一个点会丢掉可行目标；子容器（`___n`）常放不下 |
 
 ### 已备好但默认关闭／未运行的代码（分支 `s1-02a-runner`）

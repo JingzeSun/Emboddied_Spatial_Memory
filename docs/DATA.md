@@ -137,7 +137,7 @@
 | 编号 | 实测问题 | 修订（proposed） | 不等于什么 |
 |---|---|---|---|
 | 25 | 门未过，按风险表触发规模裁决 | 修好下面四条后，在**新提交**下把全部 50 条（含 pilot 4 条）按同一 seed 重生成到新输出根；旧运行整份保留为"门未过"记录 | 不是只重跑失败的 house（那是看过结果再挑样本），也不是下调 house 数 |
-| 26 | `remove` 用 `RemoveFromScene` 时 Unity 在生成元数据阶段抛 NullReferenceException，客户端 100 s 超时；7/7 次、换新控制器仍复现 | `remove` 改用 `DisableObject`：0.04 s 成功，私有实例分割里像素 927→0，碰撞体消失，之后 12 步元数据正常；物体仍留在模拟器元数据里但 `visible=false`。private 帧记录来自实例掩码，禁用物体不会出现在其中；provenance 记 `executor` | 不是物理删除；不改变 public/private 字段 |
+| 26 | `remove` 用 `RemoveFromScene` 时 Unity 在生成元数据阶段抛 NullReferenceException，客户端 100 s 超时；7/7 次、换新控制器仍复现 | `remove` 改用 `DisableObject`：0.04 s 成功，私有实例分割里像素 927→0，碰撞体消失，之后 12 步元数据正常；物体仍留在模拟器元数据里但 `visible=false`。**已另行只读核验**：禁用后该物体在 `instance_masks` 里的键整个消失（7 键 → 6 键），而 private 帧记录的三个字段都由掩码键生成，所以它不会以 0 像素实体的形式留在私有真值里；provenance 记 `executor` | 不是物理删除；不改变 public/private 字段 |
 | 27 | `MoveAhead` 被椅子／门／**我们复制出的物体**挡住（7 个 house），因为 `GetReachablePositions` 只保证格子可站，不保证相邻两格之间的 0.25 m 能走 | 被拒绝的那条格间边加入黑名单并写 provenance，从真实位姿重算剩余路点；黑名单来自模拟器对同一 house 的确定答案，所以路线仍是 (house, 冻结参数) 的确定函数，只是不再事先全知；上限 32 次 | 不是随机重试，不改路线规则（仍是 BFS 最短路＋先转后进） |
 | 28 | `PlaceObjectAtPoint` 只试 `GetSpawnCoordinatesAboveReceptacle` 的第一个点，"spawn area not clear"就整条作废（4 个 house）；探测显示同一容器第 4 个点常能放下，也有容器 8 个点全放不下 | move／add 按顺序最多试 8 个预筛点，记录第几个成功；全失败仍记执行失败 | 不改可行集 F 的定义（预筛仍是"至少返回一个点"） |
 | 29 | 成功 episode 里 81 个干预**全是 `add`**：F 按三元组均匀抽，而 add 三元组＝合格物体×U 容器，天然占九成以上；抽到 remove／move 的 11 个 house 又全在机制上失败。照此下去 RETRACT 正例会极少 | 抽样改为**先类型后三元组**：每个名额先在"还有可行三元组"的类型里均匀抽类型，再在该类型内均匀抽三元组；同一 RNG 标签。这是就地改 `intervention_selection` 规则文并重钉规则摘要 | 不是按可藏性挑样本，不动 U／F 的定义；类型混合仍取决于 house，只是不再被 add 淹没 |
