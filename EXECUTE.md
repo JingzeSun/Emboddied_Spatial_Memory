@@ -6,7 +6,7 @@
 
 | 事项 | 已知事实 |
 |---|---|
-| D-224 精简方向 | 2026-09-19 用户批准裁决 A～D 与 E/F/G：首篇改为实体生命周期版本化事务，帧级联合分配＋三个约 4 万参数的 MLP 代价头，ProcTHOR 干预序列并对齐 Dyn-THOR 指标，正式规模 300/50/100 house；共享 ReID 头为可选前端、`VSMT-lean-ctx` 为可选臂、实体 token schema 已冻结。旧方向归档到分支 `archive/pre-d224-unified-graph`，`main` 重写 METHOD/PLAN/DATA。**S0-01～S0-05 五份机器合同全部经用户审查通过，S0-06 收口**；S1-01 资产与容量授权申请材料已实现待审；D-224-S1 九项裁决已落地。服务器只读核验确认 SAM 2.1、DINOv2、ProcTHOR-10K 0.1.2 与 AI2-THOR CloudRendering 七项标识**全部与登记值一致**（LOG-221），Python 与 Vulkan 两项冲突消解，仅 ViT-B/14 未登记仍挡住 S1-03～05，基础环境缺 hydra 的阻塞已解除（LOG-222：torch/torchvision/numpy 与 SAM2 工作树均未变，`import sam2.build_sam` 成功，生成器 17 个具名参数与登记一致）；9-19 那次未记录的资产放置已凭 reflog 追认；ViT-B/14 已完成一次性摘要登记（LOG-223：346,378,731 字节 / `0b8b82f8…`，核对 768 维、patch 14、12 层）。**S1-01 四项已知冲突现已全部拿到回执，没有仍在阻挡后续步骤的冲突**；待冻结 null 只剩 `worker_rule.headroom_fraction`。用户已审过 S1-01 v1/v2、五份 S0 v2 并定 `headroom_fraction`=0.2；S1-02a pilot 合同已实现待审（4 worker × 1 house，划分与推导均复用上游、4 条计入 50 条、占用取峰值，LOG-227），**划分已于 2026-09-20 冻结：seed=20260920、validation=50、test=100**，test/validation 成员与 train 块起点至此固定，`train_houses` 留到 S3-01 且只能下调；三值只登记在 S1-02a v2 一处并由跨合同测试钉住（LOG-228）；服务器已同步到受审提交，权威全量 **1249/1249 首次全绿**，并查出冻结摘要钉的是 CRLF/LF 行尾而非内容、三处坏钉已修（LOG-229）；S1-02a 因缺 runner 与 S0-02 六个路线/干预数值而仍不可运行；S0 转 v2 后核出 S1 三处连带失效（depends_on 仍指 v1、headroom 无法冻结、S1 从未进跨合同核对），已追加 S1-01 v2 并把 S1↔S0 一致性纳入测试（LOG-226）。文档审查另发现 S1-01 的 worker 推导死锁（占用只能靠跑 episode 测，而 episode 生成在本阶段 must_remain_false 里），已按裁决 14 把测量移入新拆出的 S1-02a（4 worker × 1 house）并由 S1-02b 扩到 50 house；数据盘已由用户清理，22 G → 43 G 可用，保留清单九项全在（LOG-224）。**2026-09-20 用户批准 D-224-X 裁决 X1～X6**（LOG-225）：S0-01～S0-05 各追加 v2 合同、v1 字节冻结并由测试钉住摘要；S0-03 求解器规范化改等式子图（64×500 单帧 125 秒 → 0.01 秒）、S0-04 评价器匹配分连通块（300×100 单帧 3.1 秒 → 毫秒级），均与 v1 逐列等价；同帧重复色块记 `duplicate_of_labelled`、未定义 house 按指标排除计数、AssocOnly 同配方重训、预登记 ELU-P `rollout_config`、划分顺序 test→validation→train、生命周期版本数与真值表 `in_scope` 落地；本会话复审后修正四处（X1 组级记账、X2 不适用臂例外、HeuristicLabel 私有依赖声称、范围外实体退出精确率分母），八个 lean 模块分进程共 386 项本地通过，五份 v2 已按用户批准提交推送。合跑一次段错误，与本机已知 CPU 不稳定一致，待服务器复核。无数据、无训练、无 episode、无 cache；S0 五份合同授权位全 false，S1-01 按 D-224-S1 开四个位（三只读/本地登记加一依赖安装）。LOG-214～224。 **S1-02a pilot 与 S1-02b 46 house 已真实运行（LOG-235／236）：02b 非空成品率 14/37＝0.378 ＜ 0.6，门未过；23 个失败里 21 个是执行机制（`RemoveFromScene` 挂死 7、`MoveAhead` 被椅/门/自家复制件挡 7、放置点 4、步数上限 3），81 个执行成功的干预全是 `add`，数据里至今没有 remove／move；只读探测证实 `DisableObject` 可替代删除。事后审计：**87/87 个 `add` 从未进入私有真值**（`SpawnAsset` 复制件渲染但不进实例分割，LOG-237），现有非空 episode 标签不可用；八项修正已写成代码、默认关闭，四个曾失败 house 的 smoke 4/4 成功、13/13 干预可辨；裁决 25～32 待定，重生成未授权。** |
+| D-224 精简方向 | 2026-09-19 用户批准裁决 A～D 与 E/F/G：首篇改为实体生命周期版本化事务，帧级联合分配＋三个约 4 万参数的 MLP 代价头，ProcTHOR 干预序列并对齐 Dyn-THOR 指标，正式规模 300/50/100 house；共享 ReID 头为可选前端、`VSMT-lean-ctx` 为可选臂、实体 token schema 已冻结。旧方向归档到分支 `archive/pre-d224-unified-graph`，`main` 重写 METHOD/PLAN/DATA。**S0-01～S0-05 五份机器合同全部经用户审查通过，S0-06 收口**；S1-01 资产与容量授权申请材料已实现待审；D-224-S1 九项裁决已落地。服务器只读核验确认 SAM 2.1、DINOv2、ProcTHOR-10K 0.1.2 与 AI2-THOR CloudRendering 七项标识**全部与登记值一致**（LOG-221），Python 与 Vulkan 两项冲突消解，仅 ViT-B/14 未登记仍挡住 S1-03～05，基础环境缺 hydra 的阻塞已解除（LOG-222：torch/torchvision/numpy 与 SAM2 工作树均未变，`import sam2.build_sam` 成功，生成器 17 个具名参数与登记一致）；9-19 那次未记录的资产放置已凭 reflog 追认；ViT-B/14 已完成一次性摘要登记（LOG-223：346,378,731 字节 / `0b8b82f8…`，核对 768 维、patch 14、12 层）。**S1-01 四项已知冲突现已全部拿到回执，没有仍在阻挡后续步骤的冲突**；待冻结 null 只剩 `worker_rule.headroom_fraction`。用户已审过 S1-01 v1/v2、五份 S0 v2 并定 `headroom_fraction`=0.2；S1-02a pilot 合同已实现待审（4 worker × 1 house，划分与推导均复用上游、4 条计入 50 条、占用取峰值，LOG-227），**划分已于 2026-09-20 冻结：seed=20260920、validation=50、test=100**，test/validation 成员与 train 块起点至此固定，`train_houses` 留到 S3-01 且只能下调；三值只登记在 S1-02a v2 一处并由跨合同测试钉住（LOG-228）；服务器已同步到受审提交，权威全量 **1249/1249 首次全绿**，并查出冻结摘要钉的是 CRLF/LF 行尾而非内容、三处坏钉已修（LOG-229）；S1-02a 因缺 runner 与 S0-02 六个路线/干预数值而仍不可运行；S0 转 v2 后核出 S1 三处连带失效（depends_on 仍指 v1、headroom 无法冻结、S1 从未进跨合同核对），已追加 S1-01 v2 并把 S1↔S0 一致性纳入测试（LOG-226）。文档审查另发现 S1-01 的 worker 推导死锁（占用只能靠跑 episode 测，而 episode 生成在本阶段 must_remain_false 里），已按裁决 14 把测量移入新拆出的 S1-02a（4 worker × 1 house）并由 S1-02b 扩到 50 house；数据盘已由用户清理，22 G → 43 G 可用，保留清单九项全在（LOG-224）。**2026-09-20 用户批准 D-224-X 裁决 X1～X6**（LOG-225）：S0-01～S0-05 各追加 v2 合同、v1 字节冻结并由测试钉住摘要；S0-03 求解器规范化改等式子图（64×500 单帧 125 秒 → 0.01 秒）、S0-04 评价器匹配分连通块（300×100 单帧 3.1 秒 → 毫秒级），均与 v1 逐列等价；同帧重复色块记 `duplicate_of_labelled`、未定义 house 按指标排除计数、AssocOnly 同配方重训、预登记 ELU-P `rollout_config`、划分顺序 test→validation→train、生命周期版本数与真值表 `in_scope` 落地；本会话复审后修正四处（X1 组级记账、X2 不适用臂例外、HeuristicLabel 私有依赖声称、范围外实体退出精确率分母），八个 lean 模块分进程共 386 项本地通过，五份 v2 已按用户批准提交推送。合跑一次段错误，与本机已知 CPU 不稳定一致，待服务器复核。无数据、无训练、无 episode、无 cache；S0 五份合同授权位全 false，S1-01 按 D-224-S1 开四个位（三只读/本地登记加一依赖安装）。LOG-214～224。 **S1-02a pilot 与 S1-02b 46 house 已真实运行（LOG-235／236）：02b 非空成品率 14/37＝0.378 ＜ 0.6，门未过；23 个失败里 21 个是执行机制（`RemoveFromScene` 挂死 7、`MoveAhead` 被椅/门/自家复制件挡 7、放置点 4、步数上限 3），81 个执行成功的干预全是 `add`，数据里至今没有 remove／move；只读探测证实 `DisableObject` 可替代删除。事后审计：**87/87 个 `add` 从未进入私有真值**（`SpawnAsset` 复制件渲染但不进实例分割，LOG-237），现有非空 episode 标签不可用；八项修正已写成代码并 smoke 通过；**2026-09-20 用户批准裁决 25～32 并授权重生成，全部 50 条已在 `4bff1a8` 下重生成（LOG-238）：50 条＝成功 32（空窗口 12、含干预 20）＋失败 18，非空成品率 20/38＝0.526（S1-02b 单独 20/36＝0.556），门 0.6 仍未过；但 78/78 个执行的干预（add 27／remove 40／move 11）在扫掠二私有真值里全部可辨。中间一次重生成（`0bfbbc2`）被我自己的编排器超时 bug 中止，整份保留为作废记录。规模裁决 33 待定。** |
 | D-214～D-223共享RGB-D前端 | Estimator历史路线已完成并由E-08证伪其P08硬门用途；F-00两房拓扑预检通过。D-223/F-01 reader本地实现已审；一次服务器真实预检只读定位后因缺冻结SAM2资产和兼容公开bundle停止。D-217 public observation-0兼容适配器已本地实现待审，尚未读取真实数据或运行服务器；模型加载/cache仍为0，执行位全关闭。P04/P08、route/raw、method adapter、private evaluation、训练与audit重跑均未运行。LOG-199～211。 |
 | D-213统一图/类型门 | 四节点/五关系统一图合同、seal前类型门、五种消融memory view、图复杂度派生、relation REACTIVATE及surface/fragment RETRACT已实现候选；数据接线现改为等待D-214冻结cache，不再以单槽raw后定义前端，全部运行位关闭；LOG-197/199。 |
 | D-212地点raw纠偏 | v2已补公开grid模板＋RGB-D route survey生产入口、P01–P08可复算收据、raw三面journal与两提交执行门；D-214已重新阻断activation，旧P04/P08工程描述不得获论文资格。真实survey/seal/smoke均为0；LOG-196/198/199。 |
@@ -2930,3 +2930,48 @@ dry-run 表：00406 46 对试放→2 对可行（40 对放得下但从视点看�
 ### 五、代码（分支 `s1-02a-runner`，全部默认关闭）
 
 `--add-source unseen_existing`、`--placement-prescreen dry_run`、`--destination-points verified`（保留但被 dry_run 覆盖）、`--stratify-by-kind`、`--replan-blocked-edges`、`--placement-tries N`（上限 64）；`remove` 执行器固定为 `DisableObject`（无标志，因为 `RemoveFromScene` 必挂）。本地 lean 模块通过；服务器全量在 `048ec29` 上通过（`python3.12 -m unittest discover`，OK）。
+
+## LOG-238：裁决 25～32 落地并重生成全部 50 条——门仍未过（0.556）但 78/78 个干预可辨；一次被编排器 bug 中止的重生成如实保留（2026-09-20）
+
+- 类型：**真实运行**。用户于 2026-09-20 批准裁决 25～32（28 作废）并授权重生成。S0-02 v3 的 R1／I1 规则文就地修订并重钉规则摘要（`701ffb1`），runner 与选择库默认值随之改为合同规则（`f97b435`），裁决登记（`0bfbbc2`）。
+- 授权：D-224-S1 裁决 25 的"新提交下重生成全部 50 条"。仍无 cache、前端、训练或 private 评价。
+
+### 一、第一次重生成（`0bfbbc2`）被我自己的编排器 bug 中止，整份保留
+
+pilot 4 条正常跑完（结果见下，与第二次逐字相同）。S1-02b 在 t＝1800 s 时被编排器一次性盖章：`c6b1344` 加的"每 house 1800 s 安全线"从 `apply_async` **提交**时刻计时而不是从开跑计时，4 个 worker 之外排队的 22 个 house 一步没跑就被记成 `worker_timeout_1800s`，正在跑的 4 个被切断，且清理函数 `pkill -f thor-CloudRendering` 会杀掉所有 Unity（包括活着的 worker）。这也违反服务器规则"不得因预设墙钟到达而强制失败"。产物 `/root/autodl-tmp/vsmt_outputs/lean-s1-02b-0bfbbc2/` 整份保留，导出为 `results/vsmt_lean_s1_02b_report_0bfbbc2_aborted.json`；它的成品率数字（0.2）没有意义。修复 `4bff1a8`：worker 写 `started.json`（worker／Unity pid）并在每次采帧与每个 dry-run 对上写心跳；只有"已开始且无心跳超过 `--stall-timeout-s`"才算卡死，排队的 house 永不超时，只杀卡死 worker 自己的 pid；另外 dry-run 已验证的放置点若因场景漂移失效，改试其余均匀间隔点并同样偷看核验。服务器全量在 `4bff1a8` 上通过。
+
+### 二、第二次重生成（`4bff1a8`，pilot ＋ 46 条，同一提交）
+
+| 量 | pilot（4） | S1-02b（46） | 合计（50） |
+|---|---|---|---|
+| 成功／失败 | 2／2 | 30／16 | 32／18 |
+| 空窗口成功（按设计） | 2 | 10 | 12 |
+| 非空且执行了干预 | 0 | 20 | 20 |
+| **非空成品率（house 级）** | — | **20/36＝0.556，门 0.6 未过** | 20/38＝0.526 |
+| 执行的干预 | 0 | 78（add 27／remove 40／move 11） | 78 |
+| **扫掠二可辨** | — | **78/78**（add／move ≥196 px；remove 扫掠一 >0、扫掠二 0） | 78/78 |
+| 每条非空成功的干预数 | — | 2～6，均值 3.9 | — |
+| 墙钟 | 439 s | 4345 s（4 worker；首跑 1265 s） | 72 min |
+| 产物 | 0.9 GB | 6.1 GB | `lean-s1-02a-4bff1a8/`、`lean-s1-02b-4bff1a8/` |
+
+pilot 与首次重生成的 pilot 逐字相同：01451、03394 空窗口成功；00460（U＝1，dry-run 1 对 0 可行：冰箱关着，放进去看不见）与 08566（U＝0）失败；占用回执与 LOG-235 一致（cpu 0.50／ram 3.23 GB／vram 1.45 GB／disk 0.49 GB，并发 4 为瓶颈）。导出：`results/vsmt_lean_s1_02a_report_4bff1a8.json`、`results/vsmt_lean_s1_02b_report_4bff1a8.json`、`results/vsmt_lean_s1_observability_audit_4bff1a8.json`（审计脚本 `ops/vsmt/lean_s1_observability_audit.py`）。
+
+### 三、失败分类（S1-02b 16 个，标签均正确）
+
+| 原因 | 数 | house | 说明 |
+|---|---|---|---|
+| `intervention_window_unavailable`（可行集空） | 9 | U＝0：03986 07367；U≥1：01456 05593 06764 07270 07815 09339 09595 | dry-run 后 F 只含真放得下且看得见的对；这 7 个 U≥1 的 house 里 U 容器上没有合格物体（remove 不可能），未见物体也没有一个放上去后从视点可见 |
+| `route_not_placeable` | 4 | 00950 01289 08790（2000 步上限）；00975（`bfs_no_path`） | 上限三个与首跑相同；00975 是扫掠二里被拒绝的格间边把目标视点格断开了——重规划只换路径不换视点 |
+| `intervention_execution_failed` | 3 | 00236（add）03361（move）08927（add） | 执行时 dry-run 点与全部备选点都"spawn area not clear"：dry-run 与执行之间场景漂移（前面的干预或试放把东西碰动） |
+
+dry-run 规模：34 个 house 共试放 1471 对，559 对可行；执行时用 dry-run 点 36 次、回退点 2 次。
+
+### 四、三件必须如实说的事
+
+1. **门仍未过，但这次数据是真的。** 首跑 0.378 且 87/87 个 add 私有真值缺失；现在 0.556，78/78 可辨、三种类型都有正例（remove 40 是最多的）。合同规定门未过触发规模裁决，本条不替用户裁。
+2. **dry-run 是成品率的主要代价。** 它把 F 从"有生成点就算"压到"真放得下且看得见"，9 个可行集空里 7 个是 U≥1 却一对都不通过；同时把 S1-02b 墙钟从 21 分钟拉到 72 分钟。这是"只造 teacher 看得见的干预"的直接代价，不是 bug。
+3. **还剩两处可修的机制，收益不能预测。** 其一，被挡边断开视点格时应重选该容器的下一个可达视点（00975）；其二，容器可见性主体只在扫掠一的计划视点帧上封印且要 ≥512 px（LOG-235 第 3 条），U 因此偏小，改用扫掠一中该容器像素最多的帧封印会放大 U 和 F。两者都不是合同规则的改变，但会改变哪些 house 成功，所以必须在下一次生成前实现，不在现有数据上补跑。
+
+### 五、待裁（规模裁决 33）
+
+见对话正文与 PLAN 当前指针。本轮未改任何合同值。
