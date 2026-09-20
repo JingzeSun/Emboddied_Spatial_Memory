@@ -91,13 +91,33 @@ FAILURE_REASONS = (
 )
 
 #: R1 / I1 rule constants (D-224-S1 rulings 23/24).  The contract binds them.
-COVERAGE_DEFINITION = "every_eligible_container_observed_once_before_and_once_after"
+COVERAGE_DEFINITION = "every_eligible_container_observed_once_before_and_the_revisit_set_once_after"
+#: D-224-S1 ruling 34 (twin control): sweep two revisits the intervened containers plus an equal
+#: number of seeded unintervened controls; a null episode builds the same revisit set and skips
+#: only the execution.
+REVISIT_SET = "intervened_containers_plus_equal_seeded_controls_from_U_holding_a_seen_object"
+NULL_EPISODE_RULE = "same_pipeline_including_dry_run_sampling_controls_route_and_cap_execution_skipped"
+#: D-224-S1 ruling 35: the container visibility subject is sealed from the sweep-one frame in
+#: which the container has the most private mask pixels (the viewpoint frame was 0 px for 972/1521
+#: containers in the 4bff1a8 run, LOG-239).
+SUBJECT_SEAL_FRAME = "sweep_one_frame_with_the_most_container_pixels"
+MIN_SUBJECT_PIXELS = 512  # 32 samples x stride 4^2 of the shared visibility config
+#: D-224-S1 ruling 36: dataset-level move minimum, judged on the S3-01 train block.
+MOVE_MINIMUM_TRAIN = 120
+MOVE_MINIMUM_SOURCE_FIRST_TRAIN = 60
+#: D-224-S1 ruling 37: the null-window draw mixes a private salt that lives outside the
+#: repository; only its sha256 is written to provenance.
+NULL_WINDOW_SALT_RULE = "sha256(split_seed, house_id, null_window, private_salt)_salt_registered_by_sha256_only"
+#: D-224-S1 ruling 38: eligibility pixels come from sweep-one frames only; the unseen pool from
+#: every frame before the window.
+ELIGIBLE_PIXEL_FRAMES = "sweep_one_only"
+UNSEEN_PIXEL_FRAMES = "every_frame_before_the_window"
 VIEWPOINT_DISTANCE_M = (0.75, 2.5)
 VIEWPOINT_PITCH_OPTIONS = (-30, 0, 30)
 ROUTE_STRUCTURE = ("sweep_one", "transition", "sweep_two")
 PATH_ENCODING = "turn_then_move_ahead_no_strafe"
 MIN_VISIBLE_PIXELS = 196
-RNG_PURPOSE_TAGS = ("intervention", "revisit_order", "null_window")
+RNG_PURPOSE_TAGS = ("intervention", "revisit_order", "null_window", "control_revisit")
 ADD_SOURCE = "relocate_never_rendered_existing_object_via_PlaceObjectAtPoint"
 REMOVE_EXECUTOR = "DisableObject"
 SAMPLING = "kind_first_uniform_over_kinds_with_remaining_triples_then_triple_uniform"
@@ -645,6 +665,7 @@ def validate_intervention_data_contract(contract: Mapping[str, Any]) -> dict[str
     # R1 / I1 rule sections: every constant the planner and selector will
     # read is bound here, so the contract cannot drift from the code.
     rp = contract["route_planning"]
+    iw = contract["intervention_window"]
     _require(rp["coverage_definition"] == COVERAGE_DEFINITION, "contract_coverage_changed")
     _require(rp["coverage_is_over_entities_not_space"] is True, "contract_coverage_over_space")
     _require(tuple(rp["viewpoint_distance_m"]) == VIEWPOINT_DISTANCE_M, "contract_viewpoint_distance_changed")
@@ -680,7 +701,25 @@ def validate_intervention_data_contract(contract: Mapping[str, Any]) -> dict[str
     _require(be["maximum_replans_per_episode"] == MAX_REPLANS, "contract_max_replans_changed")
     _require(be["blocklist_and_replans_written_to_provenance"] is True, "contract_replans_unrecorded")
     _require(sel["p_null_window"] == P_NULL_WINDOW, "contract_p_null_changed")
-    iw = contract["intervention_window"]
+    _require(sel["eligible_object"]["pixel_count_frames"] == ELIGIBLE_PIXEL_FRAMES, "contract_eligible_frames_changed")
+    _require(sel["unseen_object"]["pixel_count_frames"] == UNSEEN_PIXEL_FRAMES, "contract_unseen_frames_changed")
+    _require(sel["null_window_private_salt"]["rule"] == NULL_WINDOW_SALT_RULE, "contract_null_salt_rule_changed")
+    _require(sel["null_window_private_salt"]["never_in_the_repository_or_public_plane"] is True, "contract_null_salt_leaks")
+    rs = rp["revisit_set"]
+    _require(rs["rule"] == REVISIT_SET, "contract_revisit_set_changed")
+    _require(rs["controls_equal_in_number_to_intervened_containers"] is True, "contract_control_count_changed")
+    _require(rs["controls_drawn_from_U_minus_intervened_first"] is True, "contract_controls_not_from_U")
+    _require(rs["control_must_hold_a_seen_eligible_object"] is True, "contract_controls_may_be_empty")
+    _require(rs["changed_and_control_interleaved_by_seeded_rng"] is True, "contract_controls_not_interleaved")
+    _require(rs["null_episode_rule"] == NULL_EPISODE_RULE, "contract_null_episode_rule_changed")
+    _require(iw["container_subject_sealed_from"] == SUBJECT_SEAL_FRAME, "contract_seal_frame_changed")
+    _require(iw["minimum_subject_pixels"] == MIN_SUBJECT_PIXELS, "contract_subject_pixels_changed")
+    _require(iw["null_window_episode_runs_the_same_pipeline_and_skips_only_execution"] is True, "contract_null_not_twin")
+    _require(iw["null_window_episode_fails_under_the_same_rules_and_is_excluded_from_yield"] is True, "contract_null_yield_rule_changed")
+    mm = iw["move_minimum"]
+    _require(mm["train_moves"] == MOVE_MINIMUM_TRAIN and mm["train_moves_source_first"] == MOVE_MINIMUM_SOURCE_FIRST_TRAIN,
+             "contract_move_minimum_changed")
+    _require(mm["below_minimum_triggers_a_scale_ruling_not_a_relaxation"] is True, "contract_move_minimum_weakened")
     _require(iw["minimum_window_frames"] == MINIMUM_WINDOW_FRAMES, "contract_min_window_changed")
     _require(iw["window_is_the_whole_transition_segment"] is True, "contract_window_not_whole_transition")
     _require(iw["feasible_set_is_computed_for_the_shared_window"] is True, "contract_feasible_set_not_joint")
@@ -697,6 +736,25 @@ def validate_intervention_data_contract(contract: Mapping[str, Any]) -> dict[str
     return clone_json(dict(contract))
 
 
+def check_move_minimum(moves: int, moves_source_first: int, *, is_train_block: bool) -> dict[str, Any]:
+    """Judge the dataset-level move minimum (ruling 36).
+
+    白话：数据集里 move 太少，identity_continuity 和 REACTIVATE 就没有统计力。输入是一个
+    生成批次里执行成功的 move 数和其中"源先重访"的数目，以及这批是不是 S3-01 的 train
+    块；输出是判决表。train 块低于 120／60 记 `below_minimum`，触发规模裁决而不是放宽规则；
+    S1 的 50 条只报告数字，不判门。它不改变抽样规则，也不补样。
+    """
+
+    result = {"moves": int(moves), "moves_source_first": int(moves_source_first),
+              "minimum_train": MOVE_MINIMUM_TRAIN, "minimum_train_source_first": MOVE_MINIMUM_SOURCE_FIRST_TRAIN,
+              "gate_applies": bool(is_train_block)}
+    if is_train_block:
+        result["below_minimum"] = bool(moves < MOVE_MINIMUM_TRAIN or moves_source_first < MOVE_MINIMUM_SOURCE_FIRST_TRAIN)
+    else:
+        result["below_minimum"] = None
+    return result
+
+
 __all__ = [
     "ACTIONS",
     "ADD_SOURCE",
@@ -706,6 +764,16 @@ __all__ = [
     "REMOVE_EXECUTOR",
     "SAMPLING",
     "COVERAGE_DEFINITION",
+    "ELIGIBLE_PIXEL_FRAMES",
+    "MIN_SUBJECT_PIXELS",
+    "MOVE_MINIMUM_SOURCE_FIRST_TRAIN",
+    "MOVE_MINIMUM_TRAIN",
+    "NULL_EPISODE_RULE",
+    "NULL_WINDOW_SALT_RULE",
+    "REVISIT_SET",
+    "SUBJECT_SEAL_FRAME",
+    "UNSEEN_PIXEL_FRAMES",
+    "check_move_minimum",
     "MAXIMUM_ACTIONS",
     "MAXIMUM_INTERVENTIONS_PER_EPISODE",
     "MINIMUM_WINDOW_FRAMES",

@@ -2,7 +2,7 @@
   "schema_version": "vsmt-lean-s0-intervention-data-v3",
   "decision_id": "D-224",
   "stage_id": "S0-02",
-  "status": "rules_r1_i1_revised_by_rulings_25_32_regeneration_authorized",
+  "status": "rules_r1_i1_revised_by_rulings_25_38_third_regeneration_authorized",
   "supersedes_contract_v2": {
     "path": "configs/vsmt/lean_s0_intervention_data_v2.json",
     "v2_sha256": "b74ecb00bfc512309af4b13820267e5ac508aa18f26625fe19e32e40cc092fa6",
@@ -86,7 +86,7 @@
     "cap_hit_is_a_construction_failure_not_a_truncation": true
   },
   "route_planning": {
-    "coverage_definition": "every_eligible_container_observed_once_before_and_once_after",
+    "coverage_definition": "every_eligible_container_observed_once_before_and_the_revisit_set_once_after",
     "coverage_is_over_entities_not_space": true,
     "reachability_source": "GetReachablePositions_snapped_to_grid",
     "reachability_graph": "four_connected_on_grid_size",
@@ -123,7 +123,22 @@
       "reason": "GetReachablePositions guarantees a cell can be stood on, not that the 0.25 m step between two adjacent cells is free (chairs, doors, relocated objects); 7/46 houses in s1-02b (LOG-236); ruling 27"
     },
     "route_determinism_includes_the_simulator_deterministic_rejections": true,
-    "plain_language_zh": "路线规划（R1）：覆盖定义为每个合格容器干预前观察一次、干预后观察一次——对实体而非空间的覆盖。可达位置吸附到 0.25 m 网格建四邻接图，只写进 provenance。每个合格容器取距离落在 [0.75, 2.5] m 且容器中心落进 90° 视锥的最近可达格作视点（含 −30/0/30° 俯仰三档），并列按网格序；2.5 是搜索上限不是目标距离。从 house 自带的 metadata.agent 起始位姿做确定性最近邻巡游，不做局部搜索；格间走 BFS 最短路，编码为先转向再 MoveAhead，不用平移。结构为扫掠一→过渡→扫掠二；move 的源与目标都在扫掠二重访，先源还是先目标由派生 RNG 决定。整条路线是 (house, 冻结参数) 的纯函数。被模拟器拒绝的 MoveAhead 把那条格间边加入黑名单并从真实位姿重算剩余路点（上限 32 次）；拒绝是模拟器对同一 house 的确定答案，所以路线仍是确定的，只是不再事先全知（裁决 27）。"
+    "plain_language_zh": "路线规划（R1）：覆盖定义为每个合格容器干预前观察一次、干预后观察一次——对实体而非空间的覆盖。可达位置吸附到 0.25 m 网格建四邻接图，只写进 provenance。每个合格容器取距离落在 [0.75, 2.5] m 且容器中心落进 90° 视锥的最近可达格作视点（含 −30/0/30° 俯仰三档），并列按网格序；2.5 是搜索上限不是目标距离。从 house 自带的 metadata.agent 起始位姿做确定性最近邻巡游，不做局部搜索；格间走 BFS 最短路，编码为先转向再 MoveAhead，不用平移。结构为扫掠一→过渡→扫掠二；move 的源与目标都在扫掠二重访，先源还是先目标由派生 RNG 决定。整条路线是 (house, 冻结参数) 的纯函数。被模拟器拒绝的 MoveAhead 把那条格间边加入黑名单并从真实位姿重算剩余路点（上限 32 次）；拒绝是模拟器对同一 house 的确定答案，所以路线仍是确定的，只是不再事先全知（裁决 27）。",
+    "coverage_definition_superseded": {
+      "value": "every_eligible_container_observed_once_before_and_once_after",
+      "reason": "the string promised a full second coverage while sweep two only revisited intervened containers (44/44 revisited containers had changed in the 4bff1a8 run); ruling 34 replaces it with the revisit set below"
+    },
+    "revisit_set": {
+      "rule": "intervened_containers_plus_equal_seeded_controls_from_U_holding_a_seen_object",
+      "controls_equal_in_number_to_intervened_containers": true,
+      "controls_drawn_from_U_minus_intervened_first": true,
+      "control_must_hold_a_seen_eligible_object": true,
+      "controls_outside_U_only_when_U_is_exhausted_and_counted": true,
+      "changed_and_control_interleaved_by_seeded_rng": true,
+      "null_episode_rule": "same_pipeline_including_dry_run_sampling_controls_route_and_cap_execution_skipped",
+      "control_rng_purpose_tag": "control_revisit",
+      "plain_language_zh": "扫掠二重访集合（裁决 34，双生控制）：被干预容器（move 源与目标都算）加上同样多个对照容器。对照容器优先从 U 里去掉被干预集合后抽，且必须持有至少一个扫掠一里看见过的合格物体，U 不够才从 U 外补并登记数目；变与不变的重访顺序由派生 RNG 交错。空窗口 episode 走完全相同的流程（U、dry-run、抽样、对照、路线、触顶检查），只跳过执行，因此它是非空 episode 逐项匹配的反事实：同样的房子分布、同样的重访集合构造、只是什么都没动。它不等于重访全部容器，也不再是只重访被干预容器。"
+    }
   },
   "intervention_kinds": [
     "remove",
@@ -139,13 +154,33 @@
     "object_used_by_at_most_one_intervention": true,
     "maximum_interventions_per_episode": 6,
     "minimum_yield": 0.6,
-    "plain_language_zh": "干预只在涉及的全部容器于窗口内每一帧都被判为不可见时执行，判定必须由已审的公开可见性机制在公开深度上产生并附上该帧摘要。例如源容器在窗口中间重新进入视野，整条 episode 失败，不缩短窗口、不换物体、不换 house。每 episode 干预数上限与成品率下限待冻结，当前为 null。",
+    "plain_language_zh": "干预只在涉及的全部容器于窗口内每一帧都被判为不可见时执行，判定必须由已审的公开可见性机制在公开深度上产生并附上该帧摘要。例如源容器在窗口中间重新进入视野，整条 episode 失败，不缩短窗口、不换物体、不换 house。每 episode 干预数上限与成品率下限待冻结，当前为 null。 裁决 34～38 后：空窗口 episode 与非空走同一流程只跳过执行，也按同样规则失败并仍不进成品率；容器可见性主体从扫掠一像素最多的帧封印（≥512 像素）；train 块 move 有下限。",
     "minimum_window_frames": 20,
     "window_is_the_whole_transition_segment": true,
     "feasible_set_is_computed_for_the_shared_window": true,
     "yield_is_house_level_over_non_null_episodes": true,
     "yield_gate_applies_at_s1_02b_not_the_pilot": true,
-    "values_frozen_by": "D-224-S1"
+    "values_frozen_by": "D-224-S1",
+    "null_window_episode_counts_as_success_and_is_excluded_from_yield_superseded": {
+      "value": true,
+      "reason": "null episodes skipped feasibility, dry-run, sampling and sweep two, so they never failed and had no revisit; big and open houses survived only as null episodes; ruling 34"
+    },
+    "null_window_episode_runs_the_same_pipeline_and_skips_only_execution": true,
+    "null_window_episode_fails_under_the_same_rules_and_is_excluded_from_yield": true,
+    "container_subject_sealed_from": "sweep_one_frame_with_the_most_container_pixels",
+    "container_subject_sealed_from_superseded": {
+      "value": "last_sweep_one_frame_on_the_viewpoint_cell",
+      "reason": "972/1521 containers had 0 px in that frame (shared viewpoint cells and pass-through frames), so only 411 could be sealed and U was tiny and biased toward closed sub-receptacles; ruling 35"
+    },
+    "minimum_subject_pixels": 512,
+    "move_minimum": {
+      "train_moves": 120,
+      "train_moves_source_first": 60,
+      "applies_at": "S3-01_train_block",
+      "s1_reports_counts_only": true,
+      "below_minimum_triggers_a_scale_ruling_not_a_relaxation": true,
+      "plain_language_zh": "裁决 36：identity_continuity 与 REACTIVATE 正例只来自 move；4bff1a8 的 50 条只有 11 个 move（源先重访 7 个）。S3-01 的 train 块执行成功的 move 至少 120 个、其中源先重访至少 60 个，不达标触发规模裁决而不是放宽规则；S1 的 50 条只报告数字。"
+    }
   },
   "intervention_selection": {
     "eligible_object": {
@@ -153,7 +188,8 @@
       "in_or_on_a_receptacle": true,
       "observed_in_sweep_one_with_min_visible_pixels": 196,
       "visibility_judged_from_private_instance_segmentation_at_construction_time": true,
-      "not_agent_or_structure": true
+      "not_agent_or_structure": true,
+      "pixel_count_frames": "sweep_one_only"
     },
     "eligible_container": "holds_an_eligible_object_or_has_placement_room",
     "enumerate_then_sample": true,
@@ -168,7 +204,8 @@
     "rng_purpose_tags": [
       "intervention",
       "revisit_order",
-      "null_window"
+      "null_window",
+      "control_revisit"
     ],
     "no_new_seed": true,
     "add_source": "relocate_never_rendered_existing_object_via_PlaceObjectAtPoint",
@@ -179,7 +216,8 @@
     "unseen_object": {
       "never_rendered_in_any_private_mask_before_the_window": true,
       "pickupable_on_a_receptacle_not_agent_or_structure": true,
-      "one_pixel_counts_as_seen": true
+      "one_pixel_counts_as_seen": true,
+      "pixel_count_frames": "every_frame_before_the_window"
     },
     "add_relocations_reported_separately_in_diagnostics": true,
     "placement_prescreen_during_enumeration": true,
@@ -213,7 +251,15 @@
       "value": "RemoveFromScene",
       "reason": "hangs Unity in Procedural scenes (NullReferenceException while generating metadata), 7/7 houses and a fresh-controller probe (LOG-236); ruling 26"
     },
-    "plain_language_zh": "干预选择（I1，裁决 25～32 后）：合格物体＝可拾取、在容器内或其上、扫掠一中至少一帧可见像素 ≥196、非 agent 或结构件。先定过渡段、算出其内始终不可见的容器集合 U；remove 要源容器 ∈ U，用 DisableObject 执行（RemoveFromScene 会把模拟器挂死）；move 要源、目标都 ∈ U；add 不再复制已见物体（SpawnAsset 造的物体永远不进实例分割，teacher 看不到），而是把一个至今从未被渲染过的真实物体搬到 U 容器上，对记忆同样是新实体。move／add 的 (物体, 目的容器) 对必须通过窗口内 dry-run：真的放一次（最多 32 个均匀间隔的生成点）、瞬移到目的容器的重访视点用私有渲染偷看是否 ≥196 像素、再瞬移物体回原位；只有通过的对进可行集 F 并记住那个点，偷看帧不进 public 也不计入观察序列。抽样先在还有可行三元组的类型里均匀抽类型、再在类型内均匀抽三元组，同一物体至多一次，每个目的容器每条 episode 至多一次放置。RNG 仍由 sha256(划分 seed, house_id, 用途标签) 派生；每条 episode 以 0.2 的概率执行零干预的过渡。"
+    "plain_language_zh": "干预选择（I1，裁决 25～32 后）：合格物体＝可拾取、在容器内或其上、扫掠一中至少一帧可见像素 ≥196、非 agent 或结构件。先定过渡段、算出其内始终不可见的容器集合 U；remove 要源容器 ∈ U，用 DisableObject 执行（RemoveFromScene 会把模拟器挂死）；move 要源、目标都 ∈ U；add 不再复制已见物体（SpawnAsset 造的物体永远不进实例分割，teacher 看不到），而是把一个至今从未被渲染过的真实物体搬到 U 容器上，对记忆同样是新实体。move／add 的 (物体, 目的容器) 对必须通过窗口内 dry-run：真的放一次（最多 32 个均匀间隔的生成点）、瞬移到目的容器的重访视点用私有渲染偷看是否 ≥196 像素、再瞬移物体回原位；只有通过的对进可行集 F 并记住那个点，偷看帧不进 public 也不计入观察序列。抽样先在还有可行三元组的类型里均匀抽类型、再在类型内均匀抽三元组，同一物体至多一次，每个目的容器每条 episode 至多一次放置。RNG 仍由 sha256(划分 seed, house_id, 用途标签) 派生；每条 episode 以 0.2 的概率执行零干预的过渡。 裁决 34～38 后：合格物体的像素只数扫掠一的帧，未见物体数到窗口前的每一帧；空窗口抽签混入私有盐；每个被干预容器配一个持有已见物体的 U 内对照容器一起进扫掠二。",
+    "null_window_private_salt": {
+      "rule": "sha256(split_seed, house_id, null_window, private_salt)_salt_registered_by_sha256_only",
+      "never_in_the_repository_or_public_plane": true,
+      "salt_file_lives_outside_the_repository_on_the_generation_machine": true,
+      "reason": "seed is public in the contract and the house id is the episode directory name, so an unsalted draw lets any reader recompute whether anything changed; ruling 37",
+      "plain_language_zh": "空窗口抽签只由 seed 和 house id 决定的话，seed 公开、house id 就是目录名，谁都能算出这条有没有变化。裁决 37 给这一个抽签混入一个仓库外的私有盐；provenance 只登记盐的 sha256，盐本身不进仓库、不进 public 面。其他抽签不加盐：干预与对照抽样依赖私有的可行集，本就算不出来。"
+    },
+    "no_new_seed_note": "the null-window private salt is the one registered exception (ruling 37)"
   },
   "planes": [
     "public",
@@ -311,7 +357,8 @@
     "plain_language_zh": "该口径由用户于 2026-09-20 以 D-224-X 批准（裁决 X6）。",
     "rulings": [
       "D-224-S1 裁决 23/24：R1/I1 规则段就地加入 v3，不开新版本；maximum_actions=2000、maximum_interventions_per_episode=6、minimum_yield=0.6、minimum_window_frames=20、p_null_window=0.2、视点距离 [0.75, 2.5]、add=(b) 经 SpawnAsset、move 重访顺序随机、覆盖口径 A、修订六取 (i)。",
-      "D-224-S1 裁决 25～32（2026-09-20 批准，28 作废）：门未过后在新提交下按同一 seed 重生成全部 50 条；remove 用 DisableObject；被拒绝格间边重规划（上限 32）；抽样先类型后三元组；add 改为搬运从未渲染过的真实物体（SpawnAsset 复制件不进实例分割）；move/add 的目的对须通过窗口内 dry-run（放一次、视点偷看 ≥196 px、TeleportObject 放回，最多 32 点）；每目的容器每 episode 至多一次放置。"
+      "D-224-S1 裁决 25～32（2026-09-20 批准，28 作废）：门未过后在新提交下按同一 seed 重生成全部 50 条；remove 用 DisableObject；被拒绝格间边重规划（上限 32）；抽样先类型后三元组；add 改为搬运从未渲染过的真实物体（SpawnAsset 复制件不进实例分割）；move/add 的目的对须通过窗口内 dry-run（放一次、视点偷看 ≥196 px、TeleportObject 放回，最多 32 点）；每目的容器每 episode 至多一次放置。",
+      "D-224-S1 裁决 33～38（2026-09-21 批准，原话“裁决 34 取双生控制；封印帧改最佳帧；move 下限 N=120/60；null 抽签加私有盐；像素计数限扫掠一；coverage_definition 随 34 改写；以上落地后第三次重生成全部 50 条”）：扫掠二重访被干预容器加同样多个持有已见物体的 U 内对照容器、顺序按派生 RNG 交错；空窗口 episode 走同一流程只跳过执行；容器可见性主体从扫掠一像素最多的帧封印；train 块 move ≥120、源先重访 ≥60；空窗口抽签混入仓库外私有盐（provenance 只登记 sha256）；合格物体像素只数扫掠一帧；coverage_definition 改写并重钉规则摘要。"
     ]
   }
 }
