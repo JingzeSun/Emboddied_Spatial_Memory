@@ -39,7 +39,7 @@ from typing import Any, Mapping, Sequence
 from cpmt.hashing import clone_json
 
 
-CONTRACT_SCHEMA_VERSION = "vsmt-lean-s1-assets-capacity-v1"
+CONTRACT_SCHEMA_VERSION = "vsmt-lean-s1-assets-capacity-v2"
 
 #: Fields every registry entry carries, in this order.  A registry row with
 #: a missing or an extra field is rejected rather than defaulted.
@@ -511,6 +511,7 @@ def validate_assets_capacity_contract(contract: Mapping[str, Any]) -> dict[str, 
         "worker_rule", "receipts", "stop_conditions", "known_conflicts",
         "authorization", "activation_policy", "must_remain_false", "install_roots",
         "continue_gate", "policy_values_without_defaults", "user_rulings",
+        "supersedes_contract",
     }
     missing = sorted(required - set(contract.keys()))
     _require(not missing, f"contract_missing_sections:{','.join(missing)}")
@@ -585,15 +586,29 @@ def validate_assets_capacity_contract(contract: Mapping[str, Any]) -> dict[str, 
         _require(contract["capacity_probe"][name] is False,
                  f"contract_capacity_probe_{name}_opened")
 
-    _require(contract["worker_rule"]["headroom_fraction"] is None,
-             "contract_headroom_must_be_null_before_freeze")
+    ruling_id = contract["user_rulings"].get("decision_id")
+    _require(type(ruling_id) is str and ruling_id != "", "contract_ruling_id_missing")
+
+    # The headroom is either still open, in which case it must be listed as
+    # such, or frozen, in which case it must be a real fraction, must name
+    # the ruling that froze it, and must have left the open list.  A value
+    # that is frozen but still advertised as pending would let a later run
+    # quietly re-pick it.
+    headroom = contract["worker_rule"]["headroom_fraction"]
+    open_values = contract["policy_values_without_defaults"]
+    if headroom is None:
+        _require("worker_rule.headroom_fraction" in open_values,
+                 "contract_headroom_null_but_not_registered_as_open")
+    else:
+        _number(headroom, "contract_headroom_invalid", minimum=0.0)
+        _require(headroom < 1.0, "contract_headroom_invalid")
+        _require(contract["worker_rule"].get("headroom_fraction_frozen_by") == ruling_id,
+                 "contract_headroom_frozen_without_naming_the_ruling")
+        _require("worker_rule.headroom_fraction" not in open_values,
+                 "contract_headroom_frozen_but_still_listed_as_open")
     _require(contract["worker_rule"]["minimum_workers"] == 1,
              "contract_minimum_workers_changed")
 
-    # A conflict may only carry a resolution once a ruling stands behind it,
-    # and a resolved conflict must stop claiming to block a later step.
-    ruling_id = contract["user_rulings"].get("decision_id")
-    _require(type(ruling_id) is str and ruling_id != "", "contract_ruling_id_missing")
     # A conflict is in exactly one of three states.  Unresolved: no plan, no
     # evidence, and it still blocks.  Ruled: a plan that names the ruling,
     # but no receipt yet, so it still blocks.  Discharged: a plan and a
@@ -642,6 +657,12 @@ def validate_assets_capacity_contract(contract: Mapping[str, Any]) -> dict[str, 
     for name in MUST_REMAIN_FALSE:
         _require(contract["authorization"].get(name) is not True,
                  f"contract_closed_bit_opened:{name}")
+    supersedes = contract["supersedes_contract"]
+    _require(type(supersedes) is dict, "contract_supersedes_not_object")
+    _hex64(supersedes["v1_sha256"], "contract_superseded_digest_invalid")
+    _require(supersedes["v1_bytes_frozen"] is True, "contract_superseded_bytes_not_frozen")
+    _require(type(supersedes["path"]) is str and supersedes["path"].endswith("_v1.json"),
+             "contract_superseded_path_invalid")
     return clone_json(dict(contract))
 
 

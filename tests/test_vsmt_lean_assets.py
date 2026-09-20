@@ -49,7 +49,7 @@ from vsmt.lean_assets import (  # noqa: E402
 )
 
 
-CONTRACT_PATH = PROJECT_ROOT / "configs" / "vsmt" / "lean_s1_assets_capacity_v1.json"
+CONTRACT_PATH = PROJECT_ROOT / "configs" / "vsmt" / "lean_s1_assets_capacity_v2.json"
 
 CHECKPOINT_SHA = "6d1aa6f30de5c92224f8172114de081d104bbd23dd9dc5c58996f0cad5dc4d38"
 CHECKPOINT_BYTES = 184416285
@@ -494,7 +494,7 @@ class TestContract(unittest.TestCase):
         self.assertEqual(tuple(rule["derivation_inputs"]), WORKER_DERIVATION_INPUTS)
         self.assertIs(rule["derivation_requires_measured_single_worker_occupancy"], True)
         self.assertIs(rule["concurrency_verified_at_is_not_the_derived_count"], True)
-        self.assertIsNone(rule["headroom_fraction"])
+        self.assertEqual(rule["headroom_fraction"], 0.2)
 
     def test_a_bit_opened_outside_the_ruling_is_rejected(self) -> None:
         opened = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
@@ -596,11 +596,63 @@ class TestContract(unittest.TestCase):
         with self.assertRaises(LeanAssetsError):
             validate_assets_capacity_contract(weakened)
 
-    def test_a_pre_filled_headroom_is_rejected_before_the_freeze(self) -> None:
-        early = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
-        early["worker_rule"]["headroom_fraction"] = 0.2
+    def test_the_headroom_is_frozen_at_the_ruled_value(self) -> None:
+        rule = self.contract["worker_rule"]
+        self.assertEqual(rule["headroom_fraction"], 0.2)
+        self.assertEqual(rule["headroom_fraction_frozen_by"], "D-224-S1")
+        self.assertNotIn("worker_rule.headroom_fraction",
+                         self.contract["policy_values_without_defaults"])
+
+    def test_a_headroom_frozen_without_naming_its_ruling_is_rejected(self) -> None:
+        loose = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        del loose["worker_rule"]["headroom_fraction_frozen_by"]
         with self.assertRaises(LeanAssetsError):
-            validate_assets_capacity_contract(early)
+            validate_assets_capacity_contract(loose)
+
+    def test_a_frozen_headroom_still_advertised_as_open_is_rejected(self) -> None:
+        # Otherwise a later run could treat it as free to re-pick.
+        stale = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        stale["policy_values_without_defaults"].append("worker_rule.headroom_fraction")
+        with self.assertRaises(LeanAssetsError):
+            validate_assets_capacity_contract(stale)
+
+    def test_a_null_headroom_must_still_be_registered_as_open(self) -> None:
+        reopened = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        reopened["worker_rule"]["headroom_fraction"] = None
+        with self.assertRaises(LeanAssetsError):
+            validate_assets_capacity_contract(reopened)
+
+    def test_a_headroom_of_one_or_more_is_rejected(self) -> None:
+        silly = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        silly["worker_rule"]["headroom_fraction"] = 1.0
+        with self.assertRaises(LeanAssetsError):
+            validate_assets_capacity_contract(silly)
+
+    def test_the_headroom_actually_bites_in_the_derivation(self) -> None:
+        # 0.2 means every measured resource is used at eighty percent.
+        frozen = self.contract["worker_rule"]["headroom_fraction"]
+        full = derive_worker_count(measurements(),
+                                   occupancy(simulator_concurrency_limit=64),
+                                   headroom_fraction=0.0)
+        spared = derive_worker_count(measurements(),
+                                     occupancy(simulator_concurrency_limit=64),
+                                     headroom_fraction=frozen)
+        self.assertLess(spared["worker_count"], full["worker_count"])
+
+    def test_the_contract_supersedes_its_reviewed_v1(self) -> None:
+        import hashlib
+        supersedes = self.contract["supersedes_contract"]
+        self.assertTrue(supersedes["v1_bytes_frozen"])
+        v1 = PROJECT_ROOT / supersedes["path"]
+        self.assertEqual(hashlib.sha256(v1.read_bytes()).hexdigest(),
+                         supersedes["v1_sha256"])
+
+    def test_the_s0_dependencies_point_at_the_v2_contracts(self) -> None:
+        depends = self.contract["depends_on"]
+        self.assertTrue(depends["s0_02_contract"].endswith("_v2.json"))
+        self.assertTrue(depends["s0_03_contract"].endswith("_v2.json"))
+        for key in ("s0_02_contract", "s0_03_contract"):
+            self.assertTrue((PROJECT_ROOT / depends[key]).exists(), key)
 
     def test_a_conflict_resolved_without_a_ruling_or_evidence_is_rejected(self) -> None:
         early = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
@@ -663,7 +715,7 @@ class TestContract(unittest.TestCase):
     def test_every_ruling_is_bound_to_the_decision_id(self) -> None:
         rulings = self.contract["user_rulings"]
         self.assertEqual(rulings["decision_id"], "D-224-S1")
-        self.assertEqual(len(rulings["rulings"]), 9)
+        self.assertEqual(len(rulings["rulings"]), 11)
 
     def test_the_contract_binds_the_d224_governance_core_not_its_whole_file(self) -> None:
         depends = self.contract["depends_on"]
