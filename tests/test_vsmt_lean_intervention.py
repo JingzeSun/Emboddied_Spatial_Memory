@@ -46,7 +46,7 @@ from vsmt.lean_intervention import (  # noqa: E402
 )
 
 
-CONTRACT_PATH = PROJECT_ROOT / "configs" / "vsmt" / "lean_s0_intervention_data_v1.json"
+CONTRACT_PATH = PROJECT_ROOT / "configs" / "vsmt" / "lean_s0_intervention_data_v2.json"
 
 SEED = 260919
 POOL = [f"house-{index:04d}" for index in range(40)]
@@ -108,12 +108,26 @@ class TestSplit(unittest.TestCase):
         members = split["train"] + split["validation"] + split["test"]
         self.assertEqual(len(set(members)), 35)
 
-    def test_growing_train_never_pulls_a_house_out_of_test(self) -> None:
+    def test_changing_the_train_size_never_touches_test_or_validation(self) -> None:
+        """D-224-X ruling X6: test and validation take the first prefixes, train the last."""
+
         small = assign_split(POOL, seed=SEED, train=10, validation=5, test=10)
         large = assign_split(POOL, seed=SEED, train=20, validation=5, test=10)
+        self.assertEqual(small["test"], large["test"])
+        self.assertEqual(small["validation"], large["validation"])
         self.assertEqual(small["train"], large["train"][:10])
-        # The later slices shift, which is why sizes are frozen before test.
         self.assertTrue(set(small["train"]).isdisjoint(small["test"]))
+        ordered = sorted(POOL, key=lambda item: (house_split_rank(item, seed=SEED), item))
+        self.assertEqual(large["test"], ordered[:10])
+        self.assertEqual(large["validation"], ordered[10:15])
+        self.assertEqual(large["train"], ordered[15:35])
+
+    def test_changing_test_or_validation_moves_the_train_block(self) -> None:
+        """Which is why those two sizes and the seed freeze before the first episode."""
+
+        base = assign_split(POOL, seed=SEED, train=10, validation=5, test=10)
+        other = assign_split(POOL, seed=SEED, train=10, validation=5, test=8)
+        self.assertNotEqual(base["train"], other["train"])
 
     def test_manifest_that_moves_a_house_is_rejected(self) -> None:
         split = assign_split(POOL, seed=SEED, train=20, validation=5, test=10)
@@ -438,6 +452,28 @@ class TestMachineContract(unittest.TestCase):
             frozenset(self.contract["deployment_readable_planes"]),
             DEPLOYMENT_READABLE_PLANES,
         )
+
+    def test_the_split_prefix_order_and_freeze_claims_are_bound(self) -> None:
+        """D-224-X ruling X6."""
+
+        from vsmt.lean_intervention import SPLIT_PREFIX_ORDER
+
+        self.assertEqual(SPLIT_PREFIX_ORDER, ("test", "validation", "train"))
+        self.assertEqual(tuple(self.contract["split_rule"]["prefix_assignment"]), SPLIT_PREFIX_ORDER)
+        broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        broken["split_rule"]["prefix_assignment"] = ["train", "validation", "test"]
+        with self.assertRaises(LeanInterventionError) as caught:
+            validate_intervention_data_contract(broken)
+        self.assertEqual(str(caught.exception), "contract_split_prefix_order_mismatch")
+        for name in (
+            "test_and_validation_sizes_and_seed_frozen_before_first_generation",
+            "train_size_may_only_decrease_after_registration",
+        ):
+            broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+            broken["split_rule"][name] = False
+            with self.assertRaises(LeanInterventionError) as caught:
+                validate_intervention_data_contract(broken)
+            self.assertEqual(str(caught.exception), f"contract_split_rule_{name}_weakened")
 
     def test_an_extra_action_in_the_contract_is_rejected(self) -> None:
         broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))

@@ -35,10 +35,16 @@ from typing import Any, Mapping, Sequence
 from cpmt.hashing import canonical_json, clone_json
 
 
-CONTRACT_SCHEMA_VERSION = "vsmt-lean-s0-intervention-data-v1"
+CONTRACT_SCHEMA_VERSION = "vsmt-lean-s0-intervention-data-v2"
 
 #: The three reading faces.  A file belongs to exactly one.
 PLANES = ("public", "private", "provenance")
+
+#: Prefix allocation order of the hash-sorted house list (D-224-X ruling X6).
+#: ``test`` and ``validation`` take the first two blocks, ``train`` the third,
+#: so a later reduction of the train size (the only size S3-01 may lower) can
+#: never move a house into or out of test or validation.
+SPLIT_PREFIX_ORDER = ("test", "validation", "train")
 
 #: Planes a deployment-time reader (frontend, recall, features, any of the
 #: five arms) may mount.  Everything else is teacher/evaluator/audit only.
@@ -151,8 +157,10 @@ def assign_split(
     """Split houses by hash prefix into three mutually exclusive lists.
 
     白话：输入候选 house 清单与三份规模，输出 train/validation/test 三个互斥列
-    表。例如同一批 house 与同一 seed 永远给出同一划分，扩大 train 不会把已在
-    test 的 house 拉回来。它不生成任何数据，也不检查 house 是否真的可加载。
+    表。排序后的前缀先给 test、再给 validation、最后给 train（D-224-X 裁决 X6）：
+    这样 S3-01 若按成品率下调 train 规模，test 与 validation 的成员一个都不会变；
+    反过来 test/validation 的规模与 seed 必须在第一条 episode 生成前冻结，因为
+    改它们会挪动 train 的起点。它不生成任何数据，也不检查 house 是否真的可加载。
     """
 
     _require(type(house_ids) is list or type(house_ids) is tuple, "house_ids_invalid")
@@ -166,9 +174,9 @@ def assign_split(
 
     ordered = sorted(unique, key=lambda item: (house_split_rank(item, seed=seed), item))
     return {
-        "train": ordered[:train],
-        "validation": ordered[train:train + validation],
-        "test": ordered[train + validation:total],
+        "test": ordered[:test],
+        "validation": ordered[test:test + validation],
+        "train": ordered[test + validation:total],
     }
 
 
@@ -561,6 +569,18 @@ def validate_intervention_data_contract(contract: Mapping[str, Any]) -> dict[str
         is True,
         "contract_window_rule_weakened",
     )
+    _require(
+        tuple(contract["split_rule"]["prefix_assignment"]) == SPLIT_PREFIX_ORDER,
+        "contract_split_prefix_order_mismatch",
+    )
+    for name in (
+        "test_and_validation_sizes_and_seed_frozen_before_first_generation",
+        "train_size_may_only_decrease_after_registration",
+    ):
+        _require(
+            contract["split_rule"][name] is True,
+            f"contract_split_rule_{name}_weakened",
+        )
 
     for section, names in (
         ("split_rule", ("train_houses", "validation_houses", "test_houses", "seed")),
@@ -592,6 +612,7 @@ __all__ = [
     "PLANES",
     "PRIVATE_FRAME_FIELDS",
     "PUBLIC_FRAME_FIELDS",
+    "SPLIT_PREFIX_ORDER",
     "LeanInterventionError",
     "assert_reader_whitelist",
     "assert_windows_unobservable",
