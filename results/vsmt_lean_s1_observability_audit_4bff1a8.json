@@ -1,0 +1,262 @@
+{
+ "schema_version": "vsmt-lean-s1-observability-audit-v1",
+ "output_root": "/root/autodl-tmp/vsmt_outputs/lean-s1-02b-4bff1a8",
+ "definition": {
+  "observable": "affected object has >= 196 px in some sweep-two private mask (add/move); remove: 0 px in every sweep-two mask and > 0 px in sweep one",
+  "weak": "1..195 px in sweep two",
+  "unobservable": "0 px in sweep two (add/move) or still visible (remove)"
+ },
+ "totals_by_kind_observable_weak_unobservable": {
+  "add": [
+   27,
+   0,
+   0
+  ],
+  "remove": [
+   40,
+   0,
+   0
+  ],
+  "move": [
+   11,
+   0,
+   0
+  ]
+ },
+ "by_destination_type": {
+  "add": {
+   "Toilet": [
+    1,
+    1
+   ],
+   "SideTable": [
+    4,
+    4
+   ],
+   "TVStand": [
+    2,
+    2
+   ],
+   "DiningTable": [
+    5,
+    5
+   ],
+   "Dresser": [
+    4,
+    4
+   ],
+   "Sink": [
+    3,
+    3
+   ],
+   "Chair": [
+    1,
+    1
+   ],
+   "Sofa": [
+    1,
+    1
+   ],
+   "CounterTop": [
+    2,
+    2
+   ],
+   "ShelvingUnit": [
+    1,
+    1
+   ],
+   "ArmChair": [
+    1,
+    1
+   ],
+   "Bed": [
+    1,
+    1
+   ],
+   "GarbageCan": [
+    1,
+    1
+   ]
+  },
+  "remove": {
+   "Toilet": [
+    1,
+    1
+   ],
+   "Dresser": [
+    3,
+    3
+   ],
+   "TVStand": [
+    2,
+    2
+   ],
+   "CounterTop": [
+    15,
+    15
+   ],
+   "DiningTable": [
+    9,
+    9
+   ],
+   "Bed": [
+    8,
+    8
+   ],
+   "SideTable": [
+    2,
+    2
+   ]
+  },
+  "move": {
+   "Dresser": [
+    1,
+    1
+   ],
+   "Chair": [
+    1,
+    1
+   ],
+   "Bed": [
+    2,
+    2
+   ],
+   "SideTable": [
+    3,
+    3
+   ],
+   "DiningTable": [
+    1,
+    1
+   ],
+   "DogBed": [
+    1,
+    1
+   ],
+   "ShelvingUnit": [
+    2,
+    2
+   ]
+  }
+ },
+ "per_house": {
+  "00406": [
+   "add:Bowl->Toilet[0,249]",
+   "remove:SprayBottle->Toilet[520,0]"
+  ],
+  "00563": [
+   "remove:DeskLamp->Dresser[1021,0]",
+   "move:Statue->Dresser[1231,504]",
+   "add:RemoteContro->SideTable[0,373]",
+   "remove:Candle->TVStand[443,0]",
+   "add:Potato->TVStand[0,236]"
+  ],
+  "00702": [
+   "remove:WineBottle->CounterTop[516,0]",
+   "remove:Cup->CounterTop[760,0]",
+   "remove:Cup->CounterTop[299,0]",
+   "remove:Pan->CounterTop[229,0]",
+   "remove:SoapBottle->CounterTop[653,0]",
+   "remove:Bottle->CounterTop[337,0]"
+  ],
+  "01259": [
+   "remove:Box->DiningTable[1714,0]",
+   "move:Bowl->Chair[382,401]",
+   "add:RemoteContro->DiningTable[0,483]",
+   "move:CellPhone->Bed[396,247]",
+   "add:Book->DiningTable[0,1674]",
+   "move:Bowl->SideTable[398,285]"
+  ],
+  "01543": [
+   "remove:TissueBox->Dresser[710,0]",
+   "add:Candle->Dresser[0,206]"
+  ],
+  "02524": [
+   "add:Bowl->Sink[0,446]",
+   "add:Book->Chair[0,582]",
+   "add:Pillow->Sofa[0,3488]"
+  ],
+  "02768": [
+   "add:TissueBox->Sink[0,520]",
+   "add:Book->Sink[0,569]",
+   "add:Mug->Dresser[0,286]"
+  ],
+  "03288": [
+   "remove:Book->Dresser[1543,0]",
+   "add:RemoteContro->Dresser[0,300]"
+  ],
+  "04146": [
+   "add:Tomato->CounterTop[0,409]",
+   "remove:Cup->CounterTop[1061,0]",
+   "remove:SoapBottle->CounterTop[236,0]",
+   "remove:Bread->CounterTop[1590,0]"
+  ],
+  "04388": [
+   "remove:Pillow->Bed[908,0]",
+   "remove:TeddyBear->Bed[982,0]",
+   "remove:CellPhone->Bed[246,0]"
+  ],
+  "04742": [
+   "remove:RemoteContro->TVStand[244,0]",
+   "remove:Pillow->Bed[1407,0]",
+   "remove:Pillow->Bed[417,0]",
+   "add:Lettuce->ShelvingUnit[0,318]",
+   "add:AlarmClock->TVStand[0,567]",
+   "add:Lettuce->ArmChair[0,394]"
+  ],
+  "04801": [
+   "remove:Laptop->Bed[2160,0]",
+   "move:Vase->DiningTable[891,597]",
+   "add:Potato->Dresser[0,210]",
+   "remove:Statue->DiningTable[985,0]",
+   "move:Pillow->SideTable[456,1496]",
+   "remove:Box->DiningTable[2369,0]"
+  ],
+  "05879": [
+   "add:RemoteContro->SideTable[0,293]",
+   "remove:Bowl->SideTable[718,0]",
+   "remove:Cloth->SideTable[512,0]"
+  ],
+  "06453": [
+   "move:Laptop->DogBed[742,982]",
+   "remove:Plate->DiningTable[202,0]",
+   "add:Vase->DiningTable[0,454]"
+  ],
+  "08398": [
+   "remove:Lettuce->CounterTop[707,0]",
+   "move:SoapBottle->Bed[669,270]",
+   "add:Newspaper->SideTable[0,382]",
+   "add:RemoteContro->DiningTable[0,198]",
+   "remove:Mug->CounterTop[274,0]",
+   "remove:Statue->CounterTop[828,0]"
+  ],
+  "08422": [
+   "add:Egg->CounterTop[0,376]",
+   "remove:CellPhone->CounterTop[279,0]",
+   "move:Cup->ShelvingUnit[407,275]",
+   "move:SoapBottle->ShelvingUnit[403,378]",
+   "remove:Lettuce->CounterTop[357,0]",
+   "remove:Tomato->CounterTop[437,0]"
+  ],
+  "08552": [
+   "add:Bowl->Bed[0,515]",
+   "remove:Pillow->Bed[970,0]",
+   "remove:BasketBall->Bed[944,0]"
+  ],
+  "08905": [
+   "remove:Cup->DiningTable[462,0]",
+   "remove:CellPhone->DiningTable[279,0]",
+   "add:PaperTowelRo->DiningTable[0,308]",
+   "move:Book->SideTable[263,374]",
+   "remove:Bowl->DiningTable[644,0]"
+  ],
+  "09423": [
+   "remove:CellPhone->DiningTable[305,0]",
+   "remove:Candle->DiningTable[349,0]"
+  ],
+  "09488": [
+   "add:Lettuce->SideTable[0,768]",
+   "add:AlarmClock->GarbageCan[0,234]"
+  ]
+ }
+}
