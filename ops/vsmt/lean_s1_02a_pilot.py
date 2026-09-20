@@ -367,14 +367,21 @@ def _apply_interventions(controller: Any, rows: list[dict[str, Any]], spawn_poin
         kind = row["kind"]
         tries = 1
         if kind == "remove":
-            ev = controller.step(action="RemoveFromScene", objectId=row["object_id"])
+            # RemoveFromScene hangs Unity in Procedural scenes (NullReferenceException while generating
+            # metadata; reproduced on a fresh controller, LOG-236).  DisableObject deactivates the
+            # GameObject: 0 px in instance segmentation, no collider, still listed in simulator
+            # metadata with visible=false.  Private frame records are built from instance masks,
+            # so a disabled object never appears in them.
+            ev = controller.step(action="DisableObject", objectId=row["object_id"])
         elif kind == "move":
             ev, tries = _place(controller, "PlaceObjectAtPoint", spawn_points[row["destination"]], objectId=row["object_id"])
         else:
             ev, tries = _place(controller, "SpawnAsset", spawn_points[row["destination"]], assetId=row["asset_id"],
                                generatedId=row["generated_id"], rotation={"x": 0, "y": 0, "z": 0})
         ok = ev.metadata.get("lastActionSuccess") is True
-        log.append({**row, "executed": ok, "placement_tries": tries, "error": (ev.metadata.get("errorMessage") or "")[:300]})
+        log.append({**row, "executed": ok, "placement_tries": tries,
+                    "executor": {"remove": "DisableObject", "move": "PlaceObjectAtPoint", "add": "SpawnAsset"}[kind],
+                    "error": (ev.metadata.get("errorMessage") or "")[:300]})
         if not ok:
             raise PilotFailure("intervention_execution_failed", f"{kind} {row['object_id']}: {ev.metadata.get('errorMessage')}")
     return log
