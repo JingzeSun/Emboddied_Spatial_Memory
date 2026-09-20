@@ -40,7 +40,7 @@ from vsmt.lean_memory import (  # noqa: E402
 )
 
 
-CONTRACT_PATH = PROJECT_ROOT / "configs" / "vsmt" / "lean_s0_entity_memory_v1.json"
+CONTRACT_PATH = PROJECT_ROOT / "configs" / "vsmt" / "lean_s0_entity_memory_v2.json"
 
 METHOD_ID = "vsmt.lean.test.v1"
 DORMANCY_LIMIT = 2
@@ -559,9 +559,95 @@ class TestFrameDelta(unittest.TestCase):
         self.assertEqual(str(caught.exception), "frame_delta_tick_not_found")
 
 
+class TestVersionOpenedBy(unittest.TestCase):
+    """D-224-X ruling X6: every version says why it was opened."""
+
+    def test_each_atom_and_maintenance_step_stamps_its_opened_by(self) -> None:
+        from vsmt.lean_memory import VERSION_OPENED_BY, VERSION_OPENED_BY_STATE
+
+        self.assertEqual(VERSION_OPENED_BY, ("birth", "bind", "reactivate", "retract", "dormant", "dedup"))
+        memory, entity_id = born_memory()
+        self.assertEqual([v["opened_by"] for v in only_entity(memory)["versions"]], ["birth"])
+        bound = commit(memory, "f2", [{"atom": "BIND", "entity_id": entity_id, "fragment": fragment(
+            "region:0001", descriptor=[1.0, 0.0], centroid=[0.0, 0.0, 0.0],
+        )}])
+        self.assertEqual([v["opened_by"] for v in only_entity(bound)["versions"]], ["birth", "bind"])
+        retracted = commit(bound, "f3", [{"atom": "RETRACT", "entity_id": entity_id}])
+        self.assertEqual(only_entity(retracted)["versions"][-1]["opened_by"], "retract")
+        self.assertEqual(only_entity(retracted)["versions"][-1]["state"], "retracted")
+        revived = commit(retracted, "f4", [{"atom": "REACTIVATE", "entity_id": entity_id, "fragment": fragment(
+            "region:0002", descriptor=[1.0, 0.0], centroid=[2.0, 0.0, 0.0],
+        )}])
+        self.assertEqual(only_entity(revived)["versions"][-1]["opened_by"], "reactivate")
+        dormant = revived
+        for seed in ("f5", "f6"):
+            dormant = commit(dormant, seed, [{"atom": "NOOP", "entity_id": entity_id}])
+        self.assertEqual(only_entity(dormant)["state"], "dormant")
+        self.assertEqual(only_entity(dormant)["versions"][-1]["opened_by"], "dormant")
+        for version in only_entity(dormant)["versions"]:
+            self.assertEqual(version["state"], VERSION_OPENED_BY_STATE[version["opened_by"]])
+
+    def test_dedup_opens_a_dedup_version_and_archives_the_folded_id(self) -> None:
+        base = commit(
+            empty_memory(episode_id="ep-0003"), "f1",
+            [
+                {"atom": "BIRTH", "fragment": fragment("region:0000", descriptor=[1.0, 0.0], centroid=[0.0, 0.0, 0.0])},
+                {"atom": "BIRTH", "fragment": fragment("region:0001", descriptor=[1.0, 0.001], centroid=[0.05, 0.0, 0.0])},
+            ],
+        )
+        folded_id = sorted(str(item["entity_id"]) for item in base["entities"])[1]
+        merged = commit(base, "f2", [], dedup=DEDUP)
+        entity = only_entity(merged)
+        self.assertEqual(entity["versions"][-1]["opened_by"], "dedup")
+        self.assertEqual(entity["canonical_of"], [folded_id])
+        self.assertEqual(len(entity["evidence"]), 2)
+        self.assertEqual(merged["transaction_log"][-1]["post_maintenance"]["dedup"][0]["folded_entity_id"], folded_id)
+
+    def test_a_version_whose_opened_by_disagrees_with_its_state_is_rejected(self) -> None:
+        memory, entity_id = born_memory()
+        tampered = json.loads(json.dumps(memory))
+        tampered["entities"][0]["versions"][0]["opened_by"] = "retract"
+        with self.assertRaises(LeanMemoryError) as caught:
+            validate_memory(tampered, verify_digest=False)
+        self.assertEqual(str(caught.exception), "version_state_disagrees_with_opened_by")
+        tampered = json.loads(json.dumps(memory))
+        tampered["entities"][0]["versions"][0]["opened_by"] = "bind"
+        with self.assertRaises(LeanMemoryError) as caught:
+            validate_memory(tampered, verify_digest=False)
+        self.assertEqual(str(caught.exception), "entity_first_version_not_birth")
+        tampered = json.loads(json.dumps(memory))
+        del tampered["entities"][0]["versions"][0]["opened_by"]
+        with self.assertRaises(LeanMemoryError) as caught:
+            validate_memory(tampered, verify_digest=False)
+        self.assertEqual(str(caught.exception), "version_fields_invalid")
+
+
 class TestMachineContract(unittest.TestCase):
     def setUp(self) -> None:
         self.contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+
+    def test_the_v2_claims_are_bound(self) -> None:
+        self.assertEqual(self.contract["schema_version"], "vsmt-lean-s0-entity-memory-v2")
+        self.assertTrue(self.contract["supersedes_contract"]["v1_bytes_frozen"])
+        for path, code in (
+            (("version_record", "opened_by_values"), "contract_version_opened_by_values_mismatch"),
+            (("shared_dedup", "folded_record_is_archived_into_canonical_of_not_deleted"), "contract_dedup_fold_semantics_weakened"),
+            (("state_machine", "physical_deletion_allowed"), "contract_physical_deletion_claim_weakened"),
+        ):
+            broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+            node = broken
+            for part in path[:-1]:
+                node = node[part]
+            value = node[path[-1]]
+            node[path[-1]] = (not value) if isinstance(value, bool) else list(value)[:-1]
+            with self.assertRaises(LeanMemoryError) as caught:
+                validate_entity_memory_contract(broken)
+            self.assertEqual(str(caught.exception), code)
+        broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        broken["version_record"]["fields"].remove("opened_by")
+        with self.assertRaises(LeanMemoryError) as caught:
+            validate_entity_memory_contract(broken)
+        self.assertEqual(str(caught.exception), "contract_version_record_lacks_opened_by")
 
     def test_contract_agrees_with_the_implementation(self) -> None:
         validate_entity_memory_contract(self.contract)

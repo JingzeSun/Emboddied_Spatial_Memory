@@ -1,0 +1,300 @@
+{
+  "schema_version": "vsmt-lean-s0-entity-memory-v2",
+  "decision_id": "D-224",
+  "stage_id": "S0-01",
+  "status": "v2_pending_user_code_review",
+  "plain_language_zh": "本合同定义 VSMT-lean 的实体记忆怎样被合法修改并留底。输入是一份旧记忆和本帧程序，输出是新记忆、逐实体版本链与本帧审计；任何一步非法则整帧回滚，旧记忆逐字节不变。例如 REACTIVATE 一个仍然活动的实体是非法的，整帧不生效。它不定义关联怎么算（S0-03）、标签怎么来（S0-04）或对照臂参数（S0-05）。",
+  "pure_core_relative_path": "src/vsmt/lean_memory.py",
+  "supersedes": {
+    "note_zh": "本合同取代 D-210～D-213 的地点/统一四类图/类型门记忆合同在首篇中的地位；被取代的合同与代码原样保留，仅作历史与复用来源。",
+    "superseded_contracts": [
+      "configs/vsmt/vm04_d210_dual_layer_p0_v1.json",
+      "configs/vsmt/vm04_d213_unified_typed_graph_v1.json"
+    ],
+    "not_imported_by_any_current_entry": [
+      "vsmt.graph_ops.GraphRevision",
+      "vsmt.public_candidates",
+      "vsmt.d210_place_memory",
+      "vsmt.d213_unified_graph"
+    ]
+  },
+  "authorization": {
+    "data_generation": false,
+    "frontend_cache_generation": false,
+    "model_training": false,
+    "private_evaluation": false,
+    "server_run": false
+  },
+  "atoms": [
+    "NOOP",
+    "BIND",
+    "BIRTH",
+    "RETRACT",
+    "REACTIVATE"
+  ],
+  "composites": [
+    "REPLACE"
+  ],
+  "composite_definition": {
+    "REPLACE": {
+      "expands_to": [
+        "RETRACT",
+        "BIRTH"
+      ],
+      "is_sixth_atom": false,
+      "both_halves_must_be_legal": true,
+      "plain_language_zh": "REPLACE 是同一帧内先关闭旧实体、再从当前 fragment 新建实体的复合程序；两半都合法才允许，不计作第六个原子。"
+    }
+  },
+  "entity_states": [
+    "active",
+    "dormant",
+    "retracted"
+  ],
+  "state_machine": {
+    "allowed_atoms_by_state": {
+      "active": [
+        "NOOP",
+        "BIND",
+        "RETRACT"
+      ],
+      "dormant": [
+        "NOOP",
+        "RETRACT",
+        "REACTIVATE"
+      ],
+      "retracted": [
+        "REACTIVATE"
+      ]
+    },
+    "transitions": [
+      {
+        "from": "active",
+        "to": "dormant",
+        "caused_by": "shared_dormancy_rule"
+      },
+      {
+        "from": "dormant",
+        "to": "active",
+        "caused_by": "REACTIVATE"
+      },
+      {
+        "from": "active",
+        "to": "retracted",
+        "caused_by": "RETRACT"
+      },
+      {
+        "from": "dormant",
+        "to": "retracted",
+        "caused_by": "RETRACT"
+      },
+      {
+        "from": "retracted",
+        "to": "active",
+        "caused_by": "REACTIVATE"
+      }
+    ],
+    "physical_deletion_allowed": false,
+    "plain_language_zh": "active 是当前认为存在且最近见过；dormant 是很久没看见但没有证据说它不在；retracted 是有证据说它不在原处。三种状态都保留档案，只有 NoVersion 消融才把 retracted 改成物理删除。"
+  },
+  "atom_structural_preconditions": {
+    "NOOP": [
+      "target_entity_exists",
+      "target_state_in_active_or_dormant",
+      "target_not_receiving_fragment_this_frame"
+    ],
+    "BIND": [
+      "target_entity_exists",
+      "target_state_is_active",
+      "fragment_unused_this_frame"
+    ],
+    "BIRTH": [
+      "fragment_unused_this_frame"
+    ],
+    "RETRACT": [
+      "target_entity_exists",
+      "target_state_in_active_or_dormant",
+      "target_not_receiving_fragment_this_frame"
+    ],
+    "REACTIVATE": [
+      "target_entity_exists",
+      "target_state_in_dormant_or_retracted",
+      "fragment_unused_this_frame"
+    ],
+    "executor_checks_structure_only": true,
+    "decision_layer_conditions_not_rederived_by_executor": [
+      "entity_should_have_been_visible_this_frame",
+      "existence_probability_at_or_above_tau_r"
+    ],
+    "plain_language_zh": "执行器只检查结构：实体是否存在、状态是否允许、同一帧里 fragment 与实体是否被用过两次。应可见与存在概率过门属决策层条件，由调用者写进 decision_basis 原样记入审计，执行器不重新推导，避免执行器依赖几何数据。"
+  },
+  "frame_program": {
+    "fields": [
+      "frame_digest",
+      "operations"
+    ],
+    "empty_program_is_legal": true,
+    "each_fragment_at_most_once": true,
+    "each_entity_at_most_once": true,
+    "atomic_commit": true,
+    "rollback_leaves_prior_memory_byte_identical": true,
+    "tick_increment_per_committed_program": 1,
+    "plain_language_zh": "一帧的全部原子是一笔事务：要么全部提交，要么全部不生效。例如两个 fragment 都想绑到同一个实体时整帧拒绝，调用者手里的旧记忆逐字节不变。"
+  },
+  "entity_record": {
+    "fields": [
+      "entity_id",
+      "state",
+      "canonical_of",
+      "descriptor_mean",
+      "descriptor_count",
+      "best_view_descriptor",
+      "best_view_pixel_count",
+      "centroid_m",
+      "aabb_min_m",
+      "aabb_max_m",
+      "observation_count",
+      "last_seen_tick",
+      "missed_opportunity_count",
+      "supported_by",
+      "evidence",
+      "versions"
+    ],
+    "descriptor_dimension_must_match_across_entities": true,
+    "plain_language_zh": "实体记录是记忆里唯一的节点类型：匿名 ID、状态、描述子运行均值与最佳单视角描述子、几何、观察次数、上次见到的帧号、连续错失次数、几何派生支撑面、证据引用和版本链。它不含语义类别，不含 place 或关系。"
+  },
+  "version_record": {
+    "fields": [
+      "version_id",
+      "predecessor",
+      "opened_at",
+      "closed_at",
+      "opening_transaction",
+      "closing_transaction",
+      "opened_by"
+    ],
+    "snapshot_fields": [
+      "state",
+      "centroid_m",
+      "aabb_min_m",
+      "aabb_max_m",
+      "observation_count",
+      "missed_opportunity_count",
+      "supported_by"
+    ],
+    "descriptor_in_snapshot": false,
+    "snapshot_is_as_of_version_open_and_not_resynced": true,
+    "exactly_one_open_version_per_entity": true,
+    "open_version_state_equals_entity_state": true,
+    "plain_language_zh": "版本记录只保存几何与计数在该版本打开时刻的快照，不保存描述子：审计需要知道当时记忆认为它在哪，不需要当时的外观，而 384 维向量逐版本保存会让记忆随帧数线性膨胀。快照不随后续 NOOP 同步，只有 state 与当前实体保持一致。 v2 新增 opened_by：记录这个版本是被哪一步打开的（birth/bind/reactivate/retract/dormant/dedup），并绑定该版本快照必须处于的状态。BIND 每次观察都开一个新版本，因此“历史版本数”若把 bind 也算进去就约等于观察次数；S0-04 v2 的规模指标只数 opened_by 不是 bind 的生命周期版本，而 D-224-G 的 token 字段 version_count 仍是全部版本数。",
+    "opened_by_values": [
+      "birth",
+      "bind",
+      "reactivate",
+      "retract",
+      "dormant",
+      "dedup"
+    ],
+    "opened_by_state": {
+      "birth": "active",
+      "bind": "active",
+      "reactivate": "active",
+      "retract": "retracted",
+      "dormant": "dormant",
+      "dedup": "active"
+    },
+    "first_version_is_birth": true
+  },
+  "shared_dormancy": {
+    "rule": "consecutive_missed_visible_opportunities_at_or_above_limit_moves_active_to_dormant",
+    "any_match_resets_counter_to_zero": true,
+    "identical_bytes_for_all_five_arms": true,
+    "dormancy_missed_opportunity_limit": null,
+    "plain_language_zh": "连续应可见却没匹配达到登记次数的活动实体转为 dormant，档案不删；任何一次匹配把计数清零，因此偶发漏检不会造成休眠。它不是 RETRACT，也不需要负证据。正式数值待 S1 开发集后冻结，当前为 null。"
+  },
+  "shared_dedup": {
+    "rule": "periodic_deterministic_merge_of_duplicate_active_entities",
+    "is_the_merge_atom_of_the_first_paper": true,
+    "is_a_learned_decision": false,
+    "identical_bytes_for_all_five_arms": true,
+    "canonical_selection": "earliest_first_version_opened_at_then_smallest_entity_id",
+    "pair_order": "descending_descriptor_cosine_then_two_entity_ids",
+    "period_ticks": null,
+    "descriptor_cosine_min": null,
+    "centroid_distance_max_m": null,
+    "aabb_iou_min": null,
+    "plain_language_zh": "每隔登记的帧数把外观、位置与包围盒都足够接近的一对活动实体合并成一条记录，保留较早建立的身份并保存两边证据。它是五个方法逐字节共用的确定性规则，不是学习决定；canonical 取首版本最早、并列取 ID 字典序最小，使身份连续率以最早建立的身份为准。四个数值待冻结，当前为 null。 被折叠实体的处理（裁决 X6）：它的 entity_id 进入 canonical 的 canonical_of，全部证据并入 canonical，事务日志在 post_maintenance.dedup 留底；它自己的版本链不再作为活记录保留。这叫“归档进 canonical_of”，不算物理删除历史版本：physical_deletion_allowed=false 指的是活实体的生命周期历史不删，而去重是首篇的 MERGE 原子，不是 RETRACT。",
+    "folded_record_is_archived_into_canonical_of_not_deleted": true
+  },
+  "entity_token_schema": {
+    "decision_id": "D-224-G",
+    "field_order": [
+      "entity_id",
+      "state_one_hot",
+      "descriptor",
+      "centroid_m",
+      "extent_m",
+      "observation_count",
+      "age_ticks",
+      "version_count",
+      "missed_opportunity_count",
+      "supported_by_present"
+    ],
+    "state_one_hot_order": [
+      "active",
+      "dormant",
+      "retracted"
+    ],
+    "retracted_excluded_by_default": true,
+    "frame_delta_fields": [
+      "tick",
+      "transaction_id",
+      "frame_digest",
+      "changed_entities",
+      "folded_entities",
+      "unchanged_entity_count"
+    ],
+    "carries_private_or_simulator_identifiers": false,
+    "is_a_first_paper_experimental_object": false,
+    "plain_language_zh": "实体 token 是给下游世界模型或规划器消费的定序字段行；帧级稀疏残差列出本帧哪些实体被哪个原子改动。例如对象中心世界模型只对改动过的 token 做状态转移预测，而不重算整份记忆。首篇只冻结 schema 与字段顺序，不做世界模型实验；token 不含 house ID、模拟器实例 ID、teacher 或任何私有量。"
+  },
+  "not_in_first_paper": [
+    "SPLIT",
+    "RELINK",
+    "place_node",
+    "surface_node",
+    "fragment_node",
+    "relation_edge",
+    "type_gate",
+    "bucketed_candidate_capacity",
+    "post_state_encoding",
+    "continuous_pose_belief_as_place_identity",
+    "structural_estimator_head"
+  ],
+  "policy_values_without_defaults": [
+    "dormancy_missed_opportunity_limit",
+    "shared_dedup.period_ticks",
+    "shared_dedup.descriptor_cosine_min",
+    "shared_dedup.centroid_distance_max_m",
+    "shared_dedup.aabb_iou_min"
+  ],
+  "continue_gate": {
+    "five_atoms_positive_and_negative_case_each": true,
+    "illegal_program_rolls_back_whole_frame": true,
+    "prior_memory_byte_identical_after_rollback": true,
+    "token_field_order_fixed_by_contract_and_tested": true,
+    "plain_language_zh": "S0-01 的继续门是：五个原子各有正例与反例通过、非法程序整帧回滚且旧记忆逐字节不变、token 字段顺序由本合同固定并有测试。测试通过只证明机械语义正确，不证明方法有效。"
+  },
+  "supersedes_contract": {
+    "path": "configs/vsmt/lean_s0_entity_memory_v1.json",
+    "v1_sha256": "b9d23c33a63dffcc722584ac9d3db700bfe3bbfc054f90390e505775292d8220",
+    "v1_bytes_frozen": true,
+    "note_zh": "v1 已于 2026-09-19 经用户审查通过（D-224-HIJ），字节冻结不改；v2 按 D-224-X 裁决 X6 给版本记录加 opened_by 字段并写明共享去重对被折叠记录的处理，原子、状态机、帧程序、token schema 与继续门逐字不变。"
+  },
+  "user_rulings": {
+    "decision_id": "D-224-X",
+    "X6_version_opened_by": "every version records why it was opened; bind versions are excluded from the S0-04 size metric",
+    "X6_dedup_fold": "a folded duplicate is archived into canonical_of with all its evidence; this is the shared MERGE, not a deletion of lifecycle history",
+    "plain_language_zh": "两项口径由用户于 2026-09-20 以 D-224-X 批准（裁决 X6）。"
+  }
+}

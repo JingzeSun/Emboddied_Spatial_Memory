@@ -39,8 +39,18 @@ from cpmt.hashing import canonical_json, clone_json
 from vsmt.lean_geometry import centroid_distance, cosine_similarity, opaque_id
 
 
-SCHEMA_VERSION = "vsmt-lean-entity-memory-v1"
-CONTRACT_SCHEMA_VERSION = "vsmt-lean-s0-entity-memory-v1"
+SCHEMA_VERSION = "vsmt-lean-entity-memory-v2"
+CONTRACT_SCHEMA_VERSION = "vsmt-lean-s0-entity-memory-v2"
+
+#: Why a version was opened (D-224-X ruling X6).  The value is what lets the
+#: S0-04 size metric count lifecycle versions without the BIND-per-observation
+#: versions, and what makes the chain readable in an audit.  Each value binds
+#: the state the version must snapshot.
+VERSION_OPENED_BY = ("birth", "bind", "reactivate", "retract", "dormant", "dedup")
+VERSION_OPENED_BY_STATE: dict[str, str] = {
+    "birth": "active", "bind": "active", "reactivate": "active",
+    "retract": "retracted", "dormant": "dormant", "dedup": "active",
+}
 
 #: The five atoms.  ``REPLACE`` is expanded before validation and is not here.
 ATOMS = ("NOOP", "BIND", "BIRTH", "RETRACT", "REACTIVATE")
@@ -206,10 +216,15 @@ def empty_memory(*, episode_id: str) -> dict[str, Any]:
 def _validate_version(version: Mapping[str, Any], *, entity_id: str) -> None:
     expected = {
         "version_id", "predecessor", "opened_at", "closed_at",
-        "opening_transaction", "closing_transaction",
+        "opening_transaction", "closing_transaction", "opened_by",
     } | set(VERSION_SNAPSHOT_FIELDS)
     _require(set(version.keys()) == expected, "version_fields_invalid")
     _identifier(version["version_id"], "version_id_invalid")
+    _require(version["opened_by"] in VERSION_OPENED_BY, "version_opened_by_invalid")
+    _require(
+        version["state"] == VERSION_OPENED_BY_STATE[version["opened_by"]],
+        "version_state_disagrees_with_opened_by",
+    )
     if version["predecessor"] is not None:
         _identifier(version["predecessor"], "version_predecessor_invalid")
     opened = _int(version["opened_at"], "version_opened_at_invalid", minimum=0)
@@ -309,7 +324,9 @@ def _validate_entity(entity: Mapping[str, Any], *, tick: int) -> None:
         _validate_version(version, entity_id=entity_id)
         if index == 0:
             _require(version["predecessor"] is None, "entity_first_version_has_predecessor")
+            _require(version["opened_by"] == "birth", "entity_first_version_not_birth")
         else:
+            _require(version["opened_by"] != "birth", "entity_birth_version_not_first")
             _require(
                 version["predecessor"] == previous_id,
                 "entity_version_chain_broken",
@@ -540,6 +557,7 @@ def _open_version(
         transaction_id, entity["entity_id"], purpose, len(versions),
         prefix="entity-version",
     )
+    _require(purpose in VERSION_OPENED_BY, "version_opened_by_invalid")
     version = {
         "version_id": version_id,
         "predecessor": predecessor,
@@ -547,6 +565,7 @@ def _open_version(
         "closed_at": None,
         "opening_transaction": transaction_id,
         "closing_transaction": None,
+        "opened_by": purpose,
     }
     version.update(_snapshot(entity))
     versions.append(version)
@@ -855,6 +874,16 @@ def _apply_dedup(
     记录，保留较早建立的身份并保存两边证据。它是五个方法逐字节共用的确定性规则，
     不是学习决定；canonical 取首版本最早、并列取 ID 字典序最小，使身份连续率以最早
     建立的身份为准。
+
+    What happens to the folded record (D-224-X ruling X6).  The folded
+    entity's id goes into the canonical's ``canonical_of`` and every one of
+    its evidence items is carried over, so nothing that can resolve identity
+    or feed the teacher is lost; its own version chain is not kept as a live
+    record.  The contract states this as "archived into canonical_of, not
+    deleted": it is the shared MERGE atom of the first paper, not a RETRACT,
+    and ``physical_deletion_allowed: false`` refers to lifecycle history of
+    live entities.  The transaction log keeps the fold under
+    ``post_maintenance.dedup`` for audit.
     """
 
     if dedup is None:
@@ -1098,6 +1127,26 @@ def validate_entity_memory_contract(contract: Mapping[str, Any]) -> dict[str, An
         tuple(contract["version_record"]["snapshot_fields"]) == VERSION_SNAPSHOT_FIELDS,
         "contract_version_snapshot_fields_mismatch",
     )
+    _require(
+        "opened_by" in contract["version_record"]["fields"],
+        "contract_version_record_lacks_opened_by",
+    )
+    _require(
+        tuple(contract["version_record"]["opened_by_values"]) == VERSION_OPENED_BY,
+        "contract_version_opened_by_values_mismatch",
+    )
+    _require(
+        dict(contract["version_record"]["opened_by_state"]) == VERSION_OPENED_BY_STATE,
+        "contract_version_opened_by_state_mismatch",
+    )
+    _require(
+        contract["shared_dedup"]["folded_record_is_archived_into_canonical_of_not_deleted"] is True,
+        "contract_dedup_fold_semantics_weakened",
+    )
+    _require(
+        contract["state_machine"]["physical_deletion_allowed"] is False,
+        "contract_physical_deletion_claim_weakened",
+    )
 
     allowed = contract["state_machine"]["allowed_atoms_by_state"]
     _require(
@@ -1146,6 +1195,8 @@ __all__ = [
     "LeanMemoryError",
     "SCHEMA_VERSION",
     "STATE_ALLOWED_ATOMS",
+    "VERSION_OPENED_BY",
+    "VERSION_OPENED_BY_STATE",
     "VERSION_SNAPSHOT_FIELDS",
     "apply_program",
     "empty_memory",
