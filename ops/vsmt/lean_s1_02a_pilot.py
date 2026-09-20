@@ -464,11 +464,25 @@ def _dry_run_pairs(controller: Any, candidates: list[dict[str, Any]], u_containe
                 best = max(best, px)
                 if px >= min_px:
                     found = pt; break
-            back = controller.step(action="TeleportObject", objectId=oid, position=orig_pos, rotation=orig_rot, forceAction=True)
-            now = next((x["position"] for x in back.metadata["objects"] if x["objectId"] == oid), None)
+            revert_error = ""
+            if placed_any:
+                back = controller.step(action="TeleportObject", objectId=oid, position=orig_pos, rotation=orig_rot, forceAction=True)
+                if back.metadata.get("lastActionSuccess") is not True:
+                    revert_error = (back.metadata.get("errorMessage") or "")[:200]
+                    back = controller.step(action="TeleportObject", objectId=oid, position=orig_pos, rotation=orig_rot,
+                                           forceAction=True, forceKinematic=True)
+                    controller.step(action="Pass")
+                if back.metadata.get("lastActionSuccess") is not True:
+                    # never leave an unrecorded state change behind
+                    raise PilotFailure("intervention_execution_failed",
+                                       f"dry-run revert failed for {oid}: {revert_error} / {back.metadata.get('errorMessage')}")
+                revert_ok = True
+            else:
+                revert_ok = None  # nothing was moved
+            now = next((x["position"] for x in controller.last_event.metadata["objects"] if x["objectId"] == oid), None)
             drift = (math.dist([now["x"], now["y"], now["z"]], [orig_pos["x"], orig_pos["y"], orig_pos["z"]]) if now else None)
             table.append({"object_id": oid, "destination": dst, "tries": tried, "placed_any": placed_any, "best_pixels": best,
-                          "feasible": found is not None, "revert_ok": back.metadata.get("lastActionSuccess") is True,
+                          "feasible": found is not None, "revert_ok": revert_ok, "revert_first_error": revert_error,
                           "revert_drift_m": None if drift is None else round(drift, 4)})
             if found is not None:
                 ok[(oid, dst)] = {"point": found, "pixels": best, "tries": tried}
