@@ -210,5 +210,44 @@ class TestBlockedEdges(unittest.TestCase):
         self.assertNotIn("MoveLeft", plan["actions"])
 
 
+class TestStratifiedSampling(unittest.TestCase):
+    """An add-dominated F, like s1-02b house 01543 (F=135, U=5)."""
+
+    def feasible(self) -> list[dict]:
+        objs = [{"object_id": f"Obj|{i}", "asset_id": "A", "pickupable": True, "parent_receptacle": "U0" if i < 3 else "V",
+                 "is_agent": False, "is_structure": False} for i in range(25)]
+        U = {"U0", "U1", "U2", "U3", "U4"}
+        ok = {c: True for c in U | {"V"}}
+        f = sel.feasible_triples(objs, sorted(U | {"V"}), U, ok)
+        kinds = {k: sum(1 for t in f if t["kind"] == k) for k in ("remove", "move", "add")}
+        self.assertEqual(kinds, {"remove": 3, "move": 12, "add": 125})
+        return f
+
+    def test_default_is_the_frozen_uniform_draw(self) -> None:
+        f = self.feasible()
+        a = sel.sample_interventions(f, split_seed=20260920, house_id="h")
+        b = sel.sample_interventions(f, split_seed=20260920, house_id="h", stratify_by_kind=False)
+        self.assertEqual(a, b)
+
+    def test_stratified_draw_mixes_kinds_and_is_deterministic(self) -> None:
+        f = self.feasible()
+        s1 = sel.sample_interventions(f, split_seed=20260920, house_id="h", stratify_by_kind=True)
+        s2 = sel.sample_interventions(f, split_seed=20260920, house_id="h", stratify_by_kind=True)
+        self.assertEqual(s1, s2)
+        self.assertEqual(len(s1), 6)
+        self.assertEqual(len({r["object_id"] for r in s1}), 6)
+        self.assertGreaterEqual(len({r["kind"] for r in s1}), 2)
+        # over many houses, add is no longer nine tenths of the draws
+        kinds = [r["kind"] for h in range(60) for r in sel.sample_interventions(f, split_seed=1, house_id=f"h{h}", stratify_by_kind=True)]
+        self.assertLess(kinds.count("add") / len(kinds), 0.6)
+        uniform = [r["kind"] for h in range(60) for r in sel.sample_interventions(f, split_seed=1, house_id=f"h{h}")]
+        self.assertGreater(uniform.count("add") / len(uniform), 0.8)
+
+    def test_stratified_draw_never_invents_a_kind(self) -> None:
+        f = [t for t in self.feasible() if t["kind"] == "add"]
+        s = sel.sample_interventions(f, split_seed=3, house_id="h", stratify_by_kind=True)
+        self.assertEqual({r["kind"] for r in s}, {"add"})
+
+
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()

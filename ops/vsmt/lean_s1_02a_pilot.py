@@ -393,7 +393,8 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
     receipt: dict[str, Any] = {"house_id": house_id, "source_index": index, "code_commit": task["commit"]}
     replan_on = bool(task.get("replan_blocked_edges", False))
     placement_tries = int(task.get("placement_tries", 1))
-    receipt["options"] = {"replan_blocked_edges": replan_on, "placement_tries": placement_tries}
+    receipt["options"] = {"replan_blocked_edges": replan_on, "placement_tries": placement_tries,
+                          "stratify_by_kind": bool(task.get("stratify_by_kind", False))}
     controller = None
     try:
         house = house_loader.load_source_record(task["source_root"], {"relative_path": task["source_rel"], "index": index})
@@ -482,7 +483,8 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
             feasible = sel.feasible_triples(eligible, list(usable), invisible, ok)
             if not feasible:
                 raise PilotFailure("intervention_window_unavailable", f"feasible set empty; U={len(invisible)} eligible={len(eligible)}")
-            interventions = sel.sample_interventions(feasible, split_seed=task["split_seed"], house_id=house_id)
+            interventions = sel.sample_interventions(feasible, split_seed=task["split_seed"], house_id=house_id,
+                                                     stratify_by_kind=bool(task.get("stratify_by_kind", False)))
             feasible_by_kind: dict[str, int] = {}
             for row in feasible:
                 feasible_by_kind[row["kind"]] = feasible_by_kind.get(row["kind"], 0) + 1
@@ -587,6 +589,8 @@ def main() -> int:
                     help="R1 refinement (needs a ruling): on a rejected MoveAhead, block that edge and replan the rest")
     ap.add_argument("--placement-tries", type=int, default=1,
                     help="move/add: try up to N prescreened spawn points in order (1 = current behaviour)")
+    ap.add_argument("--stratify-by-kind", action="store_true",
+                    help="I1 refinement (ruling 29, needs a ruling): draw the kind first, then the triple")
     args = ap.parse_args()
     if args.stage == "s1-02b":
         return main_s1_02b(args)
@@ -604,7 +608,7 @@ def main() -> int:
     (out_root / "plan.json").write_text(json.dumps({"selected": selected, "split": freeze, "commit": commit, "pool_size": len(pool)}, indent=1))
     tasks = [{"house_id": h, "index": int(h.rsplit("-", 1)[1]), "out": str(out_root / h), "source_root": str(source.parent),
               "source_rel": source.name, "split_seed": freeze["seed"], "commit": commit,
-              "replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries} for h in selected]
+              "replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries, "stratify_by_kind": args.stratify_by_kind} for h in selected]
     base_vram = float(subprocess.run(["nvidia-smi", "--query-gpu=memory.used", "--format=csv,noheader,nounits"], capture_output=True, text=True).stdout.strip().split("\n")[0])
     stop, q = mp.Event(), mp.Queue()
     sampler = mp.Process(target=_vram_peak_sampler, args=(stop, q), daemon=True); sampler.start()
@@ -736,7 +740,7 @@ def main_s1_02b(args: argparse.Namespace) -> int:
                                                     "commit": commit}, indent=1))
     tasks = [{"house_id": h, "index": int(h.rsplit("-", 1)[1]), "out": str(out_root / h), "source_root": str(source.parent),
               "source_rel": source.name, "split_seed": freeze["seed"], "commit": commit,
-              "replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries} for h in houses]
+              "replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries, "stratify_by_kind": args.stratify_by_kind} for h in houses]
     prior: list[dict[str, Any]] = []
     if args.resume:
         pending = []
@@ -769,7 +773,7 @@ def main_s1_02b(args: argparse.Namespace) -> int:
         "null_window_episodes": len(results) - len(non_null), "yield_house_level_non_null": yield_rate,
         "yield_gate": s1_01 and json.loads(CONTRACT_S0_02.read_text(encoding="utf-8"))["intervention_window"]["minimum_yield"],
         "yield_gate_passed": (yield_rate is not None and yield_rate >= 0.6),
-        "options": {"replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries},
+        "options": {"replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries, "stratify_by_kind": args.stratify_by_kind},
         "requested_workers": workers, "actual_workers": workers, "derived_worker_count": scale["worker_count"],
         "binding_constraint": scale["binding_constraint"], "concurrency_verified_at": scale["concurrency_verified_at"],
         "is_extrapolation": scale["is_extrapolation"], "wall_clock_seconds": round(wall, 1),
