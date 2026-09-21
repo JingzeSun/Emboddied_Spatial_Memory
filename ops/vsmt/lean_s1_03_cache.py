@@ -88,6 +88,32 @@ class CacheFailure(Exception):
         self.reason, self.detail = reason, detail
 
 
+def blocking_null_slots(contract: dict[str, Any]) -> list[str]:
+    """Registered values that are still null and that this stage would consume.
+
+    Ruling 42 left the five ``supported_by`` thresholds null on purpose: the cache writes the field
+    as null by construction (``build_fragment`` never receives a value) and nothing in this stage
+    reads them, so they do not block generation while the contract records the field as null
+    until frozen.  Any other null registered value still refuses the run.
+
+    白话：合同里登记为待冻结的值，只有本阶段真的要用到的才能拦住生成；`supported_by` 的五个
+    阈值按裁决 42 留 null、字段写 null，不拦。别的 null 值照旧拒绝。
+    """
+
+    rule = contract["supported_by_rule"]
+    exempt_prefix = "supported_by_rule.value_slots."
+    exempt = rule.get("recorded_as_null_until_the_thresholds_are_frozen") is True \
+        and rule.get("enters_association_features") is False
+    blocking = []
+    for slot in contract["policy_values_without_defaults"]:
+        node: Any = contract
+        for part in slot.split("."):
+            node = node[part]
+        if node is None and not (exempt and slot.startswith(exempt_prefix)):
+            blocking.append(slot)
+    return blocking
+
+
 # --------------------------------------------------------------------------
 # frozen configuration, read from the bound D-223 contract rather than retyped
 # --------------------------------------------------------------------------
@@ -550,13 +576,10 @@ def main() -> int:
     if closed:
         print(f"authorization bits closed, refusing: {', '.join(closed)}")
         return 2
-    for slot in contract["policy_values_without_defaults"]:
-        node = contract
-        for part in slot.split("."):
-            node = node[part]
-        if node is None:
-            print(f"registered value still null, refusing: {slot}")
-            return 2
+    blocking = blocking_null_slots(contract)
+    if blocking:
+        print(f"registered value still null and consumed by this stage, refusing: {', '.join(blocking)}")
+        return 2
 
     frontend = frozen_frontend()
     assets = json.loads(Path(args.assets_json).read_text(encoding="utf-8"))

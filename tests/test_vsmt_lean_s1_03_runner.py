@@ -61,6 +61,33 @@ class CameraForwardTests(unittest.TestCase):
         self.assertEqual(runner.camera_forward([0.0, 0.0, 0.0, 1.0 + 1e-7]), [0.0, 0.0, 1.0])
 
 
+class RegisteredNullSlotTests(unittest.TestCase):
+    """Ruling 42: the supported_by thresholds stay null and do not block generation; any other
+    null registered value, or the same slots once the contract stops recording the field as
+    null-until-frozen, still refuses the run."""
+
+    def setUp(self) -> None:
+        self.contract = json.loads(runner.CONTRACT_PATH.read_text(encoding="utf-8"))
+
+    def test_the_live_contract_has_no_blocking_null_value(self) -> None:
+        self.assertEqual(runner.blocking_null_slots(self.contract), [])
+        self.assertEqual(len(self.contract["policy_values_without_defaults"]), 5)
+
+    def test_the_exemption_rests_on_the_recorded_null_rule(self) -> None:
+        self.contract["supported_by_rule"]["recorded_as_null_until_the_thresholds_are_frozen"] = False
+        self.assertEqual(runner.blocking_null_slots(self.contract),
+                         self.contract["policy_values_without_defaults"])
+
+    def test_a_threshold_that_entered_the_features_would_block(self) -> None:
+        self.contract["supported_by_rule"]["enters_association_features"] = True
+        self.assertEqual(len(runner.blocking_null_slots(self.contract)), 5)
+
+    def test_any_other_null_registered_value_blocks(self) -> None:
+        self.contract["volumes"]["free_space_reliability_gate_rho_free"] = None
+        self.contract["policy_values_without_defaults"].append("volumes.free_space_reliability_gate_rho_free")
+        self.assertEqual(runner.blocking_null_slots(self.contract), ["volumes.free_space_reliability_gate_rho_free"])
+
+
 class AssetVerificationTests(unittest.TestCase):
     """A repository at the wrong commit or a checkpoint with the wrong digest is refused before
     any model is built; the digests the frames carry come from the bytes on disk."""
