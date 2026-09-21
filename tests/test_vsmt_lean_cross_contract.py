@@ -32,7 +32,8 @@ if str(SRC_ROOT) not in sys.path:
 from cpmt.hashing import canonical_json  # noqa: E402
 
 from vsmt import (  # noqa: E402
-    lean_arms, lean_assets, lean_assignment, lean_intervention, lean_memory,
+    lean_arms, lean_assets, lean_assignment, lean_frontend_cache, lean_intervention,
+    lean_memory,
     lean_pilot, lean_teacher,
 )
 
@@ -131,6 +132,7 @@ FROZEN_V1_NAME = {
     "S0-05": "lean_s0_arms_v1.json",
     "S1-01": "lean_s1_assets_capacity_v1.json",
     "S1-02a": "lean_s1_02a_pilot_v1.json",
+    "S1-03": "lean_s1_03_frontend_cache_v1.json",
 }
 
 #: Live contract per stage, including the two S1 contracts.
@@ -142,6 +144,7 @@ LIVE_CONTRACT = {
     "S0-05": "lean_s0_arms_v2.json",
     "S1-01": "lean_s1_assets_capacity_v2.json",
     "S1-02a": "lean_s1_02a_pilot_v2.json",
+    "S1-03": "lean_s1_03_frontend_cache_v1.json",
 }
 
 
@@ -274,6 +277,7 @@ FROZEN_RULE_SHA256 = {
     "S0-05": "c5354b1e71936d345823630b6533b03329435de104e258785fdb89e17934c54a",
     "S1-01": "4f139e631388c05e4006fd12ffad8b611d2e7811fb7f9a830ce9f7c63fdecd84",
     "S1-02a": "997cabe5105ca304269b0d8d9dd34038ff096df7a79c875c577a2629866ccc64",
+    "S1-03": "577f62ba044743a208127dc220a508b8ca055069136d9ecf702aa98f5d604ff2",
 }
 
 #: Every registered slot that has been frozen, and the value it froze at.
@@ -310,6 +314,52 @@ SUPERSEDED_VALUES: dict[str, dict[str, list[dict[str, Any]]]] = {
         ],
     },
 }
+
+
+class TestS103BindsTheFrozenFrontend(unittest.TestCase):
+    """S1-03 must reuse the frozen frontend and the S0-03 field lists, not restate them by hand."""
+
+    def setUp(self) -> None:
+        self.s1_03 = load_stage("S1-03")
+
+    def test_it_passes_its_own_validator_and_names_its_stage(self) -> None:
+        checked = lean_frontend_cache.validate_contract(self.s1_03)
+        self.assertEqual(checked["stage_id"], "S1-03")
+
+    def test_the_view_it_produces_is_exactly_what_s0_03_validates(self) -> None:
+        self.assertEqual(tuple(self.s1_03["assignment_view"]["produces"]),
+                         lean_assignment.CACHE_FRAME_FIELDS)
+        self.assertEqual(tuple(self.s1_03["assignment_view"]["fragment_fields"]),
+                         ("fragment_id", "descriptor", "centroid_m", "aabb_min_m",
+                          "aabb_max_m", "pixel_count", "depth_valid_ratio", "supported_by"))
+
+    def test_the_cache_never_stores_the_per_arm_entity_geometry(self) -> None:
+        self.assertNotIn("entity_geometry", self.s1_03["cache_frame_fields"])
+        self.assertTrue(self.s1_03["assignment_view"]
+                        ["entity_geometry_is_injected_by_the_s2_runner_not_stored"])
+        self.assertEqual(tuple(load_stage("S0-03")["entity_geometry_fields"]),
+                         lean_assignment.ENTITY_GEOMETRY_FIELDS)
+
+    def test_the_descriptor_sets_are_the_assets_s1_01_registered(self) -> None:
+        registry = {row["asset_id"]: row for row in load_stage("S1-01")["asset_registry"]}
+        for key in ("primary", "optional_upgrade"):
+            asset_id = self.s1_03["descriptor_sets"][key]["asset_id"]
+            self.assertIn(asset_id, registry, key)
+            self.assertEqual(registry[asset_id]["required_by"], "S1-03")
+
+    def test_the_sam_assets_it_binds_are_the_ones_s1_01_registered(self) -> None:
+        registry = {row["asset_id"]: row for row in load_stage("S1-01")["asset_registry"]}
+        bound = self.s1_03["bound_frozen_frontend"]
+        self.assertEqual(registry["sam2_checkpoint"]["sha256"], bound["sam2_checkpoint_sha256"])
+        self.assertEqual(registry["sam2_repository"]["pinned_ref"], bound["sam2_repository_commit"])
+
+    def test_it_holds_no_authorization_and_leaves_its_unfrozen_values_open(self) -> None:
+        self.assertTrue(all(value is False for value in self.s1_03["authorization"].values()))
+        for slot in self.s1_03["policy_values_without_defaults"]:
+            node = self.s1_03
+            for part in slot.split("."):
+                node = node[part]
+            self.assertIsNone(node, slot)
 
 
 class TestSupersededValues(unittest.TestCase):
