@@ -63,7 +63,7 @@ VSMT-lean 解决的问题是：机器人在多视角历史中重访时，对象�
 
 | 部件 | 规格 | 输出 |
 |---|---|---|
-| Proposal | SAM 2.1 Hiera Small automatic mask，D-215 登记的 17 个参数原样；每帧 ≥196 像素、≤64 个 proposal，第 65 个即整帧 construction failure | 匿名 `fragment` mask |
+| Proposal | SAM 2.1 Hiera Small automatic mask，D-215 登记的 17 个参数中 15 个原样，`box_nms_thresh` 与 `crop_nms_thresh` 由 D-224-S1 裁决 43 按引用取代为 0.7（D-215 冻结的 1.0 等于关闭 NMS，实测每帧约 500 个 mask、9/9 帧超 64 上限，两条规则在真实帧上无解；生效配置与摘要见 S1-03 合同）；每帧 ≥196 像素、≤64 个 proposal，第 65 个即整帧 construction failure | 匿名 `fragment` mask |
 | 描述子 | DINOv2 ViT-S/14（无 registers，384 维）mask 内 patch token 均值、L2 归一化；S1 同时提取 ViT-B/14（768 维）作为唯一可选升级，只按开发集分离度选一次并在 S3 前冻结；DINOv3 因许可证未核对不作默认 | 逐 fragment 向量 |
 | 几何 | depth＋内参＋因果 episode-relative 位姿 → fragment 三维点、质心、AABB、像素数、深度有效率 | 逐 fragment 几何 |
 | 自由空间 | 可靠深度射线穿过的体素集合，可靠性门 `ρ_free`（null） | 逐帧体积 |

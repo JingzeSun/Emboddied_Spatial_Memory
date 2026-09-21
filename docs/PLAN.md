@@ -133,13 +133,13 @@ S4 论文
 
 | 项 | 内容 |
 |---|---|
-| 状态 | **已实现待审，无任何授权**（合同 [`lean_s1_03_frontend_cache_v1.json`](../configs/vsmt/lean_s1_03_frontend_cache_v1.json)、纯核心 [`lean_frontend_cache.py`](../src/vsmt/lean_frontend_cache.py)、测试 36 项、runner [`lean_s1_03_cache.py`](../ops/vsmt/lean_s1_03_cache.py)；五个授权位全 false，两项登记值仍为 null，runner 在两者任一未解决时拒绝运行） |
+| 状态 | **已审、已授权、待生成**（合同 [`lean_s1_03_frontend_cache_v1.json`](../configs/vsmt/lean_s1_03_frontend_cache_v1.json)、纯核心 [`lean_frontend_cache.py`](../src/vsmt/lean_frontend_cache.py)、测试 45 项、runner [`lean_s1_03_cache.py`](../ops/vsmt/lean_s1_03_cache.py)）。2026-09-22 裁决 42：`ρ_free` 登记为已被 D-223 自由空间配置蕴含（隐含 1.0，三条代码依据）、`supported_by` 维持 null、五个授权位在 `activation_policy` 具名打开；裁决 43：D-215 的 box/crop NMS 阈值 1.0 → 0.7 按引用取代（D-215 字节未改，生效配置与摘要登记在 S1-03 合同），因为冻结配置在真实帧上每帧约 500 个 mask、9/9 帧超 64 上限。资产四项摘要核验一致，ViT-B/14 已按登记下载核验，`sam2` 包已从钉死仓库安装。运行见 LOG-240 |
 | 输入 | S1-02b public 面、S1-01 资产；前端参数**全部按引用绑定** D-215 与 D-223（`frontend_config_sha256` = `f1fb5839…`），本阶段不新定义任何前端参数 |
 | 完整动作 | 跑 F-01 reader 生成 fragment、几何、自由空间、可见体积；同时提取 ViT-S/14 与 ViT-B/14 两套描述子；写逐帧与逐 episode 封印 |
 | 输出 | 50 条 cache、fragment 成品率、每帧 proposal 数分布（含贴着 64 上限的那一档） |
 | 继续门 | 任一帧 proposal 溢出即该 episode construction failure；每帧投影出的视图必须通过 S0-03 的 `validate_cache_frame`；包围盒与冻结 `extent_m` 完全一致；cache 不含任何私有派生量 |
 
-**实现时发现的两处、都已登记为待冻结值，`cache_generation` 授权前必须解决：**
+**实现时发现的两处，已由裁决 42 解决（见 DECISIONS）；另一处由裁决 43 解决——冻结的 SAM 生成器配置关闭了 NMS，与 64 上限在真实帧上无解，两个 NMS 阈值按引用取代为 0.7。以下保留当时的记录：**
 
 1. **`ρ_free`（自由空间可靠性门）在 METHOD 里是 null。** 它可能已被 D-223 已冻结的自由空间配置（最小深度、近轴深度、表面余量、最大轴向深度、最小纵向厚度）完全蕴含，也可能需要一个独立的门。二选一：冻结一个数，或登记「已被 D-223 配置蕴含」并说明依据。**不得在 runner 里默默取默认值**——runner 现在会因为它是 null 而直接拒绝运行。
 2. **`supported_by` 的五个几何阈值从未被任何合同冻结过。** D-215、D-223 与全部 lean 合同里都没有这五个值，而实现 `materialize_public_relations` 需要它们。好在 D-224 裁决 B 把关联特征改成了纯几何的 `support_height_difference_m`，**没有任何特征读 `supported_by`**，S0-03 的校验器也明确允许它为 null。因此本阶段把字段写 null 并把五个阈值登记为待冻结；这不阻塞 S1-04、S1-05 或 S2。
