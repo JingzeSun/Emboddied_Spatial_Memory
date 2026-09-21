@@ -47,6 +47,60 @@
     "no_parameter_of_the_frozen_frontend_is_redefined_here": true,
     "plain_language_zh": "前端的每一个数值都已由 D-215 与 D-223 冻结，本合同只把它们的摘要抄在这里，让「取资产」这一步不可能悄悄指向另一个 commit、另一份配置或另一个 checkpoint。本合同不新定义任何前端参数。"
   },
+  "sam2_nms_supersession": {
+    "ruling": "D-224-S1 ruling 43",
+    "on": "2026-09-22",
+    "d215_clauses_replaced": [
+      "sam2.automatic_mask_generator.box_nms_thresh",
+      "sam2.automatic_mask_generator.crop_nms_thresh"
+    ],
+    "from": {
+      "box_nms_thresh": 1.0,
+      "crop_nms_thresh": 1.0
+    },
+    "to": {
+      "box_nms_thresh": 0.7,
+      "crop_nms_thresh": 0.7
+    },
+    "every_other_generator_argument_unchanged": true,
+    "predecessor_bytes_must_not_change": true,
+    "supersession_is_by_reference_not_by_rewrite": true,
+    "precedent": "D-219 and D-224 superseded D-215 clauses by reference for the same structural reason and never rewrote it",
+    "effective_automatic_mask_generator": {
+      "points_per_side": 32,
+      "points_per_batch": 64,
+      "pred_iou_thresh": 0.8,
+      "stability_score_thresh": 0.95,
+      "stability_score_offset": 1.0,
+      "box_nms_thresh": 0.7,
+      "crop_n_layers": 0,
+      "crop_nms_thresh": 0.7,
+      "min_mask_region_area": 0,
+      "output_mode": "binary_mask"
+    },
+    "effective_automatic_mask_and_boundary_config_sha256": "c56fb6252a1c8b49e62b10270cb1320789bebd8346c87a68c2279ebffe1847c8",
+    "effective_digest_formula": "vsmt.d215_frontend_freeze._derived_digests over {automatic_mask_generator: effective, proposal_boundary: D-215 unchanged}",
+    "effective_overlap_policy": "independent_overlapping_proposals_preserved_up_to_box_iou_0.7",
+    "evidence": {
+      "frames_probed": 9,
+      "frozen": {
+        "masks_per_frame": 512,
+        "distinct_per_frame": 479,
+        "exact_duplicates": 291,
+        "frames_over_the_cap_of_64": "9/9",
+        "seconds_per_frame": 6.9
+      },
+      "effective": {
+        "masks_per_frame": 10,
+        "distinct_per_frame": 10,
+        "exact_duplicates": 0,
+        "frames_over_the_cap_of_64": "0/9",
+        "seconds_per_frame": 1.3
+      }
+    },
+    "reason_zh": "D-215 把 box_nms_thresh 与 crop_nms_thresh 都冻结为 1.0，等于关闭 NMS；同一份合同又规定每帧至多 64 个提案、溢出与重复即构造失败。9 帧实测：无 NMS 时每帧 512 个 mask、去重后 479 个、其中 291 个逐字节重复、9/9 帧溢出——两条规则在真实帧上无解，S1-03 会全部构造失败。NMS 0.7 后每帧中位 9、最大 17，重复归零。被压制的几乎全是同一物体的近重复，而不是 D-215 想保护的「不同但重叠的物体」。",
+    "plain_language_zh": "裁决 43（2026-09-22）：只改 SAM 自动分割的两个 NMS 阈值（1.0 → 0.7），其余 15 个参数原样。D-215 的文件一个字节不动——它的整文件摘要被 D-216/D-218/D-219/D-223/D-224 钉着，链上的规则是「按引用取代、不改写前驱」。本合同登记被取代的两条、生效的完整配置及其摘要（用 D-215 自己的公式算，可与冻结摘要并排比对）；runner 只按生效配置建生成器，加载前核对摘要。"
+  },
   "proposal_rule": {
     "source": "sam2_automatic_mask_generator_fixed_grid",
     "prompt_policy": "fixed_grid_only_no_text_no_private_points_or_boxes",
@@ -280,7 +334,8 @@
   "user_rulings": {
     "decision_id": "D-224-S1",
     "rulings": [
-      "D-224-S1 裁决 42（2026-09-22 批准，原话「ρ_free 登记为已被 D-223 自由空间配置蕴含；supported_by 维持 null；S1-03 代码审过，开 cache 生成授权」）：`ρ_free` 按「已被 D-223 配置蕴含、隐含取值 1.0」登记并附三条代码依据；`supported_by` 的五个阈值维持 null、字段维持 null；S1-03 五个授权位全部打开。"
+      "D-224-S1 裁决 42（2026-09-22 批准，原话「ρ_free 登记为已被 D-223 自由空间配置蕴含；supported_by 维持 null；S1-03 代码审过，开 cache 生成授权」）：`ρ_free` 按「已被 D-223 配置蕴含、隐含取值 1.0」登记并附三条代码依据；`supported_by` 的五个阈值维持 null、字段维持 null；S1-03 五个授权位全部打开。",
+      "D-224-S1 裁决 43（2026-09-22 批准，原话「裁决 43 取推荐：box_nms_thresh 与 crop_nms_thresh 改为 0.7，重钉 D-215 摘要，其余不动」）：两个 NMS 阈值 1.0 → 0.7，其余不动；按冻结链的先例以引用取代而不改写 D-215 字节，生效配置与其摘要登记在本合同 `sam2_nms_supersession`，摘要在这一层重钉。"
     ]
   }
 }
