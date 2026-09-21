@@ -1277,7 +1277,10 @@ def main_s1_02b(args: argparse.Namespace) -> int:
         print("the private salt differs from the pilot's; refusing"); return 2
     houses = block[lean_pilot.PILOT_TOTAL_HOUSES:args.development_houses]
     out_root = Path(args.output_root); out_root.mkdir(parents=True, exist_ok=True)
-    (out_root / "plan.json").write_text(json.dumps({"stage": "s1-02b", "houses": houses, "pilot_root": str(pilot_root),
+    # a resumed run must not overwrite the first run's plan (its commit, measurements and GPU are
+    # evidence); it writes its own plan file next to it
+    plan_name = f"plan.resume-{commit[:7]}.json" if (args.resume and (out_root / "plan.json").exists()) else "plan.json"
+    (out_root / plan_name).write_text(json.dumps({"stage": "s1-02b", "houses": houses, "pilot_root": str(pilot_root),
                                                     "derived": scale, "requested_workers": workers, "measurements": measurements,
                                                     "simulator_concurrency_limit_verified": verified_limit,
                                                     "simulator_concurrency_limit_assumed": occupancy["simulator_concurrency_limit"],
