@@ -3055,6 +3055,10 @@ dry-run 规模：34 个 house 共试放 1471 对，559 对可行；执行时用 
 
 修复后 dry-run 的最大放回漂移从 10.9 m 降到 7.7 mm；`113` 次需要运动学重试才回到原位；无 house 因放回失败作废；总核对发现并放回被撞动的物体 52 次。同一 house（08566）修复前后对比：F 从 16 降到 15，少掉的那一对正是"上一个物体被遗留在错位处"才显得可行的假阳性。
 
-### 十三、成本与磁盘
+### 十三、裁决 39／41 落地（2026-09-21 续）
+
+用户批准裁决 41 取 (b)、裁决 39 取 (a) m=8。规则文就地写入 S0-02 v3（`dry_run_order` 标签、`destinations_tested_per_object`=8、`feasible_set_size_is_over_tested_pairs_only`、对照比例报告），规则摘要重钉；`lean_interventions.dry_run_destinations` 按物体随机抽目的容器（4 项测试：至多 m 个、不含自己所在容器、确定性、m=0 全测、400 次抽样下各容器命中 80～190 次即均匀）；runner 新增 `--dry-run-destinations-per-object`（默认 8，0 仅复算 S1）并把 `dry_run_pairs_total` 与 `feasible_set_size_estimate` 写进 provenance；导出器新增 `controls_from_U` 与 `controls_outside_U_fraction`。S1 的 50 条不重生成。
+
+### 十四、成本与磁盘
 
 46 条按 8 worker 的墙钟 186 分钟（含停机前部分）；最慢的 house 由 dry-run 决定（01451 单条 3.2 小时，U=50）。裁决 39（dry-run 枚举上限）仍待裁，S3-01 开工前必须先裁。按用户授权删除了 `lean-s1-02a-0bfbbc2`（912 MB）与 `lean-s1-02b-0bfbbc2`（3.4 GB）两份作废产物（其报告在 `results/` 里），其余候选（`3272d11` 旧 pilot、两份 interrupted、`12d4209` pilot）等用户裁定。
