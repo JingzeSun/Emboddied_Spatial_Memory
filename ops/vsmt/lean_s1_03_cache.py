@@ -212,6 +212,15 @@ class FrozenModels:
 # one episode
 # --------------------------------------------------------------------------
 
+def surface_mapping(item: Any) -> dict[str, Any]:
+    """The geometry of one frozen surface region; its public_record() omits the plane, so the
+    dataclass attributes are read directly.  The descriptor is not carried over."""
+
+    return {"centroid_m": list(item.centroid_m), "extent_m": list(item.extent_m),
+            "plane_normal": list(item.plane_normal), "plane_offset_m": float(item.plane_offset_m),
+            "mask_sha256": item.mask_sha256}
+
+
 def anonymous(mask: np.ndarray, ordinal: int) -> AnonymousMask:
     binary = np.ascontiguousarray(mask.astype(np.uint8))
     payload = [int(binary.shape[0]), int(binary.shape[1]), *binary.reshape(-1).tolist()]
@@ -267,7 +276,7 @@ def build_episode(task: dict[str, Any]) -> dict[str, Any]:
                 calibration_and_pose_sha256=pose_digest, prior_free_space=prior_free_space)
             prior_free_space = ([*prior_free_space, support.current_free_space]
                                 [-free_space_cfg.rolling_public_observation_times:])
-            surfaces = [fc.project_surface(item.public_record(""), ordinal=ordinal)
+            surfaces = [fc.project_surface(surface_mapping(item), ordinal=ordinal)
                         for ordinal, item in enumerate(materialize_public_surfaces(
                             frame["depth"], record["intrinsics"], pose,
                             tokens[fc.DESCRIPTOR_SETS[0]], primary, surface))]
