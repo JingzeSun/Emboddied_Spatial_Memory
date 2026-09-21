@@ -126,7 +126,8 @@ DRY_RUN_MAX_POINTS = 32
 MAX_REPLANS = 32
 P_NULL_WINDOW = 0.2
 MINIMUM_WINDOW_FRAMES = 20
-MAXIMUM_ACTIONS = 2000
+MAXIMUM_ACTIONS = 4000  # D-224-S1 ruling 40 (2026-09-21): 2000 -> 4000, a scope boundary
+MAXIMUM_ACTIONS_SUPERSEDED = 2000
 MAXIMUM_INTERVENTIONS_PER_EPISODE = 6
 MINIMUM_YIELD = 0.6
 
@@ -726,6 +727,9 @@ def validate_intervention_data_contract(contract: Mapping[str, Any]) -> dict[str
     _require(iw["maximum_interventions_per_episode"] == MAXIMUM_INTERVENTIONS_PER_EPISODE, "contract_max_interventions_changed")
     _require(iw["minimum_yield"] == MINIMUM_YIELD, "contract_min_yield_changed")
     _require(contract["route"]["maximum_actions"] == MAXIMUM_ACTIONS, "contract_max_actions_changed")
+    _require(contract["route"]["maximum_actions_superseded"]["value"] == MAXIMUM_ACTIONS_SUPERSEDED,
+             "contract_max_actions_supersede_changed")
+    _require(contract["route"]["maximum_actions_is_a_scope_boundary_not_a_budget"] is True, "contract_max_actions_not_a_scope_boundary")
     _require(contract["route"]["cap_hit_is_a_construction_failure_not_a_truncation"] is True,
              "contract_cap_truncates")
 
@@ -775,6 +779,7 @@ __all__ = [
     "UNSEEN_PIXEL_FRAMES",
     "check_move_minimum",
     "MAXIMUM_ACTIONS",
+    "MAXIMUM_ACTIONS_SUPERSEDED",
     "MAXIMUM_INTERVENTIONS_PER_EPISODE",
     "MINIMUM_WINDOW_FRAMES",
     "MINIMUM_YIELD",

@@ -2,7 +2,7 @@
   "schema_version": "vsmt-lean-s0-intervention-data-v3",
   "decision_id": "D-224",
   "stage_id": "S0-02",
-  "status": "rules_r1_i1_revised_by_rulings_25_38_third_regeneration_authorized",
+  "status": "rules_r1_i1_revised_by_rulings_25_40_third_regeneration_in_progress",
   "supersedes_contract_v2": {
     "path": "configs/vsmt/lean_s0_intervention_data_v2.json",
     "v2_sha256": "b74ecb00bfc512309af4b13820267e5ac508aa18f26625fe19e32e40cc092fa6",
@@ -76,11 +76,20 @@
     "registered_before_execution": true,
     "observation_count_equals_actions_plus_one": true,
     "coverage_revisit_required_for_every_intervened_container": true,
-    "maximum_actions": 2000,
+    "maximum_actions": 4000,
+    "maximum_actions_superseded": {
+      "value": 2000,
+      "frozen_by": "D-224-S1 rulings 23/24",
+      "superseded_by": "D-224-S1 ruling 40",
+      "superseded_on": "2026-09-21",
+      "reason": "two of 46 houses (01451: sweep one 1695 + transition 204 + sweep two 666; 01259) could not fit coverage plus the twin-control revisit in 2000 actions; they are the houses with the most containers and therefore the most move opportunities (ruling 36). Median need is 381, p90 1380, max observed need about 2565; 4000 leaves 1.5x margin and bounds RAM (every frame's depth and masks stay in memory until the episode ends), disk (245 KB per observation) and the episode length ELU-P decays over."
+    },
+    "maximum_actions_is_a_scope_boundary_not_a_budget": true,
+    "houses_needing_more_are_out_of_scope_and_counted_as_construction_failures": true,
     "translation_m": 0.25,
     "rotation_degrees": 90,
     "look_degrees": 30,
-    "plain_language_zh": "路线是执行前登记的完整动作序列，只能使用这八个动作；观察 0 先于任何动作，因此观察数恰为动作数加一。每个被干预的容器在干预后至少重访一次，否则记忆没有机会修正。动作幅度已由 D-224-S1 冻结：平移 0.25 m、转向 90°、俯仰 30°。前两个与 `source` 段里已登记的 `grid_size_m` 与 `rotate_step_degrees` 相同，这不是巧合而是必须——`snap_to_grid` 为 true 时，步长与格子不一致会让机器人要么走不到格点、要么每步被悄悄吸附到别处，两种都会让「同一条路线」在不同 house 上走出不同轨迹。`maximum_actions` 仍为 null：它只防止无限长 episode，不是科学预算，但它一旦真的把路线截断，覆盖与重访就不成立了，因此**触顶必须记为构造失败而不是截断**。",
+    "plain_language_zh": "路线是执行前登记的完整动作序列，只能使用这八个动作；观察 0 先于任何动作，因此观察数恰为动作数加一。每个被干预的容器在干预后至少重访一次，否则记忆没有机会修正。动作幅度已由 D-224-S1 冻结：平移 0.25 m、转向 90°、俯仰 30°。前两个与 `source` 段里已登记的 `grid_size_m` 与 `rotate_step_degrees` 相同，这不是巧合而是必须——`snap_to_grid` 为 true 时，步长与格子不一致会让机器人要么走不到格点、要么每步被悄悄吸附到别处，两种都会让「同一条路线」在不同 house 上走出不同轨迹。`maximum_actions` 由裁决 23/24 定为 2000，裁决 40（2026-09-21）改为 4000 并把口径写明为**范围边界**而不是科学预算：路线是有限 BFS 路径、重规划上限 32 次，终止性本来就有保证，上限真正约束的是内存（每帧深度与掩码留在内存到 episode 结束）、磁盘（每个观察约 245 KB）、前端 cache 的算量，以及 ELU-P 按 tick 衰减所依赖的 episode 长度分布。46 条实测中位 381 步、p90 1380 步、最大需求约 2565 步，2000 让容器最多、move 机会最多的两条 house 出局；4000 留 1.5 倍余量。需要更多步数才能完成覆盖与重访的 house 不在本数据集范围内，记为构造失败并计入成品率，**触顶必须记为构造失败而不是截断**。",
     "magnitudes_frozen_by": "D-224-S1",
     "magnitudes_match_the_source_grid": true,
     "cap_hit_is_a_construction_failure_not_a_truncation": true
@@ -358,7 +367,8 @@
     "rulings": [
       "D-224-S1 裁决 23/24：R1/I1 规则段就地加入 v3，不开新版本；maximum_actions=2000、maximum_interventions_per_episode=6、minimum_yield=0.6、minimum_window_frames=20、p_null_window=0.2、视点距离 [0.75, 2.5]、add=(b) 经 SpawnAsset、move 重访顺序随机、覆盖口径 A、修订六取 (i)。",
       "D-224-S1 裁决 25～32（2026-09-20 批准，28 作废）：门未过后在新提交下按同一 seed 重生成全部 50 条；remove 用 DisableObject；被拒绝格间边重规划（上限 32）；抽样先类型后三元组；add 改为搬运从未渲染过的真实物体（SpawnAsset 复制件不进实例分割）；move/add 的目的对须通过窗口内 dry-run（放一次、视点偷看 ≥196 px、TeleportObject 放回，最多 32 点）；每目的容器每 episode 至多一次放置。",
-      "D-224-S1 裁决 33～38（2026-09-21 批准，原话“裁决 34 取双生控制；封印帧改最佳帧；move 下限 N=120/60；null 抽签加私有盐；像素计数限扫掠一；coverage_definition 随 34 改写；以上落地后第三次重生成全部 50 条”）：扫掠二重访被干预容器加同样多个持有已见物体的 U 内对照容器、顺序按派生 RNG 交错；空窗口 episode 走同一流程只跳过执行；容器可见性主体从扫掠一像素最多的帧封印；train 块 move ≥120、源先重访 ≥60；空窗口抽签混入仓库外私有盐（provenance 只登记 sha256）；合格物体像素只数扫掠一帧；coverage_definition 改写并重钉规则摘要。"
+      "D-224-S1 裁决 33～38（2026-09-21 批准，原话“裁决 34 取双生控制；封印帧改最佳帧；move 下限 N=120/60；null 抽签加私有盐；像素计数限扫掠一；coverage_definition 随 34 改写；以上落地后第三次重生成全部 50 条”）：扫掠二重访被干预容器加同样多个持有已见物体的 U 内对照容器、顺序按派生 RNG 交错；空窗口 episode 走同一流程只跳过执行；容器可见性主体从扫掠一像素最多的帧封印；train 块 move ≥120、源先重访 ≥60；空窗口抽签混入仓库外私有盐（provenance 只登记 sha256）；合格物体像素只数扫掠一帧；coverage_definition 改写并重钉规则摘要。",
+      "D-224-S1 裁决 40（2026-09-21 批准，原话“裁决 40 取调高：maximum_actions 改为 4000，口径写为范围边界，台账记 superseded；本次 50 条跑完后按新值重生成受影响的 house”）：route.maximum_actions 2000 → 4000，台账记 superseded，口径为范围边界；S1 的 50 条跑完后只重生成触顶失败的 house，其余不动。"
     ]
   }
 }

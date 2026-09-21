@@ -263,10 +263,11 @@ def lookup_slot(contract: dict[str, Any], path: str) -> Any:
 #: the rules and needs a ruling recorded in DECISIONS plus a review; it is
 #: made in place (ruling 24: no version cascade).  A value freeze does not
 #: touch it.  S0-02 was re-pinned for rulings 25-32 (2026-09-20) and again for
-#: rulings 33-38 (2026-09-21, twin control, best-frame seal, move minimum, salted null draw).
+#: rulings 33-38 (2026-09-21, twin control, best-frame seal, move minimum, salted null draw)
+#: and for ruling 40 (2026-09-21, maximum_actions 4000 as a scope boundary, 2000 superseded).
 FROZEN_RULE_SHA256 = {
     "S0-01": "76f505da801d5ecec6730e85ca521a034888429283f6ac3a0312dfc94c27349c",
-    "S0-02": "27d5ea47894f1ec36b39b1cf9a97473c39530a73f9c30fa3070c445d275778fe",
+    "S0-02": "b60e4e471c61b60fda262de59d79972cd8d2e610e7774432c65f4fbc486ad9d8",
     "S0-03": "cc7d46f870e7894592792e793e0fc1a27f09e6e9b3d60b6e01c9f7a12d7e04d3",
     "S0-04": "268cb41825c472a8bb7bffe9e9529e4d3c98c38f791104a0ad0663e778387b48",
     "S0-05": "c5354b1e71936d345823630b6533b03329435de104e258785fdb89e17934c54a",
@@ -275,13 +276,15 @@ FROZEN_RULE_SHA256 = {
 }
 
 #: Every registered slot that has been frozen, and the value it froze at.
-#: An entry may be added by a reviewed edit of this file; it may never change.
+#: An entry may be added by a reviewed edit of this file.  It changes only by a user ruling,
+#: and then the old value moves to SUPERSEDED_VALUES with the ruling that retired it, so no
+#: value ever disappears from the record.
 FROZEN_VALUES: dict[str, dict[str, Any]] = {
     "S0-02": {
         "route.translation_m": 0.25,
         "route.rotation_degrees": 90,
         "route.look_degrees": 30,
-        "route.maximum_actions": 2000,
+        "route.maximum_actions": 4000,
         "intervention_window.maximum_interventions_per_episode": 6,
         "intervention_window.minimum_yield": 0.6
     },
@@ -294,6 +297,38 @@ FROZEN_VALUES: dict[str, dict[str, Any]] = {
         "split_freeze.test_houses": 100
     }
 }
+
+
+#: Values a ruling retired: slot -> list of {value, frozen_by, superseded_by, on}.  Each entry
+#: must differ from the live ledger value and name the ruling; the contract carries the same
+#: supersede record next to the slot.
+SUPERSEDED_VALUES: dict[str, dict[str, list[dict[str, Any]]]] = {
+    "S0-02": {
+        "route.maximum_actions": [
+            {"value": 2000, "frozen_by": "D-224-S1 rulings 23/24", "superseded_by": "D-224-S1 ruling 40", "on": "2026-09-21"},
+        ],
+    },
+}
+
+
+class TestSupersededValues(unittest.TestCase):
+    def test_every_superseded_entry_names_a_ruling_and_differs_from_the_live_value(self) -> None:
+        for stage, slots in SUPERSEDED_VALUES.items():
+            for slot, history in slots.items():
+                self.assertIn(slot, FROZEN_VALUES[stage])
+                self.assertIn(slot, registered_value_slots(stage))
+                for entry in history:
+                    with self.subTest(stage=stage, slot=slot, value=entry["value"]):
+                        self.assertNotEqual(entry["value"], FROZEN_VALUES[stage][slot])
+                        self.assertTrue(entry["superseded_by"].startswith("D-224"))
+                        self.assertRegex(entry["on"], r"^\d{4}-\d{2}-\d{2}$")
+
+    def test_the_contract_carries_the_same_supersede_record(self) -> None:
+        contract = load_stage("S0-02")
+        rec = contract["route"]["maximum_actions_superseded"]
+        self.assertEqual(rec["value"], SUPERSEDED_VALUES["S0-02"]["route.maximum_actions"][-1]["value"])
+        self.assertEqual(rec["superseded_by"], SUPERSEDED_VALUES["S0-02"]["route.maximum_actions"][-1]["superseded_by"])
+        self.assertTrue(contract["route"]["maximum_actions_is_a_scope_boundary_not_a_budget"])
 
 
 class TestEveryContractValidates(unittest.TestCase):

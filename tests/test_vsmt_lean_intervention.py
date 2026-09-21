@@ -569,7 +569,7 @@ class TestR1I1RuleSections(unittest.TestCase):
             validate_intervention_data_contract(bad)
 
     def test_the_six_values_are_frozen(self) -> None:
-        self.assertEqual(self.contract["route"]["maximum_actions"], 2000)
+        self.assertEqual(self.contract["route"]["maximum_actions"], 4000)   # ruling 40; 2000 recorded as superseded
         iw = self.contract["intervention_window"]
         self.assertEqual((iw["maximum_interventions_per_episode"], iw["minimum_yield"],
                           iw["minimum_window_frames"]), (6, 0.6, 20))
