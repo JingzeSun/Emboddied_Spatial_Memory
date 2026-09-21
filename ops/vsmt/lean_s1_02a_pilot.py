@@ -954,7 +954,12 @@ def main() -> int:
     ap.add_argument("--output-root", required=True)
     ap.add_argument("--source", required=True)
     ap.add_argument("--workers", type=int, default=lean_pilot.PILOT_WORKERS)
-    ap.add_argument("--stage", choices=["s1-02a", "s1-02b"], default="s1-02a")
+    ap.add_argument("--stage", choices=["s1-02a", "s1-02b", "regenerate"], default="s1-02a")
+    ap.add_argument("--houses", default="",
+                    help="regenerate: comma-separated house ids to rerun into --output-root; each one's old directory "
+                         "must already have been moved aside (never overwritten) and the rerun must be named by a ruling")
+    ap.add_argument("--ruling", default="",
+                    help="regenerate: the user ruling that authorises rerunning these houses (e.g. D-224-S1 ruling 40)")
     ap.add_argument("--pilot-root", help="S1-02b: the finished S1-02a output root (occupancy receipt, pilot houses)")
     ap.add_argument("--development-houses", type=int, default=50)
     ap.add_argument("--resume", action="store_true",
@@ -987,6 +992,8 @@ def main() -> int:
     args.private_salt = _read_private_salt(args.private_salt_file)
     if args.stage == "s1-02b":
         return main_s1_02b(args)
+    if args.stage == "regenerate":
+        return main_regenerate(args)
     contract = json.loads(CONTRACT_S1_02A.read_text(encoding="utf-8"))
     lean_pilot.validate_pilot_contract(contract)
     if not all(contract["authorization"].values()):
@@ -1054,6 +1061,85 @@ def _read_private_salt(path: str) -> str:
     if len(salt) < 32:
         raise SystemExit("the private salt must be at least 32 characters")
     return salt
+
+
+def _collect_house_receipts(out_root: Path) -> list[dict[str, Any]]:
+    return sorted((json.loads(p.read_text(encoding="utf-8")) for p in out_root.glob("procthor10k-*/receipt.json")),
+                  key=lambda r: r["house_id"])
+
+
+def main_regenerate(args: argparse.Namespace) -> int:
+    """Rerun named houses of an existing output root under a user ruling, then rewrite the stage receipt.
+
+    白话（裁决 40）：用户把 `maximum_actions` 从 2000 改到 4000 并裁定"只重生成触顶失败的 house"。
+    这个入口只做这一件事：被点名的 house 的旧目录必须已经被移走（不覆盖），按当前提交重跑它们，
+    然后把该输出根下现有的全部逐 house 回执重新汇总成阶段回执。占用回执（S1-02a）不重算——它是
+    在 4 路并发下量的，单独重跑一条不是同一个测量。回执里同时记下所有出现过的代码提交，
+    以及本次是按哪条裁决重生成了哪些 house，旧目录在哪。它不是"重试到好为止"：名单来自裁决，
+    不来自结果。
+    """
+
+    houses = [h for h in args.houses.split(",") if h]
+    if not houses or not args.ruling:
+        print("regenerate needs --houses and --ruling"); return 2
+    out_root = Path(args.output_root)
+    contract = json.loads(CONTRACT_S1_02A.read_text(encoding="utf-8"))
+    lean_pilot.validate_pilot_contract(contract)
+    freeze = contract["split_freeze"]
+    commit = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, cwd=ROOT).stdout.strip()
+    source = Path(args.source)
+    stage_receipt = None
+    for name in ("pilot_receipt.json", "s1_02b_receipt.json"):
+        if (out_root / name).exists():
+            stage_receipt = name
+    if stage_receipt is None:
+        print("no stage receipt under the output root; refusing"); return 2
+    for h in houses:
+        if (out_root / h).exists():
+            print(f"{h}: directory still present under the output root; move it aside first, never overwrite"); return 3
+    tasks = [{"house_id": h, "index": int(h.rsplit("-", 1)[1]), "out": str(out_root / h), "source_root": str(source.parent),
+              "source_rel": source.name, "split_seed": freeze["seed"], "commit": commit, "private_salt": args.private_salt,
+              "replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries,
+              "stratify_by_kind": args.stratify_by_kind, "add_source": args.add_source,
+              "destination_points": args.destination_points, "placement_prescreen": args.placement_prescreen} for h in houses]
+    t0 = time.time()
+    fresh = _run_with_timeout(tasks, max(1, min(args.workers or 1, len(tasks))), args.stall_timeout_s, commit)
+    wall = time.time() - t0
+    results = _collect_house_receipts(out_root)
+    failed = [r for r in results if r["status"] != "succeeded"]
+    record = {"ruling": args.ruling, "code_commit": commit, "houses": houses,
+              "results": [{"house_id": r["house_id"], "status": r["status"], "reason": r.get("reason"),
+                           "detail": (r.get("detail") or "")[:300], "executed_interventions": r.get("executed_interventions")} for r in fresh],
+              "wall_clock_seconds": round(wall, 1), "code_commits_now_present": sorted({r.get("code_commit") for r in results})}
+    (out_root / f"regenerate-{commit[:7]}.json").write_text(json.dumps(record, indent=1))
+    receipt = json.loads((out_root / stage_receipt).read_text(encoding="utf-8"))
+    if stage_receipt == "pilot_receipt.json":
+        # the field set is fixed by the S1-02a contract; only the outcome fields move, code_commit
+        # stays the commit of the original run and regenerate-<commit>.json carries the second one
+        receipt.update({"succeeded": len(results) - len(failed), "failed": len(failed),
+                        "failure_receipts": [{"house_id": r["house_id"], "reason": r["reason"], "detail": r.get("detail", "")[:400]} for r in failed],
+                        "exit_codes": [0 if r["status"] == "succeeded" else 1 for r in results]})
+        lean_pilot.validate_pilot_receipt(receipt)
+    else:
+        non_null = [r for r in results if not r.get("null_window", False)]
+        ok_non_null = [r for r in non_null if r["status"] == "succeeded" and r.get("executed_interventions", 0) >= 1]
+        yield_rate = (len(ok_non_null) / len(non_null)) if non_null else None
+        moves = sum(int(r.get("moves_executed") or 0) for r in results)
+        moves_first = sum(int(r.get("moves_source_first") or 0) for r in results)
+        receipt.update({"succeeded": len(results) - len(failed), "failed": len(failed),
+                        "failure_receipts": [{"house_id": r["house_id"], "reason": r["reason"], "detail": r.get("detail", "")[:400]} for r in failed],
+                        "null_window_episodes": len(results) - len(non_null),
+                        "null_window_failed": len([r for r in results if r.get("null_window", False) and r["status"] != "succeeded"]),
+                        "yield_house_level_non_null": yield_rate, "yield_gate_passed": (yield_rate is not None and yield_rate >= 0.6),
+                        "moves_executed": moves, "moves_source_first": moves_first,
+                        "move_minimum": check_move_minimum(moves, moves_first, is_train_block=False),
+                        "controls_total": sum(int(r.get("controls") or 0) for r in results),
+                        "controls_outside_U": sum(int(r.get("controls_outside_U") or 0) for r in results),
+                        "code_commits": sorted({r.get("code_commit") for r in results}),
+                        "regenerated": {"ruling": args.ruling, "houses": houses, "code_commit": commit}})
+    (out_root / stage_receipt).write_text(json.dumps(receipt, indent=1))
+    print(json.dumps({"regenerate": record, "stage_receipt": {k: v for k, v in receipt.items() if k not in ("failure_receipts",)}}, indent=1, default=str))
+    return 0 if not [r for r in fresh if r["status"] != "succeeded"] else 1
 
 
 def _capacity_measurements() -> dict[str, Any]:
