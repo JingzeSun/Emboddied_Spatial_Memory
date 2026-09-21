@@ -63,7 +63,8 @@ from cpmt.hashing import canonical_json  # noqa: E402
 from vsmt import lean_interventions as sel  # noqa: E402
 from vsmt import lean_pilot, lean_route  # noqa: E402
 from vsmt.lean_intervention import (  # noqa: E402
-    DRY_RUN_MAX_POINTS, FAILURE_REASONS, MAX_REPLANS, MAXIMUM_ACTIONS, MINIMUM_WINDOW_FRAMES, MIN_SUBJECT_PIXELS,
+    DRY_RUN_DESTINATIONS_PER_OBJECT, DRY_RUN_MAX_POINTS, FAILURE_REASONS, MAX_REPLANS, MAXIMUM_ACTIONS,
+    MINIMUM_WINDOW_FRAMES, MIN_SUBJECT_PIXELS,
     MIN_VISIBLE_PIXELS, PUBLIC_FRAME_FIELDS, check_move_minimum,
     PRIVATE_FRAME_FIELDS, FORBIDDEN_PUBLIC_KEYS,
 )
@@ -528,7 +529,8 @@ def _peek_pixels(controller: Any, viewpoint: dict[str, Any], object_id: str) -> 
 
 def _dry_run_pairs(controller: Any, candidates: list[dict[str, Any]], u_containers: set[str], spawn_points: dict[str, Any],
                    viewpoints: dict[str, Any], min_px: int, beat: Any = None,
-                   table: list[dict[str, Any]] | None = None) -> tuple[dict[tuple[str, str], dict[str, Any]], list[dict[str, Any]]]:
+                   table: list[dict[str, Any]] | None = None,
+                   destinations: dict[str, list[str]] | None = None) -> tuple[dict[tuple[str, str], dict[str, Any]], list[dict[str, Any]]]:
     """Try every (object, U destination) placement for real, peek, and put the object back.
 
     白话（裁决 31，proposed）：可行集里的 move／add 不再靠"容器有生成点"猜，而是在窗口
@@ -552,7 +554,10 @@ def _dry_run_pairs(controller: Any, candidates: list[dict[str, Any]], u_containe
         if o is None:
             continue
         orig_pos, orig_rot = dict(o["position"]), dict(o["rotation"])
-        for dst in sorted(u_containers):
+        # ruling 39: the destinations this object is tested against come from the seeded per-object
+        # draw; without a draw (replay of the S1 runs) every U destination is tested in grid order
+        order = destinations.get(oid, []) if destinations is not None else sorted(u_containers)
+        for dst in order:
             if dst == row.get("parent_receptacle") or dst not in spawn_points or dst not in viewpoints:
                 continue
             found, best, tried, placed_any = None, 0, 0, False
@@ -733,7 +738,8 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
     add_source = str(task.get("add_source", "unseen_existing"))
     destination_points = str(task.get("destination_points", "anywhere"))
     placement_prescreen = str(task.get("placement_prescreen", "dry_run"))
-    receipt["options"] = {"replan_blocked_edges": replan_on, "placement_tries": placement_tries,
+    dry_run_per_object = int(task.get("dry_run_destinations_per_object", DRY_RUN_DESTINATIONS_PER_OBJECT))
+    receipt["options"] = {"dry_run_destinations_per_object": dry_run_per_object, "replan_blocked_edges": replan_on, "placement_tries": placement_tries,
                           "stratify_by_kind": bool(task.get("stratify_by_kind", True)),
                           "add_source": add_source, "destination_points": destination_points,
                           "placement_prescreen": placement_prescreen, "twin_control": True,
@@ -830,10 +836,14 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
         pair_ok, dry_run_table = None, None
         if placement_prescreen == "dry_run":
             cand = [o for o in eligible if o["parent_receptacle"] in invisible] + list(unseen or [])
+            dests = sel.dry_run_destinations(cand, invisible, split_seed=task["split_seed"], house_id=house_id,
+                                             per_object=dry_run_per_object)
+            pairs_total = sum(1 for o in cand for d in sorted(invisible)
+                              if d != o.get("parent_receptacle") and d in spawn_points and d in plan1["viewpoints"])
             dry_run_table = []
             try:
                 pair_ok, dry_run_table = _dry_run_pairs(controller, cand, invisible, spawn_points, plan1["viewpoints"],
-                                                        MIN_VISIBLE_PIXELS, beat=ep.beat, table=dry_run_table)
+                                                        MIN_VISIBLE_PIXELS, beat=ep.beat, table=dry_run_table, destinations=dests)
             finally:
                 (ep.prov / "placement_dry_run.json").write_text(json.dumps(dry_run_table, indent=1))
         feasible = sel.feasible_triples(eligible, list(usable), invisible, ok, unseen=unseen, pair_ok=pair_ok)
@@ -853,6 +863,10 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
              "eligible_object_count": len(eligible), "unseen_object_count": (len(unseen) if unseen is not None else None),
              "destinations_with_points": sum(1 for c in invisible if ok.get(c)),
              "dry_run_pairs_tested": (sum(1 for r in dry_run_table if "object_id" in r) if dry_run_table is not None else None),
+             "dry_run_pairs_total": (pairs_total if dry_run_table is not None else None),
+             "dry_run_destinations_per_object": dry_run_per_object,
+             "feasible_set_size_estimate": (round(len(feasible) * pairs_total / max(1, sum(1 for r in dry_run_table if "object_id" in r)), 1)
+                                            if dry_run_table is not None and any("object_id" in r for r in dry_run_table) else None),
              "dry_run_final_sweep": next((r for r in (dry_run_table or []) if "final_sweep" in r), None),
              "dry_run_pairs_feasible": (len(pair_ok) if pair_ok is not None else None), "sampled": interventions,
              "controls": controls}, indent=1))
@@ -981,6 +995,9 @@ def main() -> int:
                     help="ruling 29: draw the kind first, then the triple")
     ap.add_argument("--add-source", choices=["spawn_asset", "unseen_existing"], default="unseen_existing",
                     help="ruling 30: relocate a never-rendered real object (spawn_asset = pre-ruling, unobservable)")
+    ap.add_argument("--dry-run-destinations-per-object", type=int, default=DRY_RUN_DESTINATIONS_PER_OBJECT,
+                    help="ruling 39: U destinations tested per candidate object, drawn by the seeded RNG; "
+                         "0 tests every destination and only replays the S1 runs (c222c51/a397d16)")
     ap.add_argument("--placement-prescreen", choices=["spawn_points", "dry_run"], default="dry_run",
                     help="rulings 31/32: real placement + viewpoint peek + revert during the window, one placement per destination")
     ap.add_argument("--destination-points", choices=["anywhere", "top", "verified"], default="anywhere",
@@ -1009,7 +1026,7 @@ def main() -> int:
                                                     "null_window_salt_sha256": sha_bytes(args.private_salt.encode("utf-8"))}, indent=1))
     tasks = [{"house_id": h, "index": int(h.rsplit("-", 1)[1]), "out": str(out_root / h), "source_root": str(source.parent),
               "source_rel": source.name, "split_seed": freeze["seed"], "commit": commit, "private_salt": args.private_salt,
-              "replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries, "stratify_by_kind": args.stratify_by_kind, "add_source": args.add_source, "destination_points": args.destination_points, "placement_prescreen": args.placement_prescreen} for h in selected]
+              "replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries, "stratify_by_kind": args.stratify_by_kind, "add_source": args.add_source, "destination_points": args.destination_points, "placement_prescreen": args.placement_prescreen, "dry_run_destinations_per_object": args.dry_run_destinations_per_object} for h in selected]
     base_vram = float(subprocess.run(["nvidia-smi", "--query-gpu=memory.used", "--format=csv,noheader,nounits"], capture_output=True, text=True).stdout.strip().split("\n")[0])
     stop, q = mp.Event(), mp.Queue()
     sampler = mp.Process(target=_vram_peak_sampler, args=(stop, q), daemon=True); sampler.start()
@@ -1101,7 +1118,7 @@ def main_regenerate(args: argparse.Namespace) -> int:
               "source_rel": source.name, "split_seed": freeze["seed"], "commit": commit, "private_salt": args.private_salt,
               "replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries,
               "stratify_by_kind": args.stratify_by_kind, "add_source": args.add_source,
-              "destination_points": args.destination_points, "placement_prescreen": args.placement_prescreen} for h in houses]
+              "destination_points": args.destination_points, "placement_prescreen": args.placement_prescreen, "dry_run_destinations_per_object": args.dry_run_destinations_per_object} for h in houses]
     t0 = time.time()
     fresh = _run_with_timeout(tasks, max(1, min(args.workers or 1, len(tasks))), args.stall_timeout_s, commit)
     wall = time.time() - t0
@@ -1287,7 +1304,7 @@ def main_s1_02b(args: argparse.Namespace) -> int:
                                                     "commit": commit, "null_window_salt_sha256": sha_bytes(args.private_salt.encode("utf-8"))}, indent=1))
     tasks = [{"house_id": h, "index": int(h.rsplit("-", 1)[1]), "out": str(out_root / h), "source_root": str(source.parent),
               "source_rel": source.name, "split_seed": freeze["seed"], "commit": commit, "private_salt": args.private_salt,
-              "replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries, "stratify_by_kind": args.stratify_by_kind, "add_source": args.add_source, "destination_points": args.destination_points, "placement_prescreen": args.placement_prescreen} for h in houses]
+              "replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries, "stratify_by_kind": args.stratify_by_kind, "add_source": args.add_source, "destination_points": args.destination_points, "placement_prescreen": args.placement_prescreen, "dry_run_destinations_per_object": args.dry_run_destinations_per_object} for h in houses]
     prior: list[dict[str, Any]] = []
     if args.resume:
         pending = []
@@ -1329,7 +1346,7 @@ def main_s1_02b(args: argparse.Namespace) -> int:
         "null_window_salt_sha256": sha_bytes(args.private_salt.encode("utf-8")),
         "yield_gate": s1_01 and json.loads(CONTRACT_S0_02.read_text(encoding="utf-8"))["intervention_window"]["minimum_yield"],
         "yield_gate_passed": (yield_rate is not None and yield_rate >= 0.6),
-        "options": {"replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries, "stratify_by_kind": args.stratify_by_kind, "add_source": args.add_source, "destination_points": args.destination_points, "placement_prescreen": args.placement_prescreen},
+        "options": {"replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries, "stratify_by_kind": args.stratify_by_kind, "add_source": args.add_source, "destination_points": args.destination_points, "placement_prescreen": args.placement_prescreen, "dry_run_destinations_per_object": args.dry_run_destinations_per_object},
         "requested_workers": workers, "actual_workers": workers, "derived_worker_count": scale["worker_count"],
         "binding_constraint": scale["binding_constraint"], "concurrency_verified_at": scale["concurrency_verified_at"],
         "simulator_concurrency_limit_verified": verified_limit,

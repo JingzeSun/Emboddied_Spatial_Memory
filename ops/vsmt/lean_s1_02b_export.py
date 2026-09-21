@@ -65,6 +65,11 @@ def _house_rows(root: Path) -> list[dict[str, Any]]:
             row["controls_outside_U"] = controls.get("from_outside_U")
             row["controls_shortfall"] = controls.get("shortfall")
             row["moves_executed"] = log.get("moves_executed")
+            sampled_path = base / "provenance" / "interventions_sampled.json"
+            if sampled_path.exists():
+                smp = json.loads(sampled_path.read_text(encoding="utf-8"))
+                for key in ("dry_run_pairs_tested", "dry_run_pairs_total", "dry_run_destinations_per_object", "feasible_set_size_estimate"):
+                    row[key] = smp.get(key)
             row["moves_source_first"] = log.get("moves_source_first")
         row["sampled_kinds"] = dict(sampled)
         row["executed_kinds"] = dict(executed)
@@ -114,6 +119,10 @@ def build_report(root: Path, stage_receipt_name: str) -> dict[str, Any]:
         "move_minimum": receipt.get("move_minimum"),
         "controls_total": receipt.get("controls_total"),
         "controls_outside_U": receipt.get("controls_outside_U"),
+        "controls_from_U": ((receipt.get("controls_total") or 0) - (receipt.get("controls_outside_U") or 0)) if receipt.get("controls_total") is not None else None,
+        "controls_outside_U_fraction": (round((receipt.get("controls_outside_U") or 0) / receipt["controls_total"], 3)
+                                        if receipt.get("controls_total") else None),
+        "controls_note": "ruling 41: outside-U controls were visible during the window and are the weaker control; reported separately",
         "null_window_salt_sha256": receipt.get("null_window_salt_sha256"),
         "intervention_kinds_sampled_in_successes": dict(sampled_total),
         "intervention_kinds_executed": dict(executed_total),
