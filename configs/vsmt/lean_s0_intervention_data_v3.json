@@ -2,7 +2,7 @@
   "schema_version": "vsmt-lean-s0-intervention-data-v3",
   "decision_id": "D-224",
   "stage_id": "S0-02",
-  "status": "rules_r1_i1_revised_by_rulings_25_40_third_regeneration_in_progress",
+  "status": "rules_r1_i1_revised_by_rulings_25_41_s1_generation_complete",
   "supersedes_contract_v2": {
     "path": "configs/vsmt/lean_s0_intervention_data_v2.json",
     "v2_sha256": "b74ecb00bfc512309af4b13820267e5ac508aa18f26625fe19e32e40cc092fa6",
@@ -146,7 +146,11 @@
       "changed_and_control_interleaved_by_seeded_rng": true,
       "null_episode_rule": "same_pipeline_including_dry_run_sampling_controls_route_and_cap_execution_skipped",
       "control_rng_purpose_tag": "control_revisit",
-      "plain_language_zh": "扫掠二重访集合（裁决 34，双生控制）：被干预容器（move 源与目标都算）加上同样多个对照容器。对照容器优先从 U 里去掉被干预集合后抽，且必须持有至少一个扫掠一里看见过的合格物体，U 不够才从 U 外补并登记数目；变与不变的重访顺序由派生 RNG 交错。空窗口 episode 走完全相同的流程（U、dry-run、抽样、对照、路线、触顶检查），只跳过执行，因此它是非空 episode 逐项匹配的反事实：同样的房子分布、同样的重访集合构造、只是什么都没动。它不等于重访全部容器，也不再是只重访被干预容器。"
+      "plain_language_zh": "扫掠二重访集合（裁决 34，双生控制）：被干预容器（move 源与目标都算）加上同样多个对照容器。对照容器优先从 U 里去掉被干预集合后抽，且必须持有至少一个扫掠一里看见过的合格物体，U 不够才从 U 外补并登记数目；变与不变的重访顺序由派生 RNG 交错。空窗口 episode 走完全相同的流程（U、dry-run、抽样、对照、路线、触顶检查），只跳过执行，因此它是非空 episode 逐项匹配的反事实：同样的房子分布、同样的重访集合构造、只是什么都没动。它不等于重访全部容器，也不再是只重访被干预容器。",
+      "controls_outside_U_are_weaker_and_reported_separately": true,
+      "control_supply_is_structurally_short_inside_U": true,
+      "ruling_41_reason": "in the third regeneration 40 houses had 517 U containers, 188 intervened, and only 16 U containers left holding a seen object; 145 controls wanted, 16 from U, 91 from outside, 38 short. 'In U and holds a seen object' is also the remove/move source condition, so the sample consumes them. Outside-U controls were visible during the window and are weaker, but 107/111 re-showed an unchanged object; reserving controls before sampling would cut moves by a third (against ruling 36), so the rule stays and the proportion is reported.",
+      "plain_language_zh_ruling_41": "裁决 41（2026-09-21，取 (b)）：对照规则不变；回执与论文如实报告 U 内／U 外对照的比例，U 外对照（窗口里看得见）作为较弱的对照单列。不先划对照集再抽干预，因为那会让 move 少三到四成。"
     }
   },
   "intervention_kinds": [
@@ -214,7 +218,8 @@
       "intervention",
       "revisit_order",
       "null_window",
-      "control_revisit"
+      "control_revisit",
+      "dry_run_order"
     ],
     "no_new_seed": true,
     "add_source": "relocate_never_rendered_existing_object_via_PlaceObjectAtPoint",
@@ -241,7 +246,14 @@
       "revert_failure_fails_the_house": true,
       "only_verified_pairs_enter_feasible_set_with_their_point": true,
       "one_placement_per_destination_per_episode": true,
-      "dry_run_table_written_to_provenance": true
+      "dry_run_table_written_to_provenance": true,
+      "destinations_tested_per_object": 8,
+      "destination_order": "seeded_random_per_object_via_dry_run_order_tag",
+      "zero_means_every_destination_and_is_only_a_replay_of_the_s1_runs": true,
+      "feasible_set_size_is_over_tested_pairs_only": true,
+      "receipt_records_pairs_tested_pairs_total_and_the_ratio_estimate": true,
+      "ruling_39_reason": "dry-run cost is candidates x |U| x up to 32 points; after ruling 35 (U 188 -> 670 over 50 houses) the largest house needed 3.2 h and S3-01's 300 houses would need 30 h+. A per-object cap keeps every object equally represented so move discovery does not concentrate its loss in the big houses (a global cap would, against ruling 36); the tested subset is seeded-random so sampling stays uniform.",
+      "plain_language_zh_ruling_39": "裁决 39（2026-09-21，取 (a) m=8）：dry-run 不再对每个候选物体穷举 U 里的全部目的容器，而是用派生 RNG（用途标签 dry_run_order）为每个物体随机挑至多 8 个目的容器去试放偷看；0 表示全部测（只用于复算 S1 的 50 条）。被测子集均匀随机，抽样公平性不变；但 `feasible_set_size` 从此是“测过的那部分里有多少可行”，回执必须同时记 pairs_tested、pairs_total 与比值估计 |F| × pairs_total / pairs_tested，S1（无上限）与 S3 的 F 不可直接比较。"
     },
     "placement_prescreen_superseded": {
       "value": "spawn_point_existence_only",
@@ -368,7 +380,8 @@
       "D-224-S1 裁决 23/24：R1/I1 规则段就地加入 v3，不开新版本；maximum_actions=2000、maximum_interventions_per_episode=6、minimum_yield=0.6、minimum_window_frames=20、p_null_window=0.2、视点距离 [0.75, 2.5]、add=(b) 经 SpawnAsset、move 重访顺序随机、覆盖口径 A、修订六取 (i)。",
       "D-224-S1 裁决 25～32（2026-09-20 批准，28 作废）：门未过后在新提交下按同一 seed 重生成全部 50 条；remove 用 DisableObject；被拒绝格间边重规划（上限 32）；抽样先类型后三元组；add 改为搬运从未渲染过的真实物体（SpawnAsset 复制件不进实例分割）；move/add 的目的对须通过窗口内 dry-run（放一次、视点偷看 ≥196 px、TeleportObject 放回，最多 32 点）；每目的容器每 episode 至多一次放置。",
       "D-224-S1 裁决 33～38（2026-09-21 批准，原话“裁决 34 取双生控制；封印帧改最佳帧；move 下限 N=120/60；null 抽签加私有盐；像素计数限扫掠一；coverage_definition 随 34 改写；以上落地后第三次重生成全部 50 条”）：扫掠二重访被干预容器加同样多个持有已见物体的 U 内对照容器、顺序按派生 RNG 交错；空窗口 episode 走同一流程只跳过执行；容器可见性主体从扫掠一像素最多的帧封印；train 块 move ≥120、源先重访 ≥60；空窗口抽签混入仓库外私有盐（provenance 只登记 sha256）；合格物体像素只数扫掠一帧；coverage_definition 改写并重钉规则摘要。",
-      "D-224-S1 裁决 40（2026-09-21 批准，原话“裁决 40 取调高：maximum_actions 改为 4000，口径写为范围边界，台账记 superseded；本次 50 条跑完后按新值重生成受影响的 house”）：route.maximum_actions 2000 → 4000，台账记 superseded，口径为范围边界；S1 的 50 条跑完后只重生成触顶失败的 house，其余不动。"
+      "D-224-S1 裁决 40（2026-09-21 批准，原话“裁决 40 取调高：maximum_actions 改为 4000，口径写为范围边界，台账记 superseded；本次 50 条跑完后按新值重生成受影响的 house”）：route.maximum_actions 2000 → 4000，台账记 superseded，口径为范围边界；S1 的 50 条跑完后只重生成触顶失败的 house，其余不动。",
+      "D-224-S1 裁决 39／41（2026-09-21 批准，原话“裁决 41 取 (b)；裁决 39 取 (a) m=8；删除 3272d11、12d4209 与两份 interrupted 产物”）：dry-run 每个候选物体只随机测 U 里至多 8 个目的容器（新 RNG 标签 dry_run_order；0 为复算 S1 的全测），回执记 pairs_tested／pairs_total／比值估计；对照规则不变，U 内／U 外比例如实报告、U 外对照单列为较弱对照。"
     ]
   }
 }

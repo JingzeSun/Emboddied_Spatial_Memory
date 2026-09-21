@@ -264,10 +264,11 @@ def lookup_slot(contract: dict[str, Any], path: str) -> Any:
 #: made in place (ruling 24: no version cascade).  A value freeze does not
 #: touch it.  S0-02 was re-pinned for rulings 25-32 (2026-09-20) and again for
 #: rulings 33-38 (2026-09-21, twin control, best-frame seal, move minimum, salted null draw)
-#: and for ruling 40 (2026-09-21, maximum_actions 4000 as a scope boundary, 2000 superseded).
+#: and for ruling 40 (2026-09-21, maximum_actions 4000 as a scope boundary, 2000 superseded),
+#: and for rulings 39/41 (2026-09-21, dry-run destinations per object m=8, control proportion reported).
 FROZEN_RULE_SHA256 = {
     "S0-01": "76f505da801d5ecec6730e85ca521a034888429283f6ac3a0312dfc94c27349c",
-    "S0-02": "b60e4e471c61b60fda262de59d79972cd8d2e610e7774432c65f4fbc486ad9d8",
+    "S0-02": "22bc6f2f41ce2351cdab1868cc1b65de01e6a71020f8683d90e5c0d2c2518d21",
     "S0-03": "cc7d46f870e7894592792e793e0fc1a27f09e6e9b3d60b6e01c9f7a12d7e04d3",
     "S0-04": "268cb41825c472a8bb7bffe9e9529e4d3c98c38f791104a0ad0663e778387b48",
     "S0-05": "c5354b1e71936d345823630b6533b03329435de104e258785fdb89e17934c54a",

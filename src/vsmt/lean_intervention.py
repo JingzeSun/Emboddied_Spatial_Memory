@@ -117,12 +117,15 @@ VIEWPOINT_PITCH_OPTIONS = (-30, 0, 30)
 ROUTE_STRUCTURE = ("sweep_one", "transition", "sweep_two")
 PATH_ENCODING = "turn_then_move_ahead_no_strafe"
 MIN_VISIBLE_PIXELS = 196
-RNG_PURPOSE_TAGS = ("intervention", "revisit_order", "null_window", "control_revisit")
+RNG_PURPOSE_TAGS = ("intervention", "revisit_order", "null_window", "control_revisit", "dry_run_order")
 ADD_SOURCE = "relocate_never_rendered_existing_object_via_PlaceObjectAtPoint"
 REMOVE_EXECUTOR = "DisableObject"
 SAMPLING = "kind_first_uniform_over_kinds_with_remaining_triples_then_triple_uniform"
 PLACEMENT_PRESCREEN = "dry_run_place_peek_revert_in_window"
 DRY_RUN_MAX_POINTS = 32
+#: D-224-S1 ruling 39 (2026-09-21): destinations tested per candidate object in the dry run, drawn by
+#: the seeded RNG; 0 tests every destination and exists only to replay the S1 runs.
+DRY_RUN_DESTINATIONS_PER_OBJECT = 8
 MAX_REPLANS = 32
 P_NULL_WINDOW = 0.2
 MINIMUM_WINDOW_FRAMES = 20
@@ -693,6 +696,9 @@ def validate_intervention_data_contract(contract: Mapping[str, Any]) -> dict[str
     pp = sel["placement_prescreen"]
     _require(pp["method"] == PLACEMENT_PRESCREEN, "contract_prescreen_method_changed")
     _require(pp["maximum_points_per_destination"] == DRY_RUN_MAX_POINTS, "contract_dry_run_points_changed")
+    _require(pp["destinations_tested_per_object"] == DRY_RUN_DESTINATIONS_PER_OBJECT, "contract_dry_run_destinations_changed")
+    _require(pp["feasible_set_size_is_over_tested_pairs_only"] is True, "contract_feasible_set_semantics_changed")
+    _require(pp["receipt_records_pairs_tested_pairs_total_and_the_ratio_estimate"] is True, "contract_pairs_unrecorded")
     _require(pp["peek_min_visible_pixels"] == MIN_VISIBLE_PIXELS, "contract_peek_threshold_changed")
     _require(pp["peek_is_a_private_off_route_render_never_captured"] is True, "contract_peek_leaks_to_public")
     _require(pp["one_placement_per_destination_per_episode"] is True, "contract_multi_placement_allowed")
@@ -713,6 +719,7 @@ def validate_intervention_data_contract(contract: Mapping[str, Any]) -> dict[str
     _require(rs["control_must_hold_a_seen_eligible_object"] is True, "contract_controls_may_be_empty")
     _require(rs["changed_and_control_interleaved_by_seeded_rng"] is True, "contract_controls_not_interleaved")
     _require(rs["null_episode_rule"] == NULL_EPISODE_RULE, "contract_null_episode_rule_changed")
+    _require(rs["controls_outside_U_are_weaker_and_reported_separately"] is True, "contract_control_reporting_dropped")
     _require(iw["container_subject_sealed_from"] == SUBJECT_SEAL_FRAME, "contract_seal_frame_changed")
     _require(iw["minimum_subject_pixels"] == MIN_SUBJECT_PIXELS, "contract_subject_pixels_changed")
     _require(iw["null_window_episode_runs_the_same_pipeline_and_skips_only_execution"] is True, "contract_null_not_twin")
@@ -762,6 +769,7 @@ def check_move_minimum(moves: int, moves_source_first: int, *, is_train_block: b
 __all__ = [
     "ACTIONS",
     "ADD_SOURCE",
+    "DRY_RUN_DESTINATIONS_PER_OBJECT",
     "DRY_RUN_MAX_POINTS",
     "MAX_REPLANS",
     "PLACEMENT_PRESCREEN",
