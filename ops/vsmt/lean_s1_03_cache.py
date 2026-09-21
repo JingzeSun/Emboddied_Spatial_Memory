@@ -23,6 +23,7 @@ What one worker does, per episode, and what it writes:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import multiprocessing as mp
 import os
@@ -157,7 +158,18 @@ class FrozenModels:
                           .read_text(encoding="utf-8"))["sam2"]
         self.torch = torch
         self.device = device
-        sam = build_sam2(d215["official_model_config_path"], assets["sam2_checkpoint"], device=device)
+        # The registry pins the config by its repository-relative path; hydra resolves names
+        # against the installed package root (pkg://sam2), so the same file is named without the
+        # leading package directory.  The mapping is recorded here, not assumed, and the file the
+        # registry pinned is the file that is loaded -- verified by digest below.
+        registered = d215["official_model_config_path"]
+        hydra_name = registered.split("/", 1)[1] if registered.startswith("sam2/") else registered
+        config_on_disk = Path(assets["sam2_repository"]) / registered
+        actual = hashlib.sha256(config_on_disk.read_bytes()).hexdigest()
+        if actual != d215["official_model_config_sha256"]:
+            raise CacheFailure("public_input_missing_or_malformed",
+                               f"sam2 config digest changed: {actual[:16]}")
+        sam = build_sam2(hydra_name, assets["sam2_checkpoint"], device=device)
         self.generator = SAM2AutomaticMaskGenerator(sam, **d215["automatic_mask_generator"])
         self.dino = {}
         for name in fc.DESCRIPTOR_SETS:
