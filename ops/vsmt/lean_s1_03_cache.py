@@ -44,8 +44,9 @@ import numpy as np  # noqa: E402
 from vsmt import lean_frontend_cache as fc  # noqa: E402
 from vsmt.shared_frontend_core import (  # noqa: E402
     AnonymousMask, DINORegionConfig, FreeSpaceMaterializationConfig,
-    PublicGeometryConfig, SurfaceMaterializationConfig,
+    PublicGeometryConfig, SurfaceMaterializationConfig, materialize_place_support,
 )
+from vsmt.l1_structures import materialize_public_surfaces  # noqa: E402
 
 CONTRACT_PATH = ROOT / "configs" / "vsmt" / "lean_s1_03_frontend_cache_v1.json"
 D223_CONTRACT_PATH = ROOT / "configs" / "vsmt" / "vm04_d223_f01_production_reader_v1.json"
@@ -211,7 +212,12 @@ def build_episode(task: dict[str, Any]) -> dict[str, Any]:
         out_dir.mkdir(parents=True, exist_ok=True)
         frontend = frozen_frontend()
         geometry = geometry_config(frontend)
+        surface = surface_config(frontend)
+        free_space_cfg = free_space_config(frontend)
+        descriptor_cfgs = descriptor_configs(frontend)
+        primary = descriptor_cfgs[fc.DESCRIPTOR_SETS[0]]
         models = FrozenModels(frontend, task["assets"])
+        prior_free_space: list[Any] = []
         public_dir = Path(task["episode_root"]) / "public"
         count = len(sorted(public_dir.glob("*.frame.json")))
         if count < 1:
@@ -224,23 +230,40 @@ def build_episode(task: dict[str, Any]) -> dict[str, Any]:
                 [anonymous(mask, ordinal) for ordinal, mask in enumerate(models.masks(frame["rgb"]))])
             tokens = models.patch_tokens(frame["rgb"])
             pose = causal_pose(record)
+            # the two public volumes and the surfaces come from the bound D-223 materialisers on the
+            # same public depth; rho_free needs no separate gate (ruling 42), and the place
+            # descriptor the support helper also returns is dropped here per METHOD section 5
+            depth_digest = fc.sha(frame["depth"].tobytes().hex())
+            pose_digest = fc.sha({"calibration": record["intrinsics"], "causal_pose": pose})
+            support = materialize_place_support(
+                depth_m=frame["depth"], calibration=record["intrinsics"], geometry_pose=pose,
+                patch_tokens=tokens[fc.DESCRIPTOR_SETS[0]], descriptor=primary,
+                free_space=free_space_cfg, time_s=float(index), depth_sha256=depth_digest,
+                calibration_and_pose_sha256=pose_digest, prior_free_space=prior_free_space)
+            prior_free_space = ([*prior_free_space, support.current_free_space]
+                                [-free_space_cfg.rolling_public_observation_times:])
+            surfaces = [fc.project_surface(item.public_record(""), ordinal=ordinal)
+                        for ordinal, item in enumerate(materialize_public_surfaces(
+                            frame["depth"], record["intrinsics"], pose,
+                            tokens[fc.DESCRIPTOR_SETS[0]], primary, surface))]
             rows = []
             for ordinal, mask in enumerate(admitted):
                 from vsmt.l1_entities import pool_dinov2_region_descriptor
                 descriptors = {
                     name: list(pool_dinov2_region_descriptor(
-                        tokens[name], mask.as_array(), task["descriptor_configs"][name]).values)
+                        tokens[name], mask.as_array(), descriptor_cfgs[name]).values)
                     for name in fc.DESCRIPTOR_SETS}
                 rows.append(fc.build_fragment(
                     ordinal=ordinal, mask=mask, depth_m=frame["depth"],
                     calibration=record["intrinsics"], pose=pose, geometry_config=geometry,
                     descriptors=descriptors))
+                del descriptors
             built = fc.build_frame(
                 tick=index + 1, frame_digest=record["frame_digest"],
                 camera_position_m=pose["position_m"],
                 camera_forward=camera_forward(pose["quaternion_xyzw"]),
-                fragments=rows, surfaces=task["surfaces_placeholder"],
-                free_space=task["free_space_placeholder"], visibility=task["visibility_placeholder"],
+                fragments=rows, surfaces=surfaces,
+                free_space=support.free_space, visibility=support.visibility,
                 frontend_config_sha256=fc.D223_FRONTEND_CONFIG_SHA256,
                 descriptor_asset_sha256s=task["descriptor_asset_sha256s"])
             (out_dir / f"{index:04d}.cache.json").write_text(json.dumps(built))
@@ -318,11 +341,7 @@ def main() -> int:
     tasks = [{
         "episode_id": directory.name, "episode_root": str(directory),
         "out": str(out_root / directory.name), "commit": commit, "assets": assets,
-        "descriptor_configs": descriptor_configs(frontend),
         "descriptor_asset_sha256s": {name: assets.get(f"dinov2_{name}_sha256", "") for name in fc.DESCRIPTOR_SETS},
-        # the volumes come from the bound D-223 materialiser once rho_free is resolved; the
-        # contract refuses to run while that value is null, so these never reach a real run
-        "surfaces_placeholder": [], "free_space_placeholder": {}, "visibility_placeholder": {},
     } for directory in episodes]
 
     (out_root / "plan.json").write_text(json.dumps(
