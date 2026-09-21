@@ -53,6 +53,20 @@ CACHE_FRAME_FIELDS = (
     "frame_digest", "tick", "camera_position_m", "camera_forward",
     "fragments", "surfaces", "free_space", "visibility", "frame_seal",
 )
+#: What the cache keeps of a public surface: where it is, how big, how it lies.  The frozen record
+#: also carries a descriptor, which this stage drops -- no feature reads it, and the surface exists
+#: only to serve the shared ``supported_by`` rule whose thresholds are still unfrozen.
+SURFACE_FIELDS = (
+    "surface_id", "centroid_m", "extent_m", "plane_normal", "plane_offset_m", "mask_sha256",
+)
+#: The two public volumes, kept exactly as the frozen materialiser writes them.
+FREE_SPACE_FIELDS = (
+    "free_space_id", "time_s", "halfspaces_world", "reliability", "support_sha256",
+)
+VISIBILITY_FIELDS = (
+    "visibility_id", "time_s", "halfspaces_world", "reliability", "support_sha256",
+)
+
 FRAGMENT_FIELDS = (
     "fragment_id", "descriptor_vits14", "descriptor_vitb14", "centroid_m",
     "aabb_min_m", "aabb_max_m", "pixel_count", "depth_valid_ratio",
@@ -254,6 +268,45 @@ def build_fragment(
     return record
 
 
+def project_surface(record: Mapping[str, Any], *, ordinal: int) -> dict[str, Any]:
+    """Keep the geometry of one public surface and drop its descriptor.
+
+    白话：支撑面在冻结记录里带一条描述子，而 cache 只需要「面在哪、多大、朝向如何」。没有任何
+    特征读这个描述子，所以丢掉它比留着更诚实——留着会让人以为下游用了它。
+    """
+
+    projected = {
+        "surface_id": f"surface:{ordinal:04d}",
+        "centroid_m": [float(v) for v in record["centroid_m"]],
+        "extent_m": [float(v) for v in record["extent_m"]],
+        "plane_normal": [float(v) for v in record["plane_normal"]],
+        "plane_offset_m": float(record["plane_offset_m"]),
+        "mask_sha256": record["mask_sha256"],
+    }
+    _require(tuple(projected) == SURFACE_FIELDS, "public_input_missing_or_malformed", "surface_field_order")
+    return projected
+
+
+def check_volume_records(records: Sequence[Mapping[str, Any]], *, fields: Sequence[str],
+                         label: str) -> list[dict[str, Any]]:
+    """Check the public volume records the frozen materialiser produced.
+
+    白话：自由空间与可见体积由已冻结的材化算出，这里只核对它们的字段与可靠性。可靠性必须是 1.0：
+    D-223 的材化只在一个体块内每个像素深度都有效时才生成该体块（裁决 42 的依据），所以不存在部分
+    可靠的体块；出现别的值说明上游语义变了，必须整帧失败而不是照收。
+    """
+
+    out = []
+    for record in records:
+        _require(tuple(record) == tuple(fields), "public_input_missing_or_malformed", f"{label}_field_order")
+        _require(float(record["reliability"]) == 1.0,
+                 "public_input_missing_or_malformed", f"{label}_reliability_not_one")
+        _require(len(record["halfspaces_world"]) == 6,
+                 "public_input_missing_or_malformed", f"{label}_not_six_halfspaces")
+        out.append(dict(record))
+    return out
+
+
 def build_frame(
     *, tick: int, frame_digest: str, camera_position_m: Sequence[float],
     camera_forward: Sequence[float], fragments: Sequence[Mapping[str, Any]],
@@ -267,6 +320,9 @@ def build_frame(
     允许出现 house、场景、对象 ID 等字样，出现即整条失败。
     """
 
+    for name, value in (("fragments", fragments), ("surfaces", surfaces),
+                        ("free_space", free_space), ("visibility", visibility)):
+        _reject_forbidden(value, f"/{name}")
     _require(type(tick) is int and tick >= 1, "public_input_missing_or_malformed", "tick")
     _require(len(frame_digest) == 64 and all(c in "0123456789abcdef" for c in frame_digest),
              "public_input_missing_or_malformed", "frame_digest")
@@ -275,6 +331,11 @@ def build_frame(
     _require(len(position) == 3 and len(forward) == 3, "public_input_missing_or_malformed", "camera_vectors")
     norm = math.sqrt(sum(v * v for v in forward))
     _require(abs(norm - 1.0) < 1e-6, "public_input_missing_or_malformed", "camera_forward_not_unit")
+    surface_rows = [dict(row) for row in surfaces]
+    for row in surface_rows:
+        _require(tuple(row) == SURFACE_FIELDS, "public_input_missing_or_malformed", "surface_field_order")
+    check_volume_records(free_space, fields=FREE_SPACE_FIELDS, label="free_space")
+    check_volume_records(visibility, fields=VISIBILITY_FIELDS, label="visibility")
     ids = [row["fragment_id"] for row in fragments]
     _require(len(set(ids)) == len(ids), "public_input_missing_or_malformed", "fragment_id_duplicate")
     _require(len(fragments) <= MAXIMUM_PROPOSALS_PER_FRAME, "proposal_overflow", str(len(fragments)))
@@ -285,16 +346,16 @@ def build_frame(
         "camera_position_m": position,
         "camera_forward": forward,
         "fragments": [dict(row) for row in fragments],
-        "surfaces": [dict(row) for row in surfaces],
-        "free_space": free_space,
-        "visibility": visibility,
+        "surfaces": surface_rows,
+        "free_space": [dict(row) for row in free_space],
+        "visibility": [dict(row) for row in visibility],
     }
     _reject_forbidden(frame)
     seal_payload = {
         "frame_digest": frame_digest, "tick": tick,
         "camera_position_m": position, "camera_forward": forward,
         "fragments": frame["fragments"], "surfaces": frame["surfaces"],
-        "free_space_sha256": sha(free_space), "visibility_sha256": sha(visibility),
+        "free_space_sha256": sha(frame["free_space"]), "visibility_sha256": sha(frame["visibility"]),
         "frontend_config_sha256": frontend_config_sha256,
         "descriptor_asset_sha256s": dict(sorted(descriptor_asset_sha256s.items())),
     }
@@ -432,8 +493,17 @@ def validate_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     _require(contract["volumes"]["free_space_reliability_gate_rho_free"] is None
              or "volumes.free_space_reliability_gate_rho_free" not in open_slots,
              "public_input_missing_or_malformed", "rho_free_frozen_but_still_open")
-    _require(all(value is False for value in contract["authorization"].values()),
-             "public_input_missing_or_malformed", "authorization_must_be_all_false")
+    # A bit may be true only if a ruling opened it by name, which is what makes "who authorised
+    # this run" auditable; the runner separately refuses while any required bit is still closed.
+    policy = contract.get("activation_policy")
+    opened = set(policy["active_true_authorizations"]) if policy else set()
+    if policy:
+        _require(type(policy.get("opened_by")) is str and bool(policy["opened_by"]),
+                 "public_input_missing_or_malformed", "activation_policy_names_no_ruling")
+    for name, value in contract["authorization"].items():
+        _require(type(value) is bool, "public_input_missing_or_malformed", f"authorization_{name}_not_boolean")
+        _require(value is False or name in opened,
+                 "public_input_missing_or_malformed", f"bit_opened_without_a_ruling:{name}")
     return dict(contract)
 
 
@@ -445,6 +515,9 @@ __all__ = [
     "DESCRIPTOR_SETS",
     "FAILURE_REASONS",
     "FRAGMENT_FIELDS",
+    "FREE_SPACE_FIELDS",
+    "SURFACE_FIELDS",
+    "VISIBILITY_FIELDS",
     "LeanFrontendCacheError",
     "MAXIMUM_PROPOSALS_PER_FRAME",
     "MINIMUM_VISIBLE_PIXELS",
@@ -454,7 +527,9 @@ __all__ = [
     "assignment_view",
     "build_frame",
     "build_fragment",
+    "check_volume_records",
     "fragment_aabb",
+    "project_surface",
     "seal_episode",
     "sha",
     "validate_contract",

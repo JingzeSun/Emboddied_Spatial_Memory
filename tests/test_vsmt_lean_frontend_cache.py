@@ -78,6 +78,27 @@ def descriptors(seed: int = 0) -> dict[str, list[float]]:
     return {"vits14": unit(384, seed), "vitb14": unit(768, seed + 1)}
 
 
+def halfspaces() -> list[dict]:
+    """Six world half-spaces, the shape the frozen materialiser writes."""
+    return [{"normal": [1.0, 0.0, 0.0], "offset_m": float(index)} for index in range(6)]
+
+
+def free_space_record(ordinal: int = 0, time_s: float = 0.0) -> dict:
+    return {"free_space_id": f"free-space:{ordinal:04d}", "time_s": time_s,
+            "halfspaces_world": halfspaces(), "reliability": 1.0, "support_sha256": "d" * 64}
+
+
+def visibility_record(ordinal: int = 0, time_s: float = 0.0) -> dict:
+    return {"visibility_id": f"visibility:{ordinal:04d}", "time_s": time_s,
+            "halfspaces_world": halfspaces(), "reliability": 1.0, "support_sha256": "e" * 64}
+
+
+def surface_record(ordinal: int = 0) -> dict:
+    return {"surface_id": f"surface:{ordinal:04d}", "centroid_m": [0.0, 0.5, 1.0],
+            "extent_m": [1.0, 0.0, 1.0], "plane_normal": [0.0, 1.0, 0.0],
+            "plane_offset_m": 0.5, "mask_sha256": "f" * 64}
+
+
 class TestProposalBoundary(unittest.TestCase):
     """D-215: 196 px minimum, 64 per frame, and overflow is a failure, never a truncation."""
 
@@ -213,7 +234,7 @@ class TestFrameAndSeal(unittest.TestCase):
         return fc.build_frame(
             tick=tick, frame_digest="a" * 64, camera_position_m=[0.0, 1.5, 0.0],
             camera_forward=[0.0, 0.0, 1.0], fragments=fragments, surfaces=[],
-            free_space={"voxels": [[0, 0, 1]]}, visibility={"voxels": [[0, 0, 2]]},
+            free_space=[free_space_record()], visibility=[visibility_record()],
             frontend_config_sha256=fc.D223_FRONTEND_CONFIG_SHA256,
             descriptor_asset_sha256s={"vits14": "b" * 64, "vitb14": "c" * 64})
 
@@ -234,7 +255,7 @@ class TestFrameAndSeal(unittest.TestCase):
         with self.assertRaises(fc.LeanFrontendCacheError) as ctx:
             fc.build_frame(tick=1, frame_digest="a" * 64, camera_position_m=[0.0, 0.0, 0.0],
                            camera_forward=[0.0, 0.0, 1.0], fragments=[], surfaces=[],
-                           free_space={"house_id": "x"}, visibility={},
+                           free_space=[{**free_space_record(), "house_id": "x"}], visibility=[],
                            frontend_config_sha256=fc.D223_FRONTEND_CONFIG_SHA256,
                            descriptor_asset_sha256s={})
         self.assertEqual(ctx.exception.reason, "forbidden_key_in_cache")
@@ -243,7 +264,7 @@ class TestFrameAndSeal(unittest.TestCase):
         with self.assertRaises(fc.LeanFrontendCacheError):
             fc.build_frame(tick=1, frame_digest="a" * 64, camera_position_m=[0.0, 0.0, 0.0],
                            camera_forward=[0.0, 0.0, 2.0], fragments=[], surfaces=[],
-                           free_space={}, visibility={},
+                           free_space=[], visibility=[],
                            frontend_config_sha256=fc.D223_FRONTEND_CONFIG_SHA256,
                            descriptor_asset_sha256s={})
 
@@ -260,6 +281,42 @@ class TestFrameAndSeal(unittest.TestCase):
                             frontend_config_sha256=fc.D223_FRONTEND_CONFIG_SHA256)
 
 
+class TestVolumesAndSurfaces(unittest.TestCase):
+    """The cache keeps the frozen volumes as written, and keeps only a surface's geometry."""
+
+    def test_a_surface_keeps_its_geometry_and_loses_its_descriptor(self) -> None:
+        frozen = {"region_id": "region:0007", "structure_kind": "surface", "mask_sha256": "f" * 64,
+                  "descriptor": [0.0] * 384, "centroid_m": [0.0, 0.5, 1.0], "extent_m": [1.0, 0.0, 1.0],
+                  "reliability": 1.0, "proposal_source_id": "x", "plane_normal": [0.0, 1.0, 0.0],
+                  "plane_offset_m": 0.5}
+        projected = fc.project_surface(frozen, ordinal=7)
+        self.assertEqual(tuple(projected), fc.SURFACE_FIELDS)
+        self.assertNotIn("descriptor", projected)
+        self.assertEqual(projected["surface_id"], "surface:0007")
+
+    def test_a_volume_that_is_not_fully_reliable_fails_the_frame(self) -> None:
+        with self.assertRaises(fc.LeanFrontendCacheError) as ctx:
+            fc.check_volume_records([{**free_space_record(), "reliability": 0.8}],
+                                    fields=fc.FREE_SPACE_FIELDS, label="free_space")
+        self.assertIn("reliability_not_one", str(ctx.exception))
+
+    def test_a_volume_without_six_halfspaces_fails_the_frame(self) -> None:
+        broken = {**free_space_record(), "halfspaces_world": halfspaces()[:5]}
+        with self.assertRaises(fc.LeanFrontendCacheError):
+            fc.check_volume_records([broken], fields=fc.FREE_SPACE_FIELDS, label="free_space")
+
+    def test_the_seal_covers_the_volumes(self) -> None:
+        def frame(free):
+            return fc.build_frame(
+                tick=1, frame_digest="a" * 64, camera_position_m=[0.0, 0.0, 0.0],
+                camera_forward=[0.0, 0.0, 1.0], fragments=[], surfaces=[], free_space=free,
+                visibility=[visibility_record()],
+                frontend_config_sha256=fc.D223_FRONTEND_CONFIG_SHA256, descriptor_asset_sha256s={})
+        one = frame([free_space_record()])["frame_seal"]["payload_sha256"]
+        two = frame([free_space_record(), free_space_record(1)])["frame_seal"]["payload_sha256"]
+        self.assertNotEqual(one, two)
+
+
 class TestAssignmentView(unittest.TestCase):
     """The projection must be exactly what S0-03's own validator accepts."""
 
@@ -271,8 +328,8 @@ class TestAssignmentView(unittest.TestCase):
                      for i in range(2)]
         return fc.build_frame(
             tick=1, frame_digest="a" * 64, camera_position_m=[0.0, 1.5, 0.0],
-            camera_forward=[0.0, 0.0, 1.0], fragments=fragments, surfaces=[{"surface_id": "s0"}],
-            free_space={}, visibility={},
+            camera_forward=[0.0, 0.0, 1.0], fragments=fragments, surfaces=[surface_record()],
+            free_space=[free_space_record()], visibility=[visibility_record()],
             frontend_config_sha256=fc.D223_FRONTEND_CONFIG_SHA256, descriptor_asset_sha256s={})
 
     def test_the_view_passes_the_s0_03_validator(self) -> None:
@@ -320,8 +377,12 @@ class TestContract(unittest.TestCase):
     def test_the_contract_matches_the_implementation(self) -> None:
         fc.validate_contract(self.contract)
 
-    def test_the_authorization_bits_are_all_closed(self) -> None:
-        self.assertTrue(all(value is False for value in self.contract["authorization"].values()))
+    def test_every_open_authorization_bit_names_the_ruling_that_opened_it(self) -> None:
+        policy = self.contract["activation_policy"]
+        self.assertTrue(policy["opened_by"])
+        for name, value in self.contract["authorization"].items():
+            if value:
+                self.assertIn(name, policy["active_true_authorizations"], name)
 
     def test_it_binds_the_frozen_frontend_rather_than_redefining_it(self) -> None:
         bound = self.contract["bound_frozen_frontend"]
@@ -370,16 +431,54 @@ class TestContract(unittest.TestCase):
                 with self.assertRaises(fc.LeanFrontendCacheError):
                     fc.validate_contract(broken)
 
-    def test_an_open_authorization_bit_is_refused(self) -> None:
+    def test_a_bit_opened_without_a_ruling_is_refused(self) -> None:
         broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
-        broken["authorization"]["cache_generation"] = True
+        broken["authorization"]["invented_bit"] = True
+        with self.assertRaises(fc.LeanFrontendCacheError) as ctx:
+            fc.validate_contract(broken)
+        self.assertIn("invented_bit", str(ctx.exception))
+
+    def test_an_activation_policy_without_a_ruling_is_refused(self) -> None:
+        broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        broken["activation_policy"]["opened_by"] = ""
         with self.assertRaises(fc.LeanFrontendCacheError):
             fc.validate_contract(broken)
 
-    def test_rho_free_is_registered_as_open_until_it_is_resolved(self) -> None:
-        self.assertIsNone(self.contract["volumes"]["free_space_reliability_gate_rho_free"])
-        self.assertIn("volumes.free_space_reliability_gate_rho_free",
-                      self.contract["policy_values_without_defaults"])
+    def test_rho_free_is_resolved_as_subsumed_with_its_evidence(self) -> None:
+        volumes = self.contract["volumes"]
+        self.assertEqual(volumes["free_space_reliability_gate_rho_free"],
+                         "subsumed_by_the_bound_d223_free_space_configuration")
+        self.assertNotIn("volumes.free_space_reliability_gate_rho_free",
+                         self.contract["policy_values_without_defaults"])
+        resolution = volumes["rho_free_resolution"]
+        self.assertEqual(resolution["implied_gate_value"], 1.0)
+        self.assertEqual(len(resolution["evidence"]), 3)
+        self.assertTrue(resolution["ruling"].startswith("D-224"))
+
+    def test_the_implied_gate_is_what_the_frozen_materialiser_actually_does(self) -> None:
+        """The claim is checkable: a block with one invalid pixel yields no free-space frustum."""
+        from vsmt.l1_structures import materialize_public_free_space
+        from vsmt.shared_frontend_core import FreeSpaceMaterializationConfig
+        d223 = json.loads((PROJECT_ROOT / "configs" / "vsmt" /
+                           "vm04_d223_f01_production_reader_v1.json").read_text(encoding="utf-8"))
+        raw = dict(d223["frontend"]["free_space"])
+        raw["block_widths_in_tiles"] = tuple(raw["block_widths_in_tiles"])
+        config = FreeSpaceMaterializationConfig(**raw)
+        side = raw["tile_size_pixels"] * raw["block_widths_in_tiles"][-1]
+        calibration = {"fx": 112.0, "fy": 112.0, "cx": (side - 1) / 2, "cy": (side - 1) / 2}
+        pose = {"position_m": [0.0, 0.0, 0.0], "quaternion_xyzw": [0.0, 0.0, 0.0, 1.0]}
+        clean = np.full((side, side), 4.0, dtype=np.float32)
+        digest = "a" * 64
+        full = materialize_public_free_space(clean, calibration, pose, time_s=0.0, depth_sha256=digest,
+                                             camera_calibration_and_pose_sha256=digest, config=config)
+        self.assertGreater(len(full), 0)
+        holed = clean.copy()
+        holed[0, 0] = np.nan                      # one unreliable ray in the largest block
+        fewer = materialize_public_free_space(holed, calibration, pose, time_s=0.0, depth_sha256=digest,
+                                              camera_calibration_and_pose_sha256=digest, config=config)
+        self.assertLess(len(fewer), len(full))
+        self.assertTrue(all(record.public_record("free-space:0000")["reliability"] == 1.0
+                            for record in full))
 
     def test_this_stage_does_not_select_a_descriptor(self) -> None:
         self.assertIn("descriptor_selection", self.contract["not_in_this_stage"])

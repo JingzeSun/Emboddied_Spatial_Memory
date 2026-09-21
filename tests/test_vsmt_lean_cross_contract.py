@@ -277,7 +277,7 @@ FROZEN_RULE_SHA256 = {
     "S0-05": "c5354b1e71936d345823630b6533b03329435de104e258785fdb89e17934c54a",
     "S1-01": "4f139e631388c05e4006fd12ffad8b611d2e7811fb7f9a830ce9f7c63fdecd84",
     "S1-02a": "997cabe5105ca304269b0d8d9dd34038ff096df7a79c875c577a2629866ccc64",
-    "S1-03": "577f62ba044743a208127dc220a508b8ca055069136d9ecf702aa98f5d604ff2",
+    "S1-03": "94bc6f099a886267917d3d636f5c123cad58de7502aed7b234374286dd14dd76",
 }
 
 #: Every registered slot that has been frozen, and the value it froze at.
@@ -340,6 +340,14 @@ class TestS103BindsTheFrozenFrontend(unittest.TestCase):
         self.assertEqual(tuple(load_stage("S0-03")["entity_geometry_fields"]),
                          lean_assignment.ENTITY_GEOMETRY_FIELDS)
 
+    def test_rho_free_is_resolved_as_subsumed_not_left_null(self) -> None:
+        volumes = self.s1_03["volumes"]
+        self.assertEqual(volumes["free_space_reliability_gate_rho_free"],
+                         "subsumed_by_the_bound_d223_free_space_configuration")
+        self.assertEqual(volumes["rho_free_resolution"]["implied_gate_value"], 1.0)
+        self.assertNotIn("volumes.free_space_reliability_gate_rho_free",
+                         self.s1_03["policy_values_without_defaults"])
+
     def test_the_descriptor_sets_are_the_assets_s1_01_registered(self) -> None:
         registry = {row["asset_id"]: row for row in load_stage("S1-01")["asset_registry"]}
         for key in ("primary", "optional_upgrade"):
@@ -353,8 +361,12 @@ class TestS103BindsTheFrozenFrontend(unittest.TestCase):
         self.assertEqual(registry["sam2_checkpoint"]["sha256"], bound["sam2_checkpoint_sha256"])
         self.assertEqual(registry["sam2_repository"]["pinned_ref"], bound["sam2_repository_commit"])
 
-    def test_it_holds_no_authorization_and_leaves_its_unfrozen_values_open(self) -> None:
-        self.assertTrue(all(value is False for value in self.s1_03["authorization"].values()))
+    def test_every_open_bit_was_opened_by_a_ruling_and_unfrozen_values_stay_open(self) -> None:
+        policy = self.s1_03["activation_policy"]
+        self.assertTrue(policy["opened_by"].startswith("D-224"))
+        for name, value in self.s1_03["authorization"].items():
+            if value:
+                self.assertIn(name, policy["active_true_authorizations"], name)
         for slot in self.s1_03["policy_values_without_defaults"]:
             node = self.s1_03
             for part in slot.split("."):
