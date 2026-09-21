@@ -21,6 +21,7 @@ from typing import Any, Mapping, Sequence
 
 from cpmt.hashing import canonical_json
 from vsmt.lean_intervention import (
+    DRY_RUN_DESTINATIONS_PER_OBJECT,
     INTERVENTION_KINDS,
     MAXIMUM_INTERVENTIONS_PER_EPISODE,
     MIN_VISIBLE_PIXELS,
@@ -209,6 +210,36 @@ def feasible_triples(
     return out
 
 
+def dry_run_destinations(
+    candidates: Sequence[Mapping[str, Any]], invisible_containers: set[str], *, split_seed: int, house_id: str,
+    per_object: int = DRY_RUN_DESTINATIONS_PER_OBJECT,
+) -> dict[str, list[str]]:
+    """Which U destinations the dry run tests for each candidate object (ruling 39, m=8).
+
+    白话：dry-run 的开销是 候选物体 × |U| × 最多 32 个点。裁决 39 后每个候选物体只用派生 RNG
+    （标签 dry_run_order）从 U 里随机挑至多 m 个目的容器去试放偷看，自己所在的容器不算。
+    被挑中的子集是均匀随机的，所以每个真实可行的 (物体, 目的容器) 对入选概率相同，抽样公平
+    性不变；代价是可行集只覆盖测过的那部分，回执要一起记 pairs_tested 与 pairs_total。
+    m=0 表示全部测，只用于复算 S1 的 50 条。输出按物体 id 排序、每个物体的目的容器保持抽签顺序。
+    """
+
+    if type(per_object) is not int or per_object < 0:
+        raise LeanSelectionError("dry_run_destinations_per_object_invalid")
+    rng = derive_rng(split_seed, house_id, "dry_run_order")
+    out: dict[str, list[str]] = {}
+    for obj in sorted(candidates, key=lambda o: o["object_id"]):
+        pool = [c for c in sorted(invisible_containers) if c != obj.get("parent_receptacle")]
+        if per_object and len(pool) > per_object:
+            chosen = []
+            for _ in range(per_object):
+                chosen.append(pool.pop(rng.randrange(len(pool))))
+            out[obj["object_id"]] = chosen
+        else:
+            rng.shuffle(pool)
+            out[obj["object_id"]] = pool
+    return out
+
+
 def sample_interventions(
     feasible: Sequence[Mapping[str, Any]], *, split_seed: int, house_id: str,
     maximum: int = MAXIMUM_INTERVENTIONS_PER_EPISODE, stratify_by_kind: bool = True,
@@ -296,6 +327,7 @@ def revisit_sequence(
 __all__ = [
     "LeanSelectionError",
     "derive_rng",
+    "dry_run_destinations",
     "eligible_objects",
     "feasible_triples",
     "is_null_window",

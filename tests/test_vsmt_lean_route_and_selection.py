@@ -374,6 +374,39 @@ class TestTwinControls(unittest.TestCase):
         sel.derive_rng(1, "h", "control_revisit")
 
 
+class TestDryRunDestinations(unittest.TestCase):
+    """Ruling 39 (a): at most m seeded-random U destinations per candidate object."""
+
+    U = {f"U{i}" for i in range(12)}
+    CAND = [{"object_id": "Mug|1", "parent_receptacle": "U3"}, {"object_id": "Pen|1", "parent_receptacle": "V"}]
+
+    def test_at_most_m_per_object_never_its_own_parent_and_deterministic(self) -> None:
+        d = sel.dry_run_destinations(self.CAND, self.U, split_seed=1, house_id="h", per_object=8)
+        self.assertEqual(sorted(d), ["Mug|1", "Pen|1"])
+        self.assertEqual(len(d["Mug|1"]), 8)
+        self.assertNotIn("U3", d["Mug|1"])
+        self.assertTrue(set(d["Mug|1"]) <= self.U)
+        self.assertEqual(d, sel.dry_run_destinations(self.CAND, self.U, split_seed=1, house_id="h", per_object=8))
+        self.assertNotEqual(d, sel.dry_run_destinations(self.CAND, self.U, split_seed=2, house_id="h", per_object=8))
+
+    def test_zero_tests_every_destination(self) -> None:
+        d = sel.dry_run_destinations(self.CAND, self.U, split_seed=1, house_id="h", per_object=0)
+        self.assertEqual(sorted(d["Mug|1"]), sorted(self.U - {"U3"}))
+        self.assertEqual(sorted(d["Pen|1"]), sorted(self.U))
+
+    def test_the_draw_is_uniform_over_destinations(self) -> None:
+        counts = {c: 0 for c in self.U}
+        for i in range(400):
+            for c in sel.dry_run_destinations(self.CAND[1:], self.U, split_seed=i, house_id="h", per_object=4)["Pen|1"]:
+                counts[c] += 1
+        self.assertGreater(min(counts.values()), 80)   # 400*4/12 = 133 expected each
+        self.assertLess(max(counts.values()), 190)
+
+    def test_m_must_be_a_nonnegative_int(self) -> None:
+        with self.assertRaises(sel.LeanSelectionError):
+            sel.dry_run_destinations(self.CAND, self.U, split_seed=1, house_id="h", per_object=-1)
+
+
 class TestViewpointReselection(unittest.TestCase):
     """Mechanism fix of LOG-239: a blocked edge that cuts the viewpoint cell off reselects inside the component."""
 
