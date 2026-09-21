@@ -1,0 +1,210 @@
+{
+ "schema_version": "vsmt-lean-s1-02b-report-v2",
+ "stage": null,
+ "reviewed_code": "c222c51a1906f3703a6115c968e77f349306faa9",
+ "stage_receipt_sha256": "48a3a312b86623cb28537c499f705ce300248f4602eb77670275b0bd9343e3d2",
+ "output_root": "/root/autodl-tmp/vsmt_outputs/lean-s1-02a-c222c51",
+ "exported_at": "2026-09-21T20:54:38+0800",
+ "houses_planned": null,
+ "succeeded": 3,
+ "failed": 1,
+ "null_window_episodes": null,
+ "yield_house_level_non_null": null,
+ "yield_gate": null,
+ "yield_gate_passed": null,
+ "requested_workers": null,
+ "actual_workers": null,
+ "derived_worker_count": null,
+ "binding_constraint": null,
+ "is_extrapolation": null,
+ "wall_clock_seconds": 11498.0,
+ "failures_by_reason": {
+  "intervention_window_unavailable": 1
+ },
+ "null_window_failed": null,
+ "moves_executed": null,
+ "moves_source_first": null,
+ "move_minimum": null,
+ "controls_total": null,
+ "controls_outside_U": null,
+ "null_window_salt_sha256": null,
+ "intervention_kinds_sampled_in_successes": {
+  "move": 4,
+  "add": 4,
+  "remove": 3
+ },
+ "intervention_kinds_executed": {
+  "move": 4,
+  "add": 4,
+  "remove": 3
+ },
+ "window_frames_of_successes": [
+  106,
+  120,
+  204
+ ],
+ "bytes_written_total": 1374510575,
+ "houses": [
+  {
+   "house_id": "procthor10k-0.1.2-train-00460",
+   "source_index": 460,
+   "status": "failed",
+   "reason": "intervention_window_unavailable",
+   "detail": "feasible set empty; U=1 eligible=7",
+   "null_window": false,
+   "invisible_container_set_size": null,
+   "feasible_set_size": null,
+   "observations": null,
+   "window_frames": null,
+   "containers_usable": null,
+   "containers_dropped": null,
+   "wall_seconds": 28.1,
+   "peak_rss_gb": 0.263512,
+   "bytes_written": 32630655,
+   "receipt_sha256": "e831a15fa1a52e9f88ebf89a81a44e60555ed4f7ace34f11291f384c1e8144e6",
+   "sampled_kinds": {},
+   "executed_kinds": {},
+   "twin_sampled_kinds": {},
+   "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96"
+  },
+  {
+   "house_id": "procthor10k-0.1.2-train-01451",
+   "source_index": 1451,
+   "status": "succeeded",
+   "reason": null,
+   "detail": "",
+   "null_window": false,
+   "invisible_container_set_size": 50,
+   "feasible_set_size": 498,
+   "observations": 3231,
+   "window_frames": 204,
+   "containers_usable": 98,
+   "containers_dropped": 0,
+   "wall_seconds": 12814.9,
+   "peak_rss_gb": 5.579836,
+   "bytes_written": 825590629,
+   "receipt_sha256": "af0ebf3fdd00169c1070dc1541a05f84182db3c9320bc57fdf784eb171dd4d26",
+   "eligible_object_count": 51,
+   "controls": [
+    "Bed|10|3",
+    "Dresser|6|1",
+    "DiningTable|3|1|0",
+    "CounterTop|2|0",
+    "Bed|8|0|0",
+    "DiningTable|8|1|0",
+    "DiningTable|6|2|0",
+    "DiningTable|10|2|0"
+   ],
+   "controls_from_U": 3,
+   "controls_outside_U": 5,
+   "controls_shortfall": 0,
+   "moves_executed": 3,
+   "moves_source_first": 1,
+   "sampled_kinds": {
+    "move": 3,
+    "add": 3
+   },
+   "executed_kinds": {
+    "move": 3,
+    "add": 3
+   },
+   "twin_sampled_kinds": {
+    "move": 3,
+    "add": 3
+   },
+   "containers_sealed": 85,
+   "viewpoint_reselections": 0,
+   "sweep_two_actions": 1331,
+   "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96"
+  },
+  {
+   "house_id": "procthor10k-0.1.2-train-03394",
+   "source_index": 3394,
+   "status": "succeeded",
+   "reason": null,
+   "detail": "",
+   "null_window": true,
+   "invisible_container_set_size": 9,
+   "feasible_set_size": 45,
+   "observations": 1368,
+   "window_frames": 120,
+   "containers_usable": 36,
+   "containers_dropped": 0,
+   "wall_seconds": 677.1,
+   "peak_rss_gb": 1.647772,
+   "bytes_written": 341882729,
+   "receipt_sha256": "6b2e8e84758b8679eee69e646fee11135b550eeb74f94becaf9bb61711352ea7",
+   "eligible_object_count": 22,
+   "controls": [
+    "Toilet|5|0",
+    "DiningTable|4|3|0",
+    "Dresser|4|1",
+    "DiningTable|7|1"
+   ],
+   "controls_from_U": 1,
+   "controls_outside_U": 3,
+   "controls_shortfall": 0,
+   "moves_executed": 0,
+   "moves_source_first": 0,
+   "sampled_kinds": {},
+   "executed_kinds": {},
+   "twin_sampled_kinds": {
+    "add": 3,
+    "remove": 2,
+    "move": 1
+   },
+   "containers_sealed": 36,
+   "viewpoint_reselections": 0,
+   "sweep_two_actions": 507,
+   "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96"
+  },
+  {
+   "house_id": "procthor10k-0.1.2-train-08566",
+   "source_index": 8566,
+   "status": "succeeded",
+   "reason": null,
+   "detail": "",
+   "null_window": false,
+   "invisible_container_set_size": 11,
+   "feasible_set_size": 15,
+   "observations": 648,
+   "window_frames": 106,
+   "containers_usable": 21,
+   "containers_dropped": 0,
+   "wall_seconds": 640.6,
+   "peak_rss_gb": 0.863988,
+   "bytes_written": 174406562,
+   "receipt_sha256": "d61bf9f1a32b87c62eea6d738b26b4ab2d69bd688ce46de516b9334293850ad1",
+   "eligible_object_count": 19,
+   "controls": [
+    "Toilet|5|0",
+    "DiningTable|6|2|0",
+    "Sink|5|1|0___0"
+   ],
+   "controls_from_U": 0,
+   "controls_outside_U": 3,
+   "controls_shortfall": 0,
+   "moves_executed": 1,
+   "moves_source_first": 1,
+   "sampled_kinds": {
+    "add": 1,
+    "remove": 3,
+    "move": 1
+   },
+   "executed_kinds": {
+    "add": 1,
+    "remove": 3,
+    "move": 1
+   },
+   "twin_sampled_kinds": {
+    "add": 1,
+    "remove": 3,
+    "move": 1
+   },
+   "containers_sealed": 21,
+   "viewpoint_reselections": 0,
+   "sweep_two_actions": 245,
+   "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96"
+  }
+ ]
+}

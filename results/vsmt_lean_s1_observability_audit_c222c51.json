@@ -1,0 +1,799 @@
+{
+ "schema_version": "vsmt-lean-s1-observability-audit-v2",
+ "output_root": "/root/autodl-tmp/vsmt_outputs/lean-s1-02b-c222c51",
+ "totals": {
+  "add": [
+   40,
+   0,
+   0
+  ],
+  "remove": [
+   63,
+   0,
+   0
+  ],
+  "move": [
+   44,
+   0,
+   0
+  ]
+ },
+ "controls": {
+  "controls": 111,
+  "controls_with_a_seen_object_reobserved": 107,
+  "control_objects": 268,
+  "control_objects_reobserved": 253
+ },
+ "twin": {
+  "null_episodes": 9,
+  "would_be_source_containers": 17,
+  "would_be_sources_intact": 14,
+  "would_be_source_objects": 23,
+  "would_be_source_objects_reobserved": 19,
+  "would_be_destination_containers_nothing_to_check": 18
+ },
+ "by_destination_type": {
+  "move": {
+   "SideTable": [
+    7,
+    7
+   ],
+   "Bed": [
+    8,
+    8
+   ],
+   "Dresser": [
+    4,
+    4
+   ],
+   "GarbageCan": [
+    2,
+    2
+   ],
+   "TVStand": [
+    4,
+    4
+   ],
+   "Chair": [
+    3,
+    3
+   ],
+   "Sofa": [
+    4,
+    4
+   ],
+   "Toilet": [
+    2,
+    2
+   ],
+   "CoffeeMachine": [
+    1,
+    1
+   ],
+   "ShelvingUnit": [
+    1,
+    1
+   ],
+   "DiningTable": [
+    2,
+    2
+   ],
+   "Sink": [
+    4,
+    4
+   ],
+   "DogBed": [
+    1,
+    1
+   ],
+   "Desk": [
+    1,
+    1
+   ]
+  },
+  "remove": {
+   "Bed": [
+    22,
+    22
+   ],
+   "DiningTable": [
+    15,
+    15
+   ],
+   "CounterTop": [
+    13,
+    13
+   ],
+   "TVStand": [
+    1,
+    1
+   ],
+   "SideTable": [
+    1,
+    1
+   ],
+   "Toilet": [
+    5,
+    5
+   ],
+   "Dresser": [
+    3,
+    3
+   ],
+   "Desk": [
+    3,
+    3
+   ]
+  },
+  "add": {
+   "WashingMachine": [
+    1,
+    1
+   ],
+   "DiningTable": [
+    5,
+    5
+   ],
+   "ShelvingUnit": [
+    3,
+    3
+   ],
+   "Chair": [
+    6,
+    6
+   ],
+   "Bed": [
+    5,
+    5
+   ],
+   "TVStand": [
+    3,
+    3
+   ],
+   "Toilet": [
+    2,
+    2
+   ],
+   "Dresser": [
+    6,
+    6
+   ],
+   "CounterTop": [
+    3,
+    3
+   ],
+   "SideTable": [
+    2,
+    2
+   ],
+   "Cart": [
+    1,
+    1
+   ],
+   "Sink": [
+    1,
+    1
+   ],
+   "Sofa": [
+    1,
+    1
+   ],
+   "Desk": [
+    1,
+    1
+   ]
+  }
+ },
+ "per_house": {
+  "00236": {
+   "null_window": false,
+   "interventions": [
+    "move:AlarmClock->SideTable[400,639]",
+    "move:SoapBottle->Bed[406,268]",
+    "remove:Pillow->Bed[1342,0]",
+    "move:Laptop->Dresser[484,783]"
+   ],
+   "controls": [
+    "ctrl:CounterTop[4/6]",
+    "ctrl:DiningTable[2/2]",
+    "ctrl:DiningTable[1/1]"
+   ],
+   "twin": []
+  },
+  "00406": {
+   "null_window": true,
+   "interventions": [],
+   "controls": [
+    "ctrl:DiningTable[3/3]",
+    "ctrl:Sink[1/1]",
+    "ctrl:TVStand[1/1]",
+    "ctrl:Bed[2/2]",
+    "ctrl:CounterTop[3/3]"
+   ],
+   "twin": [
+    "twin_src:Bed[1/1]",
+    "twin_src:Dresser[1/1]",
+    "twin_src:Dresser[1/1]",
+    "twin_src:Toilet[0/1]",
+    "twin_dst:ArmChair[-]"
+   ]
+  },
+  "00563": {
+   "null_window": false,
+   "interventions": [
+    "remove:Pillow->Bed[971,0]",
+    "move:Statue->GarbageCan[1231,426]",
+    "add:RemoteContro->WashingMachine[0,323]",
+    "remove:Vase->DiningTable[228,0]",
+    "remove:Plate->DiningTable[264,0]",
+    "add:Potato->DiningTable[0,389]"
+   ],
+   "controls": [
+    "ctrl:Dresser[3/3]",
+    "ctrl:Bed[1/1]",
+    "ctrl:Dresser[1/1]",
+    "ctrl:TVStand[1/1]",
+    "ctrl:Dresser[3/4]"
+   ],
+   "twin": []
+  },
+  "00619": {
+   "null_window": true,
+   "interventions": [],
+   "controls": [
+    "ctrl:DiningTable[1/1]"
+   ],
+   "twin": [
+    "twin_dst:Chair[-]"
+   ]
+  },
+  "00702": {
+   "null_window": false,
+   "interventions": [
+    "remove:WineBottle->CounterTop[516,0]",
+    "remove:Cup->CounterTop[760,0]",
+    "remove:Cup->CounterTop[299,0]",
+    "remove:Pan->CounterTop[229,0]",
+    "remove:SoapBottle->CounterTop[653,0]",
+    "remove:Bottle->CounterTop[337,0]"
+   ],
+   "controls": [],
+   "twin": []
+  },
+  "00950": {
+   "null_window": false,
+   "interventions": [
+    "remove:TennisRacket->Bed[547,0]",
+    "add:Book->ShelvingUnit[0,464]",
+    "remove:Pillow->Bed[241,0]",
+    "remove:SaltShaker->CounterTop[352,0]",
+    "remove:AlarmClock->TVStand[1022,0]",
+    "add:Book->ShelvingUnit[0,816]"
+   ],
+   "controls": [
+    "ctrl:Toilet[1/1]",
+    "ctrl:ArmChair[1/1]",
+    "ctrl:Chair[1/1]",
+    "ctrl:DiningTable[1/1]",
+    "ctrl:ArmChair[1/1]",
+    "ctrl:DiningTable[5/5]"
+   ],
+   "twin": []
+  },
+  "00975": {
+   "null_window": false,
+   "interventions": [
+    "remove:Book->Bed[200,0]",
+    "remove:Laptop->DiningTable[1237,0]",
+    "remove:Book->Bed[551,0]",
+    "remove:Book->Bed[322,0]",
+    "add:Book->Chair[0,940]",
+    "add:Book->Bed[0,349]"
+   ],
+   "controls": [
+    "ctrl:Dresser[2/2]",
+    "ctrl:DiningTable[3/3]",
+    "ctrl:DiningTable[2/2]",
+    "ctrl:ShelvingUnit[1/1]"
+   ],
+   "twin": []
+  },
+  "01139": {
+   "null_window": false,
+   "interventions": [
+    "move:Pillow->SideTable[2100,961]"
+   ],
+   "controls": [
+    "ctrl:DiningTable[1/1]",
+    "ctrl:Dresser[1/1]"
+   ],
+   "twin": []
+  },
+  "01259": {
+   "null_window": false,
+   "interventions": [
+    "remove:CellPhone->SideTable[396,0]",
+    "move:Mug->TVStand[264,235]",
+    "add:WineBottle->Bed[0,417]",
+    "remove:Pillow->Bed[1293,0]",
+    "move:Book->Chair[1660,750]",
+    "add:Book->TVStand[0,1781]"
+   ],
+   "controls": [
+    "ctrl:Bed[2/2]",
+    "ctrl:Bed[2/2]",
+    "ctrl:DiningTable[5/5]",
+    "ctrl:DiningTable[2/2]",
+    "ctrl:Dresser[1/1]"
+   ],
+   "twin": []
+  },
+  "01289": {
+   "null_window": true,
+   "interventions": [],
+   "controls": [
+    "ctrl:DiningTable[2/2]",
+    "ctrl:Bed[3/3]",
+    "ctrl:Dresser[1/1]",
+    "ctrl:Dresser[1/1]",
+    "ctrl:SideTable[3/3]"
+   ],
+   "twin": [
+    "twin_src:DiningTable[2/2]",
+    "twin_src:DiningTable[1/2]",
+    "twin_src:Toilet[0/1]",
+    "twin_dst:Bed[-]",
+    "twin_dst:Chair[-]"
+   ]
+  },
+  "01394": {
+   "null_window": false,
+   "interventions": [
+    "add:Lettuce->DiningTable[0,416]",
+    "add:Tomato->Chair[0,213]",
+    "remove:Tomato->DiningTable[372,0]",
+    "move:Book->Chair[1094,1193]",
+    "move:Bottle->Chair[562,505]",
+    "remove:Tomato->DiningTable[290,0]"
+   ],
+   "controls": [
+    "ctrl:CounterTop[3/3]"
+   ],
+   "twin": []
+  },
+  "01543": {
+   "null_window": false,
+   "interventions": [
+    "move:SoapBottle->Bed[1049,265]",
+    "remove:SprayBottle->Toilet[491,0]",
+    "remove:Mug->CounterTop[306,0]",
+    "remove:Vase->CounterTop[220,0]",
+    "add:Candle->Toilet[0,238]",
+    "remove:DishSponge->CounterTop[254,0]"
+   ],
+   "controls": [
+    "ctrl:DiningTable[3/3]",
+    "ctrl:ArmChair[1/1]",
+    "ctrl:Dresser[2/2]"
+   ],
+   "twin": []
+  },
+  "02524": {
+   "null_window": true,
+   "interventions": [],
+   "controls": [
+    "ctrl:Bed[2/2]",
+    "ctrl:DiningTable[4/4]",
+    "ctrl:Dresser[2/2]",
+    "ctrl:DiningTable[5/5]",
+    "ctrl:DiningTable[2/2]"
+   ],
+   "twin": [
+    "twin_src:CounterTop[2/2]",
+    "twin_dst:Chair[-]",
+    "twin_dst:Sink[-]",
+    "twin_dst:Sink[-]",
+    "twin_dst:TVStand[-]"
+   ]
+  },
+  "02768": {
+   "null_window": true,
+   "interventions": [],
+   "controls": [
+    "ctrl:Bed[4/4]",
+    "ctrl:DiningTable[5/5]",
+    "ctrl:Bed[1/1]",
+    "ctrl:DiningTable[5/5]",
+    "ctrl:DiningTable[4/4]"
+   ],
+   "twin": [
+    "twin_src:Dresser[2/2]",
+    "twin_src:TVStand[0/1]",
+    "twin_dst:Sink[-]",
+    "twin_dst:Sink[-]",
+    "twin_dst:TVStand[-]"
+   ]
+  },
+  "03288": {
+   "null_window": false,
+   "interventions": [
+    "remove:Book->Dresser[1543,0]",
+    "add:RemoteContro->Dresser[0,300]"
+   ],
+   "controls": [
+    "ctrl:Bed[2/2]"
+   ],
+   "twin": []
+  },
+  "03361": {
+   "null_window": false,
+   "interventions": [
+    "add:SoapBar->CounterTop[0,200]",
+    "remove:Lettuce->CounterTop[599,0]",
+    "move:SaltShaker->Bed[389,259]",
+    "move:Pillow->Sofa[2612,2747]",
+    "remove:Bowl->CounterTop[600,0]",
+    "move:SoapBottle->Toilet[893,227]"
+   ],
+   "controls": [
+    "ctrl:Toilet[0/2]",
+    "ctrl:Bed[4/4]"
+   ],
+   "twin": []
+  },
+  "03525": {
+   "null_window": true,
+   "interventions": [],
+   "controls": [
+    "ctrl:ShelvingUnit[1/1]"
+   ],
+   "twin": [
+    "twin_dst:Chair[-]"
+   ]
+  },
+  "04146": {
+   "null_window": false,
+   "interventions": [
+    "add:Lettuce->CounterTop[0,1425]",
+    "remove:Statue->DiningTable[1058,0]",
+    "move:SprayBottle->Sofa[335,309]",
+    "move:Bowl->CoffeeMachine[810,1163]",
+    "move:Cup->ShelvingUnit[854,3775]",
+    "add:Lettuce->DiningTable[0,511]"
+   ],
+   "controls": [],
+   "twin": []
+  },
+  "04388": {
+   "null_window": false,
+   "interventions": [
+    "move:SprayBottle->Bed[353,396]",
+    "move:TeddyBear->Dresser[983,2070]",
+    "remove:CellPhone->Bed[246,0]",
+    "remove:Pillow->Bed[939,0]"
+   ],
+   "controls": [
+    "ctrl:Dresser[2/2]",
+    "ctrl:Bed[3/3]",
+    "ctrl:Sink[1/1]"
+   ],
+   "twin": []
+  },
+  "04742": {
+   "null_window": false,
+   "interventions": [
+    "move:Pillow->Sofa[417,1925]",
+    "remove:Pillow->Bed[1178,0]",
+    "add:RemoteContro->Bed[0,371]",
+    "remove:Laptop->Dresser[934,0]",
+    "move:RemoteContro->DiningTable[244,224]",
+    "add:Lettuce->Dresser[0,533]"
+   ],
+   "controls": [
+    "ctrl:Bed[3/3]",
+    "ctrl:CounterTop[3/3]"
+   ],
+   "twin": []
+  },
+  "04801": {
+   "null_window": false,
+   "interventions": [
+    "remove:SoapBottle->Toilet[568,0]",
+    "move:Statue->Sink[1132,411]",
+    "add:RemoteContro->Dresser[0,201]",
+    "move:DishSponge->SideTable[408,211]",
+    "remove:SprayBottle->Toilet[443,0]"
+   ],
+   "controls": [
+    "ctrl:CounterTop[5/5]",
+    "ctrl:Toilet[1/1]",
+    "ctrl:Bed[2/2]",
+    "ctrl:Dresser[1/1]"
+   ],
+   "twin": []
+  },
+  "05593": {
+   "null_window": false,
+   "interventions": [
+    "move:Candle->Sink[294,685]",
+    "move:DishSponge->Toilet[205,198]",
+    "add:Vase->Dresser[0,231]",
+    "remove:SprayBottle->Toilet[245,0]"
+   ],
+   "controls": [
+    "ctrl:Bed[3/3]",
+    "ctrl:DiningTable[1/1]"
+   ],
+   "twin": []
+  },
+  "05806": {
+   "null_window": false,
+   "interventions": [
+    "remove:Laptop->Dresser[1166,0]",
+    "add:Bowl->TVStand[0,502]",
+    "move:Plate->Dresser[268,206]",
+    "add:Book->SideTable[0,779]",
+    "add:Book->Chair[0,1570]",
+    "move:TeddyBear->DogBed[1831,817]"
+   ],
+   "controls": [
+    "ctrl:Bed[3/3]",
+    "ctrl:Dresser[1/1]",
+    "ctrl:Bed[2/2]",
+    "ctrl:CounterTop[3/3]",
+    "ctrl:Toilet[1/1]",
+    "ctrl:Bed[2/2]",
+    "ctrl:ShelvingUnit[1/1]"
+   ],
+   "twin": []
+  },
+  "05879": {
+   "null_window": false,
+   "interventions": [
+    "add:RemoteContro->Bed[0,504]",
+    "remove:Box->Bed[904,0]",
+    "remove:Pillow->Bed[1468,0]",
+    "remove:Pillow->Bed[555,0]"
+   ],
+   "controls": [
+    "ctrl:SideTable[2/2]"
+   ],
+   "twin": []
+  },
+  "05966": {
+   "null_window": false,
+   "interventions": [
+    "move:Book->Sofa[510,366]",
+    "remove:TeddyBear->Bed[1122,0]",
+    "move:Vase->Bed[810,367]",
+    "add:Tomato->Dresser[0,212]",
+    "remove:Pillow->Bed[2517,0]",
+    "remove:Book->Bed[224,0]"
+   ],
+   "controls": [
+    "ctrl:CounterTop[10/10]",
+    "ctrl:TVStand[1/1]"
+   ],
+   "twin": []
+  },
+  "06453": {
+   "null_window": true,
+   "interventions": [],
+   "controls": [
+    "ctrl:DiningTable[1/2]",
+    "ctrl:CounterTop[6/6]"
+   ],
+   "twin": [
+    "twin_src:Bed[1/1]",
+    "twin_src:Dresser[2/2]",
+    "twin_src:ShelvingUnit[1/1]",
+    "twin_dst:DogBed[-]",
+    "twin_dst:ShelvingUnit[-]",
+    "twin_dst:Toilet[-]"
+   ]
+  },
+  "06764": {
+   "null_window": false,
+   "interventions": [
+    "add:TissueBox->Cart[0,246]"
+   ],
+   "controls": [
+    "ctrl:DiningTable[1/1]"
+   ],
+   "twin": []
+  },
+  "07270": {
+   "null_window": false,
+   "interventions": [
+    "move:CellPhone->SideTable[390,276]",
+    "remove:Book->Bed[1081,0]",
+    "remove:Pillow->Bed[443,0]",
+    "remove:Book->Bed[1029,0]"
+   ],
+   "controls": [
+    "ctrl:Dresser[1/2]"
+   ],
+   "twin": []
+  },
+  "07367": {
+   "null_window": true,
+   "interventions": [],
+   "controls": [
+    "ctrl:Toilet[1/1]"
+   ],
+   "twin": [
+    "twin_src:Sink[1/1]"
+   ]
+  },
+  "07795": {
+   "null_window": true,
+   "interventions": [],
+   "controls": [
+    "ctrl:DiningTable[4/4]",
+    "ctrl:Dresser[1/2]",
+    "ctrl:Dresser[1/1]",
+    "ctrl:Bed[2/2]",
+    "ctrl:Bed[3/3]",
+    "ctrl:DiningTable[1/1]"
+   ],
+   "twin": [
+    "twin_src:CounterTop[1/1]",
+    "twin_src:DiningTable[2/2]",
+    "twin_src:Dresser[1/1]",
+    "twin_dst:Stool[-]",
+    "twin_dst:TVStand[-]",
+    "twin_dst:Toilet[-]"
+   ]
+  },
+  "07815": {
+   "null_window": false,
+   "interventions": [
+    "add:Apple->DiningTable[0,217]",
+    "move:Plate->Bed[291,570]",
+    "move:Candle->Sink[242,273]",
+    "move:Vase->GarbageCan[1375,315]",
+    "add:Tomato->Bed[0,216]",
+    "move:SprayBottle->Dresser[425,212]"
+   ],
+   "controls": [
+    "ctrl:CounterTop[7/8]",
+    "ctrl:DiningTable[5/5]"
+   ],
+   "twin": []
+  },
+  "08422": {
+   "null_window": false,
+   "interventions": [
+    "add:Egg->ShelvingUnit[0,205]"
+   ],
+   "controls": [
+    "ctrl:DiningTable[2/2]"
+   ],
+   "twin": []
+  },
+  "08552": {
+   "null_window": false,
+   "interventions": [
+    "add:Bowl->Dresser[0,1872]",
+    "remove:BaseballBat->Desk[645,0]",
+    "move:Laptop->Bed[2736,1207]",
+    "add:Potato->Sink[0,290]",
+    "move:BasketBall->Desk[944,999]",
+    "move:Vase->TVStand[2207,826]"
+   ],
+   "controls": [
+    "ctrl:CounterTop[7/9]",
+    "ctrl:Desk[1/1]",
+    "ctrl:DiningTable[2/2]",
+    "ctrl:Bed[2/2]",
+    "ctrl:Dresser[3/3]"
+   ],
+   "twin": []
+  },
+  "08905": {
+   "null_window": false,
+   "interventions": [
+    "remove:Lettuce->CounterTop[217,0]",
+    "remove:Book->DiningTable[263,0]",
+    "remove:Cup->DiningTable[462,0]",
+    "move:Bowl->SideTable[644,400]",
+    "add:TeddyBear->CounterTop[0,1413]",
+    "move:Statue->DiningTable[840,937]"
+   ],
+   "controls": [
+    "ctrl:TVStand[2/2]",
+    "ctrl:DiningTable[2/2]"
+   ],
+   "twin": []
+  },
+  "08927": {
+   "null_window": false,
+   "interventions": [
+    "add:Tomato->Sofa[0,273]",
+    "add:Apple->TVStand[0,362]",
+    "add:Tomato->SideTable[0,409]",
+    "remove:Candle->Toilet[271,0]",
+    "move:Bowl->TVStand[610,713]",
+    "add:Tomato->Toilet[0,214]"
+   ],
+   "controls": [
+    "ctrl:CounterTop[4/4]",
+    "ctrl:Chair[1/1]",
+    "ctrl:DiningTable[4/4]",
+    "ctrl:Bed[2/2]",
+    "ctrl:Chair[1/1]",
+    "ctrl:Chair[0/1]"
+   ],
+   "twin": []
+  },
+  "09423": {
+   "null_window": false,
+   "interventions": [
+    "move:Candle->TVStand[349,315]",
+    "remove:CellPhone->DiningTable[305,0]"
+   ],
+   "controls": [],
+   "twin": []
+  },
+  "09488": {
+   "null_window": false,
+   "interventions": [
+    "add:Tomato->DiningTable[0,466]",
+    "move:Plate->SideTable[905,514]",
+    "add:Lettuce->Chair[0,213]",
+    "remove:Laptop->DiningTable[3088,0]",
+    "remove:Box->DiningTable[1778,0]",
+    "add:AlarmClock->Chair[0,491]"
+   ],
+   "controls": [
+    "ctrl:ShelvingUnit[1/1]",
+    "ctrl:Dresser[0/2]",
+    "ctrl:Bed[1/1]",
+    "ctrl:TVStand[2/2]"
+   ],
+   "twin": []
+  },
+  "09595": {
+   "null_window": false,
+   "interventions": [
+    "move:Bowl->Sink[418,939]",
+    "remove:Vase->DiningTable[1246,0]",
+    "remove:Plate->DiningTable[741,0]",
+    "move:Pillow->SideTable[2504,2341]",
+    "remove:SprayBottle->DiningTable[198,0]",
+    "remove:Mug->DiningTable[238,0]"
+   ],
+   "controls": [
+    "ctrl:Toilet[2/2]",
+    "ctrl:Dresser[1/1]",
+    "ctrl:CounterTop[6/6]"
+   ],
+   "twin": []
+  },
+  "09951": {
+   "null_window": false,
+   "interventions": [
+    "add:Lettuce->Chair[0,460]"
+   ],
+   "controls": [
+    "ctrl:CounterTop[3/3]"
+   ],
+   "twin": []
+  },
+  "09985": {
+   "null_window": false,
+   "interventions": [
+    "add:Mug->Desk[0,498]",
+    "remove:Pillow->Bed[1624,0]",
+    "remove:Pillow->Bed[601,0]",
+    "move:Laptop->Bed[619,1218]",
+    "remove:Box->Desk[3014,0]",
+    "remove:Statue->Desk[1623,0]"
+   ],
+   "controls": [
+    "ctrl:Dresser[0/1]"
+   ],
+   "twin": []
+  }
+ }
+}
