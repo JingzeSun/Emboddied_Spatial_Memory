@@ -88,6 +88,61 @@ class RegisteredNullSlotTests(unittest.TestCase):
         self.assertEqual(runner.blocking_null_slots(self.contract), ["volumes.free_space_reliability_gate_rho_free"])
 
 
+class ResumeAndAbortTests(unittest.TestCase):
+    """A resume keeps every final receipt (succeeded or failed), redoes aborted or receipt-less
+    episodes, and a run that aborted or was interrupted never produces the stage receipt."""
+
+    def _root(self, directory: str) -> Path:
+        root = Path(directory)
+        for episode_id, status in (("e-succ", "succeeded"), ("e-fail", "failed"), ("e-abort", "aborted")):
+            (root / episode_id).mkdir()
+            (root / episode_id / "receipt.json").write_text(json.dumps({"episode_id": episode_id, "status": status}))
+        (root / "e-partial").mkdir()
+        (root / "e-partial" / f"0000{runner.FRAME_FILE_SUFFIX}").write_bytes(b"x")
+        return root
+
+    def test_resume_keeps_final_receipts_and_redoes_the_rest(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            plan = runner.resume_plan(self._root(directory), ["e-succ", "e-fail", "e-abort", "e-partial", "e-new"])
+            self.assertEqual(plan, {"kept_succeeded": ["e-succ"], "kept_failed": ["e-fail"],
+                                    "redo": ["e-abort", "e-partial", "e-new"]})
+
+    def test_a_failed_episode_is_never_replaced_by_a_resume(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            plan = runner.resume_plan(self._root(directory), ["e-fail"])
+            self.assertEqual(plan["redo"], [])
+            self.assertEqual(plan["kept_failed"], ["e-fail"])
+
+    def _receipt(self, results, *, planned, aborted=None, interrupted=()):
+        import argparse
+        args = argparse.Namespace(workers=2, worker_basis="t", trial_frame_limit=None, disk_floor_gib=2.0)
+        return runner.stage_receipt(results, tasks_planned=planned, commit="c", trial=False,
+                                    verified={"descriptor_asset_sha256s": {}}, args=args, actual_workers=2,
+                                    snapshot={}, started=0.0, aborted=aborted, interrupted=list(interrupted))
+
+    def test_a_complete_run_reports_exit_0_and_planned_equals_succeeded_plus_failed(self) -> None:
+        rows = [{"episode_id": "a", "status": "succeeded", "frames": 2, "fragments": 3, "frames_with_fragments": 2,
+                 "fragments_per_frame_histogram": {"1": 1, "2": 1}},
+                {"episode_id": "b", "status": "failed", "reason": "proposal_overflow", "detail": "65"}]
+        receipt = self._receipt(rows, planned=2)
+        self.assertTrue(receipt["complete"])
+        self.assertEqual((receipt["exit_status"], receipt["episodes_succeeded"], receipt["episodes_failed"]), (1, 1, 1))
+        self.assertEqual(receipt["frames_total"], 2)
+        self.assertEqual(receipt["fragments_per_frame_histogram"], {"1": 1, "2": 1})
+
+    def test_an_aborted_or_interrupted_run_is_not_complete_and_exits_3(self) -> None:
+        rows = [{"episode_id": "a", "status": "succeeded", "frames": 2, "fragments": 0, "frames_with_fragments": 0,
+                 "fragments_per_frame_histogram": {"0": 2}},
+                {"episode_id": "b", "status": "aborted", "reason": "disk_floor", "detail": "free 1 bytes"}]
+        receipt = self._receipt(rows, planned=3, aborted={"episode_id": "b", "reason": "disk_floor"}, interrupted=["c"])
+        self.assertFalse(receipt["complete"])
+        self.assertEqual(receipt["exit_status"], 3)
+        self.assertEqual(receipt["interrupted_episodes"], ["c"])
+        self.assertEqual(receipt["episodes_failed"], 0)
+        receipt = self._receipt(rows[:1], planned=2)
+        self.assertFalse(receipt["complete"])
+
+
 class AssetVerificationTests(unittest.TestCase):
     """A repository at the wrong commit or a checkpoint with the wrong digest is refused before
     any model is built; the digests the frames carry come from the bytes on disk."""

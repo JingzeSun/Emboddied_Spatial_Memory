@@ -42,6 +42,7 @@ import hashlib
 import json
 import multiprocessing as mp
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -84,6 +85,18 @@ FRAME_FILE_SUFFIX = ".cache.json.gz"
 class CacheFailure(Exception):
     def __init__(self, reason: str, detail: str = "") -> None:
         assert reason in fc.FAILURE_REASONS, reason
+        super().__init__(f"{reason}: {detail}")
+        self.reason, self.detail = reason, detail
+
+
+class InfrastructureAbort(Exception):
+    """The machine, not the data, stopped an episode: the episode is aborted, never failed.
+
+    白话：磁盘快满这类机器问题不是数据问题，不能记成 episode 的科学失败；它让整个运行停下，
+    这条 episode 留 `aborted` 回执，之后用 --resume 从头重做这一条。
+    """
+
+    def __init__(self, reason: str, detail: str = "") -> None:
         super().__init__(f"{reason}: {detail}")
         self.reason, self.detail = reason, detail
 
@@ -413,6 +426,7 @@ def build_episode(task: dict[str, Any]) -> dict[str, Any]:
     bytes_uncompressed = 0
     seconds = {"sam": 0.0, "dino": 0.0, "other": 0.0}
     frame_limit = task.get("frame_limit")
+    disk_floor = int(task.get("disk_floor_bytes") or 0)
     models: FrozenModels | None = None
     frames_done = 0
     try:
@@ -482,6 +496,10 @@ def build_episode(task: dict[str, Any]) -> dict[str, Any]:
                 descriptor_asset_sha256s=task["descriptor_asset_sha256s"])
             payload = json.dumps(built).encode("utf-8")
             compressed = gzip.compress(payload, compresslevel=6)
+            if disk_floor:
+                free = shutil.disk_usage(out_dir).free
+                if free - len(compressed) < disk_floor:
+                    raise InfrastructureAbort("disk_floor", f"free {free} bytes, floor {disk_floor} bytes")
             (out_dir / f"{index:04d}{FRAME_FILE_SUFFIX}").write_bytes(compressed)
             bytes_written += len(compressed)
             bytes_uncompressed += len(payload)
@@ -499,6 +517,8 @@ def build_episode(task: dict[str, Any]) -> dict[str, Any]:
                         "frames_with_fragments": frames_with_fragments,
                         "fragments_per_frame_histogram": dict(sorted(histogram.items(), key=lambda kv: int(kv[0]))),
                         "episode_seal_sha256": sealed["payload_sha256"]})
+    except InfrastructureAbort as abort:
+        receipt.update({"status": "aborted", "reason": abort.reason, "detail": abort.detail[:400]})
     except (CacheFailure, fc.LeanFrontendCacheError) as failure:
         receipt.update({"status": "failed", "reason": failure.reason,
                         "detail": getattr(failure, "detail", str(failure))[:400]})
@@ -548,6 +568,77 @@ def resource_snapshot() -> dict[str, Any]:
     return snapshot
 
 
+def resume_plan(out_root: Path, episode_ids: list[str]) -> dict[str, list[str]]:
+    """What an existing output root already holds, per episode, and what a resume must redo.
+
+    A succeeded or failed receipt is final and kept (a failed episode is never replaced); an
+    aborted receipt or a directory without one is a partial that the resume clears and redoes.
+
+    白话：续跑只重做没跑完的 episode——有 succeeded 或 failed 回执的都保留原样，被中断的
+    （aborted 回执或根本没有回执）整目录清掉重来。它不换样本，也不重跑已经成功的。
+    """
+
+    kept_succeeded, kept_failed, redo = [], [], []
+    for episode_id in episode_ids:
+        directory = out_root / episode_id
+        receipt_path = directory / "receipt.json"
+        if receipt_path.exists():
+            status = json.loads(receipt_path.read_text(encoding="utf-8")).get("status")
+            if status == "succeeded":
+                kept_succeeded.append(episode_id)
+                continue
+            if status == "failed":
+                kept_failed.append(episode_id)
+                continue
+        redo.append(episode_id)
+    return {"kept_succeeded": kept_succeeded, "kept_failed": kept_failed, "redo": redo}
+
+
+def stage_receipt(results: list[dict[str, Any]], *, tasks_planned: int, commit: str, trial: bool,
+                  verified: dict[str, Any], args: argparse.Namespace, actual_workers: int,
+                  snapshot: dict[str, Any], started: float, aborted: dict[str, Any] | None,
+                  interrupted: list[str]) -> dict[str, Any]:
+    results = sorted(results, key=lambda row: row["episode_id"])
+    failed = [row for row in results if row["status"] == "failed"]
+    succeeded = [row for row in results if row["status"] == "succeeded"]
+    merged: dict[str, int] = {}
+    for row in results:
+        for key, value in (row.get("fragments_per_frame_histogram") or {}).items():
+            merged[key] = merged.get(key, 0) + value
+    frames_total = sum(r.get("frames", 0) for r in succeeded)
+    complete = aborted is None and not interrupted and len(succeeded) + len(failed) == tasks_planned
+    return {
+        "stage": "s1-03", "trial": trial, "code_commit": commit, "complete": complete,
+        "episodes_planned": tasks_planned, "episodes_succeeded": len(succeeded),
+        "episodes_failed": len(failed),
+        "failure_receipts": [{"episode_id": r["episode_id"], "reason": r["reason"],
+                              "detail": r.get("detail", "")[:400]} for r in failed],
+        "frames_total": frames_total,
+        "fragments_total": sum(r.get("fragments", 0) for r in succeeded),
+        "fragments_per_frame_histogram": dict(sorted(merged.items(), key=lambda kv: int(kv[0]))),
+        "frames_with_zero_fragments": merged.get("0", 0),
+        "fragment_yield_frames_with_at_least_one_fragment": (
+            sum(r.get("frames_with_fragments", 0) for r in succeeded) / max(1, frames_total)),
+        "descriptor_sets_extracted": list(fc.DESCRIPTOR_SETS),
+        "frontend_config_sha256": fc.D223_FRONTEND_CONFIG_SHA256,
+        "descriptor_asset_sha256s": verified["descriptor_asset_sha256s"],
+        "wall_clock_seconds": round(time.time() - started, 1),
+        "requested_workers": args.workers, "actual_workers": actual_workers,
+        "worker_basis": args.worker_basis, "resources_at_launch": snapshot,
+        "frames_processed_total": sum(r.get("frames_processed", 0) for r in results),
+        "bytes_written_total": sum(r.get("bytes_written", 0) for r in results),
+        "bytes_uncompressed_total": sum(r.get("bytes_uncompressed", 0) for r in results),
+        "peak_vram_reserved_mib_max": max([r.get("peak_vram_reserved_mib") or 0 for r in results] or [0]),
+        "peak_rss_mib_max": max([r.get("peak_rss_mib") or 0 for r in results] or [0]),
+        "seconds_by_part_total": {k: round(sum((r.get("seconds_by_part") or {}).get(k, 0.0) for r in results), 1)
+                                  for k in ("sam", "dino", "other")},
+        "trial_frame_limit": args.trial_frame_limit,
+        "disk_floor_gib": args.disk_floor_gib,
+        "aborted": aborted, "interrupted_episodes": sorted(interrupted),
+        "exit_status": 3 if (aborted or interrupted) else (0 if not failed else 1),
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--episode-roots", required=True,
@@ -559,6 +650,12 @@ def main() -> int:
     parser.add_argument("--workers", type=int, default=1)
     parser.add_argument("--worker-basis", default="",
                         help="the measured evidence the worker count rests on; recorded in plan and receipt")
+    parser.add_argument("--disk-floor-gib", type=float, default=2.0,
+                        help="a worker aborts the run instead of writing a frame that would leave less "
+                             "than this free on the output volume; a safety line, not a compute budget")
+    parser.add_argument("--resume", action="store_true",
+                        help="continue an existing output root: succeeded and failed receipts are kept, "
+                             "aborted or receipt-less episodes are cleared and redone")
     parser.add_argument("--trial-frame-limit", type=int, default=None,
                         help="measurement only: cache at most this many frames per episode and write a "
                              "trial receipt instead of the stage receipt; never a stage run")
@@ -593,6 +690,9 @@ def main() -> int:
     if not trial and out_root.name.endswith("-trial"):
         print("a stage run must not write to a -trial output root; refusing")
         return 2
+    if out_root.exists() and any(out_root.iterdir()) and not args.resume:
+        print(f"output root exists and is not empty: {out_root}; pass --resume to continue it")
+        return 2
     out_root.mkdir(parents=True, exist_ok=True)
 
     episodes = []
@@ -610,14 +710,28 @@ def main() -> int:
     if trial and args.trial_episodes is not None:
         episodes = episodes[:max(1, args.trial_episodes)]
 
+    resumed = resume_plan(out_root, [d.name for d in episodes]) if args.resume else None
+    kept_results: list[dict[str, Any]] = []
+    if resumed:
+        for episode_id in resumed["kept_succeeded"] + resumed["kept_failed"]:
+            kept_results.append(json.loads((out_root / episode_id / "receipt.json").read_text(encoding="utf-8")))
+        for episode_id in resumed["redo"]:
+            partial = out_root / episode_id
+            if partial.exists():
+                shutil.rmtree(partial)
+        episodes = [d for d in episodes if d.name in set(resumed["redo"])]
+
     tasks = [{
         "episode_id": directory.name, "episode_root": str(directory),
         "out": str(out_root / directory.name), "commit": commit, "assets": assets,
         "descriptor_asset_sha256s": verified["descriptor_asset_sha256s"],
         "frame_limit": args.trial_frame_limit,
+        "disk_floor_bytes": int(args.disk_floor_gib * 2 ** 30),
     } for directory in episodes]
-    actual_workers = max(1, min(args.workers, len(tasks)))
+    tasks_planned = len(tasks) + len(kept_results)
+    actual_workers = max(1, min(args.workers, max(1, len(tasks))))
     snapshot = resource_snapshot()
+    snapshot["output_volume_free_gib_at_launch"] = round(shutil.disk_usage(out_root).free / 2 ** 30, 2)
 
     plan = {"stage": "s1-03", "trial": trial, "episodes": [t["episode_id"] for t in tasks], "commit": commit,
             "frontend_config_sha256": fc.D223_FRONTEND_CONFIG_SHA256,
@@ -626,61 +740,53 @@ def main() -> int:
             "worker_basis": args.worker_basis, "resources_at_launch": snapshot,
             "sharding": "one episode per task, tasks handed to a spawn pool one at a time, "
                         "results merged in episode_id order",
+            "disk_floor_gib": args.disk_floor_gib, "resume": resumed,
             "trial_frame_limit": args.trial_frame_limit, "started_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
-    (out_root / ("trial_plan.json" if trial else "plan.json")).write_text(json.dumps(plan, indent=1))
-    print(f"[s1-03] {len(tasks)} episodes, {actual_workers} workers (requested {args.workers}), "
-          f"trial={trial}, commit {commit[:12]}", flush=True)
+    stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
+    plan_name = ("trial_plan" if trial else "plan") + (f".resume-{stamp}" if resumed else "") + ".json"
+    (out_root / plan_name).write_text(json.dumps(plan, indent=1))
+    print(f"[s1-03] {len(tasks)} episodes to run ({len(kept_results)} kept from receipts), {actual_workers} workers "
+          f"(requested {args.workers}), trial={trial}, commit {commit[:12]}, "
+          f"free {snapshot['output_volume_free_gib_at_launch']} GiB, floor {args.disk_floor_gib} GiB", flush=True)
 
     started = time.time()
-    context = mp.get_context("spawn")
-    results = []
-    with context.Pool(processes=actual_workers) as pool:
-        for row in pool.imap_unordered(build_episode, tasks, chunksize=1):
-            results.append(row)
-            print(f"[s1-03] {len(results)}/{len(tasks)} {row['episode_id']} {row['status']} "
-                  f"frames={row.get('frames_processed')} s/frame={row.get('seconds_per_frame')} "
-                  f"vram={row.get('peak_vram_reserved_mib')}MiB rss={row.get('peak_rss_mib')}MiB "
-                  f"bytes={row.get('bytes_written')} "
-                  f"{('reason=' + str(row.get('reason'))) if row['status'] != 'succeeded' else ''} "
-                  f"elapsed={time.time() - started:.0f}s", flush=True)
-    results = sorted(results, key=lambda row: row["episode_id"])
-    failed = [row for row in results if row["status"] != "succeeded"]
-    merged: dict[str, int] = {}
-    for row in results:
-        for key, value in (row.get("fragments_per_frame_histogram") or {}).items():
-            merged[key] = merged.get(key, 0) + value
-    frames_total = sum(r.get("frames", 0) for r in results)
-    receipt = {
-        "stage": "s1-03", "trial": trial, "code_commit": commit,
-        "episodes_planned": len(tasks), "episodes_succeeded": len(results) - len(failed),
-        "episodes_failed": len(failed),
-        "failure_receipts": [{"episode_id": r["episode_id"], "reason": r["reason"],
-                              "detail": r.get("detail", "")[:400]} for r in failed],
-        "frames_total": frames_total,
-        "fragments_total": sum(r.get("fragments", 0) for r in results),
-        "fragments_per_frame_histogram": dict(sorted(merged.items(), key=lambda kv: int(kv[0]))),
-        "frames_with_zero_fragments": merged.get("0", 0),
-        "fragment_yield_frames_with_at_least_one_fragment": (
-            sum(r.get("frames_with_fragments", 0) for r in results) / max(1, frames_total)),
-        "descriptor_sets_extracted": list(fc.DESCRIPTOR_SETS),
-        "frontend_config_sha256": fc.D223_FRONTEND_CONFIG_SHA256,
-        "descriptor_asset_sha256s": verified["descriptor_asset_sha256s"],
-        "wall_clock_seconds": round(time.time() - started, 1),
-        "requested_workers": args.workers, "actual_workers": actual_workers,
-        "worker_basis": args.worker_basis, "resources_at_launch": snapshot,
-        "frames_processed_total": sum(r.get("frames_processed", 0) for r in results),
-        "bytes_written_total": sum(r.get("bytes_written", 0) for r in results),
-        "bytes_uncompressed_total": sum(r.get("bytes_uncompressed", 0) for r in results),
-        "peak_vram_reserved_mib_max": max([r.get("peak_vram_reserved_mib") or 0 for r in results] or [0]),
-        "peak_rss_mib_max": max([r.get("peak_rss_mib") or 0 for r in results] or [0]),
-        "seconds_by_part_total": {k: round(sum((r.get("seconds_by_part") or {}).get(k, 0.0) for r in results), 1)
-                                  for k in ("sam", "dino", "other")},
-        "trial_frame_limit": args.trial_frame_limit,
-        "exit_status": 0 if not failed else 1,
-    }
-    (out_root / ("trial_receipt.json" if trial else "s1_03_receipt.json")).write_text(json.dumps(receipt, indent=1))
-    print(json.dumps(receipt, indent=1))
-    return 0 if not failed else 1
+    results: list[dict[str, Any]] = list(kept_results)
+    aborted: dict[str, Any] | None = None
+    if tasks:
+        context = mp.get_context("spawn")
+        pool = context.Pool(processes=actual_workers)
+        try:
+            for row in pool.imap_unordered(build_episode, tasks, chunksize=1):
+                results.append(row)
+                print(f"[s1-03] {len(results)}/{tasks_planned} {row['episode_id']} {row['status']} "
+                      f"frames={row.get('frames_processed')} s/frame={row.get('seconds_per_frame')} "
+                      f"vram={row.get('peak_vram_reserved_mib')}MiB rss={row.get('peak_rss_mib')}MiB "
+                      f"bytes={row.get('bytes_written')} "
+                      f"{('reason=' + str(row.get('reason'))) if row['status'] != 'succeeded' else ''} "
+                      f"elapsed={time.time() - started:.0f}s", flush=True)
+                if row["status"] == "aborted":
+                    aborted = {"episode_id": row["episode_id"], "reason": row["reason"], "detail": row.get("detail", "")}
+                    print(f"[s1-03] ABORT {row['reason']}: {row.get('detail', '')}; stopping the pool", flush=True)
+                    pool.terminate()
+                    break
+            else:
+                pool.close()
+        finally:
+            pool.join()
+    done = {row["episode_id"] for row in results}
+    interrupted = [t["episode_id"] for t in tasks if t["episode_id"] not in done]
+    receipt = stage_receipt(results, tasks_planned=tasks_planned, commit=commit, trial=trial, verified=verified,
+                            args=args, actual_workers=actual_workers, snapshot=snapshot, started=started,
+                            aborted=aborted, interrupted=interrupted)
+    if trial:
+        name = "trial_receipt.json"
+    elif receipt["complete"]:
+        name = "s1_03_receipt.json"
+    else:
+        name = f"s1_03_receipt.partial-{stamp}.json"
+    (out_root / name).write_text(json.dumps(receipt, indent=1))
+    print(json.dumps({k: v for k, v in receipt.items() if k not in ("resources_at_launch",)}, indent=1))
+    return receipt["exit_status"]
 
 
 if __name__ == "__main__":
