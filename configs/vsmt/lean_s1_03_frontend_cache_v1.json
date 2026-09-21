@@ -1,0 +1,229 @@
+{
+  "schema_version": "vsmt-lean-s1-03-frontend-cache-v1",
+  "decision_id": "D-224",
+  "stage_id": "S1-03",
+  "status": "implemented_pending_user_review_no_authorization",
+  "plain_language_zh": "本合同定义把 S1-02 的 50 条 public 面变成五个臂共读的一份前端 cache。输入是每帧的公开 RGB、米制深度、内参和因果相对位姿；输出是每帧的匿名色块（mask 像素数、深度有效率、质心、三维包围盒、两套描述子、支撑面）、自由空间与可见体积体素、逐帧与逐 episode 封印，以及成品率回执。例如一帧里 SAM 2.1 返回 18 个 ≥196 像素的 mask，cache 就写 18 个 fragment，每个带 384 维与 768 维两条描述子。它**不做身份判定**（那是 S2 的分配层），**不训练任何部件**（前端按 D-215 冻结），**不读 private 面**，也不写逐实体的应可见／自由空间覆盖比例——那两个量因臂而异，由 S2-01 的 runner 用公开体素与 M_{t−1} 在线算（METHOD 第五节、S0-03 `entity_geometry_note_zh`）。",
+  "pure_core_relative_path": "src/vsmt/lean_frontend_cache.py",
+  "depends_on": {
+    "s0_03_contract": "configs/vsmt/lean_s0_assignment_v2.json",
+    "s1_01_contract": "configs/vsmt/lean_s1_assets_capacity_v2.json",
+    "s1_02a_contract": "configs/vsmt/lean_s1_02a_pilot_v2.json",
+    "d215_freeze_contract": "configs/vsmt/vm04_d215_frontend_freeze_v1.json",
+    "d223_f01_contract": "configs/vsmt/vm04_d223_f01_production_reader_v1.json",
+    "reused_implementation": [
+      "src/vsmt/shared_frontend_core.py::materialize_public_regions",
+      "src/vsmt/l1_entities.py::backproject_public_entity_geometry",
+      "src/vsmt/l1_entities.py::pool_dinov2_region_descriptor"
+    ],
+    "note_zh": "几何、描述子池化与支撑面沿用 D-223 已审的实现，不在本阶段重写；本阶段只做三件事：把 D-223 的 region 记录投影成 S0-03 要的精简字段、补上 D-223 记录里没有的三维包围盒、并同时存两套描述子。place observation 字段按 METHOD 第五节去掉。"
+  },
+  "authorization": {
+    "asset_acquisition": false,
+    "model_loading": false,
+    "cache_generation": false,
+    "descriptor_extraction": false,
+    "server_run": false
+  },
+  "bound_frozen_frontend": {
+    "d223_frontend_config_sha256": "f1fb5839b196591429c052f04681b3aa3500f3cf53c201032983642e2ebb2337",
+    "sam2_model_id": "sam2.1.hiera_small.per_frame_automatic_mask_generator",
+    "sam2_repository_commit": "2b90b9f5ceec907a1c18123530e92e794ad901a4",
+    "sam2_checkpoint_sha256": "6d1aa6f30de5c92224f8172114de081d104bbd23dd9dc5c58996f0cad5dc4d38",
+    "sam2_automatic_mask_and_boundary_config_sha256": "df828bcfac74c8dc0dcb0d82731c978f8a17958755822aa44c90e5ac23db2c33",
+    "restated_so_acquisition_cannot_drift": true,
+    "no_parameter_of_the_frozen_frontend_is_redefined_here": true,
+    "plain_language_zh": "前端的每一个数值都已由 D-215 与 D-223 冻结，本合同只把它们的摘要抄在这里，让「取资产」这一步不可能悄悄指向另一个 commit、另一份配置或另一个 checkpoint。本合同不新定义任何前端参数。"
+  },
+  "proposal_rule": {
+    "source": "sam2_automatic_mask_generator_fixed_grid",
+    "prompt_policy": "fixed_grid_only_no_text_no_private_points_or_boxes",
+    "cross_frame_memory_enabled": false,
+    "minimum_visible_pixels": 196,
+    "maximum_proposals_per_frame": 64,
+    "overflow_action": "construction_failure_never_silent_truncation",
+    "duplicate_mask_action": "construction_failure",
+    "overlap_policy": "preserve_independent_overlapping_proposals",
+    "border_truncation_policy": "retain_if_minimum_visible_pixels_met",
+    "ordering": "mask_sha256_then_centroid_then_packet_local_ordinal",
+    "fragment_id_is_packet_local_and_carries_no_identity_across_frames": true,
+    "plain_language_zh": "色块只来自固定网格的自动分割，不接受文字提示、不接受任何由私有信息派生的点或框，也不开跨帧记忆——否则色块本身就带上了身份线索。每帧至多 64 个 ≥196 像素的 mask；第 65 个不是截断而是整条 episode 构造失败，重复 mask 同样失败。色块编号是本帧局部的，跨帧不携带任何身份。"
+  },
+  "descriptor_sets": {
+    "primary": {
+      "name": "vits14",
+      "dimension": 384,
+      "asset_id": "dinov2_vit_s14_checkpoint"
+    },
+    "optional_upgrade": {
+      "name": "vitb14",
+      "dimension": 768,
+      "asset_id": "dinov2_vit_b14_checkpoint"
+    },
+    "pooling": "mask_mean_of_patch_tokens_then_l2_normalised",
+    "both_extracted_in_s1_one_selected_in_s1_05": true,
+    "selection_is_not_made_in_this_stage": true,
+    "unselected_set_is_dropped_after_s1_05": true,
+    "a_frame_view_carries_exactly_one_descriptor_set": true,
+    "plain_language_zh": "S1 同时提取 384 维与 768 维两套描述子并分字段存放，因为 S1-04 要量两者的跨视角分离度、S1-05 才二选一。S0-03 要求一帧里所有色块的描述子维度一致，所以 cache 存两套、投影成分配层输入时只取一套；选哪一套是 S1-05 的事，本阶段不选。"
+  },
+  "cache_frame_fields": [
+    "frame_digest",
+    "tick",
+    "camera_position_m",
+    "camera_forward",
+    "fragments",
+    "surfaces",
+    "free_space",
+    "visibility",
+    "frame_seal"
+  ],
+  "fragment_fields": [
+    "fragment_id",
+    "descriptor_vits14",
+    "descriptor_vitb14",
+    "centroid_m",
+    "aabb_min_m",
+    "aabb_max_m",
+    "pixel_count",
+    "depth_valid_ratio",
+    "supported_by",
+    "mask_sha256"
+  ],
+  "assignment_view": {
+    "produces": [
+      "frame_digest",
+      "tick",
+      "camera_position_m",
+      "camera_forward",
+      "fragments",
+      "entity_geometry"
+    ],
+    "fragment_fields": [
+      "fragment_id",
+      "descriptor",
+      "centroid_m",
+      "aabb_min_m",
+      "aabb_max_m",
+      "pixel_count",
+      "depth_valid_ratio",
+      "supported_by"
+    ],
+    "descriptor_selected_by_caller_not_by_the_cache": true,
+    "entity_geometry_is_injected_by_the_s2_runner_not_stored": true,
+    "view_must_pass_s0_03_validate_cache_frame": true,
+    "plain_language_zh": "视图函数把 cache 的一帧投影成 S0-03 `validate_cache_frame` 认的那六个字段：丢掉 mask 摘要、丢掉没被选中的那套描述子、丢掉 surfaces 与体素（它们只用来在线算 entity_geometry），并接收 runner 在线算出的 entity_geometry。cache 本身永远不存 entity_geometry。"
+  },
+  "aabb_rule": {
+    "source": "per_fragment_world_points_min_and_max",
+    "not_derived_from_centroid_and_extent": true,
+    "consistency_invariant": "aabb_max_m - aabb_min_m equals the frozen extent_m of the same fragment",
+    "reason_zh": "D-223 的 region 记录只有点云均值 `centroid_m` 与包围盒尺寸 `extent_m`，而均值不是盒心，两者推不出 S0-03 要的 `aabb_min_m`／`aabb_max_m`。因此本阶段用同一份反投影世界点直接取 min/max，并由测试钉住 `aabb_max − aabb_min` 与冻结 `extent_m` 逐字节相同——一旦反投影分叉，测试立刻失败。"
+  },
+  "supported_by_rule": {
+    "derived_from": "public_horizontal_surfaces_of_the_same_frame",
+    "enters_association_features": false,
+    "feature_used_instead": "support_height_difference_m",
+    "recorded_as_null_until_the_thresholds_are_frozen": true,
+    "value_slots": {
+      "supported_by_maximum_normal_angle_degrees": null,
+      "supported_by_minimum_gap_m": null,
+      "supported_by_maximum_gap_m": null,
+      "supported_by_minimum_projected_overlap": null,
+      "supported_by_maximum_mask_overlap_fraction": null
+    },
+    "reason_zh": "D-224 裁决 B 保留 `supported_by` 作为几何派生属性，但 S0-03 已把关联特征改成纯几何的 `support_height_difference_m`，所以没有任何特征依赖它。实现 `materialize_public_relations` 需要五个几何阈值，而这五个值在 D-215、D-223 以及全部 lean 合同里都没有被冻结过。因此本阶段把它们登记为待冻结，`supported_by` 字段先写 null（S0-03 的校验器明确允许 null）。这不阻塞 S1-04、S1-05 或 S2——它们都不读这个字段；若以后要启用它，必须先冻结这五个值并重钉本合同规则摘要。"
+  },
+  "volumes": {
+    "free_space": "reliable_depth_ray_traversed_voxels_from_the_bound_d223_configuration",
+    "visibility": "in_frustum_before_the_depth_surface_voxels_from_the_bound_d223_configuration",
+    "used_online_for_entity_geometry_not_stored_per_entity": true,
+    "free_space_reliability_gate_rho_free": null,
+    "rho_free_note_zh": "METHOD 第五节把自由空间的可靠性门 `ρ_free` 记为 null。它可能已经被 D-223 已冻结的自由空间配置（最小深度、近轴深度、表面余量、最大轴向深度、最小纵向厚度）完全蕴含，也可能需要一个额外的独立门。本合同把它登记为待冻结值：在授权生成 cache 之前必须二选一——要么冻结一个数，要么登记「已被 D-223 配置蕴含」并说明依据。不得在 runner 里默默取一个默认值。"
+  },
+  "seal": {
+    "frame_seal_payload": [
+      "frame_digest",
+      "tick",
+      "camera_position_m",
+      "camera_forward",
+      "fragments",
+      "surfaces",
+      "free_space_sha256",
+      "visibility_sha256",
+      "frontend_config_sha256",
+      "descriptor_asset_sha256s"
+    ],
+    "episode_seal_payload": [
+      "episode_frame_count",
+      "frame_seals",
+      "frontend_config_sha256"
+    ],
+    "sealed_before_any_private_file_is_opened": true,
+    "cache_contains_no_house_id_scene_name_object_id_or_private_derived_value": true,
+    "five_arms_read_byte_identical_clones": true,
+    "plain_language_zh": "每帧封印它自己的全部公开内容与前端资产摘要，每条 episode 封印它全部帧封印。封印在任何私有文件被打开之前完成，所以「换了私有文件而 cache 逐字节不变」是可检验的。cache 里不含 house ID、场景名、对象 ID 或任何私有派生量；五个臂读的是同一份 cache 的等字节副本。"
+  },
+  "failure_reasons": [
+    "proposal_overflow",
+    "duplicate_proposal_mask",
+    "fragment_depth_support_insufficient",
+    "descriptor_not_unit_norm",
+    "public_input_missing_or_malformed",
+    "forbidden_key_in_cache"
+  ],
+  "failure_rules": {
+    "any_frame_failure_fails_the_episode": true,
+    "failed_episode_keeps_a_receipt_and_is_never_replaced": true,
+    "planned_equals_succeeded_plus_failed": true,
+    "plain_language_zh": "任何一帧失败就整条 episode 构造失败并留下回执，绝不替换、绝不补样，也绝不悄悄丢掉那一帧。这与 S0-02 的失败规则一致：成品率是结果，不是可以凑出来的目标。"
+  },
+  "receipts": {
+    "fields": [
+      "episodes_planned",
+      "episodes_succeeded",
+      "episodes_failed",
+      "failure_receipts",
+      "frames_total",
+      "fragments_total",
+      "fragments_per_frame_histogram",
+      "frames_with_zero_fragments",
+      "fragment_yield_frames_with_at_least_one_fragment",
+      "descriptor_sets_extracted",
+      "frontend_config_sha256",
+      "code_commit",
+      "wall_clock_seconds",
+      "requested_workers",
+      "actual_workers"
+    ],
+    "fragments_per_frame_histogram_is_reported_for_every_count_including_the_cap": true,
+    "plain_language_zh": "回执必须报每帧色块数的完整分布（包括贴着 64 上限的那一档），因为「从没溢出过」和「经常贴顶」是两件事，后者说明上限正在改变数据。成品率按「至少有一个色块的帧」算并如实写出零色块帧数。"
+  },
+  "not_in_this_stage": [
+    "identity_assignment",
+    "recall",
+    "feature_matrices",
+    "teacher_labels",
+    "metrics",
+    "arm_parameters",
+    "training",
+    "reid_adapter_head_training",
+    "descriptor_selection"
+  ],
+  "policy_values_without_defaults": [
+    "volumes.free_space_reliability_gate_rho_free",
+    "supported_by_rule.value_slots.supported_by_maximum_normal_angle_degrees",
+    "supported_by_rule.value_slots.supported_by_minimum_gap_m",
+    "supported_by_rule.value_slots.supported_by_maximum_gap_m",
+    "supported_by_rule.value_slots.supported_by_minimum_projected_overlap",
+    "supported_by_rule.value_slots.supported_by_maximum_mask_overlap_fraction"
+  ],
+  "continue_gate": {
+    "every_frame_view_passes_the_s0_03_cache_frame_validator": true,
+    "aabb_matches_the_frozen_extent_exactly": true,
+    "no_frame_exceeds_the_proposal_cap_without_failing_the_episode": true,
+    "cache_carries_no_private_derived_value": true,
+    "rho_free_resolved_before_generation_is_authorized": true,
+    "plain_language_zh": "S1-03 的继续门是：每帧投影出的视图都能通过 S0-03 的 cache 校验器；包围盒与冻结 extent 完全一致；溢出必定整条失败而不是截断；cache 不含任何私有派生量；`ρ_free` 在授权生成前已解决。只读检查通过不等于 cache 已生成，也不等于色块质量足够——那要 S1-04 的诊断才知道。"
+  }
+}
