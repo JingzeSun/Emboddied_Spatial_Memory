@@ -100,6 +100,33 @@ class L1EntityTests(unittest.TestCase):
         ):
             pool_dinov2_region_descriptor(tokens, mask, descriptor_config())
 
+    def test_a_196_pixel_mask_spread_over_patches_is_supported_despite_float_rounding(self) -> None:
+        # 1 + 99 + 96 = 196 pixels over three patches: the per-patch means sum to
+        # 0.9999999999999999 in float64, one rounding step under the frozen minimum of 1.0.
+        # The frozen 196-pixel proposal floor admits this mask, so pooling must too (S1-03,
+        # LOG-240: three real episodes failed on exactly such masks).
+        mask = np.zeros((224, 224), dtype=np.bool_)
+        mask[0, 0] = True
+        mask[:14, 14:28].flat[:99] = True
+        mask[:14, 28:42].flat[:96] = True
+        self.assertEqual(int(mask.sum()), 196)
+        from vsmt.l1_entities import mask_patch_weights
+        summed = float(mask_patch_weights(mask, descriptor_config()).sum(dtype=np.float64))
+        self.assertLess(summed, 1.0)
+        tokens = np.ones((16, 16, 384), dtype=np.float32)
+        result = pool_dinov2_region_descriptor(tokens, mask, descriptor_config())
+        self.assertAlmostEqual(result.total_patch_weight, 1.0, places=12)
+        self.assertAlmostEqual(np.linalg.norm(result.values), 1.0, places=6)
+
+    def test_a_195_pixel_mask_is_still_unsupported(self) -> None:
+        mask = np.zeros((224, 224), dtype=np.bool_)
+        mask[:14, 14:28].flat[:99] = True
+        mask[:14, 28:42].flat[:96] = True
+        self.assertEqual(int(mask.sum()), 195)
+        tokens = np.ones((16, 16, 384), dtype=np.float32)
+        with self.assertRaisesRegex(L1EntityConstructionError, "insufficient_dino_patch_support"):
+            pool_dinov2_region_descriptor(tokens, mask, descriptor_config())
+
     def test_zero_descriptor_failure_is_explicit(self) -> None:
         mask = np.zeros((224, 224), dtype=np.bool_)
         mask[:14, :14] = True

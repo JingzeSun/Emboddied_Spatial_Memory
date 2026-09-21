@@ -204,7 +204,13 @@ def pool_dinov2_region_descriptor(
         raise L1EntityConstructionError("nonfinite_patch_tokens")
     weights = mask_patch_weights(mask, config)
     total_weight = float(weights.sum(dtype=np.float64))
-    if total_weight < config.minimum_total_patch_weight:
+    # Support is decided on the exact pixel count over the patch area.  The per-patch means
+    # summed in floating point can fall one rounding step short of 1.0 for a mask of exactly
+    # patch_size**2 pixels spread over several patches (196 px -> 0.9999999999999999), which would
+    # reject a mask the 196-pixel proposal floor admits.  The pooled mean keeps the summed weights
+    # as its divisor, so every descriptor that was accepted before is unchanged bit for bit.
+    exact_weight = int(np.count_nonzero(np.asarray(mask))) / float(config.patch_size_pixels ** 2)
+    if exact_weight < config.minimum_total_patch_weight:
         raise L1EntityConstructionError("insufficient_dino_patch_support")
     pooled = np.sum(
         tokens.astype(np.float64, copy=False) * weights[..., None], axis=(0, 1),
