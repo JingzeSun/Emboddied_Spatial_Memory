@@ -7,8 +7,9 @@ Usage (server, frontend env; every authorization bit in the S1-03 contract must 
 What one worker does, per episode, and what it writes:
   1. read that episode's public plane only -- RGB, metric depth, intrinsics, causal relative pose;
      the private and provenance planes are never opened and their paths are never constructed;
-  2. run the frozen SAM 2.1 automatic mask generator on the RGB, admit the proposals under the
-     D-215 boundary (>=196 px, <=64 per frame, overflow and duplicates fail the episode);
+  2. run the frozen SAM 2.1 automatic mask generator on the RGB -- D-215's arguments with the two
+     NMS thresholds superseded to 0.7 by ruling 43 -- and admit the proposals under the D-215
+     boundary (>=196 px, <=64 per frame, overflow and duplicates fail the episode);
   3. run frozen DINOv2 ViT-S/14 and ViT-B/14 over the same RGB and pool one descriptor per mask
      per set; S1-05 selects between the sets later, this stage stores both;
   4. build each fragment's geometry from the public depth, seal the frame, and write it;
@@ -170,7 +171,19 @@ class FrozenModels:
             raise CacheFailure("public_input_missing_or_malformed",
                                f"sam2 config digest changed: {actual[:16]}")
         sam = build_sam2(hydra_name, assets["sam2_checkpoint"], device=device)
-        self.generator = SAM2AutomaticMaskGenerator(sam, **d215["automatic_mask_generator"])
+        # Ruling 43: the generator runs D-215's frozen arguments with the two NMS thresholds
+        # superseded by reference from the S1-03 contract.  The effective config is rebuilt here
+        # from D-215 plus exactly those two overrides and its digest is checked against the one
+        # the contract pins, so neither file can drift from the other unnoticed.
+        contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        supersession = contract["sam2_nms_supersession"]
+        effective = {**d215["automatic_mask_generator"], **supersession["to"]}
+        if effective != supersession["effective_automatic_mask_generator"]:
+            raise CacheFailure("public_input_missing_or_malformed", "effective generator config drifted")
+        # same formula as vsmt.d215_frontend_freeze._derived_digests (canonical-JSON sha256)
+        if fc.sha({"automatic_mask_generator": effective, "proposal_boundary": d215["proposal_boundary"]}) != fc.EFFECTIVE_AUTOMATIC_CONFIG_SHA256:
+            raise CacheFailure("public_input_missing_or_malformed", "effective generator digest drifted")
+        self.generator = SAM2AutomaticMaskGenerator(sam, **effective)
         self.dino = {}
         for name in fc.DESCRIPTOR_SETS:
             model = torch.hub.load(assets["dinov2_repository"], f"dinov2_{name}", source="local",
