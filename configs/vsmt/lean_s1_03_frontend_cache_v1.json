@@ -2,7 +2,7 @@
   "schema_version": "vsmt-lean-s1-03-frontend-cache-v1",
   "decision_id": "D-224",
   "stage_id": "S1-03",
-  "status": "implemented_pending_user_review_no_authorization",
+  "status": "user_reviewed_cache_generation_authorized",
   "plain_language_zh": "本合同定义把 S1-02 的 50 条 public 面变成五个臂共读的一份前端 cache。输入是每帧的公开 RGB、米制深度、内参和因果相对位姿；输出是每帧的匿名色块（mask 像素数、深度有效率、质心、三维包围盒、两套描述子、支撑面）、自由空间与可见体积体素、逐帧与逐 episode 封印，以及成品率回执。例如一帧里 SAM 2.1 返回 18 个 ≥196 像素的 mask，cache 就写 18 个 fragment，每个带 384 维与 768 维两条描述子。它**不做身份判定**（那是 S2 的分配层），**不训练任何部件**（前端按 D-215 冻结），**不读 private 面**，也不写逐实体的应可见／自由空间覆盖比例——那两个量因臂而异，由 S2-01 的 runner 用公开体素与 M_{t−1} 在线算（METHOD 第五节、S0-03 `entity_geometry_note_zh`）。",
   "pure_core_relative_path": "src/vsmt/lean_frontend_cache.py",
   "depends_on": {
@@ -19,11 +19,23 @@
     "note_zh": "几何、描述子池化与支撑面沿用 D-223 已审的实现，不在本阶段重写；本阶段只做三件事：把 D-223 的 region 记录投影成 S0-03 要的精简字段、补上 D-223 记录里没有的三维包围盒、并同时存两套描述子。place observation 字段按 METHOD 第五节去掉。"
   },
   "authorization": {
-    "asset_acquisition": false,
-    "model_loading": false,
-    "cache_generation": false,
-    "descriptor_extraction": false,
-    "server_run": false
+    "asset_acquisition": true,
+    "model_loading": true,
+    "cache_generation": true,
+    "descriptor_extraction": true,
+    "server_run": true
+  },
+  "activation_policy": {
+    "opened_by": "D-224-S1 ruling 42",
+    "opened_on": "2026-09-22",
+    "active_true_authorizations": [
+      "asset_acquisition",
+      "cache_generation",
+      "descriptor_extraction",
+      "model_loading",
+      "server_run"
+    ],
+    "plain_language_zh": "授权位不是实现者可以自己打开的开关：每一个为 true 的位都必须出现在这里，并且这里必须写明是哪条裁决打开的。用户于 2026-09-22 以裁决 42 审过 S1-03 代码并打开全部五个位（取资产、加载模型、生成 cache、提取描述子、服务器运行）。把某个位改成 true 而不在这里登记，校验器直接拒绝。"
   },
   "bound_frozen_frontend": {
     "d223_frontend_config_sha256": "f1fb5839b196591429c052f04681b3aa3500f3cf53c201032983642e2ebb2337",
@@ -138,8 +150,35 @@
     "free_space": "reliable_depth_ray_traversed_voxels_from_the_bound_d223_configuration",
     "visibility": "in_frustum_before_the_depth_surface_voxels_from_the_bound_d223_configuration",
     "used_online_for_entity_geometry_not_stored_per_entity": true,
-    "free_space_reliability_gate_rho_free": null,
-    "rho_free_note_zh": "METHOD 第五节把自由空间的可靠性门 `ρ_free` 记为 null。它可能已经被 D-223 已冻结的自由空间配置（最小深度、近轴深度、表面余量、最大轴向深度、最小纵向厚度）完全蕴含，也可能需要一个额外的独立门。本合同把它登记为待冻结值：在授权生成 cache 之前必须二选一——要么冻结一个数，要么登记「已被 D-223 配置蕴含」并说明依据。不得在 runner 里默默取一个默认值。"
+    "free_space_reliability_gate_rho_free": "subsumed_by_the_bound_d223_free_space_configuration",
+    "rho_free_note_zh": "METHOD 第五节把自由空间的可靠性门 `ρ_free` 记为 null。实现 S1-03 时核对了 D-223 的自由空间材化：它只在一个体块内**每个像素**的深度都落在有效窗口内时才生成该体块，远平面还要从最近表面往回收一个余量，并丢弃过薄的体块；两种体块记录都硬写 `reliability: 1.0`。也就是说门已经被蕴含且取的是最严的 1.0，不存在需要筛掉的部分可靠体块。用户于 2026-09-22 裁定按「已被 D-223 配置蕴含」登记（裁决 42）。",
+    "rho_free_resolution": {
+      "ruling": "D-224-S1 ruling 42",
+      "on": "2026-09-22",
+      "resolution": "subsumed_not_a_separate_number",
+      "implied_gate_value": 1.0,
+      "evidence": [
+        "l1_structures.materialize_public_free_space emits a frustum for a block only when block_valid.all() holds, i.e. every pixel of the block has finite depth inside [minimum_depth_m, maximum_valid_depth_m]; the reliable-ray fraction required is therefore 1.0, not a tunable threshold",
+        "the far plane is pulled back to min(block depth) - surface_clearance_m and capped at maximum_axis_depth_m, and a frustum thinner than minimum_longitudinal_thickness_m is dropped, so an emitted frustum is conservative by construction",
+        "FreeSpaceFrustum.public_record and VisibilityFrustum.public_record both write reliability 1.0: there is no partially reliable volume for a gate to filter"
+      ],
+      "consequence_zh": "因此 `ρ_free` 不是一个需要另行冻结的数：D-223 的自由空间材化只在整块深度全部有效时才生成体块，等于把可靠射线比例钉死在 1.0，并且远平面还要再往回收一个表面余量。若将来要引入一个小于 1 的门，那是改变自由空间的语义（允许部分可靠的体块），必须另开裁决并重新生成 cache，不能当作填一个空值。"
+    },
+    "free_space_record_fields": [
+      "free_space_id",
+      "time_s",
+      "halfspaces_world",
+      "reliability",
+      "support_sha256"
+    ],
+    "visibility_record_fields": [
+      "visibility_id",
+      "time_s",
+      "halfspaces_world",
+      "reliability",
+      "support_sha256"
+    ],
+    "free_space_is_a_rolling_window_of_the_bound_configuration": true
   },
   "seal": {
     "frame_seal_payload": [
@@ -211,7 +250,6 @@
     "descriptor_selection"
   ],
   "policy_values_without_defaults": [
-    "volumes.free_space_reliability_gate_rho_free",
     "supported_by_rule.value_slots.supported_by_maximum_normal_angle_degrees",
     "supported_by_rule.value_slots.supported_by_minimum_gap_m",
     "supported_by_rule.value_slots.supported_by_maximum_gap_m",
@@ -225,5 +263,24 @@
     "cache_carries_no_private_derived_value": true,
     "rho_free_resolved_before_generation_is_authorized": true,
     "plain_language_zh": "S1-03 的继续门是：每帧投影出的视图都能通过 S0-03 的 cache 校验器；包围盒与冻结 extent 完全一致；溢出必定整条失败而不是截断；cache 不含任何私有派生量；`ρ_free` 在授权生成前已解决。只读检查通过不等于 cache 已生成，也不等于色块质量足够——那要 S1-04 的诊断才知道。"
+  },
+  "surfaces_rule": {
+    "source": "l1_structures.materialize_public_surfaces_on_the_same_public_depth",
+    "descriptor_dropped": true,
+    "fields": [
+      "surface_id",
+      "centroid_m",
+      "extent_m",
+      "plane_normal",
+      "plane_offset_m",
+      "mask_sha256"
+    ],
+    "plain_language_zh": "支撑面沿用 D-223 已审的平面材化，在同一份公开深度上算出；它在 D-223 的记录里带一条描述子，而本阶段只需要「面在哪、多大、朝向如何」，所以描述子被丢掉。支撑面本身不进入任何特征，它只供共享的 `supported_by` 规则使用，而那条规则的五个阈值仍未冻结、字段仍写 null。"
+  },
+  "user_rulings": {
+    "decision_id": "D-224-S1",
+    "rulings": [
+      "D-224-S1 裁决 42（2026-09-22 批准，原话「ρ_free 登记为已被 D-223 自由空间配置蕴含；supported_by 维持 null；S1-03 代码审过，开 cache 生成授权」）：`ρ_free` 按「已被 D-223 配置蕴含、隐含取值 1.0」登记并附三条代码依据；`supported_by` 的五个阈值维持 null、字段维持 null；S1-03 五个授权位全部打开。"
+    ]
   }
 }
