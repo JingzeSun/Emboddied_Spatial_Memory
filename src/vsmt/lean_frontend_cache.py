@@ -37,6 +37,17 @@ CONTRACT_SCHEMA_VERSION = "vsmt-lean-s1-03-frontend-cache-v1"
 D223_FRONTEND_CONFIG_SHA256 = "f1fb5839b196591429c052f04681b3aa3500f3cf53c201032983642e2ebb2337"
 SAM2_REPOSITORY_COMMIT = "2b90b9f5ceec907a1c18123530e92e794ad901a4"
 SAM2_CHECKPOINT_SHA256 = "6d1aa6f30de5c92224f8172114de081d104bbd23dd9dc5c58996f0cad5dc4d38"
+#: D-215's frozen automatic-mask digest, and the digest of the config that is actually in effect
+#: after ruling 43 (box/crop NMS 1.0 -> 0.7, every other argument unchanged).  D-215's bytes are
+#: not rewritten; the supersession lives in the S1-03 contract by reference.
+D215_AUTOMATIC_CONFIG_SHA256 = "df828bcfac74c8dc0dcb0d82731c978f8a17958755822aa44c90e5ac23db2c33"
+EFFECTIVE_AUTOMATIC_CONFIG_SHA256 = "c56fb6252a1c8b49e62b10270cb1320789bebd8346c87a68c2279ebffe1847c8"
+NMS_SUPERSEDED_CLAUSES = ("sam2.automatic_mask_generator.box_nms_thresh",
+                          "sam2.automatic_mask_generator.crop_nms_thresh")
+NMS_FROM, NMS_TO = 1.0, 0.7
+#: The whole effective generator argument set, bound here the way D-223 binds D-215's, so that a
+#: third changed argument is refused even when the recorded digest was updated to match it.
+EFFECTIVE_AUTOMATIC_MASK_GENERATOR = {"box_nms_thresh": 0.7, "crop_n_layers": 0, "crop_nms_thresh": 0.7, "min_mask_region_area": 0, "output_mode": "binary_mask", "points_per_batch": 64, "points_per_side": 32, "pred_iou_thresh": 0.8, "stability_score_offset": 1.0, "stability_score_thresh": 0.95}
 
 #: D-215 proposal boundary.
 MINIMUM_VISIBLE_PIXELS = 196
@@ -446,6 +457,23 @@ def validate_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
              "public_input_missing_or_malformed", "sam2_checkpoint_changed")
     _require(bound["no_parameter_of_the_frozen_frontend_is_redefined_here"] is True,
              "public_input_missing_or_malformed", "frontend_redefined")
+    _require(bound["sam2_automatic_mask_and_boundary_config_sha256"] == D215_AUTOMATIC_CONFIG_SHA256,
+             "public_input_missing_or_malformed", "d215_automatic_digest_changed")
+    nms = contract["sam2_nms_supersession"]
+    _require(tuple(nms["d215_clauses_replaced"]) == NMS_SUPERSEDED_CLAUSES,
+             "public_input_missing_or_malformed", "nms_clauses_changed")
+    _require(nms["from"] == {"box_nms_thresh": NMS_FROM, "crop_nms_thresh": NMS_FROM}
+             and nms["to"] == {"box_nms_thresh": NMS_TO, "crop_nms_thresh": NMS_TO},
+             "public_input_missing_or_malformed", "nms_values_changed")
+    _require(nms["every_other_generator_argument_unchanged"] is True
+             and nms["predecessor_bytes_must_not_change"] is True
+             and nms["supersession_is_by_reference_not_by_rewrite"] is True,
+             "public_input_missing_or_malformed", "nms_supersession_weakened")
+    _require(nms["effective_automatic_mask_and_boundary_config_sha256"] == EFFECTIVE_AUTOMATIC_CONFIG_SHA256,
+             "public_input_missing_or_malformed", "effective_automatic_digest_changed")
+    effective = nms["effective_automatic_mask_generator"]
+    _require(effective == EFFECTIVE_AUTOMATIC_MASK_GENERATOR,
+             "public_input_missing_or_malformed", "effective_generator_config_changed")
 
     rule = contract["proposal_rule"]
     _require(rule["minimum_visible_pixels"] == MINIMUM_VISIBLE_PIXELS,
@@ -510,7 +538,11 @@ def validate_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
 __all__ = [
     "CACHE_FRAME_FIELDS",
     "CONTRACT_SCHEMA_VERSION",
+    "D215_AUTOMATIC_CONFIG_SHA256",
     "D223_FRONTEND_CONFIG_SHA256",
+    "EFFECTIVE_AUTOMATIC_CONFIG_SHA256",
+    "EFFECTIVE_AUTOMATIC_MASK_GENERATOR",
+    "NMS_SUPERSEDED_CLAUSES",
     "DESCRIPTOR_DIMENSIONS",
     "DESCRIPTOR_SETS",
     "FAILURE_REASONS",

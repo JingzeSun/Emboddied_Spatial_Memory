@@ -480,6 +480,34 @@ class TestContract(unittest.TestCase):
         self.assertTrue(all(record.public_record("free-space:0000")["reliability"] == 1.0
                             for record in full))
 
+    def test_ruling_43_supersedes_exactly_the_two_nms_thresholds_by_reference(self) -> None:
+        nms = self.contract["sam2_nms_supersession"]
+        d215 = json.loads((PROJECT_ROOT / "configs" / "vsmt" /
+                           "vm04_d215_frontend_freeze_v1.json").read_text(encoding="utf-8"))
+        frozen = d215["sam2"]["automatic_mask_generator"]
+        self.assertEqual(frozen["box_nms_thresh"], 1.0)            # D-215 itself is untouched
+        self.assertEqual(frozen["crop_nms_thresh"], 1.0)
+        effective = nms["effective_automatic_mask_generator"]
+        self.assertEqual(effective, {**frozen, "box_nms_thresh": 0.7, "crop_nms_thresh": 0.7})
+        self.assertEqual({k for k in frozen if frozen[k] != effective[k]}, {"box_nms_thresh", "crop_nms_thresh"})
+        self.assertTrue(nms["predecessor_bytes_must_not_change"])
+
+    def test_the_effective_digest_uses_d215s_own_formula(self) -> None:
+        from vsmt.d215_frontend_freeze import _derived_digests
+        d215 = json.loads((PROJECT_ROOT / "configs" / "vsmt" /
+                           "vm04_d215_frontend_freeze_v1.json").read_text(encoding="utf-8"))
+        shadow = json.loads(json.dumps(d215))
+        shadow["sam2"]["automatic_mask_generator"] = self.contract["sam2_nms_supersession"]["effective_automatic_mask_generator"]
+        self.assertEqual(_derived_digests(shadow)["automatic"], fc.EFFECTIVE_AUTOMATIC_CONFIG_SHA256)
+        self.assertEqual(_derived_digests(d215)["automatic"], fc.D215_AUTOMATIC_CONFIG_SHA256)
+        self.assertNotEqual(fc.EFFECTIVE_AUTOMATIC_CONFIG_SHA256, fc.D215_AUTOMATIC_CONFIG_SHA256)
+
+    def test_a_third_superseded_argument_is_refused(self) -> None:
+        broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        broken["sam2_nms_supersession"]["effective_automatic_mask_generator"]["points_per_side"] = 16
+        with self.assertRaises(fc.LeanFrontendCacheError):
+            fc.validate_contract(broken)
+
     def test_this_stage_does_not_select_a_descriptor(self) -> None:
         self.assertIn("descriptor_selection", self.contract["not_in_this_stage"])
         self.assertTrue(self.contract["descriptor_sets"]["selection_is_not_made_in_this_stage"])

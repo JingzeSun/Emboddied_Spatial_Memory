@@ -277,7 +277,7 @@ FROZEN_RULE_SHA256 = {
     "S0-05": "c5354b1e71936d345823630b6533b03329435de104e258785fdb89e17934c54a",
     "S1-01": "4f139e631388c05e4006fd12ffad8b611d2e7811fb7f9a830ce9f7c63fdecd84",
     "S1-02a": "997cabe5105ca304269b0d8d9dd34038ff096df7a79c875c577a2629866ccc64",
-    "S1-03": "94bc6f099a886267917d3d636f5c123cad58de7502aed7b234374286dd14dd76",
+    "S1-03": "e4d8a52e9866a9020dccca11159bdbe148a910ef41e2a341c01c7707d12ff6b8",
 }
 
 #: Every registered slot that has been frozen, and the value it froze at.
