@@ -3096,6 +3096,8 @@ NMS 探针（只读，9 帧，两条 episode）：D-215 冻结配置每帧 512 �
 
 SAM（1,024 个提示点、batch 64）已把 GPU 占满：2 进程的时间片切换只换来 14% 的吞吐，4 进程反而慢 32%。DINOv2 两套合计 0.01 s/帧；CPU 侧（mask 匿名化与摘要、自由空间／可见体积、表面、反投影、JSON＋gzip）0.66 s/帧。按规则取实测的最大安全值 **2 worker**，依据原文写进 plan／receipt 的 `worker_basis`。三份 trial 目录（`lean-s1-03-da237d8-w{1,2,4}-trial`，各 27 MB）保留为证据。
 
+启动约 30 分钟后按用户授权（原话"授权删除 lean-s1-02b-159654f 与 lean-s1-02b-4bff1a8"）删除了这两份被第三次重生成取代的 S1-02b 原始产物（5.3 GB＋6.1 GB；报告分别在 `results/vsmt_lean_s1_02b_report.json` 与 `results/vsmt_lean_s1_02b_report_4bff1a8.json`，删除前只读核对了精确路径、无进程打开、运行中的 cache 任务只读 `c222c51` 两根）：数据盘 13 GB → 24 GB 可用。未删的候选（`lean-s1-02a-4bff1a8`、两份 `superseded-by-ruling-40`、一份 `interrupted-by-instance-shutdown`）仍等用户裁定。
+
 ### 五、启动
 
 - 2026-09-22 00:03 CST（服务器 UTC 2026-09-21 16:03）启动，提交 `edae0b5`，输出根 `/root/autodl-tmp/vsmt_caches/lean-s1-03-edae0b5`，日志 `run_logs/lean-s1-03-edae0b5.log`，2 worker；43 条 episode（S1-02a `c222c51` 的 3 条＋S1-02b `c222c51` 的 40 条，40,508 帧），启动时 12.89 GiB 可用、GPU 96%、显存 9.9 GB。预计约 20 小时。
