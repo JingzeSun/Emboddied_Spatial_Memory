@@ -140,6 +140,10 @@ DRY_RUN_DESTINATIONS_PER_OBJECT = 8
 MAX_REPLANS = 32
 P_NULL_WINDOW = 0.2
 MINIMUM_WINDOW_FRAMES = 20
+#: D-224-S1 ruling 53 (2026-09-23): the unobservable window is the last WINDOW_FRAMES frames of the
+#: transition from the last viewpoint to the farthest reachable cell; the frames before it are the
+#: leave segment (observed, excluded from U); a shorter transition fails the house, never shortened.
+WINDOW_FRAMES = 30
 MAXIMUM_ACTIONS = 4000  # D-224-S1 ruling 40 (2026-09-21): 2000 -> 4000, a scope boundary
 MAXIMUM_ACTIONS_SUPERSEDED = 2000
 MAXIMUM_INTERVENTIONS_PER_EPISODE = 6
@@ -756,7 +760,12 @@ def validate_intervention_data_contract(contract: Mapping[str, Any]) -> dict[str
              "contract_move_minimum_changed")
     _require(mm["below_minimum_triggers_a_scale_ruling_not_a_relaxation"] is True, "contract_move_minimum_weakened")
     _require(iw["minimum_window_frames"] == MINIMUM_WINDOW_FRAMES, "contract_min_window_changed")
-    _require(iw["window_is_the_whole_transition_segment"] is True, "contract_window_not_whole_transition")
+    _require(iw["window_is_the_whole_transition_segment"] is False, "contract_window_whole_transition_reinstated")
+    _require(iw["window_is_the_whole_transition_segment_superseded"]["value"] is True, "contract_window_supersede_changed")
+    _require(iw["window_is_the_last_L_frames_of_the_transition"] is True, "contract_window_not_transition_tail")
+    _require(iw["window_frames"] == WINDOW_FRAMES and WINDOW_FRAMES >= MINIMUM_WINDOW_FRAMES, "contract_window_frames_changed")
+    _require(iw["transition_shorter_than_window_frames_fails_the_house_not_shortened"] is True, "contract_window_shortening_allowed")
+    _require(iw["window_start_and_length_are_fixed_before_the_walk"] is True, "contract_window_not_preregistered")
     _require(iw["feasible_set_is_computed_for_the_shared_window"] is True, "contract_feasible_set_not_joint")
     _require(iw["maximum_interventions_per_episode"] == MAXIMUM_INTERVENTIONS_PER_EPISODE, "contract_max_interventions_changed")
     _require(iw["minimum_yield"] == MINIMUM_YIELD, "contract_min_yield_changed")
@@ -819,6 +828,7 @@ __all__ = [
     "PRIVATE_HOUSE_GEOMETRY_FILE",
     "MAXIMUM_INTERVENTIONS_PER_EPISODE",
     "MINIMUM_WINDOW_FRAMES",
+    "WINDOW_FRAMES",
     "MINIMUM_YIELD",
     "MIN_VISIBLE_PIXELS",
     "PATH_ENCODING",

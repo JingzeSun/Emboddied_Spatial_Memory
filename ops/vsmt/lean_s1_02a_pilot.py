@@ -64,7 +64,7 @@ from vsmt import lean_interventions as sel  # noqa: E402
 from vsmt import lean_pilot, lean_route  # noqa: E402
 from vsmt.lean_intervention import (  # noqa: E402
     DRY_RUN_DESTINATIONS_PER_OBJECT, DRY_RUN_MAX_POINTS, FAILURE_REASONS, MAX_REPLANS, MAXIMUM_ACTIONS,
-    MINIMUM_WINDOW_FRAMES, MIN_SUBJECT_PIXELS,
+    MINIMUM_WINDOW_FRAMES, MIN_SUBJECT_PIXELS, WINDOW_FRAMES,
     MIN_VISIBLE_PIXELS, PUBLIC_FRAME_FIELDS, check_move_minimum,
     PRIVATE_FRAME_FIELDS, FORBIDDEN_PUBLIC_KEYS,
 )
@@ -750,6 +750,28 @@ def _farthest_cell(cells: set, origin: tuple[int, int], blocked: set) -> tuple[i
     return max(sorted(component), key=lambda c: (len(lean_route.bfs_path(cells, origin, c, blocked)), c))
 
 
+DEFAULT_WINDOW_MODE = "transition_tail"   # D-224-S1 ruling 53
+
+
+def _resolve_window(task: Mapping[str, Any]) -> tuple[str, int]:
+    """(window mode, frames) for a task.  A task naming neither key runs the frozen protocol (ruling 53:
+    the last WINDOW_FRAMES frames of the transition); a task with frames but no mode is the first probe
+    root (u_turn, f2982a6) kept replayable; ``whole_transition`` is the pre-ruling-53 rule, selectable
+    only to replay the 7c10d2c and earlier runs."""
+
+    frames = int(task.get("window_segment_frames", 0) or 0)
+    mode = task.get("window_mode")
+    if mode is None and frames > 0:
+        mode = "u_turn"
+    if mode is None:
+        return DEFAULT_WINDOW_MODE, WINDOW_FRAMES
+    if mode == "whole_transition":
+        return mode, 0
+    if frames <= 0:
+        raise PilotFailure("intervention_window_unavailable", f"window_mode {mode} needs window_segment_frames > 0")
+    return str(mode), frames
+
+
 def _tail_window(transition: list[int], frames: int) -> tuple[list[int], list[int]]:
     """Pending ruling 53, variant b: the window is the LAST ``frames`` frames of the transition and the
     leave segment is what precedes them.  The transition target (the farthest reachable cell) and
@@ -820,7 +842,9 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
                           "stratify_by_kind": bool(task.get("stratify_by_kind", True)),
                           "add_source": add_source, "destination_points": destination_points,
                           "placement_prescreen": placement_prescreen, "twin_control": True,
-                          "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"}
+                          "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels",
+                          "window_mode": task.get("window_mode"), "window_segment_frames": task.get("window_segment_frames"),
+                          "window_rule": "D-224-S1 ruling 53 unless the task names another mode"}
     # ruling 37: the null draw is salted; the salt never enters the receipt, only its digest
     null_window = sel.is_null_window(task["split_seed"], house_id, task["private_salt"])
     receipt["null_window"] = null_window
@@ -891,20 +915,19 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
         tr = [tr_start, len(ep.actions_done) - 1]
         # pending ruling 53 probe: an optional window segment of exactly window_segment_frames actions
         # walked after the transition; U is then computed on that segment only (0 = frozen whole-transition rule)
-        seg_frames = int(task.get("window_segment_frames", 0) or 0)
-        window_mode = str(task.get("window_mode") or ("u_turn" if seg_frames > 0 else "whole_transition"))
+        window_mode, seg_frames = _resolve_window(task)
         window_segment = None
         leave = tr
-        if seg_frames > 0 and window_mode == "u_turn":
+        if window_mode == "u_turn":
             window_segment = _walk_window_segment(controller, ep, cells, blocked, replans, frames=seg_frames, replan_on=replan_on)
             window_segment["mode"] = "u_turn"
-        elif seg_frames > 0 and window_mode == "transition_tail":
+        elif window_mode == "transition_tail":
             leave, tail = _tail_window(tr, seg_frames)
             window_segment = {"mode": "transition_tail", "segment": tail, "frames_requested": seg_frames, "frames_walked": seg_frames,
                               "transition_frames": tr[1] - tr[0], "leave_segment": leave,
                               "rule": "window_is_the_last_L_frames_of_the_transition_to_the_farthest_cell"}
             (ep.prov / "window_segment.json").write_text(json.dumps(window_segment, indent=1))
-        elif seg_frames > 0:
+        elif window_mode != "whole_transition":
             raise PilotFailure("intervention_window_unavailable", f"unknown window_mode {window_mode}")
         window = list(window_segment["segment"]) if window_segment else tr
         segments = {"sweep_one": s1, "transition": tr}
@@ -921,7 +944,7 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
         invisible, verdicts = _invisible_set(ep, subjects, tuple(window))
         (ep.prov / "window_verdicts.json").write_text(json.dumps(
             {"window": window, "frames": window_frames,
-             "window_protocol": (f"probe_pending_ruling_53_{window_mode}" if window_segment else "whole_transition"),
+             "window_protocol": (("transition_tail_ruling_53" if window_mode == "transition_tail" else f"probe_{window_mode}") if window_segment else "whole_transition"),
              "leave_segment": (leave if window_segment else None), "window_segment": window_segment,
              "invisible": sorted(invisible), "subjects": subject_frames, "verdicts": verdicts}, indent=1))
         # ruling 34 (twin control): every episode, null or not, builds U, F, the sample and the controls;
@@ -1040,7 +1063,7 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
                         "controls": len(control_ids), "controls_outside_U": controls["from_outside_U"], "controls_shortfall": controls["shortfall"],
                         "moves_executed": len(moves), "moves_source_first": moves_source_first,
                         "viewpoint_reselections": len(reselections), "sweep_two_actions": s2[1] - s2[0],
-                        "window_protocol": (f"probe_pending_ruling_53_{window_mode}" if window_segment else "whole_transition"),
+                        "window_protocol": (("transition_tail_ruling_53" if window_mode == "transition_tail" else f"probe_{window_mode}") if window_segment else "whole_transition"),
                         "leave_segment_frames": leave[1] - leave[0], "window_segment": window_segment})
     except lean_route.LeanRouteError as f:
         receipt.update({"status": "failed", "reason": "route_not_placeable", "detail": f"{f} | {traceback.format_exc()[-600:]}"})
@@ -1123,12 +1146,13 @@ def main() -> int:
                     help="rulings 31/32: real placement + viewpoint peek + revert during the window, one placement per destination")
     ap.add_argument("--destination-points", choices=["anywhere", "top", "verified"], default="anywhere",
                     help="kept for the smoke record; dry_run supersedes it")
-    ap.add_argument("--window-segment-frames", type=int, default=0,
-                    help="window-probe only (pending ruling 53): after the transition walk exactly this many actions "
-                         "towards the farthest cell and compute U on that segment; 0 = the frozen whole-transition rule")
-    ap.add_argument("--window-mode", choices=["whole_transition", "u_turn", "transition_tail"], default="whole_transition",
-                    help="window-probe only: u_turn = after the transition walk L more actions towards the farthest cell "
-                         "(first probe); transition_tail = the window is the last L frames of the transition itself")
+    ap.add_argument("--window-segment-frames", type=int, default=WINDOW_FRAMES,
+                    help="ruling 53: the window is the last L frames of the transition (default the contract value); "
+                         "with --window-mode u_turn it is the length of the segment walked after the transition (first probe)")
+    ap.add_argument("--window-mode", choices=["whole_transition", "u_turn", "transition_tail"], default=DEFAULT_WINDOW_MODE,
+                    help="ruling 53: transition_tail (default) = the window is the last L frames of the transition; "
+                         "whole_transition = the pre-ruling-53 rule, only to replay the 7c10d2c and earlier runs; "
+                         "u_turn = the first probe (f2982a6)")
     ap.add_argument("--probe-note", default="",
                     help="window-probe: who authorised the probe and what it estimates; written to the plan and receipt")
     ap.add_argument("--private-salt-file", required=True,
@@ -1157,7 +1181,7 @@ def main() -> int:
                                                     "null_window_salt_sha256": sha_bytes(args.private_salt.encode("utf-8"))}, indent=1))
     tasks = [{"house_id": h, "index": int(h.rsplit("-", 1)[1]), "out": str(out_root / h), "source_root": str(source.parent),
               "source_rel": source.name, "split_seed": freeze["seed"], "commit": commit, "private_salt": args.private_salt,
-              "replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries, "stratify_by_kind": args.stratify_by_kind, "add_source": args.add_source, "destination_points": args.destination_points, "placement_prescreen": args.placement_prescreen, "dry_run_destinations_per_object": args.dry_run_destinations_per_object} for h in selected]
+              "replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries, "stratify_by_kind": args.stratify_by_kind, "add_source": args.add_source, "destination_points": args.destination_points, "placement_prescreen": args.placement_prescreen, "dry_run_destinations_per_object": args.dry_run_destinations_per_object, "window_mode": args.window_mode, "window_segment_frames": args.window_segment_frames} for h in selected]
     base_vram = float(subprocess.run(["nvidia-smi", "--query-gpu=memory.used", "--format=csv,noheader,nounits"], capture_output=True, text=True).stdout.strip().split("\n")[0])
     stop, q = mp.Event(), mp.Queue()
     sampler = mp.Process(target=_vram_peak_sampler, args=(stop, q), daemon=True); sampler.start()
@@ -1249,7 +1273,7 @@ def main_regenerate(args: argparse.Namespace) -> int:
               "source_rel": source.name, "split_seed": freeze["seed"], "commit": commit, "private_salt": args.private_salt,
               "replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries,
               "stratify_by_kind": args.stratify_by_kind, "add_source": args.add_source,
-              "destination_points": args.destination_points, "placement_prescreen": args.placement_prescreen, "dry_run_destinations_per_object": args.dry_run_destinations_per_object} for h in houses]
+              "destination_points": args.destination_points, "placement_prescreen": args.placement_prescreen, "dry_run_destinations_per_object": args.dry_run_destinations_per_object, "window_mode": args.window_mode, "window_segment_frames": args.window_segment_frames} for h in houses]
     t0 = time.time()
     fresh = _run_with_timeout(tasks, max(1, min(args.workers or 1, len(tasks))), args.stall_timeout_s, commit)
     wall = time.time() - t0
@@ -1513,7 +1537,7 @@ def main_s1_02b(args: argparse.Namespace) -> int:
                                                     "commit": commit, "null_window_salt_sha256": sha_bytes(args.private_salt.encode("utf-8"))}, indent=1))
     tasks = [{"house_id": h, "index": int(h.rsplit("-", 1)[1]), "out": str(out_root / h), "source_root": str(source.parent),
               "source_rel": source.name, "split_seed": freeze["seed"], "commit": commit, "private_salt": args.private_salt,
-              "replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries, "stratify_by_kind": args.stratify_by_kind, "add_source": args.add_source, "destination_points": args.destination_points, "placement_prescreen": args.placement_prescreen, "dry_run_destinations_per_object": args.dry_run_destinations_per_object} for h in houses]
+              "replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries, "stratify_by_kind": args.stratify_by_kind, "add_source": args.add_source, "destination_points": args.destination_points, "placement_prescreen": args.placement_prescreen, "dry_run_destinations_per_object": args.dry_run_destinations_per_object, "window_mode": args.window_mode, "window_segment_frames": args.window_segment_frames} for h in houses]
     prior: list[dict[str, Any]] = []
     if args.resume:
         pending = []
@@ -1555,7 +1579,7 @@ def main_s1_02b(args: argparse.Namespace) -> int:
         "null_window_salt_sha256": sha_bytes(args.private_salt.encode("utf-8")),
         "yield_gate": s1_01 and json.loads(CONTRACT_S0_02.read_text(encoding="utf-8"))["intervention_window"]["minimum_yield"],
         "yield_gate_passed": (yield_rate is not None and yield_rate >= 0.6),
-        "options": {"replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries, "stratify_by_kind": args.stratify_by_kind, "add_source": args.add_source, "destination_points": args.destination_points, "placement_prescreen": args.placement_prescreen, "dry_run_destinations_per_object": args.dry_run_destinations_per_object},
+        "options": {"replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries, "stratify_by_kind": args.stratify_by_kind, "add_source": args.add_source, "destination_points": args.destination_points, "placement_prescreen": args.placement_prescreen, "dry_run_destinations_per_object": args.dry_run_destinations_per_object, "window_mode": args.window_mode, "window_segment_frames": args.window_segment_frames},
         "requested_workers": workers, "actual_workers": workers, "derived_worker_count": scale["worker_count"],
         "binding_constraint": scale["binding_constraint"], "concurrency_verified_at": scale["concurrency_verified_at"],
         "simulator_concurrency_limit_verified": verified_limit,

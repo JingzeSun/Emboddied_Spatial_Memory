@@ -282,8 +282,11 @@ FROZEN_RULE_SHA256 = {
     # S0-02 re-pinned 2026-09-23 for ruling 52 (LOG-243 supplement): the eligible object's receptacle is the
     # first non-Floor entry of parentReceptacles (entry 0 is the room floor for anything on low
     # furniture, which had hidden 99 of 987 eligible objects as sources), a Floor-only object is
-    # not eligible, and the full list goes to provenance/object_table.json.
-    "S0-02": "fcd5d187ce4b92aec02c6618065b7841227dc0f984dc5d9f04847e762fe34ba7",
+    # not eligible, and the full list goes to provenance/object_table.json.  Re-pinned again the same
+    # day for ruling 53: the unobservable window is the last 30 frames of the transition (the whole
+    # transition rendered every container of a small house at least once; a U-turn segment re-scanned
+    # the rooms just left), the leave segment is excluded from U, a short transition fails the house.
+    "S0-02": "73f5144f11339c5c92c376623def22c89f3a8075b3c782efe700f4e59c80b547",
     "S0-03": "1becb7e3646f5c4dcef27b5fbdf03c701755c50313075fd85dd634b905ad9d6c",
     "S0-04": "585e3660891fc77910053deb5506ddd2e922227cd76668d0d90ddda237a1133e",
     "S0-05": "c5354b1e71936d345823630b6533b03329435de104e258785fdb89e17934c54a",

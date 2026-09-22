@@ -152,9 +152,13 @@ class TestWindowSegment(unittest.TestCase):
         self.assertEqual(caught.exception.reason, "intervention_window_unavailable")
         self.assertIn("26 < 40", caught.exception.detail)
 
-    def test_zero_frames_means_the_frozen_rule(self) -> None:
-        # the runner only calls the segment walker when window_segment_frames > 0; the task default is 0
-        self.assertEqual(int({}.get("window_segment_frames", 0) or 0), 0)
+    def test_resolve_window_is_ruling_53_by_default_and_keeps_old_roots_replayable(self) -> None:
+        self.assertEqual(runner._resolve_window({}), ("transition_tail", 30))
+        self.assertEqual(runner._resolve_window({"window_mode": "transition_tail", "window_segment_frames": 30}), ("transition_tail", 30))
+        self.assertEqual(runner._resolve_window({"window_segment_frames": 40}), ("u_turn", 40))   # first probe root f2982a6
+        self.assertEqual(runner._resolve_window({"window_mode": "whole_transition", "window_segment_frames": 30}), ("whole_transition", 0))
+        with self.assertRaises(runner.PilotFailure):
+            runner._resolve_window({"window_mode": "transition_tail", "window_segment_frames": 0})
 
 
 if __name__ == "__main__":  # pragma: no cover

@@ -167,9 +167,18 @@
     "object_used_by_at_most_one_intervention": true,
     "maximum_interventions_per_episode": 6,
     "minimum_yield": 0.6,
-    "plain_language_zh": "干预只在涉及的全部容器于窗口内每一帧都被判为不可见时执行，判定必须由已审的公开可见性机制在公开深度上产生并附上该帧摘要。例如源容器在窗口中间重新进入视野，整条 episode 失败，不缩短窗口、不换物体、不换 house。每 episode 干预数上限与成品率下限待冻结，当前为 null。 裁决 34～38 后：空窗口 episode 与非空走同一流程只跳过执行，也按同样规则失败并仍不进成品率；容器可见性主体从扫掠一像素最多的帧封印（≥512 像素）；train 块 move 有下限。",
+    "plain_language_zh": "干预只在涉及的全部容器于窗口内每一帧都被判为不可见时执行，判定必须由已审的公开可见性机制在公开深度上产生并附上该帧摘要。例如源容器在窗口中间重新进入视野，整条 episode 失败，不缩短窗口、不换物体、不换 house。每 episode 干预数上限与成品率下限待冻结，当前为 null。 裁决 34～38 后：空窗口 episode 与非空走同一流程只跳过执行，也按同样规则失败并仍不进成品率；容器可见性主体从扫掠一像素最多的帧封印（≥512 像素）；train 块 move 有下限。 裁决 53（2026-09-23）后：窗口不再是整段过渡，而是“从最后视点走向最远可达格”这段过渡的最后 30 帧；前面的帧是离开段，照常观察但不参与 U；目标格和 30 帧在走之前就定了，过渡不足 30 帧整条失败、不缩短。原因：整段口径在小房子里把每个容器都看到一次（7c10d2c 的 19 条空可行集里 12 条 U 为空），而“到最远格再掉头走”的探针在段首两次转身里就把容器看遍。",
     "minimum_window_frames": 20,
-    "window_is_the_whole_transition_segment": true,
+    "window_is_the_whole_transition_segment": false,
+    "window_is_the_whole_transition_segment_superseded": {
+      "value": true,
+      "reason": "the transition from the last viewpoint to the farthest reachable cell renders every container at least once in small houses (12 of the 19 empty feasible sets of the 7c10d2c run had U empty, 11 of them confirmed by the simulator's own pixels), and a U-turn segment walked after it re-scans the rooms just left within 2-6 frames (probe f2982a6); ruling 53"
+    },
+    "window_is_the_last_L_frames_of_the_transition": true,
+    "window_frames": 30,
+    "leave_segment_is_the_transition_before_the_window_observed_but_excluded_from_U": true,
+    "window_start_and_length_are_fixed_before_the_walk": true,
+    "transition_shorter_than_window_frames_fails_the_house_not_shortened": true,
     "feasible_set_is_computed_for_the_shared_window": true,
     "yield_is_house_level_over_non_null_episodes": true,
     "yield_gate_applies_at_s1_02b_not_the_pilot": true,
@@ -413,7 +422,8 @@
       "D-224-S1 裁决 40（2026-09-21 批准，原话“裁决 40 取调高：maximum_actions 改为 4000，口径写为范围边界，台账记 superseded；本次 50 条跑完后按新值重生成受影响的 house”）：route.maximum_actions 2000 → 4000，台账记 superseded，口径为范围边界；S1 的 50 条跑完后只重生成触顶失败的 house，其余不动。",
       "D-224-S1 裁决 39／41（2026-09-21 批准，原话“裁决 41 取 (b)；裁决 39 取 (a) m=8；删除 3272d11、12d4209 与两份 interrupted 产物”）：dry-run 每个候选物体只随机测 U 里至多 8 个目的容器（新 RNG 标签 dry_run_order；0 为复算 S1 的全测），回执记 pairs_tested／pairs_total／比值估计；对照规则不变，U 内／U 外比例如实报告、U 外对照单列为较弱对照。",
       "D-224-S1 裁决 45（2026-09-22 批准，原话「裁决 45 取 (b) 模拟器重载读初始盒加记录平移，(a) 只作对照列」）：私有面登记按 house 的物体几何表 object_geometry.json（S1-04 工具重载一次写出，不改已生成文件），真值盒＝初始盒＋记录平移；观测集合盒只作对照列。",
-      "D-224-S1 裁决 52（2026-09-23 批准，原话“批准裁决 52：父容器取第一个非 Floor 受体并记录完整列表；窗口设计先出提案不改旧数据；规模/门/对照待提案后一起裁”）：eligible_object 的受体改为 parentReceptacles 第一个非 Floor 项，只有 Floor 的物体不合格；完整父容器表写入 provenance/object_table.json；规则摘要重钉。窗口设计与规模/门/对照本裁决不改，待提案后另裁。"
+      "D-224-S1 裁决 52（2026-09-23 批准，原话“批准裁决 52：父容器取第一个非 Floor 受体并记录完整列表；窗口设计先出提案不改旧数据；规模/门/对照待提案后一起裁”）：eligible_object 的受体改为 parentReceptacles 第一个非 Floor 项，只有 Floor 的物体不合格；完整父容器表写入 provenance/object_table.json；规则摘要重钉。窗口设计与规模/门/对照本裁决不改，待提案后另裁。",
+      "D-224-S1 裁决 53（2026-09-23 批准，原话“裁决 53 取最后 L 帧口径，L=30，落地后重生成 50 条。”）：intervention_window 的窗口改为过渡段的最后 30 帧（window_frames=30，不低于 minimum_window_frames 20），离开段照常观察但不参与 U，过渡不足 30 帧整条失败不缩短；window_is_the_whole_transition_segment 记 superseded；规则摘要重钉；S1-02 全部 50 条按新规则重生成，旧根保留。"
     ]
   }
 }

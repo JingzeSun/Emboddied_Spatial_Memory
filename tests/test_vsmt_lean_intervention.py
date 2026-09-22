@@ -528,6 +528,28 @@ class TestMachineContract(unittest.TestCase):
             validate_intervention_data_contract(broken)
         self.assertEqual(str(caught.exception), "contract_window_rule_weakened")
 
+    def test_ruling_53_window_is_the_transition_tail_and_cannot_be_reinstated_or_resized(self) -> None:
+        broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        broken["intervention_window"]["window_is_the_last_L_frames_of_the_transition"] = False
+        with self.assertRaises(LeanInterventionError) as caught:
+            validate_intervention_data_contract(broken)
+        self.assertEqual(str(caught.exception), "contract_window_not_transition_tail")
+        broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        broken["intervention_window"]["window_frames"] = 20
+        with self.assertRaises(LeanInterventionError) as caught:
+            validate_intervention_data_contract(broken)
+        self.assertEqual(str(caught.exception), "contract_window_frames_changed")
+        broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        broken["intervention_window"]["window_is_the_whole_transition_segment"] = True
+        with self.assertRaises(LeanInterventionError) as caught:
+            validate_intervention_data_contract(broken)
+        self.assertEqual(str(caught.exception), "contract_window_whole_transition_reinstated")
+        broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        broken["intervention_window"]["transition_shorter_than_window_frames_fails_the_house_not_shortened"] = False
+        with self.assertRaises(LeanInterventionError) as caught:
+            validate_intervention_data_contract(broken)
+        self.assertEqual(str(caught.exception), "contract_window_shortening_allowed")
+
     def test_policy_values_must_still_be_null(self) -> None:
         broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
         broken["split_rule"]["seed"] = 260919
