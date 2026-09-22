@@ -166,7 +166,7 @@ def load_stage(stage: str) -> dict[str, Any]:
 
 #: Top-level keys that record process, not rules.
 BOOKKEEPING_KEYS = frozenset({
-    "status", "policy_values_without_defaults", "user_rulings",
+    "status", "policy_values_without_defaults", "registered_value_slots", "user_rulings",
     "pending_user_rulings", "supersedes_contract", "supersedes_contract_v2",
     "activation_policy", "known_conflicts", "review_history",
 })
@@ -183,7 +183,9 @@ def registered_value_slots(stage: str) -> tuple[str, ...]:
     """The slots a contract registered as open at v1: fixed for all time."""
 
     v1 = json.loads((CONFIG_DIR / FROZEN_V1_NAME[stage]).read_text(encoding="utf-8"))
-    return tuple(v1["policy_values_without_defaults"])
+    # A contract whose v1 is still the live file loses its open list as slots freeze, so it
+    # records the slots it registered at v1 under ``registered_value_slots`` (S1-04, 2026-09-22).
+    return tuple(v1.get("registered_value_slots") or v1["policy_values_without_defaults"])
 
 
 def _resolve(node: Any, part: str) -> tuple[Any, Any]:
@@ -284,9 +286,13 @@ FROZEN_RULE_SHA256 = {
     "S1-01": "4f139e631388c05e4006fd12ffad8b611d2e7811fb7f9a830ce9f7c63fdecd84",
     "S1-02a": "997cabe5105ca304269b0d8d9dd34038ff096df7a79c875c577a2629866ccc64",
     "S1-03": "e4d8a52e9866a9020dccca11159bdbe148a910ef41e2a341c01c7707d12ff6b8",
-    # S1-04 v1 (2026-09-22, rulings 45/46/47; implemented, pending user code review): the five
-    # ReID training values are its open slots, every authorization bit is closed.
-    "S1-04": "2fff2d199b373061d0f8b497837616fc217917ec07e0c4a7e245568d36a94010",
+    # S1-04 v1 (2026-09-22, rulings 45/46/47): first pinned with every bit closed
+    # (2fff2d19...); re-pinned the same day when ruling 48 and the user's code review opened
+    # all six bits by name in activation_policy (the bits are rules of who may run what, as
+    # for S1-03) and froze the five ReID training values into the ledger below.
+    # Checked at re-pin time: with the six bits set back to false the digest is the first pin
+    # again, so the bits are the only rule that moved.
+    "S1-04": "293358618d0d9a8f86449148ec567051d84f9f17a9914caea7de501b135220a7",
 }
 
 #: Every registered slot that has been frozen, and the value it froze at.
@@ -294,6 +300,15 @@ FROZEN_RULE_SHA256 = {
 #: and then the old value moves to SUPERSEDED_VALUES with the ruling that retired it, so no
 #: value ever disappears from the record.
 FROZEN_VALUES: dict[str, dict[str, Any]] = {
+    "S1-04": {
+        # D-224-S1 ruling 48 / S1-04 code review (2026-09-22): the ReID head's training values,
+        # frozen at the proposed numbers before any training run.
+        "reid_training.temperature": 0.07,
+        "reid_training.epochs": 20,
+        "reid_training.batch_fragments": 512,
+        "reid_training.learning_rate": 0.001,
+        "reid_training.seed": 20260922
+    },
     "S0-03": {
         # D-224-S1 ruling 47 (2026-09-22): 128 is D-224-E's own number; 0.05 cosine is the
         # minimum median cross-view separation gain the projection must show on the 12

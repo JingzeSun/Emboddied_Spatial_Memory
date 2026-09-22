@@ -2,7 +2,7 @@
   "schema_version": "vsmt-lean-s1-04-frontend-diagnostics-v1",
   "decision_id": "D-224",
   "stage_id": "S1-04",
-  "status": "implemented_pending_user_code_review",
+  "status": "user_reviewed_all_bits_open_values_frozen",
   "plain_language_zh": "本合同定义 S1-04 前端诊断：在 S1-03 的开发 cache 上，量冻结描述子（ViT-S/14、ViT-B/14）与共享 ReID 投影的跨视角分离度，用理想记忆报 recall_miss 随召回参数的曲线，统计单视角 fragment 盒对真值整物体盒的三维 IoU，并按裁决 45 用一次模拟器重载补出真值盒。输入是 cache、S1-02 的三面产物（private 在 cache 封印之后才打开）、ProcTHOR 源与模拟器；输出是几何表、分离度报告、召回曲线、IoU 报告、ReID 训练与回执。它不选描述子（S1-05）、不设任何臂的参数、不算任何论文指标、不读 validation/test。诊断用的 fragment 标注是严格多数规则、只作诊断，不是 S0-04 的 teacher。",
   "pure_core_relative_path": [
     "src/vsmt/lean_object_geometry.py",
@@ -23,14 +23,26 @@
     "note_zh": "召回诊断直接调用 S0-03 的召回函数而不重写；私有 mask 的反投影与 S1-03 的盒子用同一算式；house 重载沿用 S1-02 runner 的加载器。"
   },
   "authorization": {
-    "object_geometry_reload": false,
-    "private_plane_reading": false,
-    "fragment_mask_recovery": false,
-    "diagnostics_run": false,
-    "reid_adapter_head_training": false,
-    "server_run": false
+    "object_geometry_reload": true,
+    "private_plane_reading": true,
+    "fragment_mask_recovery": true,
+    "diagnostics_run": true,
+    "reid_adapter_head_training": true,
+    "server_run": true
   },
-  "activation_policy": null,
+  "activation_policy": {
+    "opened_by": "D-224-S1 ruling 48 and the S1-04 code review (2026-09-22)",
+    "opened_on": "2026-09-22",
+    "active_true_authorizations": [
+      "diagnostics_run",
+      "fragment_mask_recovery",
+      "object_geometry_reload",
+      "private_plane_reading",
+      "reid_adapter_head_training",
+      "server_run"
+    ],
+    "plain_language_zh": "授权位不是实现者可以自己打开的开关：每一个为 true 的位都必须出现在这里，并写明是哪条裁决打开的。用户于 2026-09-22 批准裁决 48（取 (a)，只跑 SAM 的 mask 回收）并审过 S1-04 六个提交的代码，原话「裁决 48 取 (a)，开 S1-04 的 fragment_mask_recovery 与 server_run 位跑 mask 回收；S1-04 代码审过，五个 ReID 值按提议冻结，开其余授权位」。六个位一次打开：重载几何、读私有面、回收 mask、跑诊断、训练 ReID 投影、服务器运行。"
+  },
   "object_geometry": {
     "decision_id": "D-224-S1 ruling 45",
     "file": "object_geometry.json",
@@ -100,11 +112,33 @@
     "centroid": "mean_of_labelled_fragment_centroids",
     "uses_s0_03_recall_for_fragment": true,
     "grid": {
-      "local_count": [1, 2, 3, 5, 8],
-      "global_count": [0, 1, 2, 3, 5],
-      "local_radius_m": [0.5, 1.0, 1.5, 2.0, 3.0]
+      "local_count": [
+        1,
+        2,
+        3,
+        5,
+        8
+      ],
+      "global_count": [
+        0,
+        1,
+        2,
+        3,
+        5
+      ],
+      "local_radius_m": [
+        0.5,
+        1.0,
+        1.5,
+        2.0,
+        3.0
+      ]
     },
-    "birth_neighbourhood_radius_m_grid": [0.25, 0.5, 1.0],
+    "birth_neighbourhood_radius_m_grid": [
+      0.25,
+      0.5,
+      1.0
+    ],
     "reported": [
       "decisions",
       "recall_miss",
@@ -152,12 +186,14 @@
       "selection_houses": 12,
       "order": "s0_02_house_split_rank_of_the_cached_development_episodes"
     },
-    "temperature": null,
-    "epochs": null,
-    "batch_fragments": null,
-    "learning_rate": null,
-    "seed": null,
-    "proposed_values_zh": "temperature 0.07、epochs 20、batch_fragments 512、learning_rate 0.001、seed 20260922；用户审代码时一并冻结",
+    "temperature": 0.07,
+    "epochs": 20,
+    "batch_fragments": 512,
+    "learning_rate": 0.001,
+    "seed": 20260922,
+    "values_frozen_by": "D-224-S1 ruling 48 / S1-04 code review (2026-09-22)",
+    "values_frozen_on": "2026-09-22",
+    "values_zh": "temperature 0.07、epochs 20、batch_fragments 512、learning_rate 0.001、seed 20260922，用户于 2026-09-22 按提议冻结；台账见跨合同测试 FROZEN_VALUES。",
     "trained_once_then_frozen": true,
     "weights_file_carries_no_private_bytes": true,
     "selection_rule_threshold": 0.05,
@@ -210,7 +246,8 @@
     "validation_or_test_reading",
     "coverage_ratios"
   ],
-  "policy_values_without_defaults": [
+  "policy_values_without_defaults": [],
+  "registered_value_slots": [
     "reid_training.temperature",
     "reid_training.epochs",
     "reid_training.batch_fragments",
@@ -230,7 +267,8 @@
     "rulings": [
       "D-224-S1 裁决 45（2026-09-22 批准，原话「裁决 45 取 (b) 模拟器重载读初始盒加记录平移，(a) 只作对照列」）。",
       "D-224-S1 裁决 46（2026-09-22 批准，原话「裁决 46 取推荐，理想记忆口径认可，曲线出来后一次性冻结」）。",
-      "D-224-S1 裁决 47（2026-09-22 批准，原话「裁决 47 取进，output_dimension 填 128，训练/选择按 30/12 留出，threshold 取 0.05」）。"
+      "D-224-S1 裁决 47（2026-09-22 批准，原话「裁决 47 取进，output_dimension 填 128，训练/选择按 30/12 留出，threshold 取 0.05」）。",
+      "D-224-S1 裁决 48 与 S1-04 代码审查（2026-09-22 批准，原话「裁决 48 取 (a)，开 S1-04 的 fragment_mask_recovery 与 server_run 位跑 mask 回收；S1-04 代码审过，五个 ReID 值按提议冻结，开其余授权位」）：mask 回收取 (a) 只跑 SAM、逐位核对摘要；六个授权位在 activation_policy 具名打开；五个 ReID 训练值按提议冻结并入台账。"
     ]
   }
 }

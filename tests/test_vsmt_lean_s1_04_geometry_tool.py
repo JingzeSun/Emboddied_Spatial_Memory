@@ -145,13 +145,14 @@ class EpisodeBuildTests(unittest.TestCase):
 
 
 class GuardTests(unittest.TestCase):
-    def test_the_contract_bits_are_closed_so_the_tool_refuses(self) -> None:
+    def test_the_bits_were_opened_by_ruling_48_and_closing_one_refuses(self) -> None:
         contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
-        self.assertEqual(tool.blocking_authorization(contract), list(tool.REQUIRED_AUTHORIZATION))
-        opened = json.loads(json.dumps(contract))
+        self.assertEqual(tool.blocking_authorization(contract), [])
         for name in tool.REQUIRED_AUTHORIZATION:
-            opened["authorization"][name] = True
-        self.assertEqual(tool.blocking_authorization(opened), [])
+            self.assertIn(name, contract["activation_policy"]["active_true_authorizations"])
+        closed = json.loads(json.dumps(contract))
+        closed["authorization"]["object_geometry_reload"] = False
+        self.assertEqual(tool.blocking_authorization(closed), ["object_geometry_reload"])
 
     def test_the_frozen_depth_bounds_come_from_the_bound_d223_contract(self) -> None:
         geometry = tool.frozen_fragment_geometry()

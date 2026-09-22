@@ -79,9 +79,11 @@ class MatchTests(unittest.TestCase):
 
 
 class GuardTests(unittest.TestCase):
-    def test_the_recovery_bit_is_closed_in_the_s1_04_contract(self) -> None:
+    def test_the_recovery_bit_was_opened_by_ruling_48(self) -> None:
         contract = json.loads(S1_04_CONTRACT.read_text(encoding="utf-8"))
-        self.assertIs(contract["authorization"]["fragment_mask_recovery"], False)
+        self.assertIs(contract["authorization"]["fragment_mask_recovery"], True)
+        self.assertIn("fragment_mask_recovery", contract["activation_policy"]["active_true_authorizations"])
+        self.assertTrue(contract["activation_policy"]["opened_by"].startswith("D-224-S1 ruling 48"))
         self.assertEqual(runner.RECOVERY_FAILURE_REASONS[0], "fragment_mask_mismatch")
         self.assertEqual(runner.S1_04_CONTRACT_PATH, S1_04_CONTRACT)
 

@@ -170,13 +170,16 @@ class ContractTests(unittest.TestCase):
         self.contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
 
     def test_the_contract_agrees_with_the_implementation(self) -> None:
+        # Ruling 48 / code review (2026-09-22): the five ReID values are frozen and every bit is
+        # open by name; a bit that is true but unnamed in activation_policy is still refused.
         fd.validate_contract(self.contract)
-        self.assertEqual(tuple(self.contract["policy_values_without_defaults"]),
-                         tuple("reid_training." + name for name in fd.REID_VALUE_SLOTS))
-        for name in fd.REID_VALUE_SLOTS:
-            self.assertIsNone(self.contract["reid_training"][name])
-        self.assertTrue(all(value is False for value in self.contract["authorization"].values()))
-        self.assertIsNone(self.contract["activation_policy"])
+        self.assertEqual(self.contract["policy_values_without_defaults"], [])
+        expected = {"temperature": 0.07, "epochs": 20, "batch_fragments": 512, "learning_rate": 0.001, "seed": 20260922}
+        self.assertEqual({name: self.contract["reid_training"][name] for name in fd.REID_VALUE_SLOTS}, expected)
+        self.assertTrue(all(value is True for value in self.contract["authorization"].values()))
+        policy = self.contract["activation_policy"]
+        self.assertTrue(policy["opened_by"].startswith("D-224-S1 ruling 48"))
+        self.assertEqual(sorted(policy["active_true_authorizations"]), sorted(self.contract["authorization"]))
 
     def test_changing_a_registered_constant_or_opening_a_bit_is_refused(self) -> None:
         for path, value, code in (
@@ -187,7 +190,7 @@ class ContractTests(unittest.TestCase):
             ("reid_training.holdout.selection_houses", 10, "contract_reid_holdout_mismatch"),
             ("fragment_labelling.majority_share_exclusive", 0.4, "contract_majority_share_mismatch"),
             ("object_geometry.truth_box_rule", "observed_set_box", "contract_truth_box_rule_mismatch"),
-            ("authorization.reid_adapter_head_training", True, "contract_bit_opened_without_a_ruling:reid_adapter_head_training"),
+            ("authorization.test_set_reading", True, "contract_bit_opened_without_a_ruling:test_set_reading"),
         ):
             broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
             node = broken
@@ -199,10 +202,15 @@ class ContractTests(unittest.TestCase):
                 fd.validate_contract(broken)
             self.assertEqual(str(caught.exception), code)
         broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
-        broken["reid_training"]["temperature"] = 0.07
+        broken["policy_values_without_defaults"] = ["reid_training.temperature"]
         with self.assertRaises(fd.LeanDiagnosticsError) as caught:
             fd.validate_contract(broken)
         self.assertEqual(str(caught.exception), "contract_reid_value_frozen_but_still_listed_as_open:temperature")
+        broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        broken["reid_training"]["seed"] = None
+        with self.assertRaises(fd.LeanDiagnosticsError) as caught:
+            fd.validate_contract(broken)
+        self.assertEqual(str(caught.exception), "contract_reid_value_null_but_not_registered_as_open:seed")
 
 
 if __name__ == "__main__":

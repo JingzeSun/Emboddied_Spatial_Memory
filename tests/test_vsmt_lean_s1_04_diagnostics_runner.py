@@ -132,10 +132,12 @@ class AggregateTests(unittest.TestCase):
 
 
 class GuardTests(unittest.TestCase):
-    def test_every_bit_the_runner_needs_is_closed(self) -> None:
+    def test_every_bit_the_runner_needs_was_opened_by_name_and_the_values_are_frozen(self) -> None:
         contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
         for name in diag.REQUIRED_AUTHORIZATION + ("reid_adapter_head_training",):
-            self.assertIs(contract["authorization"][name], False, name)
+            self.assertIs(contract["authorization"][name], True, name)
+            self.assertIn(name, contract["activation_policy"]["active_true_authorizations"])
+        self.assertEqual([name for name in fd.REID_VALUE_SLOTS if contract["reid_training"][name] is None], [])
 
 
 if __name__ == "__main__":
