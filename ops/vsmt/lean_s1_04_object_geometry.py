@@ -94,10 +94,13 @@ def frozen_fragment_geometry() -> dict[str, Any]:
     cannot back-project private masks with different depth bounds than the cache used.
     """
 
-    from vsmt import lean_frontend_cache as fc
+    # the digest S1-03 binds is read from its contract rather than by importing the frontend
+    # core, so this tool stays importable in the simulator environment (Python 3.9, no torch)
+    bound = json.loads((ROOT / "configs" / "vsmt" / "lean_s1_03_frontend_cache_v1.json").read_text(encoding="utf-8"))
+    pinned = bound["bound_frozen_frontend"]["d223_frontend_config_sha256"]
     d223 = json.loads((ROOT / "configs" / "vsmt" / "vm04_d223_f01_production_reader_v1.json").read_text(encoding="utf-8"))
     frontend = d223["frontend"]
-    if frontend["frontend_config_sha256"] != fc.D223_FRONTEND_CONFIG_SHA256:
+    if frontend["frontend_config_sha256"] != pinned:
         raise RuntimeError("the bound D-223 frontend digest no longer matches")
     return dict(frontend["fragment_geometry"])
 
