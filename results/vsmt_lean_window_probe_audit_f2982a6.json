@@ -1,0 +1,3695 @@
+{
+ "schema": "vsmt-window-probe-readonly-audit-v1",
+ "snapshot_unix": 1790102133.9891524,
+ "root": "/root/autodl-tmp/vsmt_outputs/lean-s1-02-window-probe-f2982a6",
+ "workers": 8,
+ "scope": "existing JSON only; prefix diagnostics are not reruns or usable samples",
+ "rows": [
+  {
+   "house": "procthor10k-0.1.2-train-00460",
+   "receipt": {
+    "house_id": "procthor10k-0.1.2-train-00460",
+    "source_index": 460,
+    "code_commit": "f2982a6c40b08d635a28eccf397d8c388c84b71d",
+    "options": {
+     "dry_run_destinations_per_object": 8,
+     "replan_blocked_edges": true,
+     "placement_tries": 32,
+     "stratify_by_kind": true,
+     "add_source": "unseen_existing",
+     "destination_points": "anywhere",
+     "placement_prescreen": "dry_run",
+     "twin_control": true,
+     "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+    },
+    "null_window": false,
+    "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+    "status": "succeeded",
+    "observations": 208,
+    "actions": 207,
+    "executed_interventions": 1,
+    "sampled_interventions": 1,
+    "feasible_set_size": 1,
+    "invisible_container_set_size": 1,
+    "window_frames": 40,
+    "containers_usable": 6,
+    "containers_dropped": 0,
+    "containers_sealed": 6,
+    "controls": 1,
+    "controls_outside_U": 1,
+    "controls_shortfall": 0,
+    "moves_executed": 0,
+    "moves_source_first": 0,
+    "viewpoint_reselections": 0,
+    "sweep_two_actions": 41,
+    "window_protocol": "two_segment_probe_pending_ruling_53",
+    "leave_segment_frames": 42,
+    "window_segment": {
+     "segment": [
+      126,
+      166
+     ],
+     "frames_requested": 40,
+     "frames_walked": 40,
+     "start_cell": [
+      25,
+      17
+     ],
+     "start_yaw": 90,
+     "target_cell": [
+      1,
+      1
+     ],
+     "path_actions_available": 49,
+     "rule": "walk_towards_the_cell_farthest_from_the_transition_end_for_exactly_L_actions"
+    },
+    "occupancy": {
+     "peak_rss_gb": 0.369396,
+     "cpu_seconds": 17.272629,
+     "wall_seconds": 44.74106740951538,
+     "bytes_written": 53675154
+    }
+   },
+   "window_segment": {
+    "segment": [
+     126,
+     166
+    ],
+    "frames_requested": 40,
+    "frames_walked": 40,
+    "start_cell": [
+     25,
+     17
+    ],
+    "start_yaw": 90,
+    "target_cell": [
+     1,
+     1
+    ],
+    "path_actions_available": 49,
+    "rule": "walk_towards_the_cell_farthest_from_the_transition_end_for_exactly_L_actions"
+   },
+   "input_sha256": {
+    "receipt.json": "6c2e5e04dd74f63002894de0de5182bc46082b24e289ea53af14577295f6e014",
+    "provenance/window_segment.json": "b1b78b9f0cf88e555383c969a67e5da44f17b192e32380bfac98639fdfc88994",
+    "provenance/window_verdicts.json": "dac517e658e12e218d5904081a4a5285055f247a4587dd197dd0e482f172e58b",
+    "private/0127.frame.json": "dbd35da119a40468ba235515027979f357723017eb2a5fcf04b5972ef1ddf80d",
+    "public/0127.frame.json": "a386686bcda6a8599a25e3c7f1e2daaaec391a034af086d571360f1847ed357e",
+    "private/0128.frame.json": "7e8439325c03f674f0be883f2d9408284497fdb7211493171ccabd8f7dddcbf5",
+    "public/0128.frame.json": "bcd6f6425dbb5cac932461de608af689481a6a2038a03e2fd5371fa112946dfd",
+    "private/0129.frame.json": "cf7d5dd9b940d91c20345577365a8f2df96e7bde9a1e8281f9f76f07880c0ed2",
+    "public/0129.frame.json": "0481b483cae24f6737076738f09d62cef759c47c224cf27b19823b6d920ac090",
+    "private/0130.frame.json": "38b0642f7229ed263ab1aa355bd72a26199b4a49f26a091ce76ba0794df9d6c8",
+    "public/0130.frame.json": "a56a4802383b0985fb66e028312ef50488157ec2bcce3b7f526b897927a0566d",
+    "private/0131.frame.json": "9ab61d7d8cc06a2ad16320badf274cfe8ccf3a371f6019f3367e2669ed0f6dfe",
+    "public/0131.frame.json": "5a0ecaac646b6bfe54773dbc2f3f90cda0b643a8f5fb0f11c31159e0d3015390",
+    "private/0132.frame.json": "dc119d926e3501c55c8ec48296ecfc40a91cc2981e69a4ede593503b79c06a62",
+    "public/0132.frame.json": "fbf4a5e314f6175fbcbd2c447ede18819f6e2565f435d65e746e6e0b366b82a5",
+    "private/0133.frame.json": "d164a768e389237f6777aa19d8b667f98c5749333470e1ebd28d50c527e1935e",
+    "public/0133.frame.json": "c73556d5eaa046c0ce50b8d1fb8b020bf6cc7405f401c7cc896c6250628015c9",
+    "private/0134.frame.json": "cd685dfb0c7fe67b17ac026379497704c96dde95a9e93c86813ff68c963d62bd",
+    "public/0134.frame.json": "b029d722e65d1978dcbadc963b1935c5e4b2e4d71b1e7a668fc2d43d4b7cbb23",
+    "private/0135.frame.json": "0a44c7b7b3cc9b7aa5b1087f69164ae5c24d9ea9899247347227c794d57bad6b",
+    "public/0135.frame.json": "12eeb2f0b1ec232b7d64e7a85e6139a3e1d5bbb4a8b53723373f700f05a18d67",
+    "private/0136.frame.json": "7ee7b52452fe4bb2c599536844ff5e121de2e2ad2fe2e5369cac7d17ac0f0a35",
+    "public/0136.frame.json": "ebc8d366c8c83e10b10a6eb4a098d029c5de465e0aafb27f5bc0bdcfc7782201",
+    "private/0137.frame.json": "bd0fda3893091c4a45e54f53f2ddfaad36e79f82772f8411847441ca3ba3572c",
+    "public/0137.frame.json": "25b44ea824c775c3f6c8b81154b676f6fbef63d1e26f1eaf466f0892807cd10a",
+    "private/0138.frame.json": "ab0abf640ef5f22bb9da82d6c787c82c1f032032de10f2c3e8501f427b565cbd",
+    "public/0138.frame.json": "3746b1c9f08f09b860b3ca84a2d569428622af0485e26d6697515db11618f86d",
+    "private/0139.frame.json": "7f3a9c617cb9128254102c89bef2414314b8dd9676041f062ee6596c36edf3a5",
+    "public/0139.frame.json": "3a79d0a1fdc76dd1533a2311952ff6b08ddce1cdbaadc0cd840fda89d8043aed",
+    "private/0140.frame.json": "250620c3b4f283e10f9bad091398cc8facd1c1913bfa6b90cfdf1c13623eaa0f",
+    "public/0140.frame.json": "61e13f65bfda46aef7c3112859df774fabc421a54352c69bbeb2284117110474",
+    "private/0141.frame.json": "5a7bb9335383b859416cb35650dda9f184d56da560c0489dadd3aac5eb7c5e29",
+    "public/0141.frame.json": "b7e4aabfc74ab3de9644b1a5244249c618f8b83b048543cf325583f8d3ed8023",
+    "private/0142.frame.json": "5896df0193ad81b786b085d11985df0a20f4c5c664459936183c6cb49563dc85",
+    "public/0142.frame.json": "d46d4bba765f1fc44b3a35fdcef11d9c64c3c88a58b6319231f74aa8353855e3",
+    "private/0143.frame.json": "0ac79581f0b8552cc4953a250c6f7e565f13b7ee55bb7dc7e1dd2d16b585e2e0",
+    "public/0143.frame.json": "e8176fa351fbe2a32135bc1c55f6656814b6fe843d54b2b6f4e26b31bfc7ec21",
+    "private/0144.frame.json": "e87126c7df25efe1a221f573dcdcbef64cbfb62247586daad914069011799824",
+    "public/0144.frame.json": "94f57ce3c12e990f97d63df188b5b9c51856d21611055994cb937f388f6f5ba5",
+    "private/0145.frame.json": "218054605a4bd2e7c28f6fe85d739a71c9819f2a84557c118928b74d5b6c7a21",
+    "public/0145.frame.json": "e0cc2c98859d6ebf3cf637fb7c35c0f3a0d0feca9e03079ae2f36e4b01489ab6",
+    "private/0146.frame.json": "7e083a7a2ea18bc6215aede13ffc2015dc427fb388c667695f4ec5a61e034600",
+    "public/0146.frame.json": "bd464e9d160f1c2e1e0dbdc75612e24c6e60de4c465f750b2fec85dbd84d53c5",
+    "private/0147.frame.json": "c66546813167c9c6fe96f4f97fb3f57ef752133f1977cd043f765973abe9e58f",
+    "public/0147.frame.json": "db2e8c86ba646377a51a9c1d6ffe2f3d9fb2fa9f07c438df5edd5aec4f0df92e",
+    "private/0148.frame.json": "65050a18eb201fd50ca83e87016475054babbb86996ef7d4966b7cb4bde6afb7",
+    "public/0148.frame.json": "4933fd1654677d34e0386c9aba572e0c248c8c6439a856c64de8a0d4b1565e86",
+    "private/0149.frame.json": "0664527695ad0a7ee8d708055542bd86fe28cd1fb2dbae4fe3c21d398392f42f",
+    "public/0149.frame.json": "4ec7798b4c5ee2769c1e25b4d3baa96ada41a0ddc5cb63a941b9f1a2f850d3d1",
+    "private/0150.frame.json": "87abdfa8a699b02fe29f89289c03d89ee585bd0b2a9739b3ffc46274dce34204",
+    "public/0150.frame.json": "a82dfba5ecd396fe786e19939e85c4d164515b6b75b810f9f397c4a939182b77",
+    "private/0151.frame.json": "d15933c7233f5425d89115f08399dd93b3fca3fa111dc2785351d8032c48153d",
+    "public/0151.frame.json": "f0941bdc376dbe36da499c8a859d30ee432f1a69fd2b372888cf6aeafe21b550",
+    "private/0152.frame.json": "f37f178c468593e6f704c0a9479faed9f2d1f31cc0e51cda29bcec6666fd2dd1",
+    "public/0152.frame.json": "be9e913664863ed85bb8fc437fbabb0bdc5609f144e7d3ed32987a7d38ff2f2c",
+    "private/0153.frame.json": "f6704440cb4455d191947ec4ea77029f114002948701cdc0d05fbdda962bb443",
+    "public/0153.frame.json": "7f787d23af5cf06d88f3c00d9ba379af851950786a2f7aa46b313b07dd26d3f0",
+    "private/0154.frame.json": "b05c2ececb693da8e85094f0c5b1c459f6c312fe91e07fbfb7e69b81d561e810",
+    "public/0154.frame.json": "9583d55dd9ecedcfa6f6a2dee8b2606f826603ca76207762ce3a94165bd7772f",
+    "private/0155.frame.json": "34c713c854f52179d24f011b11c20d17c89fea7506a7674b5aab13399e419039",
+    "public/0155.frame.json": "df3df0a7d243a9803bb0f52f275f261bd013c27a58736acdaa81254f7133ee76",
+    "private/0156.frame.json": "b2b39eb4969137ee49559d5d7e46c4524aac0bd2eddecd168dd47964250615ed",
+    "public/0156.frame.json": "dae89dc8ddfa1ec81a4e01fd31ed1466d3f9c0bbd28040d68e3c405623e9fb5e",
+    "private/0157.frame.json": "3fafb2fe5fe7ce7585ab4f62aa4c69bcd7aeaac44d4e9b772701a749d78f7800",
+    "public/0157.frame.json": "f0a18dc1675c96d61b1190d0e84b42cab11a53c6105c7665ea4558efbbf140fb",
+    "private/0158.frame.json": "770a2ca3d728f1d80f9bf139e5deae88225cdf4516037d0a9e0e227da8140aba",
+    "public/0158.frame.json": "aa50e35fc4b98bb3955ca755cf096cd4fef5606ac6465e5ee52f955ba29ca0b5",
+    "private/0159.frame.json": "a780396eab602ae5e0087b9ddafe7ab9df28bf24d7c9713d1444311c352d4e26",
+    "public/0159.frame.json": "a8964027406e384ed3b4db778179387a62e00c6ddf6f1d96815c55012b66b440",
+    "private/0160.frame.json": "9bc76ff3433762cc425f6ed45136f54e73cbb176a2d2a049160747672909d11b",
+    "public/0160.frame.json": "524ce7787f763bc9e4f5ad4966ccfba2a472cd00211aa916a352d63bed07b5f8",
+    "private/0161.frame.json": "eb3bb7ef5fc8cd7b37fb5231ae45b31eb47c01b19a930a6f1b9d6e6cafe0382f",
+    "public/0161.frame.json": "01adb978843c5b3f05e780aea8bcbc2f7a1e0bb366ebb155b3ca2f0aa5e6740d",
+    "private/0162.frame.json": "513c79cf164307fb7ac7da8bf2c0af1736fda4e0cba332318dec5f1c6b5334a2",
+    "public/0162.frame.json": "cbed7cf6f774f634b6ec4fef1e9a38b4526c22b00f62380efa9b069f79b6ebad",
+    "private/0163.frame.json": "e960729cbf9c0aea89d3fd7c9144d297fd0dcb4c793dd8c7a3f99b69719cde63",
+    "public/0163.frame.json": "fc1bae4dbf73c5c2266105320c5947a0ccd1f565a761f58d38183b3fe1c1b4e4",
+    "private/0164.frame.json": "2f8e6df33b986c722f8ab3b34c7bea77e9b519565e2e3bde658cd79fe83a596c",
+    "public/0164.frame.json": "b22dbba40cfbfd97b2cddd055190f1338f1b4629c6b3609538473470d48c263a",
+    "private/0165.frame.json": "3b89099142f2213d97f802f2be8d5f2ecfe8526c32bc1bf5aec5b8dc48b7bc05",
+    "public/0165.frame.json": "0728b4d15c8688c33dccacfd6ee1325304403a977e966ba94654b5b068710ecf",
+    "private/0166.frame.json": "149bf63cf2d4eb974378a67df837ddb061470f1b238cced006267432b95f1f6b",
+    "public/0166.frame.json": "94cb4ea9444c1e1b059560ac23955524271359539d0b77a09ea1b557cffc204f",
+    "provenance/object_table.json": "b98c86a0c04388a95f8ee0020267ca2ea4387e69dfa4020c9d044efe09a07398"
+   },
+   "actions": {
+    "RotateRight": 4,
+    "MoveAhead": 33,
+    "RotateLeft": 3
+   },
+   "rendered_usable_containers": 5,
+   "usable_containers": 6,
+   "prefix_diagnostics": {
+    "10": {
+     "renderer_zero_usable": [
+      "Chair|3|2",
+      "Fridge|2|1"
+     ],
+     "stored_verdict_U": [
+      "Chair|3|2",
+      "Fridge|2|1"
+     ],
+     "eligible_sources": []
+    },
+    "20": {
+     "renderer_zero_usable": [
+      "Chair|3|2"
+     ],
+     "stored_verdict_U": [
+      "Chair|3|2"
+     ],
+     "eligible_sources": []
+    },
+    "30": {
+     "renderer_zero_usable": [
+      "Chair|3|2"
+     ],
+     "stored_verdict_U": [
+      "Chair|3|2"
+     ],
+     "eligible_sources": []
+    },
+    "40": {
+     "renderer_zero_usable": [
+      "Chair|3|2"
+     ],
+     "stored_verdict_U": [
+      "Chair|3|2"
+     ],
+     "eligible_sources": []
+    }
+   },
+   "per_container": {
+    "Chair|3|0|1": {
+     "max_rendered_pixels": 1449,
+     "frames_rendered": 3
+    },
+    "Chair|3|0|2": {
+     "max_rendered_pixels": 111,
+     "frames_rendered": 3
+    },
+    "Chair|3|2": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "CounterTop|2|0": {
+     "max_rendered_pixels": 18901,
+     "frames_rendered": 28
+    },
+    "DiningTable|3|0|0": {
+     "max_rendered_pixels": 3397,
+     "frames_rendered": 7
+    },
+    "Fridge|2|1": {
+     "max_rendered_pixels": 10479,
+     "frames_rendered": 13
+    }
+   },
+   "recorded_U": [
+    "Chair|3|2"
+   ],
+   "sealed_count": 6,
+   "eligible_source_count": 0
+  },
+  {
+   "house": "procthor10k-0.1.2-train-01451",
+   "receipt": {
+    "status": "running"
+   },
+   "window_segment": {
+    "segment": [
+     1899,
+     1939
+    ],
+    "frames_requested": 40,
+    "frames_walked": 40,
+    "start_cell": [
+     1,
+     1
+    ],
+    "start_yaw": 180,
+    "target_cell": [
+     23,
+     70
+    ],
+    "path_actions_available": 218,
+    "rule": "walk_towards_the_cell_farthest_from_the_transition_end_for_exactly_L_actions"
+   },
+   "input_sha256": {
+    "provenance/window_segment.json": "5755428c20a08885b1f693ed18f3f2dddc28b5e7bfdb9f3ec697996f509d6ba0",
+    "provenance/window_verdicts.json": "ca3bc9db644bad9eeadb150de6246c1b061d5f936fb224a8d5d5333dbbf80cfc",
+    "private/1900.frame.json": "1dc0c82ec2c5135112c7c81021c29bb3222c47917f26160800317b6faa265d9d",
+    "public/1900.frame.json": "1b05f234007f0d33bd838cf9ad22d858554570ca8c8384c3d60969d2ef431c78",
+    "private/1901.frame.json": "ad667364d1fb3caca95f3fac503edc9234acad6aae4171fb778baceebd0a7723",
+    "public/1901.frame.json": "d43388bbe5d8b7a6a7a0a7f346699625fb479843b3a07af72ab0e7fda699092e",
+    "private/1902.frame.json": "94cc65c8e8c10e729820225948d6a29521b3d63aa452f7796bfac9ff0827f5bf",
+    "public/1902.frame.json": "6126f18d9570afcc18881c6381eb4acaf46fdda56ec6539967d3201b88d83c7c",
+    "private/1903.frame.json": "4f7e7846c760c33439a32f41dab88d00b2979af59336691bf6d29f9eb5f4cdae",
+    "public/1903.frame.json": "40437521f8f8587458a1d2de9ef82944d6777e2dd3513967768b92d7c199e59c",
+    "private/1904.frame.json": "14a342f8d711f0a0487e5fcd4d4d3907d3a2c2e81bed096019199c304b827cba",
+    "public/1904.frame.json": "5aab89e207100e7ed7f5aa47dbbf65286fc2f59515f867f707abf441bb38c9f7",
+    "private/1905.frame.json": "c48ae7a8684f60bf836593673f0ebf93d040e8af836584a6cf758cd2c1e42817",
+    "public/1905.frame.json": "5b8be834494ed935f24685c6f2a648ab99a5d94e31432611aa7e2a0642394173",
+    "private/1906.frame.json": "052507749c77f7a7e5d8c525276c0cb111e5aff8ab9e2910c2e312324e7fe6e2",
+    "public/1906.frame.json": "8487653acbd44f38af4327de125af1c7fd60fc3b2bd205d72921ec34ace890e6",
+    "private/1907.frame.json": "7984619bcf8256aaf84615383d3f62c266f81a38a99a9ccc1a18bacba1f7cf06",
+    "public/1907.frame.json": "d1534eff30e322a582dc24532227e47a1e7c00465c66e3c56d30de34cea16e81",
+    "private/1908.frame.json": "d9aefda7c5540d31bd89dfa4b27be348e1f7b42dd27048baabc01ba9a49ef4af",
+    "public/1908.frame.json": "4531308ba83a7f91026d83bb759c1d84954c901341054b4aa5f3a0aa01f26827",
+    "private/1909.frame.json": "416cd29005a006445d59db57ac696e58a57eb86dff254f16015a9517bb10544d",
+    "public/1909.frame.json": "18b79e9784d35cab10755ba6d0088460db1c89a9bab7c796b3d991b19360b48c",
+    "private/1910.frame.json": "01c6aeaf22bf88a2a8831d8b02c49c59646a6781ba0aba1e0f829233fea571cd",
+    "public/1910.frame.json": "2303aac34b2b61b2f5890049854f26af297b84c74b8ba476d55fb94d0ad8913a",
+    "private/1911.frame.json": "93814dfdc6160232665afb4baaddda2cd8312eaab5eb168a6c404cd427d73cb2",
+    "public/1911.frame.json": "fefa618ed37addc7ff12353e3b0553b8be54f34c1ca381b99e3ede351d131c0d",
+    "private/1912.frame.json": "ab0c1e2a9c1ad34930d5654eaaf7e201d7502b7cbf6246658786d09e0e0ddb1e",
+    "public/1912.frame.json": "6775ffd73eb55162918a5111ca8665a5f62ba41e78afdf7061de2fc119a08d24",
+    "private/1913.frame.json": "be79b3451800fc3fe5401bd0ba6a31f31e737a48c2e992c2775ca8646165ffa4",
+    "public/1913.frame.json": "542566d9d63231ac65928f008836baa79fe8cf67a6e1a93bcc189729b9324ddd",
+    "private/1914.frame.json": "8b38b32897945ad2a697bf98906094722515411c50ade4c945d1d2b052d0a877",
+    "public/1914.frame.json": "f71de424a7631308bac3bfd4e3323908d8bafd1e3db4992b01c2a9c9c56c4af3",
+    "private/1915.frame.json": "bb2fa679a21556483235300b191c07f034a48c9075120376b339bc61d8eef6c1",
+    "public/1915.frame.json": "b35b17a3cc43d549e4ed87ca83edb9faf71b1ba54f915f44dff917aeb6b2f784",
+    "private/1916.frame.json": "ee026b7be7cd1a8cbcd3ba0f33a878d1a100ed15b993d73ee273cb4f3584fd66",
+    "public/1916.frame.json": "b5ec70a5db991912327e6b2259d202e6638f00d449c817361ada0933a72d95d3",
+    "private/1917.frame.json": "bfb3cc5463ad9096bcbdc1003bbd3d45b33e094b6a7d588a7dea3b3594cae932",
+    "public/1917.frame.json": "0d87d8cfc14c1a6b0ea6be526546d6fb3050ed6f98fbf290f015e00e70f18724",
+    "private/1918.frame.json": "0008f36b2151e2472a8864666bce882c54c14d09307fc4444be053d475215c5f",
+    "public/1918.frame.json": "01521141a4275e2d2f5d2eee6b2dea01dc41e1413d1139d3a84ee6489c99e6c9",
+    "private/1919.frame.json": "d7254ad74c47f989c58a2b9cedad8c007550de1366d1e3d3261b8c89b08ade5d",
+    "public/1919.frame.json": "126f29e0d276c041bb9995692d0572b3e3c7c8ace42c5741b50d635441fac93b",
+    "private/1920.frame.json": "9d5e403dc645565b75e47fc4dcbdf86e58a3f08a315b4630e4e638aab3f62672",
+    "public/1920.frame.json": "6210d59d023c3d5f04904710068452209327e3426c1176ed6fe5bad3838b99f8",
+    "private/1921.frame.json": "3ed5dc913e5c3eb6b80df58adf185a4e967948857ea5f396786e71c3921803f5",
+    "public/1921.frame.json": "ac3229270d43fbee6f01016fe5b001a69ce6aff41ecb7c48380df546f7b9f56b",
+    "private/1922.frame.json": "520586595ae2223eb44c73e7c7a4d04994d6a69a36f3af80a893f43d068e6629",
+    "public/1922.frame.json": "7250ba88c48bcde3363f86a6cbabc68203800b99677e825ec84b6546020df567",
+    "private/1923.frame.json": "3f689ea9626c656323af9f9e690c1f14b5adb5a70bb7e5d522e6ac0d43ac5b9d",
+    "public/1923.frame.json": "92fbcaa14ddf08c08bf57e71b2062184bf7016a354bff5eaf8696743b513b9ce",
+    "private/1924.frame.json": "8186b370632f7cba9a1ff1112b18d3f137b095cda9cd04b72aba0a8c36866942",
+    "public/1924.frame.json": "42e90f3571f72a4a6a10757b8eabcb14c95836f31745fd82d1dce7567f73d7bd",
+    "private/1925.frame.json": "69f6df312b959bc9248ce34877565139c42f117bb536191eda815e89f582395b",
+    "public/1925.frame.json": "37ccdc0a0ed827de28aae90961e04438dfffa7f981f3c6e75564bf4c4fab6f17",
+    "private/1926.frame.json": "2fb824ca60a11554b6c02e330a04f965ce40a83101d1247fe55e1e8926fe0842",
+    "public/1926.frame.json": "608b87df3ca2dcb4f36f8578a9624a770c28a81da77f7439ab180b5e9392ad77",
+    "private/1927.frame.json": "2c1c1d4b94089742b92f293da14d65bb0407a869b46fded78eadf555c2f535f3",
+    "public/1927.frame.json": "8ce7156b37dbda721651fba94710c1819b11eed5dbc54c0d1d96452f2052a765",
+    "private/1928.frame.json": "e406bdac41d366b4c435a15ca40dcfafdcd9c688ed25a0825fb2c27c3b1494d6",
+    "public/1928.frame.json": "be6988b4f6eda28dd3225487075a43a95456ab7d59a88c448494c33bd4335590",
+    "private/1929.frame.json": "3522d1eb2081c40b03214fa3218c1dcbbcc225e47de3c4e12971c05b853cb0e0",
+    "public/1929.frame.json": "a02efecb9737866bd1de9e1c3c48b7949c65f5dccea26d9be0ba34a4c3d73e44",
+    "private/1930.frame.json": "9ac832501b37d0a496f18b8c2bd6702bf09b51e640a90346a8c0a0e90d3445f0",
+    "public/1930.frame.json": "a3f0a536fa6d6ea15f2d1bde49b7649f827fdd0266f24cb9cfea96858ef9782e",
+    "private/1931.frame.json": "97fe3b770982bb4405f1d198b5b2228453e16f9fc11ec37865f8cb9c20074167",
+    "public/1931.frame.json": "5ec1847c105670a888210802da17e2cdaaa02033e3255b3599b2c7b6e86232bb",
+    "private/1932.frame.json": "63587e5018ae9c410537bc7c4a73891ff924c7f136b35b40bc1ecf0839880f2b",
+    "public/1932.frame.json": "c84951ba43e18a2d0ae263f98207275968d4779a9908e79774b57aa4031b7811",
+    "private/1933.frame.json": "df05b6da87fdb2521119ffb4946f07c84bb5ff284c3f666913053b075600d0d2",
+    "public/1933.frame.json": "e9392b6e43b2078bfe200e6de3403b17a615b35c6ff2dd0ee88a25358f70a001",
+    "private/1934.frame.json": "58ab0577e085014b0d21416343dd23024d98d18230fe72ca3d4c246bfebe1bc6",
+    "public/1934.frame.json": "8ac495978570644a1f31e7a8d6ded132f8fc3107cce380579863ff8fd551def2",
+    "private/1935.frame.json": "e125afe30bb71d44593563b6c77b865266ca62ad30ff6f4568560d5de012976b",
+    "public/1935.frame.json": "154d631428979664c0b52790a70f1f6e9d253de7071c65a4ea7ca31e4ae1832a",
+    "private/1936.frame.json": "3a8b25fc27ee76053113c403b3f5d039e0695970834fd6ace7d00231f7c1b6fa",
+    "public/1936.frame.json": "e64aa65539d79425d0844fabd6d5923c3208e32c50892d19e4f2814271befac2",
+    "private/1937.frame.json": "f92e00daaf890a5de827ed0f347fd827e8d17103b467985c91cedb8470480d01",
+    "public/1937.frame.json": "bf776efd0910c8df0931aa791832228c3d6621a3b38b4462c5840cc76ca337ae",
+    "private/1938.frame.json": "dc50e2ade6519608279e5c00505eb305a229a0a8700eb2310aa552a12e9e3f3d",
+    "public/1938.frame.json": "2460bf9798be9f603f685e1952c79f6ab11965934f2b1535ab50595263435aeb",
+    "private/1939.frame.json": "a3f4db15a2f164f1da6517b9f176b70418c67e07e716743c77f0fe13961ddb80",
+    "public/1939.frame.json": "344222c11977dd3de336d68a8352f513ae231699f6dca116f7869a52719d748e",
+    "provenance/object_table.json": "0b4877c9c2bacc63d4474843b7a0382ea239fe491cca961ddbd739bf9e4abccd"
+   },
+   "actions": {
+    "RotateRight": 5,
+    "MoveAhead": 32,
+    "RotateLeft": 3
+   },
+   "rendered_usable_containers": 38,
+   "usable_containers": 98,
+   "prefix_diagnostics": {
+    "10": {
+     "renderer_zero_usable": [
+      "ArmChair|3|2|0",
+      "ArmChair|4|3|0",
+      "Bed|10|0",
+      "Bed|10|3",
+      "Bed|6|0|0",
+      "Cart|5|2",
+      "Chair|10|2|1",
+      "Chair|10|2|2",
+      "Chair|10|2|3",
+      "Chair|10|2|4",
+      "Chair|10|2|5",
+      "Chair|3|1|1",
+      "Chair|3|1|2",
+      "Chair|6|2|1",
+      "Chair|6|2|2",
+      "Chair|6|2|3",
+      "Chair|6|2|4",
+      "Chair|8|1|1",
+      "Chair|8|1|2",
+      "Chair|8|1|3",
+      "Chair|8|1|4",
+      "Desk|8|4",
+      "Desk|8|4___0",
+      "Desk|8|4___1",
+      "Desk|8|4___2",
+      "Desk|8|4___3",
+      "Desk|8|4___4",
+      "DiningTable|10|2|0",
+      "DiningTable|3|1|0",
+      "DiningTable|4|1",
+      "DiningTable|5|1",
+      "DiningTable|6|2|0",
+      "DiningTable|8|1|0",
+      "DogBed|3|4",
+      "DogBed|8|3",
+      "Dresser|10|1",
+      "Dresser|10|1___0",
+      "Dresser|10|1___1",
+      "Dresser|10|1___2",
+      "Dresser|10|1___3",
+      "Dresser|6|1___0",
+      "Dresser|6|1___1",
+      "Dresser|6|1___10",
+      "Dresser|6|1___11",
+      "Dresser|6|1___2",
+      "Dresser|6|1___9",
+      "Dresser|8|2",
+      "Dresser|8|2___0",
+      "Dresser|8|2___1",
+      "GarbageCan|4|2",
+      "GarbageCan|7|3",
+      "GarbageCan|9|3",
+      "Ottoman|4|4",
+      "Sink|11|1|0___0",
+      "Sink|7|1|0___0",
+      "Sink|9|1|0",
+      "Sink|9|1|0___0",
+      "Sofa|4|0|1",
+      "Sofa|5|0|1",
+      "TVStand|3|0|0",
+      "TVStand|4|0|0",
+      "TVStand|4|0|0___0",
+      "TVStand|4|0|0___1",
+      "TVStand|5|0|0",
+      "TVStand|5|0|0___0",
+      "TVStand|5|0|0___1",
+      "TVStand|5|0|0___2",
+      "TVStand|5|0|0___3",
+      "TVStand|5|0|0___4",
+      "TVStand|5|0|0___5",
+      "Toilet|11|0",
+      "Toilet|7|0",
+      "Toilet|9|0"
+     ],
+     "stored_verdict_U": [
+      "ArmChair|4|3|0",
+      "Bed|10|0",
+      "Bed|10|3",
+      "Bed|6|0|0",
+      "Cart|5|2",
+      "Chair|10|2|1",
+      "Chair|10|2|2",
+      "Chair|10|2|3",
+      "Chair|10|2|4",
+      "Chair|10|2|5",
+      "Chair|3|1|1",
+      "Chair|6|2|1",
+      "Chair|6|2|2",
+      "Chair|6|2|3",
+      "Chair|6|2|4",
+      "Chair|8|1|1",
+      "Chair|8|1|2",
+      "Chair|8|1|3",
+      "Chair|8|1|4",
+      "Desk|8|4",
+      "Desk|8|4___0",
+      "Desk|8|4___1",
+      "Desk|8|4___2",
+      "Desk|8|4___3",
+      "Desk|8|4___4",
+      "DiningTable|10|2|0",
+      "DiningTable|3|1|0",
+      "DiningTable|4|1",
+      "DiningTable|6|2|0",
+      "DiningTable|8|1|0",
+      "DogBed|3|4",
+      "DogBed|8|3",
+      "Dresser|10|1",
+      "Dresser|10|1___0",
+      "Dresser|10|1___1",
+      "Dresser|10|1___2",
+      "Dresser|10|1___3",
+      "Dresser|6|1___1",
+      "Dresser|6|1___10",
+      "Dresser|6|1___9",
+      "Dresser|8|2___0",
+      "Dresser|8|2___1",
+      "GarbageCan|4|2",
+      "GarbageCan|7|3",
+      "Ottoman|4|4",
+      "Sink|11|1|0___0",
+      "Sink|7|1|0___0",
+      "Sink|9|1|0",
+      "Sink|9|1|0___0",
+      "Sofa|4|0|1",
+      "Sofa|5|0|1",
+      "TVStand|3|0|0",
+      "TVStand|4|0|0",
+      "TVStand|4|0|0___0",
+      "TVStand|5|0|0",
+      "TVStand|5|0|0___3",
+      "TVStand|5|0|0___4",
+      "TVStand|5|0|0___5",
+      "Toilet|11|0",
+      "Toilet|7|0"
+     ],
+     "eligible_sources": [
+      "AlarmClock|surface|10|110",
+      "AlarmClock|surface|8|85",
+      "Book|surface|6|63",
+      "Book|surface|8|78",
+      "Book|surface|8|77",
+      "Bowl|surface|10|113",
+      "Bowl|surface|6|62",
+      "Bowl|surface|8|86",
+      "Bowl|surface|4|47",
+      "CellPhone|surface|10|112",
+      "CellPhone|surface|10|111",
+      "HousePlant|surface|10|105",
+      "Laptop|surface|5|48",
+      "Laptop|surface|10|100",
+      "Newspaper|surface|4|45",
+      "Pillow|surface|4|43",
+      "Pillow|6|0|2",
+      "Pillow|6|0|1",
+      "Plate|surface|4|42",
+      "Plate|surface|3|29",
+      "RemoteControl|surface|4|46",
+      "SoapBottle|surface|7|74",
+      "Statue|surface|8|90",
+      "Statue|surface|10|107",
+      "Statue|surface|6|61",
+      "Statue|surface|3|38",
+      "TeddyBear|surface|10|104"
+     ]
+    },
+    "20": {
+     "renderer_zero_usable": [
+      "ArmChair|3|2|0",
+      "Bed|10|0",
+      "Bed|10|3",
+      "Chair|10|2|1",
+      "Chair|10|2|2",
+      "Chair|10|2|3",
+      "Chair|10|2|4",
+      "Chair|10|2|5",
+      "Chair|3|1|1",
+      "Chair|3|1|2",
+      "Chair|6|2|1",
+      "Chair|6|2|2",
+      "Chair|6|2|3",
+      "Chair|6|2|4",
+      "Chair|8|1|1",
+      "Chair|8|1|2",
+      "Chair|8|1|3",
+      "Chair|8|1|4",
+      "Desk|8|4",
+      "Desk|8|4___0",
+      "Desk|8|4___1",
+      "Desk|8|4___2",
+      "Desk|8|4___3",
+      "Desk|8|4___4",
+      "DiningTable|10|2|0",
+      "DiningTable|3|1|0",
+      "DiningTable|6|2|0",
+      "DiningTable|8|1|0",
+      "DogBed|3|4",
+      "DogBed|8|3",
+      "Dresser|10|1",
+      "Dresser|10|1___0",
+      "Dresser|10|1___1",
+      "Dresser|10|1___2",
+      "Dresser|10|1___3",
+      "Dresser|6|1___0",
+      "Dresser|8|2",
+      "Dresser|8|2___0",
+      "Dresser|8|2___1",
+      "GarbageCan|4|2",
+      "GarbageCan|7|3",
+      "GarbageCan|9|3",
+      "Ottoman|4|4",
+      "Sink|11|1|0___0",
+      "Sink|7|1|0___0",
+      "Sink|9|1|0",
+      "Sink|9|1|0___0",
+      "Sofa|4|0|1",
+      "Sofa|5|0|1",
+      "TVStand|3|0|0",
+      "TVStand|4|0|0",
+      "TVStand|4|0|0___0",
+      "TVStand|4|0|0___1",
+      "TVStand|5|0|0",
+      "TVStand|5|0|0___0",
+      "TVStand|5|0|0___1",
+      "TVStand|5|0|0___2",
+      "TVStand|5|0|0___3",
+      "TVStand|5|0|0___4",
+      "TVStand|5|0|0___5",
+      "Toilet|11|0",
+      "Toilet|7|0",
+      "Toilet|9|0"
+     ],
+     "stored_verdict_U": [
+      "Bed|10|0",
+      "Bed|10|3",
+      "Chair|10|2|1",
+      "Chair|10|2|2",
+      "Chair|10|2|3",
+      "Chair|10|2|4",
+      "Chair|10|2|5",
+      "Chair|3|1|1",
+      "Chair|6|2|1",
+      "Chair|6|2|2",
+      "Chair|6|2|3",
+      "Chair|6|2|4",
+      "Chair|8|1|1",
+      "Chair|8|1|2",
+      "Chair|8|1|3",
+      "Chair|8|1|4",
+      "Desk|8|4",
+      "Desk|8|4___0",
+      "Desk|8|4___1",
+      "Desk|8|4___2",
+      "Desk|8|4___3",
+      "Desk|8|4___4",
+      "DiningTable|10|2|0",
+      "DiningTable|3|1|0",
+      "DiningTable|6|2|0",
+      "DiningTable|8|1|0",
+      "DogBed|3|4",
+      "DogBed|8|3",
+      "Dresser|10|1",
+      "Dresser|10|1___0",
+      "Dresser|10|1___1",
+      "Dresser|10|1___2",
+      "Dresser|10|1___3",
+      "Dresser|8|2___0",
+      "Dresser|8|2___1",
+      "GarbageCan|4|2",
+      "GarbageCan|7|3",
+      "Ottoman|4|4",
+      "Sink|11|1|0___0",
+      "Sink|7|1|0___0",
+      "Sink|9|1|0",
+      "Sink|9|1|0___0",
+      "Sofa|4|0|1",
+      "Sofa|5|0|1",
+      "TVStand|3|0|0",
+      "TVStand|4|0|0",
+      "TVStand|4|0|0___0",
+      "TVStand|5|0|0",
+      "TVStand|5|0|0___3",
+      "TVStand|5|0|0___4",
+      "TVStand|5|0|0___5",
+      "Toilet|11|0",
+      "Toilet|7|0"
+     ],
+     "eligible_sources": [
+      "AlarmClock|surface|10|110",
+      "AlarmClock|surface|8|85",
+      "Book|surface|8|78",
+      "Book|surface|8|77",
+      "Bowl|surface|10|113",
+      "Bowl|surface|6|62",
+      "Bowl|surface|8|86",
+      "CellPhone|surface|10|112",
+      "CellPhone|surface|10|111",
+      "HousePlant|surface|10|105",
+      "Laptop|surface|5|48",
+      "Laptop|surface|10|100",
+      "Pillow|surface|4|43",
+      "Plate|surface|4|42",
+      "Plate|surface|3|29",
+      "SoapBottle|surface|7|74",
+      "Statue|surface|8|90",
+      "Statue|surface|10|107",
+      "Statue|surface|6|61",
+      "Statue|surface|3|38",
+      "TeddyBear|surface|10|104"
+     ]
+    },
+    "30": {
+     "renderer_zero_usable": [
+      "ArmChair|3|2|0",
+      "Bed|10|0",
+      "Bed|10|3",
+      "Chair|10|2|1",
+      "Chair|10|2|2",
+      "Chair|10|2|3",
+      "Chair|10|2|4",
+      "Chair|10|2|5",
+      "Chair|3|1|1",
+      "Chair|3|1|2",
+      "Chair|6|2|1",
+      "Chair|6|2|2",
+      "Chair|6|2|3",
+      "Chair|6|2|4",
+      "Chair|8|1|1",
+      "Chair|8|1|2",
+      "Chair|8|1|3",
+      "Chair|8|1|4",
+      "Desk|8|4",
+      "Desk|8|4___0",
+      "Desk|8|4___1",
+      "Desk|8|4___2",
+      "Desk|8|4___3",
+      "Desk|8|4___4",
+      "DiningTable|10|2|0",
+      "DiningTable|3|1|0",
+      "DiningTable|6|2|0",
+      "DiningTable|8|1|0",
+      "DogBed|3|4",
+      "DogBed|8|3",
+      "Dresser|10|1",
+      "Dresser|10|1___0",
+      "Dresser|10|1___1",
+      "Dresser|10|1___2",
+      "Dresser|10|1___3",
+      "Dresser|6|1___0",
+      "Dresser|8|2",
+      "Dresser|8|2___0",
+      "Dresser|8|2___1",
+      "GarbageCan|4|2",
+      "GarbageCan|7|3",
+      "GarbageCan|9|3",
+      "Sink|11|1|0___0",
+      "Sink|7|1|0___0",
+      "Sink|9|1|0",
+      "Sink|9|1|0___0",
+      "Sofa|4|0|1",
+      "TVStand|4|0|0",
+      "TVStand|4|0|0___0",
+      "TVStand|4|0|0___1",
+      "TVStand|5|0|0",
+      "TVStand|5|0|0___0",
+      "TVStand|5|0|0___1",
+      "TVStand|5|0|0___2",
+      "TVStand|5|0|0___3",
+      "TVStand|5|0|0___4",
+      "TVStand|5|0|0___5",
+      "Toilet|11|0",
+      "Toilet|7|0",
+      "Toilet|9|0"
+     ],
+     "stored_verdict_U": [
+      "Bed|10|0",
+      "Bed|10|3",
+      "Chair|10|2|1",
+      "Chair|10|2|2",
+      "Chair|10|2|3",
+      "Chair|10|2|4",
+      "Chair|10|2|5",
+      "Chair|3|1|1",
+      "Chair|6|2|1",
+      "Chair|6|2|2",
+      "Chair|6|2|3",
+      "Chair|6|2|4",
+      "Chair|8|1|1",
+      "Chair|8|1|2",
+      "Chair|8|1|3",
+      "Chair|8|1|4",
+      "Desk|8|4",
+      "Desk|8|4___0",
+      "Desk|8|4___1",
+      "Desk|8|4___2",
+      "Desk|8|4___3",
+      "Desk|8|4___4",
+      "DiningTable|10|2|0",
+      "DiningTable|3|1|0",
+      "DiningTable|6|2|0",
+      "DiningTable|8|1|0",
+      "DogBed|3|4",
+      "DogBed|8|3",
+      "Dresser|10|1",
+      "Dresser|10|1___0",
+      "Dresser|10|1___1",
+      "Dresser|10|1___2",
+      "Dresser|10|1___3",
+      "Dresser|8|2___0",
+      "Dresser|8|2___1",
+      "GarbageCan|4|2",
+      "GarbageCan|7|3",
+      "Sink|11|1|0___0",
+      "Sink|7|1|0___0",
+      "Sink|9|1|0",
+      "Sink|9|1|0___0",
+      "Sofa|4|0|1",
+      "Sofa|5|0|1",
+      "TVStand|4|0|0",
+      "TVStand|4|0|0___0",
+      "TVStand|5|0|0",
+      "TVStand|5|0|0___3",
+      "TVStand|5|0|0___4",
+      "TVStand|5|0|0___5",
+      "Toilet|11|0",
+      "Toilet|7|0"
+     ],
+     "eligible_sources": [
+      "AlarmClock|surface|10|110",
+      "AlarmClock|surface|8|85",
+      "Book|surface|8|78",
+      "Book|surface|8|77",
+      "Bowl|surface|10|113",
+      "Bowl|surface|6|62",
+      "Bowl|surface|8|86",
+      "CellPhone|surface|10|112",
+      "CellPhone|surface|10|111",
+      "HousePlant|surface|10|105",
+      "Laptop|surface|5|48",
+      "Laptop|surface|10|100",
+      "Pillow|surface|4|43",
+      "Plate|surface|4|42",
+      "Plate|surface|3|29",
+      "SoapBottle|surface|7|74",
+      "Statue|surface|8|90",
+      "Statue|surface|10|107",
+      "Statue|surface|6|61",
+      "Statue|surface|3|38",
+      "TeddyBear|surface|10|104"
+     ]
+    },
+    "40": {
+     "renderer_zero_usable": [
+      "ArmChair|3|2|0",
+      "Bed|10|0",
+      "Bed|10|3",
+      "Chair|10|2|1",
+      "Chair|10|2|2",
+      "Chair|10|2|3",
+      "Chair|10|2|4",
+      "Chair|10|2|5",
+      "Chair|3|1|1",
+      "Chair|3|1|2",
+      "Chair|6|2|1",
+      "Chair|6|2|2",
+      "Chair|6|2|3",
+      "Chair|6|2|4",
+      "Chair|8|1|1",
+      "Chair|8|1|2",
+      "Chair|8|1|3",
+      "Chair|8|1|4",
+      "Desk|8|4",
+      "Desk|8|4___0",
+      "Desk|8|4___1",
+      "Desk|8|4___2",
+      "Desk|8|4___3",
+      "Desk|8|4___4",
+      "DiningTable|10|2|0",
+      "DiningTable|3|1|0",
+      "DiningTable|6|2|0",
+      "DiningTable|8|1|0",
+      "DogBed|3|4",
+      "DogBed|8|3",
+      "Dresser|10|1",
+      "Dresser|10|1___0",
+      "Dresser|10|1___1",
+      "Dresser|10|1___2",
+      "Dresser|10|1___3",
+      "Dresser|6|1___0",
+      "Dresser|8|2",
+      "Dresser|8|2___0",
+      "Dresser|8|2___1",
+      "GarbageCan|4|2",
+      "GarbageCan|7|3",
+      "GarbageCan|9|3",
+      "Sink|11|1|0___0",
+      "Sink|7|1|0___0",
+      "Sink|9|1|0",
+      "Sink|9|1|0___0",
+      "Sofa|4|0|1",
+      "TVStand|4|0|0",
+      "TVStand|4|0|0___0",
+      "TVStand|4|0|0___1",
+      "TVStand|5|0|0",
+      "TVStand|5|0|0___0",
+      "TVStand|5|0|0___1",
+      "TVStand|5|0|0___2",
+      "TVStand|5|0|0___3",
+      "TVStand|5|0|0___4",
+      "TVStand|5|0|0___5",
+      "Toilet|11|0",
+      "Toilet|7|0",
+      "Toilet|9|0"
+     ],
+     "stored_verdict_U": [
+      "Bed|10|0",
+      "Bed|10|3",
+      "Chair|10|2|1",
+      "Chair|10|2|2",
+      "Chair|10|2|3",
+      "Chair|10|2|4",
+      "Chair|10|2|5",
+      "Chair|3|1|1",
+      "Chair|6|2|1",
+      "Chair|6|2|2",
+      "Chair|6|2|3",
+      "Chair|6|2|4",
+      "Chair|8|1|1",
+      "Chair|8|1|2",
+      "Chair|8|1|3",
+      "Chair|8|1|4",
+      "Desk|8|4",
+      "Desk|8|4___0",
+      "Desk|8|4___1",
+      "Desk|8|4___2",
+      "Desk|8|4___3",
+      "Desk|8|4___4",
+      "DiningTable|10|2|0",
+      "DiningTable|3|1|0",
+      "DiningTable|6|2|0",
+      "DiningTable|8|1|0",
+      "DogBed|3|4",
+      "DogBed|8|3",
+      "Dresser|10|1",
+      "Dresser|10|1___0",
+      "Dresser|10|1___1",
+      "Dresser|10|1___2",
+      "Dresser|10|1___3",
+      "Dresser|8|2___0",
+      "Dresser|8|2___1",
+      "GarbageCan|4|2",
+      "GarbageCan|7|3",
+      "Sink|11|1|0___0",
+      "Sink|7|1|0___0",
+      "Sink|9|1|0",
+      "Sink|9|1|0___0",
+      "Sofa|4|0|1",
+      "Sofa|5|0|1",
+      "TVStand|4|0|0",
+      "TVStand|4|0|0___0",
+      "TVStand|5|0|0",
+      "TVStand|5|0|0___3",
+      "TVStand|5|0|0___4",
+      "TVStand|5|0|0___5",
+      "Toilet|11|0",
+      "Toilet|7|0"
+     ],
+     "eligible_sources": [
+      "AlarmClock|surface|10|110",
+      "AlarmClock|surface|8|85",
+      "Book|surface|8|78",
+      "Book|surface|8|77",
+      "Bowl|surface|10|113",
+      "Bowl|surface|6|62",
+      "Bowl|surface|8|86",
+      "CellPhone|surface|10|112",
+      "CellPhone|surface|10|111",
+      "HousePlant|surface|10|105",
+      "Laptop|surface|5|48",
+      "Laptop|surface|10|100",
+      "Pillow|surface|4|43",
+      "Plate|surface|4|42",
+      "Plate|surface|3|29",
+      "SoapBottle|surface|7|74",
+      "Statue|surface|8|90",
+      "Statue|surface|10|107",
+      "Statue|surface|6|61",
+      "Statue|surface|3|38",
+      "TeddyBear|surface|10|104"
+     ]
+    }
+   },
+   "per_container": {
+    "ArmChair|3|2|0": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "ArmChair|4|3|0": {
+     "max_rendered_pixels": 35,
+     "frames_rendered": 7
+    },
+    "Bed|10|0": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Bed|10|3": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Bed|6|0|0": {
+     "max_rendered_pixels": 2,
+     "frames_rendered": 4
+    },
+    "Bed|8|0|0": {
+     "max_rendered_pixels": 175,
+     "frames_rendered": 30
+    },
+    "Cart|5|2": {
+     "max_rendered_pixels": 28,
+     "frames_rendered": 7
+    },
+    "Chair|10|2|1": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Chair|10|2|2": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Chair|10|2|3": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Chair|10|2|4": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Chair|10|2|5": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Chair|2|2|1": {
+     "max_rendered_pixels": 3016,
+     "frames_rendered": 26
+    },
+    "Chair|2|2|2": {
+     "max_rendered_pixels": 537,
+     "frames_rendered": 18
+    },
+    "Chair|3|1|1": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Chair|3|1|2": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Chair|6|2|1": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Chair|6|2|2": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Chair|6|2|3": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Chair|6|2|4": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Chair|8|1|1": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Chair|8|1|2": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Chair|8|1|3": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Chair|8|1|4": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "CoffeeMachine|surface|2|1": {
+     "max_rendered_pixels": 443,
+     "frames_rendered": 30
+    },
+    "CounterTop|2|0": {
+     "max_rendered_pixels": 5425,
+     "frames_rendered": 30
+    },
+    "Desk|8|4": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Desk|8|4___0": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Desk|8|4___1": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Desk|8|4___2": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Desk|8|4___3": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Desk|8|4___4": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "DiningTable|10|2|0": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "DiningTable|2|2|0": {
+     "max_rendered_pixels": 7118,
+     "frames_rendered": 27
+    },
+    "DiningTable|3|1|0": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "DiningTable|4|1": {
+     "max_rendered_pixels": 15,
+     "frames_rendered": 7
+    },
+    "DiningTable|5|1": {
+     "max_rendered_pixels": 17,
+     "frames_rendered": 7
+    },
+    "DiningTable|6|2|0": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "DiningTable|8|1|0": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "DogBed|3|4": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "DogBed|8|3": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Dresser|10|1": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Dresser|10|1___0": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Dresser|10|1___1": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Dresser|10|1___2": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Dresser|10|1___3": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Dresser|3|3": {
+     "max_rendered_pixels": 98,
+     "frames_rendered": 6
+    },
+    "Dresser|3|3___0": {
+     "max_rendered_pixels": 14,
+     "frames_rendered": 4
+    },
+    "Dresser|3|3___1": {
+     "max_rendered_pixels": 16,
+     "frames_rendered": 4
+    },
+    "Dresser|3|3___2": {
+     "max_rendered_pixels": 13,
+     "frames_rendered": 4
+    },
+    "Dresser|3|3___3": {
+     "max_rendered_pixels": 12,
+     "frames_rendered": 4
+    },
+    "Dresser|3|3___4": {
+     "max_rendered_pixels": 13,
+     "frames_rendered": 6
+    },
+    "Dresser|3|3___5": {
+     "max_rendered_pixels": 15,
+     "frames_rendered": 5
+    },
+    "Dresser|3|3___6": {
+     "max_rendered_pixels": 15,
+     "frames_rendered": 6
+    },
+    "Dresser|3|3___7": {
+     "max_rendered_pixels": 13,
+     "frames_rendered": 6
+    },
+    "Dresser|6|1": {
+     "max_rendered_pixels": 12,
+     "frames_rendered": 9
+    },
+    "Dresser|6|1___0": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Dresser|6|1___1": {
+     "max_rendered_pixels": 1,
+     "frames_rendered": 1
+    },
+    "Dresser|6|1___10": {
+     "max_rendered_pixels": 6,
+     "frames_rendered": 7
+    },
+    "Dresser|6|1___11": {
+     "max_rendered_pixels": 6,
+     "frames_rendered": 7
+    },
+    "Dresser|6|1___2": {
+     "max_rendered_pixels": 2,
+     "frames_rendered": 1
+    },
+    "Dresser|6|1___3": {
+     "max_rendered_pixels": 7,
+     "frames_rendered": 2
+    },
+    "Dresser|6|1___4": {
+     "max_rendered_pixels": 7,
+     "frames_rendered": 2
+    },
+    "Dresser|6|1___5": {
+     "max_rendered_pixels": 6,
+     "frames_rendered": 2
+    },
+    "Dresser|6|1___6": {
+     "max_rendered_pixels": 6,
+     "frames_rendered": 7
+    },
+    "Dresser|6|1___7": {
+     "max_rendered_pixels": 5,
+     "frames_rendered": 7
+    },
+    "Dresser|6|1___8": {
+     "max_rendered_pixels": 4,
+     "frames_rendered": 7
+    },
+    "Dresser|6|1___9": {
+     "max_rendered_pixels": 7,
+     "frames_rendered": 7
+    },
+    "Dresser|8|2": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Dresser|8|2___0": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Dresser|8|2___1": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Fridge|2|1": {
+     "max_rendered_pixels": 2502,
+     "frames_rendered": 30
+    },
+    "GarbageCan|4|2": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "GarbageCan|7|3": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "GarbageCan|9|3": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Ottoman|4|4": {
+     "max_rendered_pixels": 5,
+     "frames_rendered": 2
+    },
+    "Sink|11|1|0___0": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Sink|7|1|0___0": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Sink|9|1|0": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Sink|9|1|0___0": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Sofa|3|0|1": {
+     "max_rendered_pixels": 414,
+     "frames_rendered": 9
+    },
+    "Sofa|4|0|1": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Sofa|5|0|1": {
+     "max_rendered_pixels": 6,
+     "frames_rendered": 2
+    },
+    "TVStand|3|0|0": {
+     "max_rendered_pixels": 15,
+     "frames_rendered": 2
+    },
+    "TVStand|4|0|0": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "TVStand|4|0|0___0": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "TVStand|4|0|0___1": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "TVStand|5|0|0": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "TVStand|5|0|0___0": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "TVStand|5|0|0___1": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "TVStand|5|0|0___2": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "TVStand|5|0|0___3": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "TVStand|5|0|0___4": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "TVStand|5|0|0___5": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Toaster|surface|2|4": {
+     "max_rendered_pixels": 320,
+     "frames_rendered": 30
+    },
+    "Toilet|11|0": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Toilet|7|0": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Toilet|9|0": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    }
+   },
+   "recorded_U": [
+    "Bed|10|0",
+    "Bed|10|3",
+    "Chair|10|2|1",
+    "Chair|10|2|2",
+    "Chair|10|2|3",
+    "Chair|10|2|4",
+    "Chair|10|2|5",
+    "Chair|3|1|1",
+    "Chair|6|2|1",
+    "Chair|6|2|2",
+    "Chair|6|2|3",
+    "Chair|6|2|4",
+    "Chair|8|1|1",
+    "Chair|8|1|2",
+    "Chair|8|1|3",
+    "Chair|8|1|4",
+    "Desk|8|4",
+    "Desk|8|4___0",
+    "Desk|8|4___1",
+    "Desk|8|4___2",
+    "Desk|8|4___3",
+    "Desk|8|4___4",
+    "DiningTable|10|2|0",
+    "DiningTable|3|1|0",
+    "DiningTable|6|2|0",
+    "DiningTable|8|1|0",
+    "DogBed|3|4",
+    "DogBed|8|3",
+    "Dresser|10|1",
+    "Dresser|10|1___0",
+    "Dresser|10|1___1",
+    "Dresser|10|1___2",
+    "Dresser|10|1___3",
+    "Dresser|8|2___0",
+    "Dresser|8|2___1",
+    "GarbageCan|4|2",
+    "GarbageCan|7|3",
+    "Sink|11|1|0___0",
+    "Sink|7|1|0___0",
+    "Sink|9|1|0",
+    "Sink|9|1|0___0",
+    "Sofa|4|0|1",
+    "Sofa|5|0|1",
+    "TVStand|4|0|0",
+    "TVStand|4|0|0___0",
+    "TVStand|5|0|0",
+    "TVStand|5|0|0___3",
+    "TVStand|5|0|0___4",
+    "TVStand|5|0|0___5",
+    "Toilet|11|0",
+    "Toilet|7|0"
+   ],
+   "sealed_count": 85,
+   "eligible_source_count": 21
+  },
+  {
+   "house": "procthor10k-0.1.2-train-01456",
+   "receipt": {
+    "house_id": "procthor10k-0.1.2-train-01456",
+    "source_index": 1456,
+    "code_commit": "f2982a6c40b08d635a28eccf397d8c388c84b71d",
+    "options": {
+     "dry_run_destinations_per_object": 8,
+     "replan_blocked_edges": true,
+     "placement_tries": 32,
+     "stratify_by_kind": true,
+     "add_source": "unseen_existing",
+     "destination_points": "anywhere",
+     "placement_prescreen": "dry_run",
+     "twin_control": true,
+     "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+    },
+    "null_window": false,
+    "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+    "status": "failed",
+    "reason": "intervention_window_unavailable",
+    "detail": "feasible set empty; U=0 eligible=6 eligible_on_U=0 unseen=1 destinations_with_points=0 dry_run_pairs_feasible=0",
+    "occupancy": {
+     "peak_rss_gb": 0.283188,
+     "cpu_seconds": 12.683788,
+     "wall_seconds": 26.63615322113037,
+     "bytes_written": 40515680
+    }
+   },
+   "window_segment": {
+    "segment": [
+     118,
+     158
+    ],
+    "frames_requested": 40,
+    "frames_walked": 40,
+    "start_cell": [
+     20,
+     3
+    ],
+    "start_yaw": 90,
+    "target_cell": [
+     8,
+     1
+    ],
+    "path_actions_available": 44,
+    "rule": "walk_towards_the_cell_farthest_from_the_transition_end_for_exactly_L_actions"
+   },
+   "input_sha256": {
+    "receipt.json": "09c0ad55ed9560c26a7b9311132df7b59f0568c7cc78d603f94d326cf5a1364d",
+    "provenance/window_segment.json": "a0044dfefd93a93a60750e5edd2d3ffd4810a90ea3571ed8112c730d5f2df4c1",
+    "provenance/window_verdicts.json": "767723b0cd4c536ade685167c3ee1b09d8b92715f28523974dca3181febf066d",
+    "private/0119.frame.json": "3982c3f03c510850c47100a09f480d37d62c76e44e2253572a311ea17b8cdf10",
+    "public/0119.frame.json": "d1c7a295d1d5ab89b0c5eefde5519e6ec91481ee1f0afa03b4c705f74ba38210",
+    "private/0120.frame.json": "9fc2a8d42ce4ccde0561fef74232df0117f7898aef9116ee12a87696df7914a1",
+    "public/0120.frame.json": "21b038ec40879a499aad6045d43c8371c0fc6fc7d5ea449ffa5c7a7a6e4619ec",
+    "private/0121.frame.json": "2b81623633a6cfd76d7178a1330ea785364af46eead3b08d23ed4b6e04773bc8",
+    "public/0121.frame.json": "0763ea036892ad3d647d735f36052529f659ed1381cfd8c5dd28de7e444b8ab7",
+    "private/0122.frame.json": "19559a421ae9c3ebceaa5f7afd9b0668ab519438f14421578f3166d1ac497202",
+    "public/0122.frame.json": "ed4fd53e9fafae94dca5886851bbfd1e377f61b09efba0dcfdee4e5b083a849e",
+    "private/0123.frame.json": "7eb2e0725c03e731be545e4acca8d9dcf164ace10f81db3218c84072bffc6007",
+    "public/0123.frame.json": "c9936200532dcb5b6762429dc93092c1b0ab8a291b936b64cab691f318f61dd7",
+    "private/0124.frame.json": "e70c5232431149d5c61e6f21290e879d701c92e0bd1868b6bcdf1aa48c049e4b",
+    "public/0124.frame.json": "2b0f20d4740ab58e3ec3c474d7d0e65f19296f69cf0fc338dbfbd2918ffefefa",
+    "private/0125.frame.json": "295d20b32649e7d1f0107fcd903698658601369a1afb46a50aab903ff9fe53ef",
+    "public/0125.frame.json": "4a695834f28a37ba17bba9ac4f50e1456589d4340f34ac1a09a37be29d464d27",
+    "private/0126.frame.json": "a5f5691e1d7b4027161b75ed69a4f5b1fab315859a2c30021a16fd4be34b7a6d",
+    "public/0126.frame.json": "966ae8b3743ff3fda7eae18981425de71f08b6b5562956bb5abee027fddbde64",
+    "private/0127.frame.json": "be9e9eb102a84e6af622226d18198cc9478901de2970065854c13d9a96b51f8a",
+    "public/0127.frame.json": "b9496556dc510c7236cdb24c8b75ff304187c9eb574f10d78c28bbb28819d51c",
+    "private/0128.frame.json": "62dd6a646e42596442bd1b79d1d4f8be025760285762380030f83d4f1f5da172",
+    "public/0128.frame.json": "82c8b58156fd07e08a7414ff04a41997f552b25b1280d87b7a5b47539bcfc2d2",
+    "private/0129.frame.json": "117f8ca6d1d7a9c39ee2b1473e08bc13362665818f6b129f2fee4fc1f10c0f41",
+    "public/0129.frame.json": "215d86403d77c5835b1dd731b034545ab70687263322b3dc4c55f411e1088bce",
+    "private/0130.frame.json": "fa0a900d0604410c0e9e9524763779fdc615d3eb354fda7314253d58a25275ad",
+    "public/0130.frame.json": "c234419498366cd1cca4d50024463ce66e85eace4861f29851e50764f2bca004",
+    "private/0131.frame.json": "9fd480cc6e3cd828a3152fdcef052f6e31a97a669d4efd915cda3b15b0149871",
+    "public/0131.frame.json": "004c1a7db881b8d235412560232d71348fe0fd999dbe00f7abf148d6815302f6",
+    "private/0132.frame.json": "b9b801f9e177c865bf81ccb324359605a9a42ab3893507d158888314af1f7c6e",
+    "public/0132.frame.json": "7887cfe6266009191417f7ac2fdb0885c16f320bf0b3398573f66cc232fc2654",
+    "private/0133.frame.json": "ad0dc747a0d1fefb67f7685ff5001e0cfd7bedb252fbb75ff5ade32c48781350",
+    "public/0133.frame.json": "4cfb14a3a4cb4ce6f9e51a2cc17fc70ca7abdf180a478fb456bab57ab19ad572",
+    "private/0134.frame.json": "df37a9ac74d49e0efb7db31427d3527a6a6ebf77a8a8d0312ebb43db1308e41b",
+    "public/0134.frame.json": "385cf035f05c2a530f302491dff975c7a0185f6505e4fbd19c5288357e48c300",
+    "private/0135.frame.json": "bc50ea8fec3c5feb3e9aa0162e7deb3a2903e36bab41650a234d9255c990ecde",
+    "public/0135.frame.json": "7163f3601afbf35832f452662bdd6763d15c4c644e056f26c90ba4958ed45199",
+    "private/0136.frame.json": "4077596b37646f9454d610b2fe1548ca0cb489be4147400896633fe9d61cb68f",
+    "public/0136.frame.json": "1356e481284e4db7a33e093c80bad5a839b5d871545f5399151381c658d69063",
+    "private/0137.frame.json": "7e1c385adb9a5ecdf814bfa80969d7e0519f202d753705626df4996e861a8c2e",
+    "public/0137.frame.json": "d5d8564635571422f8fc9de1d187abf0705201a8a43972a16d705b97ecc99acb",
+    "private/0138.frame.json": "69e9862547cb3f78639f01d3f5472ef2d47e67a2737ae7f4b4d46156279c6750",
+    "public/0138.frame.json": "c800c01d672f0f897b429ce362a7d4311f68b69ba03c6efda20c50923920b910",
+    "private/0139.frame.json": "f763ff0467a866cf0b23d82994f2ad00da204a9e15ada451dbe60bf9572393b9",
+    "public/0139.frame.json": "59483c5a2da56535b4d344167aae4c63e2ca9384e3092eada364d9de02eb3992",
+    "private/0140.frame.json": "7c0359f566ae91eeaf95a415e95854d2f343652b3ece291a84a85f4d62ff08eb",
+    "public/0140.frame.json": "33cb3c741825d6bbfd74640b4c06f9997abee9da75a32af24ff004f1992747d5",
+    "private/0141.frame.json": "f501401a6bfc07604cd4e709b5b47b6fa22f556566747a5b569981e71bcb6f4e",
+    "public/0141.frame.json": "a3a0fab9ed2cf1e6c689d8d4f8f0573344a9cd09b6b3ccce1b376f4ce7eada7f",
+    "private/0142.frame.json": "85b32eae43ae5f418e7771cc021b23561e1aaaa21660769cdda044d53e1b9fb1",
+    "public/0142.frame.json": "f70559144ec1072fb10c8f804c9cdd4b2484febc58e8eeaba5479184be03b2ad",
+    "private/0143.frame.json": "9be55e433f50ad6ad4309240d0fd44b06c0e8fc86e6beaa27b5c2aec950db053",
+    "public/0143.frame.json": "578fdaaf0f8f7256537ddbcd26722b4f1cce8e9535c78ecf9b051b1b217eaa8b",
+    "private/0144.frame.json": "9e16f7d5820a5a971dba71213143a52744e949ae6e8413ce98b6e456aae8677f",
+    "public/0144.frame.json": "9075374d26293d19182bcc6e928230d38d03df18bcb015dc2755aa30125182fa",
+    "private/0145.frame.json": "589e23c3655cc01936ec46d62cd327eb5d15005bac966855950db9090468340d",
+    "public/0145.frame.json": "85149af3106a2f0e1069712088792f8ab17ae1783c023a0a7b66e32be98c412c",
+    "private/0146.frame.json": "0c3c21f92f3ca31d203a80421399311c423818b9ce11e6b0a5d79cf3b8f04fbf",
+    "public/0146.frame.json": "14309af7151d3a4cd04bafabc34e5809110c462b7935765d464ed00c08f662e0",
+    "private/0147.frame.json": "d11131993a35a430044da44b0d891aebe8d766fef24f51a98b40e11cddab55d5",
+    "public/0147.frame.json": "dce3abe88f898a231b0be18051523d4bf55d1d4ea719e442d6cd52f6d34271ea",
+    "private/0148.frame.json": "3f17f9fa343c7a0b12d99108d4a737aa944b67aef96a8a671302c91691873639",
+    "public/0148.frame.json": "cf6cb0261fd0f2bfd8ff3594b525c09c79fc2d686523eead999e120ecf239071",
+    "private/0149.frame.json": "496acc5fcf678b8f1c0008b0924a50d905877c0d638a2df40ee97fec18ca5ebf",
+    "public/0149.frame.json": "f63e7a9125286faaf417cfd135427e7891651a6e6d48f0fb98b3c88bb1eb39ee",
+    "private/0150.frame.json": "fd79c1a1b2d1ad974827f3131b89b2a0ffe9edca1936f71b4d6b6a06a3d9a210",
+    "public/0150.frame.json": "62ba17e0e9187d144b6774957a82875ff3fd8d5d7f24b956aefafae030ebf70a",
+    "private/0151.frame.json": "d8bc1102f3c369e81af0e90b95ce15792c1281d58507033126786a777ef15dfc",
+    "public/0151.frame.json": "f56ad945d7fa1785dd19c0871bd6be4969c93996630f6e8655a54b2ed6a5238d",
+    "private/0152.frame.json": "c8065d2cdc1f754325a04508a04d6802a63f36245b61ababf0fdb692dbfb3bf6",
+    "public/0152.frame.json": "a7c655874fa01ed4b02d62447d3c0e2064e438c0a8533f96b7582fe025da168e",
+    "private/0153.frame.json": "4cf2413f96099b9b0bcccb2f8e5ba381e57c28b246539f1279d1bd363980d87a",
+    "public/0153.frame.json": "2b5f085f57b03ffd0005cb80813669c4c6d4ae9d30a4d6ce09c3b8e4894d2cd8",
+    "private/0154.frame.json": "e2c95d5cbbe0607512f1afdec243c598b7871130e4cd8e947dc679ad3bd03916",
+    "public/0154.frame.json": "fc7e8bf1160f151b1e43f5ac7f446ab0088f25811b2766fc648db4b089e89919",
+    "private/0155.frame.json": "bf1109cf33ce114dceedfbaefda10e6ed3c61e9ef3809d6b8baa8a49aa5530b1",
+    "public/0155.frame.json": "36cfd1d6e48d0c842c62ec7c9080e2adc6e9293c03b15e408e39c06ce380db2f",
+    "private/0156.frame.json": "05318df629035506398a5446bdc54d71a7e7cfc673b525c59bafc55eb38d48fd",
+    "public/0156.frame.json": "10beadd2f87c09811bedf5447e90742d5af26b7f2127055f14f4e867c32d3bcd",
+    "private/0157.frame.json": "005878b0d7187d99b7594e7335462fa17c95bfabe8d44f4d07f522a8d470989b",
+    "public/0157.frame.json": "81a9a9f2691b5b62b3a0971496a6206d6677eb06d23c3813f6336c63ee1fed90",
+    "private/0158.frame.json": "a721404e4e47e35ef162338f99210ad2ea9404d249e71a2321e35174dd529850",
+    "public/0158.frame.json": "d7ea4f6f41c217727c55d9fac74fefd52a8ed559df949105e7b31cad998dcb37",
+    "provenance/object_table.json": "fc0fc5b7b996f60d3c4560a23702213c48e85913af86c29c42634c645b59bdea"
+   },
+   "actions": {
+    "RotateRight": 6,
+    "MoveAhead": 29,
+    "RotateLeft": 5
+   },
+   "rendered_usable_containers": 14,
+   "usable_containers": 14,
+   "prefix_diagnostics": {
+    "10": {
+     "renderer_zero_usable": [],
+     "stored_verdict_U": [],
+     "eligible_sources": []
+    },
+    "20": {
+     "renderer_zero_usable": [],
+     "stored_verdict_U": [],
+     "eligible_sources": []
+    },
+    "30": {
+     "renderer_zero_usable": [],
+     "stored_verdict_U": [],
+     "eligible_sources": []
+    },
+    "40": {
+     "renderer_zero_usable": [],
+     "stored_verdict_U": [],
+     "eligible_sources": []
+    }
+   },
+   "per_container": {
+    "Chair|2|1|1": {
+     "max_rendered_pixels": 2886,
+     "frames_rendered": 20
+    },
+    "Chair|2|1|2": {
+     "max_rendered_pixels": 991,
+     "frames_rendered": 16
+    },
+    "DiningTable|2|1|0": {
+     "max_rendered_pixels": 7572,
+     "frames_rendered": 26
+    },
+    "ShelvingUnit|2|5___0": {
+     "max_rendered_pixels": 743,
+     "frames_rendered": 10
+    },
+    "ShelvingUnit|2|5___1": {
+     "max_rendered_pixels": 1099,
+     "frames_rendered": 10
+    },
+    "ShelvingUnit|2|5___2": {
+     "max_rendered_pixels": 1123,
+     "frames_rendered": 10
+    },
+    "SideTable|2|3": {
+     "max_rendered_pixels": 3341,
+     "frames_rendered": 7
+    },
+    "SideTable|2|6": {
+     "max_rendered_pixels": 3745,
+     "frames_rendered": 3
+    },
+    "SideTable|2|6___0": {
+     "max_rendered_pixels": 1296,
+     "frames_rendered": 3
+    },
+    "SideTable|2|6___1": {
+     "max_rendered_pixels": 222,
+     "frames_rendered": 3
+    },
+    "Sofa|2|2": {
+     "max_rendered_pixels": 6321,
+     "frames_rendered": 30
+    },
+    "TVStand|2|0|0": {
+     "max_rendered_pixels": 3523,
+     "frames_rendered": 28
+    },
+    "TVStand|2|0|0___0": {
+     "max_rendered_pixels": 1040,
+     "frames_rendered": 28
+    },
+    "TVStand|2|0|0___1": {
+     "max_rendered_pixels": 658,
+     "frames_rendered": 28
+    }
+   },
+   "recorded_U": [],
+   "sealed_count": 14,
+   "eligible_source_count": 0
+  },
+  {
+   "house": "procthor10k-0.1.2-train-03394",
+   "receipt": {
+    "house_id": "procthor10k-0.1.2-train-03394",
+    "source_index": 3394,
+    "code_commit": "f2982a6c40b08d635a28eccf397d8c388c84b71d",
+    "options": {
+     "dry_run_destinations_per_object": 8,
+     "replan_blocked_edges": true,
+     "placement_tries": 32,
+     "stratify_by_kind": true,
+     "add_source": "unseen_existing",
+     "destination_points": "anywhere",
+     "placement_prescreen": "dry_run",
+     "twin_control": true,
+     "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+    },
+    "null_window": true,
+    "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+    "status": "succeeded",
+    "observations": 1768,
+    "actions": 1767,
+    "executed_interventions": 0,
+    "sampled_interventions": 6,
+    "feasible_set_size": 56,
+    "invisible_container_set_size": 21,
+    "window_frames": 40,
+    "containers_usable": 36,
+    "containers_dropped": 0,
+    "containers_sealed": 36,
+    "controls": 6,
+    "controls_outside_U": 4,
+    "controls_shortfall": 0,
+    "moves_executed": 0,
+    "moves_source_first": 0,
+    "viewpoint_reselections": 0,
+    "sweep_two_actions": 867,
+    "window_protocol": "two_segment_probe_pending_ruling_53",
+    "leave_segment_frames": 120,
+    "window_segment": {
+     "segment": [
+      860,
+      900
+     ],
+     "frames_requested": 40,
+     "frames_walked": 40,
+     "start_cell": [
+      28,
+      1
+     ],
+     "start_yaw": 180,
+     "target_cell": [
+      30,
+      19
+     ],
+     "path_actions_available": 167,
+     "rule": "walk_towards_the_cell_farthest_from_the_transition_end_for_exactly_L_actions"
+    },
+    "occupancy": {
+     "peak_rss_gb": 2.070544,
+     "cpu_seconds": 196.25535200000002,
+     "wall_seconds": 737.4144520759583,
+     "bytes_written": 440382616
+    }
+   },
+   "window_segment": {
+    "segment": [
+     860,
+     900
+    ],
+    "frames_requested": 40,
+    "frames_walked": 40,
+    "start_cell": [
+     28,
+     1
+    ],
+    "start_yaw": 180,
+    "target_cell": [
+     30,
+     19
+    ],
+    "path_actions_available": 167,
+    "rule": "walk_towards_the_cell_farthest_from_the_transition_end_for_exactly_L_actions"
+   },
+   "input_sha256": {
+    "receipt.json": "cf6cde07e7ca7fcc7618d7c481f6f0126276e15ea64383ffc8473b443214fc14",
+    "provenance/window_segment.json": "33a7c8e35995645ec80e90fd455cb8182f6e6c5b2ca014333715bd30ccb31033",
+    "provenance/window_verdicts.json": "f51d010d248aa86c32b5e62da3c95b959e64e047718fbdb61c4a2366c8c71779",
+    "private/0861.frame.json": "344cae8ed832f56a35755af1111dcfa1688522a6d3b800b0a518f44e3fcda69e",
+    "public/0861.frame.json": "bbb4ee65e8ff4c8699a165af510c0529e5650b8d1bc6592b45594143c8f449cd",
+    "private/0862.frame.json": "6834192b3a13713a9545e435e49f1360d86e64782aa9e5ce0df74c4187726f53",
+    "public/0862.frame.json": "8fb0a4339cb3913c57a60de02886b3ff2bc13f411537a4657a3a18646b4b0de8",
+    "private/0863.frame.json": "6c3a400f0ae29771e37a845036a32308f9269cc50bbb1747543807da4be80ac6",
+    "public/0863.frame.json": "c98f85e43716ccc26b7a4ab669051d0d70973218d21dbf2b2dfbf16d33495bfb",
+    "private/0864.frame.json": "2919470355af236df13509186bb1783b258298908fb04c1e5fef585555a8c1b3",
+    "public/0864.frame.json": "9e0c42d1e44b1f32632cace2cfc71415e44f3317a6fbde0a536dcd1289a73d40",
+    "private/0865.frame.json": "83b9a483d842ac5c489ae6accaed3957ace5e5814658822776549450e869740b",
+    "public/0865.frame.json": "927fc299d3d44bb8368e5d8ad3cedf9a2e804cca49ff6819c6d77ee93bcd1d7f",
+    "private/0866.frame.json": "d8825d639bd276d0c6250fda2f0610dd1a05becf4580a8b346e3c2c3c057757d",
+    "public/0866.frame.json": "a105d649b0dcec8c199224422f9ad098aa58fd794d37275fd9fccd91025b6bd5",
+    "private/0867.frame.json": "54d72e1db6abfceb921afd5a1faa00b6606387f9ef548d222b1ac5415d37cf8d",
+    "public/0867.frame.json": "dd29533e5c9c318f41042c3270a00ab0b7e9cb2d558aff2dc45ee2bced5b4041",
+    "private/0868.frame.json": "2104f334410ec5825b0ca46bcf79f944e6efc24d9b822ed9fa1351c69390b2eb",
+    "public/0868.frame.json": "6d96424a8861008673e4b360fc71a9a030b0d53e1a5889f0a623c8848068541f",
+    "private/0869.frame.json": "c08c98dfe76e46797ab9fa79909384bdb3090aabb331ed9fd9ac54405c31f4ee",
+    "public/0869.frame.json": "7595630c11be5d92e28c1f637e8a5aba07ebf139e8c71ed22b819c93ffe3f999",
+    "private/0870.frame.json": "6c9150864ec02565e5db7f6841968de234625b98322b3bc75d88fecc375385b8",
+    "public/0870.frame.json": "82736fbe4ceab1cad31eab02216f667c31181cd2ed3dbf7ee313c4af3b9e66ff",
+    "private/0871.frame.json": "763409a200237f7e3b53837d5709cf917a9eac175f59182d5eb07e2ee9873a3f",
+    "public/0871.frame.json": "8f45ac33ab1793fee3337f3e85f8db78522c3f6d94d3c729e6f003d51d2a36ab",
+    "private/0872.frame.json": "69f65d2e91b254772fabba46a3c48ae431b1702c42b2c483a4727ffbe1cd6d75",
+    "public/0872.frame.json": "540a587dcdcda5a1042b79a1579d3a482415591ce3363872034deb4ac220f62c",
+    "private/0873.frame.json": "b749474ee29d77b8a988a7280c2e2e4d66782e48e69a412153da25cc04803172",
+    "public/0873.frame.json": "513e1eebc84049c837ea9b2dcf3a07fe59f1e4d834512d5c2319234faa0aa071",
+    "private/0874.frame.json": "70184de2e182632db1e02f6063efc81b068dbdf01269c2a0f6ef0e209be02976",
+    "public/0874.frame.json": "9288526a4db19f1299622a29ab026741a115588e0271ff33c2e06d65cae0b89b",
+    "private/0875.frame.json": "001069dd4baeec8d585c534e954db5ec50de0389c334d52009728d2636e1aa13",
+    "public/0875.frame.json": "8e6a7b291c2fff27e35dc9719d016364948b10f27055196607a620a329ea48cb",
+    "private/0876.frame.json": "0bd2906a76b10704c457aed49a803cf4b9a4dfb65898e1c43ef49ad1c45b72b0",
+    "public/0876.frame.json": "764f07545ba6cf217d0b96c0d0945eda42e60a041d5038fd3bb2f4c2237d702c",
+    "private/0877.frame.json": "3e6c597c5cec5829d5e77270db0ef41176dac7d9d69eb7e04656c7223b7bf986",
+    "public/0877.frame.json": "780e1971625c918fbb9e0b8dc1c08cadcb0d8045a634e843ccf00503f2549d07",
+    "private/0878.frame.json": "ebb4704e597e6c112cf10562ed7f72263895c444354301d6938a54c6509d0e5d",
+    "public/0878.frame.json": "1939ab0df9222ff0e599163d00fdfc7e0dc742c9ad5f058f6d6e70eccf9488c0",
+    "private/0879.frame.json": "b8e66f2b34a97c1c2a82db1312c6e4d80dcb6bc797a851a19bda02adcb9b0e1d",
+    "public/0879.frame.json": "9d50809cc8c897dbc08b19fb46b8804e4808da81ff0617d64a6191433b185adc",
+    "private/0880.frame.json": "0738fae7e2f41c5685ed621d0803ea0f306beed32f1dc1f5d4bcb6fa93fd32ec",
+    "public/0880.frame.json": "85958b45d19e8642ed70c286956857903e10c42af5fde4fff2065df717cb9451",
+    "private/0881.frame.json": "c2f423b0bb7cc2a8abd63ad13ede1a640578275ec9a20bbf6299b1f59a378b3c",
+    "public/0881.frame.json": "d6a52dfe766c9cf0f2c750ec32f5e75e532af3e6069dd1f6d8225fbc53aa3413",
+    "private/0882.frame.json": "e9009bb23f74f50c1900e234e612c65548220a30dd2fcd853dbdb4809ea5fabc",
+    "public/0882.frame.json": "86f79c481ef93fee4f2fc79dd09983c81e7924292565969b5da108c1e91c5850",
+    "private/0883.frame.json": "7d4d16464fad2567ec982117b234cc23277f66fb41ad45d587cc571f14dedfd1",
+    "public/0883.frame.json": "b954c12eaf459cb497cb4bc894981488f69da32135e8ecd73b0ed68a0ef049e5",
+    "private/0884.frame.json": "7d916d1c723477fc5b8193a7b1b10e6335870d29f93081b5f06f504160448d2c",
+    "public/0884.frame.json": "25a477d0b5ec579a343c1910d569fe7252b76376a0c4c6cc3596212d39111fc3",
+    "private/0885.frame.json": "2a4c78a70cbadda69a9c790ae647e7cc9895bf1c02a14f6cf244da3221b9864c",
+    "public/0885.frame.json": "e2da4bd4104c5a65345982221bceef800e2577181c85434bdf82c0ff7bc40420",
+    "private/0886.frame.json": "26b3ac846ae1cd683a815f8e33e1cec88fd189d6dc5561bb62f2b13b889e5441",
+    "public/0886.frame.json": "5e01ff93fd8953d762ee3a409d5160f5feb05ffcd3f9b764e9d4a1c6c967f9bc",
+    "private/0887.frame.json": "788d0509baec0068d6d5c9d455f74ca9a01fa0eed3ff22b32b19b27e1a7b6236",
+    "public/0887.frame.json": "6c9d6ec1521c485d216378e5e7bd7e00082f2f8ad36da523af6c232f19a603da",
+    "private/0888.frame.json": "22b1ed498f5deb59b0eb5850a400d7d5f9abd67c0757844a38f77d089cbbd2e3",
+    "public/0888.frame.json": "0bfdd7fd62795c09b5243867cccce7ef66592ec97edef6d23917fb1ee1f7b2cd",
+    "private/0889.frame.json": "60162a1efd1daf13b50ab698a79e495651d012792435d26b9cd19e3e25b022d3",
+    "public/0889.frame.json": "a3d9b0edb61ef54519c3d883387f4206bc47ad17be05af3f561b999edde7a4a2",
+    "private/0890.frame.json": "cfa00cacd7ca621109f0e31ad6a26452c042761345f76b671a96835c5dcafdcd",
+    "public/0890.frame.json": "25006f4afdc52d4215fc6c7155f59c78b891b6b2df0a0b66d7573570f2e9edc8",
+    "private/0891.frame.json": "fc9cc7da831cb2f123423d70cc36826ce74384d8cd6c089f3af8c2708402656d",
+    "public/0891.frame.json": "210d7d2759ad8da568fee1dfd22de4e2042ea0a68614a9780258779952c91ebc",
+    "private/0892.frame.json": "1e3e2ff673f0057c08408ce80dddb91782fad83102d2673261f205c2c15e0471",
+    "public/0892.frame.json": "60ae254de7ce18272ecadf85b7cd24effb4b1931b30036d46e952416531b9955",
+    "private/0893.frame.json": "b5be73cd106fc8ac950c86010e9d678ea03f384d39764c77d85933f3df74bd38",
+    "public/0893.frame.json": "5cb0eb5f054a63e130747d0e88399b9f7307fd6e85b7d2ac88febd7a2aa8ef20",
+    "private/0894.frame.json": "f82bfa48926b22067f14e9c591f8eef4a8ab6f9640e564b21458ef35182b391a",
+    "public/0894.frame.json": "1905d6780901a76dd8deb8460914af19cf5ed6604374f027da5be90d28d31a8d",
+    "private/0895.frame.json": "7433aa6833b62f5725e5f211553def0ac15698b71cea4f7e1d2ab28027d0abe3",
+    "public/0895.frame.json": "feef663b3fa6a0866e4a1037b7fda9ab55aafb8ee4b1d9d6c28075400a5b8711",
+    "private/0896.frame.json": "8666c6782641145894e83795f98da0b597de5ab5fc93ded90075f8d68e07b29c",
+    "public/0896.frame.json": "13c08c431b8ede09126067cd95dd6ba20e6d5b3c8e9e336dd1df3334bae6458b",
+    "private/0897.frame.json": "d531fab4026c84ef723bf811b0f01a36841a2a7e8282780cde55afa92fe57b83",
+    "public/0897.frame.json": "204cb163113e270b7ea011920705c2b55050442709d12f3f5c94a22b5660f151",
+    "private/0898.frame.json": "9e42e13a0a974bea6006c12247f5de8b47113e1b7c78823e177c1464b7c35064",
+    "public/0898.frame.json": "2fb2d8a7b2b380aac043789cd50f077676d4c791d0fc110fdc843bfb4e2b2402",
+    "private/0899.frame.json": "90d15fdd5c1650d04d82b88f07c348d3d123263587a1312a2c41180eb55633ac",
+    "public/0899.frame.json": "683e997345b5167a0fe6ea41526923042b89d56a728c011eee54d6f1785de127",
+    "private/0900.frame.json": "29012159e9cc36c5b1c70782829c4b786151d26899cdeaee956eb3a8ff1a9533",
+    "public/0900.frame.json": "08ca3e638c0c3ab0c7c796e8055acbaf5db5680bdf737825c02a79025e5b6985",
+    "provenance/object_table.json": "eeffbef8fed5e9f466339ddb3e1cfac9bda5b87095f196d2ee7d9498e5a60f74"
+   },
+   "actions": {
+    "RotateRight": 6,
+    "MoveAhead": 30,
+    "RotateLeft": 4
+   },
+   "rendered_usable_containers": 12,
+   "usable_containers": 36,
+   "prefix_diagnostics": {
+    "10": {
+     "renderer_zero_usable": [
+      "Bed|4|0|0",
+      "Chair|4|3|1",
+      "CounterTop|6|0",
+      "DiningTable|4|3|0",
+      "DiningTable|7|1",
+      "DogBed|7|3",
+      "Dresser|4|1",
+      "Dresser|4|1___0",
+      "Dresser|4|1___1",
+      "Dresser|4|1___2",
+      "Dresser|4|1___3",
+      "GarbageCan|5|2",
+      "GarbageCan|6|4",
+      "Microwave|surface|6|16",
+      "ShelvingUnit|7|4___0",
+      "ShelvingUnit|7|4___1",
+      "ShelvingUnit|7|4___2",
+      "ShelvingUnit|7|4___3",
+      "SideTable|4|2",
+      "SideTable|4|2___0",
+      "SideTable|4|2___1",
+      "Sink|5|1|0",
+      "Sink|5|1|0___0",
+      "Sofa|7|2",
+      "TVStand|7|0|0",
+      "Toaster|surface|6|18",
+      "Toilet|5|0"
+     ],
+     "stored_verdict_U": [
+      "Bed|4|0|0",
+      "Chair|4|3|1",
+      "CounterTop|6|0",
+      "DiningTable|4|3|0",
+      "DogBed|7|3",
+      "Dresser|4|1",
+      "Dresser|4|1___0",
+      "Dresser|4|1___1",
+      "Dresser|4|1___2",
+      "Dresser|4|1___3",
+      "GarbageCan|5|2",
+      "GarbageCan|6|4",
+      "Microwave|surface|6|16",
+      "ShelvingUnit|7|4___2",
+      "ShelvingUnit|7|4___3",
+      "SideTable|4|2",
+      "SideTable|4|2___0",
+      "SideTable|4|2___1",
+      "Sink|5|1|0",
+      "Sink|5|1|0___0",
+      "Sofa|7|2",
+      "TVStand|7|0|0",
+      "Toaster|surface|6|18",
+      "Toilet|5|0"
+     ],
+     "eligible_sources": [
+      "Book|surface|7|37",
+      "Book|surface|4|9",
+      "Bowl|surface|4|1",
+      "Bread|surface|6|15",
+      "Bread|surface|6|14",
+      "HousePlant|surface|4|8",
+      "Lettuce|surface|6|26",
+      "Mug|surface|6|21",
+      "PepperShaker|surface|6|20",
+      "Pillow|surface|7|30",
+      "Pillow|4|0|1",
+      "SoapBottle|surface|5|11",
+      "SoapBottle|surface|6|24",
+      "SprayBottle|surface|5|12",
+      "Statue|surface|4|7",
+      "TennisRacket|surface|4|10"
+     ]
+    },
+    "20": {
+     "renderer_zero_usable": [
+      "Bed|4|0|0",
+      "Chair|4|3|1",
+      "DiningTable|4|3|0",
+      "DiningTable|7|1",
+      "DogBed|7|3",
+      "Dresser|4|1",
+      "Dresser|4|1___0",
+      "Dresser|4|1___1",
+      "Dresser|4|1___2",
+      "Dresser|4|1___3",
+      "GarbageCan|5|2",
+      "GarbageCan|6|4",
+      "ShelvingUnit|7|4___0",
+      "ShelvingUnit|7|4___1",
+      "ShelvingUnit|7|4___2",
+      "ShelvingUnit|7|4___3",
+      "SideTable|4|2",
+      "SideTable|4|2___0",
+      "SideTable|4|2___1",
+      "Sink|5|1|0",
+      "Sink|5|1|0___0",
+      "Sofa|7|2",
+      "TVStand|7|0|0",
+      "Toilet|5|0"
+     ],
+     "stored_verdict_U": [
+      "Bed|4|0|0",
+      "Chair|4|3|1",
+      "DiningTable|4|3|0",
+      "DogBed|7|3",
+      "Dresser|4|1",
+      "Dresser|4|1___0",
+      "Dresser|4|1___1",
+      "Dresser|4|1___2",
+      "Dresser|4|1___3",
+      "GarbageCan|5|2",
+      "GarbageCan|6|4",
+      "ShelvingUnit|7|4___2",
+      "ShelvingUnit|7|4___3",
+      "SideTable|4|2",
+      "SideTable|4|2___0",
+      "SideTable|4|2___1",
+      "Sink|5|1|0",
+      "Sink|5|1|0___0",
+      "Sofa|7|2",
+      "TVStand|7|0|0",
+      "Toilet|5|0"
+     ],
+     "eligible_sources": [
+      "Book|surface|7|37",
+      "Book|surface|4|9",
+      "Bowl|surface|4|1",
+      "HousePlant|surface|4|8",
+      "Pillow|surface|7|30",
+      "Pillow|4|0|1",
+      "SoapBottle|surface|5|11",
+      "SprayBottle|surface|5|12",
+      "Statue|surface|4|7",
+      "TennisRacket|surface|4|10"
+     ]
+    },
+    "30": {
+     "renderer_zero_usable": [
+      "Bed|4|0|0",
+      "Chair|4|3|1",
+      "DiningTable|4|3|0",
+      "DiningTable|7|1",
+      "DogBed|7|3",
+      "Dresser|4|1",
+      "Dresser|4|1___0",
+      "Dresser|4|1___1",
+      "Dresser|4|1___2",
+      "Dresser|4|1___3",
+      "GarbageCan|5|2",
+      "GarbageCan|6|4",
+      "ShelvingUnit|7|4___0",
+      "ShelvingUnit|7|4___1",
+      "ShelvingUnit|7|4___2",
+      "ShelvingUnit|7|4___3",
+      "SideTable|4|2",
+      "SideTable|4|2___0",
+      "SideTable|4|2___1",
+      "Sink|5|1|0",
+      "Sink|5|1|0___0",
+      "Sofa|7|2",
+      "TVStand|7|0|0",
+      "Toilet|5|0"
+     ],
+     "stored_verdict_U": [
+      "Bed|4|0|0",
+      "Chair|4|3|1",
+      "DiningTable|4|3|0",
+      "DogBed|7|3",
+      "Dresser|4|1",
+      "Dresser|4|1___0",
+      "Dresser|4|1___1",
+      "Dresser|4|1___2",
+      "Dresser|4|1___3",
+      "GarbageCan|5|2",
+      "GarbageCan|6|4",
+      "ShelvingUnit|7|4___2",
+      "ShelvingUnit|7|4___3",
+      "SideTable|4|2",
+      "SideTable|4|2___0",
+      "SideTable|4|2___1",
+      "Sink|5|1|0",
+      "Sink|5|1|0___0",
+      "Sofa|7|2",
+      "TVStand|7|0|0",
+      "Toilet|5|0"
+     ],
+     "eligible_sources": [
+      "Book|surface|7|37",
+      "Book|surface|4|9",
+      "Bowl|surface|4|1",
+      "HousePlant|surface|4|8",
+      "Pillow|surface|7|30",
+      "Pillow|4|0|1",
+      "SoapBottle|surface|5|11",
+      "SprayBottle|surface|5|12",
+      "Statue|surface|4|7",
+      "TennisRacket|surface|4|10"
+     ]
+    },
+    "40": {
+     "renderer_zero_usable": [
+      "Bed|4|0|0",
+      "Chair|4|3|1",
+      "DiningTable|4|3|0",
+      "DiningTable|7|1",
+      "DogBed|7|3",
+      "Dresser|4|1",
+      "Dresser|4|1___0",
+      "Dresser|4|1___1",
+      "Dresser|4|1___2",
+      "Dresser|4|1___3",
+      "GarbageCan|5|2",
+      "GarbageCan|6|4",
+      "ShelvingUnit|7|4___0",
+      "ShelvingUnit|7|4___1",
+      "ShelvingUnit|7|4___2",
+      "ShelvingUnit|7|4___3",
+      "SideTable|4|2",
+      "SideTable|4|2___0",
+      "SideTable|4|2___1",
+      "Sink|5|1|0",
+      "Sink|5|1|0___0",
+      "Sofa|7|2",
+      "TVStand|7|0|0",
+      "Toilet|5|0"
+     ],
+     "stored_verdict_U": [
+      "Bed|4|0|0",
+      "Chair|4|3|1",
+      "DiningTable|4|3|0",
+      "DogBed|7|3",
+      "Dresser|4|1",
+      "Dresser|4|1___0",
+      "Dresser|4|1___1",
+      "Dresser|4|1___2",
+      "Dresser|4|1___3",
+      "GarbageCan|5|2",
+      "GarbageCan|6|4",
+      "ShelvingUnit|7|4___2",
+      "ShelvingUnit|7|4___3",
+      "SideTable|4|2",
+      "SideTable|4|2___0",
+      "SideTable|4|2___1",
+      "Sink|5|1|0",
+      "Sink|5|1|0___0",
+      "Sofa|7|2",
+      "TVStand|7|0|0",
+      "Toilet|5|0"
+     ],
+     "eligible_sources": [
+      "Book|surface|7|37",
+      "Book|surface|4|9",
+      "Bowl|surface|4|1",
+      "HousePlant|surface|4|8",
+      "Pillow|surface|7|30",
+      "Pillow|4|0|1",
+      "SoapBottle|surface|5|11",
+      "SprayBottle|surface|5|12",
+      "Statue|surface|4|7",
+      "TennisRacket|surface|4|10"
+     ]
+    }
+   },
+   "per_container": {
+    "Bed|4|0|0": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Chair|4|3|1": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Chair|6|2|1": {
+     "max_rendered_pixels": 2249,
+     "frames_rendered": 31
+    },
+    "Chair|6|2|2": {
+     "max_rendered_pixels": 1946,
+     "frames_rendered": 21
+    },
+    "Chair|6|2|3": {
+     "max_rendered_pixels": 548,
+     "frames_rendered": 21
+    },
+    "CounterTop|6|0": {
+     "max_rendered_pixels": 5083,
+     "frames_rendered": 15
+    },
+    "DiningTable|4|3|0": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "DiningTable|6|2|0": {
+     "max_rendered_pixels": 5595,
+     "frames_rendered": 31
+    },
+    "DiningTable|7|1": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "DogBed|7|3": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Dresser|4|1": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Dresser|4|1___0": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Dresser|4|1___1": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Dresser|4|1___2": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Dresser|4|1___3": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Fridge|6|1": {
+     "max_rendered_pixels": 34708,
+     "frames_rendered": 5
+    },
+    "GarbageCan|5|2": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "GarbageCan|6|4": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Microwave|surface|6|16": {
+     "max_rendered_pixels": 344,
+     "frames_rendered": 15
+    },
+    "ShelvingUnit|6|3___0": {
+     "max_rendered_pixels": 4159,
+     "frames_rendered": 12
+    },
+    "ShelvingUnit|6|3___1": {
+     "max_rendered_pixels": 6649,
+     "frames_rendered": 14
+    },
+    "ShelvingUnit|6|3___2": {
+     "max_rendered_pixels": 3964,
+     "frames_rendered": 14
+    },
+    "ShelvingUnit|6|3___3": {
+     "max_rendered_pixels": 2412,
+     "frames_rendered": 13
+    },
+    "ShelvingUnit|7|4___0": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "ShelvingUnit|7|4___1": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "ShelvingUnit|7|4___2": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "ShelvingUnit|7|4___3": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "SideTable|4|2": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "SideTable|4|2___0": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "SideTable|4|2___1": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Sink|5|1|0": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Sink|5|1|0___0": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Sofa|7|2": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "TVStand|7|0|0": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Toaster|surface|6|18": {
+     "max_rendered_pixels": 313,
+     "frames_rendered": 15
+    },
+    "Toilet|5|0": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    }
+   },
+   "recorded_U": [
+    "Bed|4|0|0",
+    "Chair|4|3|1",
+    "DiningTable|4|3|0",
+    "DogBed|7|3",
+    "Dresser|4|1",
+    "Dresser|4|1___0",
+    "Dresser|4|1___1",
+    "Dresser|4|1___2",
+    "Dresser|4|1___3",
+    "GarbageCan|5|2",
+    "GarbageCan|6|4",
+    "ShelvingUnit|7|4___2",
+    "ShelvingUnit|7|4___3",
+    "SideTable|4|2",
+    "SideTable|4|2___0",
+    "SideTable|4|2___1",
+    "Sink|5|1|0",
+    "Sink|5|1|0___0",
+    "Sofa|7|2",
+    "TVStand|7|0|0",
+    "Toilet|5|0"
+   ],
+   "sealed_count": 36,
+   "eligible_source_count": 10
+  },
+  {
+   "house": "procthor10k-0.1.2-train-03986",
+   "receipt": {
+    "house_id": "procthor10k-0.1.2-train-03986",
+    "source_index": 3986,
+    "code_commit": "f2982a6c40b08d635a28eccf397d8c388c84b71d",
+    "options": {
+     "dry_run_destinations_per_object": 8,
+     "replan_blocked_edges": true,
+     "placement_tries": 32,
+     "stratify_by_kind": true,
+     "add_source": "unseen_existing",
+     "destination_points": "anywhere",
+     "placement_prescreen": "dry_run",
+     "twin_control": true,
+     "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+    },
+    "null_window": false,
+    "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+    "status": "failed",
+    "reason": "intervention_window_unavailable",
+    "detail": "window segment 38 < 40 frames (path to the farthest cell had 38 actions); not shortened",
+    "occupancy": {
+     "peak_rss_gb": 0.19302,
+     "cpu_seconds": 11.22262,
+     "wall_seconds": 24.047432899475098,
+     "bytes_written": 35460740
+    }
+   },
+   "window_segment": {
+    "segment": [
+     86,
+     124
+    ],
+    "frames_requested": 40,
+    "frames_walked": 38,
+    "start_cell": [
+     26,
+     6
+    ],
+    "start_yaw": 90,
+    "target_cell": [
+     1,
+     12
+    ],
+    "path_actions_available": 38,
+    "rule": "walk_towards_the_cell_farthest_from_the_transition_end_for_exactly_L_actions"
+   },
+   "input_sha256": {
+    "receipt.json": "129e4ba9f0c8d2e9bf79453327f74a905829b312d7970488e07c40535ee10741",
+    "provenance/window_segment.json": "25b44a8593eb1b5fbd594097244f115afa00e8a94d3306dd947307a3e5f8bb81",
+    "old_window_verdicts_reference": "c4673b76a4ec7a6a4ffe05cbf2cc0e0b38b12228ca2aa6253097bbad7da3c1e1",
+    "private/0087.frame.json": "0758f59ea0fcbd1483c89d4224debac79904e8c9eeaf3d887e3dcf19a58c21b0",
+    "public/0087.frame.json": "54af929b69b52d542cdd1b080fcb936acfca72da32f57097847a93abc9142058",
+    "private/0088.frame.json": "7a369200fc5a85bc19a1c8b78a0c0b9a2efb5a743ee3004fefa711a4af2e7d0b",
+    "public/0088.frame.json": "ba6c8369a9451e0b56e94eb775d835ed9c7be1734ec5ca226b5003018a36b911",
+    "private/0089.frame.json": "71805a79d3777ca60f848c161a56959f02f87a4586e7f743641612d8ad7bb310",
+    "public/0089.frame.json": "cb639d9961908e2032f32270fd911e6fdb41d5cd366170ac8e9cb5af435c8ebc",
+    "private/0090.frame.json": "1c1e798c227f3613b38cba802399bc206cb885ba8db01ea35b0a4e3165b43a42",
+    "public/0090.frame.json": "bbeae910433d45e433555f3e62f066d81dbdbc39a5114752fd992fa6fa1c6c31",
+    "private/0091.frame.json": "67c04c1a59fa53291a63e0155f67f6d2e8251bea558598dfb664a861adc25ff2",
+    "public/0091.frame.json": "b5393d183c0a8f8570a98b140bb8be7cc34bcbce3edaa5071467abf50a183e0b",
+    "private/0092.frame.json": "a45bfc05890871c7b464d5e02e9018004dadcb71348b337aa7316ee19915d151",
+    "public/0092.frame.json": "3f4867d018529f2a605627bbb47f19b1c015335e52bc96f80f977059f487f614",
+    "private/0093.frame.json": "bdaa8f4d899de56e8f7f41ac6edb93ae555522435c40a9e6ace79490117eed2f",
+    "public/0093.frame.json": "6ed7d67750ad1b11526d2a65f676db489af77b1aff436937d6a8258dc7c7f614",
+    "private/0094.frame.json": "fdf580b75b1b48f5674a40b3c7340ef9ac1cdb938fff59da3747a850622ee9d2",
+    "public/0094.frame.json": "2ee71d05fac564b68110eed6fe9188a784d063e09d4be6e5ecb995326ad929f8",
+    "private/0095.frame.json": "5e6e8c98bd0ca3a50a38b4233e0e11cdebce4b3bc419bdd3a4cfdf534720e095",
+    "public/0095.frame.json": "e176132870d17ae4d8eaa1133f11e17d3e32cbb49d3e67a99f830d5771f18838",
+    "private/0096.frame.json": "daefa1d7d225158ab72c1f930fa0ec7ab251c4310aee80454bc11c53cf76ec13",
+    "public/0096.frame.json": "e0b49cddcebb32537e95b5aaba58914b66a70039478680cb76d53cd9dbddb190",
+    "private/0097.frame.json": "9525dc9ae61440f4a6c84ec3853e1345558f4e61a77e50f456974e98b72366ee",
+    "public/0097.frame.json": "023ac0b35c82841652a4de173e620235a55f2846904b2be8825612f91c40906f",
+    "private/0098.frame.json": "9a9a358df8727c9bd22ec7ccbc303a3edb2bee0cc3ea3f80dd3cef425d8f7e6b",
+    "public/0098.frame.json": "03081fd3c1bb26790641ccdc19b1729b72d52ba2c85164e096cd612b9b030103",
+    "private/0099.frame.json": "dcf43f96801f6a46e3e98907770b554df852ee7a819bb7158e74db9b8582d8c4",
+    "public/0099.frame.json": "5f355288d87162446807f3e27b92bf2b3784eeb15e9f0fbef871324eb93f165d",
+    "private/0100.frame.json": "5e565730fc2a701b38fa9a6ed57cad232d9e57822e96872ef4f88eb067f75424",
+    "public/0100.frame.json": "c167ae64333b3d0d52bbd4a763abb2838a845b82bd4449ad1219cb2f3d8cdb43",
+    "private/0101.frame.json": "764f6621c3f42d4406fcb575aae7d77023e194fa333de4ed842b36639f07c013",
+    "public/0101.frame.json": "e4c8b1cdbb57cfb05260e66b3ab496a27b5694de311fbe32a4e9265919889f5e",
+    "private/0102.frame.json": "07765d2a5a463c5b0783711bfe06e1c2040ea1ff438826a5bdec745636c2fc93",
+    "public/0102.frame.json": "8af2a52ade366d5f722f131fdd8beae678a1c21184d41c91b7e0fb22b353d44c",
+    "private/0103.frame.json": "b4c4f7a0c5d0b83ef8cf427e206997fa2d1647d54e6c5c236012b1ea9c6bc699",
+    "public/0103.frame.json": "51b756bdb1a53a8dafe82bde4cb9473a82043c2e9baa88409b50b2f71f1c1cbf",
+    "private/0104.frame.json": "1fb367c30254be78dc462097abb8009c785278503e56e9a2cba269664adf3ac5",
+    "public/0104.frame.json": "ccd99eb89b5923e76072514f5ed66ff7590a6c1ec263b0031cee3269c16db2f5",
+    "private/0105.frame.json": "3b8c86b4d5810bbea1e802d2dd79eebdfa872f76932004ec6b4bb3e2301bd3bd",
+    "public/0105.frame.json": "52f4788dc12626991b1de299d0b030778dd35ee175a78889fa2a7d3f9d6d7f38",
+    "private/0106.frame.json": "f1498751e139dc8d5f614a7e6b0a3970ab0db754bbace1492bedcafe771fd04e",
+    "public/0106.frame.json": "a968517dc173286dbe5f8f895907b9dfdc2a3431ada0eefb4b0d0bbb332896b9",
+    "private/0107.frame.json": "bcdd0967f69bf6fb1c478e46721ea23cc8107dedd15dfb1341ec2c1e9ec51abb",
+    "public/0107.frame.json": "383d88363df237166f8fb0b2aba050e1e56c4de3b43b6378212423580091b756",
+    "private/0108.frame.json": "af9a078f7551126b379055d218fbb7485b2e037037636327caa7745c8af59818",
+    "public/0108.frame.json": "e36a3ffb73f6e7c18201a5652dc93980fe113fe227caca07d20c95245c0a5e15",
+    "private/0109.frame.json": "ec8b5103e0acbd1ba14fdf0a4135bb9509d57a7ea70c941068efadab8ede8515",
+    "public/0109.frame.json": "fad6f87b325982a2ebadb4152eb019d9b03f86c858d7c3d9df3ea2efafeeb782",
+    "private/0110.frame.json": "6f799eaeb6f0b247bdd187646e271e2dfe59ae1765d3d99183bdd4b5e2307651",
+    "public/0110.frame.json": "0aaf1bf5a94d3a49505b4a714e8e02a15db6eb478eea51e51e6e1c5bf6a1311a",
+    "private/0111.frame.json": "811b616802d952d389ab512d18594d839576c8f54ccbdf487d09ab53e9985d37",
+    "public/0111.frame.json": "f1f1bc1de7ffdac6c4bdc2315103c12510d09a01bff0edc7862ef78ff3ba2d0a",
+    "private/0112.frame.json": "4c56ba955988866bcb3a83ad03ffb6438594543a3ce0f0e166a4752a4e2e7247",
+    "public/0112.frame.json": "4a1a793d55ac967f1501a1d434216724290bb250ea16f3a562c1c8bbad41f64c",
+    "private/0113.frame.json": "98a728449faadd79d732eab8ba9a18b84c24940a3686ae32378a7c0d01f946a4",
+    "public/0113.frame.json": "54d0208d831356627166167610a53fa650b0583560b6cde985ee652a00d3e98c",
+    "private/0114.frame.json": "4c54fc52e1fe0a18f3e82780516c7eeacad81cdefccc39a6c61878e3d0e254a1",
+    "public/0114.frame.json": "ef4115757c2892d50b91fded3eaefe8af66223911d1792787623a46fb583661f",
+    "private/0115.frame.json": "0198614bc2216603cd719fc98155368c83ee51bbcda5197c1a2e54b35ea45636",
+    "public/0115.frame.json": "6c60be0330fa6690181be334f66ee866e7bb4783548100007e288e57f81d3243",
+    "private/0116.frame.json": "306639b82de9b3e910064e8325845bd3b265e37d3d64c1ff4897db11c8d1a8b4",
+    "public/0116.frame.json": "88dab402b2715bc7947ebe29c3e4e0067b378a82fd8acf38e42736a14d5debc3",
+    "private/0117.frame.json": "18ebd2b0cc8e814ee7a0ac8e46a8ed107122b7b6dcbb5bd266c8c5570c9c0af6",
+    "public/0117.frame.json": "b58498eeddeb29d9ee4cba6ca967e2a3bc44c71109d89bd47a56fa65f244d16c",
+    "private/0118.frame.json": "355adc6989d70dc58bb1a720cfbaf570e44fe5ad0376a04692eab16744ca35f2",
+    "public/0118.frame.json": "1b2e30747159d1166c24f273b99c180e8261a9a9535681be1aa785055baf3bc7",
+    "private/0119.frame.json": "1d0b43fe8248152dc99d7a9abd868f3b89042378e02bbfeed36c246b9962c082",
+    "public/0119.frame.json": "81cad9ab7262ca5f71fd5239dda34c12c34539c0c3b59cd2d476a6a2c9a5a178",
+    "private/0120.frame.json": "69355315646f35e039c7c03786d018fe8c25d9aefc0ea6b6f8aadd5e7a2510be",
+    "public/0120.frame.json": "ad9b52a9082603ff9bca11b1a1c5aa18f23eedc139260cc793175fd2eaea35a1",
+    "private/0121.frame.json": "9e02ab573dca98a693351248277ade1bb4fb916721d5aa3a115f002fba4365fe",
+    "public/0121.frame.json": "475d1dd007876edfb25b7c40afe637712e4499226fca65ee009192f4bac28518",
+    "private/0122.frame.json": "ff2c0c73b5fa2622dc44a8fc2284632208b155c0f4975b5a0c90fb17fa627992",
+    "public/0122.frame.json": "086d6cad9fd57e6744370604bdaa55debece0933b455ded9297bfa34190a9348",
+    "private/0123.frame.json": "e502413a9eabeef514cef21e003b0ba7f3bf937fcb683de36cf0f08adea77de0",
+    "public/0123.frame.json": "5689604c9e1552be0dc2800eda8a751510221b9fd80c9958c1e8afe99c1d027b",
+    "private/0124.frame.json": "d5188f1a0154200f2f55bf2bf0b1b17cbe8f79a37552315f7aefca3230a70304",
+    "public/0124.frame.json": "900a0e4c24ed3d2e2d7ecf75dcdf55ba4445f14c15cd90316257c2b76c109289"
+   },
+   "container_ids_source": "old same-house usable IDs; no new sealing computed",
+   "actions": {
+    "RotateRight": 5,
+    "MoveAhead": 31,
+    "RotateLeft": 2
+   },
+   "rendered_usable_containers": 5,
+   "usable_containers": 5,
+   "prefix_diagnostics": {
+    "10": {
+     "renderer_zero_usable": []
+    },
+    "20": {
+     "renderer_zero_usable": []
+    },
+    "30": {
+     "renderer_zero_usable": []
+    }
+   },
+   "per_container": {
+    "Cart|2|5": {
+     "max_rendered_pixels": 5251,
+     "frames_rendered": 21
+    },
+    "DiningTable|2|0": {
+     "max_rendered_pixels": 2039,
+     "frames_rendered": 16
+    },
+    "DogBed|2|4": {
+     "max_rendered_pixels": 2402,
+     "frames_rendered": 11
+    },
+    "Sofa|2|2": {
+     "max_rendered_pixels": 13796,
+     "frames_rendered": 8
+    },
+    "TVStand|2|1|0": {
+     "max_rendered_pixels": 3467,
+     "frames_rendered": 2
+    }
+   }
+  },
+  {
+   "house": "procthor10k-0.1.2-train-06764",
+   "receipt": {
+    "house_id": "procthor10k-0.1.2-train-06764",
+    "source_index": 6764,
+    "code_commit": "f2982a6c40b08d635a28eccf397d8c388c84b71d",
+    "options": {
+     "dry_run_destinations_per_object": 8,
+     "replan_blocked_edges": true,
+     "placement_tries": 32,
+     "stratify_by_kind": true,
+     "add_source": "unseen_existing",
+     "destination_points": "anywhere",
+     "placement_prescreen": "dry_run",
+     "twin_control": true,
+     "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+    },
+    "null_window": false,
+    "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+    "status": "failed",
+    "reason": "intervention_window_unavailable",
+    "detail": "feasible set empty; U=0 eligible=2 eligible_on_U=0 unseen=2 destinations_with_points=0 dry_run_pairs_feasible=0",
+    "occupancy": {
+     "peak_rss_gb": 0.194428,
+     "cpu_seconds": 16.817822999999997,
+     "wall_seconds": 31.52593755722046,
+     "bytes_written": 36062727
+    }
+   },
+   "window_segment": {
+    "segment": [
+     96,
+     136
+    ],
+    "frames_requested": 40,
+    "frames_walked": 40,
+    "start_cell": [
+     21,
+     16
+    ],
+    "start_yaw": 90,
+    "target_cell": [
+     1,
+     1
+    ],
+    "path_actions_available": 42,
+    "rule": "walk_towards_the_cell_farthest_from_the_transition_end_for_exactly_L_actions"
+   },
+   "input_sha256": {
+    "receipt.json": "09504e568576189e0a6acf98baa122cc42abe12e9b5aeeb1519d9ac88257a8be",
+    "provenance/window_segment.json": "ab446b1476d491cc0802935848e8b010bead75c6c86ffff71896e5ad64c1419b",
+    "provenance/window_verdicts.json": "399c0368e79aa6b458bf58ad635bc305cffa82647a6e642e76a117b7eb68be30",
+    "private/0097.frame.json": "b4d1fbc4f0fbec36b54addac1f1b9f0604a4835ea84939f6c701bafcd0f0b2a4",
+    "public/0097.frame.json": "5e47ff4192c8fb81993173ee431d5bb2440322e771eefc8bf6bf48f06a88a308",
+    "private/0098.frame.json": "d216d574ab8778babdb9b62407360151909d7034434b8fc68f4da7477b84c43e",
+    "public/0098.frame.json": "d6a6152f40b5d525e3a0bb5240a83d39fd640abdf5eef7e35906225163828524",
+    "private/0099.frame.json": "5bcb8f1ed634e6318024d999cde80d108195e8338a9d23d6ea99d0313d6cdf67",
+    "public/0099.frame.json": "555b04ebcd6d16c76f246d6c696dc5d226fe1c2bcb764a115e11df7b9ed264ff",
+    "private/0100.frame.json": "983ed78560daf072bb413adfe24bebf04a6a8a5e3f8f5691b0c6939cd25905cf",
+    "public/0100.frame.json": "ece2f3faa2116419dfae72ed2059193d85a731e94ee6ec46f7ad6127f4dd8548",
+    "private/0101.frame.json": "e31762170625654fb6813e9b1b2312996fbbc1a36a959f2e29561034e94d92a4",
+    "public/0101.frame.json": "a4c1021d92d413a653585a5756ff796884cec10314836df565653a19304ac028",
+    "private/0102.frame.json": "b496558c19dfb1ec7f7c8a50766ee93c6984e44a78256ec114b7a389cf030593",
+    "public/0102.frame.json": "ba3d31abb66172e02f61ddd6dd62e73254d0b4abe6c988c2a633b87f5e564c85",
+    "private/0103.frame.json": "a8c317cf14673d8597fe9f7b309e4375c787365d5aa19ed64070c2104a0e36f8",
+    "public/0103.frame.json": "359bade16fda50f744d014cdd15cf9338b0d61cb884abad19686362d129b4f4a",
+    "private/0104.frame.json": "a7f3ef780a873c1069b8a2bb58970c68310046dc5b457f24ef1f81ecafc4244a",
+    "public/0104.frame.json": "73d9eba93be417df4382a7376d55dcfbed5f44f01ff5f5cf1a6034b833d60adf",
+    "private/0105.frame.json": "395b842ced268d6213c75c8612a8f28226bd52c07b7374937ca2be31a4f36ae3",
+    "public/0105.frame.json": "7edb224950c0995e651f3720a37f06b3d43bb27210abf7951abe0d65f7fe9505",
+    "private/0106.frame.json": "d735a275524c5a1217374b1e89c324edb444e1dd7927036e102a0efeb0ebbd8b",
+    "public/0106.frame.json": "2f7c4d354ff8bf9e37b0473e8dfb94e1c815e81d350088da6c9529bdfdd103ca",
+    "private/0107.frame.json": "97866730d698bdfc0dd609d18173c73f94db125d4b01a7a11d922e4b1361af78",
+    "public/0107.frame.json": "bec51ad73169b8fc942310fe33283feeaa699ddc2084062b6e4045c3713a198b",
+    "private/0108.frame.json": "3aeed888f2380d63fe623a0a704ea0e4dcecad745d9fb44373b05feb739b5ac5",
+    "public/0108.frame.json": "59e04250ad2cdf0ceed03bab4963f59c245b8dc43b2258033f2cc0e5a1995f19",
+    "private/0109.frame.json": "f2710ca011a0ec50ab872810c46e285c51693c149aa331fccdec951ef68b0308",
+    "public/0109.frame.json": "c9b4ec7d49197c338c5f9d5b86725da5d7f334ddb1ae66d7cffea08428bdf387",
+    "private/0110.frame.json": "b394132dd7cb35525239d8f2ac723ccbc6bdd47c9edbaa832aabd1b5a8ac88f5",
+    "public/0110.frame.json": "b1b8408886f731476b1929d3c4da3ee0538caf9248e6de9529c25282133984f3",
+    "private/0111.frame.json": "fb6c7dfbbfb54211d0e2cb1ee15656957a97b88f8ed427579ceba82cbee487b2",
+    "public/0111.frame.json": "1059956ff3bc7c21eba91c859d70a7818efb17b647471b560eba8af4d41f3dcb",
+    "private/0112.frame.json": "80e68a4aace166f08a7d71423a57de861cef64194a2f278e986157a762f41df4",
+    "public/0112.frame.json": "19982ebafd8ac68db8192f96d5eeda15eb15d1ce271c2c68eb68a4ee3ff8b790",
+    "private/0113.frame.json": "d2761f56b8a8f8071c84e99eaf0877dded249ac4d96029102f2bf5d76d5e45d0",
+    "public/0113.frame.json": "9187338fd7b06fd9124e321a022b7d2c20159868daec8f4d133adff5cbe1da8d",
+    "private/0114.frame.json": "13159286acb4e06c1e217545806a39393997649409ffe00d07e4b3d82fe4bb87",
+    "public/0114.frame.json": "48c39ecda2a2102f9c362f7a639599b689bb1dc373fcd046e300d59f337e8794",
+    "private/0115.frame.json": "e47b0cdd991bd5a883c1eaf5a1164a06c4f4b32bad7677c1e468e2fa259c7918",
+    "public/0115.frame.json": "73e2358ecb6a405f3e22e365936550c9a1ad427236adbbbde92c2f1c0f768fdb",
+    "private/0116.frame.json": "7ada05d8874b341a9502c6914b9fcbbe287c4a3921111c5ad80eef040a763146",
+    "public/0116.frame.json": "5b0f61e7e93cec6daac961ea98d7fe633ae1df38a1f6f47580fd2da7c928e567",
+    "private/0117.frame.json": "e03406f3bde64a908c553b8194c7fd223fc811b20b9f327b8b2fc7b186e85a38",
+    "public/0117.frame.json": "44f77f3812da83e35f9732b1c63135a8413ddf4562be3cc0fae030ae6f734883",
+    "private/0118.frame.json": "e686baf4b81c32694df10bd725fc77b0c5e49739c0c24e0122f024b6890a2c3f",
+    "public/0118.frame.json": "0b3adf095f518e3c17a5ae5d99ac2c42a4991eae64df2607a1c8e5996caae394",
+    "private/0119.frame.json": "424669a42bdc390545d062956ece4365cba16c0d3c48b2f41ad3f88113e7040e",
+    "public/0119.frame.json": "69104b94d9c59ba1942bf02db86fbbfd387eb73374abc5fc2a46c2a4a2cd5238",
+    "private/0120.frame.json": "e165b060ac2908015cde13f1e980ce3d09fdd7e7a57f53ef43e8ca0f6aa53df9",
+    "public/0120.frame.json": "f3bd560e4b9eb315f41f2b7539ced57b8d3cbbff1994e85d476209afe27b1d4c",
+    "private/0121.frame.json": "8d5d4a7aabf3a3dd8d96cdf7bd30cfea328293372e9c10538516d59b8d0e23fd",
+    "public/0121.frame.json": "c51515b0a0acb6c9f2222761f9e47b947ce67a6f6dd1b50ddf82156c87b9175a",
+    "private/0122.frame.json": "9c267563f5cdff482e684a3c06c58672178a3ea7a4a3fed43c6d9ea49930c285",
+    "public/0122.frame.json": "0ceb2b87de79fd2ae56100c414a6a72fbcec53b403a919cb326cc6c0bf82ebb8",
+    "private/0123.frame.json": "85807774d215a77eb7ebd44820f497db7c517d5053e370c6957f454682edf7fb",
+    "public/0123.frame.json": "21c383a4ce27b4ba9eb64cb4f7d298a2c738ff1db8e6fca0585a7a4726372e3e",
+    "private/0124.frame.json": "da6fc4c3209fe77edf7f6e265afdbbf508ff3b42e76750d6d5ca7babbcf25140",
+    "public/0124.frame.json": "3f89b9830e2cd3b840a0e6ea15cad133843743a781e259dd66e843efaa96c6b9",
+    "private/0125.frame.json": "8ef8022257f859b0d765e39b7ae90f6f9c036f3e02a352fce4587f8ebab26f1a",
+    "public/0125.frame.json": "26ee737c80ec9feaf2486304f8cd1a8e61f99fdda8f307a9b1bfd236f4a55e93",
+    "private/0126.frame.json": "f81d8d4b06be083f7705db54d63dd0f4eebbbaf971db673944175931afc4d106",
+    "public/0126.frame.json": "d605f65d9bdbec28ca9a8c4618351bf10154c3214fd5906e361b436fb6628e3d",
+    "private/0127.frame.json": "b92b613da33b3fed197a4a5172a07777ad81dc23cba8dbc4216e853bba4953ba",
+    "public/0127.frame.json": "97585f29fcc4c6f746b0dde53342605bc56a28673633b4827726eea129e5f6c4",
+    "private/0128.frame.json": "8c9d7f69c08ee9f64f7ed8274dcb6dcaff7a529d877b193af3bfe88b6f4aec56",
+    "public/0128.frame.json": "1c3e4c0a59387e7a6cd64a0101597442067617109f7fd84773a81e749a47f9f8",
+    "private/0129.frame.json": "5c2ed411e19b57431dc160b722a7c288ebd9b07b8d1942d0f43b904f9a1665c7",
+    "public/0129.frame.json": "a2b80c37ed1fc6851da8b6b4f8112643c5aeeacd61477cc98503a75f9d81cc37",
+    "private/0130.frame.json": "c8d8d6ac998d344ee4b2492f6896857f89a6be26a5494bb525e1455dcea20aa9",
+    "public/0130.frame.json": "a7579b6f6d1a2433abe8bd861729b3d8130adc821bf8c724720cf5628598b9eb",
+    "private/0131.frame.json": "bd1fd0195ced4fcd557fb8beaf2832dcb7642bbe21379b372985f7c9e3f52b5e",
+    "public/0131.frame.json": "065e16a8e91e9314b71495c689a2c66db645ccb8f04ba1be2ba16588ac124802",
+    "private/0132.frame.json": "6e7d0b36fd977f3645601d7048694d0ed25ded0d62f4332b9b73047f8377dd79",
+    "public/0132.frame.json": "449e3a5534472caf33a53cae83151bfeaac98a32ee9238ded89fc7148d608803",
+    "private/0133.frame.json": "834eb8e605fcf473f3196ad9bd10f4135916981cfa6756365e5f15db7513a75b",
+    "public/0133.frame.json": "f7a81a1e842c56552908e19d54dc6ababd2e6734a0eac00315d30d1c1660ac45",
+    "private/0134.frame.json": "4c23aa0ec08a978fc6e96107cea2a27042234170762c639f94618b7634f7e505",
+    "public/0134.frame.json": "abcaf2788e3a77d684de8a40aa9fdcce043aea680d4440d060dc1867fb40be2a",
+    "private/0135.frame.json": "38d54ae2bd5b513df93e65f8c1d01bb497d695ba9b641eb3c7766b6430b1eecb",
+    "public/0135.frame.json": "f4aa0c8cd2f95fa73f69dfa05ff48a53624efdd22fb26d7495412bb60cc57000",
+    "private/0136.frame.json": "505c63faa2a3167fb052db36faf3b31b927b778529d799eb22e68c1a999b9aa1",
+    "public/0136.frame.json": "ef5fa624981e8aa5f42a537444a36d340802b3332255934cb2754902c421fe5e",
+    "provenance/object_table.json": "87940d250f4e685e543fc5ce869c7fb250ef48cf1927e86008415f8c89f71881"
+   },
+   "actions": {
+    "RotateRight": 4,
+    "MoveAhead": 33,
+    "RotateLeft": 3
+   },
+   "rendered_usable_containers": 5,
+   "usable_containers": 5,
+   "prefix_diagnostics": {
+    "10": {
+     "renderer_zero_usable": [],
+     "stored_verdict_U": [],
+     "eligible_sources": []
+    },
+    "20": {
+     "renderer_zero_usable": [],
+     "stored_verdict_U": [],
+     "eligible_sources": []
+    },
+    "30": {
+     "renderer_zero_usable": [],
+     "stored_verdict_U": [],
+     "eligible_sources": []
+    },
+    "40": {
+     "renderer_zero_usable": [],
+     "stored_verdict_U": [],
+     "eligible_sources": []
+    }
+   },
+   "per_container": {
+    "Cart|2|4": {
+     "max_rendered_pixels": 4091,
+     "frames_rendered": 28
+    },
+    "Chair|2|1|1": {
+     "max_rendered_pixels": 160,
+     "frames_rendered": 9
+    },
+    "DiningTable|2|1|0": {
+     "max_rendered_pixels": 1745,
+     "frames_rendered": 9
+    },
+    "Sofa|2|0|1": {
+     "max_rendered_pixels": 11571,
+     "frames_rendered": 17
+    },
+    "TVStand|2|0|0": {
+     "max_rendered_pixels": 6145,
+     "frames_rendered": 1
+    }
+   },
+   "recorded_U": [],
+   "sealed_count": 5,
+   "eligible_source_count": 0
+  },
+  {
+   "house": "procthor10k-0.1.2-train-08566",
+   "receipt": {
+    "house_id": "procthor10k-0.1.2-train-08566",
+    "source_index": 8566,
+    "code_commit": "f2982a6c40b08d635a28eccf397d8c388c84b71d",
+    "options": {
+     "dry_run_destinations_per_object": 8,
+     "replan_blocked_edges": true,
+     "placement_tries": 32,
+     "stratify_by_kind": true,
+     "add_source": "unseen_existing",
+     "destination_points": "anywhere",
+     "placement_prescreen": "dry_run",
+     "twin_control": true,
+     "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+    },
+    "null_window": false,
+    "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+    "status": "succeeded",
+    "observations": 685,
+    "actions": 684,
+    "executed_interventions": 6,
+    "sampled_interventions": 6,
+    "feasible_set_size": 46,
+    "invisible_container_set_size": 8,
+    "window_frames": 40,
+    "containers_usable": 21,
+    "containers_dropped": 0,
+    "containers_sealed": 21,
+    "controls": 3,
+    "controls_outside_U": 2,
+    "controls_shortfall": 0,
+    "moves_executed": 2,
+    "moves_source_first": 2,
+    "viewpoint_reselections": 0,
+    "sweep_two_actions": 242,
+    "window_protocol": "two_segment_probe_pending_ruling_53",
+    "leave_segment_frames": 106,
+    "window_segment": {
+     "segment": [
+      402,
+      442
+     ],
+     "frames_requested": 40,
+     "frames_walked": 40,
+     "start_cell": [
+      1,
+      22
+     ],
+     "start_yaw": 0,
+     "target_cell": [
+      9,
+      45
+     ],
+     "path_actions_available": 117,
+     "rule": "walk_towards_the_cell_farthest_from_the_transition_end_for_exactly_L_actions"
+    },
+    "occupancy": {
+     "peak_rss_gb": 0.938176,
+     "cpu_seconds": 134.206495,
+     "wall_seconds": 815.5862245559692,
+     "bytes_written": 184844645
+    }
+   },
+   "window_segment": {
+    "segment": [
+     402,
+     442
+    ],
+    "frames_requested": 40,
+    "frames_walked": 40,
+    "start_cell": [
+     1,
+     22
+    ],
+    "start_yaw": 0,
+    "target_cell": [
+     9,
+     45
+    ],
+    "path_actions_available": 117,
+    "rule": "walk_towards_the_cell_farthest_from_the_transition_end_for_exactly_L_actions"
+   },
+   "input_sha256": {
+    "receipt.json": "747b50a649aa7acbb051c7d444a7f442440a85245e9d349f596082cbaf68485c",
+    "provenance/window_segment.json": "2f94387bf33e64aec29dada1c589b1aadf6ed5b24d3dd4f5882fb92c795c67f7",
+    "provenance/window_verdicts.json": "5ec466012f1d215112ae92bae22dfbae46b1f8158d327d859e15c9336f054186",
+    "private/0403.frame.json": "7bb3ae8be29f1cd0f5ceb5d1939c2ae9e82288e05eaf2beb5e854faee49eb81a",
+    "public/0403.frame.json": "3f58a08b13ab2bf09e5d8a7d943a52e99c832d0de91e00102afba59b8a448a54",
+    "private/0404.frame.json": "11b5cceecce84cb85bc7971afc3b52b42ca7597ddcb486841b9f462beb57132f",
+    "public/0404.frame.json": "4e72c0076c144273a6b6c597a9c7e019b312a1869bc26800ef2f5c72f18b5b00",
+    "private/0405.frame.json": "38614b577d5fe96da8c0878aafcbf4e03e55a8bf510782974dd32fb754eab60b",
+    "public/0405.frame.json": "27aff66820a135fb14cfcfc8a12971c73db753527b3312fc463e094ef34f2997",
+    "private/0406.frame.json": "e02fb5014d3b2b42306762d1a70a21ccca64a77c20ae45e2ede7238128bea62f",
+    "public/0406.frame.json": "7e5fa3c5efba37ec174028f41d0c11d481410af7bcff6209fdcd538ab4d4b569",
+    "private/0407.frame.json": "2863e7d5439023376911f3f804aa484eea8919515865eef2e79a6d18c733c566",
+    "public/0407.frame.json": "35b617fe68881c4cafbc78e270ea9cc02dd6a0b962d8394a55fedbb9ce8e93c6",
+    "private/0408.frame.json": "73858954932e017f316abe0919376545e2637363234471f74778081e5b0c96f9",
+    "public/0408.frame.json": "1d8db28a1597e610eff8f91a225be020c446be50ced4ffe78a50e17667056bf4",
+    "private/0409.frame.json": "48ea8c3f92f92704694ff6ea105523aec19b845e53efa1e0cc97e6e18710fba6",
+    "public/0409.frame.json": "648e00191dc3ff34cc5d033318b895654c25bdd0b277becb62481b5d61442d22",
+    "private/0410.frame.json": "f57a0fdca8b1cb7f74f7144f23cd4c686100c480ce410fd733daa8ad35a8c092",
+    "public/0410.frame.json": "fe211208395b671d0f3d3e2dc9d19241fe5ecd412ee1ffacebef3da4f7ccf3ce",
+    "private/0411.frame.json": "ec963ac42e59350a55e0fe98f49781435e26f8e4e741ff8214504f5849a3164f",
+    "public/0411.frame.json": "1828819760c6e5349168f10474b29fb951801018f30d38df72ec4cee1e1db8d5",
+    "private/0412.frame.json": "c4dba86fe0e823abac99bd8c052ae074168e9793c1f5b3b2032759b6087eb9b3",
+    "public/0412.frame.json": "3fb4ba2282cc4155e0eaf945adc107d6c132f69fe9b6c10ab2b2a5b7d02c068f",
+    "private/0413.frame.json": "a0f2433f130034fe7a6687316e04e9d1d52a475ff44fe40249f5d4d392b8ee68",
+    "public/0413.frame.json": "881b29b8effe0d4ba30a52eb455039dc4e9bf933ec3a3bd93057c0e2f825637a",
+    "private/0414.frame.json": "888161c8e28cc828566042b2ae4a37bc950b064adec203bf903e39c9274ff568",
+    "public/0414.frame.json": "135559f8c131149a8edae7f141fd21215db72f42ec406d3d3d35a5d16eeaedf6",
+    "private/0415.frame.json": "1066a04faf33209a606e2a0135e130f14086779f59706809b395734c90022d8c",
+    "public/0415.frame.json": "de03fc4c045abb1f8487e24fc3dd109de885ec3567f04c0cd74443d226d84422",
+    "private/0416.frame.json": "c466794d64fe31f8a15aa2823af7a11c6cd4974c42b3fb58587953701b88fcec",
+    "public/0416.frame.json": "5bf3be0e61bb988efc5df7b8085cbadc067e199524e34f7847fbce51ad2b56e4",
+    "private/0417.frame.json": "06e4c6f7eb64112451d18939c3ab5494a675cf2a62022ee7e768c235147f9914",
+    "public/0417.frame.json": "89ffdbfdb722b80b47bf03ce75f851102dbf8a0c79cfdbb2449dc2385e6f0681",
+    "private/0418.frame.json": "95643a6ac3c44fafcb4480dd023dd78f5146a0400e31253aa8cb408e6a18273b",
+    "public/0418.frame.json": "4f445b99e9ee14d3a68acd2de9ff3863b86dcf87b60a23f8019e78baf86babfc",
+    "private/0419.frame.json": "d31951d8f97de8f057c91c55a026716b046a58b32be9a2107b27100aa94b9ebd",
+    "public/0419.frame.json": "e9ee8bc16c85539e82957e432af717fb300937412fe018381b6e7815c2f99b8f",
+    "private/0420.frame.json": "158fdf5591ba0c34c8338eccb34330fec6ec81b0c4141f9723c94f92992d122b",
+    "public/0420.frame.json": "df26622e4670e6bc575697111fb1d073d13a7297228149b58d8b694139f99dce",
+    "private/0421.frame.json": "4c91fa875565b0b00f16e7528cee78e94fe54e839b8950310dddc94d3a7b898c",
+    "public/0421.frame.json": "2384a8c38ac524a8e5a1f5c8ac5942abcaad4ceffb7c8b21fbf75ed4ba928faa",
+    "private/0422.frame.json": "142c1e3a369c2c4250bb8afb2a05fb26c992c8df7f753ac65fd46d86bab81c5f",
+    "public/0422.frame.json": "7564c65d11c583072a0d68ccff1e3a72ca5bbed5bd6a82c7aa011369aaaf1e85",
+    "private/0423.frame.json": "862974f1433a22dc58e6a4b3a8c0cd46cdf8a3400d1886021ebfb7fbeed7491d",
+    "public/0423.frame.json": "7c078bd59893ebc5dc3be940ea9c87fbc3568e741a7e995d70db6a3ca230e330",
+    "private/0424.frame.json": "cbeb86ff16f4906549545cd178cfabb4b378e3297eab66a07c38ee37a500832e",
+    "public/0424.frame.json": "6dae86d6aa095a3f7b3f8bd7a33c0e57ef349b87587728d4e8892f086378f0bc",
+    "private/0425.frame.json": "2982c8b85ff1700d0763fb8578aae58d59a9abcf08ed707648644a2d2d391d1b",
+    "public/0425.frame.json": "2461745de6a08d46611853543738ce65f8669b770adad95d5cdfc9f097d3f5b5",
+    "private/0426.frame.json": "5c07d6c59bf8da4d24352523f64bf5ba9d733824960c296ff4e627604ccba24c",
+    "public/0426.frame.json": "f97a9e831a597bfc728e5138b84d05afc21a1c3a217351d0aa0384e80372b932",
+    "private/0427.frame.json": "ee373c1e0da773139cf6b4154e121e73c94fc139670052f5aff10fb6b03aa748",
+    "public/0427.frame.json": "c3022cde103638c5792127dca350f7239383d71fa0040fd7f251af33c1b88a7c",
+    "private/0428.frame.json": "11698466701446725d22ec96d8f0c949481fa2abffece00ea0ae3522f9ded9ec",
+    "public/0428.frame.json": "afe65cd4734cf83ff01fe6ca77d5eff0495da605809427a8515a1cb8b53505e6",
+    "private/0429.frame.json": "23b2d00a176dfb9ac1875d5183739630cdf8364bd48068ccc813772934ea3b13",
+    "public/0429.frame.json": "bc7cfcb41ac2ce902875ea932a48559939174728d0489c41371d54c6dfe00714",
+    "private/0430.frame.json": "c081ec237a2fa1c2bfc7cca01b73d61efe2b1fb6fedfc4a9999b131f3d29dd94",
+    "public/0430.frame.json": "3619826a1fae057d058a2238e5f52055e5e67e3db8f0130b77dd58cd69a43469",
+    "private/0431.frame.json": "d1e669fe80f029f9adae9422abbfa04e89399963a097c6b7c7a93753a7b1140b",
+    "public/0431.frame.json": "0c3245fee510484a825e3c22a444c4c44f27284bb1b0ef0199056fa70683337f",
+    "private/0432.frame.json": "f81e09be45909bff2ef047886fbae786f85bd3bb05fdf7402b6952c401250160",
+    "public/0432.frame.json": "16c5fdfd6239dead17504c4d1f8da48ce3a1b0c5007f911640252e886b8a055f",
+    "private/0433.frame.json": "1514ba0a4db0e3a70233d42f8b16af5c252d4713fdd4fe6fe4e1e8d3a11cc341",
+    "public/0433.frame.json": "db59659fff25c49c6b5be6a16353a8ca61fcdaf1e88cd13ab65bfa732c2410af",
+    "private/0434.frame.json": "f03a64ac778d0aab949bbf3fdbbd4def2b47b2ec41a071abf850f12bccaeb621",
+    "public/0434.frame.json": "14b3a13ad3568953a8f4b172a249e0847997fc940a243d62f291b71540560750",
+    "private/0435.frame.json": "8ebbf3d958881fd9a93375805c1c300104ab8aef350fdb52d678c4ccd408be4d",
+    "public/0435.frame.json": "a57cee4df9ac8d5390d70dfede079ce1cfb358e6ba7fb2d27a4353df35846ba0",
+    "private/0436.frame.json": "6cd7b4f0e7a6c9ece434eb88e03a498c99d87bfcc08a4c7ae35c58d7a1b267e7",
+    "public/0436.frame.json": "4616bfa922c764e0aeb55825799ca415ee9a71c391d0885b27d6d746d35811e9",
+    "private/0437.frame.json": "c382e0fa2447b87170f36148d934038ed7d544b5a10080fde3e12a84b52d8789",
+    "public/0437.frame.json": "ddf5ad57ae88f670eb96eea14d9892f98b193333fafec56cfeef57234d1798f1",
+    "private/0438.frame.json": "8cdc498327722d05a233567dfd006e825996d16c9b8ab18b85815a3fe7c53f7f",
+    "public/0438.frame.json": "5bd50a0e2c80b62f63530b178793b3566dd7d72a3ce297ae530ef8e8ab467774",
+    "private/0439.frame.json": "12f7e407263d86ded797c21bbeea48b4d3499d82f1d5c210bbbe342fad4799f1",
+    "public/0439.frame.json": "a617d6aac493d0bcb99a612e29de3ae35e3e286a7a85f67d0fc41f1538004be4",
+    "private/0440.frame.json": "c253ef5c412cd147becd06c07a1e3d2b1f46b2b3dab93bf774699205afbe23eb",
+    "public/0440.frame.json": "233cfe9793a424347e6aeaf536869a72010c683e8d0c7ca469e0b13fcd5ad96c",
+    "private/0441.frame.json": "625ad8e17a3ea07956703afbce127690063a616010ac3eeb9d473d05401de9ae",
+    "public/0441.frame.json": "8626d9689ed600bb4f35de07a0399d39310ee2d7cc342d9367acabecaf00f9e2",
+    "private/0442.frame.json": "eca158f192edd7365919d91c2e8abc2c9b61cd1f9b8cf37b2f1aa2a6f50695de",
+    "public/0442.frame.json": "d8dcaeb3d6dc46c2e9e4663cfe50fcd75c57c211f49eded7066d9174e03cb8b7",
+    "provenance/object_table.json": "35db1188411bc1dc984b658066e3f1f3fe86bc3e9e705f72ab9f99246a28aaee"
+   },
+   "actions": {
+    "RotateRight": 3,
+    "MoveAhead": 34,
+    "RotateLeft": 3
+   },
+   "rendered_usable_containers": 13,
+   "usable_containers": 21,
+   "prefix_diagnostics": {
+    "10": {
+     "renderer_zero_usable": [
+      "Chair|6|2|1",
+      "Chair|7|0|1",
+      "CounterTop|6|0",
+      "DiningTable|6|2|0",
+      "DiningTable|7|0|0",
+      "Dresser|4|1",
+      "Dresser|4|1___0",
+      "Dresser|4|1___1",
+      "Dresser|4|1___2",
+      "Dresser|4|1___3",
+      "Fridge|6|1",
+      "GarbageCan|5|2",
+      "Sofa|7|2",
+      "Stool|6|4"
+     ],
+     "stored_verdict_U": [
+      "Chair|6|2|1",
+      "Chair|7|0|1",
+      "CounterTop|6|0",
+      "DiningTable|6|2|0",
+      "DiningTable|7|0|0",
+      "Dresser|4|1",
+      "Dresser|4|1___0",
+      "Dresser|4|1___1",
+      "Dresser|4|1___2",
+      "Dresser|4|1___3",
+      "Fridge|6|1",
+      "GarbageCan|5|2",
+      "Sofa|7|2",
+      "Stool|6|4"
+     ],
+     "eligible_sources": [
+      "Apple|surface|6|20",
+      "Book|surface|6|18",
+      "CellPhone|surface|7|35",
+      "Mug|surface|6|21",
+      "Mug|surface|4|0",
+      "Newspaper|surface|7|33",
+      "Plate|surface|7|34",
+      "Pot|surface|6|14",
+      "Statue|surface|7|32",
+      "Statue|surface|7|31",
+      "Statue|surface|7|30",
+      "WineBottle|surface|6|27"
+     ]
+    },
+    "20": {
+     "renderer_zero_usable": [
+      "Chair|6|2|1",
+      "Chair|7|0|1",
+      "CounterTop|6|0",
+      "DiningTable|6|2|0",
+      "DiningTable|7|0|0",
+      "Fridge|6|1",
+      "GarbageCan|5|2",
+      "Sofa|7|2",
+      "Stool|6|4"
+     ],
+     "stored_verdict_U": [
+      "Chair|6|2|1",
+      "Chair|7|0|1",
+      "CounterTop|6|0",
+      "DiningTable|6|2|0",
+      "DiningTable|7|0|0",
+      "Fridge|6|1",
+      "GarbageCan|5|2",
+      "Sofa|7|2",
+      "Stool|6|4"
+     ],
+     "eligible_sources": [
+      "Apple|surface|6|20",
+      "Book|surface|6|18",
+      "CellPhone|surface|7|35",
+      "Mug|surface|6|21",
+      "Newspaper|surface|7|33",
+      "Plate|surface|7|34",
+      "Pot|surface|6|14",
+      "Statue|surface|7|32",
+      "Statue|surface|7|31",
+      "Statue|surface|7|30",
+      "WineBottle|surface|6|27"
+     ]
+    },
+    "30": {
+     "renderer_zero_usable": [
+      "Chair|6|2|1",
+      "Chair|7|0|1",
+      "CounterTop|6|0",
+      "DiningTable|6|2|0",
+      "DiningTable|7|0|0",
+      "Fridge|6|1",
+      "GarbageCan|5|2",
+      "Sofa|7|2",
+      "Stool|6|4"
+     ],
+     "stored_verdict_U": [
+      "Chair|6|2|1",
+      "Chair|7|0|1",
+      "CounterTop|6|0",
+      "DiningTable|6|2|0",
+      "DiningTable|7|0|0",
+      "Fridge|6|1",
+      "GarbageCan|5|2",
+      "Sofa|7|2",
+      "Stool|6|4"
+     ],
+     "eligible_sources": [
+      "Apple|surface|6|20",
+      "Book|surface|6|18",
+      "CellPhone|surface|7|35",
+      "Mug|surface|6|21",
+      "Newspaper|surface|7|33",
+      "Plate|surface|7|34",
+      "Pot|surface|6|14",
+      "Statue|surface|7|32",
+      "Statue|surface|7|31",
+      "Statue|surface|7|30",
+      "WineBottle|surface|6|27"
+     ]
+    },
+    "40": {
+     "renderer_zero_usable": [
+      "Chair|6|2|1",
+      "Chair|7|0|1",
+      "CounterTop|6|0",
+      "DiningTable|6|2|0",
+      "DiningTable|7|0|0",
+      "Fridge|6|1",
+      "GarbageCan|5|2",
+      "Stool|6|4"
+     ],
+     "stored_verdict_U": [
+      "Chair|6|2|1",
+      "Chair|7|0|1",
+      "CounterTop|6|0",
+      "DiningTable|6|2|0",
+      "DiningTable|7|0|0",
+      "Fridge|6|1",
+      "GarbageCan|5|2",
+      "Stool|6|4"
+     ],
+     "eligible_sources": [
+      "Apple|surface|6|20",
+      "Book|surface|6|18",
+      "CellPhone|surface|7|35",
+      "Mug|surface|6|21",
+      "Plate|surface|7|34",
+      "Pot|surface|6|14",
+      "Statue|surface|7|32",
+      "Statue|surface|7|31",
+      "Statue|surface|7|30",
+      "WineBottle|surface|6|27"
+     ]
+    }
+   },
+   "per_container": {
+    "Bed|4|0|0": {
+     "max_rendered_pixels": 1826,
+     "frames_rendered": 22
+    },
+    "Chair|6|2|1": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Chair|7|0|1": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "CounterTop|6|0": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "DiningTable|6|2|0": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "DiningTable|7|0|0": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Dresser|4|1": {
+     "max_rendered_pixels": 162,
+     "frames_rendered": 21
+    },
+    "Dresser|4|1___0": {
+     "max_rendered_pixels": 120,
+     "frames_rendered": 21
+    },
+    "Dresser|4|1___1": {
+     "max_rendered_pixels": 117,
+     "frames_rendered": 21
+    },
+    "Dresser|4|1___2": {
+     "max_rendered_pixels": 112,
+     "frames_rendered": 21
+    },
+    "Dresser|4|1___3": {
+     "max_rendered_pixels": 112,
+     "frames_rendered": 21
+    },
+    "Fridge|6|1": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "GarbageCan|5|2": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "Sink|5|1|0": {
+     "max_rendered_pixels": 830,
+     "frames_rendered": 5
+    },
+    "Sink|5|1|0___0": {
+     "max_rendered_pixels": 39,
+     "frames_rendered": 4
+    },
+    "Sofa|7|2": {
+     "max_rendered_pixels": 100,
+     "frames_rendered": 2
+    },
+    "Stool|6|4": {
+     "max_rendered_pixels": 0,
+     "frames_rendered": 0
+    },
+    "TVStand|4|2|0": {
+     "max_rendered_pixels": 192,
+     "frames_rendered": 8
+    },
+    "TVStand|4|2|0___0": {
+     "max_rendered_pixels": 364,
+     "frames_rendered": 8
+    },
+    "TVStand|4|2|0___1": {
+     "max_rendered_pixels": 294,
+     "frames_rendered": 7
+    },
+    "Toilet|5|0": {
+     "max_rendered_pixels": 6164,
+     "frames_rendered": 13
+    }
+   },
+   "recorded_U": [
+    "Chair|6|2|1",
+    "Chair|7|0|1",
+    "CounterTop|6|0",
+    "DiningTable|6|2|0",
+    "DiningTable|7|0|0",
+    "Fridge|6|1",
+    "GarbageCan|5|2",
+    "Stool|6|4"
+   ],
+   "sealed_count": 21,
+   "eligible_source_count": 10
+  },
+  {
+   "house": "procthor10k-0.1.2-train-09951",
+   "receipt": {
+    "house_id": "procthor10k-0.1.2-train-09951",
+    "source_index": 9951,
+    "code_commit": "f2982a6c40b08d635a28eccf397d8c388c84b71d",
+    "options": {
+     "dry_run_destinations_per_object": 8,
+     "replan_blocked_edges": true,
+     "placement_tries": 32,
+     "stratify_by_kind": true,
+     "add_source": "unseen_existing",
+     "destination_points": "anywhere",
+     "placement_prescreen": "dry_run",
+     "twin_control": true,
+     "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+    },
+    "null_window": false,
+    "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+    "status": "failed",
+    "reason": "intervention_window_unavailable",
+    "detail": "window segment 38 < 40 frames (path to the farthest cell had 38 actions); not shortened",
+    "occupancy": {
+     "peak_rss_gb": 0.173768,
+     "cpu_seconds": 13.099198999999999,
+     "wall_seconds": 27.518076419830322,
+     "bytes_written": 25694327
+    }
+   },
+   "window_segment": {
+    "segment": [
+     70,
+     108
+    ],
+    "frames_requested": 40,
+    "frames_walked": 38,
+    "start_cell": [
+     12,
+     1
+    ],
+    "start_yaw": 90,
+    "target_cell": [
+     1,
+     19
+    ],
+    "path_actions_available": 38,
+    "rule": "walk_towards_the_cell_farthest_from_the_transition_end_for_exactly_L_actions"
+   },
+   "input_sha256": {
+    "receipt.json": "20da0e9f708b7135b4f8c84a4d4f4cdc4940dfe9f399acc1a467fdfe3738cbb6",
+    "provenance/window_segment.json": "a34d2c9d7f9eea21641ee8d7bd62b1b5ae04648368abc61b0dd1a071056e3827",
+    "old_window_verdicts_reference": "ea87c7e3c74a1c485a9df3f5e988853b62e1ffe7c003540e19caf903ebf0aaaf",
+    "private/0071.frame.json": "176f8a43c065fe54b2e4d8972c67d1ba35ed37b18ee74edeb3327d2baafed2c1",
+    "public/0071.frame.json": "31192d9450f03ea7e9e4f62938d9b9193e5bc2cb79d4b61a867d813306395525",
+    "private/0072.frame.json": "d215139ebfbaae28cb5c05735f85787d3d8783fcc2bfe73bd32697634618093b",
+    "public/0072.frame.json": "ad2009963c7a20f52cc142b650aae69afdda49e075531c7aaf29c83b59f77694",
+    "private/0073.frame.json": "ba365f37eaadf4d7d55608f248aa02b9adb410de5543e4ee8d7364801ec5e2a4",
+    "public/0073.frame.json": "a51327b526aec029b691af5302bed3d93e6b6e9af8451cb81649f1edc4123893",
+    "private/0074.frame.json": "2ad05d4b6ffd9023972656f538248d2be31ea93dc178665e21cede485fc8938f",
+    "public/0074.frame.json": "f67e13e2b54ae3716bab3d3bfe281245ee3b6c0fd5aa4cf30932457ccad6a060",
+    "private/0075.frame.json": "f2d9f578198bec81b38616cb9b38cbe3f6e4785d8cf3fe1f19e5d1e30a2fc4f8",
+    "public/0075.frame.json": "746f1daf9caf30cab67bb5e853665fa436ae19311487811af49ff1ddef076c73",
+    "private/0076.frame.json": "eb287e2856a3f0fb0b3fb5c134d87f2da038e1a70b3427a83cf2d1835e458b1e",
+    "public/0076.frame.json": "c1cacb60ca41761248b51a38fa1f0772bc3da2c7eeaa6d5ea951a98321e51da0",
+    "private/0077.frame.json": "900b1387fb79de0e8b7ebf14b837b16bf9320ad1add422a328cd42be0ce172ba",
+    "public/0077.frame.json": "aff1c77365a53f0b9b50ad1a1643c22d2c3d50701eb171bef54613c158bd8029",
+    "private/0078.frame.json": "a88dcb547cbce5ce90695f1ed1e4e3e46da3333f921e4d64a10d8816a59d9f3e",
+    "public/0078.frame.json": "936700dcd387306f85fd75e37d87e25dd5ff4c99a1781fd2037edd387ff4aec1",
+    "private/0079.frame.json": "4a6fec68debf2e44c1ab6ba351ff6dc6293534a083497f0d91572294a46827b5",
+    "public/0079.frame.json": "4f70bd6550088d73665e1d34abee68ec181657461668b2b20fbb9d14e0a23a70",
+    "private/0080.frame.json": "df9faa78002c8f445b6af47546a6b18051660448749c54f5d2fa18cafb13bcd0",
+    "public/0080.frame.json": "50805f2171944df059622f2af8ed865d401775f71cba6e2ff28ae4bed7b21580",
+    "private/0081.frame.json": "bb7fc6af105f136ec8f9481fc5c8be5278a3504e1c3d36dc1fa591c0e0612d54",
+    "public/0081.frame.json": "ca76f3a90010497d38ef983d4a8baea9c60646cdd2e3f181524811e91603f370",
+    "private/0082.frame.json": "2acead27504694be5b2729d56aca948b697dfe5088de1b133a9b9ee78376736b",
+    "public/0082.frame.json": "a07708f8199739f9af7845f4a4cb761a26cd620a03f05727f96feacc8dbee6d4",
+    "private/0083.frame.json": "2bd862551c4938026d64eed7893d4cd91dd60790cdbcbe079c583b0f7888b920",
+    "public/0083.frame.json": "db681b2d8a990646572f685e0a6b9b314f3694363be46579b78b924243aa0126",
+    "private/0084.frame.json": "474bc0932e2163b78f7ac729a2738ef262ff6388667d3612c677cd7d589353fd",
+    "public/0084.frame.json": "798b02a0e52f586dec95843cd6b344f9982a7a86d8c074bd24784fdfdd098034",
+    "private/0085.frame.json": "acfc8dd237e43614eed54ab252aef283781e6d2c5d38f5e5ecf6a7f5b26064f5",
+    "public/0085.frame.json": "fd4bb6f39aa58ee3edb35f4e7f63f3d21b78925b38bc3fcb8ce0de2d6654d74b",
+    "private/0086.frame.json": "85d8e947dcb7c920eeba5344ad87c9b6a6f4fee9dbc0b07c4e7d6aa40b436448",
+    "public/0086.frame.json": "3e5cccafc7dec2c40699e879a913dd69b830f999f757ca1d72cb1b620b418ff9",
+    "private/0087.frame.json": "0041acf6fa026566e72a8437fd80e9d2fab3c8f3e14131dfd49293fcf07d93dc",
+    "public/0087.frame.json": "e20f22eef1ad83f7ce87606db2efe67f35f3f75962bf8932706088af955e0f57",
+    "private/0088.frame.json": "cb8238fa661c2995d55f0d8b55c440c98c504869f04e781a5153c7c512f2a45b",
+    "public/0088.frame.json": "ea8a583166c9d90adaa8a39d6d976875e85c2e814f2bea0f9d7f5cb914e9ffec",
+    "private/0089.frame.json": "2e7ffbe6f81c48a81e6c95d759f212c75a1e939110d8904be1982d8498537e5a",
+    "public/0089.frame.json": "ce3fbf5bd32c8e3fb1ac7aa2823ad364d0aa35d889ce98d5fcb575154eb7062b",
+    "private/0090.frame.json": "8dd59e5ea930464d2af7570629f2d4ec992e01897c17814b54cdf8a20f196cb0",
+    "public/0090.frame.json": "d315f71aed92469f60fe7e31378338cb7a978f06112bfff1a80f231f62617dba",
+    "private/0091.frame.json": "0b1ef848295b8f65f5fe51b6414e4eeac46a9973bf2ae88182f2cf6b8ab7c4d6",
+    "public/0091.frame.json": "bb245168bd59f0dd2c1abe0d657eeb55064f73c32ff16cb0eb9186f1af8721de",
+    "private/0092.frame.json": "9d721d5605004b66378528502faf777a41dd8ba5b2c7413fd70114750a137457",
+    "public/0092.frame.json": "c2050b1a97e1ee0c7994cd860e9a11c2529993aa4048965516d07a3e4d2f7e7c",
+    "private/0093.frame.json": "affb296e49a3bf9543ca5d37a5d1f544b01bdef31eec1926cc3a16d15acada3b",
+    "public/0093.frame.json": "ceb0fbe7e57732cf825cf65484c7795a68f602d30237bfdf84fdaf9e5732805a",
+    "private/0094.frame.json": "34ca45e4e9568b0bdb485c7cbbe21ffd6f4a43508d37214d39b0a72a9e6ba5e1",
+    "public/0094.frame.json": "88d1a1f6872112b968754b930408763bfbf5764897011b82b0aa63a04a3d0fe2",
+    "private/0095.frame.json": "d3dd852914c61c7fe9f00d48677f675c2613a2a1af7fad86c0a434892dc6ad52",
+    "public/0095.frame.json": "7466c0b8a75452292d71294a11e6df63e3d1bcba88d360f8a9ac87683c0ec40e",
+    "private/0096.frame.json": "9c26b1fab09a462bbf8ca3a266a97e014288146163c8f8e23598583782aa6219",
+    "public/0096.frame.json": "c1655f0be4fb75d9bad62a14a316c2739df3c7a5f867ecbafc528d573ec9ddcf",
+    "private/0097.frame.json": "88645f77a845dee6a0b100a5d5664a8ef81d7dac8ecf9bcf9cb9b64ddae413e0",
+    "public/0097.frame.json": "1cb6203c34d0d80c390e1756800964e2140b56755d26245b23d8b303fe171b44",
+    "private/0098.frame.json": "6bd4c82065afe933d27ed0aaa86b99764d8c08622cbe348a349fd77a456f9050",
+    "public/0098.frame.json": "3254a680421ba7cd4903c489facb7c929913b9acd82cbb6405ac3b8fbbf6e414",
+    "private/0099.frame.json": "9ce4ffe2417a515c1d5df9709e55cb73f2131cab735c107bb399f01c23004ae4",
+    "public/0099.frame.json": "16354dfa48ee29f058ec77b1f86631168029659099d30c3a84a94204fbf4e6fd",
+    "private/0100.frame.json": "ffcc9280d2a2b87d1b2d469d62ad4bceebe35849bd382dc6164a3e7c48567dc2",
+    "public/0100.frame.json": "916d391239d51b18be84a722d182cbd0c037eccf560772624544f602879ee0b1",
+    "private/0101.frame.json": "1c8585b51aca09592c72e1a31f38e2ba398b6619cd9facdc6ba5f07c55145582",
+    "public/0101.frame.json": "57cfd2263402bcec0b64271e08a068d274d35cb06c88fea1c029706bf7cf685f",
+    "private/0102.frame.json": "f48fc75fb7943d9d8df92a7f82ab3344a1be31c25fd3eeadb5cc504b098bc1a1",
+    "public/0102.frame.json": "060182f98d4d8fe92da3a7ab3e4883795c83d3aabf8c76ec27954fed3faa918c",
+    "private/0103.frame.json": "1da1bc4eb3fa512e5408fc1d4da8afe125867abd9e33c6d115d507aeb72fc187",
+    "public/0103.frame.json": "b86322c83ce1c595cc9eedc8ead6019acd5eab6ca33a507ed74eae0048f73e92",
+    "private/0104.frame.json": "7d9b92319b992db863814284c62e7f985a41550cd3d477093be2dc683cedb814",
+    "public/0104.frame.json": "5223cd85260e3096559aa048d221523a5d6d3a26c0299d580b516ccf0aeb99de",
+    "private/0105.frame.json": "bb5c4debc4a5454c396e2e692643bcd28f20e6151d19caca185d41c30fe564d9",
+    "public/0105.frame.json": "0917c15598aa6c4ec2000af1ef463dbc4aac2e781cb8ce7d289b5c3b93f2344f",
+    "private/0106.frame.json": "fe8f6a27ca00bd57f6e9f41740d3e04870d7ff4cfd786d14aa073ce28693464d",
+    "public/0106.frame.json": "4f19f8c6e7e099ce81d334a5adfcad95e218d61b60844d61d117010c192f8dc8",
+    "private/0107.frame.json": "7371ec67cc4536e843192f0b18982c76b42b03b8f94aacb9971cfc4e149235b0",
+    "public/0107.frame.json": "ec9e924eccecfd145a38a37013f8957e949eb6075d100ca46ce09772a356c17d",
+    "private/0108.frame.json": "43e33dd2a364e3ba48ff4ebc949ee1b5905338533e484f209dae0f2d9d6834e7",
+    "public/0108.frame.json": "70f239aa814ccffd63196200d1c4e785a1eb04be963fdf9dabedfb5fd1912cf4"
+   },
+   "container_ids_source": "old same-house usable IDs; no new sealing computed",
+   "actions": {
+    "RotateRight": 6,
+    "MoveAhead": 29,
+    "RotateLeft": 3
+   },
+   "rendered_usable_containers": 4,
+   "usable_containers": 4,
+   "prefix_diagnostics": {
+    "10": {
+     "renderer_zero_usable": []
+    },
+    "20": {
+     "renderer_zero_usable": []
+    },
+    "30": {
+     "renderer_zero_usable": []
+    }
+   },
+   "per_container": {
+    "Chair|2|2": {
+     "max_rendered_pixels": 4791,
+     "frames_rendered": 6
+    },
+    "CounterTop|2|0": {
+     "max_rendered_pixels": 6470,
+     "frames_rendered": 9
+    },
+    "Fridge|2|1": {
+     "max_rendered_pixels": 20422,
+     "frames_rendered": 22
+    },
+    "GarbageCan|2|4": {
+     "max_rendered_pixels": 1719,
+     "frames_rendered": 7
+    }
+   }
+  }
+ ],
+ "first10_small_house_renderer": [
+  {
+   "house": "01456",
+   "containers": 14,
+   "first10": [
+    {
+     "offset": 1,
+     "action": "RotateRight",
+     "rendered_now": 4,
+     "rendered_cumulative": 4,
+     "position": [
+      0.5,
+      0.0,
+      -1.5
+     ]
+    },
+    {
+     "offset": 2,
+     "action": "RotateRight",
+     "rendered_now": 11,
+     "rendered_cumulative": 11,
+     "position": [
+      0.5,
+      0.0,
+      -1.5
+     ]
+    },
+    {
+     "offset": 3,
+     "action": "MoveAhead",
+     "rendered_now": 11,
+     "rendered_cumulative": 11,
+     "position": [
+      0.25,
+      0.0,
+      -1.5
+     ]
+    },
+    {
+     "offset": 4,
+     "action": "MoveAhead",
+     "rendered_now": 8,
+     "rendered_cumulative": 11,
+     "position": [
+      0.0,
+      0.0,
+      -1.5
+     ]
+    },
+    {
+     "offset": 5,
+     "action": "MoveAhead",
+     "rendered_now": 8,
+     "rendered_cumulative": 11,
+     "position": [
+      -0.25,
+      0.0,
+      -1.5
+     ]
+    },
+    {
+     "offset": 6,
+     "action": "RotateRight",
+     "rendered_now": 6,
+     "rendered_cumulative": 14,
+     "position": [
+      -0.25,
+      0.0,
+      -1.5
+     ]
+    },
+    {
+     "offset": 7,
+     "action": "MoveAhead",
+     "rendered_now": 5,
+     "rendered_cumulative": 14,
+     "position": [
+      -0.25,
+      0.0,
+      -1.25
+     ]
+    },
+    {
+     "offset": 8,
+     "action": "RotateLeft",
+     "rendered_now": 8,
+     "rendered_cumulative": 14,
+     "position": [
+      -0.25,
+      0.0,
+      -1.25
+     ]
+    },
+    {
+     "offset": 9,
+     "action": "MoveAhead",
+     "rendered_now": 8,
+     "rendered_cumulative": 14,
+     "position": [
+      -0.5,
+      0.0,
+      -1.25
+     ]
+    },
+    {
+     "offset": 10,
+     "action": "MoveAhead",
+     "rendered_now": 7,
+     "rendered_cumulative": 14,
+     "position": [
+      -0.75,
+      0.0,
+      -1.25
+     ]
+    }
+   ]
+  },
+  {
+   "house": "03986",
+   "containers": 5,
+   "first10": [
+    {
+     "offset": 1,
+     "action": "RotateRight",
+     "rendered_now": 1,
+     "rendered_cumulative": 1,
+     "position": [
+      2.5,
+      0.0,
+      -1.0
+     ]
+    },
+    {
+     "offset": 2,
+     "action": "RotateRight",
+     "rendered_now": 4,
+     "rendered_cumulative": 4,
+     "position": [
+      2.5,
+      0.0,
+      -1.0
+     ]
+    },
+    {
+     "offset": 3,
+     "action": "MoveAhead",
+     "rendered_now": 5,
+     "rendered_cumulative": 5,
+     "position": [
+      2.25,
+      0.0,
+      -1.0
+     ]
+    },
+    {
+     "offset": 4,
+     "action": "MoveAhead",
+     "rendered_now": 4,
+     "rendered_cumulative": 5,
+     "position": [
+      2.0,
+      0.0,
+      -1.0
+     ]
+    },
+    {
+     "offset": 5,
+     "action": "MoveAhead",
+     "rendered_now": 4,
+     "rendered_cumulative": 5,
+     "position": [
+      1.75,
+      0.0,
+      -1.0
+     ]
+    },
+    {
+     "offset": 6,
+     "action": "MoveAhead",
+     "rendered_now": 4,
+     "rendered_cumulative": 5,
+     "position": [
+      1.5,
+      0.0,
+      -1.0
+     ]
+    },
+    {
+     "offset": 7,
+     "action": "MoveAhead",
+     "rendered_now": 4,
+     "rendered_cumulative": 5,
+     "position": [
+      1.25,
+      0.0,
+      -1.0
+     ]
+    },
+    {
+     "offset": 8,
+     "action": "MoveAhead",
+     "rendered_now": 4,
+     "rendered_cumulative": 5,
+     "position": [
+      1.0,
+      0.0,
+      -1.0
+     ]
+    },
+    {
+     "offset": 9,
+     "action": "MoveAhead",
+     "rendered_now": 3,
+     "rendered_cumulative": 5,
+     "position": [
+      0.75,
+      0.0,
+      -1.0
+     ]
+    },
+    {
+     "offset": 10,
+     "action": "MoveAhead",
+     "rendered_now": 3,
+     "rendered_cumulative": 5,
+     "position": [
+      0.5,
+      0.0,
+      -1.0
+     ]
+    }
+   ]
+  },
+  {
+   "house": "06764",
+   "containers": 5,
+   "first10": [
+    {
+     "offset": 1,
+     "action": "RotateRight",
+     "rendered_now": 3,
+     "rendered_cumulative": 3,
+     "position": [
+      1.75,
+      0.0,
+      2.25
+     ]
+    },
+    {
+     "offset": 2,
+     "action": "RotateRight",
+     "rendered_now": 2,
+     "rendered_cumulative": 5,
+     "position": [
+      1.75,
+      0.0,
+      2.25
+     ]
+    },
+    {
+     "offset": 3,
+     "action": "MoveAhead",
+     "rendered_now": 2,
+     "rendered_cumulative": 5,
+     "position": [
+      1.5,
+      0.0,
+      2.25
+     ]
+    },
+    {
+     "offset": 4,
+     "action": "MoveAhead",
+     "rendered_now": 2,
+     "rendered_cumulative": 5,
+     "position": [
+      1.25,
+      0.0,
+      2.25
+     ]
+    },
+    {
+     "offset": 5,
+     "action": "MoveAhead",
+     "rendered_now": 2,
+     "rendered_cumulative": 5,
+     "position": [
+      1.0,
+      0.0,
+      2.25
+     ]
+    },
+    {
+     "offset": 6,
+     "action": "MoveAhead",
+     "rendered_now": 2,
+     "rendered_cumulative": 5,
+     "position": [
+      0.75,
+      0.0,
+      2.25
+     ]
+    },
+    {
+     "offset": 7,
+     "action": "MoveAhead",
+     "rendered_now": 2,
+     "rendered_cumulative": 5,
+     "position": [
+      0.5,
+      0.0,
+      2.25
+     ]
+    },
+    {
+     "offset": 8,
+     "action": "MoveAhead",
+     "rendered_now": 2,
+     "rendered_cumulative": 5,
+     "position": [
+      0.25,
+      0.0,
+      2.25
+     ]
+    },
+    {
+     "offset": 9,
+     "action": "MoveAhead",
+     "rendered_now": 2,
+     "rendered_cumulative": 5,
+     "position": [
+      0.0,
+      0.0,
+      2.25
+     ]
+    },
+    {
+     "offset": 10,
+     "action": "RotateLeft",
+     "rendered_now": 4,
+     "rendered_cumulative": 5,
+     "position": [
+      0.0,
+      0.0,
+      2.25
+     ]
+    }
+   ]
+  },
+  {
+   "house": "09951",
+   "containers": 4,
+   "first10": [
+    {
+     "offset": 1,
+     "action": "RotateRight",
+     "rendered_now": 0,
+     "rendered_cumulative": 0,
+     "position": [
+      0.25,
+      0.0,
+      -0.5
+     ]
+    },
+    {
+     "offset": 2,
+     "action": "RotateRight",
+     "rendered_now": 1,
+     "rendered_cumulative": 1,
+     "position": [
+      0.25,
+      0.0,
+      -0.5
+     ]
+    },
+    {
+     "offset": 3,
+     "action": "MoveAhead",
+     "rendered_now": 1,
+     "rendered_cumulative": 1,
+     "position": [
+      0.0,
+      0.0,
+      -0.5
+     ]
+    },
+    {
+     "offset": 4,
+     "action": "MoveAhead",
+     "rendered_now": 1,
+     "rendered_cumulative": 1,
+     "position": [
+      -0.25,
+      0.0,
+      -0.5
+     ]
+    },
+    {
+     "offset": 5,
+     "action": "RotateRight",
+     "rendered_now": 3,
+     "rendered_cumulative": 4,
+     "position": [
+      -0.25,
+      0.0,
+      -0.5
+     ]
+    },
+    {
+     "offset": 6,
+     "action": "MoveAhead",
+     "rendered_now": 3,
+     "rendered_cumulative": 4,
+     "position": [
+      -0.25,
+      0.0,
+      -0.25
+     ]
+    },
+    {
+     "offset": 7,
+     "action": "MoveAhead",
+     "rendered_now": 3,
+     "rendered_cumulative": 4,
+     "position": [
+      -0.25,
+      0.0,
+      0.0
+     ]
+    },
+    {
+     "offset": 8,
+     "action": "RotateLeft",
+     "rendered_now": 1,
+     "rendered_cumulative": 4,
+     "position": [
+      -0.25,
+      0.0,
+      0.0
+     ]
+    },
+    {
+     "offset": 9,
+     "action": "MoveAhead",
+     "rendered_now": 1,
+     "rendered_cumulative": 4,
+     "position": [
+      -0.5,
+      0.0,
+      0.0
+     ]
+    },
+    {
+     "offset": 10,
+     "action": "MoveAhead",
+     "rendered_now": 1,
+     "rendered_cumulative": 4,
+     "position": [
+      -0.75,
+      0.0,
+      0.0
+     ]
+    }
+   ]
+  }
+ ],
+ "audit_source": "import json,pathlib,hashlib,time,concurrent.futures,collections\nroot=pathlib.Path('/root/autodl-tmp/vsmt_outputs/lean-s1-02-window-probe-f2982a6')\ndef run(p):\n hashes={}\n def read(f):\n  b=f.read_bytes();hashes[str(f.relative_to(p))]=hashlib.sha256(b).hexdigest();return json.loads(b)\n rec=read(p/'receipt.json') if (p/'receipt.json').exists() else {'status':'running'}\n s=read(p/'provenance/window_segment.json') if (p/'provenance/window_segment.json').exists() else None\n r={'house':p.name,'receipt':rec,'window_segment':s,'input_sha256':hashes}\n if not s:return r\n w=read(p/'provenance/window_verdicts.json') if (p/'provenance/window_verdicts.json').exists() else None\n if w:\n  subs=w['subjects'];sealed={c for c,d in subs.items() if d['sealed']}\n else:\n  oldbase=pathlib.Path('/root/autodl-tmp/vsmt_outputs')/('lean-s1-02a-7c10d2c' if p.name[-5:] in ['00460','01451','03394','08566'] else 'lean-s1-02b-7c10d2c')\n  raw=(oldbase/p.name/'provenance/window_verdicts.json').read_bytes()\n  hashes['old_window_verdicts_reference']=hashlib.sha256(raw).hexdigest()\n  subs=json.loads(raw)['subjects'];sealed=None\n  r['container_ids_source']='old same-house usable IDs; no new sealing computed'\n lo,hi=s['segment'];frames=[]\n for i in range(lo+1,hi+1):\n  pr=read(p/'private'/f'{i:04d}.frame.json');pub=read(p/'public'/f'{i:04d}.frame.json')\n  frames.append({'index':i,'action':pub['action_summary']['action'],'pixels':pr['object_visibility']})\n r['actions']=dict(collections.Counter(f['action'] for f in frames))\n r['rendered_usable_containers']=sum(any(f['pixels'].get(c,0)>0 for f in frames) for c in subs)\n r['usable_containers']=len(subs)\n obj=read(p/'provenance/object_table.json') if (p/'provenance/object_table.json').exists() else None\n r['prefix_diagnostics']={}\n for n in [10,20,30,40]:\n  if hi-lo<n:continue\n  rr={'renderer_zero_usable':[c for c in subs if all(f['pixels'].get(c,0)==0 for f in frames[:n])]}\n  if w:\n   visible={v['container'] for v in w['verdicts'] if lo<v['observation_index']<=lo+n and v['unoccluded']>0}\n   u=sealed-visible;rr['stored_verdict_U']=sorted(u)\n   if obj:rr['eligible_sources']=[o['object_id'] for o in obj['objects'] if o['eligible'] and o['parent_receptacle'] in u]\n  r['prefix_diagnostics'][str(n)]=rr\n r['per_container']={c:{'max_rendered_pixels':max(f['pixels'].get(c,0) for f in frames),'frames_rendered':sum(f['pixels'].get(c,0)>0 for f in frames)} for c in subs}\n if w:\n  r['recorded_U']=w['invisible']\n  r['sealed_count']=len(sealed)\n  if obj:r['eligible_source_count']=sum(o['eligible'] and o['parent_in_U'] for o in obj['objects'])\n return r\ntasks=sorted(p for p in root.iterdir() if p.is_dir() and p.name.startswith('procthor'))\nwith concurrent.futures.ThreadPoolExecutor(max_workers=len(tasks)) as pool:rows=list(pool.map(run,tasks))\nprint(json.dumps({'schema':'vsmt-window-probe-readonly-audit-v1','snapshot_unix':time.time(),'root':str(root),'workers':len(tasks),'scope':'existing JSON only; prefix diagnostics are not reruns or usable samples','rows':rows},indent=1))\n\n",
+ "audit_source_sha256": "4e424995b7aef659ae97e87cbb22cbb1e281c1e8eb1e31781cdfdef71c230602",
+ "code_commit": "f2982a6c40b08d635a28eccf397d8c388c84b71d",
+ "limitations": [
+  "Snapshot taken during the existing probe; train-01451 had no final receipt. No running task interrupted.",
+  "Prefix 10/20/30 counts are read-only diagnostics from the 40-frame probe, not regenerated shorter-window results.",
+  "For 03986/09951 early failure occurred before sealing/window verdicts; renderer checks use the old same-house usable container ID list, not a new computed U.",
+  "Source/protocol changes require review; no threshold, route, contract or scientific code modified."
+ ]
+}
