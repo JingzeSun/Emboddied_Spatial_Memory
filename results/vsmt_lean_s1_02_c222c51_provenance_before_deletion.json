@@ -1,0 +1,559 @@
+{
+ "schema_version": "vsmt-lean-s1-02-c222c51-provenance-v1",
+ "why": "the two c222c51 roots are deleted at the user's request (2026-09-23); their exported reports carry every per-house metric and receipt digest but not the per-house code_commit nor the ruling-40 regeneration record, so those are preserved here",
+ "superseded_by": "D-224-S1 ruling 50 (the public camera pose encoded -pitch)",
+ "exported_at": "2026-09-23T03:46:50+08:00",
+ "roots": {
+  "s1-02a": {
+   "path": "/root/autodl-tmp/vsmt_outputs/lean-s1-02a-c222c51-superseded-by-ruling-50",
+   "episodes": 4,
+   "bytes": 1374518772,
+   "houses": [
+    {
+     "house_id": "procthor10k-0.1.2-train-00460",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "failed",
+     "reason": "intervention_window_unavailable",
+     "receipt_sha256": "e831a15fa1a52e9f88ebf89a81a44e60555ed4f7ace34f11291f384c1e8144e6"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-01451",
+     "code_commit": "a397d16b93d202cf50b849a87cbfbb55e5ca06c0",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "af0ebf3fdd00169c1070dc1541a05f84182db3c9320bc57fdf784eb171dd4d26"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-03394",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "6b2e8e84758b8679eee69e646fee11135b550eeb74f94becaf9bb61711352ea7"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-08566",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "d61bf9f1a32b87c62eea6d738b26b4ab2d69bd688ce46de516b9334293850ad1"
+    }
+   ],
+   "regenerate-a397d16.json": {
+    "ruling": "D-224-S1 ruling 40",
+    "code_commit": "a397d16b93d202cf50b849a87cbfbb55e5ca06c0",
+    "houses": [
+     "procthor10k-0.1.2-train-01451"
+    ],
+    "results": [
+     {
+      "house_id": "procthor10k-0.1.2-train-01451",
+      "status": "succeeded",
+      "reason": null,
+      "detail": "",
+      "executed_interventions": 6
+     }
+    ],
+    "wall_clock_seconds": 12825.8,
+    "code_commits_now_present": [
+     "a397d16b93d202cf50b849a87cbfbb55e5ca06c0",
+     "c222c51a1906f3703a6115c968e77f349306faa9"
+    ]
+   },
+   "plan.json": {
+    "selected": [
+     "procthor10k-0.1.2-train-01451",
+     "procthor10k-0.1.2-train-03394",
+     "procthor10k-0.1.2-train-08566",
+     "procthor10k-0.1.2-train-00460"
+    ],
+    "split": {
+     "seed": 20260920,
+     "validation_houses": 50,
+     "test_houses": 100,
+     "train_houses": null,
+     "frozen_before_first_episode": true,
+     "test_and_validation_membership_is_final": true,
+     "train_size_may_only_decrease_afterwards": true,
+     "development_houses_are_the_first_of_the_train_block": true,
+     "recomputable_from_manifest": true,
+     "plain_language_zh": "S0-02 v2 把前缀分配顺序改成 test→validation→train，于是 seed 与 test/validation 规模一旦定下，test 与 validation 的成员就永远不变，而 train 块的起点也随之固定。用户于 2026-09-20 冻结：seed=20260920、validation=50、test=100（规模沿用 D-224 在 PLAN S3-01 登记的 300/50/100）。`train_houses` 仍为 null，到 S3-01 才登记，且此后只能下调——下调只从 train 块尾部截短，不碰前面任何一份。**这三个值只登记在这里一处**：S0-02 v2 定的是构造规则（方法层面，不该带某一次运行的 seed），值属于运行层面，因此由本合同承载，跨合同测试钉住「S0-02 的值槽保持 null、本合同是唯一登记处」以防出现两个互相矛盾的 seed。白话：先把答案卷封好再开始答题，而不是答完再决定哪些算考题。",
+     "frozen_by": "D-224-S1",
+     "frozen_on": "2026-09-20",
+     "is_the_single_registered_location": true
+    },
+    "commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+    "pool_size": 10000,
+    "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96"
+   }
+  },
+  "s1-02b": {
+   "path": "/root/autodl-tmp/vsmt_outputs/lean-s1-02b-c222c51-superseded-by-ruling-50",
+   "episodes": 46,
+   "bytes": 9882557531,
+   "houses": [
+    {
+     "house_id": "procthor10k-0.1.2-train-00236",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "f03fe1d973859862d63f7fa77d3253b023976e2b182ac36bb3771f9d1b1b0f8c"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-00406",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "6e4c42c37935b7b503e7d9d0ef5bc09adfaf60c4c0c3b44c34fd39d06cf70527"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-00563",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "3d7b0dc6c4427300621c33ec4317ef80dab3ea553692cbcf208f5faed6d8d2e1"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-00619",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "9024e632deb249cc9d4986d9bcfb364466e8ceeccd541bc70a4ccb06b139527a"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-00702",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "a1421251c16af1c39c4996285eb2020eee940f1fc8793a4cff28ee4ecc842ea6"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-00950",
+     "code_commit": "a397d16b93d202cf50b849a87cbfbb55e5ca06c0",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "2436f95e9e29a4213c8a7a56cc27e1743bcbf8b57d98f503d5a2d1fc498b4c2c"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-00975",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "1d5d50f11a526404ee7a0f6cebf12099daad9bca250d66b8a0a42e0e6222634e"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-01139",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "98f4d8f5a7fa228519439611ee5aa38f6349ffbce98a6521401f7d4b526cf808"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-01259",
+     "code_commit": "a397d16b93d202cf50b849a87cbfbb55e5ca06c0",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "f273ef087cbced487a45cbfc0602231e8bf3dcd0cf73824c2ad72afc64e3c2db"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-01289",
+     "code_commit": "a397d16b93d202cf50b849a87cbfbb55e5ca06c0",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "067a5e616ca906d0816bea4512d9cd89958fbcce976193a9796553d1d1cf5b3b"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-01394",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "cff50e8f94677025a72131791f90d68e4ff2942f299c5cbf374099eca14b8d2b"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-01456",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "failed",
+     "reason": "intervention_window_unavailable",
+     "receipt_sha256": "fea74f022188e106e21dce3ac7bc1f5f99bc471d23a0b1d2dfac0a945e622996"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-01543",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "fac55928d39ae4550371a0852837980cbd5bd24b685e1cfcec42469c5abc0839"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-02524",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "a23d7321c82fff0adb1bf5cf8c42c79f8a2ee80a5e905ff27e1358e022e62e9e"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-02768",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "5404ca09a8ff691b530e1eade388da8d0082646f292f8be8cd5b1ef1ea845ebc"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-03288",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "9b964375cd6b1121cce9d4c39d6934b40f270ce1242b46ea728fc78e104ab261"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-03361",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "89d4399500d7bab12a778e4d6fa588cd9a586c460901255d05db822e11c15461"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-03525",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "e542a28ddeb55247bc4d02533e1561d61f0c35deae41feed1595aaf35866bd7b"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-03986",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "failed",
+     "reason": "intervention_window_unavailable",
+     "receipt_sha256": "9925f04e00cc9cc25153d948e681d2552dce6e8f0d7432d04e5d57b0ede73d6c"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-04146",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "fdd9bace4200fe868d5bced6d624d80c34310fbd872bd0022bd05d962bea625d"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-04388",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "a4deb6631a8a0fcd67def8a761b54974a5d35d71aab2373fb76088dfe8ae9581"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-04742",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "d21280a2881832751415f79bf447e8322848cdd7f7bc39190e36dc749f0f12bb"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-04801",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "9c5aeb9e21d5715025bdd915a6d06061fbbe956162dc23e6555278c10ec54c12"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-05593",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "6dc1f032ac2dbf965aa08fb28271740c70054e23ecfd79ee007152b5c4e74b3f"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-05806",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "492b5681ef2fc54496c5a19c94060b1d670865587475a10969e781aa8ae8d292"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-05879",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "9b084513b06f568672d447cb43d107bbe8718acf9a932a1980c10cf8969eb12b"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-05966",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "6605306cbb4e7573eb6ed9131af4ba83ed6701f1bae5ef5b9b27aa4fe54009b6"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-06453",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "79332a488a8af9699e428b0099cfbcac57190b961be4ed53b0367b336c95e1d8"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-06764",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "322daa315e227609290aa5b77a6eddb77cd532cd119b16ed7479e01b3162fb61"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-07270",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "c361f30823dffba94b58d676093dbdc5894d36f8e387131e6636944222d9ea3e"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-07367",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "cc472814dfd269f53d972013ea7984dcd850ba7b02e0367acf97957b22587a1c"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-07795",
+     "code_commit": "a397d16b93d202cf50b849a87cbfbb55e5ca06c0",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "45138af6d8255ae1d35cb49806722d8275e94258b3454cdcf4519c39a32005d1"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-07815",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "e333243f2bffbc6af1de11a9cff66b71cf7e8e27552e0a54a7b9ee70b3e4b39e"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-08101",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "failed",
+     "reason": "intervention_window_unavailable",
+     "receipt_sha256": "035a7b215c9e44f9462a869e58d2afba4ab4d156cca9a9f621ce108cde3817cd"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-08398",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "failed",
+     "reason": "intervention_execution_failed",
+     "receipt_sha256": "ed488e0f1d570f158f70042e07d0e0e817acfebc6d00146920b49621fb7077bd"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-08422",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "ea1b5c47a0519708771b781f52775ad4eb2174359fb641666b0a02e7f4643613"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-08552",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "915ea6fb502ebd07322faaaa5ede62622a5967304afd1ec923052e4d629be1a5"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-08790",
+     "code_commit": "a397d16b93d202cf50b849a87cbfbb55e5ca06c0",
+     "status": "failed",
+     "reason": "intervention_execution_failed",
+     "receipt_sha256": "ea01bfd792f55f5481b2eb8da7525b6d186d0494408875bbeb9abac74c9fe3be"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-08905",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "0e7c871653d7f1c61cfd6f0e7cee09b972504a88a0f433e075036e1f6a6e394f"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-08927",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "623524ee1c15b6602a72b098cb08d7f31b1687d2f24cd05ef3bbfcc7c8445627"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-09339",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "failed",
+     "reason": "intervention_execution_failed",
+     "receipt_sha256": "b06f165f244dc2659a7097bdacc3387b965e456098f43398d81c1c1431b466ab"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-09423",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "fd06e3ce2775d3006fc3b432299c20e9e07003c46efb0e1dd4c87e3b24402f46"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-09488",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "1bb83d70f34fb722ca55ab27b76ba2a0bcd5d5f81ffdbc91001e0eef9e9950b9"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-09595",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "b2c633d34e0c7e1151efbaef0f9f17b8335ed60382e69350d4ab8d828c2e3bc2"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-09951",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "a9dec0320fdea302844bad9863edfe1263bcacc9283e88e5173e769891713436"
+    },
+    {
+     "house_id": "procthor10k-0.1.2-train-09985",
+     "code_commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+     "status": "succeeded",
+     "reason": null,
+     "receipt_sha256": "277dc1dbe26be5d007f8a911faf5872ebce8af992024de91848ec923adb47526"
+    }
+   ],
+   "regenerate-a397d16.json": {
+    "ruling": "D-224-S1 ruling 40",
+    "code_commit": "a397d16b93d202cf50b849a87cbfbb55e5ca06c0",
+    "houses": [
+     "procthor10k-0.1.2-train-00950",
+     "procthor10k-0.1.2-train-01259",
+     "procthor10k-0.1.2-train-01289",
+     "procthor10k-0.1.2-train-07795",
+     "procthor10k-0.1.2-train-08790"
+    ],
+    "results": [
+     {
+      "house_id": "procthor10k-0.1.2-train-01259",
+      "status": "succeeded",
+      "reason": null,
+      "detail": "",
+      "executed_interventions": 6
+     },
+     {
+      "house_id": "procthor10k-0.1.2-train-07795",
+      "status": "succeeded",
+      "reason": null,
+      "detail": "",
+      "executed_interventions": 0
+     },
+     {
+      "house_id": "procthor10k-0.1.2-train-00950",
+      "status": "succeeded",
+      "reason": null,
+      "detail": "",
+      "executed_interventions": 6
+     },
+     {
+      "house_id": "procthor10k-0.1.2-train-08790",
+      "status": "failed",
+      "reason": "intervention_execution_failed",
+      "detail": "move SprayBottle|surface|9|106: Spawn area not clear (Fridge|2|2) is in the way), can't place object at that point",
+      "executed_interventions": null
+     },
+     {
+      "house_id": "procthor10k-0.1.2-train-01289",
+      "status": "succeeded",
+      "reason": null,
+      "detail": "",
+      "executed_interventions": 0
+     }
+    ],
+    "wall_clock_seconds": 14247.2,
+    "code_commits_now_present": [
+     "a397d16b93d202cf50b849a87cbfbb55e5ca06c0",
+     "c222c51a1906f3703a6115c968e77f349306faa9"
+    ]
+   },
+   "plan.json": {
+    "stage": "s1-02b",
+    "houses": [
+     "procthor10k-0.1.2-train-00406",
+     "procthor10k-0.1.2-train-03288",
+     "procthor10k-0.1.2-train-08927",
+     "procthor10k-0.1.2-train-08422",
+     "procthor10k-0.1.2-train-03986",
+     "procthor10k-0.1.2-train-03525",
+     "procthor10k-0.1.2-train-07367",
+     "procthor10k-0.1.2-train-05806",
+     "procthor10k-0.1.2-train-08101",
+     "procthor10k-0.1.2-train-05966",
+     "procthor10k-0.1.2-train-09951",
+     "procthor10k-0.1.2-train-00950",
+     "procthor10k-0.1.2-train-05879",
+     "procthor10k-0.1.2-train-00236",
+     "procthor10k-0.1.2-train-02524",
+     "procthor10k-0.1.2-train-08398",
+     "procthor10k-0.1.2-train-04801",
+     "procthor10k-0.1.2-train-04388",
+     "procthor10k-0.1.2-train-07795",
+     "procthor10k-0.1.2-train-01543",
+     "procthor10k-0.1.2-train-09339",
+     "procthor10k-0.1.2-train-08790",
+     "procthor10k-0.1.2-train-01259",
+     "procthor10k-0.1.2-train-08905",
+     "procthor10k-0.1.2-train-00975",
+     "procthor10k-0.1.2-train-00619",
+     "procthor10k-0.1.2-train-04146",
+     "procthor10k-0.1.2-train-01394",
+     "procthor10k-0.1.2-train-01456",
+     "procthor10k-0.1.2-train-00702",
+     "procthor10k-0.1.2-train-09488",
+     "procthor10k-0.1.2-train-07815",
+     "procthor10k-0.1.2-train-03361",
+     "procthor10k-0.1.2-train-09423",
+     "procthor10k-0.1.2-train-07270",
+     "procthor10k-0.1.2-train-06453",
+     "procthor10k-0.1.2-train-08552",
+     "procthor10k-0.1.2-train-01289",
+     "procthor10k-0.1.2-train-09985",
+     "procthor10k-0.1.2-train-05593",
+     "procthor10k-0.1.2-train-02768",
+     "procthor10k-0.1.2-train-04742",
+     "procthor10k-0.1.2-train-09595",
+     "procthor10k-0.1.2-train-00563",
+     "procthor10k-0.1.2-train-01139",
+     "procthor10k-0.1.2-train-06764"
+    ],
+    "pilot_root": "/root/autodl-tmp/vsmt_outputs/lean-s1-02a-c222c51",
+    "derived": {
+     "worker_count": 8,
+     "binding_constraint": "simulator_concurrency_limit",
+     "per_resource": {
+      "cpu_cores_per_worker": 287,
+      "ram_gb_per_worker": 121,
+      "vram_gb_per_worker": 17,
+      "disk_gb_per_worker": 21,
+      "simulator_concurrency_limit": 8
+     },
+     "concurrency_verified_at": 4,
+     "is_extrapolation": true
+    },
+    "requested_workers": 8,
+    "measurements": {
+     "cpu_logical_cores": 128,
+     "cpu_physical_cores": 64,
+     "ram_total_gb": 540.649590784,
+     "ram_available_gb": 502.280466432,
+     "gpu_count": 1,
+     "gpu_name": "NVIDIA GeForce RTX 4080 SUPER",
+     "gpu_total_vram_gb": 31.9921875,
+     "gpu_free_vram_gb": 31.9912109375,
+     "disk_free_gb_asset_root": 13.150081024,
+     "disk_free_gb_install_root": 13.150081024,
+     "python_version": "3.9.25",
+     "torch_version": "n/a-simulator-env",
+     "cuda_available": true,
+     "egl_resolves": true,
+     "vulkan_resolves": true
+    },
+    "simulator_concurrency_limit_verified": 4,
+    "simulator_concurrency_limit_assumed": 8,
+    "commit": "c222c51a1906f3703a6115c968e77f349306faa9",
+    "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96"
+   }
+  }
+ }
+}
