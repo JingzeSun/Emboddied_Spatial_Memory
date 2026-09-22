@@ -743,6 +743,50 @@ def _remaining_to(controller: Any, ep: Episode, cells: set, blocked: set, vp_box
     return moved + lean_route.turn_actions(yaw2, vp["yaw"]) + lean_route.look_actions(pitch, vp["pitch"])
 
 
+def _farthest_cell(cells: set, origin: tuple[int, int], blocked: set) -> tuple[int, int]:
+    """The reachable cell with the longest BFS path from ``origin`` under the blocklist, ties by grid order."""
+
+    component = lean_route.reachable_component(cells, origin, blocked)
+    return max(sorted(component), key=lambda c: (len(lean_route.bfs_path(cells, origin, c, blocked)), c))
+
+
+def _walk_window_segment(controller: Any, ep: Episode, cells: set, blocked: set, replans: list[dict[str, Any]], *,
+                         frames: int, replan_on: bool) -> dict[str, Any]:
+    """Pending ruling 53 probe: after the transition, keep walking towards the cell farthest from
+    where the transition ended for exactly ``frames`` actions; that segment is the window.
+
+    白话（待裁 53 的探针，用户 2026-09-23 授权"先跑前几条看看效果"）：现行规则把整段过渡当窗口，
+    小房子走一遍就把每个容器都看到一次，U 为空。这里在过渡走到最远格之后，再朝"离现在位置最远的
+    可达格"继续走恰好 L 步（转身也算一步、也出一帧），U 只在这 L 帧上算。输入是当前位姿、可达格、
+    黑名单和 L；输出是这段的观察序号范围、真正走了几步、目标格和"到目标格一共有几步可走"。走不满
+    L 步（先到了目标格）整条按 intervention_window_unavailable 失败，不缩短窗口。它不改 U 的算法、
+    像素阈值或抽样，不是 S1-02 的冻结协议，产物只作估算。
+    """
+
+    here, yaw = _agent_cell_yaw(controller)
+    target = _farthest_cell(cells, here, blocked)
+    available = len(lean_route.encode_path(lean_route.bfs_path(cells, here, target, blocked), yaw)[0])
+    start = len(ep.actions_done) - 1
+
+    def _remaining(bl: set) -> list[str]:
+        h, y = _agent_cell_yaw(controller)
+        acts = lean_route.encode_path(lean_route.bfs_path(cells, h, target, bl), y)[0]
+        budget = frames - (len(ep.actions_done) - 1 - start)
+        return acts[:max(0, budget)]
+
+    _execute(controller, ep, _remaining(blocked), blocked=blocked, replans=replans, replan=_remaining if replan_on else None)
+    end = len(ep.actions_done) - 1
+    record = {"segment": [start, end], "frames_requested": frames, "frames_walked": end - start,
+              "start_cell": list(here), "start_yaw": yaw, "target_cell": list(target), "path_actions_available": available,
+              "rule": "walk_towards_the_cell_farthest_from_the_transition_end_for_exactly_L_actions"}
+    (ep.prov / "window_segment.json").write_text(json.dumps(record, indent=1))
+    if end - start < frames:
+        raise PilotFailure("intervention_window_unavailable",
+                           f"window segment {end - start} < {frames} frames (path to the farthest cell had {available} actions); "
+                           f"not shortened")
+    return record
+
+
 def run_house(task: dict[str, Any]) -> dict[str, Any]:
     house_id, index, out = task["house_id"], task["index"], Path(task["out"])
     t0 = time.time()
@@ -827,23 +871,35 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
         tr_start = len(ep.actions_done) - 1
         _execute(controller, ep, _to_far(blocked), blocked=blocked, replans=replans, replan=_to_far if replan_on else None)
         tr = [tr_start, len(ep.actions_done) - 1]
-        plan1 = dict(plan1, segments={"sweep_one": s1, "transition": tr}, blocked_edges=sorted([list(c) for c in sorted(e)] for e in blocked),
+        # pending ruling 53 probe: an optional window segment of exactly window_segment_frames actions
+        # walked after the transition; U is then computed on that segment only (0 = frozen whole-transition rule)
+        seg_frames = int(task.get("window_segment_frames", 0) or 0)
+        window_segment = (_walk_window_segment(controller, ep, cells, blocked, replans, frames=seg_frames, replan_on=replan_on)
+                          if seg_frames > 0 else None)
+        window = list(window_segment["segment"]) if window_segment else tr
+        segments = {"sweep_one": s1, "transition": tr}
+        if window_segment:
+            segments["window_segment"] = window
+        plan1 = dict(plan1, segments=segments, blocked_edges=sorted([list(c) for c in sorted(e)] for e in blocked),
                      replans=replans, executed_actions=len(ep.actions_done) - 1, viewpoint_reselections=list(reselections),
                      floor_excluded=floor_excluded)
         (ep.prov / "route_stage1.json").write_text(json.dumps(plan1, indent=1))
-        window_frames = tr[1] - tr[0]
-        # ruling 35: subjects sealed from the best sweep-one frame; U = invisible in every transition frame
+        window_frames = window[1] - window[0]
+        # ruling 35: subjects sealed from the best sweep-one frame; U = invisible in every window frame
         subjects, subject_frames = _seal_container_subjects(ep, usable, tuple(s1))
-        invisible, verdicts = _invisible_set(ep, subjects, tr)
-        (ep.prov / "window_verdicts.json").write_text(json.dumps({"window": tr, "frames": window_frames, "invisible": sorted(invisible),
-                                                                   "subjects": subject_frames, "verdicts": verdicts}, indent=1))
+        invisible, verdicts = _invisible_set(ep, subjects, tuple(window))
+        (ep.prov / "window_verdicts.json").write_text(json.dumps(
+            {"window": window, "frames": window_frames,
+             "window_protocol": ("two_segment_probe_pending_ruling_53" if window_segment else "whole_transition"),
+             "leave_segment": (tr if window_segment else None), "window_segment": window_segment,
+             "invisible": sorted(invisible), "subjects": subject_frames, "verdicts": verdicts}, indent=1))
         # ruling 34 (twin control): every episode, null or not, builds U, F, the sample and the controls;
         # a null episode skips only the execution
         if window_frames < MINIMUM_WINDOW_FRAMES:
             raise PilotFailure("intervention_window_unavailable", f"window {window_frames} < {MINIMUM_WINDOW_FRAMES}")
         objects = _object_table(controller.last_event.metadata)
         px_sweep_one = _max_pixels(ep, s1[0], s1[1])        # ruling 38: eligibility counts sweep-one frames only
-        px_before_window = _max_pixels(ep, 0, tr[1])        # unseen: never rendered before the window
+        px_before_window = _max_pixels(ep, 0, window[1])    # unseen: never rendered before the window ends
         eligible = sel.eligible_objects(objects, px_sweep_one)
         unseen = sel.unseen_objects(objects, px_before_window) if add_source == "unseen_existing" else None
         # ruling 52: the full object table with every parentReceptacles list goes to provenance before the
@@ -952,7 +1008,9 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
                         "containers_usable": len(usable), "containers_dropped": len(dropped), "containers_sealed": len(subjects),
                         "controls": len(control_ids), "controls_outside_U": controls["from_outside_U"], "controls_shortfall": controls["shortfall"],
                         "moves_executed": len(moves), "moves_source_first": moves_source_first,
-                        "viewpoint_reselections": len(reselections), "sweep_two_actions": s2[1] - s2[0]})
+                        "viewpoint_reselections": len(reselections), "sweep_two_actions": s2[1] - s2[0],
+                        "window_protocol": ("two_segment_probe_pending_ruling_53" if window_segment else "whole_transition"),
+                        "leave_segment_frames": tr[1] - tr[0], "window_segment": window_segment})
     except lean_route.LeanRouteError as f:
         receipt.update({"status": "failed", "reason": "route_not_placeable", "detail": f"{f} | {traceback.format_exc()[-600:]}"})
     except PilotFailure as f:
@@ -1000,7 +1058,7 @@ def main() -> int:
     ap.add_argument("--output-root", required=True)
     ap.add_argument("--source", required=True)
     ap.add_argument("--workers", type=int, default=lean_pilot.PILOT_WORKERS)
-    ap.add_argument("--stage", choices=["s1-02a", "s1-02b", "regenerate"], default="s1-02a")
+    ap.add_argument("--stage", choices=["s1-02a", "s1-02b", "regenerate", "window-probe"], default="s1-02a")
     ap.add_argument("--houses", default="",
                     help="regenerate: comma-separated house ids to rerun into --output-root; each one's old directory "
                          "must already have been moved aside (never overwritten) and the rerun must be named by a ruling")
@@ -1034,6 +1092,11 @@ def main() -> int:
                     help="rulings 31/32: real placement + viewpoint peek + revert during the window, one placement per destination")
     ap.add_argument("--destination-points", choices=["anywhere", "top", "verified"], default="anywhere",
                     help="kept for the smoke record; dry_run supersedes it")
+    ap.add_argument("--window-segment-frames", type=int, default=0,
+                    help="window-probe only (pending ruling 53): after the transition walk exactly this many actions "
+                         "towards the farthest cell and compute U on that segment; 0 = the frozen whole-transition rule")
+    ap.add_argument("--probe-note", default="",
+                    help="window-probe: who authorised the probe and what it estimates; written to the plan and receipt")
     ap.add_argument("--private-salt-file", required=True,
                     help="ruling 37: a file outside the repository holding the private salt mixed into the "
                          "null-window draw; only its sha256 is written to plan.json and the receipts")
@@ -1043,6 +1106,8 @@ def main() -> int:
         return main_s1_02b(args)
     if args.stage == "regenerate":
         return main_regenerate(args)
+    if args.stage == "window-probe":
+        return main_window_probe(args)
     contract = json.loads(CONTRACT_S1_02A.read_text(encoding="utf-8"))
     lean_pilot.validate_pilot_contract(contract)
     if not all(contract["authorization"].values()):
@@ -1189,6 +1254,84 @@ def main_regenerate(args: argparse.Namespace) -> int:
     (out_root / stage_receipt).write_text(json.dumps(receipt, indent=1))
     print(json.dumps({"regenerate": record, "stage_receipt": {k: v for k, v in receipt.items() if k not in ("failure_receipts",)}}, indent=1, default=str))
     return 0 if not [r for r in fresh if r["status"] != "succeeded"] else 1
+
+
+def main_window_probe(args: argparse.Namespace) -> int:
+    """Run named houses under the pending-ruling-53 two-segment window and write an estimate receipt.
+
+    白话：用户 2026-09-23 说"先别生成 50 条，先跑前几条看看效果估算一下"。这个入口只跑点名的几栋
+    house，过渡之后再走恰好 L 步作窗口段（见 `_walk_window_segment`），其余流程（封印、U、dry-run、
+    抽样、对照、扫掠二）与 S1-02 完全相同，然后把每栋的 U、可行集、执行的干预、move、U 内对照和
+    两段帧数汇总成 `window_probe_receipt.json`。输出根必须是新的；产物不是 S1-02 数据：S0-02 合同
+    的窗口定义没有改，S1-03 合同的提交登记表也不含本提交，所以任何读者都会拒绝把它当开发数据。
+    它不算成品率门、不重算占用回执，也不是裁决 53 的批准。
+    """
+
+    houses = [h for h in args.houses.split(",") if h]
+    if not houses or args.window_segment_frames <= 0 or not args.probe_note:
+        print("window-probe needs --houses, --window-segment-frames > 0 and --probe-note"); return 2
+    out_root = Path(args.output_root)
+    if out_root.exists() and any(out_root.glob("procthor10k-*")):
+        print("output root already holds houses; refusing (a probe never overwrites)"); return 3
+    out_root.mkdir(parents=True, exist_ok=True)
+    contract = json.loads(CONTRACT_S1_02A.read_text(encoding="utf-8"))
+    lean_pilot.validate_pilot_contract(contract)
+    freeze = contract["split_freeze"]
+    commit = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, cwd=ROOT).stdout.strip()
+    source = Path(args.source)
+    workers = max(1, min(args.workers or 1, len(houses)))
+    plan = {"stage": "window-probe", "pending_ruling": "D-224-S1 ruling 53 (proposal, not approved)", "probe_note": args.probe_note,
+            "window_segment_frames": args.window_segment_frames, "houses": houses, "commit": commit, "split": freeze,
+            "requested_workers": args.workers, "actual_workers": workers,
+            "not_s1_02_data": "S0-02 window rule unchanged; this commit is not in the S1-03 encoder registry, readers refuse it",
+            "null_window_salt_sha256": sha_bytes(args.private_salt.encode("utf-8"))}
+    (out_root / "window_probe_plan.json").write_text(json.dumps(plan, indent=1))
+    tasks = [{"house_id": h, "index": int(h.rsplit("-", 1)[1]), "out": str(out_root / h), "source_root": str(source.parent),
+              "source_rel": source.name, "split_seed": freeze["seed"], "commit": commit, "private_salt": args.private_salt,
+              "replan_blocked_edges": args.replan_blocked_edges, "placement_tries": args.placement_tries,
+              "stratify_by_kind": args.stratify_by_kind, "add_source": args.add_source,
+              "destination_points": args.destination_points, "placement_prescreen": args.placement_prescreen,
+              "dry_run_destinations_per_object": args.dry_run_destinations_per_object,
+              "window_segment_frames": args.window_segment_frames} for h in houses]
+    t0 = time.time()
+    fresh = _run_with_timeout(tasks, workers, args.stall_timeout_s, commit)
+    wall = time.time() - t0
+    results = sorted(fresh, key=lambda r: r["house_id"])
+    keys = ("house_id", "status", "reason", "detail", "null_window", "invisible_container_set_size", "feasible_set_size",
+            "eligible_object_count", "containers_usable", "containers_sealed", "window_frames", "leave_segment_frames",
+            "window_segment", "executed_interventions", "executed_kinds", "moves_executed", "moves_source_first",
+            "controls", "controls_outside_U", "controls_shortfall", "observations", "actions")
+    rows = [{k: r.get(k) for k in keys} for r in results]
+    for row in rows:
+        row["detail"] = (row.get("detail") or "")[:300]
+        row["wall_seconds"] = round(float((r := next(x for x in results if x["house_id"] == row["house_id"]))["occupancy"]["wall_seconds"]), 1)
+        row["controls_from_U"] = (None if row["controls"] is None else int(row["controls"]) - int(row["controls_outside_U"] or 0))
+    ok = [r for r in results if r["status"] == "succeeded"]
+    kinds: dict[str, int] = {}
+    for r in ok:
+        for k, v in (r.get("executed_kinds") or {}).items():
+            kinds[k] = kinds.get(k, 0) + int(v)
+    reasons: dict[str, int] = {}
+    for r in results:
+        if r["status"] != "succeeded":
+            reasons[r.get("reason") or "unknown"] = reasons.get(r.get("reason") or "unknown", 0) + 1
+    non_null = [r for r in results if not r.get("null_window", False)]
+    summary = {"houses": len(results), "succeeded": len(ok), "failed": len(results) - len(ok), "failures_by_reason": reasons,
+               "null_window_episodes": len(results) - len(non_null),
+               "non_null_with_interventions": sum(1 for r in non_null if r["status"] == "succeeded" and (r.get("executed_interventions") or 0) >= 1),
+               "non_null_total": len(non_null),
+               "U_sizes": [r.get("invisible_container_set_size") for r in results],
+               "feasible_sizes": [r.get("feasible_set_size") for r in results],
+               "executed_kinds": kinds, "moves_executed": sum(int(r.get("moves_executed") or 0) for r in ok),
+               "moves_source_first": sum(int(r.get("moves_source_first") or 0) for r in ok),
+               "controls_total": sum(int(r.get("controls") or 0) for r in ok),
+               "controls_outside_U": sum(int(r.get("controls_outside_U") or 0) for r in ok),
+               "window_frames": [r.get("window_frames") for r in results],
+               "leave_segment_frames": [r.get("leave_segment_frames") for r in results],
+               "wall_clock_seconds": round(wall, 1), "actual_workers": workers, "code_commit": commit}
+    (out_root / "window_probe_receipt.json").write_text(json.dumps({"plan": plan, "summary": summary, "houses": rows}, indent=1))
+    print(json.dumps({"summary": summary, "houses": rows}, indent=1, default=str))
+    return 0 if len(ok) == len(results) else 1
 
 
 def _capacity_measurements() -> dict[str, Any]:
