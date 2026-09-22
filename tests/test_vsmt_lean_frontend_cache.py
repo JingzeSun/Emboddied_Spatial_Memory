@@ -280,6 +280,44 @@ class TestFrameAndSeal(unittest.TestCase):
             fc.seal_episode([self.frame(tick=1), self.frame(tick=3)],
                             frontend_config_sha256=fc.D223_FRONTEND_CONFIG_SHA256)
 
+    def test_a_consumer_recomputes_the_frame_seal_from_the_bytes_it_loaded(self) -> None:
+        assets = {"vits14": "b" * 64, "vitb14": "c" * 64}
+        loaded = json.loads(json.dumps(self.frame()))  # the JSON round trip a cache file goes through
+        fc.verify_frame_seal(loaded, frontend_config_sha256=fc.D223_FRONTEND_CONFIG_SHA256, descriptor_asset_sha256s=assets)
+        # a descriptor changed while the stored seal string stays: refused
+        tampered = json.loads(json.dumps(loaded))
+        tampered["fragments"][0]["descriptor_vits14"] = unit(384, seed=99)
+        with self.assertRaises(fc.LeanFrontendCacheError) as ctx:
+            fc.verify_frame_seal(tampered, frontend_config_sha256=fc.D223_FRONTEND_CONFIG_SHA256, descriptor_asset_sha256s=assets)
+        self.assertIn("frame_seal_mismatch", ctx.exception.detail)
+        # a mask digest changed, a box changed, a volume changed: each refused
+        for mutate in (lambda f: f["fragments"][1].__setitem__("mask_sha256", "9" * 64),
+                       lambda f: f["fragments"][0].__setitem__("aabb_max_m", [9.0, 9.0, 9.0]),
+                       lambda f: f["free_space"][0].__setitem__("reliability", 0.5)):
+            copy = json.loads(json.dumps(loaded))
+            mutate(copy)
+            with self.assertRaises(fc.LeanFrontendCacheError):
+                fc.verify_frame_seal(copy, frontend_config_sha256=fc.D223_FRONTEND_CONFIG_SHA256, descriptor_asset_sha256s=assets)
+        # the seal binds the frontend identity too: other asset digests or another config are refused
+        with self.assertRaises(fc.LeanFrontendCacheError):
+            fc.verify_frame_seal(loaded, frontend_config_sha256=fc.D223_FRONTEND_CONFIG_SHA256,
+                                 descriptor_asset_sha256s={"vits14": "b" * 64, "vitb14": "d" * 64})
+        with self.assertRaises(fc.LeanFrontendCacheError):
+            fc.verify_frame_seal(loaded, frontend_config_sha256="0" * 64, descriptor_asset_sha256s=assets)
+
+    def test_the_fast_mask_digest_is_the_anonymous_mask_digest(self) -> None:
+        rng = np.random.default_rng(3)
+        for shape in ((1, 1), (3, 5), (17, 31), (64, 64)):
+            binary = rng.random(shape) > 0.5
+            payload = [int(shape[0]), int(shape[1]), *binary.astype(np.uint8).reshape(-1).tolist()]
+            self.assertEqual(fc.mask_sha256_of(binary), fc.sha(payload), shape)
+        all_zero = np.zeros((8, 8), dtype=bool)
+        self.assertEqual(fc.mask_sha256_of(all_zero), fc.sha([8, 8, *([0] * 64)]))
+        self.assertEqual(fc.mask_sha256_of(mask_of(np.ones((16, 16), dtype=np.uint8), "region:x").as_array()),
+                         mask_of(np.ones((16, 16), dtype=np.uint8), "region:x").mask_sha256)
+        with self.assertRaises(fc.LeanFrontendCacheError):
+            fc.mask_sha256_of(np.zeros((2, 2, 2), dtype=bool))
+
 
 class TestVolumesAndSurfaces(unittest.TestCase):
     """The cache keeps the frozen volumes as written, and keeps only a surface's geometry."""

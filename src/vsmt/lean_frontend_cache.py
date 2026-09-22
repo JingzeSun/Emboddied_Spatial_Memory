@@ -362,18 +362,70 @@ def build_frame(
         "visibility": [dict(row) for row in visibility],
     }
     _reject_forbidden(frame)
-    seal_payload = {
-        "frame_digest": frame_digest, "tick": tick,
-        "camera_position_m": position, "camera_forward": forward,
-        "fragments": frame["fragments"], "surfaces": frame["surfaces"],
+    frame["frame_seal"] = {
+        "payload_sha256": sha(frame_seal_payload(frame, frontend_config_sha256=frontend_config_sha256,
+                                                descriptor_asset_sha256s=descriptor_asset_sha256s)),
+        "frontend_config_sha256": frontend_config_sha256,
+    }
+    _require(tuple(frame) == CACHE_FRAME_FIELDS, "public_input_missing_or_malformed", "frame_field_order")
+    return frame
+
+
+def frame_seal_payload(frame: Mapping[str, Any], *, frontend_config_sha256: str,
+                       descriptor_asset_sha256s: Mapping[str, str]) -> dict[str, Any]:
+    """What a frame seal digests: every public field of the frame plus the frontend identity.
+
+    The single definition ``build_frame`` writes with and ``verify_frame_seal`` reads with, so a
+    consumer re-derives the seal from the bytes it actually loaded instead of trusting the stored
+    digest string.
+    """
+
+    return {
+        "frame_digest": frame["frame_digest"], "tick": frame["tick"],
+        "camera_position_m": list(frame["camera_position_m"]), "camera_forward": list(frame["camera_forward"]),
+        "fragments": list(frame["fragments"]), "surfaces": list(frame["surfaces"]),
         "free_space_sha256": sha(frame["free_space"]), "visibility_sha256": sha(frame["visibility"]),
         "frontend_config_sha256": frontend_config_sha256,
         "descriptor_asset_sha256s": dict(sorted(descriptor_asset_sha256s.items())),
     }
-    frame["frame_seal"] = {"payload_sha256": sha(seal_payload),
-                           "frontend_config_sha256": frontend_config_sha256}
-    _require(tuple(frame) == CACHE_FRAME_FIELDS, "public_input_missing_or_malformed", "frame_field_order")
-    return frame
+
+
+def verify_frame_seal(frame: Mapping[str, Any], *, frontend_config_sha256: str,
+                      descriptor_asset_sha256s: Mapping[str, str]) -> None:
+    """Recompute the frame seal from the loaded frame and refuse any difference.
+
+    白话：读 cache 的一方不能只把文件里写好的摘要字符串再抄一遍，要把读到的色块、描述子、盒、
+    表面和两个体积摘要按同一定义重新算一次封印，和文件里的封印逐位比较。描述子被改而封印没改，
+    这里会拒绝；写入 cache 时用的前端配置或资产摘要不同，这里也会拒绝。
+    """
+
+    stored = frame.get("frame_seal") or {}
+    _require(stored.get("frontend_config_sha256") == frontend_config_sha256,
+             "public_input_missing_or_malformed", "frame_seal_frontend_config_mismatch")
+    expected = sha(frame_seal_payload(frame, frontend_config_sha256=frontend_config_sha256,
+                                      descriptor_asset_sha256s=descriptor_asset_sha256s))
+    _require(stored.get("payload_sha256") == expected, "public_input_missing_or_malformed",
+             f"frame_seal_mismatch_tick_{frame.get('tick')}")
+
+
+def mask_sha256_of(mask: Any) -> str:
+    """The digest a fragment's ``mask_sha256`` carries, recomputed from mask pixels.
+
+    Same bytes as ``sha([height, width, *row_major_uint8_values])`` (the S1-03 runner's anonymous
+    mask), built without materialising a Python list per pixel so a consumer can re-digest every
+    recovered mask of every frame.
+    """
+
+    binary = np.ascontiguousarray(np.asarray(mask, dtype=bool))
+    _require(binary.ndim == 2, "public_input_missing_or_malformed", "mask_not_two_dimensional")
+    height, width = (int(v) for v in binary.shape)
+    digits = np.where(binary.reshape(-1), np.uint8(ord("1")), np.uint8(ord("0")))
+    body = np.empty((digits.size, 2), dtype=np.uint8)
+    body[:, 0] = digits
+    body[:, 1] = np.uint8(ord(","))
+    head = f"[{height},{width}".encode("ascii") + (b"," if digits.size else b"")
+    payload = head + body.reshape(-1)[:-1].tobytes() + b"]" if digits.size else head + b"]"
+    return hashlib.sha256(payload).hexdigest()
 
 
 def seal_episode(frames: Sequence[Mapping[str, Any]], *, frontend_config_sha256: str) -> dict[str, Any]:
@@ -561,8 +613,11 @@ __all__ = [
     "build_fragment",
     "check_volume_records",
     "fragment_aabb",
+    "frame_seal_payload",
+    "mask_sha256_of",
     "project_surface",
     "seal_episode",
     "sha",
     "validate_contract",
+    "verify_frame_seal",
 ]
