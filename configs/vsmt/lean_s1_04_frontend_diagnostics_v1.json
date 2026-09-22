@@ -1,0 +1,236 @@
+{
+  "schema_version": "vsmt-lean-s1-04-frontend-diagnostics-v1",
+  "decision_id": "D-224",
+  "stage_id": "S1-04",
+  "status": "implemented_pending_user_code_review",
+  "plain_language_zh": "本合同定义 S1-04 前端诊断：在 S1-03 的开发 cache 上，量冻结描述子（ViT-S/14、ViT-B/14）与共享 ReID 投影的跨视角分离度，用理想记忆报 recall_miss 随召回参数的曲线，统计单视角 fragment 盒对真值整物体盒的三维 IoU，并按裁决 45 用一次模拟器重载补出真值盒。输入是 cache、S1-02 的三面产物（private 在 cache 封印之后才打开）、ProcTHOR 源与模拟器；输出是几何表、分离度报告、召回曲线、IoU 报告、ReID 训练与回执。它不选描述子（S1-05）、不设任何臂的参数、不算任何论文指标、不读 validation/test。诊断用的 fragment 标注是严格多数规则、只作诊断，不是 S0-04 的 teacher。",
+  "pure_core_relative_path": [
+    "src/vsmt/lean_object_geometry.py",
+    "src/vsmt/lean_frontend_diagnostics.py",
+    "src/vsmt/lean_reid_head.py"
+  ],
+  "depends_on": {
+    "s0_02_contract": "configs/vsmt/lean_s0_intervention_data_v3.json",
+    "s0_03_contract": "configs/vsmt/lean_s0_assignment_v2.json",
+    "s0_04_contract": "configs/vsmt/lean_s0_teacher_metrics_v2.json",
+    "s1_03_contract": "configs/vsmt/lean_s1_03_frontend_cache_v1.json",
+    "d223_f01_contract": "configs/vsmt/vm04_d223_f01_production_reader_v1.json",
+    "reused_implementation": [
+      "src/vsmt/lean_assignment.py::recall_for_fragment",
+      "src/vsmt/l1_entities.py::_camera_values",
+      "ops/vsmt/vm04_two_house_worker.py::load_source_record,upgrade_house_schema_v1,bootstrap_house_agent"
+    ],
+    "note_zh": "召回诊断直接调用 S0-03 的召回函数而不重写；私有 mask 的反投影与 S1-03 的盒子用同一算式；house 重载沿用 S1-02 runner 的加载器。"
+  },
+  "authorization": {
+    "object_geometry_reload": false,
+    "private_plane_reading": false,
+    "fragment_mask_recovery": false,
+    "diagnostics_run": false,
+    "reid_adapter_head_training": false,
+    "server_run": false
+  },
+  "activation_policy": null,
+  "object_geometry": {
+    "decision_id": "D-224-S1 ruling 45",
+    "file": "object_geometry.json",
+    "fields": [
+      "object_id",
+      "asset_id",
+      "object_type",
+      "pickupable",
+      "receptacle",
+      "initial_position_world_m",
+      "initial_rotation_degrees",
+      "initial_aabb_center_world_m",
+      "initial_aabb_size_m"
+    ],
+    "truth_box_rule": "simulator_initial_axis_aligned_box_plus_recorded_translation",
+    "boxes_are_in_the_episode_frame": true,
+    "episode_origin": "camera position at observation 0, read at the house-authored agent pose of the reload",
+    "one_reload_per_episode_no_action_but_the_bootstrap_teleport": true,
+    "presence_rule": "a removed object is absent from the first frame after the unobservable window; every other object is present",
+    "relocated_position_rule": "placement point from the intervention log from the first frame after the window until a private record sees the object again",
+    "residual_checks": {
+      "drift_of_non_intervened_objects": true,
+      "drift_tolerance_m": 0.01,
+      "frame0_private_mask_containment": true,
+      "containment_margin_m": 0.05,
+      "containment_minimum_pixels": 196
+    },
+    "observed_set_box_is_a_proxy_comparison_column": true,
+    "no_generated_episode_file_is_modified": true,
+    "plain_language_zh": "每条 episode 重载 house 一次，站到起始位姿读所有物体的初始位置、朝向与轴对齐盒；第 t 帧的真值盒＝初始盒平移（记录位置−初始位置）再减去观测 0 的相机位置。两项残差：没被干预的物体在各帧记录的位置对重载初始位置的漂移（超 1 cm 即登记），帧 0 每个 ≥196 像素物体的私有 mask 反投影点落在其盒（外扩 5 cm）内的比例。观测集合盒只作对照列。"
+  },
+  "fragment_labelling": {
+    "rule": "strict_majority_of_fragment_pixels_on_one_private_instance",
+    "denominator": "all_fragment_pixels_background_included",
+    "majority_share_exclusive": 0.5,
+    "requires_fragment_masks": true,
+    "mask_source": "pending_ruling_48_the_cache_keeps_mask_sha256_only",
+    "labelling_is_diagnostic_only_not_the_s0_04_teacher": true,
+    "plain_language_zh": "诊断里一个色块属于哪个物体，看它的像素里哪个私有实例占了严格过半；没有过半就不标。它只用来算分离度、召回曲线和 IoU，不是 S0-04 的标签器（那个用登记的 dominance_min_share 与含糊规则）。色块像素需要 fragment 的 mask，而 cache 只存了 mask 摘要——待裁 48。"
+  },
+  "separation": {
+    "definition": "for a labelled fragment f of object o at frame t and another frame u where o is labelled: positive = cosine(d_f, mean descriptor of o at u); negative = max over other objects p labelled at u of cosine(d_f, mean descriptor of p at u); separation = positive - negative",
+    "descriptor_sets": [
+      "vits14",
+      "vitb14",
+      "reid_projection"
+    ],
+    "frames_per_fragment_cap": 8,
+    "fragments_per_object_cap": 64,
+    "sampling_seed": 20260922,
+    "statistics": [
+      "count",
+      "mean",
+      "median",
+      "p10",
+      "p25",
+      "p75"
+    ],
+    "reported_per_house_and_pooled": true,
+    "add_objects_reported_separately": true,
+    "plain_language_zh": "分离度＝同一物体在另一帧的描述子余弦，减去那一帧里别的物体的最高余弦。正数说明同物体跨视角比异物体更像。每个物体最多抽 64 个色块、每个色块最多配 8 个别的帧，用登记的种子抽，避免大物体主导。add 的物体来自未见池，单列。"
+  },
+  "recall_curve": {
+    "decision_id": "D-224-S1 ruling 46",
+    "memory": "ideal_memory_one_entity_per_truth_object_from_its_labelled_fragments_before_t",
+    "descriptor_mean": "l2_normalised_mean_of_labelled_fragment_descriptors",
+    "centroid": "mean_of_labelled_fragment_centroids",
+    "uses_s0_03_recall_for_fragment": true,
+    "grid": {
+      "local_count": [1, 2, 3, 5, 8],
+      "global_count": [0, 1, 2, 3, 5],
+      "local_radius_m": [0.5, 1.0, 1.5, 2.0, 3.0]
+    },
+    "birth_neighbourhood_radius_m_grid": [0.25, 0.5, 1.0],
+    "reported": [
+      "decisions",
+      "recall_miss",
+      "recall_miss_rate",
+      "memory_size_max",
+      "memory_size_p95"
+    ],
+    "split": "development_cache_only_never_validation_or_test",
+    "freeze_after_curve_once": true,
+    "plain_language_zh": "理想记忆：每个真值物体一条实体，描述子取它此前带标签色块的均值、质心取此前色块质心均值。对每帧每个带标签且物体已在记忆里的色块，按 S0-03 的召回函数在网格上判正确实体有没有被召回；漏召回率随 k、k′、半径的曲线只在开发 cache 上算，算完由用户一次性冻结四值。BIRTH 邻域半径报每个真 BIRTH 色块附近实体数的分布。"
+  },
+  "fragment_truth_iou": {
+    "truth_box": "ruling_45_translated_initial_box",
+    "proxy_column": "observed_set_box",
+    "gate_median_iou": 0.3,
+    "gate_is_a_pause_point_not_a_tuning_knob": true,
+    "statistics": [
+      "count",
+      "mean",
+      "median",
+      "p10",
+      "p25",
+      "p75"
+    ],
+    "reported_by_pickupable_and_receptacle": true,
+    "plain_language_zh": "每个带标签色块的单视角盒对其物体真值盒的三维 IoU。中位数低于 0.3 触发 PLAN 第九节的匹配口径裁决，不得在 S2 就地改 AABB 累积规则。对照列用观测集合盒算同一 IoU，只为显示代理量偏差。"
+  },
+  "coverage_ratios": {
+    "status": "deferred_to_s2_01",
+    "reason_zh": "应可见比例与自由空间覆盖比例要用 M_{t−1} 的实体盒查本帧体素，属 S2-01 的五臂共用在线函数；S1-04 不另写一份体素消费代码。"
+  },
+  "reid_training": {
+    "decision_id": "D-224-S1 ruling 47",
+    "architecture": "single_linear_layer_from_the_frozen_descriptor_to_128_then_l2_normalisation",
+    "output_dimension": 128,
+    "input_sets": [
+      "vits14",
+      "vitb14"
+    ],
+    "one_head_per_input_set_reported_separately": true,
+    "loss": "supervised_contrastive_over_labelled_fragments_of_training_houses",
+    "labels": "fragment_labelling of this contract on private truth, training houses only",
+    "holdout": {
+      "training_houses": 30,
+      "selection_houses": 12,
+      "order": "s0_02_house_split_rank_of_the_cached_development_episodes"
+    },
+    "temperature": null,
+    "epochs": null,
+    "batch_fragments": null,
+    "learning_rate": null,
+    "seed": null,
+    "proposed_values_zh": "temperature 0.07、epochs 20、batch_fragments 512、learning_rate 0.001、seed 20260922；用户审代码时一并冻结",
+    "trained_once_then_frozen": true,
+    "weights_file_carries_no_private_bytes": true,
+    "selection_rule_threshold": 0.05,
+    "plain_language_zh": "投影是一层线性映射加 L2 归一化，用前 30 条 house 的带标签色块做有监督对比学习训练一次；五个超参先登记为 null，用户冻结后才能训练。训练后在后 12 条 house 上量分离度，S1-05 按 0.05 的增益门二选一。"
+  },
+  "failure_reasons": [
+    "source_episode_not_succeeded",
+    "house_load_failed",
+    "metadata_missing_or_malformed",
+    "private_plane_missing_or_malformed",
+    "table_invalid",
+    "cache_missing_or_unsealed",
+    "fragment_masks_missing",
+    "training_diverged"
+  ],
+  "receipts": {
+    "geometry_fields": [
+      "episodes_planned",
+      "episodes_succeeded",
+      "episodes_failed",
+      "failure_receipts",
+      "objects_total",
+      "objects_without_box_total",
+      "drift_max_over_episodes_m",
+      "episodes_with_drift_over_tolerance",
+      "frame0_containment_median_over_episodes",
+      "frame0_containment_min_over_episodes",
+      "requested_workers",
+      "actual_workers",
+      "wall_clock_seconds"
+    ],
+    "diagnostics_fields": [
+      "episodes_used",
+      "episodes_skipped_no_cache",
+      "fragments_labelled",
+      "fragments_unlabelled",
+      "separation_by_set",
+      "recall_curve",
+      "fragment_truth_iou",
+      "code_commit",
+      "cache_episode_seals"
+    ],
+    "plain_language_zh": "几何回执报每条 episode 的重载结果与两项残差的汇总；诊断回执报用了哪些 episode（没有 cache 的按顺序跳过并计数）、标注成功率、三套分离度、召回曲线与 IoU 统计，并钉住所用 cache 的 episode 封印。"
+  },
+  "not_in_this_stage": [
+    "descriptor_selection",
+    "arm_parameters",
+    "arm_training",
+    "metrics",
+    "validation_or_test_reading",
+    "coverage_ratios"
+  ],
+  "policy_values_without_defaults": [
+    "reid_training.temperature",
+    "reid_training.epochs",
+    "reid_training.batch_fragments",
+    "reid_training.learning_rate",
+    "reid_training.seed"
+  ],
+  "continue_gate": {
+    "geometry_table_written_for_every_cached_episode_or_a_failure_receipt": true,
+    "residual_checks_reported_not_hidden": true,
+    "separation_and_recall_measured_on_the_development_cache_only": true,
+    "fragment_truth_median_iou_below_gate_pauses_for_a_ruling": true,
+    "reid_head_scored_on_selection_houses_only": true,
+    "plain_language_zh": "继续门：每条有 cache 的 episode 要么有几何表要么有失败回执；残差如实报；分离度与召回只在开发 cache 上量；IoU 中位数低于 0.3 停下等裁决；ReID 只在选择 house 上评分。通过只读检查不等于诊断已跑。"
+  },
+  "user_rulings": {
+    "decision_id": "D-224-S1",
+    "rulings": [
+      "D-224-S1 裁决 45（2026-09-22 批准，原话「裁决 45 取 (b) 模拟器重载读初始盒加记录平移，(a) 只作对照列」）。",
+      "D-224-S1 裁决 46（2026-09-22 批准，原话「裁决 46 取推荐，理想记忆口径认可，曲线出来后一次性冻结」）。",
+      "D-224-S1 裁决 47（2026-09-22 批准，原话「裁决 47 取进，output_dimension 填 128，训练/选择按 30/12 留出，threshold 取 0.05」）。"
+    ]
+  }
+}
