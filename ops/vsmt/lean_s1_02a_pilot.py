@@ -110,13 +110,22 @@ def intrinsics() -> dict[str, float]:
 
 
 def camera_pose(meta: dict[str, Any]) -> dict[str, Any]:
-    """Camera-to-world pose as {position_m, quaternion_xyzw} from AI2-THOR metadata."""
+    """Camera-to-world pose as {position_m, quaternion_xyzw} from AI2-THOR metadata.
+
+    Ry(yaw) * Rx(+pitch): ``cameraHorizon`` is positive when the agent looks down, and with this
+    sign the camera's forward axis (+z) gets a negative world-y component, as the VM-04 worker and
+    the D-223 back-projection have always assumed.  Ruling 49 (2026-09-22): until then this
+    function used Rx(-pitch), so every episode generated before it (c222c51, a397d16) carries a
+    quaternion that looks up by the pitch; readers correct those episodes through
+    ``vsmt.lean_public_pose`` under the S1-03 contract's ``public_pose_correction`` block, and the
+    generated files are never rewritten.
+    """
 
     cam = meta["cameraPosition"]
     yaw = math.radians(float(meta["agent"]["rotation"]["y"]))
     pitch = math.radians(float(meta["agent"]["cameraHorizon"]))  # positive = down
     cy_, sy_ = math.cos(yaw), math.sin(yaw)
-    cp_, sp_ = math.cos(-pitch), math.sin(-pitch)
+    cp_, sp_ = math.cos(pitch), math.sin(pitch)
     ry = np.array([[cy_, 0, sy_], [0, 1, 0], [-sy_, 0, cy_]])
     rx = np.array([[1, 0, 0], [0, cp_, -sp_], [0, sp_, cp_]])
     r = ry @ rx
