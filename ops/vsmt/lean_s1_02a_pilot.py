@@ -773,14 +773,15 @@ def _resolve_window(task: Mapping[str, Any]) -> tuple[str, int]:
 
 
 def _tail_window(transition: list[int], frames: int) -> tuple[list[int], list[int]]:
-    """Pending ruling 53, variant b: the window is the LAST ``frames`` frames of the transition and the
-    leave segment is what precedes them.  The transition target (the farthest reachable cell) and
-    ``frames`` are fixed before the walk, so the cut is not chosen by what was seen.
+    """Ruling 53: the unobservable window is the LAST ``frames`` frames of the transition and the leave
+    segment is what precedes them.  The transition target (the farthest reachable cell) and ``frames``
+    are fixed before the walk, so the cut is not chosen by what was seen.
 
-    白话（第二个探针口径）：第一个口径"到最远格后掉头再走 L 步"在小房子里段首两次转身就把容器看遍。
-    这里不再掉头：窗口就是"从最后视点走向最远格"这段路的**最后 L 帧**，前面的部分是离开段。目标格和
-    L 在走之前就定了，所以不是事后挑窗口。过渡不足 L 帧整条失败，不缩短。它复用离线估算用过的同一
-    条相机轨迹（旧 49 条过渡的最后 L 帧），所以那份估算对这个口径是精确的。
+    白话：这个函数决定"哪几帧算不可观测窗口"。输入是过渡段的起止观察序号和冻结的窗口长度 30，输出
+    是（离开段, 窗口段）两个区间。窗口＝"从最后视点走向最远可达格"这段路的最后 30 帧，之前的帧是离开
+    段：照常拍照观察，但不参与 U 的交集。例如过渡 95 帧，离开段是前 65 帧、窗口是后 30 帧；过渡只有
+    26 帧就整条失败，不缩短。它不等于"事后挑一段看起来不可见的帧"——目标格和长度在走之前就定了；也
+    不改封印规则、像素阈值或抽样。原先的整段口径在小房子里把每个容器都看到一次，被本裁决取代。
     """
 
     lo, hi = int(transition[0]), int(transition[1])
