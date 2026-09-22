@@ -435,6 +435,22 @@ class TestContract(unittest.TestCase):
         self.assertEqual(bound["sam2_automatic_mask_and_boundary_config_sha256"],
                          d215["sam2"]["automatic_mask_and_boundary_config_sha256"])
 
+    def test_the_pose_correction_block_is_bound_to_the_core_and_lists_only_registered_commits(self) -> None:
+        from vsmt import lean_public_pose as pp
+        block = self.contract["public_pose_correction"]
+        self.assertEqual(block["rule"], pp.CORRECTION_RULE)
+        self.assertEqual(block["defect"], pp.DEFECT_ID)
+        self.assertEqual(len(block["applies_to_s1_02_code_commits"]), 2)
+        self.assertTrue(all(len(c) == 40 for c in block["applies_to_s1_02_code_commits"]))
+        weakened = json.loads(json.dumps(self.contract))
+        weakened["public_pose_correction"]["an_episode_from_an_unlisted_commit_is_refused"] = False
+        with self.assertRaises(fc.LeanFrontendCacheError):
+            fc.validate_contract(weakened)
+        renamed = json.loads(json.dumps(self.contract))
+        renamed["public_pose_correction"]["rule"] = "something_else"
+        with self.assertRaises(fc.LeanFrontendCacheError):
+            fc.validate_contract(renamed)
+
     def test_the_proposal_boundary_is_the_d215_one(self) -> None:
         d215 = json.loads((PROJECT_ROOT / "configs" / "vsmt" /
                            "vm04_d215_frontend_freeze_v1.json").read_text(encoding="utf-8"))

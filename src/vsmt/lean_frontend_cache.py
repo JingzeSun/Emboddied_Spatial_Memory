@@ -27,6 +27,7 @@ from typing import Any, Mapping, Sequence
 import numpy as np
 
 from cpmt.hashing import canonical_json
+from vsmt import lean_public_pose
 from vsmt.l1_entities import _camera_values, backproject_public_entity_geometry
 from vsmt.shared_frontend_core import AnonymousMask, DINORegionConfig, PublicGeometryConfig
 
@@ -568,6 +569,20 @@ def validate_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
              "public_input_missing_or_malformed", "frame_failure_tolerated")
     _require(contract["seal"]["sealed_before_any_private_file_is_opened"] is True,
              "public_input_missing_or_malformed", "seal_after_private")
+    # Ruling 49: the pitch-sign correction every reader applies to pre-ruling S1-02 episodes is a
+    # rule of this contract, bound to the pure core so neither can drift from the other.
+    correction = contract["public_pose_correction"]
+    _require(correction["rule"] == lean_public_pose.CORRECTION_RULE
+             and correction["defect"] == lean_public_pose.DEFECT_ID,
+             "public_input_missing_or_malformed", "pose_correction_rule_changed")
+    _require(correction["an_episode_from_an_unlisted_commit_is_refused"] is True
+             and correction["position_is_unchanged"] is True
+             and correction["generated_s1_02_files_are_not_modified"] is True,
+             "public_input_missing_or_malformed", "pose_correction_claim_weakened")
+    listed = list(correction["applies_to_s1_02_code_commits"]) + list(correction["correct_encoder_since_code_commits"])
+    _require(all(type(c) is str and len(c) == 40 and all(ch in "0123456789abcdef" for ch in c) for c in listed)
+             and len(set(listed)) == len(listed),
+             "public_input_missing_or_malformed", "pose_correction_commit_list_invalid")
 
     open_slots = contract["policy_values_without_defaults"]
     _require(contract["volumes"]["free_space_reliability_gate_rho_free"] is None

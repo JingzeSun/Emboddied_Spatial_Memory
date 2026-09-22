@@ -285,7 +285,11 @@ FROZEN_RULE_SHA256 = {
     "S0-05": "c5354b1e71936d345823630b6533b03329435de104e258785fdb89e17934c54a",
     "S1-01": "4f139e631388c05e4006fd12ffad8b611d2e7811fb7f9a830ce9f7c63fdecd84",
     "S1-02a": "997cabe5105ca304269b0d8d9dd34038ff096df7a79c875c577a2629866ccc64",
-    "S1-03": "e4d8a52e9866a9020dccca11159bdbe148a910ef41e2a341c01c7707d12ff6b8",
+    # S1-03 re-pinned 2026-09-22 for ruling 49 (LOG-242): the public_pose_correction block -- every
+    # reader restores the pitch sign of the S1-02 public quaternion for episodes from the two
+    # registered pre-ruling generator commits, refuses unregistered commits, never rewrites the
+    # generated files; --masks-from reads recovered masks instead of running SAM.
+    "S1-03": "082e1c02d28f94a95ca73c9e2b81931096f78d0af7faaa728bb35735384045e0",
     # S1-04 v1 (2026-09-22, rulings 45/46/47): first pinned with every bit closed
     # (2fff2d19...); re-pinned the same day when ruling 48 and the user's code review opened
     # all six bits by name in activation_policy (the bits are rules of who may run what, as
