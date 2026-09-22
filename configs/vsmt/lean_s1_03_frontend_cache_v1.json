@@ -153,7 +153,7 @@
     "content": "row-major packed bits per mask plus each mask's sha256 and the frame shape",
     "digest_must_reproduce_from_pixels": true,
     "consumer_must_re_digest_before_use": true,
-    "not_covered_by_a_new_seal_the_frame_already_binds_every_mask_sha256": true,
+    "no_new_seal_because_the_frame_seal_already_binds_every_mask_digest": true,
     "separate_recovery_pass_no_longer_required": true,
     "recovery_pass_kept_for_caches_generated_before_this_ruling": true,
     "plain_language_zh": "裁决 51：SAM 的 mask 本来就在内存里，生成时顺手按 cache 的色块顺序写成 NNNN.masks.npz 放在帧文件旁边（每帧约 6 KiB，帧本身约 224 KiB）。这样 S0-04 的重叠标注和 S1-04 的诊断标注直接从 cache 读 mask，不再需要裁决 48 那趟只跑 SAM 的回收（约 13 小时 GPU）。不另加封印：帧封印已经覆盖每个色块的 mask_sha256，读者必须按像素重算摘要再用，对不上就失败。旧 cache 仍可用 --recover-masks 补，回收模式保留。"

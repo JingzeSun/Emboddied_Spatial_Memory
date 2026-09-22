@@ -296,7 +296,11 @@ FROZEN_RULE_SHA256 = {
     # Re-pinned 2026-09-23 when the ruling-50 regeneration finished: its generator commit 7c10d2c
     # writes Ry(yaw)*Rx(+pitch), so it joins correct_encoder_since_code_commits and every reader
     # takes its episodes as written.  ee591bec -> 03bfd56d.
-    "S1-03": "03bfd56d2803143386b1f598f2496af78c29658c85023105dcfde3ee180556e5",
+    # Re-pinned once more the same day: one fragment_masks key was named *_sha256 while holding a
+    # boolean, which the config digest-shape guard rightly refused; renaming it to
+    # no_new_seal_because_the_frame_seal_already_binds_every_mask_digest changes no rule.
+    # 03bfd56d -> 2a17546f.
+    "S1-03": "2a17546f3bc5c8801376643b37337f2ce8d74fcc9542a045515a68b7a44f872f",
     # S1-04 v1 (2026-09-22, rulings 45/46/47): first pinned with every bit closed
     # (2fff2d19...); re-pinned the same day when ruling 48 and the user's code review opened
     # all six bits by name in activation_policy (the bits are rules of who may run what, as
