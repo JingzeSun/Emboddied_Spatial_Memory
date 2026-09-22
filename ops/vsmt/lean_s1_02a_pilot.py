@@ -750,6 +750,24 @@ def _farthest_cell(cells: set, origin: tuple[int, int], blocked: set) -> tuple[i
     return max(sorted(component), key=lambda c: (len(lean_route.bfs_path(cells, origin, c, blocked)), c))
 
 
+def _tail_window(transition: list[int], frames: int) -> tuple[list[int], list[int]]:
+    """Pending ruling 53, variant b: the window is the LAST ``frames`` frames of the transition and the
+    leave segment is what precedes them.  The transition target (the farthest reachable cell) and
+    ``frames`` are fixed before the walk, so the cut is not chosen by what was seen.
+
+    白话（第二个探针口径）：第一个口径"到最远格后掉头再走 L 步"在小房子里段首两次转身就把容器看遍。
+    这里不再掉头：窗口就是"从最后视点走向最远格"这段路的**最后 L 帧**，前面的部分是离开段。目标格和
+    L 在走之前就定了，所以不是事后挑窗口。过渡不足 L 帧整条失败，不缩短。它复用离线估算用过的同一
+    条相机轨迹（旧 49 条过渡的最后 L 帧），所以那份估算对这个口径是精确的。
+    """
+
+    lo, hi = int(transition[0]), int(transition[1])
+    if hi - lo < frames:
+        raise PilotFailure("intervention_window_unavailable",
+                           f"transition {hi - lo} < {frames} frames for the tail window; not shortened")
+    return [lo, hi - frames], [hi - frames, hi]
+
+
 def _walk_window_segment(controller: Any, ep: Episode, cells: set, blocked: set, replans: list[dict[str, Any]], *,
                          frames: int, replan_on: bool) -> dict[str, Any]:
     """Pending ruling 53 probe: after the transition, keep walking towards the cell farthest from
@@ -874,12 +892,25 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
         # pending ruling 53 probe: an optional window segment of exactly window_segment_frames actions
         # walked after the transition; U is then computed on that segment only (0 = frozen whole-transition rule)
         seg_frames = int(task.get("window_segment_frames", 0) or 0)
-        window_segment = (_walk_window_segment(controller, ep, cells, blocked, replans, frames=seg_frames, replan_on=replan_on)
-                          if seg_frames > 0 else None)
+        window_mode = str(task.get("window_mode") or ("u_turn" if seg_frames > 0 else "whole_transition"))
+        window_segment = None
+        leave = tr
+        if seg_frames > 0 and window_mode == "u_turn":
+            window_segment = _walk_window_segment(controller, ep, cells, blocked, replans, frames=seg_frames, replan_on=replan_on)
+            window_segment["mode"] = "u_turn"
+        elif seg_frames > 0 and window_mode == "transition_tail":
+            leave, tail = _tail_window(tr, seg_frames)
+            window_segment = {"mode": "transition_tail", "segment": tail, "frames_requested": seg_frames, "frames_walked": seg_frames,
+                              "transition_frames": tr[1] - tr[0], "leave_segment": leave,
+                              "rule": "window_is_the_last_L_frames_of_the_transition_to_the_farthest_cell"}
+            (ep.prov / "window_segment.json").write_text(json.dumps(window_segment, indent=1))
+        elif seg_frames > 0:
+            raise PilotFailure("intervention_window_unavailable", f"unknown window_mode {window_mode}")
         window = list(window_segment["segment"]) if window_segment else tr
         segments = {"sweep_one": s1, "transition": tr}
         if window_segment:
             segments["window_segment"] = window
+            segments["leave_segment"] = leave
         plan1 = dict(plan1, segments=segments, blocked_edges=sorted([list(c) for c in sorted(e)] for e in blocked),
                      replans=replans, executed_actions=len(ep.actions_done) - 1, viewpoint_reselections=list(reselections),
                      floor_excluded=floor_excluded)
@@ -890,8 +921,8 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
         invisible, verdicts = _invisible_set(ep, subjects, tuple(window))
         (ep.prov / "window_verdicts.json").write_text(json.dumps(
             {"window": window, "frames": window_frames,
-             "window_protocol": ("two_segment_probe_pending_ruling_53" if window_segment else "whole_transition"),
-             "leave_segment": (tr if window_segment else None), "window_segment": window_segment,
+             "window_protocol": (f"probe_pending_ruling_53_{window_mode}" if window_segment else "whole_transition"),
+             "leave_segment": (leave if window_segment else None), "window_segment": window_segment,
              "invisible": sorted(invisible), "subjects": subject_frames, "verdicts": verdicts}, indent=1))
         # ruling 34 (twin control): every episode, null or not, builds U, F, the sample and the controls;
         # a null episode skips only the execution
@@ -1009,8 +1040,8 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
                         "controls": len(control_ids), "controls_outside_U": controls["from_outside_U"], "controls_shortfall": controls["shortfall"],
                         "moves_executed": len(moves), "moves_source_first": moves_source_first,
                         "viewpoint_reselections": len(reselections), "sweep_two_actions": s2[1] - s2[0],
-                        "window_protocol": ("two_segment_probe_pending_ruling_53" if window_segment else "whole_transition"),
-                        "leave_segment_frames": tr[1] - tr[0], "window_segment": window_segment})
+                        "window_protocol": (f"probe_pending_ruling_53_{window_mode}" if window_segment else "whole_transition"),
+                        "leave_segment_frames": leave[1] - leave[0], "window_segment": window_segment})
     except lean_route.LeanRouteError as f:
         receipt.update({"status": "failed", "reason": "route_not_placeable", "detail": f"{f} | {traceback.format_exc()[-600:]}"})
     except PilotFailure as f:
@@ -1095,6 +1126,9 @@ def main() -> int:
     ap.add_argument("--window-segment-frames", type=int, default=0,
                     help="window-probe only (pending ruling 53): after the transition walk exactly this many actions "
                          "towards the farthest cell and compute U on that segment; 0 = the frozen whole-transition rule")
+    ap.add_argument("--window-mode", choices=["whole_transition", "u_turn", "transition_tail"], default="whole_transition",
+                    help="window-probe only: u_turn = after the transition walk L more actions towards the farthest cell "
+                         "(first probe); transition_tail = the window is the last L frames of the transition itself")
     ap.add_argument("--probe-note", default="",
                     help="window-probe: who authorised the probe and what it estimates; written to the plan and receipt")
     ap.add_argument("--private-salt-file", required=True,
@@ -1268,8 +1302,8 @@ def main_window_probe(args: argparse.Namespace) -> int:
     """
 
     houses = [h for h in args.houses.split(",") if h]
-    if not houses or args.window_segment_frames <= 0 or not args.probe_note:
-        print("window-probe needs --houses, --window-segment-frames > 0 and --probe-note"); return 2
+    if not houses or args.window_segment_frames <= 0 or not args.probe_note or args.window_mode == "whole_transition":
+        print("window-probe needs --houses, --window-segment-frames > 0, --window-mode u_turn|transition_tail and --probe-note"); return 2
     out_root = Path(args.output_root)
     if out_root.exists() and any(out_root.glob("procthor10k-*")):
         print("output root already holds houses; refusing (a probe never overwrites)"); return 3
@@ -1281,7 +1315,7 @@ def main_window_probe(args: argparse.Namespace) -> int:
     source = Path(args.source)
     workers = max(1, min(args.workers or 1, len(houses)))
     plan = {"stage": "window-probe", "pending_ruling": "D-224-S1 ruling 53 (proposal, not approved)", "probe_note": args.probe_note,
-            "window_segment_frames": args.window_segment_frames, "houses": houses, "commit": commit, "split": freeze,
+            "window_segment_frames": args.window_segment_frames, "window_mode": args.window_mode, "houses": houses, "commit": commit, "split": freeze,
             "requested_workers": args.workers, "actual_workers": workers,
             "not_s1_02_data": "S0-02 window rule unchanged; this commit is not in the S1-03 encoder registry, readers refuse it",
             "null_window_salt_sha256": sha_bytes(args.private_salt.encode("utf-8"))}
@@ -1292,7 +1326,7 @@ def main_window_probe(args: argparse.Namespace) -> int:
               "stratify_by_kind": args.stratify_by_kind, "add_source": args.add_source,
               "destination_points": args.destination_points, "placement_prescreen": args.placement_prescreen,
               "dry_run_destinations_per_object": args.dry_run_destinations_per_object,
-              "window_segment_frames": args.window_segment_frames} for h in houses]
+              "window_segment_frames": args.window_segment_frames, "window_mode": args.window_mode} for h in houses]
     t0 = time.time()
     fresh = _run_with_timeout(tasks, workers, args.stall_timeout_s, commit)
     wall = time.time() - t0

@@ -139,6 +139,19 @@ class TestWindowSegment(unittest.TestCase):
         self.assertIn("5 actions", caught.exception.detail)
         self.assertTrue((self.out / "provenance" / "window_segment.json").exists())
 
+    def test_tail_window_is_the_last_L_frames_and_the_leave_segment_precedes_it(self) -> None:
+        leave, window = runner._tail_window([10, 70], 40)
+        self.assertEqual(window, [30, 70])
+        self.assertEqual(leave, [10, 30])
+        leave, window = runner._tail_window([10, 50], 40)   # exactly L: an empty leave segment is allowed
+        self.assertEqual((leave, window), ([10, 10], [10, 50]))
+
+    def test_tail_window_fails_a_short_transition_instead_of_shortening(self) -> None:
+        with self.assertRaises(runner.PilotFailure) as caught:
+            runner._tail_window([10, 36], 40)
+        self.assertEqual(caught.exception.reason, "intervention_window_unavailable")
+        self.assertIn("26 < 40", caught.exception.detail)
+
     def test_zero_frames_means_the_frozen_rule(self) -> None:
         # the runner only calls the segment walker when window_segment_frames > 0; the task default is 0
         self.assertEqual(int({}.get("window_segment_frames", 0) or 0), 0)
