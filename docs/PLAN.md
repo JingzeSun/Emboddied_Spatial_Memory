@@ -152,7 +152,7 @@ S4 论文
 
 | 项 | 内容 |
 |---|---|
-| 状态 | **裁决 45～47 已落地（2026-09-22，LOG-241）；合同、几何重载工具、诊断纯核心与 runner 按单一职责分提交实现，待用户代码审查；未运行**。前置：S1-03 cache 收尾（38/43，01451 溢出失败，至多 42 条）与待裁 48（fragment mask 回收） |
+| 状态 | **裁决 45～47 已落地（2026-09-22，LOG-241）；已实现待审、未运行**：合同 [`lean_s1_04_frontend_diagnostics_v1.json`](../configs/vsmt/lean_s1_04_frontend_diagnostics_v1.json)（六个授权位全 false，五个 ReID 训练值为 null）、几何纯核心 [`lean_object_geometry.py`](../src/vsmt/lean_object_geometry.py) 与重载工具 [`lean_s1_04_object_geometry.py`](../ops/vsmt/lean_s1_04_object_geometry.py)（裁决 45）、诊断纯核心 [`lean_frontend_diagnostics.py`](../src/vsmt/lean_frontend_diagnostics.py)（裁决 46）、ReID 核心 [`lean_reid_head.py`](../src/vsmt/lean_reid_head.py)（裁决 47）、诊断 runner [`lean_s1_04_diagnostics.py`](../ops/vsmt/lean_s1_04_diagnostics.py)、S1-03 runner 的 `--recover-masks` 模式（待裁 48）；六个新测试模块共 37 项本地通过，S1-04 v1 规则摘要已钉进跨合同测试。前置：S1-03 cache 收尾（42/43，01451 溢出失败，至多 42 条）、待裁 48（fragment mask 回收）、用户审代码并冻结五个 ReID 训练值 |
 | 输入 | S1-03 cache；S1-02 三面产物（private 在 cache 封印之后打开，本阶段是诊断而非训练）；ProcTHOR 源与模拟器环境（裁决 45 的一次重载） |
 | 完整动作 | 量冻结描述子（ViT-S/14、ViT-B/14）与共享 ReID 投影三者的跨视角分离度分布，即同物体跨视角余弦减异物体余弦；按 S0-03 召回规则算 recall_miss@k；统计应可见、自由空间覆盖比例分布；**统计单视角 fragment AABB 对真值整物体 AABB 的三维 IoU 分布**（BIND 用单视角 AABB 覆盖实体 AABB，而节点匹配用裁决 C 冻结的 IoU 0.3、选配置又用节点 F1；若中位 IoU 不到 0.3，所有臂的 F1 接近 0，选参变噪声；D-224-X）。**裁决 45～47 追加（2026-09-22）**：(45) 真值盒来源为每条 episode 在模拟器重载一次读初始 `axisAlignedBoundingBox` 与朝向，逐帧盒＝初始盒＋私有记录平移、换到 episode 系，写按 episode 的私有 `object_geometry.json`；工具报未干预物体的位置漂移与帧 0 反投影包含率作残差；观测集合盒只作对照列。(46) recall_miss 曲线用理想记忆（每个真值物体一条实体、描述子与质心取其此前带标签 fragment 的均值）在开发 cache 上按 k、k′、半径网格报，曲线出来后一次性冻结四值。(47) ReID 投影 128 维，在开发 cache 的前 30 条 house 上用私有实例标签训练一次，只在后 12 条上量分离度 |
 | 输出 | 分离度报告、recall_miss 报告、fragment-真值 IoU 报告 |
