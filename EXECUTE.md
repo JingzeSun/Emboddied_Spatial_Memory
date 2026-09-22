@@ -3248,3 +3248,23 @@ SAM（1,024 个提示点、batch 64）已把 GPU 占满：2 进程的时间片�
 **附带暴露（本裁决未覆盖，待只读复核）**：S1-02 runner 生成时也用同一位姿做了容器可见性封印（`seal_public_visibility_subject`）与不可观测窗口判定（`_invisible_set`，把封印主体重投影到过渡帧上数未遮挡样本）。封印帧与过渡帧 yaw 相同时误差抵消，yaw 不同时不抵消，所以已生成 episode 的"窗口内不可见"判定有可能偏向误判为不可见。复核办法：用修正位姿重算 43 条的 `window_verdicts`，与 provenance 里存的比对；若有 episode 的判定翻转，交用户裁决，不自行改数据。
 
 服务器全量 **1454/1454 通过**（`d8a6f02`，独立 worktree `/root/autodl-tmp/vsmt_review_d8a6f02`，运行中的 `608a7fd` checkout 未动）。未跑：cache 重建、几何重跑、诊断，都等 mask 回收结束（17:22 时 5/42 条回执，每帧约 2.5 s，预计次日清晨）。
+
+### 五、为重建腾空间的清理，以及其中一次归档失败造成的证据丢失（2026-09-22 晚）
+
+用户授权删除服务器上没用的或可丢弃的旧数据。数据盘重建需要约 8.7 GB，当时只剩 15 GB。按精确路径删除了 14 个根与 2 个已完成的 review worktree，数据盘 36 GB 用量降到 28 GB，可用 15 GB → **23 GB**：
+
+| 删除对象 | 大小 | 为什么可删 |
+|---|---|---|
+| `lean-s1-02a-4bff1a8` | 912 MB | 第二次重生成，被裁决 33～38 取代；阶段报告已在 `results/vsmt_lean_s1_02a_report_4bff1a8.json` |
+| `lean-s1-02a-c222c51-superseded-by-ruling-40`、`lean-s1-02b-c222c51-superseded-by-ruling-40` | 490 MB＋1.5 GB | 裁决 40 抬上限前触顶的 6 条，已重生成 |
+| `lean-s1-02b-c222c51-interrupted-by-instance-shutdown` | 1.5 GB | 实例停机中断的 8 条，已在克隆机上续跑完成 |
+| `lean-s1-03-edae0b5-superseded-by-196px-fix` | 1.1 GB | 196 像素 bug 的作废 cache（裁决 44） |
+| `lean-s1-03-da237d8-w{1,2,4}-trial` | 81 MB | worker 测速试跑，数字已进 LOG-240 与当前运行的 `worker_basis` |
+| `vsmt_smoke/` 六个根 | 2.6 GB | S1-02 开发期 smoke，结论在 LOG-235～237，probe 导出仍在 `vsmt_probe/exports/` |
+| worktree `vsmt_review_1d0bc08`、`vsmt_review_f729079` | 各 14 MB | 测试用，提交都在 `origin/s1-02a-runner` |
+
+**失败并造成损失，如实登记**：删除前本应先把每个根里的 JSON 回执打成 `vsmt_archives/<root>-json.tar.gz` 留档，但归档命令用了 GNU tar 不存在的 `--include` 选项，14 次归档**全部失败**，而删除步骤没有以归档成功为前提、照常执行。`/root/autodl-tmp/vsmt_archives/` 为空。因此以下逐 episode 原始回执与 provenance 不可恢复：裁决 40 取代的 6 条、中断的 8 条、`edae0b5` 的 12 条、3 个试跑回执、24 个 smoke episode 目录。
+
+仍然保留的证据：`results/` 里 `0bfbbc2`、`4bff1a8`、`c222c51` 三代的阶段级导出报告与 `vsmt_lean_s1_03_report_c993959.json`；服务器 `vsmt_probe/exports/` 的六份探测导出；LOG-235～240 的文字记录与 DECISIONS 的裁决文本。没有任何**已登记结果**依赖被删数据——丢的是这些结果背后的逐条原始回执细节。教训写在这里：删除脚本必须以归档产物存在且条目数大于零为删除前提，不能把归档与删除写成两个互不检查的步骤。
+
+存量未删（不在本次授权的"可丢弃"范围内，需另行裁决）：`vsmt-vm04-estimator-development-0c4f9851006d` 5.5 GB（旧 estimator 路线产物，D-062 明确要求保留旧结果与复现路径）、系统盘上两个 VM-04 worktree 各 353 MB。
