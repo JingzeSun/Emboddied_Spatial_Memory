@@ -307,6 +307,29 @@
     "object_visibility",
     "frame_digest"
   ],
+  "private_house_geometry": {
+    "plane": "private",
+    "file": "object_geometry.json",
+    "one_per_episode": true,
+    "written_by_the_episode_runner": false,
+    "written_by": "the S1-04 object geometry tool, one house reload per episode after generation, under the S1-04 output root",
+    "fields": [
+      "object_id",
+      "asset_id",
+      "object_type",
+      "pickupable",
+      "receptacle",
+      "initial_position_world_m",
+      "initial_rotation_degrees",
+      "initial_aabb_center_world_m",
+      "initial_aabb_size_m"
+    ],
+    "episode_origin_world_m_recorded": true,
+    "never_readable_by_a_deployment_reader": true,
+    "frozen_by": "D-224-S1 ruling 45",
+    "frozen_on": "2026-09-22",
+    "plain_language_zh": "私有面除逐帧记录外，每条 episode 另有一份按 house 的物体几何表：模拟器重载一次读到的每个物体的初始位置、朝向、轴对齐盒中心与尺寸，以及观测 0 的相机世界位置（把世界坐标换到 episode 系用）。它由 S1-04 的工具在生成之后写出，不由 episode runner 写，也不动已生成的三面文件；部署 reader 永远读不到它。"
+  },
   "forbidden_public_keys": [
     "house_id",
     "scene_name",
@@ -381,7 +404,8 @@
       "D-224-S1 裁决 25～32（2026-09-20 批准，28 作废）：门未过后在新提交下按同一 seed 重生成全部 50 条；remove 用 DisableObject；被拒绝格间边重规划（上限 32）；抽样先类型后三元组；add 改为搬运从未渲染过的真实物体（SpawnAsset 复制件不进实例分割）；move/add 的目的对须通过窗口内 dry-run（放一次、视点偷看 ≥196 px、TeleportObject 放回，最多 32 点）；每目的容器每 episode 至多一次放置。",
       "D-224-S1 裁决 33～38（2026-09-21 批准，原话“裁决 34 取双生控制；封印帧改最佳帧；move 下限 N=120/60；null 抽签加私有盐；像素计数限扫掠一；coverage_definition 随 34 改写；以上落地后第三次重生成全部 50 条”）：扫掠二重访被干预容器加同样多个持有已见物体的 U 内对照容器、顺序按派生 RNG 交错；空窗口 episode 走同一流程只跳过执行；容器可见性主体从扫掠一像素最多的帧封印；train 块 move ≥120、源先重访 ≥60；空窗口抽签混入仓库外私有盐（provenance 只登记 sha256）；合格物体像素只数扫掠一帧；coverage_definition 改写并重钉规则摘要。",
       "D-224-S1 裁决 40（2026-09-21 批准，原话“裁决 40 取调高：maximum_actions 改为 4000，口径写为范围边界，台账记 superseded；本次 50 条跑完后按新值重生成受影响的 house”）：route.maximum_actions 2000 → 4000，台账记 superseded，口径为范围边界；S1 的 50 条跑完后只重生成触顶失败的 house，其余不动。",
-      "D-224-S1 裁决 39／41（2026-09-21 批准，原话“裁决 41 取 (b)；裁决 39 取 (a) m=8；删除 3272d11、12d4209 与两份 interrupted 产物”）：dry-run 每个候选物体只随机测 U 里至多 8 个目的容器（新 RNG 标签 dry_run_order；0 为复算 S1 的全测），回执记 pairs_tested／pairs_total／比值估计；对照规则不变，U 内／U 外比例如实报告、U 外对照单列为较弱对照。"
+      "D-224-S1 裁决 39／41（2026-09-21 批准，原话“裁决 41 取 (b)；裁决 39 取 (a) m=8；删除 3272d11、12d4209 与两份 interrupted 产物”）：dry-run 每个候选物体只随机测 U 里至多 8 个目的容器（新 RNG 标签 dry_run_order；0 为复算 S1 的全测），回执记 pairs_tested／pairs_total／比值估计；对照规则不变，U 内／U 外比例如实报告、U 外对照单列为较弱对照。",
+      "D-224-S1 裁决 45（2026-09-22 批准，原话「裁决 45 取 (b) 模拟器重载读初始盒加记录平移，(a) 只作对照列」）：私有面登记按 house 的物体几何表 object_geometry.json（S1-04 工具重载一次写出，不改已生成文件），真值盒＝初始盒＋记录平移；观测集合盒只作对照列。"
     ]
   }
 }

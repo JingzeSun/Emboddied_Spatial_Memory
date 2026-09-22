@@ -53,7 +53,11 @@
     "global_count": null,
     "local_radius_m": null,
     "birth_neighbourhood_radius_m": null,
-    "plain_language_zh": "召回取两条通道的并集：本地通道在登记半径内按余弦取前 k 个；全局通道对 active/dormant/retracted 一视同仁、不设距离上限、按余弦取前 k′ 个。例如杯子从厨房搬到卧室后，全局通道仍能把旧杯子召回来。全局通道之所以不分状态，是因为 AssocOnly 消融根本没有 dormant/retracted 状态：若只给这两种状态远距资格，AssocOnly 的旧实体会留在原地被距离门挡成 BIRTH，比较就同时混入了“有没有生命周期词表”和“有没有远距候选资格”两件事，而 D-224-HIJ 要的是前者的纯反事实。并列按 entity_id 字典序。四个数值待冻结，当前为 null。"
+    "four_values_frozen_once_after_the_s1_04_curve": true,
+    "curve_is_measured_on_the_development_cache_only": true,
+    "ideal_memory_diagnostic": "defined in the S1-04 contract: one entity per truth object observed before frame t, descriptor mean and centroid from its labelled fragments so far; measures the frontend recall ceiling independent of any arm",
+    "chosen_by_maximum_memory_size_not_per_arm": true,
+    "plain_language_zh": "召回取两条通道的并集：本地通道在登记半径内按余弦取前 k 个；全局通道对 active/dormant/retracted 一视同仁、不设距离上限、按余弦取前 k′ 个。例如杯子从厨房搬到卧室后，全局通道仍能把旧杯子召回来。全局通道之所以不分状态，是因为 AssocOnly 消融根本没有 dormant/retracted 状态：若只给这两种状态远距资格，AssocOnly 的旧实体会留在原地被距离门挡成 BIRTH，比较就同时混入了“有没有生命周期词表”和“有没有远距候选资格”两件事，而 D-224-HIJ 要的是前者的纯反事实。并列按 entity_id 字典序。四个数值待冻结，当前为 null；按裁决 46（2026-09-22），S1-04 先在开发 cache 上用私有真值构造的理想记忆报 recall_miss 随 k、k′、半径的曲线，然后一次性冻结，此后不改，全程不碰 validation/test。"
   },
   "association_feature_order": [
     "cosine_to_descriptor_mean",
@@ -178,9 +182,24 @@
     "selection_stage": "S1-05",
     "selection_rule": "highest_cross_view_separation_on_the_development_split",
     "must_report_frozen_descriptor_baseline_if_selected": true,
-    "output_dimension": null,
-    "selection_rule_threshold": null,
-    "plain_language_zh": "共享 ReID 适配头是冻结 DINO 描述子之上的一个投影，用 train 划分 house 的实例级对比损失训练一次后冻结，五个臂逐字节共用同一投影，因此不是 VSMT-lean 的私有优势。它在 S1-04 与原始冻结描述子一同量跨视角分离度，由 S1-05 二选一；不计入任何方法的 12 个配置额度。若被选中，论文必须同时报告冻结描述子基线。输出维度与选择阈值待冻结，当前为 null。"
+    "output_dimension": 128,
+    "selection_rule_threshold": 0.05,
+    "values_frozen_by": "D-224-S1 ruling 47",
+    "values_frozen_on": "2026-09-22",
+    "selection_rule_threshold_semantics": "minimum gain in median cross-view separation of the projection over the best frozen descriptor, measured on the selection houses only; below the threshold the frozen descriptor is kept",
+    "holdout": {
+      "development_block_ordered_by_hash_prefix": true,
+      "training_houses": 30,
+      "selection_houses": 12,
+      "training_houses_are_the_first_30_of_the_cached_development_block": true,
+      "selection_houses_are_the_last_12_of_the_cached_development_block": true,
+      "training_and_selection_houses_are_disjoint": true,
+      "contrastive_labels_come_from_private_truth_on_training_houses_only": true,
+      "separation_for_selection_is_measured_on_selection_houses_only": true,
+      "a_house_without_a_cache_is_skipped_and_counted_never_replaced": true,
+      "plain_language_zh": "投影用前 30 条开发 house 的私有实例标签训练，只在后 12 条上量分离度并与冻结描述子比；两组按哈希前缀顺序切、互不重叠。若在训练过的 house 上评自己，投影会显得比实际好，二选一就不公平。没有 cache 的 house（例如 01451 因提案溢出失败）按顺序跳过并计数，不拿别的 house 顶替。"
+    },
+    "plain_language_zh": "共享 ReID 适配头是冻结 DINO 描述子之上的一个投影，用 train 划分 house 的实例级对比损失训练一次后冻结，五个臂逐字节共用同一投影，因此不是 VSMT-lean 的私有优势。它在 S1-04 与原始冻结描述子一同量跨视角分离度，由 S1-05 二选一；不计入任何方法的 12 个配置额度。若被选中，论文必须同时报告冻结描述子基线。输出维度 128（D-224-E 原话，裁决 47 于 2026-09-22 入台账）；选择阈值 0.05 余弦（裁决 47）：投影在 12 条选择 house 上的中位跨视角分离度至少比最好的冻结描述子高 0.05 才入选，否则保留冻结描述子。"
   },
   "not_in_this_stage": [
     "teacher_labels",
@@ -195,9 +214,7 @@
     "recall_rule.local_radius_m",
     "recall_rule.birth_neighbourhood_radius_m",
     "cost_matrix.existence_threshold_tau_r",
-    "seal.reference_score_seed",
-    "reid_adapter_head.output_dimension",
-    "reid_adapter_head.selection_rule_threshold"
+    "seal.reference_score_seed"
   ],
   "continue_gate": {
     "private_mutation_leaves_every_feature_table_and_logits_byte_identical": true,
@@ -251,5 +268,12 @@
     "v1_sha256": "e6d8e3808365e4bd2f99b15d7394c4b13399e311f85d41e0ade30443861db6ca",
     "v1_bytes_frozen": true,
     "note_zh": "v1 已于 2026-09-20 经用户审查通过（D-224-R），字节冻结不改；v2 只更新求解器规范化的描述与复杂度（D-224-X 裁决 X5），召回、特征、代价矩阵、封存与继续门逐字不变。"
+  },
+  "user_rulings": {
+    "decision_id": "D-224-S1",
+    "rulings": [
+      "D-224-S1 裁决 46（2026-09-22 批准，原话「裁决 46 取推荐，理想记忆口径认可，曲线出来后一次性冻结」）：召回四值留 null，S1-04 在开发 cache 上用理想记忆报曲线后一次冻结；理想记忆只作诊断、不进任何臂。",
+      "D-224-S1 裁决 47（2026-09-22 批准，原话「裁决 47 取进，output_dimension 填 128，训练/选择按 30/12 留出，threshold 取 0.05」）：output_dimension=128 与 selection_rule_threshold=0.05 入台账；holdout 规则就地写入并重钉规则摘要。"
+    ]
   }
 }

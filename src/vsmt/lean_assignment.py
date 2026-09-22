@@ -101,6 +101,17 @@ BIRTH_COLUMN_PREFIX = "birth:"
 #: keeps the convention out of a bare literal.
 UP_AXIS_INDEX = 1
 
+#: Shared ReID adapter head (D-224-E), values ledgered by D-224-S1 ruling 47 (2026-09-22):
+#: the projection is 128-dimensional (D-224-E's own words) and it is selected in S1-05 only
+#: if its median cross-view separation on the selection houses beats the best frozen
+#: descriptor by at least this cosine margin.  The projection is trained on the first 30
+#: cached development houses and judged on the last 12, so it is never scored on a house
+#: it was fitted to.
+REID_OUTPUT_DIMENSION = 128
+REID_SELECTION_RULE_THRESHOLD = 0.05
+REID_TRAINING_HOUSES = 30
+REID_SELECTION_HOUSES = 12
+
 
 class LeanAssignmentError(ValueError):
     """Raised for any malformed frame, memory view, rule value or matrix."""
@@ -1190,6 +1201,16 @@ def validate_assignment_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
         "contract_reid_budget_mismatch",
     )
 
+    # A registered value is either still open, and then it must say so in
+    # policy_values_without_defaults, or frozen, and then it must have left
+    # that list and equal the constant this implementation binds (D-224-S1
+    # ruling 24: values change only by ledger).  Requiring null outright made
+    # it impossible to ever record the value the contract was written to carry.
+    open_values = contract["policy_values_without_defaults"]
+    frozen_constants = {
+        "reid_adapter_head.output_dimension": REID_OUTPUT_DIMENSION,
+        "reid_adapter_head.selection_rule_threshold": REID_SELECTION_RULE_THRESHOLD,
+    }
     for section, names in (
         ("recall_rule", ("local_count", "global_count", "local_radius_m",
                          "birth_neighbourhood_radius_m")),
@@ -1198,10 +1219,43 @@ def validate_assignment_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
         ("reid_adapter_head", ("output_dimension", "selection_rule_threshold")),
     ):
         for name in names:
-            _require(
-                contract[section][name] is None,
-                f"contract_{section}_{name}_must_be_null_before_freeze",
-            )
+            registered = f"{section}.{name}"
+            value = contract[section][name]
+            if value is None:
+                _require(registered in open_values,
+                         f"contract_{section}_{name}_null_but_not_registered_as_open")
+            else:
+                _require(registered not in open_values,
+                         f"contract_{section}_{name}_frozen_but_still_listed_as_open")
+                _require(registered in frozen_constants,
+                         f"contract_{section}_{name}_frozen_without_a_bound_constant")
+                _require(value == frozen_constants[registered],
+                         f"contract_{section}_{name}_differs_from_the_frozen_constant")
+
+    # Ruling 46: the four recall values freeze once, after the S1-04 curve on
+    # the development cache; ruling 47: the ReID projection is trained on the
+    # first 30 cached development houses and judged on the last 12 only.
+    recall = contract["recall_rule"]
+    _require(recall["four_values_frozen_once_after_the_s1_04_curve"] is True,
+             "contract_recall_freeze_rule_weakened")
+    _require(recall["curve_is_measured_on_the_development_cache_only"] is True,
+             "contract_recall_curve_split_weakened")
+    _require(recall["chosen_by_maximum_memory_size_not_per_arm"] is True,
+             "contract_recall_per_arm_tuning_allowed")
+    holdout = contract["reid_adapter_head"]["holdout"]
+    _require(holdout["training_houses"] == REID_TRAINING_HOUSES
+             and holdout["selection_houses"] == REID_SELECTION_HOUSES,
+             "contract_reid_holdout_sizes_mismatch")
+    for name in (
+        "development_block_ordered_by_hash_prefix",
+        "training_houses_are_the_first_30_of_the_cached_development_block",
+        "selection_houses_are_the_last_12_of_the_cached_development_block",
+        "training_and_selection_houses_are_disjoint",
+        "contrastive_labels_come_from_private_truth_on_training_houses_only",
+        "separation_for_selection_is_measured_on_selection_houses_only",
+        "a_house_without_a_cache_is_skipped_and_counted_never_replaced",
+    ):
+        _require(holdout[name] is True, f"contract_reid_holdout_weakened:{name}")
 
     _require(
         all(value is False for value in contract["authorization"].values()),
@@ -1214,6 +1268,10 @@ __all__ = [
     "ASSOCIATION_FEATURES",
     "BIRTH_COLUMN_PREFIX",
     "BIRTH_FEATURES",
+    "REID_OUTPUT_DIMENSION",
+    "REID_SELECTION_HOUSES",
+    "REID_SELECTION_RULE_THRESHOLD",
+    "REID_TRAINING_HOUSES",
     "UP_AXIS_INDEX",
     "CACHE_FRAME_FIELDS",
     "CONTRACT_SCHEMA_VERSION",

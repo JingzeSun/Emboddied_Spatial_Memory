@@ -269,11 +269,15 @@ def lookup_slot(contract: dict[str, Any], path: str) -> Any:
 #: rulings 33-38 (2026-09-21, twin control, best-frame seal, move minimum, salted null draw)
 #: and for ruling 40 (2026-09-21, maximum_actions 4000 as a scope boundary, 2000 superseded),
 #: and for rulings 39/41 (2026-09-21, dry-run destinations per object m=8, control proportion reported).
+#: 2026-09-22, rulings 45/46/47 (LOG-241): S0-02 re-pinned for the per-episode private object
+#: geometry table (ruling 45); S0-04 for the truth-box source (ruling 45); S0-03 for the recall
+#: freeze-after-the-S1-04-curve rule (ruling 46) and the ReID 30/12 hold-out rule (ruling 47).
+#: The two ReID values themselves went to the ledger below, not into the digest.
 FROZEN_RULE_SHA256 = {
     "S0-01": "76f505da801d5ecec6730e85ca521a034888429283f6ac3a0312dfc94c27349c",
-    "S0-02": "22bc6f2f41ce2351cdab1868cc1b65de01e6a71020f8683d90e5c0d2c2518d21",
-    "S0-03": "cc7d46f870e7894592792e793e0fc1a27f09e6e9b3d60b6e01c9f7a12d7e04d3",
-    "S0-04": "268cb41825c472a8bb7bffe9e9529e4d3c98c38f791104a0ad0663e778387b48",
+    "S0-02": "15fcfe6f133c8f6657cab0590c2f45cbd968d5592e25321e808a460f050dc655",
+    "S0-03": "1becb7e3646f5c4dcef27b5fbdf03c701755c50313075fd85dd634b905ad9d6c",
+    "S0-04": "585e3660891fc77910053deb5506ddd2e922227cd76668d0d90ddda237a1133e",
     "S0-05": "c5354b1e71936d345823630b6533b03329435de104e258785fdb89e17934c54a",
     "S1-01": "4f139e631388c05e4006fd12ffad8b611d2e7811fb7f9a830ce9f7c63fdecd84",
     "S1-02a": "997cabe5105ca304269b0d8d9dd34038ff096df7a79c875c577a2629866ccc64",
@@ -285,6 +289,13 @@ FROZEN_RULE_SHA256 = {
 #: and then the old value moves to SUPERSEDED_VALUES with the ruling that retired it, so no
 #: value ever disappears from the record.
 FROZEN_VALUES: dict[str, dict[str, Any]] = {
+    "S0-03": {
+        # D-224-S1 ruling 47 (2026-09-22): 128 is D-224-E's own number; 0.05 cosine is the
+        # minimum median cross-view separation gain the projection must show on the 12
+        # selection houses over the best frozen descriptor to be chosen in S1-05.
+        "reid_adapter_head.output_dimension": 128,
+        "reid_adapter_head.selection_rule_threshold": 0.05
+    },
     "S0-02": {
         "route.translation_m": 0.25,
         "route.rotation_degrees": 90,

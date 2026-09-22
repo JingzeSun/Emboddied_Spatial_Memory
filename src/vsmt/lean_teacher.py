@@ -154,6 +154,12 @@ IDENTITY_CONTINUITY_JUDGED_AT = "first_labelled_reobservation_after_move"
 RECOVERY_LATENCY_START = "first_frame_the_intervened_place_is_observable_to_the_method"
 CONTAMINATION_INTEGRATION = "trapezoid_over_frames_normalised_to_unit_length"
 TRUTH_NODE_SCOPE = "objects_present_at_t_that_have_been_observable_at_least_once_since_episode_start"
+#: D-224-S1 ruling 45 (2026-09-22): where the truth boxes of the truth table come from.  The
+#: per-frame private record only ever carried x/y/z, so the box is the initial axis-aligned box
+#: read from one simulator reload of the house, translated by the recorded private position into
+#: the episode frame.  The observed-set box (union of back-projected private masks) is a proxy
+#: and may only be reported as a comparison column, never used as the truth box.
+TRUTH_BOX_SOURCE = "simulator_initial_axis_aligned_box_plus_recorded_translation"
 STRONGEST_CONTROL_RULE = "best_house_mean_per_metric_among_controls_ties_to_smallest_name"
 
 
@@ -1426,6 +1432,8 @@ EXPECTED_BOOLEAN_CLAIMS: dict[str, bool] = {
     "labels.same_frame_duplicates.only_labelled_fragments_with_the_same_target_are_folded": True,
     "decomposition.duplicate_fragments_charged_to_no_class": True,
     "metrics.node_prf1.truth_table_carries_in_scope_flag": True,
+    "private_truth_inputs.truth_box_source.boxes_are_in_the_episode_frame": True,
+    "private_truth_inputs.truth_box_source.observed_set_box_is_a_proxy_reported_only_as_a_comparison_column": True,
     "metrics.node_prf1.present_out_of_scope_entities_excluded_from_precision_denominator": True,
     "labels.same_frame_duplicates.keeper_correct_iff_any_member_reaches_the_target_and_none_is_misbound": True,
     "statistics.undefined_house_rule_over_applicable_arms_only": True,
@@ -1524,6 +1532,8 @@ def validate_teacher_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     )
     _require(tuple(metrics["memory_present_states"]) == MEMORY_PRESENT_STATES, "contract_memory_present_states_mismatch")
     _require(metrics["node_prf1"]["truth_node_scope"] == TRUTH_NODE_SCOPE, "contract_truth_node_scope_mismatch")
+    _require(contract["private_truth_inputs"]["truth_box_source"]["rule"] == TRUTH_BOX_SOURCE,
+             "contract_truth_box_source_mismatch")
     _require(metrics["identity_continuity"]["judged_at"] == IDENTITY_CONTINUITY_JUDGED_AT, "contract_identity_judged_at_mismatch")
     _require(metrics["recovery_latency_frames"]["start"] == RECOVERY_LATENCY_START, "contract_recovery_start_mismatch")
     _require(metrics["contamination_auc"]["integration"] == CONTAMINATION_INTEGRATION, "contract_contamination_integration_mismatch")

@@ -37,9 +37,21 @@
     "evidence_instance": "per (frame_digest|fragment_id) of every past evidence item: private object key or null",
     "object_state": "per private object key: {present: bool, centroid_m: [x,y,z] when present}",
     "truth_objects": "per private object key in the truth node scope this frame: {present: bool, aabb_min_m, aabb_max_m, centroid_m when present}",
+    "truth_box_source": {
+      "rule": "simulator_initial_axis_aligned_box_plus_recorded_translation",
+      "initial_box_read_from": "one reload of the house in the frozen simulator per episode, metadata.objects[].axisAlignedBoundingBox and rotation at the house-authored agent pose before any action (S1-04 object geometry table, private plane)",
+      "per_frame_box": "the initial box translated by object_poses[t] minus the initial position, expressed in the episode frame (world coordinates minus the observation-0 camera position)",
+      "rotation_assumption": "move and add are executed by PlaceObjectAtPoint, which keeps the object rotation; physics settle after placement is the registered residual",
+      "residual_reported_by": "the S1-04 geometry tool: position drift of non-intervened objects against the reload, and containment of frame-0 private-mask back-projections in the translated boxes",
+      "boxes_are_in_the_episode_frame": true,
+      "observed_set_box_is_a_proxy_reported_only_as_a_comparison_column": true,
+      "frozen_by": "D-224-S1 ruling 45",
+      "frozen_on": "2026-09-22",
+      "plain_language_zh": "评价器和 S1-04 诊断要的真值整物体包围盒从来没写进私有面（逐帧只有 x/y/z）。裁决 45 定为：每条 episode 把 house 在模拟器里重载一次，读初始状态每个物体的轴对齐盒与朝向；之后每帧的盒子＝初始盒加上私有位姿记录的平移，坐标换到以观测 0 相机为原点的 episode 系。move/add 用 PlaceObjectAtPoint 执行、保持朝向，放置后的物理沉降登记为残差。把各可见帧反投影点并起来的「观测集合盒」只是代理量，只作对照列，不当真值。"
+    },
     "missing_objects": "per removed or moved object: {old_centroid_m, old_place_observable_since_intervention: bool}",
     "carriers_before_move": "per moved object: every entity id whose identity resolved to it at the last frame before the move",
-    "derived_from": "S0-02 private plane: instance_mask_path, object_id_to_entity_id, object_poses, intervention log",
+    "derived_from": "S0-02 private plane: instance_mask_path, object_id_to_entity_id, object_poses, intervention log; plus the per-episode object geometry table (S1-04, ruling 45) for the truth boxes",
     "plain_language_zh": "私有输入全部由 S0-02 的 private 面派生：色块的实例重叠表来自 instance mask，物体位置来自逐帧 object_poses，缺失物体与可观察性来自干预日志和公开可见体积。任何一项都不进入部署读取器。"
   },
   "labels": {
@@ -349,6 +361,7 @@
     "X2": "a house with an undefined metric value is excluded from that metric for every arm and counted; never imputed",
     "X5": "the evaluator's maximum-weight matching runs per connected component of positive IoU cells and returns the same count and weight as the dense solve",
     "X6": "size metric counts lifecycle versions excluding bind; the truth table carries an in_scope flag",
+    "ruling_45": "truth boxes come from one simulator reload per episode (initial axis-aligned box and rotation) translated by the recorded private positions into the episode frame; the observed-set box is a proxy reported only as a comparison column (D-224-S1 ruling 45, 2026-09-22)",
     "plain_language_zh": "四项口径由用户于 2026-09-20 以 D-224-X 批准。",
     "review_corrections": "2026-09-20 second review (LOG-225): X1 group accounting for the keeper; X2 exclusion over applicable arms only with a not-applicable rule; X6 present out-of-scope entities excluded from the precision denominator"
   }

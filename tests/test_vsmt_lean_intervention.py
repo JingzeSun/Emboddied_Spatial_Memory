@@ -475,6 +475,34 @@ class TestMachineContract(unittest.TestCase):
                 validate_intervention_data_contract(broken)
             self.assertEqual(str(caught.exception), f"contract_split_rule_{name}_weakened")
 
+    def test_the_private_house_geometry_table_is_bound_to_ruling_45(self) -> None:
+        """D-224-S1 ruling 45 (2026-09-22): one private object geometry table per episode, written
+        by the S1-04 reload tool after generation, never by the runner, never deployment-readable."""
+
+        from vsmt.lean_intervention import PRIVATE_HOUSE_GEOMETRY_FIELDS, PRIVATE_HOUSE_GEOMETRY_FILE
+
+        geometry = self.contract["private_house_geometry"]
+        self.assertEqual(geometry["plane"], "private")
+        self.assertEqual(geometry["file"], PRIVATE_HOUSE_GEOMETRY_FILE)
+        self.assertEqual(tuple(geometry["fields"]), PRIVATE_HOUSE_GEOMETRY_FIELDS)
+        self.assertIn("initial_aabb_size_m", PRIVATE_HOUSE_GEOMETRY_FIELDS)
+        self.assertIn("initial_rotation_degrees", PRIVATE_HOUSE_GEOMETRY_FIELDS)
+        for name, code in (
+            ("written_by_the_episode_runner", "contract_house_geometry_written_by_runner"),
+            ("never_readable_by_a_deployment_reader",
+             "contract_house_geometry_never_readable_by_a_deployment_reader_weakened"),
+        ):
+            broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+            broken["private_house_geometry"][name] = not broken["private_house_geometry"][name]
+            with self.assertRaises(LeanInterventionError) as caught:
+                validate_intervention_data_contract(broken)
+            self.assertEqual(str(caught.exception), code)
+        broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        broken["private_house_geometry"]["plane"] = "public"
+        with self.assertRaises(LeanInterventionError) as caught:
+            validate_intervention_data_contract(broken)
+        self.assertEqual(str(caught.exception), "contract_house_geometry_plane_mismatch")
+
     def test_an_extra_action_in_the_contract_is_rejected(self) -> None:
         broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
         broken["route"]["actions"] = list(broken["route"]["actions"]) + ["Teleport"]

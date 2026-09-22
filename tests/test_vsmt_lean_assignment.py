@@ -585,12 +585,67 @@ class TestMachineContract(unittest.TestCase):
             validate_assignment_contract(broken)
         self.assertEqual(str(caught.exception), "contract_reid_budget_mismatch")
 
-    def test_policy_values_must_still_be_null(self) -> None:
+    def test_an_open_policy_value_cannot_be_filled_without_leaving_the_open_list(self) -> None:
+        # Ruling 24: a value is either open (null and listed) or frozen (ledgered and unlisted).
         broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
         broken["recall_rule"]["local_count"] = 8
         with self.assertRaises(LeanAssignmentError) as caught:
             validate_assignment_contract(broken)
-        self.assertIn("must_be_null_before_freeze", str(caught.exception))
+        self.assertEqual(str(caught.exception), "contract_recall_rule_local_count_frozen_but_still_listed_as_open")
+        # and a value without a bound constant cannot be frozen by editing the contract alone
+        broken["policy_values_without_defaults"].remove("recall_rule.local_count")
+        with self.assertRaises(LeanAssignmentError) as caught:
+            validate_assignment_contract(broken)
+        self.assertEqual(str(caught.exception), "contract_recall_rule_local_count_frozen_without_a_bound_constant")
+
+    def test_the_recall_values_are_still_open_and_freeze_after_the_s1_04_curve(self) -> None:
+        # Ruling 46 (2026-09-22): the four values stay null until the curve on the development cache.
+        contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        for name in ("local_count", "global_count", "local_radius_m", "birth_neighbourhood_radius_m"):
+            self.assertIsNone(contract["recall_rule"][name])
+            self.assertIn(f"recall_rule.{name}", contract["policy_values_without_defaults"])
+        for name in ("four_values_frozen_once_after_the_s1_04_curve",
+                     "curve_is_measured_on_the_development_cache_only",
+                     "chosen_by_maximum_memory_size_not_per_arm"):
+            broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+            broken["recall_rule"][name] = False
+            with self.assertRaises(LeanAssignmentError, msg=name):
+                validate_assignment_contract(broken)
+
+    def test_the_reid_values_are_ledgered_at_the_bound_constants(self) -> None:
+        # Ruling 47 (2026-09-22): 128-dimensional projection, 0.05 cosine selection margin.
+        from vsmt.lean_assignment import (
+            REID_OUTPUT_DIMENSION, REID_SELECTION_HOUSES, REID_SELECTION_RULE_THRESHOLD,
+            REID_TRAINING_HOUSES,
+        )
+
+        contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        head = contract["reid_adapter_head"]
+        self.assertEqual((REID_OUTPUT_DIMENSION, REID_SELECTION_RULE_THRESHOLD), (128, 0.05))
+        self.assertEqual(head["output_dimension"], REID_OUTPUT_DIMENSION)
+        self.assertEqual(head["selection_rule_threshold"], REID_SELECTION_RULE_THRESHOLD)
+        self.assertNotIn("reid_adapter_head.output_dimension", contract["policy_values_without_defaults"])
+        self.assertNotIn("reid_adapter_head.selection_rule_threshold", contract["policy_values_without_defaults"])
+        self.assertEqual((head["holdout"]["training_houses"], head["holdout"]["selection_houses"]),
+                         (REID_TRAINING_HOUSES, REID_SELECTION_HOUSES))
+        self.assertEqual(REID_TRAINING_HOUSES + REID_SELECTION_HOUSES, 42)
+        broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        broken["reid_adapter_head"]["output_dimension"] = 256
+        with self.assertRaises(LeanAssignmentError) as caught:
+            validate_assignment_contract(broken)
+        self.assertEqual(str(caught.exception),
+                         "contract_reid_adapter_head_output_dimension_differs_from_the_frozen_constant")
+        broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        broken["reid_adapter_head"]["holdout"]["training_and_selection_houses_are_disjoint"] = False
+        with self.assertRaises(LeanAssignmentError) as caught:
+            validate_assignment_contract(broken)
+        self.assertEqual(str(caught.exception),
+                         "contract_reid_holdout_weakened:training_and_selection_houses_are_disjoint")
+        broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        broken["reid_adapter_head"]["holdout"]["selection_houses"] = 20
+        with self.assertRaises(LeanAssignmentError) as caught:
+            validate_assignment_contract(broken)
+        self.assertEqual(str(caught.exception), "contract_reid_holdout_sizes_mismatch")
 
     def test_every_authorization_bit_is_false(self) -> None:
         broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))

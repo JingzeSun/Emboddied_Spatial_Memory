@@ -171,10 +171,14 @@
 | 面 | 内容 | 谁可读 |
 |---|---|---|
 | `public` | 逐帧 RGB `uint8[224,224,3]`、米制 depth `float32[224,224]`、内参、以观测 0 为原点的因果相对位姿、关键帧间动作摘要、frame digest | 前端 reader、五个方法、候选/特征计算 |
-| `private` | 逐帧 instance-mask stack、模拟器对象 ID 到稳定私有实体 ID 的映射、逐对象位置/旋转/可见性、干预日志、由此派生的逐帧"已不在原处"标签与 fragment 主导实例 ID | 只有封存后的 teacher 与评价器 |
+| `private` | 逐帧 instance-mask stack、模拟器对象 ID 到稳定私有实体 ID 的映射、逐对象世界位置（x/y/z）与可见像素数、干预日志、由此派生的逐帧"已不在原处"标签与 fragment 主导实例 ID；**逐帧记录没有旋转与包围盒**（2026-09-22 服务器核实），整物体真值盒由下面的私有几何补充表提供（裁决 45） | 只有封存后的 teacher 与评价器 |
 | `provenance` | append-only 动作与干预 journal、单调时钟、setup 记录 | 只有审计 |
 
 白话：public 是机器人自己能拿到的东西，private 是只有上帝视角才知道的答案，provenance 是操作流水。任何 candidate/model reader 不得挂载 private 与 provenance；违反即整批失败。
+
+### 私有几何补充表 `object_geometry.json`（裁决 45，2026-09-22）
+
+白话：它解决"评价器和 S1-04 诊断要真值整物体包围盒，而逐帧私有记录只有 x/y/z"这个缺口。输入是同一 house 在模拟器里的一次重载（house 自带的 agent 起始位姿、任何动作之前）；输出是每条 episode 一份表，每个物体一行：`object_id`、`asset_id`、`object_type`、`pickupable`、`receptacle`、`initial_position_world_m`、`initial_rotation_degrees`、`initial_aabb_center_world_m`、`initial_aabb_size_m`，外加观测 0 的相机世界位置 `episode_origin_world_m`（把世界坐标换到 public 位姿所用的 episode 系）。例如一把椅子初始盒中心 (3.1, 0.45, 2.0)、尺寸 (0.5, 0.9, 0.5)；第 t 帧私有记录说它在 (5.6, 0.45, 2.0)，那么第 t 帧的真值盒就是初始盒平移 (2.5, 0, 0) 再减去原点。它**不等于**逐帧真值：move/add 由 `PlaceObjectAtPoint` 执行、保持朝向，但放置后的物理沉降没有记录，是登记的残差；工具用未干预物体的位置漂移和帧 0 私有 mask 反投影点落在盒内的比例来报告这个残差。它由 S1-04 的重载工具在生成之后写到 S1-04 输出根下，不由 episode runner 写，不改已生成的三面文件，部署 reader 永远读不到。把各可见帧反投影点并起来的"观测集合盒"只是代理量，只在 S1-04 报告里作对照列。
 
 ## 四、位姿与动作摘要
 

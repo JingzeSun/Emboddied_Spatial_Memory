@@ -71,6 +71,17 @@ PRIVATE_FRAME_FIELDS = (
     "observation_index", "instance_mask_path", "object_id_to_entity_id",
     "object_poses", "object_visibility", "frame_digest",
 )
+#: D-224-S1 ruling 45 (2026-09-22): one per-episode private geometry table, read from a single
+#: simulator reload of the house at the house-authored agent pose, written by the S1-04 tool.
+#: It carries what the per-frame private record never had: each object's initial rotation and
+#: axis-aligned box, so a truth box for frame t is the initial box translated by the recorded
+#: private position.  The episode runner never writes it and no deployment reader may mount it.
+PRIVATE_HOUSE_GEOMETRY_FILE = "object_geometry.json"
+PRIVATE_HOUSE_GEOMETRY_FIELDS = (
+    "object_id", "asset_id", "object_type", "pickupable", "receptacle",
+    "initial_position_world_m", "initial_rotation_degrees",
+    "initial_aabb_center_world_m", "initial_aabb_size_m",
+)
 
 #: Identifiers that must never appear in a public record, at any depth.
 FORBIDDEN_PUBLIC_KEYS = frozenset({
@@ -595,6 +606,18 @@ def validate_intervention_data_contract(contract: Mapping[str, Any]) -> dict[str
         frozenset(contract["forbidden_public_keys"]) == FORBIDDEN_PUBLIC_KEYS,
         "contract_forbidden_keys_mismatch",
     )
+    # D-224-S1 ruling 45 (2026-09-22): the private plane also carries one per-episode object
+    # geometry table, written after generation by the S1-04 reload tool, never by the runner.
+    geometry = contract["private_house_geometry"]
+    _require(geometry["plane"] == "private", "contract_house_geometry_plane_mismatch")
+    _require(geometry["file"] == PRIVATE_HOUSE_GEOMETRY_FILE, "contract_house_geometry_file_mismatch")
+    _require(tuple(geometry["fields"]) == PRIVATE_HOUSE_GEOMETRY_FIELDS,
+             "contract_house_geometry_fields_mismatch")
+    for name in ("one_per_episode", "episode_origin_world_m_recorded",
+                 "never_readable_by_a_deployment_reader"):
+        _require(geometry[name] is True, f"contract_house_geometry_{name}_weakened")
+    _require(geometry["written_by_the_episode_runner"] is False,
+             "contract_house_geometry_written_by_runner")
     _require(
         tuple(contract["public_frame_fields"]) == PUBLIC_FRAME_FIELDS,
         "contract_public_frame_fields_mismatch",
@@ -788,6 +811,8 @@ __all__ = [
     "check_move_minimum",
     "MAXIMUM_ACTIONS",
     "MAXIMUM_ACTIONS_SUPERSEDED",
+    "PRIVATE_HOUSE_GEOMETRY_FIELDS",
+    "PRIVATE_HOUSE_GEOMETRY_FILE",
     "MAXIMUM_INTERVENTIONS_PER_EPISODE",
     "MINIMUM_WINDOW_FRAMES",
     "MINIMUM_YIELD",

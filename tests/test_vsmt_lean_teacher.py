@@ -992,6 +992,23 @@ class TestMachineContract(unittest.TestCase):
         self.assertEqual(tuple(tuple(item) for item in self.contract["statistics"]["main_gate"]), MAIN_GATE)
         self.assertEqual(len(self.contract["authorization"]), 6)
 
+    def test_the_truth_box_source_is_bound_to_ruling_45(self) -> None:
+        # D-224-S1 ruling 45 (2026-09-22): the per-frame private record never carried a box, so
+        # the truth box is the simulator's initial box translated by the recorded position; the
+        # observed-set box is only a comparison column.
+        from vsmt.lean_teacher import TRUTH_BOX_SOURCE
+
+        source = self.contract["private_truth_inputs"]["truth_box_source"]
+        self.assertEqual(source["rule"], TRUTH_BOX_SOURCE)
+        self.assertEqual(TRUTH_BOX_SOURCE, "simulator_initial_axis_aligned_box_plus_recorded_translation")
+        self.assertTrue(source["boxes_are_in_the_episode_frame"])
+        self.assertTrue(source["observed_set_box_is_a_proxy_reported_only_as_a_comparison_column"])
+        broken = self._fresh()
+        self._set(broken, "private_truth_inputs.truth_box_source.rule", "observed_set_box")
+        with self.assertRaises(LeanTeacherError) as caught:
+            validate_teacher_contract(broken)
+        self.assertEqual(str(caught.exception), "contract_truth_box_source_mismatch")
+
     def test_flipping_any_boolean_claim_is_rejected(self) -> None:
         self.assertGreaterEqual(len(EXPECTED_BOOLEAN_CLAIMS), 40)
         for path, expected in EXPECTED_BOOLEAN_CLAIMS.items():
