@@ -101,6 +101,27 @@ def invisible_from_counts(counts: dict[str, list[int]]) -> list[str]:
     return sorted(cid for cid, values in counts.items() if values and not any(v > 0 for v in values))
 
 
+def rendered_pixels_in_window(private_records: list[dict[str, Any]], container_ids: list[str]) -> dict[str, int]:
+    """Total private instance-mask pixels each container was rendered with over the window frames.
+
+    This is the pose-independent cross-check: ``object_visibility`` is what the simulator itself
+    rendered in that frame, so a container with pixels there was on screen, whatever any
+    projection says.  A container recorded as unobservable while the simulator was drawing it is a
+    defect of the verdict, not of the correction.
+
+    白话：不依赖任何位姿的旁证。私有帧记录里的 `object_visibility` 是模拟器当帧实际画出的像素数，
+    窗口内某个容器像素数大于 0，就说明它当时在画面上；如果它同时被登记成"窗口内不可见"，那就是
+    判定本身错了，与我们怎么修位姿无关。
+    """
+
+    totals = {cid: 0 for cid in container_ids}
+    for record in private_records:
+        visibility = record.get("object_visibility") or {}
+        for cid in totals:
+            totals[cid] += int(visibility.get(cid, 0))
+    return totals
+
+
 def compare_sets(stored: list[str], control: list[str], test: list[str]) -> dict[str, Any]:
     """Control against what generation stored, and test against the control."""
 
@@ -178,8 +199,10 @@ def audit_episode(task: dict[str, Any]) -> dict[str, Any]:
             subjects[container_id] = pair
 
         counts = {"written": {cid: [] for cid in subjects}, "corrected": {cid: [] for cid in subjects}}
+        window_private: list[dict[str, Any]] = []
         for index in range(low + 1, high + 1):
             frame = _load_frame(episode_root, index, code_commit=commit, policy=policy)
+            window_private.append(json.loads((episode_root / "private" / f"{index:04d}.frame.json").read_text(encoding="utf-8")))
             for container_id, pair in subjects.items():
                 for variant in ("written", "corrected"):
                     result = assess_public_visibility_from_depth(
@@ -188,11 +211,15 @@ def audit_episode(task: dict[str, Any]) -> dict[str, Any]:
                         current_public_support_sha256=None, terminal_reobservation_phase=False, config=pilot.VIS_CONFIG)
                     counts[variant][container_id].append(int(result["assessment"]["unoccluded_public_sample_count"]))
 
-        comparison = compare_sets(sorted(stored.get("invisible") or []),
+        stored_invisible = sorted(stored.get("invisible") or [])
+        rendered = rendered_pixels_in_window(window_private, sorted(set(list(subjects) + stored_invisible)))
+        comparison = compare_sets(stored_invisible,
                                   invisible_from_counts(counts["written"]),
                                   invisible_from_counts(counts["corrected"]))
         outcome = ("control_mismatch" if not comparison["control_reproduces_generation"]
                    else ("verdicts_differ" if comparison["verdicts_change"] else "agrees"))
+        rendered_in_stored_u = sorted(cid for cid in stored_invisible if rendered.get(cid, 0) > 0)
+        rendered_in_corrected_u = sorted(cid for cid in comparison["corrected_invisible"] if rendered.get(cid, 0) > 0)
         report = {
             "episode_id": task["episode_id"], "episode_code_commit": commit,
             "pose_correction_applied": pp.correction_applies(commit, policy),
@@ -201,12 +228,18 @@ def audit_episode(task: dict[str, Any]) -> dict[str, Any]:
             "outcome": outcome, "comparison": comparison,
             "unoccluded_totals": {variant: {cid: int(sum(values)) for cid, values in table.items()}
                                   for variant, table in counts.items()},
+            "rendered_pixels_in_window": rendered,
+            "stored_u_containers_the_simulator_rendered": rendered_in_stored_u,
+            "corrected_u_containers_the_simulator_rendered": rendered_in_corrected_u,
         }
         (out_dir / "window_audit.json").write_text(json.dumps(report), encoding="utf-8")
         receipt.update({"status": "succeeded", "outcome": outcome, "window_frames": high - low,
                         "containers": len(subjects), "verdicts_change": comparison["verdicts_change"],
                         "corrected_adds": comparison["corrected_adds"], "corrected_removes": comparison["corrected_removes"],
-                        "control_reproduces_generation": comparison["control_reproduces_generation"]})
+                        "control_reproduces_generation": comparison["control_reproduces_generation"],
+                        "stored_u_size": len(stored_invisible), "corrected_u_size": len(comparison["corrected_invisible"]),
+                        "stored_u_rendered_count": len(rendered_in_stored_u),
+                        "corrected_u_rendered_count": len(rendered_in_corrected_u)})
     except AuditFailure as failure:
         receipt.update({"status": "failed", "outcome": failure.outcome, "detail": failure.detail[:400]})
     except Exception as exc:  # noqa: BLE001
@@ -231,6 +264,12 @@ def stage_report(results: list[dict[str, Any]], *, commit: str, requested_worker
             for r in changed],
         "containers_added_by_correction": sum(len(r.get("corrected_adds") or []) for r in succeeded),
         "containers_removed_by_correction": sum(len(r.get("corrected_removes") or []) for r in succeeded),
+        "stored_u_total": sum(r.get("stored_u_size", 0) for r in succeeded),
+        "corrected_u_total": sum(r.get("corrected_u_size", 0) for r in succeeded),
+        # the pose-independent cross-check: a container the simulator was still drawing during the
+        # window cannot honestly be called unobservable, whatever any projection says
+        "stored_u_containers_the_simulator_rendered": sum(r.get("stored_u_rendered_count", 0) for r in succeeded),
+        "corrected_u_containers_the_simulator_rendered": sum(r.get("corrected_u_rendered_count", 0) for r in succeeded),
         "failures": [{"episode_id": r["episode_id"], "outcome": r.get("outcome"), "detail": (r.get("detail") or "")[:200]}
                      for r in results if r["status"] != "succeeded"],
         "requested_workers": requested_workers, "actual_workers": actual_workers, "worker_basis": worker_basis,

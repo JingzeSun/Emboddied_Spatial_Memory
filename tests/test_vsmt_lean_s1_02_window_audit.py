@@ -46,6 +46,13 @@ class MaskAndRuleTests(unittest.TestCase):
         counts = {"a": [0, 0, 0], "b": [0, 1, 0], "c": [0], "d": []}
         self.assertEqual(audit.invisible_from_counts(counts), ["a", "c"])  # d has no frame: not a verdict
 
+    def test_rendered_pixels_sum_the_simulators_own_visibility_over_the_window(self) -> None:
+        records = [{"object_visibility": {"Fridge|1": 0, "Bed|2": 12}},
+                   {"object_visibility": {"Fridge|1": 5}},
+                   {"object_visibility": {}}]
+        totals = audit.rendered_pixels_in_window(records, ["Fridge|1", "Bed|2", "Sink|3"])
+        self.assertEqual(totals, {"Fridge|1": 5, "Bed|2": 12, "Sink|3": 0})
+
     def test_the_comparison_separates_the_control_check_from_the_finding(self) -> None:
         same = audit.compare_sets(["a", "b"], ["b", "a"], ["a", "b"])
         self.assertTrue(same["control_reproduces_generation"])
@@ -63,9 +70,11 @@ class StageReportTests(unittest.TestCase):
     def test_the_report_counts_outcomes_and_never_calls_a_change_a_correction(self) -> None:
         results = [
             {"episode_id": "e1", "status": "succeeded", "outcome": "agrees", "verdicts_change": False,
-             "control_reproduces_generation": True, "corrected_adds": [], "corrected_removes": []},
+             "control_reproduces_generation": True, "corrected_adds": [], "corrected_removes": [],
+             "stored_u_size": 3, "corrected_u_size": 3, "stored_u_rendered_count": 0, "corrected_u_rendered_count": 0},
             {"episode_id": "e2", "status": "succeeded", "outcome": "verdicts_differ", "verdicts_change": True,
-             "control_reproduces_generation": True, "corrected_adds": ["Fridge|1"], "corrected_removes": []},
+             "control_reproduces_generation": True, "corrected_adds": ["Fridge|1"], "corrected_removes": [],
+             "stored_u_size": 5, "corrected_u_size": 6, "stored_u_rendered_count": 2, "corrected_u_rendered_count": 1},
             {"episode_id": "e3", "status": "failed", "outcome": "no_window", "detail": "window is null"},
         ]
         report = audit.stage_report(results, commit="c" * 40, requested_workers=4, actual_workers=3,
@@ -76,6 +85,9 @@ class StageReportTests(unittest.TestCase):
         self.assertEqual(report["control_reproduced_generation"], 2)
         self.assertEqual(report["episodes_with_changed_verdicts"], [{"episode_id": "e2", "adds": ["Fridge|1"], "removes": []}])
         self.assertEqual(report["containers_added_by_correction"], 1)
+        self.assertEqual((report["stored_u_total"], report["corrected_u_total"]), (8, 9))
+        self.assertEqual(report["stored_u_containers_the_simulator_rendered"], 2)
+        self.assertEqual(report["corrected_u_containers_the_simulator_rendered"], 1)
         self.assertEqual(len(report["failures"]), 1)
         self.assertTrue(report["reads_only"] and report["modifies_no_generated_file"])
         self.assertIn("never a correction applied here", report["note"])
