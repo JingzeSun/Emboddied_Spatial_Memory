@@ -3312,3 +3312,9 @@ SAM（1,024 个提示点、batch 64）已把 GPU 占满：2 进程的时间片�
 5. **验收**：除原有成品率与干预可辨性外，追加在新数据上跑一次窗口只读复核（`lean_s1_02_window_audit.py`，69 s），要求对照与修正两种读法一致、U 内容器渲染像素接近零；裁决 41 的"U 内对照供不上"同时重测。
 
 磁盘预算：当前 28 GB 已用、23 GB 可用。新生成约 +11.2 GB 后剩约 11.8 GB，够；再建新 cache 约 +8.7 GB 会剩 2.1 GB 并触发 runner 的 2 GB 下限 abort，所以**开 cache 之前须先删掉改名后的旧 cache 根**（8.3 GB，几何在错误系、且建自窗口前提已不成立的 episode，双重作废），删前用 exporter 把它的阶段回执与 13 条回收回执导成 `results/*.json` 留档。旧的两个 S1-02 根按裁决保留，不在删除范围。
+
+**旧 cache 根已按用户要求删除（2026-09-22 23:39）**：先用仓库 exporter 把记录导出并提交为 [`results/vsmt_lean_s1_03_report_c993959_superseded_by_ruling_50.json`](../results/vsmt_lean_s1_03_report_c993959_superseded_by_ruling_50.json)（51,404 字节，sha256 `63a01b54…`，43 条 episode 的逐条回执与封印摘要、13 条 mask 回收回执、阶段回执全文；不含任何帧、描述子、mask 或私有 ID），再按精确路径删除 8.3 GB（43 个 episode 目录、37,639 个帧文件、17,501 个 mask 文件）。数据盘 29 GB 已用 → **20 GB 已用、31 GB 可用**。两个改名保留的 S1-02 根未动。
+
+### 八、裁决 51：cache 生成时直接写 mask（2026-09-22，`1fa4686`）
+
+用户批准："S1-03 cache 生成时直接写 mask，合同就地加规则并重钉，不再单独跑回收"。SAM 的 mask 本来就在内存里，`build_episode` 在写帧文件之后按同一色块顺序写 `NNNN.masks.npz`（每帧约 6 KiB，帧本身约 224 KiB，全量约 0.2 GB）。合同就地新增 `fragment_masks` 块（文件名、顺序、消费者必须按像素重算摘要、不另加封印因为帧封印已覆盖每个 `mask_sha256`、回收模式保留给本裁决之前的 cache），校验器绑定该块并拒绝任何一项被改弱，规则摘要重钉 `082e1c02…` → `ee591bec…`。回执新增 `mask_bytes_written`、`frames_with_masks` 与阶段级合计。省掉裁决 48 那趟约 13 小时的 SAM-only 回收。本地 S1-03 runner 18、cache 核心 49、跨合同 56、回收 5 项通过。
