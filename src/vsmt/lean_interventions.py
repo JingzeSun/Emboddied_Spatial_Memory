@@ -34,6 +34,32 @@ class LeanSelectionError(ValueError):
     """Raised for an inadmissible object table or an unregistered RNG tag."""
 
 
+FLOOR_RECEPTACLE_ID = "Floor"
+
+
+def parent_receptacle_of(parents: Sequence[str] | None) -> str | None:
+    """The receptacle an object counts as sitting in or on (ruling 52).
+
+    AI2-THOR's ``parentReceptacles`` lists every receptacle whose trigger box holds the object and
+    puts the room ``Floor`` first for anything on low furniture (sofa, TV stand, side table,
+    shelving unit, dining table).  Taking entry 0 attributed 99 of the 987 eligible objects of the
+    7c10d2c development run to the floor, so they could never be a remove/move source or a control
+    holder (LOG-243 supplement).  The first non-Floor entry is the receptacle; an object listed only
+    under Floor sits on the floor and has no container; an empty list has none either.
+
+    白话：模拟器给每个物体报的"父容器"是一张表，矮家具上的物体会把房间地板排在表的第一位。
+    以前只取第一项，结果放在电视柜上的碗被记成"在地板上"，而地板不是容器，这只碗就永远不能
+    被拿走或搬走，电视柜也被当成空的。现在取表里第一个不是 Floor 的受体；只有 Floor 的物体
+    确实在地上，返回 None，不算合格物体。输入是父容器表，输出是一个受体 id 或 None。它不判断
+    物体是否可见，也不改变 U。
+    """
+
+    for parent in parents or []:
+        if parent != FLOOR_RECEPTACLE_ID:
+            return str(parent)
+    return None
+
+
 def derive_rng(split_seed: int, house_id: str, purpose: str, private_salt: str | None = None) -> random.Random:
     """A Random seeded from (split seed, house id, purpose tag) and, for the null draw only, a private salt.
 

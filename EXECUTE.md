@@ -3474,3 +3474,35 @@ S1-02b 在 `7c10d2c` 下 46 条、8 worker、墙钟 3,474 s（58 分钟，上次
 **排除项。** 19 条失败的窗口都在 25～181 帧，没有一条因 20 帧下限失败；dry-run 每物体 8 个目标的上限对这 19 条无效（U≤4）；两条 `frame_write_failed` 是 AI2-THOR 超时，不混入归因。
 
 **反事实 U（仅信息，不是提议改规则）。** 对 49 条按不同读法重数 U≥1 的 episode 数／U 总数：原样 37/49（261）；模拟器像素为 0 36/49（294）；封印容器最多被投影到 1 个采样点 37/49（272）、≤4 个 38/49（290）、≤16 个 41/49（334）；只被瞥见 ≤1 帧 43/49（306）；像素 <196 视为不可见 43/49（659）。U≥1 不等于 F 非空。
+
+### LOG-243 续：裁决 52 落地（父容器取第一个非 Floor 受体）与待裁 53 的只读估算（2026-09-23 02:00 CST）
+
+用户批准裁决 52（原话见 DECISIONS D-224-S1）："父容器取第一个非 Floor 受体并记录完整列表；窗口设计先出提案不改旧数据；规模/门/对照待提案后一起裁"。本节记录落地与测试；**没有重生成数据、没有跑服务器全量，本机全量因已知 CPU 问题段错误（exit 139），只跑了针对性模块**。
+
+**落地内容。**
+
+| 处 | 改动 |
+|---|---|
+| `src/vsmt/lean_interventions.py` | 新增纯函数 `parent_receptacle_of`：取 `parentReceptacles` 第一个非 `Floor` 项；只有 Floor 或空表返回 None |
+| `ops/vsmt/lean_s1_02a_pilot.py` | `_object_table` 用该函数并保留 `parent_receptacles` 完整表；dry-run 之前把全部可拾取物体的父容器表、扫掠一像素、窗口前像素、合格／未见／父容器在 U 三个标志写进 `provenance/object_table.json`；可行集为空的回执附 U 上合格源数、未见物体数、有生成点的目的容器数、dry-run 通过对数 |
+| `configs/vsmt/lean_s0_intervention_data_v3.json` | `eligible_object` 就地新增三条规则与 `parent_receptacle_rule_superseded` 台账，`plain_language_zh` 追加白话，`decision_log` 追加裁决 52；规则摘要 `15fcfe6f…` → `fcd5d187…` |
+| `src/vsmt/lean_intervention.py` | 校验器绑定前两条规则，改弱即拒绝 |
+| 测试 | 新增 `tests/test_vsmt_lean_object_table.py` 5 项、选择器 `TestParentReceptacle` 4 项；跨合同摘要钉更新 |
+
+本机针对性测试：`test_vsmt_lean_object_table`＋`test_vsmt_lean_route_and_selection`＋`test_vsmt_lean_cross_contract` 112/112，`test_vsmt_lean_intervention`＋`test_vsmt_lean_object_geometry` 60/60。服务器全量待同步后运行。
+
+**白话：这一步改了什么、没改什么。** 改的是"物体算在哪个容器上"这一个判断：以前取模拟器表的第一项，矮家具上的物体被记成在地板上；现在取第一个不是地板的受体。没改 U 的算法、窗口定义、像素阈值、抽样、对照规则和任何已生成文件。影响是以前算合格但永远当不了源的 65 个地板物体不再合格，`eligible_object_count` 会下降；新数据要等待裁 53 定了窗口协议后再生成。
+
+**待裁 53 的只读估算（信息，不是新样本）。** 用现有 49 条过渡的最后 L 帧近似"事前定长的窗口段"，按存储的逐帧判定重数 U≥1 与至少一个 remove 源（合格、扫掠一 ≥196 像素、第一个非 Floor 受体在 U）的 episode 数：
+
+| 口径 | 过渡够长的 episode | U≥1 | 有 remove 源 |
+|---|---:|---:|---:|
+| 整段过渡（现行） | 49 | 37 | 24 |
+| 最后 20 帧 | 49 | 48 | 46 |
+| 最后 30 帧 | 45 | 43 | 41 |
+| 最后 40 帧 | 42 | 41 | 40 |
+| 最后 60 帧 | 31 | 29 | 27 |
+| 最前 20 帧 | 49 | 43 | 38 |
+| 最前 40 帧 | 42 | 37 | 32 |
+
+move 仍要两个 U 容器、add 仍要过 dry-run，成品率不会等于这些数；这些段是事后从旧过渡里截的，只用来估计提案的量级，不进任何数据集。四个口径与推荐见 DECISIONS 待裁 53。脚本 `suffix_window_estimate.py` 与逐 episode 输出已并入 [`results/vsmt_lean_s1_02_empty_feasible_audit_7c10d2c.json`](results/vsmt_lean_s1_02_empty_feasible_audit_7c10d2c.json)。

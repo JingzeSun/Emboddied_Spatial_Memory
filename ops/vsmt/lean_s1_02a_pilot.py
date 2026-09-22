@@ -318,11 +318,17 @@ def _containers(meta: dict[str, Any]) -> dict[str, dict[str, float]]:
 
 
 def _object_table(meta: dict[str, Any]) -> list[dict[str, Any]]:
+    """Object rows for the selector.  ``parent_receptacle`` is the first non-Floor entry of
+    ``parentReceptacles`` (ruling 52: entry 0 is the room floor for anything on low furniture, which
+    silently removed 10% of the eligible objects as sources) and ``parent_receptacles`` keeps the
+    full list exactly as the simulator reported it."""
+
     rows = []
     for o in meta["objects"]:
-        parents = o.get("parentReceptacles") or []
+        parents = list(o.get("parentReceptacles") or [])
         rows.append({"object_id": o["objectId"], "asset_id": o.get("assetId"),
-                     "pickupable": bool(o.get("pickupable")), "parent_receptacle": parents[0] if parents else None,
+                     "pickupable": bool(o.get("pickupable")), "parent_receptacle": sel.parent_receptacle_of(parents),
+                     "parent_receptacles": parents,
                      "is_agent": False, "is_structure": not bool(o.get("pickupable")) and not bool(o.get("receptacle"))})
     return rows
 
@@ -840,6 +846,19 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
         px_before_window = _max_pixels(ep, 0, tr[1])        # unseen: never rendered before the window
         eligible = sel.eligible_objects(objects, px_sweep_one)
         unseen = sel.unseen_objects(objects, px_before_window) if add_source == "unseen_existing" else None
+        # ruling 52: the full object table with every parentReceptacles list goes to provenance before the
+        # dry run, so an empty feasible set can be traced to the exact filter that emptied it
+        eligible_ids = {o["object_id"] for o in eligible}
+        unseen_ids = {o["object_id"] for o in (unseen or [])}
+        (ep.prov / "object_table.json").write_text(json.dumps(
+            {"parent_receptacle_rule": "first_non_Floor_entry_of_parentReceptacles (ruling 52)",
+             "invisible_containers": sorted(invisible),
+             "objects": [{**{k: o[k] for k in ("object_id", "asset_id", "pickupable", "parent_receptacle", "parent_receptacles")},
+                          "pixels_sweep_one": px_sweep_one.get(o["object_id"], 0),
+                          "pixels_before_window_end": px_before_window.get(o["object_id"], 0),
+                          "eligible": o["object_id"] in eligible_ids, "unseen": o["object_id"] in unseen_ids,
+                          "parent_in_U": o["parent_receptacle"] in invisible}
+                         for o in objects if o["pickupable"]]}, indent=1))
         ok, spawn_points = _prescreen(controller, {c: usable[c] for c in usable}, tries=placement_tries,
                                       anywhere=(destination_points != "top"))
         pair_ok, dry_run_table = None, None
@@ -857,7 +876,11 @@ def run_house(task: dict[str, Any]) -> dict[str, Any]:
                 (ep.prov / "placement_dry_run.json").write_text(json.dumps(dry_run_table, indent=1))
         feasible = sel.feasible_triples(eligible, list(usable), invisible, ok, unseen=unseen, pair_ok=pair_ok)
         if not feasible:
-            raise PilotFailure("intervention_window_unavailable", f"feasible set empty; U={len(invisible)} eligible={len(eligible)}")
+            raise PilotFailure("intervention_window_unavailable",
+                               f"feasible set empty; U={len(invisible)} eligible={len(eligible)} "
+                               f"eligible_on_U={sum(1 for o in eligible if o['parent_receptacle'] in invisible)} "
+                               f"unseen={len(unseen or [])} destinations_with_points={sum(1 for c in invisible if ok.get(c))} "
+                               f"dry_run_pairs_feasible={len(pair_ok) if pair_ok is not None else None}")
         interventions = sel.sample_interventions(feasible, split_seed=task["split_seed"], house_id=house_id,
                                                  stratify_by_kind=bool(task.get("stratify_by_kind", True)),
                                                  one_placement_per_destination=(placement_prescreen == "dry_run"))

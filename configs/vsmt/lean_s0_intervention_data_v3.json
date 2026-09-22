@@ -199,6 +199,13 @@
     "eligible_object": {
       "pickupable": true,
       "in_or_on_a_receptacle": true,
+      "receptacle_is_the_first_non_Floor_entry_of_parentReceptacles": true,
+      "an_object_listed_only_under_Floor_has_no_receptacle_and_is_not_eligible": true,
+      "full_parentReceptacles_list_written_to_provenance_object_table": true,
+      "parent_receptacle_rule_superseded": {
+        "value": "parentReceptacles[0]",
+        "reason": "AI2-THOR lists the room Floor first for objects on sofas, TV stands, side tables, shelving units and dining tables; in the 7c10d2c development run 99 of 987 eligible objects were attributed to Floor and could never be a remove/move source or a control holder, which emptied the feasible set of train-03361 and hid sources in four more episodes (LOG-243 supplement); ruling 52"
+      },
       "observed_in_sweep_one_with_min_visible_pixels": 196,
       "visibility_judged_from_private_instance_segmentation_at_construction_time": true,
       "not_agent_or_structure": true,
@@ -272,7 +279,7 @@
       "value": "RemoveFromScene",
       "reason": "hangs Unity in Procedural scenes (NullReferenceException while generating metadata), 7/7 houses and a fresh-controller probe (LOG-236); ruling 26"
     },
-    "plain_language_zh": "干预选择（I1，裁决 25～32 后）：合格物体＝可拾取、在容器内或其上、扫掠一中至少一帧可见像素 ≥196、非 agent 或结构件。先定过渡段、算出其内始终不可见的容器集合 U；remove 要源容器 ∈ U，用 DisableObject 执行（RemoveFromScene 会把模拟器挂死）；move 要源、目标都 ∈ U；add 不再复制已见物体（SpawnAsset 造的物体永远不进实例分割，teacher 看不到），而是把一个至今从未被渲染过的真实物体搬到 U 容器上，对记忆同样是新实体。move／add 的 (物体, 目的容器) 对必须通过窗口内 dry-run：真的放一次（最多 32 个均匀间隔的生成点）、瞬移到目的容器的重访视点用私有渲染偷看是否 ≥196 像素、再瞬移物体回原位；只有通过的对进可行集 F 并记住那个点，偷看帧不进 public 也不计入观察序列。抽样先在还有可行三元组的类型里均匀抽类型、再在类型内均匀抽三元组，同一物体至多一次，每个目的容器每条 episode 至多一次放置。RNG 仍由 sha256(划分 seed, house_id, 用途标签) 派生；每条 episode 以 0.2 的概率执行零干预的过渡。 裁决 34～38 后：合格物体的像素只数扫掠一的帧，未见物体数到窗口前的每一帧；空窗口抽签混入私有盐；每个被干预容器配一个持有已见物体的 U 内对照容器一起进扫掠二。",
+    "plain_language_zh": "干预选择（I1，裁决 25～32 后）：合格物体＝可拾取、在容器内或其上、扫掠一中至少一帧可见像素 ≥196、非 agent 或结构件。先定过渡段、算出其内始终不可见的容器集合 U；remove 要源容器 ∈ U，用 DisableObject 执行（RemoveFromScene 会把模拟器挂死）；move 要源、目标都 ∈ U；add 不再复制已见物体（SpawnAsset 造的物体永远不进实例分割，teacher 看不到），而是把一个至今从未被渲染过的真实物体搬到 U 容器上，对记忆同样是新实体。move／add 的 (物体, 目的容器) 对必须通过窗口内 dry-run：真的放一次（最多 32 个均匀间隔的生成点）、瞬移到目的容器的重访视点用私有渲染偷看是否 ≥196 像素、再瞬移物体回原位；只有通过的对进可行集 F 并记住那个点，偷看帧不进 public 也不计入观察序列。抽样先在还有可行三元组的类型里均匀抽类型、再在类型内均匀抽三元组，同一物体至多一次，每个目的容器每条 episode 至多一次放置。RNG 仍由 sha256(划分 seed, house_id, 用途标签) 派生；每条 episode 以 0.2 的概率执行零干预的过渡。 裁决 34～38 后：合格物体的像素只数扫掠一的帧，未见物体数到窗口前的每一帧；空窗口抽签混入私有盐；每个被干预容器配一个持有已见物体的 U 内对照容器一起进扫掠二。裁决 52（2026-09-23）后：物体“在哪个容器上”取模拟器 parentReceptacles 表里第一个不是 Floor 的受体，只列了 Floor 的物体在地上、不算合格物体；生成器把每个可拾取物体的完整父容器表、扫掠一像素、是否合格、是否未见、父容器是否在 U 里写进 provenance/object_table.json，可行集为空的失败回执附带 U 上合格源数等分步计数。以前取第一项，矮家具上的物体被记到地板上，占合格物体的 10%。",
     "null_window_private_salt": {
       "rule": "sha256(split_seed, house_id, null_window, private_salt)_salt_registered_by_sha256_only",
       "never_in_the_repository_or_public_plane": true,
@@ -405,7 +412,8 @@
       "D-224-S1 裁决 33～38（2026-09-21 批准，原话“裁决 34 取双生控制；封印帧改最佳帧；move 下限 N=120/60；null 抽签加私有盐；像素计数限扫掠一；coverage_definition 随 34 改写；以上落地后第三次重生成全部 50 条”）：扫掠二重访被干预容器加同样多个持有已见物体的 U 内对照容器、顺序按派生 RNG 交错；空窗口 episode 走同一流程只跳过执行；容器可见性主体从扫掠一像素最多的帧封印；train 块 move ≥120、源先重访 ≥60；空窗口抽签混入仓库外私有盐（provenance 只登记 sha256）；合格物体像素只数扫掠一帧；coverage_definition 改写并重钉规则摘要。",
       "D-224-S1 裁决 40（2026-09-21 批准，原话“裁决 40 取调高：maximum_actions 改为 4000，口径写为范围边界，台账记 superseded；本次 50 条跑完后按新值重生成受影响的 house”）：route.maximum_actions 2000 → 4000，台账记 superseded，口径为范围边界；S1 的 50 条跑完后只重生成触顶失败的 house，其余不动。",
       "D-224-S1 裁决 39／41（2026-09-21 批准，原话“裁决 41 取 (b)；裁决 39 取 (a) m=8；删除 3272d11、12d4209 与两份 interrupted 产物”）：dry-run 每个候选物体只随机测 U 里至多 8 个目的容器（新 RNG 标签 dry_run_order；0 为复算 S1 的全测），回执记 pairs_tested／pairs_total／比值估计；对照规则不变，U 内／U 外比例如实报告、U 外对照单列为较弱对照。",
-      "D-224-S1 裁决 45（2026-09-22 批准，原话「裁决 45 取 (b) 模拟器重载读初始盒加记录平移，(a) 只作对照列」）：私有面登记按 house 的物体几何表 object_geometry.json（S1-04 工具重载一次写出，不改已生成文件），真值盒＝初始盒＋记录平移；观测集合盒只作对照列。"
+      "D-224-S1 裁决 45（2026-09-22 批准，原话「裁决 45 取 (b) 模拟器重载读初始盒加记录平移，(a) 只作对照列」）：私有面登记按 house 的物体几何表 object_geometry.json（S1-04 工具重载一次写出，不改已生成文件），真值盒＝初始盒＋记录平移；观测集合盒只作对照列。",
+      "D-224-S1 裁决 52（2026-09-23 批准，原话“批准裁决 52：父容器取第一个非 Floor 受体并记录完整列表；窗口设计先出提案不改旧数据；规模/门/对照待提案后一起裁”）：eligible_object 的受体改为 parentReceptacles 第一个非 Floor 项，只有 Floor 的物体不合格；完整父容器表写入 provenance/object_table.json；规则摘要重钉。窗口设计与规模/门/对照本裁决不改，待提案后另裁。"
     ]
   }
 }

@@ -448,5 +448,36 @@ class TestMoveMinimum(unittest.TestCase):
         self.assertFalse(check_move_minimum(120, 60, is_train_block=True)["below_minimum"])
 
 
+class TestParentReceptacle(unittest.TestCase):
+    """Ruling 52: the receptacle is the first non-Floor entry of parentReceptacles."""
+
+    def test_floor_first_low_furniture_keeps_the_real_receptacle(self) -> None:
+        # train-03361: Bowl|surface|5|20 reported ['Floor', 'TVStand|5|0|0'] and was attributed to the floor
+        self.assertEqual(sel.parent_receptacle_of(["Floor", "TVStand|5|0|0"]), "TVStand|5|0|0")
+        self.assertEqual(sel.parent_receptacle_of(["Floor", "Sofa|4|0|1"]), "Sofa|4|0|1")
+
+    def test_a_drawer_listed_before_the_floor_is_kept_as_is(self) -> None:
+        self.assertEqual(sel.parent_receptacle_of(["Dresser|3|2___2", "Floor"]), "Dresser|3|2___2")
+        self.assertEqual(sel.parent_receptacle_of(["Sink|5|1|0___0"]), "Sink|5|1|0___0")
+
+    def test_floor_only_and_empty_mean_no_receptacle(self) -> None:
+        self.assertIsNone(sel.parent_receptacle_of(["Floor"]))
+        self.assertIsNone(sel.parent_receptacle_of([]))
+        self.assertIsNone(sel.parent_receptacle_of(None))
+
+    def test_a_floor_only_object_is_not_eligible_but_a_low_furniture_one_is(self) -> None:
+        rows = [
+            {"object_id": "Bowl|surface|5|20", "pickupable": True, "parent_receptacle": sel.parent_receptacle_of(["Floor", "TVStand|5|0|0"]),
+             "is_agent": False, "is_structure": False},
+            {"object_id": "Box|surface|1|1", "pickupable": True, "parent_receptacle": sel.parent_receptacle_of(["Floor"]),
+             "is_agent": False, "is_structure": False},
+        ]
+        eligible = sel.eligible_objects(rows, {"Bowl|surface|5|20": 579, "Box|surface|1|1": 900})
+        self.assertEqual([o["object_id"] for o in eligible], ["Bowl|surface|5|20"])
+        # and the bowl is a remove source once its TV stand is in U
+        feasible = sel.feasible_triples(eligible, ["TVStand|5|0|0"], {"TVStand|5|0|0"}, {"TVStand|5|0|0": False}, unseen=[])
+        self.assertEqual([(t["kind"], t["source"]) for t in feasible], [("remove", "TVStand|5|0|0")])
+
+
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()

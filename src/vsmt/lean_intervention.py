@@ -708,6 +708,10 @@ def validate_intervention_data_contract(contract: Mapping[str, Any]) -> dict[str
     sel = contract["intervention_selection"]
     _require(sel["eligible_object"]["observed_in_sweep_one_with_min_visible_pixels"] == MIN_VISIBLE_PIXELS,
              "contract_min_visible_pixels_changed")
+    _require(sel["eligible_object"]["receptacle_is_the_first_non_Floor_entry_of_parentReceptacles"] is True,
+             "contract_parent_receptacle_rule_weakened")
+    _require(sel["eligible_object"]["full_parentReceptacles_list_written_to_provenance_object_table"] is True,
+             "contract_parent_list_unrecorded")
     _require(sel["enumerate_then_sample"] is True and sel["sequential_resample_on_failure_forbidden"] is True,
              "contract_sampling_rule_weakened")
     _require(tuple(sel["rng_purpose_tags"]) == RNG_PURPOSE_TAGS, "contract_rng_tags_changed")
