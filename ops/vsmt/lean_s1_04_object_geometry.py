@@ -56,6 +56,9 @@ import numpy as np  # noqa: E402
 
 import vm04_two_house_worker as house_loader  # noqa: E402
 from vsmt import lean_object_geometry as og  # noqa: E402
+from vsmt import lean_public_pose as pp  # noqa: E402
+
+S1_03_CONTRACT_PATH = ROOT / "configs" / "vsmt" / "lean_s1_03_frontend_cache_v1.json"
 
 CONTRACT_PATH = ROOT / "configs" / "vsmt" / "lean_s1_04_frontend_diagnostics_v1.json"
 #: The S1-02 runner's simulator parameters (S0-02); the reload must not differ.
@@ -120,7 +123,7 @@ def episode_tasks(episode_roots: list[Path]) -> list[dict[str, Any]]:
             receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
             tasks.append({"episode_id": receipt_path.parent.name, "episode_root": str(receipt_path.parent),
                           "house_id": receipt.get("house_id"), "source_index": receipt.get("source_index"),
-                          "source_status": receipt.get("status")})
+                          "source_status": receipt.get("status"), "code_commit": receipt.get("code_commit")})
     return tasks
 
 
@@ -157,12 +160,14 @@ def read_interventions(provenance_dir: Path) -> tuple[list[dict[str, Any]], list
 
 
 def frame0_containment(episode_root: Path, table: dict[str, Any], truth0: dict[str, dict[str, Any]],
-                       *, minimum_depth_m: float, maximum_depth_m: float) -> dict[str, Any]:
+                       *, minimum_depth_m: float, maximum_depth_m: float, code_commit: Any,
+                       pose_policy: dict[str, Any]) -> dict[str, Any]:
     """Share of frame-0 private-mask back-projections inside each object's translated truth box.
 
     白话：帧 0 是干预前、原点所在的那一帧。把每个可见物体的私有 mask 用公开深度和位姿反投影成
-    点，数落在它平移后真值盒（外扩 5 cm）里的比例。比例低说明重载的盒子、原点或平移规则有问题，
-    不是方法的问题。只看 ≥196 像素的物体。
+    点，数落在它平移后真值盒（外扩 5 cm）里的比例。比例低说明重载的盒子、原点、平移规则或公开
+    位姿有问题，不是方法的问题。只看 ≥196 像素的物体。位姿按裁决 49 的登记规则读取（旧编码器的
+    episode 翻回俯仰角符号）；2026-09-22 正是这项残差把位姿符号错误查出来的。
     """
 
     from PIL import Image
@@ -172,8 +177,7 @@ def frame0_containment(episode_root: Path, table: dict[str, Any], truth0: dict[s
     private0 = json.loads((private / "0000.frame.json").read_text(encoding="utf-8"))
     depth = np.load(public / record0["depth_path"]).astype(np.float32)
     labels = np.asarray(Image.open(private / private0["instance_mask_path"]))
-    pose = {"position_m": list(record0["relative_pose"]["position_m"]),
-            "quaternion_xyzw": list(record0["relative_pose"]["quaternion_xyzw"])}
+    pose = pp.public_camera_pose(record0, code_commit=code_commit, policy=pose_policy)
     per_object: dict[str, Any] = {}
     for object_id, label in sorted(private0["object_id_to_entity_id"].items()):
         entry = truth0.get(object_id)
@@ -199,16 +203,17 @@ def frame0_containment(episode_root: Path, table: dict[str, Any], truth0: dict[s
 
 
 def residual_checks(episode_root: Path, table: dict[str, Any], *, minimum_depth_m: float,
-                    maximum_depth_m: float) -> dict[str, Any]:
+                    maximum_depth_m: float, code_commit: Any, pose_policy: dict[str, Any]) -> dict[str, Any]:
     records = read_private_records(episode_root / "private")
     executed, window = read_interventions(episode_root / "provenance")
     tracker = og.EpisodeTruthTracker(table, executed_interventions=executed, window=window)
     truth0 = tracker.update(0, records[0])
     drift = og.drift_report(table, records, intervened_ids=tracker.intervened_ids())
-    containment = frame0_containment(episode_root, table, truth0,
-                                     minimum_depth_m=minimum_depth_m, maximum_depth_m=maximum_depth_m)
+    containment = frame0_containment(episode_root, table, truth0, minimum_depth_m=minimum_depth_m,
+                                     maximum_depth_m=maximum_depth_m, code_commit=code_commit, pose_policy=pose_policy)
     return {"frames": len(records), "executed_interventions": len(executed), "window": window,
-            "intervened_objects": sorted(tracker.intervened_ids()), "drift": drift, "frame0_containment": containment}
+            "intervened_objects": sorted(tracker.intervened_ids()), "drift": drift, "frame0_containment": containment,
+            "pose_correction_applied": pp.correction_applies(code_commit, pose_policy), "episode_code_commit": code_commit}
 
 
 # --------------------------------------------------------------------------
@@ -262,9 +267,12 @@ def build_episode(task: dict[str, Any]) -> dict[str, Any]:
         (out_dir / og.TABLE_FILE_NAME).write_text(json.dumps(table, indent=1), encoding="utf-8")
         try:
             residual = residual_checks(Path(task["episode_root"]), table,
-                                       minimum_depth_m=task["minimum_depth_m"], maximum_depth_m=task["maximum_depth_m"])
+                                       minimum_depth_m=task["minimum_depth_m"], maximum_depth_m=task["maximum_depth_m"],
+                                       code_commit=task["code_commit"], pose_policy=task["pose_policy"])
         except og.LeanObjectGeometryError as exc:
             raise GeometryFailure("private_plane_missing_or_malformed", str(exc))
+        except pp.LeanPublicPoseError as exc:
+            raise GeometryFailure("metadata_missing_or_malformed", f"public_pose:{exc}")
         receipt.update({
             "status": "succeeded", "objects": len(table["objects"]),
             "objects_without_box": len(table["objects_without_box"]),
@@ -340,15 +348,25 @@ def main() -> int:
     out_root = Path(args.output_root).resolve()
     out_root.mkdir(parents=True, exist_ok=True)
     tasks = episode_tasks(roots)
+    # ruling 49: every succeeded source episode must come from a commit the pose policy registers
+    pose_policy = json.loads(S1_03_CONTRACT_PATH.read_text(encoding="utf-8"))["public_pose_correction"]
     for task in tasks:
+        if task["source_status"] == "succeeded":
+            try:
+                pp.correction_applies(task["code_commit"], pose_policy)
+            except pp.LeanPublicPoseError as exc:
+                print(f"[s1-04-geometry] refused: {task['episode_id']}: {exc}", file=sys.stderr)
+                return 2
         task.update({"out": str(out_root / task["episode_id"]), "source_root": str(source.parent),
-                     "source_rel": source.name, "commit": commit,
+                     "source_rel": source.name, "commit": commit, "pose_policy": pose_policy,
                      "minimum_depth_m": float(geometry["minimum_depth_m"]),
                      "maximum_depth_m": float(geometry["maximum_depth_m"])})
     requested = max(1, int(args.workers))
     actual = min(requested, len(tasks)) if tasks else 0
     plan = {"stage": "s1-04-object-geometry", "commit": commit, "episodes": [t["episode_id"] for t in tasks],
             "source": str(source), "requested_workers": requested, "actual_workers": actual,
+            "pose_correction": {"decision_id": pose_policy["decision_id"], "rule": pose_policy["rule"],
+                                "applies_to_s1_02_code_commits": list(pose_policy["applies_to_s1_02_code_commits"])},
             "worker_basis": args.worker_basis, "started": time.time()}
     (out_root / "plan.json").write_text(json.dumps(plan, indent=1), encoding="utf-8")
     print(f"[s1-04-geometry] {len(tasks)} episodes, {actual} workers, commit {commit[:7]}", flush=True)

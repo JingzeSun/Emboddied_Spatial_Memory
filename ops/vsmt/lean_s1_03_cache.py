@@ -3,14 +3,24 @@
 Usage (server, frontend env; every authorization bit in the S1-03 contract must be open first):
     python ops/vsmt/lean_s1_03_cache.py --episode-roots /root/autodl-tmp/vsmt_outputs/lean-s1-02a-<c>,... \\
         --output-root /root/autodl-tmp/vsmt_caches/lean-s1-03-<commit> --assets-json <private>/s103_assets.json \\
-        --workers 4 --worker-basis "<the measured evidence the worker count rests on>"
+        --workers 4 --worker-basis "<the measured evidence the worker count rests on>" \\
+        [--masks-from /root/autodl-tmp/vsmt_caches/<superseded root with recovered masks>]
 
 What one worker does, per episode, and what it writes:
   1. read that episode's public plane only -- RGB, metric depth, intrinsics, causal relative pose;
      the private and provenance planes are never opened and their paths are never constructed;
+     the pose is read through ``vsmt.lean_public_pose`` under the contract's
+     ``public_pose_correction`` block (ruling 49): an episode from a registered pre-ruling S1-02
+     commit gets its pitch sign restored, one from a registered corrected encoder is read as
+     written, and any other commit is refused before the run starts;
   2. run the frozen SAM 2.1 automatic mask generator on the RGB -- D-215's arguments with the two
      NMS thresholds superseded to 0.7 by ruling 43 -- and admit the proposals under the D-215
-     boundary (>=196 px, <=64 per frame, overflow and duplicates fail the episode);
+     boundary (>=196 px, <=64 per frame, overflow and duplicates fail the episode); with
+     ``--masks-from`` (ruling 49) SAM is not loaded at all: the frame's masks are read from the
+     superseded root's ``NNNN.masks.npz`` (written by ``--recover-masks``, RGB-only and therefore
+     valid), every mask is re-digested from its pixels against the stored digest, and the same
+     admission runs on them; an episode without a succeeded recovery receipt there is skipped and
+     listed, never silently run through SAM;
   3. run frozen DINOv2 ViT-S/14 and ViT-B/14 over the same RGB through the reviewed extractor
      (ImageNet normalisation, inference mode, shape and finiteness checks) and pool one descriptor
      per mask per set; S1-05 selects between the sets later, this stage stores both;
@@ -59,6 +69,7 @@ for item in (ROOT / "src", HERE.parent):
 import numpy as np  # noqa: E402
 
 from vsmt import lean_frontend_cache as fc  # noqa: E402
+from vsmt import lean_public_pose as pp  # noqa: E402
 from vsmt.shared_frontend_core import (  # noqa: E402
     AnonymousMask, DINORegionConfig, FreeSpaceMaterializationConfig,
     PublicGeometryConfig, SurfaceMaterializationConfig, materialize_place_support,
@@ -496,9 +507,38 @@ def recover_masks_main(args: Any, *, contract: dict[str, Any], assets: dict[str,
     return 0 if receipt["complete"] and receipt["episodes_failed"] == 0 else 1
 
 
-def causal_pose(record: dict[str, Any]) -> dict[str, Any]:
-    pose = record["relative_pose"]
-    return {"position_m": list(pose["position_m"]), "quaternion_xyzw": list(pose["quaternion_xyzw"])}
+def causal_pose(record: dict[str, Any], *, code_commit: str, policy: dict[str, Any]) -> dict[str, Any]:
+    """The public frame's causal pose, read under the ruling-49 correction policy.
+
+    白话：位姿不再原样照抄。按合同 ``public_pose_correction`` 登记的提交表，旧编码器生成的
+    episode 把俯仰角符号翻回来，新编码器生成的照原样读，没登记的提交拒绝。位置不变。
+    """
+
+    try:
+        return pp.public_camera_pose(record, code_commit=code_commit, policy=policy)
+    except pp.LeanPublicPoseError as exc:
+        raise CacheFailure("public_input_missing_or_malformed", f"public_pose:{exc}") from exc
+
+
+def recovered_masks(path: Path, shape: tuple[int, int]) -> list[np.ndarray]:
+    """One frame's masks from a superseded root's ``NNNN.masks.npz``, each re-digested from its pixels.
+
+    白话：``--masks-from`` 不跑 SAM，而是读旧根里回收好的 mask 文件。读进来的每个 mask 都按定义
+    从像素重算摘要，与文件里存的摘要逐位比对，尺寸也要和本帧 RGB 一致；对不上就整条失败。
+    """
+
+    if not path.exists():
+        raise CacheFailure("public_input_missing_or_malformed", f"recovered masks missing: {path.name}")
+    loaded = read_masks_file(path)
+    masks = np.asarray(loaded["masks"], dtype=bool)
+    if masks.shape[0] != len(loaded["mask_sha256"]):
+        raise CacheFailure("public_input_missing_or_malformed", f"{path.name}: {masks.shape[0]} masks for {len(loaded['mask_sha256'])} digests")
+    if masks.shape[0] and tuple(masks.shape[1:]) != tuple(shape):
+        raise CacheFailure("public_input_missing_or_malformed", f"{path.name}: mask shape {masks.shape[1:]} != frame {shape}")
+    for index, digest in enumerate(loaded["mask_sha256"]):
+        if fc.mask_sha256_of(masks[index]) != digest:
+            raise CacheFailure("public_input_missing_or_malformed", f"{path.name}: mask {index} pixels do not reproduce the stored digest")
+    return [masks[index] for index in range(masks.shape[0])]
 
 
 def camera_forward(quaternion: list[float]) -> list[float]:
@@ -529,42 +569,47 @@ class FrozenModels:
     """
 
     def __init__(self, frontend: dict[str, Any], assets: dict[str, str],
-                 descriptor_cfgs: dict[str, DINORegionConfig], device: str = "cuda") -> None:
+                 descriptor_cfgs: dict[str, DINORegionConfig], device: str = "cuda", *, load_sam: bool = True) -> None:
         import torch
-        from sam2.automatic_mask_generator import SAM2AutomaticMaskGenerator
-        from sam2.build_sam import build_sam2
 
         if device == "cuda" and not torch.cuda.is_available():
             raise CacheFailure("public_input_missing_or_malformed", "cuda requested but unavailable")
-        d215 = json.loads(D215_CONTRACT_PATH.read_text(encoding="utf-8"))["sam2"]
         self.torch = torch
         self.device = device
         self.descriptor_cfgs = descriptor_cfgs
-        # The registry pins the config by its repository-relative path; hydra resolves names
-        # against the installed package root (pkg://sam2), so the same file is named without the
-        # leading package directory.  The mapping is recorded here, not assumed, and the file the
-        # registry pinned is the file that is loaded -- verified by digest below.
-        registered = d215["official_model_config_path"]
-        hydra_name = registered.split("/", 1)[1] if registered.startswith("sam2/") else registered
-        config_on_disk = Path(assets["sam2_repository"]) / registered
-        actual = hashlib.sha256(config_on_disk.read_bytes()).hexdigest()
-        if actual != d215["official_model_config_sha256"]:
-            raise CacheFailure("public_input_missing_or_malformed",
-                               f"sam2 config digest changed: {actual[:16]}")
-        sam = build_sam2(hydra_name, assets["sam2_checkpoint"], device=device)
-        # Ruling 43: the generator runs D-215's frozen arguments with the two NMS thresholds
-        # superseded by reference from the S1-03 contract.  The effective config is rebuilt here
-        # from D-215 plus exactly those two overrides and its digest is checked against the one
-        # the contract pins, so neither file can drift from the other unnoticed.
-        contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
-        supersession = contract["sam2_nms_supersession"]
-        effective = {**d215["automatic_mask_generator"], **supersession["to"]}
-        if effective != supersession["effective_automatic_mask_generator"]:
-            raise CacheFailure("public_input_missing_or_malformed", "effective generator config drifted")
-        # same formula as vsmt.d215_frontend_freeze._derived_digests (canonical-JSON sha256)
-        if fc.sha({"automatic_mask_generator": effective, "proposal_boundary": d215["proposal_boundary"]}) != fc.EFFECTIVE_AUTOMATIC_CONFIG_SHA256:
-            raise CacheFailure("public_input_missing_or_malformed", "effective generator digest drifted")
-        self.generator = SAM2AutomaticMaskGenerator(sam, **effective)
+        # ``--masks-from`` (ruling 49) reads recovered masks instead of running SAM, so the
+        # generator is not built at all in that mode and ``masks`` refuses to be called.
+        self.generator = None
+        if load_sam:
+            from sam2.automatic_mask_generator import SAM2AutomaticMaskGenerator
+            from sam2.build_sam import build_sam2
+
+            d215 = json.loads(D215_CONTRACT_PATH.read_text(encoding="utf-8"))["sam2"]
+            # The registry pins the config by its repository-relative path; hydra resolves names
+            # against the installed package root (pkg://sam2), so the same file is named without the
+            # leading package directory.  The mapping is recorded here, not assumed, and the file the
+            # registry pinned is the file that is loaded -- verified by digest below.
+            registered = d215["official_model_config_path"]
+            hydra_name = registered.split("/", 1)[1] if registered.startswith("sam2/") else registered
+            config_on_disk = Path(assets["sam2_repository"]) / registered
+            actual = hashlib.sha256(config_on_disk.read_bytes()).hexdigest()
+            if actual != d215["official_model_config_sha256"]:
+                raise CacheFailure("public_input_missing_or_malformed",
+                                   f"sam2 config digest changed: {actual[:16]}")
+            sam = build_sam2(hydra_name, assets["sam2_checkpoint"], device=device)
+            # Ruling 43: the generator runs D-215's frozen arguments with the two NMS thresholds
+            # superseded by reference from the S1-03 contract.  The effective config is rebuilt here
+            # from D-215 plus exactly those two overrides and its digest is checked against the one
+            # the contract pins, so neither file can drift from the other unnoticed.
+            contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+            supersession = contract["sam2_nms_supersession"]
+            effective = {**d215["automatic_mask_generator"], **supersession["to"]}
+            if effective != supersession["effective_automatic_mask_generator"]:
+                raise CacheFailure("public_input_missing_or_malformed", "effective generator config drifted")
+            # same formula as vsmt.d215_frontend_freeze._derived_digests (canonical-JSON sha256)
+            if fc.sha({"automatic_mask_generator": effective, "proposal_boundary": d215["proposal_boundary"]}) != fc.EFFECTIVE_AUTOMATIC_CONFIG_SHA256:
+                raise CacheFailure("public_input_missing_or_malformed", "effective generator digest drifted")
+            self.generator = SAM2AutomaticMaskGenerator(sam, **effective)
 
         # DINOv2: the reviewed D-218 loading path -- the repository's own hub constructors, the
         # checkpoint loaded as weights only and applied strictly, gradients off, evaluation mode.
@@ -580,6 +625,8 @@ class FrozenModels:
             self.dino[name] = model.requires_grad_(False).eval().to(device)
 
     def masks(self, rgb: np.ndarray) -> list[np.ndarray]:
+        if self.generator is None:
+            raise CacheFailure("public_input_missing_or_malformed", "SAM was not loaded in this worker (--masks-from mode)")
         return [np.asarray(row["segmentation"], dtype=bool) for row in self.generator.generate(rgb)]
 
     def patch_tokens(self, rgb: np.ndarray) -> dict[str, np.ndarray]:
@@ -602,12 +649,14 @@ _WORKER_MODELS: FrozenModels | None = None
 
 
 def worker_models(frontend: dict[str, Any], assets: dict[str, str],
-                  descriptor_cfgs: dict[str, DINORegionConfig]) -> FrozenModels:
+                  descriptor_cfgs: dict[str, DINORegionConfig], *, load_sam: bool = True) -> FrozenModels:
     """The models of this worker process, built on first use and kept for every later episode."""
 
     global _WORKER_MODELS
     if _WORKER_MODELS is None:
-        _WORKER_MODELS = FrozenModels(frontend, assets, descriptor_cfgs)
+        _WORKER_MODELS = FrozenModels(frontend, assets, descriptor_cfgs, load_sam=load_sam)
+    if load_sam and _WORKER_MODELS.generator is None:
+        raise CacheFailure("public_input_missing_or_malformed", "this worker was started without SAM")
     return _WORKER_MODELS
 
 
@@ -668,8 +717,16 @@ def build_episode(task: dict[str, Any]) -> dict[str, Any]:
         free_space_cfg = free_space_config(frontend)
         descriptor_cfgs = descriptor_configs(frontend)
         primary = descriptor_cfgs[fc.DESCRIPTOR_SETS[0]]
-        models = worker_models(frontend, task["assets"], descriptor_cfgs)
+        masks_from = Path(task["masks_from"]) / episode_id if task.get("masks_from") else None
+        models = worker_models(frontend, task["assets"], descriptor_cfgs, load_sam=masks_from is None)
         models.reset_peak_memory()
+        pose_policy = task["pose_policy"]
+        try:
+            pose_corrected = pp.correction_applies(task["episode_code_commit"], pose_policy)
+        except pp.LeanPublicPoseError as exc:
+            raise CacheFailure("public_input_missing_or_malformed", f"public_pose:{exc}") from exc
+        receipt.update({"episode_code_commit": task["episode_code_commit"], "pose_correction_applied": pose_corrected,
+                        "mask_source": ("recovered:" + str(masks_from)) if masks_from else "sam"})
         prior_free_space: list[Any] = []
         public_dir = Path(task["episode_root"]) / "public"
         count = len(sorted(public_dir.glob("*.frame.json")))
@@ -682,14 +739,17 @@ def build_episode(task: dict[str, Any]) -> dict[str, Any]:
             mark = time.time()
             frame = read_public_frame(public_dir, index)
             record = frame["record"]
-            raw = models.masks(frame["rgb"])
+            if masks_from is not None:
+                raw = recovered_masks(masks_from / f"{index:04d}{MASK_FILE_SUFFIX}", tuple(frame["rgb"].shape[:2]))
+            else:
+                raw = models.masks(frame["rgb"])
             seconds["sam"] += time.time() - mark
             mark = time.time()
             tokens = models.patch_tokens(frame["rgb"])
             seconds["dino"] += time.time() - mark
             mark = time.time()
             admitted = fc.admit_proposals([anonymous(mask, ordinal) for ordinal, mask in enumerate(raw)])
-            pose = causal_pose(record)
+            pose = causal_pose(record, code_commit=task["episode_code_commit"], policy=pose_policy)
             # the two public volumes and the surfaces come from the bound D-223 materialisers on the
             # same public depth; rho_free needs no separate gate (ruling 42), and the place
             # descriptor the support helper also returns is dropped here per METHOD section 5
@@ -896,6 +956,11 @@ def main() -> int:
                         help="SAM-only pass over an existing cache root (--output-root): re-run the frozen "
                              "generator per frame, verify every mask digest against the sealed frame and write "
                              "NNNN.masks.npz beside it; needs the S1-04 fragment_mask_recovery bit")
+    parser.add_argument("--masks-from", default=None,
+                        help="ruling 49: a superseded cache root whose episodes carry recovered masks "
+                             "(NNNN.masks.npz plus a succeeded mask_recovery_receipt.json); SAM is not loaded, "
+                             "the masks are read and re-digested from their pixels per frame; episodes without "
+                             "a succeeded recovery receipt there are skipped and listed")
     args = parser.parse_args()
     trial = args.trial_frame_limit is not None
     if args.trial_episodes is not None and not trial:
@@ -919,10 +984,15 @@ def main() -> int:
     commit = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True,
                             cwd=ROOT).stdout.strip()
     if args.recover_masks:
-        if trial or args.resume:
-            print("--recover-masks cannot be combined with --resume or a trial; refusing")
+        if trial or args.resume or args.masks_from:
+            print("--recover-masks cannot be combined with --resume, --masks-from or a trial; refusing")
             return 2
         return recover_masks_main(args, contract=contract, assets=assets, commit=commit)
+    pose_policy = contract["public_pose_correction"]
+    masks_from = Path(args.masks_from).resolve() if args.masks_from else None
+    if masks_from is not None and not masks_from.is_dir():
+        print(f"--masks-from root does not exist: {masks_from}; refusing")
+        return 2
     out_root = Path(args.output_root)
     if trial and not out_root.name.endswith("-trial"):
         print("a trial run must write to an output root ending in -trial; refusing")
@@ -936,13 +1006,34 @@ def main() -> int:
     out_root.mkdir(parents=True, exist_ok=True)
 
     episodes = []
+    episode_commits: dict[str, str] = {}
+    skipped_no_recovered_masks: list[dict[str, Any]] = []
     for root in args.episode_roots.split(","):
         for directory in sorted(Path(root).glob("procthor10k-*")):
             receipt_path = directory / "receipt.json"
             if not receipt_path.exists():
                 continue
-            if json.loads(receipt_path.read_text(encoding="utf-8"))["status"] != "succeeded":
+            source = json.loads(receipt_path.read_text(encoding="utf-8"))
+            if source["status"] != "succeeded":
                 continue
+            # ruling 49: the pose policy must know this episode's generator commit before anything runs
+            try:
+                pp.correction_applies(source.get("code_commit"), pose_policy)
+            except pp.LeanPublicPoseError as exc:
+                print(f"{directory.name}: {exc}; refusing (register the commit in public_pose_correction first)")
+                return 2
+            if masks_from is not None:
+                recovery_receipt = masks_from / directory.name / "mask_recovery_receipt.json"
+                recovery = json.loads(recovery_receipt.read_text(encoding="utf-8")) if recovery_receipt.exists() else None
+                if not recovery or recovery.get("status") != "succeeded":
+                    old_cache = masks_from / directory.name / "receipt.json"
+                    old = json.loads(old_cache.read_text(encoding="utf-8")) if old_cache.exists() else {}
+                    skipped_no_recovered_masks.append({
+                        "episode_id": directory.name,
+                        "reason": ((recovery or {}).get("reason") or old.get("reason") or "no_recovery_receipt"),
+                        "source_cache_status": old.get("status"), "recovery_status": (recovery or {}).get("status")})
+                    continue
+            episode_commits[directory.name] = source["code_commit"]
             episodes.append(directory)
     if not episodes:
         print("no succeeded episodes under the given roots; refusing")
@@ -967,7 +1058,15 @@ def main() -> int:
         "descriptor_asset_sha256s": verified["descriptor_asset_sha256s"],
         "frame_limit": args.trial_frame_limit,
         "disk_floor_bytes": int(args.disk_floor_gib * 2 ** 30),
+        "episode_code_commit": episode_commits[directory.name], "pose_policy": pose_policy,
+        "masks_from": (str(masks_from) if masks_from is not None else None),
     } for directory in episodes]
+    pose_correction = {
+        "decision_id": pose_policy["decision_id"], "rule": pose_policy["rule"],
+        "applies_to_s1_02_code_commits": list(pose_policy["applies_to_s1_02_code_commits"]),
+        "episodes_corrected": sorted(e for e, c in episode_commits.items() if pp.correction_applies(c, pose_policy)),
+        "episodes_read_as_written": sorted(e for e, c in episode_commits.items() if not pp.correction_applies(c, pose_policy)),
+    }
     tasks_planned = len(tasks) + len(kept_results)
     actual_workers = max(1, min(args.workers, max(1, len(tasks))))
     snapshot = resource_snapshot()
@@ -981,6 +1080,9 @@ def main() -> int:
             "sharding": "one episode per task, tasks handed to a spawn pool one at a time, "
                         "results merged in episode_id order",
             "disk_floor_gib": args.disk_floor_gib, "resume": resumed,
+            "masks_from": (str(masks_from) if masks_from is not None else None),
+            "episodes_skipped_no_recovered_masks": skipped_no_recovered_masks,
+            "pose_correction": pose_correction,
             "trial_frame_limit": args.trial_frame_limit, "started_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
     stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
     plan_name = ("trial_plan" if trial else "plan") + (f".resume-{stamp}" if resumed else "") + ".json"
@@ -1018,6 +1120,12 @@ def main() -> int:
     receipt = stage_receipt(results, tasks_planned=tasks_planned, commit=commit, trial=trial, verified=verified,
                             args=args, actual_workers=actual_workers, snapshot=snapshot, started=started,
                             aborted=aborted, interrupted=interrupted)
+    receipt.update({
+        "mask_source": ("recovered:" + str(masks_from)) if masks_from is not None else "sam",
+        "episodes_skipped_no_recovered_masks": skipped_no_recovered_masks,
+        "pose_correction": pose_correction,
+        "episodes_pose_corrected": sorted(r["episode_id"] for r in results if r.get("pose_correction_applied")),
+    })
     if trial:
         name = "trial_receipt.json"
     elif receipt["complete"]:

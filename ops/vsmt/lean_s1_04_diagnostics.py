@@ -74,9 +74,11 @@ import lean_s1_03_cache as cache_runner  # noqa: E402
 from vsmt import lean_frontend_cache as fc  # noqa: E402
 from vsmt import lean_frontend_diagnostics as fd  # noqa: E402
 from vsmt import lean_object_geometry as og  # noqa: E402
+from vsmt import lean_public_pose as pp  # noqa: E402
 from vsmt import lean_reid_head as rh  # noqa: E402
 
 CONTRACT_PATH = ROOT / "configs" / "vsmt" / "lean_s1_04_frontend_diagnostics_v1.json"
+S1_03_CONTRACT_PATH = ROOT / "configs" / "vsmt" / "lean_s1_03_frontend_cache_v1.json"
 S1_02A_CONTRACT_PATH = ROOT / "configs" / "vsmt" / "lean_s1_02a_pilot_v2.json"
 REQUIRED_AUTHORIZATION = ("private_plane_reading", "diagnostics_run", "server_run")
 DESCRIPTOR_KEYS = {"vits14": "descriptor_vits14", "vitb14": "descriptor_vitb14"}
@@ -325,16 +327,20 @@ def load_private(episode_root: Path, count: int) -> tuple[list[dict[str, Any]], 
 
 
 def proxy_boxes_over_episode(episode_root: Path, records: list[dict[str, Any]], images: list[np.ndarray],
-                             *, minimum_depth_m: float, maximum_depth_m: float) -> dict[str, tuple[list[float], list[float]]]:
-    """The observed-set box per object: union over frames of its private mask's back-projection box."""
+                             *, minimum_depth_m: float, maximum_depth_m: float, code_commit: Any,
+                             pose_policy: dict[str, Any]) -> dict[str, tuple[list[float], list[float]]]:
+    """The observed-set box per object: union over frames of its private mask's back-projection box.
+
+    The public pose is read under the ruling-49 correction policy, like the cache and the geometry
+    residual, so the proxy box and the cache fragment boxes share one frame.
+    """
 
     public = episode_root / "public"
     boxes: dict[str, tuple[list[float] | None, list[float] | None]] = {}
     for index, (record, labels) in enumerate(zip(records, images)):
         frame = json.loads((public / f"{index:04d}.frame.json").read_text(encoding="utf-8"))
         depth = np.load(public / frame["depth_path"]).astype(np.float32)
-        pose = {"position_m": list(frame["relative_pose"]["position_m"]),
-                "quaternion_xyzw": list(frame["relative_pose"]["quaternion_xyzw"])}
+        pose = pp.public_camera_pose(frame, code_commit=code_commit, policy=pose_policy)
         for oid, label in record["object_id_to_entity_id"].items():
             mask = labels == int(label)
             if not mask.any():
@@ -369,8 +375,14 @@ def diagnose_episode(task: dict[str, Any]) -> dict[str, Any]:
         executed, window = cache_runner_read_interventions(episode_root / "provenance")
         tracker = og.EpisodeTruthTracker(table, executed_interventions=executed, window=window)
         truth_by_frame = [tracker.update(index, record) for index, record in enumerate(records)]
-        proxies = proxy_boxes_over_episode(episode_root, records, images,
-                                           minimum_depth_m=task["minimum_depth_m"], maximum_depth_m=task["maximum_depth_m"])
+        try:
+            pose_corrected = pp.correction_applies(task["episode_code_commit"], task["pose_policy"])
+            proxies = proxy_boxes_over_episode(episode_root, records, images,
+                                               minimum_depth_m=task["minimum_depth_m"], maximum_depth_m=task["maximum_depth_m"],
+                                               code_commit=task["episode_code_commit"], pose_policy=task["pose_policy"])
+        except pp.LeanPublicPoseError as exc:
+            raise DiagnosticsFailure("private_plane_missing_or_malformed", f"public_pose:{exc}") from exc
+        receipt.update({"episode_code_commit": task["episode_code_commit"], "pose_correction_applied": pose_corrected})
         rows_by_object = {row["object_id"]: row for row in table["objects"]}
         add_objects = sorted(row["object_id"] for row in executed if row.get("kind") == "add")
         fragments_labelled = sum(1 for f in labelled for x in f["fragments"] if x["object"] is not None)
@@ -589,8 +601,10 @@ def main() -> int:
     out_root.mkdir(parents=True, exist_ok=True)
     roots = {directory.name: directory for root in args.episode_roots.split(",")
              for directory in sorted(Path(root).glob("procthor10k-*"))}
+    pose_policy = json.loads(S1_03_CONTRACT_PATH.read_text(encoding="utf-8"))["public_pose_correction"]
     cached: list[Path] = []
     skipped: list[str] = []
+    episode_commits: dict[str, str] = {}
     for receipt_path in sorted(cache_root.glob("procthor10k-*/receipt.json")):
         cache_dir = receipt_path.parent
         if json.loads(receipt_path.read_text(encoding="utf-8")).get("status") != "succeeded":
@@ -599,6 +613,14 @@ def main() -> int:
         if cache_dir.name not in roots:
             print(f"[s1-04] refused: no S1-02 episode root for {cache_dir.name}", file=sys.stderr)
             return 2
+        # ruling 49: the S1-02 generator commit decides how the public pose is read; refuse unregistered ones
+        source = json.loads((roots[cache_dir.name] / "receipt.json").read_text(encoding="utf-8"))
+        try:
+            pp.correction_applies(source.get("code_commit"), pose_policy)
+        except pp.LeanPublicPoseError as exc:
+            print(f"[s1-04] refused: {cache_dir.name}: {exc}", file=sys.stderr)
+            return 2
+        episode_commits[cache_dir.name] = source["code_commit"]
         cached.append(cache_dir)
     cached_ids = [directory.name for directory in cached]
     # ruling 47: the hold-out is fixed on the cache membership before any diagnostic runs
@@ -627,14 +649,19 @@ def main() -> int:
     tasks = [{"episode_id": cache_dir.name, "cache_dir": str(cache_dir), "episode_root": str(roots[cache_dir.name]),
               "geometry_dir": str(Path(args.geometry_root) / cache_dir.name), "out": str(out_root / cache_dir.name),
               "commit": commit, "descriptor_asset_sha256s": descriptor_asset_sha256s,
+              "episode_code_commit": episode_commits[cache_dir.name], "pose_policy": pose_policy,
               "minimum_depth_m": float(geometry["minimum_depth_m"]), "maximum_depth_m": float(geometry["maximum_depth_m"])}
              for cache_dir in cached if cache_dir.name in run_ids]
+    pose_correction = {"decision_id": pose_policy["decision_id"], "rule": pose_policy["rule"],
+                       "episodes_corrected": sorted(e for e, c in episode_commits.items() if pp.correction_applies(c, pose_policy)),
+                       "episodes_read_as_written": sorted(e for e, c in episode_commits.items() if not pp.correction_applies(c, pose_policy))}
     actual = max(1, min(args.workers, max(1, len(tasks))))
     plan = {
         "stage": "s1-04-diagnostics", "commit": commit, "episodes_cached": cached_ids, "episodes": [t["episode_id"] for t in tasks],
         "episodes_skipped_no_cache": skipped, "kept_from_receipts": [r["episode_id"] for r in kept], "resume": resumed,
         "holdout": split, "holdout_membership_rule": HOLDOUT_MEMBERSHIP_RULE,
         "descriptor_asset_sha256s": descriptor_asset_sha256s, "reid": args.reid, "reid_weights_plan": weights_plan,
+        "pose_correction": pose_correction,
         "requested_workers": args.workers, "actual_workers": actual, "worker_basis": args.worker_basis,
         "split_seed": split_seed, "started_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
@@ -667,6 +694,7 @@ def main() -> int:
         "fragments_labelled": sum(r.get("fragments_labelled", 0) for r in results if r["status"] == "succeeded"),
         "fragments_unlabelled": sum(r.get("fragments", 0) - r.get("fragments_labelled", 0) for r in results if r["status"] == "succeeded"),
         "holdout": split, "holdout_membership_rule": HOLDOUT_MEMBERSHIP_RULE,
+        "pose_correction": pose_correction,
         "requested_workers": args.workers, "actual_workers": actual, "worker_basis": args.worker_basis,
         "wall_clock_seconds": round(time.time() - started, 1),
     })

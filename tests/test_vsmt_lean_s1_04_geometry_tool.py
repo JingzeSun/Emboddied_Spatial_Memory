@@ -111,12 +111,20 @@ class EpisodeBuildTests(unittest.TestCase):
             with tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
                 episode = write_episode(root, "procthor10k-0.1.2-train-00002")
+                policy = json.loads((PROJECT_ROOT / "configs" / "vsmt" / "lean_s1_03_frontend_cache_v1.json").read_text(encoding="utf-8"))["public_pose_correction"]
                 task = {"episode_id": episode.name, "episode_root": str(episode), "house_id": episode.name,
                         "source_index": 7, "source_status": "succeeded", "out": str(root / "out" / episode.name),
                         "source_root": str(root), "source_rel": "train.jsonl.gz", "commit": "deadbeef",
+                        "code_commit": policy["applies_to_s1_02_code_commits"][0], "pose_policy": policy,
                         "minimum_depth_m": 0.05, "maximum_depth_m": 20.0}
                 receipt = tool.build_episode(task)
                 self.assertEqual(receipt["status"], "succeeded", receipt)
+                # ruling 49: a registered pre-ruling commit is corrected (the fixture's identity pose has zero
+                # pitch, so the numbers below are unchanged by it); an unregistered commit is refused
+                self.assertIs(receipt["residual"]["pose_correction_applied"], True)
+                refused = tool.build_episode(dict(task, code_commit="0" * 40, out=str(root / "out" / "refused")))
+                self.assertEqual((refused["status"], refused["reason"]), ("failed", "metadata_missing_or_malformed"))
+                self.assertIn("episode_code_commit_not_registered", refused["detail"])
                 table = json.loads((root / "out" / episode.name / og.TABLE_FILE_NAME).read_text(encoding="utf-8"))
                 og.validate_geometry_table(table)
                 self.assertEqual(table["episode_origin_world_m"], [1.0, 1.5, 1.0])

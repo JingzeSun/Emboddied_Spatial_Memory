@@ -177,5 +177,53 @@ class AssetVerificationTests(unittest.TestCase):
             self.assertEqual(runner.file_sha256(path), hashlib.sha256(b"\x00\x01" * 1000).hexdigest())
 
 
+class Ruling49Tests(unittest.TestCase):
+    """The pose is read under the registered correction policy and --masks-from re-digests every mask."""
+
+    def setUp(self) -> None:
+        self.policy = json.loads(runner.CONTRACT_PATH.read_text(encoding="utf-8"))["public_pose_correction"]
+        self.defective = self.policy["applies_to_s1_02_code_commits"][0]
+
+    def test_causal_pose_restores_the_pitch_sign_for_a_registered_commit_and_refuses_others(self) -> None:
+        from vsmt import lean_public_pose as pp
+        import math
+        written = pp.quaternion_xyzw_from_rotation(pp.rotation_x(-math.radians(30.0)))  # the old encoder: looks up
+        record = {"relative_pose": {"position_m": [0.5, 0.0, -1.0], "quaternion_xyzw": written, "origin": "observation_0_camera"}}
+        pose = runner.causal_pose(record, code_commit=self.defective, policy=self.policy)
+        self.assertEqual(pose["position_m"], [0.5, 0.0, -1.0])
+        self.assertAlmostEqual(runner.camera_forward(pose["quaternion_xyzw"])[1], -0.5, places=9)
+        self.assertAlmostEqual(runner.camera_forward(written)[1], 0.5, places=9)
+        with self.assertRaises(runner.CacheFailure) as caught:
+            runner.causal_pose(record, code_commit="0" * 40, policy=self.policy)
+        self.assertIn("episode_code_commit_not_registered", caught.exception.detail)
+
+    def test_recovered_masks_are_re_digested_from_pixels_and_shape_checked(self) -> None:
+        import numpy as np
+        rng = np.random.default_rng(49)
+        masks = [rng.random((20, 30)) > 0.5 for _ in range(3)]
+        shas = [fc.mask_sha256_of(m) for m in masks]
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / f"0000{runner.MASK_FILE_SUFFIX}"
+            runner.write_masks_file(path, masks, shas, shape=(20, 30))
+            back = runner.recovered_masks(path, (20, 30))
+            self.assertEqual(len(back), 3)
+            for original, restored in zip(masks, back):
+                np.testing.assert_array_equal(original, restored)
+            with self.assertRaises(runner.CacheFailure):
+                runner.recovered_masks(path, (30, 20))
+            with self.assertRaises(runner.CacheFailure):
+                runner.recovered_masks(Path(directory) / f"0001{runner.MASK_FILE_SUFFIX}", (20, 30))
+            # a mask changed on disk while its stored digest stays: refused
+            tampered = [masks[0], ~masks[1], masks[2]]
+            runner.write_masks_file(path, tampered, shas, shape=(20, 30))
+            with self.assertRaises(runner.CacheFailure) as caught:
+                runner.recovered_masks(path, (20, 30))
+            self.assertIn("do not reproduce", caught.exception.detail)
+            # an empty frame round-trips to no masks
+            empty = Path(directory) / f"0002{runner.MASK_FILE_SUFFIX}"
+            runner.write_masks_file(empty, [], [], shape=(20, 30))
+            self.assertEqual(runner.recovered_masks(empty, (20, 30)), [])
+
+
 if __name__ == "__main__":
     unittest.main()
