@@ -80,6 +80,18 @@ DESCRIPTOR_ASSET_IDS = {"vits14": "dinov2_vit_s14_checkpoint", "vitb14": "dinov2
 
 #: one frame on disk
 FRAME_FILE_SUFFIX = ".cache.json.gz"
+#: the recovered fragment masks of one frame (``--recover-masks``): packed bits in cache fragment
+#: order plus each mask's digest, so a reader can verify the file against the sealed frame
+MASK_FILE_SUFFIX = ".masks.npz"
+#: registered outcomes of the mask recovery pass (pending ruling 48; LOG-241 section four)
+RECOVERY_FAILURE_REASONS = (
+    "fragment_mask_mismatch",
+    "cache_missing_or_unsealed",
+    "public_input_missing_or_malformed",
+    "proposal_overflow",
+    "duplicate_proposal_mask",
+)
+S1_04_CONTRACT_PATH = ROOT / "configs" / "vsmt" / "lean_s1_04_frontend_diagnostics_v1.json"
 
 
 class CacheFailure(Exception):
@@ -263,6 +275,202 @@ def load_cache_frame(path: Path) -> dict[str, Any]:
 
     with gzip.open(path, "rb") as handle:
         return json.loads(handle.read().decode("utf-8"))
+
+
+def write_masks_file(path: Path, masks: list[np.ndarray], mask_sha256s: list[str], *, shape: tuple[int, int]) -> int:
+    """The recovered masks of one frame, packed, in cache fragment order; returns the bytes written."""
+
+    count = len(masks)
+    if count:
+        array = np.asarray(masks, dtype=bool)
+        if array.shape[1:] != tuple(shape):
+            raise CacheFailure("public_input_missing_or_malformed", f"mask shape {array.shape[1:]} != {shape}")
+    else:
+        array = np.zeros((0, *shape), dtype=bool)
+    packed = np.packbits(array.reshape(count, -1), axis=1) if count else np.zeros((0, 0), dtype=np.uint8)
+    np.savez_compressed(path, packed=packed, shape=np.asarray([count, *shape], dtype=np.int64),
+                        mask_sha256=np.asarray(list(mask_sha256s), dtype="U64"))
+    return path.stat().st_size
+
+
+def read_masks_file(path: Path) -> dict[str, Any]:
+    """Decode one recovered-mask file: ``masks`` (bool [n, H, W]) and ``mask_sha256`` (list)."""
+
+    with np.load(path) as archive:
+        count, height, width = (int(v) for v in archive["shape"])
+        packed = archive["packed"]
+        shas = [str(v) for v in archive["mask_sha256"]]
+    if count:
+        flat = np.unpackbits(packed, axis=1)[:, :height * width].astype(bool)
+        masks = flat.reshape(count, height, width)
+    else:
+        masks = np.zeros((0, height, width), dtype=bool)
+    return {"masks": masks, "mask_sha256": shas}
+
+
+def match_recovered_masks(cache_frame: dict[str, Any], admitted: list[Any]) -> dict[str, Any]:
+    """Do the re-run proposals reproduce the sealed frame's fragments, digest for digest, in order?
+
+    白话：回收 mask 的前提是 SAM 在同一配置下逐位复现出当初进 cache 的那些 mask。这里把重算并
+    按 D-215 边界准入、按摘要排序后的 mask 摘要序列，与封印帧里的 fragment 摘要序列逐位比对；
+    不一致就整条 episode 登记 ``fragment_mask_mismatch``，不用 IoU 近似匹配冒充一致。
+    """
+
+    expected = [row["mask_sha256"] for row in cache_frame["fragments"]]
+    found = [mask.mask_sha256 for mask in admitted]
+    mismatched = [i for i, (a, b) in enumerate(zip(expected, found)) if a != b]
+    if len(expected) != len(found):
+        mismatched += list(range(min(len(expected), len(found)), max(len(expected), len(found))))
+    return {"matched": not mismatched, "cache_count": len(expected), "recovered_count": len(found),
+            "mismatched_positions": mismatched}
+
+
+def recover_episode_masks(task: dict[str, Any]) -> dict[str, Any]:
+    """Re-run SAM only over one cached episode and write ``NNNN.masks.npz`` beside every frame.
+
+    白话：不改 cache 里的任何字节。逐帧重跑冻结的 SAM 与同一准入规则，摘要逐位对上才写 mask 文
+    件；对不上就整条失败并留回执。DINO 不跑。回执记每帧是否匹配、字节数与每帧秒数。
+    """
+
+    started = time.time()
+    episode_id = task["episode_id"]
+    cache_dir = Path(task["cache_dir"])
+    receipt: dict[str, Any] = {"episode_id": episode_id, "code_commit": task["commit"], "mode": "recover_masks"}
+    frames_done = 0
+    fragments_total = 0
+    bytes_written = 0
+    mismatched_frames: list[dict[str, Any]] = []
+    models: FrozenModels | None = None
+    try:
+        cache_receipt = json.loads((cache_dir / "receipt.json").read_text(encoding="utf-8"))
+        if cache_receipt.get("status") != "succeeded":
+            raise CacheFailure("public_input_missing_or_malformed", "cache episode did not succeed")
+        seal = json.loads((cache_dir / "episode_seal.json").read_text(encoding="utf-8"))
+        frame_paths = sorted(cache_dir.glob(f"*{FRAME_FILE_SUFFIX}"))
+        if len(frame_paths) != seal["episode_frame_count"]:
+            raise CacheFailure("public_input_missing_or_malformed", "cache frame count differs from the seal")
+        frontend = frozen_frontend()
+        models = worker_models(frontend, task["assets"], descriptor_configs(frontend))
+        models.reset_peak_memory()
+        public_dir = Path(task["episode_root"]) / "public"
+        seal_inputs = []
+        for index, frame_path in enumerate(frame_paths):
+            cache_frame = load_cache_frame(frame_path)
+            if cache_frame["tick"] != index + 1:
+                raise CacheFailure("public_input_missing_or_malformed", f"tick {cache_frame['tick']} at {index}")
+            seal_inputs.append({"tick": cache_frame["tick"], "frame_seal": cache_frame["frame_seal"]})
+            frame = read_public_frame(public_dir, index)
+            raw = models.masks(frame["rgb"])
+            admitted = fc.admit_proposals([anonymous(mask, ordinal) for ordinal, mask in enumerate(raw)])
+            match = match_recovered_masks(cache_frame, admitted)
+            if not match["matched"]:
+                mismatched_frames.append({"index": index, **{k: v for k, v in match.items() if k != "matched"}})
+                if len(mismatched_frames) >= int(task.get("mismatch_limit") or 1):
+                    raise CacheFailure("public_input_missing_or_malformed", "fragment_mask_mismatch")
+                continue
+            bytes_written += write_masks_file(
+                cache_dir / f"{index:04d}{MASK_FILE_SUFFIX}", [mask.as_array() for mask in admitted],
+                [mask.mask_sha256 for mask in admitted], shape=tuple(frame["rgb"].shape[:2]))
+            fragments_total += len(admitted)
+            frames_done += 1
+        recomputed = fc.seal_episode(seal_inputs, frontend_config_sha256=fc.D223_FRONTEND_CONFIG_SHA256)
+        if recomputed["payload_sha256"] != seal["payload_sha256"]:
+            raise CacheFailure("public_input_missing_or_malformed", "cache_missing_or_unsealed")
+        if mismatched_frames:
+            receipt.update({"status": "failed", "reason": "fragment_mask_mismatch"})
+        else:
+            receipt.update({"status": "succeeded"})
+        receipt["episode_seal_sha256"] = seal["payload_sha256"]
+    except (CacheFailure, fc.LeanFrontendCacheError) as failure:
+        detail = getattr(failure, "detail", str(failure))
+        reason = "fragment_mask_mismatch" if "fragment_mask_mismatch" in detail else (
+            "cache_missing_or_unsealed" if "cache_missing_or_unsealed" in detail else failure.reason)
+        receipt.update({"status": "failed", "reason": reason if reason in RECOVERY_FAILURE_REASONS else
+                        "public_input_missing_or_malformed", "detail": detail[:400]})
+    except Exception as exc:  # noqa: BLE001
+        receipt.update({"status": "failed", "reason": "public_input_missing_or_malformed",
+                        "detail": (repr(exc) + " | " + traceback.format_exc()[-800:])})
+    wall = time.time() - started
+    receipt.update({
+        "frames_written": frames_done, "fragments_written": fragments_total,
+        "mismatched_frames": mismatched_frames, "bytes_written": bytes_written,
+        "wall_seconds": round(wall, 1), "seconds_per_frame": round(wall / frames_done, 3) if frames_done else None,
+        "peak_vram_reserved_mib": models.peak_reserved_mib() if models is not None else None,
+        "peak_rss_mib": peak_rss_mib(), "worker_pid": os.getpid(),
+    })
+    (cache_dir / "mask_recovery_receipt.json").write_text(json.dumps(receipt, indent=1))
+    return receipt
+
+
+def recover_masks_main(args: Any, *, contract: dict[str, Any], assets: dict[str, str], commit: str) -> int:
+    """``--recover-masks``: the SAM-only pass over an existing cache root (LOG-241, pending ruling 48)."""
+
+    s1_04 = json.loads(S1_04_CONTRACT_PATH.read_text(encoding="utf-8"))
+    if s1_04["authorization"].get("fragment_mask_recovery") is not True:
+        print("S1-04 authorization bit fragment_mask_recovery is closed; refusing")
+        return 2
+    cache_root = Path(args.output_root)
+    if not cache_root.exists():
+        print(f"cache root does not exist: {cache_root}; refusing")
+        return 2
+    roots = {directory.name: directory for root in args.episode_roots.split(",")
+             for directory in sorted(Path(root).glob("procthor10k-*"))}
+    tasks = []
+    kept: list[dict[str, Any]] = []
+    for receipt_path in sorted(cache_root.glob(f"procthor10k-*/receipt.json")):
+        cache_dir = receipt_path.parent
+        if json.loads(receipt_path.read_text(encoding="utf-8")).get("status") != "succeeded":
+            continue
+        previous = cache_dir / "mask_recovery_receipt.json"
+        if previous.exists() and json.loads(previous.read_text(encoding="utf-8")).get("status") == "succeeded":
+            kept.append(json.loads(previous.read_text(encoding="utf-8")))
+            continue
+        if cache_dir.name not in roots:
+            print(f"no S1-02 episode root for {cache_dir.name}; refusing")
+            return 2
+        tasks.append({"episode_id": cache_dir.name, "cache_dir": str(cache_dir), "episode_root": str(roots[cache_dir.name]),
+                      "commit": commit, "assets": assets, "mismatch_limit": 1})
+    actual_workers = max(1, min(args.workers, max(1, len(tasks))))
+    plan = {"stage": "s1-03-mask-recovery", "commit": commit, "episodes": [t["episode_id"] for t in tasks],
+            "kept_from_receipts": [r["episode_id"] for r in kept], "requested_workers": args.workers,
+            "actual_workers": actual_workers, "worker_basis": args.worker_basis,
+            "started_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+    stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
+    (cache_root / f"mask_recovery_plan-{stamp}.json").write_text(json.dumps(plan, indent=1))
+    print(f"[s1-03 recover-masks] {len(tasks)} episodes to run ({len(kept)} kept), {actual_workers} workers, "
+          f"commit {commit[:12]}", flush=True)
+    started = time.time()
+    results = list(kept)
+    if tasks:
+        context = mp.get_context("spawn")
+        with context.Pool(processes=actual_workers) as pool:
+            for row in pool.imap_unordered(recover_episode_masks, tasks, chunksize=1):
+                results.append(row)
+                print(f"[s1-03 recover-masks] {len(results)}/{len(tasks) + len(kept)} {row['episode_id']} {row['status']} "
+                      f"frames={row.get('frames_written')} s/frame={row.get('seconds_per_frame')} "
+                      f"{('reason=' + str(row.get('reason'))) if row['status'] != 'succeeded' else ''} "
+                      f"elapsed={time.time() - started:.0f}s", flush=True)
+    results.sort(key=lambda r: r["episode_id"])
+    succeeded = [r for r in results if r["status"] == "succeeded"]
+    receipt = {
+        "stage": "s1-03-mask-recovery", "code_commit": commit,
+        "episodes_planned": len(tasks) + len(kept), "episodes_succeeded": len(succeeded),
+        "episodes_failed": len(results) - len(succeeded),
+        "failure_receipts": [{"episode_id": r["episode_id"], "reason": r.get("reason"),
+                              "mismatched_frames": r.get("mismatched_frames", [])[:5]} for r in results if r["status"] != "succeeded"],
+        "frames_written": sum(r.get("frames_written", 0) for r in succeeded),
+        "fragments_written": sum(r.get("fragments_written", 0) for r in succeeded),
+        "bytes_written": sum(r.get("bytes_written", 0) for r in succeeded),
+        "episode_seals": {r["episode_id"]: r.get("episode_seal_sha256") for r in succeeded},
+        "requested_workers": args.workers, "actual_workers": actual_workers, "worker_basis": args.worker_basis,
+        "wall_clock_seconds": round(time.time() - started, 1),
+        "complete": len(results) == len(tasks) + len(kept),
+    }
+    name = "s1_03_mask_recovery_receipt.json" if receipt["complete"] and receipt["episodes_failed"] == 0 \
+        else f"s1_03_mask_recovery_receipt.partial-{stamp}.json"
+    (cache_root / name).write_text(json.dumps(receipt, indent=1))
+    print(json.dumps(receipt, indent=1))
+    return 0 if receipt["complete"] and receipt["episodes_failed"] == 0 else 1
 
 
 def causal_pose(record: dict[str, Any]) -> dict[str, Any]:
@@ -661,6 +869,10 @@ def main() -> int:
                              "trial receipt instead of the stage receipt; never a stage run")
     parser.add_argument("--trial-episodes", type=int, default=None,
                         help="measurement only: cache at most this many episodes (requires --trial-frame-limit)")
+    parser.add_argument("--recover-masks", action="store_true",
+                        help="SAM-only pass over an existing cache root (--output-root): re-run the frozen "
+                             "generator per frame, verify every mask digest against the sealed frame and write "
+                             "NNNN.masks.npz beside it; needs the S1-04 fragment_mask_recovery bit")
     args = parser.parse_args()
     trial = args.trial_frame_limit is not None
     if args.trial_episodes is not None and not trial:
@@ -683,6 +895,11 @@ def main() -> int:
     verified = verify_assets(assets, contract)
     commit = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True,
                             cwd=ROOT).stdout.strip()
+    if args.recover_masks:
+        if trial or args.resume:
+            print("--recover-masks cannot be combined with --resume or a trial; refusing")
+            return 2
+        return recover_masks_main(args, contract=contract, assets=assets, commit=commit)
     out_root = Path(args.output_root)
     if trial and not out_root.name.endswith("-trial"):
         print("a trial run must write to an output root ending in -trial; refusing")
