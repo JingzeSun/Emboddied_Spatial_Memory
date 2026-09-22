@@ -53,6 +53,29 @@ class MaskAndRuleTests(unittest.TestCase):
         totals = audit.rendered_pixels_in_window(records, ["Fridge|1", "Bed|2", "Sink|3"])
         self.assertEqual(totals, {"Fridge|1": 5, "Bed|2": 12, "Sink|3": 0})
 
+    def test_intervention_soundness_re_asks_the_frozen_rule_against_the_corrected_verdicts(self) -> None:
+        executed = [
+            {"kind": "move", "object_id": "Pillow|1", "source": "Bed|1", "destination": "Dresser|2"},
+            {"kind": "remove", "object_id": "Mug|3", "source": "Sink|4", "destination": "Sink|4"},
+            {"kind": "add", "object_id": "Remote|5", "source": "Desk|9", "destination": "Table|6"},
+        ]
+        corrected_u = ["Bed|1", "Sink|4", "Table|6"]           # Dresser|2 and Desk|9 left U
+        rendered = {"Dresser|2": 900, "Desk|9": 0, "Bed|1": 0, "Sink|4": 0, "Table|6": 0}
+        out = audit.intervention_soundness(executed, corrected_u, rendered)
+        self.assertEqual(out["executed_interventions"], 3)
+        # the move touches a container that left U; the add's source did too, which only the strict
+        # reading counts, because an add's source holds an object the agent has never seen
+        self.assertEqual((out["sound_strict"], out["sound_by_role"]), (1, 2))
+        self.assertFalse(out["episode_still_valid_strict"])
+        self.assertFalse(out["episode_still_valid_by_role"])
+        self.assertEqual(out["rows"][0]["strict"]["containers_outside_corrected_u"], ["Dresser|2"])
+        self.assertEqual(out["rows"][0]["containers_the_simulator_rendered_in_window"], ["Dresser|2"])
+        self.assertTrue(out["rows"][1]["by_role"]["still_sound"])
+        self.assertEqual(out["rows"][2]["by_role"]["containers"], ["Table|6"])
+        sound = audit.intervention_soundness(executed[1:2], corrected_u, rendered)
+        self.assertTrue(sound["episode_still_valid_strict"] and sound["episode_still_valid_by_role"])
+        self.assertTrue(audit.intervention_soundness([], corrected_u, rendered)["episode_still_valid_strict"])
+
     def test_the_comparison_separates_the_control_check_from_the_finding(self) -> None:
         same = audit.compare_sets(["a", "b"], ["b", "a"], ["a", "b"])
         self.assertTrue(same["control_reproduces_generation"])

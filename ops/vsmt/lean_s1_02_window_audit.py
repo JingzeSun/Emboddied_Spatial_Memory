@@ -122,6 +122,68 @@ def rendered_pixels_in_window(private_records: list[dict[str, Any]], container_i
     return totals
 
 
+#: Which named containers each intervention kind touches, as the S0-02 rule "every container
+#: involved must be invisible in every window frame" reads them.
+CONTAINERS_BY_KIND = {"remove": ("source",), "move": ("source", "destination"), "add": ("destination",)}
+
+
+def intervention_containers(row: dict[str, Any], *, strict: bool) -> list[str]:
+    """The containers one executed intervention involves.
+
+    ``strict`` takes every container the row names (source and destination alike); otherwise the
+    roles above.  The two differ only for ``add``, whose ``source`` holds an object the agent has
+    never seen.  Both are reported; which one the frozen rule means is the user's to say.
+    """
+
+    roles = ("source", "destination") if strict else CONTAINERS_BY_KIND.get(str(row.get("kind")), ())
+    return sorted({str(row[role]) for role in roles if row.get(role)})
+
+
+def intervention_soundness(executed: list[dict[str, Any]], corrected_u: list[str],
+                           rendered: dict[str, int]) -> dict[str, Any]:
+    """Would each executed intervention still satisfy the frozen rule with a correct visibility test?
+
+    S0-02 ``intervention_window``: an intervention runs only when every container it involves is
+    invisible in every window frame, and a container re-entering view fails the whole episode.
+    This re-asks that question against the corrected verdicts, per intervention and per rule
+    reading, and never changes anything.
+
+    白话：S0-02 合同写明"涉及的全部容器在窗口每一帧都不可见才执行干预，源容器中途重新进入视野
+    整条 episode 失败"。这里就是把这句话用修正后的可见性重新问一遍：每条已执行的干预，它涉及的
+    容器是否仍然全部落在修正后的 U 里。输出只是判断依据，不改任何数据，也不替用户裁决。
+    """
+
+    corrected = set(corrected_u)
+    rows = []
+    for row in executed:
+        entry = {"kind": row.get("kind"), "object_id": row.get("object_id"),
+                 "source": row.get("source"), "destination": row.get("destination")}
+        for name, strict in (("strict", True), ("by_role", False)):
+            containers = intervention_containers(row, strict=strict)
+            outside = [cid for cid in containers if cid not in corrected]
+            entry[name] = {"containers": containers, "containers_outside_corrected_u": outside,
+                           "still_sound": not outside}
+        entry["containers_the_simulator_rendered_in_window"] = sorted(
+            cid for cid in intervention_containers(row, strict=True) if rendered.get(cid, 0) > 0)
+        rows.append(entry)
+    return {
+        "executed_interventions": len(rows),
+        "sound_strict": sum(1 for r in rows if r["strict"]["still_sound"]),
+        "sound_by_role": sum(1 for r in rows if r["by_role"]["still_sound"]),
+        "episode_still_valid_strict": all(r["strict"]["still_sound"] for r in rows),
+        "episode_still_valid_by_role": all(r["by_role"]["still_sound"] for r in rows),
+        "rows": rows,
+    }
+
+
+def read_executed_interventions(provenance_dir: Path) -> list[dict[str, Any]]:
+    path = provenance_dir / "interventions.json"
+    if not path.exists():
+        return []
+    return [row for row in json.loads(path.read_text(encoding="utf-8")).get("executed", [])
+            if row.get("executed", True)]
+
+
 def compare_sets(stored: list[str], control: list[str], test: list[str]) -> dict[str, Any]:
     """Control against what generation stored, and test against the control."""
 
@@ -220,6 +282,13 @@ def audit_episode(task: dict[str, Any]) -> dict[str, Any]:
                    else ("verdicts_differ" if comparison["verdicts_change"] else "agrees"))
         rendered_in_stored_u = sorted(cid for cid in stored_invisible if rendered.get(cid, 0) > 0)
         rendered_in_corrected_u = sorted(cid for cid in comparison["corrected_invisible"] if rendered.get(cid, 0) > 0)
+        executed = read_executed_interventions(episode_root / "provenance")
+        for row in executed:
+            for role in ("source", "destination"):
+                cid = row.get(role)
+                if cid and cid not in rendered:
+                    rendered[cid] = rendered_pixels_in_window(window_private, [cid])[cid]
+        soundness = intervention_soundness(executed, comparison["corrected_invisible"], rendered)
         report = {
             "episode_id": task["episode_id"], "episode_code_commit": commit,
             "pose_correction_applied": pp.correction_applies(commit, policy),
@@ -231,6 +300,7 @@ def audit_episode(task: dict[str, Any]) -> dict[str, Any]:
             "rendered_pixels_in_window": rendered,
             "stored_u_containers_the_simulator_rendered": rendered_in_stored_u,
             "corrected_u_containers_the_simulator_rendered": rendered_in_corrected_u,
+            "intervention_soundness": soundness,
         }
         (out_dir / "window_audit.json").write_text(json.dumps(report), encoding="utf-8")
         receipt.update({"status": "succeeded", "outcome": outcome, "window_frames": high - low,
@@ -239,7 +309,12 @@ def audit_episode(task: dict[str, Any]) -> dict[str, Any]:
                         "control_reproduces_generation": comparison["control_reproduces_generation"],
                         "stored_u_size": len(stored_invisible), "corrected_u_size": len(comparison["corrected_invisible"]),
                         "stored_u_rendered_count": len(rendered_in_stored_u),
-                        "corrected_u_rendered_count": len(rendered_in_corrected_u)})
+                        "corrected_u_rendered_count": len(rendered_in_corrected_u),
+                        "executed_interventions": soundness["executed_interventions"],
+                        "interventions_sound_strict": soundness["sound_strict"],
+                        "interventions_sound_by_role": soundness["sound_by_role"],
+                        "episode_still_valid_strict": soundness["episode_still_valid_strict"],
+                        "episode_still_valid_by_role": soundness["episode_still_valid_by_role"]})
     except AuditFailure as failure:
         receipt.update({"status": "failed", "outcome": failure.outcome, "detail": failure.detail[:400]})
     except Exception as exc:  # noqa: BLE001
@@ -270,6 +345,16 @@ def stage_report(results: list[dict[str, Any]], *, commit: str, requested_worker
         # window cannot honestly be called unobservable, whatever any projection says
         "stored_u_containers_the_simulator_rendered": sum(r.get("stored_u_rendered_count", 0) for r in succeeded),
         "corrected_u_containers_the_simulator_rendered": sum(r.get("corrected_u_rendered_count", 0) for r in succeeded),
+        # S0-02 intervention_window: an intervention runs only when every container it involves is
+        # invisible in every window frame, and a container re-entering view fails the whole episode
+        "executed_interventions": sum(r.get("executed_interventions", 0) for r in succeeded),
+        "interventions_still_sound_strict": sum(r.get("interventions_sound_strict", 0) for r in succeeded),
+        "interventions_still_sound_by_role": sum(r.get("interventions_sound_by_role", 0) for r in succeeded),
+        "episodes_with_interventions": sum(1 for r in succeeded if r.get("executed_interventions", 0) > 0),
+        "episodes_still_valid_strict": sum(1 for r in succeeded
+                                           if r.get("executed_interventions", 0) > 0 and r.get("episode_still_valid_strict")),
+        "episodes_still_valid_by_role": sum(1 for r in succeeded
+                                            if r.get("executed_interventions", 0) > 0 and r.get("episode_still_valid_by_role")),
         "failures": [{"episode_id": r["episode_id"], "outcome": r.get("outcome"), "detail": (r.get("detail") or "")[:200]}
                      for r in results if r["status"] != "succeeded"],
         "requested_workers": requested_workers, "actual_workers": actual_workers, "worker_basis": worker_basis,
