@@ -133,9 +133,10 @@ FROZEN_V1_NAME = {
     "S1-01": "lean_s1_assets_capacity_v1.json",
     "S1-02a": "lean_s1_02a_pilot_v1.json",
     "S1-03": "lean_s1_03_frontend_cache_v1.json",
+    "S1-04": "lean_s1_04_frontend_diagnostics_v1.json",
 }
 
-#: Live contract per stage, including the two S1 contracts.
+#: Live contract per stage, including the S1 contracts.
 LIVE_CONTRACT = {
     "S0-01": "lean_s0_entity_memory_v2.json",
     "S0-02": "lean_s0_intervention_data_v3.json",
@@ -145,6 +146,7 @@ LIVE_CONTRACT = {
     "S1-01": "lean_s1_assets_capacity_v2.json",
     "S1-02a": "lean_s1_02a_pilot_v2.json",
     "S1-03": "lean_s1_03_frontend_cache_v1.json",
+    "S1-04": "lean_s1_04_frontend_diagnostics_v1.json",
 }
 
 
@@ -282,6 +284,9 @@ FROZEN_RULE_SHA256 = {
     "S1-01": "4f139e631388c05e4006fd12ffad8b611d2e7811fb7f9a830ce9f7c63fdecd84",
     "S1-02a": "997cabe5105ca304269b0d8d9dd34038ff096df7a79c875c577a2629866ccc64",
     "S1-03": "e4d8a52e9866a9020dccca11159bdbe148a910ef41e2a341c01c7707d12ff6b8",
+    # S1-04 v1 (2026-09-22, rulings 45/46/47; implemented, pending user code review): the five
+    # ReID training values are its open slots, every authorization bit is closed.
+    "S1-04": "2fff2d199b373061d0f8b497837616fc217917ec07e0c4a7e245568d36a94010",
 }
 
 #: Every registered slot that has been frozen, and the value it froze at.
