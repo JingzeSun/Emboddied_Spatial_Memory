@@ -78,6 +78,31 @@ class MatchTests(unittest.TestCase):
         self.assertEqual(runner.match_recovered_masks(changed, admitted)["mismatched_positions"], [0])
 
 
+class RecoveryPlanTests(unittest.TestCase):
+    def test_a_failed_recovery_receipt_is_kept_and_never_retried(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for episode_id, cache_status, recovery_status in (
+                ("procthor10k-0.1.2-train-00001", "succeeded", "succeeded"),
+                ("procthor10k-0.1.2-train-00002", "succeeded", "failed"),
+                ("procthor10k-0.1.2-train-00003", "succeeded", None),
+                ("procthor10k-0.1.2-train-00004", "failed", None),
+            ):
+                (root / episode_id).mkdir()
+                (root / episode_id / "receipt.json").write_text(json.dumps({"status": cache_status}), encoding="utf-8")
+                if recovery_status:
+                    (root / episode_id / "mask_recovery_receipt.json").write_text(
+                        json.dumps({"episode_id": episode_id, "status": recovery_status, "reason": "fragment_mask_mismatch"}),
+                        encoding="utf-8")
+            plan = runner.recovery_plan(root)
+            self.assertEqual(plan["kept_succeeded"], ["procthor10k-0.1.2-train-00001"])
+            self.assertEqual(plan["kept_failed"], ["procthor10k-0.1.2-train-00002"])
+            self.assertEqual(plan["run"], ["procthor10k-0.1.2-train-00003"])
+            # the failed receipt is untouched by planning
+            kept = json.loads((root / "procthor10k-0.1.2-train-00002" / "mask_recovery_receipt.json").read_text(encoding="utf-8"))
+            self.assertEqual(kept["reason"], "fragment_mask_mismatch")
+
+
 class GuardTests(unittest.TestCase):
     def test_the_recovery_bit_was_opened_by_ruling_48(self) -> None:
         contract = json.loads(S1_04_CONTRACT.read_text(encoding="utf-8"))

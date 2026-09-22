@@ -402,8 +402,33 @@ def recover_episode_masks(task: dict[str, Any]) -> dict[str, Any]:
     return receipt
 
 
+def recovery_plan(cache_root: Path) -> dict[str, list[str]]:
+    """What a recovery pass over an existing cache root already holds, per succeeded cache episode.
+
+    A succeeded recovery receipt is reused; a failed one is final and kept -- the episode is not
+    retried under this root, so a SAM mismatch stays on record instead of being overwritten by a
+    later attempt; an episode without a recovery receipt runs.  Same rule as ``resume_plan``.
+
+    白话：mask 回收的续跑只做还没有回执的 episode。成功回执直接复用；失败回执（比如 SAM 不逐位
+    复现）保留原样、不自动重试也不覆盖；要重试属于用户裁决，不由脚本自作主张。
+    """
+
+    kept_succeeded, kept_failed, run = [], [], []
+    for receipt_path in sorted(cache_root.glob("procthor10k-*/receipt.json")):
+        cache_dir = receipt_path.parent
+        if json.loads(receipt_path.read_text(encoding="utf-8")).get("status") != "succeeded":
+            continue
+        previous = cache_dir / "mask_recovery_receipt.json"
+        if previous.exists():
+            status = json.loads(previous.read_text(encoding="utf-8")).get("status")
+            (kept_succeeded if status == "succeeded" else kept_failed).append(cache_dir.name)
+            continue
+        run.append(cache_dir.name)
+    return {"kept_succeeded": kept_succeeded, "kept_failed": kept_failed, "run": run}
+
+
 def recover_masks_main(args: Any, *, contract: dict[str, Any], assets: dict[str, str], commit: str) -> int:
-    """``--recover-masks``: the SAM-only pass over an existing cache root (LOG-241, pending ruling 48)."""
+    """``--recover-masks``: the SAM-only pass over an existing cache root (LOG-241, ruling 48)."""
 
     s1_04 = json.loads(S1_04_CONTRACT_PATH.read_text(encoding="utf-8"))
     if s1_04["authorization"].get("fragment_mask_recovery") is not True:
@@ -415,24 +440,22 @@ def recover_masks_main(args: Any, *, contract: dict[str, Any], assets: dict[str,
         return 2
     roots = {directory.name: directory for root in args.episode_roots.split(",")
              for directory in sorted(Path(root).glob("procthor10k-*"))}
+    planned = recovery_plan(cache_root)
     tasks = []
     kept: list[dict[str, Any]] = []
-    for receipt_path in sorted(cache_root.glob(f"procthor10k-*/receipt.json")):
-        cache_dir = receipt_path.parent
-        if json.loads(receipt_path.read_text(encoding="utf-8")).get("status") != "succeeded":
-            continue
-        previous = cache_dir / "mask_recovery_receipt.json"
-        if previous.exists() and json.loads(previous.read_text(encoding="utf-8")).get("status") == "succeeded":
-            kept.append(json.loads(previous.read_text(encoding="utf-8")))
-            continue
-        if cache_dir.name not in roots:
-            print(f"no S1-02 episode root for {cache_dir.name}; refusing")
+    for episode_id in planned["kept_succeeded"] + planned["kept_failed"]:
+        kept.append(json.loads((cache_root / episode_id / "mask_recovery_receipt.json").read_text(encoding="utf-8")))
+    for episode_id in planned["run"]:
+        if episode_id not in roots:
+            print(f"no S1-02 episode root for {episode_id}; refusing")
             return 2
-        tasks.append({"episode_id": cache_dir.name, "cache_dir": str(cache_dir), "episode_root": str(roots[cache_dir.name]),
+        tasks.append({"episode_id": episode_id, "cache_dir": str(cache_root / episode_id), "episode_root": str(roots[episode_id]),
                       "commit": commit, "assets": assets, "mismatch_limit": 1})
     actual_workers = max(1, min(args.workers, max(1, len(tasks))))
     plan = {"stage": "s1-03-mask-recovery", "commit": commit, "episodes": [t["episode_id"] for t in tasks],
-            "kept_from_receipts": [r["episode_id"] for r in kept], "requested_workers": args.workers,
+            "kept_from_receipts": [r["episode_id"] for r in kept],
+            "kept_succeeded": planned["kept_succeeded"], "kept_failed_never_retried": planned["kept_failed"],
+            "requested_workers": args.workers,
             "actual_workers": actual_workers, "worker_basis": args.worker_basis,
             "started_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
     stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
