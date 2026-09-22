@@ -130,6 +130,16 @@ class ResumeAndAbortTests(unittest.TestCase):
         self.assertEqual(receipt["frames_total"], 2)
         self.assertEqual(receipt["fragments_per_frame_histogram"], {"1": 1, "2": 1})
 
+    def test_the_stage_receipt_totals_the_masks_written_during_generation(self) -> None:
+        rows = [{"episode_id": "a", "status": "succeeded", "frames": 2, "fragments": 3, "frames_with_fragments": 2,
+                 "fragments_per_frame_histogram": {"1": 1, "2": 1}, "mask_bytes_written": 1200, "frames_with_masks": 2},
+                {"episode_id": "b", "status": "succeeded", "frames": 1, "fragments": 1, "frames_with_fragments": 1,
+                 "fragments_per_frame_histogram": {"1": 1}, "mask_bytes_written": 600, "frames_with_masks": 1}]
+        receipt = self._receipt(rows, planned=2)
+        self.assertEqual((receipt["mask_bytes_total"], receipt["frames_with_masks_total"]), (1800, 3))
+        self.assertIs(receipt["masks_written_during_generation"], True)
+        self.assertEqual(receipt["frames_with_masks_total"], receipt["frames_total"])
+
     def test_an_aborted_or_interrupted_run_is_not_complete_and_exits_3(self) -> None:
         rows = [{"episode_id": "a", "status": "succeeded", "frames": 2, "fragments": 0, "frames_with_fragments": 0,
                  "fragments_per_frame_histogram": {"0": 2}},

@@ -139,6 +139,21 @@
     "fragment_id_is_packet_local_and_carries_no_identity_across_frames": true,
     "plain_language_zh": "色块只来自固定网格的自动分割，不接受文字提示、不接受任何由私有信息派生的点或框，也不开跨帧记忆——否则色块本身就带上了身份线索。每帧至多 64 个 ≥196 像素的 mask；第 65 个不是截断而是整条 episode 构造失败，重复 mask 同样失败。色块编号是本帧局部的，跨帧不携带任何身份。"
   },
+  "fragment_masks": {
+    "decision_id": "D-224-S1 ruling 51",
+    "ruled_on": "2026-09-22",
+    "written_during_generation": true,
+    "file": "NNNN.masks.npz",
+    "beside": "the frame it belongs to, in the same episode directory",
+    "order": "cache_fragment_order_the_sealed_frame_lists",
+    "content": "row-major packed bits per mask plus each mask's sha256 and the frame shape",
+    "digest_must_reproduce_from_pixels": true,
+    "consumer_must_re_digest_before_use": true,
+    "not_covered_by_a_new_seal_the_frame_already_binds_every_mask_sha256": true,
+    "separate_recovery_pass_no_longer_required": true,
+    "recovery_pass_kept_for_caches_generated_before_this_ruling": true,
+    "plain_language_zh": "裁决 51：SAM 的 mask 本来就在内存里，生成时顺手按 cache 的色块顺序写成 NNNN.masks.npz 放在帧文件旁边（每帧约 6 KiB，帧本身约 224 KiB）。这样 S0-04 的重叠标注和 S1-04 的诊断标注直接从 cache 读 mask，不再需要裁决 48 那趟只跑 SAM 的回收（约 13 小时 GPU）。不另加封印：帧封印已经覆盖每个色块的 mask_sha256，读者必须按像素重算摘要再用，对不上就失败。旧 cache 仍可用 --recover-masks 补，回收模式保留。"
+  },
   "descriptor_sets": {
     "primary": {
       "name": "vits14",
@@ -360,7 +375,8 @@
     "rulings": [
       "D-224-S1 裁决 42（2026-09-22 批准，原话「ρ_free 登记为已被 D-223 自由空间配置蕴含；supported_by 维持 null；S1-03 代码审过，开 cache 生成授权」）：`ρ_free` 按「已被 D-223 配置蕴含、隐含取值 1.0」登记并附三条代码依据；`supported_by` 的五个阈值维持 null、字段维持 null；S1-03 五个授权位全部打开。",
       "D-224-S1 裁决 43（2026-09-22 批准，原话「裁决 43 取推荐：box_nms_thresh 与 crop_nms_thresh 改为 0.7，重钉 D-215 摘要，其余不动」）：两个 NMS 阈值 1.0 → 0.7，其余不动；按冻结链的先例以引用取代而不改写 D-215 字节，生效配置与其摘要登记在本合同 `sam2_nms_supersession`，摘要在这一层重钉。",
-      "D-224-S1 裁决 49（2026-09-22 批准，原话「裁决 49 取 (a)，改 camera_pose 符号、S1-03 读取侧修正并重钉、cache 重建到新根、旧根改名保留、mask 回收跑完复用；是否允许 runner 读回收 mask 免跑 SAM：允许」）：public_pose_correction 块登记读取侧修正与适用提交；cache 生成新增 --masks-from（读回收 mask、逐 mask 按像素核对摘要、不跑 SAM）。"
+      "D-224-S1 裁决 49（2026-09-22 批准，原话「裁决 49 取 (a)，改 camera_pose 符号、S1-03 读取侧修正并重钉、cache 重建到新根、旧根改名保留、mask 回收跑完复用；是否允许 runner 读回收 mask 免跑 SAM：允许」）：public_pose_correction 块登记读取侧修正与适用提交；cache 生成新增 --masks-from（读回收 mask、逐 mask 按像素核对摘要、不跑 SAM）。",
+      "D-224-S1 裁决 51（2026-09-22 批准，原话「裁决 51 同意，S1-03 cache 生成时直接写 mask，合同就地加规则并重钉，不再单独跑回收」）：fragment_masks 块登记生成时写 mask 的规则；裁决 48 的回收模式保留给本裁决之前生成的 cache。"
     ]
   }
 }

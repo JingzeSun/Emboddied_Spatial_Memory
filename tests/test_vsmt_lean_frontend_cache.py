@@ -451,6 +451,24 @@ class TestContract(unittest.TestCase):
         with self.assertRaises(fc.LeanFrontendCacheError):
             fc.validate_contract(renamed)
 
+    def test_the_mask_rule_is_bound_and_cannot_be_weakened(self) -> None:
+        block = self.contract["fragment_masks"]
+        self.assertEqual(block["file"], fc.MASK_FILE_NAME_TEMPLATE)
+        self.assertEqual(block["order"], "cache_fragment_order_the_sealed_frame_lists")
+        self.assertTrue(block["written_during_generation"])
+        self.assertTrue(block["separate_recovery_pass_no_longer_required"])
+        self.assertTrue(block["recovery_pass_kept_for_caches_generated_before_this_ruling"])
+        for key in ("written_during_generation", "digest_must_reproduce_from_pixels",
+                    "consumer_must_re_digest_before_use", "separate_recovery_pass_no_longer_required"):
+            weakened = json.loads(json.dumps(self.contract))
+            weakened["fragment_masks"][key] = False
+            with self.assertRaises(fc.LeanFrontendCacheError, msg=key):
+                fc.validate_contract(weakened)
+        renamed = json.loads(json.dumps(self.contract))
+        renamed["fragment_masks"]["order"] = "whatever_order"
+        with self.assertRaises(fc.LeanFrontendCacheError):
+            fc.validate_contract(renamed)
+
     def test_the_proposal_boundary_is_the_d215_one(self) -> None:
         d215 = json.loads((PROJECT_ROOT / "configs" / "vsmt" /
                            "vm04_d215_frontend_freeze_v1.json").read_text(encoding="utf-8"))

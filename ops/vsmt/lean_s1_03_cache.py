@@ -26,7 +26,11 @@ What one worker does, per episode, and what it writes:
      per mask per set; S1-05 selects between the sets later, this stage stores both;
   4. build each fragment's geometry from the public depth, seal the frame, and write it as one
      gzip-compressed JSON file per frame (``NNNN.cache.json.gz``; the seal covers the decoded
-     object, not the bytes on disk, so the compression is free to change);
+     object, not the bytes on disk, so the compression is free to change), and write that frame's
+     admitted masks beside it as ``NNNN.masks.npz`` in cache fragment order (ruling 51: the masks
+     are already in memory, so the S0-04 overlap labelling and the S1-04 diagnostics read them
+     straight from the cache and no SAM-only recovery pass is ever needed; about 6 KiB per frame
+     against 224 KiB for the frame itself);
   5. seal the episode and write a receipt; any frame failure fails the episode with a registered
      reason and the episode keeps its receipt.
 
@@ -704,6 +708,8 @@ def build_episode(task: dict[str, Any]) -> dict[str, Any]:
     frames_with_fragments = 0
     bytes_written = 0
     bytes_uncompressed = 0
+    mask_bytes = 0
+    frames_with_masks = 0
     seconds = {"sam": 0.0, "dino": 0.0, "other": 0.0}
     frame_limit = task.get("frame_limit")
     disk_floor = int(task.get("disk_floor_bytes") or 0)
@@ -794,6 +800,13 @@ def build_episode(task: dict[str, Any]) -> dict[str, Any]:
             (out_dir / f"{index:04d}{FRAME_FILE_SUFFIX}").write_bytes(compressed)
             bytes_written += len(compressed)
             bytes_uncompressed += len(payload)
+            # ruling 51: the masks are already in memory, so they are written beside the frame in
+            # cache fragment order; a later stage re-digests them from their pixels against the
+            # sealed frame and no separate SAM-only recovery pass is needed
+            mask_bytes += write_masks_file(
+                out_dir / f"{index:04d}{MASK_FILE_SUFFIX}", [mask.as_array() for mask in admitted],
+                [mask.mask_sha256 for mask in admitted], shape=tuple(frame["rgb"].shape[:2]))
+            frames_with_masks += 1
             # the episode seal needs only each frame's tick and seal; the frame itself is not kept
             seal_inputs.append({"tick": built["tick"], "frame_seal": built["frame_seal"]})
             key = str(len(rows))
@@ -825,6 +838,9 @@ def build_episode(task: dict[str, Any]) -> dict[str, Any]:
         "seconds_by_part": {k: round(v, 1) for k, v in seconds.items()},
         "bytes_written": bytes_written,
         "bytes_uncompressed": bytes_uncompressed,
+        # ruling 51: masks written during generation, no separate recovery pass
+        "mask_bytes_written": mask_bytes,
+        "frames_with_masks": frames_with_masks,
         "peak_vram_reserved_mib": models.peak_reserved_mib() if models is not None else None,
         "peak_rss_mib": peak_rss_mib(),
         "worker_pid": os.getpid(),
@@ -919,6 +935,9 @@ def stage_receipt(results: list[dict[str, Any]], *, tasks_planned: int, commit: 
         "frames_processed_total": sum(r.get("frames_processed", 0) for r in results),
         "bytes_written_total": sum(r.get("bytes_written", 0) for r in results),
         "bytes_uncompressed_total": sum(r.get("bytes_uncompressed", 0) for r in results),
+        "mask_bytes_total": sum(r.get("mask_bytes_written", 0) for r in results),
+        "frames_with_masks_total": sum(r.get("frames_with_masks", 0) for r in results),
+        "masks_written_during_generation": True,
         "peak_vram_reserved_mib_max": max([r.get("peak_vram_reserved_mib") or 0 for r in results] or [0]),
         "peak_rss_mib_max": max([r.get("peak_rss_mib") or 0 for r in results] or [0]),
         "seconds_by_part_total": {k: round(sum((r.get("seconds_by_part") or {}).get(k, 0.0) for r in results), 1)

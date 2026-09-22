@@ -289,7 +289,11 @@ FROZEN_RULE_SHA256 = {
     # reader restores the pitch sign of the S1-02 public quaternion for episodes from the two
     # registered pre-ruling generator commits, refuses unregistered commits, never rewrites the
     # generated files; --masks-from reads recovered masks instead of running SAM.
-    "S1-03": "082e1c02d28f94a95ca73c9e2b81931096f78d0af7faaa728bb35735384045e0",
+    # Re-pinned again the same day for ruling 51: the fragment_masks block -- the frame's admitted
+    # masks are written during generation in cache fragment order, a consumer re-digests them from
+    # their pixels, and the SAM-only recovery pass is no longer part of the flow (kept for caches
+    # generated before this ruling).  082e1c02 -> ee591bec.
+    "S1-03": "ee591bec2aaf8966a1bada8a08a31321776786a0b8ee05ec7e43f8d2ba2eaf0c",
     # S1-04 v1 (2026-09-22, rulings 45/46/47): first pinned with every bit closed
     # (2fff2d19...); re-pinned the same day when ruling 48 and the user's code review opened
     # all six bits by name in activation_policy (the bits are rules of who may run what, as

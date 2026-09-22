@@ -54,6 +54,10 @@ EFFECTIVE_AUTOMATIC_MASK_GENERATOR = {"box_nms_thresh": 0.7, "crop_n_layers": 0,
 MINIMUM_VISIBLE_PIXELS = 196
 MAXIMUM_PROPOSALS_PER_FRAME = 64
 
+#: Ruling 51: one packed mask file per frame, written during generation beside the frame itself,
+#: in the fragment order the sealed frame lists.  No separate SAM-only recovery pass is needed.
+MASK_FILE_NAME_TEMPLATE = "NNNN.masks.npz"
+
 #: The two descriptor sets S1 extracts.  S1-05 selects one; this stage never selects.
 DESCRIPTOR_SETS = ("vits14", "vitb14")
 DESCRIPTOR_DIMENSIONS = {"vits14": 384, "vitb14": 768}
@@ -579,6 +583,17 @@ def validate_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
              and correction["position_is_unchanged"] is True
              and correction["generated_s1_02_files_are_not_modified"] is True,
              "public_input_missing_or_malformed", "pose_correction_claim_weakened")
+    # Ruling 51: the frame's masks are written during generation, so no separate SAM-only pass is
+    # needed; the frame seal already binds every mask_sha256, and a consumer re-digests the pixels.
+    masks = contract["fragment_masks"]
+    _require(masks["file"] == MASK_FILE_NAME_TEMPLATE, "public_input_missing_or_malformed", "mask_file_name_changed")
+    _require(masks["written_during_generation"] is True
+             and masks["digest_must_reproduce_from_pixels"] is True
+             and masks["consumer_must_re_digest_before_use"] is True
+             and masks["separate_recovery_pass_no_longer_required"] is True,
+             "public_input_missing_or_malformed", "fragment_mask_rule_weakened")
+    _require(masks["order"] == "cache_fragment_order_the_sealed_frame_lists",
+             "public_input_missing_or_malformed", "fragment_mask_order_changed")
     listed = list(correction["applies_to_s1_02_code_commits"]) + list(correction["correct_encoder_since_code_commits"])
     _require(all(type(c) is str and len(c) == 40 and all(ch in "0123456789abcdef" for ch in c) for c in listed)
              and len(set(listed)) == len(listed),
@@ -618,6 +633,7 @@ __all__ = [
     "SURFACE_FIELDS",
     "VISIBILITY_FIELDS",
     "LeanFrontendCacheError",
+    "MASK_FILE_NAME_TEMPLATE",
     "MAXIMUM_PROPOSALS_PER_FRAME",
     "MINIMUM_VISIBLE_PIXELS",
     "VIEW_FRAGMENT_FIELDS",
