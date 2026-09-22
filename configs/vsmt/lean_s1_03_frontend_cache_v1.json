@@ -58,7 +58,9 @@
       "c222c51a1906f3703a6115c968e77f349306faa9",
       "a397d16b93d202cf50b849a87cbfbb55e5ca06c0"
     ],
-    "correct_encoder_since_code_commits": [],
+    "correct_encoder_since_code_commits": [
+      "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69"
+    ],
     "an_episode_from_an_unlisted_commit_is_refused": true,
     "position_is_unchanged": true,
     "generated_s1_02_files_are_not_modified": true,
@@ -69,7 +71,9 @@
     ],
     "recorded_in_plan_and_receipts": true,
     "superseded_cache_root": "lean-s1-03-c993959 (geometry in the wrong frame; masks and descriptors valid; renamed and kept, never resumed)",
-    "plain_language_zh": "S1-02 生成器把相机的俯仰角符号写反了：agent 低头 30 度，公开帧里的四元数却是抬头 30 度，位置没错。裁决 49 不改任何已生成文件，而是让所有用位姿反投影公开帧的读者在读取时把符号翻回来：由四元数算前向量，前向量的 y 分量是 sin(俯仰角)，再右乘绕 x 轴两倍俯仰角的旋转，结果就是 Ry(yaw)·Rx(+pitch)。只对这里登记的旧编码器提交（c222c51、a397d16）生成的 episode 做；以后修好符号的编码器生成的数据登记到 correct_encoder_since_code_commits 后照原样读；不在两张表里的提交直接拒绝，避免修正被做两次或做到不该做的数据上。旧 cache 根 lean-s1-03-c993959 的质心、盒、表面与体积都在错误的系里，改名保留、不续跑；描述子与回收的 mask 不受影响，重建时复用。"
+    "plain_language_zh": "S1-02 生成器把相机的俯仰角符号写反了：agent 低头 30 度，公开帧里的四元数却是抬头 30 度，位置没错。裁决 49 不改任何已生成文件，而是让所有用位姿反投影公开帧的读者在读取时把符号翻回来：由四元数算前向量，前向量的 y 分量是 sin(俯仰角)，再右乘绕 x 轴两倍俯仰角的旋转，结果就是 Ry(yaw)·Rx(+pitch)。只对这里登记的旧编码器提交（c222c51、a397d16）生成的 episode 做；以后修好符号的编码器生成的数据登记到 correct_encoder_since_code_commits 后照原样读；不在两张表里的提交直接拒绝，避免修正被做两次或做到不该做的数据上。旧 cache 根 lean-s1-03-c993959 的质心、盒、表面与体积都在错误的系里，改名保留、不续跑；描述子与回收的 mask 不受影响，重建时复用。",
+    "correct_encoder_registered_on": "2026-09-23",
+    "correct_encoder_evidence": "the encoder at this commit builds Ry(yaw)*Rx(+pitch); checked on the server before generation (cameraHorizon +30 gives a forward y of -0.5, the camera looking down) and pinned by the test that the old encoding plus the correction equals this encoder"
   },
   "sam2_nms_supersession": {
     "ruling": "D-224-S1 ruling 43",
@@ -376,7 +380,8 @@
       "D-224-S1 裁决 42（2026-09-22 批准，原话「ρ_free 登记为已被 D-223 自由空间配置蕴含；supported_by 维持 null；S1-03 代码审过，开 cache 生成授权」）：`ρ_free` 按「已被 D-223 配置蕴含、隐含取值 1.0」登记并附三条代码依据；`supported_by` 的五个阈值维持 null、字段维持 null；S1-03 五个授权位全部打开。",
       "D-224-S1 裁决 43（2026-09-22 批准，原话「裁决 43 取推荐：box_nms_thresh 与 crop_nms_thresh 改为 0.7，重钉 D-215 摘要，其余不动」）：两个 NMS 阈值 1.0 → 0.7，其余不动；按冻结链的先例以引用取代而不改写 D-215 字节，生效配置与其摘要登记在本合同 `sam2_nms_supersession`，摘要在这一层重钉。",
       "D-224-S1 裁决 49（2026-09-22 批准，原话「裁决 49 取 (a)，改 camera_pose 符号、S1-03 读取侧修正并重钉、cache 重建到新根、旧根改名保留、mask 回收跑完复用；是否允许 runner 读回收 mask 免跑 SAM：允许」）：public_pose_correction 块登记读取侧修正与适用提交；cache 生成新增 --masks-from（读回收 mask、逐 mask 按像素核对摘要、不跑 SAM）。",
-      "D-224-S1 裁决 51（2026-09-22 批准，原话「裁决 51 同意，S1-03 cache 生成时直接写 mask，合同就地加规则并重钉，不再单独跑回收」）：fragment_masks 块登记生成时写 mask 的规则；裁决 48 的回收模式保留给本裁决之前生成的 cache。"
+      "D-224-S1 裁决 51（2026-09-22 批准，原话「裁决 51 同意，S1-03 cache 生成时直接写 mask，合同就地加规则并重钉，不再单独跑回收」）：fragment_masks 块登记生成时写 mask 的规则；裁决 48 的回收模式保留给本裁决之前生成的 cache。",
+      "D-224-S1 裁决 49 的登记（2026-09-23）：裁决 50 的重新生成在提交 7c10d2c 下完成，该提交的编码器写 Ry(yaw)·Rx(+pitch)，故登记进 correct_encoder_since_code_commits，读者按原样读它生成的 episode，不再施加修正。"
     ]
   }
 }

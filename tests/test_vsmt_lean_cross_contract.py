@@ -293,7 +293,10 @@ FROZEN_RULE_SHA256 = {
     # masks are written during generation in cache fragment order, a consumer re-digests them from
     # their pixels, and the SAM-only recovery pass is no longer part of the flow (kept for caches
     # generated before this ruling).  082e1c02 -> ee591bec.
-    "S1-03": "ee591bec2aaf8966a1bada8a08a31321776786a0b8ee05ec7e43f8d2ba2eaf0c",
+    # Re-pinned 2026-09-23 when the ruling-50 regeneration finished: its generator commit 7c10d2c
+    # writes Ry(yaw)*Rx(+pitch), so it joins correct_encoder_since_code_commits and every reader
+    # takes its episodes as written.  ee591bec -> 03bfd56d.
+    "S1-03": "03bfd56d2803143386b1f598f2496af78c29658c85023105dcfde3ee180556e5",
     # S1-04 v1 (2026-09-22, rulings 45/46/47): first pinned with every bit closed
     # (2fff2d19...); re-pinned the same day when ruling 48 and the user's code review opened
     # all six bits by name in activation_policy (the bits are rules of who may run what, as

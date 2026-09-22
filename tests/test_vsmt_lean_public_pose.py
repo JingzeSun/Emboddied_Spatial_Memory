@@ -31,6 +31,7 @@ from vsmt.l1_entities import _camera_values  # noqa: E402
 CONTRACT_PATH = PROJECT_ROOT / "configs" / "vsmt" / "lean_s1_04_frontend_diagnostics_v1.json"
 S1_03_CONTRACT_PATH = PROJECT_ROOT / "configs" / "vsmt" / "lean_s1_03_frontend_cache_v1.json"
 DEFECTIVE = "c222c51a1906f3703a6115c968e77f349306faa9"
+CORRECTED = "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69"
 CALIBRATION = {"fx": 112.0, "fy": 112.0, "cx": 111.5, "cy": 111.5}
 
 
@@ -101,12 +102,25 @@ class PolicyTests(unittest.TestCase):
     def setUp(self) -> None:
         self.policy = json.loads(S1_03_CONTRACT_PATH.read_text(encoding="utf-8"))["public_pose_correction"]
 
-    def test_the_contract_lists_the_two_development_commits_and_no_corrected_encoder_yet(self) -> None:
+    def test_the_contract_lists_the_two_defective_commits_and_the_registered_corrected_encoder(self) -> None:
         self.assertEqual(self.policy["applies_to_s1_02_code_commits"],
                          [DEFECTIVE, "a397d16b93d202cf50b849a87cbfbb55e5ca06c0"])
-        self.assertEqual(self.policy["correct_encoder_since_code_commits"], [])
+        # the ruling-50 regeneration's generator commit, registered once its data existed
+        self.assertEqual(self.policy["correct_encoder_since_code_commits"], [CORRECTED])
+        self.assertEqual(set(self.policy["applies_to_s1_02_code_commits"]) & set(self.policy["correct_encoder_since_code_commits"]), set())
         self.assertEqual(self.policy["rule"], pp.CORRECTION_RULE)
         fc.validate_contract(json.loads(S1_03_CONTRACT_PATH.read_text(encoding="utf-8")))
+
+    def test_an_episode_from_the_registered_corrected_encoder_is_read_as_written(self) -> None:
+        import math
+        # what the fixed encoder writes when the agent looks down 30 degrees
+        written = pp.quaternion_xyzw_from_rotation(pp.rotation_x(math.radians(30.0)))
+        record = {"relative_pose": {"position_m": [1.0, 0.0, 2.0], "quaternion_xyzw": written, "origin": "observation_0_camera"}}
+        pose = pp.public_camera_pose(record, code_commit=CORRECTED, policy=self.policy)
+        np.testing.assert_allclose(pose["quaternion_xyzw"], written, atol=1e-12)
+        self.assertLess(pp.camera_forward(pose["quaternion_xyzw"])[1], 0.0)
+        self.assertFalse(pp.correction_applies(CORRECTED, self.policy))
+        self.assertTrue(pp.correction_applies(DEFECTIVE, self.policy))
 
     def test_correction_is_applied_skipped_or_refused_by_commit(self) -> None:
         record = {"relative_pose": {"position_m": [0.0, 0.0, 0.0], "quaternion_xyzw": old_encoding(0.0, 30.0), "origin": "observation_0_camera"}}
