@@ -3693,3 +3693,17 @@ move 仍要两个 U 容器、add 仍要过 dry-run，成品率不会等于这些
 | 3 | 0.429 | 5.3 GiB | 1.8 GiB |
 
 与 `da237d8` 的形状一致：SAM 占满 GPU，3 个 worker 反而慢 37%。所以取 2 worker，依据原文写进 `worker_basis`。两个 trial 根（各 27 MB）保留为证据。正式重建 **15:59 CST 启动**：39 条 episode、44,097 帧，根 `/root/autodl-tmp/vsmt_caches/lean-s1-03-154776d`，日志 `run_logs/lean-s1-03-154776d.log`。启动后 0.52 h 的读数：1,398 帧，0.742 帧/秒，每帧约 232 KB（含 mask）。预计还要约 16 h，9 月 24 日 08:30 CST 前后完成，总大小约 10.2 GB，完成后数据盘约剩 8 GB。容器内存上限 62 GiB，当前用 6 GB，不是约束。跑完后另节记录成品率、逐帧色块分布与失败，并导出 `results/`。
+
+### LOG-243 续七：按用户授权删除五个服务器根（2026-09-23 19:20 CST）
+
+用户原话："如果现有的全部项目组件不依赖这些，你可以删除。"删除前只读核对了依赖：五个目录都不是符号链接；没有进程在其中打开文件或以其为工作目录；没有符号链接指向它们；正在跑的 S1-03 cache 只读 `5f9aa71` 两个根；仓库的 configs／ops／src／tests 不引用这些路径。旧 D-217～D-221 代码写的是提交号 `0c4f9851006d…`，不是输出目录。唯一引用 7c10d2c 两根的是 `tmp-audit-empty-feasible` 的中间文件，那次审计已经导出。溯源先提交为 [`results/vsmt_provenance_before_deletion_20260923.json`](results/vsmt_provenance_before_deletion_20260923.json)（`50b78c9`），含各根的 plan 与阶段回执、逐栋 receipt 及其 sha256、窗口段、旧估计器的顶层回执、按扩展名的文件数与字节数、全部 JSON 清单的摘要；含全部窗口判定的完整包以 gz 留在服务器 `vsmt_private`。
+
+| 删除的根 | 字节 | 身份 |
+|---|---:|---|
+| `lean-s1-02a-7c10d2c` | 1.16 GB | 整段窗口口径 S1-02a，已被裁决 53 数据取代 |
+| `lean-s1-02b-7c10d2c` | 7.99 GB | 同上，S1-02b |
+| `lean-s1-02-window-probe-f2982a6` | 1.31 GB | 裁决 53 第一次探针（掉头变体），审计已导出 |
+| `lean-s1-02-window-probe-tail-cf56dc5` | 1.54 GB | 裁决 53 第二次探针（尾窗），此前未导出，本次随溯源补存 |
+| `vsmt-vm04-estimator-development-0c4f9851006d` | 5.74 GB | 已被取代的 D-217～D-221 估计器方向 |
+
+按精确路径逐个删除，删前再查一次打开的文件。数据盘可用 18 GB → 35 GB，cache 继续运行。这些根上的结论只能再按已提交的 results 复核，不能再从原始帧重算。
