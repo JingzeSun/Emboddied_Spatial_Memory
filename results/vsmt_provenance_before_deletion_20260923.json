@@ -1,0 +1,5008 @@
+{
+ "schema_version": "vsmt-provenance-before-deletion-v1",
+ "created_at": "2026-09-23T16:50:50+0800",
+ "reason": "user authorised deletion on 2026-09-23 on condition that no current project component depends on these roots; checked: no process fd/cwd, no symlink, not in the running S1-03 cache plan (5f9aa71 roots only), no reference in configs/ops/src/tests; only tmp-audit intermediates reference the 7c10d2c roots and that audit is exported",
+ "full_pack_on_server": {
+  "path": "/root/autodl-tmp/vsmt_private/provenance_before_deletion_20260923.json.gz",
+  "sha256_of_uncompressed_json": "bbc4b255577343efb3dd616be49f5779d777957653a17bf17be48ce389a69bf7",
+  "bytes_uncompressed": 82235727,
+  "bytes_gz": 14808381
+ },
+ "roots": {
+  "lean-s1-02a-7c10d2c": {
+   "bytes_total": 1156473861,
+   "file_count": 22720,
+   "top_level_json": {
+    "occupancy_receipt.json": {
+     "concurrency_verified_at": 4,
+     "cpu_cores_per_worker": 0.5445069096741314,
+     "ram_gb_per_worker": 5.032596,
+     "vram_gb_per_worker": 1.455078125,
+     "disk_gb_per_worker": 0.743337977,
+     "simulator_concurrency_limit": 4,
+     "statistic": "peak_not_average",
+     "workload": "a_full_episode_including_three_plane_write",
+     "failures": [
+      "procthor10k-0.1.2-train-00460",
+      "procthor10k-0.1.2-train-08566"
+     ],
+     "vram_peak_total_mib": 5961.0,
+     "vram_base_mib": 1.0
+    },
+    "pilot_receipt.json": {
+     "split_seed": 20260920,
+     "split_sizes": {
+      "train": null,
+      "validation": 50,
+      "test": 100
+     },
+     "selected_house_ids": [
+      "procthor10k-0.1.2-train-01451",
+      "procthor10k-0.1.2-train-03394",
+      "procthor10k-0.1.2-train-08566",
+      "procthor10k-0.1.2-train-00460"
+     ],
+     "planned": 4,
+     "succeeded": 2,
+     "failed": 2,
+     "failure_receipts": [
+      {
+       "house_id": "procthor10k-0.1.2-train-00460",
+       "reason": "intervention_window_unavailable",
+       "detail": "feasible set empty; U=1 eligible=7"
+      },
+      {
+       "house_id": "procthor10k-0.1.2-train-08566",
+       "reason": "intervention_window_unavailable",
+       "detail": "feasible set empty; U=0 eligible=19"
+      }
+     ],
+     "wall_clock_seconds": 2000.4,
+     "exit_codes": [
+      1,
+      0,
+      0,
+      1
+     ],
+     "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69"
+    },
+    "plan.json": {
+     "selected": [
+      "procthor10k-0.1.2-train-01451",
+      "procthor10k-0.1.2-train-03394",
+      "procthor10k-0.1.2-train-08566",
+      "procthor10k-0.1.2-train-00460"
+     ],
+     "split": {
+      "seed": 20260920,
+      "validation_houses": 50,
+      "test_houses": 100,
+      "train_houses": null,
+      "frozen_before_first_episode": true,
+      "test_and_validation_membership_is_final": true,
+      "train_size_may_only_decrease_afterwards": true,
+      "development_houses_are_the_first_of_the_train_block": true,
+      "recomputable_from_manifest": true,
+      "plain_language_zh": "S0-02 v2 把前缀分配顺序改成 test→validation→train，于是 seed 与 test/validation 规模一旦定下，test 与 validation 的成员就永远不变，而 train 块的起点也随之固定。用户于 2026-09-20 冻结：seed=20260920、validation=50、test=100（规模沿用 D-224 在 PLAN S3-01 登记的 300/50/100）。`train_houses` 仍为 null，到 S3-01 才登记，且此后只能下调——下调只从 train 块尾部截短，不碰前面任何一份。**这三个值只登记在这里一处**：S0-02 v2 定的是构造规则（方法层面，不该带某一次运行的 seed），值属于运行层面，因此由本合同承载，跨合同测试钉住「S0-02 的值槽保持 null、本合同是唯一登记处」以防出现两个互相矛盾的 seed。白话：先把答案卷封好再开始答题，而不是答完再决定哪些算考题。",
+      "frozen_by": "D-224-S1",
+      "frozen_on": "2026-09-20",
+      "is_the_single_registered_location": true
+     },
+     "commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+     "pool_size": 10000,
+     "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96"
+    }
+   },
+   "per_house_receipts": {
+    "procthor10k-0.1.2-train-00460": {
+     "sha256": "e1210365d14746fd7104dab75d60463f53feaca0e5ad01053d3beaaec3c401d1",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-00460",
+      "source_index": 460,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "failed",
+      "reason": "intervention_window_unavailable",
+      "detail": "feasible set empty; U=1 eligible=7",
+      "occupancy": {
+       "peak_rss_gb": 0.259808,
+       "cpu_seconds": 10.799117,
+       "wall_seconds": 29.987239599227905,
+       "bytes_written": 32630717
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-01451": {
+     "sha256": "47e63c79ab54c12c51e8de61d4390a86b51c488938d37fe1e1bb71269616ed13",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-01451",
+      "source_index": 1451,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "succeeded",
+      "observations": 2914,
+      "actions": 2913,
+      "executed_interventions": 4,
+      "sampled_interventions": 4,
+      "feasible_set_size": 13,
+      "invisible_container_set_size": 15,
+      "window_frames": 204,
+      "containers_usable": 98,
+      "containers_dropped": 0,
+      "containers_sealed": 85,
+      "controls": 5,
+      "controls_outside_U": 5,
+      "controls_shortfall": 0,
+      "moves_executed": 1,
+      "moves_source_first": 0,
+      "viewpoint_reselections": 0,
+      "sweep_two_actions": 1014,
+      "occupancy": {
+       "peak_rss_gb": 5.032596,
+       "cpu_seconds": 572.0319840000001,
+       "wall_seconds": 1998.746832370758,
+       "bytes_written": 743337977
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-03394": {
+     "sha256": "0e699cffd6fa0aabf29aeb2c325660397796355610186896d0ccd02f420e9ad7",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-03394",
+      "source_index": 3394,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": true,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "succeeded",
+      "observations": 1093,
+      "actions": 1092,
+      "executed_interventions": 0,
+      "sampled_interventions": 1,
+      "feasible_set_size": 2,
+      "invisible_container_set_size": 4,
+      "window_frames": 120,
+      "containers_usable": 36,
+      "containers_dropped": 0,
+      "containers_sealed": 36,
+      "controls": 1,
+      "controls_outside_U": 1,
+      "controls_shortfall": 0,
+      "moves_executed": 0,
+      "moves_source_first": 0,
+      "viewpoint_reselections": 0,
+      "sweep_two_actions": 232,
+      "occupancy": {
+       "peak_rss_gb": 1.29466,
+       "cpu_seconds": 101.145476,
+       "wall_seconds": 291.4863021373749,
+       "bytes_written": 271758272
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-08566": {
+     "sha256": "27c54da5c9c5605186dba8353aa7dcf5724224d4986777207e2ea44869f6a052",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-08566",
+      "source_index": 8566,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "failed",
+      "reason": "intervention_window_unavailable",
+      "detail": "feasible set empty; U=0 eligible=19",
+      "occupancy": {
+       "peak_rss_gb": 0.569944,
+       "cpu_seconds": 44.127258999999995,
+       "wall_seconds": 81.04076957702637,
+       "bytes_written": 108739201
+      }
+     }
+    }
+   },
+   "files_by_extension": {
+    ".json": {
+     "count": 9105,
+     "bytes": 23011799
+    },
+    "(none)": {
+     "count": 4,
+     "bytes": 71
+    },
+    ".png": {
+     "count": 9074,
+     "bytes": 222287207
+    },
+    ".npy": {
+     "count": 4537,
+     "bytes": 911174784
+    }
+   },
+   "json_manifest_count": 9105,
+   "json_manifest_sha256": "ebf7e928ee5fb2b3efaf1e87616c4a5650892cfe6d452bbb5ec5474696b8d738"
+  },
+  "lean-s1-02b-7c10d2c": {
+   "bytes_total": 7992134768,
+   "file_count": 158038,
+   "top_level_json": {
+    "plan.json": {
+     "stage": "s1-02b",
+     "houses": [
+      "procthor10k-0.1.2-train-00406",
+      "procthor10k-0.1.2-train-03288",
+      "procthor10k-0.1.2-train-08927",
+      "procthor10k-0.1.2-train-08422",
+      "procthor10k-0.1.2-train-03986",
+      "procthor10k-0.1.2-train-03525",
+      "procthor10k-0.1.2-train-07367",
+      "procthor10k-0.1.2-train-05806",
+      "procthor10k-0.1.2-train-08101",
+      "procthor10k-0.1.2-train-05966",
+      "procthor10k-0.1.2-train-09951",
+      "procthor10k-0.1.2-train-00950",
+      "procthor10k-0.1.2-train-05879",
+      "procthor10k-0.1.2-train-00236",
+      "procthor10k-0.1.2-train-02524",
+      "procthor10k-0.1.2-train-08398",
+      "procthor10k-0.1.2-train-04801",
+      "procthor10k-0.1.2-train-04388",
+      "procthor10k-0.1.2-train-07795",
+      "procthor10k-0.1.2-train-01543",
+      "procthor10k-0.1.2-train-09339",
+      "procthor10k-0.1.2-train-08790",
+      "procthor10k-0.1.2-train-01259",
+      "procthor10k-0.1.2-train-08905",
+      "procthor10k-0.1.2-train-00975",
+      "procthor10k-0.1.2-train-00619",
+      "procthor10k-0.1.2-train-04146",
+      "procthor10k-0.1.2-train-01394",
+      "procthor10k-0.1.2-train-01456",
+      "procthor10k-0.1.2-train-00702",
+      "procthor10k-0.1.2-train-09488",
+      "procthor10k-0.1.2-train-07815",
+      "procthor10k-0.1.2-train-03361",
+      "procthor10k-0.1.2-train-09423",
+      "procthor10k-0.1.2-train-07270",
+      "procthor10k-0.1.2-train-06453",
+      "procthor10k-0.1.2-train-08552",
+      "procthor10k-0.1.2-train-01289",
+      "procthor10k-0.1.2-train-09985",
+      "procthor10k-0.1.2-train-05593",
+      "procthor10k-0.1.2-train-02768",
+      "procthor10k-0.1.2-train-04742",
+      "procthor10k-0.1.2-train-09595",
+      "procthor10k-0.1.2-train-00563",
+      "procthor10k-0.1.2-train-01139",
+      "procthor10k-0.1.2-train-06764"
+     ],
+     "pilot_root": "/root/autodl-tmp/vsmt_outputs/lean-s1-02a-7c10d2c",
+     "derived": {
+      "worker_count": 8,
+      "binding_constraint": "simulator_concurrency_limit",
+      "per_resource": {
+       "cpu_cores_per_worker": 188,
+       "ram_gb_per_worker": 75,
+       "vram_gb_per_worker": 17,
+       "disk_gb_per_worker": 34,
+       "simulator_concurrency_limit": 8
+      },
+      "concurrency_verified_at": 4,
+      "is_extrapolation": true
+     },
+     "requested_workers": 8,
+     "measurements": {
+      "cpu_logical_cores": 128,
+      "cpu_physical_cores": 64,
+      "ram_total_gb": 540.649590784,
+      "ram_available_gb": 471.834271744,
+      "gpu_count": 1,
+      "gpu_name": "NVIDIA GeForce RTX 4080 SUPER",
+      "gpu_total_vram_gb": 31.9921875,
+      "gpu_free_vram_gb": 31.9912109375,
+      "disk_free_gb_asset_root": 32.015777792,
+      "disk_free_gb_install_root": 32.015777792,
+      "python_version": "3.9.25",
+      "torch_version": "n/a-simulator-env",
+      "cuda_available": true,
+      "egl_resolves": true,
+      "vulkan_resolves": true
+     },
+     "simulator_concurrency_limit_verified": 4,
+     "simulator_concurrency_limit_assumed": 8,
+     "commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+     "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96"
+    },
+    "s1_02b_receipt.json": {
+     "stage": "s1-02b",
+     "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+     "houses_planned": 46,
+     "succeeded": 27,
+     "failed": 19,
+     "failure_receipts": [
+      {
+       "house_id": "procthor10k-0.1.2-train-00619",
+       "reason": "frame_write_failed",
+       "detail": "TimeoutError(\"Error encountered when running action {'action': 'RotateRight', 'sequenceId': 6} in scene Procedural.\") | nvs/simulator-py39/lib/python3.9/site-packages/ai2thor/controller.py\", line 979, in step\n    self.last_event = self.server.receive()\n  File \"/root/autodl-tmp/vsmt-envs/simulator-py39/lib/python3.9/site-packages/ai2thor/fifo_server.py\", line 229, in receive\n    metadata, files = s"
+      },
+      {
+       "house_id": "procthor10k-0.1.2-train-01139",
+       "reason": "intervention_window_unavailable",
+       "detail": "feasible set empty; U=1 eligible=4"
+      },
+      {
+       "house_id": "procthor10k-0.1.2-train-01456",
+       "reason": "intervention_window_unavailable",
+       "detail": "feasible set empty; U=0 eligible=6"
+      },
+      {
+       "house_id": "procthor10k-0.1.2-train-03361",
+       "reason": "intervention_window_unavailable",
+       "detail": "feasible set empty; U=1 eligible=21"
+      },
+      {
+       "house_id": "procthor10k-0.1.2-train-03986",
+       "reason": "intervention_window_unavailable",
+       "detail": "feasible set empty; U=0 eligible=4"
+      },
+      {
+       "house_id": "procthor10k-0.1.2-train-04388",
+       "reason": "intervention_window_unavailable",
+       "detail": "feasible set empty; U=0 eligible=12"
+      },
+      {
+       "house_id": "procthor10k-0.1.2-train-05593",
+       "reason": "intervention_window_unavailable",
+       "detail": "feasible set empty; U=0 eligible=8"
+      },
+      {
+       "house_id": "procthor10k-0.1.2-train-05879",
+       "reason": "intervention_window_unavailable",
+       "detail": "feasible set empty; U=4 eligible=9"
+      },
+      {
+       "house_id": "procthor10k-0.1.2-train-06764",
+       "reason": "intervention_window_unavailable",
+       "detail": "feasible set empty; U=0 eligible=3"
+      },
+      {
+       "house_id": "procthor10k-0.1.2-train-07367",
+       "reason": "intervention_window_unavailable",
+       "detail": "feasible set empty; U=0 eligible=2"
+      },
+      {
+       "house_id": "procthor10k-0.1.2-train-07815",
+       "reason": "intervention_window_unavailable",
+       "detail": "feasible set empty; U=1 eligible=26"
+      },
+      {
+       "house_id": "procthor10k-0.1.2-train-08101",
+       "reason": "intervention_window_unavailable",
+       "detail": "feasible set empty; U=0 eligible=5"
+      },
+      {
+       "house_id": "procthor10k-0.1.2-train-08422",
+       "reason": "intervention_window_unavailable",
+       "detail": "feasible set empty; U=1 eligible=11"
+      },
+      {
+       "house_id": "procthor10k-0.1.2-train-08790",
+       "reason": "frame_write_failed",
+       "detail": "TimeoutError(\"Error encountered when running action {'action': 'Teleport', 'position': {'x': 5.0, 'y': 0.949999988079071, 'z': 17.5}, 'rotation': {'x': 0, 'y': 180, 'z': 0}, 'horizon': 30, 'standing': True, 'forceAction': True, 'sequenceId': 4812} in scene Procedural.\") |  in _recv_message\n    header = self._read_with_timeout(\n  File \"/root/autodl-tmp/vsmt-envs/simulator-py39/lib/python3.9/site-pa"
+      },
+      {
+       "house_id": "procthor10k-0.1.2-train-08905",
+       "reason": "intervention_window_unavailable",
+       "detail": "feasible set empty; U=0 eligible=15"
+      },
+      {
+       "house_id": "procthor10k-0.1.2-train-08927",
+       "reason": "intervention_window_unavailable",
+       "detail": "feasible set empty; U=1 eligible=24"
+      },
+      {
+       "house_id": "procthor10k-0.1.2-train-09339",
+       "reason": "intervention_window_unavailable",
+       "detail": "feasible set empty; U=0 eligible=18"
+      },
+      {
+       "house_id": "procthor10k-0.1.2-train-09423",
+       "reason": "intervention_window_unavailable",
+       "detail": "feasible set empty; U=0 eligible=4"
+      },
+      {
+       "house_id": "procthor10k-0.1.2-train-09951",
+       "reason": "intervention_window_unavailable",
+       "detail": "feasible set empty; U=0 eligible=3"
+      }
+     ],
+     "null_window_episodes": 9,
+     "null_window_failed": 2,
+     "yield_house_level_non_null": 0.5405405405405406,
+     "moves_executed": 7,
+     "moves_source_first": 6,
+     "move_minimum": {
+      "moves": 7,
+      "moves_source_first": 6,
+      "minimum_train": 120,
+      "minimum_train_source_first": 60,
+      "gate_applies": false,
+      "below_minimum": null
+     },
+     "controls_total": 56,
+     "controls_outside_U": 54,
+     "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+     "yield_gate": 0.6,
+     "yield_gate_passed": false,
+     "options": {
+      "replan_blocked_edges": true,
+      "placement_tries": 32,
+      "stratify_by_kind": true,
+      "add_source": "unseen_existing",
+      "destination_points": "anywhere",
+      "placement_prescreen": "dry_run",
+      "dry_run_destinations_per_object": 8
+     },
+     "requested_workers": 8,
+     "actual_workers": 8,
+     "derived_worker_count": 8,
+     "binding_constraint": "simulator_concurrency_limit",
+     "concurrency_verified_at": 4,
+     "simulator_concurrency_limit_verified": 4,
+     "simulator_concurrency_limit_assumed": 8,
+     "is_extrapolation": true,
+     "wall_clock_seconds": 3474.0,
+     "development_total_with_pilot": 50
+    }
+   },
+   "per_house_receipts": {
+    "procthor10k-0.1.2-train-00236": {
+     "sha256": "cf4de859ab77a75a705ddc6e53922fc0d386cbd4b3a271849d3923e099947558",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-00236",
+      "source_index": 236,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "succeeded",
+      "observations": 336,
+      "actions": 335,
+      "executed_interventions": 1,
+      "sampled_interventions": 1,
+      "feasible_set_size": 1,
+      "invisible_container_set_size": 4,
+      "window_frames": 62,
+      "containers_usable": 16,
+      "containers_dropped": 0,
+      "containers_sealed": 16,
+      "controls": 1,
+      "controls_outside_U": 1,
+      "controls_shortfall": 0,
+      "moves_executed": 0,
+      "moves_source_first": 0,
+      "viewpoint_reselections": 0,
+      "sweep_two_actions": 74,
+      "occupancy": {
+       "peak_rss_gb": 0.516124,
+       "cpu_seconds": 53.482531,
+       "wall_seconds": 117.70838713645935,
+       "bytes_written": 85333222
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-00406": {
+     "sha256": "f8336cf1c75f652f1adfeeb847c823ca2fa770db605370a1608da583f0843bca",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-00406",
+      "source_index": 406,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": true,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "succeeded",
+      "observations": 950,
+      "actions": 949,
+      "executed_interventions": 0,
+      "sampled_interventions": 3,
+      "feasible_set_size": 6,
+      "invisible_container_set_size": 11,
+      "window_frames": 91,
+      "containers_usable": 49,
+      "containers_dropped": 3,
+      "containers_sealed": 40,
+      "controls": 2,
+      "controls_outside_U": 2,
+      "controls_shortfall": 0,
+      "moves_executed": 0,
+      "moves_source_first": 0,
+      "viewpoint_reselections": 0,
+      "sweep_two_actions": 340,
+      "occupancy": {
+       "peak_rss_gb": 1.339252,
+       "cpu_seconds": 185.430192,
+       "wall_seconds": 829.5891180038452,
+       "bytes_written": 239422146
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-00563": {
+     "sha256": "4318cb063ff8045c3404e5b35b3e00b42f3a37cc925733f431ee2a5ab674a640",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-00563",
+      "source_index": 563,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "succeeded",
+      "observations": 1754,
+      "actions": 1753,
+      "executed_interventions": 6,
+      "sampled_interventions": 6,
+      "feasible_set_size": 35,
+      "invisible_container_set_size": 36,
+      "window_frames": 95,
+      "containers_usable": 77,
+      "containers_dropped": 0,
+      "containers_sealed": 68,
+      "controls": 5,
+      "controls_outside_U": 4,
+      "controls_shortfall": 0,
+      "moves_executed": 1,
+      "moves_source_first": 1,
+      "viewpoint_reselections": 0,
+      "sweep_two_actions": 828,
+      "occupancy": {
+       "peak_rss_gb": 3.517444,
+       "cpu_seconds": 878.787452,
+       "wall_seconds": 1719.4685447216034,
+       "bytes_written": 455186374
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-00619": {
+     "sha256": "20a463907c3c69092c10be9925614957104b6913ede839ab0e1fe9e1ab73f65f",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-00619",
+      "source_index": 619,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": true,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "failed",
+      "reason": "frame_write_failed",
+      "detail": "TimeoutError(\"Error encountered when running action {'action': 'RotateRight', 'sequenceId': 6} in scene Procedural.\") | nvs/simulator-py39/lib/python3.9/site-packages/ai2thor/controller.py\", line 979, in step\n    self.last_event = self.server.receive()\n  File \"/root/autodl-tmp/vsmt-envs/simulator-py39/lib/python3.9/site-packages/ai2thor/fifo_server.py\", line 229, in receive\n    metadata, files = self._recv_message(\n  File \"/root/autodl-tmp/vsmt-envs/simulator-py39/lib/python3.9/site-packages/ai2thor/fifo_server.py\", line 145, in _recv_message\n    header = self._read_with_timeout(\n  File \"/root/autodl-tmp/vsmt-envs/simulator-py39/lib/python3.9/site-packages/ai2thor/fifo_server.py\", line 134, in _read_with_timeout\n    raise TimeoutError(f\"Reading from AI2-THOR backend timed out (using {timeout}s) timeout.\")\nTimeoutError: Reading from AI2-THOR backend timed out (using 100.0s) timeout.\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"/root/Emboddied_Spatial_Memory/ops/vsmt/lean_s1_02a_pilot.py\", line 813, in run_house\n    _execute(controller, ep, _remaining(blocked), blocked=blocked, replans=replans,\n  File \"/root/Emboddied_Spatial_Memory/ops/vsmt/lean_s1_02a_pilot.py\", line 287, in _execute\n    event = controller.step(action=a)\n  File \"/root/autodl-tmp/vsmt-envs/simulator-py39/lib/python3.9/site-packages/ai2thor/controller.py\", line 997, in step\n    raise (TimeoutError if isinstance(e, TimeoutError) else RuntimeError)(\nTimeoutError: Error encountered when running action {'action': 'RotateRight', 'sequenceId': 6} in scene Procedural.\n",
+      "occupancy": {
+       "peak_rss_gb": 1.339252,
+       "cpu_seconds": 187.580257,
+       "wall_seconds": 113.38426280021667,
+       "bytes_written": 239181
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-00702": {
+     "sha256": "57d02260a1511b9e78705f0f95313859cc65d8c956e222a91115116c5e36730c",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-00702",
+      "source_index": 702,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "succeeded",
+      "observations": 126,
+      "actions": 125,
+      "executed_interventions": 6,
+      "sampled_interventions": 6,
+      "feasible_set_size": 10,
+      "invisible_container_set_size": 1,
+      "window_frames": 40,
+      "containers_usable": 3,
+      "containers_dropped": 0,
+      "containers_sealed": 3,
+      "controls": 0,
+      "controls_outside_U": 0,
+      "controls_shortfall": 1,
+      "moves_executed": 0,
+      "moves_source_first": 0,
+      "viewpoint_reselections": 0,
+      "sweep_two_actions": 42,
+      "occupancy": {
+       "peak_rss_gb": 1.750856,
+       "cpu_seconds": 317.554899,
+       "wall_seconds": 51.181596994400024,
+       "bytes_written": 29823515
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-00950": {
+     "sha256": "89b6ab5161e4d555d1fc530a47b5daf90a89700bcff390d1b8e65e0526a4fcd9",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-00950",
+      "source_index": 950,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "succeeded",
+      "observations": 2662,
+      "actions": 2661,
+      "executed_interventions": 6,
+      "sampled_interventions": 6,
+      "feasible_set_size": 57,
+      "invisible_container_set_size": 22,
+      "window_frames": 167,
+      "containers_usable": 89,
+      "containers_dropped": 0,
+      "containers_sealed": 80,
+      "controls": 5,
+      "controls_outside_U": 4,
+      "controls_shortfall": 0,
+      "moves_executed": 0,
+      "moves_source_first": 0,
+      "viewpoint_reselections": 0,
+      "sweep_two_actions": 897,
+      "occupancy": {
+       "peak_rss_gb": 4.32994,
+       "cpu_seconds": 407.90351100000004,
+       "wall_seconds": 1386.553874015808,
+       "bytes_written": 665695314
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-00975": {
+     "sha256": "52b9eee7091d00ef19aae456b23ec3f06f2b9d546869e6327dfd217953800d1e",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-00975",
+      "source_index": 975,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "succeeded",
+      "observations": 680,
+      "actions": 679,
+      "executed_interventions": 4,
+      "sampled_interventions": 4,
+      "feasible_set_size": 12,
+      "invisible_container_set_size": 5,
+      "window_frames": 58,
+      "containers_usable": 47,
+      "containers_dropped": 1,
+      "containers_sealed": 45,
+      "controls": 2,
+      "controls_outside_U": 2,
+      "controls_shortfall": 0,
+      "moves_executed": 0,
+      "moves_source_first": 0,
+      "viewpoint_reselections": 2,
+      "sweep_two_actions": 207,
+      "occupancy": {
+       "peak_rss_gb": 1.750856,
+       "cpu_seconds": 273.985955,
+       "wall_seconds": 166.55949997901917,
+       "bytes_written": 170905146
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-01139": {
+     "sha256": "447d9cf3f23201449028567b23bb0e0422823b49e32e59b8c801bfdd229983ce",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-01139",
+      "source_index": 1139,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "failed",
+      "reason": "intervention_window_unavailable",
+      "detail": "feasible set empty; U=1 eligible=4",
+      "occupancy": {
+       "peak_rss_gb": 2.257236,
+       "cpu_seconds": 528.67363,
+       "wall_seconds": 44.672741174697876,
+       "bytes_written": 63365158
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-01259": {
+     "sha256": "e8874af9bcad891158b95fabe2733f3593b732b10ba2f26ea42e403f46907cfc",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-01259",
+      "source_index": 1259,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "succeeded",
+      "observations": 1395,
+      "actions": 1394,
+      "executed_interventions": 4,
+      "sampled_interventions": 4,
+      "feasible_set_size": 6,
+      "invisible_container_set_size": 10,
+      "window_frames": 195,
+      "containers_usable": 62,
+      "containers_dropped": 0,
+      "containers_sealed": 58,
+      "controls": 1,
+      "controls_outside_U": 1,
+      "controls_shortfall": 0,
+      "moves_executed": 0,
+      "moves_source_first": 0,
+      "viewpoint_reselections": 0,
+      "sweep_two_actions": 193,
+      "occupancy": {
+       "peak_rss_gb": 2.029188,
+       "cpu_seconds": 501.86799499999995,
+       "wall_seconds": 1316.2956993579865,
+       "bytes_written": 352654823
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-01289": {
+     "sha256": "bb1dac8d47f927d805872540f74055291bd071ca4a3cd25e96fd768e4277c5f3",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-01289",
+      "source_index": 1289,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": true,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "succeeded",
+      "observations": 3015,
+      "actions": 3014,
+      "executed_interventions": 0,
+      "sampled_interventions": 6,
+      "feasible_set_size": 28,
+      "invisible_container_set_size": 7,
+      "window_frames": 185,
+      "containers_usable": 77,
+      "containers_dropped": 0,
+      "containers_sealed": 74,
+      "controls": 4,
+      "controls_outside_U": 4,
+      "controls_shortfall": 0,
+      "moves_executed": 0,
+      "moves_source_first": 0,
+      "viewpoint_reselections": 0,
+      "sweep_two_actions": 881,
+      "occupancy": {
+       "peak_rss_gb": 4.430052,
+       "cpu_seconds": 714.309009,
+       "wall_seconds": 1805.0450537204742,
+       "bytes_written": 745316452
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-01394": {
+     "sha256": "45e90aab2f6cf328c8cf1402d76db109e6650d8f23408a6c460f342d092c7928",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-01394",
+      "source_index": 1394,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "succeeded",
+      "observations": 198,
+      "actions": 197,
+      "executed_interventions": 2,
+      "sampled_interventions": 2,
+      "feasible_set_size": 3,
+      "invisible_container_set_size": 3,
+      "window_frames": 49,
+      "containers_usable": 8,
+      "containers_dropped": 0,
+      "containers_sealed": 8,
+      "controls": 1,
+      "controls_outside_U": 1,
+      "controls_shortfall": 0,
+      "moves_executed": 0,
+      "moves_source_first": 0,
+      "viewpoint_reselections": 0,
+      "sweep_two_actions": 53,
+      "occupancy": {
+       "peak_rss_gb": 1.339252,
+       "cpu_seconds": 207.215911,
+       "wall_seconds": 110.69447755813599,
+       "bytes_written": 46064455
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-01456": {
+     "sha256": "6b84fc092769044369cadfc7f06ce4c948570d4e74308a0e464a55ea22d60c00",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-01456",
+      "source_index": 1456,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "failed",
+      "reason": "intervention_window_unavailable",
+      "detail": "feasible set empty; U=0 eligible=6",
+      "occupancy": {
+       "peak_rss_gb": 1.750856,
+       "cpu_seconds": 309.635379,
+       "wall_seconds": 25.987181901931763,
+       "bytes_written": 30301467
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-01543": {
+     "sha256": "4665d61368f0fe2e208831a323803d625bba6b4c435d8ad49e9fb51501d534bf",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-01543",
+      "source_index": 1543,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "succeeded",
+      "observations": 863,
+      "actions": 862,
+      "executed_interventions": 1,
+      "sampled_interventions": 1,
+      "feasible_set_size": 2,
+      "invisible_container_set_size": 7,
+      "window_frames": 121,
+      "containers_usable": 29,
+      "containers_dropped": 0,
+      "containers_sealed": 29,
+      "controls": 1,
+      "controls_outside_U": 1,
+      "controls_shortfall": 0,
+      "moves_executed": 0,
+      "moves_source_first": 0,
+      "viewpoint_reselections": 0,
+      "sweep_two_actions": 180,
+      "occupancy": {
+       "peak_rss_gb": 1.150564,
+       "cpu_seconds": 136.56982,
+       "wall_seconds": 314.15672278404236,
+       "bytes_written": 204617488
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-02524": {
+     "sha256": "bc3af4861a01e5eb0a7b5b9fb829039c40d2d8d465e2a47fd1e2926384187795",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-02524",
+      "source_index": 2524,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": true,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "succeeded",
+      "observations": 933,
+      "actions": 932,
+      "executed_interventions": 0,
+      "sampled_interventions": 1,
+      "feasible_set_size": 3,
+      "invisible_container_set_size": 5,
+      "window_frames": 111,
+      "containers_usable": 41,
+      "containers_dropped": 0,
+      "containers_sealed": 33,
+      "controls": 1,
+      "controls_outside_U": 1,
+      "controls_shortfall": 0,
+      "moves_executed": 0,
+      "moves_source_first": 0,
+      "viewpoint_reselections": 0,
+      "sweep_two_actions": 120,
+      "occupancy": {
+       "peak_rss_gb": 1.249916,
+       "cpu_seconds": 159.44183800000002,
+       "wall_seconds": 404.21671509742737,
+       "bytes_written": 234140085
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-02768": {
+     "sha256": "b6c33af10e885d367ab0d7e2f893e9ebe610da700671fff744b9a88bdf027e6b",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-02768",
+      "source_index": 2768,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": true,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "succeeded",
+      "observations": 1175,
+      "actions": 1174,
+      "executed_interventions": 0,
+      "sampled_interventions": 2,
+      "feasible_set_size": 8,
+      "invisible_container_set_size": 6,
+      "window_frames": 140,
+      "containers_usable": 45,
+      "containers_dropped": 0,
+      "containers_sealed": 36,
+      "controls": 2,
+      "controls_outside_U": 2,
+      "controls_shortfall": 0,
+      "moves_executed": 0,
+      "moves_source_first": 0,
+      "viewpoint_reselections": 0,
+      "sweep_two_actions": 307,
+      "occupancy": {
+       "peak_rss_gb": 1.829504,
+       "cpu_seconds": 608.04209,
+       "wall_seconds": 581.0137660503387,
+       "bytes_written": 298024187
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-03288": {
+     "sha256": "7ea4544117e1f2ced9120a21fce8ee1fc155f6ec8677ce31213cd383b3653ec8",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-03288",
+      "source_index": 3288,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "succeeded",
+      "observations": 286,
+      "actions": 285,
+      "executed_interventions": 2,
+      "sampled_interventions": 2,
+      "feasible_set_size": 3,
+      "invisible_container_set_size": 11,
+      "window_frames": 57,
+      "containers_usable": 19,
+      "containers_dropped": 0,
+      "containers_sealed": 18,
+      "controls": 1,
+      "controls_outside_U": 1,
+      "controls_shortfall": 0,
+      "moves_executed": 0,
+      "moves_source_first": 0,
+      "viewpoint_reselections": 0,
+      "sweep_two_actions": 76,
+      "occupancy": {
+       "peak_rss_gb": 0.412112,
+       "cpu_seconds": 48.623171,
+       "wall_seconds": 240.24282455444336,
+       "bytes_written": 75684274
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-03361": {
+     "sha256": "3f31fe2f62b6e0f216111eb747baeb83f65842adcb7486004e09732bb60e674b",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-03361",
+      "source_index": 3361,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "failed",
+      "reason": "intervention_window_unavailable",
+      "detail": "feasible set empty; U=1 eligible=21",
+      "occupancy": {
+       "peak_rss_gb": 2.10418,
+       "cpu_seconds": 371.85157,
+       "wall_seconds": 178.45280170440674,
+       "bytes_written": 181394629
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-03525": {
+     "sha256": "8f996db11c5dd073c648097d70891107b49906f1b0e04ab0a629ce00840d5120",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-03525",
+      "source_index": 3525,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": true,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "succeeded",
+      "observations": 226,
+      "actions": 225,
+      "executed_interventions": 0,
+      "sampled_interventions": 1,
+      "feasible_set_size": 1,
+      "invisible_container_set_size": 1,
+      "window_frames": 52,
+      "containers_usable": 12,
+      "containers_dropped": 0,
+      "containers_sealed": 12,
+      "controls": 1,
+      "controls_outside_U": 1,
+      "controls_shortfall": 0,
+      "moves_executed": 0,
+      "moves_source_first": 0,
+      "viewpoint_reselections": 0,
+      "sweep_two_actions": 67,
+      "occupancy": {
+       "peak_rss_gb": 0.335644,
+       "cpu_seconds": 19.512148999999997,
+       "wall_seconds": 63.647443532943726,
+       "bytes_written": 61023986
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-03986": {
+     "sha256": "d0a2a5a553397931a9135b9464fc3fb262f023e7f5f8845e89220e75f04c6b57",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-03986",
+      "source_index": 3986,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "failed",
+      "reason": "intervention_window_unavailable",
+      "detail": "feasible set empty; U=0 eligible=4",
+      "occupancy": {
+       "peak_rss_gb": 0.160436,
+       "cpu_seconds": 9.936429,
+       "wall_seconds": 23.6811625957489,
+       "bytes_written": 24673684
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-04146": {
+     "sha256": "3c0a851aca42f274a0100b6dd018a7ab07e639f2be4d27a7a15a70e8f64396cb",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-04146",
+      "source_index": 4146,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "succeeded",
+      "observations": 227,
+      "actions": 226,
+      "executed_interventions": 4,
+      "sampled_interventions": 4,
+      "feasible_set_size": 16,
+      "invisible_container_set_size": 3,
+      "window_frames": 29,
+      "containers_usable": 8,
+      "containers_dropped": 0,
+      "containers_sealed": 8,
+      "controls": 2,
+      "controls_outside_U": 2,
+      "controls_shortfall": 0,
+      "moves_executed": 0,
+      "moves_source_first": 0,
+      "viewpoint_reselections": 0,
+      "sweep_two_actions": 81,
+      "occupancy": {
+       "peak_rss_gb": 1.750856,
+       "cpu_seconds": 299.81197799999995,
+       "wall_seconds": 107.58545446395874,
+       "bytes_written": 57196583
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-04388": {
+     "sha256": "c24aa6578e04712ecb89f2b25676d5eb6407e9ca47889a711408ba64dfc05e94",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-04388",
+      "source_index": 4388,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "failed",
+      "reason": "intervention_window_unavailable",
+      "detail": "feasible set empty; U=0 eligible=12",
+      "occupancy": {
+       "peak_rss_gb": 1.049292,
+       "cpu_seconds": 90.324722,
+       "wall_seconds": 37.18742394447327,
+       "bytes_written": 56280390
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-04742": {
+     "sha256": "dd4522b310eec3c0b080b26ea77a48136d799635d35f1034d3b7606129898462",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-04742",
+      "source_index": 4742,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "succeeded",
+      "observations": 679,
+      "actions": 678,
+      "executed_interventions": 5,
+      "sampled_interventions": 5,
+      "feasible_set_size": 26,
+      "invisible_container_set_size": 11,
+      "window_frames": 50,
+      "containers_usable": 39,
+      "containers_dropped": 0,
+      "containers_sealed": 32,
+      "controls": 3,
+      "controls_outside_U": 3,
+      "controls_shortfall": 0,
+      "moves_executed": 1,
+      "moves_source_first": 1,
+      "viewpoint_reselections": 0,
+      "sweep_two_actions": 287,
+      "occupancy": {
+       "peak_rss_gb": 4.329984,
+       "cpu_seconds": 577.633652,
+       "wall_seconds": 793.944854259491,
+       "bytes_written": 168982616
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-04801": {
+     "sha256": "95bbc75e4fd52d46ca336e4f09ea76fee80a9dad980deafea5b77b7d1c67e716",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-04801",
+      "source_index": 4801,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "succeeded",
+      "observations": 1204,
+      "actions": 1203,
+      "executed_interventions": 2,
+      "sampled_interventions": 2,
+      "feasible_set_size": 3,
+      "invisible_container_set_size": 3,
+      "window_frames": 176,
+      "containers_usable": 59,
+      "containers_dropped": 0,
+      "containers_sealed": 48,
+      "controls": 1,
+      "controls_outside_U": 1,
+      "controls_shortfall": 0,
+      "moves_executed": 0,
+      "moves_source_first": 0,
+      "viewpoint_reselections": 0,
+      "sweep_two_actions": 196,
+      "occupancy": {
+       "peak_rss_gb": 1.750856,
+       "cpu_seconds": 196.278669,
+       "wall_seconds": 455.6430583000183,
+       "bytes_written": 308397442
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-05593": {
+     "sha256": "22a522f1dd8b06012a346601853ef851ebdaf57ce4cb0df21e4eca8926d52c2b",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-05593",
+      "source_index": 5593,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "failed",
+      "reason": "intervention_window_unavailable",
+      "detail": "feasible set empty; U=0 eligible=8",
+      "occupancy": {
+       "peak_rss_gb": 4.329984,
+       "cpu_seconds": 431.993917,
+       "wall_seconds": 46.670604944229126,
+       "bytes_written": 54877526
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-05806": {
+     "sha256": "e0f3ee5f12aa9308e9e0a0f40d2f4719fe1a9b77a87433330c45153367d4702d",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-05806",
+      "source_index": 5806,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "succeeded",
+      "observations": 1411,
+      "actions": 1410,
+      "executed_interventions": 6,
+      "sampled_interventions": 6,
+      "feasible_set_size": 57,
+      "invisible_container_set_size": 7,
+      "window_frames": 104,
+      "containers_usable": 72,
+      "containers_dropped": 0,
+      "containers_sealed": 65,
+      "controls": 4,
+      "controls_outside_U": 4,
+      "controls_shortfall": 0,
+      "moves_executed": 1,
+      "moves_source_first": 1,
+      "viewpoint_reselections": 0,
+      "sweep_two_actions": 565,
+      "occupancy": {
+       "peak_rss_gb": 2.256448,
+       "cpu_seconds": 279.260541,
+       "wall_seconds": 1162.8967216014862,
+       "bytes_written": 368368895
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-05879": {
+     "sha256": "c61a4c14533b57800bdb0cd15480f4c50eeec6aa96a6a4eb2827cdc521ea5151",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-05879",
+      "source_index": 5879,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "failed",
+      "reason": "intervention_window_unavailable",
+      "detail": "feasible set empty; U=4 eligible=9",
+      "occupancy": {
+       "peak_rss_gb": 0.348224,
+       "cpu_seconds": 56.802285,
+       "wall_seconds": 92.2615373134613,
+       "bytes_written": 49591414
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-05966": {
+     "sha256": "1ad16d990f01e2cc39894d4f4e31e2e18fd3cbe4b743c0694fdf27061deb39ee",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-05966",
+      "source_index": 5966,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "succeeded",
+      "observations": 445,
+      "actions": 444,
+      "executed_interventions": 1,
+      "sampled_interventions": 1,
+      "feasible_set_size": 1,
+      "invisible_container_set_size": 2,
+      "window_frames": 69,
+      "containers_usable": 28,
+      "containers_dropped": 1,
+      "containers_sealed": 19,
+      "controls": 1,
+      "controls_outside_U": 1,
+      "controls_shortfall": 0,
+      "moves_executed": 0,
+      "moves_source_first": 0,
+      "viewpoint_reselections": 0,
+      "sweep_two_actions": 109,
+      "occupancy": {
+       "peak_rss_gb": 0.648484,
+       "cpu_seconds": 49.611805000000004,
+       "wall_seconds": 109.34464025497437,
+       "bytes_written": 107179369
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-06453": {
+     "sha256": "a333a177203d8c3d1e62846fa2f4b69585d61fe74c0dd6c970ba0ef027dba6eb",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-06453",
+      "source_index": 6453,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": true,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "succeeded",
+      "observations": 382,
+      "actions": 381,
+      "executed_interventions": 0,
+      "sampled_interventions": 3,
+      "feasible_set_size": 6,
+      "invisible_container_set_size": 2,
+      "window_frames": 64,
+      "containers_usable": 25,
+      "containers_dropped": 0,
+      "containers_sealed": 24,
+      "controls": 1,
+      "controls_outside_U": 1,
+      "controls_shortfall": 0,
+      "moves_executed": 0,
+      "moves_source_first": 0,
+      "viewpoint_reselections": 0,
+      "sweep_two_actions": 101,
+      "occupancy": {
+       "peak_rss_gb": 2.257236,
+       "cpu_seconds": 373.966091,
+       "wall_seconds": 179.4760227203369,
+       "bytes_written": 96153588
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-06764": {
+     "sha256": "91bff3aa72f58b14ed2d0ebe1f158ba21beca8dc565b97c7596fe9036eb9c606",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-06764",
+      "source_index": 6764,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "failed",
+      "reason": "intervention_window_unavailable",
+      "detail": "feasible set empty; U=0 eligible=3",
+      "occupancy": {
+       "peak_rss_gb": 2.257236,
+       "cpu_seconds": 542.224033,
+       "wall_seconds": 27.87595772743225,
+       "bytes_written": 25444187
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-07270": {
+     "sha256": "cb061a847f0cb1ed1ed3896a3fe5a26104cff0711a70fd8e148158d563eb5752",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-07270",
+      "source_index": 7270,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "succeeded",
+      "observations": 327,
+      "actions": 326,
+      "executed_interventions": 2,
+      "sampled_interventions": 2,
+      "feasible_set_size": 4,
+      "invisible_container_set_size": 4,
+      "window_frames": 63,
+      "containers_usable": 10,
+      "containers_dropped": 0,
+      "containers_sealed": 9,
+      "controls": 1,
+      "controls_outside_U": 1,
+      "controls_shortfall": 1,
+      "moves_executed": 1,
+      "moves_source_first": 1,
+      "viewpoint_reselections": 0,
+      "sweep_two_actions": 131,
+      "occupancy": {
+       "peak_rss_gb": 2.257236,
+       "cpu_seconds": 324.43991900000003,
+       "wall_seconds": 69.88556218147278,
+       "bytes_written": 82675976
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-07367": {
+     "sha256": "2649855693422929d0ddc7c10f2c107b84d7a40aea35013c7a25ebef7f57cd70",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-07367",
+      "source_index": 7367,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": true,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "failed",
+      "reason": "intervention_window_unavailable",
+      "detail": "feasible set empty; U=0 eligible=2",
+      "occupancy": {
+       "peak_rss_gb": 0.14872,
+       "cpu_seconds": 12.723168999999999,
+       "wall_seconds": 25.06635808944702,
+       "bytes_written": 22927716
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-07795": {
+     "sha256": "ff1b1faadd026c3c13ef8bafc645388e1012197b31d946af7a02b425e7c21edd",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-07795",
+      "source_index": 7795,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": true,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "succeeded",
+      "observations": 1921,
+      "actions": 1920,
+      "executed_interventions": 0,
+      "sampled_interventions": 6,
+      "feasible_set_size": 25,
+      "invisible_container_set_size": 10,
+      "window_frames": 171,
+      "containers_usable": 72,
+      "containers_dropped": 0,
+      "containers_sealed": 64,
+      "controls": 4,
+      "controls_outside_U": 4,
+      "controls_shortfall": 0,
+      "moves_executed": 0,
+      "moves_source_first": 0,
+      "viewpoint_reselections": 0,
+      "sweep_two_actions": 874,
+      "occupancy": {
+       "peak_rss_gb": 2.960596,
+       "cpu_seconds": 580.459731,
+       "wall_seconds": 2062.142840862274,
+       "bytes_written": 493896243
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-07815": {
+     "sha256": "7540c62c1b438c8cba954358c1fa65dca7ffd976ce60ff5821a47312dadbbab0",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-07815",
+      "source_index": 7815,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "failed",
+      "reason": "intervention_window_unavailable",
+      "detail": "feasible set empty; U=1 eligible=26",
+      "occupancy": {
+       "peak_rss_gb": 1.339252,
+       "cpu_seconds": 257.17740100000003,
+       "wall_seconds": 239.47802424430847,
+       "bytes_written": 106351542
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-08101": {
+     "sha256": "d23afe283db731bb512b64d96d5ef590ebdb3e3c31aa8b3c40ab1593f8438085",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-08101",
+      "source_index": 8101,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "failed",
+      "reason": "intervention_window_unavailable",
+      "detail": "feasible set empty; U=0 eligible=5",
+      "occupancy": {
+       "peak_rss_gb": 0.258628,
+       "cpu_seconds": 25.391311,
+       "wall_seconds": 31.005221605300903,
+       "bytes_written": 37796402
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-08398": {
+     "sha256": "e5da07bc5d2832d4f06e4c4703d80988980445bc1edf1e7a7441c6cd0f0b104b",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-08398",
+      "source_index": 8398,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "succeeded",
+      "observations": 1346,
+      "actions": 1345,
+      "executed_interventions": 6,
+      "sampled_interventions": 6,
+      "feasible_set_size": 21,
+      "invisible_container_set_size": 4,
+      "window_frames": 111,
+      "containers_usable": 63,
+      "containers_dropped": 0,
+      "containers_sealed": 56,
+      "controls": 3,
+      "controls_outside_U": 3,
+      "controls_shortfall": 0,
+      "moves_executed": 1,
+      "moves_source_first": 1,
+      "viewpoint_reselections": 0,
+      "sweep_two_actions": 379,
+      "occupancy": {
+       "peak_rss_gb": 2.100716,
+       "cpu_seconds": 295.64609599999994,
+       "wall_seconds": 958.4414808750153,
+       "bytes_written": 339718591
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-08422": {
+     "sha256": "558d287e290575816c4fddc8aecaa34215e6f40ed9b314be5661e03cb69d25a9",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-08422",
+      "source_index": 8422,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "failed",
+      "reason": "intervention_window_unavailable",
+      "detail": "feasible set empty; U=1 eligible=11",
+      "occupancy": {
+       "peak_rss_gb": 0.301992,
+       "cpu_seconds": 19.256177,
+       "wall_seconds": 38.68303036689758,
+       "bytes_written": 43426261
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-08552": {
+     "sha256": "7fcaeb0c3652c7d0d03928d76cbb41d67c210c815cbf1c0ab0151a0130da900d",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-08552",
+      "source_index": 8552,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "succeeded",
+      "observations": 755,
+      "actions": 754,
+      "executed_interventions": 6,
+      "sampled_interventions": 6,
+      "feasible_set_size": 22,
+      "invisible_container_set_size": 8,
+      "window_frames": 86,
+      "containers_usable": 30,
+      "containers_dropped": 0,
+      "containers_sealed": 30,
+      "controls": 3,
+      "controls_outside_U": 3,
+      "controls_shortfall": 0,
+      "moves_executed": 1,
+      "moves_source_first": 0,
+      "viewpoint_reselections": 0,
+      "sweep_two_actions": 268,
+      "occupancy": {
+       "peak_rss_gb": 2.10418,
+       "cpu_seconds": 517.846595,
+       "wall_seconds": 749.7916219234467,
+       "bytes_written": 184342512
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-08790": {
+     "sha256": "d62d19f1ebce12b9783c9edb51717b9043cd85566dff3b2abfa1fe29dffe2c3d",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-08790",
+      "source_index": 8790,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "failed",
+      "reason": "frame_write_failed",
+      "detail": "TimeoutError(\"Error encountered when running action {'action': 'Teleport', 'position': {'x': 5.0, 'y': 0.949999988079071, 'z': 17.5}, 'rotation': {'x': 0, 'y': 180, 'z': 0}, 'horizon': 30, 'standing': True, 'forceAction': True, 'sequenceId': 4812} in scene Procedural.\") |  in _recv_message\n    header = self._read_with_timeout(\n  File \"/root/autodl-tmp/vsmt-envs/simulator-py39/lib/python3.9/site-packages/ai2thor/fifo_server.py\", line 134, in _read_with_timeout\n    raise TimeoutError(f\"Reading from AI2-THOR backend timed out (using {timeout}s) timeout.\")\nTimeoutError: Reading from AI2-THOR backend timed out (using 100.0s) timeout.\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"/root/Emboddied_Spatial_Memory/ops/vsmt/lean_s1_02a_pilot.py\", line 854, in run_house\n    pair_ok, dry_run_table = _dry_run_pairs(controller, cand, invisible, spawn_points, plan1[\"viewpoints\"],\n  File \"/root/Emboddied_Spatial_Memory/ops/vsmt/lean_s1_02a_pilot.py\", line 579, in _dry_run_pairs\n    px = _peek_pixels(controller, viewpoints[dst], oid)\n  File \"/root/Emboddied_Spatial_Memory/ops/vsmt/lean_s1_02a_pilot.py\", line 529, in _peek_pixels\n    peek = controller.step(action=\"Teleport\", position=vp_pos, rotation={\"x\": 0, \"y\": viewpoint[\"yaw\"], \"z\": 0},\n  File \"/root/autodl-tmp/vsmt-envs/simulator-py39/lib/python3.9/site-packages/ai2thor/controller.py\", line 997, in step\n    raise (TimeoutError if isinstance(e, TimeoutError) else RuntimeError)(\nTimeoutError: Error encountered when running action {'action': 'Teleport', 'position': {'x': 5.0, 'y': 0.949999988079071, 'z': 17.5}, 'rotation': {'x': 0, 'y': 180, 'z': 0}, 'horizon': 30, 'standing': True, 'forceAction': True, 'sequenceId': 4812} in scene Procedural.\n",
+      "occupancy": {
+       "peak_rss_gb": 3.517444,
+       "cpu_seconds": 510.53031300000004,
+       "wall_seconds": 1186.6783437728882,
+       "bytes_written": 561626459
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-08905": {
+     "sha256": "79ad9a9eb5dde73c37e31169ff1d726ace1e1414f5c2024cc25a2ec9e11ece19",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-08905",
+      "source_index": 8905,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "failed",
+      "reason": "intervention_window_unavailable",
+      "detail": "feasible set empty; U=0 eligible=15",
+      "occupancy": {
+       "peak_rss_gb": 1.750856,
+       "cpu_seconds": 215.157528,
+       "wall_seconds": 49.261035680770874,
+       "bytes_written": 34984290
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-08927": {
+     "sha256": "c60b39ab8537639f140ddbaf3354a004b30635b72c0521ae3f9ffef535659330",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-08927",
+      "source_index": 8927,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "failed",
+      "reason": "intervention_window_unavailable",
+      "detail": "feasible set empty; U=1 eligible=24",
+      "occupancy": {
+       "peak_rss_gb": 1.049292,
+       "cpu_seconds": 70.245332,
+       "wall_seconds": 182.44089126586914,
+       "bytes_written": 162700692
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-09339": {
+     "sha256": "782b17630f49136dfaa271f7ac91daf0a4017a505f24cae0be2a55b288b6719d",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-09339",
+      "source_index": 9339,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "failed",
+      "reason": "intervention_window_unavailable",
+      "detail": "feasible set empty; U=0 eligible=18",
+      "occupancy": {
+       "peak_rss_gb": 1.250656,
+       "cpu_seconds": 200.741657,
+       "wall_seconds": 86.26298832893372,
+       "bytes_written": 88790751
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-09423": {
+     "sha256": "1817ed1b8b47d529e07b9e82278a4387de9eae7b9f976400c9d038aa94e13899",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-09423",
+      "source_index": 9423,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "failed",
+      "reason": "intervention_window_unavailable",
+      "detail": "feasible set empty; U=0 eligible=4",
+      "occupancy": {
+       "peak_rss_gb": 2.257236,
+       "cpu_seconds": 293.452432,
+       "wall_seconds": 28.245392560958862,
+       "bytes_written": 25646480
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-09488": {
+     "sha256": "07d3edfd7b8bd9abe57728aaefdc7c3c0f30ba50c508f36fc8226a7aec71ff56",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-09488",
+      "source_index": 9488,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "succeeded",
+      "observations": 1085,
+      "actions": 1084,
+      "executed_interventions": 2,
+      "sampled_interventions": 2,
+      "feasible_set_size": 3,
+      "invisible_container_set_size": 5,
+      "window_frames": 138,
+      "containers_usable": 49,
+      "containers_dropped": 0,
+      "containers_sealed": 44,
+      "controls": 2,
+      "controls_outside_U": 2,
+      "controls_shortfall": 0,
+      "moves_executed": 0,
+      "moves_source_first": 0,
+      "viewpoint_reselections": 0,
+      "sweep_two_actions": 286,
+      "occupancy": {
+       "peak_rss_gb": 1.750856,
+       "cpu_seconds": 446.50948100000005,
+       "wall_seconds": 429.0158200263977,
+       "bytes_written": 283684787
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-09595": {
+     "sha256": "a615cfcbd1ddda9c2548cc9c5802fa38fb6bb5f248cfa1859161f52d88dccfb2",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-09595",
+      "source_index": 9595,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "succeeded",
+      "observations": 900,
+      "actions": 899,
+      "executed_interventions": 5,
+      "sampled_interventions": 5,
+      "feasible_set_size": 16,
+      "invisible_container_set_size": 28,
+      "window_frames": 62,
+      "containers_usable": 49,
+      "containers_dropped": 0,
+      "containers_sealed": 46,
+      "controls": 3,
+      "controls_outside_U": 3,
+      "controls_shortfall": 0,
+      "moves_executed": 1,
+      "moves_source_first": 1,
+      "viewpoint_reselections": 0,
+      "sweep_two_actions": 366,
+      "occupancy": {
+       "peak_rss_gb": 2.257236,
+       "cpu_seconds": 509.79051499999997,
+       "wall_seconds": 383.0003683567047,
+       "bytes_written": 225428436
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-09951": {
+     "sha256": "4ea88fe132cc57e6c235df105eded545f11a533014c986cdddef25e147d33b7d",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-09951",
+      "source_index": 9951,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "failed",
+      "reason": "intervention_window_unavailable",
+      "detail": "feasible set empty; U=0 eligible=3",
+      "occupancy": {
+       "peak_rss_gb": 0.301992,
+       "cpu_seconds": 30.42714,
+       "wall_seconds": 22.45253300666809,
+       "bytes_written": 16780090
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-09985": {
+     "sha256": "d74dd152660d0854747d1b2c115b1fd8f1cdf1fdcc4c40b2d7b3c0e1683865ca",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-09985",
+      "source_index": 9985,
+      "code_commit": "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "succeeded",
+      "observations": 93,
+      "actions": 92,
+      "executed_interventions": 4,
+      "sampled_interventions": 4,
+      "feasible_set_size": 4,
+      "invisible_container_set_size": 1,
+      "window_frames": 24,
+      "containers_usable": 8,
+      "containers_dropped": 0,
+      "containers_sealed": 8,
+      "controls": 1,
+      "controls_outside_U": 1,
+      "controls_shortfall": 0,
+      "moves_executed": 0,
+      "moves_source_first": 0,
+      "viewpoint_reselections": 0,
+      "sweep_two_actions": 34,
+      "occupancy": {
+       "peak_rss_gb": 2.257236,
+       "cpu_seconds": 391.239148,
+       "wall_seconds": 64.0599467754364,
+       "bytes_written": 24960172
+      }
+     }
+    }
+   },
+   "files_by_extension": {
+    ".json": {
+     "count": 63399,
+     "bytes": 146552170
+    },
+    "(none)": {
+     "count": 46,
+     "bytes": 822
+    },
+    ".png": {
+     "count": 63062,
+     "bytes": 1513147984
+    },
+    ".npy": {
+     "count": 31531,
+     "bytes": 6332433792
+    }
+   },
+   "json_manifest_count": 63399,
+   "json_manifest_sha256": "3798ae6fe561ed2bbf8d3966346ae2a371ebdd62e12e5f0cdb90d700c9f449bc"
+  },
+  "lean-s1-02-window-probe-f2982a6": {
+   "bytes_total": 1308071065,
+   "file_count": 25727,
+   "top_level_json": {
+    "window_probe_plan.json": {
+     "stage": "window-probe",
+     "pending_ruling": "D-224-S1 ruling 53 (proposal, not approved)",
+     "probe_note": "user 2026-09-23: do not regenerate 50, run a few houses first to estimate pending ruling 53 option (a); L=40 not frozen; 4 registered pilot houses + 4 U=0 failures",
+     "window_segment_frames": 40,
+     "houses": [
+      "procthor10k-0.1.2-train-00460",
+      "procthor10k-0.1.2-train-01451",
+      "procthor10k-0.1.2-train-03394",
+      "procthor10k-0.1.2-train-08566",
+      "procthor10k-0.1.2-train-01456",
+      "procthor10k-0.1.2-train-03986",
+      "procthor10k-0.1.2-train-06764",
+      "procthor10k-0.1.2-train-09951"
+     ],
+     "commit": "f2982a6c40b08d635a28eccf397d8c388c84b71d",
+     "split": {
+      "seed": 20260920,
+      "validation_houses": 50,
+      "test_houses": 100,
+      "train_houses": null,
+      "frozen_before_first_episode": true,
+      "test_and_validation_membership_is_final": true,
+      "train_size_may_only_decrease_afterwards": true,
+      "development_houses_are_the_first_of_the_train_block": true,
+      "recomputable_from_manifest": true,
+      "plain_language_zh": "S0-02 v2 把前缀分配顺序改成 test→validation→train，于是 seed 与 test/validation 规模一旦定下，test 与 validation 的成员就永远不变，而 train 块的起点也随之固定。用户于 2026-09-20 冻结：seed=20260920、validation=50、test=100（规模沿用 D-224 在 PLAN S3-01 登记的 300/50/100）。`train_houses` 仍为 null，到 S3-01 才登记，且此后只能下调——下调只从 train 块尾部截短，不碰前面任何一份。**这三个值只登记在这里一处**：S0-02 v2 定的是构造规则（方法层面，不该带某一次运行的 seed），值属于运行层面，因此由本合同承载，跨合同测试钉住「S0-02 的值槽保持 null、本合同是唯一登记处」以防出现两个互相矛盾的 seed。白话：先把答案卷封好再开始答题，而不是答完再决定哪些算考题。",
+      "frozen_by": "D-224-S1",
+      "frozen_on": "2026-09-20",
+      "is_the_single_registered_location": true
+     },
+     "requested_workers": 8,
+     "actual_workers": 8,
+     "not_s1_02_data": "S0-02 window rule unchanged; this commit is not in the S1-03 encoder registry, readers refuse it",
+     "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96"
+    },
+    "window_probe_receipt.json": {
+     "plan": {
+      "stage": "window-probe",
+      "pending_ruling": "D-224-S1 ruling 53 (proposal, not approved)",
+      "probe_note": "user 2026-09-23: do not regenerate 50, run a few houses first to estimate pending ruling 53 option (a); L=40 not frozen; 4 registered pilot houses + 4 U=0 failures",
+      "window_segment_frames": 40,
+      "houses": [
+       "procthor10k-0.1.2-train-00460",
+       "procthor10k-0.1.2-train-01451",
+       "procthor10k-0.1.2-train-03394",
+       "procthor10k-0.1.2-train-08566",
+       "procthor10k-0.1.2-train-01456",
+       "procthor10k-0.1.2-train-03986",
+       "procthor10k-0.1.2-train-06764",
+       "procthor10k-0.1.2-train-09951"
+      ],
+      "commit": "f2982a6c40b08d635a28eccf397d8c388c84b71d",
+      "split": {
+       "seed": 20260920,
+       "validation_houses": 50,
+       "test_houses": 100,
+       "train_houses": null,
+       "frozen_before_first_episode": true,
+       "test_and_validation_membership_is_final": true,
+       "train_size_may_only_decrease_afterwards": true,
+       "development_houses_are_the_first_of_the_train_block": true,
+       "recomputable_from_manifest": true,
+       "plain_language_zh": "S0-02 v2 把前缀分配顺序改成 test→validation→train，于是 seed 与 test/validation 规模一旦定下，test 与 validation 的成员就永远不变，而 train 块的起点也随之固定。用户于 2026-09-20 冻结：seed=20260920、validation=50、test=100（规模沿用 D-224 在 PLAN S3-01 登记的 300/50/100）。`train_houses` 仍为 null，到 S3-01 才登记，且此后只能下调——下调只从 train 块尾部截短，不碰前面任何一份。**这三个值只登记在这里一处**：S0-02 v2 定的是构造规则（方法层面，不该带某一次运行的 seed），值属于运行层面，因此由本合同承载，跨合同测试钉住「S0-02 的值槽保持 null、本合同是唯一登记处」以防出现两个互相矛盾的 seed。白话：先把答案卷封好再开始答题，而不是答完再决定哪些算考题。",
+       "frozen_by": "D-224-S1",
+       "frozen_on": "2026-09-20",
+       "is_the_single_registered_location": true
+      },
+      "requested_workers": 8,
+      "actual_workers": 8,
+      "not_s1_02_data": "S0-02 window rule unchanged; this commit is not in the S1-03 encoder registry, readers refuse it",
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96"
+     },
+     "summary": {
+      "houses": 8,
+      "succeeded": 3,
+      "failed": 5,
+      "failures_by_reason": {
+       "intervention_execution_failed": 1,
+       "intervention_window_unavailable": 4
+      },
+      "null_window_episodes": 1,
+      "non_null_with_interventions": 2,
+      "non_null_total": 7,
+      "U_sizes": [
+       1,
+       null,
+       null,
+       21,
+       null,
+       null,
+       8,
+       null
+      ],
+      "feasible_sizes": [
+       1,
+       null,
+       null,
+       56,
+       null,
+       null,
+       46,
+       null
+      ],
+      "executed_kinds": {},
+      "moves_executed": 2,
+      "moves_source_first": 2,
+      "controls_total": 10,
+      "controls_outside_U": 7,
+      "window_frames": [
+       40,
+       null,
+       null,
+       40,
+       null,
+       null,
+       40,
+       null
+      ],
+      "leave_segment_frames": [
+       42,
+       null,
+       null,
+       120,
+       null,
+       null,
+       106,
+       null
+      ],
+      "wall_clock_seconds": 3443.3,
+      "actual_workers": 8,
+      "code_commit": "f2982a6c40b08d635a28eccf397d8c388c84b71d"
+     },
+     "houses": [
+      {
+       "house_id": "procthor10k-0.1.2-train-00460",
+       "status": "succeeded",
+       "reason": null,
+       "detail": "",
+       "null_window": false,
+       "invisible_container_set_size": 1,
+       "feasible_set_size": 1,
+       "eligible_object_count": null,
+       "containers_usable": 6,
+       "containers_sealed": 6,
+       "window_frames": 40,
+       "leave_segment_frames": 42,
+       "window_segment": {
+        "segment": [
+         126,
+         166
+        ],
+        "frames_requested": 40,
+        "frames_walked": 40,
+        "start_cell": [
+         25,
+         17
+        ],
+        "start_yaw": 90,
+        "target_cell": [
+         1,
+         1
+        ],
+        "path_actions_available": 49,
+        "rule": "walk_towards_the_cell_farthest_from_the_transition_end_for_exactly_L_actions"
+       },
+       "executed_interventions": 1,
+       "executed_kinds": null,
+       "moves_executed": 0,
+       "moves_source_first": 0,
+       "controls": 1,
+       "controls_outside_U": 1,
+       "controls_shortfall": 0,
+       "observations": 208,
+       "actions": 207,
+       "wall_seconds": 44.7,
+       "controls_from_U": 0
+      },
+      {
+       "house_id": "procthor10k-0.1.2-train-01451",
+       "status": "failed",
+       "reason": "intervention_execution_failed",
+       "detail": "move TeddyBear|surface|10|104: Spawn area not clear (Chair|8|1|3) is in the way), can't place object at that point",
+       "null_window": false,
+       "invisible_container_set_size": null,
+       "feasible_set_size": null,
+       "eligible_object_count": null,
+       "containers_usable": null,
+       "containers_sealed": null,
+       "window_frames": null,
+       "leave_segment_frames": null,
+       "window_segment": null,
+       "executed_interventions": null,
+       "executed_kinds": null,
+       "moves_executed": null,
+       "moves_source_first": null,
+       "controls": null,
+       "controls_outside_U": null,
+       "controls_shortfall": null,
+       "observations": null,
+       "actions": null,
+       "wall_seconds": 3435.4,
+       "controls_from_U": null
+      },
+      {
+       "house_id": "procthor10k-0.1.2-train-01456",
+       "status": "failed",
+       "reason": "intervention_window_unavailable",
+       "detail": "feasible set empty; U=0 eligible=6 eligible_on_U=0 unseen=1 destinations_with_points=0 dry_run_pairs_feasible=0",
+       "null_window": false,
+       "invisible_container_set_size": null,
+       "feasible_set_size": null,
+       "eligible_object_count": null,
+       "containers_usable": null,
+       "containers_sealed": null,
+       "window_frames": null,
+       "leave_segment_frames": null,
+       "window_segment": null,
+       "executed_interventions": null,
+       "executed_kinds": null,
+       "moves_executed": null,
+       "moves_source_first": null,
+       "controls": null,
+       "controls_outside_U": null,
+       "controls_shortfall": null,
+       "observations": null,
+       "actions": null,
+       "wall_seconds": 26.6,
+       "controls_from_U": null
+      },
+      {
+       "house_id": "procthor10k-0.1.2-train-03394",
+       "status": "succeeded",
+       "reason": null,
+       "detail": "",
+       "null_window": true,
+       "invisible_container_set_size": 21,
+       "feasible_set_size": 56,
+       "eligible_object_count": null,
+       "containers_usable": 36,
+       "containers_sealed": 36,
+       "window_frames": 40,
+       "leave_segment_frames": 120,
+       "window_segment": {
+        "segment": [
+         860,
+         900
+        ],
+        "frames_requested": 40,
+        "frames_walked": 40,
+        "start_cell": [
+         28,
+         1
+        ],
+        "start_yaw": 180,
+        "target_cell": [
+         30,
+         19
+        ],
+        "path_actions_available": 167,
+        "rule": "walk_towards_the_cell_farthest_from_the_transition_end_for_exactly_L_actions"
+       },
+       "executed_interventions": 0,
+       "executed_kinds": null,
+       "moves_executed": 0,
+       "moves_source_first": 0,
+       "controls": 6,
+       "controls_outside_U": 4,
+       "controls_shortfall": 0,
+       "observations": 1768,
+       "actions": 1767,
+       "wall_seconds": 737.4,
+       "controls_from_U": 2
+      },
+      {
+       "house_id": "procthor10k-0.1.2-train-03986",
+       "status": "failed",
+       "reason": "intervention_window_unavailable",
+       "detail": "window segment 38 < 40 frames (path to the farthest cell had 38 actions); not shortened",
+       "null_window": false,
+       "invisible_container_set_size": null,
+       "feasible_set_size": null,
+       "eligible_object_count": null,
+       "containers_usable": null,
+       "containers_sealed": null,
+       "window_frames": null,
+       "leave_segment_frames": null,
+       "window_segment": null,
+       "executed_interventions": null,
+       "executed_kinds": null,
+       "moves_executed": null,
+       "moves_source_first": null,
+       "controls": null,
+       "controls_outside_U": null,
+       "controls_shortfall": null,
+       "observations": null,
+       "actions": null,
+       "wall_seconds": 24.0,
+       "controls_from_U": null
+      },
+      {
+       "house_id": "procthor10k-0.1.2-train-06764",
+       "status": "failed",
+       "reason": "intervention_window_unavailable",
+       "detail": "feasible set empty; U=0 eligible=2 eligible_on_U=0 unseen=2 destinations_with_points=0 dry_run_pairs_feasible=0",
+       "null_window": false,
+       "invisible_container_set_size": null,
+       "feasible_set_size": null,
+       "eligible_object_count": null,
+       "containers_usable": null,
+       "containers_sealed": null,
+       "window_frames": null,
+       "leave_segment_frames": null,
+       "window_segment": null,
+       "executed_interventions": null,
+       "executed_kinds": null,
+       "moves_executed": null,
+       "moves_source_first": null,
+       "controls": null,
+       "controls_outside_U": null,
+       "controls_shortfall": null,
+       "observations": null,
+       "actions": null,
+       "wall_seconds": 31.5,
+       "controls_from_U": null
+      },
+      {
+       "house_id": "procthor10k-0.1.2-train-08566",
+       "status": "succeeded",
+       "reason": null,
+       "detail": "",
+       "null_window": false,
+       "invisible_container_set_size": 8,
+       "feasible_set_size": 46,
+       "eligible_object_count": null,
+       "containers_usable": 21,
+       "containers_sealed": 21,
+       "window_frames": 40,
+       "leave_segment_frames": 106,
+       "window_segment": {
+        "segment": [
+         402,
+         442
+        ],
+        "frames_requested": 40,
+        "frames_walked": 40,
+        "start_cell": [
+         1,
+         22
+        ],
+        "start_yaw": 0,
+        "target_cell": [
+         9,
+         45
+        ],
+        "path_actions_available": 117,
+        "rule": "walk_towards_the_cell_farthest_from_the_transition_end_for_exactly_L_actions"
+       },
+       "executed_interventions": 6,
+       "executed_kinds": null,
+       "moves_executed": 2,
+       "moves_source_first": 2,
+       "controls": 3,
+       "controls_outside_U": 2,
+       "controls_shortfall": 0,
+       "observations": 685,
+       "actions": 684,
+       "wall_seconds": 815.6,
+       "controls_from_U": 1
+      },
+      {
+       "house_id": "procthor10k-0.1.2-train-09951",
+       "status": "failed",
+       "reason": "intervention_window_unavailable",
+       "detail": "window segment 38 < 40 frames (path to the farthest cell had 38 actions); not shortened",
+       "null_window": false,
+       "invisible_container_set_size": null,
+       "feasible_set_size": null,
+       "eligible_object_count": null,
+       "containers_usable": null,
+       "containers_sealed": null,
+       "window_frames": null,
+       "leave_segment_frames": null,
+       "window_segment": null,
+       "executed_interventions": null,
+       "executed_kinds": null,
+       "moves_executed": null,
+       "moves_source_first": null,
+       "controls": null,
+       "controls_outside_U": null,
+       "controls_shortfall": null,
+       "observations": null,
+       "actions": null,
+       "wall_seconds": 27.5,
+       "controls_from_U": null
+      }
+     ]
+    }
+   },
+   "per_house_receipts": {
+    "procthor10k-0.1.2-train-00460": {
+     "sha256": "6c2e5e04dd74f63002894de0de5182bc46082b24e289ea53af14577295f6e014",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-00460",
+      "source_index": 460,
+      "code_commit": "f2982a6c40b08d635a28eccf397d8c388c84b71d",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "succeeded",
+      "observations": 208,
+      "actions": 207,
+      "executed_interventions": 1,
+      "sampled_interventions": 1,
+      "feasible_set_size": 1,
+      "invisible_container_set_size": 1,
+      "window_frames": 40,
+      "containers_usable": 6,
+      "containers_dropped": 0,
+      "containers_sealed": 6,
+      "controls": 1,
+      "controls_outside_U": 1,
+      "controls_shortfall": 0,
+      "moves_executed": 0,
+      "moves_source_first": 0,
+      "viewpoint_reselections": 0,
+      "sweep_two_actions": 41,
+      "window_protocol": "two_segment_probe_pending_ruling_53",
+      "leave_segment_frames": 42,
+      "window_segment": {
+       "segment": [
+        126,
+        166
+       ],
+       "frames_requested": 40,
+       "frames_walked": 40,
+       "start_cell": [
+        25,
+        17
+       ],
+       "start_yaw": 90,
+       "target_cell": [
+        1,
+        1
+       ],
+       "path_actions_available": 49,
+       "rule": "walk_towards_the_cell_farthest_from_the_transition_end_for_exactly_L_actions"
+      },
+      "occupancy": {
+       "peak_rss_gb": 0.369396,
+       "cpu_seconds": 17.272629,
+       "wall_seconds": 44.74106740951538,
+       "bytes_written": 53675154
+      }
+     },
+     "window_segment.json": {
+      "segment": [
+       126,
+       166
+      ],
+      "frames_requested": 40,
+      "frames_walked": 40,
+      "start_cell": [
+       25,
+       17
+      ],
+      "start_yaw": 90,
+      "target_cell": [
+       1,
+       1
+      ],
+      "path_actions_available": 49,
+      "rule": "walk_towards_the_cell_farthest_from_the_transition_end_for_exactly_L_actions"
+     }
+    },
+    "procthor10k-0.1.2-train-01451": {
+     "sha256": "c66f1ad464c0d1c6980285b5d4878bd1266a74562668566080ca908dda6c2447",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-01451",
+      "source_index": 1451,
+      "code_commit": "f2982a6c40b08d635a28eccf397d8c388c84b71d",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "failed",
+      "reason": "intervention_execution_failed",
+      "detail": "move TeddyBear|surface|10|104: Spawn area not clear (Chair|8|1|3) is in the way), can't place object at that point",
+      "occupancy": {
+       "peak_rss_gb": 3.374792,
+       "cpu_seconds": 704.8910330000001,
+       "wall_seconds": 3435.4098472595215,
+       "bytes_written": 491411851
+      }
+     },
+     "window_segment.json": {
+      "segment": [
+       1899,
+       1939
+      ],
+      "frames_requested": 40,
+      "frames_walked": 40,
+      "start_cell": [
+       1,
+       1
+      ],
+      "start_yaw": 180,
+      "target_cell": [
+       23,
+       70
+      ],
+      "path_actions_available": 218,
+      "rule": "walk_towards_the_cell_farthest_from_the_transition_end_for_exactly_L_actions"
+     }
+    },
+    "procthor10k-0.1.2-train-01456": {
+     "sha256": "09c0ad55ed9560c26a7b9311132df7b59f0568c7cc78d603f94d326cf5a1364d",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-01456",
+      "source_index": 1456,
+      "code_commit": "f2982a6c40b08d635a28eccf397d8c388c84b71d",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "failed",
+      "reason": "intervention_window_unavailable",
+      "detail": "feasible set empty; U=0 eligible=6 eligible_on_U=0 unseen=1 destinations_with_points=0 dry_run_pairs_feasible=0",
+      "occupancy": {
+       "peak_rss_gb": 0.283188,
+       "cpu_seconds": 12.683788,
+       "wall_seconds": 26.63615322113037,
+       "bytes_written": 40515680
+      }
+     },
+     "window_segment.json": {
+      "segment": [
+       118,
+       158
+      ],
+      "frames_requested": 40,
+      "frames_walked": 40,
+      "start_cell": [
+       20,
+       3
+      ],
+      "start_yaw": 90,
+      "target_cell": [
+       8,
+       1
+      ],
+      "path_actions_available": 44,
+      "rule": "walk_towards_the_cell_farthest_from_the_transition_end_for_exactly_L_actions"
+     }
+    },
+    "procthor10k-0.1.2-train-03394": {
+     "sha256": "cf6cde07e7ca7fcc7618d7c481f6f0126276e15ea64383ffc8473b443214fc14",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-03394",
+      "source_index": 3394,
+      "code_commit": "f2982a6c40b08d635a28eccf397d8c388c84b71d",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": true,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "succeeded",
+      "observations": 1768,
+      "actions": 1767,
+      "executed_interventions": 0,
+      "sampled_interventions": 6,
+      "feasible_set_size": 56,
+      "invisible_container_set_size": 21,
+      "window_frames": 40,
+      "containers_usable": 36,
+      "containers_dropped": 0,
+      "containers_sealed": 36,
+      "controls": 6,
+      "controls_outside_U": 4,
+      "controls_shortfall": 0,
+      "moves_executed": 0,
+      "moves_source_first": 0,
+      "viewpoint_reselections": 0,
+      "sweep_two_actions": 867,
+      "window_protocol": "two_segment_probe_pending_ruling_53",
+      "leave_segment_frames": 120,
+      "window_segment": {
+       "segment": [
+        860,
+        900
+       ],
+       "frames_requested": 40,
+       "frames_walked": 40,
+       "start_cell": [
+        28,
+        1
+       ],
+       "start_yaw": 180,
+       "target_cell": [
+        30,
+        19
+       ],
+       "path_actions_available": 167,
+       "rule": "walk_towards_the_cell_farthest_from_the_transition_end_for_exactly_L_actions"
+      },
+      "occupancy": {
+       "peak_rss_gb": 2.070544,
+       "cpu_seconds": 196.25535200000002,
+       "wall_seconds": 737.4144520759583,
+       "bytes_written": 440382616
+      }
+     },
+     "window_segment.json": {
+      "segment": [
+       860,
+       900
+      ],
+      "frames_requested": 40,
+      "frames_walked": 40,
+      "start_cell": [
+       28,
+       1
+      ],
+      "start_yaw": 180,
+      "target_cell": [
+       30,
+       19
+      ],
+      "path_actions_available": 167,
+      "rule": "walk_towards_the_cell_farthest_from_the_transition_end_for_exactly_L_actions"
+     }
+    },
+    "procthor10k-0.1.2-train-03986": {
+     "sha256": "129e4ba9f0c8d2e9bf79453327f74a905829b312d7970488e07c40535ee10741",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-03986",
+      "source_index": 3986,
+      "code_commit": "f2982a6c40b08d635a28eccf397d8c388c84b71d",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "failed",
+      "reason": "intervention_window_unavailable",
+      "detail": "window segment 38 < 40 frames (path to the farthest cell had 38 actions); not shortened",
+      "occupancy": {
+       "peak_rss_gb": 0.19302,
+       "cpu_seconds": 11.22262,
+       "wall_seconds": 24.047432899475098,
+       "bytes_written": 35460740
+      }
+     },
+     "window_segment.json": {
+      "segment": [
+       86,
+       124
+      ],
+      "frames_requested": 40,
+      "frames_walked": 38,
+      "start_cell": [
+       26,
+       6
+      ],
+      "start_yaw": 90,
+      "target_cell": [
+       1,
+       12
+      ],
+      "path_actions_available": 38,
+      "rule": "walk_towards_the_cell_farthest_from_the_transition_end_for_exactly_L_actions"
+     }
+    },
+    "procthor10k-0.1.2-train-06764": {
+     "sha256": "09504e568576189e0a6acf98baa122cc42abe12e9b5aeeb1519d9ac88257a8be",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-06764",
+      "source_index": 6764,
+      "code_commit": "f2982a6c40b08d635a28eccf397d8c388c84b71d",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "failed",
+      "reason": "intervention_window_unavailable",
+      "detail": "feasible set empty; U=0 eligible=2 eligible_on_U=0 unseen=2 destinations_with_points=0 dry_run_pairs_feasible=0",
+      "occupancy": {
+       "peak_rss_gb": 0.194428,
+       "cpu_seconds": 16.817822999999997,
+       "wall_seconds": 31.52593755722046,
+       "bytes_written": 36062727
+      }
+     },
+     "window_segment.json": {
+      "segment": [
+       96,
+       136
+      ],
+      "frames_requested": 40,
+      "frames_walked": 40,
+      "start_cell": [
+       21,
+       16
+      ],
+      "start_yaw": 90,
+      "target_cell": [
+       1,
+       1
+      ],
+      "path_actions_available": 42,
+      "rule": "walk_towards_the_cell_farthest_from_the_transition_end_for_exactly_L_actions"
+     }
+    },
+    "procthor10k-0.1.2-train-08566": {
+     "sha256": "747b50a649aa7acbb051c7d444a7f442440a85245e9d349f596082cbaf68485c",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-08566",
+      "source_index": 8566,
+      "code_commit": "f2982a6c40b08d635a28eccf397d8c388c84b71d",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "succeeded",
+      "observations": 685,
+      "actions": 684,
+      "executed_interventions": 6,
+      "sampled_interventions": 6,
+      "feasible_set_size": 46,
+      "invisible_container_set_size": 8,
+      "window_frames": 40,
+      "containers_usable": 21,
+      "containers_dropped": 0,
+      "containers_sealed": 21,
+      "controls": 3,
+      "controls_outside_U": 2,
+      "controls_shortfall": 0,
+      "moves_executed": 2,
+      "moves_source_first": 2,
+      "viewpoint_reselections": 0,
+      "sweep_two_actions": 242,
+      "window_protocol": "two_segment_probe_pending_ruling_53",
+      "leave_segment_frames": 106,
+      "window_segment": {
+       "segment": [
+        402,
+        442
+       ],
+       "frames_requested": 40,
+       "frames_walked": 40,
+       "start_cell": [
+        1,
+        22
+       ],
+       "start_yaw": 0,
+       "target_cell": [
+        9,
+        45
+       ],
+       "path_actions_available": 117,
+       "rule": "walk_towards_the_cell_farthest_from_the_transition_end_for_exactly_L_actions"
+      },
+      "occupancy": {
+       "peak_rss_gb": 0.938176,
+       "cpu_seconds": 134.206495,
+       "wall_seconds": 815.5862245559692,
+       "bytes_written": 184844645
+      }
+     },
+     "window_segment.json": {
+      "segment": [
+       402,
+       442
+      ],
+      "frames_requested": 40,
+      "frames_walked": 40,
+      "start_cell": [
+       1,
+       22
+      ],
+      "start_yaw": 0,
+      "target_cell": [
+       9,
+       45
+      ],
+      "path_actions_available": 117,
+      "rule": "walk_towards_the_cell_farthest_from_the_transition_end_for_exactly_L_actions"
+     }
+    },
+    "procthor10k-0.1.2-train-09951": {
+     "sha256": "20da0e9f708b7135b4f8c84a4d4f4cdc4940dfe9f399acc1a467fdfe3738cbb6",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-09951",
+      "source_index": 9951,
+      "code_commit": "f2982a6c40b08d635a28eccf397d8c388c84b71d",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "failed",
+      "reason": "intervention_window_unavailable",
+      "detail": "window segment 38 < 40 frames (path to the farthest cell had 38 actions); not shortened",
+      "occupancy": {
+       "peak_rss_gb": 0.173768,
+       "cpu_seconds": 13.099198999999999,
+       "wall_seconds": 27.518076419830322,
+       "bytes_written": 25694327
+      }
+     },
+     "window_segment.json": {
+      "segment": [
+       70,
+       108
+      ],
+      "frames_requested": 40,
+      "frames_walked": 38,
+      "start_cell": [
+       12,
+       1
+      ],
+      "start_yaw": 90,
+      "target_cell": [
+       1,
+       19
+      ],
+      "path_actions_available": 38,
+      "rule": "walk_towards_the_cell_farthest_from_the_transition_end_for_exactly_L_actions"
+     }
+    }
+   },
+   "files_by_extension": {
+    ".json": {
+     "count": 10326,
+     "bytes": 18470120
+    },
+    "(none)": {
+     "count": 8,
+     "bytes": 140
+    },
+    ".png": {
+     "count": 10262,
+     "bytes": 259131813
+    },
+    ".npy": {
+     "count": 5131,
+     "bytes": 1030468992
+    }
+   },
+   "json_manifest_count": 10326,
+   "json_manifest_sha256": "6bcb01800a6f85ff4e881ad4d080689433a8328ac32bb3263512a643900f7861"
+  },
+  "lean-s1-02-window-probe-tail-cf56dc5": {
+   "bytes_total": 1535457123,
+   "file_count": 30158,
+   "top_level_json": {
+    "window_probe_plan.json": {
+     "stage": "window-probe",
+     "pending_ruling": "D-224-S1 ruling 53 (proposal, not approved)",
+     "probe_note": "user 2026-09-23: same 8 houses, second variant: window = last 30 frames of the transition, no U-turn; L=30 not frozen",
+     "window_segment_frames": 30,
+     "window_mode": "transition_tail",
+     "houses": [
+      "procthor10k-0.1.2-train-00460",
+      "procthor10k-0.1.2-train-01451",
+      "procthor10k-0.1.2-train-03394",
+      "procthor10k-0.1.2-train-08566",
+      "procthor10k-0.1.2-train-01456",
+      "procthor10k-0.1.2-train-03986",
+      "procthor10k-0.1.2-train-06764",
+      "procthor10k-0.1.2-train-09951"
+     ],
+     "commit": "cf56dc59d93cea061dc0cf57fde26c525aa3e5fa",
+     "split": {
+      "seed": 20260920,
+      "validation_houses": 50,
+      "test_houses": 100,
+      "train_houses": null,
+      "frozen_before_first_episode": true,
+      "test_and_validation_membership_is_final": true,
+      "train_size_may_only_decrease_afterwards": true,
+      "development_houses_are_the_first_of_the_train_block": true,
+      "recomputable_from_manifest": true,
+      "plain_language_zh": "S0-02 v2 把前缀分配顺序改成 test→validation→train，于是 seed 与 test/validation 规模一旦定下，test 与 validation 的成员就永远不变，而 train 块的起点也随之固定。用户于 2026-09-20 冻结：seed=20260920、validation=50、test=100（规模沿用 D-224 在 PLAN S3-01 登记的 300/50/100）。`train_houses` 仍为 null，到 S3-01 才登记，且此后只能下调——下调只从 train 块尾部截短，不碰前面任何一份。**这三个值只登记在这里一处**：S0-02 v2 定的是构造规则（方法层面，不该带某一次运行的 seed），值属于运行层面，因此由本合同承载，跨合同测试钉住「S0-02 的值槽保持 null、本合同是唯一登记处」以防出现两个互相矛盾的 seed。白话：先把答案卷封好再开始答题，而不是答完再决定哪些算考题。",
+      "frozen_by": "D-224-S1",
+      "frozen_on": "2026-09-20",
+      "is_the_single_registered_location": true
+     },
+     "requested_workers": 7,
+     "actual_workers": 7,
+     "not_s1_02_data": "S0-02 window rule unchanged; this commit is not in the S1-03 encoder registry, readers refuse it",
+     "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96"
+    },
+    "window_probe_receipt.json": {
+     "plan": {
+      "stage": "window-probe",
+      "pending_ruling": "D-224-S1 ruling 53 (proposal, not approved)",
+      "probe_note": "user 2026-09-23: same 8 houses, second variant: window = last 30 frames of the transition, no U-turn; L=30 not frozen",
+      "window_segment_frames": 30,
+      "window_mode": "transition_tail",
+      "houses": [
+       "procthor10k-0.1.2-train-00460",
+       "procthor10k-0.1.2-train-01451",
+       "procthor10k-0.1.2-train-03394",
+       "procthor10k-0.1.2-train-08566",
+       "procthor10k-0.1.2-train-01456",
+       "procthor10k-0.1.2-train-03986",
+       "procthor10k-0.1.2-train-06764",
+       "procthor10k-0.1.2-train-09951"
+      ],
+      "commit": "cf56dc59d93cea061dc0cf57fde26c525aa3e5fa",
+      "split": {
+       "seed": 20260920,
+       "validation_houses": 50,
+       "test_houses": 100,
+       "train_houses": null,
+       "frozen_before_first_episode": true,
+       "test_and_validation_membership_is_final": true,
+       "train_size_may_only_decrease_afterwards": true,
+       "development_houses_are_the_first_of_the_train_block": true,
+       "recomputable_from_manifest": true,
+       "plain_language_zh": "S0-02 v2 把前缀分配顺序改成 test→validation→train，于是 seed 与 test/validation 规模一旦定下，test 与 validation 的成员就永远不变，而 train 块的起点也随之固定。用户于 2026-09-20 冻结：seed=20260920、validation=50、test=100（规模沿用 D-224 在 PLAN S3-01 登记的 300/50/100）。`train_houses` 仍为 null，到 S3-01 才登记，且此后只能下调——下调只从 train 块尾部截短，不碰前面任何一份。**这三个值只登记在这里一处**：S0-02 v2 定的是构造规则（方法层面，不该带某一次运行的 seed），值属于运行层面，因此由本合同承载，跨合同测试钉住「S0-02 的值槽保持 null、本合同是唯一登记处」以防出现两个互相矛盾的 seed。白话：先把答案卷封好再开始答题，而不是答完再决定哪些算考题。",
+       "frozen_by": "D-224-S1",
+       "frozen_on": "2026-09-20",
+       "is_the_single_registered_location": true
+      },
+      "requested_workers": 7,
+      "actual_workers": 7,
+      "not_s1_02_data": "S0-02 window rule unchanged; this commit is not in the S1-03 encoder registry, readers refuse it",
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96"
+     },
+     "summary": {
+      "houses": 8,
+      "succeeded": 3,
+      "failed": 5,
+      "failures_by_reason": {
+       "intervention_window_unavailable": 5
+      },
+      "null_window_episodes": 1,
+      "non_null_with_interventions": 2,
+      "non_null_total": 7,
+      "U_sizes": [
+       null,
+       82,
+       null,
+       27,
+       null,
+       null,
+       17,
+       null
+      ],
+      "feasible_sizes": [
+       null,
+       206,
+       null,
+       105,
+       null,
+       null,
+       81,
+       null
+      ],
+      "executed_kinds": {},
+      "moves_executed": 4,
+      "moves_source_first": 1,
+      "controls_total": 19,
+      "controls_outside_U": 3,
+      "window_frames": [
+       null,
+       30,
+       null,
+       30,
+       null,
+       null,
+       30,
+       null
+      ],
+      "leave_segment_frames": [
+       null,
+       174,
+       null,
+       90,
+       null,
+       null,
+       76,
+       null
+      ],
+      "wall_clock_seconds": 3423.7,
+      "actual_workers": 7,
+      "code_commit": "cf56dc59d93cea061dc0cf57fde26c525aa3e5fa"
+     },
+     "houses": [
+      {
+       "house_id": "procthor10k-0.1.2-train-00460",
+       "status": "failed",
+       "reason": "intervention_window_unavailable",
+       "detail": "feasible set empty; U=1 eligible=7 eligible_on_U=0 unseen=3 destinations_with_points=1 dry_run_pairs_feasible=0",
+       "null_window": false,
+       "invisible_container_set_size": null,
+       "feasible_set_size": null,
+       "eligible_object_count": null,
+       "containers_usable": null,
+       "containers_sealed": null,
+       "window_frames": null,
+       "leave_segment_frames": null,
+       "window_segment": null,
+       "executed_interventions": null,
+       "executed_kinds": null,
+       "moves_executed": null,
+       "moves_source_first": null,
+       "controls": null,
+       "controls_outside_U": null,
+       "controls_shortfall": null,
+       "observations": null,
+       "actions": null,
+       "wall_seconds": 25.8,
+       "controls_from_U": null
+      },
+      {
+       "house_id": "procthor10k-0.1.2-train-01451",
+       "status": "succeeded",
+       "reason": null,
+       "detail": "",
+       "null_window": false,
+       "invisible_container_set_size": 82,
+       "feasible_set_size": 206,
+       "eligible_object_count": null,
+       "containers_usable": 98,
+       "containers_sealed": 85,
+       "window_frames": 30,
+       "leave_segment_frames": 174,
+       "window_segment": {
+        "mode": "transition_tail",
+        "segment": [
+         1869,
+         1899
+        ],
+        "frames_requested": 30,
+        "frames_walked": 30,
+        "transition_frames": 204,
+        "leave_segment": [
+         1695,
+         1869
+        ],
+        "rule": "window_is_the_last_L_frames_of_the_transition_to_the_farthest_cell"
+       },
+       "executed_interventions": 6,
+       "executed_kinds": null,
+       "moves_executed": 2,
+       "moves_source_first": 0,
+       "controls": 8,
+       "controls_outside_U": 0,
+       "controls_shortfall": 0,
+       "observations": 3326,
+       "actions": 3325,
+       "wall_seconds": 3412.1,
+       "controls_from_U": 8
+      },
+      {
+       "house_id": "procthor10k-0.1.2-train-01456",
+       "status": "failed",
+       "reason": "intervention_window_unavailable",
+       "detail": "feasible set empty; U=0 eligible=6 eligible_on_U=0 unseen=1 destinations_with_points=0 dry_run_pairs_feasible=0",
+       "null_window": false,
+       "invisible_container_set_size": null,
+       "feasible_set_size": null,
+       "eligible_object_count": null,
+       "containers_usable": null,
+       "containers_sealed": null,
+       "window_frames": null,
+       "leave_segment_frames": null,
+       "window_segment": null,
+       "executed_interventions": null,
+       "executed_kinds": null,
+       "moves_executed": null,
+       "moves_source_first": null,
+       "controls": null,
+       "controls_outside_U": null,
+       "controls_shortfall": null,
+       "observations": null,
+       "actions": null,
+       "wall_seconds": 25.3,
+       "controls_from_U": null
+      },
+      {
+       "house_id": "procthor10k-0.1.2-train-03394",
+       "status": "succeeded",
+       "reason": null,
+       "detail": "",
+       "null_window": true,
+       "invisible_container_set_size": 27,
+       "feasible_set_size": 105,
+       "eligible_object_count": null,
+       "containers_usable": 36,
+       "containers_sealed": 36,
+       "window_frames": 30,
+       "leave_segment_frames": 90,
+       "window_segment": {
+        "mode": "transition_tail",
+        "segment": [
+         830,
+         860
+        ],
+        "frames_requested": 30,
+        "frames_walked": 30,
+        "transition_frames": 120,
+        "leave_segment": [
+         740,
+         830
+        ],
+        "rule": "window_is_the_last_L_frames_of_the_transition_to_the_farthest_cell"
+       },
+       "executed_interventions": 0,
+       "executed_kinds": null,
+       "moves_executed": 0,
+       "moves_source_first": 0,
+       "controls": 6,
+       "controls_outside_U": 1,
+       "controls_shortfall": 0,
+       "observations": 1371,
+       "actions": 1370,
+       "wall_seconds": 917.3,
+       "controls_from_U": 5
+      },
+      {
+       "house_id": "procthor10k-0.1.2-train-03986",
+       "status": "failed",
+       "reason": "intervention_window_unavailable",
+       "detail": "transition 26 < 30 frames for the tail window; not shortened",
+       "null_window": false,
+       "invisible_container_set_size": null,
+       "feasible_set_size": null,
+       "eligible_object_count": null,
+       "containers_usable": null,
+       "containers_sealed": null,
+       "window_frames": null,
+       "leave_segment_frames": null,
+       "window_segment": null,
+       "executed_interventions": null,
+       "executed_kinds": null,
+       "moves_executed": null,
+       "moves_source_first": null,
+       "controls": null,
+       "controls_outside_U": null,
+       "controls_shortfall": null,
+       "observations": null,
+       "actions": null,
+       "wall_seconds": 23.5,
+       "controls_from_U": null
+      },
+      {
+       "house_id": "procthor10k-0.1.2-train-06764",
+       "status": "failed",
+       "reason": "intervention_window_unavailable",
+       "detail": "transition 25 < 30 frames for the tail window; not shortened",
+       "null_window": false,
+       "invisible_container_set_size": null,
+       "feasible_set_size": null,
+       "eligible_object_count": null,
+       "containers_usable": null,
+       "containers_sealed": null,
+       "window_frames": null,
+       "leave_segment_frames": null,
+       "window_segment": null,
+       "executed_interventions": null,
+       "executed_kinds": null,
+       "moves_executed": null,
+       "moves_source_first": null,
+       "controls": null,
+       "controls_outside_U": null,
+       "controls_shortfall": null,
+       "observations": null,
+       "actions": null,
+       "wall_seconds": 27.8,
+       "controls_from_U": null
+      },
+      {
+       "house_id": "procthor10k-0.1.2-train-08566",
+       "status": "succeeded",
+       "reason": null,
+       "detail": "",
+       "null_window": false,
+       "invisible_container_set_size": 17,
+       "feasible_set_size": 81,
+       "eligible_object_count": null,
+       "containers_usable": 21,
+       "containers_sealed": 21,
+       "window_frames": 30,
+       "leave_segment_frames": 76,
+       "window_segment": {
+        "mode": "transition_tail",
+        "segment": [
+         372,
+         402
+        ],
+        "frames_requested": 30,
+        "frames_walked": 30,
+        "transition_frames": 106,
+        "leave_segment": [
+         296,
+         372
+        ],
+        "rule": "window_is_the_last_L_frames_of_the_transition_to_the_farthest_cell"
+       },
+       "executed_interventions": 6,
+       "executed_kinds": null,
+       "moves_executed": 2,
+       "moves_source_first": 1,
+       "controls": 5,
+       "controls_outside_U": 2,
+       "controls_shortfall": 0,
+       "observations": 820,
+       "actions": 819,
+       "wall_seconds": 956.8,
+       "controls_from_U": 3
+      },
+      {
+       "house_id": "procthor10k-0.1.2-train-09951",
+       "status": "failed",
+       "reason": "intervention_window_unavailable",
+       "detail": "feasible set empty; U=1 eligible=3 eligible_on_U=0 unseen=3 destinations_with_points=1 dry_run_pairs_feasible=0",
+       "null_window": false,
+       "invisible_container_set_size": null,
+       "feasible_set_size": null,
+       "eligible_object_count": null,
+       "containers_usable": null,
+       "containers_sealed": null,
+       "window_frames": null,
+       "leave_segment_frames": null,
+       "window_segment": null,
+       "executed_interventions": null,
+       "executed_kinds": null,
+       "moves_executed": null,
+       "moves_source_first": null,
+       "controls": null,
+       "controls_outside_U": null,
+       "controls_shortfall": null,
+       "observations": null,
+       "actions": null,
+       "wall_seconds": 21.4,
+       "controls_from_U": null
+      }
+     ]
+    }
+   },
+   "per_house_receipts": {
+    "procthor10k-0.1.2-train-00460": {
+     "sha256": "b4b211e9ce4189a138de1addc7c40927e3f3b38af0701a0d27f903b0a2ecc888",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-00460",
+      "source_index": 460,
+      "code_commit": "cf56dc59d93cea061dc0cf57fde26c525aa3e5fa",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "failed",
+      "reason": "intervention_window_unavailable",
+      "detail": "feasible set empty; U=1 eligible=7 eligible_on_U=0 unseen=3 destinations_with_points=1 dry_run_pairs_feasible=0",
+      "occupancy": {
+       "peak_rss_gb": 0.250268,
+       "cpu_seconds": 10.643499,
+       "wall_seconds": 25.751005172729492,
+       "bytes_written": 32621522
+      }
+     },
+     "window_segment.json": {
+      "mode": "transition_tail",
+      "segment": [
+       96,
+       126
+      ],
+      "frames_requested": 30,
+      "frames_walked": 30,
+      "transition_frames": 42,
+      "leave_segment": [
+       84,
+       96
+      ],
+      "rule": "window_is_the_last_L_frames_of_the_transition_to_the_farthest_cell"
+     }
+    },
+    "procthor10k-0.1.2-train-01451": {
+     "sha256": "c3dda54ceb139df6cde637f3d3f4c5abefa0f53fef1e7f794cffbdd7b3460107",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-01451",
+      "source_index": 1451,
+      "code_commit": "cf56dc59d93cea061dc0cf57fde26c525aa3e5fa",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "succeeded",
+      "observations": 3326,
+      "actions": 3325,
+      "executed_interventions": 6,
+      "sampled_interventions": 6,
+      "feasible_set_size": 206,
+      "invisible_container_set_size": 82,
+      "window_frames": 30,
+      "containers_usable": 98,
+      "containers_dropped": 0,
+      "containers_sealed": 85,
+      "controls": 8,
+      "controls_outside_U": 0,
+      "controls_shortfall": 0,
+      "moves_executed": 2,
+      "moves_source_first": 0,
+      "viewpoint_reselections": 0,
+      "sweep_two_actions": 1426,
+      "window_protocol": "probe_pending_ruling_53_transition_tail",
+      "leave_segment_frames": 174,
+      "window_segment": {
+       "mode": "transition_tail",
+       "segment": [
+        1869,
+        1899
+       ],
+       "frames_requested": 30,
+       "frames_walked": 30,
+       "transition_frames": 204,
+       "leave_segment": [
+        1695,
+        1869
+       ],
+       "rule": "window_is_the_last_L_frames_of_the_transition_to_the_farthest_cell"
+      },
+      "occupancy": {
+       "peak_rss_gb": 5.749776,
+       "cpu_seconds": 935.855162,
+       "wall_seconds": 3412.096627473831,
+       "bytes_written": 844116808
+      }
+     },
+     "window_segment.json": {
+      "mode": "transition_tail",
+      "segment": [
+       1869,
+       1899
+      ],
+      "frames_requested": 30,
+      "frames_walked": 30,
+      "transition_frames": 204,
+      "leave_segment": [
+       1695,
+       1869
+      ],
+      "rule": "window_is_the_last_L_frames_of_the_transition_to_the_farthest_cell"
+     }
+    },
+    "procthor10k-0.1.2-train-01456": {
+     "sha256": "4bc6ccc08d88d5bcbd8644cce737c0a27881235495dddf354c57b439db88fb6b",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-01456",
+      "source_index": 1456,
+      "code_commit": "cf56dc59d93cea061dc0cf57fde26c525aa3e5fa",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "failed",
+      "reason": "intervention_window_unavailable",
+      "detail": "feasible set empty; U=0 eligible=6 eligible_on_U=0 unseen=1 destinations_with_points=0 dry_run_pairs_feasible=0",
+      "occupancy": {
+       "peak_rss_gb": 0.230112,
+       "cpu_seconds": 10.917759,
+       "wall_seconds": 25.311575651168823,
+       "bytes_written": 30257198
+      }
+     },
+     "window_segment.json": {
+      "mode": "transition_tail",
+      "segment": [
+       88,
+       118
+      ],
+      "frames_requested": 30,
+      "frames_walked": 30,
+      "transition_frames": 43,
+      "leave_segment": [
+       75,
+       88
+      ],
+      "rule": "window_is_the_last_L_frames_of_the_transition_to_the_farthest_cell"
+     }
+    },
+    "procthor10k-0.1.2-train-03394": {
+     "sha256": "608714d3f05a88fe6133f022ca9f021eb7ea26b1dcfdb455d303459f762a9304",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-03394",
+      "source_index": 3394,
+      "code_commit": "cf56dc59d93cea061dc0cf57fde26c525aa3e5fa",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": true,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "succeeded",
+      "observations": 1371,
+      "actions": 1370,
+      "executed_interventions": 0,
+      "sampled_interventions": 6,
+      "feasible_set_size": 105,
+      "invisible_container_set_size": 27,
+      "window_frames": 30,
+      "containers_usable": 36,
+      "containers_dropped": 0,
+      "containers_sealed": 36,
+      "controls": 6,
+      "controls_outside_U": 1,
+      "controls_shortfall": 0,
+      "moves_executed": 0,
+      "moves_source_first": 0,
+      "viewpoint_reselections": 0,
+      "sweep_two_actions": 510,
+      "window_protocol": "probe_pending_ruling_53_transition_tail",
+      "leave_segment_frames": 90,
+      "window_segment": {
+       "mode": "transition_tail",
+       "segment": [
+        830,
+        860
+       ],
+       "frames_requested": 30,
+       "frames_walked": 30,
+       "transition_frames": 120,
+       "leave_segment": [
+        740,
+        830
+       ],
+       "rule": "window_is_the_last_L_frames_of_the_transition_to_the_farthest_cell"
+      },
+      "occupancy": {
+       "peak_rss_gb": 1.64162,
+       "cpu_seconds": 207.05388399999998,
+       "wall_seconds": 917.2999374866486,
+       "bytes_written": 340997925
+      }
+     },
+     "window_segment.json": {
+      "mode": "transition_tail",
+      "segment": [
+       830,
+       860
+      ],
+      "frames_requested": 30,
+      "frames_walked": 30,
+      "transition_frames": 120,
+      "leave_segment": [
+       740,
+       830
+      ],
+      "rule": "window_is_the_last_L_frames_of_the_transition_to_the_farthest_cell"
+     }
+    },
+    "procthor10k-0.1.2-train-03986": {
+     "sha256": "5f82c50563059290fc04561f42391b5fa2afbf06d155c43636f6a460199adca8",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-03986",
+      "source_index": 3986,
+      "code_commit": "cf56dc59d93cea061dc0cf57fde26c525aa3e5fa",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "failed",
+      "reason": "intervention_window_unavailable",
+      "detail": "transition 26 < 30 frames for the tail window; not shortened",
+      "occupancy": {
+       "peak_rss_gb": 0.159988,
+       "cpu_seconds": 10.520365,
+       "wall_seconds": 23.506287097930908,
+       "bytes_written": 24635770
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-06764": {
+     "sha256": "05784f6bf0824fb6ba3e57141e0bf84d52b39d4d588613fffc6cb1512c200b02",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-06764",
+      "source_index": 6764,
+      "code_commit": "cf56dc59d93cea061dc0cf57fde26c525aa3e5fa",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "failed",
+      "reason": "intervention_window_unavailable",
+      "detail": "transition 25 < 30 frames for the tail window; not shortened",
+      "occupancy": {
+       "peak_rss_gb": 0.159668,
+       "cpu_seconds": 15.298544,
+       "wall_seconds": 27.84428906440735,
+       "bytes_written": 25407352
+      }
+     }
+    },
+    "procthor10k-0.1.2-train-08566": {
+     "sha256": "d1c8b020c83d6fc8b3320b21226bed3bb78bfabb670546f6ebf88741eff5b2c9",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-08566",
+      "source_index": 8566,
+      "code_commit": "cf56dc59d93cea061dc0cf57fde26c525aa3e5fa",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "succeeded",
+      "observations": 820,
+      "actions": 819,
+      "executed_interventions": 6,
+      "sampled_interventions": 6,
+      "feasible_set_size": 81,
+      "invisible_container_set_size": 17,
+      "window_frames": 30,
+      "containers_usable": 21,
+      "containers_dropped": 0,
+      "containers_sealed": 21,
+      "controls": 5,
+      "controls_outside_U": 2,
+      "controls_shortfall": 0,
+      "moves_executed": 2,
+      "moves_source_first": 1,
+      "viewpoint_reselections": 0,
+      "sweep_two_actions": 417,
+      "window_protocol": "probe_pending_ruling_53_transition_tail",
+      "leave_segment_frames": 76,
+      "window_segment": {
+       "mode": "transition_tail",
+       "segment": [
+        372,
+        402
+       ],
+       "frames_requested": 30,
+       "frames_walked": 30,
+       "transition_frames": 106,
+       "leave_segment": [
+        296,
+        372
+       ],
+       "rule": "window_is_the_last_L_frames_of_the_transition_to_the_farthest_cell"
+      },
+      "occupancy": {
+       "peak_rss_gb": 1.091012,
+       "cpu_seconds": 165.439911,
+       "wall_seconds": 956.7912797927856,
+       "bytes_written": 220616335
+      }
+     },
+     "window_segment.json": {
+      "mode": "transition_tail",
+      "segment": [
+       372,
+       402
+      ],
+      "frames_requested": 30,
+      "frames_walked": 30,
+      "transition_frames": 106,
+      "leave_segment": [
+       296,
+       372
+      ],
+      "rule": "window_is_the_last_L_frames_of_the_transition_to_the_farthest_cell"
+     }
+    },
+    "procthor10k-0.1.2-train-09951": {
+     "sha256": "ae92c6fbe14ac2bf87139294f7219fbffd1dd57ea8a8ad39102d024790583900",
+     "content": {
+      "house_id": "procthor10k-0.1.2-train-09951",
+      "source_index": 9951,
+      "code_commit": "cf56dc59d93cea061dc0cf57fde26c525aa3e5fa",
+      "options": {
+       "dry_run_destinations_per_object": 8,
+       "replan_blocked_edges": true,
+       "placement_tries": 32,
+       "stratify_by_kind": true,
+       "add_source": "unseen_existing",
+       "destination_points": "anywhere",
+       "placement_prescreen": "dry_run",
+       "twin_control": true,
+       "subject_seal_frame": "sweep_one_frame_with_the_most_container_pixels"
+      },
+      "null_window": false,
+      "null_window_salt_sha256": "8f4eae8521da486801f44f12fc2d00d53ccdafec2e4d85b5abbceec386ef1b96",
+      "status": "failed",
+      "reason": "intervention_window_unavailable",
+      "detail": "feasible set empty; U=1 eligible=3 eligible_on_U=0 unseen=3 destinations_with_points=1 dry_run_pairs_feasible=0",
+      "occupancy": {
+       "peak_rss_gb": 0.160108,
+       "cpu_seconds": 21.280402,
+       "wall_seconds": 21.438544273376465,
+       "bytes_written": 16781273
+      }
+     },
+     "window_segment.json": {
+      "mode": "transition_tail",
+      "segment": [
+       40,
+       70
+      ],
+      "frames_requested": 30,
+      "frames_walked": 30,
+      "transition_frames": 33,
+      "leave_segment": [
+       37,
+       40
+      ],
+      "rule": "window_is_the_last_L_frames_of_the_transition_to_the_farthest_cell"
+     }
+    }
+   },
+   "files_by_extension": {
+    ".json": {
+     "count": 12096,
+     "bytes": 22924157
+    },
+    "(none)": {
+     "count": 8,
+     "bytes": 142
+    },
+    ".png": {
+     "count": 12036,
+     "bytes": 303925848
+    },
+    ".npy": {
+     "count": 6018,
+     "bytes": 1208606976
+    }
+   },
+   "json_manifest_count": 12096,
+   "json_manifest_sha256": "6820e905501961a3a8e22b8035ac61a37819109cefcdf2a8cfb74266a31d990c"
+  },
+  "vsmt-vm04-estimator-development-0c4f9851006d": {
+   "bytes_total": 5735918242,
+   "file_count": 47088,
+   "top_level_json": {},
+   "per_house_receipts": {},
+   "files_by_extension": {
+    ".json": {
+     "count": 6814,
+     "bytes": 53936054
+    },
+    ".png": {
+     "count": 35776,
+     "bytes": 965187573
+    },
+    ".html": {
+     "count": 2,
+     "bytes": 5856
+    },
+    ".js": {
+     "count": 2,
+     "bytes": 23040638
+    },
+    ".npz": {
+     "count": 4481,
+     "bytes": 4692701972
+    },
+    ".exit": {
+     "count": 5,
+     "bytes": 10
+    },
+    ".log": {
+     "count": 7,
+     "bytes": 1046134
+    },
+    ".pid": {
+     "count": 1,
+     "bytes": 5
+    }
+   },
+   "json_manifest_count": 6814,
+   "json_manifest_sha256": "1dad00809d415257bf81edb2cccf5b58cee9a7257f5e2242bf916728a802518d",
+   "small_receipts": {
+    "annotation/export.receipt.json": {
+     "activation_commit": "94904c92d1706dfec6fe1455afe87ed1c79afa84",
+     "audit_opened": false,
+     "estimator_training_reader_route_or_raw_run": false,
+     "export_receipt_sha256": "5ea9bf19f20bc5aa0745bdeb86639e7fe1926e445355d51c56f31c16ad4e2dc4",
+     "media_file_count": 35776,
+     "observation_count": 17888,
+     "packages": {
+      "annotator_a": "f72a45847afebb7679793b95cd4cbfd11f68f2ccc900cc97c4e6d998f70d7be8",
+      "annotator_b": "6bc5075ec690e8491ec5ab9421e883112a1d45301c36b04c73e11d57e6ec0030"
+     },
+     "private_input_read": false,
+     "reused_media_file_count": 0,
+     "schema_version": "vsmt-vm04-d218-annotation-export-receipt-v1",
+     "source_public_receipts_sha256": "f658ae2780816e935f4fbc0b793492a442de0eef75d7075d68e8260967ae5d1b"
+    },
+    "audit/audit.report.json": {
+     "argmax_tie_count": 0,
+     "audit_report_sha256": "3e652a45a95dfbcd6411c182daf571808675118ce6c4f1d3beb15cd28000b142",
+     "audit_used_to_select_anything": false,
+     "bootstrap": {
+      "percentiles": [
+       2.5,
+       97.5
+      ],
+      "resamples": 10000,
+      "seed": 260919,
+      "unit": "house"
+     },
+     "calibration_bin_table": [
+      {
+       "accuracy": null,
+       "bin_high": 0.06666666666666667,
+       "bin_low": 0.0,
+       "count": 0,
+       "mean_confidence": null
+      },
+      {
+       "accuracy": null,
+       "bin_high": 0.13333333333333333,
+       "bin_low": 0.06666666666666667,
+       "count": 0,
+       "mean_confidence": null
+      },
+      {
+       "accuracy": null,
+       "bin_high": 0.2,
+       "bin_low": 0.13333333333333333,
+       "count": 0,
+       "mean_confidence": null
+      },
+      {
+       "accuracy": null,
+       "bin_high": 0.26666666666666666,
+       "bin_low": 0.2,
+       "count": 0,
+       "mean_confidence": null
+      },
+      {
+       "accuracy": null,
+       "bin_high": 0.3333333333333333,
+       "bin_low": 0.26666666666666666,
+       "count": 0,
+       "mean_confidence": null
+      },
+      {
+       "accuracy": 0.4878048780487805,
+       "bin_high": 0.4,
+       "bin_low": 0.3333333333333333,
+       "count": 41,
+       "mean_confidence": 0.38061303488532744
+      },
+      {
+       "accuracy": 0.46808510638297873,
+       "bin_high": 0.4666666666666667,
+       "bin_low": 0.4,
+       "count": 188,
+       "mean_confidence": 0.4409380685261558
+      },
+      {
+       "accuracy": 0.5375586854460094,
+       "bin_high": 0.5333333333333333,
+       "bin_low": 0.4666666666666667,
+       "count": 426,
+       "mean_confidence": 0.5008805643714556
+      },
+      {
+       "accuracy": 0.5675675675675675,
+       "bin_high": 0.6,
+       "bin_low": 0.5333333333333333,
+       "count": 481,
+       "mean_confidence": 0.5671414736845349
+      },
+      {
+       "accuracy": 0.647982062780269,
+       "bin_high": 0.6666666666666666,
+       "bin_low": 0.6,
+       "count": 446,
+       "mean_confidence": 0.6345724596827393
+      },
+      {
+       "accuracy": 0.7148846960167715,
+       "bin_high": 0.7333333333333333,
+       "bin_low": 0.6666666666666666,
+       "count": 477,
+       "mean_confidence": 0.6995212138261842
+      },
+      {
+       "accuracy": 0.7579365079365079,
+       "bin_high": 0.8,
+       "bin_low": 0.7333333333333333,
+       "count": 504,
+       "mean_confidence": 0.7676318105461655
+      },
+      {
+       "accuracy": 0.7910750507099391,
+       "bin_high": 0.8666666666666667,
+       "bin_low": 0.8,
+       "count": 493,
+       "mean_confidence": 0.832181334632443
+      },
+      {
+       "accuracy": 0.8870292887029289,
+       "bin_high": 0.9333333333333333,
+       "bin_low": 0.8666666666666667,
+       "count": 478,
+       "mean_confidence": 0.9003510005353973
+      },
+      {
+       "accuracy": 0.8760330578512396,
+       "bin_high": 1.0,
+       "bin_low": 0.9333333333333333,
+       "count": 242,
+       "mean_confidence": 0.9570875658988913
+      }
+     ],
+     "calibration_error": 0.023774418194174994,
+     "class_support": {
+      "basin": 1860,
+      "bottleneck": 164,
+      "unknown": 1752
+     },
+     "frozen_model": {
+      "normalization_receipt_sha256": "cce06993172c8df2affa9a07e4d0831474419ea1ce9d16afce4c73d577004c3a",
+      "training_receipt_sha256": "874ccf82507e712bc41ef6638da2a293c8f5c524fe89d12d1ef025b57a315887",
+      "weights_sha256": "e5fca2f29c695df22b550243a64a6444d80a03ce8dd407360a90e28e68cc22c5"
+     },
+     "houses": 118,
+     "metrics_outside_the_frozen_list_computed": false,
+     "model_refitted_during_audit": false,
+     "observations": 3776,
+     "per_class_interval": {
+      "basin": {
+       "mean_nll": [
+        0.5745073852215581,
+        0.6626789086979286
+       ],
+       "precision": [
+        0.6837109560909085,
+        0.751131393376774
+       ],
+       "recall": [
+        0.7307223206210431,
+        0.7813176198804328
+       ]
+      },
+      "bottleneck": {
+       "mean_nll": [
+        1.8302290366582183,
+        2.237529130618441
+       ],
+       "precision": [
+        0.12244897959183673,
+        0.3728813559322034
+       ],
+       "recall": [
+        0.04310344827586207,
+        0.15
+       ]
+      },
+      "unknown": {
+       "mean_nll": [
+        0.6408992765516264,
+        0.7338858994501494
+       ],
+       "precision": [
+        0.6617973689672791,
+        0.733222458377936
+       ],
+       "recall": [
+        0.6726441125415884,
+        0.7265454948824178
+       ]
+      }
+     },
+     "per_house_interval": {
+      "structural_accuracy": [
+       0.6800847457627118,
+       0.7229872881355932
+      ],
+      "structural_nll": [
+       0.6720731907457853,
+       0.7488926396591374
+      ]
+     },
+     "reachable_grid_read_at_inference": false,
+     "run_commit": "2648a0153751d06c48e42d948c22ed527b2b4090",
+     "schema_version": "vsmt-vm04-d222-audit-report-v1",
+     "structural_accuracy": 0.701271186440678,
+     "structural_nll": 0.7102302987346759
+    },
+    "bundle/bundle.build.receipt.json": {
+     "audit_split_read": false,
+     "bundle_build_receipt_sha256": "1d3a2c591c126202b9c266cbfc248b6b5bbae4d4b3da0f439dfc116adc211ddd",
+     "private_labels_used_for": "train_and_calibration_label_assembly_only",
+     "run_provenance": {
+      "d215_contract_sha256": "c3d6736f67b300eca03882c081e56e6bf4d65ad1913bcc411df8477fbd188db8",
+      "d219_contract_sha256": "2567254bb8b08be23c22de8ca80e19933c8d175f1575248df22438ac2547a5b1",
+      "frozen_predecessor_sha256": {
+       "d215": "c3d6736f67b300eca03882c081e56e6bf4d65ad1913bcc411df8477fbd188db8",
+       "d216": "22b85ed79ae6b89e2c05a55b7878962171d47e9b7a49202ff10d4d09f00c04ea",
+       "d217": "1499806b8a34eb71ec0785128111b28236f8cee8b95b61a94f624c608702643d",
+       "d218": "309c5ae03d272c456f1a12def5610d7dbc59eb63cb87db999e0ebaf52ea6d734"
+      },
+      "git_commit": "35e9cbaa6696ac0dc5078ff6a68e36bb4bc69311"
+     },
+     "schema_version": "vsmt-vm04-d219-bundle-build-receipt-v1",
+     "semantic_labels_present": false,
+     "splits": {
+      "calibration": {
+       "class_counts": {
+        "basin": 1936,
+        "bottleneck": 196,
+        "unknown": 1836
+       },
+       "houses": 124,
+       "npz_sha256": "45f20cc5adba131f4a1e299e0802dd238edbdf9f36fad2fef4b85d6309ff48b4",
+       "rows": 3968
+      },
+      "train": {
+       "class_counts": {
+        "basin": 30492,
+        "bottleneck": 3104,
+        "unknown": 30308
+       },
+       "houses": 1997,
+       "npz_sha256": "c01bf6d9700ccf1a3cd4a9746bd5932b0a8510792b582deb92157201cf66ab70",
+       "rows": 63904
+      }
+     }
+    },
+    "bundle_audit/audit.bundle.receipt.json": {
+     "bundle_receipt_sha256": "4ac0ffed4b579c0eb2402acbb7508053e084548b6a8da029f7f776a463ae1808",
+     "class_counts": {
+      "basin": 1860,
+      "bottleneck": 164,
+      "unknown": 1752
+     },
+     "houses": 118,
+     "npz_sha256": "cdac4262154da9958351c304152ceba1dc484616dc0e46a666414119366900ec",
+     "rows": 3776,
+     "run_commit": "2648a0153751d06c48e42d948c22ed527b2b4090",
+     "schema_version": "vsmt-vm04-d222-audit-bundle-receipt-v1"
+    },
+    "estimator/structural_bundle.json": {
+     "array_names": [
+      "features",
+      "structural_labels",
+      "house_ids",
+      "observation_ids",
+      "public_observation_sha256",
+      "structural_label_receipt_sha256"
+     ],
+     "audit_split_present": false,
+     "feature_dimension": 396,
+     "global_observation_ids_sha256": "d3d546a5443b82d1770c5920cb5b4adbccfdf99b442c1d8a220c5544f6563347",
+     "partition_manifest_receipt_sha256": "c3b49d59e35ad7951be139db1ec521076a758694504e00dc74f4c0cd1c89019d",
+     "row_counts": {
+      "calibration": 3968,
+      "train": 63904
+     },
+     "scenario_route_private_or_future_fields_present": false,
+     "schema_version": "vsmt-vm04-d219-structural-training-bundle-v1",
+     "semantic_arrays_present": false,
+     "split_array_content_sha256": {
+      "calibration": "a465e548c7631db2dc9d43d7656f2023752bf27b7af3c5bad38133da0a11841f",
+      "train": "956374363f84010124a3efa8a85e68e3c553c4ba1ee14100dcfc708bfcffd71e"
+     },
+     "splits_present": [
+      "train",
+      "calibration"
+     ],
+     "structural_bundle_sha256": "de4a87ba208205b36f36aab69407fac5979619f89a33d556d626aaf8c0b71008",
+     "structural_class_counts": {
+      "calibration": [
+       1936,
+       196,
+       1836
+      ],
+      "train": [
+       30492,
+       3104,
+       30308
+      ]
+     }
+    },
+    "estimator/success.json": {
+     "audit_authorized": false,
+     "normalization_receipt_sha256": "cce06993172c8df2affa9a07e4d0831474419ea1ce9d16afce4c73d577004c3a",
+     "partition_manifest_receipt_sha256": "c3b49d59e35ad7951be139db1ec521076a758694504e00dc74f4c0cd1c89019d",
+     "production_reader_authorized": false,
+     "real_weight_receipt_reviewed": false,
+     "schema_version": "vsmt-vm04-d219-training-success-v1",
+     "structural_bundle_sha256": "de4a87ba208205b36f36aab69407fac5979619f89a33d556d626aaf8c0b71008",
+     "success_receipt_sha256": "8f1fc10c4a635294080f6da79cb0e117f51953d15dfde54b6f8a798e385b03ea",
+     "training_receipt_sha256": "874ccf82507e712bc41ef6638da2a293c8f5c524fe89d12d1ef025b57a315887",
+     "weights_sha256": "e5fca2f29c695df22b550243a64a6444d80a03ce8dd407360a90e28e68cc22c5"
+    },
+    "estimator/training.receipt.json": {
+     "audit_opened": false,
+     "audit_split_present": false,
+     "device": "cpu",
+     "human_annotation_consumed": false,
+     "input_npz_sha256": {
+      "calibration": "45f20cc5adba131f4a1e299e0802dd238edbdf9f36fad2fef4b85d6309ff48b4",
+      "train": "c01bf6d9700ccf1a3cd4a9746bd5932b0a8510792b582deb92157201cf66ab70"
+     },
+     "partition_manifest_sha256": "8ad176c64a766955fc3b64ad363f526afd7f764f25a13a449b116e8ba1fbaa30",
+     "production_reader_executed": false,
+     "run_provenance": {
+      "d215_contract_sha256": "c3d6736f67b300eca03882c081e56e6bf4d65ad1913bcc411df8477fbd188db8",
+      "d219_contract_sha256": "2567254bb8b08be23c22de8ca80e19933c8d175f1575248df22438ac2547a5b1",
+      "frozen_predecessor_sha256": {
+       "d215": "c3d6736f67b300eca03882c081e56e6bf4d65ad1913bcc411df8477fbd188db8",
+       "d216": "22b85ed79ae6b89e2c05a55b7878962171d47e9b7a49202ff10d4d09f00c04ea",
+       "d217": "1499806b8a34eb71ec0785128111b28236f8cee8b95b61a94f624c608702643d",
+       "d218": "309c5ae03d272c456f1a12def5610d7dbc59eb63cb87db999e0ebaf52ea6d734"
+      },
+      "git_commit": "f8885541178ae54f74a733c7371013bd2837bd0d"
+     },
+     "schema_version": "vsmt-vm04-d219-training-stage-receipt-v1",
+     "semantic_head_trained": false,
+     "splits_used": [
+      "calibration",
+      "train"
+     ],
+     "stage_receipt_sha256": "122a2e696b4829a968a8ce5a6a782ba1667ffef26d887b932da485997b26f2e0",
+     "structural_bundle_sha256": "de4a87ba208205b36f36aab69407fac5979619f89a33d556d626aaf8c0b71008",
+     "training_receipt_sha256": "874ccf82507e712bc41ef6638da2a293c8f5c524fe89d12d1ef025b57a315887",
+     "weights_sha256": "e5fca2f29c695df22b550243a64a6444d80a03ce8dd407360a90e28e68cc22c5"
+    },
+    "estimator/training_receipt.json": {
+     "adamw_betas": [
+      0.9,
+      0.999
+     ],
+     "adamw_epsilon": 1e-08,
+     "audit_split_present": false,
+     "audit_used_for_checkpoint_or_temperature": false,
+     "best_calibration_structural_mean_nll_before_temperature": 0.7106124758720398,
+     "best_epoch": 31,
+     "d215_split_rule_sha256": "4fa32f8940cb22516d0c004f9c4b8d7a6cb5c1cd9a85dfb6f63ef6178dd34774",
+     "device_type": "cpu",
+     "early_stopped": true,
+     "epochs_completed": 35,
+     "history": [
+      {
+       "calibration_structural_mean_nll": 0.855638861656189,
+       "epoch": 1,
+       "train_weighted_mean_loss": 0.9400582926895359
+      },
+      {
+       "calibration_structural_mean_nll": 0.8141226768493652,
+       "epoch": 2,
+       "train_weighted_mean_loss": 0.8723159487926787
+      },
+      {
+       "calibration_structural_mean_nll": 0.7827033996582031,
+       "epoch": 3,
+       "train_weighted_mean_loss": 0.8446823023949854
+      },
+      {
+       "calibration_structural_mean_nll": 0.7629826068878174,
+       "epoch": 4,
+       "train_weighted_mean_loss": 0.8289123083510038
+      },
+      {
+       "calibration_structural_mean_nll": 0.7495824098587036,
+       "epoch": 5,
+       "train_weighted_mean_loss": 0.818022108221269
+      },
+      {
+       "calibration_structural_mean_nll": 0.7407670021057129,
+       "epoch": 6,
+       "train_weighted_mean_loss": 0.811908670198816
+      },
+      {
+       "calibration_structural_mean_nll": 0.7340896129608154,
+       "epoch": 7,
+       "train_weighted_mean_loss": 0.8063937825265979
+      },
+      {
+       "calibration_structural_mean_nll": 0.7277020215988159,
+       "epoch": 8,
+       "train_weighted_mean_loss": 0.804130967223292
+      },
+      {
+       "calibration_structural_mean_nll": 0.7283143401145935,
+       "epoch": 9,
+       "train_weighted_mean_loss": 0.8011078604412604
+      },
+      {
+       "calibration_structural_mean_nll": 0.7222116589546204,
+       "epoch": 10,
+       "train_weighted_mean_loss": 0.8000212729305521
+      },
+      {
+       "calibration_structural_mean_nll": 0.7182952165603638,
+       "epoch": 11,
+       "train_weighted_mean_loss": 0.7985644698381782
+      },
+      {
+       "calibration_structural_mean_nll": 0.7202696800231934,
+       "epoch": 12,
+       "train_weighted_mean_loss": 0.7975071860840157
+      },
+      {
+       "calibration_structural_mean_nll": 0.7178898453712463,
+       "epoch": 13,
+       "train_weighted_mean_loss": 0.798130887355814
+      },
+      {
+       "calibration_structural_mean_nll": 0.7182868719100952,
+       "epoch": 14,
+       "train_weighted_mean_loss": 0.7966308644788529
+      },
+      {
+       "calibration_structural_mean_nll": 0.7200268507003784,
+       "epoch": 15,
+       "train_weighted_mean_loss": 0.7964864275308627
+      },
+      {
+       "calibration_structural_mean_nll": 0.7122000455856323,
+       "epoch": 16,
+       "train_weighted_mean_loss": 0.7964719961629131
+      },
+      {
+       "calibration_structural_mean_nll": 0.7120026350021362,
+       "epoch": 17,
+       "train_weighted_mean_loss": 0.7956651640821828
+      },
+      {
+       "calibration_structural_mean_nll": 0.7150289416313171,
+       "epoch": 18,
+       "train_weighted_mean_loss": 0.7959902317868989
+      },
+      {
+       "calibration_structural_mean_nll": 0.7114383578300476,
+       "epoch": 19,
+       "train_weighted_mean_loss": 0.7953500431003007
+      },
+      {
+       "calibration_structural_mean_nll": 0.7140663862228394,
+       "epoch": 20,
+       "train_weighted_mean_loss": 0.7950324037699444
+      },
+      {
+       "calibration_structural_mean_nll": 0.7176496386528015,
+       "epoch": 21,
+       "train_weighted_mean_loss": 0.7953428218349196
+      },
+      {
+       "calibration_structural_mean_nll": 0.7156212329864502,
+       "epoch": 22,
+       "train_weighted_mean_loss": 0.7952086843725557
+      },
+      {
+       "calibration_structural_mean_nll": 0.7136479020118713,
+       "epoch": 23,
+       "train_weighted_mean_loss": 0.7954044650361487
+      },
+      {
+       "calibration_structural_mean_nll": 0.712365984916687,
+       "epoch": 24,
+       "train_weighted_mean_loss": 0.7950321112684328
+      },
+      {
+       "calibration_structural_mean_nll": 0.7106466889381409,
+       "epoch": 25,
+       "train_weighted_mean_loss": 0.7950219511388837
+      },
+      {
+       "calibration_structural_mean_nll": 0.7110312581062317,
+       "epoch": 26,
+       "train_weighted_mean_loss": 0.7950971777223025
+      },
+      {
+       "calibration_structural_mean_nll": 0.7162371873855591,
+       "epoch": 27,
+       "train_weighted_mean_loss": 0.7944484529760282
+      },
+      {
+       "calibration_structural_mean_nll": 0.7140509486198425,
+       "epoch": 28,
+       "train_weighted_mean_loss": 0.7940796018542202
+      },
+      {
+       "calibration_structural_mean_nll": 0.7154331803321838,
+       "epoch": 29,
+       "train_weighted_mean_loss": 0.7948571448930216
+      },
+      {
+       "calibration_structural_mean_nll": 0.713141679763794,
+       "epoch": 30,
+       "train_weighted_mean_loss": 0.7946341832279861
+      },
+      {
+       "calibration_structural_mean_nll": 0.7106124758720398,
+       "epoch": 31,
+       "train_weighted_mean_loss": 0.794753606222723
+      },
+      {
+       "calibration_structural_mean_nll": 0.7138805985450745,
+       "epoch": 32,
+       "train_weighted_mean_loss": 0.7946486322057206
+      },
+      {
+       "calibration_structural_mean_nll": 0.7107443809509277,
+       "epoch": 33,
+       "train_weighted_mean_loss": 0.7944375533847494
+      },
+      {
+       "calibration_structural_mean_nll": 0.7179917693138123,
+       "epoch": 34,
+       "train_weighted_mean_loss": 0.7940064656418088
+      },
+      {
+       "calibration_structural_mean_nll": 0.7157992124557495,
+       "epoch": 35,
+       "train_weighted_mean_loss": 0.7951104329953984
+      }
+     ],
+     "human_annotation_consumed": false,
+     "implementation_commit": "f8885541178ae54f74a733c7371013bd2837bd0d",
+     "normalization_receipt_sha256": "cce06993172c8df2affa9a07e4d0831474419ea1ce9d16afce4c73d577004c3a",
+     "optimizer": "AdamW",
+     "partition_manifest_receipt_sha256": "c3b49d59e35ad7951be139db1ec521076a758694504e00dc74f4c0cd1c89019d",
+     "post_temperature_metrics": {
+      "calibration": {
+       "accuracy": 0.6958165322580645,
+       "mean_nll": 0.704791283028817
+      },
+      "train": {
+       "accuracy": 0.7048698047070606,
+       "mean_nll": 0.6974363485718207
+      }
+     },
+     "production_reader_executed": false,
+     "reachable_grid_read_at_inference": false,
+     "schema_version": "vsmt-vm04-d219-training-receipt-v1",
+     "seed": 26091815,
+     "semantic_head_trained": false,
+     "splits_used": [
+      "train",
+      "calibration"
+     ],
+     "structural_bundle_sha256": "de4a87ba208205b36f36aab69407fac5979619f89a33d556d626aaf8c0b71008",
+     "structural_train_class_weights": [
+      1.4476749714751411,
+      4.0,
+      1.4520627425362325
+     ],
+     "torch_version": "2.8.0+cu128",
+     "training_receipt_sha256": "874ccf82507e712bc41ef6638da2a293c8f5c524fe89d12d1ef025b57a315887",
+     "wall_clock_timeout_used": false,
+     "weights_sha256": "e5fca2f29c695df22b550243a64a6444d80a03ce8dd407360a90e28e68cc22c5"
+    },
+    "features_audit/audit.stage.receipt.json": {
+     "estimator_retrained": false,
+     "feature_receipt_sha256": "309b84a30898be8d5d777793366d704ced8bf9534ae2c9b8a9cded0d3a5f3732",
+     "frozen_extractor": "D-218 unchanged",
+     "newly_written": 118,
+     "reused": 0,
+     "run_commit": "2648a0153751d06c48e42d948c22ed527b2b4090",
+     "schema_version": "vsmt-vm04-d222-audit-feature-receipt-v1",
+     "shard_count": 118
+    },
+    "private/capacity.receipt.json": {
+     "activation_commit": "0c4f9851006dbb996864c9af82d60ff4b28c09b2",
+     "actual_batch_workers": 8,
+     "audit_opened": false,
+     "probe_houses_are_formal_train_rows_and_must_be_reused": true,
+     "probe_results": [
+      {
+       "house_results": [
+        {
+         "private_receipt_sha256": "8e7771c4877613363ad393b9c1d10e60c3a76e877e7fa537ca58a941bfd068aa",
+         "public_file_bytes": 1712796,
+         "public_receipt_sha256": "2fc6a7e9ebc0a23a752620e1457fd8f10cc38485660938d2264ff3ee1d2c885e",
+         "sample_rank": 0,
+         "split": "train",
+         "success": true
+        }
+       ],
+       "resources_after": {
+        "available_ram_bytes": 689283117056,
+        "disk_free_bytes": 28510826496,
+        "gpu_name_total_free_mib_rows": [
+         "NVIDIA GeForce RTX 4090, 49140, 48509"
+        ],
+        "logical_cpu_count": 128
+       },
+       "resources_before": {
+        "available_ram_bytes": 689813516288,
+        "disk_free_bytes": 28512559104,
+        "gpu_name_total_free_mib_rows": [
+         "NVIDIA GeForce RTX 4090, 49140, 48509"
+        ],
+        "logical_cpu_count": 128
+       },
+       "status": "completed",
+       "wall_seconds": 9.678984064608812,
+       "workers": 1
+      },
+      {
+       "house_results": [
+        {
+         "private_receipt_sha256": "6c5f954f2ed64a81ff87cf5457212ef4dab8fc90510b913103d0724e897de714",
+         "public_file_bytes": 3164437,
+         "public_receipt_sha256": "aef48922921e8be27755cb9bccdc69738d6f9c9fef9b18c091bf166943822cf0",
+         "sample_rank": 1,
+         "split": "train",
+         "success": true
+        },
+        {
+         "private_receipt_sha256": "4d9f466929e25c8661c4dda2c6979f98611db29248d581a2c41a046ac5d46dd8",
+         "public_file_bytes": 1263437,
+         "public_receipt_sha256": "2fa163a417c53c57963b37e3bba41d5e53d18ad051b02857137932f90ab2d949",
+         "sample_rank": 2,
+         "split": "train",
+         "success": true
+        }
+       ],
+       "resources_after": {
+        "available_ram_bytes": 689497018368,
+        "disk_free_bytes": 28506361856,
+        "gpu_name_total_free_mib_rows": [
+         "NVIDIA GeForce RTX 4090, 49140, 48509"
+        ],
+        "logical_cpu_count": 128
+       },
+       "resources_before": {
+        "available_ram_bytes": 689282867200,
+        "disk_free_bytes": 28510826496,
+        "gpu_name_total_free_mib_rows": [
+         "NVIDIA GeForce RTX 4090, 49140, 48509"
+        ],
+        "logical_cpu_count": 128
+       },
+       "status": "completed",
+       "wall_seconds": 15.149131666868925,
+       "workers": 2
+      },
+      {
+       "house_results": [
+        {
+         "private_receipt_sha256": "2752d1545f09310e5a0e1ce1078990011de0c5f0d60fa11fafb733dde92fa003",
+         "public_file_bytes": 3119378,
+         "public_receipt_sha256": "3a16019b1fb9d491d7e715c1371655d01122d86072a12c71b8ee7baaa3627629",
+         "sample_rank": 3,
+         "split": "train",
+         "success": true
+        },
+        {
+         "private_receipt_sha256": "25d8186b9eb77f4fcf965d400ca6adfea2d1b43355ab5ea69518eb93ec5aa736",
+         "public_file_bytes": 1550797,
+         "public_receipt_sha256": "63dd8a519c38095e787e3c96c2c2dbe683d331b044976014a1c73b35597afebf",
+         "sample_rank": 4,
+         "split": "train",
+         "success": true
+        },
+        {
+         "private_receipt_sha256": "c959bd8513576f87efa54eaf38a8c44ba9a3195ec984180624e3e92d98ab78d1",
+         "public_file_bytes": 1595590,
+         "public_receipt_sha256": "467b275b01d4f524fbc5edb1b93aa4642678b6fc8f22df53c1a6053af5172c47",
+         "sample_rank": 5,
+         "split": "train",
+         "success": true
+        },
+        {
+         "private_receipt_sha256": "9ddbbcfdcd093cc6dcd3f8a13582d3a08d2e7077b8fa426156b1f888b91606e3",
+         "public_file_bytes": 2772239,
+         "public_receipt_sha256": "73c8065593b331589d5cbee62e30fee834ef4e9c3fa139cbaab2c607ab2f160a",
+         "sample_rank": 6,
+         "split": "train",
+         "success": true
+        }
+       ],
+       "resources_after": {
+        "available_ram_bytes": 689571885056,
+        "disk_free_bytes": 28497252352,
+        "gpu_name_total_free_mib_rows": [
+         "NVIDIA GeForce RTX 4090, 49140, 48509"
+        ],
+        "logical_cpu_count": 128
+       },
+       "resources_before": {
+        "available_ram_bytes": 689346256896,
+        "disk_free_bytes": 28506361856,
+        "gpu_name_total_free_mib_rows": [
+         "NVIDIA GeForce RTX 4090, 49140, 48509"
+        ],
+        "logical_cpu_count": 128
+       },
+       "status": "completed",
+       "wall_seconds": 15.432256910949945,
+       "workers": 4
+      },
+      {
+       "house_results": [
+        {
+         "error_type": "D217Error",
+         "failure_sha256": "7e4776ccbd3a246d3ef93a9e76fb3ed6aa4e150166363746266cd750b288c769",
+         "sample_rank": 7,
+         "split": "train",
+         "success": false
+        },
+        {
+         "private_receipt_sha256": "1482fb3511f45ab7c8251361157a0baf28f730c0839327510c91a8a0c55c7781",
+         "public_file_bytes": 1171688,
+         "public_receipt_sha256": "3b378a2e326e0bcd92e2d6ab50ccd01fa85050bd50f85d7ffcf7edda3c540ad7",
+         "sample_rank": 8,
+         "split": "train",
+         "success": true
+        },
+        {
+         "private_receipt_sha256": "2d38bce585037af5d9f00598e150dff57d6adb8a0b37e7b657f9808ff4be7dc5",
+         "public_file_bytes": 2029267,
+         "public_receipt_sha256": "d1f5cc89b610a554d7fc118d185b418798f41fe33d4075fdc4546cc4ebf1e2f0",
+         "sample_rank": 9,
+         "split": "train",
+         "success": true
+        },
+        {
+         "private_receipt_sha256": "a533ba907854d3711033922e2386590025f3007b7078b4af9d4ad048ae3f3854",
+         "public_file_bytes": 982322,
+         "public_receipt_sha256": "f4bfba988aee74d9cdbe0c0fe71b1a6cb0787f7775878ebf9997545c7e7d925d",
+         "sample_rank": 10,
+         "split": "train",
+         "success": true
+        },
+        {
+         "private_receipt_sha256": "7267d6fdf1cd026edc34384289ff246926b196201f8bb535b8b64a15024473bc",
+         "public_file_bytes": 1371351,
+         "public_receipt_sha256": "45581495138b1df62cf45b436ee7b603959cffcb1ad4f38afa3a326f38807308",
+         "sample_rank": 11,
+         "split": "train",
+         "success": true
+        },
+        {
+         "private_receipt_sha256": "26adedb6d393a0d18c90f24e89133a925fb3194be07f089aec37935f07968fb9",
+         "public_file_bytes": 1479105,
+         "public_receipt_sha256": "073348473cae7b5fcc1824a4983642ff5f1449fded969e39fb951f2bc016379d",
+         "sample_rank": 12,
+         "split": "train",
+         "success": true
+        },
+        {
+         "private_receipt_sha256": "a49f7c12c275520041f1539b27715f4b30510bb1536879792ff70f1c9da829b7",
+         "public_file_bytes": 2085821,
+         "public_receipt_sha256": "88d26cee1d961abc9d1c1f4b83691d6b458e8b97b885cb63e98380505606b994",
+         "sample_rank": 13,
+         "split": "train",
+         "success": true
+        },
+        {
+         "private_receipt_sha256": "20dc4329b9150cc62e4f35802f9180876af8e3869df47b10135c5b0df3f3a32a",
+         "public_file_bytes": 2826616,
+         "public_receipt_sha256": "f90ccfd41a89a7102dceaaaca9a3f40c1c1ac34e34916d983fe4055a69d6ead3",
+         "sample_rank": 14,
+         "split": "train",
+         "success": true
+        }
+       ],
+       "resources_after": {
+        "available_ram_bytes": 690108358656,
+        "disk_free_bytes": 28485160960,
+        "gpu_name_total_free_mib_rows": [
+         "NVIDIA GeForce RTX 4090, 49140, 48509"
+        ],
+        "logical_cpu_count": 128
+       },
+       "resources_before": {
+        "available_ram_bytes": 689402372096,
+        "disk_free_bytes": 28497252352,
+        "gpu_name_total_free_mib_rows": [
+         "NVIDIA GeForce RTX 4090, 49140, 48509"
+        ],
+        "logical_cpu_count": 128
+       },
+       "status": "completed",
+       "wall_seconds": 20.872659031301737,
+       "workers": 8
+      }
+     ],
+     "schema_version": "vsmt-vm04-d217-capacity-receipt-v1"
+    },
+    "private/d221_generation.started.json": {
+     "audit_opened": false,
+     "rows_to_generate": 1600,
+     "run_commit": "0ee61ecd9ef1eef337329390c7fb38f224c1aed0",
+     "schema_version": "vsmt-vm04-d221-generation-started-v1",
+     "unchanged_rows": 576
+    },
+    "private/generation.started.json": {
+     "activation_commit": "0c4f9851006dbb996864c9af82d60ff4b28c09b2",
+     "actual_workers": 8,
+     "audit_opened": false,
+     "pending_houses": 561,
+     "resources": {
+      "available_ram_bytes": 690232229888,
+      "disk_free_bytes": 28485152768,
+      "gpu_name_total_free_mib_rows": [
+       "NVIDIA GeForce RTX 4090, 49140, 48509"
+      ],
+      "logical_cpu_count": 128
+     },
+     "reused_completed_houses": 15,
+     "schema_version": "vsmt-vm04-d217-generation-started-v1",
+     "total_planned_houses": 576,
+     "wall_clock_timeout_used": false
+    },
+    "public/development-plan.json": {
+     "audit": {
+      "count": 64,
+      "opened": false,
+      "private_seal_sha256": "ed32c0e5ec86267b6911f758154cc30c2d508cb967798254af0cb26cd2b9ec78"
+     },
+     "confirmation_pool": {
+      "commitment_list_sha256": "174022c76a19a809ae231983aec25f141d9ee23eb9d3a6bb221247187ee84e6c",
+      "count": 64,
+      "private_manifest_sha256": "b8b01edd6718455152a41fbf757987efc62826f607ef29966ef8c3f0f6221e9a"
+     },
+     "observations_or_labels_read": false,
+     "partition_manifest_receipt_sha256": "c3b49d59e35ad7951be139db1ec521076a758694504e00dc74f4c0cd1c89019d",
+     "production_reader_route_or_raw_opened": false,
+     "public_plan_sha256": "9f675164fa7b8df82f29b9ea6ba382d8397bb219bee7d000a35e16f65cdce251",
+     "sample_counts": {
+      "audit": 64,
+      "calibration": 64,
+      "train": 512
+     },
+     "schema_version": "vsmt-vm04-d217-public-development-plan-v1",
+     "source_manifest_sha256": "7db1df1edb714162089b56e62f5258a947c5c6ddc38ed2b7082582d4659269bd",
+     "train_calibration_private_plan_sha256": "f7b9ac70c3280e955a3caca58ebeb1f47865c34935f81855e8d7980770ede1ae",
+     "validation_house_ids": [
+      "train:004531",
+      "train:004897",
+      "train:008237",
+      "train:005847",
+      "train:000226",
+      "train:002853",
+      "train:002926",
+      "train:006847",
+      "train:003687",
+      "train:003952",
+      "train:009986",
+      "train:007034"
+     ]
+    }
+   },
+   "small_receipts_dropped_over_20kB": [
+    "estimator/normalization.json",
+    "estimator/weights.json",
+    "features/archive_512_64/stage.receipt.json",
+    "private/audit_generation.receipt.json",
+    "private/plan/archive_512_64/generation.receipt.json",
+    "private/plan/private_audit_plan.json",
+    "features/stage.receipt.json",
+    "private/generation.receipt.json",
+    "private/plan/archive_512_64/private_plan.json",
+    "private/plan/d221_extension_plan.json",
+    "private/plan/private_partition.json",
+    "private/plan/private_plan.json"
+   ],
+   "small_receipts_deeper_than_two_levels_count": 6787
+  }
+ },
+ "slimming_note": "window_verdicts.json per house and estimator receipts over 20 kB are only in the full gz pack on the server; the per-container window data of the 7c10d2c and f2982a6 roots is already exported in results/vsmt_lean_s1_02_feasibility_audit_7c10d2c.json, results/vsmt_lean_s1_02_empty_feasible_audit_7c10d2c.json and results/vsmt_lean_window_probe_audit_f2982a6.json; for the estimator root only JSON at most two directory levels deep is kept inline"
+}
