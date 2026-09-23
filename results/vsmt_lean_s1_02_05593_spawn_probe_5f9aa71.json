@@ -1,0 +1,2434 @@
+{
+ "schema_version": "vsmt-lean-s1-02-05593-spawn-probe-v1",
+ "purpose": "read-only: trace the y=-12150 spawn points GetSpawnCoordinatesAboveReceptacle returned for Sink|3|1|0___0 in train-05593 (5f9aa71)",
+ "server_checkout": "154776d (probes use only the house loader and the 5f9aa71-identical pilot functions)",
+ "episode_root_untouched": true,
+ "inputs_sha256": {
+  "interventions_attempted.json": "bd568d7b34cdd7b73bf911247a1b00a87610f67fad7b18905c6a2f2d5373e09e",
+  "interventions_sampled.json": "45637958e7211d6a6381e0029252d16cf7085261a0725472b0e861a6ed9c9471",
+  "object_table.json": "ee160e3493c339e0ee84eaa346a398dafc0c2c2dac6d51b760ebfc80e7946ca4",
+  "placement_dry_run.json": "a3ad3f2ba85fa44e0c0a996d47a6ef406239f92222ceb5880cb14a91455e8b34",
+  "route_stage1.json": "e22fa0502e024a8fd7f2b74c9418d5c5c97d5e4bfd0948c3584ce3a00d91ffac",
+  "window_segment.json": "63a9960b1a62bd02624de132117d9942613d21c6fcce72fa68a9d99ad52c2cad",
+  "window_verdicts.json": "87e52cda01be837eb59efd8047a1ebefd6a8e10a2a949950725477ae00fdf557"
+ },
+ "episode_receipt_sha256": "41aeb8b2cfd4de66fb98de8d954e52a6f240def760a505c8387c5712361a695a",
+ "probes": {
+  "probe_05593": {
+   "source": "\"\"\"Read-only probe: why did GetSpawnCoordinatesAboveReceptacle return y = -12150 for Sink|3|1|0___0\nin train-05593 after the first move?  Loads the house exactly like the pilot, queries the basin,\nreplays the executed DishSponge attempt sequence from provenance, queries again.\nWrites only to the tmp-audit directory given as argv[1]. Never touches an episode root.\"\"\"\nimport json, os, sys, time\nsys.path.insert(0, \"/root/Emboddied_Spatial_Memory/ops/vsmt\")\nsys.path.insert(0, \"/root/Emboddied_Spatial_Memory\")\nimport numpy as np\nimport vm04_two_house_worker as house_loader\n\nOUT_DIR = sys.argv[1]\nos.makedirs(OUT_DIR, exist_ok=True)\nEP = \"/root/autodl-tmp/vsmt_outputs/lean-s1-02b-5f9aa71/procthor10k-0.1.2-train-05593\"\nSRC = \"/root/autodl-tmp/vsmt_sources/procthor-10k-0.1.2\"\nBASIN = \"Sink|3|1|0___0\"; SINK = \"Sink|3|1|0\"; SPONGE = \"DishSponge|surface|3|8\"; BOTTLE = \"SprayBottle|surface|3|9\"\nGRID_M = 0.25\nlog = {\"stages\": []}\n\ndef objmeta(ctrl, oid):\n    o = next((x for x in ctrl.last_event.metadata[\"objects\"] if x[\"objectId\"] == oid), None)\n    if o is None: return None\n    return {k: o.get(k) for k in [\"objectId\", \"position\", \"rotation\", \"receptacle\", \"pickupable\", \"visible\", \"isMoving\",\n                                  \"parentReceptacles\", \"receptacleObjectIds\", \"axisAlignedBoundingBox\"]}\n\ndef spawn(ctrl, oid, anywhere=True):\n    ev = ctrl.step(action=\"GetSpawnCoordinatesAboveReceptacle\", objectId=oid, anywhere=anywhere)\n    pts = ev.metadata.get(\"actionReturn\") or []\n    ys = sorted(set(round(p[\"y\"], 3) for p in pts))\n    return {\"ok\": ev.metadata.get(\"lastActionSuccess\"), \"error\": ev.metadata.get(\"errorMessage\"), \"n\": len(pts),\n            \"y_unique\": ys[:6] + ([\"...\"] if len(ys) > 6 else []), \"first\": pts[:2]}\n\ndef fallen(ctrl):\n    return [(o[\"objectId\"], round(o[\"position\"][\"y\"], 1)) for o in ctrl.last_event.metadata[\"objects\"] if o[\"position\"][\"y\"] < -50]\n\ndef snapshot(ctrl, label):\n    s = {\"label\": label, \"basin\": objmeta(ctrl, BASIN), \"sink\": objmeta(ctrl, SINK), \"sponge\": objmeta(ctrl, SPONGE), \"bottle\": objmeta(ctrl, BOTTLE),\n         \"spawn_basin_anywhere\": spawn(ctrl, BASIN, True), \"spawn_basin_top\": spawn(ctrl, BASIN, False), \"spawn_sink_anywhere\": spawn(ctrl, SINK, True),\n         \"fallen_objects\": fallen(ctrl), \"agent\": ctrl.last_event.metadata[\"agent\"][\"position\"]}\n    log[\"stages\"].append(s)\n    print(f\"[{label}] basin y={s['basin'] and round(s['basin']['position']['y'],3)} spawn_basin_anywhere={s['spawn_basin_anywhere']['n']} y_unique={s['spawn_basin_anywhere']['y_unique']} top={s['spawn_basin_top']['n']} y={s['spawn_basin_top']['y_unique']} sink_any={s['spawn_sink_anywhere']['n']} y={s['spawn_sink_anywhere']['y_unique']} fallen={s['fallen_objects']} sponge_y={s['sponge'] and round(s['sponge']['position']['y'],3)}\", flush=True)\n    return s\n\ndef peek(ctrl, vp, oid):\n    a = ctrl.last_event.metadata[\"agent\"]\n    home = {\"position\": dict(a[\"position\"]), \"rotation\": dict(a[\"rotation\"]), \"horizon\": a[\"cameraHorizon\"], \"standing\": bool(a.get(\"isStanding\", True))}\n    vp_pos = {\"x\": vp[\"cell\"][0] * GRID_M, \"y\": a[\"position\"][\"y\"], \"z\": vp[\"cell\"][1] * GRID_M}\n    pk = ctrl.step(action=\"Teleport\", position=vp_pos, rotation={\"x\": 0, \"y\": vp[\"yaw\"], \"z\": 0}, horizon=vp[\"pitch\"], standing=True, forceAction=True)\n    px = int(np.asarray((pk.instance_masks or {}).get(oid, np.zeros((1,), dtype=bool))).sum())\n    back = ctrl.step(action=\"Teleport\", position=home[\"position\"], rotation=home[\"rotation\"], horizon=home[\"horizon\"], standing=home[\"standing\"], forceAction=True)\n    return px, bool(back.metadata.get(\"lastActionSuccess\"))\n\nt0 = time.time()\nhouse = house_loader.load_source_record(SRC, {\"relative_path\": \"train.jsonl.gz\", \"index\": 5593})\nupgraded = house_loader.upgrade_house_schema_v1(house, house_loader.load_pinned_asset_id_database())\nfrom ai2thor.controller import Controller\nfrom ai2thor.platform import CloudRendering\nctrl = Controller(platform=CloudRendering, scene=upgraded, width=224, height=224, fieldOfView=90.0, gridSize=0.25, snapToGrid=True,\n                  rotateStepDegrees=90, renderDepthImage=True, renderInstanceSegmentation=True)\nev = house_loader.bootstrap_house_agent(ctrl, upgraded)\nprint(\"loaded in\", round(time.time() - t0, 1), \"s; lastActionSuccess\", ev.metadata.get(\"lastActionSuccess\"), flush=True)\nsnapshot(ctrl, \"0_fresh\")\n\natt = json.load(open(EP + \"/provenance/interventions_attempted.json\"))\nroute = json.load(open(EP + \"/provenance/route_stage1.json\"))\nvps = route[\"viewpoints\"]\nsponge_row = att[0]; assert sponge_row[\"object_id\"] == SPONGE, sponge_row[\"object_id\"]\nvp_toilet = vps[sponge_row[\"destination\"]]\nprint(\"toilet viewpoint\", vp_toilet, flush=True)\n\n# stage 1: replay the executed DishSponge attempts (place, peek if placed) exactly in order\nreplay = []\nfor i, a in enumerate(sponge_row[\"attempts\"]):\n    ev = ctrl.step(action=\"PlaceObjectAtPoint\", objectId=SPONGE, position=a[\"point\"])\n    placed = ev.metadata.get(\"lastActionSuccess\") is True\n    px = None\n    if placed:\n        px, _ = peek(ctrl, vp_toilet, SPONGE)\n    replay.append({\"i\": i, \"placed\": placed, \"placed_in_run\": a[\"placed\"], \"px\": px, \"px_in_run\": a.get(\"pixels\"), \"error\": (ev.metadata.get(\"errorMessage\") or \"\")[:80]})\n    if placed and px is not None and px >= 196:\n        break\nlog[\"sponge_replay\"] = replay\nprint(\"sponge replay:\", sum(1 for r in replay if r[\"placed\"]), \"placed of\", len(replay), \"; run had\", sum(1 for a in sponge_row[\"attempts\"] if a[\"placed\"]), \"placed of\", len(sponge_row[\"attempts\"]), flush=True)\nprint(\"  first divergence:\", next(((r[\"i\"], r) for r in replay if r[\"placed\"] != r[\"placed_in_run\"]), None), flush=True)\nsnapshot(ctrl, \"1_after_sponge_replay\")\n\n# stage 2: the SprayBottle row as the run did it: fresh spawn points are fetched BEFORE any attempt\nbottle_row = att[1]; assert bottle_row[\"object_id\"] == BOTTLE\ns2 = snapshot(ctrl, \"2_before_bottle_attempts\")\n# then the dry-run point attempt + peek, and query again\nev = ctrl.step(action=\"PlaceObjectAtPoint\", objectId=BOTTLE, position=bottle_row[\"point\"])\nplaced = ev.metadata.get(\"lastActionSuccess\") is True\npx = peek(ctrl, vps[bottle_row[\"destination\"]], BOTTLE)[0] if placed else None\nlog[\"bottle_dry_run_point\"] = {\"placed\": placed, \"px\": px, \"run_px\": bottle_row[\"attempts\"][0].get(\"pixels\"), \"error\": (ev.metadata.get(\"errorMessage\") or \"\")[:120]}\nprint(\"bottle dry-run point: placed\", placed, \"px\", px, \"(run: placed\", bottle_row[\"attempts\"][0][\"placed\"], \"px\", bottle_row[\"attempts\"][0].get(\"pixels\"), \")\", flush=True)\nsnapshot(ctrl, \"3_after_bottle_dry_run_point\")\n\n# stage 4: hypothesis check -- does placing something INTO the basin and reverting it change the basin's spawn points?\n# (the dry run placed Candle, SprayBottle and Mug into the sink/basin and teleported them back)\ndr = json.load(open(EP + \"/provenance/placement_dry_run.json\"))\nrows = [d for d in dr if d.get(\"destination\") == BASIN and d.get(\"placed_any\")]\nlog[\"dry_run_rows_into_basin\"] = [{k: d.get(k) for k in [\"object_id\", \"destination\", \"tries\", \"best_pixels\", \"feasible\", \"revert_ok\", \"revert_drift_m\"]} for d in rows]\nprint(\"dry-run rows that placed into the basin:\", log[\"dry_run_rows_into_basin\"], flush=True)\nctrl.stop()\njson.dump(log, open(os.path.join(OUT_DIR, \"probe_05593.json\"), \"w\"), indent=1)\nprint(\"wrote\", os.path.join(OUT_DIR, \"probe_05593.json\"), \"total\", round(time.time() - t0, 1), \"s\")\n",
+   "source_sha256": "ec2fa290f737ed38b951d7bb643bcc77d5a3b8381a55368b470ea45747dc4da7",
+   "result": {
+    "stages": [
+     {
+      "label": "0_fresh",
+      "basin": {
+       "objectId": "Sink|3|1|0___0",
+       "position": {
+        "x": 7.216259002685547,
+        "y": 0.9014000296592712,
+        "z": 0.39214497804641724
+       },
+       "rotation": {
+        "x": 1.403341910044412e-14,
+        "y": -0.0,
+        "z": -0.0
+       },
+       "receptacle": true,
+       "pickupable": false,
+       "visible": false,
+       "isMoving": false,
+       "parentReceptacles": null,
+       "receptacleObjectIds": [
+        "DishSponge|surface|3|8"
+       ],
+       "axisAlignedBoundingBox": {
+        "cornerPoints": [
+         [
+          7.5899529457092285,
+          1.0298691987991333,
+          0.6179729700088501
+         ],
+         [
+          7.5899529457092285,
+          1.0298691987991333,
+          0.24519836902618408
+         ],
+         [
+          7.5899529457092285,
+          0.8825722932815552,
+          0.6179729700088501
+         ],
+         [
+          7.5899529457092285,
+          0.8825722932815552,
+          0.24519836902618408
+         ],
+         [
+          6.864966869354248,
+          1.0298691987991333,
+          0.6179729700088501
+         ],
+         [
+          6.864966869354248,
+          1.0298691987991333,
+          0.24519836902618408
+         ],
+         [
+          6.864966869354248,
+          0.8825722932815552,
+          0.6179729700088501
+         ],
+         [
+          6.864966869354248,
+          0.8825722932815552,
+          0.24519836902618408
+         ]
+        ],
+        "center": {
+         "x": 7.227459907531738,
+         "y": 0.9562207460403442,
+         "z": 0.4315856695175171
+        },
+        "size": {
+         "x": 0.7249860763549805,
+         "y": 0.14729690551757812,
+         "z": 0.372774600982666
+        }
+       }
+      },
+      "sink": {
+       "objectId": "Sink|3|1|0",
+       "position": {
+        "x": 7.227458953857422,
+        "y": 0.0,
+        "z": 0.31424498558044434
+       },
+       "rotation": {
+        "x": -0.0,
+        "y": 0.0,
+        "z": 0.0
+       },
+       "receptacle": true,
+       "pickupable": false,
+       "visible": false,
+       "isMoving": false,
+       "parentReceptacles": [
+        "Floor"
+       ],
+       "receptacleObjectIds": [
+        "Faucet|3|1|1"
+       ],
+       "axisAlignedBoundingBox": {
+        "cornerPoints": [
+         [
+          7.644917011260986,
+          0.9855985641479492,
+          0.6673427820205688
+         ],
+         [
+          7.644917011260986,
+          0.9855985641479492,
+          0.02499997615814209
+         ],
+         [
+          7.644917011260986,
+          0.0,
+          0.6673427820205688
+         ],
+         [
+          7.644917011260986,
+          0.0,
+          0.02499997615814209
+         ],
+         [
+          6.810000896453857,
+          0.9855985641479492,
+          0.6673427820205688
+         ],
+         [
+          6.810000896453857,
+          0.9855985641479492,
+          0.02499997615814209
+         ],
+         [
+          6.810000896453857,
+          0.0,
+          0.6673427820205688
+         ],
+         [
+          6.810000896453857,
+          0.0,
+          0.02499997615814209
+         ]
+        ],
+        "center": {
+         "x": 7.227458953857422,
+         "y": 0.4927992820739746,
+         "z": 0.34617137908935547
+        },
+        "size": {
+         "x": 0.8349161148071289,
+         "y": 0.9855985641479492,
+         "z": 0.6423428058624268
+        }
+       }
+      },
+      "sponge": {
+       "objectId": "DishSponge|surface|3|8",
+       "position": {
+        "x": 6.994283199310303,
+        "y": 0.9006723165512085,
+        "z": 0.4284459352493286
+       },
+       "rotation": {
+        "x": 0.08938148617744446,
+        "y": 0.00656390143558383,
+        "z": 0.15230338275432587
+       },
+       "receptacle": false,
+       "pickupable": true,
+       "visible": false,
+       "isMoving": false,
+       "parentReceptacles": [
+        "Sink|3|1|0___0"
+       ],
+       "receptacleObjectIds": null,
+       "axisAlignedBoundingBox": {
+        "cornerPoints": [
+         [
+          7.031075954437256,
+          0.9248262047767639,
+          0.49796029925346375
+         ],
+         [
+          7.031075954437256,
+          0.9248262047767639,
+          0.358965665102005
+         ],
+         [
+          7.031075954437256,
+          0.8983749747276306,
+          0.49796029925346375
+         ],
+         [
+          7.031075954437256,
+          0.8983749747276306,
+          0.358965665102005
+         ],
+         [
+          6.957432270050049,
+          0.9248262047767639,
+          0.49796029925346375
+         ],
+         [
+          6.957432270050049,
+          0.9248262047767639,
+          0.358965665102005
+         ],
+         [
+          6.957432270050049,
+          0.8983749747276306,
+          0.49796029925346375
+         ],
+         [
+          6.957432270050049,
+          0.8983749747276306,
+          0.358965665102005
+         ]
+        ],
+        "center": {
+         "x": 6.994254112243652,
+         "y": 0.9116005897521973,
+         "z": 0.4284629821777344
+        },
+        "size": {
+         "x": 0.07364368438720703,
+         "y": 0.0264512300491333,
+         "z": 0.13899463415145874
+        }
+       }
+      },
+      "bottle": {
+       "objectId": "SprayBottle|surface|3|9",
+       "position": {
+        "x": 9.477141380310059,
+        "y": 0.9449429512023926,
+        "z": 5.626469135284424
+       },
+       "rotation": {
+        "x": 0.009871961548924446,
+        "y": 270.0015869140625,
+        "z": 359.9169616699219
+       },
+       "receptacle": false,
+       "pickupable": true,
+       "visible": false,
+       "isMoving": false,
+       "parentReceptacles": [
+        "Toilet|3|0"
+       ],
+       "receptacleObjectIds": null,
+       "axisAlignedBoundingBox": {
+        "cornerPoints": [
+         [
+          9.529486656188965,
+          1.190962791442871,
+          5.6431884765625
+         ],
+         [
+          9.529486656188965,
+          1.190962791442871,
+          5.610040664672852
+         ],
+         [
+          9.529486656188965,
+          0.945427656173706,
+          5.6431884765625
+         ],
+         [
+          9.529486656188965,
+          0.945427656173706,
+          5.610040664672852
+         ],
+         [
+          9.416998863220215,
+          1.190962791442871,
+          5.6431884765625
+         ],
+         [
+          9.416998863220215,
+          1.190962791442871,
+          5.610040664672852
+         ],
+         [
+          9.416998863220215,
+          0.945427656173706,
+          5.6431884765625
+         ],
+         [
+          9.416998863220215,
+          0.945427656173706,
+          5.610040664672852
+         ]
+        ],
+        "center": {
+         "x": 9.47324275970459,
+         "y": 1.0681952238082886,
+         "z": 5.626614570617676
+        },
+        "size": {
+         "x": 0.11248779296875,
+         "y": 0.24553513526916504,
+         "z": 0.03314781188964844
+        }
+       }
+      },
+      "spawn_basin_anywhere": {
+       "ok": true,
+       "error": "",
+       "n": 441,
+       "y_unique": [
+        1.051
+       ],
+       "first": [
+        {
+         "x": 7.538300037384033,
+         "y": 1.051339030265808,
+         "z": 0.5371638536453247
+        },
+        {
+         "x": 7.538300037384033,
+         "y": 1.051339030265808,
+         "z": 0.5226619839668274
+        }
+       ]
+      },
+      "spawn_basin_top": {
+       "ok": false,
+       "error": "No valid Receptacle found in view",
+       "n": 0,
+       "y_unique": [],
+       "first": []
+      },
+      "spawn_sink_anywhere": {
+       "ok": true,
+       "error": "",
+       "n": 441,
+       "y_unique": [
+        1.194
+       ],
+       "first": [
+        {
+         "x": 7.578941345214844,
+         "y": 1.1939477920532227,
+         "z": 0.2438204288482666
+        },
+        {
+         "x": 7.578941345214844,
+         "y": 1.1939477920532227,
+         "z": 0.23484165966510773
+        }
+       ]
+      },
+      "fallen_objects": [],
+      "agent": {
+       "x": 0.75,
+       "y": 0.949999988079071,
+       "z": 2.0
+      }
+     },
+     {
+      "label": "1_after_sponge_replay",
+      "basin": {
+       "objectId": "Sink|3|1|0___0",
+       "position": {
+        "x": 7.216259002685547,
+        "y": 0.9014000296592712,
+        "z": 0.39214497804641724
+       },
+       "rotation": {
+        "x": 1.403341910044412e-14,
+        "y": -0.0,
+        "z": -0.0
+       },
+       "receptacle": true,
+       "pickupable": false,
+       "visible": false,
+       "isMoving": false,
+       "parentReceptacles": null,
+       "receptacleObjectIds": [],
+       "axisAlignedBoundingBox": {
+        "cornerPoints": [
+         [
+          7.5899529457092285,
+          1.0298691987991333,
+          0.6179729700088501
+         ],
+         [
+          7.5899529457092285,
+          1.0298691987991333,
+          0.24519836902618408
+         ],
+         [
+          7.5899529457092285,
+          0.8825722932815552,
+          0.6179729700088501
+         ],
+         [
+          7.5899529457092285,
+          0.8825722932815552,
+          0.24519836902618408
+         ],
+         [
+          6.864966869354248,
+          1.0298691987991333,
+          0.6179729700088501
+         ],
+         [
+          6.864966869354248,
+          1.0298691987991333,
+          0.24519836902618408
+         ],
+         [
+          6.864966869354248,
+          0.8825722932815552,
+          0.6179729700088501
+         ],
+         [
+          6.864966869354248,
+          0.8825722932815552,
+          0.24519836902618408
+         ]
+        ],
+        "center": {
+         "x": 7.227459907531738,
+         "y": 0.9562207460403442,
+         "z": 0.4315856695175171
+        },
+        "size": {
+         "x": 0.7249860763549805,
+         "y": 0.14729690551757812,
+         "z": 0.372774600982666
+        }
+       }
+      },
+      "sink": {
+       "objectId": "Sink|3|1|0",
+       "position": {
+        "x": 7.227458953857422,
+        "y": 0.0,
+        "z": 0.31424498558044434
+       },
+       "rotation": {
+        "x": -0.0,
+        "y": 0.0,
+        "z": 0.0
+       },
+       "receptacle": true,
+       "pickupable": false,
+       "visible": false,
+       "isMoving": false,
+       "parentReceptacles": [
+        "Floor"
+       ],
+       "receptacleObjectIds": [
+        "Faucet|3|1|1"
+       ],
+       "axisAlignedBoundingBox": {
+        "cornerPoints": [
+         [
+          7.644917011260986,
+          0.9855985641479492,
+          0.6673427820205688
+         ],
+         [
+          7.644917011260986,
+          0.9855985641479492,
+          0.02499997615814209
+         ],
+         [
+          7.644917011260986,
+          0.0,
+          0.6673427820205688
+         ],
+         [
+          7.644917011260986,
+          0.0,
+          0.02499997615814209
+         ],
+         [
+          6.810000896453857,
+          0.9855985641479492,
+          0.6673427820205688
+         ],
+         [
+          6.810000896453857,
+          0.9855985641479492,
+          0.02499997615814209
+         ],
+         [
+          6.810000896453857,
+          0.0,
+          0.6673427820205688
+         ],
+         [
+          6.810000896453857,
+          0.0,
+          0.02499997615814209
+         ]
+        ],
+        "center": {
+         "x": 7.227458953857422,
+         "y": 0.4927992820739746,
+         "z": 0.34617137908935547
+        },
+        "size": {
+         "x": 0.8349161148071289,
+         "y": 0.9855985641479492,
+         "z": 0.6423428058624268
+        }
+       }
+      },
+      "sponge": {
+       "objectId": "DishSponge|surface|3|8",
+       "position": {
+        "x": 9.354541778564453,
+        "y": 0.9474278688430786,
+        "z": 5.506735801696777
+       },
+       "rotation": {
+        "x": 359.9565734863281,
+        "y": 0.00640281243249774,
+        "z": -0.003298355033621192
+       },
+       "receptacle": false,
+       "pickupable": true,
+       "visible": false,
+       "isMoving": false,
+       "parentReceptacles": [
+        "Toilet|3|0"
+       ],
+       "receptacleObjectIds": null,
+       "axisAlignedBoundingBox": {
+        "cornerPoints": [
+         [
+          9.39133071899414,
+          0.9714304804801941,
+          5.5762152671813965
+         ],
+         [
+          9.39133071899414,
+          0.9714304804801941,
+          5.437241077423096
+         ],
+         [
+          9.39133071899414,
+          0.9452819228172302,
+          5.5762152671813965
+         ],
+         [
+          9.39133071899414,
+          0.9452819228172302,
+          5.437241077423096
+         ],
+         [
+          9.317754745483398,
+          0.9714304804801941,
+          5.5762152671813965
+         ],
+         [
+          9.317754745483398,
+          0.9714304804801941,
+          5.437241077423096
+         ],
+         [
+          9.317754745483398,
+          0.9452819228172302,
+          5.5762152671813965
+         ],
+         [
+          9.317754745483398,
+          0.9452819228172302,
+          5.437241077423096
+         ]
+        ],
+        "center": {
+         "x": 9.35454273223877,
+         "y": 0.9583562016487122,
+         "z": 5.506728172302246
+        },
+        "size": {
+         "x": 0.07357597351074219,
+         "y": 0.026148557662963867,
+         "z": 0.13897418975830078
+        }
+       }
+      },
+      "bottle": {
+       "objectId": "SprayBottle|surface|3|9",
+       "position": {
+        "x": 9.477141380310059,
+        "y": 0.9449429512023926,
+        "z": 5.626469135284424
+       },
+       "rotation": {
+        "x": 0.009871961548924446,
+        "y": 270.0015869140625,
+        "z": 359.9169616699219
+       },
+       "receptacle": false,
+       "pickupable": true,
+       "visible": false,
+       "isMoving": false,
+       "parentReceptacles": [
+        "Toilet|3|0"
+       ],
+       "receptacleObjectIds": null,
+       "axisAlignedBoundingBox": {
+        "cornerPoints": [
+         [
+          9.529486656188965,
+          1.190962791442871,
+          5.6431884765625
+         ],
+         [
+          9.529486656188965,
+          1.190962791442871,
+          5.610040664672852
+         ],
+         [
+          9.529486656188965,
+          0.945427656173706,
+          5.6431884765625
+         ],
+         [
+          9.529486656188965,
+          0.945427656173706,
+          5.610040664672852
+         ],
+         [
+          9.416998863220215,
+          1.190962791442871,
+          5.6431884765625
+         ],
+         [
+          9.416998863220215,
+          1.190962791442871,
+          5.610040664672852
+         ],
+         [
+          9.416998863220215,
+          0.945427656173706,
+          5.6431884765625
+         ],
+         [
+          9.416998863220215,
+          0.945427656173706,
+          5.610040664672852
+         ]
+        ],
+        "center": {
+         "x": 9.47324275970459,
+         "y": 1.0681952238082886,
+         "z": 5.626614570617676
+        },
+        "size": {
+         "x": 0.11248779296875,
+         "y": 0.24553513526916504,
+         "z": 0.03314781188964844
+        }
+       }
+      },
+      "spawn_basin_anywhere": {
+       "ok": true,
+       "error": "",
+       "n": 441,
+       "y_unique": [
+        1.051
+       ],
+       "first": [
+        {
+         "x": 7.538300037384033,
+         "y": 1.051339030265808,
+         "z": 0.5371638536453247
+        },
+        {
+         "x": 7.538300037384033,
+         "y": 1.051339030265808,
+         "z": 0.5226619839668274
+        }
+       ]
+      },
+      "spawn_basin_top": {
+       "ok": false,
+       "error": "No valid Receptacle found in view",
+       "n": 0,
+       "y_unique": [],
+       "first": []
+      },
+      "spawn_sink_anywhere": {
+       "ok": true,
+       "error": "",
+       "n": 441,
+       "y_unique": [
+        1.194
+       ],
+       "first": [
+        {
+         "x": 7.578941345214844,
+         "y": 1.1939477920532227,
+         "z": 0.2438204288482666
+        },
+        {
+         "x": 7.578941345214844,
+         "y": 1.1939477920532227,
+         "z": 0.23484165966510773
+        }
+       ]
+      },
+      "fallen_objects": [],
+      "agent": {
+       "x": 0.75,
+       "y": 0.949999988079071,
+       "z": 2.0
+      }
+     },
+     {
+      "label": "2_before_bottle_attempts",
+      "basin": {
+       "objectId": "Sink|3|1|0___0",
+       "position": {
+        "x": 7.216259002685547,
+        "y": 0.9014000296592712,
+        "z": 0.39214497804641724
+       },
+       "rotation": {
+        "x": 1.403341910044412e-14,
+        "y": -0.0,
+        "z": -0.0
+       },
+       "receptacle": true,
+       "pickupable": false,
+       "visible": false,
+       "isMoving": false,
+       "parentReceptacles": null,
+       "receptacleObjectIds": [],
+       "axisAlignedBoundingBox": {
+        "cornerPoints": [
+         [
+          7.5899529457092285,
+          1.0298691987991333,
+          0.6179729700088501
+         ],
+         [
+          7.5899529457092285,
+          1.0298691987991333,
+          0.24519836902618408
+         ],
+         [
+          7.5899529457092285,
+          0.8825722932815552,
+          0.6179729700088501
+         ],
+         [
+          7.5899529457092285,
+          0.8825722932815552,
+          0.24519836902618408
+         ],
+         [
+          6.864966869354248,
+          1.0298691987991333,
+          0.6179729700088501
+         ],
+         [
+          6.864966869354248,
+          1.0298691987991333,
+          0.24519836902618408
+         ],
+         [
+          6.864966869354248,
+          0.8825722932815552,
+          0.6179729700088501
+         ],
+         [
+          6.864966869354248,
+          0.8825722932815552,
+          0.24519836902618408
+         ]
+        ],
+        "center": {
+         "x": 7.227459907531738,
+         "y": 0.9562207460403442,
+         "z": 0.4315856695175171
+        },
+        "size": {
+         "x": 0.7249860763549805,
+         "y": 0.14729690551757812,
+         "z": 0.372774600982666
+        }
+       }
+      },
+      "sink": {
+       "objectId": "Sink|3|1|0",
+       "position": {
+        "x": 7.227458953857422,
+        "y": 0.0,
+        "z": 0.31424498558044434
+       },
+       "rotation": {
+        "x": -0.0,
+        "y": 0.0,
+        "z": 0.0
+       },
+       "receptacle": true,
+       "pickupable": false,
+       "visible": false,
+       "isMoving": false,
+       "parentReceptacles": [
+        "Floor"
+       ],
+       "receptacleObjectIds": [
+        "Faucet|3|1|1"
+       ],
+       "axisAlignedBoundingBox": {
+        "cornerPoints": [
+         [
+          7.644917011260986,
+          0.9855985641479492,
+          0.6673427820205688
+         ],
+         [
+          7.644917011260986,
+          0.9855985641479492,
+          0.02499997615814209
+         ],
+         [
+          7.644917011260986,
+          0.0,
+          0.6673427820205688
+         ],
+         [
+          7.644917011260986,
+          0.0,
+          0.02499997615814209
+         ],
+         [
+          6.810000896453857,
+          0.9855985641479492,
+          0.6673427820205688
+         ],
+         [
+          6.810000896453857,
+          0.9855985641479492,
+          0.02499997615814209
+         ],
+         [
+          6.810000896453857,
+          0.0,
+          0.6673427820205688
+         ],
+         [
+          6.810000896453857,
+          0.0,
+          0.02499997615814209
+         ]
+        ],
+        "center": {
+         "x": 7.227458953857422,
+         "y": 0.4927992820739746,
+         "z": 0.34617137908935547
+        },
+        "size": {
+         "x": 0.8349161148071289,
+         "y": 0.9855985641479492,
+         "z": 0.6423428058624268
+        }
+       }
+      },
+      "sponge": {
+       "objectId": "DishSponge|surface|3|8",
+       "position": {
+        "x": 9.354541778564453,
+        "y": 0.9474278688430786,
+        "z": 5.506735801696777
+       },
+       "rotation": {
+        "x": 359.9565734863281,
+        "y": 0.00640281243249774,
+        "z": -0.003298355033621192
+       },
+       "receptacle": false,
+       "pickupable": true,
+       "visible": false,
+       "isMoving": false,
+       "parentReceptacles": [
+        "Toilet|3|0"
+       ],
+       "receptacleObjectIds": null,
+       "axisAlignedBoundingBox": {
+        "cornerPoints": [
+         [
+          9.39133071899414,
+          0.9714304804801941,
+          5.5762152671813965
+         ],
+         [
+          9.39133071899414,
+          0.9714304804801941,
+          5.437241077423096
+         ],
+         [
+          9.39133071899414,
+          0.9452819228172302,
+          5.5762152671813965
+         ],
+         [
+          9.39133071899414,
+          0.9452819228172302,
+          5.437241077423096
+         ],
+         [
+          9.317754745483398,
+          0.9714304804801941,
+          5.5762152671813965
+         ],
+         [
+          9.317754745483398,
+          0.9714304804801941,
+          5.437241077423096
+         ],
+         [
+          9.317754745483398,
+          0.9452819228172302,
+          5.5762152671813965
+         ],
+         [
+          9.317754745483398,
+          0.9452819228172302,
+          5.437241077423096
+         ]
+        ],
+        "center": {
+         "x": 9.35454273223877,
+         "y": 0.9583562016487122,
+         "z": 5.506728172302246
+        },
+        "size": {
+         "x": 0.07357597351074219,
+         "y": 0.026148557662963867,
+         "z": 0.13897418975830078
+        }
+       }
+      },
+      "bottle": {
+       "objectId": "SprayBottle|surface|3|9",
+       "position": {
+        "x": 9.477141380310059,
+        "y": 0.9449429512023926,
+        "z": 5.626469135284424
+       },
+       "rotation": {
+        "x": 0.009871961548924446,
+        "y": 270.0015869140625,
+        "z": 359.9169616699219
+       },
+       "receptacle": false,
+       "pickupable": true,
+       "visible": false,
+       "isMoving": false,
+       "parentReceptacles": [
+        "Toilet|3|0"
+       ],
+       "receptacleObjectIds": null,
+       "axisAlignedBoundingBox": {
+        "cornerPoints": [
+         [
+          9.529486656188965,
+          1.190962791442871,
+          5.6431884765625
+         ],
+         [
+          9.529486656188965,
+          1.190962791442871,
+          5.610040664672852
+         ],
+         [
+          9.529486656188965,
+          0.945427656173706,
+          5.6431884765625
+         ],
+         [
+          9.529486656188965,
+          0.945427656173706,
+          5.610040664672852
+         ],
+         [
+          9.416998863220215,
+          1.190962791442871,
+          5.6431884765625
+         ],
+         [
+          9.416998863220215,
+          1.190962791442871,
+          5.610040664672852
+         ],
+         [
+          9.416998863220215,
+          0.945427656173706,
+          5.6431884765625
+         ],
+         [
+          9.416998863220215,
+          0.945427656173706,
+          5.610040664672852
+         ]
+        ],
+        "center": {
+         "x": 9.47324275970459,
+         "y": 1.0681952238082886,
+         "z": 5.626614570617676
+        },
+        "size": {
+         "x": 0.11248779296875,
+         "y": 0.24553513526916504,
+         "z": 0.03314781188964844
+        }
+       }
+      },
+      "spawn_basin_anywhere": {
+       "ok": true,
+       "error": "",
+       "n": 441,
+       "y_unique": [
+        1.051
+       ],
+       "first": [
+        {
+         "x": 7.538300037384033,
+         "y": 1.051339030265808,
+         "z": 0.5371638536453247
+        },
+        {
+         "x": 7.538300037384033,
+         "y": 1.051339030265808,
+         "z": 0.5226619839668274
+        }
+       ]
+      },
+      "spawn_basin_top": {
+       "ok": false,
+       "error": "No valid Receptacle found in view",
+       "n": 0,
+       "y_unique": [],
+       "first": []
+      },
+      "spawn_sink_anywhere": {
+       "ok": true,
+       "error": "",
+       "n": 441,
+       "y_unique": [
+        1.194
+       ],
+       "first": [
+        {
+         "x": 7.578941345214844,
+         "y": 1.1939477920532227,
+         "z": 0.2438204288482666
+        },
+        {
+         "x": 7.578941345214844,
+         "y": 1.1939477920532227,
+         "z": 0.23484165966510773
+        }
+       ]
+      },
+      "fallen_objects": [],
+      "agent": {
+       "x": 0.75,
+       "y": 0.949999988079071,
+       "z": 2.0
+      }
+     },
+     {
+      "label": "3_after_bottle_dry_run_point",
+      "basin": {
+       "objectId": "Sink|3|1|0___0",
+       "position": {
+        "x": 7.216259002685547,
+        "y": 0.9014000296592712,
+        "z": 0.39214497804641724
+       },
+       "rotation": {
+        "x": 1.403341910044412e-14,
+        "y": -0.0,
+        "z": -0.0
+       },
+       "receptacle": true,
+       "pickupable": false,
+       "visible": false,
+       "isMoving": false,
+       "parentReceptacles": null,
+       "receptacleObjectIds": [
+        "SprayBottle|surface|3|9"
+       ],
+       "axisAlignedBoundingBox": {
+        "cornerPoints": [
+         [
+          7.5899529457092285,
+          1.0298691987991333,
+          0.6179729700088501
+         ],
+         [
+          7.5899529457092285,
+          1.0298691987991333,
+          0.24519836902618408
+         ],
+         [
+          7.5899529457092285,
+          0.8825722932815552,
+          0.6179729700088501
+         ],
+         [
+          7.5899529457092285,
+          0.8825722932815552,
+          0.24519836902618408
+         ],
+         [
+          6.864966869354248,
+          1.0298691987991333,
+          0.6179729700088501
+         ],
+         [
+          6.864966869354248,
+          1.0298691987991333,
+          0.24519836902618408
+         ],
+         [
+          6.864966869354248,
+          0.8825722932815552,
+          0.6179729700088501
+         ],
+         [
+          6.864966869354248,
+          0.8825722932815552,
+          0.24519836902618408
+         ]
+        ],
+        "center": {
+         "x": 7.227459907531738,
+         "y": 0.9562207460403442,
+         "z": 0.4315856695175171
+        },
+        "size": {
+         "x": 0.7249860763549805,
+         "y": 0.14729690551757812,
+         "z": 0.372774600982666
+        }
+       }
+      },
+      "sink": {
+       "objectId": "Sink|3|1|0",
+       "position": {
+        "x": 7.227458953857422,
+        "y": 0.0,
+        "z": 0.31424498558044434
+       },
+       "rotation": {
+        "x": -0.0,
+        "y": 0.0,
+        "z": 0.0
+       },
+       "receptacle": true,
+       "pickupable": false,
+       "visible": false,
+       "isMoving": false,
+       "parentReceptacles": [
+        "Floor"
+       ],
+       "receptacleObjectIds": [
+        "Faucet|3|1|1"
+       ],
+       "axisAlignedBoundingBox": {
+        "cornerPoints": [
+         [
+          7.644917011260986,
+          0.9855985641479492,
+          0.6673427820205688
+         ],
+         [
+          7.644917011260986,
+          0.9855985641479492,
+          0.02499997615814209
+         ],
+         [
+          7.644917011260986,
+          0.0,
+          0.6673427820205688
+         ],
+         [
+          7.644917011260986,
+          0.0,
+          0.02499997615814209
+         ],
+         [
+          6.810000896453857,
+          0.9855985641479492,
+          0.6673427820205688
+         ],
+         [
+          6.810000896453857,
+          0.9855985641479492,
+          0.02499997615814209
+         ],
+         [
+          6.810000896453857,
+          0.0,
+          0.6673427820205688
+         ],
+         [
+          6.810000896453857,
+          0.0,
+          0.02499997615814209
+         ]
+        ],
+        "center": {
+         "x": 7.227458953857422,
+         "y": 0.4927992820739746,
+         "z": 0.34617137908935547
+        },
+        "size": {
+         "x": 0.8349161148071289,
+         "y": 0.9855985641479492,
+         "z": 0.6423428058624268
+        }
+       }
+      },
+      "sponge": {
+       "objectId": "DishSponge|surface|3|8",
+       "position": {
+        "x": 9.354541778564453,
+        "y": 0.9474278688430786,
+        "z": 5.506735801696777
+       },
+       "rotation": {
+        "x": 359.9565734863281,
+        "y": 0.00640281243249774,
+        "z": -0.003298355033621192
+       },
+       "receptacle": false,
+       "pickupable": true,
+       "visible": false,
+       "isMoving": false,
+       "parentReceptacles": [
+        "Toilet|3|0"
+       ],
+       "receptacleObjectIds": null,
+       "axisAlignedBoundingBox": {
+        "cornerPoints": [
+         [
+          9.39133071899414,
+          0.9714304804801941,
+          5.5762152671813965
+         ],
+         [
+          9.39133071899414,
+          0.9714304804801941,
+          5.437241077423096
+         ],
+         [
+          9.39133071899414,
+          0.9452819228172302,
+          5.5762152671813965
+         ],
+         [
+          9.39133071899414,
+          0.9452819228172302,
+          5.437241077423096
+         ],
+         [
+          9.317754745483398,
+          0.9714304804801941,
+          5.5762152671813965
+         ],
+         [
+          9.317754745483398,
+          0.9714304804801941,
+          5.437241077423096
+         ],
+         [
+          9.317754745483398,
+          0.9452819228172302,
+          5.5762152671813965
+         ],
+         [
+          9.317754745483398,
+          0.9452819228172302,
+          5.437241077423096
+         ]
+        ],
+        "center": {
+         "x": 9.35454273223877,
+         "y": 0.9583562016487122,
+         "z": 5.506728172302246
+        },
+        "size": {
+         "x": 0.07357597351074219,
+         "y": 0.026148557662963867,
+         "z": 0.13897418975830078
+        }
+       }
+      },
+      "bottle": {
+       "objectId": "SprayBottle|surface|3|9",
+       "position": {
+        "x": 7.538278579711914,
+        "y": 0.9851953983306885,
+        "z": 0.5371591448783875
+       },
+       "rotation": {
+        "x": 359.76873779296875,
+        "y": 269.9946594238281,
+        "z": 359.5417175292969
+       },
+       "receptacle": false,
+       "pickupable": true,
+       "visible": false,
+       "isMoving": false,
+       "parentReceptacles": [
+        "Sink|3|1|0___0"
+       ],
+       "receptacleObjectIds": null,
+       "axisAlignedBoundingBox": {
+        "cornerPoints": [
+         [
+          7.591091156005859,
+          1.231443166732788,
+          0.5552030801773071
+         ],
+         [
+          7.591091156005859,
+          1.231443166732788,
+          0.5207308530807495
+         ],
+         [
+          7.591091156005859,
+          0.9853715896606445,
+          0.5552030801773071
+         ],
+         [
+          7.591091156005859,
+          0.9853715896606445,
+          0.5207308530807495
+         ],
+         [
+          7.478157043457031,
+          1.231443166732788,
+          0.5552030801773071
+         ],
+         [
+          7.478157043457031,
+          1.231443166732788,
+          0.5207308530807495
+         ],
+         [
+          7.478157043457031,
+          0.9853715896606445,
+          0.5552030801773071
+         ],
+         [
+          7.478157043457031,
+          0.9853715896606445,
+          0.5207308530807495
+         ]
+        ],
+        "center": {
+         "x": 7.534624099731445,
+         "y": 1.1084073781967163,
+         "z": 0.5379669666290283
+        },
+        "size": {
+         "x": 0.11293411254882812,
+         "y": 0.24607157707214355,
+         "z": 0.03447222709655762
+        }
+       }
+      },
+      "spawn_basin_anywhere": {
+       "ok": true,
+       "error": "",
+       "n": 441,
+       "y_unique": [
+        1.051
+       ],
+       "first": [
+        {
+         "x": 7.538300037384033,
+         "y": 1.051339030265808,
+         "z": 0.5371638536453247
+        },
+        {
+         "x": 7.538300037384033,
+         "y": 1.051339030265808,
+         "z": 0.5226619839668274
+        }
+       ]
+      },
+      "spawn_basin_top": {
+       "ok": false,
+       "error": "No valid Receptacle found in view",
+       "n": 0,
+       "y_unique": [],
+       "first": []
+      },
+      "spawn_sink_anywhere": {
+       "ok": true,
+       "error": "",
+       "n": 441,
+       "y_unique": [
+        1.194
+       ],
+       "first": [
+        {
+         "x": 7.578941345214844,
+         "y": 1.1939477920532227,
+         "z": 0.2438204288482666
+        },
+        {
+         "x": 7.578941345214844,
+         "y": 1.1939477920532227,
+         "z": 0.23484165966510773
+        }
+       ]
+      },
+      "fallen_objects": [],
+      "agent": {
+       "x": 0.75,
+       "y": 0.949999988079071,
+       "z": 2.0
+      }
+     }
+    ],
+    "sponge_replay": [
+     {
+      "i": 0,
+      "placed": true,
+      "placed_in_run": true,
+      "px": 198,
+      "px_in_run": 183,
+      "error": ""
+     }
+    ],
+    "bottle_dry_run_point": {
+     "placed": true,
+     "px": 409,
+     "run_px": 99,
+     "error": ""
+    },
+    "dry_run_rows_into_basin": [
+     {
+      "object_id": "Candle|surface|3|7",
+      "destination": "Sink|3|1|0___0",
+      "tries": 1,
+      "best_pixels": 404,
+      "feasible": true,
+      "revert_ok": true,
+      "revert_drift_m": 0.0
+     },
+     {
+      "object_id": "SprayBottle|surface|3|9",
+      "destination": "Sink|3|1|0___0",
+      "tries": 1,
+      "best_pixels": 409,
+      "feasible": true,
+      "revert_ok": true,
+      "revert_drift_m": 0.0
+     },
+     {
+      "object_id": "Mug|surface|2|4",
+      "destination": "Sink|3|1|0___0",
+      "tries": 32,
+      "best_pixels": 0,
+      "feasible": false,
+      "revert_ok": true,
+      "revert_drift_m": 0.0
+     },
+     {
+      "object_id": "Pencil|surface|2|2",
+      "destination": "Sink|3|1|0___0",
+      "tries": 32,
+      "best_pixels": 17,
+      "feasible": false,
+      "revert_ok": true,
+      "revert_drift_m": 0.0
+     },
+     {
+      "object_id": "Vase|surface|2|0",
+      "destination": "Sink|3|1|0___0",
+      "tries": 10,
+      "best_pixels": 204,
+      "feasible": true,
+      "revert_ok": true,
+      "revert_drift_m": 0.0
+     }
+    ]
+   },
+   "log": "loaded in 11.2 s; lastActionSuccess True\n[0_fresh] basin y=0.901 spawn_basin_anywhere=441 y_unique=[1.051] top=0 y=[] sink_any=441 y=[1.194] fallen=[] sponge_y=0.901\ntoilet viewpoint {'cell': [35, 19], 'yaw': 90, 'pitch': 30, 'distance_m': 0.833}\nsponge replay: 1 placed of 1 ; run had 17 placed of 31\n  first divergence: None\n[1_after_sponge_replay] basin y=0.901 spawn_basin_anywhere=441 y_unique=[1.051] top=0 y=[] sink_any=441 y=[1.194] fallen=[] sponge_y=0.947\n[2_before_bottle_attempts] basin y=0.901 spawn_basin_anywhere=441 y_unique=[1.051] top=0 y=[] sink_any=441 y=[1.194] fallen=[] sponge_y=0.947\nbottle dry-run point: placed True px 409 (run: placed True px 99 )\n[3_after_bottle_dry_run_point] basin y=0.901 spawn_basin_anywhere=441 y_unique=[1.051] top=0 y=[] sink_any=441 y=[1.194] fallen=[] sponge_y=0.947\ndry-run rows that placed into the basin: [{'object_id': 'Candle|surface|3|7', 'destination': 'Sink|3|1|0___0', 'tries': 1, 'best_pixels': 404, 'feasible': True, 'revert_ok': True, 'revert_drift_m': 0.0}, {'object_id': 'SprayBottle|surface|3|9', 'destination': 'Sink|3|1|0___0', 'tries': 1, 'best_pixels': 409, 'feasible': True, 'revert_ok': True, 'revert_drift_m': 0.0}, {'object_id': 'Mug|surface|2|4', 'destination': 'Sink|3|1|0___0', 'tries': 32, 'best_pixels': 0, 'feasible': False, 'revert_ok': True, 'revert_drift_m': 0.0}, {'object_id': 'Pencil|surface|2|2', 'destination': 'Sink|3|1|0___0', 'tries': 32, 'best_pixels': 17, 'feasible': False, 'revert_ok': True, 'revert_drift_m': 0.0}, {'object_id': 'Vase|surface|2|0', 'destination': 'Sink|3|1|0___0', 'tries': 10, 'best_pixels': 204, 'feasible': True, 'revert_ok': True, 'revert_drift_m': 0.0}]\nwrote /root/autodl-tmp/vsmt_private/tmp-audit-05593-spawn/probe_05593.json total 12.9 s\n"
+  },
+  "probe2_05593": {
+   "source": "\"\"\"Read-only probe v2 for train-05593: replay the recorded dry run with the pilot's own functions, checking the\nsink basin's spawn points and fallen objects after every object; then replay the executed DishSponge attempts and\nthe SprayBottle dry-run point.  Writes only under argv[1].\"\"\"\nimport json, os, sys, time\nsys.path.insert(0, \"/root/Emboddied_Spatial_Memory/ops/vsmt\")\nsys.path.insert(0, \"/root/Emboddied_Spatial_Memory/src\")\nimport vm04_two_house_worker as house_loader\nimport lean_s1_02a_pilot as pilot\n\nOUT_DIR = sys.argv[1]\nEP = \"/root/autodl-tmp/vsmt_outputs/lean-s1-02b-5f9aa71/procthor10k-0.1.2-train-05593\"\nBASIN = \"Sink|3|1|0___0\"; SPONGE = \"DishSponge|surface|3|8\"; BOTTLE = \"SprayBottle|surface|3|9\"\nlog = {\"checks\": []}\n\ndef basin_state(ctrl, label):\n    ev = ctrl.step(action=\"GetSpawnCoordinatesAboveReceptacle\", objectId=BASIN, anywhere=True)\n    pts = ev.metadata.get(\"actionReturn\") or []\n    ys = sorted(set(round(p[\"y\"], 3) for p in pts))\n    objs = ctrl.last_event.metadata[\"objects\"]\n    fallen = [(o[\"objectId\"], round(o[\"position\"][\"y\"], 2)) for o in objs if o[\"position\"][\"y\"] < -1.0]\n    basin = next(o for o in objs if o[\"objectId\"] == BASIN)\n    rec = {\"label\": label, \"n\": len(pts), \"y_unique\": ys[:5], \"fallen\": fallen, \"basin_y\": round(basin[\"position\"][\"y\"], 4),\n           \"basin_aabb_center_y\": round(basin[\"axisAlignedBoundingBox\"][\"center\"][\"y\"], 4),\n           \"basin_aabb_size_y\": round(basin[\"axisAlignedBoundingBox\"][\"size\"][\"y\"], 4)}\n    log[\"checks\"].append(rec)\n    bad = (not ys) or ys[0] < -1 or ys[-1] > 5 or fallen\n    print((\"BAD \" if bad else \"ok  \") + json.dumps(rec)[:300], flush=True)\n    return bad\n\nt0 = time.time()\nhouse = house_loader.load_source_record(\"/root/autodl-tmp/vsmt_sources/procthor-10k-0.1.2\", {\"relative_path\": \"train.jsonl.gz\", \"index\": 5593})\nupgraded = house_loader.upgrade_house_schema_v1(house, house_loader.load_pinned_asset_id_database())\nfrom ai2thor.controller import Controller\nfrom ai2thor.platform import CloudRendering\nctrl = Controller(platform=CloudRendering, scene=upgraded, width=pilot.WIDTH, height=pilot.HEIGHT, fieldOfView=pilot.FOV,\n                  gridSize=0.25, snapToGrid=True, rotateStepDegrees=90, renderDepthImage=True, renderInstanceSegmentation=True)\nhouse_loader.bootstrap_house_agent(ctrl, upgraded)\nbasin_state(ctrl, \"fresh\")\n\nprov = EP + \"/provenance/\"\nroute = json.load(open(prov + \"route_stage1.json\"))\nvps = route[\"viewpoints\"]\ntable = json.load(open(prov + \"object_table.json\"))\ninvisible = set(table[\"invisible_containers\"])\nobjrows = {o[\"object_id\"]: o for o in table[\"objects\"]}\ndr = [r for r in json.load(open(prov + \"placement_dry_run.json\")) if \"object_id\" in r]\norder, dests = [], {}\nfor r in dr:\n    if r[\"object_id\"] not in dests:\n        order.append(r[\"object_id\"]); dests[r[\"object_id\"]] = []\n    dests[r[\"object_id\"]].append(r[\"destination\"])\ncand = [objrows[o] for o in order]\nprint(\"dry-run replay:\", len(dr), \"rows,\", len(order), \"objects; U =\", sorted(invisible), flush=True)\n\nusable = {c: None for c in vps}\nok, spawn_points = pilot._prescreen(ctrl, usable, tries=32, anywhere=True)\ncounter = {\"i\": 0}\ndef beat():\n    basin_state(ctrl, f\"before object {counter['i']} {order[counter['i']] if counter['i'] < len(order) else ''}\")\n    counter[\"i\"] += 1\ntbl = []\npair_ok, tbl = pilot._dry_run_pairs(ctrl, cand, invisible, spawn_points, vps, pilot.MIN_VISIBLE_PIXELS, beat=beat, table=tbl, destinations=dests)\nbasin_state(ctrl, \"after dry run + final sweep\")\nlog[\"replay_vs_run\"] = [{\"object_id\": a[\"object_id\"], \"destination\": a[\"destination\"], \"run_best\": b[\"best_pixels\"], \"replay_best\": a[\"best_pixels\"],\n                         \"run_tries\": b[\"tries\"], \"replay_tries\": a[\"tries\"]} for a, b in zip([t for t in tbl if \"object_id\" in t], dr)]\ndiverged = [x for x in log[\"replay_vs_run\"] if x[\"run_best\"] != x[\"replay_best\"] or x[\"run_tries\"] != x[\"replay_tries\"]]\nprint(\"dry-run rows diverging from the run:\", len(diverged), diverged[:4], flush=True)\nprint(\"final sweep:\", [t for t in tbl if \"final_sweep\" in t], flush=True)\n\natt = json.load(open(prov + \"interventions_attempted.json\"))\nsponge = att[0]; assert sponge[\"object_id\"] == SPONGE\nfor i, a in enumerate(sponge[\"attempts\"]):\n    ev = ctrl.step(action=\"PlaceObjectAtPoint\", objectId=SPONGE, position=a[\"point\"])\n    placed = ev.metadata.get(\"lastActionSuccess\") is True\n    px = pilot._peek_pixels(ctrl, vps[sponge[\"destination\"]], SPONGE) if placed else None\n    if placed != a[\"placed\"] or (px is not None and a.get(\"pixels\") is not None and px != a[\"pixels\"]):\n        print(f\"  sponge attempt {i}: replay placed={placed} px={px}  run placed={a['placed']} px={a.get('pixels')}\", flush=True)\n    if i in (0, 5, 10, 15, 20, 25, len(sponge[\"attempts\"]) - 1):\n        basin_state(ctrl, f\"after sponge attempt {i}\")\nbottle = att[1]\nev = ctrl.step(action=\"GetSpawnCoordinatesAboveReceptacle\", objectId=BASIN, anywhere=True)\nev = ctrl.step(action=\"PlaceObjectAtPoint\", objectId=BOTTLE, position=bottle[\"point\"])\nplaced = ev.metadata.get(\"lastActionSuccess\") is True\npx = pilot._peek_pixels(ctrl, vps[bottle[\"destination\"]], BOTTLE) if placed else None\nprint(\"bottle dry-run point: replay placed\", placed, \"px\", px, \"| run placed\", bottle[\"attempts\"][0][\"placed\"], \"px\", bottle[\"attempts\"][0][\"pixels\"], flush=True)\nbasin_state(ctrl, \"after bottle dry-run point\")\nctrl.stop()\njson.dump(log, open(os.path.join(OUT_DIR, \"probe2_05593.json\"), \"w\"), indent=1)\nprint(\"total\", round(time.time() - t0, 1), \"s\")\n",
+   "source_sha256": "8a8a02c580251371a4b726f0152ff3e49db65aaa0e10b2e3bc759b2fd1eaf13f",
+   "result": {
+    "checks": [
+     {
+      "label": "fresh",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "before object 0 Candle|surface|3|7",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "before object 1 DishSponge|surface|3|8",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "before object 2 SprayBottle|surface|3|9",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "before object 3 Mug|surface|2|4",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "before object 4 Pencil|surface|2|2",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "before object 5 Vase|surface|2|0",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "after dry run + final sweep",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "after sponge attempt 0",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "after sponge attempt 5",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "after sponge attempt 10",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "after sponge attempt 15",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "after sponge attempt 20",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "after sponge attempt 25",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "after sponge attempt 30",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "after bottle dry-run point",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     }
+    ],
+    "replay_vs_run": [
+     {
+      "object_id": "Candle|surface|3|7",
+      "destination": "GarbageCan|3|2",
+      "run_best": 119,
+      "replay_best": 121,
+      "run_tries": 32,
+      "replay_tries": 32
+     },
+     {
+      "object_id": "Candle|surface|3|7",
+      "destination": "Sink|3|1|0___0",
+      "run_best": 404,
+      "replay_best": 404,
+      "run_tries": 1,
+      "replay_tries": 1
+     },
+     {
+      "object_id": "Candle|surface|3|7",
+      "destination": "Sink|3|1|0",
+      "run_best": 190,
+      "replay_best": 194,
+      "run_tries": 32,
+      "replay_tries": 32
+     },
+     {
+      "object_id": "Candle|surface|3|7",
+      "destination": "LaundryHamper|3|3",
+      "run_best": 0,
+      "replay_best": 0,
+      "run_tries": 32,
+      "replay_tries": 32
+     },
+     {
+      "object_id": "DishSponge|surface|3|8",
+      "destination": "Toilet|3|0",
+      "run_best": 198,
+      "replay_best": 198,
+      "run_tries": 24,
+      "replay_tries": 24
+     },
+     {
+      "object_id": "DishSponge|surface|3|8",
+      "destination": "GarbageCan|3|2",
+      "run_best": 61,
+      "replay_best": 63,
+      "run_tries": 32,
+      "replay_tries": 32
+     },
+     {
+      "object_id": "DishSponge|surface|3|8",
+      "destination": "Sink|3|1|0",
+      "run_best": 191,
+      "replay_best": 191,
+      "run_tries": 32,
+      "replay_tries": 32
+     },
+     {
+      "object_id": "DishSponge|surface|3|8",
+      "destination": "LaundryHamper|3|3",
+      "run_best": 0,
+      "replay_best": 0,
+      "run_tries": 32,
+      "replay_tries": 32
+     },
+     {
+      "object_id": "SprayBottle|surface|3|9",
+      "destination": "Sink|3|1|0___0",
+      "run_best": 409,
+      "replay_best": 409,
+      "run_tries": 1,
+      "replay_tries": 1
+     },
+     {
+      "object_id": "SprayBottle|surface|3|9",
+      "destination": "GarbageCan|3|2",
+      "run_best": 158,
+      "replay_best": 184,
+      "run_tries": 32,
+      "replay_tries": 32
+     },
+     {
+      "object_id": "SprayBottle|surface|3|9",
+      "destination": "Sink|3|1|0",
+      "run_best": 334,
+      "replay_best": 334,
+      "run_tries": 4,
+      "replay_tries": 4
+     },
+     {
+      "object_id": "SprayBottle|surface|3|9",
+      "destination": "LaundryHamper|3|3",
+      "run_best": 0,
+      "replay_best": 0,
+      "run_tries": 32,
+      "replay_tries": 32
+     },
+     {
+      "object_id": "Mug|surface|2|4",
+      "destination": "Toilet|3|0",
+      "run_best": 247,
+      "replay_best": 247,
+      "run_tries": 21,
+      "replay_tries": 21
+     },
+     {
+      "object_id": "Mug|surface|2|4",
+      "destination": "LaundryHamper|3|3",
+      "run_best": 0,
+      "replay_best": 0,
+      "run_tries": 32,
+      "replay_tries": 32
+     },
+     {
+      "object_id": "Mug|surface|2|4",
+      "destination": "Sink|3|1|0",
+      "run_best": 225,
+      "replay_best": 224,
+      "run_tries": 4,
+      "replay_tries": 4
+     },
+     {
+      "object_id": "Mug|surface|2|4",
+      "destination": "GarbageCan|3|2",
+      "run_best": 78,
+      "replay_best": 78,
+      "run_tries": 32,
+      "replay_tries": 32
+     },
+     {
+      "object_id": "Mug|surface|2|4",
+      "destination": "Sink|3|1|0___0",
+      "run_best": 0,
+      "replay_best": 236,
+      "run_tries": 32,
+      "replay_tries": 7
+     },
+     {
+      "object_id": "Pencil|surface|2|2",
+      "destination": "Sink|3|1|0",
+      "run_best": 17,
+      "replay_best": 17,
+      "run_tries": 32,
+      "replay_tries": 32
+     },
+     {
+      "object_id": "Pencil|surface|2|2",
+      "destination": "GarbageCan|3|2",
+      "run_best": 0,
+      "replay_best": 10,
+      "run_tries": 32,
+      "replay_tries": 32
+     },
+     {
+      "object_id": "Pencil|surface|2|2",
+      "destination": "Sink|3|1|0___0",
+      "run_best": 17,
+      "replay_best": 47,
+      "run_tries": 32,
+      "replay_tries": 32
+     },
+     {
+      "object_id": "Pencil|surface|2|2",
+      "destination": "Toilet|3|0",
+      "run_best": 34,
+      "replay_best": 35,
+      "run_tries": 32,
+      "replay_tries": 32
+     },
+     {
+      "object_id": "Pencil|surface|2|2",
+      "destination": "LaundryHamper|3|3",
+      "run_best": 0,
+      "replay_best": 0,
+      "run_tries": 32,
+      "replay_tries": 32
+     },
+     {
+      "object_id": "Vase|surface|2|0",
+      "destination": "Toilet|3|0",
+      "run_best": 205,
+      "replay_best": 205,
+      "run_tries": 18,
+      "replay_tries": 18
+     },
+     {
+      "object_id": "Vase|surface|2|0",
+      "destination": "Sink|3|1|0___0",
+      "run_best": 204,
+      "replay_best": 439,
+      "run_tries": 10,
+      "replay_tries": 1
+     },
+     {
+      "object_id": "Vase|surface|2|0",
+      "destination": "Sink|3|1|0",
+      "run_best": 201,
+      "replay_best": 252,
+      "run_tries": 4,
+      "replay_tries": 8
+     },
+     {
+      "object_id": "Vase|surface|2|0",
+      "destination": "GarbageCan|3|2",
+      "run_best": 49,
+      "replay_best": 46,
+      "run_tries": 32,
+      "replay_tries": 32
+     },
+     {
+      "object_id": "Vase|surface|2|0",
+      "destination": "LaundryHamper|3|3",
+      "run_best": 0,
+      "replay_best": 0,
+      "run_tries": 32,
+      "replay_tries": 32
+     }
+    ]
+   },
+   "log": "ok  {\"label\": \"fresh\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\ndry-run replay: 27 rows, 6 objects; U = ['GarbageCan|3|2', 'LaundryHamper|3|3', 'Sink|3|1|0', 'Sink|3|1|0___0', 'Toilet|3|0']\nok  {\"label\": \"before object 0 Candle|surface|3|7\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\nok  {\"label\": \"before object 1 DishSponge|surface|3|8\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\nok  {\"label\": \"before object 2 SprayBottle|surface|3|9\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\nok  {\"label\": \"before object 3 Mug|surface|2|4\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\nok  {\"label\": \"before object 4 Pencil|surface|2|2\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\nok  {\"label\": \"before object 5 Vase|surface|2|0\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\nok  {\"label\": \"after dry run + final sweep\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\ndry-run rows diverging from the run: 12 [{'object_id': 'Candle|surface|3|7', 'destination': 'GarbageCan|3|2', 'run_best': 119, 'replay_best': 121, 'run_tries': 32, 'replay_tries': 32}, {'object_id': 'Candle|surface|3|7', 'destination': 'Sink|3|1|0', 'run_best': 190, 'replay_best': 194, 'run_tries': 32, 'replay_tries': 32}, {'object_id': 'DishSponge|surface|3|8', 'destination': 'GarbageCan|3|2', 'run_best': 61, 'replay_best': 63, 'run_tries': 32, 'replay_tries': 32}, {'object_id': 'SprayBottle|surface|3|9', 'destination': 'GarbageCan|3|2', 'run_best': 158, 'replay_best': 184, 'run_tries': 32, 'replay_tries': 32}]\nfinal sweep: [{'final_sweep': [{'object_id': 'ToiletPaper|surface|3|6', 'drift_before_m': 0.171, 'restored': True, 'drift_after_m': 0.0001}], 'objects_checked': 14}]\n  sponge attempt 0: replay placed=True px=198  run placed=True px=183\nok  {\"label\": \"after sponge attempt 0\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\nok  {\"label\": \"after sponge attempt 5\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\n  sponge attempt 6: replay placed=True px=2  run placed=True px=1\n  sponge attempt 9: replay placed=True px=39  run placed=True px=32\nok  {\"label\": \"after sponge attempt 10\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\n  sponge attempt 12: replay placed=True px=69  run placed=True px=61\n  sponge attempt 15: replay placed=True px=121  run placed=True px=119\nok  {\"label\": \"after sponge attempt 15\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\n  sponge attempt 18: replay placed=True px=150  run placed=True px=148\nok  {\"label\": \"after sponge attempt 20\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\n  sponge attempt 21: replay placed=True px=190  run placed=True px=173\n  sponge attempt 23: replay placed=True px=120  run placed=True px=121\n  sponge attempt 24: replay placed=True px=107  run placed=True px=106\n  sponge attempt 25: replay placed=True px=117  run placed=True px=116\nok  {\"label\": \"after sponge attempt 25\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\n  sponge attempt 26: replay placed=True px=177  run placed=True px=160\n  sponge attempt 27: replay placed=True px=147  run placed=True px=150\n  sponge attempt 28: replay placed=True px=116  run placed=True px=117\n  sponge attempt 29: replay placed=True px=152  run placed=True px=169\n  sponge attempt 30: replay placed=True px=190  run placed=True px=201\nok  {\"label\": \"after sponge attempt 30\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\nbottle dry-run point: replay placed True px 408 | run placed True px 99\nok  {\"label\": \"after bottle dry-run point\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\ntotal 142.5 s\n"
+  },
+  "probe3_05593": {
+   "source": "\"\"\"Read-only probe v2 for train-05593: replay the recorded dry run with the pilot's own functions, checking the\nsink basin's spawn points and fallen objects after every object; then replay the executed DishSponge attempts and\nthe SprayBottle dry-run point.  Writes only under argv[1].\"\"\"\nimport json, os, sys, time\nsys.path.insert(0, \"/root/Emboddied_Spatial_Memory/ops/vsmt\")\nsys.path.insert(0, \"/root/Emboddied_Spatial_Memory/src\")\nimport vm04_two_house_worker as house_loader\nimport lean_s1_02a_pilot as pilot\n\nOUT_DIR = sys.argv[1]\nEP = \"/root/autodl-tmp/vsmt_outputs/lean-s1-02b-5f9aa71/procthor10k-0.1.2-train-05593\"\nBASIN = \"Sink|3|1|0___0\"; SPONGE = \"DishSponge|surface|3|8\"; BOTTLE = \"SprayBottle|surface|3|9\"\nlog = {\"checks\": []}\n\ndef basin_state(ctrl, label):\n    ev = ctrl.step(action=\"GetSpawnCoordinatesAboveReceptacle\", objectId=BASIN, anywhere=True)\n    pts = ev.metadata.get(\"actionReturn\") or []\n    ys = sorted(set(round(p[\"y\"], 3) for p in pts))\n    objs = ctrl.last_event.metadata[\"objects\"]\n    fallen = [(o[\"objectId\"], round(o[\"position\"][\"y\"], 2)) for o in objs if o[\"position\"][\"y\"] < -1.0]\n    basin = next(o for o in objs if o[\"objectId\"] == BASIN)\n    rec = {\"label\": label, \"n\": len(pts), \"y_unique\": ys[:5], \"fallen\": fallen, \"basin_y\": round(basin[\"position\"][\"y\"], 4),\n           \"basin_aabb_center_y\": round(basin[\"axisAlignedBoundingBox\"][\"center\"][\"y\"], 4),\n           \"basin_aabb_size_y\": round(basin[\"axisAlignedBoundingBox\"][\"size\"][\"y\"], 4)}\n    log[\"checks\"].append(rec)\n    bad = (not ys) or ys[0] < -1 or ys[-1] > 5 or fallen\n    print((\"BAD \" if bad else \"ok  \") + json.dumps(rec)[:300], flush=True)\n    return bad\n\nt0 = time.time()\nhouse = house_loader.load_source_record(\"/root/autodl-tmp/vsmt_sources/procthor-10k-0.1.2\", {\"relative_path\": \"train.jsonl.gz\", \"index\": 5593})\nupgraded = house_loader.upgrade_house_schema_v1(house, house_loader.load_pinned_asset_id_database())\nfrom ai2thor.controller import Controller\nfrom ai2thor.platform import CloudRendering\nctrl = Controller(platform=CloudRendering, scene=upgraded, width=pilot.WIDTH, height=pilot.HEIGHT, fieldOfView=pilot.FOV,\n                  gridSize=0.25, snapToGrid=True, rotateStepDegrees=90, renderDepthImage=True, renderInstanceSegmentation=True)\nhouse_loader.bootstrap_house_agent(ctrl, upgraded)\nbasin_state(ctrl, \"fresh\")\n\nprov = EP + \"/provenance/\"\nroute = json.load(open(prov + \"route_stage1.json\"))\nvps = route[\"viewpoints\"]\ntable = json.load(open(prov + \"object_table.json\"))\ninvisible = set(table[\"invisible_containers\"])\nobjrows = {o[\"object_id\"]: o for o in table[\"objects\"]}\ndr = [r for r in json.load(open(prov + \"placement_dry_run.json\")) if \"object_id\" in r]\norder, dests = [], {}\nfor r in dr:\n    if r[\"object_id\"] not in dests:\n        order.append(r[\"object_id\"]); dests[r[\"object_id\"]] = []\n    dests[r[\"object_id\"]].append(r[\"destination\"])\ncand = [objrows[o] for o in order]\nprint(\"dry-run replay:\", len(dr), \"rows,\", len(order), \"objects; U =\", sorted(invisible), flush=True)\n\nacts = route.get(\"actions\") or []\nprint(\"route replans:\", len(route.get(\"replans\") or []), \"blocked_edges:\", len(route.get(\"blocked_edges\") or []), \"actions:\", len(acts), \"executed_actions:\", route.get(\"executed_actions\"), flush=True)\nfails = 0\nfor i, a in enumerate(acts):\n    ev = ctrl.step(action=a)\n    if ev.metadata.get(\"lastActionSuccess\") is not True:\n        fails += 1\n    if i % 25 == 0 or i == len(acts) - 1:\n        basin_state(ctrl, f\"after route action {i} {a}\")\nprint(\"route replay: failed actions\", fails, flush=True)\n\nusable = {c: None for c in vps}\nok, spawn_points = pilot._prescreen(ctrl, usable, tries=32, anywhere=True)\ncounter = {\"i\": 0}\ndef beat():\n    basin_state(ctrl, f\"before object {counter['i']} {order[counter['i']] if counter['i'] < len(order) else ''}\")\n    counter[\"i\"] += 1\ntbl = []\npair_ok, tbl = pilot._dry_run_pairs(ctrl, cand, invisible, spawn_points, vps, pilot.MIN_VISIBLE_PIXELS, beat=beat, table=tbl, destinations=dests)\nbasin_state(ctrl, \"after dry run + final sweep\")\nlog[\"replay_vs_run\"] = [{\"object_id\": a[\"object_id\"], \"destination\": a[\"destination\"], \"run_best\": b[\"best_pixels\"], \"replay_best\": a[\"best_pixels\"],\n                         \"run_tries\": b[\"tries\"], \"replay_tries\": a[\"tries\"]} for a, b in zip([t for t in tbl if \"object_id\" in t], dr)]\ndiverged = [x for x in log[\"replay_vs_run\"] if x[\"run_best\"] != x[\"replay_best\"] or x[\"run_tries\"] != x[\"replay_tries\"]]\nprint(\"dry-run rows diverging from the run:\", len(diverged), diverged[:4], flush=True)\nprint(\"final sweep:\", [t for t in tbl if \"final_sweep\" in t], flush=True)\n\natt = json.load(open(prov + \"interventions_attempted.json\"))\nsponge = att[0]; assert sponge[\"object_id\"] == SPONGE\nfor i, a in enumerate(sponge[\"attempts\"]):\n    ev = ctrl.step(action=\"PlaceObjectAtPoint\", objectId=SPONGE, position=a[\"point\"])\n    placed = ev.metadata.get(\"lastActionSuccess\") is True\n    px = pilot._peek_pixels(ctrl, vps[sponge[\"destination\"]], SPONGE) if placed else None\n    if placed != a[\"placed\"] or (px is not None and a.get(\"pixels\") is not None and px != a[\"pixels\"]):\n        print(f\"  sponge attempt {i}: replay placed={placed} px={px}  run placed={a['placed']} px={a.get('pixels')}\", flush=True)\n    if i in (0, 5, 10, 15, 20, 25, len(sponge[\"attempts\"]) - 1):\n        basin_state(ctrl, f\"after sponge attempt {i}\")\nbottle = att[1]\nev = ctrl.step(action=\"GetSpawnCoordinatesAboveReceptacle\", objectId=BASIN, anywhere=True)\nev = ctrl.step(action=\"PlaceObjectAtPoint\", objectId=BOTTLE, position=bottle[\"point\"])\nplaced = ev.metadata.get(\"lastActionSuccess\") is True\npx = pilot._peek_pixels(ctrl, vps[bottle[\"destination\"]], BOTTLE) if placed else None\nprint(\"bottle dry-run point: replay placed\", placed, \"px\", px, \"| run placed\", bottle[\"attempts\"][0][\"placed\"], \"px\", bottle[\"attempts\"][0][\"pixels\"], flush=True)\nbasin_state(ctrl, \"after bottle dry-run point\")\nctrl.stop()\njson.dump(log, open(os.path.join(OUT_DIR, \"probe3_05593.json\"), \"w\"), indent=1)\nprint(\"total\", round(time.time() - t0, 1), \"s\")\n",
+   "source_sha256": "5dab37ac5a8a3616e01be7f4799fffb6e7e247e3b269f160ec3340f50a97df78",
+   "result": {
+    "checks": [
+     {
+      "label": "fresh",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "after route action 0 RotateRight",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "after route action 25 RotateLeft",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "after route action 50 MoveAhead",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "after route action 75 MoveAhead",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "after route action 100 MoveAhead",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "after route action 125 RotateLeft",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "after route action 150 MoveAhead",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "after route action 175 MoveAhead",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "after route action 200 MoveAhead",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "after route action 205 MoveAhead",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "before object 0 Candle|surface|3|7",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "before object 1 DishSponge|surface|3|8",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "before object 2 SprayBottle|surface|3|9",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "before object 3 Mug|surface|2|4",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "before object 4 Pencil|surface|2|2",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "before object 5 Vase|surface|2|0",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "after dry run + final sweep",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "after sponge attempt 0",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "after sponge attempt 5",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "after sponge attempt 10",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "after sponge attempt 15",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "after sponge attempt 20",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "after sponge attempt 25",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "after sponge attempt 30",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     },
+     {
+      "label": "after bottle dry-run point",
+      "n": 441,
+      "y_unique": [
+       1.051
+      ],
+      "fallen": [],
+      "basin_y": 0.9014,
+      "basin_aabb_center_y": 0.9562,
+      "basin_aabb_size_y": 0.1473
+     }
+    ],
+    "replay_vs_run": [
+     {
+      "object_id": "Candle|surface|3|7",
+      "destination": "GarbageCan|3|2",
+      "run_best": 119,
+      "replay_best": 120,
+      "run_tries": 32,
+      "replay_tries": 32
+     },
+     {
+      "object_id": "Candle|surface|3|7",
+      "destination": "Sink|3|1|0___0",
+      "run_best": 404,
+      "replay_best": 404,
+      "run_tries": 1,
+      "replay_tries": 1
+     },
+     {
+      "object_id": "Candle|surface|3|7",
+      "destination": "Sink|3|1|0",
+      "run_best": 190,
+      "replay_best": 192,
+      "run_tries": 32,
+      "replay_tries": 32
+     },
+     {
+      "object_id": "Candle|surface|3|7",
+      "destination": "LaundryHamper|3|3",
+      "run_best": 0,
+      "replay_best": 0,
+      "run_tries": 32,
+      "replay_tries": 32
+     },
+     {
+      "object_id": "DishSponge|surface|3|8",
+      "destination": "Toilet|3|0",
+      "run_best": 198,
+      "replay_best": 194,
+      "run_tries": 24,
+      "replay_tries": 32
+     },
+     {
+      "object_id": "DishSponge|surface|3|8",
+      "destination": "GarbageCan|3|2",
+      "run_best": 61,
+      "replay_best": 61,
+      "run_tries": 32,
+      "replay_tries": 32
+     },
+     {
+      "object_id": "DishSponge|surface|3|8",
+      "destination": "Sink|3|1|0",
+      "run_best": 191,
+      "replay_best": 189,
+      "run_tries": 32,
+      "replay_tries": 32
+     },
+     {
+      "object_id": "DishSponge|surface|3|8",
+      "destination": "LaundryHamper|3|3",
+      "run_best": 0,
+      "replay_best": 0,
+      "run_tries": 32,
+      "replay_tries": 32
+     },
+     {
+      "object_id": "SprayBottle|surface|3|9",
+      "destination": "Sink|3|1|0___0",
+      "run_best": 409,
+      "replay_best": 409,
+      "run_tries": 1,
+      "replay_tries": 1
+     },
+     {
+      "object_id": "SprayBottle|surface|3|9",
+      "destination": "GarbageCan|3|2",
+      "run_best": 158,
+      "replay_best": 183,
+      "run_tries": 32,
+      "replay_tries": 32
+     },
+     {
+      "object_id": "SprayBottle|surface|3|9",
+      "destination": "Sink|3|1|0",
+      "run_best": 334,
+      "replay_best": 334,
+      "run_tries": 4,
+      "replay_tries": 4
+     },
+     {
+      "object_id": "SprayBottle|surface|3|9",
+      "destination": "LaundryHamper|3|3",
+      "run_best": 0,
+      "replay_best": 0,
+      "run_tries": 32,
+      "replay_tries": 32
+     },
+     {
+      "object_id": "Mug|surface|2|4",
+      "destination": "Toilet|3|0",
+      "run_best": 247,
+      "replay_best": 247,
+      "run_tries": 21,
+      "replay_tries": 21
+     },
+     {
+      "object_id": "Mug|surface|2|4",
+      "destination": "LaundryHamper|3|3",
+      "run_best": 0,
+      "replay_best": 0,
+      "run_tries": 32,
+      "replay_tries": 32
+     },
+     {
+      "object_id": "Mug|surface|2|4",
+      "destination": "Sink|3|1|0",
+      "run_best": 225,
+      "replay_best": 225,
+      "run_tries": 4,
+      "replay_tries": 4
+     },
+     {
+      "object_id": "Mug|surface|2|4",
+      "destination": "GarbageCan|3|2",
+      "run_best": 78,
+      "replay_best": 78,
+      "run_tries": 32,
+      "replay_tries": 32
+     },
+     {
+      "object_id": "Mug|surface|2|4",
+      "destination": "Sink|3|1|0___0",
+      "run_best": 0,
+      "replay_best": 213,
+      "run_tries": 32,
+      "replay_tries": 6
+     },
+     {
+      "object_id": "Pencil|surface|2|2",
+      "destination": "Sink|3|1|0",
+      "run_best": 17,
+      "replay_best": 11,
+      "run_tries": 32,
+      "replay_tries": 32
+     },
+     {
+      "object_id": "Pencil|surface|2|2",
+      "destination": "GarbageCan|3|2",
+      "run_best": 0,
+      "replay_best": 6,
+      "run_tries": 32,
+      "replay_tries": 32
+     },
+     {
+      "object_id": "Pencil|surface|2|2",
+      "destination": "Sink|3|1|0___0",
+      "run_best": 17,
+      "replay_best": 48,
+      "run_tries": 32,
+      "replay_tries": 32
+     },
+     {
+      "object_id": "Pencil|surface|2|2",
+      "destination": "Toilet|3|0",
+      "run_best": 34,
+      "replay_best": 35,
+      "run_tries": 32,
+      "replay_tries": 32
+     },
+     {
+      "object_id": "Pencil|surface|2|2",
+      "destination": "LaundryHamper|3|3",
+      "run_best": 0,
+      "replay_best": 0,
+      "run_tries": 32,
+      "replay_tries": 32
+     },
+     {
+      "object_id": "Vase|surface|2|0",
+      "destination": "Toilet|3|0",
+      "run_best": 205,
+      "replay_best": 205,
+      "run_tries": 18,
+      "replay_tries": 18
+     },
+     {
+      "object_id": "Vase|surface|2|0",
+      "destination": "Sink|3|1|0___0",
+      "run_best": 204,
+      "replay_best": 439,
+      "run_tries": 10,
+      "replay_tries": 1
+     },
+     {
+      "object_id": "Vase|surface|2|0",
+      "destination": "Sink|3|1|0",
+      "run_best": 201,
+      "replay_best": 226,
+      "run_tries": 4,
+      "replay_tries": 10
+     },
+     {
+      "object_id": "Vase|surface|2|0",
+      "destination": "GarbageCan|3|2",
+      "run_best": 49,
+      "replay_best": 45,
+      "run_tries": 32,
+      "replay_tries": 32
+     },
+     {
+      "object_id": "Vase|surface|2|0",
+      "destination": "LaundryHamper|3|3",
+      "run_best": 0,
+      "replay_best": 0,
+      "run_tries": 32,
+      "replay_tries": 32
+     }
+    ]
+   },
+   "log": "ok  {\"label\": \"fresh\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\ndry-run replay: 27 rows, 6 objects; U = ['GarbageCan|3|2', 'LaundryHamper|3|3', 'Sink|3|1|0', 'Sink|3|1|0___0', 'Toilet|3|0']\nroute replans: 0 blocked_edges: 0 actions: 206 executed_actions: 206\nok  {\"label\": \"after route action 0 RotateRight\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\nok  {\"label\": \"after route action 25 RotateLeft\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\nok  {\"label\": \"after route action 50 MoveAhead\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\nok  {\"label\": \"after route action 75 MoveAhead\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\nok  {\"label\": \"after route action 100 MoveAhead\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\nok  {\"label\": \"after route action 125 RotateLeft\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\nok  {\"label\": \"after route action 150 MoveAhead\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\nok  {\"label\": \"after route action 175 MoveAhead\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\nok  {\"label\": \"after route action 200 MoveAhead\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\nok  {\"label\": \"after route action 205 MoveAhead\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\nroute replay: failed actions 0\nok  {\"label\": \"before object 0 Candle|surface|3|7\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\nok  {\"label\": \"before object 1 DishSponge|surface|3|8\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\nok  {\"label\": \"before object 2 SprayBottle|surface|3|9\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\nok  {\"label\": \"before object 3 Mug|surface|2|4\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\nok  {\"label\": \"before object 4 Pencil|surface|2|2\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\nok  {\"label\": \"before object 5 Vase|surface|2|0\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\nok  {\"label\": \"after dry run + final sweep\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\ndry-run rows diverging from the run: 13 [{'object_id': 'Candle|surface|3|7', 'destination': 'GarbageCan|3|2', 'run_best': 119, 'replay_best': 120, 'run_tries': 32, 'replay_tries': 32}, {'object_id': 'Candle|surface|3|7', 'destination': 'Sink|3|1|0', 'run_best': 190, 'replay_best': 192, 'run_tries': 32, 'replay_tries': 32}, {'object_id': 'DishSponge|surface|3|8', 'destination': 'Toilet|3|0', 'run_best': 198, 'replay_best': 194, 'run_tries': 24, 'replay_tries': 32}, {'object_id': 'DishSponge|surface|3|8', 'destination': 'Sink|3|1|0', 'run_best': 191, 'replay_best': 189, 'run_tries': 32, 'replay_tries': 32}]\nfinal sweep: [{'final_sweep': [{'object_id': 'ToiletPaper|surface|3|6', 'drift_before_m': 0.1535, 'restored': True, 'drift_after_m': 0.0001}], 'objects_checked': 14}]\n  sponge attempt 0: replay placed=True px=198  run placed=True px=183\nok  {\"label\": \"after sponge attempt 0\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\nok  {\"label\": \"after sponge attempt 5\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\n  sponge attempt 6: replay placed=True px=2  run placed=True px=1\n  sponge attempt 9: replay placed=True px=39  run placed=True px=32\nok  {\"label\": \"after sponge attempt 10\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\n  sponge attempt 12: replay placed=True px=69  run placed=True px=61\n  sponge attempt 15: replay placed=True px=121  run placed=True px=119\nok  {\"label\": \"after sponge attempt 15\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\n  sponge attempt 18: replay placed=True px=150  run placed=True px=148\nok  {\"label\": \"after sponge attempt 20\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\n  sponge attempt 21: replay placed=True px=190  run placed=True px=173\n  sponge attempt 23: replay placed=True px=120  run placed=True px=121\n  sponge attempt 24: replay placed=True px=107  run placed=True px=106\n  sponge attempt 25: replay placed=True px=117  run placed=True px=116\nok  {\"label\": \"after sponge attempt 25\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\n  sponge attempt 26: replay placed=True px=177  run placed=True px=160\n  sponge attempt 27: replay placed=True px=147  run placed=True px=150\n  sponge attempt 28: replay placed=True px=116  run placed=True px=117\n  sponge attempt 29: replay placed=True px=152  run placed=True px=169\n  sponge attempt 30: replay placed=True px=189  run placed=True px=201\nok  {\"label\": \"after sponge attempt 30\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\nbottle dry-run point: replay placed True px 408 | run placed True px 99\nok  {\"label\": \"after bottle dry-run point\", \"n\": 441, \"y_unique\": [1.051], \"fallen\": [], \"basin_y\": 0.9014, \"basin_aabb_center_y\": 0.9562, \"basin_aabb_size_y\": 0.1473}\ntotal 152.5 s\n"
+  }
+ }
+}
