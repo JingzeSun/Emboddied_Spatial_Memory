@@ -32,6 +32,8 @@ CONTRACT_PATH = PROJECT_ROOT / "configs" / "vsmt" / "lean_s1_04_frontend_diagnos
 S1_03_CONTRACT_PATH = PROJECT_ROOT / "configs" / "vsmt" / "lean_s1_03_frontend_cache_v1.json"
 DEFECTIVE = "c222c51a1906f3703a6115c968e77f349306faa9"
 CORRECTED = "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69"
+# the ruling-53 regeneration (LOG-243 sequel four): same camera_pose encoder as 7c10d2c, registered on acceptance
+CORRECTED_53 = "5f9aa71d9328e0a1d065c61c2bc7ef54a11a468c"
 CALIBRATION = {"fx": 112.0, "fy": 112.0, "cx": 111.5, "cy": 111.5}
 
 
@@ -106,7 +108,7 @@ class PolicyTests(unittest.TestCase):
         self.assertEqual(self.policy["applies_to_s1_02_code_commits"],
                          [DEFECTIVE, "a397d16b93d202cf50b849a87cbfbb55e5ca06c0"])
         # the ruling-50 regeneration's generator commit, registered once its data existed
-        self.assertEqual(self.policy["correct_encoder_since_code_commits"], [CORRECTED])
+        self.assertEqual(self.policy["correct_encoder_since_code_commits"], [CORRECTED, CORRECTED_53])
         self.assertEqual(set(self.policy["applies_to_s1_02_code_commits"]) & set(self.policy["correct_encoder_since_code_commits"]), set())
         self.assertEqual(self.policy["rule"], pp.CORRECTION_RULE)
         fc.validate_contract(json.loads(S1_03_CONTRACT_PATH.read_text(encoding="utf-8")))

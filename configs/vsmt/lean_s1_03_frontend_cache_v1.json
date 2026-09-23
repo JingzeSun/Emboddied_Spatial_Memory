@@ -59,7 +59,8 @@
       "a397d16b93d202cf50b849a87cbfbb55e5ca06c0"
     ],
     "correct_encoder_since_code_commits": [
-      "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69"
+      "7c10d2c8f5d06e37c2d8fa3792f2b4058ecf2b69",
+      "5f9aa71d9328e0a1d065c61c2bc7ef54a11a468c"
     ],
     "an_episode_from_an_unlisted_commit_is_refused": true,
     "position_is_unchanged": true,
@@ -381,7 +382,8 @@
       "D-224-S1 裁决 43（2026-09-22 批准，原话「裁决 43 取推荐：box_nms_thresh 与 crop_nms_thresh 改为 0.7，重钉 D-215 摘要，其余不动」）：两个 NMS 阈值 1.0 → 0.7，其余不动；按冻结链的先例以引用取代而不改写 D-215 字节，生效配置与其摘要登记在本合同 `sam2_nms_supersession`，摘要在这一层重钉。",
       "D-224-S1 裁决 49（2026-09-22 批准，原话「裁决 49 取 (a)，改 camera_pose 符号、S1-03 读取侧修正并重钉、cache 重建到新根、旧根改名保留、mask 回收跑完复用；是否允许 runner 读回收 mask 免跑 SAM：允许」）：public_pose_correction 块登记读取侧修正与适用提交；cache 生成新增 --masks-from（读回收 mask、逐 mask 按像素核对摘要、不跑 SAM）。",
       "D-224-S1 裁决 51（2026-09-22 批准，原话「裁决 51 同意，S1-03 cache 生成时直接写 mask，合同就地加规则并重钉，不再单独跑回收」）：fragment_masks 块登记生成时写 mask 的规则；裁决 48 的回收模式保留给本裁决之前生成的 cache。",
-      "D-224-S1 裁决 49 的登记（2026-09-23）：裁决 50 的重新生成在提交 7c10d2c 下完成，该提交的编码器写 Ry(yaw)·Rx(+pitch)，故登记进 correct_encoder_since_code_commits，读者按原样读它生成的 episode，不再施加修正。"
+      "D-224-S1 裁决 49 的登记（2026-09-23）：裁决 50 的重新生成在提交 7c10d2c 下完成，该提交的编码器写 Ry(yaw)·Rx(+pitch)，故登记进 correct_encoder_since_code_commits，读者按原样读它生成的 episode，不再施加修正。",
+      "D-224-S1 裁决 53 的登记（2026-09-23，用户原话「授权在 S1-03 合同登记 5f9aa71 并重钉，然后重建 cache」）：裁决 53 的重新生成在提交 5f9aa71 下完成（LOG-243 续四：S1-02b 非空成品率 28/37 过 0.6 门，全 50 条 39 成 11 败），该提交与 7c10d2c 之间 camera_pose 编码器未改、仍写 Ry(yaw)·Rx(+pitch)，故登记进 correct_encoder_since_code_commits，读者按原样读它生成的 39 条成功 episode；cache 重建到新根 lean-s1-03-<cache 提交>；7c10d2c 的 episode 保留为审计源，不再是数据。"
     ]
   }
 }

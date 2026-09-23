@@ -307,7 +307,11 @@ FROZEN_RULE_SHA256 = {
     # boolean, which the config digest-shape guard rightly refused; renaming it to
     # no_new_seal_because_the_frame_seal_already_binds_every_mask_digest changes no rule.
     # 03bfd56d -> 2a17546f.
-    "S1-03": "2a17546f3bc5c8801376643b37337f2ce8d74fcc9542a045515a68b7a44f872f",
+    # Re-pinned 2026-09-23 when the ruling-53 regeneration (LOG-243 续四) was accepted: its
+    # generator commit 5f9aa71 leaves the camera_pose encoder of 7c10d2c untouched, so it joins
+    # correct_encoder_since_code_commits and the 39 succeeded episodes are read as written.
+    # 2a17546f -> c7318cd5.
+    "S1-03": "c7318cd56599927d39ca598301346ecf5076c55859a733689d4a5a7cbcab2d75",
     # S1-04 v1 (2026-09-22, rulings 45/46/47): first pinned with every bit closed
     # (2fff2d19...); re-pinned the same day when ruling 48 and the user's code review opened
     # all six bits by name in activation_policy (the bits are rules of who may run what, as
