@@ -32,7 +32,7 @@ if str(SRC_ROOT) not in sys.path:
 from cpmt.hashing import canonical_json  # noqa: E402
 
 from vsmt import (  # noqa: E402
-    lean_arms, lean_assets, lean_assignment, lean_frontend_cache, lean_intervention,
+    lean_arms, lean_assets, lean_assignment, lean_evaluation, lean_frontend_cache, lean_intervention,
     lean_memory,
     lean_pilot, lean_runner, lean_teacher,
 )
@@ -135,6 +135,7 @@ FROZEN_V1_NAME = {
     "S1-03": "lean_s1_03_frontend_cache_v1.json",
     "S1-04": "lean_s1_04_frontend_diagnostics_v1.json",
     "S2-01": "lean_s2_01_runner_v1.json",
+    "S2-04": "lean_s2_04_evaluation_v1.json",
 }
 
 #: Live contract per stage, including the S1 and S2 contracts.
@@ -149,6 +150,7 @@ LIVE_CONTRACT = {
     "S1-03": "lean_s1_03_frontend_cache_v1.json",
     "S1-04": "lean_s1_04_frontend_diagnostics_v1.json",
     "S2-01": "lean_s2_01_runner_v1.json",
+    "S2-04": "lean_s2_04_evaluation_v1.json",
 }
 
 
@@ -344,6 +346,13 @@ FROZEN_RULE_SHA256 = {
     # bookkeeping; checked at re-pin time that with the new claim removed the digest is e1060695
     # again, so that claim is the only rule that moved.  e1060695 -> 09fc1a4a.
     "S2-01": "09fc1a4af70d7cc6f791de09b07c7d7ba27f94695ed99b7493481ecbbceebf39",
+    # S2-04 v1 (2026-09-24, LOG-249): the teacher and evaluator wiring -- the derivation rules for the
+    # S0-04 inputs (place observability by the S2-01 sampled-box test at the S0-05 minimum, old and new
+    # places from the S1-04 tracker at the window edges, recovery place per intervention kind, carriers
+    # before a move, first labelled re-observation, evidence map by S0-04 dominance, present-by-structure
+    # existence labels, MRR headline at the last frame, eligible-rows training records), the policy
+    # sources, the headline fields and the closed bits.  It owns no value slot.
+    "S2-04": "40d96cf09688b4f1f5f25d881b444202f67e23ad020d3575e7a12fe2a002b894",
 }
 
 #: Every registered slot that has been frozen, and the value it froze at.
@@ -1023,6 +1032,49 @@ class TestS201RunnerContractBindsItsUpstreams(unittest.TestCase):
         self.assertEqual(tuple(step["runnable_arms"]), tuple(arm for arm in lean_arms.ALL_ARMS if arm != lean_arms.APPENDIX_ARM))
         self.assertEqual(step["appendix_arm_refused_here"], lean_arms.APPENDIX_ARM)
         self.assertEqual(load("S0-05")["appendix_arm"]["name"], lean_arms.APPENDIX_ARM)
+
+
+class TestS204EvaluationContractBindsItsUpstreams(unittest.TestCase):
+    """S2-04 wires S0-04, S0-05, S2-01 and S1-04 together; it registers derivations, never a rule or value of its own."""
+
+    def setUp(self) -> None:
+        self.contract = load_stage("S2-04")
+
+    def test_the_contract_passes_its_validator_with_both_bits_closed_and_owns_no_value_slot(self) -> None:
+        checked = lean_evaluation.validate_evaluation_contract(self.contract)
+        self.assertEqual(checked["stage_id"], "S2-04")
+        self.assertEqual(set(checked["authorization"]), {"label_generation_run", "server_run"})
+        self.assertTrue(all(value is False for value in checked["authorization"].values()))
+        self.assertEqual(registered_value_slots("S2-04"), ())
+        for key, path in checked["depends_on"].items():
+            if key.endswith("_contract"):
+                with self.subTest(key=key):
+                    self.assertTrue((PROJECT_ROOT / path).is_file(), path)
+                    self.assertFalse(path.endswith("_v1.json") and key.startswith("s0_"), "S2-04 must consume the live S0 contracts")
+
+    def test_its_policy_sources_are_registered_slots_of_the_contracts_that_own_them(self) -> None:
+        sources = self.contract["policy_input_sources"]
+        s0_04 = load("S0-04")
+        for name, path in (("dominance_min_share", "labels.fragment_dominance.dominance_min_share"),
+                           ("delta_moved_m", "labels.existence.delta_moved_m")):
+            self.assertTrue(sources[name].startswith("S0-04"))
+            self.assertIn(path, s0_04["policy_values_without_defaults"])
+        self.assertIn("shared.should_be_visible_min_ratio", load("S0-05")["policy_values_without_defaults"])
+        self.assertEqual(registered_value_slots("S2-01"), ("entity_geometry.samples_per_axis",))
+        self.assertEqual(s0_04["metrics"]["node_prf1"]["iou_min"], lean_teacher.IOU_MIN)
+
+    def test_headline_fields_and_report_fields_are_the_s0_04_ones(self) -> None:
+        fields = load("S0-04")["metrics"]["reported_fields"]
+        for metric, field in self.contract["headline_fields"].items():
+            self.assertIn(field, fields[metric], metric)
+        self.assertEqual(set(self.contract["headline_fields"]), set(lean_teacher.METRICS) - {"size_and_cost"})
+
+    def test_the_structural_and_scope_rules_agree_with_s0_04_and_s2_01(self) -> None:
+        rules = self.contract["derivation_rules"]
+        self.assertIn("structural", rules["structural_existence"])
+        self.assertEqual(tuple(load_stage("S2-01")["truth_table"]["structural_types_out_of_scope"]), lean_teacher.STRUCTURAL_TYPES_EXCLUDED)
+        self.assertEqual(tuple(rules["missing_residual_kinds"]), ("remove", "move"))
+        self.assertEqual(tuple(rules["identity_continuity_kinds"]), ("move",))
 
 
 def _resolve_path(tree: Any, path: str) -> tuple[Any, Any]:
