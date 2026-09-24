@@ -925,7 +925,7 @@ class TestTheS105SelectionIsRecordedOnceAndAgreesWithItsReceipt(unittest.TestCas
 
     def test_the_receipt_and_the_contract_point_at_the_committed_s1_04_report(self) -> None:
         report_path = PROJECT_ROOT / self.result["input_report"]
-        digest = hashlib.sha256(report_path.read_bytes()).hexdigest()
+        digest = reviewed_digest(report_path)  # by content: a CRLF working tree must not change it
         self.assertEqual(digest, self.result["input_report_sha256"])
         self.assertEqual(self.receipt["input"]["s1_04_report"], self.result["input_report"])
         self.assertEqual(self.receipt["input"]["s1_04_report_sha256"], digest)

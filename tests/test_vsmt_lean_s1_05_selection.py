@@ -19,6 +19,12 @@ import sys
 import unittest
 from pathlib import Path
 
+
+def lf_sha256(path: Path) -> str:
+    """Content digest ignoring line endings, as the tool and the reviewed-contract digests use."""
+
+    return hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 for item in (PROJECT_ROOT / "src", PROJECT_ROOT / "ops" / "vsmt"):
     if str(item) not in sys.path:
@@ -238,7 +244,7 @@ class SelectionOnTheCommittedReport(unittest.TestCase):
 
     def setUp(self) -> None:
         self.report = json.loads(REAL_REPORT.read_text(encoding="utf-8"))
-        self.report_sha256 = hashlib.sha256(REAL_REPORT.read_bytes()).hexdigest()
+        self.report_sha256 = lf_sha256(REAL_REPORT)
         self.fresh = s105.build_receipt(self.report, report_path=REAL_REPORT, report_sha256=self.report_sha256, contract=CONTRACT,
                                         s1_03_contract=S1_03_CONTRACT, seed=SEED, closeout=None,
                                         written_at_utc="2026-09-24T00:00:00Z", checkout={"commit": None, "clean": None})
@@ -266,9 +272,9 @@ class SelectionOnTheCommittedReport(unittest.TestCase):
         self.assertEqual(closeout["s1_04"]["sha256"], self.report_sha256)
         for name in ("s1_03", "s1_04_iou_gate_recheck_under_the_ruled_matching_rule"):
             path = PROJECT_ROOT / (closeout[name]["report"] if name == "s1_03" else closeout[name]["estimate_report"])
-            self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), closeout[name]["sha256"], name)
+            self.assertEqual(lf_sha256(path), closeout[name]["sha256"], name)
         for row in closeout["s1_02"]["reports"]:
-            self.assertEqual(hashlib.sha256((PROJECT_ROOT / row["report"]).read_bytes()).hexdigest(), row["sha256"], row["report"])
+            self.assertEqual(lf_sha256(PROJECT_ROOT / row["report"]), row["sha256"], row["report"])
         self.assertTrue(closeout["s1_04_iou_gate_recheck_under_the_ruled_matching_rule"]["passes"])
         self.assertFalse(committed["private_ids_exported"])
 

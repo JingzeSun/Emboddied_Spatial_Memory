@@ -5,9 +5,9 @@
   "D-224-E",
   "D-224-S1 ruling 47"
  ],
- "written_at_utc": "2026-09-24T09:06:35Z",
+ "written_at_utc": "2026-09-24T09:53:09Z",
  "checkout": {
-  "commit": "d1d6c640b6bf74a284de7310354d1be9a1afd3a6",
+  "commit": "a06ce9b3316720ca5861b8781bb3922117d4b0f9",
   "clean": false
  },
  "rule": {
@@ -460,7 +460,7 @@
   "s1_04_iou_gate_recheck_under_the_ruled_matching_rule": {
    "ruling": "D-224-S1 ruling 56 continued (2026-09-24): truth node scope excludes door/room/wall/window; the entity box is the same-frame union",
    "estimate_report": "results/vsmt_ruling56_matching_estimate_154776d.json",
-   "sha256": "8fca801b5427b3de7a16179575feb0f185003710fc268ae896dbcc2fc2bb8c80",
+   "sha256": "1ce2e8be851194723a473ad6bdea7c3558b6c3e07db2ebd5001d5f26919f3889",
    "value_path": "estimate.non_architectural.fragment_rows.frame_union.median",
    "median_iou": 0.3680415027246377,
    "gate_median_iou": 0.3,

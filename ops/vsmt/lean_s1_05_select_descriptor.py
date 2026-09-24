@@ -91,7 +91,15 @@ def _require(condition: bool, code: str) -> None:
 
 
 def sha256_of(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    """Digest a committed file by content, ignoring line endings.
+
+    .gitattributes stores every .json and .md with LF, so a Linux checkout holds LF while a Windows
+    working tree may hold CRLF for a file written there; hashing raw bytes would pin the platform
+    instead of the content (the server suite caught exactly that on the ruling-56 estimate report).
+    Same convention as the reviewed-contract digests in the cross-contract test.
+    """
+
+    return hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
 
 
 def load_json(path: Path) -> Any:
