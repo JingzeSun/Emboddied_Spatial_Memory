@@ -4,7 +4,7 @@
 
 ## 当前看板
 
-**2026-09-24 最新状态：S2-01 共同 runner 已实现待审（LOG-246）——`lean_runner.py`、合同 `lean_s2_01_runner_v1.json`（首钉 `e1060695…`）、单 episode 入口与 21 项测试；待裁 60（几何采样分辨率，推荐 4）；S1-05 已按裁决 47 机械收口（LOG-245）——选定 `reid_projection:vitb14`，冻结 ViT-B/14 为并列基线；待裁 59（选择组 9/12，推荐维持）。下一步 S2-02／S2-03。** S1 不重做；召回四值、匹配口径与描述子全部冻结；按 D-059 本次改动待用户审。上一暂停点：S0 修订（裁决 56 续／57／58，`6699a19`）已由用户审过并授权进入 S2（LOG-244 续二）。
+**2026-09-24 最新状态：S2-01 共同 runner 已实现待审（LOG-246，服务器全量 `6deb8b6` 1533/1533）——`lean_runner.py`、合同 `lean_s2_01_runner_v1.json`（首钉 `e1060695…`）、单 episode 入口与 21 项测试；待裁 60（几何采样分辨率，推荐 4）；S1-05 已按裁决 47 机械收口（LOG-245）——选定 `reid_projection:vitb14`，冻结 ViT-B/14 为并列基线；待裁 59（选择组 9/12，推荐维持）。下一步 S2-02／S2-03。** S1 不重做；召回四值、匹配口径与描述子全部冻结；按 D-059 本次改动待用户审。上一暂停点：S0 修订（裁决 56 续／57／58，`6699a19`）已由用户审过并授权进入 S2（LOG-244 续二）。
 
 | 事项 | 已知事实 |
 |---|---|
@@ -3853,3 +3853,9 @@ move 仍要两个 U 容器、add 仍要过 dry-run，成品率不会等于这些
 - **待裁 60**：`entity_geometry.samples_per_axis`，提议 4（DECISIONS）。
 - **进入 S2-05 前仍为 null 的登记值**（S1-05 回执 `null_values_entering_s2` 已按合同读出）：S0-01 五个（dormancy 与去重四值）、S0-03 两个（τ_r、reference_score_seed）、S0-04 五个、S0-05 九个、S2-01 一个；S1-03 `supported_by` 五个按裁决 42 维持 null。
 - **本节不做的事**：不跑真实 cache；不算指标；不写学习头（S2-03）；S2-02 剩余的 clean-room 文件头与 LLM-op 接口未写；不申请任何授权位。
+
+### LOG-246 续：服务器全量、一处平台摘要错误的修正与 ReID 权重导出（2026-09-24 18:05 CST）
+
+- **服务器同步与全量**：`/root/Emboddied_Spatial_Memory` 从 `6699a19` 无未跟踪文件地 checkout 到 `a06ce9b`，全量 `python3.12 -m unittest discover -s tests`：**1533 项、1 项失败**（上次 1492 项，新增 21＋10＋5＋1＋4 项）。失败的是 S1-05 的"已提交回执与重算逐块相同"：回执把裁决 56 估算报告钉在 `8fca801b…`，那是本机 Windows 工作副本 CRLF 字节的摘要，而仓库与服务器的 LF 字节是 `1ce2e8be…`。修正 `6deb8b6`：S1-05 工具改按 LF 归一化字节算摘要（与跨合同测试 `reviewed_digest` 同一约定），回执重生成（只有该摘要、时间戳与 checkout 提交变化，选择、留出与其余各块逐字节不变），两个测试同法，估算报告本地副本归一为 LF（索引本来就是 LF，git 无差异）。服务器 checkout 到 `6deb8b6` 重跑：**1533/1533 通过，退出 0**，日志 `/root/autodl-tmp/vsmt_outputs/run_logs/suite-6deb8b6.log`（`suite-a06ce9b.log` 保留）。
+- **ReID 权重导出**（LOG-245 建议）：`vsmt_private/lean-s1-04-diagnostics-154776d/reid_head_vitb14.json`（2,127,695 字节）复制到 `vsmt_private/exports/reid_head_vitb14_154776d.json`；文件 sha256 `823508e4…`，用 `lean_reid_head` 的规则重算 payload 摘要得 `f6fc67e5…`，与 S1-05 冻结值相同；训练记录为 temperature 0.07／epochs 20／batch 512／lr 0.001／seed 20260922、339,808 个色块、3,033 类、cuda。权重仍不进 Git。
+- 服务器现场：数据盘 24 GB 可用，负载 11.6（128 核宿主），没有别的项目进程在跑。
