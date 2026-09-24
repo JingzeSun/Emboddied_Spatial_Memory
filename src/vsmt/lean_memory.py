@@ -63,6 +63,12 @@ TARGET_ATOMS = frozenset({"NOOP", "BIND", "RETRACT", "REACTIVATE"})
 
 ENTITY_STATES = ("active", "dormant", "retracted")
 
+#: D-224-S1 ruling 67 (2026-09-24): the shared dormancy and dedup values, frozen once for every
+#: arm.  The contract carries the same numbers; the validator refuses any other.  Callers still
+#: pass them explicitly (no default slips in), the S2 entries read them from the contract.
+DORMANCY_MISSED_OPPORTUNITY_LIMIT = 3
+SHARED_DEDUP = {"period_ticks": 10, "descriptor_cosine_min": 0.9, "centroid_distance_max_m": 0.25, "aabb_iou_min": 0.3}
+
 #: state -> atoms that may legally target an entity in that state.
 STATE_ALLOWED_ATOMS: dict[str, frozenset[str]] = {
     "active": frozenset({"NOOP", "BIND", "RETRACT"}),
@@ -1177,19 +1183,22 @@ def validate_entity_memory_contract(contract: Mapping[str, Any]) -> dict[str, An
             f"contract_state_machine_atoms_mismatch_{state}",
         )
 
-    for name in ("dormancy_missed_opportunity_limit",):
-        _require(
-            contract["shared_dormancy"][name] is None,
-            f"contract_{name}_must_be_null_before_freeze",
-        )
-    for name in (
-        "period_ticks", "descriptor_cosine_min", "centroid_distance_max_m",
-        "aabb_iou_min",
-    ):
-        _require(
-            contract["shared_dedup"][name] is None,
-            f"contract_dedup_{name}_must_be_null_before_freeze",
-        )
+    # A registered value is either still open, and then it must say so in
+    # policy_values_without_defaults, or frozen, and then it must have left that
+    # list and equal the constant this implementation binds (D-224-S1 ruling 24;
+    # the five values were frozen by ruling 67 on 2026-09-24).
+    open_values = contract["policy_values_without_defaults"]
+    frozen = {
+        ("shared_dormancy", "dormancy_missed_opportunity_limit", "dormancy_missed_opportunity_limit"): DORMANCY_MISSED_OPPORTUNITY_LIMIT,
+        **{("shared_dedup", name, f"shared_dedup.{name}"): value for name, value in SHARED_DEDUP.items()},
+    }
+    for (section, name, registered), expected in frozen.items():
+        value = contract[section][name]
+        if value is None:
+            _require(registered in open_values, f"contract_{name}_null_but_not_registered_as_open")
+        else:
+            _require(registered not in open_values, f"contract_{name}_frozen_but_still_listed_as_open")
+            _require(value == expected, f"contract_{name}_differs_from_the_frozen_constant")
 
     authorization = contract["authorization"]
     _require(

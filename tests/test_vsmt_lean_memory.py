@@ -37,6 +37,8 @@ from vsmt.lean_memory import (  # noqa: E402
     memory_digest,
     validate_entity_memory_contract,
     validate_memory,
+    DORMANCY_MISSED_OPPORTUNITY_LIMIT,
+    SHARED_DEDUP,
 )
 
 
@@ -673,12 +675,23 @@ class TestMachineContract(unittest.TestCase):
             validate_entity_memory_contract(broken)
         self.assertEqual(str(caught.exception), "contract_atoms_mismatch")
 
-    def test_policy_values_must_still_be_null(self) -> None:
+    def test_frozen_policy_values_are_bound_and_cannot_reopen_by_edit(self) -> None:
+        # D-224-S1 ruling 67 (2026-09-24): the five values are frozen; another number is refused,
+        # and nulling one without registering it as open is refused too
+        contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        self.assertEqual(contract["shared_dormancy"]["dormancy_missed_opportunity_limit"], DORMANCY_MISSED_OPPORTUNITY_LIMIT)
+        self.assertEqual({name: contract["shared_dedup"][name] for name in SHARED_DEDUP}, SHARED_DEDUP)
+        self.assertEqual(contract["policy_values_without_defaults"], [])
         broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
-        broken["shared_dedup"]["aabb_iou_min"] = 0.3
+        broken["shared_dedup"]["aabb_iou_min"] = 0.2
         with self.assertRaises(LeanMemoryError) as caught:
             validate_entity_memory_contract(broken)
-        self.assertIn("must_be_null_before_freeze", str(caught.exception))
+        self.assertEqual(str(caught.exception), "contract_aabb_iou_min_differs_from_the_frozen_constant")
+        broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        broken["shared_dormancy"]["dormancy_missed_opportunity_limit"] = None
+        with self.assertRaises(LeanMemoryError) as caught:
+            validate_entity_memory_contract(broken)
+        self.assertEqual(str(caught.exception), "contract_dormancy_missed_opportunity_limit_null_but_not_registered_as_open")
 
     def test_every_authorization_bit_is_false(self) -> None:
         broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))

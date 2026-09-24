@@ -80,7 +80,9 @@
       "two_or_more_instances_below_threshold_is_identity_ambiguous": "a fragment overlapping two or more instances whose top share is below dominance_min_share is identity_ambiguous",
       "tie_at_the_top_is_ambiguous": true,
       "single_instance_below_threshold_is_unlabelled": "a fragment overlapping one instance whose share is below dominance_min_share is mostly background and is unlabelled",
-      "dominance_min_share": null
+      "dominance_min_share": 0.5,
+      "dominance_min_share_frozen_by": "D-224-S1 ruling 67",
+      "dominance_min_share_frozen_on": "2026-09-24"
     },
     "existence": {
       "candidate_states": [
@@ -90,9 +92,11 @@
       "ineligible_candidate_state_is_rejected_not_skipped": true,
       "gone_rule": "object absent from the scene, or its current centroid farther than delta_moved_m from the entity's remembered centroid",
       "displacement_reference": "entity_remembered_centroid",
-      "delta_moved_m": null
+      "delta_moved_m": 0.5,
+      "delta_moved_m_frozen_by": "D-224-S1 ruling 67",
+      "delta_moved_m_frozen_on": "2026-09-24"
     },
-    "plain_language_zh": "实体身份取其全部带物体证据的严格多数（超过一半），没有严格多数即身份含糊，不另设阈值；背景证据不投票。色块目标列的规则：先按实例重叠表判主导物体——没有物体记 unlabelled，覆盖两个及以上物体且最大占比低于阈值或并列记 identity_ambiguous，只覆盖一个物体但占比低于阈值记 unlabelled；主导物体成立后，记忆里没有这个物体记 birth，有但没被召回记 recall_miss，有且被召回则目标是它（重复实体取首版本最早、并列取 ID 最小的那个，若只有重复实体被召回则以被召回者为目标），这个物体的证据只落在身份含糊的实体里记 identity_ambiguous 而不是猜 birth。存在标签：物体不在场景中、或已离开实体记住的位置超过 delta_moved_m 即 gone，否则 present，身份含糊记 identity_ambiguous；候选状态只允许 active 与 dormant（S0-01 允许 RETRACT dormant；裁决 P），retracted 候选直接拒绝。以上口径由 D-224-LQ 裁决 N、P、Q 冻结。两个数值待冻结，当前为 null。 v2 新增 duplicate_of_labelled（裁决 X1，见 same_frame_duplicates）。",
+    "plain_language_zh": "实体身份取其全部带物体证据的严格多数（超过一半），没有严格多数即身份含糊，不另设阈值；背景证据不投票。色块目标列的规则：先按实例重叠表判主导物体——没有物体记 unlabelled，覆盖两个及以上物体且最大占比低于阈值或并列记 identity_ambiguous，只覆盖一个物体但占比低于阈值记 unlabelled；主导物体成立后，记忆里没有这个物体记 birth，有但没被召回记 recall_miss，有且被召回则目标是它（重复实体取首版本最早、并列取 ID 最小的那个，若只有重复实体被召回则以被召回者为目标），这个物体的证据只落在身份含糊的实体里记 identity_ambiguous 而不是猜 birth。存在标签：物体不在场景中、或已离开实体记住的位置超过 delta_moved_m 即 gone，否则 present，身份含糊记 identity_ambiguous；候选状态只允许 active 与 dormant（S0-01 允许 RETRACT dormant；裁决 P），retracted 候选直接拒绝。以上口径由 D-224-LQ 裁决 N、P、Q 冻结。裁决 67（2026-09-24）冻结 dominance_min_share=0.5（严格多数，S1-04 标注用的就是过半规则）与 delta_moved_m=0.5（搬动下限 0.6 m 在其上、未干预物体漂移 1.4～16 cm 在其下）。 v2 新增 duplicate_of_labelled（裁决 X1，见 same_frame_duplicates）。",
     "same_frame_duplicates": {
       "rule": "among fragments of one frame that are labelled with the same dominant object and the same target entity, the fragment with the most pixels on that object keeps the target",
       "tie_break": "larger_pixel_count_then_smaller_fragment_id",
@@ -335,8 +339,6 @@
     "statistics.confidence_one_sided"
   ],
   "policy_values_without_defaults": [
-    "labels.fragment_dominance.dominance_min_share",
-    "labels.existence.delta_moved_m",
     "statistics.bootstrap_seed",
     "statistics.main_gate_effect_size",
     "nuisance_probe.maximum_advantage"
@@ -350,7 +352,8 @@
     "P": "existence candidates are active and dormant; retracted is rejected",
     "Q": "truth nodes are present objects observable at least once since episode start; displacement is measured from the entity's remembered centroid",
     "plain_language_zh": "六项口径由用户于 2026-09-20 以 D-224-LQ 批准，全部按 LOG-217 的推荐口径执行；本合同的状态集合、规则字符串与布尔声称即其机器形式。",
-    "ruling_56_continued": "the truth node scope excludes the four ProcTHOR structural types door, room, wall and window, identified by the private key prefix; entities resolving to them are out of scope under X6 (D-224-S1 ruling 56 continued, 2026-09-24, 原话「裁决 56 续取 (a)：真值范围排除 wall/room/door/window，BIND 框改为同帧并集；裁决 58 取 1.0 m」; evidence LOG-244 continued)"
+    "ruling_56_continued": "the truth node scope excludes the four ProcTHOR structural types door, room, wall and window, identified by the private key prefix; entities resolving to them are out of scope under X6 (D-224-S1 ruling 56 continued, 2026-09-24, 原话「裁决 56 续取 (a)：真值范围排除 wall/room/door/window，BIND 框改为同帧并集；裁决 58 取 1.0 m」; evidence LOG-244 continued)",
+    "ruling_67": "D-224-S1 裁决 67（2026-09-24 批准，原话「S2-05 审过；裁决 67 八个值全按推荐。」）：labels.fragment_dominance.dominance_min_share=0.5、labels.existence.delta_moved_m=0.5，绑定常量 DOMINANCE_MIN_SHARE／DELTA_MOVED_M，登记进跨合同台账；bootstrap_seed 与 main_gate_effect_size 留到 S3-01，nuisance 上限归裁决 68。"
   },
   "continue_gate": {
     "metric_list_frozen_before_any_data_generation": true,

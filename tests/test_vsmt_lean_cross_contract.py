@@ -368,6 +368,27 @@ FROZEN_RULE_SHA256 = {
 #: and then the old value moves to SUPERSEDED_VALUES with the ruling that retired it, so no
 #: value ever disappears from the record.
 FROZEN_VALUES: dict[str, dict[str, Any]] = {
+    "S0-01": {
+        # D-224-S1 ruling 67 (2026-09-24, 原话「S2-05 审过；裁决 67 八个值全按推荐」): the shared dormancy
+        # and dedup values every arm runs with; a conservative dedup (all three must hold) so the
+        # development passes rarely merge; the calibration pass may supersede them by ruling 68.
+        "dormancy_missed_opportunity_limit": 3,
+        "shared_dedup.period_ticks": 10,
+        "shared_dedup.descriptor_cosine_min": 0.9,
+        "shared_dedup.centroid_distance_max_m": 0.25,
+        "shared_dedup.aabb_iou_min": 0.3
+    },
+    "S0-04": {
+        # D-224-S1 ruling 67 (2026-09-24): the strict-majority dominance share S1-04 labelled with, and
+        # METHOD's proposed displacement bound (moves are >= 0.6 m, drift of untouched objects <= 0.16 m).
+        "labels.fragment_dominance.dominance_min_share": 0.5,
+        "labels.existence.delta_moved_m": 0.5
+    },
+    "S0-05": {
+        # D-224-S1 ruling 67 (2026-09-24): half of the 64 sampled cell centres of an entity box inside
+        # the frame's visible volume makes it should-be-visible (granularity 1/64, S2-01 ruling 60).
+        "shared.should_be_visible_min_ratio": 0.5
+    },
     "S1-04": {
         # D-224-S1 ruling 48 / S1-04 code review (2026-09-22): the ReID head's training values,
         # frozen at the proposed numbers before any training run.
@@ -520,11 +541,12 @@ class TestEveryContractValidates(unittest.TestCase):
             self.assertTrue(bits, stage)
             self.assertTrue(all(value is False for value in bits.values()), stage)
 
-    def test_every_registered_policy_value_is_still_null(self) -> None:
+    def test_every_open_policy_value_is_null_and_a_fully_frozen_contract_is_ledgered(self) -> None:
         for stage in CONTRACTS:
             contract = load(stage)
             paths = contract["policy_values_without_defaults"]
-            self.assertTrue(paths, stage)
+            if not paths:  # every registered slot froze (S0-01 by ruling 67): each must be in the ledger
+                self.assertEqual(set(registered_value_slots(stage)), set(FROZEN_VALUES[stage]), stage)
             for path in paths:
                 self.assertIsNone(lookup(contract, path), f"{stage}:{path}")
 
@@ -665,8 +687,9 @@ class TestSharedFacts(unittest.TestCase):
         self.assertNotIn(metric, {name for name, _direction in lean_teacher.MAIN_GATE})
 
     def test_the_shared_dormancy_and_visibility_values_are_registered_once_each(self) -> None:
-        self.assertIsNone(load("S0-01")["shared_dormancy"]["dormancy_missed_opportunity_limit"])
-        self.assertIsNone(load("S0-05")["shared"]["should_be_visible_min_ratio"])
+        # frozen by D-224-S1 ruling 67 (2026-09-24); each lives in exactly one contract and binds one constant
+        self.assertEqual(load("S0-01")["shared_dormancy"]["dormancy_missed_opportunity_limit"], lean_memory.DORMANCY_MISSED_OPPORTUNITY_LIMIT)
+        self.assertEqual(load("S0-05")["shared"]["should_be_visible_min_ratio"], lean_arms.SHOULD_BE_VISIBLE_MIN_RATIO)
         for stage in ("S0-02", "S0-03", "S0-04"):
             text = json.dumps(load(stage))
             self.assertNotIn("should_be_visible_min_ratio", text, stage)
@@ -1015,10 +1038,12 @@ class TestS201RunnerContractBindsItsUpstreams(unittest.TestCase):
     def test_the_runner_reads_its_policy_values_from_the_contracts_that_own_them(self) -> None:
         sources = self.contract["frame_step"]["policy_input_sources"]
         s0_01 = load("S0-01")
-        self.assertIn("dormancy_missed_opportunity_limit", s0_01["policy_values_without_defaults"])
-        self.assertTrue(all(f"shared_dedup.{name}" in s0_01["policy_values_without_defaults"]
+        # ruling 67 froze every value the runner reads; each is in the ledger and no longer listed as open
+        self.assertEqual(s0_01["policy_values_without_defaults"], [])
+        self.assertEqual(s0_01["shared_dormancy"]["dormancy_missed_opportunity_limit"], FROZEN_VALUES["S0-01"]["dormancy_missed_opportunity_limit"])
+        self.assertTrue(all(s0_01["shared_dedup"][name] == FROZEN_VALUES["S0-01"][f"shared_dedup.{name}"]
                             for name in ("period_ticks", "descriptor_cosine_min", "centroid_distance_max_m", "aabb_iou_min")))
-        self.assertIn("shared.should_be_visible_min_ratio", load("S0-05")["policy_values_without_defaults"])
+        self.assertEqual(load("S0-05")["shared"]["should_be_visible_min_ratio"], FROZEN_VALUES["S0-05"]["shared.should_be_visible_min_ratio"])
         self.assertTrue(sources["dormancy_missed_opportunity_limit"].startswith("S0-01"))
         self.assertTrue(sources["should_be_visible_min_ratio"].startswith("S0-05"))
         self.assertEqual(self.contract["policy_values_without_defaults"], [])
@@ -1066,8 +1091,9 @@ class TestS204EvaluationContractBindsItsUpstreams(unittest.TestCase):
         for name, path in (("dominance_min_share", "labels.fragment_dominance.dominance_min_share"),
                            ("delta_moved_m", "labels.existence.delta_moved_m")):
             self.assertTrue(sources[name].startswith("S0-04"))
-            self.assertIn(path, s0_04["policy_values_without_defaults"])
-        self.assertIn("shared.should_be_visible_min_ratio", load("S0-05")["policy_values_without_defaults"])
+            self.assertEqual(lookup(s0_04, path), FROZEN_VALUES["S0-04"][path])  # frozen by ruling 67
+            self.assertNotIn(path, s0_04["policy_values_without_defaults"])
+        self.assertEqual(load("S0-05")["shared"]["should_be_visible_min_ratio"], FROZEN_VALUES["S0-05"]["shared.should_be_visible_min_ratio"])
         self.assertEqual(registered_value_slots("S2-01"), ("entity_geometry.samples_per_axis",))
         self.assertEqual(s0_04["metrics"]["node_prf1"]["iou_min"], lean_teacher.IOU_MIN)
 

@@ -40,6 +40,7 @@ from vsmt.lean_arms import (  # noqa: E402
     INELIGIBLE_LOGIT,
     MAX_CONFIGS_PER_METHOD,
     NULL_POLICY_PATHS,
+    FROZEN_VALUES_BY_RULING,
     REACTIVATES_RETRACTED,
     RULINGS_DECISION_ID,
     SELECTION_METRIC,
@@ -563,13 +564,23 @@ class TestMachineContract(unittest.TestCase):
             self.assertEqual(str(caught.exception), f"contract_frozen_constant_mismatch:{path}")
 
     def test_policy_values_must_still_be_null(self) -> None:
-        self.assertEqual(len(NULL_POLICY_PATHS), 9)  # six v1 values plus the three rollout_config values (D-224-X X4)
+        # nine at v2 (six v1 values plus the three rollout_config values, D-224-X X4); the shared
+        # should-be-visible minimum was frozen by ruling 67 (2026-09-24)
+        self.assertEqual(len(NULL_POLICY_PATHS), 8)
         for path in NULL_POLICY_PATHS:
             broken = self._fresh()
             self._set(broken, path, 0.5)
             with self.assertRaises(LeanArmsError) as caught:
                 validate_arms_contract(broken)
             self.assertIn("must_be_null_before_freeze", str(caught.exception))
+
+    def test_the_ruling_67_value_is_bound(self) -> None:
+        self.assertEqual(FROZEN_VALUES_BY_RULING[0][:2], ("shared.should_be_visible_min_ratio", 0.5))
+        broken = self._fresh()
+        self._set(broken, "shared.should_be_visible_min_ratio", 0.25)
+        with self.assertRaises(LeanArmsError) as caught:
+            validate_arms_contract(broken)
+        self.assertEqual(str(caught.exception), "contract_frozen_value_mismatch:shared.should_be_visible_min_ratio")
 
     def test_vocabulary_and_grid_parameter_changes_are_rejected(self) -> None:
         broken = self._fresh()

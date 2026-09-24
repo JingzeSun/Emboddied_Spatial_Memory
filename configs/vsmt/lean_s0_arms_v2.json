@@ -29,8 +29,10 @@
     "all_arms_fill_the_same_cost_matrix_and_use_the_same_solver": true,
     "rule_arms_have_no_gradient": true,
     "existence_candidates_are_active_or_dormant_and_should_be_visible": true,
-    "should_be_visible_min_ratio": null,
-    "plain_language_zh": "五个臂与四组消融共用冻结前端、S0-03 召回与求解器、S0-01 执行器、共享去重与 dormancy 规则、S0-04 评价器；差别只在 logit 怎么来、存在决定怎么做。存在判定候选是 active 或 dormant、且本帧应可见比例不低于登记下限的未分配实体；这个下限五臂共享，因为它决定谁会累计错失次数、谁会休眠。下限待冻结，当前为 null。"
+    "should_be_visible_min_ratio": 0.5,
+    "should_be_visible_min_ratio_frozen_by": "D-224-S1 ruling 67",
+    "should_be_visible_min_ratio_frozen_on": "2026-09-24",
+    "plain_language_zh": "五个臂与四组消融共用冻结前端、S0-03 召回与求解器、S0-01 执行器、共享去重与 dormancy 规则、S0-04 评价器；差别只在 logit 怎么来、存在决定怎么做。存在判定候选是 active 或 dormant、且本帧应可见比例不低于登记下限的未分配实体；这个下限五臂共享，因为它决定谁会累计错失次数、谁会休眠。裁决 67（2026-09-24）冻结为 0.5：实体盒的 64 个采样格心过半落进本帧可见体积才算应可见。"
   },
   "cost_interface": {
     "logit_transform": "negative_logit_per_s0_03",
@@ -421,7 +423,6 @@
     "arms.VSMT-lean.training.main_table_round"
   ],
   "policy_values_without_defaults": [
-    "shared.should_be_visible_min_ratio",
     "arms.VSMT-lean.training.weight_decay",
     "arms.VSMT-lean.training.seeds",
     "arms.ELU-P.fitted.initial_log_odds",
@@ -438,7 +439,8 @@
     "U": "RAC does not reactivate retracted entities, following the DSG adapter",
     "V": "one configuration per method is selected on validation by node F1; main-gate metrics never select",
     "W": "should_be_visible_min_ratio stays a shared null value registered in S0-05",
-    "plain_language_zh": "五项口径由用户于 2026-09-20 以 D-224-SW 批准，全部按 LOG-218 的推荐口径执行；本合同的臂定义、网格参数名与常量即其机器形式。"
+    "plain_language_zh": "五项口径由用户于 2026-09-20 以 D-224-SW 批准，全部按 LOG-218 的推荐口径执行；本合同的臂定义、网格参数名与常量即其机器形式。",
+    "ruling_67": "D-224-S1 裁决 67（2026-09-24 批准，原话「S2-05 审过；裁决 67 八个值全按推荐。」）：shared.should_be_visible_min_ratio=0.5，绑定常量 SHOULD_BE_VISIBLE_MIN_RATIO，登记进跨合同台账；其余八个 null 值（weight_decay、seeds、ELU-P 三个拟合量与 rollout_config 三值）归裁决 68 与拟合趟。"
   },
   "continue_gate": {
     "every_method_grid_at_most_twelve_and_preregistered": true,

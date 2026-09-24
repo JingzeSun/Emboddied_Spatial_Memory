@@ -1478,11 +1478,18 @@ V2_RULING_KEYS = ("X1", "X2", "X5", "X6")
 
 #: Policy values that must still be null; each is a number the user freezes later.
 NULL_POLICY_PATHS = (
-    "labels.fragment_dominance.dominance_min_share",
-    "labels.existence.delta_moved_m",
     "statistics.bootstrap_seed",
     "statistics.main_gate_effect_size",
     "nuisance_probe.maximum_advantage",
+)
+
+#: D-224-S1 ruling 67 (2026-09-24): the two label values, frozen once.  Callers still pass them
+#: explicitly; the validator requires the contract to carry exactly these numbers.
+DOMINANCE_MIN_SHARE = 0.5
+DELTA_MOVED_M = 0.5
+FROZEN_VALUES_BY_RULING = (
+    ("labels.fragment_dominance.dominance_min_share", DOMINANCE_MIN_SHARE, "D-224-S1 ruling 67"),
+    ("labels.existence.delta_moved_m", DELTA_MOVED_M, "D-224-S1 ruling 67"),
 )
 
 #: Constants already frozen by an approved decision; the validator binds their values.
@@ -1611,6 +1618,8 @@ def validate_teacher_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
         tuple(contract.get("policy_values_without_defaults", ())) == NULL_POLICY_PATHS,
         "contract_policy_value_list_mismatch",
     )
+    for path, expected_value, _ruling in FROZEN_VALUES_BY_RULING:
+        _require(_lookup(contract, path) == expected_value, f"contract_frozen_value_mismatch:{path}")
     return clone_json(dict(contract))
 
 

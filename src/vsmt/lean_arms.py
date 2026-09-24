@@ -739,8 +739,13 @@ EXPECTED_BOOLEAN_CLAIMS.update({
 })
 
 #: Policy values that must still be null.
+#: D-224-S1 ruling 67 (2026-09-24): the shared should-be-visible minimum, frozen once for every arm.
+SHOULD_BE_VISIBLE_MIN_RATIO = 0.5
+FROZEN_VALUES_BY_RULING = (
+    ("shared.should_be_visible_min_ratio", SHOULD_BE_VISIBLE_MIN_RATIO, "D-224-S1 ruling 67"),
+)
+
 NULL_POLICY_PATHS = (
-    "shared.should_be_visible_min_ratio",
     "arms.VSMT-lean.training.weight_decay",
     "arms.VSMT-lean.training.seeds",
     "arms.ELU-P.fitted.initial_log_odds",
@@ -878,6 +883,8 @@ def validate_arms_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
         tuple(contract.get("policy_values_without_defaults", ())) == NULL_POLICY_PATHS,
         "contract_policy_value_list_mismatch",
     )
+    for path, expected_value, _ruling in FROZEN_VALUES_BY_RULING:
+        _require(_lookup(contract, path) == expected_value, f"contract_frozen_value_mismatch:{path}")
     return clone_json(dict(contract))
 
 

@@ -39,6 +39,7 @@ from vsmt.lean_teacher import (  # noqa: E402
     METRIC_FIELDS,
     METRIC_NOT_APPLICABLE_RULE,
     NULL_POLICY_PATHS,
+    FROZEN_VALUES_BY_RULING,
     NUISANCE_FIELDS,
     RULINGS_DECISION_ID,
     LeanTeacherError,
@@ -1056,13 +1057,24 @@ class TestMachineContract(unittest.TestCase):
         self.assertEqual(IOU_MIN, 0.3)
 
     def test_policy_values_must_still_be_null(self) -> None:
-        self.assertEqual(len(NULL_POLICY_PATHS), 5)
+        self.assertEqual(len(NULL_POLICY_PATHS), 3)  # dominance_min_share and delta_moved_m were frozen by ruling 67
         for path in NULL_POLICY_PATHS:
             broken = self._fresh()
             self._set(broken, path, 0.5)
             with self.assertRaises(LeanTeacherError) as caught:
                 validate_teacher_contract(broken)
             self.assertIn("must_be_null_before_freeze", str(caught.exception))
+
+    def test_the_ruling_67_values_are_bound(self) -> None:
+        self.assertEqual([path for path, _v, _r in FROZEN_VALUES_BY_RULING],
+                         ["labels.fragment_dominance.dominance_min_share", "labels.existence.delta_moved_m"])
+        for path, value, _ruling in FROZEN_VALUES_BY_RULING:
+            self.assertEqual(self._get(self._fresh(), path) if hasattr(self, "_get") else value, value)
+            broken = self._fresh()
+            self._set(broken, path, value + 0.1)
+            with self.assertRaises(LeanTeacherError) as caught:
+                validate_teacher_contract(broken)
+            self.assertEqual(str(caught.exception), f"contract_frozen_value_mismatch:{path}")
 
     def test_changing_the_candidate_or_present_state_sets_is_rejected(self) -> None:
         broken = self._fresh()

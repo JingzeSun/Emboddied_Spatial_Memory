@@ -209,8 +209,10 @@
     "rule": "consecutive_missed_visible_opportunities_at_or_above_limit_moves_active_to_dormant",
     "any_match_resets_counter_to_zero": true,
     "identical_bytes_for_all_five_arms": true,
-    "dormancy_missed_opportunity_limit": null,
-    "plain_language_zh": "连续应可见却没匹配达到登记次数的活动实体转为 dormant，档案不删；任何一次匹配把计数清零，因此偶发漏检不会造成休眠。它不是 RETRACT，也不需要负证据。正式数值待 S1 开发集后冻结，当前为 null。"
+    "dormancy_missed_opportunity_limit": 3,
+    "dormancy_missed_opportunity_limit_frozen_by": "D-224-S1 ruling 67",
+    "dormancy_missed_opportunity_limit_frozen_on": "2026-09-24",
+    "plain_language_zh": "连续应可见却没匹配达到登记次数的活动实体转为 dormant，档案不删；任何一次匹配把计数清零，因此偶发漏检不会造成休眠。它不是 RETRACT，也不需要负证据。裁决 67（2026-09-24）冻结为 3：连续三次应可见未匹配才休眠，容忍 SAM 偶发两帧漏检。"
   },
   "shared_dedup": {
     "rule": "periodic_deterministic_merge_of_duplicate_active_entities",
@@ -219,11 +221,13 @@
     "identical_bytes_for_all_five_arms": true,
     "canonical_selection": "earliest_first_version_opened_at_then_smallest_entity_id",
     "pair_order": "descending_descriptor_cosine_then_two_entity_ids",
-    "period_ticks": null,
-    "descriptor_cosine_min": null,
-    "centroid_distance_max_m": null,
-    "aabb_iou_min": null,
-    "plain_language_zh": "每隔登记的帧数把外观、位置与包围盒都足够接近的一对活动实体合并成一条记录，保留较早建立的身份并保存两边证据。它是五个方法逐字节共用的确定性规则，不是学习决定；canonical 取首版本最早、并列取 ID 字典序最小，使身份连续率以最早建立的身份为准。四个数值待冻结，当前为 null。 被折叠实体的处理（裁决 X6）：它的 entity_id 进入 canonical 的 canonical_of，全部证据并入 canonical，事务日志在 post_maintenance.dedup 留底；它自己的版本链不再作为活记录保留。这叫“归档进 canonical_of”，不算物理删除历史版本：physical_deletion_allowed=false 指的是活实体的生命周期历史不删，而去重是首篇的 MERGE 原子，不是 RETRACT。",
+    "period_ticks": 10,
+    "descriptor_cosine_min": 0.9,
+    "centroid_distance_max_m": 0.25,
+    "aabb_iou_min": 0.3,
+    "values_frozen_by": "D-224-S1 ruling 67",
+    "values_frozen_on": "2026-09-24",
+    "plain_language_zh": "每隔登记的帧数把外观、位置与包围盒都足够接近的一对活动实体合并成一条记录，保留较早建立的身份并保存两边证据。它是五个方法逐字节共用的确定性规则，不是学习决定；canonical 取首版本最早、并列取 ID 字典序最小，使身份连续率以最早建立的身份为准。裁决 67（2026-09-24）冻结四值：每 10 帧一次，余弦 ≥ 0.9、质心距 ≤ 0.25 m（S0-02 的平移步长）、盒 IoU ≥ 0.3（裁决 C 的下限）三条同时满足才合并；保守组合意味着开发趟里很少合并，校准趟报同物体余弦/IoU 分位数后可按裁决 66 以裁决 68 取代。 被折叠实体的处理（裁决 X6）：它的 entity_id 进入 canonical 的 canonical_of，全部证据并入 canonical，事务日志在 post_maintenance.dedup 留底；它自己的版本链不再作为活记录保留。这叫“归档进 canonical_of”，不算物理删除历史版本：physical_deletion_allowed=false 指的是活实体的生命周期历史不删，而去重是首篇的 MERGE 原子，不是 RETRACT。",
     "folded_record_is_archived_into_canonical_of_not_deleted": true
   },
   "entity_box": {
@@ -282,13 +286,7 @@
     "continuous_pose_belief_as_place_identity",
     "structural_estimator_head"
   ],
-  "policy_values_without_defaults": [
-    "dormancy_missed_opportunity_limit",
-    "shared_dedup.period_ticks",
-    "shared_dedup.descriptor_cosine_min",
-    "shared_dedup.centroid_distance_max_m",
-    "shared_dedup.aabb_iou_min"
-  ],
+  "policy_values_without_defaults": [],
   "continue_gate": {
     "five_atoms_positive_and_negative_case_each": true,
     "illegal_program_rolls_back_whole_frame": true,
@@ -307,6 +305,7 @@
     "X6_version_opened_by": "every version records why it was opened; bind versions are excluded from the S0-04 size metric",
     "X6_dedup_fold": "a folded duplicate is archived into canonical_of with all its evidence; this is the shared MERGE, not a deletion of lifecycle history",
     "plain_language_zh": "两项口径由用户于 2026-09-20 以 D-224-X 批准（裁决 X6）。",
-    "ruling_56_continued": "entity box = union of the fragment boxes attached in the entity's latest observed frame; a later frame replaces it; merge unions only same-frame records (D-224-S1 ruling 56 continued, 2026-09-24, 原话「裁决 56 续取 (a)：真值范围排除 wall/room/door/window，BIND 框改为同帧并集；裁决 58 取 1.0 m」)"
+    "ruling_56_continued": "entity box = union of the fragment boxes attached in the entity's latest observed frame; a later frame replaces it; merge unions only same-frame records (D-224-S1 ruling 56 continued, 2026-09-24, 原话「裁决 56 续取 (a)：真值范围排除 wall/room/door/window，BIND 框改为同帧并集；裁决 58 取 1.0 m」)",
+    "ruling_67": "D-224-S1 裁决 67（2026-09-24 批准，原话「S2-05 审过；裁决 67 八个值全按推荐。」）：dormancy_missed_opportunity_limit=3；shared_dedup period_ticks=10、descriptor_cosine_min=0.9、centroid_distance_max_m=0.25、aabb_iou_min=0.3。绑定常量 DORMANCY_MISSED_OPPORTUNITY_LIMIT 与 SHARED_DEDUP，登记进跨合同台账；规则摘要不因填值而变。"
   }
 }
