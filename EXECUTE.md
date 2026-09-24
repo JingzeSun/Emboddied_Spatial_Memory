@@ -4,7 +4,7 @@
 
 ## 当前看板
 
-**2026-09-24 最新状态：S2-01～S2-03 经用户审查通过，裁决 59～63 与臂状态回滚已落地（LOG-248）——`samples_per_axis`=4、S2-01 授权位改 `activation_policy` 机制（规则摘要 `e1060695…` → `09fc1a4a…`）、`fit_match_gain` 拒绝非正增益、METHOD 参数数改 54,207；服务器全量待下次同步；**下一步 S2-04**。此前：S2-02 与 S2-03 已实现（LOG-247，服务器全量 `4df7f3c` 1552/1552）；S2-01 共同 runner 已实现待审（LOG-246，服务器全量 `6deb8b6` 1533/1533）——`lean_runner.py`、合同 `lean_s2_01_runner_v1.json`（首钉 `e1060695…`）、单 episode 入口与 21 项测试；待裁 60（几何采样分辨率，推荐 4）；S1-05 已按裁决 47 机械收口（LOG-245）——选定 `reid_projection:vitb14`，冻结 ViT-B/14 为并列基线；待裁 59（选择组 9/12，推荐维持）。下一步 S2-02／S2-03。** S1 不重做；召回四值、匹配口径与描述子全部冻结；按 D-059 本次改动待用户审。上一暂停点：S0 修订（裁决 56 续／57／58，`6699a19`）已由用户审过并授权进入 S2（LOG-244 续二）。
+**2026-09-24 最新状态：S2-01～S2-03 经用户审查通过，裁决 59～63 与臂状态回滚已落地（LOG-248）——`samples_per_axis`=4、S2-01 授权位改 `activation_policy` 机制（规则摘要 `e1060695…` → `09fc1a4a…`）、`fit_match_gain` 拒绝非正增益、METHOD 参数数改 54,207；服务器全量 `2533f5d` **1554/1554**（LOG-248 续）；**下一步 S2-04**。此前：S2-02 与 S2-03 已实现（LOG-247，服务器全量 `4df7f3c` 1552/1552）；S2-01 共同 runner 已实现待审（LOG-246，服务器全量 `6deb8b6` 1533/1533）——`lean_runner.py`、合同 `lean_s2_01_runner_v1.json`（首钉 `e1060695…`）、单 episode 入口与 21 项测试；待裁 60（几何采样分辨率，推荐 4）；S1-05 已按裁决 47 机械收口（LOG-245）——选定 `reid_projection:vitb14`，冻结 ViT-B/14 为并列基线；待裁 59（选择组 9/12，推荐维持）。下一步 S2-02／S2-03。** S1 不重做；召回四值、匹配口径与描述子全部冻结；按 D-059 本次改动待用户审。上一暂停点：S0 修订（裁决 56 续／57／58，`6699a19`）已由用户审过并授权进入 S2（LOG-244 续二）。
 
 | 事项 | 已知事实 |
 |---|---|
@@ -3891,3 +3891,7 @@ move 仍要两个 U 容器、add 仍要过 dry-run，成品率不会等于这些
 - **接口要求（写进 PLAN S2-04 行）**：存在标签只对 runner 的可判定行生成（active／dormant 且应可见比例 ≥ S0-05 `should_be_visible_min_ratio` 的未分配实体），与部署时存在头被询问的行一致，该下限须先冻结。**S2-05 前的检查**：服务器 39 份 S1-04 几何回执的 `objects_without_box`（在场、范围内、无盒的物体会让 `TruthTableBuilder` 整条 episode 失败），本地导出报告没有这个计数。
 - **测试**：本机分进程 runner 23（＋2）、controls 8、model 11、cross-contract 65、arms 44 全部通过。本机全量合跑一次在约 225 项后段错误（exit 139），与本机已知 CPU 故障一致（LOG-225 起多次记录），不作为证据。 服务器全量随下次同步再跑（本会话没有服务器口令）。
 - **本节不做的事**：不开授权位；不生成标签；不跑任何 episode；S2-04 按用户"修完再开"从下一步开始。
+### LOG-248 续：服务器全量通过 1554/1554（2026-09-24 18:56 CST）
+
+- **同步与全量**：服务器 `/root/Emboddied_Spatial_Memory` 从 `4df7f3c` 无未跟踪文件地 `git checkout --detach 2533f5d`（当时负载 9.3，GPU 空闲，数据盘 24 GB 可用，只有 jupyter／tensorboard 常驻进程）。`PYTHONPATH=src /root/miniconda3/bin/python3.12 -m unittest discover -s tests -t tests -p "test_*.py"`：**1554 项全部通过，退出 0，99.7 s**（`4df7f3c` 的 1552 项加 LOG-248 新增的 2 项 runner 测试），日志 `/root/autodl-tmp/vsmt_outputs/run_logs/suite-2533f5d.log`。本机全量合跑的段错误（LOG-248）由此确认是本机问题。
+- 服务器 checkout 停在 `2533f5d`；没有跑任何 episode，授权位未动。S2-01～S2-03 的审查修正至此有了权威测试证据，S2-04 可以开始。
