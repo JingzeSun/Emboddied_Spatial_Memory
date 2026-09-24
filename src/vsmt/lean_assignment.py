@@ -83,17 +83,15 @@ def cosine_matrix(left_rows: Sequence[Sequence[float]], right_rows: Sequence[Seq
     a = np.asarray(left, dtype=np.float64)
     b = np.asarray(right, dtype=np.float64)
     dot = _NeumaierSum((a.shape[0], b.shape[0]))
-    left_norm = _NeumaierSum((a.shape[0],))
-    right_norm = _NeumaierSum((b.shape[0],))
     for k in range(a.shape[1]):
-        column_a = a[:, k]
-        column_b = b[:, k]
-        dot.add(column_a[:, None] * column_b[None, :])
-        left_norm.add(column_a ** 2)
-        right_norm.add(column_b ** 2)
+        dot.add(a[:, k][:, None] * b[:, k][None, :])
     dot = dot.result()
-    left_norm = np.sqrt(left_norm.result())
-    right_norm = np.sqrt(right_norm.result())
+    # The norms stay on the scalar path: ``value ** 2`` is the C library's pow(x, 2.0), which glibc
+    # rounds within 0.52 ULP but not always to x*x, so a vectorised square differed from the scalar
+    # function by one ULP on a few real descriptors (server check, LOG-254).  One norm per vector
+    # is cheap; the fragment-by-entity products are what the matrix form is for.
+    left_norm = np.asarray([math.sqrt(sum(float(value) ** 2 for value in row)) for row in left], dtype=np.float64)
+    right_norm = np.asarray([math.sqrt(sum(float(value) ** 2 for value in row)) for row in right], dtype=np.float64)
     denominator = left_norm[:, None] * right_norm[None, :]
     with np.errstate(divide="ignore", invalid="ignore"):
         ratio = np.clip(dot / denominator, -1.0, 1.0)
