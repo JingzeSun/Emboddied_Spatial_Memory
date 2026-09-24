@@ -31,10 +31,74 @@ import hashlib
 import math
 from typing import Any, Mapping, Sequence
 
+import numpy as np
+
 from cpmt.hashing import canonical_json, clone_json
 
 from vsmt.lean_geometry import cosine_similarity
 from vsmt.lean_memory import ENTITY_STATES, validate_memory
+
+
+class _NeumaierSum:
+    """Element-wise replica of CPython 3.12's ``sum()`` over floats (Neumaier compensated summation).
+
+    ``sum(generator)`` no longer adds left to right: since Python 3.12 it keeps a compensation term
+    ``c`` and adds it once at the end.  To equal the scalar function bit for bit, the matrix form
+    runs the same three operations per term, on arrays of partial sums.
+    """
+
+    def __init__(self, shape: tuple[int, ...]) -> None:
+        self.total = np.zeros(shape, dtype=np.float64)
+        self.compensation = np.zeros(shape, dtype=np.float64)
+
+    def add(self, term: np.ndarray) -> None:
+        running = self.total + term
+        dominant = np.abs(self.total) >= np.abs(term)
+        self.compensation += np.where(dominant, (self.total - running) + term, (term - running) + self.total)
+        self.total = running
+
+    def result(self) -> np.ndarray:
+        # CPython adds the compensation only when it is non-zero (and finite), which also keeps -0.0
+        return np.where(self.compensation != 0.0, self.total + self.compensation, self.total)
+
+
+def cosine_matrix(left_rows: Sequence[Sequence[float]], right_rows: Sequence[Sequence[float]]) -> list[list[float]]:
+    """Cosine of every left row against every right row, bit-identical to ``cosine_similarity``.
+
+    Engineering (S2-05 profiling, LOG-254): the scalar function was called once per (fragment,
+    entity) pair in pure Python and took an eighth of the per-frame time.  This does the same
+    arithmetic in the same order on whole rows -- the products summed left to right from zero,
+    the norms as the square root of the same sums of squares, one division, one clip -- so every
+    cell equals the scalar result to the last bit (pinned by test).  Rows of unequal width fall
+    back to the scalar function so the -1.0 convention is kept.
+    """
+
+    left = [[float(v) for v in row] for row in left_rows]
+    right = [[float(v) for v in row] for row in right_rows]
+    if not left or not right:
+        return [[-1.0] * len(right) for _ in left]
+    widths = {len(row) for row in left} | {len(row) for row in right}
+    if len(widths) != 1 or 0 in widths:
+        return [[cosine_similarity(a, b) for b in right] for a in left]
+    a = np.asarray(left, dtype=np.float64)
+    b = np.asarray(right, dtype=np.float64)
+    dot = _NeumaierSum((a.shape[0], b.shape[0]))
+    left_norm = _NeumaierSum((a.shape[0],))
+    right_norm = _NeumaierSum((b.shape[0],))
+    for k in range(a.shape[1]):
+        column_a = a[:, k]
+        column_b = b[:, k]
+        dot.add(column_a[:, None] * column_b[None, :])
+        left_norm.add(column_a ** 2)
+        right_norm.add(column_b ** 2)
+    dot = dot.result()
+    left_norm = np.sqrt(left_norm.result())
+    right_norm = np.sqrt(right_norm.result())
+    denominator = left_norm[:, None] * right_norm[None, :]
+    with np.errstate(divide="ignore", invalid="ignore"):
+        ratio = np.clip(dot / denominator, -1.0, 1.0)
+    zero = (left_norm[:, None] == 0.0) | (right_norm[None, :] == 0.0)
+    return np.where(zero, -1.0, ratio).tolist()
 
 
 CONTRACT_SCHEMA_VERSION = "vsmt-lean-s0-assignment-v2"
@@ -293,6 +357,7 @@ def validate_cache_frame(frame: Mapping[str, Any]) -> dict[str, Any]:
 def recall_for_fragment(
     fragment: Mapping[str, Any], memory: Mapping[str, Any], *,
     local_count: int, global_count: int, local_radius_m: float,
+    cosines: Mapping[str, float] | None = None,
 ) -> list[str]:
     """Return the recalled entity ids for one fragment, in a fixed order.
 
@@ -327,7 +392,8 @@ def recall_for_fragment(
     everywhere: list[tuple[float, str]] = []
     for entity in memory["entities"]:
         entity_id = str(entity["entity_id"])
-        cosine = cosine_similarity(descriptor, entity["descriptor_mean"])
+        # ``cosines`` is the precomputed row of cosine_matrix (bit-identical); absent, compute as before
+        cosine = cosines[entity_id] if cosines is not None else cosine_similarity(descriptor, entity["descriptor_mean"])
         everywhere.append((cosine, entity_id))
         if _distance(centroid, entity["centroid_m"]) <= radius:
             local.append((cosine, entity_id))
@@ -346,6 +412,7 @@ def recall_for_fragment(
 def build_recall(
     frame: Mapping[str, Any], memory: Mapping[str, Any], *,
     local_count: int, global_count: int, local_radius_m: float,
+    cosine_rows: Mapping[str, Mapping[str, float]] | None = None,
 ) -> dict[str, list[str]]:
     """Recall for every fragment of the frame, keyed by fragment id."""
 
@@ -353,6 +420,7 @@ def build_recall(
         str(fragment["fragment_id"]): recall_for_fragment(
             fragment, memory, local_count=local_count,
             global_count=global_count, local_radius_m=local_radius_m,
+            cosines=None if cosine_rows is None else cosine_rows[str(fragment["fragment_id"])],
         )
         for fragment in frame["fragments"]
     }
@@ -369,9 +437,13 @@ def _state_one_hot(state: str) -> list[float]:
 def association_feature_vector(
     fragment: Mapping[str, Any], entity: Mapping[str, Any], *,
     recall_order: Sequence[str], cosines: Mapping[str, float],
-    mutual_best: bool, tick: int,
+    mutual_best: bool, tick: int, best_view_cosine: float | None = None,
 ) -> list[float]:
-    """One association feature row, in the frozen ASSOCIATION_FEATURES order."""
+    """One association feature row, in the frozen ASSOCIATION_FEATURES order.
+
+    ``best_view_cosine`` is the precomputed (bit-identical) cosine to the entity's best-view
+    descriptor from ``cosine_matrix``; absent, it is computed here as before.
+    """
 
     entity_id = str(entity["entity_id"])
     cosine = cosines[entity_id]
@@ -391,7 +463,8 @@ def association_feature_vector(
 
     row = [
         cosine,
-        cosine_similarity(fragment["descriptor"], entity["best_view_descriptor"]),
+        (cosine_similarity(fragment["descriptor"], entity["best_view_descriptor"])
+         if best_view_cosine is None else float(best_view_cosine)),
         _distance(fragment["centroid_m"], entity["centroid_m"]),
         _aabb_iou(
             fragment["aabb_min_m"], fragment["aabb_max_m"],
@@ -446,6 +519,7 @@ def birth_feature_vector(
 def existence_feature_vector(
     entity: Mapping[str, Any], frame: Mapping[str, Any], *,
     assignment: Mapping[str, str], tick: int,
+    fragment_cosines: Mapping[str, float] | None = None,
 ) -> list[float]:
     """One existence feature row, computed after the solve.
 
@@ -477,10 +551,10 @@ def existence_feature_vector(
     best_cosine = -1.0
     best_fragment_id = ""
     for fragment in frame["fragments"]:
-        cosine = cosine_similarity(
-            fragment["descriptor"], entity["descriptor_mean"],
-        )
         candidate = str(fragment["fragment_id"])
+        # ``fragment_cosines`` is the precomputed column of cosine_matrix (bit-identical); absent, compute as before
+        cosine = (fragment_cosines[candidate] if fragment_cosines is not None
+                  else cosine_similarity(fragment["descriptor"], entity["descriptor_mean"]))
         if best_fragment_id == "" or (-cosine, candidate) < (
             -best_cosine, best_fragment_id
         ):
@@ -537,21 +611,28 @@ def build_assignment_inputs(
                 "frame_descriptor_width_differs_from_memory",
             )
 
+    # The two cosine tables of the frame, computed once as matrices (bit-identical to the
+    # per-pair scalar function; see cosine_matrix) and threaded through recall and the rows.
+    entity_ids = [str(entity["entity_id"]) for entity in checked_memory["entities"]]
+    fragment_descriptors = [fragment["descriptor"] for fragment in checked_frame["fragments"]]
+    mean_matrix = cosine_matrix(fragment_descriptors, [entity["descriptor_mean"] for entity in checked_memory["entities"]])
+    best_view_matrix = cosine_matrix(fragment_descriptors, [entity["best_view_descriptor"] for entity in checked_memory["entities"]])
+    all_cosines: dict[str, dict[str, float]] = {}
+    best_view_cosines: dict[str, dict[str, float]] = {}
+    for index, fragment in enumerate(checked_frame["fragments"]):
+        fragment_id = str(fragment["fragment_id"])
+        all_cosines[fragment_id] = dict(zip(entity_ids, mean_matrix[index]))
+        best_view_cosines[fragment_id] = dict(zip(entity_ids, best_view_matrix[index]))
+
     recall = build_recall(
         checked_frame, checked_memory, local_count=local_count,
         global_count=global_count, local_radius_m=local_radius_m,
+        cosine_rows=all_cosines,
     )
 
     cosines: dict[str, dict[str, float]] = {}
-    all_cosines: dict[str, dict[str, float]] = {}
     for fragment in checked_frame["fragments"]:
         fragment_id = str(fragment["fragment_id"])
-        all_cosines[fragment_id] = {
-            str(entity["entity_id"]): cosine_similarity(
-                fragment["descriptor"], entity["descriptor_mean"],
-            )
-            for entity in checked_memory["entities"]
-        }
         cosines[fragment_id] = {
             entity_id: all_cosines[fragment_id][entity_id]
             for entity_id in recall[fragment_id]
@@ -595,6 +676,7 @@ def build_assignment_inputs(
                         and best_for_entity.get(entity_id, (0.0, ""))[1] == fragment_id
                     ),
                     tick=tick,
+                    best_view_cosine=best_view_cosines[fragment_id][entity_id],
                 ),
             })
         birth_rows.append({
@@ -1025,6 +1107,12 @@ def seal_solution_and_existence(
         if not str(value).startswith(BIRTH_COLUMN_PREFIX)
     }
 
+    # one cosine matrix for the frame (entities x fragments), bit-identical to the scalar calls
+    fragment_ids = [str(fragment["fragment_id"]) for fragment in checked_frame["fragments"]]
+    entity_rows = cosine_matrix([entity["descriptor_mean"] for entity in checked_memory["entities"]],
+                                [fragment["descriptor"] for fragment in checked_frame["fragments"]])
+    cosine_by_entity = {str(entity["entity_id"]): dict(zip(fragment_ids, row))
+                        for entity, row in zip(checked_memory["entities"], entity_rows)}
     existence_rows: list[dict[str, Any]] = []
     for entity in sorted(
         checked_memory["entities"], key=lambda item: str(item["entity_id"]),
@@ -1036,6 +1124,7 @@ def seal_solution_and_existence(
             "entity_id": entity_id,
             "features": existence_feature_vector(
                 entity, checked_frame, assignment=assignment, tick=tick,
+                fragment_cosines=cosine_by_entity[entity_id],
             ),
         })
 
@@ -1330,6 +1419,7 @@ __all__ = [
     "build_assignment_inputs",
     "build_cost_matrix",
     "build_recall",
+    "cosine_matrix",
     "existence_feature_vector",
     "recall_for_fragment",
     "reference_untrained_scores",

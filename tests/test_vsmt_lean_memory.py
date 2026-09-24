@@ -136,6 +136,27 @@ class TestEmptyMemory(unittest.TestCase):
         )
 
 
+class TestValidationCache(unittest.TestCase):
+    """Engineering (LOG-254): a memory object validated once is not walked again while its digest stands."""
+
+    def test_the_same_sealed_object_validates_to_an_equal_copy_and_a_tampered_copy_is_refused(self) -> None:
+        memory = empty_memory(episode_id="ep-cache")
+        first = validate_memory(memory)
+        second = validate_memory(memory)  # cache hit: same object, same digest
+        self.assertEqual(first, second)
+        self.assertIsNot(first, second)
+        self.assertIsNot(second["entities"], memory["entities"])
+        tampered = json.loads(json.dumps(memory))
+        tampered["tick"] = 5  # a different object: validated in full and refused
+        with self.assertRaises(LeanMemoryError):
+            validate_memory(tampered)
+        resealed = json.loads(json.dumps(memory))
+        resealed["memory_digest"] = "0" * 64
+        with self.assertRaises(LeanMemoryError) as caught:
+            validate_memory(resealed)
+        self.assertEqual(str(caught.exception), "memory_digest_mismatch")
+
+
 class TestBirth(unittest.TestCase):
     def test_birth_creates_one_active_entity_with_one_open_version(self) -> None:
         memory, entity_id = born_memory()

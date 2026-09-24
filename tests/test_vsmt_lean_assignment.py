@@ -50,9 +50,31 @@ from vsmt.lean_assignment import (  # noqa: E402
     validate_cache_frame,
 )
 from vsmt.lean_memory import apply_program, empty_memory  # noqa: E402
+from vsmt.lean_assignment import cosine_matrix  # noqa: E402
+from vsmt.lean_geometry import cosine_similarity  # noqa: E402
 
 
 CONTRACT_PATH = PROJECT_ROOT / "configs" / "vsmt" / "lean_s0_assignment_v2.json"
+
+
+class TestCosineMatrix(unittest.TestCase):
+    """Engineering (LOG-254): the matrix form must equal the scalar function to the last bit."""
+
+    def test_every_cell_equals_the_scalar_function_bitwise(self) -> None:
+        import random
+
+        rng = random.Random(20260925)
+        for width in (2, 7, 128):
+            left = [[rng.gauss(0.0, 1.0) for _ in range(width)] for _ in range(23)]
+            right = [[rng.gauss(0.0, 1.0) for _ in range(width)] for _ in range(31)]
+            left.append([0.0] * width)  # a zero vector scores -1.0 against everything
+            matrix = cosine_matrix(left, right)
+            for i, a in enumerate(left):
+                for j, b in enumerate(right):
+                    self.assertEqual(matrix[i][j], cosine_similarity(a, b), (width, i, j))
+        self.assertEqual(cosine_matrix([], [[1.0, 0.0]]), [])
+        self.assertEqual(cosine_matrix([[1.0, 0.0]], []), [[]])
+        self.assertEqual(cosine_matrix([[1.0, 0.0]], [[1.0, 0.0, 0.0]]), [[-1.0]])  # width mismatch keeps the -1.0 convention
 
 RECALL = {"local_count": 3, "global_count": 2, "local_radius_m": 2.0}
 BIRTH_RADIUS = 1.0

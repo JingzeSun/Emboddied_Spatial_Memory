@@ -207,6 +207,46 @@ class EntityGeometryTests(unittest.TestCase):
             self.assertTrue(0.0 <= value["should_be_visible_ratio"] <= 1.0)
             self.assertAlmostEqual(value["should_be_visible_ratio"] * 64, round(value["should_be_visible_ratio"] * 64))
 
+    def test_the_block_prefilter_changes_no_ratio(self) -> None:
+        # Engineering (LOG-254): block_aabbs lets entity_geometry skip blocks that cannot meet the entity
+        # box; the ratios must equal the brute force over every block to the last bit, on rotated blocks too
+        rng = np.random.default_rng(11)
+
+        def rotated(block, angle, axis, shift):
+            axis = axis / np.linalg.norm(axis)
+            k = np.array([[0, -axis[2], axis[1]], [axis[2], 0, -axis[0]], [-axis[1], axis[0], 0]])
+            rotation = np.eye(3) + np.sin(angle) * k + (1 - np.cos(angle)) * (k @ k)
+            planes = []
+            for plane in block["halfspaces_world"]:
+                normal = rotation @ np.asarray(plane["normal"])
+                planes.append({"normal": [float(v) for v in normal], "offset_m": float(plane["offset_m"] + normal @ shift)})
+            return {**block, "halfspaces_world": planes}
+
+        blocks = []
+        for i in range(30):
+            lo = rng.random(3) * 3.0
+            box = box_block(list(lo), list(lo + rng.random(3) * 0.8 + 0.05), ordinal=i, kind="visibility")
+            blocks.append(rotated(box, float(rng.random() * 3.0), rng.normal(size=3), rng.normal(size=3) * 0.5))
+        lower, upper = lr.block_aabbs(*lr._blocks(blocks))
+        self.assertEqual(lower.shape, (30, 3))
+        self.assertTrue(np.all(np.isfinite(lower)) and np.all(lower < upper))
+        unit = box_block([0.0, 0.0, 0.0], [1.0, 1.0, 1.0], ordinal=0, kind="visibility")
+        lo1, hi1 = lr.block_aabbs(*lr._blocks([unit]))
+        self.assertTrue(np.allclose(lo1, -lr.BLOCK_AABB_MARGIN_M) and np.allclose(hi1, 1.0 + lr.BLOCK_AABB_MARGIN_M))
+        entities = [self.entity(list(lo), list(lo + rng.random(3) * 0.6 + 0.02), entity_id=f"entity:{i}") for i, lo in enumerate(rng.random((40, 3)) * 3.5)]
+        frame = cache_frame(1, [], visibility=blocks, free_space=blocks[:7])
+        filtered = lr.entity_geometry({"entities": entities}, frame, samples_per_axis=4)
+        normals, offsets = lr._blocks(blocks)
+        free_normals, free_offsets = lr._blocks(blocks[:7])
+        hits = 0
+        for entity in entities:
+            points = lr.sample_points(entity["aabb_min_m"], entity["aabb_max_m"], samples_per_axis=4)
+            brute = {"should_be_visible_ratio": lr.inside_union_fraction(points, normals, offsets),
+                     "free_space_coverage_ratio": lr.inside_union_fraction(points, free_normals, free_offsets)}
+            self.assertEqual(filtered[entity["entity_id"]], brute, entity["entity_id"])
+            hits += brute["should_be_visible_ratio"] > 0.0
+        self.assertGreaterEqual(hits, 3)  # the scene is dense enough that the comparison is not vacuous
+
     def test_the_public_phase_takes_no_private_input(self) -> None:
         for function in (lr.entity_geometry, lr.assignment_frame, lr.run_frame, lr.run_episode):
             names = " ".join(inspect.signature(function).parameters)

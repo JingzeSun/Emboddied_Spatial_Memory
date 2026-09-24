@@ -197,6 +197,42 @@ def sample_points(lower: Sequence[float], upper: Sequence[float], *, samples_per
     return grid
 
 
+_PLANE_TRIPLES = np.asarray([(a, b, c) for a in range(6) for b in range(a + 1, 6) for c in range(b + 1, 6)])
+BLOCK_AABB_MARGIN_M = 1e-6
+
+
+def block_aabbs(normals: np.ndarray, offsets: np.ndarray, *, margin: float = BLOCK_AABB_MARGIN_M) -> tuple[np.ndarray, np.ndarray]:
+    """Axis-aligned bounds of every convex six-plane block, from its feasible plane-triple vertices, padded by ``margin``.
+
+    Engineering (S2-05 profiling, LOG-254): testing every sample point of every entity against every
+    block of the frame took a fifth of the per-frame time.  A block is the convex hull of its
+    vertices, so a point inside it (within the 1e-9 m tolerance) lies inside the block's exact
+    bounding box padded by far less than the margin; ``entity_geometry`` therefore tests only the
+    blocks whose padded box meets the entity box and gets the same ratio to the last bit.  A block
+    without four feasible vertices is left unbounded (no filtering) so the fallback is always safe.
+    """
+
+    count = int(normals.shape[0])
+    if count == 0:
+        return np.zeros((0, 3)), np.zeros((0, 3))
+    matrices = normals[:, _PLANE_TRIPLES, :]  # (B, 20, 3, 3)
+    rhs = offsets[:, _PLANE_TRIPLES]  # (B, 20, 3)
+    determinant = np.linalg.det(matrices)
+    solvable = np.abs(determinant) > 1e-12
+    vertices = np.full((count, _PLANE_TRIPLES.shape[0], 3), np.nan)
+    if solvable.any():
+        vertices[solvable] = np.linalg.solve(matrices[solvable], rhs[solvable][:, :, None])[:, :, 0]
+    with np.errstate(invalid="ignore"):
+        lhs = np.einsum("bkj,bvj->bvk", normals, vertices)  # (B, 20, 6)
+        feasible = solvable & np.all(lhs <= offsets[:, None, :] + 1e-6, axis=2)
+    lower = np.where(feasible[:, :, None], vertices, np.inf).min(axis=1) - margin
+    upper = np.where(feasible[:, :, None], vertices, -np.inf).max(axis=1) + margin
+    unbounded = feasible.sum(axis=1) < 4
+    lower[unbounded] = -np.inf
+    upper[unbounded] = np.inf
+    return lower, upper
+
+
 def inside_union_fraction(points: np.ndarray, normals: np.ndarray, offsets: np.ndarray) -> float:
     """Share of ``points`` inside the union of the blocks; 0.0 when there is no block.
 
@@ -229,15 +265,21 @@ def entity_geometry(
 
     _require(samples_per_axis is not None, "policy_value_missing:entity_geometry_samples_per_axis")
     s = _int(samples_per_axis, "samples_per_axis_invalid", minimum=1)
-    visibility = _blocks(cache_frame["visibility"])
-    free_space = _blocks(cache_frame["free_space"])
+    volumes = []
+    for records in (cache_frame["visibility"], cache_frame["free_space"]):
+        normals, offsets = _blocks(records)
+        volumes.append((normals, offsets, *block_aabbs(normals, offsets)))
     out: dict[str, dict[str, float]] = {}
     for entity in sorted(memory["entities"], key=lambda item: str(item["entity_id"])):
-        points = sample_points(entity["aabb_min_m"], entity["aabb_max_m"], samples_per_axis=s)
-        out[str(entity["entity_id"])] = {
-            "should_be_visible_ratio": inside_union_fraction(points, *visibility),
-            "free_space_coverage_ratio": inside_union_fraction(points, *free_space),
-        }
+        lower = np.asarray([float(v) for v in entity["aabb_min_m"]], dtype=np.float64)
+        upper = np.asarray([float(v) for v in entity["aabb_max_m"]], dtype=np.float64)
+        points = sample_points(lower, upper, samples_per_axis=s)
+        ratios = []
+        for normals, offsets, block_lower, block_upper in volumes:
+            # only blocks whose padded box meets the entity box can contain a sample point (see block_aabbs)
+            candidates = np.all(block_lower <= upper[None, :], axis=1) & np.all(block_upper >= lower[None, :], axis=1)
+            ratios.append(inside_union_fraction(points, normals[candidates], offsets[candidates]))
+        out[str(entity["entity_id"])] = {"should_be_visible_ratio": ratios[0], "free_space_coverage_ratio": ratios[1]}
     return out
 
 
@@ -780,6 +822,7 @@ __all__ = [
     "entity_geometry",
     "episode_summary",
     "initial_state",
+    "block_aabbs",
     "inside_union_fraction",
     "run_episode",
     "run_frame",

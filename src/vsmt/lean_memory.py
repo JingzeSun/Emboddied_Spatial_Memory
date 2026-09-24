@@ -30,6 +30,7 @@ Scope, restated so it cannot drift:
 
 from __future__ import annotations
 
+import collections
 import hashlib
 import math
 from typing import Any, Mapping, Sequence
@@ -359,15 +360,41 @@ def _validate_entity(entity: Mapping[str, Any], *, tick: int) -> None:
     )
 
 
+#: Engineering (S2-05 profiling, LOG-254): the S0-03 and S0-04 functions each validate the memory
+#: they are handed, so one frame validated the same sealed memory nine times and the walk over
+#: every entity and version plus the digest recomputation took half of the per-frame time.  A
+#: memory object this process has already validated with its digest verified is remembered by
+#: (object id, digest, tick, entity count); a later call on that same object with the same digest
+#: returns the copy without the walk.  Memories are sealed by ``apply_program`` and never mutated
+#: in place afterwards, so the invariant holds; a copy, a tampered copy or a resealed memory is a
+#: different object or a different digest and is validated in full.  The result is bit-identical.
+_VALIDATED_MEMORIES: "collections.OrderedDict[tuple[int, str, int, int], None]" = collections.OrderedDict()
+_VALIDATED_MEMORIES_LIMIT = 64
+
+
+def _validated_key(memory: Mapping[str, Any]) -> tuple[int, str, int, int] | None:
+    digest = memory.get("memory_digest")
+    entities = memory.get("entities")
+    tick = memory.get("tick")
+    if type(digest) is not str or type(entities) is not list or type(tick) is not int:
+        return None
+    return (id(memory), digest, tick, len(entities))
+
+
 def validate_memory(memory: Mapping[str, Any], *, verify_digest: bool = True) -> dict[str, Any]:
     """Validate one memory object and return a deep copy of it.
 
     白话：输入一份记忆，输出同样内容的副本，并在任何字段、状态机或版本链不合法时
     抛错。例如一个实体同时有两个未关闭的版本会被拒绝。它不判断记忆内容在现实中
-    是否正确，只判断结构合法。
+    是否正确，只判断结构合法。同一个已验证过、摘要未变的记忆对象再次传入时直接
+    返回副本（工程缓存，见上）。
     """
 
     _require(type(memory) is dict, "memory_not_object")
+    key = _validated_key(memory) if verify_digest else None
+    if key is not None and key in _VALIDATED_MEMORIES:
+        _VALIDATED_MEMORIES.move_to_end(key)
+        return clone_json(dict(memory))
     expected = {
         "schema_version", "episode_id", "tick", "entities",
         "transaction_log", "memory_digest",
@@ -419,6 +446,10 @@ def validate_memory(memory: Mapping[str, Any], *, verify_digest: bool = True) ->
             memory["memory_digest"] == memory_digest(memory),
             "memory_digest_mismatch",
         )
+        if key is not None:
+            _VALIDATED_MEMORIES[key] = None
+            while len(_VALIDATED_MEMORIES) > _VALIDATED_MEMORIES_LIMIT:
+                _VALIDATED_MEMORIES.popitem(last=False)
     else:
         _hex64(memory["memory_digest"], "memory_digest_invalid")
     return clone_json(dict(memory))
