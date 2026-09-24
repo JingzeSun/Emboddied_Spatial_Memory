@@ -4,7 +4,7 @@
 
 ## 当前看板
 
-**2026-09-24 最新状态：S2-02（对照来源登记、ELU-P 拟合式、LLM-op 接口）与 S2-03（三个代价头、scorer、损失、训练循环）已实现待审（LOG-247）；S2-01 共同 runner 已实现待审（LOG-246，服务器全量 `6deb8b6` 1533/1533）——`lean_runner.py`、合同 `lean_s2_01_runner_v1.json`（首钉 `e1060695…`）、单 episode 入口与 21 项测试；待裁 60（几何采样分辨率，推荐 4）；S1-05 已按裁决 47 机械收口（LOG-245）——选定 `reid_projection:vitb14`，冻结 ViT-B/14 为并列基线；待裁 59（选择组 9/12，推荐维持）。下一步 S2-02／S2-03。** S1 不重做；召回四值、匹配口径与描述子全部冻结；按 D-059 本次改动待用户审。上一暂停点：S0 修订（裁决 56 续／57／58，`6699a19`）已由用户审过并授权进入 S2（LOG-244 续二）。
+**2026-09-24 最新状态：S2-02（对照来源登记、ELU-P 拟合式、LLM-op 接口）与 S2-03（三个代价头、scorer、损失、训练循环）已实现待审（LOG-247，服务器全量 `4df7f3c` 1552/1552）；S2-01 共同 runner 已实现待审（LOG-246，服务器全量 `6deb8b6` 1533/1533）——`lean_runner.py`、合同 `lean_s2_01_runner_v1.json`（首钉 `e1060695…`）、单 episode 入口与 21 项测试；待裁 60（几何采样分辨率，推荐 4）；S1-05 已按裁决 47 机械收口（LOG-245）——选定 `reid_projection:vitb14`，冻结 ViT-B/14 为并列基线；待裁 59（选择组 9/12，推荐维持）。下一步 S2-02／S2-03。** S1 不重做；召回四值、匹配口径与描述子全部冻结；按 D-059 本次改动待用户审。上一暂停点：S0 修订（裁决 56 续／57／58，`6699a19`）已由用户审过并授权进入 S2（LOG-244 续二）。
 
 | 事项 | 已知事实 |
 |---|---|
@@ -3874,5 +3874,6 @@ move 仍要两个 U 容器、add 仍要过 dry-run，成品率不会等于这些
   - `frame_loss`：合同原句的损失——每个有 labelled／birth 目标的色块在［召回列…, BIRTH 列］上 softmax 交叉熵、每个 gone／present 候选 BCE，两项各取均值等权相加；recall_miss（正确实体不在候选）、unlabelled、identity_ambiguous、duplicate_of_labelled 与身份含糊候选不进损失、只计数；训练记录格式登记为 stage_a＋teacher targets＋阶段 B 存在行＋存在标签，目标不在该色块候选列即拒。
   - `train_heads`：AdamW、逐帧一个 batch、登记 seed 初始化与洗牌、跑满登记 epoch 后保留 validation 损失最低那个 epoch 的权重（并列取更早）——这是不引入耐心值的早停形式；损失非有限即判发散；lr／weight_decay／epochs／seed 任一为 None 拒绝。`recipe_matches_contract` 绑定 S0-05 冻结的 lr 1e-3、20 epoch、5 seed、2 轮 DAgger、主表第 1 轮。`dagger_schedule` 登记两轮（第 0 轮 ELU-P 预登记 rollout_config 轨迹，第 1 轮第 0 轮模型自身轨迹），rollout_config 有 null 即拒。权重 payload 带 canonical 摘要与特征顺序，`load_heads` 核对摘要与顺序。
   - 测试 [`tests/test_vsmt_lean_model.py`](tests/test_vsmt_lean_model.py) 11 项：参数数逐头等于公式；配方常量等于合同值、五种偏离拒绝；DAgger 登记；权重摘要回环、改一位与顺序漂移拒绝；scorer 键恰为封存行；**继续门**：打乱帧内色块顺序与记忆实体顺序后每个键的 logit、分配、存在 logit 与编译程序完全相同；损失只数 labelled／birth／gone／present、四种排除状态各自只计数、全排除时无损失；AssocOnly 无存在项；坏目标与未知状态拒绝；训练缺值拒绝、同 seed 两次权重摘要相同、异 seed 不同、12 帧合成数据 6 个 epoch 训练损失下降、最佳 epoch 等于 validation 曲线最小处、验证集上标注实体拿最高 logit ≥75%；scorer 驱动 S2-01 runner 跑完 5 帧场景（8 个色块全部落到 BIRTH／BIND／REACTIVATE），AssocOnly 无存在候选。
-- 本地分进程：model 11、controls 8、runner 21、arms 44、cross-contract 65 通过；服务器全量随下次同步再跑。
+- 本地分进程：model 11、controls 8、runner 21、arms 44、cross-contract 65 通过。**服务器全量：checkout 到 `4df7f3c`（无未跟踪文件），1552/1552 通过、退出 0、105 s**（比 `6deb8b6` 多 19 项，即本节新增的 8＋11），日志 `/root/autodl-tmp/vsmt_outputs/run_logs/suite-4df7f3c.log`。
+- **按 D-059 在此停下**：S2-01／S2-02／S2-03 三步的科学代码都未经用户审查，S2-04（teacher 与评价器接线）要消费 S2-01 的封存产物与真值表、S2-05 要消费 S2-03 的 scorer，继续往上叠属于“在未审模块上堆叠后续科学代码”。待用户审过 6019b72…4df7f3c 并裁 59／60 后再开 S2-04。
 - **本节不做的事**：不生成标签（需要 S2-04 的 teacher 接线读私有面）；不编排 DAgger（S2-05）；不真的调用 LLM；不改 METHOD 的参数数表述（待用户定是否按 4 万收窄）。
