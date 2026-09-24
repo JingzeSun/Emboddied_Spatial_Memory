@@ -119,6 +119,8 @@ def main() -> int:
     parser.add_argument("--output-root", required=True)
     parser.add_argument("--frames", type=int, default=None, help="run only the first N frames (trial)")
     parser.add_argument("--device", default="cpu")
+    parser.add_argument("--calibration", action="store_true", help="S2-05 calibration pass: also write the calibration histograms")
+    parser.add_argument("--elu-p-counts", action="store_true", help="S2-05 fit pass: also write the ELU-P count records")
     parser.add_argument("--allow-dirty", action="store_true", help="tests only")
     args = parser.parse_args()
 
@@ -169,7 +171,8 @@ def main() -> int:
     table = og.validate_geometry_table(load_json(Path(args.geometry_root).resolve() / args.episode_id / og.TABLE_FILE_NAME))
     executed, window = diag.cache_runner_read_interventions(episode_root / "provenance")
     episode_receipt = load_json(episode_root / "receipt.json") if (episode_root / "receipt.json").exists() else {}
-    nuisance_meta = {"path": str(cache_dir), "seed": episode_receipt.get("split_seed"), "house_index": episode_receipt.get("source_index")}
+    split_seed = int(load_json(CONFIG_DIR / "lean_s1_02a_pilot_v2.json")["split_freeze"]["seed"])
+    nuisance_meta = {"path": str(cache_dir), "seed": split_seed, "house_index": episode_receipt.get("source_index")}
 
     out_dir = Path(args.output_root).resolve() / args.episode_id / args.arm
     if out_dir.exists() and any(out_dir.iterdir()):
@@ -179,6 +182,13 @@ def main() -> int:
 
     teacher = ev.EpisodeTeacher(arm=args.arm, geometry_table=table, executed_interventions=executed, window=window,
                                 policy=policy["teacher"], nuisance_meta=nuisance_meta)
+    collector = counter = None
+    if args.calibration or args.elu_p_counts:
+        from vsmt import lean_development as dev
+
+        collector = dev.CalibrationCollector() if args.calibration else None
+        counter = (dev.EluPCounter(geometry_table=table, executed_interventions=executed, window=window, policy=policy["teacher"])
+                   if args.elu_p_counts else None)
     labels_stream, training_stream, nuisance_stream = (Stream(out_dir / name) for name in
                                                        ("labels.jsonl.gz", "training_records.jsonl.gz", "nuisance.jsonl.gz"))
     started = time.time()
@@ -192,6 +202,10 @@ def main() -> int:
         state = step["state"]
         labelled = teacher.label_frame(step, cache_frame=frames[index], private_record=records[index], masks=masks[index],
                                        label_image=images[index], runtime_s=runtime, peak_memory_bytes=peak_rss_bytes())
+        if collector is not None:
+            collector.observe(step, labelled)
+        if counter is not None:
+            counter.observe(step, cache_frame=frames[index], private_record=records[index], evidence=teacher.evidence)
         training_stream.write({"tick": labelled["tick"], **labelled["training_record"]})
         nuisance_stream.write({"tick": labelled["tick"], **labelled["nuisance"]})
         labels_stream.write({k: v for k, v in labelled.items() if k not in ("training_record", "nuisance")})
@@ -210,6 +224,14 @@ def main() -> int:
         "labels_file_bytes": labels_stream.close(), "training_file_bytes": training_stream.close(),
         "nuisance_file_bytes": nuisance_stream.close(),
     })
+    if collector is not None:
+        (out_dir / "calibration.json").write_text(json.dumps(collector.to_json()), encoding="utf-8")
+        summary["calibration"] = collector.report()
+    if counter is not None:
+        counts = counter.finish()
+        (out_dir / "elu_p_counts.json").write_text(json.dumps(counts, indent=1), encoding="utf-8")
+        summary["elu_p_counts"] = counts
+    summary["status"] = "succeeded"
     (out_dir / "receipt.json").write_text(json.dumps(summary, indent=1), encoding="utf-8")
     report = summary["report"]
     print(f"[s2-04] {args.arm} {args.episode_id}: {summary['frames']} frames, node F1 {report['node_prf1']['node_f1']}, "

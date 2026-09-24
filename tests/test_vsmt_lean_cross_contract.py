@@ -32,8 +32,8 @@ if str(SRC_ROOT) not in sys.path:
 from cpmt.hashing import canonical_json  # noqa: E402
 
 from vsmt import (  # noqa: E402
-    lean_arms, lean_assets, lean_assignment, lean_evaluation, lean_frontend_cache, lean_intervention,
-    lean_memory,
+    lean_arms, lean_assets, lean_assignment, lean_development, lean_evaluation, lean_frontend_cache,
+    lean_intervention, lean_memory,
     lean_pilot, lean_runner, lean_teacher,
 )
 
@@ -136,6 +136,7 @@ FROZEN_V1_NAME = {
     "S1-04": "lean_s1_04_frontend_diagnostics_v1.json",
     "S2-01": "lean_s2_01_runner_v1.json",
     "S2-04": "lean_s2_04_evaluation_v1.json",
+    "S2-05": "lean_s2_05_development_v1.json",
 }
 
 #: Live contract per stage, including the S1 and S2 contracts.
@@ -151,6 +152,7 @@ LIVE_CONTRACT = {
     "S1-04": "lean_s1_04_frontend_diagnostics_v1.json",
     "S2-01": "lean_s2_01_runner_v1.json",
     "S2-04": "lean_s2_04_evaluation_v1.json",
+    "S2-05": "lean_s2_05_development_v1.json",
 }
 
 
@@ -353,6 +355,12 @@ FROZEN_RULE_SHA256 = {
     # existence labels, MRR headline at the last frame, eligible-rows training records), the policy
     # sources, the headline fields and the closed bits.  It owns no value slot.
     "S2-04": "40d96cf09688b4f1f5f25d881b444202f67e23ad020d3575e7a12fe2a002b894",
+    # S2-05 v1 (2026-09-24, LOG-251): the development table -- the five passes in order (calibration
+    # with LOW and no gate, the ELU-P fit with TAF at the rollout theta_a, DAgger rounds 0 and 1, the
+    # table), the episode set, the calibration series and quantiles, the ELU-P count rules, the
+    # sharding and merge order, the table rules, the gate after ruling 66, and eight development
+    # configuration slots (null until ruled).  Both bits closed.
+    "S2-05": "38314ce2b5b15fab13a39ff69d8bec12649f65fb18d70a6f676b5c576a9c924b",
 }
 
 #: Every registered slot that has been frozen, and the value it froze at.
@@ -1075,6 +1083,47 @@ class TestS204EvaluationContractBindsItsUpstreams(unittest.TestCase):
         self.assertEqual(tuple(load_stage("S2-01")["truth_table"]["structural_types_out_of_scope"]), lean_teacher.STRUCTURAL_TYPES_EXCLUDED)
         self.assertEqual(tuple(rules["missing_residual_kinds"]), ("remove", "move"))
         self.assertEqual(tuple(rules["identity_continuity_kinds"]), ("move",))
+
+
+class TestS205DevelopmentContractBindsItsUpstreams(unittest.TestCase):
+    """S2-05 composes S2-01, S2-04, S0-05 and S0-04; its own slots are the development configurations only."""
+
+    def setUp(self) -> None:
+        self.contract = load_stage("S2-05")
+
+    def test_the_contract_passes_its_validator_with_both_bits_closed_and_every_slot_null(self) -> None:
+        checked = lean_development.validate_development_contract(self.contract)
+        self.assertEqual(checked["stage_id"], "S2-05")
+        self.assertTrue(all(value is False for value in checked["authorization"].values()))
+        self.assertEqual(tuple(registered_value_slots("S2-05")), tuple(checked["policy_values_without_defaults"]))
+        for slot in registered_value_slots("S2-05"):
+            self.assertIsNone(lookup_slot(checked, slot), slot)
+        for key, path in checked["depends_on"].items():
+            if key.endswith("_contract"):
+                with self.subTest(key=key):
+                    self.assertTrue((PROJECT_ROOT / path).is_file(), path)
+
+    def test_the_development_arms_and_passes_agree_with_s0_05(self) -> None:
+        s0_05 = load("S0-05")
+        arms_ = self.contract["development_arms"]
+        self.assertEqual(set(arms_), set(s0_05["arms"]["main_table"]) | {"NoVersion"})
+        self.assertNotIn(s0_05["appendix_arm"]["name"], arms_)
+        calibration = self.contract["passes"]["calibration_arm"]
+        self.assertEqual(calibration["arm"], "LOW")
+        self.assertEqual(set(calibration["config"]), set(lean_arms.GRID_PARAMETERS["LOW"]))
+        self.assertIsNone(calibration["config"][lean_arms.NO_GATE_PARAMETER["LOW"]])
+        self.assertTrue(self.contract["passes"]["dagger"]["elu_p_table_row_is_the_round_0_pass"])
+        self.assertEqual(s0_05["arms"]["VSMT-lean"]["training"]["dagger_round_0_memory_source"], "ELU-P")
+        for arm in ("TAF", "RAC", "LOW", "VSMT-lean"):
+            self.assertEqual(set(self.contract["development_configurations"][arm]), set(lean_arms.GRID_PARAMETERS[arm]), arm)
+
+    def test_the_table_rules_are_the_s2_04_and_s0_04_ones(self) -> None:
+        better = self.contract["table"]["better"]
+        self.assertEqual(set(better), set(load_stage("S2-04")["headline_fields"]))
+        self.assertEqual(set(better), set(lean_teacher.METRICS) - {"size_and_cost"})
+        self.assertEqual(dict(better), lean_development.BETTER)
+        self.assertEqual(load("S0-04")["statistics"]["metric_not_applicable_rule"]["false_retract_rate"], "arms_whose_vocabulary_lacks_RETRACT")
+        self.assertEqual(self.contract["continue_gate"]["design_revisions_go_through_a_ruling_before_s3_01"], True)
 
 
 def _resolve_path(tree: Any, path: str) -> tuple[Any, Any]:

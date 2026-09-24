@@ -1,0 +1,227 @@
+{
+  "schema_version": "vsmt-lean-s2-05-development-v1",
+  "decision_id": "D-224",
+  "stage_id": "S2-05",
+  "status": "implemented_pending_user_code_review",
+  "plain_language_zh": "本合同定义 S2-05 开发表怎么跑：在开发 cache 的全部成功 episode 上，按固定顺序跑五趟——校准趟（LOW 无门，只为统计封存行的分布）、ELU-P 拟合趟（TAF 在登记的 rollout theta_a 上无门，数出三个拟合量的计数）、第 0 轮 DAgger（ELU-P 在 rollout_config 上产生轨迹与标签，也就是 ELU-P 的表行）、第 1 轮 DAgger（第 0 轮训出的 VSMT-lean 与 AssocOnly 头在自己的轨迹上出标签）、开发表趟（TAF／RAC／LOW 在开发配置上，VSMT-lean／NoVersion／AssocOnly 在第 1 轮头上）。每趟的每条 episode 都是一次 S2-04 运行（runner＋teacher 同进程），多 worker 按 episode 分片、按 episode_id 升序合并。输出是第一张开发表（每臂每指标的 house 均值、裁决 X2 的排除清单、VSMT-lean 对每臂的配对差）、逐例失败、runtime/memory 与接口问题清单。它不做 bootstrap、不选参、不选赢家、不删消融，不跑 HandCost／HeuristicLabel／LLM-op／ctx，不读 validation/test。开发配置的数值待冻结，为 null。",
+  "pure_core_relative_path": "src/vsmt/lean_development.py",
+  "depends_on": {
+    "s2_01_contract": "configs/vsmt/lean_s2_01_runner_v1.json",
+    "s2_04_contract": "configs/vsmt/lean_s2_04_evaluation_v1.json",
+    "s0_05_contract": "configs/vsmt/lean_s0_arms_v2.json",
+    "s0_04_contract": "configs/vsmt/lean_s0_teacher_metrics_v2.json",
+    "s0_01_contract": "configs/vsmt/lean_s0_entity_memory_v2.json",
+    "s1_03_contract": "configs/vsmt/lean_s1_03_frontend_cache_v1.json",
+    "s1_04_contract": "configs/vsmt/lean_s1_04_frontend_diagnostics_v1.json",
+    "reused_implementation": [
+      "ops/vsmt/lean_s2_04_evaluate_episode.py (one episode, one arm, one pass)",
+      "src/vsmt/lean_controls.py::fit_elu_p_quantities (the three fitted scalars from the summed counts)",
+      "src/vsmt/lean_model.py::train_heads,load_heads,LeanScorer (development training and the learned arms)",
+      "src/vsmt/lean_teacher.py::undefined_houses,METRICS,METRIC_FIELDS (the ruling-X2 exclusion and the frozen fields)",
+      "src/vsmt/lean_arms.py::arms_without_atom,assert_rollout_config (not-applicable arms; the rollout grid member)"
+    ],
+    "note_zh": "S2-05 不重写任何规则：逐 episode 的运行是 S2-04 的入口，拟合是 S2-02 的估计式，训练是 S2-03 的循环，排除清单是 S0-04 的函数；本合同只登记趟的顺序、分片合并、校准统计、开发配置的槽位和继续门。"
+  },
+  "authorization": {
+    "development_run": false,
+    "server_run": false
+  },
+  "authorization_rule_zh": "两个授权位现在都关着。按裁决 64，S2-05 的运行由 S2 阶段合同授权：本合同两位加 S2-01 与 S2-04 的四位都必须凭 activation_policy 打开；S0 各位保持 false。",
+  "episodes": {
+    "rule": "every_succeeded_episode_of_the_development_cache_no_refill_no_regeneration",
+    "source": "S1-03 cache root: every episode directory whose receipt.json has status succeeded and whose S1-02 episode root and S1-04 geometry table exist; a missing root or table fails the plan, never shrinks it silently",
+    "expected_count_note_zh": "开发 cache 在 154776d 下有 39 条成功 episode（S1-03，LOG-244）；缺根目录或几何表整趟拒绝而不是跳过。",
+    "plain_language_zh": "跑哪些 episode 不由本阶段挑：cache 里成功的全跑，不补样、不重生成、不抬上限。"
+  },
+  "development_arms": [
+    "VSMT-lean",
+    "TAF",
+    "ELU-P",
+    "RAC",
+    "LOW",
+    "NoVersion",
+    "AssocOnly"
+  ],
+  "passes": {
+    "order": [
+      "calibration",
+      "elu_p_fit",
+      "dagger_round_0",
+      "dagger_round_1",
+      "development_table"
+    ],
+    "calibration_arm": {
+      "arm": "LOW",
+      "config": {
+        "d_low": null
+      }
+    },
+    "elu_p_fit_arm_rule": "TAF_at_the_registered_rollout_theta_a_with_no_distance_gate",
+    "development_training_rule": "one_development_training_per_round_at_the_first_registered_seed",
+    "development_training_validation_rule": "the_s1_04_holdout: heads train on the training-house records and the epoch with the lowest loss on the selection-house records is kept",
+    "dagger": {
+      "round_0_memory_source": "ELU-P at the S0-05 rollout_config with the fitted quantities (D-224-X ruling X4)",
+      "round_1_memory_source": "the round-0 heads' own rollouts (VSMT-lean and AssocOnly each on their own)",
+      "assoc_only": "same architecture, recipe and rounds, existence loss term removed, trained on its own rollouts (ruling X3)",
+      "no_version": "the VSMT-lean round-1 heads with the runner switch; no separate training",
+      "elu_p_table_row_is_the_round_0_pass": true
+    },
+    "plain_language_zh": "校准趟用 LOW 无门：它不读描述子、不撤回，跑出来的封存行与标签只用来统计分布，不进任何表。ELU-P 拟合趟用 TAF 在登记的 rollout theta_a 上无门，因为 S0-05 v2 规定匹配增益在\"rollout_config 的门\"上估一次，而 TAF 的门和 ELU-P 的门是同一个、且 TAF 从不撤回，承载实体一直在，旧位置上的误配才能数出来。第 0 轮 DAgger 的轨迹由 ELU-P 在 rollout_config 上产生，这一趟同时就是 ELU-P 的开发表行。开发训练每轮只训一次，seed 取登记 seed 表的第一个，早停用 S1-04 留出：前 30 条 house 训练、后 9 条选 epoch。"
+  },
+  "development_configurations": {
+    "TAF": {
+      "theta_a": null,
+      "d_a": {
+        "distance_gate_m": null
+      }
+    },
+    "RAC": {
+      "theta_a": null,
+      "d_a": {
+        "distance_gate_m": null
+      },
+      "rho_rac": null,
+      "n_rac": null
+    },
+    "LOW": {
+      "d_low": {
+        "distance_gate_m": null
+      }
+    },
+    "VSMT-lean": {
+      "tau_r": null
+    },
+    "NoVersion": {
+      "tau_r": "same_as_VSMT-lean"
+    },
+    "ELU-P": "the S0-05 arms.ELU-P.rollout_config plus the three fitted quantities of the elu_p_fit pass",
+    "AssocOnly": {},
+    "gate_value_rule": "distance_gate_m null means unfrozen; the frozen string \"no_gate\" means None (no distance gate); a frozen number is the gate in metres",
+    "must_be_grid_members": true,
+    "plain_language_zh": "开发表每臂只跑一个配置（S2-05 没有选参步骤），这个配置必须是该臂预登记网格的成员。数值待校准趟之后冻结，为 null；距离门用 distance_gate_m 表示，null 是未冻结，冻结成字符串 no_gate 表示无门。"
+  },
+  "calibration": {
+    "series": [
+      "same_object_cosine_to_mean",
+      "same_object_cosine_to_best_view",
+      "other_object_cosine_to_mean",
+      "novel_fragment_best_cosine",
+      "same_object_centroid_distance_m",
+      "other_object_centroid_distance_m",
+      "same_object_aabb_iou",
+      "fragment_dominance_share",
+      "entity_should_be_visible_ratio",
+      "gone_free_space_coverage_ratio",
+      "present_free_space_coverage_ratio",
+      "gone_missed_opportunity_count",
+      "present_missed_opportunity_count",
+      "same_object_fragments_per_frame"
+    ],
+    "quantiles": [
+      0.05,
+      0.1,
+      0.25,
+      0.5,
+      0.75,
+      0.9,
+      0.95
+    ],
+    "bins": "fixed edges: cosine 0.02 over [-1,1], distance 0.05 m over [0,10], ratios 1/64, counts integers to 64; merged by summing",
+    "reads_only_sealed_rows_and_s0_04_labels": true,
+    "plain_language_zh": "校准只统计封存的特征值与 S0-04 标签：同物体目标对的余弦/距离/IoU、其他候选对的余弦、新物体色块的最高余弦、存在候选按 gone/present 的自由空间覆盖与错失次数、色块主导占比、实体应可见比例、同帧同物体色块数。分位数从固定边界直方图算出，用来给网格、去重阈值、dormancy 次数、应可见下限提建议。"
+  },
+  "elu_p_fit": {
+    "procedure": "S0-05 v2 fitting_procedure: per-episode count records by lean_development.EluPCounter under the elu_p_fit pass, summed over every development episode, then lean_controls.fit_elu_p_quantities on the train split after the seals at the registered rollout_config",
+    "count_records": [
+      "initial_log_odds: in_place_object_frames / object_frames",
+      "persistence_log_decay_per_tick: intervention_events / object_ticks",
+      "match_gain: hit_frames / hit_total against false_frames / false_total"
+    ],
+    "in_place_rule": "an object observed at least once; when its last-observed place (the truth box there) has been unobservable to the method for at least one frame and becomes observable again, that first frame counts one object-frame, in place iff the object is present within delta_moved_m of the last-observed centroid",
+    "hazard_rule": "objects observed at least once each contribute the episode's frame count as object-ticks; one event per such object that was removed or moved",
+    "gain_rule": "for objects with a carrier entity: a present, not-yet-intervened object whose truth box is observable counts one hit-total frame, a hit iff the gate bound a fragment to a carrier; a removed or moved object whose old place is observable counts one false-total frame, a false match iff the gate bound a fragment to a carrier",
+    "observability_is_the_s2_04_place_test": true,
+    "plain_language_zh": "三个计数按 S0-05 v2 的定义逐帧数：被看见过的物体，它上次被看见的位置对方法不可观察一阵之后再次可观察的第一帧算一次\"物体帧\"，物体仍在原处算一次\"在位\"；被看见过的物体每个贡献整条 episode 的帧数作 tick，被移走/搬动的记一次事件；有承载实体的物体，在场未被干预且真值盒可观察的帧记一次应命中，门把色块绑到承载实体即命中，被移走/搬动后旧位置可观察的帧记一次应误配，门仍绑到承载实体即误配。"
+  },
+  "workers": {
+    "one_task_per_episode": true,
+    "merge_order_rule": "episode_id_ascending_regardless_of_worker_completion_order",
+    "resume_by_receipt": true,
+    "requested_and_actual_recorded": true,
+    "plain_language_zh": "每条 episode 一个任务，worker 数由资源核验决定并记录 requested/actual，结果按 episode_id 升序合并；已有回执的 episode 不重跑。"
+  },
+  "table": {
+    "better": {
+      "node_prf1": "higher",
+      "missing_residual_rate": "lower",
+      "false_retract_rate": "lower",
+      "identity_continuity": "higher",
+      "recovery_latency_frames": "lower",
+      "contamination_auc": "lower"
+    },
+    "headline_fields": "S2-04 headline_fields",
+    "exclusion_rule": "S0-04 undefined_house_rule over the applicable arms; arms whose vocabulary lacks RETRACT are not applicable to false_retract_rate",
+    "paired_difference": "mean over the effective houses of VSMT-lean minus the arm, reported with its sign as method advantage; no bootstrap and no interval (S3)",
+    "size_and_cost": "means over houses of the per-episode means; peak memory is the maximum",
+    "plain_language_zh": "表上每臂每指标是有效 house 上的均值；某个 house 在任一适用臂上算不出就对全部臂一并排除并计数；VSMT-lean 对每臂的配对差只报均值，不做区间——S2-05 只找工程问题与早期风险读数。"
+  },
+  "outputs": {
+    "pass_root": "<output_root>/<pass>/<episode_id>/<arm>/ (the S2-04 episode outputs) plus <output_root>/<pass>/pass_receipt.json",
+    "calibration_report": "<output_root>/calibration/calibration_report.json (merged histograms and quantiles)",
+    "elu_p_fit": "<output_root>/elu_p_fit/elu_p_fit.json (summed counts, the three values, the definitions)",
+    "training": "<output_root>/training/<round>/<arm>/weights.json (the S2-03 payload) and training_receipt.json",
+    "development_table": "<output_root>/development_table.json (the table, failures per arm, runtime and memory, interface issues)",
+    "plain_language_zh": "每趟一个目录，里面每条 episode 每个臂一个 S2-04 输出目录；校准报告、拟合结果、训练权重与开发表各一份。"
+  },
+  "failure_reasons": [
+    "policy_value_missing",
+    "episode_root_or_geometry_table_missing",
+    "pass_prerequisite_missing",
+    "episode_failed_in_pass",
+    "training_diverged",
+    "development_table_arms_mismatch"
+  ],
+  "not_in_this_stage": [
+    "house_level_bootstrap",
+    "configuration_selection",
+    "HandCost",
+    "HeuristicLabel",
+    "LLM-op",
+    "VSMT-lean-ctx",
+    "validation_or_test_reading",
+    "formal_data"
+  ],
+  "policy_values_without_defaults": [
+    "development_configurations.TAF.theta_a",
+    "development_configurations.TAF.d_a.distance_gate_m",
+    "development_configurations.RAC.theta_a",
+    "development_configurations.RAC.d_a.distance_gate_m",
+    "development_configurations.RAC.rho_rac",
+    "development_configurations.RAC.n_rac",
+    "development_configurations.LOW.d_low.distance_gate_m",
+    "development_configurations.VSMT-lean.tau_r"
+  ],
+  "registered_value_slots": [
+    "development_configurations.TAF.theta_a",
+    "development_configurations.TAF.d_a.distance_gate_m",
+    "development_configurations.RAC.theta_a",
+    "development_configurations.RAC.d_a.distance_gate_m",
+    "development_configurations.RAC.rho_rac",
+    "development_configurations.RAC.n_rac",
+    "development_configurations.LOW.d_low.distance_gate_m",
+    "development_configurations.VSMT-lean.tau_r"
+  ],
+  "continue_gate": {
+    "no_winner_is_selected": true,
+    "no_grid_is_tuned": true,
+    "no_ablation_is_deleted": true,
+    "design_revisions_go_through_a_ruling_before_s3_01": true,
+    "validation_and_test_are_never_read": true,
+    "every_pass_is_an_s2_04_run_per_episode": true,
+    "plain_language_zh": "S2-05 的继续门（裁决 66 后）：只用于发现工程问题与早期风险读数；不据此选赢家、不调网格、不删消融；开发差可以促成设计修订，修订须登记为裁决、在 S3-01 冻结正式数据前完成、不读 validation/test；每趟的每条 episode 都是一次 S2-04 运行。"
+  },
+  "pending_user_rulings": {
+    "batch_1_run_critical_values": "待裁 67：跑校准趟就需要的值——S0-01 dormancy_missed_opportunity_limit 与去重四值、S0-04 dominance_min_share／delta_moved_m／nuisance maximum_advantage、S0-05 should_be_visible_min_ratio／weight_decay／seeds、S0-03 reference_score_seed。提案与依据见 DECISIONS。",
+    "batch_2_after_calibration": "待裁 68：校准趟之后——S0-05 各臂网格（每方法 ≤12、规则臂含无门项）、ELU-P rollout_config 三值（须为网格成员）、本合同的八个开发配置槽、S0-03 existence_threshold_tau_r。"
+  }
+}
