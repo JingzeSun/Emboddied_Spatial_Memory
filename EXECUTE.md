@@ -4005,3 +4005,32 @@ move 仍要两个 U 容器、add 仍要过 dry-run，成品率不会等于这些
 - 修复（`0aa47cb`）：缓存条目持有记忆对象本身，命中要求"正是那个对象"（`is`），条目存活期间地址不可能被复用；上限由 64 降到 8（一帧只碰两三个记忆对象），持有对象不增加实际内存。回归测试：在孪生对象的键下放另一个对象的条目，篡改后的孪生对象仍被拒绝。
 - **对正在跑的 `696fbe7` 校准趟没有影响**：命中时返回的是传入对象自身的副本，而摘要相等意味着内容相等，除非有人篡改——runner 里没有任何就地修改；所以趟的每一个数字与不带缓存的实现相同（LOG-254 的逐字节核验仍成立）。它只削弱了"篡改检测"这一道保护，现已补上。
 - 服务器全量已在 `s2-05-audit-b517890` worktree 上以 `588fec7` 重跑：**1597/1597 通过**（`run_logs/suite-588fec7.log`，含裁决 70 的新增测试与本回归测试）；这也是裁决 70 落地（`f4f694a`）的服务器全量回执。
+### LOG-256：校准趟收尾缺陷——S2-04 入口在关闭流之前重读 nuisance 文件；裁决 71 落地，趟已停并按 `cc682d7` 续跑（2026-09-25 01:25 CST）
+
+- 类型：**工程缺陷定位、裁决落地与服务器运行**。触发：接手时（00:51 CST）`696fbe7` 校准趟 16/39 出结果，其中 **5 条失败**（`episode_failed_in_pass`）：
+
+| episode | 帧数 | 部分目录首写 → 末写（CST） | 流文件 |
+|---|---|---|---|
+| 00406 | 1262 | 22:17 → 23:37 | labels／training／nuisance 各 1262 行，无 receipt、无 calibration.json |
+| 02524 | 1399 | 22:31 → 23:41 | 同上，1399 行 |
+| 01543 | 1358 | 22:25 → 23:56 | 同上，1358 行（旧 `82810c0` 趟同样失败） |
+| 03394 | 1371 | 23:18 → 00:41 | 同上，1371 行 |
+| 02768 | 1696 | 22:45 → 00:46 | 同上，1696 行 |
+
+- 五条都处理完了全部帧（三个流的行数＝帧数、末行 tick＝帧数），崩在收尾；cgroup 无 OOM（`memory.events oom_kill 0`，每 worker RSS 0.6～0.75 GB）。已"成功"的 11 条回执 `nuisance_probes` 全是 `association_rows=0`、`existence_rows=0`、`largest_advantage=None`。成功／失败按最终 nuisance 压缩文件大小整齐分开：成功的 ≤ 29,519 B（00619，1030 帧），失败的 ≥ 35,571 B。
+- **根因**（[`lean_s2_04_evaluate_episode.py`](ops/vsmt/lean_s2_04_evaluate_episode.py)）：回执字典按从左到右求值，`nuisance_probes` 一项对 `_reread(out_dir / "nuisance.jsonl.gz")` 的调用排在 `nuisance_stream.close()` 之前。gzip 成员在写入端关闭前不完整：压缩输出还全部在 zlib／写缓冲里时磁盘文件为 0 字节，`gzip.open().read()` 读不到成员头直接返回空——探针看到 0 行、回执照常写出；一旦部分压缩输出已落盘（约 32 KB 起），读到成员中途文件结束，抛 `EOFError: Compressed file ended before the end-of-stream marker was reached`——进程崩溃，receipt 与 calibration.json 都不写。这个缺陷自 `5b42375`（S2-04 接线）起就在，`82810c0` 趟的 01543 以同样方式失败，与 LOG-254 的提速无关。
+- **本地复现**（下载三条真实 nuisance 文件，用入口的 `Stream` 原样重放后在关闭前 `_reread`）：
+
+| 文件 | 最终大小 | 重读时磁盘上 | 结果 |
+|---|---|---|---|
+| 00702 | 2,984 B | 0 B | 读到 0 行（"成功"，探针块空） |
+| 00619 | 29,519 B | 0 B | 读到 0 行（"成功"，探针块空） |
+| 00406 | 38,967 B | 35,794 B | `EOFError`（崩溃） |
+
+- **不受影响的产物**：校准直方图 `calibration.json` 由收集器单独写出、只读封存行与标签；labels／training_records／nuisance 三个流在进程退出时由解释器关闭、完整落盘（失败 episode 的流也是完整的，但没有 receipt 与 calibration.json，`--resume` 不认、重跑前须清空）。三分解、七项指标与逐帧标签与该缺陷无关。
+- **修复（`cc682d7`，单一职责）**：新增 `finish_streams`——先关闭三个流，再重读 nuisance 文件跑 S0-04 探针，并核对重读行数等于写入行数（`Stream` 记数），不等即拒；回执多一项 `nuisance_rows_written`。回归测试 [`test_vsmt_lean_s2_04_entry.py`](tests/test_vsmt_lean_s2_04_entry.py) 3 项：超过写缓冲的行在关闭后全部被重读且探针看到它们；关闭前读小流得 0 行、读大流抛 `EOFError`；行数不符被拒。本地 3/3；服务器全量在新 worktree `s2-05-cc682d7` 上 **1600/1600，321.6 s**（`run_logs/suite-cc682d7.log`）。
+- **裁决 71 (a)(a)**（01:05 CST 批准，原话见 DECISIONS）：01:05 停 `195007` 及其 10 个 S2-04 子进程（`kill` 后核对无残留）；按用户随后指示一并停掉另一会话在主 checkout 上的旧 `82810c0` 趟（`869573`、`869656`、`869658`；其 8 条成功回执留在 `lean-s2-05-82810c0` 只作旁证，剩下的 03361／04801 同样会崩）；停趟时 `696fbe7` 已有 **14 条**回执（比 00:51 多了 06453／07270／07367）。只读列出后删除 15 个无回执的部分目录（00406、00563、00950、01259、01289、01543、02524、02768、03361、03394、04801、05806、05966、07795、07815 的 `LOW/` 与其 episode 目录），另 10 条从未开始。原 `plan.LOW.json` 备份为 `plan.LOW.696fbe7-first-launch.json`。
+- **续跑**：01:21 CST 在 worktree `/root/autodl-tmp/vsmt_worktrees/s2-05-cc682d7`（`cc682d7`，porcelain 干净）上对同一根 `lean-s2-05-696fbe7` 跑 `run-pass --pass calibration --arm LOW --config '{"d_low": null}' --calibration --resume`，**requested/actual 12 worker**（依据：16 核 cgroup 配额、裁决 71 后无其它趟；62 GiB 上限、每流式 worker 实测约 0.75 GB；torch 线程数与 14 条保留回执一致不改；留 4 核给报告与监视），25 条待跑、14 条保留，主进程 `847066`，日志 `run_logs/s2-05-calibration-696fbe7-resume-cc682d7.log`。两个提交的 `calibration.json` 逐字节同构（修复只动收尾顺序与回执字段），校准报告按 14＋25 合并；导出器按回执登记 `code_commits_in_receipts` 两个提交号。预计墙钟 4～5 小时，由 01289（3473 帧）决定。
+- **保留的 14 条回执**：`nuisance_probes` 为空块，按裁决 71 (2)(a) 不重跑；导出报告中它们的 `nuisance_largest_advantage` 为 null，读数时以本节为准。校准趟只统计封存行与标签，探针块不进任何校准数字。
+- **用户授权的逐 episode 监视**（01:15 CST）：本地监视器每 5 分钟读趟日志，逐条 episode 报成功／失败；工程性失败由实现者直接诊断、修复、续跑并记 LOG，不再等待批准；科学口径仍待裁决。
+- **本节不做的事**：不改任何规则、数值或合同字节；不跑校准以外的趟；不提裁决 68（等 39 条合并分位数）。
