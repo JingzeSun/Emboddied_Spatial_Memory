@@ -2,7 +2,7 @@
   "schema_version": "vsmt-lean-s2-01-runner-v1",
   "decision_id": "D-224",
   "stage_id": "S2-01",
-  "status": "implemented_pending_user_code_review",
+  "status": "user_code_review_passed_2026_09_24_rulings_59_to_63_applied",
   "plain_language_zh": "本合同定义 S2-01 共同 runner：cache 的一帧加上一帧的记忆，经固定顺序的八步变成这一帧的原子程序和新记忆，五个臂与四组消融走同一条路，差别只在 logit 怎么来、词表允许哪些原子。输入是 S1-03 的 cache 帧（色块、公开体积）、S1-05 冻结的描述子选择与投影权重、S0-01/S0-03/S0-05 的登记值和臂配置；输出是逐帧回执（两段封存摘要、放行回执、召回、分配、存在决定、原子、记忆摘要、帧残差）和逐 episode 汇总。例如一帧三个色块：先算旧记忆每个实体的应可见比例与自由空间覆盖比例，投影描述子，召回并封存 A，臂给 logit，解一次分配，封存 B，臂判 RETRACT/NOOP，编译后一次提交；非法程序整帧回滚、改提交空程序并计数。它不训练、不读私有文件、不算论文指标、不做多 episode 编排（S2-05）。",
   "pure_core_relative_path": "src/vsmt/lean_runner.py",
   "depends_on": {
@@ -27,6 +27,7 @@
     "episode_run": false,
     "server_run": false
   },
+  "authorization_rule_zh": "两个授权位现在都关着。它们不是实现者可以自己打开的开关：要打开某一位，必须在合同里加 activation_policy，把该位写进 active_true_authorizations 并在 opened_by 写明是哪条裁决打开的；校验器对没有裁决就为 true 的位直接拒绝（与 S1-03／S1-04 同一机制，裁决 61，2026-09-24）。入口另外在位仍关时拒绝运行。",
   "descriptor": {
     "selected": "reid_projection:vitb14",
     "source_set": "vitb14",
@@ -48,13 +49,15 @@
       "free_space_coverage_ratio"
     ],
     "halfspace_tolerance_m": 1e-09,
-    "samples_per_axis": null,
+    "samples_per_axis": 4,
+    "samples_per_axis_frozen_by": "D-224-S1 ruling 60",
+    "samples_per_axis_frozen_on": "2026-09-24",
     "pure_function_of_public_volumes_and_previous_memory": true,
     "identical_bytes_for_all_arms": true,
     "free_space_records_used_as_stored_rolling_window_included": true,
     "computed_for_every_entity_of_the_previous_memory": true,
     "dot_products_are_fixed_order_elementwise_not_blas": true,
-    "plain_language_zh": "应可见比例＝实体包围盒上均匀网格采样点落进本帧可见体积块（六个半空间都成立）并集的比例；自由空间覆盖比例＝同一批采样点落进自由空间块并集的比例（cache 里的自由空间记录本身就是 D-223 的滚动窗口，照存的读）。每个轴取 samples_per_axis 个格心，值为 null 时拒绝运行，待用户冻结（提议 4，即每实体 64 个点）。点积用固定顺序的逐元素乘加而不是 BLAS，避免边界点在不同机器上翻转。它只读公开体积和上一帧记忆，对 M_{t−1} 的每个实体都算（包括 retracted，后续按状态排除），五个臂逐字节相同。"
+    "plain_language_zh": "应可见比例＝实体包围盒上均匀网格采样点落进本帧可见体积块（六个半空间都成立）并集的比例；自由空间覆盖比例＝同一批采样点落进自由空间块并集的比例（cache 里的自由空间记录本身就是 D-223 的滚动窗口，照存的读）。每个轴取 samples_per_axis 个格心；裁决 60（2026-09-24）冻结为 4，即每实体 64 个点、比例粒度 1/64；值为 null 时拒绝运行。点积用固定顺序的逐元素乘加而不是 BLAS，避免边界点在不同机器上翻转。它只读公开体积和上一帧记忆，对 M_{t−1} 的每个实体都算（包括 retracted，后续按状态排除），五个臂逐字节相同。"
   },
   "frame_step": {
     "order": [
@@ -99,14 +102,15 @@
       "ELU-P": "log_odds per entity: initial_log_odds on first eligibility, decays on every eligible unmatched frame, gains match_gain when the entity is bound or reactivated this frame",
       "RAC": "negative_renders per entity: incremented on a negative render, reset on a positive render or a match, reset after a RETRACT",
       "others": "no temporal state",
-      "pruned_to_live_entities_after_each_commit": true
+      "pruned_to_live_entities_after_each_commit": true,
+      "arm_state_rolled_back_with_the_frame_on_an_illegal_program": true
     },
     "learned_arms_take_a_caller_supplied_scorer": true,
     "scorer_interface": {
       "association_and_birth_logits": "stage_a -> {association_logits: {'<fragment_id>|<entity_id>': float}, birth_logits: {'<fragment_id>': float}}, keys exactly the sealed rows",
       "existence_logits": "(eligible_rows, order) -> {'<entity_id>': float}, keys exactly the eligible rows"
     },
-    "plain_language_zh": "八步顺序固定：几何比例、视图、封存 A、logit 与求解、封存 B 与放行回执、存在判定、编译提交、回执。规则臂的分配里不得出现哨兵对，出现即拒。存在判定只对 active/dormant 且应可见比例不低于 S0-05 下限的未分配实体做。学习臂的 logit 由 S2-03 提供的 scorer 给出，键必须与封存行一一对应。程序非法时整帧回滚，这一帧改提交空程序（tick 照常推进、dormancy 与去重照常运行）并计一次 illegal_program，避免下一帧被 frame_tick_not_next 拒绝而卡死整条 episode。NoVersion 在提交后物理删除 retracted 实体并重新封存。"
+    "plain_language_zh": "八步顺序固定：几何比例、视图、封存 A、logit 与求解、封存 B 与放行回执、存在判定、编译提交、回执。规则臂的分配里不得出现哨兵对，出现即拒。存在判定只对 active/dormant 且应可见比例不低于 S0-05 下限的未分配实体做。学习臂的 logit 由 S2-03 提供的 scorer 给出，键必须与封存行一一对应。程序非法时整帧回滚，这一帧改提交空程序（tick 照常推进、dormancy 与去重照常运行）并计一次 illegal_program，避免下一帧被 frame_tick_not_next 拒绝而卡死整条 episode。NoVersion 在提交后物理删除 retracted 实体并重新封存。程序非法时整帧回滚也包括臂状态：ELU-P 的 log-odds 与 RAC 的负渲染计数回到帧前值，因为它们是为没有生效的决定推进的（S2 审查修正，2026-09-24）。"
   },
   "truth_table": {
     "observable_rule": "an_object_has_been_observable_once_its_private_instance_mask_reached_at_least_196_pixels_in_some_frame_up_to_t",
@@ -184,7 +188,8 @@
     "multi_episode_orchestration",
     "validation_or_test_reading"
   ],
-  "policy_values_without_defaults": [
+  "policy_values_without_defaults": [],
+  "registered_value_slots": [
     "entity_geometry.samples_per_axis"
   ],
   "continue_gate": {
@@ -193,7 +198,13 @@
     "public_phase_is_a_pure_function_of_cache_policy_config_and_weights": true,
     "plain_language_zh": "S2-01 的继续门：五个臂读到的 cache 帧封印序列逐位相同；非法程序不会让 episode 停在半路；公开阶段只由 cache、登记值、臂配置和权重决定，换私有文件不改任何公开字节。检查通过不等于任何臂有效。"
   },
-  "pending_user_rulings": {
-    "entity_geometry.samples_per_axis": "待裁 60：每轴采样点数，提议 4（每实体 64 点，比例分辨率 1/64）；备选 8（512 点，约 8 倍计算）。运行前必须冻结。"
+  "pending_user_rulings": {},
+  "user_rulings": {
+    "decision_id": "D-224-S1",
+    "rulings": [
+      "D-224-S1 裁决 60（2026-09-24 批准，原话「裁决 59 取 (a)，60 取 4，61 按 S1-04 的 activation_policy 修，62 拒绝，63 保持 128 宽改数字，非法程序臂状态回滚；修完再开 S2-04」）：entity_geometry.samples_per_axis=4，绑定常量 ENTITY_GEOMETRY_SAMPLES_PER_AXIS，登记进跨合同台账；规则摘要不因填值而变。",
+      "D-224-S1 裁决 61（同日批准）：校验器原要求授权位全部为 false、而入口要求两位为 true，入口永远跑不起来；改为 activation_policy 机制，为 true 的位必须被 active_true_authorizations 点名并写明 opened_by。两位现仍关。",
+      "S2 审查修正（同日批准「非法程序臂状态回滚」）：frame_step.arm_state 新增 arm_state_rolled_back_with_the_frame_on_an_illegal_program=true 并由校验器绑定；这是规则变更，规则摘要重钉（见跨合同测试的台账注释）。"
+    ]
   }
 }

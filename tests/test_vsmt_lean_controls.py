@@ -115,6 +115,9 @@ class EluPFitTests(unittest.TestCase):
             (lambda: lc.fit_persistence_log_decay(intervention_events=0, object_ticks=0), "fit_degenerate:no_object_ticks"),
             (lambda: lc.fit_match_gain(hit_frames=80, hit_total=100, false_frames=0, false_total=100), "fit_degenerate:rate_is_zero"),
             (lambda: lc.fit_match_gain(hit_frames=80, hit_total=100, false_frames=10, false_total=0), "fit_degenerate:no_frames"),
+            # D-224-S1 ruling 62: a gain at or below zero is refused by the fit, not by the arm at the first S2-05 frame
+            (lambda: lc.fit_match_gain(hit_frames=10, hit_total=100, false_frames=50, false_total=100), "fit_degenerate:gain_not_positive"),
+            (lambda: lc.fit_match_gain(hit_frames=50, hit_total=100, false_frames=50, false_total=100), "fit_degenerate:gain_not_positive"),
             (lambda: lc.fit_match_gain(hit_frames=-1, hit_total=100, false_frames=10, false_total=100), "count_invalid:hit_frames"),
         )
         for call, code in cases:

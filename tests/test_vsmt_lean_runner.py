@@ -376,6 +376,30 @@ class FrameStepTests(unittest.TestCase):
         self.assertEqual(steps[2]["state"]["memory"]["tick"], 3)
         self.assertEqual(len(steps[2]["state"]["memory"]["transaction_log"][1]["operations"]), 0)
 
+    def test_an_illegal_program_also_rolls_back_the_arm_state(self) -> None:
+        # S2 review (2026-09-24): the whole frame rolls back, the arm's temporal state included
+        real = lm.apply_program
+        calls = {"n": 0}
+
+        def flaky(memory, program, **kwargs):
+            calls["n"] += 1
+            if calls["n"] == 3 and program["operations"]:  # the third frame's real program: RAC's first negative render
+                raise lm.LeanMemoryError("forced_illegal_program")
+            return real(memory, program, **kwargs)
+
+        with mock.patch.object(lr.lm, "apply_program", side_effect=flaky):
+            steps, summary = run_all("RAC")
+        third = steps[2]["receipt"]
+        self.assertEqual(third["illegal_program"]["code"], "forced_illegal_program")
+        self.assertTrue(third["illegal_program"]["arm_state_rolled_back"])
+        # the counter RAC advanced for the rolled-back frame is back at the frame-2 state
+        self.assertEqual(steps[2]["state"]["arm_state"], steps[1]["state"]["arm_state"])
+        self.assertEqual(third["arm_state_sha256"], steps[1]["receipt"]["arm_state_sha256"])
+        # so the fourth frame is the FIRST negative render (NOOP), not the second (RETRACT)
+        self.assertEqual([atoms_of(s) for s in steps][2:], [{}, {"BIND": 1, "NOOP": 1}, {"BIND": 2}])
+        self.assertEqual(summary["atoms"]["RETRACT"], 0)
+        self.assertEqual(summary["illegal_programs"], 1)
+
     def test_two_runs_are_byte_identical_and_the_cache_gate_holds_across_arms(self) -> None:
         first, first_summary = run_all("TAF")
         second, second_summary = run_all("TAF")
@@ -456,8 +480,11 @@ class MachineContractTests(unittest.TestCase):
         checked = lr.validate_runner_contract(self.contract)
         self.assertEqual(checked["stage_id"], "S2-01")
         self.assertEqual(checked["descriptor"]["selected"], la.SELECTED_DESCRIPTOR)
-        self.assertIsNone(checked["entity_geometry"]["samples_per_axis"])
-        self.assertIn("entity_geometry.samples_per_axis", checked["policy_values_without_defaults"])
+        self.assertEqual(checked["entity_geometry"]["samples_per_axis"], 4)  # D-224-S1 ruling 60 (2026-09-24)
+        self.assertEqual(checked["entity_geometry"]["samples_per_axis"], lr.ENTITY_GEOMETRY_SAMPLES_PER_AXIS)
+        self.assertNotIn("entity_geometry.samples_per_axis", checked["policy_values_without_defaults"])
+        self.assertEqual(checked["registered_value_slots"], ["entity_geometry.samples_per_axis"])
+        self.assertTrue(all(value is False for value in checked["authorization"].values()))
         self.assertEqual(tuple(checked["frame_step"]["order"]), lr.FRAME_STEP_ORDER)
         for key, path in checked["depends_on"].items():
             if key.endswith("_contract"):
@@ -471,21 +498,45 @@ class MachineContractTests(unittest.TestCase):
             (lambda c: c["frame_step"]["order"].reverse(), "contract_frame_step_order_mismatch"),
             (lambda c: c["truth_table"].__setitem__("observable_min_pixels", 100), "contract_truth_pixels_mismatch"),
             (lambda c: c["descriptor"].__setitem__("selected", "vits14"), "contract_descriptor_selected_mismatch"),
-            (lambda c: c["authorization"].__setitem__("episode_run", True), "contract_authorization_must_be_all_false:episode_run"),
-            (lambda c: c["entity_geometry"].__setitem__("samples_per_axis", 4), "contract_samples_per_axis_frozen_but_still_listed_as_open"),
+            (lambda c: c["authorization"].__setitem__("episode_run", True), "contract_bit_opened_without_a_ruling:episode_run"),
+            (lambda c: c["entity_geometry"].__setitem__("samples_per_axis", None), "contract_samples_per_axis_null_but_not_registered_as_open"),
+            (lambda c: c["frame_step"]["arm_state"].__setitem__("arm_state_rolled_back_with_the_frame_on_an_illegal_program", False),
+             "contract_frame_step_claim_weakened:arm_state_rolled_back_with_the_frame_on_an_illegal_program"),
         ):
             broken = copy.deepcopy(self.contract)
             edit(broken)
             with self.subTest(code=code), self.assertRaises(lr.LeanRunnerError) as caught:
                 lr.validate_runner_contract(broken)
             self.assertEqual(str(caught.exception), code)
-        # a value filled without a bound constant is refused as well
+        # a value differing from the bound constant is refused as well
         broken = copy.deepcopy(self.contract)
-        broken["entity_geometry"]["samples_per_axis"] = 4
-        broken["policy_values_without_defaults"] = []
+        broken["entity_geometry"]["samples_per_axis"] = 8
         with self.assertRaises(lr.LeanRunnerError) as caught:
             lr.validate_runner_contract(broken)
         self.assertEqual(str(caught.exception), "contract_samples_per_axis_differs_from_the_frozen_constant")
+
+    def test_a_bit_opens_only_through_an_activation_policy_that_names_a_ruling(self) -> None:
+        # D-224-S1 ruling 61: the S1-03 / S1-04 mechanism; the bits are closed today, so the
+        # opened form is exercised on a copy
+        opened = copy.deepcopy(self.contract)
+        opened["authorization"]["episode_run"] = True
+        opened["activation_policy"] = {"opened_by": "D-224-S1 ruling <n>", "opened_on": "2026-09-30",
+                                       "active_true_authorizations": ["episode_run"]}
+        self.assertTrue(lr.validate_runner_contract(opened)["authorization"]["episode_run"])
+        opened["authorization"]["server_run"] = True  # opened but not named by the policy
+        with self.assertRaises(lr.LeanRunnerError) as caught:
+            lr.validate_runner_contract(opened)
+        self.assertEqual(str(caught.exception), "contract_bit_opened_without_a_ruling:server_run")
+        nameless = copy.deepcopy(self.contract)
+        nameless["activation_policy"] = {"opened_by": "", "active_true_authorizations": []}
+        with self.assertRaises(lr.LeanRunnerError) as caught:
+            lr.validate_runner_contract(nameless)
+        self.assertEqual(str(caught.exception), "contract_activation_policy_names_no_ruling")
+        broken = copy.deepcopy(self.contract)
+        broken["authorization"]["episode_run"] = "yes"
+        with self.assertRaises(lr.LeanRunnerError) as caught:
+            lr.validate_runner_contract(broken)
+        self.assertEqual(str(caught.exception), "contract_authorization_not_boolean:episode_run")
 
 
 if __name__ == "__main__":

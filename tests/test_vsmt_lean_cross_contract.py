@@ -337,8 +337,13 @@ FROZEN_RULE_SHA256 = {
     # value slot, null until ruled), the illegal-program fallback to an empty program, the descriptor
     # choice bound to the S1-05 freeze, and the truth-table scope rules (observable = a private mask
     # of at least 196 pixels once; structural keys present and out of scope without a box).  Both
-    # authorisation bits closed.
-    "S2-01": "e1060695eff0ff9793eb493ef651f2eab1cd3061a2a10beedceae1b99e0bab30",
+    # authorisation bits closed.  First pinned e1060695...
+    # Re-pinned 2026-09-24 after the user's S2 review (LOG-248): an illegal program now rolls back
+    # the arm's temporal state with the frame, a new bound claim under frame_step.arm_state.
+    # Ruling 60 (samples_per_axis = 4) is a slot fill and ruling 61 (activation_policy) is
+    # bookkeeping; checked at re-pin time that with the new claim removed the digest is e1060695
+    # again, so that claim is the only rule that moved.  e1060695 -> 09fc1a4a.
+    "S2-01": "09fc1a4af70d7cc6f791de09b07c7d7ba27f94695ed99b7493481ecbbceebf39",
 }
 
 #: Every registered slot that has been frozen, and the value it froze at.
@@ -384,6 +389,11 @@ FROZEN_VALUES: dict[str, dict[str, Any]] = {
         "split_freeze.seed": 20260920,
         "split_freeze.validation_houses": 50,
         "split_freeze.test_houses": 100
+    },
+    "S2-01": {
+        # D-224-S1 ruling 60 (2026-09-24): cell centres per axis of the entity box for the two
+        # geometry ratios; 64 points per entity, ratio granularity 1/64.
+        "entity_geometry.samples_per_axis": 4
     }
 }
 
@@ -994,8 +1004,10 @@ class TestS201RunnerContractBindsItsUpstreams(unittest.TestCase):
         self.assertIn("shared.should_be_visible_min_ratio", load("S0-05")["policy_values_without_defaults"])
         self.assertTrue(sources["dormancy_missed_opportunity_limit"].startswith("S0-01"))
         self.assertTrue(sources["should_be_visible_min_ratio"].startswith("S0-05"))
-        self.assertEqual(self.contract["policy_values_without_defaults"], ["entity_geometry.samples_per_axis"])
-        self.assertIsNone(self.contract["entity_geometry"]["samples_per_axis"])
+        self.assertEqual(self.contract["policy_values_without_defaults"], [])
+        self.assertEqual(registered_value_slots("S2-01"), ("entity_geometry.samples_per_axis",))
+        self.assertEqual(self.contract["entity_geometry"]["samples_per_axis"], 4)  # D-224-S1 ruling 60
+        self.assertEqual(self.contract["entity_geometry"]["samples_per_axis"], lean_runner.ENTITY_GEOMETRY_SAMPLES_PER_AXIS)
         self.assertEqual(tuple(self.contract["entity_geometry"]["fields"]), lean_assignment.ENTITY_GEOMETRY_FIELDS)
 
     def test_the_truth_table_rules_agree_with_s0_04_and_s0_02(self) -> None:

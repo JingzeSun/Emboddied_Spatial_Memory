@@ -19,9 +19,10 @@ Per frame, in this order:
   6. existence decisions on the eligible rows (active or dormant, should-be-visible ratio at or
      above the shared minimum), per arm, with the arm's temporal state (ELU-P log-odds, RAC counters);
   7. compile the atoms within the arm's vocabulary and commit them atomically through the S0-01
-     executor with the shared dormancy and dedup values; an illegal program rolls back, the frame
-     then commits an EMPTY program (tick advances, maintenance runs) and the failure is counted
-     (D-224-X, METHOD section 6 step 6); NoVersion deletes retracted entities after the commit;
+     executor with the shared dormancy and dedup values; an illegal program rolls back the whole
+     frame -- the memory AND the arm's temporal state -- the frame then commits an EMPTY program
+     (tick advances, maintenance runs) and the failure is counted (D-224-X, METHOD section 6
+     step 6); NoVersion deletes retracted entities after the commit;
   8. the frame receipt: seals, recall, assignment, decisions, atoms, the memory digests before and
      after, the sparse frame delta, and the cache frame seal it consumed.
 
@@ -71,9 +72,11 @@ ENTITY_GEOMETRY_RULE = (
     "halfspaces hold within the tolerance; ratio = points inside the union of blocks / points"
 )
 HALFSPACE_TOLERANCE_M = 1e-9
-#: The registered sampling resolution (points per axis).  Null in the contract until the user
-#: freezes it; the code refuses ``None`` and binds the frozen value here once it exists.
-ENTITY_GEOMETRY_SAMPLES_PER_AXIS: int | None = None
+#: The registered sampling resolution (points per axis): D-224-S1 ruling 60 (2026-09-24) froze
+#: it at 4, i.e. 64 cell centres per entity and a ratio granularity of 1/64.  The contract's value
+#: slot carries the same number and the validator refuses any other; the ops entry still reads the
+#: contract, so the constant here only binds the two together.
+ENTITY_GEOMETRY_SAMPLES_PER_AXIS: int | None = 4
 
 #: Illegal-program rule (D-224-X, METHOD section 6 step 6).
 ILLEGAL_PROGRAM_RULE = (
@@ -500,10 +503,14 @@ def run_frame(
                                       dedup=checked_policy["dedup"])
     except lm.LeanMemoryError as exc:
         illegal = {"code": str(exc), "operations_attempted": len(program["operations"]),
-                   "atoms_attempted": {atom: sum(1 for op in operations if op["atom"] == atom) for atom in lm.ATOMS}}
+                   "atoms_attempted": {atom: sum(1 for op in operations if op["atom"] == atom) for atom in lm.ATOMS},
+                   "arm_state_rolled_back": True}
         new_memory = lm.apply_program(memory, {"frame_digest": program["frame_digest"], "operations": []}, method_id=arm,
                                       dormancy_missed_opportunity_limit=checked_policy["dormancy_missed_opportunity_limit"],
                                       dedup=checked_policy["dedup"])
+        # The whole frame rolls back, the arm's temporal state included: the ELU-P log-odds and
+        # RAC counters were advanced for decisions that never took effect (S2 review, 2026-09-24).
+        arm_state = clone_json(dict(state["arm_state"]))
     no_version_deleted: list[str] = []
     if arm == "NoVersion":
         new_memory = arms.apply_no_version(new_memory)
@@ -703,6 +710,8 @@ def validate_runner_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     _require(dict(step["policy_input_sources"]) == POLICY_INPUT_SOURCES, "contract_policy_sources_mismatch")
     _require(tuple(step["runnable_arms"]) == RUNNABLE_ARMS, "contract_runnable_arms_mismatch")
     _require(step["appendix_arm_refused_here"] == arms.APPENDIX_ARM, "contract_appendix_arm_mismatch")
+    _require(step["arm_state"]["arm_state_rolled_back_with_the_frame_on_an_illegal_program"] is True,
+             "contract_frame_step_claim_weakened:arm_state_rolled_back_with_the_frame_on_an_illegal_program")
     truth = contract["truth_table"]
     _require(truth["observable_rule"] == TRUTH_TABLE_OBSERVABLE_RULE, "contract_truth_observable_rule_mismatch")
     _require(truth["observable_min_pixels"] == OBSERVABLE_MIN_PIXELS, "contract_truth_pixels_mismatch")
@@ -713,8 +722,16 @@ def validate_runner_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     _require(tuple(contract["failure_reasons"]) == FAILURE_REASONS, "contract_failure_reasons_mismatch")
     gate = contract["continue_gate"]
     _require(gate["five_arms_read_byte_identical_cache_clones"] is True, "contract_continue_gate_weakened")
+    # Authorization bits are not switches the implementer may flip: a bit may be true only when
+    # an activation_policy names it and the ruling that opened it (the S1-03 / S1-04 pattern;
+    # D-224-S1 ruling 61, 2026-09-24).  The ops entry separately refuses while a bit is closed.
+    policy = contract.get("activation_policy")
+    opened = set(policy["active_true_authorizations"]) if policy else set()
+    if policy:
+        _require(type(policy.get("opened_by")) is str and bool(policy["opened_by"]), "contract_activation_policy_names_no_ruling")
     for name, value in contract["authorization"].items():
-        _require(value is False, f"contract_authorization_must_be_all_false:{name}")
+        _require(type(value) is bool, f"contract_authorization_not_boolean:{name}")
+        _require(value is False or name in opened, f"contract_bit_opened_without_a_ruling:{name}")
     return clone_json(dict(contract))
 
 

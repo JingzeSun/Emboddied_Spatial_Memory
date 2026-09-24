@@ -178,7 +178,13 @@ def fit_persistence_log_decay(*, intervention_events: int, object_ticks: int) ->
 
 
 def fit_match_gain(*, hit_frames: int, hit_total: int, false_frames: int, false_total: int) -> dict[str, Any]:
-    """log(p_hit / p_false); both rates must be strictly between 0 and 1 so the ratio is finite and informative."""
+    """log(p_hit / p_false); both rates must be positive and p_hit must exceed p_false.
+
+    A zero rate makes the ratio infinite; p_hit <= p_false means the gate binds no more often when
+    the object is there than when it is not, so a match carries no positive evidence and ELU-P's
+    ``elu_p_observe_matches`` would refuse the gain anyway.  Both are refused here as degenerate
+    counts instead of surfacing at the first S2-05 frame (D-224-S1 ruling 62, 2026-09-24).
+    """
 
     hits = _count(hit_frames, "count_invalid:hit_frames")
     hit_n = _count(hit_total, "count_invalid:hit_total")
@@ -187,6 +193,7 @@ def fit_match_gain(*, hit_frames: int, hit_total: int, false_frames: int, false_
     _require(hit_n > 0 and false_n > 0, "fit_degenerate:no_frames")
     _require(0 < hits <= hit_n and 0 < false <= false_n, "fit_degenerate:rate_is_zero")
     p_hit, p_false = hits / hit_n, false / false_n
+    _require(p_hit > p_false, "fit_degenerate:gain_not_positive")
     return {"value": math.log(p_hit / p_false), "p_hit": p_hit, "p_false": p_false,
             "hit_frames": hits, "hit_total": hit_n, "false_frames": false, "false_total": false_n}
 
