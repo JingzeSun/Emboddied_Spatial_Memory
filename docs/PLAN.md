@@ -208,7 +208,7 @@ S4 论文
 
 | 项 | 内容 |
 |---|---|
-| 状态 | **已实现待审（2026-09-24，LOG-247）**：[`lean_model.py`](../src/vsmt/lean_model.py)——`make_heads`（关联 14 维、存在 12 维、新建 4 维各一头：LayerNorm(输入)→Linear(·,128)→GELU→Linear(128,128)→GELU→Linear(128,1)，合计 54,207 参数；METHOD 写"约 4 万"，实际按此架构为 5.4 万，架构文本为准）、`LeanScorer`（S2-01 的 scorer 接口，键恰为封存行，特征按冻结顺序取位置，AssocOnly 无存在头）、`frame_loss`（合同原句：逐色块在［召回列…, BIRTH 列］上 softmax 交叉熵＋逐实体存在 BCE 等权；只有 labelled／birth 目标与 gone／present 标签进损失，recall_miss／unlabelled／identity_ambiguous／duplicate_of_labelled 与身份含糊候选只计数）、`train_heads`（AdamW、逐帧 batch、登记 seed、跑满登记 epoch 后保留 validation 损失最低的 epoch＝无耐心值的早停、发散如实返回、同值同机逐位复现）、`recipe_matches_contract`（lr 1e-3／20 epoch／5 seed／2 轮 DAgger／主表第 1 轮绑定 S0-05 冻结值）、`dagger_schedule`（第 0 轮 ELU-P 预登记 rollout_config 轨迹、第 1 轮自身轨迹，两轮都报）、权重 payload 带摘要；代价矩阵、求解、编译、提交复用 S0-03／S0-01 经 runner；`NoVersion` 为 runner 开关、`AssocOnly` 为 `assoc_only=True` 重训（裁决 X3）。测试 [`test_vsmt_lean_model.py`](../tests/test_vsmt_lean_model.py) 11 项，含继续门"候选换序后每个实体的 logit 跟着实体走、最终程序不变"。标签生成与 DAgger 编排要等 S2-04 的 teacher 接线 |
+| 状态 | **已实现待审（2026-09-24，LOG-247）**：[`lean_model.py`](../src/vsmt/lean_model.py)——`make_heads`（关联 14 维、存在 12 维、新建 4 维各一头：LayerNorm(输入)→Linear(·,128)→GELU→Linear(128,128)→GELU→Linear(128,1)，合计 54,207 参数；METHOD 原写"约 4 万"，裁决 63 保持 128 宽并把 METHOD 与 AGENTS 的数字改为 54,207）、`LeanScorer`（S2-01 的 scorer 接口，键恰为封存行，特征按冻结顺序取位置，AssocOnly 无存在头）、`frame_loss`（合同原句：逐色块在［召回列…, BIRTH 列］上 softmax 交叉熵＋逐实体存在 BCE 等权；只有 labelled／birth 目标与 gone／present 标签进损失，recall_miss／unlabelled／identity_ambiguous／duplicate_of_labelled 与身份含糊候选只计数）、`train_heads`（AdamW、逐帧 batch、登记 seed、跑满登记 epoch 后保留 validation 损失最低的 epoch＝无耐心值的早停、发散如实返回、同值同机逐位复现）、`recipe_matches_contract`（lr 1e-3／20 epoch／5 seed／2 轮 DAgger／主表第 1 轮绑定 S0-05 冻结值）、`dagger_schedule`（第 0 轮 ELU-P 预登记 rollout_config 轨迹、第 1 轮自身轨迹，两轮都报）、权重 payload 带摘要；代价矩阵、求解、编译、提交复用 S0-03／S0-01 经 runner；`NoVersion` 为 runner 开关、`AssocOnly` 为 `assoc_only=True` 重训（裁决 X3）。测试 [`test_vsmt_lean_model.py`](../tests/test_vsmt_lean_model.py) 11 项，含继续门"候选换序后每个实体的 logit 跟着实体走、最终程序不变"。标签生成与 DAgger 编排要等 S2-04 的 teacher 接线 |
 | 输入 | S0-03、S0-05 合同 |
 | 完整动作 | 实现三个代价头、代价矩阵、矩形分配、编译与提交；训练循环与两轮 DAgger；实现 `NoVersion` 与 `AssocOnly` 两个消融开关（同一代码路径、同一训练预算；**AssocOnly 同配方重训、去掉存在损失项，不复用 VSMT-lean 权重**，裁决 X3）；第 0 轮 DAgger 的 ELU-P 轨迹取 S0-05 v2 预登记的 `rollout_config`（裁决 X4）；不读 slot/路径/样本名 |
 | 输出 | 模型代码、训练入口、单元测试 |
@@ -220,7 +220,7 @@ S4 论文
 |---|---|
 | 状态 | 未开始 |
 | 输入 | S0-04 合同 |
-| 完整动作 | 实现封存后标签器（含同帧重复色块的 `duplicate_of_labelled`，裁决 X1）、七项指标、三分解、nuisance probe、私有扰动不变性检查；评价器收到的真值表含所有可解析物体并带 `in_scope` 标志（裁决 X6）；每项指标的未定义 house 清单按 `undefined_houses` 算一次并传给全部配对比较（裁决 X2） |
+| 完整动作 | 实现封存后标签器（含同帧重复色块的 `duplicate_of_labelled`，裁决 X1）、七项指标、三分解、nuisance probe、私有扰动不变性检查；评价器收到的真值表含所有可解析物体并带 `in_scope` 标志（裁决 X6）；每项指标的未定义 house 清单按 `undefined_houses` 算一次并传给全部配对比较（裁决 X2）；**存在标签只对 runner 的可判定行生成**（active／dormant 且应可见比例 ≥ S0-05 `should_be_visible_min_ratio` 的未分配实体，与部署时存在头被询问的行一致，该下限须先冻结；S2 审查，LOG-248） |
 | 输出 | 评价器代码与测试 |
 | 继续门 | 修改 private 不改变任何公开产物字节 |
 

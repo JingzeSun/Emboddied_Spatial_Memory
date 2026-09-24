@@ -103,7 +103,7 @@ VSMT-lean 解决的问题是：机器人在多视角历史中重访时，对象�
 | 存在头 r(e) | 应可见比例；自由空间覆盖比例；相机到质心距离与视角余弦；`missed_opportunity_count`；`observation_count`；`t − last_seen_t`；与当前任一 fragment 的最高余弦及该 fragment 是否仍未匹配；状态 one-hot | "已不在原处" logit |
 | 新建头 b(f) | 对任一实体的最高余弦；1 m 内活动实体数；fragment 像素数；深度有效率 | 新建 logit |
 
-架构：每个头为输入 LayerNorm 加两层 128 宽 GELU MLP，输出一维；三个头合计约 4 万参数。损失：逐 fragment 对 `[召回列…, BIRTH 列]` 的 softmax 交叉熵，加逐实体存在的二元交叉熵，两项等权。训练配方（proposed）：AdamW，lr 1e-3，weight decay 1e-4，batch 按帧组织，20 epoch，按 validation loss 早停，seed 7/19/31/43/59。因果记忆的分布偏移用两轮 DAgger 处理：第 0 轮用 ELU-P 产生的记忆序列训练，第 1 轮用第 0 轮模型自己产生的记忆再训练；两轮都登记，主表用第 1 轮。第 0 轮的 ELU-P 取 S0-05 v2 预登记的 `rollout_config` 那一格（网格成员、无距离门），S2-05 与 S3-03 用同一格，与 validation 选参无关，`HeuristicLabel` 的标签也来自这一格（D-224-X 裁决 X4）。它不接受 slot、路径、样本名或 house ID 作为输入。
+架构：每个头为输入 LayerNorm 加两层 128 宽 GELU MLP，输出一维；三个头合计 54,207 个参数（关联头 18,589、存在头 18,329、新建头 17,289；D-224 原写"约 4 万"，裁决 63 于 2026-09-24 按 128 宽架构改正数字，架构不变）。损失：逐 fragment 对 `[召回列…, BIRTH 列]` 的 softmax 交叉熵，加逐实体存在的二元交叉熵，两项等权。训练配方（proposed）：AdamW，lr 1e-3，weight decay 1e-4，batch 按帧组织，20 epoch，按 validation loss 早停，seed 7/19/31/43/59。因果记忆的分布偏移用两轮 DAgger 处理：第 0 轮用 ELU-P 产生的记忆序列训练，第 1 轮用第 0 轮模型自己产生的记忆再训练；两轮都登记，主表用第 1 轮。第 0 轮的 ELU-P 取 S0-05 v2 预登记的 `rollout_config` 那一格（网格成员、无距离门），S2-05 与 S3-03 用同一格，与 validation 选参无关，`HeuristicLabel` 的标签也来自这一格（D-224-X 裁决 X4）。它不接受 slot、路径、样本名或 house ID 作为输入。
 
 白话：模型是"冻结视觉特征＋几十 KB 的小打分器＋一次匈牙利分配"，不是 VLM，也不是图网络。这样选是因为训练决策点只有十万量级，对手全是零训练方法，任何大模型的收益都无法与前端区分开。
 
