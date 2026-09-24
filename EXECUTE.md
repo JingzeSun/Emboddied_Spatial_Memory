@@ -4,7 +4,7 @@
 
 ## 当前看板
 
-**2026-09-24 最新状态：S2-02（对照来源登记、ELU-P 拟合式、LLM-op 接口）与 S2-03（三个代价头、scorer、损失、训练循环）已实现待审（LOG-247，服务器全量 `4df7f3c` 1552/1552）；S2-01 共同 runner 已实现待审（LOG-246，服务器全量 `6deb8b6` 1533/1533）——`lean_runner.py`、合同 `lean_s2_01_runner_v1.json`（首钉 `e1060695…`）、单 episode 入口与 21 项测试；待裁 60（几何采样分辨率，推荐 4）；S1-05 已按裁决 47 机械收口（LOG-245）——选定 `reid_projection:vitb14`，冻结 ViT-B/14 为并列基线；待裁 59（选择组 9/12，推荐维持）。下一步 S2-02／S2-03。** S1 不重做；召回四值、匹配口径与描述子全部冻结；按 D-059 本次改动待用户审。上一暂停点：S0 修订（裁决 56 续／57／58，`6699a19`）已由用户审过并授权进入 S2（LOG-244 续二）。
+**2026-09-24 最新状态：S2-01～S2-03 经用户审查通过，裁决 59～63 与臂状态回滚已落地（LOG-248）——`samples_per_axis`=4、S2-01 授权位改 `activation_policy` 机制（规则摘要 `e1060695…` → `09fc1a4a…`）、`fit_match_gain` 拒绝非正增益、METHOD 参数数改 54,207；服务器全量待下次同步；**下一步 S2-04**。此前：S2-02 与 S2-03 已实现（LOG-247，服务器全量 `4df7f3c` 1552/1552）；S2-01 共同 runner 已实现待审（LOG-246，服务器全量 `6deb8b6` 1533/1533）——`lean_runner.py`、合同 `lean_s2_01_runner_v1.json`（首钉 `e1060695…`）、单 episode 入口与 21 项测试；待裁 60（几何采样分辨率，推荐 4）；S1-05 已按裁决 47 机械收口（LOG-245）——选定 `reid_projection:vitb14`，冻结 ViT-B/14 为并列基线；待裁 59（选择组 9/12，推荐维持）。下一步 S2-02／S2-03。** S1 不重做；召回四值、匹配口径与描述子全部冻结；按 D-059 本次改动待用户审。上一暂停点：S0 修订（裁决 56 续／57／58，`6699a19`）已由用户审过并授权进入 S2（LOG-244 续二）。
 
 | 事项 | 已知事实 |
 |---|---|
@@ -3877,3 +3877,17 @@ move 仍要两个 U 容器、add 仍要过 dry-run，成品率不会等于这些
 - 本地分进程：model 11、controls 8、runner 21、arms 44、cross-contract 65 通过。**服务器全量：checkout 到 `4df7f3c`（无未跟踪文件），1552/1552 通过、退出 0、105 s**（比 `6deb8b6` 多 19 项，即本节新增的 8＋11），日志 `/root/autodl-tmp/vsmt_outputs/run_logs/suite-4df7f3c.log`。
 - **按 D-059 在此停下**：S2-01／S2-02／S2-03 三步的科学代码都未经用户审查，S2-04（teacher 与评价器接线）要消费 S2-01 的封存产物与真值表、S2-05 要消费 S2-03 的 scorer，继续往上叠属于“在未审模块上堆叠后续科学代码”。待用户审过 6019b72…4df7f3c 并裁 59／60 后再开 S2-04。
 - **本节不做的事**：不生成标签（需要 S2-04 的 teacher 接线读私有面）；不编排 DAgger（S2-05）；不真的调用 LLM；不改 METHOD 的参数数表述（待用户定是否按 4 万收窄）。
+### LOG-248：S2-01～S2-03 用户审查、裁决 59～63 与非法程序臂状态回滚落地（2026-09-24 18:51 CST）
+
+- 类型：**代码审查结论与修正落地（D-059）**。审查范围 `b0b59d2`…`95b9e84`（S2-01 runner 与合同、S2-02 对照、S2-03 代价头）；没有跑真实 cache，没有连服务器，没有读私有文件。用户原话「裁决 59 取 (a)，60 取 4，61 按 S1-04 的 activation_policy 修，62 拒绝，63 保持 128 宽改数字，非法程序臂状态回滚；修完再开 S2-04」。
+- **审查核对项（通过）**：D-223 材化的"点在块内"是 n·p ≤ offset（近平面 (0,0,−1)、−near；`_world_halfspace` 保持不等式），[`lean_runner.py`](src/vsmt/lean_runner.py) 用同一式且体块与色块用同一份因果位姿；自由空间滚动窗口 4 次观测（`rolling_public_observation_times`）按合同"照存的读"；三头参数 18,589＋18,329＋17,289＝54,207 逐头核对；四条来源链接在线核过，标题作者与登记相符；runner 21、controls 8、model 11 本机分进程通过；公开阶段函数签名无私有参数。
+- **审查发现与修正**：
+  1. **入口永远跑不起来（裁决 61）**：`validate_runner_contract` 要求两个授权位全 false，而 [`lean_s2_01_runner.py`](ops/vsmt/lean_s2_01_runner.py) 先调它再要求两位为 true；置位模拟抛 `contract_authorization_must_be_all_false:episode_run`。改为 S1-03／S1-04 的 `activation_policy` 机制：为 true 的位必须被 `active_true_authorizations` 点名并写 `opened_by`，未点名即拒 `contract_bit_opened_without_a_ruling`，非布尔即拒；合同加 `authorization_rule_zh`，两位仍关。测试新增"点名即收、未点名即拒、无裁决名即拒、非布尔即拒"。
+  2. **ELU-P 匹配增益符号（裁决 62）**：[`lean_controls.py`](src/vsmt/lean_controls.py) 的 `fit_match_gain` 原接受 p_hit ≤ p_false（10/100 对 50/100 得 −1.61），而 `elu_p_observe_matches` 拒绝负增益，拟合"成功"到 S2-05 第一帧才失败。现拟合即拒 `fit_degenerate:gain_not_positive`（p_hit 等于 p_false 也拒），docstring 改成与代码一致；测试加两例。
+  3. **非法程序回滚含臂状态**：原来 ELU-P log-odds 与 RAC 计数在提交前推进、程序被拒后不回滚。现回到帧前值，回执 `illegal_program.arm_state_rolled_back=true`，合同 `frame_step.arm_state` 新增布尔声称并由校验器绑定；这是规则变更，S2-01 规则摘要重钉 `e1060695…` → `09fc1a4a…`（去掉该声称即回到首钉，只此一处动了规则）。测试：RAC 在第三帧被强制非法后，第四帧是第一次负渲染（NOOP）而不是第二次（RETRACT），臂状态与摘要等于第二帧之后。
+  4. **裁决 60**：合同 `entity_geometry.samples_per_axis`=4，`ENTITY_GEOMETRY_SAMPLES_PER_AXIS`=4，`policy_values_without_defaults` 清空、`registered_value_slots` 记住 v1 登记过的槽位，台账 `FROZEN_VALUES["S2-01"]` 登记；校验器对 8 拒 `differs_from_the_frozen_constant`、对 null 拒 `null_but_not_registered_as_open`。
+  5. **裁决 63**：METHOD 第七节与 AGENTS.md 的"约 4 万参数"改为 54,207（宽度 112 才约 4.2 万），架构不变；PLAN S2-03 行同步。
+  6. **裁决 59**：维持 9 条选择组，不改任何代码与合同。
+- **接口要求（写进 PLAN S2-04 行）**：存在标签只对 runner 的可判定行生成（active／dormant 且应可见比例 ≥ S0-05 `should_be_visible_min_ratio` 的未分配实体），与部署时存在头被询问的行一致，该下限须先冻结。**S2-05 前的检查**：服务器 39 份 S1-04 几何回执的 `objects_without_box`（在场、范围内、无盒的物体会让 `TruthTableBuilder` 整条 episode 失败），本地导出报告没有这个计数。
+- **测试**：本机分进程 runner 23（＋2）、controls 8、model 11、cross-contract 65、arms 44 全部通过。本机全量合跑一次在约 225 项后段错误（exit 139），与本机已知 CPU 故障一致（LOG-225 起多次记录），不作为证据。 服务器全量随下次同步再跑（本会话没有服务器口令）。
+- **本节不做的事**：不开授权位；不生成标签；不跑任何 episode；S2-04 按用户"修完再开"从下一步开始。
