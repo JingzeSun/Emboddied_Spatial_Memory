@@ -368,8 +368,13 @@ def _validate_entity(entity: Mapping[str, Any], *, tick: int) -> None:
 #: returns the copy without the walk.  Memories are sealed by ``apply_program`` and never mutated
 #: in place afterwards, so the invariant holds; a copy, a tampered copy or a resealed memory is a
 #: different object or a different digest and is validated in full.  The result is bit-identical.
-_VALIDATED_MEMORIES: "collections.OrderedDict[tuple[int, str, int, int], None]" = collections.OrderedDict()
-_VALIDATED_MEMORIES_LIMIT = 64
+#: The entry holds the object itself: an object id is only unique while the object is alive, and a
+#: freed memory's address can be reused by a new memory with the same digest (two sealed memories of
+#: one episode at one tick with the same content, as test fixtures produce), which would let an
+#: in-place tamper of the new object slip past the digest check (server suite at 4e8028d).  The
+#: limit is small because a frame touches two or three memory objects; holding them costs nothing.
+_VALIDATED_MEMORIES: "collections.OrderedDict[tuple[int, str, int, int], dict[str, Any]]" = collections.OrderedDict()
+_VALIDATED_MEMORIES_LIMIT = 8
 
 
 def _validated_key(memory: Mapping[str, Any]) -> tuple[int, str, int, int] | None:
@@ -392,7 +397,7 @@ def validate_memory(memory: Mapping[str, Any], *, verify_digest: bool = True) ->
 
     _require(type(memory) is dict, "memory_not_object")
     key = _validated_key(memory) if verify_digest else None
-    if key is not None and key in _VALIDATED_MEMORIES:
+    if key is not None and _VALIDATED_MEMORIES.get(key) is memory:  # the very object validated before, digest unchanged
         _VALIDATED_MEMORIES.move_to_end(key)
         return clone_json(dict(memory))
     expected = {
@@ -447,7 +452,7 @@ def validate_memory(memory: Mapping[str, Any], *, verify_digest: bool = True) ->
             "memory_digest_mismatch",
         )
         if key is not None:
-            _VALIDATED_MEMORIES[key] = None
+            _VALIDATED_MEMORIES[key] = memory  # keeps the object (and so its id) alive while the entry lives
             while len(_VALIDATED_MEMORIES) > _VALIDATED_MEMORIES_LIMIT:
                 _VALIDATED_MEMORIES.popitem(last=False)
     else:

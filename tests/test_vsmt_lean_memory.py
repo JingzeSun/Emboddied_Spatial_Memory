@@ -139,6 +139,26 @@ class TestEmptyMemory(unittest.TestCase):
 class TestValidationCache(unittest.TestCase):
     """Engineering (LOG-254): a memory object validated once is not walked again while its digest stands."""
 
+    def test_a_cache_entry_names_its_object_so_an_address_reuse_cannot_skip_the_digest_check(self) -> None:
+        """Server suite at 4e8028d: a freed memory's id came back on a twin with the same digest and a tamper slipped through."""
+
+        import vsmt.lean_memory as lm
+
+        first, _ = born_memory()
+        validate_memory(first)
+        key = lm._validated_key(first)
+        self.assertIs(lm._VALIDATED_MEMORIES[key], first)  # the entry keeps the object alive, so its id stays unique
+        twin, _ = born_memory()  # same digest, tick and entity count as ``first``; a different object
+        self.assertEqual(twin["memory_digest"], first["memory_digest"])
+        only_entity(twin)["missed_opportunity_count"] = 1
+        # mimic an address reuse: an entry under the twin's key that names another object must not count as a hit
+        lm._VALIDATED_MEMORIES[lm._validated_key(twin)] = first
+        with self.assertRaises(LeanMemoryError) as caught:
+            validate_memory(twin)
+        self.assertEqual(str(caught.exception), "memory_digest_mismatch")
+        validate_memory(born_memory()[0])  # a store trims the cache back to its limit
+        self.assertLessEqual(len(lm._VALIDATED_MEMORIES), lm._VALIDATED_MEMORIES_LIMIT)
+
     def test_the_same_sealed_object_validates_to_an_equal_copy_and_a_tampered_copy_is_refused(self) -> None:
         memory = empty_memory(episode_id="ep-cache")
         first = validate_memory(memory)
