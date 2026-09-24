@@ -2,7 +2,7 @@
   "schema_version": "vsmt-lean-s2-04-evaluation-v1",
   "decision_id": "D-224",
   "stage_id": "S2-04",
-  "status": "implemented_pending_user_code_review",
+  "status": "user_code_review_passed_2026_09_24_rulings_64_65_applied",
   "plain_language_zh": "本合同定义 S2-04 的接线：S0-04 已经定死标签怎么打、七项指标怎么算，这里只登记这些函数的输入在真实运行时从哪来。每帧输入是 S2-01 runner 的一步产物（两段封存、分配、存在候选与决定、提交前后的记忆、放行回执）和这一帧的私有记录（实例图、物体位姿、可见像素）以及 S1-03 回收的色块 mask；输出是 S0-04 的目标列与存在标签、三分解、逐帧的节点匹配与污染占比、假撤回、规模成本、S2-03 的训练记录和 nuisance probe 记录，跑完一条 episode 后按冻结字段汇总七项指标。窗口过后，被移走/搬动物体的旧位置与新位置取自 S1-04 真值追踪器，\"这个地方对方法可观察了没有\"用臂自己那套包围盒采样判定（S2-01 的 entity_geometry、S0-05 的共享下限）决定。它不训练、不选参、不做 house 级配对统计（S3），不改任何公开字节。",
   "pure_core_relative_path": "src/vsmt/lean_evaluation.py",
   "depends_on": {
@@ -24,7 +24,7 @@
     "label_generation_run": false,
     "server_run": false
   },
-  "authorization_rule_zh": "两个授权位现在都关着。要打开某一位，必须在合同里加 activation_policy，把该位写进 active_true_authorizations 并在 opened_by 写明是哪条裁决打开的；校验器对没有裁决就为 true 的位直接拒绝（与 S2-01 裁决 61 同一机制）。S0-04 自己的 private_truth_read／label_generation／evaluation_run 三位由其校验器绑定为 false，它们是规则合同的位而不是运行位；哪份合同持有 S2-05 的运行位见待裁 64。",
+  "authorization_rule_zh": "两个授权位现在都关着。要打开某一位，必须在合同里加 activation_policy，把该位写进 active_true_authorizations 并在 opened_by 写明是哪条裁决打开的；校验器对没有裁决就为 true 的位直接拒绝（与 S2-01 裁决 61 同一机制）。裁决 64（2026-09-24 批准，取 (a)）：S2-05 的运行位由 S2 阶段合同持有——S2-01 的 episode_run／server_run 与本合同的 label_generation_run／server_run；S0-01／S0-03／S0-04／S0-05 各自的授权位保持 false，它们是规则合同的位，运行由 S2 阶段合同授权，入口只检查 S2 位。",
   "derivation_rules": {
     "place_observable": "the_object_truth_box_at_the_place_(its_centroid_point_when_the_object_has_no_box)_sampled_by_the_s2_01_entity_geometry_function_has_should_be_visible_ratio_at_or_above_the_s0_05_shared_minimum_under_the_frame_public_visibility_blocks",
     "old_place": "truth_centroid_and_box_at_the_last_window_frame",
@@ -100,7 +100,13 @@
     "report_carries_exactly_the_frozen_fields": true,
     "plain_language_zh": "S2-04 的继续门：换私有文件（例如交换两个物体的实例 ID）时 runner 的两段封存与回执逐字节不变、只有标签变；每帧三分解六类之和等于决定数；报告字段恰为冻结清单。检查通过不等于标签正确率高，也不等于指标有区分度。"
   },
-  "pending_user_rulings": {
-    "run_bits_governance": "待裁 64：S2-05 的运行位由哪份合同持有。S0-01／S0-03／S0-04／S0-05 的校验器把各自的授权位绑定为 false（它们是规则合同），S2-01 与本合同的位用 activation_policy 机制可凭裁决打开。推荐 (a)：S2 阶段合同持有运行位（S2-01 的 episode_run／server_run、本合同的 label_generation_run／server_run），S0 各位保持 false 并在白话里注明\"运行由 S2 阶段合同授权\"；备选 (b)：把 activation_policy 机制也加进 S0 四份合同的校验器并逐位打开（改已审校验器、重钉四份规则摘要）。"
+  "pending_user_rulings": {},
+  "user_rulings": {
+    "decision_id": "D-224-S1",
+    "rulings": [
+      "D-224-S1 裁决 64（2026-09-24 批准，原话「S2-04 审过；裁决 64 取 (a)，65 五条全按推荐。然后我看S205里面有不因开发差不利就改设计或删消融，我觉得可以改设计，继续下一步」）：取 (a)，S2-05 的运行位由 S2 阶段合同持有，S0 各位保持 false。",
+      "D-224-S1 裁决 65（同日批准，原话同上）：五条派生规则全按推荐，即本合同 derivation_rules 登记的字串——可观察判定用 S2-01 entity_geometry 的采样盒测试、比例 ≥ S0-05 共享下限；旧位置取窗口最后一帧、新位置取窗口后第一帧的追踪器输出；搬动物体旧/新位置任一可观察即起算恢复；搬动前承载实体不限状态；第一次带标签重见＝窗口后第一次有色块主导物体是它；解析到结构件的存在候选一律 present。",
+      "S2-04 代码审查通过（2026-09-24，原话同上）：本合同与 lean_evaluation.py 按 D-059 成为 S2-05 的基线。"
+    ]
   }
 }

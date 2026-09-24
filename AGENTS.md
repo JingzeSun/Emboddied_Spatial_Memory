@@ -5,7 +5,7 @@
 - 用户于 2026-09-19 批准 D-224 裁决 A～D：首篇精简为 **VSMT-lean（实体生命周期版本化事务）**，模型为冻结 SAM 2.1 + DINOv2 前端、三个合计 54,207 参数的 MLP 代价头（原写约 4 万，裁决 63 改正数字）和每帧一次矩形匈牙利分配；数据为 ProcTHOR 多 house 覆盖式重访加不可观测窗口干预；指标对齐 Dyn-THOR。
 - 五原子 NOOP/BIND/BIRTH/RETRACT/REACTIVATE；REPLACE 是复合程序；MERGE 是五方法共享的确定性去重；SPLIT、RELINK、place、surface、关系边、类型门、后状态编码、NECS 均退出首篇。
 - 主比较 VSMT-lean / TAF / ELU-P / RAC / LOW；四组消融 NoVersion / HandCost / HeuristicLabel / **AssocOnly**，其中 AssocOnly （同一学习关联头、词表只剩 BIND 与 BIRTH）是贡献一的唯一因果反事实，**主表必须并列报告**；`LLM-op` 是必做附录臂，只在 validation 上跑、不进主表不进 test；`VSMT-lean-ctx` 是可选臂。每方法至多 12 个完整配置，规则臂无梯度。
-- S2-05 开发表同时跑 `NoVersion` 与 `AssocOnly` 作早期风险读数；开发差不得用来选赢家、调网格或删消融。
+- S2-05 开发表同时跑 `NoVersion` 与 `AssocOnly` 作早期风险读数；开发差不得用来选赢家、调网格或删消融，但可以促成设计修订（裁决 66，2026-09-24）：修订须登记为裁决、在 S3-01 冻结正式数据前完成、不读 validation/test。
 - teacher 用 t 时刻私有实例真值；召回集合与特征矩阵在 private 打开前封存；`recall_miss`、`teacher_error`、`amortization_error` 分开。
 - 旧方向文档归档在分支 `archive/pre-d224-unified-graph`；`main` 的 METHOD/PLAN/DATA 只含精简版，先删减再加。旧源码留在树中不删，不进入当前入口。
 - S0-01 实体记忆、S0-02 干预数据两份合同已审通过；S0-03 特征/召回/分配合同已实现待审（分配求解器自写，不新增 scipy 依赖）；数据生成、训练、服务器运行全部未授权，合同内数值全为 null。D-059 的单职责科学提交、用户代码审查和服务器规则继续有效。
