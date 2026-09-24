@@ -1104,3 +1104,38 @@ class TestMachineContract(unittest.TestCase):
 
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()
+
+
+class TestStructuralScope(unittest.TestCase):
+    """D-224-S1 ruling 56 continued: wall/room/door/window never enter the truth node scope."""
+
+    def test_the_scope_flag_excludes_the_four_structural_types(self) -> None:
+        from vsmt.lean_teacher import STRUCTURAL_TYPES_EXCLUDED, in_truth_node_scope, structural_type_of
+
+        self.assertEqual(STRUCTURAL_TYPES_EXCLUDED, ("door", "room", "wall", "window"))
+        self.assertEqual(structural_type_of("wall|6|19.93|9.96|19.93|15.94"), "wall")
+        for key in ("wall|6|1|2", "room|3", "door|2|4", "window|1|0"):
+            self.assertFalse(in_truth_node_scope(key, observable_before=True), key)
+        self.assertTrue(in_truth_node_scope("Mug|surface|2|4", observable_before=True))
+        self.assertFalse(in_truth_node_scope("Mug|surface|2|4", observable_before=False))
+        # the prefix is exact: a pickupable whose type merely contains a structural word stays in
+        self.assertTrue(in_truth_node_scope("Window_Blind|1", observable_before=True))
+
+    def test_the_evaluator_refuses_a_structural_object_marked_in_scope(self) -> None:
+        from vsmt.lean_teacher import LeanTeacherError, _truth_table
+
+        with self.assertRaises(LeanTeacherError) as caught:
+            _truth_table({"wall|6|1|2": box([0.0, 0.0, 0.0], in_scope=True)})
+        self.assertEqual(str(caught.exception), "truth_object_structural_in_scope:wall|6|1|2")
+        table = _truth_table({"wall|6|1|2": box([0.0, 0.0, 0.0], in_scope=False)})
+        self.assertFalse(table["wall|6|1|2"]["in_scope"])
+
+    def test_the_contract_binds_the_structural_list(self) -> None:
+        from vsmt.lean_teacher import LeanTeacherError, validate_teacher_contract
+
+        contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        validate_teacher_contract(contract)
+        contract["metrics"]["node_prf1"]["structural_types_excluded_from_scope"] = ["room", "wall"]
+        with self.assertRaises(LeanTeacherError) as caught:
+            validate_teacher_contract(contract)
+        self.assertEqual(str(caught.exception), "contract_structural_scope_mismatch")

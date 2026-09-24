@@ -153,7 +153,9 @@ EXISTENCE_DISPLACEMENT_REFERENCE = "entity_remembered_centroid"
 IDENTITY_CONTINUITY_JUDGED_AT = "first_labelled_reobservation_after_move"
 RECOVERY_LATENCY_START = "first_frame_the_intervened_place_is_observable_to_the_method"
 CONTAMINATION_INTEGRATION = "trapezoid_over_frames_normalised_to_unit_length"
-TRUTH_NODE_SCOPE = "objects_present_at_t_that_have_been_observable_at_least_once_since_episode_start"
+TRUTH_NODE_SCOPE = "objects_present_at_t_that_have_been_observable_at_least_once_since_episode_start_excluding_structural_types"
+#: D-224-S1 ruling 56 continued (2026-09-24): house structure never enters the truth node scope.
+STRUCTURAL_TYPES_EXCLUDED = ("door", "room", "wall", "window")
 #: D-224-S1 ruling 45 (2026-09-22): where the truth boxes of the truth table come from.  The
 #: per-frame private record only ever carried x/y/z, so the box is the initial axis-aligned box
 #: read from one simulator reload of the house, translated by the recorded private position into
@@ -789,6 +791,25 @@ def _max_weight_matching_dense(weights: Sequence[Sequence[float]]) -> list[tuple
     return sorted(pairs)
 
 
+def structural_type_of(object_key: str) -> str:
+    """The ProcTHOR type prefix of a private object key: everything up to the first ``|``."""
+
+    _require(type(object_key) is str and object_key, "object_key_invalid")
+    return object_key.split("|", 1)[0]
+
+
+def in_truth_node_scope(object_key: str, *, observable_before: bool) -> bool:
+    """D-224-S1 ruling 56 continued: the in_scope flag the truth table must carry.
+
+    白话：真值表里每个物体的 ``in_scope`` 由这里算：此前至少可观测过一次，并且不是墙、房间（地面）、
+    门、窗这四类房屋结构件。例如 ``wall|6|...`` 永远不在范围内，``Mug|surface|2|4`` 被看见过一次
+    之后就在范围内。它不删除真值表里的行，只决定该行进不进节点指标的分母。
+    """
+
+    _require(observable_before in {True, False}, "observable_before_invalid")
+    return bool(observable_before) and structural_type_of(object_key) not in STRUCTURAL_TYPES_EXCLUDED
+
+
 def _truth_table(truth_objects: Mapping[str, Mapping[str, Any]]) -> dict[str, dict[str, Any]]:
     table: dict[str, dict[str, Any]] = {}
     for key in sorted(truth_objects):
@@ -796,6 +817,9 @@ def _truth_table(truth_objects: Mapping[str, Mapping[str, Any]]) -> dict[str, di
         _require(type(key) is str and key and type(record) is dict, f"truth_object_invalid:{key}")
         _require(record.get("present") in {True, False}, f"truth_object_present_invalid:{key}")
         _require(record.get("in_scope") in {True, False}, f"truth_object_in_scope_invalid:{key}")
+        # ruling 56 continued: a structural object marked in scope is a malformed table, not a judgement call
+        _require(not (record["in_scope"] and structural_type_of(key) in STRUCTURAL_TYPES_EXCLUDED),
+                 f"truth_object_structural_in_scope:{key}")
         entry: dict[str, Any] = {"present": record["present"], "in_scope": record["in_scope"]}
         if record["present"]:
             entry["centroid_m"] = _vector3(record.get("centroid_m"), f"truth_object_centroid_invalid:{key}")
@@ -1532,6 +1556,8 @@ def validate_teacher_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     )
     _require(tuple(metrics["memory_present_states"]) == MEMORY_PRESENT_STATES, "contract_memory_present_states_mismatch")
     _require(metrics["node_prf1"]["truth_node_scope"] == TRUTH_NODE_SCOPE, "contract_truth_node_scope_mismatch")
+    _require(tuple(metrics["node_prf1"].get("structural_types_excluded_from_scope") or ()) == STRUCTURAL_TYPES_EXCLUDED,
+             "contract_structural_scope_mismatch")
     _require(contract["private_truth_inputs"]["truth_box_source"]["rule"] == TRUTH_BOX_SOURCE,
              "contract_truth_box_source_mismatch")
     _require(metrics["identity_continuity"]["judged_at"] == IDENTITY_CONTINUITY_JUDGED_AT, "contract_identity_judged_at_mismatch")
@@ -1584,6 +1610,9 @@ def validate_teacher_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
 
 
 __all__ = [
+    "STRUCTURAL_TYPES_EXCLUDED",
+    "in_truth_node_scope",
+    "structural_type_of",
     "ABLATION_ARMS",
     "APPENDIX_ARM",
     "ASSOCIATION_STATUSES",

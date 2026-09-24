@@ -278,7 +278,10 @@ def lookup_slot(contract: dict[str, Any], path: str) -> Any:
 #: freeze-after-the-S1-04-curve rule (ruling 46) and the ReID 30/12 hold-out rule (ruling 47).
 #: The two ReID values themselves went to the ledger below, not into the digest.
 FROZEN_RULE_SHA256 = {
-    "S0-01": "76f505da801d5ecec6730e85ca521a034888429283f6ac3a0312dfc94c27349c",
+    # S0-01 re-pinned 2026-09-24 for ruling 56 continued (LOG-244 continued): the entity box is the union of the
+    # fragment boxes attached in the latest observed frame; a later frame replaces it, merge unions only
+    # same-frame records (cross-frame accumulation widened boxes with depth noise).  76f505da -> 4818d6ac.
+    "S0-01": "4818d6ac42b917d9670ed4b115af4e352033d2715f53f4b5825c96bf7d8765ad",
     # S0-02 re-pinned 2026-09-23 for ruling 52 (LOG-243 supplement): the eligible object's receptacle is the
     # first non-Floor entry of parentReceptacles (entry 0 is the room floor for anything on low
     # furniture, which had hidden 99 of 987 eligible objects as sources), a Floor-only object is
@@ -288,7 +291,10 @@ FROZEN_RULE_SHA256 = {
     # the rooms just left), the leave segment is excluded from U, a short transition fails the house.
     "S0-02": "73f5144f11339c5c92c376623def22c89f3a8075b3c782efe700f4e59c80b547",
     "S0-03": "1becb7e3646f5c4dcef27b5fbdf03c701755c50313075fd85dd634b905ad9d6c",
-    "S0-04": "585e3660891fc77910053deb5506ddd2e922227cd76668d0d90ddda237a1133e",
+    # S0-04 re-pinned 2026-09-24 for ruling 56 continued: the truth node scope excludes the four ProcTHOR
+    # structural types door, room, wall and window (65% of the S1-04 gate rows, unmatchable by any box or
+    # centroid rule).  585e3660 -> 9bf1059d.
+    "S0-04": "9bf1059d7bbff436e4d70bb4aa7367586ca4aa1d3bd5149b02e4c11a7c460270",
     "S0-05": "c5354b1e71936d345823630b6533b03329435de104e258785fdb89e17934c54a",
     "S1-01": "4f139e631388c05e4006fd12ffad8b611d2e7811fb7f9a830ce9f7c63fdecd84",
     "S1-02a": "997cabe5105ca304269b0d8d9dd34038ff096df7a79c875c577a2629866ccc64",
@@ -345,7 +351,9 @@ FROZEN_VALUES: dict[str, dict[str, Any]] = {
         # 2.0% recall miss for ViT-B/14 at most 8 candidates per fragment.
         "recall_rule.local_count": 5,
         "recall_rule.global_count": 3,
-        "recall_rule.local_radius_m": 3.0
+        "recall_rule.local_radius_m": 3.0,
+        # D-224-S1 ruling 58 (2026-09-24): the fourth recall value, from the S1-04 birth neighbourhood counts.
+        "recall_rule.birth_neighbourhood_radius_m": 1.0
     },
     "S0-02": {
         "route.translation_m": 0.25,

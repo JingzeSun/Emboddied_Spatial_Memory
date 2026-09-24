@@ -527,6 +527,10 @@ def expand_program(program: Mapping[str, Any]) -> dict[str, Any]:
 # execution
 # --------------------------------------------------------------------------
 
+#: D-224-S1 ruling 56 continued (2026-09-24): how an entity's box follows its fragments.
+ENTITY_BOX_RULE = "union_of_the_fragment_boxes_attached_in_the_entity_latest_observed_frame_no_cross_frame_accumulation"
+
+
 def _union_aabb(
     lower_a: Sequence[float], upper_a: Sequence[float],
     lower_b: Sequence[float], upper_b: Sequence[float],
@@ -590,8 +594,14 @@ def _attach_fragment(
         entity["best_view_descriptor"] = clone_json(fragment["descriptor"])
         entity["best_view_pixel_count"] = int(fragment["pixel_count"])
     entity["centroid_m"] = clone_json(fragment["centroid_m"])
-    entity["aabb_min_m"] = clone_json(fragment["aabb_min_m"])
-    entity["aabb_max_m"] = clone_json(fragment["aabb_max_m"])
+    # ruling 56 continued: a later frame replaces the box, a second fragment in the same frame joins it
+    if int(entity["last_seen_tick"]) == int(tick):
+        entity["aabb_min_m"], entity["aabb_max_m"] = _union_aabb(
+            entity["aabb_min_m"], entity["aabb_max_m"], fragment["aabb_min_m"], fragment["aabb_max_m"],
+        )
+    else:
+        entity["aabb_min_m"] = clone_json(fragment["aabb_min_m"])
+        entity["aabb_max_m"] = clone_json(fragment["aabb_max_m"])
     entity["observation_count"] = int(entity["observation_count"]) + 1
     entity["last_seen_tick"] = tick
     entity["missed_opportunity_count"] = 0
@@ -943,10 +953,16 @@ def _apply_dedup(
             canonical["centroid_m"], int(canonical["observation_count"]),
             folded["centroid_m"], int(folded["observation_count"]),
         )
-        lower, upper = _union_aabb(
-            canonical["aabb_min_m"], canonical["aabb_max_m"],
-            folded["aabb_min_m"], folded["aabb_max_m"],
-        )
+        # ruling 56 continued: union only records last seen in the same frame; otherwise the later box wins
+        if int(canonical["last_seen_tick"]) == int(folded["last_seen_tick"]):
+            lower, upper = _union_aabb(
+                canonical["aabb_min_m"], canonical["aabb_max_m"],
+                folded["aabb_min_m"], folded["aabb_max_m"],
+            )
+        elif int(folded["last_seen_tick"]) > int(canonical["last_seen_tick"]):
+            lower, upper = clone_json(folded["aabb_min_m"]), clone_json(folded["aabb_max_m"])
+        else:
+            lower, upper = clone_json(canonical["aabb_min_m"]), clone_json(canonical["aabb_max_m"])
         canonical["aabb_min_m"], canonical["aabb_max_m"] = lower, upper
         canonical["observation_count"] = int(canonical["observation_count"]) + int(
             folded["observation_count"]
@@ -1108,12 +1124,14 @@ def validate_entity_memory_contract(contract: Mapping[str, Any]) -> dict[str, An
     required = {
         "atoms", "composites", "entity_states", "entity_token_schema",
         "version_record", "state_machine", "shared_dormancy", "shared_dedup",
-        "authorization", "not_in_first_paper",
+        "authorization", "not_in_first_paper", "entity_box",
     }
     missing = sorted(required - set(contract.keys()))
     _require(not missing, f"contract_missing_sections:{','.join(missing)}")
 
     _require(tuple(contract["atoms"]) == ATOMS, "contract_atoms_mismatch")
+    _require(contract["entity_box"].get("rule") == ENTITY_BOX_RULE
+             and contract["entity_box"].get("cross_frame_accumulation") is False, "contract_entity_box_rule_mismatch")
     _require(tuple(contract["composites"]) == COMPOSITES, "contract_composites_mismatch")
     _require(
         tuple(contract["entity_states"]) == ENTITY_STATES,
@@ -1188,6 +1206,7 @@ def validate_entity_memory_contract(contract: Mapping[str, Any]) -> dict[str, An
 
 __all__ = [
     "ATOMS",
+    "ENTITY_BOX_RULE",
     "COMPOSITES",
     "CONTRACT_SCHEMA_VERSION",
     "ENTITY_STATES",

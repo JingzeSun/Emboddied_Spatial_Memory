@@ -52,10 +52,11 @@
     "local_count": 5,
     "global_count": 3,
     "local_radius_m": 3.0,
-    "birth_neighbourhood_radius_m": null,
+    "birth_neighbourhood_radius_m": 1.0,
     "recall_values_frozen_by": "D-224-S1 ruling 57",
     "recall_values_frozen_on": "2026-09-24",
-    "birth_neighbourhood_radius_m_pending_note_zh": "裁决 57 按 S1-04 曲线（LOG-244）冻结了 local_count、global_count、local_radius_m；提案漏了第四个值，birth_neighbourhood_radius_m 保持 null，另行裁决，且必须在任何臂使用召回规则之前冻结。",
+    "birth_neighbourhood_radius_frozen_by": "D-224-S1 ruling 58",
+    "birth_neighbourhood_radius_frozen_on": "2026-09-24",
     "four_values_frozen_once_after_the_s1_04_curve": true,
     "curve_is_measured_on_the_development_cache_only": true,
     "ideal_memory_diagnostic": "defined in the S1-04 contract: one entity per truth object observed before frame t, descriptor mean and centroid from its labelled fragments so far; measures the frontend recall ceiling independent of any arm",
@@ -212,7 +213,6 @@
     "dagger_rounds"
   ],
   "policy_values_without_defaults": [
-    "recall_rule.birth_neighbourhood_radius_m",
     "cost_matrix.existence_threshold_tau_r",
     "seal.reference_score_seed"
   ],
@@ -274,7 +274,8 @@
     "rulings": [
       "D-224-S1 裁决 46（2026-09-22 批准，原话「裁决 46 取推荐，理想记忆口径认可，曲线出来后一次性冻结」）：召回四值留 null，S1-04 在开发 cache 上用理想记忆报曲线后一次冻结；理想记忆只作诊断、不进任何臂。",
       "D-224-S1 裁决 47（2026-09-22 批准，原话「裁决 47 取进，output_dimension 填 128，训练/选择按 30/12 留出，threshold 取 0.05」）：output_dimension=128 与 selection_rule_threshold=0.05 入台账；holdout 规则就地写入并重钉规则摘要。",
-      "D-224-S1 裁决 57（2026-09-24 批准，原话「裁决 57 取 (a) k=5、k′=3、半径 3 m」）：按 S1-04 召回曲线（LOG-244，理想记忆、开发 cache 39 条、460,622 次判定）冻结 local_count=5、global_count=3、local_radius_m=3.0，ViT-B/14 漏召回 2.0%、ViT-S/14 2.3%，每次召回至多 8 个候选；birth_neighbourhood_radius_m 未在提案中，保持 null 另行裁决。"
+      "D-224-S1 裁决 57（2026-09-24 批准，原话「裁决 57 取 (a) k=5、k′=3、半径 3 m」）：按 S1-04 召回曲线（LOG-244，理想记忆、开发 cache 39 条、460,622 次判定）冻结 local_count=5、global_count=3、local_radius_m=3.0，ViT-B/14 漏召回 2.0%、ViT-S/14 2.3%，每次召回至多 8 个候选；birth_neighbourhood_radius_m 未在提案中，保持 null 另行裁决。",
+      "D-224-S1 裁决 58（2026-09-24 批准，原话「裁决 56 续取 (a)：真值范围排除 wall/room/door/window，BIND 框改为同帧并集；裁决 58 取 1.0 m」）：birth_neighbourhood_radius_m=1.0。依据 S1-04 出生邻域统计（LOG-244 续）：4,712 次出生时刻周围已有实体的平均个数在 0.25／0.5／1.0 m 为 0.07／0.35／1.15，只有 1.0 m 一档不几乎恒为 0。至此裁决 46 要求的四个召回值全部冻结。"
     ]
   }
 }

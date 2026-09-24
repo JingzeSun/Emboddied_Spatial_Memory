@@ -740,3 +740,42 @@ class TestSequenceIntegrity(unittest.TestCase):
 
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()
+
+
+class TestEntityBoxRule(unittest.TestCase):
+    """D-224-S1 ruling 56 continued: the box follows the latest observed frame, never accumulates across frames."""
+
+    def test_a_bind_in_a_later_frame_replaces_the_box(self) -> None:
+        memory, entity_id = born_memory()
+        far = fragment("region:0001", descriptor=[1.0, 0.0], centroid=[2.0, 0.0, 0.0], half=0.3)
+        entity = only_entity(commit(memory, "f2", [{"atom": "BIND", "entity_id": entity_id, "fragment": far}]))
+        self.assertEqual(entity["aabb_min_m"], far["aabb_min_m"])
+        self.assertEqual(entity["aabb_max_m"], far["aabb_max_m"])
+
+    def test_same_frame_duplicates_merge_into_the_union(self) -> None:
+        a = fragment("region:0000", descriptor=[1.0, 0.0], centroid=[0.0, 0.0, 0.0])
+        b = fragment("region:0001", descriptor=[1.0, 0.001], centroid=[0.05, 0.0, 0.0])
+        base = commit(empty_memory(episode_id="ep-0004"), "f1", [{"atom": "BIRTH", "fragment": a}, {"atom": "BIRTH", "fragment": b}])
+        entity = only_entity(commit(base, "f2", [], dedup=DEDUP))
+        self.assertEqual(entity["aabb_min_m"], [min(x, y) for x, y in zip(a["aabb_min_m"], b["aabb_min_m"])])
+        self.assertEqual(entity["aabb_max_m"], [max(x, y) for x, y in zip(a["aabb_max_m"], b["aabb_max_m"])])
+
+    def test_a_merge_across_frames_keeps_the_later_box(self) -> None:
+        a = fragment("region:0000", descriptor=[1.0, 0.0], centroid=[0.0, 0.0, 0.0])
+        base = commit(empty_memory(episode_id="ep-0005"), "f1", [{"atom": "BIRTH", "fragment": a}])
+        b = fragment("region:0001", descriptor=[1.0, 0.001], centroid=[0.05, 0.0, 0.0], half=0.12)
+        later = commit(base, "f2", [{"atom": "BIRTH", "fragment": b}])
+        entity = only_entity(commit(later, "f3", [], dedup=DEDUP))
+        self.assertEqual(entity["aabb_min_m"], b["aabb_min_m"])
+        self.assertEqual(entity["aabb_max_m"], b["aabb_max_m"])
+
+    def test_the_contract_binds_the_box_rule(self) -> None:
+        from vsmt.lean_memory import ENTITY_BOX_RULE
+
+        contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        self.assertEqual(contract["entity_box"]["rule"], ENTITY_BOX_RULE)
+        validate_entity_memory_contract(contract)
+        contract["entity_box"]["cross_frame_accumulation"] = True
+        with self.assertRaises(LeanMemoryError) as caught:
+            validate_entity_memory_contract(contract)
+        self.assertEqual(str(caught.exception), "contract_entity_box_rule_mismatch")

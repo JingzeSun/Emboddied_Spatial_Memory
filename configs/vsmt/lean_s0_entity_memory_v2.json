@@ -226,6 +226,17 @@
     "plain_language_zh": "每隔登记的帧数把外观、位置与包围盒都足够接近的一对活动实体合并成一条记录，保留较早建立的身份并保存两边证据。它是五个方法逐字节共用的确定性规则，不是学习决定；canonical 取首版本最早、并列取 ID 字典序最小，使身份连续率以最早建立的身份为准。四个数值待冻结，当前为 null。 被折叠实体的处理（裁决 X6）：它的 entity_id 进入 canonical 的 canonical_of，全部证据并入 canonical，事务日志在 post_maintenance.dedup 留底；它自己的版本链不再作为活记录保留。这叫“归档进 canonical_of”，不算物理删除历史版本：physical_deletion_allowed=false 指的是活实体的生命周期历史不删，而去重是首篇的 MERGE 原子，不是 RETRACT。",
     "folded_record_is_archived_into_canonical_of_not_deleted": true
   },
+  "entity_box": {
+    "rule": "union_of_the_fragment_boxes_attached_in_the_entity_latest_observed_frame_no_cross_frame_accumulation",
+    "on_attach_in_a_later_frame": "the fragment box replaces the entity box",
+    "on_attach_in_the_same_frame": "the fragment box is unioned into the entity box",
+    "on_merge": "union when both records were last seen in the same frame; otherwise the box of the record seen later is kept",
+    "same_frame_is_judged_by": "last_seen_tick",
+    "cross_frame_accumulation": false,
+    "frozen_by": "D-224-S1 ruling 56 (continued)",
+    "frozen_on": "2026-09-24",
+    "plain_language_zh": "裁决 56 续：实体的包围盒只由它最近被看到的那一帧里属于它的色块拼成。新的一帧绑定进来就整个换掉；同一帧里又有色块归到它（例如同帧重复出生后被共享去重合并），就取并集；两条记录合并时，最近一次被看到在同一帧才取并集，否则保留较新的那一个。不跨帧累积，因为 S1-04 开发 cache 上跨帧累积会把深度噪声不断并进框里（可拾取物体 IoU 中位 0.45 → 0.14），而同帧并集能把被切成几块的大家具拼回来（容器 0.14 → 0.42）。"
+  },
   "entity_token_schema": {
     "decision_id": "D-224-G",
     "field_order": [
@@ -295,6 +306,7 @@
     "decision_id": "D-224-X",
     "X6_version_opened_by": "every version records why it was opened; bind versions are excluded from the S0-04 size metric",
     "X6_dedup_fold": "a folded duplicate is archived into canonical_of with all its evidence; this is the shared MERGE, not a deletion of lifecycle history",
-    "plain_language_zh": "两项口径由用户于 2026-09-20 以 D-224-X 批准（裁决 X6）。"
+    "plain_language_zh": "两项口径由用户于 2026-09-20 以 D-224-X 批准（裁决 X6）。",
+    "ruling_56_continued": "entity box = union of the fragment boxes attached in the entity's latest observed frame; a later frame replaces it; merge unions only same-frame records (D-224-S1 ruling 56 continued, 2026-09-24, 原话「裁决 56 续取 (a)：真值范围排除 wall/room/door/window，BIND 框改为同帧并集；裁决 58 取 1.0 m」)"
   }
 }

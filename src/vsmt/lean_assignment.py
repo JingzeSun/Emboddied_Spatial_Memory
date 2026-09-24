@@ -113,6 +113,8 @@ REID_SELECTION_RULE_THRESHOLD = 0.05
 RECALL_LOCAL_COUNT = 5
 RECALL_GLOBAL_COUNT = 3
 RECALL_LOCAL_RADIUS_M = 3.0
+#: D-224-S1 ruling 58 (2026-09-24): the fourth recall value, from the S1-04 birth neighbourhood counts.
+RECALL_BIRTH_NEIGHBOURHOOD_RADIUS_M = 1.0
 REID_TRAINING_HOUSES = 30
 REID_SELECTION_HOUSES = 12
 
@@ -1217,6 +1219,7 @@ def validate_assignment_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
         "recall_rule.local_count": RECALL_LOCAL_COUNT,
         "recall_rule.global_count": RECALL_GLOBAL_COUNT,
         "recall_rule.local_radius_m": RECALL_LOCAL_RADIUS_M,
+        "recall_rule.birth_neighbourhood_radius_m": RECALL_BIRTH_NEIGHBOURHOOD_RADIUS_M,
     }
     for section, names in (
         ("recall_rule", ("local_count", "global_count", "local_radius_m",

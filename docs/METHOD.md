@@ -30,7 +30,7 @@ VSMT-lean 解决的问题是：机器人在多视角历史中重访时，对象�
 | `state` | `active` / `dormant` / `retracted` | executor |
 | `versions[]` | 每个版本含 `version_id`、`predecessor`、`opened_at`、`closed_at`、`closing_transaction` | executor |
 | `descriptor_mean`、`descriptor_count`、`best_view_descriptor` | DINO 描述子的运行均值、次数，以及像素最多一次观察的单视角描述子 | BIND/BIRTH/REACTIVATE |
-| `centroid`、`aabb` | episode-relative 坐标下的质心与轴对齐包围盒，BIND 时按证据更新并记录位移 | BIND/BIRTH/REACTIVATE |
+| `centroid`、`aabb` | episode-relative 坐标下的质心与轴对齐包围盒，BIND 时按证据更新并记录位移。包围盒只由最近被看到那一帧里属于它的色块拼成：新的一帧整个替换，同一帧再来的色块取并集，不跨帧累积（裁决 56 续；跨帧累积会把深度噪声并进框里） | BIND/BIRTH/REACTIVATE |
 | `observation_count`、`last_seen_t` | 观察次数与上次观察帧号 | BIND/BIRTH/REACTIVATE |
 | `missed_opportunity_count` | 连续"应可见却未匹配"次数；任一次匹配清零 | 共享 dormancy 规则 |
 | `evidence[]` | `(frame_digest, fragment_id)` 列表 | BIND/BIRTH/REACTIVATE |
@@ -157,7 +157,7 @@ VSMT-lean 解决的问题是：机器人在多视角历史中重访时，对象�
 
 | 指标 | 定义 | 对齐 |
 |---|---|---|
-| 节点 precision / recall / F1 | 每帧按最大权匹配与 3D IoU 0.3 把仍在记忆里（`active` 或 `dormant`，裁决 L）的实体框匹配到本帧在场且至少可观察过一次的真值物体框（裁决 Q） ；解析到在场但范围外物体的实体退出精确率分母、单独计数（复审修订，LOG-225）| Dyn-THOR |
+| 节点 precision / recall / F1 | 每帧按最大权匹配与 3D IoU 0.3 把仍在记忆里（`active` 或 `dormant`，裁决 L）的实体框匹配到本帧在场且至少可观察过一次的真值物体框（裁决 Q）；墙、房间（地面）、门、窗四类房屋结构件不进真值范围（裁决 56 续：一次只看到一段墙而真值框是整面墙，任何框或质心口径都匹配不上，它们也不是可干预的物体；这意味着论文里的“节点”只指物体，不含房屋结构） ；解析到在场但范围外物体的实体退出精确率分母、单独计数（复审修订，LOG-225）| Dyn-THOR |
 | Missing 残留率 MRR | 原位置已对方法可观察过的已移走/搬动物体中，仍有 `active` 或 `dormant` 同身份实体留在原位置的比例（裁决 L）；未可观察者单独计数 | Dyn-THOR |
 | 假撤回率 | 被 RETRACT 的实体中真值仍在原处的比例 ；从不撤回的臂按构造没法算，报不适用、不进配对与排除清单（复审修订，LOG-225）| 自家 |
 | 身份连续率 | 被搬动物体首次带标签重见时被分配到搬动前任一承载实体的比例；不承认去重的 `canonical_of` 折叠（裁决 M） | 自家 |

@@ -191,7 +191,17 @@
       "matching": "maximum total 3D IoU matching, pairs below iou_min excluded, evaluator-owned code",
       "iou_min": 0.3,
       "dormant_counts_as_in_memory": true,
-      "truth_node_scope": "objects_present_at_t_that_have_been_observable_at_least_once_since_episode_start",
+      "truth_node_scope": "objects_present_at_t_that_have_been_observable_at_least_once_since_episode_start_excluding_structural_types",
+      "structural_types_excluded_from_scope": [
+        "door",
+        "room",
+        "wall",
+        "window"
+      ],
+      "structural_type_of_a_key": "the private object key up to its first '|' (ProcTHOR's structural ids are wall|..., room|..., door|..., window|...)",
+      "structural_scope_frozen_by": "D-224-S1 ruling 56 (continued)",
+      "structural_scope_frozen_on": "2026-09-24",
+      "structural_scope_plain_language_zh": "裁决 56 续：墙、房间（地面）、门、窗四类房屋结构件不进真值节点范围。一次只看到一段墙，而真值框是整面墙或整个房间，任何框或质心口径都匹配不上（S1-04 开发 cache 上占 IoU 行的 65%，墙的质心最近即自己只有 3%）。它们不是可干预、会移动的物体。解析到它们的实体照旧留在记忆里，按 X6 记为范围外，不进精确率分母；召回分母也不含它们。这改变了论文里“节点”的含义，方法与限制须写明。",
       "empty_denominator": "null, never zero",
       "truth_table_carries_in_scope_flag": true,
       "truth_table": "every private object any entity's evidence can resolve to, each with present, in_scope and (when present) box and centroid; the scope rule is applied by the evaluator, never by pre-filtering the table",
@@ -339,7 +349,8 @@
     "O": "recovery latency starts at the first frame the intervened place is observable to the method",
     "P": "existence candidates are active and dormant; retracted is rejected",
     "Q": "truth nodes are present objects observable at least once since episode start; displacement is measured from the entity's remembered centroid",
-    "plain_language_zh": "六项口径由用户于 2026-09-20 以 D-224-LQ 批准，全部按 LOG-217 的推荐口径执行；本合同的状态集合、规则字符串与布尔声称即其机器形式。"
+    "plain_language_zh": "六项口径由用户于 2026-09-20 以 D-224-LQ 批准，全部按 LOG-217 的推荐口径执行；本合同的状态集合、规则字符串与布尔声称即其机器形式。",
+    "ruling_56_continued": "the truth node scope excludes the four ProcTHOR structural types door, room, wall and window, identified by the private key prefix; entities resolving to them are out of scope under X6 (D-224-S1 ruling 56 continued, 2026-09-24, 原话「裁决 56 续取 (a)：真值范围排除 wall/room/door/window，BIND 框改为同帧并集；裁决 58 取 1.0 m」; evidence LOG-244 continued)"
   },
   "continue_gate": {
     "metric_list_frozen_before_any_data_generation": true,
