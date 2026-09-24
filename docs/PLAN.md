@@ -38,6 +38,8 @@ S4 论文
 
 **2026-09-24 S2-01 共同 runner 已实现待审（LOG-246）**：纯核心 `lean_runner.py`（实体几何为公开体积与 M_{t−1} 的纯函数、S1-05 描述子接线、固定八步的单帧流程、非法程序回滚后提交空程序并计数、ELU-P／RAC 臂状态、逐帧回执与 cache 封印门、私有侧真值表构建含 `in_scope`），合同 `lean_s2_01_runner_v1.json`（两位全 false、规则摘要首钉 `e1060695…`、唯一登记值 `entity_geometry.samples_per_axis` 为 null，登记为**待裁 60**，推荐 4），单 episode 入口 `ops/vsmt/lean_s2_01_runner.py`，测试 21 项＋跨合同 5 项。S0-04 评价器真值表放宽一处（在场但范围外的结构件可无盒，不改指标）。**下一步**：S2-02 在 S0-05 核心已含四个规则臂的 logit 与存在决定、S2-01 已把它们接进 runner 的基础上，只剩来源登记文件头与 `LLM-op` 接口；然后 S2-03 学习头与 scorer、S2-04 teacher 接线；S2-05 运行前须冻结 S0-01 五个、S0-03 两个、S0-04 五个、S0-05 九个、S2-01 一个 null 值。
 
+**2026-09-24 S2-02 与 S2-03 已实现待审（LOG-247）**：S2-02 `lean_controls.py`——四个对照与 `LLM-op` 的 clean-room 来源登记（借了什么、改了什么、非官方实现、未抄代码，绑定 S0-05 合同的 `source` 行）、ELU-P 三个拟合量的估计式（计数退化即拒、只允许 train 且在封存之后）、`LLM-op` 接口（封存表渲染成文本、严格解析、选择转 logit 走同一求解器、只允许 validation）；S2-03 `lean_model.py`——三个代价头（LayerNorm＋两层 128 宽 GELU＋读出，合计 54,207 参数）、runner 的 scorer、登记损失（labelled／birth 进 softmax CE，gone／present 进 BCE，其余状态不进损失）、AdamW 逐帧训练与"跑满登记 epoch、取 validation 损失最低那个"的早停、AssocOnly 同架构无存在头、DAgger 两轮登记、权重摘要；候选换序 logit 跟实体走、程序不变的继续门有测试。**下一步 S2-04**（teacher 与评价器接线：从 runner 逐帧产物加私有面出标签、三分解、七项指标）；S2-05 前须冻结的 null 值不变。
+
 | 状态 | 含义 |
 |---|---|
 | 已完成 | 代码和必要测试已经受审，或已有可复用的真实证据 |
@@ -196,7 +198,7 @@ S4 论文
 
 | 项 | 内容 |
 |---|---|
-| 状态 | 未开始 |
+| 状态 | **已实现待审（2026-09-24，LOG-247）**：四个规则臂的代价与存在决定在 S0-05 核心 [`lean_arms.py`](../src/vsmt/lean_arms.py)（已审）中、由 S2-01 runner 接线；本步补 [`lean_controls.py`](../src/vsmt/lean_controls.py)——`CONTROL_PROVENANCE`（TAF／ELU-P／RAC／LOW／LLM-op 各自借的机制、与来源的差别、`not_an_official_implementation`、`upstream_code_copied=False`，`contract_source` 与 S0-05 合同 `source`／`input` 行逐字绑定；TAF 与 ELU-P 有可核的 arXiv／RSS 链接，Perpetua／DSG／Mem0 以题名登记、链接在写作阶段补）、ELU-P 三个拟合量的估计式 `fit_initial_log_odds`／`fit_persistence_log_decay`／`fit_match_gain`／`fit_elu_p_quantities`（按 S0-05 v2 定义，计数为零或先验为 0/1 直接拒绝不硬钳，只允许 split=train、seals_written=True、rollout_config 全冻结；逐 episode 计数留给 S2-04/S2-05 用 teacher 身份做）、`LLM-op` 接口（`render_frame_text` 把封存 A 的候选与新建选项、阶段 B 的可判定实体按冻结顺序 4 位小数渲染成文本，`parse_llm_response` 每行一选且只能选渲染过的选项，`choices_to_logits` 选中对 0／未选对哨兵／BIRTH 选中 0 否则 −1 喂同一求解器（两色块争一实体时另一方按求解器规则退到 BIRTH），`llm_op_frame` 只允许 validation；prompt 措辞登记为 `not_in_this_stage`）；测试 [`test_vsmt_lean_controls.py`](../tests/test_vsmt_lean_controls.py) 8 项。runner 仍拒绝 LLM-op |
 | 输入 | S0-05 合同；现有 `baselines.py` |
 | 完整动作 | clean-room 实现 TAF、ELU-P、RAC、LOW 的代价矩阵与存在决定；文件头登记来源、差异与 not-an-official-implementation；`LLM-op` 实现接口与 validation-only 入口，不在 S2 调用 |
 | 输出 | 四臂代码与分支测试 |
@@ -206,7 +208,7 @@ S4 论文
 
 | 项 | 内容 |
 |---|---|
-| 状态 | 未开始 |
+| 状态 | **已实现待审（2026-09-24，LOG-247）**：[`lean_model.py`](../src/vsmt/lean_model.py)——`make_heads`（关联 14 维、存在 12 维、新建 4 维各一头：LayerNorm(输入)→Linear(·,128)→GELU→Linear(128,128)→GELU→Linear(128,1)，合计 54,207 参数；METHOD 写"约 4 万"，实际按此架构为 5.4 万，架构文本为准）、`LeanScorer`（S2-01 的 scorer 接口，键恰为封存行，特征按冻结顺序取位置，AssocOnly 无存在头）、`frame_loss`（合同原句：逐色块在［召回列…, BIRTH 列］上 softmax 交叉熵＋逐实体存在 BCE 等权；只有 labelled／birth 目标与 gone／present 标签进损失，recall_miss／unlabelled／identity_ambiguous／duplicate_of_labelled 与身份含糊候选只计数）、`train_heads`（AdamW、逐帧 batch、登记 seed、跑满登记 epoch 后保留 validation 损失最低的 epoch＝无耐心值的早停、发散如实返回、同值同机逐位复现）、`recipe_matches_contract`（lr 1e-3／20 epoch／5 seed／2 轮 DAgger／主表第 1 轮绑定 S0-05 冻结值）、`dagger_schedule`（第 0 轮 ELU-P 预登记 rollout_config 轨迹、第 1 轮自身轨迹，两轮都报）、权重 payload 带摘要；代价矩阵、求解、编译、提交复用 S0-03／S0-01 经 runner；`NoVersion` 为 runner 开关、`AssocOnly` 为 `assoc_only=True` 重训（裁决 X3）。测试 [`test_vsmt_lean_model.py`](../tests/test_vsmt_lean_model.py) 11 项，含继续门"候选换序后每个实体的 logit 跟着实体走、最终程序不变"。标签生成与 DAgger 编排要等 S2-04 的 teacher 接线 |
 | 输入 | S0-03、S0-05 合同 |
 | 完整动作 | 实现三个代价头、代价矩阵、矩形分配、编译与提交；训练循环与两轮 DAgger；实现 `NoVersion` 与 `AssocOnly` 两个消融开关（同一代码路径、同一训练预算；**AssocOnly 同配方重训、去掉存在损失项，不复用 VSMT-lean 权重**，裁决 X3）；第 0 轮 DAgger 的 ELU-P 轨迹取 S0-05 v2 预登记的 `rollout_config`（裁决 X4）；不读 slot/路径/样本名 |
 | 输出 | 模型代码、训练入口、单元测试 |

@@ -4,7 +4,7 @@
 
 ## 当前看板
 
-**2026-09-24 最新状态：S2-01 共同 runner 已实现待审（LOG-246，服务器全量 `6deb8b6` 1533/1533）——`lean_runner.py`、合同 `lean_s2_01_runner_v1.json`（首钉 `e1060695…`）、单 episode 入口与 21 项测试；待裁 60（几何采样分辨率，推荐 4）；S1-05 已按裁决 47 机械收口（LOG-245）——选定 `reid_projection:vitb14`，冻结 ViT-B/14 为并列基线；待裁 59（选择组 9/12，推荐维持）。下一步 S2-02／S2-03。** S1 不重做；召回四值、匹配口径与描述子全部冻结；按 D-059 本次改动待用户审。上一暂停点：S0 修订（裁决 56 续／57／58，`6699a19`）已由用户审过并授权进入 S2（LOG-244 续二）。
+**2026-09-24 最新状态：S2-02（对照来源登记、ELU-P 拟合式、LLM-op 接口）与 S2-03（三个代价头、scorer、损失、训练循环）已实现待审（LOG-247）；S2-01 共同 runner 已实现待审（LOG-246，服务器全量 `6deb8b6` 1533/1533）——`lean_runner.py`、合同 `lean_s2_01_runner_v1.json`（首钉 `e1060695…`）、单 episode 入口与 21 项测试；待裁 60（几何采样分辨率，推荐 4）；S1-05 已按裁决 47 机械收口（LOG-245）——选定 `reid_projection:vitb14`，冻结 ViT-B/14 为并列基线；待裁 59（选择组 9/12，推荐维持）。下一步 S2-02／S2-03。** S1 不重做；召回四值、匹配口径与描述子全部冻结；按 D-059 本次改动待用户审。上一暂停点：S0 修订（裁决 56 续／57／58，`6699a19`）已由用户审过并授权进入 S2（LOG-244 续二）。
 
 | 事项 | 已知事实 |
 |---|---|
@@ -3859,3 +3859,20 @@ move 仍要两个 U 容器、add 仍要过 dry-run，成品率不会等于这些
 - **服务器同步与全量**：`/root/Emboddied_Spatial_Memory` 从 `6699a19` 无未跟踪文件地 checkout 到 `a06ce9b`，全量 `python3.12 -m unittest discover -s tests`：**1533 项、1 项失败**（上次 1492 项，新增 21＋10＋5＋1＋4 项）。失败的是 S1-05 的"已提交回执与重算逐块相同"：回执把裁决 56 估算报告钉在 `8fca801b…`，那是本机 Windows 工作副本 CRLF 字节的摘要，而仓库与服务器的 LF 字节是 `1ce2e8be…`。修正 `6deb8b6`：S1-05 工具改按 LF 归一化字节算摘要（与跨合同测试 `reviewed_digest` 同一约定），回执重生成（只有该摘要、时间戳与 checkout 提交变化，选择、留出与其余各块逐字节不变），两个测试同法，估算报告本地副本归一为 LF（索引本来就是 LF，git 无差异）。服务器 checkout 到 `6deb8b6` 重跑：**1533/1533 通过，退出 0**，日志 `/root/autodl-tmp/vsmt_outputs/run_logs/suite-6deb8b6.log`（`suite-a06ce9b.log` 保留）。
 - **ReID 权重导出**（LOG-245 建议）：`vsmt_private/lean-s1-04-diagnostics-154776d/reid_head_vitb14.json`（2,127,695 字节）复制到 `vsmt_private/exports/reid_head_vitb14_154776d.json`；文件 sha256 `823508e4…`，用 `lean_reid_head` 的规则重算 payload 摘要得 `f6fc67e5…`，与 S1-05 冻结值相同；训练记录为 temperature 0.07／epochs 20／batch 512／lr 0.001／seed 20260922、339,808 个色块、3,033 类、cuda。权重仍不进 Git。
 - 服务器现场：数据盘 24 GB 可用，负载 11.6（128 核宿主），没有别的项目进程在跑。
+
+### LOG-247：S2-02 四个对照的来源登记、ELU-P 拟合式与 LLM-op 接口；S2-03 VSMT-lean 代价头、scorer 与训练循环——实现待审（2026-09-24 18:10 CST）
+
+- 类型：**科学代码实现，待用户审（D-059）**。没有训练任何真实数据，没有调用任何语言模型，没有连服务器。四个规则臂的代价与存在决定本来就在已审的 S0-05 核心里并由 S2-01 接线，本节按 PLAN 第五节把两步剩余的部分补齐。
+- **S2-02 [`src/vsmt/lean_controls.py`](src/vsmt/lean_controls.py)**：
+  - 来源登记 `CONTROL_PROVENANCE`：TAF 借 ConceptGraphs 的阈值关联与均值融合（arXiv 2309.16650），改为填共享代价矩阵、门内分级代价、一次联合求解、无语义节点、不撤回；ELU-P 借 Fusion++／Dengler／POCD 的存在 log-odds 与 Perpetua 式持续性衰减（1808.08378、2011.06895、RSS18 p013），负证据改为共享前端的自由空间覆盖比例，三个标量只在 train 上估一次；RAC 借 Dyn-THOR 背后动态场景图的渲染比对，渲染改为共享前端自由空间测试、不复活（裁决 U）；LOW 不借任何系统；LLM-op 借 Mem0 式零训练操作选择，选择转 logit 走同一求解器。每条都写明 `not_an_official_implementation=True`、`upstream_code_copied=False`，`contract_source` 与 S0-05 合同的 `source`／`input` 行逐字绑定（测试改一字即拒）。Perpetua／DSG／Mem0 的精确文献链接本树中没有可核的记录，以题名登记、写作阶段补，不臆造 URL。
+  - ELU-P 三个拟合量（S0-05 v2 `fitting_procedure`，裁决 X4；合同白话写明"估计代码属 S2-02"）：`fit_initial_log_odds`＝logit(在位物体帧／物体帧)，先验恰为 0 或 1 拒绝；`fit_persistence_log_decay`＝−log(1−h)，h＝干预事件／物体帧数，h≥1 拒绝；`fit_match_gain`＝log(p_hit／p_false)，任一率为 0 拒绝；`fit_elu_p_quantities` 只接受 split=train、seals_written=True、rollout_config 三值全冻结，返回三值、计数证据与定义原文。逐 episode 的计数要用 S0-04 teacher 的实体身份，随 S2-04／S2-05 做。
+  - LLM-op 接口：`render_frame_text`（封存 A 每个色块的候选 14 特征与 BIRTH 选项 4 特征、阶段 B 可判定实体 12 特征，冻结顺序、4 位小数，只含匿名 ID 与公开特征）、`parse_llm_response`（每个色块与每个候选实体恰一行，色块只能选渲染过的候选或 BIRTH，实体只能 RETRACT／NOOP，缺行、重复、未知行、未提供的选项全部拒绝）、`choices_to_logits`（选中对 0、未选对哨兵 −1e6、BIRTH 选中 0 否则 −1，于是求解器复现选择，两色块争一实体时另一方退到 BIRTH，哨兵永不入选）、`llm_op_frame`（`assert_split_allowed` 只放 validation）。prompt 措辞按 S0-05 登记为不在本阶段。runner 仍在 `RUNNABLE_ARMS` 外拒绝 LLM-op。
+  - 测试 [`tests/test_vsmt_lean_controls.py`](tests/test_vsmt_lean_controls.py) 8 项：来源登记与合同逐字一致、改一字即拒；三个估计式的手算值与八种退化拒绝；组合拟合的 split／seals／rollout 门；渲染确定、覆盖每行、不含 house／scene／object_id／instance／private 等词；解析七种坏回答各自拒绝；选择经真实求解器复现、冲突退到 BIRTH、无哨兵入选；入口 train／test 拒绝、validation 通过并能编译成 BIND×2＋BIRTH；runner 拒绝该臂。
+- **S2-03 [`src/vsmt/lean_model.py`](src/vsmt/lean_model.py)**：
+  - 三个头：LayerNorm(输入)→Linear(·,128)→GELU→Linear(128,128)→GELU→Linear(128,1)，输入维数按 S0-03 冻结的特征表（14／12／4），参数 18,589＋18,329＋17,289＝**54,207**。METHOD 第七节写"两层 128 宽 GELU MLP、合计约 4 万参数"，按此架构实际 5.4 万；架构文本为准，数字差异如实记，若要按 4 万收窄宽度属改 METHOD。
+  - `LeanScorer`：S2-01 的 scorer 接口，`association_and_birth_logits(stage_a)` 与 `existence_logits(rows, order)` 的键恰为封存行，特征顺序与冻结表不同即拒；AssocOnly 无存在头，调用即拒。
+  - `frame_loss`：合同原句的损失——每个有 labelled／birth 目标的色块在［召回列…, BIRTH 列］上 softmax 交叉熵、每个 gone／present 候选 BCE，两项各取均值等权相加；recall_miss（正确实体不在候选）、unlabelled、identity_ambiguous、duplicate_of_labelled 与身份含糊候选不进损失、只计数；训练记录格式登记为 stage_a＋teacher targets＋阶段 B 存在行＋存在标签，目标不在该色块候选列即拒。
+  - `train_heads`：AdamW、逐帧一个 batch、登记 seed 初始化与洗牌、跑满登记 epoch 后保留 validation 损失最低那个 epoch 的权重（并列取更早）——这是不引入耐心值的早停形式；损失非有限即判发散；lr／weight_decay／epochs／seed 任一为 None 拒绝。`recipe_matches_contract` 绑定 S0-05 冻结的 lr 1e-3、20 epoch、5 seed、2 轮 DAgger、主表第 1 轮。`dagger_schedule` 登记两轮（第 0 轮 ELU-P 预登记 rollout_config 轨迹，第 1 轮第 0 轮模型自身轨迹），rollout_config 有 null 即拒。权重 payload 带 canonical 摘要与特征顺序，`load_heads` 核对摘要与顺序。
+  - 测试 [`tests/test_vsmt_lean_model.py`](tests/test_vsmt_lean_model.py) 11 项：参数数逐头等于公式；配方常量等于合同值、五种偏离拒绝；DAgger 登记；权重摘要回环、改一位与顺序漂移拒绝；scorer 键恰为封存行；**继续门**：打乱帧内色块顺序与记忆实体顺序后每个键的 logit、分配、存在 logit 与编译程序完全相同；损失只数 labelled／birth／gone／present、四种排除状态各自只计数、全排除时无损失；AssocOnly 无存在项；坏目标与未知状态拒绝；训练缺值拒绝、同 seed 两次权重摘要相同、异 seed 不同、12 帧合成数据 6 个 epoch 训练损失下降、最佳 epoch 等于 validation 曲线最小处、验证集上标注实体拿最高 logit ≥75%；scorer 驱动 S2-01 runner 跑完 5 帧场景（8 个色块全部落到 BIRTH／BIND／REACTIVATE），AssocOnly 无存在候选。
+- 本地分进程：model 11、controls 8、runner 21、arms 44、cross-contract 65 通过；服务器全量随下次同步再跑。
+- **本节不做的事**：不生成标签（需要 S2-04 的 teacher 接线读私有面）；不编排 DAgger（S2-05）；不真的调用 LLM；不改 METHOD 的参数数表述（待用户定是否按 4 万收窄）。
