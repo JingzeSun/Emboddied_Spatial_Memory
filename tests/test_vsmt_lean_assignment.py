@@ -658,6 +658,49 @@ class TestMachineContract(unittest.TestCase):
             validate_assignment_contract(broken)
         self.assertEqual(str(caught.exception), "contract_reid_holdout_sizes_mismatch")
 
+    def test_the_s1_05_selection_is_recorded_once_and_bound_to_the_constants(self) -> None:
+        # S1-05 (2026-09-24, LOG-245): the ruling-47 rule applied to the S1-04 report picked the
+        # ViT-B/14 projection (gain 0.093 over the 0.05 margin on the 9 selection houses); frozen
+        # ViT-B/14 is the baseline the paper reports alongside.  The contract records it, the
+        # module binds it, and neither may drift from the other or reopen the choice.
+        from vsmt.lean_assignment import (
+            FROZEN_DESCRIPTOR_BASELINE, SELECTED_DESCRIPTOR, SELECTED_DESCRIPTOR_SOURCE_SET,
+            SELECTED_REID_WEIGHTS_SHA256,
+        )
+
+        contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        result = contract["reid_adapter_head"]["selection_result"]
+        self.assertEqual(SELECTED_DESCRIPTOR, "reid_projection:vitb14")
+        self.assertEqual((SELECTED_DESCRIPTOR_SOURCE_SET, FROZEN_DESCRIPTOR_BASELINE), ("vitb14", "vitb14"))
+        self.assertRegex(SELECTED_REID_WEIGHTS_SHA256, r"^[0-9a-f]{64}$")
+        self.assertEqual(result["selected"], SELECTED_DESCRIPTOR)
+        self.assertEqual(result["source_descriptor_set"], SELECTED_DESCRIPTOR_SOURCE_SET)
+        self.assertEqual(result["frozen_descriptor_baseline"], FROZEN_DESCRIPTOR_BASELINE)
+        self.assertEqual(result["weights_sha256"], SELECTED_REID_WEIGHTS_SHA256)
+        self.assertTrue(result["frozen_descriptor_baseline_must_be_reported_alongside"])
+        self.assertTrue(result["no_further_descriptor_change"])
+        self.assertEqual(result["selection_shortfall"], 3)
+        self.assertEqual(result["selection_houses_used"], 9)
+        for field, value, code in (
+            ("selected", "vitb14", "contract_reid_selection_differs_from_the_frozen_constant"),
+            ("source_descriptor_set", "vits14", "contract_reid_selection_source_set_differs_from_the_frozen_constant"),
+            ("frozen_descriptor_baseline", "vits14", "contract_reid_selection_baseline_differs_from_the_frozen_constant"),
+            ("weights_sha256", "0" * 64, "contract_reid_selection_weights_digest_differs_from_the_frozen_constant"),
+            ("frozen_descriptor_baseline_must_be_reported_alongside", False, "contract_reid_selection_baseline_report_dropped"),
+            ("no_further_descriptor_change", False, "contract_reid_selection_reopenable"),
+            ("cache_bytes_unchanged", False, "contract_reid_selection_rewrites_the_cache"),
+        ):
+            broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+            broken["reid_adapter_head"]["selection_result"][field] = value
+            with self.subTest(field=field), self.assertRaises(LeanAssignmentError) as caught:
+                validate_assignment_contract(broken)
+            self.assertEqual(str(caught.exception), code)
+        broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        del broken["reid_adapter_head"]["selection_result"]
+        with self.assertRaises(LeanAssignmentError) as caught:
+            validate_assignment_contract(broken)
+        self.assertEqual(str(caught.exception), "contract_reid_selection_result_missing")
+
     def test_every_authorization_bit_is_false(self) -> None:
         broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
         broken["authorization"]["model_training"] = True

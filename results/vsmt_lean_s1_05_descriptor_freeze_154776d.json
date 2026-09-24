@@ -1,0 +1,541 @@
+{
+ "schema_version": "vsmt-lean-s1-05-descriptor-freeze-v1",
+ "stage": "S1-05",
+ "decision_ids": [
+  "D-224-E",
+  "D-224-S1 ruling 47"
+ ],
+ "written_at_utc": "2026-09-24T09:06:35Z",
+ "checkout": {
+  "commit": "d1d6c640b6bf74a284de7310354d1be9a1afd3a6",
+  "clean": false
+ },
+ "rule": {
+  "contract": "configs/vsmt/lean_s0_assignment_v2.json",
+  "selection_rule": "highest_cross_view_separation_on_the_development_split",
+  "selection_rule_threshold": 0.05,
+  "selection_rule_threshold_semantics": "minimum gain in median cross-view separation of the projection over the best frozen descriptor, measured on the selection houses only; below the threshold the frozen descriptor is kept",
+  "selection_houses_only": true,
+  "training_house_separation_is_an_annotation_not_a_basis": true,
+  "rule_frozen_by": "D-224-S1 ruling 47"
+ },
+ "input": {
+  "s1_04_report": "results/vsmt_lean_s1_04_diagnostics_154776d.json",
+  "s1_04_report_sha256": "18c7f79d22745f41d1022ec37b5da9d636f225805b4739c9c8c8a701196ec7f3",
+  "s1_04_code_commit": "154776d01f15e0a870cdfb64b62ad1633027e847",
+  "episodes_used": 39,
+  "cache_episode_seals_count": 39,
+  "cache_episode_seals_sha256": "ff9937e1e1c381744fcadf2a9a95a6838ce6fe78b89a8609938462541496dd37"
+ },
+ "holdout": {
+  "membership_rule": "frozen_on_cache_succeeded_episodes_before_any_diagnostic_no_backfill_across_groups",
+  "order": "s0_02_house_split_rank",
+  "seed": 20260920,
+  "training_houses": [
+   "procthor10k-0.1.2-train-03394",
+   "procthor10k-0.1.2-train-08566",
+   "procthor10k-0.1.2-train-00406",
+   "procthor10k-0.1.2-train-03288",
+   "procthor10k-0.1.2-train-08927",
+   "procthor10k-0.1.2-train-08422",
+   "procthor10k-0.1.2-train-03525",
+   "procthor10k-0.1.2-train-07367",
+   "procthor10k-0.1.2-train-05806",
+   "procthor10k-0.1.2-train-05966",
+   "procthor10k-0.1.2-train-00950",
+   "procthor10k-0.1.2-train-05879",
+   "procthor10k-0.1.2-train-00236",
+   "procthor10k-0.1.2-train-02524",
+   "procthor10k-0.1.2-train-08398",
+   "procthor10k-0.1.2-train-04801",
+   "procthor10k-0.1.2-train-04388",
+   "procthor10k-0.1.2-train-07795",
+   "procthor10k-0.1.2-train-01543",
+   "procthor10k-0.1.2-train-09339",
+   "procthor10k-0.1.2-train-08790",
+   "procthor10k-0.1.2-train-01259",
+   "procthor10k-0.1.2-train-08905",
+   "procthor10k-0.1.2-train-00975",
+   "procthor10k-0.1.2-train-00619",
+   "procthor10k-0.1.2-train-01394",
+   "procthor10k-0.1.2-train-00702",
+   "procthor10k-0.1.2-train-07815",
+   "procthor10k-0.1.2-train-03361",
+   "procthor10k-0.1.2-train-09423"
+  ],
+  "selection_houses": [
+   "procthor10k-0.1.2-train-07270",
+   "procthor10k-0.1.2-train-06453",
+   "procthor10k-0.1.2-train-08552",
+   "procthor10k-0.1.2-train-01289",
+   "procthor10k-0.1.2-train-02768",
+   "procthor10k-0.1.2-train-04742",
+   "procthor10k-0.1.2-train-09595",
+   "procthor10k-0.1.2-train-00563",
+   "procthor10k-0.1.2-train-01139"
+  ],
+  "training_houses_used": [
+   "procthor10k-0.1.2-train-03394",
+   "procthor10k-0.1.2-train-08566",
+   "procthor10k-0.1.2-train-00406",
+   "procthor10k-0.1.2-train-03288",
+   "procthor10k-0.1.2-train-08927",
+   "procthor10k-0.1.2-train-08422",
+   "procthor10k-0.1.2-train-03525",
+   "procthor10k-0.1.2-train-07367",
+   "procthor10k-0.1.2-train-05806",
+   "procthor10k-0.1.2-train-05966",
+   "procthor10k-0.1.2-train-00950",
+   "procthor10k-0.1.2-train-05879",
+   "procthor10k-0.1.2-train-00236",
+   "procthor10k-0.1.2-train-02524",
+   "procthor10k-0.1.2-train-08398",
+   "procthor10k-0.1.2-train-04801",
+   "procthor10k-0.1.2-train-04388",
+   "procthor10k-0.1.2-train-07795",
+   "procthor10k-0.1.2-train-01543",
+   "procthor10k-0.1.2-train-09339",
+   "procthor10k-0.1.2-train-08790",
+   "procthor10k-0.1.2-train-01259",
+   "procthor10k-0.1.2-train-08905",
+   "procthor10k-0.1.2-train-00975",
+   "procthor10k-0.1.2-train-00619",
+   "procthor10k-0.1.2-train-01394",
+   "procthor10k-0.1.2-train-00702",
+   "procthor10k-0.1.2-train-07815",
+   "procthor10k-0.1.2-train-03361",
+   "procthor10k-0.1.2-train-09423"
+  ],
+  "selection_houses_used": [
+   "procthor10k-0.1.2-train-07270",
+   "procthor10k-0.1.2-train-06453",
+   "procthor10k-0.1.2-train-08552",
+   "procthor10k-0.1.2-train-01289",
+   "procthor10k-0.1.2-train-02768",
+   "procthor10k-0.1.2-train-04742",
+   "procthor10k-0.1.2-train-09595",
+   "procthor10k-0.1.2-train-00563",
+   "procthor10k-0.1.2-train-01139"
+  ],
+  "training_houses_failed_diagnostics": [],
+  "selection_houses_failed_diagnostics": [],
+  "registered_training_houses": 30,
+  "registered_selection_houses": 12,
+  "training_shortfall": 0,
+  "selection_shortfall": 3,
+  "recomputed_from_cache_episode_seals_and_agrees_with_the_report": true
+ },
+ "candidates_on_selection_houses": {
+  "vits14": {
+   "kind": "frozen_descriptor",
+   "separation_on_selection_houses": {
+    "count": 339166,
+    "mean": 0.11210458840178382,
+    "median": 0.10755122940806883,
+    "p10": -0.11679844450689647,
+    "p25": -0.011970954108837334,
+    "p75": 0.23246629874765298
+   },
+   "recall_miss_at_frozen_recall_values_on_selection_houses": {
+    "local_count": 5,
+    "global_count": 3,
+    "local_radius_m": 3.0,
+    "decisions": 124351,
+    "recall_miss": 2940,
+    "recall_miss_rate": 0.02364275317448191
+   }
+  },
+  "reid_projection:vits14": {
+   "kind": "shared_reid_projection",
+   "source_set": "vits14",
+   "weights_file": "reid_head_vits14.json",
+   "weights_sha256": "7bae3f5c2cfff5b5ffc21ee598ec7a7d81774e844cdd5a53047cb6aa2bf04b3c",
+   "training": {
+    "training_houses_used": 30,
+    "training_fragments": 339808,
+    "training_classes": 3033,
+    "classes_with_positives": 2922,
+    "epochs_run": 20,
+    "final_loss": 1.8656262940312007,
+    "diverged": false
+   },
+   "separation_on_selection_houses": {
+    "count": 339166,
+    "mean": 0.20454967092083076,
+    "median": 0.19350742217961442,
+    "p10": -0.05143395847182261,
+    "p25": 0.04605587475856043,
+    "p75": 0.3553117123712812
+   },
+   "recall_miss_at_frozen_recall_values_on_selection_houses": {
+    "local_count": 5,
+    "global_count": 3,
+    "local_radius_m": 3.0,
+    "decisions": 124351,
+    "recall_miss": 1010,
+    "recall_miss_rate": 0.008122170308240384
+   }
+  },
+  "vitb14": {
+   "kind": "frozen_descriptor",
+   "separation_on_selection_houses": {
+    "count": 339166,
+    "mean": 0.14180018969500974,
+    "median": 0.1430249678207675,
+    "p10": -0.13180930182111697,
+    "p25": -0.0014017217385200453,
+    "p75": 0.28745216503650756
+   },
+   "recall_miss_at_frozen_recall_values_on_selection_houses": {
+    "local_count": 5,
+    "global_count": 3,
+    "local_radius_m": 3.0,
+    "decisions": 124351,
+    "recall_miss": 2582,
+    "recall_miss_rate": 0.020763805679085815
+   }
+  },
+  "reid_projection:vitb14": {
+   "kind": "shared_reid_projection",
+   "source_set": "vitb14",
+   "weights_file": "reid_head_vitb14.json",
+   "weights_sha256": "f6fc67e5f365a4f6d375d6aa16afe15cb0d9769879aa0cc1ab84ff6de9b65073",
+   "training": {
+    "training_houses_used": 30,
+    "training_fragments": 339808,
+    "training_classes": 3033,
+    "classes_with_positives": 2922,
+    "epochs_run": 20,
+    "final_loss": 1.4892802523920334,
+    "diverged": false
+   },
+   "separation_on_selection_houses": {
+    "count": 339166,
+    "mean": 0.23774888083113224,
+    "median": 0.23580319495012533,
+    "p10": -0.0355463453743024,
+    "p25": 0.07339930388048213,
+    "p75": 0.39703160807965376
+   },
+   "recall_miss_at_frozen_recall_values_on_selection_houses": {
+    "local_count": 5,
+    "global_count": 3,
+    "local_radius_m": 3.0,
+    "decisions": 124351,
+    "recall_miss": 796,
+    "recall_miss_rate": 0.006401235213227075
+   }
+  }
+ },
+ "selection": {
+  "chosen": "reid_projection:vitb14",
+  "best_frozen": "vitb14",
+  "best_frozen_median_separation": 0.1430249678207675,
+  "projection_gain_over_best_frozen": 0.09277822712935782,
+  "threshold": 0.05,
+  "frozen_descriptor_baseline_must_be_reported": true,
+  "candidate_medians_on_selection_houses": {
+   "vits14": 0.10755122940806883,
+   "reid_projection:vits14": 0.19350742217961442,
+   "vitb14": 0.1430249678207675,
+   "reid_projection:vitb14": 0.23580319495012533
+  },
+  "projections_excluded_after_divergence": [],
+  "matches_the_report_block": true
+ },
+ "frozen": {
+  "selected_descriptor": "reid_projection:vitb14",
+  "source_descriptor_set": "vitb14",
+  "source_dimension": 768,
+  "projection": {
+   "weights_file": "reid_head_vitb14.json",
+   "weights_sha256": "f6fc67e5f365a4f6d375d6aa16afe15cb0d9769879aa0cc1ab84ff6de9b65073",
+   "weights_location": "the S1-04 diagnostics private output root on the server; weights are not committed, the digest is",
+   "output_dimension": 128
+  },
+  "frozen_descriptor_baseline": "vitb14",
+  "frozen_descriptor_baseline_must_be_reported_alongside": true,
+  "source_set_stays_readable_as_the_projection_input_and_the_baseline": "vitb14",
+  "unselected_dropped_from_the_assignment_view": [
+   "reid_projection:vits14",
+   "vits14"
+  ],
+  "cache_bytes_unchanged_the_episode_seals_still_cover_both_sets": true,
+  "no_further_descriptor_change": true
+ },
+ "training_houses_annotation": {
+  "note": "training-house separation of the frozen sets is reported for context only; the rule reads the selection houses only",
+  "frozen_set_separation_median_by_training_house": {
+   "procthor10k-0.1.2-train-03394": {
+    "vits14": 0.10799138990532209,
+    "vitb14": 0.14366194618200834
+   },
+   "procthor10k-0.1.2-train-08566": {
+    "vits14": 0.10966006305515597,
+    "vitb14": 0.14518280197626965
+   },
+   "procthor10k-0.1.2-train-00406": {
+    "vits14": 0.109216256602575,
+    "vitb14": 0.1471620513725147
+   },
+   "procthor10k-0.1.2-train-03288": {
+    "vits14": 0.10440839716207151,
+    "vitb14": 0.15324547355812623
+   },
+   "procthor10k-0.1.2-train-08927": {
+    "vits14": 0.11305359807918264,
+    "vitb14": 0.15385622077519173
+   },
+   "procthor10k-0.1.2-train-08422": {
+    "vits14": 0.10826569651169249,
+    "vitb14": 0.13763813728688845
+   },
+   "procthor10k-0.1.2-train-03525": {
+    "vits14": 0.10621548679771764,
+    "vitb14": 0.13668458891143986
+   },
+   "procthor10k-0.1.2-train-07367": {
+    "vits14": 0.14649334716525286,
+    "vitb14": 0.1949426505526508
+   },
+   "procthor10k-0.1.2-train-05806": {
+    "vits14": 0.08676575004241283,
+    "vitb14": 0.11786020470482156
+   },
+   "procthor10k-0.1.2-train-05966": {
+    "vits14": 0.10444840261081026,
+    "vitb14": 0.15106622342977227
+   },
+   "procthor10k-0.1.2-train-00950": {
+    "vits14": 0.1027591104622872,
+    "vitb14": 0.13706041560201285
+   },
+   "procthor10k-0.1.2-train-05879": {
+    "vits14": 0.11451119312698405,
+    "vitb14": 0.15245556506633887
+   },
+   "procthor10k-0.1.2-train-00236": {
+    "vits14": 0.09175325702928258,
+    "vitb14": 0.129391704537221
+   },
+   "procthor10k-0.1.2-train-02524": {
+    "vits14": 0.10980092726130186,
+    "vitb14": 0.15168274197126025
+   },
+   "procthor10k-0.1.2-train-08398": {
+    "vits14": 0.08712378620515526,
+    "vitb14": 0.12397418862265241
+   },
+   "procthor10k-0.1.2-train-04801": {
+    "vits14": 0.09633378449786961,
+    "vitb14": 0.13410489333816888
+   },
+   "procthor10k-0.1.2-train-04388": {
+    "vits14": 0.13728703068744463,
+    "vitb14": 0.17640847020933448
+   },
+   "procthor10k-0.1.2-train-07795": {
+    "vits14": 0.08745373408065504,
+    "vitb14": 0.12014756856387138
+   },
+   "procthor10k-0.1.2-train-01543": {
+    "vits14": 0.10188266003075266,
+    "vitb14": 0.14353965661607368
+   },
+   "procthor10k-0.1.2-train-09339": {
+    "vits14": 0.09684119258267332,
+    "vitb14": 0.13243952961721572
+   },
+   "procthor10k-0.1.2-train-08790": {
+    "vits14": 0.09903143156006514,
+    "vitb14": 0.13823232378306274
+   },
+   "procthor10k-0.1.2-train-01259": {
+    "vits14": 0.09408665874128763,
+    "vitb14": 0.13316305336659207
+   },
+   "procthor10k-0.1.2-train-08905": {
+    "vits14": 0.13352175014224044,
+    "vitb14": 0.16046082523520844
+   },
+   "procthor10k-0.1.2-train-00975": {
+    "vits14": 0.10520119426964175,
+    "vitb14": 0.14411271626779354
+   },
+   "procthor10k-0.1.2-train-00619": {
+    "vits14": 0.12126990902572765,
+    "vitb14": 0.16624486166008656
+   },
+   "procthor10k-0.1.2-train-01394": {
+    "vits14": 0.10079758580140069,
+    "vitb14": 0.14828922330939062
+   },
+   "procthor10k-0.1.2-train-00702": {
+    "vits14": 0.16218791869526794,
+    "vitb14": 0.20726234328967094
+   },
+   "procthor10k-0.1.2-train-07815": {
+    "vits14": 0.10867524104713938,
+    "vitb14": 0.1417701968147923
+   },
+   "procthor10k-0.1.2-train-03361": {
+    "vits14": 0.07645820398732872,
+    "vitb14": 0.10835782200597657
+   },
+   "procthor10k-0.1.2-train-09423": {
+    "vits14": 0.13984498792315464,
+    "vitb14": 0.18655794186498068
+   }
+  },
+  "projection_was_not_scored_on_training_houses": true
+ },
+ "selection_shortfall": {
+  "registered_selection_houses": 12,
+  "selection_houses_used": 9,
+  "shortfall": 3,
+  "cause": "the cached development block has fewer episodes than the 30 + 12 the hold-out registers",
+  "rule_clause_applied": "holdout.a_house_without_a_cache_is_skipped_and_counted_never_replaced",
+  "margin_over_threshold": 0.04277822712935782,
+  "flagged_for_the_user": true
+ },
+ "s1_closeout": {
+  "s1_02": {
+   "reports": [
+    {
+     "report": "results/vsmt_lean_s1_02a_report_5f9aa71.json",
+     "sha256": "8dc1efb2ccb24d992f53f071e7db620b07683cd395d1011f27434d06a0219d55",
+     "stage": null,
+     "generator_code": "5f9aa71d9328e0a1d065c61c2bc7ef54a11a468c",
+     "houses_planned": null,
+     "succeeded": 2,
+     "failed": 2,
+     "null_window_episodes": null,
+     "yield_house_level_non_null": null,
+     "yield_gate": null,
+     "yield_gate_passed": null
+    },
+    {
+     "report": "results/vsmt_lean_s1_02b_report_5f9aa71.json",
+     "sha256": "0b8404037055359b97bc41b1eddad83bb62cd3b49777c94837af6ddbc0c3de57",
+     "stage": "s1-02b",
+     "generator_code": "5f9aa71d9328e0a1d065c61c2bc7ef54a11a468c",
+     "houses_planned": 46,
+     "succeeded": 37,
+     "failed": 9,
+     "null_window_episodes": 9,
+     "yield_house_level_non_null": 0.7567567567567568,
+     "yield_gate": 0.6,
+     "yield_gate_passed": true
+    }
+   ],
+   "note": "the S1-02 data at 5f9aa71: 39 succeeded of 50 (29 with interventions, 10 null-window), rulings 53/54/55"
+  },
+  "s1_03": {
+   "report": "results/vsmt_lean_s1_03_report_154776d.json",
+   "sha256": "ac684cb492ff2b74aad24281ed823068173cec3c918bb2baa893e63182f89097",
+   "code_commit": "154776d01f15e0a870cdfb64b62ad1633027e847",
+   "episodes_planned": 39,
+   "episodes_succeeded": 39,
+   "episodes_failed": 0,
+   "frames_total": 44097,
+   "fragments_total": 475907,
+   "complete": true,
+   "cache_episode_seals_pinned_by_s1_04": 39
+  },
+  "s1_04": {
+   "report": "results/vsmt_lean_s1_04_diagnostics_154776d.json",
+   "sha256": "18c7f79d22745f41d1022ec37b5da9d636f225805b4739c9c8c8a701196ec7f3",
+   "code_commit": "154776d01f15e0a870cdfb64b62ad1633027e847",
+   "episodes_used": 39,
+   "fragments_labelled": 465334,
+   "fragments_unlabelled": 10573,
+   "separation_median_by_set_all_development_houses": {
+    "vits14": 0.10257930742014615,
+    "vitb14": 0.13952558229278011
+   },
+   "fragment_truth_iou_single_view_median": 0.00043791576267906496,
+   "gate_median_iou": 0.3,
+   "gate_fired": true
+  },
+  "s1_04_iou_gate_recheck_under_the_ruled_matching_rule": {
+   "ruling": "D-224-S1 ruling 56 continued (2026-09-24): truth node scope excludes door/room/wall/window; the entity box is the same-frame union",
+   "estimate_report": "results/vsmt_ruling56_matching_estimate_154776d.json",
+   "sha256": "8fca801b5427b3de7a16179575feb0f185003710fc268ae896dbcc2fc2bb8c80",
+   "value_path": "estimate.non_architectural.fragment_rows.frame_union.median",
+   "median_iou": 0.3680415027246377,
+   "gate_median_iou": 0.3,
+   "passes": true,
+   "s1_not_redone": true
+  },
+  "frozen_values_entering_s2": {
+   "S0-03.recall_rule": {
+    "local_count": 5,
+    "global_count": 3,
+    "local_radius_m": 3.0,
+    "birth_neighbourhood_radius_m": 1.0
+   },
+   "S0-03.reid_adapter_head": {
+    "output_dimension": 128,
+    "selection_rule_threshold": 0.05
+   },
+   "S1-04.reid_training": {
+    "temperature": 0.07,
+    "epochs": 20,
+    "batch_fragments": 512,
+    "learning_rate": 0.001,
+    "seed": 20260922
+   }
+  },
+  "null_values_entering_s2": {
+   "S0-01": [
+    "dormancy_missed_opportunity_limit",
+    "shared_dedup.period_ticks",
+    "shared_dedup.descriptor_cosine_min",
+    "shared_dedup.centroid_distance_max_m",
+    "shared_dedup.aabb_iou_min"
+   ],
+   "S0-02": [
+    "split_rule.train_houses",
+    "split_rule.validation_houses",
+    "split_rule.test_houses",
+    "split_rule.seed"
+   ],
+   "S0-03": [
+    "cost_matrix.existence_threshold_tau_r",
+    "seal.reference_score_seed"
+   ],
+   "S0-04": [
+    "labels.fragment_dominance.dominance_min_share",
+    "labels.existence.delta_moved_m",
+    "statistics.bootstrap_seed",
+    "statistics.main_gate_effect_size",
+    "nuisance_probe.maximum_advantage"
+   ],
+   "S0-05": [
+    "shared.should_be_visible_min_ratio",
+    "arms.VSMT-lean.training.weight_decay",
+    "arms.VSMT-lean.training.seeds",
+    "arms.ELU-P.fitted.initial_log_odds",
+    "arms.ELU-P.fitted.persistence_log_decay_per_tick",
+    "arms.ELU-P.fitted.match_gain",
+    "arms.ELU-P.rollout_config.theta_a",
+    "arms.ELU-P.rollout_config.free_space_weight",
+    "arms.ELU-P.rollout_config.retract_threshold"
+   ],
+   "S1-03": [
+    "supported_by_rule.value_slots.supported_by_maximum_normal_angle_degrees",
+    "supported_by_rule.value_slots.supported_by_minimum_gap_m",
+    "supported_by_rule.value_slots.supported_by_maximum_gap_m",
+    "supported_by_rule.value_slots.supported_by_minimum_projected_overlap",
+    "supported_by_rule.value_slots.supported_by_maximum_mask_overlap_fraction"
+   ]
+  },
+  "null_values_notes": {
+   "S0-02": "split_rule slots stay null by design: seed, validation and test sizes are registered once in S1-02a (ruling X6), train_houses at S3-01",
+   "S1-03": "supported_by thresholds stay null by ruling 42: no S0-03 feature reads supported_by",
+   "others": "to be frozen by ruling before S2-05 runs; S2 code takes them as configuration inputs without defaults"
+  }
+ },
+ "private_ids_exported": false,
+ "contains_frames_descriptors_or_masks": false
+}

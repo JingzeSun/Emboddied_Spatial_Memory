@@ -290,7 +290,12 @@ FROZEN_RULE_SHA256 = {
     # transition rendered every container of a small house at least once; a U-turn segment re-scanned
     # the rooms just left), the leave segment is excluded from U, a short transition fails the house.
     "S0-02": "73f5144f11339c5c92c376623def22c89f3a8075b3c782efe700f4e59c80b547",
-    "S0-03": "1becb7e3646f5c4dcef27b5fbdf03c701755c50313075fd85dd634b905ad9d6c",
+    # S0-03 re-pinned 2026-09-24 for S1-05 (LOG-245): the reid_adapter_head gains a selection_result block
+    # recording the outcome the contract delegated to that stage -- the ruling-47 rule applied to the
+    # S1-04 report picks reid_projection:vitb14 (gain 0.093 over the 0.05 margin on the 9 selection
+    # houses), frozen ViT-B/14 is the baseline reported alongside, the weights digest is pinned and the
+    # choice may not change.  A new block, not a slot fill, hence a re-pin.  1becb7e3 -> 37d56a90.
+    "S0-03": "37d56a9079f90bd8db94bd68234919d7f42511b7e63214889d8a45bad5c2408a",
     # S0-04 re-pinned 2026-09-24 for ruling 56 continued: the truth node scope excludes the four ProcTHOR
     # structural types door, room, wall and window (65% of the S1-04 gate rows, unmatchable by any box or
     # centroid rule).  585e3660 -> 9bf1059d.
@@ -885,6 +890,64 @@ class TestRulesArePinnedAndValuesAreLedgered(unittest.TestCase):
             altered["__frozen_by"] = "x"
             with self.subTest(stage=stage):
                 self.assertEqual(rule_digest(stage, altered), rule_digest(stage, contract))
+
+
+class TestTheS105SelectionIsRecordedOnceAndAgreesWithItsReceipt(unittest.TestCase):
+    """S1-05 froze the descriptor by applying the ruling-47 rule to the S1-04 report.  The contract
+    records the outcome, the module binds it, and the committed receipt is the evidence; the three
+    must agree, and the receipt must point at the S1-04 report bytes that are in the tree."""
+
+    def setUp(self) -> None:
+        self.result = load("S0-03")["reid_adapter_head"]["selection_result"]
+        self.receipt_path = PROJECT_ROOT / self.result["receipt"]
+        self.receipt = json.loads(self.receipt_path.read_text(encoding="utf-8"))
+
+    def test_the_receipt_named_by_the_contract_exists_and_froze_the_same_descriptor(self) -> None:
+        frozen = self.receipt["frozen"]
+        self.assertEqual(self.receipt["stage"], "S1-05")
+        self.assertEqual(frozen["selected_descriptor"], self.result["selected"])
+        self.assertEqual(frozen["source_descriptor_set"], self.result["source_descriptor_set"])
+        self.assertEqual(frozen["frozen_descriptor_baseline"], self.result["frozen_descriptor_baseline"])
+        self.assertEqual(frozen["projection"]["weights_sha256"], self.result["weights_sha256"])
+        self.assertEqual(frozen["projection"]["weights_file"], self.result["weights_file"])
+        self.assertEqual(frozen["unselected_dropped_from_the_assignment_view"],
+                         self.result["unselected_sets_dropped_from_the_assignment_view"])
+        self.assertTrue(frozen["no_further_descriptor_change"] and self.result["no_further_descriptor_change"])
+
+    def test_the_receipt_and_the_contract_point_at_the_committed_s1_04_report(self) -> None:
+        report_path = PROJECT_ROOT / self.result["input_report"]
+        digest = hashlib.sha256(report_path.read_bytes()).hexdigest()
+        self.assertEqual(digest, self.result["input_report_sha256"])
+        self.assertEqual(self.receipt["input"]["s1_04_report"], self.result["input_report"])
+        self.assertEqual(self.receipt["input"]["s1_04_report_sha256"], digest)
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+        self.assertEqual(report["reid"]["selection_rule"]["chosen"], self.result["selected"])
+        self.assertEqual(report["reid"]["by_set"][self.result["source_descriptor_set"]]["weights_sha256"],
+                         self.result["weights_sha256"])
+
+    def test_the_selection_used_the_registered_rule_and_recorded_the_shortfall(self) -> None:
+        head = load("S0-03")["reid_adapter_head"]
+        selection = self.receipt["selection"]
+        self.assertEqual(self.receipt["rule"]["selection_rule_threshold"], head["selection_rule_threshold"])
+        self.assertGreaterEqual(selection["projection_gain_over_best_frozen"], head["selection_rule_threshold"])
+        self.assertTrue(selection["matches_the_report_block"])
+        shortfall = self.receipt["selection_shortfall"]
+        self.assertEqual(shortfall["registered_selection_houses"], head["holdout"]["selection_houses"])
+        self.assertEqual(shortfall["selection_houses_used"], self.result["selection_houses_used"])
+        self.assertEqual(shortfall["shortfall"], self.result["selection_shortfall"])
+        self.assertEqual(shortfall["selection_houses_used"] + shortfall["shortfall"], head["holdout"]["selection_houses"])
+        self.assertTrue(head["holdout"]["a_house_without_a_cache_is_skipped_and_counted_never_replaced"])
+
+    def test_the_module_binds_the_recorded_selection(self) -> None:
+        self.assertEqual(lean_assignment.SELECTED_DESCRIPTOR, self.result["selected"])
+        self.assertEqual(lean_assignment.SELECTED_DESCRIPTOR_SOURCE_SET, self.result["source_descriptor_set"])
+        self.assertEqual(lean_assignment.FROZEN_DESCRIPTOR_BASELINE, self.result["frozen_descriptor_baseline"])
+        self.assertEqual(lean_assignment.SELECTED_REID_WEIGHTS_SHA256, self.result["weights_sha256"])
+        # The S1-03 cache stores both sets and the S1-03 contract says the choice is made in S1-05, not there.
+        sets = load_stage("S1-03")["descriptor_sets"]
+        self.assertIn(self.result["source_descriptor_set"], {sets["primary"]["name"], sets["optional_upgrade"]["name"]})
+        self.assertTrue(sets["both_extracted_in_s1_one_selected_in_s1_05"])
+        self.assertTrue(sets["unselected_set_is_dropped_after_s1_05"])
 
 
 def _resolve_path(tree: Any, path: str) -> tuple[Any, Any]:

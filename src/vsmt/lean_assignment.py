@@ -117,6 +117,17 @@ RECALL_LOCAL_RADIUS_M = 3.0
 RECALL_BIRTH_NEIGHBOURHOOD_RADIUS_M = 1.0
 REID_TRAINING_HOUSES = 30
 REID_SELECTION_HOUSES = 12
+#: S1-05 (2026-09-24, LOG-245): the frozen ruling-47 rule applied to the S1-04 report
+#: (results/vsmt_lean_s1_04_diagnostics_154776d.json).  On the 9 selection houses the ViT-B/14
+#: projection's median cross-view separation is 0.2358 against 0.1430 for the best frozen set
+#: (ViT-B/14 itself): a gain of 0.093 over the 0.05 margin, so every arm reads the projection of
+#: ``descriptor_vitb14`` and frozen ViT-B/14 is the baseline the paper reports alongside.  The
+#: selection group is 9 houses, not 12: the cached development block has 39 episodes and the
+#: contract skips and counts, never refills.  No later stage may change this choice.
+SELECTED_DESCRIPTOR = "reid_projection:vitb14"
+SELECTED_DESCRIPTOR_SOURCE_SET = "vitb14"
+FROZEN_DESCRIPTOR_BASELINE = "vitb14"
+SELECTED_REID_WEIGHTS_SHA256 = "f6fc67e5f365a4f6d375d6aa16afe15cb0d9769879aa0cc1ab84ff6de9b65073"
 
 
 class LeanAssignmentError(ValueError):
@@ -1267,6 +1278,27 @@ def validate_assignment_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     ):
         _require(holdout[name] is True, f"contract_reid_holdout_weakened:{name}")
 
+    # S1-05: the selection the contract delegated to that stage is recorded here and bound to
+    # the constants above; the choice can be read by every later stage and changed by none.
+    result = contract["reid_adapter_head"].get("selection_result")
+    _require(type(result) is dict, "contract_reid_selection_result_missing")
+    _require(result.get("selected_by_stage") == "S1-05", "contract_reid_selection_stage_mismatch")
+    _require(result.get("selected") == SELECTED_DESCRIPTOR,
+             "contract_reid_selection_differs_from_the_frozen_constant")
+    _require(result.get("source_descriptor_set") == SELECTED_DESCRIPTOR_SOURCE_SET,
+             "contract_reid_selection_source_set_differs_from_the_frozen_constant")
+    _require(result.get("frozen_descriptor_baseline") == FROZEN_DESCRIPTOR_BASELINE,
+             "contract_reid_selection_baseline_differs_from_the_frozen_constant")
+    _require(result.get("weights_sha256") == SELECTED_REID_WEIGHTS_SHA256,
+             "contract_reid_selection_weights_digest_differs_from_the_frozen_constant")
+    if SELECTED_DESCRIPTOR.startswith("reid_projection:"):
+        _require(result.get("frozen_descriptor_baseline_must_be_reported_alongside") is True,
+                 "contract_reid_selection_baseline_report_dropped")
+        _require(SELECTED_DESCRIPTOR == f"reid_projection:{SELECTED_DESCRIPTOR_SOURCE_SET}",
+                 "contract_reid_selection_source_set_inconsistent")
+    _require(result.get("no_further_descriptor_change") is True, "contract_reid_selection_reopenable")
+    _require(result.get("cache_bytes_unchanged") is True, "contract_reid_selection_rewrites_the_cache")
+
     _require(
         all(value is False for value in contract["authorization"].values()),
         "contract_authorization_must_be_all_false",
@@ -1281,6 +1313,10 @@ __all__ = [
     "REID_OUTPUT_DIMENSION",
     "REID_SELECTION_HOUSES",
     "REID_SELECTION_RULE_THRESHOLD",
+    "SELECTED_DESCRIPTOR",
+    "SELECTED_DESCRIPTOR_SOURCE_SET",
+    "FROZEN_DESCRIPTOR_BASELINE",
+    "SELECTED_REID_WEIGHTS_SHA256",
     "REID_TRAINING_HOUSES",
     "UP_AXIS_INDEX",
     "CACHE_FRAME_FIELDS",
