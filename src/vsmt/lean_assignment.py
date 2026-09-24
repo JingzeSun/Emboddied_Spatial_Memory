@@ -109,6 +109,10 @@ UP_AXIS_INDEX = 1
 #: it was fitted to.
 REID_OUTPUT_DIMENSION = 128
 REID_SELECTION_RULE_THRESHOLD = 0.05
+#: D-224-S1 ruling 57 (2026-09-24): the three recall values frozen from the S1-04 curve (LOG-244).
+RECALL_LOCAL_COUNT = 5
+RECALL_GLOBAL_COUNT = 3
+RECALL_LOCAL_RADIUS_M = 3.0
 REID_TRAINING_HOUSES = 30
 REID_SELECTION_HOUSES = 12
 
@@ -1210,6 +1214,9 @@ def validate_assignment_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     frozen_constants = {
         "reid_adapter_head.output_dimension": REID_OUTPUT_DIMENSION,
         "reid_adapter_head.selection_rule_threshold": REID_SELECTION_RULE_THRESHOLD,
+        "recall_rule.local_count": RECALL_LOCAL_COUNT,
+        "recall_rule.global_count": RECALL_GLOBAL_COUNT,
+        "recall_rule.local_radius_m": RECALL_LOCAL_RADIUS_M,
     }
     for section, names in (
         ("recall_rule", ("local_count", "global_count", "local_radius_m",

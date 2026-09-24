@@ -340,7 +340,12 @@ FROZEN_VALUES: dict[str, dict[str, Any]] = {
         # minimum median cross-view separation gain the projection must show on the 12
         # selection houses over the best frozen descriptor to be chosen in S1-05.
         "reid_adapter_head.output_dimension": 128,
-        "reid_adapter_head.selection_rule_threshold": 0.05
+        "reid_adapter_head.selection_rule_threshold": 0.05,
+        # D-224-S1 ruling 57 (2026-09-24): recall values from the S1-04 curve (LOG-244);
+        # 2.0% recall miss for ViT-B/14 at most 8 candidates per fragment.
+        "recall_rule.local_count": 5,
+        "recall_rule.global_count": 3,
+        "recall_rule.local_radius_m": 3.0
     },
     "S0-02": {
         "route.translation_m": 0.25,

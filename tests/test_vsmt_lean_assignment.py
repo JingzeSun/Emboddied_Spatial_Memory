@@ -588,22 +588,30 @@ class TestMachineContract(unittest.TestCase):
     def test_an_open_policy_value_cannot_be_filled_without_leaving_the_open_list(self) -> None:
         # Ruling 24: a value is either open (null and listed) or frozen (ledgered and unlisted).
         broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
-        broken["recall_rule"]["local_count"] = 8
+        broken["recall_rule"]["birth_neighbourhood_radius_m"] = 0.5
         with self.assertRaises(LeanAssignmentError) as caught:
             validate_assignment_contract(broken)
-        self.assertEqual(str(caught.exception), "contract_recall_rule_local_count_frozen_but_still_listed_as_open")
+        self.assertEqual(str(caught.exception), "contract_recall_rule_birth_neighbourhood_radius_m_frozen_but_still_listed_as_open")
         # and a value without a bound constant cannot be frozen by editing the contract alone
-        broken["policy_values_without_defaults"].remove("recall_rule.local_count")
+        broken["policy_values_without_defaults"].remove("recall_rule.birth_neighbourhood_radius_m")
         with self.assertRaises(LeanAssignmentError) as caught:
             validate_assignment_contract(broken)
-        self.assertEqual(str(caught.exception), "contract_recall_rule_local_count_frozen_without_a_bound_constant")
+        self.assertEqual(str(caught.exception), "contract_recall_rule_birth_neighbourhood_radius_m_frozen_without_a_bound_constant")
 
     def test_the_recall_values_are_still_open_and_freeze_after_the_s1_04_curve(self) -> None:
-        # Ruling 46 (2026-09-22): the four values stay null until the curve on the development cache.
+        # Ruling 46 (2026-09-22): the values freeze after the curve on the development cache.
+        # Ruling 57 (2026-09-24): three of them are frozen at the bound constants; the birth
+        # neighbourhood radius was not in that proposal and stays open for its own ruling.
+        from vsmt.lean_assignment import RECALL_GLOBAL_COUNT, RECALL_LOCAL_COUNT, RECALL_LOCAL_RADIUS_M
+
         contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
-        for name in ("local_count", "global_count", "local_radius_m", "birth_neighbourhood_radius_m"):
-            self.assertIsNone(contract["recall_rule"][name])
-            self.assertIn(f"recall_rule.{name}", contract["policy_values_without_defaults"])
+        self.assertEqual((RECALL_LOCAL_COUNT, RECALL_GLOBAL_COUNT, RECALL_LOCAL_RADIUS_M), (5, 3, 3.0))
+        for name, value in (("local_count", RECALL_LOCAL_COUNT), ("global_count", RECALL_GLOBAL_COUNT),
+                            ("local_radius_m", RECALL_LOCAL_RADIUS_M)):
+            self.assertEqual(contract["recall_rule"][name], value)
+            self.assertNotIn(f"recall_rule.{name}", contract["policy_values_without_defaults"])
+        self.assertIsNone(contract["recall_rule"]["birth_neighbourhood_radius_m"])
+        self.assertIn("recall_rule.birth_neighbourhood_radius_m", contract["policy_values_without_defaults"])
         for name in ("four_values_frozen_once_after_the_s1_04_curve",
                      "curve_is_measured_on_the_development_cache_only",
                      "chosen_by_maximum_memory_size_not_per_arm"):
