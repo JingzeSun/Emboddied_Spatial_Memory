@@ -42,6 +42,8 @@ S4 论文
 
 **2026-09-24 S2-01～S2-03 经用户审查通过，裁决 59～63 落地（LOG-248）**：审查核对了半空间口径（D-223 材化"点在块内"为 n·p ≤ offset，runner 同式，体块与色块共用同一因果位姿）、自由空间滚动窗口 4 次观测照存读、参数数 54,207、四条来源链接与三个测试模块。批准并落地：(59) ReID 选择组维持 9 条，不改代码；(60) `entity_geometry.samples_per_axis`=4（常量绑定、台账登记、合同记 `registered_value_slots`）；(61) S2-01 校验器原要求授权位全 false 而入口要求全 true、入口永远跑不起来，改为 S1-03／S1-04 的 `activation_policy` 机制，两位仍关；(62) `fit_match_gain` 在 p_hit ≤ p_false 时拒绝；(63) 架构保持 128 宽，METHOD 与 AGENTS 的"约 4 万参数"改为 54,207；附：非法程序整帧回滚现含臂状态，合同新增布尔声称，S2-01 规则摘要重钉 `e1060695…` → `09fc1a4a…`。**下一步 S2-04**（teacher 与评价器接线）：存在标签只对 runner 的可判定行生成，`should_be_visible_min_ratio` 须先冻结；S2-05 前须核对服务器 39 份几何回执的 `objects_without_box`。S2-05 前须冻结的其余 null 值不变。
 
+**2026-09-24 S2-04 teacher 与评价器接线已实现待审（LOG-249）**：[`lean_evaluation.py`](../src/vsmt/lean_evaluation.py)——每帧吃 runner 的一步产物与私有记录，凭回执两段封存打开私有真值，调 S0-04 的函数出目标列、存在标签、三分解、逐帧节点匹配与污染占比、假撤回、规模成本，写 S2-03 训练记录与 nuisance 行，窗口后从 S1-04 追踪器取旧/新位置算 Missing 残留率、身份连续率、恢复延迟；合同 [`lean_s2_04_evaluation_v1.json`](../configs/vsmt/lean_s2_04_evaluation_v1.json)（首钉 `40d96cf0…`，两位全 false，不登记自己的值槽）登记五条派生规则（可观察判定用臂自己的采样盒测试、旧/新位置取窗口两侧的追踪器输出、搬动的恢复起点两处任一可观察、搬动前承载实体不限状态、结构件候选一律 present）为**待裁 65**；S2-05 的运行位由哪份合同持有为**待裁 64**；入口 [`lean_s2_04_evaluate_episode.py`](../ops/vsmt/lean_s2_04_evaluate_episode.py)（runner＋teacher 同进程跑一条 episode、一个臂，位关即拒，null 值即列出拒绝）；测试 14＋跨合同 4。**下一步**：用户审 S2-04 并裁 64／65；然后 S2-05（多 episode 多臂编排、开发表）。S2-05 前须冻结 S0-01 五个、S0-03 两个、S0-04 五个、S0-05 九个 null 值，打开 S2-01／S2-04 的运行位，并核对服务器 39 份几何回执的 `objects_without_box`。
+
 | 状态 | 含义 |
 |---|---|
 | 已完成 | 代码和必要测试已经受审，或已有可复用的真实证据 |
@@ -220,7 +222,7 @@ S4 论文
 
 | 项 | 内容 |
 |---|---|
-| 状态 | 未开始 |
+| 状态 | **已实现待审（2026-09-24，LOG-249）**：[`lean_evaluation.py`](../src/vsmt/lean_evaluation.py)——`fragment_instances`（回收 mask 按定义重算摘要与封印帧逐位核对后，用 S1-04 的重叠算法出 S0-04 的实例重叠表）、`EpisodeTeacher.label_frame`（核对回执放行门与帧序→追踪器真值与 S2-01 真值表→S0-04 `association_targets`／`existence_labels`（结构件候选一律 present）／`decompose_frame`／`evaluate_frame`／`false_retract_rate`／`size_and_cost`→窗口后的旧/新位置、可观察判定、Missing 残留率、恢复标志、身份连续率→S2-03 训练记录（存在行只含可判定候选）与 nuisance 行）、`episode_report`（七项指标恰为冻结字段，`assert_report_keys` 把关；诊断另列）、`nuisance_probes`（关联行与存在行分开做）、`headline_values`；合同 [`lean_s2_04_evaluation_v1.json`](../configs/vsmt/lean_s2_04_evaluation_v1.json)（首钉 `40d96cf0…`，登记派生规则、policy 来源、主值字段，两位全 false）；入口 [`lean_s2_04_evaluate_episode.py`](../ops/vsmt/lean_s2_04_evaluate_episode.py)；测试 [`test_vsmt_lean_evaluation.py`](../tests/test_vsmt_lean_evaluation.py) 14 项（5 帧合成 episode：杯子移走、书搬动、墙始终在；TAF 残留 1/2、连续率 1/1、书恢复 0 帧、杯子未恢复，ELU-P 撤回后残留 0/2、假撤回 0/1、杯子恢复 1 帧；换私有面标签变而公开产物不变；门与帧序；合同绑定）。五条派生规则待裁 65，运行位归属待裁 64 |
 | 输入 | S0-04 合同 |
 | 完整动作 | 实现封存后标签器（含同帧重复色块的 `duplicate_of_labelled`，裁决 X1）、七项指标、三分解、nuisance probe、私有扰动不变性检查；评价器收到的真值表含所有可解析物体并带 `in_scope` 标志（裁决 X6）；每项指标的未定义 house 清单按 `undefined_houses` 算一次并传给全部配对比较（裁决 X2）；**存在标签只对 runner 的可判定行生成**（active／dormant 且应可见比例 ≥ S0-05 `should_be_visible_min_ratio` 的未分配实体，与部署时存在头被询问的行一致，该下限须先冻结；S2 审查，LOG-248） |
 | 输出 | 评价器代码与测试 |
