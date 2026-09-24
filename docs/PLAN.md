@@ -46,6 +46,8 @@ S4 论文
 
 **2026-09-24 S2-04 审查通过，裁决 64／65／66 落地（LOG-250）**：裁决 64 取 (a)，S2-05 的运行位由 S2 阶段合同持有（S2-01 两位、S2-04 两位），S0 各位保持 false；裁决 65 五条派生规则全按推荐冻结；裁决 66 把 S2-05 的继续门从"不因开发差不利就改设计或删消融"改为"开发差可以促成设计修订，修订须登记为裁决、在 S3-01 冻结正式数据前完成、不读 validation/test；不选赢家、不调网格、不删消融保留"。**下一步 S2-05**：先登记开发运行的全部待冻结值（S0-01 五个、S0-03 两个、S0-04 五个、S0-05 九个、各臂网格与开发配置）并实现多 episode 多臂编排、ELU-P 拟合量计数、两轮 DAgger 训练与开发表导出；运行前打开 S2-01／S2-04 运行位并核对服务器 39 份几何回执的 `objects_without_box`。
 
+**2026-09-24 S2-05 开发表编排已实现待审（LOG-251）**：[`lean_development.py`](../src/vsmt/lean_development.py)（校准直方图与收集器、ELU-P 拟合量计数器、开发表装配、合同校验）、合同 [`lean_s2_05_development_v1.json`](../configs/vsmt/lean_s2_05_development_v1.json)（首钉 `38314ce2…`，五趟顺序：校准→ELU-P 拟合→第 0 轮 DAgger→第 1 轮 DAgger→开发表；八个开发配置槽为 null；两位全 false）、入口 [`lean_s2_05_development.py`](../ops/vsmt/lean_s2_05_development.py)（run-pass／calibration-report／fit-elu-p／train／table，每条 episode 一个 S2-04 子进程、多 worker、按 episode_id 合并、回执续跑）；S2-04 入口新增 `--calibration`／`--elu-p-counts` 钩子；测试 7＋跨合同 3。**运行前分两批冻结**：待裁 67（跑校准趟就要的 8 个值：S0-01 dormancy 与去重四值、S0-04 dominance_min_share／delta_moved_m、S0-05 should_be_visible_min_ratio）；待裁 68（校准趟之后：各臂网格、ELU-P rollout_config、八个开发配置槽、weight_decay／seeds、nuisance 上限、reference_score_seed、S0-03 tau_r）。bootstrap_seed 与 main_gate_effect_size 留到 S3-01。**下一步**：用户审 S2-05 代码并裁 67；落值后打开 S2-01／S2-04／S2-05 运行位，核对服务器 39 份几何回执的 `objects_without_box`，跑校准趟，据其分位数提 68。
+
 | 状态 | 含义 |
 |---|---|
 | 已完成 | 代码和必要测试已经受审，或已有可复用的真实证据 |
@@ -234,7 +236,7 @@ S4 论文
 
 | 项 | 内容 |
 |---|---|
-| 状态 | 未开始 |
+| 状态 | **编排已实现待审（2026-09-24，LOG-251）**：[`lean_development.py`](../src/vsmt/lean_development.py)——`Histogram`／`CalibrationCollector`（固定边界、可合并的直方图：同物体目标对余弦／距离／IoU、异物体余弦、新物体最高余弦、存在候选按 gone/present 的自由空间覆盖与错失次数、色块主导占比、实体应可见比例、同帧同物体色块数）、`EluPCounter`（S0-05 v2 三个拟合量的四条计数，逐帧按追踪器真值、公开可见体积、门臂分配与证据映射数）、`fit_elu_p`（求和后走 S2-02 估计式）、`development_table`（每臂每指标的 house 主值、裁决 X2 排除清单只对适用臂算、有效 house 数、均值、VSMT-lean 对每臂配对差；缺臂缺 house 即拒）、`validate_development_contract`；合同 [`lean_s2_05_development_v1.json`](../configs/vsmt/lean_s2_05_development_v1.json)（首钉 `38314ce2…`；五趟顺序、校准臂 LOW 无门、拟合臂 TAF 在 rollout theta_a 无门、第 0 轮 ELU-P 轨迹同时是 ELU-P 表行、开发训练每轮一次取首个登记 seed 且早停用 S1-04 留出、八个开发配置槽 null、继续门按裁决 66）；入口 [`lean_s2_05_development.py`](../ops/vsmt/lean_s2_05_development.py)；测试 [`test_vsmt_lean_development.py`](../tests/test_vsmt_lean_development.py) 7 项（直方图裁边合并分位数；收集器计数与封存行一致；计数器在合成 episode 上逐条手算相符、可观察间断产生在位先验计数、退化拒绝；开发表主值／排除／不适用臂／配对差、缺臂缺 house 拒绝；合同绑定与弱化拒绝）。运行仍待裁 67／68 与三份 S2 合同的运行位 |
 | 输入 | S2-01～S2-04；S1 cache |
 | 完整动作 | 在开发 cache 的成功子集上跑五臂（原定 50 条 house：S1-02 成功 43 条进入 S1-03，cache 成功 42 条，`train-01451` 按合同 `proposal_overflow` 失败并留在失败清单；**不补样、不重生成、不抬上限**，五臂共用同一 42 条；VSMT-lean 只做一次开发训练），**并把 `NoVersion` 与 `AssocOnly` 两个消融用同一次开发预算一起跑**，兑现风险探针的第三件事；出第一张表、逐例失败、runtime/memory、接口问题清单 |
 | 输出 | 开发表，含 VSMT-lean 对 `NoVersion`、对 `AssocOnly` 的开发差 |
