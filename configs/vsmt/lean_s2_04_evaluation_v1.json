@@ -21,8 +21,17 @@
     "note_zh": "S2-04 不重写任何标签或指标规则：标签、三分解、七项指标、nuisance probe 全部调用 S0-04 的函数；它只登记输入的派生规则。"
   },
   "authorization": {
-    "label_generation_run": false,
-    "server_run": false
+    "label_generation_run": true,
+    "server_run": true
+  },
+  "activation_policy": {
+    "opened_by": "D-224-S1 rulings 64 and 67 and the S2-05 code review (2026-09-24, 原话「S2-05 审过；裁决 67 八个值全按推荐」)",
+    "opened_on": "2026-09-24",
+    "active_true_authorizations": [
+      "label_generation_run",
+      "server_run"
+    ],
+    "plain_language_zh": "授权位不是实现者可以自己打开的开关：每一个为 true 的位都必须出现在这里，并写明是哪条裁决打开的。用户于 2026-09-24 审过 S2-05 代码并批准裁决 67（八个运行必需值），按裁决 64 由 S2 阶段合同持有运行位，本合同的两位一次打开，用于 S2-05 的开发趟（校准趟先跑）；S0 各位保持 false。"
   },
   "authorization_rule_zh": "两个授权位现在都关着。要打开某一位，必须在合同里加 activation_policy，把该位写进 active_true_authorizations 并在 opened_by 写明是哪条裁决打开的；校验器对没有裁决就为 true 的位直接拒绝（与 S2-01 裁决 61 同一机制）。裁决 64（2026-09-24 批准，取 (a)）：S2-05 的运行位由 S2 阶段合同持有——S2-01 的 episode_run／server_run 与本合同的 label_generation_run／server_run；S0-01／S0-03／S0-04／S0-05 各自的授权位保持 false，它们是规则合同的位，运行由 S2 阶段合同授权，入口只检查 S2 位。",
   "derivation_rules": {

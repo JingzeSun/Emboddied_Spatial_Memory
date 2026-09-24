@@ -359,7 +359,9 @@ class MachineContractTests(unittest.TestCase):
         self.assertEqual(checked["stage_id"], "S2-04")
         self.assertEqual(checked["derivation_rules"]["recovery_place"], ev.RECOVERY_PLACE_RULE)
         self.assertEqual(checked["policy_values_without_defaults"], [])
-        self.assertTrue(all(value is False for value in checked["authorization"].values()))
+        # both bits opened on 2026-09-24 (rulings 64/67, the S2-05 review) and named by the activation policy
+        self.assertTrue(all(checked["authorization"].values()))
+        self.assertEqual(sorted(checked["activation_policy"]["active_true_authorizations"]), sorted(checked["authorization"]))
         for key, path in checked["depends_on"].items():
             if key.endswith("_contract"):
                 self.assertTrue((PROJECT_ROOT / path).is_file(), path)
@@ -371,7 +373,7 @@ class MachineContractTests(unittest.TestCase):
             (lambda c: c["derivation_rules"].__setitem__("no_public_byte_is_read_or_written", False), "contract_claim_weakened:no_public_byte_is_read_or_written"),
             (lambda c: c["derivation_rules"]["recovery_place"].__setitem__("moved", "new_place"), "contract_rule_mismatch:recovery_place"),
             (lambda c: c["headline_fields"].__setitem__("node_prf1", "node_recall"), "contract_headline_fields_mismatch"),
-            (lambda c: c["authorization"].__setitem__("server_run", True), "contract_bit_opened_without_a_ruling:server_run"),
+            (lambda c: c.pop("activation_policy"), "contract_bit_opened_without_a_ruling:label_generation_run"),
             (lambda c: c["policy_values_without_defaults"].append("x"), "contract_registers_a_value_slot_it_does_not_own"),
         ):
             broken = copy.deepcopy(self.contract)
@@ -380,6 +382,9 @@ class MachineContractTests(unittest.TestCase):
                 ev.validate_evaluation_contract(broken)
             self.assertEqual(str(caught.exception), code)
         opened = copy.deepcopy(self.contract)
+        opened["authorization"] = {name: False for name in opened["authorization"]}
+        opened.pop("activation_policy", None)
+        ev.validate_evaluation_contract(opened)  # the closed form stays valid
         opened["authorization"]["label_generation_run"] = True
         opened["activation_policy"] = {"opened_by": "D-224-S1 ruling <n>", "opened_on": "2026-09-30", "active_true_authorizations": ["label_generation_run"]}
         self.assertTrue(ev.validate_evaluation_contract(opened)["authorization"]["label_generation_run"])

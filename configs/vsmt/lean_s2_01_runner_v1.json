@@ -24,8 +24,17 @@
     "note_zh": "runner 不重写任何规则：召回、特征、求解、封存来自 S0-03，原子执行与共享维护来自 S0-01，臂的 logit 与词表来自 S0-05，投影来自 S1-04 训练、S1-05 冻结的权重；它只按固定顺序把这些接起来，并把每一步的产物写进回执。"
   },
   "authorization": {
-    "episode_run": false,
-    "server_run": false
+    "episode_run": true,
+    "server_run": true
+  },
+  "activation_policy": {
+    "opened_by": "D-224-S1 rulings 64 and 67 and the S2-05 code review (2026-09-24, 原话「S2-05 审过；裁决 67 八个值全按推荐」)",
+    "opened_on": "2026-09-24",
+    "active_true_authorizations": [
+      "episode_run",
+      "server_run"
+    ],
+    "plain_language_zh": "授权位不是实现者可以自己打开的开关：每一个为 true 的位都必须出现在这里，并写明是哪条裁决打开的。用户于 2026-09-24 审过 S2-05 代码并批准裁决 67（八个运行必需值），按裁决 64 由 S2 阶段合同持有运行位，本合同的两位一次打开，用于 S2-05 的开发趟（校准趟先跑）；S0 各位保持 false。"
   },
   "authorization_rule_zh": "两个授权位现在都关着。它们不是实现者可以自己打开的开关：要打开某一位，必须在合同里加 activation_policy，把该位写进 active_true_authorizations 并在 opened_by 写明是哪条裁决打开的；校验器对没有裁决就为 true 的位直接拒绝（与 S1-03／S1-04 同一机制，裁决 61，2026-09-24）。入口另外在位仍关时拒绝运行。",
   "descriptor": {

@@ -484,7 +484,9 @@ class MachineContractTests(unittest.TestCase):
         self.assertEqual(checked["entity_geometry"]["samples_per_axis"], lr.ENTITY_GEOMETRY_SAMPLES_PER_AXIS)
         self.assertNotIn("entity_geometry.samples_per_axis", checked["policy_values_without_defaults"])
         self.assertEqual(checked["registered_value_slots"], ["entity_geometry.samples_per_axis"])
-        self.assertTrue(all(value is False for value in checked["authorization"].values()))
+        # both bits opened on 2026-09-24 (rulings 64/67, the S2-05 review) and named by the activation policy
+        self.assertTrue(all(checked["authorization"].values()))
+        self.assertEqual(sorted(checked["activation_policy"]["active_true_authorizations"]), sorted(checked["authorization"]))
         self.assertEqual(tuple(checked["frame_step"]["order"]), lr.FRAME_STEP_ORDER)
         for key, path in checked["depends_on"].items():
             if key.endswith("_contract"):
@@ -498,7 +500,7 @@ class MachineContractTests(unittest.TestCase):
             (lambda c: c["frame_step"]["order"].reverse(), "contract_frame_step_order_mismatch"),
             (lambda c: c["truth_table"].__setitem__("observable_min_pixels", 100), "contract_truth_pixels_mismatch"),
             (lambda c: c["descriptor"].__setitem__("selected", "vits14"), "contract_descriptor_selected_mismatch"),
-            (lambda c: c["authorization"].__setitem__("episode_run", True), "contract_bit_opened_without_a_ruling:episode_run"),
+            (lambda c: c.pop("activation_policy"), "contract_bit_opened_without_a_ruling:episode_run"),
             (lambda c: c["entity_geometry"].__setitem__("samples_per_axis", None), "contract_samples_per_axis_null_but_not_registered_as_open"),
             (lambda c: c["frame_step"]["arm_state"].__setitem__("arm_state_rolled_back_with_the_frame_on_an_illegal_program", False),
              "contract_frame_step_claim_weakened:arm_state_rolled_back_with_the_frame_on_an_illegal_program"),
@@ -516,9 +518,12 @@ class MachineContractTests(unittest.TestCase):
         self.assertEqual(str(caught.exception), "contract_samples_per_axis_differs_from_the_frozen_constant")
 
     def test_a_bit_opens_only_through_an_activation_policy_that_names_a_ruling(self) -> None:
-        # D-224-S1 ruling 61: the S1-03 / S1-04 mechanism; the bits are closed today, so the
-        # opened form is exercised on a copy
-        opened = copy.deepcopy(self.contract)
+        # D-224-S1 ruling 61: the S1-03 / S1-04 mechanism, exercised from a closed copy
+        closed = copy.deepcopy(self.contract)
+        closed["authorization"] = {name: False for name in closed["authorization"]}
+        closed.pop("activation_policy", None)
+        lr.validate_runner_contract(closed)
+        opened = copy.deepcopy(closed)
         opened["authorization"]["episode_run"] = True
         opened["activation_policy"] = {"opened_by": "D-224-S1 ruling <n>", "opened_on": "2026-09-30",
                                        "active_true_authorizations": ["episode_run"]}
@@ -527,7 +532,7 @@ class MachineContractTests(unittest.TestCase):
         with self.assertRaises(lr.LeanRunnerError) as caught:
             lr.validate_runner_contract(opened)
         self.assertEqual(str(caught.exception), "contract_bit_opened_without_a_ruling:server_run")
-        nameless = copy.deepcopy(self.contract)
+        nameless = copy.deepcopy(closed)
         nameless["activation_policy"] = {"opened_by": "", "active_true_authorizations": []}
         with self.assertRaises(lr.LeanRunnerError) as caught:
             lr.validate_runner_contract(nameless)

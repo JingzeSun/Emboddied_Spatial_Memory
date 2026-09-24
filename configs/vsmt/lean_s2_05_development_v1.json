@@ -23,8 +23,17 @@
     "note_zh": "S2-05 不重写任何规则：逐 episode 的运行是 S2-04 的入口，拟合是 S2-02 的估计式，训练是 S2-03 的循环，排除清单是 S0-04 的函数；本合同只登记趟的顺序、分片合并、校准统计、开发配置的槽位和继续门。"
   },
   "authorization": {
-    "development_run": false,
-    "server_run": false
+    "development_run": true,
+    "server_run": true
+  },
+  "activation_policy": {
+    "opened_by": "D-224-S1 rulings 64 and 67 and the S2-05 code review (2026-09-24, 原话「S2-05 审过；裁决 67 八个值全按推荐」)",
+    "opened_on": "2026-09-24",
+    "active_true_authorizations": [
+      "development_run",
+      "server_run"
+    ],
+    "plain_language_zh": "授权位不是实现者可以自己打开的开关：每一个为 true 的位都必须出现在这里，并写明是哪条裁决打开的。用户于 2026-09-24 审过 S2-05 代码并批准裁决 67（八个运行必需值），按裁决 64 由 S2 阶段合同持有运行位，本合同的两位一次打开，用于 S2-05 的开发趟（校准趟先跑）；S0 各位保持 false。"
   },
   "authorization_rule_zh": "两个授权位现在都关着。按裁决 64，S2-05 的运行由 S2 阶段合同授权：本合同两位加 S2-01 与 S2-04 的四位都必须凭 activation_policy 打开；S0 各位保持 false。",
   "episodes": {

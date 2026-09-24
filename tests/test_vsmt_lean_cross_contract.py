@@ -347,20 +347,27 @@ FROZEN_RULE_SHA256 = {
     # Ruling 60 (samples_per_axis = 4) is a slot fill and ruling 61 (activation_policy) is
     # bookkeeping; checked at re-pin time that with the new claim removed the digest is e1060695
     # again, so that claim is the only rule that moved.  e1060695 -> 09fc1a4a.
-    "S2-01": "09fc1a4af70d7cc6f791de09b07c7d7ba27f94695ed99b7493481ecbbceebf39",
+    # Re-pinned 2026-09-24 when rulings 64/67 and the S2-05 review opened both bits by name in
+    # activation_policy (the bits are rules of who may run what, as for S1-03 / S1-04); checked at
+    # re-pin time that with the bits set back to false the digest is 09fc1a4a again.  -> 36b9fbc6.
+    "S2-01": "36b9fbc656d6e3afe03a22b57fe0ad964f8657aeb8c1fc205d0ebf61c83c6f06",
     # S2-04 v1 (2026-09-24, LOG-249): the teacher and evaluator wiring -- the derivation rules for the
     # S0-04 inputs (place observability by the S2-01 sampled-box test at the S0-05 minimum, old and new
     # places from the S1-04 tracker at the window edges, recovery place per intervention kind, carriers
     # before a move, first labelled re-observation, evidence map by S0-04 dominance, present-by-structure
     # existence labels, MRR headline at the last frame, eligible-rows training records), the policy
-    # sources, the headline fields and the closed bits.  It owns no value slot.
-    "S2-04": "40d96cf09688b4f1f5f25d881b444202f67e23ad020d3575e7a12fe2a002b894",
+    # sources, the headline fields and the closed bits.  It owns no value slot.  First pinned 40d96cf0;
+    # re-pinned 2026-09-24 when rulings 64/67 and the S2-05 review opened both bits by name (with the
+    # bits set back to false the digest is 40d96cf0 again).  -> f4511a34.
+    "S2-04": "f4511a34146755b1aa06ac960cb55e5c730241ffa8a8f8fa46fcb7b9ebe67295",
     # S2-05 v1 (2026-09-24, LOG-251): the development table -- the five passes in order (calibration
     # with LOW and no gate, the ELU-P fit with TAF at the rollout theta_a, DAgger rounds 0 and 1, the
     # table), the episode set, the calibration series and quantiles, the ELU-P count rules, the
     # sharding and merge order, the table rules, the gate after ruling 66, and eight development
-    # configuration slots (null until ruled).  Both bits closed.
-    "S2-05": "38314ce2b5b15fab13a39ff69d8bec12649f65fb18d70a6f676b5c576a9c924b",
+    # configuration slots (null until ruled).  First pinned 38314ce2 with both bits closed; re-pinned
+    # 2026-09-24 when rulings 64/67 and the S2-05 review opened both bits by name (with the bits set
+    # back to false the digest is 38314ce2 again).  -> 859208ee.
+    "S2-05": "859208ee299f58f03e6dbcef9c13cb4349692f09ea44f77a8e7cb59c75acbf74",
 }
 
 #: Every registered slot that has been frozen, and the value it froze at.
@@ -1019,7 +1026,8 @@ class TestS201RunnerContractBindsItsUpstreams(unittest.TestCase):
         checked = lean_runner.validate_runner_contract(self.contract)
         self.assertEqual(checked["stage_id"], "S2-01")
         self.assertEqual(set(checked["authorization"]), {"episode_run", "server_run"})
-        self.assertTrue(all(value is False for value in checked["authorization"].values()))
+        self.assertTrue(all(value is False or name in checked["activation_policy"]["active_true_authorizations"]
+                            for name, value in checked["authorization"].items()))
         for key, path in checked["depends_on"].items():
             if key.endswith("_contract"):
                 with self.subTest(key=key):
@@ -1077,7 +1085,8 @@ class TestS204EvaluationContractBindsItsUpstreams(unittest.TestCase):
         checked = lean_evaluation.validate_evaluation_contract(self.contract)
         self.assertEqual(checked["stage_id"], "S2-04")
         self.assertEqual(set(checked["authorization"]), {"label_generation_run", "server_run"})
-        self.assertTrue(all(value is False for value in checked["authorization"].values()))
+        self.assertTrue(all(value is False or name in checked["activation_policy"]["active_true_authorizations"]
+                            for name, value in checked["authorization"].items()))
         self.assertEqual(registered_value_slots("S2-04"), ())
         for key, path in checked["depends_on"].items():
             if key.endswith("_contract"):
@@ -1120,7 +1129,8 @@ class TestS205DevelopmentContractBindsItsUpstreams(unittest.TestCase):
     def test_the_contract_passes_its_validator_with_both_bits_closed_and_every_slot_null(self) -> None:
         checked = lean_development.validate_development_contract(self.contract)
         self.assertEqual(checked["stage_id"], "S2-05")
-        self.assertTrue(all(value is False for value in checked["authorization"].values()))
+        self.assertTrue(all(value is False or name in checked["activation_policy"]["active_true_authorizations"]
+                            for name, value in checked["authorization"].items()))
         self.assertEqual(tuple(registered_value_slots("S2-05")), tuple(checked["policy_values_without_defaults"]))
         for slot in registered_value_slots("S2-05"):
             self.assertIsNone(lookup_slot(checked, slot), slot)

@@ -194,7 +194,9 @@ class MachineContractTests(unittest.TestCase):
         checked = dev.validate_development_contract(self.contract)
         self.assertEqual(checked["stage_id"], "S2-05")
         self.assertEqual(tuple(checked["passes"]["order"]), dev.PASSES)
-        self.assertTrue(all(value is False for value in checked["authorization"].values()))
+        # both bits opened on 2026-09-24 (rulings 64/67, the S2-05 review) and named by the activation policy
+        self.assertTrue(all(checked["authorization"].values()))
+        self.assertEqual(sorted(checked["activation_policy"]["active_true_authorizations"]), sorted(checked["authorization"]))
         for path in checked["policy_values_without_defaults"]:
             node: Any = checked
             for part in path.split("."):
@@ -211,7 +213,7 @@ class MachineContractTests(unittest.TestCase):
             (lambda c: c["continue_gate"].__setitem__("no_winner_is_selected", False), "contract_claim_weakened:no_winner_is_selected"),
             (lambda c: c["passes"]["order"].reverse(), "contract_passes_mismatch"),
             (lambda c: c["development_configurations"]["TAF"].__setitem__("theta_a", 0.6), "contract_slot_filled_but_listed_as_open:development_configurations.TAF.theta_a"),
-            (lambda c: c["authorization"].__setitem__("development_run", True), "contract_bit_opened_without_a_ruling:development_run"),
+            (lambda c: c.pop("activation_policy"), "contract_bit_opened_without_a_ruling:development_run"),
             (lambda c: c["table"]["better"].__setitem__("node_prf1", "lower"), "contract_better_mismatch"),
         ):
             broken = copy.deepcopy(self.contract)
