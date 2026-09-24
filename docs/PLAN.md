@@ -36,6 +36,8 @@ S4 论文
 
 **2026-09-24 S1-05 已机械执行，S1 收口（LOG-245）**：按裁决 47 冻结的规则在 S1-04 报告上选定 `reid_projection:vitb14`（9 条选择 house 上中位分离度 0.236，最好的冻结描述子 ViT-B/14 为 0.143，增益 0.093 ≥ 0.05），冻结 ViT-B/14 记为论文并列报告的基线；结果记入 S0-03 `reid_adapter_head.selection_result`（新增块，规则摘要重钉 `1becb7e3…` → `37d56a90…`），常量绑定在 `lean_assignment.py`，回执 `results/vsmt_lean_s1_05_descriptor_freeze_154776d.json`。选择组按合同"跳过并计数、不顶替"只有 9 条而非 12 条（cache 39 条），登记为**待裁 59**（推荐维持）。此后不得再换描述子。**下一步 S2-01**（共同 runner 与实体记忆包装）；按 D-059 本次合同与代码改动待用户审。
 
+**2026-09-24 S2-01 共同 runner 已实现待审（LOG-246）**：纯核心 `lean_runner.py`（实体几何为公开体积与 M_{t−1} 的纯函数、S1-05 描述子接线、固定八步的单帧流程、非法程序回滚后提交空程序并计数、ELU-P／RAC 臂状态、逐帧回执与 cache 封印门、私有侧真值表构建含 `in_scope`），合同 `lean_s2_01_runner_v1.json`（两位全 false、规则摘要首钉 `e1060695…`、唯一登记值 `entity_geometry.samples_per_axis` 为 null，登记为**待裁 60**，推荐 4），单 episode 入口 `ops/vsmt/lean_s2_01_runner.py`，测试 21 项＋跨合同 5 项。S0-04 评价器真值表放宽一处（在场但范围外的结构件可无盒，不改指标）。**下一步**：S2-02 在 S0-05 核心已含四个规则臂的 logit 与存在决定、S2-01 已把它们接进 runner 的基础上，只剩来源登记文件头与 `LLM-op` 接口；然后 S2-03 学习头与 scorer、S2-04 teacher 接线；S2-05 运行前须冻结 S0-01 五个、S0-03 两个、S0-04 五个、S0-05 九个、S2-01 一个 null 值。
+
 | 状态 | 含义 |
 |---|---|
 | 已完成 | 代码和必要测试已经受审，或已有可复用的真实证据 |
@@ -184,7 +186,7 @@ S4 论文
 
 | 项 | 内容 |
 |---|---|
-| 状态 | 未开始 |
+| 状态 | **已实现待审（2026-09-24，LOG-246）**：纯核心 [`lean_runner.py`](../src/vsmt/lean_runner.py)——实体几何 `entity_geometry`（M_{t−1} 每个实体包围盒上 s×s×s 均匀格心落进本帧可见体积块／自由空间块并集的比例，六半空间判定、容差 1e-9、固定顺序点积，s 为登记值）、描述子接线（只接受 `reid_projection:vitb14` 与基线 `vitb14`，权重摘要先核对）、单帧八步 `run_frame`（几何→视图→封存 A→臂 logit 与一次求解→封存 B 与放行回执→存在判定→按词表编译并原子提交→回执；非法程序回滚后提交空程序、tick 推进、计数；NoVersion 提交后删 retracted；ELU-P／RAC 臂状态随匹配更新并按存活实体修剪）、`run_episode`／`episode_summary`／`assert_identical_cache_across_arms`（继续门）、私有侧 `TruthTableBuilder`（`in_scope` 用 `in_truth_node_scope`，可观察＝私有 mask ≥196 像素一次，结构件在场范围外无盒，其它不在几何表的键整条失败）；合同 [`lean_s2_01_runner_v1.json`](../configs/vsmt/lean_s2_01_runner_v1.json)（两位全 false，`entity_geometry.samples_per_axis` null 待裁 60，摘要首钉 `e1060695…`）；入口 [`lean_s2_01_runner.py`](../ops/vsmt/lean_s2_01_runner.py)（单 episode 单臂，位关即拒，登记值 null 即列出拒绝，流式写回执）；测试 [`test_vsmt_lean_runner.py`](../tests/test_vsmt_lean_runner.py) 21 项。学习臂 logit 由 S2-03 的 scorer 提供（键须与封存行一一对应）。S0-04 `_truth_table` 放宽：在场但范围外对象可无盒 |
 | 输入 | S0-01、S0-03 合同；S1-05 cache |
 | 完整动作 | 实现 `cache 帧 + M_{t−1} → 帧程序 → M_t` 的共同 runner；共享召回、去重、dormancy、应可见判定与共同更新后审计；**`entity_geometry` 由五臂共用的确定性函数从（公开体素集，M_{t−1}）在线算出并有纯函数测试**；**非法程序回滚后对该帧提交空程序**（tick 推进、维护规则照常）并计数（D-224-X） |
 | 输出 | runner、接口测试 |

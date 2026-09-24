@@ -4,7 +4,7 @@
 
 ## 当前看板
 
-**2026-09-24 最新状态：S1-05 已按裁决 47 机械收口（LOG-245）——选定 `reid_projection:vitb14`，冻结 ViT-B/14 为并列基线，S0-03 规则摘要重钉、回执入库；选择组 9/12 登记为待裁 59（推荐维持）；S2-01 开工。** S1 不重做；召回四值、匹配口径与描述子全部冻结；按 D-059 本次改动待用户审。上一暂停点：S0 修订（裁决 56 续／57／58，`6699a19`）已由用户审过并授权进入 S2（LOG-244 续二）。
+**2026-09-24 最新状态：S2-01 共同 runner 已实现待审（LOG-246）——`lean_runner.py`、合同 `lean_s2_01_runner_v1.json`（首钉 `e1060695…`）、单 episode 入口与 21 项测试；待裁 60（几何采样分辨率，推荐 4）；S1-05 已按裁决 47 机械收口（LOG-245）——选定 `reid_projection:vitb14`，冻结 ViT-B/14 为并列基线；待裁 59（选择组 9/12，推荐维持）。下一步 S2-02／S2-03。** S1 不重做；召回四值、匹配口径与描述子全部冻结；按 D-059 本次改动待用户审。上一暂停点：S0 修订（裁决 56 续／57／58，`6699a19`）已由用户审过并授权进入 S2（LOG-244 续二）。
 
 | 事项 | 已知事实 |
 |---|---|
@@ -3834,3 +3834,22 @@ move 仍要两个 U 容器、add 仍要过 dry-run，成品率不会等于这些
 - **合同与代码**（本地分进程测试全部通过）：S0-03 `reid_adapter_head` 新增 `selection_result` 块（选中者、来源集、基线、权重摘要、输入报告摘要、回执路径、缺口、不可再改），`status` 改为 `trained_in_s1_04_selected_and_frozen_in_s1_05`；这是新增结构而非填值，规则摘要重钉 `1becb7e3…` → `37d56a90…`。`lean_assignment.py` 绑定 `SELECTED_DESCRIPTOR`／`SELECTED_DESCRIPTOR_SOURCE_SET`／`FROZEN_DESCRIPTOR_BASELINE`／`SELECTED_REID_WEIGHTS_SHA256`，校验器要求合同的 `selection_result` 与常量一致且不可重开。测试：`test_vsmt_lean_s1_05_selection` 10 项（合成报告：留出不一致／重叠／越组、结论不一致、发散投影排除、缺口登记不补位、非完成阶段拒绝；真实报告：结果等于绑定常量、已提交回执与重算逐块相同、收口块里每个报告的 sha256 与树内文件一致）、`test_vsmt_lean_assignment` 61（+1）、`test_vsmt_lean_cross_contract` 60（+4）；memory 51、teacher 92、arms 44、reid_head 5、frontend_diagnostics 9、s1_04_runner 14、frontend_cache 49、geometry 9、assets 83、pilot 54、intervention 52、public_pose 8。服务器全量随 S2-01 首次同步再跑。
 - **一处风险，如实登记**：选中的权重只存在服务器 `vsmt_private/lean-s1-04-diagnostics-154776d/reid_head_vitb14.json`，仓库只钉摘要（权重不进 Git 是既定规则）。若该根丢失，用冻结的五个训练值与 seed 重训在 CPU 上逐位可复现（测试钉住），GPU 上不保证逐位相同。建议在 S2-01 同步时把它复制一份到 `vsmt_private/exports/` 并核对摘要。
 - **本节不做的事**：不改 S1-03 合同字节（"未选中集在 S1-05 后丢弃"在分配视图层实现，由 S2-01 绑定 `SELECTED_DESCRIPTOR_SOURCE_SET`）；不重算任何 S1-04 数字；不启动 S2 运行。按 D-059，本次合同与代码改动要用户审过才成为 S2 基线。
+
+### LOG-246：S2-01 共同 runner 与实体记忆包装——实现待审（2026-09-24 17:50 CST）
+
+- 类型：**科学代码实现，待用户审（D-059）**。没有跑任何真实 cache，没有连服务器，没有读私有文件。输入是 PLAN 第五节 S2-01 的完整动作与已审的 S0-01／S0-03／S0-05 核心、S1-03 cache 格式、S1-05 冻结；输出是纯核心、合同、单 episode 入口与测试。
+- **纯核心 [`src/vsmt/lean_runner.py`](src/vsmt/lean_runner.py)**：
+  1. 实体几何 `entity_geometry(memory, cache_frame, samples_per_axis)`：对 M_{t−1} 的每个实体，在其包围盒上取 s×s×s 个均匀格心，判每个点是否落在本帧可见体积块／自由空间块的并集里（六个半空间都成立、容差 1e-9 m），比例即 `should_be_visible_ratio`／`free_space_coverage_ratio`。点积用固定顺序的逐元素乘加、不用 BLAS（S1-03 的封印曾因 BLAS 一个 ULP 跨机器移动）。cache 里的自由空间记录本身是 D-223 的滚动窗口，照存的读。s 是登记值（合同为 null），None 直接拒绝。这是 METHOD 第五节要求的"五臂共用的确定性函数"，只读公开体积与记忆。
+  2. 描述子接线：只接受 S1-05 选定的 `reid_projection:vitb14`（读 `descriptor_vitb14`，经摘要与 S1-05 冻结值核对过的共享权重投成 128 维单位向量）和并列基线 `vitb14`；其它任何选择拒绝。
+  3. 单帧八步（顺序写进合同并由校验器绑定）：几何 → 视图 → 封存 A（召回四值取 S0-03 冻结常量）→ 臂 logit 与一次矩形求解（规则臂的分配含哨兵对即拒）→ 封存 B 与放行回执 → 存在判定（active／dormant 且应可见比例 ≥ S0-05 下限的未分配实体；AssocOnly 整步跳过）→ 按词表编译并原子提交（S0-01 执行器；dormancy 与去重值显式传入）→ 回执。ELU-P 的 log-odds 与 RAC 的负渲染计数是臂状态：本帧被 BIND／REACTIVATE 的实体加增益／清零，提交后按存活实体修剪。
+  4. 非法程序：执行器拒绝时整帧回滚，对该帧提交空程序（tick 照常推进、dormancy 与去重照常运行），计 `illegal_programs` 并在回执里留下尝试的原子计数与错误码（D-224-X、METHOD 第六节第 6 步）。NoVersion 在提交后物理删除 retracted 并重新封存。
+  5. 学习臂（VSMT-lean、NoVersion、HeuristicLabel、AssocOnly、VSMT-lean-ctx）通过调用方提供的 scorer 取 logit，键必须与封存行一一对应，否则拒绝；LLM-op 在此拒绝（validation-only，S2-02 接口）。
+  6. 逐帧回执：两段封存摘要、放行回执、召回、分配、存在候选／排除计数／决定、提交的原子、非法程序、提交前后记忆摘要、按状态实体数、帧残差、消费的 cache 帧封印；逐 episode 汇总含全部 cache 帧封印；`assert_identical_cache_across_arms` 实现继续门"五臂读逐字节相同的 cache clone"。
+  7. 私有侧 `TruthTableBuilder`（两段封存之后才调用）：到 t 为止在私有面见过的每个键一行；present 与盒子来自 S1-04 的真值追踪器；`in_scope` 用 S0-04 的 `in_truth_node_scope`——此前至少一帧私有实例 mask ≥196 像素（S0-02 的观察定义）且不是 wall／room／door／window。结构件不在几何表里，登记为在场、范围外、无盒；其它不在几何表里的键整条 episode 记失败，不悄悄缩小范围。
+- **合同 [`configs/vsmt/lean_s2_01_runner_v1.json`](configs/vsmt/lean_s2_01_runner_v1.json)**：`episode_run`／`server_run` 两位全 false；描述子块绑定 S1-05 冻结（跨合同测试核对它等于 S0-03 的 `selection_result`）；唯一登记值 `entity_geometry.samples_per_axis` 为 null，登记为待裁 60；规则字串全部由模块常量生成并由 `validate_runner_contract` 绑定；规则摘要首钉 `e1060695…`。
+- **入口 [`ops/vsmt/lean_s2_01_runner.py`](ops/vsmt/lean_s2_01_runner.py)**：单 episode 单臂——校验合同与两位（当前关，拒绝）、从 S0-01／S0-05／S2-01 读登记值（null 即列出拒绝）、用 S1-04 的加载器载 cache（逐帧重算封印）、核对权重摘要、流式写 `frames.jsonl.gz`／`seals.jsonl.gz`（teacher 的输入）／`receipt.json`。学习臂等 S2-03 的 scorer；多 episode 多臂编排是 S2-05。
+- **S0-04 评价器一处放宽**：`lean_teacher._truth_table` 对"在场但范围外"的对象不再要求盒子。原因：结构件从不进模拟器 `metadata.objects`，没有初始盒，而它们占 S1-04 标注行的 65%，实体一定会解析到它们；评价器对这类对象只数解析到它们的实体（X6 的 `out_of_scope_entities`），从不读几何，所以不改任何指标。teacher 92 项不变通过。
+- **测试 [`tests/test_vsmt_lean_runner.py`](tests/test_vsmt_lean_runner.py) 21 项**：几何比例（全在 1.0、全出 0.0、跨面正好 0.5、两块并集 1.0、无块 0、扁盒每扁轴一个坐标、随机 20 块×10 实体两次逐字节相同且比例是 1/64 的整数倍、s 为 None 拒绝、公开阶段函数签名无任何私有参数）；描述子二选一与摘要核对（选中必须给投影器、基线不得给、摘要不对拒绝、投影后 128 维单位向量）；登记值与臂参数缺一即拒，距离门可为 None，LLM-op 拒绝；十个可运行臂在 5 帧手工场景（两物体、第三四帧 A 消失且原位可见并被自由空间穿过、第五帧 A 回来）端到端：TAF BIRTH×2→BIND×2→BIND+NOOP→BIND+NOOP（第四帧转 dormant）→BIND+REACTIVATE；ELU-P log-odds 1.5→0.0→−1.5（RETRACT）→复活 −0.5；RAC 两次负渲染 RETRACT，重见按 DSG 口径只能 BIRTH；LOW 不撤回；HandCost 当帧覆盖 ≥ρ_h 即 RETRACT；AssocOnly 无存在候选、不休眠；VSMT-lean 用打分器 RETRACT 后 REACTIVATE，NoVersion 删除后只能 BIRTH；scorer 键多一个即拒；强制一次非法程序→该帧空程序提交、tick 推进、计 1、后续帧照常；两次运行回执逐字节相同；cache 门三臂通过、篡改一个封印拒绝；帧越序与臂错配拒绝；真值表范围随可观察性与类型变化、结构件无盒、未知非结构键与无盒在范围内对象拒绝、输出被 S0-04 `evaluate_frame` 接受（F1 1.0、墙实体计入 out_of_scope）；合同绑定、八条弱化各自被拒、未绑常量的填值被拒。跨合同 +5 项。本地分进程：runner 21、cross-contract 65、teacher 92、assignment 61、arms 44、memory 51、reid 5、frontend_cache 49、s1_04 runner 14、s1_05 10、diagnostics 9、geometry 9、object_geometry、s1_04 geometry tool 全部通过。服务器全量随下次同步再跑。
+- **待裁 60**：`entity_geometry.samples_per_axis`，提议 4（DECISIONS）。
+- **进入 S2-05 前仍为 null 的登记值**（S1-05 回执 `null_values_entering_s2` 已按合同读出）：S0-01 五个（dormancy 与去重四值）、S0-03 两个（τ_r、reference_score_seed）、S0-04 五个、S0-05 九个、S2-01 一个；S1-03 `supported_by` 五个按裁决 42 维持 null。
+- **本节不做的事**：不跑真实 cache；不算指标；不写学习头（S2-03）；S2-02 剩余的 clean-room 文件头与 LLM-op 接口未写；不申请任何授权位。
