@@ -53,7 +53,7 @@
     "carriers_before_move": "entity_ids_of_any_state_whose_strict_majority_identity_resolves_to_the_object_in_the_memory_committed_at_the_last_window_frame",
     "first_labelled_reobservation": "first_frame_after_the_window_in_which_a_fragment_dominance_resolves_to_the_moved_object;_among_several_the_most_object_pixels_then_the_larger_fragment_then_the_smaller_fragment_id",
     "evidence_instance": "per_fragment_the_dominant_private_key_under_s0_04_fragment_dominance_else_null",
-    "structural_existence": "an_existence_candidate_whose_identity_resolves_to_a_structural_key_is_labelled_present_because_structure_is_never_intervened_and_has_no_point_centroid",
+    "structural_existence": "an_existence_candidate_whose_identity_resolves_to_a_structural_key_or_a_spawned_after_reload_key_is_labelled_present_because_neither_is_intervened_by_the_protocol_and_neither_has_a_point_centroid",
     "missing_residual_headline": "the_last_frame_of_the_episode;_the_per_frame_series_is_diagnostic",
     "training_record": "existence_rows_and_labels_are_the_runner_eligible_candidates_only",
     "nuisance_records": "one_record_per_fragment_for_the_association_labels_and_one_per_existence_candidate",
@@ -61,7 +61,7 @@
     "no_public_byte_is_read_or_written": true,
     "labels_metrics_and_statistics_are_the_s0_04_functions_unchanged": true,
     "masks_are_digest_checked_against_the_sealed_frame": true,
-    "plain_language_zh": "可观察判定：把物体的真值盒（没有盒的物体用质心那一个点）放在旧位置或新位置，用 S2-01 的 entity_geometry 按登记分辨率采样，落进本帧可见体积的比例不低于 S0-05 的共享下限即\"对方法可观察\"——和臂判断自己实体应可见用的是同一把尺子。旧位置＝窗口最后一帧的真值质心与盒，新位置＝窗口后第一帧的（放置点已生效）。恢复延迟的起点：移走看旧位置，新增看新位置，搬动两处任一可观察即起算。Missing 残留率只看移走与搬动的物体，身份连续率只看搬动的物体。搬动前的承载实体＝窗口最后一帧提交后的记忆里、严格多数身份解析到该物体的全部实体（不限状态，retracted 可被 REACTIVATE）。第一次带标签重见＝窗口后第一次有色块的主导物体是它的那一帧，多块时取物体像素最多的（再取整块像素多、fragment_id 小）。证据映射按 S0-04 的色块主导规则记主导物体，否则记空。解析到结构件的存在候选一律记 present：结构件从不被干预，也没有可量位移的点质心；否则墙实体会被打成\"已不在\"去训练存在头。Missing 残留率的主值取最后一帧，逐帧序列只作诊断。训练记录里的存在行只含 runner 的可判定候选，与部署时存在头被问的行一致。nuisance 记录按色块一条（关联标签）、按存在候选一条（存在标签），分开做 probe。"
+    "plain_language_zh": "可观察判定：把物体的真值盒（没有盒的物体用质心那一个点）放在旧位置或新位置，用 S2-01 的 entity_geometry 按登记分辨率采样，落进本帧可见体积的比例不低于 S0-05 的共享下限即\"对方法可观察\"——和臂判断自己实体应可见用的是同一把尺子。旧位置＝窗口最后一帧的真值质心与盒，新位置＝窗口后第一帧的（放置点已生效）。恢复延迟的起点：移走看旧位置，新增看新位置，搬动两处任一可观察即起算。Missing 残留率只看移走与搬动的物体，身份连续率只看搬动的物体。搬动前的承载实体＝窗口最后一帧提交后的记忆里、严格多数身份解析到该物体的全部实体（不限状态，retracted 可被 REACTIVATE）。第一次带标签重见＝窗口后第一次有色块的主导物体是它的那一帧，多块时取物体像素最多的（再取整块像素多、fragment_id 小）。证据映射按 S0-04 的色块主导规则记主导物体，否则记空。解析到结构件或运行时生成物（裁决 69）的存在候选一律记 present：两者都不被协议干预，也没有可量位移的点质心；否则墙实体会被打成\"已不在\"去训练存在头。Missing 残留率的主值取最后一帧，逐帧序列只作诊断。训练记录里的存在行只含 runner 的可判定候选，与部署时存在头被问的行一致。nuisance 记录按色块一条（关联标签）、按存在候选一条（存在标签），分开做 probe。"
   },
   "policy_input_sources": {
     "dominance_min_share": "S0-04 labels.fragment_dominance.dominance_min_share",
@@ -115,7 +115,8 @@
     "rulings": [
       "D-224-S1 裁决 64（2026-09-24 批准，原话「S2-04 审过；裁决 64 取 (a)，65 五条全按推荐。然后我看S205里面有不因开发差不利就改设计或删消融，我觉得可以改设计，继续下一步」）：取 (a)，S2-05 的运行位由 S2 阶段合同持有，S0 各位保持 false。",
       "D-224-S1 裁决 65（同日批准，原话同上）：五条派生规则全按推荐，即本合同 derivation_rules 登记的字串——可观察判定用 S2-01 entity_geometry 的采样盒测试、比例 ≥ S0-05 共享下限；旧位置取窗口最后一帧、新位置取窗口后第一帧的追踪器输出；搬动物体旧/新位置任一可观察即起算恢复；搬动前承载实体不限状态；第一次带标签重见＝窗口后第一次有色块主导物体是它；解析到结构件的存在候选一律 present。",
-      "S2-04 代码审查通过（2026-09-24，原话同上）：本合同与 lean_evaluation.py 按 D-059 成为 S2-05 的基线。"
+      "S2-04 代码审查通过（2026-09-24，原话同上）：本合同与 lean_evaluation.py 按 D-059 成为 S2-05 的基线。",
+      "D-224-S1 裁决 69（2026-09-24 批准，原话「裁决 69 取 (a)。」）：structural_existence 规则覆盖运行时生成物；规则摘要重钉。"
     ]
   }
 }

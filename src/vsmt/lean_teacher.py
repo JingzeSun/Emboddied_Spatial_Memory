@@ -39,6 +39,7 @@ from __future__ import annotations
 
 import math
 import random
+import re
 from typing import Any, Mapping, Sequence
 
 from cpmt.hashing import clone_json
@@ -155,7 +156,19 @@ RECOVERY_LATENCY_START = "first_frame_the_intervened_place_is_observable_to_the_
 CONTAMINATION_INTEGRATION = "trapezoid_over_frames_normalised_to_unit_length"
 TRUTH_NODE_SCOPE = "objects_present_at_t_that_have_been_observable_at_least_once_since_episode_start_excluding_structural_types"
 #: D-224-S1 ruling 56 continued (2026-09-24): house structure never enters the truth node scope.
-STRUCTURAL_TYPES_EXCLUDED = ("door", "room", "wall", "window")
+#: Ruling 69 (2026-09-24) adds the room ceilings (``Ceiling_room|<room>|...``): the same grounds,
+#: structure that is never intervened and seen one patch at a time.
+STRUCTURAL_TYPES_EXCLUDED = ("Ceiling_room", "door", "room", "wall", "window")
+#: D-224-S1 ruling 69 (2026-09-24): a private key that is outside the reload geometry table because
+#: the object was spawned by a physics event after the reload (a cracked egg, a sliced item) carries
+#: a spawn tag as its last ``|`` field (letters, an underscore, digits, e.g. ``EggCracked_0``).  It
+#: is present, out of the truth node scope, has no box, and is counted; any other key outside the
+#: table still fails the episode (S2-01).
+SPAWNED_AFTER_RELOAD_RULE = (
+    "a_private_key_outside_the_geometry_table_whose_last_field_is_a_spawn_tag_(letters_underscore_"
+    "digits)_is_present_out_of_scope_without_a_box_and_counted"
+)
+SPAWN_TAG = re.compile(r"^[A-Za-z][A-Za-z0-9]*_\d+$")
 #: D-224-S1 ruling 45 (2026-09-22): where the truth boxes of the truth table come from.  The
 #: per-frame private record only ever carried x/y/z, so the box is the initial axis-aligned box
 #: read from one simulator reload of the house, translated by the recorded private position into
@@ -807,7 +820,21 @@ def in_truth_node_scope(object_key: str, *, observable_before: bool) -> bool:
     """
 
     _require(observable_before in {True, False}, "observable_before_invalid")
-    return bool(observable_before) and structural_type_of(object_key) not in STRUCTURAL_TYPES_EXCLUDED
+    return (bool(observable_before) and structural_type_of(object_key) not in STRUCTURAL_TYPES_EXCLUDED
+            and not is_spawned_after_reload(object_key))
+
+
+def is_spawned_after_reload(object_key: str) -> bool:
+    """D-224-S1 ruling 69: does the key's last ``|`` field carry a spawn tag (``EggCracked_0``)?
+
+    白话：鸡蛋碎裂、面包切片这类物理事件会在运行时生成新物体，它们重载时不存在、没有初始盒；
+    它们的私有键最后一段是"字母_数字"的生成标签。这样的键记在场、范围外、无盒并计数，不算数据
+    损坏。普通键的最后一段是纯数字，不会误判。
+    """
+
+    _require(type(object_key) is str and object_key, "object_key_invalid")
+    fields = object_key.split("|")
+    return len(fields) >= 2 and SPAWN_TAG.fullmatch(fields[-1]) is not None
 
 
 def _truth_table(truth_objects: Mapping[str, Mapping[str, Any]]) -> dict[str, dict[str, Any]]:
@@ -820,6 +847,7 @@ def _truth_table(truth_objects: Mapping[str, Mapping[str, Any]]) -> dict[str, di
         # ruling 56 continued: a structural object marked in scope is a malformed table, not a judgement call
         _require(not (record["in_scope"] and structural_type_of(key) in STRUCTURAL_TYPES_EXCLUDED),
                  f"truth_object_structural_in_scope:{key}")
+        _require(not (record["in_scope"] and is_spawned_after_reload(key)), f"truth_object_spawned_in_scope:{key}")
         entry: dict[str, Any] = {"present": record["present"], "in_scope": record["in_scope"]}
         # A present in-scope object must carry its box and centroid: they enter the matching and
         # the stale test.  A present object *outside* the scope (S2-01: the structural types, which
@@ -1568,6 +1596,7 @@ def validate_teacher_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     )
     _require(tuple(metrics["memory_present_states"]) == MEMORY_PRESENT_STATES, "contract_memory_present_states_mismatch")
     _require(metrics["node_prf1"]["truth_node_scope"] == TRUTH_NODE_SCOPE, "contract_truth_node_scope_mismatch")
+    _require(metrics["node_prf1"].get("spawned_after_reload_rule") == SPAWNED_AFTER_RELOAD_RULE, "contract_spawned_rule_mismatch")
     _require(tuple(metrics["node_prf1"].get("structural_types_excluded_from_scope") or ()) == STRUCTURAL_TYPES_EXCLUDED,
              "contract_structural_scope_mismatch")
     _require(contract["private_truth_inputs"]["truth_box_source"]["rule"] == TRUTH_BOX_SOURCE,
@@ -1624,8 +1653,10 @@ def validate_teacher_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
 
 
 __all__ = [
+    "SPAWNED_AFTER_RELOAD_RULE",
     "STRUCTURAL_TYPES_EXCLUDED",
     "in_truth_node_scope",
+    "is_spawned_after_reload",
     "structural_type_of",
     "ABLATION_ARMS",
     "APPENDIX_ARM",

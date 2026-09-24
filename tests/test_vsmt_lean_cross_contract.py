@@ -305,7 +305,10 @@ FROZEN_RULE_SHA256 = {
     # S0-04 re-pinned 2026-09-24 for ruling 56 continued: the truth node scope excludes the four ProcTHOR
     # structural types door, room, wall and window (65% of the S1-04 gate rows, unmatchable by any box or
     # centroid rule).  585e3660 -> 9bf1059d.
-    "S0-04": "9bf1059d7bbff436e4d70bb4aa7367586ca4aa1d3bd5149b02e4c11a7c460270",
+    # Re-pinned 2026-09-24 for ruling 69 (LOG-253): Ceiling_room joins the structural types and the
+    # spawned-after-reload rule (a spawn-tagged key outside the geometry table is present, out of scope,
+    # boxless and counted) is registered under node_prf1.  9bf1059d -> 7a3d661b.
+    "S0-04": "7a3d661b1159ddcb9ab5e43273b11bc8076772b8200ff786219b9faf134113df",
     "S0-05": "c5354b1e71936d345823630b6533b03329435de104e258785fdb89e17934c54a",
     "S1-01": "4f139e631388c05e4006fd12ffad8b611d2e7811fb7f9a830ce9f7c63fdecd84",
     "S1-02a": "997cabe5105ca304269b0d8d9dd34038ff096df7a79c875c577a2629866ccc64",
@@ -350,7 +353,9 @@ FROZEN_RULE_SHA256 = {
     # Re-pinned 2026-09-24 when rulings 64/67 and the S2-05 review opened both bits by name in
     # activation_policy (the bits are rules of who may run what, as for S1-03 / S1-04); checked at
     # re-pin time that with the bits set back to false the digest is 09fc1a4a again.  -> 36b9fbc6.
-    "S2-01": "36b9fbc656d6e3afe03a22b57fe0ad964f8657aeb8c1fc205d0ebf61c83c6f06",
+    # Re-pinned 2026-09-24 for ruling 69: the truth-table key rule names Ceiling_room among the structural
+    # keys and gives spawned-after-reload keys a present / out-of-scope / boxless / counted row.  36b9fbc6 -> d07f141c.
+    "S2-01": "d07f141cc6b6aff227f42c53501a9c71e62f9b85f184d260713d634f33036068",
     # S2-04 v1 (2026-09-24, LOG-249): the teacher and evaluator wiring -- the derivation rules for the
     # S0-04 inputs (place observability by the S2-01 sampled-box test at the S0-05 minimum, old and new
     # places from the S1-04 tracker at the window edges, recovery place per intervention kind, carriers
@@ -359,7 +364,9 @@ FROZEN_RULE_SHA256 = {
     # sources, the headline fields and the closed bits.  It owns no value slot.  First pinned 40d96cf0;
     # re-pinned 2026-09-24 when rulings 64/67 and the S2-05 review opened both bits by name (with the
     # bits set back to false the digest is 40d96cf0 again).  -> f4511a34.
-    "S2-04": "f4511a34146755b1aa06ac960cb55e5c730241ffa8a8f8fa46fcb7b9ebe67295",
+    # Re-pinned 2026-09-24 for ruling 69: the structural_existence rule also labels a candidate resolving to a
+    # spawned-after-reload key as present.  f4511a34 -> eaac36bd.
+    "S2-04": "eaac36bdeda72d75b97614f1697176794628e921166333ebc3724c666cc9c93a",
     # S2-05 v1 (2026-09-24, LOG-251): the development table -- the five passes in order (calibration
     # with LOW and no gate, the ELU-P fit with TAF at the rollout theta_a, DAgger rounds 0 and 1, the
     # table), the episode set, the calibration series and quantiles, the ELU-P count rules, the

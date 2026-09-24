@@ -451,6 +451,12 @@ class TruthTableBuilderTests(unittest.TestCase):
         with self.assertRaises(lr.LeanRunnerError) as caught:
             builder.update(self.record(0, {"Ceiling|1": 500}), {})
         self.assertEqual(str(caught.exception), "truth_key_outside_geometry_table:Ceiling|1")
+        # ruling 69: a ceiling is structure, a physics-spawned key is present, out of scope and counted
+        builder = lr.TruthTableBuilder()
+        table = builder.update(self.record(0, {"Ceiling_room|2|0": 900, "Egg|surface|2|3|EggCracked_0": 300}), {})
+        self.assertEqual(table["Ceiling_room|2|0"], {"present": True, "in_scope": False})
+        self.assertEqual(table["Egg|surface|2|3|EggCracked_0"], {"present": True, "in_scope": False})
+        self.assertEqual(builder.spawned_keys, {"Egg|surface|2|3|EggCracked_0"})
         builder = lr.TruthTableBuilder()
         with self.assertRaises(lr.LeanRunnerError) as caught:
             builder.update(self.record(0, {"Mug|1": 500}), {"Mug|1": {"present": True, "aabb_min_m": None, "aabb_max_m": None, "centroid_m": [0.0, 0.0, 0.0]}})

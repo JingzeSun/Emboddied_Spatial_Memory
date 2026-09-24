@@ -1124,7 +1124,8 @@ class TestStructuralScope(unittest.TestCase):
     def test_the_scope_flag_excludes_the_four_structural_types(self) -> None:
         from vsmt.lean_teacher import STRUCTURAL_TYPES_EXCLUDED, in_truth_node_scope, structural_type_of
 
-        self.assertEqual(STRUCTURAL_TYPES_EXCLUDED, ("door", "room", "wall", "window"))
+        self.assertEqual(STRUCTURAL_TYPES_EXCLUDED, ("Ceiling_room", "door", "room", "wall", "window"))  # ruling 69 added the ceilings
+        self.assertFalse(in_truth_node_scope("Ceiling_room|3|0", observable_before=True))
         self.assertEqual(structural_type_of("wall|6|19.93|9.96|19.93|15.94"), "wall")
         for key in ("wall|6|1|2", "room|3", "door|2|4", "window|1|0"):
             self.assertFalse(in_truth_node_scope(key, observable_before=True), key)
@@ -1141,6 +1142,28 @@ class TestStructuralScope(unittest.TestCase):
         self.assertEqual(str(caught.exception), "truth_object_structural_in_scope:wall|6|1|2")
         table = _truth_table({"wall|6|1|2": box([0.0, 0.0, 0.0], in_scope=False)})
         self.assertFalse(table["wall|6|1|2"]["in_scope"])
+
+    def test_spawned_after_reload_keys_are_out_of_scope_and_bound_by_rule(self) -> None:
+        # D-224-S1 ruling 69 (2026-09-24): a physics-spawned object carries a spawn tag as its last field
+        from vsmt.lean_teacher import (LeanTeacherError, SPAWNED_AFTER_RELOAD_RULE, _truth_table, in_truth_node_scope,
+                                       is_spawned_after_reload, validate_teacher_contract)
+
+        self.assertTrue(is_spawned_after_reload("Egg|surface|2|3|EggCracked_0"))
+        self.assertTrue(is_spawned_after_reload("Bread|surface|1|4|BreadSliced_2"))
+        for key in ("Mug|surface|2|4", "wall|6|1|2", "Ceiling_room|3|0", "Egg|surface|2|3", "EggCracked_0"):
+            self.assertFalse(is_spawned_after_reload(key), key)
+        self.assertFalse(in_truth_node_scope("Egg|surface|2|3|EggCracked_0", observable_before=True))
+        with self.assertRaises(LeanTeacherError) as caught:
+            _truth_table({"Egg|surface|2|3|EggCracked_0": box([0.0, 0.0, 0.0], in_scope=True)})
+        self.assertEqual(str(caught.exception), "truth_object_spawned_in_scope:Egg|surface|2|3|EggCracked_0")
+        table = _truth_table({"Egg|surface|2|3|EggCracked_0": {"present": True, "in_scope": False}})
+        self.assertEqual(table["Egg|surface|2|3|EggCracked_0"], {"present": True, "in_scope": False})
+        contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        self.assertEqual(contract["metrics"]["node_prf1"]["spawned_after_reload_rule"], SPAWNED_AFTER_RELOAD_RULE)
+        contract["metrics"]["node_prf1"]["spawned_after_reload_rule"] = "another"
+        with self.assertRaises(LeanTeacherError) as caught:
+            validate_teacher_contract(contract)
+        self.assertEqual(str(caught.exception), "contract_spawned_rule_mismatch")
 
     def test_the_contract_binds_the_structural_list(self) -> None:
         from vsmt.lean_teacher import LeanTeacherError, validate_teacher_contract

@@ -124,17 +124,19 @@
   "truth_table": {
     "observable_rule": "an_object_has_been_observable_once_its_private_instance_mask_reached_at_least_196_pixels_in_some_frame_up_to_t",
     "observable_min_pixels": 196,
-    "key_rule": "every_private_key_seen_in_any_frame_up_to_t_is_a_row; a key in the geometry table takes present and box from the truth tracker; a structural key (door, room, wall, window) is present and out of scope without a box; any other key outside the geometry table fails the episode",
+    "key_rule": "every_private_key_seen_in_any_frame_up_to_t_is_a_row; a key in the geometry table takes present and box from the truth tracker; a structural key (Ceiling_room, door, room, wall, window) is present and out of scope without a box; a spawned-after-reload key (last field a spawn tag) is present and out of scope without a box and counted; any other key outside the geometry table fails the episode",
     "structural_types_out_of_scope": [
+      "Ceiling_room",
       "door",
       "room",
       "wall",
       "window"
     ],
+    "spawned_after_reload_rule": "a_private_key_outside_the_geometry_table_whose_last_field_is_a_spawn_tag_(letters_underscore_digits)_is_present_out_of_scope_without_a_box_and_counted",
     "built_only_after_both_seals": true,
     "in_scope_by_s0_04_in_truth_node_scope": true,
     "present_and_box_from_the_s1_04_truth_tracker": true,
-    "plain_language_zh": "私有侧在两段封存都写完之后，为评价器构建本帧真值表：到这一帧为止在私有面出现过的每个键一行；present 与盒子来自 S1-04 的真值追踪器（裁决 45 的初始盒加记录平移）；in_scope 由 S0-04 的 in_truth_node_scope 算——此前至少一帧私有实例 mask ≥196 像素（S0-02 的观察定义），且不是 wall/room/door/window。结构件不在几何表里，登记为在场、范围外、无盒；其他不在几何表里的键说明数据有问题，整条 episode 记失败而不是悄悄缩小范围。"
+    "plain_language_zh": "私有侧在两段封存都写完之后，为评价器构建本帧真值表：到这一帧为止在私有面出现过的每个键一行；present 与盒子来自 S1-04 的真值追踪器（裁决 45 的初始盒加记录平移）；in_scope 由 S0-04 的 in_truth_node_scope 算——此前至少一帧私有实例 mask ≥196 像素（S0-02 的观察定义），且不是 Ceiling_room/wall/room/door/window。结构件不在几何表里，登记为在场、范围外、无盒；运行时生成物（键最后一段是生成标签，如 EggCracked_0，裁决 69）同样在场、范围外、无盒并计数；其他不在几何表里的键说明数据有问题，整条 episode 记失败而不是悄悄缩小范围。"
   },
   "receipts": {
     "frame_fields": [
@@ -213,7 +215,8 @@
     "rulings": [
       "D-224-S1 裁决 60（2026-09-24 批准，原话「裁决 59 取 (a)，60 取 4，61 按 S1-04 的 activation_policy 修，62 拒绝，63 保持 128 宽改数字，非法程序臂状态回滚；修完再开 S2-04」）：entity_geometry.samples_per_axis=4，绑定常量 ENTITY_GEOMETRY_SAMPLES_PER_AXIS，登记进跨合同台账；规则摘要不因填值而变。",
       "D-224-S1 裁决 61（同日批准）：校验器原要求授权位全部为 false、而入口要求两位为 true，入口永远跑不起来；改为 activation_policy 机制，为 true 的位必须被 active_true_authorizations 点名并写明 opened_by。两位现仍关。",
-      "S2 审查修正（同日批准「非法程序臂状态回滚」）：frame_step.arm_state 新增 arm_state_rolled_back_with_the_frame_on_an_illegal_program=true 并由校验器绑定；这是规则变更，规则摘要重钉（见跨合同测试的台账注释）。"
+      "S2 审查修正（同日批准「非法程序臂状态回滚」）：frame_step.arm_state 新增 arm_state_rolled_back_with_the_frame_on_an_illegal_program=true 并由校验器绑定；这是规则变更，规则摘要重钉（见跨合同测试的台账注释）。",
+      "D-224-S1 裁决 69（2026-09-24 批准，原话「裁决 69 取 (a)。」，取 (a)）：真值表键规则加 Ceiling_room 结构件与运行时生成物规则；规则摘要重钉。"
     ]
   }
 }

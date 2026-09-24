@@ -79,8 +79,8 @@ REOBSERVATION_RULE = (
 )
 EVIDENCE_INSTANCE_RULE = "per_fragment_the_dominant_private_key_under_s0_04_fragment_dominance_else_null"
 STRUCTURAL_EXISTENCE_RULE = (
-    "an_existence_candidate_whose_identity_resolves_to_a_structural_key_is_labelled_present_because_"
-    "structure_is_never_intervened_and_has_no_point_centroid"
+    "an_existence_candidate_whose_identity_resolves_to_a_structural_key_or_a_spawned_after_reload_key_"
+    "is_labelled_present_because_neither_is_intervened_by_the_protocol_and_neither_has_a_point_centroid"
 )
 MRR_HEADLINE_RULE = "the_last_frame_of_the_episode;_the_per_frame_series_is_diagnostic"
 TRAINING_RECORD_RULE = "existence_rows_and_labels_are_the_runner_eligible_candidates_only"
@@ -312,6 +312,8 @@ class EpisodeTeacher:
             identity = lt.entity_identity(by_id[entity_id], self.evidence)
             if identity["resolvable"] and lt.structural_type_of(identity["key"]) in lt.STRUCTURAL_TYPES_EXCLUDED:
                 labels[entity_id] = {"status": "present", "key": identity["key"], "reason": "structural_never_intervened", "displacement_m": None}
+            elif identity["resolvable"] and lt.is_spawned_after_reload(identity["key"]):  # ruling 69
+                labels[entity_id] = {"status": "present", "key": identity["key"], "reason": "spawned_after_reload", "displacement_m": None}
             else:
                 remaining.append(entity_id)
         labels.update(lt.existence_labels(memory_before, candidates=remaining, object_state=object_state,
@@ -503,6 +505,7 @@ class EpisodeTeacher:
             "missing_residual_series": [None if f["missing_residual"] is None else f["missing_residual"]["missing_residual_rate"] for f in frames],
             "contamination_series": [f["contamination_fraction"] for f in frames],
             "old_place_observable_since_intervention": sorted(self.old_place_observable_since),
+            "spawned_after_reload_keys": sorted(self.builder.spawned_keys),
             "reobserved_at": dict(self.reobserved_at),
             "carriers_before_move": dict(self.carriers_before_move),
             "recovery": {name: recovery[name] for name in ("recovered", "unrecovered", "never_observable", "per_object")},

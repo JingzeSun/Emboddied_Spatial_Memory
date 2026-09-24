@@ -92,8 +92,9 @@ TRUTH_TABLE_OBSERVABLE_RULE = (
 )
 TRUTH_TABLE_KEY_RULE = (
     "every_private_key_seen_in_any_frame_up_to_t_is_a_row; a key in the geometry table takes present "
-    "and box from the truth tracker; a structural key (door, room, wall, window) is present and out of "
-    "scope without a box; any other key outside the geometry table fails the episode"
+    "and box from the truth tracker; a structural key (Ceiling_room, door, room, wall, window) is present "
+    "and out of scope without a box; a spawned-after-reload key (last field a spawn tag) is present and "
+    "out of scope without a box and counted; any other key outside the geometry table fails the episode"
 )
 
 #: Where the runner's policy values come from.  None is defined here.
@@ -632,6 +633,7 @@ class TruthTableBuilder:
     def __init__(self) -> None:
         self.seen_keys: set[str] = set()
         self.observable_keys: set[str] = set()
+        self.spawned_keys: set[str] = set()  # ruling 69: keys outside the table with a spawn tag, counted
         self.frames_seen = 0
 
     def update(self, private_record: Mapping[str, Any], tracker_truth: Mapping[str, Mapping[str, Any]]) -> dict[str, dict[str, Any]]:
@@ -660,9 +662,13 @@ class TruthTableBuilder:
                         row["aabb_max_m"] = [float(v) for v in entry["aabb_max_m"]]
                     if entry.get("centroid_m") is not None:
                         row["centroid_m"] = [float(v) for v in entry["centroid_m"]]
-            else:
-                _require(lt.structural_type_of(key) in lt.STRUCTURAL_TYPES_EXCLUDED, f"truth_key_outside_geometry_table:{key}")
+            elif lt.structural_type_of(key) in lt.STRUCTURAL_TYPES_EXCLUDED:
                 row = {"present": True, "in_scope": False}
+            elif lt.is_spawned_after_reload(key):  # ruling 69: a physics-spawned object, never in the reload table
+                self.spawned_keys.add(key)
+                row = {"present": True, "in_scope": False}
+            else:
+                raise LeanRunnerError(f"truth_key_outside_geometry_table:{key}")
             table[key] = row
         return table
 
@@ -717,6 +723,7 @@ def validate_runner_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     _require(truth["observable_min_pixels"] == OBSERVABLE_MIN_PIXELS, "contract_truth_pixels_mismatch")
     _require(truth["key_rule"] == TRUTH_TABLE_KEY_RULE, "contract_truth_key_rule_mismatch")
     _require(tuple(truth["structural_types_out_of_scope"]) == lt.STRUCTURAL_TYPES_EXCLUDED, "contract_truth_structural_mismatch")
+    _require(truth["spawned_after_reload_rule"] == lt.SPAWNED_AFTER_RELOAD_RULE, "contract_truth_spawned_rule_mismatch")
     _require(truth["built_only_after_both_seals"] is True and truth["in_scope_by_s0_04_in_truth_node_scope"] is True,
              "contract_truth_claim_weakened")
     _require(tuple(contract["failure_reasons"]) == FAILURE_REASONS, "contract_failure_reasons_mismatch")

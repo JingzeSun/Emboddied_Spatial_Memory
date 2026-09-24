@@ -197,15 +197,20 @@
       "dormant_counts_as_in_memory": true,
       "truth_node_scope": "objects_present_at_t_that_have_been_observable_at_least_once_since_episode_start_excluding_structural_types",
       "structural_types_excluded_from_scope": [
+        "Ceiling_room",
         "door",
         "room",
         "wall",
         "window"
       ],
-      "structural_type_of_a_key": "the private object key up to its first '|' (ProcTHOR's structural ids are wall|..., room|..., door|..., window|...)",
+      "structural_type_of_a_key": "the private object key up to its first '|' (ProcTHOR's structural ids are wall|..., room|..., door|..., window|... and the room ceilings Ceiling_room|...)",
       "structural_scope_frozen_by": "D-224-S1 ruling 56 (continued)",
       "structural_scope_frozen_on": "2026-09-24",
-      "structural_scope_plain_language_zh": "裁决 56 续：墙、房间（地面）、门、窗四类房屋结构件不进真值节点范围。一次只看到一段墙，而真值框是整面墙或整个房间，任何框或质心口径都匹配不上（S1-04 开发 cache 上占 IoU 行的 65%，墙的质心最近即自己只有 3%）。它们不是可干预、会移动的物体。解析到它们的实体照旧留在记忆里，按 X6 记为范围外，不进精确率分母；召回分母也不含它们。这改变了论文里“节点”的含义，方法与限制须写明。",
+      "structural_scope_plain_language_zh": "裁决 56 续：墙、房间（地面）、门、窗四类房屋结构件不进真值节点范围。一次只看到一段墙，而真值框是整面墙或整个房间，任何框或质心口径都匹配不上（S1-04 开发 cache 上占 IoU 行的 65%，墙的质心最近即自己只有 3%）。它们不是可干预、会移动的物体。解析到它们的实体照旧留在记忆里，按 X6 记为范围外，不进精确率分母；召回分母也不含它们。这改变了论文里“节点”的含义，方法与限制须写明。裁决 69（2026-09-24）把房间天花板 Ceiling_room 并入结构件清单：理由与四类相同，天花板是房屋结构、不可干预、一次只看到一片。",
+      "spawned_after_reload_rule": "a_private_key_outside_the_geometry_table_whose_last_field_is_a_spawn_tag_(letters_underscore_digits)_is_present_out_of_scope_without_a_box_and_counted",
+      "spawned_rule_frozen_by": "D-224-S1 ruling 69",
+      "spawned_rule_frozen_on": "2026-09-24",
+      "spawned_rule_plain_language_zh": "裁决 69：鸡蛋碎裂、面包切片这类物理事件在运行时生成的物体（私有键最后一段是\"字母_数字\"的生成标签，如 EggCracked_0）重载时不存在、没有初始盒，记在场、范围外、无盒并单独计数，不进节点指标；其它几何表以外的键仍整条 episode 失败（S2-01）。",
       "empty_denominator": "null, never zero",
       "truth_table_carries_in_scope_flag": true,
       "truth_table": "every private object any entity's evidence can resolve to, each with present, in_scope and (when present) box and centroid; the scope rule is applied by the evaluator, never by pre-filtering the table",
@@ -353,7 +358,8 @@
     "Q": "truth nodes are present objects observable at least once since episode start; displacement is measured from the entity's remembered centroid",
     "plain_language_zh": "六项口径由用户于 2026-09-20 以 D-224-LQ 批准，全部按 LOG-217 的推荐口径执行；本合同的状态集合、规则字符串与布尔声称即其机器形式。",
     "ruling_56_continued": "the truth node scope excludes the four ProcTHOR structural types door, room, wall and window, identified by the private key prefix; entities resolving to them are out of scope under X6 (D-224-S1 ruling 56 continued, 2026-09-24, 原话「裁决 56 续取 (a)：真值范围排除 wall/room/door/window，BIND 框改为同帧并集；裁决 58 取 1.0 m」; evidence LOG-244 continued)",
-    "ruling_67": "D-224-S1 裁决 67（2026-09-24 批准，原话「S2-05 审过；裁决 67 八个值全按推荐。」）：labels.fragment_dominance.dominance_min_share=0.5、labels.existence.delta_moved_m=0.5，绑定常量 DOMINANCE_MIN_SHARE／DELTA_MOVED_M，登记进跨合同台账；bootstrap_seed 与 main_gate_effect_size 留到 S3-01，nuisance 上限归裁决 68。"
+    "ruling_67": "D-224-S1 裁决 67（2026-09-24 批准，原话「S2-05 审过；裁决 67 八个值全按推荐。」）：labels.fragment_dominance.dominance_min_share=0.5、labels.existence.delta_moved_m=0.5，绑定常量 DOMINANCE_MIN_SHARE／DELTA_MOVED_M，登记进跨合同台账；bootstrap_seed 与 main_gate_effect_size 留到 S3-01，nuisance 上限归裁决 68。",
+    "ruling_69": "D-224-S1 裁决 69（2026-09-24 批准，原话「裁决 69 取 (a)。」，取 (a)）：structural_types_excluded_from_scope 加 Ceiling_room；新增 spawned_after_reload_rule。这是规则变更，规则摘要重钉（见跨合同台账）。S1 不重做。"
   },
   "continue_gate": {
     "metric_list_frozen_before_any_data_generation": true,

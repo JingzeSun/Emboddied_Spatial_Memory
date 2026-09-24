@@ -333,6 +333,21 @@ class GateAndInvarianceTests(unittest.TestCase):
             label(unknown, 0, record=record)
         self.assertEqual(str(caught.exception), "truth_key_outside_geometry_table:Ceiling|7")
 
+    def test_a_spawned_after_reload_key_is_out_of_scope_and_its_entity_is_present_by_rule(self) -> None:
+        # ruling 69: the wall's private key becomes a physics-spawned key; the episode still runs, the
+        # key stays out of the node scope, its entity's existence label is present by rule
+        data = episode()
+        spawned = "Egg|surface|1|9|EggCracked_0"
+        for record in data["records"]:
+            for field in ("object_id_to_entity_id", "object_poses", "object_visibility"):
+                record[field][spawned] = record[field].pop("wall|3")
+        steps, _, frames, report = run_and_label("TAF", data=data)
+        entity = entity_of(steps[1]["state"]["memory"], ":wall")
+        self.assertEqual(frames[4]["existence_labels"][entity], {"status": "present", "key": spawned, "reason": "spawned_after_reload", "displacement_m": None})
+        self.assertEqual(frames[0]["truth_in_scope"], ["Book|2", "Mug|1"])
+        self.assertEqual(report["diagnostics"]["spawned_after_reload_keys"], [spawned])
+        self.assertEqual(len(frames[2]["out_of_scope_entities"]), 1)
+
     def test_interventions_without_a_window_or_on_an_absent_object_are_refused(self) -> None:
         data = episode()
         with self.assertRaises(og.LeanObjectGeometryError):
