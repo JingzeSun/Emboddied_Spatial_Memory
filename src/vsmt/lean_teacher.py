@@ -821,7 +821,12 @@ def _truth_table(truth_objects: Mapping[str, Mapping[str, Any]]) -> dict[str, di
         _require(not (record["in_scope"] and structural_type_of(key) in STRUCTURAL_TYPES_EXCLUDED),
                  f"truth_object_structural_in_scope:{key}")
         entry: dict[str, Any] = {"present": record["present"], "in_scope": record["in_scope"]}
-        if record["present"]:
+        # A present in-scope object must carry its box and centroid: they enter the matching and
+        # the stale test.  A present object *outside* the scope (S2-01: the structural types, which
+        # never enter the simulator's object metadata and so have no box) may carry none; the
+        # evaluator only counts the entities that resolve to it, and never reads its geometry.
+        has_box = record.get("aabb_min_m") is not None or record.get("aabb_max_m") is not None
+        if record["present"] and (record["in_scope"] or has_box):
             entry["centroid_m"] = _vector3(record.get("centroid_m"), f"truth_object_centroid_invalid:{key}")
             lower = _vector3(record.get("aabb_min_m"), f"truth_object_aabb_invalid:{key}")
             upper = _vector3(record.get("aabb_max_m"), f"truth_object_aabb_invalid:{key}")

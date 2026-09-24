@@ -34,7 +34,7 @@ from cpmt.hashing import canonical_json  # noqa: E402
 from vsmt import (  # noqa: E402
     lean_arms, lean_assets, lean_assignment, lean_frontend_cache, lean_intervention,
     lean_memory,
-    lean_pilot, lean_teacher,
+    lean_pilot, lean_runner, lean_teacher,
 )
 
 
@@ -134,9 +134,10 @@ FROZEN_V1_NAME = {
     "S1-02a": "lean_s1_02a_pilot_v1.json",
     "S1-03": "lean_s1_03_frontend_cache_v1.json",
     "S1-04": "lean_s1_04_frontend_diagnostics_v1.json",
+    "S2-01": "lean_s2_01_runner_v1.json",
 }
 
-#: Live contract per stage, including the S1 contracts.
+#: Live contract per stage, including the S1 and S2 contracts.
 LIVE_CONTRACT = {
     "S0-01": "lean_s0_entity_memory_v2.json",
     "S0-02": "lean_s0_intervention_data_v3.json",
@@ -147,6 +148,7 @@ LIVE_CONTRACT = {
     "S1-02a": "lean_s1_02a_pilot_v2.json",
     "S1-03": "lean_s1_03_frontend_cache_v1.json",
     "S1-04": "lean_s1_04_frontend_diagnostics_v1.json",
+    "S2-01": "lean_s2_01_runner_v1.json",
 }
 
 
@@ -330,6 +332,13 @@ FROZEN_RULE_SHA256 = {
     # Checked at re-pin time: with the six bits set back to false the digest is the first pin
     # again, so the bits are the only rule that moved.
     "S1-04": "293358618d0d9a8f86449148ec567051d84f9f17a9914caea7de501b135220a7",
+    # S2-01 v1 (2026-09-24, LOG-246): the common runner -- the eight frame steps in order, the
+    # entity-geometry sampling rule over the public volumes (its resolution is the one registered
+    # value slot, null until ruled), the illegal-program fallback to an empty program, the descriptor
+    # choice bound to the S1-05 freeze, and the truth-table scope rules (observable = a private mask
+    # of at least 196 pixels once; structural keys present and out of scope without a box).  Both
+    # authorisation bits closed.
+    "S2-01": "e1060695eff0ff9793eb493ef651f2eab1cd3061a2a10beedceae1b99e0bab30",
 }
 
 #: Every registered slot that has been frozen, and the value it froze at.
@@ -948,6 +957,60 @@ class TestTheS105SelectionIsRecordedOnceAndAgreesWithItsReceipt(unittest.TestCas
         self.assertIn(self.result["source_descriptor_set"], {sets["primary"]["name"], sets["optional_upgrade"]["name"]})
         self.assertTrue(sets["both_extracted_in_s1_one_selected_in_s1_05"])
         self.assertTrue(sets["unselected_set_is_dropped_after_s1_05"])
+
+
+class TestS201RunnerContractBindsItsUpstreams(unittest.TestCase):
+    """S2-01 reuses S0-01, S0-03, S0-05 and the S1-05 freeze; it may not restate or drift from them."""
+
+    def setUp(self) -> None:
+        self.contract = load_stage("S2-01")
+
+    def test_the_contract_passes_its_validator_with_both_bits_closed(self) -> None:
+        checked = lean_runner.validate_runner_contract(self.contract)
+        self.assertEqual(checked["stage_id"], "S2-01")
+        self.assertEqual(set(checked["authorization"]), {"episode_run", "server_run"})
+        self.assertTrue(all(value is False for value in checked["authorization"].values()))
+        for key, path in checked["depends_on"].items():
+            if key.endswith("_contract"):
+                with self.subTest(key=key):
+                    self.assertTrue((PROJECT_ROOT / path).is_file(), path)
+                    self.assertFalse(path.endswith("_v1.json") and key.startswith("s0_"), "S2-01 must consume the live S0 contracts")
+
+    def test_the_descriptor_block_is_the_s1_05_freeze(self) -> None:
+        result = load("S0-03")["reid_adapter_head"]["selection_result"]
+        descriptor = self.contract["descriptor"]
+        self.assertEqual(descriptor["selected"], result["selected"])
+        self.assertEqual(descriptor["source_set"], result["source_descriptor_set"])
+        self.assertEqual(descriptor["frozen_baseline"], result["frozen_descriptor_baseline"])
+        self.assertEqual(descriptor["weights_sha256"], result["weights_sha256"])
+        self.assertEqual(list(descriptor["choices"]), [result["selected"], result["frozen_descriptor_baseline"]])
+
+    def test_the_runner_reads_its_policy_values_from_the_contracts_that_own_them(self) -> None:
+        sources = self.contract["frame_step"]["policy_input_sources"]
+        s0_01 = load("S0-01")
+        self.assertIn("dormancy_missed_opportunity_limit", s0_01["policy_values_without_defaults"])
+        self.assertTrue(all(f"shared_dedup.{name}" in s0_01["policy_values_without_defaults"]
+                            for name in ("period_ticks", "descriptor_cosine_min", "centroid_distance_max_m", "aabb_iou_min")))
+        self.assertIn("shared.should_be_visible_min_ratio", load("S0-05")["policy_values_without_defaults"])
+        self.assertTrue(sources["dormancy_missed_opportunity_limit"].startswith("S0-01"))
+        self.assertTrue(sources["should_be_visible_min_ratio"].startswith("S0-05"))
+        self.assertEqual(self.contract["policy_values_without_defaults"], ["entity_geometry.samples_per_axis"])
+        self.assertIsNone(self.contract["entity_geometry"]["samples_per_axis"])
+        self.assertEqual(tuple(self.contract["entity_geometry"]["fields"]), lean_assignment.ENTITY_GEOMETRY_FIELDS)
+
+    def test_the_truth_table_rules_agree_with_s0_04_and_s0_02(self) -> None:
+        truth = self.contract["truth_table"]
+        self.assertEqual(tuple(truth["structural_types_out_of_scope"]), lean_teacher.STRUCTURAL_TYPES_EXCLUDED)
+        self.assertEqual(truth["observable_min_pixels"], lean_frontend_cache.MINIMUM_VISIBLE_PIXELS)
+        node = load("S0-04")["metrics"]["node_prf1"]
+        self.assertEqual(list(node["structural_types_excluded_from_scope"]), list(truth["structural_types_out_of_scope"]))
+        self.assertTrue(node["truth_table_carries_in_scope_flag"])
+
+    def test_the_runnable_arms_are_the_s0_05_arms_without_the_appendix_arm(self) -> None:
+        step = self.contract["frame_step"]
+        self.assertEqual(tuple(step["runnable_arms"]), tuple(arm for arm in lean_arms.ALL_ARMS if arm != lean_arms.APPENDIX_ARM))
+        self.assertEqual(step["appendix_arm_refused_here"], lean_arms.APPENDIX_ARM)
+        self.assertEqual(load("S0-05")["appendix_arm"]["name"], lean_arms.APPENDIX_ARM)
 
 
 def _resolve_path(tree: Any, path: str) -> tuple[Any, Any]:

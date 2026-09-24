@@ -1,0 +1,199 @@
+{
+  "schema_version": "vsmt-lean-s2-01-runner-v1",
+  "decision_id": "D-224",
+  "stage_id": "S2-01",
+  "status": "implemented_pending_user_code_review",
+  "plain_language_zh": "本合同定义 S2-01 共同 runner：cache 的一帧加上一帧的记忆，经固定顺序的八步变成这一帧的原子程序和新记忆，五个臂与四组消融走同一条路，差别只在 logit 怎么来、词表允许哪些原子。输入是 S1-03 的 cache 帧（色块、公开体积）、S1-05 冻结的描述子选择与投影权重、S0-01/S0-03/S0-05 的登记值和臂配置；输出是逐帧回执（两段封存摘要、放行回执、召回、分配、存在决定、原子、记忆摘要、帧残差）和逐 episode 汇总。例如一帧三个色块：先算旧记忆每个实体的应可见比例与自由空间覆盖比例，投影描述子，召回并封存 A，臂给 logit，解一次分配，封存 B，臂判 RETRACT/NOOP，编译后一次提交；非法程序整帧回滚、改提交空程序并计数。它不训练、不读私有文件、不算论文指标、不做多 episode 编排（S2-05）。",
+  "pure_core_relative_path": "src/vsmt/lean_runner.py",
+  "depends_on": {
+    "s0_01_contract": "configs/vsmt/lean_s0_entity_memory_v2.json",
+    "s0_03_contract": "configs/vsmt/lean_s0_assignment_v2.json",
+    "s0_04_contract": "configs/vsmt/lean_s0_teacher_metrics_v2.json",
+    "s0_05_contract": "configs/vsmt/lean_s0_arms_v2.json",
+    "s1_03_contract": "configs/vsmt/lean_s1_03_frontend_cache_v1.json",
+    "s1_04_contract": "configs/vsmt/lean_s1_04_frontend_diagnostics_v1.json",
+    "reused_implementation": [
+      "src/vsmt/lean_memory.py::apply_program,empty_memory,frame_delta,validate_dedup_policy",
+      "src/vsmt/lean_assignment.py::build_assignment_inputs,solve_frame,seal_solution_and_existence,validate_cache_frame",
+      "src/vsmt/lean_arms.py::gate_association_logits,low_association_logits,hand_cost_association_logits,eligible_existence_rows,elu_p_existence,elu_p_observe_matches,rac_existence,rac_observe_matches,hand_cost_existence,learned_existence,never_retract,skip_existence,compile_program,apply_no_version,assert_no_sentinel_chosen",
+      "src/vsmt/lean_frontend_cache.py::assignment_view",
+      "src/vsmt/lean_reid_head.py::load_head,project_with",
+      "src/vsmt/lean_teacher.py::build_private_gate,in_truth_node_scope,structural_type_of",
+      "src/vsmt/lean_object_geometry.py::EpisodeTruthTracker (private side; the S2-05 orchestration feeds it)"
+    ],
+    "note_zh": "runner 不重写任何规则：召回、特征、求解、封存来自 S0-03，原子执行与共享维护来自 S0-01，臂的 logit 与词表来自 S0-05，投影来自 S1-04 训练、S1-05 冻结的权重；它只按固定顺序把这些接起来，并把每一步的产物写进回执。"
+  },
+  "authorization": {
+    "episode_run": false,
+    "server_run": false
+  },
+  "descriptor": {
+    "selected": "reid_projection:vitb14",
+    "source_set": "vitb14",
+    "frozen_baseline": "vitb14",
+    "weights_sha256": "f6fc67e5f365a4f6d375d6aa16afe15cb0d9769879aa0cc1ab84ff6de9b65073",
+    "choices": [
+      "reid_projection:vitb14",
+      "vitb14"
+    ],
+    "weights_digest_checked_before_any_projection": true,
+    "descriptor_frozen_by": "S1-05 (LOG-245), mechanical application of D-224-S1 ruling 47",
+    "descriptor_frozen_on": "2026-09-24",
+    "plain_language_zh": "五个臂读 cache 的 descriptor_vitb14（768 维），经 S1-04 训练、S1-05 选中的共享权重（摘要 f6fc67e5…）投影成 128 维单位向量后进入分配层；权重摘要对不上直接拒绝。论文并列报告的基线是冻结 ViT-B/14 本身（不投影）。除这两种选择外都拒绝；ViT-S/14 及其投影不再被读取。"
+  },
+  "entity_geometry": {
+    "rule": "uniform_grid_of_cell_centres_over_the_entity_aabb; a point is inside a block iff all six halfspaces hold within the tolerance; ratio = points inside the union of blocks / points",
+    "fields": [
+      "should_be_visible_ratio",
+      "free_space_coverage_ratio"
+    ],
+    "halfspace_tolerance_m": 1e-09,
+    "samples_per_axis": null,
+    "pure_function_of_public_volumes_and_previous_memory": true,
+    "identical_bytes_for_all_arms": true,
+    "free_space_records_used_as_stored_rolling_window_included": true,
+    "computed_for_every_entity_of_the_previous_memory": true,
+    "dot_products_are_fixed_order_elementwise_not_blas": true,
+    "plain_language_zh": "应可见比例＝实体包围盒上均匀网格采样点落进本帧可见体积块（六个半空间都成立）并集的比例；自由空间覆盖比例＝同一批采样点落进自由空间块并集的比例（cache 里的自由空间记录本身就是 D-223 的滚动窗口，照存的读）。每个轴取 samples_per_axis 个格心，值为 null 时拒绝运行，待用户冻结（提议 4，即每实体 64 个点）。点积用固定顺序的逐元素乘加而不是 BLAS，避免边界点在不同机器上翻转。它只读公开体积和上一帧记忆，对 M_{t−1} 的每个实体都算（包括 retracted，后续按状态排除），五个臂逐字节相同。"
+  },
+  "frame_step": {
+    "order": [
+      "entity_geometry_from_public_volumes_and_previous_memory",
+      "assignment_view_under_the_frozen_descriptor",
+      "stage_a_recall_and_features_sealed",
+      "arm_logits_then_one_rectangular_solve",
+      "stage_b_assignment_and_existence_features_sealed_and_private_gate",
+      "existence_decisions_on_eligible_rows_with_arm_state",
+      "compile_within_vocabulary_and_commit_atomically_or_empty_program",
+      "receipt_with_seals_digests_and_frame_delta"
+    ],
+    "illegal_program_rule": "an_illegal_program_rolls_back_the_whole_frame_then_the_frame_commits_an_empty_program_tick_advances_dormancy_and_dedup_run_and_the_failure_is_counted_per_episode",
+    "recall_values_are_the_frozen_s0_03_values": true,
+    "rule_arm_assignment_must_contain_no_sentinel_pair": true,
+    "existence_candidates_are_eligible_rows_only": true,
+    "private_gate_receipt_built_from_both_seals": true,
+    "no_private_file_is_read_in_the_public_phase": true,
+    "no_version_deletes_retracted_after_the_commit": true,
+    "policy_input_sources": {
+      "dormancy_missed_opportunity_limit": "S0-01 shared_dormancy.dormancy_missed_opportunity_limit",
+      "dedup": "S0-01 shared_dedup.{period_ticks,descriptor_cosine_min,centroid_distance_max_m,aabb_iou_min}",
+      "should_be_visible_min_ratio": "S0-05 shared.should_be_visible_min_ratio",
+      "entity_geometry_samples_per_axis": "S2-01 entity_geometry.samples_per_axis",
+      "recall": "S0-03 recall_rule (frozen: rulings 57/58)",
+      "descriptor": "S0-03 reid_adapter_head.selection_result (frozen: S1-05)"
+    },
+    "runnable_arms": [
+      "VSMT-lean",
+      "TAF",
+      "ELU-P",
+      "RAC",
+      "LOW",
+      "NoVersion",
+      "HandCost",
+      "HeuristicLabel",
+      "AssocOnly",
+      "VSMT-lean-ctx"
+    ],
+    "appendix_arm_refused_here": "LLM-op",
+    "arm_state": {
+      "ELU-P": "log_odds per entity: initial_log_odds on first eligibility, decays on every eligible unmatched frame, gains match_gain when the entity is bound or reactivated this frame",
+      "RAC": "negative_renders per entity: incremented on a negative render, reset on a positive render or a match, reset after a RETRACT",
+      "others": "no temporal state",
+      "pruned_to_live_entities_after_each_commit": true
+    },
+    "learned_arms_take_a_caller_supplied_scorer": true,
+    "scorer_interface": {
+      "association_and_birth_logits": "stage_a -> {association_logits: {'<fragment_id>|<entity_id>': float}, birth_logits: {'<fragment_id>': float}}, keys exactly the sealed rows",
+      "existence_logits": "(eligible_rows, order) -> {'<entity_id>': float}, keys exactly the eligible rows"
+    },
+    "plain_language_zh": "八步顺序固定：几何比例、视图、封存 A、logit 与求解、封存 B 与放行回执、存在判定、编译提交、回执。规则臂的分配里不得出现哨兵对，出现即拒。存在判定只对 active/dormant 且应可见比例不低于 S0-05 下限的未分配实体做。学习臂的 logit 由 S2-03 提供的 scorer 给出，键必须与封存行一一对应。程序非法时整帧回滚，这一帧改提交空程序（tick 照常推进、dormancy 与去重照常运行）并计一次 illegal_program，避免下一帧被 frame_tick_not_next 拒绝而卡死整条 episode。NoVersion 在提交后物理删除 retracted 实体并重新封存。"
+  },
+  "truth_table": {
+    "observable_rule": "an_object_has_been_observable_once_its_private_instance_mask_reached_at_least_196_pixels_in_some_frame_up_to_t",
+    "observable_min_pixels": 196,
+    "key_rule": "every_private_key_seen_in_any_frame_up_to_t_is_a_row; a key in the geometry table takes present and box from the truth tracker; a structural key (door, room, wall, window) is present and out of scope without a box; any other key outside the geometry table fails the episode",
+    "structural_types_out_of_scope": [
+      "door",
+      "room",
+      "wall",
+      "window"
+    ],
+    "built_only_after_both_seals": true,
+    "in_scope_by_s0_04_in_truth_node_scope": true,
+    "present_and_box_from_the_s1_04_truth_tracker": true,
+    "plain_language_zh": "私有侧在两段封存都写完之后，为评价器构建本帧真值表：到这一帧为止在私有面出现过的每个键一行；present 与盒子来自 S1-04 的真值追踪器（裁决 45 的初始盒加记录平移）；in_scope 由 S0-04 的 in_truth_node_scope 算——此前至少一帧私有实例 mask ≥196 像素（S0-02 的观察定义），且不是 wall/room/door/window。结构件不在几何表里，登记为在场、范围外、无盒；其他不在几何表里的键说明数据有问题，整条 episode 记失败而不是悄悄缩小范围。"
+  },
+  "receipts": {
+    "frame_fields": [
+      "tick",
+      "frame_digest",
+      "cache_frame_seal_sha256",
+      "descriptor",
+      "stage_a_seal_sha256",
+      "stage_b_seal_sha256",
+      "private_gate",
+      "recall",
+      "assignment",
+      "total_cost",
+      "existence",
+      "program",
+      "illegal_program",
+      "no_version_deleted",
+      "memory_digest_before",
+      "memory_digest_after",
+      "entities_by_state",
+      "frame_delta",
+      "arm_state_sha256"
+    ],
+    "episode_fields": [
+      "arm",
+      "episode_id",
+      "frames",
+      "illegal_programs",
+      "atoms",
+      "existence_candidates",
+      "excluded_not_visible",
+      "excluded_retracted",
+      "no_version_deleted",
+      "final_entities_by_state",
+      "final_memory_digest",
+      "cache_frame_seals_sha256",
+      "cache_frame_seals",
+      "stage_a_seals_sha256",
+      "stage_b_seals_sha256"
+    ],
+    "plain_language_zh": "逐帧回执记两段封存摘要与放行回执、召回、分配、存在候选与决定、提交的原子、非法程序（若有）、提交前后的记忆摘要、按状态的实体数和帧残差；逐 episode 汇总记原子计数、非法程序次数、最终实体数，以及读过的全部 cache 帧封印——五个臂的这一串必须逐位相同。"
+  },
+  "failure_reasons": [
+    "descriptor_choice_not_frozen",
+    "reid_weights_digest_not_the_frozen_one",
+    "policy_value_missing",
+    "arm_not_runnable_here",
+    "arm_config_missing",
+    "scorer_missing_for_learned_arm",
+    "cache_frame_malformed",
+    "truth_key_outside_geometry_table",
+    "truth_object_without_box"
+  ],
+  "not_in_this_stage": [
+    "arm_parameters",
+    "arm_training",
+    "teacher_labels",
+    "metrics",
+    "llm_op",
+    "multi_episode_orchestration",
+    "validation_or_test_reading"
+  ],
+  "policy_values_without_defaults": [
+    "entity_geometry.samples_per_axis"
+  ],
+  "continue_gate": {
+    "five_arms_read_byte_identical_cache_clones": true,
+    "illegal_program_never_stalls_an_episode": true,
+    "public_phase_is_a_pure_function_of_cache_policy_config_and_weights": true,
+    "plain_language_zh": "S2-01 的继续门：五个臂读到的 cache 帧封印序列逐位相同；非法程序不会让 episode 停在半路；公开阶段只由 cache、登记值、臂配置和权重决定，换私有文件不改任何公开字节。检查通过不等于任何臂有效。"
+  },
+  "pending_user_rulings": {
+    "entity_geometry.samples_per_axis": "待裁 60：每轴采样点数，提议 4（每实体 64 点，比例分辨率 1/64）；备选 8（512 点，约 8 倍计算）。运行前必须冻结。"
+  }
+}
