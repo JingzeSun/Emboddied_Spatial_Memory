@@ -4,7 +4,7 @@
 
 ## 当前看板
 
-**2026-09-24 最新状态：S2-01～S2-03 经用户审查通过，裁决 59～63 与臂状态回滚已落地（LOG-248）——`samples_per_axis`=4、S2-01 授权位改 `activation_policy` 机制（规则摘要 `e1060695…` → `09fc1a4a…`）、`fit_match_gain` 拒绝非正增益、METHOD 参数数改 54,207；服务器全量 `2533f5d` **1554/1554**（LOG-248 续）；S2-04 teacher 与评价器接线已实现待审（LOG-249：`lean_evaluation.py`、合同首钉 `40d96cf0…`、单 episode 入口、14＋4 项测试；待裁 64 运行位归属、待裁 65 五条派生规则）；**下一步：用户审 S2-04 并裁 64／65，然后 S2-05**。此前：S2-02 与 S2-03 已实现（LOG-247，服务器全量 `4df7f3c` 1552/1552）；S2-01 共同 runner 已实现待审（LOG-246，服务器全量 `6deb8b6` 1533/1533）——`lean_runner.py`、合同 `lean_s2_01_runner_v1.json`（首钉 `e1060695…`）、单 episode 入口与 21 项测试；待裁 60（几何采样分辨率，推荐 4）；S1-05 已按裁决 47 机械收口（LOG-245）——选定 `reid_projection:vitb14`，冻结 ViT-B/14 为并列基线；待裁 59（选择组 9/12，推荐维持）。下一步 S2-02／S2-03。** S1 不重做；召回四值、匹配口径与描述子全部冻结；按 D-059 本次改动待用户审。上一暂停点：S0 修订（裁决 56 续／57／58，`6699a19`）已由用户审过并授权进入 S2（LOG-244 续二）。
+**2026-09-24 最新状态：S2-01～S2-03 经用户审查通过，裁决 59～63 与臂状态回滚已落地（LOG-248）——`samples_per_axis`=4、S2-01 授权位改 `activation_policy` 机制（规则摘要 `e1060695…` → `09fc1a4a…`）、`fit_match_gain` 拒绝非正增益、METHOD 参数数改 54,207；服务器全量 `2533f5d` **1554/1554**（LOG-248 续）；S2-04 teacher 与评价器接线已实现待审（LOG-249：`lean_evaluation.py`、合同首钉 `40d96cf0…`、单 episode 入口、14＋4 项测试，服务器全量 `fd7fc9f` **1572/1572**（LOG-249 续）；待裁 64 运行位归属、待裁 65 五条派生规则）；**下一步：用户审 S2-04 并裁 64／65，然后 S2-05**。此前：S2-02 与 S2-03 已实现（LOG-247，服务器全量 `4df7f3c` 1552/1552）；S2-01 共同 runner 已实现待审（LOG-246，服务器全量 `6deb8b6` 1533/1533）——`lean_runner.py`、合同 `lean_s2_01_runner_v1.json`（首钉 `e1060695…`）、单 episode 入口与 21 项测试；待裁 60（几何采样分辨率，推荐 4）；S1-05 已按裁决 47 机械收口（LOG-245）——选定 `reid_projection:vitb14`，冻结 ViT-B/14 为并列基线；待裁 59（选择组 9/12，推荐维持）。下一步 S2-02／S2-03。** S1 不重做；召回四值、匹配口径与描述子全部冻结；按 D-059 本次改动待用户审。上一暂停点：S0 修订（裁决 56 续／57／58，`6699a19`）已由用户审过并授权进入 S2（LOG-244 续二）。
 
 | 事项 | 已知事实 |
 |---|---|
@@ -3909,3 +3909,7 @@ move 仍要两个 U 容器、add 仍要过 dry-run，成品率不会等于这些
 - 本地分进程：evaluation 14、cross-contract 69、runner 23、teacher 92、model 11 通过。服务器全量随本节提交同步再跑。
 - **待裁**：64（运行位归属，推荐 S2 阶段合同持有）、65（五条派生规则，推荐按实现）。**S2-05 前**：冻结 S0-01 五个、S0-03 两个、S0-04 五个、S0-05 九个 null 值；核对服务器 39 份几何回执的 `objects_without_box`；打开 S2-01／S2-04 运行位。
 - **本节不做的事**：不跑任何真实 episode；不做 house 级配对与 bootstrap（S3）；不编排多 episode 多臂（S2-05）；不训练；不改 S0-04 任何字节。
+### LOG-249 续：服务器全量通过 1572/1572（2026-09-24 19:32 CST）
+
+- **同步与全量**：服务器 `/root/Emboddied_Spatial_Memory` 从 `2533f5d` 无未跟踪文件地 `git checkout --detach fd7fc9f`（负载 9.7，GPU 空闲，数据盘 24 GB 可用，只有 jupyter／tensorboard 常驻进程）。`PYTHONPATH=src /root/miniconda3/bin/python3.12 -m unittest discover -s tests -t tests -p "test_*.py"`：**1572 项全部通过，退出 0，121.3 s**（`2533f5d` 的 1554 项加 LOG-249 新增的 evaluation 14 项与跨合同 4 项），日志 `/root/autodl-tmp/vsmt_outputs/run_logs/suite-fd7fc9f.log`。
+- 服务器 checkout 停在 `fd7fc9f`；没有跑任何 episode，四个运行位（S2-01 两位、S2-04 两位）都关着。按 D-059 在此停下，等用户审 S2-04 并裁 64／65。
