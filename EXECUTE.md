@@ -4,7 +4,7 @@
 
 ## 当前看板
 
-**2026-09-24 最新暂停点：S0 修订（裁决 56 续／57／58，`6699a19`）已由用户审过，授权进入 S2；下一步在新对话中先做 S1-05（描述子选择收口），再开 S2-01（LOG-244 续二）。** S1 不重做；召回四值与匹配口径全部冻结。
+**2026-09-24 最新状态：S1-05 已按裁决 47 机械收口（LOG-245）——选定 `reid_projection:vitb14`，冻结 ViT-B/14 为并列基线，S0-03 规则摘要重钉、回执入库；选择组 9/12 登记为待裁 59（推荐维持）；S2-01 开工。** S1 不重做；召回四值、匹配口径与描述子全部冻结；按 D-059 本次改动待用户审。上一暂停点：S0 修订（裁决 56 续／57／58，`6699a19`）已由用户审过并授权进入 S2（LOG-244 续二）。
 
 | 事项 | 已知事实 |
 |---|---|
@@ -3814,3 +3814,23 @@ move 仍要两个 U 容器、add 仍要过 dry-run，成品率不会等于这些
 按 D-059，这是科学代码改动，要用户审过才成为 S2 的基线。S2 尚未开工，也没有任何运行依赖这次改动。
 
 服务器权威全量（`6699a19`）：**1492/1492 通过**，比上次 1485 多出本次新增的 7 项；日志在 `run_logs/suite-6699a19.log`。
+
+### LOG-245：S1-05 描述子选择收口——按裁决 47 机械选定 `reid_projection:vitb14`，S1 收口回执（2026-09-24 17:10 CST）
+
+- 类型：**已冻结规则的机械执行与收口登记**，不是新裁决、不是新运行。输入是 LOG-244 的 S1-04 诊断报告 [`results/vsmt_lean_s1_04_diagnostics_154776d.json`](results/vsmt_lean_s1_04_diagnostics_154776d.json)（sha256 `18c7f79d…`）与 S0-03 合同里裁决 47 冻结的规则；输出是回执 [`results/vsmt_lean_s1_05_descriptor_freeze_154776d.json`](results/vsmt_lean_s1_05_descriptor_freeze_154776d.json)。本节没有连服务器、没有读 cache 或任何私有文件、没有训练。
+- 工具 [`ops/vsmt/lean_s1_05_select_descriptor.py`](ops/vsmt/lean_s1_05_select_descriptor.py) 做四件事：过 S0-03 校验器取阈值 0.05 与 30/12 留出规模；从报告钉住的 39 条 cache 封印按 S0-02 哈希顺序重算留出（前 30 训练、其后至多 12 选择），与报告里的留出逐项核对，两组重叠、选择组里出现训练 house、seed 或顺序不同都拒绝；用 `lean_reid_head.select_descriptor` 从选择 house 的中位数重算选择，报告自带的 `selection_rule` 块若与重算不一致（选中者、最好冻结集、增益、阈值、排除清单任一）都拒绝；写回执。回执含每个候选在选择 house 上的分离度统计与冻结召回值（k=5、k′=3、3 m）下的漏召回率、训练 house 的冻结描述子中位数（只作附注）、缺口登记，以及 S1 收口块（S1-02／S1-03／S1-04 报告与裁决 56 估算报告的 sha256、进入 S2 的已冻结值与仍为 null 的值清单，全部从合同与报告读出、不手抄）。
+
+**选择 house（9 条）上的候选**（数字原样取自 S1-04 报告，本节不重算）：
+
+| 候选 | 中位分离度 | 漏召回 @ k=5／k′=3／3 m |
+|---|---:|---:|
+| ViT-S/14 冻结 | 0.108 | 2.36% |
+| ViT-B/14 冻结（最好的冻结集） | **0.143** | 2.08% |
+| ViT-S/14 投影 | 0.194 | 0.81% |
+| ViT-B/14 投影 | **0.236** | 0.64% |
+
+- **结果**：投影增益 0.236 − 0.143 = 0.093 ≥ 0.05，选定 `reid_projection:vitb14`。五个臂从 cache 读 `descriptor_vitb14`（768 维），经共享权重 `reid_head_vitb14.json`（sha256 `f6fc67e5…`，768→128 线性层加 L2 归一化）投影后进入分配层；冻结 ViT-B/14 为论文必须并列报告的基线。ViT-S/14 及其投影不再被分配视图读取，cache 字节不变（episode 封印仍覆盖两套描述子）。此后任何阶段不得再换描述子。
+- **选择组只有 9 条、不是 12 条。** 合同登记 30/12，但 cache 只有 39 条成功 episode（S1-02 在 `5f9aa71` 下 39/50），合同 `a_house_without_a_cache_is_skipped_and_counted_never_replaced` 规定跳过并计数、不顶替，S1-04 已记 `selection_shortfall: 3`，本节照规则执行。判定不在边缘：增益比门高 0.043，两个投影的增益都 ≥ 0.086；但 9 条的中位数比 12 条方差更大。是否维持这一分法登记为**待裁 59**（DECISIONS，推荐维持）；若改分法（例如 27/12），须修 S0-03 留出规则并重钉、重训两个投影、重做 S1-04 的 ReID 段与 S1-05，属新裁决。
+- **合同与代码**（本地分进程测试全部通过）：S0-03 `reid_adapter_head` 新增 `selection_result` 块（选中者、来源集、基线、权重摘要、输入报告摘要、回执路径、缺口、不可再改），`status` 改为 `trained_in_s1_04_selected_and_frozen_in_s1_05`；这是新增结构而非填值，规则摘要重钉 `1becb7e3…` → `37d56a90…`。`lean_assignment.py` 绑定 `SELECTED_DESCRIPTOR`／`SELECTED_DESCRIPTOR_SOURCE_SET`／`FROZEN_DESCRIPTOR_BASELINE`／`SELECTED_REID_WEIGHTS_SHA256`，校验器要求合同的 `selection_result` 与常量一致且不可重开。测试：`test_vsmt_lean_s1_05_selection` 10 项（合成报告：留出不一致／重叠／越组、结论不一致、发散投影排除、缺口登记不补位、非完成阶段拒绝；真实报告：结果等于绑定常量、已提交回执与重算逐块相同、收口块里每个报告的 sha256 与树内文件一致）、`test_vsmt_lean_assignment` 61（+1）、`test_vsmt_lean_cross_contract` 60（+4）；memory 51、teacher 92、arms 44、reid_head 5、frontend_diagnostics 9、s1_04_runner 14、frontend_cache 49、geometry 9、assets 83、pilot 54、intervention 52、public_pose 8。服务器全量随 S2-01 首次同步再跑。
+- **一处风险，如实登记**：选中的权重只存在服务器 `vsmt_private/lean-s1-04-diagnostics-154776d/reid_head_vitb14.json`，仓库只钉摘要（权重不进 Git 是既定规则）。若该根丢失，用冻结的五个训练值与 seed 重训在 CPU 上逐位可复现（测试钉住），GPU 上不保证逐位相同。建议在 S2-01 同步时把它复制一份到 `vsmt_private/exports/` 并核对摘要。
+- **本节不做的事**：不改 S1-03 合同字节（"未选中集在 S1-05 后丢弃"在分配视图层实现，由 S2-01 绑定 `SELECTED_DESCRIPTOR_SOURCE_SET`）；不重算任何 S1-04 数字；不启动 S2 运行。按 D-059，本次合同与代码改动要用户审过才成为 S2 基线。
