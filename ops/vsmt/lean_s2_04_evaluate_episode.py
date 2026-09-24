@@ -83,6 +83,56 @@ def gather_teacher_policy() -> tuple[dict[str, Any], list[str]]:
     return {"runner": runner_policy, "teacher": policy}, missing
 
 
+def verify_cache_episode(cache_dir: Path, descriptor_asset_sha256s: dict[str, Any]) -> tuple[dict[str, Any], list[Path]]:
+    """The S1-04 loader's checks (every frame seal recomputed, the episode seal recomputed) without keeping the frames.
+
+    白话：和 S1-04 的加载器做同样的核对——逐帧重算封印、重算 episode 封印——但核对完就丢掉帧，只留
+    帧文件路径；处理阶段再逐帧读入。最大的开发 episode 有 3473 帧，整条读进内存要近 20 GB，流式读每个
+    worker 只占一两 GB，16 核才用得上。核对与处理读到的是同一批字节，产物不变。
+    """
+
+    receipt_path = cache_dir / "receipt.json"
+    if not receipt_path.exists() or load_json(receipt_path).get("status") != "succeeded":
+        raise diag.DiagnosticsFailure("cache_missing_or_unsealed", "no succeeded cache receipt")
+    seal_path = cache_dir / "episode_seal.json"
+    if not seal_path.exists():
+        raise diag.DiagnosticsFailure("cache_missing_or_unsealed", "no episode seal")
+    seal = load_json(seal_path)
+    if seal.get("frontend_config_sha256") != diag.fc.D223_FRONTEND_CONFIG_SHA256:
+        raise diag.DiagnosticsFailure("cache_missing_or_unsealed", "episode seal names another frontend config")
+    paths = sorted(cache_dir.glob(f"*{diag.cache_runner.FRAME_FILE_SUFFIX}"))
+    if len(paths) != int(seal.get("episode_frame_count", -1)):
+        raise diag.DiagnosticsFailure("cache_missing_or_unsealed", f"{len(paths)} frame files for a seal over {seal.get('episode_frame_count')}")
+    seal_inputs = []
+    for path in paths:
+        frame = diag.cache_runner.load_cache_frame(path)
+        try:
+            diag.fc.verify_frame_seal(frame, frontend_config_sha256=diag.fc.D223_FRONTEND_CONFIG_SHA256,
+                                      descriptor_asset_sha256s=descriptor_asset_sha256s)
+        except diag.fc.LeanFrontendCacheError as exc:
+            raise diag.DiagnosticsFailure("cache_missing_or_unsealed", f"{path.name}: {exc.detail}") from exc
+        seal_inputs.append({"tick": frame["tick"], "frame_seal": frame["frame_seal"]})
+        del frame
+    try:
+        recomputed = diag.fc.seal_episode(seal_inputs, frontend_config_sha256=diag.fc.D223_FRONTEND_CONFIG_SHA256)
+    except diag.fc.LeanFrontendCacheError as exc:
+        raise diag.DiagnosticsFailure("cache_missing_or_unsealed", exc.detail) from exc
+    if recomputed["payload_sha256"] != seal.get("payload_sha256"):
+        raise diag.DiagnosticsFailure("cache_missing_or_unsealed", "episode seal mismatch")
+    return seal, paths
+
+
+def load_private_frame(episode_root: Path, index: int) -> tuple[dict[str, Any], Any]:
+    """One private record and its instance image (the S1-04 loader's reading, one frame at a time)."""
+
+    import numpy as np
+    from PIL import Image
+
+    private = episode_root / "private"
+    record = load_json(private / f"{index:04d}.frame.json")
+    return record, np.asarray(Image.open(private / record["instance_mask_path"]))
+
+
 def peak_rss_bytes() -> int:
     try:
         import resource
@@ -162,12 +212,10 @@ def main() -> int:
 
     cache_dir = Path(args.cache_root).resolve() / args.episode_id
     episode_root = Path(args.episode_root).resolve()
-    frames, seal = diag.load_cache_episode(cache_dir, diag.registered_descriptor_asset_sha256s())
+    seal, frame_paths = verify_cache_episode(cache_dir, diag.registered_descriptor_asset_sha256s())
     if args.frames is not None:
-        frames = frames[: int(args.frames)]
-    count = len(frames)
-    masks = diag.load_masks(cache_dir, count)
-    records, images = diag.load_private(episode_root, count)
+        frame_paths = frame_paths[: int(args.frames)]
+    count = len(frame_paths)
     table = og.validate_geometry_table(load_json(Path(args.geometry_root).resolve() / args.episode_id / og.TABLE_FILE_NAME))
     executed, window = diag.cache_runner_read_interventions(episode_root / "provenance")
     episode_receipt = load_json(episode_root / "receipt.json") if (episode_root / "receipt.json").exists() else {}
@@ -195,17 +243,27 @@ def main() -> int:
     receipts: list[dict[str, Any]] = []
     state = None
     mark = time.time()
-    for index, step in enumerate(lr.run_episode(frames, episode_id=args.episode_id, arm=args.arm, config=config,
+    current: dict[str, Any] = {}
+
+    def frames():  # one frame in memory at a time; the runner consumes exactly one per step
+        for path in frame_paths:
+            current["frame"] = diag.cache_runner.load_cache_frame(path)
+            yield current["frame"]
+
+    for index, step in enumerate(lr.run_episode(frames(), episode_id=args.episode_id, arm=args.arm, config=config,
                                                 policy=policy["runner"], descriptor=args.descriptor, projector=projector, scorer=scorer)):
         runtime = time.time() - mark
         receipts.append(step["receipt"])
         state = step["state"]
-        labelled = teacher.label_frame(step, cache_frame=frames[index], private_record=records[index], masks=masks[index],
-                                       label_image=images[index], runtime_s=runtime, peak_memory_bytes=peak_rss_bytes())
+        cache_frame = current["frame"]
+        masks = diag.cache_runner.read_masks_file(cache_dir / f"{index:04d}{diag.cache_runner.MASK_FILE_SUFFIX}")
+        record, image = load_private_frame(episode_root, index)
+        labelled = teacher.label_frame(step, cache_frame=cache_frame, private_record=record, masks=masks,
+                                       label_image=image, runtime_s=runtime, peak_memory_bytes=peak_rss_bytes())
         if collector is not None:
             collector.observe(step, labelled)
         if counter is not None:
-            counter.observe(step, cache_frame=frames[index], private_record=records[index], evidence=teacher.evidence)
+            counter.observe(step, cache_frame=cache_frame, private_record=record, evidence=teacher.evidence)
         training_stream.write({"tick": labelled["tick"], **labelled["training_record"]})
         nuisance_stream.write({"tick": labelled["tick"], **labelled["nuisance"]})
         labels_stream.write({k: v for k, v in labelled.items() if k not in ("training_record", "nuisance")})
