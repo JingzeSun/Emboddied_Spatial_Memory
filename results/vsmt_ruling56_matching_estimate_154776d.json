@@ -1,0 +1,703 @@
+{
+ "schema_version": "vsmt-ruling56-matching-estimate-report-v1",
+ "ruling": "D-224-S1 ruling 56 (a): read-only estimate before any matching-rule change",
+ "server_paths": {
+  "script": "/root/autodl-tmp/vsmt_private/tmp-audit-ruling56-154776d/estimate56_v2.py",
+  "output": "/root/autodl-tmp/vsmt_private/tmp-audit-ruling56-154776d/full_v2/estimate56.json",
+  "rows_without_object_ids": "/root/autodl-tmp/vsmt_private/tmp-audit-ruling56-154776d/full_v2/rows_no_ids.npz"
+ },
+ "server_sha256": {
+  "script": "c4b58b5d916740dce92e002f69ffe0f06a92428f2d9f6358513c68d345027810",
+  "output": "61847f99ae7af30497f266932fdd3ba0ebebe98299787ac3e29c6a462c23ccaf",
+  "rows_npz": "704a47a9c2ad9dedcd924f44eb84c2a5bfcf439bed4c777a43756a7a7f4c8a96"
+ },
+ "first_pass_note": "a first pass without the non-architectural block gave identical numbers for every shared field",
+ "script_source": "\"\"\"D-224-S1 ruling 56 (a): read-only estimate of two matching-rule alternatives on the S1-04 development cache.\n\nReuses the S1-04 diagnostics runner's loaders, labeller and truth tracker, so every fragment, label and truth box\nis exactly the one the gate was computed on.  Association is ideal (a fragment's entity is its private object),\nwhich isolates the matching rule from any arm.  Writes one aggregate JSON (object types only, no object ids).\n\nMeasures, per labelled fragment row whose object has a truth box in that frame (the gate's rows):\n  single  : IoU(fragment box, truth box)                      -- reproduces the S1-04 gate column\n  frame   : IoU(union of the object's fragments in this frame, truth box)\n  accum   : IoU(union of the object's fragments over all frames so far, truth box); the union restarts when the\n            object's truth centre moves by more than 5 cm (an executed move or add), as a relocation would\n  centroid: distance from the accumulated mean fragment centroid to the truth box centre, and whether that\n            truth object is the nearest present truth object (centroid-distance matching)\n  accum_argmax: whether the object's own truth box is the max-IoU present truth box for the accumulated union\nEach is reported per (object, frame) and per fragment row, overall and by group (pickupable / receptacle / other)\nand by object type.\n\"\"\"\nimport json, os, sys, time, collections\nimport multiprocessing as mp\nfrom pathlib import Path\nimport numpy as np\n\nREPO = Path(\"/root/Emboddied_Spatial_Memory\")\nsys.path.insert(0, str(REPO / \"ops\" / \"vsmt\")); sys.path.insert(0, str(REPO / \"src\"))\nimport lean_s1_04_diagnostics as run  # noqa: E402\nog = run.og\n\nC = \"154776d\"\nCACHE = Path(f\"/root/autodl-tmp/vsmt_caches/lean-s1-03-{C}\")\nGEOM = Path(f\"/root/autodl-tmp/vsmt_private/lean-s1-04-geometry-{C}\")\nDIAG = Path(f\"/root/autodl-tmp/vsmt_private/lean-s1-04-diagnostics-{C}\")\nROOTS = [Path(\"/root/autodl-tmp/vsmt_outputs/lean-s1-02a-5f9aa71\"), Path(\"/root/autodl-tmp/vsmt_outputs/lean-s1-02b-5f9aa71\")]\nOUT = Path(sys.argv[1])\nMOVE_RESET_M = 0.05\n\n\ndef iou_many(lo, hi, LO, HI):\n    \"\"\"IoU of one box against P boxes (numpy).\"\"\"\n    inter = np.clip(np.minimum(hi, HI) - np.maximum(lo, LO), 0, None).prod(axis=1)\n    va = np.prod(np.clip(hi - lo, 0, None)); vb = np.clip(HI - LO, 0, None).prod(axis=1)\n    union = va + vb - inter\n    return np.where(union > 0, inter / np.where(union > 0, union, 1), 0.0)\n\n\ndef one(episode_id):\n    t0 = time.time()\n    root = next(r / episode_id for r in ROOTS if (r / episode_id).exists())\n    frames, _seal = run.load_cache_episode(CACHE / episode_id, run.registered_descriptor_asset_sha256s())\n    masks = run.load_masks(CACHE / episode_id, len(frames))\n    records, images = run.load_private(root, len(frames))\n    labelled = run.label_frames(frames, masks, records, images)\n    del masks, images\n    table = og.validate_geometry_table(json.loads((GEOM / episode_id / og.TABLE_FILE_NAME).read_text()))\n    executed, window = run.cache_runner_read_interventions(root / \"provenance\")\n    tracker = og.EpisodeTruthTracker(table, executed_interventions=executed, window=window)\n    meta = {row[\"object_id\"]: row for row in table[\"objects\"]}\n    def group(o):\n        m = meta.get(o, {})\n        return \"pickupable\" if m.get(\"pickupable\") else (\"receptacle\" if m.get(\"receptacle\") else \"other\")\n    acc = {}          # object -> [lo, hi, centroid_sum, n, last_centre]\n    rows = []         # per fragment row\n    of_rows = []      # per (object, frame)\n    for index, (frame, record) in enumerate(zip(labelled, records)):\n        truth = tracker.update(index, record)\n        present = [(o, e) for o, e in truth.items() if e.get(\"present\") and e.get(\"aabb_min_m\") is not None]\n        if not present:\n            continue\n        P_ids = [o for o, _ in present]\n        LO = np.array([e[\"aabb_min_m\"] for _, e in present], float); HI = np.array([e[\"aabb_max_m\"] for _, e in present], float)\n        CEN = (LO + HI) / 2\n        pos = {o: k for k, o in enumerate(P_ids)}\n        by_obj = collections.defaultdict(list)\n        for f in frame[\"fragments\"]:\n            if f[\"object\"] is not None and f[\"object\"] in pos:\n                by_obj[f[\"object\"]].append(f)\n        for o, frs in by_obj.items():\n            k = pos[o]; lo_t, hi_t, c_t = LO[k], HI[k], CEN[k]\n            flo = np.min([f[\"aabb_min_m\"] for f in frs], axis=0); fhi = np.max([f[\"aabb_max_m\"] for f in frs], axis=0)\n            csum = np.sum([f[\"centroid_m\"] for f in frs], axis=0)\n            a = acc.get(o)\n            if a is None or np.linalg.norm(c_t - a[4]) > MOVE_RESET_M:\n                a = [flo.copy(), fhi.copy(), csum.copy(), len(frs), c_t.copy()]\n            else:\n                a[0] = np.minimum(a[0], flo); a[1] = np.maximum(a[1], fhi); a[2] = a[2] + csum; a[3] += len(frs); a[4] = c_t.copy()\n            acc[o] = a\n            iou_frame = float(iou_many(flo, fhi, lo_t[None], hi_t[None])[0])\n            ious_acc = iou_many(a[0], a[1], LO, HI)\n            iou_acc = float(ious_acc[k])\n            cmean = a[2] / a[3]\n            d = np.linalg.norm(CEN - cmean, axis=1)\n            typ = o.split(\"|\")[0]\n            of_rows.append((group(o), typ, iou_frame, iou_acc, bool(int(np.argmax(ious_acc)) == k and iou_acc >= 0.3),\n                            float(d[k]), bool(int(np.argmin(d)) == k), len(frs)))\n            for f in frs:\n                rows.append((group(o), typ, og.aabb_iou(f[\"aabb_min_m\"], f[\"aabb_max_m\"], lo_t, hi_t), iou_frame, iou_acc,\n                             float(d[k]), bool(int(np.argmin(d)) == k)))\n    # birth neighbourhood from the stored diagnostics\n    dj = json.loads((DIAG / episode_id / \"diagnostics.json\").read_text())\n    births = {s: dj[\"recall_curve\"][s].get(\"birth_neighbourhood\") for s in dj[\"recall_curve\"]}\n    births_total = {s: dj[\"recall_curve\"][s].get(\"births_total\") for s in dj[\"recall_curve\"]}\n    return {\"episode_id\": episode_id, \"rows\": rows, \"of_rows\": of_rows, \"births\": births, \"births_total\": births_total,\n            \"seconds\": round(time.time() - t0, 1)}\n\n\ndef q(v):\n    v = np.asarray(v, float)\n    if v.size == 0:\n        return None\n    return {\"n\": int(v.size), \"median\": float(np.median(v)), \"p25\": float(np.percentile(v, 25)), \"p75\": float(np.percentile(v, 75)),\n            \"share_ge_0.3\": float(np.mean(v >= 0.3))}\n\n\ndef dist(v):\n    v = np.asarray(v, float)\n    return {\"n\": int(v.size), \"median_m\": float(np.median(v)), \"p75_m\": float(np.percentile(v, 75)), \"p90_m\": float(np.percentile(v, 90)),\n            \"share_le_0.25m\": float(np.mean(v <= 0.25)), \"share_le_0.5m\": float(np.mean(v <= 0.5)), \"share_le_1.0m\": float(np.mean(v <= 1.0))}\n\n\ndef main():\n    OUT.mkdir(parents=True, exist_ok=True)\n    eps = sorted(p.parent.name for p in CACHE.glob(\"procthor10k-*/receipt.json\") if json.loads(p.read_text())[\"status\"] == \"succeeded\")\n    workers = int(sys.argv[2]) if len(sys.argv) > 2 else 2\n    if len(sys.argv) > 3:\n        eps = [e for e in eps if e.endswith(tuple(sys.argv[3].split(\",\")))]\n    res = []\n    with mp.get_context(\"spawn\").Pool(workers) as pool:\n        for r in pool.imap_unordered(one, eps, chunksize=1):\n            res.append(r); print(f\"[est56] {len(res)}/{len(eps)} {r['episode_id']} rows={len(r['rows'])} {r['seconds']}s\", flush=True)\n    rows = [x for r in res for x in r[\"rows\"]]; ofr = [x for r in res for x in r[\"of_rows\"]]\n    def block(sel_rows, sel_of):\n        return {\n            \"fragment_rows\": {\"single_view\": q([x[2] for x in sel_rows]), \"frame_union\": q([x[3] for x in sel_rows]),\n                              \"accumulated_union\": q([x[4] for x in sel_rows]),\n                              \"centroid_distance\": dist([x[5] for x in sel_rows]),\n                              \"centroid_nearest_is_own_object\": float(np.mean([x[6] for x in sel_rows])) if sel_rows else None},\n            \"object_frame_rows\": {\"frame_union\": q([x[2] for x in sel_of]), \"accumulated_union\": q([x[3] for x in sel_of]),\n                                  \"accumulated_union_argmax_own_and_ge_0.3\": float(np.mean([x[4] for x in sel_of])) if sel_of else None,\n                                  \"centroid_distance\": dist([x[5] for x in sel_of]),\n                                  \"centroid_nearest_is_own_object\": float(np.mean([x[6] for x in sel_of])) if sel_of else None},\n        }\n    report = {\"schema_version\": \"vsmt-ruling56-matching-estimate-v1\", \"ruling\": \"D-224-S1 ruling 56 (a), read-only estimate\",\n              \"code_checkout\": C, \"cache_root\": str(CACHE), \"episodes\": len(res), \"association\": \"ideal (private label)\",\n              \"relocation_reset_m\": MOVE_RESET_M, \"all\": block(rows, ofr),\n              \"by_group\": {g: block([x for x in rows if x[0] == g], [x for x in ofr if x[0] == g]) for g in (\"pickupable\", \"receptacle\", \"other\")}}\n    ARCH = {\"wall\", \"room\", \"door\", \"window\"}\n    report[\"architectural_types_excluded_in_non_architectural_block\"] = sorted(ARCH)\n    report[\"non_architectural\"] = block([x for x in rows if x[1] not in ARCH], [x for x in ofr if x[1] not in ARCH])\n    report[\"non_architectural_other_only\"] = block([x for x in rows if x[1] not in ARCH and x[0] == \"other\"],\n                                                   [x for x in ofr if x[1] not in ARCH and x[0] == \"other\"])\n    tnames = sorted({x[1] for x in rows}); ti = {t: i for i, t in enumerate(tnames)}; gi = {\"pickupable\": 0, \"receptacle\": 1, \"other\": 2}\n    np.savez_compressed(OUT / \"rows_no_ids.npz\", type_names=np.array(tnames),\n                        frag=np.array([(gi[x[0]], ti[x[1]], x[2], x[3], x[4], x[5], float(x[6])) for x in rows], dtype=np.float64),\n                        objframe=np.array([(gi[x[0]], ti[x[1]], x[2], x[3], float(x[4]), x[5], float(x[6]), x[7]) for x in ofr], dtype=np.float64))\n    types = collections.Counter(x[1] for x in rows)\n    report[\"by_object_type_top30\"] = {t: {\"group\": collections.Counter(x[0] for x in rows if x[1] == t).most_common(1)[0][0],\n                                          \"fragment_rows\": n,\n                                          \"single_view_median\": float(np.median([x[2] for x in rows if x[1] == t])),\n                                          \"accumulated_union_median\": float(np.median([x[4] for x in rows if x[1] == t])),\n                                          \"accumulated_share_ge_0.3\": float(np.mean([x[4] >= 0.3 for x in rows if x[1] == t])),\n                                          \"centroid_nearest_own\": float(np.mean([x[6] for x in rows if x[1] == t]))}\n                                      for t, n in types.most_common(30)}\n    report[\"object_types_total\"] = len(types)\n    # birth neighbourhood: pool the per-episode summaries (medians/means are summaries; report per-episode medians' spread)\n    bn = {}\n    for s in (\"vits14\", \"vitb14\"):\n        per_r = collections.defaultdict(list)\n        for r in res:\n            for rad, summ in (r[\"births\"].get(s) or {}).items():\n                if summ and summ.get(\"count\"):\n                    per_r[rad].append(summ)\n        bn[s] = {rad: {\"episodes\": len(v), \"births\": int(sum(x[\"count\"] for x in v)),\n                       \"mean_neighbours_weighted\": float(sum(x[\"mean\"] * x[\"count\"] for x in v) / max(1, sum(x[\"count\"] for x in v))),\n                       \"median_of_episode_medians\": float(np.median([x[\"median\"] for x in v])),\n                       \"p75_of_episode_p75\": float(np.median([x[\"p75\"] for x in v]))} for rad, v in sorted(per_r.items())}\n    report[\"birth_neighbourhood\"] = bn\n    report[\"births_total\"] = {s: int(sum((r[\"births_total\"].get(s) or 0) for r in res)) for s in (\"vits14\", \"vitb14\")}\n    report[\"seconds_total\"] = round(sum(r[\"seconds\"] for r in res), 1)\n    (OUT / \"estimate56.json\").write_text(json.dumps(report, indent=1))\n    print(\"wrote\", OUT / \"estimate56.json\")\n\n\nif __name__ == \"__main__\":\n    main()\n",
+ "script_source_sha256": "c4b58b5d916740dce92e002f69ffe0f06a92428f2d9f6358513c68d345027810",
+ "private_ids_exported": false,
+ "estimate": {
+  "schema_version": "vsmt-ruling56-matching-estimate-v1",
+  "ruling": "D-224-S1 ruling 56 (a), read-only estimate",
+  "code_checkout": "154776d",
+  "cache_root": "/root/autodl-tmp/vsmt_caches/lean-s1-03-154776d",
+  "episodes": 39,
+  "association": "ideal (private label)",
+  "relocation_reset_m": 0.05,
+  "all": {
+   "fragment_rows": {
+    "single_view": {
+     "n": 459275,
+     "median": 0.00043791576267906496,
+     "p25": 0.0,
+     "p75": 0.08828316230412342,
+     "share_ge_0.3": 0.1485689401774536
+    },
+    "frame_union": {
+     "n": 459275,
+     "median": 0.005199937732684176,
+     "p25": 0.0,
+     "p75": 0.25911720920387704,
+     "share_ge_0.3": 0.23315442817484078
+    },
+    "accumulated_union": {
+     "n": 459275,
+     "median": 0.02208739777686217,
+     "p25": 0.0,
+     "p75": 0.1663833939080592,
+     "share_ge_0.3": 0.15147787273420063
+    },
+    "centroid_distance": {
+     "n": 459275,
+     "median_m": 1.1841467859564792,
+     "p75_m": 4.669772952375359,
+     "p90_m": 7.774429362591278,
+     "share_le_0.25m": 0.3076109084970878,
+     "share_le_0.5m": 0.43292362963366177,
+     "share_le_1.0m": 0.48991127320232974
+    },
+    "centroid_nearest_is_own_object": 0.44102335202220894
+   },
+   "object_frame_rows": {
+    "frame_union": {
+     "n": 310917,
+     "median": 0.004693770303405296,
+     "p25": 0.0,
+     "p75": 0.2502361828030965,
+     "share_ge_0.3": 0.2294374382873886
+    },
+    "accumulated_union": {
+     "n": 310917,
+     "median": 0.028227025127383443,
+     "p25": 0.0,
+     "p75": 0.18000228476651997,
+     "share_ge_0.3": 0.16072778265582133
+    },
+    "accumulated_union_argmax_own_and_ge_0.3": 0.12089078435724003,
+    "centroid_distance": {
+     "n": 310917,
+     "median_m": 0.9164948030942386,
+     "p75_m": 4.585686468457541,
+     "p90_m": 7.606966067109623,
+     "share_le_0.25m": 0.3310465494006439,
+     "share_le_0.5m": 0.4527639209178012,
+     "share_le_1.0m": 0.5044690383607201
+    },
+    "centroid_nearest_is_own_object": 0.4499110695137287
+   }
+  },
+  "by_group": {
+   "pickupable": {
+    "fragment_rows": {
+     "single_view": {
+      "n": 16285,
+      "median": 0.4533334029190716,
+      "p25": 0.15123198014010247,
+      "p75": 0.676749396168,
+      "share_ge_0.3": 0.6267116978814861
+     },
+     "frame_union": {
+      "n": 16285,
+      "median": 0.46084471960041795,
+      "p25": 0.17425797674654872,
+      "p75": 0.6854636562678598,
+      "share_ge_0.3": 0.6405280933374271
+     },
+     "accumulated_union": {
+      "n": 16285,
+      "median": 0.1415164912943488,
+      "p25": 0.020440818404514966,
+      "p75": 0.43357608716746704,
+      "share_ge_0.3": 0.3501995701565858
+     },
+     "centroid_distance": {
+      "n": 16285,
+      "median_m": 0.05578544239341737,
+      "p75_m": 0.08381694715258452,
+      "p90_m": 0.11202385810172281,
+      "share_le_0.25m": 0.9876573533926927,
+      "share_le_0.5m": 0.9980964077371814,
+      "share_le_1.0m": 0.9996929689898679
+     },
+     "centroid_nearest_is_own_object": 0.9818851704022106
+    },
+    "object_frame_rows": {
+     "frame_union": {
+      "n": 14307,
+      "median": 0.48704616984645493,
+      "p25": 0.18858334712628005,
+      "p75": 0.6920869285998121,
+      "share_ge_0.3": 0.6598168728594395
+     },
+     "accumulated_union": {
+      "n": 14307,
+      "median": 0.15500522665512417,
+      "p25": 0.02337615887576338,
+      "p75": 0.45471875914140075,
+      "share_ge_0.3": 0.3683511567764032
+     },
+     "accumulated_union_argmax_own_and_ge_0.3": 0.36709303138323895,
+     "centroid_distance": {
+      "n": 14307,
+      "median_m": 0.05578544239341737,
+      "p75_m": 0.08413032658888042,
+      "p90_m": 0.11345928968741549,
+      "share_le_0.25m": 0.9867896833717761,
+      "share_le_0.5m": 0.9981128119102537,
+      "share_le_1.0m": 0.9996505207241211
+     },
+     "centroid_nearest_is_own_object": 0.9806388481163067
+    }
+   },
+   "receptacle": {
+    "fragment_rows": {
+     "single_view": {
+      "n": 95641,
+      "median": 0.1364576580264185,
+      "p25": 0.023376892572523303,
+      "p75": 0.49732013076779835,
+      "share_ge_0.3": 0.36070304576489165
+     },
+     "frame_union": {
+      "n": 95641,
+      "median": 0.4185965059035394,
+      "p25": 0.1364576580264185,
+      "p75": 0.7557260187233285,
+      "share_ge_0.3": 0.6044374274631172
+     },
+     "accumulated_union": {
+      "n": 95641,
+      "median": 0.1560352667560561,
+      "p25": 0.057850640756586205,
+      "p75": 0.36110323691099644,
+      "share_ge_0.3": 0.29668238516954026
+     },
+     "centroid_distance": {
+      "n": 95641,
+      "median_m": 0.23828505706275163,
+      "p75_m": 0.38208118493953824,
+      "p90_m": 0.5444173322718372,
+      "share_le_0.25m": 0.5221819094321473,
+      "share_le_0.5m": 0.8762978220637593,
+      "share_le_1.0m": 0.9923568344120199
+     },
+     "centroid_nearest_is_own_object": 0.7123095743457304
+    },
+    "object_frame_rows": {
+     "frame_union": {
+      "n": 65685,
+      "median": 0.35803014452988147,
+      "p25": 0.08899405667333538,
+      "p75": 0.7339267212318834,
+      "share_ge_0.3": 0.5476745071173023
+     },
+     "accumulated_union": {
+      "n": 65685,
+      "median": 0.1397275602418233,
+      "p25": 0.05249482421228215,
+      "p75": 0.34257457426791055,
+      "share_ge_0.3": 0.28298698332952726
+     },
+     "accumulated_union_argmax_own_and_ge_0.3": 0.2781456953642384,
+     "centroid_distance": {
+      "n": 65685,
+      "median_m": 0.2393283959819788,
+      "p75_m": 0.3772518779065641,
+      "p90_m": 0.5191457723362224,
+      "share_le_0.25m": 0.5207886123163584,
+      "share_le_0.5m": 0.8885133592144325,
+      "share_le_1.0m": 0.9929816548679302
+     },
+     "centroid_nearest_is_own_object": 0.6992007307604476
+    }
+   },
+   "other": {
+    "fragment_rows": {
+     "single_view": {
+      "n": 347349,
+      "median": 1.498799022317891e-07,
+      "p25": 0.0,
+      "p75": 0.010605165291213596,
+      "share_ge_0.3": 0.06774166616285061
+     },
+     "frame_union": {
+      "n": 347349,
+      "median": 7.4600085863713445e-06,
+      "p25": 0.0,
+      "p75": 0.051923942678816656,
+      "share_ge_0.3": 0.11182413077337203
+     },
+     "accumulated_union": {
+      "n": 347349,
+      "median": 0.002156492782456059,
+      "p25": 0.0,
+      "p75": 0.09593313248178435,
+      "share_ge_0.3": 0.10217965216540137
+     },
+     "centroid_distance": {
+      "n": 347349,
+      "median_m": 3.1306656583733887,
+      "p75_m": 5.589346860190904,
+      "p90_m": 8.84279990689442,
+      "share_le_0.25m": 0.21664665797224117,
+      "share_le_0.5m": 0.2843451399025188,
+      "share_le_1.0m": 0.3276646830709172
+     },
+     "centroid_nearest_is_own_object": 0.34096830565224023
+    },
+    "object_frame_rows": {
+     "frame_union": {
+      "n": 230925,
+      "median": 4.080910610506877e-06,
+      "p25": 0.0,
+      "p75": 0.04893740984540276,
+      "share_ge_0.3": 0.11225289596189239
+     },
+     "accumulated_union": {
+      "n": 230925,
+      "median": 0.002993724905804321,
+      "p25": 0.0,
+      "p75": 0.11654467799944813,
+      "share_ge_0.3": 0.11308866515102306
+     },
+     "accumulated_union_argmax_own_and_ge_0.3": 0.06090722095918588,
+     "centroid_distance": {
+      "n": 230925,
+      "median_m": 3.0459288028320533,
+      "p75_m": 5.561288020943413,
+      "p90_m": 8.662010118809965,
+      "share_le_0.25m": 0.23644906354877124,
+      "share_le_0.5m": 0.29503085417343294,
+      "share_le_1.0m": 0.334835985709646
+     },
+     "centroid_nearest_is_own_object": 0.34612103496806323
+    }
+   }
+  },
+  "architectural_types_excluded_in_non_architectural_block": [
+   "door",
+   "room",
+   "wall",
+   "window"
+  ],
+  "non_architectural": {
+   "fragment_rows": {
+    "single_view": {
+     "n": 158581,
+     "median": 0.16471696078695452,
+     "p25": 0.02873874112020493,
+     "p75": 0.5333640633595825,
+     "share_ge_0.3": 0.38734148479326025
+    },
+    "frame_union": {
+     "n": 158581,
+     "median": 0.3680415027246377,
+     "p25": 0.1093991967834619,
+     "p75": 0.6746870855687044,
+     "share_ge_0.3": 0.5538242286276414
+    },
+    "accumulated_union": {
+     "n": 158581,
+     "median": 0.1289735518007171,
+     "p25": 0.04171174387101132,
+     "p75": 0.3739083229714764,
+     "share_ge_0.3": 0.3021358170272605
+    },
+    "centroid_distance": {
+     "n": 158581,
+     "median_m": 0.146253133207847,
+     "p75_m": 0.3041282705817364,
+     "p90_m": 0.4690226214732635,
+     "share_le_0.25m": 0.6855613219742592,
+     "share_le_0.5m": 0.9162383892143448,
+     "share_le_1.0m": 0.9953525327750488
+    },
+    "centroid_nearest_is_own_object": 0.8187109426728296
+   },
+   "object_frame_rows": {
+    "frame_union": {
+     "n": 118175,
+     "median": 0.3317435990894433,
+     "p25": 0.09033933098815403,
+     "p75": 0.6526446544240713,
+     "share_ge_0.3": 0.5245356462872858
+    },
+    "accumulated_union": {
+     "n": 118175,
+     "median": 0.12379407113502806,
+     "p25": 0.03824345406996214,
+     "p75": 0.3776812157304725,
+     "share_ge_0.3": 0.30185741485085676
+    },
+    "accumulated_union_argmax_own_and_ge_0.3": 0.2988957055214724,
+    "centroid_distance": {
+     "n": 118175,
+     "median_m": 0.13348491075496874,
+     "p75_m": 0.2896685431324293,
+     "p90_m": 0.44596331317174603,
+     "share_le_0.25m": 0.705453776179395,
+     "share_le_0.5m": 0.927404273323461,
+     "share_le_1.0m": 0.9960482335519357
+    },
+    "centroid_nearest_is_own_object": 0.8234990480220012
+   }
+  },
+  "non_architectural_other_only": {
+   "fragment_rows": {
+    "single_view": {
+     "n": 46655,
+     "median": 0.15724487953197816,
+     "p25": 0.029537451911556913,
+     "p75": 0.4854916903544636,
+     "share_ge_0.3": 0.35839674204265354
+    },
+    "frame_union": {
+     "n": 46655,
+     "median": 0.21447349467699223,
+     "p25": 0.066453268684215,
+     "p75": 0.5374812031415644,
+     "share_ge_0.3": 0.4198049512378095
+    },
+    "accumulated_union": {
+     "n": 46655,
+     "median": 0.08913755922728582,
+     "p25": 0.012476249052355094,
+     "p75": 0.3837059988748007,
+     "share_ge_0.3": 0.29653842031936556
+    },
+    "centroid_distance": {
+     "n": 46655,
+     "median_m": 0.059295135879965793,
+     "p75_m": 0.11234819258193321,
+     "p90_m": 0.21022168660083715,
+     "share_le_0.25m": 0.915035901832601,
+     "share_le_0.5m": 0.969542385596399,
+     "share_le_1.0m": 0.999978566070089
+    },
+    "centroid_nearest_is_own_object": 0.9798735398135248
+   },
+   "object_frame_rows": {
+    "frame_union": {
+     "n": 38183,
+     "median": 0.22824804972178894,
+     "p25": 0.07528461527495374,
+     "p75": 0.5524955478661718,
+     "share_ge_0.3": 0.4340413272922505
+    },
+    "accumulated_union": {
+     "n": 38183,
+     "median": 0.09336148005993582,
+     "p25": 0.012743449089548511,
+     "p75": 0.41454883643552765,
+     "share_ge_0.3": 0.30940470890186733
+    },
+    "accumulated_union_argmax_own_and_ge_0.3": 0.3090380535840557,
+    "centroid_distance": {
+     "n": 38183,
+     "median_m": 0.05512481284652893,
+     "p75_m": 0.10724709650909162,
+     "p90_m": 0.20293657847842902,
+     "share_le_0.25m": 0.9177120708168557,
+     "share_le_0.5m": 0.9678129010292539,
+     "share_le_1.0m": 0.999973810334442
+    },
+    "centroid_nearest_is_own_object": 0.97844590524579
+   }
+  },
+  "by_object_type_top30": {
+   "wall": {
+    "group": "other",
+    "fragment_rows": 130518,
+    "single_view_median": 2.5176965599348555e-09,
+    "accumulated_union_median": 0.08083483560112846,
+    "accumulated_share_ge_0.3": 0.157189046721525,
+    "centroid_nearest_own": 0.026586371228489558
+   },
+   "room": {
+    "group": "other",
+    "fragment_rows": 91510,
+    "single_view_median": 0.0,
+    "accumulated_union_median": 0.0,
+    "accumulated_share_ge_0.3": 0.0,
+    "centroid_nearest_own": 0.1014206097694241
+   },
+   "door": {
+    "group": "other",
+    "fragment_rows": 57557,
+    "single_view_median": 0.012576841964214453,
+    "accumulated_union_median": 0.006121884409735719,
+    "accumulated_share_ge_0.3": 0.0197717045711208,
+    "centroid_nearest_own": 0.9338568723178762
+   },
+   "Painting": {
+    "group": "other",
+    "fragment_rows": 27127,
+    "single_view_median": 0.17393079155296987,
+    "accumulated_union_median": 0.08913754860754784,
+    "accumulated_share_ge_0.3": 0.30832749659011316,
+    "centroid_nearest_own": 0.9979724997235226
+   },
+   "window": {
+    "group": "other",
+    "fragment_rows": 21109,
+    "single_view_median": 8.698344003274912e-05,
+    "accumulated_union_median": 1.4942758338468779e-05,
+    "accumulated_share_ge_0.3": 0.00014211947510540528,
+    "centroid_nearest_own": 0.2945662987351367
+   },
+   "Bed": {
+    "group": "receptacle",
+    "fragment_rows": 15562,
+    "single_view_median": 0.07237494801943914,
+    "accumulated_union_median": 0.2279649511603173,
+    "accumulated_share_ge_0.3": 0.4068243156406632,
+    "centroid_nearest_own": 0.6014008482200232
+   },
+   "Sofa": {
+    "group": "receptacle",
+    "fragment_rows": 12988,
+    "single_view_median": 0.06376908582441466,
+    "accumulated_union_median": 0.11389707495946944,
+    "accumulated_share_ge_0.3": 0.28441638435478905,
+    "centroid_nearest_own": 0.7346011703110563
+   },
+   "Television": {
+    "group": "other",
+    "fragment_rows": 10399,
+    "single_view_median": 0.10422585125335718,
+    "accumulated_union_median": 0.11780860237189268,
+    "accumulated_share_ge_0.3": 0.3543609962496394,
+    "centroid_nearest_own": 0.9985575536109241
+   },
+   "Chair": {
+    "group": "receptacle",
+    "fragment_rows": 9917,
+    "single_view_median": 0.13363618966733062,
+    "accumulated_union_median": 0.061340582600298926,
+    "accumulated_share_ge_0.3": 0.11364323888272664,
+    "centroid_nearest_own": 0.965614601189876
+   },
+   "DiningTable": {
+    "group": "receptacle",
+    "fragment_rows": 9722,
+    "single_view_median": 0.0511536479628799,
+    "accumulated_union_median": 0.10193242539685946,
+    "accumulated_share_ge_0.3": 0.1551121168483851,
+    "centroid_nearest_own": 0.3532195021600494
+   },
+   "CounterTop": {
+    "group": "receptacle",
+    "fragment_rows": 8050,
+    "single_view_median": 0.11074427284158803,
+    "accumulated_union_median": 0.14594185486455413,
+    "accumulated_share_ge_0.3": 0.17677018633540373,
+    "centroid_nearest_own": 0.7007453416149069
+   },
+   "ArmChair": {
+    "group": "receptacle",
+    "fragment_rows": 6391,
+    "single_view_median": 0.2367706569531271,
+    "accumulated_union_median": 0.1848032235306133,
+    "accumulated_share_ge_0.3": 0.39211391018619934,
+    "centroid_nearest_own": 0.9195744015021123
+   },
+   "Fridge": {
+    "group": "receptacle",
+    "fragment_rows": 5403,
+    "single_view_median": 0.2997669657474961,
+    "accumulated_union_median": 0.06302118017876358,
+    "accumulated_share_ge_0.3": 0.1291874884323524,
+    "centroid_nearest_own": 0.8652600407181196
+   },
+   "Dresser": {
+    "group": "receptacle",
+    "fragment_rows": 4548,
+    "single_view_median": 0.3050425540175621,
+    "accumulated_union_median": 0.1856026391340108,
+    "accumulated_share_ge_0.3": 0.3876429199648197,
+    "centroid_nearest_own": 0.1299472295514512
+   },
+   "FloorLamp": {
+    "group": "other",
+    "fragment_rows": 3535,
+    "single_view_median": 0.12389520729877133,
+    "accumulated_union_median": 0.08531878946178678,
+    "accumulated_share_ge_0.3": 0.2033946251768034,
+    "centroid_nearest_own": 0.9816124469589816
+   },
+   "ShelvingUnit": {
+    "group": "receptacle",
+    "fragment_rows": 3334,
+    "single_view_median": 0.0018036845298758325,
+    "accumulated_union_median": 0.20339473135401856,
+    "accumulated_share_ge_0.3": 0.4424115176964607,
+    "centroid_nearest_own": 0.6877624475104979
+   },
+   "GarbageCan": {
+    "group": "receptacle",
+    "fragment_rows": 3201,
+    "single_view_median": 0.7526438225111971,
+    "accumulated_union_median": 0.30255894255119775,
+    "accumulated_share_ge_0.3": 0.5007810059356451,
+    "centroid_nearest_own": 1.0
+   },
+   "Toilet": {
+    "group": "receptacle",
+    "fragment_rows": 3026,
+    "single_view_median": 0.15372731862938163,
+    "accumulated_union_median": 0.38544487525401444,
+    "accumulated_share_ge_0.3": 0.624256444150694,
+    "centroid_nearest_own": 0.9867812293456708
+   },
+   "TVStand": {
+    "group": "receptacle",
+    "fragment_rows": 2993,
+    "single_view_median": 0.09188200863550446,
+    "accumulated_union_median": 0.2424017718352528,
+    "accumulated_share_ge_0.3": 0.38189107918476445,
+    "centroid_nearest_own": 0.49047778149014365
+   },
+   "DogBed": {
+    "group": "receptacle",
+    "fragment_rows": 2858,
+    "single_view_median": 0.7171197959777795,
+    "accumulated_union_median": 0.05282350144919747,
+    "accumulated_share_ge_0.3": 0.20153953813855843,
+    "centroid_nearest_own": 1.0
+   },
+   "Pillow": {
+    "group": "pickupable",
+    "fragment_rows": 2673,
+    "single_view_median": 0.561097567185004,
+    "accumulated_union_median": 0.20546344987862494,
+    "accumulated_share_ge_0.3": 0.38496071829405165,
+    "centroid_nearest_own": 0.9936401047512159
+   },
+   "SideTable": {
+    "group": "receptacle",
+    "fragment_rows": 2223,
+    "single_view_median": 0.5584224065083149,
+    "accumulated_union_median": 0.20882758988987685,
+    "accumulated_share_ge_0.3": 0.3292847503373819,
+    "centroid_nearest_own": 0.5276653171390013
+   },
+   "Sink": {
+    "group": "receptacle",
+    "fragment_rows": 2096,
+    "single_view_median": 0.43192088938325934,
+    "accumulated_union_median": 0.6257861493814234,
+    "accumulated_share_ge_0.3": 0.6693702290076335,
+    "centroid_nearest_own": 0.8010496183206107
+   },
+   "Laptop": {
+    "group": "pickupable",
+    "fragment_rows": 1816,
+    "single_view_median": 0.3608678587317204,
+    "accumulated_union_median": 0.10043991256000556,
+    "accumulated_share_ge_0.3": 0.31112334801762115,
+    "centroid_nearest_own": 0.9961453744493393
+   },
+   "Box": {
+    "group": "pickupable",
+    "fragment_rows": 1804,
+    "single_view_median": 0.44158614657947637,
+    "accumulated_union_median": 0.061259876413144655,
+    "accumulated_share_ge_0.3": 0.27882483370288247,
+    "centroid_nearest_own": 1.0
+   },
+   "GarbageBag": {
+    "group": "other",
+    "fragment_rows": 1735,
+    "single_view_median": 0.32519153942130985,
+    "accumulated_union_median": 0.031143580275648362,
+    "accumulated_share_ge_0.3": 0.011527377521613832,
+    "centroid_nearest_own": 1.0
+   },
+   "Book": {
+    "group": "pickupable",
+    "fragment_rows": 1448,
+    "single_view_median": 0.6753717924529352,
+    "accumulated_union_median": 0.3423281888889864,
+    "accumulated_share_ge_0.3": 0.550414364640884,
+    "centroid_nearest_own": 0.9896408839779005
+   },
+   "Desk": {
+    "group": "receptacle",
+    "fragment_rows": 1367,
+    "single_view_median": 0.18789068148246116,
+    "accumulated_union_median": 0.1015624918656088,
+    "accumulated_share_ge_0.3": 0.30651060716898315,
+    "centroid_nearest_own": 0.7556693489392831
+   },
+   "DeskLamp": {
+    "group": "other",
+    "fragment_rows": 1364,
+    "single_view_median": 0.16413608511947309,
+    "accumulated_union_median": 0.012048584463342829,
+    "accumulated_share_ge_0.3": 0.060117302052785926,
+    "centroid_nearest_own": 1.0
+   },
+   "HousePlant": {
+    "group": "other",
+    "fragment_rows": 1309,
+    "single_view_median": 0.1041713003183885,
+    "accumulated_union_median": 0.12115901750164754,
+    "accumulated_share_ge_0.3": 0.21695951107715813,
+    "centroid_nearest_own": 0.9923605805958747
+   }
+  },
+  "object_types_total": 83,
+  "birth_neighbourhood": {
+   "vits14": {
+    "0.25": {
+     "episodes": 39,
+     "births": 4712,
+     "mean_neighbours_weighted": 0.07024617996604414,
+     "median_of_episode_medians": 0.0,
+     "p75_of_episode_p75": 0.0
+    },
+    "0.5": {
+     "episodes": 39,
+     "births": 4712,
+     "mean_neighbours_weighted": 0.34868421052631576,
+     "median_of_episode_medians": 0.0,
+     "p75_of_episode_p75": 0.0
+    },
+    "1.0": {
+     "episodes": 39,
+     "births": 4712,
+     "mean_neighbours_weighted": 1.1513157894736843,
+     "median_of_episode_medians": 0.0,
+     "p75_of_episode_p75": 2.0
+    }
+   },
+   "vitb14": {
+    "0.25": {
+     "episodes": 39,
+     "births": 4712,
+     "mean_neighbours_weighted": 0.07024617996604414,
+     "median_of_episode_medians": 0.0,
+     "p75_of_episode_p75": 0.0
+    },
+    "0.5": {
+     "episodes": 39,
+     "births": 4712,
+     "mean_neighbours_weighted": 0.34868421052631576,
+     "median_of_episode_medians": 0.0,
+     "p75_of_episode_p75": 0.0
+    },
+    "1.0": {
+     "episodes": 39,
+     "births": 4712,
+     "mean_neighbours_weighted": 1.1513157894736843,
+     "median_of_episode_medians": 0.0,
+     "p75_of_episode_p75": 2.0
+    }
+   }
+  },
+  "births_total": {
+   "vits14": 4712,
+   "vitb14": 4712
+  },
+  "seconds_total": 3335.5
+ }
+}
