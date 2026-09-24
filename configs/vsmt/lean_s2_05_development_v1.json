@@ -162,6 +162,7 @@
   "table": {
     "better": {
       "node_prf1": "higher",
+      "node_prf1_centroid": "higher",
       "missing_residual_rate": "lower",
       "false_retract_rate": "lower",
       "identity_continuity": "higher",
@@ -232,5 +233,8 @@
   "pending_user_rulings": {
     "batch_1_run_critical_values": "待裁 67：跑校准趟就需要的值——S0-01 dormancy_missed_opportunity_limit 与去重四值、S0-04 dominance_min_share／delta_moved_m／nuisance maximum_advantage、S0-05 should_be_visible_min_ratio／weight_decay／seeds、S0-03 reference_score_seed。提案与依据见 DECISIONS。",
     "batch_2_after_calibration": "待裁 68：校准趟之后——S0-05 各臂网格（每方法 ≤12、规则臂含无门项）、ELU-P rollout_config 三值（须为网格成员）、本合同的八个开发配置槽、S0-03 existence_threshold_tau_r。"
-  }
+  },
+  "user_rulings": [
+    "D-224-S1 裁决 70（2026-09-24 批准，原话「裁决 70 取 (a)」）：table.better 增登 node_prf1_centroid=higher（次级列并列报告，不选配置）；摘要重钉。"
+  ]
 }

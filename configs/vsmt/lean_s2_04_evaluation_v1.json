@@ -72,6 +72,7 @@
   },
   "headline_fields": {
     "node_prf1": "node_f1",
+    "node_prf1_centroid": "node_f1",
     "missing_residual_rate": "missing_residual_rate",
     "false_retract_rate": "false_retract_rate",
     "identity_continuity": "identity_continuity",
@@ -116,7 +117,8 @@
       "D-224-S1 裁决 64（2026-09-24 批准，原话「S2-04 审过；裁决 64 取 (a)，65 五条全按推荐。然后我看S205里面有不因开发差不利就改设计或删消融，我觉得可以改设计，继续下一步」）：取 (a)，S2-05 的运行位由 S2 阶段合同持有，S0 各位保持 false。",
       "D-224-S1 裁决 65（同日批准，原话同上）：五条派生规则全按推荐，即本合同 derivation_rules 登记的字串——可观察判定用 S2-01 entity_geometry 的采样盒测试、比例 ≥ S0-05 共享下限；旧位置取窗口最后一帧、新位置取窗口后第一帧的追踪器输出；搬动物体旧/新位置任一可观察即起算恢复；搬动前承载实体不限状态；第一次带标签重见＝窗口后第一次有色块主导物体是它；解析到结构件的存在候选一律 present。",
       "S2-04 代码审查通过（2026-09-24，原话同上）：本合同与 lean_evaluation.py 按 D-059 成为 S2-05 的基线。",
-      "D-224-S1 裁决 69（2026-09-24 批准，原话「裁决 69 取 (a)。」）：structural_existence 规则覆盖运行时生成物；规则摘要重钉。"
+      "D-224-S1 裁决 69（2026-09-24 批准，原话「裁决 69 取 (a)。」）：structural_existence 规则覆盖运行时生成物；规则摘要重钉。",
+      "D-224-S1 裁决 70（2026-09-24 批准，原话「裁决 70 取 (a)」）：headline_fields 增登 node_prf1_centroid → node_f1（S0-04 的次级节点列，S2-05 开发表并列报告、不选配置、不进主门）；摘要重钉。"
     ]
   }
 }

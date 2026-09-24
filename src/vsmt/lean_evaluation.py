@@ -1,5 +1,6 @@
 """D-224 / S2-04: teacher and evaluator wiring -- from the S2-01 runner's per-frame products and the
-private plane to labels, the three-way decomposition, the seven metrics and the training records.
+private plane to labels, the three-way decomposition, the eight metrics (the seven of S0-04 and the
+ruling-70 secondary node column) and the training records.
 
 The S0-04 core (``lean_teacher``, reviewed) already defines every label rule, every metric and the
 statistics.  What it does not say is *where its inputs come from* once a real arm has run on a real
@@ -25,7 +26,7 @@ comes from one auditable path:
 The public phase never sees this module: the runner is a pure function of the cache and the arm,
 and the receipt it returns already carries the two seals.  Nothing here changes a public byte.
 
-白话：S0-04 已经把"标签怎么打、七项指标怎么算"定死了；S2-04 补的是"跑起来之后这些输入从哪来"。
+白话：S0-04 已经把"标签怎么打、七项指标（裁决 70 后再加一列质心次级节点列）怎么算"定死了；S2-04 补的是"跑起来之后这些输入从哪来"。
 每帧：拿 runner 的一步产物（封存 A/B、分配、存在候选与决定、提交前后的记忆）和这一帧的私有记录
 （实例图、物体位姿、可见像素），先核对放行回执，再算每个色块落在哪个物体上、每个实体一直在
 收集谁的证据，据此给出 S0-04 的目标列与存在标签、三分解、逐帧的节点匹配与污染占比、假撤回、
@@ -98,6 +99,7 @@ POLICY_INPUT_SOURCES = {
 #: The scalar each metric contributes to a house-level table (size_and_cost has none).
 HEADLINE_FIELD = {
     "node_prf1": "node_f1",
+    "node_prf1_centroid": "node_f1",
     "missing_residual_rate": "missing_residual_rate",
     "false_retract_rate": "false_retract_rate",
     "identity_continuity": "identity_continuity",
@@ -435,6 +437,7 @@ class EpisodeTeacher:
             "tick": int(receipt["tick"]), "frame_index": frame_index, "frame_digest": str(receipt["frame_digest"]),
             "private_gate": gate, "targets": targets, "existence_labels": existence, "decomposition": decomposition,
             "node_prf1": {name: frame_eval[name] for name in lt.METRIC_FIELDS["node_prf1"]},
+            "node_prf1_centroid": {name: frame_eval["node_prf1_centroid"][name] for name in lt.METRIC_FIELDS["node_prf1_centroid"]},
             "contamination_fraction": frame_eval["contamination_fraction"],
             "stale_entities": frame_eval["stale_entities"], "wrongly_absent_objects": frame_eval["wrongly_absent_objects"],
             "out_of_scope_entities": frame_eval["out_of_scope_entities"],
@@ -450,21 +453,26 @@ class EpisodeTeacher:
     # -- the episode -----------------------------------------------------------
 
     def episode_report(self) -> dict[str, Any]:
-        """The seven metrics with exactly the frozen fields, plus diagnostics outside the report."""
+        """The frozen metrics with exactly the frozen fields, plus diagnostics outside the report."""
 
         _require(bool(self.frames), "episode_without_frames")
         frames = self.frames
-        matched = sum(int(f["node_prf1"]["matched"]) for f in frames)
-        predicted = sum(int(f["node_prf1"]["predicted"]) for f in frames)
-        truth = sum(int(f["node_prf1"]["truth"]) for f in frames)
-        precision = matched / predicted if predicted else None
-        recall = matched / truth if truth else None
-        if precision is None or recall is None:
-            f1 = None
-        elif precision + recall == 0.0:
-            f1 = 0.0
-        else:
-            f1 = 2.0 * precision * recall / (precision + recall)
+
+        def node_block(metric: str) -> dict[str, Any]:  # micro over the frames; node_prf1 and its ruling-70 centroid column
+            matched = sum(int(f[metric]["matched"]) for f in frames)
+            predicted = sum(int(f[metric]["predicted"]) for f in frames)
+            truth = sum(int(f[metric]["truth"]) for f in frames)
+            precision = matched / predicted if predicted else None
+            recall = matched / truth if truth else None
+            if precision is None or recall is None:
+                f1 = None
+            elif precision + recall == 0.0:
+                f1 = 0.0
+            else:
+                f1 = 2.0 * precision * recall / (precision + recall)
+            return {"node_precision": precision, "node_recall": recall, "node_f1": f1,
+                    "matched": matched, "predicted": predicted, "truth": truth}
+
         false_retracts = sum(int(f["false_retract"]["false_retracts"]) for f in frames)
         judged_retracts = sum(int(f["false_retract"]["judged_retracts"]) for f in frames)
         ambiguous_retracts = sum(int(f["false_retract"]["ambiguous_retracts"]) for f in frames)
@@ -473,8 +481,8 @@ class EpisodeTeacher:
         contamination = lt.contamination_auc([f["contamination_fraction"] for f in frames])
         count = len(frames)
         report = {
-            "node_prf1": {"node_precision": precision, "node_recall": recall, "node_f1": f1,
-                          "matched": matched, "predicted": predicted, "truth": truth},
+            "node_prf1": node_block("node_prf1"),
+            "node_prf1_centroid": node_block("node_prf1_centroid"),
             "missing_residual_rate": (
                 {name: last_missing[name] for name in lt.METRIC_FIELDS["missing_residual_rate"]} if last_missing is not None
                 else {"missing_residual_rate": None, "residual": 0, "judged": 0, "not_yet_observable": 0}),

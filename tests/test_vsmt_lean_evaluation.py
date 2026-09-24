@@ -209,6 +209,10 @@ class TafEpisodeTests(unittest.TestCase):
         self.assertEqual(self.frames[2]["truth_in_scope"], ["Book|2"])
         report = self.episode["report"]
         self.assertEqual(report["node_prf1"], {"node_precision": 0.7, "node_recall": 1.0, "node_f1": 2 * 0.7 / 1.7, "matched": 7, "predicted": 10, "truth": 7})
+        # ruling 70: every entity centroid sits on its object's truth centroid here, so the centroid column
+        # equals the IoU column frame by frame and over the episode
+        self.assertEqual([f["node_prf1_centroid"] for f in self.frames], [f["node_prf1"] for f in self.frames])
+        self.assertEqual(report["node_prf1_centroid"], report["node_prf1"])
         self.assertEqual([f["contamination_fraction"] for f in self.frames], [0.0, 0.0, 0.5, 0.5, 0.5])
         self.assertAlmostEqual(report["contamination_auc"]["contamination_auc"], 0.3125)
         self.assertEqual(report["contamination_auc"]["frames"], 5)

@@ -84,6 +84,7 @@ EXISTENCE_CANDIDATE_STATES = ("active", "dormant")
 #: The seven metrics the paper may report, and no eighth.
 METRICS = (
     "node_prf1",
+    "node_prf1_centroid",
     "missing_residual_rate",
     "false_retract_rate",
     "identity_continuity",
@@ -95,6 +96,7 @@ METRICS = (
 #: The only fields a report may carry under each metric.
 METRIC_FIELDS: dict[str, tuple[str, ...]] = {
     "node_prf1": ("node_precision", "node_recall", "node_f1", "matched", "predicted", "truth"),
+    "node_prf1_centroid": ("node_precision", "node_recall", "node_f1", "matched", "predicted", "truth"),
     "missing_residual_rate": ("missing_residual_rate", "residual", "judged", "not_yet_observable"),
     "false_retract_rate": ("false_retract_rate", "false_retracts", "judged_retracts", "ambiguous_retracts"),
     "identity_continuity": ("identity_continuity", "kept", "judged", "no_prior_carrier"),
@@ -175,6 +177,17 @@ SPAWN_TAG = re.compile(r"^[A-Za-z][A-Za-z0-9]*_\d+$")
 #: the episode frame.  The observed-set box (union of back-projected private masks) is a proxy
 #: and may only be reported as a comparison column, never used as the truth box.
 TRUTH_BOX_SOURCE = "simulator_initial_axis_aligned_box_plus_recorded_translation"
+#: D-224-S1 ruling 70 (2026-09-24): a secondary node column reported beside ``node_prf1``.  Same
+#: predictions, same present in-scope truth objects, the same evaluator-owned maximum-weight
+#: matching; the overlap test is the entity-to-truth centroid distance within the frozen
+#: ``delta_moved_m`` instead of 3D IoU, weighted 1/(1+distance) so nearer pairs win.  LOG-255: entity
+#: boxes are single-frame depth-surface shells, so 83-87 percent of truth objects had a correctly
+#: identified entity within 0.5 m while 35 percent failed IoU 0.3; this column separates "wrong
+#: place" from "right place, thin box".  IoU 0.3 stays the primary, Dyn-THOR-aligned column; this
+#: one never selects a configuration and never enters the main gate.
+CENTROID_MATCHING_RULE = "same_predictions_and_truth_objects_maximum_weight_matching_on_1_over_1_plus_centroid_distance_m_pairs_beyond_delta_moved_m_excluded"
+CENTROID_MATCHING_DISTANCE_SOURCE = "labels.existence.delta_moved_m"
+CENTROID_MATCHING_ROLE = "secondary_column_reported_beside_node_prf1_never_the_selection_metric_never_in_the_main_gate"
 STRONGEST_CONTROL_RULE = "best_house_mean_per_metric_among_controls_ties_to_smallest_name"
 
 
@@ -241,6 +254,16 @@ def _aabb_iou(
         volume_b *= max(0.0, float(upper_b[axis]) - float(lower_b[axis]))
     union = volume_a + volume_b - overlap
     return overlap / union if union > 0.0 else 0.0
+
+
+def _precision_recall_f1(matched: int, predicted: int, truth: int) -> tuple[float | None, float | None, float | None]:
+    precision = matched / predicted if predicted else None
+    recall = matched / truth if truth else None
+    if precision is None or recall is None:
+        return precision, recall, None
+    if precision + recall == 0.0:
+        return precision, recall, 0.0
+    return precision, recall, 2.0 * precision * recall / (precision + recall)
 
 
 def _states(states: Sequence[str], code: str) -> tuple[str, ...]:
@@ -874,7 +897,10 @@ def evaluate_frame(
     白话：输入提交后的记忆、本帧真值物体表（范围内每个物体是否在场及其框）和历史
     证据映射，输出节点级精确率、召回率、F1，以及本帧的"污染占比"。预测集合是状
     态在登记的"仍在记忆里"集合（推荐 active 与 dormant）中的实体；匹配按三维交并
-    比不低于登记下限做最大权匹配，与 Dyn-THOR 口径一致。陈旧实体是仍在记忆里、但
+    比不低于登记下限做最大权匹配，与 Dyn-THOR 口径一致。裁决 70 后同时给出一列次级
+    节点指标：同一批实体与真值、同一个匹配器，只把"框重叠"换成"实体质心到真值质心
+    的距离不超过已冻结的 δ_moved"，它把"记错地方"和"地方对、框太薄"分开，不选配置、
+    不进主门。陈旧实体是仍在记忆里、但
     其物体已不在它记住的位置的实体；错误缺席是范围内在场、但记忆里没有任何该身份
     实体在其位置附近的物体。污染占比 =（陈旧＋错误缺席）/（记忆里的实体＋错误缺
     席）。它不评价撤回决定本身，那由假撤回率单独算。
@@ -922,14 +948,18 @@ def evaluate_frame(
     ]
     pairs = _max_weight_matching(weights)
     matched = len(pairs)
-    precision = matched / len(predictions) if predictions else None
-    recall = matched / len(present_keys) if present_keys else None
-    if precision is None or recall is None:
-        f1 = None
-    elif precision + recall == 0.0:
-        f1 = 0.0
-    else:
-        f1 = 2.0 * precision * recall / (precision + recall)
+    precision, recall, f1 = _precision_recall_f1(matched, len(predictions), len(present_keys))
+    # D-224-S1 ruling 70: the secondary column -- the same two sets and the same matcher, the
+    # overlap test replaced by the centroid distance within delta, nearer pairs weighted higher
+    centroid_weights = [
+        [
+            (lambda d: (1.0 / (1.0 + d)) if d <= delta else 0.0)(_distance(entity["centroid_m"], truth[key]["centroid_m"]))
+            for key in present_keys
+        ]
+        for entity in predictions
+    ]
+    centroid_pairs = _max_weight_matching(centroid_weights)
+    centroid_precision, centroid_recall, centroid_f1 = _precision_recall_f1(len(centroid_pairs), len(predictions), len(present_keys))
 
     stale: list[str] = []
     ambiguous: list[str] = []
@@ -961,6 +991,11 @@ def evaluate_frame(
         "predicted": len(predictions),
         "truth": len(present_keys),
         "matched_pairs": [(str(predictions[row]["entity_id"]), present_keys[column]) for row, column in pairs],
+        "node_prf1_centroid": {
+            "node_precision": centroid_precision, "node_recall": centroid_recall, "node_f1": centroid_f1,
+            "matched": len(centroid_pairs), "predicted": len(predictions), "truth": len(present_keys),
+        },
+        "centroid_matched_pairs": [(str(predictions[row]["entity_id"]), present_keys[column]) for row, column in centroid_pairs],
         "stale_entities": stale,
         "wrongly_absent_objects": wrongly_absent,
         "identity_ambiguous_entities": ambiguous,
@@ -1597,6 +1632,10 @@ def validate_teacher_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     _require(tuple(metrics["memory_present_states"]) == MEMORY_PRESENT_STATES, "contract_memory_present_states_mismatch")
     _require(metrics["node_prf1"]["truth_node_scope"] == TRUTH_NODE_SCOPE, "contract_truth_node_scope_mismatch")
     _require(metrics["node_prf1"].get("spawned_after_reload_rule") == SPAWNED_AFTER_RELOAD_RULE, "contract_spawned_rule_mismatch")
+    centroid = metrics.get("node_prf1_centroid") or {}
+    _require(centroid.get("matching") == CENTROID_MATCHING_RULE, "contract_centroid_matching_mismatch")
+    _require(centroid.get("distance_max_source") == CENTROID_MATCHING_DISTANCE_SOURCE, "contract_centroid_distance_source_mismatch")
+    _require(centroid.get("role") == CENTROID_MATCHING_ROLE, "contract_centroid_role_mismatch")
     _require(tuple(metrics["node_prf1"].get("structural_types_excluded_from_scope") or ()) == STRUCTURAL_TYPES_EXCLUDED,
              "contract_structural_scope_mismatch")
     _require(contract["private_truth_inputs"]["truth_box_source"]["rule"] == TRUTH_BOX_SOURCE,
@@ -1663,6 +1702,9 @@ __all__ = [
     "ASSOCIATION_STATUSES",
     "BIRTH_COLUMN_PREFIX",
     "BOOTSTRAP_ITERATIONS",
+    "CENTROID_MATCHING_DISTANCE_SOURCE",
+    "CENTROID_MATCHING_ROLE",
+    "CENTROID_MATCHING_RULE",
     "CONFIDENCE_ONE_SIDED",
     "CONTRACT_SCHEMA_VERSION",
     "CONTROL_ARMS",

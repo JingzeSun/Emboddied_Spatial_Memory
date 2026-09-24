@@ -127,6 +127,7 @@
   "metrics": {
     "names": [
       "node_prf1",
+      "node_prf1_centroid",
       "missing_residual_rate",
       "false_retract_rate",
       "identity_continuity",
@@ -136,6 +137,14 @@
     ],
     "reported_fields": {
       "node_prf1": [
+        "node_precision",
+        "node_recall",
+        "node_f1",
+        "matched",
+        "predicted",
+        "truth"
+      ],
+      "node_prf1_centroid": [
         "node_precision",
         "node_recall",
         "node_f1",
@@ -215,6 +224,19 @@
       "truth_table_carries_in_scope_flag": true,
       "truth_table": "every private object any entity's evidence can resolve to, each with present, in_scope and (when present) box and centroid; the scope rule is applied by the evaluator, never by pre-filtering the table",
       "present_out_of_scope_entities_excluded_from_precision_denominator": true
+    },
+    "node_prf1_centroid": {
+      "numerator": "matched pairs of an in-memory entity and a present truth object whose centroid distance is within delta_moved_m, under the evaluator's own maximum-weight matching with weight 1/(1+distance_m)",
+      "precision_denominator": "identical to node_prf1 (the same prediction set, the same out_of_scope exclusion)",
+      "recall_denominator": "identical to node_prf1 (the same present in-scope truth objects)",
+      "matching": "same_predictions_and_truth_objects_maximum_weight_matching_on_1_over_1_plus_centroid_distance_m_pairs_beyond_delta_moved_m_excluded",
+      "distance_max_source": "labels.existence.delta_moved_m",
+      "weight": "1/(1+centroid_distance_m)",
+      "role": "secondary_column_reported_beside_node_prf1_never_the_selection_metric_never_in_the_main_gate",
+      "why": "LOG-255 (read-only audit, b517890): entity boxes are single-frame depth-surface shells; on four development episodes 83-87 percent of truth objects had a correctly identified entity within 0.5 m while 35 percent failed IoU 0.3. This column separates wrong place from right place with a thin box. IoU 0.3 stays the primary, Dyn-THOR-aligned column.",
+      "frozen_by": "D-224-S1 ruling 70",
+      "frozen_on": "2026-09-24",
+      "plain_language_zh": "裁决 70：在 IoU 0.3 主列旁边再报一列节点 P/R/F1：同一批预测实体、同一批真值物体、同一个评价器自带的最大权匹配，只是把“框重叠≥0.3”换成“实体质心到真值质心的距离≤已冻结的 delta_moved_m（0.5 m）”，权重 1/(1+距离) 让更近的对先配。它把“记错地方”和“地方对、框太薄”分开：实体框来自单帧深度表面壳，对整体真值盒的 IoU 天然偏低。它不选配置、不进主门，主列仍是与 Dyn-THOR 对齐的 IoU 0.3。"
     },
     "missing_residual_rate": {
       "numerator": "removed or moved objects with an in-memory entity of that identity within delta_moved_m of the old position",
@@ -359,7 +381,8 @@
     "plain_language_zh": "六项口径由用户于 2026-09-20 以 D-224-LQ 批准，全部按 LOG-217 的推荐口径执行；本合同的状态集合、规则字符串与布尔声称即其机器形式。",
     "ruling_56_continued": "the truth node scope excludes the four ProcTHOR structural types door, room, wall and window, identified by the private key prefix; entities resolving to them are out of scope under X6 (D-224-S1 ruling 56 continued, 2026-09-24, 原话「裁决 56 续取 (a)：真值范围排除 wall/room/door/window，BIND 框改为同帧并集；裁决 58 取 1.0 m」; evidence LOG-244 continued)",
     "ruling_67": "D-224-S1 裁决 67（2026-09-24 批准，原话「S2-05 审过；裁决 67 八个值全按推荐。」）：labels.fragment_dominance.dominance_min_share=0.5、labels.existence.delta_moved_m=0.5，绑定常量 DOMINANCE_MIN_SHARE／DELTA_MOVED_M，登记进跨合同台账；bootstrap_seed 与 main_gate_effect_size 留到 S3-01，nuisance 上限归裁决 68。",
-    "ruling_69": "D-224-S1 裁决 69（2026-09-24 批准，原话「裁决 69 取 (a)。」，取 (a)）：structural_types_excluded_from_scope 加 Ceiling_room；新增 spawned_after_reload_rule。这是规则变更，规则摘要重钉（见跨合同台账）。S1 不重做。"
+    "ruling_69": "D-224-S1 裁决 69（2026-09-24 批准，原话「裁决 69 取 (a)。」，取 (a)）：structural_types_excluded_from_scope 加 Ceiling_room；新增 spawned_after_reload_rule。这是规则变更，规则摘要重钉（见跨合同台账）。S1 不重做。",
+    "ruling_70": "D-224-S1 裁决 70（2026-09-24 批准，原话「裁决 70 取 (a)」）：主节点指标保持裁决 C 的匈牙利 3D IoU 0.3 不变；新增 node_prf1_centroid 次级列——同一批预测、同一批真值、同一个评价器匹配器，重叠判定换成实体质心到真值质心距离 ≤ delta_moved_m（0.5 m），权重 1/(1+距离)；主表并列报告，不选配置、不进主门。依据 LOG-255 的只读审计。"
   },
   "continue_gate": {
     "metric_list_frozen_before_any_data_generation": true,

@@ -143,6 +143,7 @@ class EluPCounterTests(unittest.TestCase):
 class DevelopmentTableTests(unittest.TestCase):
     def report(self, *, f1, mrr, frr, cont, latency, auc, active=3.0):
         return {"node_prf1": {"node_precision": 1.0, "node_recall": 1.0, "node_f1": f1, "matched": 1, "predicted": 1, "truth": 1},
+                "node_prf1_centroid": {"node_precision": 1.0, "node_recall": 1.0, "node_f1": f1, "matched": 1, "predicted": 1, "truth": 1},
                 "missing_residual_rate": {"missing_residual_rate": mrr, "residual": 0, "judged": 0, "not_yet_observable": 0},
                 "false_retract_rate": {"false_retract_rate": frr, "false_retracts": 0, "judged_retracts": 0, "ambiguous_retracts": 0},
                 "identity_continuity": {"identity_continuity": cont, "kept": 0, "judged": 0, "no_prior_carrier": 0},

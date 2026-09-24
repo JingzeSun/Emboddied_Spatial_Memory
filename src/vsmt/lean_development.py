@@ -53,7 +53,7 @@ STAGE_ID = "S2-05"
 DEVELOPMENT_ARMS = ("VSMT-lean", "TAF", "ELU-P", "RAC", "LOW", "NoVersion", "AssocOnly")
 METHOD_ARM = arms.METHOD_ARM
 #: Direction in which a larger headline value is better (size_and_cost is reported, never compared).
-BETTER = {"node_prf1": "higher", "missing_residual_rate": "lower", "false_retract_rate": "lower",
+BETTER = {"node_prf1": "higher", "node_prf1_centroid": "higher", "missing_residual_rate": "lower", "false_retract_rate": "lower",
           "identity_continuity": "higher", "recovery_latency_frames": "lower", "contamination_auc": "lower"}
 #: The passes of S2-05 in order; each pass is one S2-04 run per episode.
 PASSES = (

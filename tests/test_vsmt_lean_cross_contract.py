@@ -308,7 +308,11 @@ FROZEN_RULE_SHA256 = {
     # Re-pinned 2026-09-24 for ruling 69 (LOG-253): Ceiling_room joins the structural types and the
     # spawned-after-reload rule (a spawn-tagged key outside the geometry table is present, out of scope,
     # boxless and counted) is registered under node_prf1.  9bf1059d -> 7a3d661b.
-    "S0-04": "7a3d661b1159ddcb9ab5e43273b11bc8076772b8200ff786219b9faf134113df",
+    # Re-pinned 2026-09-24 for ruling 70 (LOG-255): the secondary node column node_prf1_centroid (same
+    # sets and matcher, centroid distance within the frozen delta_moved_m, weight 1/(1+d), never the
+    # selection metric nor a main-gate metric) joins the metric names, reported fields and rules.
+    # 7a3d661b -> 126fdd34.
+    "S0-04": "126fdd349f41bd572db41e80fb8e6ca3221a6348ec6aa514c5732278fe5b2e79",
     "S0-05": "c5354b1e71936d345823630b6533b03329435de104e258785fdb89e17934c54a",
     "S1-01": "4f139e631388c05e4006fd12ffad8b611d2e7811fb7f9a830ce9f7c63fdecd84",
     "S1-02a": "997cabe5105ca304269b0d8d9dd34038ff096df7a79c875c577a2629866ccc64",
@@ -366,7 +370,8 @@ FROZEN_RULE_SHA256 = {
     # bits set back to false the digest is 40d96cf0 again).  -> f4511a34.
     # Re-pinned 2026-09-24 for ruling 69: the structural_existence rule also labels a candidate resolving to a
     # spawned-after-reload key as present.  f4511a34 -> eaac36bd.
-    "S2-04": "eaac36bdeda72d75b97614f1697176794628e921166333ebc3724c666cc9c93a",
+    # Re-pinned 2026-09-24 for ruling 70: headline_fields gains node_prf1_centroid -> node_f1.  eaac36bd -> 0ff1fbe9.
+    "S2-04": "0ff1fbe980d8bd45e3d8ab2d7113dc038de8089b16b480676f9d8ac2d8c4a740",
     # S2-05 v1 (2026-09-24, LOG-251): the development table -- the five passes in order (calibration
     # with LOW and no gate, the ELU-P fit with TAF at the rollout theta_a, DAgger rounds 0 and 1, the
     # table), the episode set, the calibration series and quantiles, the ELU-P count rules, the
@@ -374,7 +379,8 @@ FROZEN_RULE_SHA256 = {
     # configuration slots (null until ruled).  First pinned 38314ce2 with both bits closed; re-pinned
     # 2026-09-24 when rulings 64/67 and the S2-05 review opened both bits by name (with the bits set
     # back to false the digest is 38314ce2 again).  -> 859208ee.
-    "S2-05": "859208ee299f58f03e6dbcef9c13cb4349692f09ea44f77a8e7cb59c75acbf74",
+    # Re-pinned 2026-09-24 for ruling 70: table.better gains node_prf1_centroid = higher.  859208ee -> 0d3cf50c.
+    "S2-05": "0d3cf50c4700c257287b53d9ae573363355f31f9e0f280c059b7a82055a767df",
 }
 
 #: Every registered slot that has been frozen, and the value it froze at.

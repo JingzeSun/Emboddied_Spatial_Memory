@@ -703,6 +703,23 @@ class TestEvaluatorMatching(unittest.TestCase):
             self._evaluate(memory, {"obj:mug": {"present": True, "centroid_m": [0.0, 0.0, 0.0], "aabb_min_m": [-0.1] * 3, "aabb_max_m": [0.1] * 3}, "obj:book": box([1.0, 0.0, 0.0])})
         self.assertIn("truth_object_in_scope_invalid", str(caught.exception))
 
+    def test_the_centroid_column_matches_a_thin_box_within_delta_and_not_beyond(self) -> None:
+        """D-224-S1 ruling 70: same sets and matcher, centroid distance within delta instead of IoU."""
+
+        memory, mug, book = two_entity_memory()
+        # the mug truth box is ten times wider than the entity box (IoU 0.001 < 0.3) around the same centroid;
+        # the book truth stands 0.6 m away (beyond DELTA = 0.5, no IoU either)
+        truth = {"obj:mug": box([0.0, 0.0, 0.0], half=1.0), "obj:book": box([1.6, 0.0, 0.0])}
+        out = self._evaluate(memory, truth)
+        self.assertEqual((out["matched"], out["predicted"], out["truth"], out["node_f1"]), (0, 2, 2, 0.0))
+        centroid = out["node_prf1_centroid"]
+        self.assertEqual(centroid, {"node_precision": 0.5, "node_recall": 0.5, "node_f1": 0.5, "matched": 1, "predicted": 2, "truth": 2})
+        self.assertEqual(out["centroid_matched_pairs"], [(mug, "obj:mug")])
+        # the two columns share the prediction and truth sets; both report None on an empty frame
+        self.assertEqual(set(centroid), set(METRIC_FIELDS["node_prf1_centroid"]))
+        empty = evaluate_frame(empty_memory(episode_id="ep-0002"), truth_objects={}, evidence_instance={}, iou_min=IOU_MIN, delta_moved_m=DELTA)
+        self.assertEqual(empty["node_prf1_centroid"], {"node_precision": None, "node_recall": None, "node_f1": None, "matched": 0, "predicted": 0, "truth": 0})
+
     def test_empty_frames_report_none_not_zero(self) -> None:
         out = evaluate_frame(
             empty_memory(episode_id="ep-0002"), truth_objects={}, evidence_instance={},
@@ -822,7 +839,7 @@ class TestReportClosure(unittest.TestCase):
     def test_the_seven_metrics_pass(self) -> None:
         report = {name: {field: None for field in METRIC_FIELDS[name]} for name in METRICS}
         assert_report_keys(report)
-        self.assertEqual(len(METRICS), 7)
+        self.assertEqual(len(METRICS), 8)  # ruling 70 added the centroid column
 
     def test_an_eighth_metric_is_rejected(self) -> None:
         with self.assertRaises(LeanTeacherError) as caught:
@@ -1046,6 +1063,20 @@ class TestMachineContract(unittest.TestCase):
         with self.assertRaises(LeanTeacherError) as caught:
             validate_teacher_contract(broken)
         self.assertEqual(str(caught.exception), "contract_metric_fields_mismatch")
+
+    def test_the_centroid_column_rules_are_bound(self) -> None:
+        for key, value, code in (("matching", "iou", "contract_centroid_matching_mismatch"),
+                                 ("distance_max_source", "0.5", "contract_centroid_distance_source_mismatch"),
+                                 ("role", "primary", "contract_centroid_role_mismatch")):
+            broken = self._fresh()
+            broken["metrics"]["node_prf1_centroid"][key] = value
+            with self.subTest(key=key), self.assertRaises(LeanTeacherError) as caught:
+                validate_teacher_contract(broken)
+            self.assertEqual(str(caught.exception), code)
+        broken = self._fresh()
+        del broken["metrics"]["node_prf1_centroid"]
+        with self.assertRaises(LeanTeacherError):
+            validate_teacher_contract(broken)
 
     def test_changing_a_decision_frozen_constant_is_rejected(self) -> None:
         for path in ("metrics.node_prf1.iou_min", "statistics.bootstrap_iterations", "statistics.confidence_one_sided"):

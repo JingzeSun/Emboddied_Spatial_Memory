@@ -59,6 +59,7 @@ class NodeAuditTests(unittest.TestCase):
         self.assertEqual(sum(self.report["truth_categories"].values()), 7)
         for frame, labelled in zip(self.frames, self.labelled, strict=True):
             self.assertEqual(frame["rules"]["iou_0.3_current"]["matched"], labelled["node_prf1"]["matched"])
+            self.assertEqual(frame["rules"]["centroid_within_0.5m"]["matched"], labelled["node_prf1_centroid"]["matched"])  # ruling 70 column
             self.assertEqual(sum(frame["entity"].values()), labelled["node_prf1"]["predicted"])
             self.assertEqual(sum(frame["truth"].values()), labelled["node_prf1"]["truth"])
 

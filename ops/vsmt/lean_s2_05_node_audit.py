@@ -89,8 +89,7 @@ def _require(condition: bool, code: str) -> None:
         raise NodeAuditError(code)
 
 
-def _distance(left: Sequence[float], right: Sequence[float]) -> float:
-    return sum((float(a) - float(b)) ** 2 for a, b in zip(left, right, strict=True)) ** 0.5
+_distance = lt._distance  # the evaluator's own distance, so the centroid rule reproduces its column bit for bit
 
 
 def _inside_padded(point: Sequence[float], lower: Sequence[float], upper: Sequence[float], pad: float) -> bool:
@@ -260,7 +259,8 @@ class NodeAudit:
             "iou_positive": [[v if v > 0.0 else 0.0 for v in row] for row in iou_rows],
             "centroid_inside_truth_box_padded_0.25m": [[(1.0 / (1.0 + d)) if inside else 0.0 for d, inside in zip(drow, irow, strict=True)]
                                                        for drow, irow in zip(dist_rows, inside_rows, strict=True)],
-            "centroid_within_0.5m": [[(1.0 / (1.0 + d)) if d <= CENTROID_RADIUS_M else 0.0 for d in row] for row in dist_rows],
+            # = the ruling-70 secondary column (delta_moved_m is the frozen 0.5 m); checked against the evaluator below
+            "centroid_within_0.5m": [[(1.0 / (1.0 + d)) if d <= self.delta else 0.0 for d in row] for row in dist_rows],
         }
         # oracle grouping by private identity: one union box per resolved key, ambiguous entities stay single
         groups: dict[str, list[int]] = {}
@@ -289,6 +289,8 @@ class NodeAudit:
             sums["truth"] += len(present_keys)
             self.rule_matched_per_frame[rule].append(matched)
         _require(rule_matched["iou_0.3_current"] == frame_eval["matched"], "audit_current_rule_does_not_reproduce_the_evaluator")
+        _require(rule_matched["centroid_within_0.5m"] == frame_eval["node_prf1_centroid"]["matched"],
+                 "audit_centroid_rule_does_not_reproduce_the_evaluator")
 
         for name, count in frame_entity.items():
             self.entity_counts[name] += count
