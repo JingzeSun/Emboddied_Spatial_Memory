@@ -17,7 +17,8 @@ should-be-visible minimum, S2-01 sampling resolution, S0-04 dominance share and 
 refuses with the list still null; loads the sealed cache episode, its recovered masks, the private
 records and instance images, the S1-04 geometry table and the intervention log; drives
 ``lean_runner.run_episode`` (timing each frame) and hands every step to ``EpisodeTeacher``; streams
-labels, training records and nuisance rows, and writes a receipt with the runner summary, the
+labels, training records and nuisance rows, closes the three streams, re-reads the nuisance file
+(complete only once closed; LOG-256) and writes a receipt with the runner summary, the
 seven-metric report, the diagnostics and the nuisance probes.  Multi-episode, multi-arm
 orchestration is S2-05.
 
@@ -146,13 +147,35 @@ class Stream:
     def __init__(self, path: Path) -> None:
         self.handle = gzip.open(path, "wb", compresslevel=6)
         self.path = path
+        self.rows = 0
 
     def write(self, row: dict[str, Any]) -> None:
         self.handle.write((json.dumps(row) + "\n").encode("utf-8"))
+        self.rows += 1
 
     def close(self) -> int:
         self.handle.close()
         return self.path.stat().st_size
+
+
+def finish_streams(labels_stream: Stream, training_stream: Stream, nuisance_stream: Stream) -> dict[str, Any]:
+    """Close the three streams, then re-read the nuisance file and run the S0-04 probes over its rows.
+
+    The order is the point: a gzip member is complete only once its writer is closed. Re-reading the
+    nuisance file while it was still open (the entry did so until LOG-256) returned no rows while the
+    compressed output still sat in the gzip buffers, so every receipt carried an empty probe block, and
+    raised EOFError once part of it had reached the disk, which happened from about 32 KB of compressed
+    output and cost the calibration pass every episode of 1262 frames or more. The re-read row count
+    must equal the rows written; anything else is refused, never patched.
+    """
+
+    sizes = {"labels_file_bytes": labels_stream.close(), "training_file_bytes": training_stream.close(),
+             "nuisance_file_bytes": nuisance_stream.close()}
+    rows = _reread(nuisance_stream.path)
+    if len(rows) != nuisance_stream.rows:
+        raise RuntimeError(f"nuisance_stream_reread_mismatch: {len(rows)} rows re-read, {nuisance_stream.rows} written")
+    return {**sizes, "nuisance_rows_written": nuisance_stream.rows,
+            "nuisance_probes": ev.nuisance_probes([{"nuisance": row} for row in rows])}
 
 
 def main() -> int:
@@ -270,17 +293,18 @@ def main() -> int:
         mark = time.time()
     summary = lr.episode_summary(state, receipts)
     episode = teacher.episode_report()
+    streams = finish_streams(labels_stream, training_stream, nuisance_stream)  # closed before the re-read (LOG-256)
     summary.update({
         "stage": ev.STAGE_ID, "code_commit": commit, "cache_root": str(cache_dir), "episode_root": str(episode_root),
         "episode_seal_sha256": seal["payload_sha256"], "frames_requested": args.frames, "config": config,
         "descriptor": args.descriptor, "weights_sha256": weights_sha256, "heads": args.heads,
         "policy": policy, "window": window, "executed_interventions": len(executed),
         "report": episode["report"], "diagnostics": episode["diagnostics"],
-        "nuisance_probes": ev.nuisance_probes([{"nuisance": row} for row in _reread(out_dir / "nuisance.jsonl.gz")]),
+        "nuisance_probes": streams["nuisance_probes"], "nuisance_rows_written": streams["nuisance_rows_written"],
         "peak_memory_source": "resource.getrusage ru_maxrss" if peak_rss_bytes() else "unavailable_on_this_platform",
         "wall_seconds": round(time.time() - started, 1),
-        "labels_file_bytes": labels_stream.close(), "training_file_bytes": training_stream.close(),
-        "nuisance_file_bytes": nuisance_stream.close(),
+        "labels_file_bytes": streams["labels_file_bytes"], "training_file_bytes": streams["training_file_bytes"],
+        "nuisance_file_bytes": streams["nuisance_file_bytes"],
     })
     if collector is not None:
         (out_dir / "calibration.json").write_text(json.dumps(collector.to_json()), encoding="utf-8")
