@@ -1,0 +1,6919 @@
+{
+ "episodes_used": 39,
+ "episodes_with_zero_labelled_fragments": [],
+ "separation_by_set": {
+  "vits14": {
+   "count": 1566112,
+   "mean": 0.06525900968798427,
+   "median": 0.04868080794271942,
+   "p10": -0.13059703610809015,
+   "p25": -0.03533552593736061,
+   "p75": 0.1672627955366529
+  },
+  "vitb14": {
+   "count": 1566112,
+   "mean": 0.08653447152427772,
+   "median": 0.07057042562319416,
+   "p10": -0.15395594864045287,
+   "p25": -0.032277706525246114,
+   "p75": 0.21851051338271804
+  }
+ },
+ "recall_curve_by_set": {
+  "vits14": {
+   "grid_points": [
+    {
+     "local_count": 1,
+     "global_count": 0,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 215460,
+     "recall_miss_rate": 0.49549715294961777
+    },
+    {
+     "local_count": 1,
+     "global_count": 0,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 151658,
+     "recall_miss_rate": 0.3487705709738844
+    },
+    {
+     "local_count": 1,
+     "global_count": 0,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 120605,
+     "recall_miss_rate": 0.27735744050630584
+    },
+    {
+     "local_count": 1,
+     "global_count": 0,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 104104,
+     "recall_miss_rate": 0.23940980047650148
+    },
+    {
+     "local_count": 1,
+     "global_count": 0,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 96992,
+     "recall_miss_rate": 0.2230542089431418
+    },
+    {
+     "local_count": 1,
+     "global_count": 1,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 92594,
+     "recall_miss_rate": 0.2129400509617419
+    },
+    {
+     "local_count": 1,
+     "global_count": 1,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 75883,
+     "recall_miss_rate": 0.1745094702370549
+    },
+    {
+     "local_count": 1,
+     "global_count": 1,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 69885,
+     "recall_miss_rate": 0.16071576410416802
+    },
+    {
+     "local_count": 1,
+     "global_count": 1,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 70104,
+     "recall_miss_rate": 0.16121940225740278
+    },
+    {
+     "local_count": 1,
+     "global_count": 1,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 81693,
+     "recall_miss_rate": 0.18787082946214204
+    },
+    {
+     "local_count": 1,
+     "global_count": 2,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 61958,
+     "recall_miss_rate": 0.14248590273114461
+    },
+    {
+     "local_count": 1,
+     "global_count": 2,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 50678,
+     "recall_miss_rate": 0.11654508826316129
+    },
+    {
+     "local_count": 1,
+     "global_count": 2,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 46809,
+     "recall_miss_rate": 0.1076474808893468
+    },
+    {
+     "local_count": 1,
+     "global_count": 2,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 47921,
+     "recall_miss_rate": 0.11020476685463025
+    },
+    {
+     "local_count": 1,
+     "global_count": 2,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 57297,
+     "recall_miss_rate": 0.13176691902234405
+    },
+    {
+     "local_count": 1,
+     "global_count": 3,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 46933,
+     "recall_miss_rate": 0.10793264587108703
+    },
+    {
+     "local_count": 1,
+     "global_count": 3,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 38295,
+     "recall_miss_rate": 0.0880676852882466
+    },
+    {
+     "local_count": 1,
+     "global_count": 3,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 35487,
+     "recall_miss_rate": 0.08161007828238692
+    },
+    {
+     "local_count": 1,
+     "global_count": 3,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 36792,
+     "recall_miss_rate": 0.08461120974344351
+    },
+    {
+     "local_count": 1,
+     "global_count": 3,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 44654,
+     "recall_miss_rate": 0.10269158947281273
+    },
+    {
+     "local_count": 1,
+     "global_count": 5,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 31843,
+     "recall_miss_rate": 0.07322990736737528
+    },
+    {
+     "local_count": 1,
+     "global_count": 5,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 25711,
+     "recall_miss_rate": 0.05912803907680137
+    },
+    {
+     "local_count": 1,
+     "global_count": 5,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 23896,
+     "recall_miss_rate": 0.054954051642458306
+    },
+    {
+     "local_count": 1,
+     "global_count": 5,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 25287,
+     "recall_miss_rate": 0.058152958816657316
+    },
+    {
+     "local_count": 1,
+     "global_count": 5,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 31131,
+     "recall_miss_rate": 0.07159250843996358
+    },
+    {
+     "local_count": 2,
+     "global_count": 0,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 206164,
+     "recall_miss_rate": 0.47411897818947835
+    },
+    {
+     "local_count": 2,
+     "global_count": 0,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 136202,
+     "recall_miss_rate": 0.31322613583052
+    },
+    {
+     "local_count": 2,
+     "global_count": 0,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 96770,
+     "recall_miss_rate": 0.22254367163712296
+    },
+    {
+     "local_count": 2,
+     "global_count": 0,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 73288,
+     "recall_miss_rate": 0.1685417030788619
+    },
+    {
+     "local_count": 2,
+     "global_count": 0,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 55196,
+     "recall_miss_rate": 0.1269352123559227
+    },
+    {
+     "local_count": 2,
+     "global_count": 1,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 83298,
+     "recall_miss_rate": 0.19156187620160245
+    },
+    {
+     "local_count": 2,
+     "global_count": 1,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 60427,
+     "recall_miss_rate": 0.1389650350936905
+    },
+    {
+     "local_count": 2,
+     "global_count": 1,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 46050,
+     "recall_miss_rate": 0.10590199523498514
+    },
+    {
+     "local_count": 2,
+     "global_count": 1,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 39288,
+     "recall_miss_rate": 0.09035130485976323
+    },
+    {
+     "local_count": 2,
+     "global_count": 1,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 39897,
+     "recall_miss_rate": 0.09175183287492296
+    },
+    {
+     "local_count": 2,
+     "global_count": 2,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 57904,
+     "recall_miss_rate": 0.13316284760231445
+    },
+    {
+     "local_count": 2,
+     "global_count": 2,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 44441,
+     "recall_miss_rate": 0.10220174962514603
+    },
+    {
+     "local_count": 2,
+     "global_count": 2,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 35407,
+     "recall_miss_rate": 0.08142610087481257
+    },
+    {
+     "local_count": 2,
+     "global_count": 2,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 32285,
+     "recall_miss_rate": 0.07424638254422357
+    },
+    {
+     "local_count": 2,
+     "global_count": 2,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 36862,
+     "recall_miss_rate": 0.08477218997507106
+    },
+    {
+     "local_count": 2,
+     "global_count": 3,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 44295,
+     "recall_miss_rate": 0.10186599085632285
+    },
+    {
+     "local_count": 2,
+     "global_count": 3,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 33548,
+     "recall_miss_rate": 0.07715092586630362
+    },
+    {
+     "local_count": 2,
+     "global_count": 3,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 26692,
+     "recall_miss_rate": 0.06138406203718184
+    },
+    {
+     "local_count": 2,
+     "global_count": 3,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 24531,
+     "recall_miss_rate": 0.05641437231507971
+    },
+    {
+     "local_count": 2,
+     "global_count": 3,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 29640,
+     "recall_miss_rate": 0.06816362950629663
+    },
+    {
+     "local_count": 2,
+     "global_count": 5,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 30512,
+     "recall_miss_rate": 0.07016898324885704
+    },
+    {
+     "local_count": 2,
+     "global_count": 5,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 22513,
+     "recall_miss_rate": 0.05177354220901673
+    },
+    {
+     "local_count": 2,
+     "global_count": 5,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 17647,
+     "recall_miss_rate": 0.0405831163933069
+    },
+    {
+     "local_count": 2,
+     "global_count": 5,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 16592,
+     "recall_miss_rate": 0.038156914330920166
+    },
+    {
+     "local_count": 2,
+     "global_count": 5,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 21584,
+     "recall_miss_rate": 0.049637104563559596
+    },
+    {
+     "local_count": 3,
+     "global_count": 0,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 202787,
+     "recall_miss_rate": 0.4663528318722461
+    },
+    {
+     "local_count": 3,
+     "global_count": 0,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 131710,
+     "recall_miss_rate": 0.3028958043952203
+    },
+    {
+     "local_count": 3,
+     "global_count": 0,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 90375,
+     "recall_miss_rate": 0.20783697761914838
+    },
+    {
+     "local_count": 3,
+     "global_count": 0,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 63981,
+     "recall_miss_rate": 0.14713823142518098
+    },
+    {
+     "local_count": 3,
+     "global_count": 0,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 40209,
+     "recall_miss_rate": 0.09246934476446292
+    },
+    {
+     "local_count": 3,
+     "global_count": 1,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 79921,
+     "recall_miss_rate": 0.1837957298843702
+    },
+    {
+     "local_count": 3,
+     "global_count": 1,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 55935,
+     "recall_miss_rate": 0.12863470365839075
+    },
+    {
+     "local_count": 3,
+     "global_count": 1,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 39655,
+     "recall_miss_rate": 0.09119530121701055
+    },
+    {
+     "local_count": 3,
+     "global_count": 1,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 29981,
+     "recall_miss_rate": 0.06894783320608229
+    },
+    {
+     "local_count": 3,
+     "global_count": 1,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 24910,
+     "recall_miss_rate": 0.05728596528346319
+    },
+    {
+     "local_count": 3,
+     "global_count": 2,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 54527,
+     "recall_miss_rate": 0.12539670128508218
+    },
+    {
+     "local_count": 3,
+     "global_count": 2,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 39949,
+     "recall_miss_rate": 0.09187141818984629
+    },
+    {
+     "local_count": 3,
+     "global_count": 2,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 29012,
+     "recall_miss_rate": 0.06671940685683798
+    },
+    {
+     "local_count": 3,
+     "global_count": 2,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 22978,
+     "recall_miss_rate": 0.05284291089054264
+    },
+    {
+     "local_count": 3,
+     "global_count": 2,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 21875,
+     "recall_miss_rate": 0.05030632238361129
+    },
+    {
+     "local_count": 3,
+     "global_count": 3,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 42289,
+     "recall_miss_rate": 0.09725275736139602
+    },
+    {
+     "local_count": 3,
+     "global_count": 3,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 32206,
+     "recall_miss_rate": 0.07406470485424389
+    },
+    {
+     "local_count": 3,
+     "global_count": 3,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 24012,
+     "recall_miss_rate": 0.05522081888344112
+    },
+    {
+     "local_count": 3,
+     "global_count": 3,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 19692,
+     "recall_miss_rate": 0.04528603887442622
+    },
+    {
+     "local_count": 3,
+     "global_count": 3,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 20561,
+     "recall_miss_rate": 0.0472844934642026
+    },
+    {
+     "local_count": 3,
+     "global_count": 5,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 29334,
+     "recall_miss_rate": 0.06745991592232474
+    },
+    {
+     "local_count": 3,
+     "global_count": 5,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 21671,
+     "recall_miss_rate": 0.0498371799942967
+    },
+    {
+     "local_count": 3,
+     "global_count": 5,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 15842,
+     "recall_miss_rate": 0.03643212613491063
+    },
+    {
+     "local_count": 3,
+     "global_count": 5,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 12963,
+     "recall_miss_rate": 0.029811239179828718
+    },
+    {
+     "local_count": 3,
+     "global_count": 5,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 15111,
+     "recall_miss_rate": 0.03475103257320001
+    },
+    {
+     "local_count": 5,
+     "global_count": 0,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 201812,
+     "recall_miss_rate": 0.4641106072174337
+    },
+    {
+     "local_count": 5,
+     "global_count": 0,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 128446,
+     "recall_miss_rate": 0.2953895261661868
+    },
+    {
+     "local_count": 5,
+     "global_count": 0,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 86337,
+     "recall_miss_rate": 0.19855071797183305
+    },
+    {
+     "local_count": 5,
+     "global_count": 0,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 58177,
+     "recall_miss_rate": 0.1337906705056619
+    },
+    {
+     "local_count": 5,
+     "global_count": 0,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 29334,
+     "recall_miss_rate": 0.06745991592232474
+    },
+    {
+     "local_count": 5,
+     "global_count": 1,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 78946,
+     "recall_miss_rate": 0.18155350522955782
+    },
+    {
+     "local_count": 5,
+     "global_count": 1,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 52671,
+     "recall_miss_rate": 0.12112842542935727
+    },
+    {
+     "local_count": 5,
+     "global_count": 1,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 35617,
+     "recall_miss_rate": 0.08190904156969524
+    },
+    {
+     "local_count": 5,
+     "global_count": 1,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 24177,
+     "recall_miss_rate": 0.05560027228656321
+    },
+    {
+     "local_count": 5,
+     "global_count": 1,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 14035,
+     "recall_miss_rate": 0.032276536441325006
+    },
+    {
+     "local_count": 5,
+     "global_count": 2,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 53552,
+     "recall_miss_rate": 0.12315447663026981
+    },
+    {
+     "local_count": 5,
+     "global_count": 2,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 36685,
+     "recall_miss_rate": 0.08436513996081281
+    },
+    {
+     "local_count": 5,
+     "global_count": 2,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 24974,
+     "recall_miss_rate": 0.057433147209522674
+    },
+    {
+     "local_count": 5,
+     "global_count": 2,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 17174,
+     "recall_miss_rate": 0.03949534997102356
+    },
+    {
+     "local_count": 5,
+     "global_count": 2,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 11000,
+     "recall_miss_rate": 0.025296893541473107
+    },
+    {
+     "local_count": 5,
+     "global_count": 3,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 41314,
+     "recall_miss_rate": 0.09501053270658363
+    },
+    {
+     "local_count": 5,
+     "global_count": 3,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 28942,
+     "recall_miss_rate": 0.06655842662521043
+    },
+    {
+     "local_count": 5,
+     "global_count": 3,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 19974,
+     "recall_miss_rate": 0.045934559236125806
+    },
+    {
+     "local_count": 5,
+     "global_count": 3,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 13888,
+     "recall_miss_rate": 0.03193847795490714
+    },
+    {
+     "local_count": 5,
+     "global_count": 3,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 9686,
+     "recall_miss_rate": 0.02227506462206441
+    },
+    {
+     "local_count": 5,
+     "global_count": 5,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 28778,
+     "recall_miss_rate": 0.06618127293968301
+    },
+    {
+     "local_count": 5,
+     "global_count": 5,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 20863,
+     "recall_miss_rate": 0.04797900817779577
+    },
+    {
+     "local_count": 5,
+     "global_count": 5,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 14552,
+     "recall_miss_rate": 0.03346549043777424
+    },
+    {
+     "local_count": 5,
+     "global_count": 5,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 10357,
+     "recall_miss_rate": 0.02381817512809427
+    },
+    {
+     "local_count": 5,
+     "global_count": 5,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 8329,
+     "recall_miss_rate": 0.0191543478460845
+    },
+    {
+     "local_count": 8,
+     "global_count": 0,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 201740,
+     "recall_miss_rate": 0.4639450275506168
+    },
+    {
+     "local_count": 8,
+     "global_count": 0,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 126921,
+     "recall_miss_rate": 0.29188245683430075
+    },
+    {
+     "local_count": 8,
+     "global_count": 0,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 84668,
+     "recall_miss_rate": 0.19471248930631319
+    },
+    {
+     "local_count": 8,
+     "global_count": 0,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 56093,
+     "recall_miss_rate": 0.1289980590383501
+    },
+    {
+     "local_count": 8,
+     "global_count": 0,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 25165,
+     "recall_miss_rate": 0.05787239327010643
+    },
+    {
+     "local_count": 8,
+     "global_count": 1,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 78874,
+     "recall_miss_rate": 0.1813879255627409
+    },
+    {
+     "local_count": 8,
+     "global_count": 1,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 51146,
+     "recall_miss_rate": 0.11762135609747124
+    },
+    {
+     "local_count": 8,
+     "global_count": 1,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 33948,
+     "recall_miss_rate": 0.07807081290417536
+    },
+    {
+     "local_count": 8,
+     "global_count": 1,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 22093,
+     "recall_miss_rate": 0.05080766081925139
+    },
+    {
+     "local_count": 8,
+     "global_count": 1,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 9866,
+     "recall_miss_rate": 0.022689013789106698
+    },
+    {
+     "local_count": 8,
+     "global_count": 2,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 53480,
+     "recall_miss_rate": 0.12298889696345289
+    },
+    {
+     "local_count": 8,
+     "global_count": 2,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 35160,
+     "recall_miss_rate": 0.08085807062892676
+    },
+    {
+     "local_count": 8,
+     "global_count": 2,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 23305,
+     "recall_miss_rate": 0.0535949185440028
+    },
+    {
+     "local_count": 8,
+     "global_count": 2,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 15090,
+     "recall_miss_rate": 0.03470273850371174
+    },
+    {
+     "local_count": 8,
+     "global_count": 2,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 6831,
+     "recall_miss_rate": 0.0157093708892548
+    },
+    {
+     "local_count": 8,
+     "global_count": 3,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 41242,
+     "recall_miss_rate": 0.09484495303976671
+    },
+    {
+     "local_count": 8,
+     "global_count": 3,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 27417,
+     "recall_miss_rate": 0.06305135729332438
+    },
+    {
+     "local_count": 8,
+     "global_count": 3,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 18305,
+     "recall_miss_rate": 0.04209633057060593
+    },
+    {
+     "local_count": 8,
+     "global_count": 3,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 11804,
+     "recall_miss_rate": 0.027145866487595323
+    },
+    {
+     "local_count": 8,
+     "global_count": 3,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 5517,
+     "recall_miss_rate": 0.012687541969846103
+    },
+    {
+     "local_count": 8,
+     "global_count": 5,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 28706,
+     "recall_miss_rate": 0.06601569327286609
+    },
+    {
+     "local_count": 8,
+     "global_count": 5,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 19338,
+     "recall_miss_rate": 0.04447193884590972
+    },
+    {
+     "local_count": 8,
+     "global_count": 5,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 12883,
+     "recall_miss_rate": 0.029627261772254367
+    },
+    {
+     "local_count": 8,
+     "global_count": 5,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 8273,
+     "recall_miss_rate": 0.019025563660782455
+    },
+    {
+     "local_count": 8,
+     "global_count": 5,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 4160,
+     "recall_miss_rate": 0.009566825193866193
+    }
+   ],
+   "decisions_total": 434836,
+   "births_total": 4409,
+   "memory_size_max": 263,
+   "memory_size_p95_max_over_episodes": 263,
+   "episodes": 39
+  },
+  "vitb14": {
+   "grid_points": [
+    {
+     "local_count": 1,
+     "global_count": 0,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 214285,
+     "recall_miss_rate": 0.4927949847758695
+    },
+    {
+     "local_count": 1,
+     "global_count": 0,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 149213,
+     "recall_miss_rate": 0.34314776145489334
+    },
+    {
+     "local_count": 1,
+     "global_count": 0,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 117329,
+     "recall_miss_rate": 0.2698235656661362
+    },
+    {
+     "local_count": 1,
+     "global_count": 0,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 100144,
+     "recall_miss_rate": 0.23030291880157117
+    },
+    {
+     "local_count": 1,
+     "global_count": 0,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 92009,
+     "recall_miss_rate": 0.21159471616885447
+    },
+    {
+     "local_count": 1,
+     "global_count": 1,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 90892,
+     "recall_miss_rate": 0.2090259316155976
+    },
+    {
+     "local_count": 1,
+     "global_count": 1,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 73507,
+     "recall_miss_rate": 0.1690453412320967
+    },
+    {
+     "local_count": 1,
+     "global_count": 1,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 66779,
+     "recall_miss_rate": 0.15357284125509388
+    },
+    {
+     "local_count": 1,
+     "global_count": 1,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 66227,
+     "recall_miss_rate": 0.15230339714283087
+    },
+    {
+     "local_count": 1,
+     "global_count": 1,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 76789,
+     "recall_miss_rate": 0.1765930143778344
+    },
+    {
+     "local_count": 1,
+     "global_count": 2,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 60325,
+     "recall_miss_rate": 0.1387304638990332
+    },
+    {
+     "local_count": 1,
+     "global_count": 2,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 48778,
+     "recall_miss_rate": 0.11217562483327047
+    },
+    {
+     "local_count": 1,
+     "global_count": 2,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 44210,
+     "recall_miss_rate": 0.1016705148607751
+    },
+    {
+     "local_count": 1,
+     "global_count": 2,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 44823,
+     "recall_miss_rate": 0.10308024174631356
+    },
+    {
+     "local_count": 1,
+     "global_count": 2,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 53880,
+     "recall_miss_rate": 0.12390878400132464
+    },
+    {
+     "local_count": 1,
+     "global_count": 3,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 45747,
+     "recall_miss_rate": 0.10520518080379729
+    },
+    {
+     "local_count": 1,
+     "global_count": 3,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 36909,
+     "recall_miss_rate": 0.08488027670202099
+    },
+    {
+     "local_count": 1,
+     "global_count": 3,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 33422,
+     "recall_miss_rate": 0.07686116144937402
+    },
+    {
+     "local_count": 1,
+     "global_count": 3,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 34439,
+     "recall_miss_rate": 0.07919997424316294
+    },
+    {
+     "local_count": 1,
+     "global_count": 3,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 42081,
+     "recall_miss_rate": 0.09677441610170272
+    },
+    {
+     "local_count": 1,
+     "global_count": 5,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 30692,
+     "recall_miss_rate": 0.07058293241589933
+    },
+    {
+     "local_count": 1,
+     "global_count": 5,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 24638,
+     "recall_miss_rate": 0.0566604420977104
+    },
+    {
+     "local_count": 1,
+     "global_count": 5,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 22510,
+     "recall_miss_rate": 0.05176664305623269
+    },
+    {
+     "local_count": 1,
+     "global_count": 5,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 23578,
+     "recall_miss_rate": 0.054222741447350266
+    },
+    {
+     "local_count": 1,
+     "global_count": 5,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 29246,
+     "recall_miss_rate": 0.06725754077399296
+    },
+    {
+     "local_count": 2,
+     "global_count": 0,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 205522,
+     "recall_miss_rate": 0.47264255949369416
+    },
+    {
+     "local_count": 2,
+     "global_count": 0,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 134779,
+     "recall_miss_rate": 0.30995363769329126
+    },
+    {
+     "local_count": 2,
+     "global_count": 0,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 94852,
+     "recall_miss_rate": 0.21813281329052792
+    },
+    {
+     "local_count": 2,
+     "global_count": 0,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 70708,
+     "recall_miss_rate": 0.16260843168458913
+    },
+    {
+     "local_count": 2,
+     "global_count": 0,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 51949,
+     "recall_miss_rate": 0.11946802932599877
+    },
+    {
+     "local_count": 2,
+     "global_count": 1,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 82129,
+     "recall_miss_rate": 0.18887350633342226
+    },
+    {
+     "local_count": 2,
+     "global_count": 1,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 59073,
+     "recall_miss_rate": 0.1358512174704946
+    },
+    {
+     "local_count": 2,
+     "global_count": 1,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 44302,
+     "recall_miss_rate": 0.1018820888794856
+    },
+    {
+     "local_count": 2,
+     "global_count": 1,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 36791,
+     "recall_miss_rate": 0.08460891002584883
+    },
+    {
+     "local_count": 2,
+     "global_count": 1,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 36729,
+     "recall_miss_rate": 0.08446632753497871
+    },
+    {
+     "local_count": 2,
+     "global_count": 2,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 56619,
+     "recall_miss_rate": 0.13020771049315144
+    },
+    {
+     "local_count": 2,
+     "global_count": 2,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 43029,
+     "recall_miss_rate": 0.09895454838145876
+    },
+    {
+     "local_count": 2,
+     "global_count": 2,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 33463,
+     "recall_miss_rate": 0.07695544987075587
+    },
+    {
+     "local_count": 2,
+     "global_count": 2,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 29597,
+     "recall_miss_rate": 0.06806474164972541
+    },
+    {
+     "local_count": 2,
+     "global_count": 2,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 33555,
+     "recall_miss_rate": 0.07716702388946638
+    },
+    {
+     "local_count": 2,
+     "global_count": 3,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 43308,
+     "recall_miss_rate": 0.0995961695903743
+    },
+    {
+     "local_count": 2,
+     "global_count": 3,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 32451,
+     "recall_miss_rate": 0.07462813566494035
+    },
+    {
+     "local_count": 2,
+     "global_count": 3,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 25074,
+     "recall_miss_rate": 0.05766311896899061
+    },
+    {
+     "local_count": 2,
+     "global_count": 3,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 22320,
+     "recall_miss_rate": 0.05132969671324361
+    },
+    {
+     "local_count": 2,
+     "global_count": 3,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 26952,
+     "recall_miss_rate": 0.06198198861179847
+    },
+    {
+     "local_count": 2,
+     "global_count": 5,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 29584,
+     "recall_miss_rate": 0.06803484532099459
+    },
+    {
+     "local_count": 2,
+     "global_count": 5,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 21755,
+     "recall_miss_rate": 0.05003035627224977
+    },
+    {
+     "local_count": 2,
+     "global_count": 5,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 16626,
+     "recall_miss_rate": 0.03823510472913926
+    },
+    {
+     "local_count": 2,
+     "global_count": 5,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 14946,
+     "recall_miss_rate": 0.034371579170077916
+    },
+    {
+     "local_count": 2,
+     "global_count": 5,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 19649,
+     "recall_miss_rate": 0.045187151017855004
+    },
+    {
+     "local_count": 3,
+     "global_count": 0,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 202622,
+     "recall_miss_rate": 0.465973378469124
+    },
+    {
+     "local_count": 3,
+     "global_count": 0,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 130883,
+     "recall_miss_rate": 0.3009939379444204
+    },
+    {
+     "local_count": 3,
+     "global_count": 0,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 89327,
+     "recall_miss_rate": 0.2054268735799244
+    },
+    {
+     "local_count": 3,
+     "global_count": 0,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 62529,
+     "recall_miss_rate": 0.14379904147770653
+    },
+    {
+     "local_count": 3,
+     "global_count": 0,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 38048,
+     "recall_miss_rate": 0.0874996550423608
+    },
+    {
+     "local_count": 3,
+     "global_count": 1,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 79229,
+     "recall_miss_rate": 0.18220432530885208
+    },
+    {
+     "local_count": 3,
+     "global_count": 1,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 55177,
+     "recall_miss_rate": 0.1268915177216238
+    },
+    {
+     "local_count": 3,
+     "global_count": 1,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 38777,
+     "recall_miss_rate": 0.08917614916888206
+    },
+    {
+     "local_count": 3,
+     "global_count": 1,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 28612,
+     "recall_miss_rate": 0.06579951981896623
+    },
+    {
+     "local_count": 3,
+     "global_count": 1,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 22828,
+     "recall_miss_rate": 0.05249795325134073
+    },
+    {
+     "local_count": 3,
+     "global_count": 2,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 53719,
+     "recall_miss_rate": 0.12353852946858127
+    },
+    {
+     "local_count": 3,
+     "global_count": 2,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 39133,
+     "recall_miss_rate": 0.08999484863258791
+    },
+    {
+     "local_count": 3,
+     "global_count": 2,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 27938,
+     "recall_miss_rate": 0.06424951016015233
+    },
+    {
+     "local_count": 3,
+     "global_count": 2,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 21418,
+     "recall_miss_rate": 0.04925535144284282
+    },
+    {
+     "local_count": 3,
+     "global_count": 2,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 19654,
+     "recall_miss_rate": 0.0451986496058284
+    },
+    {
+     "local_count": 3,
+     "global_count": 3,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 41603,
+     "recall_miss_rate": 0.09567515109144598
+    },
+    {
+     "local_count": 3,
+     "global_count": 3,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 31363,
+     "recall_miss_rate": 0.07212604292192919
+    },
+    {
+     "local_count": 3,
+     "global_count": 3,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 22837,
+     "recall_miss_rate": 0.05251865070969285
+    },
+    {
+     "local_count": 3,
+     "global_count": 3,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 18094,
+     "recall_miss_rate": 0.04161109015812858
+    },
+    {
+     "local_count": 3,
+     "global_count": 3,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 18263,
+     "recall_miss_rate": 0.0419997424316294
+    },
+    {
+     "local_count": 3,
+     "global_count": 5,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 28598,
+     "recall_miss_rate": 0.06576732377264072
+    },
+    {
+     "local_count": 3,
+     "global_count": 5,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 21113,
+     "recall_miss_rate": 0.04855393757646561
+    },
+    {
+     "local_count": 3,
+     "global_count": 5,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 15274,
+     "recall_miss_rate": 0.03512588654113275
+    },
+    {
+     "local_count": 3,
+     "global_count": 5,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 11929,
+     "recall_miss_rate": 0.027433331186930244
+    },
+    {
+     "local_count": 3,
+     "global_count": 5,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 13359,
+     "recall_miss_rate": 0.030721927347321747
+    },
+    {
+     "local_count": 5,
+     "global_count": 0,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 201820,
+     "recall_miss_rate": 0.46412900495819115
+    },
+    {
+     "local_count": 5,
+     "global_count": 0,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 128105,
+     "recall_miss_rate": 0.29460532246640114
+    },
+    {
+     "local_count": 5,
+     "global_count": 0,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 85892,
+     "recall_miss_rate": 0.19752734364220073
+    },
+    {
+     "local_count": 5,
+     "global_count": 0,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 57579,
+     "recall_miss_rate": 0.13241543938404363
+    },
+    {
+     "local_count": 5,
+     "global_count": 0,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 28122,
+     "recall_miss_rate": 0.06467265819757334
+    },
+    {
+     "local_count": 5,
+     "global_count": 1,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 78427,
+     "recall_miss_rate": 0.18035995179791922
+    },
+    {
+     "local_count": 5,
+     "global_count": 1,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 52399,
+     "recall_miss_rate": 0.12050290224360448
+    },
+    {
+     "local_count": 5,
+     "global_count": 1,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 35342,
+     "recall_miss_rate": 0.08127661923115842
+    },
+    {
+     "local_count": 5,
+     "global_count": 1,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 23662,
+     "recall_miss_rate": 0.05441591772530333
+    },
+    {
+     "local_count": 5,
+     "global_count": 1,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 12902,
+     "recall_miss_rate": 0.029670956406553275
+    },
+    {
+     "local_count": 5,
+     "global_count": 2,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 52917,
+     "recall_miss_rate": 0.1216941559576484
+    },
+    {
+     "local_count": 5,
+     "global_count": 2,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 36355,
+     "recall_miss_rate": 0.08360623315456862
+    },
+    {
+     "local_count": 5,
+     "global_count": 2,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 24503,
+     "recall_miss_rate": 0.05634998022242869
+    },
+    {
+     "local_count": 5,
+     "global_count": 2,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 16468,
+     "recall_miss_rate": 0.03787174934917992
+    },
+    {
+     "local_count": 5,
+     "global_count": 2,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 9728,
+     "recall_miss_rate": 0.022371652761040944
+    },
+    {
+     "local_count": 5,
+     "global_count": 3,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 40801,
+     "recall_miss_rate": 0.09383077758051311
+    },
+    {
+     "local_count": 5,
+     "global_count": 3,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 28585,
+     "recall_miss_rate": 0.06573742744390988
+    },
+    {
+     "local_count": 5,
+     "global_count": 3,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 19402,
+     "recall_miss_rate": 0.0446191207719692
+    },
+    {
+     "local_count": 5,
+     "global_count": 3,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 13144,
+     "recall_miss_rate": 0.030227488064465683
+    },
+    {
+     "local_count": 5,
+     "global_count": 3,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 8337,
+     "recall_miss_rate": 0.019172745586841934
+    },
+    {
+     "local_count": 5,
+     "global_count": 5,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 28182,
+     "recall_miss_rate": 0.0648106412532541
+    },
+    {
+     "local_count": 5,
+     "global_count": 5,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 20504,
+     "recall_miss_rate": 0.04715340956130587
+    },
+    {
+     "local_count": 5,
+     "global_count": 5,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 14261,
+     "recall_miss_rate": 0.03279627261772254
+    },
+    {
+     "local_count": 5,
+     "global_count": 5,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 9834,
+     "recall_miss_rate": 0.022615422826076956
+    },
+    {
+     "local_count": 5,
+     "global_count": 5,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 7061,
+     "recall_miss_rate": 0.016238305936031056
+    },
+    {
+     "local_count": 8,
+     "global_count": 0,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 201740,
+     "recall_miss_rate": 0.4639450275506168
+    },
+    {
+     "local_count": 8,
+     "global_count": 0,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 126836,
+     "recall_miss_rate": 0.291686980838753
+    },
+    {
+     "local_count": 8,
+     "global_count": 0,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 84515,
+     "recall_miss_rate": 0.19436063251432725
+    },
+    {
+     "local_count": 8,
+     "global_count": 0,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 55876,
+     "recall_miss_rate": 0.12849902032030466
+    },
+    {
+     "local_count": 8,
+     "global_count": 0,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 24685,
+     "recall_miss_rate": 0.05676852882466033
+    },
+    {
+     "local_count": 8,
+     "global_count": 1,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 78347,
+     "recall_miss_rate": 0.18017597439034486
+    },
+    {
+     "local_count": 8,
+     "global_count": 1,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 51130,
+     "recall_miss_rate": 0.11758456061595636
+    },
+    {
+     "local_count": 8,
+     "global_count": 1,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 33965,
+     "recall_miss_rate": 0.07810990810328491
+    },
+    {
+     "local_count": 8,
+     "global_count": 1,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 21959,
+     "recall_miss_rate": 0.05049949866156436
+    },
+    {
+     "local_count": 8,
+     "global_count": 1,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 9465,
+     "recall_miss_rate": 0.02176682703364027
+    },
+    {
+     "local_count": 8,
+     "global_count": 2,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 52837,
+     "recall_miss_rate": 0.12151017855007405
+    },
+    {
+     "local_count": 8,
+     "global_count": 2,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 35086,
+     "recall_miss_rate": 0.08068789152692049
+    },
+    {
+     "local_count": 8,
+     "global_count": 2,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 23126,
+     "recall_miss_rate": 0.05318326909455519
+    },
+    {
+     "local_count": 8,
+     "global_count": 2,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 14765,
+     "recall_miss_rate": 0.03395533028544095
+    },
+    {
+     "local_count": 8,
+     "global_count": 2,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 6291,
+     "recall_miss_rate": 0.014467523388127937
+    },
+    {
+     "local_count": 8,
+     "global_count": 3,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 40721,
+     "recall_miss_rate": 0.09364680017293876
+    },
+    {
+     "local_count": 8,
+     "global_count": 3,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 27316,
+     "recall_miss_rate": 0.06281908581626176
+    },
+    {
+     "local_count": 8,
+     "global_count": 3,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 18025,
+     "recall_miss_rate": 0.0414524096440957
+    },
+    {
+     "local_count": 8,
+     "global_count": 3,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 11441,
+     "recall_miss_rate": 0.02631106900072671
+    },
+    {
+     "local_count": 8,
+     "global_count": 3,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 4900,
+     "recall_miss_rate": 0.011268616213928929
+    },
+    {
+     "local_count": 8,
+     "global_count": 5,
+     "local_radius_m": 0.5,
+     "decisions": 434836,
+     "recall_miss": 28102,
+     "recall_miss_rate": 0.06462666384567975
+    },
+    {
+     "local_count": 8,
+     "global_count": 5,
+     "local_radius_m": 1.0,
+     "decisions": 434836,
+     "recall_miss": 19235,
+     "recall_miss_rate": 0.044235067933657744
+    },
+    {
+     "local_count": 8,
+     "global_count": 5,
+     "local_radius_m": 1.5,
+     "decisions": 434836,
+     "recall_miss": 12884,
+     "recall_miss_rate": 0.029629561489849045
+    },
+    {
+     "local_count": 8,
+     "global_count": 5,
+     "local_radius_m": 2.0,
+     "decisions": 434836,
+     "recall_miss": 8131,
+     "recall_miss_rate": 0.018699003762337983
+    },
+    {
+     "local_count": 8,
+     "global_count": 5,
+     "local_radius_m": 3.0,
+     "decisions": 434836,
+     "recall_miss": 3624,
+     "recall_miss_rate": 0.00833417656311805
+    }
+   ],
+   "decisions_total": 434836,
+   "births_total": 4409,
+   "memory_size_max": 263,
+   "memory_size_p95_max_over_episodes": 263,
+   "episodes": 39
+  }
+ },
+ "fragment_truth_iou": {
+  "truth": {
+   "count": 431840,
+   "mean": 0.2520559006640714,
+   "median": 0.00019148379145091256,
+   "p10": 0.0,
+   "p25": 0.0,
+   "p75": 0.5673326244407667
+  },
+  "proxy_observed_set_box": {
+   "count": 431840,
+   "mean": 0.3121755350900588,
+   "median": 0.08241320820659762,
+   "p10": 0.0022856007492925027,
+   "p25": 0.012416174184385502,
+   "p75": 0.6964502946929
+  },
+  "by_group": {
+   "pickupable": {
+    "count": 16176,
+    "mean": 0.6139931059967402,
+    "median": 0.6684812867555838,
+    "p10": 0.17013105482015767,
+    "p25": 0.5018750514329613,
+    "p75": 0.8165815672302089
+   },
+   "receptacle": {
+    "count": 114546,
+    "mean": 0.5348904964406989,
+    "median": 0.6663048256741739,
+    "p10": 0.009457597590277589,
+    "p25": 0.08752740178370953,
+    "p75": 0.8912582467332832
+   },
+   "other": {
+    "count": 301118,
+    "mean": 0.1250217551088711,
+    "median": 3.7318820905190754e-07,
+    "p10": 0.0,
+    "p25": 0.0,
+    "p75": 0.006448382449504706
+   }
+  },
+  "gate_median_iou": 0.3,
+  "median_below_gate": true
+ },
+ "per_house": {
+  "procthor10k-0.1.2-train-00236": {
+   "fragments": 5856,
+   "fragments_labelled": 5856,
+   "diagnostics_defined": true,
+   "separation_median": {
+    "vits14": 0.06661270446024387,
+    "vitb14": 0.09598289891721326
+   },
+   "iou_median": 9.709473916518056e-05
+  },
+  "procthor10k-0.1.2-train-00406": {
+   "fragments": 11433,
+   "fragments_labelled": 11433,
+   "diagnostics_defined": true,
+   "separation_median": {
+    "vits14": 0.04799421752631661,
+    "vitb14": 0.07098840095347558
+   },
+   "iou_median": 0.00020895994207180836
+  },
+  "procthor10k-0.1.2-train-00563": {
+   "fragments": 22476,
+   "fragments_labelled": 22476,
+   "diagnostics_defined": true,
+   "separation_median": {
+    "vits14": 0.04512274153817358,
+    "vitb14": 0.06055344765278303
+   },
+   "iou_median": 0.002287679301157103
+  },
+  "procthor10k-0.1.2-train-00619": {
+   "fragments": 11103,
+   "fragments_labelled": 11103,
+   "diagnostics_defined": true,
+   "separation_median": {
+    "vits14": 0.05851883175111783,
+    "vitb14": 0.0834794121167734
+   },
+   "iou_median": 0.0012666220693966388
+  },
+  "procthor10k-0.1.2-train-00702": {
+   "fragments": 660,
+   "fragments_labelled": 660,
+   "diagnostics_defined": true,
+   "separation_median": {
+    "vits14": 0.1380150084259707,
+    "vitb14": 0.17950214563074518
+   },
+   "iou_median": 1.3483402696664118e-06
+  },
+  "procthor10k-0.1.2-train-00950": {
+   "fragments": 34936,
+   "fragments_labelled": 34936,
+   "diagnostics_defined": true,
+   "separation_median": {
+    "vits14": 0.04502547911939364,
+    "vitb14": 0.06639635702002458
+   },
+   "iou_median": 0.00023576295708818706
+  },
+  "procthor10k-0.1.2-train-00975": {
+   "fragments": 8823,
+   "fragments_labelled": 8823,
+   "diagnostics_defined": true,
+   "separation_median": {
+    "vits14": 0.025569679611294527,
+    "vitb14": 0.04213449648413889
+   },
+   "iou_median": 0.007012742563124164
+  },
+  "procthor10k-0.1.2-train-01139": {
+   "fragments": 3541,
+   "fragments_labelled": 3541,
+   "diagnostics_defined": true,
+   "separation_median": {
+    "vits14": 0.0664955646394293,
+    "vitb14": 0.09552907010907474
+   },
+   "iou_median": 1.9264842122469547e-05
+  },
+  "procthor10k-0.1.2-train-01259": {
+   "fragments": 25149,
+   "fragments_labelled": 25149,
+   "diagnostics_defined": true,
+   "separation_median": {
+    "vits14": 0.056763678785498206,
+    "vitb14": 0.08662770793662279
+   },
+   "iou_median": 7.68483254859331e-05
+  },
+  "procthor10k-0.1.2-train-01289": {
+   "fragments": 36777,
+   "fragments_labelled": 36777,
+   "diagnostics_defined": true,
+   "separation_median": {
+    "vits14": 0.05676168581007962,
+    "vitb14": 0.08215903656604828
+   },
+   "iou_median": 0.0002623212379789769
+  },
+  "procthor10k-0.1.2-train-01394": {
+   "fragments": 1768,
+   "fragments_labelled": 1768,
+   "diagnostics_defined": true,
+   "separation_median": {
+    "vits14": 0.09984335054885041,
+    "vitb14": 0.1421025484098577
+   },
+   "iou_median": 0.030571712403280132
+  },
+  "procthor10k-0.1.2-train-01543": {
+   "fragments": 11628,
+   "fragments_labelled": 11628,
+   "diagnostics_defined": true,
+   "separation_median": {
+    "vits14": 0.04696193267530613,
+    "vitb14": 0.07318880010996398
+   },
+   "iou_median": 9.33488325639197e-06
+  },
+  "procthor10k-0.1.2-train-02524": {
+   "fragments": 12597,
+   "fragments_labelled": 12597,
+   "diagnostics_defined": true,
+   "separation_median": {
+    "vits14": 0.05461613564678791,
+    "vitb14": 0.08610099221869622
+   },
+   "iou_median": 4.4951011105884127e-05
+  },
+  "procthor10k-0.1.2-train-02768": {
+   "fragments": 17001,
+   "fragments_labelled": 17001,
+   "diagnostics_defined": true,
+   "separation_median": {
+    "vits14": 0.07704785207835396,
+    "vitb14": 0.10493379152285909
+   },
+   "iou_median": 0.0001298441891036503
+  },
+  "procthor10k-0.1.2-train-03288": {
+   "fragments": 3638,
+   "fragments_labelled": 3638,
+   "diagnostics_defined": true,
+   "separation_median": {
+    "vits14": 0.05333978721905053,
+    "vitb14": 0.07524527773098891
+   },
+   "iou_median": 8.227221721144425e-05
+  },
+  "procthor10k-0.1.2-train-03361": {
+   "fragments": 12805,
+   "fragments_labelled": 12805,
+   "diagnostics_defined": true,
+   "separation_median": {
+    "vits14": 0.03978444759362165,
+    "vitb14": 0.0627457576522975
+   },
+   "iou_median": 5.92366511193113e-07
+  },
+  "procthor10k-0.1.2-train-03394": {
+   "fragments": 11948,
+   "fragments_labelled": 11948,
+   "diagnostics_defined": true,
+   "separation_median": {
+    "vits14": 0.061168227103875705,
+    "vitb14": 0.08350298069377726
+   },
+   "iou_median": 0.004264001986379107
+  },
+  "procthor10k-0.1.2-train-03525": {
+   "fragments": 2684,
+   "fragments_labelled": 2684,
+   "diagnostics_defined": true,
+   "separation_median": {
+    "vits14": 0.06534443411110463,
+    "vitb14": 0.08854590114073463
+   },
+   "iou_median": 0.05721341216446648
+  },
+  "procthor10k-0.1.2-train-04388": {
+   "fragments": 3091,
+   "fragments_labelled": 3091,
+   "diagnostics_defined": true,
+   "separation_median": {
+    "vits14": 0.09895768790962839,
+    "vitb14": 0.1332911187460032
+   },
+   "iou_median": 1.1448266191094498e-05
+  },
+  "procthor10k-0.1.2-train-04742": {
+   "fragments": 8573,
+   "fragments_labelled": 8573,
+   "diagnostics_defined": true,
+   "separation_median": {
+    "vits14": 0.03454595742164479,
+    "vitb14": 0.044593215738991776
+   },
+   "iou_median": 0.004535415990848159
+  },
+  "procthor10k-0.1.2-train-04801": {
+   "fragments": 18957,
+   "fragments_labelled": 18957,
+   "diagnostics_defined": true,
+   "separation_median": {
+    "vits14": 0.03788169923045137,
+    "vitb14": 0.05876649149854196
+   },
+   "iou_median": 0.000152591687038097
+  },
+  "procthor10k-0.1.2-train-05806": {
+   "fragments": 21051,
+   "fragments_labelled": 21051,
+   "diagnostics_defined": true,
+   "separation_median": {
+    "vits14": 0.019130919881075736,
+    "vitb14": 0.02958630528829498
+   },
+   "iou_median": 2.565563160413222e-05
+  },
+  "procthor10k-0.1.2-train-05879": {
+   "fragments": 4034,
+   "fragments_labelled": 4034,
+   "diagnostics_defined": true,
+   "separation_median": {
+    "vits14": 0.041881374950921646,
+    "vitb14": 0.056510435088721056
+   },
+   "iou_median": 6.489924154478137e-05
+  },
+  "procthor10k-0.1.2-train-05966": {
+   "fragments": 6535,
+   "fragments_labelled": 6535,
+   "diagnostics_defined": true,
+   "separation_median": {
+    "vits14": 0.04293788810172991,
+    "vitb14": 0.06590369315870853
+   },
+   "iou_median": 5.9726659054595325e-05
+  },
+  "procthor10k-0.1.2-train-06453": {
+   "fragments": 5777,
+   "fragments_labelled": 5777,
+   "diagnostics_defined": true,
+   "separation_median": {
+    "vits14": 0.031890524386969044,
+    "vitb14": 0.04460133016677795
+   },
+   "iou_median": 9.391574708626033e-05
+  },
+  "procthor10k-0.1.2-train-07270": {
+   "fragments": 2097,
+   "fragments_labelled": 2097,
+   "diagnostics_defined": true,
+   "separation_median": {
+    "vits14": 0.08987562647932315,
+    "vitb14": 0.11690439141792497
+   },
+   "iou_median": 4.532706364168623e-06
+  },
+  "procthor10k-0.1.2-train-07367": {
+   "fragments": 792,
+   "fragments_labelled": 792,
+   "diagnostics_defined": true,
+   "separation_median": {
+    "vits14": 0.14785444807930104,
+    "vitb14": 0.20628284930620688
+   },
+   "iou_median": 1.1052055416159527e-05
+  },
+  "procthor10k-0.1.2-train-07795": {
+   "fragments": 19009,
+   "fragments_labelled": 19009,
+   "diagnostics_defined": true,
+   "separation_median": {
+    "vits14": 0.041735060837197635,
+    "vitb14": 0.060327649363010105
+   },
+   "iou_median": 0.002212056096086025
+  },
+  "procthor10k-0.1.2-train-07815": {
+   "fragments": 7595,
+   "fragments_labelled": 7595,
+   "diagnostics_defined": true,
+   "separation_median": {
+    "vits14": 0.04127286788690612,
+    "vitb14": 0.06009456204930119
+   },
+   "iou_median": 0.00046446394636356366
+  },
+  "procthor10k-0.1.2-train-08398": {
+   "fragments": 19882,
+   "fragments_labelled": 19882,
+   "diagnostics_defined": true,
+   "separation_median": {
+    "vits14": 0.046225778561263975,
+    "vitb14": 0.06668885417927117
+   },
+   "iou_median": 1.6724352316990534e-05
+  },
+  "procthor10k-0.1.2-train-08422": {
+   "fragments": 3277,
+   "fragments_labelled": 3277,
+   "diagnostics_defined": true,
+   "separation_median": {
+    "vits14": 0.08262206518492393,
+    "vitb14": 0.1087524324376275
+   },
+   "iou_median": 6.415292616146401e-05
+  },
+  "procthor10k-0.1.2-train-08552": {
+   "fragments": 10008,
+   "fragments_labelled": 10008,
+   "diagnostics_defined": true,
+   "separation_median": {
+    "vits14": 0.04383960496754025,
+    "vitb14": 0.061881403464530416
+   },
+   "iou_median": 0.0019660188818418182
+  },
+  "procthor10k-0.1.2-train-08566": {
+   "fragments": 7606,
+   "fragments_labelled": 7606,
+   "diagnostics_defined": true,
+   "separation_median": {
+    "vits14": 0.053586838660836106,
+    "vitb14": 0.07244195979574147
+   },
+   "iou_median": 2.1028686095859236e-05
+  },
+  "procthor10k-0.1.2-train-08790": {
+   "fragments": 30341,
+   "fragments_labelled": 30341,
+   "diagnostics_defined": true,
+   "separation_median": {
+    "vits14": 0.039178770644091254,
+    "vitb14": 0.059612562698572236
+   },
+   "iou_median": 0.0002887764258417506
+  },
+  "procthor10k-0.1.2-train-08905": {
+   "fragments": 2261,
+   "fragments_labelled": 2261,
+   "diagnostics_defined": true,
+   "separation_median": {
+    "vits14": 0.06927658385055901,
+    "vitb14": 0.0798693876069656
+   },
+   "iou_median": 0.001713874056292699
+  },
+  "procthor10k-0.1.2-train-08927": {
+   "fragments": 12555,
+   "fragments_labelled": 12555,
+   "diagnostics_defined": true,
+   "separation_median": {
+    "vits14": 0.05999824732728831,
+    "vitb14": 0.08804105420176234
+   },
+   "iou_median": 0.0005077322877619194
+  },
+  "procthor10k-0.1.2-train-09339": {
+   "fragments": 8482,
+   "fragments_labelled": 8482,
+   "diagnostics_defined": true,
+   "separation_median": {
+    "vits14": 0.05739554306354744,
+    "vitb14": 0.07876863035124429
+   },
+   "iou_median": 0.007293737669721723
+  },
+  "procthor10k-0.1.2-train-09423": {
+   "fragments": 1603,
+   "fragments_labelled": 1603,
+   "diagnostics_defined": true,
+   "separation_median": {
+    "vits14": 0.10255073572729426,
+    "vitb14": 0.15222138498633642
+   },
+   "iou_median": 0.00016404319578531022
+  },
+  "procthor10k-0.1.2-train-09595": {
+   "fragments": 10896,
+   "fragments_labelled": 10896,
+   "diagnostics_defined": true,
+   "separation_median": {
+    "vits14": 0.03315209898269267,
+    "vitb14": 0.05713833981527139
+   },
+   "iou_median": 0.0018927754511637643
+  }
+ },
+ "cache_episode_seals": {
+  "procthor10k-0.1.2-train-00236": "61b77cf0d36081d1573fe6246fac78ffba0260c9ec1f315f0f5e24dd6385b295",
+  "procthor10k-0.1.2-train-00406": "caaaa2cbc231d783e9bbd69e4d58908ec5647033d437ec80c9a1bbd0e18b8a9e",
+  "procthor10k-0.1.2-train-00563": "932de40fa17e2d1ff8c8de3d6b60e14854414ac2f4b4fd5de32aa5c7240daefe",
+  "procthor10k-0.1.2-train-00619": "566d8666680c48bb90e897345694dc18ce9ea87490463c58f9bd2c80f16f4dd8",
+  "procthor10k-0.1.2-train-00702": "cbe86d32dd4788a91f7bd5ded1700b189103dda5b873efb978903b0c68f0c541",
+  "procthor10k-0.1.2-train-00950": "6ace938c68a040c52da2b16f71c15599b6dab1ad5f05131b36b569845c548496",
+  "procthor10k-0.1.2-train-00975": "77153f0b2d0dc392ea68b13ee4b1fbfa2001016fa0fbdec9f5b38da3203e28e0",
+  "procthor10k-0.1.2-train-01139": "8f35c81b0570cad92b03a34b5b433de56f9827ce593bfc2840e5448f60132b11",
+  "procthor10k-0.1.2-train-01259": "26b2347a941133765051d01aea71d0a5c201491f52ed9306ed402227711a958e",
+  "procthor10k-0.1.2-train-01289": "e3b95e9bf744cb156535a14dcd21839587861a909ca83e75d3fe42c4fe975710",
+  "procthor10k-0.1.2-train-01394": "0f0dca8d1be798fe2cdd596f0e6aedf23f010eca452f2b6d36ad71bf4a0e3537",
+  "procthor10k-0.1.2-train-01543": "5d5fd9ccc67d5116d37ef00c1efa3b33d0cb7629557a5d664f799d6e165f5be4",
+  "procthor10k-0.1.2-train-02524": "1f99d4b7a4f8cc6d03f0560c8a64cb21a7e582d409f17d2776a2b5536c2d0fa7",
+  "procthor10k-0.1.2-train-02768": "ac88af2e608b77acc3111546385bd99f0c4d6287d13c076d19fa086ed1d382d4",
+  "procthor10k-0.1.2-train-03288": "5cdb708000c51d8a27d73e87dc34702472318d93470760bba3000f2dbb674561",
+  "procthor10k-0.1.2-train-03361": "47a3083f20e4dfd1d8955ff51560c8c617cbbb8e485a2eb1c58b9015d434ab9b",
+  "procthor10k-0.1.2-train-03394": "68693427fb85b142935b2e26adf3f05c4205328e63280b03dfe7c613f6e0a8fb",
+  "procthor10k-0.1.2-train-03525": "ae1bca0dadd07ea16cf597a5c327e4c86a42500b364157fcbf42f2dfc5885430",
+  "procthor10k-0.1.2-train-04388": "c7ffcd2cfe37f5d2960431907009eda006a8a682234160062a1f7489199ab12e",
+  "procthor10k-0.1.2-train-04742": "cc652ce22066242781b7bd5c5e9d1aedd1e636c5e3bca84c511e10429309ef67",
+  "procthor10k-0.1.2-train-04801": "5e0ef2529b098b1c30b1a0ef762b4c5b2022138ca3087fb3d8df3e827256b570",
+  "procthor10k-0.1.2-train-05806": "11983cbb6f4009b9c17363806fe1b711fc72b484e286001c6e6d4cf3bc16914f",
+  "procthor10k-0.1.2-train-05879": "ef275e2c61e734ad3529f933d5b922ccb68012318484b9a6e1ed740f0eda3e22",
+  "procthor10k-0.1.2-train-05966": "4920e20e2ab0224bc8376ea422841af68db7385e09cfc4d8972f49cb28925b77",
+  "procthor10k-0.1.2-train-06453": "5604a483c525ff8259e2a1662b914c284df7f86fc2e21639a573824fce8a5b33",
+  "procthor10k-0.1.2-train-07270": "1349effa037ebd1a232cc0a42fc89cad8d27a1efb126bceeba01c29f6addf58d",
+  "procthor10k-0.1.2-train-07367": "2633b210bb4649e014fdf9f66d1181981a29c9d6933d89492c2b5b72f393d1cf",
+  "procthor10k-0.1.2-train-07795": "e7ba2e8a401d78a7f6f3046a057aaeb2dbe2f4b3c2951753daca9e8b822aca6f",
+  "procthor10k-0.1.2-train-07815": "b347ebe89a701b3c9235615ca5c2165a7975939906f6bf76538eb895341a0193",
+  "procthor10k-0.1.2-train-08398": "074dd6407dbc2dbf25d7b3b5ebf4129f131def353bdc071b320d723086673083",
+  "procthor10k-0.1.2-train-08422": "1f0d4e3cb640b45c1439b991563e5f048ee5cffe060315ec6809b33dfcce2906",
+  "procthor10k-0.1.2-train-08552": "a775e79cde2e59f40fef7ca06254682a6a2f306d4b161bccc178ba82c4afb09e",
+  "procthor10k-0.1.2-train-08566": "bfb7d8db03895fde595221df5cadf9f59d96c42953ef0b62ee3ee2f4915be1a3",
+  "procthor10k-0.1.2-train-08790": "27834cea99ef4951e5e530381887b52e30c63b4c04e0f7d23dbc1421e2692372",
+  "procthor10k-0.1.2-train-08905": "80019217807e1c8483971947bccf9394a2a4a22e00077696eef4c07c4ee5cae5",
+  "procthor10k-0.1.2-train-08927": "f0189df6a494cab2d989ef8260b2108d747382734d129340eab428461d4767cc",
+  "procthor10k-0.1.2-train-09339": "bea4a1250f1273dfa2ee98f38a7c9b87f2f5a57f6900ed18b5c35536655d6891",
+  "procthor10k-0.1.2-train-09423": "dbdf8331b3bbe197fdc28cffeb8dba080a1094c01767982c6292fcc87dc52912",
+  "procthor10k-0.1.2-train-09595": "e5f73d71f9f7bfe50fee0fc5105372c87e085ba0db336aa4e820225b9e02f2b9"
+ },
+ "stage": "s1-04-diagnostics",
+ "code_commit": "caa50c7072ce8d6ee64e45a5f077fb348dc043f0",
+ "code_commits_in_receipts": [
+  "caa50c7072ce8d6ee64e45a5f077fb348dc043f0"
+ ],
+ "episodes_planned": 39,
+ "episodes_run": 19,
+ "episodes_kept_from_receipts": [
+  "procthor10k-0.1.2-train-00236",
+  "procthor10k-0.1.2-train-00406",
+  "procthor10k-0.1.2-train-00563",
+  "procthor10k-0.1.2-train-00619",
+  "procthor10k-0.1.2-train-00702",
+  "procthor10k-0.1.2-train-00950",
+  "procthor10k-0.1.2-train-00975",
+  "procthor10k-0.1.2-train-01139",
+  "procthor10k-0.1.2-train-01259",
+  "procthor10k-0.1.2-train-01289",
+  "procthor10k-0.1.2-train-01394",
+  "procthor10k-0.1.2-train-01543",
+  "procthor10k-0.1.2-train-02524",
+  "procthor10k-0.1.2-train-02768",
+  "procthor10k-0.1.2-train-03288",
+  "procthor10k-0.1.2-train-03361",
+  "procthor10k-0.1.2-train-03394",
+  "procthor10k-0.1.2-train-03525",
+  "procthor10k-0.1.2-train-04388",
+  "procthor10k-0.1.2-train-04742"
+ ],
+ "episodes_skipped_no_cache": [],
+ "episodes_failed": [],
+ "fragments_labelled": 439245,
+ "fragments_unlabelled": 0,
+ "holdout": {
+  "training_houses": [
+   "procthor10k-0.1.2-train-03394",
+   "procthor10k-0.1.2-train-08566",
+   "procthor10k-0.1.2-train-00406",
+   "procthor10k-0.1.2-train-03288",
+   "procthor10k-0.1.2-train-08927",
+   "procthor10k-0.1.2-train-08422",
+   "procthor10k-0.1.2-train-03525",
+   "procthor10k-0.1.2-train-07367",
+   "procthor10k-0.1.2-train-05806",
+   "procthor10k-0.1.2-train-05966",
+   "procthor10k-0.1.2-train-00950",
+   "procthor10k-0.1.2-train-05879",
+   "procthor10k-0.1.2-train-00236",
+   "procthor10k-0.1.2-train-02524",
+   "procthor10k-0.1.2-train-08398",
+   "procthor10k-0.1.2-train-04801",
+   "procthor10k-0.1.2-train-04388",
+   "procthor10k-0.1.2-train-07795",
+   "procthor10k-0.1.2-train-01543",
+   "procthor10k-0.1.2-train-09339",
+   "procthor10k-0.1.2-train-08790",
+   "procthor10k-0.1.2-train-01259",
+   "procthor10k-0.1.2-train-08905",
+   "procthor10k-0.1.2-train-00975",
+   "procthor10k-0.1.2-train-00619",
+   "procthor10k-0.1.2-train-01394",
+   "procthor10k-0.1.2-train-00702",
+   "procthor10k-0.1.2-train-07815",
+   "procthor10k-0.1.2-train-03361",
+   "procthor10k-0.1.2-train-09423"
+  ],
+  "selection_houses": [
+   "procthor10k-0.1.2-train-07270",
+   "procthor10k-0.1.2-train-06453",
+   "procthor10k-0.1.2-train-08552",
+   "procthor10k-0.1.2-train-01289",
+   "procthor10k-0.1.2-train-02768",
+   "procthor10k-0.1.2-train-04742",
+   "procthor10k-0.1.2-train-09595",
+   "procthor10k-0.1.2-train-00563",
+   "procthor10k-0.1.2-train-01139"
+  ],
+  "training_shortfall": 0,
+  "selection_shortfall": 3,
+  "houses_beyond_the_holdout": [],
+  "order": "s0_02_house_split_rank",
+  "seed": 20260920
+ },
+ "holdout_membership_rule": "frozen_on_cache_succeeded_episodes_before_any_diagnostic_no_backfill_across_groups",
+ "pose_correction": {
+  "decision_id": "D-224-S1 ruling 49",
+  "rule": "right_multiply_rx_of_twice_the_pitch_recovered_as_asin_of_forward_y",
+  "episodes_corrected": [],
+  "episodes_read_as_written": [
+   "procthor10k-0.1.2-train-00236",
+   "procthor10k-0.1.2-train-00406",
+   "procthor10k-0.1.2-train-00563",
+   "procthor10k-0.1.2-train-00619",
+   "procthor10k-0.1.2-train-00702",
+   "procthor10k-0.1.2-train-00950",
+   "procthor10k-0.1.2-train-00975",
+   "procthor10k-0.1.2-train-01139",
+   "procthor10k-0.1.2-train-01259",
+   "procthor10k-0.1.2-train-01289",
+   "procthor10k-0.1.2-train-01394",
+   "procthor10k-0.1.2-train-01543",
+   "procthor10k-0.1.2-train-02524",
+   "procthor10k-0.1.2-train-02768",
+   "procthor10k-0.1.2-train-03288",
+   "procthor10k-0.1.2-train-03361",
+   "procthor10k-0.1.2-train-03394",
+   "procthor10k-0.1.2-train-03525",
+   "procthor10k-0.1.2-train-04388",
+   "procthor10k-0.1.2-train-04742",
+   "procthor10k-0.1.2-train-04801",
+   "procthor10k-0.1.2-train-05806",
+   "procthor10k-0.1.2-train-05879",
+   "procthor10k-0.1.2-train-05966",
+   "procthor10k-0.1.2-train-06453",
+   "procthor10k-0.1.2-train-07270",
+   "procthor10k-0.1.2-train-07367",
+   "procthor10k-0.1.2-train-07795",
+   "procthor10k-0.1.2-train-07815",
+   "procthor10k-0.1.2-train-08398",
+   "procthor10k-0.1.2-train-08422",
+   "procthor10k-0.1.2-train-08552",
+   "procthor10k-0.1.2-train-08566",
+   "procthor10k-0.1.2-train-08790",
+   "procthor10k-0.1.2-train-08905",
+   "procthor10k-0.1.2-train-08927",
+   "procthor10k-0.1.2-train-09339",
+   "procthor10k-0.1.2-train-09423",
+   "procthor10k-0.1.2-train-09595"
+  ]
+ },
+ "requested_workers": 2,
+ "actual_workers": 2,
+ "worker_basis": "resume after an external stop; new instance cgroup 12 CPUs / 62 GiB; 2 workers as at 154776d (two largest episodes about 43 GB), beside 6 probe workers",
+ "wall_clock_seconds": 3709.1,
+ "reid": {
+  "holdout": {
+   "membership_rule": "frozen_on_cache_succeeded_episodes_before_any_diagnostic_no_backfill_across_groups",
+   "order": "s0_02_house_split_rank",
+   "seed": 20260920,
+   "training_houses": [
+    "procthor10k-0.1.2-train-03394",
+    "procthor10k-0.1.2-train-08566",
+    "procthor10k-0.1.2-train-00406",
+    "procthor10k-0.1.2-train-03288",
+    "procthor10k-0.1.2-train-08927",
+    "procthor10k-0.1.2-train-08422",
+    "procthor10k-0.1.2-train-03525",
+    "procthor10k-0.1.2-train-07367",
+    "procthor10k-0.1.2-train-05806",
+    "procthor10k-0.1.2-train-05966",
+    "procthor10k-0.1.2-train-00950",
+    "procthor10k-0.1.2-train-05879",
+    "procthor10k-0.1.2-train-00236",
+    "procthor10k-0.1.2-train-02524",
+    "procthor10k-0.1.2-train-08398",
+    "procthor10k-0.1.2-train-04801",
+    "procthor10k-0.1.2-train-04388",
+    "procthor10k-0.1.2-train-07795",
+    "procthor10k-0.1.2-train-01543",
+    "procthor10k-0.1.2-train-09339",
+    "procthor10k-0.1.2-train-08790",
+    "procthor10k-0.1.2-train-01259",
+    "procthor10k-0.1.2-train-08905",
+    "procthor10k-0.1.2-train-00975",
+    "procthor10k-0.1.2-train-00619",
+    "procthor10k-0.1.2-train-01394",
+    "procthor10k-0.1.2-train-00702",
+    "procthor10k-0.1.2-train-07815",
+    "procthor10k-0.1.2-train-03361",
+    "procthor10k-0.1.2-train-09423"
+   ],
+   "selection_houses": [
+    "procthor10k-0.1.2-train-07270",
+    "procthor10k-0.1.2-train-06453",
+    "procthor10k-0.1.2-train-08552",
+    "procthor10k-0.1.2-train-01289",
+    "procthor10k-0.1.2-train-02768",
+    "procthor10k-0.1.2-train-04742",
+    "procthor10k-0.1.2-train-09595",
+    "procthor10k-0.1.2-train-00563",
+    "procthor10k-0.1.2-train-01139"
+   ],
+   "training_houses_used": [
+    "procthor10k-0.1.2-train-03394",
+    "procthor10k-0.1.2-train-08566",
+    "procthor10k-0.1.2-train-00406",
+    "procthor10k-0.1.2-train-03288",
+    "procthor10k-0.1.2-train-08927",
+    "procthor10k-0.1.2-train-08422",
+    "procthor10k-0.1.2-train-03525",
+    "procthor10k-0.1.2-train-07367",
+    "procthor10k-0.1.2-train-05806",
+    "procthor10k-0.1.2-train-05966",
+    "procthor10k-0.1.2-train-00950",
+    "procthor10k-0.1.2-train-05879",
+    "procthor10k-0.1.2-train-00236",
+    "procthor10k-0.1.2-train-02524",
+    "procthor10k-0.1.2-train-08398",
+    "procthor10k-0.1.2-train-04801",
+    "procthor10k-0.1.2-train-04388",
+    "procthor10k-0.1.2-train-07795",
+    "procthor10k-0.1.2-train-01543",
+    "procthor10k-0.1.2-train-09339",
+    "procthor10k-0.1.2-train-08790",
+    "procthor10k-0.1.2-train-01259",
+    "procthor10k-0.1.2-train-08905",
+    "procthor10k-0.1.2-train-00975",
+    "procthor10k-0.1.2-train-00619",
+    "procthor10k-0.1.2-train-01394",
+    "procthor10k-0.1.2-train-00702",
+    "procthor10k-0.1.2-train-07815",
+    "procthor10k-0.1.2-train-03361",
+    "procthor10k-0.1.2-train-09423"
+   ],
+   "training_houses_failed_diagnostics": [],
+   "selection_houses_used": [
+    "procthor10k-0.1.2-train-07270",
+    "procthor10k-0.1.2-train-06453",
+    "procthor10k-0.1.2-train-08552",
+    "procthor10k-0.1.2-train-01289",
+    "procthor10k-0.1.2-train-02768",
+    "procthor10k-0.1.2-train-04742",
+    "procthor10k-0.1.2-train-09595",
+    "procthor10k-0.1.2-train-00563",
+    "procthor10k-0.1.2-train-01139"
+   ],
+   "selection_houses_failed_diagnostics": [],
+   "training_shortfall": 0,
+   "selection_shortfall": 3,
+   "houses_beyond_the_holdout": []
+  },
+  "values": {
+   "temperature": 0.07,
+   "epochs": 20,
+   "batch_fragments": 512,
+   "learning_rate": 0.001,
+   "seed": 20260922
+  },
+  "weights_plan": {
+   "reuse": [],
+   "train": [
+    "vitb14",
+    "vits14"
+   ]
+  },
+  "by_set": {
+   "vits14": {
+    "weights_file": "reid_head_vits14.json",
+    "training_houses_used": 30,
+    "selection_houses_used": 9,
+    "selection_houses_separation_frozen": {
+     "count": 406255,
+     "mean": 0.06777199738568387,
+     "median": 0.05002295930469858,
+     "p10": -0.12910964227277047,
+     "p25": -0.03330258444219855,
+     "p75": 0.17061238334471562
+    },
+    "selection_houses_recall_curve_frozen": {
+     "grid_points": [
+      {
+       "local_count": 1,
+       "global_count": 0,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 57964,
+       "recall_miss_rate": 0.49956906953493985
+      },
+      {
+       "local_count": 1,
+       "global_count": 0,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 40404,
+       "recall_miss_rate": 0.3482262902058124
+      },
+      {
+       "local_count": 1,
+       "global_count": 0,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 31307,
+       "recall_miss_rate": 0.26982280139276726
+      },
+      {
+       "local_count": 1,
+       "global_count": 0,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 26628,
+       "recall_miss_rate": 0.2294963284724377
+      },
+      {
+       "local_count": 1,
+       "global_count": 0,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 25419,
+       "recall_miss_rate": 0.21907642982728306
+      },
+      {
+       "local_count": 1,
+       "global_count": 1,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 25029,
+       "recall_miss_rate": 0.21571517219981384
+      },
+      {
+       "local_count": 1,
+       "global_count": 1,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 20747,
+       "recall_miss_rate": 0.1788102871720619
+      },
+      {
+       "local_count": 1,
+       "global_count": 1,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 18790,
+       "recall_miss_rate": 0.16194366876960734
+      },
+      {
+       "local_count": 1,
+       "global_count": 1,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 18577,
+       "recall_miss_rate": 0.16010790498845107
+      },
+      {
+       "local_count": 1,
+       "global_count": 1,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 21874,
+       "recall_miss_rate": 0.18852345985451788
+      },
+      {
+       "local_count": 1,
+       "global_count": 2,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 16797,
+       "recall_miss_rate": 0.14476678043230945
+      },
+      {
+       "local_count": 1,
+       "global_count": 2,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 13890,
+       "recall_miss_rate": 0.11971248319371186
+      },
+      {
+       "local_count": 1,
+       "global_count": 2,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 12621,
+       "recall_miss_rate": 0.10877546799048506
+      },
+      {
+       "local_count": 1,
+       "global_count": 2,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 12759,
+       "recall_miss_rate": 0.1099648360740511
+      },
+      {
+       "local_count": 1,
+       "global_count": 2,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 15307,
+       "recall_miss_rate": 0.13192505257351675
+      },
+      {
+       "local_count": 1,
+       "global_count": 3,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 12860,
+       "recall_miss_rate": 0.11083531561347261
+      },
+      {
+       "local_count": 1,
+       "global_count": 3,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 10584,
+       "recall_miss_rate": 0.09121936084393423
+      },
+      {
+       "local_count": 1,
+       "global_count": 3,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 9632,
+       "recall_miss_rate": 0.08301444478918882
+      },
+      {
+       "local_count": 1,
+       "global_count": 3,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 9856,
+       "recall_miss_rate": 0.08494501327265833
+      },
+      {
+       "local_count": 1,
+       "global_count": 3,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 11989,
+       "recall_miss_rate": 0.10332850691212465
+      },
+      {
+       "local_count": 1,
+       "global_count": 5,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 8796,
+       "recall_miss_rate": 0.07580928741338297
+      },
+      {
+       "local_count": 1,
+       "global_count": 5,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 7126,
+       "recall_miss_rate": 0.061416209880373704
+      },
+      {
+       "local_count": 1,
+       "global_count": 5,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 6498,
+       "recall_miss_rate": 0.05600372323921812
+      },
+      {
+       "local_count": 1,
+       "global_count": 5,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 6778,
+       "recall_miss_rate": 0.058416933843555
+      },
+      {
+       "local_count": 1,
+       "global_count": 5,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 8379,
+       "recall_miss_rate": 0.07221532733478125
+      },
+      {
+       "local_count": 2,
+       "global_count": 0,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 55147,
+       "recall_miss_rate": 0.47529044713345053
+      },
+      {
+       "local_count": 2,
+       "global_count": 0,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 35947,
+       "recall_miss_rate": 0.3098131485503499
+      },
+      {
+       "local_count": 2,
+       "global_count": 0,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 24822,
+       "recall_miss_rate": 0.2139311200744648
+      },
+      {
+       "local_count": 2,
+       "global_count": 0,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 18398,
+       "recall_miss_rate": 0.1585651739235357
+      },
+      {
+       "local_count": 2,
+       "global_count": 0,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 14132,
+       "recall_miss_rate": 0.12179818664460303
+      },
+      {
+       "local_count": 2,
+       "global_count": 1,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 22212,
+       "recall_miss_rate": 0.19143654979832453
+      },
+      {
+       "local_count": 2,
+       "global_count": 1,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 16290,
+       "recall_miss_rate": 0.14039714551659943
+      },
+      {
+       "local_count": 2,
+       "global_count": 1,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 12305,
+       "recall_miss_rate": 0.10605198745130485
+      },
+      {
+       "local_count": 2,
+       "global_count": 1,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 10347,
+       "recall_miss_rate": 0.08917675043954908
+      },
+      {
+       "local_count": 2,
+       "global_count": 1,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 10587,
+       "recall_miss_rate": 0.09124521667183783
+      },
+      {
+       "local_count": 2,
+       "global_count": 2,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 15516,
+       "recall_miss_rate": 0.1337263419174682
+      },
+      {
+       "local_count": 2,
+       "global_count": 2,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 12141,
+       "recall_miss_rate": 0.10463853552590754
+      },
+      {
+       "local_count": 2,
+       "global_count": 2,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 9693,
+       "recall_miss_rate": 0.08354017995656221
+      },
+      {
+       "local_count": 2,
+       "global_count": 2,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 8783,
+       "recall_miss_rate": 0.07569724549246734
+      },
+      {
+       "local_count": 2,
+       "global_count": 2,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 9988,
+       "recall_miss_rate": 0.08608266970041714
+      },
+      {
+       "local_count": 2,
+       "global_count": 3,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 12081,
+       "recall_miss_rate": 0.10412141896783535
+      },
+      {
+       "local_count": 2,
+       "global_count": 3,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 9261,
+       "recall_miss_rate": 0.07981694073844245
+      },
+      {
+       "local_count": 2,
+       "global_count": 3,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 7424,
+       "recall_miss_rate": 0.06398455545213225
+      },
+      {
+       "local_count": 2,
+       "global_count": 3,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 6750,
+       "recall_miss_rate": 0.05817561278312131
+      },
+      {
+       "local_count": 2,
+       "global_count": 3,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 8116,
+       "recall_miss_rate": 0.06994863308856483
+      },
+      {
+       "local_count": 2,
+       "global_count": 5,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 8437,
+       "recall_miss_rate": 0.07271520667425105
+      },
+      {
+       "local_count": 2,
+       "global_count": 5,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 6223,
+       "recall_miss_rate": 0.05363360568138725
+      },
+      {
+       "local_count": 2,
+       "global_count": 5,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 4945,
+       "recall_miss_rate": 0.04261902299444961
+      },
+      {
+       "local_count": 2,
+       "global_count": 5,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 4557,
+       "recall_miss_rate": 0.03927500258558279
+      },
+      {
+       "local_count": 2,
+       "global_count": 5,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 5876,
+       "recall_miss_rate": 0.05064294825386976
+      },
+      {
+       "local_count": 3,
+       "global_count": 0,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 54196,
+       "recall_miss_rate": 0.46709414968800633
+      },
+      {
+       "local_count": 3,
+       "global_count": 0,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 34673,
+       "recall_miss_rate": 0.2988330403006171
+      },
+      {
+       "local_count": 3,
+       "global_count": 0,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 23050,
+       "recall_miss_rate": 0.1986589443927328
+      },
+      {
+       "local_count": 3,
+       "global_count": 0,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 15874,
+       "recall_miss_rate": 0.13681180404729892
+      },
+      {
+       "local_count": 3,
+       "global_count": 0,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 10055,
+       "recall_miss_rate": 0.08666011652359776
+      },
+      {
+       "local_count": 3,
+       "global_count": 1,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 21261,
+       "recall_miss_rate": 0.18324025235288033
+      },
+      {
+       "local_count": 3,
+       "global_count": 1,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 15016,
+       "recall_miss_rate": 0.12941703726686662
+      },
+      {
+       "local_count": 3,
+       "global_count": 1,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 10533,
+       "recall_miss_rate": 0.09077981176957287
+      },
+      {
+       "local_count": 3,
+       "global_count": 1,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 7823,
+       "recall_miss_rate": 0.0674233805633123
+      },
+      {
+       "local_count": 3,
+       "global_count": 1,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 6510,
+       "recall_miss_rate": 0.05610714655083256
+      },
+      {
+       "local_count": 3,
+       "global_count": 2,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 14565,
+       "recall_miss_rate": 0.12553004447202398
+      },
+      {
+       "local_count": 3,
+       "global_count": 2,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 10867,
+       "recall_miss_rate": 0.09365842727617471
+      },
+      {
+       "local_count": 3,
+       "global_count": 2,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 7921,
+       "recall_miss_rate": 0.06826800427483021
+      },
+      {
+       "local_count": 3,
+       "global_count": 2,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 6259,
+       "recall_miss_rate": 0.05394387561623056
+      },
+      {
+       "local_count": 3,
+       "global_count": 2,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 5911,
+       "recall_miss_rate": 0.050944599579411866
+      },
+      {
+       "local_count": 3,
+       "global_count": 3,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 11481,
+       "recall_miss_rate": 0.09895025338711345
+      },
+      {
+       "local_count": 3,
+       "global_count": 3,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 8923,
+       "recall_miss_rate": 0.07690385079463578
+      },
+      {
+       "local_count": 3,
+       "global_count": 3,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 6673,
+       "recall_miss_rate": 0.05751197986692867
+      },
+      {
+       "local_count": 3,
+       "global_count": 3,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 5470,
+       "recall_miss_rate": 0.047143792877581275
+      },
+      {
+       "local_count": 3,
+       "global_count": 3,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 5652,
+       "recall_miss_rate": 0.04871237977040025
+      },
+      {
+       "local_count": 3,
+       "global_count": 5,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 8085,
+       "recall_miss_rate": 0.06968145620022753
+      },
+      {
+       "local_count": 3,
+       "global_count": 5,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 6011,
+       "recall_miss_rate": 0.05180646050953218
+      },
+      {
+       "local_count": 3,
+       "global_count": 5,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 4394,
+       "recall_miss_rate": 0.03787016926948668
+      },
+      {
+       "local_count": 3,
+       "global_count": 5,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 3578,
+       "recall_miss_rate": 0.030837384079704898
+      },
+      {
+       "local_count": 3,
+       "global_count": 5,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 4094,
+       "recall_miss_rate": 0.035284586479125725
+      },
+      {
+       "local_count": 5,
+       "global_count": 0,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 53889,
+       "recall_miss_rate": 0.464448236632537
+      },
+      {
+       "local_count": 5,
+       "global_count": 0,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 33658,
+       "recall_miss_rate": 0.29008515185989586
+      },
+      {
+       "local_count": 5,
+       "global_count": 0,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 21797,
+       "recall_miss_rate": 0.18785982693832523
+      },
+      {
+       "local_count": 5,
+       "global_count": 0,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 14104,
+       "recall_miss_rate": 0.12155686558416934
+      },
+      {
+       "local_count": 5,
+       "global_count": 0,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 6978,
+       "recall_miss_rate": 0.060140655703795634
+      },
+      {
+       "local_count": 5,
+       "global_count": 1,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 20954,
+       "recall_miss_rate": 0.18059433929741098
+      },
+      {
+       "local_count": 5,
+       "global_count": 1,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 14001,
+       "recall_miss_rate": 0.12066914882614542
+      },
+      {
+       "local_count": 5,
+       "global_count": 1,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 9280,
+       "recall_miss_rate": 0.0799806943151653
+      },
+      {
+       "local_count": 5,
+       "global_count": 1,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 6053,
+       "recall_miss_rate": 0.05216844210018271
+      },
+      {
+       "local_count": 5,
+       "global_count": 1,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 3433,
+       "recall_miss_rate": 0.02958768573103044
+      },
+      {
+       "local_count": 5,
+       "global_count": 2,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 14258,
+       "recall_miss_rate": 0.12288413141655463
+      },
+      {
+       "local_count": 5,
+       "global_count": 2,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 9852,
+       "recall_miss_rate": 0.0849105388354535
+      },
+      {
+       "local_count": 5,
+       "global_count": 2,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 6668,
+       "recall_miss_rate": 0.05746888682042266
+      },
+      {
+       "local_count": 5,
+       "global_count": 2,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 4489,
+       "recall_miss_rate": 0.038688937153100976
+      },
+      {
+       "local_count": 5,
+       "global_count": 2,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 2834,
+       "recall_miss_rate": 0.02442513875960975
+      },
+      {
+       "local_count": 5,
+       "global_count": 3,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 11174,
+       "recall_miss_rate": 0.09630434033164409
+      },
+      {
+       "local_count": 5,
+       "global_count": 3,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 7908,
+       "recall_miss_rate": 0.06815596235391458
+      },
+      {
+       "local_count": 5,
+       "global_count": 3,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 5420,
+       "recall_miss_rate": 0.046712862412521115
+      },
+      {
+       "local_count": 5,
+       "global_count": 3,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 3700,
+       "recall_miss_rate": 0.03188885441445168
+      },
+      {
+       "local_count": 5,
+       "global_count": 3,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 2575,
+       "recall_miss_rate": 0.02219291895059813
+      },
+      {
+       "local_count": 5,
+       "global_count": 5,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 7907,
+       "recall_miss_rate": 0.06814734374461337
+      },
+      {
+       "local_count": 5,
+       "global_count": 5,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 5828,
+       "recall_miss_rate": 0.050229255007412
+      },
+      {
+       "local_count": 5,
+       "global_count": 5,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 4039,
+       "recall_miss_rate": 0.03481056296755956
+      },
+      {
+       "local_count": 5,
+       "global_count": 5,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 2816,
+       "recall_miss_rate": 0.02427000379218809
+      },
+      {
+       "local_count": 5,
+       "global_count": 5,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 2244,
+       "recall_miss_rate": 0.019340159271899887
+      },
+      {
+       "local_count": 8,
+       "global_count": 0,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 53858,
+       "recall_miss_rate": 0.46418105974419965
+      },
+      {
+       "local_count": 8,
+       "global_count": 0,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 33174,
+       "recall_miss_rate": 0.28591374495811356
+      },
+      {
+       "local_count": 8,
+       "global_count": 0,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 21276,
+       "recall_miss_rate": 0.18336953149239837
+      },
+      {
+       "local_count": 8,
+       "global_count": 0,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 13444,
+       "recall_miss_rate": 0.11586858344537525
+      },
+      {
+       "local_count": 8,
+       "global_count": 0,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 5699,
+       "recall_miss_rate": 0.0491174544075568
+      },
+      {
+       "local_count": 8,
+       "global_count": 1,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 20923,
+       "recall_miss_rate": 0.18032716240907368
+      },
+      {
+       "local_count": 8,
+       "global_count": 1,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 13517,
+       "recall_miss_rate": 0.11649774192436309
+      },
+      {
+       "local_count": 8,
+       "global_count": 1,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 8759,
+       "recall_miss_rate": 0.07549039886923846
+      },
+      {
+       "local_count": 8,
+       "global_count": 1,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 5393,
+       "recall_miss_rate": 0.04648015996138863
+      },
+      {
+       "local_count": 8,
+       "global_count": 1,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 2154,
+       "recall_miss_rate": 0.0185644844347916
+      },
+      {
+       "local_count": 8,
+       "global_count": 2,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 14227,
+       "recall_miss_rate": 0.12261695452821733
+      },
+      {
+       "local_count": 8,
+       "global_count": 2,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 9368,
+       "recall_miss_rate": 0.08073913193367119
+      },
+      {
+       "local_count": 8,
+       "global_count": 2,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 6147,
+       "recall_miss_rate": 0.052978591374495815
+      },
+      {
+       "local_count": 8,
+       "global_count": 2,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 3829,
+       "recall_miss_rate": 0.03300065501430689
+      },
+      {
+       "local_count": 8,
+       "global_count": 2,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 1555,
+       "recall_miss_rate": 0.01340193746337091
+      },
+      {
+       "local_count": 8,
+       "global_count": 3,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 11143,
+       "recall_miss_rate": 0.09603716344330679
+      },
+      {
+       "local_count": 8,
+       "global_count": 3,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 7424,
+       "recall_miss_rate": 0.06398455545213225
+      },
+      {
+       "local_count": 8,
+       "global_count": 3,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 4899,
+       "recall_miss_rate": 0.04222256696659427
+      },
+      {
+       "local_count": 8,
+       "global_count": 3,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 3040,
+       "recall_miss_rate": 0.0262005722756576
+      },
+      {
+       "local_count": 8,
+       "global_count": 3,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 1296,
+       "recall_miss_rate": 0.011169717654359293
+      },
+      {
+       "local_count": 8,
+       "global_count": 5,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 7876,
+       "recall_miss_rate": 0.06788016685627607
+      },
+      {
+       "local_count": 8,
+       "global_count": 5,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 5344,
+       "recall_miss_rate": 0.04605784810562968
+      },
+      {
+       "local_count": 8,
+       "global_count": 5,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 3518,
+       "recall_miss_rate": 0.03032026752163271
+      },
+      {
+       "local_count": 8,
+       "global_count": 5,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 2156,
+       "recall_miss_rate": 0.018581721653394008
+      },
+      {
+       "local_count": 8,
+       "global_count": 5,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 965,
+       "recall_miss_rate": 0.008316957975661047
+      }
+     ],
+     "decisions_total": 116028,
+     "births_total": 1118,
+     "memory_size_max": 249,
+     "memory_size_p95_max_over_episodes": 249,
+     "episodes": 9
+    },
+    "weights_reused": false,
+    "training_fragments": 322099,
+    "training_classes": 3291,
+    "classes_with_positives": 3237,
+    "loss_curve": [
+     2.209973050109924,
+     1.8769576874990312,
+     1.7807293351680513,
+     1.7447442088808331,
+     1.7235378263488648,
+     1.6868828135823446,
+     1.683645894981566,
+     1.6727485244236295,
+     1.666606559072222,
+     1.6509900530179342,
+     1.6527650776363554,
+     1.6355098461347912,
+     1.6492843703618125,
+     1.650613180039421,
+     1.6359960898520454,
+     1.6351767500241599,
+     1.6263327893756685,
+     1.6376926096658857,
+     1.633509293624333,
+     1.6275106019443937
+    ],
+    "diverged": false,
+    "weights_written": true,
+    "weights_sha256": "d25bd8ee69de4d5b012596eb515696b3b37b893f839d1fa0756384ad8802611e",
+    "status": "succeeded",
+    "selection_houses_separation_projection": {
+     "count": 406255,
+     "mean": 0.17583583005142064,
+     "median": 0.1428664959871614,
+     "p10": -0.0666094207807032,
+     "p25": 0.01122002919178075,
+     "p75": 0.33374489691192893
+    },
+    "selection_houses_recall_curve_projection": {
+     "grid_points": [
+      {
+       "local_count": 1,
+       "global_count": 0,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 56684,
+       "recall_miss_rate": 0.4885372496293998
+      },
+      {
+       "local_count": 1,
+       "global_count": 0,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 38079,
+       "recall_miss_rate": 0.3281880235805151
+      },
+      {
+       "local_count": 1,
+       "global_count": 0,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 27574,
+       "recall_miss_rate": 0.23764953287137588
+      },
+      {
+       "local_count": 1,
+       "global_count": 0,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 21399,
+       "recall_miss_rate": 0.18442962043644637
+      },
+      {
+       "local_count": 1,
+       "global_count": 0,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 17438,
+       "recall_miss_rate": 0.15029130899438067
+      },
+      {
+       "local_count": 1,
+       "global_count": 1,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 14665,
+       "recall_miss_rate": 0.12639190540214432
+      },
+      {
+       "local_count": 1,
+       "global_count": 1,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 12970,
+       "recall_miss_rate": 0.11178336263660496
+      },
+      {
+       "local_count": 1,
+       "global_count": 1,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 11635,
+       "recall_miss_rate": 0.10027751921949875
+      },
+      {
+       "local_count": 1,
+       "global_count": 1,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 11245,
+       "recall_miss_rate": 0.09691626159202951
+      },
+      {
+       "local_count": 1,
+       "global_count": 1,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 13121,
+       "recall_miss_rate": 0.11308477264108663
+      },
+      {
+       "local_count": 1,
+       "global_count": 2,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 7500,
+       "recall_miss_rate": 0.06463956975902369
+      },
+      {
+       "local_count": 1,
+       "global_count": 2,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 6519,
+       "recall_miss_rate": 0.056184714034543386
+      },
+      {
+       "local_count": 1,
+       "global_count": 2,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 5925,
+       "recall_miss_rate": 0.05106526010962871
+      },
+      {
+       "local_count": 1,
+       "global_count": 2,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 5741,
+       "recall_miss_rate": 0.04947943599820733
+      },
+      {
+       "local_count": 1,
+       "global_count": 2,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 6887,
+       "recall_miss_rate": 0.05935636225738615
+      },
+      {
+       "local_count": 1,
+       "global_count": 3,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 4870,
+       "recall_miss_rate": 0.041972627296859376
+      },
+      {
+       "local_count": 1,
+       "global_count": 3,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 4198,
+       "recall_miss_rate": 0.03618092184645086
+      },
+      {
+       "local_count": 1,
+       "global_count": 3,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 3793,
+       "recall_miss_rate": 0.03269038507946358
+      },
+      {
+       "local_count": 1,
+       "global_count": 3,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 3717,
+       "recall_miss_rate": 0.03203537077257214
+      },
+      {
+       "local_count": 1,
+       "global_count": 3,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 4541,
+       "recall_miss_rate": 0.03913710483676354
+      },
+      {
+       "local_count": 1,
+       "global_count": 5,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 2543,
+       "recall_miss_rate": 0.021917123452959632
+      },
+      {
+       "local_count": 1,
+       "global_count": 5,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 2154,
+       "recall_miss_rate": 0.0185644844347916
+      },
+      {
+       "local_count": 1,
+       "global_count": 5,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 1940,
+       "recall_miss_rate": 0.016720102044334127
+      },
+      {
+       "local_count": 1,
+       "global_count": 5,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 1912,
+       "recall_miss_rate": 0.01647878098390044
+      },
+      {
+       "local_count": 1,
+       "global_count": 5,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 2379,
+       "recall_miss_rate": 0.02050367152756231
+      },
+      {
+       "local_count": 2,
+       "global_count": 0,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 54537,
+       "recall_miss_rate": 0.4700330954597166
+      },
+      {
+       "local_count": 2,
+       "global_count": 0,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 34801,
+       "recall_miss_rate": 0.2999362222911711
+      },
+      {
+       "local_count": 2,
+       "global_count": 0,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 23163,
+       "recall_miss_rate": 0.19963284724376876
+      },
+      {
+       "local_count": 2,
+       "global_count": 0,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 15802,
+       "recall_miss_rate": 0.1361912641776123
+      },
+      {
+       "local_count": 2,
+       "global_count": 0,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 9065,
+       "recall_miss_rate": 0.07812769331540663
+      },
+      {
+       "local_count": 2,
+       "global_count": 1,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 12518,
+       "recall_miss_rate": 0.10788775123246112
+      },
+      {
+       "local_count": 2,
+       "global_count": 1,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 9692,
+       "recall_miss_rate": 0.083531561347261
+      },
+      {
+       "local_count": 2,
+       "global_count": 1,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 7224,
+       "recall_miss_rate": 0.062260833591891614
+      },
+      {
+       "local_count": 2,
+       "global_count": 1,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 5648,
+       "recall_miss_rate": 0.04867790533319544
+      },
+      {
+       "local_count": 2,
+       "global_count": 1,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 4748,
+       "recall_miss_rate": 0.04092115696211259
+      },
+      {
+       "local_count": 2,
+       "global_count": 2,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 6716,
+       "recall_miss_rate": 0.05788258006688041
+      },
+      {
+       "local_count": 2,
+       "global_count": 2,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 5900,
+       "recall_miss_rate": 0.050849794877098634
+      },
+      {
+       "local_count": 2,
+       "global_count": 2,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 4793,
+       "recall_miss_rate": 0.041308994380666736
+      },
+      {
+       "local_count": 2,
+       "global_count": 2,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 4129,
+       "recall_miss_rate": 0.03558623780466784
+      },
+      {
+       "local_count": 2,
+       "global_count": 2,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 4288,
+       "recall_miss_rate": 0.03695659668355914
+      },
+      {
+       "local_count": 2,
+       "global_count": 3,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 4455,
+       "recall_miss_rate": 0.03839590443686007
+      },
+      {
+       "local_count": 2,
+       "global_count": 3,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 3793,
+       "recall_miss_rate": 0.03269038507946358
+      },
+      {
+       "local_count": 2,
+       "global_count": 3,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 3072,
+       "recall_miss_rate": 0.0264763677732961
+      },
+      {
+       "local_count": 2,
+       "global_count": 3,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 2610,
+       "recall_miss_rate": 0.02249457027614024
+      },
+      {
+       "local_count": 2,
+       "global_count": 3,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 2924,
+       "recall_miss_rate": 0.025200813596718035
+      },
+      {
+       "local_count": 2,
+       "global_count": 5,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 2481,
+       "recall_miss_rate": 0.021382769676285034
+      },
+      {
+       "local_count": 2,
+       "global_count": 5,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 1955,
+       "recall_miss_rate": 0.016849381183852173
+      },
+      {
+       "local_count": 2,
+       "global_count": 5,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 1595,
+       "recall_miss_rate": 0.013746681835419036
+      },
+      {
+       "local_count": 2,
+       "global_count": 5,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 1306,
+       "recall_miss_rate": 0.011255903747371324
+      },
+      {
+       "local_count": 2,
+       "global_count": 5,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 1593,
+       "recall_miss_rate": 0.013729444616816631
+      },
+      {
+       "local_count": 3,
+       "global_count": 0,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 54017,
+       "recall_miss_rate": 0.46555141862309096
+      },
+      {
+       "local_count": 3,
+       "global_count": 0,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 33944,
+       "recall_miss_rate": 0.29255007412003997
+      },
+      {
+       "local_count": 3,
+       "global_count": 0,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 22110,
+       "recall_miss_rate": 0.19055745164960183
+      },
+      {
+       "local_count": 3,
+       "global_count": 0,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 14450,
+       "recall_miss_rate": 0.12453890440238563
+      },
+      {
+       "local_count": 3,
+       "global_count": 0,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 7011,
+       "recall_miss_rate": 0.06042506981073534
+      },
+      {
+       "local_count": 3,
+       "global_count": 1,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 11998,
+       "recall_miss_rate": 0.10340607439583549
+      },
+      {
+       "local_count": 3,
+       "global_count": 1,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 8835,
+       "recall_miss_rate": 0.0761454131761299
+      },
+      {
+       "local_count": 3,
+       "global_count": 1,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 6171,
+       "recall_miss_rate": 0.05318543799772469
+      },
+      {
+       "local_count": 3,
+       "global_count": 1,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 4296,
+       "recall_miss_rate": 0.03702554555796877
+      },
+      {
+       "local_count": 3,
+       "global_count": 1,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 2694,
+       "recall_miss_rate": 0.023218533457441307
+      },
+      {
+       "local_count": 3,
+       "global_count": 2,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 6196,
+       "recall_miss_rate": 0.053400903230254766
+      },
+      {
+       "local_count": 3,
+       "global_count": 2,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 5043,
+       "recall_miss_rate": 0.04346364670596752
+      },
+      {
+       "local_count": 3,
+       "global_count": 2,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 3740,
+       "recall_miss_rate": 0.03223359878649981
+      },
+      {
+       "local_count": 3,
+       "global_count": 2,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 2777,
+       "recall_miss_rate": 0.02393387802944117
+      },
+      {
+       "local_count": 3,
+       "global_count": 2,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 2234,
+       "recall_miss_rate": 0.019253973178887853
+      },
+      {
+       "local_count": 3,
+       "global_count": 3,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 4141,
+       "recall_miss_rate": 0.03568966111628228
+      },
+      {
+       "local_count": 3,
+       "global_count": 3,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 3680,
+       "recall_miss_rate": 0.03171648222842762
+      },
+      {
+       "local_count": 3,
+       "global_count": 3,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 2836,
+       "recall_miss_rate": 0.024442375978212156
+      },
+      {
+       "local_count": 3,
+       "global_count": 3,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 2235,
+       "recall_miss_rate": 0.019262591788189058
+      },
+      {
+       "local_count": 3,
+       "global_count": 3,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 2082,
+       "recall_miss_rate": 0.017943944565104973
+      },
+      {
+       "local_count": 3,
+       "global_count": 5,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 2323,
+       "recall_miss_rate": 0.020021029406694937
+      },
+      {
+       "local_count": 3,
+       "global_count": 5,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 1887,
+       "recall_miss_rate": 0.01626331575137036
+      },
+      {
+       "local_count": 3,
+       "global_count": 5,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 1450,
+       "recall_miss_rate": 0.012496983486744578
+      },
+      {
+       "local_count": 3,
+       "global_count": 5,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 1086,
+       "recall_miss_rate": 0.00935980970110663
+      },
+      {
+       "local_count": 3,
+       "global_count": 5,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 1095,
+       "recall_miss_rate": 0.009437377184817458
+      },
+      {
+       "local_count": 5,
+       "global_count": 0,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 53879,
+       "recall_miss_rate": 0.46436205053952495
+      },
+      {
+       "local_count": 5,
+       "global_count": 0,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 33307,
+       "recall_miss_rate": 0.28706001999517355
+      },
+      {
+       "local_count": 5,
+       "global_count": 0,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 21396,
+       "recall_miss_rate": 0.18440376460854277
+      },
+      {
+       "local_count": 5,
+       "global_count": 0,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 13558,
+       "recall_miss_rate": 0.11685110490571242
+      },
+      {
+       "local_count": 5,
+       "global_count": 0,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 5691,
+       "recall_miss_rate": 0.04904850553314717
+      },
+      {
+       "local_count": 5,
+       "global_count": 1,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 11860,
+       "recall_miss_rate": 0.10221670631226945
+      },
+      {
+       "local_count": 5,
+       "global_count": 1,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 8198,
+       "recall_miss_rate": 0.0706553590512635
+      },
+      {
+       "local_count": 5,
+       "global_count": 1,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 5457,
+       "recall_miss_rate": 0.04703175095666563
+      },
+      {
+       "local_count": 5,
+       "global_count": 1,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 3404,
+       "recall_miss_rate": 0.02933774606129555
+      },
+      {
+       "local_count": 5,
+       "global_count": 1,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 1374,
+       "recall_miss_rate": 0.011841969179853138
+      },
+      {
+       "local_count": 5,
+       "global_count": 2,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 6058,
+       "recall_miss_rate": 0.05221153514668873
+      },
+      {
+       "local_count": 5,
+       "global_count": 2,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 4406,
+       "recall_miss_rate": 0.03797359258110111
+      },
+      {
+       "local_count": 5,
+       "global_count": 2,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 3026,
+       "recall_miss_rate": 0.026079911745440755
+      },
+      {
+       "local_count": 5,
+       "global_count": 2,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 1885,
+       "recall_miss_rate": 0.016246078532767952
+      },
+      {
+       "local_count": 5,
+       "global_count": 2,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 914,
+       "recall_miss_rate": 0.007877408901299687
+      },
+      {
+       "local_count": 5,
+       "global_count": 3,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 4003,
+       "recall_miss_rate": 0.03450029303271624
+      },
+      {
+       "local_count": 5,
+       "global_count": 3,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 3043,
+       "recall_miss_rate": 0.026226428103561208
+      },
+      {
+       "local_count": 5,
+       "global_count": 3,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 2122,
+       "recall_miss_rate": 0.018288688937153103
+      },
+      {
+       "local_count": 5,
+       "global_count": 3,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 1343,
+       "recall_miss_rate": 0.011574792291515841
+      },
+      {
+       "local_count": 5,
+       "global_count": 3,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 762,
+       "recall_miss_rate": 0.006567380287516807
+      },
+      {
+       "local_count": 5,
+       "global_count": 5,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 2265,
+       "recall_miss_rate": 0.019521150067225154
+      },
+      {
+       "local_count": 5,
+       "global_count": 5,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 1835,
+       "recall_miss_rate": 0.015815148067707795
+      },
+      {
+       "local_count": 5,
+       "global_count": 5,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 1354,
+       "recall_miss_rate": 0.011669596993829075
+      },
+      {
+       "local_count": 5,
+       "global_count": 5,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 891,
+       "recall_miss_rate": 0.007679180887372013
+      },
+      {
+       "local_count": 5,
+       "global_count": 5,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 617,
+       "recall_miss_rate": 0.005317681938842349
+      },
+      {
+       "local_count": 8,
+       "global_count": 0,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 53858,
+       "recall_miss_rate": 0.46418105974419965
+      },
+      {
+       "local_count": 8,
+       "global_count": 0,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 33117,
+       "recall_miss_rate": 0.285422484227945
+      },
+      {
+       "local_count": 8,
+       "global_count": 0,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 21195,
+       "recall_miss_rate": 0.18267142413900092
+      },
+      {
+       "local_count": 8,
+       "global_count": 0,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 13330,
+       "recall_miss_rate": 0.11488606198503809
+      },
+      {
+       "local_count": 8,
+       "global_count": 0,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 5319,
+       "recall_miss_rate": 0.045842382873099594
+      },
+      {
+       "local_count": 8,
+       "global_count": 1,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 11839,
+       "recall_miss_rate": 0.10203571551694418
+      },
+      {
+       "local_count": 8,
+       "global_count": 1,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 8008,
+       "recall_miss_rate": 0.06901782328403488
+      },
+      {
+       "local_count": 8,
+       "global_count": 1,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 5256,
+       "recall_miss_rate": 0.0452994104871238
+      },
+      {
+       "local_count": 8,
+       "global_count": 1,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 3176,
+       "recall_miss_rate": 0.027372703140621228
+      },
+      {
+       "local_count": 8,
+       "global_count": 1,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 1002,
+       "recall_miss_rate": 0.008635846519805564
+      },
+      {
+       "local_count": 8,
+       "global_count": 2,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 6037,
+       "recall_miss_rate": 0.052030544351363464
+      },
+      {
+       "local_count": 8,
+       "global_count": 2,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 4216,
+       "recall_miss_rate": 0.036336056813872517
+      },
+      {
+       "local_count": 8,
+       "global_count": 2,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 2825,
+       "recall_miss_rate": 0.02434757127589892
+      },
+      {
+       "local_count": 8,
+       "global_count": 2,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 1657,
+       "recall_miss_rate": 0.014281035612093632
+      },
+      {
+       "local_count": 8,
+       "global_count": 2,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 542,
+       "recall_miss_rate": 0.004671286241252111
+      },
+      {
+       "local_count": 8,
+       "global_count": 3,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 3982,
+       "recall_miss_rate": 0.03431930223739098
+      },
+      {
+       "local_count": 8,
+       "global_count": 3,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 2853,
+       "recall_miss_rate": 0.02458889233633261
+      },
+      {
+       "local_count": 8,
+       "global_count": 3,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 1921,
+       "recall_miss_rate": 0.016556348467611268
+      },
+      {
+       "local_count": 8,
+       "global_count": 3,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 1115,
+       "recall_miss_rate": 0.009609749370841521
+      },
+      {
+       "local_count": 8,
+       "global_count": 3,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 390,
+       "recall_miss_rate": 0.0033612576274692314
+      },
+      {
+       "local_count": 8,
+       "global_count": 5,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 2244,
+       "recall_miss_rate": 0.019340159271899887
+      },
+      {
+       "local_count": 8,
+       "global_count": 5,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 1645,
+       "recall_miss_rate": 0.014177612300479195
+      },
+      {
+       "local_count": 8,
+       "global_count": 5,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 1153,
+       "recall_miss_rate": 0.00993725652428724
+      },
+      {
+       "local_count": 8,
+       "global_count": 5,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 663,
+       "recall_miss_rate": 0.0057141379666976935
+      },
+      {
+       "local_count": 8,
+       "global_count": 5,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 245,
+       "recall_miss_rate": 0.0021115592787947736
+      }
+     ],
+     "decisions_total": 116028,
+     "births_total": 1118,
+     "memory_size_max": 249,
+     "memory_size_p95_max_over_episodes": 249,
+     "episodes": 9
+    }
+   },
+   "vitb14": {
+    "weights_file": "reid_head_vitb14.json",
+    "training_houses_used": 30,
+    "selection_houses_used": 9,
+    "selection_houses_separation_frozen": {
+     "count": 406255,
+     "mean": 0.08801495383709221,
+     "median": 0.07062107016833497,
+     "p10": -0.15288541821853593,
+     "p25": -0.03131730289718909,
+     "p75": 0.2212888575891918
+    },
+    "selection_houses_recall_curve_frozen": {
+     "grid_points": [
+      {
+       "local_count": 1,
+       "global_count": 0,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 57654,
+       "recall_miss_rate": 0.49689730065156684
+      },
+      {
+       "local_count": 1,
+       "global_count": 0,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 39801,
+       "recall_miss_rate": 0.34302926879718687
+      },
+      {
+       "local_count": 1,
+       "global_count": 0,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 30430,
+       "recall_miss_rate": 0.2622642810356121
+      },
+      {
+       "local_count": 1,
+       "global_count": 0,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 25635,
+       "recall_miss_rate": 0.22093804943634296
+      },
+      {
+       "local_count": 1,
+       "global_count": 0,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 24103,
+       "recall_miss_rate": 0.20773433998689972
+      },
+      {
+       "local_count": 1,
+       "global_count": 1,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 24761,
+       "recall_miss_rate": 0.2134053849070914
+      },
+      {
+       "local_count": 1,
+       "global_count": 1,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 20208,
+       "recall_miss_rate": 0.1741648567587134
+      },
+      {
+       "local_count": 1,
+       "global_count": 1,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 17999,
+       "recall_miss_rate": 0.15512634881235562
+      },
+      {
+       "local_count": 1,
+       "global_count": 1,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 17672,
+       "recall_miss_rate": 0.1523080635708622
+      },
+      {
+       "local_count": 1,
+       "global_count": 1,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 20743,
+       "recall_miss_rate": 0.1787758127348571
+      },
+      {
+       "local_count": 1,
+       "global_count": 2,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 16446,
+       "recall_miss_rate": 0.14174164856758714
+      },
+      {
+       "local_count": 1,
+       "global_count": 2,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 13461,
+       "recall_miss_rate": 0.11601509980349571
+      },
+      {
+       "local_count": 1,
+       "global_count": 2,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 12002,
+       "recall_miss_rate": 0.1034405488330403
+      },
+      {
+       "local_count": 1,
+       "global_count": 2,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 12030,
+       "recall_miss_rate": 0.10368186989347399
+      },
+      {
+       "local_count": 1,
+       "global_count": 2,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 14539,
+       "recall_miss_rate": 0.12530596063019273
+      },
+      {
+       "local_count": 1,
+       "global_count": 3,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 12513,
+       "recall_miss_rate": 0.10784465818595511
+      },
+      {
+       "local_count": 1,
+       "global_count": 3,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 10189,
+       "recall_miss_rate": 0.08781501016995898
+      },
+      {
+       "local_count": 1,
+       "global_count": 3,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 9102,
+       "recall_miss_rate": 0.07844658185955114
+      },
+      {
+       "local_count": 1,
+       "global_count": 3,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 9257,
+       "recall_miss_rate": 0.07978246630123763
+      },
+      {
+       "local_count": 1,
+       "global_count": 3,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 11314,
+       "recall_miss_rate": 0.09751094563381253
+      },
+      {
+       "local_count": 1,
+       "global_count": 5,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 8380,
+       "recall_miss_rate": 0.07222394594408246
+      },
+      {
+       "local_count": 1,
+       "global_count": 5,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 6797,
+       "recall_miss_rate": 0.05858068742027787
+      },
+      {
+       "local_count": 1,
+       "global_count": 5,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 6127,
+       "recall_miss_rate": 0.05280621918847175
+      },
+      {
+       "local_count": 1,
+       "global_count": 5,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 6349,
+       "recall_miss_rate": 0.05471955045333885
+      },
+      {
+       "local_count": 1,
+       "global_count": 5,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 7831,
+       "recall_miss_rate": 0.06749232943772193
+      },
+      {
+       "local_count": 2,
+       "global_count": 0,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 55000,
+       "recall_miss_rate": 0.47402351156617367
+      },
+      {
+       "local_count": 2,
+       "global_count": 0,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 35613,
+       "recall_miss_rate": 0.30693453304374807
+      },
+      {
+       "local_count": 2,
+       "global_count": 0,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 24326,
+       "recall_miss_rate": 0.20965628986106802
+      },
+      {
+       "local_count": 2,
+       "global_count": 0,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 17698,
+       "recall_miss_rate": 0.1525321474126935
+      },
+      {
+       "local_count": 2,
+       "global_count": 0,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 13152,
+       "recall_miss_rate": 0.11335194952942393
+      },
+      {
+       "local_count": 2,
+       "global_count": 1,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 22107,
+       "recall_miss_rate": 0.1905315958216982
+      },
+      {
+       "local_count": 2,
+       "global_count": 1,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 16020,
+       "recall_miss_rate": 0.13807012100527458
+      },
+      {
+       "local_count": 2,
+       "global_count": 1,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 11895,
+       "recall_miss_rate": 0.10251835763781156
+      },
+      {
+       "local_count": 2,
+       "global_count": 1,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 9735,
+       "recall_miss_rate": 0.08390216154721274
+      },
+      {
+       "local_count": 2,
+       "global_count": 1,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 9792,
+       "recall_miss_rate": 0.08439342227738132
+      },
+      {
+       "local_count": 2,
+       "global_count": 2,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 15297,
+       "recall_miss_rate": 0.13183886648050472
+      },
+      {
+       "local_count": 2,
+       "global_count": 2,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 11895,
+       "recall_miss_rate": 0.10251835763781156
+      },
+      {
+       "local_count": 2,
+       "global_count": 2,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 9266,
+       "recall_miss_rate": 0.07986003378494846
+      },
+      {
+       "local_count": 2,
+       "global_count": 2,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 8134,
+       "recall_miss_rate": 0.07010376805598649
+      },
+      {
+       "local_count": 2,
+       "global_count": 2,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 9143,
+       "recall_miss_rate": 0.07879994484090047
+      },
+      {
+       "local_count": 2,
+       "global_count": 3,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 11778,
+       "recall_miss_rate": 0.10150998034957079
+      },
+      {
+       "local_count": 2,
+       "global_count": 3,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 8991,
+       "recall_miss_rate": 0.0774899162271176
+      },
+      {
+       "local_count": 2,
+       "global_count": 3,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 7027,
+       "recall_miss_rate": 0.06056296755955459
+      },
+      {
+       "local_count": 2,
+       "global_count": 3,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 6196,
+       "recall_miss_rate": 0.053400903230254766
+      },
+      {
+       "local_count": 2,
+       "global_count": 3,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 7379,
+       "recall_miss_rate": 0.0635967180335781
+      },
+      {
+       "local_count": 2,
+       "global_count": 5,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 8087,
+       "recall_miss_rate": 0.06969869341882994
+      },
+      {
+       "local_count": 2,
+       "global_count": 5,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 6042,
+       "recall_miss_rate": 0.05207363739786948
+      },
+      {
+       "local_count": 2,
+       "global_count": 5,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 4726,
+       "recall_miss_rate": 0.04073154755748613
+      },
+      {
+       "local_count": 2,
+       "global_count": 5,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 4217,
+       "recall_miss_rate": 0.03634467542317372
+      },
+      {
+       "local_count": 2,
+       "global_count": 5,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 5370,
+       "recall_miss_rate": 0.046281931947460955
+      },
+      {
+       "local_count": 3,
+       "global_count": 0,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 54151,
+       "recall_miss_rate": 0.4667063122694522
+      },
+      {
+       "local_count": 3,
+       "global_count": 0,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 34464,
+       "recall_miss_rate": 0.2970317509566656
+      },
+      {
+       "local_count": 3,
+       "global_count": 0,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 22775,
+       "recall_miss_rate": 0.19628882683490192
+      },
+      {
+       "local_count": 3,
+       "global_count": 0,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 15479,
+       "recall_miss_rate": 0.1334074533733237
+      },
+      {
+       "local_count": 3,
+       "global_count": 0,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 9349,
+       "recall_miss_rate": 0.08057537835694832
+      },
+      {
+       "local_count": 3,
+       "global_count": 1,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 21258,
+       "recall_miss_rate": 0.18321439652497673
+      },
+      {
+       "local_count": 3,
+       "global_count": 1,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 14871,
+       "recall_miss_rate": 0.12816733891819215
+      },
+      {
+       "local_count": 3,
+       "global_count": 1,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 10344,
+       "recall_miss_rate": 0.08915089461164546
+      },
+      {
+       "local_count": 3,
+       "global_count": 1,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 7516,
+       "recall_miss_rate": 0.06477746750784294
+      },
+      {
+       "local_count": 3,
+       "global_count": 1,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 5989,
+       "recall_miss_rate": 0.051616851104905714
+      },
+      {
+       "local_count": 3,
+       "global_count": 2,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 14448,
+       "recall_miss_rate": 0.12452166718378323
+      },
+      {
+       "local_count": 3,
+       "global_count": 2,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 10746,
+       "recall_miss_rate": 0.09261557555072913
+      },
+      {
+       "local_count": 3,
+       "global_count": 2,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 7715,
+       "recall_miss_rate": 0.06649257075878236
+      },
+      {
+       "local_count": 3,
+       "global_count": 2,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 5915,
+       "recall_miss_rate": 0.05097907401661668
+      },
+      {
+       "local_count": 3,
+       "global_count": 2,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 5340,
+       "recall_miss_rate": 0.04602337366842486
+      },
+      {
+       "local_count": 3,
+       "global_count": 3,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 11262,
+       "recall_miss_rate": 0.09706277795014996
+      },
+      {
+       "local_count": 3,
+       "global_count": 3,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 8703,
+       "recall_miss_rate": 0.07500775674837108
+      },
+      {
+       "local_count": 3,
+       "global_count": 3,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 6404,
+       "recall_miss_rate": 0.05519357396490502
+      },
+      {
+       "local_count": 3,
+       "global_count": 3,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 5097,
+       "recall_miss_rate": 0.043929051608232496
+      },
+      {
+       "local_count": 3,
+       "global_count": 3,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 5018,
+       "recall_miss_rate": 0.043248181473437446
+      },
+      {
+       "local_count": 3,
+       "global_count": 5,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 7780,
+       "recall_miss_rate": 0.06705278036336057
+      },
+      {
+       "local_count": 3,
+       "global_count": 5,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 5851,
+       "recall_miss_rate": 0.050427483021339675
+      },
+      {
+       "local_count": 3,
+       "global_count": 5,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 4292,
+       "recall_miss_rate": 0.036991071120763955
+      },
+      {
+       "local_count": 3,
+       "global_count": 5,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 3392,
+       "recall_miss_rate": 0.029234322749681112
+      },
+      {
+       "local_count": 3,
+       "global_count": 5,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 3650,
+       "recall_miss_rate": 0.03145792394939153
+      },
+      {
+       "local_count": 5,
+       "global_count": 0,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 53889,
+       "recall_miss_rate": 0.464448236632537
+      },
+      {
+       "local_count": 5,
+       "global_count": 0,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 33562,
+       "recall_miss_rate": 0.2892577653669804
+      },
+      {
+       "local_count": 5,
+       "global_count": 0,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 21683,
+       "recall_miss_rate": 0.18687730547798806
+      },
+      {
+       "local_count": 5,
+       "global_count": 0,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 13960,
+       "recall_miss_rate": 0.12031578584479609
+      },
+      {
+       "local_count": 5,
+       "global_count": 0,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 6617,
+       "recall_miss_rate": 0.057029337746061295
+      },
+      {
+       "local_count": 5,
+       "global_count": 1,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 20996,
+       "recall_miss_rate": 0.1809563208880615
+      },
+      {
+       "local_count": 5,
+       "global_count": 1,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 13969,
+       "recall_miss_rate": 0.12039335332850691
+      },
+      {
+       "local_count": 5,
+       "global_count": 1,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 9252,
+       "recall_miss_rate": 0.07973937325473161
+      },
+      {
+       "local_count": 5,
+       "global_count": 1,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 5997,
+       "recall_miss_rate": 0.051685799979315335
+      },
+      {
+       "local_count": 5,
+       "global_count": 1,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 3257,
+       "recall_miss_rate": 0.028070810494018685
+      },
+      {
+       "local_count": 5,
+       "global_count": 2,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 14186,
+       "recall_miss_rate": 0.122263591546868
+      },
+      {
+       "local_count": 5,
+       "global_count": 2,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 9844,
+       "recall_miss_rate": 0.08484158996104389
+      },
+      {
+       "local_count": 5,
+       "global_count": 2,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 6623,
+       "recall_miss_rate": 0.05708104940186851
+      },
+      {
+       "local_count": 5,
+       "global_count": 2,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 4396,
+       "recall_miss_rate": 0.03788740648808908
+      },
+      {
+       "local_count": 5,
+       "global_count": 2,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 2608,
+       "recall_miss_rate": 0.022477333057537834
+      },
+      {
+       "local_count": 5,
+       "global_count": 3,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 11000,
+       "recall_miss_rate": 0.09480470231323473
+      },
+      {
+       "local_count": 5,
+       "global_count": 3,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 7801,
+       "recall_miss_rate": 0.06723377115868584
+      },
+      {
+       "local_count": 5,
+       "global_count": 3,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 5312,
+       "recall_miss_rate": 0.045782052607991175
+      },
+      {
+       "local_count": 5,
+       "global_count": 3,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 3578,
+       "recall_miss_rate": 0.030837384079704898
+      },
+      {
+       "local_count": 5,
+       "global_count": 3,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 2286,
+       "recall_miss_rate": 0.01970214086255042
+      },
+      {
+       "local_count": 5,
+       "global_count": 5,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 7632,
+       "recall_miss_rate": 0.0657772261867825
+      },
+      {
+       "local_count": 5,
+       "global_count": 5,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 5677,
+       "recall_miss_rate": 0.04892784500293033
+      },
+      {
+       "local_count": 5,
+       "global_count": 5,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 3960,
+       "recall_miss_rate": 0.034129692832764506
+      },
+      {
+       "local_count": 5,
+       "global_count": 5,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 2732,
+       "recall_miss_rate": 0.023546040610887026
+      },
+      {
+       "local_count": 5,
+       "global_count": 5,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 1971,
+       "recall_miss_rate": 0.016987278932671424
+      },
+      {
+       "local_count": 8,
+       "global_count": 0,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 53858,
+       "recall_miss_rate": 0.46418105974419965
+      },
+      {
+       "local_count": 8,
+       "global_count": 0,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 33160,
+       "recall_miss_rate": 0.2857930844278967
+      },
+      {
+       "local_count": 8,
+       "global_count": 0,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 21257,
+       "recall_miss_rate": 0.18320577791567552
+      },
+      {
+       "local_count": 8,
+       "global_count": 0,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 13418,
+       "recall_miss_rate": 0.11564449960354398
+      },
+      {
+       "local_count": 8,
+       "global_count": 0,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 5589,
+       "recall_miss_rate": 0.04816940738442445
+      },
+      {
+       "local_count": 8,
+       "global_count": 1,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 20965,
+       "recall_miss_rate": 0.18068914399972422
+      },
+      {
+       "local_count": 8,
+       "global_count": 1,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 13567,
+       "recall_miss_rate": 0.11692867238942324
+      },
+      {
+       "local_count": 8,
+       "global_count": 1,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 8826,
+       "recall_miss_rate": 0.07606784569241908
+      },
+      {
+       "local_count": 8,
+       "global_count": 1,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 5455,
+       "recall_miss_rate": 0.04701451373806323
+      },
+      {
+       "local_count": 8,
+       "global_count": 1,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 2229,
+       "recall_miss_rate": 0.019210880132381838
+      },
+      {
+       "local_count": 8,
+       "global_count": 2,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 14155,
+       "recall_miss_rate": 0.1219964146585307
+      },
+      {
+       "local_count": 8,
+       "global_count": 2,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 9442,
+       "recall_miss_rate": 0.08137690902196022
+      },
+      {
+       "local_count": 8,
+       "global_count": 2,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 6197,
+       "recall_miss_rate": 0.05340952183955597
+      },
+      {
+       "local_count": 8,
+       "global_count": 2,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 3854,
+       "recall_miss_rate": 0.03321612024683697
+      },
+      {
+       "local_count": 8,
+       "global_count": 2,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 1580,
+       "recall_miss_rate": 0.013617402695900989
+      },
+      {
+       "local_count": 8,
+       "global_count": 3,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 10969,
+       "recall_miss_rate": 0.09453752542489743
+      },
+      {
+       "local_count": 8,
+       "global_count": 3,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 7399,
+       "recall_miss_rate": 0.06376909021960217
+      },
+      {
+       "local_count": 8,
+       "global_count": 3,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 4886,
+       "recall_miss_rate": 0.04211052504567863
+      },
+      {
+       "local_count": 8,
+       "global_count": 3,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 3036,
+       "recall_miss_rate": 0.026166097838452786
+      },
+      {
+       "local_count": 8,
+       "global_count": 3,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 1258,
+       "recall_miss_rate": 0.010842210500913572
+      },
+      {
+       "local_count": 8,
+       "global_count": 5,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 7601,
+       "recall_miss_rate": 0.0655100492984452
+      },
+      {
+       "local_count": 8,
+       "global_count": 5,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 5275,
+       "recall_miss_rate": 0.04546316406384666
+      },
+      {
+       "local_count": 8,
+       "global_count": 5,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 3534,
+       "recall_miss_rate": 0.03045816527045196
+      },
+      {
+       "local_count": 8,
+       "global_count": 5,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 2190,
+       "recall_miss_rate": 0.018874754369634917
+      },
+      {
+       "local_count": 8,
+       "global_count": 5,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 943,
+       "recall_miss_rate": 0.008127348571034579
+      }
+     ],
+     "decisions_total": 116028,
+     "births_total": 1118,
+     "memory_size_max": 249,
+     "memory_size_p95_max_over_episodes": 249,
+     "episodes": 9
+    },
+    "weights_reused": false,
+    "training_fragments": 322099,
+    "training_classes": 3291,
+    "classes_with_positives": 3237,
+    "loss_curve": [
+     1.972315271884676,
+     1.5834418856908405,
+     1.4765838146919297,
+     1.4218659643142944,
+     1.3920859860049353,
+     1.3470263157572064,
+     1.3364343480458336,
+     1.3242761140777952,
+     1.3069503786071899,
+     1.288333221749654,
+     1.290239413957747,
+     1.2764095633748977,
+     1.2797092275960105,
+     1.276782578892178,
+     1.276667703144134,
+     1.259227615973306,
+     1.2533930048109994,
+     1.2630902456858801,
+     1.2497992629096621,
+     1.2474335459489672
+    ],
+    "diverged": false,
+    "weights_written": true,
+    "weights_sha256": "5cea91cf77901f1eb38e5942ee12a2afbe14e11ba1475bd2957e1cbfe3659a88",
+    "status": "succeeded",
+    "selection_houses_separation_projection": {
+     "count": 406255,
+     "mean": 0.20057297111655736,
+     "median": 0.17468310649691488,
+     "p10": -0.05567065972065918,
+     "p25": 0.026211050843241712,
+     "p75": 0.3687633115872266
+    },
+    "selection_houses_recall_curve_projection": {
+     "grid_points": [
+      {
+       "local_count": 1,
+       "global_count": 0,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 55985,
+       "recall_miss_rate": 0.4825128417278588
+      },
+      {
+       "local_count": 1,
+       "global_count": 0,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 37101,
+       "recall_miss_rate": 0.3197590236839384
+      },
+      {
+       "local_count": 1,
+       "global_count": 0,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 26441,
+       "recall_miss_rate": 0.2278846485331127
+      },
+      {
+       "local_count": 1,
+       "global_count": 0,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 20146,
+       "recall_miss_rate": 0.17363050298203883
+      },
+      {
+       "local_count": 1,
+       "global_count": 0,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 15627,
+       "recall_miss_rate": 0.13468300754990176
+      },
+      {
+       "local_count": 1,
+       "global_count": 1,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 12174,
+       "recall_miss_rate": 0.10492294963284725
+      },
+      {
+       "local_count": 1,
+       "global_count": 1,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 11026,
+       "recall_miss_rate": 0.09502878615506602
+      },
+      {
+       "local_count": 1,
+       "global_count": 1,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 9955,
+       "recall_miss_rate": 0.08579825559347744
+      },
+      {
+       "local_count": 1,
+       "global_count": 1,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 9645,
+       "recall_miss_rate": 0.08312648671010446
+      },
+      {
+       "local_count": 1,
+       "global_count": 1,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 11203,
+       "recall_miss_rate": 0.09655428000137897
+      },
+      {
+       "local_count": 1,
+       "global_count": 2,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 5928,
+       "recall_miss_rate": 0.05109111593753232
+      },
+      {
+       "local_count": 1,
+       "global_count": 2,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 5240,
+       "recall_miss_rate": 0.04516151273830455
+      },
+      {
+       "local_count": 1,
+       "global_count": 2,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 4785,
+       "recall_miss_rate": 0.04124004550625711
+      },
+      {
+       "local_count": 1,
+       "global_count": 2,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 4655,
+       "recall_miss_rate": 0.0401196262971007
+      },
+      {
+       "local_count": 1,
+       "global_count": 2,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 5557,
+       "recall_miss_rate": 0.047893611886785946
+      },
+      {
+       "local_count": 1,
+       "global_count": 3,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 3774,
+       "recall_miss_rate": 0.03252663150274072
+      },
+      {
+       "local_count": 1,
+       "global_count": 3,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 3280,
+       "recall_miss_rate": 0.02826903850794636
+      },
+      {
+       "local_count": 1,
+       "global_count": 3,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 2968,
+       "recall_miss_rate": 0.02558003240597097
+      },
+      {
+       "local_count": 1,
+       "global_count": 3,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 2879,
+       "recall_miss_rate": 0.02481297617816389
+      },
+      {
+       "local_count": 1,
+       "global_count": 3,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 3555,
+       "recall_miss_rate": 0.030639156065777225
+      },
+      {
+       "local_count": 1,
+       "global_count": 5,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 1995,
+       "recall_miss_rate": 0.0171941255559003
+      },
+      {
+       "local_count": 1,
+       "global_count": 5,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 1709,
+       "recall_miss_rate": 0.014729203295756197
+      },
+      {
+       "local_count": 1,
+       "global_count": 5,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 1521,
+       "recall_miss_rate": 0.013108904747130003
+      },
+      {
+       "local_count": 1,
+       "global_count": 5,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 1480,
+       "recall_miss_rate": 0.012755541765780674
+      },
+      {
+       "local_count": 1,
+       "global_count": 5,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 1860,
+       "recall_miss_rate": 0.016030613300237875
+      },
+      {
+       "local_count": 2,
+       "global_count": 0,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 54264,
+       "recall_miss_rate": 0.4676802151204882
+      },
+      {
+       "local_count": 2,
+       "global_count": 0,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 34361,
+       "recall_miss_rate": 0.2961440341986417
+      },
+      {
+       "local_count": 2,
+       "global_count": 0,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 22698,
+       "recall_miss_rate": 0.19562519391870928
+      },
+      {
+       "local_count": 2,
+       "global_count": 0,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 15288,
+       "recall_miss_rate": 0.13176129899679387
+      },
+      {
+       "local_count": 2,
+       "global_count": 0,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 8286,
+       "recall_miss_rate": 0.07141379666976937
+      },
+      {
+       "local_count": 2,
+       "global_count": 1,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 10453,
+       "recall_miss_rate": 0.0900903230254766
+      },
+      {
+       "local_count": 2,
+       "global_count": 1,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 8286,
+       "recall_miss_rate": 0.07141379666976937
+      },
+      {
+       "local_count": 2,
+       "global_count": 1,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 6212,
+       "recall_miss_rate": 0.053538800979074014
+      },
+      {
+       "local_count": 2,
+       "global_count": 1,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 4787,
+       "recall_miss_rate": 0.04125728272485952
+      },
+      {
+       "local_count": 2,
+       "global_count": 1,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 3862,
+       "recall_miss_rate": 0.0332850691212466
+      },
+      {
+       "local_count": 2,
+       "global_count": 2,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 5234,
+       "recall_miss_rate": 0.045109801082497326
+      },
+      {
+       "local_count": 2,
+       "global_count": 2,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 4765,
+       "recall_miss_rate": 0.04106767332023305
+      },
+      {
+       "local_count": 2,
+       "global_count": 2,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 3897,
+       "recall_miss_rate": 0.033586720446788704
+      },
+      {
+       "local_count": 2,
+       "global_count": 2,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 3363,
+       "recall_miss_rate": 0.02898438307994622
+      },
+      {
+       "local_count": 2,
+       "global_count": 2,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 3479,
+       "recall_miss_rate": 0.029984141758885786
+      },
+      {
+       "local_count": 2,
+       "global_count": 3,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 3437,
+       "recall_miss_rate": 0.029622160168235254
+      },
+      {
+       "local_count": 2,
+       "global_count": 3,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 2980,
+       "recall_miss_rate": 0.025683455717585412
+      },
+      {
+       "local_count": 2,
+       "global_count": 3,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 2438,
+       "recall_miss_rate": 0.0210121694763333
+      },
+      {
+       "local_count": 2,
+       "global_count": 3,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 2030,
+       "recall_miss_rate": 0.01749577688144241
+      },
+      {
+       "local_count": 2,
+       "global_count": 3,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 2292,
+       "recall_miss_rate": 0.019753852518357637
+      },
+      {
+       "local_count": 2,
+       "global_count": 5,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 1942,
+       "recall_miss_rate": 0.016737339262936534
+      },
+      {
+       "local_count": 2,
+       "global_count": 5,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 1568,
+       "recall_miss_rate": 0.013513979384286551
+      },
+      {
+       "local_count": 2,
+       "global_count": 5,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 1257,
+       "recall_miss_rate": 0.010833591891612369
+      },
+      {
+       "local_count": 2,
+       "global_count": 5,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 996,
+       "recall_miss_rate": 0.008584134863998345
+      },
+      {
+       "local_count": 2,
+       "global_count": 5,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 1241,
+       "recall_miss_rate": 0.01069569414279312
+      },
+      {
+       "local_count": 3,
+       "global_count": 0,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 53945,
+       "recall_miss_rate": 0.46493087875340433
+      },
+      {
+       "local_count": 3,
+       "global_count": 0,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 33636,
+       "recall_miss_rate": 0.28989554245526944
+      },
+      {
+       "local_count": 3,
+       "global_count": 0,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 21775,
+       "recall_miss_rate": 0.18767021753369875
+      },
+      {
+       "local_count": 3,
+       "global_count": 0,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 14111,
+       "recall_miss_rate": 0.12161719584927776
+      },
+      {
+       "local_count": 3,
+       "global_count": 0,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 6542,
+       "recall_miss_rate": 0.05638294204847106
+      },
+      {
+       "local_count": 3,
+       "global_count": 1,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 10134,
+       "recall_miss_rate": 0.08734098665839281
+      },
+      {
+       "local_count": 3,
+       "global_count": 1,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 7561,
+       "recall_miss_rate": 0.06516530492639708
+      },
+      {
+       "local_count": 3,
+       "global_count": 1,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 5289,
+       "recall_miss_rate": 0.0455838245940635
+      },
+      {
+       "local_count": 3,
+       "global_count": 1,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 3610,
+       "recall_miss_rate": 0.0311131795773434
+      },
+      {
+       "local_count": 3,
+       "global_count": 1,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 2118,
+       "recall_miss_rate": 0.01825421449994829
+      },
+      {
+       "local_count": 3,
+       "global_count": 2,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 4915,
+       "recall_miss_rate": 0.04236046471541352
+      },
+      {
+       "local_count": 3,
+       "global_count": 2,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 4040,
+       "recall_miss_rate": 0.03481918157686076
+      },
+      {
+       "local_count": 3,
+       "global_count": 2,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 2974,
+       "recall_miss_rate": 0.02563174406177819
+      },
+      {
+       "local_count": 3,
+       "global_count": 2,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 2186,
+       "recall_miss_rate": 0.018840279932430103
+      },
+      {
+       "local_count": 3,
+       "global_count": 2,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 1735,
+       "recall_miss_rate": 0.014953287137587479
+      },
+      {
+       "local_count": 3,
+       "global_count": 3,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 3275,
+       "recall_miss_rate": 0.028225945461440343
+      },
+      {
+       "local_count": 3,
+       "global_count": 3,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 2893,
+       "recall_miss_rate": 0.024933636708380735
+      },
+      {
+       "local_count": 3,
+       "global_count": 3,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 2230,
+       "recall_miss_rate": 0.019219498741683043
+      },
+      {
+       "local_count": 3,
+       "global_count": 3,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 1730,
+       "recall_miss_rate": 0.014910194091081463
+      },
+      {
+       "local_count": 3,
+       "global_count": 3,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 1620,
+       "recall_miss_rate": 0.013962147067949116
+      },
+      {
+       "local_count": 3,
+       "global_count": 5,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 1877,
+       "recall_miss_rate": 0.016177129658358328
+      },
+      {
+       "local_count": 3,
+       "global_count": 5,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 1532,
+       "recall_miss_rate": 0.013203709449443237
+      },
+      {
+       "local_count": 3,
+       "global_count": 5,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 1157,
+       "recall_miss_rate": 0.009971730961492054
+      },
+      {
+       "local_count": 3,
+       "global_count": 5,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 831,
+       "recall_miss_rate": 0.0071620643292998245
+      },
+      {
+       "local_count": 3,
+       "global_count": 5,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 834,
+       "recall_miss_rate": 0.007187920157203434
+      },
+      {
+       "local_count": 5,
+       "global_count": 0,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 53867,
+       "recall_miss_rate": 0.4642586272279105
+      },
+      {
+       "local_count": 5,
+       "global_count": 0,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 33191,
+       "recall_miss_rate": 0.286060261316234
+      },
+      {
+       "local_count": 5,
+       "global_count": 0,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 21262,
+       "recall_miss_rate": 0.18324887096218154
+      },
+      {
+       "local_count": 5,
+       "global_count": 0,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 13421,
+       "recall_miss_rate": 0.11567035543144759
+      },
+      {
+       "local_count": 5,
+       "global_count": 0,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 5495,
+       "recall_miss_rate": 0.04735925811011135
+      },
+      {
+       "local_count": 5,
+       "global_count": 1,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 10056,
+       "recall_miss_rate": 0.08666873513289895
+      },
+      {
+       "local_count": 5,
+       "global_count": 1,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 7116,
+       "recall_miss_rate": 0.06133002378736167
+      },
+      {
+       "local_count": 5,
+       "global_count": 1,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 4776,
+       "recall_miss_rate": 0.04116247802254628
+      },
+      {
+       "local_count": 5,
+       "global_count": 1,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 2920,
+       "recall_miss_rate": 0.02516633915951322
+      },
+      {
+       "local_count": 5,
+       "global_count": 1,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 1071,
+       "recall_miss_rate": 0.009230530561588582
+      },
+      {
+       "local_count": 5,
+       "global_count": 2,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 4837,
+       "recall_miss_rate": 0.04168821318991967
+      },
+      {
+       "local_count": 5,
+       "global_count": 2,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 3595,
+       "recall_miss_rate": 0.030983900437825354
+      },
+      {
+       "local_count": 5,
+       "global_count": 2,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 2461,
+       "recall_miss_rate": 0.021210397490260973
+      },
+      {
+       "local_count": 5,
+       "global_count": 2,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 1496,
+       "recall_miss_rate": 0.012893439514599925
+      },
+      {
+       "local_count": 5,
+       "global_count": 2,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 688,
+       "recall_miss_rate": 0.005929603199227773
+      },
+      {
+       "local_count": 5,
+       "global_count": 3,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 3197,
+       "recall_miss_rate": 0.027553693935946495
+      },
+      {
+       "local_count": 5,
+       "global_count": 3,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 2448,
+       "recall_miss_rate": 0.02109835556934533
+      },
+      {
+       "local_count": 5,
+       "global_count": 3,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 1717,
+       "recall_miss_rate": 0.014798152170165823
+      },
+      {
+       "local_count": 5,
+       "global_count": 3,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 1040,
+       "recall_miss_rate": 0.008963353673251285
+      },
+      {
+       "local_count": 5,
+       "global_count": 3,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 573,
+       "recall_miss_rate": 0.004938463129589409
+      },
+      {
+       "local_count": 5,
+       "global_count": 5,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 1846,
+       "recall_miss_rate": 0.01590995277002103
+      },
+      {
+       "local_count": 5,
+       "global_count": 5,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 1495,
+       "recall_miss_rate": 0.012884820905298721
+      },
+      {
+       "local_count": 5,
+       "global_count": 5,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 1082,
+       "recall_miss_rate": 0.009325335263901818
+      },
+      {
+       "local_count": 5,
+       "global_count": 5,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 685,
+       "recall_miss_rate": 0.005903747371324163
+      },
+      {
+       "local_count": 5,
+       "global_count": 5,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 460,
+       "recall_miss_rate": 0.003964560278553453
+      },
+      {
+       "local_count": 8,
+       "global_count": 0,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 53858,
+       "recall_miss_rate": 0.46418105974419965
+      },
+      {
+       "local_count": 8,
+       "global_count": 0,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 33103,
+       "recall_miss_rate": 0.2853018236977281
+      },
+      {
+       "local_count": 8,
+       "global_count": 0,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 21167,
+       "recall_miss_rate": 0.18243010307856725
+      },
+      {
+       "local_count": 8,
+       "global_count": 0,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 13299,
+       "recall_miss_rate": 0.11461888509670079
+      },
+      {
+       "local_count": 8,
+       "global_count": 0,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 5271,
+       "recall_miss_rate": 0.045428689626641844
+      },
+      {
+       "local_count": 8,
+       "global_count": 1,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 10047,
+       "recall_miss_rate": 0.08659116764918813
+      },
+      {
+       "local_count": 8,
+       "global_count": 1,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 7028,
+       "recall_miss_rate": 0.060571586168855794
+      },
+      {
+       "local_count": 8,
+       "global_count": 1,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 4681,
+       "recall_miss_rate": 0.04034371013893198
+      },
+      {
+       "local_count": 8,
+       "global_count": 1,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 2798,
+       "recall_miss_rate": 0.024114868824766437
+      },
+      {
+       "local_count": 8,
+       "global_count": 1,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 847,
+       "recall_miss_rate": 0.007299962078119075
+      },
+      {
+       "local_count": 8,
+       "global_count": 2,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 4828,
+       "recall_miss_rate": 0.04161064570620884
+      },
+      {
+       "local_count": 8,
+       "global_count": 2,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 3507,
+       "recall_miss_rate": 0.030225462819319475
+      },
+      {
+       "local_count": 8,
+       "global_count": 2,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 2366,
+       "recall_miss_rate": 0.020391629606646672
+      },
+      {
+       "local_count": 8,
+       "global_count": 2,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 1374,
+       "recall_miss_rate": 0.011841969179853138
+      },
+      {
+       "local_count": 8,
+       "global_count": 2,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 464,
+       "recall_miss_rate": 0.003999034715758265
+      },
+      {
+       "local_count": 8,
+       "global_count": 3,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 3188,
+       "recall_miss_rate": 0.027476126452235666
+      },
+      {
+       "local_count": 8,
+       "global_count": 3,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 2360,
+       "recall_miss_rate": 0.02033991795083945
+      },
+      {
+       "local_count": 8,
+       "global_count": 3,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 1622,
+       "recall_miss_rate": 0.013979384286551521
+      },
+      {
+       "local_count": 8,
+       "global_count": 3,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 918,
+       "recall_miss_rate": 0.007911883338504499
+      },
+      {
+       "local_count": 8,
+       "global_count": 3,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 349,
+       "recall_miss_rate": 0.003007894646119902
+      },
+      {
+       "local_count": 8,
+       "global_count": 5,
+       "local_radius_m": 0.5,
+       "decisions": 116028,
+       "recall_miss": 1837,
+       "recall_miss_rate": 0.015832385286310202
+      },
+      {
+       "local_count": 8,
+       "global_count": 5,
+       "local_radius_m": 1.0,
+       "decisions": 116028,
+       "recall_miss": 1407,
+       "recall_miss_rate": 0.012126383286792844
+      },
+      {
+       "local_count": 8,
+       "global_count": 5,
+       "local_radius_m": 1.5,
+       "decisions": 116028,
+       "recall_miss": 987,
+       "recall_miss_rate": 0.008506567380287516
+      },
+      {
+       "local_count": 8,
+       "global_count": 5,
+       "local_radius_m": 2.0,
+       "decisions": 116028,
+       "recall_miss": 563,
+       "recall_miss_rate": 0.004852277036577378
+      },
+      {
+       "local_count": 8,
+       "global_count": 5,
+       "local_radius_m": 3.0,
+       "decisions": 116028,
+       "recall_miss": 236,
+       "recall_miss_rate": 0.002033991795083945
+      }
+     ],
+     "decisions_total": 116028,
+     "births_total": 1118,
+     "memory_size_max": 249,
+     "memory_size_p95_max_over_episodes": 249,
+     "episodes": 9
+    }
+   }
+  },
+  "failed_sets": [],
+  "selection_rule": {
+   "chosen": "reid_projection:vitb14",
+   "best_frozen": "vitb14",
+   "best_frozen_median_separation": 0.07062107016833497,
+   "projection_gain_over_best_frozen": 0.10406203632857991,
+   "threshold": 0.05,
+   "frozen_descriptor_baseline_must_be_reported": true,
+   "status": "computed",
+   "projections_excluded_after_divergence": [],
+   "note": "S1-05 applies this; nothing is frozen here"
+  }
+ }
+}
