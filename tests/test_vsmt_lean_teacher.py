@@ -1087,8 +1087,24 @@ class TestMachineContract(unittest.TestCase):
             self.assertEqual(str(caught.exception), f"contract_frozen_constant_mismatch:{path}")
         self.assertEqual(IOU_MIN, 0.3)
 
+    def test_the_nuisance_maximum_and_its_split_level_scope_are_bound(self) -> None:
+        """D-224-S1 ruling 68 (5): 0.05 judged over the pooled rows of a split; per-episode values only reported."""
+
+        from vsmt.lean_teacher import NUISANCE_MAXIMUM_ADVANTAGE, NUISANCE_SCOPE_RULE
+
+        contract = self._fresh()
+        self.assertEqual(NUISANCE_MAXIMUM_ADVANTAGE, 0.05)
+        self.assertEqual(contract["nuisance_probe"]["maximum_advantage"], NUISANCE_MAXIMUM_ADVANTAGE)
+        self.assertEqual(contract["nuisance_probe"]["scope"], NUISANCE_SCOPE_RULE)
+        self.assertIn("per_episode largest_advantage is reported and never judged", NUISANCE_SCOPE_RULE)
+        broken = self._fresh()
+        broken["nuisance_probe"]["scope"] = "judged_per_episode"
+        with self.assertRaises(LeanTeacherError) as caught:
+            validate_teacher_contract(broken)
+        self.assertEqual(str(caught.exception), "contract_nuisance_scope_mismatch")
+
     def test_policy_values_must_still_be_null(self) -> None:
-        self.assertEqual(len(NULL_POLICY_PATHS), 3)  # dominance_min_share and delta_moved_m were frozen by ruling 67
+        self.assertEqual(len(NULL_POLICY_PATHS), 2)  # rulings 67 and 68 froze the label values and the nuisance maximum
         for path in NULL_POLICY_PATHS:
             broken = self._fresh()
             self._set(broken, path, 0.5)
@@ -1098,7 +1114,7 @@ class TestMachineContract(unittest.TestCase):
 
     def test_the_ruling_67_values_are_bound(self) -> None:
         self.assertEqual([path for path, _v, _r in FROZEN_VALUES_BY_RULING],
-                         ["labels.fragment_dominance.dominance_min_share", "labels.existence.delta_moved_m"])
+                         ["labels.fragment_dominance.dominance_min_share", "labels.existence.delta_moved_m", "nuisance_probe.maximum_advantage"])
         for path, value, _ruling in FROZEN_VALUES_BY_RULING:
             self.assertEqual(self._get(self._fresh(), path) if hasattr(self, "_get") else value, value)
             broken = self._fresh()

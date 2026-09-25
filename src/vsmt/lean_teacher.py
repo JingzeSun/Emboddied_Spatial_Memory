@@ -1543,16 +1543,24 @@ V2_RULING_KEYS = ("X1", "X2", "X5", "X6")
 NULL_POLICY_PATHS = (
     "statistics.bootstrap_seed",
     "statistics.main_gate_effect_size",
-    "nuisance_probe.maximum_advantage",
 )
 
 #: D-224-S1 ruling 67 (2026-09-24): the two label values, frozen once.  Callers still pass them
 #: explicitly; the validator requires the contract to carry exactly these numbers.
 DOMINANCE_MIN_SHARE = 0.5
 DELTA_MOVED_M = 0.5
+#: D-224-S1 ruling 68 (2026-09-25, LOG-256 sequel): the nuisance probe's largest admissible advantage,
+#: judged over the pooled rows of one split.  Path, seed and house index are constant within an
+#: episode (advantage 0) and only discriminate once houses are pooled, which is the leakage the probe
+#: exists to catch; frame_index within one episode reaches 0.128 through temporal clustering of the
+#: statuses (a frame where a new object enters is mostly births), which is not leakage, so the
+#: per-episode largest_advantage is reported and never judged.
+NUISANCE_MAXIMUM_ADVANTAGE = 0.05
+NUISANCE_SCOPE_RULE = "judged_over_the_pooled_rows_of_one_split; the per_episode largest_advantage is reported and never judged"
 FROZEN_VALUES_BY_RULING = (
     ("labels.fragment_dominance.dominance_min_share", DOMINANCE_MIN_SHARE, "D-224-S1 ruling 67"),
     ("labels.existence.delta_moved_m", DELTA_MOVED_M, "D-224-S1 ruling 67"),
+    ("nuisance_probe.maximum_advantage", NUISANCE_MAXIMUM_ADVANTAGE, "D-224-S1 ruling 68"),
 )
 
 #: Constants already frozen by an approved decision; the validator binds their values.
@@ -1658,6 +1666,7 @@ def validate_teacher_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     _require(set(contract["user_rulings"]) >= {"L", "M", "N", "O", "P", "Q"}, "contract_rulings_incomplete")
     _require(tuple(contract["nuisance_probe"]["fields"]) == NUISANCE_FIELDS, "contract_nuisance_fields_mismatch")
     _require(tuple(contract["nuisance_probe"]["labels"]) == NUISANCE_LABELS, "contract_nuisance_labels_mismatch")
+    _require(contract["nuisance_probe"].get("scope") == NUISANCE_SCOPE_RULE, "contract_nuisance_scope_mismatch")  # ruling 68 (5)
     v2 = contract.get("user_rulings_v2")
     _require(type(v2) is dict and v2.get("decision_id") == V2_RULINGS_DECISION_ID, "contract_v2_rulings_decision_mismatch")
     _require(set(v2) >= set(V2_RULING_KEYS), "contract_v2_rulings_incomplete")
@@ -1725,6 +1734,8 @@ __all__ = [
     "NULL_POLICY_PATHS",
     "NUISANCE_FIELDS",
     "NUISANCE_LABELS",
+    "NUISANCE_MAXIMUM_ADVANTAGE",
+    "NUISANCE_SCOPE_RULE",
     "OPTIONAL_ARM",
     "RULINGS_DECISION_ID",
     "ablation_report",

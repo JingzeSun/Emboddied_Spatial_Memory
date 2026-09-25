@@ -315,7 +315,11 @@ FROZEN_RULE_SHA256 = {
     # sets and matcher, centroid distance within the frozen delta_moved_m, weight 1/(1+d), never the
     # selection metric nor a main-gate metric) joins the metric names, reported fields and rules.
     # 7a3d661b -> 126fdd34.
-    "S0-04": "126fdd349f41bd572db41e80fb8e6ca3221a6348ec6aa514c5732278fe5b2e79",
+    # Re-pinned 2026-09-25 for ruling 68 (5) (LOG-256 sequel): nuisance_probe.scope -- the maximum advantage
+    # is judged over the pooled rows of one split and the per-episode largest_advantage is reported only
+    # (frame_index clusters statuses within an episode; path, seed and house index only discriminate
+    # once houses are pooled).  The 0.05 itself is a slot.  126fdd34 -> c5d66505.
+    "S0-04": "c5d6650523605243b4637ca23acc6cbea5883f5d4a1c849d0c1efed653d81fd0",
     # S0-05 re-pinned 2026-09-25 for ruling 68 (LOG-256 sequel): every grid's values (at most twelve
     # configurations per method, a no-gate member in every rule arm), the ELU-P rollout_config
     # (0.7, 1.0, 0.0) and the should_be_visible_min_ratio_superseded record enter the digest; the
@@ -412,7 +416,10 @@ FROZEN_VALUES: dict[str, dict[str, Any]] = {
         # D-224-S1 ruling 67 (2026-09-24): the strict-majority dominance share S1-04 labelled with, and
         # METHOD's proposed displacement bound (moves are >= 0.6 m, drift of untouched objects <= 0.16 m).
         "labels.fragment_dominance.dominance_min_share": 0.5,
-        "labels.existence.delta_moved_m": 0.5
+        "labels.existence.delta_moved_m": 0.5,
+        # D-224-S1 ruling 68 (2026-09-25): the nuisance probe's largest admissible advantage, judged over the
+        # pooled rows of one split (the scope rule string beside it); per-episode values are reported only.
+        "nuisance_probe.maximum_advantage": 0.05
     },
     "S0-05": {
         # D-224-S1 ruling 67 (2026-09-24) froze the should-be-visible minimum at 0.5 (half of the 64 cell

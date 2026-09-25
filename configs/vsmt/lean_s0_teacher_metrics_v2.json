@@ -351,8 +351,11 @@
       "existence_status"
     ],
     "method": "leave-one-out majority label per field value versus global majority, every field against every label kind",
-    "maximum_advantage": null,
-    "plain_language_zh": "只用路径、seed、帧号、house 序号去猜三种标签（色块目标状态、目标是否为新建列、存在标签），留一法准确率不得明显高于只猜多数类的准确率。例如帧号能猜出撤回标签，说明干预总在固定帧发生。允许的最大优势待冻结，当前为 null。"
+    "scope": "judged_over_the_pooled_rows_of_one_split; the per_episode largest_advantage is reported and never judged",
+    "maximum_advantage": 0.05,
+    "maximum_advantage_frozen_by": "D-224-S1 ruling 68",
+    "maximum_advantage_frozen_on": "2026-09-25",
+    "plain_language_zh": "只用路径、seed、帧号、house 序号去猜三种标签（色块目标状态、目标是否为新建列、存在标签），留一法准确率不得明显高于只猜多数类的准确率。例如帧号能猜出撤回标签，说明干预总在固定帧发生。允许的最大优势待冻结，当前为 null。裁决 68（2026-09-25，LOG-256 续）冻结上限 0.05，并登记 scope：门槛只对一个 split 全部 episode 合并后的行判定，逐 episode 的 largest_advantage 只报告不判定。依据：路径、seed、house 序号在单条 episode 内恒定、优势恒为 0，只有跨 house 合并后才有区分力，也才是探针要抓的身份泄漏；而 frame_index 在单条 episode 内的优势最高 0.128（00406）——同一帧的色块状态成簇（新物体入镜的帧多 birth、去重帧多 duplicate），是时间聚类不是泄漏。"
   },
   "not_in_this_stage": [
     "arm_parameters",
@@ -367,8 +370,7 @@
   ],
   "policy_values_without_defaults": [
     "statistics.bootstrap_seed",
-    "statistics.main_gate_effect_size",
-    "nuisance_probe.maximum_advantage"
+    "statistics.main_gate_effect_size"
   ],
   "user_rulings": {
     "decision_id": "D-224-LQ",
@@ -382,7 +384,8 @@
     "ruling_56_continued": "the truth node scope excludes the four ProcTHOR structural types door, room, wall and window, identified by the private key prefix; entities resolving to them are out of scope under X6 (D-224-S1 ruling 56 continued, 2026-09-24, 原话「裁决 56 续取 (a)：真值范围排除 wall/room/door/window，BIND 框改为同帧并集；裁决 58 取 1.0 m」; evidence LOG-244 continued)",
     "ruling_67": "D-224-S1 裁决 67（2026-09-24 批准，原话「S2-05 审过；裁决 67 八个值全按推荐。」）：labels.fragment_dominance.dominance_min_share=0.5、labels.existence.delta_moved_m=0.5，绑定常量 DOMINANCE_MIN_SHARE／DELTA_MOVED_M，登记进跨合同台账；bootstrap_seed 与 main_gate_effect_size 留到 S3-01，nuisance 上限归裁决 68。",
     "ruling_69": "D-224-S1 裁决 69（2026-09-24 批准，原话「裁决 69 取 (a)。」，取 (a)）：structural_types_excluded_from_scope 加 Ceiling_room；新增 spawned_after_reload_rule。这是规则变更，规则摘要重钉（见跨合同台账）。S1 不重做。",
-    "ruling_70": "D-224-S1 裁决 70（2026-09-24 批准，原话「裁决 70 取 (a)」）：主节点指标保持裁决 C 的匈牙利 3D IoU 0.3 不变；新增 node_prf1_centroid 次级列——同一批预测、同一批真值、同一个评价器匹配器，重叠判定换成实体质心到真值质心距离 ≤ delta_moved_m（0.5 m），权重 1/(1+距离)；主表并列报告，不选配置、不进主门。依据 LOG-255 的只读审计。"
+    "ruling_70": "D-224-S1 裁决 70（2026-09-24 批准，原话「裁决 70 取 (a)」）：主节点指标保持裁决 C 的匈牙利 3D IoU 0.3 不变；新增 node_prf1_centroid 次级列——同一批预测、同一批真值、同一个评价器匹配器，重叠判定换成实体质心到真值质心距离 ≤ delta_moved_m（0.5 m），权重 1/(1+距离)；主表并列报告，不选配置、不进主门。依据 LOG-255 的只读审计。",
+    "ruling_68": "D-224-S1 裁决 68（2026-09-25 批准，原话「裁决 68 全按推荐」）：nuisance_probe.maximum_advantage=0.05，绑定常量 NUISANCE_MAXIMUM_ADVANTAGE，登记进跨合同台账；新增规则字串 nuisance_probe.scope（split 级判定，逐 episode 只报告），绑定 NUISANCE_SCOPE_RULE，规则摘要重钉；bootstrap_seed 与 main_gate_effect_size 留到 S3-01。"
   },
   "continue_gate": {
     "metric_list_frozen_before_any_data_generation": true,
