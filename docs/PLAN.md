@@ -61,6 +61,8 @@ S4 论文
 
 **2026-09-25 校准趟 39/39 跑完，提出裁决 68（LOG-256 续，`2bc05e7`）**：续跑 0 失败，合并分位数与逐 episode 报告导出到 `results/vsmt_lean_s2_05_calibration_696fbe7.json`。两条结构性读数：应可见比例 ≥0.5 的实体-帧只有 0.2%（可见体积是"深度表面之前"，实体框是表面壳）；present 候选的自由空间覆盖 p50 0.667 高于 gone 的 0.640，当前几何规则下自由空间不区分在场与消失。**待裁 68**（DECISIONS）：各臂网格、ELU-P rollout_config、八个开发配置槽、weight_decay／seeds、nuisance 上限（含 split 级判定的 scope 规则）、S0-03 两值、去重三值重定（0.8／0.5 m／0.05）、should_be_visible_min_ratio 降到 1/64 并登记几何规则修订候选、dormancy 保持 3、ELU-P 拟合量预授权。**下一步**：用户裁 68 → 一条裁决一个提交落值与重钉 → 服务器全量 → elu_p_fit → dagger_round_0 → dagger_round_1 → development_table。
 
+**2026-09-25 裁决 68 全按推荐落地（LOG-257，`357ccdf`…`178868b`）**：五个单一职责提交把网格、rollout_config、八个开发配置槽、weight_decay／seeds、nuisance 上限（split 级 scope）、S0-03 两值、去重三值 0.8／0.5／0.05、应可见 1/64 就地冻结并绑定常量，S0-01／S0-05／S0-04 重钉，服务器全量 `178868b` **1605/1605**。run-pass 入口从此只按登记的臂与配置跑每一趟。校准趟不重跑；elu_p_fit 趟 15:01 CST 开跑（12 worker，新根 `lean-s2-05-178868b`），同一 4 条 episode 的节点审计按 LOG-255 配置重跑作前后对照。**下一步**：审计对照读数（LOG-257 续）→ fit-elu-p → 登记三个拟合量并重钉 S0-05 → dagger_round_0 → 训练 → dagger_round_1 → 训练 → development_table 六臂 → table → 导出。
+
 | 状态 | 含义 |
 |---|---|
 | 已完成 | 代码和必要测试已经受审，或已有可复用的真实证据 |
