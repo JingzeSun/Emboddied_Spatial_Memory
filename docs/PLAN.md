@@ -59,6 +59,8 @@ S4 论文
 
 **2026-09-25 校准趟收尾缺陷与裁决 71（LOG-256，`cc682d7`）**：`696fbe7` 趟 5 条 1262 帧以上的 episode 在收尾崩溃、11 条"成功"回执的 nuisance 探针块为空——S2-04 入口在关闭写入流之前重读 `nuisance.jsonl.gz`（gzip 成员未完整：0 字节时读到 0 行，部分落盘时 `EOFError`）；本地用真实文件复现。修复 `cc682d7`（先关流再重读并核对行数）、服务器全量 **1600/1600**。裁决 71 (a)(a)：停趟、删 15 个部分目录、同一根 `--resume` 以 12 worker 补跑 25 条（14 条回执保留，其探针块为空、不重跑）；另一会话的旧 `82810c0` 趟按用户指示一并停掉。用户授权逐 episode 监视与工程性自行处置。**下一步**：趟跑完（预计 06:00～06:30 CST）→ `calibration-report` → 导出 `results/` → LOG-256 续 → 提裁决 68。
 
+**2026-09-25 校准趟 39/39 跑完，提出裁决 68（LOG-256 续，`2bc05e7`）**：续跑 0 失败，合并分位数与逐 episode 报告导出到 `results/vsmt_lean_s2_05_calibration_696fbe7.json`。两条结构性读数：应可见比例 ≥0.5 的实体-帧只有 0.2%（可见体积是"深度表面之前"，实体框是表面壳）；present 候选的自由空间覆盖 p50 0.667 高于 gone 的 0.640，当前几何规则下自由空间不区分在场与消失。**待裁 68**（DECISIONS）：各臂网格、ELU-P rollout_config、八个开发配置槽、weight_decay／seeds、nuisance 上限（含 split 级判定的 scope 规则）、S0-03 两值、去重三值重定（0.8／0.5 m／0.05）、should_be_visible_min_ratio 降到 1/64 并登记几何规则修订候选、dormancy 保持 3、ELU-P 拟合量预授权。**下一步**：用户裁 68 → 一条裁决一个提交落值与重钉 → 服务器全量 → elu_p_fit → dagger_round_0 → dagger_round_1 → development_table。
+
 | 状态 | 含义 |
 |---|---|
 | 已完成 | 代码和必要测试已经受审，或已有可复用的真实证据 |
