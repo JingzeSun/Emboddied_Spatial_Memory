@@ -67,8 +67,12 @@ ENTITY_STATES = ("active", "dormant", "retracted")
 #: D-224-S1 ruling 67 (2026-09-24): the shared dormancy and dedup values, frozen once for every
 #: arm.  The contract carries the same numbers; the validator refuses any other.  Callers still
 #: pass them explicitly (no default slips in), the S2 entries read them from the contract.
+#: D-224-S1 ruling 68 (2026-09-25, LOG-256 sequel): the dedup triple re-frozen from the 39-episode
+#: calibration quantiles -- cosine 0.9 -> 0.8, centroid distance 0.25 -> 0.5 m, box IoU 0.3 -> 0.05
+#: (the ruling-67 triple was almost never satisfiable: same-object box IoU has p50 0.012 and the
+#: development runs kept 3.5 entities per truth object).  The period stays 10.
 DORMANCY_MISSED_OPPORTUNITY_LIMIT = 3
-SHARED_DEDUP = {"period_ticks": 10, "descriptor_cosine_min": 0.9, "centroid_distance_max_m": 0.25, "aabb_iou_min": 0.3}
+SHARED_DEDUP = {"period_ticks": 10, "descriptor_cosine_min": 0.8, "centroid_distance_max_m": 0.5, "aabb_iou_min": 0.05}
 
 #: state -> atoms that may legally target an entity in that state.
 STATE_ALLOWED_ATOMS: dict[str, frozenset[str]] = {

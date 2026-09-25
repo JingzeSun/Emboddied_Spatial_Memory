@@ -287,7 +287,10 @@ FROZEN_RULE_SHA256 = {
     # S0-01 re-pinned 2026-09-24 for ruling 56 continued (LOG-244 continued): the entity box is the union of the
     # fragment boxes attached in the latest observed frame; a later frame replaces it, merge unions only
     # same-frame records (cross-frame accumulation widened boxes with depth noise).  76f505da -> 4818d6ac.
-    "S0-01": "4818d6ac42b917d9670ed4b115af4e352033d2715f53f4b5825c96bf7d8765ad",
+    # Re-pinned 2026-09-25 for ruling 68 (LOG-256 sequel): the three *_superseded records beside the dedup
+    # slots (cosine 0.9 -> 0.8, distance 0.25 -> 0.5 m, IoU 0.3 -> 0.05) enter the digest as bookkeeping-by-
+    # precedent (S0-02, ruling 40); the values themselves are slots and do not.  4818d6ac -> 10c223a6.
+    "S0-01": "10c223a65d9cb4a8b30c82fc85403402990d6104e7991c3b0493c34e849313fe",
     # S0-02 re-pinned 2026-09-23 for ruling 52 (LOG-243 supplement): the eligible object's receptacle is the
     # first non-Floor entry of parentReceptacles (entry 0 is the room floor for anything on low
     # furniture, which had hidden 99 of 987 eligible objects as sources), a Floor-only object is
@@ -394,9 +397,12 @@ FROZEN_VALUES: dict[str, dict[str, Any]] = {
         # development passes rarely merge; the calibration pass may supersede them by ruling 68.
         "dormancy_missed_opportunity_limit": 3,
         "shared_dedup.period_ticks": 10,
-        "shared_dedup.descriptor_cosine_min": 0.9,
-        "shared_dedup.centroid_distance_max_m": 0.25,
-        "shared_dedup.aabb_iou_min": 0.3
+        # D-224-S1 ruling 68 (2026-09-25, LOG-256 sequel): the dedup triple re-frozen from the 39-episode
+        # calibration quantiles (same-object cosine p50 0.78, box IoU p50 0.012, 35% of same-object pairs
+        # within 0.5 m); the ruling-67 triple is in SUPERSEDED_VALUES below.
+        "shared_dedup.descriptor_cosine_min": 0.8,
+        "shared_dedup.centroid_distance_max_m": 0.5,
+        "shared_dedup.aabb_iou_min": 0.05
     },
     "S0-04": {
         # D-224-S1 ruling 67 (2026-09-24): the strict-majority dominance share S1-04 labelled with, and
@@ -460,6 +466,17 @@ FROZEN_VALUES: dict[str, dict[str, Any]] = {
 #: must differ from the live ledger value and name the ruling; the contract carries the same
 #: supersede record next to the slot.
 SUPERSEDED_VALUES: dict[str, dict[str, list[dict[str, Any]]]] = {
+    "S0-01": {
+        "shared_dedup.descriptor_cosine_min": [
+            {"value": 0.9, "frozen_by": "D-224-S1 ruling 67", "superseded_by": "D-224-S1 ruling 68", "on": "2026-09-25"},
+        ],
+        "shared_dedup.centroid_distance_max_m": [
+            {"value": 0.25, "frozen_by": "D-224-S1 ruling 67", "superseded_by": "D-224-S1 ruling 68", "on": "2026-09-25"},
+        ],
+        "shared_dedup.aabb_iou_min": [
+            {"value": 0.3, "frozen_by": "D-224-S1 ruling 67", "superseded_by": "D-224-S1 ruling 68", "on": "2026-09-25"},
+        ],
+    },
     "S0-02": {
         "route.maximum_actions": [
             {"value": 2000, "frozen_by": "D-224-S1 rulings 23/24", "superseded_by": "D-224-S1 ruling 40", "on": "2026-09-21"},
@@ -544,6 +561,17 @@ class TestSupersededValues(unittest.TestCase):
         self.assertEqual(rec["value"], SUPERSEDED_VALUES["S0-02"]["route.maximum_actions"][-1]["value"])
         self.assertEqual(rec["superseded_by"], SUPERSEDED_VALUES["S0-02"]["route.maximum_actions"][-1]["superseded_by"])
         self.assertTrue(contract["route"]["maximum_actions_is_a_scope_boundary_not_a_budget"])
+        # every other superseded slot carries its record next to the slot too (ruling 68)
+        for stage, slots in SUPERSEDED_VALUES.items():
+            if stage == "S0-02":
+                continue
+            contract = load_stage(stage)
+            for slot, entries in slots.items():
+                with self.subTest(stage=stage, slot=slot):
+                    rec = lookup_slot(contract, slot + "_superseded")
+                    self.assertEqual(rec["value"], entries[-1]["value"])
+                    self.assertEqual(rec["superseded_by"], entries[-1]["superseded_by"])
+                    self.assertEqual(rec["frozen_by"], entries[-1]["frozen_by"])
 
 
 class TestEveryContractValidates(unittest.TestCase):
