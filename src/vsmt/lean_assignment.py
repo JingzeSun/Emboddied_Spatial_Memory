@@ -177,6 +177,12 @@ RECALL_GLOBAL_COUNT = 3
 RECALL_LOCAL_RADIUS_M = 3.0
 #: D-224-S1 ruling 58 (2026-09-24): the fourth recall value, from the S1-04 birth neighbourhood counts.
 RECALL_BIRTH_NEIGHBOURHOOD_RADIUS_M = 1.0
+#: D-224-S1 ruling 68 (2026-09-25): the two remaining S0-03 slots.  The existence threshold here is a
+#: reference value only -- the runner takes tau_r from each configuration of the S0-05 VSMT-lean grid
+#: (0.3..0.9) and no code reads this constant; the reference-score seed fixes the deterministic
+#: stand-in the invariance test scores public inputs with.
+EXISTENCE_THRESHOLD_TAU_R_REFERENCE = 0.5
+REFERENCE_SCORE_SEED = 224
 REID_TRAINING_HOUSES = 30
 REID_SELECTION_HOUSES = 12
 #: S1-05 (2026-09-24, LOG-245): the frozen ruling-47 rule applied to the S1-04 report
@@ -1318,6 +1324,8 @@ def validate_assignment_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
         "recall_rule.global_count": RECALL_GLOBAL_COUNT,
         "recall_rule.local_radius_m": RECALL_LOCAL_RADIUS_M,
         "recall_rule.birth_neighbourhood_radius_m": RECALL_BIRTH_NEIGHBOURHOOD_RADIUS_M,
+        "cost_matrix.existence_threshold_tau_r": EXISTENCE_THRESHOLD_TAU_R_REFERENCE,
+        "seal.reference_score_seed": REFERENCE_SCORE_SEED,
     }
     for section, names in (
         ("recall_rule", ("local_count", "global_count", "local_radius_m",
@@ -1421,6 +1429,8 @@ __all__ = [
     "existence_feature_vector",
     "recall_for_fragment",
     "reference_untrained_scores",
+    "EXISTENCE_THRESHOLD_TAU_R_REFERENCE",
+    "REFERENCE_SCORE_SEED",
     "seal_solution_and_existence",
     "solve_frame",
     "solve_rectangular_assignment",

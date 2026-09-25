@@ -445,7 +445,11 @@ FROZEN_VALUES: dict[str, dict[str, Any]] = {
         "recall_rule.global_count": 3,
         "recall_rule.local_radius_m": 3.0,
         # D-224-S1 ruling 58 (2026-09-24): the fourth recall value, from the S1-04 birth neighbourhood counts.
-        "recall_rule.birth_neighbourhood_radius_m": 1.0
+        "recall_rule.birth_neighbourhood_radius_m": 1.0,
+        # D-224-S1 ruling 68 (2026-09-25): the tau_r reference value (the runner takes tau_r from each S0-05
+        # configuration; nothing reads this slot) and the reference-score seed of the invariance stand-in.
+        "cost_matrix.existence_threshold_tau_r": 0.5,
+        "seal.reference_score_seed": 224
     },
     "S0-02": {
         "route.translation_m": 0.25,

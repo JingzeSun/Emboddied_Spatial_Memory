@@ -116,8 +116,10 @@
     "forbidden_cost_formula": "rows * max(legal) - (rows - 1) * min(legal) + 1",
     "birth_column_is_private_to_its_fragment": true,
     "empty_fragment_frame_is_legal": true,
-    "existence_threshold_tau_r": null,
-    "plain_language_zh": "行是本帧色块按 fragment_id 排序，列是被召回的实体加上每个色块自己的新建列；代价取 logit 的相反数。之所以不是 −log sigmoid(logit)：METHOD 用逐色块 softmax 交叉熵训练，模型学到的是 p(列|行) ∝ exp(logit)，最大化联合对数似然等价于最小化 sum(−logit)，softmax 归一化常数是每行常量不影响联合最优；而 −log sigmoid 是 −logit 的非线性单调变换，会改变跨行竞争下的最优配对。在 20 万次随机 2×2 上两种变换约十分之一给出不同最优解，差距不小。召回之外的组合用由当前矩阵最大/最小合法代价和行数算出的禁止代价，保证任何含禁止格的分配都严格贵于任意全合法分配；固定写 1e9 不安全，因为极端 logit 能产生同样大的合法代价。没有 fragment 的一帧是合法的，产生空分配并继续存在判定。"
+    "existence_threshold_tau_r": 0.5,
+    "existence_threshold_tau_r_frozen_by": "D-224-S1 ruling 68",
+    "existence_threshold_tau_r_frozen_on": "2026-09-25",
+    "plain_language_zh": "行是本帧色块按 fragment_id 排序，列是被召回的实体加上每个色块自己的新建列；代价取 logit 的相反数。之所以不是 −log sigmoid(logit)：METHOD 用逐色块 softmax 交叉熵训练，模型学到的是 p(列|行) ∝ exp(logit)，最大化联合对数似然等价于最小化 sum(−logit)，softmax 归一化常数是每行常量不影响联合最优；而 −log sigmoid 是 −logit 的非线性单调变换，会改变跨行竞争下的最优配对。在 20 万次随机 2×2 上两种变换约十分之一给出不同最优解，差距不小。召回之外的组合用由当前矩阵最大/最小合法代价和行数算出的禁止代价，保证任何含禁止格的分配都严格贵于任意全合法分配；固定写 1e9 不安全，因为极端 logit 能产生同样大的合法代价。没有 fragment 的一帧是合法的，产生空分配并继续存在判定。裁决 68（2026-09-25）把 existence_threshold_tau_r 冻结为参考值 0.5：运行时的 τ_r 逐配置来自 S0-05 的 VSMT-lean 网格（0.3～0.9），本槽没有代码消费，只作 METHOD 存在决定式 σ(r) ≥ τ_r 的参考常量，绑定 EXISTENCE_THRESHOLD_TAU_R_REFERENCE。"
   },
   "solver": {
     "name": "rectangular_minimum_cost_assignment",
@@ -171,8 +173,10 @@
       "reference_untrained_scores"
     ],
     "teacher_may_open_private_only_after": "both_stage_seals_exist",
-    "reference_score_seed": null,
-    "plain_language_zh": "封存分两阶段。阶段 A 在任何模型运行前、任何私有文件打开前封存召回集合与关联/新建特征。阶段 B 在求解之后封存分配回执与存在特征——存在头有一项是“最相似色块是否仍未被分配”，求解之前没有定义。只封存阶段 A 会让三分之一的模型输入落在不变性保证之外，合同关于三张特征表的声称就不成立。两份摘要都写完，teacher 才可以打开 private。训练时喂给存在特征的分配必须来自当前策略或登记的规则臂，绝不能用 teacher 的分配。参考分数不是真模型，只是让“未训练 logits 逐字节不变”可被测试的确定性替身；其 seed 待冻结，当前为 null。"
+    "reference_score_seed": 224,
+    "reference_score_seed_frozen_by": "D-224-S1 ruling 68",
+    "reference_score_seed_frozen_on": "2026-09-25",
+    "plain_language_zh": "封存分两阶段。阶段 A 在任何模型运行前、任何私有文件打开前封存召回集合与关联/新建特征。阶段 B 在求解之后封存分配回执与存在特征——存在头有一项是“最相似色块是否仍未被分配”，求解之前没有定义。只封存阶段 A 会让三分之一的模型输入落在不变性保证之外，合同关于三张特征表的声称就不成立。两份摘要都写完，teacher 才可以打开 private。训练时喂给存在特征的分配必须来自当前策略或登记的规则臂，绝不能用 teacher 的分配。参考分数不是真模型，只是让“未训练 logits 逐字节不变”可被测试的确定性替身；裁决 68（2026-09-25）冻结其 seed 为 224（任一固定整数皆可，绑定 REFERENCE_SCORE_SEED）。"
   },
   "reid_adapter_head": {
     "decision_id": "D-224-E",
@@ -237,10 +241,7 @@
     "training_recipe",
     "dagger_rounds"
   ],
-  "policy_values_without_defaults": [
-    "cost_matrix.existence_threshold_tau_r",
-    "seal.reference_score_seed"
-  ],
+  "policy_values_without_defaults": [],
   "continue_gate": {
     "private_mutation_leaves_every_feature_table_and_logits_byte_identical": true,
     "solver_is_optimal_and_returns_the_lexicographically_smallest_optimum": true,
@@ -301,7 +302,8 @@
       "D-224-S1 裁决 47（2026-09-22 批准，原话「裁决 47 取进，output_dimension 填 128，训练/选择按 30/12 留出，threshold 取 0.05」）：output_dimension=128 与 selection_rule_threshold=0.05 入台账；holdout 规则就地写入并重钉规则摘要。",
       "D-224-S1 裁决 57（2026-09-24 批准，原话「裁决 57 取 (a) k=5、k′=3、半径 3 m」）：按 S1-04 召回曲线（LOG-244，理想记忆、开发 cache 39 条、460,622 次判定）冻结 local_count=5、global_count=3、local_radius_m=3.0，ViT-B/14 漏召回 2.0%、ViT-S/14 2.3%，每次召回至多 8 个候选；birth_neighbourhood_radius_m 未在提案中，保持 null 另行裁决。",
       "D-224-S1 裁决 58（2026-09-24 批准，原话「裁决 56 续取 (a)：真值范围排除 wall/room/door/window，BIND 框改为同帧并集；裁决 58 取 1.0 m」）：birth_neighbourhood_radius_m=1.0。依据 S1-04 出生邻域统计（LOG-244 续）：4,712 次出生时刻周围已有实体的平均个数在 0.25／0.5／1.0 m 为 0.07／0.35／1.15，只有 1.0 m 一档不几乎恒为 0。至此裁决 46 要求的四个召回值全部冻结。",
-      "S1-05 执行登记（2026-09-24，机械执行裁决 47，非新裁决；LOG-245）：按 S1-04 报告（results/vsmt_lean_s1_04_diagnostics_154776d.json，sha256 18c7f79d…）在 9 条选择 house 上应用选择规则，选中 reid_projection:vitb14（增益 0.093 ≥ 0.05），冻结 ViT-B/14 为并列基线，权重摘要 f6fc67e5…，回执 results/vsmt_lean_s1_05_descriptor_freeze_154776d.json；选择组缺 3 条按合同“跳过并计数”处理并登记为待裁 59（是否维持）。selection_result 块是新增结构，规则摘要重钉。"
+      "S1-05 执行登记（2026-09-24，机械执行裁决 47，非新裁决；LOG-245）：按 S1-04 报告（results/vsmt_lean_s1_04_diagnostics_154776d.json，sha256 18c7f79d…）在 9 条选择 house 上应用选择规则，选中 reid_projection:vitb14（增益 0.093 ≥ 0.05），冻结 ViT-B/14 为并列基线，权重摘要 f6fc67e5…，回执 results/vsmt_lean_s1_05_descriptor_freeze_154776d.json；选择组缺 3 条按合同“跳过并计数”处理并登记为待裁 59（是否维持）。selection_result 块是新增结构，规则摘要重钉。",
+      "D-224-S1 裁决 68（2026-09-25 批准，原话「裁决 68 全按推荐」）：cost_matrix.existence_threshold_tau_r=0.5（参考值，运行时 τ_r 逐配置来自 S0-05 网格，无代码消费）、seal.reference_score_seed=224；绑定 EXISTENCE_THRESHOLD_TAU_R_REFERENCE 与 REFERENCE_SCORE_SEED，登记进跨合同台账；两者都是值槽，规则摘要不变。"
     ]
   }
 }

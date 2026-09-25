@@ -607,18 +607,28 @@ class TestMachineContract(unittest.TestCase):
             validate_assignment_contract(broken)
         self.assertEqual(str(caught.exception), "contract_reid_budget_mismatch")
 
-    def test_an_open_policy_value_cannot_be_filled_without_leaving_the_open_list(self) -> None:
+    def test_the_last_two_slots_are_frozen_at_the_bound_constants_and_cannot_reopen_by_edit(self) -> None:
         # Ruling 24: a value is either open (null and listed) or frozen (ledgered and unlisted).
+        # Ruling 68 (2026-09-25): the two remaining S0-03 slots froze -- the tau_r reference value (no code
+        # reads it; the runner takes tau_r per configuration) and the reference-score seed.
+        from vsmt.lean_assignment import EXISTENCE_THRESHOLD_TAU_R_REFERENCE, REFERENCE_SCORE_SEED
+
+        contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        self.assertEqual((EXISTENCE_THRESHOLD_TAU_R_REFERENCE, REFERENCE_SCORE_SEED), (0.5, 224))
+        self.assertEqual(contract["cost_matrix"]["existence_threshold_tau_r"], EXISTENCE_THRESHOLD_TAU_R_REFERENCE)
+        self.assertEqual(contract["seal"]["reference_score_seed"], REFERENCE_SCORE_SEED)
+        self.assertEqual(contract["policy_values_without_defaults"], [])
         broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
-        broken["cost_matrix"]["existence_threshold_tau_r"] = 0.5
+        broken["cost_matrix"]["existence_threshold_tau_r"] = 0.4
         with self.assertRaises(LeanAssignmentError) as caught:
             validate_assignment_contract(broken)
-        self.assertEqual(str(caught.exception), "contract_cost_matrix_existence_threshold_tau_r_frozen_but_still_listed_as_open")
-        # and a value without a bound constant cannot be frozen by editing the contract alone
-        broken["policy_values_without_defaults"].remove("cost_matrix.existence_threshold_tau_r")
+        self.assertEqual(str(caught.exception), "contract_cost_matrix_existence_threshold_tau_r_differs_from_the_frozen_constant")
+        # nulling a frozen value without registering it as open is refused too
+        broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        broken["seal"]["reference_score_seed"] = None
         with self.assertRaises(LeanAssignmentError) as caught:
             validate_assignment_contract(broken)
-        self.assertEqual(str(caught.exception), "contract_cost_matrix_existence_threshold_tau_r_frozen_without_a_bound_constant")
+        self.assertEqual(str(caught.exception), "contract_seal_reference_score_seed_null_but_not_registered_as_open")
 
     def test_the_recall_values_are_still_open_and_freeze_after_the_s1_04_curve(self) -> None:
         # Ruling 46 (2026-09-22): the values freeze after the curve on the development cache.
