@@ -28,7 +28,7 @@ SCHEMA_VERSION = "vsmt-lean-s1-03-report-v1"
 EPISODE_FIELDS = (
     "status", "reason", "detail", "frames", "fragments", "frames_with_fragments", "episode_seal_sha256",
     "frames_processed", "wall_seconds", "seconds_per_frame", "seconds_by_part", "bytes_written",
-    "bytes_uncompressed", "peak_vram_reserved_mib", "peak_rss_mib",
+    "bytes_uncompressed", "peak_vram_reserved_mib", "peak_rss_mib", "mask_source", "masks_from",
 )
 #: Stage receipt fields copied as they are (the histogram and the failure list are handled apart).
 STAGE_FIELDS = (
@@ -37,7 +37,7 @@ STAGE_FIELDS = (
     "frontend_config_sha256", "descriptor_sets_extracted", "descriptor_asset_sha256s", "wall_clock_seconds",
     "requested_workers", "actual_workers", "worker_basis", "frames_processed_total", "bytes_written_total",
     "bytes_uncompressed_total", "peak_vram_reserved_mib_max", "peak_rss_mib_max", "seconds_by_part_total",
-    "resources_at_launch", "aborted", "interrupted_episodes", "exit_status",
+    "resources_at_launch", "aborted", "interrupted_episodes", "exit_status", "mask_source", "masks_from",
 )
 
 
@@ -56,6 +56,9 @@ def episode_rows(root: Path) -> list[dict[str, Any]]:
         row["fragments_per_frame_histogram"] = receipt.get("fragments_per_frame_histogram")
         row["frame_files"] = len(list(receipt_path.parent.glob("*.cache.json.gz")))
         row["mask_files"] = len(list(receipt_path.parent.glob("*.masks.npz")))
+        seal = receipt_path.parent / "episode_seal.json"  # ruling 72: a seal naming no source is sam2
+        row["episode_seal_mask_source"] = (json.loads(seal.read_text(encoding="utf-8")).get("mask_source", "sam2")
+                                           if seal.exists() else None)
         recovery = receipt_path.parent / "mask_recovery_receipt.json"
         row["mask_recovery_status"] = (json.loads(recovery.read_text(encoding="utf-8")).get("status")
                                        if recovery.exists() else None)
