@@ -4,11 +4,18 @@ Usage (server, frontend env; every authorization bit in the S1-03 contract must 
     python ops/vsmt/lean_s1_03_cache.py --episode-roots /root/autodl-tmp/vsmt_outputs/lean-s1-02a-<c>,... \\
         --output-root /root/autodl-tmp/vsmt_caches/lean-s1-03-<commit> --assets-json <private>/s103_assets.json \\
         --workers 4 --worker-basis "<the measured evidence the worker count rests on>" \\
+        --mask-source simulator_instance_masks|sam2 \\
         [--masks-from /root/autodl-tmp/vsmt_caches/<superseded root with recovered masks>]
 
 What one worker does, per episode, and what it writes:
-  1. read that episode's public plane only -- RGB, metric depth, intrinsics, causal relative pose;
-     the private and provenance planes are never opened and their paths are never constructed;
+  1. read that episode's public plane -- RGB, metric depth, intrinsics, causal relative pose; under
+     ``--mask-source sam2`` the private and provenance planes are never opened and their paths are
+     never constructed; under ``--mask-source simulator_instance_masks`` (ruling 72, the main-table
+     frontend) the worker also reads, per frame, exactly the five private items the contract's
+     ``mask_source`` block lists -- the private record's index and frame digest (checked against the
+     public frame), the instance image name, the label values of its mapping, and the instance image
+     pixels -- and turns each label into one anonymous boolean mask; no label, id, pose or box
+     leaves that step, and the provenance plane is never opened;
      the pose is read through ``vsmt.lean_public_pose`` under the contract's
      ``public_pose_correction`` block (ruling 49): an episode from a registered pre-ruling S1-02
      commit gets its pitch sign restored, one from a registered corrected encoder is read as
@@ -20,7 +27,8 @@ What one worker does, per episode, and what it writes:
      superseded root's ``NNNN.masks.npz`` (written by ``--recover-masks``, RGB-only and therefore
      valid), every mask is re-digested from its pixels against the stored digest, and the same
      admission runs on them; an episode without a succeeded recovery receipt there is skipped and
-     listed, never silently run through SAM;
+     listed, never silently run through SAM; under the instance source SAM is not loaded and the
+     instance masks go through the same admission (more than 64 is a construction failure);
   3. run frozen DINOv2 ViT-S/14 and ViT-B/14 over the same RGB through the reviewed extractor
      (ImageNet normalisation, inference mode, shape and finiteness checks) and pool one descriptor
      per mask per set; S1-05 selects between the sets later, this stage stores both;
@@ -31,8 +39,9 @@ What one worker does, per episode, and what it writes:
      are already in memory, so the S0-04 overlap labelling and the S1-04 diagnostics read them
      straight from the cache and no SAM-only recovery pass is ever needed; about 6 KiB per frame
      against 224 KiB for the frame itself);
-  5. seal the episode and write a receipt; any frame failure fails the episode with a registered
-     reason and the episode keeps its receipt.
+  5. seal the episode (ruling 72: a non-SAM2 source enters the seal payload) and write a receipt
+     naming the mask source; any frame failure fails the episode with a registered reason and the
+     episode keeps its receipt.  One output root holds one mask source; a resume refuses another.
 
 Every asset the run loads is digested here and checked against the registry that pinned it (the
 S1-03 contract for SAM 2.1, the S1-01 registry for DINOv2); the digests written into every frame
@@ -42,8 +51,9 @@ The public clock handed to the D-223 free-space materialiser is the frame index 
 (``time_s = index``): the rolling window is counted in observations, which is what D-223 froze.
 
 白话：这个入口把 S1-02 的公开画面变成五个臂共读的一份 cache。它是本阶段唯一加载模型的
-部件，所有几何与阈值都来自已冻结的 D-215／D-223，不在这里重新定义。它不读 private 面、不判断
-身份、不训练任何东西；任何一帧出问题就整条 episode 失败并留回执，不静默丢帧。每个 worker 进程
+部件，所有几何与阈值都来自已冻结的 D-215／D-223，不在这里重新定义。SAM2 模式不读 private 面；
+实例分割模式（裁决 72，主表前端）只读私有实例图的 mask 像素几何与核对帧身份的两项，不把任何标签、
+ID、位姿或真值盒写进 cache。它不判断身份、不训练任何东西；任何一帧出问题就整条 episode 失败并留回执，不静默丢帧。每个 worker 进程
 只装一次模型；每条 episode 的回执记录实测的显存峰值、内存峰值、每帧秒数和写入字节数，作为
 worker 数与磁盘预算的依据。
 """
@@ -283,6 +293,43 @@ def read_public_frame(public_dir: Path, index: int) -> dict[str, Any]:
     rgb = np.asarray(Image.open(rgb_path), dtype=np.uint8)
     depth = np.load(depth_path).astype(np.float32)
     return {"record": record, "rgb": rgb, "depth": depth}
+
+
+def instance_frame_masks(private_dir: Path, index: int, public_record: dict[str, Any], shape: tuple[int, int]) -> list[np.ndarray]:
+    """Ruling 72: one frame's masks from the private instance image, reduced to anonymous geometry.
+
+    Reads exactly the five items ``mask_source.simulator_instance_masks.private_reads`` lists: the
+    private record's frame index and digest (which must name the same frame as the public record),
+    the instance image's file name and the label values of ``object_id_to_entity_id``, and the
+    instance image pixels.  The object ids, poses and visibility counts in the same record are
+    never read, and nothing but boolean masks leaves this function.
+
+    白话：实例分割模式下每帧的"色块"来自私有实例图：先核对私有记录与公开帧是同一帧，再把每个登记
+    标签的像素区域变成一张匿名 mask。输出与 SAM 模式同形，之后走同一准入与同一几何。
+    """
+
+    record = json.loads((private_dir / f"{index:04d}.frame.json").read_text(encoding="utf-8"))
+    if record.get("observation_index") != index or record.get("frame_digest") != public_record.get("frame_digest"):
+        raise CacheFailure("public_input_missing_or_malformed",
+                           f"private record {index:04d} does not name the public frame (index or frame_digest differs)")
+    name = str(record.get("instance_mask_path") or "")
+    if not name or Path(name).name != name:
+        raise CacheFailure("public_input_missing_or_malformed", f"instance image path is not a file name: {name!r}")
+    from PIL import Image
+    image = np.asarray(Image.open(private_dir / name))
+    if tuple(image.shape[:2]) != tuple(shape) or image.ndim != 2:
+        raise CacheFailure("public_input_missing_or_malformed", f"instance image shape {image.shape} != frame {shape}")
+    try:
+        return fc.instance_label_masks(image, list(record["object_id_to_entity_id"].values()))
+    except fc.LeanFrontendCacheError as exc:
+        raise CacheFailure(exc.reason, exc.detail) from exc
+
+
+def receipt_mask_source(receipt: dict[str, Any]) -> str:
+    """A cache receipt's mask source; receipts written before ruling 72 said ``sam`` or ``recovered:<root>``, both SAM2."""
+
+    source = str(receipt.get("mask_source") or "sam")
+    return fc.MASK_SOURCE_SAM2 if source == "sam" or source.startswith("recovered:") else source
 
 
 def load_cache_frame(path: Path) -> dict[str, Any]:
@@ -724,7 +771,9 @@ def build_episode(task: dict[str, Any]) -> dict[str, Any]:
         descriptor_cfgs = descriptor_configs(frontend)
         primary = descriptor_cfgs[fc.DESCRIPTOR_SETS[0]]
         masks_from = Path(task["masks_from"]) / episode_id if task.get("masks_from") else None
-        models = worker_models(frontend, task["assets"], descriptor_cfgs, load_sam=masks_from is None)
+        mask_source = task["mask_source"]
+        instance_mode = mask_source == fc.MASK_SOURCE_INSTANCE
+        models = worker_models(frontend, task["assets"], descriptor_cfgs, load_sam=masks_from is None and not instance_mode)
         models.reset_peak_memory()
         pose_policy = task["pose_policy"]
         try:
@@ -732,9 +781,11 @@ def build_episode(task: dict[str, Any]) -> dict[str, Any]:
         except pp.LeanPublicPoseError as exc:
             raise CacheFailure("public_input_missing_or_malformed", f"public_pose:{exc}") from exc
         receipt.update({"episode_code_commit": task["episode_code_commit"], "pose_correction_applied": pose_corrected,
-                        "mask_source": ("recovered:" + str(masks_from)) if masks_from else "sam"})
+                        "mask_source": mask_source, "masks_from": str(masks_from) if masks_from else None})
         prior_free_space: list[Any] = []
         public_dir = Path(task["episode_root"]) / "public"
+        # ruling 72: the instance source reads the private plane, and only what its contract block lists
+        private_dir = Path(task["episode_root"]) / "private" if instance_mode else None
         count = len(sorted(public_dir.glob("*.frame.json")))
         if count < 1:
             raise CacheFailure("public_input_missing_or_malformed", "no public frames")
@@ -745,7 +796,9 @@ def build_episode(task: dict[str, Any]) -> dict[str, Any]:
             mark = time.time()
             frame = read_public_frame(public_dir, index)
             record = frame["record"]
-            if masks_from is not None:
+            if private_dir is not None:
+                raw = instance_frame_masks(private_dir, index, record, tuple(frame["rgb"].shape[:2]))
+            elif masks_from is not None:
                 raw = recovered_masks(masks_from / f"{index:04d}{MASK_FILE_SUFFIX}", tuple(frame["rgb"].shape[:2]))
             else:
                 raw = models.masks(frame["rgb"])
@@ -815,7 +868,7 @@ def build_episode(task: dict[str, Any]) -> dict[str, Any]:
             frames_with_fragments += int(len(rows) > 0)
             frames_done += 1
             seconds["other"] += time.time() - mark
-        sealed = fc.seal_episode(seal_inputs, frontend_config_sha256=fc.D223_FRONTEND_CONFIG_SHA256)
+        sealed = fc.seal_episode(seal_inputs, frontend_config_sha256=fc.D223_FRONTEND_CONFIG_SHA256, mask_source=mask_source)
         (out_dir / "episode_seal.json").write_text(json.dumps(sealed, indent=1))
         receipt.update({"status": "succeeded", "frames": frames_done, "fragments": fragments_total,
                         "frames_with_fragments": frames_with_fragments,
@@ -980,6 +1033,10 @@ def main() -> int:
                              "(NNNN.masks.npz plus a succeeded mask_recovery_receipt.json); SAM is not loaded, "
                              "the masks are read and re-digested from their pixels per frame; episodes without "
                              "a succeeded recovery receipt there are skipped and listed")
+    parser.add_argument("--mask-source", choices=list(fc.MASK_SOURCES), default=None,
+                        help="ruling 72, required for a cache run: simulator_instance_masks (main table; masks from the "
+                             "private instance image, mask geometry only, SAM not loaded) or sam2 (robustness appendix; "
+                             "the frozen generator, or --masks-from)")
     args = parser.parse_args()
     trial = args.trial_frame_limit is not None
     if args.trial_episodes is not None and not trial:
@@ -1007,6 +1064,12 @@ def main() -> int:
             print("--recover-masks cannot be combined with --resume, --masks-from or a trial; refusing")
             return 2
         return recover_masks_main(args, contract=contract, assets=assets, commit=commit)
+    if args.mask_source is None:
+        print(f"--mask-source is required (ruling 72): one of {list(fc.MASK_SOURCES)}; refusing")
+        return 2
+    if args.masks_from and args.mask_source != fc.MASK_SOURCE_SAM2:
+        print("--masks-from reads recovered SAM2 masks and needs --mask-source sam2; refusing")
+        return 2
     pose_policy = contract["public_pose_correction"]
     masks_from = Path(args.masks_from).resolve() if args.masks_from else None
     if masks_from is not None and not masks_from.is_dir():
@@ -1065,6 +1128,12 @@ def main() -> int:
     if resumed:
         for episode_id in resumed["kept_succeeded"] + resumed["kept_failed"]:
             kept_results.append(json.loads((out_root / episode_id / "receipt.json").read_text(encoding="utf-8")))
+        # ruling 72: one cache root holds one mask source; a resume never mixes a second one in
+        mixed = sorted(r["episode_id"] for r in kept_results if receipt_mask_source(r) != args.mask_source)
+        if mixed:
+            print(f"--resume with --mask-source {args.mask_source} over a root whose receipts carry another source "
+                  f"({len(mixed)} episodes, e.g. {mixed[:3]}); refusing")
+            return 2
         for episode_id in resumed["redo"]:
             partial = out_root / episode_id
             if partial.exists():
@@ -1079,6 +1148,7 @@ def main() -> int:
         "disk_floor_bytes": int(args.disk_floor_gib * 2 ** 30),
         "episode_code_commit": episode_commits[directory.name], "pose_policy": pose_policy,
         "masks_from": (str(masks_from) if masks_from is not None else None),
+        "mask_source": args.mask_source,
     } for directory in episodes]
     pose_correction = {
         "decision_id": pose_policy["decision_id"], "rule": pose_policy["rule"],
@@ -1098,7 +1168,7 @@ def main() -> int:
             "worker_basis": args.worker_basis, "resources_at_launch": snapshot,
             "sharding": "one episode per task, tasks handed to a spawn pool one at a time, "
                         "results merged in episode_id order",
-            "disk_floor_gib": args.disk_floor_gib, "resume": resumed,
+            "disk_floor_gib": args.disk_floor_gib, "resume": resumed, "mask_source": args.mask_source,
             "masks_from": (str(masks_from) if masks_from is not None else None),
             "episodes_skipped_no_recovered_masks": skipped_no_recovered_masks,
             "pose_correction": pose_correction,
@@ -1140,7 +1210,8 @@ def main() -> int:
                             args=args, actual_workers=actual_workers, snapshot=snapshot, started=started,
                             aborted=aborted, interrupted=interrupted)
     receipt.update({
-        "mask_source": ("recovered:" + str(masks_from)) if masks_from is not None else "sam",
+        "mask_source": args.mask_source,
+        "masks_from": (str(masks_from) if masks_from is not None else None),
         "episodes_skipped_no_recovered_masks": skipped_no_recovered_masks,
         "pose_correction": pose_correction,
         "episodes_pose_corrected": sorted(r["episode_id"] for r in results if r.get("pose_correction_applied")),

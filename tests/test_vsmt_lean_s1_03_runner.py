@@ -235,5 +235,65 @@ class Ruling49Tests(unittest.TestCase):
             self.assertEqual(runner.recovered_masks(empty, (20, 30)), [])
 
 
+class Ruling72InstanceSourceTests(unittest.TestCase):
+    """The instance-segmentation source reads the private instance image as anonymous mask geometry only."""
+
+    @staticmethod
+    def write_private(private: Path, index: int, labels, mapping: dict, *, digest: str = "a" * 64, name: str | None = None) -> None:
+        import numpy as np
+        from PIL import Image
+        private.mkdir(parents=True, exist_ok=True)
+        image_name = name or f"{index:04d}.instance.png"
+        if "/" not in image_name:
+            Image.fromarray(np.asarray(labels, dtype=np.uint16)).save(private / image_name, format="PNG")
+        record = {"observation_index": index, "instance_mask_path": image_name, "object_id_to_entity_id": mapping,
+                  "object_poses": {"Sofa|1": {"x": 9.0}}, "object_visibility": {}, "frame_digest": digest}
+        (private / f"{index:04d}.frame.json").write_text(json.dumps(record), encoding="utf-8")
+
+    def test_one_anonymous_mask_per_listed_instance_and_the_frame_identity_is_checked(self) -> None:
+        import numpy as np
+        labels = np.zeros((24, 32), dtype=np.uint16)
+        labels[0:14, 0:14] = 1
+        labels[10:24, 18:32] = 2
+        labels[20:24, 0:4] = 3
+        with tempfile.TemporaryDirectory() as directory:
+            private = Path(directory) / "private"
+            self.write_private(private, 0, labels, {"Sofa|1": 1, "Mug|2": 2, "Wall|3": 3})
+            masks = runner.instance_frame_masks(private, 0, {"frame_digest": "a" * 64}, (24, 32))
+            self.assertEqual(sorted(int(m.sum()) for m in masks), [16, 196, 196])
+            self.assertTrue(all(m.dtype == bool and m.shape == (24, 32) for m in masks))
+            # the same admission as SAM masks: the 16 px instance is dropped
+            admitted = fc.admit_proposals([runner.anonymous(m, n) for n, m in enumerate(masks)])
+            self.assertEqual(len(admitted), 2)
+            for public, shape in (({"frame_digest": "b" * 64}, (24, 32)), ({"frame_digest": "a" * 64}, (32, 24))):
+                with self.assertRaises(runner.CacheFailure):
+                    runner.instance_frame_masks(private, 0, public, shape)
+            # a private record that names frame 0 read as frame 1 is refused
+            (private / "0000.frame.json").rename(private / "0001.frame.json")
+            with self.assertRaises(runner.CacheFailure):
+                runner.instance_frame_masks(private, 1, {"frame_digest": "a" * 64}, (24, 32))
+
+    def test_an_instance_image_path_outside_the_private_directory_is_refused(self) -> None:
+        import numpy as np
+        with tempfile.TemporaryDirectory() as directory:
+            private = Path(directory) / "private"
+            self.write_private(private, 0, np.zeros((4, 4)), {"Sofa|1": 1}, name="../public/0000.rgb.png")
+            with self.assertRaises(runner.CacheFailure) as caught:
+                runner.instance_frame_masks(private, 0, {"frame_digest": "a" * 64}, (4, 4))
+            self.assertIn("not a file name", caught.exception.detail)
+
+    def test_receipts_before_ruling_72_read_as_sam2(self) -> None:
+        self.assertEqual(runner.receipt_mask_source({"mask_source": "sam"}), fc.MASK_SOURCE_SAM2)
+        self.assertEqual(runner.receipt_mask_source({"mask_source": "recovered:/root/x"}), fc.MASK_SOURCE_SAM2)
+        self.assertEqual(runner.receipt_mask_source({}), fc.MASK_SOURCE_SAM2)
+        self.assertEqual(runner.receipt_mask_source({"mask_source": fc.MASK_SOURCE_INSTANCE}), fc.MASK_SOURCE_INSTANCE)
+
+    def test_a_cache_run_must_name_its_source_and_masks_from_is_sam2_only(self) -> None:
+        text = Path(runner.__file__).read_text(encoding="utf-8")
+        self.assertIn("--mask-source is required (ruling 72)", text)
+        self.assertIn("--masks-from reads recovered SAM2 masks and needs --mask-source sam2", text)
+        self.assertIn("mask_source=mask_source)", text)   # the episode seal is written with the source of the run
+
+
 if __name__ == "__main__":
     unittest.main()
