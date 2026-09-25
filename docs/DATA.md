@@ -171,10 +171,14 @@
 | 面 | 内容 | 谁可读 |
 |---|---|---|
 | `public` | 逐帧 RGB `uint8[224,224,3]`、米制 depth `float32[224,224]`、内参、以观测 0 为原点的因果相对位姿、关键帧间动作摘要、frame digest | 前端 reader、五个方法、候选/特征计算 |
-| `private` | 逐帧 instance-mask stack、模拟器对象 ID 到稳定私有实体 ID 的映射、逐对象世界位置（x/y/z）与可见像素数、干预日志、由此派生的逐帧"已不在原处"标签与 fragment 主导实例 ID；**逐帧记录没有旋转与包围盒**（2026-09-22 服务器核实），整物体真值盒由下面的私有几何补充表提供（裁决 45） | 只有封存后的 teacher 与评价器 |
+| `private` | 逐帧 instance-mask stack、模拟器对象 ID 到稳定私有实体 ID 的映射、逐对象世界位置（x/y/z）与可见像素数、干预日志、由此派生的逐帧"已不在原处"标签与 fragment 主导实例 ID；**逐帧记录没有旋转与包围盒**（2026-09-22 服务器核实），整物体真值盒由下面的私有几何补充表提供（裁决 45） | 封存后的 teacher 与评价器；实例分割前端的 cache 生成器（裁决 72）只读下面列出的五项 |
 | `provenance` | append-only 动作与干预 journal、单调时钟、setup 记录 | 只有审计 |
 
 白话：public 是机器人自己能拿到的东西，private 是只有上帝视角才知道的答案，provenance 是操作流水。任何 candidate/model reader 不得挂载 private 与 provenance；违反即整批失败。
+
+### 实例分割前端读私有面的边界（裁决 72，2026-09-25）
+
+主表的色块来自模拟器实例分割，所以 S1-03 cache 生成器在 `--mask-source simulator_instance_masks` 下要读私有面，这是前端的定义，不是泄漏。它**只读五项**：私有逐帧记录的 `observation_index` 与 `frame_digest`（必须等于公开帧的帧号与摘要，否则整条 episode 失败）、`instance_mask_path`（必须是 private 目录里的文件名）、`object_id_to_entity_id` 的**标签值集合**，以及实例图 `NNNN.instance.png` 的像素。每个登记标签的像素区域变成一张匿名布尔 mask，按 mask 摘要排序后与 SAM 色块走同一准入（≥196 像素、每帧 ≤64、超过即构造失败）、同一 DINOv2 描述子、同一深度几何与体积。**不读、也不写进 cache 的**：标签值本身、对象 ID、对象类型、`object_poses`、`object_visibility`、真值盒、ID 映射本身、干预日志与整个 provenance 面。例如一帧里模拟器标了沙发（标签 1）、墙（标签 2）、杯子（标签 3），cache 里就是三个匿名色块，下游不知道哪个是沙发，也不知道它们在别的帧叫什么。它**不等于**把身份告诉方法：跨帧是不是同一个实体仍由方法从外观与位置判断。一个 cache 根只存一种来源；非 SAM2 来源写进 episode 封印（SAM2 封印保持原字节），S2-04／S2-05 入口必须声明来源并拒绝另一来源的 cache。SAM2 前端（`--mask-source sam2`）不读私有面，作鲁棒性附录。
 
 ### 私有几何补充表 `object_geometry.json`（裁决 45，2026-09-22）
 
@@ -196,7 +200,7 @@
 | `surfaces[]` | 几何派生的水平支撑面 ID 与范围，供共享 `supported_by` 规则 |
 | `frame_seal`、`episode_seal` | 逐帧与逐 episode 封印摘要 |
 
-五个方法读取同一 cache 的等字节 clone；cache 不含 house ID、场景名、对象 ID 或任何 private 派生量。
+五个方法读取同一 cache 的等字节 clone；cache 不含 house ID、场景名、对象 ID、标签值、位姿或真值盒。SAM2 来源的 cache 不含任何 private 派生量；实例分割来源（裁决 72，主表）的 cache 只含私有实例图的 mask 像素几何（经匿名化、按摘要排序，见第三节），episode 封印写明来源。
 
 ## 六、标签与封存文件
 
@@ -221,7 +225,7 @@
 
 1. 部署 reader 白名单只含 `public` 与 cache；`private`、`provenance`、house ID、场景名不进入任何方法值。
 2. `recall_seal` 与 `feature_matrix` 的 digest 在 `labels.npz` 生成前写入；teacher 只读 digest 指向的文件。
-3. 私有扰动检查：换 instance map、干预日志或对象 ID 后，公开产物与未训练 logits 逐字节不变。
+3. 私有扰动检查：换干预日志、对象 ID 或 ID 映射后，公开产物与未训练 logits 逐字节不变；SAM2 来源下换 instance map 同样不变。实例分割来源下 instance map 的**像素几何**是登记的前端输入，换几何会改变 cache，但只重排标签值（把沙发从 1 改成 7）必须逐字节不变（裁决 72，测试钉住）。
 4. nuisance probe：只用路径、seed、帧号、house 序号不得预测任何标签。
 5. test manifest 生成后封存，S3-05 只读一次。
 

@@ -2,7 +2,7 @@
 
 ## 当前方向（D-224，优先于下面各历史方向）
 
-- 用户于 2026-09-19 批准 D-224 裁决 A～D：首篇精简为 **VSMT-lean（实体生命周期版本化事务）**，模型为冻结 SAM 2.1 + DINOv2 前端、三个合计 54,207 参数的 MLP 代价头（原写约 4 万，裁决 63 改正数字）和每帧一次矩形匈牙利分配；数据为 ProcTHOR 多 house 覆盖式重访加不可观测窗口干预；指标对齐 Dyn-THOR；节点 P/R/F1 以 IoU 0.3 为主列，另报质心 ≤ δ_moved 的次级列（裁决 70，不选配置、不进主门）。
+- 用户于 2026-09-19 批准 D-224 裁决 A～D：首篇精简为 **VSMT-lean（实体生命周期版本化事务）**，模型为冻结公开前端（裁决 72：主表色块来自模拟器实例分割、只暴露 mask 几何，SAM 2.1 降为鲁棒性附录）＋ RGB-D 几何 ＋ DINOv2、三个合计 54,207 参数的 MLP 代价头（原写约 4 万，裁决 63 改正数字）和每帧一次矩形匈牙利分配；数据为 ProcTHOR 多 house 覆盖式重访加不可观测窗口干预；指标对齐 Dyn-THOR；节点 P/R/F1 以质心 ≤ δ_moved 为主列与选参指标，IoU 0.3 为次级列 `node_prf1_iou`（裁决 72 (B) 把裁决 70 改取 (b)；两列都不进主门，与 Dyn-THOR 是同一匹配机制、不同重叠判定）。
 - 五原子 NOOP/BIND/BIRTH/RETRACT/REACTIVATE；REPLACE 是复合程序；MERGE 是五方法共享的确定性去重；SPLIT、RELINK、place、surface、关系边、类型门、后状态编码、NECS 均退出首篇。
 - 主比较 VSMT-lean / TAF / ELU-P / RAC / LOW；四组消融 NoVersion / HandCost / HeuristicLabel / **AssocOnly**，其中 AssocOnly （同一学习关联头、词表只剩 BIND 与 BIRTH）是贡献一的唯一因果反事实，**主表必须并列报告**；`LLM-op` 是必做附录臂，只在 validation 上跑、不进主表不进 test；`VSMT-lean-ctx` 是可选臂。每方法至多 12 个完整配置，规则臂无梯度。
 - S2-05 开发表同时跑 `NoVersion` 与 `AssocOnly` 作早期风险读数；开发差不得用来选赢家、调网格或删消融，但可以促成设计修订（裁决 66，2026-09-24）：修订须登记为裁决、在 S3-01 冻结正式数据前完成、不读 validation/test。
