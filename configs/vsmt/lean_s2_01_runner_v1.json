@@ -41,15 +41,15 @@
     "selected": "reid_projection:vitb14",
     "source_set": "vitb14",
     "frozen_baseline": "vitb14",
-    "weights_sha256": "f6fc67e5f365a4f6d375d6aa16afe15cb0d9769879aa0cc1ab84ff6de9b65073",
+    "weights_sha256": "5cea91cf77901f1eb38e5942ee12a2afbe14e11ba1475bd2957e1cbfe3659a88",
     "choices": [
       "reid_projection:vitb14",
       "vitb14"
     ],
     "weights_digest_checked_before_any_projection": true,
-    "descriptor_frozen_by": "S1-05 (LOG-245), mechanical application of D-224-S1 ruling 47",
-    "descriptor_frozen_on": "2026-09-24",
-    "plain_language_zh": "五个臂读 cache 的 descriptor_vitb14（768 维），经 S1-04 训练、S1-05 选中的共享权重（摘要 f6fc67e5…）投影成 128 维单位向量后进入分配层；权重摘要对不上直接拒绝。论文并列报告的基线是冻结 ViT-B/14 本身（不投影）。除这两种选择外都拒绝；ViT-S/14 及其投影不再被读取。"
+    "descriptor_frozen_by": "S1-05 (LOG-245), mechanical application of D-224-S1 ruling 47; weights retrained on the instance-segmentation cache under ruling 73 (3) (LOG-261)",
+    "descriptor_frozen_on": "2026-09-26",
+    "plain_language_zh": "五个臂读 cache 的 descriptor_vitb14（768 维），经 S1-04 训练、S1-05 选中的共享权重（摘要 5cea91cf…，裁决 73 (3) 在实例分割 cache 上重训，取代 SAM2 色块上训练的 f6fc67e5…）投影成 128 维单位向量后进入分配层；权重摘要对不上直接拒绝。论文并列报告的基线是冻结 ViT-B/14 本身（不投影）。除这两种选择外都拒绝；ViT-S/14 及其投影不再被读取。"
   },
   "entity_geometry": {
     "rule": "uniform_grid_of_cell_centres_over_the_entity_aabb; a point is inside a block iff all six halfspaces hold within the tolerance; ratio = points inside the union of blocks / points",
@@ -216,7 +216,8 @@
       "D-224-S1 裁决 60（2026-09-24 批准，原话「裁决 59 取 (a)，60 取 4，61 按 S1-04 的 activation_policy 修，62 拒绝，63 保持 128 宽改数字，非法程序臂状态回滚；修完再开 S2-04」）：entity_geometry.samples_per_axis=4，绑定常量 ENTITY_GEOMETRY_SAMPLES_PER_AXIS，登记进跨合同台账；规则摘要不因填值而变。",
       "D-224-S1 裁决 61（同日批准）：校验器原要求授权位全部为 false、而入口要求两位为 true，入口永远跑不起来；改为 activation_policy 机制，为 true 的位必须被 active_true_authorizations 点名并写明 opened_by。两位现仍关。",
       "S2 审查修正（同日批准「非法程序臂状态回滚」）：frame_step.arm_state 新增 arm_state_rolled_back_with_the_frame_on_an_illegal_program=true 并由校验器绑定；这是规则变更，规则摘要重钉（见跨合同测试的台账注释）。",
-      "D-224-S1 裁决 69（2026-09-24 批准，原话「裁决 69 取 (a)。」，取 (a)）：真值表键规则加 Ceiling_room 结构件与运行时生成物规则；规则摘要重钉。"
+      "D-224-S1 裁决 69（2026-09-24 批准，原话「裁决 69 取 (a)。」，取 (a)）：真值表键规则加 Ceiling_room 结构件与运行时生成物规则；规则摘要重钉。",
+      "D-224-S1 裁决 73 (3)（2026-09-26 批准）：descriptor.weights_sha256 f6fc67e5… → 5cea91cf…（ReID 头在实例分割 cache 上重训、S1-05 按裁决 47 重选，选择仍为 reid_projection:vitb14）。"
     ]
   }
 }

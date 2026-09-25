@@ -185,17 +185,19 @@ EXISTENCE_THRESHOLD_TAU_R_REFERENCE = 0.5
 REFERENCE_SCORE_SEED = 224
 REID_TRAINING_HOUSES = 30
 REID_SELECTION_HOUSES = 12
-#: S1-05 (2026-09-24, LOG-245): the frozen ruling-47 rule applied to the S1-04 report
-#: (results/vsmt_lean_s1_04_diagnostics_154776d.json).  On the 9 selection houses the ViT-B/14
-#: projection's median cross-view separation is 0.2358 against 0.1430 for the best frozen set
-#: (ViT-B/14 itself): a gain of 0.093 over the 0.05 margin, so every arm reads the projection of
-#: ``descriptor_vitb14`` and frozen ViT-B/14 is the baseline the paper reports alongside.  The
+#: S1-05 (2026-09-24, LOG-245): the frozen ruling-47 rule applied to the S1-04 report; re-run under
+#: ruling 73 (3) (2026-09-26, LOG-261) on the instance-segmentation cache
+#: (results/vsmt_lean_s1_04_diagnostics_oracle_caa50c7.json).  On the 9 selection houses the ViT-B/14
+#: projection's median cross-view separation is 0.1747 against 0.0706 for the best frozen set
+#: (ViT-B/14 itself): a gain of 0.104 over the 0.05 margin, so every arm reads the projection of
+#: ``descriptor_vitb14`` and frozen ViT-B/14 is the baseline the paper reports alongside.  The choice
+#: is the same as on the SAM2 cache; only the weights were retrained (f6fc67e5... superseded).  The
 #: selection group is 9 houses, not 12: the cached development block has 39 episodes and the
 #: contract skips and counts, never refills.  No later stage may change this choice.
 SELECTED_DESCRIPTOR = "reid_projection:vitb14"
 SELECTED_DESCRIPTOR_SOURCE_SET = "vitb14"
 FROZEN_DESCRIPTOR_BASELINE = "vitb14"
-SELECTED_REID_WEIGHTS_SHA256 = "f6fc67e5f365a4f6d375d6aa16afe15cb0d9769879aa0cc1ab84ff6de9b65073"
+SELECTED_REID_WEIGHTS_SHA256 = "5cea91cf77901f1eb38e5942ee12a2afbe14e11ba1475bd2957e1cbfe3659a88"
 
 
 class LeanAssignmentError(ValueError):

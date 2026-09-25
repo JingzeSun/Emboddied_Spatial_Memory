@@ -37,8 +37,8 @@ from vsmt import lean_reid_head as rh  # noqa: E402
 SEED = 20260920
 CONTRACT = la.validate_assignment_contract(json.loads(s105.S0_03_CONTRACT.read_text(encoding="utf-8")))
 S1_03_CONTRACT = json.loads(s105.S1_03_CONTRACT.read_text(encoding="utf-8"))
-REAL_REPORT = PROJECT_ROOT / "results" / "vsmt_lean_s1_04_diagnostics_154776d.json"
-REAL_RECEIPT = PROJECT_ROOT / "results" / "vsmt_lean_s1_05_descriptor_freeze_154776d.json"
+REAL_REPORT = PROJECT_ROOT / "results" / "vsmt_lean_s1_04_diagnostics_oracle_caa50c7.json"  # ruling 73 (3)
+REAL_RECEIPT = PROJECT_ROOT / "results" / "vsmt_lean_s1_05_descriptor_freeze_oracle_caa50c7.json"
 SYNTHETIC_PATH = PROJECT_ROOT / "results" / "synthetic_s1_04_report.json"  # never written; only a name
 
 

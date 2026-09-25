@@ -209,18 +209,21 @@
     },
     "selection_result": {
       "selected_by_stage": "S1-05",
-      "selection_frozen_by": "S1-05, mechanical application of D-224-S1 ruling 47 to the S1-04 report (LOG-245); pending D-059 user review",
-      "selection_frozen_on": "2026-09-24",
+      "selection_frozen_by": "S1-05, mechanical application of D-224-S1 ruling 47 to the S1-04 report on the instance-segmentation cache, re-run under D-224-S1 ruling 73 (3) (LOG-261)",
+      "selection_frozen_on": "2026-09-26",
       "selected": "reid_projection:vitb14",
       "source_descriptor_set": "vitb14",
       "frozen_descriptor_baseline": "vitb14",
       "frozen_descriptor_baseline_must_be_reported_alongside": true,
       "weights_file": "reid_head_vitb14.json",
-      "weights_sha256": "f6fc67e5f365a4f6d375d6aa16afe15cb0d9769879aa0cc1ab84ff6de9b65073",
+      "weights_sha256": "5cea91cf77901f1eb38e5942ee12a2afbe14e11ba1475bd2957e1cbfe3659a88",
+      "weights_trained_on_mask_source": "simulator_instance_masks",
+      "superseded_weights_sha256": "f6fc67e5f365a4f6d375d6aa16afe15cb0d9769879aa0cc1ab84ff6de9b65073",
+      "superseded_weights_trained_on_mask_source": "sam2",
       "weights_are_not_committed_the_digest_is": true,
-      "input_report": "results/vsmt_lean_s1_04_diagnostics_154776d.json",
-      "input_report_sha256": "18c7f79d22745f41d1022ec37b5da9d636f225805b4739c9c8c8a701196ec7f3",
-      "receipt": "results/vsmt_lean_s1_05_descriptor_freeze_154776d.json",
+      "input_report": "results/vsmt_lean_s1_04_diagnostics_oracle_caa50c7.json",
+      "input_report_sha256": "2859c568ff43a12fe9303a80427d688ec2cee345c932c54f99fc3d2ab4cc9ffc",
+      "receipt": "results/vsmt_lean_s1_05_descriptor_freeze_oracle_caa50c7.json",
       "selection_houses_used": 9,
       "selection_shortfall": 3,
       "shortfall_handled_by": "holdout.a_house_without_a_cache_is_skipped_and_counted_never_replaced",
@@ -230,7 +233,7 @@
       ],
       "cache_bytes_unchanged": true,
       "no_further_descriptor_change": true,
-      "plain_language_zh": "S1-05 按上面冻结的规则在 S1-04 报告上机械选择：9 条选择 house 上，冻结 ViT-B/14 的中位跨视角分离度 0.143（两套冻结描述子里最好的），ViT-B/14 投影后 0.236，增益 0.093 ≥ 0.05，所以选中投影 `reid_projection:vitb14`。五个臂从 cache 读 `descriptor_vitb14`、经摘要为 f6fc67e5… 的共享权重投影成 128 维后再进分配层；论文必须并列报告冻结 ViT-B/14 基线。ViT-S/14 及其投影不再被分配视图读取，但 cache 字节不变（episode 封印仍覆盖两套）。选择组是 9 条不是 12 条：cache 只有 39 条成功 episode，合同规定“没有 cache 的 house 跳过并计数、不顶替”，缺口 3 如实登记。此后任何阶段不得再换描述子。"
+      "plain_language_zh": "裁决 73 (3)（2026-09-26）：ReID 投影在实例分割 cache 上按裁决 47 的同一规则重训并由 S1-05 重新选择。9 条选择 house 上冻结 ViT-B/14 的中位跨视角分离度 0.071（两套冻结描述子里最好的），ViT-B/14 投影后 0.175，增益 0.104 ≥ 0.05，所以仍选投影 `reid_projection:vitb14`，描述子选择不变，只换权重：摘要 5cea91cf…（实例分割色块上训练）取代 f6fc67e5…（SAM2 色块上训练，留底）。五个臂从 cache 读 `descriptor_vitb14` 经这份共享权重投影成 128 维；SAM2 附录用同一份权重，前端只差 mask 来源。论文必须并列报告冻结 ViT-B/14 基线。选择组 9 条（cache 39 条，跳过并计数、不顶替），缺口 3 如实登记。"
     },
     "plain_language_zh": "共享 ReID 适配头是冻结 DINO 描述子之上的一个投影，用 train 划分 house 的实例级对比损失训练一次后冻结，五个臂逐字节共用同一投影，因此不是 VSMT-lean 的私有优势。它在 S1-04 与原始冻结描述子一同量跨视角分离度，由 S1-05 二选一；不计入任何方法的 12 个配置额度。若被选中，论文必须同时报告冻结描述子基线。输出维度 128（D-224-E 原话，裁决 47 于 2026-09-22 入台账）；选择阈值 0.05 余弦（裁决 47）：投影在 12 条选择 house 上的中位跨视角分离度至少比最好的冻结描述子高 0.05 才入选，否则保留冻结描述子。**S1-05（2026-09-24）已按此规则选定 `reid_projection:vitb14` 并冻结，冻结 ViT-B/14 为并列报告的基线，见 `selection_result`。**"
   },
@@ -304,7 +307,8 @@
       "D-224-S1 裁决 58（2026-09-24 批准，原话「裁决 56 续取 (a)：真值范围排除 wall/room/door/window，BIND 框改为同帧并集；裁决 58 取 1.0 m」）：birth_neighbourhood_radius_m=1.0。依据 S1-04 出生邻域统计（LOG-244 续）：4,712 次出生时刻周围已有实体的平均个数在 0.25／0.5／1.0 m 为 0.07／0.35／1.15，只有 1.0 m 一档不几乎恒为 0。至此裁决 46 要求的四个召回值全部冻结。",
       "S1-05 执行登记（2026-09-24，机械执行裁决 47，非新裁决；LOG-245）：按 S1-04 报告（results/vsmt_lean_s1_04_diagnostics_154776d.json，sha256 18c7f79d…）在 9 条选择 house 上应用选择规则，选中 reid_projection:vitb14（增益 0.093 ≥ 0.05），冻结 ViT-B/14 为并列基线，权重摘要 f6fc67e5…，回执 results/vsmt_lean_s1_05_descriptor_freeze_154776d.json；选择组缺 3 条按合同“跳过并计数”处理并登记为待裁 59（是否维持）。selection_result 块是新增结构，规则摘要重钉。",
       "D-224-S1 裁决 68（2026-09-25 批准，原话「裁决 68 全按推荐」）：cost_matrix.existence_threshold_tau_r=0.5（参考值，运行时 τ_r 逐配置来自 S0-05 网格，无代码消费）、seal.reference_score_seed=224；绑定 EXISTENCE_THRESHOLD_TAU_R_REFERENCE 与 REFERENCE_SCORE_SEED，登记进跨合同台账；两者都是值槽，规则摘要不变。",
-      "D-224-S1 裁决 72 (A)（2026-09-25 16:35 CST 批准，原话「裁决 72 取 (A)(a)(B)(a)(C)(a)(D)(a)」）：本合同所说的“冻结前端”自此指冻结公开前端——主表为模拟器实例分割（只有 mask 几何，见 S1-03 合同 mask_source 块），SAM2 为鲁棒性附录——加 RGB-D 几何与 DINOv2；召回、特征、代价、求解与两段封存规则一字不变，本合同没有任何规则字串指名 SAM2，故规则摘要不变。reid_adapter_head 的选择结果（reid_projection:vitb14，权重摘要已钉）是在 SAM2 色块上得出的，默认原样复用；在实例分割 cache 上只报召回曲线复核，是否重训另提裁决（待裁 73）。"
+      "D-224-S1 裁决 72 (A)（2026-09-25 16:35 CST 批准，原话「裁决 72 取 (A)(a)(B)(a)(C)(a)(D)(a)」）：本合同所说的“冻结前端”自此指冻结公开前端——主表为模拟器实例分割（只有 mask 几何，见 S1-03 合同 mask_source 块），SAM2 为鲁棒性附录——加 RGB-D 几何与 DINOv2；召回、特征、代价、求解与两段封存规则一字不变，本合同没有任何规则字串指名 SAM2，故规则摘要不变。reid_adapter_head 的选择结果（reid_projection:vitb14，权重摘要已钉）是在 SAM2 色块上得出的，默认原样复用；在实例分割 cache 上只报召回曲线复核，是否重训另提裁决（待裁 73）。",
+      "D-224-S1 裁决 73 (3)（2026-09-26 批准，原话「裁决 73 取最好方案：(1) 暂不动，(2) 逐点深度检验先做探针，(3) 重训 ReID」）：S1-04 在实例分割 cache 上重训 ReID，S1-05 按裁决 47 的规则重选：仍为 reid_projection:vitb14（增益 0.104），selection_result 的权重摘要 f6fc67e5… → 5cea91cf…，输入报告与回执改指实例分割 cache 上的新文件，旧摘要留底；描述子选择本身不变。"
     ]
   }
 }

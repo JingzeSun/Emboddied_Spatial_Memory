@@ -304,7 +304,11 @@ FROZEN_RULE_SHA256 = {
     # S1-04 report picks reid_projection:vitb14 (gain 0.093 over the 0.05 margin on the 9 selection
     # houses), frozen ViT-B/14 is the baseline reported alongside, the weights digest is pinned and the
     # choice may not change.  A new block, not a slot fill, hence a re-pin.  1becb7e3 -> 37d56a90.
-    "S0-03": "37d56a9079f90bd8db94bd68234919d7f42511b7e63214889d8a45bad5c2408a",
+    # Re-pinned 2026-09-26 for ruling 73 (3) (LOG-261): the ReID head retrained on the instance-segmentation cache and
+    # re-selected by the same ruling-47 rule (still reid_projection:vitb14, gain 0.104); selection_result carries the new
+    # weights digest 5cea91cf..., the new report and receipt, and the superseded SAM2-trained digest f6fc67e5... with its
+    # mask source.  37d56a90 -> 421001ff.
+    "S0-03": "421001ffd1988931c7b15cf29517b1fd2a570bd6eef0d69acee7a2efff19ea6b",
     # S0-04 re-pinned 2026-09-24 for ruling 56 continued: the truth node scope excludes the four ProcTHOR
     # structural types door, room, wall and window (65% of the S1-04 gate rows, unmatchable by any box or
     # centroid rule).  585e3660 -> 9bf1059d.
@@ -381,7 +385,9 @@ FROZEN_RULE_SHA256 = {
     # re-pin time that with the bits set back to false the digest is 09fc1a4a again.  -> 36b9fbc6.
     # Re-pinned 2026-09-24 for ruling 69: the truth-table key rule names Ceiling_room among the structural
     # keys and gives spawned-after-reload keys a present / out-of-scope / boxless / counted row.  36b9fbc6 -> d07f141c.
-    "S2-01": "d07f141cc6b6aff227f42c53501a9c71e62f9b85f184d260713d634f33036068",
+    # Re-pinned 2026-09-26 for ruling 73 (3): descriptor.weights_sha256 follows the retrained ReID head (f6fc67e5 -> 5cea91cf).
+    # d07f141c -> c911a4d6.
+    "S2-01": "c911a4d620b0bf8831c472f290217d59ffc642c6b85cf163c0d6d4d5492ea654",
     # S2-04 v1 (2026-09-24, LOG-249): the teacher and evaluator wiring -- the derivation rules for the
     # S0-04 inputs (place observability by the S2-01 sampled-box test at the S0-05 minimum, old and new
     # places from the S1-04 tracker at the window edges, recovery place per intervention kind, carriers
