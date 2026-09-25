@@ -316,7 +316,11 @@ FROZEN_RULE_SHA256 = {
     # selection metric nor a main-gate metric) joins the metric names, reported fields and rules.
     # 7a3d661b -> 126fdd34.
     "S0-04": "126fdd349f41bd572db41e80fb8e6ca3221a6348ec6aa514c5732278fe5b2e79",
-    "S0-05": "c5354b1e71936d345823630b6533b03329435de104e258785fdb89e17934c54a",
+    # S0-05 re-pinned 2026-09-25 for ruling 68 (LOG-256 sequel): every grid's values (at most twelve
+    # configurations per method, a no-gate member in every rule arm), the ELU-P rollout_config
+    # (0.7, 1.0, 0.0) and the should_be_visible_min_ratio_superseded record enter the digest; the
+    # weight_decay, seeds and should-be-visible values are slots and do not.  c5354b1e -> 4e285050.
+    "S0-05": "4e285050e0f10358d75908f5932fbac4444c89c7fd4e5f6ebd4f25ee4c879da5",
     "S1-01": "4f139e631388c05e4006fd12ffad8b611d2e7811fb7f9a830ce9f7c63fdecd84",
     "S1-02a": "997cabe5105ca304269b0d8d9dd34038ff096df7a79c875c577a2629866ccc64",
     # S1-03 re-pinned 2026-09-22 for ruling 49 (LOG-242): the public_pose_correction block -- every
@@ -411,9 +415,14 @@ FROZEN_VALUES: dict[str, dict[str, Any]] = {
         "labels.existence.delta_moved_m": 0.5
     },
     "S0-05": {
-        # D-224-S1 ruling 67 (2026-09-24): half of the 64 sampled cell centres of an entity box inside
-        # the frame's visible volume makes it should-be-visible (granularity 1/64, S2-01 ruling 60).
-        "shared.should_be_visible_min_ratio": 0.5
+        # D-224-S1 ruling 67 (2026-09-24) froze the should-be-visible minimum at 0.5 (half of the 64 cell
+        # centres); ruling 68 (2026-09-25, LOG-256 sequel) superseded it with 1/64: the cache's visible
+        # volume lies before the depth surface and entity boxes are surface shells, so 0.5 admitted 0.2
+        # percent of entity-frames (2,068 existence candidates in 44,097 frames).
+        "shared.should_be_visible_min_ratio": 0.015625,
+        # D-224-S1 ruling 68 (2026-09-25): the two training values METHOD proposed.
+        "arms.VSMT-lean.training.weight_decay": 0.0001,
+        "arms.VSMT-lean.training.seeds": [7, 19, 31, 43, 59]
     },
     "S1-04": {
         # D-224-S1 ruling 48 / S1-04 code review (2026-09-22): the ReID head's training values,
@@ -466,6 +475,11 @@ FROZEN_VALUES: dict[str, dict[str, Any]] = {
 #: must differ from the live ledger value and name the ruling; the contract carries the same
 #: supersede record next to the slot.
 SUPERSEDED_VALUES: dict[str, dict[str, list[dict[str, Any]]]] = {
+    "S0-05": {
+        "shared.should_be_visible_min_ratio": [
+            {"value": 0.5, "frozen_by": "D-224-S1 ruling 67", "superseded_by": "D-224-S1 ruling 68", "on": "2026-09-25"},
+        ],
+    },
     "S0-01": {
         "shared_dedup.descriptor_cosine_min": [
             {"value": 0.9, "frozen_by": "D-224-S1 ruling 67", "superseded_by": "D-224-S1 ruling 68", "on": "2026-09-25"},

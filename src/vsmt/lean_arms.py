@@ -150,6 +150,32 @@ ROLLOUT_CONFIG_PATH = "arms.ELU-P.rollout_config"
 ROLLOUT_CONFIG_PARAMETERS = ("theta_a", "free_space_weight", "retract_threshold")
 ROLLOUT_CONFIG_GATE_PARAMETER = "d_a"
 
+#: D-224-S1 ruling 68 (2026-09-25, LOG-256 sequel): the pre-registered grids, frozen from the
+#: 39-episode calibration quantiles (same-object cosine to the entity mean p50 0.78 against 0.60 for
+#: other objects, crossing near 0.7; 35 / 46 / 65 percent of same-object pairs within 0.5 / 1 / 2 m;
+#: free-space coverage not separating gone from present under the current geometry rule, so the
+#: RAC and ELU-P grids bracket the 0.65 baseline).  At most twelve configurations per method, every
+#: rule arm with a no-gate member; the contract must carry exactly these values.
+FROZEN_GRIDS: dict[str, dict[str, list[Any]]] = {
+    METHOD_ARM: {"tau_r": [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]},
+    "TAF": {"theta_a": [0.6, 0.7, 0.8], "d_a": [None, 0.5, 1.0, 2.0]},
+    "ELU-P": {"theta_a": [0.7], "d_a": [None, 1.0], "free_space_weight": [0.5, 1.0, 2.0], "retract_threshold": [0.0, -1.0]},
+    "RAC": {"theta_a": [0.7], "d_a": [None, 1.0], "rho_rac": [0.7, 0.85], "n_rac": [2, 3, 5]},
+    "LOW": {"d_low": [None, 0.25, 0.5, 1.0, 2.0]},
+    "NoVersion": {"tau_r": [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]},
+    "HandCost": {"theta_b": [0.6, 0.7, 0.8], "rho_h": [0.6, 0.7, 0.8, 0.9]},
+    "HeuristicLabel": {"tau_r": [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]},
+    "AssocOnly": {},
+    OPTIONAL_ARM: {"tau_r": [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]},
+}
+#: Ruling 68 (2): the ELU-P rollout configuration (theta_a, free_space_weight, retract_threshold), a
+#: no-gate member of the ELU-P grid; DAgger round 0 and the HeuristicLabel labels use exactly it.
+ROLLOUT_CONFIG: dict[str, float] = {"theta_a": 0.7, "free_space_weight": 1.0, "retract_threshold": 0.0}
+#: Ruling 68 (4): the two training values METHOD proposed; the seeds are not configurations and the
+#: development training uses the first one only.
+WEIGHT_DECAY = 1e-4
+SEEDS = (7, 19, 31, 43, 59)
+
 SPLIT_ALLOWED: dict[str, tuple[str, ...]] = {
     **{arm: SPLITS for arm in ALL_ARMS},
     APPENDIX_ARM: ("validation",),
@@ -739,21 +765,22 @@ EXPECTED_BOOLEAN_CLAIMS.update({
 })
 
 #: Policy values that must still be null.
-#: D-224-S1 ruling 67 (2026-09-24): the shared should-be-visible minimum, frozen once for every arm.
-SHOULD_BE_VISIBLE_MIN_RATIO = 0.5
+#: D-224-S1 ruling 67 (2026-09-24) froze the shared should-be-visible minimum at 0.5; ruling 68
+#: (2026-09-25, LOG-256 sequel) superseded it with 1/64: the cache's visible volume lies before the
+#: depth surface while entity boxes are surface shells, so 0.5 admitted 0.2 percent of entity-frames
+#: (2,068 existence candidates in 44,097 frames); one of the 64 cell centres before the surface now
+#: makes an entity should-be-visible (3.5 percent of entity-frames).
+SHOULD_BE_VISIBLE_MIN_RATIO = 1.0 / 64.0
 FROZEN_VALUES_BY_RULING = (
-    ("shared.should_be_visible_min_ratio", SHOULD_BE_VISIBLE_MIN_RATIO, "D-224-S1 ruling 67"),
+    ("shared.should_be_visible_min_ratio", SHOULD_BE_VISIBLE_MIN_RATIO, "D-224-S1 ruling 68"),
+    ("arms.VSMT-lean.training.weight_decay", WEIGHT_DECAY, "D-224-S1 ruling 68"),
+    ("arms.VSMT-lean.training.seeds", list(SEEDS), "D-224-S1 ruling 68"),
 )
 
 NULL_POLICY_PATHS = (
-    "arms.VSMT-lean.training.weight_decay",
-    "arms.VSMT-lean.training.seeds",
     "arms.ELU-P.fitted.initial_log_odds",
     "arms.ELU-P.fitted.persistence_log_decay_per_tick",
     "arms.ELU-P.fitted.match_gain",
-    "arms.ELU-P.rollout_config.theta_a",
-    "arms.ELU-P.rollout_config.free_space_weight",
-    "arms.ELU-P.rollout_config.retract_threshold",
 )
 
 FROZEN_CONSTANTS = (
@@ -831,6 +858,7 @@ def validate_arms_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
                 assert_config_budget(configs)
                 if arm in NO_GATE_PARAMETER:
                     assert_no_gate_option(arm, frozen)
+                _require(frozen == FROZEN_GRIDS[arm], f"contract_grid_values_mismatch:{arm}")  # ruling 68 (1)
             elif arm in NO_GATE_PARAMETER:
                 _require(
                     grid[NO_GATE_PARAMETER[arm]].get("must_include_none_meaning_no_gate") is True,
@@ -865,6 +893,7 @@ def validate_arms_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
         rollout[name] is not None for name in ROLLOUT_CONFIG_PARAMETERS
     ):
         assert_rollout_config(rollout, elu_grid)
+        _require({name: rollout[name] for name in ROLLOUT_CONFIG_PARAMETERS} == ROLLOUT_CONFIG, "contract_rollout_config_mismatch")  # ruling 68 (2)
     v2 = contract.get("user_rulings_v2")
     _require(type(v2) is dict and v2.get("decision_id") == V2_RULINGS_DECISION_ID, "contract_v2_rulings_decision_mismatch")
     _require(set(v2) >= set(V2_RULING_KEYS), "contract_v2_rulings_incomplete")
@@ -890,6 +919,11 @@ def validate_arms_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
 
 __all__ = [
     "ABLATION_ARMS",
+    "SHOULD_BE_VISIBLE_MIN_RATIO",
+    "SEEDS",
+    "WEIGHT_DECAY",
+    "ROLLOUT_CONFIG",
+    "FROZEN_GRIDS",
     "ALL_ARMS",
     "APPENDIX_ARM",
     "CONTRACT_SCHEMA_VERSION",

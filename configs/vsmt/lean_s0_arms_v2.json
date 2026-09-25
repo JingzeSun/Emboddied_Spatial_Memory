@@ -29,10 +29,16 @@
     "all_arms_fill_the_same_cost_matrix_and_use_the_same_solver": true,
     "rule_arms_have_no_gradient": true,
     "existence_candidates_are_active_or_dormant_and_should_be_visible": true,
-    "should_be_visible_min_ratio": 0.5,
-    "should_be_visible_min_ratio_frozen_by": "D-224-S1 ruling 67",
-    "should_be_visible_min_ratio_frozen_on": "2026-09-24",
-    "plain_language_zh": "五个臂与四组消融共用冻结前端、S0-03 召回与求解器、S0-01 执行器、共享去重与 dormancy 规则、S0-04 评价器；差别只在 logit 怎么来、存在决定怎么做。存在判定候选是 active 或 dormant、且本帧应可见比例不低于登记下限的未分配实体；这个下限五臂共享，因为它决定谁会累计错失次数、谁会休眠。裁决 67（2026-09-24）冻结为 0.5：实体盒的 64 个采样格心过半落进本帧可见体积才算应可见。"
+    "should_be_visible_min_ratio": 0.015625,
+    "should_be_visible_min_ratio_frozen_by": "D-224-S1 ruling 68",
+    "should_be_visible_min_ratio_frozen_on": "2026-09-25",
+    "should_be_visible_min_ratio_superseded": {
+      "value": 0.5,
+      "frozen_by": "D-224-S1 ruling 67",
+      "superseded_by": "D-224-S1 ruling 68",
+      "on": "2026-09-25"
+    },
+    "plain_language_zh": "五个臂与四组消融共用冻结前端、S0-03 召回与求解器、S0-01 执行器、共享去重与 dormancy 规则、S0-04 评价器；差别只在 logit 怎么来、存在决定怎么做。存在判定候选是 active 或 dormant、且本帧应可见比例不低于登记下限的未分配实体；这个下限五臂共享，因为它决定谁会累计错失次数、谁会休眠。裁决 67（2026-09-24）冻结为 0.5：实体盒的 64 个采样格心过半落进本帧可见体积才算应可见。裁决 68（2026-09-25，LOG-256 续）取代为 1/64：S1-03 的可见体积是视锥内、深度表面之前的体素，而实体框是单帧深度表面壳，正对着看的在场物体也只有约一半采样格心在表面之前，0.5 只让 0.2% 的实体-帧成为存在候选（44,097 帧 2,068 个）；1/64 即任一格心在表面之前的视锥内就算应可见（3.5% 的实体-帧，约每帧 5 个候选）。几何规则本身的修订登记为候选（DECISIONS 待裁 68 (8)(b)），由开发表趟的规则臂读数决定是否提出。"
   },
   "cost_interface": {
     "logit_transform": "negative_logit_per_s0_03",
@@ -74,20 +80,36 @@
       "reactivates_retracted": true,
       "grid": {
         "tau_r": {
-          "values": null,
+          "values": [
+            0.3,
+            0.4,
+            0.5,
+            0.6,
+            0.7,
+            0.8,
+            0.9
+          ],
           "range": "(0,1)"
         }
       },
       "training": {
         "optimizer": "AdamW",
         "learning_rate": 0.001,
-        "weight_decay": null,
+        "weight_decay": 0.0001,
         "epochs": 20,
         "early_stopping_on_validation_loss": true,
         "batch": "per_frame",
         "loss": "per-fragment softmax cross-entropy over [recalled columns..., BIRTH column] plus per-entity existence binary cross-entropy, equal weights",
         "seed_count": 5,
-        "seeds": null,
+        "seeds": [
+          7,
+          19,
+          31,
+          43,
+          59
+        ],
+        "weight_decay_and_seeds_frozen_by": "D-224-S1 ruling 68",
+        "weight_decay_and_seeds_frozen_on": "2026-09-25",
         "seeds_are_not_configurations": true,
         "dagger_rounds": 2,
         "dagger_round_0_memory_source": "ELU-P",
@@ -95,7 +117,7 @@
         "dagger_round_0_memory_config": "arms.ELU-P.rollout_config",
         "dagger_round_0_uses_the_registered_rollout_config": true
       },
-      "plain_language_zh": "VSMT-lean 的配置只有 τ_r 一个维度，网络配方按 D-224 冻结：AdamW、学习率 1e-3、20 轮、按 validation loss 早停、5 个 seed、两轮 DAgger 且主表用第 1 轮；weight decay 与具体 seed 值待冻结（METHOD 提议 1e-4 与 7/19/31/43/59）。seed 不算配置。 v2：第 0 轮 DAgger 的记忆轨迹由 ELU-P 在预登记的 rollout_config 那一格上产生，S2-05 与 S3-03 用同一格，与 validation 选参无关（裁决 X4）。"
+      "plain_language_zh": "VSMT-lean 的配置只有 τ_r 一个维度，网络配方按 D-224 冻结：AdamW、学习率 1e-3、20 轮、按 validation loss 早停、5 个 seed、两轮 DAgger 且主表用第 1 轮；weight decay 与具体 seed 值待冻结（METHOD 提议 1e-4 与 7/19/31/43/59）。seed 不算配置。 v2：第 0 轮 DAgger 的记忆轨迹由 ELU-P 在预登记的 rollout_config 那一格上产生，S2-05 与 S3-03 用同一格，与 validation 选参无关（裁决 X4）。裁决 68（2026-09-25）冻结 weight decay 1e-4 与 seed 7/19/31/43/59（METHOD 提议值），τ_r 网格 0.3～0.9 步 0.1。"
     },
     "TAF": {
       "kind": "rule",
@@ -114,11 +136,20 @@
       "reactivates_retracted": false,
       "grid": {
         "theta_a": {
-          "values": null,
+          "values": [
+            0.6,
+            0.7,
+            0.8
+          ],
           "range": "[-1,1]"
         },
         "d_a": {
-          "values": null,
+          "values": [
+            null,
+            0.5,
+            1.0,
+            2.0
+          ],
           "range": "(0,inf) or null",
           "must_include_none_meaning_no_gate": true
         }
@@ -150,29 +181,43 @@
       "fitted_on": "train split only",
       "grid": {
         "theta_a": {
-          "values": null,
+          "values": [
+            0.7
+          ],
           "range": "[-1,1]"
         },
         "d_a": {
-          "values": null,
+          "values": [
+            null,
+            1.0
+          ],
           "range": "(0,inf) or null",
           "must_include_none_meaning_no_gate": true
         },
         "free_space_weight": {
-          "values": null,
+          "values": [
+            0.5,
+            1.0,
+            2.0
+          ],
           "range": "[0,inf)"
         },
         "retract_threshold": {
-          "values": null,
+          "values": [
+            0.0,
+            -1.0
+          ],
           "range": "(-inf,inf)"
         }
       },
-      "plain_language_zh": "ELU-P 回答“按概率慢慢忘”够不够。初始 log-odds、持续性衰减与匹配增益只在 train 上拟合，不进网格；网格只有门参数、自由空间权重和撤回门。 v2 登记了 rollout_config（第 0 轮 DAgger 与 HeuristicLabel 标签的固定一格，须是本网格成员且 d_a=None）和三个拟合量的估计程序（裁决 X4）。",
+      "plain_language_zh": "ELU-P 回答“按概率慢慢忘”够不够。初始 log-odds、持续性衰减与匹配增益只在 train 上拟合，不进网格；网格只有门参数、自由空间权重和撤回门。 v2 登记了 rollout_config（第 0 轮 DAgger 与 HeuristicLabel 标签的固定一格，须是本网格成员且 d_a=None）和三个拟合量的估计程序（裁决 X4）。裁决 68（2026-09-25）冻结网格 theta_a {0.7}×d_a {None, 1.0}×free_space_weight {0.5, 1.0, 2.0}×retract_threshold {0.0, −1.0} 与 rollout_config (0.7, 1.0, 0.0)：校准趟 present 候选的自由空间覆盖基线约 0.65，权重与门括住 2～10 个合格未匹配帧后撤回。",
       "rollout_config": {
-        "theta_a": null,
-        "free_space_weight": null,
-        "retract_threshold": null
+        "theta_a": 0.7,
+        "free_space_weight": 1.0,
+        "retract_threshold": 0.0
       },
+      "rollout_config_frozen_by": "D-224-S1 ruling 68",
+      "rollout_config_frozen_on": "2026-09-25",
       "rollout_config_is_a_grid_member_with_no_distance_gate": true,
       "rollout_config_independent_of_validation_selection": true,
       "fitting_procedure": {
@@ -206,20 +251,32 @@
       "rendering_is_the_shared_frontend_free_space_test": true,
       "grid": {
         "theta_a": {
-          "values": null,
+          "values": [
+            0.7
+          ],
           "range": "[-1,1]"
         },
         "d_a": {
-          "values": null,
+          "values": [
+            null,
+            1.0
+          ],
           "range": "(0,inf) or null",
           "must_include_none_meaning_no_gate": true
         },
         "rho_rac": {
-          "values": null,
+          "values": [
+            0.7,
+            0.85
+          ],
           "range": "(0,1]"
         },
         "n_rac": {
-          "values": null,
+          "values": [
+            2,
+            3,
+            5
+          ],
           "range": "integer >= 1"
         }
       },
@@ -242,7 +299,13 @@
       "reactivates_retracted": false,
       "grid": {
         "d_low": {
-          "values": null,
+          "values": [
+            null,
+            0.25,
+            0.5,
+            1.0,
+            2.0
+          ],
           "range": "(0,inf) or null",
           "must_include_none_meaning_no_gate": true
         }
@@ -272,7 +335,15 @@
       "reactivates_retracted": false,
       "grid": {
         "tau_r": {
-          "values": null,
+          "values": [
+            0.3,
+            0.4,
+            0.5,
+            0.6,
+            0.7,
+            0.8,
+            0.9
+          ],
           "range": "(0,1)"
         }
       },
@@ -298,11 +369,20 @@
       "reactivates_retracted": true,
       "grid": {
         "theta_b": {
-          "values": null,
+          "values": [
+            0.6,
+            0.7,
+            0.8
+          ],
           "range": "[-1,1]"
         },
         "rho_h": {
-          "values": null,
+          "values": [
+            0.6,
+            0.7,
+            0.8,
+            0.9
+          ],
           "range": "(0,1]"
         }
       },
@@ -325,7 +405,15 @@
       "reactivates_retracted": true,
       "grid": {
         "tau_r": {
-          "values": null,
+          "values": [
+            0.3,
+            0.4,
+            0.5,
+            0.6,
+            0.7,
+            0.8,
+            0.9
+          ],
           "range": "(0,1)"
         }
       },
@@ -389,7 +477,15 @@
     "reactivates_retracted": true,
     "grid": {
       "tau_r": {
-        "values": null,
+        "values": [
+          0.3,
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.9
+        ],
         "range": "(0,1)"
       }
     },
@@ -397,6 +493,8 @@
   },
   "budget": {
     "max_full_configs_per_method": 12,
+    "grids_frozen_by": "D-224-S1 ruling 68",
+    "grids_frozen_on": "2026-09-25",
     "grids_preregistered_before_any_run": true,
     "every_rule_arm_grid_includes_a_no_gate_option": true,
     "thresholds_selected_on_validation_only": true,
@@ -404,7 +502,7 @@
     "test_never_selects": true,
     "selection_metric": "node_f1",
     "selection_rule": "one configuration per method by node F1 on validation (D-224-SW ruling V); ties to the smallest configuration index; main-gate metrics never select",
-    "plain_language_zh": "每方法至多 12 个完整配置，网格在任何运行前预登记，参数只在 validation 上选，不抄论文在别的数据集上的数值。每个规则臂的距离门网格必须含 null（无门）。选配置的指标是 validation 上的节点 F1（裁决 V）：它是 Dyn-THOR 的主指标且不是主门指标，避免朝主门选参。"
+    "plain_language_zh": "每方法至多 12 个完整配置，网格在任何运行前预登记，参数只在 validation 上选，不抄论文在别的数据集上的数值。每个规则臂的距离门网格必须含 null（无门）。选配置的指标是 validation 上的节点 F1（裁决 V）：它是 Dyn-THOR 的主指标且不是主门指标，避免朝主门选参。裁决 68（2026-09-25）按 39 条校准分位数预登记全部网格：TAF 12、ELU-P 12、RAC 12、LOW 5、学习臂 τ_r 7、HandCost 12、AssocOnly 0；同物体余弦 ≥0.6/0.7/0.8 为 90.9/75.6/43.4%，异物体 49.2/32.4/15.6%，交叉区在 0.7 附近；距离门覆盖同物体 ≤0.5/1/2 m 的 35.5/46.3/65.3%；自由空间覆盖在当前几何规则下不区分在场与消失（present p50 0.667、gone 0.640），RAC／ELU-P 的网格只能括住基线。"
   },
   "not_in_this_stage": [
     "arm_runner",
@@ -423,14 +521,9 @@
     "arms.VSMT-lean.training.main_table_round"
   ],
   "policy_values_without_defaults": [
-    "arms.VSMT-lean.training.weight_decay",
-    "arms.VSMT-lean.training.seeds",
     "arms.ELU-P.fitted.initial_log_odds",
     "arms.ELU-P.fitted.persistence_log_decay_per_tick",
-    "arms.ELU-P.fitted.match_gain",
-    "arms.ELU-P.rollout_config.theta_a",
-    "arms.ELU-P.rollout_config.free_space_weight",
-    "arms.ELU-P.rollout_config.retract_threshold"
+    "arms.ELU-P.fitted.match_gain"
   ],
   "user_rulings": {
     "decision_id": "D-224-SW",
@@ -440,7 +533,8 @@
     "V": "one configuration per method is selected on validation by node F1; main-gate metrics never select",
     "W": "should_be_visible_min_ratio stays a shared null value registered in S0-05",
     "plain_language_zh": "五项口径由用户于 2026-09-20 以 D-224-SW 批准，全部按 LOG-218 的推荐口径执行；本合同的臂定义、网格参数名与常量即其机器形式。",
-    "ruling_67": "D-224-S1 裁决 67（2026-09-24 批准，原话「S2-05 审过；裁决 67 八个值全按推荐。」）：shared.should_be_visible_min_ratio=0.5，绑定常量 SHOULD_BE_VISIBLE_MIN_RATIO，登记进跨合同台账；其余八个 null 值（weight_decay、seeds、ELU-P 三个拟合量与 rollout_config 三值）归裁决 68 与拟合趟。"
+    "ruling_67": "D-224-S1 裁决 67（2026-09-24 批准，原话「S2-05 审过；裁决 67 八个值全按推荐。」）：shared.should_be_visible_min_ratio=0.5，绑定常量 SHOULD_BE_VISIBLE_MIN_RATIO，登记进跨合同台账；其余八个 null 值（weight_decay、seeds、ELU-P 三个拟合量与 rollout_config 三值）归裁决 68 与拟合趟。",
+    "ruling_68": "D-224-S1 裁决 68（2026-09-25 批准，原话「裁决 68 全按推荐」）：各臂网格（TAF theta_a {0.6,0.7,0.8}×d_a {None,0.5,1,2}；ELU-P theta_a {0.7}×d_a {None,1}×free_space_weight {{0.5,1,2}}×retract_threshold {{0,−1}}；RAC theta_a {{0.7}}×d_a {{None,1}}×rho_rac {{0.7,0.85}}×n_rac {{2,3,5}}；LOW d_low {{None,0.25,0.5,1,2}}；VSMT-lean／NoVersion／HeuristicLabel／VSMT-lean-ctx tau_r 0.3～0.9 步 0.1；HandCost theta_b {{0.6,0.7,0.8}}×rho_h {{0.6,0.7,0.8,0.9}}；AssocOnly 空）绑定 FROZEN_GRIDS；rollout_config (0.7, 1.0, 0.0) 绑定 ROLLOUT_CONFIG；weight_decay 1e-4、seeds [7,19,31,43,59] 绑定 WEIGHT_DECAY／SEEDS；shared.should_be_visible_min_ratio 0.5→1/64（裁决 67 值进 SUPERSEDED_VALUES）绑定 SHOULD_BE_VISIBLE_MIN_RATIO；三个拟合量仍为 null，由 elu_p_fit 趟产出后直接登记（裁决 68 (10) 预授权）。网格与取代记录进入规则摘要，S0-05 重钉。"
   },
   "continue_gate": {
     "every_method_grid_at_most_twelve_and_preregistered": true,

@@ -565,8 +565,9 @@ class TestMachineContract(unittest.TestCase):
 
     def test_policy_values_must_still_be_null(self) -> None:
         # nine at v2 (six v1 values plus the three rollout_config values, D-224-X X4); the shared
-        # should-be-visible minimum was frozen by ruling 67 (2026-09-24)
-        self.assertEqual(len(NULL_POLICY_PATHS), 8)
+        # should-be-visible minimum was frozen by ruling 67 (2026-09-24); ruling 68 (2026-09-25) froze the
+        # rollout_config, weight_decay and seeds, leaving the three ELU-P fitted quantities for the fit pass
+        self.assertEqual(len(NULL_POLICY_PATHS), 3)
         for path in NULL_POLICY_PATHS:
             broken = self._fresh()
             self._set(broken, path, 0.5)
@@ -574,13 +575,20 @@ class TestMachineContract(unittest.TestCase):
                 validate_arms_contract(broken)
             self.assertIn("must_be_null_before_freeze", str(caught.exception))
 
-    def test_the_ruling_67_value_is_bound(self) -> None:
-        self.assertEqual(FROZEN_VALUES_BY_RULING[0][:2], ("shared.should_be_visible_min_ratio", 0.5))
-        broken = self._fresh()
-        self._set(broken, "shared.should_be_visible_min_ratio", 0.25)
-        with self.assertRaises(LeanArmsError) as caught:
-            validate_arms_contract(broken)
-        self.assertEqual(str(caught.exception), "contract_frozen_value_mismatch:shared.should_be_visible_min_ratio")
+    def test_the_ruling_67_and_68_values_are_bound(self) -> None:
+        from vsmt.lean_arms import SEEDS, SHOULD_BE_VISIBLE_MIN_RATIO, WEIGHT_DECAY
+
+        self.assertEqual(FROZEN_VALUES_BY_RULING[0][:2], ("shared.should_be_visible_min_ratio", 1.0 / 64.0))
+        self.assertEqual((SHOULD_BE_VISIBLE_MIN_RATIO, WEIGHT_DECAY, SEEDS), (0.015625, 1e-4, (7, 19, 31, 43, 59)))
+        contract = self._fresh()
+        self.assertEqual(contract["shared"]["should_be_visible_min_ratio_superseded"]["value"], 0.5)  # ruling 67, superseded by 68
+        for path, wrong in (("shared.should_be_visible_min_ratio", 0.25), ("arms.VSMT-lean.training.weight_decay", 1e-3),
+                            ("arms.VSMT-lean.training.seeds", [7, 19, 31, 43])):
+            broken = self._fresh()
+            self._set(broken, path, wrong)
+            with self.assertRaises(LeanArmsError) as caught:
+                validate_arms_contract(broken)
+            self.assertEqual(str(caught.exception), f"contract_frozen_value_mismatch:{path}")
 
     def test_vocabulary_and_grid_parameter_changes_are_rejected(self) -> None:
         broken = self._fresh()
@@ -599,18 +607,36 @@ class TestMachineContract(unittest.TestCase):
             validate_arms_contract(broken)
         self.assertEqual(str(caught.exception), "contract_rule_arm_gradient_mismatch:LOW")
 
-    def test_a_frozen_grid_is_checked_for_budget_and_the_no_gate_option(self) -> None:
-        frozen = self._fresh()
-        frozen["arms"]["TAF"]["grid"]["theta_a"]["values"] = [0.5, 0.6, 0.7]
-        frozen["arms"]["TAF"]["grid"]["d_a"]["values"] = [1.0, 2.0, None]
-        validate_arms_contract(frozen)
-        frozen["arms"]["TAF"]["grid"]["d_a"]["values"] = [1.0, 2.0]
+    def test_the_frozen_grids_are_bound_within_budget_with_a_no_gate_member(self) -> None:
+        """D-224-S1 ruling 68 (1): the contract carries exactly the registered grids."""
+
+        from vsmt.lean_arms import FROZEN_GRIDS, NO_GATE_PARAMETER
+
+        contract = self._fresh()
+        for arm, grid in FROZEN_GRIDS.items():
+            section = contract["arms"].get(arm) or contract["ablations"].get(arm) or contract["optional_arm"]
+            with self.subTest(arm=arm):
+                self.assertEqual({name: spec["values"] for name, spec in section["grid"].items()}, grid)
+                if grid:
+                    self.assertLessEqual(assert_config_budget(enumerate_configs(arm, grid)), MAX_CONFIGS_PER_METHOD)
+                if arm in NO_GATE_PARAMETER:
+                    assert_no_gate_option(arm, grid)
+        self.assertEqual(len(enumerate_configs("TAF", FROZEN_GRIDS["TAF"])), 12)
+        self.assertEqual(len(enumerate_configs("VSMT-lean", FROZEN_GRIDS["VSMT-lean"])), 7)
+        self.assertEqual(len(enumerate_configs("LOW", FROZEN_GRIDS["LOW"])), 5)
+        broken = self._fresh()
+        broken["arms"]["TAF"]["grid"]["theta_a"]["values"] = [0.5, 0.6, 0.7]
         with self.assertRaises(LeanArmsError) as caught:
-            validate_arms_contract(frozen)
+            validate_arms_contract(broken)
+        self.assertEqual(str(caught.exception), "contract_grid_values_mismatch:TAF")
+        # the budget and the no-gate rule are checked before the binding, through the same functions
+        broken["arms"]["TAF"]["grid"]["d_a"]["values"] = [1.0, 2.0]
+        with self.assertRaises(LeanArmsError) as caught:
+            validate_arms_contract(broken)
         self.assertEqual(str(caught.exception), "grid_lacks_no_gate_option:TAF.d_a")
-        frozen["arms"]["TAF"]["grid"]["d_a"]["values"] = [1.0, 2.0, 3.0, 4.0, None]
+        broken["arms"]["TAF"]["grid"]["d_a"]["values"] = [1.0, 2.0, 3.0, 4.0, None]
         with self.assertRaises(LeanArmsError) as caught:
-            validate_arms_contract(frozen)
+            validate_arms_contract(broken)
         self.assertEqual(str(caught.exception), "config_budget_exceeded:15>12")
 
     def test_the_registered_rollout_config_must_be_a_no_gate_grid_member(self) -> None:
@@ -630,21 +656,21 @@ class TestMachineContract(unittest.TestCase):
         with self.assertRaises(LeanArmsError) as caught:
             assert_rollout_config({"theta_a": 0.7, "d_a": 1.0, "free_space_weight": 0.5, "retract_threshold": -2.0}, grid)
         self.assertEqual(str(caught.exception), "rollout_config_parameters_mismatch")
-        # Inside the contract: a frozen grid plus a registered config that is not a member is rejected.
+        # Inside the contract (ruling 68 (2)): the registered rollout_config is a no-gate member of the
+        # frozen ELU-P grid and equals the bound ROLLOUT_CONFIG; a non-member and another member are refused.
+        from vsmt.lean_arms import FROZEN_GRIDS, ROLLOUT_CONFIG
+
+        self.assertEqual(contract["arms"]["ELU-P"]["rollout_config"], ROLLOUT_CONFIG)
+        self.assertEqual(assert_rollout_config(ROLLOUT_CONFIG, FROZEN_GRIDS["ELU-P"]), {**ROLLOUT_CONFIG, "d_a": None})
         frozen = self._fresh()
-        for name, values in grid.items():
-            frozen["arms"]["ELU-P"]["grid"][name]["values"] = values
-        validate_arms_contract(frozen)  # grid frozen, rollout still null: allowed
-        frozen["arms"]["ELU-P"]["rollout_config"] = {"theta_a": 0.6, "free_space_weight": 0.5, "retract_threshold": -2.0}
+        frozen["arms"]["ELU-P"]["rollout_config"] = {"theta_a": 0.6, "free_space_weight": 1.0, "retract_threshold": 0.0}
         with self.assertRaises(LeanArmsError) as caught:
             validate_arms_contract(frozen)
         self.assertEqual(str(caught.exception), "rollout_config_not_a_grid_member")
-        # A member is accepted by the membership check and then stopped by the
-        # still-in-force null rule: filling it is a freeze and needs a new version.
-        frozen["arms"]["ELU-P"]["rollout_config"]["theta_a"] = 0.7
+        frozen["arms"]["ELU-P"]["rollout_config"] = {"theta_a": 0.7, "free_space_weight": 0.5, "retract_threshold": 0.0}
         with self.assertRaises(LeanArmsError) as caught:
             validate_arms_contract(frozen)
-        self.assertIn("rollout_config_theta_a_must_be_null_before_freeze", str(caught.exception))
+        self.assertEqual(str(caught.exception), "contract_rollout_config_mismatch")
         broken = self._fresh()
         broken["ablations"]["HeuristicLabel"]["label_source_config"] = "arms.TAF.grid"
         with self.assertRaises(LeanArmsError) as caught:
