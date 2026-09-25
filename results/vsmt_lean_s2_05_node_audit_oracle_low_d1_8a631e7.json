@@ -1,0 +1,687 @@
+{
+ "schema_version": "vsmt-s2-05-node-audit-merged-v1",
+ "stage": "S2-05 node audit (read-only, pooled)",
+ "arm": "LOW",
+ "output_root": "/root/autodl-tmp/vsmt_private/lean-s2-05-node-audit-oracle-8a631e7/low-d1",
+ "code_commits": [
+  "8a631e7b90baffa981ddd5a2e0355dd022befb8c"
+ ],
+ "episodes": 4,
+ "pooled_rules": {
+  "iou_0.3_current": {
+   "matched": 5290,
+   "predicted": 11674,
+   "truth": 10890,
+   "precision": 0.45314373822168924,
+   "recall": 0.4857667584940312,
+   "f1": 0.4688884949477043
+  },
+  "iou_0.1": {
+   "matched": 6594,
+   "predicted": 11674,
+   "truth": 10890,
+   "precision": 0.5648449545999658,
+   "recall": 0.6055096418732783,
+   "f1": 0.5844708385038114
+  },
+  "iou_positive": {
+   "matched": 8652,
+   "predicted": 11674,
+   "truth": 10890,
+   "precision": 0.7411341442521844,
+   "recall": 0.7944903581267218,
+   "f1": 0.7668853040241093
+  },
+  "centroid_inside_truth_box_padded_0.25m": {
+   "matched": 9548,
+   "predicted": 11674,
+   "truth": 10890,
+   "precision": 0.8178859002912455,
+   "recall": 0.8767676767676768,
+   "f1": 0.8463038468356675
+  },
+  "centroid_within_0.5m": {
+   "matched": 8776,
+   "predicted": 11674,
+   "truth": 10890,
+   "precision": 0.7517560390611615,
+   "recall": 0.8058769513314968,
+   "f1": 0.777876263073923
+  },
+  "oracle_identity_groups_iou_0.3": {
+   "matched": 5168,
+   "predicted": 9324,
+   "truth": 10890,
+   "precision": 0.5542685542685543,
+   "recall": 0.47456382001836545,
+   "f1": 0.5113287820322548
+  },
+  "oracle_identity_groups_centroid_within_0.5m": {
+   "matched": 8250,
+   "predicted": 9324,
+   "truth": 10890,
+   "precision": 0.8848133848133848,
+   "recall": 0.7575757575757576,
+   "f1": 0.8162659542891065
+  }
+ },
+ "pooled_entity_categories": {
+  "matched": 5290,
+  "identity_ambiguous_unmatched": 335,
+  "own_object_absent_stale": 228,
+  "own_object_far_stale_location": 2236,
+  "own_object_near_box_too_small": 3330,
+  "own_object_taken_by_another_entity": 255
+ },
+ "pooled_truth_categories": {
+  "matched": 5290,
+  "resolved_entity_near_but_box_too_small": 2797,
+  "resolved_entity_far": 856,
+  "only_ambiguous_entity_near": 390,
+  "no_entity_fragmented_before": 1557,
+  "no_entity_never_fragmented": 0
+ },
+ "pooled_truth_by_group": {
+  "other": {
+   "matched": 929,
+   "resolved_entity_near_but_box_too_small": 1317,
+   "resolved_entity_far": 61,
+   "only_ambiguous_entity_near": 0,
+   "no_entity_fragmented_before": 12,
+   "no_entity_never_fragmented": 0
+  },
+  "pickupable": {
+   "matched": 1627,
+   "resolved_entity_near_but_box_too_small": 527,
+   "resolved_entity_far": 236,
+   "only_ambiguous_entity_near": 378,
+   "no_entity_fragmented_before": 1341,
+   "no_entity_never_fragmented": 0
+  },
+  "receptacle": {
+   "matched": 2734,
+   "resolved_entity_near_but_box_too_small": 953,
+   "resolved_entity_far": 559,
+   "only_ambiguous_entity_near": 12,
+   "no_entity_fragmented_before": 204,
+   "no_entity_never_fragmented": 0
+  }
+ },
+ "pooled_truth_by_type": {
+  "Chair": {
+   "matched": 742,
+   "resolved_entity_near_but_box_too_small": 288,
+   "resolved_entity_far": 0,
+   "only_ambiguous_entity_near": 0,
+   "no_entity_fragmented_before": 1,
+   "no_entity_never_fragmented": 0
+  },
+  "Painting": {
+   "matched": 316,
+   "resolved_entity_near_but_box_too_small": 704,
+   "resolved_entity_far": 0,
+   "only_ambiguous_entity_near": 0,
+   "no_entity_fragmented_before": 0,
+   "no_entity_never_fragmented": 0
+  },
+  "Tomato": {
+   "matched": 201,
+   "resolved_entity_near_but_box_too_small": 57,
+   "resolved_entity_far": 0,
+   "only_ambiguous_entity_near": 75,
+   "no_entity_fragmented_before": 302,
+   "no_entity_never_fragmented": 0
+  },
+  "TVStand": {
+   "matched": 284,
+   "resolved_entity_near_but_box_too_small": 70,
+   "resolved_entity_far": 110,
+   "only_ambiguous_entity_near": 9,
+   "no_entity_fragmented_before": 151,
+   "no_entity_never_fragmented": 0
+  },
+  "DiningTable": {
+   "matched": 407,
+   "resolved_entity_near_but_box_too_small": 0,
+   "resolved_entity_far": 66,
+   "only_ambiguous_entity_near": 0,
+   "no_entity_fragmented_before": 0,
+   "no_entity_never_fragmented": 0
+  },
+  "Television": {
+   "matched": 219,
+   "resolved_entity_near_but_box_too_small": 237,
+   "resolved_entity_far": 12,
+   "only_ambiguous_entity_near": 0,
+   "no_entity_fragmented_before": 0,
+   "no_entity_never_fragmented": 0
+  },
+  "Book": {
+   "matched": 304,
+   "resolved_entity_near_but_box_too_small": 22,
+   "resolved_entity_far": 0,
+   "only_ambiguous_entity_near": 42,
+   "no_entity_fragmented_before": 76,
+   "no_entity_never_fragmented": 0
+  },
+  "Bread": {
+   "matched": 320,
+   "resolved_entity_near_but_box_too_small": 16,
+   "resolved_entity_far": 0,
+   "only_ambiguous_entity_near": 0,
+   "no_entity_fragmented_before": 58,
+   "no_entity_never_fragmented": 0
+  },
+  "Fridge": {
+   "matched": 216,
+   "resolved_entity_near_but_box_too_small": 22,
+   "resolved_entity_far": 149,
+   "only_ambiguous_entity_near": 0,
+   "no_entity_fragmented_before": 0,
+   "no_entity_never_fragmented": 0
+  },
+  "CounterTop": {
+   "matched": 250,
+   "resolved_entity_near_but_box_too_small": 57,
+   "resolved_entity_far": 69,
+   "only_ambiguous_entity_near": 0,
+   "no_entity_fragmented_before": 0,
+   "no_entity_never_fragmented": 0
+  },
+  "GarbageCan": {
+   "matched": 190,
+   "resolved_entity_near_but_box_too_small": 124,
+   "resolved_entity_far": 0,
+   "only_ambiguous_entity_near": 0,
+   "no_entity_fragmented_before": 16,
+   "no_entity_never_fragmented": 0
+  },
+  "HousePlant": {
+   "matched": 135,
+   "resolved_entity_near_but_box_too_small": 181,
+   "resolved_entity_far": 0,
+   "only_ambiguous_entity_near": 0,
+   "no_entity_fragmented_before": 12,
+   "no_entity_never_fragmented": 0
+  },
+  "Cup": {
+   "matched": 43,
+   "resolved_entity_near_but_box_too_small": 2,
+   "resolved_entity_far": 0,
+   "only_ambiguous_entity_near": 81,
+   "no_entity_fragmented_before": 171,
+   "no_entity_never_fragmented": 0
+  },
+  "Bottle": {
+   "matched": 0,
+   "resolved_entity_near_but_box_too_small": 292,
+   "resolved_entity_far": 0,
+   "only_ambiguous_entity_near": 1,
+   "no_entity_fragmented_before": 0,
+   "no_entity_never_fragmented": 0
+  },
+  "Toaster": {
+   "matched": 136,
+   "resolved_entity_near_but_box_too_small": 114,
+   "resolved_entity_far": 8,
+   "only_ambiguous_entity_near": 0,
+   "no_entity_fragmented_before": 0,
+   "no_entity_never_fragmented": 0
+  },
+  "GarbageBag": {
+   "matched": 152,
+   "resolved_entity_near_but_box_too_small": 103,
+   "resolved_entity_far": 0,
+   "only_ambiguous_entity_near": 0,
+   "no_entity_fragmented_before": 0,
+   "no_entity_never_fragmented": 0
+  },
+  "Plate": {
+   "matched": 33,
+   "resolved_entity_near_but_box_too_small": 36,
+   "resolved_entity_far": 112,
+   "only_ambiguous_entity_near": 1,
+   "no_entity_fragmented_before": 73,
+   "no_entity_never_fragmented": 0
+  },
+  "Bowl": {
+   "matched": 70,
+   "resolved_entity_near_but_box_too_small": 0,
+   "resolved_entity_far": 0,
+   "only_ambiguous_entity_near": 28,
+   "no_entity_fragmented_before": 153,
+   "no_entity_never_fragmented": 0
+  },
+  "Sink": {
+   "matched": 95,
+   "resolved_entity_near_but_box_too_small": 63,
+   "resolved_entity_far": 49,
+   "only_ambiguous_entity_near": 3,
+   "no_entity_fragmented_before": 36,
+   "no_entity_never_fragmented": 0
+  },
+  "Cart": {
+   "matched": 156,
+   "resolved_entity_near_but_box_too_small": 43,
+   "resolved_entity_far": 14,
+   "only_ambiguous_entity_near": 0,
+   "no_entity_fragmented_before": 0,
+   "no_entity_never_fragmented": 0
+  },
+  "CellPhone": {
+   "matched": 70,
+   "resolved_entity_near_but_box_too_small": 0,
+   "resolved_entity_far": 0,
+   "only_ambiguous_entity_near": 1,
+   "no_entity_fragmented_before": 141,
+   "no_entity_never_fragmented": 0
+  },
+  "Sofa": {
+   "matched": 97,
+   "resolved_entity_near_but_box_too_small": 24,
+   "resolved_entity_far": 87,
+   "only_ambiguous_entity_near": 0,
+   "no_entity_fragmented_before": 0,
+   "no_entity_never_fragmented": 0
+  },
+  "Mug": {
+   "matched": 38,
+   "resolved_entity_near_but_box_too_small": 0,
+   "resolved_entity_far": 0,
+   "only_ambiguous_entity_near": 11,
+   "no_entity_fragmented_before": 156,
+   "no_entity_never_fragmented": 0
+  },
+  "Statue": {
+   "matched": 135,
+   "resolved_entity_near_but_box_too_small": 0,
+   "resolved_entity_far": 2,
+   "only_ambiguous_entity_near": 0,
+   "no_entity_fragmented_before": 66,
+   "no_entity_never_fragmented": 0
+  },
+  "DogBed": {
+   "matched": 100,
+   "resolved_entity_near_but_box_too_small": 45,
+   "resolved_entity_far": 55,
+   "only_ambiguous_entity_near": 0,
+   "no_entity_fragmented_before": 0,
+   "no_entity_never_fragmented": 0
+  },
+  "Vase": {
+   "matched": 0,
+   "resolved_entity_near_but_box_too_small": 52,
+   "resolved_entity_far": 116,
+   "only_ambiguous_entity_near": 0,
+   "no_entity_fragmented_before": 0,
+   "no_entity_never_fragmented": 0
+  },
+  "SoapBottle": {
+   "matched": 20,
+   "resolved_entity_near_but_box_too_small": 4,
+   "resolved_entity_far": 6,
+   "only_ambiguous_entity_near": 37,
+   "no_entity_fragmented_before": 84,
+   "no_entity_never_fragmented": 0
+  },
+  "Toilet": {
+   "matched": 116,
+   "resolved_entity_near_but_box_too_small": 27,
+   "resolved_entity_far": 0,
+   "only_ambiguous_entity_near": 0,
+   "no_entity_fragmented_before": 0,
+   "no_entity_never_fragmented": 0
+  },
+  "ToiletPaper": {
+   "matched": 76,
+   "resolved_entity_near_but_box_too_small": 0,
+   "resolved_entity_far": 0,
+   "only_ambiguous_entity_near": 0,
+   "no_entity_fragmented_before": 48,
+   "no_entity_never_fragmented": 0
+  },
+  "Stool": {
+   "matched": 36,
+   "resolved_entity_near_but_box_too_small": 76,
+   "resolved_entity_far": 1,
+   "only_ambiguous_entity_near": 0,
+   "no_entity_fragmented_before": 0,
+   "no_entity_never_fragmented": 0
+  },
+  "Faucet": {
+   "matched": 16,
+   "resolved_entity_near_but_box_too_small": 92,
+   "resolved_entity_far": 0,
+   "only_ambiguous_entity_near": 0,
+   "no_entity_fragmented_before": 0,
+   "no_entity_never_fragmented": 0
+  },
+  "SprayBottle": {
+   "matched": 73,
+   "resolved_entity_near_but_box_too_small": 0,
+   "resolved_entity_far": 0,
+   "only_ambiguous_entity_near": 9,
+   "no_entity_fragmented_before": 6,
+   "no_entity_never_fragmented": 0
+  },
+  "Spatula": {
+   "matched": 5,
+   "resolved_entity_near_but_box_too_small": 0,
+   "resolved_entity_far": 0,
+   "only_ambiguous_entity_near": 75,
+   "no_entity_fragmented_before": 7,
+   "no_entity_never_fragmented": 0
+  },
+  "Ladle": {
+   "matched": 84,
+   "resolved_entity_near_but_box_too_small": 0,
+   "resolved_entity_far": 0,
+   "only_ambiguous_entity_near": 0,
+   "no_entity_fragmented_before": 0,
+   "no_entity_never_fragmented": 0
+  },
+  "Pot": {
+   "matched": 53,
+   "resolved_entity_near_but_box_too_small": 0,
+   "resolved_entity_far": 0,
+   "only_ambiguous_entity_near": 0,
+   "no_entity_fragmented_before": 0,
+   "no_entity_never_fragmented": 0
+  },
+  "WineBottle": {
+   "matched": 0,
+   "resolved_entity_near_but_box_too_small": 46,
+   "resolved_entity_far": 0,
+   "only_ambiguous_entity_near": 0,
+   "no_entity_fragmented_before": 0,
+   "no_entity_never_fragmented": 0
+  },
+  "Pan": {
+   "matched": 42,
+   "resolved_entity_near_but_box_too_small": 0,
+   "resolved_entity_far": 0,
+   "only_ambiguous_entity_near": 0,
+   "no_entity_fragmented_before": 0,
+   "no_entity_never_fragmented": 0
+  },
+  "Candle": {
+   "matched": 41,
+   "resolved_entity_near_but_box_too_small": 0,
+   "resolved_entity_far": 0,
+   "only_ambiguous_entity_near": 0,
+   "no_entity_fragmented_before": 0,
+   "no_entity_never_fragmented": 0
+  },
+  "Potato": {
+   "matched": 19,
+   "resolved_entity_near_but_box_too_small": 0,
+   "resolved_entity_far": 0,
+   "only_ambiguous_entity_near": 17,
+   "no_entity_fragmented_before": 0,
+   "no_entity_never_fragmented": 0
+  }
+ },
+ "per_episode": [
+  {
+   "episode_id": "procthor10k-0.1.2-train-00702",
+   "frames": 126,
+   "config": {
+    "d_low": 1.0
+   },
+   "final_entities_by_state": {
+    "active": 52,
+    "dormant": 8,
+    "retracted": 0
+   },
+   "rules_f1": {
+    "iou_0.3_current": 0.4935289042277826,
+    "iou_0.1": 0.6194995685936152,
+    "iou_positive": 0.7998274374460743,
+    "centroid_inside_truth_box_padded_0.25m": 0.8084555651423642,
+    "centroid_within_0.5m": 0.805867126833477,
+    "oracle_identity_groups_iou_0.3": 0.5501123595505618,
+    "oracle_identity_groups_centroid_within_0.5m": 0.7865168539325842
+   },
+   "current": {
+    "matched": 572,
+    "predicted": 1204,
+    "truth": 1114,
+    "precision": 0.4750830564784053,
+    "recall": 0.5134649910233393,
+    "f1": 0.4935289042277826
+   },
+   "entity_categories": {
+    "matched": 572,
+    "identity_ambiguous_unmatched": 59,
+    "own_object_absent_stale": 126,
+    "own_object_far_stale_location": 147,
+    "own_object_near_box_too_small": 300,
+    "own_object_taken_by_another_entity": 0
+   },
+   "truth_categories": {
+    "matched": 572,
+    "resolved_entity_near_but_box_too_small": 300,
+    "resolved_entity_far": 56,
+    "only_ambiguous_entity_near": 160,
+    "no_entity_fragmented_before": 26,
+    "no_entity_never_fragmented": 0
+   },
+   "in_memory_entities_per_frame_mean": 43.84920634920635,
+   "own_object_iou_when_near": {
+    "count": 300,
+    "p10": 1.4050776890958538e-05,
+    "p25": 0.02921284027182088,
+    "p50": 0.03565963341835814,
+    "p75": 0.20751687084429324,
+    "p90": 0.2166063265585025,
+    "mean": 0.07785966428699281
+   },
+   "own_object_centroid_distance_m": {
+    "count": 447,
+    "p10": 0.1810640273175024,
+    "p25": 0.274423562801387,
+    "p50": 0.36810316699062484,
+    "p75": 0.843675543366976,
+    "p90": 1.753853538464899,
+    "mean": 0.6283600106343283
+   },
+   "audit_sha256": "4c02bb2a03989088f68f525910c2d406c5a3340fd7e18a4ce4abc00a3289b18d"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-01394",
+   "frames": 261,
+   "config": {
+    "d_low": 1.0
+   },
+   "final_entities_by_state": {
+    "active": 83,
+    "dormant": 7,
+    "retracted": 0
+   },
+   "rules_f1": {
+    "iou_0.3_current": 0.46354123753810667,
+    "iou_0.1": 0.5640603114443437,
+    "iou_positive": 0.7186289857460658,
+    "centroid_inside_truth_box_padded_0.25m": 0.8308478207135206,
+    "centroid_within_0.5m": 0.7896514789486693,
+    "oracle_identity_groups_iou_0.3": 0.5124238615488736,
+    "oracle_identity_groups_centroid_within_0.5m": 0.8196848109832736
+   },
+   "current": {
+    "matched": 2813,
+    "predicted": 6361,
+    "truth": 5776,
+    "precision": 0.4422260650841063,
+    "recall": 0.4870152354570637,
+    "f1": 0.46354123753810667
+   },
+   "entity_categories": {
+    "matched": 2813,
+    "identity_ambiguous_unmatched": 103,
+    "own_object_absent_stale": 0,
+    "own_object_far_stale_location": 1453,
+    "own_object_near_box_too_small": 1829,
+    "own_object_taken_by_another_entity": 163
+   },
+   "truth_categories": {
+    "matched": 2813,
+    "resolved_entity_near_but_box_too_small": 1370,
+    "resolved_entity_far": 443,
+    "only_ambiguous_entity_near": 172,
+    "no_entity_fragmented_before": 978,
+    "no_entity_never_fragmented": 0
+   },
+   "in_memory_entities_per_frame_mean": 65.52873563218391,
+   "own_object_iou_when_near": {
+    "count": 1829,
+    "p10": 0.0,
+    "p25": 0.030084913923959018,
+    "p50": 0.06389653049097466,
+    "p75": 0.13711242115448163,
+    "p90": 0.18636909893973055,
+    "mean": 0.08192694271878698
+   },
+   "own_object_centroid_distance_m": {
+    "count": 3445,
+    "p10": 0.171796963022757,
+    "p25": 0.2402136909143267,
+    "p50": 0.3798853224343635,
+    "p75": 1.01119919505977,
+    "p90": 1.576701463778008,
+    "mean": 0.7786974073123146
+   },
+   "audit_sha256": "9c7dc0a4642a53a7bb0d1da79a12f23385bb709b3cab0d1988e5513d9502c1fc"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-07367",
+   "frames": 145,
+   "config": {
+    "d_low": 1.0
+   },
+   "final_entities_by_state": {
+    "active": 45,
+    "dormant": 0,
+    "retracted": 0
+   },
+   "rules_f1": {
+    "iou_0.3_current": 0.39811320754716983,
+    "iou_0.1": 0.5849056603773585,
+    "iou_positive": 0.9150943396226415,
+    "centroid_inside_truth_box_padded_0.25m": 0.9150943396226415,
+    "centroid_within_0.5m": 0.9150943396226415,
+    "oracle_identity_groups_iou_0.3": 0.39811320754716983,
+    "oracle_identity_groups_centroid_within_0.5m": 0.9150943396226415
+   },
+   "current": {
+    "matched": 422,
+    "predicted": 970,
+    "truth": 1150,
+    "precision": 0.4350515463917526,
+    "recall": 0.36695652173913046,
+    "f1": 0.39811320754716983
+   },
+   "entity_categories": {
+    "matched": 422,
+    "identity_ambiguous_unmatched": 0,
+    "own_object_absent_stale": 0,
+    "own_object_far_stale_location": 54,
+    "own_object_near_box_too_small": 494,
+    "own_object_taken_by_another_entity": 0
+   },
+   "truth_categories": {
+    "matched": 422,
+    "resolved_entity_near_but_box_too_small": 505,
+    "resolved_entity_far": 49,
+    "only_ambiguous_entity_near": 6,
+    "no_entity_fragmented_before": 168,
+    "no_entity_never_fragmented": 0
+   },
+   "in_memory_entities_per_frame_mean": 34.04137931034483,
+   "own_object_iou_when_near": {
+    "count": 494,
+    "p10": 0.0019513049619463855,
+    "p25": 0.008711773664882905,
+    "p50": 0.029154568375471427,
+    "p75": 0.08395049528826982,
+    "p90": 0.18494386656134568,
+    "mean": 0.05906544435749021
+   },
+   "own_object_centroid_distance_m": {
+    "count": 548,
+    "p10": 0.07909717499391623,
+    "p25": 0.10073083814378422,
+    "p50": 0.27942596269735354,
+    "p75": 0.35827701048626626,
+    "p90": 0.49480270131974413,
+    "mean": 0.2724367333111687
+   },
+   "audit_sha256": "f271371af4025da12cfce5d158bec1aecd9c9e7b257741d92b44b6cc17bd30b7"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-09423",
+   "frames": 213,
+   "config": {
+    "d_low": 1.0
+   },
+   "final_entities_by_state": {
+    "active": 84,
+    "dormant": 3,
+    "retracted": 0
+   },
+   "rules_f1": {
+    "iou_0.3_current": 0.4952412756720655,
+    "iou_0.1": 0.6121222240774753,
+    "iou_positive": 0.7994656870930038,
+    "centroid_inside_truth_box_padded_0.25m": 0.8679245283018868,
+    "centroid_within_0.5m": 0.6946067790950076,
+    "oracle_identity_groups_iou_0.3": 0.5370973579442635,
+    "oracle_identity_groups_centroid_within_0.5m": 0.7839305103148752
+   },
+   "current": {
+    "matched": 1483,
+    "predicted": 3139,
+    "truth": 2850,
+    "precision": 0.4724434533290857,
+    "recall": 0.5203508771929825,
+    "f1": 0.4952412756720655
+   },
+   "entity_categories": {
+    "matched": 1483,
+    "identity_ambiguous_unmatched": 173,
+    "own_object_absent_stale": 102,
+    "own_object_far_stale_location": 582,
+    "own_object_near_box_too_small": 707,
+    "own_object_taken_by_another_entity": 92
+   },
+   "truth_categories": {
+    "matched": 1483,
+    "resolved_entity_near_but_box_too_small": 622,
+    "resolved_entity_far": 308,
+    "only_ambiguous_entity_near": 52,
+    "no_entity_fragmented_before": 385,
+    "no_entity_never_fragmented": 0
+   },
+   "in_memory_entities_per_frame_mean": 63.61971830985915,
+   "own_object_iou_when_near": {
+    "count": 707,
+    "p10": 0.00011786545669804974,
+    "p25": 0.0012430689296105133,
+    "p50": 0.013092263601592892,
+    "p75": 0.2235235339505767,
+    "p90": 0.2522771665190773,
+    "mean": 0.08207649256865962
+   },
+   "own_object_centroid_distance_m": {
+    "count": 1381,
+    "p10": 0.06058482746095714,
+    "p25": 0.32664187973946845,
+    "p50": 0.48760799769006535,
+    "p75": 0.7277569794374688,
+    "p90": 1.1395393045146158,
+    "mean": 0.5522519619791869
+   },
+   "audit_sha256": "eab78456d26e393e67b639456ca143994728bf3936025e16ac7e94c9b4a3bd75"
+  }
+ ],
+ "private_ids_exported": false
+}
