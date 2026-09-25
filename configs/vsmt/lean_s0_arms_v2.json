@@ -502,7 +502,7 @@
     "test_never_selects": true,
     "selection_metric": "node_f1",
     "selection_rule": "one configuration per method by node F1 on validation (D-224-SW ruling V); ties to the smallest configuration index; main-gate metrics never select",
-    "plain_language_zh": "每方法至多 12 个完整配置，网格在任何运行前预登记，参数只在 validation 上选，不抄论文在别的数据集上的数值。每个规则臂的距离门网格必须含 null（无门）。选配置的指标是 validation 上的节点 F1（裁决 V）：它是 Dyn-THOR 的主指标且不是主门指标，避免朝主门选参。裁决 68（2026-09-25）按 39 条校准分位数预登记全部网格：TAF 12、ELU-P 12、RAC 12、LOW 5、学习臂 τ_r 7、HandCost 12、AssocOnly 0；同物体余弦 ≥0.6/0.7/0.8 为 90.9/75.6/43.4%，异物体 49.2/32.4/15.6%，交叉区在 0.7 附近；距离门覆盖同物体 ≤0.5/1/2 m 的 35.5/46.3/65.3%；自由空间覆盖在当前几何规则下不区分在场与消失（present p50 0.667、gone 0.640），RAC／ELU-P 的网格只能括住基线。"
+    "plain_language_zh": "每方法至多 12 个完整配置，网格在任何运行前预登记，参数只在 validation 上选，不抄论文在别的数据集上的数值。每个规则臂的距离门网格必须含 null（无门）。选配置的指标是 validation 上的节点 F1（裁决 V）：它不是主门指标，避免朝主门选参；裁决 72 (B)（2026-09-25）起节点 F1 指 S0-04 node_prf1 的质心口径主列（质心 ≤ δ_moved），IoU 0.3 的 node_prf1_iou 只并列报告、不选参，与 Dyn-THOR 是同一匹配机制、不同重叠判定。裁决 68（2026-09-25）按 39 条校准分位数预登记全部网格：TAF 12、ELU-P 12、RAC 12、LOW 5、学习臂 τ_r 7、HandCost 12、AssocOnly 0；同物体余弦 ≥0.6/0.7/0.8 为 90.9/75.6/43.4%，异物体 49.2/32.4/15.6%，交叉区在 0.7 附近；距离门覆盖同物体 ≤0.5/1/2 m 的 35.5/46.3/65.3%；自由空间覆盖在当前几何规则下不区分在场与消失（present p50 0.667、gone 0.640），RAC／ELU-P 的网格只能括住基线。"
   },
   "not_in_this_stage": [
     "arm_runner",
@@ -534,7 +534,8 @@
     "W": "should_be_visible_min_ratio stays a shared null value registered in S0-05",
     "plain_language_zh": "五项口径由用户于 2026-09-20 以 D-224-SW 批准，全部按 LOG-218 的推荐口径执行；本合同的臂定义、网格参数名与常量即其机器形式。",
     "ruling_67": "D-224-S1 裁决 67（2026-09-24 批准，原话「S2-05 审过；裁决 67 八个值全按推荐。」）：shared.should_be_visible_min_ratio=0.5，绑定常量 SHOULD_BE_VISIBLE_MIN_RATIO，登记进跨合同台账；其余八个 null 值（weight_decay、seeds、ELU-P 三个拟合量与 rollout_config 三值）归裁决 68 与拟合趟。",
-    "ruling_68": "D-224-S1 裁决 68（2026-09-25 批准，原话「裁决 68 全按推荐」）：各臂网格（TAF theta_a {0.6,0.7,0.8}×d_a {None,0.5,1,2}；ELU-P theta_a {0.7}×d_a {None,1}×free_space_weight {{0.5,1,2}}×retract_threshold {{0,−1}}；RAC theta_a {{0.7}}×d_a {{None,1}}×rho_rac {{0.7,0.85}}×n_rac {{2,3,5}}；LOW d_low {{None,0.25,0.5,1,2}}；VSMT-lean／NoVersion／HeuristicLabel／VSMT-lean-ctx tau_r 0.3～0.9 步 0.1；HandCost theta_b {{0.6,0.7,0.8}}×rho_h {{0.6,0.7,0.8,0.9}}；AssocOnly 空）绑定 FROZEN_GRIDS；rollout_config (0.7, 1.0, 0.0) 绑定 ROLLOUT_CONFIG；weight_decay 1e-4、seeds [7,19,31,43,59] 绑定 WEIGHT_DECAY／SEEDS；shared.should_be_visible_min_ratio 0.5→1/64（裁决 67 值进 SUPERSEDED_VALUES）绑定 SHOULD_BE_VISIBLE_MIN_RATIO；三个拟合量仍为 null，由 elu_p_fit 趟产出后直接登记（裁决 68 (10) 预授权）。网格与取代记录进入规则摘要，S0-05 重钉。"
+    "ruling_68": "D-224-S1 裁决 68（2026-09-25 批准，原话「裁决 68 全按推荐」）：各臂网格（TAF theta_a {0.6,0.7,0.8}×d_a {None,0.5,1,2}；ELU-P theta_a {0.7}×d_a {None,1}×free_space_weight {{0.5,1,2}}×retract_threshold {{0,−1}}；RAC theta_a {{0.7}}×d_a {{None,1}}×rho_rac {{0.7,0.85}}×n_rac {{2,3,5}}；LOW d_low {{None,0.25,0.5,1,2}}；VSMT-lean／NoVersion／HeuristicLabel／VSMT-lean-ctx tau_r 0.3～0.9 步 0.1；HandCost theta_b {{0.6,0.7,0.8}}×rho_h {{0.6,0.7,0.8,0.9}}；AssocOnly 空）绑定 FROZEN_GRIDS；rollout_config (0.7, 1.0, 0.0) 绑定 ROLLOUT_CONFIG；weight_decay 1e-4、seeds [7,19,31,43,59] 绑定 WEIGHT_DECAY／SEEDS；shared.should_be_visible_min_ratio 0.5→1/64（裁决 67 值进 SUPERSEDED_VALUES）绑定 SHOULD_BE_VISIBLE_MIN_RATIO；三个拟合量仍为 null，由 elu_p_fit 趟产出后直接登记（裁决 68 (10) 预授权）。网格与取代记录进入规则摘要，S0-05 重钉。",
+    "ruling_72_B": "D-224-S1 裁决 72 (B)（2026-09-25 批准）：budget.selection_metric 仍为 node_f1，字节不变；其所指的 S0-04 node_prf1 改为质心 ≤ delta_moved_m 口径（主列），IoU 0.3 降为 node_prf1_iou 次级列、不选参。"
   },
   "continue_gate": {
     "every_method_grid_at_most_twelve_and_preregistered": true,

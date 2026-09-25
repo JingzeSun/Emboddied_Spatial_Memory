@@ -52,14 +52,15 @@ class NodeAuditTests(unittest.TestCase):
         cls.report = cls.audit.report()
 
     def test_the_current_rule_reproduces_the_evaluator_and_the_categories_partition_the_totals(self) -> None:
-        current = self.report["rules"]["iou_0.3_current"]
+        current = self.report["rules"]["iou_0.3_secondary"]
         self.assertEqual({k: current[k] for k in ("matched", "predicted", "truth")}, {"matched": 7, "predicted": 10, "truth": 7})
-        self.assertEqual(current["f1"], self.episode["report"]["node_prf1"]["node_f1"])
+        self.assertEqual(current["f1"], self.episode["report"]["node_prf1_iou"]["node_f1"])
+        self.assertEqual(self.report["rules"]["centroid_within_0.5m"]["f1"], self.episode["report"]["node_prf1"]["node_f1"])
         self.assertEqual(sum(self.report["entity_categories"].values()), 10)
         self.assertEqual(sum(self.report["truth_categories"].values()), 7)
         for frame, labelled in zip(self.frames, self.labelled, strict=True):
-            self.assertEqual(frame["rules"]["iou_0.3_current"]["matched"], labelled["node_prf1"]["matched"])
-            self.assertEqual(frame["rules"]["centroid_within_0.5m"]["matched"], labelled["node_prf1_centroid"]["matched"])  # ruling 70 column
+            self.assertEqual(frame["rules"]["iou_0.3_secondary"]["matched"], labelled["node_prf1_iou"]["matched"])
+            self.assertEqual(frame["rules"]["centroid_within_0.5m"]["matched"], labelled["node_prf1"]["matched"])  # ruling 72 (B): primary
             self.assertEqual(sum(frame["entity"].values()), labelled["node_prf1"]["predicted"])
             self.assertEqual(sum(frame["truth"].values()), labelled["node_prf1"]["truth"])
 
@@ -78,10 +79,10 @@ class NodeAuditTests(unittest.TestCase):
         for rule in audit_module.RULES:
             self.assertEqual(rules[rule]["truth"], 7, rule)
             self.assertLessEqual(rules[rule]["matched"], rules[rule]["truth"], rule)
-        self.assertGreaterEqual(rules["iou_0.1"]["matched"], rules["iou_0.3_current"]["matched"])
+        self.assertGreaterEqual(rules["iou_0.1"]["matched"], rules["iou_0.3_secondary"]["matched"])
         self.assertGreaterEqual(rules["iou_positive"]["matched"], rules["iou_0.1"]["matched"])
-        self.assertGreaterEqual(rules["oracle_identity_groups_iou_0.3"]["matched"], rules["iou_0.3_current"]["matched"])
-        self.assertLessEqual(rules["oracle_identity_groups_iou_0.3"]["predicted"], rules["iou_0.3_current"]["predicted"])
+        self.assertGreaterEqual(rules["oracle_identity_groups_iou_0.3"]["matched"], rules["iou_0.3_secondary"]["matched"])
+        self.assertLessEqual(rules["oracle_identity_groups_iou_0.3"]["predicted"], rules["iou_0.3_secondary"]["predicted"])
         self.assertEqual(len(self.report["rule_matched_per_frame"]["centroid_within_0.5m"]), 5)
 
     def test_a_labelled_record_the_evaluator_would_disagree_with_is_refused(self) -> None:
@@ -109,7 +110,7 @@ class NodeAuditTests(unittest.TestCase):
                 (root / name / "TAF" / audit_module.AUDIT_FILE_NAME).write_text(json.dumps({**payload, "episode_id": name}), encoding="utf-8")
             merged = audit_module.merge_audits(root, "TAF")
             self.assertEqual(merged["episodes"], 2)
-            self.assertEqual(merged["pooled_rules"]["iou_0.3_current"], {**merged["pooled_rules"]["iou_0.3_current"], "matched": 14, "predicted": 20, "truth": 14})
+            self.assertEqual(merged["pooled_rules"]["iou_0.3_secondary"], {**merged["pooled_rules"]["iou_0.3_secondary"], "matched": 14, "predicted": 20, "truth": 14})
             self.assertEqual(merged["pooled_entity_categories"]["own_object_absent_stale"], 6)
             self.assertFalse(merged["private_ids_exported"])
             with self.assertRaises(audit_module.NodeAuditError):

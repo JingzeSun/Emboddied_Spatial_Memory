@@ -8,8 +8,10 @@ Usage:
 
 The ``run`` subcommand replays exactly what the S2-04 entry does (the S2-01 runner over the sealed
 cache, the S2-04 teacher labelling every step behind the two-seal gate) and, after every frame,
-decomposes the node precision/recall loss of the committed memory under the frozen matching rule
-(max-weight matching on 3D IoU >= 0.3, S0-04 / D-224 ruling C) and re-scores the same predictions
+decomposes the node precision/recall loss of the committed memory under the IoU matching rule
+(max-weight matching on 3D IoU >= 0.3, ruling C; the secondary column node_prf1_iou since ruling 72 (B),
+whose primary column is the centroid-within-delta rule, re-scored below as centroid_within_0.5m and
+checked against the evaluator) and re-scores the same predictions
 under alternative rules that a ruling could pick.  It writes one ``node_audit.json`` per episode
 and arm; it writes no label, training record, receipt or contract byte and freezes nothing.
 ``merge`` pools the audits of one arm into a committed ``results/`` report.  No private key
@@ -48,7 +50,7 @@ AUDIT_FILE_NAME = "node_audit.json"
 SCHEMA_VERSION = "vsmt-s2-05-node-audit-v1"
 
 #: Why an in-memory prediction (an entity in ``active``/``dormant`` whose object is not a present
-#: out-of-scope one) did not match under the current rule.
+#: out-of-scope one) did not match under the IoU 0.3 column (the primary column until ruling 72 (B), secondary since).
 ENTITY_CATEGORIES = (
     "matched",
     "identity_ambiguous_unmatched",          # no strict majority over its keyed evidence, and no IoU match either
@@ -57,7 +59,7 @@ ENTITY_CATEGORIES = (
     "own_object_near_box_too_small",         # within delta of its object, IoU with the truth box below the threshold
     "own_object_taken_by_another_entity",    # IoU with its own object passes, another entity holds the match
 )
-#: Why a present in-scope truth object was not matched under the current rule.
+#: Why a present in-scope truth object was not matched under the IoU 0.3 column (secondary since ruling 72 (B)).
 TRUTH_CATEGORIES = (
     "matched",
     "resolved_entity_near_but_box_too_small",  # an entity of its identity within delta, IoU below the threshold
@@ -68,7 +70,7 @@ TRUTH_CATEGORIES = (
 )
 #: Alternative scorings of the same predictions and truth objects, each with the evaluator's matcher.
 RULES = (
-    "iou_0.3_current",
+    "iou_0.3_secondary",
     "iou_0.1",
     "iou_positive",
     "centroid_inside_truth_box_padded_0.25m",
@@ -180,7 +182,8 @@ class NodeAudit:
         predictions = [e for e in in_memory if str(e["entity_id"]) not in out_of_scope]
         present_keys = [key for key in sorted(truth_table) if truth_table[key]["present"] and truth_table[key]["in_scope"]]
         _require(len(predictions) == frame_eval["predicted"] and len(present_keys) == frame_eval["truth"], "audit_prediction_sets_differ")
-        matched_entity = {entity_id: key for entity_id, key in frame_eval["matched_pairs"]}
+        # the categories decompose the IoU 0.3 column's loss ("box too small" only means something there)
+        matched_entity = {entity_id: key for entity_id, key in frame_eval["iou_matched_pairs"]}
         matched_keys = set(matched_entity.values())
         boxes = {key: (truth_table[key]["aabb_min_m"], truth_table[key]["aabb_max_m"], truth_table[key]["centroid_m"]) for key in present_keys}
 
@@ -254,12 +257,12 @@ class NodeAudit:
         rule_predicted: dict[str, int] = {}
         threshold = self.iou_min
         weights_by_rule = {
-            "iou_0.3_current": [[v if v >= threshold else 0.0 for v in row] for row in iou_rows],
+            "iou_0.3_secondary": [[v if v >= threshold else 0.0 for v in row] for row in iou_rows],
             "iou_0.1": [[v if v >= 0.1 else 0.0 for v in row] for row in iou_rows],
             "iou_positive": [[v if v > 0.0 else 0.0 for v in row] for row in iou_rows],
             "centroid_inside_truth_box_padded_0.25m": [[(1.0 / (1.0 + d)) if inside else 0.0 for d, inside in zip(drow, irow, strict=True)]
                                                        for drow, irow in zip(dist_rows, inside_rows, strict=True)],
-            # = the ruling-70 secondary column (delta_moved_m is the frozen 0.5 m); checked against the evaluator below
+            # = the primary column node_prf1 since ruling 72 (B) (delta_moved_m is the frozen 0.5 m); checked against the evaluator below
             "centroid_within_0.5m": [[(1.0 / (1.0 + d)) if d <= self.delta else 0.0 for d in row] for row in dist_rows],
         }
         # oracle grouping by private identity: one union box per resolved key, ambiguous entities stay single
@@ -288,8 +291,10 @@ class NodeAudit:
             sums["predicted"] += len(weights)
             sums["truth"] += len(present_keys)
             self.rule_matched_per_frame[rule].append(matched)
-        _require(rule_matched["iou_0.3_current"] == frame_eval["matched"], "audit_current_rule_does_not_reproduce_the_evaluator")
-        _require(rule_matched["centroid_within_0.5m"] == frame_eval["node_prf1_centroid"]["matched"],
+        _require(rule_matched["iou_0.3_secondary"] == frame_eval["node_prf1_iou"]["matched"],
+                 "audit_iou_rule_does_not_reproduce_the_evaluator")
+        # ruling 72 (B): the centroid rule is the primary column node_prf1
+        _require(rule_matched["centroid_within_0.5m"] == frame_eval["matched"],
                  "audit_centroid_rule_does_not_reproduce_the_evaluator")
 
         for name, count in frame_entity.items():
@@ -313,7 +318,7 @@ class NodeAudit:
             return {"count": len(ordered), "p10": at(0.1), "p25": at(0.25), "p50": at(0.5), "p75": at(0.75), "p90": at(0.9),
                     "mean": sum(ordered) / len(ordered)}
 
-        current = self.rule_sums["iou_0.3_current"]
+        current = self.rule_sums["iou_0.3_secondary"]  # the categories partition the IoU column's sets, which are the primary's too
         _require(sum(self.entity_counts.values()) == current["predicted"], "audit_entity_categories_do_not_sum")
         _require(sum(self.truth_counts.values()) == current["truth"], "audit_truth_categories_do_not_sum")
         return {
@@ -435,13 +440,13 @@ def run(args: argparse.Namespace) -> int:
         "episode_id": args.episode_id, "arm": args.arm, "config": config, "descriptor": args.descriptor,
         "frames": summary["frames"], "frames_requested": args.frames, "episode_seal_sha256": seal["payload_sha256"],
         "final_memory_digest": summary["final_memory_digest"], "final_entities_by_state": summary["final_entities_by_state"],
-        "report_node_prf1": episode["report"]["node_prf1"],
+        "report_node_prf1": episode["report"]["node_prf1"], "report_node_prf1_iou": episode["report"]["node_prf1_iou"],
         "audit": audit.report(),
         "wall_seconds": round(time.time() - started, 1),
     }
     (out_dir / AUDIT_FILE_NAME).write_text(json.dumps(payload, indent=1), encoding="utf-8")
     rules = payload["audit"]["rules"]
-    print(f"[node-audit] {args.arm} {args.episode_id}: {summary['frames']} frames, current F1 {rules['iou_0.3_current']['f1']}, "
+    print(f"[node-audit] {args.arm} {args.episode_id}: {summary['frames']} frames, current F1 {rules['iou_0.3_secondary']['f1']}, "
           f"oracle-group IoU F1 {rules['oracle_identity_groups_iou_0.3']['f1']}, centroid-0.5m F1 {rules['centroid_within_0.5m']['f1']}, "
           f"{payload['wall_seconds']} s")
     return 0
@@ -481,7 +486,8 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
             "episode_id": payload["episode_id"], "frames": payload["frames"], "config": payload["config"],
             "final_entities_by_state": payload["final_entities_by_state"],
             "rules_f1": {rule: audit["rules"][rule]["f1"] for rule in RULES},
-            "current": audit["rules"]["iou_0.3_current"],
+            "iou_0.3_secondary": audit["rules"]["iou_0.3_secondary"],
+            "centroid_primary": audit["rules"]["centroid_within_0.5m"],
             "entity_categories": audit["entity_categories"], "truth_categories": audit["truth_categories"],
             "in_memory_entities_per_frame_mean": audit["in_memory_entities_per_frame_mean"],
             "own_object_iou_when_near": audit["own_object_iou_when_near"],

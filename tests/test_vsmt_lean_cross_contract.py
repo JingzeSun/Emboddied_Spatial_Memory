@@ -319,7 +319,11 @@ FROZEN_RULE_SHA256 = {
     # is judged over the pooled rows of one split and the per-episode largest_advantage is reported only
     # (frame_index clusters statuses within an episode; path, seed and house index only discriminate
     # once houses are pooled).  The 0.05 itself is a slot.  126fdd34 -> c5d66505.
-    "S0-04": "c5d6650523605243b4637ca23acc6cbea5883f5d4a1c849d0c1efed653d81fd0",
+    # Re-pinned 2026-09-25 for ruling 72 (B) (ruling 70 -> (b)): node_prf1 now matches on the centroid within
+    # delta_moved_m (primary column, the selection metric, bound role and Dyn-THOR relation "same matching
+    # mechanism, different overlap test"); the IoU 0.3 test moves to node_prf1_iou (secondary, iou_min and the
+    # D-224-C frozen-constant path with it); node_prf1_centroid is retired.  c5d66505 -> b831a3a4.
+    "S0-04": "b831a3a40f47471b0b140af12ef0e94b5c28edc96a6b05b6161a4404984d7901",
     # S0-05 re-pinned 2026-09-25 for ruling 68 (LOG-256 sequel): every grid's values (at most twelve
     # configurations per method, a no-gate member in every rule arm), the ELU-P rollout_config
     # (0.7, 1.0, 0.0) and the should_be_visible_min_ratio_superseded record enter the digest; the
@@ -389,7 +393,9 @@ FROZEN_RULE_SHA256 = {
     # Re-pinned 2026-09-24 for ruling 69: the structural_existence rule also labels a candidate resolving to a
     # spawned-after-reload key as present.  f4511a34 -> eaac36bd.
     # Re-pinned 2026-09-24 for ruling 70: headline_fields gains node_prf1_centroid -> node_f1.  eaac36bd -> 0ff1fbe9.
-    "S2-04": "0ff1fbe980d8bd45e3d8ab2d7113dc038de8089b16b480676f9d8ac2d8c4a740",
+    # Re-pinned 2026-09-25 for ruling 72 (B): headline_fields node_prf1_centroid -> node_prf1_iou and the iou_min
+    # source path -> S0-04 metrics.node_prf1_iou.iou_min.  0ff1fbe9 -> d1645593.
+    "S2-04": "d1645593bf4fd76e355af2177bf4b8aed92dd4a26bff0f006dd37945321bd7e5",
     # S2-05 v1 (2026-09-24, LOG-251): the development table -- the five passes in order (calibration
     # with LOW and no gate, the ELU-P fit with TAF at the rollout theta_a, DAgger rounds 0 and 1, the
     # table), the episode set, the calibration series and quantiles, the ELU-P count rules, the
@@ -398,7 +404,8 @@ FROZEN_RULE_SHA256 = {
     # 2026-09-24 when rulings 64/67 and the S2-05 review opened both bits by name (with the bits set
     # back to false the digest is 38314ce2 again).  -> 859208ee.
     # Re-pinned 2026-09-24 for ruling 70: table.better gains node_prf1_centroid = higher.  859208ee -> 0d3cf50c.
-    "S2-05": "0d3cf50c4700c257287b53d9ae573363355f31f9e0f280c059b7a82055a767df",
+    # Re-pinned 2026-09-25 for ruling 72 (B): table.better node_prf1_centroid -> node_prf1_iou = higher.  0d3cf50c -> 57dc753d.
+    "S2-05": "57dc753d731e114372e484c885d99c3461780e3ad83387321b141fbb5c2ab635",
 }
 
 #: Every registered slot that has been frozen, and the value it froze at.
@@ -1189,7 +1196,7 @@ class TestS204EvaluationContractBindsItsUpstreams(unittest.TestCase):
             self.assertNotIn(path, s0_04["policy_values_without_defaults"])
         self.assertEqual(load("S0-05")["shared"]["should_be_visible_min_ratio"], FROZEN_VALUES["S0-05"]["shared.should_be_visible_min_ratio"])
         self.assertEqual(registered_value_slots("S2-01"), ("entity_geometry.samples_per_axis",))
-        self.assertEqual(s0_04["metrics"]["node_prf1"]["iou_min"], lean_teacher.IOU_MIN)
+        self.assertEqual(s0_04["metrics"]["node_prf1_iou"]["iou_min"], lean_teacher.IOU_MIN)
 
     def test_headline_fields_and_report_fields_are_the_s0_04_ones(self) -> None:
         fields = load("S0-04")["metrics"]["reported_fields"]

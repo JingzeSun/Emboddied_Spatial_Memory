@@ -164,7 +164,7 @@
   "table": {
     "better": {
       "node_prf1": "higher",
-      "node_prf1_centroid": "higher",
+      "node_prf1_iou": "higher",
       "missing_residual_rate": "lower",
       "false_retract_rate": "lower",
       "identity_continuity": "higher",
@@ -229,6 +229,7 @@
   },
   "user_rulings": [
     "D-224-S1 裁决 70（2026-09-24 批准，原话「裁决 70 取 (a)」）：table.better 增登 node_prf1_centroid=higher（次级列并列报告，不选配置）；摘要重钉。",
-    "D-224-S1 裁决 68（2026-09-25 批准，原话「裁决 68 全按推荐」）：development_configurations 八个槽冻结（TAF theta_a 0.7／d_a no_gate；RAC theta_a 0.7／d_a no_gate／rho_rac 0.7／n_rac 3；LOW d_low 1.0；VSMT-lean tau_r 0.5），绑定 DEVELOPMENT_CONFIGURATIONS 并逐一核验为 S0-05 网格成员；八个都是值槽，规则摘要不变。"
+    "D-224-S1 裁决 68（2026-09-25 批准，原话「裁决 68 全按推荐」）：development_configurations 八个槽冻结（TAF theta_a 0.7／d_a no_gate；RAC theta_a 0.7／d_a no_gate／rho_rac 0.7／n_rac 3；LOW d_low 1.0；VSMT-lean tau_r 0.5），绑定 DEVELOPMENT_CONFIGURATIONS 并逐一核验为 S0-05 网格成员；八个都是值槽，规则摘要不变。",
+    "D-224-S1 裁决 72 (B)（2026-09-25 批准）：table.better 的 node_prf1_centroid 改为 node_prf1_iou=higher——node_prf1（质心口径）是主列与选参指标，IoU 0.3 列并列报告、不选配置。"
   ]
 }

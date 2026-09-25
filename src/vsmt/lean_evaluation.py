@@ -94,12 +94,12 @@ POLICY_INPUT_SOURCES = {
     "delta_moved_m": "S0-04 labels.existence.delta_moved_m",
     "should_be_visible_min_ratio": "S0-05 shared.should_be_visible_min_ratio",
     "entity_geometry_samples_per_axis": "S2-01 entity_geometry.samples_per_axis",
-    "iou_min": "S0-04 metrics.node_prf1.iou_min (frozen 0.3)",
+    "iou_min": "S0-04 metrics.node_prf1_iou.iou_min (frozen 0.3)",
 }
 #: The scalar each metric contributes to a house-level table (size_and_cost has none).
 HEADLINE_FIELD = {
     "node_prf1": "node_f1",
-    "node_prf1_centroid": "node_f1",
+    "node_prf1_iou": "node_f1",
     "missing_residual_rate": "missing_residual_rate",
     "false_retract_rate": "false_retract_rate",
     "identity_continuity": "identity_continuity",
@@ -437,7 +437,7 @@ class EpisodeTeacher:
             "tick": int(receipt["tick"]), "frame_index": frame_index, "frame_digest": str(receipt["frame_digest"]),
             "private_gate": gate, "targets": targets, "existence_labels": existence, "decomposition": decomposition,
             "node_prf1": {name: frame_eval[name] for name in lt.METRIC_FIELDS["node_prf1"]},
-            "node_prf1_centroid": {name: frame_eval["node_prf1_centroid"][name] for name in lt.METRIC_FIELDS["node_prf1_centroid"]},
+            "node_prf1_iou": {name: frame_eval["node_prf1_iou"][name] for name in lt.METRIC_FIELDS["node_prf1_iou"]},
             "contamination_fraction": frame_eval["contamination_fraction"],
             "stale_entities": frame_eval["stale_entities"], "wrongly_absent_objects": frame_eval["wrongly_absent_objects"],
             "out_of_scope_entities": frame_eval["out_of_scope_entities"],
@@ -458,7 +458,7 @@ class EpisodeTeacher:
         _require(bool(self.frames), "episode_without_frames")
         frames = self.frames
 
-        def node_block(metric: str) -> dict[str, Any]:  # micro over the frames; node_prf1 and its ruling-70 centroid column
+        def node_block(metric: str) -> dict[str, Any]:  # micro over the frames; node_prf1 (centroid, primary) and node_prf1_iou (ruling 72 (B))
             matched = sum(int(f[metric]["matched"]) for f in frames)
             predicted = sum(int(f[metric]["predicted"]) for f in frames)
             truth = sum(int(f[metric]["truth"]) for f in frames)
@@ -482,7 +482,7 @@ class EpisodeTeacher:
         count = len(frames)
         report = {
             "node_prf1": node_block("node_prf1"),
-            "node_prf1_centroid": node_block("node_prf1_centroid"),
+            "node_prf1_iou": node_block("node_prf1_iou"),
             "missing_residual_rate": (
                 {name: last_missing[name] for name in lt.METRIC_FIELDS["missing_residual_rate"]} if last_missing is not None
                 else {"missing_residual_rate": None, "residual": 0, "judged": 0, "not_yet_observable": 0}),
