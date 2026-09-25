@@ -209,11 +209,38 @@ class MachineContractTests(unittest.TestCase):
             self.assertIn(arm, checked["development_configurations"])
         self.assertEqual(set(checked["development_configurations"]["TAF"]), set(arms.GRID_PARAMETERS["TAF"]))
 
+    def test_the_development_configurations_are_frozen_grid_members_in_runner_form(self) -> None:
+        """D-224-S1 ruling 68 (3)."""
+
+        checked = dev.validate_development_contract(self.contract)
+        self.assertEqual(checked["policy_values_without_defaults"], [])
+        self.assertEqual(dev.development_configuration(checked, "TAF"), {"theta_a": 0.7, "d_a": None})
+        self.assertEqual(dev.development_configuration(checked, "RAC"), {"theta_a": 0.7, "d_a": None, "rho_rac": 0.7, "n_rac": 3})
+        self.assertEqual(dev.development_configuration(checked, "LOW"), {"d_low": 1.0})
+        self.assertEqual(dev.development_configuration(checked, "VSMT-lean"), {"tau_r": 0.5})
+        self.assertEqual(dev.development_configuration(checked, "NoVersion"), {"tau_r": 0.5})
+        self.assertEqual(dev.development_configuration(checked, "AssocOnly"), {})
+        for arm, config in dev.DEVELOPMENT_CONFIGURATIONS.items():
+            with self.subTest(arm=arm):
+                self.assertEqual(dev.development_configuration(checked, arm), config)
+                lr.validate_arm_config(arm, config)
+                if config:
+                    self.assertIn(config, arms.enumerate_configs(arm, arms.FROZEN_GRIDS[arm]))
+        still_open = copy.deepcopy(self.contract)
+        still_open["development_configurations"]["TAF"]["theta_a"] = None
+        still_open["policy_values_without_defaults"] = ["development_configurations.TAF.theta_a"]
+        self.assertIsNone(dev.development_configuration(still_open, "TAF"))
+        dev.validate_development_contract(still_open)  # an open slot is allowed while it is listed as open
+        with self.assertRaises(dev.LeanDevelopmentError):
+            dev.development_configuration(checked, "ELU-P")
+
     def test_weakened_claims_and_filled_open_slots_are_refused(self) -> None:
         for edit, code in (
             (lambda c: c["continue_gate"].__setitem__("no_winner_is_selected", False), "contract_claim_weakened:no_winner_is_selected"),
             (lambda c: c["passes"]["order"].reverse(), "contract_passes_mismatch"),
-            (lambda c: c["development_configurations"]["TAF"].__setitem__("theta_a", 0.6), "contract_slot_filled_but_listed_as_open:development_configurations.TAF.theta_a"),
+            (lambda c: c["development_configurations"]["TAF"].__setitem__("theta_a", 0.6), "contract_development_configuration_mismatch:TAF"),
+            (lambda c: c["development_configurations"]["LOW"]["d_low"].__setitem__("distance_gate_m", 0.75), "development_configuration_not_a_grid_member:LOW"),
+            (lambda c: c["development_configurations"]["RAC"]["d_a"].__setitem__("distance_gate_m", 1.0), "contract_development_configuration_mismatch:RAC"),
             (lambda c: c.pop("activation_policy"), "contract_bit_opened_without_a_ruling:development_run"),
             (lambda c: c["table"]["better"].__setitem__("node_prf1", "lower"), "contract_better_mismatch"),
         ):

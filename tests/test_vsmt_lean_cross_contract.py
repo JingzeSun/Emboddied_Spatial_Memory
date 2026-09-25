@@ -478,6 +478,18 @@ FROZEN_VALUES: dict[str, dict[str, Any]] = {
         # D-224-S1 ruling 60 (2026-09-24): cell centres per axis of the entity box for the two
         # geometry ratios; 64 points per entity, ratio granularity 1/64.
         "entity_geometry.samples_per_axis": 4
+    },
+    "S2-05": {
+        # D-224-S1 ruling 68 (3) (2026-09-25): the one configuration each development arm runs at, every
+        # one a member of the S0-05 grid; "no_gate" is the frozen spelling of no distance gate.
+        "development_configurations.TAF.theta_a": 0.7,
+        "development_configurations.TAF.d_a.distance_gate_m": "no_gate",
+        "development_configurations.RAC.theta_a": 0.7,
+        "development_configurations.RAC.d_a.distance_gate_m": "no_gate",
+        "development_configurations.RAC.rho_rac": 0.7,
+        "development_configurations.RAC.n_rac": 3,
+        "development_configurations.LOW.d_low.distance_gate_m": 1.0,
+        "development_configurations.VSMT-lean.tau_r": 0.5
     }
 }
 
@@ -1192,14 +1204,16 @@ class TestS205DevelopmentContractBindsItsUpstreams(unittest.TestCase):
     def setUp(self) -> None:
         self.contract = load_stage("S2-05")
 
-    def test_the_contract_passes_its_validator_with_both_bits_closed_and_every_slot_null(self) -> None:
+    def test_the_contract_passes_its_validator_with_every_slot_frozen_at_the_ledger_value(self) -> None:
         checked = lean_development.validate_development_contract(self.contract)
         self.assertEqual(checked["stage_id"], "S2-05")
         self.assertTrue(all(value is False or name in checked["activation_policy"]["active_true_authorizations"]
                             for name, value in checked["authorization"].items()))
-        self.assertEqual(tuple(registered_value_slots("S2-05")), tuple(checked["policy_values_without_defaults"]))
+        # ruling 68 (3) froze the eight development-configuration slots; none is open any more
+        self.assertEqual(checked["policy_values_without_defaults"], [])
+        self.assertEqual(set(registered_value_slots("S2-05")), set(FROZEN_VALUES["S2-05"]))
         for slot in registered_value_slots("S2-05"):
-            self.assertIsNone(lookup_slot(checked, slot), slot)
+            self.assertEqual(lookup_slot(checked, slot), FROZEN_VALUES["S2-05"][slot], slot)
         for key, path in checked["depends_on"].items():
             if key.endswith("_contract"):
                 with self.subTest(key=key):

@@ -138,12 +138,44 @@ def run_episode_task(task: dict[str, Any]) -> dict[str, Any]:
             "wall_seconds": round(time.time() - started, 1)}
 
 
+#: The arms each pass may run (the contract's passes block); ELU-P's table row is its round-0 pass.
+PASS_ARMS = {
+    "calibration": ("LOW",),
+    "elu_p_fit": ("TAF",),
+    "dagger_round_0": ("ELU-P",),
+    "dagger_round_1": ("VSMT-lean", "AssocOnly"),
+    "development_table": tuple(arm for arm in dev.DEVELOPMENT_ARMS if arm != "ELU-P"),
+}
+
+
+def expected_pass_config(pass_name: str, arm: str) -> dict[str, Any] | None:
+    """The registered configuration a pass runs an arm at (ruling 68), or None when the pass registers none.
+
+    白话：每一趟该用什么配置是登记好的，不由命令行临时决定：拟合趟 TAF 取 rollout 的 theta_a 且无门；
+    第 0 轮 ELU-P 取 rollout_config 加 S0-05 登记的三个拟合量；第 1 轮与开发表用 S2-05 的开发配置槽。
+    命令行给的配置必须与之相等，否则拒绝。
+    """
+
+    contract = dev.validate_development_contract(load_json(S2_05_CONTRACT))
+    elu_p = load_json(S0_05_CONTRACT)["arms"]["ELU-P"]
+    rollout = {name: elu_p["rollout_config"][name] for name in arms.ROLLOUT_CONFIG_PARAMETERS}
+    if pass_name == "elu_p_fit" and arm == "TAF":
+        return {"theta_a": rollout["theta_a"], "d_a": None}
+    if pass_name == "dagger_round_0" and arm == "ELU-P":
+        return {**rollout, arms.ROLLOUT_CONFIG_GATE_PARAMETER: None, **{name: elu_p["fitted"][name] for name in arms.ELU_P_FITTED}}
+    if pass_name in ("dagger_round_1", "development_table") and arm in dev.DEVELOPMENT_CONFIGURATIONS:
+        return dev.development_configuration(contract, arm)
+    return None
+
+
 def cmd_run_pass(args: argparse.Namespace) -> int:
     problem = contracts_open()
     if problem:
         return refuse(problem)
     if args.pass_name not in dev.PASSES:
         return refuse(f"unknown pass {args.pass_name}; the contract's order is {list(dev.PASSES)}")
+    if args.arm not in PASS_ARMS[args.pass_name]:
+        return refuse(f"the {args.pass_name} pass runs {list(PASS_ARMS[args.pass_name])}, not {args.arm}")
     policy, missing = s2_04.gather_teacher_policy()
     if missing:
         return refuse(f"policy values still null: {missing}")
@@ -155,6 +187,9 @@ def cmd_run_pass(args: argparse.Namespace) -> int:
     if args.pass_name == "calibration":
         if {"arm": args.arm, "config": config} != dev.CALIBRATION_ARM_CONFIG:
             return refuse(f"the calibration pass is {dev.CALIBRATION_ARM_CONFIG}, not {args.arm} {config}")
+    expected = expected_pass_config(args.pass_name, args.arm)
+    if expected is not None and config != expected:
+        return refuse(f"the {args.pass_name} pass runs {args.arm} at the registered configuration {expected}, not {config}")
     if args.arm in lr.LEARNED_ARMS and not args.heads:
         return refuse(f"{args.arm} needs --heads")
     cache_root = Path(args.cache_root).resolve()

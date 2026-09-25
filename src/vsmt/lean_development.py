@@ -92,6 +92,22 @@ CALIBRATION_SERIES = {
 }
 QUANTILES = (0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95)
 
+#: The contract spells "no distance gate" as this string in a frozen slot (null means unfrozen).
+NO_GATE_STRING = "no_gate"
+#: D-224-S1 ruling 68 (3) (2026-09-25, LOG-256 sequel): the one configuration each development arm runs at
+#: in the development-table pass (and the learned arms in DAgger round 1), in runner form; every one is
+#: a member of the S0-05 grid.  The three rule arms take no gate like the ELU-P rollout, so the table
+#: and the round-0 rollouts read side by side; LOW takes 1.0 m to differ from the no-gate calibration
+#: arm; NoVersion shares VSMT-lean's tau_r (a runner switch, not a configuration); AssocOnly has none.
+DEVELOPMENT_CONFIGURATIONS: dict[str, dict[str, Any]] = {
+    "TAF": {"theta_a": 0.7, "d_a": None},
+    "RAC": {"theta_a": 0.7, "d_a": None, "rho_rac": 0.7, "n_rac": 3},
+    "LOW": {"d_low": 1.0},
+    "VSMT-lean": {"tau_r": 0.5},
+    "NoVersion": {"tau_r": 0.5},
+    "AssocOnly": {},
+}
+
 
 class LeanDevelopmentError(ValueError):
     """Raised with a short machine-readable code."""
@@ -100,6 +116,38 @@ class LeanDevelopmentError(ValueError):
 def _require(condition: bool, code: str) -> None:
     if not condition:
         raise LeanDevelopmentError(code)
+
+
+def development_configuration(contract: Mapping[str, Any], arm: str) -> dict[str, Any] | None:
+    """The registered development configuration of an arm in runner form, or None while a slot is still null.
+
+    白话：把合同里 development_configurations 的槽位翻译成 runner 吃的配置：距离门 "no_gate" 变成 None、
+    数字原样；NoVersion 用 VSMT-lean 的 tau_r；AssocOnly 没有参数。任一槽仍是 null 就返回 None（未冻结）。
+    翻译出来的配置必须是 S0-05 已冻结网格的一格，否则拒绝（ruling 68 (3)）。
+    """
+
+    _require(arm in DEVELOPMENT_CONFIGURATIONS, f"development_configuration_unknown_arm:{arm}")
+    if arm == "AssocOnly":
+        return {}
+    source = "VSMT-lean" if arm == "NoVersion" else arm
+    section = contract["development_configurations"][source]
+    config: dict[str, Any] = {}
+    for name in arms.GRID_PARAMETERS[source]:
+        value = section[name]
+        if name == arms.NO_GATE_PARAMETER.get(source):
+            value = value["distance_gate_m"]
+            if value == NO_GATE_STRING:
+                value = None
+            elif value is None:
+                return None
+            else:
+                _require(type(value) in (int, float) and value > 0, f"development_configuration_gate_invalid:{source}")
+        elif value is None:
+            return None
+        config[name] = value
+    members = arms.enumerate_configs(arm, arms.FROZEN_GRIDS[arm])
+    _require(any(member == config for member in members), f"development_configuration_not_a_grid_member:{arm}")
+    return config
 
 
 # --------------------------------------------------------------------------
@@ -472,6 +520,10 @@ def validate_development_contract(contract: Mapping[str, Any]) -> dict[str, Any]
         _require(node is None, f"contract_slot_filled_but_listed_as_open:{path}")
     registered = contract.get("registered_value_slots") or slots
     _require(set(slots) <= set(registered), "contract_open_slot_not_registered")
+    for arm, expected in DEVELOPMENT_CONFIGURATIONS.items():  # ruling 68 (3): a frozen slot must carry the bound value
+        config = development_configuration(contract, arm)
+        if config is not None:
+            _require(config == expected, f"contract_development_configuration_mismatch:{arm}")
     policy = contract.get("activation_policy")
     opened = set(policy["active_true_authorizations"]) if policy else set()
     if policy:
@@ -489,7 +541,10 @@ __all__ = [
     "CONTRACT_SCHEMA_VERSION",
     "CalibrationCollector",
     "DEVELOPMENT_ARMS",
+    "DEVELOPMENT_CONFIGURATIONS",
     "DEVELOPMENT_TRAINING_RULE",
+    "NO_GATE_STRING",
+    "development_configuration",
     "ELU_P_FIT_ARM_RULE",
     "EPISODE_SET_RULE",
     "EluPCounter",

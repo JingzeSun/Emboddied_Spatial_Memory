@@ -79,26 +79,26 @@
   },
   "development_configurations": {
     "TAF": {
-      "theta_a": null,
+      "theta_a": 0.7,
       "d_a": {
-        "distance_gate_m": null
+        "distance_gate_m": "no_gate"
       }
     },
     "RAC": {
-      "theta_a": null,
+      "theta_a": 0.7,
       "d_a": {
-        "distance_gate_m": null
+        "distance_gate_m": "no_gate"
       },
-      "rho_rac": null,
-      "n_rac": null
+      "rho_rac": 0.7,
+      "n_rac": 3
     },
     "LOW": {
       "d_low": {
-        "distance_gate_m": null
+        "distance_gate_m": 1.0
       }
     },
     "VSMT-lean": {
-      "tau_r": null
+      "tau_r": 0.5
     },
     "NoVersion": {
       "tau_r": "same_as_VSMT-lean"
@@ -107,7 +107,9 @@
     "AssocOnly": {},
     "gate_value_rule": "distance_gate_m null means unfrozen; the frozen string \"no_gate\" means None (no distance gate); a frozen number is the gate in metres",
     "must_be_grid_members": true,
-    "plain_language_zh": "开发表每臂只跑一个配置（S2-05 没有选参步骤），这个配置必须是该臂预登记网格的成员。数值待校准趟之后冻结，为 null；距离门用 distance_gate_m 表示，null 是未冻结，冻结成字符串 no_gate 表示无门。"
+    "values_frozen_by": "D-224-S1 ruling 68",
+    "values_frozen_on": "2026-09-25",
+    "plain_language_zh": "开发表每臂只跑一个配置（S2-05 没有选参步骤），这个配置必须是该臂预登记网格的成员。数值待校准趟之后冻结，为 null；距离门用 distance_gate_m 表示，null 是未冻结，冻结成字符串 no_gate 表示无门。裁决 68（2026-09-25）冻结八个槽：TAF (0.7, 无门)、RAC (0.7, 无门, rho_rac 0.7, n_rac 3)、LOW d_low 1.0 m、VSMT-lean tau_r 0.5（NoVersion 同值）；三个规则臂与 ELU-P 的 rollout 同取无门，便于开发表与第 0 轮轨迹对读，LOW 取 1.0 m 与无门的校准臂区分。全部是 S0-05 网格成员，绑定 lean_development.DEVELOPMENT_CONFIGURATIONS；run-pass 入口对 development_table／dagger_round_1 要求配置与之相等，对 elu_p_fit 要求 TAF 取 rollout theta_a 且无门，对 dagger_round_0 要求 ELU-P 取 rollout_config 加已登记的拟合量。"
   },
   "calibration": {
     "series": [
@@ -201,16 +203,7 @@
     "validation_or_test_reading",
     "formal_data"
   ],
-  "policy_values_without_defaults": [
-    "development_configurations.TAF.theta_a",
-    "development_configurations.TAF.d_a.distance_gate_m",
-    "development_configurations.RAC.theta_a",
-    "development_configurations.RAC.d_a.distance_gate_m",
-    "development_configurations.RAC.rho_rac",
-    "development_configurations.RAC.n_rac",
-    "development_configurations.LOW.d_low.distance_gate_m",
-    "development_configurations.VSMT-lean.tau_r"
-  ],
+  "policy_values_without_defaults": [],
   "registered_value_slots": [
     "development_configurations.TAF.theta_a",
     "development_configurations.TAF.d_a.distance_gate_m",
@@ -232,9 +225,10 @@
   },
   "pending_user_rulings": {
     "batch_1_run_critical_values": "待裁 67：跑校准趟就需要的值——S0-01 dormancy_missed_opportunity_limit 与去重四值、S0-04 dominance_min_share／delta_moved_m／nuisance maximum_advantage、S0-05 should_be_visible_min_ratio／weight_decay／seeds、S0-03 reference_score_seed。提案与依据见 DECISIONS。",
-    "batch_2_after_calibration": "待裁 68：校准趟之后——S0-05 各臂网格（每方法 ≤12、规则臂含无门项）、ELU-P rollout_config 三值（须为网格成员）、本合同的八个开发配置槽、S0-03 existence_threshold_tau_r。"
+    "batch_2_after_calibration": "待裁 68 已于 2026-09-25 批准落地（原话「裁决 68 全按推荐」）：网格与 rollout_config 见 S0-05，八个开发配置槽见本合同 development_configurations，S0-03 两值与 S0-04 nuisance 上限见各自合同；ELU-P 三个拟合量由 elu_p_fit 趟产出后直接登记（裁决 68 (10)）。"
   },
   "user_rulings": [
-    "D-224-S1 裁决 70（2026-09-24 批准，原话「裁决 70 取 (a)」）：table.better 增登 node_prf1_centroid=higher（次级列并列报告，不选配置）；摘要重钉。"
+    "D-224-S1 裁决 70（2026-09-24 批准，原话「裁决 70 取 (a)」）：table.better 增登 node_prf1_centroid=higher（次级列并列报告，不选配置）；摘要重钉。",
+    "D-224-S1 裁决 68（2026-09-25 批准，原话「裁决 68 全按推荐」）：development_configurations 八个槽冻结（TAF theta_a 0.7／d_a no_gate；RAC theta_a 0.7／d_a no_gate／rho_rac 0.7／n_rac 3；LOW d_low 1.0；VSMT-lean tau_r 0.5），绑定 DEVELOPMENT_CONFIGURATIONS 并逐一核验为 S0-05 网格成员；八个都是值槽，规则摘要不变。"
   ]
 }
