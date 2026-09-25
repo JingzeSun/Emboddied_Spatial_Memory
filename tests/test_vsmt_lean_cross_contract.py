@@ -346,7 +346,14 @@ FROZEN_RULE_SHA256 = {
     # generator commit 5f9aa71 leaves the camera_pose encoder of 7c10d2c untouched, so it joins
     # correct_encoder_since_code_commits and the 39 succeeded episodes are read as written.
     # 2a17546f -> c7318cd5.
-    "S1-03": "c7318cd56599927d39ca598301346ecf5076c55859a733689d4a5a7cbcab2d75",
+    # Re-pinned 2026-09-25 for ruling 72: the mask_source block (simulator_instance_masks for the main table,
+    # sam2 as the robustness appendix; the instance source reads only the five listed private items and
+    # exposes mask geometry only; admission unchanged; one source per cache root) and the seal rule (a
+    # non-sam2 source enters the episode seal payload, a sam2 seal keeps its pre-ruling bytes; the private
+    # read before the seal happens only under the instance source, and the one private-derived value a
+    # cache may hold is that anonymised, digest-ordered mask geometry); receipts name the source.
+    # c7318cd5 -> f354863c.
+    "S1-03": "f354863c65de95a2f6db4874ff08efd7b3152a5dbd611c077c278c85a134c959",
     # S1-04 v1 (2026-09-22, rulings 45/46/47): first pinned with every bit closed
     # (2fff2d19...); re-pinned the same day when ruling 48 and the user's code review opened
     # all six bits by name in activation_policy (the bits are rules of who may run what, as

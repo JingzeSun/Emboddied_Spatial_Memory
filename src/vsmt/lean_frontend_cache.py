@@ -58,6 +58,25 @@ MAXIMUM_PROPOSALS_PER_FRAME = 64
 #: in the fragment order the sealed frame lists.  No separate SAM-only recovery pass is needed.
 MASK_FILE_NAME_TEMPLATE = "NNNN.masks.npz"
 
+#: Ruling 72: where a cache's masks come from.  The main table reads the simulator's per-frame
+#: instance segmentation (mask pixel geometry only, never a label, id, pose or box); SAM 2.1 is the
+#: robustness appendix.  One cache root holds one source, and the episode seal says which.
+MASK_SOURCE_INSTANCE = "simulator_instance_masks"
+MASK_SOURCE_SAM2 = "sam2"
+MASK_SOURCES = (MASK_SOURCE_INSTANCE, MASK_SOURCE_SAM2)
+#: What the generator may read of the private plane under the instance source, and nothing else.
+INSTANCE_MODE_PRIVATE_READS = (
+    "private/NNNN.frame.json:observation_index",
+    "private/NNNN.frame.json:frame_digest",
+    "private/NNNN.frame.json:instance_mask_path",
+    "private/NNNN.frame.json:object_id_to_entity_id:label_values_only",
+    "private/NNNN.instance.png:pixel_labels_reduced_to_anonymous_boolean_masks",
+)
+INSTANCE_MODE_NEVER_EXPOSED = (
+    "instance_label_value", "object_id", "object_type", "object_pose", "object_visibility_count",
+    "truth_box", "object_id_to_entity_id_mapping",
+)
+
 #: The two descriptor sets S1 extracts.  S1-05 selects one; this stage never selects.
 DESCRIPTOR_SETS = ("vits14", "vitb14")
 DESCRIPTOR_DIMENSIONS = {"vits14": 384, "vitb14": 768}
@@ -183,6 +202,25 @@ def admit_proposals(
         f"{len(kept)} proposals of at least {minimum_pixels} px exceed the cap of {maximum}",
     )
     return sorted(kept, key=lambda item: item.mask_sha256)
+
+
+def instance_label_masks(label_image: Any, label_values: Sequence[int]) -> list[np.ndarray]:
+    """Ruling 72: one anonymous boolean mask per labelled value present in a private instance image.
+
+    白话：实例分割前端的"色块"就是模拟器实例图里每个带标签的实例各自的像素区域。输入是一帧私有
+    实例图（每个像素一个整数标签，0 为背景）和这一帧登记过的标签集合；输出是每个在图里出现的标签
+    一张布尔 mask，按 mask 摘要排序，标签值本身不随 mask 带出。例如一帧里有沙发、墙和杯子三个实例，
+    就输出三张 mask，谁是沙发谁是杯子不告诉下游。它不筛像素数、不设上限——那是 ``admit_proposals``
+    的事，≥196 像素与每帧 ≤64（超过即构造失败）两条对 SAM 与实例分割一视同仁。
+    """
+
+    image = np.asarray(label_image)
+    _require(image.ndim == 2, "public_input_missing_or_malformed", "instance_image_not_two_dimensional")
+    wanted = {int(value) for value in label_values}
+    _require(0 not in wanted, "public_input_missing_or_malformed", "instance_label_zero_is_background")
+    present = [int(value) for value in np.unique(image).tolist() if int(value) in wanted]
+    masks = [np.ascontiguousarray(image == value) for value in present]
+    return sorted(masks, key=mask_sha256_of)
 
 
 # --------------------------------------------------------------------------
@@ -433,16 +471,33 @@ def mask_sha256_of(mask: Any) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
-def seal_episode(frames: Sequence[Mapping[str, Any]], *, frontend_config_sha256: str) -> dict[str, Any]:
-    """The episode seal over every frame seal, written before any private file is opened."""
+def seal_episode(frames: Sequence[Mapping[str, Any]], *, frontend_config_sha256: str,
+                 mask_source: str = MASK_SOURCE_SAM2) -> dict[str, Any]:
+    """The episode seal over every frame seal and, since ruling 72, the cache's mask source.
 
+    白话：episode 封印盖住全部帧封印；裁决 72 之后还要说明这份 cache 的色块从哪来。实例分割 cache
+    把 ``mask_source`` 写进封印内容，所以把它改名成 SAM2 cache（或反过来）必然对不上封印；SAM2 cache
+    的封印内容保持裁决 72 之前的样子，已经建好的 SAM2 cache 不用重建也照样核得过。
+    """
+
+    _require(mask_source in MASK_SOURCES, "public_input_missing_or_malformed", f"unregistered_mask_source:{mask_source}")
     seals = [frame["frame_seal"]["payload_sha256"] for frame in frames]
     ticks = [frame["tick"] for frame in frames]
     _require(ticks == list(range(1, len(ticks) + 1)), "public_input_missing_or_malformed", "ticks_not_consecutive")
     payload = {"episode_frame_count": len(frames), "frame_seals": seals,
                "frontend_config_sha256": frontend_config_sha256}
-    return {"episode_frame_count": len(frames), "payload_sha256": sha(payload),
-            "frontend_config_sha256": frontend_config_sha256}
+    sealed = {"episode_frame_count": len(frames), "frontend_config_sha256": frontend_config_sha256}
+    if mask_source != MASK_SOURCE_SAM2:
+        payload["mask_source"] = sealed["mask_source"] = mask_source
+    return {**sealed, "payload_sha256": sha(payload)}
+
+
+def sealed_mask_source(seal: Mapping[str, Any]) -> str:
+    """The mask source an episode seal declares: ``sam2`` when it names none (every pre-ruling-72 seal)."""
+
+    source = seal.get("mask_source", MASK_SOURCE_SAM2)
+    _require(source in MASK_SOURCES, "public_input_missing_or_malformed", f"unregistered_mask_source:{source}")
+    return source
 
 
 # --------------------------------------------------------------------------
@@ -594,6 +649,30 @@ def validate_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
              "public_input_missing_or_malformed", "fragment_mask_rule_weakened")
     _require(masks["order"] == "cache_fragment_order_the_sealed_frame_lists",
              "public_input_missing_or_malformed", "fragment_mask_order_changed")
+    # Ruling 72: two registered mask sources, one per cache root, the instance source reading only
+    # mask pixel geometry of the private instance image; the admission rule is the same for both.
+    source = contract["mask_source"]
+    _require(tuple(source["registered_values"]) == MASK_SOURCES
+             and source["main_table"] == MASK_SOURCE_INSTANCE and source["robustness_appendix"] == MASK_SOURCE_SAM2,
+             "public_input_missing_or_malformed", "mask_source_values_changed")
+    instance = source[MASK_SOURCE_INSTANCE]
+    _require(tuple(instance["private_reads"]) == INSTANCE_MODE_PRIVATE_READS
+             and tuple(instance["never_exposed"]) == INSTANCE_MODE_NEVER_EXPOSED,
+             "public_input_missing_or_malformed", "instance_mode_private_boundary_changed")
+    _require(source["one_cache_root_holds_one_mask_source"] is True
+             and source["admission_rule_is_proposal_rule_unchanged"] is True
+             and source["overflow_is_a_construction_failure_never_truncation"] is True
+             and source["descriptors_geometry_volumes_and_pose_unchanged"] is True
+             and source["episode_seal_carries_the_source_unless_sam2"] is True
+             and source["an_entry_that_names_a_source_refuses_a_cache_sealed_with_another"] is True,
+             "public_input_missing_or_malformed", "mask_source_rule_weakened")
+    seal_rule = contract["seal"]
+    _require(tuple(seal_rule["episode_seal_payload"]) == ("episode_frame_count", "frame_seals", "frontend_config_sha256", "mask_source")
+             and seal_rule["mask_source_in_the_payload_only_when_not_sam2"] is True
+             and seal_rule["private_read_before_the_seal_only_under"] == MASK_SOURCE_INSTANCE
+             and seal_rule["private_derived_value_admitted_only_as"]
+             == "mask_pixel_geometry_under_simulator_instance_masks_anonymised_and_digest_ordered",
+             "public_input_missing_or_malformed", "episode_seal_rule_changed")
     listed = list(correction["applies_to_s1_02_code_commits"]) + list(correction["correct_encoder_since_code_commits"])
     _require(all(type(c) is str and len(c) == 40 and all(ch in "0123456789abcdef" for ch in c) for c in listed)
              and len(set(listed)) == len(listed),
@@ -633,7 +712,12 @@ __all__ = [
     "SURFACE_FIELDS",
     "VISIBILITY_FIELDS",
     "LeanFrontendCacheError",
+    "INSTANCE_MODE_NEVER_EXPOSED",
+    "INSTANCE_MODE_PRIVATE_READS",
     "MASK_FILE_NAME_TEMPLATE",
+    "MASK_SOURCES",
+    "MASK_SOURCE_INSTANCE",
+    "MASK_SOURCE_SAM2",
     "MAXIMUM_PROPOSALS_PER_FRAME",
     "MINIMUM_VISIBLE_PIXELS",
     "VIEW_FRAGMENT_FIELDS",
@@ -645,9 +729,11 @@ __all__ = [
     "check_volume_records",
     "fragment_aabb",
     "frame_seal_payload",
+    "instance_label_masks",
     "mask_sha256_of",
     "project_surface",
     "seal_episode",
+    "sealed_mask_source",
     "sha",
     "validate_contract",
     "verify_frame_seal",

@@ -159,6 +159,49 @@
     "recovery_pass_kept_for_caches_generated_before_this_ruling": true,
     "plain_language_zh": "裁决 51：SAM 的 mask 本来就在内存里，生成时顺手按 cache 的色块顺序写成 NNNN.masks.npz 放在帧文件旁边（每帧约 6 KiB，帧本身约 224 KiB）。这样 S0-04 的重叠标注和 S1-04 的诊断标注直接从 cache 读 mask，不再需要裁决 48 那趟只跑 SAM 的回收（约 13 小时 GPU）。不另加封印：帧封印已经覆盖每个色块的 mask_sha256，读者必须按像素重算摘要再用，对不上就失败。旧 cache 仍可用 --recover-masks 补，回收模式保留。"
   },
+  "mask_source": {
+    "decision_id": "D-224-S1 ruling 72",
+    "ruled_on": "2026-09-25",
+    "registered_values": [
+      "simulator_instance_masks",
+      "sam2"
+    ],
+    "main_table": "simulator_instance_masks",
+    "robustness_appendix": "sam2",
+    "one_cache_root_holds_one_mask_source": true,
+    "sam2": {
+      "masks": "the frozen SAM 2.1 automatic mask generator of proposal_rule (fixed grid, ruling-43 NMS), or its recovered masks read through --masks-from",
+      "private_reads": []
+    },
+    "simulator_instance_masks": {
+      "masks": "one boolean mask per label value of the frame's private instance image that the frame's object_id_to_entity_id lists",
+      "private_reads": [
+        "private/NNNN.frame.json:observation_index",
+        "private/NNNN.frame.json:frame_digest",
+        "private/NNNN.frame.json:instance_mask_path",
+        "private/NNNN.frame.json:object_id_to_entity_id:label_values_only",
+        "private/NNNN.instance.png:pixel_labels_reduced_to_anonymous_boolean_masks"
+      ],
+      "never_exposed": [
+        "instance_label_value",
+        "object_id",
+        "object_type",
+        "object_pose",
+        "object_visibility_count",
+        "truth_box",
+        "object_id_to_entity_id_mapping"
+      ],
+      "private_record_must_match_the_public_frame": "observation_index equals the frame index and frame_digest equals the public frame_digest, else the episode fails",
+      "boundary_note_zh": "实例分割模式下生成器要读私有面，这是本前端的定义而不是泄漏：它只读每帧私有记录的帧号与帧摘要（核对和公开帧是同一帧）、实例图路径和标签值集合，以及实例图的像素，把每个标签的像素区域变成一张匿名布尔 mask；标签值、物体 ID、类型、位姿、可见像素数、真值盒与 ID 映射本身一律不进 cache。之后与 SAM 色块完全同路：同一准入（≥196 像素、每帧 ≤64、按摘要排序）、同一 DINOv2 描述子、同一深度几何与体积、同一因果位姿。身份仍由方法从外观与位置推断；teacher 侧的两段封存（S0-03）不变。"
+    },
+    "admission_rule_is_proposal_rule_unchanged": true,
+    "overflow_is_a_construction_failure_never_truncation": true,
+    "descriptors_geometry_volumes_and_pose_unchanged": true,
+    "episode_seal_carries_the_source_unless_sam2": true,
+    "an_entry_that_names_a_source_refuses_a_cache_sealed_with_another": true,
+    "receipts_record_the_source": true,
+    "plain_language_zh": "裁决 72（2026-09-25）：主表的公开前端改用模拟器实例分割，SAM2 降为鲁棒性附录。解决的问题：SAM2 过分割与漏检占节点 F1 损失的一半，是与记忆方法无关的混杂因素。输入是同一批 S1-02 episode；输出是同形的 cache（色块、描述子、几何、体积、封印、mask 文件），差别只在 mask 来自哪里。例如一帧里模拟器标了沙发、墙、杯子三个实例，就得到三个色块，沙发不会再被切成五块。它不等于把身份告诉方法——cache 里没有任何实例标签，方法仍要自己判断这个色块是不是上一帧那个实体。一个 cache 根只存一种来源；episode 封印对实例分割写进来源，SAM2 封印保持裁决 72 之前的字节（已建的 SAM2 cache 不必重建），读取入口声明来源后拒绝另一种来源的 cache，所以两种 cache 不会被混进同一张表。"
+  },
   "descriptor_sets": {
     "primary": {
       "name": "vits14",
@@ -294,12 +337,16 @@
     "episode_seal_payload": [
       "episode_frame_count",
       "frame_seals",
-      "frontend_config_sha256"
+      "frontend_config_sha256",
+      "mask_source"
     ],
+    "mask_source_in_the_payload_only_when_not_sam2": true,
     "sealed_before_any_private_file_is_opened": true,
+    "private_read_before_the_seal_only_under": "simulator_instance_masks",
     "cache_contains_no_house_id_scene_name_object_id_or_private_derived_value": true,
+    "private_derived_value_admitted_only_as": "mask_pixel_geometry_under_simulator_instance_masks_anonymised_and_digest_ordered",
     "five_arms_read_byte_identical_clones": true,
-    "plain_language_zh": "每帧封印它自己的全部公开内容与前端资产摘要，每条 episode 封印它全部帧封印。封印在任何私有文件被打开之前完成，所以「换了私有文件而 cache 逐字节不变」是可检验的。cache 里不含 house ID、场景名、对象 ID 或任何私有派生量；五个臂读的是同一份 cache 的等字节副本。"
+    "plain_language_zh": "每帧封印它自己的全部公开内容与前端资产摘要，每条 episode 封印它全部帧封印。封印在任何私有文件被打开之前完成，所以「换了私有文件而 cache 逐字节不变」是可检验的。cache 里不含 house ID、场景名、对象 ID 或任何私有派生量；五个臂读的是同一份 cache 的等字节副本。裁决 72：实例分割模式下生成器在封印之前读私有实例图的 mask 像素几何（mask_source 块列出的五项，别的都不读），这是该前端的定义；episode 封印对非 SAM2 来源把 mask_source 写进封印内容。"
   },
   "failure_reasons": [
     "proposal_overflow",
@@ -331,7 +378,8 @@
       "code_commit",
       "wall_clock_seconds",
       "requested_workers",
-      "actual_workers"
+      "actual_workers",
+      "mask_source"
     ],
     "fragments_per_frame_histogram_is_reported_for_every_count_including_the_cap": true,
     "plain_language_zh": "回执必须报每帧色块数的完整分布（包括贴着 64 上限的那一档），因为「从没溢出过」和「经常贴顶」是两件事，后者说明上限正在改变数据。成品率按「至少有一个色块的帧」算并如实写出零色块帧数。"
@@ -383,7 +431,8 @@
       "D-224-S1 裁决 49（2026-09-22 批准，原话「裁决 49 取 (a)，改 camera_pose 符号、S1-03 读取侧修正并重钉、cache 重建到新根、旧根改名保留、mask 回收跑完复用；是否允许 runner 读回收 mask 免跑 SAM：允许」）：public_pose_correction 块登记读取侧修正与适用提交；cache 生成新增 --masks-from（读回收 mask、逐 mask 按像素核对摘要、不跑 SAM）。",
       "D-224-S1 裁决 51（2026-09-22 批准，原话「裁决 51 同意，S1-03 cache 生成时直接写 mask，合同就地加规则并重钉，不再单独跑回收」）：fragment_masks 块登记生成时写 mask 的规则；裁决 48 的回收模式保留给本裁决之前生成的 cache。",
       "D-224-S1 裁决 49 的登记（2026-09-23）：裁决 50 的重新生成在提交 7c10d2c 下完成，该提交的编码器写 Ry(yaw)·Rx(+pitch)，故登记进 correct_encoder_since_code_commits，读者按原样读它生成的 episode，不再施加修正。",
-      "D-224-S1 裁决 53 的登记（2026-09-23，用户原话「授权在 S1-03 合同登记 5f9aa71 并重钉，然后重建 cache」）：裁决 53 的重新生成在提交 5f9aa71 下完成（LOG-243 续四：S1-02b 非空成品率 28/37 过 0.6 门，全 50 条 39 成 11 败），该提交与 7c10d2c 之间 camera_pose 编码器未改、仍写 Ry(yaw)·Rx(+pitch)，故登记进 correct_encoder_since_code_commits，读者按原样读它生成的 39 条成功 episode；cache 重建到新根 lean-s1-03-<cache 提交>；7c10d2c 的 episode 保留为审计源，不再是数据。"
+      "D-224-S1 裁决 53 的登记（2026-09-23，用户原话「授权在 S1-03 合同登记 5f9aa71 并重钉，然后重建 cache」）：裁决 53 的重新生成在提交 5f9aa71 下完成（LOG-243 续四：S1-02b 非空成品率 28/37 过 0.6 门，全 50 条 39 成 11 败），该提交与 7c10d2c 之间 camera_pose 编码器未改、仍写 Ry(yaw)·Rx(+pitch)，故登记进 correct_encoder_since_code_commits，读者按原样读它生成的 39 条成功 episode；cache 重建到新根 lean-s1-03-<cache 提交>；7c10d2c 的 episode 保留为审计源，不再是数据。",
+      "D-224-S1 裁决 72（2026-09-25 16:35 CST 批准，原话「裁决 72 取 (A)(a)(B)(a)(C)(a)(D)(a)」）：mask_source 块登记两个来源——simulator_instance_masks（主表）与 sam2（鲁棒性附录）；实例分割模式只读私有实例图的 mask 像素几何与核对帧身份所需的两项；准入规则不变；episode 封印对非 SAM2 来源写进 mask_source（SAM2 封印字节不变），读取入口拒绝另一来源的 cache；回执记来源。"
     ]
   }
 }

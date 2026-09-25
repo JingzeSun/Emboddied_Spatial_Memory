@@ -88,11 +88,11 @@ def sealed_cache_frame(tick: int, seed: int) -> dict:
     return frame
 
 
-def write_cache_episode(cache_dir: Path, frames: list[dict]) -> None:
+def write_cache_episode(cache_dir: Path, frames: list[dict], mask_source: str = fc.MASK_SOURCE_SAM2) -> None:
     cache_dir.mkdir(parents=True, exist_ok=True)
     for index, frame in enumerate(frames):
         (cache_dir / f"{index:04d}{cache_runner.FRAME_FILE_SUFFIX}").write_bytes(gzip.compress(json.dumps(frame).encode("utf-8")))
-    sealed = fc.seal_episode(frames, frontend_config_sha256=fc.D223_FRONTEND_CONFIG_SHA256)
+    sealed = fc.seal_episode(frames, frontend_config_sha256=fc.D223_FRONTEND_CONFIG_SHA256, mask_source=mask_source)
     (cache_dir / "episode_seal.json").write_text(json.dumps(sealed), encoding="utf-8")
     (cache_dir / "receipt.json").write_text(json.dumps({"status": "succeeded"}), encoding="utf-8")
 
@@ -190,6 +190,33 @@ class SealVerificationTests(unittest.TestCase):
             (cache_dir / f"0001{cache_runner.FRAME_FILE_SUFFIX}").unlink()
             with self.assertRaises(diag.DiagnosticsFailure):
                 diag.load_cache_episode(cache_dir, ASSETS)
+
+    def test_ruling_72_the_seal_is_recomputed_with_its_declared_source_and_an_entry_refuses_the_other(self) -> None:
+        import lean_s2_04_evaluate_episode as s2_04
+        frames = [sealed_cache_frame(1, 1), sealed_cache_frame(2, 2)]
+        with tempfile.TemporaryDirectory() as directory:
+            cache_dir = Path(directory) / "procthor10k-0.1.2-train-00001"
+            write_cache_episode(cache_dir, frames, mask_source=fc.MASK_SOURCE_INSTANCE)
+            _, seal = diag.load_cache_episode(cache_dir, ASSETS)
+            self.assertEqual(seal["mask_source"], fc.MASK_SOURCE_INSTANCE)
+            s2_04.verify_cache_episode(cache_dir, ASSETS, mask_source=fc.MASK_SOURCE_INSTANCE)
+            s2_04.verify_cache_episode(cache_dir, ASSETS)                    # a diagnostic that names no source reads either
+            with self.assertRaises(diag.DiagnosticsFailure) as caught:     # mixing: a sam2 run over an instance cache
+                s2_04.verify_cache_episode(cache_dir, ASSETS, mask_source=fc.MASK_SOURCE_SAM2)
+            self.assertIn("mask source", caught.exception.detail)
+            # an instance seal relabelled as sam2 by dropping the source no longer matches its payload
+            relabelled = {k: v for k, v in seal.items() if k != "mask_source"}
+            (cache_dir / "episode_seal.json").write_text(json.dumps(relabelled), encoding="utf-8")
+            for load in (lambda: diag.load_cache_episode(cache_dir, ASSETS),
+                         lambda: s2_04.verify_cache_episode(cache_dir, ASSETS, mask_source=fc.MASK_SOURCE_SAM2)):
+                with self.assertRaises(diag.DiagnosticsFailure) as caught:
+                    load()
+                self.assertEqual(caught.exception.detail, "episode seal mismatch")
+            # a sam2 cache refuses an instance run the same way
+            write_cache_episode(cache_dir, frames)
+            with self.assertRaises(diag.DiagnosticsFailure):
+                s2_04.verify_cache_episode(cache_dir, ASSETS, mask_source=fc.MASK_SOURCE_INSTANCE)
+            s2_04.verify_cache_episode(cache_dir, ASSETS, mask_source=fc.MASK_SOURCE_SAM2)
 
     def test_the_registered_descriptor_asset_digests_are_the_s1_01_registry_values(self) -> None:
         digests = diag.registered_descriptor_asset_sha256s()

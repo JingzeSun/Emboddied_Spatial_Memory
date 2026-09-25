@@ -296,8 +296,10 @@ def load_cache_episode(cache_dir: Path, descriptor_asset_sha256s: dict[str, str]
             raise DiagnosticsFailure("cache_missing_or_unsealed", f"{path.name}: {exc.detail}") from exc
         frames.append(frame)
     try:
+        # ruling 72: recomputed with the mask source the seal declares, so a relabelled seal cannot pass
         recomputed = fc.seal_episode([{"tick": f["tick"], "frame_seal": f["frame_seal"]} for f in frames],
-                                     frontend_config_sha256=fc.D223_FRONTEND_CONFIG_SHA256)
+                                     frontend_config_sha256=fc.D223_FRONTEND_CONFIG_SHA256,
+                                     mask_source=fc.sealed_mask_source(seal))
     except fc.LeanFrontendCacheError as exc:
         raise DiagnosticsFailure("cache_missing_or_unsealed", exc.detail) from exc
     if recomputed["payload_sha256"] != seal.get("payload_sha256"):

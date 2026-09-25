@@ -8,6 +8,7 @@ Usage (server, frontend env; the S2-04 and S2-01 bits must be open, every policy
         --episode-id procthor10k-0.1.2-train-00406 \\
         --arm TAF --config '{"theta_a": 0.6, "d_a": null}' \\
         --descriptor reid_projection:vitb14 --weights <reid_head_vitb14.json> \\
+        --mask-source simulator_instance_masks \\
         [--heads <vsmt-lean weights payload for a learned arm>] \\
         --output-root /root/autodl-tmp/vsmt_private/lean-s2-04-<commit> [--frames N]
 
@@ -84,12 +85,14 @@ def gather_teacher_policy() -> tuple[dict[str, Any], list[str]]:
     return {"runner": runner_policy, "teacher": policy}, missing
 
 
-def verify_cache_episode(cache_dir: Path, descriptor_asset_sha256s: dict[str, Any]) -> tuple[dict[str, Any], list[Path]]:
+def verify_cache_episode(cache_dir: Path, descriptor_asset_sha256s: dict[str, Any], *,
+                         mask_source: str | None = None) -> tuple[dict[str, Any], list[Path]]:
     """The S1-04 loader's checks (every frame seal recomputed, the episode seal recomputed) without keeping the frames.
 
     白话：和 S1-04 的加载器做同样的核对——逐帧重算封印、重算 episode 封印——但核对完就丢掉帧，只留
     帧文件路径；处理阶段再逐帧读入。最大的开发 episode 有 3473 帧，整条读进内存要近 20 GB，流式读每个
-    worker 只占一两 GB，16 核才用得上。核对与处理读到的是同一批字节，产物不变。
+    worker 只占一两 GB，16 核才用得上。核对与处理读到的是同一批字节，产物不变。裁决 72：封印按它声明的
+    mask 来源重算；调用方给了 ``mask_source`` 时，另一来源的 cache 一律拒绝，实例分割与 SAM2 不会混用。
     """
 
     receipt_path = cache_dir / "receipt.json"
@@ -101,6 +104,13 @@ def verify_cache_episode(cache_dir: Path, descriptor_asset_sha256s: dict[str, An
     seal = load_json(seal_path)
     if seal.get("frontend_config_sha256") != diag.fc.D223_FRONTEND_CONFIG_SHA256:
         raise diag.DiagnosticsFailure("cache_missing_or_unsealed", "episode seal names another frontend config")
+    try:
+        sealed_source = diag.fc.sealed_mask_source(seal)
+    except diag.fc.LeanFrontendCacheError as exc:
+        raise diag.DiagnosticsFailure("cache_missing_or_unsealed", exc.detail) from exc
+    if mask_source is not None and sealed_source != mask_source:
+        raise diag.DiagnosticsFailure("cache_missing_or_unsealed",
+                                      f"episode sealed with mask source {sealed_source}, the run names {mask_source}")
     paths = sorted(cache_dir.glob(f"*{diag.cache_runner.FRAME_FILE_SUFFIX}"))
     if len(paths) != int(seal.get("episode_frame_count", -1)):
         raise diag.DiagnosticsFailure("cache_missing_or_unsealed", f"{len(paths)} frame files for a seal over {seal.get('episode_frame_count')}")
@@ -115,7 +125,8 @@ def verify_cache_episode(cache_dir: Path, descriptor_asset_sha256s: dict[str, An
         seal_inputs.append({"tick": frame["tick"], "frame_seal": frame["frame_seal"]})
         del frame
     try:
-        recomputed = diag.fc.seal_episode(seal_inputs, frontend_config_sha256=diag.fc.D223_FRONTEND_CONFIG_SHA256)
+        recomputed = diag.fc.seal_episode(seal_inputs, frontend_config_sha256=diag.fc.D223_FRONTEND_CONFIG_SHA256,
+                                          mask_source=sealed_source)
     except diag.fc.LeanFrontendCacheError as exc:
         raise diag.DiagnosticsFailure("cache_missing_or_unsealed", exc.detail) from exc
     if recomputed["payload_sha256"] != seal.get("payload_sha256"):
@@ -194,6 +205,8 @@ def main() -> int:
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--calibration", action="store_true", help="S2-05 calibration pass: also write the calibration histograms")
     parser.add_argument("--elu-p-counts", action="store_true", help="S2-05 fit pass: also write the ELU-P count records")
+    parser.add_argument("--mask-source", required=True, choices=list(diag.fc.MASK_SOURCES),
+                        help="ruling 72: the mask source the cache must be sealed with; a cache of the other source is refused")
     parser.add_argument("--allow-dirty", action="store_true", help="tests only")
     args = parser.parse_args()
 
@@ -235,7 +248,7 @@ def main() -> int:
 
     cache_dir = Path(args.cache_root).resolve() / args.episode_id
     episode_root = Path(args.episode_root).resolve()
-    seal, frame_paths = verify_cache_episode(cache_dir, diag.registered_descriptor_asset_sha256s())
+    seal, frame_paths = verify_cache_episode(cache_dir, diag.registered_descriptor_asset_sha256s(), mask_source=args.mask_source)
     if args.frames is not None:
         frame_paths = frame_paths[: int(args.frames)]
     count = len(frame_paths)
@@ -296,7 +309,7 @@ def main() -> int:
     streams = finish_streams(labels_stream, training_stream, nuisance_stream)  # closed before the re-read (LOG-256)
     summary.update({
         "stage": ev.STAGE_ID, "code_commit": commit, "cache_root": str(cache_dir), "episode_root": str(episode_root),
-        "episode_seal_sha256": seal["payload_sha256"], "frames_requested": args.frames, "config": config,
+        "episode_seal_sha256": seal["payload_sha256"], "mask_source": args.mask_source, "frames_requested": args.frames, "config": config,
         "descriptor": args.descriptor, "weights_sha256": weights_sha256, "heads": args.heads,
         "policy": policy, "window": window, "executed_interventions": len(executed),
         "report": episode["report"], "diagnostics": episode["diagnostics"],

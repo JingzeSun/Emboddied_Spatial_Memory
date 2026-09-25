@@ -7,6 +7,10 @@ Subcommands (server, frontend env; the S2-05, S2-04 and S2-01 bits must be open 
     train               train the VSMT-lean (or AssocOnly) heads on a pass's training records
     table               assemble the development table from the passes' episode receipts
 
+Every run-pass names the cache's mask source (ruling 72: ``--mask-source simulator_instance_masks`` for the
+main table, ``sam2`` for the robustness appendix); an episode sealed with another source fails, a resume or
+a merge over receipts of two sources is refused, and the table records the one source its rows share.
+
 Typical order (the contract's ``passes.order``):
     run-pass --pass calibration --arm LOW --config '{"d_low": null}' --calibration ...
     calibration-report --output-root <root>
@@ -120,7 +124,8 @@ def run_episode_task(task: dict[str, Any]) -> dict[str, Any]:
     out_dir = Path(task["output_root"]) / task["episode_id"] / task["arm"]
     command = [sys.executable, str(S2_04_ENTRY), "--cache-root", task["cache_root"], "--episode-root", task["episode_root"],
                "--geometry-root", task["geometry_root"], "--episode-id", task["episode_id"], "--arm", task["arm"],
-               "--config", task["config"], "--descriptor", task["descriptor"], "--output-root", task["output_root"], "--device", task["device"]]
+               "--config", task["config"], "--descriptor", task["descriptor"], "--output-root", task["output_root"], "--device", task["device"],
+               "--mask-source", task["mask_source"]]
     for flag, value in (("--weights", task.get("weights")), ("--heads", task.get("heads"))):
         if value:
             command += [flag, value]
@@ -210,15 +215,19 @@ def cmd_run_pass(args: argparse.Namespace) -> int:
         if receipt_path.exists() and args.resume:
             receipt = load_json(receipt_path)
             receipt["episode_id"] = task["episode_id"]
+            if receipt_mask_source(receipt) != args.mask_source:  # ruling 72: one pass, one mask source
+                return refuse(f"--resume with --mask-source {args.mask_source} over a receipt of {receipt_mask_source(receipt)}: {receipt_path}")
             kept.append(receipt)
             continue
         if receipt_path.parent.exists() and any(receipt_path.parent.iterdir()):
             return refuse(f"output exists and is not empty (pass --resume to keep receipts): {receipt_path.parent}")
         todo.append({**task, "arm": args.arm, "config": json.dumps(config), "descriptor": args.descriptor, "weights": args.weights,
                      "heads": args.heads, "cache_root": str(cache_root), "geometry_root": str(geometry_root), "output_root": str(output_root),
+                     "mask_source": args.mask_source,
                      "device": args.device, "flags": (["--calibration"] if args.calibration else []) + (["--elu-p-counts"] if args.elu_p_counts else [])})
     actual = max(1, min(args.workers, max(1, len(todo))))
     plan = {"stage": dev.STAGE_ID, "pass": args.pass_name, "arm": args.arm, "config": config, "descriptor": args.descriptor,
+            "mask_source": args.mask_source,
             "heads": args.heads, "commit": commit, "episodes_planned": [t["episode_id"] for t in tasks], "episodes_kept": [r["episode_id"] for r in kept],
             "episodes_to_run": [t["episode_id"] for t in todo], "requested_workers": args.workers, "actual_workers": actual,
             "worker_basis": args.worker_basis, "merge_order_rule": dev.MERGE_ORDER_RULE, "policy": policy,
@@ -251,8 +260,20 @@ def cmd_run_pass(args: argparse.Namespace) -> int:
 # merges
 # --------------------------------------------------------------------------
 
+def receipt_mask_source(receipt: dict[str, Any]) -> str:
+    """The mask source an S2-04 receipt ran on; receipts from before ruling 72 carry none and ran on the SAM2 cache."""
+
+    return str(receipt.get("mask_source") or s2_04.diag.fc.MASK_SOURCE_SAM2)
+
+
 def episode_dirs(pass_root: Path, arm: str) -> list[Path]:
-    return sorted(p for p in pass_root.iterdir() if p.is_dir() and (p / arm / "receipt.json").exists())
+    """The episode directories of one arm in one pass; a pass whose receipts name two mask sources is refused (ruling 72)."""
+
+    dirs = sorted(p for p in pass_root.iterdir() if p.is_dir() and (p / arm / "receipt.json").exists())
+    sources = {receipt_mask_source(load_json(d / arm / "receipt.json")) for d in dirs}
+    if len(sources) > 1:
+        raise SystemExit(refuse(f"{pass_root.name} {arm}: receipts on more than one mask source {sorted(sources)}"))
+    return dirs
 
 
 def cmd_calibration_report(args: argparse.Namespace) -> int:
@@ -356,6 +377,7 @@ def cmd_table(args: argparse.Namespace) -> int:
     reports: dict[str, dict[str, Any]] = {}
     failures: dict[str, list[dict[str, Any]]] = {}
     illegal: dict[str, int] = {}
+    sources: dict[str, set[str]] = {}
     for arm, pass_name in source.items():
         pass_root = output_root / pass_name
         receipt_path = pass_root / f"pass_receipt.{arm}.json"
@@ -371,13 +393,17 @@ def cmd_table(args: argparse.Namespace) -> int:
                 continue
             reports[arm][episode_dir.name] = receipt["report"]
             illegal[arm] += int(receipt.get("illegal_programs", 0))
+            sources.setdefault(receipt_mask_source(receipt), set()).add(arm)
+    if len(sources) > 1:  # ruling 72: every row of one table on one frontend
+        return refuse(f"the arms ran on different mask sources: { {k: sorted(v) for k, v in sources.items()} }")
     common = set.intersection(*(set(r) for r in reports.values()))
     dropped = {arm: sorted(set(r) - common) for arm, r in reports.items()}
     try:
         table = dev.development_table({arm: {h: r for h, r in rows.items() if h in common} for arm, rows in reports.items()})
     except dev.LeanDevelopmentError as exc:
         return refuse(str(exc))
-    table.update({"stage": dev.STAGE_ID, "code_commit": _git("rev-parse", "HEAD"), "failures_per_arm": failures,
+    table.update({"stage": dev.STAGE_ID, "code_commit": _git("rev-parse", "HEAD"), "mask_source": next(iter(sources), None),
+                  "failures_per_arm": failures,
                   "episodes_dropped_for_missing_an_arm": dropped, "illegal_programs_per_arm": illegal,
                   "interface_issues": [f"{arm}: {len(rows)} episodes failed in the pass" for arm, rows in failures.items() if rows]
                   + [f"{arm}: {n} illegal programs fell back to the empty program" for arm, n in illegal.items() if n]
@@ -402,6 +428,8 @@ def main() -> int:
     run.add_argument("--geometry-root", required=True)
     run.add_argument("--output-root", required=True)
     run.add_argument("--descriptor", required=True, choices=list(lr.DESCRIPTOR_CHOICES))
+    run.add_argument("--mask-source", required=True, choices=list(s2_04.diag.fc.MASK_SOURCES),
+                     help="ruling 72: the cache's mask source; every episode's seal must carry it")
     run.add_argument("--weights", default=None)
     run.add_argument("--workers", type=int, default=1)
     run.add_argument("--worker-basis", default="")

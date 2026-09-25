@@ -408,6 +408,81 @@ class TestAssignmentView(unittest.TestCase):
                 self.assertEqual(row_s[field], row_b[field])
 
 
+class TestMaskSource(unittest.TestCase):
+    """Ruling 72: the instance-segmentation source, its anonymous masks and the source in the episode seal."""
+
+    @staticmethod
+    def seal_inputs(count: int = 2) -> list[dict]:
+        return [{"tick": t, "frame_seal": {"payload_sha256": f"{t:064x}"}} for t in range(1, count + 1)]
+
+    def test_a_sam2_seal_keeps_the_pre_ruling_72_bytes(self) -> None:
+        frames = self.seal_inputs()
+        old_payload = {"episode_frame_count": 2, "frame_seals": [f["frame_seal"]["payload_sha256"] for f in frames],
+                       "frontend_config_sha256": fc.D223_FRONTEND_CONFIG_SHA256}
+        sealed = fc.seal_episode(frames, frontend_config_sha256=fc.D223_FRONTEND_CONFIG_SHA256)
+        self.assertEqual(sealed["payload_sha256"], fc.sha(old_payload))
+        self.assertNotIn("mask_source", sealed)
+        self.assertEqual(sealed, fc.seal_episode(frames, frontend_config_sha256=fc.D223_FRONTEND_CONFIG_SHA256,
+                                                 mask_source=fc.MASK_SOURCE_SAM2))
+        self.assertEqual(fc.sealed_mask_source(sealed), fc.MASK_SOURCE_SAM2)
+
+    def test_an_instance_seal_carries_its_source_and_cannot_be_relabelled(self) -> None:
+        frames = self.seal_inputs()
+        sam2 = fc.seal_episode(frames, frontend_config_sha256=fc.D223_FRONTEND_CONFIG_SHA256)
+        instance = fc.seal_episode(frames, frontend_config_sha256=fc.D223_FRONTEND_CONFIG_SHA256,
+                                   mask_source=fc.MASK_SOURCE_INSTANCE)
+        self.assertEqual(instance["mask_source"], fc.MASK_SOURCE_INSTANCE)
+        self.assertEqual(fc.sealed_mask_source(instance), fc.MASK_SOURCE_INSTANCE)
+        self.assertNotEqual(instance["payload_sha256"], sam2["payload_sha256"])
+        # dropping the source from an instance seal makes it read as sam2, whose recomputed payload differs
+        relabelled = {k: v for k, v in instance.items() if k != "mask_source"}
+        recomputed = fc.seal_episode(frames, frontend_config_sha256=fc.D223_FRONTEND_CONFIG_SHA256,
+                                     mask_source=fc.sealed_mask_source(relabelled))
+        self.assertNotEqual(recomputed["payload_sha256"], relabelled["payload_sha256"])
+        with self.assertRaises(fc.LeanFrontendCacheError):
+            fc.seal_episode(frames, frontend_config_sha256=fc.D223_FRONTEND_CONFIG_SHA256, mask_source="sam")
+        with self.assertRaises(fc.LeanFrontendCacheError):
+            fc.sealed_mask_source({"mask_source": "oracle"})
+
+    def test_instance_masks_are_anonymous_one_per_listed_label_and_digest_ordered(self) -> None:
+        image = np.zeros((40, 40), dtype=np.uint16)
+        image[0:20, 0:20] = 1       # 400 px
+        image[20:40, 20:40] = 2     # 400 px
+        image[0:5, 30:40] = 3       # 50 px: a mask here, dropped later by admission
+        image[30:40, 0:10] = 7      # a label the frame's mapping does not list: not a mask
+        masks = fc.instance_label_masks(image, [1, 2, 3, 5])   # 5 is listed but absent from the image
+        self.assertEqual(len(masks), 3)
+        self.assertEqual([m.dtype for m in masks], [np.dtype(bool)] * 3)
+        self.assertEqual(sorted(int(m.sum()) for m in masks), [50, 400, 400])
+        self.assertEqual([fc.mask_sha256_of(m) for m in masks], sorted(fc.mask_sha256_of(m) for m in masks))
+        self.assertFalse((masks[0] & masks[1]).any() or (masks[0] & masks[2]).any() or (masks[1] & masks[2]).any())
+        with self.assertRaises(fc.LeanFrontendCacheError):
+            fc.instance_label_masks(image, [0, 1])            # 0 is background, never an instance
+        admitted = fc.admit_proposals([mask_of(m, f"region:{n:04d}") for n, m in enumerate(masks)])
+        self.assertEqual(len(admitted), 2)                    # the 50 px instance is below 196 px
+
+    def test_relabelling_the_instance_image_leaves_the_masks_byte_identical(self) -> None:
+        # DATA section eight, check 3 under ruling 72: only the pixel geometry is a frontend input
+        image = np.zeros((30, 30), dtype=np.uint16)
+        image[0:15, 0:15], image[15:30, 15:30], image[0:15, 20:30] = 1, 2, 3
+        permuted = np.zeros_like(image)
+        permuted[image == 1], permuted[image == 2], permuted[image == 3] = 7, 1, 40
+        original = fc.instance_label_masks(image, [1, 2, 3])
+        relabelled = fc.instance_label_masks(permuted, [40, 7, 1])
+        self.assertEqual([m.tobytes() for m in original], [m.tobytes() for m in relabelled])
+
+    def test_more_than_64_instances_is_a_construction_failure_not_a_truncation(self) -> None:
+        image = np.zeros((150, 150), dtype=np.uint16)
+        for n in range(65):
+            row, col = divmod(n, 10)
+            image[row * 15:row * 15 + 14, col * 15:col * 15 + 14] = n + 1     # 196 px each
+        masks = fc.instance_label_masks(image, list(range(1, 66)))
+        self.assertEqual(len(masks), 65)
+        with self.assertRaises(fc.LeanFrontendCacheError) as caught:
+            fc.admit_proposals([mask_of(m, f"region:{n:04d}") for n, m in enumerate(masks)])
+        self.assertEqual(caught.exception.reason, "proposal_overflow")
+
+
 class TestContract(unittest.TestCase):
     def setUp(self) -> None:
         self.contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
@@ -468,6 +543,36 @@ class TestContract(unittest.TestCase):
         renamed["fragment_masks"]["order"] = "whatever_order"
         with self.assertRaises(fc.LeanFrontendCacheError):
             fc.validate_contract(renamed)
+
+    def test_the_mask_source_block_is_bound_and_cannot_be_weakened(self) -> None:
+        block = self.contract["mask_source"]
+        self.assertEqual(tuple(block["registered_values"]), fc.MASK_SOURCES)
+        self.assertEqual(block["main_table"], fc.MASK_SOURCE_INSTANCE)
+        self.assertEqual(tuple(block[fc.MASK_SOURCE_INSTANCE]["private_reads"]), fc.INSTANCE_MODE_PRIVATE_READS)
+        self.assertEqual(block[fc.MASK_SOURCE_SAM2]["private_reads"], [])
+        for key in ("one_cache_root_holds_one_mask_source", "admission_rule_is_proposal_rule_unchanged",
+                    "overflow_is_a_construction_failure_never_truncation", "descriptors_geometry_volumes_and_pose_unchanged",
+                    "episode_seal_carries_the_source_unless_sam2",
+                    "an_entry_that_names_a_source_refuses_a_cache_sealed_with_another"):
+            weakened = json.loads(json.dumps(self.contract))
+            weakened["mask_source"][key] = False
+            with self.assertRaises(fc.LeanFrontendCacheError, msg=key):
+                fc.validate_contract(weakened)
+        widened = json.loads(json.dumps(self.contract))
+        widened["mask_source"][fc.MASK_SOURCE_INSTANCE]["private_reads"].append("private/NNNN.frame.json:object_poses")
+        with self.assertRaises(fc.LeanFrontendCacheError):
+            fc.validate_contract(widened)
+        swapped = json.loads(json.dumps(self.contract))
+        swapped["mask_source"]["main_table"] = fc.MASK_SOURCE_SAM2
+        with self.assertRaises(fc.LeanFrontendCacheError):
+            fc.validate_contract(swapped)
+        for key, value in (("mask_source_in_the_payload_only_when_not_sam2", False),
+                           ("private_read_before_the_seal_only_under", fc.MASK_SOURCE_SAM2),
+                           ("private_derived_value_admitted_only_as", "anything_private")):
+            changed = json.loads(json.dumps(self.contract))
+            changed["seal"][key] = value
+            with self.assertRaises(fc.LeanFrontendCacheError, msg=key):
+                fc.validate_contract(changed)
 
     def test_the_proposal_boundary_is_the_d215_one(self) -> None:
         d215 = json.loads((PROJECT_ROOT / "configs" / "vsmt" /
