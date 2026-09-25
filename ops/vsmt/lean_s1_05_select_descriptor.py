@@ -121,7 +121,11 @@ def check_report_shape(report: Mapping[str, Any]) -> None:
     """The report must be a completed S1-04 diagnostics stage receipt whose ReID block ran."""
 
     _require(report.get("stage") == S1_04_STAGE_NAME, "report_is_not_an_s1_04_diagnostics_receipt")
-    _require(report.get("episodes_run") == report.get("episodes_planned") and report.get("episodes_failed") == [],
+    # a --resume stage counts the episodes it ran plus the receipts it kept (S1-04 rerun rules); every planned
+    # episode must be one or the other, each once, and none failed
+    kept = list(report.get("episodes_kept_from_receipts") or [])
+    _require(isinstance(report.get("episodes_run"), int) and len(kept) == len(set(kept))
+             and report["episodes_run"] + len(kept) == report.get("episodes_planned") and report.get("episodes_failed") == [],
              "report_stage_incomplete_or_episodes_failed")
     _require(isinstance(report.get("cache_episode_seals"), dict) and report["cache_episode_seals"], "report_pins_no_cache_episode_seals")
     _require(set(report["cache_episode_seals"]) == set(report.get("per_house", {})), "report_per_house_differs_from_cache_seals")

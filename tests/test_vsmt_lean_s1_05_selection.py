@@ -222,6 +222,10 @@ class SelectionOnSyntheticReports(unittest.TestCase):
         for edit, code in (
             (lambda r: r.__setitem__("stage", "s1-03"), "report_is_not_an_s1_04_diagnostics_receipt"),
             (lambda r: r.__setitem__("episodes_failed", ["procthor10k-0.1.2-train-00001"]), "report_stage_incomplete_or_episodes_failed"),
+            (lambda r: r.__setitem__("episodes_run", r["episodes_planned"] - 1), "report_stage_incomplete_or_episodes_failed"),
+            (lambda r: r.update(episodes_run=r["episodes_planned"] - 1,
+                                episodes_kept_from_receipts=["procthor10k-0.1.2-train-00001", "procthor10k-0.1.2-train-00001"]),
+             "report_stage_incomplete_or_episodes_failed"),
             (lambda r: r["per_house"].pop("procthor10k-0.1.2-train-00001"), "report_per_house_differs_from_cache_seals"),
             (lambda r: r.pop("reid"), "report_has_no_reid_block"),
         ):
@@ -230,6 +234,13 @@ class SelectionOnSyntheticReports(unittest.TestCase):
             with self.subTest(code=code), self.assertRaises(s105.S105Refused) as caught:
                 receipt_for(report)
             self.assertEqual(str(caught.exception), code)
+
+    def test_a_resumed_stage_counts_the_kept_receipts(self) -> None:
+        # S1-04 --resume keeps succeeded receipts and runs the rest; the stage receipt reports both
+        report = make_report()
+        kept = sorted(report["cache_episode_seals"])[:3]
+        report.update(episodes_run=report["episodes_planned"] - len(kept), episodes_kept_from_receipts=kept)
+        receipt_for(report)
 
     def test_recall_at_the_frozen_values_reads_the_ruling_57_grid_point(self) -> None:
         point = s105.recall_at_frozen_values(curve(0.05))
