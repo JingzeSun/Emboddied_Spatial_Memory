@@ -189,12 +189,18 @@ TRUTH_BOX_SOURCE = "simulator_initial_axis_aligned_box_plus_recorded_translation
 #: among those the most weight -- because F1 counts pairs and the weight was meant to break ties, not to
 #: trade a pair for a shorter distance (four pairs 0.5 m apart had lost to three pairs at 0 m).
 NODE_MATCHING_OBJECTIVE = "most_pairs_then_most_weight"
-CENTROID_MATCHING_RULE = "same_predictions_and_truth_objects_most_pairs_then_maximum_weight_matching_on_1_over_1_plus_centroid_distance_m_pairs_beyond_delta_moved_m_excluded"
+#: D-224-S1 ruling 77 (1)(a) (2026-09-26, LOG-263 sequel): a primary-column pair must also be the entity's own object (the
+#: evaluator's evidence-majority identity), and the place test is "centroid within delta_moved_m OR inside the truth box
+#: padded by NODE_BOX_PAD_M".  Under the bare distance test 18 percent (TAF) and 34 percent (LOW) of the matched pairs were an entity of
+#: another object or of none; a large object seen from one side has its visible-surface centroid beyond 0.5 m of the box centre.
+NODE_BOX_PAD_M = 0.25
+NODE_IDENTITY_RULE = "the_entity_resolves_to_the_object_by_the_strict_majority_of_its_evidence_an_ambiguous_entity_matches_nothing"
+CENTROID_MATCHING_RULE = "same_predictions_and_truth_objects_most_pairs_then_maximum_weight_matching_on_1_over_1_plus_centroid_distance_m_a_pair_qualifies_when_the_entity_resolves_to_the_object_and_its_centroid_is_within_delta_moved_m_or_inside_the_truth_box_padded_by_box_pad_m"
 CENTROID_MATCHING_DISTANCE_SOURCE = "labels.existence.delta_moved_m"
 CENTROID_MATCHING_ROLE = "primary_node_column_and_the_selection_metric_never_in_the_main_gate"
 IOU_MATCHING_RULE = "same_predictions_and_truth_objects_most_pairs_then_maximum_total_3d_aabb_iou_matching_pairs_below_iou_min_excluded"
 IOU_MATCHING_ROLE = "secondary_column_reported_beside_node_prf1_never_the_selection_metric_never_in_the_main_gate"
-NODE_DYN_THOR_RELATION = "same_matching_mechanism_different_overlap_test"
+NODE_DYN_THOR_RELATION = "primary_adds_an_identity_test_and_a_box_test_the_secondary_iou_column_keeps_the_dyn_thor_original_overlap_test"
 STRONGEST_CONTROL_RULE = "best_house_mean_per_metric_among_controls_ties_to_smallest_name"
 
 
@@ -952,10 +958,20 @@ def evaluate_frame(
                 continue
         predictions.append(entity)
 
-    # D-224-S1 ruling 72 (B): the primary column -- centroid distance within delta, nearer pairs weighted higher
+    # D-224-S1 ruling 72 (B): the primary column -- nearer pairs weighted higher; ruling 77 (1)(a): the pair must be the
+    # entity's own object, and its centroid within delta or inside the truth box padded by NODE_BOX_PAD_M
+    def _qualifies(entity: Mapping[str, Any], key: str) -> bool:
+        identity = identities[str(entity["entity_id"])]
+        if not identity["resolvable"] or identity["key"] != key:
+            return False
+        if _distance(entity["centroid_m"], truth[key]["centroid_m"]) <= delta:
+            return True
+        return all(float(lo) - NODE_BOX_PAD_M <= float(c) <= float(hi) + NODE_BOX_PAD_M
+                   for c, lo, hi in zip(entity["centroid_m"], truth[key]["aabb_min_m"], truth[key]["aabb_max_m"], strict=True))
+
     weights = [
         [
-            (lambda d: (1.0 / (1.0 + d)) if d <= delta else 0.0)(_distance(entity["centroid_m"], truth[key]["centroid_m"]))
+            (1.0 / (1.0 + _distance(entity["centroid_m"], truth[key]["centroid_m"]))) if _qualifies(entity, key) else 0.0
             for key in present_keys
         ]
         for entity in predictions
@@ -1659,6 +1675,8 @@ def validate_teacher_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     node = metrics["node_prf1"]
     _require(node.get("matching") == CENTROID_MATCHING_RULE, "contract_centroid_matching_mismatch")
     _require(node.get("objective") == NODE_MATCHING_OBJECTIVE, "contract_node_matching_objective_mismatch")
+    _require(node.get("identity_requirement") == NODE_IDENTITY_RULE, "contract_node_identity_requirement_mismatch")
+    _require(node.get("box_pad_m") == NODE_BOX_PAD_M, "contract_node_box_pad_mismatch")
     _require(node.get("distance_max_source") == CENTROID_MATCHING_DISTANCE_SOURCE, "contract_centroid_distance_source_mismatch")
     _require(node.get("role") == CENTROID_MATCHING_ROLE, "contract_centroid_role_mismatch")
     _require(node.get("dyn_thor_relation") == NODE_DYN_THOR_RELATION, "contract_dyn_thor_relation_mismatch")
@@ -1738,6 +1756,8 @@ __all__ = [
     "CENTROID_MATCHING_ROLE",
     "CENTROID_MATCHING_RULE",
     "NODE_DYN_THOR_RELATION",
+    "NODE_BOX_PAD_M",
+    "NODE_IDENTITY_RULE",
     "CONFIDENCE_ONE_SIDED",
     "CONTRACT_SCHEMA_VERSION",
     "CONTROL_ARMS",

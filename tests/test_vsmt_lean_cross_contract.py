@@ -332,7 +332,9 @@ FROZEN_RULE_SHA256 = {
     # D-224-C frozen-constant path with it); node_prf1_centroid is retired.  c5d66505 -> b831a3a4.
     # Re-pinned 2026-09-26 for ruling 76 (3)(a) (LOG-262): both node columns match count-first (the most pairs, then the
     # most weight), the objective bound in each column block.  b831a3a4 -> eb81780b.
-    "S0-04": "eb81780b4a376b2b14ca02288ec378dfe713b519a8f31c6ccfd6c29fcd951049",
+    # Re-pinned 2026-09-26 for ruling 77 (1)(a) (LOG-263 sequel): a primary-column pair must be the entity's own object and its
+    # centroid within delta_moved_m or inside the truth box padded 0.25 m; the Dyn-THOR relation string rewritten.  eb81780b -> 8b57bacb.
+    "S0-04": "8b57bacb17371d73a51fd11a613c463fc40e9d0a93cbad9b6e55e26c9a45f73d",
     # S0-05 re-pinned 2026-09-25 for ruling 68 (LOG-256 sequel): every grid's values (at most twelve
     # configurations per method, a no-gate member in every rule arm), the ELU-P rollout_config
     # (0.7, 1.0, 0.0) and the should_be_visible_min_ratio_superseded record enter the digest; the

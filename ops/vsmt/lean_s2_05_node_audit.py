@@ -415,7 +415,8 @@ class NodeAudit:
         _require(rule_matched["iou_0.3_count_first"] == frame_eval["node_prf1_iou"]["matched"],
                  "audit_iou_rule_does_not_reproduce_the_evaluator")
         # ruling 72 (B): the centroid rule is the primary column node_prf1
-        _require(rule_matched["centroid_within_0.5m_count_first"] == frame_eval["matched"],
+        # ruling 77 (1)(a): the primary column is the own-object-and-place candidate
+        _require(rule_matched["identity_centroid_0.5m_or_in_box_0.25m_count_first"] == frame_eval["matched"],
                  "audit_centroid_rule_does_not_reproduce_the_evaluator")
 
         # ruling 76 (1)(a): the primary centroid column's own ledger, the birth reasons and the dedup pair tallies

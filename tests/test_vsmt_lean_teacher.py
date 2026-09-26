@@ -676,6 +676,22 @@ class TestEvaluatorMatching(unittest.TestCase):
         self.assertEqual(moved["wrongly_absent_objects"], ["obj:lamp", "obj:mug"])
         self.assertAlmostEqual(moved["node_precision"], 0.5)
 
+    def test_a_pair_must_be_the_entitys_own_object_and_a_large_box_counts_its_inside(self) -> None:
+        """D-224-S1 ruling 77 (1)(a): own object, and centroid within delta or inside the truth box padded 0.25 m."""
+
+        memory, mug, book = two_entity_memory()
+        # the book's truth sits where the mug entity is: under the bare distance test the mug entity would take it
+        swapped = self._evaluate(memory, {"obj:mug": box([5.0, 0.0, 0.0]), "obj:book": box([0.0, 0.0, 0.0])})
+        self.assertEqual(swapped["matched"], 0)
+        self.assertEqual(swapped["matched_pairs"], [])
+        # a large book box: the entity centroid is 0.9 m from the box centre, inside the box, so it matches
+        large = box([1.9, 0.0, 0.0], half=1.0)
+        out = self._evaluate(memory, {"obj:mug": box([0.0, 0.0, 0.0]), "obj:book": large})
+        self.assertEqual(sorted(out["matched_pairs"]), sorted([(mug, "obj:mug"), (book, "obj:book")]))
+        # 0.3 m outside the box and 1.2 m from its centre: no match (the pad is 0.25 m)
+        far = box([2.2, 0.0, 0.0], half=0.9)
+        self.assertEqual(self._evaluate(memory, {"obj:mug": box([0.0, 0.0, 0.0]), "obj:book": far})["matched"], 1)
+
     def test_a_dormant_entity_still_counts_as_predicted(self) -> None:
         memory, mug, book = two_entity_memory()
         memory = step(memory, "f2", [{"atom": "NOOP", "entity_id": mug}], limit=1)
@@ -1099,6 +1115,8 @@ class TestMachineContract(unittest.TestCase):
                                         ("node_prf1", "distance_max_source", "0.5", "contract_centroid_distance_source_mismatch"),
                                         ("node_prf1", "role", "secondary", "contract_centroid_role_mismatch"),
                                         ("node_prf1", "dyn_thor_relation", "identical", "contract_dyn_thor_relation_mismatch"),
+                                        ("node_prf1", "identity_requirement", "none", "contract_node_identity_requirement_mismatch"),
+                                        ("node_prf1", "box_pad_m", 0.5, "contract_node_box_pad_mismatch"),
                                         ("node_prf1_iou", "matching", "centroid", "contract_iou_matching_mismatch"),
                                         ("node_prf1_iou", "role", "primary", "contract_iou_role_mismatch")):
             broken = self._fresh()
