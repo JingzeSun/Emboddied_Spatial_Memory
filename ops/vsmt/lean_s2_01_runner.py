@@ -141,9 +141,9 @@ def main() -> int:
     if args.frames is not None:
         frames = frames[: int(args.frames)]
     import lean_s2_04_evaluate_episode as s2_04
-    depth_view = s2_04.episode_depth_reader(Path(args.episode_root).resolve())
-    for index, frame in enumerate(frames):  # ruling 74: the public depth view, attached after the seal check
-        frame[lr.PUBLIC_DEPTH_VIEW_KEY] = depth_view(index)
+    depth_view = s2_04.episode_depth_reader(Path(args.episode_root).resolve(), cache_dir)
+    for index, frame in enumerate(frames):  # rulings 74/75: the public depth view, attached after the seal check
+        frame[lr.PUBLIC_DEPTH_VIEW_KEY] = depth_view(index, frame)
     out_dir = Path(args.output_root).resolve() / args.episode_id / args.arm
     if out_dir.exists() and any(out_dir.iterdir()):
         print(f"[s2-01] refused: output directory exists and is not empty: {out_dir}", file=sys.stderr)

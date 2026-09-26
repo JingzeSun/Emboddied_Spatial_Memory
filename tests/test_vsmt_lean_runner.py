@@ -129,9 +129,20 @@ def rendered_depth(boxes: list[tuple[list[float], list[float]]]) -> np.ndarray:
     return depth.astype(np.float32)
 
 
-def depth_view(frame_digest: str, boxes: list[tuple[list[float], list[float]]], *, sees: bool = True) -> dict[str, Any]:
+def front_face_points(lower: list[float], upper: list[float], *, per_axis: int = 8) -> list[list[float]]:
+    """A fragment's surface as the fixture sees it: a grid on the box face toward the camera (ruling 75)."""
+
+    xs = [lower[0] + (i + 0.5) * (upper[0] - lower[0]) / per_axis for i in range(per_axis)]
+    ys = [lower[1] + (j + 0.5) * (upper[1] - lower[1]) / per_axis for j in range(per_axis)]
+    return [[x, y, float(lower[2])] for x in xs for y in ys]
+
+
+def depth_view(frame_digest: str, boxes: list[tuple[list[float], list[float]]], *, sees: bool = True,
+               fragments: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     return {"frame_digest": frame_digest, "depth_m": rendered_depth(boxes if sees else []),
-            "calibration": dict(DEPTH_CALIBRATION), "pose": dict(FACING_SCENE if sees else FACING_AWAY)}
+            "calibration": dict(DEPTH_CALIBRATION), "pose": dict(FACING_SCENE if sees else FACING_AWAY),
+            "fragment_surface_points": {str(f["fragment_id"]): front_face_points(f["aabb_min_m"], f["aabb_max_m"])
+                                        for f in (fragments or [])}}
 
 
 def cache_frame(tick: int, fragments: list[dict[str, Any]], *, visibility: list[dict[str, Any]], free_space: list[dict[str, Any]],
@@ -143,7 +154,7 @@ def cache_frame(tick: int, fragments: list[dict[str, Any]], *, visibility: list[
     }
     frame["frame_seal"] = {"payload_sha256": digest(json.dumps(frame, sort_keys=True)), "frontend_config_sha256": "0" * 64}
     boxes = present if present is not None else [(f["aabb_min_m"], f["aabb_max_m"]) for f in fragments]
-    frame[lr.PUBLIC_DEPTH_VIEW_KEY] = depth_view(frame["frame_digest"], boxes, sees=bool(visibility))
+    frame[lr.PUBLIC_DEPTH_VIEW_KEY] = depth_view(frame["frame_digest"], boxes, sees=bool(visibility), fragments=fragments)
     return frame
 
 
@@ -362,6 +373,65 @@ class PerPointDepthGeometryTests(unittest.TestCase):
     def test_the_margin_is_the_frozen_value(self) -> None:
         self.assertEqual(lr.DEPTH_MARGIN_M, 0.05)
         self.assertEqual(lr.DEPTH_VALID_RANGE_M, (0.05, 20.0))
+
+
+class SurfacePointEvidenceTests(unittest.TestCase):
+    """Ruling 75 (2)(a): an entity is tested on its own last-observed surface points, not its AABB interior."""
+
+    BOX = ([-0.1, -0.1, 1.9], [0.1, 0.1, 2.1])
+
+    def test_a_present_object_is_never_seen_through_and_a_removed_one_always(self) -> None:
+        surface = {"entity:x": front_face_points(*self.BOX)}
+        memory = {"entities": [{"entity_id": "entity:x", "aabb_min_m": self.BOX[0], "aabb_max_m": self.BOX[1]}]}
+        present = lr.entity_geometry(memory, depth_view("f" * 64, [self.BOX]), samples_per_axis=4, surface_points=surface)["entity:x"]
+        self.assertEqual(present, {"should_be_visible_ratio": 1.0, "free_space_coverage_ratio": 0.0})
+        gone = lr.entity_geometry(memory, depth_view("f" * 64, []), samples_per_axis=4, surface_points=surface)["entity:x"]
+        self.assertEqual(gone, {"should_be_visible_ratio": 1.0, "free_space_coverage_ratio": 1.0})
+        # the AABB grid of the same present box (the rule of ruling 74 alone) could only see its front layer
+        grid = lr.entity_geometry(memory, depth_view("f" * 64, [self.BOX]), samples_per_axis=4)["entity:x"]
+        self.assertEqual(grid["should_be_visible_ratio"], 16 / 64)
+        # no surface with valid depth: nothing can be observed
+        empty = lr.entity_geometry(memory, depth_view("f" * 64, []), samples_per_axis=4, surface_points={"entity:x": []})["entity:x"]
+        self.assertEqual(empty, {"should_be_visible_ratio": 0.0, "free_space_coverage_ratio": 0.0})
+
+    def test_fragment_surface_points_are_the_valid_mask_pixels_back_projected_and_subsampled(self) -> None:
+        view = depth_view("f" * 64, [self.BOX])
+        mask = np.zeros((DEPTH_SIZE, DEPTH_SIZE), dtype=bool)
+        mask[100:130, 80:120] = True                      # 1200 pixels, all on the box face or the background
+        points = lr.fragment_surface_points(mask, view)
+        self.assertEqual(len(points), lr.FRAGMENT_SURFACE_MAX_POINTS)
+        self.assertEqual(points, lr.fragment_surface_points(mask, view))   # deterministic
+        counts = lr.point_depth_counts(np.asarray(points)[None], view)     # each lands on its own pixel's surface
+        self.assertEqual(int(counts["surface"][0]), len(points))
+        small = np.zeros_like(mask)
+        small[5, 5] = small[6, 6] = True
+        self.assertEqual(len(lr.fragment_surface_points(small, view)), 2)
+        self.assertEqual(lr.fragment_surface_points(np.zeros_like(mask), view), [])
+
+    def test_an_entity_follows_its_latest_frame_and_the_store_keeps_only_what_is_named(self) -> None:
+        memory = {"entities": [
+            {"entity_id": "entity:a", "last_seen_tick": 3, "evidence": [
+                {"frame_digest": "1" * 64, "fragment_id": "fragment:0000", "tick": 1},
+                {"frame_digest": "3" * 64, "fragment_id": "fragment:0001", "tick": 3},
+                {"frame_digest": "3" * 64, "fragment_id": "fragment:0002", "tick": 3}]}]}
+        store = {f"{'1' * 64}|fragment:0000": [[9.0, 9.0, 9.0]], f"{'3' * 64}|fragment:0001": [[1.0, 0.0, 2.0]],
+                 f"{'3' * 64}|fragment:0002": [[2.0, 0.0, 2.0]], f"{'2' * 64}|fragment:0005": [[5.0, 0.0, 2.0]]}
+        self.assertEqual(lr.entity_surface_points(memory, store)["entity:a"], [[1.0, 0.0, 2.0], [2.0, 0.0, 2.0]])
+        view = {"frame_digest": "4" * 64, "fragment_surface_points": {"fragment:0000": [[0.0, 0.0, 1.0]]}}
+        kept = lr.updated_surface_store(store, memory, view)
+        self.assertEqual(sorted(kept), [f"{'3' * 64}|fragment:0001", f"{'3' * 64}|fragment:0002"])
+
+    def test_the_runner_refuses_surface_points_that_do_not_match_the_fragments(self) -> None:
+        frames = scenario()
+        broken = dict(frames[0])
+        broken[lr.PUBLIC_DEPTH_VIEW_KEY] = dict(frames[0][lr.PUBLIC_DEPTH_VIEW_KEY], fragment_surface_points={})
+        with self.assertRaises(lr.LeanRunnerError) as caught:
+            next(iter(lr.run_episode([broken], episode_id="ep-0001", arm="LOW", config=CONFIGS["LOW"], policy=POLICY, descriptor="vitb14")))
+        self.assertEqual(str(caught.exception), "public_depth_view_surface_points_do_not_match_the_fragments")
+
+    def test_the_surface_rule_constants(self) -> None:
+        self.assertEqual(lr.FRAGMENT_SURFACE_MAX_POINTS, 64)
+        self.assertIn("fragment_surface_points", lr.PUBLIC_DEPTH_VIEW_FIELDS)
 
 
 class DescriptorChoiceTests(unittest.TestCase):

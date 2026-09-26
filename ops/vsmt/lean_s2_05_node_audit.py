@@ -413,12 +413,12 @@ def run(args: argparse.Namespace) -> int:
     started = time.time()
     current: dict[str, Any] = {}
 
-    depth_view = s2_04.episode_depth_reader(episode_root)
+    depth_view = s2_04.episode_depth_reader(episode_root, cache_dir)
 
     def frames():
         for index, path in enumerate(frame_paths):
             frame = diag.cache_runner.load_cache_frame(path)
-            frame[lr.PUBLIC_DEPTH_VIEW_KEY] = depth_view(index)  # ruling 74
+            frame[lr.PUBLIC_DEPTH_VIEW_KEY] = depth_view(index, frame)  # ruling 74
             current["frame"] = frame
             yield frame
 

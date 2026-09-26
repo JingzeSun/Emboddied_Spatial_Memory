@@ -75,18 +75,29 @@ PROJECTION_PREFIX = "reid_projection:"
 #: The block-frustum rule it replaces (LOG-260, LOG-261: it saw the entity box in about 3 percent of
 #: entity-frames, gone-above-present AUC 0.57) is kept as ``entity_geometry_blocks`` for diagnostics only.
 ENTITY_GEOMETRY_RULE = (
-    "uniform_grid_of_cell_centres_over_the_entity_aabb projected into the public depth image; seen_through d > z + margin, "
-    "on_surface |d - z| <= margin, occluded d < z - margin, unobserved outside the image or invalid depth; "
-    "should_be_visible_ratio = (seen_through + on_surface) / points; "
+    "the entity's surface points (the fragments of its latest observed frame, up to max_points each) projected into "
+    "the public depth image; seen_through d > z + margin, on_surface |d - z| <= margin, occluded d < z - margin, "
+    "unobserved outside the image or invalid depth; should_be_visible_ratio = (seen_through + on_surface) / points; "
     "free_space_coverage_ratio = seen_through / (seen_through + on_surface), 0 when none is observed"
 )
+#: Ruling 75 (2)(a) (2026-09-26): the points tested are the entity's own last-observed surface, as Khronos tests the
+#: object's surface points against the rays of a later view, not the AABB interior -- a single-frame box is mostly
+#: empty space, so a present object's box read as seen through (LOG-261, calibration 253d6bd).  A fragment's surface
+#: points are its mask pixels with valid public depth, back-projected with the causal pose, and subsampled to
+#: FRAGMENT_SURFACE_MAX_POINTS evenly in row-major pixel order; an entity's points are those of the fragments of its
+#: evidence at its last_seen_tick -- the same set its box is the union of (ENTITY_BOX_RULE), so a same-frame merge
+#: unions them and a later frame replaces them.  The AABB grid stays the yardstick for a truth place (the teacher's
+#: place_observable), which has no surface of its own.
+FRAGMENT_SURFACE_MAX_POINTS = 64
+FRAGMENT_SURFACE_RULE = ("mask_pixels_with_valid_public_depth_back_projected_with_the_causal_pose; "
+                         "subsampled_to_max_points_at_evenly_spaced_row_major_pixel_indices")
 #: Ruling 74: the margin, frozen at the best of the three probed values (0.05 / 0.10 / 0.20 m).
 DEPTH_MARGIN_M = 0.05
 #: The valid depth range is the frozen D-223 free-space configuration's (minimum_depth_m, maximum_valid_depth_m).
 DEPTH_VALID_RANGE_M = (0.05, 20.0)
 #: The key under which a reader attaches the frame's public depth view after the seal check.
 PUBLIC_DEPTH_VIEW_KEY = "public_depth_view"
-PUBLIC_DEPTH_VIEW_FIELDS = ("frame_digest", "depth_m", "calibration", "pose")
+PUBLIC_DEPTH_VIEW_FIELDS = ("frame_digest", "depth_m", "calibration", "pose", "fragment_surface_points")
 HALFSPACE_TOLERANCE_M = 1e-9
 #: The registered sampling resolution (points per axis): D-224-S1 ruling 60 (2026-09-24) froze
 #: it at 4, i.e. 64 cell centres per entity and a ratio granularity of 1/64.  The contract's value
@@ -347,9 +358,64 @@ def public_depth_view_of(cache_frame: Mapping[str, Any]) -> Mapping[str, Any]:
     return view
 
 
+def fragment_surface_points(mask: Any, depth_view: Mapping[str, Any], *,
+                            max_points: int = FRAGMENT_SURFACE_MAX_POINTS) -> list[list[float]]:
+    """Ruling 75 (2)(a): a fragment's surface points -- its mask pixels with valid public depth, back-projected.
+
+    白话：色块的"表面点"就是它 mask 里深度有效的像素反投影到世界坐标，按行优先像素顺序等间隔取至多 64 个。
+    它只用公开深度、内参、因果位姿和匿名 mask，与冻结反投影同一约定；一个像素都没有有效深度时返回空。
+    """
+
+    from vsmt.l1_entities import _camera_values
+
+    binary = np.asarray(mask, dtype=bool)
+    depth = np.asarray(depth_view["depth_m"], dtype=np.float64)
+    _require(binary.shape == depth.shape, "fragment_mask_shape_differs_from_depth")
+    minimum, maximum = DEPTH_VALID_RANGE_M
+    valid = binary & np.isfinite(depth) & (depth >= minimum) & (depth <= maximum)
+    rows, columns = np.nonzero(valid)
+    if rows.size == 0:
+        return []
+    count = min(int(max_points), int(rows.size))
+    keep = np.unique(np.floor(np.linspace(0, rows.size - 1, count)).astype(np.int64))
+    rows, columns = rows[keep], columns[keep]
+    fx, fy, cx, cy, position, rotation = _camera_values(depth_view["calibration"], depth_view["pose"])
+    z = depth[rows, columns]
+    x = (columns.astype(np.float64) - cx) * z / fx
+    y = (cy - rows.astype(np.float64)) * z / fy
+    world = [rotation[k, 0] * x + rotation[k, 1] * y + rotation[k, 2] * z + position[k] for k in range(3)]
+    return [[float(world[0][i]), float(world[1][i]), float(world[2][i])] for i in range(len(z))]
+
+
+def entity_surface_points(memory: Mapping[str, Any], store: Mapping[str, Sequence[Sequence[float]]]) -> dict[str, list[list[float]]]:
+    """Each entity's surface points: those of the fragments of its evidence at its last_seen_tick (ruling 75)."""
+
+    out: dict[str, list[list[float]]] = {}
+    for entity in memory["entities"]:
+        latest = int(entity["last_seen_tick"])
+        points: list[list[float]] = []
+        for item in entity["evidence"]:
+            if int(item["tick"]) == latest:
+                points.extend(store.get(f"{item['frame_digest']}|{item['fragment_id']}", []))
+        out[str(entity["entity_id"])] = points
+    return out
+
+
+def updated_surface_store(store: Mapping[str, Any], memory_after: Mapping[str, Any], depth_view: Mapping[str, Any]) -> dict[str, Any]:
+    """This frame's fragment points added, then only the fragments some entity's latest evidence still names kept."""
+
+    merged = dict(store)
+    digest = str(depth_view["frame_digest"])
+    for fragment_id, points in depth_view["fragment_surface_points"].items():
+        merged[f"{digest}|{fragment_id}"] = points
+    wanted = {f"{item['frame_digest']}|{item['fragment_id']}" for entity in memory_after["entities"]
+              for item in entity["evidence"] if int(item["tick"]) == int(entity["last_seen_tick"])}
+    return {key: merged[key] for key in sorted(wanted) if key in merged}
+
+
 def entity_geometry(
     memory: Mapping[str, Any], depth_view: Mapping[str, Any], *, samples_per_axis: int | None,
-    margin_m: float = DEPTH_MARGIN_M,
+    margin_m: float = DEPTH_MARGIN_M, surface_points: Mapping[str, Sequence[Sequence[float]]] | None = None,
 ) -> dict[str, dict[str, float]]:
     """The two S0-03 ratios for every entity of M_{t-1}, by the per-point depth test (ruling 74).
 
@@ -367,14 +433,21 @@ def entity_geometry(
     out: dict[str, dict[str, float]] = {}
     if not entities:
         return out
-    points = np.stack([sample_points(e["aabb_min_m"], e["aabb_max_m"], samples_per_axis=s) for e in entities])
-    counts = point_depth_counts(points, depth_view, margin_m=margin_m)
-    for index, entity in enumerate(entities):
-        observed = int(counts["through"][index] + counts["surface"][index])
-        total = int(counts["points"][index])
+    if surface_points is None:  # a truth place (teacher): the AABB grid
+        groups = [sample_points(e["aabb_min_m"], e["aabb_max_m"], samples_per_axis=s) for e in entities]
+    else:  # an entity (ruling 75 (2)(a)): its own last-observed surface points
+        groups = [np.asarray(surface_points.get(str(e["entity_id"])) or np.zeros((0, 3)), dtype=np.float64).reshape(-1, 3)
+                  for e in entities]
+    for entity, points in zip(entities, groups):
+        if points.shape[0] == 0:  # no surface with valid depth: nothing can be observed
+            out[str(entity["entity_id"])] = {"should_be_visible_ratio": 0.0, "free_space_coverage_ratio": 0.0}
+            continue
+        counts = point_depth_counts(points[None], depth_view, margin_m=margin_m)
+        observed = int(counts["through"][0] + counts["surface"][0])
+        total = int(counts["points"][0])
         out[str(entity["entity_id"])] = {
             "should_be_visible_ratio": observed / total,
-            "free_space_coverage_ratio": (int(counts["through"][index]) / observed) if observed else 0.0,
+            "free_space_coverage_ratio": (int(counts["through"][0]) / observed) if observed else 0.0,
         }
     return out
 
@@ -485,6 +558,7 @@ def initial_state(*, episode_id: str, arm: str) -> dict[str, Any]:
                      "existence_candidates": 0, "excluded_not_visible": 0, "excluded_retracted": 0,
                      "no_version_deleted": 0},
         "cache_frame_seals": [],
+        "surface_points": {},
     }
 
 
@@ -601,8 +675,11 @@ def run_frame(
 
     # 1-2. entity geometry by the per-point depth test (ruling 74) on this frame's public depth view and
     # M_{t-1}; the view under the frozen descriptor
-    geometry = entity_geometry(memory, public_depth_view_of(cache_frame),
-                               samples_per_axis=checked_policy["entity_geometry_samples_per_axis"])
+    depth_view = public_depth_view_of(cache_frame)
+    _require(sorted(depth_view["fragment_surface_points"]) == sorted(str(f["fragment_id"]) for f in cache_frame["fragments"]),
+             "public_depth_view_surface_points_do_not_match_the_fragments")
+    geometry = entity_geometry(memory, depth_view, samples_per_axis=checked_policy["entity_geometry_samples_per_axis"],
+                               surface_points=entity_surface_points(memory, state.get("surface_points", {})))
     view = assignment_frame(cache_frame, descriptor=descriptor, projector=projector, entity_geometry_by_id=geometry)
 
     # 3. stage A
@@ -700,6 +777,7 @@ def run_frame(
     }
     new_state = {
         "arm": arm, "memory": new_memory, "arm_state": arm_state, "counters": counters,
+        "surface_points": updated_surface_store(state.get("surface_points", {}), new_memory, depth_view),
         "cache_frame_seals": [*state["cache_frame_seals"], receipt["cache_frame_seal_sha256"]],
     }
     return {"state": new_state, "receipt": receipt, "stage_a": stage_a, "stage_b": stage_b, "view": view,
@@ -834,6 +912,8 @@ def validate_runner_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     geometry = contract["entity_geometry"]
     _require(geometry["rule"] == ENTITY_GEOMETRY_RULE, "contract_entity_geometry_rule_mismatch")
     _require(geometry["depth_margin_m"] == DEPTH_MARGIN_M, "contract_entity_geometry_margin_mismatch")
+    _require(geometry["fragment_surface_max_points"] == FRAGMENT_SURFACE_MAX_POINTS
+             and geometry["fragment_surface_rule"] == FRAGMENT_SURFACE_RULE, "contract_entity_geometry_surface_rule_mismatch")
     _require(list(geometry["valid_depth_range_m"]) == list(DEPTH_VALID_RANGE_M), "contract_entity_geometry_depth_range_mismatch")
     _require(tuple(geometry["public_depth_view_fields"]) == PUBLIC_DEPTH_VIEW_FIELDS, "contract_entity_geometry_view_fields_mismatch")
     _require(tuple(geometry["fields"]) == la.ENTITY_GEOMETRY_FIELDS, "contract_entity_geometry_fields_mismatch")
@@ -903,6 +983,8 @@ __all__ = [
     "DESCRIPTOR_CHOICES",
     "DEPTH_MARGIN_M",
     "DEPTH_VALID_RANGE_M",
+    "FRAGMENT_SURFACE_MAX_POINTS",
+    "FRAGMENT_SURFACE_RULE",
     "ENTITY_GEOMETRY_RULE",
     "PUBLIC_DEPTH_VIEW_FIELDS",
     "PUBLIC_DEPTH_VIEW_KEY",
@@ -926,6 +1008,9 @@ __all__ = [
     "descriptor_projector",
     "entity_geometry",
     "entity_geometry_blocks",
+    "entity_surface_points",
+    "fragment_surface_points",
+    "updated_surface_store",
     "point_depth_counts",
     "public_depth_view_of",
     "episode_summary",

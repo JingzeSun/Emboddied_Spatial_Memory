@@ -134,7 +134,8 @@ def verify_cache_episode(cache_dir: Path, descriptor_asset_sha256s: dict[str, An
     return seal, paths
 
 
-def public_depth_view(episode_root: Path, index: int, *, episode_commit: str, pose_policy: dict[str, Any]) -> dict[str, Any]:
+def public_depth_view(episode_root: Path, index: int, *, episode_commit: str, pose_policy: dict[str, Any],
+                      cache_dir: Path, fragments: list[dict[str, Any]]) -> dict[str, Any]:
     """Ruling 74: one frame's public depth view -- the S1-02 public record's frame digest and intrinsics, the depth
     file it names and the causal pose read under the S1-03 pose policy; nothing of the private plane.
 
@@ -150,16 +151,29 @@ def public_depth_view(episode_root: Path, index: int, *, episode_commit: str, po
     if depth_path.parent.resolve() != public.resolve():
         raise diag.DiagnosticsFailure("public_input_missing_or_malformed", f"depth path escapes the public plane: {depth_path}")
     pose = diag.cache_runner.causal_pose(record, code_commit=episode_commit, policy=pose_policy)
-    return {"frame_digest": record["frame_digest"], "depth_m": np.load(depth_path).astype(np.float32),
+    view = {"frame_digest": record["frame_digest"], "depth_m": np.load(depth_path).astype(np.float32),
             "calibration": record["intrinsics"], "pose": pose}
+    # ruling 75 (2)(a): each fragment's surface points, from the cache's own mask file re-digested against the sealed frame
+    masks = diag.cache_runner.read_masks_file(cache_dir / f"{index:04d}{diag.cache_runner.MASK_FILE_SUFFIX}")
+    if len(masks["mask_sha256"]) != len(fragments):
+        raise diag.DiagnosticsFailure("cache_missing_or_unsealed", f"frame {index}: {len(masks['mask_sha256'])} masks for {len(fragments)} fragments")
+    surface: dict[str, Any] = {}
+    for position, fragment in enumerate(fragments):
+        mask = masks["masks"][position]
+        if diag.fc.mask_sha256_of(mask) != fragment["mask_sha256"]:
+            raise diag.DiagnosticsFailure("cache_missing_or_unsealed", f"frame {index}: mask {position} does not reproduce {fragment['fragment_id']}")
+        surface[str(fragment["fragment_id"])] = lr.fragment_surface_points(mask, view)
+    view["fragment_surface_points"] = surface
+    return view
 
 
-def episode_depth_reader(episode_root: Path) -> Any:
-    """``index -> public depth view`` for one S1-02 episode (its generator commit read once, the pose policy from S1-03)."""
+def episode_depth_reader(episode_root: Path, cache_dir: Path) -> Any:
+    """``(index, cache frame) -> public depth view`` for one episode (its generator commit read once, the pose policy from S1-03)."""
 
     commit = str(load_json(episode_root / "receipt.json")["code_commit"])
     policy = load_json(diag.cache_runner.CONTRACT_PATH)["public_pose_correction"]
-    return lambda index: public_depth_view(episode_root, index, episode_commit=commit, pose_policy=policy)
+    return lambda index, frame: public_depth_view(episode_root, index, episode_commit=commit, pose_policy=policy,
+                                                  cache_dir=cache_dir, fragments=list(frame["fragments"]))
 
 
 def load_private_frame(episode_root: Path, index: int) -> tuple[dict[str, Any], Any]:
@@ -309,12 +323,12 @@ def main() -> int:
     mark = time.time()
     current: dict[str, Any] = {}
 
-    depth_view = episode_depth_reader(episode_root)
+    depth_view = episode_depth_reader(episode_root, cache_dir)
 
     def frames():  # one frame in memory at a time; the runner consumes exactly one per step
         for index, path in enumerate(frame_paths):
             frame = diag.cache_runner.load_cache_frame(path)
-            frame[lr.PUBLIC_DEPTH_VIEW_KEY] = depth_view(index)  # ruling 74: attached after the seal check, never written
+            frame[lr.PUBLIC_DEPTH_VIEW_KEY] = depth_view(index, frame)  # rulings 74/75: attached after the seal check, never written
             current["frame"] = frame
             yield frame
 

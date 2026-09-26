@@ -390,7 +390,9 @@ FROZEN_RULE_SHA256 = {
     # Re-pinned 2026-09-26 for ruling 74: entity_geometry is the per-point depth test on the frame's public depth
     # view (margin 0.05 m, the D-223 valid depth range, view fields, same-frame and never-in-cache claims, fixed-order
     # projection); the block-frustum rule is kept as superseded_rule.  c911a4d6 -> 7b1dd704.
-    "S2-01": "7b1dd704e0fd656a942628b2f84b3e0c0108a4be509a9121111bf68e41826371",
+    # Re-pinned 2026-09-26 for ruling 75 (2)(a): an entity is tested on its own last-observed surface points (at most
+    # 64 per fragment, from the cache mask and the public depth), the AABB grid kept for a truth place.  7b1dd704 -> 8bc99b13.
+    "S2-01": "8bc99b13cc492fd880a2e76ef0e8142071d8de01bc09e7074e3eb3996be9b9d2",
     # S2-04 v1 (2026-09-24, LOG-249): the teacher and evaluator wiring -- the derivation rules for the
     # S0-04 inputs (place observability by the S2-01 sampled-box test at the S0-05 minimum, old and new
     # places from the S1-04 tracker at the window edges, recovery place per intervention kind, carriers
