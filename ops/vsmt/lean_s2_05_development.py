@@ -321,7 +321,7 @@ def cmd_fit_elu_p(args: argparse.Namespace) -> int:
         fitted = dev.fit_elu_p(records, rollout_config=rollout)
     except dev.LeanDevelopmentError as exc:
         return refuse(str(exc))
-    report = {"stage": dev.STAGE_ID, "pass": "elu_p_fit", "arm_rule": dev.ELU_P_FIT_ARM_RULE, "episodes": episodes,
+    report = {"stage": dev.STAGE_ID, "pass": "elu_p_fit", "counts_from_pass": args.from_pass, "arm_rule": dev.ELU_P_FIT_ARM_RULE, "episodes": episodes,
               "code_commit": _git("rev-parse", "HEAD"), **fitted}
     (pass_root / "elu_p_fit.json").write_text(json.dumps(report, indent=1), encoding="utf-8")
     print(json.dumps({"values": fitted["values"], "counts": fitted["counts"]}, indent=1))
