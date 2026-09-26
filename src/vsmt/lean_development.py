@@ -89,6 +89,15 @@ CALIBRATION_SERIES = {
     "gone_missed_opportunity_count": COUNT_EDGES,
     "present_missed_opportunity_count": COUNT_EDGES,
     "same_object_fragments_per_frame": COUNT_EDGES,
+    # ruling 74 (2)(a): the gone rows split by cause -- the object has left the scene (absent) or it is present
+    # but more than delta from where the entity remembers it (moved, which also holds mislocated entities) --
+    # the should-be-visible ratio of the existence rows by label, and how well a present entity's box sits on
+    # its object's truth box; read-only diagnostics for the re-freeze after the per-point depth test
+    "gone_absent_free_space_coverage_ratio": RATIO_EDGES,
+    "gone_moved_free_space_coverage_ratio": RATIO_EDGES,
+    "gone_should_be_visible_ratio": RATIO_EDGES,
+    "present_should_be_visible_ratio": RATIO_EDGES,
+    "present_entity_truth_box_iou": RATIO_EDGES,
 }
 QUANTILES = (0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95)
 
@@ -268,12 +277,18 @@ class CalibrationCollector:
         coverage_at = arms.feature_index(existence_order, "free_space_coverage_ratio")
         missed_at = arms.feature_index(existence_order, "missed_opportunity_count")
         rows_by_id = {str(row["entity_id"]): row for row in stage_b["existence_rows"]}
+        box_iou = labelled.get("existence_truth_box_iou") or {}
         for entity_id, label in labelled["existence_labels"].items():
             if label["status"] not in ("gone", "present"):
                 continue
             features = rows_by_id[entity_id]["features"]
             self.histograms[f"{label['status']}_free_space_coverage_ratio"].add(features[coverage_at])
             self.histograms[f"{label['status']}_missed_opportunity_count"].add(features[missed_at])
+            self.histograms[f"{label['status']}_should_be_visible_ratio"].add(float(step["entity_geometry"][entity_id]["should_be_visible_ratio"]))
+            if label["status"] == "gone" and label.get("reason") in ("absent", "moved"):
+                self.histograms[f"gone_{label['reason']}_free_space_coverage_ratio"].add(features[coverage_at])
+            if label["status"] == "present" and entity_id in box_iou:
+                self.histograms["present_entity_truth_box_iou"].add(float(box_iou[entity_id]))
         self.frames += 1
 
     def merge(self, other: "CalibrationCollector") -> None:

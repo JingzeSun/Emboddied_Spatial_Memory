@@ -93,6 +93,15 @@ class CalibrationTests(unittest.TestCase):
         self.assertEqual(series["gone_free_space_coverage_ratio"]["count"] + series["present_free_space_coverage_ratio"]["count"], 4)
         self.assertGreater(series["gone_free_space_coverage_ratio"]["p50"], 0.9)  # the mug's old place is covered by free space
         self.assertEqual(series["entity_should_be_visible_ratio"]["count"], 0 + 3 + 3 + 3 + 3)
+        # ruling 74 (2)(a): the gone rows split by cause add up, the visibility of the existence rows is reported by
+        # label, and every present row whose object has a truth box carries its entity-to-truth box IoU
+        gone, present = series["gone_free_space_coverage_ratio"]["count"], series["present_free_space_coverage_ratio"]["count"]
+        self.assertEqual(series["gone_absent_free_space_coverage_ratio"]["count"] + series["gone_moved_free_space_coverage_ratio"]["count"], gone)
+        self.assertGreater(series["gone_absent_free_space_coverage_ratio"]["count"], 0)   # the removed mug
+        self.assertEqual(series["gone_should_be_visible_ratio"]["count"], gone)
+        self.assertEqual(series["present_should_be_visible_ratio"]["count"], present)
+        self.assertLessEqual(series["present_entity_truth_box_iou"]["count"], present)
+        self.assertGreater(series["gone_absent_free_space_coverage_ratio"]["p50"], 0.9)   # its old place is seen through
         merged = dev.CalibrationCollector.from_json(json.loads(json.dumps(collector.to_json())))
         merged.merge(collector)
         self.assertEqual(merged.report()["frames"], 10)

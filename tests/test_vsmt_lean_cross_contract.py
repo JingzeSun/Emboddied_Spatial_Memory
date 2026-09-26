@@ -416,7 +416,9 @@ FROZEN_RULE_SHA256 = {
     # back to false the digest is 38314ce2 again).  -> 859208ee.
     # Re-pinned 2026-09-24 for ruling 70: table.better gains node_prf1_centroid = higher.  859208ee -> 0d3cf50c.
     # Re-pinned 2026-09-25 for ruling 72 (B): table.better node_prf1_centroid -> node_prf1_iou = higher.  0d3cf50c -> 57dc753d.
-    "S2-05": "57dc753d731e114372e484c885d99c3461780e3ad83387321b141fbb5c2ab635",
+    # Re-pinned 2026-09-26 for ruling 74 (2)(a): calibration.series gains five read-only diagnostics (gone split into
+    # absent / moved coverage, the should-be-visible ratio by label, the present entity-to-truth box IoU).  57dc753d -> cea002f4.
+    "S2-05": "cea002f40b309f37f8cc9d9b9756c0ffbdbc260272b0ef89f03da749561d38b1",
 }
 
 #: Every registered slot that has been frozen, and the value it froze at.

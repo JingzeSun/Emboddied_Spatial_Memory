@@ -366,6 +366,15 @@ class EpisodeTeacher:
             self.evidence[f"{receipt['frame_digest']}|{fragment_id}"] = target["key"]
         candidates = [str(item) for item in receipt["existence"]["candidates"]]
         existence = self._existence_labels(memory_before, candidates, object_state)
+        # ruling 74 (2)(a), diagnostics only: how well each present-labelled candidate's box sits on its object's truth box
+        boxes_before = {str(e["entity_id"]): e for e in memory_before["entities"]}
+        existence_truth_box_iou = {}
+        for entity_id, label in existence.items():
+            entry = tracker_truth.get(str(label.get("key"))) if label["status"] == "present" else None
+            if entry is not None and entry.get("aabb_min_m") is not None and entry.get("aabb_max_m") is not None:
+                entity = boxes_before[entity_id]
+                existence_truth_box_iou[entity_id] = lt._aabb_iou(entity["aabb_min_m"], entity["aabb_max_m"],
+                                                                  entry["aabb_min_m"], entry["aabb_max_m"])
         decisions = {str(k): str(v) for k, v in receipt["existence"]["decisions"].items()}
         assignment = {str(k): str(v) for k, v in receipt["assignment"].items()}
         decomposition = lt.decompose_frame(targets=targets, assignment=assignment, existence=existence, decisions=decisions)
@@ -441,6 +450,7 @@ class EpisodeTeacher:
         record = {
             "tick": int(receipt["tick"]), "frame_index": frame_index, "frame_digest": str(receipt["frame_digest"]),
             "private_gate": gate, "targets": targets, "existence_labels": existence, "decomposition": decomposition,
+            "existence_truth_box_iou": existence_truth_box_iou,
             "node_prf1": {name: frame_eval[name] for name in lt.METRIC_FIELDS["node_prf1"]},
             "node_prf1_iou": {name: frame_eval["node_prf1_iou"][name] for name in lt.METRIC_FIELDS["node_prf1_iou"]},
             "contamination_fraction": frame_eval["contamination_fraction"],
@@ -452,7 +462,8 @@ class EpisodeTeacher:
             "truth_in_scope": sorted(key for key, row in truth_table.items() if row["present"] and row["in_scope"]),
             "training_record": training_record, "nuisance": nuisance,
         }
-        self.frames.append({k: v for k, v in record.items() if k not in ("training_record", "nuisance", "targets", "existence_labels")})
+        self.frames.append({k: v for k, v in record.items()
+                            if k not in ("training_record", "nuisance", "targets", "existence_labels", "existence_truth_box_iou")})
         return record
 
     # -- the episode -----------------------------------------------------------

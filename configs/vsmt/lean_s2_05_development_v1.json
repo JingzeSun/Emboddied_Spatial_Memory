@@ -126,7 +126,12 @@
       "present_free_space_coverage_ratio",
       "gone_missed_opportunity_count",
       "present_missed_opportunity_count",
-      "same_object_fragments_per_frame"
+      "same_object_fragments_per_frame",
+      "gone_absent_free_space_coverage_ratio",
+      "gone_moved_free_space_coverage_ratio",
+      "gone_should_be_visible_ratio",
+      "present_should_be_visible_ratio",
+      "present_entity_truth_box_iou"
     ],
     "quantiles": [
       0.05,
@@ -139,7 +144,8 @@
     ],
     "bins": "fixed edges: cosine 0.02 over [-1,1], distance 0.05 m over [0,10], ratios 1/64, counts integers to 64; merged by summing",
     "reads_only_sealed_rows_and_s0_04_labels": true,
-    "plain_language_zh": "校准只统计封存的特征值与 S0-04 标签：同物体目标对的余弦/距离/IoU、其他候选对的余弦、新物体色块的最高余弦、存在候选按 gone/present 的自由空间覆盖与错失次数、色块主导占比、实体应可见比例、同帧同物体色块数。分位数从固定边界直方图算出，用来给网格、去重阈值、dormancy 次数、应可见下限提建议。"
+    "plain_language_zh": "校准只统计封存的特征值与 S0-04 标签：同物体目标对的余弦/距离/IoU、其他候选对的余弦、新物体色块的最高余弦、存在候选按 gone/present 的自由空间覆盖与错失次数、色块主导占比、实体应可见比例、同帧同物体色块数。分位数从固定边界直方图算出，用来给网格、去重阈值、dormancy 次数、应可见下限提建议。",
+    "series_added_by_ruling_74_zh": "裁决 74 (2)(a)（2026-09-26）：新增五列只读诊断。已消失的覆盖值按原因拆成“物体已不在场景”（absent）与“物体在场但离实体记住的位置超过 δ”（moved，其中也含身份对、位置记错的实体）两列；存在候选的应可见比例按 gone／present 分两列，供新规则下重新冻结应可见下限；present 候选的实体框与真值框 IoU 一列，量框贴得准不准。它们不进任何指标，也不选参。"
   },
   "elu_p_fit": {
     "procedure": "S0-05 v2 fitting_procedure: per-episode count records by lean_development.EluPCounter under the elu_p_fit pass, summed over every development episode, then lean_controls.fit_elu_p_quantities on the train split after the seals at the registered rollout_config",
@@ -230,6 +236,7 @@
   "user_rulings": [
     "D-224-S1 裁决 70（2026-09-24 批准，原话「裁决 70 取 (a)」）：table.better 增登 node_prf1_centroid=higher（次级列并列报告，不选配置）；摘要重钉。",
     "D-224-S1 裁决 68（2026-09-25 批准，原话「裁决 68 全按推荐」）：development_configurations 八个槽冻结（TAF theta_a 0.7／d_a no_gate；RAC theta_a 0.7／d_a no_gate／rho_rac 0.7／n_rac 3；LOW d_low 1.0；VSMT-lean tau_r 0.5），绑定 DEVELOPMENT_CONFIGURATIONS 并逐一核验为 S0-05 网格成员；八个都是值槽，规则摘要不变。",
-    "D-224-S1 裁决 72 (B)（2026-09-25 批准）：table.better 的 node_prf1_centroid 改为 node_prf1_iou=higher——node_prf1（质心口径）是主列与选参指标，IoU 0.3 列并列报告、不选配置。"
+    "D-224-S1 裁决 72 (B)（2026-09-25 批准）：table.better 的 node_prf1_centroid 改为 node_prf1_iou=higher——node_prf1（质心口径）是主列与选参指标，IoU 0.3 列并列报告、不选配置。",
+    "D-224-S1 裁决 74 (2)(a)（2026-09-26 批准，原话「裁决 74 取 (1)(a)(2)(a)」）：calibration.series 新增 gone_absent／gone_moved 覆盖、gone／present 应可见比例与 present 实体框对真值框 IoU 五列只读诊断。"
   ]
 }
