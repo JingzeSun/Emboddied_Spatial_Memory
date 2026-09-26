@@ -145,7 +145,7 @@ def run_episode_task(task: dict[str, Any]) -> dict[str, Any]:
 
 #: The arms each pass may run (the contract's passes block); ELU-P's table row is its round-0 pass.
 PASS_ARMS = {
-    "calibration": ("LOW",),
+    "calibration": (dev.CALIBRATION_ARM_CONFIG["arm"],),  # ruling 75: TAF at the rollout theta_a
     "elu_p_fit": ("TAF",),
     "dagger_round_0": ("ELU-P",),
     "dagger_round_1": ("VSMT-lean", "AssocOnly"),
@@ -306,7 +306,8 @@ def cmd_fit_elu_p(args: argparse.Namespace) -> int:
     rollout, missing = rollout_config()
     if missing:
         return refuse(f"policy values still null: {missing}")
-    pass_root = Path(args.output_root).resolve() / "elu_p_fit"
+    # ruling 75 (1)(a): the calibration pass runs the fit pass's arm and configuration and writes the same counts
+    pass_root = Path(args.output_root).resolve() / args.from_pass
     records, episodes = [], []
     for episode_dir in episode_dirs(pass_root, "TAF"):
         payload = episode_dir / "TAF" / "elu_p_counts.json"
@@ -445,6 +446,8 @@ def main() -> int:
     cal.set_defaults(func=cmd_calibration_report)
     fit = sub.add_parser("fit-elu-p")
     fit.add_argument("--output-root", required=True)
+    fit.add_argument("--from-pass", default="elu_p_fit", choices=["elu_p_fit", "calibration"],
+                     help="ruling 75: the calibration pass (TAF at the rollout theta_a) also carries the ELU-P count records")
     fit.set_defaults(func=cmd_fit_elu_p)
     train = sub.add_parser("train")
     train.add_argument("--output-root", required=True)

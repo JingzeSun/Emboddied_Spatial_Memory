@@ -57,13 +57,19 @@ BETTER = {"node_prf1": "higher", "node_prf1_iou": "higher", "missing_residual_ra
           "identity_continuity": "higher", "recovery_latency_frames": "lower", "contamination_auc": "lower"}
 #: The passes of S2-05 in order; each pass is one S2-04 run per episode.
 PASSES = (
-    "calibration",          # LOW with no distance gate: sealed rows and labels for the calibration histograms
+    "calibration",          # TAF at the rollout theta_a, no distance gate (ruling 75): the histograms and the ELU-P counts
     "elu_p_fit",            # TAF at the registered rollout theta_a with no gate: the ELU-P count records
     "dagger_round_0",       # ELU-P at the rollout_config: rollouts and labels for round-0 training (also ELU-P's table row)
     "dagger_round_1",       # VSMT-lean and AssocOnly round-0 heads on their own rollouts: labels for round-1 training
     "development_table",    # TAF, RAC, LOW at the development configurations; VSMT-lean, NoVersion, AssocOnly at the round-1 heads
 )
-CALIBRATION_ARM_CONFIG = {"arm": "LOW", "config": {"d_low": None}}
+#: Ruling 75 (1)(a) (2026-09-26): the calibration pass runs the gated development association -- TAF at the ELU-P
+#: rollout theta_a with no distance gate -- instead of LOW with no gate, whose nearest-entity-takes-all memory merged
+#: several objects and background into one entity (LOG-261: present boxes read as seen through).  It is exactly the
+#: ELU-P fit pass's arm and configuration, so the same pass also writes the ELU-P count records and ``fit-elu-p`` may
+#: read them from the calibration root; the evidence ceiling on an ideal memory is a separate read-only diagnostic.
+CALIBRATION_ARM_CONFIG = {"arm": "TAF", "config": {"theta_a": arms.ROLLOUT_CONFIG["theta_a"], "d_a": None}}
+CALIBRATION_WRITES_ELU_P_COUNTS_RULE = "the_calibration_pass_is_the_elu_p_fit_arm_and_configuration_and_also_writes_the_elu_p_count_records"
 ELU_P_FIT_ARM_RULE = "TAF_at_the_registered_rollout_theta_a_with_no_distance_gate"
 DEVELOPMENT_TRAINING_RULE = "one_development_training_per_round_at_the_first_registered_seed"
 MERGE_ORDER_RULE = "episode_id_ascending_regardless_of_worker_completion_order"
@@ -517,6 +523,8 @@ def validate_development_contract(contract: Mapping[str, Any]) -> dict[str, Any]
     _require(tuple(contract["development_arms"]) == DEVELOPMENT_ARMS, "contract_development_arms_mismatch")
     _require(tuple(contract["passes"]["order"]) == PASSES, "contract_passes_mismatch")
     _require(dict(contract["passes"]["calibration_arm"]) == CALIBRATION_ARM_CONFIG, "contract_calibration_arm_mismatch")
+    _require(contract["passes"].get("calibration_writes_elu_p_counts") == CALIBRATION_WRITES_ELU_P_COUNTS_RULE,
+             "contract_calibration_elu_p_counts_rule_mismatch")
     _require(contract["passes"]["elu_p_fit_arm_rule"] == ELU_P_FIT_ARM_RULE, "contract_elu_p_fit_rule_mismatch")
     _require(contract["passes"]["development_training_rule"] == DEVELOPMENT_TRAINING_RULE, "contract_training_rule_mismatch")
     _require(contract["episodes"]["rule"] == EPISODE_SET_RULE, "contract_episode_rule_mismatch")
@@ -552,6 +560,7 @@ def validate_development_contract(contract: Mapping[str, Any]) -> dict[str, Any]
 __all__ = [
     "BETTER",
     "CALIBRATION_ARM_CONFIG",
+    "CALIBRATION_WRITES_ELU_P_COUNTS_RULE",
     "CALIBRATION_SERIES",
     "CONTRACT_SCHEMA_VERSION",
     "CalibrationCollector",

@@ -60,11 +60,20 @@
       "development_table"
     ],
     "calibration_arm": {
+      "arm": "TAF",
+      "config": {
+        "theta_a": 0.7,
+        "d_a": null
+      }
+    },
+    "calibration_arm_superseded": {
       "arm": "LOW",
       "config": {
         "d_low": null
-      }
+      },
+      "superseded_by": "D-224-S1 ruling 75 (1)(a)"
     },
+    "calibration_writes_elu_p_counts": "the_calibration_pass_is_the_elu_p_fit_arm_and_configuration_and_also_writes_the_elu_p_count_records",
     "elu_p_fit_arm_rule": "TAF_at_the_registered_rollout_theta_a_with_no_distance_gate",
     "development_training_rule": "one_development_training_per_round_at_the_first_registered_seed",
     "development_training_validation_rule": "the_s1_04_holdout: heads train on the training-house records and the epoch with the lowest loss on the selection-house records is kept",
@@ -75,7 +84,7 @@
       "no_version": "the VSMT-lean round-1 heads with the runner switch; no separate training",
       "elu_p_table_row_is_the_round_0_pass": true
     },
-    "plain_language_zh": "校准趟用 LOW 无门：它不读描述子、不撤回，跑出来的封存行与标签只用来统计分布，不进任何表。ELU-P 拟合趟用 TAF 在登记的 rollout theta_a 上无门，因为 S0-05 v2 规定匹配增益在\"rollout_config 的门\"上估一次，而 TAF 的门和 ELU-P 的门是同一个、且 TAF 从不撤回，承载实体一直在，旧位置上的误配才能数出来。第 0 轮 DAgger 的轨迹由 ELU-P 在 rollout_config 上产生，这一趟同时就是 ELU-P 的开发表行。开发训练每轮只训一次，seed 取登记 seed 表的第一个，早停用 S1-04 留出：前 30 条 house 训练、后 9 条选 epoch。"
+    "plain_language_zh": "校准趟用 LOW 无门：它不读描述子、不撤回，跑出来的封存行与标签只用来统计分布，不进任何表。ELU-P 拟合趟用 TAF 在登记的 rollout theta_a 上无门，因为 S0-05 v2 规定匹配增益在\"rollout_config 的门\"上估一次，而 TAF 的门和 ELU-P 的门是同一个、且 TAF 从不撤回，承载实体一直在，旧位置上的误配才能数出来。第 0 轮 DAgger 的轨迹由 ELU-P 在 rollout_config 上产生，这一趟同时就是 ELU-P 的开发表行。开发训练每轮只训一次，seed 取登记 seed 表的第一个，早停用 S1-04 留出：前 30 条 house 训练、后 9 条选 epoch。 裁决 75 (1)(a)（2026-09-26）：校准趟改用 TAF 在 rollout theta_a 0.7 上无距离门——无门 LOW 把最近实体当承载者，一个实体会并进几个物体和背景，存在证据被污染（LOG-261）。这正是 ELU-P 拟合趟的臂与配置，所以校准趟同时写出 ELU-P 计数，fit-elu-p 可直接从校准根读取，不必再单独跑一趟拟合。证据本身的上限另在理想记忆上只读地量。"
   },
   "development_configurations": {
     "TAF": {
@@ -237,6 +246,7 @@
     "D-224-S1 裁决 70（2026-09-24 批准，原话「裁决 70 取 (a)」）：table.better 增登 node_prf1_centroid=higher（次级列并列报告，不选配置）；摘要重钉。",
     "D-224-S1 裁决 68（2026-09-25 批准，原话「裁决 68 全按推荐」）：development_configurations 八个槽冻结（TAF theta_a 0.7／d_a no_gate；RAC theta_a 0.7／d_a no_gate／rho_rac 0.7／n_rac 3；LOW d_low 1.0；VSMT-lean tau_r 0.5），绑定 DEVELOPMENT_CONFIGURATIONS 并逐一核验为 S0-05 网格成员；八个都是值槽，规则摘要不变。",
     "D-224-S1 裁决 72 (B)（2026-09-25 批准）：table.better 的 node_prf1_centroid 改为 node_prf1_iou=higher——node_prf1（质心口径）是主列与选参指标，IoU 0.3 列并列报告、不选配置。",
-    "D-224-S1 裁决 74 (2)(a)（2026-09-26 批准，原话「裁决 74 取 (1)(a)(2)(a)」）：calibration.series 新增 gone_absent／gone_moved 覆盖、gone／present 应可见比例与 present 实体框对真值框 IoU 五列只读诊断。"
+    "D-224-S1 裁决 74 (2)(a)（2026-09-26 批准，原话「裁决 74 取 (1)(a)(2)(a)」）：calibration.series 新增 gone_absent／gone_moved 覆盖、gone／present 应可见比例与 present 实体框对真值框 IoU 五列只读诊断。",
+    "D-224-S1 裁决 75 (1)(a)（2026-09-26 批准）：passes.calibration_arm LOW 无门 → TAF theta_a 0.7 无门（与拟合趟相同），校准趟同时写 ELU-P 计数（calibration_writes_elu_p_counts），旧臂留底为 calibration_arm_superseded。"
   ]
 }

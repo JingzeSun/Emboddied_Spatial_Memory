@@ -420,7 +420,9 @@ FROZEN_RULE_SHA256 = {
     # Re-pinned 2026-09-25 for ruling 72 (B): table.better node_prf1_centroid -> node_prf1_iou = higher.  0d3cf50c -> 57dc753d.
     # Re-pinned 2026-09-26 for ruling 74 (2)(a): calibration.series gains five read-only diagnostics (gone split into
     # absent / moved coverage, the should-be-visible ratio by label, the present entity-to-truth box IoU).  57dc753d -> cea002f4.
-    "S2-05": "cea002f40b309f37f8cc9d9b9756c0ffbdbc260272b0ef89f03da749561d38b1",
+    # Re-pinned 2026-09-26 for ruling 75 (1)(a): the calibration arm is TAF at the rollout theta_a with no gate (LOW with
+    # no gate kept as calibration_arm_superseded) and the calibration pass also writes the ELU-P counts.  cea002f4 -> 7916d4f8.
+    "S2-05": "7916d4f8b37f3381443f964a2b048ecdd3a1e3cbe045a6b37cf2144fd1ca86e8",
 }
 
 #: Every registered slot that has been frozen, and the value it froze at.
@@ -1254,9 +1256,12 @@ class TestS205DevelopmentContractBindsItsUpstreams(unittest.TestCase):
         self.assertEqual(set(arms_), set(s0_05["arms"]["main_table"]) | {"NoVersion"})
         self.assertNotIn(s0_05["appendix_arm"]["name"], arms_)
         calibration = self.contract["passes"]["calibration_arm"]
-        self.assertEqual(calibration["arm"], "LOW")
-        self.assertEqual(set(calibration["config"]), set(lean_arms.GRID_PARAMETERS["LOW"]))
-        self.assertIsNone(calibration["config"][lean_arms.NO_GATE_PARAMETER["LOW"]])
+        # ruling 75 (1)(a): the calibration arm is TAF at the S0-05 ELU-P rollout theta_a with no gate (the fit pass's arm)
+        self.assertEqual(calibration["arm"], "TAF")
+        self.assertEqual(set(calibration["config"]), set(lean_arms.GRID_PARAMETERS["TAF"]))
+        self.assertIsNone(calibration["config"][lean_arms.NO_GATE_PARAMETER["TAF"]])
+        self.assertEqual(calibration["config"]["theta_a"], s0_05["arms"]["ELU-P"]["rollout_config"]["theta_a"])
+        self.assertEqual(self.contract["passes"]["calibration_arm_superseded"]["arm"], "LOW")
         self.assertTrue(self.contract["passes"]["dagger"]["elu_p_table_row_is_the_round_0_pass"])
         self.assertEqual(s0_05["arms"]["VSMT-lean"]["training"]["dagger_round_0_memory_source"], "ELU-P")
         for arm in ("TAF", "RAC", "LOW", "VSMT-lean"):

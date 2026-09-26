@@ -24,7 +24,7 @@ from vsmt import lean_development as dev  # noqa: E402
 
 class TestRegisteredPassConfigurations(unittest.TestCase):
     def test_each_pass_names_its_arms(self):
-        self.assertEqual(entry.PASS_ARMS["calibration"], ("LOW",))
+        self.assertEqual(entry.PASS_ARMS["calibration"], ("TAF",))  # ruling 75 (1)(a)
         self.assertEqual(entry.PASS_ARMS["elu_p_fit"], ("TAF",))
         self.assertEqual(entry.PASS_ARMS["dagger_round_0"], ("ELU-P",))
         self.assertEqual(entry.PASS_ARMS["dagger_round_1"], ("VSMT-lean", "AssocOnly"))
@@ -46,7 +46,7 @@ class TestRegisteredPassConfigurations(unittest.TestCase):
             for arm, config in dev.DEVELOPMENT_CONFIGURATIONS.items():
                 with self.subTest(pass_name=pass_name, arm=arm):
                     self.assertEqual(entry.expected_pass_config(pass_name, arm), config)
-        self.assertIsNone(entry.expected_pass_config("calibration", "LOW"))  # the calibration check is its own rule
+        self.assertIsNone(entry.expected_pass_config("calibration", "TAF"))  # the calibration check is its own rule
         self.assertIsNone(entry.expected_pass_config("elu_p_fit", "LOW"))
 
 

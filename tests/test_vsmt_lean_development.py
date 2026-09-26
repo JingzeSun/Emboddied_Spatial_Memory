@@ -217,7 +217,11 @@ class MachineContractTests(unittest.TestCase):
                 node = node[part]
             self.assertIsNone(node, path)
         self.assertEqual(set(checked["development_arms"]), set(dev.DEVELOPMENT_ARMS))
-        self.assertEqual(checked["passes"]["calibration_arm"]["config"], {"d_low": None})
+        self.assertEqual(checked["passes"]["calibration_arm"], {"arm": "TAF", "config": {"theta_a": 0.7, "d_a": None}})  # ruling 75
+        broken = json.loads(json.dumps(checked))
+        broken["passes"]["calibration_writes_elu_p_counts"] = "no"
+        with self.assertRaises(dev.LeanDevelopmentError):
+            dev.validate_development_contract(broken)
         for arm in ("TAF", "RAC", "LOW", "VSMT-lean"):
             self.assertIn(arm, checked["development_configurations"])
         self.assertEqual(set(checked["development_configurations"]["TAF"]), set(arms.GRID_PARAMETERS["TAF"]))
