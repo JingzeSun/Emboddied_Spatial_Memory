@@ -130,6 +130,11 @@ class RulingSeventySixAuditTests(unittest.TestCase):
         dedup = {**POLICY["dedup"], "period_ticks": 1}  # every tick, so the five-frame episode is tallied
         cls.audit = audit_module.NodeAudit(evidence=teacher.evidence, iou_min=teacher.iou_min, delta_moved_m=TEACHER_POLICY["delta_moved_m"],
                                            groups=audit_module.object_groups(data["table"]), arm="TAF", config=CONFIGS["TAF"], dedup=dedup)
+        from vsmt import lean_memory as lm
+
+        original = lm._apply_dedup
+        cls.audit.fold_capture = audit_module.capture_dedup_folds()
+        cls.addClassCleanup(setattr, lm, "_apply_dedup", original)
         cls.births = 0
         cls.frames = []
         policy = {**POLICY, "dedup": dedup}
@@ -164,6 +169,7 @@ class RulingSeventySixAuditTests(unittest.TestCase):
         self.assertGreater(self.births, 0)
         dedup = self.report["dedup"]
         self.assertEqual(dedup["ticks"], 5)
+        self.assertEqual(sum(dedup["folds_by_identity"].values()), dedup["folds"])
         self.assertEqual(set(dedup["pairs_after_fold"]), {f"{s}|{i}" for s in audit_module.DEDUP_STATE_PAIRS for i in audit_module.DEDUP_IDENTITIES})
         for row in dedup["pairs_after_fold"].values():
             for count in row["pass"].values():

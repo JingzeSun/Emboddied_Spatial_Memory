@@ -196,6 +196,35 @@ def capture_truth_table(teacher: Any) -> dict[str, Any]:
     return captured
 
 
+def capture_dedup_folds() -> list[dict[str, Any]]:
+    """Ruling 76 (1)(a): record the two records of every shared-dedup fold as they were just before it.
+
+    The wrapper calls the shared maintenance function unchanged and returns its result; it only keeps, per
+    fold, the two records' states and evidence so the audit can file the fold by private identity once the
+    teacher has labelled the frame.  Nothing reaches the method.
+    """
+
+    from vsmt import lean_memory as lm
+
+    captured: list[dict[str, Any]] = []
+    original = lm._apply_dedup
+    if getattr(original, "_audit_wrapper", False):
+        original = original._audit_original  # type: ignore[attr-defined]
+
+    def capturing(memory: dict[str, Any], **kwargs: Any) -> list[dict[str, Any]]:
+        before = {str(e["entity_id"]): {"state": e["state"], "evidence": [dict(item) for item in e["evidence"]], "supported_by": e.get("supported_by")}
+                  for e in memory["entities"]}
+        changes = original(memory, **kwargs)
+        for change in changes:
+            captured.append({"canonical": before[str(change["canonical_entity_id"])], "folded": before[str(change["folded_entity_id"])]})
+        return changes
+
+    capturing._audit_wrapper = True  # type: ignore[attr-defined]
+    capturing._audit_original = original  # type: ignore[attr-defined]
+    lm._apply_dedup = capturing
+    return captured
+
+
 class NodeAudit:
     """Per-frame loss decomposition and alternative scorings over one episode run."""
 
@@ -215,6 +244,8 @@ class NodeAudit:
         self.dedup_folds = 0
         self.dedup_pairs = {f"{states}|{identity}": {"pairs": 0, "pass": {}} for states in DEDUP_STATE_PAIRS for identity in DEDUP_IDENTITIES}
         self.truth_centroid_changes: dict[str, list[tuple[int, list[float]]]] = {}
+        self.fold_capture: list[dict[str, Any]] | None = None  # set by run(): capture_dedup_folds()
+        self.folds_by_identity = {f"{states}|{identity}": 0 for states in DEDUP_STATE_PAIRS for identity in DEDUP_IDENTITIES}
         self.iou_min = float(iou_min)
         self.delta = float(delta_moved_m)
         self.groups = dict(groups or {})
@@ -377,6 +408,8 @@ class NodeAudit:
             self._birth_reasons(step, labelled, truth_table)
         if self.dedup_period is not None and tick % self.dedup_period == 0:
             self._dedup_pairs(memory_after, identities)
+        if self.fold_capture is not None:
+            self._file_folds()
 
         for name, count in frame_entity.items():
             self.entity_counts[name] += count
@@ -504,6 +537,19 @@ class NodeAudit:
                     reason = "correct_carrier_lost_joint_competition"
             self.birth_reasons[scope][reason] += 1
 
+    def _file_folds(self) -> None:
+        """File the folds captured this frame by state pair and private identity (the teacher has labelled the frame)."""
+
+        while self.fold_capture:
+            fold = self.fold_capture.pop(0)
+            left, right = (lt.entity_identity(fold[side], self.evidence) for side in ("canonical", "folded"))
+            states = "_".join(sorted((fold["canonical"]["state"], fold["folded"]["state"])))
+            if not (left["resolvable"] and right["resolvable"]):
+                identity = "ambiguous"
+            else:
+                identity = "same_object" if left["key"] == right["key"] else "different_objects"
+            self.folds_by_identity[f"{states}|{identity}"] += 1
+
     def _dedup_pairs(self, memory_after: Mapping[str, Any], identities: Mapping[str, Mapping[str, Any]]) -> None:
         """At a dedup tick, tally the entity pairs left after the fold by state pair and private identity at every gate value."""
 
@@ -575,6 +621,8 @@ class NodeAudit:
         primary = self.rule_sums["centroid_within_0.5m"]
         _require(sum(self.centroid_entity_counts.values()) == primary["predicted"], "audit_centroid_entity_categories_do_not_sum")
         _require(sum(self.centroid_truth_counts.values()) == primary["truth"], "audit_centroid_truth_categories_do_not_sum")
+        if self.fold_capture is not None and self.dedup_period is not None:
+            _require(sum(self.folds_by_identity.values()) == self.dedup_folds, "audit_captured_folds_do_not_match_the_log")
         return {
             "schema_version": SCHEMA_VERSION,
             "frames": self.frames,
@@ -593,6 +641,7 @@ class NodeAudit:
             "centroid_truth_categories": dict(self.centroid_truth_counts),
             "birth_reasons": {scope: dict(row) for scope, row in self.birth_reasons.items()} if self.arm is not None else None,
             "dedup": {"period_ticks": self.dedup_period, "ticks": self.dedup_ticks, "folds": self.dedup_folds,
+                      "folds_by_identity": dict(self.folds_by_identity) if self.fold_capture is not None else None,
                       "gate_values": {"cosine": list(DEDUP_COSINES), "distance_m": list(DEDUP_DISTANCES_M), "iou": list(DEDUP_IOUS)},
                       "pairs_after_fold": {name: {"pairs": row["pairs"], "pass": dict(sorted(row["pass"].items()))}
                                            for name, row in self.dedup_pairs.items()}} if self.dedup_period is not None else None,
@@ -671,6 +720,7 @@ def run(args: argparse.Namespace) -> int:
     captured = capture_truth_table(teacher)
     audit = NodeAudit(evidence=teacher.evidence, iou_min=teacher.iou_min, delta_moved_m=policy["teacher"]["delta_moved_m"],
                       groups=object_groups(table), arm=args.arm, config=config, scorer=scorer, dedup=policy["runner"]["dedup"])
+    audit.fold_capture = capture_dedup_folds()
     started = time.time()
     current: dict[str, Any] = {}
 
@@ -730,7 +780,7 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
     pooled_centroid_entity = {name: 0 for name in CENTROID_ENTITY_CATEGORIES}
     pooled_centroid_truth = {name: 0 for name in CENTROID_TRUTH_CATEGORIES}
     pooled_births = {scope: {name: 0 for name in BIRTH_REASONS} for scope in ("in_scope_object", "other")}
-    pooled_dedup: dict[str, Any] = {"ticks": 0, "folds": 0, "pairs_after_fold": {}}
+    pooled_dedup: dict[str, Any] = {"ticks": 0, "folds": 0, "folds_by_identity": {}, "pairs_after_fold": {}}
     for path in sorted(output_root.glob(f"*/{arm}/{AUDIT_FILE_NAME}")):
         payload = json.loads(path.read_text(encoding="utf-8"))
         _require(payload.get("schema_version") == SCHEMA_VERSION and payload.get("arm") == arm, f"audit_file_invalid:{path}")
@@ -753,6 +803,8 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
         if audit.get("dedup"):
             pooled_dedup["ticks"] += int(audit["dedup"]["ticks"])
             pooled_dedup["folds"] += int(audit["dedup"]["folds"])
+            for name, value in (audit["dedup"].get("folds_by_identity") or {}).items():
+                pooled_dedup["folds_by_identity"][name] = pooled_dedup["folds_by_identity"].get(name, 0) + int(value)
             for name, row in audit["dedup"]["pairs_after_fold"].items():
                 target = pooled_dedup["pairs_after_fold"].setdefault(name, {"pairs": 0, "pass": {}})
                 target["pairs"] += int(row["pairs"])
