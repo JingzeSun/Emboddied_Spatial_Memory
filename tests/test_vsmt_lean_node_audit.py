@@ -160,6 +160,11 @@ class RulingSeventySixAuditTests(unittest.TestCase):
         self.assertEqual(self.report["centroid_entity_categories"]["matched"], primary["matched"])
         self.assertGreaterEqual(rules["centroid_within_0.5m_count_first"]["matched"], primary["matched"])
         self.assertGreaterEqual(rules["iou_0.3_count_first"]["matched"], rules["iou_0.3_secondary"]["matched"])
+        # the metric candidates: a wider place test never matches fewer; an identity-restricted one never matches a wrong object
+        self.assertGreaterEqual(rules["centroid_0.5m_or_in_box_0.25m_count_first"]["matched"], rules["centroid_within_0.5m_count_first"]["matched"])
+        self.assertLessEqual(rules["identity_centroid_0.5m_count_first"]["matched"], rules["centroid_within_0.5m_count_first"]["matched"])
+        self.assertEqual(self.report["wrong_identity_matches"]["identity_centroid_0.5m_count_first"], 0)
+        self.assertEqual(self.report["wrong_identity_matches"]["identity_centroid_0.5m_or_in_box_0.25m_count_first"], 0)
         # the removed mug's entity is the absent one after the window
         self.assertEqual([f["centroid_entity"]["own_object_absent"] for f in self.frames], [0, 0, 1, 1, 1])
 

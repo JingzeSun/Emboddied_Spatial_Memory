@@ -88,6 +88,11 @@ RULES = (
     # since ruling 76 (3)(a) these two reproduce the evaluator and the plain two above keep the earlier max-weight objective
     "centroid_within_0.5m_count_first",
     "iou_0.3_count_first",
+    # metric candidates for the pending node-metric ruling (read-only): large objects whose visible surface centroid sits
+    # more than 0.5 m from the whole-box centre, and a pair that must also be the entity's own object
+    "centroid_0.5m_or_in_box_0.25m_count_first",
+    "identity_centroid_0.5m_count_first",
+    "identity_centroid_0.5m_or_in_box_0.25m_count_first",
 )
 PAD_M = 0.25
 CENTROID_RADIUS_M = 0.5
@@ -253,6 +258,7 @@ class NodeAudit:
         self.entity_counts = {name: 0 for name in ENTITY_CATEGORIES}
         self.truth_counts = {name: 0 for name in TRUTH_CATEGORIES}
         self.rule_sums = {rule: {"matched": 0, "predicted": 0, "truth": 0} for rule in RULES}
+        self.wrong_identity_matches = {rule: 0 for rule in RULES if rule.endswith("_count_first")}
         self.rule_matched_per_frame: dict[str, list[int]] = {rule: [] for rule in RULES}
         self.by_type: dict[str, dict[str, int]] = {}
         self.by_group: dict[str, dict[str, int]] = {}
@@ -381,10 +387,21 @@ class NodeAudit:
                                                                           for row in group_dist]
         weights_by_rule["centroid_within_0.5m_count_first"] = weights_by_rule["centroid_within_0.5m"]
         weights_by_rule["iou_0.3_count_first"] = weights_by_rule["iou_0.3_secondary"]
+        own = [[bool(identities[str(entity["entity_id"])]["resolvable"]) and identities[str(entity["entity_id"])]["key"] == key
+                for key in present_keys] for entity in predictions]
+        place_or_box = [[(1.0 / (1.0 + d)) if (d <= self.delta or inside) else 0.0 for d, inside in zip(drow, irow, strict=True)]
+                        for drow, irow in zip(dist_rows, inside_rows, strict=True)]
+        weights_by_rule["centroid_0.5m_or_in_box_0.25m_count_first"] = place_or_box
+        weights_by_rule["identity_centroid_0.5m_count_first"] = [[w if ok else 0.0 for w, ok in zip(wrow, orow, strict=True)]
+                                                                 for wrow, orow in zip(weights_by_rule["centroid_within_0.5m"], own, strict=True)]
+        weights_by_rule["identity_centroid_0.5m_or_in_box_0.25m_count_first"] = [[w if ok else 0.0 for w, ok in zip(wrow, orow, strict=True)]
+                                                                                 for wrow, orow in zip(place_or_box, own, strict=True)]
         for rule in RULES:
             weights = weights_by_rule[rule]
             if rule.endswith("_count_first"):
-                matched = _count_first(weights) if weights and present_keys else 0
+                pairs = lt._max_weight_matching(weights, count_first=True) if weights and present_keys else []
+                matched = len(pairs)
+                self.wrong_identity_matches[rule] += sum(1 for row, column in pairs if not own[row][column])
             else:
                 matched = len(lt._max_weight_matching(weights)) if weights and present_keys else 0
             rule_matched[rule] = matched
@@ -628,6 +645,7 @@ class NodeAudit:
             "frames": self.frames,
             "iou_min": self.iou_min, "delta_moved_m": self.delta, "pad_m": PAD_M, "centroid_radius_m": CENTROID_RADIUS_M,
             "rules": {rule: _prf(s["matched"], s["predicted"], s["truth"]) for rule, s in self.rule_sums.items()},
+            "wrong_identity_matches": dict(self.wrong_identity_matches),
             "entity_categories": dict(self.entity_counts),
             "truth_categories": dict(self.truth_counts),
             "truth_by_group": {group: dict(row) for group, row in sorted(self.by_group.items())},
@@ -781,6 +799,7 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
     pooled_centroid_truth = {name: 0 for name in CENTROID_TRUTH_CATEGORIES}
     pooled_births = {scope: {name: 0 for name in BIRTH_REASONS} for scope in ("in_scope_object", "other")}
     pooled_dedup: dict[str, Any] = {"ticks": 0, "folds": 0, "folds_by_identity": {}, "pairs_after_fold": {}}
+    pooled_wrong: dict[str, int] = {}
     for path in sorted(output_root.glob(f"*/{arm}/{AUDIT_FILE_NAME}")):
         payload = json.loads(path.read_text(encoding="utf-8"))
         _require(payload.get("schema_version") == SCHEMA_VERSION and payload.get("arm") == arm, f"audit_file_invalid:{path}")
@@ -793,6 +812,8 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
             pooled_entity[name] += int(audit["entity_categories"][name])
         for name in TRUTH_CATEGORIES:
             pooled_truth[name] += int(audit["truth_categories"][name])
+        for rule, value in (audit.get("wrong_identity_matches") or {}).items():
+            pooled_wrong[rule] = pooled_wrong.get(rule, 0) + int(value)
         for name in CENTROID_ENTITY_CATEGORIES:
             pooled_centroid_entity[name] += int(audit["centroid_entity_categories"][name])
         for name in CENTROID_TRUTH_CATEGORIES:
@@ -840,7 +861,7 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
         "pooled_rules": {rule: _prf(s["matched"], s["predicted"], s["truth"]) for rule, s in pooled_rules.items()},
         "pooled_entity_categories": pooled_entity, "pooled_truth_categories": pooled_truth,
         "pooled_centroid_entity_categories": pooled_centroid_entity, "pooled_centroid_truth_categories": pooled_centroid_truth,
-        "pooled_birth_reasons": pooled_births, "pooled_dedup": pooled_dedup,
+        "pooled_birth_reasons": pooled_births, "pooled_dedup": pooled_dedup, "pooled_wrong_identity_matches": pooled_wrong,
         "pooled_truth_by_group": {group: row for group, row in sorted(pooled_group.items())},
         "pooled_truth_by_type": {name: row for name, row in sorted(pooled_type.items(), key=lambda item: (-sum(item[1].values()), item[0]))[:40]},
         "per_episode": episodes,
