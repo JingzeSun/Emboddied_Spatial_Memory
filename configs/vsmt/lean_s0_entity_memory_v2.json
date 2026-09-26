@@ -231,16 +231,24 @@
     "canonical_selection": "earliest_first_version_opened_at_then_smallest_entity_id",
     "pair_order": "descending_descriptor_cosine_then_two_entity_ids",
     "period_ticks": 10,
-    "descriptor_cosine_min": 0.8,
+    "descriptor_cosine_min": 0.6,
     "centroid_distance_max_m": 0.5,
     "aabb_iou_min": 0.05,
-    "values_frozen_by": "D-224-S1 ruling 68 (descriptor_cosine_min, centroid_distance_max_m, aabb_iou_min); D-224-S1 ruling 67 (period_ticks)",
-    "values_frozen_on": "2026-09-25",
+    "values_frozen_by": "D-224-S1 ruling 77 (2)(a) (descriptor_cosine_min); D-224-S1 ruling 68 (centroid_distance_max_m, aabb_iou_min); D-224-S1 ruling 67 (period_ticks)",
+    "values_frozen_on": "2026-09-26",
     "descriptor_cosine_min_superseded": {
-      "value": 0.9,
-      "frozen_by": "D-224-S1 ruling 67",
-      "superseded_by": "D-224-S1 ruling 68",
-      "on": "2026-09-25"
+      "value": 0.8,
+      "frozen_by": "D-224-S1 ruling 68",
+      "superseded_by": "D-224-S1 ruling 77",
+      "on": "2026-09-26",
+      "earlier": [
+        {
+          "value": 0.9,
+          "frozen_by": "D-224-S1 ruling 67",
+          "superseded_by": "D-224-S1 ruling 68",
+          "on": "2026-09-25"
+        }
+      ]
     },
     "centroid_distance_max_m_superseded": {
       "value": 0.25,
@@ -254,7 +262,7 @@
       "superseded_by": "D-224-S1 ruling 68",
       "on": "2026-09-25"
     },
-    "plain_language_zh": "每隔登记的帧数把外观、位置与包围盒都足够接近的一对活动实体合并成一条记录，保留较早建立的身份并保存两边证据。它是五个方法逐字节共用的确定性规则，不是学习决定；canonical 取首版本最早、并列取 ID 字典序最小，使身份连续率以最早建立的身份为准。裁决 67（2026-09-24）冻结四值：每 10 帧一次，余弦 ≥ 0.9、质心距 ≤ 0.25 m（S0-02 的平移步长）、盒 IoU ≥ 0.3（裁决 C 的下限）三条同时满足才合并；保守组合意味着开发趟里很少合并，校准趟报同物体余弦/IoU 分位数后可按裁决 66 以裁决 68 取代。 被折叠实体的处理（裁决 X6）：它的 entity_id 进入 canonical 的 canonical_of，全部证据并入 canonical，事务日志在 post_maintenance.dedup 留底；它自己的版本链不再作为活记录保留。这叫“归档进 canonical_of”，不算物理删除历史版本：physical_deletion_allowed=false 指的是活实体的生命周期历史不删，而去重是首篇的 MERGE 原子，不是 RETRACT。裁决 68（2026-09-25，LOG-256 续）按 39 条校准分位数取代三值为余弦 ≥ 0.8、质心距 ≤ 0.5 m、盒 IoU ≥ 0.05（period 10 不变）：去重比的是实体对实体（描述子均值对均值、框对框），两个同物体实体各自平均了多块色块，其均值间余弦高于色块对均值的 p50 0.78，按色块分位数定 0.8 偏保守；异物体候选对余弦 ≥0.8 占 15.6%、≤0.5 m 占 17.1%，同时满足者不多，再要求框有实质重叠（同物体 IoU p50 只有 0.012，0.3 把 81% 的同物体对挡在门外）。旧值留在 *_superseded 记录与跨合同台账。 裁决 76 (2)(a)（2026-09-26，LOG-262）：dormant 也参加去重（retracted 仍不参加），去重资格不再取决于各臂的存在决定——AssocOnly 从不进 dormancy，原规则下它的实体始终有去重资格，而其他臂被放弃的重复实体转 dormant 后逃出去重。合并后的质心、框与表面点取较晚被看到的一条，同一帧看到的两条取并框、质心按观测数加权；任一方 active 则合并结果为 active，两条都 dormant 则仍为 dormant（版本来源记 dedup_dormant）。",
+    "plain_language_zh": "每隔登记的帧数把外观、位置与包围盒都足够接近的一对活动实体合并成一条记录，保留较早建立的身份并保存两边证据。它是五个方法逐字节共用的确定性规则，不是学习决定；canonical 取首版本最早、并列取 ID 字典序最小，使身份连续率以最早建立的身份为准。裁决 67（2026-09-24）冻结四值：每 10 帧一次，余弦 ≥ 0.9、质心距 ≤ 0.25 m（S0-02 的平移步长）、盒 IoU ≥ 0.3（裁决 C 的下限）三条同时满足才合并；保守组合意味着开发趟里很少合并，校准趟报同物体余弦/IoU 分位数后可按裁决 66 以裁决 68 取代。 被折叠实体的处理（裁决 X6）：它的 entity_id 进入 canonical 的 canonical_of，全部证据并入 canonical，事务日志在 post_maintenance.dedup 留底；它自己的版本链不再作为活记录保留。这叫“归档进 canonical_of”，不算物理删除历史版本：physical_deletion_allowed=false 指的是活实体的生命周期历史不删，而去重是首篇的 MERGE 原子，不是 RETRACT。裁决 68（2026-09-25，LOG-256 续）按 39 条校准分位数取代三值为余弦 ≥ 0.8、质心距 ≤ 0.5 m、盒 IoU ≥ 0.05（period 10 不变）：去重比的是实体对实体（描述子均值对均值、框对框），两个同物体实体各自平均了多块色块，其均值间余弦高于色块对均值的 p50 0.78，按色块分位数定 0.8 偏保守；异物体候选对余弦 ≥0.8 占 15.6%、≤0.5 m 占 17.1%，同时满足者不多，再要求框有实质重叠（同物体 IoU p50 只有 0.012，0.3 把 81% 的同物体对挡在门外）。旧值留在 *_superseded 记录与跨合同台账。 裁决 76 (2)(a)（2026-09-26，LOG-262）：dormant 也参加去重（retracted 仍不参加），去重资格不再取决于各臂的存在决定——AssocOnly 从不进 dormancy，原规则下它的实体始终有去重资格，而其他臂被放弃的重复实体转 dormant 后逃出去重。合并后的质心、框与表面点取较晚被看到的一条，同一帧看到的两条取并框、质心按观测数加权；任一方 active 则合并结果为 active，两条都 dormant 则仍为 dormant（版本来源记 dedup_dormant）。 裁决 77 (2)(a)（2026-09-26，LOG-263 续）：余弦下限 0.8 → 0.6（距离 0.5 m、框 IoU 0.05、周期 10 不变）。4 条开发 episode 上，0.8 时按身份可判的折叠只有 23/41 是同一物体、TAF 留下 27,869 个实体·帧；0.6 时 110/137 是同一物体、实体·帧降到 19,175，合并更多也更准。五臂与消融共用；开发表出来后复核学习臂的误合并。",
     "folded_record_is_archived_into_canonical_of_not_deleted": true
   },
   "entity_box": {
@@ -335,6 +343,7 @@
     "ruling_56_continued": "entity box = union of the fragment boxes attached in the entity's latest observed frame; a later frame replaces it; merge unions only same-frame records (D-224-S1 ruling 56 continued, 2026-09-24, 原话「裁决 56 续取 (a)：真值范围排除 wall/room/door/window，BIND 框改为同帧并集；裁决 58 取 1.0 m」)",
     "ruling_67": "D-224-S1 裁决 67（2026-09-24 批准，原话「S2-05 审过；裁决 67 八个值全按推荐。」）：dormancy_missed_opportunity_limit=3；shared_dedup period_ticks=10、descriptor_cosine_min=0.9、centroid_distance_max_m=0.25、aabb_iou_min=0.3。绑定常量 DORMANCY_MISSED_OPPORTUNITY_LIMIT 与 SHARED_DEDUP，登记进跨合同台账；规则摘要不因填值而变。",
     "ruling_68": "D-224-S1 裁决 68（2026-09-25 批准，原话「裁决 68 全按推荐」）：shared_dedup descriptor_cosine_min 0.9→0.8、centroid_distance_max_m 0.25→0.5、aabb_iou_min 0.3→0.05（period_ticks 10 不变）；裁决 67 的三值进 SUPERSEDED_VALUES；绑定常量 SHARED_DEDUP 同步；取代记录进入规则摘要，S0-01 重钉。依据 LOG-256 续的 39 条合并分位数。",
-    "ruling_76_2a": "2026-09-26 「裁决 76 取 (1)(a)(2)(a)(3)(a)(4)(a)」: shared dedup eligibility active or dormant, survivor geometry from the later-observed record, survivor active if either record active; LOG-262."
+    "ruling_76_2a": "2026-09-26 「裁决 76 取 (1)(a)(2)(a)(3)(a)(4)(a)」: shared dedup eligibility active or dormant, survivor geometry from the later-observed record, survivor active if either record active; LOG-262.",
+    "ruling_77_2a": "2026-09-26 「裁决 77 取 (1)(a)(2)(a)」: shared dedup descriptor_cosine_min 0.8 -> 0.6; LOG-263 sequel."
   }
 }

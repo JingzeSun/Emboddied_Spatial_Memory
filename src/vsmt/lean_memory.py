@@ -74,7 +74,10 @@ ENTITY_STATES = ("active", "dormant", "retracted")
 #: (the ruling-67 triple was almost never satisfiable: same-object box IoU has p50 0.012 and the
 #: development runs kept 3.5 entities per truth object).  The period stays 10.
 DORMANCY_MISSED_OPPORTUNITY_LIMIT = 3
-SHARED_DEDUP = {"period_ticks": 10, "descriptor_cosine_min": 0.8, "centroid_distance_max_m": 0.5, "aabb_iou_min": 0.05}
+#: D-224-S1 ruling 77 (2)(a) (2026-09-26, LOG-263 sequel): descriptor_cosine_min 0.8 -> 0.6.  On the four audit episodes
+#: under ruling 76, 0.8 folded the same object in only 23 of 41 identified folds and left TAF with 27,869 entity-frames;
+#: 0.6 folded the same object in 110 of 137 and cut them to 19,175 (TAF own-object-and-place F1 0.500 -> 0.638, LOW ~0.70).
+SHARED_DEDUP = {"period_ticks": 10, "descriptor_cosine_min": 0.6, "centroid_distance_max_m": 0.5, "aabb_iou_min": 0.05}
 #: D-224-S1 ruling 76 (2)(a) (2026-09-26, LOG-262): dormant records join the shared dedup, so the fold no
 #: longer depends on each arm's existence decisions (AssocOnly never goes dormant and had kept every
 #: record eligible while the other arms' abandoned duplicates escaped it).  The survivor takes the

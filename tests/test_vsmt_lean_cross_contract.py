@@ -293,7 +293,9 @@ FROZEN_RULE_SHA256 = {
     # Re-pinned 2026-09-26 for ruling 76 (2)(a) (LOG-262): dormant records join the shared dedup, the survivor takes the
     # later-observed record's centroid and box and stays dormant only when both were (opened_by dedup_dormant).
     # 10c223a6 -> 76a00901.
-    "S0-01": "76a009015fe6452a858136cfd0139ac635cb658b5371f5dfe5be830c8a2628af",
+    # Re-pinned 2026-09-26 for ruling 77 (2)(a): the descriptor_cosine_min_superseded record now names 0.8 (ruling 68 -> 77)
+    # with the ruling-67 0.9 under "earlier"; the value itself is a slot.  76a00901 -> 15dbabb9.
+    "S0-01": "15dbabb92448aca21e72717b8d586cc69150b9a411d5598414e6ae3424ad3140",
     # S0-02 re-pinned 2026-09-23 for ruling 52 (LOG-243 supplement): the eligible object's receptacle is the
     # first non-Floor entry of parentReceptacles (entry 0 is the room floor for anything on low
     # furniture, which had hidden 99 of 987 eligible objects as sources), a Floor-only object is
@@ -446,7 +448,9 @@ FROZEN_VALUES: dict[str, dict[str, Any]] = {
         # D-224-S1 ruling 68 (2026-09-25, LOG-256 sequel): the dedup triple re-frozen from the 39-episode
         # calibration quantiles (same-object cosine p50 0.78, box IoU p50 0.012, 35% of same-object pairs
         # within 0.5 m); the ruling-67 triple is in SUPERSEDED_VALUES below.
-        "shared_dedup.descriptor_cosine_min": 0.8,
+        # D-224-S1 ruling 77 (2)(a) (2026-09-26, LOG-263 sequel): cosine 0.8 -> 0.6 (folds more and more accurately on the
+        # four audit episodes: same object 110/137 against 23/41); 0.8 is in SUPERSEDED_VALUES below.
+        "shared_dedup.descriptor_cosine_min": 0.6,
         "shared_dedup.centroid_distance_max_m": 0.5,
         "shared_dedup.aabb_iou_min": 0.05
     },
@@ -544,6 +548,7 @@ SUPERSEDED_VALUES: dict[str, dict[str, list[dict[str, Any]]]] = {
     "S0-01": {
         "shared_dedup.descriptor_cosine_min": [
             {"value": 0.9, "frozen_by": "D-224-S1 ruling 67", "superseded_by": "D-224-S1 ruling 68", "on": "2026-09-25"},
+            {"value": 0.8, "frozen_by": "D-224-S1 ruling 68", "superseded_by": "D-224-S1 ruling 77", "on": "2026-09-26"},
         ],
         "shared_dedup.centroid_distance_max_m": [
             {"value": 0.25, "frozen_by": "D-224-S1 ruling 67", "superseded_by": "D-224-S1 ruling 68", "on": "2026-09-25"},
