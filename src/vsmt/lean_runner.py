@@ -804,6 +804,10 @@ def episode_summary(state: Mapping[str, Any], receipts: Sequence[Mapping[str, An
 
     counters = state["counters"]
     _require(counters["frames"] == len(receipts) == len(state["cache_frame_seals"]), "summary_frame_counts_differ")
+    # 2026-09-27: the memory digest is assembled from cached per-record strings on the premise that a sealed memory is
+    # never changed in place; once per episode the final memory is serialised in one piece and must give the same digest.
+    _require(lm.memory_digest_from_scratch(state["memory"]) == state["memory"]["memory_digest"],
+             "final_memory_changed_after_sealing")
     return {
         "arm": state["arm"],
         "episode_id": state["memory"]["episode_id"],

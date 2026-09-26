@@ -201,8 +201,52 @@ def _json_native(value: Any, code: str) -> None:
     raise LeanMemoryError(code)
 
 
+#: 2026-09-27, engineering (history-proportional per-frame cost): the canonical JSON of each entity and of each
+#: transaction-log record, keyed by object identity (the object is kept alive in the entry so its id cannot be reused).
+#: A sealed memory is never modified in place (LOG-254's premise: only ``apply_program`` seals, and it now copies an
+#: entity before touching it), so an unchanged record keeps its string from one frame to the next; each call keeps
+#: only the records of the memory it just serialised.
+_PART_JSON: dict[int, tuple[Any, str]] = {}
+_MEMORY_PAYLOAD_KEYS = ("entities", "episode_id", "schema_version", "tick", "transaction_log")
+
+
+def _canonical_payload(memory: Mapping[str, Any]) -> str:
+    """``canonical_json`` of the memory without its digest, assembled from cached per-record strings.
+
+    It equals ``canonical_json(payload)`` byte for byte: the encoder writes a sorted-key object as ``{"k":v,...}``
+    and a list as ``[a,b,...]`` with the same separators, so joining the parts' own canonical strings reproduces it.
+    Any memory outside the frozen five-key shape takes the whole-object path.
+    """
+
+    global _PART_JSON
+    payload = {key: value for key, value in memory.items() if key != "memory_digest"}
+    if (tuple(sorted(payload)) != _MEMORY_PAYLOAD_KEYS or type(payload["entities"]) is not list
+            or type(payload["transaction_log"]) is not list):
+        return canonical_json(payload)
+    previous, kept = _PART_JSON, {}
+
+    def part(item: Any) -> str:
+        hit = previous.get(id(item))
+        text = hit[1] if hit is not None and hit[0] is item else canonical_json(item)
+        kept[id(item)] = (item, text)
+        return text
+
+    entities = ",".join(part(item) for item in payload["entities"])
+    log = ",".join(part(item) for item in payload["transaction_log"])
+    _PART_JSON = kept
+    return ('{"entities":[' + entities + '],"episode_id":' + canonical_json(payload["episode_id"])
+            + ',"schema_version":' + canonical_json(payload["schema_version"]) + ',"tick":' + canonical_json(payload["tick"])
+            + ',"transaction_log":[' + log + ']}')
+
+
 def memory_digest(memory: Mapping[str, Any]) -> str:
     """SHA-256 over the canonical memory payload, excluding the digest itself."""
+
+    return hashlib.sha256(_canonical_payload(memory).encode("utf-8")).hexdigest()
+
+
+def memory_digest_from_scratch(memory: Mapping[str, Any]) -> str:
+    """The same digest serialised in one piece, without any cached part (the end-of-episode check)."""
 
     payload = {key: value for key, value in memory.items() if key != "memory_digest"}
     return hashlib.sha256(canonical_json(payload).encode("utf-8")).hexdigest()
@@ -393,6 +437,8 @@ def _validate_entity(entity: Mapping[str, Any], *, tick: int) -> None:
 #: limit is small because a frame touches two or three memory objects; holding them costs nothing.
 _VALIDATED_MEMORIES: "collections.OrderedDict[tuple[int, str, int, int], dict[str, Any]]" = collections.OrderedDict()
 _VALIDATED_MEMORIES_LIMIT = 8
+#: 2026-09-27: per-record validation memo (object identity -> (object, tick or minus the log position)); see validate_memory.
+_VALIDATED_PARTS: dict[int, tuple[Any, int]] = {}
 
 
 def _validated_key(memory: Mapping[str, Any]) -> tuple[int, str, int, int] | None:
@@ -419,6 +465,7 @@ def validate_memory(memory: Mapping[str, Any], *, verify_digest: bool = True, co
     返回副本（工程缓存，见上）。
     """
 
+    global _VALIDATED_PARTS
     _require(type(memory) is dict, "memory_not_object")
     key = _validated_key(memory) if verify_digest else None
     if key is not None and _VALIDATED_MEMORIES.get(key) is memory:  # the very object validated before, digest unchanged
@@ -432,10 +479,32 @@ def validate_memory(memory: Mapping[str, Any], *, verify_digest: bool = True, co
     _require(memory["schema_version"] == SCHEMA_VERSION, "memory_schema_version_invalid")
     _identifier(memory["episode_id"], "episode_id_invalid")
     tick = _int(memory["tick"], "memory_tick_invalid", minimum=0)
-    _json_native(
-        {key: value for key, value in memory.items() if key != "memory_digest"},
-        "memory_not_json_native",
-    )
+    # 2026-09-27, engineering: an entity or log record that is the very object already checked at an earlier or equal
+    # tick (every tick check is "not after the memory's tick", so it stays true) and at the same log position is not
+    # walked again; everything new or copied is checked in full, in the same order as before.
+    known = _VALIDATED_PARTS
+    entities_raw = memory["entities"]
+    log_raw = memory["transaction_log"]
+
+    def seen(item: Any, stamp: int) -> bool:
+        hit = known.get(id(item))
+        return hit is not None and hit[0] is item and hit[1] <= stamp
+
+    if type(entities_raw) is list and type(log_raw) is list:
+        for key_name, value in memory.items():
+            if key_name not in ("memory_digest", "entities", "transaction_log"):
+                _json_native(value, "memory_not_json_native")
+        for item in entities_raw:
+            if not seen(item, tick):
+                _json_native(item, "memory_not_json_native")
+        for index, item in enumerate(log_raw):
+            if not seen(item, -index - 1):
+                _json_native(item, "memory_not_json_native")
+    else:
+        _json_native(
+            {key: value for key, value in memory.items() if key != "memory_digest"},
+            "memory_not_json_native",
+        )
 
     entities = memory["entities"]
     _require(type(entities) is list, "memory_entities_invalid")
@@ -444,7 +513,8 @@ def validate_memory(memory: Mapping[str, Any], *, verify_digest: bool = True, co
     dimensions: set[int] = set()
     for entity in entities:
         _require(type(entity) is dict, "memory_entity_not_object")
-        _validate_entity(entity, tick=tick)
+        if not seen(entity, tick):
+            _validate_entity(entity, tick=tick)
         ids.append(str(entity["entity_id"]))
         folded_ids.extend(str(item) for item in entity["canonical_of"])
         dimensions.add(len(entity["descriptor_mean"]))
@@ -458,6 +528,8 @@ def validate_memory(memory: Mapping[str, Any], *, verify_digest: bool = True, co
     _require(type(log) is list, "memory_transaction_log_invalid")
     _require(len(log) == tick, "memory_transaction_log_length_mismatch")
     for index, record in enumerate(log):
+        if seen(record, -index - 1):
+            continue
         _require(type(record) is dict, "memory_log_record_not_object")
         _require(
             set(record.keys()) == {
@@ -475,6 +547,10 @@ def validate_memory(memory: Mapping[str, Any], *, verify_digest: bool = True, co
             memory["memory_digest"] == memory_digest(memory),
             "memory_digest_mismatch",
         )
+        # remember this memory's records as checked (entities at this tick, log records at their position; the
+        # stamp for a log record is minus its 1-based position so the two kinds never compare across)
+        _VALIDATED_PARTS = {**{id(item): (item, tick) for item in entities},
+                            **{id(item): (item, -index - 1) for index, item in enumerate(log)}}
         if key is not None:
             _VALIDATED_MEMORIES[key] = memory  # keeps the object (and so its id) alive while the entry lives
             while len(_VALIDATED_MEMORIES) > _VALIDATED_MEMORIES_LIMIT:
@@ -735,7 +811,24 @@ def apply_program(
         "dormancy_limit_invalid",
         minimum=1,
     )
-    working = validate_memory(memory)
+    source = validate_memory(memory, copy=False)
+    # 2026-09-27, engineering: copy on write.  The new memory shares every record it does not change with the old one;
+    # an entity is copied the first time this frame changes it (an operation's target, a dormancy change, every dedup
+    # candidate on a dedup tick) and the log gets one new record, so the old memory stays byte for byte what it was.
+    working = dict(source)
+    working["entities"] = list(source["entities"])
+    working["transaction_log"] = list(source["transaction_log"])
+    position = {str(entity["entity_id"]): index for index, entity in enumerate(working["entities"])}
+    owned: set[str] = set()
+
+    def own(entity_id: str) -> dict[str, Any]:
+        if entity_id not in owned:
+            copy_of = clone_json(working["entities"][position[entity_id]])
+            working["entities"][position[entity_id]] = copy_of
+            by_id[entity_id] = copy_of
+            owned.add(entity_id)
+        return by_id[entity_id]
+
     expanded = expand_program(program)
     frame_digest = expanded["frame_digest"]
     tick = int(working["tick"]) + 1
@@ -787,6 +880,8 @@ def apply_program(
             "composite": operation["composite"],
             "decision_basis": operation["decision_basis"],
         }
+        if atom in TARGET_ATOMS:
+            own(operation["entity_id"])
         if atom == "NOOP":
             entity = by_id[operation["entity_id"]]
             entity["missed_opportunity_count"] = int(
@@ -836,6 +931,8 @@ def apply_program(
             )
             by_id[str(entity["entity_id"])] = entity
             working["entities"].append(entity)
+            position[str(entity["entity_id"])] = len(working["entities"]) - 1
+            owned.add(str(entity["entity_id"]))
             entry["entity_id"] = entity["entity_id"]
             entry["fragment_id"] = operation["fragment"]["fragment_id"]
         else:  # pragma: no cover - guarded by expand_program
@@ -845,6 +942,13 @@ def apply_program(
     working["tick"] = tick
 
     # ---- shared deterministic maintenance, identical for all five arms ----
+    for entity_id, entity in list(by_id.items()):  # the entities dormancy will change
+        if entity["state"] == "active" and int(entity["missed_opportunity_count"]) >= limit:
+            own(entity_id)
+    if dedup is not None and tick % validate_dedup_policy(dedup)["period_ticks"] == 0:  # every dedup candidate
+        for entity_id, entity in list(by_id.items()):
+            if entity["state"] in DEDUP_ELIGIBLE_STATES:
+                own(entity_id)
     dormancy_changes = _apply_dormancy(working, limit=limit, tick=tick, transaction_id=transaction_id)
     dedup_changes = _apply_dedup(
         working, dedup=dedup, tick=tick, transaction_id=transaction_id,
@@ -861,8 +965,9 @@ def apply_program(
             "dedup": dedup_changes,
         },
     })
-    result = seal_memory(working)
-    return validate_memory(result)  # a copy: an in-place edit of what the caller holds must still fail the digest check
+    working.pop("memory_digest", None)
+    working["memory_digest"] = memory_digest(working)  # sealed in place: ``working`` is this call's own object
+    return validate_memory(working, copy=False)
 
 
 def _apply_dormancy(
@@ -1300,6 +1405,7 @@ __all__ = [
     "STATE_ALLOWED_ATOMS",
     "VERSION_OPENED_BY",
     "VERSION_OPENED_BY_STATE",
+    "memory_digest_from_scratch",
     "DEDUP_RULE",
     "DEDUP_ELIGIBLE_STATES",
     "DEDUP_SURVIVOR_GEOMETRY",

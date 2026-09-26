@@ -121,9 +121,11 @@ class TestEmptyMemory(unittest.TestCase):
         """A structurally legal edit that nothing else guards must still fail."""
 
         memory, _ = born_memory()
-        only_entity(memory)["missed_opportunity_count"] = 1
+        # a sealed memory is never changed in place (LOG-254); a tampered copy of it must fail
+        tampered = json.loads(json.dumps(memory))
+        only_entity(tampered)["missed_opportunity_count"] = 1
         with self.assertRaises(LeanMemoryError) as caught:
-            validate_memory(memory)
+            validate_memory(tampered)
         self.assertEqual(str(caught.exception), "memory_digest_mismatch")
 
     def test_tick_without_a_matching_log_is_rejected(self) -> None:
@@ -148,7 +150,7 @@ class TestValidationCache(unittest.TestCase):
         validate_memory(first)
         key = lm._validated_key(first)
         self.assertIs(lm._VALIDATED_MEMORIES[key], first)  # the entry keeps the object alive, so its id stays unique
-        twin, _ = born_memory()  # same digest, tick and entity count as ``first``; a different object
+        twin = json.loads(json.dumps(born_memory()[0]))  # same digest, tick and entity count as ``first``; a different object
         self.assertEqual(twin["memory_digest"], first["memory_digest"])
         only_entity(twin)["missed_opportunity_count"] = 1
         # mimic an address reuse: an entry under the twin's key that names another object must not count as a hit
@@ -175,6 +177,59 @@ class TestValidationCache(unittest.TestCase):
         with self.assertRaises(LeanMemoryError) as caught:
             validate_memory(resealed)
         self.assertEqual(str(caught.exception), "memory_digest_mismatch")
+
+
+class TestIncrementalDigestAndCopyOnWrite(unittest.TestCase):
+    """2026-09-27: per-record cached serialisation, per-record validation memo and a copy-on-write executor."""
+
+    def _sequence(self) -> list[dict[str, Any]]:
+        a = fragment("region:0000", descriptor=[1.0, 0.0], centroid=[0.0, 0.0, 0.0])
+        b = fragment("region:0001", descriptor=[0.0, 1.0], centroid=[3.0, 0.0, 0.0])
+        memories = [commit(empty_memory(episode_id="ep-cow"), "f1", [{"atom": "BIRTH", "fragment": a}, {"atom": "BIRTH", "fragment": b}])]
+        by_place = {e["centroid_m"][0]: str(e["entity_id"]) for e in memories[-1]["entities"]}
+        ids = [by_place[0.0], by_place[3.0]]  # ids[0] is a (at the origin), ids[1] is b
+        steps = [
+            ("f2", [{"atom": "BIND", "entity_id": ids[0], "fragment": fragment("region:0002", descriptor=[1.0, 0.0], centroid=[0.1, 0.0, 0.0])},
+                    {"atom": "NOOP", "entity_id": ids[1]}], None),
+            ("f3", [{"atom": "NOOP", "entity_id": ids[1]}], None),  # ids[1] goes dormant (limit 2)
+            ("f4", [{"atom": "REACTIVATE", "entity_id": ids[1], "fragment": fragment("region:0004", descriptor=[0.0, 1.0], centroid=[3.0, 0.1, 0.0])},
+                    {"atom": "BIRTH", "fragment": fragment("region:0005", descriptor=[1.0, 0.001], centroid=[0.12, 0.0, 0.0])}], None),
+            ("f5", [], DEDUP),  # the fresh twin of ids[0] folds
+            ("f6", [{"atom": "RETRACT", "entity_id": ids[1]}], DEDUP),
+        ]
+        for seed, ops, dedup in steps:
+            memories.append(commit(memories[-1], seed, ops, dedup=dedup))
+        return memories
+
+    def test_the_executor_never_changes_the_memory_it_was_given(self) -> None:
+        from vsmt.lean_memory import memory_digest_from_scratch
+
+        memories = self._sequence()
+        for memory in memories:  # every earlier memory still matches its own digest, serialised in one piece
+            self.assertEqual(memory_digest_from_scratch(memory), memory["memory_digest"])
+        self.assertEqual(len(memories[-1]["transaction_log"]), 6)
+        folds = memories[4]["transaction_log"][-1]["post_maintenance"]["dedup"]
+        self.assertEqual(len(folds), 1)  # a and its fresh twin fold on the first dedup tick
+        a_id = {e["centroid_m"][0]: str(e["entity_id"]) for e in memories[0]["entities"]}[0.0]
+        self.assertIn(a_id, (folds[0]["canonical_entity_id"], folds[0]["folded_entity_id"]))
+
+    def test_the_assembled_serialisation_equals_the_one_piece_serialisation(self) -> None:
+        import vsmt.lean_memory as lm
+
+        for memory in self._sequence():
+            payload = {key: value for key, value in memory.items() if key != "memory_digest"}
+            self.assertEqual(lm._canonical_payload(memory), lm.canonical_json(payload))
+            copy = json.loads(json.dumps(memory))  # no cached part at all
+            self.assertEqual(lm._canonical_payload(copy), lm.canonical_json(payload))
+
+    def test_the_same_sequence_on_copies_gives_the_same_digests(self) -> None:
+        first = [m["memory_digest"] for m in self._sequence()]
+        import vsmt.lean_memory as lm
+
+        lm._PART_JSON.clear()
+        lm._VALIDATED_PARTS.clear()
+        lm._VALIDATED_MEMORIES.clear()
+        self.assertEqual([m["memory_digest"] for m in self._sequence()], first)
 
 
 class TestBirth(unittest.TestCase):
