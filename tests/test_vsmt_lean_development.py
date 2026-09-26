@@ -75,6 +75,29 @@ class HistogramTests(unittest.TestCase):
         with self.assertRaises(dev.LeanDevelopmentError):
             h.merge(dev.Histogram([0.0, 1.0]))
 
+    def test_integer_series_report_exact_quantiles_and_ratio_series_exact_shares(self) -> None:
+        """Ruling 76 (4)(a): a count that is always 1 has p50 1, not 1.5; ratio bins report exact shares at k/64."""
+
+        counts = dev.Histogram(dev.COUNT_EDGES)
+        for _ in range(10):
+            counts.add(1)
+        summary = counts.summary()
+        self.assertEqual((summary["p05"], summary["p50"], summary["p95"]), (1.0, 1.0, 1.0))
+        self.assertEqual(summary["quantile_method"], "exact_integer_values")
+        ratios = dev.Histogram(dev.RATIO_EDGES)
+        for value in [0.0] * 96 + [1 / 64] * 2 + [0.25, 1.0]:
+            ratios.add(value)
+        summary = ratios.summary()
+        self.assertEqual(summary["quantile_method"], "linear_within_bin_approximate")
+        shares = summary["share_at_or_above_k_over_64"]
+        self.assertAlmostEqual(shares["1"], 0.04)
+        self.assertAlmostEqual(shares["2"], 0.02)
+        self.assertAlmostEqual(shares["16"], 0.02)
+        self.assertAlmostEqual(shares["17"], 0.01)
+        self.assertAlmostEqual(shares["63"], 0.01)
+        self.assertNotIn("64", shares)
+        self.assertNotIn("share_at_or_above_k_over_64", counts.summary())
+
 
 class CalibrationTests(unittest.TestCase):
     def test_the_collector_counts_what_the_pass_sealed(self) -> None:

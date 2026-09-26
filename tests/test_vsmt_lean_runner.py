@@ -360,6 +360,16 @@ class PerPointDepthGeometryTests(unittest.TestCase):
             counts = lr.point_depth_counts(point[None, None, :], view)
             self.assertEqual(int(counts["surface"][0]), 1, (row, column))
 
+    def test_a_point_exactly_at_the_near_limit_is_tested(self) -> None:
+        """Ruling 76 (4)(a): the forward test uses the same closed range [0.05, 20] as the measured depth."""
+
+        pose = {"position_m": [0.0, 0.0, 0.0], "quaternion_xyzw": [0.0, 0.0, 0.0, 1.0]}
+        depth = np.full((DEPTH_SIZE, DEPTH_SIZE), 3.0, dtype=np.float32)
+        view = {"frame_digest": "f" * 64, "depth_m": depth, "calibration": dict(DEPTH_CALIBRATION), "pose": pose}
+        near = lr.DEPTH_VALID_RANGE_M[0]
+        counts = lr.point_depth_counts(np.array([[[0.0, 0.0, near]]]), view)
+        self.assertEqual((int(counts["through"][0]), int(counts["unobserved"][0])), (1, 0))
+
     def test_the_view_must_be_of_the_same_frame_and_well_formed(self) -> None:
         frame = cache_frame(1, [], visibility=SEES_ALL, free_space=[])
         lr.public_depth_view_of(frame)

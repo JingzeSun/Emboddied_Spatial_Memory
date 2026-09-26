@@ -95,5 +95,33 @@ class TestFinishStreams(unittest.TestCase):
             entry.finish_streams(labels, training, nuisance)
 
 
+
+class FrameDigestTests(unittest.TestCase):
+    """Ruling 76 (4)(a): the reader recomputes the S1-02 frame digest from the bytes it read."""
+
+    def test_the_recomputed_digest_follows_the_generator_and_a_depth_change_breaks_it(self) -> None:
+        import numpy as np
+        from PIL import Image
+
+        import lean_s1_02a_pilot as pilot
+
+        rng = np.random.default_rng(76)
+        rgb = rng.integers(0, 256, size=(8, 10, 3), dtype=np.uint8)
+        depth = rng.uniform(0.5, 4.0, size=(8, 10)).astype(np.float32)
+        record = {"observation_index": 3, "relative_pose": {"position_m": [0.1, 0.0, 0.2], "yaw_deg": 90.0},
+                  "action_summary": {"action": "MoveAhead", "success": True}, "rgb_path": "0003.rgb.png", "depth_path": "0003.depth.npy"}
+        # the generator's own formula (lean_s1_02a_pilot, the public record's frame_digest)
+        record["frame_digest"] = pilot.sha({"rgb": pilot.sha_bytes(rgb.tobytes()), "depth": pilot.sha_bytes(depth.tobytes()),
+                                            **{k: record[k] for k in ("observation_index", "relative_pose", "action_summary")}})
+        with tempfile.TemporaryDirectory() as tmp:
+            public = Path(tmp)
+            Image.fromarray(rgb).save(public / record["rgb_path"], format="PNG")
+            np.save(public / record["depth_path"], depth)
+            loaded = np.load(public / record["depth_path"])
+            self.assertEqual(entry.recomputed_frame_digest(public, record, loaded), record["frame_digest"])
+            self.assertNotEqual(entry.recomputed_frame_digest(public, record, loaded + np.float32(0.2)), record["frame_digest"])
+            moved = dict(record, relative_pose={"position_m": [0.1, 0.0, 0.3], "yaw_deg": 90.0})
+            self.assertNotEqual(entry.recomputed_frame_digest(public, moved, loaded), record["frame_digest"])
+
 if __name__ == "__main__":
     unittest.main()

@@ -170,7 +170,14 @@ def development_configuration(contract: Mapping[str, Any], arm: str) -> dict[str
 # --------------------------------------------------------------------------
 
 class Histogram:
-    """Fixed-edge counts, clipped into the outer bins; mergeable; quantiles by linear interpolation within a bin."""
+    """Fixed-edge counts, clipped into the outer bins; mergeable; quantiles by linear interpolation within a bin.
+
+    D-224-S1 ruling 76 (4)(a) (LOG-262): an integer-valued series (unit bins on integer edges) reports each
+    quantile as its bin's lower edge, which is the exact value; any other series labels its quantiles as
+    approximate, and a series on the 1/64 ratio bins also reports the exact share of values at or above
+    every k/64 -- the interpolated p50 of 1.5 for a count that was always 1, or a visibility p90 of 0.015
+    when 96.6% of the rows were exactly 0, can no longer be read as values.
+    """
 
     def __init__(self, edges: Sequence[float], counts: Sequence[int] | None = None) -> None:
         self.edges = [float(v) for v in edges]
@@ -196,6 +203,9 @@ class Histogram:
         self.total += other.total
         self.sum += other.sum
 
+    def integer_valued(self) -> bool:
+        return all(e.is_integer() for e in self.edges) and all(b - a == 1.0 for a, b in zip(self.edges, self.edges[1:]))
+
     def quantile(self, q: float) -> float | None:
         if self.total == 0:
             return None
@@ -204,14 +214,25 @@ class Histogram:
         for index, count in enumerate(self.counts):
             if seen + count >= target and count > 0:
                 lo, hi = self.edges[index], self.edges[index + 1]
+                if self.integer_valued():
+                    return lo  # ruling 76 (4)(a): the exact value of an integer series
                 inside = (target - seen) / count
                 return lo + inside * (hi - lo)
             seen += count
         return self.edges[-1]
 
+    def share_at_or_above(self, index: int) -> float | None:
+        """Exact share of the values in bins ``index`` and above, i.e. at or above ``edges[index]``."""
+
+        return (sum(self.counts[index:]) / self.total) if self.total else None
+
     def summary(self) -> dict[str, Any]:
-        return {"count": self.total, "mean": (self.sum / self.total) if self.total else None,
-                **{f"p{int(q * 100):02d}": self.quantile(q) for q in QUANTILES}}
+        out = {"count": self.total, "mean": (self.sum / self.total) if self.total else None,
+               **{f"p{int(q * 100):02d}": self.quantile(q) for q in QUANTILES},
+               "quantile_method": "exact_integer_values" if self.integer_valued() else "linear_within_bin_approximate"}
+        if tuple(self.edges) == RATIO_EDGES:
+            out["share_at_or_above_k_over_64"] = {str(k): self.share_at_or_above(k) for k in range(1, 64)}  # 1.0 shares the last bin with 63/64
+        return out
 
     def to_json(self) -> dict[str, Any]:
         return {"edges": list(self.edges), "counts": list(self.counts), "sum": self.sum}

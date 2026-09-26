@@ -134,6 +134,32 @@ def verify_cache_episode(cache_dir: Path, descriptor_asset_sha256s: dict[str, An
     return seal, paths
 
 
+def recomputed_frame_digest(public: Path, record: dict[str, Any], depth_raw: Any) -> str:
+    """Ruling 76 (4)(a): the S1-02 public frame digest recomputed from the bytes read -- the rgb PNG pixels, the
+    depth array as saved, and the record's observation index, relative pose and action summary.
+
+    白话：S1-02 生成时把 RGB 与深度的字节摘要连同三个公开字段一起算成 frame_digest。读取方以前只把记录里的摘要
+    字串转交给 runner，文件被改了也看不出来（审查者把深度整体加 0.2 m、摘要不变，照样通过）。这里按同一定义
+    重算，不符就拒。它只读公开面，不改任何数。
+    """
+
+    import hashlib
+
+    import numpy as np
+    from PIL import Image
+
+    from cpmt.hashing import canonical_json
+
+    rgb_path = public / record["rgb_path"]
+    if rgb_path.parent.resolve() != public.resolve():
+        raise diag.DiagnosticsFailure("public_input_missing_or_malformed", f"rgb path escapes the public plane: {rgb_path}")
+    with Image.open(rgb_path) as image:
+        rgb = np.asarray(image, dtype=np.uint8)
+    payload = {"rgb": hashlib.sha256(rgb.tobytes()).hexdigest(), "depth": hashlib.sha256(np.asarray(depth_raw).tobytes()).hexdigest(),
+               **{key: record[key] for key in ("observation_index", "relative_pose", "action_summary")}}
+    return hashlib.sha256(canonical_json(payload).encode("utf-8")).hexdigest()
+
+
 def public_depth_view(episode_root: Path, index: int, *, episode_commit: str, pose_policy: dict[str, Any],
                       cache_dir: Path, fragments: list[dict[str, Any]]) -> dict[str, Any]:
     """Ruling 74: one frame's public depth view -- the S1-02 public record's frame digest and intrinsics, the depth
@@ -151,7 +177,10 @@ def public_depth_view(episode_root: Path, index: int, *, episode_commit: str, po
     if depth_path.parent.resolve() != public.resolve():
         raise diag.DiagnosticsFailure("public_input_missing_or_malformed", f"depth path escapes the public plane: {depth_path}")
     pose = diag.cache_runner.causal_pose(record, code_commit=episode_commit, policy=pose_policy)
-    view = {"frame_digest": record["frame_digest"], "depth_m": np.load(depth_path).astype(np.float32),
+    depth_raw = np.load(depth_path)
+    if recomputed_frame_digest(public, record, depth_raw) != record["frame_digest"]:
+        raise diag.DiagnosticsFailure("public_input_missing_or_malformed", f"frame {index}: the rgb/depth bytes do not reproduce the frame digest")
+    view = {"frame_digest": record["frame_digest"], "depth_m": depth_raw.astype(np.float32),
             "calibration": record["intrinsics"], "pose": pose}
     # ruling 75 (2)(a): each fragment's surface points, from the cache's own mask file re-digested against the sealed frame
     masks = diag.cache_runner.read_masks_file(cache_dir / f"{index:04d}{diag.cache_runner.MASK_FILE_SUFFIX}")

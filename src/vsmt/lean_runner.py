@@ -333,7 +333,7 @@ def point_depth_counts(points_world: np.ndarray, depth_view: Mapping[str, Any], 
     z = d[0] * rotation[0, 2] + d[1] * rotation[1, 2] + d[2] * rotation[2, 2]
     height, width = depth.shape
     minimum, maximum = DEPTH_VALID_RANGE_M
-    ahead = z > minimum
+    ahead = z >= minimum  # ruling 76 (4)(a): the same closed range as the measured depth
     safe_z = np.where(ahead, z, 1.0)
     column = np.rint(np.where(ahead, cx + fx * x / safe_z, -1.0)).astype(np.int64)
     row = np.rint(np.where(ahead, cy - fy * y / safe_z, -1.0)).astype(np.int64)
