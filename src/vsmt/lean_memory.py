@@ -404,8 +404,14 @@ def _validated_key(memory: Mapping[str, Any]) -> tuple[int, str, int, int] | Non
     return (id(memory), digest, tick, len(entities))
 
 
-def validate_memory(memory: Mapping[str, Any], *, verify_digest: bool = True) -> dict[str, Any]:
-    """Validate one memory object and return a deep copy of it.
+def validate_memory(memory: Mapping[str, Any], *, verify_digest: bool = True, copy: bool = True) -> dict[str, Any]:
+    """Validate one memory object and return a deep copy of it (or, with ``copy=False``, the object itself).
+
+    ``copy=False`` (2026-09-27, engineering): for callers that only read the memory.  The memory carries its whole
+    history (versions, evidence, transaction log), so every deep copy costs time in proportion to the frames already
+    run; about ten copies per frame made each frame slower the longer the episode ran (00563: 0.4 s per frame in its
+    first tenth, 8.7 s in its last, with the entity count flat).  The checks and the digest are unchanged; a caller
+    that mutates what it gets must keep the default.
 
     白话：输入一份记忆，输出同样内容的副本，并在任何字段、状态机或版本链不合法时
     抛错。例如一个实体同时有两个未关闭的版本会被拒绝。它不判断记忆内容在现实中
@@ -417,7 +423,7 @@ def validate_memory(memory: Mapping[str, Any], *, verify_digest: bool = True) ->
     key = _validated_key(memory) if verify_digest else None
     if key is not None and _VALIDATED_MEMORIES.get(key) is memory:  # the very object validated before, digest unchanged
         _VALIDATED_MEMORIES.move_to_end(key)
-        return clone_json(dict(memory))
+        return clone_json(dict(memory)) if copy else memory
     expected = {
         "schema_version", "episode_id", "tick", "entities",
         "transaction_log", "memory_digest",
@@ -475,7 +481,7 @@ def validate_memory(memory: Mapping[str, Any], *, verify_digest: bool = True) ->
                 _VALIDATED_MEMORIES.popitem(last=False)
     else:
         _hex64(memory["memory_digest"], "memory_digest_invalid")
-    return clone_json(dict(memory))
+    return clone_json(dict(memory)) if copy else memory
 
 
 # --------------------------------------------------------------------------
@@ -856,7 +862,7 @@ def apply_program(
         },
     })
     result = seal_memory(working)
-    return validate_memory(result)
+    return validate_memory(result)  # a copy: an in-place edit of what the caller holds must still fail the digest check
 
 
 def _apply_dormancy(
@@ -1094,7 +1100,7 @@ def entity_tokens(
     house ID、实例 ID、teacher 或任何私有量，也不是首篇的实验对象。
     """
 
-    validate_memory(memory)
+    validate_memory(memory, copy=False)
     tick = int(memory["tick"])
     tokens: list[dict[str, Any]] = []
     for entity in sorted(memory["entities"], key=lambda item: str(item["entity_id"])):
@@ -1135,7 +1141,7 @@ def frame_delta(memory: Mapping[str, Any], *, tick: int | None = None) -> dict[s
     这两个实体。它让世界模型不必每帧重算整份记忆。
     """
 
-    validate_memory(memory)
+    validate_memory(memory, copy=False)
     log = memory["transaction_log"]
     _require(bool(log), "frame_delta_on_empty_log")
     target = int(memory["tick"]) if tick is None else _int(tick, "frame_delta_tick_invalid", minimum=1)

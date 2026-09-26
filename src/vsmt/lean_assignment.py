@@ -600,7 +600,7 @@ def build_assignment_inputs(
     """
 
     checked_frame = validate_cache_frame(frame)
-    checked_memory = validate_memory(memory)
+    checked_memory = validate_memory(memory, copy=False)  # read only
     tick = int(checked_frame["tick"])
     _require(tick == int(checked_memory["tick"]) + 1, "frame_tick_not_next")
 
@@ -1097,7 +1097,7 @@ def seal_solution_and_existence(
     """
 
     checked_frame = validate_cache_frame(frame)
-    checked_memory = validate_memory(memory)
+    checked_memory = validate_memory(memory, copy=False)  # read only
     _require(
         str(solution["stage_a_seal_sha256"]) == str(inputs["seal_sha256"]),
         "stage_b_does_not_follow_stage_a",

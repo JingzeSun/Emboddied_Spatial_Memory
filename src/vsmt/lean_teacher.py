@@ -457,7 +457,7 @@ def association_targets(
     identity_ambiguous 而不是猜 birth。它不改召回、不补候选、不重排召回。
     """
 
-    checked = validate_memory(memory)
+    checked = validate_memory(memory, copy=False)  # read only
     _require(type(recall) is dict, "recall_not_object")
     recall_snapshot = clone_json(dict(recall))
     identities = entity_identities(checked, evidence_instance)
@@ -560,7 +560,7 @@ def existence_labels(
     定谁进候选。
     """
 
-    checked = validate_memory(memory)
+    checked = validate_memory(memory, copy=False)  # read only
     delta = _delta(delta_moved_m)
     eligible = _states(candidate_states, "existence_candidate_states_invalid")
     by_id = {str(entity["entity_id"]): entity for entity in checked["entities"]}
@@ -928,7 +928,7 @@ def evaluate_frame(
     席）。它不评价撤回决定本身，那由假撤回率单独算。
     """
 
-    checked = validate_memory(memory_after)
+    checked = validate_memory(memory_after, copy=False)  # read only
     threshold = _ratio(iou_min, "iou_min_invalid")
     delta = _delta(delta_moved_m)
     states = _states(present_states, "present_states_invalid")
@@ -1050,7 +1050,7 @@ def missing_residual_rate(
     还挂在原位，残留率 2/3。它不惩罚在新位置正确恢复的实体，只看旧位置有没有清干净。
     """
 
-    checked = validate_memory(memory_after)
+    checked = validate_memory(memory_after, copy=False)  # read only
     delta = _delta(delta_moved_m)
     states = _states(present_states, "present_states_invalid")
     identities = entity_identities(checked, evidence_instance)
@@ -1155,7 +1155,7 @@ def object_memory_correct(
     在旧位置，记忆不正确。它不看身份是否连续，那由身份连续率负责。
     """
 
-    checked = validate_memory(memory_after)
+    checked = validate_memory(memory_after, copy=False)  # read only
     delta = _delta(delta_moved_m)
     states = _states(present_states, "present_states_invalid")
     kind = expectation.get("kind")
@@ -1237,7 +1237,7 @@ def size_and_cost(
 ) -> dict[str, Any]:
     """Active entity count, version count, runtime and peak memory for one frame."""
 
-    checked = validate_memory(memory_after)
+    checked = validate_memory(memory_after, copy=False)  # read only
     runtime = _finite(runtime_per_frame_s, "runtime_per_frame_invalid")
     _require(runtime >= 0.0, "runtime_per_frame_invalid")
     return {
