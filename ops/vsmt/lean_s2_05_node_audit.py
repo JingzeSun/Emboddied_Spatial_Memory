@@ -699,6 +699,11 @@ def run(args: argparse.Namespace) -> int:
         return 2
     commit = _git("rev-parse", "HEAD")
     config = json.loads(args.config)
+    if args.dedup_override:
+        # diagnostic only: the same runner under another shared-dedup triple (a candidate for a ruling), recorded in the payload
+        from vsmt import lean_memory as lm
+
+        policy["runner"]["dedup"] = lm.validate_dedup_policy({**policy["runner"]["dedup"], **json.loads(args.dedup_override)})
     lr.validate_arm_config(args.arm, config)
     scorer = None
     if args.arm in lr.LEARNED_ARMS:
@@ -771,6 +776,7 @@ def run(args: argparse.Namespace) -> int:
     payload = {
         "schema_version": SCHEMA_VERSION, "stage": "S2-05 node audit (read-only)", "code_commit": commit,
         "episode_id": args.episode_id, "arm": args.arm, "config": config, "descriptor": args.descriptor,
+        "dedup_policy": policy["runner"]["dedup"], "dedup_override": json.loads(args.dedup_override) if args.dedup_override else None,
         "frames": summary["frames"], "frames_requested": args.frames, "episode_seal_sha256": seal["payload_sha256"],
         "final_memory_digest": summary["final_memory_digest"], "final_entities_by_state": summary["final_entities_by_state"],
         "report_node_prf1": episode["report"]["node_prf1"], "report_node_prf1_iou": episode["report"]["node_prf1_iou"],
@@ -902,6 +908,7 @@ def main() -> int:
     run_parser.add_argument("--frames", type=int, default=None)
     run_parser.add_argument("--device", default="cpu")
     run_parser.add_argument("--allow-dirty", action="store_true")
+    run_parser.add_argument("--dedup-override", default=None, help="diagnostic: JSON of shared-dedup values to replace (never a run of record)")
     run_parser.set_defaults(func=run)
     merge_parser = sub.add_parser("merge", help="pool the audits of one arm into a results/ report")
     merge_parser.add_argument("--output-root", required=True)
