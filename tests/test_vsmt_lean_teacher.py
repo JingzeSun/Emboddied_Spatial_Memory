@@ -1011,6 +1011,34 @@ class TestNuisanceProbe(unittest.TestCase):
             for index in range(20)
         ]
 
+    def test_the_counting_probe_equals_the_pairwise_leave_one_out(self) -> None:
+        """2026-09-27: the linear-time probe returns exactly what the quadratic pairwise loop returned."""
+
+        def pairwise(records, field, label):
+            labels = [str(r[label]) for r in records]
+            values = [str(r[field]) for r in records]
+            majority = max(set(labels), key=lambda item: (labels.count(item), item))
+            hits = 0
+            for index in range(len(records)):
+                table = {}
+                for other in range(len(records)):
+                    if other == index or values[other] != values[index]:
+                        continue
+                    table[labels[other]] = table.get(labels[other], 0) + 1
+                guess = max(table, key=lambda item: (table[item], item)) if table else majority
+                hits += 1 if guess == labels[index] else 0
+            return hits / len(records), labels.count(majority) / len(labels)
+
+        rng = random.Random(2709)
+        for _ in range(60):
+            n = rng.randint(2, 40)
+            records = [{"path": rng.choice("abc"), "seed": rng.choice([1, 2]), "frame_index": rng.randint(0, 5), "house_index": rng.randint(0, 9),
+                        "existence_status": rng.choice(["present", "gone", "not_yet", "x"])} for _ in range(n)]
+            for field in ("path", "seed", "frame_index", "house_index"):
+                out = nuisance_probe(records, field=field, label="existence_status")
+                probe, majority = pairwise(records, field, "existence_status")
+                self.assertEqual((out["probe_accuracy"], out["majority_accuracy"]), (probe, majority))
+
     def test_a_leaking_field_beats_the_majority(self) -> None:
         out = nuisance_probe(self._records(), field="frame_index", label="existence_status")
         self.assertGreater(out["advantage"], 0.3)

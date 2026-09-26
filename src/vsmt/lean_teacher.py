@@ -1464,17 +1464,24 @@ def nuisance_probe(records: Sequence[Mapping[str, Any]], *, field: str, label: s
     _require(len(records) >= 2, "nuisance_probe_needs_records")
     labels = [str(record[label]) for record in records]
     values = [str(record[field]) for record in records]
-    majority = max(set(labels), key=lambda item: (labels.count(item), item))
-    majority_accuracy = labels.count(majority) / len(labels)
+    label_counts: dict[str, int] = {}
+    for item in labels:
+        label_counts[item] = label_counts.get(item, 0) + 1
+    majority = max(label_counts, key=lambda item: (label_counts[item], item))
+    majority_accuracy = label_counts[majority] / len(labels)
+    # Leave-one-out by counting, not by rescanning (2026-09-27): the label counts of each value group, minus the row
+    # itself, give exactly the table the pairwise loop built; the pairwise loop was quadratic in the rows and ran for
+    # hours on a large TAF episode (tens of thousands of association rows).  Same guesses, same ties, same numbers.
+    groups: dict[str, dict[str, int]] = {}
+    for value, item in zip(values, labels, strict=True):
+        group = groups.setdefault(value, {})
+        group[item] = group.get(item, 0) + 1
     hits = 0
-    for index in range(len(records)):
-        table: dict[str, int] = {}
-        for other in range(len(records)):
-            if other == index or values[other] != values[index]:
-                continue
-            table[labels[other]] = table.get(labels[other], 0) + 1
-        guess = max(table, key=lambda item: (table[item], item)) if table else majority
-        hits += 1 if guess == labels[index] else 0
+    for value, item in zip(values, labels, strict=True):
+        table = {name: count - (1 if name == item else 0) for name, count in groups[value].items()}
+        table = {name: count for name, count in table.items() if count > 0}
+        guess = max(table, key=lambda name: (table[name], name)) if table else majority
+        hits += 1 if guess == item else 0
     return {
         "field": field,
         "label": label,
