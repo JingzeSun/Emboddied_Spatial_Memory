@@ -32,6 +32,7 @@ from vsmt import lean_arms as arms  # noqa: E402
 from vsmt import lean_development as dev  # noqa: E402
 from vsmt import lean_evaluation as ev  # noqa: E402
 from vsmt import lean_runner as lr  # noqa: E402
+import test_vsmt_lean_runner as runner_tests  # noqa: E402
 from vsmt import lean_teacher as lt  # noqa: E402
 from test_vsmt_lean_evaluation import NUISANCE_META, TEACHER_POLICY, episode, run_and_label  # noqa: E402
 from test_vsmt_lean_runner import CONFIGS, POLICY  # noqa: E402
@@ -126,6 +127,8 @@ class EluPCounterTests(unittest.TestCase):
         data = episode()
         # frame 1 cannot see anything (no visibility block), frame 2 sees everything again
         data["frames"][1]["visibility"] = []
+        # ruling 74: what the camera sees is the public depth view -- here it looks away from the scene
+        data["frames"][1][lr.PUBLIC_DEPTH_VIEW_KEY] = runner_tests.depth_view(data["frames"][1]["frame_digest"], [], sees=False)
         counter = dev.EluPCounter(geometry_table=data["table"], executed_interventions=data["executed"], window=data["window"], policy=TEACHER_POLICY)
         steps = list(lr.run_episode(data["frames"], episode_id="ep-0001", arm="TAF", config=CONFIGS["TAF"], policy=POLICY, descriptor="vitb14"))
         teacher = ev.EpisodeTeacher(arm="TAF", geometry_table=data["table"], executed_interventions=data["executed"], window=data["window"],

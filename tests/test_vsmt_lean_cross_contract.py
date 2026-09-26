@@ -387,7 +387,10 @@ FROZEN_RULE_SHA256 = {
     # keys and gives spawned-after-reload keys a present / out-of-scope / boxless / counted row.  36b9fbc6 -> d07f141c.
     # Re-pinned 2026-09-26 for ruling 73 (3): descriptor.weights_sha256 follows the retrained ReID head (f6fc67e5 -> 5cea91cf).
     # d07f141c -> c911a4d6.
-    "S2-01": "c911a4d620b0bf8831c472f290217d59ffc642c6b85cf163c0d6d4d5492ea654",
+    # Re-pinned 2026-09-26 for ruling 74: entity_geometry is the per-point depth test on the frame's public depth
+    # view (margin 0.05 m, the D-223 valid depth range, view fields, same-frame and never-in-cache claims, fixed-order
+    # projection); the block-frustum rule is kept as superseded_rule.  c911a4d6 -> 7b1dd704.
+    "S2-01": "7b1dd704e0fd656a942628b2f84b3e0c0108a4be509a9121111bf68e41826371",
     # S2-04 v1 (2026-09-24, LOG-249): the teacher and evaluator wiring -- the derivation rules for the
     # S0-04 inputs (place observability by the S2-01 sampled-box test at the S0-05 minimum, old and new
     # places from the S1-04 tracker at the window edges, recovery place per intervention kind, carriers
@@ -401,7 +404,9 @@ FROZEN_RULE_SHA256 = {
     # Re-pinned 2026-09-24 for ruling 70: headline_fields gains node_prf1_centroid -> node_f1.  eaac36bd -> 0ff1fbe9.
     # Re-pinned 2026-09-25 for ruling 72 (B): headline_fields node_prf1_centroid -> node_prf1_iou and the iou_min
     # source path -> S0-04 metrics.node_prf1_iou.iou_min.  0ff1fbe9 -> d1645593.
-    "S2-04": "d1645593bf4fd76e355af2177bf4b8aed92dd4a26bff0f006dd37945321bd7e5",
+    # Re-pinned 2026-09-26 for ruling 74: derivation_rules.place_observable uses the per-point depth test on the
+    # frame's public depth view, the arms' own should-be-visible yardstick (ruling 65 (1)).  d1645593 -> 51250dcb.
+    "S2-04": "51250dcb0e60a85a3b9f4ad4c8bc83c72e7e56820bfa269f481db24e8ed0afae",
     # S2-05 v1 (2026-09-24, LOG-251): the development table -- the five passes in order (calibration
     # with LOW and no gate, the ELU-P fit with TAF at the rollout theta_a, DAgger rounds 0 and 1, the
     # table), the episode set, the calibration series and quantiles, the ELU-P count rules, the

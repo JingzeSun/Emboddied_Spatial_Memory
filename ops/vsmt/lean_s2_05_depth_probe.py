@@ -258,10 +258,14 @@ def run(args: argparse.Namespace) -> int:
     started = time.time()
     current: dict[str, Any] = {}
 
+    depth_view = s2_04.episode_depth_reader(episode_root)
+
     def frames():
-        for path in frame_paths:
-            current["frame"] = diag.cache_runner.load_cache_frame(path)
-            yield current["frame"]
+        for index, path in enumerate(frame_paths):
+            frame = diag.cache_runner.load_cache_frame(path)
+            frame[lr.PUBLIC_DEPTH_VIEW_KEY] = depth_view(index)  # ruling 74: the runner reads it
+            current["frame"] = frame
+            yield frame
 
     count = 0
     for index, step in enumerate(lr.run_episode(frames(), episode_id=args.episode_id, arm=args.arm, config=config,
@@ -277,7 +281,7 @@ def run(args: argparse.Namespace) -> int:
         public = cache_runner.read_public_frame(public_dir, index)
         _require(public["record"]["frame_digest"] == cache_frame["frame_digest"], "public_frame_differs_from_cache")
         pose = cache_runner.causal_pose(public["record"], code_commit=episode_commit, policy=pose_policy)
-        current_geometry = lr.entity_geometry(memory_before, cache_frame, samples_per_axis=samples)
+        current_geometry = lr.entity_geometry_blocks(memory_before, cache_frame, samples_per_axis=samples)  # the superseded rule, for comparison
         observe_frame(accumulator, memory_before=memory_before, labels=labels, current=current_geometry,
                       depth=public["depth"], calibration=public["record"]["intrinsics"], pose=pose, samples_per_axis=samples)
         count += 1

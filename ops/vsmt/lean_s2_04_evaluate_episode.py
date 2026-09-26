@@ -134,6 +134,34 @@ def verify_cache_episode(cache_dir: Path, descriptor_asset_sha256s: dict[str, An
     return seal, paths
 
 
+def public_depth_view(episode_root: Path, index: int, *, episode_commit: str, pose_policy: dict[str, Any]) -> dict[str, Any]:
+    """Ruling 74: one frame's public depth view -- the S1-02 public record's frame digest and intrinsics, the depth
+    file it names and the causal pose read under the S1-03 pose policy; nothing of the private plane.
+
+    白话：逐点深度检验要本帧的公开深度图、内参和位姿。它们本来就在 S1-02 的公开面里（cache 只存了由深度算出
+    的体积），这里按帧号读出来，交给 runner 与 teacher；帧摘要随行，runner 核对它和 cache 帧是同一帧。
+    """
+
+    import numpy as np
+
+    public = episode_root / "public"
+    record = load_json(public / f"{index:04d}.frame.json")
+    depth_path = public / record["depth_path"]
+    if depth_path.parent.resolve() != public.resolve():
+        raise diag.DiagnosticsFailure("public_input_missing_or_malformed", f"depth path escapes the public plane: {depth_path}")
+    pose = diag.cache_runner.causal_pose(record, code_commit=episode_commit, policy=pose_policy)
+    return {"frame_digest": record["frame_digest"], "depth_m": np.load(depth_path).astype(np.float32),
+            "calibration": record["intrinsics"], "pose": pose}
+
+
+def episode_depth_reader(episode_root: Path) -> Any:
+    """``index -> public depth view`` for one S1-02 episode (its generator commit read once, the pose policy from S1-03)."""
+
+    commit = str(load_json(episode_root / "receipt.json")["code_commit"])
+    policy = load_json(diag.cache_runner.CONTRACT_PATH)["public_pose_correction"]
+    return lambda index: public_depth_view(episode_root, index, episode_commit=commit, pose_policy=policy)
+
+
 def load_private_frame(episode_root: Path, index: int) -> tuple[dict[str, Any], Any]:
     """One private record and its instance image (the S1-04 loader's reading, one frame at a time)."""
 
@@ -281,10 +309,14 @@ def main() -> int:
     mark = time.time()
     current: dict[str, Any] = {}
 
+    depth_view = episode_depth_reader(episode_root)
+
     def frames():  # one frame in memory at a time; the runner consumes exactly one per step
-        for path in frame_paths:
-            current["frame"] = diag.cache_runner.load_cache_frame(path)
-            yield current["frame"]
+        for index, path in enumerate(frame_paths):
+            frame = diag.cache_runner.load_cache_frame(path)
+            frame[lr.PUBLIC_DEPTH_VIEW_KEY] = depth_view(index)  # ruling 74: attached after the seal check, never written
+            current["frame"] = frame
+            yield frame
 
     for index, step in enumerate(lr.run_episode(frames(), episode_id=args.episode_id, arm=args.arm, config=config,
                                                 policy=policy["runner"], descriptor=args.descriptor, projector=projector, scorer=scorer)):

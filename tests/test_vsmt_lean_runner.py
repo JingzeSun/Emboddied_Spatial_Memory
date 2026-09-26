@@ -44,7 +44,7 @@ DIM = 8  # synthetic frozen descriptor width; the synthetic projector maps it to
 POLICY = {
     "dormancy_missed_opportunity_limit": 2,
     "dedup": {"period_ticks": 1000, "descriptor_cosine_min": 0.999, "centroid_distance_max_m": 0.01, "aabb_iou_min": 0.99},
-    "should_be_visible_min_ratio": 0.5,
+    "should_be_visible_min_ratio": 1 / 64,  # the frozen value (ruling 68); under ruling 74 a present box shows about its front layer
     "entity_geometry_samples_per_axis": 4,
 }
 CONFIGS: dict[str, dict[str, Any]] = {
@@ -97,13 +97,53 @@ def fragment_row(fragment_id: str, *, descriptor: list[float], centroid: list[fl
     }
 
 
-def cache_frame(tick: int, fragments: list[dict[str, Any]], *, visibility: list[dict[str, Any]], free_space: list[dict[str, Any]]) -> dict[str, Any]:
+#: Ruling 74 test fixture: a 224 x 224 public depth view rendered by ray casting the boxes that are physically
+#: present this frame (by default the frame's own fragment boxes) from a camera at the origin looking along +z
+#: (or away, when the frame sees nothing), background at FAR_M.  The camera sits at CAMERA_AT so the whole synthetic
+#: scene (x in [-2, 3] m near z = 2 m) is inside the 90-degree view.  A present box then reads as surface / occluded
+#: from outside, and the place of an object that is gone reads as seen through.
+DEPTH_SIZE = 224
+DEPTH_CALIBRATION = {"fx": 112.0, "fy": 112.0, "cx": 112.0, "cy": 112.0}
+CAMERA_AT = [0.5, 0.0, -1.0]
+FACING_SCENE = {"position_m": list(CAMERA_AT), "quaternion_xyzw": [0.0, 0.0, 0.0, 1.0]}
+FACING_AWAY = {"position_m": list(CAMERA_AT), "quaternion_xyzw": [0.0, 1.0, 0.0, 0.0]}
+FAR_M = 15.0
+
+
+def rendered_depth(boxes: list[tuple[list[float], list[float]]]) -> np.ndarray:
+    """Axial depth of the first box each pixel ray meets (slab test), FAR_M where it meets none."""
+
+    grid = np.arange(DEPTH_SIZE, dtype=np.float64)
+    columns, rows = np.meshgrid(grid, grid)
+    direction = np.stack([(columns - DEPTH_CALIBRATION["cx"]) / DEPTH_CALIBRATION["fx"],
+                          (DEPTH_CALIBRATION["cy"] - rows) / DEPTH_CALIBRATION["fy"], np.ones_like(columns)], axis=-1)
+    depth = np.full((DEPTH_SIZE, DEPTH_SIZE), FAR_M)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        for lower, upper in boxes:  # the camera looks along +z without rotation, so a box moves by -CAMERA_AT
+            t1 = (np.asarray(lower, dtype=np.float64) - CAMERA_AT) / direction
+            t2 = (np.asarray(upper, dtype=np.float64) - CAMERA_AT) / direction
+            near = np.nanmax(np.minimum(t1, t2), axis=-1)
+            far = np.nanmin(np.maximum(t1, t2), axis=-1)
+            hit = (near <= far) & (far > 0)
+            depth = np.where(hit, np.minimum(depth, np.maximum(near, 0.0)), depth)
+    return depth.astype(np.float32)
+
+
+def depth_view(frame_digest: str, boxes: list[tuple[list[float], list[float]]], *, sees: bool = True) -> dict[str, Any]:
+    return {"frame_digest": frame_digest, "depth_m": rendered_depth(boxes if sees else []),
+            "calibration": dict(DEPTH_CALIBRATION), "pose": dict(FACING_SCENE if sees else FACING_AWAY)}
+
+
+def cache_frame(tick: int, fragments: list[dict[str, Any]], *, visibility: list[dict[str, Any]], free_space: list[dict[str, Any]],
+                present: list[tuple[list[float], list[float]]] | None = None) -> dict[str, Any]:
     frame = {
         "frame_digest": digest(f"frame-{tick}"), "tick": tick,
         "camera_position_m": [0.0, 0.0, 0.0], "camera_forward": [0.0, 0.0, 1.0],
         "fragments": fragments, "surfaces": [], "free_space": free_space, "visibility": visibility,
     }
     frame["frame_seal"] = {"payload_sha256": digest(json.dumps(frame, sort_keys=True)), "frontend_config_sha256": "0" * 64}
+    boxes = present if present is not None else [(f["aabb_min_m"], f["aabb_max_m"]) for f in fragments]
+    frame[lr.PUBLIC_DEPTH_VIEW_KEY] = depth_view(frame["frame_digest"], boxes, sees=bool(visibility))
     return frame
 
 
@@ -165,8 +205,9 @@ class EntityGeometryTests(unittest.TestCase):
         return {"entity_id": entity_id, "aabb_min_m": lower, "aabb_max_m": upper}
 
     def geometry(self, memory_entities, *, visibility=(), free_space=(), s=4):
+        # the superseded block-frustum rule, kept for diagnostics (ruling 74)
         frame = cache_frame(1, [], visibility=list(visibility), free_space=list(free_space))
-        return lr.entity_geometry({"entities": memory_entities}, frame, samples_per_axis=s)
+        return lr.entity_geometry_blocks({"entities": memory_entities}, frame, samples_per_axis=s)
 
     def test_inside_outside_half_and_union(self) -> None:
         block = box_block([0.0, 0.0, 0.0], [1.0, 1.0, 1.0], ordinal=0, kind="visibility")
@@ -235,7 +276,7 @@ class EntityGeometryTests(unittest.TestCase):
         self.assertTrue(np.allclose(lo1, -lr.BLOCK_AABB_MARGIN_M) and np.allclose(hi1, 1.0 + lr.BLOCK_AABB_MARGIN_M))
         entities = [self.entity(list(lo), list(lo + rng.random(3) * 0.6 + 0.02), entity_id=f"entity:{i}") for i, lo in enumerate(rng.random((40, 3)) * 3.5)]
         frame = cache_frame(1, [], visibility=blocks, free_space=blocks[:7])
-        filtered = lr.entity_geometry({"entities": entities}, frame, samples_per_axis=4)
+        filtered = lr.entity_geometry_blocks({"entities": entities}, frame, samples_per_axis=4)
         normals, offsets = lr._blocks(blocks)
         free_normals, free_offsets = lr._blocks(blocks[:7])
         hits = 0
@@ -248,10 +289,79 @@ class EntityGeometryTests(unittest.TestCase):
         self.assertGreaterEqual(hits, 3)  # the scene is dense enough that the comparison is not vacuous
 
     def test_the_public_phase_takes_no_private_input(self) -> None:
-        for function in (lr.entity_geometry, lr.assignment_frame, lr.run_frame, lr.run_episode):
+        for function in (lr.entity_geometry, lr.entity_geometry_blocks, lr.point_depth_counts, lr.assignment_frame,
+                         lr.run_frame, lr.run_episode):
             names = " ".join(inspect.signature(function).parameters)
             for token in ("private", "truth", "teacher", "instance", "object_id"):
                 self.assertNotIn(token, names, function.__name__)
+
+
+class PerPointDepthGeometryTests(unittest.TestCase):
+    """Ruling 74: the two ratios by the per-point depth test on the frame's public depth view."""
+
+    BOX = ([-0.1, -0.1, 1.9], [0.1, 0.1, 2.1])
+
+    def ratios(self, boxes, *, sees=True, entity_box=None, margin=lr.DEPTH_MARGIN_M):
+        view = depth_view("f" * 64, boxes, sees=sees)
+        lower, upper = entity_box or self.BOX
+        memory = {"entities": [{"entity_id": "entity:x", "aabb_min_m": list(lower), "aabb_max_m": list(upper)}]}
+        return lr.entity_geometry(memory, view, samples_per_axis=4, margin_m=margin)["entity:x"]
+
+    def test_a_present_object_is_seen_on_its_surface_and_never_through(self) -> None:
+        present = self.ratios([self.BOX])
+        self.assertEqual(present["should_be_visible_ratio"], 16 / 64)   # the front layer of the 4 x 4 x 4 grid
+        self.assertEqual(present["free_space_coverage_ratio"], 0.0)
+
+    def test_the_place_of_a_removed_object_is_seen_through(self) -> None:
+        gone = self.ratios([])
+        self.assertEqual(gone["should_be_visible_ratio"], 1.0)
+        self.assertEqual(gone["free_space_coverage_ratio"], 1.0)
+
+    def test_an_occluded_place_is_not_evidence(self) -> None:
+        wall = ([-1.0, -1.0, 1.0], [1.0, 1.0, 1.05])
+        occluded = self.ratios([wall])
+        self.assertEqual(occluded, {"should_be_visible_ratio": 0.0, "free_space_coverage_ratio": 0.0})
+
+    def test_a_place_the_camera_does_not_look_at_is_not_evidence(self) -> None:
+        self.assertEqual(self.ratios([], sees=False), {"should_be_visible_ratio": 0.0, "free_space_coverage_ratio": 0.0})
+
+    def test_a_box_half_behind_its_own_surface_splits_by_the_margin(self) -> None:
+        # a thin surface at z = 2.0 inside a deeper entity box: the layer in front is seen through, the layer on it
+        # is surface, the layers behind are occluded
+        slab = ([-0.1, -0.1, 2.0], [0.1, 0.1, 2.3])
+        out = self.ratios([slab], entity_box=([-0.1, -0.1, 1.9], [0.1, 0.1, 2.1]))
+        # layers at z 1.925 (d 2.0 > z + 0.05: through), 1.975 and 2.025 (within 0.05: surface), 2.075 (occluded)
+        self.assertEqual(out["should_be_visible_ratio"], 48 / 64)
+        counts = lr.point_depth_counts(lr.sample_points([-0.1, -0.1, 1.9], [0.1, 0.1, 2.1], samples_per_axis=4)[None],
+                                       depth_view("f" * 64, [slab]))
+        self.assertEqual((int(counts["through"][0]), int(counts["surface"][0]), int(counts["occluded"][0])), (16, 32, 16))
+        self.assertEqual(out["free_space_coverage_ratio"], 16 / 48)
+
+    def test_the_projection_inverts_the_frozen_back_projection(self) -> None:
+        from vsmt.l1_entities import _camera_values
+
+        pose = {"position_m": [1.0, 1.5, -2.0], "quaternion_xyzw": [0.0, float(np.sin(np.pi / 8)), 0.0, float(np.cos(np.pi / 8))]}
+        fx, fy, cx, cy, position, rotation = _camera_values(DEPTH_CALIBRATION, pose)
+        depth = np.full((DEPTH_SIZE, DEPTH_SIZE), 3.0, dtype=np.float32)
+        view = {"frame_digest": "f" * 64, "depth_m": depth, "calibration": dict(DEPTH_CALIBRATION), "pose": pose}
+        for row, column in ((10, 20), (112, 112), (200, 5)):
+            point = rotation @ np.array([(column - cx) * 3.0 / fx, (cy - row) * 3.0 / fy, 3.0]) + position
+            counts = lr.point_depth_counts(point[None, None, :], view)
+            self.assertEqual(int(counts["surface"][0]), 1, (row, column))
+
+    def test_the_view_must_be_of_the_same_frame_and_well_formed(self) -> None:
+        frame = cache_frame(1, [], visibility=SEES_ALL, free_space=[])
+        lr.public_depth_view_of(frame)
+        other = dict(frame, public_depth_view=dict(frame[lr.PUBLIC_DEPTH_VIEW_KEY], frame_digest="0" * 64))
+        for broken, code in ((other, "public_depth_view_of_another_frame"),
+                             ({k: v for k, v in frame.items() if k != lr.PUBLIC_DEPTH_VIEW_KEY}, "public_depth_view_missing")):
+            with self.assertRaises(lr.LeanRunnerError) as caught:
+                lr.public_depth_view_of(broken)
+            self.assertEqual(str(caught.exception), code)
+
+    def test_the_margin_is_the_frozen_value(self) -> None:
+        self.assertEqual(lr.DEPTH_MARGIN_M, 0.05)
+        self.assertEqual(lr.DEPTH_VALID_RANGE_M, (0.05, 20.0))
 
 
 class DescriptorChoiceTests(unittest.TestCase):

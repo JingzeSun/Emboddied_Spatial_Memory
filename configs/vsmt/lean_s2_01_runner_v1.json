@@ -52,21 +52,38 @@
     "plain_language_zh": "五个臂读 cache 的 descriptor_vitb14（768 维），经 S1-04 训练、S1-05 选中的共享权重（摘要 5cea91cf…，裁决 73 (3) 在实例分割 cache 上重训，取代 SAM2 色块上训练的 f6fc67e5…）投影成 128 维单位向量后进入分配层；权重摘要对不上直接拒绝。论文并列报告的基线是冻结 ViT-B/14 本身（不投影）。除这两种选择外都拒绝；ViT-S/14 及其投影不再被读取。"
   },
   "entity_geometry": {
-    "rule": "uniform_grid_of_cell_centres_over_the_entity_aabb; a point is inside a block iff all six halfspaces hold within the tolerance; ratio = points inside the union of blocks / points",
+    "rule": "uniform_grid_of_cell_centres_over_the_entity_aabb projected into the public depth image; seen_through d > z + margin, on_surface |d - z| <= margin, occluded d < z - margin, unobserved outside the image or invalid depth; should_be_visible_ratio = (seen_through + on_surface) / points; free_space_coverage_ratio = seen_through / (seen_through + on_surface), 0 when none is observed",
     "fields": [
       "should_be_visible_ratio",
       "free_space_coverage_ratio"
     ],
-    "halfspace_tolerance_m": 1e-09,
+    "depth_margin_m": 0.05,
+    "depth_margin_frozen_by": "D-224-S1 ruling 74",
+    "depth_margin_frozen_on": "2026-09-26",
+    "valid_depth_range_m": [
+      0.05,
+      20.0
+    ],
+    "valid_depth_range_source": "the frozen D-223 free-space configuration (minimum_depth_m, maximum_valid_depth_m)",
+    "public_depth_view_fields": [
+      "frame_digest",
+      "depth_m",
+      "calibration",
+      "pose"
+    ],
+    "public_depth_view_source": "the S1-02 public plane of the same frame: NNNN.frame.json intrinsics, the depth file it names, and the causal pose read under the S1-03 public_pose_correction policy",
     "samples_per_axis": 4,
     "samples_per_axis_frozen_by": "D-224-S1 ruling 60",
     "samples_per_axis_frozen_on": "2026-09-24",
-    "pure_function_of_public_volumes_and_previous_memory": true,
+    "pure_function_of_public_depth_intrinsics_causal_pose_and_previous_memory": true,
     "identical_bytes_for_all_arms": true,
-    "free_space_records_used_as_stored_rolling_window_included": true,
+    "depth_view_must_be_of_the_same_frame": true,
+    "depth_view_is_never_written_into_the_cache": true,
     "computed_for_every_entity_of_the_previous_memory": true,
-    "dot_products_are_fixed_order_elementwise_not_blas": true,
-    "plain_language_zh": "应可见比例＝实体包围盒上均匀网格采样点落进本帧可见体积块（六个半空间都成立）并集的比例；自由空间覆盖比例＝同一批采样点落进自由空间块并集的比例（cache 里的自由空间记录本身就是 D-223 的滚动窗口，照存的读）。每个轴取 samples_per_axis 个格心；裁决 60（2026-09-24）冻结为 4，即每实体 64 个点、比例粒度 1/64；值为 null 时拒绝运行。点积用固定顺序的逐元素乘加而不是 BLAS，避免边界点在不同机器上翻转。它只读公开体积和上一帧记忆，对 M_{t−1} 的每个实体都算（包括 retracted，后续按状态排除），五个臂逐字节相同。"
+    "projection_is_fixed_order_elementwise_not_blas": true,
+    "superseded_rule": "uniform_grid_of_cell_centres_over_the_entity_aabb; a point is inside a block iff all six halfspaces hold within the tolerance; ratio = points inside the union of blocks / points",
+    "superseded_by": "D-224-S1 ruling 74 (2026-09-26): the block frusta saw the entity box in about 3 percent of entity-frames and separated gone from present at AUC 0.57 (LOG-260, LOG-261)",
+    "plain_language_zh": "裁决 74（2026-09-26）：两个实体几何比例改用逐点深度检验。实体包围盒上每轴 4 个、共 64 个格心，逐个投到本帧公开深度图上（公开内参、因果公开位姿，冻结反投影约定的逆）：测到的深度比点远出 0.05 m 为看穿（那里是空的），相差不超过 0.05 m 为在表面，更近为被挡，出画或深度无效为看不到。应可见比例＝（看穿＋在表面）／64；自由空间覆盖＝看穿／（看穿＋在表面），一个点都没看到记 0。深度视图由读取方在 cache 封印核对之后按同一帧从 S1-02 公开面附上，帧摘要必须一致，从不写进 cache。投影用固定顺序的逐元素乘加而不是 BLAS。旧的块视锥规则（在约 3% 的实体·帧里看得到实体框、gone 对 present 的 AUC 0.57）作为 superseded_rule 留底，只供诊断对照。它只读公开深度、内参、位姿与上一帧记忆，对 M_{t−1} 的每个实体都算，五个臂逐字节相同。"
   },
   "frame_step": {
     "order": [
@@ -217,7 +234,8 @@
       "D-224-S1 裁决 61（同日批准）：校验器原要求授权位全部为 false、而入口要求两位为 true，入口永远跑不起来；改为 activation_policy 机制，为 true 的位必须被 active_true_authorizations 点名并写明 opened_by。两位现仍关。",
       "S2 审查修正（同日批准「非法程序臂状态回滚」）：frame_step.arm_state 新增 arm_state_rolled_back_with_the_frame_on_an_illegal_program=true 并由校验器绑定；这是规则变更，规则摘要重钉（见跨合同测试的台账注释）。",
       "D-224-S1 裁决 69（2026-09-24 批准，原话「裁决 69 取 (a)。」，取 (a)）：真值表键规则加 Ceiling_room 结构件与运行时生成物规则；规则摘要重钉。",
-      "D-224-S1 裁决 73 (3)（2026-09-26 批准）：descriptor.weights_sha256 f6fc67e5… → 5cea91cf…（ReID 头在实例分割 cache 上重训、S1-05 按裁决 47 重选，选择仍为 reid_projection:vitb14）。"
+      "D-224-S1 裁决 73 (3)（2026-09-26 批准）：descriptor.weights_sha256 f6fc67e5… → 5cea91cf…（ReID 头在实例分割 cache 上重训、S1-05 按裁决 47 重选，选择仍为 reid_projection:vitb14）。",
+      "D-224-S1 裁决 74（2026-09-26 批准，原话「裁决 74 取 (1)(a)(2)(a)」）：entity_geometry 规则改为逐点深度检验，余量 0.05 m 冻结，深度视图从 S1-02 公开面按同一帧读取、不写进 cache；旧块视锥规则留底为 superseded_rule。"
     ]
   }
 }

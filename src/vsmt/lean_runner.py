@@ -7,9 +7,11 @@ which atoms its vocabulary allows).  Nothing here reads a private file: the publ
 function of (cache frames, policy values, arm configuration, arm weights).
 
 Per frame, in this order:
-  1. entity geometry: the two S0-03 ratios per entity of M_{t-1}, derived online from the public
-     volumes stored in the cache frame (METHOD section 5, D-224-X) -- a pure function of
-     (public volumes, M_{t-1}) with a registered sampling resolution;
+  1. entity geometry: the two S0-03 ratios per entity of M_{t-1}, derived online by the per-point
+     depth test of ruling 74 (METHOD section 5) -- a pure function of (this frame's public depth,
+     intrinsics and causal pose, M_{t-1}) with a registered sampling resolution and a frozen margin;
+     the public depth view is attached to the frame by the reader after the seal check
+     (``PUBLIC_DEPTH_VIEW_KEY``), never written into the cache;
   2. the S0-03 view of the frame under the descriptor S1-05 froze (the shared ReID projection of
      ``descriptor_vitb14``), or under the frozen-descriptor baseline the paper reports alongside;
   3. stage A: recall at the ruling-57/58 values, association and birth features, sealed;
@@ -63,14 +65,28 @@ STAGE_ID = "S2-01"
 DESCRIPTOR_CHOICES = (la.SELECTED_DESCRIPTOR, la.FROZEN_DESCRIPTOR_BASELINE)
 PROJECTION_PREFIX = "reid_projection:"
 
-#: Entity geometry rule (METHOD section 5, S2-01).  The two ratios are the share of a uniform grid
-#: of cell centres over the entity AABB that fall inside the union of the frame's visibility blocks
-#: (should_be_visible_ratio) and inside the union of its free-space blocks (free_space_coverage_ratio).
-#: A point is inside a block iff every one of its six halfspaces holds within the tolerance.
+#: Entity geometry rule (METHOD section 5, S2-01), ruling 74 (2026-09-26): the per-point depth test.
+#: Every cell centre of a uniform grid over the entity AABB is projected into this frame's public depth
+#: image (public intrinsics, causal public pose, the frozen back-projection's convention inverted); with
+#: its axial depth z and the depth d measured at its pixel it is seen through when d > z + margin, on the
+#: surface when |d - z| <= margin, occluded when d < z - margin, unobserved outside the image or on an
+#: invalid depth.  should_be_visible_ratio = (seen through + on surface) / points;
+#: free_space_coverage_ratio = seen through / (seen through + on surface), 0 when nothing is observed.
+#: The block-frustum rule it replaces (LOG-260, LOG-261: it saw the entity box in about 3 percent of
+#: entity-frames, gone-above-present AUC 0.57) is kept as ``entity_geometry_blocks`` for diagnostics only.
 ENTITY_GEOMETRY_RULE = (
-    "uniform_grid_of_cell_centres_over_the_entity_aabb; a point is inside a block iff all six "
-    "halfspaces hold within the tolerance; ratio = points inside the union of blocks / points"
+    "uniform_grid_of_cell_centres_over_the_entity_aabb projected into the public depth image; seen_through d > z + margin, "
+    "on_surface |d - z| <= margin, occluded d < z - margin, unobserved outside the image or invalid depth; "
+    "should_be_visible_ratio = (seen_through + on_surface) / points; "
+    "free_space_coverage_ratio = seen_through / (seen_through + on_surface), 0 when none is observed"
 )
+#: Ruling 74: the margin, frozen at the best of the three probed values (0.05 / 0.10 / 0.20 m).
+DEPTH_MARGIN_M = 0.05
+#: The valid depth range is the frozen D-223 free-space configuration's (minimum_depth_m, maximum_valid_depth_m).
+DEPTH_VALID_RANGE_M = (0.05, 20.0)
+#: The key under which a reader attaches the frame's public depth view after the seal check.
+PUBLIC_DEPTH_VIEW_KEY = "public_depth_view"
+PUBLIC_DEPTH_VIEW_FIELDS = ("frame_digest", "depth_m", "calibration", "pose")
 HALFSPACE_TOLERANCE_M = 1e-9
 #: The registered sampling resolution (points per axis): D-224-S1 ruling 60 (2026-09-24) froze
 #: it at 4, i.e. 64 cell centres per entity and a ratio granularity of 1/64.  The contract's value
@@ -252,15 +268,14 @@ def inside_union_fraction(points: np.ndarray, normals: np.ndarray, offsets: np.n
     return float(int(inside_any.sum())) / float(points.shape[0])
 
 
-def entity_geometry(
+def entity_geometry_blocks(
     memory: Mapping[str, Any], cache_frame: Mapping[str, Any], *, samples_per_axis: int | None,
 ) -> dict[str, dict[str, float]]:
-    """The two S0-03 ratios for every entity of M_{t-1}, from the frame's public volumes only.
+    """The superseded block-frustum ratios (diagnostics only since ruling 74; the runner never calls it).
 
-    白话：输入上一帧的记忆和 cache 的一帧，输出每个实体两个比例：包围盒的采样点落进本帧可见体积的
-    比例（应可见比例）和落进自由空间体块的比例（自由空间覆盖比例）。例如被橱柜门挡住的杯子两个比例
-    都接近 0，因此不构成撤回证据；杯子原位置被可靠深度射线穿透时第二个比例升高。采样分辨率是登记
-    值，为 null 时拒绝运行。它只读公开体积和记忆，五个臂拿到逐字节相同的函数。
+    白话：裁决 74 之前的算法：包围盒采样点落进本帧可见体积块、自由空间块并集的比例。块视锥为了保守，
+    在每个 14×14 像素块里取最近深度再退 10 cm，放在桌上的小物体原位置几乎永远算不进去（LOG-260）。
+    只留给探针与审计做新旧对照。
     """
 
     _require(samples_per_axis is not None, "policy_value_missing:entity_geometry_samples_per_axis")
@@ -280,6 +295,87 @@ def entity_geometry(
             candidates = np.all(block_lower <= upper[None, :], axis=1) & np.all(block_upper >= lower[None, :], axis=1)
             ratios.append(inside_union_fraction(points, normals[candidates], offsets[candidates]))
         out[str(entity["entity_id"])] = {"should_be_visible_ratio": ratios[0], "free_space_coverage_ratio": ratios[1]}
+    return out
+
+
+def point_depth_counts(points_world: np.ndarray, depth_view: Mapping[str, Any], *,
+                       margin_m: float = DEPTH_MARGIN_M) -> dict[str, np.ndarray]:
+    """Per-entity counts of seen-through / on-surface / occluded / unobserved points (points_world is (E, P, 3)).
+
+    The camera convention is the frozen back-projection's (``l1_entities.backproject_public_entity_geometry``)
+    inverted: world = R @ camera + position, camera +x right, +y up, +z forward, u = cx + fx x / z,
+    v = cy - fy y / z, pixel = (round(v), round(u)).  The rotation is applied as explicit per-coordinate
+    multiply-adds in a fixed order, not a BLAS matmul, so a point on the margin cannot flip between machines.
+    """
+
+    from vsmt.l1_entities import _camera_values
+
+    depth = np.asarray(depth_view["depth_m"])
+    _require(depth.ndim == 2 and np.issubdtype(depth.dtype, np.floating), "public_depth_view_malformed")
+    fx, fy, cx, cy, position, rotation = _camera_values(depth_view["calibration"], depth_view["pose"])
+    points = np.asarray(points_world, dtype=np.float64)
+    _require(points.ndim == 3 and points.shape[-1] == 3, "entity_points_malformed")
+    d = [points[..., k] - position[k] for k in range(3)]
+    # camera_j = sum_k R[k, j] * d_k (R^T d), in a fixed order
+    x = d[0] * rotation[0, 0] + d[1] * rotation[1, 0] + d[2] * rotation[2, 0]
+    y = d[0] * rotation[0, 1] + d[1] * rotation[1, 1] + d[2] * rotation[2, 1]
+    z = d[0] * rotation[0, 2] + d[1] * rotation[1, 2] + d[2] * rotation[2, 2]
+    height, width = depth.shape
+    minimum, maximum = DEPTH_VALID_RANGE_M
+    ahead = z > minimum
+    safe_z = np.where(ahead, z, 1.0)
+    column = np.rint(np.where(ahead, cx + fx * x / safe_z, -1.0)).astype(np.int64)
+    row = np.rint(np.where(ahead, cy - fy * y / safe_z, -1.0)).astype(np.int64)
+    in_image = ahead & (column >= 0) & (column < width) & (row >= 0) & (row < height)
+    measured = np.full(z.shape, np.nan)
+    measured[in_image] = depth[row[in_image], column[in_image]]
+    valid = in_image & np.isfinite(measured) & (measured >= minimum) & (measured <= maximum)
+    through = valid & (measured > z + margin_m)
+    surface = valid & (np.abs(measured - z) <= margin_m)
+    occluded = valid & (measured < z - margin_m)
+    return {"through": through.sum(axis=1), "surface": surface.sum(axis=1), "occluded": occluded.sum(axis=1),
+            "unobserved": (~valid).sum(axis=1), "points": np.full(points.shape[0], points.shape[1])}
+
+
+def public_depth_view_of(cache_frame: Mapping[str, Any]) -> Mapping[str, Any]:
+    """The frame's public depth view, refused when missing, malformed or of another frame."""
+
+    view = cache_frame.get(PUBLIC_DEPTH_VIEW_KEY)
+    _require(isinstance(view, Mapping), "public_depth_view_missing")
+    _require(tuple(view) == PUBLIC_DEPTH_VIEW_FIELDS, "public_depth_view_malformed")
+    _require(str(view["frame_digest"]) == str(cache_frame["frame_digest"]), "public_depth_view_of_another_frame")
+    return view
+
+
+def entity_geometry(
+    memory: Mapping[str, Any], depth_view: Mapping[str, Any], *, samples_per_axis: int | None,
+    margin_m: float = DEPTH_MARGIN_M,
+) -> dict[str, dict[str, float]]:
+    """The two S0-03 ratios for every entity of M_{t-1}, by the per-point depth test (ruling 74).
+
+    白话：输入上一帧的记忆和本帧的公开深度视图（深度图、内参、因果位姿），输出每个实体两个比例。把实体
+    包围盒上 64 个采样点逐个投到深度图上：测到的深度比点远出 5 cm 叫"看穿"（那里是空的），差不多远叫"在
+    表面"，更近叫"被挡"，出画或深度无效叫"看不到"。应可见比例＝（看穿＋在表面）／64；自由空间覆盖＝看穿／
+    （看穿＋在表面），一个点都没看到时记 0。例如杯子被拿走后相机再看桌面，原位置的点测到的是后面的墙，
+    全部看穿，覆盖为 1；杯子还在时只看到它朝相机的表面，其余点被自己挡住，覆盖为 0。它只读公开深度、内参
+    与位姿和记忆，五个臂拿到逐字节相同的函数；它不等于读私有真值，也不改 cache。
+    """
+
+    _require(samples_per_axis is not None, "policy_value_missing:entity_geometry_samples_per_axis")
+    s = _int(samples_per_axis, "samples_per_axis_invalid", minimum=1)
+    entities = sorted(memory["entities"], key=lambda item: str(item["entity_id"]))
+    out: dict[str, dict[str, float]] = {}
+    if not entities:
+        return out
+    points = np.stack([sample_points(e["aabb_min_m"], e["aabb_max_m"], samples_per_axis=s) for e in entities])
+    counts = point_depth_counts(points, depth_view, margin_m=margin_m)
+    for index, entity in enumerate(entities):
+        observed = int(counts["through"][index] + counts["surface"][index])
+        total = int(counts["points"][index])
+        out[str(entity["entity_id"])] = {
+            "should_be_visible_ratio": observed / total,
+            "free_space_coverage_ratio": (int(counts["through"][index]) / observed) if observed else 0.0,
+        }
     return out
 
 
@@ -503,8 +599,10 @@ def run_frame(
     tick = int(cache_frame["tick"])
     _require(tick == int(memory["tick"]) + 1, "frame_tick_not_next")
 
-    # 1-2. entity geometry from the public volumes and M_{t-1}; the view under the frozen descriptor
-    geometry = entity_geometry(memory, cache_frame, samples_per_axis=checked_policy["entity_geometry_samples_per_axis"])
+    # 1-2. entity geometry by the per-point depth test (ruling 74) on this frame's public depth view and
+    # M_{t-1}; the view under the frozen descriptor
+    geometry = entity_geometry(memory, public_depth_view_of(cache_frame),
+                               samples_per_axis=checked_policy["entity_geometry_samples_per_axis"])
     view = assignment_frame(cache_frame, descriptor=descriptor, projector=projector, entity_geometry_by_id=geometry)
 
     # 3. stage A
@@ -735,10 +833,13 @@ def validate_runner_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     _require(descriptor["weights_digest_checked_before_any_projection"] is True, "contract_descriptor_claim_weakened")
     geometry = contract["entity_geometry"]
     _require(geometry["rule"] == ENTITY_GEOMETRY_RULE, "contract_entity_geometry_rule_mismatch")
-    _require(geometry["halfspace_tolerance_m"] == HALFSPACE_TOLERANCE_M, "contract_entity_geometry_tolerance_mismatch")
+    _require(geometry["depth_margin_m"] == DEPTH_MARGIN_M, "contract_entity_geometry_margin_mismatch")
+    _require(list(geometry["valid_depth_range_m"]) == list(DEPTH_VALID_RANGE_M), "contract_entity_geometry_depth_range_mismatch")
+    _require(tuple(geometry["public_depth_view_fields"]) == PUBLIC_DEPTH_VIEW_FIELDS, "contract_entity_geometry_view_fields_mismatch")
     _require(tuple(geometry["fields"]) == la.ENTITY_GEOMETRY_FIELDS, "contract_entity_geometry_fields_mismatch")
-    for name in ("pure_function_of_public_volumes_and_previous_memory", "identical_bytes_for_all_arms",
-                 "free_space_records_used_as_stored_rolling_window_included", "computed_for_every_entity_of_the_previous_memory"):
+    for name in ("pure_function_of_public_depth_intrinsics_causal_pose_and_previous_memory", "identical_bytes_for_all_arms",
+                 "depth_view_must_be_of_the_same_frame", "depth_view_is_never_written_into_the_cache",
+                 "computed_for_every_entity_of_the_previous_memory", "projection_is_fixed_order_elementwise_not_blas"):
         _require(geometry[name] is True, f"contract_entity_geometry_claim_weakened:{name}")
     open_slots = contract["policy_values_without_defaults"]
     slot = "entity_geometry.samples_per_axis"
@@ -800,7 +901,11 @@ __all__ = [
     "ARM_CONFIG_FIELDS",
     "CONTRACT_SCHEMA_VERSION",
     "DESCRIPTOR_CHOICES",
+    "DEPTH_MARGIN_M",
+    "DEPTH_VALID_RANGE_M",
     "ENTITY_GEOMETRY_RULE",
+    "PUBLIC_DEPTH_VIEW_FIELDS",
+    "PUBLIC_DEPTH_VIEW_KEY",
     "ENTITY_GEOMETRY_SAMPLES_PER_AXIS",
     "FAILURE_REASONS",
     "FRAME_STEP_ORDER",
@@ -820,6 +925,9 @@ __all__ = [
     "compile_frame_program",
     "descriptor_projector",
     "entity_geometry",
+    "entity_geometry_blocks",
+    "point_depth_counts",
+    "public_depth_view_of",
     "episode_summary",
     "initial_state",
     "block_aabbs",

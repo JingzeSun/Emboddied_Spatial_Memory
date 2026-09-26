@@ -43,7 +43,7 @@ from vsmt import lean_teacher as lt  # noqa: E402
 from test_vsmt_lean_runner import CONFIGS, POLICY, box_block, cache_frame, fragment_row  # noqa: E402
 
 CONTRACT_PATH = PROJECT_ROOT / "configs" / "vsmt" / "lean_s2_04_evaluation_v1.json"
-TEACHER_POLICY = {"dominance_min_share": 0.5, "delta_moved_m": 0.5, "should_be_visible_min_ratio": 0.5, "entity_geometry_samples_per_axis": 4}
+TEACHER_POLICY = {"dominance_min_share": 0.5, "delta_moved_m": 0.5, "should_be_visible_min_ratio": 1 / 64, "entity_geometry_samples_per_axis": 4}
 NUISANCE_META = {"path": "cache/ep-0001", "seed": 20260920, "house_index": 1}
 DIM, SIDE = 8, 8
 

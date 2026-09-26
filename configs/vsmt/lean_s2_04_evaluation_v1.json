@@ -35,7 +35,7 @@
   },
   "authorization_rule_zh": "两个授权位现在都关着。要打开某一位，必须在合同里加 activation_policy，把该位写进 active_true_authorizations 并在 opened_by 写明是哪条裁决打开的；校验器对没有裁决就为 true 的位直接拒绝（与 S2-01 裁决 61 同一机制）。裁决 64（2026-09-24 批准，取 (a)）：S2-05 的运行位由 S2 阶段合同持有——S2-01 的 episode_run／server_run 与本合同的 label_generation_run／server_run；S0-01／S0-03／S0-04／S0-05 各自的授权位保持 false，它们是规则合同的位，运行由 S2 阶段合同授权，入口只检查 S2 位。",
   "derivation_rules": {
-    "place_observable": "the_object_truth_box_at_the_place_(its_centroid_point_when_the_object_has_no_box)_sampled_by_the_s2_01_entity_geometry_function_has_should_be_visible_ratio_at_or_above_the_s0_05_shared_minimum_under_the_frame_public_visibility_blocks",
+    "place_observable": "the_object_truth_box_at_the_place_(its_centroid_point_when_the_object_has_no_box)_sampled_by_the_s2_01_entity_geometry_function_has_should_be_visible_ratio_at_or_above_the_s0_05_shared_minimum_under_the_per_point_depth_test_on_the_frame_public_depth_view_(ruling_74)",
     "old_place": "truth_centroid_and_box_at_the_last_window_frame",
     "new_place": "truth_centroid_and_box_at_the_first_frame_after_the_window",
     "recovery_place": {
@@ -119,7 +119,8 @@
       "S2-04 代码审查通过（2026-09-24，原话同上）：本合同与 lean_evaluation.py 按 D-059 成为 S2-05 的基线。",
       "D-224-S1 裁决 69（2026-09-24 批准，原话「裁决 69 取 (a)。」）：structural_existence 规则覆盖运行时生成物；规则摘要重钉。",
       "D-224-S1 裁决 70（2026-09-24 批准，原话「裁决 70 取 (a)」）：headline_fields 增登 node_prf1_centroid → node_f1（S0-04 的次级节点列，S2-05 开发表并列报告、不选配置、不进主门）；摘要重钉。",
-      "D-224-S1 裁决 72 (B)（2026-09-25 批准）：headline_fields 的 node_prf1_centroid 改为 node_prf1_iou——node_prf1 成为质心主列、IoU 0.3 降为次级列 node_prf1_iou；iou_min 的来源路径随之改为 S0-04 metrics.node_prf1_iou.iou_min。"
+      "D-224-S1 裁决 72 (B)（2026-09-25 批准）：headline_fields 的 node_prf1_centroid 改为 node_prf1_iou——node_prf1 成为质心主列、IoU 0.3 降为次级列 node_prf1_iou；iou_min 的来源路径随之改为 S0-04 metrics.node_prf1_iou.iou_min。",
+      "D-224-S1 裁决 74（2026-09-26 批准，原话「裁决 74 取 (1)(a)(2)(a)」）：derivation_rules.place_observable 的尺子随臂的应可见比例一起换成逐点深度检验（本帧公开深度视图），“对方法可观察”与“臂认为应可见”仍是同一把尺子（裁决 65 (1)）。"
     ]
   }
 }

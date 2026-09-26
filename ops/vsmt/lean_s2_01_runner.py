@@ -96,6 +96,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--cache-root", required=True)
     parser.add_argument("--episode-id", required=True)
+    parser.add_argument("--episode-root", required=True,
+                        help="ruling 74: the S1-02 episode directory whose public plane gives each frame's depth view")
     parser.add_argument("--arm", required=True, choices=list(lr.RUNNABLE_ARMS))
     parser.add_argument("--config", required=True, help="JSON object with the arm's registered parameters")
     parser.add_argument("--descriptor", required=True, choices=list(lr.DESCRIPTOR_CHOICES))
@@ -138,6 +140,10 @@ def main() -> int:
     frames, seal = diag.load_cache_episode(cache_dir, diag.registered_descriptor_asset_sha256s())
     if args.frames is not None:
         frames = frames[: int(args.frames)]
+    import lean_s2_04_evaluate_episode as s2_04
+    depth_view = s2_04.episode_depth_reader(Path(args.episode_root).resolve())
+    for index, frame in enumerate(frames):  # ruling 74: the public depth view, attached after the seal check
+        frame[lr.PUBLIC_DEPTH_VIEW_KEY] = depth_view(index)
     out_dir = Path(args.output_root).resolve() / args.episode_id / args.arm
     if out_dir.exists() and any(out_dir.iterdir()):
         print(f"[s2-01] refused: output directory exists and is not empty: {out_dir}", file=sys.stderr)

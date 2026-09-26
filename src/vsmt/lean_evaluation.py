@@ -65,7 +65,7 @@ CONTINUITY_KINDS = ("move",)
 PLACE_OBSERVABLE_RULE = (
     "the_object_truth_box_at_the_place_(its_centroid_point_when_the_object_has_no_box)_sampled_by_the_"
     "s2_01_entity_geometry_function_has_should_be_visible_ratio_at_or_above_the_s0_05_shared_minimum_"
-    "under_the_frame_public_visibility_blocks"
+    "under_the_per_point_depth_test_on_the_frame_public_depth_view_(ruling_74)"
 )
 RECOVERY_PLACE_RULE = {"removed": "old_place", "added": "new_place", "moved": "old_place_or_new_place"}
 OLD_PLACE_RULE = "truth_centroid_and_box_at_the_last_window_frame"
@@ -216,10 +216,15 @@ def place_box(entry: Mapping[str, Any]) -> tuple[list[float], list[float]]:
 
 def place_observable(cache_frame: Mapping[str, Any], box: tuple[Sequence[float], Sequence[float]], *,
                      samples_per_axis: int, visible_min_ratio: float) -> bool:
-    """Is a place observable to the method this frame?  The arms' own sampled-box test, applied to a truth box."""
+    """Is a place observable to the method this frame?  The arms' own sampled-box test, applied to a truth box.
+
+    Since ruling 74 that test is the per-point depth test on the frame's public depth view, so "observable
+    to the method" and "should be visible to the arm" stay one yardstick (ruling 65 (1)).
+    """
 
     pseudo = {"entities": [{"entity_id": "place", "aabb_min_m": list(box[0]), "aabb_max_m": list(box[1])}]}
-    ratio = lr.entity_geometry(pseudo, cache_frame, samples_per_axis=samples_per_axis)["place"]["should_be_visible_ratio"]
+    ratio = lr.entity_geometry(pseudo, lr.public_depth_view_of(cache_frame),
+                               samples_per_axis=samples_per_axis)["place"]["should_be_visible_ratio"]
     return ratio >= visible_min_ratio
 
 
