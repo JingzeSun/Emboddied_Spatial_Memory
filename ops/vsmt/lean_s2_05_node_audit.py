@@ -26,6 +26,13 @@ pickupable / receptacle / other group only.
 质心落在真值框内、质心 0.5 m 内、按私有身份并框后的 IoU 0.3 上界）重新计分。例如某帧 48 个实体里
 41 个身份含糊、64 个真值物体里 62 个附近没有任何实体，就说明问题主要在记忆而不在匹配口径。它不改
 任何合同或数值，产物只用于裁决 70 的讨论；按身份并框的上界用了私有身份，只能作诊断列，不是方法。
+
+v2（裁决 76 (1)(a)）再加三块只读统计与两列：质心主列自己的分类账（"离得远"拆成物体真被搬动、物体没动两类）；
+每次 BIRTH 的原因（首次出现、没有承载实体、正确实体没被召回、召回了但 logit 不过新建线——TAF 即余弦低于 θ_a、
+合格却在联合分配里输了），用同一个 logit 函数在封存行上重算；每个去重时刻，去重之后剩下的实体对按状态组合
+（active／dormant）与私有身份（同物体／不同物体／含糊）在余弦、距离、IoU 各档下能过几对——同物体对是还能收回
+的重复，不同物体对是误合并风险；以及两列"先最大匹配数、再最大权"的匹配数。按身份并框那两列只是分组诊断，
+同时改了数量与几何，不是上界（LOG-262）。
 """
 from __future__ import annotations
 
@@ -47,7 +54,7 @@ for item in (ROOT / "src", HERE.parent):
 from vsmt import lean_teacher as lt  # noqa: E402
 
 AUDIT_FILE_NAME = "node_audit.json"
-SCHEMA_VERSION = "vsmt-s2-05-node-audit-v1"
+SCHEMA_VERSION = "vsmt-s2-05-node-audit-v2"  # v2: ruling 76 (1)(a) centroid ledger, birth reasons, dedup tallies, count-first columns
 
 #: Why an in-memory prediction (an entity in ``active``/``dormant`` whose object is not a present
 #: out-of-scope one) did not match under the IoU 0.3 column (the primary column until ruling 72 (B), secondary since).
@@ -77,9 +84,57 @@ RULES = (
     "centroid_within_0.5m",
     "oracle_identity_groups_iou_0.3",
     "oracle_identity_groups_centroid_within_0.5m",
+    # ruling 76 (1)(a): the same two columns under the count-first objective (most matches, then most weight)
+    "centroid_within_0.5m_count_first",
+    "iou_0.3_count_first",
 )
 PAD_M = 0.25
 CENTROID_RADIUS_M = 0.5
+
+#: Ruling 76 (1)(a): why an in-memory prediction did not match under the primary centroid column.
+CENTROID_ENTITY_CATEGORIES = (
+    "matched",
+    "identity_ambiguous_unmatched",
+    "own_object_absent",                       # resolves to an object no longer present
+    "own_object_far_object_moved",             # more than delta from its object, which moved more than delta since the entity last saw it
+    "own_object_far_object_not_moved",         # more than delta from its object, which has not moved: surface centroid off the box centre, or a wrong bind
+    "own_object_near_unmatched",               # within delta of its object, another entity (or the matcher) took the match
+)
+#: Ruling 76 (1)(a): why a present in-scope truth object was not matched under the primary centroid column.
+CENTROID_TRUTH_CATEGORIES = (
+    "matched",
+    "resolved_entity_near_unmatched",
+    "resolved_entity_far",
+    "only_ambiguous_entity_near",
+    "no_entity_fragmented_before",
+    "no_entity_never_fragmented",
+)
+#: Ruling 76 (1)(a): why a fragment was born, from the sealed stage-A rows and the arm's own logits.
+BIRTH_REASONS = (
+    "unlabelled_fragment",                 # the fragment has no dominant private object
+    "first_labelled_observation",          # no earlier fragment of this object
+    "no_resolved_carrier",                 # the object was fragmented before, but no entity resolves to it now
+    "correct_carrier_not_recalled",        # an entity resolves to it but is not among the sealed candidates
+    "correct_carrier_below_birth_logit",   # recalled, but its association logit does not beat the birth logit (TAF: cosine below theta_a)
+    "correct_carrier_lost_joint_competition",  # recalled and eligible, the joint solve still chose birth
+)
+#: Ruling 76 (1)(a): the dedup gate values tallied over entity pairs at every dedup tick (the frozen ones are 0.8 / 0.5 / 0.05).
+DEDUP_COSINES = (0.5, 0.6, 0.7, 0.8, 0.9)
+DEDUP_DISTANCES_M = (0.25, 0.5, 1.0)
+DEDUP_IOUS = (0.0, 0.05, 0.1)
+DEDUP_STATE_PAIRS = ("active_active", "active_dormant", "dormant_dormant")
+DEDUP_IDENTITIES = ("same_object", "different_objects", "ambiguous")
+
+
+def _count_first(weights: Sequence[Sequence[float]]) -> int:
+    """Matches under the count-first objective: every positive weight lifted by a constant above any
+    component size, so the evaluator's max-weight matcher first maximises the number of pairs."""
+
+    if not weights or not weights[0]:
+        return 0
+    lift = float(len(weights) + len(weights[0]) + 1)
+    lifted = [[(lift + float(w)) if float(w) > 0.0 else 0.0 for w in row] for row in weights]
+    return len(lt._max_weight_matching(lifted))
 
 
 class NodeAuditError(ValueError):
@@ -147,8 +202,21 @@ class NodeAudit:
     """Per-frame loss decomposition and alternative scorings over one episode run."""
 
     def __init__(self, *, evidence: Mapping[str, str | None], iou_min: float, delta_moved_m: float,
-                 groups: Mapping[str, str] | None = None) -> None:
+                 groups: Mapping[str, str] | None = None, arm: str | None = None, config: Mapping[str, Any] | None = None,
+                 scorer: Any = None, dedup: Mapping[str, Any] | None = None) -> None:
         self.evidence = evidence
+        # ruling 76 (1)(a): the birth reasons need the arm's logits, the dedup tallies the frozen period
+        self.arm = arm
+        self.config = dict(config) if config is not None else None
+        self.scorer = scorer
+        self.dedup_period = int(dedup["period_ticks"]) if dedup else None
+        self.centroid_entity_counts = {name: 0 for name in CENTROID_ENTITY_CATEGORIES}
+        self.centroid_truth_counts = {name: 0 for name in CENTROID_TRUTH_CATEGORIES}
+        self.birth_reasons = {scope: {name: 0 for name in BIRTH_REASONS} for scope in ("in_scope_object", "other")}
+        self.dedup_ticks = 0
+        self.dedup_folds = 0
+        self.dedup_pairs = {f"{states}|{identity}": {"pairs": 0, "pass": {}} for states in DEDUP_STATE_PAIRS for identity in DEDUP_IDENTITIES}
+        self.truth_centroid_changes: dict[str, list[tuple[int, list[float]]]] = {}
         self.iou_min = float(iou_min)
         self.delta = float(delta_moved_m)
         self.groups = dict(groups or {})
@@ -169,6 +237,7 @@ class NodeAudit:
 
     def observe(self, step: Mapping[str, Any], labelled: Mapping[str, Any], truth_table: Mapping[str, Mapping[str, Any]]) -> dict[str, Any]:
         memory_after = step["state"]["memory"]
+        self._keys_before_frame = set(self.keys_fragmented)  # ruling 76 (1)(a): "first observation" means before this frame
         for target in labelled["targets"].values():
             if target.get("key") is not None:
                 self.keys_fragmented.add(str(target["key"]))
@@ -281,9 +350,14 @@ class NodeAudit:
         weights_by_rule["oracle_identity_groups_iou_0.3"] = [[v if v >= threshold else 0.0 for v in row] for row in group_iou]
         weights_by_rule["oracle_identity_groups_centroid_within_0.5m"] = [[(1.0 / (1.0 + d)) if d <= CENTROID_RADIUS_M else 0.0 for d in row]
                                                                           for row in group_dist]
+        weights_by_rule["centroid_within_0.5m_count_first"] = weights_by_rule["centroid_within_0.5m"]
+        weights_by_rule["iou_0.3_count_first"] = weights_by_rule["iou_0.3_secondary"]
         for rule in RULES:
             weights = weights_by_rule[rule]
-            matched = len(lt._max_weight_matching(weights)) if weights and present_keys else 0
+            if rule.endswith("_count_first"):
+                matched = _count_first(weights) if weights and present_keys else 0
+            else:
+                matched = len(lt._max_weight_matching(weights)) if weights and present_keys else 0
             rule_matched[rule] = matched
             rule_predicted[rule] = len(weights)
             sums = self.rule_sums[rule]
@@ -297,6 +371,14 @@ class NodeAudit:
         _require(rule_matched["centroid_within_0.5m"] == frame_eval["matched"],
                  "audit_centroid_rule_does_not_reproduce_the_evaluator")
 
+        # ruling 76 (1)(a): the primary centroid column's own ledger, the birth reasons and the dedup pair tallies
+        tick = int(memory_after["tick"])
+        centroid_ledger = self._centroid_ledger(frame_eval, predictions, identities, present_keys, dist_rows, column_of, truth_table, tick)
+        if self.arm is not None:
+            self._birth_reasons(step, labelled, truth_table)
+        if self.dedup_period is not None and tick % self.dedup_period == 0:
+            self._dedup_pairs(memory_after, identities)
+
         for name, count in frame_entity.items():
             self.entity_counts[name] += count
         for name, count in frame_truth.items():
@@ -305,7 +387,177 @@ class NodeAudit:
         self.in_memory_per_frame.append(len(in_memory))
         self.out_of_scope_per_frame.append(len(out_of_scope))
         return {"frame_index": labelled["frame_index"], "entity": frame_entity, "truth": frame_truth,
+                "centroid_entity": centroid_ledger["entity"], "centroid_truth": centroid_ledger["truth"],
                 "rules": {rule: {"matched": rule_matched[rule], "predicted": rule_predicted[rule], "truth": len(present_keys)} for rule in RULES}}
+
+    # -- ruling 76 (1)(a) --------------------------------------------------------
+
+    def _truth_centroid_at(self, key: str, tick: int) -> list[float] | None:
+        """The object's truth centroid as last recorded at or before ``tick`` (None if never recorded by then)."""
+
+        found = None
+        for at, centroid in self.truth_centroid_changes.get(key, []):
+            if at > tick:
+                break
+            found = centroid
+        return found
+
+    def _centroid_ledger(self, frame_eval: Mapping[str, Any], predictions: Sequence[Mapping[str, Any]],
+                         identities: Mapping[str, Mapping[str, Any]], present_keys: Sequence[str],
+                         dist_rows: Sequence[Sequence[float]], column_of: Mapping[str, int],
+                         truth_table: Mapping[str, Mapping[str, Any]], tick: int) -> dict[str, dict[str, int]]:
+        for key in present_keys:  # record where each present object is, only when it changes
+            centroid = [float(v) for v in truth_table[key]["centroid_m"]]
+            history = self.truth_centroid_changes.setdefault(key, [])
+            if not history or history[-1][1] != centroid:
+                history.append((tick, centroid))
+        matched_entity = {str(entity_id): key for entity_id, key in frame_eval["matched_pairs"]}
+        matched_keys = set(matched_entity.values())
+        resolving: dict[str, list[int]] = {key: [] for key in present_keys}
+        ambiguous_rows: list[int] = []
+        entity_counts = {name: 0 for name in CENTROID_ENTITY_CATEGORIES}
+        for row, entity in enumerate(predictions):
+            entity_id = str(entity["entity_id"])
+            identity = identities[entity_id]
+            if not identity["resolvable"]:
+                ambiguous_rows.append(row)
+            elif identity["key"] in resolving:
+                resolving[identity["key"]].append(row)
+            if entity_id in matched_entity:
+                category = "matched"
+            elif not identity["resolvable"]:
+                category = "identity_ambiguous_unmatched"
+            elif identity["key"] not in column_of:
+                category = "own_object_absent"
+            elif dist_rows[row][column_of[identity["key"]]] <= self.delta:
+                category = "own_object_near_unmatched"
+            else:
+                then = self._truth_centroid_at(identity["key"], int(entity["last_seen_tick"]))
+                now = truth_table[identity["key"]]["centroid_m"]
+                moved = then is not None and _distance(then, now) > self.delta
+                category = "own_object_far_object_moved" if moved else "own_object_far_object_not_moved"
+            entity_counts[category] += 1
+        truth_counts = {name: 0 for name in CENTROID_TRUTH_CATEGORIES}
+        for key in present_keys:
+            column = column_of[key]
+            if key in matched_keys:
+                category = "matched"
+            elif resolving[key]:
+                near = any(dist_rows[row][column] <= self.delta for row in resolving[key])
+                category = "resolved_entity_near_unmatched" if near else "resolved_entity_far"
+            elif any(dist_rows[row][column] <= self.delta for row in ambiguous_rows):
+                category = "only_ambiguous_entity_near"
+            elif key in self.keys_fragmented:
+                category = "no_entity_fragmented_before"
+            else:
+                category = "no_entity_never_fragmented"
+            truth_counts[category] += 1
+        _require(entity_counts["matched"] == frame_eval["matched"] and truth_counts["matched"] == frame_eval["matched"],
+                 "audit_centroid_ledger_does_not_reproduce_the_evaluator")
+        for name, count in entity_counts.items():
+            self.centroid_entity_counts[name] += count
+        for name, count in truth_counts.items():
+            self.centroid_truth_counts[name] += count
+        return {"entity": entity_counts, "truth": truth_counts}
+
+    def _birth_reasons(self, step: Mapping[str, Any], labelled: Mapping[str, Any], truth_table: Mapping[str, Mapping[str, Any]]) -> None:
+        """Why each fragment the committed program gave birth to was born (the arm's logits recomputed on the sealed rows)."""
+
+        from vsmt import lean_arms as arms
+        from vsmt import lean_assignment as la
+        from vsmt import lean_runner as lr
+
+        if step["receipt"].get("illegal_program"):
+            return  # the empty program was committed: nothing was born
+        births = sorted(str(fragment_id) for fragment_id, column in step["stage_b"]["assignment"].items()
+                        if str(column).startswith(la.BIRTH_COLUMN_PREFIX))
+        if not births:
+            return
+        logits = lr._association_logits(self.arm, lr.validate_arm_config(self.arm, self.config), step["stage_a"], self.scorer)
+        carriers: dict[str, set[str]] = {}
+        for entity_id, identity in lt.entity_identities(step["memory_before"], self.evidence).items():
+            if identity["resolvable"]:
+                carriers.setdefault(str(identity["key"]), set()).add(entity_id)
+        recalled: dict[str, set[str]] = {}
+        for row in step["stage_a"]["association_rows"]:
+            recalled.setdefault(str(row["fragment_id"]), set()).add(str(row["entity_id"]))
+        for fragment_id in births:
+            target = labelled["targets"].get(fragment_id) or {}
+            key = target.get("key")
+            scope = "in_scope_object" if key is not None and truth_table.get(key, {}).get("in_scope") is True else "other"
+            if key is None:
+                reason = "unlabelled_fragment"
+            elif key not in self._keys_before_frame:
+                reason = "first_labelled_observation"
+            elif not carriers.get(key):
+                reason = "no_resolved_carrier"
+            else:
+                candidates = carriers[key] & recalled.get(fragment_id, set())
+                birth_logit = float(logits["birth_logits"][fragment_id])
+                eligible = [entity_id for entity_id in candidates
+                            if float(logits["association_logits"][f"{fragment_id}|{entity_id}"]) > arms.INELIGIBLE_LOGIT
+                            and float(logits["association_logits"][f"{fragment_id}|{entity_id}"]) >= birth_logit]
+                if not candidates:
+                    reason = "correct_carrier_not_recalled"
+                elif not eligible:
+                    reason = "correct_carrier_below_birth_logit"
+                else:
+                    reason = "correct_carrier_lost_joint_competition"
+            self.birth_reasons[scope][reason] += 1
+
+    def _dedup_pairs(self, memory_after: Mapping[str, Any], identities: Mapping[str, Mapping[str, Any]]) -> None:
+        """At a dedup tick, tally the entity pairs left after the fold by state pair and private identity at every gate value."""
+
+        import numpy as np
+
+        from vsmt import lean_memory as lm
+
+        self.dedup_ticks += 1
+        record = memory_after["transaction_log"][-1]
+        _require(int(record["tick"]) == int(memory_after["tick"]), "audit_dedup_log_not_at_the_tick")
+        self.dedup_folds += len(record["post_maintenance"]["dedup"])
+        entities = sorted((e for e in memory_after["entities"] if e["state"] in ("active", "dormant")), key=lambda e: str(e["entity_id"]))
+        if len(entities) < 2:
+            return
+        descriptors = np.asarray([e["descriptor_mean"] for e in entities], dtype=np.float64)
+        norms = np.linalg.norm(descriptors, axis=1)
+        norms[norms == 0.0] = 1.0
+        unit = descriptors / norms[:, None]
+        cosine = unit @ unit.T
+        centroids = np.asarray([e["centroid_m"] for e in entities], dtype=np.float64)
+        distance = np.linalg.norm(centroids[:, None, :] - centroids[None, :, :], axis=2)
+        count = len(entities)
+        for i in range(count):
+            left = entities[i]
+            left_identity = identities[str(left["entity_id"])]
+            for j in range(i + 1, count):
+                right = entities[j]
+                right_identity = identities[str(right["entity_id"])]
+                states = "_".join(sorted((left["state"], right["state"])))
+                if not (left_identity["resolvable"] and right_identity["resolvable"]):
+                    identity = "ambiguous"
+                elif left_identity["key"] == right_identity["key"]:
+                    identity = "same_object"
+                else:
+                    identity = "different_objects"
+                tally = self.dedup_pairs[f"{states}|{identity}"]
+                tally["pairs"] += 1
+                pair_cosine, pair_distance = float(cosine[i, j]), float(distance[i, j])
+                if pair_cosine < DEDUP_COSINES[0] or pair_distance > DEDUP_DISTANCES_M[-1]:
+                    continue
+                pair_iou = lm._aabb_iou(left, right)
+                for c in DEDUP_COSINES:
+                    if pair_cosine < c:
+                        break
+                    for d in DEDUP_DISTANCES_M:
+                        if pair_distance > d:
+                            continue
+                        for u in DEDUP_IOUS:
+                            if pair_iou < u:
+                                continue
+                            name = f"cos{c}|d{d}|iou{u}"
+                            tally["pass"][name] = tally["pass"].get(name, 0) + 1
+
 
     # -- the episode -------------------------------------------------------------
 
@@ -321,6 +573,9 @@ class NodeAudit:
         current = self.rule_sums["iou_0.3_secondary"]  # the categories partition the IoU column's sets, which are the primary's too
         _require(sum(self.entity_counts.values()) == current["predicted"], "audit_entity_categories_do_not_sum")
         _require(sum(self.truth_counts.values()) == current["truth"], "audit_truth_categories_do_not_sum")
+        primary = self.rule_sums["centroid_within_0.5m"]
+        _require(sum(self.centroid_entity_counts.values()) == primary["predicted"], "audit_centroid_entity_categories_do_not_sum")
+        _require(sum(self.centroid_truth_counts.values()) == primary["truth"], "audit_centroid_truth_categories_do_not_sum")
         return {
             "schema_version": SCHEMA_VERSION,
             "frames": self.frames,
@@ -335,6 +590,13 @@ class NodeAudit:
             "own_object_iou_when_near": quantiles(self.own_iou_near_values),
             "own_object_centroid_distance_m": quantiles(self.own_distance_values),
             "rule_matched_per_frame": {rule: list(values) for rule, values in self.rule_matched_per_frame.items()},
+            "centroid_entity_categories": dict(self.centroid_entity_counts),
+            "centroid_truth_categories": dict(self.centroid_truth_counts),
+            "birth_reasons": {scope: dict(row) for scope, row in self.birth_reasons.items()} if self.arm is not None else None,
+            "dedup": {"period_ticks": self.dedup_period, "ticks": self.dedup_ticks, "folds": self.dedup_folds,
+                      "gate_values": {"cosine": list(DEDUP_COSINES), "distance_m": list(DEDUP_DISTANCES_M), "iou": list(DEDUP_IOUS)},
+                      "pairs_after_fold": {name: {"pairs": row["pairs"], "pass": dict(sorted(row["pass"].items()))}
+                                           for name, row in self.dedup_pairs.items()}} if self.dedup_period is not None else None,
         }
 
 
@@ -409,7 +671,7 @@ def run(args: argparse.Namespace) -> int:
                                 policy=policy["teacher"], nuisance_meta=nuisance_meta)
     captured = capture_truth_table(teacher)
     audit = NodeAudit(evidence=teacher.evidence, iou_min=teacher.iou_min, delta_moved_m=policy["teacher"]["delta_moved_m"],
-                      groups=object_groups(table))
+                      groups=object_groups(table), arm=args.arm, config=config, scorer=scorer, dedup=policy["runner"]["dedup"])
     started = time.time()
     current: dict[str, Any] = {}
 
@@ -466,6 +728,10 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
     pooled_group: dict[str, dict[str, int]] = {}
     pooled_type: dict[str, dict[str, int]] = {}
     commits: set[str] = set()
+    pooled_centroid_entity = {name: 0 for name in CENTROID_ENTITY_CATEGORIES}
+    pooled_centroid_truth = {name: 0 for name in CENTROID_TRUTH_CATEGORIES}
+    pooled_births = {scope: {name: 0 for name in BIRTH_REASONS} for scope in ("in_scope_object", "other")}
+    pooled_dedup: dict[str, Any] = {"ticks": 0, "folds": 0, "pairs_after_fold": {}}
     for path in sorted(output_root.glob(f"*/{arm}/{AUDIT_FILE_NAME}")):
         payload = json.loads(path.read_text(encoding="utf-8"))
         _require(payload.get("schema_version") == SCHEMA_VERSION and payload.get("arm") == arm, f"audit_file_invalid:{path}")
@@ -478,6 +744,21 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
             pooled_entity[name] += int(audit["entity_categories"][name])
         for name in TRUTH_CATEGORIES:
             pooled_truth[name] += int(audit["truth_categories"][name])
+        for name in CENTROID_ENTITY_CATEGORIES:
+            pooled_centroid_entity[name] += int(audit["centroid_entity_categories"][name])
+        for name in CENTROID_TRUTH_CATEGORIES:
+            pooled_centroid_truth[name] += int(audit["centroid_truth_categories"][name])
+        for scope, row in (audit.get("birth_reasons") or {}).items():
+            for name in BIRTH_REASONS:
+                pooled_births[scope][name] += int(row[name])
+        if audit.get("dedup"):
+            pooled_dedup["ticks"] += int(audit["dedup"]["ticks"])
+            pooled_dedup["folds"] += int(audit["dedup"]["folds"])
+            for name, row in audit["dedup"]["pairs_after_fold"].items():
+                target = pooled_dedup["pairs_after_fold"].setdefault(name, {"pairs": 0, "pass": {}})
+                target["pairs"] += int(row["pairs"])
+                for gate, value in row["pass"].items():
+                    target["pass"][gate] = target["pass"].get(gate, 0) + int(value)
         for group, row in audit["truth_by_group"].items():
             target = pooled_group.setdefault(group, {name: 0 for name in TRUTH_CATEGORIES})
             for name in TRUTH_CATEGORIES:
@@ -493,6 +774,8 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
             "iou_0.3_secondary": audit["rules"]["iou_0.3_secondary"],
             "centroid_primary": audit["rules"]["centroid_within_0.5m"],
             "entity_categories": audit["entity_categories"], "truth_categories": audit["truth_categories"],
+            "centroid_entity_categories": audit["centroid_entity_categories"], "centroid_truth_categories": audit["centroid_truth_categories"],
+            "birth_reasons": audit.get("birth_reasons"), "dedup_folds": (audit.get("dedup") or {}).get("folds"),
             "in_memory_entities_per_frame_mean": audit["in_memory_entities_per_frame_mean"],
             "own_object_iou_when_near": audit["own_object_iou_when_near"],
             "own_object_centroid_distance_m": audit["own_object_centroid_distance_m"],
@@ -500,11 +783,13 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
         })
     _require(bool(episodes), f"no_audits_found:{output_root}/*/{arm}")
     return {
-        "schema_version": "vsmt-s2-05-node-audit-merged-v1",
+        "schema_version": "vsmt-s2-05-node-audit-merged-v2",
         "stage": "S2-05 node audit (read-only, pooled)", "arm": arm, "output_root": str(output_root),
         "code_commits": sorted(commits), "episodes": len(episodes),
         "pooled_rules": {rule: _prf(s["matched"], s["predicted"], s["truth"]) for rule, s in pooled_rules.items()},
         "pooled_entity_categories": pooled_entity, "pooled_truth_categories": pooled_truth,
+        "pooled_centroid_entity_categories": pooled_centroid_entity, "pooled_centroid_truth_categories": pooled_centroid_truth,
+        "pooled_birth_reasons": pooled_births, "pooled_dedup": pooled_dedup,
         "pooled_truth_by_group": {group: row for group, row in sorted(pooled_group.items())},
         "pooled_truth_by_type": {name: row for name, row in sorted(pooled_type.items(), key=lambda item: (-sum(item[1].values()), item[0]))[:40]},
         "per_episode": episodes,

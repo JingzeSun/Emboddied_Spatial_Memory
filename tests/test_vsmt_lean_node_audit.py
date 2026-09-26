@@ -117,5 +117,57 @@ class NodeAuditTests(unittest.TestCase):
                 audit_module.merge_audits(root, "LOW")
 
 
+class RulingSeventySixAuditTests(unittest.TestCase):
+    """Ruling 76 (1)(a): the centroid ledger, the birth reasons, the dedup tallies and the count-first columns."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        data = episode()
+        teacher = ev.EpisodeTeacher(arm="TAF", geometry_table=data["table"], executed_interventions=data["executed"], window=data["window"],
+                                    policy=TEACHER_POLICY, nuisance_meta=NUISANCE_META)
+        captured = audit_module.capture_truth_table(teacher)
+        dedup = {**POLICY["dedup"], "period_ticks": 1}  # every tick, so the five-frame episode is tallied
+        cls.audit = audit_module.NodeAudit(evidence=teacher.evidence, iou_min=teacher.iou_min, delta_moved_m=TEACHER_POLICY["delta_moved_m"],
+                                           groups=audit_module.object_groups(data["table"]), arm="TAF", config=CONFIGS["TAF"], dedup=dedup)
+        cls.births = 0
+        cls.frames = []
+        policy = {**POLICY, "dedup": dedup}
+        for i, step in enumerate(lr.run_episode(data["frames"], episode_id="ep-0001", arm="TAF", config=CONFIGS["TAF"], policy=policy, descriptor="vitb14")):
+            labelled = teacher.label_frame(step, cache_frame=data["frames"][i], private_record=data["records"][i], masks=data["masks"][i],
+                                           label_image=data["images"][i], runtime_s=0.01, peak_memory_bytes=1000)
+            cls.births += step["receipt"]["program"]["atom_counts"]["BIRTH"]
+            cls.frames.append(cls.audit.observe(step, labelled, captured["table"]))
+        cls.report = cls.audit.report()
+
+    def test_count_first_recovers_the_four_pairs_the_max_weight_matcher_trades_for_distance(self) -> None:
+        truth, predicted = [0.0, 0.5, 1.0, 1.5], [0.5, 1.0, 1.5, 2.0]
+        weights = [[(1.0 / (1.0 + abs(p - t))) if abs(p - t) <= 0.5 else 0.0 for t in truth] for p in predicted]
+        self.assertEqual(len(audit_module.lt._max_weight_matching(weights)), 3)
+        self.assertEqual(audit_module._count_first(weights), 4)
+        self.assertEqual(audit_module._count_first([]), 0)
+
+    def test_the_centroid_ledger_partitions_the_primary_column_and_count_first_never_matches_fewer(self) -> None:
+        rules = self.report["rules"]
+        primary = rules["centroid_within_0.5m"]
+        self.assertEqual(sum(self.report["centroid_entity_categories"].values()), primary["predicted"])
+        self.assertEqual(sum(self.report["centroid_truth_categories"].values()), primary["truth"])
+        self.assertEqual(self.report["centroid_entity_categories"]["matched"], primary["matched"])
+        self.assertGreaterEqual(rules["centroid_within_0.5m_count_first"]["matched"], primary["matched"])
+        self.assertGreaterEqual(rules["iou_0.3_count_first"]["matched"], rules["iou_0.3_secondary"]["matched"])
+        # the removed mug's entity is the absent one after the window
+        self.assertEqual([f["centroid_entity"]["own_object_absent"] for f in self.frames], [0, 0, 1, 1, 1])
+
+    def test_every_committed_birth_gets_exactly_one_reason_and_the_dedup_ticks_are_tallied(self) -> None:
+        reasons = self.report["birth_reasons"]
+        self.assertEqual(sum(sum(row.values()) for row in reasons.values()), self.births)
+        self.assertGreater(self.births, 0)
+        dedup = self.report["dedup"]
+        self.assertEqual(dedup["ticks"], 5)
+        self.assertEqual(set(dedup["pairs_after_fold"]), {f"{s}|{i}" for s in audit_module.DEDUP_STATE_PAIRS for i in audit_module.DEDUP_IDENTITIES})
+        for row in dedup["pairs_after_fold"].values():
+            for count in row["pass"].values():
+                self.assertLessEqual(count, row["pairs"])
+
+
 if __name__ == "__main__":
     unittest.main()
