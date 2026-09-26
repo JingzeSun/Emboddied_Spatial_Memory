@@ -54,13 +54,14 @@ class NodeAuditTests(unittest.TestCase):
     def test_the_current_rule_reproduces_the_evaluator_and_the_categories_partition_the_totals(self) -> None:
         current = self.report["rules"]["iou_0.3_secondary"]
         self.assertEqual({k: current[k] for k in ("matched", "predicted", "truth")}, {"matched": 7, "predicted": 10, "truth": 7})
-        self.assertEqual(current["f1"], self.episode["report"]["node_prf1_iou"]["node_f1"])
-        self.assertEqual(self.report["rules"]["centroid_within_0.5m"]["f1"], self.episode["report"]["node_prf1"]["node_f1"])
+        self.assertEqual(self.report["rules"]["iou_0.3_count_first"]["f1"], self.episode["report"]["node_prf1_iou"]["node_f1"])
+        self.assertEqual(self.report["rules"]["centroid_within_0.5m_count_first"]["f1"], self.episode["report"]["node_prf1"]["node_f1"])
         self.assertEqual(sum(self.report["entity_categories"].values()), 10)
         self.assertEqual(sum(self.report["truth_categories"].values()), 7)
         for frame, labelled in zip(self.frames, self.labelled, strict=True):
-            self.assertEqual(frame["rules"]["iou_0.3_secondary"]["matched"], labelled["node_prf1_iou"]["matched"])
-            self.assertEqual(frame["rules"]["centroid_within_0.5m"]["matched"], labelled["node_prf1"]["matched"])  # ruling 72 (B): primary
+            # ruling 76 (3)(a): the evaluator matches count-first
+            self.assertEqual(frame["rules"]["iou_0.3_count_first"]["matched"], labelled["node_prf1_iou"]["matched"])
+            self.assertEqual(frame["rules"]["centroid_within_0.5m_count_first"]["matched"], labelled["node_prf1"]["matched"])  # ruling 72 (B): primary
             self.assertEqual(sum(frame["entity"].values()), labelled["node_prf1"]["predicted"])
             self.assertEqual(sum(frame["truth"].values()), labelled["node_prf1"]["truth"])
 

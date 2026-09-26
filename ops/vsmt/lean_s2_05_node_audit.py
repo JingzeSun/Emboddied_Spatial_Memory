@@ -84,7 +84,8 @@ RULES = (
     "centroid_within_0.5m",
     "oracle_identity_groups_iou_0.3",
     "oracle_identity_groups_centroid_within_0.5m",
-    # ruling 76 (1)(a): the same two columns under the count-first objective (most matches, then most weight)
+    # ruling 76 (1)(a): the same two columns under the count-first objective (most matches, then most weight);
+    # since ruling 76 (3)(a) these two reproduce the evaluator and the plain two above keep the earlier max-weight objective
     "centroid_within_0.5m_count_first",
     "iou_0.3_count_first",
 )
@@ -127,14 +128,11 @@ DEDUP_IDENTITIES = ("same_object", "different_objects", "ambiguous")
 
 
 def _count_first(weights: Sequence[Sequence[float]]) -> int:
-    """Matches under the count-first objective: every positive weight lifted by a constant above any
-    component size, so the evaluator's max-weight matcher first maximises the number of pairs."""
+    """Matches under the count-first objective (ruling 76 (3)(a), the evaluator's own since then)."""
 
     if not weights or not weights[0]:
         return 0
-    lift = float(len(weights) + len(weights[0]) + 1)
-    lifted = [[(lift + float(w)) if float(w) > 0.0 else 0.0 for w in row] for row in weights]
-    return len(lt._max_weight_matching(lifted))
+    return len(lt._max_weight_matching(weights, count_first=True))
 
 
 class NodeAuditError(ValueError):
@@ -365,10 +363,11 @@ class NodeAudit:
             sums["predicted"] += len(weights)
             sums["truth"] += len(present_keys)
             self.rule_matched_per_frame[rule].append(matched)
-        _require(rule_matched["iou_0.3_secondary"] == frame_eval["node_prf1_iou"]["matched"],
+        # ruling 76 (3)(a): the evaluator matches count-first; the plain two columns keep the earlier max-weight objective
+        _require(rule_matched["iou_0.3_count_first"] == frame_eval["node_prf1_iou"]["matched"],
                  "audit_iou_rule_does_not_reproduce_the_evaluator")
         # ruling 72 (B): the centroid rule is the primary column node_prf1
-        _require(rule_matched["centroid_within_0.5m"] == frame_eval["matched"],
+        _require(rule_matched["centroid_within_0.5m_count_first"] == frame_eval["matched"],
                  "audit_centroid_rule_does_not_reproduce_the_evaluator")
 
         # ruling 76 (1)(a): the primary centroid column's own ledger, the birth reasons and the dedup pair tallies

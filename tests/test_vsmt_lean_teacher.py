@@ -595,6 +595,32 @@ class TestEvaluatorMatching(unittest.TestCase):
             self.assertEqual(len({r for r, _ in pairs}), len(pairs))
             self.assertEqual(len({c for _, c in pairs}), len(pairs))
 
+    def test_count_first_matching_agrees_with_brute_force_on_count_then_weight(self) -> None:
+        """D-224-S1 ruling 76 (3)(a): the most pairs, then the most weight among matchings with that many."""
+
+        rng = random.Random(7676)
+        for _ in range(60):
+            rows = rng.randint(0, 4)
+            columns = rng.randint(0, 4)
+            weights = [[rng.choice([0.0, 0.0, 0.31, 0.4, 0.667, 0.8, 1.0]) for _ in range(columns)] for _ in range(rows)]
+            pairs = _max_weight_matching(weights, count_first=True)
+            best = (0, 0.0)
+            if rows and columns:
+                for size in range(0, min(rows, columns) + 1):
+                    for row_subset in itertools.combinations(range(rows), size):
+                        for column_perm in itertools.permutations(range(columns), size):
+                            chosen = list(zip(row_subset, column_perm))
+                            if all(weights[r][c] > 0.0 for r, c in chosen):
+                                best = max(best, (len(chosen), sum(weights[r][c] for r, c in chosen)))
+            self.assertEqual(len(pairs), best[0])
+            self.assertAlmostEqual(sum(weights[r][c] for r, c in pairs), best[1], places=9)
+
+    def test_count_first_keeps_the_four_pairs_the_max_weight_objective_traded_for_distance(self) -> None:
+        truth, predicted = [0.0, 0.5, 1.0, 1.5], [0.5, 1.0, 1.5, 2.0]
+        weights = [[(1.0 / (1.0 + abs(p - t))) if abs(p - t) <= 0.5 else 0.0 for t in truth] for p in predicted]
+        self.assertEqual(len(_max_weight_matching(weights)), 3)
+        self.assertEqual(len(_max_weight_matching(weights, count_first=True)), 4)
+
     def test_component_matching_equals_the_v1_dense_solve(self) -> None:
         """D-224-X ruling X5: per-component solves return the v1 pairs on tie-free weights."""
 

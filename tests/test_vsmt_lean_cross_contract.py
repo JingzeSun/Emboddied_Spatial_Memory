@@ -330,7 +330,9 @@ FROZEN_RULE_SHA256 = {
     # delta_moved_m (primary column, the selection metric, bound role and Dyn-THOR relation "same matching
     # mechanism, different overlap test"); the IoU 0.3 test moves to node_prf1_iou (secondary, iou_min and the
     # D-224-C frozen-constant path with it); node_prf1_centroid is retired.  c5d66505 -> b831a3a4.
-    "S0-04": "b831a3a40f47471b0b140af12ef0e94b5c28edc96a6b05b6161a4404984d7901",
+    # Re-pinned 2026-09-26 for ruling 76 (3)(a) (LOG-262): both node columns match count-first (the most pairs, then the
+    # most weight), the objective bound in each column block.  b831a3a4 -> eb81780b.
+    "S0-04": "eb81780b4a376b2b14ca02288ec378dfe713b519a8f31c6ccfd6c29fcd951049",
     # S0-05 re-pinned 2026-09-25 for ruling 68 (LOG-256 sequel): every grid's values (at most twelve
     # configurations per method, a no-gate member in every rule arm), the ELU-P rollout_config
     # (0.7, 1.0, 0.0) and the should_be_visible_min_ratio_superseded record enter the digest; the

@@ -179,16 +179,20 @@ SPAWN_TAG = re.compile(r"^[A-Za-z][A-Za-z0-9]*_\d+$")
 TRUTH_BOX_SOURCE = "simulator_initial_axis_aligned_box_plus_recorded_translation"
 #: D-224-S1 ruling 70 (2026-09-24) added a centroid column beside the IoU one; ruling 72 (B)
 #: (2026-09-25) swapped them.  ``node_prf1`` -- the primary column and the selection metric -- is the
-#: evaluator-owned maximum-weight matching of the in-memory predictions to the present in-scope truth
+#: evaluator-owned matching (count-first since ruling 76 (3)(a), see below) of the in-memory predictions to the present in-scope truth
 #: objects where a pair qualifies when the centroid distance is within the frozen ``delta_moved_m``,
 #: weighted 1/(1+distance) so nearer pairs win.  ``node_prf1_iou`` is the same two sets and the same
 #: matcher with the 3D AABB IoU >= 0.3 test of ruling C (the Dyn-THOR overlap test), reported beside it
-#: and never selecting.  LOG-257 sequel: with perfect segmentation and perfect identity grouping the
-#: IoU ceiling is 0.64 against 0.86, because entity boxes are single-frame depth-surface shells.
-CENTROID_MATCHING_RULE = "same_predictions_and_truth_objects_maximum_weight_matching_on_1_over_1_plus_centroid_distance_m_pairs_beyond_delta_moved_m_excluded"
+#: and never selecting.  LOG-257 sequel read the identity-grouped union as a ceiling (0.64 against 0.86);
+#: LOG-262 corrected that: the grouping changes the count and the geometry together and is a diagnostic only.
+#: D-224-S1 ruling 76 (3)(a) (2026-09-26, LOG-262): both columns match count-first -- the most pairs, and
+#: among those the most weight -- because F1 counts pairs and the weight was meant to break ties, not to
+#: trade a pair for a shorter distance (four pairs 0.5 m apart had lost to three pairs at 0 m).
+NODE_MATCHING_OBJECTIVE = "most_pairs_then_most_weight"
+CENTROID_MATCHING_RULE = "same_predictions_and_truth_objects_most_pairs_then_maximum_weight_matching_on_1_over_1_plus_centroid_distance_m_pairs_beyond_delta_moved_m_excluded"
 CENTROID_MATCHING_DISTANCE_SOURCE = "labels.existence.delta_moved_m"
 CENTROID_MATCHING_ROLE = "primary_node_column_and_the_selection_metric_never_in_the_main_gate"
-IOU_MATCHING_RULE = "same_predictions_and_truth_objects_maximum_total_3d_aabb_iou_matching_pairs_below_iou_min_excluded"
+IOU_MATCHING_RULE = "same_predictions_and_truth_objects_most_pairs_then_maximum_total_3d_aabb_iou_matching_pairs_below_iou_min_excluded"
 IOU_MATCHING_ROLE = "secondary_column_reported_beside_node_prf1_never_the_selection_metric_never_in_the_main_gate"
 NODE_DYN_THOR_RELATION = "same_matching_mechanism_different_overlap_test"
 STRONGEST_CONTROL_RULE = "best_house_mean_per_metric_among_controls_ties_to_smallest_name"
@@ -705,8 +709,14 @@ def decompose_frame(
 # 4. the evaluator's own box matching and the per-frame metrics
 # --------------------------------------------------------------------------
 
-def _max_weight_matching(weights: Sequence[Sequence[float]]) -> list[tuple[int, int]]:
+def _max_weight_matching(weights: Sequence[Sequence[float]], *, count_first: bool = False) -> list[tuple[int, int]]:
     """Maximum total weight matching over positive weights, evaluator-owned.
+
+    ``count_first`` (D-224-S1 ruling 76 (3)(a), what both node columns use): the most pairs first, and among
+    matchings with that many pairs the most weight.  Every positive cell of a component is lifted by a
+    constant larger than the component's size before the same solve: with weights in (0, 1], a matching
+    of k pairs then weighs more than k * lift and one of k - 1 pairs less than (k - 1) * (lift + 1),
+    which is smaller whenever lift + 1 > k.
 
     A plain augmenting-path assignment on ``-weight`` with zero-weight cells
     treated as unmatched.  It is written here on purpose: the numbers that
@@ -728,8 +738,10 @@ def _max_weight_matching(weights: Sequence[Sequence[float]]) -> list[tuple[int, 
         return []
     pairs: list[tuple[int, int]] = []
     for component_rows, component_columns in _positive_components(weights):
+        lift = float(len(component_rows) + len(component_columns) + 1) if count_first else 0.0
         block = [
-            [float(weights[row][column]) for column in component_columns]
+            [(lift + float(weights[row][column])) if float(weights[row][column]) > 0.0 else 0.0
+             for column in component_columns]
             for row in component_rows
         ]
         for local_row, local_column in _max_weight_matching_dense(block):
@@ -900,8 +912,9 @@ def evaluate_frame(
     白话：输入提交后的记忆、本帧真值物体表（范围内每个物体是否在场及其框）和历史
     证据映射，输出节点级精确率、召回率、F1，以及本帧的"污染占比"。预测集合是状
     态在登记的"仍在记忆里"集合（推荐 active 与 dormant）中的实体。裁决 72 (B) 后主列
-    的匹配是"实体质心到真值质心的距离不超过已冻结的 δ_moved"、权重 1/(1+距离) 的最大
-    权匹配，回答"实体记在了对的地方吗"，是选参指标；同一批实体与真值、同一个匹配器
+    的匹配是"实体质心到真值质心的距离不超过已冻结的 δ_moved"、权重 1/(1+距离)，
+    按"先最大匹配数、再最大权"配对（裁决 76 (3)(a)：F1 数的是对数，权重只在对数相同时偏向更近的对），
+    回答"实体记在了对的地方吗"，是选参指标；同一批实体与真值、同一个匹配器
     再按三维交并比 ≥ 0.3（Dyn-THOR 原口径）算一列次级指标 ``node_prf1_iou``，回答"框
     重叠够吗"，不选配置、不进主门。陈旧实体是仍在记忆里、但
     其物体已不在它记住的位置的实体；错误缺席是范围内在场、但记忆里没有任何该身份
@@ -947,7 +960,7 @@ def evaluate_frame(
         ]
         for entity in predictions
     ]
-    pairs = _max_weight_matching(weights)
+    pairs = _max_weight_matching(weights, count_first=True)
     matched = len(pairs)
     precision, recall, f1 = _precision_recall_f1(matched, len(predictions), len(present_keys))
     # the secondary column -- the same two sets and the same matcher with ruling C's 3D IoU >= iou_min test
@@ -961,7 +974,7 @@ def evaluate_frame(
         ]
         for entity in predictions
     ]
-    iou_pairs = _max_weight_matching(iou_weights)
+    iou_pairs = _max_weight_matching(iou_weights, count_first=True)
     iou_precision, iou_recall, iou_f1 = _precision_recall_f1(len(iou_pairs), len(predictions), len(present_keys))
 
     stale: list[str] = []
@@ -1645,11 +1658,13 @@ def validate_teacher_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     _require(metrics["node_prf1"].get("spawned_after_reload_rule") == SPAWNED_AFTER_RELOAD_RULE, "contract_spawned_rule_mismatch")
     node = metrics["node_prf1"]
     _require(node.get("matching") == CENTROID_MATCHING_RULE, "contract_centroid_matching_mismatch")
+    _require(node.get("objective") == NODE_MATCHING_OBJECTIVE, "contract_node_matching_objective_mismatch")
     _require(node.get("distance_max_source") == CENTROID_MATCHING_DISTANCE_SOURCE, "contract_centroid_distance_source_mismatch")
     _require(node.get("role") == CENTROID_MATCHING_ROLE, "contract_centroid_role_mismatch")
     _require(node.get("dyn_thor_relation") == NODE_DYN_THOR_RELATION, "contract_dyn_thor_relation_mismatch")
     iou_column = metrics.get("node_prf1_iou") or {}
     _require(iou_column.get("matching") == IOU_MATCHING_RULE, "contract_iou_matching_mismatch")
+    _require(iou_column.get("objective") == NODE_MATCHING_OBJECTIVE, "contract_node_matching_objective_mismatch")
     _require(iou_column.get("role") == IOU_MATCHING_ROLE, "contract_iou_role_mismatch")
     _require("node_prf1_centroid" not in metrics, "contract_retired_centroid_block_present")
     _require(tuple(metrics["node_prf1"].get("structural_types_excluded_from_scope") or ()) == STRUCTURAL_TYPES_EXCLUDED,
@@ -1733,6 +1748,7 @@ __all__ = [
     "FROZEN_CONSTANTS",
     "IOU_MATCHING_ROLE",
     "IOU_MATCHING_RULE",
+    "NODE_MATCHING_OBJECTIVE",
     "IOU_MIN",
     "LIFECYCLE_VERSION_EXCLUDES",
     "LeanTeacherError",
