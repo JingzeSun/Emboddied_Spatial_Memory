@@ -47,10 +47,12 @@ CONTRACT_SCHEMA_VERSION = "vsmt-lean-s0-entity-memory-v2"
 #: S0-04 size metric count lifecycle versions without the BIND-per-observation
 #: versions, and what makes the chain readable in an audit.  Each value binds
 #: the state the version must snapshot.
-VERSION_OPENED_BY = ("birth", "bind", "reactivate", "retract", "dormant", "dedup")
+#: D-224-S1 ruling 76 (2)(a): ``dedup_dormant`` opens the survivor's version when both folded
+#: records were dormant (the survivor stays dormant); ``dedup`` when either was active.
+VERSION_OPENED_BY = ("birth", "bind", "reactivate", "retract", "dormant", "dedup", "dedup_dormant")
 VERSION_OPENED_BY_STATE: dict[str, str] = {
     "birth": "active", "bind": "active", "reactivate": "active",
-    "retract": "retracted", "dormant": "dormant", "dedup": "active",
+    "retract": "retracted", "dormant": "dormant", "dedup": "active", "dedup_dormant": "dormant",
 }
 
 #: The five atoms.  ``REPLACE`` is expanded before validation and is not here.
@@ -73,6 +75,15 @@ ENTITY_STATES = ("active", "dormant", "retracted")
 #: development runs kept 3.5 entities per truth object).  The period stays 10.
 DORMANCY_MISSED_OPPORTUNITY_LIMIT = 3
 SHARED_DEDUP = {"period_ticks": 10, "descriptor_cosine_min": 0.8, "centroid_distance_max_m": 0.5, "aabb_iou_min": 0.05}
+#: D-224-S1 ruling 76 (2)(a) (2026-09-26, LOG-262): dormant records join the shared dedup, so the fold no
+#: longer depends on each arm's existence decisions (AssocOnly never goes dormant and had kept every
+#: record eligible while the other arms' abandoned duplicates escaped it).  The survivor takes the
+#: geometry of the more recently observed record (same-tick records keep the union box and the
+#: count-weighted centroid), and it is active when either record was.
+DEDUP_RULE = "periodic_deterministic_merge_of_duplicate_active_or_dormant_entities"
+DEDUP_ELIGIBLE_STATES = ("active", "dormant")
+DEDUP_SURVIVOR_GEOMETRY = "latest_observed_record_centroid_and_box_same_tick_union_box_and_count_weighted_centroid"
+DEDUP_SURVIVOR_STATE = "active_if_either_record_active_else_dormant"
 
 #: state -> atoms that may legally target an entity in that state.
 STATE_ALLOWED_ATOMS: dict[str, frozenset[str]] = {
@@ -924,10 +935,12 @@ def _apply_dedup(
     memory: dict[str, Any], *, dedup: Mapping[str, Any] | None, tick: int,
     transaction_id: str,
 ) -> list[dict[str, Any]]:
-    """Fold duplicate active entities, deterministically and identically for all arms.
+    """Fold duplicate active or dormant entities, deterministically and identically for all arms.
 
-    白话：每隔登记的帧数，把外观、位置和包围盒都足够接近的一对活动实体合并成一条
-    记录，保留较早建立的身份并保存两边证据。它是五个方法逐字节共用的确定性规则，
+    白话：每隔登记的帧数，把外观、位置和包围盒都足够接近的一对实体（active 或 dormant，
+    裁决 76 (2)(a)；retracted 不参加）合并成一条记录，保留较早建立的身份并保存两边证据；
+    合并后的位置和框取两者中较晚被看到的那一条（同一帧看到的两条取并框、质心按观测数
+    加权），任一方 active 则合并结果为 active，否则仍为 dormant。它是五个方法逐字节共用的确定性规则，
     不是学习决定；canonical 取首版本最早、并列取 ID 字典序最小，使身份连续率以最早
     建立的身份为准。
 
@@ -949,7 +962,7 @@ def _apply_dedup(
         return []
 
     active = sorted(
-        (entity for entity in memory["entities"] if entity["state"] == "active"),
+        (entity for entity in memory["entities"] if entity["state"] in DEDUP_ELIGIBLE_STATES),
         key=lambda item: str(item["entity_id"]),
     )
     pairs: list[tuple[float, str, str]] = []
@@ -995,21 +1008,26 @@ def _apply_dedup(
         if int(folded["best_view_pixel_count"]) > int(canonical["best_view_pixel_count"]):
             canonical["best_view_descriptor"] = clone_json(folded["best_view_descriptor"])
             canonical["best_view_pixel_count"] = int(folded["best_view_pixel_count"])
-        canonical["centroid_m"] = _blend(
-            canonical["centroid_m"], int(canonical["observation_count"]),
-            folded["centroid_m"], int(folded["observation_count"]),
-        )
-        # ruling 56 continued: union only records last seen in the same frame; otherwise the later box wins
+        # ruling 56 continued: union only records last seen in the same frame; otherwise the later box wins.
+        # Ruling 76 (2)(a): the centroid follows the box -- the later record's, a count-weighted blend only
+        # for two records of the same frame (a stale and a fresh position are no longer averaged).
         if int(canonical["last_seen_tick"]) == int(folded["last_seen_tick"]):
             lower, upper = _union_aabb(
                 canonical["aabb_min_m"], canonical["aabb_max_m"],
                 folded["aabb_min_m"], folded["aabb_max_m"],
             )
+            canonical["centroid_m"] = _blend(
+                canonical["centroid_m"], int(canonical["observation_count"]),
+                folded["centroid_m"], int(folded["observation_count"]),
+            )
         elif int(folded["last_seen_tick"]) > int(canonical["last_seen_tick"]):
             lower, upper = clone_json(folded["aabb_min_m"]), clone_json(folded["aabb_max_m"])
+            canonical["centroid_m"] = clone_json(folded["centroid_m"])
         else:
             lower, upper = clone_json(canonical["aabb_min_m"]), clone_json(canonical["aabb_max_m"])
         canonical["aabb_min_m"], canonical["aabb_max_m"] = lower, upper
+        survivor_active = canonical["state"] == "active" or folded["state"] == "active"
+        canonical["state"] = "active" if survivor_active else "dormant"
         canonical["observation_count"] = int(canonical["observation_count"]) + int(
             folded["observation_count"]
         )
@@ -1041,7 +1059,8 @@ def _apply_dedup(
             | {str(folded["entity_id"])}
         )
         _open_version(
-            canonical, tick=tick, transaction_id=transaction_id, purpose="dedup",
+            canonical, tick=tick, transaction_id=transaction_id,
+            purpose="dedup" if survivor_active else "dedup_dormant",
         )
         merged.add(str(folded["entity_id"]))
         changes.append({
@@ -1208,6 +1227,13 @@ def validate_entity_memory_contract(contract: Mapping[str, Any]) -> dict[str, An
         "contract_dedup_fold_semantics_weakened",
     )
     _require(
+        contract["shared_dedup"].get("rule") == DEDUP_RULE
+        and tuple(contract["shared_dedup"].get("eligible_states", ())) == DEDUP_ELIGIBLE_STATES
+        and contract["shared_dedup"].get("survivor_geometry") == DEDUP_SURVIVOR_GEOMETRY
+        and contract["shared_dedup"].get("survivor_state") == DEDUP_SURVIVOR_STATE,
+        "contract_dedup_rule_mismatch",
+    )
+    _require(
         contract["state_machine"]["physical_deletion_allowed"] is False,
         "contract_physical_deletion_claim_weakened",
     )
@@ -1265,6 +1291,10 @@ __all__ = [
     "STATE_ALLOWED_ATOMS",
     "VERSION_OPENED_BY",
     "VERSION_OPENED_BY_STATE",
+    "DEDUP_RULE",
+    "DEDUP_ELIGIBLE_STATES",
+    "DEDUP_SURVIVOR_GEOMETRY",
+    "DEDUP_SURVIVOR_STATE",
     "VERSION_SNAPSHOT_FIELDS",
     "apply_program",
     "empty_memory",

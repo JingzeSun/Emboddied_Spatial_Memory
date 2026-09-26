@@ -545,6 +545,64 @@ class TestSharedDedup(unittest.TestCase):
         self.assertEqual(len(merged["entities"]), 2)
 
 
+class TestDedupEligibilityRulingSeventySix(unittest.TestCase):
+    """D-224-S1 ruling 76 (2)(a): dormant records join the dedup; the survivor takes the later record's geometry."""
+
+    def _a_then_b(self) -> tuple[dict[str, Any], str, str, dict[str, Any]]:
+        a = fragment("region:0000", descriptor=[1.0, 0.0], centroid=[0.0, 0.0, 0.0])
+        first = commit(empty_memory(episode_id="ep-0076"), "f1", [{"atom": "BIRTH", "fragment": a}])
+        a_id = str(only_entity(first)["entity_id"])
+        b = fragment("region:0001", descriptor=[1.0, 0.001], centroid=[0.05, 0.0, 0.0], half=0.12)
+        second = commit(first, "f2", [{"atom": "BIRTH", "fragment": b}, {"atom": "NOOP", "entity_id": a_id}])
+        b_id = next(str(e["entity_id"]) for e in second["entities"] if str(e["entity_id"]) != a_id)
+        return second, a_id, b_id, b
+
+    def test_a_dormant_record_folds_into_an_active_survivor_with_the_later_geometry(self) -> None:
+        memory, a_id, b_id, b = self._a_then_b()
+        memory = commit(memory, "f3", [{"atom": "NOOP", "entity_id": a_id}])
+        states = {str(e["entity_id"]): e["state"] for e in memory["entities"]}
+        self.assertEqual(states, {a_id: "dormant", b_id: "active"})
+        entity = only_entity(commit(memory, "f4", [], dedup=DEDUP))
+        self.assertEqual(entity["entity_id"], a_id)  # the earlier identity survives
+        self.assertEqual(entity["state"], "active")
+        self.assertEqual(entity["versions"][-1]["opened_by"], "dedup")
+        self.assertEqual(entity["centroid_m"], b["centroid_m"])  # the later record's centroid, not a count-weighted blend
+        self.assertEqual(entity["aabb_min_m"], b["aabb_min_m"])
+        self.assertEqual(entity["last_seen_tick"], 2)
+
+    def test_two_dormant_records_fold_into_a_dormant_survivor(self) -> None:
+        memory, a_id, b_id, b = self._a_then_b()
+        memory = commit(memory, "f3", [{"atom": "NOOP", "entity_id": a_id}, {"atom": "NOOP", "entity_id": b_id}])
+        memory = commit(memory, "f4", [{"atom": "NOOP", "entity_id": b_id}])
+        self.assertEqual({e["state"] for e in memory["entities"]}, {"dormant"})
+        entity = only_entity(commit(memory, "f5", [], dedup=DEDUP))
+        self.assertEqual(entity["state"], "dormant")
+        self.assertEqual(entity["versions"][-1]["opened_by"], "dedup_dormant")
+        self.assertEqual(entity["versions"][-1]["state"], "dormant")
+        self.assertEqual(entity["centroid_m"], b["centroid_m"])
+
+    def test_a_retracted_record_is_never_folded(self) -> None:
+        memory, a_id, _, _ = self._a_then_b()
+        memory = commit(memory, "f3", [{"atom": "RETRACT", "entity_id": a_id}])
+        merged = commit(memory, "f4", [], dedup=DEDUP)
+        self.assertEqual(len(merged["entities"]), 2)
+        self.assertEqual(merged["transaction_log"][-1]["post_maintenance"]["dedup"], [])
+
+    def test_the_contract_binds_the_dedup_rule(self) -> None:
+        from vsmt.lean_memory import DEDUP_ELIGIBLE_STATES, DEDUP_RULE
+
+        contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        self.assertEqual(contract["shared_dedup"]["rule"], DEDUP_RULE)
+        self.assertEqual(tuple(contract["shared_dedup"]["eligible_states"]), DEDUP_ELIGIBLE_STATES)
+        for name, value in (("eligible_states", ["active"]), ("rule", "periodic_deterministic_merge_of_duplicate_active_entities"),
+                            ("survivor_state", "always_active")):
+            broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+            broken["shared_dedup"][name] = value
+            with self.assertRaises(LeanMemoryError) as caught:
+                validate_entity_memory_contract(broken)
+            self.assertEqual(str(caught.exception), "contract_dedup_rule_mismatch")
+
+
 class TestEntityTokens(unittest.TestCase):
     def test_token_field_order_is_frozen(self) -> None:
         memory, _ = born_memory()
@@ -608,7 +666,7 @@ class TestVersionOpenedBy(unittest.TestCase):
     def test_each_atom_and_maintenance_step_stamps_its_opened_by(self) -> None:
         from vsmt.lean_memory import VERSION_OPENED_BY, VERSION_OPENED_BY_STATE
 
-        self.assertEqual(VERSION_OPENED_BY, ("birth", "bind", "reactivate", "retract", "dormant", "dedup"))
+        self.assertEqual(VERSION_OPENED_BY, ("birth", "bind", "reactivate", "retract", "dormant", "dedup", "dedup_dormant"))
         memory, entity_id = born_memory()
         self.assertEqual([v["opened_by"] for v in only_entity(memory)["versions"]], ["birth"])
         bound = commit(memory, "f2", [{"atom": "BIND", "entity_id": entity_id, "fragment": fragment(

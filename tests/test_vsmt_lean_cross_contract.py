@@ -290,7 +290,10 @@ FROZEN_RULE_SHA256 = {
     # Re-pinned 2026-09-25 for ruling 68 (LOG-256 sequel): the three *_superseded records beside the dedup
     # slots (cosine 0.9 -> 0.8, distance 0.25 -> 0.5 m, IoU 0.3 -> 0.05) enter the digest as bookkeeping-by-
     # precedent (S0-02, ruling 40); the values themselves are slots and do not.  4818d6ac -> 10c223a6.
-    "S0-01": "10c223a65d9cb4a8b30c82fc85403402990d6104e7991c3b0493c34e849313fe",
+    # Re-pinned 2026-09-26 for ruling 76 (2)(a) (LOG-262): dormant records join the shared dedup, the survivor takes the
+    # later-observed record's centroid and box and stays dormant only when both were (opened_by dedup_dormant).
+    # 10c223a6 -> 76a00901.
+    "S0-01": "76a009015fe6452a858136cfd0139ac635cb658b5371f5dfe5be830c8a2628af",
     # S0-02 re-pinned 2026-09-23 for ruling 52 (LOG-243 supplement): the eligible object's receptacle is the
     # first non-Floor entry of parentReceptacles (entry 0 is the room floor for anything on low
     # furniture, which had hidden 99 of 987 eligible objects as sources), a Floor-only object is
