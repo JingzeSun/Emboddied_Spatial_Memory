@@ -97,6 +97,8 @@ S4 论文
 
 **2026-09-28 dagger_round_1 完成（LOG-268）**：VSMT-lean 与 AssocOnly 各 39/39（`8ce7b0b`，约 1 小时）。早期风险读数：VSMT-lean 几乎不撤回、节点 F1 低于 AssocOnly；以开发表的第 1 轮头为准。**当前执行点：第 1 轮训练**（两臂各用自己本趟的轨迹，约 2 小时）→ development_table。开发表之后调研真实数据评测（ObChange 首选、3RScan 已拿到脚本）并提裁决（用户 2026-09-28）；S3-01 加读取器层面的 train-only 防护。
 
+**2026-09-28 第 1 轮开发训练完成（LOG-269）**：VSMT-lean 最佳 epoch 6（有过拟合迹象），AssocOnly 最佳 epoch 18，均未发散；权重在 `training/round1/`。**当前执行点：development_table**（TAF/RAC/LOW 开发配置，VSMT-lean/NoVersion/AssocOnly 第 1 轮头，ELU-P 复用第 0 轮）——开机后先清除残留关机倒计时，报告后启动。
+
 | 状态 | 含义 |
 |---|---|
 | 已完成 | 代码和必要测试已经受审，或已有可复用的真实证据 |

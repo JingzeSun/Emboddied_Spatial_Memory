@@ -4420,3 +4420,23 @@ move 仍要两个 U 容器、add 仍要过 dry-run，成品率不会等于这些
   - 3RScan：用户已同意使用条款、拿到下载脚本，放在本地未入库的 `3RScan_scripts/`，已写入 `.git/info/exclude`。数据许可证 CC BY-NC-SA 4.0，完整下载约 94 GB，含逐帧 `sequence.zip`。
   - 两者都只作外部评测，不参与训练和调参。服务器数据盘剩 12 GB，下载前需要扩容或只下载需要的子集。
 - 下一步：第 1 轮训练。VSMT-lean 与 AssocOnly 各用自己在本趟的轨迹（`train --pass dagger_round_1 --round 1 --source-arm <臂>`），预计约 2 小时；然后 development_table。
+
+### LOG-269：第 1 轮开发训练完成；同一次开机上未取消的关机倒计时被及时拦下（2026-09-28 02:25 悉尼／00:25 CST）
+
+- 类型：**运行结果与运维事故（未造成损失）**。
+- **运维**：第 1 轮训练在 dagger_round_1 结束 6 分钟后、同一次开机上启动，实例没有重启。dagger_round_1 的驱动脚本还在等 20 分钟宽限后关机，训练启动后才发现，当时离关机约 12 分钟。已停掉该驱动及其 `sleep`，并在其日志末尾写明原因；训练没有受影响。此后每次在同一实例上启动新任务之前，都先检查并清除残留的关机倒计时。
+- **第 1 轮开发训练**（`8ce7b0b`，worktree `train-8ce7b0b`；按登记的 DAgger 安排，每个臂只用第 0 轮模型自己在 dagger_round_1 跑出的轨迹）：
+  - 命令：`train --pass dagger_round_1 --round 1 --source-arm VSMT-lean` 与 `--source-arm AssocOnly --assoc-only`；两个进程各 1 线程，CPU，seed 7，20 个 epoch；训练 30 个 house、选择 9 个 house（划分同第 0 轮）。
+  - 时间：22:41 CST 启动，00:13 CST 结束；VSMT-lean 5,522 s，AssocOnly 5,271 s。两个都没有发散。
+  - **VSMT-lean 的最佳 epoch 是第 6 个**（权重 `452f6baa49f9…`）：
+    - Validation 损失第 1 个 epoch 为 1.024，第 6 个 epoch 最低 0.973，之后在 0.975～1.036 之间起伏，不再下降；
+    - 训练损失从 0.840 一路降到 0.729。
+    - 训练和留出之间的差距比第 0 轮大，有过拟合迹象；按登记的早停规则保留第 6 个 epoch。
+  - **AssocOnly 的最佳 epoch 是第 18 个**（权重 `bcec7630c8ca…`）：validation 损失 0.669 → 最低 0.634，训练损失 0.492 → 0.415。
+  - 本轮的损失与第 0 轮不能直接比较（数据来源不同：第 0 轮是 ELU-P 的轨迹，第 1 轮是各臂自己的轨迹），只作训练过程记录。
+  - 导出：[`results/vsmt_lean_s2_05_training_round1_VSMT-lean_8ce7b0b.json`](results/vsmt_lean_s2_05_training_round1_VSMT-lean_8ce7b0b.json)、[`results/vsmt_lean_s2_05_training_round1_AssocOnly_8ce7b0b.json`](results/vsmt_lean_s2_05_training_round1_AssocOnly_8ce7b0b.json)、[`results/train_round1_8ce7b0b.status.json`](results/train_round1_8ce7b0b.status.json)。
+  - 00:13 写状态文件，20 分钟后自动关机。
+- 下一步：development_table（S2-05 最后一趟）：
+  - TAF、RAC、LOW 用开发配置；VSMT-lean、NoVersion 用第 1 轮 VSMT-lean 的头（`tau_r` 0.5）；AssocOnly 用第 1 轮 AssocOnly 的头；ELU-P 那一行复用 dagger_round_0。
+  - 共 6 个臂 × 39 条 episode，然后装配开发表。
+  - 开发表出来后：复核学习臂在去重余弦 0.6 下的误合并（裁决 77 的附带承诺）；调研真实数据评测并提出裁决。

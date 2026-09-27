@@ -1,0 +1,10 @@
+{
+ "commit": "8ce7b0b",
+ "vsmt_lean_exit": "0",
+ "assoc_only_exit": "0",
+ "finished_cst": "2026-09-28 00:13:56",
+ "pass_root": "/root/autodl-tmp/vsmt_private/lean-s2-05-oracle-c150be0",
+ "threads_per_process": 1,
+ "shutdown": true,
+ "shutdown_after_seconds": 1200
+}
