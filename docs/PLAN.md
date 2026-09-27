@@ -99,6 +99,8 @@ S4 论文
 
 **2026-09-28 第 1 轮开发训练完成（LOG-269）**：VSMT-lean 最佳 epoch 6（有过拟合迹象），AssocOnly 最佳 epoch 18，均未发散；权重在 `training/round1/`。**当前执行点：development_table**（TAF/RAC/LOW 开发配置，VSMT-lean/NoVersion/AssocOnly 第 1 轮头，ELU-P 复用第 0 轮）——开机后先清除残留关机倒计时，报告后启动。
 
+**2026-09-28 S2-05 开发表完成（LOG-270）**：七臂各 39/39。节点 F1：AssocOnly 0.786、LOW 0.732、VSMT-lean 0.715（对 AssocOnly −0.071，5 胜 34 负）；Missing 残留率 VSMT-lean 0.127 对 AssocOnly 0.344（20 胜 1 负）；所有撤回臂假撤回率 60%～70%；NoVersion 身份连续率高于 VSMT-lean。**当前执行点：归因检验 → 裁决 79**（H1 训练流程、H2 变化／不变分层、H3 存在头、关闭休眠诊断、裁决 77 误合并复核；候选修订 A／C／D1／D2／精简／Khronos 式对照）。S3 暂停，直到裁决 79 落地；另调研真实数据评测。
+
 | 状态 | 含义 |
 |---|---|
 | 已完成 | 代码和必要测试已经受审，或已有可复用的真实证据 |

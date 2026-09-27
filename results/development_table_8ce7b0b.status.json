@@ -1,0 +1,17 @@
+{
+ "commit": "8ce7b0b",
+ "pass_exits": {
+  "TAF": "0",
+  "RAC": "0",
+  "LOW": "0",
+  "VSMT-lean": "0",
+  "NoVersion": "0",
+  "AssocOnly": "0"
+ },
+ "table_exit": "0",
+ "finished_cst": "2026-09-28 04:07:08",
+ "cpu_quota": 16,
+ "pass_root": "/root/autodl-tmp/vsmt_private/lean-s2-05-oracle-c150be0",
+ "shutdown": true,
+ "shutdown_after_seconds": 1200
+}
