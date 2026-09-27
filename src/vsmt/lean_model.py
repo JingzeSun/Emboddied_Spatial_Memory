@@ -64,6 +64,10 @@ LOSS_RULE = ("per-fragment softmax cross-entropy over [recalled columns..., BIRT
              "per-entity existence binary cross-entropy, equal weights")
 EARLY_STOPPING_RULE = "every registered epoch runs; the weights of the epoch with the lowest validation loss are kept (ties to the earlier epoch); no patience value"
 BATCH_RULE = "per_frame"
+#: D-224-S1 ruling 79-5 (a), 2026-09-28: each head draws its initial weights from its own seed derived from (seed, head
+#: name), so the association and birth heads start bit-identical in VSMT-lean and in AssocOnly (which builds no existence
+#: head).  Before, one shared stream ran association -> existence -> birth, and AssocOnly's birth head drew other numbers.
+INITIALISATION_RULE = "per-head torch.manual_seed(int.from_bytes(sha256(f'{seed}|{head}')[:8], 'big') % 2**63) before building each head"
 OPTIMIZER = "AdamW"
 #: Recipe values D-224 froze in the S0-05 contract (bound there by lean_arms.TRAINING_FROZEN).
 LEARNING_RATE = dict(arms.TRAINING_FROZEN)["arms.VSMT-lean.training.learning_rate"]
@@ -99,17 +103,27 @@ def _finite(value: Any, code: str) -> float:
 # 1. the heads
 # --------------------------------------------------------------------------
 
+def head_seed(seed: int, name: str) -> int:
+    """The initialisation seed of one head (ruling 79-5 (a)): independent of which other heads are built."""
+
+    return int.from_bytes(hashlib.sha256(f"{int(seed)}|{name}".encode("utf-8")).digest()[:8], "big") % (2 ** 63)
+
+
 def make_heads(*, assoc_only: bool, seed: int) -> Any:
-    """The three (or, for AssocOnly, two) heads with a seeded initialisation."""
+    """The three (or, for AssocOnly, two) heads with a seeded initialisation.
+
+    白话：每个头按"seed 加头名"各自播种再初始化（裁决 79-5 (a)），所以同一 seed 下 AssocOnly 与 VSMT-lean 的关联头、
+    新建头起点逐位相同，因果对照只差存在头与生命周期，不再多一份随机初始化的差别。
+    """
 
     import torch
 
     _require(type(seed) is int and seed >= 0, "seed_invalid")
-    torch.manual_seed(int(seed))
     heads = torch.nn.ModuleDict()
     for name in HEAD_NAMES:
         if assoc_only and name == "existence":
             continue
+        torch.manual_seed(head_seed(int(seed), name))
         width = len(HEAD_FEATURES[name])
         heads[name] = torch.nn.Sequential(
             torch.nn.LayerNorm(width),
@@ -429,6 +443,7 @@ def train_heads(
                 heads[name].load_state_dict(state)
     training = {"optimizer": OPTIMIZER, "learning_rate": learning_rate, "weight_decay": weight_decay, "epochs": epochs,
                 "seed": seed, "assoc_only": assoc_only, "batch": BATCH_RULE, "early_stopping": EARLY_STOPPING_RULE,
+                "initialisation": INITIALISATION_RULE,
                 "best_epoch": None if best is None else best[1], "train_frames": len(train_records),
                 "validation_frames": len(validation_records), "device": device, "diverged": diverged}
     return {"weights": weights_payload(heads, training=training), "heads": heads, "train_curve": train_curve,
@@ -472,6 +487,7 @@ __all__ = [
     "BATCH_RULE",
     "DAGGER_ROUNDS",
     "EARLY_STOPPING_RULE",
+    "INITIALISATION_RULE",
     "EPOCHS",
     "EXISTENCE_EXCLUDED_STATUSES",
     "EXISTENCE_TARGETS",
@@ -493,6 +509,7 @@ __all__ = [
     "prepared_loss",
     "is_assoc_only",
     "load_heads",
+    "head_seed",
     "make_heads",
     "parameter_count",
     "recipe_matches_contract",

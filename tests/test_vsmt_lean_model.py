@@ -132,6 +132,24 @@ class ArchitectureTests(unittest.TestCase):
         self.assertTrue(model.is_assoc_only(assoc))
         self.assertFalse(model.is_assoc_only(heads))
 
+    def test_assoc_only_and_the_full_model_start_from_the_same_association_and_birth_heads(self) -> None:
+        """Ruling 79-5 (a): the causal counterfactual differs from VSMT-lean only by the existence head, not by its init."""
+
+        full = model.make_heads(assoc_only=False, seed=7)
+        assoc = model.make_heads(assoc_only=True, seed=7)
+        for name in ("association", "birth"):
+            left, right = full[name].state_dict(), assoc[name].state_dict()
+            self.assertEqual(set(left), set(right))
+            for key in left:
+                self.assertTrue(bool((left[key] == right[key]).all()), f"{name}.{key}")
+        other = model.make_heads(assoc_only=True, seed=8)
+        self.assertFalse(bool((other["association"][1].weight == assoc["association"][1].weight).all()))
+        self.assertNotEqual(model.head_seed(7, "association"), model.head_seed(7, "birth"))
+        self.assertEqual(model.head_seed(7, "birth"), model.head_seed(7, "birth"))
+        trained = model.train_heads([labelled_frame(30)], [labelled_frame(50)], learning_rate=1e-3, weight_decay=1e-4, epochs=1, seed=7,
+                                    assoc_only=True)
+        self.assertEqual(trained["weights"]["training"]["initialisation"], model.INITIALISATION_RULE)
+
     def test_the_recipe_constants_are_the_contract_values(self) -> None:
         training = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))["arms"]["VSMT-lean"]["training"]
         self.assertEqual((model.LEARNING_RATE, model.EPOCHS, model.SEED_COUNT, model.DAGGER_ROUNDS, model.MAIN_TABLE_ROUND),
