@@ -9,6 +9,13 @@
 （开发 house 全在 train 块）。它不能给出每帧学生选了哪个原子或去重合并了谁：这些没有落盘，需要确定性
 重跑（LOG-270）。
 
+v2（裁决 79-2，2026-09-28）：窗口阶段改用评价器的口径（帧号 > window_end 才算窗口后；v1 用 >= 把窗口最后一帧、
+也就是干预前的状态算进了窗口后，LOG-271 的"被拿走物体窗口后漏记"因此全是边界帧）；另把 gone(moved) 标签按
+三项交叉拆开：本帧该物体有没有色块、该物体此刻有没有别的实体在 δ_moved 内承载（它不在 wrongly_absent 里）、
+实体离物体中心多远（分档）。白话：输入是已落盘的逐帧标签，输出"撤回正标签到底落在什么实体上"。例如物体本帧
+有色块、又有别的实体承载，这个未被匹配的实体多半是重复实体，撤回它不伤节点指标，不能直接叫噪声。标签行里没有
+逐实体的存在决定、也没有 gone 候选的框，所以"框内/框外"与假撤回的拆分放在节点审计 v3 的重跑里（同一裁决）。
+
 Usage (from a clean worktree on the server):
   python ops/vsmt/lean_s2_05_attribution_export.py --pass-root <lean-s2-05-oracle-c150be0> \
     --calibration-root <lean-s2-05-oracle-850c533> --episode-roots <02a>,<02b> --output <exports/...json> --workers 15
@@ -68,6 +75,79 @@ def read_interventions(roots: list[str], episode: str) -> dict[str, Any]:
             "files": {name: sha256_file(os.path.join(base, "provenance", name)) for name in ("interventions.json", "window_segment.json")}}
 
 
+PHASE_AFTER = "after_window"
+PHASE_BEFORE = "at_or_before_window_end"
+#: gone(moved) displacement bins in metres (the label needs more than delta_moved_m = 0.5 m)
+DISPLACEMENT_BINS_M = (0.75, 1.0, 2.0)
+
+
+def phase_of(frame_index: int, window_end: int | None) -> str:
+    """The evaluator's rule (lean_evaluation._after_window): after the window means frame_index > window_end."""
+
+    return PHASE_AFTER if window_end is not None and int(frame_index) > window_end else PHASE_BEFORE
+
+
+def displacement_bin(value: Any) -> str:
+    if value is None:
+        return "unknown"
+    lower = 0.5
+    for upper in DISPLACEMENT_BINS_M:
+        if float(value) <= upper:
+            return f"{lower}-{upper}"
+        lower = upper
+    return f">{lower}"
+
+
+def new_counters() -> dict[str, Any]:
+    return {"existence": collections.Counter(),         # (status, reason, class, phase) -> entity-frames
+            "gone_moved_split": collections.Counter(),  # (class, phase, fragment this frame, other near carrier, displacement bin)
+            "stale": collections.Counter(),             # (class, phase) -> entity-frames (class via that frame's existence label key)
+            "absent": collections.Counter(),            # (class, phase) -> object-frames wrongly absent
+            "in_scope": collections.Counter(),          # (class, phase) -> object-frames in the truth scope
+            "decomposition": {"association": collections.Counter(), "existence": collections.Counter()},
+            "node": collections.Counter(), "node_iou": collections.Counter()}
+
+
+def tally_row(row: dict[str, Any], intervened: dict[str, str], window_end: int | None, counters: dict[str, Any]) -> None:
+    """Add one labels.jsonl.gz row to the counters (pure bookkeeping, no file access)."""
+
+    phase = phase_of(int(row["frame_index"]), window_end)
+    fragment_keys = {str(t.get("key")) for t in (row.get("targets") or {}).values() if t.get("key") is not None}
+    wrongly_absent = set(row.get("wrongly_absent_objects") or [])
+    in_scope_now = set(row.get("truth_in_scope") or [])
+    key_of: dict[str, str] = {}
+    for entity_id, label in (row.get("existence_labels") or {}).items():
+        key = label.get("key")
+        if key is not None:
+            key_of[entity_id] = key
+        klass = intervened.get(key, "never_intervened") if key is not None else "no_key"
+        counters["existence"][(label.get("status"), label.get("reason"), klass, phase)] += 1
+        if label.get("status") == "gone" and label.get("reason") == "moved":
+            # the candidate itself sits more than delta away (that is the label), so a carrier within delta is another
+            # entity; wrongly_absent is scored on the committed memory of the same frame with the strict centroid rule
+            carrier = "not_in_scope" if key not in in_scope_now else ("no" if key in wrongly_absent else "yes")
+            counters["gone_moved_split"][(klass, phase, "yes" if key in fragment_keys else "no", carrier,
+                                         displacement_bin(label.get("displacement_m")))] += 1
+    for entity_id in row.get("stale_entities") or []:
+        key = key_of.get(entity_id)
+        counters["stale"][(intervened.get(key, "never_intervened") if key else "key_not_in_frame_labels", phase)] += 1
+    for key in wrongly_absent:
+        counters["absent"][(intervened.get(key, "never_intervened"), phase)] += 1
+    for key in in_scope_now:
+        counters["in_scope"][(intervened.get(key, "never_intervened"), phase)] += 1
+    for part in ("association", "existence"):
+        for name, value in ((row.get("decomposition") or {}).get(part) or {}).items():
+            if isinstance(value, (int, float)):
+                counters["decomposition"][part][name] += value
+    for target, source in ((counters["node"], "node_prf1"), (counters["node_iou"], "node_prf1_iou")):
+        for name in ("matched", "predicted", "truth"):
+            target[name] += int((row.get(source) or {}).get(name) or 0)
+
+
+def _rows(counter: collections.Counter) -> list[list[Any]]:
+    return [[*k, v] for k, v in sorted(counter.items(), key=lambda kv: tuple(map(str, kv[0])))]
+
+
 def unit_stats(task: tuple[str, str, str, str, dict[str, str]]) -> dict[str, Any]:
     """One (pass, arm, episode): label cross-tabs, decomposition sums, node counts and the receipt diagnostics."""
 
@@ -75,49 +155,22 @@ def unit_stats(task: tuple[str, str, str, str, dict[str, str]]) -> dict[str, Any
     base = os.path.join(pass_root, pass_name, episode, arm)
     receipt = json.load(open(os.path.join(base, "receipt.json")))
     window_end = int(receipt["window"][1]) if receipt.get("window") else None
-    existence = collections.Counter()      # (status, reason, class, phase) -> entity-frames
-    stale = collections.Counter()          # (class, phase) -> entity-frames (class via that frame's existence label key)
-    absent = collections.Counter()         # (class, phase) -> object-frames wrongly absent
-    in_scope = collections.Counter()       # (class, phase) -> object-frames in the truth scope
-    decomposition: dict[str, collections.Counter] = {"association": collections.Counter(), "existence": collections.Counter()}
-    node = collections.Counter()
-    node_iou = collections.Counter()
+    counters = new_counters()
     frames = 0
     with gzip.open(os.path.join(base, "labels.jsonl.gz"), "rt") as handle:
         for line in handle:
-            row = json.loads(line)
+            tally_row(json.loads(line), intervened, window_end, counters)
             frames += 1
-            phase = "after_window" if window_end is not None and int(row["frame_index"]) >= window_end else "before_window_end"
-            key_of: dict[str, str] = {}
-            for entity_id, label in (row.get("existence_labels") or {}).items():
-                key = label.get("key")
-                if key is not None:
-                    key_of[entity_id] = key
-                klass = intervened.get(key, "never_intervened") if key is not None else "no_key"
-                existence[(label.get("status"), label.get("reason"), klass, phase)] += 1
-            for entity_id in row.get("stale_entities") or []:
-                key = key_of.get(entity_id)
-                stale[(intervened.get(key, "never_intervened") if key else "key_not_in_frame_labels", phase)] += 1
-            for key in row.get("wrongly_absent_objects") or []:
-                absent[(intervened.get(key, "never_intervened"), phase)] += 1
-            for key in row.get("truth_in_scope") or []:
-                in_scope[(intervened.get(key, "never_intervened"), phase)] += 1
-            for part in ("association", "existence"):
-                for name, value in ((row.get("decomposition") or {}).get(part) or {}).items():
-                    if isinstance(value, (int, float)):
-                        decomposition[part][name] += value
-            for target, source in ((node, "node_prf1"), (node_iou, "node_prf1_iou")):
-                for name in ("matched", "predicted", "truth"):
-                    target[name] += int((row.get(source) or {}).get(name) or 0)
     diagnostics = receipt.get("diagnostics", {})
     return {
         "pass": pass_name, "arm": arm, "episode": episode, "frames": frames, "window_end": window_end,
-        "existence_labels": [[*k, v] for k, v in sorted(existence.items(), key=lambda kv: tuple(map(str, kv[0])))],
-        "stale_entity_frames": [[*k, v] for k, v in sorted(stale.items())],
-        "wrongly_absent_object_frames": [[*k, v] for k, v in sorted(absent.items())],
-        "in_scope_object_frames": [[*k, v] for k, v in sorted(in_scope.items())],
-        "decomposition": {part: dict(counter) for part, counter in decomposition.items()},
-        "node_counts": dict(node), "node_iou_counts": dict(node_iou),
+        "existence_labels": _rows(counters["existence"]),
+        "gone_moved_split": _rows(counters["gone_moved_split"]),
+        "stale_entity_frames": _rows(counters["stale"]),
+        "wrongly_absent_object_frames": _rows(counters["absent"]),
+        "in_scope_object_frames": _rows(counters["in_scope"]),
+        "decomposition": {part: dict(counter) for part, counter in counters["decomposition"].items()},
+        "node_counts": dict(counters["node"]), "node_iou_counts": dict(counters["node_iou"]),
         "atoms": receipt.get("atoms"), "final_entities_by_state": receipt.get("final_entities_by_state"),
         "report": receipt.get("report"),
         "diagnostics": {**{k: diagnostics.get(k) for k in DIAGNOSTIC_KEYS},
@@ -229,11 +282,15 @@ def main() -> int:
         manifests[os.path.relpath(path, "/root/autodl-tmp")] = sha256_file(path)
 
     output = {
-        "stage": "vsmt.lean.s2_05.attribution_export.v1", "code_commit": commit, "checkout_dirty": dirty,
+        "stage": "vsmt.lean.s2_05.attribution_export.v2", "code_commit": commit, "checkout_dirty": dirty,
         "script_sha256": sha256_file(__file__), "argv": sys.argv[1:], "workers": args.workers,
         "started_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(started)), "wall_seconds": round(time.time() - started, 1),
         "not_available_without_rerun": ["per-frame student atom choices", "memory transaction log and dedup merge events",
-                                        "per-epoch checkpoints and per-term training curves"],
+                                        "per-epoch checkpoints and per-term training curves",
+                                        "per-entity existence decisions and the box test of gone candidates (node audit v3, ruling 79-2)"],
+        "phase_rule": "after_window means frame_index > window_end (the evaluator's rule); v1 used >=",
+        "gone_moved_split_fields": ["object_class", "phase", "fragment_of_the_object_this_frame",
+                                    "other_entity_within_delta_on_the_committed_memory", "displacement_bin_m"],
         "episodes": episodes,
         "split_check": {"rule": "assign_split over procthor10k-0.1.2-train-00000..09999, seed 20260920, test 100, validation 50",
                         "in_test": [e for e in episodes if e in split["test"]], "in_validation": [e for e in episodes if e in split["validation"]],
