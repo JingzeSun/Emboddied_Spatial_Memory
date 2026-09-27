@@ -1,0 +1,1086 @@
+{
+ "schema_version": "vsmt-s2-05-evidence-ceiling-v1",
+ "stage": "S2-05 evidence ceiling merge (read-only, ruling 75 (1)(a))",
+ "output_root": "/root/autodl-tmp/vsmt_private/lean-s2-05-evidence-ceiling-850c533",
+ "commits": [
+  "850c533e93e56bcf18587baf66fa2b0b0bbb8291"
+ ],
+ "episodes": [
+  {
+   "episode_id": "procthor10k-0.1.2-train-00236",
+   "frames": 570,
+   "rows": {
+    "gone_absent": 616,
+    "gone_moved": 2424,
+    "present": 20399
+   },
+   "sha256": "ba0caff1eb785bc17dd74d28598fa15f9411bc67c1bd2b501ae3fc106d75ef43"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-00406",
+   "frames": 1262,
+   "rows": {
+    "gone_absent": 0,
+    "gone_moved": 10806,
+    "present": 83879
+   },
+   "sha256": "732b0317f850465cd607e4908588ae2e69adb2b882439e15e2b317a32a9e9568"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-00563",
+   "frames": 2138,
+   "rows": {
+    "gone_absent": 3636,
+    "gone_moved": 24050,
+    "present": 237709
+   },
+   "sha256": "84db9c32b002c73f744c8e196c8c017e6e6c5cb881c1d23c44019292eea06410"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-00619",
+   "frames": 1030,
+   "rows": {
+    "gone_absent": 0,
+    "gone_moved": 6965,
+    "present": 59323
+   },
+   "sha256": "00293b30bf6557b850d81634920e6fc5b5fa219669113d6efea5eb90cf18ec5a"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-00702",
+   "frames": 126,
+   "rows": {
+    "gone_absent": 252,
+    "gone_moved": 145,
+    "present": 954
+   },
+   "sha256": "41a21f91076e014d26ec039d7d0ba9df0c2ac7114d853ef27a414f3200944e84"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-00950",
+   "frames": 3037,
+   "rows": {
+    "gone_absent": 1272,
+    "gone_moved": 42593,
+    "present": 376894
+   },
+   "sha256": "9ea8a3503fb1a0200e486f538f558a190d193bf4e850e4a9b49a269af7de694c"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-00975",
+   "frames": 787,
+   "rows": {
+    "gone_absent": 1256,
+    "gone_moved": 4898,
+    "present": 47483
+   },
+   "sha256": "55b4b9f55540fbc05ff762565dc397422128ff108d66dcd3c08b5c41cf2ebfe8"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-01139",
+   "frames": 468,
+   "rows": {
+    "gone_absent": 199,
+    "gone_moved": 794,
+    "present": 9492
+   },
+   "sha256": "b8edfb16f1b0799676d12fcf8958541092510105da1a0c718eeaeeb3bc97b748"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-01259",
+   "frames": 2655,
+   "rows": {
+    "gone_absent": 1453,
+    "gone_moved": 28672,
+    "present": 292287
+   },
+   "sha256": "212c92049653fafb3e21c361d9c689be95eabc123992e83e9f954ae1f4c9de46"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-01289",
+   "frames": 3473,
+   "rows": {
+    "gone_absent": 0,
+    "gone_moved": 53467,
+    "present": 422834
+   },
+   "sha256": "80b709004d178d60d9e9d7ae6122554fad5c055bc946b2384463d6ac98025fdd"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-01394",
+   "frames": 261,
+   "rows": {
+    "gone_absent": 348,
+    "gone_moved": 698,
+    "present": 5050
+   },
+   "sha256": "8bb41e1ac706c5a00c7dc62d133f80d06c76eae1233f2f66e7e8c14bbb9d32e9"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-01543",
+   "frames": 1358,
+   "rows": {
+    "gone_absent": 2025,
+    "gone_moved": 12778,
+    "present": 66457
+   },
+   "sha256": "f1cca1fda74f0df1501d6b5facc46d32a4b0580da925ac08b689ecf1ae3b0fa4"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-02524",
+   "frames": 1399,
+   "rows": {
+    "gone_absent": 0,
+    "gone_moved": 11676,
+    "present": 81090
+   },
+   "sha256": "a574b2820a30adc7500c8514ea802f5c3c9cfff7d00f20ec14ab5b0a81fbe511"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-02768",
+   "frames": 1696,
+   "rows": {
+    "gone_absent": 0,
+    "gone_moved": 11069,
+    "present": 127234
+   },
+   "sha256": "8949133bcfde70fdc2be965d1c55a416b542824b23b54e40d17efd261bd96914"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-03288",
+   "frames": 425,
+   "rows": {
+    "gone_absent": 430,
+    "gone_moved": 1517,
+    "present": 10392
+   },
+   "sha256": "56aecefabf8fc410dc5533b7e5ca77b11aad150f08c274c4445b498e3956f27e"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-03361",
+   "frames": 1518,
+   "rows": {
+    "gone_absent": 1598,
+    "gone_moved": 11320,
+    "present": 57744
+   },
+   "sha256": "94a17469c08a5115ac84a789dc3bafed102ff86529eb58a1e45df0b0d5d31898"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-03394",
+   "frames": 1371,
+   "rows": {
+    "gone_absent": 0,
+    "gone_moved": 9899,
+    "present": 73201
+   },
+   "sha256": "1f7071788aa0be72532f22b1e0ea7d3abc4372abaff0d6bab707adbabdb1d99a"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-03525",
+   "frames": 286,
+   "rows": {
+    "gone_absent": 0,
+    "gone_moved": 812,
+    "present": 8619
+   },
+   "sha256": "1c5f6481b869498dd53165ec95679564ded185d4c989e6d8e1cdf150bb188038"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-04388",
+   "frames": 437,
+   "rows": {
+    "gone_absent": 672,
+    "gone_moved": 1256,
+    "present": 11764
+   },
+   "sha256": "ebf1e66eb32d717ce45d89d2f6303f4f7402d29e5edb04ed55ac5a320e9f372a"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-04742",
+   "frames": 836,
+   "rows": {
+    "gone_absent": 888,
+    "gone_moved": 5621,
+    "present": 47486
+   },
+   "sha256": "471f1d933216fbb48e9431e50456d2940ccb583aba402312a507de5420d48edf"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-04801",
+   "frames": 1866,
+   "rows": {
+    "gone_absent": 2574,
+    "gone_moved": 20594,
+    "present": 136944
+   },
+   "sha256": "a0f3b543ff3cc882b03ffd86eb018b08bd8c7c1fddde566ad11f4e0f00d0a521"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-05806",
+   "frames": 1831,
+   "rows": {
+    "gone_absent": 2955,
+    "gone_moved": 18547,
+    "present": 181086
+   },
+   "sha256": "f68df782e6d11b1e89865327365d5997f46a6a717e32d54b6afa78746bb00191"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-05879",
+   "frames": 457,
+   "rows": {
+    "gone_absent": 771,
+    "gone_moved": 1397,
+    "present": 11942
+   },
+   "sha256": "fd8e0b8b51acb4c65cda36a9b2764b8d70babd5e1071e3477f72e57da2fe4f1e"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-05966",
+   "frames": 702,
+   "rows": {
+    "gone_absent": 732,
+    "gone_moved": 4338,
+    "present": 29837
+   },
+   "sha256": "4932fa657899dc69fdf8c742145bbbdb467c481a7f02674485287d5a00905f49"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-06453",
+   "frames": 529,
+   "rows": {
+    "gone_absent": 0,
+    "gone_moved": 1857,
+    "present": 24198
+   },
+   "sha256": "4e44229b1142df10fffcea83fd7aae8e84b1a34ddeb7cb868ead444b520521c8"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-07270",
+   "frames": 305,
+   "rows": {
+    "gone_absent": 327,
+    "gone_moved": 522,
+    "present": 6078
+   },
+   "sha256": "852b88548d8b4bcd78ecbd70eb99d7b6df0dda4999d8b4372474c7047d23fb4a"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-07367",
+   "frames": 145,
+   "rows": {
+    "gone_absent": 0,
+    "gone_moved": 49,
+    "present": 1092
+   },
+   "sha256": "4d5e2f91fbea96a075a704037ee698e2628227bab99cdeec9f3cbe13036ad19f"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-07795",
+   "frames": 1762,
+   "rows": {
+    "gone_absent": 0,
+    "gone_moved": 26592,
+    "present": 183877
+   },
+   "sha256": "0ee293ca15ee4bff9f4fc6f0c3d109ae626d7898529d02e02f6bfaa71c946186"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-07815",
+   "frames": 762,
+   "rows": {
+    "gone_absent": 0,
+    "gone_moved": 4124,
+    "present": 43936
+   },
+   "sha256": "1d7a2416480d4c1c89c2691747da65f5e2680886a9b17f87fed9907434befa4a"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-08398",
+   "frames": 1916,
+   "rows": {
+    "gone_absent": 949,
+    "gone_moved": 23928,
+    "present": 172808
+   },
+   "sha256": "6af40df50dd9145dee9f8c9daedb9f60e58d58477935c915b884f37734c50d56"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-08422",
+   "frames": 325,
+   "rows": {
+    "gone_absent": 314,
+    "gone_moved": 868,
+    "present": 7545
+   },
+   "sha256": "cabaad2da6fd4ead712e77db7f6127e2ea2b9db92eafcd7f4f144f6095d992ab"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-08552",
+   "frames": 984,
+   "rows": {
+    "gone_absent": 497,
+    "gone_moved": 8353,
+    "present": 49579
+   },
+   "sha256": "18c7a4850dad8145be28a82dbdd46d2c2eab273e25408aa924225a3bf7a4791e"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-08566",
+   "frames": 830,
+   "rows": {
+    "gone_absent": 1281,
+    "gone_moved": 5069,
+    "present": 34400
+   },
+   "sha256": "88dacf53f93c2ba3ba4cfce51e0487446cfbaaffc68e30024503c36c4b749b4c"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-08790",
+   "frames": 2919,
+   "rows": {
+    "gone_absent": 2397,
+    "gone_moved": 44135,
+    "present": 372454
+   },
+   "sha256": "29f25b27003a51f6fa61e6469367c07c9e345c2defef675cc11f7674b52b4016"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-08905",
+   "frames": 245,
+   "rows": {
+    "gone_absent": 404,
+    "gone_moved": 600,
+    "present": 6654
+   },
+   "sha256": "d3a5061781285a83505a2a860cfc98ba53aecd1b11a819087c3dd3d6bca4caa4"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-08927",
+   "frames": 1233,
+   "rows": {
+    "gone_absent": 1216,
+    "gone_moved": 8420,
+    "present": 70159
+   },
+   "sha256": "ddb2ea8006c290635b1c02bb9ccd45a4b39712fdb42a389a3771addcc4b35154"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-09339",
+   "frames": 822,
+   "rows": {
+    "gone_absent": 472,
+    "gone_moved": 8984,
+    "present": 42005
+   },
+   "sha256": "5be5114e4786b96c10012e4ed61c4aa783fb0ae2f8e5e403bc21a1061fe9af2d"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-09423",
+   "frames": 213,
+   "rows": {
+    "gone_absent": 102,
+    "gone_moved": 760,
+    "present": 2075
+   },
+   "sha256": "8610bc088216f05c36f853d9d598246321be821137848e5cf149518a59baf233"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-09595",
+   "frames": 1118,
+   "rows": {
+    "gone_absent": 2336,
+    "gone_moved": 7433,
+    "present": 73675
+   },
+   "sha256": "a03a5c73be936e753eba0ab1a1a914fc9a3128994134d4dc9f9bf1f52ceed975"
+  }
+ ],
+ "rows": {
+  "gone_absent": 31972,
+  "gone_moved": 428030,
+  "present": 3490635
+ },
+ "bins": 50,
+ "separation": {
+  "surface:gone_absent_vs_present:visible": {
+   "auc_gone_above_present": 0.5202359870898693,
+   "gone_rows": 31972,
+   "present_rows": 3490635
+  },
+  "surface:gone_absent_vs_present:free": {
+   "auc_gone_above_present": 0.913487138466571,
+   "gone_rows": 4255,
+   "present_rows": 338652
+  },
+  "surface:gone_moved_vs_present:visible": {
+   "auc_gone_above_present": 0.49981798448683007,
+   "gone_rows": 428030,
+   "present_rows": 3490635
+  },
+  "surface:gone_moved_vs_present:free": {
+   "auc_gone_above_present": 0.47416148432469785,
+   "gone_rows": 42970,
+   "present_rows": 338652
+  },
+  "grid:gone_absent_vs_present:visible": {
+   "auc_gone_above_present": 0.5236092170278459,
+   "gone_rows": 31972,
+   "present_rows": 3490635
+  },
+  "grid:gone_absent_vs_present:free": {
+   "auc_gone_above_present": 0.7832550660839517,
+   "gone_rows": 4302,
+   "present_rows": 323086
+  },
+  "grid:gone_moved_vs_present:visible": {
+   "auc_gone_above_present": 0.49280046625044666,
+   "gone_rows": 428030,
+   "present_rows": 3490635
+  },
+  "grid:gone_moved_vs_present:free": {
+   "auc_gone_above_present": 0.6807782182131159,
+   "gone_rows": 35698,
+   "present_rows": 323086
+  }
+ },
+ "histograms": {
+  "surface:gone_absent": {
+   "visible": [
+    27759,
+    27,
+    14,
+    36,
+    28,
+    23,
+    15,
+    24,
+    9,
+    16,
+    32,
+    10,
+    13,
+    9,
+    27,
+    12,
+    14,
+    24,
+    15,
+    15,
+    16,
+    26,
+    15,
+    13,
+    9,
+    37,
+    18,
+    16,
+    21,
+    13,
+    12,
+    27,
+    29,
+    15,
+    16,
+    52,
+    53,
+    28,
+    29,
+    56,
+    21,
+    40,
+    58,
+    38,
+    37,
+    23,
+    83,
+    71,
+    111,
+    2867
+   ],
+   "free": [
+    355,
+    7,
+    8,
+    13,
+    12,
+    13,
+    10,
+    25,
+    16,
+    13,
+    26,
+    29,
+    14,
+    16,
+    24,
+    17,
+    15,
+    23,
+    20,
+    14,
+    20,
+    37,
+    17,
+    11,
+    16,
+    41,
+    29,
+    27,
+    64,
+    36,
+    27,
+    15,
+    44,
+    33,
+    21,
+    39,
+    31,
+    59,
+    28,
+    49,
+    53,
+    56,
+    69,
+    76,
+    114,
+    89,
+    302,
+    209,
+    281,
+    1692
+   ]
+  },
+  "surface:gone_moved": {
+   "visible": [
+    386556,
+    929,
+    807,
+    1261,
+    527,
+    473,
+    495,
+    796,
+    477,
+    424,
+    676,
+    378,
+    313,
+    298,
+    691,
+    355,
+    397,
+    838,
+    394,
+    489,
+    419,
+    873,
+    447,
+    514,
+    452,
+    979,
+    416,
+    434,
+    899,
+    407,
+    432,
+    466,
+    815,
+    413,
+    459,
+    901,
+    450,
+    530,
+    539,
+    1199,
+    607,
+    652,
+    1403,
+    743,
+    752,
+    916,
+    1903,
+    1294,
+    1565,
+    8577
+   ],
+   "free": [
+    23850,
+    3992,
+    2430,
+    1801,
+    1174,
+    828,
+    672,
+    558,
+    455,
+    398,
+    436,
+    357,
+    343,
+    280,
+    302,
+    275,
+    284,
+    205,
+    204,
+    169,
+    249,
+    189,
+    162,
+    144,
+    71,
+    256,
+    109,
+    73,
+    112,
+    55,
+    103,
+    68,
+    62,
+    83,
+    47,
+    52,
+    54,
+    61,
+    30,
+    53,
+    63,
+    42,
+    76,
+    63,
+    67,
+    74,
+    201,
+    184,
+    188,
+    966
+   ]
+  },
+  "surface:present": {
+   "visible": [
+    3158573,
+    4218,
+    3165,
+    5296,
+    2195,
+    2289,
+    2109,
+    4009,
+    1952,
+    1908,
+    3826,
+    1931,
+    1958,
+    1957,
+    3641,
+    1914,
+    1951,
+    3941,
+    2041,
+    2048,
+    2022,
+    4480,
+    2279,
+    2269,
+    2293,
+    4803,
+    2598,
+    2533,
+    5351,
+    2722,
+    2776,
+    2811,
+    6207,
+    3031,
+    3214,
+    6797,
+    3667,
+    3702,
+    3940,
+    8569,
+    4823,
+    5002,
+    10710,
+    5952,
+    6302,
+    7170,
+    16583,
+    10434,
+    13117,
+    123556
+   ],
+   "free": [
+    177102,
+    20606,
+    14742,
+    14564,
+    9936,
+    8626,
+    7364,
+    7867,
+    6424,
+    5279,
+    6225,
+    4825,
+    4891,
+    3882,
+    3804,
+    3628,
+    3632,
+    2892,
+    2789,
+    2116,
+    2639,
+    2022,
+    1819,
+    1582,
+    992,
+    2580,
+    1195,
+    1061,
+    1023,
+    786,
+    1108,
+    716,
+    710,
+    718,
+    607,
+    536,
+    431,
+    547,
+    374,
+    326,
+    439,
+    311,
+    306,
+    236,
+    218,
+    209,
+    221,
+    168,
+    172,
+    3406
+   ]
+  },
+  "grid:gone_absent": {
+   "visible": [
+    27707,
+    16,
+    15,
+    60,
+    13,
+    15,
+    25,
+    31,
+    15,
+    29,
+    24,
+    13,
+    21,
+    13,
+    25,
+    23,
+    14,
+    18,
+    27,
+    10,
+    8,
+    29,
+    10,
+    16,
+    22,
+    70,
+    12,
+    18,
+    41,
+    21,
+    30,
+    41,
+    56,
+    22,
+    30,
+    59,
+    21,
+    84,
+    20,
+    53,
+    60,
+    18,
+    61,
+    62,
+    21,
+    30,
+    189,
+    33,
+    47,
+    2674
+   ],
+   "free": [
+    346,
+    9,
+    4,
+    29,
+    7,
+    4,
+    44,
+    4,
+    7,
+    39,
+    14,
+    12,
+    58,
+    9,
+    7,
+    21,
+    17,
+    14,
+    59,
+    10,
+    15,
+    47,
+    10,
+    6,
+    7,
+    90,
+    13,
+    21,
+    80,
+    9,
+    16,
+    71,
+    14,
+    10,
+    83,
+    29,
+    33,
+    184,
+    38,
+    57,
+    186,
+    40,
+    36,
+    169,
+    24,
+    32,
+    158,
+    17,
+    25,
+    2068
+   ]
+  },
+  "grid:gone_moved": {
+   "visible": [
+    393575,
+    1142,
+    1229,
+    2393,
+    1041,
+    849,
+    1223,
+    1777,
+    908,
+    1529,
+    1752,
+    869,
+    1552,
+    789,
+    1400,
+    785,
+    512,
+    1046,
+    812,
+    357,
+    396,
+    870,
+    329,
+    304,
+    343,
+    792,
+    283,
+    215,
+    440,
+    179,
+    226,
+    310,
+    436,
+    213,
+    317,
+    476,
+    219,
+    487,
+    196,
+    402,
+    297,
+    139,
+    328,
+    257,
+    166,
+    161,
+    474,
+    196,
+    170,
+    2869
+   ],
+   "free": [
+    7246,
+    49,
+    62,
+    153,
+    89,
+    133,
+    146,
+    153,
+    171,
+    125,
+    197,
+    115,
+    284,
+    143,
+    164,
+    203,
+    442,
+    127,
+    240,
+    115,
+    349,
+    243,
+    276,
+    202,
+    75,
+    801,
+    249,
+    257,
+    310,
+    182,
+    481,
+    336,
+    230,
+    696,
+    440,
+    382,
+    400,
+    701,
+    480,
+    334,
+    825,
+    612,
+    662,
+    730,
+    710,
+    875,
+    1000,
+    951,
+    535,
+    11017
+   ]
+  },
+  "grid:present": {
+   "visible": [
+    3171008,
+    2719,
+    2672,
+    7644,
+    2600,
+    2275,
+    4296,
+    4987,
+    2360,
+    4329,
+    5135,
+    2760,
+    8501,
+    2707,
+    5955,
+    4808,
+    3281,
+    6613,
+    6079,
+    3189,
+    3277,
+    8446,
+    3416,
+    3667,
+    3663,
+    12144,
+    3672,
+    3438,
+    9831,
+    3976,
+    3918,
+    6742,
+    7301,
+    3669,
+    5634,
+    7621,
+    3676,
+    9416,
+    3809,
+    7205,
+    6383,
+    3361,
+    7272,
+    6049,
+    3212,
+    3508,
+    9813,
+    3404,
+    3252,
+    75942
+   ],
+   "free": [
+    124689,
+    2954,
+    2681,
+    3759,
+    2813,
+    3064,
+    3274,
+    3131,
+    2889,
+    2457,
+    3509,
+    2557,
+    3529,
+    2634,
+    2618,
+    2827,
+    3461,
+    2329,
+    2675,
+    1996,
+    3272,
+    2681,
+    2561,
+    2399,
+    1435,
+    5021,
+    2565,
+    2595,
+    3212,
+    2507,
+    3978,
+    3631,
+    3057,
+    4373,
+    4585,
+    3390,
+    3886,
+    5983,
+    4021,
+    3561,
+    6010,
+    4787,
+    5564,
+    5754,
+    5514,
+    6486,
+    6512,
+    4949,
+    4071,
+    24880
+   ]
+  }
+ }
+}

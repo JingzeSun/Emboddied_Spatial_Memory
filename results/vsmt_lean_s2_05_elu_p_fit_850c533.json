@@ -1,0 +1,105 @@
+{
+ "stage": "S2-05",
+ "pass": "elu_p_fit",
+ "counts_from_pass": "calibration",
+ "arm_rule": "TAF_at_the_registered_rollout_theta_a_with_no_distance_gate",
+ "episodes": [
+  "procthor10k-0.1.2-train-00236",
+  "procthor10k-0.1.2-train-00406",
+  "procthor10k-0.1.2-train-00563",
+  "procthor10k-0.1.2-train-00619",
+  "procthor10k-0.1.2-train-00702",
+  "procthor10k-0.1.2-train-00950",
+  "procthor10k-0.1.2-train-00975",
+  "procthor10k-0.1.2-train-01139",
+  "procthor10k-0.1.2-train-01259",
+  "procthor10k-0.1.2-train-01289",
+  "procthor10k-0.1.2-train-01394",
+  "procthor10k-0.1.2-train-01543",
+  "procthor10k-0.1.2-train-02524",
+  "procthor10k-0.1.2-train-02768",
+  "procthor10k-0.1.2-train-03288",
+  "procthor10k-0.1.2-train-03361",
+  "procthor10k-0.1.2-train-03394",
+  "procthor10k-0.1.2-train-03525",
+  "procthor10k-0.1.2-train-04388",
+  "procthor10k-0.1.2-train-04742",
+  "procthor10k-0.1.2-train-04801",
+  "procthor10k-0.1.2-train-05806",
+  "procthor10k-0.1.2-train-05879",
+  "procthor10k-0.1.2-train-05966",
+  "procthor10k-0.1.2-train-06453",
+  "procthor10k-0.1.2-train-07270",
+  "procthor10k-0.1.2-train-07367",
+  "procthor10k-0.1.2-train-07795",
+  "procthor10k-0.1.2-train-07815",
+  "procthor10k-0.1.2-train-08398",
+  "procthor10k-0.1.2-train-08422",
+  "procthor10k-0.1.2-train-08552",
+  "procthor10k-0.1.2-train-08566",
+  "procthor10k-0.1.2-train-08790",
+  "procthor10k-0.1.2-train-08905",
+  "procthor10k-0.1.2-train-08927",
+  "procthor10k-0.1.2-train-09339",
+  "procthor10k-0.1.2-train-09423",
+  "procthor10k-0.1.2-train-09595"
+ ],
+ "code_commit": "97b76b0c7ee88e5083c142f647361b3a83f117eb",
+ "counts": {
+  "initial_log_odds": {
+   "in_place_object_frames": 123033,
+   "object_frames": 124088
+  },
+  "persistence_log_decay_per_tick": {
+   "intervention_events": 134,
+   "object_ticks": 6899951
+  },
+  "match_gain": {
+   "hit_frames": 279510,
+   "hit_total": 837517,
+   "false_frames": 119,
+   "false_total": 7914
+  }
+ },
+ "values": {
+  "initial_log_odds": 4.75891184514327,
+  "persistence_log_decay_per_tick": 1.9420616347206353e-05,
+  "match_gain": 3.0998616369636114
+ },
+ "evidence": {
+  "initial_log_odds": {
+   "value": 4.75891184514327,
+   "prior": 0.9914979691831604,
+   "in_place_object_frames": 123033,
+   "object_frames": 124088
+  },
+  "persistence_log_decay_per_tick": {
+   "value": 1.9420616347206353e-05,
+   "hazard_per_tick": 1.9420427768255165e-05,
+   "intervention_events": 134,
+   "object_ticks": 6899951
+  },
+  "match_gain": {
+   "value": 3.0998616369636114,
+   "p_hit": 0.3337365092290664,
+   "p_false": 0.015036643922163254,
+   "hit_frames": 279510,
+   "hit_total": 837517,
+   "false_frames": 119,
+   "false_total": 7914
+  }
+ },
+ "definitions": {
+  "initial_log_odds": "logit of the train-split prior that an object still stands within delta_moved_m of its last-observed centroid at the first frame after an unobserved gap in which its place should be visible again: in_place_object_frames / object_frames",
+  "persistence_log_decay_per_tick": "-log(1 - h), h = intervention_events / object_ticks over train-split objects observable at least once",
+  "match_gain": "log(p_hit / p_false): p_hit = hit_frames / hit_total (should-be-visible frames of a present in-place object in which the ELU-P gate at the rollout_config binds some fragment to its carrier entity), p_false = false_frames / false_total (the same over frames in which the object is absent or moved and its old place should be visible)"
+ },
+ "split": "train",
+ "fitted_after_feature_seals": true,
+ "rollout_config": {
+  "theta_a": 0.7,
+  "free_space_weight": 1.0,
+  "retract_threshold": 0.0
+ },
+ "shared_by_every_elu_p_configuration": true
+}
