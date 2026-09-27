@@ -181,5 +181,99 @@ class RulingSeventySixAuditTests(unittest.TestCase):
                 self.assertLessEqual(count, row["pairs"])
 
 
+class RulingSeventyNineExistenceTallyTests(unittest.TestCase):
+    """Ruling 79-2: every existence candidate is filed once, with the student's own decision."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.results = {}
+        for arm in ("RAC", "TAF"):
+            data = episode()
+            teacher = ev.EpisodeTeacher(arm=arm, geometry_table=data["table"], executed_interventions=data["executed"], window=data["window"],
+                                        policy=TEACHER_POLICY, nuisance_meta=NUISANCE_META)
+            captured = audit_module.capture_truth_table(teacher)
+            audit = audit_module.NodeAudit(evidence=teacher.evidence, iou_min=teacher.iou_min, delta_moved_m=TEACHER_POLICY["delta_moved_m"],
+                                           groups=audit_module.object_groups(data["table"]), interventions=teacher.interventions,
+                                           window_end=teacher.window_end)
+            candidates, retracts, labels = 0, 0, []
+            for i, step in enumerate(lr.run_episode(data["frames"], episode_id="ep-0001", arm=arm, config=CONFIGS[arm], policy=POLICY, descriptor="vitb14")):
+                labelled = teacher.label_frame(step, cache_frame=data["frames"][i], private_record=data["records"][i], masks=data["masks"][i],
+                                               label_image=data["images"][i], runtime_s=0.01, peak_memory_bytes=1000)
+                candidates += len(labelled["existence_labels"])
+                retracts += sum(1 for d in step["receipt"]["existence"]["decisions"].values() if d == "RETRACT")
+                labels.extend((labelled["frame_index"], label["status"], label.get("reason")) for label in labelled["existence_labels"].values())
+                audit.observe(step, labelled, captured["table"])
+            cls.results[arm] = {"report": audit.report(), "candidates": candidates, "retracts": retracts, "labels": labels,
+                                "window_end": teacher.window_end, "interventions": dict(teacher.interventions)}
+
+    def test_every_candidate_is_filed_once_with_its_decision(self) -> None:
+        for arm, result in self.results.items():
+            report = result["report"]
+            self.assertEqual(report["existence_tally_fields"], list(audit_module.EXISTENCE_TALLY_FIELDS))
+            rows = report["existence_tally"]
+            self.assertEqual(sum(row[-1] for row in rows), result["candidates"], arm)
+            self.assertGreater(result["candidates"], 0, arm)
+            self.assertEqual(sum(row[-1] for row in rows if row[7] == "RETRACT"), result["retracts"], arm)
+            self.assertTrue(all(len(row) == len(audit_module.EXISTENCE_TALLY_FIELDS) + 1 for row in rows))
+        self.assertEqual(sum(row[-1] for row in self.results["TAF"]["report"]["existence_tally"] if row[7] == "RETRACT"), 0)
+
+    def test_the_labels_and_the_place_test_agree_where_they_must(self) -> None:
+        for arm, result in self.results.items():
+            for row in result["report"]["existence_tally"]:
+                status, reason, klass, phase, in_place, carrier, fragment = row[:7]
+                if status == "gone" and reason == "absent":
+                    self.assertEqual((in_place, carrier), ("object_absent", "object_absent"))
+                if status == "present" and reason == "None":
+                    self.assertEqual(in_place, "yes", arm)  # within delta is always in place under the node rule
+                if klass != "never_intervened" and klass != "no_key":
+                    self.assertIn(klass, set(result["interventions"].values()))
+                self.assertIn(phase, ("after_window", "at_or_before_window_end"))
+                self.assertIn(fragment, ("yes", "no", "n/a"))
+        # the phase follows the evaluator: labels on the last window frame are not after the window
+        tally_after = sum(row[-1] for row in self.results["TAF"]["report"]["existence_tally"] if row[3] == "after_window")
+        labels_after = sum(1 for frame_index, _, _ in self.results["TAF"]["labels"] if frame_index > self.results["TAF"]["window_end"])
+        self.assertEqual(tally_after, labels_after)
+
+    def test_the_sofa_inside_its_box_and_the_book_left_at_its_old_place(self) -> None:
+        # a sofa entity 0.7 m from the centre but inside the box, while another entity carries the sofa (a leftover),
+        # and a moved book's entity left 2 m from the book with nobody carrying it (a stale version the student retracts)
+        audit = audit_module.NodeAudit(evidence={}, iou_min=0.3, delta_moved_m=0.5, interventions={"Book|2": "move"}, window_end=0)
+        truth = {"Sofa|1": {"present": True, "in_scope": True, "centroid_m": [0.0, 0.0, 0.0], "aabb_min_m": [-1.0, -0.5, -0.5], "aabb_max_m": [1.0, 0.5, 0.5]},
+                 "Book|2": {"present": True, "in_scope": True, "centroid_m": [5.0, 0.0, 0.0], "aabb_min_m": [4.9, -0.1, -0.1], "aabb_max_m": [5.1, 0.1, 0.1]}}
+        entity = lambda entity_id, x: {"entity_id": entity_id, "centroid_m": [x, 0.0, 0.0]}  # noqa: E731
+        step = {"memory_before": {"entities": [entity("e1", 0.7), entity("e2", 3.0)]},
+                "receipt": {"existence": {"decisions": {"e1": "NOOP", "e2": "RETRACT"}}}}
+        labelled = {"frame_index": 3, "targets": {"f1": {"key": "Sofa|1"}},
+                    "existence_labels": {"e1": {"status": "gone", "key": "Sofa|1", "reason": "moved"},
+                                         "e2": {"status": "gone", "key": "Book|2", "reason": "moved"}}}
+        predictions = [entity("e1", 0.7), entity("e3", 0.1), entity("e2", 3.0)]
+        identities = {"e1": {"resolvable": True, "key": "Sofa|1"}, "e2": {"resolvable": True, "key": "Book|2"}, "e3": {"resolvable": True, "key": "Sofa|1"}}
+        audit._tally_existence(step, labelled, truth, predictions, identities)
+        self.assertEqual(audit.existence_tally, {
+            ("gone", "moved", "never_intervened", "after_window", "yes", "yes", "yes", "NOOP"): 1,
+            ("gone", "moved", "move", "after_window", "no", "no", "no", "RETRACT"): 1,
+        })
+        # without the second sofa entity the first one is the sole carrier: "another" must exclude the candidate itself
+        audit.existence_tally.clear()
+        audit._tally_existence(step, labelled, truth, [entity("e1", 0.7), entity("e2", 3.0)], identities)
+        self.assertIn(("gone", "moved", "never_intervened", "after_window", "yes", "no", "yes", "NOOP"), audit.existence_tally)
+        with self.assertRaises(audit_module.NodeAuditError):
+            audit._tally_existence({**step, "receipt": {"existence": {"decisions": {"e1": "NOOP"}}}}, labelled, truth, predictions, identities)
+
+    def test_merge_pools_the_tally(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            report = self.results["RAC"]["report"]
+            for episode_id in ("ep-a", "ep-b"):
+                (root / episode_id / "RAC").mkdir(parents=True)
+                payload = {"schema_version": audit_module.SCHEMA_VERSION, "arm": "RAC", "code_commit": "c", "episode_id": episode_id,
+                           "frames": 5, "config": {}, "final_entities_by_state": {}, "report": {"node_prf1": None}, "audit": report}
+                (root / episode_id / "RAC" / audit_module.AUDIT_FILE_NAME).write_text(json.dumps(payload), encoding="utf-8")
+            merged = audit_module.merge_audits(root, "RAC")
+        pooled = {tuple(row[:-1]): row[-1] for row in merged["pooled_existence_tally"]}
+        for row in report["existence_tally"]:
+            self.assertEqual(pooled[tuple(row[:-1])], 2 * row[-1])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -33,6 +33,13 @@ v2（裁决 76 (1)(a)）再加三块只读统计与两列：质心主列自己�
 （active／dormant）与私有身份（同物体／不同物体／含糊）在余弦、距离、IoU 各档下能过几对——同物体对是还能收回
 的重复，不同物体对是误合并风险；以及两列"先最大匹配数、再最大权"的匹配数。按身份并框那两列只是分组诊断，
 同时改了数量与几何，不是上界（LOG-262）。
+
+v3（裁决 79-2／79-3，2026-09-28）再加一块只读统计：每个存在候选（本帧没被匹配、应可见的实体）按八项归档——标签状态、
+标签原因、物体的干预类别、窗口阶段（帧号 > window_end 才算窗口后，同评价器）、实体按节点主列规则（裁决 77：质心
+≤ δ_moved 或落在真值框外扩 0.25 m 内）是否仍在原处、提交后的记忆里是否另有实体按同一规则承载该物体、本帧该物体
+有没有色块、学生的决定（RETRACT／NOOP）。白话：输入是重跑时每帧的旧记忆、标签、学生决定和真值框，输出"撤回正标签和
+假撤回各落在什么实体上"。例如沙发表面质心离中心 0.7 m、但在沙发框内，标签是 gone、节点主列却算它在原处，这一格就
+是标签与指标的冲突；另有实体承载的那一格是重复实体。它不改任何标签、决定或指标，只计数。
 """
 from __future__ import annotations
 
@@ -54,7 +61,8 @@ for item in (ROOT / "src", HERE.parent):
 from vsmt import lean_teacher as lt  # noqa: E402
 
 AUDIT_FILE_NAME = "node_audit.json"
-SCHEMA_VERSION = "vsmt-s2-05-node-audit-v2"  # v2: ruling 76 (1)(a) centroid ledger, birth reasons, dedup tallies, count-first columns
+SCHEMA_VERSION = "vsmt-s2-05-node-audit-v3"  # v2: ruling 76 (1)(a) centroid ledger, birth reasons, dedup tallies, count-first columns;
+#                                             v3: ruling 79-2 existence-candidate tally
 
 #: Why an in-memory prediction (an entity in ``active``/``dormant`` whose object is not a present
 #: out-of-scope one) did not match under the IoU 0.3 column (the primary column until ruling 72 (B), secondary since).
@@ -130,6 +138,14 @@ DEDUP_DISTANCES_M = (0.25, 0.5, 1.0)
 DEDUP_IOUS = (0.0, 0.05, 0.1)
 DEDUP_STATE_PAIRS = ("active_active", "active_dormant", "dormant_dormant")
 DEDUP_IDENTITIES = ("same_object", "different_objects", "ambiguous")
+#: Ruling 79-2: the fields of one existence-candidate tally row (the count follows them).
+EXISTENCE_TALLY_FIELDS = (
+    "status", "reason", "object_class", "phase",
+    "entity_in_place_node_rule",            # yes / no / object_absent / out_of_scope / n/a (identity ambiguous)
+    "another_entity_carries_the_object",    # on the committed memory, by the node rule; same values
+    "fragment_of_the_object_this_frame",    # yes / no / n/a
+    "decision",                             # RETRACT / NOOP
+)
 
 
 def _count_first(weights: Sequence[Sequence[float]]) -> int:
@@ -235,8 +251,13 @@ class NodeAudit:
 
     def __init__(self, *, evidence: Mapping[str, str | None], iou_min: float, delta_moved_m: float,
                  groups: Mapping[str, str] | None = None, arm: str | None = None, config: Mapping[str, Any] | None = None,
-                 scorer: Any = None, dedup: Mapping[str, Any] | None = None) -> None:
+                 scorer: Any = None, dedup: Mapping[str, Any] | None = None,
+                 interventions: Mapping[str, str] | None = None, window_end: int | None = None) -> None:
         self.evidence = evidence
+        # ruling 79-2: the existence-candidate tally needs each object's executed intervention and the window end
+        self.interventions = dict(interventions or {})
+        self.window_end = None if window_end is None else int(window_end)
+        self.existence_tally: dict[tuple[str, ...], int] = {}
         # ruling 76 (1)(a): the birth reasons need the arm's logits, the dedup tallies the frozen period
         self.arm = arm
         self.config = dict(config) if config is not None else None
@@ -428,6 +449,7 @@ class NodeAudit:
             self._dedup_pairs(memory_after, identities)
         if self.fold_capture is not None:
             self._file_folds()
+        self._tally_existence(step, labelled, truth_table, predictions, identities)
 
         for name, count in frame_entity.items():
             self.entity_counts[name] += count
@@ -439,6 +461,53 @@ class NodeAudit:
         return {"frame_index": labelled["frame_index"], "entity": frame_entity, "truth": frame_truth,
                 "centroid_entity": centroid_ledger["entity"], "centroid_truth": centroid_ledger["truth"],
                 "rules": {rule: {"matched": rule_matched[rule], "predicted": rule_predicted[rule], "truth": len(present_keys)} for rule in RULES}}
+
+    # -- ruling 79-2 -------------------------------------------------------------
+
+    def _in_place(self, centroid: Sequence[float], record: Mapping[str, Any]) -> bool:
+        """The node primary column's place test (ruling 77 (1)(a)): within delta of the centre, or inside the padded box."""
+
+        if _distance(centroid, record["centroid_m"]) <= self.delta:
+            return True
+        lower, upper = record.get("aabb_min_m"), record.get("aabb_max_m")
+        return lower is not None and upper is not None and _inside_padded(centroid, lower, upper, PAD_M)
+
+    def _tally_existence(self, step: Mapping[str, Any], labelled: Mapping[str, Any], truth_table: Mapping[str, Mapping[str, Any]],
+                         predictions: Sequence[Mapping[str, Any]], identities: Mapping[str, Mapping[str, Any]]) -> None:
+        """File every existence candidate of the frame by its label, its place under the node rule, other carriers and the decision."""
+
+        labels = labelled.get("existence_labels") or {}
+        decisions = {str(k): str(v) for k, v in ((step["receipt"].get("existence") or {}).get("decisions") or {}).items()}
+        _require(set(decisions) == set(labels), "audit_existence_decisions_differ_from_labels")
+        if not labels:
+            return
+        before = {str(e["entity_id"]): e for e in step["memory_before"]["entities"]}
+        fragment_keys = {str(t["key"]) for t in labelled["targets"].values() if t.get("key") is not None}
+        frame_index = int(labelled["frame_index"])
+        phase = "after_window" if self.window_end is not None and frame_index > self.window_end else "at_or_before_window_end"
+        carriers: dict[str, set[str]] = {}
+        for entity in predictions:
+            identity = identities[str(entity["entity_id"])]
+            record = truth_table.get(identity["key"]) if identity["resolvable"] else None
+            if record is not None and record["present"] is True and record["in_scope"] is True and self._in_place(entity["centroid_m"], record):
+                carriers.setdefault(str(identity["key"]), set()).add(str(entity["entity_id"]))
+        for entity_id, label in labels.items():
+            key = label.get("key")
+            if key is None:
+                klass, in_place, carrier, fragment = "no_key", "n/a", "n/a", "n/a"
+            else:
+                klass = self.interventions.get(str(key), "never_intervened")
+                fragment = "yes" if str(key) in fragment_keys else "no"
+                record = truth_table.get(str(key))
+                if record is None or record["present"] is not True:
+                    in_place = carrier = "object_absent"
+                elif record["in_scope"] is not True:
+                    in_place = carrier = "out_of_scope"
+                else:
+                    in_place = "yes" if self._in_place(before[entity_id]["centroid_m"], record) else "no"
+                    carrier = "yes" if carriers.get(str(key), set()) - {entity_id} else "no"
+            row = (str(label["status"]), str(label.get("reason")), klass, phase, in_place, carrier, fragment, decisions[entity_id])
+            self.existence_tally[row] = self.existence_tally.get(row, 0) + 1
 
     # -- ruling 76 (1)(a) --------------------------------------------------------
 
@@ -664,6 +733,8 @@ class NodeAudit:
                       "gate_values": {"cosine": list(DEDUP_COSINES), "distance_m": list(DEDUP_DISTANCES_M), "iou": list(DEDUP_IOUS)},
                       "pairs_after_fold": {name: {"pairs": row["pairs"], "pass": dict(sorted(row["pass"].items()))}
                                            for name, row in self.dedup_pairs.items()}} if self.dedup_period is not None else None,
+            "existence_tally_fields": list(EXISTENCE_TALLY_FIELDS),
+            "existence_tally": [[*row, count] for row, count in sorted(self.existence_tally.items())],
         }
 
 
@@ -743,7 +814,8 @@ def run(args: argparse.Namespace) -> int:
                                 policy=policy["teacher"], nuisance_meta=nuisance_meta)
     captured = capture_truth_table(teacher)
     audit = NodeAudit(evidence=teacher.evidence, iou_min=teacher.iou_min, delta_moved_m=policy["teacher"]["delta_moved_m"],
-                      groups=object_groups(table), arm=args.arm, config=config, scorer=scorer, dedup=policy["runner"]["dedup"])
+                      groups=object_groups(table), arm=args.arm, config=config, scorer=scorer, dedup=policy["runner"]["dedup"],
+                      interventions=teacher.interventions, window_end=teacher.window_end)
     audit.fold_capture = capture_dedup_folds()
     started = time.time()
     current: dict[str, Any] = {}
@@ -781,6 +853,7 @@ def run(args: argparse.Namespace) -> int:
         "frames": summary["frames"], "frames_requested": args.frames, "episode_seal_sha256": seal["payload_sha256"],
         "final_memory_digest": summary["final_memory_digest"], "final_entities_by_state": summary["final_entities_by_state"],
         "report_node_prf1": episode["report"]["node_prf1"], "report_node_prf1_iou": episode["report"]["node_prf1_iou"],
+        "report": episode["report"], "heads": args.heads,
         "audit": audit.report(),
         "wall_seconds": round(time.time() - started, 1),
     }
@@ -807,6 +880,7 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
     pooled_births = {scope: {name: 0 for name in BIRTH_REASONS} for scope in ("in_scope_object", "other")}
     pooled_dedup: dict[str, Any] = {"ticks": 0, "folds": 0, "folds_by_identity": {}, "pairs_after_fold": {}}
     pooled_wrong: dict[str, int] = {}
+    pooled_existence: dict[tuple[str, ...], int] = {}
     for path in sorted(output_root.glob(f"*/{arm}/{AUDIT_FILE_NAME}")):
         payload = json.loads(path.read_text(encoding="utf-8"))
         _require(payload.get("schema_version") == SCHEMA_VERSION and payload.get("arm") == arm, f"audit_file_invalid:{path}")
@@ -838,6 +912,8 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
                 target["pairs"] += int(row["pairs"])
                 for gate, value in row["pass"].items():
                     target["pass"][gate] = target["pass"].get(gate, 0) + int(value)
+        for row in audit.get("existence_tally") or []:
+            pooled_existence[tuple(row[:-1])] = pooled_existence.get(tuple(row[:-1]), 0) + int(row[-1])
         for group, row in audit["truth_by_group"].items():
             target = pooled_group.setdefault(group, {name: 0 for name in TRUTH_CATEGORIES})
             for name in TRUTH_CATEGORIES:
@@ -848,6 +924,7 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
                 target[name] += int(row[name])
         episodes.append({
             "episode_id": payload["episode_id"], "frames": payload["frames"], "config": payload["config"],
+            "code_commit": payload["code_commit"], "report": payload.get("report"),
             "final_entities_by_state": payload["final_entities_by_state"],
             "rules_f1": {rule: audit["rules"][rule]["f1"] for rule in RULES},
             "iou_0.3_secondary": audit["rules"]["iou_0.3_secondary"],
@@ -862,13 +939,15 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
         })
     _require(bool(episodes), f"no_audits_found:{output_root}/*/{arm}")
     return {
-        "schema_version": "vsmt-s2-05-node-audit-merged-v2",
+        "schema_version": "vsmt-s2-05-node-audit-merged-v3",
         "stage": "S2-05 node audit (read-only, pooled)", "arm": arm, "output_root": str(output_root),
         "code_commits": sorted(commits), "episodes": len(episodes),
         "pooled_rules": {rule: _prf(s["matched"], s["predicted"], s["truth"]) for rule, s in pooled_rules.items()},
         "pooled_entity_categories": pooled_entity, "pooled_truth_categories": pooled_truth,
         "pooled_centroid_entity_categories": pooled_centroid_entity, "pooled_centroid_truth_categories": pooled_centroid_truth,
         "pooled_birth_reasons": pooled_births, "pooled_dedup": pooled_dedup, "pooled_wrong_identity_matches": pooled_wrong,
+        "existence_tally_fields": list(EXISTENCE_TALLY_FIELDS),
+        "pooled_existence_tally": [[*row, count] for row, count in sorted(pooled_existence.items())],
         "pooled_truth_by_group": {group: row for group, row in sorted(pooled_group.items())},
         "pooled_truth_by_type": {name: row for name, row in sorted(pooled_type.items(), key=lambda item: (-sum(item[1].values()), item[0]))[:40]},
         "per_episode": episodes,
