@@ -600,6 +600,85 @@ class TestSharedDedup(unittest.TestCase):
         self.assertEqual(len(merged["entities"]), 2)
 
 
+class TestDedupPrefilter(unittest.TestCase):
+    """The numpy prefilter (2026-09-27) may only drop pairs the scalar tests would reject."""
+
+    @staticmethod
+    def _entities(seed: int, count: int, width: int = 128) -> list[dict[str, Any]]:
+        import random
+
+        rng = random.Random(seed)
+        prototypes = [[rng.gauss(0.0, 1.0) for _ in range(width)] for _ in range(6)]
+        out = []
+        for index in range(count):
+            base = prototypes[index % len(prototypes)]
+            noise = rng.choice((0.05, 0.3, 1.0))
+            out.append({"entity_id": f"entity:{index:04d}",
+                        "descriptor_mean": [value + rng.gauss(0.0, noise) for value in base],
+                        "centroid_m": [rng.uniform(0.0, 2.0), rng.uniform(0.0, 0.5), rng.uniform(0.0, 2.0)]})
+        return out
+
+    @staticmethod
+    def _scalar_pairs(entities: list[dict[str, Any]], cosine_min: float, distance_max: float) -> set[tuple[int, int]]:
+        from vsmt.lean_geometry import centroid_distance, cosine_similarity
+
+        return {(i, j) for i in range(len(entities)) for j in range(i + 1, len(entities))
+                if cosine_similarity(entities[i]["descriptor_mean"], entities[j]["descriptor_mean"]) >= cosine_min
+                and centroid_distance(entities[i], entities[j]) <= distance_max}
+
+    def test_every_pair_the_scalar_tests_accept_survives_even_at_the_exact_threshold(self) -> None:
+        from vsmt.lean_geometry import centroid_distance, cosine_similarity
+        from vsmt.lean_memory import DEDUP_PREFILTER_BLOCK_ROWS, _dedup_pair_candidates
+
+        entities = self._entities(7, DEDUP_PREFILTER_BLOCK_ROWS + 45)  # crosses a block boundary
+        # thresholds equal to a real pair's scalar values, so that pair sits exactly on both limits
+        cosine_min = cosine_similarity(entities[0]["descriptor_mean"], entities[6]["descriptor_mean"])
+        distance_max = centroid_distance(entities[0], entities[6])
+        for policy in ({"descriptor_cosine_min": cosine_min, "centroid_distance_max_m": distance_max},
+                       {"descriptor_cosine_min": 0.6, "centroid_distance_max_m": 0.5},
+                       {"descriptor_cosine_min": -1.0, "centroid_distance_max_m": 10.0}):
+            candidates = _dedup_pair_candidates(entities, policy)
+            self.assertEqual(candidates, sorted(candidates))  # row-major, the order of the scalar loop
+            accepted = self._scalar_pairs(entities, policy["descriptor_cosine_min"], policy["centroid_distance_max_m"])
+            self.assertTrue(accepted <= set(candidates), policy)
+            self.assertLess(len(candidates), len(accepted) + 50)  # a prefilter that keeps almost nothing extra
+        self.assertIn((0, 6), _dedup_pair_candidates(entities, {"descriptor_cosine_min": cosine_min,
+                                                                "centroid_distance_max_m": distance_max}))
+
+    def test_irregular_or_zero_descriptors_keep_every_pair(self) -> None:
+        from vsmt.lean_memory import _dedup_pair_candidates
+
+        policy = {"descriptor_cosine_min": 0.6, "centroid_distance_max_m": 0.5}
+        mixed = [{"descriptor_mean": [1.0, 0.0], "centroid_m": [0.0, 0.0, 0.0]},
+                 {"descriptor_mean": [1.0, 0.0, 0.0], "centroid_m": [0.0, 0.0, 0.0]},
+                 {"descriptor_mean": [0.0, 1.0], "centroid_m": [5.0, 0.0, 0.0]}]
+        self.assertEqual(_dedup_pair_candidates(mixed, policy), [(0, 1), (0, 2), (1, 2)])
+        zero = [{"descriptor_mean": [0.0, 0.0], "centroid_m": [0.0, 0.0, 0.0]},
+                {"descriptor_mean": [1.0, 0.0], "centroid_m": [0.1, 0.0, 0.0]}]
+        self.assertEqual(_dedup_pair_candidates(zero, policy), [(0, 1)])  # the scalar test rejects it, not the filter
+
+    def test_the_folds_equal_the_all_pairs_rule(self) -> None:
+        import vsmt.lean_memory as lm
+
+        rng_entities = self._entities(11, 60, width=8)
+        memory = empty_memory(episode_id="ep-prefilter")
+        births = [{"atom": "BIRTH", "fragment": fragment(f"region:{i:04d}", descriptor=e["descriptor_mean"],
+                                                         centroid=[v * 0.2 for v in e["centroid_m"]])}
+                  for i, e in enumerate(rng_entities)]
+        memory = commit(memory, "f1", births)
+        policy = dict(DEDUP, descriptor_cosine_min=0.6, centroid_distance_max_m=0.5, aabb_iou_min=0.05)
+        fast = commit(memory, "f2", [], dedup=policy)
+        original = lm._dedup_pair_candidates
+        lm._dedup_pair_candidates = lambda entities, _policy: [(i, j) for i in range(len(entities)) for j in range(i + 1, len(entities))]
+        try:
+            slow = commit(memory, "f2", [], dedup=policy)
+        finally:
+            lm._dedup_pair_candidates = original
+        self.assertGreater(len(fast["transaction_log"][-1]["post_maintenance"]["dedup"]), 0)
+        self.assertEqual(fast["memory_digest"], slow["memory_digest"])
+        self.assertEqual(canonical_json(fast), canonical_json(slow))
+
+
 class TestDedupEligibilityRulingSeventySix(unittest.TestCase):
     """D-224-S1 ruling 76 (2)(a): dormant records join the dedup; the survivor takes the later record's geometry."""
 

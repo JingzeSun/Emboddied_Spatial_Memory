@@ -35,6 +35,8 @@ import hashlib
 import math
 from typing import Any, Mapping, Sequence
 
+import numpy as np
+
 from cpmt.hashing import canonical_json, clone_json
 
 from vsmt.lean_geometry import centroid_distance, cosine_similarity, opaque_id
@@ -1045,6 +1047,56 @@ def _first_opened_at(entity: Mapping[str, Any]) -> int:
     return int(entity["versions"][0]["opened_at"])
 
 
+#: How far below the cosine minimum and above the distance maximum a pair may be and still reach the exact test.
+#: Float64 rounding in a 128-term dot product or a 3-term distance is below 1e-12; the margin only has to exceed it.
+DEDUP_PREFILTER_MARGIN = 1e-6
+DEDUP_PREFILTER_BLOCK_ROWS = 256
+
+
+def _dedup_pair_candidates(entities: Sequence[Mapping[str, Any]], policy: Mapping[str, Any]) -> list[tuple[int, int]]:
+    """Index pairs (i < j, row-major) that may pass the cosine and distance tests of the dedup rule.
+
+    Engineering (2026-09-27, the dagger_round_0 timing trial): every dedup tick compared every pair of
+    active and dormant entities in pure Python, so under ELU-P, whose dormant entities pile up, the
+    cost per frame grew with the square of the frames already run (01289: 0.12 s per frame in its
+    first 150 frames, 1.1 s by frame 1200 with the active count flat).  This is a prefilter only: it
+    drops a pair when numpy's cosine is below the minimum or its distance above the maximum by more
+    than ``DEDUP_PREFILTER_MARGIN``, which float rounding cannot reach; every surviving pair is decided
+    by the unchanged scalar tests, in the unchanged order, so the folds and the digests are the same.
+    Rows of unequal width, or with a norm too small for a safe division, keep every pair.
+
+    白话：去重原来每隔 10 帧把所有 active/dormant 实体两两用纯 Python 比一遍，实体越积越多，
+    每帧摊到的开销就随帧数平方增长。这里先用矩阵运算把"余弦明显低于门槛或距离明显超过上限"的
+    对排除掉，余量 1e-6 远大于浮点误差；留下的少数对仍由原来的标量函数逐一判定，所以合并结果
+    逐字节不变。它不改变去重规则，也不是新的阈值。
+    """
+
+    count = len(entities)
+    if count < 2:
+        return []
+    widths = {len(entity["descriptor_mean"]) for entity in entities}
+    if len(widths) != 1 or 0 in widths:
+        return [(i, j) for i in range(count) for j in range(i + 1, count)]
+    descriptors = np.asarray([entity["descriptor_mean"] for entity in entities], dtype=np.float64)
+    centroids = np.asarray([entity["centroid_m"] for entity in entities], dtype=np.float64)
+    norms = np.sqrt(np.einsum("ij,ij->i", descriptors, descriptors))
+    unsafe = norms < 1e-100
+    unit = descriptors / np.where(unsafe, 1.0, norms)[:, None]
+    cosine_floor = float(policy["descriptor_cosine_min"]) - DEDUP_PREFILTER_MARGIN
+    distance_ceiling = float(policy["centroid_distance_max_m"]) + DEDUP_PREFILTER_MARGIN
+    out: list[tuple[int, int]] = []
+    for start in range(0, count, DEDUP_PREFILTER_BLOCK_ROWS):
+        stop = min(count, start + DEDUP_PREFILTER_BLOCK_ROWS)
+        cosine = unit[start:stop] @ unit.T
+        distance = np.sqrt(((centroids[start:stop, None, :] - centroids[None, :, :]) ** 2).sum(axis=2))
+        keep = (cosine >= cosine_floor) | unsafe[start:stop, None] | unsafe[None, :]
+        keep &= distance <= distance_ceiling
+        keep &= np.arange(start, stop)[:, None] < np.arange(count)[None, :]
+        rows, columns = np.nonzero(keep)
+        out.extend(zip((rows + start).tolist(), columns.tolist()))
+    return out
+
+
 def _apply_dedup(
     memory: dict[str, Any], *, dedup: Mapping[str, Any] | None, tick: int,
     transaction_id: str,
@@ -1080,20 +1132,20 @@ def _apply_dedup(
         key=lambda item: str(item["entity_id"]),
     )
     pairs: list[tuple[float, str, str]] = []
-    for index, left in enumerate(active):
-        for right in active[index + 1:]:
-            cosine = cosine_similarity(left["descriptor_mean"], right["descriptor_mean"])
-            if cosine < policy["descriptor_cosine_min"]:
-                continue
-            distance = centroid_distance(
-                {"centroid_m": left["centroid_m"]},
-                {"centroid_m": right["centroid_m"]},
-            )
-            if distance > policy["centroid_distance_max_m"]:
-                continue
-            if _aabb_iou(left, right) < policy["aabb_iou_min"]:
-                continue
-            pairs.append((cosine, str(left["entity_id"]), str(right["entity_id"])))
+    for left_index, right_index in _dedup_pair_candidates(active, policy):
+        left, right = active[left_index], active[right_index]
+        cosine = cosine_similarity(left["descriptor_mean"], right["descriptor_mean"])
+        if cosine < policy["descriptor_cosine_min"]:
+            continue
+        distance = centroid_distance(
+            {"centroid_m": left["centroid_m"]},
+            {"centroid_m": right["centroid_m"]},
+        )
+        if distance > policy["centroid_distance_max_m"]:
+            continue
+        if _aabb_iou(left, right) < policy["aabb_iou_min"]:
+            continue
+        pairs.append((cosine, str(left["entity_id"]), str(right["entity_id"])))
 
     # Highest cosine first; ties broken by the two ids so the order never
     # depends on dict iteration or float noise beyond the compared values.
