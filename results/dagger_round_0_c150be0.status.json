@@ -1,0 +1,11 @@
+{
+ "commit": "c150be0",
+ "pass_exit": "0",
+ "export_exit": "0",
+ "finished_cst": "2026-09-27 14:27:18",
+ "workers": 11,
+ "cpu_quota": 12,
+ "pass_root": "/root/autodl-tmp/vsmt_private/lean-s2-05-oracle-c150be0",
+ "shutdown": true,
+ "shutdown_after_seconds": 1200
+}

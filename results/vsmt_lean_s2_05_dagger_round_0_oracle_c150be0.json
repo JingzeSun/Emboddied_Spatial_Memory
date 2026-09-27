@@ -1,0 +1,4242 @@
+{
+ "schema_version": "vsmt-lean-s2-05-pass-export-v1",
+ "stage": "S2-05",
+ "pass": "dagger_round_0",
+ "arm": "ELU-P",
+ "output_root": "/root/autodl-tmp/vsmt_private/lean-s2-05-oracle-c150be0",
+ "code_commits_in_receipts": [
+  "c150be020d791576087eb92a7fc76a3a48c570df"
+ ],
+ "pass_receipt": {
+  "stage": "S2-05",
+  "pass": "dagger_round_0",
+  "arm": "ELU-P",
+  "config": {
+   "theta_a": 0.7,
+   "free_space_weight": 1.0,
+   "retract_threshold": 0.0,
+   "d_a": null,
+   "initial_log_odds": 4.75891184514327,
+   "persistence_log_decay_per_tick": 1.9420616347206353e-05,
+   "match_gain": 3.0998616369636114
+  },
+  "descriptor": "reid_projection:vitb14",
+  "mask_source": "simulator_instance_masks",
+  "heads": null,
+  "commit": "c150be020d791576087eb92a7fc76a3a48c570df",
+  "episodes_planned": [
+   "procthor10k-0.1.2-train-00236",
+   "procthor10k-0.1.2-train-00406",
+   "procthor10k-0.1.2-train-00563",
+   "procthor10k-0.1.2-train-00619",
+   "procthor10k-0.1.2-train-00702",
+   "procthor10k-0.1.2-train-00950",
+   "procthor10k-0.1.2-train-00975",
+   "procthor10k-0.1.2-train-01139",
+   "procthor10k-0.1.2-train-01259",
+   "procthor10k-0.1.2-train-01289",
+   "procthor10k-0.1.2-train-01394",
+   "procthor10k-0.1.2-train-01543",
+   "procthor10k-0.1.2-train-02524",
+   "procthor10k-0.1.2-train-02768",
+   "procthor10k-0.1.2-train-03288",
+   "procthor10k-0.1.2-train-03361",
+   "procthor10k-0.1.2-train-03394",
+   "procthor10k-0.1.2-train-03525",
+   "procthor10k-0.1.2-train-04388",
+   "procthor10k-0.1.2-train-04742",
+   "procthor10k-0.1.2-train-04801",
+   "procthor10k-0.1.2-train-05806",
+   "procthor10k-0.1.2-train-05879",
+   "procthor10k-0.1.2-train-05966",
+   "procthor10k-0.1.2-train-06453",
+   "procthor10k-0.1.2-train-07270",
+   "procthor10k-0.1.2-train-07367",
+   "procthor10k-0.1.2-train-07795",
+   "procthor10k-0.1.2-train-07815",
+   "procthor10k-0.1.2-train-08398",
+   "procthor10k-0.1.2-train-08422",
+   "procthor10k-0.1.2-train-08552",
+   "procthor10k-0.1.2-train-08566",
+   "procthor10k-0.1.2-train-08790",
+   "procthor10k-0.1.2-train-08905",
+   "procthor10k-0.1.2-train-08927",
+   "procthor10k-0.1.2-train-09339",
+   "procthor10k-0.1.2-train-09423",
+   "procthor10k-0.1.2-train-09595"
+  ],
+  "episodes_kept": [],
+  "episodes_to_run": [
+   "procthor10k-0.1.2-train-00236",
+   "procthor10k-0.1.2-train-00406",
+   "procthor10k-0.1.2-train-00563",
+   "procthor10k-0.1.2-train-00619",
+   "procthor10k-0.1.2-train-00702",
+   "procthor10k-0.1.2-train-00950",
+   "procthor10k-0.1.2-train-00975",
+   "procthor10k-0.1.2-train-01139",
+   "procthor10k-0.1.2-train-01259",
+   "procthor10k-0.1.2-train-01289",
+   "procthor10k-0.1.2-train-01394",
+   "procthor10k-0.1.2-train-01543",
+   "procthor10k-0.1.2-train-02524",
+   "procthor10k-0.1.2-train-02768",
+   "procthor10k-0.1.2-train-03288",
+   "procthor10k-0.1.2-train-03361",
+   "procthor10k-0.1.2-train-03394",
+   "procthor10k-0.1.2-train-03525",
+   "procthor10k-0.1.2-train-04388",
+   "procthor10k-0.1.2-train-04742",
+   "procthor10k-0.1.2-train-04801",
+   "procthor10k-0.1.2-train-05806",
+   "procthor10k-0.1.2-train-05879",
+   "procthor10k-0.1.2-train-05966",
+   "procthor10k-0.1.2-train-06453",
+   "procthor10k-0.1.2-train-07270",
+   "procthor10k-0.1.2-train-07367",
+   "procthor10k-0.1.2-train-07795",
+   "procthor10k-0.1.2-train-07815",
+   "procthor10k-0.1.2-train-08398",
+   "procthor10k-0.1.2-train-08422",
+   "procthor10k-0.1.2-train-08552",
+   "procthor10k-0.1.2-train-08566",
+   "procthor10k-0.1.2-train-08790",
+   "procthor10k-0.1.2-train-08905",
+   "procthor10k-0.1.2-train-08927",
+   "procthor10k-0.1.2-train-09339",
+   "procthor10k-0.1.2-train-09423",
+   "procthor10k-0.1.2-train-09595"
+  ],
+  "requested_workers": 11,
+  "actual_workers": 11,
+  "worker_basis": "cgroup quota 12 CPUs / 62 GiB; streaming S2-04 workers CPU-bound at about 1 GB RSS; 11 workers x 1 thread; the same thread setting as every pass on the instance-segmentation cache",
+  "merge_order_rule": "episode_id_ascending_regardless_of_worker_completion_order",
+  "policy": {
+   "runner": {
+    "dormancy_missed_opportunity_limit": 3,
+    "dedup": {
+     "period_ticks": 10,
+     "descriptor_cosine_min": 0.6,
+     "centroid_distance_max_m": 0.5,
+     "aabb_iou_min": 0.05
+    },
+    "should_be_visible_min_ratio": 0.015625,
+    "entity_geometry_samples_per_axis": 4
+   },
+   "teacher": {
+    "dominance_min_share": 0.5,
+    "delta_moved_m": 0.5,
+    "should_be_visible_min_ratio": 0.015625,
+    "entity_geometry_samples_per_axis": 4
+   }
+  },
+  "started_utc": "2026-09-27T05:32:36Z",
+  "episodes_succeeded": [
+   "procthor10k-0.1.2-train-00236",
+   "procthor10k-0.1.2-train-00406",
+   "procthor10k-0.1.2-train-00563",
+   "procthor10k-0.1.2-train-00619",
+   "procthor10k-0.1.2-train-00702",
+   "procthor10k-0.1.2-train-00950",
+   "procthor10k-0.1.2-train-00975",
+   "procthor10k-0.1.2-train-01139",
+   "procthor10k-0.1.2-train-01259",
+   "procthor10k-0.1.2-train-01289",
+   "procthor10k-0.1.2-train-01394",
+   "procthor10k-0.1.2-train-01543",
+   "procthor10k-0.1.2-train-02524",
+   "procthor10k-0.1.2-train-02768",
+   "procthor10k-0.1.2-train-03288",
+   "procthor10k-0.1.2-train-03361",
+   "procthor10k-0.1.2-train-03394",
+   "procthor10k-0.1.2-train-03525",
+   "procthor10k-0.1.2-train-04388",
+   "procthor10k-0.1.2-train-04742",
+   "procthor10k-0.1.2-train-04801",
+   "procthor10k-0.1.2-train-05806",
+   "procthor10k-0.1.2-train-05879",
+   "procthor10k-0.1.2-train-05966",
+   "procthor10k-0.1.2-train-06453",
+   "procthor10k-0.1.2-train-07270",
+   "procthor10k-0.1.2-train-07367",
+   "procthor10k-0.1.2-train-07795",
+   "procthor10k-0.1.2-train-07815",
+   "procthor10k-0.1.2-train-08398",
+   "procthor10k-0.1.2-train-08422",
+   "procthor10k-0.1.2-train-08552",
+   "procthor10k-0.1.2-train-08566",
+   "procthor10k-0.1.2-train-08790",
+   "procthor10k-0.1.2-train-08905",
+   "procthor10k-0.1.2-train-08927",
+   "procthor10k-0.1.2-train-09339",
+   "procthor10k-0.1.2-train-09423",
+   "procthor10k-0.1.2-train-09595"
+  ],
+  "episodes_failed": [],
+  "wall_clock_seconds": 3281.3
+ },
+ "pass_receipt_sha256": "6f5743d440c99fda090e47809f29144d3f813cc2c2488e17207d615aca318bbb",
+ "episodes_exported": 39,
+ "episodes_failed": 0,
+ "calibration_report": null,
+ "calibration_report_sha256": null,
+ "episodes": {
+  "procthor10k-0.1.2-train-00236": {
+   "status": "succeeded",
+   "receipt_sha256": "8e528ccdee2dd571fdcac86c113a1b569f05de298f671014f0cdc077aae4bd5b",
+   "frames": 570,
+   "wall_seconds": 128.8,
+   "illegal_programs": 0,
+   "atoms": {
+    "NOOP": 20098,
+    "BIND": 4925,
+    "BIRTH": 519,
+    "RETRACT": 54,
+    "REACTIVATE": 412
+   },
+   "final_entities_by_state": {
+    "active": 74,
+    "dormant": 190,
+    "retracted": 29
+   },
+   "window": [
+    231,
+    261
+   ],
+   "executed_interventions": 5,
+   "report": {
+    "node_prf1": {
+     "node_precision": 0.6197664135638703,
+     "node_recall": 0.8887139796230705,
+     "node_f1": 0.7302648126190219,
+     "matched": 20324,
+     "predicted": 32793,
+     "truth": 22869
+    },
+    "node_prf1_iou": {
+     "node_precision": 0.38950385753057054,
+     "node_recall": 0.5585290130744677,
+     "node_f1": 0.4589486543782113,
+     "matched": 12773,
+     "predicted": 32793,
+     "truth": 22869
+    },
+    "missing_residual_rate": {
+     "missing_residual_rate": 0.0,
+     "residual": 0,
+     "judged": 5,
+     "not_yet_observable": 0
+    },
+    "false_retract_rate": {
+     "false_retract_rate": 0.7547169811320755,
+     "false_retracts": 40,
+     "judged_retracts": 53,
+     "ambiguous_retracts": 1
+    },
+    "identity_continuity": {
+     "identity_continuity": 0.0,
+     "kept": 0,
+     "judged": 3,
+     "no_prior_carrier": 0
+    },
+    "recovery_latency_frames": {
+     "recovery_latency_frames": 85.6,
+     "recovered": 5,
+     "unrecovered": [],
+     "never_observable": [],
+     "per_object": {
+      "AlarmClock|surface|4|5": 89,
+      "Kettle|surface|6|14": 176,
+      "Laptop|surface|4|0": 2,
+      "Pillow|surface|4|6": 99,
+      "SoapBottle|surface|5|8": 62
+     }
+    },
+    "contamination_auc": {
+     "contamination_auc": 0.34184330996061246,
+     "frames": 570
+    },
+    "size_and_cost": {
+     "active_entity_count": 67.15438596491228,
+     "lifecycle_version_count": 812.8245614035088,
+     "runtime_per_frame_s": 0.19493125196088823,
+     "peak_memory_bytes": 674521088
+    }
+   },
+   "headline": {
+    "node_prf1": 0.7302648126190219,
+    "node_prf1_iou": 0.4589486543782113,
+    "missing_residual_rate": 0.0,
+    "false_retract_rate": 0.7547169811320755,
+    "identity_continuity": 0.0,
+    "recovery_latency_frames": 85.6,
+    "contamination_auc": 0.34184330996061246
+   },
+   "decomposition_totals": {
+    "recall_miss": 35,
+    "teacher_error": 157,
+    "amortization_error": 3770,
+    "correct": 22046,
+    "unlabelled": 0,
+    "duplicate_of_labelled": 0,
+    "decisions": 26008
+   },
+   "spawned_after_reload_keys": [],
+   "nuisance_largest_advantage": 0.0018784153005464432,
+   "elu_p_counts": null
+  },
+  "procthor10k-0.1.2-train-00406": {
+   "status": "succeeded",
+   "receipt_sha256": "1ad4c6a221dac8fdafafd55be1aba60fac61d182c354e93edd9c5ea467c4fa99",
+   "frames": 1262,
+   "wall_seconds": 370.7,
+   "illegal_programs": 0,
+   "atoms": {
+    "NOOP": 18109,
+    "BIND": 10188,
+    "BIRTH": 561,
+    "RETRACT": 52,
+    "REACTIVATE": 684
+   },
+   "final_entities_by_state": {
+    "active": 73,
+    "dormant": 104,
+    "retracted": 32
+   },
+   "window": [
+    579,
+    609
+   ],
+   "executed_interventions": 0,
+   "report": {
+    "node_prf1": {
+     "node_precision": 0.58119340232859,
+     "node_recall": 0.7584329531426401,
+     "node_f1": 0.6580883194404391,
+     "matched": 71882,
+     "predicted": 123680,
+     "truth": 94777
+    },
+    "node_prf1_iou": {
+     "node_precision": 0.3708764553686934,
+     "node_recall": 0.48397818036021395,
+     "node_f1": 0.4199453439349621,
+     "matched": 45870,
+     "predicted": 123680,
+     "truth": 94777
+    },
+    "missing_residual_rate": {
+     "missing_residual_rate": null,
+     "residual": 0,
+     "judged": 0,
+     "not_yet_observable": 0
+    },
+    "false_retract_rate": {
+     "false_retract_rate": 0.7307692307692307,
+     "false_retracts": 38,
+     "judged_retracts": 52,
+     "ambiguous_retracts": 0
+    },
+    "identity_continuity": {
+     "identity_continuity": null,
+     "kept": 0,
+     "judged": 0,
+     "no_prior_carrier": 0
+    },
+    "recovery_latency_frames": {
+     "recovery_latency_frames": null,
+     "recovered": 0,
+     "unrecovered": [],
+     "never_observable": [],
+     "per_object": {}
+    },
+    "contamination_auc": {
+     "contamination_auc": 0.40621461403252684,
+     "frames": 1262
+    },
+    "size_and_cost": {
+     "active_entity_count": 73.9041204437401,
+     "lifecycle_version_count": 827.1553090332806,
+     "runtime_per_frame_s": 0.24604196083715713,
+     "peak_memory_bytes": 731107328
+    }
+   },
+   "headline": {
+    "node_prf1": 0.6580883194404391,
+    "node_prf1_iou": 0.4199453439349621,
+    "missing_residual_rate": null,
+    "false_retract_rate": 0.7307692307692307,
+    "identity_continuity": null,
+    "recovery_latency_frames": null,
+    "contamination_auc": 0.40621461403252684
+   },
+   "decomposition_totals": {
+    "recall_miss": 858,
+    "teacher_error": 2661,
+    "amortization_error": 6357,
+    "correct": 19718,
+    "unlabelled": 0,
+    "duplicate_of_labelled": 0,
+    "decisions": 29594
+   },
+   "spawned_after_reload_keys": [],
+   "nuisance_largest_advantage": 0.0006997288550686376,
+   "elu_p_counts": null
+  },
+  "procthor10k-0.1.2-train-00563": {
+   "status": "succeeded",
+   "receipt_sha256": "f0f2b85818ed52fde9f1f97503fff3925ec7c0939da6eca2f305713d73aecca9",
+   "frames": 2138,
+   "wall_seconds": 1458.4,
+   "illegal_programs": 0,
+   "atoms": {
+    "NOOP": 107080,
+    "BIND": 18399,
+    "BIRTH": 1936,
+    "RETRACT": 268,
+    "REACTIVATE": 2141
+   },
+   "final_entities_by_state": {
+    "active": 165,
+    "dormant": 450,
+    "retracted": 116
+   },
+   "window": [
+    895,
+    925
+   ],
+   "executed_interventions": 6,
+   "report": {
+    "node_prf1": {
+     "node_precision": 0.506100376591793,
+     "node_recall": 0.7532683731443582,
+     "node_f1": 0.6054293588004591,
+     "matched": 197284,
+     "predicted": 389812,
+     "truth": 261904
+    },
+    "node_prf1_iou": {
+     "node_precision": 0.30976214175038225,
+     "node_recall": 0.46104297757957113,
+     "node_f1": 0.37055711383486056,
+     "matched": 120749,
+     "predicted": 389812,
+     "truth": 261904
+    },
+    "missing_residual_rate": {
+     "missing_residual_rate": 0.0,
+     "residual": 0,
+     "judged": 6,
+     "not_yet_observable": 0
+    },
+    "false_retract_rate": {
+     "false_retract_rate": 0.8007518796992481,
+     "false_retracts": 213,
+     "judged_retracts": 266,
+     "ambiguous_retracts": 2
+    },
+    "identity_continuity": {
+     "identity_continuity": 0.3333333333333333,
+     "kept": 1,
+     "judged": 3,
+     "no_prior_carrier": 0
+    },
+    "recovery_latency_frames": {
+     "recovery_latency_frames": 389.8333333333333,
+     "recovered": 6,
+     "unrecovered": [],
+     "never_observable": [],
+     "per_object": {
+      "Book|surface|3|24": 79,
+      "Pillow|surface|3|32": 0,
+      "Statue|surface|3|21": 315,
+      "Statue|surface|4|39": 766,
+      "Vase|surface|3|34": 1049,
+      "Vase|surface|8|75": 130
+     }
+    },
+    "contamination_auc": {
+     "contamination_auc": 0.3500726970227691,
+     "frames": 2138
+    },
+    "size_and_cost": {
+     "active_entity_count": 146.10991580916743,
+     "lifecycle_version_count": 3109.8297474275023,
+     "runtime_per_frame_s": 0.520974692838899,
+     "peak_memory_bytes": 1017978880
+    }
+   },
+   "headline": {
+    "node_prf1": 0.6054293588004591,
+    "node_prf1_iou": 0.37055711383486056,
+    "missing_residual_rate": 0.0,
+    "false_retract_rate": 0.8007518796992481,
+    "identity_continuity": 0.3333333333333333,
+    "recovery_latency_frames": 389.8333333333333,
+    "contamination_auc": 0.3500726970227691
+   },
+   "decomposition_totals": {
+    "recall_miss": 306,
+    "teacher_error": 3320,
+    "amortization_error": 16767,
+    "correct": 109431,
+    "unlabelled": 0,
+    "duplicate_of_labelled": 0,
+    "decisions": 129824
+   },
+   "spawned_after_reload_keys": [],
+   "nuisance_largest_advantage": 0.0006228866346325024,
+   "elu_p_counts": null
+  },
+  "procthor10k-0.1.2-train-00619": {
+   "status": "succeeded",
+   "receipt_sha256": "9569f9661466bbde1e1c084021c4485dad6717ea5126bf12f0301a235d4e69f6",
+   "frames": 1030,
+   "wall_seconds": 329.1,
+   "illegal_programs": 0,
+   "atoms": {
+    "NOOP": 29358,
+    "BIND": 9708,
+    "BIRTH": 710,
+    "RETRACT": 88,
+    "REACTIVATE": 685
+   },
+   "final_entities_by_state": {
+    "active": 107,
+    "dormant": 206,
+    "retracted": 45
+   },
+   "window": [
+    559,
+    589
+   ],
+   "executed_interventions": 0,
+   "report": {
+    "node_prf1": {
+     "node_precision": 0.5463853732584335,
+     "node_recall": 0.851556613724722,
+     "node_f1": 0.6656614975057277,
+     "matched": 56511,
+     "predicted": 103427,
+     "truth": 66362
+    },
+    "node_prf1_iou": {
+     "node_precision": 0.34414611271718215,
+     "node_recall": 0.5363611705494108,
+     "node_f1": 0.4192733333725977,
+     "matched": 35594,
+     "predicted": 103427,
+     "truth": 66362
+    },
+    "missing_residual_rate": {
+     "missing_residual_rate": null,
+     "residual": 0,
+     "judged": 0,
+     "not_yet_observable": 0
+    },
+    "false_retract_rate": {
+     "false_retract_rate": 0.8390804597701149,
+     "false_retracts": 73,
+     "judged_retracts": 87,
+     "ambiguous_retracts": 1
+    },
+    "identity_continuity": {
+     "identity_continuity": null,
+     "kept": 0,
+     "judged": 0,
+     "no_prior_carrier": 0
+    },
+    "recovery_latency_frames": {
+     "recovery_latency_frames": null,
+     "recovered": 0,
+     "unrecovered": [],
+     "never_observable": [],
+     "per_object": {}
+    },
+    "contamination_auc": {
+     "contamination_auc": 0.32700122963129186,
+     "frames": 1030
+    },
+    "size_and_cost": {
+     "active_entity_count": 95.16504854368932,
+     "lifecycle_version_count": 1150.3893203883495,
+     "runtime_per_frame_s": 0.2718169723899619,
+     "peak_memory_bytes": 752926720
+    }
+   },
+   "headline": {
+    "node_prf1": 0.6656614975057277,
+    "node_prf1_iou": 0.4192733333725977,
+    "missing_residual_rate": null,
+    "false_retract_rate": 0.8390804597701149,
+    "identity_continuity": null,
+    "recovery_latency_frames": null,
+    "contamination_auc": 0.32700122963129186
+   },
+   "decomposition_totals": {
+    "recall_miss": 79,
+    "teacher_error": 1129,
+    "amortization_error": 5609,
+    "correct": 33732,
+    "unlabelled": 0,
+    "duplicate_of_labelled": 0,
+    "decisions": 40549
+   },
+   "spawned_after_reload_keys": [],
+   "nuisance_largest_advantage": 0.0,
+   "elu_p_counts": null
+  },
+  "procthor10k-0.1.2-train-00702": {
+   "status": "succeeded",
+   "receipt_sha256": "362e3a15e23596f25a6849a88b9426f85c06e064cd9e7ccd7cfac4fbc519a349",
+   "frames": 126,
+   "wall_seconds": 8.3,
+   "illegal_programs": 0,
+   "atoms": {
+    "NOOP": 1013,
+    "BIND": 538,
+    "BIRTH": 77,
+    "RETRACT": 6,
+    "REACTIVATE": 45
+   },
+   "final_entities_by_state": {
+    "active": 26,
+    "dormant": 31,
+    "retracted": 5
+   },
+   "window": [
+    53,
+    83
+   ],
+   "executed_interventions": 6,
+   "report": {
+    "node_prf1": {
+     "node_precision": 0.4355628058727569,
+     "node_recall": 0.9587073608617595,
+     "node_f1": 0.5989904655075715,
+     "matched": 1068,
+     "predicted": 2452,
+     "truth": 1114
+    },
+    "node_prf1_iou": {
+     "node_precision": 0.3442088091353997,
+     "node_recall": 0.7576301615798923,
+     "node_f1": 0.4733595064498037,
+     "matched": 844,
+     "predicted": 2452,
+     "truth": 1114
+    },
+    "missing_residual_rate": {
+     "missing_residual_rate": 0.16666666666666666,
+     "residual": 1,
+     "judged": 6,
+     "not_yet_observable": 0
+    },
+    "false_retract_rate": {
+     "false_retract_rate": 0.16666666666666666,
+     "false_retracts": 1,
+     "judged_retracts": 6,
+     "ambiguous_retracts": 0
+    },
+    "identity_continuity": {
+     "identity_continuity": null,
+     "kept": 0,
+     "judged": 0,
+     "no_prior_carrier": 0
+    },
+    "recovery_latency_frames": {
+     "recovery_latency_frames": 12.2,
+     "recovered": 5,
+     "unrecovered": [
+      "Bottle|surface|2|13"
+     ],
+     "never_observable": [],
+     "per_object": {
+      "Bottle|surface|2|13": null,
+      "Cup|surface|2|4": 16,
+      "Cup|surface|2|5": 9,
+      "Pan|surface|2|0": 0,
+      "SoapBottle|surface|2|2": 22,
+      "WineBottle|surface|2|14": 14
+     }
+    },
+    "contamination_auc": {
+     "contamination_auc": 0.37615025154510046,
+     "frames": 126
+    },
+    "size_and_cost": {
+     "active_entity_count": 23.515873015873016,
+     "lifecycle_version_count": 94.86507936507937,
+     "runtime_per_frame_s": 0.05744486195700509,
+     "peak_memory_bytes": 565301248
+    }
+   },
+   "headline": {
+    "node_prf1": 0.5989904655075715,
+    "node_prf1_iou": 0.4733595064498037,
+    "missing_residual_rate": 0.16666666666666666,
+    "false_retract_rate": 0.16666666666666666,
+    "identity_continuity": null,
+    "recovery_latency_frames": 12.2,
+    "contamination_auc": 0.37615025154510046
+   },
+   "decomposition_totals": {
+    "recall_miss": 19,
+    "teacher_error": 45,
+    "amortization_error": 394,
+    "correct": 1221,
+    "unlabelled": 0,
+    "duplicate_of_labelled": 0,
+    "decisions": 1679
+   },
+   "spawned_after_reload_keys": [],
+   "nuisance_largest_advantage": 0.010606060606060619,
+   "elu_p_counts": null
+  },
+  "procthor10k-0.1.2-train-00950": {
+   "status": "succeeded",
+   "receipt_sha256": "ae15b49c8d37036ad1100cab22a6b8df74d29cc6e1a3fa832d9770c2be026b9b",
+   "frames": 3037,
+   "wall_seconds": 2337.3,
+   "illegal_programs": 0,
+   "atoms": {
+    "NOOP": 100702,
+    "BIND": 30813,
+    "BIRTH": 1928,
+    "RETRACT": 299,
+    "REACTIVATE": 2195
+   },
+   "final_entities_by_state": {
+    "active": 150,
+    "dormant": 440,
+    "retracted": 146
+   },
+   "window": [
+    1734,
+    1764
+   ],
+   "executed_interventions": 6,
+   "report": {
+    "node_prf1": {
+     "node_precision": 0.5541570111531601,
+     "node_recall": 0.7128644923616555,
+     "node_f1": 0.6235708791815788,
+     "matched": 299160,
+     "predicted": 539847,
+     "truth": 419659
+    },
+    "node_prf1_iou": {
+     "node_precision": 0.35248320357434604,
+     "node_recall": 0.45343242966313124,
+     "node_f1": 0.3966353519415199,
+     "matched": 190287,
+     "predicted": 539847,
+     "truth": 419659
+    },
+    "missing_residual_rate": {
+     "missing_residual_rate": 0.0,
+     "residual": 0,
+     "judged": 5,
+     "not_yet_observable": 0
+    },
+    "false_retract_rate": {
+     "false_retract_rate": 0.8605442176870748,
+     "false_retracts": 253,
+     "judged_retracts": 294,
+     "ambiguous_retracts": 5
+    },
+    "identity_continuity": {
+     "identity_continuity": 0.5,
+     "kept": 2,
+     "judged": 4,
+     "no_prior_carrier": 0
+    },
+    "recovery_latency_frames": {
+     "recovery_latency_frames": 254.0,
+     "recovered": 5,
+     "unrecovered": [
+      "Newspaper|surface|4|29"
+     ],
+     "never_observable": [],
+     "per_object": {
+      "BasketBall|surface|8|62": 174,
+      "Book|surface|8|68": 396,
+      "Bowl|surface|8|63": 0,
+      "Newspaper|surface|4|29": null,
+      "Pillow|surface|4|35": 153,
+      "Statue|surface|8|69": 547
+     }
+    },
+    "contamination_auc": {
+     "contamination_auc": 0.42432529788373696,
+     "frames": 3037
+    },
+    "size_and_cost": {
+     "active_entity_count": 137.72966743496872,
+     "lifecycle_version_count": 3025.9295357260453,
+     "runtime_per_frame_s": 0.5872229787131301,
+     "peak_memory_bytes": 1138282496
+    }
+   },
+   "headline": {
+    "node_prf1": 0.6235708791815788,
+    "node_prf1_iou": 0.3966353519415199,
+    "missing_residual_rate": 0.0,
+    "false_retract_rate": 0.8605442176870748,
+    "identity_continuity": 0.5,
+    "recovery_latency_frames": 254.0,
+    "contamination_auc": 0.42432529788373696
+   },
+   "decomposition_totals": {
+    "recall_miss": 833,
+    "teacher_error": 7504,
+    "amortization_error": 17302,
+    "correct": 110298,
+    "unlabelled": 0,
+    "duplicate_of_labelled": 0,
+    "decisions": 135937
+   },
+   "spawned_after_reload_keys": [],
+   "nuisance_largest_advantage": 0.0006583466910923264,
+   "elu_p_counts": null
+  },
+  "procthor10k-0.1.2-train-00975": {
+   "status": "succeeded",
+   "receipt_sha256": "bdd8ffd1d89d97acbd82d7a802787aa7e780bb21b0951932cad8d19009887c9c",
+   "frames": 787,
+   "wall_seconds": 225.0,
+   "illegal_programs": 0,
+   "atoms": {
+    "NOOP": 22585,
+    "BIND": 7327,
+    "BIRTH": 806,
+    "RETRACT": 43,
+    "REACTIVATE": 690
+   },
+   "final_entities_by_state": {
+    "active": 102,
+    "dormant": 215,
+    "retracted": 28
+   },
+   "window": [
+    442,
+    472
+   ],
+   "executed_interventions": 6,
+   "report": {
+    "node_prf1": {
+     "node_precision": 0.49278531838326334,
+     "node_recall": 0.8116602184146829,
+     "node_f1": 0.6132478940168479,
+     "matched": 42587,
+     "predicted": 86421,
+     "truth": 52469
+    },
+    "node_prf1_iou": {
+     "node_precision": 0.3005288066557897,
+     "node_recall": 0.49499704587470694,
+     "node_f1": 0.3739938080495356,
+     "matched": 25972,
+     "predicted": 86421,
+     "truth": 52469
+    },
+    "missing_residual_rate": {
+     "missing_residual_rate": 0.0,
+     "residual": 0,
+     "judged": 4,
+     "not_yet_observable": 0
+    },
+    "false_retract_rate": {
+     "false_retract_rate": 0.5581395348837209,
+     "false_retracts": 24,
+     "judged_retracts": 43,
+     "ambiguous_retracts": 0
+    },
+    "identity_continuity": {
+     "identity_continuity": null,
+     "kept": 0,
+     "judged": 0,
+     "no_prior_carrier": 0
+    },
+    "recovery_latency_frames": {
+     "recovery_latency_frames": 109.83333333333333,
+     "recovered": 6,
+     "unrecovered": [],
+     "never_observable": [],
+     "per_object": {
+      "Book|surface|4|0": 90,
+      "Book|surface|4|3": 216,
+      "Book|surface|4|4": 150,
+      "Book|surface|6|10": 1,
+      "Book|surface|6|9": 22,
+      "Book|surface|9|24": 180
+     }
+    },
+    "contamination_auc": {
+     "contamination_auc": 0.3383851026763352,
+     "frames": 787
+    },
+    "size_and_cost": {
+     "active_entity_count": 88.80432020330369,
+     "lifecycle_version_count": 1061.151207115629,
+     "runtime_per_frame_s": 0.2311268788886646,
+     "peak_memory_bytes": 718221312
+    }
+   },
+   "headline": {
+    "node_prf1": 0.6132478940168479,
+    "node_prf1_iou": 0.3739938080495356,
+    "missing_residual_rate": 0.0,
+    "false_retract_rate": 0.5581395348837209,
+    "identity_continuity": null,
+    "recovery_latency_frames": 109.83333333333333,
+    "contamination_auc": 0.3383851026763352
+   },
+   "decomposition_totals": {
+    "recall_miss": 189,
+    "teacher_error": 2076,
+    "amortization_error": 5256,
+    "correct": 23930,
+    "unlabelled": 0,
+    "duplicate_of_labelled": 0,
+    "decisions": 31451
+   },
+   "spawned_after_reload_keys": [],
+   "nuisance_largest_advantage": 0.0,
+   "elu_p_counts": null
+  },
+  "procthor10k-0.1.2-train-01139": {
+   "status": "succeeded",
+   "receipt_sha256": "a187140d926795de9fb144a94bf3374b37ad82eafebfe98cbf2dac97170df763",
+   "frames": 468,
+   "wall_seconds": 67.2,
+   "illegal_programs": 0,
+   "atoms": {
+    "NOOP": 8336,
+    "BIND": 3016,
+    "BIRTH": 262,
+    "RETRACT": 25,
+    "REACTIVATE": 263
+   },
+   "final_entities_by_state": {
+    "active": 49,
+    "dormant": 79,
+    "retracted": 11
+   },
+   "window": [
+    238,
+    268
+   ],
+   "executed_interventions": 2,
+   "report": {
+    "node_prf1": {
+     "node_precision": 0.4591009579955785,
+     "node_recall": 0.96673455532926,
+     "node_f1": 0.6225525403616152,
+     "matched": 9968,
+     "predicted": 21712,
+     "truth": 10311
+    },
+    "node_prf1_iou": {
+     "node_precision": 0.2661201179071481,
+     "node_recall": 0.5603724178062264,
+     "node_f1": 0.3608656278299972,
+     "matched": 5778,
+     "predicted": 21712,
+     "truth": 10311
+    },
+    "missing_residual_rate": {
+     "missing_residual_rate": 0.0,
+     "residual": 0,
+     "judged": 2,
+     "not_yet_observable": 0
+    },
+    "false_retract_rate": {
+     "false_retract_rate": 0.76,
+     "false_retracts": 19,
+     "judged_retracts": 25,
+     "ambiguous_retracts": 0
+    },
+    "identity_continuity": {
+     "identity_continuity": 0.0,
+     "kept": 0,
+     "judged": 1,
+     "no_prior_carrier": 0
+    },
+    "recovery_latency_frames": {
+     "recovery_latency_frames": 130.5,
+     "recovered": 2,
+     "unrecovered": [],
+     "never_observable": [],
+     "per_object": {
+      "Bowl|surface|2|1": 156,
+      "Pillow|surface|2|0": 105
+     }
+    },
+    "contamination_auc": {
+     "contamination_auc": 0.18866063834377486,
+     "frames": 468
+    },
+    "size_and_cost": {
+     "active_entity_count": 40.94017094017094,
+     "lifecycle_version_count": 435.4465811965812,
+     "runtime_per_frame_s": 0.12656420520228198,
+     "peak_memory_bytes": 618422272
+    }
+   },
+   "headline": {
+    "node_prf1": 0.6225525403616152,
+    "node_prf1_iou": 0.3608656278299972,
+    "missing_residual_rate": 0.0,
+    "false_retract_rate": 0.76,
+    "identity_continuity": 0.0,
+    "recovery_latency_frames": 130.5,
+    "contamination_auc": 0.18866063834377486
+   },
+   "decomposition_totals": {
+    "recall_miss": 9,
+    "teacher_error": 145,
+    "amortization_error": 2001,
+    "correct": 9747,
+    "unlabelled": 0,
+    "duplicate_of_labelled": 0,
+    "decisions": 11902
+   },
+   "spawned_after_reload_keys": [],
+   "nuisance_largest_advantage": 0.0014120304998588296,
+   "elu_p_counts": null
+  },
+  "procthor10k-0.1.2-train-01259": {
+   "status": "succeeded",
+   "receipt_sha256": "5ea2d03702da047019c00daef800295d10b34248a476794b3ef03bc7814115ae",
+   "frames": 2655,
+   "wall_seconds": 1587.2,
+   "illegal_programs": 0,
+   "atoms": {
+    "NOOP": 78313,
+    "BIND": 21951,
+    "BIRTH": 1477,
+    "RETRACT": 251,
+    "REACTIVATE": 1721
+   },
+   "final_entities_by_state": {
+    "active": 139,
+    "dormant": 337,
+    "retracted": 126
+   },
+   "window": [
+    1171,
+    1201
+   ],
+   "executed_interventions": 6,
+   "report": {
+    "node_prf1": {
+     "node_precision": 0.5800968907467716,
+     "node_recall": 0.7805076300218,
+     "node_f1": 0.6655424739056713,
+     "matched": 250621,
+     "predicted": 432033,
+     "truth": 321100
+    },
+    "node_prf1_iou": {
+     "node_precision": 0.36811076931623277,
+     "node_recall": 0.4952849579570227,
+     "node_f1": 0.4223317793802688,
+     "matched": 159036,
+     "predicted": 432033,
+     "truth": 321100
+    },
+    "missing_residual_rate": {
+     "missing_residual_rate": 0.0,
+     "residual": 0,
+     "judged": 4,
+     "not_yet_observable": 0
+    },
+    "false_retract_rate": {
+     "false_retract_rate": 0.8755020080321285,
+     "false_retracts": 218,
+     "judged_retracts": 249,
+     "ambiguous_retracts": 2
+    },
+    "identity_continuity": {
+     "identity_continuity": 0.0,
+     "kept": 0,
+     "judged": 2,
+     "no_prior_carrier": 1
+    },
+    "recovery_latency_frames": {
+     "recovery_latency_frames": 427.3333333333333,
+     "recovered": 6,
+     "unrecovered": [],
+     "never_observable": [],
+     "per_object": {
+      "Book|surface|7|70": 496,
+      "Book|surface|8|86": 1006,
+      "CellPhone|surface|2|21": 7,
+      "Mug|surface|7|59": 413,
+      "RemoteControl|surface|6|51": 19,
+      "Vase|surface|6|54": 623
+     }
+    },
+    "contamination_auc": {
+     "contamination_auc": 0.2963603968447197,
+     "frames": 2655
+    },
+    "size_and_cost": {
+     "active_entity_count": 126.99774011299435,
+     "lifecycle_version_count": 2502.524670433145,
+     "runtime_per_frame_s": 0.4533339839870647,
+     "peak_memory_bytes": 993394688
+    }
+   },
+   "headline": {
+    "node_prf1": 0.6655424739056713,
+    "node_prf1_iou": 0.4223317793802688,
+    "missing_residual_rate": 0.0,
+    "false_retract_rate": 0.8755020080321285,
+    "identity_continuity": 0.0,
+    "recovery_latency_frames": 427.3333333333333,
+    "contamination_auc": 0.2963603968447197
+   },
+   "decomposition_totals": {
+    "recall_miss": 389,
+    "teacher_error": 3057,
+    "amortization_error": 12664,
+    "correct": 87603,
+    "unlabelled": 0,
+    "duplicate_of_labelled": 0,
+    "decisions": 103713
+   },
+   "spawned_after_reload_keys": [],
+   "nuisance_largest_advantage": 0.0,
+   "elu_p_counts": null
+  },
+  "procthor10k-0.1.2-train-01289": {
+   "status": "succeeded",
+   "receipt_sha256": "17fc138a3f521990ea8c784ff57caba82286080eb3ef6406e54c698fcd10ef11",
+   "frames": 3473,
+   "wall_seconds": 3057.2,
+   "illegal_programs": 0,
+   "atoms": {
+    "NOOP": 191210,
+    "BIND": 30377,
+    "BIRTH": 2817,
+    "RETRACT": 431,
+    "REACTIVATE": 3583
+   },
+   "final_entities_by_state": {
+    "active": 164,
+    "dormant": 733,
+    "retracted": 190
+   },
+   "window": [
+    2103,
+    2133
+   ],
+   "executed_interventions": 0,
+   "report": {
+    "node_prf1": {
+     "node_precision": 0.5103703997733335,
+     "node_recall": 0.7825763013520377,
+     "node_f1": 0.6178194034240362,
+     "matched": 372871,
+     "predicted": 730589,
+     "truth": 476466
+    },
+    "node_prf1_iou": {
+     "node_precision": 0.34166405461894445,
+     "node_recall": 0.5238904769700251,
+     "node_f1": 0.4135950723040789,
+     "matched": 249616,
+     "predicted": 730589,
+     "truth": 476466
+    },
+    "missing_residual_rate": {
+     "missing_residual_rate": null,
+     "residual": 0,
+     "judged": 0,
+     "not_yet_observable": 0
+    },
+    "false_retract_rate": {
+     "false_retract_rate": 0.8192488262910798,
+     "false_retracts": 349,
+     "judged_retracts": 426,
+     "ambiguous_retracts": 5
+    },
+    "identity_continuity": {
+     "identity_continuity": null,
+     "kept": 0,
+     "judged": 0,
+     "no_prior_carrier": 0
+    },
+    "recovery_latency_frames": {
+     "recovery_latency_frames": null,
+     "recovered": 0,
+     "unrecovered": [],
+     "never_observable": [],
+     "per_object": {}
+    },
+    "contamination_auc": {
+     "contamination_auc": 0.3376036193086027,
+     "frames": 3473
+    },
+    "size_and_cost": {
+     "active_entity_count": 156.22545349841636,
+     "lifecycle_version_count": 4698.293982147999,
+     "runtime_per_frame_s": 0.7285692203020864,
+     "peak_memory_bytes": 1298755584
+    }
+   },
+   "headline": {
+    "node_prf1": 0.6178194034240362,
+    "node_prf1_iou": 0.4135950723040789,
+    "missing_residual_rate": null,
+    "false_retract_rate": 0.8192488262910798,
+    "identity_continuity": null,
+    "recovery_latency_frames": null,
+    "contamination_auc": 0.3376036193086027
+   },
+   "decomposition_totals": {
+    "recall_miss": 682,
+    "teacher_error": 6108,
+    "amortization_error": 25187,
+    "correct": 196441,
+    "unlabelled": 0,
+    "duplicate_of_labelled": 0,
+    "decisions": 228418
+   },
+   "spawned_after_reload_keys": [],
+   "nuisance_largest_advantage": 0.0,
+   "elu_p_counts": null
+  },
+  "procthor10k-0.1.2-train-01394": {
+   "status": "succeeded",
+   "receipt_sha256": "b6f2c560a3a72c029c8bd4205058bfd793f59a62291505b8d4a39e7645d8e94b",
+   "frames": 261,
+   "wall_seconds": 25.5,
+   "illegal_programs": 0,
+   "atoms": {
+    "NOOP": 2637,
+    "BIND": 1538,
+    "BIRTH": 140,
+    "RETRACT": 10,
+    "REACTIVATE": 90
+   },
+   "final_entities_by_state": {
+    "active": 29,
+    "dormant": 36,
+    "retracted": 8
+   },
+   "window": [
+    114,
+    144
+   ],
+   "executed_interventions": 5,
+   "report": {
+    "node_prf1": {
+     "node_precision": 0.5844727143026989,
+     "node_recall": 0.8511080332409973,
+     "node_f1": 0.69302882920984,
+     "matched": 4916,
+     "predicted": 8411,
+     "truth": 5776
+    },
+    "node_prf1_iou": {
+     "node_precision": 0.4200451789323505,
+     "node_recall": 0.6116689750692521,
+     "node_f1": 0.49806160569535485,
+     "matched": 3533,
+     "predicted": 8411,
+     "truth": 5776
+    },
+    "missing_residual_rate": {
+     "missing_residual_rate": 0.25,
+     "residual": 1,
+     "judged": 4,
+     "not_yet_observable": 0
+    },
+    "false_retract_rate": {
+     "false_retract_rate": 0.5,
+     "false_retracts": 5,
+     "judged_retracts": 10,
+     "ambiguous_retracts": 0
+    },
+    "identity_continuity": {
+     "identity_continuity": 0.0,
+     "kept": 0,
+     "judged": 1,
+     "no_prior_carrier": 0
+    },
+    "recovery_latency_frames": {
+     "recovery_latency_frames": 17.333333333333332,
+     "recovered": 3,
+     "unrecovered": [
+      "Tomato|surface|2|8",
+      "Vase|surface|2|27"
+     ],
+     "never_observable": [],
+     "per_object": {
+      "Bread|surface|2|28": 10,
+      "CellPhone|surface|2|22": 21,
+      "Pot|surface|2|34": 21,
+      "Tomato|surface|2|8": null,
+      "Vase|surface|2|27": null
+     }
+    },
+    "contamination_auc": {
+     "contamination_auc": 0.42593952117294304,
+     "frames": 261
+    },
+    "size_and_cost": {
+     "active_entity_count": 28.022988505747126,
+     "lifecycle_version_count": 189.88505747126436,
+     "runtime_per_frame_s": 0.0839122428747886,
+     "peak_memory_bytes": 585973760
+    }
+   },
+   "headline": {
+    "node_prf1": 0.69302882920984,
+    "node_prf1_iou": 0.49806160569535485,
+    "missing_residual_rate": 0.25,
+    "false_retract_rate": 0.5,
+    "identity_continuity": 0.0,
+    "recovery_latency_frames": 17.333333333333332,
+    "contamination_auc": 0.42593952117294304
+   },
+   "decomposition_totals": {
+    "recall_miss": 76,
+    "teacher_error": 125,
+    "amortization_error": 1098,
+    "correct": 3116,
+    "unlabelled": 0,
+    "duplicate_of_labelled": 0,
+    "decisions": 4415
+   },
+   "spawned_after_reload_keys": [],
+   "nuisance_largest_advantage": 0.004524886877828038,
+   "elu_p_counts": null
+  },
+  "procthor10k-0.1.2-train-01543": {
+   "status": "succeeded",
+   "receipt_sha256": "9ba2d1dc2acae42f7f9393226058f2efe425533fa1ed94a549e228a08135ac2e",
+   "frames": 1358,
+   "wall_seconds": 384.7,
+   "illegal_programs": 0,
+   "atoms": {
+    "NOOP": 30151,
+    "BIND": 10148,
+    "BIRTH": 688,
+    "RETRACT": 93,
+    "REACTIVATE": 792
+   },
+   "final_entities_by_state": {
+    "active": 90,
+    "dormant": 161,
+    "retracted": 40
+   },
+   "window": [
+    652,
+    682
+   ],
+   "executed_interventions": 6,
+   "report": {
+    "node_prf1": {
+     "node_precision": 0.5512531328320802,
+     "node_recall": 0.7765714645987012,
+     "node_f1": 0.644795183876456,
+     "matched": 61586,
+     "predicted": 111720,
+     "truth": 79305
+    },
+    "node_prf1_iou": {
+     "node_precision": 0.3730128893662728,
+     "node_recall": 0.5254775865330055,
+     "node_f1": 0.43630938358853555,
+     "matched": 41673,
+     "predicted": 111720,
+     "truth": 79305
+    },
+    "missing_residual_rate": {
+     "missing_residual_rate": 0.0,
+     "residual": 0,
+     "judged": 5,
+     "not_yet_observable": 0
+    },
+    "false_retract_rate": {
+     "false_retract_rate": 0.7741935483870968,
+     "false_retracts": 72,
+     "judged_retracts": 93,
+     "ambiguous_retracts": 0
+    },
+    "identity_continuity": {
+     "identity_continuity": 0.0,
+     "kept": 0,
+     "judged": 2,
+     "no_prior_carrier": 0
+    },
+    "recovery_latency_frames": {
+     "recovery_latency_frames": 98.4,
+     "recovered": 5,
+     "unrecovered": [
+      "Tomato|surface|6|30"
+     ],
+     "never_observable": [],
+     "per_object": {
+      "Book|surface|4|6": 0,
+      "Pillow|surface|4|1": 48,
+      "TennisRacket|surface|4|5": 18,
+      "TissueBox|surface|5|21": 424,
+      "Tomato|surface|6|30": null,
+      "Vase|surface|6|31": 2
+     }
+    },
+    "contamination_auc": {
+     "contamination_auc": 0.40758811650039267,
+     "frames": 1358
+    },
+    "size_and_cost": {
+     "active_entity_count": 64.74300441826215,
+     "lifecycle_version_count": 1113.8637702503681,
+     "runtime_per_frame_s": 0.234051681407597,
+     "peak_memory_bytes": 751636480
+    }
+   },
+   "headline": {
+    "node_prf1": 0.644795183876456,
+    "node_prf1_iou": 0.43630938358853555,
+    "missing_residual_rate": 0.0,
+    "false_retract_rate": 0.7741935483870968,
+    "identity_continuity": 0.0,
+    "recovery_latency_frames": 98.4,
+    "contamination_auc": 0.40758811650039267
+   },
+   "decomposition_totals": {
+    "recall_miss": 176,
+    "teacher_error": 1647,
+    "amortization_error": 5877,
+    "correct": 34172,
+    "unlabelled": 0,
+    "duplicate_of_labelled": 0,
+    "decisions": 41872
+   },
+   "spawned_after_reload_keys": [],
+   "nuisance_largest_advantage": 0.0013759889920881285,
+   "elu_p_counts": null
+  },
+  "procthor10k-0.1.2-train-02524": {
+   "status": "succeeded",
+   "receipt_sha256": "8c8608984ac14ab1284e0be64f270150cd6d845fdaad4e0405163cf5d1ddc6a6",
+   "frames": 1399,
+   "wall_seconds": 426.6,
+   "illegal_programs": 0,
+   "atoms": {
+    "NOOP": 36216,
+    "BIND": 10937,
+    "BIRTH": 765,
+    "RETRACT": 107,
+    "REACTIVATE": 895
+   },
+   "final_entities_by_state": {
+    "active": 84,
+    "dormant": 194,
+    "retracted": 54
+   },
+   "window": [
+    782,
+    812
+   ],
+   "executed_interventions": 0,
+   "report": {
+    "node_prf1": {
+     "node_precision": 0.5323937204559468,
+     "node_recall": 0.7254055101996855,
+     "node_f1": 0.6140905941135709,
+     "matched": 67351,
+     "predicted": 126506,
+     "truth": 92846
+    },
+    "node_prf1_iou": {
+     "node_precision": 0.33790492150569934,
+     "node_recall": 0.4604075565990996,
+     "node_f1": 0.38975710273897657,
+     "matched": 42747,
+     "predicted": 126506,
+     "truth": 92846
+    },
+    "missing_residual_rate": {
+     "missing_residual_rate": null,
+     "residual": 0,
+     "judged": 0,
+     "not_yet_observable": 0
+    },
+    "false_retract_rate": {
+     "false_retract_rate": 0.7735849056603774,
+     "false_retracts": 82,
+     "judged_retracts": 106,
+     "ambiguous_retracts": 1
+    },
+    "identity_continuity": {
+     "identity_continuity": null,
+     "kept": 0,
+     "judged": 0,
+     "no_prior_carrier": 0
+    },
+    "recovery_latency_frames": {
+     "recovery_latency_frames": null,
+     "recovered": 0,
+     "unrecovered": [],
+     "never_observable": [],
+     "per_object": {}
+    },
+    "contamination_auc": {
+     "contamination_auc": 0.4122469646596647,
+     "frames": 1399
+    },
+    "size_and_cost": {
+     "active_entity_count": 75.915654038599,
+     "lifecycle_version_count": 1218.855611150822,
+     "runtime_per_frame_s": 0.2606505095064001,
+     "peak_memory_bytes": 778833920
+    }
+   },
+   "headline": {
+    "node_prf1": 0.6140905941135709,
+    "node_prf1_iou": 0.38975710273897657,
+    "missing_residual_rate": null,
+    "false_retract_rate": 0.7735849056603774,
+    "identity_continuity": null,
+    "recovery_latency_frames": null,
+    "contamination_auc": 0.4122469646596647
+   },
+   "decomposition_totals": {
+    "recall_miss": 104,
+    "teacher_error": 1801,
+    "amortization_error": 7508,
+    "correct": 39507,
+    "unlabelled": 0,
+    "duplicate_of_labelled": 0,
+    "decisions": 48920
+   },
+   "spawned_after_reload_keys": [],
+   "nuisance_largest_advantage": 0.00015876796062552767,
+   "elu_p_counts": null
+  },
+  "procthor10k-0.1.2-train-02768": {
+   "status": "succeeded",
+   "receipt_sha256": "a02316d24e18638573e246c246f2679cd25db04b0f9659d1b65bbeb5beb1c66b",
+   "frames": 1696,
+   "wall_seconds": 756.7,
+   "illegal_programs": 0,
+   "atoms": {
+    "NOOP": 71622,
+    "BIND": 14259,
+    "BIRTH": 1317,
+    "RETRACT": 276,
+    "REACTIVATE": 1425
+   },
+   "final_entities_by_state": {
+    "active": 81,
+    "dormant": 279,
+    "retracted": 131
+   },
+   "window": [
+    837,
+    867
+   ],
+   "executed_interventions": 0,
+   "report": {
+    "node_prf1": {
+     "node_precision": 0.5746186826036118,
+     "node_recall": 0.7989291830143281,
+     "node_f1": 0.6684581529756004,
+     "matched": 110571,
+     "predicted": 192425,
+     "truth": 138399
+    },
+    "node_prf1_iou": {
+     "node_precision": 0.3672391840977004,
+     "node_recall": 0.5105961748278528,
+     "node_f1": 0.4272120523299398,
+     "matched": 70666,
+     "predicted": 192425,
+     "truth": 138399
+    },
+    "missing_residual_rate": {
+     "missing_residual_rate": null,
+     "residual": 0,
+     "judged": 0,
+     "not_yet_observable": 0
+    },
+    "false_retract_rate": {
+     "false_retract_rate": 0.8248175182481752,
+     "false_retracts": 226,
+     "judged_retracts": 274,
+     "ambiguous_retracts": 2
+    },
+    "identity_continuity": {
+     "identity_continuity": null,
+     "kept": 0,
+     "judged": 0,
+     "no_prior_carrier": 0
+    },
+    "recovery_latency_frames": {
+     "recovery_latency_frames": null,
+     "recovered": 0,
+     "unrecovered": [],
+     "never_observable": [],
+     "per_object": {}
+    },
+    "contamination_auc": {
+     "contamination_auc": 0.2869849389798906,
+     "frames": 1696
+    },
+    "size_and_cost": {
+     "active_entity_count": 90.64091981132076,
+     "lifecycle_version_count": 2172.3278301886794,
+     "runtime_per_frame_s": 0.37911793702053576,
+     "peak_memory_bytes": 904626176
+    }
+   },
+   "headline": {
+    "node_prf1": 0.6684581529756004,
+    "node_prf1_iou": 0.4272120523299398,
+    "missing_residual_rate": null,
+    "false_retract_rate": 0.8248175182481752,
+    "identity_continuity": null,
+    "recovery_latency_frames": null,
+    "contamination_auc": 0.2869849389798906
+   },
+   "decomposition_totals": {
+    "recall_miss": 320,
+    "teacher_error": 1982,
+    "amortization_error": 11505,
+    "correct": 75092,
+    "unlabelled": 0,
+    "duplicate_of_labelled": 0,
+    "decisions": 88899
+   },
+   "spawned_after_reload_keys": [],
+   "nuisance_largest_advantage": 0.00035292041644607863,
+   "elu_p_counts": null
+  },
+  "procthor10k-0.1.2-train-03288": {
+   "status": "succeeded",
+   "receipt_sha256": "0110af97aeaf0c4f3c45f56fbbfcc8ba65f2b74eebfde43ea8496523c33a342f",
+   "frames": 425,
+   "wall_seconds": 60.7,
+   "illegal_programs": 0,
+   "atoms": {
+    "NOOP": 5401,
+    "BIND": 3221,
+    "BIRTH": 212,
+    "RETRACT": 16,
+    "REACTIVATE": 205
+   },
+   "final_entities_by_state": {
+    "active": 47,
+    "dormant": 45,
+    "retracted": 7
+   },
+   "window": [
+    179,
+    209
+   ],
+   "executed_interventions": 6,
+   "report": {
+    "node_prf1": {
+     "node_precision": 0.5005546032066149,
+     "node_recall": 0.8311427375470908,
+     "node_f1": 0.6248151294880266,
+     "matched": 9928,
+     "predicted": 19834,
+     "truth": 11945
+    },
+    "node_prf1_iou": {
+     "node_precision": 0.25078148633659375,
+     "node_recall": 0.41640853913771453,
+     "node_f1": 0.31303691116775234,
+     "matched": 4974,
+     "predicted": 19834,
+     "truth": 11945
+    },
+    "missing_residual_rate": {
+     "missing_residual_rate": 0.3333333333333333,
+     "residual": 1,
+     "judged": 3,
+     "not_yet_observable": 0
+    },
+    "false_retract_rate": {
+     "false_retract_rate": 0.625,
+     "false_retracts": 10,
+     "judged_retracts": 16,
+     "ambiguous_retracts": 0
+    },
+    "identity_continuity": {
+     "identity_continuity": 1.0,
+     "kept": 1,
+     "judged": 1,
+     "no_prior_carrier": 0
+    },
+    "recovery_latency_frames": {
+     "recovery_latency_frames": 71.6,
+     "recovered": 5,
+     "unrecovered": [
+      "TeddyBear|surface|2|0"
+     ],
+     "never_observable": [],
+     "per_object": {
+      "Book|surface|2|9": 22,
+      "Pillow|2|3|1": 58,
+      "RemoteControl|surface|2|2": 73,
+      "RemoteControl|surface|2|4": 0,
+      "TeddyBear|surface|2|0": null,
+      "Vase|surface|2|3": 205
+     }
+    },
+    "contamination_auc": {
+     "contamination_auc": 0.3558797845406232,
+     "frames": 425
+    },
+    "size_and_cost": {
+     "active_entity_count": 37.449411764705886,
+     "lifecycle_version_count": 328.67529411764707,
+     "runtime_per_frame_s": 0.12104164460126092,
+     "peak_memory_bytes": 614805504
+    }
+   },
+   "headline": {
+    "node_prf1": 0.6248151294880266,
+    "node_prf1_iou": 0.31303691116775234,
+    "missing_residual_rate": 0.3333333333333333,
+    "false_retract_rate": 0.625,
+    "identity_continuity": 1.0,
+    "recovery_latency_frames": 71.6,
+    "contamination_auc": 0.3558797845406232
+   },
+   "decomposition_totals": {
+    "recall_miss": 58,
+    "teacher_error": 789,
+    "amortization_error": 2287,
+    "correct": 5921,
+    "unlabelled": 0,
+    "duplicate_of_labelled": 0,
+    "decisions": 9055
+   },
+   "spawned_after_reload_keys": [],
+   "nuisance_largest_advantage": 0.0,
+   "elu_p_counts": null
+  },
+  "procthor10k-0.1.2-train-03361": {
+   "status": "succeeded",
+   "receipt_sha256": "cef18fec9009d128d022e1deff85e7c9335161b49efdf0fefaf0b3688b3d29bd",
+   "frames": 1518,
+   "wall_seconds": 400.0,
+   "illegal_programs": 0,
+   "atoms": {
+    "NOOP": 20552,
+    "BIND": 11408,
+    "BIRTH": 615,
+    "RETRACT": 39,
+    "REACTIVATE": 782
+   },
+   "final_entities_by_state": {
+    "active": 90,
+    "dormant": 148,
+    "retracted": 21
+   },
+   "window": [
+    688,
+    718
+   ],
+   "executed_interventions": 6,
+   "report": {
+    "node_prf1": {
+     "node_precision": 0.5802803371031833,
+     "node_recall": 0.7690393518518519,
+     "node_f1": 0.6614569074935915,
+     "matched": 53156,
+     "predicted": 91604,
+     "truth": 69120
+    },
+    "node_prf1_iou": {
+     "node_precision": 0.35550849307890486,
+     "node_recall": 0.4711516203703704,
+     "node_f1": 0.40524128319354924,
+     "matched": 32566,
+     "predicted": 91604,
+     "truth": 69120
+    },
+    "missing_residual_rate": {
+     "missing_residual_rate": 0.2,
+     "residual": 1,
+     "judged": 5,
+     "not_yet_observable": 0
+    },
+    "false_retract_rate": {
+     "false_retract_rate": 0.8974358974358975,
+     "false_retracts": 35,
+     "judged_retracts": 39,
+     "ambiguous_retracts": 0
+    },
+    "identity_continuity": {
+     "identity_continuity": 0.0,
+     "kept": 0,
+     "judged": 3,
+     "no_prior_carrier": 0
+    },
+    "recovery_latency_frames": {
+     "recovery_latency_frames": 48.25,
+     "recovered": 4,
+     "unrecovered": [
+      "Pillow|surface|4|15",
+      "WineBottle|surface|2|4"
+     ],
+     "never_observable": [],
+     "per_object": {
+      "Candle|surface|5|21": 97,
+      "Lettuce|surface|2|9": 32,
+      "PaperTowelRoll|surface|11|38": 10,
+      "Pillow|surface|4|15": null,
+      "SoapBar|surface|7|27": 54,
+      "WineBottle|surface|2|4": null
+     }
+    },
+    "contamination_auc": {
+     "contamination_auc": 0.2899995450581479,
+     "frames": 1518
+    },
+    "size_and_cost": {
+     "active_entity_count": 81.4802371541502,
+     "lifecycle_version_count": 925.5204216073781,
+     "runtime_per_frame_s": 0.21808638293124313,
+     "peak_memory_bytes": 735985664
+    }
+   },
+   "headline": {
+    "node_prf1": 0.6614569074935915,
+    "node_prf1_iou": 0.40524128319354924,
+    "missing_residual_rate": 0.2,
+    "false_retract_rate": 0.8974358974358975,
+    "identity_continuity": 0.0,
+    "recovery_latency_frames": 48.25,
+    "contamination_auc": 0.2899995450581479
+   },
+   "decomposition_totals": {
+    "recall_miss": 1166,
+    "teacher_error": 4041,
+    "amortization_error": 3535,
+    "correct": 24654,
+    "unlabelled": 0,
+    "duplicate_of_labelled": 0,
+    "decisions": 33396
+   },
+   "spawned_after_reload_keys": [],
+   "nuisance_largest_advantage": 0.0,
+   "elu_p_counts": null
+  },
+  "procthor10k-0.1.2-train-03394": {
+   "status": "succeeded",
+   "receipt_sha256": "ea2b19573020935b39c628dc58f1b8d4a54cc13aa2bcd09b2cea6738d0e73d2a",
+   "frames": 1371,
+   "wall_seconds": 382.5,
+   "illegal_programs": 0,
+   "atoms": {
+    "NOOP": 27086,
+    "BIND": 10482,
+    "BIRTH": 693,
+    "RETRACT": 89,
+    "REACTIVATE": 773
+   },
+   "final_entities_by_state": {
+    "active": 87,
+    "dormant": 135,
+    "retracted": 58
+   },
+   "window": [
+    830,
+    860
+   ],
+   "executed_interventions": 0,
+   "report": {
+    "node_prf1": {
+     "node_precision": 0.6135496621776899,
+     "node_recall": 0.962992353195787,
+     "node_f1": 0.7495437828125439,
+     "matched": 80094,
+     "predicted": 130542,
+     "truth": 83172
+    },
+    "node_prf1_iou": {
+     "node_precision": 0.3760475555759832,
+     "node_recall": 0.5902226710912326,
+     "node_f1": 0.4593990098917244,
+     "matched": 49090,
+     "predicted": 130542,
+     "truth": 83172
+    },
+    "missing_residual_rate": {
+     "missing_residual_rate": null,
+     "residual": 0,
+     "judged": 0,
+     "not_yet_observable": 0
+    },
+    "false_retract_rate": {
+     "false_retract_rate": 0.7752808988764045,
+     "false_retracts": 69,
+     "judged_retracts": 89,
+     "ambiguous_retracts": 0
+    },
+    "identity_continuity": {
+     "identity_continuity": null,
+     "kept": 0,
+     "judged": 0,
+     "no_prior_carrier": 0
+    },
+    "recovery_latency_frames": {
+     "recovery_latency_frames": null,
+     "recovered": 0,
+     "unrecovered": [],
+     "never_observable": [],
+     "per_object": {}
+    },
+    "contamination_auc": {
+     "contamination_auc": 0.27223404739956253,
+     "frames": 1371
+    },
+    "size_and_cost": {
+     "active_entity_count": 75.64624361779723,
+     "lifecycle_version_count": 1093.1137855579868,
+     "runtime_per_frame_s": 0.2371286034670996,
+     "peak_memory_bytes": 750735360
+    }
+   },
+   "headline": {
+    "node_prf1": 0.7495437828125439,
+    "node_prf1_iou": 0.4593990098917244,
+    "missing_residual_rate": null,
+    "false_retract_rate": 0.7752808988764045,
+    "identity_continuity": null,
+    "recovery_latency_frames": null,
+    "contamination_auc": 0.27223404739956253
+   },
+   "decomposition_totals": {
+    "recall_miss": 677,
+    "teacher_error": 1685,
+    "amortization_error": 5949,
+    "correct": 30812,
+    "unlabelled": 0,
+    "duplicate_of_labelled": 0,
+    "decisions": 39123
+   },
+   "spawned_after_reload_keys": [],
+   "nuisance_largest_advantage": 0.0011717442249749022,
+   "elu_p_counts": null
+  },
+  "procthor10k-0.1.2-train-03525": {
+   "status": "succeeded",
+   "receipt_sha256": "3be28a0ca48bbbe27284d70c8ad142163352be506459286a7c210f3e473481e7",
+   "frames": 286,
+   "wall_seconds": 39.3,
+   "illegal_programs": 0,
+   "atoms": {
+    "NOOP": 5247,
+    "BIND": 2198,
+    "BIRTH": 293,
+    "RETRACT": 3,
+    "REACTIVATE": 193
+   },
+   "final_entities_by_state": {
+    "active": 62,
+    "dormant": 88,
+    "retracted": 2
+   },
+   "window": [
+    128,
+    158
+   ],
+   "executed_interventions": 0,
+   "report": {
+    "node_prf1": {
+     "node_precision": 0.5680469427218777,
+     "node_recall": 0.8995776135163674,
+     "node_f1": 0.6963665345158786,
+     "matched": 8519,
+     "predicted": 14997,
+     "truth": 9470
+    },
+    "node_prf1_iou": {
+     "node_precision": 0.4217510168700407,
+     "node_recall": 0.6678986272439282,
+     "node_f1": 0.5170229288429313,
+     "matched": 6325,
+     "predicted": 14997,
+     "truth": 9470
+    },
+    "missing_residual_rate": {
+     "missing_residual_rate": null,
+     "residual": 0,
+     "judged": 0,
+     "not_yet_observable": 0
+    },
+    "false_retract_rate": {
+     "false_retract_rate": 0.6666666666666666,
+     "false_retracts": 2,
+     "judged_retracts": 3,
+     "ambiguous_retracts": 0
+    },
+    "identity_continuity": {
+     "identity_continuity": null,
+     "kept": 0,
+     "judged": 0,
+     "no_prior_carrier": 0
+    },
+    "recovery_latency_frames": {
+     "recovery_latency_frames": null,
+     "recovered": 0,
+     "unrecovered": [],
+     "never_observable": [],
+     "per_object": {}
+    },
+    "contamination_auc": {
+     "contamination_auc": 0.31143894174317105,
+     "frames": 286
+    },
+    "size_and_cost": {
+     "active_entity_count": 54.67132867132867,
+     "lifecycle_version_count": 362.62587412587413,
+     "runtime_per_frame_s": 0.11886900955146842,
+     "peak_memory_bytes": 604938240
+    }
+   },
+   "headline": {
+    "node_prf1": 0.6963665345158786,
+    "node_prf1_iou": 0.5170229288429313,
+    "missing_residual_rate": null,
+    "false_retract_rate": 0.6666666666666666,
+    "identity_continuity": null,
+    "recovery_latency_frames": null,
+    "contamination_auc": 0.31143894174317105
+   },
+   "decomposition_totals": {
+    "recall_miss": 30,
+    "teacher_error": 62,
+    "amortization_error": 1399,
+    "correct": 6443,
+    "unlabelled": 0,
+    "duplicate_of_labelled": 0,
+    "decisions": 7934
+   },
+   "spawned_after_reload_keys": [],
+   "nuisance_largest_advantage": 0.0037257824143069884,
+   "elu_p_counts": null
+  },
+  "procthor10k-0.1.2-train-04388": {
+   "status": "succeeded",
+   "receipt_sha256": "51ac66bd0a337484060fcf9f74511e5a3f94d6e150d9152de110ecbb254fdc47",
+   "frames": 437,
+   "wall_seconds": 60.0,
+   "illegal_programs": 0,
+   "atoms": {
+    "NOOP": 7681,
+    "BIND": 2626,
+    "BIRTH": 280,
+    "RETRACT": 31,
+    "REACTIVATE": 185
+   },
+   "final_entities_by_state": {
+    "active": 53,
+    "dormant": 86,
+    "retracted": 15
+   },
+   "window": [
+    182,
+    212
+   ],
+   "executed_interventions": 6,
+   "report": {
+    "node_prf1": {
+     "node_precision": 0.5569676589852636,
+     "node_recall": 0.8624703269775633,
+     "node_f1": 0.6768426429494306,
+     "matched": 11263,
+     "predicted": 20222,
+     "truth": 13059
+    },
+    "node_prf1_iou": {
+     "node_precision": 0.3190090000989022,
+     "node_recall": 0.49398881997090127,
+     "node_f1": 0.38766863976443017,
+     "matched": 6451,
+     "predicted": 20222,
+     "truth": 13059
+    },
+    "missing_residual_rate": {
+     "missing_residual_rate": 0.0,
+     "residual": 0,
+     "judged": 6,
+     "not_yet_observable": 0
+    },
+    "false_retract_rate": {
+     "false_retract_rate": 0.5483870967741935,
+     "false_retracts": 17,
+     "judged_retracts": 31,
+     "ambiguous_retracts": 0
+    },
+    "identity_continuity": {
+     "identity_continuity": 0.3333333333333333,
+     "kept": 1,
+     "judged": 3,
+     "no_prior_carrier": 0
+    },
+    "recovery_latency_frames": {
+     "recovery_latency_frames": 75.16666666666667,
+     "recovered": 6,
+     "unrecovered": [],
+     "never_observable": [],
+     "per_object": {
+      "Bowl|surface|2|3": 111,
+      "CellPhone|surface|2|5": 9,
+      "Laptop|surface|2|10": 16,
+      "SprayBottle|surface|3|14": 81,
+      "TeddyBear|surface|2|6": 177,
+      "Vase|surface|2|11": 57
+     }
+    },
+    "contamination_auc": {
+     "contamination_auc": 0.2528158024381856,
+     "frames": 437
+    },
+    "size_and_cost": {
+     "active_entity_count": 37.40503432494279,
+     "lifecycle_version_count": 353.4096109839817,
+     "runtime_per_frame_s": 0.11699497345110371,
+     "peak_memory_bytes": 615022592
+    }
+   },
+   "headline": {
+    "node_prf1": 0.6768426429494306,
+    "node_prf1_iou": 0.38766863976443017,
+    "missing_residual_rate": 0.0,
+    "false_retract_rate": 0.5483870967741935,
+    "identity_continuity": 0.3333333333333333,
+    "recovery_latency_frames": 75.16666666666667,
+    "contamination_auc": 0.2528158024381856
+   },
+   "decomposition_totals": {
+    "recall_miss": 25,
+    "teacher_error": 353,
+    "amortization_error": 1949,
+    "correct": 8476,
+    "unlabelled": 0,
+    "duplicate_of_labelled": 0,
+    "decisions": 10803
+   },
+   "spawned_after_reload_keys": [],
+   "nuisance_largest_advantage": 0.0,
+   "elu_p_counts": null
+  },
+  "procthor10k-0.1.2-train-04742": {
+   "status": "succeeded",
+   "receipt_sha256": "6eca1de906fcb984576824e6cc79c25d22d704d233460efa95629de49ab15a16",
+   "frames": 836,
+   "wall_seconds": 276.6,
+   "illegal_programs": 0,
+   "atoms": {
+    "NOOP": 38060,
+    "BIND": 6649,
+    "BIRTH": 953,
+    "RETRACT": 57,
+    "REACTIVATE": 971
+   },
+   "final_entities_by_state": {
+    "active": 122,
+    "dormant": 278,
+    "retracted": 34
+   },
+   "window": [
+    361,
+    391
+   ],
+   "executed_interventions": 6,
+   "report": {
+    "node_prf1": {
+     "node_precision": 0.5257217395054009,
+     "node_recall": 0.9170004324852861,
+     "node_f1": 0.6683020083183161,
+     "matched": 48767,
+     "predicted": 92762,
+     "truth": 53181
+    },
+    "node_prf1_iou": {
+     "node_precision": 0.285677324766607,
+     "node_recall": 0.49829826441774316,
+     "node_f1": 0.36315547850873287,
+     "matched": 26500,
+     "predicted": 92762,
+     "truth": 53181
+    },
+    "missing_residual_rate": {
+     "missing_residual_rate": 0.0,
+     "residual": 0,
+     "judged": 5,
+     "not_yet_observable": 0
+    },
+    "false_retract_rate": {
+     "false_retract_rate": 0.8035714285714286,
+     "false_retracts": 45,
+     "judged_retracts": 56,
+     "ambiguous_retracts": 1
+    },
+    "identity_continuity": {
+     "identity_continuity": 0.0,
+     "kept": 0,
+     "judged": 3,
+     "no_prior_carrier": 0
+    },
+    "recovery_latency_frames": {
+     "recovery_latency_frames": 95.33333333333333,
+     "recovered": 6,
+     "unrecovered": [],
+     "never_observable": [],
+     "per_object": {
+      "Book|surface|9|32": 301,
+      "Laptop|surface|4|2": 8,
+      "Newspaper|surface|9|29": 28,
+      "PaperTowelRoll|surface|8|17": 54,
+      "RemoteControl|surface|6|9": 177,
+      "RemoteControl|surface|9|31": 4
+     }
+    },
+    "contamination_auc": {
+     "contamination_auc": 0.24954036510822172,
+     "frames": 836
+    },
+    "size_and_cost": {
+     "active_entity_count": 95.94617224880383,
+     "lifecycle_version_count": 1436.1172248803828,
+     "runtime_per_frame_s": 0.269444107438959,
+     "peak_memory_bytes": 747827200
+    }
+   },
+   "headline": {
+    "node_prf1": 0.6683020083183161,
+    "node_prf1_iou": 0.36315547850873287,
+    "missing_residual_rate": 0.0,
+    "false_retract_rate": 0.8035714285714286,
+    "identity_continuity": 0.0,
+    "recovery_latency_frames": 95.33333333333333,
+    "contamination_auc": 0.24954036510822172
+   },
+   "decomposition_totals": {
+    "recall_miss": 518,
+    "teacher_error": 1563,
+    "amortization_error": 5463,
+    "correct": 39146,
+    "unlabelled": 0,
+    "duplicate_of_labelled": 0,
+    "decisions": 46690
+   },
+   "spawned_after_reload_keys": [],
+   "nuisance_largest_advantage": 0.00046658112679343056,
+   "elu_p_counts": null
+  },
+  "procthor10k-0.1.2-train-04801": {
+   "status": "succeeded",
+   "receipt_sha256": "91bd229d78cb96140687e55463e60a44c8aa76513fac6927458af2f8de875753",
+   "frames": 1866,
+   "wall_seconds": 848.6,
+   "illegal_programs": 0,
+   "atoms": {
+    "NOOP": 47817,
+    "BIND": 16629,
+    "BIRTH": 1046,
+    "RETRACT": 114,
+    "REACTIVATE": 1282
+   },
+   "final_entities_by_state": {
+    "active": 120,
+    "dormant": 261,
+    "retracted": 54
+   },
+   "window": [
+    977,
+    1007
+   ],
+   "executed_interventions": 6,
+   "report": {
+    "node_prf1": {
+     "node_precision": 0.5052834594150777,
+     "node_recall": 0.7495274102079396,
+     "node_f1": 0.6036348774537978,
+     "matched": 118157,
+     "predicted": 233843,
+     "truth": 157642
+    },
+    "node_prf1_iou": {
+     "node_precision": 0.2695312667045838,
+     "node_recall": 0.3998173075703176,
+     "node_f1": 0.32199445700346113,
+     "matched": 63028,
+     "predicted": 233843,
+     "truth": 157642
+    },
+    "missing_residual_rate": {
+     "missing_residual_rate": 0.0,
+     "residual": 0,
+     "judged": 6,
+     "not_yet_observable": 0
+    },
+    "false_retract_rate": {
+     "false_retract_rate": 0.7807017543859649,
+     "false_retracts": 89,
+     "judged_retracts": 114,
+     "ambiguous_retracts": 0
+    },
+    "identity_continuity": {
+     "identity_continuity": 0.3333333333333333,
+     "kept": 1,
+     "judged": 3,
+     "no_prior_carrier": 0
+    },
+    "recovery_latency_frames": {
+     "recovery_latency_frames": 237.8,
+     "recovered": 5,
+     "unrecovered": [
+      "WineBottle|surface|8|43"
+     ],
+     "never_observable": [],
+     "per_object": {
+      "Box|surface|9|62": 400,
+      "PaperTowelRoll|surface|8|47": 0,
+      "Plate|surface|9|63": 724,
+      "SoapBottle|surface|5|18": 0,
+      "SprayBottle|surface|7|36": 65,
+      "WineBottle|surface|8|43": null
+     }
+    },
+    "contamination_auc": {
+     "contamination_auc": 0.39730148531974424,
+     "frames": 1866
+    },
+    "size_and_cost": {
+     "active_entity_count": 106.50803858520901,
+     "lifecycle_version_count": 1813.8542336548767,
+     "runtime_per_frame_s": 0.35667157185933723,
+     "peak_memory_bytes": 871108608
+    }
+   },
+   "headline": {
+    "node_prf1": 0.6036348774537978,
+    "node_prf1_iou": 0.32199445700346113,
+    "missing_residual_rate": 0.0,
+    "false_retract_rate": 0.7807017543859649,
+    "identity_continuity": 0.3333333333333333,
+    "recovery_latency_frames": 237.8,
+    "contamination_auc": 0.39730148531974424
+   },
+   "decomposition_totals": {
+    "recall_miss": 520,
+    "teacher_error": 2898,
+    "amortization_error": 9828,
+    "correct": 53642,
+    "unlabelled": 0,
+    "duplicate_of_labelled": 0,
+    "decisions": 66888
+   },
+   "spawned_after_reload_keys": [],
+   "nuisance_largest_advantage": 0.0,
+   "elu_p_counts": null
+  },
+  "procthor10k-0.1.2-train-05806": {
+   "status": "succeeded",
+   "receipt_sha256": "a1a01575ada5cd3af0b97bec2508cf2bcc2ade8186e8b1752d130fbc1d7424e5",
+   "frames": 1831,
+   "wall_seconds": 991.4,
+   "illegal_programs": 0,
+   "atoms": {
+    "NOOP": 63069,
+    "BIND": 18221,
+    "BIRTH": 1372,
+    "RETRACT": 186,
+    "REACTIVATE": 1458
+   },
+   "final_entities_by_state": {
+    "active": 124,
+    "dormant": 313,
+    "retracted": 96
+   },
+   "window": [
+    815,
+    845
+   ],
+   "executed_interventions": 6,
+   "report": {
+    "node_prf1": {
+     "node_precision": 0.5325754480293582,
+     "node_recall": 0.6981627953544253,
+     "node_f1": 0.6042298035868631,
+     "matched": 139465,
+     "predicted": 261869,
+     "truth": 199760
+    },
+    "node_prf1_iou": {
+     "node_precision": 0.3647128907965433,
+     "node_recall": 0.4781087304765719,
+     "node_f1": 0.41378249633363584,
+     "matched": 95507,
+     "predicted": 261869,
+     "truth": 199760
+    },
+    "missing_residual_rate": {
+     "missing_residual_rate": 0.4,
+     "residual": 2,
+     "judged": 5,
+     "not_yet_observable": 0
+    },
+    "false_retract_rate": {
+     "false_retract_rate": 0.8,
+     "false_retracts": 148,
+     "judged_retracts": 185,
+     "ambiguous_retracts": 1
+    },
+    "identity_continuity": {
+     "identity_continuity": 0.0,
+     "kept": 0,
+     "judged": 2,
+     "no_prior_carrier": 0
+    },
+    "recovery_latency_frames": {
+     "recovery_latency_frames": 85.25,
+     "recovered": 4,
+     "unrecovered": [
+      "Box|surface|7|71",
+      "Laptop|surface|7|66"
+     ],
+     "never_observable": [],
+     "per_object": {
+      "Bowl|surface|6|58": 161,
+      "Box|surface|7|71": null,
+      "Bread|surface|2|0": 13,
+      "Laptop|surface|7|66": null,
+      "Laptop|surface|8|81": 167,
+      "TissueBox|surface|3|20": 0
+     }
+    },
+    "contamination_auc": {
+     "contamination_auc": 0.39932664582516547,
+     "frames": 1831
+    },
+    "size_and_cost": {
+     "active_entity_count": 119.4795193883124,
+     "lifecycle_version_count": 2089.625341343528,
+     "runtime_per_frame_s": 0.4144654720614739,
+     "peak_memory_bytes": 927223808
+    }
+   },
+   "headline": {
+    "node_prf1": 0.6042298035868631,
+    "node_prf1_iou": 0.41378249633363584,
+    "missing_residual_rate": 0.4,
+    "false_retract_rate": 0.8,
+    "identity_continuity": 0.0,
+    "recovery_latency_frames": 85.25,
+    "contamination_auc": 0.39932664582516547
+   },
+   "decomposition_totals": {
+    "recall_miss": 626,
+    "teacher_error": 3346,
+    "amortization_error": 12011,
+    "correct": 68323,
+    "unlabelled": 0,
+    "duplicate_of_labelled": 0,
+    "decisions": 84306
+   },
+   "spawned_after_reload_keys": [],
+   "nuisance_largest_advantage": 0.0,
+   "elu_p_counts": null
+  },
+  "procthor10k-0.1.2-train-05879": {
+   "status": "succeeded",
+   "receipt_sha256": "9c1e51ff798281166545f1db2ff8ae10a7e2dbf9b6fc250ba368f56d9161e993",
+   "frames": 457,
+   "wall_seconds": 75.0,
+   "illegal_programs": 0,
+   "atoms": {
+    "NOOP": 8978,
+    "BIND": 3407,
+    "BIRTH": 352,
+    "RETRACT": 24,
+    "REACTIVATE": 275
+   },
+   "final_entities_by_state": {
+    "active": 63,
+    "dormant": 103,
+    "retracted": 17
+   },
+   "window": [
+    169,
+    199
+   ],
+   "executed_interventions": 6,
+   "report": {
+    "node_prf1": {
+     "node_precision": 0.4476510617364926,
+     "node_recall": 0.8164485981308411,
+     "node_f1": 0.578252005613069,
+     "matched": 10920,
+     "predicted": 24394,
+     "truth": 13375
+    },
+    "node_prf1_iou": {
+     "node_precision": 0.21853734524883167,
+     "node_recall": 0.39857943925233646,
+     "node_f1": 0.2822950038391273,
+     "matched": 5331,
+     "predicted": 24394,
+     "truth": 13375
+    },
+    "missing_residual_rate": {
+     "missing_residual_rate": 0.25,
+     "residual": 1,
+     "judged": 4,
+     "not_yet_observable": 0
+    },
+    "false_retract_rate": {
+     "false_retract_rate": 0.5652173913043478,
+     "false_retracts": 13,
+     "judged_retracts": 23,
+     "ambiguous_retracts": 1
+    },
+    "identity_continuity": {
+     "identity_continuity": 0.0,
+     "kept": 0,
+     "judged": 1,
+     "no_prior_carrier": 0
+    },
+    "recovery_latency_frames": {
+     "recovery_latency_frames": 74.4,
+     "recovered": 5,
+     "unrecovered": [
+      "Cloth|surface|2|1"
+     ],
+     "never_observable": [],
+     "per_object": {
+      "Bowl|surface|2|9": 92,
+      "CellPhone|surface|2|0": 89,
+      "Cloth|surface|2|1": null,
+      "Pillow|2|0|1": 25,
+      "RemoteControl|surface|2|4": 36,
+      "Vase|surface|2|10": 130
+     }
+    },
+    "contamination_auc": {
+     "contamination_auc": 0.2861512801847956,
+     "frames": 457
+    },
+    "size_and_cost": {
+     "active_entity_count": 48.925601750547045,
+     "lifecycle_version_count": 483.99124726477027,
+     "runtime_per_frame_s": 0.13951473476067675,
+     "peak_memory_bytes": 630968320
+    }
+   },
+   "headline": {
+    "node_prf1": 0.578252005613069,
+    "node_prf1_iou": 0.2822950038391273,
+    "missing_residual_rate": 0.25,
+    "false_retract_rate": 0.5652173913043478,
+    "identity_continuity": 0.0,
+    "recovery_latency_frames": 74.4,
+    "contamination_auc": 0.2861512801847956
+   },
+   "decomposition_totals": {
+    "recall_miss": 69,
+    "teacher_error": 374,
+    "amortization_error": 2453,
+    "correct": 10140,
+    "unlabelled": 0,
+    "duplicate_of_labelled": 0,
+    "decisions": 13036
+   },
+   "spawned_after_reload_keys": [],
+   "nuisance_largest_advantage": 0.002231036192364866,
+   "elu_p_counts": null
+  },
+  "procthor10k-0.1.2-train-05966": {
+   "status": "succeeded",
+   "receipt_sha256": "0b9cc559c7f87e987a5c38f170dffb71eacec5985f2723296716a37035b48d19",
+   "frames": 702,
+   "wall_seconds": 150.6,
+   "illegal_programs": 0,
+   "atoms": {
+    "NOOP": 15322,
+    "BIND": 5504,
+    "BIRTH": 531,
+    "RETRACT": 44,
+    "REACTIVATE": 500
+   },
+   "final_entities_by_state": {
+    "active": 75,
+    "dormant": 151,
+    "retracted": 23
+   },
+   "window": [
+    305,
+    335
+   ],
+   "executed_interventions": 6,
+   "report": {
+    "node_prf1": {
+     "node_precision": 0.5093021475328254,
+     "node_recall": 0.7772455089820359,
+     "node_f1": 0.6153721626715695,
+     "matched": 26609,
+     "predicted": 52246,
+     "truth": 34235
+    },
+    "node_prf1_iou": {
+     "node_precision": 0.33552807870458984,
+     "node_recall": 0.5120490725865342,
+     "node_f1": 0.4054069680045328,
+     "matched": 17530,
+     "predicted": 52246,
+     "truth": 34235
+    },
+    "missing_residual_rate": {
+     "missing_residual_rate": 0.0,
+     "residual": 0,
+     "judged": 4,
+     "not_yet_observable": 0
+    },
+    "false_retract_rate": {
+     "false_retract_rate": 0.7441860465116279,
+     "false_retracts": 32,
+     "judged_retracts": 43,
+     "ambiguous_retracts": 1
+    },
+    "identity_continuity": {
+     "identity_continuity": 0.0,
+     "kept": 0,
+     "judged": 2,
+     "no_prior_carrier": 0
+    },
+    "recovery_latency_frames": {
+     "recovery_latency_frames": 81.66666666666667,
+     "recovered": 6,
+     "unrecovered": [],
+     "never_observable": [],
+     "per_object": {
+      "Bowl|surface|2|22": 13,
+      "Bowl|surface|6|0": 44,
+      "Lettuce|surface|6|2": 0,
+      "Potato|surface|6|11": 0,
+      "Statue|surface|6|9": 267,
+      "Tomato|surface|6|5": 166
+     }
+    },
+    "contamination_auc": {
+     "contamination_auc": 0.38776704464959494,
+     "frames": 702
+    },
+    "size_and_cost": {
+     "active_entity_count": 72.14245014245014,
+     "lifecycle_version_count": 770.7336182336182,
+     "runtime_per_frame_s": 0.17847119505249198,
+     "peak_memory_bytes": 674099200
+    }
+   },
+   "headline": {
+    "node_prf1": 0.6153721626715695,
+    "node_prf1_iou": 0.4054069680045328,
+    "missing_residual_rate": 0.0,
+    "false_retract_rate": 0.7441860465116279,
+    "identity_continuity": 0.0,
+    "recovery_latency_frames": 81.66666666666667,
+    "contamination_auc": 0.38776704464959494
+   },
+   "decomposition_totals": {
+    "recall_miss": 100,
+    "teacher_error": 500,
+    "amortization_error": 3489,
+    "correct": 17812,
+    "unlabelled": 0,
+    "duplicate_of_labelled": 0,
+    "decisions": 21901
+   },
+   "spawned_after_reload_keys": [],
+   "nuisance_largest_advantage": 0.0015302218821728886,
+   "elu_p_counts": null
+  },
+  "procthor10k-0.1.2-train-06453": {
+   "status": "succeeded",
+   "receipt_sha256": "fe06dcc89842eaa8af859e2e6fe312f760a792c908ced9ab98ff6afeca4676d6",
+   "frames": 529,
+   "wall_seconds": 124.5,
+   "illegal_programs": 0,
+   "atoms": {
+    "NOOP": 18349,
+    "BIND": 4740,
+    "BIRTH": 665,
+    "RETRACT": 34,
+    "REACTIVATE": 372
+   },
+   "final_entities_by_state": {
+    "active": 92,
+    "dormant": 267,
+    "retracted": 21
+   },
+   "window": [
+    250,
+    280
+   ],
+   "executed_interventions": 0,
+   "report": {
+    "node_prf1": {
+     "node_precision": 0.5666358717170384,
+     "node_recall": 0.8220494753771923,
+     "node_f1": 0.6708542320973765,
+     "matched": 21467,
+     "predicted": 37885,
+     "truth": 26114
+    },
+    "node_prf1_iou": {
+     "node_precision": 0.31426686023492145,
+     "node_recall": 0.455924025426974,
+     "node_f1": 0.37206831356739944,
+     "matched": 11906,
+     "predicted": 37885,
+     "truth": 26114
+    },
+    "missing_residual_rate": {
+     "missing_residual_rate": null,
+     "residual": 0,
+     "judged": 0,
+     "not_yet_observable": 0
+    },
+    "false_retract_rate": {
+     "false_retract_rate": 0.8823529411764706,
+     "false_retracts": 30,
+     "judged_retracts": 34,
+     "ambiguous_retracts": 0
+    },
+    "identity_continuity": {
+     "identity_continuity": null,
+     "kept": 0,
+     "judged": 0,
+     "no_prior_carrier": 0
+    },
+    "recovery_latency_frames": {
+     "recovery_latency_frames": null,
+     "recovered": 0,
+     "unrecovered": [],
+     "never_observable": [],
+     "per_object": {}
+    },
+    "contamination_auc": {
+     "contamination_auc": 0.25822555131305736,
+     "frames": 529
+    },
+    "size_and_cost": {
+     "active_entity_count": 74.85822306238185,
+     "lifecycle_version_count": 822.0850661625709,
+     "runtime_per_frame_s": 0.20356122126876744,
+     "peak_memory_bytes": 682213376
+    }
+   },
+   "headline": {
+    "node_prf1": 0.6708542320973765,
+    "node_prf1_iou": 0.37206831356739944,
+    "missing_residual_rate": null,
+    "false_retract_rate": 0.8823529411764706,
+    "identity_continuity": null,
+    "recovery_latency_frames": null,
+    "contamination_auc": 0.25822555131305736
+   },
+   "decomposition_totals": {
+    "recall_miss": 90,
+    "teacher_error": 480,
+    "amortization_error": 3381,
+    "correct": 20209,
+    "unlabelled": 0,
+    "duplicate_of_labelled": 0,
+    "decisions": 24160
+   },
+   "spawned_after_reload_keys": [],
+   "nuisance_largest_advantage": 0.0020772027003634896,
+   "elu_p_counts": null
+  },
+  "procthor10k-0.1.2-train-07270": {
+   "status": "succeeded",
+   "receipt_sha256": "3aa9b97c7c5e05eecb0ddb36fe949cfa02a0f884dfe3043717efa76c223b4fa6",
+   "frames": 305,
+   "wall_seconds": 33.4,
+   "illegal_programs": 0,
+   "atoms": {
+    "NOOP": 3083,
+    "BIND": 1834,
+    "BIRTH": 175,
+    "RETRACT": 10,
+    "REACTIVATE": 88
+   },
+   "final_entities_by_state": {
+    "active": 38,
+    "dormant": 60,
+    "retracted": 10
+   },
+   "window": [
+    165,
+    195
+   ],
+   "executed_interventions": 6,
+   "report": {
+    "node_prf1": {
+     "node_precision": 0.5125536382726193,
+     "node_recall": 0.8468848996832101,
+     "node_f1": 0.6386076669320895,
+     "matched": 5614,
+     "predicted": 10953,
+     "truth": 6629
+    },
+    "node_prf1_iou": {
+     "node_precision": 0.3533278553820871,
+     "node_recall": 0.583798461306381,
+     "node_f1": 0.44022295529518823,
+     "matched": 3870,
+     "predicted": 10953,
+     "truth": 6629
+    },
+    "missing_residual_rate": {
+     "missing_residual_rate": 0.16666666666666666,
+     "residual": 1,
+     "judged": 6,
+     "not_yet_observable": 0
+    },
+    "false_retract_rate": {
+     "false_retract_rate": 0.3,
+     "false_retracts": 3,
+     "judged_retracts": 10,
+     "ambiguous_retracts": 0
+    },
+    "identity_continuity": {
+     "identity_continuity": 0.3333333333333333,
+     "kept": 1,
+     "judged": 3,
+     "no_prior_carrier": 0
+    },
+    "recovery_latency_frames": {
+     "recovery_latency_frames": 32.0,
+     "recovered": 5,
+     "unrecovered": [
+      "Book|surface|2|10"
+     ],
+     "never_observable": [],
+     "per_object": {
+      "AlarmClock|surface|2|6": 107,
+      "BasketBall|surface|2|4": 10,
+      "Book|surface|2|10": null,
+      "Mug|surface|2|1": 9,
+      "Pillow|2|0|1": 26,
+      "RemoteControl|surface|2|11": 8
+     }
+    },
+    "contamination_auc": {
+     "contamination_auc": 0.19436323801104716,
+     "frames": 305
+    },
+    "size_and_cost": {
+     "active_entity_count": 38.3672131147541,
+     "lifecycle_version_count": 196.70819672131148,
+     "runtime_per_frame_s": 0.09368646027611904,
+     "peak_memory_bytes": 593494016
+    }
+   },
+   "headline": {
+    "node_prf1": 0.6386076669320895,
+    "node_prf1_iou": 0.44022295529518823,
+    "missing_residual_rate": 0.16666666666666666,
+    "false_retract_rate": 0.3,
+    "identity_continuity": 0.3333333333333333,
+    "recovery_latency_frames": 32.0,
+    "contamination_auc": 0.19436323801104716
+   },
+   "decomposition_totals": {
+    "recall_miss": 124,
+    "teacher_error": 151,
+    "amortization_error": 957,
+    "correct": 3958,
+    "unlabelled": 0,
+    "duplicate_of_labelled": 0,
+    "decisions": 5190
+   },
+   "spawned_after_reload_keys": [],
+   "nuisance_largest_advantage": 0.005722460658083017,
+   "elu_p_counts": null
+  },
+  "procthor10k-0.1.2-train-07367": {
+   "status": "succeeded",
+   "receipt_sha256": "ece9ee356370413547c6b731de980edc30b1242ae38de5d7a4a15646b78ee2f5",
+   "frames": 145,
+   "wall_seconds": 9.6,
+   "illegal_programs": 0,
+   "atoms": {
+    "NOOP": 949,
+    "BIND": 686,
+    "BIRTH": 66,
+    "RETRACT": 2,
+    "REACTIVATE": 40
+   },
+   "final_entities_by_state": {
+    "active": 19,
+    "dormant": 26,
+    "retracted": 1
+   },
+   "window": [
+    62,
+    92
+   ],
+   "executed_interventions": 0,
+   "report": {
+    "node_prf1": {
+     "node_precision": 0.616231884057971,
+     "node_recall": 0.9243478260869565,
+     "node_f1": 0.7394782608695654,
+     "matched": 1063,
+     "predicted": 1725,
+     "truth": 1150
+    },
+    "node_prf1_iou": {
+     "node_precision": 0.3501449275362319,
+     "node_recall": 0.5252173913043479,
+     "node_f1": 0.4201739130434783,
+     "matched": 604,
+     "predicted": 1725,
+     "truth": 1150
+    },
+    "missing_residual_rate": {
+     "missing_residual_rate": null,
+     "residual": 0,
+     "judged": 0,
+     "not_yet_observable": 0
+    },
+    "false_retract_rate": {
+     "false_retract_rate": 0.5,
+     "false_retracts": 1,
+     "judged_retracts": 2,
+     "ambiguous_retracts": 0
+    },
+    "identity_continuity": {
+     "identity_continuity": null,
+     "kept": 0,
+     "judged": 0,
+     "no_prior_carrier": 0
+    },
+    "recovery_latency_frames": {
+     "recovery_latency_frames": null,
+     "recovered": 0,
+     "unrecovered": [],
+     "never_observable": [],
+     "per_object": {}
+    },
+    "contamination_auc": {
+     "contamination_auc": 0.1361882094967105,
+     "frames": 145
+    },
+    "size_and_cost": {
+     "active_entity_count": 17.56551724137931,
+     "lifecycle_version_count": 86.23448275862069,
+     "runtime_per_frame_s": 0.058866742561603416,
+     "peak_memory_bytes": 567898112
+    }
+   },
+   "headline": {
+    "node_prf1": 0.7394782608695654,
+    "node_prf1_iou": 0.4201739130434783,
+    "missing_residual_rate": null,
+    "false_retract_rate": 0.5,
+    "identity_continuity": null,
+    "recovery_latency_frames": null,
+    "contamination_auc": 0.1361882094967105
+   },
+   "decomposition_totals": {
+    "recall_miss": 0,
+    "teacher_error": 42,
+    "amortization_error": 381,
+    "correct": 1320,
+    "unlabelled": 0,
+    "duplicate_of_labelled": 0,
+    "decisions": 1743
+   },
+   "spawned_after_reload_keys": [],
+   "nuisance_largest_advantage": 0.007575757575757569,
+   "elu_p_counts": null
+  },
+  "procthor10k-0.1.2-train-07795": {
+   "status": "succeeded",
+   "receipt_sha256": "a3a2a5b4334b7c0f3c0723a691b9108d52a80542ec3d2af6b148913d04d7fc6d",
+   "frames": 1762,
+   "wall_seconds": 909.2,
+   "illegal_programs": 0,
+   "atoms": {
+    "NOOP": 62256,
+    "BIND": 16256,
+    "BIRTH": 1451,
+    "RETRACT": 180,
+    "REACTIVATE": 1302
+   },
+   "final_entities_by_state": {
+    "active": 161,
+    "dormant": 377,
+    "retracted": 109
+   },
+   "window": [
+    1016,
+    1046
+   ],
+   "executed_interventions": 0,
+   "report": {
+    "node_prf1": {
+     "node_precision": 0.542851593746811,
+     "node_recall": 0.7829757332029228,
+     "node_f1": 0.6411689003456467,
+     "matched": 164908,
+     "predicted": 303781,
+     "truth": 210617
+    },
+    "node_prf1_iou": {
+     "node_precision": 0.3554666025854151,
+     "node_recall": 0.5127031531167949,
+     "node_f1": 0.41984611137679384,
+     "matched": 107984,
+     "predicted": 303781,
+     "truth": 210617
+    },
+    "missing_residual_rate": {
+     "missing_residual_rate": null,
+     "residual": 0,
+     "judged": 0,
+     "not_yet_observable": 0
+    },
+    "false_retract_rate": {
+     "false_retract_rate": 0.8055555555555556,
+     "false_retracts": 145,
+     "judged_retracts": 180,
+     "ambiguous_retracts": 0
+    },
+    "identity_continuity": {
+     "identity_continuity": null,
+     "kept": 0,
+     "judged": 0,
+     "no_prior_carrier": 0
+    },
+    "recovery_latency_frames": {
+     "recovery_latency_frames": null,
+     "recovered": 0,
+     "unrecovered": [],
+     "never_observable": [],
+     "per_object": {}
+    },
+    "contamination_auc": {
+     "contamination_auc": 0.39100493881258996,
+     "frames": 1762
+    },
+    "size_and_cost": {
+     "active_entity_count": 136.8984108967083,
+     "lifecycle_version_count": 2106.527241770715,
+     "runtime_per_frame_s": 0.4134663060628867,
+     "peak_memory_bytes": 908025856
+    }
+   },
+   "headline": {
+    "node_prf1": 0.6411689003456467,
+    "node_prf1_iou": 0.41984611137679384,
+    "missing_residual_rate": null,
+    "false_retract_rate": 0.8055555555555556,
+    "identity_continuity": null,
+    "recovery_latency_frames": null,
+    "contamination_auc": 0.39100493881258996
+   },
+   "decomposition_totals": {
+    "recall_miss": 275,
+    "teacher_error": 2531,
+    "amortization_error": 11111,
+    "correct": 67528,
+    "unlabelled": 0,
+    "duplicate_of_labelled": 0,
+    "decisions": 81445
+   },
+   "spawned_after_reload_keys": [
+    "Egg|surface|2|11|EggCracked_0"
+   ],
+   "nuisance_largest_advantage": 0.0010521332000630323,
+   "elu_p_counts": null
+  },
+  "procthor10k-0.1.2-train-07815": {
+   "status": "succeeded",
+   "receipt_sha256": "1d0321862598ae122bc84d1d40d172dbf5c610320022ba2ff0290605182501bc",
+   "frames": 762,
+   "wall_seconds": 202.8,
+   "illegal_programs": 0,
+   "atoms": {
+    "NOOP": 20893,
+    "BIND": 6407,
+    "BIRTH": 560,
+    "RETRACT": 56,
+    "REACTIVATE": 628
+   },
+   "final_entities_by_state": {
+    "active": 69,
+    "dormant": 199,
+    "retracted": 33
+   },
+   "window": [
+    384,
+    414
+   ],
+   "executed_interventions": 6,
+   "report": {
+    "node_prf1": {
+     "node_precision": 0.5381099195710456,
+     "node_recall": 0.8339323181752083,
+     "node_f1": 0.6541303763331352,
+     "matched": 40143,
+     "predicted": 74600,
+     "truth": 48137
+    },
+    "node_prf1_iou": {
+     "node_precision": 0.34172922252010723,
+     "node_recall": 0.5295926210607225,
+     "node_f1": 0.4154085565070028,
+     "matched": 25493,
+     "predicted": 74600,
+     "truth": 48137
+    },
+    "missing_residual_rate": {
+     "missing_residual_rate": 0.25,
+     "residual": 1,
+     "judged": 4,
+     "not_yet_observable": 0
+    },
+    "false_retract_rate": {
+     "false_retract_rate": 0.8214285714285714,
+     "false_retracts": 46,
+     "judged_retracts": 56,
+     "ambiguous_retracts": 0
+    },
+    "identity_continuity": {
+     "identity_continuity": 0.0,
+     "kept": 0,
+     "judged": 4,
+     "no_prior_carrier": 0
+    },
+    "recovery_latency_frames": {
+     "recovery_latency_frames": 224.0,
+     "recovered": 3,
+     "unrecovered": [
+      "Apple|surface|6|41",
+      "Pan|surface|6|27",
+      "Vase|surface|4|0"
+     ],
+     "never_observable": [],
+     "per_object": {
+      "Apple|surface|6|41": null,
+      "Pan|surface|6|27": null,
+      "Pillow|4|3|1": 210,
+      "Potato|surface|6|31": 288,
+      "Tomato|surface|6|24": 174,
+      "Vase|surface|4|0": null
+     }
+    },
+    "contamination_auc": {
+     "contamination_auc": 0.2978795742895839,
+     "frames": 762
+    },
+    "size_and_cost": {
+     "active_entity_count": 75.16535433070867,
+     "lifecycle_version_count": 897.514435695538,
+     "runtime_per_frame_s": 0.2167953991201606,
+     "peak_memory_bytes": 704937984
+    }
+   },
+   "headline": {
+    "node_prf1": 0.6541303763331352,
+    "node_prf1_iou": 0.4154085565070028,
+    "missing_residual_rate": 0.25,
+    "false_retract_rate": 0.8214285714285714,
+    "identity_continuity": 0.0,
+    "recovery_latency_frames": 224.0,
+    "contamination_auc": 0.2978795742895839
+   },
+   "decomposition_totals": {
+    "recall_miss": 259,
+    "teacher_error": 1267,
+    "amortization_error": 4172,
+    "correct": 22846,
+    "unlabelled": 0,
+    "duplicate_of_labelled": 0,
+    "decisions": 28544
+   },
+   "spawned_after_reload_keys": [],
+   "nuisance_largest_advantage": 0.0021066491112573527,
+   "elu_p_counts": null
+  },
+  "procthor10k-0.1.2-train-08398": {
+   "status": "succeeded",
+   "receipt_sha256": "0ac492357378f35ea7688f04089921d35ed05bb9bc495875b2462c2784a85705",
+   "frames": 1916,
+   "wall_seconds": 955.5,
+   "illegal_programs": 0,
+   "atoms": {
+    "NOOP": 67094,
+    "BIND": 17161,
+    "BIRTH": 1357,
+    "RETRACT": 204,
+    "REACTIVATE": 1364
+   },
+   "final_entities_by_state": {
+    "active": 116,
+    "dormant": 328,
+    "retracted": 107
+   },
+   "window": [
+    936,
+    966
+   ],
+   "executed_interventions": 6,
+   "report": {
+    "node_prf1": {
+     "node_precision": 0.5552025903877288,
+     "node_recall": 0.7821519643201836,
+     "node_f1": 0.6494205970117778,
+     "matched": 153976,
+     "predicted": 277333,
+     "truth": 196862
+    },
+    "node_prf1_iou": {
+     "node_precision": 0.3215773095881125,
+     "node_recall": 0.45302800946856175,
+     "node_f1": 0.376149052604941,
+     "matched": 89184,
+     "predicted": 277333,
+     "truth": 196862
+    },
+    "missing_residual_rate": {
+     "missing_residual_rate": 0.0,
+     "residual": 0,
+     "judged": 4,
+     "not_yet_observable": 0
+    },
+    "false_retract_rate": {
+     "false_retract_rate": 0.8217821782178217,
+     "false_retracts": 166,
+     "judged_retracts": 202,
+     "ambiguous_retracts": 2
+    },
+    "identity_continuity": {
+     "identity_continuity": 0.3333333333333333,
+     "kept": 1,
+     "judged": 3,
+     "no_prior_carrier": 0
+    },
+    "recovery_latency_frames": {
+     "recovery_latency_frames": 251.66666666666666,
+     "recovered": 6,
+     "unrecovered": [],
+     "never_observable": [],
+     "per_object": {
+      "Book|surface|4|13": 79,
+      "Book|surface|8|60": 158,
+      "Newspaper|surface|9|73": 157,
+      "Pot|surface|8|62": 24,
+      "RemoteControl|surface|9|68": 428,
+      "WineBottle|surface|8|50": 664
+     }
+    },
+    "contamination_auc": {
+     "contamination_auc": 0.3501621931038893,
+     "frames": 1916
+    },
+    "size_and_cost": {
+     "active_entity_count": 105.84812108559498,
+     "lifecycle_version_count": 2024.6774530271398,
+     "runtime_per_frame_s": 0.3860725300048239,
+     "peak_memory_bytes": 928563200
+    }
+   },
+   "headline": {
+    "node_prf1": 0.6494205970117778,
+    "node_prf1_iou": 0.376149052604941,
+    "missing_residual_rate": 0.0,
+    "false_retract_rate": 0.8217821782178217,
+    "identity_continuity": 0.3333333333333333,
+    "recovery_latency_frames": 251.66666666666666,
+    "contamination_auc": 0.3501621931038893
+   },
+   "decomposition_totals": {
+    "recall_miss": 295,
+    "teacher_error": 2260,
+    "amortization_error": 12014,
+    "correct": 72611,
+    "unlabelled": 0,
+    "duplicate_of_labelled": 0,
+    "decisions": 87180
+   },
+   "spawned_after_reload_keys": [],
+   "nuisance_largest_advantage": 0.0,
+   "elu_p_counts": null
+  },
+  "procthor10k-0.1.2-train-08422": {
+   "status": "succeeded",
+   "receipt_sha256": "5fcab6731a215e966c625dec4f7265b3360996fb5d21f8c30efd798f66a9c4d3",
+   "frames": 325,
+   "wall_seconds": 49.0,
+   "illegal_programs": 0,
+   "atoms": {
+    "NOOP": 5950,
+    "BIND": 2863,
+    "BIRTH": 225,
+    "RETRACT": 28,
+    "REACTIVATE": 189
+   },
+   "final_entities_by_state": {
+    "active": 46,
+    "dormant": 69,
+    "retracted": 20
+   },
+   "window": [
+    137,
+    167
+   ],
+   "executed_interventions": 6,
+   "report": {
+    "node_prf1": {
+     "node_precision": 0.6399310401444873,
+     "node_recall": 0.9231406916153482,
+     "node_f1": 0.7558787878787879,
+     "matched": 7795,
+     "predicted": 12181,
+     "truth": 8444
+    },
+    "node_prf1_iou": {
+     "node_precision": 0.41975207290041866,
+     "node_recall": 0.6055187115111321,
+     "node_f1": 0.4958060606060606,
+     "matched": 5113,
+     "predicted": 12181,
+     "truth": 8444
+    },
+    "missing_residual_rate": {
+     "missing_residual_rate": 0.0,
+     "residual": 0,
+     "judged": 5,
+     "not_yet_observable": 0
+    },
+    "false_retract_rate": {
+     "false_retract_rate": 0.75,
+     "false_retracts": 21,
+     "judged_retracts": 28,
+     "ambiguous_retracts": 0
+    },
+    "identity_continuity": {
+     "identity_continuity": 0.3333333333333333,
+     "kept": 1,
+     "judged": 3,
+     "no_prior_carrier": 0
+    },
+    "recovery_latency_frames": {
+     "recovery_latency_frames": 37.833333333333336,
+     "recovered": 6,
+     "unrecovered": [],
+     "never_observable": [],
+     "per_object": {
+      "CellPhone|surface|2|5": 30,
+      "Cup|surface|2|1": 54,
+      "Egg|surface|2|7": 42,
+      "SoapBottle|surface|2|0": 48,
+      "Tomato|surface|2|2": 17,
+      "WineBottle|surface|2|11": 36
+     }
+    },
+    "contamination_auc": {
+     "contamination_auc": 0.24247284075536157,
+     "frames": 325
+    },
+    "size_and_cost": {
+     "active_entity_count": 43.71076923076923,
+     "lifecycle_version_count": 349.5446153846154,
+     "runtime_per_frame_s": 0.13005518986628606,
+     "peak_memory_bytes": 617574400
+    }
+   },
+   "headline": {
+    "node_prf1": 0.7558787878787879,
+    "node_prf1_iou": 0.4958060606060606,
+    "missing_residual_rate": 0.0,
+    "false_retract_rate": 0.75,
+    "identity_continuity": 0.3333333333333333,
+    "recovery_latency_frames": 37.833333333333336,
+    "contamination_auc": 0.24247284075536157
+   },
+   "decomposition_totals": {
+    "recall_miss": 100,
+    "teacher_error": 201,
+    "amortization_error": 1365,
+    "correct": 7589,
+    "unlabelled": 0,
+    "duplicate_of_labelled": 0,
+    "decisions": 9255
+   },
+   "spawned_after_reload_keys": [],
+   "nuisance_largest_advantage": 0.005797985962770813,
+   "elu_p_counts": null
+  },
+  "procthor10k-0.1.2-train-08552": {
+   "status": "succeeded",
+   "receipt_sha256": "6294be36180f0bd0990bbf3180e852a7a488e6598a73afdf933bb80c21dbeb4f",
+   "frames": 984,
+   "wall_seconds": 329.2,
+   "illegal_programs": 0,
+   "atoms": {
+    "NOOP": 38066,
+    "BIND": 8096,
+    "BIRTH": 1004,
+    "RETRACT": 72,
+    "REACTIVATE": 908
+   },
+   "final_entities_by_state": {
+    "active": 115,
+    "dormant": 307,
+    "retracted": 40
+   },
+   "window": [
+    456,
+    486
+   ],
+   "executed_interventions": 6,
+   "report": {
+    "node_prf1": {
+     "node_precision": 0.4130926978645774,
+     "node_recall": 0.8744569340045514,
+     "node_f1": 0.5611151059240003,
+     "matched": 50722,
+     "predicted": 122786,
+     "truth": 58004
+    },
+    "node_prf1_iou": {
+     "node_precision": 0.26488361865359245,
+     "node_recall": 0.5607199503482518,
+     "node_f1": 0.35979866143038886,
+     "matched": 32524,
+     "predicted": 122786,
+     "truth": 58004
+    },
+    "missing_residual_rate": {
+     "missing_residual_rate": 0.25,
+     "residual": 1,
+     "judged": 4,
+     "not_yet_observable": 0
+    },
+    "false_retract_rate": {
+     "false_retract_rate": 0.676056338028169,
+     "false_retracts": 48,
+     "judged_retracts": 71,
+     "ambiguous_retracts": 1
+    },
+    "identity_continuity": {
+     "identity_continuity": 0.0,
+     "kept": 0,
+     "judged": 3,
+     "no_prior_carrier": 0
+    },
+    "recovery_latency_frames": {
+     "recovery_latency_frames": 110.0,
+     "recovered": 5,
+     "unrecovered": [
+      "BasketBall|surface|5|29"
+     ],
+     "never_observable": [],
+     "per_object": {
+      "BaseballBat|surface|5|31": 173,
+      "BasketBall|surface|5|29": null,
+      "Bowl|surface|5|30": 24,
+      "Laptop|surface|5|24": 46,
+      "Plate|surface|4|22": 105,
+      "Potato|surface|2|13": 202
+     }
+    },
+    "contamination_auc": {
+     "contamination_auc": 0.3071142604480454,
+     "frames": 984
+    },
+    "size_and_cost": {
+     "active_entity_count": 97.03048780487805,
+     "lifecycle_version_count": 1460.4227642276423,
+     "runtime_per_frame_s": 0.2717844228434369,
+     "peak_memory_bytes": 766353408
+    }
+   },
+   "headline": {
+    "node_prf1": 0.5611151059240003,
+    "node_prf1_iou": 0.35979866143038886,
+    "missing_residual_rate": 0.25,
+    "false_retract_rate": 0.676056338028169,
+    "identity_continuity": 0.0,
+    "recovery_latency_frames": 110.0,
+    "contamination_auc": 0.3071142604480454
+   },
+   "decomposition_totals": {
+    "recall_miss": 275,
+    "teacher_error": 1225,
+    "amortization_error": 6644,
+    "correct": 40002,
+    "unlabelled": 0,
+    "duplicate_of_labelled": 0,
+    "decisions": 48146
+   },
+   "spawned_after_reload_keys": [],
+   "nuisance_largest_advantage": 0.0011990407673860837,
+   "elu_p_counts": null
+  },
+  "procthor10k-0.1.2-train-08566": {
+   "status": "succeeded",
+   "receipt_sha256": "32a773b83a9667559d5180a88407d327d69dfbf8cbc731fc0a3356ce3801d929",
+   "frames": 830,
+   "wall_seconds": 184.7,
+   "illegal_programs": 0,
+   "atoms": {
+    "NOOP": 17340,
+    "BIND": 6621,
+    "BIRTH": 483,
+    "RETRACT": 62,
+    "REACTIVATE": 502
+   },
+   "final_entities_by_state": {
+    "active": 80,
+    "dormant": 124,
+    "retracted": 31
+   },
+   "window": [
+    372,
+    402
+   ],
+   "executed_interventions": 6,
+   "report": {
+    "node_prf1": {
+     "node_precision": 0.6002658311971898,
+     "node_recall": 0.79980266153924,
+     "node_f1": 0.6858153181980887,
+     "matched": 31613,
+     "predicted": 52665,
+     "truth": 39526
+    },
+    "node_prf1_iou": {
+     "node_precision": 0.4003038070825026,
+     "node_recall": 0.5333704397105703,
+     "node_f1": 0.45735483940948685,
+     "matched": 21082,
+     "predicted": 52665,
+     "truth": 39526
+    },
+    "missing_residual_rate": {
+     "missing_residual_rate": 0.0,
+     "residual": 0,
+     "judged": 5,
+     "not_yet_observable": 0
+    },
+    "false_retract_rate": {
+     "false_retract_rate": 0.8225806451612904,
+     "false_retracts": 51,
+     "judged_retracts": 62,
+     "ambiguous_retracts": 0
+    },
+    "identity_continuity": {
+     "identity_continuity": 0.0,
+     "kept": 0,
+     "judged": 2,
+     "no_prior_carrier": 0
+    },
+    "recovery_latency_frames": {
+     "recovery_latency_frames": 146.83333333333334,
+     "recovered": 6,
+     "unrecovered": [],
+     "never_observable": [],
+     "per_object": {
+      "Apple|surface|6|20": 16,
+      "CellPhone|surface|4|7": 25,
+      "Newspaper|surface|7|33": 73,
+      "Pot|surface|6|14": 25,
+      "Vase|surface|4|2": 327,
+      "WineBottle|surface|6|27": 415
+     }
+    },
+    "contamination_auc": {
+     "contamination_auc": 0.3400039937951816,
+     "frames": 830
+    },
+    "size_and_cost": {
+     "active_entity_count": 65.61325301204819,
+     "lifecycle_version_count": 793.3903614457831,
+     "runtime_per_frame_s": 0.18674357511911047,
+     "peak_memory_bytes": 683048960
+    }
+   },
+   "headline": {
+    "node_prf1": 0.6858153181980887,
+    "node_prf1_iou": 0.45735483940948685,
+    "missing_residual_rate": 0.0,
+    "false_retract_rate": 0.8225806451612904,
+    "identity_continuity": 0.0,
+    "recovery_latency_frames": 146.83333333333334,
+    "contamination_auc": 0.3400039937951816
+   },
+   "decomposition_totals": {
+    "recall_miss": 407,
+    "teacher_error": 1227,
+    "amortization_error": 3702,
+    "correct": 19672,
+    "unlabelled": 0,
+    "duplicate_of_labelled": 0,
+    "decisions": 25008
+   },
+   "spawned_after_reload_keys": [],
+   "nuisance_largest_advantage": 0.0021036024191428693,
+   "elu_p_counts": null
+  },
+  "procthor10k-0.1.2-train-08790": {
+   "status": "succeeded",
+   "receipt_sha256": "90b854e76cabeb8cc12fad20ad58a69eab88a7c4242d2b36efb0a02042e288bb",
+   "frames": 2919,
+   "wall_seconds": 1876.1,
+   "illegal_programs": 0,
+   "atoms": {
+    "NOOP": 83054,
+    "BIND": 26609,
+    "BIRTH": 1864,
+    "RETRACT": 347,
+    "REACTIVATE": 1868
+   },
+   "final_entities_by_state": {
+    "active": 149,
+    "dormant": 358,
+    "retracted": 188
+   },
+   "window": [
+    2089,
+    2119
+   ],
+   "executed_interventions": 6,
+   "report": {
+    "node_prf1": {
+     "node_precision": 0.5719413040626729,
+     "node_recall": 0.7218693840140699,
+     "node_f1": 0.6382184359129921,
+     "matched": 300860,
+     "predicted": 526033,
+     "truth": 416779
+    },
+    "node_prf1_iou": {
+     "node_precision": 0.3377924959080514,
+     "node_recall": 0.4263410584506417,
+     "node_f1": 0.37693622906793717,
+     "matched": 177690,
+     "predicted": 526033,
+     "truth": 416779
+    },
+    "missing_residual_rate": {
+     "missing_residual_rate": 0.0,
+     "residual": 0,
+     "judged": 5,
+     "not_yet_observable": 0
+    },
+    "false_retract_rate": {
+     "false_retract_rate": 0.7982456140350878,
+     "false_retracts": 273,
+     "judged_retracts": 342,
+     "ambiguous_retracts": 5
+    },
+    "identity_continuity": {
+     "identity_continuity": null,
+     "kept": 0,
+     "judged": 0,
+     "no_prior_carrier": 2
+    },
+    "recovery_latency_frames": {
+     "recovery_latency_frames": 162.6,
+     "recovered": 5,
+     "unrecovered": [
+      "Pan|surface|2|13"
+     ],
+     "never_observable": [],
+     "per_object": {
+      "CellPhone|surface|6|80": 321,
+      "HousePlant|surface|4|46": 30,
+      "Laptop|surface|4|51": 0,
+      "Pan|surface|2|13": null,
+      "PaperTowelRoll|surface|5|61": 0,
+      "Plate|surface|3|35": 462
+     }
+    },
+    "contamination_auc": {
+     "contamination_auc": 0.36806643192005284,
+     "frames": 2919
+    },
+    "size_and_cost": {
+     "active_entity_count": 122.26892771497089,
+     "lifecycle_version_count": 2614.6848235697157,
+     "runtime_per_frame_s": 0.4894933874536026,
+     "peak_memory_bytes": 1034174464
+    }
+   },
+   "headline": {
+    "node_prf1": 0.6382184359129921,
+    "node_prf1_iou": 0.37693622906793717,
+    "missing_residual_rate": 0.0,
+    "false_retract_rate": 0.7982456140350878,
+    "identity_continuity": null,
+    "recovery_latency_frames": 162.6,
+    "contamination_auc": 0.36806643192005284
+   },
+   "decomposition_totals": {
+    "recall_miss": 1126,
+    "teacher_error": 7264,
+    "amortization_error": 19497,
+    "correct": 85855,
+    "unlabelled": 0,
+    "duplicate_of_labelled": 0,
+    "decisions": 113742
+   },
+   "spawned_after_reload_keys": [],
+   "nuisance_largest_advantage": 0.0,
+   "elu_p_counts": null
+  },
+  "procthor10k-0.1.2-train-08905": {
+   "status": "succeeded",
+   "receipt_sha256": "357787a82aa6b0439a53594addef20ecde37db38c80fbda674977cec33726ff5",
+   "frames": 245,
+   "wall_seconds": 31.2,
+   "illegal_programs": 0,
+   "atoms": {
+    "NOOP": 3915,
+    "BIND": 1829,
+    "BIRTH": 248,
+    "RETRACT": 4,
+    "REACTIVATE": 184
+   },
+   "final_entities_by_state": {
+    "active": 62,
+    "dormant": 60,
+    "retracted": 4
+   },
+   "window": [
+    113,
+    143
+   ],
+   "executed_interventions": 6,
+   "report": {
+    "node_prf1": {
+     "node_precision": 0.5836143260730885,
+     "node_recall": 0.8782227098189797,
+     "node_f1": 0.7012318642211881,
+     "matched": 6404,
+     "predicted": 10973,
+     "truth": 7292
+    },
+    "node_prf1_iou": {
+     "node_precision": 0.3200583249794951,
+     "node_recall": 0.4816236972024136,
+     "node_f1": 0.3845606350944429,
+     "matched": 3512,
+     "predicted": 10973,
+     "truth": 7292
+    },
+    "missing_residual_rate": {
+     "missing_residual_rate": 0.2,
+     "residual": 1,
+     "judged": 5,
+     "not_yet_observable": 0
+    },
+    "false_retract_rate": {
+     "false_retract_rate": 0.25,
+     "false_retracts": 1,
+     "judged_retracts": 4,
+     "ambiguous_retracts": 0
+    },
+    "identity_continuity": {
+     "identity_continuity": 0.0,
+     "kept": 0,
+     "judged": 1,
+     "no_prior_carrier": 0
+    },
+    "recovery_latency_frames": {
+     "recovery_latency_frames": 18.0,
+     "recovered": 5,
+     "unrecovered": [
+      "Bowl|surface|6|22"
+     ],
+     "never_observable": [],
+     "per_object": {
+      "Book|surface|6|18": 0,
+      "Bowl|surface|6|22": null,
+      "Cup|surface|6|20": 11,
+      "Lettuce|surface|6|26": 6,
+      "Statue|surface|6|24": 20,
+      "ToiletPaper|surface|5|11": 53
+     }
+    },
+    "contamination_auc": {
+     "contamination_auc": 0.23705970029789375,
+     "frames": 245
+    },
+    "size_and_cost": {
+     "active_entity_count": 55.30204081632653,
+     "lifecycle_version_count": 333.80408163265304,
+     "runtime_per_frame_s": 0.10819459156114228,
+     "peak_memory_bytes": 598478848
+    }
+   },
+   "headline": {
+    "node_prf1": 0.7012318642211881,
+    "node_prf1_iou": 0.3845606350944429,
+    "missing_residual_rate": 0.2,
+    "false_retract_rate": 0.25,
+    "identity_continuity": 0.0,
+    "recovery_latency_frames": 18.0,
+    "contamination_auc": 0.23705970029789375
+   },
+   "decomposition_totals": {
+    "recall_miss": 17,
+    "teacher_error": 68,
+    "amortization_error": 1201,
+    "correct": 4894,
+    "unlabelled": 0,
+    "duplicate_of_labelled": 0,
+    "decisions": 6180
+   },
+   "spawned_after_reload_keys": [
+    "Egg|surface|6|35|EggCracked_0"
+   ],
+   "nuisance_largest_advantage": 0.006634232640424509,
+   "elu_p_counts": null
+  },
+  "procthor10k-0.1.2-train-08927": {
+   "status": "succeeded",
+   "receipt_sha256": "3d1c3eb6a5866b1d168b25f7368a6e1755e3c51e3c752501362a72c8b89e008a",
+   "frames": 1233,
+   "wall_seconds": 391.0,
+   "illegal_programs": 0,
+   "atoms": {
+    "NOOP": 29815,
+    "BIND": 11005,
+    "BIRTH": 805,
+    "RETRACT": 133,
+    "REACTIVATE": 745
+   },
+   "final_entities_by_state": {
+    "active": 85,
+    "dormant": 149,
+    "retracted": 71
+   },
+   "window": [
+    594,
+    624
+   ],
+   "executed_interventions": 6,
+   "report": {
+    "node_prf1": {
+     "node_precision": 0.5594281215679032,
+     "node_recall": 0.7317814279902359,
+     "node_f1": 0.6341017378611363,
+     "matched": 57559,
+     "predicted": 102889,
+     "truth": 78656
+    },
+    "node_prf1_iou": {
+     "node_precision": 0.421259804255071,
+     "node_recall": 0.5510450569568756,
+     "node_f1": 0.47749042937012864,
+     "matched": 43343,
+     "predicted": 102889,
+     "truth": 78656
+    },
+    "missing_residual_rate": {
+     "missing_residual_rate": 0.0,
+     "residual": 0,
+     "judged": 4,
+     "not_yet_observable": 0
+    },
+    "false_retract_rate": {
+     "false_retract_rate": 0.84251968503937,
+     "false_retracts": 107,
+     "judged_retracts": 127,
+     "ambiguous_retracts": 6
+    },
+    "identity_continuity": {
+     "identity_continuity": 0.0,
+     "kept": 0,
+     "judged": 2,
+     "no_prior_carrier": 0
+    },
+    "recovery_latency_frames": {
+     "recovery_latency_frames": 266.25,
+     "recovered": 4,
+     "unrecovered": [
+      "Apple|surface|6|26",
+      "Laptop|surface|4|9"
+     ],
+     "never_observable": [],
+     "per_object": {
+      "Apple|surface|6|26": null,
+      "Laptop|surface|4|9": null,
+      "Newspaper|surface|7|68": 600,
+      "Pillow|4|0|1": 273,
+      "Statue|surface|4|18": 99,
+      "Vase|surface|4|7": 93
+     }
+    },
+    "contamination_auc": {
+     "contamination_auc": 0.3494922790917169,
+     "frames": 1233
+    },
+    "size_and_cost": {
+     "active_entity_count": 71.23438767234387,
+     "lifecycle_version_count": 1178.2587185725872,
+     "runtime_per_frame_s": 0.26125261247979853,
+     "peak_memory_bytes": 762654720
+    }
+   },
+   "headline": {
+    "node_prf1": 0.6341017378611363,
+    "node_prf1_iou": 0.47749042937012864,
+    "missing_residual_rate": 0.0,
+    "false_retract_rate": 0.84251968503937,
+    "identity_continuity": 0.0,
+    "recovery_latency_frames": 266.25,
+    "contamination_auc": 0.3494922790917169
+   },
+   "decomposition_totals": {
+    "recall_miss": 281,
+    "teacher_error": 2163,
+    "amortization_error": 6892,
+    "correct": 33167,
+    "unlabelled": 0,
+    "duplicate_of_labelled": 0,
+    "decisions": 42503
+   },
+   "spawned_after_reload_keys": [],
+   "nuisance_largest_advantage": 0.0006371963361210264,
+   "elu_p_counts": null
+  },
+  "procthor10k-0.1.2-train-09339": {
+   "status": "succeeded",
+   "receipt_sha256": "ab7cb374779968151eba1ce383857bc31e6a04bc7a42b7ddf45ec05b751bcb7d",
+   "frames": 822,
+   "wall_seconds": 230.3,
+   "illegal_programs": 0,
+   "atoms": {
+    "NOOP": 24943,
+    "BIND": 7058,
+    "BIRTH": 749,
+    "RETRACT": 61,
+    "REACTIVATE": 675
+   },
+   "final_entities_by_state": {
+    "active": 91,
+    "dormant": 164,
+    "retracted": 40
+   },
+   "window": [
+    319,
+    349
+   ],
+   "executed_interventions": 6,
+   "report": {
+    "node_prf1": {
+     "node_precision": 0.4875243014414062,
+     "node_recall": 0.829938900203666,
+     "node_f1": 0.6142340553506337,
+     "matched": 42380,
+     "predicted": 86929,
+     "truth": 51064
+    },
+    "node_prf1_iou": {
+     "node_precision": 0.2938950177731252,
+     "node_recall": 0.5003133322888924,
+     "node_f1": 0.370279651866399,
+     "matched": 25548,
+     "predicted": 86929,
+     "truth": 51064
+    },
+    "missing_residual_rate": {
+     "missing_residual_rate": 0.2,
+     "residual": 1,
+     "judged": 5,
+     "not_yet_observable": 0
+    },
+    "false_retract_rate": {
+     "false_retract_rate": 0.65,
+     "false_retracts": 39,
+     "judged_retracts": 60,
+     "ambiguous_retracts": 1
+    },
+    "identity_continuity": {
+     "identity_continuity": 0.0,
+     "kept": 0,
+     "judged": 4,
+     "no_prior_carrier": 0
+    },
+    "recovery_latency_frames": {
+     "recovery_latency_frames": 171.6,
+     "recovered": 5,
+     "unrecovered": [
+      "Book|surface|2|29"
+     ],
+     "never_observable": [],
+     "per_object": {
+      "AlarmClock|surface|2|27": 186,
+      "Book|surface|2|29": null,
+      "Egg|surface|6|10": 130,
+      "Pot|surface|6|1": 103,
+      "RemoteControl|surface|2|40": 14,
+      "SoapBottle|surface|6|2": 425
+     }
+    },
+    "contamination_auc": {
+     "contamination_auc": 0.390863559442035,
+     "frames": 822
+    },
+    "size_and_cost": {
+     "active_entity_count": 72.28588807785889,
+     "lifecycle_version_count": 1043.021897810219,
+     "runtime_per_frame_s": 0.2256894053623914,
+     "peak_memory_bytes": 709054464
+    }
+   },
+   "headline": {
+    "node_prf1": 0.6142340553506337,
+    "node_prf1_iou": 0.370279651866399,
+    "missing_residual_rate": 0.2,
+    "false_retract_rate": 0.65,
+    "identity_continuity": 0.0,
+    "recovery_latency_frames": 171.6,
+    "contamination_auc": 0.390863559442035
+   },
+   "decomposition_totals": {
+    "recall_miss": 178,
+    "teacher_error": 1098,
+    "amortization_error": 5895,
+    "correct": 26315,
+    "unlabelled": 0,
+    "duplicate_of_labelled": 0,
+    "decisions": 33486
+   },
+   "spawned_after_reload_keys": [],
+   "nuisance_largest_advantage": 0.0015326573921244924,
+   "elu_p_counts": null
+  },
+  "procthor10k-0.1.2-train-09423": {
+   "status": "succeeded",
+   "receipt_sha256": "8c8de090c4d464599241782137dd229bcfa18bbc3f59d2fad2e39b1d2891ead6",
+   "frames": 213,
+   "wall_seconds": 21.5,
+   "illegal_programs": 0,
+   "atoms": {
+    "NOOP": 3501,
+    "BIND": 1350,
+    "BIRTH": 157,
+    "RETRACT": 5,
+    "REACTIVATE": 96
+   },
+   "final_entities_by_state": {
+    "active": 34,
+    "dormant": 60,
+    "retracted": 5
+   },
+   "window": [
+    80,
+    110
+   ],
+   "executed_interventions": 2,
+   "report": {
+    "node_prf1": {
+     "node_precision": 0.46735521947620806,
+     "node_recall": 0.8891228070175439,
+     "node_f1": 0.6126692456479691,
+     "matched": 2534,
+     "predicted": 5422,
+     "truth": 2850
+    },
+    "node_prf1_iou": {
+     "node_precision": 0.3454444854297307,
+     "node_recall": 0.6571929824561403,
+     "node_f1": 0.45285299806576407,
+     "matched": 1873,
+     "predicted": 5422,
+     "truth": 2850
+    },
+    "missing_residual_rate": {
+     "missing_residual_rate": 0.0,
+     "residual": 0,
+     "judged": 2,
+     "not_yet_observable": 0
+    },
+    "false_retract_rate": {
+     "false_retract_rate": 0.2,
+     "false_retracts": 1,
+     "judged_retracts": 5,
+     "ambiguous_retracts": 0
+    },
+    "identity_continuity": {
+     "identity_continuity": 0.0,
+     "kept": 0,
+     "judged": 1,
+     "no_prior_carrier": 0
+    },
+    "recovery_latency_frames": {
+     "recovery_latency_frames": 29.5,
+     "recovered": 2,
+     "unrecovered": [],
+     "never_observable": [],
+     "per_object": {
+      "Candle|surface|2|6": 22,
+      "CellPhone|surface|2|10": 37
+     }
+    },
+    "contamination_auc": {
+     "contamination_auc": 0.3830386261224995,
+     "frames": 213
+    },
+    "size_and_cost": {
+     "active_entity_count": 27.056338028169016,
+     "lifecycle_version_count": 207.29107981220656,
+     "runtime_per_frame_s": 0.08854071075367816,
+     "peak_memory_bytes": 586072064
+    }
+   },
+   "headline": {
+    "node_prf1": 0.6126692456479691,
+    "node_prf1_iou": 0.45285299806576407,
+    "missing_residual_rate": 0.0,
+    "false_retract_rate": 0.2,
+    "identity_continuity": 0.0,
+    "recovery_latency_frames": 29.5,
+    "contamination_auc": 0.3830386261224995
+   },
+   "decomposition_totals": {
+    "recall_miss": 6,
+    "teacher_error": 60,
+    "amortization_error": 1054,
+    "correct": 3989,
+    "unlabelled": 0,
+    "duplicate_of_labelled": 0,
+    "decisions": 5109
+   },
+   "spawned_after_reload_keys": [],
+   "nuisance_largest_advantage": 0.007485963817841612,
+   "elu_p_counts": null
+  },
+  "procthor10k-0.1.2-train-09595": {
+   "status": "succeeded",
+   "receipt_sha256": "571da33deab68a6615dd5fd1764c8a7ddcfb4f5605b6ac6082c04d3cd423b0b1",
+   "frames": 1118,
+   "wall_seconds": 373.0,
+   "illegal_programs": 0,
+   "atoms": {
+    "NOOP": 41602,
+    "BIND": 9041,
+    "BIRTH": 1005,
+    "RETRACT": 143,
+    "REACTIVATE": 850
+   },
+   "final_entities_by_state": {
+    "active": 93,
+    "dormant": 258,
+    "retracted": 87
+   },
+   "window": [
+    503,
+    533
+   ],
+   "executed_interventions": 6,
+   "report": {
+    "node_prf1": {
+     "node_precision": 0.4701772299613449,
+     "node_recall": 0.7939553672594709,
+     "node_f1": 0.5906021822579315,
+     "matched": 64466,
+     "predicted": 137110,
+     "truth": 81196
+    },
+    "node_prf1_iou": {
+     "node_precision": 0.3161986725986434,
+     "node_recall": 0.5339425587467362,
+     "node_f1": 0.3971856018616071,
+     "matched": 43354,
+     "predicted": 137110,
+     "truth": 81196
+    },
+    "missing_residual_rate": {
+     "missing_residual_rate": 0.0,
+     "residual": 0,
+     "judged": 6,
+     "not_yet_observable": 0
+    },
+    "false_retract_rate": {
+     "false_retract_rate": 0.7214285714285714,
+     "false_retracts": 101,
+     "judged_retracts": 140,
+     "ambiguous_retracts": 3
+    },
+    "identity_continuity": {
+     "identity_continuity": 0.0,
+     "kept": 0,
+     "judged": 2,
+     "no_prior_carrier": 0
+    },
+    "recovery_latency_frames": {
+     "recovery_latency_frames": 159.83333333333334,
+     "recovered": 6,
+     "unrecovered": [],
+     "never_observable": [],
+     "per_object": {
+      "Bread|surface|6|20": 165,
+      "Mug|surface|6|14": 0,
+      "Plate|surface|6|16": 401,
+      "SaltShaker|surface|6|9": 7,
+      "Spatula|surface|6|6": 0,
+      "Vase|surface|4|1": 386
+     }
+    },
+    "contamination_auc": {
+     "contamination_auc": 0.33019611714459146,
+     "frames": 1118
+    },
+    "size_and_cost": {
+     "active_entity_count": 88.29516994633273,
+     "lifecycle_version_count": 1399.4624329159212,
+     "runtime_per_frame_s": 0.269330298324817,
+     "peak_memory_bytes": 795332608
+    }
+   },
+   "headline": {
+    "node_prf1": 0.5906021822579315,
+    "node_prf1_iou": 0.3971856018616071,
+    "missing_residual_rate": 0.0,
+    "false_retract_rate": 0.7214285714285714,
+    "identity_continuity": 0.0,
+    "recovery_latency_frames": 159.83333333333334,
+    "contamination_auc": 0.33019611714459146
+   },
+   "decomposition_totals": {
+    "recall_miss": 497,
+    "teacher_error": 1553,
+    "amortization_error": 8190,
+    "correct": 42401,
+    "unlabelled": 0,
+    "duplicate_of_labelled": 0,
+    "decisions": 52641
+   },
+   "spawned_after_reload_keys": [],
+   "nuisance_largest_advantage": 0.0017437591776798822,
+   "elu_p_counts": null
+  }
+ }
+}
