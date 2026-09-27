@@ -1,0 +1,14 @@
+{
+ "commit": "8ce7b0b",
+ "vsmt_lean_pass_exit": "0",
+ "assoc_only_pass_exit": "0",
+ "finished_cst": "2026-09-27 22:35:04",
+ "workers": {
+  "VSMT-lean": 8,
+  "AssocOnly": 7
+ },
+ "cpu_quota": 16,
+ "pass_root": "/root/autodl-tmp/vsmt_private/lean-s2-05-oracle-c150be0",
+ "shutdown": true,
+ "shutdown_after_seconds": 1200
+}

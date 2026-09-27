@@ -4384,3 +4384,39 @@ move 仍要两个 U 容器、add 仍要过 dry-run，成品率不会等于这些
   - 21:20 CST 写状态文件，20 分钟后自动关机。
   - 两个损失都是开发训练的读数，不据此选择任何东西。
 - 下一步：dagger_round_1。VSMT-lean（`tau_r` 0.5）与 AssocOnly 各用自己第 0 轮的头跑 39 条，两个臂并行（8＋7 个 worker）。预计约 1～1.5 h，由最大 episode 与学习臂的记忆规模决定。
+
+### LOG-268：dagger_round_1 两个学习臂各 39/39（第 0 轮的头跑自己的轨迹）；真实数据评测的来源初查（2026-09-28 00:40 悉尼／22:40 CST）
+
+- 类型：**运行结果**。
+- 运行：
+  - 实例重开后没有残留的关机任务；在 `8ce7b0b`（worktree `train-8ce7b0b`）运行。
+  - 两个臂同时跑：VSMT-lean 用开发配置 `{"tau_r": 0.5}`、头 `b1bdb4c1…`，8 个 worker；AssocOnly 用 `{}`、头 `881d41f0…`，7 个 worker；每个 worker 1 线程；cgroup 16 核。
+  - 21:37 CST 启动；VSMT-lean 22:32 结束，AssocOnly 22:35 结束。**两臂都是 39 成 0 败**，非法程序 0，回执只含 `8ce7b0b` 一个提交。
+  - 导出与状态文件退出码均为 0；22:35 写状态文件，20 分钟后自动关机。
+  - 导出：[`results/vsmt_lean_s2_05_dagger_round_1_VSMT-lean_oracle_8ce7b0b.json`](results/vsmt_lean_s2_05_dagger_round_1_VSMT-lean_oracle_8ce7b0b.json)、[`results/vsmt_lean_s2_05_dagger_round_1_AssocOnly_oracle_8ce7b0b.json`](results/vsmt_lean_s2_05_dagger_round_1_AssocOnly_oracle_8ce7b0b.json)、[`results/dagger_round_1_8ce7b0b.status.json`](results/dagger_round_1_8ce7b0b.status.json)。
+- 耗时：
+  - 学习臂的记忆比 ELU-P 小得多（结束时全部实体数：VSMT-lean 3,731，AssocOnly 4,110；ELU-P 13,350）。
+  - 同一 episode 的用时明显更短：01289 VSMT-lean 1,891 s，对比 ELU-P 3,057 s；00563 约 15 分钟，对比 24 分钟。
+  - 逐 episode 用时合计：VSMT-lean 14,325 s，AssocOnly 13,698 s，ELU-P 20,168 s。
+  - 收尾都在几秒以内。
+- **读数**（开发集；这是第 0 轮的头跑出的轨迹，也就是第 1 轮训练的数据来源，**不是开发表**；只作早期风险读数，不选赢家、不调网格，裁决 66）：
+  - 原子：
+    - VSMT-lean：NOOP 274,156、BIND 415,325、BIRTH 6,587、**RETRACT 75**、REACTIVATE 17,333；结束时活动 2,678、休眠 1,042、撤回 11。
+    - AssocOnly：BIND 432,483、BIRTH 6,762，没有存在决定；结束时活动 4,110。
+  - 各指标的 house 平均（括号内依次为 AssocOnly、ELU-P、TAF）：
+    - `node_prf1`：VSMT-lean 0.724（0.752、0.648、0.635）；
+    - `node_prf1_iou`：0.433（0.447、0.409、0.406）；
+    - Missing 残留率：0.141（0.302、0.092、0.761），29 个 house；
+    - 身份连续率：0.236（0.201、0.135、0.135）；
+    - 恢复延迟：150.9 帧（153.3、134.6、155.5）；
+    - 污染 AUC：0.409（0.389、0.326、0.321）。
+  - **早期风险，如实记下**：
+    - (1) VSMT-lean 在 `tau_r` 0.5 下几乎不撤回（全部 39 条只有 75 次 RETRACT），被评判的撤回里 73.3% 是错撤（27 个 house）。
+    - (2) 节点 F1 上 AssocOnly（因果反事实）高于 VSMT-lean。VSMT-lean 的优势在 Missing 残留率和身份连续率上。
+    - (3) 两个学习臂的污染 AUC 都比规则臂差。
+    - 这些是第 0 轮的头的读数；第 1 轮训练用这些轨迹作监督，开发表用第 1 轮的头，届时再读。如果开发表仍然如此，可以按裁决 66 提设计修订。
+- **真实数据评测的来源初查**（用户 2026-09-28：开发表之后调研，再提裁决）：
+  - ObChange（TU Wien）：CC-BY-4.0，开放下载，约 109 GB；5 个真实房间，机器人多次巡视，rosbag 含 RGB-D、内参与 tf 位姿，YCB 物体标注在重建点云上。
+  - 3RScan：用户已同意使用条款、拿到下载脚本，放在本地未入库的 `3RScan_scripts/`，已写入 `.git/info/exclude`。数据许可证 CC BY-NC-SA 4.0，完整下载约 94 GB，含逐帧 `sequence.zip`。
+  - 两者都只作外部评测，不参与训练和调参。服务器数据盘剩 12 GB，下载前需要扩容或只下载需要的子集。
+- 下一步：第 1 轮训练。VSMT-lean 与 AssocOnly 各用自己在本趟的轨迹（`train --pass dagger_round_1 --round 1 --source-arm <臂>`），预计约 2 小时；然后 development_table。

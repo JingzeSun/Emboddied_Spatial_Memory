@@ -95,6 +95,8 @@ S4 论文
 
 **2026-09-27 第 0 轮开发训练完成（LOG-267）**：VSMT-lean 与 AssocOnly 各一次（`8ce7b0b`，CPU，seed 7，最佳 epoch 均为 17，未发散），权重在 `lean-s2-05-oracle-c150be0/training/round0/`。四个提速提交与既有输出逐字节一致，但 runner 未变快，之后的时间估计不打折。**当前执行点：dagger_round_1**（两学习臂各用自己第 0 轮的头，39 条，约 1～1.5 h）——每趟先报再启；之后第 1 轮训练 → development_table。
 
+**2026-09-28 dagger_round_1 完成（LOG-268）**：VSMT-lean 与 AssocOnly 各 39/39（`8ce7b0b`，约 1 小时）。早期风险读数：VSMT-lean 几乎不撤回、节点 F1 低于 AssocOnly；以开发表的第 1 轮头为准。**当前执行点：第 1 轮训练**（两臂各用自己本趟的轨迹，约 2 小时）→ development_table。开发表之后调研真实数据评测（ObChange 首选、3RScan 已拿到脚本）并提裁决（用户 2026-09-28）；S3-01 加读取器层面的 train-only 防护。
+
 | 状态 | 含义 |
 |---|---|
 | 已完成 | 代码和必要测试已经受审，或已有可复用的真实证据 |
