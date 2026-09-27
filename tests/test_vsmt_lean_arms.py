@@ -566,14 +566,17 @@ class TestMachineContract(unittest.TestCase):
     def test_policy_values_must_still_be_null(self) -> None:
         # nine at v2 (six v1 values plus the three rollout_config values, D-224-X X4); the shared
         # should-be-visible minimum was frozen by ruling 67 (2026-09-24); ruling 68 (2026-09-25) froze the
-        # rollout_config, weight_decay and seeds, leaving the three ELU-P fitted quantities for the fit pass
-        self.assertEqual(len(NULL_POLICY_PATHS), 3)
-        for path in NULL_POLICY_PATHS:
+        # rollout_config, weight_decay and seeds; the three ELU-P fitted quantities were registered after the
+        # ruling-75 calibration pass (2026-09-27, ruling 68 (10)): nothing is left open
+        self.assertEqual(NULL_POLICY_PATHS, ())
+        contract = self._fresh()
+        self.assertEqual(contract["policy_values_without_defaults"], [])
+        for name in ("initial_log_odds", "persistence_log_decay_per_tick", "match_gain"):
             broken = self._fresh()
-            self._set(broken, path, 0.5)
+            broken["arms"]["ELU-P"]["fitted"][name] = None
             with self.assertRaises(LeanArmsError) as caught:
                 validate_arms_contract(broken)
-            self.assertIn("must_be_null_before_freeze", str(caught.exception))
+            self.assertEqual(str(caught.exception), f"contract_frozen_value_mismatch:arms.ELU-P.fitted.{name}")
 
     def test_the_ruling_67_and_68_values_are_bound(self) -> None:
         from vsmt.lean_arms import SEEDS, SHOULD_BE_VISIBLE_MIN_RATIO, WEIGHT_DECAY

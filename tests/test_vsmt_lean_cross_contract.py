@@ -471,7 +471,11 @@ FROZEN_VALUES: dict[str, dict[str, Any]] = {
         "shared.should_be_visible_min_ratio": 0.015625,
         # D-224-S1 ruling 68 (2026-09-25): the two training values METHOD proposed.
         "arms.VSMT-lean.training.weight_decay": 0.0001,
-        "arms.VSMT-lean.training.seeds": [7, 19, 31, 43, 59]
+        "arms.VSMT-lean.training.seeds": [7, 19, 31, 43, 59],
+        # D-224-S1 ruling 68 (10), fitted 2026-09-27 on the ruling-75 calibration pass counts (LOG-265).
+        "arms.ELU-P.fitted.initial_log_odds": 4.75891184514327,
+        "arms.ELU-P.fitted.persistence_log_decay_per_tick": 1.9420616347206353e-05,
+        "arms.ELU-P.fitted.match_gain": 3.0998616369636114
     },
     "S1-04": {
         # D-224-S1 ruling 48 / S1-04 code review (2026-09-22): the ReID head's training values,

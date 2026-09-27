@@ -775,13 +775,19 @@ FROZEN_VALUES_BY_RULING = (
     ("shared.should_be_visible_min_ratio", SHOULD_BE_VISIBLE_MIN_RATIO, "D-224-S1 ruling 68"),
     ("arms.VSMT-lean.training.weight_decay", WEIGHT_DECAY, "D-224-S1 ruling 68"),
     ("arms.VSMT-lean.training.seeds", list(SEEDS), "D-224-S1 ruling 68"),
+    # D-224-S1 ruling 68 (10) pre-authorised registering the fit; fitted 2026-09-27 on the 39 development episodes'
+    # counts of the ruling-75 calibration pass (TAF at the rollout theta_a, receipts at 850c533 x38 and 97b76b0 x1,
+    # byte-equivalent code): 123,033 of 124,088 object frames in place, 134 events in 6,899,951 object ticks,
+    # hits 279,510 of 837,517 against false matches 119 of 7,914 (results/vsmt_lean_s2_05_elu_p_fit_850c533.json).
+    *((f"arms.ELU-P.fitted.{name}", value, "D-224-S1 ruling 68 (10)") for name, value in (
+        ("initial_log_odds", 4.75891184514327),
+        ("persistence_log_decay_per_tick", 1.9420616347206353e-05),
+        ("match_gain", 3.0998616369636114),
+    )),
 )
 
-NULL_POLICY_PATHS = (
-    "arms.ELU-P.fitted.initial_log_odds",
-    "arms.ELU-P.fitted.persistence_log_decay_per_tick",
-    "arms.ELU-P.fitted.match_gain",
-)
+#: Policy values that must still be null: none since the ELU-P fit (2026-09-27).
+NULL_POLICY_PATHS: tuple[str, ...] = ()
 
 FROZEN_CONSTANTS = (
     ("cost_interface.ineligible_logit", INELIGIBLE_LOGIT, "D-224-R"),

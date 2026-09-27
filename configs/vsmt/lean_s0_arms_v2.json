@@ -174,9 +174,9 @@
       "reactivates_retracted": true,
       "fitted_quantities_never_grid_searched": true,
       "fitted": {
-        "initial_log_odds": null,
-        "persistence_log_decay_per_tick": null,
-        "match_gain": null
+        "initial_log_odds": 4.75891184514327,
+        "persistence_log_decay_per_tick": 1.9420616347206353e-05,
+        "match_gain": 3.0998616369636114
       },
       "fitted_on": "train split only",
       "grid": {
@@ -230,7 +230,9 @@
         "runs_after_the_train_split_feature_seals": true,
         "match_gain_fitted_at_the_rollout_config_and_shared_by_every_config": true,
         "plain_language_zh": "三个拟合量只在 train 上估一次、不进网格：初始 log-odds 是“看不见一阵子之后物体还在原处”的先验；持续性衰减由每帧被移走/搬动的风险率算出；匹配增益是“物体在时门内能配上”对“物体不在时门内仍配上”的对数似然比，门取登记的 rollout_config，因此所有 ELU-P 配置共用同一个增益。估计代码属 S2-02，数值待冻结。"
-      }
+      },
+      "fitted_frozen_by": "D-224-S1 ruling 68 (10); counts of the ruling-75 calibration pass (lean-s2-05-oracle-850c533, receipts 850c533 x38 + 97b76b0 x1)",
+      "fitted_frozen_on": "2026-09-27"
     },
     "RAC": {
       "kind": "rule",
@@ -520,11 +522,7 @@
     "arms.VSMT-lean.training.dagger_rounds",
     "arms.VSMT-lean.training.main_table_round"
   ],
-  "policy_values_without_defaults": [
-    "arms.ELU-P.fitted.initial_log_odds",
-    "arms.ELU-P.fitted.persistence_log_decay_per_tick",
-    "arms.ELU-P.fitted.match_gain"
-  ],
+  "policy_values_without_defaults": [],
   "user_rulings": {
     "decision_id": "D-224-SW",
     "S": "HandCost is redefined as stateless hand scores in VSMT-lean's three head slots (cosine, theta_b, current free-space coverage against rho_h); it no longer coincides with ELU-P",
