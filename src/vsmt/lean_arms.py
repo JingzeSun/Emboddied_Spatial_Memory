@@ -41,7 +41,7 @@ from typing import Any, Mapping, Sequence
 
 from cpmt.hashing import clone_json
 
-from vsmt.lean_memory import seal_memory, validate_memory
+from vsmt.lean_memory import memory_digest, validate_memory
 
 
 CONTRACT_SCHEMA_VERSION = "vsmt-lean-s0-arms-v2"
@@ -569,10 +569,16 @@ def apply_no_version(memory: Mapping[str, Any]) -> dict[str, Any]:
     它不改召回规则、代价头或训练。
     """
 
-    checked = validate_memory(memory)
+    # 2026-09-27, engineering: no deep copies.  The memory carries its whole history, and the three copies this made
+    # per frame (validate, seal, validate) grew with the frames already run.  The result is a new top-level object
+    # that shares the kept records with the input; sealed records are never changed in place (LOG-254), so the
+    # content and the digest are the same as the copying version's.
+    checked = validate_memory(memory, copy=False)
     deleted = sorted(str(entity["entity_id"]) for entity in checked["entities"] if entity["state"] == "retracted")
-    checked["entities"] = [entity for entity in checked["entities"] if entity["state"] != "retracted"]
-    result = validate_memory(seal_memory(checked))
+    kept = {key: value for key, value in checked.items() if key != "memory_digest"}
+    kept["entities"] = [entity for entity in checked["entities"] if entity["state"] != "retracted"]
+    kept["memory_digest"] = memory_digest(kept)
+    result = validate_memory(kept, copy=False)
     result["no_version_deleted"] = deleted
     return result
 

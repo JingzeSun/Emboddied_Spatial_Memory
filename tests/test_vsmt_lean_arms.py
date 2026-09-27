@@ -464,6 +464,25 @@ class TestNoVersion(unittest.TestCase):
         untouched = apply_no_version(two_entity_memory()[0])
         self.assertEqual(untouched["no_version_deleted"], [])
 
+    def test_the_no_copy_result_equals_the_copying_construction_and_leaves_the_input_alone(self) -> None:
+        """2026-09-27: the validate-seal-validate copies were dropped; content, digest and input stay the same."""
+
+        from cpmt.hashing import canonical_json
+        from vsmt.lean_memory import memory_digest_from_scratch, seal_memory
+
+        memory, mug, _ = two_entity_memory()
+        memory = step(memory, "f2", [{"atom": "RETRACT", "entity_id": mug}])
+        before = canonical_json(memory)
+        out = apply_no_version(memory)
+        deleted = out.pop("no_version_deleted")
+        reference = json.loads(json.dumps(memory))
+        reference["entities"] = [entity for entity in reference["entities"] if entity["state"] != "retracted"]
+        reference = seal_memory(reference)
+        self.assertEqual(canonical_json(out), canonical_json(reference))
+        self.assertEqual(memory_digest_from_scratch(out), out["memory_digest"])
+        self.assertEqual(canonical_json(memory), before)
+        self.assertEqual(deleted, [mug])
+
 
 class TestGridsAndGuards(unittest.TestCase):
     def test_configs_enumerate_in_registered_order(self) -> None:
