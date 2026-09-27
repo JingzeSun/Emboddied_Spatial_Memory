@@ -269,6 +269,28 @@ def _aabb_iou(
     return overlap / union if union > 0.0 else 0.0
 
 
+def _boxes_overlap(left: Sequence[Mapping[str, Any]], right: Sequence[Mapping[str, Any]]) -> list[list[bool]]:
+    """Whether each pair of boxes overlaps with positive extent on all three axes.
+
+    Engineering (2026-09-27, LOG-266 profile): the node IoU column scored every prediction against every present
+    truth object in pure Python (01289: 26.5 million ``_aabb_iou`` calls in 1,500 frames).  A pair without positive
+    overlap on some axis has an IoU of exactly 0.0, which ``_aabb_iou`` returns too; ``max``, ``min`` and ``>`` are
+    exact on floats, so this test marks exactly the pairs whose IoU can be non-zero and those alone are scored.
+    """
+
+    import numpy as np
+
+    if not left or not right:
+        return [[False] * len(right) for _ in left]
+    left_low = np.asarray([item["aabb_min_m"] for item in left], dtype=np.float64)
+    left_high = np.asarray([item["aabb_max_m"] for item in left], dtype=np.float64)
+    right_low = np.asarray([item["aabb_min_m"] for item in right], dtype=np.float64)
+    right_high = np.asarray([item["aabb_max_m"] for item in right], dtype=np.float64)
+    high = np.minimum(left_high[:, None, :], right_high[None, :, :])
+    low = np.maximum(left_low[:, None, :], right_low[None, :, :])
+    return (high > low).all(axis=2).tolist()
+
+
 def _precision_recall_f1(matched: int, predicted: int, truth: int) -> tuple[float | None, float | None, float | None]:
     precision = matched / predicted if predicted else None
     recall = matched / truth if truth else None
@@ -980,15 +1002,16 @@ def evaluate_frame(
     matched = len(pairs)
     precision, recall, f1 = _precision_recall_f1(matched, len(predictions), len(present_keys))
     # the secondary column -- the same two sets and the same matcher with ruling C's 3D IoU >= iou_min test
+    overlapping = _boxes_overlap(predictions, [truth[key] for key in present_keys])
     iou_weights = [
         [
             (lambda iou: iou if iou >= threshold else 0.0)(_aabb_iou(
                 entity["aabb_min_m"], entity["aabb_max_m"],
                 truth[key]["aabb_min_m"], truth[key]["aabb_max_m"],
-            ))
-            for key in present_keys
+            )) if overlapping[row][column] else 0.0
+            for column, key in enumerate(present_keys)
         ]
-        for entity in predictions
+        for row, entity in enumerate(predictions)
     ]
     iou_pairs = _max_weight_matching(iou_weights, count_first=True)
     iou_precision, iou_recall, iou_f1 = _precision_recall_f1(len(iou_pairs), len(predictions), len(present_keys))

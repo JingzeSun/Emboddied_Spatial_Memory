@@ -776,6 +776,38 @@ class TestEvaluatorMatching(unittest.TestCase):
         self.assertIsNone(out["node_f1"])
 
 
+class TestBoxOverlapPrefilter(unittest.TestCase):
+    """2026-09-27: the IoU column scores only overlapping pairs; every other pair's IoU is exactly 0.0."""
+
+    def test_the_overlap_test_marks_exactly_the_pairs_with_a_non_zero_iou(self) -> None:
+        import vsmt.lean_teacher as lt
+
+        rng = random.Random(5)
+
+        def box(grid: bool) -> dict[str, Any]:
+            if grid:  # corners on a coarse grid: touching faces, shared corners and nested boxes are common
+                low = [rng.choice([0.0, 0.25, 0.5, 0.75]) for _ in range(3)]
+                high = [value + rng.choice([0.0, 0.25, 0.5]) for value in low]
+            else:
+                low = [rng.uniform(-1.0, 1.0) for _ in range(3)]
+                high = [value + rng.uniform(0.0, 0.8) for value in low]
+            return {"aabb_min_m": low, "aabb_max_m": high}
+
+        for grid in (True, False):
+            left = [box(grid) for _ in range(40)]
+            right = [box(grid) for _ in range(35)]
+            mask = lt._boxes_overlap(left, right)
+            for i, a in enumerate(left):
+                for j, b in enumerate(right):
+                    iou = lt._aabb_iou(a["aabb_min_m"], a["aabb_max_m"], b["aabb_min_m"], b["aabb_max_m"])
+                    if not mask[i][j]:
+                        self.assertEqual(iou, 0.0)
+                    elif grid is False:
+                        self.assertGreater(iou, 0.0)
+        self.assertEqual(lt._boxes_overlap([], [box(True)]), [])
+        self.assertEqual(lt._boxes_overlap([box(True)], []), [[]])
+
+
 class TestLifecycleMetrics(unittest.TestCase):
     def test_missing_residual_counts_stale_old_positions_including_dormant(self) -> None:
         memory, mug, book = two_entity_memory()
