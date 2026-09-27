@@ -313,6 +313,40 @@ class TrainingTests(unittest.TestCase):
         self.assertEqual(sorted(assoc["weights"]["heads"]), ["association", "birth"])
         self.assertTrue(assoc["weights"]["training"]["assoc_only"])
 
+    def test_preparing_each_record_once_trains_the_same_weights_as_preparing_it_every_step(self) -> None:
+        """2026-09-27: the per-step path (check, copy and tensorise the record at every step) is the reference."""
+
+        import torch
+
+        train, validation = self.records()
+        for assoc_only in (False, True):
+            fast = model.train_heads(train, validation, learning_rate=1e-3, weight_decay=1e-4, epochs=3, seed=7, assoc_only=assoc_only)
+            heads = model.make_heads(assoc_only=assoc_only, seed=7)
+            optimiser = torch.optim.AdamW(heads.parameters(), lr=1e-3, weight_decay=1e-4)
+            generator = torch.Generator(device="cpu").manual_seed(7)
+            best = None
+            for epoch in range(3):
+                heads.train()
+                for index in torch.randperm(len(train), generator=generator).tolist():
+                    out = model.frame_loss(heads, train[index])
+                    if out["loss"] is None:
+                        continue
+                    optimiser.zero_grad()
+                    out["loss"].backward()
+                    optimiser.step()
+                heads.eval()
+                with torch.no_grad():
+                    values = [float(o["loss"].item()) for o in (model.frame_loss(heads, r) for r in validation) if o["loss"] is not None]
+                loss = float(np.mean(values))
+                if best is None or loss < best[0]:
+                    best = (loss, {name: {k: v.detach().clone() for k, v in m.state_dict().items()} for name, m in heads.items()})
+                self.assertEqual(fast["validation_curve"][epoch], loss)
+            for name, state in best[1].items():
+                heads[name].load_state_dict(state)
+            for name in heads:
+                for key, value in heads[name].state_dict().items():
+                    self.assertTrue(torch.equal(value, fast["heads"][name].state_dict()[key]), (assoc_only, name, key))
+
 
 class RunnerIntegrationTests(unittest.TestCase):
     def test_the_scorer_drives_the_common_runner(self) -> None:

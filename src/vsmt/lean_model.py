@@ -248,59 +248,79 @@ def validate_training_record(record: Mapping[str, Any]) -> dict[str, Any]:
     return clone_json(dict(record))
 
 
-def frame_loss(heads: Any, record: Mapping[str, Any], *, device: str = "cpu") -> dict[str, Any]:
-    """The registered loss on one labelled frame, with the term counts; None when no term applies.
+def prepare_frame(record: Mapping[str, Any], *, device: str = "cpu") -> dict[str, Any]:
+    """Everything ``frame_loss`` needs from one record, checked once and turned into tensors once.
 
-    白话：对本帧每个有明确目标的色块，在"它召回的实体们 + 新建"之间算 softmax 交叉熵；对每个有明确
-    gone/present 标签的存在候选算二元交叉熵；两项各自取平均后等权相加。召回漏掉（正确实体不在候选
-    里）、无标注、身份含糊、同帧重复的色块和身份含糊的候选都不进损失，只计数。
+    Engineering (2026-09-27, round-0 timing probe: 389 s per epoch for 32,550 frames on one CPU thread): training
+    re-validated, deep-copied and re-tensorised every record at every step of every epoch.  The record is fixed, so
+    the same checks and the same tensors can be made once; ``prepared_loss`` then runs exactly the operations
+    ``frame_loss`` ran, in the same order, so losses and trained weights are bit for bit the same (pinned by test).
     """
 
     import torch
 
     checked = validate_training_record(record)
     stage_a = checked["stage_a"]
-    assoc_only = is_assoc_only(heads)
     association_by_fragment: dict[str, list[tuple[str, list[float]]]] = {}
     for row in stage_a["association_rows"]:
         association_by_fragment.setdefault(str(row["fragment_id"]), []).append((str(row["entity_id"]), row["features"]))
     birth_features = {str(row["fragment_id"]): row["features"] for row in stage_a["birth_rows"]}
-
-    terms: list[Any] = []
-    counted = {"association_terms": 0, "association_excluded": {status: 0 for status in ASSOCIATION_EXCLUDED_STATUSES},
-               "existence_terms": 0, "existence_excluded": 0}
+    association: list[tuple[Any, Any, Any]] = []
+    excluded = {status: 0 for status in ASSOCIATION_EXCLUDED_STATUSES}
     for fragment_id in sorted(checked["targets"]):
         target = checked["targets"][fragment_id]
         if target["status"] not in ASSOCIATION_LOSS_STATUSES:
-            counted["association_excluded"][target["status"]] += 1
+            excluded[target["status"]] += 1
             continue
         pairs = association_by_fragment.get(fragment_id, [])
         order = list(stage_a["recall"][fragment_id])
         _require([entity_id for entity_id, _ in pairs] == order, f"record_association_rows_out_of_recall_order:{fragment_id}")
         columns = [*order, f"{la.BIRTH_COLUMN_PREFIX}{fragment_id}"]
-        logits = []
-        if pairs:
-            logits.append(heads["association"](_rows_tensor([f for _, f in pairs], width=len(HEAD_FEATURES["association"]), device=device)).reshape(-1))
-        logits.append(heads["birth"](_rows_tensor([birth_features[fragment_id]], width=len(HEAD_FEATURES["birth"]), device=device)).reshape(-1))
-        scores = torch.cat(logits)
-        index = torch.as_tensor([columns.index(target["target"])], device=device)
-        terms.append(("association", torch.nn.functional.cross_entropy(scores.unsqueeze(0), index)))
-        counted["association_terms"] += 1
+        pair_rows = (_rows_tensor([f for _, f in pairs], width=len(HEAD_FEATURES["association"]), device=device)
+                     if pairs else None)
+        birth_row = _rows_tensor([birth_features[fragment_id]], width=len(HEAD_FEATURES["birth"]), device=device)
+        association.append((pair_rows, birth_row, torch.as_tensor([columns.index(target["target"])], device=device)))
     existence_rows, existence_targets = [], []
+    existence_excluded = 0
     for row in checked["existence_rows"]:
         label = checked["existence_labels"].get(str(row["entity_id"]))
         if label is None:
             continue
         if label["status"] in EXISTENCE_EXCLUDED_STATUSES:
-            counted["existence_excluded"] += 1
+            existence_excluded += 1
             continue
         existence_rows.append(row["features"])
         existence_targets.append(EXISTENCE_TARGETS[label["status"]])
-    if existence_rows and not assoc_only:
-        logits = heads["existence"](_rows_tensor(existence_rows, width=len(HEAD_FEATURES["existence"]), device=device)).reshape(-1)
-        target = torch.as_tensor(existence_targets, dtype=torch.float32, device=device)
+    existence = None
+    if existence_rows:
+        existence = (_rows_tensor(existence_rows, width=len(HEAD_FEATURES["existence"]), device=device),
+                     torch.as_tensor(existence_targets, dtype=torch.float32, device=device), len(existence_rows))
+    return {"association": association, "association_excluded": excluded, "existence": existence,
+            "existence_excluded": existence_excluded}
+
+
+def prepared_loss(heads: Any, prepared: Mapping[str, Any]) -> dict[str, Any]:
+    """The registered loss on one prepared frame (see ``prepare_frame``); the operations of ``frame_loss``."""
+
+    import torch
+
+    assoc_only = is_assoc_only(heads)
+    terms: list[Any] = []
+    counted = {"association_terms": 0, "association_excluded": dict(prepared["association_excluded"]),
+               "existence_terms": 0, "existence_excluded": prepared["existence_excluded"]}
+    for pair_rows, birth_row, index in prepared["association"]:
+        logits = []
+        if pair_rows is not None:
+            logits.append(heads["association"](pair_rows).reshape(-1))
+        logits.append(heads["birth"](birth_row).reshape(-1))
+        scores = torch.cat(logits)
+        terms.append(("association", torch.nn.functional.cross_entropy(scores.unsqueeze(0), index)))
+        counted["association_terms"] += 1
+    if prepared["existence"] is not None and not assoc_only:
+        rows, target, count = prepared["existence"]
+        logits = heads["existence"](rows).reshape(-1)
         terms.append(("existence", torch.nn.functional.binary_cross_entropy_with_logits(logits, target)))
-        counted["existence_terms"] = len(existence_rows)
+        counted["existence_terms"] = count
     association = [value for kind, value in terms if kind == "association"]
     existence = [value for kind, value in terms if kind == "existence"]
     parts = []
@@ -312,17 +332,28 @@ def frame_loss(heads: Any, record: Mapping[str, Any], *, device: str = "cpu") ->
     return {"loss": loss, **counted}
 
 
+def frame_loss(heads: Any, record: Mapping[str, Any], *, device: str = "cpu") -> dict[str, Any]:
+    """The registered loss on one labelled frame, with the term counts; None when no term applies.
+
+    白话：对本帧每个有明确目标的色块，在"它召回的实体们 + 新建"之间算 softmax 交叉熵；对每个有明确
+    gone/present 标签的存在候选算二元交叉熵；两项各自取平均后等权相加。召回漏掉（正确实体不在候选
+    里）、无标注、身份含糊、同帧重复的色块和身份含糊的候选都不进损失，只计数。
+    """
+
+    return prepared_loss(heads, prepare_frame(record, device=device))
+
+
 # --------------------------------------------------------------------------
 # 4. training: AdamW, per-frame batches, best epoch by validation loss
 # --------------------------------------------------------------------------
 
-def _mean_loss(heads: Any, records: Sequence[Mapping[str, Any]], *, device: str) -> float | None:
+def _mean_loss(heads: Any, prepared_records: Sequence[Mapping[str, Any]]) -> float | None:
     import torch
 
     values = []
     with torch.no_grad():
-        for record in records:
-            out = frame_loss(heads, record, device=device)
+        for prepared in prepared_records:
+            out = prepared_loss(heads, prepared)
             if out["loss"] is not None:
                 values.append(float(out["loss"].item()))
     return float(np.mean(values)) if values else None
@@ -349,8 +380,9 @@ def train_heads(
     _require(type(epochs) is int and epochs >= 1, "epochs_invalid")
     _require(type(seed) is int and seed >= 0, "seed_invalid")
     _require(len(train_records) >= 1 and len(validation_records) >= 1, "training_records_missing")
-    for record in (*train_records, *validation_records):
-        validate_training_record(record)
+    # every record checked and turned into tensors once, in the order the checks ran before (see ``prepare_frame``)
+    train_prepared = [prepare_frame(record, device=device) for record in train_records]
+    validation_prepared = [prepare_frame(record, device=device) for record in validation_records]
 
     heads = make_heads(assoc_only=assoc_only, seed=int(seed)).to(device)
     optimiser = torch.optim.AdamW(heads.parameters(), lr=float(learning_rate), weight_decay=float(weight_decay))
@@ -364,7 +396,7 @@ def train_heads(
         order = torch.randperm(len(train_records), generator=generator).tolist()
         total, count = 0.0, 0
         for index in order:
-            out = frame_loss(heads, train_records[index], device=device)
+            out = prepared_loss(heads, train_prepared[index])
             if out["loss"] is None:
                 continue
             if not torch.isfinite(out["loss"]):
@@ -381,7 +413,7 @@ def train_heads(
             break
         heads.eval()
         train_curve.append(total / count if count else None)
-        validation = _mean_loss(heads, validation_records, device=device)
+        validation = _mean_loss(heads, validation_prepared)
         validation_curve.append(validation)
         if validation is not None and (best is None or validation < best[0]):
             best = (validation, epoch, {name: {k: v.detach().cpu().clone() for k, v in module.state_dict().items()}
@@ -453,6 +485,8 @@ __all__ = [
     "WEIGHTS_SCHEMA_VERSION",
     "dagger_schedule",
     "frame_loss",
+    "prepare_frame",
+    "prepared_loss",
     "is_assoc_only",
     "load_heads",
     "make_heads",
