@@ -362,13 +362,15 @@ def _mean_loss(heads: Any, prepared_records: Sequence[Mapping[str, Any]]) -> flo
 def train_heads(
     train_records: Sequence[Mapping[str, Any]], validation_records: Sequence[Mapping[str, Any]], *,
     learning_rate: float | None, weight_decay: float | None, epochs: int | None, seed: int | None,
-    assoc_only: bool, device: str = "cpu",
+    assoc_only: bool, device: str = "cpu", epoch_callback: Any = None,
 ) -> dict[str, Any]:
     """Train the heads once and keep the best-validation epoch; every value explicit, None refused.
 
     白话：按登记的 seed 初始化并洗牌，每帧一个 batch，AdamW；每个 epoch 结束在 validation 上算一次
     平均损失，跑完全部登记的 epoch 后保留 validation 损失最低那个 epoch 的权重（并列取更早的）。
     同样的数据、同样的值、同一设备两次训练权重逐位相同。损失出现非有限值即判发散并如实返回。
+    ``epoch_callback(epoch, heads)``（裁决 79-3，只读诊断用，默认不调用）在每个 epoch 的 validation 之后
+    被调用一次，此时头处于 eval 模式；它不得改动头或优化器，训练结果与不传时逐位相同。
     """
 
     import torch
@@ -418,6 +420,8 @@ def train_heads(
         if validation is not None and (best is None or validation < best[0]):
             best = (validation, epoch, {name: {k: v.detach().cpu().clone() for k, v in module.state_dict().items()}
                                        for name, module in heads.items()})
+        if epoch_callback is not None:
+            epoch_callback(epoch, heads)
     _require(best is not None or diverged, "validation_loss_undefined_on_every_epoch")
     if best is not None:
         with torch.no_grad():

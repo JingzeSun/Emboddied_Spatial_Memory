@@ -313,6 +313,25 @@ class TrainingTests(unittest.TestCase):
         self.assertEqual(sorted(assoc["weights"]["heads"]), ["association", "birth"])
         self.assertTrue(assoc["weights"]["training"]["assoc_only"])
 
+    def test_an_epoch_callback_sees_every_epoch_and_changes_nothing(self) -> None:
+        """Ruling 79-3 (ii): the read-only per-epoch hook leaves the weights and both curves bit-identical."""
+
+        train, validation = self.records()
+        plain = model.train_heads(train, validation, learning_rate=1e-3, weight_decay=1e-4, epochs=4, seed=7, assoc_only=False)
+        seen = []
+
+        def callback(epoch, heads):
+            self.assertFalse(heads.training)
+            seen.append((epoch, model.weights_payload(heads, training={})["sha256"]))
+
+        hooked = model.train_heads(train, validation, learning_rate=1e-3, weight_decay=1e-4, epochs=4, seed=7, assoc_only=False,
+                                   epoch_callback=callback)
+        self.assertEqual(hooked["weights"]["sha256"], plain["weights"]["sha256"])
+        self.assertEqual(hooked["train_curve"], plain["train_curve"])
+        self.assertEqual(hooked["validation_curve"], plain["validation_curve"])
+        self.assertEqual([epoch for epoch, _ in seen], [0, 1, 2, 3])
+        self.assertEqual(dict(seen)[plain["best_epoch"]], plain["weights"]["sha256"])  # the kept weights are that epoch's
+
     def test_preparing_each_record_once_trains_the_same_weights_as_preparing_it_every_step(self) -> None:
         """2026-09-27: the per-step path (check, copy and tensorise the record at every step) is the reference."""
 
