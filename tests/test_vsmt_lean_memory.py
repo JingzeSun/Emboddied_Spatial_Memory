@@ -227,9 +227,69 @@ class TestIncrementalDigestAndCopyOnWrite(unittest.TestCase):
         import vsmt.lean_memory as lm
 
         lm._PART_JSON.clear()
+        lm._ITEM_JSON.clear()
         lm._VALIDATED_PARTS.clear()
+        lm._VALIDATED_ITEMS.clear()
         lm._VALIDATED_MEMORIES.clear()
         self.assertEqual([m["memory_digest"] for m in self._sequence()], first)
+
+    def test_a_changed_entity_shares_its_closed_versions_and_evidence_and_leaves_the_old_record_open(self) -> None:
+        memories = self._sequence()
+        a_id = {e["centroid_m"][0]: str(e["entity_id"]) for e in memories[0]["entities"]}[0.0]
+        before = next(e for e in memories[0]["entities"] if e["entity_id"] == a_id)
+        after = next(e for e in memories[1]["entities"] if e["entity_id"] == a_id)  # BIND at f2
+        self.assertIsNot(before, after)
+        self.assertIs(after["evidence"][0], before["evidence"][0])  # evidence items are shared, never changed
+        self.assertIsNone(before["versions"][-1]["closed_at"])  # the old memory's open version stays open
+        self.assertEqual(after["versions"][0]["closed_at"], 2)
+        self.assertEqual(len(before["versions"]), 1)
+        self.assertEqual(len(before["evidence"]), 1)
+
+    def test_the_entity_serialisation_from_item_parts_equals_the_one_piece_string(self) -> None:
+        import vsmt.lean_memory as lm
+
+        for memory in self._sequence():
+            for entity in memory["entities"]:
+                self.assertEqual(lm._entity_canonical_json(entity, lm.canonical_json), lm.canonical_json(entity))
+
+    def test_dedup_copying_only_survivors_equals_copying_every_candidate(self) -> None:
+        """Three near-duplicates fold on one tick; the survivor of the first pair is changed again by the second."""
+
+        import vsmt.lean_memory as lm
+
+        def build() -> dict[str, Any]:
+            memory = commit(empty_memory(episode_id="ep-dd"), "f1", [
+                {"atom": "BIRTH", "fragment": fragment(f"region:000{i}", descriptor=[1.0, 0.001 * i], centroid=[0.02 * i, 0.0, 0.0])}
+                for i in range(3)])
+            return commit(memory, "f2", [], dedup=DEDUP)
+
+        fast = build()
+        folds = fast["transaction_log"][-1]["post_maintenance"]["dedup"]
+        self.assertEqual(len(folds), 2)  # a pair folds, then its survivor folds the third record
+        self.assertEqual(folds[0]["canonical_entity_id"], folds[1]["canonical_entity_id"])
+        self.assertEqual(len(fast["entities"]), 1)
+        original = lm._apply_dedup
+
+        def every_candidate(memory: dict[str, Any], **kwargs: Any) -> list[dict[str, Any]]:  # the 97b76b0 behaviour
+            own = kwargs.pop("own")
+            for entity in list(memory["entities"]):
+                if entity["state"] in lm.DEDUP_ELIGIBLE_STATES:
+                    own(str(entity["entity_id"]))
+            return original(memory, **kwargs, own=None)
+
+        lm._apply_dedup = every_candidate
+        try:
+            slow = build()
+        finally:
+            lm._apply_dedup = original
+        self.assertEqual(lm.canonical_json(fast), lm.canonical_json(slow))
+
+    def test_a_tampered_shared_item_in_a_copy_is_still_refused(self) -> None:
+        memories = self._sequence()
+        tampered = json.loads(json.dumps(memories[-1]))  # new objects throughout: nothing is taken from the memo
+        tampered["entities"][0]["evidence"][0]["frame_digest"] = "z" * 64
+        with self.assertRaises(LeanMemoryError):
+            validate_memory(tampered)
 
 
 class TestBirth(unittest.TestCase):

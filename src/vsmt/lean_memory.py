@@ -209,7 +209,30 @@ def _json_native(value: Any, code: str) -> None:
 #: entity before touching it), so an unchanged record keeps its string from one frame to the next; each call keeps
 #: only the records of the memory it just serialised.
 _PART_JSON: dict[int, tuple[Any, str]] = {}
+#: 2026-09-27 (dagger_round_0 profile): the same per-object cache one level down, for the version and evidence items of
+#: an entity.  A changed entity is a new object, but it shares every closed version and every evidence item with the
+#: record it was copied from, so only its new or changed items are serialised again.
+_ITEM_JSON: dict[int, tuple[Any, str]] = {}
 _MEMORY_PAYLOAD_KEYS = ("entities", "episode_id", "schema_version", "tick", "transaction_log")
+_ENTITY_ITEM_LISTS = ("evidence", "versions")
+
+
+def _entity_canonical_json(entity: Any, item_part: Any) -> str:
+    """``canonical_json(entity)`` assembled from the cached strings of its version and evidence items.
+
+    The encoder writes a sorted-key object as ``{"k":v,...}`` and a list as ``[a,b,...]``, so joining each item's own
+    canonical string reproduces the whole string byte for byte (pinned by test); anything else takes the whole path.
+    """
+
+    if (type(entity) is not dict or any(type(key) is not str for key in entity)
+            or any(type(entity.get(name)) is not list for name in _ENTITY_ITEM_LISTS)):
+        return canonical_json(entity)
+    fields = []
+    for key in sorted(entity):
+        value = entity[key]
+        text = ("[" + ",".join(item_part(item) for item in value) + "]") if key in _ENTITY_ITEM_LISTS else canonical_json(value)
+        fields.append(canonical_json(key) + ":" + text)
+    return "{" + ",".join(fields) + "}"
 
 
 def _canonical_payload(memory: Mapping[str, Any]) -> str:
@@ -220,22 +243,39 @@ def _canonical_payload(memory: Mapping[str, Any]) -> str:
     Any memory outside the frozen five-key shape takes the whole-object path.
     """
 
-    global _PART_JSON
+    global _PART_JSON, _ITEM_JSON
     payload = {key: value for key, value in memory.items() if key != "memory_digest"}
     if (tuple(sorted(payload)) != _MEMORY_PAYLOAD_KEYS or type(payload["entities"]) is not list
             or type(payload["transaction_log"]) is not list):
         return canonical_json(payload)
     previous, kept = _PART_JSON, {}
+    previous_items, kept_items = _ITEM_JSON, {}
 
-    def part(item: Any) -> str:
-        hit = previous.get(id(item))
+    def item_part(item: Any) -> str:
+        hit = previous_items.get(id(item))
         text = hit[1] if hit is not None and hit[0] is item else canonical_json(item)
+        kept_items[id(item)] = (item, text)
+        return text
+
+    def part(item: Any, *, entity: bool) -> str:
+        hit = previous.get(id(item))
+        if hit is not None and hit[0] is item:
+            text = hit[1]
+            if entity and type(item) is dict:  # carry its items' strings forward for the copy a later frame may make
+                for name in _ENTITY_ITEM_LISTS:
+                    for sub in item.get(name) or ():
+                        sub_hit = previous_items.get(id(sub))
+                        if sub_hit is not None and sub_hit[0] is sub:
+                            kept_items[id(sub)] = sub_hit
+        else:
+            text = _entity_canonical_json(item, item_part) if entity else canonical_json(item)
         kept[id(item)] = (item, text)
         return text
 
-    entities = ",".join(part(item) for item in payload["entities"])
-    log = ",".join(part(item) for item in payload["transaction_log"])
+    entities = ",".join(part(item, entity=True) for item in payload["entities"])
+    log = ",".join(part(item, entity=False) for item in payload["transaction_log"])
     _PART_JSON = kept
+    _ITEM_JSON = kept_items
     return ('{"entities":[' + entities + '],"episode_id":' + canonical_json(payload["episode_id"])
             + ',"schema_version":' + canonical_json(payload["schema_version"]) + ',"tick":' + canonical_json(payload["tick"])
             + ',"transaction_log":[' + log + ']}')
@@ -324,7 +364,15 @@ def _validate_version(version: Mapping[str, Any], *, entity_id: str) -> None:
     del entity_id  # only used for error context by callers
 
 
-def _validate_entity(entity: Mapping[str, Any], *, tick: int) -> None:
+def _validate_entity(entity: Mapping[str, Any], *, tick: int, seen_item: Any = None) -> None:
+    """Check one entity in full; ``seen_item(item)`` true skips the per-item checks of an item checked before.
+
+    The chain, ordering, uniqueness and state checks always run over every item; only the per-item field checks of a
+    version or evidence item that is the very object already checked at an earlier or equal tick are skipped (their
+    only tick-dependent check, ``tick <= memory tick``, stays true as the tick grows).
+    """
+
+    skip = seen_item if seen_item is not None else (lambda item: False)
     expected = {
         "entity_id", "state", "canonical_of", "descriptor_mean",
         "descriptor_count", "best_view_descriptor", "best_view_pixel_count",
@@ -374,6 +422,11 @@ def _validate_entity(entity: Mapping[str, Any], *, tick: int) -> None:
     _require(type(entity["evidence"]) is list and entity["evidence"], "entity_evidence_invalid")
     seen_evidence: set[tuple[str, str]] = set()
     for item in entity["evidence"]:
+        if skip(item):
+            key = (item["frame_digest"], item["fragment_id"])
+            _require(key not in seen_evidence, "entity_evidence_duplicate")
+            seen_evidence.add(key)
+            continue
         _require(type(item) is dict, "entity_evidence_item_not_object")
         _require(
             set(item.keys()) == {"frame_digest", "fragment_id", "tick"},
@@ -392,7 +445,8 @@ def _validate_entity(entity: Mapping[str, Any], *, tick: int) -> None:
     open_versions = 0
     previous_id: str | None = None
     for index, version in enumerate(versions):
-        _validate_version(version, entity_id=entity_id)
+        if not skip(version):
+            _validate_version(version, entity_id=entity_id)
         if index == 0:
             _require(version["predecessor"] is None, "entity_first_version_has_predecessor")
             _require(version["opened_by"] == "birth", "entity_first_version_not_birth")
@@ -441,6 +495,10 @@ _VALIDATED_MEMORIES: "collections.OrderedDict[tuple[int, str, int, int], dict[st
 _VALIDATED_MEMORIES_LIMIT = 8
 #: 2026-09-27: per-record validation memo (object identity -> (object, tick or minus the log position)); see validate_memory.
 _VALIDATED_PARTS: dict[int, tuple[Any, int]] = {}
+#: 2026-09-27 (dagger_round_0 profile): the same memo for the version and evidence items of the entities, so a changed
+#: entity -- a new object sharing its closed versions and evidence with the record it was copied from -- has only its
+#: new or changed items checked field by field; the chain and uniqueness checks still run over all of them.
+_VALIDATED_ITEMS: dict[int, tuple[Any, int]] = {}
 
 
 def _validated_key(memory: Mapping[str, Any]) -> tuple[int, str, int, int] | None:
@@ -467,7 +525,7 @@ def validate_memory(memory: Mapping[str, Any], *, verify_digest: bool = True, co
     返回副本（工程缓存，见上）。
     """
 
-    global _VALIDATED_PARTS
+    global _VALIDATED_PARTS, _VALIDATED_ITEMS
     _require(type(memory) is dict, "memory_not_object")
     key = _validated_key(memory) if verify_digest else None
     if key is not None and _VALIDATED_MEMORIES.get(key) is memory:  # the very object validated before, digest unchanged
@@ -485,6 +543,7 @@ def validate_memory(memory: Mapping[str, Any], *, verify_digest: bool = True, co
     # tick (every tick check is "not after the memory's tick", so it stays true) and at the same log position is not
     # walked again; everything new or copied is checked in full, in the same order as before.
     known = _VALIDATED_PARTS
+    known_items = _VALIDATED_ITEMS
     entities_raw = memory["entities"]
     log_raw = memory["transaction_log"]
 
@@ -492,12 +551,27 @@ def validate_memory(memory: Mapping[str, Any], *, verify_digest: bool = True, co
         hit = known.get(id(item))
         return hit is not None and hit[0] is item and hit[1] <= stamp
 
+    def seen_item(item: Any) -> bool:  # a version or evidence item checked at an earlier or equal tick
+        hit = known_items.get(id(item))
+        return hit is not None and hit[0] is item and hit[1] <= tick
+
     if type(entities_raw) is list and type(log_raw) is list:
         for key_name, value in memory.items():
             if key_name not in ("memory_digest", "entities", "transaction_log"):
                 _json_native(value, "memory_not_json_native")
         for item in entities_raw:
-            if not seen(item, tick):
+            if seen(item, tick):
+                continue
+            if type(item) is dict and all(type(item.get(name)) is list for name in _ENTITY_ITEM_LISTS):
+                for key_name, value in item.items():
+                    _require(type(key_name) is str, "memory_not_json_native")
+                    if key_name in _ENTITY_ITEM_LISTS:
+                        for sub in value:
+                            if not seen_item(sub):
+                                _json_native(sub, "memory_not_json_native")
+                    else:
+                        _json_native(value, "memory_not_json_native")
+            else:
                 _json_native(item, "memory_not_json_native")
         for index, item in enumerate(log_raw):
             if not seen(item, -index - 1):
@@ -516,7 +590,7 @@ def validate_memory(memory: Mapping[str, Any], *, verify_digest: bool = True, co
     for entity in entities:
         _require(type(entity) is dict, "memory_entity_not_object")
         if not seen(entity, tick):
-            _validate_entity(entity, tick=tick)
+            _validate_entity(entity, tick=tick, seen_item=seen_item)
         ids.append(str(entity["entity_id"]))
         folded_ids.extend(str(item) for item in entity["canonical_of"])
         dimensions.add(len(entity["descriptor_mean"]))
@@ -553,6 +627,7 @@ def validate_memory(memory: Mapping[str, Any], *, verify_digest: bool = True, co
         # stamp for a log record is minus its 1-based position so the two kinds never compare across)
         _VALIDATED_PARTS = {**{id(item): (item, tick) for item in entities},
                             **{id(item): (item, -index - 1) for index, item in enumerate(log)}}
+        _VALIDATED_ITEMS = {id(sub): (sub, tick) for item in entities for name in _ENTITY_ITEM_LISTS for sub in item[name]}
         if key is not None:
             _VALIDATED_MEMORIES[key] = memory  # keeps the object (and so its id) alive while the entry lives
             while len(_VALIDATED_MEMORIES) > _VALIDATED_MEMORIES_LIMIT:
@@ -692,6 +767,21 @@ def _blend(old: Sequence[float], old_weight: int, new: Sequence[float], new_weig
     ]
 
 
+def _entity_for_write(entity: Mapping[str, Any]) -> dict[str, Any]:
+    """A copy of a sealed entity that the executor may change without touching the original.
+
+    Engineering (2026-09-27, dagger_round_0 profile): the executor used to deep-copy an entity before changing it,
+    closed versions and evidence included, so a frame's cost grew with the history of the entities it touched.  The
+    executor changes an entity only by assigning its fields, appending to (and, in dedup, sorting) its ``versions`` and
+    ``evidence`` lists, and closing its last version; so the copy gets new lists and a new last version, and shares
+    the closed versions and evidence items, which nothing changes once written.  Same content, same digests.
+    """
+
+    copy = {key: (list(value) if type(value) is list else value) for key, value in entity.items()}
+    copy["versions"][-1] = dict(copy["versions"][-1])
+    return copy
+
+
 def _snapshot(entity: Mapping[str, Any]) -> dict[str, Any]:
     return {field: clone_json(entity[field]) for field in VERSION_SNAPSHOT_FIELDS}
 
@@ -825,7 +915,7 @@ def apply_program(
 
     def own(entity_id: str) -> dict[str, Any]:
         if entity_id not in owned:
-            copy_of = clone_json(working["entities"][position[entity_id]])
+            copy_of = _entity_for_write(working["entities"][position[entity_id]])
             working["entities"][position[entity_id]] = copy_of
             by_id[entity_id] = copy_of
             owned.add(entity_id)
@@ -947,13 +1037,9 @@ def apply_program(
     for entity_id, entity in list(by_id.items()):  # the entities dormancy will change
         if entity["state"] == "active" and int(entity["missed_opportunity_count"]) >= limit:
             own(entity_id)
-    if dedup is not None and tick % validate_dedup_policy(dedup)["period_ticks"] == 0:  # every dedup candidate
-        for entity_id, entity in list(by_id.items()):
-            if entity["state"] in DEDUP_ELIGIBLE_STATES:
-                own(entity_id)
     dormancy_changes = _apply_dormancy(working, limit=limit, tick=tick, transaction_id=transaction_id)
     dedup_changes = _apply_dedup(
-        working, dedup=dedup, tick=tick, transaction_id=transaction_id,
+        working, dedup=dedup, tick=tick, transaction_id=transaction_id, own=own,
     )
 
     working["entities"].sort(key=lambda entity: str(entity["entity_id"]))
@@ -1099,7 +1185,7 @@ def _dedup_pair_candidates(entities: Sequence[Mapping[str, Any]], policy: Mappin
 
 def _apply_dedup(
     memory: dict[str, Any], *, dedup: Mapping[str, Any] | None, tick: int,
-    transaction_id: str,
+    transaction_id: str, own: Any = None,
 ) -> list[dict[str, Any]]:
     """Fold duplicate active or dormant entities, deterministically and identically for all arms.
 
@@ -1119,6 +1205,9 @@ def _apply_dedup(
     and ``physical_deletion_allowed: false`` refers to lifecycle history of
     live entities.  The transaction log keeps the fold under
     ``post_maintenance.dedup`` for audit.
+
+    ``own`` (the executor's copy-on-write hook, 2026-09-27) is called on a survivor just before it is changed, so only
+    the entities a fold changes are copied, not every candidate; without it the records are changed in place.
     """
 
     if dedup is None:
@@ -1163,6 +1252,8 @@ def _apply_dedup(
             key=lambda item: (_first_opened_at(item), str(item["entity_id"])),
         )
         canonical, folded = ordered[0], ordered[1]
+        if own is not None:  # a later pair must see the changed survivor, as it did when the record changed in place
+            canonical = by_id[str(canonical["entity_id"])] = own(str(canonical["entity_id"]))
         _close_version(canonical, tick=tick, transaction_id=transaction_id)
         canonical_count = int(canonical["descriptor_count"])
         folded_count = int(folded["descriptor_count"])
