@@ -93,6 +93,8 @@ S4 论文
 
 **2026-09-27 dagger_round_0 完成（LOG-266）**：39/39，`c150be0`，整趟 55 分钟，导出已入 `results/`。试跑暴露去重两两比较的平方开销，`c150be0` 预筛修复、与 `413eea2` 前 2,377 tick 逐字节一致。**当前执行点：第 0 轮训练**（VSMT-lean 与 AssocOnly，源臂 ELU-P）——开机后先计时一个 epoch、看内存并报告，再训练；之后 dagger_round_1 → 第 1 轮训练 → development_table，每趟先报再启。版本链校验／序列化的等价提速可并行准备。
 
+**2026-09-27 第 0 轮开发训练完成（LOG-267）**：VSMT-lean 与 AssocOnly 各一次（`8ce7b0b`，CPU，seed 7，最佳 epoch 均为 17，未发散），权重在 `lean-s2-05-oracle-c150be0/training/round0/`。四个提速提交与既有输出逐字节一致，但 runner 未变快，之后的时间估计不打折。**当前执行点：dagger_round_1**（两学习臂各用自己第 0 轮的头，39 条，约 1～1.5 h）——每趟先报再启；之后第 1 轮训练 → development_table。
+
 | 状态 | 含义 |
 |---|---|
 | 已完成 | 代码和必要测试已经受审，或已有可复用的真实证据 |

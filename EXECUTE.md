@@ -4355,3 +4355,32 @@ move 仍要两个 U 容器、add 仍要过 dry-run，成品率不会等于这些
     - 身份连续率 0.135（0.135，26 house）；恢复延迟 149.6 帧（155.5，25 house）；污染 AUC 0.326（0.321）。
   - **假撤回率 0.695**（中位 0.774，39 house）：ELU-P 被评判的撤回里约七成撤的是仍在场的物体。这与 LOG-265 的读数一致：在场但一直没配上的实体大约 65 帧后被撤回。这是对照臂本身的性质，记为反例证据，不改配置。
 - 下一步：第 0 轮训练（`train --pass dagger_round_0 --round 0`，VSMT-lean 与 AssocOnly，源臂 ELU-P）。训练从没在真实数据上跑过，先计时一个 epoch 并看内存再报告。版本链校验与序列化的等价提速可以与训练并行准备，用于 dagger_round_1 和开发表。
+
+### LOG-267：四个逐字节等价的提速提交（输出一致，runner 未变快）；第 0 轮开发训练 VSMT-lean 与 AssocOnly 完成（2026-09-27 23:30 悉尼／21:30 CST）
+
+- 类型：**工程修正与运行结果**。新实例端口 36065，cgroup 16 核；数据盘为克隆，各根完整。
+- **提速提交**（依据 LOG-266 的 cProfile；单一职责，均不改规则、数值或输出）：
+  - `2ab3c1a`：执行器改动实体时，只复制会被改动的容器（新列表、新的最后一个版本），已关闭的版本和证据条目与原记录共用。校验与摘要按版本、按证据条目复用已有结果；链、顺序、唯一性和状态检查仍覆盖全部条目。去重只复制实际被合并的存活实体。
+  - `a166215`：节点 IoU 列先用精确的 numpy 重叠判定（三轴都满足“高端最小值 > 低端最大值”），只对可能 IoU 非零的对打分；其余对的 IoU 恰为 0.0。
+  - `f8dd3cd`：NoVersion 去掉每帧三次整份记忆深拷贝。
+  - `8ce7b0b`：训练时每条记录只校验、只转张量一次（`prepare_frame`），`prepared_loss` 按 `frame_loss` 原有的算子顺序计算。
+  - 本地 lean 测试 882 项通过。
+- **服务器核对**（`f8dd3cd`）：
+  - 全量测试 1666/1666。
+  - 03394 用 TAF 加校准直方图和 ELU-P 计数，与 850c533 校准趟比：三个流各 1,371 行，加上回执、校准直方图、ELU-P 计数，**全部一致**。
+  - 01289 整条用 ELU-P（本趟配置），与 dagger_round_0（`c150be0`）比：三个流各 3,473 行加回执，**全部一致**。
+  - 训练（`8ce7b0b`）：1 个 epoch 的训练、validation 损失与旧代码逐位相同（VSMT-lean 1.3006479772250645／1.3406501814091971，AssocOnly 1.027919446803966／1.1188929313400853）。
+- **收益如实记下**：
+  - **runner 没有变快**。01289 整条 3,222 s，c150be0 那一趟 3,057 s、单跑试跑 2,930 s；十分位每帧耗时 0.16 → 1.39 s，旧代码为 0.15 → 1.23 s（核对时服务器上同时有 3～4 个训练探针）。LOG-266 依据的 cProfile 对大量小函数调用的开销放大严重，据它推断的瓶颈不成立。每帧耗时随实体总数上涨的真实来源仍未定位（容器禁止 ptrace，py-spy 不可用）。之后各趟的时间估计不打折。
+  - 训练每个 epoch 从 389 s 降到 338 s（另加一次性准备约 67 s）。
+  - 这四个提交输出不变，保留。
+- **训练计时探针**（只读，丢弃权重）：训练集 32,550 帧、留出 11,547 帧，读入 41 s，每进程约 6.5 GB。CPU 单线程每个 epoch 389 s（旧代码）／338 s（新代码）；**GPU 每个 epoch 1,291 s**，因为每帧一个小 batch，所以训练用 CPU。
+- **第 0 轮开发训练**（`8ce7b0b`，worktree `train-8ce7b0b`，`train --pass dagger_round_0 --source-arm ELU-P --round 0`）：
+  - 设置：两个进程并行，各 1 线程；首个登记 seed 7；20 个 epoch；按 S1-04 留出划分，训练 30 个 house、选择 9 个 house（选择组缺 3 个，登记的 `selection_shortfall`）。
+  - 时间：19:32 CST 启动，21:20 CST 结束；VSMT-lean 6,447 s，AssocOnly 5,995 s。**两个都没有发散，最佳 epoch 都是第 17 个。**
+  - 权重：VSMT-lean `b1bdb4c1f735…`，AssocOnly `881d41f07709…`，在 `lean-s2-05-oracle-c150be0/training/round0/<臂>/`。
+  - Validation 损失：VSMT-lean 1.341 → 最低 1.253，AssocOnly 1.119 → 最低 1.038。第 2 个 epoch 两者都短暂上升（1.384、1.164），之后回落，曲线有起伏。探针中看到的“第 2 个 epoch 就过拟合”并不成立。
+  - 导出：[`results/vsmt_lean_s2_05_training_round0_VSMT-lean_8ce7b0b.json`](results/vsmt_lean_s2_05_training_round0_VSMT-lean_8ce7b0b.json)、[`results/vsmt_lean_s2_05_training_round0_AssocOnly_8ce7b0b.json`](results/vsmt_lean_s2_05_training_round0_AssocOnly_8ce7b0b.json)、[`results/train_round0_8ce7b0b.status.json`](results/train_round0_8ce7b0b.status.json)。
+  - 21:20 CST 写状态文件，20 分钟后自动关机。
+  - 两个损失都是开发训练的读数，不据此选择任何东西。
+- 下一步：dagger_round_1。VSMT-lean（`tau_r` 0.5）与 AssocOnly 各用自己第 0 轮的头跑 39 条，两个臂并行（8＋7 个 worker）。预计约 1～1.5 h，由最大 episode 与学习臂的记忆规模决定。
