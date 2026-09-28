@@ -338,5 +338,76 @@ class RulingEightyAssociationTallyTests(unittest.TestCase):
         })
 
 
+class RulingEightyOneLossTallyTests(unittest.TestCase):
+    """Ruling 81-3: loss-of-carrier events, their causes and the absence frames they open."""
+
+    @staticmethod
+    def truth(**objects):
+        return {key: {"present": True, "in_scope": True, "centroid_m": [x, 0.0, 0.0], "aabb_min_m": [x - 0.1, -0.1, -0.1],
+                      "aabb_max_m": [x + 0.1, 0.1, 0.1]} for key, x in objects.items()}
+
+    @staticmethod
+    def step(assignment, decisions, entities):
+        return {"receipt": {"assignment": assignment, "existence": {"decisions": decisions}},
+                "state": {"memory": {"entities": [{"entity_id": e} for e in entities]}}}
+
+    def test_a_wrong_bind_opens_an_interval_a_birth_closes_it_and_a_retract_is_censored(self) -> None:
+        audit = audit_module.NodeAudit(evidence={}, iou_min=0.3, delta_moved_m=0.5, interventions={"Book|2": "move"}, window_end=0)
+        audit.keys_fragmented = {"Mug|1", "Book|2"}
+        mug, book, ambiguous = {"resolvable": True, "key": "Mug|1"}, {"resolvable": True, "key": "Book|2"}, {"resolvable": False, "key": None}
+        at = lambda entity_id, x: {"entity_id": entity_id, "centroid_m": [x, 0.0, 0.0]}  # noqa: E731
+        truth = self.truth(**{"Mug|1": 0.0, "Book|2": 3.0})
+        # frame 0: both objects carried
+        audit._tally_losses(self.step({}, {}, ["e1", "e2"]), {"frame_index": 0, "targets": {}}, truth,
+                            [at("e1", 0.0), at("e2", 3.0)], {"e1": mug, "e2": book}, [])
+        # frame 1: e1 takes a fragment of the book and jumps to it; the mug is left with no carrier
+        audit._tally_losses(self.step({"f1": "e1"}, {}, ["e1", "e2"]), {"frame_index": 1, "targets": {"f1": {"key": "Book|2"}}}, truth,
+                            [at("e1", 3.0), at("e2", 3.0)], {"e1": ambiguous, "e2": book}, [])
+        # frame 2: a new entity is born on the mug (recovered after 1 frame); the student retracts the book's only carrier
+        audit._tally_losses(self.step({"f2": "birth:f2"}, {"e2": "RETRACT"}, ["e1", "e2", "e3"]), {"frame_index": 2, "targets": {"f2": {"key": "Mug|1"}}},
+                            truth, [at("e1", 3.0), at("e3", 0.0)], {"e1": ambiguous, "e3": mug}, [])
+        report = audit._loss_report()
+        self.assertEqual(report["events"], [["retract", "move", 1], ["wrong_bind", "never_intervened", 1]])
+        self.assertEqual(report["intervals"]["wrong_bind"]["recovered"], 1)
+        self.assertEqual(report["intervals"]["wrong_bind"]["frames"], 1)
+        self.assertEqual(report["intervals"]["wrong_bind"]["bins"]["1"], 1)
+        self.assertEqual(report["intervals"]["retract"]["censored"], 1)
+        self.assertEqual(report["uncarried_seen_object_frames"], 2)
+        self.assertEqual(report["uncarried_without_loss_event_frames"], 0)
+        self.assertEqual(audit.loss_open["Book|2"]["cause"], "retract")  # the report did not close it
+
+    def test_fixture_episodes_keep_the_frame_sums_and_file_the_moved_book(self) -> None:
+        for arm in ("TAF", "RAC"):
+            data = episode()
+            teacher = ev.EpisodeTeacher(arm=arm, geometry_table=data["table"], executed_interventions=data["executed"], window=data["window"],
+                                        policy=TEACHER_POLICY, nuisance_meta=NUISANCE_META)
+            captured = audit_module.capture_truth_table(teacher)
+            audit = audit_module.NodeAudit(evidence=teacher.evidence, iou_min=teacher.iou_min, delta_moved_m=TEACHER_POLICY["delta_moved_m"],
+                                           groups=audit_module.object_groups(data["table"]), interventions=teacher.interventions,
+                                           window_end=teacher.window_end)
+            for i, step in enumerate(lr.run_episode(data["frames"], episode_id="ep-0001", arm=arm, config=CONFIGS[arm], policy=POLICY, descriptor="vitb14")):
+                labelled = teacher.label_frame(step, cache_frame=data["frames"][i], private_record=data["records"][i], masks=data["masks"][i],
+                                               label_image=data["images"][i], runtime_s=0.01, peak_memory_bytes=1000)
+                audit.observe(step, labelled, captured["table"])
+            loss = audit.report()["loss_tally"]
+            self.assertTrue(all(row[0] in audit_module.LOSS_CAUSES for row in loss["events"]), arm)
+            intervals = loss["intervals"]
+            self.assertEqual(sum(row["frames"] for row in intervals.values()) + loss["uncarried_without_loss_event_frames"],
+                             loss["uncarried_seen_object_frames"])
+            for row in intervals.values():
+                self.assertEqual(row["recovered"] + row["object_gone"] + row["censored"], row["intervals"])
+            # the book moves after the window and is bound at its new place in the same frame, so it is never uncarried
+            self.assertEqual(loss["events"], [], arm)
+
+    def test_an_object_moved_away_from_its_unbound_carrier(self) -> None:
+        audit = audit_module.NodeAudit(evidence={}, iou_min=0.3, delta_moved_m=0.5, interventions={"Cup|4": "move"}, window_end=0)
+        audit.keys_fragmented = {"Cup|4"}
+        cup = {"resolvable": True, "key": "Cup|4"}
+        carrier = {"entity_id": "e4", "centroid_m": [5.0, 0.0, 0.0]}
+        audit._tally_losses(self.step({}, {}, ["e4"]), {"frame_index": 0, "targets": {}}, self.truth(**{"Cup|4": 5.0}), [carrier], {"e4": cup}, [])
+        audit._tally_losses(self.step({}, {}, ["e4"]), {"frame_index": 1, "targets": {}}, self.truth(**{"Cup|4": 7.0}), [carrier], {"e4": cup}, [])
+        self.assertEqual(audit._loss_report()["events"], [["object_truth_changed", "move", 1]])
+
+
 if __name__ == "__main__":
     unittest.main()

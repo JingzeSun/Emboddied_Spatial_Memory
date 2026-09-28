@@ -48,6 +48,15 @@ birth、召回漏掉、身份含糊、未标注）、结果（正确、绑错到
 实体的状态、teacher 目标和学生的分配，输出"关联错在哪儿、错绑到的是休眠还是活动实体"。例如一个首次出现的物体
 被绑到一个休眠实体上，就记为"该新建却绑定、dormant、首次出现"。另加诊断开关 --dormancy-override（只用于诊断，
 不是登记的臂或配置）：把共享休眠的错失上限换成给定值，取极大值即等于关闭休眠。
+
+v5（裁决 81-3，2026-09-28）：失去承载的事件与此后的缺失时长。一个在场、在节点范围内的物体，上一帧提交后的记忆里
+有按节点主列规则（裁决 77）合格的实体承载它，这一帧一个都没有了，就是一次“失去承载”；按它原先各承载实体这一帧
+的遭遇归因——被学生绑到别的物体的色块上（误绑定）、被撤回、被去重折叠、被绑到本物体的色块却离开了原处、身份
+改变、物体真值位置变了、其他；几个承载实体原因不一记为混合。此后该物体没有合格实体的帧数记在这一段缺失里，
+直到重新有合格实体、物体离场或 episode 结束，同一段只归到开启它的那一次事件。白话：输入是逐帧提交前后的记忆、
+学生的分配与存在决定、只读真值，输出“哪次操作之后丢了哪个物体、丢了多久”。例如杯子 A 唯一的实体被绑到杯子 B
+的色块上，A 随后 100 帧没有实体，就记一次误绑定事件和一段 100 帧的缺失。它不是反事实：拦下这次绑定之后记忆
+和分配都会变，不能据此算出“修好就能挽回多少”。
 """
 from __future__ import annotations
 
@@ -69,8 +78,9 @@ for item in (ROOT / "src", HERE.parent):
 from vsmt import lean_teacher as lt  # noqa: E402
 
 AUDIT_FILE_NAME = "node_audit.json"
-SCHEMA_VERSION = "vsmt-s2-05-node-audit-v4"  # v2: ruling 76 (1)(a) centroid ledger, birth reasons, dedup tallies, count-first columns;
-#                                             v3: ruling 79-2 existence-candidate tally; v4: ruling 80-4 association tally
+SCHEMA_VERSION = "vsmt-s2-05-node-audit-v5"  # v2: ruling 76 (1)(a) centroid ledger, birth reasons, dedup tallies, count-first columns;
+#                                             v3: ruling 79-2 existence-candidate tally; v4: ruling 80-4 association tally;
+#                                             v5: ruling 81-3 loss-of-carrier events and absence durations
 
 #: Why an in-memory prediction (an entity in ``active``/``dormant`` whose object is not a present
 #: out-of-scope one) did not match under the IoU 0.3 column (the primary column until ruling 72 (B), secondary since).
@@ -154,6 +164,25 @@ EXISTENCE_TALLY_FIELDS = (
     "fragment_of_the_object_this_frame",    # yes / no / n/a
     "decision",                             # RETRACT / NOOP
 )
+#: Ruling 81-3: why an object lost its last qualifying carrier, judged per former carrier (one cause, or mixed).
+LOSS_CAUSES = (
+    "wrong_bind",                  # the carrier took a fragment of another object this frame
+    "bound_unlabelled_fragment",   # the carrier took a fragment without a dominant private object
+    "own_bind_off_place",          # the carrier took a fragment of its own object and left the place/box
+    "retract",                     # the student retracted the carrier
+    "folded",                      # the shared dedup folded the carrier into another record
+    "fold_survivor_changed",       # the carrier survived a fold and took the other record's geometry or evidence
+    "removed",                     # the carrier is gone from memory for another reason
+    "identity_changed",            # the carrier no longer resolves to the object (no bind, no fold)
+    "object_truth_changed",        # the object's truth centroid changed while the carrier stayed
+    "other",
+    "mixed_with_wrong_bind",       # several former carriers, different causes, one of them a wrong bind
+    "mixed",
+)
+LOSS_DURATION_BINS = ((1, "1"), (5, "2-5"), (20, "6-20"), (100, "21-100"), (500, "101-500"), (None, ">500"))
+LOSS_RULE = ("a present in-scope object whose qualifying carriers (node primary rule, ruling 77) on the previous frame's committed memory "
+             "are all gone from this frame's committed memory loses its carrier; the absence interval counts the following in-scope "
+             "frames without a qualifying carrier until one returns, the object leaves or the episode ends; one interval per loss")
 #: Ruling 80-4: the fields of one association tally row (the count follows them).
 ASSOCIATION_TALLY_FIELDS = (
     "target_status",       # labelled / birth / recall_miss / identity_ambiguous / unlabelled / duplicate_of_labelled
@@ -252,7 +281,8 @@ def capture_dedup_folds() -> list[dict[str, Any]]:
                   for e in memory["entities"]}
         changes = original(memory, **kwargs)
         for change in changes:
-            captured.append({"canonical": before[str(change["canonical_entity_id"])], "folded": before[str(change["folded_entity_id"])]})
+            captured.append({"canonical": before[str(change["canonical_entity_id"])], "folded": before[str(change["folded_entity_id"])],
+                             "canonical_id": str(change["canonical_entity_id"]), "folded_id": str(change["folded_entity_id"])})
         return changes
 
     capturing._audit_wrapper = True  # type: ignore[attr-defined]
@@ -274,6 +304,14 @@ class NodeAudit:
         self.window_end = None if window_end is None else int(window_end)
         self.existence_tally: dict[tuple[str, ...], int] = {}
         self.association_tally: dict[tuple[str, ...], int] = {}  # ruling 80-4
+        # ruling 81-3: carriers of the previous frame, open absence intervals, events and closed intervals
+        self.loss_prev_carriers: dict[str, set[str]] | None = None
+        self.loss_prev_truth: dict[str, list[float]] = {}
+        self.loss_open: dict[str, dict[str, Any]] = {}
+        self.loss_events: dict[tuple[str, str], int] = {}
+        self.loss_intervals: dict[str, dict[str, Any]] = {}
+        self.uncarried_seen_frames = 0
+        self.uncarried_without_event_frames = 0
         # ruling 76 (1)(a): the birth reasons need the arm's logits, the dedup tallies the frozen period
         self.arm = arm
         self.config = dict(config) if config is not None else None
@@ -463,10 +501,12 @@ class NodeAudit:
             self._birth_reasons(step, labelled, truth_table)
         if self.dedup_period is not None and tick % self.dedup_period == 0:
             self._dedup_pairs(memory_after, identities)
+        folds = [(str(f.get("canonical_id")), str(f.get("folded_id"))) for f in (self.fold_capture or [])]  # ruling 81-3, before filing
         if self.fold_capture is not None:
             self._file_folds()
         self._tally_existence(step, labelled, truth_table, predictions, identities)
         self._tally_association(step, labelled)
+        self._tally_losses(step, labelled, truth_table, predictions, identities, folds)
 
         for name, count in frame_entity.items():
             self.entity_counts[name] += count
@@ -525,6 +565,108 @@ class NodeAudit:
                     carrier = "yes" if carriers.get(str(key), set()) - {entity_id} else "no"
             row = (str(label["status"]), str(label.get("reason")), klass, phase, in_place, carrier, fragment, decisions[entity_id])
             self.existence_tally[row] = self.existence_tally.get(row, 0) + 1
+
+    # -- ruling 81-3 -------------------------------------------------------------
+
+    def _close_interval(self, key: str, closure: str) -> None:
+        interval = self.loss_open.pop(key)
+        row = self.loss_intervals.setdefault(interval["cause"], {"intervals": 0, "recovered": 0, "object_gone": 0, "censored": 0,
+                                                                 "frames": 0, "bins": {label: 0 for _, label in LOSS_DURATION_BINS}})
+        row["intervals"] += 1
+        row[closure] += 1
+        row["frames"] += int(interval["frames"])
+        for upper, label in LOSS_DURATION_BINS:
+            if upper is None or interval["frames"] <= upper:
+                row["bins"][label] += 1
+                break
+
+    def _tally_losses(self, step: Mapping[str, Any], labelled: Mapping[str, Any], truth_table: Mapping[str, Mapping[str, Any]],
+                      predictions: Sequence[Mapping[str, Any]], identities: Mapping[str, Mapping[str, Any]],
+                      folds: Sequence[tuple[str, str]]) -> None:
+        """Loss-of-carrier events of this frame and the absence frames they open (ruling 81-3)."""
+
+        present = {key for key, row in truth_table.items() if row["present"] is True and row["in_scope"] is True}
+        carriers: dict[str, set[str]] = {key: set() for key in present}
+        for entity in predictions:
+            identity = identities[str(entity["entity_id"])]
+            if identity["resolvable"] and identity["key"] in carriers and self._in_place(entity["centroid_m"], truth_table[identity["key"]]):
+                carriers[identity["key"]].add(str(entity["entity_id"]))
+        # 1. close the intervals of objects carried again or gone
+        for key in list(self.loss_open):
+            if key not in present:
+                self._close_interval(key, "object_gone")
+            elif carriers[key]:
+                self._close_interval(key, "recovered")
+        # 2. open an interval for every object that lost its last carrier this frame
+        if self.loss_prev_carriers is not None:
+            assignment = {str(k): str(v) for k, v in step["receipt"]["assignment"].items()}
+            bound = {column: fragment for fragment, column in assignment.items() if not column.startswith(lt.BIRTH_COLUMN_PREFIX)}
+            decisions = {str(k): str(v) for k, v in ((step["receipt"].get("existence") or {}).get("decisions") or {}).items()}
+            after = {str(e["entity_id"]): e for e in step["state"]["memory"]["entities"]}
+            folded = {folded_id for _, folded_id in folds}
+            survivors = {canonical_id for canonical_id, _ in folds}
+            targets = labelled["targets"]
+            for key, before in self.loss_prev_carriers.items():
+                if not before or key not in present or carriers[key]:
+                    continue
+
+                def cause_of(entity_id: str) -> str:
+                    if decisions.get(entity_id) == "RETRACT":
+                        return "retract"
+                    if entity_id in folded:
+                        return "folded"
+                    if entity_id not in after:
+                        return "removed"
+                    if entity_id in bound:
+                        fragment_key = (targets.get(bound[entity_id]) or {}).get("key")
+                        if fragment_key is None:
+                            return "bound_unlabelled_fragment"
+                        return "own_bind_off_place" if str(fragment_key) == key else "wrong_bind"
+                    if entity_id in survivors:
+                        return "fold_survivor_changed"
+                    identity = identities.get(entity_id)
+                    if identity is None or not identity["resolvable"] or identity["key"] != key:
+                        return "identity_changed"
+                    if key in self.loss_prev_truth and [float(v) for v in truth_table[key]["centroid_m"]] != self.loss_prev_truth[key]:
+                        return "object_truth_changed"
+                    return "other"
+
+                causes = {cause_of(entity_id) for entity_id in sorted(before)}
+                cause = next(iter(causes)) if len(causes) == 1 else ("mixed_with_wrong_bind" if "wrong_bind" in causes else "mixed")
+                klass = self.interventions.get(key, "never_intervened")
+                self.loss_events[(cause, klass)] = self.loss_events.get((cause, klass), 0) + 1
+                self.loss_open[key] = {"cause": cause, "start": int(labelled["frame_index"]), "frames": 0}
+        # 3. count this frame's uncarried in-scope frames of objects seen before
+        for key in present:
+            if carriers[key] or key not in self.keys_fragmented:
+                continue
+            self.uncarried_seen_frames += 1
+            if key in self.loss_open:
+                self.loss_open[key]["frames"] += 1
+            else:
+                self.uncarried_without_event_frames += 1
+        self.loss_prev_carriers = carriers
+        self.loss_prev_truth = {key: [float(v) for v in truth_table[key]["centroid_m"]] for key in present}
+
+    def _loss_report(self) -> dict[str, Any]:
+        intervals = json.loads(json.dumps(self.loss_intervals))
+        for interval in self.loss_open.values():  # open at the end: censored (the state itself is left as it is)
+            row = intervals.setdefault(interval["cause"], {"intervals": 0, "recovered": 0, "object_gone": 0, "censored": 0,
+                                                           "frames": 0, "bins": {label: 0 for _, label in LOSS_DURATION_BINS}})
+            row["intervals"] += 1
+            row["censored"] += 1
+            row["frames"] += int(interval["frames"])
+            for upper, label in LOSS_DURATION_BINS:
+                if upper is None or interval["frames"] <= upper:
+                    row["bins"][label] += 1
+                    break
+        _require(sum(int(row["frames"]) for row in intervals.values()) + self.uncarried_without_event_frames == self.uncarried_seen_frames,
+                 "audit_loss_frames_do_not_sum")
+        return {"rule": LOSS_RULE, "causes": list(LOSS_CAUSES), "event_fields": ["cause", "object_class"],
+                "events": [[*row, count] for row, count in sorted(self.loss_events.items())],
+                "intervals": {cause: intervals[cause] for cause in sorted(intervals)},
+                "uncarried_seen_object_frames": self.uncarried_seen_frames,
+                "uncarried_without_loss_event_frames": self.uncarried_without_event_frames}
 
     # -- ruling 80-4 -------------------------------------------------------------
 
@@ -799,6 +941,7 @@ class NodeAudit:
             "existence_tally": [[*row, count] for row, count in sorted(self.existence_tally.items())],
             "association_tally_fields": list(ASSOCIATION_TALLY_FIELDS),
             "association_tally": [[*row, count] for row, count in sorted(self.association_tally.items())],
+            "loss_tally": self._loss_report(),
         }
 
 
@@ -950,6 +1093,9 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
     pooled_wrong: dict[str, int] = {}
     pooled_existence: dict[tuple[str, ...], int] = {}
     pooled_association: dict[tuple[str, ...], int] = {}
+    pooled_loss_events: dict[tuple[str, ...], int] = {}
+    pooled_loss_intervals: dict[str, dict[str, Any]] = {}
+    pooled_uncarried = {"uncarried_seen_object_frames": 0, "uncarried_without_loss_event_frames": 0}
     for path in sorted(output_root.glob(f"*/{arm}/{AUDIT_FILE_NAME}")):
         payload = json.loads(path.read_text(encoding="utf-8"))
         _require(payload.get("schema_version") == SCHEMA_VERSION and payload.get("arm") == arm, f"audit_file_invalid:{path}")
@@ -985,6 +1131,18 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
             pooled_existence[tuple(row[:-1])] = pooled_existence.get(tuple(row[:-1]), 0) + int(row[-1])
         for row in audit.get("association_tally") or []:
             pooled_association[tuple(row[:-1])] = pooled_association.get(tuple(row[:-1]), 0) + int(row[-1])
+        loss = audit.get("loss_tally") or {}
+        for row in loss.get("events") or []:
+            pooled_loss_events[tuple(row[:-1])] = pooled_loss_events.get(tuple(row[:-1]), 0) + int(row[-1])
+        for cause, row in (loss.get("intervals") or {}).items():
+            target = pooled_loss_intervals.setdefault(cause, {"intervals": 0, "recovered": 0, "object_gone": 0, "censored": 0, "frames": 0,
+                                                              "bins": {label: 0 for _, label in LOSS_DURATION_BINS}})
+            for name in ("intervals", "recovered", "object_gone", "censored", "frames"):
+                target[name] += int(row[name])
+            for label, value in row["bins"].items():
+                target["bins"][label] += int(value)
+        for name in pooled_uncarried:
+            pooled_uncarried[name] += int(loss.get(name) or 0)
         for group, row in audit["truth_by_group"].items():
             target = pooled_group.setdefault(group, {name: 0 for name in TRUTH_CATEGORIES})
             for name in TRUTH_CATEGORIES:
@@ -1010,7 +1168,7 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
         })
     _require(bool(episodes), f"no_audits_found:{output_root}/*/{arm}")
     return {
-        "schema_version": "vsmt-s2-05-node-audit-merged-v4",
+        "schema_version": "vsmt-s2-05-node-audit-merged-v5",
         "stage": "S2-05 node audit (read-only, pooled)", "arm": arm, "output_root": str(output_root),
         "code_commits": sorted(commits), "episodes": len(episodes),
         "pooled_rules": {rule: _prf(s["matched"], s["predicted"], s["truth"]) for rule, s in pooled_rules.items()},
@@ -1021,6 +1179,8 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
         "pooled_existence_tally": [[*row, count] for row, count in sorted(pooled_existence.items())],
         "association_tally_fields": list(ASSOCIATION_TALLY_FIELDS),
         "pooled_association_tally": [[*row, count] for row, count in sorted(pooled_association.items())],
+        "pooled_loss_tally": {"rule": LOSS_RULE, "events": [[*row, count] for row, count in sorted(pooled_loss_events.items())],
+                              "intervals": {cause: pooled_loss_intervals[cause] for cause in sorted(pooled_loss_intervals)}, **pooled_uncarried},
         "pooled_truth_by_group": {group: row for group, row in sorted(pooled_group.items())},
         "pooled_truth_by_type": {name: row for name, row in sorted(pooled_type.items(), key=lambda item: (-sum(item[1].values()), item[0]))[:40]},
         "per_episode": episodes,
