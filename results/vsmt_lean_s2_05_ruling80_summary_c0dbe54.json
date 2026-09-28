@@ -1,0 +1,42 @@
+{
+ "commit": "c0dbe547a3996bff34a1553980d35e11cb08a952",
+ "diag_root": "/root/autodl-tmp/vsmt_private/ruling80-c0dbe54",
+ "groups": {
+  "VSMT-lean": {
+   "arm": "VSMT-lean",
+   "extra_arguments": [],
+   "merge_exit": 0,
+   "merge_stderr_tail": "",
+   "results": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s2_05_node_audit_ruling80_VSMT-lean_c0dbe54.json",
+   "compared_with_devtable": true,
+   "reports_identical_to_devtable": 39,
+   "reports_differ": [],
+   "audits_missing": []
+  },
+  "AssocOnly": {
+   "arm": "AssocOnly",
+   "extra_arguments": [],
+   "merge_exit": 0,
+   "merge_stderr_tail": "",
+   "results": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s2_05_node_audit_ruling80_AssocOnly_c0dbe54.json",
+   "compared_with_devtable": true,
+   "reports_identical_to_devtable": 39,
+   "reports_differ": [],
+   "audits_missing": []
+  },
+  "VSMT-lean-dormancy-off": {
+   "arm": "VSMT-lean",
+   "extra_arguments": [
+    "--dormancy-override",
+    "1000000000"
+   ],
+   "merge_exit": 0,
+   "merge_stderr_tail": "",
+   "results": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s2_05_node_audit_ruling80_VSMT-lean-dormancy-off_c0dbe54.json",
+   "compared_with_devtable": false,
+   "reports_identical_to_devtable": null,
+   "reports_differ": [],
+   "audits_missing": []
+  }
+ }
+}
