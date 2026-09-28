@@ -99,6 +99,9 @@ class ScriptTests(unittest.TestCase):
         self.assertTrue(receipt["timing_run"])
         self.assertEqual(receipt["updates_taken"], 5)
         self.assertEqual(set(receipt["projected_seconds"]), set(controlled.CONDITIONS))
+        # the rate is measured between two checkpoints, so the one-off record preparation is reported on its own
+        self.assertEqual([mark[0] for mark in receipt["timing_marks"]], [2, 4, 5])
+        self.assertGreaterEqual(receipt["in_call_preparation_seconds"], 0.0)
         self.assertFalse(timing["weights"].exists())
 
 

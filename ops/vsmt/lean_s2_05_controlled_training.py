@@ -119,13 +119,19 @@ def main() -> int:
                           epochs=int(training["epochs"]), seeds=list(training["seeds"]))
     train_records = (round0["train"] + own["train"]) if plan["data"] == "aggregated" else own["train"]
     budget, every = plan["update_budget"], plan["evaluate_every"]
+    marks: list[tuple[int, float]] = []  # timing run: (updates, wall time) at every checkpoint, after its validation
     if args.timing_updates is not None:
-        budget = every = int(args.timing_updates)
+        # two checkpoints, so the update rate is measured between them and the one-off record preparation inside the
+        # training call is not spread over the updates (2026-09-28: the first timing did that and projected 24-47 h)
+        budget = int(args.timing_updates)
+        every = max(1, budget // 2)
     prepared_seconds = round(time.time() - started, 1)
     trained_at = time.time()
     result = lean_model.train_heads_by_updates(train_records, own["validation"], learning_rate=float(training["learning_rate"]),
                                                weight_decay=float(training["weight_decay"]), update_budget=budget, evaluate_every=every,
-                                               seed=plan["seed"], assoc_only=assoc_only, device=args.device)
+                                               seed=plan["seed"], assoc_only=assoc_only, device=args.device,
+                                               checkpoint_callback=(lambda updates, heads: marks.append((updates, time.time())))
+                                               if args.timing_updates is not None else None)
     train_seconds = time.time() - trained_at
     receipt: dict[str, Any] = {
         "stage": "vsmt.lean.s2_05.controlled_training.v1", "ruling": "D-224-S1 ruling 81-2", "arm": args.arm, "condition": args.condition,
@@ -147,14 +153,19 @@ def main() -> int:
         timed = time.time()
         lean_model._mean_loss(result["heads"], [lean_model.prepare_frame(r, device=args.device) for r in own["validation"]])
         validation_seconds = time.time() - timed
-        per_update = max(0.0, train_seconds - validation_seconds) / max(1, result["updates_taken"])
+        (first_updates, first_time), (last_updates, last_time) = marks[0], marks[-1]
+        between = max(1, last_updates - first_updates)
+        per_update = max(0.0, (last_time - first_time) - (len(marks) - 1) * validation_seconds) / between
+        in_call_preparation = max(0.0, (first_time - trained_at) - first_updates * per_update - validation_seconds)
         projected = {}
         for condition in CONDITIONS:
             spec = plan_condition(condition, own_updates_per_pass=own_per_pass, round0_updates_per_pass=round0_per_pass,
                                   epochs=int(training["epochs"]), seeds=list(training["seeds"]))
             checkpoints = -(-spec["update_budget"] // spec["evaluate_every"])
-            projected[condition] = round(prepared_seconds + spec["update_budget"] * per_update + checkpoints * validation_seconds)
-        receipt.update({"projected_seconds": projected, "seconds_per_update": per_update, "validation_seconds": round(validation_seconds, 1)})
+            projected[condition] = round(prepared_seconds + in_call_preparation + spec["update_budget"] * per_update
+                                         + checkpoints * validation_seconds)
+        receipt.update({"projected_seconds": projected, "seconds_per_update": per_update, "validation_seconds": round(validation_seconds, 1),
+                        "in_call_preparation_seconds": round(in_call_preparation, 1), "timing_marks": marks})
     else:
         (out_dir / WEIGHTS_FILE).write_text(json.dumps(result["weights"]), encoding="utf-8")
     (out_dir / RECEIPT_FILE).write_text(json.dumps(receipt, indent=1), encoding="utf-8")
