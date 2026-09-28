@@ -73,6 +73,22 @@ def cpu_quota() -> int:
         return os.cpu_count() or 1
 
 
+def cgroup_memory_gib() -> dict[str, float | None]:
+    """The container's memory limit and use (cgroup v2); None where unlimited or unreadable.
+
+    2026-09-28: two of eight trainings were killed at start on a 62 GiB container while `free` showed 503 GB on the host.
+    """
+
+    out: dict[str, float | None] = {}
+    for name in ("max", "current"):
+        try:
+            raw = Path(f"/sys/fs/cgroup/memory.{name}").read_text().strip()
+            out[name] = None if raw == "max" else round(int(raw) / 2**30, 1)
+        except (OSError, ValueError):
+            out[name] = None
+    return out
+
+
 def episode_root(episode_id: str) -> Path:
     found = [root / episode_id for root in EPISODE_ROOTS if (root / episode_id / "receipt.json").exists()]
     if len(found) != 1:
@@ -142,7 +158,8 @@ def cmd_check(args: argparse.Namespace) -> int:
     timers = subprocess.run(["bash", "-c", "ps -eo pid,etime,args | grep -E 'sleep|shutdown' | grep -v grep"], capture_output=True, text=True).stdout
     memory = subprocess.run(["bash", "-c", "free -g | sed -n 2p"], capture_output=True, text=True).stdout.strip()
     print(json.dumps({"commit": git("rev-parse", "HEAD"), "diag_root": str(diag_root()), "cgroup_cpus": cpu_quota(),
-                      "memory_free_g_line": memory, "data_disk_free_gb": round(usage.free / 2**30, 1),
+                      "cgroup_memory_gib": cgroup_memory_gib(), "memory_free_g_line_host": memory,
+                      "data_disk_free_gb": round(usage.free / 2**30, 1),
                       "leftover_sleep_or_shutdown": timers.strip().splitlines(), "episodes": len(found), "problems": problems}, indent=1))
     return 1 if problems else 0
 

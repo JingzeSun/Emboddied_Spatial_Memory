@@ -117,7 +117,11 @@ def main() -> int:
     round0_per_pass = lean_model.updates_per_pass(round0["train"], assoc_only=assoc_only, device=args.device)
     plan = plan_condition(args.condition, own_updates_per_pass=own_per_pass, round0_updates_per_pass=round0_per_pass,
                           epochs=int(training["epochs"]), seeds=list(training["seeds"]))
-    train_records = (round0["train"] + own["train"]) if plan["data"] == "aggregated" else own["train"]
+    if plan["data"] == "aggregated":
+        train_records = round0["train"] + own["train"]
+    else:
+        train_records = own["train"]
+        round0["train"] = round0["validation"] = None  # counted for V only; freeing them halves A/C memory (2026-09-28)
     budget, every = plan["update_budget"], plan["evaluate_every"]
     marks: list[tuple[int, float]] = []  # timing run: (updates, wall time) at every checkpoint, after its validation
     if args.timing_updates is not None:

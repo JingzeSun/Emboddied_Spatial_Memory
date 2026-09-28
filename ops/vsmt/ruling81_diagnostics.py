@@ -31,6 +31,10 @@ sys.path.insert(0, str(HERE.parent))
 import ruling79_diagnostics as r79  # noqa: E402  (same paths, helpers and runtime estimates)
 
 ARMS = {"VSMT-lean": '{"tau_r": 0.5}', "AssocOnly": "{}"}
+#: memory admission (2026-09-28: 8 trainings of about 10.5 GiB each on a 62 GiB container, two killed at start)
+TRAINING_MEMORY_GIB = 11.0
+AUDIT_MEMORY_GIB = 1.5
+MEMORY_RESERVE_GIB = 4.0
 CONDITIONS = ("A7", "A19", "B", "C")
 TIMING_UPDATES = 300
 
@@ -76,6 +80,22 @@ def audit_command(arm: str, condition: str, episode_id: str) -> list[str]:
             "--output-root", str(diag_root() / "audit" / group(arm, condition)), "--device", "cpu"]
 
 
+def memory_budget_gib() -> float | None:
+    """The container memory the queue may plan with (limit minus a reserve); None when unlimited."""
+
+    limit = r79.cgroup_memory_gib().get("max")
+    return None if limit is None else limit - MEMORY_RESERVE_GIB
+
+
+def fits(budget: float | None, running: list[str], kind: str) -> bool:
+    """Would one more task of ``kind`` stay within the budget, given the kinds already running?"""
+
+    if budget is None:
+        return True
+    cost = {"training": TRAINING_MEMORY_GIB, "audit": AUDIT_MEMORY_GIB}
+    return sum(cost[k] for k in running) + cost[kind] <= budget or not running
+
+
 def cmd_check(args: argparse.Namespace) -> int:
     code = r79.cmd_check(args)
     problems = []
@@ -83,7 +103,10 @@ def cmd_check(args: argparse.Namespace) -> int:
         files = sorted((r79.PASS_ROOT / pass_name).glob(f"procthor*/{arm}/training_records.jsonl.gz"))
         if len(files) != 39:
             problems.append(f"{pass_name}/{arm}: {len(files)} training record files, expected 39")
-    print(json.dumps({"ruling81_diag_root": str(diag_root()), "record_problems": problems}, indent=1))
+    budget = memory_budget_gib()
+    concurrent = None if budget is None else int(budget // TRAINING_MEMORY_GIB)
+    print(json.dumps({"ruling81_diag_root": str(diag_root()), "record_problems": problems, "memory_budget_gib": budget,
+                      "trainings_that_fit_at_once": concurrent}, indent=1))
     return 1 if (code or problems) else 0
 
 
@@ -128,21 +151,25 @@ def cmd_run(args: argparse.Namespace) -> int:
     print(f"[ruling81] {time.strftime('%F %T')} run at {r79.short_commit()}: {len(trainings)} trainings and {len(audits)} audits on "
           f"{args.workers} workers (cgroup {r79.cpu_quota()} CPUs)", flush=True)
 
+    budget = memory_budget_gib()
+
     def launch(task: dict[str, Any], command: list[str], log: Path) -> None:
         log.parent.mkdir(parents=True, exist_ok=True)
         task["started"] = time.time()
+        task["started_at"] = time.strftime("%F %T")
         proc = subprocess.Popen(command, cwd=r79.ROOT, stdout=log.open("w"), stderr=subprocess.STDOUT, env={**os.environ, **r79.THREAD_ENV})
         running[proc] = task
 
     while trainings or audits or running:
         while len(running) < args.workers:
-            if trainings:
+            kinds = [t["kind"] for t in running.values()]
+            if trainings and fits(budget, kinds, "training"):
                 arm, condition = trainings.pop(0)
                 launch({"kind": "training", "arm": arm, "condition": condition}, training_command(arm, condition, training_dir(arm, condition)),
                        root / "logs" / "training" / f"{group(arm, condition)}.log")
                 continue
             ready = next((t for t in audits if group(t[0], t[1]) in ready_groups), None)
-            if ready is None:
+            if ready is None or not fits(budget, kinds, "audit"):
                 break
             audits.remove(ready)
             arm, condition, episode_id = ready
@@ -161,7 +188,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         time.sleep(5)
         for proc in [p for p in running if p.poll() is not None]:
             task = running.pop(proc)
-            task.update({"exit": proc.returncode, "seconds": round(time.time() - task.pop("started"), 1)})
+            task.update({"exit": proc.returncode, "seconds": round(time.time() - task.pop("started"), 1), "ended_at": time.strftime("%F %T")})
             results.append(task)
             if task["kind"] == "training":
                 if proc.returncode == 0 and training_usable(task["arm"], task["condition"]):
@@ -174,7 +201,8 @@ def cmd_run(args: argparse.Namespace) -> int:
 
     status = {"commit": r79.git("rev-parse", "HEAD"), "diag_root": str(root), "workers": args.workers, "cgroup_cpus": r79.cpu_quota(),
               "worker_basis": f"{args.workers} single-thread slots on one dependency-aware queue: trainings first, then each group's audits "
-                              "as soon as its weights exist, largest episodes first",
+                              "as soon as its weights exist, largest episodes first; admitted within the container memory "
+                              f"(budget {budget} GiB, {TRAINING_MEMORY_GIB} GiB per training, {AUDIT_MEMORY_GIB} GiB per audit)",
               "results": results, "failed": [r for r in results if r.get("exit") not in (0,)], "finished_cst": time.strftime("%F %T")}
     r79.EXPORT_DIR.mkdir(parents=True, exist_ok=True)
     (r79.EXPORT_DIR / f"ruling81_diagnostics_{r79.short_commit()}.status.json").write_text(json.dumps(status, indent=1))

@@ -20,7 +20,8 @@ sys.path.insert(0, str(PROJECT_ROOT / "ops" / "vsmt"))
 import ruling79_diagnostics as r79  # noqa: E402
 import ruling81_diagnostics as driver  # noqa: E402
 
-TRAIN = ("import json, pathlib, sys; out = pathlib.Path(sys.argv[1]); out.mkdir(parents=True, exist_ok=True); "
+TRAIN = ("import json, pathlib, sys, time; start = time.time(); time.sleep(0.2); out = pathlib.Path(sys.argv[1]); "
+         "out.mkdir(parents=True, exist_ok=True); (out / 'times').write_text(f'{start} {time.time()}'); "
          "(out / 'weights.json').write_text('{}'); "
          "(out / 'training_receipt.json').write_text(json.dumps({'diverged': sys.argv[2] != '0'})); sys.exit(int(sys.argv[2]))")
 AUDIT = ("import pathlib, sys; weights = pathlib.Path(sys.argv[1]); target = pathlib.Path(sys.argv[2]); "
@@ -31,7 +32,9 @@ class DriverQueueTests(unittest.TestCase):
     def setUp(self) -> None:
         self.tmp = tempfile.TemporaryDirectory()
         root = Path(self.tmp.name)
-        self.saved = {name: getattr(r79, name) for name in ("episodes", "expected_seconds", "git", "short_commit", "cpu_quota", "EXPORT_DIR")}
+        self.saved = {name: getattr(r79, name) for name in ("episodes", "expected_seconds", "git", "short_commit", "cpu_quota", "EXPORT_DIR",
+                                                            "cgroup_memory_gib")}
+        r79.cgroup_memory_gib = lambda: {"max": None, "current": None}
         self.saved_driver = {name: getattr(driver, name) for name in ("diag_root", "training_command", "audit_command", "time")}
         r79.episodes = lambda: ["e1", "e2", "e3"]
         r79.expected_seconds = lambda arm, episode: {"e1": 3.0, "e2": 2.0, "e3": 1.0}[episode]
@@ -73,6 +76,29 @@ class DriverQueueTests(unittest.TestCase):
         second = json.loads((r79.EXPORT_DIR / "ruling81_diagnostics_abc1234.status.json").read_text())
         self.assertEqual([(r["kind"], r["arm"], r["condition"]) for r in second["results"] if r["kind"] == "training"], [("training", "AssocOnly", "C")])
         self.assertEqual(sum(1 for r in second["results"] if r["kind"] == "audit"), 3)
+
+
+class DriverMemoryTests(DriverQueueTests):
+    """2026-09-28: trainings are admitted within the container memory (two of eight were killed at start on 62 GiB)."""
+
+    def test_the_queue_respects_dependencies_skips_a_failed_group_and_resumes(self) -> None:  # covered by the parent class
+        pass
+
+    def test_no_more_trainings_run_at_once_than_the_memory_budget_allows(self) -> None:
+        r79.cgroup_memory_gib = lambda: {"max": driver.MEMORY_RESERVE_GIB + 2 * driver.TRAINING_MEMORY_GIB + 0.5, "current": 1.0}
+        driver.training_command = lambda arm, condition, out, *extra: [sys.executable, "-c", TRAIN, str(out), "0"]
+        self.assertEqual(driver.cmd_run(types.SimpleNamespace(workers=8)), 0)
+        spans = []
+        for arm in driver.ARMS:
+            for condition in driver.CONDITIONS:
+                start, end = map(float, (driver.training_dir(arm, condition) / "times").read_text().split())
+                spans.append((start, end))
+        peak = max(sum(1 for s, e in spans if s <= t < e) for t, _ in spans)
+        self.assertLessEqual(peak, 2)
+        self.assertGreaterEqual(peak, 1)
+        self.assertTrue(driver.fits(None, ["training"] * 9, "training"))
+        self.assertTrue(driver.fits(1.0, [], "training"))  # a lone task always runs, so the queue cannot stall
+        self.assertFalse(driver.fits(20.0, ["training"], "training"))
 
 
 if __name__ == "__main__":
