@@ -36,6 +36,7 @@ class DriverQueueTests(unittest.TestCase):
                                                             "cgroup_memory_gib")}
         r79.cgroup_memory_gib = lambda: {"max": None, "current": None}
         self.saved_driver = {name: getattr(driver, name) for name in ("diag_root", "training_command", "audit_command", "time")}
+        self.saved_stage = dict(driver.STAGE)
         r79.episodes = lambda: ["e1", "e2", "e3"]
         r79.expected_seconds = lambda arm, episode: {"e1": 3.0, "e2": 2.0, "e3": 1.0}[episode]
         r79.git = lambda *arguments: "abc1234"
@@ -55,6 +56,8 @@ class DriverQueueTests(unittest.TestCase):
             setattr(r79, name, value)
         for name, value in self.saved_driver.items():
             setattr(driver, name, value)
+        driver.STAGE.clear()
+        driver.STAGE.update(self.saved_stage)
         self.tmp.cleanup()
 
     def test_the_queue_respects_dependencies_skips_a_failed_group_and_resumes(self) -> None:
@@ -85,7 +88,8 @@ class DriverMemoryTests(DriverQueueTests):
         pass
 
     def test_no_more_trainings_run_at_once_than_the_memory_budget_allows(self) -> None:
-        r79.cgroup_memory_gib = lambda: {"max": driver.MEMORY_RESERVE_GIB + 2 * driver.TRAINING_MEMORY_GIB + 0.5, "current": 1.0}
+        # room for B + one own-data training, or two own-data trainings, never three
+        r79.cgroup_memory_gib = lambda: {"max": driver.MEMORY_RESERVE_GIB + 2 * driver.OWN_DATA_TRAINING_MEMORY_GIB + 0.5, "current": 1.0}
         driver.training_command = lambda arm, condition, out, *extra: [sys.executable, "-c", TRAIN, str(out), "0"]
         self.assertEqual(driver.cmd_run(types.SimpleNamespace(workers=8)), 0)
         spans = []
@@ -96,9 +100,20 @@ class DriverMemoryTests(DriverQueueTests):
         peak = max(sum(1 for s, e in spans if s <= t < e) for t, _ in spans)
         self.assertLessEqual(peak, 2)
         self.assertGreaterEqual(peak, 1)
-        self.assertTrue(driver.fits(None, ["training"] * 9, "training"))
-        self.assertTrue(driver.fits(1.0, [], "training"))  # a lone task always runs, so the queue cannot stall
-        self.assertFalse(driver.fits(20.0, ["training"], "training"))
+        self.assertTrue(driver.fits(None, [11.0] * 9, 11.0))
+        self.assertTrue(driver.fits(1.0, [], 11.0))  # a lone task always runs, so the queue cannot stall
+        self.assertFalse(driver.fits(20.0, [11.0], 11.0))
+        self.assertEqual((driver.training_memory_gib("B"), driver.training_memory_gib("A31")),
+                         (driver.TRAINING_MEMORY_GIB, driver.OWN_DATA_TRAINING_MEMORY_GIB))
+
+    def test_the_seed_study_stage_runs_only_its_three_seeds_under_its_own_names(self) -> None:
+        driver.STAGE.update({"name": "ruling82", "conditions": driver.SEED_STUDY_CONDITIONS})
+        driver.training_command = lambda arm, condition, out, *extra: [sys.executable, "-c", TRAIN, str(out), "0"]
+        self.assertEqual(driver.cmd_run(types.SimpleNamespace(workers=4)), 0)
+        status = json.loads((r79.EXPORT_DIR / "ruling82_diagnostics_abc1234.status.json").read_text())
+        self.assertEqual(sorted({(r["arm"], r["condition"]) for r in status["results"] if r["kind"] == "training"}),
+                         sorted((arm, c) for arm in driver.ARMS for c in ("A31", "A43", "A59")))
+        self.assertEqual(sum(1 for r in status["results"] if r["kind"] == "audit" and r["exit"] == 0), 18)
 
 
 if __name__ == "__main__":

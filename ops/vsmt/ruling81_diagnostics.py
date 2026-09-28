@@ -11,6 +11,10 @@ Steps (each stops; the next is started by hand after reading the previous output
   timing                a 300-update timing run of condition B for both arms side by side: projected hours for every condition
   run --workers N       the eight trainings and the 8 x 39 audits on one dependency-aware queue, resuming by skipping finished work
   merge                 pooled audits per group, training receipts and the ruling-81 analysis -> exports/, one summary
+
+--stage ruling82 (ruling 82-1, 2026-09-29) runs the same steps for the seed-spread study: conditions A31, A43, A59 (the other
+three registered seeds under the registered recipe) for both arms, and merge reads them together with seeds 7 and 19 of the
+ruling-81 run (exports of commit 0e4494d) through ruling82_seed_analysis.py.
 """
 
 from __future__ import annotations
@@ -31,16 +35,27 @@ sys.path.insert(0, str(HERE.parent))
 import ruling79_diagnostics as r79  # noqa: E402  (same paths, helpers and runtime estimates)
 
 ARMS = {"VSMT-lean": '{"tau_r": 0.5}', "AssocOnly": "{}"}
-#: memory admission (2026-09-28: 8 trainings of about 10.5 GiB each on a 62 GiB container, two killed at start)
+#: memory admission (2026-09-28: 8 trainings of about 10.5 GiB each on a 62 GiB container, two killed at start);
+#: since 2026-09-29 own-data conditions only count the round-0 records, so they are charged less than aggregated ones
 TRAINING_MEMORY_GIB = 11.0
+OWN_DATA_TRAINING_MEMORY_GIB = 7.0
 AUDIT_MEMORY_GIB = 1.5
 MEMORY_RESERVE_GIB = 4.0
 CONDITIONS = ("A7", "A19", "B", "C")
+#: ruling 82-1: the seed-spread study (the other three registered seeds; seeds 7 and 19 come from the ruling-81 run)
+SEED_STUDY_CONDITIONS = ("A31", "A43", "A59")
+RULING81_COMMIT = "0e4494d"
+STAGES = {"ruling81": CONDITIONS, "ruling82": SEED_STUDY_CONDITIONS}
+STAGE = {"name": "ruling81", "conditions": CONDITIONS}  # set by --stage before any path is built
 TIMING_UPDATES = 300
 
 
 def diag_root() -> Path:
-    return r79.AUTODL / f"vsmt_private/ruling81-{r79.short_commit()}"
+    return r79.AUTODL / f"vsmt_private/{STAGE['name']}-{r79.short_commit()}"
+
+
+def training_memory_gib(condition: str) -> float:
+    return TRAINING_MEMORY_GIB if condition == "B" else OWN_DATA_TRAINING_MEMORY_GIB
 
 
 def group(arm: str, condition: str) -> str:
@@ -87,13 +102,12 @@ def memory_budget_gib() -> float | None:
     return None if limit is None else limit - MEMORY_RESERVE_GIB
 
 
-def fits(budget: float | None, running: list[str], kind: str) -> bool:
-    """Would one more task of ``kind`` stay within the budget, given the kinds already running?"""
+def fits(budget: float | None, running: list[float], cost: float) -> bool:
+    """Would one more task of memory ``cost`` (GiB) stay within the budget, given the costs already running?"""
 
     if budget is None:
         return True
-    cost = {"training": TRAINING_MEMORY_GIB, "audit": AUDIT_MEMORY_GIB}
-    return sum(cost[k] for k in running) + cost[kind] <= budget or not running
+    return sum(running) + cost <= budget or not running
 
 
 def cmd_check(args: argparse.Namespace) -> int:
@@ -104,8 +118,10 @@ def cmd_check(args: argparse.Namespace) -> int:
         if len(files) != 39:
             problems.append(f"{pass_name}/{arm}: {len(files)} training record files, expected 39")
     budget = memory_budget_gib()
-    concurrent = None if budget is None else int(budget // TRAINING_MEMORY_GIB)
-    print(json.dumps({"ruling81_diag_root": str(diag_root()), "record_problems": problems, "memory_budget_gib": budget,
+    costs = [training_memory_gib(c) for c in STAGE["conditions"]]
+    concurrent = None if budget is None else int(budget // max(costs))
+    print(json.dumps({"stage": STAGE["name"], "conditions": list(STAGE["conditions"]), "stage_diag_root": str(diag_root()),
+                      "record_problems": problems, "memory_budget_gib": budget,
                       "trainings_that_fit_at_once": concurrent}, indent=1))
     return 1 if (code or problems) else 0
 
@@ -141,14 +157,15 @@ def cmd_run(args: argparse.Namespace) -> int:
     root = diag_root()
     episodes = r79.episodes()
     # a group's audits may start only once its training is usable: finished before this run, or exit 0 in this run
-    ready_groups = {group(arm, c) for arm in ARMS for c in CONDITIONS if training_usable(arm, c)}
-    trainings = [(arm, c) for arm in ARMS for c in CONDITIONS if group(arm, c) not in ready_groups]
-    audits = sorted(((arm, c, e) for arm in ARMS for c in CONDITIONS for e in episodes if not audit_path(arm, c, e).exists()),
+    conditions = STAGE["conditions"]
+    ready_groups = {group(arm, c) for arm in ARMS for c in conditions if training_usable(arm, c)}
+    trainings = [(arm, c) for arm in ARMS for c in conditions if group(arm, c) not in ready_groups]
+    audits = sorted(((arm, c, e) for arm in ARMS for c in conditions for e in episodes if not audit_path(arm, c, e).exists()),
                     key=lambda t: (-r79.expected_seconds(t[0], t[2]), t))
     failed_groups: set[str] = set()
     results: list[dict[str, Any]] = []
     running: dict[subprocess.Popen, dict[str, Any]] = {}
-    print(f"[ruling81] {time.strftime('%F %T')} run at {r79.short_commit()}: {len(trainings)} trainings and {len(audits)} audits on "
+    print(f"[{STAGE['name']}] {time.strftime('%F %T')} run at {r79.short_commit()}: {len(trainings)} trainings and {len(audits)} audits on "
           f"{args.workers} workers (cgroup {r79.cpu_quota()} CPUs)", flush=True)
 
     budget = memory_budget_gib()
@@ -162,19 +179,19 @@ def cmd_run(args: argparse.Namespace) -> int:
 
     while trainings or audits or running:
         while len(running) < args.workers:
-            kinds = [t["kind"] for t in running.values()]
-            if trainings and fits(budget, kinds, "training"):
+            costs = [t["memory_gib"] for t in running.values()]
+            if trainings and fits(budget, costs, training_memory_gib(trainings[0][1])):
                 arm, condition = trainings.pop(0)
-                launch({"kind": "training", "arm": arm, "condition": condition}, training_command(arm, condition, training_dir(arm, condition)),
-                       root / "logs" / "training" / f"{group(arm, condition)}.log")
+                launch({"kind": "training", "arm": arm, "condition": condition, "memory_gib": training_memory_gib(condition)},
+                       training_command(arm, condition, training_dir(arm, condition)), root / "logs" / "training" / f"{group(arm, condition)}.log")
                 continue
             ready = next((t for t in audits if group(t[0], t[1]) in ready_groups), None)
-            if ready is None or not fits(budget, kinds, "audit"):
+            if ready is None or not fits(budget, costs, AUDIT_MEMORY_GIB):
                 break
             audits.remove(ready)
             arm, condition, episode_id = ready
-            launch({"kind": "audit", "arm": arm, "condition": condition, "episode": episode_id}, audit_command(arm, condition, episode_id),
-                   root / "logs" / "audit" / group(arm, condition) / f"{episode_id}.log")
+            launch({"kind": "audit", "arm": arm, "condition": condition, "episode": episode_id, "memory_gib": AUDIT_MEMORY_GIB},
+                   audit_command(arm, condition, episode_id), root / "logs" / "audit" / group(arm, condition) / f"{episode_id}.log")
         # audits whose training failed can never start
         for t in [t for t in audits if group(t[0], t[1]) in failed_groups]:
             audits.remove(t)
@@ -196,17 +213,18 @@ def cmd_run(args: argparse.Namespace) -> int:
                 else:
                     failed_groups.add(group(task["arm"], task["condition"]))
             label = task.get("episode") or "training"
-            print(f"[ruling81] {time.strftime('%F %T')} {task['kind']} {group(task['arm'], task['condition'])} {label} exit {task['exit']} "
+            print(f"[{STAGE['name']}] {time.strftime('%F %T')} {task['kind']} {group(task['arm'], task['condition'])} {label} exit {task['exit']} "
                   f"{task['seconds']} s; {len(trainings)} trainings and {len(audits)} audits left, {len(running)} running", flush=True)
 
     status = {"commit": r79.git("rev-parse", "HEAD"), "diag_root": str(root), "workers": args.workers, "cgroup_cpus": r79.cpu_quota(),
               "worker_basis": f"{args.workers} single-thread slots on one dependency-aware queue: trainings first, then each group's audits "
                               "as soon as its weights exist, largest episodes first; admitted within the container memory "
-                              f"(budget {budget} GiB, {TRAINING_MEMORY_GIB} GiB per training, {AUDIT_MEMORY_GIB} GiB per audit)",
+                              f"(budget {budget} GiB, {TRAINING_MEMORY_GIB} GiB per aggregated training, {OWN_DATA_TRAINING_MEMORY_GIB} GiB "
+                              f"per own-data training, {AUDIT_MEMORY_GIB} GiB per audit)",
               "results": results, "failed": [r for r in results if r.get("exit") not in (0,)], "finished_cst": time.strftime("%F %T")}
     r79.EXPORT_DIR.mkdir(parents=True, exist_ok=True)
-    (r79.EXPORT_DIR / f"ruling81_diagnostics_{r79.short_commit()}.status.json").write_text(json.dumps(status, indent=1))
-    print(f"[ruling81] {len(status['failed'])} failed or skipped tasks; status written", flush=True)
+    (r79.EXPORT_DIR / f"{STAGE['name']}_diagnostics_{r79.short_commit()}.status.json").write_text(json.dumps(status, indent=1))
+    print(f"[{STAGE['name']}] {len(status['failed'])} failed or skipped tasks; status written", flush=True)
     return 0 if not status["failed"] else 1
 
 
@@ -215,9 +233,9 @@ def cmd_merge(args: argparse.Namespace) -> int:
     summary: dict[str, Any] = {"commit": r79.git("rev-parse", "HEAD"), "diag_root": str(diag_root()), "groups": {}, "trainings": {}}
     code = 0
     for arm in ARMS:
-        for condition in CONDITIONS:
+        for condition in STAGE["conditions"]:
             name = group(arm, condition)
-            results = r79.EXPORT_DIR / f"vsmt_lean_s2_05_node_audit_ruling81_{name}_{commit}.json"
+            results = r79.EXPORT_DIR / f"vsmt_lean_s2_05_node_audit_{STAGE['name']}_{name}_{commit}.json"
             merged = subprocess.run([r79.PY, str(r79.ROOT / "ops/vsmt/lean_s2_05_node_audit.py"), "merge", "--output-root",
                                      str(diag_root() / "audit" / name), "--arm", arm, "--results", str(results)],
                                     cwd=r79.ROOT, capture_output=True, text=True)
@@ -235,13 +253,22 @@ def cmd_merge(args: argparse.Namespace) -> int:
             else:
                 summary["trainings"][name] = None
                 code |= 1
-    analysis_out = r79.EXPORT_DIR / f"vsmt_lean_s2_05_ruling81_analysis_{commit}.json"
-    analysed = subprocess.run([r79.PY, str(r79.ROOT / "ops/vsmt/ruling81_analysis.py"), "--results-dir", str(r79.EXPORT_DIR), "--commit", commit,
-                               "--output", str(analysis_out)], cwd=r79.ROOT, capture_output=True, text=True)
+    if STAGE["name"] == "ruling81":
+        analysis_out = r79.EXPORT_DIR / f"vsmt_lean_s2_05_ruling81_analysis_{commit}.json"
+        command = [r79.PY, str(r79.ROOT / "ops/vsmt/ruling81_analysis.py"), "--results-dir", str(r79.EXPORT_DIR), "--commit", commit,
+                   "--output", str(analysis_out)]
+    else:  # ruling 82-1: seeds 7 and 19 from the ruling-81 run, 31/43/59 from this one
+        analysis_out = r79.EXPORT_DIR / f"vsmt_lean_s2_05_ruling82_seed_analysis_{commit}.json"
+        command = [r79.PY, str(r79.ROOT / "ops/vsmt/ruling82_seed_analysis.py"), "--output", str(analysis_out)]
+        for arm in ARMS:
+            for condition, source in (("A7", f"ruling81_{arm}-A7_{RULING81_COMMIT}"), ("A19", f"ruling81_{arm}-A19_{RULING81_COMMIT}"),
+                                      *((c, f"ruling82_{arm}-{c}_{commit}") for c in SEED_STUDY_CONDITIONS)):
+                command += ["--group", f"{arm}:{condition[1:]}:{r79.EXPORT_DIR / f'vsmt_lean_s2_05_node_audit_{source}.json'}"]
+    analysed = subprocess.run(command, cwd=r79.ROOT, capture_output=True, text=True)
     summary["analysis"] = {"exit": analysed.returncode, "results": str(analysis_out), "stdout_tail": analysed.stdout[-3000:],
                            "stderr_tail": analysed.stderr[-2000:]}
     code |= int(analysed.returncode != 0)
-    (r79.EXPORT_DIR / f"vsmt_lean_s2_05_ruling81_summary_{commit}.json").write_text(json.dumps(summary, indent=1))
+    (r79.EXPORT_DIR / f"vsmt_lean_s2_05_{STAGE['name']}_summary_{commit}.json").write_text(json.dumps(summary, indent=1))
     print(json.dumps({"groups": {g: {k: v for k, v in row.items() if k != "merge_stderr_tail"} for g, row in summary["groups"].items()},
                       "trainings": summary["trainings"], "analysis_exit": analysed.returncode}, indent=1))
     print(analysed.stdout[-3000:])
@@ -250,6 +277,7 @@ def cmd_merge(args: argparse.Namespace) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--stage", choices=sorted(STAGES), default="ruling81")
     sub = parser.add_subparsers(dest="step", required=True)
     sub.add_parser("check").set_defaults(func=cmd_check)
     sub.add_parser("timing").set_defaults(func=cmd_timing)
@@ -258,6 +286,7 @@ def main() -> int:
     run.set_defaults(func=cmd_run)
     sub.add_parser("merge").set_defaults(func=cmd_merge)
     args = parser.parse_args()
+    STAGE.update({"name": args.stage, "conditions": STAGES[args.stage]})
     return int(args.func(args))
 
 
