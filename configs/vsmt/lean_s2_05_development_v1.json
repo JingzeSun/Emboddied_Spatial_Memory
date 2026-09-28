@@ -182,6 +182,7 @@
       "node_prf1_iou": "higher",
       "missing_residual_rate": "lower",
       "false_retract_rate": "lower",
+      "false_retract_rate_in_scope": "lower",
       "identity_continuity": "higher",
       "recovery_latency_frames": "lower",
       "contamination_auc": "lower"

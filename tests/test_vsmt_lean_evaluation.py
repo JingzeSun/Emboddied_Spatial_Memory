@@ -275,6 +275,9 @@ class EluPEpisodeTests(unittest.TestCase):
         self.assertEqual(frames[3]["decomposition"]["existence"], {"candidates": 1, "teacher_error": 0, "correct": 1, "false_retract": 0, "missed_retract": 0})
         report = episode["report"]
         self.assertEqual(report["false_retract_rate"], {"false_retract_rate": 0.0, "false_retracts": 0, "judged_retracts": 1, "ambiguous_retracts": 0})
+        # ruling 80-5 (b): the in-scope column never judges more retracts than the original one
+        self.assertLessEqual(report["false_retract_rate_in_scope"]["judged_retracts"], report["false_retract_rate"]["judged_retracts"])
+        self.assertLessEqual(report["false_retract_rate_in_scope"]["false_retracts"], report["false_retract_rate"]["false_retracts"])
         self.assertEqual(report["missing_residual_rate"], {"missing_residual_rate": 0.0, "residual": 0, "judged": 2, "not_yet_observable": 0})
         self.assertEqual(report["recovery_latency_frames"]["per_object"], {"Book|2": 0, "Mug|1": 1})
         self.assertEqual(report["recovery_latency_frames"]["recovery_latency_frames"], 0.5)

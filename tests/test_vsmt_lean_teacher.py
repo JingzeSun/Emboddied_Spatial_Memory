@@ -843,6 +843,24 @@ class TestLifecycleMetrics(unittest.TestCase):
         none = false_retract_rate(existence, {"e1": "NOOP", "e2": "NOOP", "e3": "NOOP"})
         self.assertIsNone(none["false_retract_rate"])
 
+    def test_the_in_scope_column_leaves_out_entities_present_by_rule(self) -> None:
+        """Ruling 80-5 (b): a retracted wall is a false retract in the original column only."""
+
+        from vsmt import lean_teacher
+
+        existence = {"wall": {"status": "present", "reason": "structural_never_intervened"},
+                     "egg": {"status": "present", "reason": "spawned_after_reload"},
+                     "mug": {"status": "present", "reason": None}, "book": {"status": "gone", "reason": "moved"}}
+        decisions = {name: "RETRACT" for name in existence}
+        original = false_retract_rate(existence, decisions)
+        in_scope = lean_teacher.false_retract_rate_in_scope(existence, decisions)
+        self.assertEqual((original["false_retracts"], original["judged_retracts"]), (3, 4))
+        self.assertEqual((in_scope["false_retracts"], in_scope["judged_retracts"]), (1, 2))
+        self.assertAlmostEqual(in_scope["false_retract_rate"], 0.5)
+        self.assertEqual(lean_teacher.PRESENT_BY_RULE_REASONS, ("structural_never_intervened", "spawned_after_reload"))
+        with self.assertRaises(LeanTeacherError):
+            lean_teacher.false_retract_rate_in_scope(existence, {"wall": "RETRACT"})
+
     def test_identity_continuity_accepts_any_prior_carrier_and_not_a_birth(self) -> None:
         out = identity_continuity(
             reobserved={"obj:mug": "f1", "obj:book": "f2", "obj:lamp": "f3", "obj:pen": "f4"},
@@ -917,7 +935,7 @@ class TestReportClosure(unittest.TestCase):
     def test_the_seven_metrics_pass(self) -> None:
         report = {name: {field: None for field in METRIC_FIELDS[name]} for name in METRICS}
         assert_report_keys(report)
-        self.assertEqual(len(METRICS), 8)  # ruling 70 added the centroid column
+        self.assertEqual(len(METRICS), 9)  # ruling 70 added the centroid column; ruling 80-5 (b) the in-scope false-retract column
 
     def test_an_eighth_metric_is_rejected(self) -> None:
         with self.assertRaises(LeanTeacherError) as caught:

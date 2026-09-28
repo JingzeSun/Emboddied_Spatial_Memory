@@ -130,6 +130,7 @@
       "node_prf1_iou",
       "missing_residual_rate",
       "false_retract_rate",
+      "false_retract_rate_in_scope",
       "identity_continuity",
       "recovery_latency_frames",
       "contamination_auc",
@@ -159,6 +160,12 @@
         "not_yet_observable"
       ],
       "false_retract_rate": [
+        "false_retract_rate",
+        "false_retracts",
+        "judged_retracts",
+        "ambiguous_retracts"
+      ],
+      "false_retract_rate_in_scope": [
         "false_retract_rate",
         "false_retracts",
         "judged_retracts",
@@ -265,6 +272,16 @@
       "ambiguous": "RETRACT decisions on identity-ambiguous entities are counted, not judged",
       "not_applicable": "arms whose vocabulary lacks RETRACT report not_applicable; they enter neither the exclusion list nor any pairing on this metric"
     },
+    "false_retract_rate_in_scope": {
+      "rule": "false_retract_rate over the existence candidates whose label reason is not one of PRESENT_BY_RULE_REASONS (entities resolving to objects outside the truth node scope are left out)",
+      "excluded_reasons": [
+        "structural_never_intervened",
+        "spawned_after_reload"
+      ],
+      "role": "secondary_column_reported_beside_false_retract_rate_never_the_selection_metric_never_in_the_main_gate",
+      "why": "D-224-S1 ruling 80-5 (b), LOG-273: 530 of VSMT-lean's 744 development false retracts were entities resolving to structural objects, which are labelled present by rule and never scored by the node metric; the original column is kept unchanged",
+      "plain_language_zh": "只算节点范围内候选的假撤回率：按规则记为在场的结构件与运行时生成物不进分母。原列不变、并列报告；不选配置、不进主门。"
+    },
     "identity_continuity": {
       "numerator": "moved objects whose fragment at the first labelled re-observation after the move is assigned to any entity that carried the object before the move",
       "denominator": "moved objects re-observed with a label after the move that had at least one carrier before the move",
@@ -348,7 +365,8 @@
     "strongest_control_evaluated_on": "the split of the comparison over the same effective houses; on test this is a post hoc maximum over the four controls and is therefore conservative for the method",
     "undefined_house_rule_over_applicable_arms_only": true,
     "metric_not_applicable_rule": {
-      "false_retract_rate": "arms_whose_vocabulary_lacks_RETRACT"
+      "false_retract_rate": "arms_whose_vocabulary_lacks_RETRACT",
+      "false_retract_rate_in_scope": "arms_whose_vocabulary_lacks_RETRACT"
     }
   },
   "nuisance_probe": {
@@ -401,7 +419,8 @@
     "ruling_68": "D-224-S1 裁决 68（2026-09-25 批准，原话「裁决 68 全按推荐」）：nuisance_probe.maximum_advantage=0.05，绑定常量 NUISANCE_MAXIMUM_ADVANTAGE，登记进跨合同台账；新增规则字串 nuisance_probe.scope（split 级判定，逐 episode 只报告），绑定 NUISANCE_SCOPE_RULE，规则摘要重钉；bootstrap_seed 与 main_gate_effect_size 留到 S3-01。",
     "ruling_72": "D-224-S1 裁决 72 (B)（2026-09-25 16:35 CST 批准，原话「裁决 72 取 (A)(a)(B)(a)(C)(a)(D)(a)」）：裁决 70 改取 (b)。node_prf1 的匹配改为质心 ≤ delta_moved_m、权重 1/(1+距离)（主列、选参指标，不进主门）；原 IoU 0.3 匹配改名 node_prf1_iou（次级列，不选配置、不进主门），node_prf1_centroid 取消。两列同一预测集合、同一真值集合、同一评价器匹配器，只换重叠判定；与 Dyn-THOR 是“同一匹配机制、不同重叠判定”，论文须写明。依据：LOG-257 续——完美分割＋完美身份合并时 IoU 0.3 上界 0.64、质心 0.86，IoU 列主要量的是单帧深度表面壳对整体盒的几何差而非记忆对错。发生在任何 validation/test 数据生成之前；开发 cache 是 train 划分。",
     "ruling_76_3a": "2026-09-26 「裁决 76 取 (1)(a)(2)(a)(3)(a)(4)(a)」: both node columns match count-first (most pairs, then most weight); LOG-262.",
-    "ruling_77_1a": "2026-09-26 「裁决 77 取 (1)(a)(2)(a)」: node_prf1 pairs must be the entity's own object and within delta_moved_m or inside the truth box padded 0.25 m; LOG-263 sequel."
+    "ruling_77_1a": "2026-09-26 「裁决 77 取 (1)(a)(2)(a)」: node_prf1 pairs must be the entity's own object and within delta_moved_m or inside the truth box padded 0.25 m; LOG-263 sequel.",
+    "ruling_80_5b": "2026-09-28 「裁决 80 全按推荐」: a secondary column false_retract_rate_in_scope beside the unchanged false_retract_rate, leaving out candidates labelled present by rule for objects outside the node scope; never the selection metric, never in the main gate; LOG-273."
   },
   "continue_gate": {
     "metric_list_frozen_before_any_data_generation": true,

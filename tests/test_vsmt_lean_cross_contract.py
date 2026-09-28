@@ -336,7 +336,9 @@ FROZEN_RULE_SHA256 = {
     # most weight), the objective bound in each column block.  b831a3a4 -> eb81780b.
     # Re-pinned 2026-09-26 for ruling 77 (1)(a) (LOG-263 sequel): a primary-column pair must be the entity's own object and its
     # centroid within delta_moved_m or inside the truth box padded 0.25 m; the Dyn-THOR relation string rewritten.  eb81780b -> 8b57bacb.
-    "S0-04": "8b57bacb17371d73a51fd11a613c463fc40e9d0a93cbad9b6e55e26c9a45f73d",
+    # D-224-S1 ruling 80-5 (b) (2026-09-28): the secondary column false_retract_rate_in_scope (names, reported fields, its block
+    # with rule, excluded reasons and role, the not-applicable rule).  8b57bacb -> 185d7ff4.
+    "S0-04": "185d7ff48eec00866c859c73d695742a1676c9271593b8d9eae34211520d6fb3",
     # S0-05 re-pinned 2026-09-25 for ruling 68 (LOG-256 sequel): every grid's values (at most twelve
     # configurations per method, a no-gate member in every rule arm), the ELU-P rollout_config
     # (0.7, 1.0, 0.0) and the should_be_visible_min_ratio_superseded record enter the digest; the
@@ -417,7 +419,8 @@ FROZEN_RULE_SHA256 = {
     # source path -> S0-04 metrics.node_prf1_iou.iou_min.  0ff1fbe9 -> d1645593.
     # Re-pinned 2026-09-26 for ruling 74: derivation_rules.place_observable uses the per-point depth test on the
     # frame's public depth view, the arms' own should-be-visible yardstick (ruling 65 (1)).  d1645593 -> 51250dcb.
-    "S2-04": "51250dcb0e60a85a3b9f4ad4c8bc83c72e7e56820bfa269f481db24e8ed0afae",
+    # ruling 80-5 (b): headline_fields gains false_retract_rate_in_scope.  51250dcb -> eb9ac356.
+    "S2-04": "eb9ac3568be70bbc517376163000737db18b63b9acdaf7a964946bdfd6da0391",
     # S2-05 v1 (2026-09-24, LOG-251): the development table -- the five passes in order (calibration
     # with LOW and no gate, the ELU-P fit with TAF at the rollout theta_a, DAgger rounds 0 and 1, the
     # table), the episode set, the calibration series and quantiles, the ELU-P count rules, the
@@ -431,7 +434,8 @@ FROZEN_RULE_SHA256 = {
     # absent / moved coverage, the should-be-visible ratio by label, the present entity-to-truth box IoU).  57dc753d -> cea002f4.
     # Re-pinned 2026-09-26 for ruling 75 (1)(a): the calibration arm is TAF at the rollout theta_a with no gate (LOW with
     # no gate kept as calibration_arm_superseded) and the calibration pass also writes the ELU-P counts.  cea002f4 -> 7916d4f8.
-    "S2-05": "7916d4f8b37f3381443f964a2b048ecdd3a1e3cbe045a6b37cf2144fd1ca86e8",
+    # ruling 80-5 (b): table.better gains false_retract_rate_in_scope (lower).  7916d4f8 -> d010a992.
+    "S2-05": "d010a992cdd75e220692160f265e8893fbc6a90a963f75bfe4432f0363f90144",
 }
 
 #: Every registered slot that has been frozen, and the value it froze at.
@@ -792,7 +796,8 @@ class TestSharedFacts(unittest.TestCase):
         """Review correction (LOG-225): false_retract_rate is not applicable to arms without RETRACT."""
 
         rule = load("S0-04")["statistics"]["metric_not_applicable_rule"]
-        self.assertEqual(rule, {"false_retract_rate": "arms_whose_vocabulary_lacks_RETRACT"})
+        self.assertEqual(rule, {"false_retract_rate": "arms_whose_vocabulary_lacks_RETRACT",
+                                "false_retract_rate_in_scope": "arms_whose_vocabulary_lacks_RETRACT"})  # ruling 80-5 (b)
         self.assertEqual(rule, lean_teacher.METRIC_NOT_APPLICABLE_RULE)
         never = lean_arms.arms_without_atom("RETRACT")
         self.assertEqual(never, ("TAF", "LOW", "AssocOnly"))

@@ -54,6 +54,7 @@ DEVELOPMENT_ARMS = ("VSMT-lean", "TAF", "ELU-P", "RAC", "LOW", "NoVersion", "Ass
 METHOD_ARM = arms.METHOD_ARM
 #: Direction in which a larger headline value is better (size_and_cost is reported, never compared).
 BETTER = {"node_prf1": "higher", "node_prf1_iou": "higher", "missing_residual_rate": "lower", "false_retract_rate": "lower",
+          "false_retract_rate_in_scope": "lower",
           "identity_continuity": "higher", "recovery_latency_frames": "lower", "contamination_auc": "lower"}
 #: The passes of S2-05 in order; each pass is one S2-04 run per episode.
 PASSES = (
@@ -471,7 +472,7 @@ def fit_elu_p(records: Iterable[Mapping[str, Mapping[str, int]]], *, rollout_con
 def not_applicable_arms(metric: str, table_arms: Sequence[str]) -> list[str]:
     """Arms for which a metric is undefined by construction (S0-04 metric_not_applicable_rule)."""
 
-    if metric == "false_retract_rate":
+    if metric in ("false_retract_rate", "false_retract_rate_in_scope"):
         return [arm for arm in table_arms if arm in arms.arms_without_atom("RETRACT")]
     return []
 

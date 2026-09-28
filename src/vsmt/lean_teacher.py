@@ -87,6 +87,7 @@ METRICS = (
     "node_prf1_iou",
     "missing_residual_rate",
     "false_retract_rate",
+    "false_retract_rate_in_scope",   # D-224-S1 ruling 80-5 (b): secondary column beside false_retract_rate
     "identity_continuity",
     "recovery_latency_frames",
     "contamination_auc",
@@ -99,6 +100,7 @@ METRIC_FIELDS: dict[str, tuple[str, ...]] = {
     "node_prf1_iou": ("node_precision", "node_recall", "node_f1", "matched", "predicted", "truth"),
     "missing_residual_rate": ("missing_residual_rate", "residual", "judged", "not_yet_observable"),
     "false_retract_rate": ("false_retract_rate", "false_retracts", "judged_retracts", "ambiguous_retracts"),
+    "false_retract_rate_in_scope": ("false_retract_rate", "false_retracts", "judged_retracts", "ambiguous_retracts"),
     "identity_continuity": ("identity_continuity", "kept", "judged", "no_prior_carrier"),
     "recovery_latency_frames": ("recovery_latency_frames", "recovered", "unrecovered", "never_observable", "per_object"),
     "contamination_auc": ("contamination_auc", "frames"),
@@ -121,7 +123,17 @@ DECOMPOSITION = ("recall_miss", "teacher_error", "amortization_error")
 #: rule names the vocabulary test; the arms contract supplies the arms.
 METRIC_NOT_APPLICABLE_RULE: dict[str, str] = {
     "false_retract_rate": "arms_whose_vocabulary_lacks_RETRACT",
+    "false_retract_rate_in_scope": "arms_whose_vocabulary_lacks_RETRACT",
 }
+
+#: D-224-S1 ruling 80-5 (b), 2026-09-28: existence labels the evaluator sets to present by rule for objects outside the truth
+#: node scope (the structural types of rulings 56 continued / 69, and objects spawned after the reload).  A RETRACT on such an
+#: entity counts as a false retract in false_retract_rate; the secondary column leaves these candidates out (LOG-273: 530 of
+#: VSMT-lean's 744 development false retracts were structural entities, which the node metric never scores).
+PRESENT_BY_RULE_REASONS = ("structural_never_intervened", "spawned_after_reload")
+FALSE_RETRACT_IN_SCOPE_RULE = ("false_retract_rate over the existence candidates whose label reason is not one of "
+                               "PRESENT_BY_RULE_REASONS (entities resolving to objects outside the truth node scope are left out)")
+FALSE_RETRACT_IN_SCOPE_ROLE = "secondary_column_reported_beside_false_retract_rate_never_the_selection_metric_never_in_the_main_gate"
 
 #: Fields a nuisance probe may see.  If any of them predicts a label better
 #: than the majority class, the data leaks through metadata.
@@ -1131,6 +1143,21 @@ def false_retract_rate(
     }
 
 
+def false_retract_rate_in_scope(
+    existence: Mapping[str, Mapping[str, Any]], decisions: Mapping[str, str],
+) -> dict[str, Any]:
+    """false_retract_rate without the candidates labelled present by rule for out-of-scope objects (ruling 80-5 (b)).
+
+    白话：输入同 false_retract_rate，输出只算"节点范围内"候选的假撤回率。墙、门、窗、房间、天花板和运行时生成物
+    按规则一律记 present，撤回它们在原列里算假撤回，但节点指标从不计它们；这一列把它们剔出分母，与节点范围一致。
+    例如撤回了 10 个，其中 7 个是墙，另外 3 个里 1 个其实还在，原列 8/10，这一列 1/3。它不替代原列，也不进主门。
+    """
+
+    _require(set(decisions) == set(existence), "decisions_differ_from_existence_candidates")
+    kept = [entity_id for entity_id in existence if existence[entity_id].get("reason") not in PRESENT_BY_RULE_REASONS]
+    return false_retract_rate({e: existence[e] for e in kept}, {e: decisions[e] for e in kept})
+
+
 def identity_continuity(
     *, reobserved: Mapping[str, str], carriers_before_move: Mapping[str, Sequence[str]],
     assignment: Mapping[str, str],
@@ -1720,6 +1747,10 @@ def validate_teacher_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     _require(contract["private_truth_inputs"]["truth_box_source"]["rule"] == TRUTH_BOX_SOURCE,
              "contract_truth_box_source_mismatch")
     _require(metrics["identity_continuity"]["judged_at"] == IDENTITY_CONTINUITY_JUDGED_AT, "contract_identity_judged_at_mismatch")
+    in_scope = metrics.get("false_retract_rate_in_scope") or {}
+    _require(in_scope.get("rule") == FALSE_RETRACT_IN_SCOPE_RULE, "contract_false_retract_in_scope_rule_mismatch")
+    _require(tuple(in_scope.get("excluded_reasons") or ()) == PRESENT_BY_RULE_REASONS, "contract_false_retract_in_scope_reasons_mismatch")
+    _require(in_scope.get("role") == FALSE_RETRACT_IN_SCOPE_ROLE, "contract_false_retract_in_scope_role_mismatch")
     _require(metrics["recovery_latency_frames"]["start"] == RECOVERY_LATENCY_START, "contract_recovery_start_mismatch")
     _require(metrics["contamination_auc"]["integration"] == CONTAMINATION_INTEGRATION, "contract_contamination_integration_mismatch")
 
@@ -1828,6 +1859,10 @@ __all__ = [
     "evaluate_frame",
     "existence_labels",
     "false_retract_rate",
+    "false_retract_rate_in_scope",
+    "FALSE_RETRACT_IN_SCOPE_ROLE",
+    "FALSE_RETRACT_IN_SCOPE_RULE",
+    "PRESENT_BY_RULE_REASONS",
     "fragment_dominance",
     "identity_continuity",
     "main_gate",

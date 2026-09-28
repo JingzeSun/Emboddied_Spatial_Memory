@@ -182,6 +182,7 @@ class DevelopmentTableTests(unittest.TestCase):
                 "node_prf1_iou": {"node_precision": 1.0, "node_recall": 1.0, "node_f1": f1, "matched": 1, "predicted": 1, "truth": 1},
                 "missing_residual_rate": {"missing_residual_rate": mrr, "residual": 0, "judged": 0, "not_yet_observable": 0},
                 "false_retract_rate": {"false_retract_rate": frr, "false_retracts": 0, "judged_retracts": 0, "ambiguous_retracts": 0},
+                "false_retract_rate_in_scope": {"false_retract_rate": frr, "false_retracts": 0, "judged_retracts": 0, "ambiguous_retracts": 0},
                 "identity_continuity": {"identity_continuity": cont, "kept": 0, "judged": 0, "no_prior_carrier": 0},
                 "recovery_latency_frames": {"recovery_latency_frames": latency, "recovered": 0, "unrecovered": [], "never_observable": [], "per_object": {}},
                 "contamination_auc": {"contamination_auc": auc, "frames": 5},

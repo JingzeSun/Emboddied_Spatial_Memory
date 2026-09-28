@@ -102,6 +102,7 @@ HEADLINE_FIELD = {
     "node_prf1_iou": "node_f1",
     "missing_residual_rate": "missing_residual_rate",
     "false_retract_rate": "false_retract_rate",
+    "false_retract_rate_in_scope": "false_retract_rate",
     "identity_continuity": "identity_continuity",
     "recovery_latency_frames": "recovery_latency_frames",
     "contamination_auc": "contamination_auc",
@@ -383,6 +384,7 @@ class EpisodeTeacher:
         frame_eval = lt.evaluate_frame(memory_after, truth_objects=truth_table, evidence_instance=self.evidence,
                                        iou_min=self.iou_min, delta_moved_m=self.policy["delta_moved_m"])
         false_retract = lt.false_retract_rate(existence, decisions)
+        false_retract_in_scope = lt.false_retract_rate_in_scope(existence, decisions)  # ruling 80-5 (b)
         size = lt.size_and_cost(memory_after, runtime_per_frame_s=runtime_s, peak_memory_bytes=peak_memory_bytes)
 
         # intervention bookkeeping (old/new places, carriers, observability, MRR, recovery, continuity)
@@ -457,7 +459,7 @@ class EpisodeTeacher:
             "stale_entities": frame_eval["stale_entities"], "wrongly_absent_objects": frame_eval["wrongly_absent_objects"],
             "out_of_scope_entities": frame_eval["out_of_scope_entities"],
             "identity_ambiguous_entities": frame_eval["identity_ambiguous_entities"],
-            "false_retract": false_retract, "size_and_cost": size,
+            "false_retract": false_retract, "false_retract_in_scope": false_retract_in_scope, "size_and_cost": size,
             "missing_residual": missing_frame, "recovery_flags": recovery_flags, "identity_continuity": continuity_frame,
             "truth_in_scope": sorted(key for key, row in truth_table.items() if row["present"] and row["in_scope"]),
             "training_record": training_record, "nuisance": nuisance,
@@ -492,6 +494,12 @@ class EpisodeTeacher:
         false_retracts = sum(int(f["false_retract"]["false_retracts"]) for f in frames)
         judged_retracts = sum(int(f["false_retract"]["judged_retracts"]) for f in frames)
         ambiguous_retracts = sum(int(f["false_retract"]["ambiguous_retracts"]) for f in frames)
+
+        def retract_block(field: str) -> dict[str, Any]:
+            wrong = sum(int(f[field]["false_retracts"]) for f in frames)
+            judged = sum(int(f[field]["judged_retracts"]) for f in frames)
+            return {"false_retract_rate": (wrong / judged) if judged else None, "false_retracts": wrong, "judged_retracts": judged,
+                    "ambiguous_retracts": sum(int(f[field]["ambiguous_retracts"]) for f in frames)}
         last_missing = next((f["missing_residual"] for f in reversed(frames) if f["missing_residual"] is not None), None)
         recovery = lt.episode_recovery_latency(self.recovery_frames)
         contamination = lt.contamination_auc([f["contamination_fraction"] for f in frames])
@@ -505,6 +513,7 @@ class EpisodeTeacher:
             "false_retract_rate": {"false_retract_rate": (false_retracts / judged_retracts) if judged_retracts else None,
                                    "false_retracts": false_retracts, "judged_retracts": judged_retracts,
                                    "ambiguous_retracts": ambiguous_retracts},
+            "false_retract_rate_in_scope": retract_block("false_retract_in_scope"),
             "identity_continuity": {"identity_continuity": (self.continuity["kept"] / self.continuity["judged"]) if self.continuity["judged"] else None,
                                     "kept": self.continuity["kept"], "judged": self.continuity["judged"],
                                     "no_prior_carrier": self.continuity["no_prior_carrier"]},
