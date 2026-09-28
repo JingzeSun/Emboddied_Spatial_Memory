@@ -51,6 +51,14 @@ def training_done(arm: str, condition: str) -> bool:
     return (training_dir(arm, condition) / "training_receipt.json").exists() and (training_dir(arm, condition) / "weights.json").exists()
 
 
+def training_usable(arm: str, condition: str) -> bool:
+    """Weights exist and the receipt says the training did not diverge (a diverged run also writes both files)."""
+
+    if not training_done(arm, condition):
+        return False
+    return json.loads((training_dir(arm, condition) / "training_receipt.json").read_text()).get("diverged") is not True
+
+
 def audit_path(arm: str, condition: str, episode_id: str) -> Path:
     return diag_root() / "audit" / group(arm, condition) / episode_id / arm / "node_audit.json"
 
@@ -109,7 +117,9 @@ def cmd_timing(args: argparse.Namespace) -> int:
 def cmd_run(args: argparse.Namespace) -> int:
     root = diag_root()
     episodes = r79.episodes()
-    trainings = [(arm, c) for arm in ARMS for c in CONDITIONS if not training_done(arm, c)]
+    # a group's audits may start only once its training is usable: finished before this run, or exit 0 in this run
+    ready_groups = {group(arm, c) for arm in ARMS for c in CONDITIONS if training_usable(arm, c)}
+    trainings = [(arm, c) for arm in ARMS for c in CONDITIONS if group(arm, c) not in ready_groups]
     audits = sorted(((arm, c, e) for arm in ARMS for c in CONDITIONS for e in episodes if not audit_path(arm, c, e).exists()),
                     key=lambda t: (-r79.expected_seconds(t[0], t[2]), t))
     failed_groups: set[str] = set()
@@ -131,7 +141,7 @@ def cmd_run(args: argparse.Namespace) -> int:
                 launch({"kind": "training", "arm": arm, "condition": condition}, training_command(arm, condition, training_dir(arm, condition)),
                        root / "logs" / "training" / f"{group(arm, condition)}.log")
                 continue
-            ready = next((t for t in audits if training_done(t[0], t[1])), None)
+            ready = next((t for t in audits if group(t[0], t[1]) in ready_groups), None)
             if ready is None:
                 break
             audits.remove(ready)
@@ -153,8 +163,11 @@ def cmd_run(args: argparse.Namespace) -> int:
             task = running.pop(proc)
             task.update({"exit": proc.returncode, "seconds": round(time.time() - task.pop("started"), 1)})
             results.append(task)
-            if task["kind"] == "training" and (proc.returncode != 0 or not training_done(task["arm"], task["condition"])):
-                failed_groups.add(group(task["arm"], task["condition"]))
+            if task["kind"] == "training":
+                if proc.returncode == 0 and training_usable(task["arm"], task["condition"]):
+                    ready_groups.add(group(task["arm"], task["condition"]))
+                else:
+                    failed_groups.add(group(task["arm"], task["condition"]))
             label = task.get("episode") or "training"
             print(f"[ruling81] {time.strftime('%F %T')} {task['kind']} {group(task['arm'], task['condition'])} {label} exit {task['exit']} "
                   f"{task['seconds']} s; {len(trainings)} trainings and {len(audits)} audits left, {len(running)} running", flush=True)
