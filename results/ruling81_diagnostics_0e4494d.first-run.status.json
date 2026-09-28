@@ -1,0 +1,3202 @@
+{
+ "commit": "0e4494da0310767f29a9c829f60e56c7c7e8ab8c",
+ "diag_root": "/root/autodl-tmp/vsmt_private/ruling81-0e4494d",
+ "workers": 11,
+ "cgroup_cpus": 12,
+ "worker_basis": "11 single-thread slots on one dependency-aware queue: trainings first, then each group's audits as soon as its weights exist, largest episodes first",
+ "results": [
+  {
+   "kind": "training",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "exit": -9,
+   "seconds": 75.0
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-01289",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-00950",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-08790",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-01259",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-00563",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-05806",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-08398",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-07795",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-04801",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-02768",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-03361",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-02524",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-03394",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-01543",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-08927",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-00406",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-09595",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-00619",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-08552",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-04742",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-00975",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-09339",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-07815",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-08566",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-05966",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-00236",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-06453",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-05879",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-01139",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-04388",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-03288",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-08422",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-03525",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-07270",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-08905",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-01394",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-09423",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-07367",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-00702",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "training",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "exit": -9,
+   "seconds": 90.0
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-01289",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-00950",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-08790",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-01259",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-00563",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-05806",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-04801",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-08398",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-07795",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-02768",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-03361",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-02524",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-03394",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-01543",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-08927",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-09595",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-00406",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-00619",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-08552",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-04742",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-00975",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-09339",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-07815",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-08566",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-05966",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-06453",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-00236",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-05879",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-01139",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-04388",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-03288",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-08422",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-03525",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-07270",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-08905",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-01394",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-09423",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-07367",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-00702",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "training",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "exit": 0,
+   "seconds": 5760.5
+  },
+  {
+   "kind": "training",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "exit": 0,
+   "seconds": 5780.6
+  },
+  {
+   "kind": "training",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "exit": 0,
+   "seconds": 6270.7
+  },
+  {
+   "kind": "training",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "exit": 0,
+   "seconds": 6335.7
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-05806",
+   "exit": 0,
+   "seconds": 1335.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-00563",
+   "exit": 0,
+   "seconds": 1750.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-01259",
+   "exit": 0,
+   "seconds": 2180.3
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-08790",
+   "exit": 0,
+   "seconds": 2620.3
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-00950",
+   "exit": 0,
+   "seconds": 2960.4
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-01289",
+   "exit": 0,
+   "seconds": 3185.4
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-01289",
+   "exit": 0,
+   "seconds": 3475.4
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-01289",
+   "exit": 0,
+   "seconds": 3590.4
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-01289",
+   "exit": 0,
+   "seconds": 3705.4
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-00950",
+   "exit": 0,
+   "seconds": 2990.3
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-00950",
+   "exit": 0,
+   "seconds": 3265.3
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-00950",
+   "exit": 0,
+   "seconds": 2920.3
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-08790",
+   "exit": 0,
+   "seconds": 2785.3
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-01259",
+   "exit": 0,
+   "seconds": 2160.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-08790",
+   "exit": 0,
+   "seconds": 2815.3
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-08790",
+   "exit": 0,
+   "seconds": 2610.3
+  },
+  {
+   "kind": "training",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "exit": 0,
+   "seconds": 11656.3
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-00563",
+   "exit": 0,
+   "seconds": 1805.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-01259",
+   "exit": 0,
+   "seconds": 2305.3
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-01259",
+   "exit": 0,
+   "seconds": 2295.3
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-05806",
+   "exit": 0,
+   "seconds": 1385.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-00563",
+   "exit": 0,
+   "seconds": 1720.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-00563",
+   "exit": 0,
+   "seconds": 1830.3
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-04801",
+   "exit": 0,
+   "seconds": 1295.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-04801",
+   "exit": 0,
+   "seconds": 1280.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-05806",
+   "exit": 0,
+   "seconds": 1460.2
+  },
+  {
+   "kind": "training",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "exit": 0,
+   "seconds": 13811.6
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-05806",
+   "exit": 0,
+   "seconds": 1460.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-05806",
+   "exit": 0,
+   "seconds": 1440.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-07795",
+   "exit": 0,
+   "seconds": 1465.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-08398",
+   "exit": 0,
+   "seconds": 1530.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-00563",
+   "exit": 0,
+   "seconds": 1825.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-08398",
+   "exit": 0,
+   "seconds": 1545.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-01259",
+   "exit": 0,
+   "seconds": 2350.3
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-00950",
+   "exit": 0,
+   "seconds": 3140.4
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-08790",
+   "exit": 0,
+   "seconds": 2930.4
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-01289",
+   "exit": 0,
+   "seconds": 3835.5
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-04801",
+   "exit": 0,
+   "seconds": 1350.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-05806",
+   "exit": 0,
+   "seconds": 1535.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-08398",
+   "exit": 0,
+   "seconds": 1430.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-00563",
+   "exit": 0,
+   "seconds": 1990.3
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-07795",
+   "exit": 0,
+   "seconds": 1370.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-07795",
+   "exit": 0,
+   "seconds": 1440.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-08398",
+   "exit": 0,
+   "seconds": 1355.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-01259",
+   "exit": 0,
+   "seconds": 2510.4
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-08790",
+   "exit": 0,
+   "seconds": 3070.4
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-08398",
+   "exit": 0,
+   "seconds": 1430.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-07795",
+   "exit": 0,
+   "seconds": 1155.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-08398",
+   "exit": 0,
+   "seconds": 1400.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-00950",
+   "exit": 0,
+   "seconds": 3540.5
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-07795",
+   "exit": 0,
+   "seconds": 1285.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-04801",
+   "exit": 0,
+   "seconds": 1225.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-01289",
+   "exit": 0,
+   "seconds": 3940.6
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-07795",
+   "exit": 0,
+   "seconds": 1285.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-04801",
+   "exit": 0,
+   "seconds": 1255.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-04801",
+   "exit": 0,
+   "seconds": 1290.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-02768",
+   "exit": 0,
+   "seconds": 1115.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-02768",
+   "exit": 0,
+   "seconds": 1070.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-02768",
+   "exit": 0,
+   "seconds": 965.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-02768",
+   "exit": 0,
+   "seconds": 1040.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-03361",
+   "exit": 0,
+   "seconds": 730.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-03361",
+   "exit": 0,
+   "seconds": 790.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-03361",
+   "exit": 0,
+   "seconds": 765.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-02768",
+   "exit": 0,
+   "seconds": 990.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-02768",
+   "exit": 0,
+   "seconds": 945.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-02524",
+   "exit": 0,
+   "seconds": 730.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-02524",
+   "exit": 0,
+   "seconds": 700.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-03361",
+   "exit": 0,
+   "seconds": 665.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-02524",
+   "exit": 0,
+   "seconds": 675.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-03361",
+   "exit": 0,
+   "seconds": 700.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-03361",
+   "exit": 0,
+   "seconds": 695.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-03394",
+   "exit": 0,
+   "seconds": 665.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-03394",
+   "exit": 0,
+   "seconds": 660.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-03394",
+   "exit": 0,
+   "seconds": 630.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-02524",
+   "exit": 0,
+   "seconds": 645.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-02524",
+   "exit": 0,
+   "seconds": 635.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-02524",
+   "exit": 0,
+   "seconds": 700.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-01543",
+   "exit": 0,
+   "seconds": 710.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-01543",
+   "exit": 0,
+   "seconds": 640.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-01543",
+   "exit": 0,
+   "seconds": 685.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-08927",
+   "exit": 0,
+   "seconds": 700.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-08927",
+   "exit": 0,
+   "seconds": 670.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-08927",
+   "exit": 0,
+   "seconds": 635.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-03394",
+   "exit": 0,
+   "seconds": 635.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-03394",
+   "exit": 0,
+   "seconds": 640.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-03394",
+   "exit": 0,
+   "seconds": 625.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-09595",
+   "exit": 0,
+   "seconds": 650.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-09595",
+   "exit": 0,
+   "seconds": 580.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-09595",
+   "exit": 0,
+   "seconds": 600.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-01543",
+   "exit": 0,
+   "seconds": 605.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-01543",
+   "exit": 0,
+   "seconds": 630.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-01543",
+   "exit": 0,
+   "seconds": 615.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-00406",
+   "exit": 0,
+   "seconds": 675.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-08927",
+   "exit": 0,
+   "seconds": 575.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-00406",
+   "exit": 0,
+   "seconds": 605.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-00406",
+   "exit": 0,
+   "seconds": 635.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-08927",
+   "exit": 0,
+   "seconds": 600.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-08927",
+   "exit": 0,
+   "seconds": 600.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-00406",
+   "exit": 0,
+   "seconds": 530.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-00406",
+   "exit": 0,
+   "seconds": 570.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-00406",
+   "exit": 0,
+   "seconds": 555.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-00619",
+   "exit": 0,
+   "seconds": 530.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-00619",
+   "exit": 0,
+   "seconds": 485.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-00619",
+   "exit": 0,
+   "seconds": 465.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-09595",
+   "exit": 0,
+   "seconds": 530.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-00619",
+   "exit": 0,
+   "seconds": 450.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-09595",
+   "exit": 0,
+   "seconds": 545.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-00619",
+   "exit": 0,
+   "seconds": 465.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-09595",
+   "exit": 0,
+   "seconds": 530.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-00619",
+   "exit": 0,
+   "seconds": 470.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-08552",
+   "exit": 0,
+   "seconds": 460.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-08552",
+   "exit": 0,
+   "seconds": 460.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-08552",
+   "exit": 0,
+   "seconds": 425.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-08552",
+   "exit": 0,
+   "seconds": 455.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-08552",
+   "exit": 0,
+   "seconds": 460.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-04742",
+   "exit": 0,
+   "seconds": 365.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-04742",
+   "exit": 0,
+   "seconds": 365.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-04742",
+   "exit": 0,
+   "seconds": 350.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-04742",
+   "exit": 0,
+   "seconds": 410.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-08552",
+   "exit": 0,
+   "seconds": 430.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-04742",
+   "exit": 0,
+   "seconds": 355.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-04742",
+   "exit": 0,
+   "seconds": 345.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-00975",
+   "exit": 0,
+   "seconds": 370.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-00975",
+   "exit": 0,
+   "seconds": 370.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-00975",
+   "exit": 0,
+   "seconds": 325.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-09339",
+   "exit": 0,
+   "seconds": 355.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-09339",
+   "exit": 0,
+   "seconds": 335.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-09339",
+   "exit": 0,
+   "seconds": 335.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-07815",
+   "exit": 0,
+   "seconds": 335.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-07815",
+   "exit": 0,
+   "seconds": 330.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-07815",
+   "exit": 0,
+   "seconds": 310.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-00975",
+   "exit": 0,
+   "seconds": 330.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-00975",
+   "exit": 0,
+   "seconds": 345.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-08566",
+   "exit": 0,
+   "seconds": 340.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-08566",
+   "exit": 0,
+   "seconds": 320.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-00975",
+   "exit": 0,
+   "seconds": 345.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-08566",
+   "exit": 0,
+   "seconds": 305.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-07815",
+   "exit": 0,
+   "seconds": 305.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-07815",
+   "exit": 0,
+   "seconds": 305.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-09339",
+   "exit": 0,
+   "seconds": 315.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-09339",
+   "exit": 0,
+   "seconds": 325.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-09339",
+   "exit": 0,
+   "seconds": 330.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-07815",
+   "exit": 0,
+   "seconds": 310.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-08566",
+   "exit": 0,
+   "seconds": 295.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-05966",
+   "exit": 0,
+   "seconds": 280.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-08566",
+   "exit": 0,
+   "seconds": 290.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-05966",
+   "exit": 0,
+   "seconds": 230.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-08566",
+   "exit": 0,
+   "seconds": 295.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-05966",
+   "exit": 0,
+   "seconds": 240.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-05966",
+   "exit": 0,
+   "seconds": 240.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-05966",
+   "exit": 0,
+   "seconds": 230.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-06453",
+   "exit": 0,
+   "seconds": 215.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-05966",
+   "exit": 0,
+   "seconds": 225.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-06453",
+   "exit": 0,
+   "seconds": 185.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-06453",
+   "exit": 0,
+   "seconds": 180.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-06453",
+   "exit": 0,
+   "seconds": 165.0
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-00236",
+   "exit": 0,
+   "seconds": 190.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-00236",
+   "exit": 0,
+   "seconds": 185.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-00236",
+   "exit": 0,
+   "seconds": 185.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-00236",
+   "exit": 0,
+   "seconds": 185.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-06453",
+   "exit": 0,
+   "seconds": 180.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-00236",
+   "exit": 0,
+   "seconds": 185.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-00236",
+   "exit": 0,
+   "seconds": 185.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-06453",
+   "exit": 0,
+   "seconds": 180.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-05879",
+   "exit": 0,
+   "seconds": 135.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-05879",
+   "exit": 0,
+   "seconds": 130.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-05879",
+   "exit": 0,
+   "seconds": 125.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-05879",
+   "exit": 0,
+   "seconds": 120.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-05879",
+   "exit": 0,
+   "seconds": 125.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-05879",
+   "exit": 0,
+   "seconds": 125.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-01139",
+   "exit": 0,
+   "seconds": 120.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-01139",
+   "exit": 0,
+   "seconds": 120.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-01139",
+   "exit": 0,
+   "seconds": 115.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-04388",
+   "exit": 0,
+   "seconds": 120.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-04388",
+   "exit": 0,
+   "seconds": 120.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-04388",
+   "exit": 0,
+   "seconds": 105.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-03288",
+   "exit": 0,
+   "seconds": 125.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-03288",
+   "exit": 0,
+   "seconds": 120.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-03288",
+   "exit": 0,
+   "seconds": 115.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-01139",
+   "exit": 0,
+   "seconds": 110.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-01139",
+   "exit": 0,
+   "seconds": 110.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-04388",
+   "exit": 0,
+   "seconds": 110.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-04388",
+   "exit": 0,
+   "seconds": 110.0
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-03288",
+   "exit": 0,
+   "seconds": 105.0
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-01139",
+   "exit": 0,
+   "seconds": 115.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-04388",
+   "exit": 0,
+   "seconds": 115.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-03288",
+   "exit": 0,
+   "seconds": 110.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-03525",
+   "exit": 0,
+   "seconds": 80.0
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-03525",
+   "exit": 0,
+   "seconds": 75.0
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-08422",
+   "exit": 0,
+   "seconds": 85.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-08422",
+   "exit": 0,
+   "seconds": 85.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-08422",
+   "exit": 0,
+   "seconds": 85.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-08422",
+   "exit": 0,
+   "seconds": 85.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-08422",
+   "exit": 0,
+   "seconds": 85.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-08422",
+   "exit": 0,
+   "seconds": 85.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-03525",
+   "exit": 0,
+   "seconds": 75.0
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-03288",
+   "exit": 0,
+   "seconds": 100.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-03525",
+   "exit": 0,
+   "seconds": 70.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-03525",
+   "exit": 0,
+   "seconds": 65.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-03525",
+   "exit": 0,
+   "seconds": 65.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-07270",
+   "exit": 0,
+   "seconds": 70.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-07270",
+   "exit": 0,
+   "seconds": 70.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-07270",
+   "exit": 0,
+   "seconds": 70.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-07270",
+   "exit": 0,
+   "seconds": 70.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-07270",
+   "exit": 0,
+   "seconds": 70.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-07270",
+   "exit": 0,
+   "seconds": 70.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-08905",
+   "exit": 0,
+   "seconds": 70.0
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-08905",
+   "exit": 0,
+   "seconds": 60.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-08905",
+   "exit": 0,
+   "seconds": 60.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-08905",
+   "exit": 0,
+   "seconds": 60.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-08905",
+   "exit": 0,
+   "seconds": 60.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-08905",
+   "exit": 0,
+   "seconds": 55.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-01394",
+   "exit": 0,
+   "seconds": 55.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-01394",
+   "exit": 0,
+   "seconds": 55.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-01394",
+   "exit": 0,
+   "seconds": 55.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-01394",
+   "exit": 0,
+   "seconds": 55.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-01394",
+   "exit": 0,
+   "seconds": 55.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-01394",
+   "exit": 0,
+   "seconds": 55.0
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-09423",
+   "exit": 0,
+   "seconds": 50.0
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-07367",
+   "exit": 0,
+   "seconds": 30.0
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-07367",
+   "exit": 0,
+   "seconds": 30.0
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-07367",
+   "exit": 0,
+   "seconds": 30.0
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-07367",
+   "exit": 0,
+   "seconds": 30.0
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-07367",
+   "exit": 0,
+   "seconds": 30.0
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-07367",
+   "exit": 0,
+   "seconds": 30.0
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-09423",
+   "exit": 0,
+   "seconds": 45.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-09423",
+   "exit": 0,
+   "seconds": 45.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-09423",
+   "exit": 0,
+   "seconds": 45.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-09423",
+   "exit": 0,
+   "seconds": 45.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-09423",
+   "exit": 0,
+   "seconds": 45.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-00702",
+   "exit": 0,
+   "seconds": 25.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-00702",
+   "exit": 0,
+   "seconds": 25.0
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-00702",
+   "exit": 0,
+   "seconds": 25.0
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A19",
+   "episode": "procthor10k-0.1.2-train-00702",
+   "exit": 0,
+   "seconds": 25.0
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "A7",
+   "episode": "procthor10k-0.1.2-train-00702",
+   "exit": 0,
+   "seconds": 25.0
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-00702",
+   "exit": 0,
+   "seconds": 25.0
+  }
+ ],
+ "failed": [
+  {
+   "kind": "training",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "exit": -9,
+   "seconds": 75.0
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-01289",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-00950",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-08790",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-01259",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-00563",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-05806",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-08398",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-07795",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-04801",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-02768",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-03361",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-02524",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-03394",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-01543",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-08927",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-00406",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-09595",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-00619",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-08552",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-04742",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-00975",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-09339",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-07815",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-08566",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-05966",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-00236",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-06453",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-05879",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-01139",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-04388",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-03288",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-08422",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-03525",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-07270",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-08905",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-01394",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-09423",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-07367",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-00702",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "training",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "exit": -9,
+   "seconds": 90.0
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-01289",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-00950",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-08790",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-01259",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-00563",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-05806",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-04801",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-08398",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-07795",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-02768",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-03361",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-02524",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-03394",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-01543",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-08927",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-09595",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-00406",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-00619",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-08552",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-04742",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-00975",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-09339",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-07815",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-08566",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-05966",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-06453",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-00236",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-05879",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-01139",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-04388",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-03288",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-08422",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-03525",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-07270",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-08905",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-01394",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-09423",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-07367",
+   "exit": null,
+   "skipped": "training_failed"
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-00702",
+   "exit": null,
+   "skipped": "training_failed"
+  }
+ ],
+ "finished_cst": "2026-09-29 02:50:54"
+}

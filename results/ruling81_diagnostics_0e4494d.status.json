@@ -1,0 +1,635 @@
+{
+ "commit": "0e4494da0310767f29a9c829f60e56c7c7e8ab8c",
+ "diag_root": "/root/autodl-tmp/vsmt_private/ruling81-0e4494d",
+ "workers": 11,
+ "cgroup_cpus": 12,
+ "worker_basis": "11 single-thread slots on one dependency-aware queue: trainings first, then each group's audits as soon as its weights exist, largest episodes first",
+ "results": [
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-05806",
+   "exit": 0,
+   "seconds": 1355.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-00563",
+   "exit": 0,
+   "seconds": 1585.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-00563",
+   "exit": 0,
+   "seconds": 1685.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-01259",
+   "exit": 0,
+   "seconds": 2075.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-01259",
+   "exit": 0,
+   "seconds": 2095.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-08790",
+   "exit": 0,
+   "seconds": 2405.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-08790",
+   "exit": 0,
+   "seconds": 2485.3
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-04801",
+   "exit": 0,
+   "seconds": 1160.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-05806",
+   "exit": 0,
+   "seconds": 1190.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-00950",
+   "exit": 0,
+   "seconds": 2900.3
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-00950",
+   "exit": 0,
+   "seconds": 2940.4
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-08398",
+   "exit": 0,
+   "seconds": 1285.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-01289",
+   "exit": 0,
+   "seconds": 3055.4
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-08398",
+   "exit": 0,
+   "seconds": 1075.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-01289",
+   "exit": 0,
+   "seconds": 3210.4
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-07795",
+   "exit": 0,
+   "seconds": 1140.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-07795",
+   "exit": 0,
+   "seconds": 985.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-02768",
+   "exit": 0,
+   "seconds": 910.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-04801",
+   "exit": 0,
+   "seconds": 990.2
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-03361",
+   "exit": 0,
+   "seconds": 585.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-02524",
+   "exit": 0,
+   "seconds": 555.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-02768",
+   "exit": 0,
+   "seconds": 730.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-03361",
+   "exit": 0,
+   "seconds": 550.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-03394",
+   "exit": 0,
+   "seconds": 520.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-02524",
+   "exit": 0,
+   "seconds": 525.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-01543",
+   "exit": 0,
+   "seconds": 515.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-08927",
+   "exit": 0,
+   "seconds": 510.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-03394",
+   "exit": 0,
+   "seconds": 460.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-09595",
+   "exit": 0,
+   "seconds": 465.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-00619",
+   "exit": 0,
+   "seconds": 400.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-01543",
+   "exit": 0,
+   "seconds": 455.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-00406",
+   "exit": 0,
+   "seconds": 455.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-00406",
+   "exit": 0,
+   "seconds": 480.2
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-08927",
+   "exit": 0,
+   "seconds": 470.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-09595",
+   "exit": 0,
+   "seconds": 435.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-00619",
+   "exit": 0,
+   "seconds": 365.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-08552",
+   "exit": 0,
+   "seconds": 345.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-08552",
+   "exit": 0,
+   "seconds": 370.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-04742",
+   "exit": 0,
+   "seconds": 305.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-04742",
+   "exit": 0,
+   "seconds": 275.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-09339",
+   "exit": 0,
+   "seconds": 275.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-00975",
+   "exit": 0,
+   "seconds": 290.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-08566",
+   "exit": 0,
+   "seconds": 245.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-07815",
+   "exit": 0,
+   "seconds": 255.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-00975",
+   "exit": 0,
+   "seconds": 275.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-09339",
+   "exit": 0,
+   "seconds": 265.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-05966",
+   "exit": 0,
+   "seconds": 205.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-07815",
+   "exit": 0,
+   "seconds": 250.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-08566",
+   "exit": 0,
+   "seconds": 240.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-06453",
+   "exit": 0,
+   "seconds": 155.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-05879",
+   "exit": 0,
+   "seconds": 105.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-05966",
+   "exit": 0,
+   "seconds": 190.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-05879",
+   "exit": 0,
+   "seconds": 105.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-00236",
+   "exit": 0,
+   "seconds": 150.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-00236",
+   "exit": 0,
+   "seconds": 150.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-06453",
+   "exit": 0,
+   "seconds": 150.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-01139",
+   "exit": 0,
+   "seconds": 95.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-04388",
+   "exit": 0,
+   "seconds": 95.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-03288",
+   "exit": 0,
+   "seconds": 90.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-01139",
+   "exit": 0,
+   "seconds": 95.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-04388",
+   "exit": 0,
+   "seconds": 90.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-03288",
+   "exit": 0,
+   "seconds": 90.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-08422",
+   "exit": 0,
+   "seconds": 70.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-03525",
+   "exit": 0,
+   "seconds": 60.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-07270",
+   "exit": 0,
+   "seconds": 55.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-08422",
+   "exit": 0,
+   "seconds": 75.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-03525",
+   "exit": 0,
+   "seconds": 65.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-07270",
+   "exit": 0,
+   "seconds": 55.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-07367",
+   "exit": 0,
+   "seconds": 25.0
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-07367",
+   "exit": 0,
+   "seconds": 25.0
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-08905",
+   "exit": 0,
+   "seconds": 50.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-00702",
+   "exit": 0,
+   "seconds": 25.0
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-08905",
+   "exit": 0,
+   "seconds": 50.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-01394",
+   "exit": 0,
+   "seconds": 45.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-09423",
+   "exit": 0,
+   "seconds": 40.1
+  },
+  {
+   "kind": "audit",
+   "arm": "VSMT-lean",
+   "condition": "C",
+   "episode": "procthor10k-0.1.2-train-00702",
+   "exit": 0,
+   "seconds": 25.0
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-01394",
+   "exit": 0,
+   "seconds": 45.1
+  },
+  {
+   "kind": "audit",
+   "arm": "AssocOnly",
+   "condition": "B",
+   "episode": "procthor10k-0.1.2-train-09423",
+   "exit": 0,
+   "seconds": 40.1
+  }
+ ],
+ "failed": [],
+ "finished_cst": "2026-09-29 05:04:29"
+}

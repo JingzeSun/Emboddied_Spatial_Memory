@@ -1,0 +1,118 @@
+{
+ "commit": "0e4494da0310767f29a9c829f60e56c7c7e8ab8c",
+ "diag_root": "/root/autodl-tmp/vsmt_private/ruling81-0e4494d",
+ "groups": {
+  "VSMT-lean-A7": {
+   "merge_exit": 0,
+   "merge_stderr_tail": "",
+   "results": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s2_05_node_audit_ruling81_VSMT-lean-A7_0e4494d.json",
+   "audits_missing": []
+  },
+  "VSMT-lean-A19": {
+   "merge_exit": 0,
+   "merge_stderr_tail": "",
+   "results": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s2_05_node_audit_ruling81_VSMT-lean-A19_0e4494d.json",
+   "audits_missing": []
+  },
+  "VSMT-lean-B": {
+   "merge_exit": 0,
+   "merge_stderr_tail": "",
+   "results": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s2_05_node_audit_ruling81_VSMT-lean-B_0e4494d.json",
+   "audits_missing": []
+  },
+  "VSMT-lean-C": {
+   "merge_exit": 0,
+   "merge_stderr_tail": "",
+   "results": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s2_05_node_audit_ruling81_VSMT-lean-C_0e4494d.json",
+   "audits_missing": []
+  },
+  "AssocOnly-A7": {
+   "merge_exit": 0,
+   "merge_stderr_tail": "",
+   "results": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s2_05_node_audit_ruling81_AssocOnly-A7_0e4494d.json",
+   "audits_missing": []
+  },
+  "AssocOnly-A19": {
+   "merge_exit": 0,
+   "merge_stderr_tail": "",
+   "results": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s2_05_node_audit_ruling81_AssocOnly-A19_0e4494d.json",
+   "audits_missing": []
+  },
+  "AssocOnly-B": {
+   "merge_exit": 0,
+   "merge_stderr_tail": "",
+   "results": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s2_05_node_audit_ruling81_AssocOnly-B_0e4494d.json",
+   "audits_missing": []
+  },
+  "AssocOnly-C": {
+   "merge_exit": 0,
+   "merge_stderr_tail": "",
+   "results": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s2_05_node_audit_ruling81_AssocOnly-C_0e4494d.json",
+   "audits_missing": []
+  }
+ },
+ "trainings": {
+  "VSMT-lean-A7": {
+   "results": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s2_05_controlled_training_VSMT-lean-A7_0e4494d.json",
+   "best_update": 650160,
+   "updates_taken": 650160,
+   "diverged": false,
+   "weights_sha256": "4420af548b84c4f3d0802907f44e0bad66d036751e90e20b1604de7aadfb2b86"
+  },
+  "VSMT-lean-A19": {
+   "results": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s2_05_controlled_training_VSMT-lean-A19_0e4494d.json",
+   "best_update": 357588,
+   "updates_taken": 650160,
+   "diverged": false,
+   "weights_sha256": "4510a25dcf1cf8ba23d9e2ad52809ca3d50a1e675d81055bcaceacdfeed92938"
+  },
+  "VSMT-lean-B": {
+   "results": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s2_05_controlled_training_VSMT-lean-B_0e4494d.json",
+   "best_update": 1007748,
+   "updates_taken": 1301080,
+   "diverged": false,
+   "weights_sha256": "a056beb413830740b6c814552daad129506b77164f2132f749a0ed30fe1ed477"
+  },
+  "VSMT-lean-C": {
+   "results": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s2_05_controlled_training_VSMT-lean-C_0e4494d.json",
+   "best_update": 1235304,
+   "updates_taken": 1301080,
+   "diverged": false,
+   "weights_sha256": "d1409e30852db3a7eb33e809cd673da40a7e7ce64879a59bfe39acc6c135e710"
+  },
+  "AssocOnly-A7": {
+   "results": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s2_05_controlled_training_AssocOnly-A7_0e4494d.json",
+   "best_update": 617272,
+   "updates_taken": 649760,
+   "diverged": false,
+   "weights_sha256": "7c1ef0e7ff8b6a266301673765506151314cc50e7f300372866fe79f7014fefa"
+  },
+  "AssocOnly-A19": {
+   "results": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s2_05_controlled_training_AssocOnly-A19_0e4494d.json",
+   "best_update": 389856,
+   "updates_taken": 649760,
+   "diverged": false,
+   "weights_sha256": "dbfab01f9c92dafb1bee579d6d6ae45eab2ee864470e9594525fd6e4236cac31"
+  },
+  "AssocOnly-B": {
+   "results": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s2_05_controlled_training_AssocOnly-B_0e4494d.json",
+   "best_update": 1039616,
+   "updates_taken": 1300120,
+   "diverged": false,
+   "weights_sha256": "9190694d6d8ba1998d5620de9f436b8b630930db7324f7e57d0c1d4ea17e9f5c"
+  },
+  "AssocOnly-C": {
+   "results": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s2_05_controlled_training_AssocOnly-C_0e4494d.json",
+   "best_update": 1104592,
+   "updates_taken": 1300120,
+   "diverged": false,
+   "weights_sha256": "1cb0a4fdf8f63bb90dc5593ecc505c056b70ecd9eb9d6f05f2629a6c70cb73d5"
+  }
+ },
+ "analysis": {
+  "exit": 0,
+  "results": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s2_05_ruling81_analysis_0e4494d.json",
+  "stdout_tail": "{\n \"verdict\": {\n  \"effective\": false,\n  \"improved\": false,\n  \"protective_not_worse\": {\n   \"missing_residual_rate\": true,\n   \"identity_continuity\": false,\n   \"contamination_auc\": true,\n   \"false_retract_rate_in_scope\": true\n  }\n },\n \"b_minus_c\": {\n  \"b_minus_c_node_f1\": {\n   \"houses\": 39,\n   \"mean\": 0.01568959083361067,\n   \"median\": 0.016188622174947986,\n   \"min\": -0.11442042335649028,\n   \"max\": 0.1457056564439717,\n   \"positive\": 24,\n   \"negative\": 15,\n   \"interval_90\": [\n    0.003938905408433757,\n    0.027309878125060676\n   ]\n  },\n  \"seed_noise\": 0.03156959437315578,\n  \"improved\": false\n },\n \"gap\": {\n  \"A7\": 0.03857838910406155,\n  \"A19\": 0.06861158268687434,\n  \"B\": 0.03703141274388496,\n  \"C\": -0.02137936635474501\n }\n}\n",
+  "stderr_tail": ""
+ }
+}
