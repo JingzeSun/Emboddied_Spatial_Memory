@@ -1,0 +1,831 @@
+{
+ "commit": "0471c3e2b0ce8947ff75cf9317481a3b07c4b5d9",
+ "diag_root": "/root/autodl-tmp/vsmt_private/ruling79-0471c3e",
+ "workers": 14,
+ "cgroup_cpus": 16,
+ "worker_basis": "14 audit workers x 1 thread on one shared queue, largest first; term curves on one more CPU",
+ "audits": [
+  {
+   "arm": "AssocOnly",
+   "episode": "procthor10k-0.1.2-train-00236",
+   "exit": 0,
+   "seconds": 153.0,
+   "reused": false
+  },
+  {
+   "arm": "AssocOnly",
+   "episode": "procthor10k-0.1.2-train-00406",
+   "exit": 0,
+   "seconds": 498.4,
+   "reused": false
+  },
+  {
+   "arm": "AssocOnly",
+   "episode": "procthor10k-0.1.2-train-00563",
+   "exit": 0,
+   "seconds": 1663.1,
+   "reused": false
+  },
+  {
+   "arm": "AssocOnly",
+   "episode": "procthor10k-0.1.2-train-00619",
+   "exit": 0,
+   "seconds": 407.2,
+   "reused": false
+  },
+  {
+   "arm": "AssocOnly",
+   "episode": "procthor10k-0.1.2-train-00702",
+   "exit": 0,
+   "seconds": 21.3,
+   "reused": false
+  },
+  {
+   "arm": "AssocOnly",
+   "episode": "procthor10k-0.1.2-train-00950",
+   "exit": 0,
+   "seconds": 2923.3,
+   "reused": false
+  },
+  {
+   "arm": "AssocOnly",
+   "episode": "procthor10k-0.1.2-train-00975",
+   "exit": 0,
+   "seconds": 296.2,
+   "reused": false
+  },
+  {
+   "arm": "AssocOnly",
+   "episode": "procthor10k-0.1.2-train-01139",
+   "exit": 0,
+   "seconds": 97.0,
+   "reused": false
+  },
+  {
+   "arm": "AssocOnly",
+   "episode": "procthor10k-0.1.2-train-01259",
+   "exit": 0,
+   "seconds": 2032.4,
+   "reused": false
+  },
+  {
+   "arm": "AssocOnly",
+   "episode": "procthor10k-0.1.2-train-01289",
+   "exit": 0,
+   "seconds": 3286.3,
+   "reused": false
+  },
+  {
+   "arm": "AssocOnly",
+   "episode": "procthor10k-0.1.2-train-01394",
+   "exit": 0,
+   "seconds": 48.8,
+   "reused": false
+  },
+  {
+   "arm": "AssocOnly",
+   "episode": "procthor10k-0.1.2-train-01543",
+   "exit": 0,
+   "seconds": 521.0,
+   "reused": false
+  },
+  {
+   "arm": "AssocOnly",
+   "episode": "procthor10k-0.1.2-train-02524",
+   "exit": 0,
+   "seconds": 575.3,
+   "reused": false
+  },
+  {
+   "arm": "AssocOnly",
+   "episode": "procthor10k-0.1.2-train-02768",
+   "exit": 0,
+   "seconds": 840.7,
+   "reused": false
+  },
+  {
+   "arm": "AssocOnly",
+   "episode": "procthor10k-0.1.2-train-03288",
+   "exit": 0,
+   "seconds": 92.4,
+   "reused": false
+  },
+  {
+   "arm": "AssocOnly",
+   "episode": "procthor10k-0.1.2-train-03361",
+   "exit": 0,
+   "seconds": 613.3,
+   "reused": false
+  },
+  {
+   "arm": "AssocOnly",
+   "episode": "procthor10k-0.1.2-train-03394",
+   "exit": 0,
+   "seconds": 532.5,
+   "reused": false
+  },
+  {
+   "arm": "AssocOnly",
+   "episode": "procthor10k-0.1.2-train-03525",
+   "exit": 0,
+   "seconds": 62.8,
+   "reused": false
+  },
+  {
+   "arm": "AssocOnly",
+   "episode": "procthor10k-0.1.2-train-04388",
+   "exit": 0,
+   "seconds": 95.2,
+   "reused": false
+  },
+  {
+   "arm": "AssocOnly",
+   "episode": "procthor10k-0.1.2-train-04742",
+   "exit": 0,
+   "seconds": 313.7,
+   "reused": false
+  },
+  {
+   "arm": "AssocOnly",
+   "episode": "procthor10k-0.1.2-train-04801",
+   "exit": 0,
+   "seconds": 1054.9,
+   "reused": false
+  },
+  {
+   "arm": "AssocOnly",
+   "episode": "procthor10k-0.1.2-train-05806",
+   "exit": 0,
+   "seconds": 1298.1,
+   "reused": false
+  },
+  {
+   "arm": "AssocOnly",
+   "episode": "procthor10k-0.1.2-train-05879",
+   "exit": 0,
+   "seconds": 107.8,
+   "reused": false
+  },
+  {
+   "arm": "AssocOnly",
+   "episode": "procthor10k-0.1.2-train-05966",
+   "exit": 0,
+   "seconds": 206.2,
+   "reused": false
+  },
+  {
+   "arm": "AssocOnly",
+   "episode": "procthor10k-0.1.2-train-06453",
+   "exit": 0,
+   "seconds": 162.2,
+   "reused": false
+  },
+  {
+   "arm": "AssocOnly",
+   "episode": "procthor10k-0.1.2-train-07270",
+   "exit": 0,
+   "seconds": 57.0,
+   "reused": false
+  },
+  {
+   "arm": "AssocOnly",
+   "episode": "procthor10k-0.1.2-train-07367",
+   "exit": 0,
+   "seconds": 23.5,
+   "reused": false
+  },
+  {
+   "arm": "AssocOnly",
+   "episode": "procthor10k-0.1.2-train-07795",
+   "exit": 0,
+   "seconds": 1122.3,
+   "reused": false
+  },
+  {
+   "arm": "AssocOnly",
+   "episode": "procthor10k-0.1.2-train-07815",
+   "exit": 0,
+   "seconds": 264.2,
+   "reused": false
+  },
+  {
+   "arm": "AssocOnly",
+   "episode": "procthor10k-0.1.2-train-08398",
+   "exit": 0,
+   "seconds": 1235.9,
+   "reused": false
+  },
+  {
+   "arm": "AssocOnly",
+   "episode": "procthor10k-0.1.2-train-08422",
+   "exit": 0,
+   "seconds": 72.2,
+   "reused": false
+  },
+  {
+   "arm": "AssocOnly",
+   "episode": "procthor10k-0.1.2-train-08552",
+   "exit": 0,
+   "seconds": 380.3,
+   "reused": false
+  },
+  {
+   "arm": "AssocOnly",
+   "episode": "procthor10k-0.1.2-train-08566",
+   "exit": 0,
+   "seconds": 254.2,
+   "reused": false
+  },
+  {
+   "arm": "AssocOnly",
+   "episode": "procthor10k-0.1.2-train-08790",
+   "exit": 0,
+   "seconds": 2525.7,
+   "reused": false
+  },
+  {
+   "arm": "AssocOnly",
+   "episode": "procthor10k-0.1.2-train-08905",
+   "exit": 0,
+   "seconds": 52.3,
+   "reused": false
+  },
+  {
+   "arm": "AssocOnly",
+   "episode": "procthor10k-0.1.2-train-08927",
+   "exit": 0,
+   "seconds": 517.3,
+   "reused": false
+  },
+  {
+   "arm": "AssocOnly",
+   "episode": "procthor10k-0.1.2-train-09339",
+   "exit": 0,
+   "seconds": 282.5,
+   "reused": false
+  },
+  {
+   "arm": "AssocOnly",
+   "episode": "procthor10k-0.1.2-train-09423",
+   "exit": 0,
+   "seconds": 39.7,
+   "reused": false
+  },
+  {
+   "arm": "AssocOnly",
+   "episode": "procthor10k-0.1.2-train-09595",
+   "exit": 0,
+   "seconds": 477.2,
+   "reused": false
+  },
+  {
+   "arm": "NoVersion",
+   "episode": "procthor10k-0.1.2-train-00236",
+   "exit": 0,
+   "seconds": 178.2,
+   "reused": false
+  },
+  {
+   "arm": "NoVersion",
+   "episode": "procthor10k-0.1.2-train-00406",
+   "exit": 0,
+   "seconds": 626.9,
+   "reused": false
+  },
+  {
+   "arm": "NoVersion",
+   "episode": "procthor10k-0.1.2-train-00563",
+   "exit": 0,
+   "seconds": 1805.2,
+   "reused": false
+  },
+  {
+   "arm": "NoVersion",
+   "episode": "procthor10k-0.1.2-train-00619",
+   "exit": 0,
+   "seconds": 471.8,
+   "reused": false
+  },
+  {
+   "arm": "NoVersion",
+   "episode": "procthor10k-0.1.2-train-00702",
+   "exit": 0,
+   "seconds": 22.4,
+   "reused": false
+  },
+  {
+   "arm": "NoVersion",
+   "episode": "procthor10k-0.1.2-train-00950",
+   "exit": 0,
+   "seconds": 3459.7,
+   "reused": false
+  },
+  {
+   "arm": "NoVersion",
+   "episode": "procthor10k-0.1.2-train-00975",
+   "exit": 0,
+   "seconds": 341.5,
+   "reused": false
+  },
+  {
+   "arm": "NoVersion",
+   "episode": "procthor10k-0.1.2-train-01139",
+   "exit": 0,
+   "seconds": 111.8,
+   "reused": false
+  },
+  {
+   "arm": "NoVersion",
+   "episode": "procthor10k-0.1.2-train-01259",
+   "exit": 0,
+   "seconds": 2397.7,
+   "reused": false
+  },
+  {
+   "arm": "NoVersion",
+   "episode": "procthor10k-0.1.2-train-01289",
+   "exit": 0,
+   "seconds": 3772.6,
+   "reused": false
+  },
+  {
+   "arm": "NoVersion",
+   "episode": "procthor10k-0.1.2-train-01394",
+   "exit": 0,
+   "seconds": 52.4,
+   "reused": false
+  },
+  {
+   "arm": "NoVersion",
+   "episode": "procthor10k-0.1.2-train-01543",
+   "exit": 0,
+   "seconds": 658.5,
+   "reused": false
+  },
+  {
+   "arm": "NoVersion",
+   "episode": "procthor10k-0.1.2-train-02524",
+   "exit": 0,
+   "seconds": 668.1,
+   "reused": false
+  },
+  {
+   "arm": "NoVersion",
+   "episode": "procthor10k-0.1.2-train-02768",
+   "exit": 0,
+   "seconds": 1001.5,
+   "reused": false
+  },
+  {
+   "arm": "NoVersion",
+   "episode": "procthor10k-0.1.2-train-03288",
+   "exit": 0,
+   "seconds": 102.1,
+   "reused": false
+  },
+  {
+   "arm": "NoVersion",
+   "episode": "procthor10k-0.1.2-train-03361",
+   "exit": 0,
+   "seconds": 752.2,
+   "reused": false
+  },
+  {
+   "arm": "NoVersion",
+   "episode": "procthor10k-0.1.2-train-03394",
+   "exit": 0,
+   "seconds": 647.2,
+   "reused": false
+  },
+  {
+   "arm": "NoVersion",
+   "episode": "procthor10k-0.1.2-train-03525",
+   "exit": 0,
+   "seconds": 68.6,
+   "reused": false
+  },
+  {
+   "arm": "NoVersion",
+   "episode": "procthor10k-0.1.2-train-04388",
+   "exit": 0,
+   "seconds": 105.2,
+   "reused": false
+  },
+  {
+   "arm": "NoVersion",
+   "episode": "procthor10k-0.1.2-train-04742",
+   "exit": 0,
+   "seconds": 365.8,
+   "reused": false
+  },
+  {
+   "arm": "NoVersion",
+   "episode": "procthor10k-0.1.2-train-04801",
+   "exit": 0,
+   "seconds": 1327.1,
+   "reused": false
+  },
+  {
+   "arm": "NoVersion",
+   "episode": "procthor10k-0.1.2-train-05806",
+   "exit": 0,
+   "seconds": 1477.9,
+   "reused": false
+  },
+  {
+   "arm": "NoVersion",
+   "episode": "procthor10k-0.1.2-train-05879",
+   "exit": 0,
+   "seconds": 114.9,
+   "reused": false
+  },
+  {
+   "arm": "NoVersion",
+   "episode": "procthor10k-0.1.2-train-05966",
+   "exit": 0,
+   "seconds": 232.7,
+   "reused": false
+  },
+  {
+   "arm": "NoVersion",
+   "episode": "procthor10k-0.1.2-train-06453",
+   "exit": 0,
+   "seconds": 185.5,
+   "reused": false
+  },
+  {
+   "arm": "NoVersion",
+   "episode": "procthor10k-0.1.2-train-07270",
+   "exit": 0,
+   "seconds": 60.4,
+   "reused": false
+  },
+  {
+   "arm": "NoVersion",
+   "episode": "procthor10k-0.1.2-train-07367",
+   "exit": 0,
+   "seconds": 25.4,
+   "reused": false
+  },
+  {
+   "arm": "NoVersion",
+   "episode": "procthor10k-0.1.2-train-07795",
+   "exit": 0,
+   "seconds": 1312.2,
+   "reused": false
+  },
+  {
+   "arm": "NoVersion",
+   "episode": "procthor10k-0.1.2-train-07815",
+   "exit": 0,
+   "seconds": 310.6,
+   "reused": false
+  },
+  {
+   "arm": "NoVersion",
+   "episode": "procthor10k-0.1.2-train-08398",
+   "exit": 0,
+   "seconds": 1399.7,
+   "reused": false
+  },
+  {
+   "arm": "NoVersion",
+   "episode": "procthor10k-0.1.2-train-08422",
+   "exit": 0,
+   "seconds": 78.3,
+   "reused": false
+  },
+  {
+   "arm": "NoVersion",
+   "episode": "procthor10k-0.1.2-train-08552",
+   "exit": 0,
+   "seconds": 443.3,
+   "reused": false
+  },
+  {
+   "arm": "NoVersion",
+   "episode": "procthor10k-0.1.2-train-08566",
+   "exit": 0,
+   "seconds": 301.6,
+   "reused": false
+  },
+  {
+   "arm": "NoVersion",
+   "episode": "procthor10k-0.1.2-train-08790",
+   "exit": 0,
+   "seconds": 2997.8,
+   "reused": false
+  },
+  {
+   "arm": "NoVersion",
+   "episode": "procthor10k-0.1.2-train-08905",
+   "exit": 0,
+   "seconds": 59.7,
+   "reused": false
+  },
+  {
+   "arm": "NoVersion",
+   "episode": "procthor10k-0.1.2-train-08927",
+   "exit": 0,
+   "seconds": 652.0,
+   "reused": false
+  },
+  {
+   "arm": "NoVersion",
+   "episode": "procthor10k-0.1.2-train-09339",
+   "exit": 0,
+   "seconds": 327.7,
+   "reused": false
+  },
+  {
+   "arm": "NoVersion",
+   "episode": "procthor10k-0.1.2-train-09423",
+   "exit": 0,
+   "seconds": 39.6,
+   "reused": false
+  },
+  {
+   "arm": "NoVersion",
+   "episode": "procthor10k-0.1.2-train-09595",
+   "exit": 0,
+   "seconds": 560.2,
+   "reused": false
+  },
+  {
+   "arm": "VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-00236",
+   "exit": 0,
+   "seconds": 162.4,
+   "reused": false
+  },
+  {
+   "arm": "VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-00406",
+   "exit": 0,
+   "seconds": 515.7,
+   "reused": false
+  },
+  {
+   "arm": "VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-00563",
+   "exit": 0,
+   "seconds": 1617.3,
+   "reused": false
+  },
+  {
+   "arm": "VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-00619",
+   "exit": 0,
+   "seconds": 416.6,
+   "reused": false
+  },
+  {
+   "arm": "VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-00702",
+   "exit": 0,
+   "seconds": 20.6,
+   "reused": false
+  },
+  {
+   "arm": "VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-00950",
+   "exit": 0,
+   "seconds": 2801.1,
+   "reused": false
+  },
+  {
+   "arm": "VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-00975",
+   "exit": 0,
+   "seconds": 299.3,
+   "reused": false
+  },
+  {
+   "arm": "VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-01139",
+   "exit": 0,
+   "seconds": 98.1,
+   "reused": false
+  },
+  {
+   "arm": "VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-01259",
+   "exit": 0,
+   "seconds": 1930.4,
+   "reused": false
+  },
+  {
+   "arm": "VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-01289",
+   "exit": 0,
+   "seconds": null,
+   "reused": true
+  },
+  {
+   "arm": "VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-01394",
+   "exit": 0,
+   "seconds": 49.9,
+   "reused": false
+  },
+  {
+   "arm": "VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-01543",
+   "exit": 0,
+   "seconds": 545.9,
+   "reused": false
+  },
+  {
+   "arm": "VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-02524",
+   "exit": 0,
+   "seconds": 580.5,
+   "reused": false
+  },
+  {
+   "arm": "VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-02768",
+   "exit": 0,
+   "seconds": 855.6,
+   "reused": false
+  },
+  {
+   "arm": "VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-03288",
+   "exit": 0,
+   "seconds": 91.8,
+   "reused": false
+  },
+  {
+   "arm": "VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-03361",
+   "exit": 0,
+   "seconds": 621.0,
+   "reused": false
+  },
+  {
+   "arm": "VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-03394",
+   "exit": 0,
+   "seconds": 537.9,
+   "reused": false
+  },
+  {
+   "arm": "VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-03525",
+   "exit": 0,
+   "seconds": 61.7,
+   "reused": false
+  },
+  {
+   "arm": "VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-04388",
+   "exit": 0,
+   "seconds": 97.2,
+   "reused": false
+  },
+  {
+   "arm": "VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-04742",
+   "exit": 0,
+   "seconds": 323.7,
+   "reused": false
+  },
+  {
+   "arm": "VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-04801",
+   "exit": 0,
+   "seconds": 1083.8,
+   "reused": false
+  },
+  {
+   "arm": "VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-05806",
+   "exit": 0,
+   "seconds": 1243.7,
+   "reused": false
+  },
+  {
+   "arm": "VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-05879",
+   "exit": 0,
+   "seconds": 105.2,
+   "reused": false
+  },
+  {
+   "arm": "VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-05966",
+   "exit": 0,
+   "seconds": 208.7,
+   "reused": false
+  },
+  {
+   "arm": "VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-06453",
+   "exit": 0,
+   "seconds": 169.9,
+   "reused": false
+  },
+  {
+   "arm": "VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-07270",
+   "exit": 0,
+   "seconds": 58.7,
+   "reused": false
+  },
+  {
+   "arm": "VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-07367",
+   "exit": 0,
+   "seconds": 25.9,
+   "reused": false
+  },
+  {
+   "arm": "VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-07795",
+   "exit": 0,
+   "seconds": 1097.2,
+   "reused": false
+  },
+  {
+   "arm": "VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-07815",
+   "exit": 0,
+   "seconds": 277.4,
+   "reused": false
+  },
+  {
+   "arm": "VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-08398",
+   "exit": 0,
+   "seconds": 1190.3,
+   "reused": false
+  },
+  {
+   "arm": "VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-08422",
+   "exit": 0,
+   "seconds": 73.7,
+   "reused": false
+  },
+  {
+   "arm": "VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-08552",
+   "exit": 0,
+   "seconds": 388.6,
+   "reused": false
+  },
+  {
+   "arm": "VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-08566",
+   "exit": 0,
+   "seconds": 260.0,
+   "reused": false
+  },
+  {
+   "arm": "VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-08790",
+   "exit": 0,
+   "seconds": 2441.3,
+   "reused": false
+  },
+  {
+   "arm": "VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-08905",
+   "exit": 0,
+   "seconds": 52.6,
+   "reused": false
+  },
+  {
+   "arm": "VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-08927",
+   "exit": 0,
+   "seconds": 519.4,
+   "reused": false
+  },
+  {
+   "arm": "VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-09339",
+   "exit": 0,
+   "seconds": 285.9,
+   "reused": false
+  },
+  {
+   "arm": "VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-09423",
+   "exit": 0,
+   "seconds": 41.2,
+   "reused": false
+  },
+  {
+   "arm": "VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-09595",
+   "exit": 0,
+   "seconds": 504.4,
+   "reused": false
+  }
+ ],
+ "failed": [],
+ "term_curves_exit": 0,
+ "finished_cst": "2026-09-28 10:32:04"
+}

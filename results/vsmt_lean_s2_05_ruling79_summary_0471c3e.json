@@ -1,0 +1,34 @@
+{
+ "commit": "0471c3e2b0ce8947ff75cf9317481a3b07c4b5d9",
+ "diag_root": "/root/autodl-tmp/vsmt_private/ruling79-0471c3e",
+ "arms": {
+  "VSMT-lean": {
+   "merge_exit": 0,
+   "merge_stderr_tail": "",
+   "results": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s2_05_node_audit_ruling79_VSMT-lean_0471c3e.json",
+   "reports_identical_to_devtable": 39,
+   "reports_differ": [],
+   "audits_missing": []
+  },
+  "NoVersion": {
+   "merge_exit": 0,
+   "merge_stderr_tail": "",
+   "results": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s2_05_node_audit_ruling79_NoVersion_0471c3e.json",
+   "reports_identical_to_devtable": 39,
+   "reports_differ": [],
+   "audits_missing": []
+  },
+  "AssocOnly": {
+   "merge_exit": 0,
+   "merge_stderr_tail": "",
+   "results": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s2_05_node_audit_ruling79_AssocOnly_0471c3e.json",
+   "reports_identical_to_devtable": 39,
+   "reports_differ": [],
+   "audits_missing": []
+  }
+ },
+ "term_curves": {
+  "results": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s2_05_term_curves_round1_VSMT-lean_0471c3e.json",
+  "reproduced_all": true
+ }
+}
