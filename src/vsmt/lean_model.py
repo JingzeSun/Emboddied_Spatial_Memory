@@ -450,6 +450,108 @@ def train_heads(
             "validation_curve": validation_curve, "best_epoch": None if best is None else best[1], "diverged": diverged}
 
 
+#: D-224-S1 ruling 81-2 (2026-09-28), diagnostics only: the controlled comparison counts training in optimizer updates.
+UPDATE_BUDGET_RULE = ("updates are the optimizer steps actually taken (frames without a loss term are skipped and not counted); "
+                      "the validation loss is scored every evaluate_every updates and at the last update; the weights of the "
+                      "checkpoint with the lowest validation loss are kept (ties to the earlier checkpoint)")
+
+
+def has_loss_term(prepared: Mapping[str, Any], *, assoc_only: bool) -> bool:
+    """Would ``prepared_loss`` take an optimizer step on this prepared frame?"""
+
+    return bool(prepared["association"]) or (prepared["existence"] is not None and not assoc_only)
+
+
+def updates_per_pass(records: Sequence[Mapping[str, Any]], *, assoc_only: bool, device: str = "cpu") -> int:
+    """Optimizer updates one pass over ``records`` takes (the frames that carry a loss term)."""
+
+    return sum(1 for record in records if has_loss_term(prepare_frame(record, device=device), assoc_only=assoc_only))
+
+
+def train_heads_by_updates(
+    train_records: Sequence[Mapping[str, Any]], validation_records: Sequence[Mapping[str, Any]], *,
+    learning_rate: float | None, weight_decay: float | None, update_budget: int | None, evaluate_every: int | None,
+    seed: int | None, assoc_only: bool, device: str = "cpu", checkpoint_callback: Any = None,
+) -> dict[str, Any]:
+    """Train for a fixed number of optimizer updates, scoring validation every ``evaluate_every`` updates (ruling 81-2).
+
+    白话：裁决 81-2 的受控对照要让“数据多了”和“训练多了”分得开，所以训练量按真正执行的优化器更新次数计，
+    验证按固定的更新间隔打分，而不是按 epoch。输入与 ``train_heads`` 相同，另加更新预算和验证间隔；输出同样是
+    最佳检查点的权重、各检查点的验证损失与收敛情况。数据一遍用完就按同一个洗牌生成器再洗一遍，直到预算用完
+    （可以停在一遍的中间）。例如只用本臂数据、预算是累积数据 20 遍的步数，就等于把本臂数据多训练约一倍。
+    预算设为“20 遍的步数”、间隔设为“一遍的步数”时，它与 ``train_heads`` 逐位相同（有测试）。这只是诊断用的
+    训练方式，不是登记的训练配方。
+    """
+
+    import torch
+
+    for name, value in (("learning_rate", learning_rate), ("weight_decay", weight_decay), ("update_budget", update_budget),
+                        ("evaluate_every", evaluate_every), ("seed", seed)):
+        _require(value is not None, f"training_value_not_frozen:{name}")
+    _require(_finite(learning_rate, "learning_rate_invalid") > 0.0, "learning_rate_invalid")
+    _require(_finite(weight_decay, "weight_decay_invalid") >= 0.0, "weight_decay_invalid")
+    _require(type(update_budget) is int and update_budget >= 1, "update_budget_invalid")
+    _require(type(evaluate_every) is int and evaluate_every >= 1, "evaluate_every_invalid")
+    _require(type(seed) is int and seed >= 0, "seed_invalid")
+    _require(len(train_records) >= 1 and len(validation_records) >= 1, "training_records_missing")
+    train_prepared = [prepare_frame(record, device=device) for record in train_records]
+    validation_prepared = [prepare_frame(record, device=device) for record in validation_records]
+    _require(any(has_loss_term(p, assoc_only=assoc_only) for p in train_prepared), "training_records_without_a_loss_term")
+
+    heads = make_heads(assoc_only=assoc_only, seed=int(seed)).to(device)
+    optimiser = torch.optim.AdamW(heads.parameters(), lr=float(learning_rate), weight_decay=float(weight_decay))
+    generator = torch.Generator(device="cpu").manual_seed(int(seed))
+    checkpoints: list[dict[str, Any]] = []
+    best: tuple[float, int, dict[str, Any]] | None = None
+    diverged = False
+    updates = 0
+    passes = 0
+    window_total, window_count = 0.0, 0
+    while updates < update_budget and not diverged:
+        heads.train()
+        order = torch.randperm(len(train_records), generator=generator).tolist()
+        passes += 1
+        for index in order:
+            out = prepared_loss(heads, train_prepared[index])
+            if out["loss"] is None:
+                continue
+            if not torch.isfinite(out["loss"]):
+                diverged = True
+                break
+            optimiser.zero_grad()
+            out["loss"].backward()
+            optimiser.step()
+            updates += 1
+            window_total += float(out["loss"].item())
+            window_count += 1
+            if updates % evaluate_every == 0 or updates == update_budget:
+                heads.eval()
+                validation = _mean_loss(heads, validation_prepared)
+                checkpoints.append({"updates": updates, "pass": passes, "train_mean_since_last_checkpoint": window_total / window_count,
+                                    "validation": validation})
+                window_total, window_count = 0.0, 0
+                if validation is not None and (best is None or validation < best[0]):
+                    best = (validation, updates, {name: {k: v.detach().cpu().clone() for k, v in module.state_dict().items()}
+                                                  for name, module in heads.items()})
+                if checkpoint_callback is not None:
+                    checkpoint_callback(updates, heads)
+                heads.train()
+            if updates >= update_budget:
+                break
+    _require(best is not None or diverged, "validation_loss_undefined_on_every_checkpoint")
+    if best is not None:
+        with torch.no_grad():
+            for name, state in best[2].items():
+                heads[name].load_state_dict(state)
+    training = {"optimizer": OPTIMIZER, "learning_rate": learning_rate, "weight_decay": weight_decay, "update_budget": update_budget,
+                "evaluate_every": evaluate_every, "updates_taken": updates, "passes_started": passes, "seed": seed, "assoc_only": assoc_only,
+                "batch": BATCH_RULE, "early_stopping": UPDATE_BUDGET_RULE, "initialisation": INITIALISATION_RULE,
+                "best_update": None if best is None else best[1], "train_frames": len(train_records),
+                "validation_frames": len(validation_records), "device": device, "diverged": diverged}
+    return {"weights": weights_payload(heads, training=training), "heads": heads, "checkpoints": checkpoints,
+            "best_update": None if best is None else best[1], "updates_taken": updates, "diverged": diverged}
+
+
 def recipe_matches_contract(*, learning_rate: float, epochs: int, seeds: Sequence[int], dagger_rounds: int, main_table_round: int) -> dict[str, Any]:
     """The values a run passes must be the ones D-224 froze; seeds are the registered list, not configurations."""
 
@@ -488,6 +590,7 @@ __all__ = [
     "DAGGER_ROUNDS",
     "EARLY_STOPPING_RULE",
     "INITIALISATION_RULE",
+    "UPDATE_BUDGET_RULE",
     "EPOCHS",
     "EXISTENCE_EXCLUDED_STATUSES",
     "EXISTENCE_TARGETS",
@@ -509,11 +612,14 @@ __all__ = [
     "prepared_loss",
     "is_assoc_only",
     "load_heads",
+    "has_loss_term",
     "head_seed",
     "make_heads",
     "parameter_count",
     "recipe_matches_contract",
     "train_heads",
+    "train_heads_by_updates",
+    "updates_per_pass",
     "validate_training_record",
     "weights_payload",
 ]

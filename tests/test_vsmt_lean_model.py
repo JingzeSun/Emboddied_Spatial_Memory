@@ -331,6 +331,41 @@ class TrainingTests(unittest.TestCase):
         self.assertEqual(sorted(assoc["weights"]["heads"]), ["association", "birth"])
         self.assertTrue(assoc["weights"]["training"]["assoc_only"])
 
+    def test_training_by_updates_reproduces_training_by_epochs_when_aligned(self) -> None:
+        """Ruling 81-2: a budget of epochs x updates-per-pass scored every pass is the registered training, bit for bit."""
+
+        train, validation = self.records()
+        for assoc_only in (False, True):
+            per_pass = model.updates_per_pass(train, assoc_only=assoc_only)
+            self.assertGreater(per_pass, 0)
+            by_epochs = model.train_heads(train, validation, learning_rate=1e-3, weight_decay=1e-4, epochs=4, seed=7, assoc_only=assoc_only)
+            by_updates = model.train_heads_by_updates(train, validation, learning_rate=1e-3, weight_decay=1e-4, update_budget=4 * per_pass,
+                                                      evaluate_every=per_pass, seed=7, assoc_only=assoc_only)
+            self.assertEqual(by_updates["weights"]["sha256"], by_epochs["weights"]["sha256"], assoc_only)
+            self.assertEqual([c["validation"] for c in by_updates["checkpoints"]], by_epochs["validation_curve"])
+            self.assertEqual([c["train_mean_since_last_checkpoint"] for c in by_updates["checkpoints"]], by_epochs["train_curve"])
+            self.assertEqual(by_updates["best_update"], (by_epochs["best_epoch"] + 1) * per_pass)
+            self.assertEqual(by_updates["updates_taken"], 4 * per_pass)
+            self.assertEqual(by_updates["weights"]["training"]["early_stopping"], model.UPDATE_BUDGET_RULE)
+
+    def test_training_by_updates_stops_inside_a_pass_and_scores_the_last_update(self) -> None:
+        train, validation = self.records()
+        per_pass = model.updates_per_pass(train, assoc_only=False)
+        out = model.train_heads_by_updates(train, validation, learning_rate=1e-3, weight_decay=1e-4, update_budget=per_pass + 3,
+                                           evaluate_every=per_pass, seed=7, assoc_only=False)
+        self.assertEqual([c["updates"] for c in out["checkpoints"]], [per_pass, per_pass + 3])
+        self.assertEqual([c["pass"] for c in out["checkpoints"]], [1, 2])
+        self.assertEqual(out["updates_taken"], per_pass + 3)
+        self.assertIn(out["best_update"], (per_pass, per_pass + 3))
+        seen = []
+        model.train_heads_by_updates(train, validation, learning_rate=1e-3, weight_decay=1e-4, update_budget=5, evaluate_every=2, seed=7,
+                                     assoc_only=False, checkpoint_callback=lambda updates, heads: seen.append((updates, heads.training)))
+        self.assertEqual(seen, [(2, False), (4, False), (5, False)])
+        for name, value in (("update_budget", 0), ("evaluate_every", 0), ("update_budget", None)):
+            with self.subTest(name=name), self.assertRaises(model.LeanModelError):
+                kwargs = {"update_budget": 4, "evaluate_every": 2, name: value}
+                model.train_heads_by_updates(train, validation, learning_rate=1e-3, weight_decay=1e-4, seed=7, assoc_only=False, **kwargs)
+
     def test_an_epoch_callback_sees_every_epoch_and_changes_nothing(self) -> None:
         """Ruling 79-3 (ii): the read-only per-epoch hook leaves the weights and both curves bit-identical."""
 
