@@ -40,6 +40,14 @@ v3（裁决 79-2／79-3，2026-09-28）再加一块只读统计：每个存在�
 有没有色块、学生的决定（RETRACT／NOOP）。白话：输入是重跑时每帧的旧记忆、标签、学生决定和真值框，输出"撤回正标签和
 假撤回各落在什么实体上"。例如沙发表面质心离中心 0.7 m、但在沙发框内，标签是 gone、节点主列却算它在原处，这一格就
 是标签与指标的冲突；另有实体承载的那一格是重复实体。它不改任何标签、决定或指标，只计数。
+
+v4（裁决 80-3／80-4，2026-09-28）：每个色块的关联决定按四项归档——teacher 状态（该绑定的 labelled、该新建的
+birth、召回漏掉、身份含糊、未标注）、结果（正确、绑错到别的实体、该绑却新建、该新建却绑定）、被选中实体此前
+的状态（active／dormant／retracted，新建记 birth）、该物体此前是否出过色块（首次出现与否）。同帧重复色块按
+三分解的同组规则判，与 decompose_frame 的 correct／amortization_error 逐帧对得上。白话：输入是每帧旧记忆里各
+实体的状态、teacher 目标和学生的分配，输出"关联错在哪儿、错绑到的是休眠还是活动实体"。例如一个首次出现的物体
+被绑到一个休眠实体上，就记为"该新建却绑定、dormant、首次出现"。另加诊断开关 --dormancy-override（只用于诊断，
+不是登记的臂或配置）：把共享休眠的错失上限换成给定值，取极大值即等于关闭休眠。
 """
 from __future__ import annotations
 
@@ -61,8 +69,8 @@ for item in (ROOT / "src", HERE.parent):
 from vsmt import lean_teacher as lt  # noqa: E402
 
 AUDIT_FILE_NAME = "node_audit.json"
-SCHEMA_VERSION = "vsmt-s2-05-node-audit-v3"  # v2: ruling 76 (1)(a) centroid ledger, birth reasons, dedup tallies, count-first columns;
-#                                             v3: ruling 79-2 existence-candidate tally
+SCHEMA_VERSION = "vsmt-s2-05-node-audit-v4"  # v2: ruling 76 (1)(a) centroid ledger, birth reasons, dedup tallies, count-first columns;
+#                                             v3: ruling 79-2 existence-candidate tally; v4: ruling 80-4 association tally
 
 #: Why an in-memory prediction (an entity in ``active``/``dormant`` whose object is not a present
 #: out-of-scope one) did not match under the IoU 0.3 column (the primary column until ruling 72 (B), secondary since).
@@ -145,6 +153,13 @@ EXISTENCE_TALLY_FIELDS = (
     "another_entity_carries_the_object",    # on the committed memory, by the node rule; same values
     "fragment_of_the_object_this_frame",    # yes / no / n/a
     "decision",                             # RETRACT / NOOP
+)
+#: Ruling 80-4: the fields of one association tally row (the count follows them).
+ASSOCIATION_TALLY_FIELDS = (
+    "target_status",       # labelled / birth / recall_miss / identity_ambiguous / unlabelled / duplicate_of_labelled
+    "outcome",             # correct / wrong_bind / birth_instead_of_bind / bind_instead_of_birth / bind / birth / grouped
+    "chosen_state",        # the state before the frame of the entity the outcome names (active / dormant / retracted), or birth
+    "first_observation",   # yes / no: no fragment of this object before this frame; n/a without a key
 )
 
 
@@ -258,6 +273,7 @@ class NodeAudit:
         self.interventions = dict(interventions or {})
         self.window_end = None if window_end is None else int(window_end)
         self.existence_tally: dict[tuple[str, ...], int] = {}
+        self.association_tally: dict[tuple[str, ...], int] = {}  # ruling 80-4
         # ruling 76 (1)(a): the birth reasons need the arm's logits, the dedup tallies the frozen period
         self.arm = arm
         self.config = dict(config) if config is not None else None
@@ -450,6 +466,7 @@ class NodeAudit:
         if self.fold_capture is not None:
             self._file_folds()
         self._tally_existence(step, labelled, truth_table, predictions, identities)
+        self._tally_association(step, labelled)
 
         for name, count in frame_entity.items():
             self.entity_counts[name] += count
@@ -508,6 +525,51 @@ class NodeAudit:
                     carrier = "yes" if carriers.get(str(key), set()) - {entity_id} else "no"
             row = (str(label["status"]), str(label.get("reason")), klass, phase, in_place, carrier, fragment, decisions[entity_id])
             self.existence_tally[row] = self.existence_tally.get(row, 0) + 1
+
+    # -- ruling 80-4 -------------------------------------------------------------
+
+    def _tally_association(self, step: Mapping[str, Any], labelled: Mapping[str, Any]) -> None:
+        """File every fragment's decision by its teacher status, the outcome, the chosen entity's prior state and first sighting.
+
+        Same-frame duplicates are judged with their keeper exactly as ``lean_teacher.decompose_frame`` does (the keeper is
+        correct when some member reached the target and no member was bound to another existing entity).
+        """
+
+        targets = labelled["targets"]
+        assignment = {str(k): str(v) for k, v in step["receipt"]["assignment"].items()}
+        _require(set(assignment) == set(targets), "audit_assignment_differs_from_targets")
+        state_of = {str(e["entity_id"]): str(e["state"]) for e in step["memory_before"]["entities"]}
+        groups: dict[str, list[str]] = {}
+        for fragment_id, target in targets.items():
+            if target["status"] == "duplicate_of_labelled":
+                groups.setdefault(str(target["duplicate_of"]), []).append(str(fragment_id))
+
+        def is_birth(column: str) -> bool:
+            return column.startswith(lt.BIRTH_COLUMN_PREFIX)
+
+        for fragment_id in sorted(targets):
+            target = targets[fragment_id]
+            status = str(target["status"])
+            key = target.get("key")
+            first = "n/a" if key is None else ("yes" if str(key) not in self._keys_before_frame else "no")
+            chosen = assignment[fragment_id]
+            if status == "duplicate_of_labelled":
+                row = (status, "grouped", "birth" if is_birth(chosen) else state_of.get(chosen, "unknown"), first)
+            elif status in ("labelled", "birth"):
+                wanted = str(target["target"])
+                members = [fragment_id] + sorted(groups.get(fragment_id, []))
+                reached = any(assignment[m] == wanted for m in members)
+                misbound = sorted(assignment[m] for m in members if not is_birth(assignment[m]) and assignment[m] != wanted)
+                if reached and not misbound:
+                    row = (status, "correct", "birth" if is_birth(wanted) else state_of.get(wanted, "unknown"), first)
+                elif misbound:
+                    outcome = "bind_instead_of_birth" if status == "birth" else "wrong_bind"
+                    row = (status, outcome, state_of.get(misbound[0], "unknown"), first)
+                else:  # every member went to its own birth column while an existing entity was wanted
+                    row = (status, "birth_instead_of_bind", "birth", first)
+            else:
+                row = (status, "birth" if is_birth(chosen) else "bind", "birth" if is_birth(chosen) else state_of.get(chosen, "unknown"), first)
+            self.association_tally[row] = self.association_tally.get(row, 0) + 1
 
     # -- ruling 76 (1)(a) --------------------------------------------------------
 
@@ -735,6 +797,8 @@ class NodeAudit:
                                            for name, row in self.dedup_pairs.items()}} if self.dedup_period is not None else None,
             "existence_tally_fields": list(EXISTENCE_TALLY_FIELDS),
             "existence_tally": [[*row, count] for row, count in sorted(self.existence_tally.items())],
+            "association_tally_fields": list(ASSOCIATION_TALLY_FIELDS),
+            "association_tally": [[*row, count] for row, count in sorted(self.association_tally.items())],
         }
 
 
@@ -776,6 +840,9 @@ def run(args: argparse.Namespace) -> int:
         from vsmt import lean_memory as lm
 
         policy["runner"]["dedup"] = lm.validate_dedup_policy({**policy["runner"]["dedup"], **json.loads(args.dedup_override)})
+    if args.dormancy_override is not None:
+        # ruling 80-3, diagnostic only: the shared dormancy limit replaced (a huge value switches dormancy off), recorded in the payload
+        policy["runner"]["dormancy_missed_opportunity_limit"] = int(args.dormancy_override)
     lr.validate_arm_config(args.arm, config)
     scorer = None
     if args.arm in lr.LEARNED_ARMS:
@@ -850,6 +917,7 @@ def run(args: argparse.Namespace) -> int:
         "schema_version": SCHEMA_VERSION, "stage": "S2-05 node audit (read-only)", "code_commit": commit,
         "episode_id": args.episode_id, "arm": args.arm, "config": config, "descriptor": args.descriptor,
         "dedup_policy": policy["runner"]["dedup"], "dedup_override": json.loads(args.dedup_override) if args.dedup_override else None,
+        "dormancy_override": args.dormancy_override,
         "frames": summary["frames"], "frames_requested": args.frames, "episode_seal_sha256": seal["payload_sha256"],
         "final_memory_digest": summary["final_memory_digest"], "final_entities_by_state": summary["final_entities_by_state"],
         "report_node_prf1": episode["report"]["node_prf1"], "report_node_prf1_iou": episode["report"]["node_prf1_iou"],
@@ -881,6 +949,7 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
     pooled_dedup: dict[str, Any] = {"ticks": 0, "folds": 0, "folds_by_identity": {}, "pairs_after_fold": {}}
     pooled_wrong: dict[str, int] = {}
     pooled_existence: dict[tuple[str, ...], int] = {}
+    pooled_association: dict[tuple[str, ...], int] = {}
     for path in sorted(output_root.glob(f"*/{arm}/{AUDIT_FILE_NAME}")):
         payload = json.loads(path.read_text(encoding="utf-8"))
         _require(payload.get("schema_version") == SCHEMA_VERSION and payload.get("arm") == arm, f"audit_file_invalid:{path}")
@@ -914,6 +983,8 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
                     target["pass"][gate] = target["pass"].get(gate, 0) + int(value)
         for row in audit.get("existence_tally") or []:
             pooled_existence[tuple(row[:-1])] = pooled_existence.get(tuple(row[:-1]), 0) + int(row[-1])
+        for row in audit.get("association_tally") or []:
+            pooled_association[tuple(row[:-1])] = pooled_association.get(tuple(row[:-1]), 0) + int(row[-1])
         for group, row in audit["truth_by_group"].items():
             target = pooled_group.setdefault(group, {name: 0 for name in TRUTH_CATEGORIES})
             for name in TRUTH_CATEGORIES:
@@ -924,7 +995,7 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
                 target[name] += int(row[name])
         episodes.append({
             "episode_id": payload["episode_id"], "frames": payload["frames"], "config": payload["config"],
-            "code_commit": payload["code_commit"], "report": payload.get("report"),
+            "code_commit": payload["code_commit"], "report": payload.get("report"), "dormancy_override": payload.get("dormancy_override"),
             "final_entities_by_state": payload["final_entities_by_state"],
             "rules_f1": {rule: audit["rules"][rule]["f1"] for rule in RULES},
             "iou_0.3_secondary": audit["rules"]["iou_0.3_secondary"],
@@ -939,7 +1010,7 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
         })
     _require(bool(episodes), f"no_audits_found:{output_root}/*/{arm}")
     return {
-        "schema_version": "vsmt-s2-05-node-audit-merged-v3",
+        "schema_version": "vsmt-s2-05-node-audit-merged-v4",
         "stage": "S2-05 node audit (read-only, pooled)", "arm": arm, "output_root": str(output_root),
         "code_commits": sorted(commits), "episodes": len(episodes),
         "pooled_rules": {rule: _prf(s["matched"], s["predicted"], s["truth"]) for rule, s in pooled_rules.items()},
@@ -948,6 +1019,8 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
         "pooled_birth_reasons": pooled_births, "pooled_dedup": pooled_dedup, "pooled_wrong_identity_matches": pooled_wrong,
         "existence_tally_fields": list(EXISTENCE_TALLY_FIELDS),
         "pooled_existence_tally": [[*row, count] for row, count in sorted(pooled_existence.items())],
+        "association_tally_fields": list(ASSOCIATION_TALLY_FIELDS),
+        "pooled_association_tally": [[*row, count] for row, count in sorted(pooled_association.items())],
         "pooled_truth_by_group": {group: row for group, row in sorted(pooled_group.items())},
         "pooled_truth_by_type": {name: row for name, row in sorted(pooled_type.items(), key=lambda item: (-sum(item[1].values()), item[0]))[:40]},
         "per_episode": episodes,
@@ -989,6 +1062,8 @@ def main() -> int:
     run_parser.add_argument("--device", default="cpu")
     run_parser.add_argument("--allow-dirty", action="store_true")
     run_parser.add_argument("--dedup-override", default=None, help="diagnostic: JSON of shared-dedup values to replace (never a run of record)")
+    run_parser.add_argument("--dormancy-override", type=int, default=None,
+                            help="diagnostic (ruling 80-3): replace the shared dormancy missed-opportunity limit; a huge value switches dormancy off")
     run_parser.set_defaults(func=run)
     merge_parser = sub.add_parser("merge", help="pool the audits of one arm into a results/ report")
     merge_parser.add_argument("--output-root", required=True)

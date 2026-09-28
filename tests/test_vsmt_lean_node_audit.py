@@ -275,5 +275,68 @@ class RulingSeventyNineExistenceTallyTests(unittest.TestCase):
             self.assertEqual(pooled[tuple(row[:-1])], 2 * row[-1])
 
 
+class RulingEightyAssociationTallyTests(unittest.TestCase):
+    """Ruling 80-4: every fragment decision is filed once and the tally agrees with the three-way decomposition."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        from vsmt import lean_model as model
+
+        cls.results = {}
+        for arm in ("TAF", "VSMT-lean"):
+            data = episode()
+            teacher = ev.EpisodeTeacher(arm=arm, geometry_table=data["table"], executed_interventions=data["executed"], window=data["window"],
+                                        policy=TEACHER_POLICY, nuisance_meta=NUISANCE_META)
+            captured = audit_module.capture_truth_table(teacher)
+            audit = audit_module.NodeAudit(evidence=teacher.evidence, iou_min=teacher.iou_min, delta_moved_m=TEACHER_POLICY["delta_moved_m"],
+                                           groups=audit_module.object_groups(data["table"]), interventions=teacher.interventions,
+                                           window_end=teacher.window_end)
+            scorer = model.LeanScorer(model.make_heads(assoc_only=False, seed=3)) if arm == "VSMT-lean" else None
+            fragments, correct, errors = 0, 0, 0
+            for i, step in enumerate(lr.run_episode(data["frames"], episode_id="ep-0001", arm=arm, config=CONFIGS[arm], policy=POLICY,
+                                                    descriptor="vitb14", scorer=scorer)):
+                labelled = teacher.label_frame(step, cache_frame=data["frames"][i], private_record=data["records"][i], masks=data["masks"][i],
+                                               label_image=data["images"][i], runtime_s=0.01, peak_memory_bytes=1000)
+                decomposition = labelled["decomposition"]["association"]
+                fragments += decomposition["fragments"]
+                correct += decomposition["correct"]
+                errors += decomposition["amortization_error"]
+                audit.observe(step, labelled, captured["table"])
+            cls.results[arm] = {"report": audit.report(), "fragments": fragments, "correct": correct, "errors": errors}
+
+    def test_the_tally_agrees_with_the_decomposition(self) -> None:
+        for arm, result in self.results.items():
+            report = result["report"]
+            self.assertEqual(report["association_tally_fields"], list(audit_module.ASSOCIATION_TALLY_FIELDS))
+            rows = report["association_tally"]
+            self.assertEqual(sum(row[-1] for row in rows), result["fragments"], arm)
+            self.assertGreater(result["fragments"], 0)
+            judged = [row for row in rows if row[0] in ("labelled", "birth")]
+            self.assertEqual(sum(row[-1] for row in judged if row[1] == "correct"), result["correct"], arm)
+            self.assertEqual(sum(row[-1] for row in judged if row[1] != "correct"), result["errors"], arm)
+            for row in rows:
+                self.assertIn(row[2], ("active", "dormant", "retracted", "birth"), arm)
+                self.assertIn(row[3], ("yes", "no", "n/a"), arm)
+
+    def test_a_first_sighting_bound_to_a_dormant_entity_and_a_group_keeper(self) -> None:
+        audit = audit_module.NodeAudit(evidence={}, iou_min=0.3, delta_moved_m=0.5)
+        audit._keys_before_frame = {"Mug|1"}
+        step = {"memory_before": {"entities": [{"entity_id": "e1", "state": "active"}, {"entity_id": "e2", "state": "dormant"}]},
+                "receipt": {"assignment": {"f1": "e2", "f2": "birth:f2", "f3": "e1", "f4": "birth:f4"}}}
+        labelled = {"targets": {
+            "f1": {"status": "birth", "target": "birth:f1", "key": "Lamp|9"},             # first sighting, bound to the dormant e2
+            "f2": {"status": "labelled", "target": "e1", "key": "Mug|1"},                 # keeper: born, but its duplicate reached e1
+            "f3": {"status": "duplicate_of_labelled", "duplicate_of": "f2", "key": "Mug|1"},
+            "f4": {"status": "unlabelled", "target": None, "key": None},
+        }}
+        audit._tally_association(step, labelled)
+        self.assertEqual(audit.association_tally, {
+            ("birth", "bind_instead_of_birth", "dormant", "yes"): 1,
+            ("labelled", "correct", "active", "no"): 1,
+            ("duplicate_of_labelled", "grouped", "active", "no"): 1,
+            ("unlabelled", "birth", "birth", "n/a"): 1,
+        })
+
+
 if __name__ == "__main__":
     unittest.main()
