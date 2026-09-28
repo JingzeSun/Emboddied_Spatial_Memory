@@ -41,10 +41,12 @@ class PlanTests(unittest.TestCase):
     def test_budgets_interval_and_seeds(self) -> None:
         plans = {c: controlled.plan_condition(c, own_updates_per_pass=10, round0_updates_per_pass=7, epochs=20, seeds=[7, 19, 31, 43, 59])
                  for c in controlled.CONDITIONS}
-        self.assertEqual({c: p["update_budget"] for c, p in plans.items()}, {"A7": 200, "A19": 200, "B": 340, "C": 340})
+        self.assertEqual({c: p["update_budget"] for c, p in plans.items()}, {"A7": 200, "A19": 200, "B": 340, "C": 340,
+                                                                              "A31": 200, "A43": 200, "A59": 200})
         self.assertEqual({p["evaluate_every"] for p in plans.values()}, {10})
-        self.assertEqual({c: p["seed"] for c, p in plans.items()}, {"A7": 7, "A19": 19, "B": 7, "C": 7})
-        self.assertEqual({c: p["data"] for c, p in plans.items()}, {"A7": "own", "A19": "own", "B": "aggregated", "C": "own"})
+        self.assertEqual({c: p["seed"] for c, p in plans.items()}, {"A7": 7, "A19": 19, "B": 7, "C": 7, "A31": 31, "A43": 43, "A59": 59})
+        self.assertEqual({c: p["data"] for c, p in plans.items()}, {"A7": "own", "A19": "own", "B": "aggregated", "C": "own",
+                                                                     "A31": "own", "A43": "own", "A59": "own"})
         with self.assertRaises(ValueError):
             controlled.plan_condition("D", own_updates_per_pass=10, round0_updates_per_pass=7, epochs=20, seeds=[7, 19])
         with self.assertRaises(ValueError):

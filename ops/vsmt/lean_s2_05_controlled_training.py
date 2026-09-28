@@ -46,6 +46,10 @@ CONDITIONS: dict[str, tuple[str, str, int]] = {
     "A19": ("own", "U", 1),
     "B": ("aggregated", "V", 0),
     "C": ("own", "V", 0),
+    # ruling 82-1: the other three registered seeds under the registered recipe (own data, budget U), for the seed spread
+    "A31": ("own", "U", 2),
+    "A43": ("own", "U", 3),
+    "A59": ("own", "U", 4),
 }
 ARMS = ("VSMT-lean", "AssocOnly")
 
@@ -65,20 +69,34 @@ def plan_condition(condition: str, *, own_updates_per_pass: int, round0_updates_
             "U": u_budget, "V": v_budget, "evaluate_every": own_updates_per_pass, "seed": int(seeds[seed_index])}
 
 
-def load_split(pass_root: Path, arm: str) -> dict[str, Any]:
-    """One arm's training records in the registered entry's order, split by the registered holdout, with file digests."""
+def load_split(pass_root: Path, arm: str, *, keep_records: bool = True, assoc_only: bool = False, device: str = "cpu") -> dict[str, Any]:
+    """One arm's training records in the registered entry's order, split by the registered holdout, with file digests.
+
+    ``keep_records=False`` (2026-09-29, memory): the training-house records are only counted -- the optimizer updates one pass
+    over them takes, episode by episode -- and never held, so a condition that trains on its own data does not carry the
+    round-0 source (about 5 GiB) in memory.
+    """
+
+    from vsmt import lean_model
 
     dirs = entry.episode_dirs(pass_root, arm)
     names = [d.name for d in dirs]
     holdout = entry.rh.holdout_split(names, seed=int(entry.load_json(entry.S1_02A_CONTRACT)["split_freeze"]["seed"]))
     train, validation, files = [], [], {}
+    train_updates = 0
     for episode_dir in dirs:
         path = episode_dir / arm / "training_records.jsonl.gz"
         files[f"{pass_root.name}/{episode_dir.name}/{arm}/training_records.jsonl.gz"] = hashlib.sha256(path.read_bytes()).hexdigest()
-        rows = entry.read_jsonl_gz(path)
-        (train if episode_dir.name in holdout["training_houses"] else validation).extend(
-            {k: v for k, v in row.items() if k != "tick"} for row in rows)
-    return {"names": names, "holdout": holdout, "train": train, "validation": validation, "files": files}
+        rows = [{k: v for k, v in row.items() if k != "tick"} for row in entry.read_jsonl_gz(path)]
+        if episode_dir.name in holdout["training_houses"]:
+            if keep_records:
+                train.extend(rows)
+            else:
+                train_updates += lean_model.updates_per_pass(rows, assoc_only=assoc_only, device=device)
+        elif keep_records:
+            validation.extend(rows)
+    return {"names": names, "holdout": holdout, "train": train if keep_records else None,
+            "validation": validation if keep_records else None, "train_updates": None if keep_records else train_updates, "files": files}
 
 
 def main() -> int:
@@ -109,19 +127,17 @@ def main() -> int:
     output_root = Path(args.output_root).resolve()
     started = time.time()
     own = load_split(output_root / OWN_PASS, args.arm)
-    round0 = load_split(output_root / ROUND_0[0], ROUND_0[1])
+    aggregated = CONDITIONS[args.condition][0] == "aggregated"
+    round0 = load_split(output_root / ROUND_0[0], ROUND_0[1], keep_records=aggregated, assoc_only=assoc_only, device=args.device)
     if sorted(own["holdout"]["selection_houses"]) != sorted(round0["holdout"]["selection_houses"]):
         print("[controlled-training] refused: the two sources' holdout splits differ", file=sys.stderr)
         return 2
     own_per_pass = lean_model.updates_per_pass(own["train"], assoc_only=assoc_only, device=args.device)
-    round0_per_pass = lean_model.updates_per_pass(round0["train"], assoc_only=assoc_only, device=args.device)
+    round0_per_pass = (lean_model.updates_per_pass(round0["train"], assoc_only=assoc_only, device=args.device) if aggregated
+                       else round0["train_updates"])
     plan = plan_condition(args.condition, own_updates_per_pass=own_per_pass, round0_updates_per_pass=round0_per_pass,
                           epochs=int(training["epochs"]), seeds=list(training["seeds"]))
-    if plan["data"] == "aggregated":
-        train_records = round0["train"] + own["train"]
-    else:
-        train_records = own["train"]
-        round0["train"] = round0["validation"] = None  # counted for V only; freeing them halves A/C memory (2026-09-28)
+    train_records = (round0["train"] + own["train"]) if plan["data"] == "aggregated" else own["train"]
     budget, every = plan["update_budget"], plan["evaluate_every"]
     marks: list[tuple[int, float]] = []  # timing run: (updates, wall time) at every checkpoint, after its validation
     if args.timing_updates is not None:
