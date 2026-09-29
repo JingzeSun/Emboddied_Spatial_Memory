@@ -540,6 +540,61 @@ class FrameStepTests(unittest.TestCase):
         self.assertAlmostEqual(steps[4]["state"]["arm_state"]["log_odds"][entity_a], -0.5)
         self.assertEqual(summary["final_entities_by_state"], {"active": 2, "dormant": 0, "retracted": 0})
 
+    def test_the_history_summary_makes_elu_p_and_rac_functions_of_the_existence_row(self) -> None:
+        # ruling 89-2 (a): every eligible row carries the history before this frame; ELU-P's log-odds after the frame is
+        # initial + gain * matches - decay * (frames + 1) - weight * (coverage sum + this coverage), exactly
+        config = CONFIGS["ELU-P"]
+        steps, _ = run_all("ELU-P")
+        names = list(la.EXISTENCE_FEATURES)
+        checked = 0
+        for step in steps:
+            order = step["stage_b"]["existence_feature_order"]
+            self.assertEqual(order, names)
+            candidates = set(step["receipt"]["existence"]["candidates"])
+            for row in step["stage_b"]["existence_rows"]:
+                if str(row["entity_id"]) not in candidates:
+                    continue
+                f = dict(zip(names, row["features"]))
+                expected = (config["initial_log_odds"] + config["match_gain"] * f["matches_since_birth"]
+                            - config["persistence_log_decay_per_tick"] * (f["eligible_frames_since_birth"] + 1.0)
+                            - config["free_space_weight"] * (f["free_space_coverage_sum_since_birth"] + f["free_space_coverage_ratio"]))
+                self.assertAlmostEqual(step["state"]["arm_state"]["log_odds"][str(row["entity_id"])], expected)
+                checked += 1
+        self.assertGreaterEqual(checked, 2)
+        # the reactivated entity keeps its summaries: frame 5 matches it again after two eligible frames
+        entity_a = next(iter(steps[2]["receipt"]["existence"]["decisions"]))
+        after = steps[4]["state"]["existence_history"][entity_a]
+        self.assertEqual(after["matches_since_birth"], 2.0)
+        self.assertEqual(after["eligible_frames_since_birth"], 2.0)
+        self.assertEqual(after["rac_run_rho_070"], 0.0)  # cleared by the match
+        self.assertEqual(steps[3]["state"]["existence_history"][entity_a]["rac_run_rho_070"], 2.0)
+
+    def test_assoc_only_accumulates_matches_but_no_eligible_frame(self) -> None:
+        assoc, _ = run_all("AssocOnly", scorer=CosineScorer())
+        # AssocOnly judges no existence, so only matches accumulate
+        for summary in assoc[-1]["state"]["existence_history"].values():
+            self.assertEqual(summary["eligible_frames_since_birth"], 0.0)
+
+    def test_update_existence_history_rules(self) -> None:
+        order = list(la.EXISTENCE_FEATURES)
+        at = order.index("free_space_coverage_ratio")
+
+        def row(entity_id: str, coverage: float) -> dict:
+            features = [0.0] * len(order)
+            features[at] = coverage
+            return {"entity_id": entity_id, "features": features}
+
+        h = lr.update_existence_history({}, [row("e1", 0.8), row("e2", 0.9)], order, ["e3"])
+        self.assertEqual(h["e1"], {"rac_run_rho_070": 1.0, "rac_run_rho_085": 0.0, "matches_since_birth": 0.0,
+                                   "eligible_frames_since_birth": 1.0, "free_space_coverage_sum_since_birth": 0.8})
+        self.assertEqual(h["e2"]["rac_run_rho_085"], 1.0)
+        self.assertEqual(h["e3"]["matches_since_birth"], 1.0)
+        h2 = lr.update_existence_history(h, [row("e1", 0.5)], order, ["e2"])
+        self.assertEqual(h2["e1"]["rac_run_rho_070"], 0.0)  # below rho clears
+        self.assertAlmostEqual(h2["e1"]["free_space_coverage_sum_since_birth"], 1.3)
+        self.assertEqual((h2["e2"]["rac_run_rho_070"], h2["e2"]["rac_run_rho_085"], h2["e2"]["matches_since_birth"]), (0.0, 0.0, 1.0))
+        self.assertEqual(h["e1"]["eligible_frames_since_birth"], 1.0)  # the input is not modified
+
     def test_rac_retracts_after_two_negative_renders_and_recreates_instead_of_reviving(self) -> None:
         steps, summary = run_all("RAC")
         self.assertEqual([atoms_of(s) for s in steps][2:], [{"BIND": 1, "NOOP": 1}, {"BIND": 1, "RETRACT": 1}, {"BIND": 1, "BIRTH": 1}])
@@ -625,6 +680,8 @@ class FrameStepTests(unittest.TestCase):
         # the counter RAC advanced for the rolled-back frame is back at the frame-2 state
         self.assertEqual(steps[2]["state"]["arm_state"], steps[1]["state"]["arm_state"])
         self.assertEqual(third["arm_state_sha256"], steps[1]["receipt"]["arm_state_sha256"])
+        # ruling 89-2: the history summaries roll back with the frame too
+        self.assertEqual(steps[2]["state"]["existence_history"], steps[1]["state"]["existence_history"])
         # so the fourth frame is the FIRST negative render (NOOP), not the second (RETRACT)
         self.assertEqual([atoms_of(s) for s in steps][2:], [{}, {"BIND": 1, "NOOP": 1}, {"BIND": 2}])
         self.assertEqual(summary["atoms"]["RETRACT"], 0)

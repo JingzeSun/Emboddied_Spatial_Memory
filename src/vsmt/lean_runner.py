@@ -554,6 +554,7 @@ def initial_state(*, episode_id: str, arm: str) -> dict[str, Any]:
         "arm": arm,
         "memory": lm.empty_memory(episode_id=episode_id),
         "arm_state": {},
+        "existence_history": {},
         "counters": {"frames": 0, "illegal_programs": 0, "atoms": {atom: 0 for atom in lm.ATOMS},
                      "existence_candidates": 0, "excluded_not_visible": 0, "excluded_retracted": 0,
                      "no_version_deleted": 0},
@@ -615,6 +616,35 @@ def _observe_matches(arm: str, config: Mapping[str, Any], arm_state: dict[str, A
     elif arm == "RAC":
         arm_state["negative_renders"] = arms.rac_observe_matches(arm_state.get("negative_renders", {}), matched)
     return arm_state
+
+
+def update_existence_history(history: Mapping[str, Mapping[str, float]], eligible: Sequence[Mapping[str, Any]],
+                             order: Sequence[str], matched: Sequence[str]) -> dict[str, dict[str, float]]:
+    """Ruling 89-2 (a): advance every entity's history summary by one frame (all arms, public quantities only).
+
+    白话：输入上一帧结束时每个实体的历史摘要、本帧可判定的存在行（应可见、未被分配、未撤回）和本帧被匹配
+    （BIND／REACTIVATE）的实体，输出更新后的摘要。可判定帧：可判定帧数加一、累计覆盖加上当帧覆盖；两个 RAC 计数
+    在覆盖不低于各自的 ρ 时加一、否则清零。被匹配：匹配次数加一、两个 RAC 计数清零。其余量永不清零（撤回也不清零），
+    例如一个被撤回又被接回的实体，匹配次数与累计覆盖接着原来的数往上加。它不做决定，也不读私有数据。
+    """
+
+    coverage_at = arms.feature_index(order, "free_space_coverage_ratio")
+    updated = {str(k): {name: float(v) for name, v in row.items()} for k, row in history.items()}
+    empty = {name: 0.0 for name in la.EXISTENCE_HISTORY_FEATURES}
+    for row in eligible:
+        entity_id = str(row["entity_id"])
+        coverage = float(row["features"][coverage_at])
+        summary = updated.setdefault(entity_id, dict(empty))
+        summary["eligible_frames_since_birth"] += 1.0
+        summary["free_space_coverage_sum_since_birth"] += coverage
+        for name, rho in la.EXISTENCE_HISTORY_RAC_RHOS:
+            summary[name] = summary[name] + 1.0 if coverage >= rho else 0.0
+    for entity_id in matched:
+        summary = updated.setdefault(str(entity_id), dict(empty))
+        summary["matches_since_birth"] += 1.0
+        for name, _ in la.EXISTENCE_HISTORY_RAC_RHOS:
+            summary[name] = 0.0
+    return updated
 
 
 def _prune_arm_state(arm_state: dict[str, Any], entity_ids: set[str]) -> dict[str, Any]:
@@ -694,7 +724,8 @@ def run_frame(
         arms.assert_no_sentinel_chosen(solution["assignment"], logits["association_logits"])
 
     # 5. stage B and the private gate
-    stage_b = la.seal_solution_and_existence(solution, view, memory, inputs=stage_a)
+    history_before = state.get("existence_history", {})
+    stage_b = la.seal_solution_and_existence(solution, view, memory, inputs=stage_a, existence_history=history_before)
     gate = lt.build_private_gate(stage_a, stage_b)
 
     # 6. existence decisions on the eligible rows, with the arm's temporal state
@@ -708,6 +739,7 @@ def run_frame(
     decisions, arm_state = _existence(arm, checked_config, filtered["eligible"], order, state["arm_state"], scorer)
     matched = sorted(str(column) for column in solution["assignment"].values() if not str(column).startswith(la.BIRTH_COLUMN_PREFIX))
     arm_state = _observe_matches(arm, checked_config, arm_state, matched)
+    history = update_existence_history(history_before, filtered["eligible"], order, matched)
 
     # 7. compile and commit atomically; an illegal program falls back to the empty program
     entity_states = {str(e["entity_id"]): str(e["state"]) for e in memory["entities"]}
@@ -729,6 +761,7 @@ def run_frame(
         # The whole frame rolls back, the arm's temporal state included: the ELU-P log-odds and
         # RAC counters were advanced for decisions that never took effect (S2 review, 2026-09-24).
         arm_state = clone_json(dict(state["arm_state"]))
+        history = clone_json(dict(history_before))  # ruling 89-2: the history summaries roll back with the frame
     no_version_deleted: list[str] = []
     if arm == "NoVersion":
         new_memory = arms.apply_no_version(new_memory)
@@ -736,6 +769,8 @@ def run_frame(
     committed_ops = [] if illegal else operations
     live_ids = {str(e["entity_id"]) for e in new_memory["entities"]}
     arm_state = _prune_arm_state(arm_state, live_ids)
+    # a folded entity's summary is dropped and the canonical keeps its own, as the ELU-P / RAC arm states are pruned
+    history = {key: value for key, value in history.items() if key in live_ids}
 
     # 8. receipt and counters
     counters = clone_json(dict(state["counters"]))
@@ -774,9 +809,10 @@ def run_frame(
         "entities_by_state": {s: sum(1 for e in new_memory["entities"] if e["state"] == s) for s in lm.ENTITY_STATES},
         "frame_delta": delta,
         "arm_state_sha256": sha(arm_state),
+        "existence_history_sha256": sha(history),
     }
     new_state = {
-        "arm": arm, "memory": new_memory, "arm_state": arm_state, "counters": counters,
+        "arm": arm, "memory": new_memory, "arm_state": arm_state, "existence_history": history, "counters": counters,
         "surface_points": updated_surface_store(state.get("surface_points", {}), new_memory, depth_view),
         "cache_frame_seals": [*state["cache_frame_seals"], receipt["cache_frame_seal_sha256"]],
     }

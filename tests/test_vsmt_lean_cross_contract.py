@@ -313,7 +313,10 @@ FROZEN_RULE_SHA256 = {
     # re-selected by the same ruling-47 rule (still reid_projection:vitb14, gain 0.104); selection_result carries the new
     # weights digest 5cea91cf..., the new report and receipt, and the superseded SAM2-trained digest f6fc67e5... with its
     # mask source.  37d56a90 -> 421001ff.
-    "S0-03": "421001ffd1988931c7b15cf29517b1fd2a570bd6eef0d69acee7a2efff19ea6b",
+    # Re-pinned 2026-09-30 for ruling 89-2 (a): the existence table gains five per-entity history fields in place (two RAC-group
+    # consecutive counters at 0.70 / 0.85, matches, eligible frames and summed coverage since birth), kept by the runner for
+    # every arm from public quantities, so ELU-P's log-odds and RAC's decision are functions of the row.  421001ff -> 70c13b5f.
+    "S0-03": "70c13b5fe3dc8447626eb658ca9d9f7ac9583e25f068c9926a141095135d70e2",
     # S0-04 re-pinned 2026-09-24 for ruling 56 continued: the truth node scope excludes the four ProcTHOR
     # structural types door, room, wall and window (65% of the S1-04 gate rows, unmatchable by any box or
     # centroid rule).  585e3660 -> 9bf1059d.

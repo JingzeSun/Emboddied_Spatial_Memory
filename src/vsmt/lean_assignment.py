@@ -134,7 +134,23 @@ EXISTENCE_FEATURES = (
     "state_is_active",
     "state_is_dormant",
     "state_is_retracted",
+    "rac_run_rho_070",
+    "rac_run_rho_085",
+    "matches_since_birth",
+    "eligible_frames_since_birth",
+    "free_space_coverage_sum_since_birth",
 )
+
+#: Ruling 89-2 (a) (2026-09-30): the per-entity history summaries appended to the existence table, in place.  The
+#: runner keeps them for every arm from public quantities only (``existence_history``): the two RAC-group counters
+#: count consecutive eligible frames whose free-space coverage reaches 0.70 / 0.85 and clear on a match (BIND or
+#: REACTIVATE); the ELU-P group counts matches, eligible frames and the summed coverage over those frames since birth
+#: and clears on nothing.  A row carries the values before this frame's update, so ELU-P's log-odds and RAC's
+#: decision are functions of the row.
+EXISTENCE_HISTORY_FEATURES = EXISTENCE_FEATURES[12:]
+EXISTENCE_HISTORY_RAC_RHOS = (("rac_run_rho_070", 0.70), ("rac_run_rho_085", 0.85))
+#: The existence order before ruling 89-2; old weights files carry it and cannot score the extended rows.
+LEGACY_EXISTENCE_FEATURES = EXISTENCE_FEATURES[:12]
 
 #: Frozen feature order for the birth head b(f).
 BIRTH_FEATURES = (
@@ -526,8 +542,12 @@ def existence_feature_vector(
     entity: Mapping[str, Any], frame: Mapping[str, Any], *,
     assignment: Mapping[str, str], tick: int,
     fragment_cosines: Mapping[str, float] | None = None,
+    history: Mapping[str, float] | None = None,
 ) -> list[float]:
     """One existence feature row, computed after the solve.
+
+    ``history`` is the entity's ruling-89-2 summary (``EXISTENCE_HISTORY_FEATURES``) before this frame; absent, the
+    entity has no eligible frame and no match on record, which is every value zero.
 
     白话：输入一个本帧未被分配的实体、当前帧和已经解出的分配，输出存在头的特征
     行。其中"最相似色块是否仍未被分配"必须在分配之后才有定义，因此存在特征在求
@@ -582,6 +602,12 @@ def existence_feature_vector(
         1.0 if unassigned else 0.0,
         *_state_one_hot(str(entity["state"])),
     ]
+    summary = history or {}
+    _require(set(summary) <= set(EXISTENCE_HISTORY_FEATURES), "existence_history_fields_unknown")
+    for name in EXISTENCE_HISTORY_FEATURES:
+        value = _finite(summary.get(name, 0.0), f"existence_history_invalid:{name}")
+        _require(value >= 0.0, f"existence_history_invalid:{name}")
+        row.append(value)
     _require(len(row) == len(EXISTENCE_FEATURES), "existence_feature_arity")
     return row
 
@@ -1080,8 +1106,12 @@ def solve_frame(
 def seal_solution_and_existence(
     solution: Mapping[str, Any], frame: Mapping[str, Any],
     memory: Mapping[str, Any], *, inputs: Mapping[str, Any],
+    existence_history: Mapping[str, Mapping[str, float]] | None = None,
 ) -> dict[str, Any]:
     """Stage B: seal the solve receipt together with the existence rows.
+
+    ``existence_history`` maps entity id to its ruling-89-2 summary before this frame (the runner's); an entity
+    without an entry has none on record (all zero).
 
     白话：输入 stage A 的封存、当前帧、旧记忆和求解结果，输出第二份封存：分配回执
     加上每个"本帧应可见却未被分配"的实体的存在特征。两份封存都完成后，teacher 才
@@ -1131,6 +1161,7 @@ def seal_solution_and_existence(
             "features": existence_feature_vector(
                 entity, checked_frame, assignment=assignment, tick=tick,
                 fragment_cosines=cosine_by_entity[entity_id],
+                history=(existence_history or {}).get(entity_id),
             ),
         })
 
@@ -1419,6 +1450,9 @@ __all__ = [
     "CACHE_FRAME_FIELDS",
     "CONTRACT_SCHEMA_VERSION",
     "EXISTENCE_FEATURES",
+    "EXISTENCE_HISTORY_FEATURES",
+    "EXISTENCE_HISTORY_RAC_RHOS",
+    "LEGACY_EXISTENCE_FEATURES",
     "LeanAssignmentError",
     "assert_private_mutation_invariance",
     "assignment_cost",
