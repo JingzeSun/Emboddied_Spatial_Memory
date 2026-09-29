@@ -126,7 +126,8 @@ class ArchitectureTests(unittest.TestCase):
             expected[name] = 2 * width + (width * 128 + 128) + (128 * 128 + 128) + (128 + 1)
         self.assertEqual({k: v for k, v in counts.items() if k != "total"}, expected)
         self.assertEqual(counts["total"], sum(expected.values()))
-        self.assertEqual(counts["total"], 54207)
+        # 54,207 before ruling 89-2 appended five history fields to the existence table (5 x 2 LayerNorm + 5 x 128 weights)
+        self.assertEqual(counts["total"], 54857)
         assoc = model.make_heads(assoc_only=True, seed=0)
         self.assertEqual(set(assoc.keys()), {"association", "birth"})
         self.assertTrue(model.is_assoc_only(assoc))
@@ -191,6 +192,101 @@ class ArchitectureTests(unittest.TestCase):
         drifted["sha256"] = hashlib.sha256(json.dumps(drifted).encode()).hexdigest()
         with self.assertRaises(model.LeanModelError):
             model.load_heads(drifted)
+
+
+class FieldWiseTests(unittest.TestCase):
+    """Ruling 89-2 / 89-3: the field-wise encoding, the class-weighted existence loss and legacy weights."""
+
+    def records(self):
+        train = [labelled_frame(s, drop=("lamp" if s % 2 else None), new=(s % 3 == 0)) for s in range(30, 40)]
+        validation = [labelled_frame(s, drop=("book" if s % 2 else None)) for s in range(50, 53)]
+        for record in train + validation:  # a present label on every row still unlabelled, so both classes occur
+            for row in record["existence_rows"]:
+                record["existence_labels"].setdefault(str(row["entity_id"]), {"status": "present"})
+        return train, validation
+
+    def test_statistics_come_from_the_given_records_and_follow_the_field_kinds(self) -> None:
+        train, _ = self.records()
+        stats = model.field_encoding_statistics(train)
+        for head, names in model.HEAD_FEATURES.items():
+            self.assertEqual(stats[head]["fields"], list(names))
+            for index, name in enumerate(names):
+                kind = model.FIELD_ENCODING[name]
+                self.assertEqual(stats[head]["log1p"][index], 1.0 if kind == "log1p_standardize" else 0.0)
+                if kind == "identity":
+                    self.assertEqual((stats[head]["mean"][index], stats[head]["std"][index]), (0.0, 1.0))
+                else:
+                    self.assertGreater(stats[head]["std"][index], 0.0)
+        at = list(model.HEAD_FEATURES["existence"]).index("observation_count")
+        values = [np.log1p(r["features"][at]) for rec in train for r in rec["existence_rows"]]
+        self.assertAlmostEqual(stats["existence"]["mean"][at], float(np.mean(values)), places=12)
+
+    def test_the_encoding_is_not_invariant_to_scaling_one_field(self) -> None:
+        train, _ = self.records()
+        heads = model.make_heads(assoc_only=False, seed=2, encoding=model.field_encoding_statistics(train))
+        self.assertNotIn("LayerNorm", repr(heads["existence"][0]))
+        order = list(model.HEAD_FEATURES["existence"])
+        row = [0.0] * len(order)
+        row[order.index("state_is_active")] = 1.0
+        far = list(row)
+        far[order.index("observation_count")] = 3000.0
+        low, high = list(far), list(far)
+        high[order.index("free_space_coverage_ratio")] = 1.0
+        scorer = model.LeanScorer(heads)
+        out = scorer.existence_logits([{"entity_id": "a", "features": low}, {"entity_id": "b", "features": high}], order)
+        self.assertNotAlmostEqual(out["a"], out["b"], places=3)
+
+    def test_field_wise_weights_round_trip_and_training_is_deterministic(self) -> None:
+        train, validation = self.records()
+        kwargs = dict(learning_rate=1e-3, weight_decay=1e-4, epochs=3, seed=7, assoc_only=False,
+                      field_encoding=True, existence_class_weight=True)
+        first = model.train_heads(train, validation, **kwargs)
+        second = model.train_heads(train, validation, **kwargs)
+        self.assertEqual(first["weights"]["sha256"], second["weights"]["sha256"])
+        payload = first["weights"]
+        self.assertEqual(payload["schema_version"], model.WEIGHTS_SCHEMA_VERSION_FIELD_WISE)
+        self.assertTrue(payload["training"]["field_encoding"])
+        counts = payload["training"]["existence_class_weight"]
+        self.assertAlmostEqual(counts["pos_weight"], counts["present"] / counts["gone"])
+        self.assertEqual(payload["training"]["updates_taken"], first["updates_taken"])
+        again = model.load_heads(json.loads(json.dumps(payload)))
+        record = validation[0]
+        a = model.LeanScorer(first["heads"]).existence_logits(record["existence_rows"], record["existence_feature_order"])
+        b = model.LeanScorer(again).existence_logits(record["existence_rows"], record["existence_feature_order"])
+        for key in a:
+            self.assertAlmostEqual(a[key], b[key], places=5)
+        # the default recipe is untouched by the new switches
+        plain = model.train_heads(train, validation, learning_rate=1e-3, weight_decay=1e-4, epochs=3, seed=7, assoc_only=False)
+        self.assertEqual(plain["weights"]["schema_version"], model.WEIGHTS_SCHEMA_VERSION)
+        self.assertNotIn("field_encoding", plain["weights"]["training"])
+
+    def test_the_class_weight_multiplies_the_gone_rows(self) -> None:
+        import torch
+        record = labelled_frame(21, drop="lamp")
+        heads = model.make_heads(assoc_only=False, seed=1)
+        prepared = model.prepare_frame(record)
+        plain = model.prepared_loss(heads, prepared)
+        weighted = model.prepared_loss(heads, prepared, existence_pos_weight=torch.as_tensor([5.0]))
+        self.assertGreater(float(weighted["loss"]), float(plain["loss"]))
+
+    def test_a_legacy_weights_file_loads_but_cannot_score_the_extended_rows(self) -> None:
+        heads = model.make_heads(assoc_only=False, seed=3)
+        payload = model.weights_payload(heads, training={})
+        legacy = json.loads(json.dumps(payload))
+        width = len(la.LEGACY_EXISTENCE_FEATURES)
+        legacy["feature_orders"]["existence"] = list(la.LEGACY_EXISTENCE_FEATURES)
+        legacy["tensors"]["existence"]["0.weight"] = [1.0] * width
+        legacy["tensors"]["existence"]["0.bias"] = [0.0] * width
+        legacy["tensors"]["existence"]["1.weight"] = [row[:width] for row in legacy["tensors"]["existence"]["1.weight"]]
+        from cpmt.hashing import canonical_json
+        legacy["sha256"] = hashlib.sha256(canonical_json({k: v for k, v in legacy.items() if k not in ("training", "sha256")}).encode("utf-8")).hexdigest()
+        loaded = model.load_heads(legacy)
+        scorer = model.LeanScorer(loaded)
+        record = labelled_frame(11, drop="lamp", new=True)
+        self.assertTrue(scorer.association_and_birth_logits(record["stage_a"])["association_logits"])
+        with self.assertRaises(model.LeanModelError) as caught:
+            scorer.existence_logits(record["existence_rows"], record["existence_feature_order"])
+        self.assertEqual(str(caught.exception), "legacy_existence_head_cannot_score_the_ruling_89_rows")
 
 
 class ScorerTests(unittest.TestCase):

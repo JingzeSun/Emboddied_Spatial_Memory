@@ -49,6 +49,8 @@ from vsmt import lean_arms as arms
 from vsmt import lean_assignment as la
 
 WEIGHTS_SCHEMA_VERSION = "vsmt-lean-cost-heads-weights-v1"
+#: Ruling 89-2 / 89-3 (2026-09-30): heads whose first layer is the field-wise encoding instead of the row LayerNorm.
+WEIGHTS_SCHEMA_VERSION_FIELD_WISE = "vsmt-lean-cost-heads-weights-v2-field-wise"
 
 HEAD_NAMES = ("association", "existence", "birth")
 HEAD_FEATURES: dict[str, tuple[str, ...]] = {
@@ -59,6 +61,30 @@ HEAD_FEATURES: dict[str, tuple[str, ...]] = {
 HIDDEN_WIDTH = 128
 HIDDEN_LAYERS = 2
 ARCHITECTURE = "LayerNorm(input) -> Linear(input, 128) -> GELU -> Linear(128, 128) -> GELU -> Linear(128, 1), one such head per feature table"
+ARCHITECTURE_FIELD_WISE = ("FieldEncoding(input) -> Linear(input, 128) -> GELU -> Linear(128, 128) -> GELU -> Linear(128, 1), one such "
+                           "head per feature table")
+#: Ruling 89-2 (a) / 89-3 (a): the field-wise encoding.  A whole-row LayerNorm is invariant to scaling the row, so a
+#: large count in one field (ticks since last seen, observation count) crushed every other cue of that row (ruling 88,
+#: finding 3).  Instead each field is encoded on its own: counts and frame numbers take log1p and are then standardised
+#: with the mean and standard deviation over the training houses; other unbounded quantities (distances, a log ratio, a
+#: height difference) are standardised only; ratios, cosines, bounded margins, one-hots and flags pass unchanged.
+FIELD_ENCODING: dict[str, str] = {
+    **{name: "identity" for name in (
+        "cosine_to_descriptor_mean", "cosine_to_best_view_descriptor", "aabb_iou", "state_is_active", "state_is_dormant",
+        "state_is_retracted", "cosine_margin_to_runner_up", "mutual_best", "should_be_visible_ratio", "free_space_coverage_ratio",
+        "camera_view_cosine", "best_fragment_cosine", "best_fragment_still_unassigned", "best_cosine_to_any_entity",
+        "depth_valid_ratio")},
+    **{name: "standardize" for name in (
+        "centroid_distance_m", "log_size_ratio", "support_height_difference_m", "camera_distance_m")},
+    **{name: "log1p_standardize" for name in (
+        "ticks_since_last_seen", "missed_opportunity_count", "cosine_rank_within_recall", "observation_count",
+        "rac_run_rho_070", "rac_run_rho_085", "matches_since_birth", "eligible_frames_since_birth",
+        "free_space_coverage_sum_since_birth", "active_entities_within_radius", "pixel_count")},
+}
+FIELD_ENCODING_STATISTICS_RULE = ("mean and population standard deviation of each encoded field over every row of that head's table in the "
+                                  "training houses' records; a standard deviation below 1e-8 is replaced by 1; identity fields keep 0 and 1")
+#: Ruling 89-2 (a): the existence loss weights gone rows by (present rows / gone rows) of the training houses.
+EXISTENCE_CLASS_WEIGHT_RULE = "binary cross-entropy with pos_weight = present rows / gone rows over the training houses' records"
 #: The S0-05 contract's own words for the loss (bound by the arms validator through the contract).
 LOSS_RULE = ("per-fragment softmax cross-entropy over [recalled columns..., BIRTH column] plus "
              "per-entity existence binary cross-entropy, equal weights")
@@ -109,7 +135,66 @@ def head_seed(seed: int, name: str) -> int:
     return int.from_bytes(hashlib.sha256(f"{int(seed)}|{name}".encode("utf-8")).digest()[:8], "big") % (2 ** 63)
 
 
-def make_heads(*, assoc_only: bool, seed: int) -> Any:
+def _field_encoder_class() -> Any:
+    import torch
+
+    class FieldEncoding(torch.nn.Module):
+        """log1p on the flagged fields, then (x - mean) / std per field; buffers only, nothing is trained."""
+
+        def __init__(self, width: int) -> None:
+            super().__init__()
+            self.register_buffer("log1p", torch.zeros(width))
+            self.register_buffer("mean", torch.zeros(width))
+            self.register_buffer("std", torch.ones(width))
+
+        def forward(self, x: Any) -> Any:
+            logged = torch.where(self.log1p > 0.5, torch.log1p(torch.clamp(x, min=0.0)), x)
+            return (logged - self.mean) / self.std
+
+    return FieldEncoding
+
+
+def encode_rows_numpy(rows: Any, names: Sequence[str]) -> Any:
+    """The log1p step of the field-wise encoding on a float64 matrix (for the statistics)."""
+
+    matrix = np.asarray(rows, dtype=np.float64).reshape(-1, len(names))
+    for index, name in enumerate(names):
+        if FIELD_ENCODING[name] == "log1p_standardize":
+            matrix[:, index] = np.log1p(np.clip(matrix[:, index], 0.0, None))
+    return matrix
+
+
+def field_encoding_statistics(records: Sequence[Mapping[str, Any]], *, heads: Sequence[str] = HEAD_NAMES) -> dict[str, Any]:
+    """Per head: which fields take log1p, and the mean / std the encoding subtracts and divides by (training houses only)."""
+
+    tables: dict[str, list[list[float]]] = {name: [] for name in heads}
+    for record in records:
+        if "association" in tables:
+            tables["association"].extend(row["features"] for row in record["stage_a"]["association_rows"])
+        if "birth" in tables:
+            tables["birth"].extend(row["features"] for row in record["stage_a"]["birth_rows"])
+        if "existence" in tables:
+            tables["existence"].extend(row["features"] for row in record["existence_rows"])
+    out: dict[str, Any] = {}
+    for name in heads:
+        names = HEAD_FEATURES[name]
+        kinds = [FIELD_ENCODING[field] for field in names]
+        mean, std = [0.0] * len(names), [1.0] * len(names)
+        if tables[name]:
+            matrix = encode_rows_numpy(tables[name], names)
+            for index, kind in enumerate(kinds):
+                if kind == "identity":
+                    continue
+                column = matrix[:, index]
+                mean[index] = float(column.mean())
+                spread = float(column.std())
+                std[index] = spread if spread >= 1e-8 else 1.0
+        out[name] = {"fields": list(names), "kinds": kinds, "log1p": [1.0 if k == "log1p_standardize" else 0.0 for k in kinds],
+                     "mean": mean, "std": std, "rows": len(tables[name])}
+    return out
+
+
+def make_heads(*, assoc_only: bool, seed: int, encoding: Mapping[str, Any] | None = None) -> Any:
     """The three (or, for AssocOnly, two) heads with a seeded initialisation.
 
     白话：每个头按"seed 加头名"各自播种再初始化（裁决 79-5 (a)），所以同一 seed 下 AssocOnly 与 VSMT-lean 的关联头、
@@ -120,17 +205,30 @@ def make_heads(*, assoc_only: bool, seed: int) -> Any:
 
     _require(type(seed) is int and seed >= 0, "seed_invalid")
     heads = torch.nn.ModuleDict()
+    encoder = _field_encoder_class() if encoding is not None else None
     for name in HEAD_NAMES:
         if assoc_only and name == "existence":
             continue
         torch.manual_seed(head_seed(int(seed), name))
         width = len(HEAD_FEATURES[name])
+        if encoder is None:
+            first = torch.nn.LayerNorm(width)
+        else:
+            stats = encoding[name]
+            _require(list(stats["fields"]) == list(HEAD_FEATURES[name]), f"encoding_fields_drifted:{name}")
+            first = encoder(width)
+            with torch.no_grad():
+                first.log1p.copy_(torch.as_tensor(stats["log1p"], dtype=torch.float32))
+                first.mean.copy_(torch.as_tensor(stats["mean"], dtype=torch.float32))
+                first.std.copy_(torch.as_tensor(stats["std"], dtype=torch.float32))
         heads[name] = torch.nn.Sequential(
-            torch.nn.LayerNorm(width),
+            first,
             torch.nn.Linear(width, HIDDEN_WIDTH), torch.nn.GELU(),
             torch.nn.Linear(HIDDEN_WIDTH, HIDDEN_WIDTH), torch.nn.GELU(),
             torch.nn.Linear(HIDDEN_WIDTH, 1),
         )
+    heads.feature_orders = {name: tuple(HEAD_FEATURES[name]) for name in heads}
+    heads.encoding = None if encoding is None else clone_json(dict(encoding))
     return heads
 
 
@@ -151,9 +249,14 @@ def weights_payload(heads: Any, *, training: Mapping[str, Any]) -> dict[str, Any
     for name, module in heads.items():
         tensors[name] = {key: value.detach().cpu().numpy().astype(np.float64).tolist()
                          for key, value in module.state_dict().items()}
-    body = {"schema_version": WEIGHTS_SCHEMA_VERSION, "architecture": ARCHITECTURE,
-            "heads": sorted(tensors), "feature_orders": {name: list(HEAD_FEATURES[name]) for name in tensors},
+    encoding = getattr(heads, "encoding", None)
+    orders = getattr(heads, "feature_orders", None) or {name: tuple(HEAD_FEATURES[name]) for name in tensors}
+    body = {"schema_version": WEIGHTS_SCHEMA_VERSION if encoding is None else WEIGHTS_SCHEMA_VERSION_FIELD_WISE,
+            "architecture": ARCHITECTURE if encoding is None else ARCHITECTURE_FIELD_WISE,
+            "heads": sorted(tensors), "feature_orders": {name: list(orders[name]) for name in tensors},
             "tensors": tensors, "training": dict(training)}
+    if encoding is not None:
+        body["encoding"] = {"rule": FIELD_ENCODING_STATISTICS_RULE, "per_head": {name: encoding[name] for name in tensors}}
     body["sha256"] = hashlib.sha256(canonical_json({k: v for k, v in body.items() if k != "training"}).encode("utf-8")).hexdigest()
     return body
 
@@ -163,14 +266,29 @@ def load_heads(payload: Mapping[str, Any], *, device: str = "cpu") -> Any:
 
     import torch
 
-    _require(payload.get("schema_version") == WEIGHTS_SCHEMA_VERSION, "weights_schema_invalid")
+    schema = payload.get("schema_version")
+    _require(schema in (WEIGHTS_SCHEMA_VERSION, WEIGHTS_SCHEMA_VERSION_FIELD_WISE), "weights_schema_invalid")
     expected = hashlib.sha256(canonical_json({k: v for k, v in payload.items() if k not in ("training", "sha256")}).encode("utf-8")).hexdigest()
     _require(payload.get("sha256") == expected, "weights_digest_mismatch")
     names = list(payload["heads"])
     _require(names in (sorted(HEAD_NAMES), sorted(n for n in HEAD_NAMES if n != "existence")), "weights_heads_invalid")
+    legacy_existence = False
     for name in names:
-        _require(list(payload["feature_orders"][name]) == list(HEAD_FEATURES[name]), f"weights_feature_order_drifted:{name}")
-    heads = make_heads(assoc_only="existence" not in names, seed=0)
+        order = list(payload["feature_orders"][name])
+        if name == "existence" and schema == WEIGHTS_SCHEMA_VERSION and order == list(la.LEGACY_EXISTENCE_FEATURES):
+            # a head trained before ruling 89-2: it loads (its association and birth heads still score) but cannot
+            # score the extended existence rows; LeanScorer refuses that call
+            legacy_existence = True
+            continue
+        _require(order == list(HEAD_FEATURES[name]), f"weights_feature_order_drifted:{name}")
+    encoding = payload["encoding"]["per_head"] if schema == WEIGHTS_SCHEMA_VERSION_FIELD_WISE else None
+    heads = make_heads(assoc_only="existence" not in names, seed=0, encoding=encoding)
+    if legacy_existence:
+        width = len(la.LEGACY_EXISTENCE_FEATURES)
+        heads["existence"] = torch.nn.Sequential(
+            torch.nn.LayerNorm(width), torch.nn.Linear(width, HIDDEN_WIDTH), torch.nn.GELU(),
+            torch.nn.Linear(HIDDEN_WIDTH, HIDDEN_WIDTH), torch.nn.GELU(), torch.nn.Linear(HIDDEN_WIDTH, 1))
+        heads.feature_orders["existence"] = tuple(la.LEGACY_EXISTENCE_FEATURES)
     with torch.no_grad():
         for name in names:
             state = {key: torch.as_tensor(np.asarray(value, dtype=np.float32)) for key, value in payload["tensors"][name].items()}
@@ -228,6 +346,8 @@ class LeanScorer:
 
     def existence_logits(self, rows: Sequence[Mapping[str, Any]], order: Sequence[str]) -> dict[str, float]:
         _require(not self.assoc_only, "assoc_only_has_no_existence_head")
+        _require(tuple(getattr(self.heads, "feature_orders", HEAD_FEATURES)["existence"]) == HEAD_FEATURES["existence"],
+                 "legacy_existence_head_cannot_score_the_ruling_89_rows")
         _require(tuple(order) == HEAD_FEATURES["existence"], "stage_b_existence_order_drifted")
         values = _logits(self.heads["existence"], [r["features"] for r in rows],
                          width=len(HEAD_FEATURES["existence"]), device=self.device)
@@ -313,8 +433,11 @@ def prepare_frame(record: Mapping[str, Any], *, device: str = "cpu") -> dict[str
             "existence_excluded": existence_excluded}
 
 
-def prepared_loss(heads: Any, prepared: Mapping[str, Any]) -> dict[str, Any]:
-    """The registered loss on one prepared frame (see ``prepare_frame``); the operations of ``frame_loss``."""
+def prepared_loss(heads: Any, prepared: Mapping[str, Any], *, existence_pos_weight: Any = None) -> dict[str, Any]:
+    """The registered loss on one prepared frame (see ``prepare_frame``); the operations of ``frame_loss``.
+
+    ``existence_pos_weight`` (ruling 89-2 (a), a 1-element tensor) weights the gone rows; None is the unweighted loss.
+    """
 
     import torch
 
@@ -333,7 +456,7 @@ def prepared_loss(heads: Any, prepared: Mapping[str, Any]) -> dict[str, Any]:
     if prepared["existence"] is not None and not assoc_only:
         rows, target, count = prepared["existence"]
         logits = heads["existence"](rows).reshape(-1)
-        terms.append(("existence", torch.nn.functional.binary_cross_entropy_with_logits(logits, target)))
+        terms.append(("existence", torch.nn.functional.binary_cross_entropy_with_logits(logits, target, pos_weight=existence_pos_weight)))
         counted["existence_terms"] = count
     association = [value for kind, value in terms if kind == "association"]
     existence = [value for kind, value in terms if kind == "existence"]
@@ -361,13 +484,13 @@ def frame_loss(heads: Any, record: Mapping[str, Any], *, device: str = "cpu") ->
 # 4. training: AdamW, per-frame batches, best epoch by validation loss
 # --------------------------------------------------------------------------
 
-def _mean_loss(heads: Any, prepared_records: Sequence[Mapping[str, Any]]) -> float | None:
+def _mean_loss(heads: Any, prepared_records: Sequence[Mapping[str, Any]], *, existence_pos_weight: Any = None) -> float | None:
     import torch
 
     values = []
     with torch.no_grad():
         for prepared in prepared_records:
-            out = prepared_loss(heads, prepared)
+            out = prepared_loss(heads, prepared, existence_pos_weight=existence_pos_weight)
             if out["loss"] is not None:
                 values.append(float(out["loss"].item()))
     return float(np.mean(values)) if values else None
@@ -377,8 +500,13 @@ def train_heads(
     train_records: Sequence[Mapping[str, Any]], validation_records: Sequence[Mapping[str, Any]], *,
     learning_rate: float | None, weight_decay: float | None, epochs: int | None, seed: int | None,
     assoc_only: bool, device: str = "cpu", epoch_callback: Any = None,
+    field_encoding: bool = False, existence_class_weight: bool = False,
 ) -> dict[str, Any]:
     """Train the heads once and keep the best-validation epoch; every value explicit, None refused.
+
+    Ruling 89-2 / 89-3 switches (both off by default, which is the registered recipe bit for bit): ``field_encoding``
+    builds the heads with the field-wise encoding whose statistics come from ``train_records`` only;
+    ``existence_class_weight`` weights gone rows by present / gone rows of ``train_records`` (validation scored alike).
 
     白话：按登记的 seed 初始化并洗牌，每帧一个 batch，AdamW；每个 epoch 结束在 validation 上算一次
     平均损失，跑完全部登记的 epoch 后保留 validation 损失最低那个 epoch 的权重（并列取更早的）。
@@ -399,20 +527,30 @@ def train_heads(
     # every record checked and turned into tensors once, in the order the checks ran before (see ``prepare_frame``)
     train_prepared = [prepare_frame(record, device=device) for record in train_records]
     validation_prepared = [prepare_frame(record, device=device) for record in validation_records]
+    encoding = field_encoding_statistics(train_records, heads=[n for n in HEAD_NAMES if not (assoc_only and n == "existence")]) \
+        if field_encoding else None
+    pos_weight, class_counts = None, None
+    if existence_class_weight and not assoc_only:
+        gone = sum(int(p["existence"][1].sum().item()) for p in train_prepared if p["existence"] is not None)
+        total = sum(p["existence"][2] for p in train_prepared if p["existence"] is not None)
+        _require(gone >= 1 and total - gone >= 1, "existence_class_weight_needs_both_classes")
+        class_counts = {"gone": gone, "present": total - gone, "pos_weight": (total - gone) / gone}
+        pos_weight = torch.as_tensor([(total - gone) / gone], dtype=torch.float32, device=device)
 
-    heads = make_heads(assoc_only=assoc_only, seed=int(seed)).to(device)
+    heads = make_heads(assoc_only=assoc_only, seed=int(seed), encoding=encoding).to(device)
     optimiser = torch.optim.AdamW(heads.parameters(), lr=float(learning_rate), weight_decay=float(weight_decay))
     generator = torch.Generator(device="cpu").manual_seed(int(seed))
     train_curve: list[float | None] = []
     validation_curve: list[float | None] = []
     best: tuple[float, int, dict[str, Any]] | None = None
     diverged = False
+    updates_taken = 0
     for epoch in range(int(epochs)):
         heads.train()
         order = torch.randperm(len(train_records), generator=generator).tolist()
         total, count = 0.0, 0
         for index in order:
-            out = prepared_loss(heads, train_prepared[index])
+            out = prepared_loss(heads, train_prepared[index], existence_pos_weight=pos_weight)
             if out["loss"] is None:
                 continue
             if not torch.isfinite(out["loss"]):
@@ -423,13 +561,14 @@ def train_heads(
             optimiser.step()
             total += float(out["loss"].item())
             count += 1
+            updates_taken += 1
         if diverged:
             train_curve.append(None)
             validation_curve.append(None)
             break
         heads.eval()
         train_curve.append(total / count if count else None)
-        validation = _mean_loss(heads, validation_prepared)
+        validation = _mean_loss(heads, validation_prepared, existence_pos_weight=pos_weight)
         validation_curve.append(validation)
         if validation is not None and (best is None or validation < best[0]):
             best = (validation, epoch, {name: {k: v.detach().cpu().clone() for k, v in module.state_dict().items()}
@@ -446,8 +585,13 @@ def train_heads(
                 "initialisation": INITIALISATION_RULE,
                 "best_epoch": None if best is None else best[1], "train_frames": len(train_records),
                 "validation_frames": len(validation_records), "device": device, "diverged": diverged}
+    if field_encoding or existence_class_weight:
+        training.update({"field_encoding": bool(field_encoding), "existence_class_weight": class_counts,
+                         "existence_class_weight_rule": EXISTENCE_CLASS_WEIGHT_RULE if existence_class_weight else None,
+                         "updates_taken": updates_taken})
     return {"weights": weights_payload(heads, training=training), "heads": heads, "train_curve": train_curve,
-            "validation_curve": validation_curve, "best_epoch": None if best is None else best[1], "diverged": diverged}
+            "validation_curve": validation_curve, "best_epoch": None if best is None else best[1], "diverged": diverged,
+            "updates_taken": updates_taken}
 
 
 #: D-224-S1 ruling 81-2 (2026-09-28), diagnostics only: the controlled comparison counts training in optimizer updates.
@@ -589,6 +733,10 @@ __all__ = [
     "BATCH_RULE",
     "DAGGER_ROUNDS",
     "EARLY_STOPPING_RULE",
+    "EXISTENCE_CLASS_WEIGHT_RULE",
+    "FIELD_ENCODING",
+    "WEIGHTS_SCHEMA_VERSION_FIELD_WISE",
+    "field_encoding_statistics",
     "INITIALISATION_RULE",
     "UPDATE_BUDGET_RULE",
     "EPOCHS",
