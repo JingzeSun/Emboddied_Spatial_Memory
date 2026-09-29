@@ -1,0 +1,209 @@
+{
+ "stage": "vsmt.lean.ruling89.checks.v1",
+ "existence_side_89_2": {
+  "same_input": {
+   "pass": true,
+   "conflicts": {
+    "handcost_rho0.8": 0,
+    "rac_rho0.7_n2": 0,
+    "rac_rho0.7_n3": 0,
+    "rac_rho0.7_n5": 0,
+    "rac_rho0.85_n2": 0,
+    "rac_rho0.85_n3": 0,
+    "rac_rho0.85_n5": 0,
+    "elup_rollout": 0
+   }
+  },
+  "p3": {
+   "per_target": {
+    "handcost": {
+     "present": true,
+     "pass": true,
+     "best_selection_loss": 0.9978722547224859,
+     "last_epoch": 0.9975802086157175,
+     "lowest_training_loss": 0.9946055732054724,
+     "selection_last_epoch": 0.9988753138548832
+    },
+    "rac": {
+     "present": true,
+     "pass": true,
+     "best_selection_loss": 0.9961938413536335,
+     "last_epoch": 0.9945066651341775,
+     "lowest_training_loss": 0.9961938413536335,
+     "selection_last_epoch": 0.9953492231365733
+    },
+    "elup": {
+     "present": true,
+     "pass": false,
+     "best_selection_loss": 0.9796582979129955,
+     "last_epoch": 0.9864087196660722,
+     "lowest_training_loss": 0.9583070263493478,
+     "selection_last_epoch": 0.9868873565423422
+    }
+   },
+   "pass": false
+  },
+  "cell_teacher_association_new_existence": {
+   "missing_residual_rate": {
+    "per_seed": {
+     "7": 0.01839080459770115,
+     "19": 0.0,
+     "31": 0.0,
+     "43": 0.0,
+     "59": 0.0
+    },
+    "mean": 0.0036781609195402297
+   },
+   "node_f1": {
+    "per_seed": {
+     "7": 0.6680212093649631,
+     "19": 0.6725272487978257,
+     "31": 0.6857753964935728,
+     "43": 0.6644946986643195,
+     "59": 0.7186873264175262
+    },
+    "mean": 0.6819011759476414
+   },
+   "false_retract_rate_in_scope_reported": {
+    "per_seed": {
+     "7": 0.9831195937369923,
+     "19": 0.9829945321350033,
+     "31": 0.9816016171300816,
+     "43": 0.9831493470713801,
+     "59": 0.9787474249729763
+    },
+    "mean": 0.9819225030092869
+   },
+   "lines": {
+    "missing_residual_rate_mean_at_most": 0.05,
+    "node_f1_mean_at_least": 0.93
+   },
+   "pass": false
+  },
+  "pass": false
+ },
+ "association_side_89_3": {
+  "coverage_events": {
+   "pass": true,
+   "train": {
+    "retracted": {
+     "events": 18211,
+     "houses": 30,
+     "labelled_target_rows": 51262
+    },
+    "dormant": {
+     "events": 15899,
+     "houses": 30,
+     "labelled_target_rows": 78381
+    }
+   }
+  },
+  "p3": {
+   "per_target": {
+    "taf": {
+     "present": true,
+     "pass": false,
+     "best_selection_loss": 0.9695655915985308,
+     "last_epoch": 0.9689933939948698,
+     "lowest_training_loss": 0.9689933939948698,
+     "selection_last_epoch": 0.9718449611983595
+    },
+    "low": {
+     "present": true,
+     "pass": false,
+     "best_selection_loss": 0.9796442370235621,
+     "last_epoch": 0.9856488807671159,
+     "lowest_training_loss": 0.9796442370235621,
+     "selection_last_epoch": 0.9825391062677341
+    }
+   },
+   "pass": false
+  },
+  "paired_same_recall": {
+   "seeds": [
+    7,
+    19,
+    31,
+    43,
+    59
+   ],
+   "identity_continuity_new_minus_old": {
+    "gaps": [
+     -0.010000000000000004,
+     0.04,
+     -0.012345679012345678,
+     -0.11,
+     -0.01388888888888889
+    ],
+    "positive": 1,
+    "negative": 4,
+    "mean_gap": -0.021246913580246916,
+    "sd_of_gaps": 0.054516420327758525,
+    "established": false,
+    "order": "not_distinguishable_on_the_development_set"
+   },
+   "kept_share_new_minus_old": {
+    "gaps": [
+     -0.015384615384615385,
+     0.06153846153846154,
+     -0.015384615384615385,
+     -0.06153846153846154,
+     0.03076923076923077
+    ],
+    "positive": 2,
+    "negative": 3,
+    "mean_gap": 0.0,
+    "sd_of_gaps": 0.04741856925360751,
+    "established": false,
+    "order": "not_distinguishable_on_the_development_set"
+   },
+   "chose_birth": {
+    "new": {
+     "7": 19,
+     "19": 15,
+     "31": 22,
+     "43": 24,
+     "59": 10
+    },
+    "old": {
+     "7": 18,
+     "19": 19,
+     "31": 29,
+     "43": 13,
+     "59": 10
+    },
+    "mean_new": 18.0,
+    "mean_old": 17.8
+   },
+   "rule": "82-1: for each metric the order of VSMT-lean and AssocOnly is established at the development level iff at least 4 of the 5 seed-paired gaps (house-mean difference on houses defined for both arms) share a strict sign and |mean gap| exceeds the sample standard deviation of the 5 gaps; otherwise it is recorded as not distinguishable on the development set",
+   "pass": false
+  },
+  "pass": false
+ },
+ "joint_89_4": null,
+ "inputs_sha256": {
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling89_p3_taf_003b906.json": "46d1d8d1f2fa4a0931f26fda1e1715bae8fe4619c5f1685bfc49abd3cb419cd1",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling89_p3_low_003b906.json": "e852881d4259a0d57a73001ac3ba62edc3d0897befccd2b6f85095f79bb3c94e",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling89_p3_handcost_003b906.json": "4b8e208b56a4a14e154b3dd05f17d3158b13addc63d6852314fad2b2d7ec99c8",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling89_p3_rac_003b906.json": "704efb49666fa658445a62fd6f69cb2ee259655322e5c177c52c9322ec5aa732",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling89_p3_elup_003b906.json": "5255310c58ee84e11dbe376f2cb1a4eeba781d7cdd2f9b711fb863644a16e27a",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling89_same_input_003b906.json": "bb7e46ab1674adcca7a527d81ccfdccfa021d97a6bd0883297ff997b4eed3c45",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling89_audit_OA-LE-new-A7_003b906.json": "ca489b14c524fcb67e5fbd7ccde8a143fc2e68ad65018205990f56eebdad3ee8",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling89_audit_OA-LE-new-A19_003b906.json": "d4f3fb877ce95827f6bb786662d9cc078c0e44c5e92fec35933a2a4cca42cf77",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling89_audit_OA-LE-new-A31_003b906.json": "9291325759123f18c76b711b496ccb2238ab48bf41fcf36d95c7df5b852dad54",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling89_audit_OA-LE-new-A43_003b906.json": "2db0dd9632d3cd676d679a7e087363c180a900146f9237fbbab61dd1267987e5",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling89_audit_OA-LE-new-A59_003b906.json": "2e92cb86bd782b3ff0a1720f0a2ecfaeca46ea0515471f941cca50565df54751",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling89_coverage_events_003b906.json": "2254e4f8946784599e3e3f0c79ea09fa8f21a61f9be4196657795711ed4766fa",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling89_audit_LA-OE-new-A7_003b906.json": "5db9d663db2a4cdde7bd6d286f4862f5d9a101f104c7b5b5a85d9cfd57d0aa1f",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling89_audit_LA-OE-new-A19_003b906.json": "17b3d52e894e2823df1e2f68d5f72e30bd07f16dd40e2a1154c7f597586cee6b",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling89_audit_LA-OE-new-A31_003b906.json": "12f939f816d1a8183477421d00b23acb27a72dd59d5a04c31e20fa1bd1f0e9ae",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling89_audit_LA-OE-new-A43_003b906.json": "b25107a6805685af934e3f4a07776ebde14229b5abcf967c02ad207270a5fcd3",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling89_audit_LA-OE-new-A59_003b906.json": "d0d1e1923356f0311a1257040ad80491addfa05c68b42f4da58c3e36fa49dedd",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling89_audit_LA-OE-old-A7_003b906.json": "88ac18c97863eeee23d36a0724c31ca9a8b657998d21ab2cfaaae4daeb2a66d3",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling89_audit_LA-OE-old-A19_003b906.json": "441d3849e9384fc641fed45fde8bdc7ac6b4fc932ce7995cbb4ddf45587924b6",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling89_audit_LA-OE-old-A31_003b906.json": "f36e55d2d10fade55beb6175aebda5a80f65e04d073625d9cf822a5b6bca5cce",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling89_audit_LA-OE-old-A43_003b906.json": "8674bdb4da314b74f49d12466828caa0f0274d4900a282ad9344925a610ede7b",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling89_audit_LA-OE-old-A59_003b906.json": "69790a23581081028b30521e40d2019e63b803c853666443418ac3a53fbe1bb1"
+ },
+ "script_sha256": "249490f32ee5a4961afe33d7cbd05ad1a7c8d1154bed81b6a3afe0192b53b714"
+}
