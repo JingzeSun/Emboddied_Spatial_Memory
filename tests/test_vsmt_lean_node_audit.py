@@ -175,6 +175,11 @@ class RulingSeventySixAuditTests(unittest.TestCase):
         dedup = self.report["dedup"]
         self.assertEqual(dedup["ticks"], 5)
         self.assertEqual(sum(dedup["folds_by_identity"].values()), dedup["folds"])
+        self.assertEqual(sum(dedup["folds_by_coobservation"].values()), dedup["folds"])  # v6
+        fold = {"canonical": {"evidence": [{"tick": 1}, {"tick": 4}]}, "folded": {"evidence": [{"tick": 2}, {"tick": 4}]}}
+        self.assertEqual(audit_module.fold_coobservation(fold), "co_observed")
+        fold["folded"]["evidence"] = [{"tick": 2}, {"tick": 3}]
+        self.assertEqual(audit_module.fold_coobservation(fold), "never_co_observed")
         self.assertEqual(set(dedup["pairs_after_fold"]), {f"{s}|{i}" for s in audit_module.DEDUP_STATE_PAIRS for i in audit_module.DEDUP_IDENTITIES})
         for row in dedup["pairs_after_fold"].values():
             for count in row["pass"].values():

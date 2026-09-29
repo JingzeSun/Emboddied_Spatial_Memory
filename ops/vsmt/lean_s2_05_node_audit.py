@@ -78,9 +78,10 @@ for item in (ROOT / "src", HERE.parent):
 from vsmt import lean_teacher as lt  # noqa: E402
 
 AUDIT_FILE_NAME = "node_audit.json"
-SCHEMA_VERSION = "vsmt-s2-05-node-audit-v5"  # v2: ruling 76 (1)(a) centroid ledger, birth reasons, dedup tallies, count-first columns;
+SCHEMA_VERSION = "vsmt-s2-05-node-audit-v6"  # v2: ruling 76 (1)(a) centroid ledger, birth reasons, dedup tallies, count-first columns;
 #                                             v3: ruling 79-2 existence-candidate tally; v4: ruling 80-4 association tally;
-#                                             v5: ruling 81-3 loss-of-carrier events and absence durations
+#                                             v5: ruling 81-3 loss-of-carrier events and absence durations;
+#                                             v6: direction B (2026-09-29): folds filed by whether the two records were ever observed in the same frame
 
 #: Why an in-memory prediction (an entity in ``active``/``dormant`` whose object is not a present
 #: out-of-scope one) did not match under the IoU 0.3 column (the primary column until ruling 72 (B), secondary since).
@@ -156,6 +157,10 @@ DEDUP_DISTANCES_M = (0.25, 0.5, 1.0)
 DEDUP_IOUS = (0.0, 0.05, 0.1)
 DEDUP_STATE_PAIRS = ("active_active", "active_dormant", "dormant_dormant")
 DEDUP_IDENTITIES = ("same_object", "different_objects", "ambiguous")
+#: v6: a fold whose two records both hold evidence from one and the same tick joined two entities that were observed
+#: side by side in one frame -- with instance masks two fragments of one frame are two objects, so such a fold is a
+#: wrong merge by construction; "never_co_observed" folds are the ones a co-observation veto would still allow
+FOLD_COOBSERVATION = ("co_observed", "never_co_observed")
 #: Ruling 79-2: the fields of one existence-candidate tally row (the count follows them).
 EXISTENCE_TALLY_FIELDS = (
     "status", "reason", "object_class", "phase",
@@ -291,6 +296,14 @@ def capture_dedup_folds() -> list[dict[str, Any]]:
     return captured
 
 
+def fold_coobservation(fold: Mapping[str, Any]) -> str:
+    """v6: whether the two records of a captured fold share an evidence tick (were observed in the same frame)."""
+
+    left = {int(item["tick"]) for item in fold["canonical"]["evidence"]}
+    right = {int(item["tick"]) for item in fold["folded"]["evidence"]}
+    return "co_observed" if left & right else "never_co_observed"
+
+
 class NodeAudit:
     """Per-frame loss decomposition and alternative scorings over one episode run."""
 
@@ -326,6 +339,7 @@ class NodeAudit:
         self.truth_centroid_changes: dict[str, list[tuple[int, list[float]]]] = {}
         self.fold_capture: list[dict[str, Any]] | None = None  # set by run(): capture_dedup_folds()
         self.folds_by_identity = {f"{states}|{identity}": 0 for states in DEDUP_STATE_PAIRS for identity in DEDUP_IDENTITIES}
+        self.folds_by_coobservation = {f"{identity}|{co}": 0 for identity in DEDUP_IDENTITIES for co in FOLD_COOBSERVATION}
         self.iou_min = float(iou_min)
         self.delta = float(delta_moved_m)
         self.groups = dict(groups or {})
@@ -840,6 +854,7 @@ class NodeAudit:
             else:
                 identity = "same_object" if left["key"] == right["key"] else "different_objects"
             self.folds_by_identity[f"{states}|{identity}"] += 1
+            self.folds_by_coobservation[f"{identity}|{fold_coobservation(fold)}"] += 1
 
     def _dedup_pairs(self, memory_after: Mapping[str, Any], identities: Mapping[str, Mapping[str, Any]]) -> None:
         """At a dedup tick, tally the entity pairs left after the fold by state pair and private identity at every gate value."""
@@ -934,6 +949,7 @@ class NodeAudit:
             "birth_reasons": {scope: dict(row) for scope, row in self.birth_reasons.items()} if self.arm is not None else None,
             "dedup": {"period_ticks": self.dedup_period, "ticks": self.dedup_ticks, "folds": self.dedup_folds,
                       "folds_by_identity": dict(self.folds_by_identity) if self.fold_capture is not None else None,
+                      "folds_by_coobservation": dict(self.folds_by_coobservation) if self.fold_capture is not None else None,
                       "gate_values": {"cosine": list(DEDUP_COSINES), "distance_m": list(DEDUP_DISTANCES_M), "iou": list(DEDUP_IOUS)},
                       "pairs_after_fold": {name: {"pairs": row["pairs"], "pass": dict(sorted(row["pass"].items()))}
                                            for name, row in self.dedup_pairs.items()}} if self.dedup_period is not None else None,
@@ -1089,7 +1105,7 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
     pooled_centroid_entity = {name: 0 for name in CENTROID_ENTITY_CATEGORIES}
     pooled_centroid_truth = {name: 0 for name in CENTROID_TRUTH_CATEGORIES}
     pooled_births = {scope: {name: 0 for name in BIRTH_REASONS} for scope in ("in_scope_object", "other")}
-    pooled_dedup: dict[str, Any] = {"ticks": 0, "folds": 0, "folds_by_identity": {}, "pairs_after_fold": {}}
+    pooled_dedup: dict[str, Any] = {"ticks": 0, "folds": 0, "folds_by_identity": {}, "folds_by_coobservation": {}, "pairs_after_fold": {}}
     pooled_wrong: dict[str, int] = {}
     pooled_existence: dict[tuple[str, ...], int] = {}
     pooled_association: dict[tuple[str, ...], int] = {}
@@ -1122,6 +1138,8 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
             pooled_dedup["folds"] += int(audit["dedup"]["folds"])
             for name, value in (audit["dedup"].get("folds_by_identity") or {}).items():
                 pooled_dedup["folds_by_identity"][name] = pooled_dedup["folds_by_identity"].get(name, 0) + int(value)
+            for name, value in (audit["dedup"].get("folds_by_coobservation") or {}).items():
+                pooled_dedup["folds_by_coobservation"][name] = pooled_dedup["folds_by_coobservation"].get(name, 0) + int(value)
             for name, row in audit["dedup"]["pairs_after_fold"].items():
                 target = pooled_dedup["pairs_after_fold"].setdefault(name, {"pairs": 0, "pass": {}})
                 target["pairs"] += int(row["pairs"])
@@ -1168,7 +1186,7 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
         })
     _require(bool(episodes), f"no_audits_found:{output_root}/*/{arm}")
     return {
-        "schema_version": "vsmt-s2-05-node-audit-merged-v5",
+        "schema_version": "vsmt-s2-05-node-audit-merged-v6",
         "stage": "S2-05 node audit (read-only, pooled)", "arm": arm, "output_root": str(output_root),
         "code_commits": sorted(commits), "episodes": len(episodes),
         "pooled_rules": {rule: _prf(s["matched"], s["predicted"], s["truth"]) for rule, s in pooled_rules.items()},
