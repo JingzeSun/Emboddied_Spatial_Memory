@@ -260,6 +260,30 @@ class FieldWiseTests(unittest.TestCase):
         self.assertEqual(plain["weights"]["schema_version"], model.WEIGHTS_SCHEMA_VERSION)
         self.assertNotIn("field_encoding", plain["weights"]["training"])
 
+    def test_the_batched_frame_loss_is_the_per_fragment_loss(self) -> None:
+        import torch
+        train, _ = self.records()
+        heads = model.make_heads(assoc_only=False, seed=4, encoding=model.field_encoding_statistics(train))
+        weight = torch.as_tensor([3.0])
+        for record in train + [labelled_frame(71, drop="lamp", new=True)]:
+            prepared = model.prepare_frame(record)
+            a = model.prepared_loss(heads, prepared, existence_pos_weight=weight)
+            b = model.batched_loss(heads, model.batch_prepared(prepared), existence_pos_weight=weight)
+            self.assertEqual(a["association_terms"], b["association_terms"])
+            self.assertAlmostEqual(float(a["loss"]), float(b["loss"]), places=5)
+            a["loss"].backward()
+            grad_a = [p.grad.clone() for p in heads.parameters() if p.grad is not None]
+            heads.zero_grad()
+            b["loss"].backward()
+            grad_b = [p.grad.clone() for p in heads.parameters() if p.grad is not None]
+            heads.zero_grad()
+            for x, y in zip(grad_a, grad_b):
+                self.assertTrue(torch.allclose(x, y, atol=1e-5))
+        assoc = model.make_heads(assoc_only=True, seed=4, encoding=model.field_encoding_statistics(train, heads=["association", "birth"]))
+        prepared = model.prepare_frame(train[0])
+        self.assertAlmostEqual(float(model.prepared_loss(assoc, prepared)["loss"]),
+                               float(model.batched_loss(assoc, model.batch_prepared(prepared))["loss"]), places=5)
+
     def test_the_class_weight_multiplies_the_gone_rows(self) -> None:
         import torch
         record = labelled_frame(21, drop="lamp")

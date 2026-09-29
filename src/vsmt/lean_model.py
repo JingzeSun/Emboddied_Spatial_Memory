@@ -469,6 +469,67 @@ def prepared_loss(heads: Any, prepared: Mapping[str, Any], *, existence_pos_weig
     return {"loss": loss, **counted}
 
 
+def batch_prepared(prepared: Mapping[str, Any], *, device: str = "cpu") -> dict[str, Any]:
+    """One prepared frame with its fragments batched: one forward per head per frame instead of one per fragment.
+
+    Engineering for the ruling-89 recipe (2026-09-30; one registered 20-epoch training on the round-1 records took 5,522 s,
+    most of it in per-fragment forward calls).  The loss is the same function -- the mean over labelled fragments of the
+    softmax cross-entropy over [recalled columns..., BIRTH] plus the existence term -- computed on a padded score matrix whose
+    padding is -inf, so values agree with ``prepared_loss`` up to float summation order (pinned by test).  It is used only
+    under ``field_encoding``; the registered default path is untouched.
+    """
+
+    import torch
+
+    pairs, births, index_rows, targets = [], [], [], []
+    offset = 0
+    for pair_rows, birth_row, target in prepared["association"]:
+        count = 0 if pair_rows is None else int(pair_rows.shape[0])
+        if pair_rows is not None:
+            pairs.append(pair_rows)
+        births.append(birth_row)
+        index_rows.append((offset, count))
+        offset += count
+        targets.append(int(target.item()))
+    batched: dict[str, Any] = {"fragments": len(targets), "existence": prepared["existence"],
+                               "association_excluded": prepared["association_excluded"], "existence_excluded": prepared["existence_excluded"]}
+    if targets:
+        width = max(count for _, count in index_rows) + 1
+        total_pairs = offset
+        index = torch.zeros((len(targets), width), dtype=torch.long, device=device)
+        mask = torch.zeros((len(targets), width), dtype=torch.bool, device=device)
+        for row, (start, count) in enumerate(index_rows):
+            if count:
+                index[row, :count] = torch.arange(start, start + count, device=device)
+            index[row, count] = total_pairs + row
+            mask[row, :count + 1] = True
+        batched.update({"pairs": torch.cat(pairs) if pairs else None, "births": torch.cat(births), "index": index, "mask": mask,
+                        "targets": torch.as_tensor(targets, dtype=torch.long, device=device)})
+    return batched
+
+
+def batched_loss(heads: Any, batched: Mapping[str, Any], *, existence_pos_weight: Any = None) -> dict[str, Any]:
+    """``prepared_loss`` on a ``batch_prepared`` frame (same terms, same weights, batched forward calls)."""
+
+    import torch
+
+    parts = []
+    if batched["fragments"]:
+        pair_logits = heads["association"](batched["pairs"]).reshape(-1) if batched["pairs"] is not None else None
+        birth_logits = heads["birth"](batched["births"]).reshape(-1)
+        flat = birth_logits if pair_logits is None else torch.cat([pair_logits, birth_logits])
+        scores = flat[batched["index"]].masked_fill(~batched["mask"], float("-inf"))
+        parts.append(torch.nn.functional.cross_entropy(scores, batched["targets"]))
+    existence_terms = 0
+    if batched["existence"] is not None and not is_assoc_only(heads):
+        rows, target, count = batched["existence"]
+        logits = heads["existence"](rows).reshape(-1)
+        parts.append(torch.nn.functional.binary_cross_entropy_with_logits(logits, target, pos_weight=existence_pos_weight))
+        existence_terms = count
+    loss = torch.stack(parts).sum() if parts else None
+    return {"loss": loss, "association_terms": batched["fragments"], "existence_terms": existence_terms}
+
+
 def frame_loss(heads: Any, record: Mapping[str, Any], *, device: str = "cpu") -> dict[str, Any]:
     """The registered loss on one labelled frame, with the term counts; None when no term applies.
 
@@ -484,13 +545,14 @@ def frame_loss(heads: Any, record: Mapping[str, Any], *, device: str = "cpu") ->
 # 4. training: AdamW, per-frame batches, best epoch by validation loss
 # --------------------------------------------------------------------------
 
-def _mean_loss(heads: Any, prepared_records: Sequence[Mapping[str, Any]], *, existence_pos_weight: Any = None) -> float | None:
+def _mean_loss(heads: Any, prepared_records: Sequence[Mapping[str, Any]], *, existence_pos_weight: Any = None,
+               loss_fn: Any = None) -> float | None:
     import torch
 
     values = []
     with torch.no_grad():
         for prepared in prepared_records:
-            out = prepared_loss(heads, prepared, existence_pos_weight=existence_pos_weight)
+            out = (loss_fn or prepared_loss)(heads, prepared, existence_pos_weight=existence_pos_weight)
             if out["loss"] is not None:
                 values.append(float(out["loss"].item()))
     return float(np.mean(values)) if values else None
@@ -531,12 +593,17 @@ def train_heads(
         if field_encoding else None
     pos_weight, class_counts = None, None
     if existence_class_weight and not assoc_only:
-        gone = sum(int(p["existence"][1].sum().item()) for p in train_prepared if p["existence"] is not None)
+        gone = sum(int(round(float(p["existence"][1].sum().item()))) for p in train_prepared if p["existence"] is not None)
         total = sum(p["existence"][2] for p in train_prepared if p["existence"] is not None)
         _require(gone >= 1 and total - gone >= 1, "existence_class_weight_needs_both_classes")
         class_counts = {"gone": gone, "present": total - gone, "pos_weight": (total - gone) / gone}
         pos_weight = torch.as_tensor([(total - gone) / gone], dtype=torch.float32, device=device)
 
+    loss_fn = prepared_loss
+    if field_encoding:  # the ruling-89 recipe: one forward per head per frame (batch_prepared), same loss
+        train_prepared = [batch_prepared(p, device=device) for p in train_prepared]
+        validation_prepared = [batch_prepared(p, device=device) for p in validation_prepared]
+        loss_fn = batched_loss
     heads = make_heads(assoc_only=assoc_only, seed=int(seed), encoding=encoding).to(device)
     optimiser = torch.optim.AdamW(heads.parameters(), lr=float(learning_rate), weight_decay=float(weight_decay))
     generator = torch.Generator(device="cpu").manual_seed(int(seed))
@@ -550,7 +617,7 @@ def train_heads(
         order = torch.randperm(len(train_records), generator=generator).tolist()
         total, count = 0.0, 0
         for index in order:
-            out = prepared_loss(heads, train_prepared[index], existence_pos_weight=pos_weight)
+            out = loss_fn(heads, train_prepared[index], existence_pos_weight=pos_weight)
             if out["loss"] is None:
                 continue
             if not torch.isfinite(out["loss"]):
@@ -568,7 +635,7 @@ def train_heads(
             break
         heads.eval()
         train_curve.append(total / count if count else None)
-        validation = _mean_loss(heads, validation_prepared, existence_pos_weight=pos_weight)
+        validation = _mean_loss(heads, validation_prepared, existence_pos_weight=pos_weight, loss_fn=loss_fn)
         validation_curve.append(validation)
         if validation is not None and (best is None or validation < best[0]):
             best = (validation, epoch, {name: {k: v.detach().cpu().clone() for k, v in module.state_dict().items()}
@@ -737,6 +804,8 @@ __all__ = [
     "FIELD_ENCODING",
     "WEIGHTS_SCHEMA_VERSION_FIELD_WISE",
     "field_encoding_statistics",
+    "batch_prepared",
+    "batched_loss",
     "INITIALISATION_RULE",
     "UPDATE_BUDGET_RULE",
     "EPOCHS",
