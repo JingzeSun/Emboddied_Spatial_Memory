@@ -16,6 +16,8 @@
 # Run from a clean worktree at the commit to use:
 #   (setsid nohup bash ops/vsmt/ruling89_sides.sh > /root/autodl-tmp/vsmt_outputs/run_logs/ruling89-sides-<commit>.log 2>&1 < /dev/null &)
 # RESUME=1 skips the suite; every step keeps finished outputs and only does what is missing.
+# REVISION_91=1 (pending ruling 91 only, never by default): trainings and P3 use the cosine-decayed rate with gradient clipping,
+#   the diag root gets the suffix -r91, and the five P3 imitations run first as a gate (all must pass before any rollout).
 set -u
 WORKTREE=$(cd "$(dirname "$0")/../.." && pwd)
 cd "$WORKTREE" || exit 2
@@ -31,9 +33,12 @@ REID_WEIGHTS=$AUTODL/vsmt_private/lean-s1-04-diagnostics-oracle-caa50c7/reid_hea
 EPISODE_ROOTS=$OUTPUTS/lean-s1-02a-5f9aa71,$OUTPUTS/lean-s1-02b-5f9aa71
 R81=$AUTODL/vsmt_private/ruling81-0e4494d/training
 R82=$AUTODL/vsmt_private/ruling82-18f943f/training
-DIAG=$AUTODL/vsmt_private/ruling89-sides-$COMMIT
+REVISION_91=${REVISION_91:-0}
+REV_FLAG=""; REV_SUFFIX=""; [ "$REVISION_91" = "1" ] && { REV_FLAG="--revision-91"; REV_SUFFIX="-r91"; }
+DIAG=$AUTODL/vsmt_private/ruling89-sides-$COMMIT$REV_SUFFIX
+LOG_DIR=$LOG_DIR$REV_SUFFIX
 PROBES=$DIAG/probes
-STATUS=$EXPORT_DIR/ruling89_sides_$COMMIT.status.json
+STATUS=$EXPORT_DIR/ruling89_sides_$COMMIT${REV_SUFFIX}.status.json
 QUOTA=$(awk '{ if ($1 == "max") print 16; else print int($1 / $2) }' /sys/fs/cgroup/cpu.max 2>/dev/null || echo 16)
 WORKERS=${WORKERS:-$((QUOTA - 4))}
 PASS_WORKERS=${PASS_WORKERS:-39}
@@ -114,13 +119,18 @@ gate "$PROBES/same_input.json" "d['pass']" || { wait $BASE_PID; finish same_inpu
 P3_JOBS=$LOG_DIR/p3_jobs.txt; : > "$P3_JOBS"
 for T in $TARGETS; do
   [ -f "$PROBES/imitation/imitation_$T.json" ] && continue
-  printf '%s\n' "PYTHONPATH=src $PY ops/vsmt/ruling89_probes.py imitation --source $SRC0 --target $T --output-dir $PROBES/imitation > $LOG_DIR/p3-$T.log 2>&1; echo \"P3 $T exit \$?\"" >> "$P3_JOBS"
+  printf '%s\n' "PYTHONPATH=src $PY ops/vsmt/ruling89_probes.py imitation --source $SRC0 --target $T --output-dir $PROBES/imitation $REV_FLAG > $LOG_DIR/p3-$T.log 2>&1; echo \"P3 $T exit \$?\"" >> "$P3_JOBS"
 done
 xargs -d '\n' -P 5 -I{} bash -c '{}' < "$P3_JOBS" >> "$LOG_DIR/p3_exits.log" 2>&1 &
 P3_PID=$!
+if [ "$REVISION_91" = "1" ]; then  # pending ruling 91: P3 is the gate before any rollout
+  wait $P3_PID
+  for T in $TARGETS; do gate "$PROBES/imitation/imitation_$T.json" "d['pass']" || { wait $BASE_PID; finish p3_gate_failed_under_revision_91; }; done
+  echo "[$(date)] revision 91: all five P3 targets pass on both readings"
+fi
 T0=$DIAG/training/round0/VSMT-lean
 if [ ! -f "$T0/weights.json" ]; then
-  PYTHONPATH=src $PY ops/vsmt/ruling89_train.py --source "$SRC0" --arm VSMT-lean --seed 7 --out-dir "$T0" > "$LOG_DIR/train0.log" 2>&1
+  PYTHONPATH=src $PY ops/vsmt/ruling89_train.py --source "$SRC0" --arm VSMT-lean --seed 7 --out-dir "$T0" $REV_FLAG > "$LOG_DIR/train0.log" 2>&1
 fi
 TRAIN0_RC=$?
 echo "[$(date)] round-0 training exit $TRAIN0_RC: $(tail -1 "$LOG_DIR/train0.log")"
@@ -146,7 +156,7 @@ TRAIN_JOBS=$LOG_DIR/train1_jobs.txt; : > "$TRAIN_JOBS"
 for SEED in $SEEDS; do
   T1=$DIAG/training/round1/VSMT-lean/A$SEED
   [ -f "$T1/weights.json" ] && continue
-  printf '%s\n' "PYTHONPATH=src $PY ops/vsmt/ruling89_train.py --source $SRC0 --source $SRC1 --arm VSMT-lean --seed $SEED --out-dir $T1 > $LOG_DIR/train1-A$SEED.log 2>&1; echo \"train1 A$SEED exit \$?\"" >> "$TRAIN_JOBS"
+  printf '%s\n' "PYTHONPATH=src $PY ops/vsmt/ruling89_train.py --source $SRC0 --source $SRC1 --arm VSMT-lean --seed $SEED --out-dir $T1 $REV_FLAG > $LOG_DIR/train1-A$SEED.log 2>&1; echo \"train1 A$SEED exit \$?\"" >> "$TRAIN_JOBS"
 done
 xargs -d '\n' -P 5 -I{} bash -c '{}' < "$TRAIN_JOBS" >> "$LOG_DIR/train1_exits.log" 2>&1
 TRAIN1_FAILED=$(grep -vc 'exit 0$' "$LOG_DIR/train1_exits.log" 2>/dev/null || echo 0)

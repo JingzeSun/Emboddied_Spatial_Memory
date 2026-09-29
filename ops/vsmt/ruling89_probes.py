@@ -202,6 +202,14 @@ def imitation_record(record: Mapping[str, Any], target: str) -> tuple[dict[str, 
     return imitation, keep, decisions
 
 
+def revision_kwargs(args: argparse.Namespace) -> dict[str, Any]:
+    """Pending ruling 91 only: the proposed schedule; absent, the ruling-89 recipe as registered."""
+
+    if not getattr(args, "revision_91", False):
+        return {}
+    return {"cosine_min_learning_rate": 1e-5, "gradient_clip_norm": 1.0}
+
+
 def agreement(heads: Any, built: Sequence[tuple[dict[str, Any], dict[str, Any], dict[str, str]]], target: str) -> dict[str, Any]:
     return r88p.balanced_agreement(p for _, keep, decisions in built for p in r88p.agreement_pairs(heads, keep, target, decisions))
 
@@ -224,7 +232,7 @@ def cmd_imitation(args: argparse.Namespace) -> int:
     result = model.train_heads([b[0] for b in built["train"]], [b[0] for b in built["selection"]],
                                learning_rate=model.LEARNING_RATE, weight_decay=arms.WEIGHT_DECAY, epochs=int(args.epochs),
                                seed=int(arms.SEEDS[0]), assoc_only=assoc_only, device="cpu", epoch_callback=keep_epoch,
-                               field_encoding=True, existence_class_weight=not assoc_only)
+                               field_encoding=True, existence_class_weight=not assoc_only, **revision_kwargs(args))
     heads = result["heads"].eval()
     curve = [v for v in result["train_curve"]]
     last = len(curve) - 1
@@ -249,7 +257,8 @@ def cmd_imitation(args: argparse.Namespace) -> int:
                     **{k: v[1] for k, v in r88p.ASSOCIATION_TARGETS.items()}}[target],
            "sources": args.sources, "holdout": split, "frames": {g: len(r) for g, r in built.items()},
            "recipe": {"learning_rate": model.LEARNING_RATE, "weight_decay": arms.WEIGHT_DECAY, "epochs": int(args.epochs),
-                      "seed": int(arms.SEEDS[0]), "field_encoding": True, "existence_class_weight": not assoc_only},
+                      "seed": int(arms.SEEDS[0]), "field_encoding": True, "existence_class_weight": not assoc_only,
+                      **revision_kwargs(args)},
            "training": {k: result["weights"]["training"].get(k) for k in ("existence_class_weight", "updates_taken", "best_epoch")},
            "train_curve": result["train_curve"], "validation_curve": result["validation_curve"], "diverged": result["diverged"],
            "readings": readings, "pass_line": PASS_LINE, "pass_by_reading": passes,
@@ -315,6 +324,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     i.add_argument("--target", required=True, choices=TARGETS)
     i.add_argument("--output-dir", required=True)
     i.add_argument("--epochs", type=int, default=20)
+    i.add_argument("--revision-91", action="store_true", help="pending ruling 91 only: cosine-decayed rate and gradient clipping")
     i.set_defaults(func=cmd_imitation)
     c = sub.add_parser("coverage-events")
     c.add_argument("--source", dest="sources", action="append", required=True)

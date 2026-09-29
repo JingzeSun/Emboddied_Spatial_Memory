@@ -45,6 +45,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--seed", type=int, required=True)
     parser.add_argument("--out-dir", required=True)
     parser.add_argument("--device", default="cpu")
+    parser.add_argument("--revision-91", action="store_true", help="pending ruling 91 only: cosine-decayed rate and gradient clipping")
     args = parser.parse_args(argv)
     if args.seed not in arms.SEEDS:
         print(f"seed {args.seed} is not a registered seed {arms.SEEDS}", file=sys.stderr)
@@ -60,13 +61,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     started = time.time()
     result = model.train_heads(train_records, validation_records, learning_rate=float(training["learning_rate"]),
                                weight_decay=float(training["weight_decay"]), epochs=int(training["epochs"]), seed=int(args.seed),
-                               assoc_only=assoc_only, device=args.device, field_encoding=True, existence_class_weight=not assoc_only)
+                               assoc_only=assoc_only, device=args.device, field_encoding=True, existence_class_weight=not assoc_only,
+                               **probes.revision_kwargs(args))
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "weights.json").write_text(json.dumps(result["weights"]), encoding="utf-8")
     receipt = {"stage": STAGE, "arm": args.arm, "assoc_only": assoc_only, "seed": args.seed, "sources": args.sources, "holdout": split,
                "recipe": {"learning_rate": training["learning_rate"], "weight_decay": training["weight_decay"], "epochs": training["epochs"],
-                          "field_encoding": True, "existence_class_weight": not assoc_only,
+                          "field_encoding": True, "existence_class_weight": not assoc_only, **probes.revision_kwargs(args),
                           "concatenation": "every source in full, no resampling; the budget is the registered epochs over the concatenation"},
                "train_frames": len(train_records), "validation_frames": len(validation_records),
                "updates_taken": result["updates_taken"], "existence_class_weight": result["weights"]["training"].get("existence_class_weight"),

@@ -85,6 +85,9 @@ FIELD_ENCODING_STATISTICS_RULE = ("mean and population standard deviation of eac
                                   "training houses' records; a standard deviation below 1e-8 is replaced by 1; identity fields keep 0 and 1")
 #: Ruling 89-2 (a): the existence loss weights gone rows by (present rows / gone rows) of the training houses.
 EXISTENCE_CLASS_WEIGHT_RULE = "binary cross-entropy with pos_weight = present rows / gone rows over the training houses' records"
+#: Proposed for pending ruling 91 only (2026-09-30, off by default, not a registered recipe): the learning rate of epoch e is
+#: lr_min + (lr - lr_min) * (1 + cos(pi * e / epochs)) / 2 and each step's gradient norm is clipped.
+COSINE_SCHEDULE_RULE = "per epoch e of E: lr_e = lr_min + (lr - lr_min) * (1 + cos(pi * e / E)) / 2; gradient norm clipped before each step"
 #: The S0-05 contract's own words for the loss (bound by the arms validator through the contract).
 LOSS_RULE = ("per-fragment softmax cross-entropy over [recalled columns..., BIRTH column] plus "
              "per-entity existence binary cross-entropy, equal weights")
@@ -563,6 +566,7 @@ def train_heads(
     learning_rate: float | None, weight_decay: float | None, epochs: int | None, seed: int | None,
     assoc_only: bool, device: str = "cpu", epoch_callback: Any = None,
     field_encoding: bool = False, existence_class_weight: bool = False,
+    cosine_min_learning_rate: float | None = None, gradient_clip_norm: float | None = None,
 ) -> dict[str, Any]:
     """Train the heads once and keep the best-validation epoch; every value explicit, None refused.
 
@@ -613,6 +617,10 @@ def train_heads(
     diverged = False
     updates_taken = 0
     for epoch in range(int(epochs)):
+        if cosine_min_learning_rate is not None:  # pending ruling 91 only; None keeps the registered constant rate
+            rate = float(cosine_min_learning_rate) + (float(learning_rate) - float(cosine_min_learning_rate)) * (1.0 + math.cos(math.pi * epoch / int(epochs))) / 2.0
+            for group in optimiser.param_groups:
+                group["lr"] = rate
         heads.train()
         order = torch.randperm(len(train_records), generator=generator).tolist()
         total, count = 0.0, 0
@@ -625,6 +633,8 @@ def train_heads(
                 break
             optimiser.zero_grad()
             out["loss"].backward()
+            if gradient_clip_norm is not None:
+                torch.nn.utils.clip_grad_norm_(heads.parameters(), float(gradient_clip_norm))
             optimiser.step()
             total += float(out["loss"].item())
             count += 1
@@ -656,6 +666,9 @@ def train_heads(
         training.update({"field_encoding": bool(field_encoding), "existence_class_weight": class_counts,
                          "existence_class_weight_rule": EXISTENCE_CLASS_WEIGHT_RULE if existence_class_weight else None,
                          "updates_taken": updates_taken})
+    if cosine_min_learning_rate is not None or gradient_clip_norm is not None:
+        training.update({"cosine_min_learning_rate": cosine_min_learning_rate, "gradient_clip_norm": gradient_clip_norm,
+                         "schedule_rule": COSINE_SCHEDULE_RULE})
     return {"weights": weights_payload(heads, training=training), "heads": heads, "train_curve": train_curve,
             "validation_curve": validation_curve, "best_epoch": None if best is None else best[1], "diverged": diverged,
             "updates_taken": updates_taken}

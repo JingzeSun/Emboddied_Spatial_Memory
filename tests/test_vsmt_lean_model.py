@@ -284,6 +284,18 @@ class FieldWiseTests(unittest.TestCase):
         self.assertAlmostEqual(float(model.prepared_loss(assoc, prepared)["loss"]),
                                float(model.batched_loss(assoc, model.batch_prepared(prepared))["loss"]), places=5)
 
+    def test_the_pending_91_schedule_is_off_by_default_and_recorded_when_on(self) -> None:
+        train, validation = self.records()
+        base = dict(learning_rate=1e-3, weight_decay=1e-4, epochs=2, seed=7, assoc_only=False, field_encoding=True,
+                    existence_class_weight=True)
+        plain = model.train_heads(train, validation, **base)
+        again = model.train_heads(train, validation, **base, cosine_min_learning_rate=None, gradient_clip_norm=None)
+        self.assertEqual(plain["weights"]["sha256"], again["weights"]["sha256"])
+        self.assertNotIn("schedule_rule", plain["weights"]["training"])
+        scheduled = model.train_heads(train, validation, **base, cosine_min_learning_rate=1e-5, gradient_clip_norm=1.0)
+        self.assertNotEqual(plain["weights"]["sha256"], scheduled["weights"]["sha256"])
+        self.assertEqual(scheduled["weights"]["training"]["gradient_clip_norm"], 1.0)
+
     def test_the_class_weight_multiplies_the_gone_rows(self) -> None:
         import torch
         record = labelled_frame(21, drop="lamp")
