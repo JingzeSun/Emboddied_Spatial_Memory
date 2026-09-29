@@ -1,0 +1,92 @@
+{
+ "commit": "18f943f9d278df4667065272d2bcc16183c4d5eb",
+ "diag_root": "/root/autodl-tmp/vsmt_private/ruling82-18f943f",
+ "groups": {
+  "VSMT-lean-A31": {
+   "merge_exit": 0,
+   "merge_stderr_tail": "",
+   "results": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s2_05_node_audit_ruling82_VSMT-lean-A31_18f943f.json",
+   "audits_missing": []
+  },
+  "VSMT-lean-A43": {
+   "merge_exit": 0,
+   "merge_stderr_tail": "",
+   "results": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s2_05_node_audit_ruling82_VSMT-lean-A43_18f943f.json",
+   "audits_missing": []
+  },
+  "VSMT-lean-A59": {
+   "merge_exit": 0,
+   "merge_stderr_tail": "",
+   "results": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s2_05_node_audit_ruling82_VSMT-lean-A59_18f943f.json",
+   "audits_missing": []
+  },
+  "AssocOnly-A31": {
+   "merge_exit": 0,
+   "merge_stderr_tail": "",
+   "results": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s2_05_node_audit_ruling82_AssocOnly-A31_18f943f.json",
+   "audits_missing": []
+  },
+  "AssocOnly-A43": {
+   "merge_exit": 0,
+   "merge_stderr_tail": "",
+   "results": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s2_05_node_audit_ruling82_AssocOnly-A43_18f943f.json",
+   "audits_missing": []
+  },
+  "AssocOnly-A59": {
+   "merge_exit": 0,
+   "merge_stderr_tail": "",
+   "results": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s2_05_node_audit_ruling82_AssocOnly-A59_18f943f.json",
+   "audits_missing": []
+  }
+ },
+ "trainings": {
+  "VSMT-lean-A31": {
+   "results": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s2_05_controlled_training_VSMT-lean-A31_18f943f.json",
+   "best_update": 390096,
+   "updates_taken": 650160,
+   "diverged": false,
+   "weights_sha256": "f38995c128d7ecc0222f8d9959ae5a3b7d6de22619ade1e9c682fa7e8c713c08"
+  },
+  "VSMT-lean-A43": {
+   "results": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s2_05_controlled_training_VSMT-lean-A43_18f943f.json",
+   "best_update": 227556,
+   "updates_taken": 650160,
+   "diverged": false,
+   "weights_sha256": "db42b8ee330ff3c7ed42e252d79260b4c6a1dde566ccdff3f641ed370e831a40"
+  },
+  "VSMT-lean-A59": {
+   "results": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s2_05_controlled_training_VSMT-lean-A59_18f943f.json",
+   "best_update": 650160,
+   "updates_taken": 650160,
+   "diverged": false,
+   "weights_sha256": "15927b432bb1bcb7cea3fcb55312c1b98e0336b0831a70ea36b9cd298aef6461"
+  },
+  "AssocOnly-A31": {
+   "results": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s2_05_controlled_training_AssocOnly-A31_18f943f.json",
+   "best_update": 389856,
+   "updates_taken": 649760,
+   "diverged": false,
+   "weights_sha256": "047a84cf990ad301f5bd962abf6c096f0e88c31a20849dce97f850ecd40f543c"
+  },
+  "AssocOnly-A43": {
+   "results": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s2_05_controlled_training_AssocOnly-A43_18f943f.json",
+   "best_update": 259904,
+   "updates_taken": 649760,
+   "diverged": false,
+   "weights_sha256": "994e72056f23b814c938a58507e5472fe40aff4ed22cd78660a49020421ba412"
+  },
+  "AssocOnly-A59": {
+   "results": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s2_05_controlled_training_AssocOnly-A59_18f943f.json",
+   "best_update": 259904,
+   "updates_taken": 649760,
+   "diverged": false,
+   "weights_sha256": "b80b953e2e3c9987be7ac428bda693e25c820ffe8ebb077ef8a97e8fa13ee293"
+  }
+ },
+ "analysis": {
+  "exit": 0,
+  "results": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_s2_05_ruling82_seed_analysis_18f943f.json",
+  "stdout_tail": "{\n \"node_prf1\": \"not_distinguishable_on_the_development_set\",\n \"missing_residual_rate\": \"not_distinguishable_on_the_development_set\",\n \"identity_continuity\": \"not_distinguishable_on_the_development_set\",\n \"contamination_auc\": \"not_distinguishable_on_the_development_set\",\n \"node_prf1_iou\": \"not_distinguishable_on_the_development_set\",\n \"recovery_latency_frames\": \"not_distinguishable_on_the_development_set\"\n}\n",
+  "stderr_tail": ""
+ }
+}
