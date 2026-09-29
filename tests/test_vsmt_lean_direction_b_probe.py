@@ -71,6 +71,7 @@ class GateTests(unittest.TestCase):
         self.assertEqual((far["wrong_bind_outside_gate"], far["correct_bind_outside_gate"]), (0, 0))
         self.assertEqual(sum(v for k, v in tally["histogram"].items() if k.startswith("wrong_bind|[1.0,2.0)|iou_zero")), 1)
         self.assertIn(f"f:lamp|{ids['vase']}", association)
+        self.assertEqual(tally["geometry"], {"wrong_bind|target_near|chosen_far|target_active": 1})  # the lamp fragment sits on its own entity
         self.assertEqual(sum(v for k, v in tally["histogram"].items() if k.startswith("correct_bind|[2.0,4.0)")), 1)
 
     def test_merge_and_summary_shares(self) -> None:

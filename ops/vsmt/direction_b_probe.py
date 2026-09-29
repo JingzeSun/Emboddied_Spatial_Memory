@@ -36,7 +36,7 @@ for item in (ROOT / "src", ROOT / "ops" / "vsmt"):
 from vsmt import lean_assignment as la  # noqa: E402
 from vsmt import lean_model as model  # noqa: E402
 
-STAGE = "vsmt.lean.s2_05.direction_b_probe.v1"
+STAGE = "vsmt.lean.s2_05.direction_b_probe.v2"
 OWN_PASS = "dagger_round_1"
 DISTANCE_INDEX = la.ASSOCIATION_FEATURES.index("centroid_distance_m")
 IOU_INDEX = la.ASSOCIATION_FEATURES.index("aabb_iou")
@@ -138,7 +138,18 @@ def empty_tally(tolerances: Sequence[float]) -> dict[str, Any]:
                          "correct_bind_outside_gate": 0, "correct_bind_blocked_to": {"birth": 0, "active": 0, "dormant": 0, "retracted": 0},
                          "birth_instead_of_bind_target_outside_gate": 0,
                          "inside_gate_decisions_changed": 0}
-    return {"decisions": 0, "outcomes": {}, "histogram": {}, "per_tolerance": per_t}
+    return {"decisions": 0, "outcomes": {}, "histogram": {}, "geometry": {}, "per_tolerance": per_t}
+
+
+NEAR_M = 0.25
+
+
+def geometry_key(item: Mapping[str, Any]) -> str:
+    """Where the fragment sits relative to the teacher's entity and the student's entity (near = within 0.25 m)."""
+
+    def side(distance: float | None) -> str:
+        return "na" if distance is None else ("near" if distance < NEAR_M else "far")
+    return f"{item['outcome']}|target_{side(item['target_distance_m'])}|chosen_{side(item['chosen_distance_m'])}|target_{item['target_kind']}"
 
 
 def add_histogram(tally: dict[str, Any], outcome: str, distance_m: float | None, iou: float | None) -> None:
@@ -160,6 +171,9 @@ def frame_outcomes(record: Mapping[str, Any], association_logits: Mapping[str, f
         tally["outcomes"][item["outcome"]] = tally["outcomes"].get(item["outcome"], 0) + 1
         if item["outcome"] in ("correct_bind", "wrong_bind"):
             add_histogram(tally, item["outcome"], item["chosen_distance_m"], item["chosen_iou"])
+        if item["outcome"] in ("wrong_bind", "wrong_reactivate", "birth_instead_of_bind"):
+            key = geometry_key(item)
+            tally["geometry"][key] = tally["geometry"].get(key, 0) + 1
     for t in tolerances:
         bucket = tally["per_tolerance"][str(t)]
         gated, count = gated_association_logits(stage_a, association_logits, birth_logits, t, box_clause=box_clause)
@@ -193,6 +207,8 @@ def merge_tallies(into: dict[str, Any], other: Mapping[str, Any]) -> None:
         into["outcomes"][k] = into["outcomes"].get(k, 0) + v
     for k, v in other["histogram"].items():
         into["histogram"][k] = into["histogram"].get(k, 0) + v
+    for k, v in other.get("geometry", {}).items():
+        into["geometry"][k] = into["geometry"].get(k, 0) + v
     for t, bucket in other["per_tolerance"].items():
         mine = into["per_tolerance"][t]
         for k, v in bucket.items():
@@ -293,6 +309,7 @@ def summarise(inputs: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
         wrong = p["outcomes"].get("wrong_bind", 0)
         correct = p["outcomes"].get("correct_bind", 0)
         per_arm[arm] = {"labels": item["labels"], "decisions": p["decisions"], "outcomes": p["outcomes"], "histogram": p["histogram"],
+                        "geometry": p["geometry"],
                         "per_tolerance": {t: {**{k: v for k, v in b.items()},
                                               "wrong_outside_gate_share": (b["wrong_bind_outside_gate"] / wrong) if wrong else None,
                                               "wrong_repaired_share": (b["wrong_bind_repaired"] / wrong) if wrong else None,
