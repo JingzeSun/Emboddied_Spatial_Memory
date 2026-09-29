@@ -116,6 +116,19 @@ class ImitationTests(unittest.TestCase):
         self.assertEqual(len(pairs), len(record["stage_a"]["rows"]))
 
 
+class LargeLogitTests(unittest.TestCase):
+    def test_existence_agreement_survives_extreme_logits(self) -> None:
+        import torch
+
+        heads = model.make_heads(assoc_only=False, seed=0)
+        with torch.no_grad():  # push every existence logit to about -1e4
+            heads["existence"][-1].bias.fill_(-1e4)
+        row = existence_row("e", coverage=0.9, observations=3, ticks_since=2)
+        record = {"existence_rows": [row], "existence_feature_order": list(la.EXISTENCE_FEATURES)}
+        self.assertEqual(probes.agreement_pairs(heads, record, "handcost", {"e": "RETRACT"}), [("RETRACT", "no")])
+        self.assertEqual(probes.agreement_pairs(heads, record, "handcost", {"e": "NOOP"}), [("NOOP", "yes")])
+
+
 class SensitivityTests(unittest.TestCase):
     def test_every_row_lands_in_one_bin(self) -> None:
         records = taf_records()

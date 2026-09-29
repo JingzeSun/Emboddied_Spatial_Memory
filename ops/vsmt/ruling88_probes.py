@@ -25,7 +25,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import math
 import statistics
 import sys
 import time
@@ -330,7 +329,9 @@ def agreement_pairs(heads: Any, record: Mapping[str, Any], target: str, decision
     if not record["existence_rows"]:
         return []
     logits = model.LeanScorer(heads).existence_logits(record["existence_rows"], record["existence_feature_order"])
-    return [(choice, "yes" if (1.0 / (1.0 + math.exp(-logits[eid])) >= 0.5) == (choice == "RETRACT") else "no")
+    # sigmoid(logit) >= 0.5 exactly when logit >= 0; comparing the logit avoids exp overflow on large negative logits (a trained
+    # imitation head reached them; the first step-0 run crashed on it after training)
+    return [(choice, "yes" if (float(logits[eid]) >= 0.0) == (choice == "RETRACT") else "no")
             for eid, choice in decisions.items()]
 
 
