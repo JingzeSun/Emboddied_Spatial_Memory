@@ -404,6 +404,56 @@ class RulingEightyOneLossTallyTests(unittest.TestCase):
             # the book moves after the window and is bound at its new place in the same frame, so it is never uncarried
             self.assertEqual(loss["events"], [], arm)
 
+    def test_v7_the_moved_books_first_reobservation_is_attributed_as_kept(self) -> None:
+        for arm in ("TAF", "RAC"):
+            data = episode()
+            teacher = ev.EpisodeTeacher(arm=arm, geometry_table=data["table"], executed_interventions=data["executed"], window=data["window"],
+                                        policy=TEACHER_POLICY, nuisance_meta=NUISANCE_META)
+            captured = audit_module.capture_truth_table(teacher)
+            audit = audit_module.NodeAudit(evidence=teacher.evidence, iou_min=teacher.iou_min, delta_moved_m=TEACHER_POLICY["delta_moved_m"],
+                                           groups=audit_module.object_groups(data["table"]), arm=arm, config=CONFIGS[arm],
+                                           interventions=teacher.interventions, window_end=teacher.window_end,
+                                           carriers_before_move=teacher.carriers_before_move)
+            for i, step in enumerate(lr.run_episode(data["frames"], episode_id="ep-0001", arm=arm, config=CONFIGS[arm], policy=POLICY, descriptor="vitb14")):
+                labelled = teacher.label_frame(step, cache_frame=data["frames"][i], private_record=data["records"][i], masks=data["masks"][i],
+                                               label_image=data["images"][i], runtime_s=0.01, peak_memory_bytes=1000)
+                audit.observe(step, labelled, captured["table"])
+            attribution = audit.report()["identity_attribution"]
+            self.assertEqual(len(attribution["records"]), 1, arm)
+            record = attribution["records"][0]
+            # the book is the second executed intervention (ordinal 1), re-observed on frame 2 and bound to its carrier
+            self.assertEqual((record["ordinal"], record["frame_index"], record["category"], record["chosen_kind"]), (1, 2, "kept", "carrier"), arm)
+            self.assertEqual(record["teacher_target_kind"], "carrier", arm)
+            self.assertEqual(attribution["counts"]["kept"], 1, arm)
+            self.assertEqual(sum(attribution["counts"].values()), 1, arm)
+
+    def test_v7_attribution_categories_follow_the_decision_pipeline(self) -> None:
+        base = dict(key="Cup|4", states={"e1": "retracted", "e2": "active"}, identities={"e1": {"resolvable": True, "key": "Cup|4"}},
+                    recall=["e1", "e2"], target={"status": "labelled", "target": "e1"}, association_logits={"f|e1": 1.0, "f|e2": 3.0},
+                    birth_logit=2.0, distances={"e1": 2.4}, fragment_id="f", fragmented_at_move={"Cup|4"},
+                    ever_retracted={"e1"}, folded_ids=set(), deleted_ids=set())
+        attribute = audit_module.attribute_reobservation
+        kept = attribute(carriers=["e1"], chosen="e1", **base)
+        self.assertEqual((kept["category"], kept["chosen_kind"]), ("kept", "carrier"))
+        other = attribute(carriers=["e1"], chosen="e2", **base)
+        self.assertEqual((other["category"], other["chosen_kind"], other["best_carrier_state"]), ("chose_other_entity", "other_active", "retracted"))
+        self.assertAlmostEqual(other["chosen_minus_best_carrier_logit"], 2.0)
+        self.assertTrue(other["carrier_ever_retracted"])
+        self.assertEqual(other["best_carrier_distance_m"], 2.4)
+        born = attribute(carriers=["e1"], chosen="birth:f", **base)
+        self.assertEqual(born["category"], "chose_birth")
+        self.assertAlmostEqual(born["chosen_minus_best_carrier_logit"], 1.0)
+        missed = attribute(carriers=["e1"], chosen="birth:f", **{**base, "recall": ["e2"]})
+        self.assertEqual(missed["category"], "carrier_not_recalled")
+        gone = attribute(carriers=["e9"], chosen="birth:f", **{**base, "folded_ids": {"e9"}})
+        self.assertEqual((gone["category"], gone["carriers_gone_by"]), ("carrier_gone", ["folded"]))
+        deleted = attribute(carriers=["e9"], chosen="birth:f", **{**base, "deleted_ids": {"e9"}})
+        self.assertEqual(deleted["carriers_gone_by"], ["deleted"])
+        never = attribute(carriers=[], chosen="birth:f", **{**base, "fragmented_at_move": set()})
+        self.assertEqual((never["category"], never["no_prior_reason"], never["judged"]), ("no_prior_carrier", "never_fragmented_before_move", False))
+        unresolved = attribute(carriers=[], chosen="birth:f", **base)
+        self.assertEqual(unresolved["no_prior_reason"], "no_resolving_entity_at_move")
+
     def test_an_object_moved_away_from_its_unbound_carrier(self) -> None:
         audit = audit_module.NodeAudit(evidence={}, iou_min=0.3, delta_moved_m=0.5, interventions={"Cup|4": "move"}, window_end=0)
         audit.keys_fragmented = {"Cup|4"}

@@ -78,10 +78,11 @@ for item in (ROOT / "src", HERE.parent):
 from vsmt import lean_teacher as lt  # noqa: E402
 
 AUDIT_FILE_NAME = "node_audit.json"
-SCHEMA_VERSION = "vsmt-s2-05-node-audit-v6"  # v2: ruling 76 (1)(a) centroid ledger, birth reasons, dedup tallies, count-first columns;
+SCHEMA_VERSION = "vsmt-s2-05-node-audit-v7"  # v2: ruling 76 (1)(a) centroid ledger, birth reasons, dedup tallies, count-first columns;
 #                                             v3: ruling 79-2 existence-candidate tally; v4: ruling 80-4 association tally;
 #                                             v5: ruling 81-3 loss-of-carrier events and absence durations;
-#                                             v6: direction B (2026-09-29): folds filed by whether the two records were ever observed in the same frame
+#                                             v6: direction B (2026-09-29): folds filed by whether the two records were ever observed in the same frame;
+#                                             v7: ruling 86-0 (2026-09-29): every moved object's first labelled re-observation attributed
 
 #: Why an in-memory prediction (an entity in ``active``/``dormant`` whose object is not a present
 #: out-of-scope one) did not match under the IoU 0.3 column (the primary column until ruling 72 (B), secondary since).
@@ -161,6 +162,10 @@ DEDUP_IDENTITIES = ("same_object", "different_objects", "ambiguous")
 #: side by side in one frame -- with instance masks two fragments of one frame are two objects, so such a fold is a
 #: wrong merge by construction; "never_co_observed" folds are the ones a co-observation veto would still allow
 FOLD_COOBSERVATION = ("co_observed", "never_co_observed")
+#: v7 (ruling 86-0): why a moved object's first labelled re-observation did or did not keep a pre-move entity id; the
+#: categories follow the decision pipeline and are mutually exclusive (first that applies)
+REOBSERVATION_CATEGORIES = ("kept", "carrier_gone", "carrier_not_recalled", "chose_birth", "chose_other_entity", "no_prior_carrier")
+NO_PRIOR_REASONS = ("never_fragmented_before_move", "no_resolving_entity_at_move")
 #: Ruling 79-2: the fields of one existence-candidate tally row (the count follows them).
 EXISTENCE_TALLY_FIELDS = (
     "status", "reason", "object_class", "phase",
@@ -296,6 +301,80 @@ def capture_dedup_folds() -> list[dict[str, Any]]:
     return captured
 
 
+def attribute_reobservation(
+    *, key: str, carriers: Sequence[str], states: Mapping[str, str], identities: Mapping[str, Mapping[str, Any]],
+    recall: Sequence[str], chosen: str, target: Mapping[str, Any], association_logits: Mapping[str, float] | None,
+    birth_logit: float | None, distances: Mapping[str, float], fragment_id: str, fragmented_at_move: set[str] | None,
+    ever_retracted: set[str], folded_ids: set[str], deleted_ids: set[str],
+) -> dict[str, Any]:
+    """v7 (ruling 86-0): one moved object's first labelled re-observation, filed by where the pre-move identity was lost.
+
+    白话：输入一个被搬动物体搬动后第一次带标签重见的那一帧——搬动前承载它的实体（窗口末帧按证据多数票认定，和身份连续率的
+    分母同一口径）、这一帧之前的记忆状态、该色块的召回列表、学生的实际选择、teacher 的目标与各格 logit——输出这次重见接没接回
+    原编号，以及没接回时卡在哪一步：原实体已不在记忆里（被合并掉或被 NoVersion 删除）、原实体在但没进召回、进了召回但学生选了新建、
+    进了召回但学生选了别的实体；搬动前根本没有承载实体的，再分“搬动前从没出过色块”和“出过但没有实体按多数票认它”。例如杯子搬动前由
+    实体 A 承载，A 在窗口里被错撤成 retracted，重见时 A 进了召回、学生却选了新建，就记 chose_birth、原实体状态 retracted、曾被撤回。
+    它只读，不改任何决定；判定“接回”与评价器的身份连续率完全相同（选中的列属于搬动前承载实体之一）。
+    """
+
+    from vsmt import lean_assignment as la
+
+    carrier_ids = [str(c) for c in carriers]
+    is_birth = str(chosen).startswith(la.BIRTH_COLUMN_PREFIX)
+    if is_birth:
+        chosen_kind = "birth"
+    elif chosen in carrier_ids:
+        chosen_kind = "carrier"
+    else:
+        chosen_kind = f"other_{states.get(chosen, 'unknown')}"
+    status = str(target.get("status"))
+    wanted = target.get("target")
+    if status in ("labelled", "birth") and wanted is not None:
+        wanted = str(wanted)
+        teacher_kind = "birth" if wanted.startswith(la.BIRTH_COLUMN_PREFIX) else ("carrier" if wanted in carrier_ids else "other_entity")
+    else:
+        teacher_kind = status
+    record: dict[str, Any] = {"judged": bool(carrier_ids), "chosen_kind": chosen_kind, "teacher_status": status, "teacher_target_kind": teacher_kind,
+                              "carriers": len(carrier_ids)}
+    if not carrier_ids:
+        record["category"] = "no_prior_carrier"
+        record["no_prior_reason"] = ("never_fragmented_before_move" if fragmented_at_move is not None and key not in fragmented_at_move
+                                     else "no_resolving_entity_at_move")
+        return record
+    present = [c for c in carrier_ids if c in states]
+    gone = [c for c in carrier_ids if c not in states]
+    recall_set = {str(e) for e in recall}
+    recalled = [c for c in present if c in recall_set]
+    resolving = [c for c in present if (identities.get(c) or {}).get("resolvable") and (identities.get(c) or {}).get("key") == key]
+    record.update({
+        "carriers_present": len(present), "carriers_recalled": len(recalled), "carriers_still_resolving": len(resolving),
+        "carrier_states": sorted({states[c] for c in present}),
+        "carriers_gone_by": sorted({"folded" if c in folded_ids else ("deleted" if c in deleted_ids else "unknown") for c in gone}),
+        "carrier_ever_retracted": any(c in ever_retracted for c in carrier_ids),
+    })
+    if chosen in carrier_ids:
+        category = "kept"
+    elif not present:
+        category = "carrier_gone"
+    elif not recalled:
+        category = "carrier_not_recalled"
+    elif is_birth:
+        category = "chose_birth"
+    else:
+        category = "chose_other_entity"
+    record["category"] = category
+    if recalled:
+        logit_of = (lambda c: float(association_logits[f"{fragment_id}|{c}"])) if association_logits is not None else None
+        best = max(recalled, key=logit_of) if logit_of is not None else recalled[0]
+        record["best_carrier_state"] = states[best]
+        record["best_carrier_distance_m"] = distances.get(best)
+        if logit_of is not None:
+            chosen_logit = birth_logit if is_birth else association_logits.get(f"{fragment_id}|{chosen}")
+            record["best_carrier_logit"] = logit_of(best)
+            record["chosen_minus_best_carrier_logit"] = (None if chosen_logit is None else float(chosen_logit) - logit_of(best))
+    return record
+
+
 def fold_coobservation(fold: Mapping[str, Any]) -> str:
     """v6: whether the two records of a captured fold share an evidence tick (were observed in the same frame)."""
 
@@ -310,8 +389,18 @@ class NodeAudit:
     def __init__(self, *, evidence: Mapping[str, str | None], iou_min: float, delta_moved_m: float,
                  groups: Mapping[str, str] | None = None, arm: str | None = None, config: Mapping[str, Any] | None = None,
                  scorer: Any = None, dedup: Mapping[str, Any] | None = None,
-                 interventions: Mapping[str, str] | None = None, window_end: int | None = None) -> None:
+                 interventions: Mapping[str, str] | None = None, window_end: int | None = None,
+                 carriers_before_move: Mapping[str, Sequence[str]] | None = None) -> None:
         self.evidence = evidence
+        # v7 (ruling 86-0): the evaluator's own carriers-before-move map (a live reference, filled at the window end),
+        # each intervention's ordinal (the only object handle that leaves the audit), and the lifecycle history
+        self.carriers_before_move = carriers_before_move
+        self.intervention_ordinal = {key: index for index, key in enumerate(dict(interventions or {}))}
+        self.fragmented_at_move: set[str] | None = None
+        self.ever_retracted: set[str] = set()
+        self.folded_ids: set[str] = set()
+        self.deleted_ids: set[str] = set()
+        self.identity_attribution: list[dict[str, Any]] = []
         # ruling 79-2: the existence-candidate tally needs each object's executed intervention and the window end
         self.interventions = dict(interventions or {})
         self.window_end = None if window_end is None else int(window_end)
@@ -521,6 +610,15 @@ class NodeAudit:
         self._tally_existence(step, labelled, truth_table, predictions, identities)
         self._tally_association(step, labelled)
         self._tally_losses(step, labelled, truth_table, predictions, identities, folds)
+        # v7 (ruling 86-0): attribute first re-observations on the memory before this frame, then record this frame's history
+        if self.window_end is not None and int(labelled["frame_index"]) == self.window_end:
+            self.fragmented_at_move = set(self.keys_fragmented)
+        self._attribute_reobservations(step, labelled)
+        for op in (step["receipt"].get("program") or {}).get("operations") or []:
+            if op.get("atom") == "RETRACT":
+                self.ever_retracted.add(str(op["entity_id"]))
+        self.folded_ids.update(folded for _, folded in folds)
+        self.deleted_ids.update(str(e) for e in step["receipt"].get("no_version_deleted") or [])
 
         for name, count in frame_entity.items():
             self.entity_counts[name] += count
@@ -842,6 +940,44 @@ class NodeAudit:
                     reason = "correct_carrier_lost_joint_competition"
             self.birth_reasons[scope][reason] += 1
 
+    # -- v7, ruling 86-0 -----------------------------------------------------------
+
+    def _attribute_reobservations(self, step: Mapping[str, Any], labelled: Mapping[str, Any]) -> None:
+        """File every moved object's first labelled re-observation of this frame (the evaluator's own set and carriers)."""
+
+        from vsmt import lean_assignment as la
+        from vsmt import lean_runner as lr
+
+        continuity = labelled.get("identity_continuity") or {}
+        reobserved = continuity.get("reobserved") or {}
+        if not reobserved or self.carriers_before_move is None:
+            return
+        memory_before = step["memory_before"]
+        states = {str(e["entity_id"]): str(e["state"]) for e in memory_before["entities"]}
+        identities = lt.entity_identities(memory_before, self.evidence)
+        stage_a = step["stage_a"]
+        assignment = {str(k): str(v) for k, v in step["receipt"]["assignment"].items()}
+        logits = None
+        if self.arm is not None:
+            logits = lr._association_logits(self.arm, lr.validate_arm_config(self.arm, self.config), stage_a, self.scorer)
+        distance_index = la.ASSOCIATION_FEATURES.index("centroid_distance_m")
+        kept = 0
+        for key in sorted(reobserved):
+            fragment_id = str(reobserved[key])
+            distances = {str(r["entity_id"]): float(r["features"][distance_index])
+                         for r in stage_a["association_rows"] if str(r["fragment_id"]) == fragment_id}
+            record = attribute_reobservation(
+                key=str(key), carriers=self.carriers_before_move.get(key, []), states=states, identities=identities,
+                recall=stage_a["recall"].get(fragment_id, []), chosen=assignment[fragment_id], target=labelled["targets"][fragment_id],
+                association_logits=None if logits is None else logits["association_logits"],
+                birth_logit=None if logits is None else float(logits["birth_logits"][fragment_id]),
+                distances=distances, fragment_id=fragment_id, fragmented_at_move=self.fragmented_at_move,
+                ever_retracted=self.ever_retracted, folded_ids=self.folded_ids, deleted_ids=self.deleted_ids)
+            kept += int(record["category"] == "kept")
+            self.identity_attribution.append({"ordinal": self.intervention_ordinal.get(key), "frame_index": int(labelled["frame_index"]), **record})
+        # the attribution must reproduce the evaluator's own count for this frame
+        _require(kept == int(continuity.get("kept", 0)), "audit_attribution_disagrees_with_identity_continuity")
+
     def _file_folds(self) -> None:
         """File the folds captured this frame by state pair and private identity (the teacher has labelled the frame)."""
 
@@ -947,6 +1083,9 @@ class NodeAudit:
             "centroid_entity_categories": dict(self.centroid_entity_counts),
             "centroid_truth_categories": dict(self.centroid_truth_counts),
             "birth_reasons": {scope: dict(row) for scope, row in self.birth_reasons.items()} if self.arm is not None else None,
+            "identity_attribution": {"records": list(self.identity_attribution),
+                                     "counts": {name: sum(1 for r in self.identity_attribution if r["category"] == name)
+                                                for name in REOBSERVATION_CATEGORIES}},
             "dedup": {"period_ticks": self.dedup_period, "ticks": self.dedup_ticks, "folds": self.dedup_folds,
                       "folds_by_identity": dict(self.folds_by_identity) if self.fold_capture is not None else None,
                       "folds_by_coobservation": dict(self.folds_by_coobservation) if self.fold_capture is not None else None,
@@ -1041,7 +1180,8 @@ def run(args: argparse.Namespace) -> int:
     captured = capture_truth_table(teacher)
     audit = NodeAudit(evidence=teacher.evidence, iou_min=teacher.iou_min, delta_moved_m=policy["teacher"]["delta_moved_m"],
                       groups=object_groups(table), arm=args.arm, config=config, scorer=scorer, dedup=policy["runner"]["dedup"],
-                      interventions=teacher.interventions, window_end=teacher.window_end)
+                      interventions=teacher.interventions, window_end=teacher.window_end,
+                      carriers_before_move=teacher.carriers_before_move)
     audit.fold_capture = capture_dedup_folds()
     started = time.time()
     current: dict[str, Any] = {}
@@ -1106,6 +1246,7 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
     pooled_centroid_truth = {name: 0 for name in CENTROID_TRUTH_CATEGORIES}
     pooled_births = {scope: {name: 0 for name in BIRTH_REASONS} for scope in ("in_scope_object", "other")}
     pooled_dedup: dict[str, Any] = {"ticks": 0, "folds": 0, "folds_by_identity": {}, "folds_by_coobservation": {}, "pairs_after_fold": {}}
+    pooled_attribution: dict[str, int] = {name: 0 for name in REOBSERVATION_CATEGORIES}
     pooled_wrong: dict[str, int] = {}
     pooled_existence: dict[tuple[str, ...], int] = {}
     pooled_association: dict[tuple[str, ...], int] = {}
@@ -1133,6 +1274,8 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
         for scope, row in (audit.get("birth_reasons") or {}).items():
             for name in BIRTH_REASONS:
                 pooled_births[scope][name] += int(row[name])
+        for name, value in ((audit.get("identity_attribution") or {}).get("counts") or {}).items():
+            pooled_attribution[name] = pooled_attribution.get(name, 0) + int(value)
         if audit.get("dedup"):
             pooled_dedup["ticks"] += int(audit["dedup"]["ticks"])
             pooled_dedup["folds"] += int(audit["dedup"]["folds"])
@@ -1173,6 +1316,7 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
             "episode_id": payload["episode_id"], "frames": payload["frames"], "config": payload["config"],
             "code_commit": payload["code_commit"], "report": payload.get("report"), "dormancy_override": payload.get("dormancy_override"),
             "final_entities_by_state": payload["final_entities_by_state"],
+            "identity_attribution": (audit.get("identity_attribution") or {}).get("records"),
             "rules_f1": {rule: audit["rules"][rule]["f1"] for rule in RULES},
             "iou_0.3_secondary": audit["rules"]["iou_0.3_secondary"],
             "centroid_primary": audit["rules"]["centroid_within_0.5m"],
@@ -1186,13 +1330,14 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
         })
     _require(bool(episodes), f"no_audits_found:{output_root}/*/{arm}")
     return {
-        "schema_version": "vsmt-s2-05-node-audit-merged-v6",
+        "schema_version": "vsmt-s2-05-node-audit-merged-v7",
         "stage": "S2-05 node audit (read-only, pooled)", "arm": arm, "output_root": str(output_root),
         "code_commits": sorted(commits), "episodes": len(episodes),
         "pooled_rules": {rule: _prf(s["matched"], s["predicted"], s["truth"]) for rule, s in pooled_rules.items()},
         "pooled_entity_categories": pooled_entity, "pooled_truth_categories": pooled_truth,
         "pooled_centroid_entity_categories": pooled_centroid_entity, "pooled_centroid_truth_categories": pooled_centroid_truth,
         "pooled_birth_reasons": pooled_births, "pooled_dedup": pooled_dedup, "pooled_wrong_identity_matches": pooled_wrong,
+        "pooled_identity_attribution": pooled_attribution,
         "existence_tally_fields": list(EXISTENCE_TALLY_FIELDS),
         "pooled_existence_tally": [[*row, count] for row, count in sorted(pooled_existence.items())],
         "association_tally_fields": list(ASSOCIATION_TALLY_FIELDS),
