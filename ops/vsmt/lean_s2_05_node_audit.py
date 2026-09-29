@@ -78,11 +78,12 @@ for item in (ROOT / "src", HERE.parent):
 from vsmt import lean_teacher as lt  # noqa: E402
 
 AUDIT_FILE_NAME = "node_audit.json"
-SCHEMA_VERSION = "vsmt-s2-05-node-audit-v7"  # v2: ruling 76 (1)(a) centroid ledger, birth reasons, dedup tallies, count-first columns;
+SCHEMA_VERSION = "vsmt-s2-05-node-audit-v8"  # v2: ruling 76 (1)(a) centroid ledger, birth reasons, dedup tallies, count-first columns;
 #                                             v3: ruling 79-2 existence-candidate tally; v4: ruling 80-4 association tally;
 #                                             v5: ruling 81-3 loss-of-carrier events and absence durations;
 #                                             v6: direction B (2026-09-29): folds filed by whether the two records were ever observed in the same frame;
-#                                             v7: ruling 86-0 (2026-09-29): every moved object's first labelled re-observation attributed
+#                                             v7: ruling 86-0 (2026-09-29): every moved object's first labelled re-observation attributed;
+#                                             v8: ruling 87-2 (2026-09-29): a kept re-observation also records its carrier's state (dormant or retracted)
 
 #: Why an in-memory prediction (an entity in ``active``/``dormant`` whose object is not a present
 #: out-of-scope one) did not match under the IoU 0.3 column (the primary column until ruling 72 (B), secondary since).
@@ -335,7 +336,10 @@ def attribute_reobservation(
     else:
         teacher_kind = status
     record: dict[str, Any] = {"judged": bool(carrier_ids), "chosen_kind": chosen_kind, "teacher_status": status, "teacher_target_kind": teacher_kind,
-                              "carriers": len(carrier_ids)}
+                              "carriers": len(carrier_ids),
+                              # v8 (ruling 87-2): the state of the carrier a kept re-observation went back to -- BIND to an active one,
+                              # REACTIVATE of a dormant one (NoVersion keeps those) or of a retracted one (only a versioned memory can)
+                              "chosen_carrier_state": states.get(chosen) if chosen in carrier_ids else None}
     if not carrier_ids:
         record["category"] = "no_prior_carrier"
         record["no_prior_reason"] = ("never_fragmented_before_move" if fragmented_at_move is not None and key not in fragmented_at_move
@@ -1330,7 +1334,7 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
         })
     _require(bool(episodes), f"no_audits_found:{output_root}/*/{arm}")
     return {
-        "schema_version": "vsmt-s2-05-node-audit-merged-v7",
+        "schema_version": "vsmt-s2-05-node-audit-merged-v8",
         "stage": "S2-05 node audit (read-only, pooled)", "arm": arm, "output_root": str(output_root),
         "code_commits": sorted(commits), "episodes": len(episodes),
         "pooled_rules": {rule: _prf(s["matched"], s["predicted"], s["truth"]) for rule, s in pooled_rules.items()},

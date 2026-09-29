@@ -122,7 +122,7 @@ def main() -> int:
             print(f"[identity-attribution] refused: {spec}", file=sys.stderr)
             return 2
         merged = json.loads(file.read_text(encoding="utf-8"))
-        if merged.get("schema_version") != "vsmt-s2-05-node-audit-merged-v7":
+        if merged.get("schema_version") not in ("vsmt-s2-05-node-audit-merged-v7", "vsmt-s2-05-node-audit-merged-v8"):
             print(f"[identity-attribution] refused: {file.name} is not a merged v7 audit", file=sys.stderr)
             return 2
         groups[(arm, int(seed))] = merged

@@ -435,8 +435,10 @@ class RulingEightyOneLossTallyTests(unittest.TestCase):
         attribute = audit_module.attribute_reobservation
         kept = attribute(carriers=["e1"], chosen="e1", **base)
         self.assertEqual((kept["category"], kept["chosen_kind"]), ("kept", "carrier"))
+        self.assertEqual(kept["chosen_carrier_state"], "retracted")  # v8: a REACTIVATE of a retracted carrier
         other = attribute(carriers=["e1"], chosen="e2", **base)
         self.assertEqual((other["category"], other["chosen_kind"], other["best_carrier_state"]), ("chose_other_entity", "other_active", "retracted"))
+        self.assertIsNone(other["chosen_carrier_state"])
         self.assertAlmostEqual(other["chosen_minus_best_carrier_logit"], 2.0)
         self.assertTrue(other["carrier_ever_retracted"])
         self.assertEqual(other["best_carrier_distance_m"], 2.4)
