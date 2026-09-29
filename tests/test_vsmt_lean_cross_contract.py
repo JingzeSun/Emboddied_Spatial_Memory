@@ -377,7 +377,12 @@ FROZEN_RULE_SHA256 = {
     # read before the seal happens only under the instance source, and the one private-derived value a
     # cache may hold is that anonymised, digest-ordered mask geometry); receipts name the source.
     # c7318cd5 -> f354863c.
-    "S1-03": "f354863c65de95a2f6db4874ff08efd7b3152a5dbd611c077c278c85a134c959",
+    # Re-pinned 2026-09-30 for ruling 89 execution change one: the confirmation set (train block positions
+    # 50..99) is generated at 2339baa, which adds only the --stage confirmation entry and the multi-GPU
+    # nvidia-smi reading to 5f9aa71 and leaves the camera_pose encoder untouched, so it joins
+    # correct_encoder_since_code_commits and the confirmation episodes are read as written; no reading rule changes.
+    # f354863c -> 32550212.
+    "S1-03": "325502120a83a8adc158529c7aa78d34bb777a98a2b924aa66f4eef1fde6b348",
     # S1-04 v1 (2026-09-22, rulings 45/46/47): first pinned with every bit closed
     # (2fff2d19...); re-pinned the same day when ruling 48 and the user's code review opened
     # all six bits by name in activation_policy (the bits are rules of who may run what, as
