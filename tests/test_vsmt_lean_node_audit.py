@@ -466,6 +466,79 @@ class RulingEightyOneLossTallyTests(unittest.TestCase):
         self.assertEqual(audit._loss_report()["events"], [["object_truth_changed", "move", 1]])
 
 
+class RulingEightyNineRecallRankTests(unittest.TestCase):
+    """Ruling 89-1: the original carrier's public global rank, and the k' override recorded per merge."""
+
+    def _memory_and_view(self):
+        data = episode()
+        steps = list(lr.run_episode(data["frames"][:3], episode_id="ep-0001", arm="TAF", config=CONFIGS["TAF"], policy=POLICY, descriptor="vitb14"))
+        return steps[-1]["memory_before"], steps[-1]["view"]
+
+    def test_rank_is_the_position_in_the_global_channel_ordering(self) -> None:
+        from vsmt import lean_assignment as la
+
+        memory, view = self._memory_and_view()
+        ids = [str(e["entity_id"]) for e in memory["entities"]]
+        self.assertGreaterEqual(len(ids), 2)
+        for fragment in view["fragments"]:
+            for carrier in ids:
+                got = audit_module.original_carrier_global_rank(memory, view, fragment_id=str(fragment["fragment_id"]), carriers=[carrier])
+                self.assertEqual(got["entities_in_memory"], len(ids))
+                rank = got["original_carrier_global_rank"]
+                # rank <= k' exactly when the global channel alone (no local channel) recalls the entity
+                for k in range(1, len(ids) + 1):
+                    recalled = la.recall_for_fragment(fragment, memory, local_count=0, global_count=k, local_radius_m=3.0)
+                    self.assertEqual(carrier in recalled, rank <= k)
+
+    def test_the_original_is_the_earliest_first_version_and_gone_carriers_give_none(self) -> None:
+        memory, view = self._memory_and_view()
+        fragment_id = str(view["fragments"][0]["fragment_id"])
+        ordered = sorted(memory["entities"], key=lambda e: (int(e["versions"][0]["opened_at"]), str(e["entity_id"])))
+        both = [str(e["entity_id"]) for e in reversed(ordered)]
+        earliest = audit_module.original_carrier_global_rank(memory, view, fragment_id=fragment_id, carriers=both)
+        alone = audit_module.original_carrier_global_rank(memory, view, fragment_id=fragment_id, carriers=[str(ordered[0]["entity_id"])])
+        self.assertEqual(earliest, alone)
+        self.assertIsNone(audit_module.original_carrier_global_rank(memory, view, fragment_id=fragment_id,
+                                                                    carriers=["no-such-entity"])["original_carrier_global_rank"])
+
+    def test_merge_refuses_mixed_recall_counts(self) -> None:
+        audit, _, _, _ = run_audit("TAF")
+        base = {"schema_version": audit_module.SCHEMA_VERSION, "arm": "TAF", "code_commit": "abc", "frames": 5,
+                "config": CONFIGS["TAF"], "final_entities_by_state": {"active": 3}, "audit": audit.report(), "oracle": None}
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for name, k in (("ep-0001", 8), ("ep-0002", 8)):
+                (root / name / "TAF").mkdir(parents=True)
+                (root / name / "TAF" / audit_module.AUDIT_FILE_NAME).write_text(
+                    json.dumps({**base, "episode_id": name, "recall_global_count": k}), encoding="utf-8")
+            self.assertEqual(audit_module.merge_audits(root, "TAF")["recall_global_count"], 8)
+            (root / "ep-0003" / "TAF").mkdir(parents=True)
+            (root / "ep-0003" / "TAF" / audit_module.AUDIT_FILE_NAME).write_text(
+                json.dumps({**base, "episode_id": "ep-0003", "recall_global_count": 3}), encoding="utf-8")
+            with self.assertRaises(audit_module.NodeAuditError) as caught:
+                audit_module.merge_audits(root, "TAF")
+            self.assertEqual(str(caught.exception), "audits_mix_recall_global_counts")
+
+    def test_v7_records_carry_the_rank(self) -> None:
+        arm = "TAF"
+        data = episode()
+        teacher = ev.EpisodeTeacher(arm=arm, geometry_table=data["table"], executed_interventions=data["executed"], window=data["window"],
+                                    policy=TEACHER_POLICY, nuisance_meta=NUISANCE_META)
+        captured = audit_module.capture_truth_table(teacher)
+        audit = audit_module.NodeAudit(evidence=teacher.evidence, iou_min=teacher.iou_min, delta_moved_m=TEACHER_POLICY["delta_moved_m"],
+                                       groups=audit_module.object_groups(data["table"]), arm=arm, config=CONFIGS[arm],
+                                       interventions=teacher.interventions, window_end=teacher.window_end,
+                                       carriers_before_move=teacher.carriers_before_move)
+        for i, step in enumerate(lr.run_episode(data["frames"], episode_id="ep-0001", arm=arm, config=CONFIGS[arm], policy=POLICY, descriptor="vitb14")):
+            labelled = teacher.label_frame(step, cache_frame=data["frames"][i], private_record=data["records"][i], masks=data["masks"][i],
+                                           label_image=data["images"][i], runtime_s=0.01, peak_memory_bytes=1000)
+            audit.observe(step, labelled, captured["table"])
+        record = audit.report()["identity_attribution"]["records"][0]
+        self.assertEqual(record["category"], "kept")
+        self.assertGreaterEqual(record["original_carrier_global_rank"], 1)
+        self.assertLessEqual(record["original_carrier_global_rank"], record["entities_in_memory"])
+
+
 if __name__ == "__main__":
     unittest.main()
 
@@ -597,7 +670,7 @@ class RulingEightyEightOracleTests(unittest.TestCase):
                 (root / name / "VSMT-lean" / audit_module.AUDIT_FILE_NAME).write_text(
                     json.dumps({**base, "episode_id": name, "oracle": setting}), encoding="utf-8")
             merged = audit_module.merge_audits(root, "VSMT-lean")
-            self.assertEqual(merged["schema_version"], "vsmt-s2-05-node-audit-merged-v9")
+            self.assertEqual(merged["schema_version"], "vsmt-s2-05-node-audit-merged-v10")
             self.assertEqual(merged["oracle"]["existence_rule"], "node_primary")
             self.assertNotIn("counts", merged["oracle"])
             (root / "ep-0003" / "VSMT-lean").mkdir(parents=True)

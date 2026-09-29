@@ -49,7 +49,7 @@ METRICS = {
     "contamination_auc": ("contamination_auc", "contamination_auc", "lower"),
     "false_retract_rate_in_scope": ("false_retract_rate_in_scope", "false_retract_rate", "lower"),
 }
-MERGED_SCHEMAS = ("vsmt-s2-05-node-audit-merged-v7", "vsmt-s2-05-node-audit-merged-v8", "vsmt-s2-05-node-audit-merged-v9")
+MERGED_SCHEMAS = ("vsmt-s2-05-node-audit-merged-v7", "vsmt-s2-05-node-audit-merged-v8", "vsmt-s2-05-node-audit-merged-v9", "vsmt-s2-05-node-audit-merged-v10")
 
 
 def as_merged(payload: Mapping[str, Any]) -> dict[str, Any]:

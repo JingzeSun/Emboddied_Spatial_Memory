@@ -79,14 +79,16 @@ for item in (ROOT / "src", HERE.parent):
 from vsmt import lean_teacher as lt  # noqa: E402
 
 AUDIT_FILE_NAME = "node_audit.json"
-SCHEMA_VERSION = "vsmt-s2-05-node-audit-v9"  # v2: ruling 76 (1)(a) centroid ledger, birth reasons, dedup tallies, count-first columns;
+SCHEMA_VERSION = "vsmt-s2-05-node-audit-v10"  # v2: ruling 76 (1)(a) centroid ledger, birth reasons, dedup tallies, count-first columns;
 #                                             v3: ruling 79-2 existence-candidate tally; v4: ruling 80-4 association tally;
 #                                             v5: ruling 81-3 loss-of-carrier events and absence durations;
 #                                             v6: direction B (2026-09-29): folds filed by whether the two records were ever observed in the same frame;
 #                                             v7: ruling 86-0 (2026-09-29): every moved object's first labelled re-observation attributed;
 #                                             v8: ruling 87-2 (2026-09-29): a kept re-observation also records its carrier's state (dormant or retracted)
 #                                             v9: ruling 88-2 (2026-09-29): the teacher-as-policy decision ceiling (--oracle-*), recorded under "oracle"
-ACCEPTED_AUDIT_SCHEMAS = ("vsmt-s2-05-node-audit-v8", SCHEMA_VERSION)
+#                                             v10: ruling 89-1 (2026-09-30): each re-observation records the original carrier's public global cosine
+#                                                  rank; --recall-global-count overrides k' for diagnostics, recorded as recall_global_count
+ACCEPTED_AUDIT_SCHEMAS = ("vsmt-s2-05-node-audit-v8", "vsmt-s2-05-node-audit-v9", SCHEMA_VERSION)
 
 #: Why an in-memory prediction (an entity in ``active``/``dormant`` whose object is not a present
 #: out-of-scope one) did not match under the IoU 0.3 column (the primary column until ruling 72 (B), secondary since).
@@ -380,6 +382,30 @@ def attribute_reobservation(
             record["best_carrier_logit"] = logit_of(best)
             record["chosen_minus_best_carrier_logit"] = (None if chosen_logit is None else float(chosen_logit) - logit_of(best))
     return record
+
+
+def original_carrier_global_rank(memory: Mapping[str, Any], view: Mapping[str, Any], *, fragment_id: str,
+                                 carriers: Sequence[str]) -> dict[str, Any]:
+    """v10 (ruling 89-1): the public rank of the original carrier in the recall's global cosine ordering (read-only).
+
+    白话：输入重见那一帧之前的记忆、这一帧的公开视图（投影后的描述子）、色块和搬动前的承载实体，输出“原实体”（仍在记忆里的承载实体中
+    首版本最早的那个）在“这个色块对全部实体的余弦从高到低、并列按实体 ID”排序里的名次（从 1 起）和记忆里的实体数。排序键与 S0-03 召回
+    的全局通道逐位相同（``cosine_matrix`` 与 ``recall_for_fragment`` 的 ``everywhere`` 排序），所以名次 ≤ k′ 就等于全局通道会召回它。
+    例如名次 4 说明 k′ 从 3 加到 4 就能召回。它只读，不改召回、不改决定；私有身份只用来指出哪个实体是原实体，名次本身是公开量。
+    """
+
+    from vsmt import lean_assignment as la
+
+    present = {str(e["entity_id"]): e for e in memory["entities"]}
+    alive = [present[str(c)] for c in carriers if str(c) in present]
+    if not alive:
+        return {"original_carrier_global_rank": None, "entities_in_memory": len(present)}
+    original = sorted(alive, key=lambda e: (int(e["versions"][0]["opened_at"]), str(e["entity_id"])))[0]
+    fragment = next(f for f in view["fragments"] if str(f["fragment_id"]) == str(fragment_id))
+    ids = [str(e["entity_id"]) for e in memory["entities"]]
+    row = la.cosine_matrix([fragment["descriptor"]], [e["descriptor_mean"] for e in memory["entities"]])[0]
+    ordered = [entity_id for _, entity_id in sorted(zip(row, ids), key=lambda item: (-item[0], item[1]))]
+    return {"original_carrier_global_rank": ordered.index(str(original["entity_id"])) + 1, "entities_in_memory": len(ids)}
 
 
 def fold_coobservation(fold: Mapping[str, Any]) -> str:
@@ -980,6 +1006,8 @@ class NodeAudit:
                 birth_logit=None if logits is None else float(logits["birth_logits"][fragment_id]),
                 distances=distances, fragment_id=fragment_id, fragmented_at_move=self.fragmented_at_move,
                 ever_retracted=self.ever_retracted, folded_ids=self.folded_ids, deleted_ids=self.deleted_ids)
+            record.update(original_carrier_global_rank(memory_before, step["view"], fragment_id=fragment_id,
+                                                       carriers=self.carriers_before_move.get(key, [])))
             kept += int(record["category"] == "kept")
             self.identity_attribution.append({"ordinal": self.intervention_ordinal.get(key), "frame_index": int(labelled["frame_index"]), **record})
         # the attribution must reproduce the evaluator's own count for this frame
@@ -1335,6 +1363,10 @@ def run(args: argparse.Namespace) -> int:
     if args.dormancy_override is not None:
         # ruling 80-3, diagnostic only: the shared dormancy limit replaced (a huge value switches dormancy off), recorded in the payload
         policy["runner"]["dormancy_missed_opportunity_limit"] = int(args.dormancy_override)
+    if args.recall_global_count is not None:
+        # ruling 89-1, diagnostic only: the global recall channel's k' replaced for this run (the runner reads la.RECALL_GLOBAL_COUNT per frame)
+        _require(int(args.recall_global_count) >= 1, "recall_global_count_invalid")
+        la.RECALL_GLOBAL_COUNT = int(args.recall_global_count)
     lr.validate_arm_config(args.arm, config)
     scorer = None
     oracle_requested = bool(args.oracle_association or args.oracle_existence or args.oracle_recall)
@@ -1436,6 +1468,7 @@ def run(args: argparse.Namespace) -> int:
         "episode_id": args.episode_id, "arm": args.arm, "config": config, "descriptor": args.descriptor,
         "dedup_policy": policy["runner"]["dedup"], "dedup_override": json.loads(args.dedup_override) if args.dedup_override else None,
         "dormancy_override": args.dormancy_override,
+        "recall_global_count": la.RECALL_GLOBAL_COUNT, "recall_global_count_override": args.recall_global_count,
         "frames": summary["frames"], "frames_requested": args.frames, "episode_seal_sha256": seal["payload_sha256"],
         "final_memory_digest": summary["final_memory_digest"], "final_entities_by_state": summary["final_entities_by_state"],
         "report_node_prf1": episode["report"]["node_prf1"], "report_node_prf1_iou": episode["report"]["node_prf1_iou"],
@@ -1474,11 +1507,13 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
     pooled_loss_intervals: dict[str, dict[str, Any]] = {}
     pooled_uncarried = {"uncarried_seen_object_frames": 0, "uncarried_without_loss_event_frames": 0}
     oracle_settings: set[str] = set()
+    recall_counts: set[Any] = set()
     for path in sorted(output_root.glob(f"*/{arm}/{AUDIT_FILE_NAME}")):
         payload = json.loads(path.read_text(encoding="utf-8"))
         _require(payload.get("schema_version") in ACCEPTED_AUDIT_SCHEMAS and payload.get("arm") == arm, f"audit_file_invalid:{path}")
         oracle_setting = {k: v for k, v in (payload.get("oracle") or {}).items() if k != "counts"} or None
         oracle_settings.add(json.dumps(oracle_setting, sort_keys=True))
+        recall_counts.add(payload.get("recall_global_count"))
         audit = payload["audit"]
         commits.add(str(payload["code_commit"]))
         for rule in RULES:
@@ -1554,9 +1589,11 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
         })
     _require(bool(episodes), f"no_audits_found:{output_root}/*/{arm}")
     _require(len(oracle_settings) == 1, "audits_mix_oracle_settings")  # ruling 88-2: one cell per merge
+    _require(len(recall_counts) == 1, "audits_mix_recall_global_counts")  # ruling 89-1: one k' per merge (None = pre-v10 audit)
     return {
-        "schema_version": "vsmt-s2-05-node-audit-merged-v9",
+        "schema_version": "vsmt-s2-05-node-audit-merged-v10",
         "oracle": json.loads(next(iter(oracle_settings))),
+        "recall_global_count": next(iter(recall_counts)),
         "stage": "S2-05 node audit (read-only, pooled)", "arm": arm, "output_root": str(output_root),
         "code_commits": sorted(commits), "episodes": len(episodes),
         "pooled_rules": {rule: _prf(s["matched"], s["predicted"], s["truth"]) for rule, s in pooled_rules.items()},
@@ -1619,6 +1656,8 @@ def main() -> int:
                             help="diagnostic (ruling 88-2 (i)): the teacher's existence labels under this place rule decide")
     run_parser.add_argument("--oracle-recall", action="store_true",
                             help="diagnostic (ruling 88-2 (i)): append the earliest carrier of each fragment's dominant object to its recall")
+    run_parser.add_argument("--recall-global-count", type=int, default=None,
+                            help="diagnostic (ruling 89-1): replace the global recall channel's k' for this run; recorded in the payload")
     run_parser.set_defaults(func=run)
     merge_parser = sub.add_parser("merge", help="pool the audits of one arm into a results/ report")
     merge_parser.add_argument("--output-root", required=True)
