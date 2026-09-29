@@ -26,6 +26,8 @@ class ExistenceProbeTests(unittest.TestCase):
         self.assertEqual(out["candidates"], {"gone": 4, "present": 4})
         self.assertEqual(out["retract_share_at_tau"]["0.3"], {"gone": 0.75, "present": 0.25})
         self.assertEqual(out["retract_share_at_tau"]["0.5"], {"gone": 0.25, "present": 0.0})
+        fine = probe.summarise({"gone": [0.15, 0.25], "present": [0.12]}, taus=(0.1, 0.2))
+        self.assertEqual(fine["retract_share_at_tau"], {"0.1": {"gone": 1.0, "present": 1.0}, "0.2": {"gone": 0.5, "present": 0.0}})
         self.assertAlmostEqual(probe.sigmoid(0.0), 0.5)
         self.assertAlmostEqual(probe.sigmoid(-800.0), 0.0)
 

@@ -67,13 +67,13 @@ def quantiles(values: Sequence[float]) -> dict[str, float | None]:
     return {str(q): ordered[min(len(ordered) - 1, int(q * len(ordered)))] for q in QUANTILES}
 
 
-def summarise(scores: Mapping[str, Sequence[float]]) -> dict[str, Any]:
+def summarise(scores: Mapping[str, Sequence[float]], taus: Sequence[float] = TAU_GRID) -> dict[str, Any]:
     gone, present = list(scores.get("gone", [])), list(scores.get("present", []))
     return {"candidates": {"gone": len(gone), "present": len(present)}, "auc_gone_over_present": auc(gone, present),
             "sigma_quantiles": {"gone": quantiles(gone), "present": quantiles(present)},
             "retract_share_at_tau": {str(t): {"gone": (sum(v >= t for v in gone) / len(gone)) if gone else None,
                                               "present": (sum(v >= t for v in present) / len(present)) if present else None}
-                                     for t in TAU_GRID}}
+                                     for t in taus}}
 
 
 _HEADS: dict[str, Any] = {}
@@ -109,7 +109,9 @@ def main() -> int:
     parser.add_argument("--label", required=True)
     parser.add_argument("--workers", type=int, default=1)
     parser.add_argument("--output", required=True)
+    parser.add_argument("--taus", default=None, help="comma-separated thresholds (default: the registered tau_r grid)")
     args = parser.parse_args()
+    taus = tuple(float(v) for v in args.taus.split(",")) if args.taus else TAU_GRID
     dirs = entry.episode_dirs(Path(args.output_root).resolve() / OWN_PASS, ARM)
     paths = [str(d / ARM / "training_records.jsonl.gz") for d in dirs]
     with ProcessPoolExecutor(max_workers=max(1, args.workers), initializer=_init, initargs=(args.weights,)) as pool:
@@ -121,7 +123,7 @@ def main() -> int:
     weights = json.loads(Path(args.weights).read_text(encoding="utf-8"))
     out = {"stage": STAGE, "label": args.label, "weights_sha256": weights.get("sha256"), "episodes": len(paths),
            "records": f"{OWN_PASS}/{ARM} (the round-1 trajectories rolled out with the seed-7 round-0 heads, dev tau_r 0.5)",
-           "script_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), **summarise(pooled),
+           "script_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), "taus": list(taus), **summarise(pooled, taus),
            "caveat": "first order: the candidate sets are those sealed in the round-1 trajectories; retracting changes later memories"}
     Path(args.output).write_text(json.dumps(out, indent=1), encoding="utf-8")
     print(json.dumps({k: out[k] for k in ("label", "candidates", "auc_gone_over_present", "retract_share_at_tau")}, indent=1))
