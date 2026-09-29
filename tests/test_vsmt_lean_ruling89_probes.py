@@ -120,5 +120,15 @@ class ChecksTests(unittest.TestCase):
         self.assertFalse(checks.association_side({"pass": True, "train": {}}, p3, old, new)["pass"])
 
 
+class JointTests(unittest.TestCase):
+    def test_the_four_89_4_lines(self) -> None:
+        good = {s: ChecksTests.merged(0.08, 0.80, 0.50, []) for s in checks.SEEDS}
+        out = checks.joint_check(good)
+        self.assertTrue(out["pass"])  # false retract 0.2 <= 0.35 in the fixture
+        bad = {s: ChecksTests.merged(0.08, 0.80, 0.40, []) for s in checks.SEEDS}
+        self.assertFalse(checks.joint_check(bad)["pass"])
+        self.assertFalse(checks.joint_check({7: good[7]})["pass"])  # all five seeds are required
+
+
 if __name__ == "__main__":
     unittest.main()

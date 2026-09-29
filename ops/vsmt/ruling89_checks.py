@@ -35,6 +35,9 @@ SEEDS = (7, 19, 31, 43, 59)
 EXISTENCE_P3 = ("handcost", "rac", "elup")
 ASSOCIATION_P3 = ("taf", "low")
 MRR_LINE, NODE_F1_LINE = 0.05, 0.93
+#: 89-4 joint closed-loop lines (five-seed means), frozen in ruling 89 (revised)
+JOINT_LINES = {"missing_residual_rate": ("at_most", 0.10), "identity_continuity": ("at_least", 0.45),
+               "node_f1": ("at_least", 0.76), "false_retract_rate_in_scope": ("at_most", 0.35)}
 
 
 def house_mean(merged: Mapping[str, Any], metric: str) -> float | None:
@@ -113,6 +116,21 @@ def association_side(coverage: Mapping[str, Any] | None, imitation: Mapping[str,
             "pass": bool(cov and p3["pass"] and paired_pass)}
 
 
+def joint_check(runs: Mapping[int, Mapping[str, Any]]) -> dict[str, Any]:
+    """89-4: VSMT-lean with both sides' heads, tau_r 0.5, the new recall, five seeds x 39 episodes; the four frozen lines."""
+
+    out: dict[str, Any] = {"seeds": sorted(runs), "lines": {}}
+    ok = len(runs) == len(SEEDS)
+    for metric, (kind, line) in JOINT_LINES.items():
+        means = seed_means(runs, metric)
+        value = means["mean"]
+        passed = value is not None and (value <= line if kind == "at_most" else value >= line)
+        out["lines"][metric] = {**means, kind: line, "pass": bool(passed)}
+        ok = ok and bool(passed)
+    out["pass"] = bool(ok)
+    return out
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--same-input")
@@ -121,6 +139,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--oa-le", action="append", default=[], help="seed:merged audit")
     parser.add_argument("--la-oe-new", action="append", default=[])
     parser.add_argument("--la-oe-old", action="append", default=[])
+    parser.add_argument("--joint", action="append", default=[], help="89-4: seed:merged audit of the joint closed-loop run")
     parser.add_argument("--output", required=True)
     args = parser.parse_args(argv)
     inputs: dict[str, str] = {}
@@ -145,11 +164,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     out = {"stage": STAGE,
            "existence_side_89_2": existence_side(load(args.same_input), imitation, by_seed(args.oa_le)),
            "association_side_89_3": association_side(load(args.coverage_events), imitation, by_seed(args.la_oe_new), by_seed(args.la_oe_old)),
+           "joint_89_4": joint_check(by_seed(args.joint)) if args.joint else None,
            "inputs_sha256": inputs, "script_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest()}
     Path(args.output).write_text(json.dumps(out, indent=1), encoding="utf-8")
     print(json.dumps({"89-2": out["existence_side_89_2"]["pass"], "89-3": out["association_side_89_3"]["pass"],
                       "mrr": (out["existence_side_89_2"]["cell_teacher_association_new_existence"]["missing_residual_rate"] or {}).get("mean"),
-                      "f1": (out["existence_side_89_2"]["cell_teacher_association_new_existence"]["node_f1"] or {}).get("mean")}, indent=1))
+                      "f1": (out["existence_side_89_2"]["cell_teacher_association_new_existence"]["node_f1"] or {}).get("mean"),
+                      "89-4": None if out["joint_89_4"] is None else out["joint_89_4"]["pass"]}, indent=1))
     return 0
 
 

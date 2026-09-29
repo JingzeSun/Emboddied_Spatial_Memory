@@ -191,4 +191,28 @@ $PY ops/vsmt/ruling89_checks.py --same-input "$EXPORT_DIR/vsmt_lean_ruling89_sam
   --output "$EXPORT_DIR/vsmt_lean_ruling89_checks_$COMMIT.json" > "$LOG_DIR/reading.log" 2>&1
 READING_RC=$?
 echo "[$(date)] reading exit $READING_RC"; cat "$LOG_DIR/reading.log"
-finish done
+CHECKS=$EXPORT_DIR/vsmt_lean_ruling89_checks_$COMMIT.json
+gate "$CHECKS" "d['existence_side_89_2']['pass'] and d['association_side_89_3']['pass']" || finish sides_read_not_both_passed
+
+# 7. 89-4 (only after both sides passed; execution rules (two), supplement): the joint closed loop, VSMT-lean with the
+#    five round-1 heads, tau_r 0.5, no oracle, no new DAgger round
+echo "[$(date)] both sides passed; step 7: 89-4 joint closed loop"
+JOINT_JOBS=$LOG_DIR/joint_jobs.txt; : > "$JOINT_JOBS"
+for SEED in $SEEDS; do
+  W=$DIAG/training/round1/VSMT-lean/A$SEED/weights.json
+  audit_jobs "JOINT-A$SEED" "" "$W" >> "$JOINT_JOBS"
+done
+xargs -d '\n' -P "$WORKERS" -I{} bash -c '{}' < "$JOINT_JOBS" >> "$LOG_DIR/joint_exits.log" 2>&1
+JOINT_FAILED=$(grep -vc 'exit 0$' "$LOG_DIR/joint_exits.log" 2>/dev/null || echo 0)
+echo "[$(date)] joint audits: $(grep -c 'exit 0$' "$LOG_DIR/joint_exits.log") ok, $JOINT_FAILED failed"
+for SEED in $SEEDS; do
+  RESULT=$EXPORT_DIR/vsmt_lean_ruling89_audit_JOINT-A${SEED}_$COMMIT.json
+  $PY ops/vsmt/lean_s2_05_node_audit.py merge --output-root "$DIAG/audit/JOINT-A$SEED" --arm VSMT-lean --results "$RESULT" > "$LOG_DIR/merge-JOINT-A$SEED.log" 2>&1 || MERGES_FAILED=$((MERGES_FAILED + 1))
+  ARGS+=(--joint "$SEED:$RESULT")
+done
+$PY ops/vsmt/ruling89_checks.py --same-input "$EXPORT_DIR/vsmt_lean_ruling89_same_input_$COMMIT.json" \
+  --coverage-events "$EXPORT_DIR/vsmt_lean_ruling89_coverage_events_$COMMIT.json" "${ARGS[@]}" \
+  --output "$EXPORT_DIR/vsmt_lean_ruling89_checks_joint_$COMMIT.json" > "$LOG_DIR/reading_joint.log" 2>&1
+READING_RC=$?
+echo "[$(date)] joint reading exit $READING_RC"; cat "$LOG_DIR/reading_joint.log"
+finish done_with_89_4
