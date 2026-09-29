@@ -1,0 +1,241 @@
+{
+ "stage": "vsmt.lean.ruling89.recall.v1",
+ "rule": {
+  "candidates_in_order": [
+   5,
+   8,
+   12
+  ],
+  "miss_limit": 3,
+  "miss_category": "carrier_not_recalled",
+  "cell": "O-V-node (teacher association + teacher existence, node-primary labels)",
+  "source": "DECISIONS ruling 89-1 (a), approved 2026-09-30"
+ },
+ "rank_distribution_at_k3": {
+  "misses": 21,
+  "ranked": 21,
+  "ranks": [
+   4,
+   4,
+   5,
+   6,
+   6,
+   7,
+   7,
+   10,
+   10,
+   11,
+   13,
+   13,
+   17,
+   18,
+   21,
+   26,
+   33,
+   43,
+   45,
+   49,
+   88
+  ],
+  "bins": {
+   "4-5": 3,
+   "6-8": 4,
+   "9-12": 3,
+   "13-20": 4,
+   "21-50": 6,
+   ">=51": 1
+  },
+  "covered_by_k": {
+   "5": 3,
+   "8": 7,
+   "12": 10
+  },
+  "median": 13,
+  "entities_in_memory_at_miss": [
+   37,
+   47,
+   81,
+   92,
+   98,
+   107,
+   113,
+   116,
+   117,
+   118,
+   120,
+   128,
+   130,
+   133,
+   135,
+   197,
+   205,
+   225,
+   227,
+   270,
+   292
+  ]
+ },
+ "per_k": {
+  "3": {
+   "reobserved_moved_objects": 65,
+   "categories": {
+    "kept": 44,
+    "carrier_gone": 0,
+    "carrier_not_recalled": 21,
+    "chose_birth": 0,
+    "chose_other_entity": 0,
+    "no_prior_carrier": 0
+   },
+   "metrics": {
+    "node_f1": {
+     "mean": 0.953911207545965,
+     "houses": 39
+    },
+    "missing_residual_rate": {
+     "mean": 0.0,
+     "houses": 29
+    },
+    "identity_continuity": {
+     "mean": 0.6697530864197531,
+     "houses": 27
+    },
+    "contamination_auc": {
+     "mean": 0.22301654237119875,
+     "houses": 39
+    },
+    "false_retract_rate_in_scope": {
+     "mean": 0.0,
+     "houses": 30
+    }
+   },
+   "oracle_counts_recall_miss_births": 1101
+  },
+  "5": {
+   "reobserved_moved_objects": 65,
+   "categories": {
+    "kept": 47,
+    "carrier_gone": 0,
+    "carrier_not_recalled": 18,
+    "chose_birth": 0,
+    "chose_other_entity": 0,
+    "no_prior_carrier": 0
+   },
+   "metrics": {
+    "node_f1": {
+     "mean": 0.953998487519313,
+     "houses": 39
+    },
+    "missing_residual_rate": {
+     "mean": 0.0,
+     "houses": 29
+    },
+    "identity_continuity": {
+     "mean": 0.7037037037037037,
+     "houses": 27
+    },
+    "contamination_auc": {
+     "mean": 0.2229825204838719,
+     "houses": 39
+    },
+    "false_retract_rate_in_scope": {
+     "mean": 0.0,
+     "houses": 30
+    }
+   },
+   "oracle_counts_recall_miss_births": 984
+  },
+  "8": {
+   "reobserved_moved_objects": 65,
+   "categories": {
+    "kept": 51,
+    "carrier_gone": 0,
+    "carrier_not_recalled": 14,
+    "chose_birth": 0,
+    "chose_other_entity": 0,
+    "no_prior_carrier": 0
+   },
+   "metrics": {
+    "node_f1": {
+     "mean": 0.9587534070414864,
+     "houses": 39
+    },
+    "missing_residual_rate": {
+     "mean": 0.0,
+     "houses": 29
+    },
+    "identity_continuity": {
+     "mean": 0.7623456790123456,
+     "houses": 27
+    },
+    "contamination_auc": {
+     "mean": 0.22521396251488626,
+     "houses": 39
+    },
+    "false_retract_rate_in_scope": {
+     "mean": 0.0,
+     "houses": 30
+    }
+   },
+   "oracle_counts_recall_miss_births": 431
+  },
+  "12": {
+   "reobserved_moved_objects": 65,
+   "categories": {
+    "kept": 55,
+    "carrier_gone": 0,
+    "carrier_not_recalled": 10,
+    "chose_birth": 0,
+    "chose_other_entity": 0,
+    "no_prior_carrier": 0
+   },
+   "metrics": {
+    "node_f1": {
+     "mean": 0.9615685743821217,
+     "houses": 39
+    },
+    "missing_residual_rate": {
+     "mean": 0.0,
+     "houses": 29
+    },
+    "identity_continuity": {
+     "mean": 0.8395061728395062,
+     "houses": 27
+    },
+    "contamination_auc": {
+     "mean": 0.2243375915461057,
+     "houses": 39
+    },
+    "false_retract_rate_in_scope": {
+     "mean": 0.0,
+     "houses": 30
+    }
+   },
+   "oracle_counts_recall_miss_births": 276
+  }
+ },
+ "chosen_k_prime": null,
+ "decision": "no_candidate_passes_pause_and_propose_a_ruling_do_not_increase_further",
+ "inputs": {
+  "3": {
+   "path": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling89_recall_O-V-node-k3_01ba066.json",
+   "sha256": "d8626e566d2f30be29502ed78eba83e5b104d2019d48b9b4865b03f54bae73ff",
+   "episodes": 39
+  },
+  "5": {
+   "path": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling89_recall_O-V-node-k5_01ba066.json",
+   "sha256": "a02ac3e6fae4adc5934b12490e1c4189db26872ea57cee98dd293d59888c5ac8",
+   "episodes": 39
+  },
+  "8": {
+   "path": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling89_recall_O-V-node-k8_01ba066.json",
+   "sha256": "6ab51d563a15f814c2586752c0a35bf7c3ddc6888c7b350090e3bd2167d1247e",
+   "episodes": 39
+  },
+  "12": {
+   "path": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling89_recall_O-V-node-k12_01ba066.json",
+   "sha256": "dd664361408d9d0d7680db821b0e7a58d9bb5c0e3768d8287741f75beb7bc1b1",
+   "episodes": 39
+  }
+ },
+ "private_ids_exported": false
+}
