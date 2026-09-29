@@ -1,0 +1,455 @@
+{
+ "stage": "vsmt.lean.s2_05.identity_attribution.v1",
+ "inputs": {
+  "VSMT-lean:7": {
+   "file": "vsmt_lean_s2_05_node_audit_ruling86_VSMT-lean-A7_378008c.json",
+   "sha256": "413e3e6d9c46a4f868eef5154f0d7b893db1605c941b87e208d2d7503629e553"
+  },
+  "VSMT-lean:19": {
+   "file": "vsmt_lean_s2_05_node_audit_ruling86_VSMT-lean-A19_378008c.json",
+   "sha256": "4093cafaae42b6a84f32e0d9b51277fcec60d862d7bc96d850145f16bf92c48a"
+  },
+  "VSMT-lean:31": {
+   "file": "vsmt_lean_s2_05_node_audit_ruling86_VSMT-lean-A31_378008c.json",
+   "sha256": "fd06d4e94631d72fd81a72fc726fe1a6fd9404ebed2e78e4fdb1c3edffacd2f8"
+  },
+  "VSMT-lean:43": {
+   "file": "vsmt_lean_s2_05_node_audit_ruling86_VSMT-lean-A43_378008c.json",
+   "sha256": "d6949abf614e5e6dbbebd8ca9691be662a396628d70fdd1dfed345fff0d24dfa"
+  },
+  "VSMT-lean:59": {
+   "file": "vsmt_lean_s2_05_node_audit_ruling86_VSMT-lean-A59_378008c.json",
+   "sha256": "6c23b314903e84f61a1556e7807b74b4527783bae0c454dba2b4c009c953a86a"
+  },
+  "AssocOnly:7": {
+   "file": "vsmt_lean_s2_05_node_audit_ruling86_AssocOnly-A7_378008c.json",
+   "sha256": "f200c9f1ab0ed464a09529768f5b282c71d139011eacd446f46130d9b3e4cb99"
+  },
+  "AssocOnly:19": {
+   "file": "vsmt_lean_s2_05_node_audit_ruling86_AssocOnly-A19_378008c.json",
+   "sha256": "ac2b81435a4f96f1525525352cf743220a9bb3c9c24dfa2b877a3b2a31679b3b"
+  },
+  "AssocOnly:31": {
+   "file": "vsmt_lean_s2_05_node_audit_ruling86_AssocOnly-A31_378008c.json",
+   "sha256": "b6ae2fe0e41d6bd8f3910df6aa65f450dd112e0a35f78901a3e2d614d543d0aa"
+  },
+  "AssocOnly:43": {
+   "file": "vsmt_lean_s2_05_node_audit_ruling86_AssocOnly-A43_378008c.json",
+   "sha256": "b1b52e9393739d048bd200ecb834c220df5d21a6c1dd1321dfa65b410534184b"
+  },
+  "AssocOnly:59": {
+   "file": "vsmt_lean_s2_05_node_audit_ruling86_AssocOnly-A59_378008c.json",
+   "sha256": "3c7f0d983843089361b5e23c34341cb0f54f43a07dc0e32f16c68187bcebcd4a"
+  },
+  "NoVersion:7": {
+   "file": "vsmt_lean_s2_05_node_audit_ruling86_NoVersion-A7_378008c.json",
+   "sha256": "cb475aa32445cef79b2629367a15eb28e4236ced23d321a866490a86b41de9a7"
+  },
+  "NoVersion:19": {
+   "file": "vsmt_lean_s2_05_node_audit_ruling86_NoVersion-A19_378008c.json",
+   "sha256": "0f2735d2a085d0ee2a2dbcedc3e612c2172265c6b78332af5c45e054b58059be"
+  },
+  "NoVersion:31": {
+   "file": "vsmt_lean_s2_05_node_audit_ruling86_NoVersion-A31_378008c.json",
+   "sha256": "703dbbb7e0f281ed8c31ae373fa0e3088c200c98cae4fc84c3c016f3a9ff7749"
+  },
+  "NoVersion:43": {
+   "file": "vsmt_lean_s2_05_node_audit_ruling86_NoVersion-A43_378008c.json",
+   "sha256": "9c06b744c140529b97f06dfa8c48f7cd08115c89a9c3b8f3a6e585da3f43852f"
+  },
+  "NoVersion:59": {
+   "file": "vsmt_lean_s2_05_node_audit_ruling86_NoVersion-A59_378008c.json",
+   "sha256": "6f8a09495b8610285f0055acc131dd97522d24f70370e249d84c49c50a8d29f3"
+  }
+ },
+ "script_sha256": "0e88b44afd6d905259a1e9d186a6bd801037b5320a8a6f015fb8c5bfd18f22fd",
+ "rule": "86-0: among VSMT-lean's failures on objects judged in both arms that the comparison arm kept (VSMT-lean vs AssocOnly, pooled over the five seeds): if more than half are lifecycle-side (a carrier was retracted at some point before the re-observation, or every present carrier is dormant or retracted) the second revision round targets the lifecycle side; if more than half are hygiene-side (every carrier gone by a fold, or no present carrier still resolves to the object) it targets the co-observation veto; otherwise both readings go to the user",
+ "seeds": [
+  7,
+  19,
+  31,
+  43,
+  59
+ ],
+ "per_group": {
+  "AssocOnly:7": {
+   "categories": {
+    "kept": 23,
+    "carrier_gone": 1,
+    "carrier_not_recalled": 16,
+    "chose_birth": 4,
+    "chose_other_entity": 8,
+    "no_prior_carrier": 13
+   },
+   "judged": 52,
+   "kept": 23,
+   "identity_continuity_pooled": 0.4423076923076923,
+   "no_prior_reasons": {
+    "no_resolving_entity_at_move": 13
+   }
+  },
+  "AssocOnly:19": {
+   "categories": {
+    "kept": 24,
+    "carrier_gone": 0,
+    "carrier_not_recalled": 13,
+    "chose_birth": 1,
+    "chose_other_entity": 4,
+    "no_prior_carrier": 23
+   },
+   "judged": 42,
+   "kept": 24,
+   "identity_continuity_pooled": 0.5714285714285714,
+   "no_prior_reasons": {
+    "no_resolving_entity_at_move": 23
+   }
+  },
+  "AssocOnly:31": {
+   "categories": {
+    "kept": 22,
+    "carrier_gone": 1,
+    "carrier_not_recalled": 14,
+    "chose_birth": 2,
+    "chose_other_entity": 6,
+    "no_prior_carrier": 20
+   },
+   "judged": 45,
+   "kept": 22,
+   "identity_continuity_pooled": 0.4888888888888889,
+   "no_prior_reasons": {
+    "no_resolving_entity_at_move": 20
+   }
+  },
+  "AssocOnly:43": {
+   "categories": {
+    "kept": 15,
+    "carrier_gone": 1,
+    "carrier_not_recalled": 17,
+    "chose_birth": 15,
+    "chose_other_entity": 5,
+    "no_prior_carrier": 12
+   },
+   "judged": 53,
+   "kept": 15,
+   "identity_continuity_pooled": 0.2830188679245283,
+   "no_prior_reasons": {
+    "no_resolving_entity_at_move": 12
+   }
+  },
+  "AssocOnly:59": {
+   "categories": {
+    "kept": 20,
+    "carrier_gone": 0,
+    "carrier_not_recalled": 13,
+    "chose_birth": 6,
+    "chose_other_entity": 5,
+    "no_prior_carrier": 21
+   },
+   "judged": 44,
+   "kept": 20,
+   "identity_continuity_pooled": 0.45454545454545453,
+   "no_prior_reasons": {
+    "no_resolving_entity_at_move": 21
+   }
+  },
+  "NoVersion:7": {
+   "categories": {
+    "kept": 20,
+    "carrier_gone": 6,
+    "carrier_not_recalled": 18,
+    "chose_birth": 6,
+    "chose_other_entity": 7,
+    "no_prior_carrier": 8
+   },
+   "judged": 57,
+   "kept": 20,
+   "identity_continuity_pooled": 0.3508771929824561,
+   "no_prior_reasons": {
+    "no_resolving_entity_at_move": 8
+   }
+  },
+  "NoVersion:19": {
+   "categories": {
+    "kept": 20,
+    "carrier_gone": 2,
+    "carrier_not_recalled": 16,
+    "chose_birth": 7,
+    "chose_other_entity": 7,
+    "no_prior_carrier": 13
+   },
+   "judged": 52,
+   "kept": 20,
+   "identity_continuity_pooled": 0.38461538461538464,
+   "no_prior_reasons": {
+    "no_resolving_entity_at_move": 13
+   }
+  },
+  "NoVersion:31": {
+   "categories": {
+    "kept": 12,
+    "carrier_gone": 1,
+    "carrier_not_recalled": 18,
+    "chose_birth": 23,
+    "chose_other_entity": 6,
+    "no_prior_carrier": 5
+   },
+   "judged": 60,
+   "kept": 12,
+   "identity_continuity_pooled": 0.2,
+   "no_prior_reasons": {
+    "no_resolving_entity_at_move": 5
+   }
+  },
+  "NoVersion:43": {
+   "categories": {
+    "kept": 22,
+    "carrier_gone": 2,
+    "carrier_not_recalled": 16,
+    "chose_birth": 5,
+    "chose_other_entity": 3,
+    "no_prior_carrier": 17
+   },
+   "judged": 48,
+   "kept": 22,
+   "identity_continuity_pooled": 0.4583333333333333,
+   "no_prior_reasons": {
+    "no_resolving_entity_at_move": 17
+   }
+  },
+  "NoVersion:59": {
+   "categories": {
+    "kept": 21,
+    "carrier_gone": 3,
+    "carrier_not_recalled": 11,
+    "chose_birth": 5,
+    "chose_other_entity": 3,
+    "no_prior_carrier": 22
+   },
+   "judged": 43,
+   "kept": 21,
+   "identity_continuity_pooled": 0.4883720930232558,
+   "no_prior_reasons": {
+    "no_resolving_entity_at_move": 22
+   }
+  },
+  "VSMT-lean:7": {
+   "categories": {
+    "kept": 23,
+    "carrier_gone": 1,
+    "carrier_not_recalled": 18,
+    "chose_birth": 8,
+    "chose_other_entity": 9,
+    "no_prior_carrier": 6
+   },
+   "judged": 59,
+   "kept": 23,
+   "identity_continuity_pooled": 0.3898305084745763,
+   "no_prior_reasons": {
+    "no_resolving_entity_at_move": 6
+   }
+  },
+  "VSMT-lean:19": {
+   "categories": {
+    "kept": 21,
+    "carrier_gone": 1,
+    "carrier_not_recalled": 16,
+    "chose_birth": 8,
+    "chose_other_entity": 6,
+    "no_prior_carrier": 13
+   },
+   "judged": 52,
+   "kept": 21,
+   "identity_continuity_pooled": 0.40384615384615385,
+   "no_prior_reasons": {
+    "no_resolving_entity_at_move": 13
+   }
+  },
+  "VSMT-lean:31": {
+   "categories": {
+    "kept": 12,
+    "carrier_gone": 0,
+    "carrier_not_recalled": 19,
+    "chose_birth": 22,
+    "chose_other_entity": 8,
+    "no_prior_carrier": 4
+   },
+   "judged": 61,
+   "kept": 12,
+   "identity_continuity_pooled": 0.19672131147540983,
+   "no_prior_reasons": {
+    "no_resolving_entity_at_move": 4
+   }
+  },
+  "VSMT-lean:43": {
+   "categories": {
+    "kept": 22,
+    "carrier_gone": 1,
+    "carrier_not_recalled": 15,
+    "chose_birth": 7,
+    "chose_other_entity": 5,
+    "no_prior_carrier": 15
+   },
+   "judged": 50,
+   "kept": 22,
+   "identity_continuity_pooled": 0.44,
+   "no_prior_reasons": {
+    "no_resolving_entity_at_move": 15
+   }
+  },
+  "VSMT-lean:59": {
+   "categories": {
+    "kept": 22,
+    "carrier_gone": 1,
+    "carrier_not_recalled": 14,
+    "chose_birth": 6,
+    "chose_other_entity": 4,
+    "no_prior_carrier": 18
+   },
+   "judged": 47,
+   "kept": 22,
+   "identity_continuity_pooled": 0.46808510638297873,
+   "no_prior_reasons": {
+    "no_resolving_entity_at_move": 18
+   }
+  }
+ },
+ "paired": {
+  "VSMT-lean_vs_AssocOnly": {
+   "pooled": {
+    "both_kept": 80,
+    "only_left_kept": 13,
+    "only_right_kept": 21,
+    "neither": 107,
+    "common_judged": 221
+   },
+   "per_seed": {
+    "7": {
+     "both_kept": 20,
+     "only_left_kept": 2,
+     "only_right_kept": 3,
+     "neither": 25,
+     "common_judged": 50
+    },
+    "19": {
+     "both_kept": 17,
+     "only_left_kept": 1,
+     "only_right_kept": 5,
+     "neither": 16,
+     "common_judged": 39
+    },
+    "31": {
+     "both_kept": 11,
+     "only_left_kept": 1,
+     "only_right_kept": 11,
+     "neither": 22,
+     "common_judged": 45
+    },
+    "43": {
+     "both_kept": 15,
+     "only_left_kept": 6,
+     "only_right_kept": 0,
+     "neither": 25,
+     "common_judged": 46
+    },
+    "59": {
+     "both_kept": 17,
+     "only_left_kept": 3,
+     "only_right_kept": 2,
+     "neither": 19,
+     "common_judged": 41
+    }
+   },
+   "left_failures_where_right_kept": {
+    "kept": 0,
+    "carrier_gone": 0,
+    "carrier_not_recalled": 1,
+    "chose_birth": 15,
+    "chose_other_entity": 5,
+    "no_prior_carrier": 0
+   },
+   "left_failure_carrier_states": {
+    "dormant": 16,
+    "active": 4,
+    "retracted": 1
+   },
+   "left_failure_sides": {
+    "lifecycle": 17,
+    "hygiene": 0,
+    "association": 4
+   }
+  },
+  "VSMT-lean_vs_NoVersion": {
+   "pooled": {
+    "both_kept": 93,
+    "only_left_kept": 6,
+    "only_right_kept": 2,
+    "neither": 159,
+    "common_judged": 260
+   },
+   "per_seed": {
+    "7": {
+     "both_kept": 19,
+     "only_left_kept": 4,
+     "only_right_kept": 1,
+     "neither": 33,
+     "common_judged": 57
+    },
+    "19": {
+     "both_kept": 20,
+     "only_left_kept": 1,
+     "only_right_kept": 0,
+     "neither": 31,
+     "common_judged": 52
+    },
+    "31": {
+     "both_kept": 12,
+     "only_left_kept": 0,
+     "only_right_kept": 0,
+     "neither": 48,
+     "common_judged": 60
+    },
+    "43": {
+     "both_kept": 22,
+     "only_left_kept": 0,
+     "only_right_kept": 0,
+     "neither": 26,
+     "common_judged": 48
+    },
+    "59": {
+     "both_kept": 20,
+     "only_left_kept": 1,
+     "only_right_kept": 1,
+     "neither": 21,
+     "common_judged": 43
+    }
+   },
+   "left_failures_where_right_kept": {
+    "kept": 0,
+    "carrier_gone": 0,
+    "carrier_not_recalled": 0,
+    "chose_birth": 1,
+    "chose_other_entity": 1,
+    "no_prior_carrier": 0
+   },
+   "left_failure_carrier_states": {
+    "dormant": 1,
+    "retracted": 1
+   },
+   "left_failure_sides": {
+    "lifecycle": 2,
+    "hygiene": 0,
+    "association": 0
+   }
+  }
+ },
+ "reading": {
+  "failures": 21,
+  "sides": {
+   "lifecycle": 17,
+   "hygiene": 0,
+   "association": 4
+  },
+  "verdict": "round_2_targets_the_lifecycle_side"
+ },
+ "caveat": "development reading on the 39 development houses; descriptive attribution of first re-observations, not a significance test and not a new metric"
+}

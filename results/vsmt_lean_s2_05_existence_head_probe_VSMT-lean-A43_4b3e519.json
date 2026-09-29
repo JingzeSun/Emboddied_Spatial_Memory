@@ -1,0 +1,62 @@
+{
+ "stage": "vsmt.lean.s2_05.existence_head_probe.v1",
+ "label": "A43",
+ "weights_sha256": "db42b8ee330ff3c7ed42e252d79260b4c6a1dde566ccdff3f641ed370e831a40",
+ "episodes": 39,
+ "records": "dagger_round_1/VSMT-lean (the round-1 trajectories rolled out with the seed-7 round-0 heads, dev tau_r 0.5)",
+ "script_sha256": "ee84f43860d1f3590ac2291b588004b351b3601e558a1a2a1453eb989656aa6f",
+ "candidates": {
+  "gone": 35257,
+  "present": 198029
+ },
+ "auc_gone_over_present": 0.6540836465046672,
+ "sigma_quantiles": {
+  "gone": {
+   "0.1": 0.09461935333640055,
+   "0.25": 0.12823355546532503,
+   "0.5": 0.17185548888984498,
+   "0.75": 0.2054076304887652,
+   "0.9": 0.23682812317438326,
+   "0.99": 0.6189764418565098
+  },
+  "present": {
+   "0.1": 0.06458116217298329,
+   "0.25": 0.0931952092273978,
+   "0.5": 0.13581628816326696,
+   "0.75": 0.17970233360607063,
+   "0.9": 0.20959687555976292,
+   "0.99": 0.3071073356306661
+  }
+ },
+ "retract_share_at_tau": {
+  "0.3": {
+   "gone": 0.05332274441954789,
+   "present": 0.010730751556590196
+  },
+  "0.4": {
+   "gone": 0.0317667413563264,
+   "present": 0.004650833968762151
+  },
+  "0.5": {
+   "gone": 0.019570581728451088,
+   "present": 0.0021108019532492714
+  },
+  "0.6": {
+   "gone": 0.011742349037070653,
+   "present": 0.0008180620010200526
+  },
+  "0.7": {
+   "gone": 0.004538105908046629,
+   "present": 0.00027268733367335086
+  },
+  "0.8": {
+   "gone": 0.0005389000765805372,
+   "present": 4.544788894555848e-05
+  },
+  "0.9": {
+   "gone": 0.0,
+   "present": 0.0
+  }
+ },
+ "caveat": "first order: the candidate sets are those sealed in the round-1 trajectories; retracting changes later memories"
+}

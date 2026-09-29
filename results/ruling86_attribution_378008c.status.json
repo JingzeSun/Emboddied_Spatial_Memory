@@ -1,0 +1,15 @@
+{
+ "commit": "378008c",
+ "stage_reached": "done",
+ "finished_cst": "2026-09-29 17:41:12",
+ "suite_exit": "0",
+ "audits_ok": "585",
+ "audits_failed": "0",
+ "merges_failed": "0",
+ "analysis_exit": "0",
+ "workers_requested": 24,
+ "cpu_quota": 25,
+ "worker_basis": "cgroup CPU quota minus one; each audit is one single-threaded CPU process of about 1-2 GB",
+ "shutdown_after_seconds": 1800,
+ "shutdown": true
+}
