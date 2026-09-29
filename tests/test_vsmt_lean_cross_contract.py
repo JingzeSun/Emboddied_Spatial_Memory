@@ -338,7 +338,10 @@ FROZEN_RULE_SHA256 = {
     # centroid within delta_moved_m or inside the truth box padded 0.25 m; the Dyn-THOR relation string rewritten.  eb81780b -> 8b57bacb.
     # D-224-S1 ruling 80-5 (b) (2026-09-28): the secondary column false_retract_rate_in_scope (names, reported fields, its block
     # with rule, excluded reasons and role, the not-applicable rule).  8b57bacb -> 185d7ff4.
-    "S0-04": "185d7ff48eec00866c859c73d695742a1676c9271593b8d9eae34211520d6fb3",
+    # D-224-S1 ruling 88-4 (2026-09-29, LOG-284 continued): the existence label uses the node primary place test (centroid
+    # within delta_moved_m or inside the truth box padded 0.25 m); place_rule, the pad source, the diagnostic-only
+    # centroid_only rule and the superseded gone rule enter the digest.  185d7ff4 -> 818ec131.
+    "S0-04": "818ec131c46ff3172422dd3b969444ed108b128c50bf98b234458be096b64795",
     # S0-05 re-pinned 2026-09-25 for ruling 68 (LOG-256 sequel): every grid's values (at most twelve
     # configurations per method, a no-gate member in every rule arm), the ELU-P rollout_config
     # (0.7, 1.0, 0.0) and the should_be_visible_min_ratio_superseded record enter the digest; the

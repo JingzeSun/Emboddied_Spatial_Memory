@@ -90,13 +90,24 @@
         "dormant"
       ],
       "ineligible_candidate_state_is_rejected_not_skipped": true,
-      "gone_rule": "object absent from the scene, or its current centroid farther than delta_moved_m from the entity's remembered centroid",
+      "gone_rule": "object absent from the scene, or the entity fails the node primary place test for its own object: centroid farther than delta_moved_m from the object's centroid and outside the object's truth box padded by box_pad_m (centroid only when the object has no box)",
+      "gone_rule_superseded": {
+        "rule": "object absent from the scene, or its current centroid farther than delta_moved_m from the entity's remembered centroid",
+        "superseded_by": "D-224-S1 ruling 88-4 (2026-09-29)",
+        "kept_as": "the diagnostic-only place rule centroid_only"
+      },
+      "place_rule": "node_primary",
+      "place_box_pad_m_source": "metrics.node_prf1.box_pad_m",
+      "diagnostic_only_place_rules": [
+        "centroid_only"
+      ],
+      "place_rule_plain_language_zh": "裁决 88-4（2026-09-29）：存在标签与节点主列用同一把尺子。物体已不在场景中记 gone；物体在场时，实体按裁决 77 的地点规则（质心离物体质心 ≤ delta_moved_m，或质心落在真值框外扩 box_pad_m＝0.25 m 内）对自己的物体成立就记 present，否则记 gone；物体没有真值框时只看质心。在原处的重复实体因此记 present，冗余交给共享去重。依据：旧规则只看质心，裁决 86 开发轨迹里 28.9% 的 gone 标签落在按节点主列仍在原处、且没有别的承载的实体上，而窗口后真实的拿走或搬动只占 13.3%。旧规则保留为具名诊断口径 centroid_only，只供裁决 88-2 的决定上限对照，不用于训练、选参或任何表。假撤回率按存在标签定义，随之变为“被撤回的实体中按节点主列仍在原处的比例”。",
       "displacement_reference": "entity_remembered_centroid",
       "delta_moved_m": 0.5,
       "delta_moved_m_frozen_by": "D-224-S1 ruling 67",
       "delta_moved_m_frozen_on": "2026-09-24"
     },
-    "plain_language_zh": "实体身份取其全部带物体证据的严格多数（超过一半），没有严格多数即身份含糊，不另设阈值；背景证据不投票。色块目标列的规则：先按实例重叠表判主导物体——没有物体记 unlabelled，覆盖两个及以上物体且最大占比低于阈值或并列记 identity_ambiguous，只覆盖一个物体但占比低于阈值记 unlabelled；主导物体成立后，记忆里没有这个物体记 birth，有但没被召回记 recall_miss，有且被召回则目标是它（重复实体取首版本最早、并列取 ID 最小的那个，若只有重复实体被召回则以被召回者为目标），这个物体的证据只落在身份含糊的实体里记 identity_ambiguous 而不是猜 birth。存在标签：物体不在场景中、或已离开实体记住的位置超过 delta_moved_m 即 gone，否则 present，身份含糊记 identity_ambiguous；候选状态只允许 active 与 dormant（S0-01 允许 RETRACT dormant；裁决 P），retracted 候选直接拒绝。以上口径由 D-224-LQ 裁决 N、P、Q 冻结。裁决 67（2026-09-24）冻结 dominance_min_share=0.5（严格多数，S1-04 标注用的就是过半规则）与 delta_moved_m=0.5（搬动下限 0.6 m 在其上、未干预物体漂移 1.4～16 cm 在其下）。 v2 新增 duplicate_of_labelled（裁决 X1，见 same_frame_duplicates）。",
+    "plain_language_zh": "实体身份取其全部带物体证据的严格多数（超过一半），没有严格多数即身份含糊，不另设阈值；背景证据不投票。色块目标列的规则：先按实例重叠表判主导物体——没有物体记 unlabelled，覆盖两个及以上物体且最大占比低于阈值或并列记 identity_ambiguous，只覆盖一个物体但占比低于阈值记 unlabelled；主导物体成立后，记忆里没有这个物体记 birth，有但没被召回记 recall_miss，有且被召回则目标是它（重复实体取首版本最早、并列取 ID 最小的那个，若只有重复实体被召回则以被召回者为目标），这个物体的证据只落在身份含糊的实体里记 identity_ambiguous 而不是猜 birth。存在标签：物体不在场景中即 gone；物体在场时，实体按节点主列的地点规则（质心 ≤ delta_moved_m 或落在真值框外扩 0.25 m 内）对自己的物体不成立才记 gone（裁决 88-4；此前只看质心），否则 present，身份含糊记 identity_ambiguous；候选状态只允许 active 与 dormant（S0-01 允许 RETRACT dormant；裁决 P），retracted 候选直接拒绝。以上口径由 D-224-LQ 裁决 N、P、Q 冻结。裁决 67（2026-09-24）冻结 dominance_min_share=0.5（严格多数，S1-04 标注用的就是过半规则）与 delta_moved_m=0.5（搬动下限 0.6 m 在其上、未干预物体漂移 1.4～16 cm 在其下）。 v2 新增 duplicate_of_labelled（裁决 X1，见 same_frame_duplicates）。",
     "same_frame_duplicates": {
       "rule": "among fragments of one frame that are labelled with the same dominant object and the same target entity, the fragment with the most pixels on that object keeps the target",
       "tie_break": "larger_pixel_count_then_smaller_fragment_id",
@@ -270,7 +281,8 @@
       "numerator": "RETRACT decisions whose existence label is present",
       "denominator": "RETRACT decisions with a resolvable existence label",
       "ambiguous": "RETRACT decisions on identity-ambiguous entities are counted, not judged",
-      "not_applicable": "arms whose vocabulary lacks RETRACT report not_applicable; they enter neither the exclusion list nor any pairing on this metric"
+      "not_applicable": "arms whose vocabulary lacks RETRACT report not_applicable; they enter neither the exclusion list nor any pairing on this metric",
+      "label_rule_revised_by": "D-224-S1 ruling 88-4 (2026-09-29): present now means in place by the node primary rule; values before the ruling used the centroid-only label and are not comparable"
     },
     "false_retract_rate_in_scope": {
       "rule": "false_retract_rate over the existence candidates whose label reason is not one of PRESENT_BY_RULE_REASONS (entities resolving to objects outside the truth node scope are left out)",
@@ -420,7 +432,8 @@
     "ruling_72": "D-224-S1 裁决 72 (B)（2026-09-25 16:35 CST 批准，原话「裁决 72 取 (A)(a)(B)(a)(C)(a)(D)(a)」）：裁决 70 改取 (b)。node_prf1 的匹配改为质心 ≤ delta_moved_m、权重 1/(1+距离)（主列、选参指标，不进主门）；原 IoU 0.3 匹配改名 node_prf1_iou（次级列，不选配置、不进主门），node_prf1_centroid 取消。两列同一预测集合、同一真值集合、同一评价器匹配器，只换重叠判定；与 Dyn-THOR 是“同一匹配机制、不同重叠判定”，论文须写明。依据：LOG-257 续——完美分割＋完美身份合并时 IoU 0.3 上界 0.64、质心 0.86，IoU 列主要量的是单帧深度表面壳对整体盒的几何差而非记忆对错。发生在任何 validation/test 数据生成之前；开发 cache 是 train 划分。",
     "ruling_76_3a": "2026-09-26 「裁决 76 取 (1)(a)(2)(a)(3)(a)(4)(a)」: both node columns match count-first (most pairs, then most weight); LOG-262.",
     "ruling_77_1a": "2026-09-26 「裁决 77 取 (1)(a)(2)(a)」: node_prf1 pairs must be the entity's own object and within delta_moved_m or inside the truth box padded 0.25 m; LOG-263 sequel.",
-    "ruling_80_5b": "2026-09-28 「裁决 80 全按推荐」: a secondary column false_retract_rate_in_scope beside the unchanged false_retract_rate, leaving out candidates labelled present by rule for objects outside the node scope; never the selection metric, never in the main gate; LOG-273."
+    "ruling_80_5b": "2026-09-28 「裁决 80 全按推荐」: a secondary column false_retract_rate_in_scope beside the unchanged false_retract_rate, leaving out candidates labelled present by rule for objects outside the node scope; never the selection metric, never in the main gate; LOG-273.",
+    "ruling_88_4": "2026-09-29 「裁决 88 全按推荐」: the existence label uses the node primary place test (centroid within delta_moved_m or inside the truth box padded 0.25 m); the centroid-only rule is kept as a diagnostic-only place rule; LOG-284 continued."
   },
   "continue_gate": {
     "metric_list_frozen_before_any_data_generation": true,

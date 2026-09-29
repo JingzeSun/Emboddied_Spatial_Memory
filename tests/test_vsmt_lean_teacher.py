@@ -497,6 +497,53 @@ class TestExistenceLabels(unittest.TestCase):
         labels = self._labels(memory, [mug], {"obj:mug": {"present": True, "centroid_m": [0.1, 0.0, 0.0]}})
         self.assertEqual(labels[mug]["status"], "present")
 
+    # D-224-S1 ruling 88-4 (2026-09-29): the existence label uses the node primary place test.  The mug entity sits at the origin.
+    def test_a_large_object_seen_from_one_side_is_present_by_the_padded_box(self) -> None:
+        memory, mug, _ = two_entity_memory()
+        state = {"obj:mug": {"present": True, "centroid_m": [0.7, 0.0, 0.0],
+                             "aabb_min_m": [0.1, -0.5, -0.5], "aabb_max_m": [1.3, 0.5, 0.5]}}
+        labels = self._labels(memory, [mug], state)
+        self.assertEqual((labels[mug]["status"], labels[mug]["place_test"]), ("present", "padded_box"))
+        # the pre-88 rule, kept for the decision-ceiling diagnostic only, calls the same entity gone
+        legacy = existence_labels(memory, candidates=[mug], object_state=state, evidence_instance=evidence_map(memory, KEYS),
+                                  delta_moved_m=DELTA, place_rule="centroid_only")
+        self.assertEqual((legacy[mug]["status"], legacy[mug]["reason"]), ("gone", "moved"))
+
+    def test_beyond_delta_and_outside_the_padded_box_is_gone(self) -> None:
+        memory, mug, _ = two_entity_memory()
+        state = {"obj:mug": {"present": True, "centroid_m": [0.7, 0.0, 0.0],
+                             "aabb_min_m": [0.4, -0.1, -0.1], "aabb_max_m": [1.0, 0.1, 0.1]}}
+        labels = self._labels(memory, [mug], state)
+        self.assertEqual((labels[mug]["status"], labels[mug]["reason"]), ("gone", "moved"))
+        self.assertAlmostEqual(labels[mug]["displacement_m"], 0.7)
+
+    def test_the_pad_edge_counts_as_inside(self) -> None:
+        memory, mug, _ = two_entity_memory()
+        state = {"obj:mug": {"present": True, "centroid_m": [0.75, 0.0, 0.0],
+                             "aabb_min_m": [0.25, -0.1, -0.1], "aabb_max_m": [1.25, 0.1, 0.1]}}
+        self.assertEqual(self._labels(memory, [mug], state)[mug]["status"], "present")
+
+    def test_a_boxless_object_falls_back_to_the_centroid(self) -> None:
+        memory, mug, _ = two_entity_memory()
+        labels = self._labels(memory, [mug], {"obj:mug": {"present": True, "centroid_m": [0.7, 0.0, 0.0]}})
+        self.assertEqual(labels[mug]["status"], "gone")
+
+    def test_an_in_place_duplicate_is_present(self) -> None:
+        # a second mug record at the same place (the redundancy is the shared dedup's job, not a gone label)
+        memory, mug, _ = two_entity_memory()
+        memory = step(memory, "f2", [{"atom": "BIRTH", "fragment": frag("region:0005", descriptor=[1.0, 0.0], centroid=[0.05, 0.0, 0.0])}])
+        twin = [str(e["entity_id"]) for e in memory["entities"] if e["evidence"][0]["fragment_id"] == "region:0005"][0]
+        labels = existence_labels(memory, candidates=[mug, twin], object_state={"obj:mug": {"present": True, "centroid_m": [0.0, 0.0, 0.0]}},
+                                  evidence_instance=evidence_map(memory, {**KEYS, "region:0005": "obj:mug"}), delta_moved_m=DELTA)
+        self.assertEqual({labels[mug]["status"], labels[twin]["status"]}, {"present"})
+
+    def test_an_unknown_place_rule_is_rejected(self) -> None:
+        memory, mug, _ = two_entity_memory()
+        with self.assertRaises(LeanTeacherError) as caught:
+            existence_labels(memory, candidates=[mug], object_state={"obj:mug": {"present": False}},
+                             evidence_instance=evidence_map(memory, KEYS), delta_moved_m=DELTA, place_rule="box_only")
+        self.assertEqual(str(caught.exception), "existence_place_rule_unknown")
+
     def test_a_dormant_candidate_is_labelled(self) -> None:
         memory, mug, _ = two_entity_memory()
         memory = step(memory, "f2", [{"atom": "NOOP", "entity_id": mug}], limit=1)
@@ -1150,6 +1197,19 @@ class TestMachineContract(unittest.TestCase):
         with self.assertRaises(LeanTeacherError) as caught:
             validate_teacher_contract(broken)
         self.assertEqual(str(caught.exception), "contract_truth_box_source_mismatch")
+
+    def test_the_existence_label_rule_is_bound_to_ruling_88_4(self) -> None:
+        from vsmt.lean_teacher import EXISTENCE_GONE_RULE, EXISTENCE_PLACE_RULE
+
+        existence = self.contract["labels"]["existence"]
+        self.assertEqual((existence["place_rule"], existence["gone_rule"]), (EXISTENCE_PLACE_RULE, EXISTENCE_GONE_RULE))
+        self.assertEqual(existence["diagnostic_only_place_rules"], ["centroid_only"])
+        for path, value in (("labels.existence.place_rule", "centroid_only"),
+                            ("labels.existence.gone_rule", existence["gone_rule_superseded"]["rule"])):
+            broken = self._fresh()
+            self._set(broken, path, value)
+            with self.assertRaises(LeanTeacherError, msg=path):
+                validate_teacher_contract(broken)
 
     def test_flipping_any_boolean_claim_is_rejected(self) -> None:
         self.assertGreaterEqual(len(EXPECTED_BOOLEAN_CLAIMS), 40)

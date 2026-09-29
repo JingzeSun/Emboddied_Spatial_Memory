@@ -195,13 +195,18 @@ def fragment_instances(cache_frame: Mapping[str, Any], masks: Mapping[str, Any],
 
 
 def object_state_from_truth(tracker_truth: Mapping[str, Mapping[str, Any]]) -> dict[str, dict[str, Any]]:
-    """S0-04 ``object_state`` (present, centroid when present) from the S1-04 tracker's frame output."""
+    """S0-04 ``object_state`` from the S1-04 tracker's frame output: present, and when present the centroid and the truth
+    box (ruling 88-4: the existence label uses the node primary place test, which reads the box; boxless objects keep the
+    centroid only)."""
 
     out: dict[str, dict[str, Any]] = {}
     for key, entry in tracker_truth.items():
         state: dict[str, Any] = {"present": bool(entry["present"])}
         if entry["present"]:
             state["centroid_m"] = [float(v) for v in entry["centroid_m"]]
+            if entry.get("aabb_min_m") is not None and entry.get("aabb_max_m") is not None:
+                state["aabb_min_m"] = [float(v) for v in entry["aabb_min_m"]]
+                state["aabb_max_m"] = [float(v) for v in entry["aabb_max_m"]]
         out[str(key)] = state
     return out
 

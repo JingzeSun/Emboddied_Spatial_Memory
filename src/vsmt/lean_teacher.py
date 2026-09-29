@@ -206,7 +206,18 @@ NODE_MATCHING_OBJECTIVE = "most_pairs_then_most_weight"
 #: padded by NODE_BOX_PAD_M".  Under the bare distance test 18 percent (TAF) and 34 percent (LOW) of the matched pairs were an entity of
 #: another object or of none; a large object seen from one side has its visible-surface centroid beyond 0.5 m of the box centre.
 NODE_BOX_PAD_M = 0.25
-NODE_IDENTITY_RULE = "the_entity_resolves_to_the_object_by_the_strict_majority_of_its_evidence_an_ambiguous_entity_matches_nothing"
+#: D-224-S1 ruling 88-4 (2026-09-29, LOG-284 continued): the existence label uses the node primary column's place test, so an
+#: entity the evaluator counts as correctly placed is never labelled gone.  Under the centroid-only rule 28.9 percent of the
+#: gone labels of the ruling-86 development rollouts sat on entities in place by the node rule with no other carrier, against
+#: 13.3 percent real world change after the window (ops/vsmt/ruling88_label_partition.py).  In-place duplicates are
+#: present too; redundancy is the shared dedup's job.  "centroid_only" is the pre-88 rule, kept for the ruling-88 decision
+#: ceiling diagnostic only, never for training, selection or a table.
+EXISTENCE_PLACE_RULE = "node_primary"
+EXISTENCE_PLACE_RULES = ("node_primary", "centroid_only")
+EXISTENCE_GONE_RULE = ("object absent from the scene, or the entity fails the node primary place test for its own object: "
+                       "centroid farther than delta_moved_m from the object's centroid and outside the object's truth box "
+                       "padded by box_pad_m (centroid only when the object has no box)")
+NODE_IDENTITY_RULE ="the_entity_resolves_to_the_object_by_the_strict_majority_of_its_evidence_an_ambiguous_entity_matches_nothing"
 CENTROID_MATCHING_RULE = "same_predictions_and_truth_objects_most_pairs_then_maximum_weight_matching_on_1_over_1_plus_centroid_distance_m_a_pair_qualifies_when_the_entity_resolves_to_the_object_and_its_centroid_is_within_delta_moved_m_or_inside_the_truth_box_padded_by_box_pad_m"
 CENTROID_MATCHING_DISTANCE_SOURCE = "labels.existence.delta_moved_m"
 CENTROID_MATCHING_ROLE = "primary_node_column_and_the_selection_metric_never_in_the_main_gate"
@@ -578,24 +589,56 @@ def association_targets(
     return targets
 
 
+def place_holds(
+    centroid: Sequence[float], state: Mapping[str, Any], *, delta_moved_m: float, place_rule: str = EXISTENCE_PLACE_RULE,
+) -> tuple[bool, float, str | None]:
+    """Is an entity's centroid at its own present object's place?  Returns (holds, distance_m, which test held).
+
+    白话：输入实体记住的质心和它自己那个物体此刻的真值（质心，以及有的话真值框），输出“它是否还在原处”。
+    节点主列的规则（裁决 77，裁决 88-4 起存在标签同用）：质心离物体质心不超过 δ_moved，或落在真值框外扩
+    0.25 m 内，任一成立即在原处；物体没有真值框时只看质心。例如沙发只看到一侧、表面质心离沙发中心 0.7 m
+    但在沙发框里，算在原处。"centroid_only" 是裁决 88 之前的规则，只供诊断对照。它不判断身份，调用方先确认
+    实体属于这个物体。
+    """
+
+    _require(place_rule in EXISTENCE_PLACE_RULES, "existence_place_rule_unknown")
+    delta = _delta(delta_moved_m)
+    point = _vector3(centroid, "entity_centroid_invalid")
+    distance = _distance(_vector3(state["centroid_m"], "object_centroid_invalid"), point)
+    if distance <= delta:
+        return True, distance, "centroid"
+    if place_rule == "centroid_only":
+        return False, distance, None
+    lower, upper = state.get("aabb_min_m"), state.get("aabb_max_m")
+    if lower is None or upper is None:
+        return False, distance, None
+    lower = _vector3(lower, "object_box_invalid")
+    upper = _vector3(upper, "object_box_invalid")
+    inside = all(lo - NODE_BOX_PAD_M <= c <= hi + NODE_BOX_PAD_M for c, lo, hi in zip(point, lower, upper, strict=True))
+    return inside, distance, ("padded_box" if inside else None)
+
+
 def existence_labels(
     memory: Mapping[str, Any], *, candidates: Sequence[str],
     object_state: Mapping[str, Mapping[str, Any]],
     evidence_instance: Mapping[str, str | None],
     delta_moved_m: float, candidate_states: Sequence[str] = EXISTENCE_CANDIDATE_STATES,
+    place_rule: str = EXISTENCE_PLACE_RULE,
 ) -> dict[str, dict[str, Any]]:
     """One gone/present label per existence candidate.
 
-    白话：输入旧记忆、本帧的存在判定候选、每个私有物体当前是否存在及在哪里，输
-    出每个候选是"已不在原处"还是"仍在"。物体已被移出场景，或当前位置离实体记住
-    的位置超过 δ_moved，记 gone；否则记 present；身份含糊的候选记 identity_ambiguous。
-    候选状态不在登记集合内（例如 retracted）直接拒绝而不是跳过，因为那说明上游把
-    不该判的实体送了进来。它不知道候选是否本该被看见，那由 S0-03 的应可见比例决
-    定谁进候选。
+    白话：输入旧记忆、本帧的存在判定候选、每个私有物体当前是否存在及在哪里（质心，有的话还有真值框），
+    输出每个候选是"已不在原处"还是"仍在"。物体已被移出场景记 gone；物体在场时，实体按节点主列的地点规则
+    （质心 ≤ δ_moved 或落在真值框外扩 0.25 m 内，裁决 77；裁决 88-4 起标签同用）对自己的物体不成立才记
+    gone，否则 present；身份含糊的候选记 identity_ambiguous。在原处的重复实体因此记 present，冗余交给共享
+    去重。候选状态不在登记集合内（例如 retracted）直接拒绝而不是跳过，因为那说明上游把不该判的实体送了
+    进来。它不知道候选是否本该被看见，那由 S0-03 的应可见比例决定谁进候选。``place_rule="centroid_only"``
+    是裁决 88 之前的规则，只供决定上限诊断对照。
     """
 
     checked = validate_memory(memory, copy=False)  # read only
     delta = _delta(delta_moved_m)
+    _require(place_rule in EXISTENCE_PLACE_RULES, "existence_place_rule_unknown")
     eligible = _states(candidate_states, "existence_candidate_states_invalid")
     by_id = {str(entity["entity_id"]): entity for entity in checked["entities"]}
     _require(len(set(candidates)) == len(list(candidates)), "existence_candidate_duplicate")
@@ -617,11 +660,12 @@ def existence_labels(
         if state["present"] is not True:
             labels[entity_id] = {"status": "gone", "key": key, "reason": "absent"}
             continue
-        displacement = _distance(_vector3(state["centroid_m"], "object_centroid_invalid"), entity["centroid_m"])
-        if displacement > delta:
+        holds, displacement, test = place_holds(entity["centroid_m"], state, delta_moved_m=delta, place_rule=place_rule)
+        if not holds:
             labels[entity_id] = {"status": "gone", "key": key, "reason": "moved", "displacement_m": displacement}
         else:
-            labels[entity_id] = {"status": "present", "key": key, "reason": None, "displacement_m": displacement}
+            labels[entity_id] = {"status": "present", "key": key, "reason": None, "displacement_m": displacement,
+                                 "place_test": test}
     return labels
 
 
@@ -1717,6 +1761,8 @@ def validate_teacher_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     _require(labels["fragment_dominance"]["denominator"] == FRAGMENT_DOMINANCE_DENOMINATOR, "contract_dominance_denominator_mismatch")
     _require(tuple(labels["existence"]["candidate_states"]) == EXISTENCE_CANDIDATE_STATES, "contract_existence_candidate_states_mismatch")
     _require(labels["existence"]["displacement_reference"] == EXISTENCE_DISPLACEMENT_REFERENCE, "contract_displacement_reference_mismatch")
+    _require(labels["existence"].get("place_rule") == EXISTENCE_PLACE_RULE, "contract_existence_place_rule_mismatch")  # ruling 88-4
+    _require(labels["existence"].get("gone_rule") == EXISTENCE_GONE_RULE, "contract_existence_gone_rule_mismatch")
 
     _require(tuple(contract["decomposition"]["classes"]) == DECOMPOSITION, "contract_decomposition_mismatch")
 
@@ -1818,6 +1864,9 @@ __all__ = [
     "CENTROID_MATCHING_RULE",
     "NODE_DYN_THOR_RELATION",
     "NODE_BOX_PAD_M",
+    "EXISTENCE_GONE_RULE",
+    "EXISTENCE_PLACE_RULE",
+    "EXISTENCE_PLACE_RULES",
     "NODE_IDENTITY_RULE",
     "CONFIDENCE_ONE_SIDED",
     "CONTRACT_SCHEMA_VERSION",
@@ -1858,6 +1907,7 @@ __all__ = [
     "episode_recovery_latency",
     "evaluate_frame",
     "existence_labels",
+    "place_holds",
     "false_retract_rate",
     "false_retract_rate_in_scope",
     "FALSE_RETRACT_IN_SCOPE_ROLE",

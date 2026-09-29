@@ -172,6 +172,19 @@ class OverlapTableTests(unittest.TestCase):
             self.assertEqual(str(caught.exception), f"policy_value_missing:{name}")
 
 
+class ObjectStateTests(unittest.TestCase):
+    def test_the_object_state_carries_the_truth_box_when_there_is_one(self) -> None:
+        # ruling 88-4: the existence label reads the node primary place test, which needs the truth box
+        truth = {"obj:a": {"present": True, "centroid_m": [1, 2, 3], "aabb_min_m": [0, 1, 2], "aabb_max_m": [2, 3, 4]},
+                 "obj:b": {"present": True, "centroid_m": [0, 0, 0], "aabb_min_m": None, "aabb_max_m": None},
+                 "obj:c": {"present": False}}
+        state = ev.object_state_from_truth(truth)
+        self.assertEqual(state["obj:a"], {"present": True, "centroid_m": [1.0, 2.0, 3.0],
+                                          "aabb_min_m": [0.0, 1.0, 2.0], "aabb_max_m": [2.0, 3.0, 4.0]})
+        self.assertEqual(state["obj:b"], {"present": True, "centroid_m": [0.0, 0.0, 0.0]})
+        self.assertEqual(state["obj:c"], {"present": False})
+
+
 class TafEpisodeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
