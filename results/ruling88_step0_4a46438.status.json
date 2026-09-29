@@ -1,0 +1,17 @@
+{
+ "commit": "4a46438",
+ "stage_reached": "done",
+ "finished_cst": "2026-09-30 00:32:46",
+ "suite_exit": "0",
+ "jobs_ok": "633",
+ "jobs_failed": "2",
+ "merges_failed": "0",
+ "analysis_exit": "0",
+ "workers_requested": 24,
+ "cpu_quota": 25,
+ "memory_max": "96636764160",
+ "worker_basis": "cgroup CPU quota minus one; every job is one single-threaded CPU process: an audit about 1-2 GB, a P3 association imitation about 6-10 GB, the rest under 2 GB",
+ "queue_order": "P3 imitation, P2 sensitivity, P1 coverage, then the audits cell by cell and episode by episode; merges in the fixed cell order",
+ "shutdown_after_seconds": 1800,
+ "shutdown": false
+}

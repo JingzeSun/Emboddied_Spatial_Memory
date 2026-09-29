@@ -1,0 +1,67 @@
+{
+ "stage": "vsmt.lean.ruling88.probes.v1",
+ "probe": "P1 state coverage",
+ "passes": {
+  "dagger_round_0:ELU-P": {
+   "episodes": 39,
+   "frames": 44097,
+   "association_rows_by_candidate_state": {
+    "active": 1335898,
+    "dormant": 1018515,
+    "retracted": 149324
+   },
+   "labelled_targets_by_target_state": {
+    "active": 288220,
+    "dormant": 107360,
+    "retracted": 10102,
+    "birth": 7702
+   },
+   "association_target_statuses": {
+    "birth": 7702,
+    "identity_ambiguous": 14067,
+    "labelled": 405682,
+    "recall_miss": 11794
+   },
+   "existence_rows_by_label": {
+    "gone": 92426,
+    "identity_ambiguous": 54891,
+    "present": 1234083
+   },
+   "existence_rows_by_state": {
+    "active": 196594,
+    "dormant": 1184806
+   }
+  },
+  "dagger_round_1:VSMT-lean": {
+   "episodes": 39,
+   "frames": 44097,
+   "association_rows_by_candidate_state": {
+    "active": 2192963,
+    "dormant": 442844,
+    "retracted": 2754
+   },
+   "labelled_targets_by_target_state": {
+    "active": 329149,
+    "dormant": 18744,
+    "retracted": 86,
+    "birth": 17765
+   },
+   "association_target_statuses": {
+    "birth": 17765,
+    "identity_ambiguous": 68561,
+    "labelled": 347979,
+    "recall_miss": 4940
+   },
+   "existence_rows_by_label": {
+    "gone": 35257,
+    "identity_ambiguous": 40945,
+    "present": 198029
+   },
+   "existence_rows_by_state": {
+    "active": 92113,
+    "dormant": 182118
+   }
+  }
+ },
+ "script_sha256": "e8e758d4568b46fb7fc1ee1fb5ede01ffb6c4593dd4e96edc2c1bf3abd7fa7d6"
+}

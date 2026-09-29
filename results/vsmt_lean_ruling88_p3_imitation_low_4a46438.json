@@ -1,0 +1,106 @@
+{
+ "stage": "vsmt.lean.ruling88.probes.v1",
+ "probe": "P3 imitation sufficiency",
+ "target": "low",
+ "positive_control": true,
+ "rule": [
+  "LOW",
+  {
+   "d_low": 1.0
+  }
+ ],
+ "records": "dagger_round_1/VSMT-lean",
+ "holdout": {
+  "training_houses": [
+   "procthor10k-0.1.2-train-03394",
+   "procthor10k-0.1.2-train-08566",
+   "procthor10k-0.1.2-train-00406",
+   "procthor10k-0.1.2-train-03288",
+   "procthor10k-0.1.2-train-08927",
+   "procthor10k-0.1.2-train-08422",
+   "procthor10k-0.1.2-train-03525",
+   "procthor10k-0.1.2-train-07367",
+   "procthor10k-0.1.2-train-05806",
+   "procthor10k-0.1.2-train-05966",
+   "procthor10k-0.1.2-train-00950",
+   "procthor10k-0.1.2-train-05879",
+   "procthor10k-0.1.2-train-00236",
+   "procthor10k-0.1.2-train-02524",
+   "procthor10k-0.1.2-train-08398",
+   "procthor10k-0.1.2-train-04801",
+   "procthor10k-0.1.2-train-04388",
+   "procthor10k-0.1.2-train-07795",
+   "procthor10k-0.1.2-train-01543",
+   "procthor10k-0.1.2-train-09339",
+   "procthor10k-0.1.2-train-08790",
+   "procthor10k-0.1.2-train-01259",
+   "procthor10k-0.1.2-train-08905",
+   "procthor10k-0.1.2-train-00975",
+   "procthor10k-0.1.2-train-00619",
+   "procthor10k-0.1.2-train-01394",
+   "procthor10k-0.1.2-train-00702",
+   "procthor10k-0.1.2-train-07815",
+   "procthor10k-0.1.2-train-03361",
+   "procthor10k-0.1.2-train-09423"
+  ],
+  "selection_houses": [
+   "procthor10k-0.1.2-train-07270",
+   "procthor10k-0.1.2-train-06453",
+   "procthor10k-0.1.2-train-08552",
+   "procthor10k-0.1.2-train-01289",
+   "procthor10k-0.1.2-train-02768",
+   "procthor10k-0.1.2-train-04742",
+   "procthor10k-0.1.2-train-09595",
+   "procthor10k-0.1.2-train-00563",
+   "procthor10k-0.1.2-train-01139"
+  ],
+  "training_shortfall": 0,
+  "selection_shortfall": 3,
+  "houses_beyond_the_holdout": [],
+  "order": "s0_02_house_split_rank",
+  "seed": 20260920
+ },
+ "frames": {
+  "train": 32550,
+  "selection": 11547
+ },
+ "recipe": {
+  "learning_rate": 0.001,
+  "weight_decay": 0.0001,
+  "epochs": 20,
+  "seed": 7
+ },
+ "best_epoch": 13,
+ "diverged": false,
+ "weights_sha256": "16699246d4578561445efc740b57550ef0b97a8eca2aee64d05a2c3f4cbf045c",
+ "agreement": {
+  "train": {
+   "per_class": {
+    "bind": {
+     "rows": 294420,
+     "agreement": 0.9790333537123836
+    },
+    "birth": {
+     "rows": 27679,
+     "agreement": 0.9538278116983995
+    }
+   },
+   "balanced_agreement": 0.9664305827053916
+  },
+  "selection": {
+   "per_class": {
+    "bind": {
+     "rows": 107912,
+     "agreement": 0.9736729928089555
+    },
+    "birth": {
+     "rows": 9234,
+     "agreement": 0.9511587611002815
+    }
+   },
+   "balanced_agreement": 0.9624158769546185
+  }
+ },
+ "wall_seconds": 4305.3,
+ "script_sha256": "e8e758d4568b46fb7fc1ee1fb5ede01ffb6c4593dd4e96edc2c1bf3abd7fa7d6"
+}
