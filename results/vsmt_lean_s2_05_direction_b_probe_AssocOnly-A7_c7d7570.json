@@ -1,0 +1,355 @@
+{
+ "stage": "vsmt.lean.s2_05.direction_b_probe.v1",
+ "arm": "AssocOnly",
+ "label": "A7",
+ "weights_sha256": "7c1ef0e7ff8b6a266301673765506151314cc50e7f300372866fe79f7014fefa",
+ "weights_file": "/root/autodl-tmp/vsmt_private/ruling81-0e4494d/training/AssocOnly/A7/weights.json",
+ "pass_root": "/root/autodl-tmp/vsmt_private/lean-s2-05-oracle-c150be0/dagger_round_1",
+ "tolerances_m": [
+  0.5,
+  1.0,
+  2.0
+ ],
+ "box_clause": true,
+ "workers": 3,
+ "episodes": 39,
+ "frames": 44097,
+ "pooled": {
+  "decisions": 377924,
+  "outcomes": {
+   "correct_birth": 4919,
+   "correct_bind": 322312,
+   "wrong_bind": 47385,
+   "birth_instead_of_bind": 3308
+  },
+  "histogram": {
+   "correct_bind|[2.0,4.0)|iou_pos": 2924,
+   "correct_bind|[1.0,2.0)|iou_pos": 11432,
+   "wrong_bind|[4.0,inf)|iou_zero": 2555,
+   "correct_bind|[0.25,0.5)|iou_pos": 23350,
+   "correct_bind|[0.0,0.25)|iou_pos": 219739,
+   "wrong_bind|[0.0,0.25)|iou_pos": 23632,
+   "correct_bind|[0.0,0.25)|iou_zero": 33385,
+   "wrong_bind|[0.0,0.25)|iou_zero": 6854,
+   "correct_bind|[0.5,1.0)|iou_pos": 12222,
+   "wrong_bind|[2.0,4.0)|iou_zero": 2046,
+   "correct_bind|[1.0,2.0)|iou_zero": 5454,
+   "wrong_bind|[0.5,1.0)|iou_zero": 1518,
+   "correct_bind|[4.0,inf)|iou_pos": 1991,
+   "correct_bind|[0.25,0.5)|iou_zero": 3669,
+   "correct_bind|[0.5,1.0)|iou_zero": 2935,
+   "wrong_bind|[1.0,2.0)|iou_zero": 2179,
+   "correct_bind|[2.0,4.0)|iou_zero": 3105,
+   "wrong_bind|[0.25,0.5)|iou_pos": 3258,
+   "wrong_bind|[0.5,1.0)|iou_pos": 1783,
+   "correct_bind|[4.0,inf)|iou_zero": 2106,
+   "wrong_bind|[2.0,4.0)|iou_pos": 442,
+   "wrong_bind|[0.25,0.5)|iou_zero": 1404,
+   "wrong_bind|[1.0,2.0)|iou_pos": 1193,
+   "wrong_bind|[4.0,inf)|iou_pos": 521
+  },
+  "per_tolerance": {
+   "0.5": {
+    "gated_cells": 1964915,
+    "wrong_bind_outside_gate": 8298,
+    "wrong_bind_repaired": 4153,
+    "wrong_bind_still_wrong": 4145,
+    "wrong_bind_regated_to": {
+     "birth": 4906,
+     "active": 3392,
+     "dormant": 0,
+     "retracted": 0
+    },
+    "correct_bind_outside_gate": 13600,
+    "correct_bind_blocked_to": {
+     "birth": 10877,
+     "active": 2723,
+     "dormant": 0,
+     "retracted": 0
+    },
+    "birth_instead_of_bind_target_outside_gate": 1870,
+    "inside_gate_decisions_changed": 654
+   },
+   "1.0": {
+    "gated_cells": 1776133,
+    "wrong_bind_outside_gate": 6780,
+    "wrong_bind_repaired": 3536,
+    "wrong_bind_still_wrong": 3244,
+    "wrong_bind_regated_to": {
+     "birth": 3754,
+     "active": 3026,
+     "dormant": 0,
+     "retracted": 0
+    },
+    "correct_bind_outside_gate": 10665,
+    "correct_bind_blocked_to": {
+     "birth": 8137,
+     "active": 2528,
+     "dormant": 0,
+     "retracted": 0
+    },
+    "birth_instead_of_bind_target_outside_gate": 1544,
+    "inside_gate_decisions_changed": 625
+   },
+   "2.0": {
+    "gated_cells": 1216742,
+    "wrong_bind_outside_gate": 4601,
+    "wrong_bind_repaired": 2532,
+    "wrong_bind_still_wrong": 2069,
+    "wrong_bind_regated_to": {
+     "birth": 2407,
+     "active": 2194,
+     "dormant": 0,
+     "retracted": 0
+    },
+    "correct_bind_outside_gate": 5211,
+    "correct_bind_blocked_to": {
+     "birth": 3419,
+     "active": 1792,
+     "dormant": 0,
+     "retracted": 0
+    },
+    "birth_instead_of_bind_target_outside_gate": 991,
+    "inside_gate_decisions_changed": 522
+   }
+  }
+ },
+ "per_episode": [
+  {
+   "episode_id": "procthor10k-0.1.2-train-00236",
+   "frames": 570,
+   "seconds": 1.1,
+   "records_sha256": "2ae8f4b3229b5fd0f6749f89c3ace040fc18ac299317a65135cc27bbcce3b9bf"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-00406",
+   "frames": 1262,
+   "seconds": 2.1,
+   "records_sha256": "a15946e81a02ace9ed78276afb2dfc2d9e57f87d13e85a1d005027e850cba51b"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-00563",
+   "frames": 2138,
+   "seconds": 4.6,
+   "records_sha256": "66a57b0f9e2bf1acf4db06cd87499ccd3d39d349dffd236bc9bd56446013f5d7"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-00619",
+   "frames": 1030,
+   "seconds": 2.0,
+   "records_sha256": "9e0d91eb0cc533b4ac9c2863b6ab14c8448248f22d37470e69da2f74b1e5666e"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-00702",
+   "frames": 126,
+   "seconds": 0.1,
+   "records_sha256": "655c69a1f49ca1b46bee489e90b0f500eb1828d339345c5ab8998bb70eeef061"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-00950",
+   "frames": 3037,
+   "seconds": 7.2,
+   "records_sha256": "ad28506c86e47ddda461e8970181fe059c8371fa7fbff4dfb41ddd47165cfab7"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-00975",
+   "frames": 787,
+   "seconds": 1.6,
+   "records_sha256": "b441ab01793e337947e6d4e63e573c062bcc1cb765efbca65a1a4715a64f2112"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-01139",
+   "frames": 468,
+   "seconds": 0.6,
+   "records_sha256": "6f32543bcd84891f4760c27873cb557286bc870d486e6a0ea18bc924ddd0dd95"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-01259",
+   "frames": 2655,
+   "seconds": 4.7,
+   "records_sha256": "80f60e4d2d29af557a99f70f0de47fac3a9e885547f707f523b79b0b6d047c95"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-01289",
+   "frames": 3473,
+   "seconds": 7.5,
+   "records_sha256": "9ca44879ba47d9a47ebdf455453954ee52ba7ca8c848e7a83915a678d9088a3d"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-01394",
+   "frames": 261,
+   "seconds": 0.3,
+   "records_sha256": "93f6554dd9dfd03ce700201fc0e9788fb2eaf6d81b34708bd5a2dfdcbf969f73"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-01543",
+   "frames": 1358,
+   "seconds": 2.1,
+   "records_sha256": "3eabd5390b726699277ff96b9101a74b5475f689ccc921b196516be812267fe7"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-02524",
+   "frames": 1399,
+   "seconds": 2.3,
+   "records_sha256": "26878889d67ee0ec97423463e0b06dccc1dbd30f88667bfefeedcaaf26c66826"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-02768",
+   "frames": 1696,
+   "seconds": 3.2,
+   "records_sha256": "2d4f23f41548abb7a8fa9bf63d908075df80bf0537313c24cab17d66f3da88d0"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-03288",
+   "frames": 425,
+   "seconds": 0.6,
+   "records_sha256": "ca33759f4d50e4e4f41aaa3d31ced6d65df11bfb89d850524743a890f2f1fb0b"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-03361",
+   "frames": 1518,
+   "seconds": 2.2,
+   "records_sha256": "ae9a9ce668cd964479bfaa7a7a8753aaf8b79ebf89091f1ae1ea438e900541ce"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-03394",
+   "frames": 1371,
+   "seconds": 2.1,
+   "records_sha256": "d5e2692c3a7a9c638bd514ebe6809f880c8f4b051cd906dde881c1e238897c53"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-03525",
+   "frames": 286,
+   "seconds": 0.4,
+   "records_sha256": "6c8bafbbeb602b59f048cc7dbc2959b81dc38f1ad27697cb099ca40f35bec7e7"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-04388",
+   "frames": 437,
+   "seconds": 0.5,
+   "records_sha256": "b5671702178ea0cb810d4a939fcbf23d8fa5f0b0baf01e189076e25b49193637"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-04742",
+   "frames": 836,
+   "seconds": 1.6,
+   "records_sha256": "a2e2089158b9409e9b22fe34fc6ea0a8292c9be27712543d2b76bc0c470ce9bd"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-04801",
+   "frames": 1866,
+   "seconds": 3.5,
+   "records_sha256": "84dc376743b6357532c800a1f95a234db53a86931be10193bfbac5c22c682957"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-05806",
+   "frames": 1831,
+   "seconds": 3.9,
+   "records_sha256": "a2b37594365e2a830daef79e30274e96925cdb652a64b7139a0cdd068e31e0a1"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-05879",
+   "frames": 457,
+   "seconds": 0.6,
+   "records_sha256": "12aa88699efeafbe7cc3e0d6bc94ca02a9d52a33e8abeec37627895cece89df8"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-05966",
+   "frames": 702,
+   "seconds": 1.1,
+   "records_sha256": "7821a192bf578d8ec791b9a8ca3a59bdfe230fff113b3cb4a7b9819f6a81c0a8"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-06453",
+   "frames": 529,
+   "seconds": 1.1,
+   "records_sha256": "bb7a276dea04929f6a34ce5c35f309828400357fa85852148ad2732aeb2f851c"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-07270",
+   "frames": 305,
+   "seconds": 0.3,
+   "records_sha256": "9fcd289ca74f165e5a6f9c6cf87ea5273686d76791788e01415b62ee11959ab3"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-07367",
+   "frames": 145,
+   "seconds": 0.1,
+   "records_sha256": "26046d73f637589e5be5dcaff87c159eef4c636eabbc7fd4138f2c5fa716f317"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-07795",
+   "frames": 1762,
+   "seconds": 3.7,
+   "records_sha256": "a28cada0828ef8c8a96f3f5794e2a0706f6e3425cf3b210626d996de0719d55c"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-07815",
+   "frames": 762,
+   "seconds": 1.4,
+   "records_sha256": "6c0a840e4be6f4d5f7f01fd2cda9b5cb4b109b58fdf83016b7dadd1dcc9e6c71"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-08398",
+   "frames": 1916,
+   "seconds": 3.8,
+   "records_sha256": "3153adff1c2823b39f62c46b4a2a672c532d8b85cd8ef70c07efeb43e189efd9"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-08422",
+   "frames": 325,
+   "seconds": 0.6,
+   "records_sha256": "368da239a18b0c36cad73e8d5cf73144374d1a41c1866ab2393ec70cb10c72cb"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-08552",
+   "frames": 984,
+   "seconds": 1.9,
+   "records_sha256": "3689730c7364dfc61fe2ab13965e6d4408e56434ba68fd40d2eb1fd64804ae2b"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-08566",
+   "frames": 830,
+   "seconds": 1.4,
+   "records_sha256": "d264b28973350b2efe740b588a834b4e631f5235c51973c689ea2be3d958c6d3"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-08790",
+   "frames": 2919,
+   "seconds": 5.9,
+   "records_sha256": "7aef3c0555147ca3e8369a732c420b96ecca605d787760aa963d8d943052af1c"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-08905",
+   "frames": 245,
+   "seconds": 0.4,
+   "records_sha256": "579a081b0215fde6a62fa4e08f6514a07e85dbc916cfa5468497815b8989d59f"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-08927",
+   "frames": 1233,
+   "seconds": 2.2,
+   "records_sha256": "4803961ff2999603b0283277c7d627c392d250e9083405dc53f122f1b6c7ebe2"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-09339",
+   "frames": 822,
+   "seconds": 1.5,
+   "records_sha256": "c996f70872c0fc9453044d09168e4f6e13bc133a158b4ad0f8c0fe0cf5d5d2b7"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-09423",
+   "frames": 213,
+   "seconds": 0.3,
+   "records_sha256": "49104e414dad77a7c4935da31c1a16bfe64cbb27a9feb40c645bfc6f660199d4"
+  },
+  {
+   "episode_id": "procthor10k-0.1.2-train-09595",
+   "frames": 1118,
+   "seconds": 2.0,
+   "records_sha256": "85c2ef4ece134b9d34e3d79fb5776a224dd08426b9a2b4e21e84db49fbd70b98"
+  }
+ ],
+ "script_sha256": "64ed75daa256e8525d4091509666363b465c9de96cad84fc0000cbc480228ed0",
+ "caveat": "first-order estimate on the sealed round-1 records: every frame is re-solved with the memory state the record was sealed with, so a gated decision does not propagate to later frames; the true effect of a gate needs the revised executor run over five seeds; the gate's box clause uses the sealed aabb_iou > 0 as the proxy for 'inside the entity box'"
+}

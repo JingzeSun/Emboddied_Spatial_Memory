@@ -1,0 +1,614 @@
+{
+ "stage": "vsmt.lean.s2_05.direction_b_probe.v1.summary",
+ "inputs": {
+  "vsmt_lean_s2_05_direction_b_probe_AssocOnly-A19_c7d7570.json": "2a814306a1b430ecfcef0af16596e5f56b57b8664191e97aaad7038620328420",
+  "vsmt_lean_s2_05_direction_b_probe_AssocOnly-A31_c7d7570.json": "20893ed39b068297c61fa3f099ca6b7d5eba293dca402e1ce3357bd5a8bae1ba",
+  "vsmt_lean_s2_05_direction_b_probe_AssocOnly-A43_c7d7570.json": "aba1ce8f5fb6d7bd80e31301c4f716aeaed4e0bfb92f3f3e19a41987dadfc2ad",
+  "vsmt_lean_s2_05_direction_b_probe_AssocOnly-A59_c7d7570.json": "64b5fd999bfef86de1ae43a627dc3164fe661c2f911bdb2f22d35fe2554b5dfb",
+  "vsmt_lean_s2_05_direction_b_probe_AssocOnly-A7_c7d7570.json": "5597b5da9d785f980c1b2a2dbcf07e26e0e3f4a258ce8ab835679e01b1c87f74",
+  "vsmt_lean_s2_05_direction_b_probe_VSMT-lean-A19_c7d7570.json": "58872c18a9321c77493f510326c1f711f3418d9358b2f0e1787f89a3d6b649c9",
+  "vsmt_lean_s2_05_direction_b_probe_VSMT-lean-A31_c7d7570.json": "6ebbc6ea0f5660856a12bd3a4ccc6d41b07016c4c6d6553a86ffc8d7396995c9",
+  "vsmt_lean_s2_05_direction_b_probe_VSMT-lean-A43_c7d7570.json": "e2435ab0935b2aee67422d3d894c6c4f68c7119899eef44558709e6fe6851dd3",
+  "vsmt_lean_s2_05_direction_b_probe_VSMT-lean-A59_c7d7570.json": "09acce56e191e1716d38a495d584c6a74063f0efca34b5e33f513c609496f6b9",
+  "vsmt_lean_s2_05_direction_b_probe_VSMT-lean-A7_c7d7570.json": "e98f9fd08b8ed51621b4fa427da4640ede78e3aa9376dcabbf134c3f3f108e2c"
+ },
+ "rows": [
+  {
+   "arm": "AssocOnly",
+   "label": "A19",
+   "tolerance_m": 0.5,
+   "wrong_bind": 49388,
+   "correct_bind": 321876,
+   "wrong_outside_gate_share": 0.22513566048432818,
+   "wrong_repaired_share": 0.11763991252935936,
+   "correct_blocked_share": 0.044420832867315366,
+   "correct_blocked_to_birth": 11021,
+   "birth_instead_of_bind_target_outside_gate": 1187
+  },
+  {
+   "arm": "AssocOnly",
+   "label": "A19",
+   "tolerance_m": 1.0,
+   "wrong_bind": 49388,
+   "correct_bind": 321876,
+   "wrong_outside_gate_share": 0.18678626386976593,
+   "wrong_repaired_share": 0.10061148457115089,
+   "correct_blocked_share": 0.03495134772396823,
+   "correct_blocked_to_birth": 8153,
+   "birth_instead_of_bind_target_outside_gate": 968
+  },
+  {
+   "arm": "AssocOnly",
+   "label": "A19",
+   "tolerance_m": 2.0,
+   "wrong_bind": 49388,
+   "correct_bind": 321876,
+   "wrong_outside_gate_share": 0.1335749574795497,
+   "wrong_repaired_share": 0.07574714505547907,
+   "correct_blocked_share": 0.01750363494016329,
+   "correct_blocked_to_birth": 3333,
+   "birth_instead_of_bind_target_outside_gate": 610
+  },
+  {
+   "arm": "AssocOnly",
+   "label": "A31",
+   "tolerance_m": 0.5,
+   "wrong_bind": 48889,
+   "correct_bind": 322448,
+   "wrong_outside_gate_share": 0.18544048763525536,
+   "wrong_repaired_share": 0.09047024893125243,
+   "correct_blocked_share": 0.04162531633007493,
+   "correct_blocked_to_birth": 10677,
+   "birth_instead_of_bind_target_outside_gate": 1290
+  },
+  {
+   "arm": "AssocOnly",
+   "label": "A31",
+   "tolerance_m": 1.0,
+   "wrong_bind": 48889,
+   "correct_bind": 322448,
+   "wrong_outside_gate_share": 0.15142465585305487,
+   "wrong_repaired_share": 0.07737936959234183,
+   "correct_blocked_share": 0.032557187515506375,
+   "correct_blocked_to_birth": 7834,
+   "birth_instead_of_bind_target_outside_gate": 1068
+  },
+  {
+   "arm": "AssocOnly",
+   "label": "A31",
+   "tolerance_m": 2.0,
+   "wrong_bind": 48889,
+   "correct_bind": 322448,
+   "wrong_outside_gate_share": 0.10296794780011864,
+   "wrong_repaired_share": 0.05612714516557917,
+   "correct_blocked_share": 0.015562199176301295,
+   "correct_blocked_to_birth": 3055,
+   "birth_instead_of_bind_target_outside_gate": 714
+  },
+  {
+   "arm": "AssocOnly",
+   "label": "A43",
+   "tolerance_m": 0.5,
+   "wrong_bind": 48768,
+   "correct_bind": 321823,
+   "wrong_outside_gate_share": 0.15315370734908137,
+   "wrong_repaired_share": 0.07472112860892388,
+   "correct_blocked_share": 0.03938811085596741,
+   "correct_blocked_to_birth": 10379,
+   "birth_instead_of_bind_target_outside_gate": 1553
+  },
+  {
+   "arm": "AssocOnly",
+   "label": "A43",
+   "tolerance_m": 1.0,
+   "wrong_bind": 48768,
+   "correct_bind": 321823,
+   "wrong_outside_gate_share": 0.1208374343832021,
+   "wrong_repaired_share": 0.06229494750656168,
+   "correct_blocked_share": 0.03024022521696709,
+   "correct_blocked_to_birth": 7665,
+   "birth_instead_of_bind_target_outside_gate": 1285
+  },
+  {
+   "arm": "AssocOnly",
+   "label": "A43",
+   "tolerance_m": 2.0,
+   "wrong_bind": 48768,
+   "correct_bind": 321823,
+   "wrong_outside_gate_share": 0.0785761154855643,
+   "wrong_repaired_share": 0.043881233595800526,
+   "correct_blocked_share": 0.013662789794390085,
+   "correct_blocked_to_birth": 3023,
+   "birth_instead_of_bind_target_outside_gate": 823
+  },
+  {
+   "arm": "AssocOnly",
+   "label": "A59",
+   "tolerance_m": 0.5,
+   "wrong_bind": 49935,
+   "correct_bind": 322195,
+   "wrong_outside_gate_share": 0.19697606888955643,
+   "wrong_repaired_share": 0.09820766997096225,
+   "correct_blocked_share": 0.041701454088362636,
+   "correct_blocked_to_birth": 10694,
+   "birth_instead_of_bind_target_outside_gate": 1052
+  },
+  {
+   "arm": "AssocOnly",
+   "label": "A59",
+   "tolerance_m": 1.0,
+   "wrong_bind": 49935,
+   "correct_bind": 322195,
+   "wrong_outside_gate_share": 0.16613597676980074,
+   "wrong_repaired_share": 0.08611194552918794,
+   "correct_blocked_share": 0.03263861946957588,
+   "correct_blocked_to_birth": 7910,
+   "birth_instead_of_bind_target_outside_gate": 835
+  },
+  {
+   "arm": "AssocOnly",
+   "label": "A59",
+   "tolerance_m": 2.0,
+   "wrong_bind": 49935,
+   "correct_bind": 322195,
+   "wrong_outside_gate_share": 0.12125763492540302,
+   "wrong_repaired_share": 0.06682687493741865,
+   "correct_blocked_share": 0.015965486739396947,
+   "correct_blocked_to_birth": 3201,
+   "birth_instead_of_bind_target_outside_gate": 498
+  },
+  {
+   "arm": "AssocOnly",
+   "label": "A7",
+   "tolerance_m": 0.5,
+   "wrong_bind": 47385,
+   "correct_bind": 322312,
+   "wrong_outside_gate_share": 0.17511870845204178,
+   "wrong_repaired_share": 0.08764376912525061,
+   "correct_blocked_share": 0.042195140112685846,
+   "correct_blocked_to_birth": 10877,
+   "birth_instead_of_bind_target_outside_gate": 1870
+  },
+  {
+   "arm": "AssocOnly",
+   "label": "A7",
+   "tolerance_m": 1.0,
+   "wrong_bind": 47385,
+   "correct_bind": 322312,
+   "wrong_outside_gate_share": 0.1430832541943653,
+   "wrong_repaired_share": 0.07462277091906722,
+   "correct_blocked_share": 0.03308905656630842,
+   "correct_blocked_to_birth": 8137,
+   "birth_instead_of_bind_target_outside_gate": 1544
+  },
+  {
+   "arm": "AssocOnly",
+   "label": "A7",
+   "tolerance_m": 2.0,
+   "wrong_bind": 47385,
+   "correct_bind": 322312,
+   "wrong_outside_gate_share": 0.09709823783897858,
+   "wrong_repaired_share": 0.05343463121240899,
+   "correct_blocked_share": 0.016167564347588672,
+   "correct_blocked_to_birth": 3419,
+   "birth_instead_of_bind_target_outside_gate": 991
+  },
+  {
+   "arm": "VSMT-lean",
+   "label": "A19",
+   "tolerance_m": 0.5,
+   "wrong_bind": 41719,
+   "correct_bind": 303317,
+   "wrong_outside_gate_share": 0.13734749155061243,
+   "wrong_repaired_share": 0.07020781897936192,
+   "correct_blocked_share": 0.03627228279324931,
+   "correct_blocked_to_birth": 8381,
+   "birth_instead_of_bind_target_outside_gate": 1333
+  },
+  {
+   "arm": "VSMT-lean",
+   "label": "A19",
+   "tolerance_m": 1.0,
+   "wrong_bind": 41719,
+   "correct_bind": 303317,
+   "wrong_outside_gate_share": 0.10728924470864594,
+   "wrong_repaired_share": 0.05644909993048731,
+   "correct_blocked_share": 0.02782897101052694,
+   "correct_blocked_to_birth": 6300,
+   "birth_instead_of_bind_target_outside_gate": 1105
+  },
+  {
+   "arm": "VSMT-lean",
+   "label": "A19",
+   "tolerance_m": 2.0,
+   "wrong_bind": 41719,
+   "correct_bind": 303317,
+   "wrong_outside_gate_share": 0.06646851554447614,
+   "wrong_repaired_share": 0.03655408806538987,
+   "correct_blocked_share": 0.012396271887167552,
+   "correct_blocked_to_birth": 2446,
+   "birth_instead_of_bind_target_outside_gate": 748
+  },
+  {
+   "arm": "VSMT-lean",
+   "label": "A31",
+   "tolerance_m": 0.5,
+   "wrong_bind": 40228,
+   "correct_bind": 301880,
+   "wrong_outside_gate_share": 0.12344635577209903,
+   "wrong_repaired_share": 0.059113055583175894,
+   "correct_blocked_share": 0.03446071286603949,
+   "correct_blocked_to_birth": 8394,
+   "birth_instead_of_bind_target_outside_gate": 2068
+  },
+  {
+   "arm": "VSMT-lean",
+   "label": "A31",
+   "tolerance_m": 1.0,
+   "wrong_bind": 40228,
+   "correct_bind": 301880,
+   "wrong_outside_gate_share": 0.09610221736104206,
+   "wrong_repaired_share": 0.04713135129760366,
+   "correct_blocked_share": 0.02620908970451835,
+   "correct_blocked_to_birth": 6242,
+   "birth_instead_of_bind_target_outside_gate": 1773
+  },
+  {
+   "arm": "VSMT-lean",
+   "label": "A31",
+   "tolerance_m": 2.0,
+   "wrong_bind": 40228,
+   "correct_bind": 301880,
+   "wrong_outside_gate_share": 0.05548374266679924,
+   "wrong_repaired_share": 0.028313612409267178,
+   "correct_blocked_share": 0.011113687557970054,
+   "correct_blocked_to_birth": 2394,
+   "birth_instead_of_bind_target_outside_gate": 1236
+  },
+  {
+   "arm": "VSMT-lean",
+   "label": "A43",
+   "tolerance_m": 0.5,
+   "wrong_bind": 42120,
+   "correct_bind": 303050,
+   "wrong_outside_gate_share": 0.15080721747388415,
+   "wrong_repaired_share": 0.07473884140550807,
+   "correct_blocked_share": 0.03614915030523016,
+   "correct_blocked_to_birth": 8102,
+   "birth_instead_of_bind_target_outside_gate": 1117
+  },
+  {
+   "arm": "VSMT-lean",
+   "label": "A43",
+   "tolerance_m": 1.0,
+   "wrong_bind": 42120,
+   "correct_bind": 303050,
+   "wrong_outside_gate_share": 0.1225071225071225,
+   "wrong_repaired_share": 0.06263057929724597,
+   "correct_blocked_share": 0.027860089094208878,
+   "correct_blocked_to_birth": 6084,
+   "birth_instead_of_bind_target_outside_gate": 907
+  },
+  {
+   "arm": "VSMT-lean",
+   "label": "A43",
+   "tolerance_m": 2.0,
+   "wrong_bind": 42120,
+   "correct_bind": 303050,
+   "wrong_outside_gate_share": 0.08319088319088319,
+   "wrong_repaired_share": 0.04465811965811966,
+   "correct_blocked_share": 0.012641478303910245,
+   "correct_blocked_to_birth": 2404,
+   "birth_instead_of_bind_target_outside_gate": 590
+  },
+  {
+   "arm": "VSMT-lean",
+   "label": "A59",
+   "tolerance_m": 0.5,
+   "wrong_bind": 40932,
+   "correct_bind": 303259,
+   "wrong_outside_gate_share": 0.1392309195739275,
+   "wrong_repaired_share": 0.07053161340760285,
+   "correct_blocked_share": 0.03641112052733802,
+   "correct_blocked_to_birth": 8113,
+   "birth_instead_of_bind_target_outside_gate": 1319
+  },
+  {
+   "arm": "VSMT-lean",
+   "label": "A59",
+   "tolerance_m": 1.0,
+   "wrong_bind": 40932,
+   "correct_bind": 303259,
+   "wrong_outside_gate_share": 0.11357861819603245,
+   "wrong_repaired_share": 0.059488908433499466,
+   "correct_blocked_share": 0.028101391879548503,
+   "correct_blocked_to_birth": 6078,
+   "birth_instead_of_bind_target_outside_gate": 1082
+  },
+  {
+   "arm": "VSMT-lean",
+   "label": "A59",
+   "tolerance_m": 2.0,
+   "wrong_bind": 40932,
+   "correct_bind": 303259,
+   "wrong_outside_gate_share": 0.07749438092446008,
+   "wrong_repaired_share": 0.04155672823218998,
+   "correct_blocked_share": 0.013018574881536904,
+   "correct_blocked_to_birth": 2386,
+   "birth_instead_of_bind_target_outside_gate": 686
+  },
+  {
+   "arm": "VSMT-lean",
+   "label": "A7",
+   "tolerance_m": 0.5,
+   "wrong_bind": 40492,
+   "correct_bind": 302659,
+   "wrong_outside_gate_share": 0.09700681616121704,
+   "wrong_repaired_share": 0.045120023708386844,
+   "correct_blocked_share": 0.03302726831186253,
+   "correct_blocked_to_birth": 8098,
+   "birth_instead_of_bind_target_outside_gate": 2049
+  },
+  {
+   "arm": "VSMT-lean",
+   "label": "A7",
+   "tolerance_m": 1.0,
+   "wrong_bind": 40492,
+   "correct_bind": 302659,
+   "wrong_outside_gate_share": 0.0735700879186012,
+   "wrong_repaired_share": 0.035142744245776944,
+   "correct_blocked_share": 0.024925741511073518,
+   "correct_blocked_to_birth": 6053,
+   "birth_instead_of_bind_target_outside_gate": 1731
+  },
+  {
+   "arm": "VSMT-lean",
+   "label": "A7",
+   "tolerance_m": 2.0,
+   "wrong_bind": 40492,
+   "correct_bind": 302659,
+   "wrong_outside_gate_share": 0.044576706509927885,
+   "wrong_repaired_share": 0.022992195989331225,
+   "correct_blocked_share": 0.010457313346042907,
+   "correct_blocked_to_birth": 2321,
+   "birth_instead_of_bind_target_outside_gate": 1181
+  }
+ ],
+ "per_arm": {
+  "AssocOnly": {
+   "labels": [
+    "A19",
+    "A31",
+    "A43",
+    "A59",
+    "A7"
+   ],
+   "decisions": 1889620,
+   "outcomes": {
+    "correct_birth": 21994,
+    "birth_instead_of_bind": 12607,
+    "correct_bind": 1610654,
+    "wrong_bind": 244365
+   },
+   "histogram": {
+    "correct_bind|[1.0,2.0)|iou_pos": 56886,
+    "wrong_bind|[4.0,inf)|iou_zero": 15098,
+    "correct_bind|[0.25,0.5)|iou_pos": 117049,
+    "correct_bind|[0.0,0.25)|iou_pos": 1098931,
+    "wrong_bind|[0.0,0.25)|iou_pos": 118964,
+    "correct_bind|[0.0,0.25)|iou_zero": 166800,
+    "wrong_bind|[0.0,0.25)|iou_zero": 34644,
+    "correct_bind|[0.5,1.0)|iou_pos": 61046,
+    "wrong_bind|[2.0,4.0)|iou_zero": 11021,
+    "wrong_bind|[0.5,1.0)|iou_zero": 8191,
+    "correct_bind|[1.0,2.0)|iou_zero": 27257,
+    "correct_bind|[4.0,inf)|iou_pos": 9576,
+    "correct_bind|[0.25,0.5)|iou_zero": 18585,
+    "correct_bind|[0.5,1.0)|iou_zero": 14771,
+    "correct_bind|[2.0,4.0)|iou_pos": 14349,
+    "wrong_bind|[1.0,2.0)|iou_zero": 11478,
+    "correct_bind|[2.0,4.0)|iou_zero": 15373,
+    "wrong_bind|[0.25,0.5)|iou_zero": 7672,
+    "wrong_bind|[0.25,0.5)|iou_pos": 16981,
+    "wrong_bind|[0.5,1.0)|iou_pos": 9345,
+    "wrong_bind|[4.0,inf)|iou_pos": 2574,
+    "wrong_bind|[2.0,4.0)|iou_pos": 2244,
+    "wrong_bind|[1.0,2.0)|iou_pos": 6153,
+    "correct_bind|[4.0,inf)|iou_zero": 10031
+   },
+   "per_tolerance": {
+    "0.5": {
+     "gated_cells": 9824575,
+     "wrong_bind_outside_gate": 45788,
+     "wrong_bind_repaired": 22934,
+     "wrong_bind_still_wrong": 22854,
+     "wrong_bind_regated_to": {
+      "birth": 27512,
+      "active": 18276,
+      "dormant": 0,
+      "retracted": 0
+     },
+     "correct_bind_outside_gate": 67432,
+     "correct_bind_blocked_to": {
+      "birth": 53648,
+      "active": 13784,
+      "dormant": 0,
+      "retracted": 0
+     },
+     "birth_instead_of_bind_target_outside_gate": 6952,
+     "inside_gate_decisions_changed": 2820,
+     "wrong_outside_gate_share": 0.18737544247334928,
+     "wrong_repaired_share": 0.0938514107994189,
+     "correct_blocked_share": 0.04186622328569637
+    },
+    "1.0": {
+     "gated_cells": 8880665,
+     "wrong_bind_outside_gate": 37597,
+     "wrong_bind_repaired": 19626,
+     "wrong_bind_still_wrong": 17971,
+     "wrong_bind_regated_to": {
+      "birth": 21099,
+      "active": 16498,
+      "dormant": 0,
+      "retracted": 0
+     },
+     "correct_bind_outside_gate": 52661,
+     "correct_bind_blocked_to": {
+      "birth": 39699,
+      "active": 12962,
+      "dormant": 0,
+      "retracted": 0
+     },
+     "birth_instead_of_bind_target_outside_gate": 5700,
+     "inside_gate_decisions_changed": 2777,
+     "wrong_outside_gate_share": 0.15385591226239437,
+     "wrong_repaired_share": 0.08031428396046897,
+     "correct_blocked_share": 0.03269541440930206
+    },
+    "2.0": {
+     "gated_cells": 6083710,
+     "wrong_bind_outside_gate": 26119,
+     "wrong_bind_repaired": 14494,
+     "wrong_bind_still_wrong": 11625,
+     "wrong_bind_regated_to": {
+      "birth": 13705,
+      "active": 12414,
+      "dormant": 0,
+      "retracted": 0
+     },
+     "correct_bind_outside_gate": 25404,
+     "correct_bind_blocked_to": {
+      "birth": 16031,
+      "active": 9373,
+      "dormant": 0,
+      "retracted": 0
+     },
+     "birth_instead_of_bind_target_outside_gate": 3636,
+     "inside_gate_decisions_changed": 2531,
+     "wrong_outside_gate_share": 0.10688519223293025,
+     "wrong_repaired_share": 0.05931291306038099,
+     "correct_blocked_share": 0.01577247503188146
+    }
+   }
+  },
+  "VSMT-lean": {
+   "labels": [
+    "A19",
+    "A31",
+    "A43",
+    "A59",
+    "A7"
+   ],
+   "decisions": 1828720,
+   "outcomes": {
+    "correct_birth": 25712,
+    "correct_bind": 1514165,
+    "wrong_bind": 205491,
+    "birth_instead_of_bind": 17534,
+    "correct_reactivate": 46012,
+    "wrong_reactivate": 19806
+   },
+   "histogram": {
+    "correct_bind|[2.0,4.0)|iou_pos": 13316,
+    "correct_bind|[1.0,2.0)|iou_pos": 53470,
+    "correct_bind|[0.25,0.5)|iou_pos": 111495,
+    "correct_bind|[0.0,0.25)|iou_pos": 1042192,
+    "wrong_bind|[4.0,inf)|iou_zero": 6443,
+    "wrong_bind|[0.0,0.25)|iou_pos": 111611,
+    "correct_bind|[0.0,0.25)|iou_zero": 158689,
+    "wrong_bind|[0.0,0.25)|iou_zero": 31878,
+    "correct_bind|[0.5,1.0)|iou_pos": 57805,
+    "wrong_bind|[2.0,4.0)|iou_zero": 7043,
+    "correct_bind|[0.5,1.0)|iou_zero": 12536,
+    "correct_bind|[1.0,2.0)|iou_zero": 22803,
+    "wrong_bind|[0.5,1.0)|iou_zero": 5545,
+    "correct_bind|[4.0,inf)|iou_pos": 7209,
+    "correct_bind|[0.25,0.5)|iou_zero": 16591,
+    "wrong_bind|[2.0,4.0)|iou_pos": 1865,
+    "correct_bind|[2.0,4.0)|iou_zero": 11759,
+    "wrong_bind|[0.25,0.5)|iou_zero": 5830,
+    "wrong_bind|[1.0,2.0)|iou_zero": 7644,
+    "wrong_bind|[0.25,0.5)|iou_pos": 14198,
+    "wrong_bind|[0.5,1.0)|iou_pos": 7162,
+    "correct_bind|[4.0,inf)|iou_zero": 6300,
+    "wrong_bind|[1.0,2.0)|iou_pos": 4930,
+    "wrong_bind|[4.0,inf)|iou_pos": 1342
+   },
+   "per_tolerance": {
+    "0.5": {
+     "gated_cells": 7934560,
+     "wrong_bind_outside_gate": 26675,
+     "wrong_bind_repaired": 13169,
+     "wrong_bind_still_wrong": 13506,
+     "wrong_bind_regated_to": {
+      "birth": 15458,
+      "active": 8469,
+      "dormant": 2742,
+      "retracted": 6
+     },
+     "correct_bind_outside_gate": 53398,
+     "correct_bind_blocked_to": {
+      "birth": 41088,
+      "active": 6862,
+      "dormant": 5440,
+      "retracted": 8
+     },
+     "birth_instead_of_bind_target_outside_gate": 7886,
+     "inside_gate_decisions_changed": 3636,
+     "wrong_outside_gate_share": 0.12981103795300036,
+     "wrong_repaired_share": 0.0640855317264503,
+     "correct_blocked_share": 0.035265641459154055
+    },
+    "1.0": {
+     "gated_cells": 7173490,
+     "wrong_bind_outside_gate": 21130,
+     "wrong_bind_repaired": 10747,
+     "wrong_bind_still_wrong": 10383,
+     "wrong_bind_regated_to": {
+      "birth": 11784,
+      "active": 7293,
+      "dormant": 2047,
+      "retracted": 6
+     },
+     "correct_bind_outside_gate": 40862,
+     "correct_bind_blocked_to": {
+      "birth": 30757,
+      "active": 6026,
+      "dormant": 4071,
+      "retracted": 8
+     },
+     "birth_instead_of_bind_target_outside_gate": 6598,
+     "inside_gate_decisions_changed": 3158,
+     "wrong_outside_gate_share": 0.10282688779557256,
+     "wrong_repaired_share": 0.052299127455703656,
+     "correct_blocked_share": 0.026986490904227743
+    },
+    "2.0": {
+     "gated_cells": 4874805,
+     "wrong_bind_outside_gate": 13486,
+     "wrong_bind_repaired": 7177,
+     "wrong_bind_still_wrong": 6309,
+     "wrong_bind_regated_to": {
+      "birth": 7437,
+      "active": 4834,
+      "dormant": 1214,
+      "retracted": 1
+     },
+     "correct_bind_outside_gate": 18059,
+     "correct_bind_blocked_to": {
+      "birth": 11951,
+      "active": 4230,
+      "dormant": 1876,
+      "retracted": 2
+     },
+     "birth_instead_of_bind_target_outside_gate": 4441,
+     "inside_gate_decisions_changed": 2230,
+     "wrong_outside_gate_share": 0.06562817836304266,
+     "wrong_repaired_share": 0.034926103819632,
+     "correct_blocked_share": 0.011926705477936684
+    }
+   }
+  }
+ },
+ "caveat": "first-order estimate on the sealed round-1 records: every frame is re-solved with the memory state the record was sealed with, so a gated decision does not propagate to later frames; the true effect of a gate needs the revised executor run over five seeds; the gate's box clause uses the sealed aabb_iou > 0 as the proxy for 'inside the entity box'"
+}
