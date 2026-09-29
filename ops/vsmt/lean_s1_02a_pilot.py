@@ -1417,7 +1417,9 @@ def _capacity_measurements() -> dict[str, Any]:
     vm = psutil.virtual_memory()
     du = os.statvfs("/root/autodl-tmp")
     gpu = subprocess.run(["nvidia-smi", "--query-gpu=name,memory.total,memory.used", "--format=csv,noheader,nounits"],
-                         capture_output=True, text=True).stdout.strip().split(", ")
+                         capture_output=True, text=True).stdout.strip().splitlines()[0].split(", ")
+    # one line per GPU; Unity renders on device 0 (no gpu_device is passed), so the reading is GPU 0's.  Splitting the whole
+    # multi-GPU output on ", " put the next card's name into the used-memory field (4-card vGPU host, 2026-09-30).
     free_gb = du.f_bavail * du.f_frsize / 1e9
     return {
         "cpu_logical_cores": os.cpu_count(), "cpu_physical_cores": psutil.cpu_count(logical=False),
