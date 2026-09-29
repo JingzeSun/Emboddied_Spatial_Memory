@@ -76,6 +76,21 @@ import vm04_two_house_worker as house_loader  # noqa: E402
 
 CONTRACT_S0_02 = ROOT / "configs" / "vsmt" / "lean_s0_intervention_data_v3.json"
 CONTRACT_S1_02A = ROOT / "configs" / "vsmt" / "lean_s1_02a_pilot_v2.json"
+CONFIRMATION_REGISTRY = ROOT / "configs" / "vsmt" / "lean_ruling81_confirmation_houses.json"
+
+
+def confirmation_houses(block: list[str], registry: dict[str, Any]) -> list[str]:
+    """The ruling-81 confirmation houses: the registered positions of the train block, checked against the frozen list.
+
+    白话：确认集的 house 名单在裁决 81 冻结（train 块第 50～99 位）。输入是按冻结划分重算的 train 块和登记文件，
+    输出同一份名单；重算结果与登记名单不是逐项相同就拒绝，不猜、不补。它不决定名单，只核对并返回。
+    """
+
+    first, last = (int(v) for v in registry["positions"])
+    houses = list(block[first:last + 1])
+    if len(houses) != last - first + 1 or houses != list(registry["houses"]):
+        raise SystemExit("the recomputed train block positions do not match the frozen confirmation list; refusing")
+    return houses
 DATASET_TAG = "procthor10k-0.1.2-train"
 WIDTH = HEIGHT = 224
 FOV = 90.0
@@ -1113,7 +1128,9 @@ def main() -> int:
     ap.add_argument("--output-root", required=True)
     ap.add_argument("--source", required=True)
     ap.add_argument("--workers", type=int, default=lean_pilot.PILOT_WORKERS)
-    ap.add_argument("--stage", choices=["s1-02a", "s1-02b", "regenerate", "window-probe"], default="s1-02a")
+    ap.add_argument("--stage", choices=["s1-02a", "s1-02b", "confirmation", "regenerate", "window-probe"], default="s1-02a",
+                    help="confirmation: the ruling-81 confirmation houses (train block positions 50..99) under exactly "
+                         "the s1-02b protocol, into their own output root (ruling 89 execution rule, 2026-09-30)")
     ap.add_argument("--houses", default="",
                     help="regenerate: comma-separated house ids to rerun into --output-root; each one's old directory "
                          "must already have been moved aside (never overwritten) and the rerun must be named by a ruling")
@@ -1161,7 +1178,7 @@ def main() -> int:
                          "null-window draw; only its sha256 is written to plan.json and the receipts")
     args = ap.parse_args()
     args.private_salt = _read_private_salt(args.private_salt_file)
-    if args.stage == "s1-02b":
+    if args.stage in ("s1-02b", "confirmation"):
         return main_s1_02b(args)
     if args.stage == "regenerate":
         return main_regenerate(args)
@@ -1526,12 +1543,16 @@ def main_s1_02b(args: argparse.Namespace) -> int:
         print("pilot houses do not match the recomputed head; refusing"); return 2
     if pilot_plan.get("null_window_salt_sha256") != sha_bytes(args.private_salt.encode("utf-8")):
         print("the private salt differs from the pilot's; refusing"); return 2
-    houses = block[lean_pilot.PILOT_TOTAL_HOUSES:args.development_houses]
+    stage = args.stage
+    if stage == "confirmation":
+        houses = confirmation_houses(block, json.loads(CONFIRMATION_REGISTRY.read_text(encoding="utf-8")))
+    else:
+        houses = block[lean_pilot.PILOT_TOTAL_HOUSES:args.development_houses]
     out_root = Path(args.output_root); out_root.mkdir(parents=True, exist_ok=True)
     # a resumed run must not overwrite the first run's plan (its commit, measurements and GPU are
     # evidence); it writes its own plan file next to it
     plan_name = f"plan.resume-{commit[:7]}.json" if (args.resume and (out_root / "plan.json").exists()) else "plan.json"
-    (out_root / plan_name).write_text(json.dumps({"stage": "s1-02b", "houses": houses, "pilot_root": str(pilot_root),
+    (out_root / plan_name).write_text(json.dumps({"stage": stage, "houses": houses, "pilot_root": str(pilot_root),
                                                     "derived": scale, "requested_workers": workers, "measurements": measurements,
                                                     "simulator_concurrency_limit_verified": verified_limit,
                                                     "simulator_concurrency_limit_assumed": occupancy["simulator_concurrency_limit"],
@@ -1569,7 +1590,7 @@ def main_s1_02b(args: argparse.Namespace) -> int:
     moves = sum(int(r.get("moves_executed") or 0) for r in results)
     moves_first = sum(int(r.get("moves_source_first") or 0) for r in results)
     receipt = {
-        "stage": "s1-02b", "code_commit": commit, "houses_planned": len(houses), "succeeded": len(results) - len(failed),
+        "stage": stage, "code_commit": commit, "houses_planned": len(houses), "succeeded": len(results) - len(failed),
         "failed": len(failed), "failure_receipts": [{"house_id": r["house_id"], "reason": r["reason"], "detail": r.get("detail", "")[:400]} for r in failed],
         "null_window_episodes": len(results) - len(non_null), "null_window_failed": len(null_failed),
         "yield_house_level_non_null": yield_rate,
@@ -1586,9 +1607,9 @@ def main_s1_02b(args: argparse.Namespace) -> int:
         "simulator_concurrency_limit_verified": verified_limit,
         "simulator_concurrency_limit_assumed": occupancy["simulator_concurrency_limit"],
         "is_extrapolation": scale["is_extrapolation"], "wall_clock_seconds": round(wall, 1),
-        "development_total_with_pilot": len(houses) + lean_pilot.PILOT_TOTAL_HOUSES,
+        "development_total_with_pilot": None if stage == "confirmation" else len(houses) + lean_pilot.PILOT_TOTAL_HOUSES,
     }
-    (out_root / "s1_02b_receipt.json").write_text(json.dumps(receipt, indent=1))
+    (out_root / ("confirmation_receipt.json" if stage == "confirmation" else "s1_02b_receipt.json")).write_text(json.dumps(receipt, indent=1))
     print(json.dumps({"receipt": receipt, "per_house": results}, indent=1, default=str))
     return 0 if receipt["yield_gate_passed"] else 1
 
