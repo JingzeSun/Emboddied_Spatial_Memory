@@ -22,11 +22,12 @@ set -u
 WORKTREE=$(cd "$(dirname "$0")/../.." && pwd)
 cd "$WORKTREE" || exit 2
 COMMIT=$(git rev-parse --short HEAD)
+TAG=${DIAG_COMMIT:-$COMMIT}  # the diag root / export tag; DIAG_COMMIT resumes an earlier commit's root
 PY=/root/miniconda3/bin/python3.12
 AUTODL=/root/autodl-tmp
 OUTPUTS=$AUTODL/vsmt_outputs
 EXPORT_DIR=$OUTPUTS/exports
-LOG_DIR=$OUTPUTS/run_logs/ruling89-sides-$COMMIT
+LOG_DIR=$OUTPUTS/run_logs/ruling89-sides-$TAG
 CACHE_ROOT=$AUTODL/vsmt_caches/lean-s1-03-oracle-8ebbd05
 GEOMETRY_ROOT=$AUTODL/vsmt_private/lean-s1-04-geometry-154776d
 REID_WEIGHTS=$AUTODL/vsmt_private/lean-s1-04-diagnostics-oracle-caa50c7/reid_head_vitb14.json
@@ -35,10 +36,10 @@ R81=$AUTODL/vsmt_private/ruling81-0e4494d/training
 R82=$AUTODL/vsmt_private/ruling82-18f943f/training
 REVISION_91=${REVISION_91:-0}
 REV_FLAG=""; REV_SUFFIX=""; [ "$REVISION_91" = "1" ] && { REV_FLAG="--revision-91"; REV_SUFFIX="-r91"; }
-DIAG=$AUTODL/vsmt_private/ruling89-sides-$COMMIT$REV_SUFFIX
+DIAG=$AUTODL/vsmt_private/ruling89-sides-$TAG$REV_SUFFIX
 LOG_DIR=$LOG_DIR$REV_SUFFIX
 PROBES=$DIAG/probes
-STATUS=$EXPORT_DIR/ruling89_sides_$COMMIT${REV_SUFFIX}.status.json
+STATUS=$EXPORT_DIR/ruling89_sides_$TAG${REV_SUFFIX}.status.json
 QUOTA=$(awk '{ if ($1 == "max") print 16; else print int($1 / $2) }' /sys/fs/cgroup/cpu.max 2>/dev/null || echo 16)
 WORKERS=${WORKERS:-$((QUOTA - 4))}
 PASS_WORKERS=${PASS_WORKERS:-39}
@@ -50,7 +51,7 @@ mkdir -p "$EXPORT_DIR" "$LOG_DIR" "$DIAG" "$PROBES/imitation" "$DIAG/training"
 export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
 
 finish() {
-  $PY -c "import json,sys,time; json.dump({'commit': '$COMMIT', 'stage_reached': sys.argv[1], 'finished_cst': time.strftime('%Y-%m-%d %H:%M:%S'),
+  $PY -c "import json,sys,time; json.dump({'commit': '$COMMIT', 'diag_tag': '$TAG', 'stage_reached': sys.argv[1], 'finished_cst': time.strftime('%Y-%m-%d %H:%M:%S'),
     'suite_exit': '${SUITE_RC:-}', 'round0_exit': '${ROUND0_RC:-}', 'baseline_failed': '${BASE_FAILED:-}', 'same_input_exit': '${SAME_RC:-}',
     'round0_training_exit': '${TRAIN0_RC:-}', 'round1_exit': '${ROUND1_RC:-}', 'coverage_exit': '${COVER_RC:-}',
     'round1_training_failed': '${TRAIN1_FAILED:-}', 'cells_failed': '${CELLS_FAILED:-}', 'merges_failed': '${MERGES_FAILED:-}',
@@ -61,12 +62,17 @@ finish() {
   echo "[$(date)] status written ($1)"
   exit 0
 }
+count_bad() {  # lines of an exits log that do not end in "exit 0" (0 when the log is missing)
+  [ -f "$1" ] || { echo 0; return; }
+  grep -vc 'exit 0$' "$1"
+  return 0
+}
 gate() {  # json file, python expression on d -> exit 0 when true
   $PY -c "import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if ($2) else 1)" "$1"
 }
 
 if [ -n "$(git status --porcelain)" ]; then echo "worktree not clean; refusing"; exit 2; fi
-echo "[$(date)] ruling 89-2/89-3 at $COMMIT on $(hostname): cpu quota $QUOTA, $WORKERS workers, pass workers $PASS_WORKERS, memory.max $(cat /sys/fs/cgroup/memory.max)"
+echo "[$(date)] ruling 89-2/89-3 at $COMMIT (diag tag $TAG) on $(hostname): cpu quota $QUOTA, $WORKERS workers, pass workers $PASS_WORKERS, memory.max $(cat /sys/fs/cgroup/memory.max)"
 echo "[$(date)] recall global count $(PYTHONPATH=src $PY -c 'from vsmt import lean_assignment as la; print(la.RECALL_GLOBAL_COUNT)')"
 if [ "$RESUME" != "1" ]; then
   PYTHONPATH=src $PY -m unittest discover -s tests -t tests -p "test_*.py" > "$LOG_DIR/suite.log" 2>&1
@@ -159,7 +165,7 @@ for SEED in $SEEDS; do
   printf '%s\n' "PYTHONPATH=src $PY ops/vsmt/ruling89_train.py --source $SRC0 --source $SRC1 --arm VSMT-lean --seed $SEED --out-dir $T1 $REV_FLAG > $LOG_DIR/train1-A$SEED.log 2>&1; echo \"train1 A$SEED exit \$?\"" >> "$TRAIN_JOBS"
 done
 xargs -d '\n' -P 5 -I{} bash -c '{}' < "$TRAIN_JOBS" >> "$LOG_DIR/train1_exits.log" 2>&1
-TRAIN1_FAILED=$(grep -vc 'exit 0$' "$LOG_DIR/train1_exits.log" 2>/dev/null || echo 0)
+TRAIN1_FAILED=$(count_bad "$LOG_DIR/train1_exits.log")
 echo "[$(date)] round-1 trainings: $(grep -c 'exit 0$' "$LOG_DIR/train1_exits.log") ok, $TRAIN1_FAILED failed"
 [ "$TRAIN1_FAILED" = "0" ] || { wait $BASE_PID $P3_PID; finish round1_training_failed; }
 
@@ -171,15 +177,15 @@ for SEED in $SEEDS; do
   audit_jobs "LA-OE-new-A$SEED" "--oracle-existence node_primary" "$W" >> "$CELL_JOBS"
 done
 wait $BASE_PID
-BASE_FAILED=$(grep -vc 'exit 0$' "$LOG_DIR/baseline_exits.log" 2>/dev/null || echo 0)
+BASE_FAILED=$(count_bad "$LOG_DIR/baseline_exits.log")
 echo "[$(date)] baseline audits: $(grep -c 'exit 0$' "$LOG_DIR/baseline_exits.log") ok, $BASE_FAILED failed; $(wc -l < "$CELL_JOBS") cell audits queued"
 xargs -d '\n' -P "$WORKERS" -I{} bash -c '{}' < "$CELL_JOBS" >> "$LOG_DIR/cell_exits.log" 2>&1
-CELLS_FAILED=$(grep -vc 'exit 0$' "$LOG_DIR/cell_exits.log" 2>/dev/null || echo 0)
+CELLS_FAILED=$(count_bad "$LOG_DIR/cell_exits.log")
 echo "[$(date)] cell audits: $(grep -c 'exit 0$' "$LOG_DIR/cell_exits.log") ok, $CELLS_FAILED failed"
 MERGES_FAILED=0; ARGS=()
 for SEED in $SEEDS; do
   for GROUP in "OA-LE-new-A$SEED" "LA-OE-new-A$SEED" "LA-OE-old-A$SEED"; do
-    RESULT=$EXPORT_DIR/vsmt_lean_ruling89_audit_${GROUP}_$COMMIT.json
+    RESULT=$EXPORT_DIR/vsmt_lean_ruling89_audit_${GROUP}_$TAG.json
     $PY ops/vsmt/lean_s2_05_node_audit.py merge --output-root "$DIAG/audit/$GROUP" --arm VSMT-lean --results "$RESULT" > "$LOG_DIR/merge-$GROUP.log" 2>&1
     RC=$?; [ "$RC" = "0" ] || MERGES_FAILED=$((MERGES_FAILED + 1))
     case $GROUP in OA-LE-new-*) ARGS+=(--oa-le "$SEED:$RESULT");; LA-OE-new-*) ARGS+=(--la-oe-new "$SEED:$RESULT");; *) ARGS+=(--la-oe-old "$SEED:$RESULT");; esac
@@ -187,21 +193,21 @@ for SEED in $SEEDS; do
 done
 echo "[$(date)] merges failed: $MERGES_FAILED; waiting for P3"
 wait $P3_PID
-P3_FAILED=$(grep -vc 'exit 0$' "$LOG_DIR/p3_exits.log" 2>/dev/null || echo 0)
+P3_FAILED=$(count_bad "$LOG_DIR/p3_exits.log")
 for T in $TARGETS; do
   F=$PROBES/imitation/imitation_$T.json
-  [ -f "$F" ] && cp "$F" "$EXPORT_DIR/vsmt_lean_ruling89_p3_${T}_$COMMIT.json" && ARGS+=(--imitation "$T:$EXPORT_DIR/vsmt_lean_ruling89_p3_${T}_$COMMIT.json")
+  [ -f "$F" ] && cp "$F" "$EXPORT_DIR/vsmt_lean_ruling89_p3_${T}_$TAG.json" && ARGS+=(--imitation "$T:$EXPORT_DIR/vsmt_lean_ruling89_p3_${T}_$TAG.json")
 done
-cp "$PROBES/same_input.json" "$EXPORT_DIR/vsmt_lean_ruling89_same_input_$COMMIT.json"
-cp "$PROBES/coverage_events.json" "$EXPORT_DIR/vsmt_lean_ruling89_coverage_events_$COMMIT.json"
-for SEED in $SEEDS; do cp "$DIAG/training/round1/VSMT-lean/A$SEED/training_receipt.json" "$EXPORT_DIR/vsmt_lean_ruling89_train1_A${SEED}_$COMMIT.json"; done
-cp "$T0/training_receipt.json" "$EXPORT_DIR/vsmt_lean_ruling89_train0_A7_$COMMIT.json"
-$PY ops/vsmt/ruling89_checks.py --same-input "$EXPORT_DIR/vsmt_lean_ruling89_same_input_$COMMIT.json" \
-  --coverage-events "$EXPORT_DIR/vsmt_lean_ruling89_coverage_events_$COMMIT.json" "${ARGS[@]}" \
-  --output "$EXPORT_DIR/vsmt_lean_ruling89_checks_$COMMIT.json" > "$LOG_DIR/reading.log" 2>&1
+cp "$PROBES/same_input.json" "$EXPORT_DIR/vsmt_lean_ruling89_same_input_$TAG.json"
+cp "$PROBES/coverage_events.json" "$EXPORT_DIR/vsmt_lean_ruling89_coverage_events_$TAG.json"
+for SEED in $SEEDS; do cp "$DIAG/training/round1/VSMT-lean/A$SEED/training_receipt.json" "$EXPORT_DIR/vsmt_lean_ruling89_train1_A${SEED}_$TAG.json"; done
+cp "$T0/training_receipt.json" "$EXPORT_DIR/vsmt_lean_ruling89_train0_A7_$TAG.json"
+$PY ops/vsmt/ruling89_checks.py --same-input "$EXPORT_DIR/vsmt_lean_ruling89_same_input_$TAG.json" \
+  --coverage-events "$EXPORT_DIR/vsmt_lean_ruling89_coverage_events_$TAG.json" "${ARGS[@]}" \
+  --output "$EXPORT_DIR/vsmt_lean_ruling89_checks_$TAG.json" > "$LOG_DIR/reading.log" 2>&1
 READING_RC=$?
 echo "[$(date)] reading exit $READING_RC"; cat "$LOG_DIR/reading.log"
-CHECKS=$EXPORT_DIR/vsmt_lean_ruling89_checks_$COMMIT.json
+CHECKS=$EXPORT_DIR/vsmt_lean_ruling89_checks_$TAG.json
 gate "$CHECKS" "d['existence_side_89_2']['pass'] and d['association_side_89_3']['pass']" || finish sides_read_not_both_passed
 
 # 7. 89-4 (only after both sides passed; execution rules (two), supplement): the joint closed loop, VSMT-lean with the
@@ -213,16 +219,16 @@ for SEED in $SEEDS; do
   audit_jobs "JOINT-A$SEED" "" "$W" >> "$JOINT_JOBS"
 done
 xargs -d '\n' -P "$WORKERS" -I{} bash -c '{}' < "$JOINT_JOBS" >> "$LOG_DIR/joint_exits.log" 2>&1
-JOINT_FAILED=$(grep -vc 'exit 0$' "$LOG_DIR/joint_exits.log" 2>/dev/null || echo 0)
+JOINT_FAILED=$(count_bad "$LOG_DIR/joint_exits.log")
 echo "[$(date)] joint audits: $(grep -c 'exit 0$' "$LOG_DIR/joint_exits.log") ok, $JOINT_FAILED failed"
 for SEED in $SEEDS; do
-  RESULT=$EXPORT_DIR/vsmt_lean_ruling89_audit_JOINT-A${SEED}_$COMMIT.json
+  RESULT=$EXPORT_DIR/vsmt_lean_ruling89_audit_JOINT-A${SEED}_$TAG.json
   $PY ops/vsmt/lean_s2_05_node_audit.py merge --output-root "$DIAG/audit/JOINT-A$SEED" --arm VSMT-lean --results "$RESULT" > "$LOG_DIR/merge-JOINT-A$SEED.log" 2>&1 || MERGES_FAILED=$((MERGES_FAILED + 1))
   ARGS+=(--joint "$SEED:$RESULT")
 done
-$PY ops/vsmt/ruling89_checks.py --same-input "$EXPORT_DIR/vsmt_lean_ruling89_same_input_$COMMIT.json" \
-  --coverage-events "$EXPORT_DIR/vsmt_lean_ruling89_coverage_events_$COMMIT.json" "${ARGS[@]}" \
-  --output "$EXPORT_DIR/vsmt_lean_ruling89_checks_joint_$COMMIT.json" > "$LOG_DIR/reading_joint.log" 2>&1
+$PY ops/vsmt/ruling89_checks.py --same-input "$EXPORT_DIR/vsmt_lean_ruling89_same_input_$TAG.json" \
+  --coverage-events "$EXPORT_DIR/vsmt_lean_ruling89_coverage_events_$TAG.json" "${ARGS[@]}" \
+  --output "$EXPORT_DIR/vsmt_lean_ruling89_checks_joint_$TAG.json" > "$LOG_DIR/reading_joint.log" 2>&1
 READING_RC=$?
 echo "[$(date)] joint reading exit $READING_RC"; cat "$LOG_DIR/reading_joint.log"
 finish done_with_89_4
