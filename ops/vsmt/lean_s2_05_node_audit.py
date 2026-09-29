@@ -61,6 +61,7 @@ v5（裁决 81-3，2026-09-28）：失去承载的事件与此后的缺失时长
 from __future__ import annotations
 
 import argparse
+import contextlib
 import hashlib
 import json
 import subprocess
@@ -78,12 +79,14 @@ for item in (ROOT / "src", HERE.parent):
 from vsmt import lean_teacher as lt  # noqa: E402
 
 AUDIT_FILE_NAME = "node_audit.json"
-SCHEMA_VERSION = "vsmt-s2-05-node-audit-v8"  # v2: ruling 76 (1)(a) centroid ledger, birth reasons, dedup tallies, count-first columns;
+SCHEMA_VERSION = "vsmt-s2-05-node-audit-v9"  # v2: ruling 76 (1)(a) centroid ledger, birth reasons, dedup tallies, count-first columns;
 #                                             v3: ruling 79-2 existence-candidate tally; v4: ruling 80-4 association tally;
 #                                             v5: ruling 81-3 loss-of-carrier events and absence durations;
 #                                             v6: direction B (2026-09-29): folds filed by whether the two records were ever observed in the same frame;
 #                                             v7: ruling 86-0 (2026-09-29): every moved object's first labelled re-observation attributed;
 #                                             v8: ruling 87-2 (2026-09-29): a kept re-observation also records its carrier's state (dormant or retracted)
+#                                             v9: ruling 88-2 (2026-09-29): the teacher-as-policy decision ceiling (--oracle-*), recorded under "oracle"
+ACCEPTED_AUDIT_SCHEMAS = ("vsmt-s2-05-node-audit-v8", SCHEMA_VERSION)
 
 #: Why an in-memory prediction (an entity in ``active``/``dormant`` whose object is not a present
 #: out-of-scope one) did not match under the IoU 0.3 column (the primary column until ruling 72 (B), secondary since).
@@ -1108,6 +1111,193 @@ class NodeAudit:
 # entry points
 # --------------------------------------------------------------------------
 
+#: v9 (ruling 88-2 (i)): the teacher-as-policy decision ceiling.  A decisive logit, far outside any trained head's range.
+ORACLE_LOGIT = 20.0
+ORACLE_ARMS = ("VSMT-lean", "NoVersion", "AssocOnly")
+ORACLE_FALLBACK_STATUSES = ("recall_miss", "unlabelled", "identity_ambiguous", "duplicate_of_labelled")
+
+
+def augment_recall(recall: Mapping[str, Sequence[str]], memory: Mapping[str, Any], *, instances: Mapping[str, Mapping[str, Any]],
+                   evidence: Mapping[str, str | None], dominance_min_share: float) -> tuple[dict[str, list[str]], int]:
+    """Ruling 88-2 (i) oracle recall: a fragment whose dominant object has carriers none of which was recalled gets the carrier
+    with the earliest first version (the teacher's own target rule) appended; returns the new recall and the additions."""
+
+    carriers: dict[str, list[Mapping[str, Any]]] = {}
+    for entity in memory["entities"]:
+        identity = lt.entity_identity(entity, evidence)
+        if identity["resolvable"]:
+            carriers.setdefault(str(identity["key"]), []).append(entity)
+    out = {str(fid): list(ids) for fid, ids in recall.items()}
+    added = 0
+    for fragment_id, ids in out.items():
+        dominance = lt.fragment_dominance(instances[fragment_id]["overlap"], dominance_min_share=dominance_min_share)
+        if dominance["status"] != "dominant" or not carriers.get(dominance["key"]):
+            continue
+        matching = sorted(carriers[dominance["key"]], key=lambda e: (int(e["versions"][0]["opened_at"]), str(e["entity_id"])))
+        if any(str(e["entity_id"]) in ids for e in matching):
+            continue
+        ids.append(str(matching[0]["entity_id"]))
+        added += 1
+    return out, added
+
+
+class OracleDiagnostic:
+    """Ruling 88-2 (i): the teacher's decisions used as the policy, a diagnostic mode of the node audit (never a method).
+
+    白话：它回答“这套词表、召回与执行器在每步决定都对时最多能做到多好”。每帧在求解之前，它按 S0-04 的规则直接算 teacher 的关联目标
+    （标为 labelled 或 birth 的色块取该列，召回漏掉、无标注、身份含糊、同帧重复的色块一律新建并计数）和存在标签（可判定候选里 gone 的撤回，
+    其余不撤回；标签口径是节点主列或诊断用的“仅质心”），把它们写成远超学习头量程的 logit 交给同一个 runner；可以只替换关联或只替换存在，
+    另一半用学习头（2×2 混合格）；可选“补召回”，把色块主导物体的最早承载实体补进召回。例如被拿走的杯子在第一次可判定时就被撤回，被搬走的
+    书第一次重见就接回原编号。它在两段封存之前读私有真值，所以只能作诊断：产物标 ``oracle``，不写训练记录，不进任何表，不选参。
+    """
+
+    def __init__(self, *, teacher: Any, geometry_table: Mapping[str, Any], executed_interventions: Sequence[Mapping[str, Any]],
+                 window: Sequence[int] | None, policy: Mapping[str, Any], arm: str, episode_id: str, association: bool,
+                 existence_rule: str | None, recall: bool, learned: Any = None) -> None:
+        from vsmt import lean_object_geometry as og
+        from vsmt import lean_runner as lr
+
+        _require(arm in ORACLE_ARMS, f"oracle_arm_not_supported:{arm}")
+        _require(association or existence_rule is not None, "oracle_without_an_oracle_part")
+        _require(existence_rule is None or existence_rule in lt.EXISTENCE_PLACE_RULES, "oracle_existence_rule_unknown")
+        _require(not (arm == "AssocOnly" and existence_rule is not None), "oracle_existence_for_assoc_only")
+        _require(not recall or association, "oracle_recall_needs_oracle_association")
+        needs_learned = (not association) or (arm != "AssocOnly" and existence_rule is None)
+        _require(learned is not None or not needs_learned, "oracle_needs_learned_heads_for_the_other_part")
+        self.teacher = teacher
+        self.policy = dict(policy)
+        self.association = bool(association)
+        self.existence_rule = existence_rule
+        self.recall = bool(recall)
+        self.learned = learned
+        executed = [row for row in executed_interventions if row.get("executed", True)]
+        self.tracker = og.EpisodeTruthTracker(geometry_table, executed_interventions=executed, window=window)
+        self.memory = lr.initial_state(episode_id=episode_id, arm=arm)["memory"]
+        self.frame: dict[str, Any] = {}
+        self.counts: dict[str, Any] = {"frames": 0, "association_fallback_birth": {s: 0 for s in ORACLE_FALLBACK_STATUSES},
+                                       "association_targets_taken": 0, "existence_gone": 0, "existence_not_gone": 0, "recall_additions": 0}
+        self.last_frame_index = -1
+        self.counted_frame = -1
+
+    # -- per frame -------------------------------------------------------------------
+
+    def prepare(self, frame_index: int, cache_frame: Mapping[str, Any], private_record: Mapping[str, Any], masks: Mapping[str, Any],
+                label_image: Any) -> None:
+        """The private truth of one frame, before the runner sees the frame (the diagnostic's only departure from the S2-04 order)."""
+
+        from vsmt import lean_evaluation as ev
+
+        _require(int(frame_index) == self.last_frame_index + 1, "oracle_frames_out_of_order")
+        self.last_frame_index = int(frame_index)
+        self.frame = {
+            "instances": ev.fragment_instances(cache_frame, masks, label_image, ev.object_of_label(private_record)),
+            "object_state": ev.object_state_from_truth(self.tracker.update(int(frame_index), private_record)),
+        }
+        self.counts["frames"] += 1
+
+    def commit(self, memory: Mapping[str, Any]) -> None:
+        """M_t after the runner's step: the memory the next frame's oracle decisions read."""
+
+        self.memory = memory
+
+    # -- the scorer interface the runner calls ----------------------------------------
+
+    @property
+    def assoc_only(self) -> bool:
+        return self.existence_rule is None and (self.learned is None or bool(getattr(self.learned, "assoc_only", False)))
+
+    def association_and_birth_logits(self, stage_a: Mapping[str, Any]) -> dict[str, Any]:
+        if not self.association:
+            return self.learned.association_and_birth_logits(stage_a)
+        targets = lt.association_targets(self.memory, recall=stage_a["recall"], fragment_instance=self.frame["instances"],
+                                         evidence_instance=self.teacher.evidence, dominance_min_share=self.policy["dominance_min_share"])
+        count = self.counted_frame != self.last_frame_index  # the runner's call; the audit's re-scoring is not counted
+        self.counted_frame = self.last_frame_index
+        association: dict[str, float] = {}
+        birth: dict[str, float] = {}
+        for fragment_id in stage_a["rows"]:
+            target = targets[str(fragment_id)]
+            status = str(target["status"])
+            chosen = str(target["target"]) if status in ("labelled", "birth") else f"{lt.BIRTH_COLUMN_PREFIX}{fragment_id}"
+            if count and status in ORACLE_FALLBACK_STATUSES:
+                self.counts["association_fallback_birth"][status] += 1
+            elif count and status == "labelled":
+                self.counts["association_targets_taken"] += 1
+            birth[str(fragment_id)] = ORACLE_LOGIT if chosen.startswith(lt.BIRTH_COLUMN_PREFIX) else -ORACLE_LOGIT
+        for row in stage_a["association_rows"]:
+            fragment_id, entity_id = str(row["fragment_id"]), str(row["entity_id"])
+            target = targets[fragment_id]
+            taken = target["status"] == "labelled" and str(target["target"]) == entity_id
+            association[f"{fragment_id}|{entity_id}"] = ORACLE_LOGIT if taken else -ORACLE_LOGIT
+        return {"association_logits": association, "birth_logits": birth}
+
+    def existence_labels(self, candidates: Sequence[str]) -> dict[str, dict[str, Any]]:
+        """The S2-04 teacher's existence labels on M_{t-1} (structural and spawned objects first, present), under the cell's rule."""
+
+        by_id = {str(e["entity_id"]): e for e in self.memory["entities"]}
+        labels: dict[str, dict[str, Any]] = {}
+        remaining: list[str] = []
+        for entity_id in candidates:
+            identity = lt.entity_identity(by_id[entity_id], self.teacher.evidence)
+            if identity["resolvable"] and (lt.structural_type_of(identity["key"]) in lt.STRUCTURAL_TYPES_EXCLUDED
+                                           or lt.is_spawned_after_reload(identity["key"])):
+                labels[entity_id] = {"status": "present"}
+            else:
+                remaining.append(entity_id)
+        labels.update(lt.existence_labels(self.memory, candidates=remaining, object_state=self.frame["object_state"],
+                                          evidence_instance=self.teacher.evidence, delta_moved_m=self.policy["delta_moved_m"],
+                                          place_rule=self.existence_rule))
+        return labels
+
+    def existence_logits(self, rows: Sequence[Mapping[str, Any]], order: Sequence[str]) -> dict[str, float]:
+        if self.existence_rule is None:
+            return self.learned.existence_logits(rows, order)
+        labels = self.existence_labels([str(row["entity_id"]) for row in rows])
+        out = {}
+        for row in rows:
+            gone = labels[str(row["entity_id"])]["status"] == "gone"
+            self.counts["existence_gone" if gone else "existence_not_gone"] += 1
+            out[str(row["entity_id"])] = ORACLE_LOGIT if gone else -ORACLE_LOGIT
+        return out
+
+    # -- oracle recall ------------------------------------------------------------------
+
+    def recall_patch(self) -> Any:
+        """A context manager that, for the oracle-recall cell only, appends missing carriers inside S0-03's recall."""
+
+        import contextlib
+
+        from vsmt import lean_assignment as la
+
+        oracle = self
+
+        @contextlib.contextmanager
+        def patched():
+            if not oracle.recall:
+                yield
+                return
+            original = la.build_recall
+
+            def build_recall(frame: Mapping[str, Any], memory: Mapping[str, Any], **kwargs: Any) -> dict[str, list[str]]:
+                recall, added = augment_recall(original(frame, memory, **kwargs), memory, instances=oracle.frame["instances"],
+                                               evidence=oracle.teacher.evidence, dominance_min_share=oracle.policy["dominance_min_share"])
+                oracle.counts["recall_additions"] += added
+                return recall
+
+            la.build_recall = build_recall
+            try:
+                yield
+            finally:
+                la.build_recall = original
+
+        return patched()
+
+    def describe(self) -> dict[str, Any]:
+        return {"association": self.association, "existence_rule": self.existence_rule, "recall": self.recall,
+                "learned_part": None if self.learned is None else ("existence" if self.association else "association"),
+                "private_truth_enters_decisions": True, "diagnostic_only": True, "counts": self.counts}
+
+
 def _git(*arguments: str) -> str:
     return subprocess.check_output(["git", *arguments], cwd=str(ROOT), text=True).strip()
 
@@ -1147,7 +1337,9 @@ def run(args: argparse.Namespace) -> int:
         policy["runner"]["dormancy_missed_opportunity_limit"] = int(args.dormancy_override)
     lr.validate_arm_config(args.arm, config)
     scorer = None
-    if args.arm in lr.LEARNED_ARMS:
+    oracle_requested = bool(args.oracle_association or args.oracle_existence or args.oracle_recall)
+    heads_needed = (not args.oracle_association) or (args.arm != "AssocOnly" and args.oracle_existence is None)
+    if args.arm in lr.LEARNED_ARMS and (heads_needed or args.heads):
         if not args.heads:
             print(f"[node-audit] refused: {args.arm} needs --heads", file=sys.stderr)
             return 2
@@ -1182,6 +1374,18 @@ def run(args: argparse.Namespace) -> int:
     teacher = ev.EpisodeTeacher(arm=args.arm, geometry_table=table, executed_interventions=executed, window=window,
                                 policy=policy["teacher"], nuisance_meta=nuisance_meta)
     captured = capture_truth_table(teacher)
+    oracle = None
+    if oracle_requested:
+        # ruling 88-2 (i), diagnostic only: the teacher's decisions become the policy (private truth before the seals)
+        try:
+            oracle = OracleDiagnostic(teacher=teacher, geometry_table=table, executed_interventions=executed, window=window,
+                                      policy=policy["teacher"], arm=args.arm, episode_id=args.episode_id,
+                                      association=bool(args.oracle_association), existence_rule=args.oracle_existence,
+                                      recall=bool(args.oracle_recall), learned=scorer)
+        except NodeAuditError as exc:
+            print(f"[node-audit] refused: {exc}", file=sys.stderr)
+            return 2
+        scorer = oracle
     audit = NodeAudit(evidence=teacher.evidence, iou_min=teacher.iou_min, delta_moved_m=policy["teacher"]["delta_moved_m"],
                       groups=object_groups(table), arm=args.arm, config=config, scorer=scorer, dedup=policy["runner"]["dedup"],
                       interventions=teacher.interventions, window_end=teacher.window_end,
@@ -1192,28 +1396,39 @@ def run(args: argparse.Namespace) -> int:
 
     depth_view = s2_04.episode_depth_reader(episode_root, cache_dir)
 
+    def private_of(index: int) -> tuple[Any, Any, Any]:
+        masks = diag.cache_runner.read_masks_file(cache_dir / f"{index:04d}{diag.cache_runner.MASK_FILE_SUFFIX}")
+        record, image = s2_04.load_private_frame(episode_root, index)
+        return record, image, masks
+
     def frames():
         for index, path in enumerate(frame_paths):
             frame = diag.cache_runner.load_cache_frame(path)
             frame[lr.PUBLIC_DEPTH_VIEW_KEY] = depth_view(index, frame)  # ruling 74
             current["frame"] = frame
+            if oracle is not None:  # ruling 88-2 (i): the oracle reads the frame's private truth before the runner's step
+                current["private"] = private_of(index)
+                record, image, masks = current["private"]
+                oracle.prepare(index, frame, record, masks, image)
             yield frame
 
     state = None
     receipts: list[dict[str, Any]] = []
     mark = time.time()
-    for index, step in enumerate(lr.run_episode(frames(), episode_id=args.episode_id, arm=args.arm, config=config,
-                                                policy=policy["runner"], descriptor=args.descriptor, projector=projector, scorer=scorer)):
-        runtime = time.time() - mark
-        receipts.append(step["receipt"])
-        state = step["state"]
-        cache_frame = current["frame"]
-        masks = diag.cache_runner.read_masks_file(cache_dir / f"{index:04d}{diag.cache_runner.MASK_FILE_SUFFIX}")
-        record, image = s2_04.load_private_frame(episode_root, index)
-        labelled = teacher.label_frame(step, cache_frame=cache_frame, private_record=record, masks=masks,
-                                       label_image=image, runtime_s=runtime, peak_memory_bytes=s2_04.peak_rss_bytes())
-        audit.observe(step, labelled, captured["table"])
-        mark = time.time()
+    with (oracle.recall_patch() if oracle is not None else contextlib.nullcontext()):
+        for index, step in enumerate(lr.run_episode(frames(), episode_id=args.episode_id, arm=args.arm, config=config,
+                                                    policy=policy["runner"], descriptor=args.descriptor, projector=projector, scorer=scorer)):
+            runtime = time.time() - mark
+            receipts.append(step["receipt"])
+            state = step["state"]
+            cache_frame = current["frame"]
+            record, image, masks = current.pop("private") if oracle is not None else private_of(index)
+            labelled = teacher.label_frame(step, cache_frame=cache_frame, private_record=record, masks=masks,
+                                           label_image=image, runtime_s=runtime, peak_memory_bytes=s2_04.peak_rss_bytes())
+            audit.observe(step, labelled, captured["table"])
+            if oracle is not None:
+                oracle.commit(step["state"]["memory"])
+            mark = time.time()
     summary = lr.episode_summary(state, receipts)
     episode = teacher.episode_report()
     payload = {
@@ -1225,6 +1440,7 @@ def run(args: argparse.Namespace) -> int:
         "final_memory_digest": summary["final_memory_digest"], "final_entities_by_state": summary["final_entities_by_state"],
         "report_node_prf1": episode["report"]["node_prf1"], "report_node_prf1_iou": episode["report"]["node_prf1_iou"],
         "report": episode["report"], "heads": args.heads,
+        "oracle": None if oracle is None else oracle.describe(),
         "audit": audit.report(),
         "wall_seconds": round(time.time() - started, 1),
     }
@@ -1257,9 +1473,12 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
     pooled_loss_events: dict[tuple[str, ...], int] = {}
     pooled_loss_intervals: dict[str, dict[str, Any]] = {}
     pooled_uncarried = {"uncarried_seen_object_frames": 0, "uncarried_without_loss_event_frames": 0}
+    oracle_settings: set[str] = set()
     for path in sorted(output_root.glob(f"*/{arm}/{AUDIT_FILE_NAME}")):
         payload = json.loads(path.read_text(encoding="utf-8"))
-        _require(payload.get("schema_version") == SCHEMA_VERSION and payload.get("arm") == arm, f"audit_file_invalid:{path}")
+        _require(payload.get("schema_version") in ACCEPTED_AUDIT_SCHEMAS and payload.get("arm") == arm, f"audit_file_invalid:{path}")
+        oracle_setting = {k: v for k, v in (payload.get("oracle") or {}).items() if k != "counts"} or None
+        oracle_settings.add(json.dumps(oracle_setting, sort_keys=True))
         audit = payload["audit"]
         commits.add(str(payload["code_commit"]))
         for rule in RULES:
@@ -1319,6 +1538,7 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
         episodes.append({
             "episode_id": payload["episode_id"], "frames": payload["frames"], "config": payload["config"],
             "code_commit": payload["code_commit"], "report": payload.get("report"), "dormancy_override": payload.get("dormancy_override"),
+            "oracle": payload.get("oracle"),
             "final_entities_by_state": payload["final_entities_by_state"],
             "identity_attribution": (audit.get("identity_attribution") or {}).get("records"),
             "rules_f1": {rule: audit["rules"][rule]["f1"] for rule in RULES},
@@ -1333,8 +1553,10 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
             "audit_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
         })
     _require(bool(episodes), f"no_audits_found:{output_root}/*/{arm}")
+    _require(len(oracle_settings) == 1, "audits_mix_oracle_settings")  # ruling 88-2: one cell per merge
     return {
-        "schema_version": "vsmt-s2-05-node-audit-merged-v8",
+        "schema_version": "vsmt-s2-05-node-audit-merged-v9",
+        "oracle": json.loads(next(iter(oracle_settings))),
         "stage": "S2-05 node audit (read-only, pooled)", "arm": arm, "output_root": str(output_root),
         "code_commits": sorted(commits), "episodes": len(episodes),
         "pooled_rules": {rule: _prf(s["matched"], s["predicted"], s["truth"]) for rule, s in pooled_rules.items()},
@@ -1391,6 +1613,12 @@ def main() -> int:
     run_parser.add_argument("--dedup-override", default=None, help="diagnostic: JSON of shared-dedup values to replace (never a run of record)")
     run_parser.add_argument("--dormancy-override", type=int, default=None,
                             help="diagnostic (ruling 80-3): replace the shared dormancy missed-opportunity limit; a huge value switches dormancy off")
+    run_parser.add_argument("--oracle-association", action="store_true",
+                            help="diagnostic (ruling 88-2 (i)): the teacher's association targets decide; never a run of record")
+    run_parser.add_argument("--oracle-existence", default=None, choices=("node_primary", "centroid_only"),
+                            help="diagnostic (ruling 88-2 (i)): the teacher's existence labels under this place rule decide")
+    run_parser.add_argument("--oracle-recall", action="store_true",
+                            help="diagnostic (ruling 88-2 (i)): append the earliest carrier of each fragment's dominant object to its recall")
     run_parser.set_defaults(func=run)
     merge_parser = sub.add_parser("merge", help="pool the audits of one arm into a results/ report")
     merge_parser.add_argument("--output-root", required=True)

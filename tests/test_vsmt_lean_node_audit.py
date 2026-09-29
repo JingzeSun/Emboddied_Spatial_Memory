@@ -468,3 +468,141 @@ class RulingEightyOneLossTallyTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def run_oracle(arm: str, *, existence_rule: str | None = "node_primary", association: bool = True, recall: bool = False,
+               learned=None, data=None):
+    """The ruling 88-2 (i) teacher-as-policy loop on the synthetic episode: prepare before the step, commit after it."""
+
+    data = data or episode()
+    teacher = ev.EpisodeTeacher(arm=arm, geometry_table=data["table"], executed_interventions=data["executed"], window=data["window"],
+                                policy=TEACHER_POLICY, nuisance_meta=NUISANCE_META)
+    oracle = audit_module.OracleDiagnostic(teacher=teacher, geometry_table=data["table"], executed_interventions=data["executed"],
+                                           window=data["window"], policy=TEACHER_POLICY, arm=arm, episode_id="ep-0001",
+                                           association=association, existence_rule=existence_rule, recall=recall, learned=learned)
+
+    def frames():
+        for i, frame in enumerate(data["frames"]):
+            oracle.prepare(i, frame, data["records"][i], data["masks"][i], data["images"][i])
+            yield frame
+
+    labelled, steps = [], []
+    with oracle.recall_patch():
+        for i, step in enumerate(lr.run_episode(frames(), episode_id="ep-0001", arm=arm, config=CONFIGS[arm], policy=POLICY,
+                                                descriptor="vitb14", scorer=oracle)):
+            labelled.append(teacher.label_frame(step, cache_frame=data["frames"][i], private_record=data["records"][i], masks=data["masks"][i],
+                                                label_image=data["images"][i], runtime_s=0.01, peak_memory_bytes=1000))
+            oracle.commit(step["state"]["memory"])
+            steps.append(step)
+    return oracle, labelled, teacher.episode_report(), steps
+
+
+class RulingEightyEightOracleTests(unittest.TestCase):
+    """Ruling 88-2 (i): the teacher's decisions as the policy make no amortization error by construction."""
+
+    def test_the_full_oracle_takes_every_teacher_decision_and_retracts_the_removed_mug(self) -> None:
+        oracle, labelled, report, _ = run_oracle("VSMT-lean")
+        association = [frame["decomposition"]["association"] for frame in labelled]
+        existence = [frame["decomposition"]["existence"] for frame in labelled]
+        self.assertEqual(sum(a["amortization_error"] for a in association), 0)
+        self.assertEqual(sum(e["false_retract"] + e["missed_retract"] for e in existence), 0)
+        self.assertGreater(sum(a["correct"] for a in association), 0)
+        self.assertGreaterEqual(oracle.counts["existence_gone"], 1)
+        self.assertEqual(oracle.counts["frames"], 5)
+        self.assertEqual(report["report"]["missing_residual_rate"]["missing_residual_rate"], 0.0)
+        self.assertEqual(report["report"]["identity_continuity"]["identity_continuity"], 1.0)
+        described = oracle.describe()
+        self.assertTrue(described["private_truth_enters_decisions"] and described["diagnostic_only"])
+
+    def test_the_assoc_only_vocabulary_keeps_the_stale_mug_even_with_perfect_association(self) -> None:
+        oracle, labelled, report, _ = run_oracle("AssocOnly", existence_rule=None)
+        self.assertEqual(sum(frame["decomposition"]["association"]["amortization_error"] for frame in labelled), 0)
+        # the removed mug keeps its stale entity (never retracted); the moved book's entity is re-bound at its new place
+        self.assertEqual(report["report"]["missing_residual_rate"]["missing_residual_rate"], 0.5)
+        self.assertEqual(report["report"]["identity_continuity"]["identity_continuity"], 1.0)
+
+    def test_the_audit_re_scoring_a_frame_is_not_counted_twice(self) -> None:
+        oracle, _, _, steps = run_oracle("VSMT-lean")
+        before = json.loads(json.dumps(oracle.counts))
+        oracle.association_and_birth_logits(steps[-1]["stage_a"])  # the audit's birth-reason tally re-scores the last frame
+        self.assertEqual(oracle.counts, before)
+
+    def test_an_oracle_cell_that_leaves_a_part_undecided_needs_heads(self) -> None:
+        data = episode()
+        teacher = ev.EpisodeTeacher(arm="VSMT-lean", geometry_table=data["table"], executed_interventions=data["executed"],
+                                    window=data["window"], policy=TEACHER_POLICY, nuisance_meta=NUISANCE_META)
+        common = {"teacher": teacher, "geometry_table": data["table"], "executed_interventions": data["executed"], "window": data["window"],
+                  "policy": TEACHER_POLICY, "episode_id": "ep-0001"}
+        for kwargs, code in (({"arm": "VSMT-lean", "association": True, "existence_rule": None, "recall": False}, "oracle_needs_learned_heads_for_the_other_part"),
+                             ({"arm": "VSMT-lean", "association": False, "existence_rule": "node_primary", "recall": False}, "oracle_needs_learned_heads_for_the_other_part"),
+                             ({"arm": "AssocOnly", "association": True, "existence_rule": "node_primary", "recall": False}, "oracle_existence_for_assoc_only"),
+                             ({"arm": "VSMT-lean", "association": False, "existence_rule": "node_primary", "recall": True}, "oracle_recall_needs_oracle_association"),
+                             ({"arm": "TAF", "association": True, "existence_rule": None, "recall": False}, "oracle_arm_not_supported:TAF")):
+            with self.assertRaises(audit_module.NodeAuditError, msg=code) as caught:
+                audit_module.OracleDiagnostic(**common, **kwargs)
+            self.assertEqual(str(caught.exception), code)
+
+    def test_a_mixed_cell_asks_the_learned_scorer_for_the_other_part(self) -> None:
+        calls = {"association": 0, "existence": 0}
+
+        class Stub:
+            assoc_only = False
+
+            def association_and_birth_logits(self, stage_a):
+                calls["association"] += 1
+                return {"association_logits": {f"{r['fragment_id']}|{r['entity_id']}": 0.0 for r in stage_a["association_rows"]},
+                        "birth_logits": {str(f): -1.0 for f in stage_a["rows"]}}
+
+            def existence_logits(self, rows, order):
+                calls["existence"] += 1
+                return {str(r["entity_id"]): -5.0 for r in rows}
+
+        run_oracle("VSMT-lean", association=True, existence_rule=None, learned=Stub())
+        self.assertEqual(calls["association"], 0)
+        self.assertEqual(calls["existence"], 5)
+        run_oracle("VSMT-lean", association=False, existence_rule="node_primary", learned=Stub())
+        self.assertEqual(calls["association"], 5)
+
+    def test_oracle_recall_appends_the_earliest_carrier_only_when_none_was_recalled(self) -> None:
+        # replay the episode to frame 2, then ask for the book fragment's recall with the book's carrier left out
+        _, labelled, _, _ = run_oracle("VSMT-lean")
+        data = episode()
+        steps = list(lr.run_episode(data["frames"][:2], episode_id="ep-0001", arm="TAF", config=CONFIGS["TAF"], policy=POLICY, descriptor="vitb14"))
+        memory = steps[-1]["state"]["memory"]
+        teacher = ev.EpisodeTeacher(arm="TAF", geometry_table=data["table"], executed_interventions=data["executed"], window=data["window"],
+                                    policy=TEACHER_POLICY, nuisance_meta=NUISANCE_META)
+        for i, step in enumerate(steps):
+            teacher.label_frame(step, cache_frame=data["frames"][i], private_record=data["records"][i], masks=data["masks"][i],
+                                label_image=data["images"][i], runtime_s=0.01, peak_memory_bytes=1000)
+        instances = ev.fragment_instances(data["frames"][2], data["masks"][2], data["images"][2], ev.object_of_label(data["records"][2]))
+        book = next(fid for fid in instances if fid.endswith(":book"))
+        recall, added = audit_module.augment_recall({book: []}, memory, instances=instances, evidence=teacher.evidence,
+                                                    dominance_min_share=TEACHER_POLICY["dominance_min_share"])
+        self.assertEqual(added, 1)
+        self.assertEqual(len(recall[book]), 1)
+        again, added_again = audit_module.augment_recall(recall, memory, instances=instances, evidence=teacher.evidence,
+                                                         dominance_min_share=TEACHER_POLICY["dominance_min_share"])
+        self.assertEqual((again, added_again), (recall, 0))
+        self.assertEqual(len(labelled), 5)
+
+    def test_merge_carries_the_oracle_setting_and_refuses_a_mixture(self) -> None:
+        oracle, _, _, _ = run_oracle("VSMT-lean")
+        audit, _, _, _ = run_audit("TAF")
+        base = {"schema_version": audit_module.SCHEMA_VERSION, "arm": "VSMT-lean", "code_commit": "abc", "frames": 5,
+                "config": CONFIGS["VSMT-lean"], "final_entities_by_state": {"active": 3}, "audit": audit.report()}
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for name, setting in (("ep-0001", oracle.describe()), ("ep-0002", oracle.describe())):
+                (root / name / "VSMT-lean").mkdir(parents=True)
+                (root / name / "VSMT-lean" / audit_module.AUDIT_FILE_NAME).write_text(
+                    json.dumps({**base, "episode_id": name, "oracle": setting}), encoding="utf-8")
+            merged = audit_module.merge_audits(root, "VSMT-lean")
+            self.assertEqual(merged["schema_version"], "vsmt-s2-05-node-audit-merged-v9")
+            self.assertEqual(merged["oracle"]["existence_rule"], "node_primary")
+            self.assertNotIn("counts", merged["oracle"])
+            (root / "ep-0003" / "VSMT-lean").mkdir(parents=True)
+            (root / "ep-0003" / "VSMT-lean" / audit_module.AUDIT_FILE_NAME).write_text(
+                json.dumps({**base, "episode_id": "ep-0003", "oracle": None}), encoding="utf-8")
+            with self.assertRaises(audit_module.NodeAuditError) as caught:
+                audit_module.merge_audits(root, "VSMT-lean")
+            self.assertEqual(str(caught.exception), "audits_mix_oracle_settings")
