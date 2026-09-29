@@ -296,6 +296,26 @@ class FieldWiseTests(unittest.TestCase):
         self.assertNotEqual(plain["weights"]["sha256"], scheduled["weights"]["sha256"])
         self.assertEqual(scheduled["weights"]["training"]["gradient_clip_norm"], 1.0)
 
+    def test_the_pending_91_prior_correction_shifts_existence_logits_by_ln_w(self) -> None:
+        train, validation = self.records()
+        base = dict(learning_rate=1e-3, weight_decay=1e-4, epochs=1, seed=7, assoc_only=False, field_encoding=True,
+                    existence_class_weight=True)
+        plain = model.train_heads(train, validation, **base)
+        corrected = model.train_heads(train, validation, **base, existence_prior_correction=True)
+        self.assertNotIn("existence_logit_offset", plain["weights"])
+        w = corrected["weights"]["training"]["existence_class_weight"]["pos_weight"]
+        self.assertAlmostEqual(corrected["weights"]["existence_logit_offset"]["value"], -np.log(w), places=5)
+        record = validation[0]
+        a = model.LeanScorer(plain["heads"]).existence_logits(record["existence_rows"], record["existence_feature_order"])
+        b = model.LeanScorer(model.load_heads(json.loads(json.dumps(corrected["weights"])))).existence_logits(
+            record["existence_rows"], record["existence_feature_order"])
+        for key in a:
+            self.assertAlmostEqual(b[key] - a[key], -np.log(w), places=4)
+        tampered = json.loads(json.dumps(corrected["weights"]))
+        tampered["existence_logit_offset"]["value"] = 0.0
+        with self.assertRaises(model.LeanModelError):
+            model.load_heads(tampered)
+
     def test_the_class_weight_multiplies_the_gone_rows(self) -> None:
         import torch
         record = labelled_frame(21, drop="lamp")

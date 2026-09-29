@@ -207,7 +207,7 @@ def revision_kwargs(args: argparse.Namespace) -> dict[str, Any]:
 
     if not getattr(args, "revision_91", False):
         return {}
-    return {"cosine_min_learning_rate": 1e-5, "gradient_clip_norm": 1.0}
+    return {"cosine_min_learning_rate": 1e-5, "gradient_clip_norm": 1.0, "existence_prior_correction": True}
 
 
 def agreement(heads: Any, built: Sequence[tuple[dict[str, Any], dict[str, Any], dict[str, str]]], target: str) -> dict[str, Any]:

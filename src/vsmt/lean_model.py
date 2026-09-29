@@ -87,6 +87,8 @@ FIELD_ENCODING_STATISTICS_RULE = ("mean and population standard deviation of eac
 EXISTENCE_CLASS_WEIGHT_RULE = "binary cross-entropy with pos_weight = present rows / gone rows over the training houses' records"
 #: Proposed for pending ruling 91 only (2026-09-30, off by default, not a registered recipe): the learning rate of epoch e is
 #: lr_min + (lr - lr_min) * (1 + cos(pi * e / epochs)) / 2 and each step's gradient norm is clipped.
+EXISTENCE_PRIOR_CORRECTION_RULE = ("the existence logit handed to decisions is the head output minus ln(pos_weight): training with pos_weight w "
+                                   "moves the optimal logit up by ln w, so without it tau_r 0.5 acts like tau_r 1/(1+w)")
 COSINE_SCHEDULE_RULE = "per epoch e of E: lr_e = lr_min + (lr - lr_min) * (1 + cos(pi * e / E)) / 2; gradient norm clipped before each step"
 #: The S0-05 contract's own words for the loss (bound by the arms validator through the contract).
 LOSS_RULE = ("per-fragment softmax cross-entropy over [recalled columns..., BIRTH column] plus "
@@ -232,6 +234,7 @@ def make_heads(*, assoc_only: bool, seed: int, encoding: Mapping[str, Any] | Non
         )
     heads.feature_orders = {name: tuple(HEAD_FEATURES[name]) for name in heads}
     heads.encoding = None if encoding is None else clone_json(dict(encoding))
+    heads.existence_logit_offset = 0.0  # pending ruling 91 only: -ln(pos_weight) when the prior correction is on
     return heads
 
 
@@ -260,6 +263,9 @@ def weights_payload(heads: Any, *, training: Mapping[str, Any]) -> dict[str, Any
             "tensors": tensors, "training": dict(training)}
     if encoding is not None:
         body["encoding"] = {"rule": FIELD_ENCODING_STATISTICS_RULE, "per_head": {name: encoding[name] for name in tensors}}
+    offset = float(getattr(heads, "existence_logit_offset", 0.0) or 0.0)
+    if offset != 0.0:  # pending ruling 91 only; inside the digest
+        body["existence_logit_offset"] = {"value": offset, "rule": EXISTENCE_PRIOR_CORRECTION_RULE}
     body["sha256"] = hashlib.sha256(canonical_json({k: v for k, v in body.items() if k != "training"}).encode("utf-8")).hexdigest()
     return body
 
@@ -286,6 +292,8 @@ def load_heads(payload: Mapping[str, Any], *, device: str = "cpu") -> Any:
         _require(order == list(HEAD_FEATURES[name]), f"weights_feature_order_drifted:{name}")
     encoding = payload["encoding"]["per_head"] if schema == WEIGHTS_SCHEMA_VERSION_FIELD_WISE else None
     heads = make_heads(assoc_only="existence" not in names, seed=0, encoding=encoding)
+    if "existence_logit_offset" in payload:
+        heads.existence_logit_offset = float(payload["existence_logit_offset"]["value"])
     if legacy_existence:
         width = len(la.LEGACY_EXISTENCE_FEATURES)
         heads["existence"] = torch.nn.Sequential(
@@ -354,7 +362,8 @@ class LeanScorer:
         _require(tuple(order) == HEAD_FEATURES["existence"], "stage_b_existence_order_drifted")
         values = _logits(self.heads["existence"], [r["features"] for r in rows],
                          width=len(HEAD_FEATURES["existence"]), device=self.device)
-        return {str(r["entity_id"]): value for r, value in zip(rows, values)}
+        offset = float(getattr(self.heads, "existence_logit_offset", 0.0) or 0.0)
+        return {str(r["entity_id"]): value + offset for r, value in zip(rows, values)}
 
 
 # --------------------------------------------------------------------------
@@ -567,6 +576,7 @@ def train_heads(
     assoc_only: bool, device: str = "cpu", epoch_callback: Any = None,
     field_encoding: bool = False, existence_class_weight: bool = False,
     cosine_min_learning_rate: float | None = None, gradient_clip_norm: float | None = None,
+    existence_prior_correction: bool = False,
 ) -> dict[str, Any]:
     """Train the heads once and keep the best-validation epoch; every value explicit, None refused.
 
@@ -666,8 +676,10 @@ def train_heads(
         training.update({"field_encoding": bool(field_encoding), "existence_class_weight": class_counts,
                          "existence_class_weight_rule": EXISTENCE_CLASS_WEIGHT_RULE if existence_class_weight else None,
                          "updates_taken": updates_taken})
-    if cosine_min_learning_rate is not None or gradient_clip_norm is not None:
-        training.update({"cosine_min_learning_rate": cosine_min_learning_rate, "gradient_clip_norm": gradient_clip_norm,
+    if existence_prior_correction and pos_weight is not None:  # pending ruling 91 only
+        heads.existence_logit_offset = -math.log(float(pos_weight.item()))
+    if cosine_min_learning_rate is not None or gradient_clip_norm is not None or existence_prior_correction:
+        training.update({"existence_prior_correction": bool(existence_prior_correction),"cosine_min_learning_rate": cosine_min_learning_rate, "gradient_clip_norm": gradient_clip_norm,
                          "schedule_rule": COSINE_SCHEDULE_RULE})
     return {"weights": weights_payload(heads, training=training), "heads": heads, "train_curve": train_curve,
             "validation_curve": validation_curve, "best_epoch": None if best is None else best[1], "diverged": diverged,
