@@ -644,7 +644,7 @@ class TestMachineContract(unittest.TestCase):
                 if arm in NO_GATE_PARAMETER:
                     assert_no_gate_option(arm, grid)
         self.assertEqual(len(enumerate_configs("TAF", FROZEN_GRIDS["TAF"])), 12)
-        self.assertEqual(len(enumerate_configs("VSMT-lean", FROZEN_GRIDS["VSMT-lean"])), 7)
+        self.assertEqual(len(enumerate_configs("VSMT-lean", FROZEN_GRIDS["VSMT-lean"])), 10)  # ruling 87-1: was 7
         self.assertEqual(len(enumerate_configs("LOW", FROZEN_GRIDS["LOW"])), 5)
         broken = self._fresh()
         broken["arms"]["TAF"]["grid"]["theta_a"]["values"] = [0.5, 0.6, 0.7]

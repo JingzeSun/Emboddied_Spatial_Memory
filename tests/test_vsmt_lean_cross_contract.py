@@ -343,7 +343,9 @@ FROZEN_RULE_SHA256 = {
     # configurations per method, a no-gate member in every rule arm), the ELU-P rollout_config
     # (0.7, 1.0, 0.0) and the should_be_visible_min_ratio_superseded record enter the digest; the
     # weight_decay, seeds and should-be-visible values are slots and do not.  c5354b1e -> 4e285050.
-    "S0-05": "4e285050e0f10358d75908f5932fbac4444c89c7fd4e5f6ebd4f25ee4c879da5",
+    # Re-pinned 2026-09-29 for ruling 87-1 (LOG-283/284): the four tau_r grids (VSMT-lean, NoVersion, HeuristicLabel,
+    # VSMT-lean-ctx) extended down by 0.15, 0.2 and 0.25, ten values each.  4e285050 -> c9a44bd3.
+    "S0-05": "c9a44bd3052be748b7af35d29d9a1481e40621a487b5c2dd636a1ebcee5cf21a",
     "S1-01": "4f139e631388c05e4006fd12ffad8b611d2e7811fb7f9a830ce9f7c63fdecd84",
     "S1-02a": "997cabe5105ca304269b0d8d9dd34038ff096df7a79c875c577a2629866ccc64",
     # S1-03 re-pinned 2026-09-22 for ruling 49 (LOG-242): the public_pose_correction block -- every

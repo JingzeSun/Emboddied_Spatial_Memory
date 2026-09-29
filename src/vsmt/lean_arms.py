@@ -156,17 +156,20 @@ ROLLOUT_CONFIG_GATE_PARAMETER = "d_a"
 #: free-space coverage not separating gone from present under the current geometry rule, so the
 #: RAC and ELU-P grids bracket the 0.65 baseline).  At most twelve configurations per method, every
 #: rule arm with a no-gate member; the contract must carry exactly these values.
+#: D-224-S1 ruling 87-1 (2026-09-29, LOG-283/284): every tau_r grid extended down by 0.15, 0.2 and 0.25 (ten values,
+#: within the twelve-configuration budget) because the trained existence heads score almost every candidate below
+#: 0.3; the four tau_r grids stay identical so the ablations share VSMT-lean's configuration space.
 FROZEN_GRIDS: dict[str, dict[str, list[Any]]] = {
-    METHOD_ARM: {"tau_r": [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]},
+    METHOD_ARM: {"tau_r": [0.15, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]},
     "TAF": {"theta_a": [0.6, 0.7, 0.8], "d_a": [None, 0.5, 1.0, 2.0]},
     "ELU-P": {"theta_a": [0.7], "d_a": [None, 1.0], "free_space_weight": [0.5, 1.0, 2.0], "retract_threshold": [0.0, -1.0]},
     "RAC": {"theta_a": [0.7], "d_a": [None, 1.0], "rho_rac": [0.7, 0.85], "n_rac": [2, 3, 5]},
     "LOW": {"d_low": [None, 0.25, 0.5, 1.0, 2.0]},
-    "NoVersion": {"tau_r": [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]},
+    "NoVersion": {"tau_r": [0.15, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]},
     "HandCost": {"theta_b": [0.6, 0.7, 0.8], "rho_h": [0.6, 0.7, 0.8, 0.9]},
-    "HeuristicLabel": {"tau_r": [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]},
+    "HeuristicLabel": {"tau_r": [0.15, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]},
     "AssocOnly": {},
-    OPTIONAL_ARM: {"tau_r": [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]},
+    OPTIONAL_ARM: {"tau_r": [0.15, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]},
 }
 #: Ruling 68 (2): the ELU-P rollout configuration (theta_a, free_space_weight, retract_threshold), a
 #: no-gate member of the ELU-P grid; DAgger round 0 and the HeuristicLabel labels use exactly it.
