@@ -35,6 +35,8 @@ SEEDS = (7, 19, 31, 43, 59)
 EXISTENCE_P3 = ("handcost", "rac", "elup")
 ASSOCIATION_P3 = ("taf", "low")
 MRR_LINE, NODE_F1_LINE = 0.05, 0.93
+#: ruling 93-2 (2026-09-30): P3 is reported only, not a condition of 89-2 / 89-3 (set by --p3-report-only)
+P3_REPORT_ONLY = {"on": False}
 #: 89-4 joint closed-loop lines (five-seed means), frozen in ruling 89 (revised)
 JOINT_LINES = {"missing_residual_rate": ("at_most", 0.10), "identity_continuity": ("at_least", 0.45),
                "node_f1": ("at_least", 0.76), "false_retract_rate_in_scope": ("at_most", 0.35)}
@@ -92,7 +94,8 @@ def existence_side(same_input: Mapping[str, Any] | None, imitation: Mapping[str,
                                                                   "false_retract_rate_in_scope_reported": fr,
                                                                   "lines": {"missing_residual_rate_mean_at_most": MRR_LINE, "node_f1_mean_at_least": NODE_F1_LINE},
                                                                   "pass": cell_pass},
-            "pass": bool(first and p3["pass"] and cell_pass)}
+            "p3_role": "reported_only" if P3_REPORT_ONLY["on"] else "required",
+            "pass": bool(first and (P3_REPORT_ONLY["on"] or p3["pass"]) and cell_pass)}
 
 
 def association_side(coverage: Mapping[str, Any] | None, imitation: Mapping[str, Mapping[str, Any]],
@@ -121,7 +124,8 @@ def association_side(coverage: Mapping[str, Any] | None, imitation: Mapping[str,
             "paired_same_recall": {"seeds": seeds, "identity_continuity_new_minus_old": identity, "kept_share_new_minus_old": kept,
                                    "chose_birth": {"new": births["new"], "old": births["old"], "mean_new": birth_new, "mean_old": birth_old},
                                    "rule": r82.RULE, "pass": paired_pass},
-            "pass": bool(cov and p3["pass"] and paired_pass)}
+            "p3_role": "reported_only" if P3_REPORT_ONLY["on"] else "required",
+            "pass": bool(cov and (P3_REPORT_ONLY["on"] or p3["pass"]) and paired_pass)}
 
 
 def joint_check(runs: Mapping[int, Mapping[str, Any]]) -> dict[str, Any]:
@@ -143,6 +147,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--same-input")
     parser.add_argument("--history-audit", help="merged ruling89_history_audit.py output (89-2 check 1)")
+    parser.add_argument("--p3-report-only", action="store_true", help="ruling 93-2: P3 is reported, not required")
     parser.add_argument("--coverage-events")
     parser.add_argument("--imitation", action="append", default=[], help="target:json")
     parser.add_argument("--oa-le", action="append", default=[], help="seed:merged audit")
@@ -151,6 +156,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--joint", action="append", default=[], help="89-4: seed:merged audit of the joint closed-loop run")
     parser.add_argument("--output", required=True)
     args = parser.parse_args(argv)
+    P3_REPORT_ONLY["on"] = bool(args.p3_report_only)
     inputs: dict[str, str] = {}
 
     def load(path: str | None) -> dict[str, Any] | None:

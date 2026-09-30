@@ -125,6 +125,23 @@ class ChecksTests(unittest.TestCase):
         self.assertFalse(checks.association_side({"pass": True, "train": {}}, p3, old, new)["pass"])
 
 
+class ReportOnlyTests(unittest.TestCase):
+    def test_ruling_93_makes_p3_reported_only(self) -> None:
+        good = {s: ChecksTests.merged(0.04, 0.94, 0.6, []) for s in checks.SEEDS}
+        failing = {t: {"pass": False, "readings": {"last_epoch": {"train": {"balanced_agreement": 0.9}, "selection": {"balanced_agreement": 0.9}}}}
+                   for t in checks.EXISTENCE_P3}
+        audit = {"pass": True, "groups": {}}
+        try:
+            self.assertFalse(checks.existence_side(None, failing, good, audit)["pass"])
+            checks.P3_REPORT_ONLY["on"] = True
+            out = checks.existence_side(None, failing, good, audit)
+            self.assertTrue(out["pass"])
+            self.assertEqual(out["p3_role"], "reported_only")
+            self.assertFalse(out["p3"]["pass"])  # still reported
+        finally:
+            checks.P3_REPORT_ONLY["on"] = False
+
+
 class JointTests(unittest.TestCase):
     def test_the_four_89_4_lines(self) -> None:
         good = {s: ChecksTests.merged(0.08, 0.80, 0.50, []) for s in checks.SEEDS}

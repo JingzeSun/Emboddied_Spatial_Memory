@@ -256,6 +256,8 @@ def cmd_imitation(args: argparse.Namespace) -> int:
             for name, state in snapshots[epoch].items():
                 probe[name].load_state_dict(state)
         probe.eval()
+        if getattr(args, "read_uncorrected", False):  # ruling 93-2: P3 reads the head's own logits, not the ln w corrected ones
+            probe.existence_logit_offset = 0.0
         readings[label] = {"epoch": epoch, "train": agreement(probe, built["train"], target),
                            "selection": agreement(probe, built["selection"], target)}
     passes = {label: bool(readings[label]["train"]["balanced_agreement"] is not None
@@ -275,7 +277,8 @@ def cmd_imitation(args: argparse.Namespace) -> int:
            "train_curve": result["train_curve"], "train_loss_fixed_weights": fixed,
            "train_curve_rule": "train_curve: mean per-step loss while the epoch updates; train_loss_fixed_weights: the epoch-end checkpoint on the whole training set, which picks lowest_training_loss",
            "validation_curve": result["validation_curve"], "diverged": result["diverged"],
-           "readings": readings, "pass_line": PASS_LINE, "pass_by_reading": passes,
+           "readings": readings, "reads_uncorrected_existence_logits": bool(getattr(args, "read_uncorrected", False)),
+           "pass_line": PASS_LINE, "pass_by_reading": passes,
            "pass": all(passes.values()), "weights_sha256": result["weights"]["sha256"], "files": files,
            "wall_seconds": round(time.time() - started, 1), "script_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest()}
     (out_dir / f"imitation_{target}.json").write_text(json.dumps(out, indent=1), encoding="utf-8")
@@ -339,6 +342,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     i.add_argument("--output-dir", required=True)
     i.add_argument("--epochs", type=int, default=20)
     i.add_argument("--revision-91", action="store_true", help="pending ruling 91 only: cosine-decayed rate and gradient clipping")
+    i.add_argument("--read-uncorrected", action="store_true", help="ruling 93-2: agreement on the uncorrected existence logits")
     i.set_defaults(func=cmd_imitation)
     c = sub.add_parser("coverage-events")
     c.add_argument("--source", dest="sources", action="append", required=True)
