@@ -72,8 +72,9 @@ def p3_reading(reports: Mapping[str, Mapping[str, Any]], targets: Sequence[str])
 
 def existence_side(same_input: Mapping[str, Any] | None, imitation: Mapping[str, Mapping[str, Any]],
                    oa_le: Mapping[int, Mapping[str, Any]], history_audit: Mapping[str, Any] | None = None) -> dict[str, Any]:
-    """89-2.  Check 1 is read from the independent-executor history audit when one is given (ASTRA review, 2026-09-30:
-    the same-input table computes the rule from the row and so cannot fail; it is reported only)."""
+    """89-2.  Check 1 is read only from the independent-executor history audit (ASTRA review, 2026-09-30: the same-input
+    table computes the rule from the row and so cannot fail; it is reported only).  Without the audit, check 1 fails --
+    there is no fallback to the table."""
 
     mrr = seed_means(oa_le, "missing_residual_rate") if oa_le else None
     f1 = seed_means(oa_le, "node_f1") if oa_le else None
@@ -82,10 +83,11 @@ def existence_side(same_input: Mapping[str, Any] | None, imitation: Mapping[str,
                      and mrr["mean"] <= MRR_LINE and f1["mean"] >= NODE_F1_LINE)
     p3 = p3_reading(imitation, EXISTENCE_P3)
     same = bool(same_input and same_input.get("pass"))
-    first = bool(history_audit.get("pass")) if history_audit is not None else same
-    return {"same_input_reported_only" if history_audit is not None else "same_input":
+    first = bool(history_audit is not None and history_audit.get("pass"))
+    return {"same_input_reported_only":
                 None if same_input is None else {"pass": same, "conflicts": {k: v["inputs_with_two_answers"] for k, v in same_input["per_rule"].items()}},
-            "history_audit": None if history_audit is None else {"pass": first, "groups": history_audit["groups"]},
+            "history_audit": {"pass": False, "reason": "history_audit_missing"} if history_audit is None
+                             else {"pass": first, "groups": history_audit["groups"]},
             "p3": p3, "cell_teacher_association_new_existence": {"missing_residual_rate": mrr, "node_f1": f1,
                                                                   "false_retract_rate_in_scope_reported": fr,
                                                                   "lines": {"missing_residual_rate_mean_at_most": MRR_LINE, "node_f1_mean_at_least": NODE_F1_LINE},

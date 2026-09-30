@@ -103,11 +103,16 @@ class ChecksTests(unittest.TestCase):
         good = {s: self.merged(0.04, 0.94, 0.6, []) for s in checks.SEEDS}
         p3 = {t: {"pass": True, "readings": {"last_epoch": {"train": {"balanced_agreement": 1.0}, "selection": {"balanced_agreement": 1.0}}}}
               for t in checks.EXISTENCE_P3}
-        out = checks.existence_side({"pass": True, "per_rule": {}}, p3, good)
+        audit = {"pass": True, "groups": {}}
+        out = checks.existence_side({"pass": True, "per_rule": {}}, p3, good, audit)
         self.assertTrue(out["pass"])
+        # no fallback to the same-input table: without the history audit check 1 fails
+        missing = checks.existence_side({"pass": True, "per_rule": {}}, p3, good)
+        self.assertFalse(missing["pass"])
+        self.assertEqual(missing["history_audit"]["reason"], "history_audit_missing")
         bad = dict(good)
         bad[7] = self.merged(0.30, 0.94, 0.6, [])
-        self.assertFalse(checks.existence_side({"pass": True, "per_rule": {}}, p3, bad)["pass"])
+        self.assertFalse(checks.existence_side({"pass": True, "per_rule": {}}, p3, bad, audit)["pass"])
 
     def test_the_association_pairing_needs_the_82_1_rule_and_fewer_births(self) -> None:
         new = {s: self.merged(0.0, 0.9, 0.5 + 0.01 * i, ["kept"] * 6 + ["chose_birth"] * 2) for i, s in enumerate(checks.SEEDS)}

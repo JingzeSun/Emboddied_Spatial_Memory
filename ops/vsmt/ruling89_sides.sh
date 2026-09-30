@@ -35,6 +35,9 @@ EPISODE_ROOTS=$OUTPUTS/lean-s1-02a-5f9aa71,$OUTPUTS/lean-s1-02b-5f9aa71
 R81=$AUTODL/vsmt_private/ruling81-0e4494d/training
 R82=$AUTODL/vsmt_private/ruling82-18f943f/training
 REVISION_91=${REVISION_91:-0}
+# retired (2026-09-30, GPT review): this chain regenerated round 0 and ran the baseline cells before the P3 gate and did not
+# pass the history audit; the ruling-91 revision runs through ops/vsmt/ruling91_revision.sh instead
+[ "$REVISION_91" = "0" ] || { echo "REVISION_91 is retired here; use ops/vsmt/ruling91_revision.sh"; exit 2; }
 REV_FLAG=""; REV_SUFFIX=""; [ "$REVISION_91" = "1" ] && { REV_FLAG="--revision-91"; REV_SUFFIX="-r91"; }
 DIAG=$AUTODL/vsmt_private/ruling89-sides-$TAG$REV_SUFFIX
 LOG_DIR=$LOG_DIR$REV_SUFFIX
