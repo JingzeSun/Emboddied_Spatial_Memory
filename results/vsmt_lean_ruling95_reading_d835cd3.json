@@ -1,0 +1,731 @@
+{
+ "stage": "vsmt.lean.ruling95.reading.v1",
+ "inputs": {
+  "VSMT-lean:7": {
+   "file": "vsmt_lean_ruling95_audit_JOINT-A7_d835cd3.json",
+   "sha256": "c236df521e16f862d65df920590854503db7012bee8017c9e65deff2999b9269"
+  },
+  "AssocOnly:7": {
+   "file": "vsmt_lean_ruling95_audit_ASSOC-A7_d835cd3.json",
+   "sha256": "98ffe74dc6ceae5c34f7578dff0dceaa95ee47d371bd809ac26c59d671d270bc"
+  },
+  "VSMT-lean:19": {
+   "file": "vsmt_lean_ruling95_audit_JOINT-A19_d835cd3.json",
+   "sha256": "e22ef42cf405cfd3c76ac13ef5312ef9c734c173e7cebf0454265c587f1aa9fb"
+  },
+  "AssocOnly:19": {
+   "file": "vsmt_lean_ruling95_audit_ASSOC-A19_d835cd3.json",
+   "sha256": "32fc707b442789a267e3e9c4764d3516f339de178f4ddb9163bd165bc1771642"
+  },
+  "VSMT-lean:31": {
+   "file": "vsmt_lean_ruling95_audit_JOINT-A31_d835cd3.json",
+   "sha256": "30d4e39ad950ddeac4328fbafd798c815ac63ee89d176ccc8541c39734be9852"
+  },
+  "AssocOnly:31": {
+   "file": "vsmt_lean_ruling95_audit_ASSOC-A31_d835cd3.json",
+   "sha256": "c26f508124c23d52b27ec89cec3ac8d65fd6cbe5225c5f994475c817c20600d1"
+  },
+  "VSMT-lean:43": {
+   "file": "vsmt_lean_ruling95_audit_JOINT-A43_d835cd3.json",
+   "sha256": "1d45fb4380e86a9c412730af7c73f1c5c89f72720d97df0dc253b9ea79473273"
+  },
+  "AssocOnly:43": {
+   "file": "vsmt_lean_ruling95_audit_ASSOC-A43_d835cd3.json",
+   "sha256": "b70f3b8f36e0d3de6b23c0ba3a18d0f0adc159326c2aadf67db777fc3a2ac009"
+  },
+  "VSMT-lean:59": {
+   "file": "vsmt_lean_ruling95_audit_JOINT-A59_d835cd3.json",
+   "sha256": "f66b814cb583c133a761654210e3595410244c02a9b0c5cc2e845c26e2fef05a"
+  },
+  "AssocOnly:59": {
+   "file": "vsmt_lean_ruling95_audit_ASSOC-A59_d835cd3.json",
+   "sha256": "9ae87b6f083647dc652825a45cdaa8976f17e5c95509f7362209c5b37360ced6"
+  },
+  "TAF": {
+   "file": "vsmt_lean_ruling95_audit_RULE-TAF_d835cd3.json",
+   "sha256": "9e477c53cfa7731b19ec51673b6d2061da015f44f6f16098d2387dd1daa0641a"
+  },
+  "ELU-P": {
+   "file": "vsmt_lean_ruling95_audit_RULE-ELU-P_d835cd3.json",
+   "sha256": "3df758fa3afc5f489d1ab24f4bba255dd18a71a6b838671e73a5f8ad9196e598"
+  },
+  "RAC": {
+   "file": "vsmt_lean_ruling95_audit_RULE-RAC_d835cd3.json",
+   "sha256": "2d4c497bc66f2c18311d4e66a70473c3e81fd01c519a2c806c199712ed805d9c"
+  },
+  "LOW": {
+   "file": "vsmt_lean_ruling95_audit_RULE-LOW_d835cd3.json",
+   "sha256": "86232386b494e3ee1ebdcf53b6b7bc2f4be6d22d2c293936fa08a1bddae351df"
+  },
+  "reference_82": {
+   "file": "vsmt_lean_s2_05_ruling82_seed_analysis_18f943f.json",
+   "sha256": "ba9e11a3847ecb1c9f316053e76ea3cc70efe82a3dfd27715b6f6e22d781ea3c"
+  }
+ },
+ "script_sha256": "58053f49731b69eaf13056ffad4866c5314c70398d0e949bc290f2ea600b96a9",
+ "classification": "trade_off_no_gain_claimed",
+ "classification_rule": "ruling 95 (a): gain_shown_on_development iff the 82-1 order of missing_residual_rate is VSMT-lean_better and neither node_prf1 nor identity_continuity is AssocOnly_better; trade_off_no_gain_claimed iff missing_residual_rate is VSMT-lean_better and node_prf1 or identity_continuity is AssocOnly_better; otherwise no_gain_shown_on_development (not distinguishable is not evidence of no effect)",
+ "orders_82_1": {
+  "node_prf1": "AssocOnly_better",
+  "missing_residual_rate": "VSMT-lean_better",
+  "identity_continuity": "not_distinguishable_on_the_development_set",
+  "contamination_auc": "not_distinguishable_on_the_development_set",
+  "node_prf1_iou": "not_distinguishable_on_the_development_set",
+  "recovery_latency_frames": "VSMT-lean_better"
+ },
+ "comparison_82_1": {
+  "rule": "82-1: for each metric the order of VSMT-lean and AssocOnly is established at the development level iff at least 4 of the 5 seed-paired gaps (house-mean difference on houses defined for both arms) share a strict sign and |mean gap| exceeds the sample standard deviation of the 5 gaps; otherwise it is recorded as not distinguishable on the development set",
+  "seeds": [
+   7,
+   19,
+   31,
+   43,
+   59
+  ],
+  "metrics": {
+   "node_prf1": {
+    "direction": "higher",
+    "house_mean_per_seed": {
+     "VSMT-lean": {
+      "7": 0.8293299459279891,
+      "19": 0.8320597617771421,
+      "31": 0.836557980769781,
+      "43": 0.830251801940162,
+      "59": 0.8394579551121396
+     },
+     "AssocOnly": {
+      "7": 0.8330182764886472,
+      "19": 0.8378302008743029,
+      "31": 0.8522427917790216,
+      "43": 0.839695952768999,
+      "59": 0.8548108240614395
+     }
+    },
+    "seed_spread": {
+     "VSMT-lean": {
+      "mean": 0.8335314891054427,
+      "sd": 0.004326024312975588,
+      "min": 0.8293299459279891,
+      "max": 0.8394579551121396
+     },
+     "AssocOnly": {
+      "mean": 0.8435196091944821,
+      "sd": 0.00949806758856127,
+      "min": 0.8330182764886472,
+      "max": 0.8548108240614395
+     }
+    },
+    "seed_paired_gaps": {
+     "gaps": [
+      -0.0036883305606580105,
+      -0.0057704390971609065,
+      -0.015684811009240573,
+      -0.009444150828837055,
+      -0.015352868949299886
+     ],
+     "positive": 0,
+     "negative": 5,
+     "mean_gap": -0.009988120089039286,
+     "sd_of_gaps": 0.00545446838338006,
+     "established": true,
+     "order": "AssocOnly_better"
+    },
+    "seed_averaged_house_difference_context_only": {
+     "houses": 39,
+     "mean": -0.009988120089039283,
+     "interval_90": [
+      -0.01521766188827024,
+      -0.004676314694582446
+     ]
+    }
+   },
+   "missing_residual_rate": {
+    "direction": "lower",
+    "house_mean_per_seed": {
+     "VSMT-lean": {
+      "7": 0.12011494252873564,
+      "19": 0.09885057471264368,
+      "31": 0.15344827586206897,
+      "43": 0.1264367816091954,
+      "59": 0.15517241379310345
+     },
+     "AssocOnly": {
+      "7": 0.6804597701149425,
+      "19": 0.6419540229885058,
+      "31": 0.7390804597701149,
+      "43": 0.6436781609195402,
+      "59": 0.778735632183908
+     }
+    },
+    "seed_spread": {
+     "VSMT-lean": {
+      "mean": 0.13080459770114944,
+      "sd": 0.023774633288522022,
+      "min": 0.09885057471264368,
+      "max": 0.15517241379310345
+     },
+     "AssocOnly": {
+      "mean": 0.6967816091954023,
+      "sd": 0.06041129344537458,
+      "min": 0.6419540229885058,
+      "max": 0.778735632183908
+     }
+    },
+    "seed_paired_gaps": {
+     "gaps": [
+      -0.5603448275862069,
+      -0.5431034482758621,
+      -0.5856321839080461,
+      -0.5172413793103449,
+      -0.6235632183908045
+     ],
+     "positive": 0,
+     "negative": 5,
+     "mean_gap": -0.5659770114942528,
+     "sd_of_gaps": 0.040720327422533495,
+     "established": true,
+     "order": "VSMT-lean_better"
+    },
+    "seed_averaged_house_difference_context_only": {
+     "houses": 29,
+     "mean": -0.565977011494253,
+     "interval_90": [
+      -0.63,
+      -0.5020689655172415
+     ]
+    }
+   },
+   "identity_continuity": {
+    "direction": "higher",
+    "house_mean_per_seed": {
+     "VSMT-lean": {
+      "7": 0.28525641025641024,
+      "19": 0.27884615384615385,
+      "31": 0.2222222222222222,
+      "43": 0.3117283950617284,
+      "59": 0.10802469135802469
+     },
+     "AssocOnly": {
+      "7": 0.24691358024691357,
+      "19": 0.2948717948717948,
+      "31": 0.13580246913580246,
+      "43": 0.24691358024691357,
+      "59": 0.13580246913580246
+     }
+    },
+    "seed_spread": {
+     "VSMT-lean": {
+      "mean": 0.24121557454890788,
+      "sd": 0.08128387349669657,
+      "min": 0.10802469135802469,
+      "max": 0.3117283950617284
+     },
+     "AssocOnly": {
+      "mean": 0.2120607787274454,
+      "sd": 0.0723148662204396,
+      "min": 0.13580246913580246,
+      "max": 0.2948717948717948
+     }
+    },
+    "seed_paired_gaps": {
+     "gaps": [
+      0.028846153846153848,
+      -0.016025641025641028,
+      0.08641975308641976,
+      0.06481481481481481,
+      -0.027777777777777776
+     ],
+     "positive": 3,
+     "negative": 2,
+     "mean_gap": 0.027255460588793922,
+     "sd_of_gaps": 0.049536753990674164,
+     "established": false,
+     "order": "not_distinguishable_on_the_development_set"
+    },
+    "seed_averaged_house_difference_context_only": {
+     "houses": 26,
+     "mean": 0.03589743589743591,
+     "interval_90": [
+      -0.029487179487179487,
+      0.10512820512820513
+     ]
+    }
+   },
+   "contamination_auc": {
+    "direction": "lower",
+    "house_mean_per_seed": {
+     "VSMT-lean": {
+      "7": 0.3157659411037925,
+      "19": 0.32058830612081723,
+      "31": 0.3094368567716045,
+      "43": 0.31430798403229776,
+      "59": 0.2968522862860264
+     },
+     "AssocOnly": {
+      "7": 0.3215215764778322,
+      "19": 0.32334691682052474,
+      "31": 0.307284740396401,
+      "43": 0.32502939371698664,
+      "59": 0.2944544412544123
+     }
+    },
+    "seed_spread": {
+     "VSMT-lean": {
+      "mean": 0.3113902748629077,
+      "sd": 0.009047544072443153,
+      "min": 0.2968522862860264,
+      "max": 0.32058830612081723
+     },
+     "AssocOnly": {
+      "mean": 0.31432741373323136,
+      "sd": 0.013154600639922498,
+      "min": 0.2944544412544123,
+      "max": 0.32502939371698664
+     }
+    },
+    "seed_paired_gaps": {
+     "gaps": [
+      -0.005755635374039658,
+      -0.0027586106997075453,
+      0.0021521163752035045,
+      -0.010721409684688822,
+      0.00239784503161413
+     ],
+     "positive": 2,
+     "negative": 3,
+     "mean_gap": -0.0029371388703236783,
+     "sd_of_gaps": 0.0055437631431321365,
+     "established": false,
+     "order": "not_distinguishable_on_the_development_set"
+    },
+    "seed_averaged_house_difference_context_only": {
+     "houses": 39,
+     "mean": -0.002937138870323671,
+     "interval_90": [
+      -0.008406431952769716,
+      0.0023285684205725608
+     ]
+    }
+   },
+   "node_prf1_iou": {
+    "direction": "higher",
+    "house_mean_per_seed": {
+     "VSMT-lean": {
+      "7": 0.47072650957011103,
+      "19": 0.4735228640826544,
+      "31": 0.47340189671790683,
+      "43": 0.47262364152033515,
+      "59": 0.47148717212500446
+     },
+     "AssocOnly": {
+      "7": 0.4686631471317077,
+      "19": 0.47244688250424005,
+      "31": 0.4765855681485709,
+      "43": 0.4760888009981292,
+      "59": 0.4750995822000918
+     }
+    },
+    "seed_spread": {
+     "VSMT-lean": {
+      "mean": 0.4723524168032024,
+      "sd": 0.0012183124041370821,
+      "min": 0.47072650957011103,
+      "max": 0.4735228640826544
+     },
+     "AssocOnly": {
+      "mean": 0.47377679619654794,
+      "sd": 0.003274996415246386,
+      "min": 0.4686631471317077,
+      "max": 0.4765855681485709
+     }
+    },
+    "seed_paired_gaps": {
+     "gaps": [
+      0.002063362438403328,
+      0.0010759815784142988,
+      -0.0031836714306640477,
+      -0.003465159477794049,
+      -0.0036124100750872887
+     ],
+     "positive": 2,
+     "negative": 3,
+     "mean_gap": -0.0014243793933455518,
+     "sd_of_gaps": 0.0027596883050413495,
+     "established": false,
+     "order": "not_distinguishable_on_the_development_set"
+    },
+    "seed_averaged_house_difference_context_only": {
+     "houses": 39,
+     "mean": -0.0014243793933455425,
+     "interval_90": [
+      -0.003954616960728224,
+      0.001175733106686666
+     ]
+    }
+   },
+   "recovery_latency_frames": {
+    "direction": "lower",
+    "house_mean_per_seed": {
+     "VSMT-lean": {
+      "7": 107.23965517241379,
+      "19": 106.59770114942529,
+      "31": 117.76609195402298,
+      "43": 120.16666666666667,
+      "59": 116.1896551724138
+     },
+     "AssocOnly": {
+      "7": 156.81597222222223,
+      "19": 159.41333333333333,
+      "31": 167.71296296296296,
+      "43": 154.85933333333332,
+      "59": 144.77866666666668
+     }
+    },
+    "seed_spread": {
+     "VSMT-lean": {
+      "mean": 113.59195402298852,
+      "sd": 6.258386353971923,
+      "min": 106.59770114942529,
+      "max": 120.16666666666667
+     },
+     "AssocOnly": {
+      "mean": 156.71605370370372,
+      "sd": 8.278978411810659,
+      "min": 144.77866666666668,
+      "max": 167.71296296296296
+     }
+    },
+    "seed_paired_gaps": {
+     "gaps": [
+      -35.78263888888889,
+      -40.24,
+      -45.001234567901236,
+      -22.738000000000003,
+      -16.9
+     ],
+     "positive": 0,
+     "negative": 5,
+     "mean_gap": -32.132374691358024,
+     "sd_of_gaps": 11.884286747200733,
+     "established": true,
+     "order": "VSMT-lean_better"
+    },
+    "seed_averaged_house_difference_context_only": {
+     "houses": 24,
+     "mean": -30.037083333333328,
+     "interval_90": [
+      -57.67569444444444,
+      -5.789583333333325
+     ]
+    }
+   }
+  },
+  "vsmt_lean_only": {
+   "false_retract_rate_in_scope": {
+    "direction": "lower",
+    "house_mean_per_seed": {
+     "7": 0.3109126984126984,
+     "19": 0.3855792524910172,
+     "31": 0.23025210084033612,
+     "43": 0.2010204081632653,
+     "59": 0.3124669312169312
+    },
+    "seed_spread": {
+     "mean": 0.2880462782248497,
+     "sd": 0.07339208324727572,
+     "min": 0.2010204081632653,
+     "max": 0.3855792524910172
+    }
+   },
+   "false_retract_rate": {
+    "direction": "lower",
+    "house_mean_per_seed": {
+     "7": 0.32364417989417993,
+     "19": 0.40294011544011543,
+     "31": 0.24600840336134452,
+     "43": 0.20959183673469386,
+     "59": 0.32719356261022925
+    },
+    "seed_spread": {
+     "mean": 0.3018756196081126,
+     "sd": 0.07577325254526648,
+     "min": 0.20959183673469386,
+     "max": 0.40294011544011543
+    }
+   }
+  },
+  "loss_tally": {
+   "VSMT-lean:7": {
+    "uncarried_seen_object_frames": 681476,
+    "wrong_bind_frame_share": 0.45953048970176497
+   },
+   "AssocOnly:7": {
+    "uncarried_seen_object_frames": 637005,
+    "wrong_bind_frame_share": 0.48931327069646235
+   },
+   "VSMT-lean:19": {
+    "uncarried_seen_object_frames": 654230,
+    "wrong_bind_frame_share": 0.43483637252953855
+   },
+   "AssocOnly:19": {
+    "uncarried_seen_object_frames": 633405,
+    "wrong_bind_frame_share": 0.46047789329102234
+   },
+   "VSMT-lean:31": {
+    "uncarried_seen_object_frames": 600438,
+    "wrong_bind_frame_share": 0.4606803699965692
+   },
+   "AssocOnly:31": {
+    "uncarried_seen_object_frames": 525701,
+    "wrong_bind_frame_share": 0.38231808575597154
+   },
+   "VSMT-lean:43": {
+    "uncarried_seen_object_frames": 635674,
+    "wrong_bind_frame_share": 0.46181375988321055
+   },
+   "AssocOnly:43": {
+    "uncarried_seen_object_frames": 667416,
+    "wrong_bind_frame_share": 0.44422519088544477
+   },
+   "VSMT-lean:59": {
+    "uncarried_seen_object_frames": 605158,
+    "wrong_bind_frame_share": 0.4567881445837286
+   },
+   "AssocOnly:59": {
+    "uncarried_seen_object_frames": 449433,
+    "wrong_bind_frame_share": 0.371670527086351
+   }
+  },
+  "summary": {
+   "node_prf1": "AssocOnly_better",
+   "missing_residual_rate": "VSMT-lean_better",
+   "identity_continuity": "not_distinguishable_on_the_development_set",
+   "contamination_auc": "not_distinguishable_on_the_development_set",
+   "node_prf1_iou": "not_distinguishable_on_the_development_set",
+   "recovery_latency_frames": "VSMT-lean_better"
+  },
+  "caveat": "development reading on the 39 development houses; five registered seeds per arm under the registered recipe with the ruling 79-5 initialisation; the LOG-270 run (earlier initialisation) is shown as a reference only; not a significance test, not a substitute for the formal test split"
+ },
+ "rule_arms": {
+  "ELU-P": {
+   "node_prf1": {
+    "mean": 0.6484072570944575,
+    "houses": 39
+   },
+   "missing_residual_rate": {
+    "mean": 0.09195402298850575,
+    "houses": 29
+   },
+   "identity_continuity": {
+    "mean": 0.1346153846153846,
+    "houses": 26
+   },
+   "contamination_auc": {
+    "mean": 0.3255887988429187,
+    "houses": 39
+   },
+   "node_prf1_iou": {
+    "mean": 0.40887135696270616,
+    "houses": 39
+   },
+   "recovery_latency_frames": {
+    "mean": 134.6419540229885,
+    "houses": 29
+   },
+   "false_retract_rate_in_scope": {
+    "mean": 0.8423689100916553,
+    "houses": 39
+   },
+   "false_retract_rate": {
+    "mean": 0.878511330308645,
+    "houses": 39
+   }
+  },
+  "LOW": {
+   "node_prf1": {
+    "mean": 0.7315366377444942,
+    "houses": 39
+   },
+   "missing_residual_rate": {
+    "mean": 0.2793103448275862,
+    "houses": 29
+   },
+   "identity_continuity": {
+    "mean": 0.0,
+    "houses": 23
+   },
+   "contamination_auc": {
+    "mean": 0.41453957908249495,
+    "houses": 39
+   },
+   "node_prf1_iou": {
+    "mean": 0.4436834680680431,
+    "houses": 39
+   },
+   "recovery_latency_frames": {
+    "mean": 94.75344827586207,
+    "houses": 29
+   },
+   "false_retract_rate_in_scope": {
+    "mean": null,
+    "houses": 0
+   },
+   "false_retract_rate": {
+    "mean": null,
+    "houses": 0
+   }
+  },
+  "RAC": {
+   "node_prf1": {
+    "mean": 0.6417080215989461,
+    "houses": 39
+   },
+   "missing_residual_rate": {
+    "mean": 0.08908045977011494,
+    "houses": 29
+   },
+   "identity_continuity": {
+    "mean": 0.01282051282051282,
+    "houses": 26
+   },
+   "contamination_auc": {
+    "mean": 0.31604629942863777,
+    "houses": 39
+   },
+   "node_prf1_iou": {
+    "mean": 0.4095636681201043,
+    "houses": 39
+   },
+   "recovery_latency_frames": {
+    "mean": 114.38275862068966,
+    "houses": 29
+   },
+   "false_retract_rate_in_scope": {
+    "mean": 0.6118918698901451,
+    "houses": 37
+   },
+   "false_retract_rate": {
+    "mean": 0.7163005407867042,
+    "houses": 37
+   }
+  },
+  "TAF": {
+   "node_prf1": {
+    "mean": 0.6350884983226621,
+    "houses": 39
+   },
+   "missing_residual_rate": {
+    "mean": 0.7609195402298851,
+    "houses": 29
+   },
+   "identity_continuity": {
+    "mean": 0.1346153846153846,
+    "houses": 26
+   },
+   "contamination_auc": {
+    "mean": 0.32108950887221227,
+    "houses": 39
+   },
+   "node_prf1_iou": {
+    "mean": 0.4060748307316962,
+    "houses": 39
+   },
+   "recovery_latency_frames": {
+    "mean": 155.51,
+    "houses": 25
+   },
+   "false_retract_rate_in_scope": {
+    "mean": null,
+    "houses": 0
+   },
+   "false_retract_rate": {
+    "mean": null,
+    "houses": 0
+   }
+  }
+ },
+ "rule_85_4": {
+  "vsmt_lean_five_seed_mean": 0.13080459770114944,
+  "best_rule_arm": "RAC",
+  "best_rule_arm_value": 0.08908045977011494,
+  "ratio": 1.4683870967741937,
+  "at_least_twice": false,
+  "rule": "ruling 85-4: at least twice the best rule arm calls for a framing ruling before S3-01 (report only)"
+ },
+ "lines_89_4_reference_only": {
+  "missing_residual_rate": {
+   "five_seed_mean": 0.13080459770114944,
+   "at_most": 0.1,
+   "met": false
+  },
+  "identity_continuity": {
+   "five_seed_mean": 0.24121557454890788,
+   "at_least": 0.45,
+   "met": false
+  },
+  "node_prf1": {
+   "five_seed_mean": 0.8335314891054427,
+   "at_least": 0.76,
+   "met": true
+  },
+  "false_retract_rate_in_scope": {
+   "five_seed_mean": 0.2880462782248497,
+   "at_most": 0.35,
+   "met": true
+  }
+ },
+ "caveat": "development reading: 30 of the 39 development houses are training houses of the learned heads (in-sample); the claim is tested once on the confirmation set after the method is frozen; not a significance test",
+ "reference_log_279_earlier_recipe": {
+  "stage": "vsmt.lean.s2_05.ruling82_seed_analysis.v1",
+  "metrics": {
+   "node_prf1": {
+    "order": "not_distinguishable_on_the_development_set",
+    "mean_gap": 0.03514125536683884,
+    "five_seed_means": {
+     "VSMT-lean": 0.7878795510372643,
+     "AssocOnly": 0.7527382956704255
+    }
+   },
+   "missing_residual_rate": {
+    "order": "not_distinguishable_on_the_development_set",
+    "mean_gap": 0.08517241379310345,
+    "five_seed_means": {
+     "VSMT-lean": 0.3571264367816092,
+     "AssocOnly": 0.27195402298850574
+    }
+   },
+   "identity_continuity": {
+    "order": "not_distinguishable_on_the_development_set",
+    "mean_gap": -0.06503743961352657,
+    "five_seed_means": {
+     "VSMT-lean": 0.4054852801519468,
+     "AssocOnly": 0.4856111111111111
+    }
+   },
+   "contamination_auc": {
+    "order": "not_distinguishable_on_the_development_set",
+    "mean_gap": -0.032153537847888145,
+    "five_seed_means": {
+     "VSMT-lean": 0.3598099347993725,
+     "AssocOnly": 0.3919634726472606
+    }
+   },
+   "node_prf1_iou": {
+    "order": "not_distinguishable_on_the_development_set",
+    "mean_gap": 0.012054805421936121,
+    "five_seed_means": {
+     "VSMT-lean": 0.45407977465496857,
+     "AssocOnly": 0.44202496923303236
+    }
+   },
+   "recovery_latency_frames": {
+    "order": "not_distinguishable_on_the_development_set",
+    "mean_gap": -0.8458087027914601,
+    "five_seed_means": {
+     "VSMT-lean": 125.11083333333333,
+     "AssocOnly": 126.10436781609197
+    }
+   }
+  }
+ }
+}

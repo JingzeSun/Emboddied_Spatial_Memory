@@ -1,0 +1,526 @@
+{
+ "stage": "vsmt.lean.ruling89.train.v1",
+ "arm": "AssocOnly",
+ "assoc_only": true,
+ "seed": 7,
+ "sources": [
+  "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P"
+ ],
+ "holdout": {
+  "training_houses": [
+   "procthor10k-0.1.2-train-03394",
+   "procthor10k-0.1.2-train-08566",
+   "procthor10k-0.1.2-train-00406",
+   "procthor10k-0.1.2-train-03288",
+   "procthor10k-0.1.2-train-08927",
+   "procthor10k-0.1.2-train-08422",
+   "procthor10k-0.1.2-train-03525",
+   "procthor10k-0.1.2-train-07367",
+   "procthor10k-0.1.2-train-05806",
+   "procthor10k-0.1.2-train-05966",
+   "procthor10k-0.1.2-train-00950",
+   "procthor10k-0.1.2-train-05879",
+   "procthor10k-0.1.2-train-00236",
+   "procthor10k-0.1.2-train-02524",
+   "procthor10k-0.1.2-train-08398",
+   "procthor10k-0.1.2-train-04801",
+   "procthor10k-0.1.2-train-04388",
+   "procthor10k-0.1.2-train-07795",
+   "procthor10k-0.1.2-train-01543",
+   "procthor10k-0.1.2-train-09339",
+   "procthor10k-0.1.2-train-08790",
+   "procthor10k-0.1.2-train-01259",
+   "procthor10k-0.1.2-train-08905",
+   "procthor10k-0.1.2-train-00975",
+   "procthor10k-0.1.2-train-00619",
+   "procthor10k-0.1.2-train-01394",
+   "procthor10k-0.1.2-train-00702",
+   "procthor10k-0.1.2-train-07815",
+   "procthor10k-0.1.2-train-03361",
+   "procthor10k-0.1.2-train-09423"
+  ],
+  "selection_houses": [
+   "procthor10k-0.1.2-train-07270",
+   "procthor10k-0.1.2-train-06453",
+   "procthor10k-0.1.2-train-08552",
+   "procthor10k-0.1.2-train-01289",
+   "procthor10k-0.1.2-train-02768",
+   "procthor10k-0.1.2-train-04742",
+   "procthor10k-0.1.2-train-09595",
+   "procthor10k-0.1.2-train-00563",
+   "procthor10k-0.1.2-train-01139"
+  ],
+  "training_shortfall": 0,
+  "selection_shortfall": 3,
+  "houses_beyond_the_holdout": [],
+  "order": "s0_02_house_split_rank",
+  "seed": 20260920
+ },
+ "recipe": {
+  "learning_rate": 0.001,
+  "weight_decay": 0.0001,
+  "epochs": 20,
+  "field_encoding": true,
+  "existence_class_weight": false,
+  "cosine_min_learning_rate": 1e-05,
+  "gradient_clip_norm": 1.0,
+  "existence_prior_correction": true,
+  "concatenation": "every source in full, no resampling; the budget is the registered epochs over the concatenation"
+ },
+ "train_frames": 32550,
+ "validation_frames": 11547,
+ "updates_taken": 650360,
+ "existence_class_weight": null,
+ "train_curve": [
+  0.9408987985676263,
+  0.9099517350121997,
+  0.8962823584270473,
+  0.885155248161468,
+  0.8761553712727147,
+  0.868770248852691,
+  0.8619186776042472,
+  0.855729468422263,
+  0.8496964140824742,
+  0.8446629666337903,
+  0.8393866178024513,
+  0.833597889530545,
+  0.8290908303160065,
+  0.8244284690125289,
+  0.82017840914264,
+  0.8161644339456353,
+  0.8130316809587301,
+  0.8104654302952484,
+  0.8083065846729353,
+  0.8070850568379525
+ ],
+ "validation_curve": [
+  1.0548894868271763,
+  1.0348332095152988,
+  1.0519259511064316,
+  1.0615336477551889,
+  1.0398015886620056,
+  1.036640012000354,
+  1.0359983019888037,
+  1.0424047240842675,
+  1.0424801787975662,
+  1.0538213832028673,
+  1.0449694503861342,
+  1.0475139836355125,
+  1.0390108714018471,
+  1.0631436269699186,
+  1.0562624455172478,
+  1.0599263015549387,
+  1.0606727921120747,
+  1.0533447658920192,
+  1.058548403406674,
+  1.0546920949876464
+ ],
+ "best_epoch": 1,
+ "train_curve_terms": [
+  {
+   "total": 0.9408987985676263,
+   "association": 0.9408987985676263,
+   "existence": null
+  },
+  {
+   "total": 0.9099517350121997,
+   "association": 0.9099517350121997,
+   "existence": null
+  },
+  {
+   "total": 0.8962823584270473,
+   "association": 0.8962823584270473,
+   "existence": null
+  },
+  {
+   "total": 0.885155248161468,
+   "association": 0.885155248161468,
+   "existence": null
+  },
+  {
+   "total": 0.8761553712727147,
+   "association": 0.8761553712727147,
+   "existence": null
+  },
+  {
+   "total": 0.868770248852691,
+   "association": 0.868770248852691,
+   "existence": null
+  },
+  {
+   "total": 0.8619186776042472,
+   "association": 0.8619186776042472,
+   "existence": null
+  },
+  {
+   "total": 0.855729468422263,
+   "association": 0.855729468422263,
+   "existence": null
+  },
+  {
+   "total": 0.8496964140824742,
+   "association": 0.8496964140824742,
+   "existence": null
+  },
+  {
+   "total": 0.8446629666337903,
+   "association": 0.8446629666337903,
+   "existence": null
+  },
+  {
+   "total": 0.8393866178024513,
+   "association": 0.8393866178024513,
+   "existence": null
+  },
+  {
+   "total": 0.833597889530545,
+   "association": 0.833597889530545,
+   "existence": null
+  },
+  {
+   "total": 0.8290908303160065,
+   "association": 0.8290908303160065,
+   "existence": null
+  },
+  {
+   "total": 0.8244284690125289,
+   "association": 0.8244284690125289,
+   "existence": null
+  },
+  {
+   "total": 0.82017840914264,
+   "association": 0.82017840914264,
+   "existence": null
+  },
+  {
+   "total": 0.8161644339456353,
+   "association": 0.8161644339456353,
+   "existence": null
+  },
+  {
+   "total": 0.8130316809587301,
+   "association": 0.8130316809587301,
+   "existence": null
+  },
+  {
+   "total": 0.8104654302952484,
+   "association": 0.8104654302952484,
+   "existence": null
+  },
+  {
+   "total": 0.8083065846729353,
+   "association": 0.8083065846729353,
+   "existence": null
+  },
+  {
+   "total": 0.8070850568379525,
+   "association": 0.8070850568379525,
+   "existence": null
+  }
+ ],
+ "validation_curve_terms": [
+  {
+   "total": 1.0548894868271763,
+   "association": 1.0548894868271763,
+   "existence": null
+  },
+  {
+   "total": 1.0348332095152988,
+   "association": 1.0348332095152988,
+   "existence": null
+  },
+  {
+   "total": 1.0519259511064316,
+   "association": 1.0519259511064316,
+   "existence": null
+  },
+  {
+   "total": 1.0615336477551889,
+   "association": 1.0615336477551889,
+   "existence": null
+  },
+  {
+   "total": 1.0398015886620056,
+   "association": 1.0398015886620056,
+   "existence": null
+  },
+  {
+   "total": 1.036640012000354,
+   "association": 1.036640012000354,
+   "existence": null
+  },
+  {
+   "total": 1.0359983019888037,
+   "association": 1.0359983019888037,
+   "existence": null
+  },
+  {
+   "total": 1.0424047240842675,
+   "association": 1.0424047240842675,
+   "existence": null
+  },
+  {
+   "total": 1.0424801787975662,
+   "association": 1.0424801787975662,
+   "existence": null
+  },
+  {
+   "total": 1.0538213832028673,
+   "association": 1.0538213832028673,
+   "existence": null
+  },
+  {
+   "total": 1.0449694503861342,
+   "association": 1.0449694503861342,
+   "existence": null
+  },
+  {
+   "total": 1.0475139836355125,
+   "association": 1.0475139836355125,
+   "existence": null
+  },
+  {
+   "total": 1.0390108714018471,
+   "association": 1.0390108714018471,
+   "existence": null
+  },
+  {
+   "total": 1.0631436269699186,
+   "association": 1.0631436269699186,
+   "existence": null
+  },
+  {
+   "total": 1.0562624455172478,
+   "association": 1.0562624455172478,
+   "existence": null
+  },
+  {
+   "total": 1.0599263015549387,
+   "association": 1.0599263015549387,
+   "existence": null
+  },
+  {
+   "total": 1.0606727921120747,
+   "association": 1.0606727921120747,
+   "existence": null
+  },
+  {
+   "total": 1.0533447658920192,
+   "association": 1.0533447658920192,
+   "existence": null
+  },
+  {
+   "total": 1.058548403406674,
+   "association": 1.058548403406674,
+   "existence": null
+  },
+  {
+   "total": 1.0546920949876464,
+   "association": 1.0546920949876464,
+   "existence": null
+  }
+ ],
+ "diverged": false,
+ "weights_sha256": "d769bb963e7be35028148687d1ee7d6e13e4e961e72ae1449b21ff8a1d4c08c2",
+ "files": [
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-00236",
+   "sha256": "32078a446b0822528d43b4864d8ac940a8d6a59e96ac5f65314d2bfd08dca2f4"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-00406",
+   "sha256": "31d82b5b65e77b304b6ba11f7dfa31892c5761df2a521bf216bfbc67e82c4f6f"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-00563",
+   "sha256": "0bcb19d7a01af1bea9965987d06a914b43fc51532f2a5cdf334dba695c3a45b3"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-00619",
+   "sha256": "4e02ac0a8f8bb28d425ac51291cb819d06728bd261795ba7b2b8f675cd6758c7"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-00702",
+   "sha256": "4eb3f6d351884ff0de03d0866bd911b550cb82375655d07ce18697ccc40241b4"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-00950",
+   "sha256": "f606a9c4768a32fb2fb639633c084b9cab41acfda486a02813924066cffb23e6"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-00975",
+   "sha256": "d2249fbf6e7ecbb5316a376ff3d7579c044e15dc0c3a302f90308110dca0d4a0"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-01139",
+   "sha256": "1eec67ab5ceede8ac618a6b05e79ff83c0a5721fef8800ff8052df095618b2aa"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-01259",
+   "sha256": "69fde4336df388cb44e9b280377dede530211e4de08ec8347e7f25e626954451"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-01289",
+   "sha256": "07481580d6016392604288593e3c9087204db86e1b7fc2a7992f87bd1eec69c0"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-01394",
+   "sha256": "327f1cb616811392140771b34aa1d30e1e72862c1a75306e957e2c7204cbe38c"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-01543",
+   "sha256": "b2c8bd8c8623ce213949dca6ee4881059ca251afc74235909f4b834240f8d743"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-02524",
+   "sha256": "80b07b3ca04ee44c9d4738d95f5e19ad6dc462dc2a3556c80938204cd1c10997"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-02768",
+   "sha256": "cad35bd2c4102d1b2970d54ad1168ee75467327c4dc0b8eca24340b1655091fa"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-03288",
+   "sha256": "c7eb450a4f7e9f7af09b9bee61e941b0b0502d71ef7812e48411c96d1d576423"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-03361",
+   "sha256": "3b2e77a98bf74a61cfd48b864388a79f0db08ec271011898b30ab317992a94fb"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-03394",
+   "sha256": "59f2c1886b3fefe2fef2b530d07bf1647668d2249e23b706748660ce2d5f60bb"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-03525",
+   "sha256": "6b24e4eaa4bdf38b57aeba8684b465c0e1da3702e1f2c509c7245f3cb666fac5"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-04388",
+   "sha256": "5c973c0dc4742406506d08a1063f98cf95fb89236859acd38230f95936692924"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-04742",
+   "sha256": "7f3b9088c98fef1e7ab3e20f24e0518093ddb1aa59e23999f0e6909d85aa79fe"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-04801",
+   "sha256": "76ef9a34325aad46c4121515710a539feaa8e81baf9822bed5a3c20a348f7906"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-05806",
+   "sha256": "8f2a9155292717e11fb4732dd049e2c8987ceeedeaf8753108ad054319fab4e5"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-05879",
+   "sha256": "4a004e2a456e55e979f98c3c23476c4eb536730989a8bfb12ea7e64434d57cce"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-05966",
+   "sha256": "63070be049dd8d738e2a253c51bb52e00d8c02293658463e3e004074ab6ff24d"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-06453",
+   "sha256": "f29632ea5257256f981955fa346f051dc9c25475cf05acc3de615b2c9c0c520e"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-07270",
+   "sha256": "73fafad91a516418c41d9a976cea32b86749bcd936ec023ac58eed80da4db078"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-07367",
+   "sha256": "7cfdfa2c5b64ac9ea7910d0fb397df98f3137079f0aaa49da59350ab6cb95f87"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-07795",
+   "sha256": "4c2a2db33552ce8894786c9e0f781b02f71a357cb7ee97c82ca843e3a6c2eb02"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-07815",
+   "sha256": "f177c93bdd1e0f25b79b03011b6a289beaa8e48e20545ed17d12a7d8d649e1ac"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-08398",
+   "sha256": "1474d7a898dd3b3e7da87d00ff6b83cd7ead8c6e67715c13f60a17145166a9c0"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-08422",
+   "sha256": "b2f48c99b33e2b4eea64a121bc99188c899af036719381f6463282c8feaddef5"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-08552",
+   "sha256": "6881e211c6f192b0c0ced18e96bd94f9d34670ed3e4d52614da186a2bebb26dc"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-08566",
+   "sha256": "f33b8c7983bb5f7171613306947339f22bb98b63ff55da9dca2b3cdfe5a4bfca"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-08790",
+   "sha256": "9212abdc4c480f5b3a68c6da0f797425cd1e45f9f4b999b17e86a260860f8baf"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-08905",
+   "sha256": "b5994f2659921adfab8d505033c3aaa01982c9482653cbbe3e026b1d7a98e659"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-08927",
+   "sha256": "aecdc2caa814a77de9e58677dad04d3a4c6a840533e12696c1aa02ac3cc6ca76"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-09339",
+   "sha256": "46b80027ca57341fd5caa432f18c507c1e5fb9ec441f8f445233313a57c76ca3"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-09423",
+   "sha256": "aba27884141ab6098ad209afca7310a4ab87636934755ff630c20417b763b8a3"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-09595",
+   "sha256": "e7e3341d471574927d3746368af9764db9a3281fbe0843e0ed92ef2e456cafed"
+  }
+ ],
+ "device": "cpu",
+ "code_commit": "d835cd3ebe46dd449259f7234f9724f00cc69aa5",
+ "wall_seconds": 1415.4,
+ "script_sha256": "0a9b93a3f6f9c0ae58e543e2a1f5a605f1d6082863f45f79ea9fc6ea1db666f7"
+}

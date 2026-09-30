@@ -1,0 +1,24 @@
+{
+ "commit": "d835cd3",
+ "stage_reached": "done",
+ "finished_cst": "2026-10-01 00:15:17",
+ "suite_exit": "0",
+ "round0_training_exit": "0",
+ "first_audits_failed": "0",
+ "round1_exit": "0",
+ "round1_training_failed": "0",
+ "assoc_audits_failed": "0",
+ "merges_failed": "0",
+ "reading_exit": "0",
+ "reused": {
+  "vsmt_lean_heads": "/root/autodl-tmp/vsmt_private/ruling93-9722290/training/round1/VSMT-lean",
+  "round0_records": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906/dagger_round_0"
+ },
+ "workers": 64,
+ "pass_workers": 39,
+ "train_threads": 4,
+ "cpu_quota": 68,
+ "memory_max": "257698037760",
+ "worker_basis": "cgroup CPU quota minus four; while a training runs the audits get TRAIN_THREADS fewer workers; an audit is one single-threaded process of about 1-2 GB, a training about 10-20 GB, a pass one process per episode; audits largest episode first",
+ "fallback_shutdown_seconds": 7200
+}
