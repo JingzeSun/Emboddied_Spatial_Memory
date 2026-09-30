@@ -35,7 +35,12 @@ PROBES=$DIAG/probes
 STATUS=$EXPORT_DIR/ruling93_$COMMIT.status.json
 QUOTA=$(awk '{ if ($1 == "max") print 16; else print int($1 / $2) }' /sys/fs/cgroup/cpu.max 2>/dev/null || echo 16)
 WORKERS=${WORKERS:-$((QUOTA - 4))}
-PASS_WORKERS=${PASS_WORKERS:-32}
+PASS_WORKERS=${PASS_WORKERS:-39}
+# speed-up (2026-09-30, user: "改，重启"): trainings and P3 imitations get TRAIN_THREADS intra-op threads each (the audits and
+# passes stay single-threaded); the audit queues are dispatched largest episode first (cached frame count) so the longest
+# audits do not start last.  Neither changes a rule; thread count can change float summation order, so weights are
+# reproducible at the same setting only.
+TRAIN_THREADS=${TRAIN_THREADS:-4}
 RESUME=${RESUME:-0}
 SEEDS="7 19 31 43 59"
 TARGETS="taf low handcost rac elup"
@@ -51,7 +56,8 @@ finish() {
     'joint_failed': '${JOINT_FAILED:-}', 'reading_exit': '${READING_RC:-}', 'reused': {'round0_records': '$FIRST/dagger_round_0',
     'baseline_cells_tag': '$FIRST_TAG', 'history_audit': '$HISTORY_AUDIT'}, 'workers': $WORKERS, 'pass_workers': $PASS_WORKERS,
     'cpu_quota': $QUOTA, 'memory_max': '$(cat /sys/fs/cgroup/memory.max 2>/dev/null)',
-    'worker_basis': 'cgroup CPU quota minus four; a pass runs one process per episode, an audit about 1-2 GB, a training about 10-20 GB',
+    'worker_basis': 'cgroup CPU quota minus four; a pass runs one process per episode (39), an audit about 1-2 GB, a training about 10-20 GB with TRAIN_THREADS threads; audits largest episode first',
+    'train_threads': $TRAIN_THREADS,
     'shutdown': False}, open('$STATUS', 'w'), indent=1)" "$1"
   echo "[$(date)] status written ($1)"; exit 0
 }
@@ -82,7 +88,7 @@ SRC0="$FIRST:dagger_round_0:ELU-P"
 P3_JOBS=$LOG_DIR/p3_jobs.txt; : > "$P3_JOBS"
 for T in $TARGETS; do
   [ -f "$PROBES/imitation/imitation_$T.json" ] && continue
-  printf '%s\n' "PYTHONPATH=src $PY ops/vsmt/ruling89_probes.py imitation --source $SRC0 --target $T --output-dir $PROBES/imitation $REV --read-uncorrected --key-events > $LOG_DIR/p3-$T.log 2>&1; echo \"P3 $T exit \$?\"" >> "$P3_JOBS"
+  printf '%s\n' "OMP_NUM_THREADS=$TRAIN_THREADS MKL_NUM_THREADS=$TRAIN_THREADS PYTHONPATH=src $PY ops/vsmt/ruling89_probes.py imitation --source $SRC0 --target $T --output-dir $PROBES/imitation $REV --read-uncorrected --key-events > $LOG_DIR/p3-$T.log 2>&1; echo \"P3 $T exit \$?\"" >> "$P3_JOBS"
 done
 xargs -d '\n' -P 5 -I{} bash -c '{}' < "$P3_JOBS" >> "$LOG_DIR/p3_exits.log" 2>&1 &
 P3_PID=$!
@@ -95,17 +101,19 @@ run_pass() {  # pass, arm, config, heads
 }
 episode_root() { for R in "$OUTPUTS/lean-s1-02a-5f9aa71" "$OUTPUTS/lean-s1-02b-5f9aa71"; do [ -d "$R/$1" ] && echo "$R/$1" && return; done; }
 EPISODES=$(for E in $(ls "$PASS_ROOT/dagger_round_1"); do [ -f "$PASS_ROOT/dagger_round_1/$E/VSMT-lean/receipt.json" ] && echo "$E"; done)
+frames_of() { ls "$CACHE_ROOT/$1" | grep -c 'cache.json.gz$'; }
+largest_first() { sort -t$'\t' -k1,1nr | cut -f2-; }  # "<frames>\t<job>" lines -> jobs, largest episode first
 audit_jobs() {  # group, flags, heads
   local OUT=$DIAG/audit/$1
   for EP in $EPISODES; do
     [ -f "$OUT/$EP/VSMT-lean/node_audit.json" ] && continue
-    printf '%s\n' "$PY ops/vsmt/lean_s2_05_node_audit.py run --cache-root $CACHE_ROOT --episode-root $(episode_root $EP) --geometry-root $GEOMETRY_ROOT --episode-id $EP --arm VSMT-lean --config '{\"tau_r\": 0.5}' $2 --heads $3 --descriptor reid_projection:vitb14 --weights $REID_WEIGHTS --output-root $OUT --device cpu > $LOG_DIR/$1-$EP.log 2>&1; echo \"$1 $EP exit \$?\""
+    printf '%s\t%s\n' "$(frames_of $EP)" "$PY ops/vsmt/lean_s2_05_node_audit.py run --cache-root $CACHE_ROOT --episode-root $(episode_root $EP) --geometry-root $GEOMETRY_ROOT --episode-id $EP --arm VSMT-lean --config '{\"tau_r\": 0.5}' $2 --heads $3 --descriptor reid_projection:vitb14 --weights $REID_WEIGHTS --output-root $OUT --device cpu > $LOG_DIR/$1-$EP.log 2>&1; echo \"$1 $EP exit \$?\""
   done
 }
 
 # 3. round 0 training, round 1, coverage, round-1 training, cells
 T0=$DIAG/training/round0/VSMT-lean
-[ -f "$T0/weights.json" ] || PYTHONPATH=src $PY ops/vsmt/ruling89_train.py --source "$SRC0" --arm VSMT-lean --seed 7 --out-dir "$T0" $REV > "$LOG_DIR/train0.log" 2>&1
+[ -f "$T0/weights.json" ] || OMP_NUM_THREADS=$TRAIN_THREADS MKL_NUM_THREADS=$TRAIN_THREADS PYTHONPATH=src $PY ops/vsmt/ruling89_train.py --source "$SRC0" --arm VSMT-lean --seed 7 --out-dir "$T0" $REV > "$LOG_DIR/train0.log" 2>&1
 TRAIN0_RC=$?
 echo "[$(date)] round-0 training exit $TRAIN0_RC: $(tail -1 "$LOG_DIR/train0.log" 2>/dev/null)"
 [ -f "$T0/weights.json" ] && gate "$T0/training_receipt.json" "not d['diverged']" || finish round0_training_failed
@@ -121,7 +129,7 @@ TRAIN_JOBS=$LOG_DIR/train1_jobs.txt; : > "$TRAIN_JOBS"
 for SEED in $SEEDS; do
   T1=$DIAG/training/round1/VSMT-lean/A$SEED
   [ -f "$T1/weights.json" ] && continue
-  printf '%s\n' "PYTHONPATH=src $PY ops/vsmt/ruling89_train.py --source $SRC0 --source $SRC1 --arm VSMT-lean --seed $SEED --out-dir $T1 $REV > $LOG_DIR/train1-A$SEED.log 2>&1; echo \"train1 A$SEED exit \$?\"" >> "$TRAIN_JOBS"
+  printf '%s\n' "OMP_NUM_THREADS=$TRAIN_THREADS MKL_NUM_THREADS=$TRAIN_THREADS PYTHONPATH=src $PY ops/vsmt/ruling89_train.py --source $SRC0 --source $SRC1 --arm VSMT-lean --seed $SEED --out-dir $T1 $REV > $LOG_DIR/train1-A$SEED.log 2>&1; echo \"train1 A$SEED exit \$?\"" >> "$TRAIN_JOBS"
 done
 xargs -d '\n' -P 5 -I{} bash -c '{}' < "$TRAIN_JOBS" >> "$LOG_DIR/train1_exits.log" 2>&1
 TRAIN1_FAILED=$(count_bad "$LOG_DIR/train1_exits.log")
@@ -130,9 +138,9 @@ echo "[$(date)] round-1 trainings: $TRAIN1_FAILED failed"
 CELL_JOBS=$LOG_DIR/cell_jobs.txt; : > "$CELL_JOBS"
 for SEED in $SEEDS; do
   W=$DIAG/training/round1/VSMT-lean/A$SEED/weights.json
-  audit_jobs "OA-LE-r93-A$SEED" "--oracle-association" "$W" >> "$CELL_JOBS"
-  audit_jobs "LA-OE-r93-A$SEED" "--oracle-existence node_primary" "$W" >> "$CELL_JOBS"
-done
+  audit_jobs "OA-LE-r93-A$SEED" "--oracle-association" "$W"
+  audit_jobs "LA-OE-r93-A$SEED" "--oracle-existence node_primary" "$W"
+done | largest_first > "$CELL_JOBS"
 xargs -d '\n' -P "$WORKERS" -I{} bash -c '{}' < "$CELL_JOBS" >> "$LOG_DIR/cell_exits.log" 2>&1
 CELLS_FAILED=$(count_bad "$LOG_DIR/cell_exits.log")
 echo "[$(date)] cell audits: $CELLS_FAILED failed"
@@ -164,7 +172,7 @@ gate "$EXPORT_DIR/vsmt_lean_ruling93_checks_$COMMIT.json" "d['existence_side_89_
 
 # 4. 89-4 only when both sides passed
 JOINT_JOBS=$LOG_DIR/joint_jobs.txt; : > "$JOINT_JOBS"
-for SEED in $SEEDS; do audit_jobs "JOINT-r93-A$SEED" "" "$DIAG/training/round1/VSMT-lean/A$SEED/weights.json" >> "$JOINT_JOBS"; done
+for SEED in $SEEDS; do audit_jobs "JOINT-r93-A$SEED" "" "$DIAG/training/round1/VSMT-lean/A$SEED/weights.json"; done | largest_first > "$JOINT_JOBS"
 xargs -d '\n' -P "$WORKERS" -I{} bash -c '{}' < "$JOINT_JOBS" >> "$LOG_DIR/joint_exits.log" 2>&1
 JOINT_FAILED=$(count_bad "$LOG_DIR/joint_exits.log")
 for SEED in $SEEDS; do
