@@ -46,6 +46,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--out-dir", required=True)
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--revision-91", action="store_true", help="pending ruling 91 only: cosine-decayed rate and gradient clipping")
+    parser.add_argument("--group-selection", action="store_true",
+                        help="ruling 96 (a): also write weights_grouped.json (association+birth by their term, existence by its own); "
+                             "weights.json stays the total-loss selection and training is unchanged")
     args = parser.parse_args(argv)
     if args.seed not in arms.SEEDS:
         print(f"seed {args.seed} is not a registered seed {arms.SEEDS}", file=sys.stderr)
@@ -62,10 +65,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     result = model.train_heads(train_records, validation_records, learning_rate=float(training["learning_rate"]),
                                weight_decay=float(training["weight_decay"]), epochs=int(training["epochs"]), seed=int(args.seed),
                                assoc_only=assoc_only, device=args.device, field_encoding=True, existence_class_weight=not assoc_only,
-                               **probes.revision_kwargs(args))
+                               **probes.revision_kwargs(args), **({"group_selection": True} if args.group_selection else {}))
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "weights.json").write_text(json.dumps(result["weights"]), encoding="utf-8")
+    grouped = result.get("grouped")
+    if grouped is not None:
+        (out_dir / "weights_grouped.json").write_text(json.dumps(grouped["weights"]), encoding="utf-8")
     receipt = {"stage": STAGE, "arm": args.arm, "assoc_only": assoc_only, "seed": args.seed, "sources": args.sources, "holdout": split,
                "recipe": {"learning_rate": training["learning_rate"], "weight_decay": training["weight_decay"], "epochs": training["epochs"],
                           "field_encoding": True, "existence_class_weight": not assoc_only, **probes.revision_kwargs(args),
@@ -74,12 +80,16 @@ def main(argv: Sequence[str] | None = None) -> int:
                "updates_taken": result["updates_taken"], "existence_class_weight": result["weights"]["training"].get("existence_class_weight"),
                "train_curve": result["train_curve"], "validation_curve": result["validation_curve"], "best_epoch": result["best_epoch"],
                "train_curve_terms": result["train_curve_terms"], "validation_curve_terms": result["validation_curve_terms"],
-               "diverged": result["diverged"], "weights_sha256": result["weights"]["sha256"], "files": files, "device": args.device,
+               "diverged": result["diverged"], "weights_sha256": result["weights"]["sha256"],
+               "group_selection": None if grouped is None else {"rule": model.GROUP_SELECTION_RULE, "best_epoch_by_group": grouped["best_epoch_by_group"],
+                                                               "weights_sha256": grouped["weights"]["sha256"], "file": "weights_grouped.json"},
+               "files": files, "device": args.device,
                "code_commit": entry._git("rev-parse", "HEAD"), "wall_seconds": round(time.time() - started, 1),
                "script_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest()}
     (out_dir / "training_receipt.json").write_text(json.dumps(receipt, indent=1), encoding="utf-8")
     print(f"[ruling89-train] {args.arm} seed {args.seed}: best epoch {result['best_epoch']}, diverged {result['diverged']}, "
-          f"{result['updates_taken']} updates, weights {result['weights']['sha256'][:12]}, {receipt['wall_seconds']} s")
+          f"{result['updates_taken']} updates, weights {result['weights']['sha256'][:12]}, {receipt['wall_seconds']} s"
+          + ("" if grouped is None else f"; grouped epochs {grouped['best_epoch_by_group']}, weights {grouped['weights']['sha256'][:12]}"))
     return 0 if not result["diverged"] else 1
 
 

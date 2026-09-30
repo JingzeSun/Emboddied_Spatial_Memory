@@ -90,6 +90,13 @@ EXISTENCE_CLASS_WEIGHT_RULE = "binary cross-entropy with pos_weight = present ro
 EXISTENCE_PRIOR_CORRECTION_RULE = ("the existence logit handed to decisions is the head output minus ln(pos_weight): training with pos_weight w "
                                    "moves the optimal logit up by ln w, so without it tau_r 0.5 acts like tau_r 1/(1+w)")
 COSINE_SCHEDULE_RULE = "per epoch e of E: lr_e = lr_min + (lr - lr_min) * (1 + cos(pi * e / E)) / 2; gradient norm clipped before each step"
+#: Ruling 96 (a) (2026-10-01): the head groups of the per-group checkpoint selection and the validation term each is kept on.
+#: The association and birth heads share one cross-entropy (a fragment's softmax over its recalled columns and the BIRTH
+#: column), so they are one group and keep one epoch.
+GROUP_SELECTION = (("association_birth", ("association", "birth"), "association"), ("existence", ("existence",), "existence"))
+GROUP_SELECTION_RULE = ("training unchanged; the association and birth heads keep together the epoch of the lowest association "
+                        "validation term, the existence head the epoch of the lowest existence validation term, ties to the earlier "
+                        "epoch; the total-loss selection is kept alongside")
 #: The S0-05 contract's own words for the loss (bound by the arms validator through the contract).
 LOSS_RULE = ("per-fragment softmax cross-entropy over [recalled columns..., BIRTH column] plus "
              "per-entity existence binary cross-entropy, equal weights")
@@ -611,9 +618,13 @@ def train_heads(
     assoc_only: bool, device: str = "cpu", epoch_callback: Any = None,
     field_encoding: bool = False, existence_class_weight: bool = False,
     cosine_min_learning_rate: float | None = None, gradient_clip_norm: float | None = None,
-    existence_prior_correction: bool = False,
+    existence_prior_correction: bool = False, group_selection: bool = False,
 ) -> dict[str, Any]:
     """Train the heads once and keep the best-validation epoch; every value explicit, None refused.
+
+    ``group_selection`` (ruling 96 (a), off by default): training runs exactly as without it; at every epoch end the run
+    additionally remembers, per head group, the weights of the epoch whose own validation term is lowest (``GROUP_SELECTION``),
+    and returns that combination under ``grouped`` next to the unchanged total-loss selection.
 
     Ruling 89-2 / 89-3 switches (both off by default, which is the registered recipe bit for bit): ``field_encoding``
     builds the heads with the field-wise encoding whose statistics come from ``train_records`` only;
@@ -663,6 +674,7 @@ def train_heads(
     updates_taken = 0
     train_terms: list[dict[str, float | None]] = []       # per epoch: mean of each term while the epoch updates
     validation_terms: list[dict[str, float | None]] = []  # per epoch: each term at the epoch-end weights
+    best_by_group: dict[str, tuple[float, int, dict[str, Any]]] = {}  # ruling 96 (a); stays empty when group_selection is off
     for epoch in range(int(epochs)):
         if cosine_min_learning_rate is not None:  # pending ruling 91 only; None keeps the registered constant rate
             rate = float(cosine_min_learning_rate) + (float(learning_rate) - float(cosine_min_learning_rate)) * (1.0 + math.cos(math.pi * epoch / int(epochs))) / 2.0
@@ -702,6 +714,12 @@ def train_heads(
         if validation is not None and (best is None or validation < best[0]):
             best = (validation, epoch, {name: {k: v.detach().cpu().clone() for k, v in module.state_dict().items()}
                                        for name, module in heads.items()})
+        if group_selection:  # bookkeeping only: no parameter, optimiser or generator state is touched
+            for group, members, term in GROUP_SELECTION:
+                value = held_out.get(term)
+                if all(name in heads for name in members) and value is not None and (group not in best_by_group or value < best_by_group[group][0]):
+                    best_by_group[group] = (value, epoch, {name: {k: v.detach().cpu().clone() for k, v in heads[name].state_dict().items()}
+                                                           for name in members})
         if epoch_callback is not None:
             epoch_callback(epoch, heads)
     _require(best is not None or diverged, "validation_loss_undefined_on_every_epoch")
@@ -724,9 +742,23 @@ def train_heads(
         training.update({"existence_prior_correction": bool(existence_prior_correction),"cosine_min_learning_rate": cosine_min_learning_rate, "gradient_clip_norm": gradient_clip_norm,
                          "schedule_rule": COSINE_SCHEDULE_RULE})
     training["loss_terms_per_epoch"] = {"train_running_mean": train_terms, "validation_at_epoch_end": validation_terms}
-    return {"weights": weights_payload(heads, training=training), "heads": heads, "train_curve": train_curve,
-            "validation_curve": validation_curve, "best_epoch": None if best is None else best[1], "diverged": diverged,
-            "updates_taken": updates_taken, "train_curve_terms": train_terms, "validation_curve_terms": validation_terms}
+    out = {"weights": weights_payload(heads, training=training), "heads": heads, "train_curve": train_curve,
+           "validation_curve": validation_curve, "best_epoch": None if best is None else best[1], "diverged": diverged,
+           "updates_taken": updates_taken, "train_curve_terms": train_terms, "validation_curve_terms": validation_terms}
+    if group_selection and best is not None:
+        import copy
+
+        grouped = copy.deepcopy(heads)  # starts as the total-loss selection; a group without any term value keeps it
+        epochs_by_group = {group: None for group, members, _ in GROUP_SELECTION if all(name in heads for name in members)}
+        with torch.no_grad():
+            for group, (_, epoch_index, states) in best_by_group.items():
+                for name, state in states.items():
+                    grouped[name].load_state_dict(state)
+                epochs_by_group[group] = epoch_index
+        grouped_training = dict(training, selection_rule=GROUP_SELECTION_RULE, best_epoch_by_group=epochs_by_group)
+        out["grouped"] = {"weights": weights_payload(grouped, training=grouped_training), "heads": grouped,
+                          "best_epoch_by_group": epochs_by_group}
+    return out
 
 
 #: D-224-S1 ruling 81-2 (2026-09-28), diagnostics only: the controlled comparison counts training in optimizer updates.
@@ -870,6 +902,8 @@ __all__ = [
     "EARLY_STOPPING_RULE",
     "EXISTENCE_CLASS_WEIGHT_RULE",
     "FIELD_ENCODING",
+    "GROUP_SELECTION",
+    "GROUP_SELECTION_RULE",
     "WEIGHTS_SCHEMA_VERSION_FIELD_WISE",
     "field_encoding_statistics",
     "batch_prepared",

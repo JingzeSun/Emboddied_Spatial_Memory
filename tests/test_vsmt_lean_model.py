@@ -331,6 +331,37 @@ class FieldWiseTests(unittest.TestCase):
                 self.assertAlmostEqual(terms["total"], result["train_curve"][epoch], places=9)
             self.assertEqual(result["weights"]["training"]["loss_terms_per_epoch"]["validation_at_epoch_end"], result["validation_curve_terms"])
 
+    def test_group_selection_leaves_the_total_selection_alone_and_keeps_each_group_on_its_own_term(self) -> None:
+        # ruling 96 (a): training unchanged; association and birth together by the association term, existence by its own
+        train, validation = self.records()
+        base = dict(learning_rate=1e-3, weight_decay=1e-4, epochs=4, seed=7, assoc_only=False, field_encoding=True,
+                    existence_class_weight=True, cosine_min_learning_rate=1e-5, gradient_clip_norm=1.0, existence_prior_correction=True)
+        states = {}
+
+        def capture(epoch, heads):
+            states[epoch] = {name: {k: v.detach().clone() for k, v in module.state_dict().items()} for name, module in heads.items()}
+
+        plain = model.train_heads(train, validation, **base)
+        grouped = model.train_heads(train, validation, **base, group_selection=True, epoch_callback=capture)
+        self.assertNotIn("grouped", plain)
+        self.assertEqual(plain["weights"]["sha256"], grouped["weights"]["sha256"])  # the registered selection, bit for bit
+        self.assertEqual(plain["best_epoch"], grouped["best_epoch"])
+        terms = grouped["validation_curve_terms"]
+        want = {"association_birth": min(range(4), key=lambda e: (terms[e]["association"], e)),
+                "existence": min(range(4), key=lambda e: (terms[e]["existence"], e))}
+        self.assertEqual(grouped["grouped"]["best_epoch_by_group"], want)
+        payload = grouped["grouped"]["weights"]
+        for group, members in (("association_birth", ("association", "birth")), ("existence", ("existence",))):
+            for name in members:
+                for key, value in states[want[group]][name].items():
+                    self.assertEqual(payload["tensors"][name][key], value.numpy().astype(np.float64).tolist(), f"{group}:{name}:{key}")
+        self.assertEqual(payload["existence_logit_offset"], grouped["weights"]["existence_logit_offset"])
+        self.assertEqual(payload["training"]["best_epoch_by_group"], want)
+        model.load_heads(json.loads(json.dumps(payload)))  # its digest holds
+        assoc = model.train_heads(train, validation, **{**base, "assoc_only": True, "existence_class_weight": False,
+                                                       "existence_prior_correction": False}, group_selection=True)
+        self.assertEqual(set(assoc["grouped"]["best_epoch_by_group"]), {"association_birth"})
+
     def test_the_class_weight_multiplies_the_gone_rows(self) -> None:
         import torch
         record = labelled_frame(21, drop="lamp")
