@@ -1,0 +1,25 @@
+{
+ "commit": "75c0f4d",
+ "stage_reached": "p3_gate_failed",
+ "finished_cst": "2026-09-30 12:29:18",
+ "suite_exit": "0",
+ "p3_failed": "0",
+ "round0_training_exit": "",
+ "round1_exit": "",
+ "round1_training_failed": "",
+ "cells_failed": "",
+ "merges_failed": "",
+ "joint_failed": "",
+ "reading_exit": "",
+ "reused": {
+  "round0_records": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906/dagger_round_0",
+  "baseline_cells_tag": "003b906",
+  "history_audit": "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling89_history_audit_c02cb98.json"
+ },
+ "workers": 60,
+ "pass_workers": 32,
+ "cpu_quota": 68,
+ "memory_max": "257698037760",
+ "worker_basis": "cgroup CPU quota minus four; a pass runs one process per episode, an audit about 1-2 GB, a training about 10-20 GB",
+ "shutdown": false
+}

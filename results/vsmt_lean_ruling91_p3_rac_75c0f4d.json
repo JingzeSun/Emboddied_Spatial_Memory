@@ -1,0 +1,449 @@
+{
+ "stage": "vsmt.lean.ruling89.probes.v1",
+ "check": "P3 imitation on the ruling-89 inputs and recipe",
+ "target": "rac",
+ "rule": {
+  "rho_rac": 0.7,
+  "n_rac": 3
+ },
+ "sources": [
+  "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P"
+ ],
+ "holdout": {
+  "training_houses": [
+   "procthor10k-0.1.2-train-03394",
+   "procthor10k-0.1.2-train-08566",
+   "procthor10k-0.1.2-train-00406",
+   "procthor10k-0.1.2-train-03288",
+   "procthor10k-0.1.2-train-08927",
+   "procthor10k-0.1.2-train-08422",
+   "procthor10k-0.1.2-train-03525",
+   "procthor10k-0.1.2-train-07367",
+   "procthor10k-0.1.2-train-05806",
+   "procthor10k-0.1.2-train-05966",
+   "procthor10k-0.1.2-train-00950",
+   "procthor10k-0.1.2-train-05879",
+   "procthor10k-0.1.2-train-00236",
+   "procthor10k-0.1.2-train-02524",
+   "procthor10k-0.1.2-train-08398",
+   "procthor10k-0.1.2-train-04801",
+   "procthor10k-0.1.2-train-04388",
+   "procthor10k-0.1.2-train-07795",
+   "procthor10k-0.1.2-train-01543",
+   "procthor10k-0.1.2-train-09339",
+   "procthor10k-0.1.2-train-08790",
+   "procthor10k-0.1.2-train-01259",
+   "procthor10k-0.1.2-train-08905",
+   "procthor10k-0.1.2-train-00975",
+   "procthor10k-0.1.2-train-00619",
+   "procthor10k-0.1.2-train-01394",
+   "procthor10k-0.1.2-train-00702",
+   "procthor10k-0.1.2-train-07815",
+   "procthor10k-0.1.2-train-03361",
+   "procthor10k-0.1.2-train-09423"
+  ],
+  "selection_houses": [
+   "procthor10k-0.1.2-train-07270",
+   "procthor10k-0.1.2-train-06453",
+   "procthor10k-0.1.2-train-08552",
+   "procthor10k-0.1.2-train-01289",
+   "procthor10k-0.1.2-train-02768",
+   "procthor10k-0.1.2-train-04742",
+   "procthor10k-0.1.2-train-09595",
+   "procthor10k-0.1.2-train-00563",
+   "procthor10k-0.1.2-train-01139"
+  ],
+  "training_shortfall": 0,
+  "selection_shortfall": 3,
+  "houses_beyond_the_holdout": [],
+  "order": "s0_02_house_split_rank",
+  "seed": 20260920
+ },
+ "frames": {
+  "train": 32550,
+  "selection": 11547
+ },
+ "recipe": {
+  "learning_rate": 0.001,
+  "weight_decay": 0.0001,
+  "epochs": 20,
+  "seed": 7,
+  "field_encoding": true,
+  "existence_class_weight": true,
+  "cosine_min_learning_rate": 1e-05,
+  "gradient_clip_norm": 1.0,
+  "existence_prior_correction": true
+ },
+ "training": {
+  "existence_class_weight": {
+   "gone": 3246,
+   "present": 859430,
+   "pos_weight": 264.765865680838
+  },
+  "updates_taken": 647300,
+  "best_epoch": 15
+ },
+ "train_curve": [
+  0.1392938626354831,
+  0.08497752310655583,
+  0.055635932851101584,
+  0.08267190426513979,
+  0.056864876825050564,
+  0.03630403454894587,
+  0.04209503975251291,
+  0.030643028986800193,
+  0.04022945618849503,
+  0.03379566391751427,
+  0.024397834633768555,
+  0.03564208971271758,
+  0.02036846929103145,
+  0.02216446250499945,
+  0.011376121717805662,
+  0.010091064019736131,
+  0.0026481600205266256,
+  0.0024424467800324887,
+  0.0004467505748630748,
+  0.0006272563633745962
+ ],
+ "train_loss_fixed_weights": [
+  0.054071489786372,
+  0.004591790774879094,
+  0.04553426816358779,
+  0.0025019164299930298,
+  0.010807952891539437,
+  0.03971108719279369,
+  0.0018168593342402172,
+  0.004102535664779251,
+  0.03225996124263122,
+  0.05314980543371166,
+  0.028801317845124647,
+  0.002008593186409971,
+  0.00057513650893854,
+  0.000912095270239,
+  0.033337174393216984,
+  0.0008792601880946824,
+  0.0006134869526020065,
+  0.00018988068221211118,
+  0.000838444453432184,
+  0.00022116138412812988
+ ],
+ "train_curve_rule": "train_curve: mean per-step loss while the epoch updates; train_loss_fixed_weights: the epoch-end checkpoint on the whole training set, which picks lowest_training_loss",
+ "validation_curve": [
+  0.02215186075155045,
+  0.0014461808465519711,
+  0.010790698452641008,
+  0.0016688514413007618,
+  0.006027825611300285,
+  0.011897920429838307,
+  0.00165280626328153,
+  0.001406252382166361,
+  0.015283105716140596,
+  0.02605671845204536,
+  0.015555441484286883,
+  0.0014776921583849376,
+  0.0013546254645229964,
+  0.0007677314403125862,
+  0.009238985086631816,
+  0.0006510467568649697,
+  0.0011907784222788774,
+  0.001884180965301732,
+  0.0035400247648881156,
+  0.001155312372406029
+ ],
+ "diverged": false,
+ "readings": {
+  "best_selection_loss": {
+   "epoch": 15,
+   "train": {
+    "per_class": {
+     "NOOP": {
+      "rows": 859430,
+      "agreement": 0.9999581117717558
+     },
+     "RETRACT": {
+      "rows": 3246,
+      "agreement": 0.9993838570548367
+     }
+    },
+    "balanced_agreement": 0.9996709844132963
+   },
+   "selection": {
+    "per_class": {
+     "NOOP": {
+      "rows": 517593,
+      "agreement": 0.9999729517207535
+     },
+     "RETRACT": {
+      "rows": 1131,
+      "agreement": 0.9973474801061007
+     }
+    },
+    "balanced_agreement": 0.9986602159134271
+   }
+  },
+  "last_epoch": {
+   "epoch": 19,
+   "train": {
+    "per_class": {
+     "NOOP": {
+      "rows": 859430,
+      "agreement": 0.999993018628626
+     },
+     "RETRACT": {
+      "rows": 3246,
+      "agreement": 0.9972273567467652
+     }
+    },
+    "balanced_agreement": 0.9986101876876956
+   },
+   "selection": {
+    "per_class": {
+     "NOOP": {
+      "rows": 517593,
+      "agreement": 0.9999942039401615
+     },
+     "RETRACT": {
+      "rows": 1131,
+      "agreement": 0.9938107869142352
+     }
+    },
+    "balanced_agreement": 0.9969024954271983
+   }
+  },
+  "lowest_training_loss": {
+   "epoch": 17,
+   "train": {
+    "per_class": {
+     "NOOP": {
+      "rows": 859430,
+      "agreement": 0.9999872008191476
+     },
+     "RETRACT": {
+      "rows": 3246,
+      "agreement": 0.9981515711645101
+     }
+    },
+    "balanced_agreement": 0.9990693859918289
+   },
+   "selection": {
+    "per_class": {
+     "NOOP": {
+      "rows": 517593,
+      "agreement": 0.9999903399002691
+     },
+     "RETRACT": {
+      "rows": 1131,
+      "agreement": 0.9964633068081344
+     }
+    },
+    "balanced_agreement": 0.9982268233542018
+   }
+  }
+ },
+ "pass_line": 0.99,
+ "pass_by_reading": {
+  "last_epoch": true,
+  "lowest_training_loss": true
+ },
+ "pass": true,
+ "weights_sha256": "179402d2b1c7378efe0ba4bdff5d22a16618c951d73fc450f6a3b99ff47d76b6",
+ "files": [
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-00236",
+   "sha256": "32078a446b0822528d43b4864d8ac940a8d6a59e96ac5f65314d2bfd08dca2f4"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-00406",
+   "sha256": "31d82b5b65e77b304b6ba11f7dfa31892c5761df2a521bf216bfbc67e82c4f6f"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-00563",
+   "sha256": "0bcb19d7a01af1bea9965987d06a914b43fc51532f2a5cdf334dba695c3a45b3"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-00619",
+   "sha256": "4e02ac0a8f8bb28d425ac51291cb819d06728bd261795ba7b2b8f675cd6758c7"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-00702",
+   "sha256": "4eb3f6d351884ff0de03d0866bd911b550cb82375655d07ce18697ccc40241b4"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-00950",
+   "sha256": "f606a9c4768a32fb2fb639633c084b9cab41acfda486a02813924066cffb23e6"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-00975",
+   "sha256": "d2249fbf6e7ecbb5316a376ff3d7579c044e15dc0c3a302f90308110dca0d4a0"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-01139",
+   "sha256": "1eec67ab5ceede8ac618a6b05e79ff83c0a5721fef8800ff8052df095618b2aa"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-01259",
+   "sha256": "69fde4336df388cb44e9b280377dede530211e4de08ec8347e7f25e626954451"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-01289",
+   "sha256": "07481580d6016392604288593e3c9087204db86e1b7fc2a7992f87bd1eec69c0"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-01394",
+   "sha256": "327f1cb616811392140771b34aa1d30e1e72862c1a75306e957e2c7204cbe38c"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-01543",
+   "sha256": "b2c8bd8c8623ce213949dca6ee4881059ca251afc74235909f4b834240f8d743"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-02524",
+   "sha256": "80b07b3ca04ee44c9d4738d95f5e19ad6dc462dc2a3556c80938204cd1c10997"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-02768",
+   "sha256": "cad35bd2c4102d1b2970d54ad1168ee75467327c4dc0b8eca24340b1655091fa"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-03288",
+   "sha256": "c7eb450a4f7e9f7af09b9bee61e941b0b0502d71ef7812e48411c96d1d576423"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-03361",
+   "sha256": "3b2e77a98bf74a61cfd48b864388a79f0db08ec271011898b30ab317992a94fb"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-03394",
+   "sha256": "59f2c1886b3fefe2fef2b530d07bf1647668d2249e23b706748660ce2d5f60bb"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-03525",
+   "sha256": "6b24e4eaa4bdf38b57aeba8684b465c0e1da3702e1f2c509c7245f3cb666fac5"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-04388",
+   "sha256": "5c973c0dc4742406506d08a1063f98cf95fb89236859acd38230f95936692924"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-04742",
+   "sha256": "7f3b9088c98fef1e7ab3e20f24e0518093ddb1aa59e23999f0e6909d85aa79fe"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-04801",
+   "sha256": "76ef9a34325aad46c4121515710a539feaa8e81baf9822bed5a3c20a348f7906"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-05806",
+   "sha256": "8f2a9155292717e11fb4732dd049e2c8987ceeedeaf8753108ad054319fab4e5"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-05879",
+   "sha256": "4a004e2a456e55e979f98c3c23476c4eb536730989a8bfb12ea7e64434d57cce"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-05966",
+   "sha256": "63070be049dd8d738e2a253c51bb52e00d8c02293658463e3e004074ab6ff24d"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-06453",
+   "sha256": "f29632ea5257256f981955fa346f051dc9c25475cf05acc3de615b2c9c0c520e"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-07270",
+   "sha256": "73fafad91a516418c41d9a976cea32b86749bcd936ec023ac58eed80da4db078"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-07367",
+   "sha256": "7cfdfa2c5b64ac9ea7910d0fb397df98f3137079f0aaa49da59350ab6cb95f87"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-07795",
+   "sha256": "4c2a2db33552ce8894786c9e0f781b02f71a357cb7ee97c82ca843e3a6c2eb02"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-07815",
+   "sha256": "f177c93bdd1e0f25b79b03011b6a289beaa8e48e20545ed17d12a7d8d649e1ac"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-08398",
+   "sha256": "1474d7a898dd3b3e7da87d00ff6b83cd7ead8c6e67715c13f60a17145166a9c0"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-08422",
+   "sha256": "b2f48c99b33e2b4eea64a121bc99188c899af036719381f6463282c8feaddef5"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-08552",
+   "sha256": "6881e211c6f192b0c0ced18e96bd94f9d34670ed3e4d52614da186a2bebb26dc"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-08566",
+   "sha256": "f33b8c7983bb5f7171613306947339f22bb98b63ff55da9dca2b3cdfe5a4bfca"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-08790",
+   "sha256": "9212abdc4c480f5b3a68c6da0f797425cd1e45f9f4b999b17e86a260860f8baf"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-08905",
+   "sha256": "b5994f2659921adfab8d505033c3aaa01982c9482653cbbe3e026b1d7a98e659"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-08927",
+   "sha256": "aecdc2caa814a77de9e58677dad04d3a4c6a840533e12696c1aa02ac3cc6ca76"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-09339",
+   "sha256": "46b80027ca57341fd5caa432f18c507c1e5fb9ec441f8f445233313a57c76ca3"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-09423",
+   "sha256": "aba27884141ab6098ad209afca7310a4ab87636934755ff630c20417b763b8a3"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-09595",
+   "sha256": "e7e3341d471574927d3746368af9764db9a3281fbe0843e0ed92ef2e456cafed"
+  }
+ ],
+ "wall_seconds": 986.2,
+ "script_sha256": "7c81fba07d153e5471de7a8766a21812bf311aa56d219f58f484dd32158edb0d"
+}

@@ -1,0 +1,101 @@
+{
+ "stage": "ruling91 P3 offset diagnostic (read-only, report only)",
+ "results": {
+  "elup": {
+   "offset": -5.789620686882621,
+   "epoch": 18,
+   "corrected_train": {
+    "balanced": 0.9525,
+    "per_class": {
+     "NOOP": 1.0,
+     "RETRACT": 0.905
+    }
+   },
+   "corrected_selection": {
+    "balanced": 0.9453,
+    "per_class": {
+     "NOOP": 1.0,
+     "RETRACT": 0.8906
+    }
+   },
+   "uncorrected_train": {
+    "balanced": 0.9938,
+    "per_class": {
+     "NOOP": 0.9995,
+     "RETRACT": 0.9882
+    }
+   },
+   "uncorrected_selection": {
+    "balanced": 0.9906,
+    "per_class": {
+     "NOOP": 0.9995,
+     "RETRACT": 0.9818
+    }
+   }
+  },
+  "rac": {
+   "offset": -5.578845922781969,
+   "epoch": 15,
+   "corrected_train": {
+    "balanced": 0.9997,
+    "per_class": {
+     "NOOP": 1.0,
+     "RETRACT": 0.9994
+    }
+   },
+   "corrected_selection": {
+    "balanced": 0.9987,
+    "per_class": {
+     "NOOP": 1.0,
+     "RETRACT": 0.9973
+    }
+   },
+   "uncorrected_train": {
+    "balanced": 0.9998,
+    "per_class": {
+     "NOOP": 0.9999,
+     "RETRACT": 0.9997
+    }
+   },
+   "uncorrected_selection": {
+    "balanced": 1.0,
+    "per_class": {
+     "NOOP": 0.9999,
+     "RETRACT": 1.0
+    }
+   }
+  },
+  "handcost": {
+   "offset": -4.4801566646120285,
+   "epoch": 19,
+   "corrected_train": {
+    "balanced": 0.9989,
+    "per_class": {
+     "NOOP": 1.0,
+     "RETRACT": 0.9978
+    }
+   },
+   "corrected_selection": {
+    "balanced": 0.9981,
+    "per_class": {
+     "NOOP": 1.0,
+     "RETRACT": 0.9962
+    }
+   },
+   "uncorrected_train": {
+    "balanced": 0.9997,
+    "per_class": {
+     "NOOP": 0.9999,
+     "RETRACT": 0.9996
+    }
+   },
+   "uncorrected_selection": {
+    "balanced": 0.9997,
+    "per_class": {
+     "NOOP": 0.9999,
+     "RETRACT": 0.9995
+    }
+   }
+  }
+ }
+}
