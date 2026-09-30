@@ -1,0 +1,15 @@
+{
+ "commit": "f85b2a7",
+ "stage_reached": "done",
+ "finished_cst": "2026-09-30 18:15:09",
+ "suite_exit": "0",
+ "audits_failed": "0",
+ "scores_exit": "0",
+ "merges_failed": "0",
+ "reading_exit": "0",
+ "heads": "/root/autodl-tmp/vsmt_private/ruling93-9722290",
+ "workers": 62,
+ "cpu_quota": 68,
+ "worker_basis": "cgroup CPU quota minus six (one scores process with 4 threads alongside); audits single-threaded, largest episode first",
+ "shutdown": false
+}

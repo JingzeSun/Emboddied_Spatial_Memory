@@ -1,0 +1,1534 @@
+{
+ "stage": "vsmt.lean.ruling93.scores.v1",
+ "sources": [
+  "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+  "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean"
+ ],
+ "holdout": {
+  "training_houses": [
+   "procthor10k-0.1.2-train-03394",
+   "procthor10k-0.1.2-train-08566",
+   "procthor10k-0.1.2-train-00406",
+   "procthor10k-0.1.2-train-03288",
+   "procthor10k-0.1.2-train-08927",
+   "procthor10k-0.1.2-train-08422",
+   "procthor10k-0.1.2-train-03525",
+   "procthor10k-0.1.2-train-07367",
+   "procthor10k-0.1.2-train-05806",
+   "procthor10k-0.1.2-train-05966",
+   "procthor10k-0.1.2-train-00950",
+   "procthor10k-0.1.2-train-05879",
+   "procthor10k-0.1.2-train-00236",
+   "procthor10k-0.1.2-train-02524",
+   "procthor10k-0.1.2-train-08398",
+   "procthor10k-0.1.2-train-04801",
+   "procthor10k-0.1.2-train-04388",
+   "procthor10k-0.1.2-train-07795",
+   "procthor10k-0.1.2-train-01543",
+   "procthor10k-0.1.2-train-09339",
+   "procthor10k-0.1.2-train-08790",
+   "procthor10k-0.1.2-train-01259",
+   "procthor10k-0.1.2-train-08905",
+   "procthor10k-0.1.2-train-00975",
+   "procthor10k-0.1.2-train-00619",
+   "procthor10k-0.1.2-train-01394",
+   "procthor10k-0.1.2-train-00702",
+   "procthor10k-0.1.2-train-07815",
+   "procthor10k-0.1.2-train-03361",
+   "procthor10k-0.1.2-train-09423"
+  ],
+  "selection_houses": [
+   "procthor10k-0.1.2-train-07270",
+   "procthor10k-0.1.2-train-06453",
+   "procthor10k-0.1.2-train-08552",
+   "procthor10k-0.1.2-train-01289",
+   "procthor10k-0.1.2-train-02768",
+   "procthor10k-0.1.2-train-04742",
+   "procthor10k-0.1.2-train-09595",
+   "procthor10k-0.1.2-train-00563",
+   "procthor10k-0.1.2-train-01139"
+  ],
+  "training_shortfall": 0,
+  "selection_shortfall": 3,
+  "houses_beyond_the_holdout": [],
+  "order": "s0_02_house_split_rank",
+  "seed": 20260920
+ },
+ "files": [
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-00236",
+   "sha256": "32078a446b0822528d43b4864d8ac940a8d6a59e96ac5f65314d2bfd08dca2f4"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-00406",
+   "sha256": "31d82b5b65e77b304b6ba11f7dfa31892c5761df2a521bf216bfbc67e82c4f6f"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-00563",
+   "sha256": "0bcb19d7a01af1bea9965987d06a914b43fc51532f2a5cdf334dba695c3a45b3"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-00619",
+   "sha256": "4e02ac0a8f8bb28d425ac51291cb819d06728bd261795ba7b2b8f675cd6758c7"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-00702",
+   "sha256": "4eb3f6d351884ff0de03d0866bd911b550cb82375655d07ce18697ccc40241b4"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-00950",
+   "sha256": "f606a9c4768a32fb2fb639633c084b9cab41acfda486a02813924066cffb23e6"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-00975",
+   "sha256": "d2249fbf6e7ecbb5316a376ff3d7579c044e15dc0c3a302f90308110dca0d4a0"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-01139",
+   "sha256": "1eec67ab5ceede8ac618a6b05e79ff83c0a5721fef8800ff8052df095618b2aa"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-01259",
+   "sha256": "69fde4336df388cb44e9b280377dede530211e4de08ec8347e7f25e626954451"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-01289",
+   "sha256": "07481580d6016392604288593e3c9087204db86e1b7fc2a7992f87bd1eec69c0"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-01394",
+   "sha256": "327f1cb616811392140771b34aa1d30e1e72862c1a75306e957e2c7204cbe38c"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-01543",
+   "sha256": "b2c8bd8c8623ce213949dca6ee4881059ca251afc74235909f4b834240f8d743"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-02524",
+   "sha256": "80b07b3ca04ee44c9d4738d95f5e19ad6dc462dc2a3556c80938204cd1c10997"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-02768",
+   "sha256": "cad35bd2c4102d1b2970d54ad1168ee75467327c4dc0b8eca24340b1655091fa"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-03288",
+   "sha256": "c7eb450a4f7e9f7af09b9bee61e941b0b0502d71ef7812e48411c96d1d576423"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-03361",
+   "sha256": "3b2e77a98bf74a61cfd48b864388a79f0db08ec271011898b30ab317992a94fb"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-03394",
+   "sha256": "59f2c1886b3fefe2fef2b530d07bf1647668d2249e23b706748660ce2d5f60bb"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-03525",
+   "sha256": "6b24e4eaa4bdf38b57aeba8684b465c0e1da3702e1f2c509c7245f3cb666fac5"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-04388",
+   "sha256": "5c973c0dc4742406506d08a1063f98cf95fb89236859acd38230f95936692924"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-04742",
+   "sha256": "7f3b9088c98fef1e7ab3e20f24e0518093ddb1aa59e23999f0e6909d85aa79fe"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-04801",
+   "sha256": "76ef9a34325aad46c4121515710a539feaa8e81baf9822bed5a3c20a348f7906"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-05806",
+   "sha256": "8f2a9155292717e11fb4732dd049e2c8987ceeedeaf8753108ad054319fab4e5"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-05879",
+   "sha256": "4a004e2a456e55e979f98c3c23476c4eb536730989a8bfb12ea7e64434d57cce"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-05966",
+   "sha256": "63070be049dd8d738e2a253c51bb52e00d8c02293658463e3e004074ab6ff24d"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-06453",
+   "sha256": "f29632ea5257256f981955fa346f051dc9c25475cf05acc3de615b2c9c0c520e"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-07270",
+   "sha256": "73fafad91a516418c41d9a976cea32b86749bcd936ec023ac58eed80da4db078"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-07367",
+   "sha256": "7cfdfa2c5b64ac9ea7910d0fb397df98f3137079f0aaa49da59350ab6cb95f87"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-07795",
+   "sha256": "4c2a2db33552ce8894786c9e0f781b02f71a357cb7ee97c82ca843e3a6c2eb02"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-07815",
+   "sha256": "f177c93bdd1e0f25b79b03011b6a289beaa8e48e20545ed17d12a7d8d649e1ac"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-08398",
+   "sha256": "1474d7a898dd3b3e7da87d00ff6b83cd7ead8c6e67715c13f60a17145166a9c0"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-08422",
+   "sha256": "b2f48c99b33e2b4eea64a121bc99188c899af036719381f6463282c8feaddef5"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-08552",
+   "sha256": "6881e211c6f192b0c0ced18e96bd94f9d34670ed3e4d52614da186a2bebb26dc"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-08566",
+   "sha256": "f33b8c7983bb5f7171613306947339f22bb98b63ff55da9dca2b3cdfe5a4bfca"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-08790",
+   "sha256": "9212abdc4c480f5b3a68c6da0f797425cd1e45f9f4b999b17e86a260860f8baf"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-08905",
+   "sha256": "b5994f2659921adfab8d505033c3aaa01982c9482653cbbe3e026b1d7a98e659"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-08927",
+   "sha256": "aecdc2caa814a77de9e58677dad04d3a4c6a840533e12696c1aa02ac3cc6ca76"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-09339",
+   "sha256": "46b80027ca57341fd5caa432f18c507c1e5fb9ec441f8f445233313a57c76ca3"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-09423",
+   "sha256": "aba27884141ab6098ad209afca7310a4ab87636934755ff630c20417b763b8a3"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-09595",
+   "sha256": "e7e3341d471574927d3746368af9764db9a3281fbe0843e0ed92ef2e456cafed"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-00236",
+   "sha256": "84dddf8e11f630dc01559db8960c86f55baa5bcaf94d5fcb4322507f698476ce"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-00406",
+   "sha256": "7e0717bba33146ffdaefeb09b2014e53621ef18b51ff4c1366424cb25b7b258d"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-00563",
+   "sha256": "c6c4b7c29b4a85b453296ea4f9bf9d204a1f5bf176d1ec0e6e0270408a980299"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-00619",
+   "sha256": "5b2c5994857526b6bcc9814d850d11bea3b42f0b1bc4420b0b2b0a80e5ddeed9"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-00702",
+   "sha256": "4d6183182d92456df9220ae7885b535f4b49a9e2aa76e351745793a70ff9c3ea"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-00950",
+   "sha256": "20f8bddd67da910e37fa3981abfdade2eef4cae9012d91d53545ce9423f1a32a"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-00975",
+   "sha256": "9cc470782f13b5b366d4765bb867b585f220f1c281feebb651d3224fea2e157d"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-01139",
+   "sha256": "c76d809c9838befa65301cf647043b6da22019e1e1fc04c10d398389244b19ae"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-01259",
+   "sha256": "2473ff8b51a5223ddf9c175a235c03ecf15cbd1824ddcd2af2143851ccaa6057"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-01289",
+   "sha256": "874a1a59cfe50a53f9f975f332d0c9faeba35e62accbca004ac751dab0f9b99f"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-01394",
+   "sha256": "4030482183c289afeea6a199d41792d4ef91b79e66f959c4802137ec84317f01"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-01543",
+   "sha256": "bb5be316c561e741a0beda75fbfe79affce2b1da138497d4c9e19b07e67a3525"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-02524",
+   "sha256": "9d0830e46a82873f323af511b601fc33e289aebb4a982e9edfa44f0dbc39c693"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-02768",
+   "sha256": "e3c51f8473400239538b9ff3867dc87cfc1c65c8b16864ed72a0a6cd5418feff"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-03288",
+   "sha256": "246eb330f66008c88008aae943f9f2bb1acb4662daea50cb9346f4d331475b90"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-03361",
+   "sha256": "87b74afbb66fa31ce437b77c5b5f5c18470216609449f942b05ab3632940960b"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-03394",
+   "sha256": "280b7cf85358c02b34e02c80f1d3864ce09897728a63332ab974a531d2ae6d44"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-03525",
+   "sha256": "024650f331d2a9374f71de2cc1f59f76b1aa024e3e937ecdf0cef775cd2fe80a"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-04388",
+   "sha256": "cd450494bb970982c128af36ec11b1d6ead71e971395bba52ae2c7ac22e71a23"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-04742",
+   "sha256": "f4aa1b7b04af3a0832275493b3ced625a52e6e48702a009004f81f754c2d7cbe"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-04801",
+   "sha256": "cce1b9143fee6620d34961f9ad9431a81a5cea55626b7c7b98cfd9eeafce4f74"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-05806",
+   "sha256": "f695c256c87f5c35748ed52fc475113f931235ed9388f926a1266582c5a3cb1c"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-05879",
+   "sha256": "ef1959384f52d310292f5bf1d2d19eccf947c590f7c5017d09df3ad0d8c9df8a"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-05966",
+   "sha256": "163c651ede2d01e9a31da91492c06fe3dd849cd50dc11b5f47e70c7faf3684b1"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-06453",
+   "sha256": "04350b11f326dfac43e178186c4d00b2ee5872c6245bc961e4c4c732ecf6f8d5"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-07270",
+   "sha256": "98c3fc043c64ec8d6fb49d07c8a57099cf4ce1922daf7c1930b64736e7fd76f8"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-07367",
+   "sha256": "45c348e960c51196a34e058f428ccc3ac6394d6196d5cdd3f55e27732eaf056f"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-07795",
+   "sha256": "846588aab729ea9559fafedb7bda67c806a626897e864e487128a0c874f9a56e"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-07815",
+   "sha256": "242f1adebe40c395081285e53774a654daf1315cd26a3e8e134ac833df2452b9"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-08398",
+   "sha256": "a8bd211bcf0281181579bfdc7714922bba444a8cc7fe4416dd00a4ac2c7a3c0a"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-08422",
+   "sha256": "633cac3349e6bfc7f4214ba66467e5f63ed242cc3acea3359a0dfa91c88f99ef"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-08552",
+   "sha256": "f36263982d53f3a6fbf1db0000b360c98e87e315d0d43f090472797185073c57"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-08566",
+   "sha256": "82e87be735cad02d83958f130f55cd383070116cb23ae505cbbc7be97ebe7e54"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-08790",
+   "sha256": "a081ed9da6c95e9adec98d7824e2ff32d7ea5218e5115c12c790bbd5d26926f5"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-08905",
+   "sha256": "9a2cbc2a73217c0d3fd0732edaff8a1c4773d9bdca08f19183f266a2a436c4c4"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-08927",
+   "sha256": "ba1eaa951c8b3d6b0cfa86a89d3cba4f212d64fc6eb3d18525567a395a340e4a"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-09339",
+   "sha256": "f60ab724283c4794a30e106bb5aecfb06a12b2dc34de8cbe7124eed06f649721"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-09423",
+   "sha256": "a5621416cdc77bf19f15d465f4e829b54d5b2862731354dd591fbdf2cf080e11"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/ruling93-9722290:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-09595",
+   "sha256": "4719ee5fa37c39e5e83e8c6d55704e9a9390d60b7f452a1c91da53a978e52c60"
+  }
+ ],
+ "seeds": {
+  "7": {
+   "weights_sha256": "d0c44f401f90b86bfa57afc15a3bbf065a2056d275773852efd46318fa0450d5",
+   "best_epoch": 0,
+   "pos_weight": 65.01848299912817,
+   "offset": -4.174671629814588,
+   "blocks": {
+    "selection|dagger_round_0:ELU-P": {
+     "frames": 11547,
+     "loss_association_mean": 1.058093253287598,
+     "loss_existence_weighted_mean": 1.162241756445648,
+     "existence_scores": {
+      "rows": {
+       "gone": 3576,
+       "present": 501264
+      },
+      "auc_gone_over_present": 0.8685007123579956,
+      "quantiles": {
+       "gone": {
+        "0.05": 0.0026297960430383682,
+        "0.25": 0.04241916537284851,
+        "0.5": 0.18444912135601044,
+        "0.75": 0.49935048818588257,
+        "0.95": 0.9999039173126221
+       },
+       "present": {
+        "0.05": 8.81274463608861e-05,
+        "0.25": 0.0006593431462533772,
+        "0.5": 0.003151359735056758,
+        "0.75": 0.019985824823379517,
+        "0.95": 0.230858713388443
+       }
+      },
+      "raw_threshold_for_tau": {
+       "0.15": 0.91983228876986,
+       "0.2": 0.9420445100184174,
+       "0.3": 0.9653560444188238,
+       "0.5": 0.9848527267733006
+      },
+      "share_at_or_above": {
+       "0.15": {
+        "gone": 0.10766219239373602,
+        "present": 0.0002673242044112484
+       },
+       "0.2": {
+        "gone": 0.10486577181208054,
+        "present": 0.00020548054518178046
+       },
+       "0.3": {
+        "gone": 0.1017897091722595,
+        "present": 0.00014962175620032557
+       },
+       "0.5": {
+        "gone": 0.09507829977628636,
+        "present": 7.979826997350698e-05
+       }
+      }
+     }
+    },
+    "selection|dagger_round_1:VSMT-lean": {
+     "frames": 11547,
+     "loss_association_mean": 0.6710160817598135,
+     "loss_existence_weighted_mean": 3.126713320107824,
+     "existence_scores": {
+      "rows": {
+       "gone": 3143,
+       "present": 149649
+      },
+      "auc_gone_over_present": 0.7673685143141622,
+      "quantiles": {
+       "gone": {
+        "0.05": 0.002613401971757412,
+        "0.25": 0.040694285184144974,
+        "0.5": 0.16773737967014313,
+        "0.75": 0.4361410140991211,
+        "0.95": 0.9818053841590881
+       },
+       "present": {
+        "0.05": 0.00014956190716475248,
+        "0.25": 0.0017404203535988927,
+        "0.5": 0.012076775543391705,
+        "0.75": 0.07963349670171738,
+        "0.95": 0.4649755358695984
+       }
+      },
+      "raw_threshold_for_tau": {
+       "0.15": 0.91983228876986,
+       "0.2": 0.9420445100184174,
+       "0.3": 0.9653560444188238,
+       "0.5": 0.9848527267733006
+      },
+      "share_at_or_above": {
+       "0.15": {
+        "gone": 0.07986000636334713,
+        "present": 0.0010691685210058202
+       },
+       "0.2": {
+        "gone": 0.07126948775055679,
+        "present": 0.0008686994233172289
+       },
+       "0.3": {
+        "gone": 0.06140629971364938,
+        "present": 0.0005813603832969148
+       },
+       "0.5": {
+        "gone": 0.04740693604836144,
+        "present": 0.00030738594978917333
+       }
+      }
+     }
+    },
+    "train|dagger_round_0:ELU-P": {
+     "frames": 32550,
+     "loss_association_mean": 0.9162152460115826,
+     "loss_existence_weighted_mean": 1.6138525771595815,
+     "existence_scores": {
+      "rows": {
+       "gone": 8541,
+       "present": 813128
+      },
+      "auc_gone_over_present": 0.8877624097556868,
+      "quantiles": {
+       "gone": {
+        "0.05": 0.0052383397705852985,
+        "0.25": 0.05091679096221924,
+        "0.5": 0.22522713243961334,
+        "0.75": 0.5667740702629089,
+        "0.95": 0.9999072551727295
+       },
+       "present": {
+        "0.05": 0.00011276102304691449,
+        "0.25": 0.0006041073938831687,
+        "0.5": 0.0026937874499708414,
+        "0.75": 0.018102310597896576,
+        "0.95": 0.2675032913684845
+       }
+      },
+      "raw_threshold_for_tau": {
+       "0.15": 0.91983228876986,
+       "0.2": 0.9420445100184174,
+       "0.3": 0.9653560444188238,
+       "0.5": 0.9848527267733006
+      },
+      "share_at_or_above": {
+       "0.15": {
+        "gone": 0.1297271982203489,
+        "present": 0.00038001397074015407
+       },
+       "0.2": {
+        "gone": 0.12574639971900245,
+        "present": 0.00031606339961236116
+       },
+       "0.3": {
+        "gone": 0.12047769582016157,
+        "present": 0.00025211282848456825
+       },
+       "0.5": {
+        "gone": 0.1118136049642899,
+        "present": 0.00017832370795249947
+       }
+      }
+     }
+    },
+    "train|dagger_round_1:VSMT-lean": {
+     "frames": 32550,
+     "loss_association_mean": 0.5165504681899756,
+     "loss_existence_weighted_mean": 3.0857704991108297,
+     "existence_scores": {
+      "rows": {
+       "gone": 8664,
+       "present": 305515
+      },
+      "auc_gone_over_present": 0.8071096039883853,
+      "quantiles": {
+       "gone": {
+        "0.05": 0.008239342831075191,
+        "0.25": 0.07798603922128677,
+        "0.5": 0.2521035969257355,
+        "0.75": 0.521187424659729,
+        "0.95": 0.9889257550239563
+       },
+       "present": {
+        "0.05": 0.0001790332462405786,
+        "0.25": 0.002072438597679138,
+        "0.5": 0.015187565237283707,
+        "0.75": 0.10618501901626587,
+        "0.95": 0.48690733313560486
+       }
+      },
+      "raw_threshold_for_tau": {
+       "0.15": 0.91983228876986,
+       "0.2": 0.9420445100184174,
+       "0.3": 0.9653560444188238,
+       "0.5": 0.9848527267733006
+      },
+      "share_at_or_above": {
+       "0.15": {
+        "gone": 0.08217913204062789,
+        "present": 0.0011750650540889973
+       },
+       "0.2": {
+        "gone": 0.07640812557710065,
+        "present": 0.0008837536618496637
+       },
+       "0.3": {
+        "gone": 0.06613573407202217,
+        "present": 0.0006284470484264275
+       },
+       "0.5": {
+        "gone": 0.05493998153277932,
+        "present": 0.00034368197960820253
+       }
+      }
+     }
+    }
+   }
+  },
+  "19": {
+   "weights_sha256": "655f1afb11cea36ea9b64e58ff98d7027f66814cfa582692aff30b915996b3cb",
+   "best_epoch": 0,
+   "pos_weight": 65.01848299912817,
+   "offset": -4.174671629814588,
+   "blocks": {
+    "selection|dagger_round_0:ELU-P": {
+     "frames": 11547,
+     "loss_association_mean": 1.0841286496143008,
+     "loss_existence_weighted_mean": 1.1533181031711282,
+     "existence_scores": {
+      "rows": {
+       "gone": 3576,
+       "present": 501264
+      },
+      "auc_gone_over_present": 0.8783607157994969,
+      "quantiles": {
+       "gone": {
+        "0.05": 0.004995944444090128,
+        "0.25": 0.04562387242913246,
+        "0.5": 0.16121608018875122,
+        "0.75": 0.42144474387168884,
+        "0.95": 0.9999995231628418
+       },
+       "present": {
+        "0.05": 0.0002195058623328805,
+        "0.25": 0.0010207050945609808,
+        "0.5": 0.003963563125580549,
+        "0.75": 0.019817421212792397,
+        "0.95": 0.22120480239391327
+       }
+      },
+      "raw_threshold_for_tau": {
+       "0.15": 0.91983228876986,
+       "0.2": 0.9420445100184174,
+       "0.3": 0.9653560444188238,
+       "0.5": 0.9848527267733006
+      },
+      "share_at_or_above": {
+       "0.15": {
+        "gone": 0.12024608501118568,
+        "present": 0.00154409652398736
+       },
+       "0.2": {
+        "gone": 0.11297539149888143,
+        "present": 0.0011490950876185005
+       },
+       "0.3": {
+        "gone": 0.10598434004474273,
+        "present": 0.0006902550352708354
+       },
+       "0.5": {
+        "gone": 0.10039149888143177,
+        "present": 0.0003291678636407163
+       }
+      }
+     }
+    },
+    "selection|dagger_round_1:VSMT-lean": {
+     "frames": 11547,
+     "loss_association_mean": 0.6968727347990344,
+     "loss_existence_weighted_mean": 3.1025792746441745,
+     "existence_scores": {
+      "rows": {
+       "gone": 3143,
+       "present": 149649
+      },
+      "auc_gone_over_present": 0.7668715714275063,
+      "quantiles": {
+       "gone": {
+        "0.05": 0.004551810212433338,
+        "0.25": 0.05058596283197403,
+        "0.5": 0.14648322761058807,
+        "0.75": 0.3855360150337219,
+        "0.95": 0.9887746572494507
+       },
+       "present": {
+        "0.05": 0.0004005658265668899,
+        "0.25": 0.0034447661601006985,
+        "0.5": 0.016288070008158684,
+        "0.75": 0.08477352559566498,
+        "0.95": 0.41780397295951843
+       }
+      },
+      "raw_threshold_for_tau": {
+       "0.15": 0.91983228876986,
+       "0.2": 0.9420445100184174,
+       "0.3": 0.9653560444188238,
+       "0.5": 0.9848527267733006
+      },
+      "share_at_or_above": {
+       "0.15": {
+        "gone": 0.07158765510658606,
+        "present": 0.004911492893370487
+       },
+       "0.2": {
+        "gone": 0.06395163856188354,
+        "present": 0.003508209209550348
+       },
+       "0.3": {
+        "gone": 0.05886096086541521,
+        "present": 0.002071514009448777
+       },
+       "0.5": {
+        "gone": 0.05186127903277124,
+        "present": 0.0010090277916992429
+       }
+      }
+     }
+    },
+    "train|dagger_round_0:ELU-P": {
+     "frames": 32550,
+     "loss_association_mean": 0.9260746936227572,
+     "loss_existence_weighted_mean": 1.7185763037368276,
+     "existence_scores": {
+      "rows": {
+       "gone": 8541,
+       "present": 813128
+      },
+      "auc_gone_over_present": 0.8810602123762107,
+      "quantiles": {
+       "gone": {
+        "0.05": 0.006318971049040556,
+        "0.25": 0.048413731157779694,
+        "0.5": 0.20017576217651367,
+        "0.75": 0.544693112373352,
+        "0.95": 0.9999997615814209
+       },
+       "present": {
+        "0.05": 0.00020518484234344214,
+        "0.25": 0.0009093708358705044,
+        "0.5": 0.0036980374716222286,
+        "0.75": 0.019766755402088165,
+        "0.95": 0.2484731376171112
+       }
+      },
+      "raw_threshold_for_tau": {
+       "0.15": 0.91983228876986,
+       "0.2": 0.9420445100184174,
+       "0.3": 0.9653560444188238,
+       "0.5": 0.9848527267733006
+      },
+      "share_at_or_above": {
+       "0.15": {
+        "gone": 0.146821215314366,
+        "present": 0.0016307395637587194
+       },
+       "0.2": {
+        "gone": 0.14166959372438825,
+        "present": 0.0011683277417577553
+       },
+       "0.3": {
+        "gone": 0.13441049057487414,
+        "present": 0.0007120650131344635
+       },
+       "0.5": {
+        "gone": 0.1248097412480974,
+        "present": 0.00035541759722946447
+       }
+      }
+     }
+    },
+    "train|dagger_round_1:VSMT-lean": {
+     "frames": 32550,
+     "loss_association_mean": 0.5093084701806626,
+     "loss_existence_weighted_mean": 3.155166173744432,
+     "existence_scores": {
+      "rows": {
+       "gone": 8664,
+       "present": 305515
+      },
+      "auc_gone_over_present": 0.7963598029206063,
+      "quantiles": {
+       "gone": {
+        "0.05": 0.010544835589826107,
+        "0.25": 0.07000647485256195,
+        "0.5": 0.21549288928508759,
+        "0.75": 0.511483907699585,
+        "0.95": 0.9989639520645142
+       },
+       "present": {
+        "0.05": 0.0004010388511233032,
+        "0.25": 0.0037371863145381212,
+        "0.5": 0.019719470292329788,
+        "0.75": 0.10982014238834381,
+        "0.95": 0.45070403814315796
+       }
+      },
+      "raw_threshold_for_tau": {
+       "0.15": 0.91983228876986,
+       "0.2": 0.9420445100184174,
+       "0.3": 0.9653560444188238,
+       "0.5": 0.9848527267733006
+      },
+      "share_at_or_above": {
+       "0.15": {
+        "gone": 0.11472760849492152,
+        "present": 0.004399129338984993
+       },
+       "0.2": {
+        "gone": 0.1038781163434903,
+        "present": 0.0032044253146326696
+       },
+       "0.3": {
+        "gone": 0.09198984302862419,
+        "present": 0.0018984337921214998
+       },
+       "0.5": {
+        "gone": 0.07744690674053555,
+        "present": 0.0010474117473773792
+       }
+      }
+     }
+    }
+   }
+  },
+  "31": {
+   "weights_sha256": "43bf9b9573840d73c6c559250d3b61035098af3328fd69d257e77b4a0e29a65d",
+   "best_epoch": 0,
+   "pos_weight": 65.01848299912817,
+   "offset": -4.174671629814588,
+   "blocks": {
+    "selection|dagger_round_0:ELU-P": {
+     "frames": 11547,
+     "loss_association_mean": 1.0676804833390243,
+     "loss_existence_weighted_mean": 1.1536650380058022,
+     "existence_scores": {
+      "rows": {
+       "gone": 3576,
+       "present": 501264
+      },
+      "auc_gone_over_present": 0.8610132301983539,
+      "quantiles": {
+       "gone": {
+        "0.05": 0.0076043251901865005,
+        "0.25": 0.04772982373833656,
+        "0.5": 0.14612942934036255,
+        "0.75": 0.28729331493377686,
+        "0.95": 0.9993558526039124
+       },
+       "present": {
+        "0.05": 0.00044027058174833655,
+        "0.25": 0.0017353903967887163,
+        "0.5": 0.006693307310342789,
+        "0.75": 0.03199958801269531,
+        "0.95": 0.2060512751340866
+       }
+      },
+      "raw_threshold_for_tau": {
+       "0.15": 0.91983228876986,
+       "0.2": 0.9420445100184174,
+       "0.3": 0.9653560444188238,
+       "0.5": 0.9848527267733006
+      },
+      "share_at_or_above": {
+       "0.15": {
+        "gone": 0.0894854586129754,
+        "present": 6.98234862268186e-05
+       },
+       "0.2": {
+        "gone": 0.087248322147651,
+        "present": 5.386383223211721e-05
+       },
+       "0.3": {
+        "gone": 0.08305369127516779,
+        "present": 3.989913498675349e-05
+       },
+       "0.5": {
+        "gone": 0.07606263982102908,
+        "present": 2.5934437741389766e-05
+       }
+      }
+     }
+    },
+    "selection|dagger_round_1:VSMT-lean": {
+     "frames": 11547,
+     "loss_association_mean": 0.6734943826335689,
+     "loss_existence_weighted_mean": 3.2626432333683715,
+     "existence_scores": {
+      "rows": {
+       "gone": 3143,
+       "present": 149649
+      },
+      "auc_gone_over_present": 0.758996382428934,
+      "quantiles": {
+       "gone": {
+        "0.05": 0.004120196215808392,
+        "0.25": 0.03838372230529785,
+        "0.5": 0.11148049682378769,
+        "0.75": 0.24413587152957916,
+        "0.95": 0.7115923762321472
+       },
+       "present": {
+        "0.05": 0.0007595113711431623,
+        "0.25": 0.00412708567455411,
+        "0.5": 0.01705259643495083,
+        "0.75": 0.07105658948421478,
+        "0.95": 0.2669741213321686
+       }
+      },
+      "raw_threshold_for_tau": {
+       "0.15": 0.91983228876986,
+       "0.2": 0.9420445100184174,
+       "0.3": 0.9653560444188238,
+       "0.5": 0.9848527267733006
+      },
+      "share_at_or_above": {
+       "0.15": {
+        "gone": 0.02513522112631244,
+        "present": 0.00019378679443230492
+       },
+       "0.2": {
+        "gone": 0.023544384346166083,
+        "present": 0.0001737398846634458
+       },
+       "0.3": {
+        "gone": 0.01813553929366847,
+        "present": 0.00011359915535686841
+       },
+       "0.5": {
+        "gone": 0.01145402481705377,
+        "present": 8.018763907543651e-05
+       }
+      }
+     }
+    },
+    "train|dagger_round_0:ELU-P": {
+     "frames": 32550,
+     "loss_association_mean": 0.9190550469861399,
+     "loss_existence_weighted_mean": 1.6581322995505752,
+     "existence_scores": {
+      "rows": {
+       "gone": 8541,
+       "present": 813128
+      },
+      "auc_gone_over_present": 0.8825199564595866,
+      "quantiles": {
+       "gone": {
+        "0.05": 0.008968905545771122,
+        "0.25": 0.055592820048332214,
+        "0.5": 0.1595669537782669,
+        "0.75": 0.3618163764476776,
+        "0.95": 0.9987286925315857
+       },
+       "present": {
+        "0.05": 0.0004218961112201214,
+        "0.25": 0.0014776944881305099,
+        "0.5": 0.005622824653983116,
+        "0.75": 0.026700960472226143,
+        "0.95": 0.20544451475143433
+       }
+      },
+      "raw_threshold_for_tau": {
+       "0.15": 0.91983228876986,
+       "0.2": 0.9420445100184174,
+       "0.3": 0.9653560444188238,
+       "0.5": 0.9848527267733006
+      },
+      "share_at_or_above": {
+       "0.15": {
+        "gone": 0.1042032548881864,
+        "present": 0.0001598764278194823
+       },
+       "0.2": {
+        "gone": 0.0996370448425243,
+        "present": 0.00013773969165986166
+       },
+       "0.3": {
+        "gone": 0.09425125863482028,
+        "present": 0.00012052223020237896
+       },
+       "0.5": {
+        "gone": 0.08394801545486477,
+        "present": 9.838549404275834e-05
+       }
+      }
+     }
+    },
+    "train|dagger_round_1:VSMT-lean": {
+     "frames": 32550,
+     "loss_association_mean": 0.5076139988154252,
+     "loss_existence_weighted_mean": 3.388969672603071,
+     "existence_scores": {
+      "rows": {
+       "gone": 8664,
+       "present": 305515
+      },
+      "auc_gone_over_present": 0.8001084618272201,
+      "quantiles": {
+       "gone": {
+        "0.05": 0.010394619777798653,
+        "0.25": 0.06089267507195473,
+        "0.5": 0.15098175406455994,
+        "0.75": 0.3110741674900055,
+        "0.95": 0.8998422026634216
+       },
+       "present": {
+        "0.05": 0.0007334166439250112,
+        "0.25": 0.004150171298533678,
+        "0.5": 0.01880257949233055,
+        "0.75": 0.08190388232469559,
+        "0.95": 0.2919292151927948
+       }
+      },
+      "raw_threshold_for_tau": {
+       "0.15": 0.91983228876986,
+       "0.2": 0.9420445100184174,
+       "0.3": 0.9653560444188238,
+       "0.5": 0.9848527267733006
+      },
+      "share_at_or_above": {
+       "0.15": {
+        "gone": 0.04709141274238227,
+        "present": 0.00017675073236993272
+       },
+       "0.2": {
+        "gone": 0.042820867959372115,
+        "present": 0.00012765330671161808
+       },
+       "0.3": {
+        "gone": 0.03578024007386888,
+        "present": 9.492168960607498e-05
+       },
+       "0.5": {
+        "gone": 0.024007386888273315,
+        "present": 4.2551102237206026e-05
+       }
+      }
+     }
+    }
+   }
+  },
+  "43": {
+   "weights_sha256": "1352ab0bb540e3fc1970972c518ce15fed741af4c791140eb5fac60f885adbf0",
+   "best_epoch": 0,
+   "pos_weight": 65.01848299912817,
+   "offset": -4.174671629814588,
+   "blocks": {
+    "selection|dagger_round_0:ELU-P": {
+     "frames": 11547,
+     "loss_association_mean": 1.0710093952123345,
+     "loss_existence_weighted_mean": 1.22363785814045,
+     "existence_scores": {
+      "rows": {
+       "gone": 3576,
+       "present": 501264
+      },
+      "auc_gone_over_present": 0.8819081723260421,
+      "quantiles": {
+       "gone": {
+        "0.05": 0.004400104284286499,
+        "0.25": 0.0323169082403183,
+        "0.5": 0.10428746044635773,
+        "0.75": 0.23434942960739136,
+        "0.95": 0.9963611960411072
+       },
+       "present": {
+        "0.05": 0.00029876630287617445,
+        "0.25": 0.0014037409564480186,
+        "0.5": 0.0043424214236438274,
+        "0.75": 0.01458233967423439,
+        "0.95": 0.10659292340278625
+       }
+      },
+      "raw_threshold_for_tau": {
+       "0.15": 0.91983228876986,
+       "0.2": 0.9420445100184174,
+       "0.3": 0.9653560444188238,
+       "0.5": 0.9848527267733006
+      },
+      "share_at_or_above": {
+       "0.15": {
+        "gone": 0.09312080536912752,
+        "present": 0.00022144019917648186
+       },
+       "0.2": {
+        "gone": 0.08808724832214765,
+        "present": 0.00016558141019502697
+       },
+       "0.3": {
+        "gone": 0.07997762863534676,
+        "present": 0.00010772766446423441
+       },
+       "0.5": {
+        "gone": 0.06795302013422819,
+        "present": 4.189409173609116e-05
+       }
+      }
+     }
+    },
+    "selection|dagger_round_1:VSMT-lean": {
+     "frames": 11547,
+     "loss_association_mean": 0.6877373497836666,
+     "loss_existence_weighted_mean": 3.4387257461843452,
+     "existence_scores": {
+      "rows": {
+       "gone": 3143,
+       "present": 149649
+      },
+      "auc_gone_over_present": 0.7679806222220192,
+      "quantiles": {
+       "gone": {
+        "0.05": 0.0034333267249166965,
+        "0.25": 0.02852354571223259,
+        "0.5": 0.07760840654373169,
+        "0.75": 0.17471975088119507,
+        "0.95": 0.873633623123169
+       },
+       "present": {
+        "0.05": 0.00047976625501178205,
+        "0.25": 0.0031653770711272955,
+        "0.5": 0.011595678515732288,
+        "0.75": 0.043696023523807526,
+        "0.95": 0.1993013620376587
+       }
+      },
+      "raw_threshold_for_tau": {
+       "0.15": 0.91983228876986,
+       "0.2": 0.9420445100184174,
+       "0.3": 0.9653560444188238,
+       "0.5": 0.9848527267733006
+      },
+      "share_at_or_above": {
+       "0.15": {
+        "gone": 0.044225262488068726,
+        "present": 0.0006281365060909194
+       },
+       "0.2": {
+        "gone": 0.03977091950365892,
+        "present": 0.00044103201491490086
+       },
+       "0.3": {
+        "gone": 0.030544066178810055,
+        "present": 0.00027397443350774144
+       },
+       "0.5": {
+        "gone": 0.023862551702195353,
+        "present": 0.00012696376186944116
+       }
+      }
+     }
+    },
+    "train|dagger_round_0:ELU-P": {
+     "frames": 32550,
+     "loss_association_mean": 0.9187870434163832,
+     "loss_existence_weighted_mean": 1.830339943049196,
+     "existence_scores": {
+      "rows": {
+       "gone": 8541,
+       "present": 813128
+      },
+      "auc_gone_over_present": 0.8918960032561601,
+      "quantiles": {
+       "gone": {
+        "0.05": 0.0069094207137823105,
+        "0.25": 0.034738704562187195,
+        "0.5": 0.09794501215219498,
+        "0.75": 0.2557675540447235,
+        "0.95": 0.9911510348320007
+       },
+       "present": {
+        "0.05": 0.00035639648558571935,
+        "0.25": 0.001340460847131908,
+        "0.5": 0.004068962763994932,
+        "0.75": 0.014893283136188984,
+        "0.95": 0.11864276230335236
+       }
+      },
+      "raw_threshold_for_tau": {
+       "0.15": 0.91983228876986,
+       "0.2": 0.9420445100184174,
+       "0.3": 0.9653560444188238,
+       "0.5": 0.9848527267733006
+      },
+      "share_at_or_above": {
+       "0.15": {
+        "gone": 0.0928462709284627,
+        "present": 0.0002890073887506026
+       },
+       "0.2": {
+        "gone": 0.08418218007259103,
+        "present": 0.00022136736159620625
+       },
+       "0.3": {
+        "gone": 0.07399601920149865,
+        "present": 0.00013405023563325825
+       },
+       "0.5": {
+        "gone": 0.05830698981383913,
+        "present": 7.132948318099979e-05
+       }
+      }
+     }
+    },
+    "train|dagger_round_1:VSMT-lean": {
+     "frames": 32550,
+     "loss_association_mean": 0.5173537309685048,
+     "loss_existence_weighted_mean": 3.5745498932231126,
+     "existence_scores": {
+      "rows": {
+       "gone": 8664,
+       "present": 305515
+      },
+      "auc_gone_over_present": 0.8098328847318627,
+      "quantiles": {
+       "gone": {
+        "0.05": 0.008803191594779491,
+        "0.25": 0.039017099887132645,
+        "0.5": 0.10582990944385529,
+        "0.75": 0.2626746594905853,
+        "0.95": 0.9272604584693909
+       },
+       "present": {
+        "0.05": 0.0005153892561793327,
+        "0.25": 0.003369253361597657,
+        "0.5": 0.012689701281487942,
+        "0.75": 0.05034687742590904,
+        "0.95": 0.21560518443584442
+       }
+      },
+      "raw_threshold_for_tau": {
+       "0.15": 0.91983228876986,
+       "0.2": 0.9420445100184174,
+       "0.3": 0.9653560444188238,
+       "0.5": 0.9848527267733006
+      },
+      "share_at_or_above": {
+       "0.15": {
+        "gone": 0.052516158818097874,
+        "present": 0.000464788962898712
+       },
+       "0.2": {
+        "gone": 0.04466759002770083,
+        "present": 0.0002880382305287793
+       },
+       "0.3": {
+        "gone": 0.03508771929824561,
+        "present": 0.00014729227697494394
+       },
+       "0.5": {
+        "gone": 0.024815327793167127,
+        "present": 7.528271934274913e-05
+       }
+      }
+     }
+    }
+   }
+  },
+  "59": {
+   "weights_sha256": "79bb2c9d7d94076a4b287f4bdc1d2549f80b5afb9baafd1e962ae2f9839ad100",
+   "best_epoch": 0,
+   "pos_weight": 65.01848299912817,
+   "offset": -4.174671629814588,
+   "blocks": {
+    "selection|dagger_round_0:ELU-P": {
+     "frames": 11547,
+     "loss_association_mean": 1.0531574866793263,
+     "loss_existence_weighted_mean": 1.1712006715900876,
+     "existence_scores": {
+      "rows": {
+       "gone": 3576,
+       "present": 501264
+      },
+      "auc_gone_over_present": 0.8798400984034954,
+      "quantiles": {
+       "gone": {
+        "0.05": 0.007006064057350159,
+        "0.25": 0.0435241162776947,
+        "0.5": 0.13454575836658478,
+        "0.75": 0.2953028678894043,
+        "0.95": 0.9999806880950928
+       },
+       "present": {
+        "0.05": 0.0003655729233287275,
+        "0.25": 0.0015098757576197386,
+        "0.5": 0.005193261429667473,
+        "0.75": 0.021279137581586838,
+        "0.95": 0.1623917520046234
+       }
+      },
+      "raw_threshold_for_tau": {
+       "0.15": 0.91983228876986,
+       "0.2": 0.9420445100184174,
+       "0.3": 0.9653560444188238,
+       "0.5": 0.9848527267733006
+      },
+      "share_at_or_above": {
+       "0.15": {
+        "gone": 0.10039149888143177,
+        "present": 0.00016558141019502697
+       },
+       "0.2": {
+        "gone": 0.09815436241610738,
+        "present": 0.00014363688595231256
+       },
+       "0.3": {
+        "gone": 0.09368008948545861,
+        "present": 0.0001097226212135721
+       },
+       "0.5": {
+        "gone": 0.08976510067114093,
+        "present": 6.18436592294679e-05
+       }
+      }
+     }
+    },
+    "selection|dagger_round_1:VSMT-lean": {
+     "frames": 11547,
+     "loss_association_mean": 0.675491392353124,
+     "loss_existence_weighted_mean": 3.3793512908112358,
+     "existence_scores": {
+      "rows": {
+       "gone": 3143,
+       "present": 149649
+      },
+      "auc_gone_over_present": 0.7639398570425503,
+      "quantiles": {
+       "gone": {
+        "0.05": 0.003797869198024273,
+        "0.25": 0.03491635620594025,
+        "0.5": 0.11773689836263657,
+        "0.75": 0.2619170844554901,
+        "0.95": 0.9033037424087524
+       },
+       "present": {
+        "0.05": 0.0005946751334704459,
+        "0.25": 0.0036014204379171133,
+        "0.5": 0.013873051851987839,
+        "0.75": 0.06314653158187866,
+        "0.95": 0.2850131392478943
+       }
+      },
+      "raw_threshold_for_tau": {
+       "0.15": 0.91983228876986,
+       "0.2": 0.9420445100184174,
+       "0.3": 0.9653560444188238,
+       "0.5": 0.9848527267733006
+      },
+      "share_at_or_above": {
+       "0.15": {
+        "gone": 0.04804327076041998,
+        "present": 0.0005011727442214783
+       },
+       "0.2": {
+        "gone": 0.043907095132039456,
+        "present": 0.00044103201491490086
+       },
+       "0.3": {
+        "gone": 0.03722558065542475,
+        "present": 0.0003474797693268916
+       },
+       "0.5": {
+        "gone": 0.02927139675469297,
+        "present": 0.00022719831071373682
+       }
+      }
+     }
+    },
+    "train|dagger_round_0:ELU-P": {
+     "frames": 32550,
+     "loss_association_mean": 0.9123452087563256,
+     "loss_existence_weighted_mean": 1.6850958530769273,
+     "existence_scores": {
+      "rows": {
+       "gone": 8541,
+       "present": 813128
+      },
+      "auc_gone_over_present": 0.8914347152761873,
+      "quantiles": {
+       "gone": {
+        "0.05": 0.008536594919860363,
+        "0.25": 0.04582070931792259,
+        "0.5": 0.14923377335071564,
+        "0.75": 0.37971794605255127,
+        "0.95": 0.9999794960021973
+       },
+       "present": {
+        "0.05": 0.0003733837220352143,
+        "0.25": 0.001381200971081853,
+        "0.5": 0.004625624045729637,
+        "0.75": 0.01953183114528656,
+        "0.95": 0.1784343421459198
+       }
+      },
+      "raw_threshold_for_tau": {
+       "0.15": 0.91983228876986,
+       "0.2": 0.9420445100184174,
+       "0.3": 0.9653560444188238,
+       "0.5": 0.9848527267733006
+      },
+      "share_at_or_above": {
+       "0.15": {
+        "gone": 0.12153143659992975,
+        "present": 0.00031114412491022324
+       },
+       "0.2": {
+        "gone": 0.11860437887835149,
+        "present": 0.0002754793833197233
+       },
+       "0.3": {
+        "gone": 0.11462358037700504,
+        "present": 0.00022628663629834417
+       },
+       "0.5": {
+        "gone": 0.1084182180072591,
+        "present": 0.00017463425192589603
+       }
+      }
+     }
+    },
+    "train|dagger_round_1:VSMT-lean": {
+     "frames": 32550,
+     "loss_association_mean": 0.5112047997925668,
+     "loss_existence_weighted_mean": 3.46330705470418,
+     "existence_scores": {
+      "rows": {
+       "gone": 8664,
+       "present": 305515
+      },
+      "auc_gone_over_present": 0.7990350827702657,
+      "quantiles": {
+       "gone": {
+        "0.05": 0.008941917680203915,
+        "0.25": 0.05490167438983917,
+        "0.5": 0.15002794563770294,
+        "0.75": 0.3142165541648865,
+        "0.95": 0.9832859635353088
+       },
+       "present": {
+        "0.05": 0.0006021612789481878,
+        "0.25": 0.0037919869646430016,
+        "0.5": 0.016489196568727493,
+        "0.75": 0.07564347982406616,
+        "0.95": 0.3004661202430725
+       }
+      },
+      "raw_threshold_for_tau": {
+       "0.15": 0.91983228876986,
+       "0.2": 0.9420445100184174,
+       "0.3": 0.9653560444188238,
+       "0.5": 0.9848527267733006
+      },
+      "share_at_or_above": {
+       "0.15": {
+        "gone": 0.06705909510618652,
+        "present": 0.000844475721323012
+       },
+       "0.2": {
+        "gone": 0.06325023084025855,
+        "present": 0.0007168224146113939
+       },
+       "0.3": {
+        "gone": 0.05736380424746076,
+        "present": 0.0005498911673731241
+       },
+       "0.5": {
+        "gone": 0.04916897506925208,
+        "present": 0.00037314043500319134
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "not_available": "per-epoch split losses: only the kept checkpoint of each seed was saved, so the split exists for it alone",
+ "wall_seconds": 327.1,
+ "script_sha256": "9f8b9f4893d9465dddfd373bb352c428015716d2e926b0bbc5fe1feb04c5b813"
+}
