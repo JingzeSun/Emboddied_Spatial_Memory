@@ -1,0 +1,13 @@
+{
+ "commit": "c02cb98",
+ "stage_reached": "done",
+ "finished_cst": "2026-09-30 11:45:32",
+ "suite_exit": "0",
+ "jobs_failed": "0",
+ "reading_exit": "0",
+ "workers": 60,
+ "cpu_quota": 68,
+ "memory_max": "257698037760",
+ "worker_basis": "cgroup CPU quota minus four; one single-threaded process per job",
+ "shutdown": false
+}
