@@ -70,7 +70,8 @@ class Audit:
         self.arm, self.config = arm, dict(config)
         self.shadow: dict[str, dict[str, float]] = {}
         self.counts = {"frames": 0, "illegal_frames_skipped": 0, "rows": 0, "retract_rows": 0, "decision_mismatches": 0,
-                       "state_mismatches": 0, "state_compared": 0, "mutated_decision_mismatches": 0}
+                       "state_mismatches": 0, "state_compared": 0, "mutated_decision_mismatches": 0,
+                       "mutated_state_mismatches": 0}
         self.max_log_odds_error = 0.0
         self.examples: list[dict[str, Any]] = []
 
@@ -117,6 +118,13 @@ class Audit:
                 for name, value in (shadow_before.get(eid) or {n: 0.0 for n in la.EXISTENCE_HISTORY_FEATURES}).items():
                     wrong[name] = float(value)
                 self.counts["mutated_decision_mismatches"] += int(rule_decision(self.arm, self.config, wrong) != actual)
+                if self.arm == "ELU-P":
+                    after = step["state"]["arm_state"].get("log_odds", {}).get(eid)
+                    wrong_state = after is not None and abs(float(after) - elu_p_log_odds(self.config, wrong)) > LOG_ODDS_TOLERANCE
+                else:
+                    field = probes.RAC_RUN_FIELD[float(self.config["rho_rac"])]
+                    wrong_state = float(before["arm_state"].get("negative_renders", {}).get(eid, 0)) != wrong[field]
+                self.counts["mutated_state_mismatches"] += int(wrong_state)
             self.shadow = mutated_update(shadow_before, eligible, order, matched)
             live = {str(e["entity_id"]) for e in step["state"]["memory"]["entities"]}
             self.shadow = {k: v for k, v in self.shadow.items() if k in live}
@@ -127,7 +135,7 @@ class Audit:
         c = self.counts
         return {**c, "max_log_odds_error": self.max_log_odds_error, "examples": self.examples,
                 "faithful": c["decision_mismatches"] == 0 and c["state_mismatches"] == 0,
-                "control_detected": c["mutated_decision_mismatches"] > 0}
+                "control_detected": c["mutated_decision_mismatches"] + c["mutated_state_mismatches"] > 0}
 
 
 def cmd_run(args: argparse.Namespace) -> int:
@@ -170,7 +178,8 @@ def cmd_run(args: argparse.Namespace) -> int:
     Path(args.output).parent.mkdir(parents=True, exist_ok=True)
     Path(args.output).write_text(json.dumps(out, indent=1), encoding="utf-8")
     print(json.dumps({k: out[k] for k in ("episode_id", "arm", "rows", "retract_rows", "decision_mismatches", "state_mismatches",
-                                          "mutated_decision_mismatches", "max_log_odds_error", "wall_seconds")}))
+                                          "mutated_decision_mismatches", "mutated_state_mismatches", "max_log_odds_error",
+                                          "wall_seconds")}))
     return 0
 
 
@@ -180,16 +189,17 @@ def cmd_merge(args: argparse.Namespace) -> int:
         d = json.loads(path.read_text(encoding="utf-8"))
         key = d["arm"] if d["arm"] == "ELU-P" else f"RAC_rho{d['config']['rho_rac']}_n{d['config']['n_rac']}"
         g = groups.setdefault(key, {"episodes": 0, "rows": 0, "retract_rows": 0, "decision_mismatches": 0, "state_mismatches": 0,
-                                    "state_compared": 0, "mutated_decision_mismatches": 0, "illegal_frames_skipped": 0,
+                                    "state_compared": 0, "mutated_decision_mismatches": 0, "mutated_state_mismatches": 0,
+                                    "illegal_frames_skipped": 0,
                                     "max_log_odds_error": 0.0})
         g["episodes"] += 1
         for name in ("rows", "retract_rows", "decision_mismatches", "state_mismatches", "state_compared", "mutated_decision_mismatches",
-                     "illegal_frames_skipped"):
+                     "mutated_state_mismatches", "illegal_frames_skipped"):
             g[name] += int(d[name])
         g["max_log_odds_error"] = max(g["max_log_odds_error"], float(d["max_log_odds_error"]))
     for g in groups.values():
         g["faithful"] = g["decision_mismatches"] == 0 and g["state_mismatches"] == 0
-        g["control_detected"] = g["mutated_decision_mismatches"] > 0
+        g["control_detected"] = g["mutated_decision_mismatches"] + g["mutated_state_mismatches"] > 0
     out = {"stage": STAGE, "check": "89-2 history summaries against independent ELU-P / RAC executors", "groups": groups,
            "pass": bool(groups) and all(g["faithful"] and g["control_detected"] for g in groups.values()),
            "script_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest()}
