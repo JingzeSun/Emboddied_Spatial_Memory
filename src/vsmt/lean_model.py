@@ -478,7 +478,9 @@ def prepared_loss(heads: Any, prepared: Mapping[str, Any], *, existence_pos_weig
     if existence:
         parts.append(existence[0])
     loss = torch.stack(parts).sum() if parts else None
-    return {"loss": loss, **counted}
+    # the two terms kept apart for the per-epoch record (user, 2026-09-30); the loss above is unchanged
+    return {"loss": loss, **counted, "association_loss": parts[0] if association else None,
+            "existence_loss": existence[0] if existence else None}
 
 
 def batch_prepared(prepared: Mapping[str, Any], *, device: str = "cpu") -> dict[str, Any]:
@@ -526,20 +528,24 @@ def batched_loss(heads: Any, batched: Mapping[str, Any], *, existence_pos_weight
     import torch
 
     parts = []
+    association_loss = existence_loss = None
     if batched["fragments"]:
         pair_logits = heads["association"](batched["pairs"]).reshape(-1) if batched["pairs"] is not None else None
         birth_logits = heads["birth"](batched["births"]).reshape(-1)
         flat = birth_logits if pair_logits is None else torch.cat([pair_logits, birth_logits])
         scores = flat[batched["index"]].masked_fill(~batched["mask"], float("-inf"))
-        parts.append(torch.nn.functional.cross_entropy(scores, batched["targets"]))
+        association_loss = torch.nn.functional.cross_entropy(scores, batched["targets"])
+        parts.append(association_loss)
     existence_terms = 0
     if batched["existence"] is not None and not is_assoc_only(heads):
         rows, target, count = batched["existence"]
         logits = heads["existence"](rows).reshape(-1)
-        parts.append(torch.nn.functional.binary_cross_entropy_with_logits(logits, target, pos_weight=existence_pos_weight))
+        existence_loss = torch.nn.functional.binary_cross_entropy_with_logits(logits, target, pos_weight=existence_pos_weight)
+        parts.append(existence_loss)
         existence_terms = count
     loss = torch.stack(parts).sum() if parts else None
-    return {"loss": loss, "association_terms": batched["fragments"], "existence_terms": existence_terms}
+    return {"loss": loss, "association_terms": batched["fragments"], "existence_terms": existence_terms,
+            "association_loss": association_loss, "existence_loss": existence_loss}
 
 
 def frame_loss(heads: Any, record: Mapping[str, Any], *, device: str = "cpu") -> dict[str, Any]:
@@ -556,6 +562,35 @@ def frame_loss(heads: Any, record: Mapping[str, Any], *, device: str = "cpu") ->
 # --------------------------------------------------------------------------
 # 4. training: AdamW, per-frame batches, best epoch by validation loss
 # --------------------------------------------------------------------------
+
+class _TermMeans:
+    """Running means of the summed loss and of each term over the frames that carry it (the per-epoch record)."""
+
+    def __init__(self) -> None:
+        self.sums = {"total": 0.0, "association": 0.0, "existence": 0.0}
+        self.counts = {"total": 0, "association": 0, "existence": 0}
+
+    def add(self, out: Mapping[str, Any]) -> None:
+        for key, name in (("total", "loss"), ("association", "association_loss"), ("existence", "existence_loss")):
+            value = out.get(name)
+            if value is not None:
+                self.sums[key] += float(value.item())
+                self.counts[key] += 1
+
+    def means(self) -> dict[str, float | None]:
+        return {key: (self.sums[key] / self.counts[key]) if self.counts[key] else None for key in self.sums}
+
+
+def _mean_loss_and_terms(heads: Any, prepared_records: Sequence[Mapping[str, Any]], *, existence_pos_weight: Any = None,
+                         loss_fn: Any = None) -> dict[str, float | None]:
+    import torch
+
+    tally = _TermMeans()
+    with torch.no_grad():
+        for prepared in prepared_records:
+            tally.add((loss_fn or prepared_loss)(heads, prepared, existence_pos_weight=existence_pos_weight))
+    return tally.means()
+
 
 def _mean_loss(heads: Any, prepared_records: Sequence[Mapping[str, Any]], *, existence_pos_weight: Any = None,
                loss_fn: Any = None) -> float | None:
@@ -626,6 +661,8 @@ def train_heads(
     best: tuple[float, int, dict[str, Any]] | None = None
     diverged = False
     updates_taken = 0
+    train_terms: list[dict[str, float | None]] = []       # per epoch: mean of each term while the epoch updates
+    validation_terms: list[dict[str, float | None]] = []  # per epoch: each term at the epoch-end weights
     for epoch in range(int(epochs)):
         if cosine_min_learning_rate is not None:  # pending ruling 91 only; None keeps the registered constant rate
             rate = float(cosine_min_learning_rate) + (float(learning_rate) - float(cosine_min_learning_rate)) * (1.0 + math.cos(math.pi * epoch / int(epochs))) / 2.0
@@ -634,6 +671,7 @@ def train_heads(
         heads.train()
         order = torch.randperm(len(train_records), generator=generator).tolist()
         total, count = 0.0, 0
+        epoch_terms = _TermMeans()
         for index in order:
             out = loss_fn(heads, train_prepared[index], existence_pos_weight=pos_weight)
             if out["loss"] is None:
@@ -649,13 +687,17 @@ def train_heads(
             total += float(out["loss"].item())
             count += 1
             updates_taken += 1
+            epoch_terms.add(out)
         if diverged:
             train_curve.append(None)
             validation_curve.append(None)
             break
         heads.eval()
         train_curve.append(total / count if count else None)
-        validation = _mean_loss(heads, validation_prepared, existence_pos_weight=pos_weight, loss_fn=loss_fn)
+        train_terms.append(epoch_terms.means())
+        held_out = _mean_loss_and_terms(heads, validation_prepared, existence_pos_weight=pos_weight, loss_fn=loss_fn)
+        validation_terms.append(held_out)
+        validation = held_out["total"]
         validation_curve.append(validation)
         if validation is not None and (best is None or validation < best[0]):
             best = (validation, epoch, {name: {k: v.detach().cpu().clone() for k, v in module.state_dict().items()}
@@ -681,9 +723,10 @@ def train_heads(
     if cosine_min_learning_rate is not None or gradient_clip_norm is not None or existence_prior_correction:
         training.update({"existence_prior_correction": bool(existence_prior_correction),"cosine_min_learning_rate": cosine_min_learning_rate, "gradient_clip_norm": gradient_clip_norm,
                          "schedule_rule": COSINE_SCHEDULE_RULE})
+    training["loss_terms_per_epoch"] = {"train_running_mean": train_terms, "validation_at_epoch_end": validation_terms}
     return {"weights": weights_payload(heads, training=training), "heads": heads, "train_curve": train_curve,
             "validation_curve": validation_curve, "best_epoch": None if best is None else best[1], "diverged": diverged,
-            "updates_taken": updates_taken}
+            "updates_taken": updates_taken, "train_curve_terms": train_terms, "validation_curve_terms": validation_terms}
 
 
 #: D-224-S1 ruling 81-2 (2026-09-28), diagnostics only: the controlled comparison counts training in optimizer updates.

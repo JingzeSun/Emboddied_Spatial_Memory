@@ -363,6 +363,7 @@ def cmd_train(args: argparse.Namespace) -> int:
                "source_arm": args.source_arm, "rule": dev.DEVELOPMENT_TRAINING_RULE, "seed": seed, "holdout": holdout,
                "train_frames": len(train_records), "validation_frames": len(validation_records), "train_curve": result["train_curve"],
                "validation_curve": result["validation_curve"], "best_epoch": result["best_epoch"], "diverged": result["diverged"],
+               "train_curve_terms": result["train_curve_terms"], "validation_curve_terms": result["validation_curve_terms"],
                "weights_sha256": result["weights"]["sha256"], "device": args.device, "code_commit": _git("rev-parse", "HEAD"),
                "wall_seconds": round(time.time() - started, 1)}
     (out_dir / "training_receipt.json").write_text(json.dumps(receipt, indent=1), encoding="utf-8")

@@ -316,6 +316,21 @@ class FieldWiseTests(unittest.TestCase):
         with self.assertRaises(model.LeanModelError):
             model.load_heads(tampered)
 
+    def test_every_epoch_records_the_two_loss_terms(self) -> None:
+        # user, 2026-09-30: per-epoch association / existence losses are always kept, train and validation
+        train, validation = self.records()
+        for kwargs in ({}, {"field_encoding": True, "existence_class_weight": True}):
+            result = model.train_heads(train, validation, learning_rate=1e-3, weight_decay=1e-4, epochs=3, seed=7, assoc_only=False, **kwargs)
+            self.assertEqual(len(result["train_curve_terms"]), 3)
+            self.assertEqual(len(result["validation_curve_terms"]), 3)
+            for epoch, terms in enumerate(result["validation_curve_terms"]):
+                self.assertAlmostEqual(terms["total"], result["validation_curve"][epoch], places=9)
+                self.assertIsNotNone(terms["association"])
+                self.assertIsNotNone(terms["existence"])
+            for epoch, terms in enumerate(result["train_curve_terms"]):
+                self.assertAlmostEqual(terms["total"], result["train_curve"][epoch], places=9)
+            self.assertEqual(result["weights"]["training"]["loss_terms_per_epoch"]["validation_at_epoch_end"], result["validation_curve_terms"])
+
     def test_the_class_weight_multiplies_the_gone_rows(self) -> None:
         import torch
         record = labelled_frame(21, drop="lamp")

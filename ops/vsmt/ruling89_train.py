@@ -73,6 +73,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                "train_frames": len(train_records), "validation_frames": len(validation_records),
                "updates_taken": result["updates_taken"], "existence_class_weight": result["weights"]["training"].get("existence_class_weight"),
                "train_curve": result["train_curve"], "validation_curve": result["validation_curve"], "best_epoch": result["best_epoch"],
+               "train_curve_terms": result["train_curve_terms"], "validation_curve_terms": result["validation_curve_terms"],
                "diverged": result["diverged"], "weights_sha256": result["weights"]["sha256"], "files": files, "device": args.device,
                "code_commit": entry._git("rev-parse", "HEAD"), "wall_seconds": round(time.time() - started, 1),
                "script_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest()}

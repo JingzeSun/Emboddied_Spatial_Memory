@@ -376,6 +376,7 @@ def cmd_imitation(args: argparse.Namespace) -> int:
                       **revision_kwargs(args)},
            "training": {k: result["weights"]["training"].get(k) for k in ("existence_class_weight", "updates_taken", "best_epoch")},
            "train_curve": result["train_curve"], "train_loss_fixed_weights": fixed,
+           "train_curve_terms": result["train_curve_terms"], "validation_curve_terms": result["validation_curve_terms"],
            "train_curve_rule": "train_curve: mean per-step loss while the epoch updates; train_loss_fixed_weights: the epoch-end checkpoint on the whole training set, which picks lowest_training_loss",
            "validation_curve": result["validation_curve"], "diverged": result["diverged"],
            "readings": readings, "reads_uncorrected_existence_logits": bool(getattr(args, "read_uncorrected", False)),
