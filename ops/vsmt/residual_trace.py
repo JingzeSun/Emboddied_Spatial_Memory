@@ -1,0 +1,125 @@
+"""Where a lingering stale entity got stuck (ruling 93 revised, 2026-09-30; read-only, changes no decision).
+
+白话：Missing 残留率只告诉我们“有多少被拿走／搬走的物体在原位置还留着旧记录”，不告诉旧记录为什么没被撤回。这里逐帧跟踪
+每个这样的物体在原位置附近的“陈旧实体”（身份是该物体、质心在原位置 δ 以内，与 `lean_teacher.missing_residual_rate` 同一口径）：
+这一帧它被绑定了、进了可判定存在候选、因不应可见被排除、已撤回，还是没有存在行；进了候选时 teacher 的存在标签、学习头的
+logit（决策用的校正后值与未校正值）和决定。到 episode 结束时，对最后一帧仍残留的每个物体归一类：
+  * carrier_rebound — 物体离开后，陈旧实体又被某个色块绑定过；
+  * retracted_then_back — 曾被撤回，但最后仍有同身份实体留在原位；
+  * never_eligible — 物体离开后，陈旧实体从未进过可判定候选；
+  * eligible_teacher_never_gone — 进过候选，但 teacher 从未标 gone；
+  * eligible_gone_below_threshold — 进过候选、teacher 标过 gone，但一次都没被撤回。
+它不是新的指标，不改任何决定或标签，只为解释残留。
+"""
+
+from __future__ import annotations
+
+import math
+from typing import Any, Mapping, Sequence
+
+MISSING_KINDS = ("remove", "move")
+CATEGORY_ORDER = ("carrier_rebound", "retracted_then_back", "never_eligible", "eligible_teacher_never_gone",
+                  "eligible_gone_below_threshold")
+
+
+def _distance(a: Sequence[float], b: Sequence[float]) -> float:
+    return math.sqrt(sum((float(x) - float(y)) ** 2 for x, y in zip(a, b)))
+
+
+class ResidualTracer:
+    def __init__(self, *, teacher: Any, learned: Any, delta_moved_m: float, identity_of: Any) -> None:
+        self.teacher = teacher
+        self.learned = learned
+        self.delta = float(delta_moved_m)
+        self.identity_of = identity_of          # (entity) -> {"resolvable", "key"}
+        self.timelines: dict[str, dict[str, list[dict[str, Any]]]] = {}
+        self.last_residual: list[str] = []
+        self.ever_residual: set[str] = set()
+
+    def _watched(self) -> dict[str, list[float]]:
+        return {key: list(self.teacher.old_place[key]["centroid_m"]) for key, kind in self.teacher.interventions.items()
+                if kind in MISSING_KINDS and key in self.teacher.old_place}
+
+    def observe(self, step: Mapping[str, Any], labelled: Mapping[str, Any]) -> None:
+        frame_index = int(labelled["frame_index"])
+        missing = labelled.get("missing_residual")
+        if missing is None:
+            return
+        self.last_residual = list(missing.get("residual_keys") or [])
+        self.ever_residual.update(self.last_residual)
+        watched = self._watched()
+        if not watched:
+            return
+        receipt = step["receipt"]
+        existence = receipt["existence"]
+        candidates = set(existence["candidates"])
+        not_visible = set(existence["excluded_not_visible"])
+        retracted = set(existence["excluded_retracted"])
+        assigned = {str(c) for c in receipt["assignment"].values() if not str(c).startswith("birth:")}
+        rows = {str(r["entity_id"]): r for r in step["stage_b"]["existence_rows"]}
+        order = step["stage_b"]["existence_feature_order"]
+        labels = labelled.get("existence_labels") or {}
+        for entity in step["memory_before"]["entities"]:
+            near = [key for key, old in watched.items() if _distance(entity["centroid_m"], old) <= self.delta]
+            if not near:
+                continue
+            identity = self.identity_of(entity)
+            if not identity["resolvable"] or identity["key"] not in near:
+                continue
+            key, eid = identity["key"], str(entity["entity_id"])
+            if eid in assigned:
+                status = "assigned"
+            elif eid in candidates:
+                status = "candidate"
+            elif eid in not_visible:
+                status = "not_visible"
+            elif eid in retracted or entity["state"] == "retracted":
+                status = "retracted"
+            else:
+                status = "no_existence_row"
+            item: dict[str, Any] = {"frame": frame_index, "state": entity["state"], "status": status}
+            if status == "candidate":
+                item["label"] = (labels.get(eid) or {}).get("status")
+                item["decision"] = existence["decisions"].get(eid)
+                if self.learned is not None and eid in rows and not getattr(self.learned, "assoc_only", False):
+                    logit = float(self.learned.existence_logits([rows[eid]], order)[eid])
+                    offset = float(getattr(getattr(self.learned, "heads", None), "existence_logit_offset", 0.0) or 0.0)
+                    item["logit_decision"] = logit
+                    item["logit_uncorrected"] = logit - offset
+            self.timelines.setdefault(key, {}).setdefault(eid, []).append(item)
+
+    @staticmethod
+    def classify(entities: Mapping[str, Sequence[Mapping[str, Any]]]) -> tuple[str, dict[str, Any]]:
+        rows = [item for timeline in entities.values() for item in timeline]
+        counts = {"frames": len(rows), "assigned": sum(r["status"] == "assigned" for r in rows),
+                  "candidate": sum(r["status"] == "candidate" for r in rows),
+                  "candidate_labelled_gone": sum(r["status"] == "candidate" and r.get("label") == "gone" for r in rows),
+                  "retract_decisions": sum(r.get("decision") == "RETRACT" for r in rows),
+                  "not_visible": sum(r["status"] == "not_visible" for r in rows),
+                  "retracted": sum(r["status"] == "retracted" for r in rows),
+                  "no_existence_row": sum(r["status"] == "no_existence_row" for r in rows),
+                  "entities": len(entities)}
+        gone_logits = [r["logit_uncorrected"] for r in rows if r.get("label") == "gone" and "logit_uncorrected" in r]
+        counts["max_uncorrected_logit_when_gone"] = max(gone_logits) if gone_logits else None
+        if counts["assigned"]:
+            category = "carrier_rebound"
+        elif counts["retract_decisions"]:
+            category = "retracted_then_back"
+        elif not counts["candidate"]:
+            category = "never_eligible"
+        elif not counts["candidate_labelled_gone"]:
+            category = "eligible_teacher_never_gone"
+        else:
+            category = "eligible_gone_below_threshold"
+        return category, counts
+
+    def report(self) -> dict[str, Any]:
+        final = {}
+        for key in sorted(self.last_residual):
+            category, counts = self.classify(self.timelines.get(key, {}))
+            final[key] = {"category": category, **counts, "kind": self.teacher.interventions.get(key)}
+        tally = {name: sum(1 for v in final.values() if v["category"] == name) for name in CATEGORY_ORDER}
+        return {"final_residual_objects": len(final), "ever_residual_objects": len(self.ever_residual),
+                "categories": tally, "per_object": final,
+                "definition": "carriers: same identity and within delta_moved_m of the old centroid, the missing_residual_rate rule; "
+                              "status per frame after the window from the runner receipt; categories in CATEGORY_ORDER precedence"}

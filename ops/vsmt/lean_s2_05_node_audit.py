@@ -1406,6 +1406,7 @@ def run(args: argparse.Namespace) -> int:
     teacher = ev.EpisodeTeacher(arm=args.arm, geometry_table=table, executed_interventions=executed, window=window,
                                 policy=policy["teacher"], nuisance_meta=nuisance_meta)
     captured = capture_truth_table(teacher)
+    learned_scorer = scorer  # the heads' own scorer, before any oracle wraps it (the residual trace reads its logits)
     oracle = None
     if oracle_requested:
         # ruling 88-2 (i), diagnostic only: the teacher's decisions become the policy (private truth before the seals)
@@ -1423,6 +1424,13 @@ def run(args: argparse.Namespace) -> int:
                       interventions=teacher.interventions, window_end=teacher.window_end,
                       carriers_before_move=teacher.carriers_before_move)
     audit.fold_capture = capture_dedup_folds()
+    tracer = None
+    if args.trace_residuals:
+        # ruling 93 revised (2026-09-30), read-only: where each lingering stale entity got stuck; changes no decision
+        import residual_trace
+
+        tracer = residual_trace.ResidualTracer(teacher=teacher, learned=learned_scorer, delta_moved_m=policy["teacher"]["delta_moved_m"],
+                                               identity_of=lambda entity: lt.entity_identity(entity, teacher.evidence))
     started = time.time()
     current: dict[str, Any] = {}
 
@@ -1458,6 +1466,8 @@ def run(args: argparse.Namespace) -> int:
             labelled = teacher.label_frame(step, cache_frame=cache_frame, private_record=record, masks=masks,
                                            label_image=image, runtime_s=runtime, peak_memory_bytes=s2_04.peak_rss_bytes())
             audit.observe(step, labelled, captured["table"])
+            if tracer is not None:
+                tracer.observe(step, labelled)
             if oracle is not None:
                 oracle.commit(step["state"]["memory"])
             mark = time.time()
@@ -1475,6 +1485,7 @@ def run(args: argparse.Namespace) -> int:
         "report": episode["report"], "heads": args.heads,
         "oracle": None if oracle is None else oracle.describe(),
         "audit": audit.report(),
+        "residual_trace": None if tracer is None else tracer.report(),
         "wall_seconds": round(time.time() - started, 1),
     }
     (out_dir / AUDIT_FILE_NAME).write_text(json.dumps(payload, indent=1), encoding="utf-8")
@@ -1656,6 +1667,8 @@ def main() -> int:
                             help="diagnostic (ruling 88-2 (i)): the teacher's existence labels under this place rule decide")
     run_parser.add_argument("--oracle-recall", action="store_true",
                             help="diagnostic (ruling 88-2 (i)): append the earliest carrier of each fragment's dominant object to its recall")
+    run_parser.add_argument("--trace-residuals", action="store_true",
+                            help="ruling 93 revised, read-only: trace where each lingering stale entity got stuck (residual_trace)")
     run_parser.add_argument("--recall-global-count", type=int, default=None,
                             help="diagnostic (ruling 89-1): replace the global recall channel's k' for this run; recorded in the payload")
     run_parser.set_defaults(func=run)

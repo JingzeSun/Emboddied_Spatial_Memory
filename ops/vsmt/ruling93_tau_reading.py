@@ -58,7 +58,7 @@ def seed_row(payload: dict[str, Any]) -> dict[str, Any]:
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--cell", action="append", required=True, help="tau:seed:merged audit")
+    parser.add_argument("--cell", action="append", required=True, help="tau or working-point label:seed:merged audit")
     parser.add_argument("--output", required=True)
     args = parser.parse_args(argv)
     table: dict[str, dict[str, Any]] = {}
@@ -68,7 +68,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         inputs[path] = hashlib.sha256(Path(path).read_bytes()).hexdigest()
         table.setdefault(tau, {})[seed] = seed_row(json.loads(Path(path).read_text(encoding="utf-8")))
     summary = {}
-    for tau, seeds in sorted(table.items(), key=lambda kv: float(kv[0])):
+    def order(label: str) -> tuple[int, float, str]:  # numeric taus first, then named working points
+        try:
+            return (0, float(label), label)
+        except ValueError:
+            return (1, 0.0, label)
+
+    for tau, seeds in sorted(table.items(), key=lambda kv: order(kv[0])):
         means = {m: statistics.fmean(s[m] for s in seeds.values() if s[m] is not None) for m in METRICS}
         summary[tau] = {"seeds": len(seeds), "means": means,
                         "seed_mean_meets_both_lines": means["missing_residual_rate"] <= MRR_LINE and means["node_f1"] >= NODE_F1_LINE,
