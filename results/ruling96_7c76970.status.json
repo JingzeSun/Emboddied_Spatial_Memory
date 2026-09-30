@@ -1,0 +1,25 @@
+{
+ "commit": "7c76970",
+ "stage_reached": "done",
+ "finished_cst": "2026-10-01 03:02:50",
+ "suite_exit": "0",
+ "training_failed": "0",
+ "selection_check_exit": "0",
+ "audits_failed": "0",
+ "merges_failed": "0",
+ "reading_exit": "0",
+ "reused": {
+  "records": [
+   "/root/autodl-tmp/vsmt_private/ruling89-sides-003b906/dagger_round_0",
+   "/root/autodl-tmp/vsmt_private/ruling93-9722290/dagger_round_1"
+  ],
+  "previous_heads": "/root/autodl-tmp/vsmt_private/ruling93-9722290/training/round1/VSMT-lean",
+  "assoc_only_and_rule_arms": "vsmt_lean_ruling95_audit_*_d835cd3.json"
+ },
+ "workers": 64,
+ "train_threads": 4,
+ "cpu_quota": 68,
+ "memory_max": "257698037760",
+ "worker_basis": "five trainings with TRAIN_THREADS threads each (the ruling-93 setting, needed for bit reproduction); then audits on cgroup CPU quota minus four, one single-threaded process of about 1-2 GB each, largest episode first",
+ "fallback_shutdown_seconds": 7200
+}

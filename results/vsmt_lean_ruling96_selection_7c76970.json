@@ -1,0 +1,585 @@
+{
+ "stage": "vsmt.lean.ruling96.selection_check.v1",
+ "previous": "/root/autodl-tmp/vsmt_private/ruling93-9722290/training/round1/VSMT-lean",
+ "retrained": "/root/autodl-tmp/vsmt_private/ruling96-7c76970/training/round1/VSMT-lean",
+ "script_sha256": "b3c2c85d660eda1861b6cd36dae57366ac00b7070f9c9a57dfe4df1b44caa43d",
+ "rule": "every seed's total-loss selection of the retraining must carry the previous weights digest (tensors, encoding and offset; the training block lies outside the digest) before any difference in the joint loop is put down to the selection rule",
+ "seeds": {
+  "7": {
+   "previous_weights_sha256": "d0c44f401f90b86bfa57afc15a3bbf065a2056d275773852efd46318fa0450d5",
+   "retrained_weights_sha256": "d0c44f401f90b86bfa57afc15a3bbf065a2056d275773852efd46318fa0450d5",
+   "reproduced": true,
+   "previous_best_epoch": 0,
+   "retrained_best_epoch": 0,
+   "grouped_best_epoch_by_group": {
+    "association_birth": 2,
+    "existence": 0
+   },
+   "grouped_weights_sha256": "0951ba7a73ba4aff26ec55b720d8f24b9e70b07f620eff70623e3a0ef1bf70f5",
+   "grouped_equals_total_selection": false,
+   "validation_terms_per_epoch": [
+    {
+     "total": 2.965205190961652,
+     "association": 0.8646217577692258,
+     "existence": 2.1332927034781317
+    },
+    {
+     "total": 3.6852620409997088,
+     "association": 0.9241204001469213,
+     "existence": 2.803996731220198
+    },
+    {
+     "total": 4.020496897387773,
+     "association": 0.8486846964172939,
+     "existence": 3.2209008335901976
+    },
+    {
+     "total": 4.122470466011058,
+     "association": 0.8996345813116103,
+     "existence": 3.2727387858968062
+    },
+    {
+     "total": 4.332488486932214,
+     "association": 0.8631259817581828,
+     "existence": 3.523013193864425
+    },
+    {
+     "total": 4.854466772758749,
+     "association": 0.8969437706748907,
+     "existence": 4.018664887390485
+    },
+    {
+     "total": 5.6802902853004875,
+     "association": 0.8577644001751331,
+     "existence": 4.896876539532319
+    },
+    {
+     "total": 5.215266853246719,
+     "association": 0.8722179399966761,
+     "existence": 4.410073064267108
+    },
+    {
+     "total": 5.301654641392519,
+     "association": 0.8603089985159178,
+     "existence": 4.509865877818363
+    },
+    {
+     "total": 5.888106325765951,
+     "association": 0.8648213843159919,
+     "existence": 5.100711872400323
+    },
+    {
+     "total": 5.838301738573429,
+     "association": 0.8765376563218135,
+     "existence": 5.038257459613666
+    },
+    {
+     "total": 5.870688395597632,
+     "association": 0.8633334314928551,
+     "existence": 5.084537179699856
+    },
+    {
+     "total": 6.737705550007049,
+     "association": 0.8743701135606693,
+     "existence": 5.953621497544112
+    },
+    {
+     "total": 7.3602627202877455,
+     "association": 0.9016380157150009,
+     "existence": 6.558036706346805
+    },
+    {
+     "total": 6.9306568618114035,
+     "association": 0.8757382371842304,
+     "existence": 6.148136811389874
+    },
+    {
+     "total": 6.876957724037136,
+     "association": 0.8837822288203053,
+     "existence": 6.085454324477807
+    },
+    {
+     "total": 6.931928322550233,
+     "association": 0.8834324063332208,
+     "existence": 6.141620906290977
+    },
+    {
+     "total": 7.211917833972218,
+     "association": 0.8755587932108534,
+     "existence": 6.433883169947008
+    },
+    {
+     "total": 7.018886624066091,
+     "association": 0.8870325636876011,
+     "existence": 6.226256814680702
+    },
+    {
+     "total": 7.0107658237423385,
+     "association": 0.8844246468240105,
+     "existence": 6.220657866492419
+    }
+   ]
+  },
+  "19": {
+   "previous_weights_sha256": "655f1afb11cea36ea9b64e58ff98d7027f66814cfa582692aff30b915996b3cb",
+   "retrained_weights_sha256": "655f1afb11cea36ea9b64e58ff98d7027f66814cfa582692aff30b915996b3cb",
+   "reproduced": true,
+   "previous_best_epoch": 0,
+   "retrained_best_epoch": 0,
+   "grouped_best_epoch_by_group": {
+    "association_birth": 2,
+    "existence": 0
+   },
+   "grouped_weights_sha256": "23c5861629bbcb99c9ff2c9cdcfff8a01e4bfa2b2d4b49591e43f15f911dc765",
+   "grouped_equals_total_selection": false,
+   "validation_terms_per_epoch": [
+    {
+     "total": 2.9749399226564006,
+     "association": 0.8905678134329117,
+     "existence": 2.1168504553747534
+    },
+    {
+     "total": 3.7317061290230487,
+     "association": 0.879911126851795,
+     "existence": 2.896007942766909
+    },
+    {
+     "total": 3.5427057615299833,
+     "association": 0.8439521301845846,
+     "existence": 2.7406013122411816
+    },
+    {
+     "total": 4.028262116482814,
+     "association": 0.8843787293838578,
+     "existence": 3.192568248043622
+    },
+    {
+     "total": 4.176739130131608,
+     "association": 0.8545072032475874,
+     "existence": 3.3736258319432797
+    },
+    {
+     "total": 4.454343174841989,
+     "association": 0.8523803707172812,
+     "existence": 3.6576352054357186
+    },
+    {
+     "total": 4.929602744033012,
+     "association": 0.8648505414199371,
+     "existence": 4.127513536200347
+    },
+    {
+     "total": 4.976761939542584,
+     "association": 0.9071953269043483,
+     "existence": 4.132429531753512
+    },
+    {
+     "total": 5.513108971531129,
+     "association": 0.8956235156466565,
+     "existence": 4.688723939038798
+    },
+    {
+     "total": 5.5913827142491215,
+     "association": 0.8669174687207261,
+     "existence": 4.797321596879849
+    },
+    {
+     "total": 5.8614969033372555,
+     "association": 0.8751773391669753,
+     "existence": 5.0631877453501595
+    },
+    {
+     "total": 6.542739941668583,
+     "association": 0.870033381885486,
+     "existence": 5.760073123158822
+    },
+    {
+     "total": 6.388887630845977,
+     "association": 0.8864664543064928,
+     "existence": 5.5871931978269025
+    },
+    {
+     "total": 6.986571668967197,
+     "association": 0.8662721781274695,
+     "existence": 6.214511771596146
+    },
+    {
+     "total": 6.9265755525602115,
+     "association": 0.877147482301788,
+     "existence": 6.142563185231528
+    },
+    {
+     "total": 7.209694542554938,
+     "association": 0.8883620814985118,
+     "existence": 6.418635123438605
+    },
+    {
+     "total": 7.244814031984401,
+     "association": 0.8825700966978598,
+     "existence": 6.460168734687617
+    },
+    {
+     "total": 7.413683746627909,
+     "association": 0.8825624181740197,
+     "existence": 6.631629958209047
+    },
+    {
+     "total": 7.180002938966069,
+     "association": 0.8784923045506765,
+     "existence": 6.398503521599567
+    },
+    {
+     "total": 7.30656197633665,
+     "association": 0.8852616509210884,
+     "existence": 6.520130455315155
+    }
+   ]
+  },
+  "31": {
+   "previous_weights_sha256": "43bf9b9573840d73c6c559250d3b61035098af3328fd69d257e77b4a0e29a65d",
+   "retrained_weights_sha256": "43bf9b9573840d73c6c559250d3b61035098af3328fd69d257e77b4a0e29a65d",
+   "reproduced": true,
+   "previous_best_epoch": 0,
+   "retrained_best_epoch": 0,
+   "grouped_best_epoch_by_group": {
+    "association_birth": 4,
+    "existence": 0
+   },
+   "grouped_weights_sha256": "5cae6cbdd70e2800ee563af286de4c2f81ebdf01a4facfe4f92031eb6ef95a07",
+   "grouped_equals_total_selection": false,
+   "validation_terms_per_epoch": [
+    {
+     "total": 3.033141936375417,
+     "association": 0.8706557553887068,
+     "existence": 2.1961465438515426
+    },
+    {
+     "total": 3.104097642626265,
+     "association": 0.8756962430284005,
+     "existence": 2.2630735966850555
+    },
+    {
+     "total": 3.5333336855127877,
+     "association": 0.8804248575504057,
+     "existence": 2.694079137100351
+    },
+    {
+     "total": 3.392439810166542,
+     "association": 0.8772113154486331,
+     "existence": 2.5542901643207654
+    },
+    {
+     "total": 4.382282023945296,
+     "association": 0.8512400887497428,
+     "existence": 3.5856284887982244
+    },
+    {
+     "total": 4.708748647707932,
+     "association": 0.8550658895550296,
+     "existence": 3.9132082607727723
+    },
+    {
+     "total": 5.1649245770027665,
+     "association": 0.8622968817091625,
+     "existence": 4.369026853835984
+    },
+    {
+     "total": 5.1838274422730155,
+     "association": 0.8735667496711711,
+     "existence": 4.376784069420848
+    },
+    {
+     "total": 4.8765920902083275,
+     "association": 0.8632192825216622,
+     "existence": 4.075346957173917
+    },
+    {
+     "total": 5.009519104010744,
+     "association": 0.8881268341951798,
+     "existence": 4.18503554330319
+    },
+    {
+     "total": 5.48249147573809,
+     "association": 0.8543594306381989,
+     "existence": 4.6995062064827255
+    },
+    {
+     "total": 5.03911956729569,
+     "association": 0.8700348277052474,
+     "existence": 4.233445784996568
+    },
+    {
+     "total": 5.61148589229513,
+     "association": 0.8748409834710661,
+     "existence": 4.809692832151341
+    },
+    {
+     "total": 6.126468660044655,
+     "association": 0.8801545784094555,
+     "existence": 5.327163486512869
+    },
+    {
+     "total": 6.355367426081402,
+     "association": 0.9016613715958209,
+     "existence": 5.537742745562064
+    },
+    {
+     "total": 6.430604848864395,
+     "association": 0.8911481565714301,
+     "existence": 5.6247984399626505
+    },
+    {
+     "total": 6.10568598951666,
+     "association": 0.8889579293198187,
+     "existence": 5.297130594833638
+    },
+    {
+     "total": 6.246225511349072,
+     "association": 0.8923573731840461,
+     "existence": 5.436371173478021
+    },
+    {
+     "total": 6.242680239270927,
+     "association": 0.8856452604277265,
+     "existence": 5.439582036963977
+    },
+    {
+     "total": 6.380765577750065,
+     "association": 0.8881095976266234,
+     "existence": 5.577279673366572
+    }
+   ]
+  },
+  "43": {
+   "previous_weights_sha256": "1352ab0bb540e3fc1970972c518ce15fed741af4c791140eb5fac60f885adbf0",
+   "retrained_weights_sha256": "1352ab0bb540e3fc1970972c518ce15fed741af4c791140eb5fac60f885adbf0",
+   "reproduced": true,
+   "previous_best_epoch": 0,
+   "retrained_best_epoch": 0,
+   "grouped_best_epoch_by_group": {
+    "association_birth": 1,
+    "existence": 0
+   },
+   "grouped_weights_sha256": "a202240b5b57e9d7d78aeb8be7f22976a54e93d5e7fdf927e02e6b5db6764839",
+   "grouped_equals_total_selection": false,
+   "validation_terms_per_epoch": [
+    {
+     "total": 3.1624989375988264,
+     "association": 0.879439803219108,
+     "existence": 2.3185700685285577
+    },
+    {
+     "total": 3.5953532244706565,
+     "association": 0.8514799527418232,
+     "existence": 2.7864162508266883
+    },
+    {
+     "total": 3.9397562742462213,
+     "association": 0.8571295038683885,
+     "existence": 3.1303564299814757
+    },
+    {
+     "total": 3.9532966815660275,
+     "association": 0.8765219670109781,
+     "existence": 3.124427620920089
+    },
+    {
+     "total": 4.716155808957036,
+     "association": 0.8850626516067944,
+     "existence": 3.8902928141218087
+    },
+    {
+     "total": 4.7823423603274255,
+     "association": 0.8634532368313658,
+     "existence": 3.979417822374129
+    },
+    {
+     "total": 5.245766608596642,
+     "association": 0.8862487145986477,
+     "existence": 4.4268032845454846
+    },
+    {
+     "total": 5.082214635724909,
+     "association": 0.8560475725743897,
+     "existence": 4.291392251148158
+    },
+    {
+     "total": 5.522558602548749,
+     "association": 0.8908564058549372,
+     "existence": 4.703155054617266
+    },
+    {
+     "total": 5.543272122525874,
+     "association": 0.8780047953842621,
+     "existence": 4.737225259098597
+    },
+    {
+     "total": 5.797204275376365,
+     "association": 0.8795508361990315,
+     "existence": 4.993473913525689
+    },
+    {
+     "total": 5.569990428729589,
+     "association": 0.9070635631460062,
+     "existence": 4.734868148830816
+    },
+    {
+     "total": 5.787353333251443,
+     "association": 0.8810139742691355,
+     "existence": 4.9819876959202425
+    },
+    {
+     "total": 6.447070595478267,
+     "association": 0.869629406684894,
+     "existence": 5.663349911337914
+    },
+    {
+     "total": 6.166686832842995,
+     "association": 0.8893102044423611,
+     "existence": 5.3587073212918215
+    },
+    {
+     "total": 6.527993699112374,
+     "association": 0.8786435367986527,
+     "existence": 5.736365034189802
+    },
+    {
+     "total": 6.643006259940583,
+     "association": 0.8801051965463775,
+     "existence": 5.851654241550582
+    },
+    {
+     "total": 6.574175948759421,
+     "association": 0.8790904761864069,
+     "existence": 5.782800406255898
+    },
+    {
+     "total": 6.614578534790167,
+     "association": 0.8798132222807725,
+     "existence": 5.823087819478504
+    },
+    {
+     "total": 6.676729210327742,
+     "association": 0.8867983655773218,
+     "existence": 5.8791019980741455
+    }
+   ]
+  },
+  "59": {
+   "previous_weights_sha256": "79bb2c9d7d94076a4b287f4bdc1d2549f80b5afb9baafd1e962ae2f9839ad100",
+   "retrained_weights_sha256": "79bb2c9d7d94076a4b287f4bdc1d2549f80b5afb9baafd1e962ae2f9839ad100",
+   "reproduced": true,
+   "previous_best_epoch": 0,
+   "retrained_best_epoch": 0,
+   "grouped_best_epoch_by_group": {
+    "association_birth": 4,
+    "existence": 0
+   },
+   "grouped_weights_sha256": "59c51a1fa1030bde096728fdcdc1db3d948cfe24630a33b678308cec42a3f91d",
+   "grouped_equals_total_selection": false,
+   "validation_terms_per_epoch": [
+    {
+     "total": 3.0924343641855074,
+     "association": 0.8643898985844852,
+     "existence": 2.2627037453163292
+    },
+    {
+     "total": 3.6020877197893273,
+     "association": 0.9242597618878658,
+     "existence": 2.7194084358924786
+    },
+    {
+     "total": 4.327268252687649,
+     "association": 0.8646888371280421,
+     "existence": 3.51612735665829
+    },
+    {
+     "total": 3.794741661225,
+     "association": 0.8593609665072403,
+     "existence": 2.980858944993162
+    },
+    {
+     "total": 4.02202516243969,
+     "association": 0.8519822040139133,
+     "existence": 3.219106694494374
+    },
+    {
+     "total": 5.151680537885781,
+     "association": 0.8881927501139139,
+     "existence": 4.3293051891892755
+    },
+    {
+     "total": 4.6863262405193336,
+     "association": 0.8703477666169281,
+     "existence": 3.874937184951649
+    },
+    {
+     "total": 5.074776128066429,
+     "association": 0.9086253691207105,
+     "existence": 4.230492367611573
+    },
+    {
+     "total": 5.657421694326775,
+     "association": 0.8623274878459988,
+     "existence": 4.869028153456076
+    },
+    {
+     "total": 5.916086934554925,
+     "association": 0.8711856790927769,
+     "existence": 5.122663115784338
+    },
+    {
+     "total": 6.330713185390358,
+     "association": 0.8783551469983953,
+     "existence": 5.536358739797617
+    },
+    {
+     "total": 5.592888628002278,
+     "association": 0.867669957101917,
+     "existence": 4.798087040182871
+    },
+    {
+     "total": 6.672424339974901,
+     "association": 0.8912926124715461,
+     "existence": 5.870171223950387
+    },
+    {
+     "total": 7.016248134387553,
+     "association": 0.8802040952679183,
+     "existence": 6.23050640332914
+    },
+    {
+     "total": 6.868341440960009,
+     "association": 0.8974213367577747,
+     "existence": 6.062867409736014
+    },
+    {
+     "total": 6.6210811913517436,
+     "association": 0.881940196860315,
+     "existence": 5.827531857425633
+    },
+    {
+     "total": 6.94430852385149,
+     "association": 0.8834617948332448,
+     "existence": 6.1541607194036425
+    },
+    {
+     "total": 6.995513357577826,
+     "association": 0.8856884707450952,
+     "existence": 6.203889706122568
+    },
+    {
+     "total": 7.114824310233992,
+     "association": 0.8877707438433713,
+     "existence": 6.322913362832201
+    },
+    {
+     "total": 7.226921260725957,
+     "association": 0.8916367373559395,
+     "existence": 6.432802812114911
+    }
+   ]
+  }
+ },
+ "all_reproduced": true
+}
