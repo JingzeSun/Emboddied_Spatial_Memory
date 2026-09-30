@@ -82,7 +82,7 @@ SRC0="$FIRST:dagger_round_0:ELU-P"
 P3_JOBS=$LOG_DIR/p3_jobs.txt; : > "$P3_JOBS"
 for T in $TARGETS; do
   [ -f "$PROBES/imitation/imitation_$T.json" ] && continue
-  printf '%s\n' "PYTHONPATH=src $PY ops/vsmt/ruling89_probes.py imitation --source $SRC0 --target $T --output-dir $PROBES/imitation $REV --read-uncorrected > $LOG_DIR/p3-$T.log 2>&1; echo \"P3 $T exit \$?\"" >> "$P3_JOBS"
+  printf '%s\n' "PYTHONPATH=src $PY ops/vsmt/ruling89_probes.py imitation --source $SRC0 --target $T --output-dir $PROBES/imitation $REV --read-uncorrected --key-events > $LOG_DIR/p3-$T.log 2>&1; echo \"P3 $T exit \$?\"" >> "$P3_JOBS"
 done
 xargs -d '\n' -P 5 -I{} bash -c '{}' < "$P3_JOBS" >> "$LOG_DIR/p3_exits.log" 2>&1 &
 P3_PID=$!

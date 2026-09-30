@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-for item in (ROOT / "src", ROOT / "ops" / "vsmt"):
+for item in (ROOT / "src", ROOT / "ops" / "vsmt", ROOT / "tests"):
     if str(item) not in sys.path:
         sys.path.insert(0, str(item))
 
@@ -140,6 +140,36 @@ class ReportOnlyTests(unittest.TestCase):
             self.assertFalse(out["p3"]["pass"])  # still reported
         finally:
             checks.P3_REPORT_ONLY["on"] = False
+
+
+class KeyEventTests(unittest.TestCase):
+    def test_existence_breakdown_counts_every_row_once_by_rule_and_teacher_label(self) -> None:
+        from vsmt import lean_model as model
+        heads = model.make_heads(assoc_only=False, seed=3)
+        order = list(la.EXISTENCE_FEATURES)
+        rows = [row("a", free_space_coverage_ratio=0.95), row("b", free_space_coverage_ratio=0.1), row("c", free_space_coverage_ratio=0.79)]
+        keep = {"existence_rows": rows, "existence_feature_order": order,
+                "existence_labels": {"a": {"status": "gone"}, "b": {"status": "present"}}}
+        decisions = {r["entity_id"]: probes.p3_existence_decision("handcost", f_of(r)) for r in rows}
+        out = probes.key_events(heads, [({}, keep, decisions)], "handcost")
+        self.assertEqual(out["rule_RETRACT_teacher_gone"]["rows"], 1)
+        self.assertEqual(out["rule_NOOP_teacher_present"]["rows"], 1)
+        self.assertEqual(out["rule_NOOP_teacher_unlabelled"]["rows"], 1)
+        self.assertEqual(out["near_threshold_NOOP"]["rows"], 1)  # 0.79 is within 1/64 of 0.8
+        self.assertEqual(sum(v["rows"] for k, v in out.items() if k.startswith("rule_")), 3)
+
+    def test_association_breakdown_on_a_labelled_frame(self) -> None:
+        import test_vsmt_lean_model as fixture
+        from vsmt import lean_model as model
+        import ruling88_probes as r88p
+        record = fixture.labelled_frame(11, drop="lamp", new=True)
+        keep = {k: v for k, v in record.items() if not k.startswith("_")}
+        decisions = r88p.rule_assignment(keep, "taf")
+        heads = model.make_heads(assoc_only=True, seed=3)
+        out = probes.key_events(heads, [({}, keep, decisions)], "taf")
+        self.assertEqual(sum(v["rows"] for k, v in out.items() if k.startswith("rule_")), len(decisions))
+        for v in out.values():
+            self.assertLessEqual(v["disagreements"], v["rows"])
 
 
 class JointTests(unittest.TestCase):

@@ -198,8 +198,107 @@ def imitation_record(record: Mapping[str, Any], target: str) -> tuple[dict[str, 
     labels = {eid: {"status": "gone" if choice == "RETRACT" else "present"} for eid, choice in decisions.items()}
     imitation = {"stage_a": minimal, "targets": {}, "existence_rows": list(stripped["existence_rows"]),
                  "existence_feature_order": list(order), "existence_labels": labels}
-    keep = {"existence_rows": stripped["existence_rows"], "existence_feature_order": order}
+    keep = {"existence_rows": stripped["existence_rows"], "existence_feature_order": order,
+            "existence_labels": stripped.get("existence_labels", {})}
     return imitation, keep, decisions
+
+
+# --------------------------------------------------------------------------
+# where the disagreements are (ruling 93, ASTRA review: a single balanced agreement cannot say whether the errors fall on
+# the moments that matter or on near-ties)
+# --------------------------------------------------------------------------
+
+#: near-tie bands, report only: a rule decision this close to its own threshold is one a small numeric difference can flip
+NEAR = {"taf_cosine": 0.02, "low_distance_m": 0.05, "coverage": 1.0 / 64.0, "elup_log_odds": 0.5}
+
+
+def _tally(table: dict[str, list[int]], category: str, agreed: bool) -> None:
+    slot = table.setdefault(category, [0, 0])
+    slot[0] += 1
+    slot[1] += int(not agreed)
+
+
+def association_key_events(heads: Any, keep: Mapping[str, Any], target: str, decisions: Mapping[str, str],
+                           table: dict[str, list[int]]) -> None:
+    """Per fragment: the rule's choice by the chosen entity's state, the teacher's re-attachment events, and near-ties."""
+
+    from vsmt import lean_model as model
+
+    stage_a = keep["stage_a"]
+    if not stage_a["rows"]:
+        return
+    logits = model.LeanScorer(heads).association_and_birth_logits(stage_a)
+    learned = la.solve_frame(stage_a, association_logits=logits["association_logits"], birth_logits=logits["birth_logits"])["assignment"]
+    names = list(la.ASSOCIATION_FEATURES)
+    cos_at, dist_at = names.index("cosine_to_descriptor_mean"), names.index("centroid_distance_m")
+    rows: dict[str, list[tuple[str, list[float]]]] = {}
+    for row in stage_a["association_rows"]:
+        rows.setdefault(str(row["fragment_id"]), []).append((str(row["entity_id"]), row["features"]))
+    for fid, column in decisions.items():
+        agreed = learned[fid] == column
+        pairs = rows.get(fid, [])
+        if column.startswith(la.BIRTH_COLUMN_PREFIX):
+            _tally(table, "rule_birth", agreed)
+        else:
+            features = dict(pairs)[column]
+            _tally(table, f"rule_bind_{r88p.state_of(features, names)}", agreed)
+        teacher = keep["targets"].get(fid) or {}
+        if teacher.get("status") == "labelled":
+            state = r88p.state_of(dict(pairs)[str(teacher["target"])], names)
+            if state in ("dormant", "retracted"):
+                _tally(table, f"teacher_reattach_{state}", agreed)
+        if target == "taf" and pairs:
+            best = max(float(f[cos_at]) for _, f in pairs)
+            if abs(best - 0.7) <= NEAR["taf_cosine"]:
+                _tally(table, "near_tie", agreed)
+        if target == "low" and pairs:
+            nearest = min(float(f[dist_at]) for _, f in pairs)
+            if abs(nearest - 1.0) <= NEAR["low_distance_m"]:
+                _tally(table, "near_tie", agreed)
+
+
+def existence_key_events(heads: Any, keep: Mapping[str, Any], target: str, decisions: Mapping[str, str],
+                         table: dict[str, list[int]]) -> None:
+    """Per eligible row: the rule's decision crossed with the teacher's existence label, and rows near the rule's threshold."""
+
+    from vsmt import lean_model as model
+
+    if not keep["existence_rows"]:
+        return
+    order = keep["existence_feature_order"]
+    logits = model.LeanScorer(heads).existence_logits(keep["existence_rows"], order)
+    labels = keep.get("existence_labels") or {}
+    for row in keep["existence_rows"]:
+        eid = str(row["entity_id"])
+        choice = decisions[eid]
+        agreed = (float(logits[eid]) >= 0.0) == (choice == "RETRACT")
+        label = (labels.get(eid) or {}).get("status", "unlabelled")
+        _tally(table, f"rule_{choice}_teacher_{label}", agreed)
+        f = row_values(row["features"], order)
+        c = f["free_space_coverage_ratio"]
+        if target == "handcost":
+            near = abs(c - HANDCOST_RHO) <= NEAR["coverage"]
+        elif target == "rac":
+            rho, n = P3_RAC
+            near = abs(c - rho) <= NEAR["coverage"] or (c >= rho and f[RAC_RUN_FIELD[rho]] + 1.0 in (n - 1, n))
+        else:
+            values = r88p.elu_p_values()
+            margin = (values["initial_log_odds"] + values["match_gain"] * f["matches_since_birth"]
+                      - values["persistence_log_decay_per_tick"] * (f["eligible_frames_since_birth"] + 1.0)
+                      - values["free_space_weight"] * (f["free_space_coverage_sum_since_birth"] + c)) - values["retract_threshold"]
+            near = abs(margin) <= NEAR["elup_log_odds"]
+        if near:
+            _tally(table, f"near_threshold_{choice}", agreed)
+
+
+def key_events(heads: Any, built: Sequence[tuple[dict[str, Any], dict[str, Any], dict[str, str]]], target: str) -> dict[str, Any]:
+    table: dict[str, list[int]] = {}
+    for _, keep, decisions in built:
+        if target in r88p.ASSOCIATION_TARGETS:
+            association_key_events(heads, keep, target, decisions, table)
+        else:
+            existence_key_events(heads, keep, target, decisions, table)
+    return {name: {"rows": n, "disagreements": bad, "disagreement_rate": bad / n if n else None} for name, (n, bad) in sorted(table.items())}
 
 
 def revision_kwargs(args: argparse.Namespace) -> dict[str, Any]:
@@ -260,6 +359,8 @@ def cmd_imitation(args: argparse.Namespace) -> int:
             probe.existence_logit_offset = 0.0
         readings[label] = {"epoch": epoch, "train": agreement(probe, built["train"], target),
                            "selection": agreement(probe, built["selection"], target)}
+        if getattr(args, "key_events", False) and label in ("last_epoch", "lowest_training_loss"):
+            readings[label]["key_events_train"] = key_events(probe, built["train"], target)
     passes = {label: bool(readings[label]["train"]["balanced_agreement"] is not None
                           and readings[label]["train"]["balanced_agreement"] >= PASS_LINE)
               for label in ("last_epoch", "lowest_training_loss")}
@@ -343,6 +444,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     i.add_argument("--epochs", type=int, default=20)
     i.add_argument("--revision-91", action="store_true", help="pending ruling 91 only: cosine-decayed rate and gradient clipping")
     i.add_argument("--read-uncorrected", action="store_true", help="ruling 93-2: agreement on the uncorrected existence logits")
+    i.add_argument("--key-events", action="store_true", help="ruling 93: disagreements by rule choice x entity state / teacher label and near-ties")
     i.set_defaults(func=cmd_imitation)
     c = sub.add_parser("coverage-events")
     c.add_argument("--source", dest="sources", action="append", required=True)
