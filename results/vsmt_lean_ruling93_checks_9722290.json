@@ -1,0 +1,302 @@
+{
+ "stage": "vsmt.lean.ruling89.checks.v1",
+ "existence_side_89_2": {
+  "same_input_reported_only": null,
+  "history_audit": {
+   "pass": true,
+   "groups": {
+    "ELU-P": {
+     "episodes": 39,
+     "rows": 1381400,
+     "retract_rows": 3947,
+     "decision_mismatches": 0,
+     "state_mismatches": 0,
+     "state_compared": 1376273,
+     "mutated_decision_mismatches": 255360,
+     "mutated_state_mismatches": 988091,
+     "illegal_frames_skipped": 0,
+     "max_log_odds_error": 8.776623872108757e-11,
+     "faithful": true,
+     "control_detected": true
+    },
+    "RAC_rho0.7_n2": {
+     "episodes": 39,
+     "rows": 1469505,
+     "retract_rows": 2756,
+     "decision_mismatches": 0,
+     "state_mismatches": 0,
+     "state_compared": 1469505,
+     "mutated_decision_mismatches": 11,
+     "mutated_state_mismatches": 207,
+     "illegal_frames_skipped": 0,
+     "max_log_odds_error": 0.0,
+     "faithful": true,
+     "control_detected": true
+    },
+    "RAC_rho0.7_n3": {
+     "episodes": 39,
+     "rows": 1534573,
+     "retract_rows": 1499,
+     "decision_mismatches": 0,
+     "state_mismatches": 0,
+     "state_compared": 1534573,
+     "mutated_decision_mismatches": 8,
+     "mutated_state_mismatches": 268,
+     "illegal_frames_skipped": 0,
+     "max_log_odds_error": 0.0,
+     "faithful": true,
+     "control_detected": true
+    },
+    "RAC_rho0.7_n5": {
+     "episodes": 39,
+     "rows": 1579780,
+     "retract_rows": 621,
+     "decision_mismatches": 0,
+     "state_mismatches": 0,
+     "state_compared": 1579780,
+     "mutated_decision_mismatches": 3,
+     "mutated_state_mismatches": 332,
+     "illegal_frames_skipped": 0,
+     "max_log_odds_error": 0.0,
+     "faithful": true,
+     "control_detected": true
+    },
+    "RAC_rho0.85_n2": {
+     "episodes": 39,
+     "rows": 1523642,
+     "retract_rows": 1725,
+     "decision_mismatches": 0,
+     "state_mismatches": 0,
+     "state_compared": 1523642,
+     "mutated_decision_mismatches": 5,
+     "mutated_state_mismatches": 173,
+     "illegal_frames_skipped": 0,
+     "max_log_odds_error": 0.0,
+     "faithful": true,
+     "control_detected": true
+    },
+    "RAC_rho0.85_n3": {
+     "episodes": 39,
+     "rows": 1564828,
+     "retract_rows": 938,
+     "decision_mismatches": 0,
+     "state_mismatches": 0,
+     "state_compared": 1564828,
+     "mutated_decision_mismatches": 1,
+     "mutated_state_mismatches": 199,
+     "illegal_frames_skipped": 0,
+     "max_log_odds_error": 0.0,
+     "faithful": true,
+     "control_detected": true
+    },
+    "RAC_rho0.85_n5": {
+     "episodes": 39,
+     "rows": 1592170,
+     "retract_rows": 394,
+     "decision_mismatches": 0,
+     "state_mismatches": 0,
+     "state_compared": 1592170,
+     "mutated_decision_mismatches": 1,
+     "mutated_state_mismatches": 225,
+     "illegal_frames_skipped": 0,
+     "max_log_odds_error": 0.0,
+     "faithful": true,
+     "control_detected": true
+    }
+   }
+  },
+  "p3": {
+   "per_target": {
+    "handcost": {
+     "present": true,
+     "pass": true,
+     "best_selection_loss": 0.9996074257633112,
+     "last_epoch": 0.9999048964842754,
+     "lowest_training_loss": 0.999841005087926,
+     "selection_last_epoch": 0.9994541861805124
+    },
+    "rac": {
+     "present": true,
+     "pass": true,
+     "best_selection_loss": 0.9997889497308211,
+     "last_epoch": 0.9999883643810432,
+     "lowest_training_loss": 0.9999714927335559,
+     "selection_last_epoch": 0.9995463212313398
+    },
+    "elup": {
+     "present": true,
+     "pass": true,
+     "best_selection_loss": 0.9931473844127807,
+     "last_epoch": 0.9931473844127807,
+     "lowest_training_loss": 0.9931473844127807,
+     "selection_last_epoch": 0.9918444335627803
+    }
+   },
+   "pass": true
+  },
+  "cell_teacher_association_new_existence": {
+   "missing_residual_rate": {
+    "per_seed": {
+     "7": 0.09885057471264368,
+     "19": 0.08448275862068966,
+     "31": 0.14080459770114942,
+     "43": 0.12126436781609196,
+     "59": 0.09885057471264368
+    },
+    "mean": 0.10885057471264367
+   },
+   "node_f1": {
+    "per_seed": {
+     "7": 0.9492437743737491,
+     "19": 0.9485140051317281,
+     "31": 0.9489758375029541,
+     "43": 0.9492125457781515,
+     "59": 0.9490572887485464
+    },
+    "mean": 0.9490006903070258
+   },
+   "false_retract_rate_in_scope_reported": {
+    "per_seed": {
+     "7": 0.3013668430335097,
+     "19": 0.39224686724686725,
+     "31": 0.21281512605042016,
+     "43": 0.20697278911564623,
+     "59": 0.302689594356261
+    },
+    "mean": 0.28321824396054085
+   },
+   "lines": {
+    "missing_residual_rate_mean_at_most": 0.05,
+    "node_f1_mean_at_least": 0.93
+   },
+   "pass": false
+  },
+  "p3_role": "reported_only",
+  "pass": false
+ },
+ "association_side_89_3": {
+  "coverage_events": {
+   "pass": true,
+   "train": {
+    "retracted": {
+     "events": 855,
+     "houses": 28,
+     "labelled_target_rows": 7530
+    },
+    "dormant": {
+     "events": 23706,
+     "houses": 30,
+     "labelled_target_rows": 96007
+    }
+   }
+  },
+  "p3": {
+   "per_target": {
+    "taf": {
+     "present": true,
+     "pass": false,
+     "best_selection_loss": 0.9723862671396644,
+     "last_epoch": 0.9765855125860239,
+     "lowest_training_loss": 0.9723862671396644,
+     "selection_last_epoch": 0.9788946930157569
+    },
+    "low": {
+     "present": true,
+     "pass": false,
+     "best_selection_loss": 0.9860687041640582,
+     "last_epoch": 0.9873157553770635,
+     "lowest_training_loss": 0.9860687041640582,
+     "selection_last_epoch": 0.9855198041651392
+    }
+   },
+   "pass": false
+  },
+  "paired_same_recall": {
+   "seeds": [
+    7,
+    19,
+    31,
+    43,
+    59
+   ],
+   "identity_continuity_new_minus_old": {
+    "gaps": [
+     0.060897435897435896,
+     0.16346153846153846,
+     0.2006172839506173,
+     0.15666666666666665,
+     -0.1423611111111111
+    ],
+    "positive": 4,
+    "negative": 1,
+    "mean_gap": 0.08785636277302944,
+    "sd_of_gaps": 0.13864784065891697,
+    "established": false,
+    "order": "not_distinguishable_on_the_development_set"
+   },
+   "kept_share_new_minus_old": {
+    "gaps": [
+     0.12307692307692308,
+     0.2153846153846154,
+     0.23076923076923078,
+     0.2,
+     -0.07692307692307693
+    ],
+    "positive": 4,
+    "negative": 1,
+    "mean_gap": 0.13846153846153847,
+    "sd_of_gaps": 0.12733034890189884,
+    "established": true,
+    "order": "VSMT-lean_better"
+   },
+   "chose_birth": {
+    "new": {
+     "7": 12,
+     "19": 11,
+     "31": 14,
+     "43": 12,
+     "59": 19
+    },
+    "old": {
+     "7": 18,
+     "19": 19,
+     "31": 29,
+     "43": 13,
+     "59": 10
+    },
+    "mean_new": 13.6,
+    "mean_old": 17.8
+   },
+   "rule": "82-1: for each metric the order of VSMT-lean and AssocOnly is established at the development level iff at least 4 of the 5 seed-paired gaps (house-mean difference on houses defined for both arms) share a strict sign and |mean gap| exceeds the sample standard deviation of the 5 gaps; otherwise it is recorded as not distinguishable on the development set",
+   "pass": false
+  },
+  "p3_role": "reported_only",
+  "pass": false
+ },
+ "joint_89_4": null,
+ "inputs_sha256": {
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling93_p3_taf_9722290.json": "4c60cdeafc4bc6680907725e54528ba79d7252caab7ff9dcb07171b2e4ef2e5f",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling93_p3_low_9722290.json": "11c4e57491dec52da8359ba08f2c0ef038b417ba14633d6163dba813b4665e6a",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling93_p3_handcost_9722290.json": "5ef858f42e0a7dced7998d63dcd3f938b057b1db8cfa986d75287a2c16803e41",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling93_p3_rac_9722290.json": "ab15f4cf9a6c7c1ed5719d38f0106e851effc7989781cc7cbe4679bdea864045",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling93_p3_elup_9722290.json": "0fb9a3d53fbf2b07a1ee951d5d417e3f0ad9ed2048fe7de646b1b800a1719501",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling93_audit_OA-LE-r93-A7_9722290.json": "0d88d62670019294d434cfe9de6deb04c8f6013fd02ce382fb16f82d5f0394c0",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling93_audit_OA-LE-r93-A19_9722290.json": "d0036120cdb568848f4311d407a3dcd2fd534f41446595971a99888dca8bef03",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling93_audit_OA-LE-r93-A31_9722290.json": "c2175005377b2299d8fac20eb8330a1a01351e932ece29ead2d0c05b438eba36",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling93_audit_OA-LE-r93-A43_9722290.json": "82dcd2aa1a64f30106c5f2d324a7c47a23245f8643ccb77f2f015aa97c44d6f1",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling93_audit_OA-LE-r93-A59_9722290.json": "75602782c689ccccc9c7e6046c5d7e14bb4c9e8f885b8497e511b4dca59c6ae9",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling89_history_audit_c02cb98.json": "f8c6685450064bfbb58fe229955f56f37f06b7fb5a1250da509a34eed1949f5f",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling93_coverage_events_9722290.json": "257ce0c75e53987a302bc34a6e168348a61a2e79b14d19690172248d09cccef0",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling93_audit_LA-OE-r93-A7_9722290.json": "f5d3df70e20ab18b38c352d56f020dc4a0484541f805e038adb369fcc35df417",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling93_audit_LA-OE-r93-A19_9722290.json": "b5bd5f0f62c0858f2a23a78bed30fb2ef3882a43d1910a8f98c5cc86420f2516",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling93_audit_LA-OE-r93-A31_9722290.json": "fcfff0126c063df4eca9f724a0412be0868b1dfd11094fe3e6e7d1f01932d14b",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling93_audit_LA-OE-r93-A43_9722290.json": "6a774eefb00be2d771307df8b59d72fddc446a25d36ba62cf2de2f6327065b15",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling93_audit_LA-OE-r93-A59_9722290.json": "a7066105bc55df724a5a25450e7db7bcad1feec01954761258fd911c80941137",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling89_audit_LA-OE-old-A7_003b906.json": "88ac18c97863eeee23d36a0724c31ca9a8b657998d21ab2cfaaae4daeb2a66d3",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling89_audit_LA-OE-old-A19_003b906.json": "441d3849e9384fc641fed45fde8bdc7ac6b4fc932ce7995cbb4ddf45587924b6",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling89_audit_LA-OE-old-A31_003b906.json": "f36e55d2d10fade55beb6175aebda5a80f65e04d073625d9cf822a5b6bca5cce",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling89_audit_LA-OE-old-A43_003b906.json": "8674bdb4da314b74f49d12466828caa0f0274d4900a282ad9344925a610ede7b",
+  "/root/autodl-tmp/vsmt_outputs/exports/vsmt_lean_ruling89_audit_LA-OE-old-A59_003b906.json": "69790a23581081028b30521e40d2019e63b803c853666443418ac3a53fbe1bb1"
+ },
+ "script_sha256": "79af27f314082c6726d3b478992b85e01b93e74bd1992490a13af60eb5d10102"
+}
