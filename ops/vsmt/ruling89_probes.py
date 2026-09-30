@@ -223,20 +223,32 @@ def cmd_imitation(args: argparse.Namespace) -> int:
     groups, split, files = load_groups(args.sources)
     built = {g: [imitation_record(row, target) for _, _, row in rows] for g, rows in groups.items()}
     snapshots: dict[int, dict[str, Any]] = {}
+    fixed_train_loss: dict[int, float | None] = {}
+    assoc_only = target in r88p.ASSOCIATION_TARGETS
+    # ASTRA review (2026-09-30): train_heads' train_curve averages the per-step losses while the weights move, so it is not
+    # the loss of the checkpoint an epoch ends on; each epoch-end checkpoint is scored again here on the whole training set
+    # with its weights fixed (the same batched loss and class weight train_heads uses), and the lowest of these picks the
+    # "lowest training loss" reading
+    train_batched = [model.batch_prepared(model.prepare_frame(b[0])) for b in built["train"]]
+    pos_weight = None
+    if not assoc_only:
+        gone = sum(int(round(float(p["existence"][1].sum().item()))) for p in train_batched if p["existence"] is not None)
+        total = sum(p["existence"][2] for p in train_batched if p["existence"] is not None)
+        pos_weight = torch.as_tensor([(total - gone) / gone], dtype=torch.float32)
 
     def keep_epoch(epoch: int, heads: Any) -> None:
         snapshots[epoch] = {name: {k: v.detach().cpu().clone() for k, v in m.state_dict().items()} for name, m in heads.items()}
+        fixed_train_loss[epoch] = model._mean_loss(heads, train_batched, existence_pos_weight=pos_weight, loss_fn=model.batched_loss)
 
     started = time.time()
-    assoc_only = target in r88p.ASSOCIATION_TARGETS
     result = model.train_heads([b[0] for b in built["train"]], [b[0] for b in built["selection"]],
                                learning_rate=model.LEARNING_RATE, weight_decay=arms.WEIGHT_DECAY, epochs=int(args.epochs),
                                seed=int(arms.SEEDS[0]), assoc_only=assoc_only, device="cpu", epoch_callback=keep_epoch,
                                field_encoding=True, existence_class_weight=not assoc_only, **revision_kwargs(args))
     heads = result["heads"].eval()
-    curve = [v for v in result["train_curve"]]
-    last = len(curve) - 1
-    lowest_train = min((i for i, v in enumerate(curve) if v is not None), key=lambda i: (curve[i], i))
+    last = len(result["train_curve"]) - 1
+    fixed = [fixed_train_loss.get(i) for i in range(last + 1)]
+    lowest_train = min((i for i, v in enumerate(fixed) if v is not None), key=lambda i: (fixed[i], i))
     readings: dict[str, Any] = {}
     for label, epoch in (("best_selection_loss", result["best_epoch"]), ("last_epoch", last), ("lowest_training_loss", lowest_train)):
         probe = copy.deepcopy(heads)
@@ -260,7 +272,9 @@ def cmd_imitation(args: argparse.Namespace) -> int:
                       "seed": int(arms.SEEDS[0]), "field_encoding": True, "existence_class_weight": not assoc_only,
                       **revision_kwargs(args)},
            "training": {k: result["weights"]["training"].get(k) for k in ("existence_class_weight", "updates_taken", "best_epoch")},
-           "train_curve": result["train_curve"], "validation_curve": result["validation_curve"], "diverged": result["diverged"],
+           "train_curve": result["train_curve"], "train_loss_fixed_weights": fixed,
+           "train_curve_rule": "train_curve: mean per-step loss while the epoch updates; train_loss_fixed_weights: the epoch-end checkpoint on the whole training set, which picks lowest_training_loss",
+           "validation_curve": result["validation_curve"], "diverged": result["diverged"],
            "readings": readings, "pass_line": PASS_LINE, "pass_by_reading": passes,
            "pass": all(passes.values()), "weights_sha256": result["weights"]["sha256"], "files": files,
            "wall_seconds": round(time.time() - started, 1), "script_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest()}

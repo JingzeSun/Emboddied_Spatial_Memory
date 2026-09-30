@@ -71,7 +71,10 @@ def p3_reading(reports: Mapping[str, Mapping[str, Any]], targets: Sequence[str])
 
 
 def existence_side(same_input: Mapping[str, Any] | None, imitation: Mapping[str, Mapping[str, Any]],
-                   oa_le: Mapping[int, Mapping[str, Any]]) -> dict[str, Any]:
+                   oa_le: Mapping[int, Mapping[str, Any]], history_audit: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    """89-2.  Check 1 is read from the independent-executor history audit when one is given (ASTRA review, 2026-09-30:
+    the same-input table computes the rule from the row and so cannot fail; it is reported only)."""
+
     mrr = seed_means(oa_le, "missing_residual_rate") if oa_le else None
     f1 = seed_means(oa_le, "node_f1") if oa_le else None
     fr = seed_means(oa_le, "false_retract_rate_in_scope") if oa_le else None
@@ -79,12 +82,15 @@ def existence_side(same_input: Mapping[str, Any] | None, imitation: Mapping[str,
                      and mrr["mean"] <= MRR_LINE and f1["mean"] >= NODE_F1_LINE)
     p3 = p3_reading(imitation, EXISTENCE_P3)
     same = bool(same_input and same_input.get("pass"))
-    return {"same_input": None if same_input is None else {"pass": same, "conflicts": {k: v["inputs_with_two_answers"] for k, v in same_input["per_rule"].items()}},
+    first = bool(history_audit.get("pass")) if history_audit is not None else same
+    return {"same_input_reported_only" if history_audit is not None else "same_input":
+                None if same_input is None else {"pass": same, "conflicts": {k: v["inputs_with_two_answers"] for k, v in same_input["per_rule"].items()}},
+            "history_audit": None if history_audit is None else {"pass": first, "groups": history_audit["groups"]},
             "p3": p3, "cell_teacher_association_new_existence": {"missing_residual_rate": mrr, "node_f1": f1,
                                                                   "false_retract_rate_in_scope_reported": fr,
                                                                   "lines": {"missing_residual_rate_mean_at_most": MRR_LINE, "node_f1_mean_at_least": NODE_F1_LINE},
                                                                   "pass": cell_pass},
-            "pass": bool(same and p3["pass"] and cell_pass)}
+            "pass": bool(first and p3["pass"] and cell_pass)}
 
 
 def association_side(coverage: Mapping[str, Any] | None, imitation: Mapping[str, Mapping[str, Any]],
@@ -134,6 +140,7 @@ def joint_check(runs: Mapping[int, Mapping[str, Any]]) -> dict[str, Any]:
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--same-input")
+    parser.add_argument("--history-audit", help="merged ruling89_history_audit.py output (89-2 check 1)")
     parser.add_argument("--coverage-events")
     parser.add_argument("--imitation", action="append", default=[], help="target:json")
     parser.add_argument("--oa-le", action="append", default=[], help="seed:merged audit")
@@ -162,7 +169,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         target, path = item.split(":", 1)
         imitation[target] = load(path)
     out = {"stage": STAGE,
-           "existence_side_89_2": existence_side(load(args.same_input), imitation, by_seed(args.oa_le)),
+           "existence_side_89_2": existence_side(load(args.same_input), imitation, by_seed(args.oa_le), load(args.history_audit)),
            "association_side_89_3": association_side(load(args.coverage_events), imitation, by_seed(args.la_oe_new), by_seed(args.la_oe_old)),
            "joint_89_4": joint_check(by_seed(args.joint)) if args.joint else None,
            "inputs_sha256": inputs, "script_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest()}
