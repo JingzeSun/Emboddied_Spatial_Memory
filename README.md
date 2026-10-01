@@ -62,6 +62,46 @@ GitHub 默认分支 `main` 可能落后，当前工作推送在 `s1-02a-runner` 
 
 新对话先读 [AGENTS.md](AGENTS.md)、PLAN 的当前指针，再读 EXECUTE 看板和最新 LOG。不再另建导航页、词典、确认表、周报模板或平行计划。
 
+## 怎样复现 S2-06（SAM 2.1 开发表，裁决 100-6）
+
+白话：S2-06 回答“S2-R 在实例分割前端上看到的模式（相对同配方 AssocOnly，陈旧实体大幅减少、身份连续率更高、节点 F1 小幅下降），换成 SAM 2.1 分割、所有可训练与可拟合的部分都在 SAM2 上按冻结规则重来以后，还在不在”。输入是 SAM2 开发 cache、SAM2 ReID 头、同一几何重载与同一份代码；输出是 SAM2 七臂开发表与按事先写死的规则给出的读数，并排放着实例分割的同一读数。例如 SAM2 上 Missing 残留率 5/5 个种子更低、节点 F1 分不出，就归“开发集上显示收益”。它不是 test，不是跨前端迁移检验（头在 SAM2 上重训），也不用来改方法。
+
+**一条命令**（服务器，在审过的提交上新建干净的 detached worktree；不需要 GPU）：
+
+```bash
+git -C /root/Emboddied_Spatial_Memory worktree add --detach /root/autodl-tmp/vsmt_worktrees/s2-06-<commit> <commit>
+cd /root/autodl-tmp/vsmt_worktrees/s2-06-<commit>
+nohup bash ops/vsmt/s2_06_sam2.sh all > /root/autodl-tmp/vsmt_outputs/run_logs/s2-06-<commit>.log 2>&1 &
+bash ops/vsmt/s2_06_sam2.sh status
+```
+
+再跑一次 `all` 就从停下的地方续跑：完成的阶段保留；阶段完成之后若代码有改动（只有登记 SAM2 拟合量与文档的改动例外），该阶段拒绝续用。各阶段、读写与停点写在 [`ops/vsmt/s2_06_sam2.sh`](ops/vsmt/s2_06_sam2.sh) 开头。
+
+| 输入（`AUTODL=/root/autodl-tmp`） | 默认路径 | 运行前核对（check 阶段） |
+|---|---|---|
+| SAM2 开发 cache | `$AUTODL/vsmt_caches/lean-s1-03-154776d`（39 条 episode，44,097 帧） | 每条封印的 mask 来源是 sam2 |
+| 实例分割开发 cache | `$AUTODL/vsmt_caches/lean-s1-03-oracle-8ebbd05` | 同一批 39 条，来源是实例分割 |
+| 几何重载、S1-02 episode | `$AUTODL/vsmt_private/lean-s1-04-geometry-154776d`、`$AUTODL/vsmt_outputs/lean-s1-02{a,b}-5f9aa71` | 每条都有 |
+| SAM2 ReID 头 | `$AUTODL/vsmt_private/exports/reid_head_vitb14_154776d.json` | 摘要 `f6fc67e5…`（S0-03 按来源钉住） |
+| 实例分割 ReID 头 | `$AUTODL/vsmt_private/lean-s1-04-diagnostics-oracle-caa50c7/reid_head_vitb14.json` | 摘要 `5cea91cf…` |
+| 实例分割分组头（补 NoVersion 用） | `$AUTODL/vsmt_private/ruling96-7c76970/training/round1/VSMT-lean/A{7,19,31,43,59}/weights_grouped.json` | 摘要等于 `ops/vsmt/ruling97_freeze.json` |
+| 并排读的实例分割读数 | `results/vsmt_lean_ruling96_*_7c76970.json`、`results/vsmt_lean_ruling95_*_d835cd3.json`、`results/vsmt_lean_s2_05_calibration_oracle_850c533.json` | 摘要等于已提交判读登记的输入 |
+
+| 阶段 | 做什么 | 预计耗时（粗估，以 pilot 实测为准） |
+|---|---|---|
+| check | 全量测试；全部输入写进运行清单 | 约 10 分钟 |
+| pilot | 最大一条 SAM2 episode：校准作业（保留为校准趟的一部分）与一条只计时的 TAF 审计 | 1.5～2.5 小时 |
+| calibration → grid-review → elu-p-fit | 裁决 75 的校准趟；裁决 100-2 第 2 步的网格复核（出界即停）；ELU-P 拟合（首跑时停下等登记提交） | 1.5～2.5 小时 |
+| round0 → train0 → round1 → train1 | 第 0 轮 ELU-P 记录；两个学习臂种子 7；各自第 1 轮记录；两臂各 5 个种子（VSMT-lean 分组选点） | 5～7 小时 |
+| audits → instance-noversion | SAM2 上 19 组 × 39 条审计；实例分割上补 NoVersion 5 × 39 条（先核对今天的代码能逐项复现 7c76970 的一条审计） | 7～10 小时 |
+| merge → reading → verify | 合并、按裁决 100-3 判读、确定性探针与全部摘要核对、写最终运行清单 | 约 30 分钟 |
+
+**停点**：网格复核出界时驱动写 `stopped` 标记并停下，等用户另提按 `mask_source` 分存网格的裁决；首跑到 elu-p-fit 时写 `hold` 标记——SAM2 的三个拟合量要先就地登记进 S0-05（裁决 68 (10) 预授权，一个提交），在那个提交上再跑 `all`，该阶段核对重拟合结果与登记值逐位相等后继续。以后任何人在最终提交上跑 `all` 都不会再停在这里。
+
+**输出**：`$AUTODL/vsmt_outputs/exports/vsmt_lean_s2_06_*_<tag>.json`（tag 是第一次 check 时的提交），拉回 `results/` 提交：输入核对、pilot、校准、网格复核、拟合、各趟导出、12 份训练回执（含逐 epoch 分项损失）、24 份合并审计、判读、运行清单与 verify 报告。表里每个数字都由 [`ops/vsmt/s2_06_reading.py`](ops/vsmt/s2_06_reading.py) 从合并审计算出，判读会先从已提交的导出重算实例分割那份并与已提交判读逐项核对。权重按工作区规则不进 Git，留在服务器 `$RUN_ROOT/training/`，摘要在运行清单里。
+
+**怎样核对复现**：同一提交、同一 `TRAIN_THREADS`（默认 4）重训的权重逐位相同（裁决 96 已验证），审计是确定性的；verify 阶段重跑一条审计比对、核对每份权重与回执的摘要，`REPRO_TRAINING=1` 时另重训第 0 轮 AssocOnly 比对摘要。别人复现后，把自己的运行清单与 `results/vsmt_lean_s2_06_manifest_<tag>.json` 里的权重摘要和导出摘要逐项比较即可。
+
 ## 实现与证据
 
 | 目录 | 职责 |
