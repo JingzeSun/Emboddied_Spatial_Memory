@@ -59,8 +59,8 @@ def spread(values: list[float]) -> dict[str, Any]:
             "min": min(values) if values else None, "max": max(values) if values else None}
 
 
-def verdict(gaps: list[float], direction: str) -> dict[str, Any]:
-    """The pre-registered 82-1 rule on the seed-paired gaps (VSMT-lean minus AssocOnly)."""
+def verdict(gaps: list[float], direction: str, arms: tuple[str, str] = ARMS) -> dict[str, Any]:
+    """The pre-registered 82-1 rule on the seed-paired gaps (first arm minus second; VSMT-lean minus AssocOnly by default)."""
 
     positive, negative = sum(g > 0 for g in gaps), sum(g < 0 for g in gaps)
     mean = statistics.fmean(gaps)
@@ -70,8 +70,8 @@ def verdict(gaps: list[float], direction: str) -> dict[str, Any]:
     if not established:
         order = "not_distinguishable_on_the_development_set"
     else:
-        vsmt_higher = mean > 0
-        order = "VSMT-lean_better" if (vsmt_higher == (direction == "higher")) else "AssocOnly_better"
+        first_higher = mean > 0
+        order = f"{arms[0]}_better" if (first_higher == (direction == "higher")) else f"{arms[1]}_better"
     return {"gaps": gaps, "positive": positive, "negative": negative, "mean_gap": mean, "sd_of_gaps": sd,
             "established": established, "order": order}
 
@@ -85,45 +85,55 @@ def bootstrap_interval(differences: list[float]) -> list[float] | None:
     return [means[int(0.05 * (BOOTSTRAP_ITERATIONS - 1))], means[int(0.95 * (BOOTSTRAP_ITERATIONS - 1))]]
 
 
-def analyse(groups: Mapping[tuple[str, int], Mapping[str, Any]], reference: Mapping[str, Any] | None = None) -> dict[str, Any]:
-    for arm in ARMS:
+def analyse(groups: Mapping[tuple[str, int], Mapping[str, Any]], reference: Mapping[str, Any] | None = None, *,
+            arms: tuple[str, str] = ARMS) -> dict[str, Any]:
+    """The 82-1 reading of two arms at the five seeds: ``arms[0]`` minus ``arms[1]`` (VSMT-lean against AssocOnly by default).
+
+    S2-06 (ruling 100-3) reads VSMT-lean against NoVersion the same way, without a gate; the default output is unchanged.
+    """
+
+    first, second = arms
+    for arm in arms:
         for seed in SEEDS:
             if (arm, seed) not in groups:
                 raise ValueError(f"group_missing:{arm}:{seed}")
-    out: dict[str, Any] = {"rule": RULE, "seeds": list(SEEDS), "metrics": {}, "vsmt_lean_only": {}}
+    out: dict[str, Any] = {"rule": RULE if arms == ARMS else RULE.replace("VSMT-lean and AssocOnly", f"{first} and {second}"),
+                           "seeds": list(SEEDS), "metrics": {}, "vsmt_lean_only": {}}
+    if arms != ARMS:
+        out["arms"] = list(arms)
     for metric, (block, field, direction) in METRICS.items():
-        per_seed = {arm: {seed: house_values(groups[(arm, seed)], block, field) for seed in SEEDS} for arm in ARMS}
-        means = {arm: {seed: (statistics.fmean(v.values()) if v else None) for seed, v in per_seed[arm].items()} for arm in ARMS}
+        per_seed = {arm: {seed: house_values(groups[(arm, seed)], block, field) for seed in SEEDS} for arm in arms}
+        means = {arm: {seed: (statistics.fmean(v.values()) if v else None) for seed, v in per_seed[arm].items()} for arm in arms}
         gaps = []
         for seed in SEEDS:
-            v, a = per_seed["VSMT-lean"][seed], per_seed["AssocOnly"][seed]
+            v, a = per_seed[first][seed], per_seed[second][seed]
             houses = sorted(set(v) & set(a))
             gaps.append(statistics.fmean(v[h] - a[h] for h in houses) if houses else 0.0)
         # context only: each house averaged over the seeds first, then a house-resampling interval of the difference
         averaged = {}
-        for arm in ARMS:
+        for arm in arms:
             houses = set.intersection(*(set(per_seed[arm][seed]) for seed in SEEDS))
             averaged[arm] = {h: statistics.fmean(per_seed[arm][seed][h] for seed in SEEDS) for h in houses}
-        common = sorted(set(averaged["VSMT-lean"]) & set(averaged["AssocOnly"]))
-        differences = [averaged["VSMT-lean"][h] - averaged["AssocOnly"][h] for h in common]
+        common = sorted(set(averaged[first]) & set(averaged[second]))
+        differences = [averaged[first][h] - averaged[second][h] for h in common]
         entry: dict[str, Any] = {
             "direction": direction,
-            "house_mean_per_seed": {arm: {str(seed): means[arm][seed] for seed in SEEDS} for arm in ARMS},
-            "seed_spread": {arm: spread([m for m in means[arm].values() if m is not None]) for arm in ARMS},
-            "seed_paired_gaps": verdict(gaps, direction),
+            "house_mean_per_seed": {arm: {str(seed): means[arm][seed] for seed in SEEDS} for arm in arms},
+            "seed_spread": {arm: spread([m for m in means[arm].values() if m is not None]) for arm in arms},
+            "seed_paired_gaps": verdict(gaps, direction, arms),
             "seed_averaged_house_difference_context_only": {"houses": len(common),
                                                             "mean": statistics.fmean(differences) if differences else None,
                                                             "interval_90": bootstrap_interval(differences)},
         }
         if reference is not None:
             per_house = ((reference.get("metrics") or {}).get(metric) or {}).get("per_house") or {}
-            rows = [(r.get("VSMT-lean"), r.get("AssocOnly")) for r in per_house.values()]
+            rows = [(r.get(first), r.get(second)) for r in per_house.values()]
             rows = [(x, y) for x, y in rows if x is not None and y is not None]
             entry["reference_log_270_old_initialisation_not_in_the_rule"] = (
                 {"gap": statistics.fmean(x - y for x, y in rows), "houses": len(rows)} if rows else None)
         out["metrics"][metric] = entry
     for metric, (block, field, direction) in VSMT_ONLY.items():
-        means = {seed: house_values(groups[("VSMT-lean", seed)], block, field) for seed in SEEDS}
+        means = {seed: house_values(groups[(first, seed)], block, field) for seed in SEEDS}
         values = [statistics.fmean(v.values()) for v in means.values() if v]
         out["vsmt_lean_only"][metric] = {"direction": direction, "house_mean_per_seed": {str(s): (statistics.fmean(v.values()) if v else None)
                                                                                           for s, v in means.items()},
