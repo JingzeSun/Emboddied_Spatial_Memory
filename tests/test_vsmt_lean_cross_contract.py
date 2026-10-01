@@ -351,7 +351,12 @@ FROZEN_RULE_SHA256 = {
     # weight_decay, seeds and should-be-visible values are slots and do not.  c5354b1e -> 4e285050.
     # Re-pinned 2026-09-29 for ruling 87-1 (LOG-283/284): the four tau_r grids (VSMT-lean, NoVersion, HeuristicLabel,
     # VSMT-lean-ctx) extended down by 0.15, 0.2 and 0.25, ten values each.  4e285050 -> c9a44bd3.
-    "S0-05": "c9a44bd3052be748b7af35d29d9a1481e40621a487b5c2dd636a1ebcee5cf21a",
+    # Re-pinned 2026-10-01 for ruling 99-1 (LOG-297): arms.VSMT-lean.training.s2r_recipe records the recipe S2-R froze and
+    # evaluated on the development and confirmation sets (17 existence fields, field-wise encoding, class-weighted existence
+    # term and ln w decision, cosine rate with clipping over all heads, concatenated round-1 records, grouped round-1
+    # selection, 54,787 parameters) beside the registered values, which stay the recipe of every run before ruling 89;
+    # those runs remain bound to c9a44bd3 and their commits.  c9a44bd3 -> 806611ad.
+    "S0-05": "806611ad533b4508e9e0affe0aad5c312eaffe12e32728a423e36aefa147bc3b",
     "S1-01": "4f139e631388c05e4006fd12ffad8b611d2e7811fb7f9a830ce9f7c63fdecd84",
     "S1-02a": "997cabe5105ca304269b0d8d9dd34038ff096df7a79c875c577a2629866ccc64",
     # S1-03 re-pinned 2026-09-22 for ruling 49 (LOG-242): the public_pose_correction block -- every
