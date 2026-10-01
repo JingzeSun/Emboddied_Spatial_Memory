@@ -807,12 +807,20 @@ FROZEN_VALUES_BY_RULING = (
         ("persistence_log_decay_per_tick", 1.9420616347206353e-05),
         ("match_gain", 3.0998616369636114),
     )),
+    # Ruling 100-1 (ii) opened the SAM2 set; registered 2026-10-02 under ruling 68 (10) from the S2-06 calibration pass
+    # (39 development episodes, TAF at the rollout theta_a, commit c0b166e): 123,033 of 124,088 object frames in place and
+    # 134 events in 6,899,951 object ticks (truth-only counts, so equal to the instance set), hits 215,332 of 810,437
+    # against false matches 113 of 7,889 (results/vsmt_lean_s2_06_elu_p_fit_c0b166e.json).
+    *((f"{ELU_P_FITTED_PATHS['sam2']}.{name}", value, "D-224-S1 ruling 68 (10), ruling 100-1 (ii)") for name, value in (
+        ("initial_log_odds", 4.75891184514327),
+        ("persistence_log_decay_per_tick", 1.9420616347206353e-05),
+        ("match_gain", 2.920444259169415),
+    )),
 )
 
-#: Policy values that must still be null.  None from the ELU-P fit (2026-09-27) until ruling 100-1 (ii) (2026-10-01)
-#: registered the SAM2 set of the three fitted scalars; S2-06's calibration pass fits them and they move to
-#: FROZEN_VALUES_BY_RULING when registered.
-NULL_POLICY_PATHS: tuple[str, ...] = tuple(f"{ELU_P_FITTED_PATHS['sam2']}.{name}" for name in ELU_P_FITTED)
+#: Policy values that must still be null: none since the SAM2 fit was registered (2026-10-02); the SAM2 set was open
+#: from ruling 100-1 (ii) (2026-10-01) until then.
+NULL_POLICY_PATHS: tuple[str, ...] = ()
 
 FROZEN_CONSTANTS = (
     ("cost_interface.ineligible_logit", INELIGIBLE_LOGIT, "D-224-R"),

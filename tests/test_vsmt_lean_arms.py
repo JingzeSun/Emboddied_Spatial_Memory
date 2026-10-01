@@ -586,31 +586,33 @@ class TestMachineContract(unittest.TestCase):
         # nine at v2 (six v1 values plus the three rollout_config values, D-224-X X4); the shared
         # should-be-visible minimum was frozen by ruling 67 (2026-09-24); ruling 68 (2026-09-25) froze the
         # rollout_config, weight_decay and seeds; the three ELU-P fitted quantities were registered after the
-        # ruling-75 calibration pass (2026-09-27, ruling 68 (10)); ruling 100-1 (ii) (2026-10-01) opened the SAM2 set
-        sam2 = tuple(f"arms.ELU-P.fitted_by_mask_source.sam2.{name}" for name in ("initial_log_odds", "persistence_log_decay_per_tick", "match_gain"))
-        self.assertEqual(NULL_POLICY_PATHS, sam2)
+        # ruling-75 calibration pass (2026-09-27, ruling 68 (10)); ruling 100-1 (ii) (2026-10-01) opened the SAM2 set,
+        # registered after the S2-06 calibration pass (2026-10-02): nothing is left open
+        self.assertEqual(NULL_POLICY_PATHS, ())
         contract = self._fresh()
-        self.assertEqual(tuple(contract["policy_values_without_defaults"]), sam2)
+        self.assertEqual(contract["policy_values_without_defaults"], [])
         for name in ("initial_log_odds", "persistence_log_decay_per_tick", "match_gain"):
             broken = self._fresh()
             broken["arms"]["ELU-P"]["fitted"][name] = None
             with self.assertRaises(LeanArmsError) as caught:
                 validate_arms_contract(broken)
             self.assertEqual(str(caught.exception), f"contract_frozen_value_mismatch:arms.ELU-P.fitted.{name}")
-            broken = self._fresh()  # a SAM2 value filled before registration (still listed open) is refused
-            broken["arms"]["ELU-P"]["fitted_by_mask_source"]["sam2"][name] = 1.0
+            broken = self._fresh()  # a registered SAM2 value cleared or changed is refused
+            broken["arms"]["ELU-P"]["fitted_by_mask_source"]["sam2"][name] = None
             with self.assertRaises(LeanArmsError) as caught:
                 validate_arms_contract(broken)
-            self.assertTrue(str(caught.exception).endswith("_must_be_null_before_freeze"), str(caught.exception))
+            self.assertEqual(str(caught.exception), f"contract_frozen_value_mismatch:arms.ELU-P.fitted_by_mask_source.sam2.{name}")
 
     def test_the_fitted_scalars_are_kept_per_mask_source(self) -> None:
-        # ruling 100-1 (ii): the instance-segmentation set is the ruling-68 (10) fit, the SAM2 set is open until S2-06 fits it
+        # ruling 100-1 (ii): the instance-segmentation set is the ruling-68 (10) fit, the SAM2 set the S2-06 fit (2026-10-02)
         from vsmt.lean_arms import ELU_P_FITTED_BY_MASK_SOURCE_RULE, elu_p_fitted
 
         contract = self._fresh()
         self.assertEqual(elu_p_fitted(contract, "simulator_instance_masks"), contract["arms"]["ELU-P"]["fitted"])
         self.assertEqual(elu_p_fitted(contract, "simulator_instance_masks")["match_gain"], 3.0998616369636114)
-        self.assertEqual(elu_p_fitted(contract, "sam2"), {"initial_log_odds": None, "persistence_log_decay_per_tick": None, "match_gain": None})
+        self.assertEqual(elu_p_fitted(contract, "sam2"), {"initial_log_odds": 4.75891184514327,
+                                                          "persistence_log_decay_per_tick": 1.9420616347206353e-05,
+                                                          "match_gain": 2.920444259169415})
         with self.assertRaises(LeanArmsError):
             elu_p_fitted(contract, "sam")
         for edit, code in (

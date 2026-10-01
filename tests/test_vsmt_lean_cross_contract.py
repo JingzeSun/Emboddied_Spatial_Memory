@@ -522,7 +522,12 @@ FROZEN_VALUES: dict[str, dict[str, Any]] = {
         # D-224-S1 ruling 68 (10), fitted 2026-09-27 on the ruling-75 calibration pass counts (LOG-265).
         "arms.ELU-P.fitted.initial_log_odds": 4.75891184514327,
         "arms.ELU-P.fitted.persistence_log_decay_per_tick": 1.9420616347206353e-05,
-        "arms.ELU-P.fitted.match_gain": 3.0998616369636114
+        "arms.ELU-P.fitted.match_gain": 3.0998616369636114,
+        # Ruling 68 (10) and 100-1 (ii), fitted 2026-10-02 on the S2-06 calibration pass counts (SAM2, 39 episodes, c0b166e);
+        # filling the slots registered while null leaves the S0-05 rule digest unchanged.
+        "arms.ELU-P.fitted_by_mask_source.sam2.initial_log_odds": 4.75891184514327,
+        "arms.ELU-P.fitted_by_mask_source.sam2.persistence_log_decay_per_tick": 1.9420616347206353e-05,
+        "arms.ELU-P.fitted_by_mask_source.sam2.match_gain": 2.920444259169415
     },
     "S1-04": {
         # D-224-S1 ruling 48 / S1-04 code review (2026-09-22): the ReID head's training values,
