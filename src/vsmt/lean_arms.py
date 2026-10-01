@@ -139,6 +139,20 @@ NO_GATE_PARAMETER: dict[str, str] = {
 
 #: ELU-P quantities fitted once on the train split, not grid-searched.
 ELU_P_FITTED = ("initial_log_odds", "persistence_log_decay_per_tick", "match_gain")
+#: Ruling 100-1 (ii) (2026-10-01): the three fitted scalars are kept per mask source.  ``arms.ELU-P.fitted`` holds the
+#: simulator_instance_masks set (ruling 68 (10), unchanged); every other source has its own block under
+#: ``fitted_by_mask_source``, null until that source's calibration pass is fitted by the same registered procedure and
+#: the values are registered in place.  A pass reads the set of its episodes' mask source.
+ELU_P_FITTED_MAIN_MASK_SOURCE = "simulator_instance_masks"
+ELU_P_FITTED_PATHS = {
+    "simulator_instance_masks": "arms.ELU-P.fitted",
+    "sam2": "arms.ELU-P.fitted_by_mask_source.sam2",
+}
+ELU_P_FITTED_BY_MASK_SOURCE_RULE = (
+    "ruling 100-1 (ii): the fitted block holds the three values of the simulator_instance_masks front end (ruling 68 (10)); "
+    "every other mask source keeps its own three values under fitted_by_mask_source, null until that source's calibration "
+    "pass is fitted by the same registered procedure (fit-elu-p over the calibration pass, ruling 75 (1)(a)) and the values "
+    "are registered in place; a pass runs ELU-P at the set of its episodes' mask source and refuses while that set is null")
 
 #: D-224-X ruling X4: one pre-registered ELU-P configuration produces the
 #: memory rollouts for VSMT-lean's DAgger round 0 and the public decisions
@@ -795,8 +809,10 @@ FROZEN_VALUES_BY_RULING = (
     )),
 )
 
-#: Policy values that must still be null: none since the ELU-P fit (2026-09-27).
-NULL_POLICY_PATHS: tuple[str, ...] = ()
+#: Policy values that must still be null.  None from the ELU-P fit (2026-09-27) until ruling 100-1 (ii) (2026-10-01)
+#: registered the SAM2 set of the three fitted scalars; S2-06's calibration pass fits them and they move to
+#: FROZEN_VALUES_BY_RULING when registered.
+NULL_POLICY_PATHS: tuple[str, ...] = tuple(f"{ELU_P_FITTED_PATHS['sam2']}.{name}" for name in ELU_P_FITTED)
 
 FROZEN_CONSTANTS = (
     ("cost_interface.ineligible_logit", INELIGIBLE_LOGIT, "D-224-R"),
@@ -820,6 +836,20 @@ def _lookup(contract: Mapping[str, Any], path: str) -> Any:
         _require(type(node) is dict and part in node, f"contract_path_missing:{path}")
         node = node[part]
     return node
+
+
+def elu_p_fitted(contract: Mapping[str, Any], mask_source: str) -> dict[str, Any]:
+    """ELU-P's three fitted scalars for one mask source, as the S0-05 contract registers them (ruling 100-1 (ii)).
+
+    白话：ELU-P 的初始 log-odds、持续衰减与匹配增益是在各自前端的校准趟上拟合的。输入合同与 mask 来源，输出那一套三个
+    值；实例分割取 fitted 块（裁决 68 (10)），SAM2 取 fitted_by_mask_source.sam2，拟合并登记之前三个值都是 None。例如
+    S2-06 拟合登记前，SAM2 的第 0 轮会因为这里是 None 而被入口拒绝。它不拟合、不改值。
+    """
+
+    _require(mask_source in ELU_P_FITTED_PATHS, f"elu_p_fitted_unregistered_mask_source:{mask_source}")
+    block = _lookup(contract, ELU_P_FITTED_PATHS[mask_source])
+    _require(type(block) is dict and tuple(block) == ELU_P_FITTED, f"contract_elu_p_fitted_mismatch:{mask_source}")
+    return {name: block[name] for name in ELU_P_FITTED}
 
 
 def validate_arms_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
@@ -883,6 +913,15 @@ def validate_arms_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
         section = _lookup(contract, _arm_section_path(arm))
         _require(section.get("gradient") == "none", f"contract_rule_arm_gradient_mismatch:{arm}")
     _require(tuple(arms["ELU-P"]["fitted"].keys()) == ELU_P_FITTED, "contract_elu_p_fitted_mismatch")
+    # ruling 100-1 (ii): one set of fitted scalars per mask source, the fitted block being the main table's
+    _require(arms["ELU-P"].get("fitted_mask_source") == ELU_P_FITTED_MAIN_MASK_SOURCE, "contract_elu_p_fitted_mask_source_mismatch")
+    by_source = arms["ELU-P"].get("fitted_by_mask_source")
+    _require(type(by_source) is dict
+             and tuple(by_source) == tuple(source for source in ELU_P_FITTED_PATHS if source != ELU_P_FITTED_MAIN_MASK_SOURCE),
+             "contract_elu_p_fitted_by_mask_source_mismatch")
+    for source in ELU_P_FITTED_PATHS:
+        elu_p_fitted(contract, source)
+    _require(arms["ELU-P"].get("fitted_by_mask_source_rule") == ELU_P_FITTED_BY_MASK_SOURCE_RULE, "contract_elu_p_fitted_by_mask_source_rule_mismatch")
     _require(
         contract["ablations"]["HeuristicLabel"]["label_source_arm"] == HEURISTIC_LABEL_SOURCE,
         "contract_heuristic_label_source_mismatch",
@@ -944,6 +983,10 @@ __all__ = [
     "CONTRACT_SCHEMA_VERSION",
     "CONTROL_ARMS",
     "ELU_P_FITTED",
+    "ELU_P_FITTED_BY_MASK_SOURCE_RULE",
+    "ELU_P_FITTED_MAIN_MASK_SOURCE",
+    "ELU_P_FITTED_PATHS",
+    "elu_p_fitted",
     "EXPECTED_BOOLEAN_CLAIMS",
     "GATE_ARMS",
     "GRID_PARAMETERS",

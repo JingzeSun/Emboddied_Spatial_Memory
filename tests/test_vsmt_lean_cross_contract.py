@@ -172,7 +172,7 @@ def load_stage(stage: str) -> dict[str, Any]:
 
 #: Top-level keys that record process, not rules.
 BOOKKEEPING_KEYS = frozenset({
-    "status", "policy_values_without_defaults", "registered_value_slots", "user_rulings",
+    "status", "policy_values_without_defaults", "registered_value_slots", "registered_value_slots_added", "user_rulings",
     "pending_user_rulings", "supersedes_contract", "supersedes_contract_v2",
     "activation_policy", "known_conflicts", "review_history",
 })
@@ -186,12 +186,26 @@ LIST_ID_FIELDS = ("asset_id", "conflict_id", "arm", "name", "id")
 
 
 def registered_value_slots(stage: str) -> tuple[str, ...]:
-    """The slots a contract registered as open at v1: fixed for all time."""
+    """The slots a contract registered as open at v1, plus any a later ruling registered before a value existed."""
 
     v1 = json.loads((CONFIG_DIR / FROZEN_V1_NAME[stage]).read_text(encoding="utf-8"))
     # A contract whose v1 is still the live file loses its open list as slots freeze, so it
     # records the slots it registered at v1 under ``registered_value_slots`` (S1-04, 2026-09-22).
-    return tuple(v1.get("registered_value_slots") or v1["policy_values_without_defaults"])
+    slots = tuple(v1.get("registered_value_slots") or v1["policy_values_without_defaults"])
+    # Ruling 100-1 (ii) (2026-10-01): a ruling may register a new slot in the live contract while it is still null -- ELU-P's
+    # fitted scalars of the SAM2 front end -- under the bookkeeping key ``registered_value_slots_added`` naming the ruling.  Its
+    # value then fills in place and goes to the ledger like any v1 slot.  Every added slot must also be listed in
+    # SLOTS_REGISTERED_AFTER_V1 below, a reviewed edit of this file made while the slot is still null.
+    added = load_stage(stage).get("registered_value_slots_added") or {}
+    return slots + tuple(slot for slot in added if slot not in slots)
+
+
+#: Slots registered after v1, by stage: slot -> (ruling, date).  Added only while the slot is null (the commit that adds an
+#: entry here must show it null in the contract); the value then fills in place and enters FROZEN_VALUES.
+SLOTS_REGISTERED_AFTER_V1: dict[str, dict[str, tuple[str, str]]] = {
+    "S0-05": {f"arms.ELU-P.fitted_by_mask_source.sam2.{name}": ("ruling 100-1 (ii)", "2026-10-01")
+              for name in ("initial_log_odds", "persistence_log_decay_per_tick", "match_gain")},
+}
 
 
 def _resolve(node: Any, part: str) -> tuple[Any, Any]:
@@ -360,7 +374,11 @@ FROZEN_RULE_SHA256 = {
     # term and ln w decision, cosine rate with clipping over all heads, concatenated round-1 records, grouped round-1
     # selection, 54,787 parameters) beside the registered values, which stay the recipe of every run before ruling 89;
     # those runs remain bound to c9a44bd3 and their commits.  c9a44bd3 -> 806611ad.
-    "S0-05": "806611ad533b4508e9e0affe0aad5c312eaffe12e32728a423e36aefa147bc3b",
+    # Re-pinned 2026-10-01 for ruling 100-1 (ii): ELU-P's fitted scalars are kept per mask source -- fitted_mask_source names the
+    # fitted block's source (simulator_instance_masks, values unchanged), fitted_by_mask_source.sam2 adds three slots registered
+    # while null (masked out of the digest like every slot) and the per-source rule string binds how a pass reads them.
+    # 806611ad -> 0065b9b4.
+    "S0-05": "0065b9b441f4c0798ee36c0b403e56344baa0e82a458da5ec58f10b68e2a64f1",
     "S1-01": "4f139e631388c05e4006fd12ffad8b611d2e7811fb7f9a830ce9f7c63fdecd84",
     "S1-02a": "997cabe5105ca304269b0d8d9dd34038ff096df7a79c875c577a2629866ccc64",
     # S1-03 re-pinned 2026-09-22 for ruling 49 (LOG-242): the public_pose_correction block -- every
@@ -1080,6 +1098,20 @@ class TestRulesArePinnedAndValuesAreLedgered(unittest.TestCase):
             for slot in values:
                 with self.subTest(stage=stage, slot=slot):
                     self.assertIn(slot, slots)
+
+    def test_a_slot_added_after_v1_names_its_ruling_here_and_in_the_contract(self) -> None:
+        # ruling 100-1 (ii): the only route for a new slot; the contract and this file must name the same ruling
+        for stage in FROZEN_RULE_SHA256:
+            added = load_stage(stage).get("registered_value_slots_added") or {}
+            expected = SLOTS_REGISTERED_AFTER_V1.get(stage, {})
+            self.assertEqual(set(added), set(expected), stage)
+            v1 = json.loads((CONFIG_DIR / FROZEN_V1_NAME[stage]).read_text(encoding="utf-8"))
+            for slot, ruling in added.items():
+                with self.subTest(stage=stage, slot=slot):
+                    self.assertTrue(ruling.startswith(expected[slot][0]), ruling)
+                    self.assertIn(expected[slot][1], ruling)
+                    self.assertNotIn(slot, v1.get("registered_value_slots") or v1["policy_values_without_defaults"])
+                    lookup_slot(load_stage(stage), slot)  # the slot exists in the live contract
 
     def test_filling_a_slot_does_not_move_the_rule_digest(self) -> None:
         # The whole point: a value freeze is not a revision.

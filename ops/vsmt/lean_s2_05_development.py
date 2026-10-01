@@ -17,8 +17,8 @@ Typical order (the contract's ``passes.order``):
         (rulings freeze the grids, the rollout_config and the development configurations)
     run-pass --pass elu_p_fit --arm TAF --config '{"theta_a": <rollout theta_a>, "d_a": null}' --elu-p-counts ...
     fit-elu-p --output-root <root>
-        (the three fitted values are registered in S0-05 by ruling)
-    run-pass --pass dagger_round_0 --arm ELU-P --config '<rollout_config + fitted>' ...
+        (the three fitted values are registered in S0-05 for the pass's mask source: ruling 68 (10), ruling 100-1 (ii))
+    run-pass --pass dagger_round_0 --arm ELU-P --config '<rollout_config + the fitted set of --mask-source>' ...
     train --pass dagger_round_0 --round 0 [--assoc-only] ...
     run-pass --pass dagger_round_1 --arm VSMT-lean --heads training/round0/VSMT-lean/weights.json --config '{"tau_r": ...}' ...
     run-pass --pass dagger_round_1 --arm AssocOnly --heads training/round0/AssocOnly/weights.json --config '{}' ...
@@ -153,21 +153,23 @@ PASS_ARMS = {
 }
 
 
-def expected_pass_config(pass_name: str, arm: str) -> dict[str, Any] | None:
+def expected_pass_config(pass_name: str, arm: str, *, mask_source: str = arms.ELU_P_FITTED_MAIN_MASK_SOURCE) -> dict[str, Any] | None:
     """The registered configuration a pass runs an arm at (ruling 68), or None when the pass registers none.
 
     白话：每一趟该用什么配置是登记好的，不由命令行临时决定：拟合趟 TAF 取 rollout 的 theta_a 且无门；
-    第 0 轮 ELU-P 取 rollout_config 加 S0-05 登记的三个拟合量；第 1 轮与开发表用 S2-05 的开发配置槽。
-    命令行给的配置必须与之相等，否则拒绝。
+    第 0 轮 ELU-P 取 rollout_config 加 S0-05 为这趟 mask 来源登记的三个拟合量（裁决 100-1 (ii)：实例分割与 SAM2
+    各一套，SAM2 那套拟合登记前为 None）；第 1 轮与开发表用 S2-05 的开发配置槽。命令行给的配置必须与之相等，否则拒绝。
+    默认来源是主表的实例分割，S2-06 的调用一律显式给 mask_source。
     """
 
     contract = dev.validate_development_contract(load_json(S2_05_CONTRACT))
-    elu_p = load_json(S0_05_CONTRACT)["arms"]["ELU-P"]
+    s0_05 = load_json(S0_05_CONTRACT)
+    elu_p = s0_05["arms"]["ELU-P"]
     rollout = {name: elu_p["rollout_config"][name] for name in arms.ROLLOUT_CONFIG_PARAMETERS}
     if pass_name == "elu_p_fit" and arm == "TAF":
         return {"theta_a": rollout["theta_a"], "d_a": None}
     if pass_name == "dagger_round_0" and arm == "ELU-P":
-        return {**rollout, arms.ROLLOUT_CONFIG_GATE_PARAMETER: None, **{name: elu_p["fitted"][name] for name in arms.ELU_P_FITTED}}
+        return {**rollout, arms.ROLLOUT_CONFIG_GATE_PARAMETER: None, **arms.elu_p_fitted(s0_05, mask_source)}
     if pass_name in ("dagger_round_1", "development_table") and arm in dev.DEVELOPMENT_CONFIGURATIONS:
         return dev.development_configuration(contract, arm)
     return None
@@ -192,7 +194,10 @@ def cmd_run_pass(args: argparse.Namespace) -> int:
     if args.pass_name == "calibration":
         if {"arm": args.arm, "config": config} != dev.CALIBRATION_ARM_CONFIG:
             return refuse(f"the calibration pass is {dev.CALIBRATION_ARM_CONFIG}, not {args.arm} {config}")
-    expected = expected_pass_config(args.pass_name, args.arm)
+    expected = expected_pass_config(args.pass_name, args.arm, mask_source=args.mask_source)
+    if expected is not None and any(expected[name] is None for name in arms.ELU_P_FITTED if name in expected):
+        return refuse(f"ELU-P's fitted values for mask source {args.mask_source} are still null in S0-05: fit the calibration pass "
+                      "and register them first (ruling 100-1 (ii))")
     if expected is not None and config != expected:
         return refuse(f"the {args.pass_name} pass runs {args.arm} at the registered configuration {expected}, not {config}")
     if args.arm in lr.LEARNED_ARMS and not args.heads:
@@ -308,24 +313,33 @@ def cmd_fit_elu_p(args: argparse.Namespace) -> int:
         return refuse(f"policy values still null: {missing}")
     # ruling 75 (1)(a): the calibration pass runs the fit pass's arm and configuration and writes the same counts
     pass_root = Path(args.output_root).resolve() / args.from_pass
-    records, episodes = [], []
-    for episode_dir in episode_dirs(pass_root, "TAF"):
+    records, episodes, sources = [], [], set()
+    for episode_dir in episode_dirs(pass_root, "TAF"):  # refuses a pass whose receipts name two mask sources
         payload = episode_dir / "TAF" / "elu_p_counts.json"
         if not payload.exists():
             return refuse(f"pass_prerequisite_missing: {payload}")
         records.append(load_json(payload))
         episodes.append(episode_dir.name)
+        sources.add(receipt_mask_source(load_json(episode_dir / "TAF" / "receipt.json")))
     if not episodes:
         return refuse("pass_prerequisite_missing: no fit episode receipts")
     try:
         fitted = dev.fit_elu_p(records, rollout_config=rollout)
     except dev.LeanDevelopmentError as exc:
         return refuse(str(exc))
+    # ruling 100-1 (ii): the values belong to the pass's mask source; once that source's set is registered in S0-05, a refit
+    # must reproduce it exactly (the counts are integers and the estimator deterministic)
+    mask_source = next(iter(sources))
+    registered = arms.elu_p_fitted(load_json(S0_05_CONTRACT), mask_source)
+    is_registered = all(value is not None for value in registered.values())
     report = {"stage": dev.STAGE_ID, "pass": "elu_p_fit", "counts_from_pass": args.from_pass, "arm_rule": dev.ELU_P_FIT_ARM_RULE, "episodes": episodes,
+              "mask_source": mask_source, "registered_values": registered if is_registered else None,
+              "matches_the_registered_values": (fitted["values"] == registered) if is_registered else None,
               "code_commit": _git("rev-parse", "HEAD"), **fitted}
     (pass_root / "elu_p_fit.json").write_text(json.dumps(report, indent=1), encoding="utf-8")
-    print(json.dumps({"values": fitted["values"], "counts": fitted["counts"]}, indent=1))
-    return 0
+    print(json.dumps({"mask_source": mask_source, "values": fitted["values"], "counts": fitted["counts"],
+                      "matches_the_registered_values": report["matches_the_registered_values"]}, indent=1))
+    return 0 if report["matches_the_registered_values"] in (True, None) else 3
 
 
 def cmd_train(args: argparse.Namespace) -> int:

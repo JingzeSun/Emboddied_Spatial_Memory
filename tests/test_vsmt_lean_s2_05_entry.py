@@ -41,6 +41,21 @@ class TestRegisteredPassConfigurations(unittest.TestCase):
         fitted = entry.load_json(entry.S0_05_CONTRACT)["arms"]["ELU-P"]["fitted"]
         self.assertEqual({name: round_0[name] for name in arms.ELU_P_FITTED}, fitted)
 
+    def test_round_0_reads_the_fitted_set_of_its_mask_source(self):
+        # ruling 100-1 (ii): the default is the main table's instance-segmentation set; the SAM2 set is null until S2-06
+        # fits and registers it, and run-pass refuses round 0 while it is (the check sits before the config comparison)
+        contract = entry.load_json(entry.S0_05_CONTRACT)
+        instance = entry.expected_pass_config("dagger_round_0", "ELU-P", mask_source="simulator_instance_masks")
+        self.assertEqual(instance, entry.expected_pass_config("dagger_round_0", "ELU-P"))
+        self.assertEqual({name: instance[name] for name in arms.ELU_P_FITTED}, contract["arms"]["ELU-P"]["fitted"])
+        sam2 = entry.expected_pass_config("dagger_round_0", "ELU-P", mask_source="sam2")
+        self.assertEqual({name: sam2[name] for name in arms.ROLLOUT_CONFIG_PARAMETERS}, arms.ROLLOUT_CONFIG)
+        self.assertEqual({name: sam2[name] for name in arms.ELU_P_FITTED}, arms.elu_p_fitted(contract, "sam2"))
+        self.assertTrue(all(sam2[name] is None for name in arms.ELU_P_FITTED))
+        # the other passes do not depend on the mask source
+        for pass_name, arm in (("elu_p_fit", "TAF"), ("dagger_round_1", "VSMT-lean"), ("development_table", "RAC")):
+            self.assertEqual(entry.expected_pass_config(pass_name, arm, mask_source="sam2"), entry.expected_pass_config(pass_name, arm))
+
     def test_round_1_and_the_table_use_the_development_configurations(self):
         for pass_name in ("dagger_round_1", "development_table"):
             for arm, config in dev.DEVELOPMENT_CONFIGURATIONS.items():

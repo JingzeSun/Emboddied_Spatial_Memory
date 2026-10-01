@@ -272,7 +272,17 @@
         "plain_language_zh": "三个拟合量只在 train 上估一次、不进网格：初始 log-odds 是“看不见一阵子之后物体还在原处”的先验；持续性衰减由每帧被移走/搬动的风险率算出；匹配增益是“物体在时门内能配上”对“物体不在时门内仍配上”的对数似然比，门取登记的 rollout_config，因此所有 ELU-P 配置共用同一个增益。估计代码属 S2-02，数值待冻结。"
       },
       "fitted_frozen_by": "D-224-S1 ruling 68 (10); counts of the ruling-75 calibration pass (lean-s2-05-oracle-850c533, receipts 850c533 x38 + 97b76b0 x1)",
-      "fitted_frozen_on": "2026-09-27"
+      "fitted_frozen_on": "2026-09-27",
+      "fitted_mask_source": "simulator_instance_masks",
+      "fitted_by_mask_source": {
+        "sam2": {
+          "initial_log_odds": null,
+          "persistence_log_decay_per_tick": null,
+          "match_gain": null
+        }
+      },
+      "fitted_by_mask_source_rule": "ruling 100-1 (ii): the fitted block holds the three values of the simulator_instance_masks front end (ruling 68 (10)); every other mask source keeps its own three values under fitted_by_mask_source, null until that source's calibration pass is fitted by the same registered procedure (fit-elu-p over the calibration pass, ruling 75 (1)(a)) and the values are registered in place; a pass runs ELU-P at the set of its episodes' mask source and refuses while that set is null",
+      "fitted_by_mask_source_plain_language_zh": "裁决 100-1 (ii)：ELU-P 的三个拟合量按 mask 来源分存。fitted 块是实例分割前端那套（裁决 68 (10)，不动）；SAM2 那套在 fitted_by_mask_source.sam2，运行前为空，由 S2-06 的校准趟按同一登记程序（fit-elu-p 读校准趟的 ELU-P 计数，裁决 75 (1)(a)）拟合后就地填入并记入跨合同台账。第 0 轮与 ELU-P 审计按 episode 的 mask 来源读对应那套；那套仍为空时入口拒绝运行。它不改拟合公式、网格与 rollout_config。"
     },
     "RAC": {
       "kind": "rule",
@@ -571,7 +581,16 @@
     "arms.VSMT-lean.training.dagger_rounds",
     "arms.VSMT-lean.training.main_table_round"
   ],
-  "policy_values_without_defaults": [],
+  "policy_values_without_defaults": [
+    "arms.ELU-P.fitted_by_mask_source.sam2.initial_log_odds",
+    "arms.ELU-P.fitted_by_mask_source.sam2.persistence_log_decay_per_tick",
+    "arms.ELU-P.fitted_by_mask_source.sam2.match_gain"
+  ],
+  "registered_value_slots_added": {
+    "arms.ELU-P.fitted_by_mask_source.sam2.initial_log_odds": "ruling 100-1 (ii) (2026-10-01)",
+    "arms.ELU-P.fitted_by_mask_source.sam2.persistence_log_decay_per_tick": "ruling 100-1 (ii) (2026-10-01)",
+    "arms.ELU-P.fitted_by_mask_source.sam2.match_gain": "ruling 100-1 (ii) (2026-10-01)"
+  },
   "user_rulings": {
     "decision_id": "D-224-SW",
     "S": "HandCost is redefined as stateless hand scores in VSMT-lean's three head slots (cosine, theta_b, current free-space coverage against rho_h); it no longer coincides with ELU-P",
@@ -582,7 +601,8 @@
     "plain_language_zh": "五项口径由用户于 2026-09-20 以 D-224-SW 批准，全部按 LOG-218 的推荐口径执行；本合同的臂定义、网格参数名与常量即其机器形式。",
     "ruling_67": "D-224-S1 裁决 67（2026-09-24 批准，原话「S2-05 审过；裁决 67 八个值全按推荐。」）：shared.should_be_visible_min_ratio=0.5，绑定常量 SHOULD_BE_VISIBLE_MIN_RATIO，登记进跨合同台账；其余八个 null 值（weight_decay、seeds、ELU-P 三个拟合量与 rollout_config 三值）归裁决 68 与拟合趟。",
     "ruling_68": "D-224-S1 裁决 68（2026-09-25 批准，原话「裁决 68 全按推荐」）：各臂网格（TAF theta_a {0.6,0.7,0.8}×d_a {None,0.5,1,2}；ELU-P theta_a {0.7}×d_a {None,1}×free_space_weight {{0.5,1,2}}×retract_threshold {{0,−1}}；RAC theta_a {{0.7}}×d_a {{None,1}}×rho_rac {{0.7,0.85}}×n_rac {{2,3,5}}；LOW d_low {{None,0.25,0.5,1,2}}；VSMT-lean／NoVersion／HeuristicLabel／VSMT-lean-ctx tau_r 0.3～0.9 步 0.1；HandCost theta_b {{0.6,0.7,0.8}}×rho_h {{0.6,0.7,0.8,0.9}}；AssocOnly 空）绑定 FROZEN_GRIDS；rollout_config (0.7, 1.0, 0.0) 绑定 ROLLOUT_CONFIG；weight_decay 1e-4、seeds [7,19,31,43,59] 绑定 WEIGHT_DECAY／SEEDS；shared.should_be_visible_min_ratio 0.5→1/64（裁决 67 值进 SUPERSEDED_VALUES）绑定 SHOULD_BE_VISIBLE_MIN_RATIO；三个拟合量仍为 null，由 elu_p_fit 趟产出后直接登记（裁决 68 (10) 预授权）。网格与取代记录进入规则摘要，S0-05 重钉。",
-    "ruling_72_B": "D-224-S1 裁决 72 (B)（2026-09-25 批准）：budget.selection_metric 仍为 node_f1，字节不变；其所指的 S0-04 node_prf1 改为质心 ≤ delta_moved_m 口径（主列），IoU 0.3 降为 node_prf1_iou 次级列、不选参。"
+    "ruling_72_B": "D-224-S1 裁决 72 (B)（2026-09-25 批准）：budget.selection_metric 仍为 node_f1，字节不变；其所指的 S0-04 node_prf1 改为质心 ≤ delta_moved_m 口径（主列），IoU 0.3 降为 node_prf1_iou 次级列、不选参。",
+    "ruling_100_1_ii": "裁决 100-1 (ii)（2026-10-01 批准，原话「待裁 100 取 (a)，加 100-6 复现要求」）：ELU-P 三个拟合量按 mask 来源分存。arms.ELU-P.fitted 是实例分割那套，一字不变，并以 fitted_mask_source 写明来源；SAM2 那套是新增的三个值槽 arms.ELU-P.fitted_by_mask_source.sam2.*，在任何值出现之前登记（registered_value_slots_added，记账键），运行前为 null、列在 policy_values_without_defaults，由 S2-06 校准趟按同一登记程序拟合后就地填入、记入跨合同台账（裁决 68 (10) 的预授权同样适用）。新增块的结构与规则字串进入规则摘要，故重钉；值槽本身不进摘要。"
   },
   "continue_gate": {
     "every_method_grid_at_most_twelve_and_preregistered": true,

@@ -586,16 +586,45 @@ class TestMachineContract(unittest.TestCase):
         # nine at v2 (six v1 values plus the three rollout_config values, D-224-X X4); the shared
         # should-be-visible minimum was frozen by ruling 67 (2026-09-24); ruling 68 (2026-09-25) froze the
         # rollout_config, weight_decay and seeds; the three ELU-P fitted quantities were registered after the
-        # ruling-75 calibration pass (2026-09-27, ruling 68 (10)): nothing is left open
-        self.assertEqual(NULL_POLICY_PATHS, ())
+        # ruling-75 calibration pass (2026-09-27, ruling 68 (10)); ruling 100-1 (ii) (2026-10-01) opened the SAM2 set
+        sam2 = tuple(f"arms.ELU-P.fitted_by_mask_source.sam2.{name}" for name in ("initial_log_odds", "persistence_log_decay_per_tick", "match_gain"))
+        self.assertEqual(NULL_POLICY_PATHS, sam2)
         contract = self._fresh()
-        self.assertEqual(contract["policy_values_without_defaults"], [])
+        self.assertEqual(tuple(contract["policy_values_without_defaults"]), sam2)
         for name in ("initial_log_odds", "persistence_log_decay_per_tick", "match_gain"):
             broken = self._fresh()
             broken["arms"]["ELU-P"]["fitted"][name] = None
             with self.assertRaises(LeanArmsError) as caught:
                 validate_arms_contract(broken)
             self.assertEqual(str(caught.exception), f"contract_frozen_value_mismatch:arms.ELU-P.fitted.{name}")
+            broken = self._fresh()  # a SAM2 value filled before registration (still listed open) is refused
+            broken["arms"]["ELU-P"]["fitted_by_mask_source"]["sam2"][name] = 1.0
+            with self.assertRaises(LeanArmsError) as caught:
+                validate_arms_contract(broken)
+            self.assertTrue(str(caught.exception).endswith("_must_be_null_before_freeze"), str(caught.exception))
+
+    def test_the_fitted_scalars_are_kept_per_mask_source(self) -> None:
+        # ruling 100-1 (ii): the instance-segmentation set is the ruling-68 (10) fit, the SAM2 set is open until S2-06 fits it
+        from vsmt.lean_arms import ELU_P_FITTED_BY_MASK_SOURCE_RULE, elu_p_fitted
+
+        contract = self._fresh()
+        self.assertEqual(elu_p_fitted(contract, "simulator_instance_masks"), contract["arms"]["ELU-P"]["fitted"])
+        self.assertEqual(elu_p_fitted(contract, "simulator_instance_masks")["match_gain"], 3.0998616369636114)
+        self.assertEqual(elu_p_fitted(contract, "sam2"), {"initial_log_odds": None, "persistence_log_decay_per_tick": None, "match_gain": None})
+        with self.assertRaises(LeanArmsError):
+            elu_p_fitted(contract, "sam")
+        for edit, code in (
+            (lambda c: c["arms"]["ELU-P"].__setitem__("fitted_mask_source", "sam2"), "contract_elu_p_fitted_mask_source_mismatch"),
+            (lambda c: c["arms"]["ELU-P"]["fitted_by_mask_source"].pop("sam2"), "contract_elu_p_fitted_by_mask_source_mismatch"),
+            (lambda c: c["arms"]["ELU-P"]["fitted_by_mask_source"]["sam2"].pop("match_gain"), "contract_elu_p_fitted_mismatch:sam2"),
+            (lambda c: c["arms"]["ELU-P"].__setitem__("fitted_by_mask_source_rule", "share one set"), "contract_elu_p_fitted_by_mask_source_rule_mismatch"),
+        ):
+            broken = self._fresh()
+            edit(broken)
+            with self.subTest(code=code), self.assertRaises(LeanArmsError) as caught:
+                validate_arms_contract(broken)
+            self.assertEqual(str(caught.exception), code)
+        self.assertEqual(contract["arms"]["ELU-P"]["fitted_by_mask_source_rule"], ELU_P_FITTED_BY_MASK_SOURCE_RULE)
 
     def test_the_ruling_67_and_68_values_are_bound(self) -> None:
         from vsmt.lean_arms import SEEDS, SHOULD_BE_VISIBLE_MIN_RATIO, WEIGHT_DECAY
