@@ -1,0 +1,17 @@
+{
+ "commit": "5176bb6",
+ "stage_reached": "done",
+ "finished_cst": "2026-10-01 14:13:19",
+ "suite_exit": "0",
+ "verify_exit": "0",
+ "audits_failed": "0",
+ "merges_failed": "0",
+ "primary_reading_exit": "0",
+ "sensitivity_reading_exit": "0",
+ "freeze": "ops/vsmt/ruling97_freeze.json",
+ "workers": 64,
+ "cpu_quota": 68,
+ "memory_max": "257698037760",
+ "worker_basis": "cgroup CPU quota minus four; each audit is one single-threaded process of about 1-2 GB; largest episode first",
+ "fallback_shutdown_seconds": 7200
+}
