@@ -285,17 +285,18 @@ def cmd_calibration_report(args: argparse.Namespace) -> int:
     pass_root = Path(args.output_root).resolve() / "calibration"
     arm = dev.CALIBRATION_ARM_CONFIG["arm"]
     merged = dev.CalibrationCollector()
-    episodes = []
-    for episode_dir in episode_dirs(pass_root, arm):
+    episodes, sources = [], set()
+    for episode_dir in episode_dirs(pass_root, arm):  # refuses a pass whose receipts name two mask sources
         payload = episode_dir / arm / "calibration.json"
         if not payload.exists():
             return refuse(f"pass_prerequisite_missing: {payload}")
         merged.merge(dev.CalibrationCollector.from_json(load_json(payload)))
         episodes.append(episode_dir.name)
+        sources.add(receipt_mask_source(load_json(episode_dir / arm / "receipt.json")))
     if not episodes:
         return refuse("pass_prerequisite_missing: no calibration episode receipts")
-    report = {"stage": dev.STAGE_ID, "pass": "calibration", "arm": arm, "episodes": episodes, "code_commit": _git("rev-parse", "HEAD"),
-              **merged.report(), "histograms": merged.to_json()["histograms"]}
+    report = {"stage": dev.STAGE_ID, "pass": "calibration", "arm": arm, "episodes": episodes, "mask_source": next(iter(sources)),
+              "code_commit": _git("rev-parse", "HEAD"), **merged.report(), "histograms": merged.to_json()["histograms"]}
     (pass_root / "calibration_report.json").write_text(json.dumps(report, indent=1), encoding="utf-8")
     print(json.dumps({k: v for k, v in report["series"].items()}, indent=1))
     return 0
