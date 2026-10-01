@@ -16,7 +16,9 @@
 #   pilot              the largest SAM2 episode: its calibration job (kept: it is part of the calibration pass) and a timing-only
 #                      TAF audit, both measured; compared with the instance-segmentation audit time of the same episode
 #   calibration        ruling 75: TAF at theta_a 0.7, no gate, with the calibration histograms and the ELU-P counts, 39 episodes
-#   grid-review        ruling 100-2 step 2 (ops/vsmt/s2_06_grid_review.py): out of grid -> STOP for a ruling (exit marker 'stopped')
+#   grid-review        ruling 100-2 step 2 with the ruling 101 (1)(a) verdict (ops/vsmt/s2_06_grid_review.py): a SAM2 point outside a
+#                      grid on a side the instance-segmentation point is not -> STOP for a ruling (marker 'stopped'); outside on
+#                      the same side -> listed for S3-01, no stop
 #   elu-p-fit          ruling 75 / 100-1 (ii): fit-elu-p over the calibration pass; until the SAM2 values are registered in S0-05
 #                      (a commit, pre-authorised by ruling 68 (10)) the stage HOLDS; at the registering commit it checks equality
 #   round0             ELU-P at the rollout configuration and the SAM2 fitted values: round-0 records, 39 episodes
@@ -211,8 +213,8 @@ stage_grid_review() {
   $PY ops/vsmt/s2_06_grid_review.py --calibration "$RUN_ROOT/calibration/calibration_report.json" \
     --reference results/vsmt_lean_s2_05_calibration_oracle_850c533.json --output "$EXPORT_DIR/vsmt_lean_s2_06_grid_review_$TAG.json"
   case $? in
-    0) DETAIL="every judged grid brackets its SAM2 point";;
-    4) DETAIL="out of grid ($EXPORT_DIR/vsmt_lean_s2_06_grid_review_$TAG.json): stop, a ruling stores grids per mask_source (ruling 100-2 step 2)"; return 11;;
+    0) DETAIL="no grid out by ruling 101 (1)(a); checks outside on the same side as instance segmentation are listed for S3-01";;
+    4) DETAIL="out of grid ($EXPORT_DIR/vsmt_lean_s2_06_grid_review_$TAG.json): stop, a ruling stores grids per mask_source (ruling 100-2 step 2, 101 (1)(a))"; return 11;;
     *) DETAIL="grid review refused its inputs"; return 1;;
   esac
 }

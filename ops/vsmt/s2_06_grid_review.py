@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
-"""S2-06 grid review (ruling 100-2 step 2, ruling 84-2): do the registered grids still bracket the SAM2 calibration points?
+"""S2-06 grid review (ruling 100-2 step 2 as amended by ruling 101 (1)(a), ruling 84-2): does SAM2 need grids of its own?
 
 白话：S0-05 的各臂网格是按实例分割校准趟的分位数定的（裁决 68，裁决 73／78 复核）。换成 SAM2 前端后，同一批校准量可能
-挪位置，网格就可能不再括住它们。这个脚本读 SAM2 校准趟的合并直方图，按裁决 100-2 第 2 步事先写死的判定点逐项重算，并把
-实例分割校准趟（`results/vsmt_lean_s2_05_calibration_oracle_850c533.json`）的同一量并排列出：
+挪位置。这个脚本读 SAM2 校准趟的合并直方图，按裁决 100-2 第 2 步事先写死的判定点逐项重算，并把实例分割校准趟
+（`results/vsmt_lean_s2_05_calibration_oracle_850c533.json`）的同一量并排列出：
   * TAF θ_a（HandCost θ_b 网格与它相同、同一判定点）：取使“同物体余弦 ≥ c 的占比 − 异物体余弦 ≥ c 的占比”最大的 c；
   * TAF 距离门 d_a 与 LOW 的 d_low：取同物体质心距离的中位数；
   * RAC ρ_rac 与 HandCost ρ_h：取使“gone 行自由空间覆盖 ≥ ρ 的占比 − present 行覆盖 ≥ ρ 的占比”最大的 ρ；
   * 应可见下限：报应可见比例的分布（单个值没有端点可括，只报告）。
-任一网格的端点（最小与最大的有限值）不再括住对应的点或中位数，即判“出界”：退出码 4，驱动写停止标记、停下，等用户另提
-按 mask_source 分存网格的裁决，不边看边改。例如 SAM2 同物体距离中位数 2.6 m 落在 LOW 网格 {0.25, …, 2.0} 之外，就出界。
-它不改网格、不选参，也不读任何指标；同一条规则对实例分割的判定只作并排参照，不改变 SAM2 的结论。
+每个点先看它落在网格有限端点（最小与最大的有限值）的哪一侧：之下、之内或之上。裁决 101 (1)(a)（2026-10-01）：SAM2 的点落在
+网格之外、而且与实例分割的点不在同一侧，才判“出界”——退出码 4，驱动写停止标记、停下，等用户另提按 mask_source 分存网格的
+裁决，不边看边改；与实例分割同在网格外的同一侧，记“与实例分割同一状况”，不停，列给 S3-01 裁定（两套前端的这些网格要不要调）。
+例如实例分割的同物体距离中位数约 0.19 m、在 LOW 网格 {0.25, …, 2.0} 之下，SAM2 若也在之下就不停；SAM2 若是 2.6 m、在之上，
+就出界。原文（裁决 100-2）的绝对判定会把实例分割自己的 4 个网格也判为出界，所以改为相对判定；绝对读数仍列在报告里供阅读。
+它不改网格、不选参，也不读任何指标。
 
 操作化（运行前写死，见代码）：
   * 占比都是直方图箱边界上的精确占比（`Histogram.share_at_or_above`），不用箱内插值；c 取余弦箱边界 −1.00, −0.98, …，
@@ -22,7 +25,7 @@
 Usage:
   python ops/vsmt/s2_06_grid_review.py --calibration <S2-06 calibration_report.json> \
       --reference results/vsmt_lean_s2_05_calibration_oracle_850c533.json --output <json>
-Exit codes: 0 every judged grid brackets its SAM2 point; 4 at least one is out of grid; 2 refused input.
+Exit codes: 0 no grid is out by ruling 101 (1)(a); 4 at least one is out of grid; 2 refused input.
 """
 
 from __future__ import annotations
@@ -42,13 +45,16 @@ if str(ROOT / "src") not in sys.path:
 from vsmt import lean_arms as arms  # noqa: E402
 from vsmt import lean_development as dev  # noqa: E402
 
-STAGE = "vsmt.lean.s2_06.grid_review.v1"
+STAGE = "vsmt.lean.s2_06.grid_review.v2"
 RULE = ("ruling 100-2 step 2 (registered before the run): the ruling-68 calibration quantity of each grid recomputed on SAM2 and "
         "set beside the instance-segmentation value; TAF theta_a at the c maximising share(same-object cosine >= c) - "
         "share(other-object cosine >= c); the distance gate and LOW at the same-object distance median; RAC rho_rac and HandCost "
         "rho_h at the rho maximising share(gone coverage >= rho) - share(present coverage >= rho); the should-be-visible minimum "
-        "against the should-be-visible distribution; a grid whose endpoints no longer bracket its point or median is out of grid: "
-        "stop and propose a ruling storing grids per mask_source before the fit and the rule arms run; never adjusted while looking")
+        "against the should-be-visible distribution, reported only. Ruling 101 (1)(a) (2026-10-01, before any SAM2 data): each point "
+        "is below, inside or above its grid's finite endpoints; a SAM2 point outside the grid on a side the instance-segmentation "
+        "point is not on is out of grid: stop and propose a ruling storing grids per mask_source before the fit and the rule arms "
+        "run; a SAM2 point outside on the same side as the instance-segmentation point is the same regime and goes to S3-01; never "
+        "adjusted while looking")
 OUT_OF_GRID_EXIT = 4
 SAM2, INSTANCE = "sam2", "simulator_instance_masks"
 #: (check name, grid owner arm, grid parameter, decision point) -- every grid the registered rule judges
@@ -133,6 +139,19 @@ def judge(point_kind: str, point: Mapping[str, Any], span: tuple[float, float], 
     return {"inside": side == "inside", "side": side}
 
 
+def verdict(sam2_side: str, instance_side: str) -> str:
+    """Ruling 101 (1)(a): SAM2 needs a grid of its own only where it leaves the grid on a side instance segmentation does not.
+
+    白话：输入两套前端各自落在网格的哪一侧（below／inside／above），输出这一项的判定：SAM2 在网格之内为 inside；SAM2 在网格外、
+    实例分割在网格内或在另一侧，为 out_of_grid（停下另提裁决）；两者同在网格外的同一侧，为 same_side_as_instance_segmentation
+    （不停，列给 S3-01）。例如实例分割与 SAM2 的覆盖交叉点都在 1/64、都在 RAC 网格之下，就是后者。它不判断哪套网格更好。
+    """
+
+    if sam2_side == "inside":
+        return "inside"
+    return "same_side_as_instance_segmentation" if sam2_side == instance_side else "out_of_grid"
+
+
 def review(sam2: Mapping[str, Any], reference: Mapping[str, Any]) -> dict[str, Any]:
     fronts = {SAM2: sam2, INSTANCE: reference}
     by_front = {name: points(calibration) for name, calibration in fronts.items()}
@@ -143,6 +162,7 @@ def review(sam2: Mapping[str, Any], reference: Mapping[str, Any]) -> dict[str, A
         row = {"check": name, "grid": grid, "endpoints": list(span), "decision_point": kind}
         for front, calibration in fronts.items():
             row[front] = {**by_front[front][kind], **judge(kind, by_front[front][kind], span, calibration["histograms"]["same_object_centroid_distance_m"])}
+        row["verdict"] = verdict(row[SAM2]["side"], row[INSTANCE]["side"])
         checks.append(row)
     reported = []
     for name, arm, parameter in REPORTED:
@@ -170,8 +190,8 @@ def review(sam2: Mapping[str, Any], reference: Mapping[str, Any]) -> dict[str, A
             "present_rows_median": h["present_should_be_visible_ratio"].quantile(0.5),
             "gone_rows_median": h["gone_should_be_visible_ratio"].quantile(0.5),
         }
-    out_of_grid = [row["check"] for row in checks if not row[SAM2]["inside"]]
-    reference_out = [row["check"] for row in checks if not row[INSTANCE]["inside"]]
+    out_of_grid = [row["check"] for row in checks if row["verdict"] == "out_of_grid"]
+    same_side = [row["check"] for row in checks if row["verdict"] == "same_side_as_instance_segmentation"]
     return {
         "rule": RULE,
         "checks": checks,
@@ -179,9 +199,11 @@ def review(sam2: Mapping[str, Any], reference: Mapping[str, Any]) -> dict[str, A
         "should_be_visible_minimum": visibility,
         "out_of_grid": out_of_grid,
         "verdict": "out_of_grid" if out_of_grid else "in_grid",
-        "instance_segmentation_out_of_grid_under_the_same_rule": reference_out,
-        "next": ("stop: propose a ruling storing grids per mask_source before the ELU-P fit and the rule arms run (ruling 100-2 step 2)"
-                 if out_of_grid else "register 'reviewed on SAM2' and continue with the ELU-P fit"),
+        "same_side_as_instance_segmentation_for_s3_01": same_side,
+        "outside_the_finite_endpoints_reading_only": {front: [row["check"] for row in checks if not row[front]["inside"]] for front in fronts},
+        "next": ("stop: propose a ruling storing grids per mask_source before the ELU-P fit and the rule arms run (ruling 100-2 step 2, "
+                 "ruling 101 (1)(a))" if out_of_grid else
+                 "register 'reviewed on SAM2' and continue with the ELU-P fit; the same-side checks go to S3-01 (ruling 101 (1)(a))"),
     }
 
 
@@ -211,7 +233,7 @@ def main(argv: list[str] | None = None) -> int:
     output = {"stage": STAGE, "inputs": inputs, "script_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), **result}
     Path(args.output).write_text(json.dumps(output, indent=1), encoding="utf-8")
     print(json.dumps({"verdict": result["verdict"], "out_of_grid": result["out_of_grid"],
-                      "instance_segmentation_out_of_grid_under_the_same_rule": result["instance_segmentation_out_of_grid_under_the_same_rule"],
+                      "same_side_as_instance_segmentation_for_s3_01": result["same_side_as_instance_segmentation_for_s3_01"],
                       "points": {row["check"]: {front: row[front].get("point") for front in (SAM2, INSTANCE)} for row in result["checks"]}}, indent=1))
     return OUT_OF_GRID_EXIT if result["out_of_grid"] else 0
 
