@@ -230,9 +230,12 @@ def cmd_run_pass(args: argparse.Namespace) -> int:
                      "heads": args.heads, "cache_root": str(cache_root), "geometry_root": str(geometry_root), "output_root": str(output_root),
                      "mask_source": args.mask_source,
                      "device": args.device, "flags": (["--calibration"] if args.calibration else []) + (["--elu-p-counts"] if args.elu_p_counts else [])})
+    if args.largest_first:  # dispatch order only (S2-06): the longest episodes start first; receipts still merge by episode id
+        frames = {t["episode_id"]: int(load_json(Path(t["cache_dir"]) / "episode_seal.json").get("episode_frame_count", 0)) for t in todo}
+        todo.sort(key=lambda t: (-frames[t["episode_id"]], t["episode_id"]))
     actual = max(1, min(args.workers, max(1, len(todo))))
     plan = {"stage": dev.STAGE_ID, "pass": args.pass_name, "arm": args.arm, "config": config, "descriptor": args.descriptor,
-            "mask_source": args.mask_source,
+            "mask_source": args.mask_source, "dispatch_order": "largest_first" if args.largest_first else "episode_id",
             "heads": args.heads, "commit": commit, "episodes_planned": [t["episode_id"] for t in tasks], "episodes_kept": [r["episode_id"] for r in kept],
             "episodes_to_run": [t["episode_id"] for t in todo], "requested_workers": args.workers, "actual_workers": actual,
             "worker_basis": args.worker_basis, "merge_order_rule": dev.MERGE_ORDER_RULE, "policy": policy,
@@ -452,6 +455,8 @@ def main() -> int:
     run.add_argument("--worker-basis", default="")
     run.add_argument("--episodes", default=None, help="comma-separated subset (trial)")
     run.add_argument("--resume", action="store_true")
+    run.add_argument("--largest-first", action="store_true",
+                     help="dispatch the episodes with the most cached frames first (the merge order stays episode id)")
     run.add_argument("--calibration", action="store_true")
     run.add_argument("--elu-p-counts", action="store_true")
     run.add_argument("--device", default="cpu")
