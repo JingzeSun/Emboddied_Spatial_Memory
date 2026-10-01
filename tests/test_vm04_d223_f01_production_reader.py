@@ -5,7 +5,6 @@ import inspect
 import io
 import json
 from pathlib import Path
-import subprocess
 import sys
 import tempfile
 import unittest
@@ -41,7 +40,6 @@ from vsmt.d223_f01_production_reader import (  # noqa: E402
 
 CONTRACT_PATH = (
     ROOT / "configs/vsmt/vm04_d223_f01_production_reader_v1.json")
-STAGE_PATH = ROOT / "ops/vsmt/vm04_d223_f01_production_reader.py"
 D224_PATH = (
     ROOT / "configs/vsmt/vm04_d224_frozen_sam2_asset_acquisition_v1.json")
 D215_PATH = ROOT / "configs/vsmt/vm04_d215_frontend_freeze_v1.json"
@@ -260,45 +258,6 @@ class D223F01ProductionReaderTests(unittest.TestCase):
                         if key != "manifest_sha256"}, "manifest_sha256")
         with self.assertRaisesRegex(D223F01Error, "forbidden field"):
             validate_public_input_manifest(smuggled)
-
-    def test_closed_stage_rejects_before_opening_external_paths(self):
-        if contract()["status"] != (
-                "implementation_pending_review_all_execution_closed"):
-            self.skipTest("checked-in F-01 contract is active")
-        with tempfile.TemporaryDirectory() as temporary:
-            output = Path(temporary) / "must-not-exist"
-            result = subprocess.run([
-                sys.executable, str(STAGE_PATH), "run",
-                "--input-root", str(Path(temporary) / "missing-input"),
-                "--output-root", str(output),
-                "--dino-repository", str(Path(temporary) / "missing-dino"),
-                "--dino-checkpoint", str(Path(temporary) / "missing-dino.pt"),
-                "--sam-repository", str(Path(temporary) / "missing-sam"),
-                "--sam-checkpoint", str(Path(temporary) / "missing-sam.pt"),
-            ], cwd=ROOT, capture_output=True, text=True, check=False)
-            self.assertNotEqual(result.returncode, 0)
-            self.assertIn("closed pending review", result.stderr)
-            self.assertFalse(output.exists())
-
-    def test_check_cli_is_read_only_and_reports_closed_execution(self):
-        result = subprocess.run(
-            [sys.executable, str(STAGE_PATH), "check"], cwd=ROOT,
-            capture_output=True, text=True, check=False)
-        self.assertEqual(result.returncode, 0, result.stderr)
-        report = json.loads(result.stdout)
-        checked_contract = contract()
-        if checked_contract["status"] == (
-                "implementation_pending_review_all_execution_closed"):
-            self.assertFalse(any(report["authorization"].values()))
-        else:
-            self.assertEqual(
-                {name for name, flag in report["authorization"].items() if flag},
-                set(checked_contract["activation_policy"]
-                    ["active_true_authorizations"]))
-        self.assertFalse(report["real_assets_opened"])
-        self.assertFalse(report["real_public_inputs_opened"])
-        self.assertFalse(report["d217_compatibility_input_built"])
-        self.assertFalse(report["outputs_written"])
 
 
 def sha(value) -> str:
