@@ -1,0 +1,161 @@
+{
+ "schema_version": "vsmt.lean.ruling97.freeze.v1",
+ "decision": "ruling 97 (a), user 2026-10-01: freeze the version read in LOG-295 and evaluate it once on the ruling-81 confirmation set, with the total-loss heads as a registered sensitivity row",
+ "use_once": "the confirmation set is read once; whatever the result, nothing is adjusted or rerun on it (an engineering failure may be resumed with the same frozen inputs)",
+ "confirmation_houses": {
+  "file": "configs/vsmt/lean_ruling81_confirmation_houses.json",
+  "houses_sha256": "fbef6809c11e1b787d70763ddf78fd5443057b7465428e661df38ccbea20ef29",
+  "count": 50,
+  "evaluated": "the listed houses that have an oracle cache (43 expected; the 7 generation failures are recorded as missing, not replaced)",
+  "expected_evaluated": 43
+ },
+ "data_roots": {
+  "episodes": "vsmt_outputs/lean-s1-02c-confirm-2339baa",
+  "cache": "vsmt_caches/lean-s1-03-oracle-confirm-6b65cb1",
+  "geometry": "vsmt_private/lean-s1-04-geometry-confirm-6b65cb1"
+ },
+ "arms": {
+  "VSMT-lean grouped (primary)": {
+   "arm": "VSMT-lean",
+   "config": {
+    "tau_r": 0.5
+   },
+   "group": "GROUPED",
+   "heads": {
+    "7": {
+     "path": "vsmt_private/ruling96-7c76970/training/round1/VSMT-lean/A7/weights_grouped.json",
+     "sha256": "0951ba7a73ba4aff26ec55b720d8f24b9e70b07f620eff70623e3a0ef1bf70f5",
+     "best_epoch_by_group": {
+      "association_birth": 2,
+      "existence": 0
+     }
+    },
+    "19": {
+     "path": "vsmt_private/ruling96-7c76970/training/round1/VSMT-lean/A19/weights_grouped.json",
+     "sha256": "23c5861629bbcb99c9ff2c9cdcfff8a01e4bfa2b2d4b49591e43f15f911dc765",
+     "best_epoch_by_group": {
+      "association_birth": 2,
+      "existence": 0
+     }
+    },
+    "31": {
+     "path": "vsmt_private/ruling96-7c76970/training/round1/VSMT-lean/A31/weights_grouped.json",
+     "sha256": "5cae6cbdd70e2800ee563af286de4c2f81ebdf01a4facfe4f92031eb6ef95a07",
+     "best_epoch_by_group": {
+      "association_birth": 4,
+      "existence": 0
+     }
+    },
+    "43": {
+     "path": "vsmt_private/ruling96-7c76970/training/round1/VSMT-lean/A43/weights_grouped.json",
+     "sha256": "a202240b5b57e9d7d78aeb8be7f22976a54e93d5e7fdf927e02e6b5db6764839",
+     "best_epoch_by_group": {
+      "association_birth": 1,
+      "existence": 0
+     }
+    },
+    "59": {
+     "path": "vsmt_private/ruling96-7c76970/training/round1/VSMT-lean/A59/weights_grouped.json",
+     "sha256": "59c51a1fa1030bde096728fdcdc1db3d948cfe24630a33b678308cec42a3f91d",
+     "best_epoch_by_group": {
+      "association_birth": 4,
+      "existence": 0
+     }
+    }
+   }
+  },
+  "VSMT-lean total-loss selection (sensitivity)": {
+   "arm": "VSMT-lean",
+   "config": {
+    "tau_r": 0.5
+   },
+   "group": "ORIGINAL",
+   "heads": {
+    "7": {
+     "path": "vsmt_private/ruling93-9722290/training/round1/VSMT-lean/A7/weights.json",
+     "sha256": "d0c44f401f90b86bfa57afc15a3bbf065a2056d275773852efd46318fa0450d5"
+    },
+    "19": {
+     "path": "vsmt_private/ruling93-9722290/training/round1/VSMT-lean/A19/weights.json",
+     "sha256": "655f1afb11cea36ea9b64e58ff98d7027f66814cfa582692aff30b915996b3cb"
+    },
+    "31": {
+     "path": "vsmt_private/ruling93-9722290/training/round1/VSMT-lean/A31/weights.json",
+     "sha256": "43bf9b9573840d73c6c559250d3b61035098af3328fd69d257e77b4a0e29a65d"
+    },
+    "43": {
+     "path": "vsmt_private/ruling93-9722290/training/round1/VSMT-lean/A43/weights.json",
+     "sha256": "1352ab0bb540e3fc1970972c518ce15fed741af4c791140eb5fac60f885adbf0"
+    },
+    "59": {
+     "path": "vsmt_private/ruling93-9722290/training/round1/VSMT-lean/A59/weights.json",
+     "sha256": "79bb2c9d7d94076a4b287f4bdc1d2549f80b5afb9baafd1e962ae2f9839ad100"
+    }
+   }
+  },
+  "AssocOnly": {
+   "arm": "AssocOnly",
+   "config": {},
+   "group": "ASSOC",
+   "heads": {
+    "7": {
+     "path": "vsmt_private/ruling95-d835cd3/training/round1/AssocOnly/A7/weights.json",
+     "sha256": "1fa52624c83ada1a1cb6c68bef78a13311da41853e481f4c8bd2d361df319e52"
+    },
+    "19": {
+     "path": "vsmt_private/ruling95-d835cd3/training/round1/AssocOnly/A19/weights.json",
+     "sha256": "91bad10a8ebc5590b53867cbb48b541d61ed239fdf1d11f3bb3c5e3c2982e4b8"
+    },
+    "31": {
+     "path": "vsmt_private/ruling95-d835cd3/training/round1/AssocOnly/A31/weights.json",
+     "sha256": "3be2aea79e816df420360fb04c126239ce94009b0737b23ecfa8aa277257d291"
+    },
+    "43": {
+     "path": "vsmt_private/ruling95-d835cd3/training/round1/AssocOnly/A43/weights.json",
+     "sha256": "51f43c0a62565afff308519aa54f888d2e28dca95ecd7fc2cdb0b2bf282e5c0b"
+    },
+    "59": {
+     "path": "vsmt_private/ruling95-d835cd3/training/round1/AssocOnly/A59/weights.json",
+     "sha256": "226ad3486e57e374ae67af43bf8eb11bb1a9a3d8389fc194c81dfe8df75c0c68"
+    }
+   }
+  },
+  "rule arms": {
+   "TAF": {
+    "theta_a": 0.7,
+    "d_a": null
+   },
+   "ELU-P": {
+    "theta_a": 0.7,
+    "free_space_weight": 1.0,
+    "retract_threshold": 0.0,
+    "d_a": null,
+    "initial_log_odds": 4.75891184514327,
+    "persistence_log_decay_per_tick": 1.9420616347206353e-05,
+    "match_gain": 3.0998616369636114
+   },
+   "RAC": {
+    "theta_a": 0.7,
+    "d_a": null,
+    "rho_rac": 0.7,
+    "n_rac": 3
+   },
+   "LOW": {
+    "d_low": 1.0
+   }
+  }
+ },
+ "shared": {
+  "recall_global_count": 3,
+  "existence_decision": "sigmoid of the ln w corrected logit at tau_r 0.5",
+  "descriptor": "reid_projection:vitb14",
+  "reid_weights": "vsmt_private/lean-s1-04-diagnostics-oracle-caa50c7/reid_head_vitb14.json",
+  "mask_source": "simulator_instance_masks",
+  "round_0_note": "only round 1 uses the grouped selection; the round-0 head that generated the round-1 records was selected by total loss"
+ },
+ "reading": {
+  "primary": "ruling95_reading.py on the grouped VSMT-lean against AssocOnly and the rule arms: the ruling 95-3 classification (82-1 rule), the 85-4 ratio, the 89-4 lines for reference",
+  "sensitivity": "the same reading with the total-loss VSMT-lean heads; reported only, never chosen over the primary after the results",
+  "context": "a development-versus-confirmation table per metric"
+ }
+}
