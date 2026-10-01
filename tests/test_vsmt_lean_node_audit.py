@@ -670,7 +670,7 @@ class RulingEightyEightOracleTests(unittest.TestCase):
                 (root / name / "VSMT-lean" / audit_module.AUDIT_FILE_NAME).write_text(
                     json.dumps({**base, "episode_id": name, "oracle": setting}), encoding="utf-8")
             merged = audit_module.merge_audits(root, "VSMT-lean")
-            self.assertEqual(merged["schema_version"], "vsmt-s2-05-node-audit-merged-v10")
+            self.assertEqual(merged["schema_version"], "vsmt-s2-05-node-audit-merged-v11")
             self.assertEqual(merged["oracle"]["existence_rule"], "node_primary")
             self.assertNotIn("counts", merged["oracle"])
             (root / "ep-0003" / "VSMT-lean").mkdir(parents=True)
@@ -679,3 +679,37 @@ class RulingEightyEightOracleTests(unittest.TestCase):
             with self.assertRaises(audit_module.NodeAuditError) as caught:
                 audit_module.merge_audits(root, "VSMT-lean")
             self.assertEqual(str(caught.exception), "audits_mix_oracle_settings")
+
+
+class RulingEightyFourMaskSourceTests(unittest.TestCase):
+    """Ruling 84-1 (b), landed under ruling 100-1 (i): an audit records its mask source and a merge never mixes two."""
+
+    def test_merge_records_the_one_source_and_refuses_a_mixture_or_a_pre_v11_audit(self) -> None:
+        audit, _, _, _ = run_audit("TAF")
+        base = {"schema_version": audit_module.SCHEMA_VERSION, "arm": "TAF", "code_commit": "abc", "frames": 5,
+                "config": CONFIGS["TAF"], "final_entities_by_state": {"active": 3}, "audit": audit.report(), "oracle": None,
+                "recall_global_count": 3}
+
+        def write(root: Path, name: str, **fields) -> None:
+            (root / name / "TAF").mkdir(parents=True)
+            (root / name / "TAF" / audit_module.AUDIT_FILE_NAME).write_text(json.dumps({**base, "episode_id": name, **fields}), encoding="utf-8")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            write(root, "ep-0001", mask_source="sam2")
+            write(root, "ep-0002", mask_source="sam2")
+            self.assertEqual(audit_module.merge_audits(root, "TAF")["mask_source"], "sam2")
+            write(root, "ep-0003", mask_source="simulator_instance_masks")
+            with self.assertRaises(audit_module.NodeAuditError) as caught:
+                audit_module.merge_audits(root, "TAF")
+            self.assertEqual(str(caught.exception), "audits_mix_mask_sources")
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            write(root, "ep-0001", mask_source="sam2")
+            old = {k: v for k, v in base.items()}
+            old["schema_version"] = "vsmt-s2-05-node-audit-v10"  # before v11 an audit named no mask source
+            (root / "ep-0002" / "TAF").mkdir(parents=True)
+            (root / "ep-0002" / "TAF" / audit_module.AUDIT_FILE_NAME).write_text(json.dumps({**old, "episode_id": "ep-0002"}), encoding="utf-8")
+            with self.assertRaises(audit_module.NodeAuditError) as caught:
+                audit_module.merge_audits(root, "TAF")
+            self.assertEqual(str(caught.exception), "audits_mix_mask_sources")

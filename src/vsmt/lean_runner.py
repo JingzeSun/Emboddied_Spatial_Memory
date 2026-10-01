@@ -947,8 +947,12 @@ def validate_runner_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     _require(descriptor["source_set"] == la.SELECTED_DESCRIPTOR_SOURCE_SET, "contract_descriptor_source_mismatch")
     _require(descriptor["frozen_baseline"] == la.FROZEN_DESCRIPTOR_BASELINE, "contract_descriptor_baseline_mismatch")
     _require(descriptor["weights_sha256"] == la.SELECTED_REID_WEIGHTS_SHA256, "contract_descriptor_weights_mismatch")
+    # ruling 84-1 (b), landed under ruling 100-1 (i): the digest an entry checks follows the episodes' sealed mask source
+    _require(dict(descriptor.get("weights_sha256_by_mask_source") or {}) == la.REID_WEIGHTS_SHA256_BY_MASK_SOURCE,
+             "contract_descriptor_weights_by_mask_source_mismatch")
     _require(tuple(descriptor["choices"]) == DESCRIPTOR_CHOICES, "contract_descriptor_choices_mismatch")
     _require(descriptor["weights_digest_checked_before_any_projection"] is True, "contract_descriptor_claim_weakened")
+    _require(descriptor.get("weights_digest_follows_the_episode_seal_mask_source") is True, "contract_descriptor_claim_weakened")
     geometry = contract["entity_geometry"]
     _require(geometry["rule"] == ENTITY_GEOMETRY_RULE, "contract_entity_geometry_rule_mismatch")
     _require(geometry["depth_margin_m"] == DEPTH_MARGIN_M, "contract_entity_geometry_margin_mismatch")

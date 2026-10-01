@@ -7,7 +7,7 @@ Usage (server, frontend env; the S2-04 and S2-01 bits must be open, every policy
         --geometry-root /root/autodl-tmp/vsmt_private/lean-s1-04-geometry-<commit> \\
         --episode-id procthor10k-0.1.2-train-00406 \\
         --arm TAF --config '{"theta_a": 0.6, "d_a": null}' \\
-        --descriptor reid_projection:vitb14 --weights <reid_head_vitb14.json> \\
+        --descriptor reid_projection:vitb14 --weights <the ReID head of that mask source> \\
         --mask-source simulator_instance_masks \\
         [--heads <vsmt-lean weights payload for a learned arm>] \\
         --output-root /root/autodl-tmp/vsmt_private/lean-s2-04-<commit> [--frames N]
@@ -15,7 +15,8 @@ Usage (server, frontend env; the S2-04 and S2-01 bits must be open, every policy
 What it does: validates the S2-04 and S2-01 contracts and refuses while a required bit is closed;
 gathers every policy value from the contract that owns it (S0-01 dormancy and dedup, S0-05
 should-be-visible minimum, S2-01 sampling resolution, S0-04 dominance share and delta_moved) and
-refuses with the list still null; loads the sealed cache episode, its recovered masks, the private
+refuses with the list still null; checks the ReID weights against the head S0-03 pins for
+``--mask-source`` (ruling 84-1 (b)); loads the sealed cache episode, its recovered masks, the private
 records and instance images, the S1-04 geometry table and the intervention log; drives
 ``lean_runner.run_episode`` (timing each frame) and hands every step to ``EpisodeTeacher``; streams
 labels, training records and nuisance rows, closes the three streams, re-reads the nuisance file
@@ -47,7 +48,6 @@ for item in (ROOT / "src", HERE.parent):
 
 import lean_s1_04_diagnostics as diag  # noqa: E402
 import lean_s2_01_runner as s2_01  # noqa: E402
-from vsmt import lean_assignment as la  # noqa: E402
 from vsmt import lean_evaluation as ev  # noqa: E402
 from vsmt import lean_object_geometry as og  # noqa: E402
 from vsmt import lean_runner as lr  # noqa: E402
@@ -307,15 +307,11 @@ def main() -> int:
         from vsmt import lean_model
 
         scorer = lean_model.LeanScorer(lean_model.load_heads(load_json(Path(args.heads)), device=args.device), device=args.device)
-    projector = None
-    weights_sha256 = None
-    if args.descriptor == la.SELECTED_DESCRIPTOR:
-        if not args.weights:
-            print("[s2-04] refused: --weights is required for the selected descriptor", file=sys.stderr)
-            return 2
-        payload = load_json(Path(args.weights))
-        projector = lr.descriptor_projector(payload, expected_sha256=la.SELECTED_REID_WEIGHTS_SHA256, device=args.device)
-        weights_sha256 = payload["sha256"]
+    try:  # ruling 84-1 (b): the head pinned for --mask-source, which verify_cache_episode below holds the seal to
+        projector, weights_sha256 = s2_01.reid_projector(args.descriptor, args.weights, mask_source=args.mask_source, device=args.device)
+    except s2_01.EntryRefusal as exc:
+        print(f"[s2-04] refused: {exc}", file=sys.stderr)
+        return 2
 
     cache_dir = Path(args.cache_root).resolve() / args.episode_id
     episode_root = Path(args.episode_root).resolve()

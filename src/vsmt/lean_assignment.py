@@ -214,6 +214,21 @@ SELECTED_DESCRIPTOR = "reid_projection:vitb14"
 SELECTED_DESCRIPTOR_SOURCE_SET = "vitb14"
 FROZEN_DESCRIPTOR_BASELINE = "vitb14"
 SELECTED_REID_WEIGHTS_SHA256 = "5cea91cf77901f1eb38e5942ee12a2afbe14e11ba1475bd2957e1cbfe3659a88"
+#: Ruling 84-1 (b) (2026-09-29), landed under ruling 100-1 (i): one ReID head per mask source, each trained on its
+#: own development cache by the ruling-47 rule and selected by S1-05 (the same choice, reid_projection:vitb14, on
+#: both); pinned once per source and never changed.  A run projects with the head of the mask source its episodes
+#: are sealed with (a SAM2 seal carries no mask_source field and means sam2), and a pass or an audit group never
+#: mixes sources.  The simulator_instance_masks head is the main table's (SELECTED_REID_WEIGHTS_SHA256 above,
+#: ruling 73 (3)); the sam2 head is the one ruling 73 (3) replaced for the main table, kept for the SAM 2.1 table
+#: (results/vsmt_lean_s1_05_descriptor_freeze_154776d.json, gain 0.093 over the 0.05 margin).
+REID_WEIGHTS_SHA256_BY_MASK_SOURCE = {
+    "simulator_instance_masks": SELECTED_REID_WEIGHTS_SHA256,
+    "sam2": "f6fc67e5f365a4f6d375d6aa16afe15cb0d9769879aa0cc1ab84ff6de9b65073",
+}
+REID_HEAD_PER_MASK_SOURCE_RULE = (
+    "ruling 84-1 (b): one ReID head per mask source, trained on that source's development cache by the ruling-47 rule and "
+    "selected by S1-05; a run projects with the head of the mask source its episodes are sealed with (a seal without a "
+    "mask_source field is sam2); a pass or an audit group never mixes mask sources; each head is pinned once and never changed")
 
 
 class LeanAssignmentError(ValueError):
@@ -260,6 +275,18 @@ def _hex64(value: Any, code: str) -> str:
     _require(type(value) is str and len(value) == 64, code)
     _require(all(char in "0123456789abcdef" for char in value), code)
     return value
+
+
+def reid_weights_sha256_for(mask_source: str) -> str:
+    """The pinned ReID head digest of one mask source (ruling 84-1 (b)); an unregistered source is refused.
+
+    白话：两套前端各有一份 ReID 投影头：实例分割 cache 上训练的（主表）和 SAM2 cache 上训练的（SAM 2.1 表）。输入是
+    episode 封印声明的 mask 来源，输出该来源钉住的权重摘要；入口拿它核对 --weights 文件，摘要不符就拒绝。例如 SAM2 的
+    episode 配上实例分割的头会被拒绝。它不读文件、不训练，也不决定用哪个前端。
+    """
+
+    _require(mask_source in REID_WEIGHTS_SHA256_BY_MASK_SOURCE, f"reid_weights_unregistered_mask_source:{mask_source}")
+    return REID_WEIGHTS_SHA256_BY_MASK_SOURCE[mask_source]
 
 
 def _distance(left: Sequence[float], right: Sequence[float]) -> float:
@@ -1426,6 +1453,20 @@ def validate_assignment_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
                  "contract_reid_selection_source_set_inconsistent")
     _require(result.get("no_further_descriptor_change") is True, "contract_reid_selection_reopenable")
     _require(result.get("cache_bytes_unchanged") is True, "contract_reid_selection_rewrites_the_cache")
+    # ruling 84-1 (b), landed under ruling 100-1 (i): one head per mask source, the main table's being the one above
+    heads = result.get("heads_by_mask_source")
+    _require(type(heads) is dict and tuple(heads) == tuple(REID_WEIGHTS_SHA256_BY_MASK_SOURCE),
+             "contract_reid_heads_by_mask_source_mismatch")
+    for source, head in heads.items():
+        _require(type(head) is dict and head.get("weights_sha256") == REID_WEIGHTS_SHA256_BY_MASK_SOURCE[source],
+                 f"contract_reid_head_digest_differs_from_the_frozen_constant:{source}")
+        _require(head.get("selected") == SELECTED_DESCRIPTOR, f"contract_reid_head_selection_differs:{source}")
+    _require(heads["simulator_instance_masks"]["weights_sha256"] == result.get("weights_sha256"),
+             "contract_reid_main_table_head_differs_from_the_selection_record")
+    _require(result.get("heads_by_mask_source_rule") == REID_HEAD_PER_MASK_SOURCE_RULE, "contract_reid_head_per_source_rule_mismatch")
+    for name in ("one_head_per_mask_source_pinned_once", "a_run_uses_the_head_of_its_episodes_mask_source",
+                 "a_pass_or_audit_group_never_mixes_mask_sources"):
+        _require(result.get(name) is True, f"contract_reid_head_per_source_claim_weakened:{name}")
 
     _require(
         all(value is False for value in contract["authorization"].values()),
@@ -1445,6 +1486,9 @@ __all__ = [
     "SELECTED_DESCRIPTOR_SOURCE_SET",
     "FROZEN_DESCRIPTOR_BASELINE",
     "SELECTED_REID_WEIGHTS_SHA256",
+    "REID_HEAD_PER_MASK_SOURCE_RULE",
+    "REID_WEIGHTS_SHA256_BY_MASK_SOURCE",
+    "reid_weights_sha256_for",
     "REID_TRAINING_HOUSES",
     "UP_AXIS_INDEX",
     "CACHE_FRAME_FIELDS",

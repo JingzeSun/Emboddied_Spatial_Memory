@@ -733,6 +733,32 @@ class TestMachineContract(unittest.TestCase):
             validate_assignment_contract(broken)
         self.assertEqual(str(caught.exception), "contract_reid_selection_result_missing")
 
+    def test_one_head_per_mask_source_is_bound_and_cannot_drift(self) -> None:
+        # ruling 84-1 (b), landed under ruling 100-1 (i): the SAM2 head beside the main table's, each bound to a constant
+        from vsmt.lean_assignment import REID_WEIGHTS_SHA256_BY_MASK_SOURCE, SELECTED_REID_WEIGHTS_SHA256
+
+        contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        heads = contract["reid_adapter_head"]["selection_result"]["heads_by_mask_source"]
+        self.assertEqual({source: head["weights_sha256"] for source, head in heads.items()}, REID_WEIGHTS_SHA256_BY_MASK_SOURCE)
+        self.assertEqual(REID_WEIGHTS_SHA256_BY_MASK_SOURCE["simulator_instance_masks"], SELECTED_REID_WEIGHTS_SHA256)
+        self.assertNotEqual(REID_WEIGHTS_SHA256_BY_MASK_SOURCE["sam2"], SELECTED_REID_WEIGHTS_SHA256)
+
+        def refused(edit, code: str) -> None:
+            broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+            edit(broken["reid_adapter_head"]["selection_result"])
+            with self.assertRaises(LeanAssignmentError) as caught:
+                validate_assignment_contract(broken)
+            self.assertEqual(str(caught.exception), code)
+
+        refused(lambda r: r["heads_by_mask_source"]["sam2"].update(weights_sha256=SELECTED_REID_WEIGHTS_SHA256),
+                "contract_reid_head_digest_differs_from_the_frozen_constant:sam2")
+        refused(lambda r: r["heads_by_mask_source"].pop("sam2"), "contract_reid_heads_by_mask_source_mismatch")
+        refused(lambda r: r.pop("heads_by_mask_source"), "contract_reid_heads_by_mask_source_mismatch")
+        refused(lambda r: r["heads_by_mask_source"]["sam2"].update(selected="vitb14"), "contract_reid_head_selection_differs:sam2")
+        refused(lambda r: r.update(heads_by_mask_source_rule="any head will do"), "contract_reid_head_per_source_rule_mismatch")
+        refused(lambda r: r.update(a_pass_or_audit_group_never_mixes_mask_sources=False),
+                "contract_reid_head_per_source_claim_weakened:a_pass_or_audit_group_never_mixes_mask_sources")
+
     def test_every_authorization_bit_is_false(self) -> None:
         broken = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
         broken["authorization"]["model_training"] = True

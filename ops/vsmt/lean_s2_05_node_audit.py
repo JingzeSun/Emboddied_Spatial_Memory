@@ -57,6 +57,10 @@ v5（裁决 81-3，2026-09-28）：失去承载的事件与此后的缺失时长
 学生的分配与存在决定、只读真值，输出“哪次操作之后丢了哪个物体、丢了多久”。例如杯子 A 唯一的实体被绑到杯子 B
 的色块上，A 随后 100 帧没有实体，就记一次误绑定事件和一段 100 帧的缺失。它不是反事实：拦下这次绑定之后记忆
 和分配都会变，不能据此算出“修好就能挽回多少”。
+
+v11（裁决 84-1 (b)，由裁决 100-1 (i) 落地，2026-10-01）：审计按 episode 封印声明的 mask 来源取 ReID 头摘要核对 --weights
+（实例分割 5cea91cf…、SAM2 f6fc67e5…；SAM2 封印没有 mask_source 字段即 sam2），--mask-source 给出时须与封印一致；回执记下
+mask_source 与权重摘要，合并时一组审计里出现两种来源（或新旧回执混合，旧回执没有这一项）就拒绝。它不改任何审计口径。
 """
 from __future__ import annotations
 
@@ -79,7 +83,7 @@ for item in (ROOT / "src", HERE.parent):
 from vsmt import lean_teacher as lt  # noqa: E402
 
 AUDIT_FILE_NAME = "node_audit.json"
-SCHEMA_VERSION = "vsmt-s2-05-node-audit-v10"  # v2: ruling 76 (1)(a) centroid ledger, birth reasons, dedup tallies, count-first columns;
+SCHEMA_VERSION = "vsmt-s2-05-node-audit-v11"  # v2: ruling 76 (1)(a) centroid ledger, birth reasons, dedup tallies, count-first columns;
 #                                             v3: ruling 79-2 existence-candidate tally; v4: ruling 80-4 association tally;
 #                                             v5: ruling 81-3 loss-of-carrier events and absence durations;
 #                                             v6: direction B (2026-09-29): folds filed by whether the two records were ever observed in the same frame;
@@ -88,7 +92,9 @@ SCHEMA_VERSION = "vsmt-s2-05-node-audit-v10"  # v2: ruling 76 (1)(a) centroid le
 #                                             v9: ruling 88-2 (2026-09-29): the teacher-as-policy decision ceiling (--oracle-*), recorded under "oracle"
 #                                             v10: ruling 89-1 (2026-09-30): each re-observation records the original carrier's public global cosine
 #                                                  rank; --recall-global-count overrides k' for diagnostics, recorded as recall_global_count
-ACCEPTED_AUDIT_SCHEMAS = ("vsmt-s2-05-node-audit-v8", "vsmt-s2-05-node-audit-v9", SCHEMA_VERSION)
+#                                             v11: ruling 84-1 (b) under ruling 100-1 (i) (2026-10-01): the ReID head follows the episode's sealed
+#                                                  mask source; mask_source and weights_sha256 recorded, a merge never mixes sources
+ACCEPTED_AUDIT_SCHEMAS = ("vsmt-s2-05-node-audit-v8", "vsmt-s2-05-node-audit-v9", "vsmt-s2-05-node-audit-v10", SCHEMA_VERSION)
 
 #: Why an in-memory prediction (an entity in ``active``/``dormant`` whose object is not a present
 #: out-of-scope one) did not match under the IoU 0.3 column (the primary column until ruling 72 (B), secondary since).
@@ -1378,17 +1384,16 @@ def run(args: argparse.Namespace) -> int:
         from vsmt import lean_model
 
         scorer = lean_model.LeanScorer(lean_model.load_heads(s2_04.load_json(Path(args.heads)), device=args.device), device=args.device)
-    projector = None
-    if args.descriptor == la.SELECTED_DESCRIPTOR:
-        if not args.weights:
-            print("[node-audit] refused: --weights is required for the selected descriptor", file=sys.stderr)
-            return 2
-        payload = s2_04.load_json(Path(args.weights))
-        projector = lr.descriptor_projector(payload, expected_sha256=la.SELECTED_REID_WEIGHTS_SHA256, device=args.device)
-
     cache_dir = Path(args.cache_root).resolve() / args.episode_id
+    try:  # ruling 84-1 (b): the head pinned for the episode's sealed mask source; --mask-source, when given, must be that source
+        mask_source = args.mask_source or s2_01.sealed_mask_source_of(cache_dir)
+        projector, weights_sha256 = s2_01.reid_projector(args.descriptor, args.weights, mask_source=mask_source, device=args.device)
+    except s2_01.EntryRefusal as exc:
+        print(f"[node-audit] refused: {exc}", file=sys.stderr)
+        return 2
+
     episode_root = Path(args.episode_root).resolve()
-    seal, frame_paths = s2_04.verify_cache_episode(cache_dir, diag.registered_descriptor_asset_sha256s())
+    seal, frame_paths = s2_04.verify_cache_episode(cache_dir, diag.registered_descriptor_asset_sha256s(), mask_source=mask_source)
     if args.frames is not None:
         frame_paths = frame_paths[: int(args.frames)]
     table = og.validate_geometry_table(s2_04.load_json(Path(args.geometry_root).resolve() / args.episode_id / og.TABLE_FILE_NAME))
@@ -1476,6 +1481,7 @@ def run(args: argparse.Namespace) -> int:
     payload = {
         "schema_version": SCHEMA_VERSION, "stage": "S2-05 node audit (read-only)", "code_commit": commit,
         "episode_id": args.episode_id, "arm": args.arm, "config": config, "descriptor": args.descriptor,
+        "mask_source": mask_source, "weights_sha256": weights_sha256,
         "dedup_policy": policy["runner"]["dedup"], "dedup_override": json.loads(args.dedup_override) if args.dedup_override else None,
         "dormancy_override": args.dormancy_override,
         "recall_global_count": la.RECALL_GLOBAL_COUNT, "recall_global_count_override": args.recall_global_count,
@@ -1519,12 +1525,14 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
     pooled_uncarried = {"uncarried_seen_object_frames": 0, "uncarried_without_loss_event_frames": 0}
     oracle_settings: set[str] = set()
     recall_counts: set[Any] = set()
+    mask_sources: set[Any] = set()
     for path in sorted(output_root.glob(f"*/{arm}/{AUDIT_FILE_NAME}")):
         payload = json.loads(path.read_text(encoding="utf-8"))
         _require(payload.get("schema_version") in ACCEPTED_AUDIT_SCHEMAS and payload.get("arm") == arm, f"audit_file_invalid:{path}")
         oracle_setting = {k: v for k, v in (payload.get("oracle") or {}).items() if k != "counts"} or None
         oracle_settings.add(json.dumps(oracle_setting, sort_keys=True))
         recall_counts.add(payload.get("recall_global_count"))
+        mask_sources.add(payload.get("mask_source"))  # None for an audit written before v11
         audit = payload["audit"]
         commits.add(str(payload["code_commit"]))
         for rule in RULES:
@@ -1601,10 +1609,12 @@ def merge_audits(output_root: Path, arm: str) -> dict[str, Any]:
     _require(bool(episodes), f"no_audits_found:{output_root}/*/{arm}")
     _require(len(oracle_settings) == 1, "audits_mix_oracle_settings")  # ruling 88-2: one cell per merge
     _require(len(recall_counts) == 1, "audits_mix_recall_global_counts")  # ruling 89-1: one k' per merge (None = pre-v10 audit)
+    _require(len(mask_sources) == 1, "audits_mix_mask_sources")  # ruling 84-1 (b): one front end per merge (None = pre-v11 audit)
     return {
-        "schema_version": "vsmt-s2-05-node-audit-merged-v10",
+        "schema_version": "vsmt-s2-05-node-audit-merged-v11",
         "oracle": json.loads(next(iter(oracle_settings))),
         "recall_global_count": next(iter(recall_counts)),
+        "mask_source": next(iter(mask_sources)),
         "stage": "S2-05 node audit (read-only, pooled)", "arm": arm, "output_root": str(output_root),
         "code_commits": sorted(commits), "episodes": len(episodes),
         "pooled_rules": {rule: _prf(s["matched"], s["predicted"], s["truth"]) for rule, s in pooled_rules.items()},
@@ -1671,6 +1681,11 @@ def main() -> int:
                             help="ruling 93 revised, read-only: trace where each lingering stale entity got stuck (residual_trace)")
     run_parser.add_argument("--recall-global-count", type=int, default=None,
                             help="diagnostic (ruling 89-1): replace the global recall channel's k' for this run; recorded in the payload")
+    from vsmt import lean_assignment as la
+
+    run_parser.add_argument("--mask-source", default=None, choices=tuple(la.REID_WEIGHTS_SHA256_BY_MASK_SOURCE),
+                            help="ruling 84-1 (b): the mask source the episode must be sealed with; omitted, the seal's own source is used. "
+                                 "The ReID weights must be the head pinned for that source")
     run_parser.set_defaults(func=run)
     merge_parser = sub.add_parser("merge", help="pool the audits of one arm into a results/ report")
     merge_parser.add_argument("--output-root", required=True)

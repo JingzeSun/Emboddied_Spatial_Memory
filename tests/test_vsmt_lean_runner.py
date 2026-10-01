@@ -797,6 +797,11 @@ class MachineContractTests(unittest.TestCase):
             (lambda c: c["entity_geometry"].__setitem__("samples_per_axis", None), "contract_samples_per_axis_null_but_not_registered_as_open"),
             (lambda c: c["frame_step"]["arm_state"].__setitem__("arm_state_rolled_back_with_the_frame_on_an_illegal_program", False),
              "contract_frame_step_claim_weakened:arm_state_rolled_back_with_the_frame_on_an_illegal_program"),
+            # ruling 84-1 (b) under ruling 100-1 (i): the per-source digests and the claim that the entry follows the seal
+            (lambda c: c["descriptor"]["weights_sha256_by_mask_source"].__setitem__("sam2", la.SELECTED_REID_WEIGHTS_SHA256),
+             "contract_descriptor_weights_by_mask_source_mismatch"),
+            (lambda c: c["descriptor"].__setitem__("weights_digest_follows_the_episode_seal_mask_source", False),
+             "contract_descriptor_claim_weakened"),
         ):
             broken = copy.deepcopy(self.contract)
             edit(broken)

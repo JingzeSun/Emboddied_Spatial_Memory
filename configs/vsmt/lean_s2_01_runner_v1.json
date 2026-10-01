@@ -47,9 +47,16 @@
       "vitb14"
     ],
     "weights_digest_checked_before_any_projection": true,
+    "weights_sha256_by_mask_source": {
+      "simulator_instance_masks": "5cea91cf77901f1eb38e5942ee12a2afbe14e11ba1475bd2957e1cbfe3659a88",
+      "sam2": "f6fc67e5f365a4f6d375d6aa16afe15cb0d9769879aa0cc1ab84ff6de9b65073"
+    },
+    "weights_digest_follows_the_episode_seal_mask_source": true,
     "descriptor_frozen_by": "S1-05 (LOG-245), mechanical application of D-224-S1 ruling 47; weights retrained on the instance-segmentation cache under ruling 73 (3) (LOG-261)",
     "descriptor_frozen_on": "2026-09-26",
-    "plain_language_zh": "五个臂读 cache 的 descriptor_vitb14（768 维），经 S1-04 训练、S1-05 选中的共享权重（摘要 5cea91cf…，裁决 73 (3) 在实例分割 cache 上重训，取代 SAM2 色块上训练的 f6fc67e5…）投影成 128 维单位向量后进入分配层；权重摘要对不上直接拒绝。论文并列报告的基线是冻结 ViT-B/14 本身（不投影）。除这两种选择外都拒绝；ViT-S/14 及其投影不再被读取。"
+    "weights_sha256_by_mask_source_frozen_by": "ruling 84-1 (b) (2026-09-29), landed under ruling 100-1 (i)",
+    "weights_sha256_by_mask_source_frozen_on": "2026-10-01",
+    "plain_language_zh": "五个臂读 cache 的 descriptor_vitb14（768 维），经 S1-04 训练、S1-05 选中的共享权重（摘要 5cea91cf…，裁决 73 (3) 在实例分割 cache 上重训，取代 SAM2 色块上训练的 f6fc67e5…）投影成 128 维单位向量后进入分配层；权重摘要对不上直接拒绝。论文并列报告的基线是冻结 ViT-B/14 本身（不投影）。除这两种选择外都拒绝；ViT-S/14 及其投影不再被读取。裁决 84-1 (b)（由裁决 100-1 (i) 落地）起按 mask 来源各用一份头：入口按 episode 封印声明的来源（没有 mask_source 字段即 sam2）在 weights_sha256_by_mask_source 里取摘要核对，实例分割 cache 用 5cea91cf…，SAM2 cache 用 f6fc67e5…；weights_sha256 仍是主表那份。"
   },
   "entity_geometry": {
     "rule": "the entity's surface points (the fragments of its latest observed frame, up to max_points each) projected into the public depth image; seen_through d > z + margin, on_surface |d - z| <= margin, occluded d < z - margin, unobserved outside the image or invalid depth; should_be_visible_ratio = (seen_through + on_surface) / points; free_space_coverage_ratio = seen_through / (seen_through + on_surface), 0 when none is observed",
@@ -242,7 +249,8 @@
       "D-224-S1 裁决 69（2026-09-24 批准，原话「裁决 69 取 (a)。」，取 (a)）：真值表键规则加 Ceiling_room 结构件与运行时生成物规则；规则摘要重钉。",
       "D-224-S1 裁决 73 (3)（2026-09-26 批准）：descriptor.weights_sha256 f6fc67e5… → 5cea91cf…（ReID 头在实例分割 cache 上重训、S1-05 按裁决 47 重选，选择仍为 reid_projection:vitb14）。",
       "D-224-S1 裁决 74（2026-09-26 批准，原话「裁决 74 取 (1)(a)(2)(a)」）：entity_geometry 规则改为逐点深度检验，余量 0.05 m 冻结，深度视图从 S1-02 公开面按同一帧读取、不写进 cache；旧块视锥规则留底为 superseded_rule。",
-      "D-224-S1 裁决 75（2026-09-26 批准，原话「裁决 75 取 (1)(a)(2)(a)，校准趟跑完」）：(2)(a) entity_geometry 检验实体自己上次观测到的表面点（每色块至多 64 个、由 cache mask 与公开深度反投影），框内网格只留给真值位置。"
+      "D-224-S1 裁决 75（2026-09-26 批准，原话「裁决 75 取 (1)(a)(2)(a)，校准趟跑完」）：(2)(a) entity_geometry 检验实体自己上次观测到的表面点（每色块至多 64 个、由 cache mask 与公开深度反投影），框内网格只留给真值位置。",
+      "裁决 84-1 (b)（2026-09-29 批准）按裁决 100-1 (i)（2026-10-01 批准）落地：descriptor 新增 weights_sha256_by_mask_source（实例分割 5cea91cf…、SAM2 f6fc67e5…，与 S0-03 heads_by_mask_source 一致）与声称 weights_digest_follows_the_episode_seal_mask_source；weights_sha256 仍是主表那份。规则摘要重钉。"
     ]
   }
 }

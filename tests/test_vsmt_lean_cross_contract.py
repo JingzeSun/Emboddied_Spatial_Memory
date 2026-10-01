@@ -316,7 +316,11 @@ FROZEN_RULE_SHA256 = {
     # Re-pinned 2026-09-30 for ruling 89-2 (a): the existence table gains five per-entity history fields in place (two RAC-group
     # consecutive counters at 0.70 / 0.85, matches, eligible frames and summed coverage since birth), kept by the runner for
     # every arm from public quantities, so ELU-P's log-odds and RAC's decision are functions of the row.  421001ff -> 70c13b5f.
-    "S0-03": "70c13b5fe3dc8447626eb658ca9d9f7ac9583e25f068c9926a141095135d70e2",
+    # Re-pinned 2026-10-01 for ruling 84-1 (b), landed under ruling 100-1 (i): selection_result gains heads_by_mask_source (the
+    # instance-segmentation head 5cea91cf... of the main table and the SAM2 head f6fc67e5... of the SAM 2.1 table, each with its
+    # S1-04 report and S1-05 receipt), the per-source rule string and three bound claims; the main table's selection record is
+    # unchanged.  Entries check the head of the episode's sealed mask source.  70c13b5f -> 5f60345b.
+    "S0-03": "5f60345bd95545ad3ee9714bea2f108a37e1bfe23797e7c72578126a43db6ba7",
     # S0-04 re-pinned 2026-09-24 for ruling 56 continued: the truth node scope excludes the four ProcTHOR
     # structural types door, room, wall and window (65% of the S1-04 gate rows, unmatchable by any box or
     # centroid rule).  585e3660 -> 9bf1059d.
@@ -421,7 +425,10 @@ FROZEN_RULE_SHA256 = {
     # projection); the block-frustum rule is kept as superseded_rule.  c911a4d6 -> 7b1dd704.
     # Re-pinned 2026-09-26 for ruling 75 (2)(a): an entity is tested on its own last-observed surface points (at most
     # 64 per fragment, from the cache mask and the public depth), the AABB grid kept for a truth place.  7b1dd704 -> 8bc99b13.
-    "S2-01": "8bc99b13cc492fd880a2e76ef0e8142071d8de01bc09e7074e3eb3996be9b9d2",
+    # Re-pinned 2026-10-01 for ruling 84-1 (b), landed under ruling 100-1 (i): descriptor gains weights_sha256_by_mask_source
+    # (the two S0-03 heads) and the claim that the checked digest follows the episode seal's mask source; weights_sha256 stays
+    # the main table's head.  8bc99b13 -> da2ab804.
+    "S2-01": "da2ab804244b80578fb25fc13e83f7038729e8052fa7a9fbd1277e7cf98268a3",
     # S2-04 v1 (2026-09-24, LOG-249): the teacher and evaluator wiring -- the derivation rules for the
     # S0-04 inputs (place observability by the S2-01 sampled-box test at the S0-05 minimum, old and new
     # places from the S1-04 tracker at the window edges, recovery place per intervention kind, carriers
@@ -1162,6 +1169,32 @@ class TestTheS105SelectionIsRecordedOnceAndAgreesWithItsReceipt(unittest.TestCas
         self.assertIn(self.result["source_descriptor_set"], {sets["primary"]["name"], sets["optional_upgrade"]["name"]})
         self.assertTrue(sets["both_extracted_in_s1_one_selected_in_s1_05"])
         self.assertTrue(sets["unselected_set_is_dropped_after_s1_05"])
+
+    def test_each_mask_source_head_is_the_one_its_own_s1_05_receipt_froze(self) -> None:
+        # ruling 84-1 (b), landed under ruling 100-1 (i): one head per mask source, each bound to its committed report and receipt
+        heads = self.result["heads_by_mask_source"]
+        self.assertEqual(tuple(heads), lean_frontend_cache.MASK_SOURCES)
+        self.assertEqual(heads["simulator_instance_masks"]["receipt"], self.result["receipt"])
+        self.assertEqual(heads["simulator_instance_masks"]["input_report"], self.result["input_report"])
+        for source, head in heads.items():
+            with self.subTest(source=source):
+                receipt = json.loads((PROJECT_ROOT / head["receipt"]).read_text(encoding="utf-8"))
+                report_path = PROJECT_ROOT / head["input_report"]
+                self.assertEqual(reviewed_digest(report_path), head["input_report_sha256"])
+                self.assertEqual(receipt["input"]["s1_04_report"], head["input_report"])
+                self.assertEqual(receipt["input"]["s1_04_report_sha256"], head["input_report_sha256"])
+                self.assertEqual(receipt["frozen"]["selected_descriptor"], head["selected"])
+                self.assertEqual(receipt["frozen"]["projection"]["weights_sha256"], head["weights_sha256"])
+                self.assertEqual(receipt["selection"]["projection_gain_over_best_frozen"], head["projection_gain_over_best_frozen"])
+                self.assertGreaterEqual(head["projection_gain_over_best_frozen"], load("S0-03")["reid_adapter_head"]["selection_rule_threshold"])
+                report = json.loads(report_path.read_text(encoding="utf-8"))
+                self.assertEqual(report["reid"]["by_set"][self.result["source_descriptor_set"]]["weights_sha256"], head["weights_sha256"])
+                self.assertEqual(lean_assignment.reid_weights_sha256_for(source), head["weights_sha256"])
+        # the SAM2 head is the one ruling 73 (3) replaced for the main table, kept for the SAM 2.1 table
+        self.assertEqual(heads["sam2"]["weights_sha256"], self.result["superseded_weights_sha256"])
+        self.assertEqual(self.result["superseded_weights_trained_on_mask_source"], "sam2")
+        self.assertEqual(load_stage("S2-01")["descriptor"]["weights_sha256_by_mask_source"],
+                         {source: head["weights_sha256"] for source, head in heads.items()})
 
 
 class TestS201RunnerContractBindsItsUpstreams(unittest.TestCase):

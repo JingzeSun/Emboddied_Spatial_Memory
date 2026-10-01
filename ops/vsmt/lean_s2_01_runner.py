@@ -14,7 +14,8 @@ What it does: validates the S2-01 contract and refuses while its bits are closed
 policy values from the contracts that own them (S0-01 dormancy and dedup, S0-05 should-be-visible
 minimum, S2-01 sampling resolution) and refuses with the list of slots still null; loads the sealed
 cache episode through the S1-04 loader (every frame seal recomputed from the loaded bytes); loads the
-ReID weights and checks their digest against the S1-05 freeze; drives ``lean_runner.run_episode`` and
+ReID weights and checks their digest against the head S0-03 pins for the mask source the episode is
+sealed with (ruling 84-1 (b): one head per mask source); drives ``lean_runner.run_episode`` and
 streams per-frame receipts to ``frames.jsonl.gz``, the two S0-03 seal payloads per frame to
 ``seals.jsonl.gz`` (the teacher's inputs), and an episode summary to ``receipt.json``.  Learned arms
 need a scorer from S2-03 and are refused here; multi-episode, multi-arm orchestration is S2-05.
@@ -85,6 +86,41 @@ def gather_policy() -> tuple[dict[str, Any], list[str]]:
     return policy, missing
 
 
+class EntryRefusal(Exception):
+    """A refusal an entry reports on stderr with exit code 2 (never a traceback)."""
+
+
+def sealed_mask_source_of(cache_dir: Path) -> str:
+    """The mask source one cached episode's seal declares (ruling 72), read before any heavy work.
+
+    A SAM2 seal keeps its pre-ruling-72 bytes and carries no ``mask_source`` field, which means sam2, the same reading
+    as ``lean_s2_05_development.receipt_mask_source``.  The loaders recompute the seal afterwards; this only lets an
+    entry pick the ReID head and refuse a wrong one before it loads thousands of frames.
+    """
+
+    seal_path = cache_dir / "episode_seal.json"
+    if not seal_path.exists():
+        raise EntryRefusal(f"no episode seal at {seal_path}")
+    return diag.fc.sealed_mask_source(load_json(seal_path))
+
+
+def reid_projector(descriptor: str, weights_path: str | None, *, mask_source: str, device: str) -> tuple[Any, str | None]:
+    """The shared ReID projection of one run and the weights digest it checked (ruling 84-1 (b)).
+
+    白话：输入描述子选择、--weights 文件和这条 episode 的 mask 来源，输出投影函数与权重摘要。选中的是投影描述子时，
+    权重文件的摘要必须等于 S0-03 为这个来源钉住的那份（实例分割 5cea91cf…、SAM2 f6fc67e5…），否则拒绝；选的是冻结
+    基线（不投影）时两者都是 None。例如 SAM2 的 episode 配上实例分割的头会被拒绝。它不训练、不改权重。
+    """
+
+    if descriptor != la.SELECTED_DESCRIPTOR:
+        return None, None
+    if not weights_path:
+        raise EntryRefusal("--weights is required for the selected descriptor")
+    payload = load_json(Path(weights_path))
+    projector = lr.descriptor_projector(payload, expected_sha256=la.reid_weights_sha256_for(mask_source), device=device)
+    return projector, payload["sha256"]
+
+
 def write_jsonl_gz(path: Path, rows: list[dict[str, Any]]) -> int:
     with gzip.open(path, "wb", compresslevel=6) as handle:
         for row in rows:
@@ -126,18 +162,18 @@ def main() -> int:
     commit = _git("rev-parse", "HEAD")
     config = json.loads(args.config)
     lr.validate_arm_config(args.arm, config)
-    projector = None
-    weights_sha256 = None
-    if args.descriptor == la.SELECTED_DESCRIPTOR:
-        if not args.weights:
-            print("[s2-01] refused: --weights is required for the selected descriptor", file=sys.stderr)
-            return 2
-        payload = load_json(Path(args.weights))
-        projector = lr.descriptor_projector(payload, expected_sha256=la.SELECTED_REID_WEIGHTS_SHA256, device=args.device)
-        weights_sha256 = payload["sha256"]
-
     cache_dir = Path(args.cache_root).resolve() / args.episode_id
+    try:
+        mask_source = sealed_mask_source_of(cache_dir)
+        projector, weights_sha256 = reid_projector(args.descriptor, args.weights, mask_source=mask_source, device=args.device)
+    except EntryRefusal as exc:
+        print(f"[s2-01] refused: {exc}", file=sys.stderr)
+        return 2
+
     frames, seal = diag.load_cache_episode(cache_dir, diag.registered_descriptor_asset_sha256s())
+    if diag.fc.sealed_mask_source(seal) != mask_source:  # the same seal file, re-verified by the loader
+        print("[s2-01] refused: the episode seal changed while loading", file=sys.stderr)
+        return 2
     if args.frames is not None:
         frames = frames[: int(args.frames)]
     import lean_s2_04_evaluate_episode as s2_04
@@ -161,7 +197,7 @@ def main() -> int:
         state = step["state"]
     summary = lr.episode_summary(state, receipts)
     summary.update({
-        "code_commit": commit, "cache_root": str(cache_dir), "episode_seal_sha256": seal["payload_sha256"],
+        "code_commit": commit, "cache_root": str(cache_dir), "episode_seal_sha256": seal["payload_sha256"], "mask_source": mask_source,
         "frames_requested": args.frames, "config": config, "descriptor": args.descriptor, "weights_sha256": weights_sha256,
         "policy": policy, "wall_seconds": round(time.time() - started, 1),
         "frames_file_bytes": write_jsonl_gz(out_dir / "frames.jsonl.gz", receipts),
