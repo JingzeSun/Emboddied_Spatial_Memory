@@ -4,10 +4,11 @@
 白话：裁决 103 要求 S3-02 一条命令跑完：生成 450 个 house（train 300、validation 50、test 100）、补几何重载、建实例分割与 SAM2
 两套 cache，test 写进单独的根并封存。``s3_02_data.sh`` 负责按顺序起各段的计算；这个脚本做它旁边的记账与段间检查：
   * check：开跑前核对全部输入——S3 清单、ProcTHOR 源文件的登记摘要、私有盐的摘要、前端资产、两份 ReID 头（S0-03 按来源钉住）、
-    模拟器解释器、显卡、cgroup 配额与内存，以及数据盘剩余是否够放预计的产物（按已提交的 S1 报告推算）——写进运行清单 inputs.json；
+    模拟器解释器、显卡、cgroup 配额与内存，以及数据盘剩余是否够放还没写的产物（按已提交的 S1 报告推算全部产物，减去本次运行各根下
+    已经写下的字节）——写进运行清单 inputs.json；
   * stage-state／mark／status：每段一个标记文件（done／hold／stopped／failed，记提交与退出码）；换了提交后，只有改动全在“登记生成器
     提交”的三个文件与文档里，早先完成的段才仍有效；
-  * disk：生成前用实测的单 house 字节数重算所需磁盘；
+  * disk：生成前（以及中断后续跑前）用实测的单 house 字节数重算所需磁盘，同样减去本次运行已经写下的字节；
   * movecheck：裁决 36——train 执行成功的搬动不少于 120、其中源位置先重访不少于 60，否则停下提规模裁决；
   * hold：裁决 103-3——原始回执里的每个生成器提交都必须登记在 S1-03 的位姿登记表里，否则停在 hold 等登记提交；若某个提交的
     camera_pose 编码与已登记的不同，就停下（stopped），不能登记；
@@ -33,6 +34,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -132,6 +134,43 @@ def free_gb(path: Path) -> float:
     return shutil.disk_usage(path).free / 1e9
 
 
+def written_bytes(roots: Sequence[str | Path]) -> int:
+    """The bytes of every file under the given roots (a missing root counts 0): what this run has already written there."""
+
+    total = 0
+    for root in roots:
+        if not Path(root).is_dir():
+            continue
+        for directory, _subdirectories, files in os.walk(root):
+            for name in files:
+                try:
+                    total += os.lstat(os.path.join(directory, name)).st_size
+                except OSError:  # removed while walking: nothing left to count
+                    continue
+    return total
+
+
+def run_roots(text: str | None) -> list[str]:
+    return [item for item in (text or "").split(",") if item]
+
+
+def disk_requirement(projection: Mapping[str, Any], *, written: int, min_free_gib: float | None) -> dict[str, Any]:
+    """The free space this run still needs: the projection of all its outputs minus what its roots already hold.
+
+    白话：check 在每个新提交上都会重跑（例如 hold 之后的登记提交），那时原始 episode（约 108 GB）已经写在盘上；若仍拿全部产物的推算
+    （约 337 GB）去比剩余空间，开机时可用空间不到约 446 GB 就会被误拒。这里输入推算、本次运行各根下已有的字节数与可选的人工下限，输出
+    还需要的空间：推算减已写入（不低于 0）；给了 MIN_FREE_GIB 就用它并记明是人工覆盖。例如推算 337 GB、已写 109 GB，就只要求剩余
+    228 GB。它只决定开不开跑，不改任何产物；写满的保护仍由 cache 的磁盘下限承担。
+    """
+
+    if min_free_gib is not None:
+        return {"required_gb": float(min_free_gib) * 2 ** 30 / 1e9, "basis": "MIN_FREE_GIB set by the operator",
+                "written_bytes": int(written), "projection_gb": projection["need_gb"]}
+    return {"required_gb": max(0.0, projection["need_gb"] - written / 1e9),
+            "basis": "the projection of every output minus the bytes this run's roots already hold",
+            "written_bytes": int(written), "projection_gb": projection["need_gb"]}
+
+
 def check_inputs(args: argparse.Namespace) -> dict[str, Any]:
     from vsmt import lean_assignment as la
 
@@ -198,17 +237,22 @@ def check_inputs(args: argparse.Namespace) -> dict[str, Any]:
     projection = disk_projection(repo, houses=sum(len(v) for v in lists.values()))
     autodl = Path(args.autodl_root)
     free = free_gb(autodl) if autodl.exists() else 0.0
-    need = float(args.min_free_gib) * 2 ** 30 / 1e9 if args.min_free_gib is not None else projection["need_gb"]
+    roots = run_roots(args.run_roots)
+    requirement = disk_requirement(projection, written=written_bytes(roots), min_free_gib=args.min_free_gib)
+    need = requirement["required_gb"]
     if free < need:
-        problems.append(f"disk: {free:.0f} GB free under {autodl}, {need:.0f} GB needed (projection {projection['need_gb']} GB; "
-                        "expand the data disk or set MIN_FREE_GIB with a reason)")
+        problems.append(f"disk: {free:.0f} GB free under {autodl}, {need:.0f} GB needed (projection {projection['need_gb']} GB, "
+                        f"{requirement['written_bytes'] / 1e9:.0f} GB already written by this run; expand the data disk or set "
+                        "MIN_FREE_GIB with a reason)")
     if git("status", "--porcelain", cwd=repo):
         problems.append("the worktree is not clean")
     policy = load_json(S1_03_CONTRACT)["public_pose_correction"]
     return {"problems": problems, "manifests": {split: {"houses": len(v), "first": v[:1]} for split, v in lists.items()},
             "source": source_entry, "salt": salt_entry, "frontend_assets": assets_entry, "reid_heads": heads,
             "simulator": simulator, "gpus": gpus, "disk": {"free_gb": round(free, 1), "required_gb": round(need, 1),
-                                                           "projection": projection, "override_gib": args.min_free_gib},
+                                                           "projection": projection, "override_gib": args.min_free_gib,
+                                                           "written_bytes": requirement["written_bytes"], "run_roots": roots,
+                                                           "basis": requirement["basis"]},
             "pose_registry": list(policy["correct_encoder_since_code_commits"])}
 
 
@@ -249,12 +293,15 @@ def cmd_disk(args: argparse.Namespace) -> int:
     measured = max(row["bytes_written"] for row in measure["per_house"]) / 1e9
     projection = disk_projection(Path(args.repo_root), houses=args.houses, raw_gb_per_house=measured)
     free = free_gb(Path(args.autodl_root))
-    need = float(args.min_free_gib) * 2 ** 30 / 1e9 if args.min_free_gib is not None else projection["need_gb"]
+    roots = run_roots(args.run_roots)
+    requirement = disk_requirement(projection, written=written_bytes(roots), min_free_gib=args.min_free_gib)
+    need = requirement["required_gb"]
     out = {"stage": STAGE, "step": "disk", "checked_utc": utc_now(), "free_gb": round(free, 1), "required_gb": round(need, 1),
-           "projection": projection, "override_gib": args.min_free_gib, "enough": free >= need}
+           "projection": projection, "override_gib": args.min_free_gib, "written_bytes": requirement["written_bytes"],
+           "run_roots": roots, "basis": requirement["basis"], "enough": free >= need}
     write_json(Path(args.run_root) / "disk.json", out)
     print(f"[s3-02-disk] {free:.0f} GB free, {need:.0f} GB needed (raw {projection['raw_gb_per_house']:.3f} GB per house measured "
-          f"{measured:.3f}): {'ok' if out['enough'] else 'NOT ENOUGH'}")
+          f"{measured:.3f}; {requirement['written_bytes'] / 1e9:.1f} GB already written): {'ok' if out['enough'] else 'NOT ENOUGH'}")
     return 0 if out["enough"] else 3
 
 
@@ -701,9 +748,12 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     p = command("check", cmd_check, "autodl-root", "source", "salt-file", "assets-json", "sam2-reid", "instance-reid", "sim-python", repo=True)
     p.add_argument("--min-free-gib", type=float, default=None)
+    p.add_argument("--run-roots", default="", help="comma-separated roots this run writes the projected outputs into; their bytes "
+                                                   "are subtracted from the projection")
     p = command("disk", cmd_disk, "autodl-root", "measure-root", repo=True)
     p.add_argument("--houses", type=int, default=450)
     p.add_argument("--min-free-gib", type=float, default=None)
+    p.add_argument("--run-roots", default="", help="as for check")
     for name, func in (("stage-state", cmd_stage_state), ("mark", cmd_mark)):
         p = command(name, func, "stage", repo=True)
         p.add_argument("--accept-code-change", action="store_true")

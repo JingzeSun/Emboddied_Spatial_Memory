@@ -13,9 +13,12 @@
 #   check           full test suite; every input pinned in $RUN_ROOT/inputs.json: the S3 manifests, the ProcTHOR source at its
 #                   registered digest, the private salt of every S1 generation, the frontend assets, both ReID heads at their S0-03
 #                   digests (used from S3-03 on), the simulator interpreter, the cards, the cgroup quota and memory, and free disk
-#                   against the projection from the committed S1 reports (MIN_FREE_GIB overrides it, recorded)
+#                   against the projection from the committed S1 reports minus what this run's roots already hold (the check is
+#                   redone at every new commit, e.g. after the hold, when the raw episodes are already written; MIN_FREE_GIB
+#                   overrides it, recorded)
 #   measure         the generator's s3-measure: four train houses at four workers -> the S1-01 occupancy (worker and container peaks)
-#   generate        free disk again with the measured bytes per house; the generator's s3 over train, validation and test in one
+#   generate        free disk again with the measured bytes per house, minus what is already written (a resume); the generator's
+#                   s3 over train, validation and test in one
 #                   pool, workers by the S1-01 rule (headroom 0.2) with the simulator limit SIM_LIMIT assumed (recorded as an
 #                   extrapolation; 16 = the confirmation generation, 2339baa); the test root is pending-sealed from its creation;
 #                   then ruling 36 on train: fewer than 120 moves or 60 source-first -> STOP (marker 'stopped') for a scale ruling
@@ -82,6 +85,8 @@ RAW=$AUTODL/vsmt_outputs/s3-02-$TAG
 GEOMETRY=$AUTODL/vsmt_private/s3-02-geometry-$TAG
 INSTANCE_CACHE=$AUTODL/vsmt_caches/s3-02-instance-$TAG
 SAM2_CACHE=$AUTODL/vsmt_caches/s3-02-sam2-$TAG
+# the roots the disk projection is about (not the measure root): what they already hold is subtracted from it
+RUN_ROOTS="$RAW/train,$RAW/validation,$RAW/test,$GEOMETRY,$INSTANCE_CACHE,$SAM2_CACHE"
 LOG_DIR=$AUTODL/vsmt_outputs/run_logs/s3-02-$TAG
 STATUS=$EXPORT_DIR/s3_02_$TAG.status.json
 mkdir -p "$LOG_DIR"
@@ -120,7 +125,8 @@ stage_check() {
   echo "[$(date)] suite exit $RC: $(grep -E '^Ran |^OK|FAILED' "$LOG_DIR/suite-$SHORT.log" | tail -2 | tr '\n' ' ')"
   [ "$RC" = "0" ] || { DETAIL="full test suite failed ($LOG_DIR/suite-$SHORT.log)"; return 1; }
   M check --run-root "$RUN_ROOT" --repo-root "$WORKTREE" --autodl-root "$AUTODL" --source "$SOURCE" --salt-file "$SALT_FILE" \
-    --assets-json "$ASSETS_JSON" --sam2-reid "$SAM2_REID" --instance-reid "$INSTANCE_REID" --sim-python "$SIM_PY" $MIN_FREE_FLAG
+    --assets-json "$ASSETS_JSON" --sam2-reid "$SAM2_REID" --instance-reid "$INSTANCE_REID" --sim-python "$SIM_PY" \
+    --run-roots "$RUN_ROOTS" $MIN_FREE_FLAG
   RC=$?
   cp "$RUN_ROOT/inputs.json" "$RUN_ROOT/inputs-$SHORT.json"
   [ "$RC" = "0" ] || { DETAIL="input check failed: problems in $RUN_ROOT/inputs.json"; return 1; }
@@ -137,7 +143,8 @@ stage_measure() {
 }
 
 stage_generate() {
-  M disk --run-root "$RUN_ROOT" --repo-root "$WORKTREE" --autodl-root "$AUTODL" --measure-root "$RAW/measure" $MIN_FREE_FLAG \
+  M disk --run-root "$RUN_ROOT" --repo-root "$WORKTREE" --autodl-root "$AUTODL" --measure-root "$RAW/measure" \
+    --run-roots "$RUN_ROOTS" $MIN_FREE_FLAG \
     || { DETAIL="not enough free disk for the projected outputs ($RUN_ROOT/disk.json): expand the data disk, then run 'all' again"; return 1; }
   local RESUME="" RC
   [ -f "$RAW/plan.json" ] && RESUME="--resume"

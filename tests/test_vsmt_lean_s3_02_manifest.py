@@ -2,7 +2,8 @@
 
 Pinned: a stage finished at an earlier commit stays done only if the commits since changed nothing but the generator-commit
 registration (the S1-03 contract and its two pinning tests) and documents; the check is redone at every new commit; the disk
-projection rests on the committed S1 reports (about 337 GB for 450 houses); ruling 36 stops below 120 moves or 60 source-first
+projection rests on the committed S1 reports (about 337 GB for 450 houses), and what this run's roots already hold is subtracted
+from it (the check after the hold, a resumed generation); ruling 36 stops below 120 moves or 60 source-first
 on train; the hold passes registered generator commits, holds an unregistered commit whose camera_pose encoder is the registered
 one and stops one whose encoder differs; geometry and caches are complete only when every raw episode is accounted for and a
 cache failure is one of the data's own reasons; the instance cache gets two threads per worker up to the quota and the memory
@@ -21,6 +22,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 for item in (PROJECT_ROOT / "src", PROJECT_ROOT / "ops" / "vsmt"):
@@ -104,6 +106,33 @@ class TestBetweenStages(unittest.TestCase):
         lighter = support.disk_projection(PROJECT_ROOT, houses=450, raw_gb_per_house=0.1)
         self.assertEqual(lighter["need_gb"], projection["need_gb"])  # never below the committed bytes
 
+    def test_the_disk_need_is_the_projection_less_what_this_run_already_wrote(self) -> None:
+        # the check is redone at the registration commit, when about 108 GB of raw episodes are already on disk
+        roots = [self.base / "raw" / "train", self.base / "missing", self.base / "cache"]
+        write(roots[0] / "procthor10k-0.1.2-train-00001" / "public" / "0000.frame.json", "x" * 1500)
+        write(roots[2] / "s1_03_receipt.json", "y" * 500)
+        self.assertEqual(support.written_bytes(roots), 2000)
+        self.assertEqual(support.run_roots(f"{roots[0]},,{roots[1]}"), [str(roots[0]), str(roots[1])])
+        projection = {"need_gb": 337.1}
+        self.assertAlmostEqual(support.disk_requirement(projection, written=108 * 10 ** 9, min_free_gib=None)["required_gb"], 229.1)
+        self.assertEqual(support.disk_requirement(projection, written=400 * 10 ** 9, min_free_gib=None)["required_gb"], 0.0)
+        override = support.disk_requirement(projection, written=108 * 10 ** 9, min_free_gib=100.0)
+        self.assertEqual((override["required_gb"], override["basis"]), (100 * 2 ** 30 / 1e9, "MIN_FREE_GIB set by the operator"))
+
+    def test_the_disk_step_before_a_resumed_generation_counts_the_houses_already_written(self) -> None:
+        measure, run, train = self.base / "measure", self.base / "run", self.base / "raw" / "train"
+        write(measure / "measure_receipt.json", {"per_house": [{"bytes_written": 239_000_000}]})  # below the committed bytes
+        write(train / "procthor10k-0.1.2-train-00001" / "frames.bin", "z" * 4000)
+        need = support.disk_projection(PROJECT_ROOT, houses=450)["need_gb"]
+        args = ["disk", "--run-root", str(run), "--repo-root", str(PROJECT_ROOT), "--autodl-root", str(self.base),
+                "--measure-root", str(measure), "--run-roots", str(train)]
+        with mock.patch.object(support, "free_gb", return_value=need - 0.000003):
+            self.assertEqual(quiet(support.main, args), 0)  # 4 kB already written: the projection less 4 kB is needed
+        with mock.patch.object(support, "free_gb", return_value=need - 0.000005):
+            self.assertEqual(quiet(support.main, args), 3)
+        report = json.loads((run / "disk.json").read_text(encoding="utf-8"))
+        self.assertEqual((report["written_bytes"], report["run_roots"], report["enough"]), (4000, [str(train)], False))
+
     def test_ruling_36_move_check(self) -> None:
         raw, run = self.base / "raw", self.base / "run"
         minimum = {"moves": 130, "moves_source_first": 59, "minimum_train": 120, "minimum_train_source_first": 60,
@@ -176,6 +205,23 @@ class TestCheck(unittest.TestCase):
             self.assertIn(needle, problems)
         self.assertEqual({k: v["houses"] for k, v in report["manifests"].items()}, {"train": 300, "validation": 50, "test": 100})
         self.assertAlmostEqual(report["disk"]["projection"]["need_gb"], 337.2, delta=0.2)
+
+    def test_the_check_redone_after_the_hold_does_not_count_the_written_raw_again(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            raw = base / "raw" / "train"
+            write(raw / "procthor10k-0.1.2-train-00001" / "public" / "0000.frame.json", "r" * 3000)
+            run = base / "run"
+            need = support.disk_projection(PROJECT_ROOT, houses=450)["need_gb"]
+            args = ["check", "--run-root", str(run), "--autodl-root", str(base), "--source", str(base / "train.jsonl.gz"),
+                    "--salt-file", str(base / "salt.txt"), "--assets-json", str(base / "assets.json"),
+                    "--sam2-reid", str(base / "sam2.json"), "--instance-reid", str(base / "instance.json"),
+                    "--sim-python", str(base / "no-python"), "--run-roots", f"{raw},{base / 'geometry'}"]
+            with mock.patch.object(support, "free_gb", return_value=need - 0.000002):  # short of the projection, not of the rest
+                quiet(support.main, args)
+            report = json.loads((run / "inputs.json").read_text(encoding="utf-8"))
+        self.assertNotIn("disk:", " ".join(report["problems"]))
+        self.assertEqual((report["disk"]["written_bytes"], report["disk"]["run_roots"]), (3000, [str(raw), str(base / "geometry")]))
 
 
 class TestWorkersAndSam2(unittest.TestCase):
@@ -285,6 +331,13 @@ class TestDriver(unittest.TestCase):
         for needle in ("--stage s3-measure", "--stage s3 ", "--simulator-concurrency-limit", "run_cache simulator_instance_masks",
                        "run_cache sam2", "--largest-first", "seal-pending", "lean_s1_04_object_geometry.py", "--workers 8"):
             self.assertIn(needle, text)
+
+    def test_both_disk_checks_get_this_runs_roots_but_not_the_measure_root(self) -> None:
+        text = DRIVER.read_text(encoding="utf-8")
+        roots = re.search(r'^RUN_ROOTS="([^"]+)"', text, re.M).group(1).split(",")
+        self.assertEqual(roots, ["$RAW/train", "$RAW/validation", "$RAW/test", "$GEOMETRY", "$INSTANCE_CACHE", "$SAM2_CACHE"])
+        for call in (r"M check (?:[^\n]*\\\n)*[^\n]*", r"M disk (?:[^\n]*\\\n)*[^\n]*"):  # the call with its continued lines
+            self.assertIn('--run-roots "$RUN_ROOTS"', re.search(call, text).group(0))
 
 
 if __name__ == "__main__":
