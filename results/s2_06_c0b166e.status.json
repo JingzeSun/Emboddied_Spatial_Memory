@@ -1,0 +1,26 @@
+{
+ "tag": "c0b166e",
+ "commit": "dffc36da6f5d1000793bc1fec2a9b8069151ef08",
+ "stage_reached": "done",
+ "detail": "every recorded digest checked; manifest vsmt_lean_s2_06_manifest_c0b166e.json",
+ "finished_cst": "2026-10-02 15:54:49",
+ "run_root": "/root/autodl-tmp/vsmt_private/s2-06-sam2",
+ "log_dir": "/root/autodl-tmp/vsmt_outputs/run_logs/s2-06-c0b166e",
+ "workers": {
+  "workers": 30,
+  "pass_workers": 30,
+  "train_parallel": 8,
+  "audit_gib": 2.0,
+  "train_gib": 10.5,
+  "train_threads": 4,
+  "cpu_quota": 32,
+  "memory_gib": 124.0,
+  "reserve_gib": 8.0,
+  "basis": "audits and passes: one single-threaded process each, at most cpu_quota - 4 and (memory - reserve) / audit_gib; trainings: train_threads threads each, at most (memory - reserve) / train_gib, cpu_quota / train_threads and 10",
+  "override": "WORKERS set by the operator",
+  "audit_gib_basis": "1.25 x the measured peak of calibration_job.json",
+  "train_gib_basis": "1.25 x the measured peak of measured.json"
+ },
+ "train_threads": 4,
+ "fallback_shutdown_seconds": 10800
+}

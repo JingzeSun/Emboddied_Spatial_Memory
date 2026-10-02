@@ -1,0 +1,332 @@
+{
+ "stage": "vsmt.lean.s2_06.grid_review.v2",
+ "inputs": {
+  "sam2": {
+   "file": "/root/autodl-tmp/vsmt_private/s2-06-sam2/calibration/calibration_report.json",
+   "sha256": "40a05f68c75c2971d9dbca7492e48c7e6ea052d6008f53eb2713659daf324338",
+   "mask_source": "sam2",
+   "frames": 44097
+  },
+  "reference": {
+   "file": "results/vsmt_lean_s2_05_calibration_oracle_850c533.json",
+   "sha256": "ce41b0c0910c6152cb0effd59c3f7854a81b9d733e4ddcc62661811a2b8af321",
+   "mask_source": "simulator_instance_masks",
+   "frames": 44097
+  }
+ },
+ "script_sha256": "16f444592ac376e57f756300c54ce13f3f33ee887a62f3abcee2784000a1b4f8",
+ "rule": "ruling 100-2 step 2 (registered before the run): the ruling-68 calibration quantity of each grid recomputed on SAM2 and set beside the instance-segmentation value; TAF theta_a at the c maximising share(same-object cosine >= c) - share(other-object cosine >= c); the distance gate and LOW at the same-object distance median; RAC rho_rac and HandCost rho_h at the rho maximising share(gone coverage >= rho) - share(present coverage >= rho); the should-be-visible minimum against the should-be-visible distribution, reported only. Ruling 101 (1)(a) (2026-10-01, before any SAM2 data): each point is below, inside or above its grid's finite endpoints; a SAM2 point outside the grid on a side the instance-segmentation point is not on is out of grid: stop and propose a ruling storing grids per mask_source before the fit and the rule arms run; a SAM2 point outside on the same side as the instance-segmentation point is the same regime and goes to S3-01; never adjusted while looking",
+ "checks": [
+  {
+   "check": "TAF.theta_a",
+   "grid": [
+    0.6,
+    0.7,
+    0.8
+   ],
+   "endpoints": [
+    0.6,
+    0.8
+   ],
+   "decision_point": "cosine_crossing",
+   "sam2": {
+    "point": 0.72,
+    "difference": 0.34734836074541975,
+    "share_first": 0.670713105578441,
+    "share_second": 0.32336474483302124,
+    "rows_first": 315339,
+    "rows_second": 1400867,
+    "inside": true,
+    "side": "inside"
+   },
+   "simulator_instance_masks": {
+    "point": 0.7,
+    "difference": 0.5080672213639719,
+    "share_first": 0.734243953924801,
+    "share_second": 0.2261767325608292,
+    "rows_first": 405511,
+    "rows_second": 1910842,
+    "inside": true,
+    "side": "inside"
+   },
+   "verdict": "inside"
+  },
+  {
+   "check": "HandCost.theta_b",
+   "grid": [
+    0.6,
+    0.7,
+    0.8
+   ],
+   "endpoints": [
+    0.6,
+    0.8
+   ],
+   "decision_point": "cosine_crossing",
+   "sam2": {
+    "point": 0.72,
+    "difference": 0.34734836074541975,
+    "share_first": 0.670713105578441,
+    "share_second": 0.32336474483302124,
+    "rows_first": 315339,
+    "rows_second": 1400867,
+    "inside": true,
+    "side": "inside"
+   },
+   "simulator_instance_masks": {
+    "point": 0.7,
+    "difference": 0.5080672213639719,
+    "share_first": 0.734243953924801,
+    "share_second": 0.2261767325608292,
+    "rows_first": 405511,
+    "rows_second": 1910842,
+    "inside": true,
+    "side": "inside"
+   },
+   "verdict": "inside"
+  },
+  {
+   "check": "TAF.d_a",
+   "grid": [
+    null,
+    0.5,
+    1.0,
+    2.0
+   ],
+   "endpoints": [
+    0.5,
+    2.0
+   ],
+   "decision_point": "distance_median",
+   "sam2": {
+    "point": 0.29547004033032453,
+    "point_method": "linear_within_0.05_m_bin_reading_only",
+    "rows": 315339,
+    "inside": false,
+    "side": "below",
+    "share_below_lo": 0.593539016740714,
+    "share_below_hi": 0.884127875080469
+   },
+   "simulator_instance_masks": {
+    "point": 0.19171110580494535,
+    "point_method": "linear_within_0.05_m_bin_reading_only",
+    "rows": 405511,
+    "inside": false,
+    "side": "below",
+    "share_below_lo": 0.6811430516064916,
+    "share_below_hi": 0.9056301801923992
+   },
+   "verdict": "same_side_as_instance_segmentation"
+  },
+  {
+   "check": "LOW.d_low",
+   "grid": [
+    null,
+    0.25,
+    0.5,
+    1.0,
+    2.0
+   ],
+   "endpoints": [
+    0.25,
+    2.0
+   ],
+   "decision_point": "distance_median",
+   "sam2": {
+    "point": 0.29547004033032453,
+    "point_method": "linear_within_0.05_m_bin_reading_only",
+    "rows": 315339,
+    "inside": true,
+    "side": "inside",
+    "share_below_lo": 0.4699672416034807,
+    "share_below_hi": 0.884127875080469
+   },
+   "simulator_instance_masks": {
+    "point": 0.19171110580494535,
+    "point_method": "linear_within_0.05_m_bin_reading_only",
+    "rows": 405511,
+    "inside": false,
+    "side": "below",
+    "share_below_lo": 0.5781174863320601,
+    "share_below_hi": 0.9056301801923992
+   },
+   "verdict": "inside"
+  },
+  {
+   "check": "RAC.rho_rac",
+   "grid": [
+    0.7,
+    0.85
+   ],
+   "endpoints": [
+    0.7,
+    0.85
+   ],
+   "decision_point": "coverage_crossing",
+   "sam2": {
+    "point": 0.015625,
+    "difference": 0.364274944982604,
+    "share_first": 0.6827135010320821,
+    "share_second": 0.31843855604947807,
+    "rows_first": 28583,
+    "rows_second": 2671809,
+    "inside": false,
+    "side": "below"
+   },
+   "simulator_instance_masks": {
+    "point": 0.015625,
+    "difference": 0.3465481376213544,
+    "share_first": 0.6247373455139743,
+    "share_second": 0.2781892078926199,
+    "rows_first": 132779,
+    "rows_second": 1423355,
+    "inside": false,
+    "side": "below"
+   },
+   "verdict": "same_side_as_instance_segmentation"
+  },
+  {
+   "check": "HandCost.rho_h",
+   "grid": [
+    0.6,
+    0.7,
+    0.8,
+    0.9
+   ],
+   "endpoints": [
+    0.6,
+    0.9
+   ],
+   "decision_point": "coverage_crossing",
+   "sam2": {
+    "point": 0.015625,
+    "difference": 0.364274944982604,
+    "share_first": 0.6827135010320821,
+    "share_second": 0.31843855604947807,
+    "rows_first": 28583,
+    "rows_second": 2671809,
+    "inside": false,
+    "side": "below"
+   },
+   "simulator_instance_masks": {
+    "point": 0.015625,
+    "difference": 0.3465481376213544,
+    "share_first": 0.6247373455139743,
+    "share_second": 0.2781892078926199,
+    "rows_first": 132779,
+    "rows_second": 1423355,
+    "inside": false,
+    "side": "below"
+   },
+   "verdict": "same_side_as_instance_segmentation"
+  }
+ ],
+ "reported_only": [
+  {
+   "check": "ELU-P.theta_a",
+   "grid": [
+    0.7
+   ],
+   "judged": false,
+   "why": "a single finite value has no endpoints to bracket",
+   "sam2": {
+    "same_object_share_at_or_above": 0.7103624987711638,
+    "other_object_share_at_or_above": 0.36858531181047166
+   },
+   "simulator_instance_masks": {
+    "same_object_share_at_or_above": 0.734243953924801,
+    "other_object_share_at_or_above": 0.2261767325608292
+   }
+  },
+  {
+   "check": "RAC.theta_a",
+   "grid": [
+    0.7
+   ],
+   "judged": false,
+   "why": "a single finite value has no endpoints to bracket",
+   "sam2": {
+    "same_object_share_at_or_above": 0.7103624987711638,
+    "other_object_share_at_or_above": 0.36858531181047166
+   },
+   "simulator_instance_masks": {
+    "same_object_share_at_or_above": 0.734243953924801,
+    "other_object_share_at_or_above": 0.2261767325608292
+   }
+  },
+  {
+   "check": "ELU-P.d_a",
+   "grid": [
+    null,
+    1.0
+   ],
+   "judged": false,
+   "why": "a single finite value has no endpoints to bracket",
+   "sam2": {
+    "same_object_share_below": 0.7231011704863655,
+    "other_object_share_below": 0.4040754761158626
+   },
+   "simulator_instance_masks": {
+    "same_object_share_below": 0.7831624789463171,
+    "other_object_share_below": 0.30428523132734153
+   }
+  },
+  {
+   "check": "RAC.d_a",
+   "grid": [
+    null,
+    1.0
+   ],
+   "judged": false,
+   "why": "a single finite value has no endpoints to bracket",
+   "sam2": {
+    "same_object_share_below": 0.7231011704863655,
+    "other_object_share_below": 0.4040754761158626
+   },
+   "simulator_instance_masks": {
+    "same_object_share_below": 0.7831624789463171,
+    "other_object_share_below": 0.30428523132734153
+   }
+  }
+ ],
+ "should_be_visible_minimum": {
+  "judged": false,
+  "why": "the should-be-visible minimum is one value, not a grid; reported beside the distribution",
+  "minimum": 0.015625,
+  "sam2": {
+   "entity_frames_at_or_above_the_minimum": 0.11051979427818799,
+   "present_rows_below_4_of_64": 0.10478031925186271,
+   "gone_rows_below_4_of_64": 0.06594829094216847,
+   "present_rows_median": 0.7120080219834385,
+   "gone_rows_median": 0.8553215579710145
+  },
+  "simulator_instance_masks": {
+   "entity_frames_at_or_above_the_minimum": 0.122506892276506,
+   "present_rows_below_4_of_64": 0.1201513325909559,
+   "gone_rows_below_4_of_64": 0.09368198284367257,
+   "present_rows_median": 0.5942725772391751,
+   "gone_rows_median": 0.7873556926751593
+  }
+ },
+ "out_of_grid": [],
+ "verdict": "in_grid",
+ "same_side_as_instance_segmentation_for_s3_01": [
+  "TAF.d_a",
+  "RAC.rho_rac",
+  "HandCost.rho_h"
+ ],
+ "outside_the_finite_endpoints_reading_only": {
+  "sam2": [
+   "TAF.d_a",
+   "RAC.rho_rac",
+   "HandCost.rho_h"
+  ],
+  "simulator_instance_masks": [
+   "TAF.d_a",
+   "LOW.d_low",
+   "RAC.rho_rac",
+   "HandCost.rho_h"
+  ]
+ },
+ "next": "register 'reviewed on SAM2' and continue with the ELU-P fit; the same-side checks go to S3-01 (ruling 101 (1)(a))"
+}

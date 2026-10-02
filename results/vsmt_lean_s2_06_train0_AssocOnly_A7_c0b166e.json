@@ -1,0 +1,527 @@
+{
+ "stage": "vsmt.lean.ruling89.train.v1",
+ "arm": "AssocOnly",
+ "assoc_only": true,
+ "seed": 7,
+ "sources": [
+  "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P"
+ ],
+ "holdout": {
+  "training_houses": [
+   "procthor10k-0.1.2-train-03394",
+   "procthor10k-0.1.2-train-08566",
+   "procthor10k-0.1.2-train-00406",
+   "procthor10k-0.1.2-train-03288",
+   "procthor10k-0.1.2-train-08927",
+   "procthor10k-0.1.2-train-08422",
+   "procthor10k-0.1.2-train-03525",
+   "procthor10k-0.1.2-train-07367",
+   "procthor10k-0.1.2-train-05806",
+   "procthor10k-0.1.2-train-05966",
+   "procthor10k-0.1.2-train-00950",
+   "procthor10k-0.1.2-train-05879",
+   "procthor10k-0.1.2-train-00236",
+   "procthor10k-0.1.2-train-02524",
+   "procthor10k-0.1.2-train-08398",
+   "procthor10k-0.1.2-train-04801",
+   "procthor10k-0.1.2-train-04388",
+   "procthor10k-0.1.2-train-07795",
+   "procthor10k-0.1.2-train-01543",
+   "procthor10k-0.1.2-train-09339",
+   "procthor10k-0.1.2-train-08790",
+   "procthor10k-0.1.2-train-01259",
+   "procthor10k-0.1.2-train-08905",
+   "procthor10k-0.1.2-train-00975",
+   "procthor10k-0.1.2-train-00619",
+   "procthor10k-0.1.2-train-01394",
+   "procthor10k-0.1.2-train-00702",
+   "procthor10k-0.1.2-train-07815",
+   "procthor10k-0.1.2-train-03361",
+   "procthor10k-0.1.2-train-09423"
+  ],
+  "selection_houses": [
+   "procthor10k-0.1.2-train-07270",
+   "procthor10k-0.1.2-train-06453",
+   "procthor10k-0.1.2-train-08552",
+   "procthor10k-0.1.2-train-01289",
+   "procthor10k-0.1.2-train-02768",
+   "procthor10k-0.1.2-train-04742",
+   "procthor10k-0.1.2-train-09595",
+   "procthor10k-0.1.2-train-00563",
+   "procthor10k-0.1.2-train-01139"
+  ],
+  "training_shortfall": 0,
+  "selection_shortfall": 3,
+  "houses_beyond_the_holdout": [],
+  "order": "s0_02_house_split_rank",
+  "seed": 20260920
+ },
+ "recipe": {
+  "learning_rate": 0.001,
+  "weight_decay": 0.0001,
+  "epochs": 20,
+  "field_encoding": true,
+  "existence_class_weight": false,
+  "cosine_min_learning_rate": 1e-05,
+  "gradient_clip_norm": 1.0,
+  "existence_prior_correction": true,
+  "concatenation": "every source in full, no resampling; the budget is the registered epochs over the concatenation"
+ },
+ "train_frames": 32550,
+ "validation_frames": 11547,
+ "updates_taken": 649440,
+ "existence_class_weight": null,
+ "train_curve": [
+  1.2686524912410369,
+  1.2423567858639593,
+  1.2263966533774329,
+  1.2170006138779847,
+  1.2105204433503425,
+  1.2050036224895835,
+  1.2008603186976727,
+  1.1948461930776209,
+  1.1906423943429605,
+  1.1859496191793324,
+  1.1812980636228105,
+  1.1773902937484058,
+  1.1731334294864253,
+  1.169013282055247,
+  1.1652484750772327,
+  1.161793086064891,
+  1.1590209411381422,
+  1.1566828337619692,
+  1.1548145154000438,
+  1.153594970787382
+ ],
+ "validation_curve": [
+  1.4385034485897374,
+  1.3478190552059452,
+  1.3610223704397229,
+  1.3508370931476688,
+  1.3311243138553555,
+  1.3273880644325124,
+  1.3546943140019172,
+  1.3480949505197435,
+  1.3559704561686363,
+  1.3517782613573628,
+  1.3331887763238994,
+  1.3531943076199573,
+  1.3367082273624609,
+  1.354091938557235,
+  1.3562355496712974,
+  1.3585191569053798,
+  1.3550521961946282,
+  1.3592246820492655,
+  1.3579495619294073,
+  1.3531605753995573
+ ],
+ "best_epoch": 5,
+ "train_curve_terms": [
+  {
+   "total": 1.2686524912410369,
+   "association": 1.2686524912410369,
+   "existence": null
+  },
+  {
+   "total": 1.2423567858639593,
+   "association": 1.2423567858639593,
+   "existence": null
+  },
+  {
+   "total": 1.2263966533774329,
+   "association": 1.2263966533774329,
+   "existence": null
+  },
+  {
+   "total": 1.2170006138779847,
+   "association": 1.2170006138779847,
+   "existence": null
+  },
+  {
+   "total": 1.2105204433503425,
+   "association": 1.2105204433503425,
+   "existence": null
+  },
+  {
+   "total": 1.2050036224895835,
+   "association": 1.2050036224895835,
+   "existence": null
+  },
+  {
+   "total": 1.2008603186976727,
+   "association": 1.2008603186976727,
+   "existence": null
+  },
+  {
+   "total": 1.1948461930776209,
+   "association": 1.1948461930776209,
+   "existence": null
+  },
+  {
+   "total": 1.1906423943429605,
+   "association": 1.1906423943429605,
+   "existence": null
+  },
+  {
+   "total": 1.1859496191793324,
+   "association": 1.1859496191793324,
+   "existence": null
+  },
+  {
+   "total": 1.1812980636228105,
+   "association": 1.1812980636228105,
+   "existence": null
+  },
+  {
+   "total": 1.1773902937484058,
+   "association": 1.1773902937484058,
+   "existence": null
+  },
+  {
+   "total": 1.1731334294864253,
+   "association": 1.1731334294864253,
+   "existence": null
+  },
+  {
+   "total": 1.169013282055247,
+   "association": 1.169013282055247,
+   "existence": null
+  },
+  {
+   "total": 1.1652484750772327,
+   "association": 1.1652484750772327,
+   "existence": null
+  },
+  {
+   "total": 1.161793086064891,
+   "association": 1.161793086064891,
+   "existence": null
+  },
+  {
+   "total": 1.1590209411381422,
+   "association": 1.1590209411381422,
+   "existence": null
+  },
+  {
+   "total": 1.1566828337619692,
+   "association": 1.1566828337619692,
+   "existence": null
+  },
+  {
+   "total": 1.1548145154000438,
+   "association": 1.1548145154000438,
+   "existence": null
+  },
+  {
+   "total": 1.153594970787382,
+   "association": 1.153594970787382,
+   "existence": null
+  }
+ ],
+ "validation_curve_terms": [
+  {
+   "total": 1.4385034485897374,
+   "association": 1.4385034485897374,
+   "existence": null
+  },
+  {
+   "total": 1.3478190552059452,
+   "association": 1.3478190552059452,
+   "existence": null
+  },
+  {
+   "total": 1.3610223704397229,
+   "association": 1.3610223704397229,
+   "existence": null
+  },
+  {
+   "total": 1.3508370931476688,
+   "association": 1.3508370931476688,
+   "existence": null
+  },
+  {
+   "total": 1.3311243138553555,
+   "association": 1.3311243138553555,
+   "existence": null
+  },
+  {
+   "total": 1.3273880644325124,
+   "association": 1.3273880644325124,
+   "existence": null
+  },
+  {
+   "total": 1.3546943140019172,
+   "association": 1.3546943140019172,
+   "existence": null
+  },
+  {
+   "total": 1.3480949505197435,
+   "association": 1.3480949505197435,
+   "existence": null
+  },
+  {
+   "total": 1.3559704561686363,
+   "association": 1.3559704561686363,
+   "existence": null
+  },
+  {
+   "total": 1.3517782613573628,
+   "association": 1.3517782613573628,
+   "existence": null
+  },
+  {
+   "total": 1.3331887763238994,
+   "association": 1.3331887763238994,
+   "existence": null
+  },
+  {
+   "total": 1.3531943076199573,
+   "association": 1.3531943076199573,
+   "existence": null
+  },
+  {
+   "total": 1.3367082273624609,
+   "association": 1.3367082273624609,
+   "existence": null
+  },
+  {
+   "total": 1.354091938557235,
+   "association": 1.354091938557235,
+   "existence": null
+  },
+  {
+   "total": 1.3562355496712974,
+   "association": 1.3562355496712974,
+   "existence": null
+  },
+  {
+   "total": 1.3585191569053798,
+   "association": 1.3585191569053798,
+   "existence": null
+  },
+  {
+   "total": 1.3550521961946282,
+   "association": 1.3550521961946282,
+   "existence": null
+  },
+  {
+   "total": 1.3592246820492655,
+   "association": 1.3592246820492655,
+   "existence": null
+  },
+  {
+   "total": 1.3579495619294073,
+   "association": 1.3579495619294073,
+   "existence": null
+  },
+  {
+   "total": 1.3531605753995573,
+   "association": 1.3531605753995573,
+   "existence": null
+  }
+ ],
+ "diverged": false,
+ "weights_sha256": "8d056a45c4c08434faadd17e0206e7708095547ae3c47374addb2186a43948c7",
+ "group_selection": null,
+ "files": [
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-00236",
+   "sha256": "b372097e631ac66cfe6640922f3251864f7d27f2f628d2f39e40e8563e6d97b2"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-00406",
+   "sha256": "807665c0356be9fee16a1c9a8375d8c9688cde5d33131a439d73a8193bace7c2"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-00563",
+   "sha256": "5026e5ed9be6fc046cd7a4c9ba41833efbcc3b97b824063aa31931d6d30f07b5"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-00619",
+   "sha256": "c9b4086aad87dac9077b89698be0134629351f971a579cb625ba98548ebd7e72"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-00702",
+   "sha256": "d5f0c73167b247795ffe683fed40fe77bc2d6e1205975bc364bd9282915e16fe"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-00950",
+   "sha256": "d1f6720c8ac36e210cf613d144ce52cb76b8f8ae369d1b1cca694db83318d602"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-00975",
+   "sha256": "e333734ecb0fca7eea8d3eb7197f047533c611286473965191eb72818a7cfc71"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-01139",
+   "sha256": "784274368acd889a9900d16d227620192b462ae0de00a85a264d77430f132263"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-01259",
+   "sha256": "2c93b5188b68e39ffd9304d6a08e63ace028cfb19f913ca8262fc7e465b552d0"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-01289",
+   "sha256": "57db90518e04a7faea16ef65baa537648da479228db9e4e0aa3732637cb589f8"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-01394",
+   "sha256": "2b476ac979c045aa2115176cb9b53765b35727bf3b5af18554f2403fff218af7"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-01543",
+   "sha256": "e6dc242a76cab953f4d3276fb12a465aa59e981e22f5eda1ab12ca8bdfdc41a3"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-02524",
+   "sha256": "f6f79dcb256a3469e5c337e31324ca9f444260b577154d36317857908eb6b2a1"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-02768",
+   "sha256": "88a78d64de6b8fe8307423363c06d990e6d25464edbdf30d2615e841b335bce6"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-03288",
+   "sha256": "6cbf73ca7697c3d4166b38f9797209dd489d1f499a8a70ae238b4962dae17015"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-03361",
+   "sha256": "38c0dda17ca2b37d316f3e32625fe80e8f44d8173f3b01c0fed21c0163cdc2b0"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-03394",
+   "sha256": "a0ab47aadf74148412319998a8b725cbffa9450c36ee7d316e77752522c3fb79"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-03525",
+   "sha256": "4826c584704ffe050f3956efe6b0b31edefa87114ac2137bab9e9b3214124d38"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-04388",
+   "sha256": "9aa235ebb5d9a9a6f162b54898b53554e291273bf76db60414625386bdfd31d7"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-04742",
+   "sha256": "3bc6e4d552ccbfa222a094d2048836904e10efd176e799eedba41dd1b2d38ab4"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-04801",
+   "sha256": "d68aa9e38f4c9b55b56248ddcdb07efc15120ce8d4a500e7bbca358953e00ca6"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-05806",
+   "sha256": "189f4e15589d074091c07980ccbeed182eaaca2eabe47fd3988cfc5083d154dc"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-05879",
+   "sha256": "866becc17c3577dc54ae288783ca3b8317f0d241f25f781b0f72892b4db837eb"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-05966",
+   "sha256": "7a2ac2866e3cf89c1ab2eb4ac0d6870adcc5433d044ee273030fd719ce27c7e8"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-06453",
+   "sha256": "98cfe2ce5283a0f2cd156cd5cca1a4ddf720751da37486e36ba6d22e6f68ed93"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-07270",
+   "sha256": "c3688e6604bd913d464223bbf57cee8394ae3bfe3897b238f3c6b9df725b5b27"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-07367",
+   "sha256": "1dec5538a4263f7e749b9d4d99ffe3779e7373e98d48f65b34f2649cb0d55831"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-07795",
+   "sha256": "3ee6d4867c543f889ba7c3c5ffd8f19833e5a7476986ec00b050d6f757e52ffb"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-07815",
+   "sha256": "3701704bae3b2d59a787fb3e69240311730b9867b843090fb5673a15d03be653"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-08398",
+   "sha256": "952bc42f8724778641d8a3d6c97e160e9b3a65a3d86a75bab584cc822b76b387"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-08422",
+   "sha256": "7bbfdc7b9a20485bf072591b73f5fd905facb06a90c068a757301938a07a4b5c"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-08552",
+   "sha256": "50369a7f3d09f264d5f6330b3f11c2cdcb997827b3c06760149a97d3064d9e1b"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-08566",
+   "sha256": "440eea5539edd54d97458e4b0d3cebc5a7d643e9e2928c3ad29f8561fd7eb46b"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-08790",
+   "sha256": "dbe2cbfd6bd2b37aa57061e8f90c835f55121c9e5807f976f0c822e586b74550"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-08905",
+   "sha256": "79c44872ebd53320c227da98ad88668dc3e51ac4a240e1912636eeb55af4ee7f"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-08927",
+   "sha256": "35c56e76162cfb1aff0495c9a51f10be6afacef52b49fb33c061fe1255c8d3f5"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-09339",
+   "sha256": "7fcc6af4c4b45b554709c3f7d109eebd4fea767c780771c5619600fd6f1dd658"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-09423",
+   "sha256": "1076b85230df9b8df3ca00958897fb74681f512a3461ef6e1448ccb2a797f139"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-09595",
+   "sha256": "f54ce2bb1352506ed2013566823eb1eee19815d5da91c49a8c8428e20d4fca18"
+  }
+ ],
+ "device": "cpu",
+ "code_commit": "dffc36da6f5d1000793bc1fec2a9b8069151ef08",
+ "wall_seconds": 1603.1,
+ "script_sha256": "febab5cd33b3f815de3b0e46772340f68ef90a9c1721f7d20ae326b0d3e1e81e"
+}

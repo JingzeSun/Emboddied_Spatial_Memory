@@ -1,0 +1,27 @@
+{
+ "stage": "vsmt.lean.s2_06.manifest.v1",
+ "step": "verify",
+ "problems": [],
+ "exports_checked": 45,
+ "trainings_checked": 12,
+ "merged_audits_checked": 24,
+ "probes": {
+  "sam2": {
+   "rerun": "/root/autodl-tmp/vsmt_private/s2-06-sam2/verify/sam2_probe/procthor10k-0.1.2-train-00702/VSMT-lean/node_audit.json",
+   "against": "/root/autodl-tmp/vsmt_private/s2-06-sam2/audit/VSMT-A7/procthor10k-0.1.2-train-00702/VSMT-lean/node_audit.json",
+   "episode_id": "procthor10k-0.1.2-train-00702",
+   "identical": true,
+   "compared": "everything but wall time, commit, head path and timings",
+   "checked_utc": "2026-10-02T07:54:47Z"
+  },
+  "instance": {
+   "rerun": "/root/autodl-tmp/vsmt_private/s2-06-sam2/verify/instance_probe/procthor10k-0.1.2-train-00702/VSMT-lean/node_audit.json",
+   "against": "results/vsmt_lean_ruling96_audit_GROUPED-A7_7c76970.json",
+   "episode_id": "procthor10k-0.1.2-train-00702",
+   "identical": true,
+   "compared": "the seven-metric report but size and cost",
+   "checked_utc": "2026-10-02T05:53:20Z"
+  }
+ },
+ "manifest_sha256": "63b4edacea08a6e4f03849aebe812ec0d8089345519eb66b2f378958b4ba0e65"
+}

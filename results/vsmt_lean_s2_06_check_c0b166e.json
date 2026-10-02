@@ -1,0 +1,248 @@
+{
+ "stage": "vsmt.lean.s2_06.manifest.v1",
+ "step": "check",
+ "checked_utc": "2026-10-01T16:15:35Z",
+ "code_commit": "dffc36da6f5d1000793bc1fec2a9b8069151ef08",
+ "run_root": "/root/autodl-tmp/vsmt_private/s2-06-sam2",
+ "paths": {
+  "sam2_cache": "/root/autodl-tmp/vsmt_caches/lean-s1-03-154776d",
+  "instance_cache": "/root/autodl-tmp/vsmt_caches/lean-s1-03-oracle-8ebbd05",
+  "geometry_root": "/root/autodl-tmp/vsmt_private/lean-s1-04-geometry-154776d",
+  "episode_roots": "/root/autodl-tmp/vsmt_outputs/lean-s1-02a-5f9aa71,/root/autodl-tmp/vsmt_outputs/lean-s1-02b-5f9aa71",
+  "sam2_reid": "/root/autodl-tmp/vsmt_private/exports/reid_head_vitb14_154776d.json",
+  "instance_reid": "/root/autodl-tmp/vsmt_private/lean-s1-04-diagnostics-oracle-caa50c7/reid_head_vitb14.json",
+  "autodl_root": "/root/autodl-tmp"
+ },
+ "resources": {
+  "cpu_quota": 32,
+  "cpu_quota_source": "cgroup cpu.max",
+  "memory_bytes": 133143986176,
+  "memory_source": "cgroup memory.max",
+  "disks": {
+   "/root/autodl-tmp": {
+    "free_gib": 45.1,
+    "total_gib": 100.0
+   },
+   "/root": {
+    "free_gib": 16.0,
+    "total_gib": 30.0
+   }
+  }
+ },
+ "environment": {
+  "python": "3.12.3",
+  "platform": "Linux-5.15.0-78-generic-x86_64-with-glibc2.35",
+  "threads": {
+   "OMP_NUM_THREADS": "1",
+   "MKL_NUM_THREADS": "1",
+   "OPENBLAS_NUM_THREADS": "1",
+   "TRAIN_THREADS": null
+  },
+  "numpy": "2.3.2",
+  "torch": "2.8.0+cu128"
+ },
+ "problems": [],
+ "episodes": {
+  "sam2": {
+   "procthor10k-0.1.2-train-00236": 570,
+   "procthor10k-0.1.2-train-00406": 1262,
+   "procthor10k-0.1.2-train-00563": 2138,
+   "procthor10k-0.1.2-train-00619": 1030,
+   "procthor10k-0.1.2-train-00702": 126,
+   "procthor10k-0.1.2-train-00950": 3037,
+   "procthor10k-0.1.2-train-00975": 787,
+   "procthor10k-0.1.2-train-01139": 468,
+   "procthor10k-0.1.2-train-01259": 2655,
+   "procthor10k-0.1.2-train-01289": 3473,
+   "procthor10k-0.1.2-train-01394": 261,
+   "procthor10k-0.1.2-train-01543": 1358,
+   "procthor10k-0.1.2-train-02524": 1399,
+   "procthor10k-0.1.2-train-02768": 1696,
+   "procthor10k-0.1.2-train-03288": 425,
+   "procthor10k-0.1.2-train-03361": 1518,
+   "procthor10k-0.1.2-train-03394": 1371,
+   "procthor10k-0.1.2-train-03525": 286,
+   "procthor10k-0.1.2-train-04388": 437,
+   "procthor10k-0.1.2-train-04742": 836,
+   "procthor10k-0.1.2-train-04801": 1866,
+   "procthor10k-0.1.2-train-05806": 1831,
+   "procthor10k-0.1.2-train-05879": 457,
+   "procthor10k-0.1.2-train-05966": 702,
+   "procthor10k-0.1.2-train-06453": 529,
+   "procthor10k-0.1.2-train-07270": 305,
+   "procthor10k-0.1.2-train-07367": 145,
+   "procthor10k-0.1.2-train-07795": 1762,
+   "procthor10k-0.1.2-train-07815": 762,
+   "procthor10k-0.1.2-train-08398": 1916,
+   "procthor10k-0.1.2-train-08422": 325,
+   "procthor10k-0.1.2-train-08552": 984,
+   "procthor10k-0.1.2-train-08566": 830,
+   "procthor10k-0.1.2-train-08790": 2919,
+   "procthor10k-0.1.2-train-08905": 245,
+   "procthor10k-0.1.2-train-08927": 1233,
+   "procthor10k-0.1.2-train-09339": 822,
+   "procthor10k-0.1.2-train-09423": 213,
+   "procthor10k-0.1.2-train-09595": 1118
+  },
+  "simulator_instance_masks": {
+   "procthor10k-0.1.2-train-00236": 570,
+   "procthor10k-0.1.2-train-00406": 1262,
+   "procthor10k-0.1.2-train-00563": 2138,
+   "procthor10k-0.1.2-train-00619": 1030,
+   "procthor10k-0.1.2-train-00702": 126,
+   "procthor10k-0.1.2-train-00950": 3037,
+   "procthor10k-0.1.2-train-00975": 787,
+   "procthor10k-0.1.2-train-01139": 468,
+   "procthor10k-0.1.2-train-01259": 2655,
+   "procthor10k-0.1.2-train-01289": 3473,
+   "procthor10k-0.1.2-train-01394": 261,
+   "procthor10k-0.1.2-train-01543": 1358,
+   "procthor10k-0.1.2-train-02524": 1399,
+   "procthor10k-0.1.2-train-02768": 1696,
+   "procthor10k-0.1.2-train-03288": 425,
+   "procthor10k-0.1.2-train-03361": 1518,
+   "procthor10k-0.1.2-train-03394": 1371,
+   "procthor10k-0.1.2-train-03525": 286,
+   "procthor10k-0.1.2-train-04388": 437,
+   "procthor10k-0.1.2-train-04742": 836,
+   "procthor10k-0.1.2-train-04801": 1866,
+   "procthor10k-0.1.2-train-05806": 1831,
+   "procthor10k-0.1.2-train-05879": 457,
+   "procthor10k-0.1.2-train-05966": 702,
+   "procthor10k-0.1.2-train-06453": 529,
+   "procthor10k-0.1.2-train-07270": 305,
+   "procthor10k-0.1.2-train-07367": 145,
+   "procthor10k-0.1.2-train-07795": 1762,
+   "procthor10k-0.1.2-train-07815": 762,
+   "procthor10k-0.1.2-train-08398": 1916,
+   "procthor10k-0.1.2-train-08422": 325,
+   "procthor10k-0.1.2-train-08552": 984,
+   "procthor10k-0.1.2-train-08566": 830,
+   "procthor10k-0.1.2-train-08790": 2919,
+   "procthor10k-0.1.2-train-08905": 245,
+   "procthor10k-0.1.2-train-08927": 1233,
+   "procthor10k-0.1.2-train-09339": 822,
+   "procthor10k-0.1.2-train-09423": 213,
+   "procthor10k-0.1.2-train-09595": 1118
+  }
+ },
+ "frames": {
+  "sam2": 44097,
+  "simulator_instance_masks": 44097
+ },
+ "reid_heads": {
+  "sam2": {
+   "file": "/root/autodl-tmp/vsmt_private/exports/reid_head_vitb14_154776d.json",
+   "file_sha256": "823508e4f7f296a75b027676fc24fbb711de5388bb3ab9353aff4dcf1ff44e17",
+   "payload_sha256": "f6fc67e5f365a4f6d375d6aa16afe15cb0d9769879aa0cc1ab84ff6de9b65073",
+   "pinned_sha256": "f6fc67e5f365a4f6d375d6aa16afe15cb0d9769879aa0cc1ab84ff6de9b65073",
+   "matches": true
+  },
+  "simulator_instance_masks": {
+   "file": "/root/autodl-tmp/vsmt_private/lean-s1-04-diagnostics-oracle-caa50c7/reid_head_vitb14.json",
+   "file_sha256": "27bf6a10767f68c3b7aef6e76f91e48c9bea8de6750cfb8620e16e0c388217e0",
+   "payload_sha256": "5cea91cf77901f1eb38e5942ee12a2afbe14e11ba1475bd2957e1cbfe3659a88",
+   "pinned_sha256": "5cea91cf77901f1eb38e5942ee12a2afbe14e11ba1475bd2957e1cbfe3659a88",
+   "matches": true
+  }
+ },
+ "instance_grouped_heads_7c76970": {
+  "7": {
+   "file": "/root/autodl-tmp/vsmt_private/ruling96-7c76970/training/round1/VSMT-lean/A7/weights_grouped.json",
+   "frozen_sha256": "0951ba7a73ba4aff26ec55b720d8f24b9e70b07f620eff70623e3a0ef1bf70f5",
+   "payload_sha256": "0951ba7a73ba4aff26ec55b720d8f24b9e70b07f620eff70623e3a0ef1bf70f5"
+  },
+  "19": {
+   "file": "/root/autodl-tmp/vsmt_private/ruling96-7c76970/training/round1/VSMT-lean/A19/weights_grouped.json",
+   "frozen_sha256": "23c5861629bbcb99c9ff2c9cdcfff8a01e4bfa2b2d4b49591e43f15f911dc765",
+   "payload_sha256": "23c5861629bbcb99c9ff2c9cdcfff8a01e4bfa2b2d4b49591e43f15f911dc765"
+  },
+  "31": {
+   "file": "/root/autodl-tmp/vsmt_private/ruling96-7c76970/training/round1/VSMT-lean/A31/weights_grouped.json",
+   "frozen_sha256": "5cae6cbdd70e2800ee563af286de4c2f81ebdf01a4facfe4f92031eb6ef95a07",
+   "payload_sha256": "5cae6cbdd70e2800ee563af286de4c2f81ebdf01a4facfe4f92031eb6ef95a07"
+  },
+  "43": {
+   "file": "/root/autodl-tmp/vsmt_private/ruling96-7c76970/training/round1/VSMT-lean/A43/weights_grouped.json",
+   "frozen_sha256": "a202240b5b57e9d7d78aeb8be7f22976a54e93d5e7fdf927e02e6b5db6764839",
+   "payload_sha256": "a202240b5b57e9d7d78aeb8be7f22976a54e93d5e7fdf927e02e6b5db6764839"
+  },
+  "59": {
+   "file": "/root/autodl-tmp/vsmt_private/ruling96-7c76970/training/round1/VSMT-lean/A59/weights_grouped.json",
+   "frozen_sha256": "59c51a1fa1030bde096728fdcdc1db3d948cfe24630a33b678308cec42a3f91d",
+   "payload_sha256": "59c51a1fa1030bde096728fdcdc1db3d948cfe24630a33b678308cec42a3f91d"
+  }
+ },
+ "references": {
+  "VSMT-lean:7": {
+   "file": "results/vsmt_lean_ruling96_audit_GROUPED-A7_7c76970.json",
+   "sha256": "a241d613a5d144b7fa3c005c60d820d188291b002044ede205cbe21c3e6c8a82"
+  },
+  "AssocOnly:7": {
+   "file": "results/vsmt_lean_ruling95_audit_ASSOC-A7_d835cd3.json",
+   "sha256": "98ffe74dc6ceae5c34f7578dff0dceaa95ee47d371bd809ac26c59d671d270bc"
+  },
+  "VSMT-lean:19": {
+   "file": "results/vsmt_lean_ruling96_audit_GROUPED-A19_7c76970.json",
+   "sha256": "6f2f45fb8ff40073d6bf88e5c1a814063b2b8006e520f406189e3f69b12a7abf"
+  },
+  "AssocOnly:19": {
+   "file": "results/vsmt_lean_ruling95_audit_ASSOC-A19_d835cd3.json",
+   "sha256": "32fc707b442789a267e3e9c4764d3516f339de178f4ddb9163bd165bc1771642"
+  },
+  "VSMT-lean:31": {
+   "file": "results/vsmt_lean_ruling96_audit_GROUPED-A31_7c76970.json",
+   "sha256": "a39d5dfe07af5835c3e910a5aa5032f2af434b08aab9a54317dadbb3794ab2c2"
+  },
+  "AssocOnly:31": {
+   "file": "results/vsmt_lean_ruling95_audit_ASSOC-A31_d835cd3.json",
+   "sha256": "c26f508124c23d52b27ec89cec3ac8d65fd6cbe5225c5f994475c817c20600d1"
+  },
+  "VSMT-lean:43": {
+   "file": "results/vsmt_lean_ruling96_audit_GROUPED-A43_7c76970.json",
+   "sha256": "f21a993f922d830433e9018837b84fbafd632a3cf64730f51242d142ecbbb87e"
+  },
+  "AssocOnly:43": {
+   "file": "results/vsmt_lean_ruling95_audit_ASSOC-A43_d835cd3.json",
+   "sha256": "b70f3b8f36e0d3de6b23c0ba3a18d0f0adc159326c2aadf67db777fc3a2ac009"
+  },
+  "VSMT-lean:59": {
+   "file": "results/vsmt_lean_ruling96_audit_GROUPED-A59_7c76970.json",
+   "sha256": "fdcb60fe40864205d75a8aaf303d16d2ca78f639c9826c4e9e6d55f2ed2c786f"
+  },
+  "AssocOnly:59": {
+   "file": "results/vsmt_lean_ruling95_audit_ASSOC-A59_d835cd3.json",
+   "sha256": "9ae87b6f083647dc652825a45cdaa8976f17e5c95509f7362209c5b37360ced6"
+  },
+  "TAF": {
+   "file": "results/vsmt_lean_ruling95_audit_RULE-TAF_d835cd3.json",
+   "sha256": "9e477c53cfa7731b19ec51673b6d2061da015f44f6f16098d2387dd1daa0641a"
+  },
+  "ELU-P": {
+   "file": "results/vsmt_lean_ruling95_audit_RULE-ELU-P_d835cd3.json",
+   "sha256": "3df758fa3afc5f489d1ab24f4bba255dd18a71a6b838671e73a5f8ad9196e598"
+  },
+  "RAC": {
+   "file": "results/vsmt_lean_ruling95_audit_RULE-RAC_d835cd3.json",
+   "sha256": "2d4c497bc66f2c18311d4e66a70473c3e81fd01c519a2c806c199712ed805d9c"
+  },
+  "LOW": {
+   "file": "results/vsmt_lean_ruling95_audit_RULE-LOW_d835cd3.json",
+   "sha256": "86232386b494e3ee1ebdcf53b6b7bc2f4be6d22d2c293936fa08a1bddae351df"
+  },
+  "vsmt_lean_s2_05_calibration_oracle_850c533.json": {
+   "file": "results/vsmt_lean_s2_05_calibration_oracle_850c533.json",
+   "sha256": "ce41b0c0910c6152cb0effd59c3f7854a81b9d733e4ddcc62661811a2b8af321"
+  },
+  "vsmt_lean_ruling96_reading_7c76970.json": {
+   "file": "results/vsmt_lean_ruling96_reading_7c76970.json",
+   "sha256": "a8b9ad090000059282db3deb0023ea983531ed00df293a3b359b96c5c6e07bb1"
+  }
+ },
+ "sam2_elu_p_fitted_registered": true,
+ "sam2_elu_p_fitted": {
+  "initial_log_odds": 4.75891184514327,
+  "persistence_log_decay_per_tick": 1.9420616347206353e-05,
+  "match_gain": 2.920444259169415
+ }
+}

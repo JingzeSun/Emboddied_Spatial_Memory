@@ -1,0 +1,735 @@
+{
+ "stage": "vsmt.lean.ruling89.train.v1",
+ "arm": "VSMT-lean",
+ "assoc_only": false,
+ "seed": 59,
+ "sources": [
+  "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+  "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean"
+ ],
+ "holdout": {
+  "training_houses": [
+   "procthor10k-0.1.2-train-03394",
+   "procthor10k-0.1.2-train-08566",
+   "procthor10k-0.1.2-train-00406",
+   "procthor10k-0.1.2-train-03288",
+   "procthor10k-0.1.2-train-08927",
+   "procthor10k-0.1.2-train-08422",
+   "procthor10k-0.1.2-train-03525",
+   "procthor10k-0.1.2-train-07367",
+   "procthor10k-0.1.2-train-05806",
+   "procthor10k-0.1.2-train-05966",
+   "procthor10k-0.1.2-train-00950",
+   "procthor10k-0.1.2-train-05879",
+   "procthor10k-0.1.2-train-00236",
+   "procthor10k-0.1.2-train-02524",
+   "procthor10k-0.1.2-train-08398",
+   "procthor10k-0.1.2-train-04801",
+   "procthor10k-0.1.2-train-04388",
+   "procthor10k-0.1.2-train-07795",
+   "procthor10k-0.1.2-train-01543",
+   "procthor10k-0.1.2-train-09339",
+   "procthor10k-0.1.2-train-08790",
+   "procthor10k-0.1.2-train-01259",
+   "procthor10k-0.1.2-train-08905",
+   "procthor10k-0.1.2-train-00975",
+   "procthor10k-0.1.2-train-00619",
+   "procthor10k-0.1.2-train-01394",
+   "procthor10k-0.1.2-train-00702",
+   "procthor10k-0.1.2-train-07815",
+   "procthor10k-0.1.2-train-03361",
+   "procthor10k-0.1.2-train-09423"
+  ],
+  "selection_houses": [
+   "procthor10k-0.1.2-train-07270",
+   "procthor10k-0.1.2-train-06453",
+   "procthor10k-0.1.2-train-08552",
+   "procthor10k-0.1.2-train-01289",
+   "procthor10k-0.1.2-train-02768",
+   "procthor10k-0.1.2-train-04742",
+   "procthor10k-0.1.2-train-09595",
+   "procthor10k-0.1.2-train-00563",
+   "procthor10k-0.1.2-train-01139"
+  ],
+  "training_shortfall": 0,
+  "selection_shortfall": 3,
+  "houses_beyond_the_holdout": [],
+  "order": "s0_02_house_split_rank",
+  "seed": 20260920
+ },
+ "recipe": {
+  "learning_rate": 0.001,
+  "weight_decay": 0.0001,
+  "epochs": 20,
+  "field_encoding": true,
+  "existence_class_weight": true,
+  "cosine_min_learning_rate": 1e-05,
+  "gradient_clip_norm": 1.0,
+  "existence_prior_correction": true,
+  "concatenation": "every source in full, no resampling; the budget is the registered epochs over the concatenation"
+ },
+ "train_frames": 65100,
+ "validation_frames": 23094,
+ "updates_taken": 1301860,
+ "existence_class_weight": {
+  "gone": 24265,
+  "present": 2082278,
+  "pos_weight": 85.81405316299197
+ },
+ "train_curve": [
+  3.58411317373148,
+  3.52713880432931,
+  3.454999429821507,
+  3.3761776923956224,
+  3.305380837765717,
+  3.2642654759010585,
+  3.230306723667995,
+  3.1925479003740556,
+  3.156069252189636,
+  3.090859044422356,
+  3.055624158165597,
+  3.0226342981684087,
+  2.967451916545464,
+  2.9534369700351757,
+  2.9159271816808,
+  2.878885386151618,
+  2.8477612824735683,
+  2.824887784455929,
+  2.8092481181530973,
+  2.7977106678311645
+ ],
+ "validation_curve": [
+  3.06161975787638,
+  3.436903382530226,
+  3.2327472119765446,
+  3.1560058669664928,
+  3.3432061068141863,
+  3.94787076048943,
+  3.816446714960909,
+  4.267641407142778,
+  3.894302604169444,
+  4.481500677005276,
+  4.478100591555619,
+  4.505445311309428,
+  4.823180064642222,
+  4.756241484296901,
+  4.727317942668896,
+  4.8652173254085795,
+  4.722558655596176,
+  4.889976693838799,
+  4.832795901867044,
+  4.84961679258551
+ ],
+ "best_epoch": 0,
+ "train_curve_terms": [
+  {
+   "total": 3.58411317373148,
+   "association": 1.1632735007879884,
+   "existence": 2.4321286395074386
+  },
+  {
+   "total": 3.52713880432931,
+   "association": 1.1408881212761806,
+   "existence": 2.3973645782260093
+  },
+  {
+   "total": 3.454999429821507,
+   "association": 1.1321311040677535,
+   "existence": 2.3337385057163
+  },
+  {
+   "total": 3.3761776923956224,
+   "association": 1.1275611941818642,
+   "existence": 2.2592147645714444
+  },
+  {
+   "total": 3.305380837765717,
+   "association": 1.12207095043753,
+   "existence": 2.1936654825481368
+  },
+  {
+   "total": 3.2642654759010585,
+   "association": 1.1179439613865017,
+   "existence": 2.156537234363142
+  },
+  {
+   "total": 3.230306723667995,
+   "association": 1.1145601859806842,
+   "existence": 2.1258466994357574
+  },
+  {
+   "total": 3.1925479003740556,
+   "association": 1.111411558775289,
+   "existence": 2.091107325682601
+  },
+  {
+   "total": 3.156069252189636,
+   "association": 1.1084563587564755,
+   "existence": 2.057458979874454
+  },
+  {
+   "total": 3.090859044422356,
+   "association": 1.1054252538698155,
+   "existence": 1.9950540767017004
+  },
+  {
+   "total": 3.055624158165597,
+   "association": 1.1019979049769137,
+   "existence": 1.9631265437527197
+  },
+  {
+   "total": 3.0226342981684087,
+   "association": 1.099020951232035,
+   "existence": 1.9330010319467046
+  },
+  {
+   "total": 2.967451916545464,
+   "association": 1.095568946745841,
+   "existence": 1.8810805725765827
+  },
+  {
+   "total": 2.9534369700351757,
+   "association": 1.0927525863759546,
+   "existence": 1.8698358940329844
+  },
+  {
+   "total": 2.9159271816808,
+   "association": 1.0903076543681647,
+   "existence": 1.8346419433156966
+  },
+  {
+   "total": 2.878885386151618,
+   "association": 1.0872654665080335,
+   "existence": 1.8005155574450054
+  },
+  {
+   "total": 2.8477612824735683,
+   "association": 1.0850551620254139,
+   "existence": 1.771494841560238
+  },
+  {
+   "total": 2.824887784455929,
+   "association": 1.0832922044980722,
+   "existence": 1.7503058879927924
+  },
+  {
+   "total": 2.8092481181530973,
+   "association": 1.0815820368666222,
+   "existence": 1.736323337588658
+  },
+  {
+   "total": 2.7977106678311645,
+   "association": 1.080797573632253,
+   "existence": 1.725530681416901
+  }
+ ],
+ "validation_curve_terms": [
+  {
+   "total": 3.06161975787638,
+   "association": 1.2576220094916353,
+   "existence": 1.8109142089355
+  },
+  {
+   "total": 3.436903382530226,
+   "association": 1.270097294064971,
+   "existence": 2.1745396055328623
+  },
+  {
+   "total": 3.2327472119765446,
+   "association": 1.2433468996262433,
+   "existence": 1.9966850134221035
+  },
+  {
+   "total": 3.1560058669664928,
+   "association": 1.2396732630681861,
+   "existence": 1.9234499820989808
+  },
+  {
+   "total": 3.3432061068141863,
+   "association": 1.2433192942694316,
+   "existence": 2.1074111991155857
+  },
+  {
+   "total": 3.94787076048943,
+   "association": 1.2480257491119018,
+   "existence": 2.708682509292188
+  },
+  {
+   "total": 3.816446714960909,
+   "association": 1.2524656958628362,
+   "existence": 2.5725342992667164
+  },
+  {
+   "total": 4.267641407142778,
+   "association": 1.2436123246744817,
+   "existence": 3.033559512874836
+  },
+  {
+   "total": 3.894302604169444,
+   "association": 1.267997995842058,
+   "existence": 2.6350302003190773
+  },
+  {
+   "total": 4.481500677005276,
+   "association": 1.2678511371870753,
+   "existence": 3.2236492911655334
+  },
+  {
+   "total": 4.478100591555619,
+   "association": 1.262714926271469,
+   "existence": 3.225376927691164
+  },
+  {
+   "total": 4.505445311309428,
+   "association": 1.25911818484105,
+   "existence": 3.2563769395865574
+  },
+  {
+   "total": 4.823180064642222,
+   "association": 1.2528355190830471,
+   "existence": 3.5810824621441384
+  },
+  {
+   "total": 4.756241484296901,
+   "association": 1.2600093159790489,
+   "existence": 3.5068263918072957
+  },
+  {
+   "total": 4.727317942668896,
+   "association": 1.248763045013163,
+   "existence": 3.489083915256108
+  },
+  {
+   "total": 4.8652173254085795,
+   "association": 1.2498825607477633,
+   "existence": 3.626163266573987
+  },
+  {
+   "total": 4.722558655596176,
+   "association": 1.262101088919083,
+   "existence": 3.470979155868787
+  },
+  {
+   "total": 4.889976693838799,
+   "association": 1.2535238419370582,
+   "existence": 3.647335868331386
+  },
+  {
+   "total": 4.832795901867044,
+   "association": 1.2582440232905685,
+   "existence": 3.5853118434539284
+  },
+  {
+   "total": 4.84961679258551,
+   "association": 1.2572004921726572,
+   "existence": 3.6032125367886385
+  }
+ ],
+ "diverged": false,
+ "weights_sha256": "bae9881813995438afc34b1a8734ddc03ec5272127a07141dd738578f1628d1a",
+ "group_selection": {
+  "rule": "training unchanged; the association and birth heads keep together the epoch of the lowest association validation term, the existence head the epoch of the lowest existence validation term, ties to the earlier epoch; the total-loss selection is kept alongside",
+  "best_epoch_by_group": {
+   "association_birth": 3,
+   "existence": 0
+  },
+  "weights_sha256": "d29f623ad9d2c31192306662d027a6e6ad597b00ddf1c5e360bb36ef6748e045",
+  "file": "weights_grouped.json"
+ },
+ "files": [
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-00236",
+   "sha256": "b372097e631ac66cfe6640922f3251864f7d27f2f628d2f39e40e8563e6d97b2"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-00406",
+   "sha256": "807665c0356be9fee16a1c9a8375d8c9688cde5d33131a439d73a8193bace7c2"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-00563",
+   "sha256": "5026e5ed9be6fc046cd7a4c9ba41833efbcc3b97b824063aa31931d6d30f07b5"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-00619",
+   "sha256": "c9b4086aad87dac9077b89698be0134629351f971a579cb625ba98548ebd7e72"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-00702",
+   "sha256": "d5f0c73167b247795ffe683fed40fe77bc2d6e1205975bc364bd9282915e16fe"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-00950",
+   "sha256": "d1f6720c8ac36e210cf613d144ce52cb76b8f8ae369d1b1cca694db83318d602"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-00975",
+   "sha256": "e333734ecb0fca7eea8d3eb7197f047533c611286473965191eb72818a7cfc71"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-01139",
+   "sha256": "784274368acd889a9900d16d227620192b462ae0de00a85a264d77430f132263"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-01259",
+   "sha256": "2c93b5188b68e39ffd9304d6a08e63ace028cfb19f913ca8262fc7e465b552d0"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-01289",
+   "sha256": "57db90518e04a7faea16ef65baa537648da479228db9e4e0aa3732637cb589f8"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-01394",
+   "sha256": "2b476ac979c045aa2115176cb9b53765b35727bf3b5af18554f2403fff218af7"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-01543",
+   "sha256": "e6dc242a76cab953f4d3276fb12a465aa59e981e22f5eda1ab12ca8bdfdc41a3"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-02524",
+   "sha256": "f6f79dcb256a3469e5c337e31324ca9f444260b577154d36317857908eb6b2a1"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-02768",
+   "sha256": "88a78d64de6b8fe8307423363c06d990e6d25464edbdf30d2615e841b335bce6"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-03288",
+   "sha256": "6cbf73ca7697c3d4166b38f9797209dd489d1f499a8a70ae238b4962dae17015"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-03361",
+   "sha256": "38c0dda17ca2b37d316f3e32625fe80e8f44d8173f3b01c0fed21c0163cdc2b0"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-03394",
+   "sha256": "a0ab47aadf74148412319998a8b725cbffa9450c36ee7d316e77752522c3fb79"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-03525",
+   "sha256": "4826c584704ffe050f3956efe6b0b31edefa87114ac2137bab9e9b3214124d38"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-04388",
+   "sha256": "9aa235ebb5d9a9a6f162b54898b53554e291273bf76db60414625386bdfd31d7"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-04742",
+   "sha256": "3bc6e4d552ccbfa222a094d2048836904e10efd176e799eedba41dd1b2d38ab4"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-04801",
+   "sha256": "d68aa9e38f4c9b55b56248ddcdb07efc15120ce8d4a500e7bbca358953e00ca6"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-05806",
+   "sha256": "189f4e15589d074091c07980ccbeed182eaaca2eabe47fd3988cfc5083d154dc"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-05879",
+   "sha256": "866becc17c3577dc54ae288783ca3b8317f0d241f25f781b0f72892b4db837eb"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-05966",
+   "sha256": "7a2ac2866e3cf89c1ab2eb4ac0d6870adcc5433d044ee273030fd719ce27c7e8"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-06453",
+   "sha256": "98cfe2ce5283a0f2cd156cd5cca1a4ddf720751da37486e36ba6d22e6f68ed93"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-07270",
+   "sha256": "c3688e6604bd913d464223bbf57cee8394ae3bfe3897b238f3c6b9df725b5b27"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-07367",
+   "sha256": "1dec5538a4263f7e749b9d4d99ffe3779e7373e98d48f65b34f2649cb0d55831"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-07795",
+   "sha256": "3ee6d4867c543f889ba7c3c5ffd8f19833e5a7476986ec00b050d6f757e52ffb"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-07815",
+   "sha256": "3701704bae3b2d59a787fb3e69240311730b9867b843090fb5673a15d03be653"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-08398",
+   "sha256": "952bc42f8724778641d8a3d6c97e160e9b3a65a3d86a75bab584cc822b76b387"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-08422",
+   "sha256": "7bbfdc7b9a20485bf072591b73f5fd905facb06a90c068a757301938a07a4b5c"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-08552",
+   "sha256": "50369a7f3d09f264d5f6330b3f11c2cdcb997827b3c06760149a97d3064d9e1b"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-08566",
+   "sha256": "440eea5539edd54d97458e4b0d3cebc5a7d643e9e2928c3ad29f8561fd7eb46b"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-08790",
+   "sha256": "dbe2cbfd6bd2b37aa57061e8f90c835f55121c9e5807f976f0c822e586b74550"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-08905",
+   "sha256": "79c44872ebd53320c227da98ad88668dc3e51ac4a240e1912636eeb55af4ee7f"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-08927",
+   "sha256": "35c56e76162cfb1aff0495c9a51f10be6afacef52b49fb33c061fe1255c8d3f5"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-09339",
+   "sha256": "7fcc6af4c4b45b554709c3f7d109eebd4fea767c780771c5619600fd6f1dd658"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-09423",
+   "sha256": "1076b85230df9b8df3ca00958897fb74681f512a3461ef6e1448ccb2a797f139"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_0:ELU-P",
+   "episode": "procthor10k-0.1.2-train-09595",
+   "sha256": "f54ce2bb1352506ed2013566823eb1eee19815d5da91c49a8c8428e20d4fca18"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-00236",
+   "sha256": "9a20f735dcf2433e5963078a0cd92d31dc557f73d8bef9df64f48f8c9b39da59"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-00406",
+   "sha256": "4eb4ae497bed600b6d77dfad9dc0fb712f51d02ca8ecff33cfbb321f4f21993a"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-00563",
+   "sha256": "3c3686bdea612752a399b9e720aaefb52441d41b0ba28bebbcd30e34ec6826a3"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-00619",
+   "sha256": "0c64fd20b8d54521360c4a93f126c80edb894649738d487b87b291bffaf253de"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-00702",
+   "sha256": "a45f48afed328a9ed1db966a4cab61dceee3e11e0bfe9700d5916ae5768b9864"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-00950",
+   "sha256": "92259d6a5e6807358080b34d160ca312eddab514a86d2a04d722c4f632b21708"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-00975",
+   "sha256": "a6f5b1754f14943ac9b9f0191f4999bc79e04e1e30a0531d752b2b9a7097855f"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-01139",
+   "sha256": "a693dd0e95a043e8d2efbfefb07afb5f03f7411be247b647cfdf241e2f5a1625"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-01259",
+   "sha256": "4491875d0b042de4f6ebdb2d6d91c8f54bdc0d56cbcc75c3c0ef0de539c4ce6f"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-01289",
+   "sha256": "7884c81ce38ac681e4b88db56e366193ebb59a1ec4139fffb5da0004b8d41d00"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-01394",
+   "sha256": "1a4ac236f59990f77710f2080e64aad5028a225433e584de6cbbfa1673aa7470"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-01543",
+   "sha256": "0f30bb90420988964b353469e337cc312d5b8681dcb82020109333f4568144e5"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-02524",
+   "sha256": "b7ed0c75d5534c5f2ed8e74e2feed8f958f16d161e8cc8f66b7f379e7ea24371"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-02768",
+   "sha256": "3b2545528c77ef9f0b0668d76b4f01872ac974be73f12d2613821dc1d337ec36"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-03288",
+   "sha256": "a37fec5ead6795351e689727330976a58dde5d303b43b4c5a77b5d90a3af97a3"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-03361",
+   "sha256": "9004d7db91aff37e2a5fc2aa40619a57f8620b8b4c7673a667b0ba5ecdf69cd8"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-03394",
+   "sha256": "fce071c3d1ff4b8892020fdfde6351ccc7435d7e76899aee1d69afc40ad274c6"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-03525",
+   "sha256": "73d36fa94b10f0f62e3b6f8bc8de0fc4a2174108bfdae38783a662c032013c93"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-04388",
+   "sha256": "cd8c0c7da1acbacae8f0fbd3cda433b0957cff01f2170d82fd2b415d818e5181"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-04742",
+   "sha256": "89d7ec49dacc527ab0370a097e3923405e94d10c22b362c5a4b3c9b880fdc597"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-04801",
+   "sha256": "398bb36dbf781954aeadc976f1d805eb2e7e72ca2b079a613dcecccf31408186"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-05806",
+   "sha256": "3dc5d15733fea64734cb9443e3ac736b80374f19720cf086e93bc4c60af2e902"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-05879",
+   "sha256": "cc1ed79956374e785990b232332452960a1e745952b5b6606885d18082882b9c"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-05966",
+   "sha256": "6dbf6801b744035e22cb1ba0f238df3d185107f4953a6582afff4dfd6eac4f29"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-06453",
+   "sha256": "648729f81c98d1729ba5dec141b96f2a9ad88bced2db4df22aad4ccbd1079b18"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-07270",
+   "sha256": "855ff4de87dfd3f8db040cee06619a35988f53626472d69f5f87d376531d7f21"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-07367",
+   "sha256": "9542784f0240b7182f9c960be8bca0b944dd05f391ea702b1b3369ace0f704d4"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-07795",
+   "sha256": "9c53eb746af90b3426ce3ac6b1022b984ad3ddcfa10e64a0d95d974cd1ec92a3"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-07815",
+   "sha256": "d3aba9d5e68491405be29eae2c216a783d2ebe28f8d0bbcdff6e0ef487a839e3"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-08398",
+   "sha256": "78511e5d33fdfff101612284711093c187d3814938f85c58454ccc555978cf29"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-08422",
+   "sha256": "e9c1b3eef13921f1d592dd9c4125734a06567bf8f20bd9701668b644ed2e41d5"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-08552",
+   "sha256": "313dce9d5d1bd4f5f25d54997d3c0f59409d9622f037ccd738918473e63994d2"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-08566",
+   "sha256": "a5b9bea7753bea42af21754bc2e7f28803b5a4079aebe0402e1ee077e2834653"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-08790",
+   "sha256": "8ab1f81614c8ee9c7280a409f4cefdd1382ed08cecdb3b191a96d78a4a481717"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-08905",
+   "sha256": "0689f087c4d98cc1cee8c17b83629db883177c5bc0d7b01a1525a776a99eaf5b"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-08927",
+   "sha256": "19673267b13a6e5ab8d641373696290209b79ad39bbd41f5f631241da10b3f77"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-09339",
+   "sha256": "ac0ffd56b835b803a7359cec3496495e6ff532ddeb9f78cd5bd9d06315b3f526"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-09423",
+   "sha256": "2a0f1dbfa84e6a22b80bf6472f40095d01b5c7a25a1114343af55318dce1132b"
+  },
+  {
+   "source": "/root/autodl-tmp/vsmt_private/s2-06-sam2:dagger_round_1:VSMT-lean",
+   "episode": "procthor10k-0.1.2-train-09595",
+   "sha256": "7a370e76d15118ad6ba4d92b2163861d3b22d66542be1b953145c24f9e2b80be"
+  }
+ ],
+ "device": "cpu",
+ "code_commit": "dffc36da6f5d1000793bc1fec2a9b8069151ef08",
+ "wall_seconds": 4241.7,
+ "script_sha256": "febab5cd33b3f815de3b0e46772340f68ef90a9c1721f7d20ae326b0d3e1e81e"
+}
