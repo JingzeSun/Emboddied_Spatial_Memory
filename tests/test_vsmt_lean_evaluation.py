@@ -240,6 +240,9 @@ class TafEpisodeTests(unittest.TestCase):
         # identity continuity: the book's first re-observation after the move is bound to its pre-move carrier
         self.assertEqual(report["identity_continuity"], {"identity_continuity": 1.0, "kept": 1, "events": 1, "no_prior_carrier": 0})
         self.assertEqual(report["identity_continuity_conditional"], {"identity_continuity": 1.0, "kept": 1, "judged": 1})
+        # ruling 102-5: on the same event the book's own entity, now at C, is the most similar active or dormant entity
+        self.assertEqual(report["retrieval_success"], {"retrieval_success": 1.0, "successes": 1, "events": 1, "no_query": 0, "empty_candidates": 0})
+        self.assertEqual(diagnostics["retrieval_per_object"]["Book|2"]["retrieved_identity"], "Book|2")
         self.assertEqual(diagnostics["reobserved_at"], {"Book|2": 2})
         book_entity = entity_of(self.steps[1]["state"]["memory"], ":book")
         self.assertEqual(diagnostics["carriers_before_move"], {"Book|2": [book_entity]})
@@ -383,6 +386,7 @@ class GateAndInvarianceTests(unittest.TestCase):
         self.assertEqual(episode_report["report"]["missing_residual_rate"]["missing_residual_rate"], None)
         self.assertEqual(episode_report["report"]["identity_continuity"]["events"], 0)
         self.assertEqual(episode_report["report"]["identity_continuity_conditional"]["judged"], 0)
+        self.assertIsNone(episode_report["report"]["retrieval_success"]["retrieval_success"])
         self.assertEqual(episode_report["report"]["recovery_latency_frames"]["recovered"], 0)
         self.assertTrue(all(f["missing_residual"] is None for f in frames))
 

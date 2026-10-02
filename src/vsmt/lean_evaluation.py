@@ -105,6 +105,7 @@ HEADLINE_FIELD = {
     "false_retract_rate_in_scope": "false_retract_rate",
     "identity_continuity": "identity_continuity",
     "identity_continuity_conditional": "identity_continuity",  # ruling 102-0: diagnostic column
+    "retrieval_success": "retrieval_success",  # ruling 102-5: the eighth metric
     "recovery_latency_frames": "recovery_latency_frames",
     "contamination_auc": "contamination_auc",
 }
@@ -273,6 +274,10 @@ class EpisodeTeacher:
         self.old_place_observable_since: set[str] = set()
         self.reobserved_at: dict[str, int] = {}
         self.continuity = {"kept": 0, "judged": 0, "no_prior_carrier": 0}
+        # ruling 102-5: the evaluator's retrieval queries (sums of the run's descriptors of each moved object's pre-move fragments)
+        self.retrieval_query_sum: dict[str, list[float]] = {}
+        self.retrieval = {"successes": 0, "events": 0, "no_query": 0, "empty_candidates": 0}
+        self.retrieval_per_object: dict[str, dict[str, Any]] = {}
         self.recovery_frames: list[dict[str, dict[str, bool]]] = []
         self.frames: list[dict[str, Any]] = []
         self.last_frame_index = -1
@@ -382,6 +387,15 @@ class EpisodeTeacher:
                 entity = boxes_before[entity_id]
                 existence_truth_box_iou[entity_id] = lt._aabb_iou(entity["aabb_min_m"], entity["aabb_max_m"],
                                                                   entry["aabb_min_m"], entry["aabb_max_m"])
+        # ruling 102-5: up to the last window frame, collect each moved object's labelled fragments into its retrieval query
+        if self.window_end is not None and frame_index <= self.window_end:
+            descriptors = {str(row["fragment_id"]): row["descriptor"] for row in step["view"]["fragments"]}
+            for fragment_id, target in targets.items():
+                key = target["key"]
+                if key is not None and self.interventions.get(str(key)) in CONTINUITY_KINDS:
+                    vector = [float(v) for v in descriptors[str(fragment_id)]]
+                    total = self.retrieval_query_sum.setdefault(str(key), [0.0] * len(vector))
+                    self.retrieval_query_sum[str(key)] = [a + b for a, b in zip(total, vector, strict=True)]
         decisions = {str(k): str(v) for k, v in receipt["existence"]["decisions"].items()}
         assignment = {str(k): str(v) for k, v in receipt["assignment"].items()}
         decomposition = lt.decompose_frame(targets=targets, assignment=assignment, existence=existence, decisions=decisions)
@@ -439,6 +453,15 @@ class EpisodeTeacher:
                 for name in ("kept", "judged", "no_prior_carrier"):
                     self.continuity[name] += int(continuity_frame[name])
                 continuity_frame["reobserved"] = dict(reobserved)
+                # ruling 102-5: retrieval success on the same events; an object without pre-move fragments has no query
+                queries = {key: self.retrieval_query_sum[key] for key in reobserved if key in self.retrieval_query_sum}
+                self.retrieval["no_query"] += len(reobserved) - len(queries)
+                if queries:
+                    retrieved = lt.retrieval_success(memory_after, queries=queries, object_state=object_state,
+                                                     evidence_instance=self.evidence, delta_moved_m=self.policy["delta_moved_m"])
+                    for name in ("successes", "events", "empty_candidates"):
+                        self.retrieval[name] += int(retrieved[name])
+                    self.retrieval_per_object.update(retrieved["per_object"])
 
         # the S2-03 training record: existence rows are the runner's eligible candidates only
         rows_by_id = {str(row["entity_id"]): row for row in stage_b["existence_rows"]}
@@ -523,6 +546,7 @@ class EpisodeTeacher:
             # ruling 102-0: the common-event column and the conditional diagnostic column from the same summed counts
             **lt.identity_continuity_blocks(kept=self.continuity["kept"], judged=self.continuity["judged"],
                                             no_prior_carrier=self.continuity["no_prior_carrier"]),
+            "retrieval_success": lt.retrieval_success_block(**self.retrieval),  # ruling 102-5, the eighth metric
             "recovery_latency_frames": {name: recovery[name] for name in lt.METRIC_FIELDS["recovery_latency_frames"]},
             "contamination_auc": {name: contamination[name] for name in lt.METRIC_FIELDS["contamination_auc"]},
             "size_and_cost": {
@@ -547,6 +571,7 @@ class EpisodeTeacher:
             "spawned_after_reload_keys": sorted(self.builder.spawned_keys),
             "reobserved_at": dict(self.reobserved_at),
             "carriers_before_move": dict(self.carriers_before_move),
+            "retrieval_per_object": dict(self.retrieval_per_object),
             "recovery": {name: recovery[name] for name in ("recovered", "unrecovered", "never_observable", "per_object")},
         }
         return {"report": report, "diagnostics": diagnostics}

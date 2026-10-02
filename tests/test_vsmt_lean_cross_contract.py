@@ -371,7 +371,9 @@ FROZEN_RULE_SHA256 = {
     # seed resampling (shared house draws), the favourable 82-1 condition, the target (the training procedure under fixed data,
     # recipe and selection), the original gate reported only, and the fixed sequence over the two front ends as the multiple-
     # comparison rule; the bootstrap seed and the planning-only effect-size block fill the two slots (masked).  0e856be3 -> bf775628.
-    "S0-04": "bf7756280af807cda079fc1aa3e32b77269f1ab2bc11078752e7a1bff0f53689",
+    # Ruling 102-5 (2026-10-02): retrieval_success, the eighth metric of ruling 83-5, joins the names and reported fields with
+    # its block (events, query, candidates, success rules, role, three claims).  bf775628 -> f8c87355.
+    "S0-04": "f8c8735587567257a1e90144133c25afaec244ce348ec756d2f8b27e54b654ed",
     # S0-05 re-pinned 2026-09-25 for ruling 68 (LOG-256 sequel): every grid's values (at most twelve
     # configurations per method, a no-gate member in every rule arm), the ELU-P rollout_config
     # (0.7, 1.0, 0.0) and the should_be_visible_min_ratio_superseded record enter the digest; the
@@ -477,7 +479,8 @@ FROZEN_RULE_SHA256 = {
     # frame's public depth view, the arms' own should-be-visible yardstick (ruling 65 (1)).  d1645593 -> 51250dcb.
     # ruling 80-5 (b): headline_fields gains false_retract_rate_in_scope.  51250dcb -> eb9ac356.
     # Ruling 102-0 (2026-10-02): the headline fields gain identity_continuity_conditional (the diagnostic column).  eb9ac356 -> 02d0e1b6.
-    "S2-04": "02d0e1b6bfde29f82d1ae43fb3de8fee6d4108d6835955b86da06fbbc1e6a8a8",
+    # Ruling 102-5 (2026-10-02): the headline fields gain retrieval_success.  02d0e1b6 -> dfd879b2.
+    "S2-04": "dfd879b24438e300d512614c418a4269c23ae813d653dba703044028e28f623d",
     # S2-05 v1 (2026-09-24, LOG-251): the development table -- the five passes in order (calibration
     # with LOW and no gate, the ELU-P fit with TAF at the rollout theta_a, DAgger rounds 0 and 1, the
     # table), the episode set, the calibration series and quantiles, the ELU-P count rules, the
@@ -493,7 +496,8 @@ FROZEN_RULE_SHA256 = {
     # no gate kept as calibration_arm_superseded) and the calibration pass also writes the ELU-P counts.  cea002f4 -> 7916d4f8.
     # ruling 80-5 (b): table.better gains false_retract_rate_in_scope (lower).  7916d4f8 -> d010a992.
     # Ruling 102-0 (2026-10-02): table.better gains identity_continuity_conditional (higher).  d010a992 -> 743eae92.
-    "S2-05": "743eae92c37bb106ef6dd0c36a1fb2edf429dc3cc4c80cfd89e03a1d0339eec4",
+    # Ruling 102-5 (2026-10-02): table.better gains retrieval_success (higher).  743eae92 -> dba77a2d.
+    "S2-05": "dba77a2de8d1e052155b5e0ac90dae0f0ed749c16c4251d6493b12480b586f84",
 }
 
 #: Every registered slot that has been frozen, and the value it froze at.

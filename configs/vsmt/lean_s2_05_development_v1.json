@@ -185,6 +185,7 @@
       "false_retract_rate_in_scope": "lower",
       "identity_continuity": "higher",
       "identity_continuity_conditional": "higher",
+      "retrieval_success": "higher",
       "recovery_latency_frames": "lower",
       "contamination_auc": "lower"
     },

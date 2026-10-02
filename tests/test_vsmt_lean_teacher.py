@@ -998,8 +998,8 @@ class TestReportClosure(unittest.TestCase):
         report = {name: {field: None for field in METRIC_FIELDS[name]} for name in METRICS}
         assert_report_keys(report)
         # ruling 70 added the centroid column; ruling 80-5 (b) the in-scope false-retract column; ruling 102-0 the conditional
-        # identity-continuity column
-        self.assertEqual(len(METRICS), 10)
+        # identity-continuity column; ruling 102-5 the eighth metric, retrieval success
+        self.assertEqual(len(METRICS), 11)
 
     def test_an_eighth_metric_is_rejected(self) -> None:
         with self.assertRaises(LeanTeacherError) as caught:
@@ -1575,3 +1575,65 @@ class TestMainGateRuling102(unittest.TestCase):
             with self.subTest(field=field), self.assertRaises(LeanTeacherError) as caught:
                 validate_teacher_contract(broken)
             self.assertEqual(str(caught.exception), code)
+
+
+class TestRetrievalSuccessRuling102(unittest.TestCase):
+    """Ruling 102-5: the eighth metric -- the most similar active or dormant entity must be the object, at its current place."""
+
+    STATE = {"Book|2": {"present": True, "centroid_m": [3.0, 0.0, 0.0], "aabb_min_m": [2.9, -0.1, -0.1], "aabb_max_m": [3.1, 0.1, 0.1]}}
+    EVIDENCE = {"d0|f0": "Book|2", "d1|f1": "Book|2", "d2|f2": "Mug|1"}
+
+    def entity(self, entity_id, state, descriptor, centroid, evidence):
+        return {"entity_id": entity_id, "state": state, "descriptor_mean": descriptor, "centroid_m": centroid,
+                "evidence": [{"frame_digest": d, "fragment_id": f} for d, f in evidence]}
+
+    def run_case(self, entities):
+        from vsmt.lean_teacher import retrieval_success
+
+        return retrieval_success({"entities": entities}, queries={"Book|2": [1.0, 0.0]}, object_state=self.STATE,
+                                 evidence_instance=self.EVIDENCE, delta_moved_m=0.5)
+
+    def test_a_stale_duplicate_that_looks_more_like_the_query_is_retrieved_and_fails(self):
+        out = self.run_case([self.entity("e-old", "active", [1.0, 0.05], [0.0, 0.0, 0.0], [("d0", "f0")]),
+                             self.entity("e-new", "active", [0.8, 0.6], [3.0, 0.0, 0.0], [("d1", "f1")])])
+        self.assertEqual((out["successes"], out["events"]), (0, 1))
+        self.assertEqual(out["per_object"]["Book|2"]["retrieved"], "e-old")
+
+    def test_one_entity_at_the_new_place_succeeds_and_a_retracted_one_is_not_a_candidate(self):
+        out = self.run_case([self.entity("e-old", "retracted", [1.0, 0.0], [0.0, 0.0, 0.0], [("d0", "f0")]),
+                             self.entity("e-book", "dormant", [0.9, 0.1], [3.05, 0.0, 0.0], [("d0", "f0"), ("d1", "f1")]),
+                             self.entity("e-mug", "active", [0.0, 1.0], [1.0, 0.0, 0.0], [("d2", "f2")])])
+        self.assertEqual((out["successes"], out["events"], out["empty_candidates"]), (1, 1, 0))
+        self.assertEqual(out["per_object"]["Book|2"]["retrieved"], "e-book")
+
+    def test_the_right_place_with_the_wrong_identity_fails(self):
+        out = self.run_case([self.entity("e-mug", "active", [1.0, 0.0], [3.0, 0.0, 0.0], [("d2", "f2")])])
+        self.assertEqual(out["successes"], 0)
+
+    def test_no_candidate_is_a_failure_and_counted(self):
+        out = self.run_case([self.entity("e-old", "retracted", [1.0, 0.0], [0.0, 0.0, 0.0], [("d0", "f0")])])
+        self.assertEqual((out["successes"], out["events"], out["empty_candidates"]), (0, 1, 1))
+
+    def test_block_reports_none_without_events(self):
+        from vsmt.lean_teacher import retrieval_success_block
+
+        self.assertEqual(retrieval_success_block(successes=1, events=4, no_query=2, empty_candidates=1),
+                         {"retrieval_success": 0.25, "successes": 1, "events": 4, "no_query": 2, "empty_candidates": 1})
+        self.assertIsNone(retrieval_success_block(successes=0, events=0, no_query=3, empty_candidates=0)["retrieval_success"])
+        with self.assertRaises(LeanTeacherError):
+            retrieval_success_block(successes=2, events=1, no_query=0, empty_candidates=0)
+
+    def test_contract_binds_the_retrieval_rules(self):
+        import copy
+        import json
+        from pathlib import Path
+
+        from vsmt.lean_teacher import validate_teacher_contract
+
+        path = Path(__file__).resolve().parents[1] / "configs" / "vsmt" / "lean_s0_teacher_metrics_v2.json"
+        contract = json.loads(path.read_text(encoding="utf-8"))
+        broken = copy.deepcopy(contract)
+        broken["metrics"]["retrieval_success"]["query"] = "the latest version of the carrier"
+        with self.assertRaises(LeanTeacherError) as caught:
+            validate_teacher_contract(broken)
+        self.assertEqual(str(caught.exception), "contract_retrieval_rule_mismatch:query")

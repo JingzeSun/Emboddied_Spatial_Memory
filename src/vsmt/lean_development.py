@@ -56,6 +56,7 @@ METHOD_ARM = arms.METHOD_ARM
 BETTER = {"node_prf1": "higher", "node_prf1_iou": "higher", "missing_residual_rate": "lower", "false_retract_rate": "lower",
           "false_retract_rate_in_scope": "lower",
           "identity_continuity": "higher", "identity_continuity_conditional": "higher",  # ruling 102-0: diagnostic column
+          "retrieval_success": "higher",  # ruling 102-5: the eighth metric
           "recovery_latency_frames": "lower", "contamination_auc": "lower"}
 #: The passes of S2-05 in order; each pass is one S2-04 run per episode.
 PASSES = (

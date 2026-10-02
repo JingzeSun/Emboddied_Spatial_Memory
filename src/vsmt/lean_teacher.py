@@ -81,7 +81,8 @@ MEMORY_PRESENT_STATES = ("active", "dormant")
 #: has no RETRACT/NOOP decision to judge and is rejected, not skipped.
 EXISTENCE_CANDIDATE_STATES = ("active", "dormant")
 
-#: The seven metrics the paper may report, and no eighth.
+#: The metrics the paper may report and no other: the seven, their registered secondary or diagnostic columns, and the eighth
+#: (retrieval success, ruling 83-5, defined by ruling 102-5).
 METRICS = (
     "node_prf1",
     "node_prf1_iou",
@@ -90,6 +91,7 @@ METRICS = (
     "false_retract_rate_in_scope",   # D-224-S1 ruling 80-5 (b): secondary column beside false_retract_rate
     "identity_continuity",
     "identity_continuity_conditional",  # ruling 102-0: the pre-ruling conditional definition, a diagnostic column
+    "retrieval_success",  # ruling 83-5 / 102-5: the eighth metric, reported, never gated, never selecting
     "recovery_latency_frames",
     "contamination_auc",
     "size_and_cost",
@@ -104,6 +106,7 @@ METRIC_FIELDS: dict[str, tuple[str, ...]] = {
     "false_retract_rate_in_scope": ("false_retract_rate", "false_retracts", "judged_retracts", "ambiguous_retracts"),
     "identity_continuity": ("identity_continuity", "kept", "events", "no_prior_carrier"),
     "identity_continuity_conditional": ("identity_continuity", "kept", "judged"),
+    "retrieval_success": ("retrieval_success", "successes", "events", "no_query", "empty_candidates"),
     "recovery_latency_frames": ("recovery_latency_frames", "recovered", "unrecovered", "never_observable", "per_object"),
     "contamination_auc": ("contamination_auc", "frames"),
     "size_and_cost": ("active_entity_count", "lifecycle_version_count", "runtime_per_frame_s", "peak_memory_bytes"),
@@ -219,6 +222,27 @@ IDENTITY_CONTINUITY_DENOMINATOR = (
     "every moved object re-observed with a labelled fragment after the window, the same events for every arm; an object "
     "without a carrier in the arm's memory at the last window frame counts as not kept"
 )
+#: Ruling 102-5 (2026-10-02): retrieval success, the eighth metric registered by ruling 83-5.  The events are the identity
+#: continuity events (front end and truth only); the query is built by the evaluator from private labels the method never sees.
+RETRIEVAL_EVENT_RULE = (
+    "each moved object at its first labelled re-observation after the window (the identity_continuity events: front end and truth "
+    "only, the same for every arm)"
+)
+RETRIEVAL_QUERY_RULE = (
+    "the evaluator's query: the unit-normalised mean of the run's selected-descriptor vectors of every fragment whose dominance "
+    "resolves to the object in the frames up to the last window frame; an object without such a fragment has no query, is not an "
+    "event and is counted as no_query"
+)
+RETRIEVAL_CANDIDATE_RULE = (
+    "every active or dormant entity of the memory committed at the event frame, by its descriptor_mean unit-normalised; the highest "
+    "cosine is retrieved, ties to the smaller entity_id; no candidate counts as a failure (empty_candidates)"
+)
+RETRIEVAL_SUCCESS_RULE = (
+    "the retrieved entity pairs with the object under the node primary rule: its strict-majority identity is the object and its "
+    "centroid is within delta_moved_m of the object's truth centroid or inside the truth box padded 0.25 m"
+)
+RETRIEVAL_ROLE = "eighth_metric_reported_beside_the_seven_never_in_the_main_gate_never_selects"
+
 IDENTITY_CONTINUITY_CONDITIONAL_ROLE = (
     "diagnostic_column_kept_over_the_events_with_a_pre_move_carrier_reported_beside_identity_continuity_"
     "never_in_the_main_gate_never_selects"
@@ -1298,6 +1322,58 @@ def identity_continuity(
     }
 
 
+def _unit_vector(values: Sequence[float], code: str) -> list[float]:
+    vector = [_finite(v, code) for v in values]
+    norm = math.sqrt(sum(v * v for v in vector))
+    _require(norm > 0.0, code)
+    return [v / norm for v in vector]
+
+
+def retrieval_success(
+    memory_after: Mapping[str, Any], *, queries: Mapping[str, Sequence[float]], object_state: Mapping[str, Mapping[str, Any]],
+    evidence_instance: Mapping[str, str | None], delta_moved_m: float, present_states: Sequence[str] = MEMORY_PRESENT_STATES,
+) -> dict[str, Any]:
+    """Ruling 102-5: retrieval success of the events of one frame.
+
+    白话：输入这一帧提交后的记忆、这一帧要考的被搬动物体及其查询向量（评价器用私有标签从搬动前的色块描述子算出，方法看不到）、
+    物体此刻的真值与证据映射，输出考了几个、成功几个、候选为空几个。每个事件在记忆里全部 active／dormant 实体中按
+    descriptor_mean 的余弦取最像的一个（并列取 entity_id 小者），它的多数身份就是这个物体、且按节点主列的地点规则在物体此刻的
+    位置，就算成功。例如只学关联的方法在旧位置留着杯子的陈旧实体、在新位置又新建了一个，旧实体更像查询，就会被拿错，记失败。
+    """
+
+    candidates = [entity for entity in memory_after["entities"] if entity["state"] in present_states]
+    unit = {str(entity["entity_id"]): _unit_vector(entity["descriptor_mean"], "entity_descriptor_invalid") for entity in candidates}
+    by_id = {str(entity["entity_id"]): entity for entity in candidates}
+    out: dict[str, Any] = {"successes": 0, "events": 0, "empty_candidates": 0, "per_object": {}}
+    for key in sorted(queries):
+        out["events"] += 1
+        query = _unit_vector(queries[key], "retrieval_query_invalid")
+        if not candidates:
+            out["empty_candidates"] += 1
+            out["per_object"][str(key)] = {"retrieved": None, "success": False, "reason": "empty_candidates"}
+            continue
+        scored = sorted(((-sum(a * b for a, b in zip(query, unit[entity_id], strict=True)), entity_id) for entity_id in unit))
+        cosine, retrieved = -scored[0][0], scored[0][1]
+        identity = entity_identity(by_id[retrieved], evidence_instance)
+        state = object_state.get(str(key)) or {"present": False}
+        success = bool(identity["resolvable"] and identity["key"] == str(key) and state.get("present")
+                       and place_holds(by_id[retrieved]["centroid_m"], state, delta_moved_m=delta_moved_m)[0])
+        out["successes"] += int(success)
+        out["per_object"][str(key)] = {"retrieved": retrieved, "cosine": cosine, "retrieved_identity": identity["key"],
+                                       "success": success}
+    return out
+
+
+def retrieval_success_block(*, successes: int, events: int, no_query: int, empty_candidates: int) -> dict[str, Any]:
+    """The episode report block of retrieval success from its summed counts; no event -> None, never 0."""
+
+    for name, value in (("successes", successes), ("events", events), ("no_query", no_query), ("empty_candidates", empty_candidates)):
+        _require(type(value) is int and value >= 0, f"retrieval_count_invalid:{name}")
+    _require(successes <= events and empty_candidates <= events, "retrieval_count_invalid:successes")
+    return {"retrieval_success": (successes / events) if events else None, "successes": successes, "events": events,
+            "no_query": no_query, "empty_candidates": empty_candidates}
+
+
 def identity_continuity_blocks(*, kept: int, judged: int, no_prior_carrier: int) -> dict[str, dict[str, Any]]:
     """The two report blocks of an episode from its summed counts: identity_continuity (ruling 102-0) and the conditional column.
 
@@ -1934,6 +2010,10 @@ EXPECTED_BOOLEAN_CLAIMS: dict[str, bool] = {
     "metrics.identity_continuity.same_events_for_every_arm": True,
     "metrics.identity_continuity.no_prior_carrier_counts_as_not_kept": True,
     "metrics.identity_continuity_conditional.never_in_the_main_gate_never_selects": True,
+    # ruling 102-5 (2026-10-02)
+    "metrics.retrieval_success.same_events_for_every_arm": True,
+    "metrics.retrieval_success.query_built_by_the_evaluator_never_seen_by_the_method": True,
+    "metrics.retrieval_success.never_in_the_main_gate_never_selects": True,
     "metrics.recovery_latency_frames.starts_at_first_observable_frame_not_intervention_frame": True,
     "metrics.recovery_latency_frames.unrecovered_reported_separately_never_averaged": True,
     "statistics.paired": True,
@@ -2105,6 +2185,10 @@ def validate_teacher_contract(contract: Mapping[str, Any]) -> dict[str, Any]:
     _require(metrics["identity_continuity"]["judged_at"] == IDENTITY_CONTINUITY_JUDGED_AT, "contract_identity_judged_at_mismatch")
     _require(metrics["identity_continuity"].get("denominator") == IDENTITY_CONTINUITY_DENOMINATOR,
              "contract_identity_denominator_mismatch")  # ruling 102-0
+    retrieval = metrics.get("retrieval_success") or {}
+    for field, expected in (("events", RETRIEVAL_EVENT_RULE), ("query", RETRIEVAL_QUERY_RULE), ("candidates", RETRIEVAL_CANDIDATE_RULE),
+                            ("success", RETRIEVAL_SUCCESS_RULE), ("role", RETRIEVAL_ROLE)):
+        _require(retrieval.get(field) == expected, f"contract_retrieval_rule_mismatch:{field}")  # ruling 102-5
     conditional = metrics.get("identity_continuity_conditional") or {}
     _require(conditional.get("role") == IDENTITY_CONTINUITY_CONDITIONAL_ROLE, "contract_identity_conditional_role_mismatch")
     _require(conditional.get("judged_at") == IDENTITY_CONTINUITY_JUDGED_AT, "contract_identity_judged_at_mismatch")
@@ -2240,6 +2324,13 @@ __all__ = [
     "fragment_dominance",
     "identity_continuity",
     "identity_continuity_blocks",
+    "RETRIEVAL_CANDIDATE_RULE",
+    "RETRIEVAL_EVENT_RULE",
+    "RETRIEVAL_QUERY_RULE",
+    "RETRIEVAL_ROLE",
+    "RETRIEVAL_SUCCESS_RULE",
+    "retrieval_success",
+    "retrieval_success_block",
     "IDENTITY_CONTINUITY_CONDITIONAL_ROLE",
     "IDENTITY_CONTINUITY_DENOMINATOR",
     "main_gate",
