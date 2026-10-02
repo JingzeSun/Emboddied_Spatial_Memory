@@ -102,6 +102,47 @@ bash ops/vsmt/s2_06_sam2.sh status
 
 **怎样核对复现**：同一提交、同一 `TRAIN_THREADS`（默认 4）重训的权重逐位相同（裁决 96 已验证），审计是确定性的；verify 阶段重跑一条审计比对、核对每份权重与回执的摘要，`REPRO_TRAINING=1` 时另重训第 0 轮 AssocOnly 比对摘要。别人复现后，把自己的运行清单与 `results/vsmt_lean_s2_06_manifest_<tag>.json` 里的权重摘要和导出摘要逐项比较即可。
 
+## 怎样复现 S3-02（正式数据，裁决 103）
+
+白话：S3-02 回答“正式实验的数据从哪来”。输入是 ProcTHOR-10K 0.1.2 源文件、S1 用过的私有盐、冻结的前端资产与已审代码；它按已提交的三份清单（train 300、validation 50、test 100，裁决 102-8）生成原始 episode，补几何重载，建实例分割与 SAM 2.1 两套 cache，输出三个划分各自的根与回执。test 写进单独的根并封存：S3-05 之前，任何读数据的入口（训练、选参、审计）遇到 test 根都会拒绝。例如 train 生成完若执行成功的搬动不足 120 次，驱动停下等规模裁决，而不是放宽规则或补样本。它不训练、不评价，test 只算摘要与计数。
+
+**一条命令**（服务器，4 卡；数据盘可用空间不少于 check 段推算的约 340 GB；在审过的提交上新建干净的 detached worktree）：
+
+```bash
+git -C /root/Emboddied_Spatial_Memory worktree add --detach /root/autodl-tmp/vsmt_worktrees/s3-02-<commit> <commit>
+cd /root/autodl-tmp/vsmt_worktrees/s3-02-<commit>
+nohup bash ops/vsmt/s3_02_data.sh all > /root/autodl-tmp/vsmt_outputs/run_logs/s3-02-<commit>.log 2>&1 &
+bash ops/vsmt/s3_02_data.sh status
+```
+
+再跑一次 `all` 就从停下的地方续跑：完成的阶段保留；阶段完成之后若代码有改动（只有登记生成器提交的三个文件与文档例外），该阶段拒绝续用。各阶段、读写与停点写在 [`ops/vsmt/s3_02_data.sh`](ops/vsmt/s3_02_data.sh) 开头。
+
+| 输入（`AUTODL=/root/autodl-tmp`） | 默认路径 | 运行前核对（check 阶段） |
+|---|---|---|
+| ProcTHOR-10K 0.1.2 源文件 | `$AUTODL/vsmt_sources/procthor-10k-0.1.2/train.jsonl.gz` | 摘要与字节数等于 S1-01 登记值（`d64450ec…`，52,316,238 字节） |
+| 私有盐（裁决 37） | `$AUTODL/vsmt_private/null_window_salt.txt` | 在仓库外，摘要等于 S1 各次生成用过的那份（`8f4eae85…`） |
+| 前端资产 | `$AUTODL/vsmt_private/s103_assets.json` | SAM 2.1 与 DINOv2 按 S1-03 合同与 S1-01 登记逐字节核对 |
+| 两份 ReID 头（S3-03 起使用） | `$AUTODL/vsmt_private/exports/reid_head_vitb14_154776d.json`、`$AUTODL/vsmt_private/lean-s1-04-diagnostics-oracle-caa50c7/reid_head_vitb14.json` | 摘要等于 S0-03 按来源钉住的值 |
+| 模拟器解释器 | `$AUTODL/vsmt-envs/simulator-py39/bin/python` | 能导入 ai2thor |
+
+| 阶段 | 做什么 | 预计耗时（粗估，以实测为准） |
+|---|---|---|
+| check | 全量测试；全部输入、显卡、cgroup 配额与内存、数据盘可用空间写进运行清单 | 约 15 分钟 |
+| measure | train 前 4 个 house、4 路并发，实测单 worker 占用（measure 根，不算 S3 数据） | 约 25 分钟 |
+| generate | 用实测字节数重算磁盘；450 个 house 一个进程池（S1-01 规则推导 worker 数，模拟器并发上限按确认集的 16 路外推）；裁决 36 检查 | 约 8～9 小时 |
+| hold | 首跑停在这里：生成器提交要登记进 S1-03 位姿登记表（裁决 103-3 预授权的登记提交），在那个提交上再跑 `all` | — |
+| geometry | 三个划分的几何重载，8 个模拟器 worker | 约 15 分钟 |
+| instance-cache | 实例分割 cache，每个 worker 2 线程，按 cgroup 配额与内存定 worker 数，所有卡，大 episode 先派发 | 约 2 小时 |
+| sam2-measure | 一张卡上 1～4 个 worker 试跑，取吞吐最高的每卡 worker 数，打印总时长估计后继续 | 约 15 分钟 |
+| sam2-cache | SAM 2.1 cache，每卡最佳 worker 数 × 卡数 | 约 20～40 小时 |
+| export → verify | 导出（train、validation 逐 house；test 只有计数）、封存 test、核对各划分一致与封印、写最终运行清单 | 约 30 分钟 |
+
+**停点**：train 搬动不足 120 次或源先重访不足 60 次时 generate 写 `stopped` 并停下，等规模裁决（裁决 36）；首跑到 hold 时写 `hold` 并停下，生成器提交登记后续跑；若生成器提交的 camera_pose 编码与已登记的不同，hold 写 `stopped`，这种提交不能这样登记。cache 某条 episode 的失败若不是数据本身的原因（如 SAM2 色块超上限），该段失败并停下等检查，不重跑、不替换。
+
+**输出**：原始 episode `$AUTODL/vsmt_outputs/s3-02-<tag>/{measure,train,validation,test}`，几何 `$AUTODL/vsmt_private/s3-02-geometry-<tag>/<划分>`，cache `$AUTODL/vsmt_caches/s3-02-{instance,sam2}-<tag>/<划分>`（tag 是第一次 check 时的提交）；导出 `$AUTODL/vsmt_outputs/exports/vsmt_lean_s3_02_*_<tag>.json` 拉回 `results/` 提交：输入核对、测量、生成计划、train 与 validation 的逐 house 报告、几何与两套 cache 的报告、test 的计数汇总与封印、worker 依据、裁决 36 检查、登记记录、SAM2 试跑、运行清单与 verify。
+
+**怎样核对复现**：同一提交下，生成器对同一个 house 的输出是确定的——verify 把测量用的 4 个 house 与 train 里同名的 4 个逐字节比较并记进运行清单；cache 对同一条 episode 预期是确定的（同型号显卡；这一点没有逐字节验证过）。别人复现后，把自己的运行清单与 `results/vsmt_lean_s3_02_manifest_<tag>.json` 逐项比较；test 的封印摘要在 `results/vsmt_lean_s3_02_test_seal_<tag>.json`，S3-05 读 test 之前先核对它。
+
 ## 实现与证据
 
 | 目录 | 职责 |
