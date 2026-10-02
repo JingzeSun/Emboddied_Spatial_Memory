@@ -111,7 +111,7 @@ stage_compat() {  # (5)
 stage_sam2_scaling() {  # (1)
   local K T TRIALS=()
   for K in 1 2 3 4; do
-    T=$OUT/sam2-k$K
+    T=$OUT/sam2-k$K-trial  # the cache builder writes a trial only into a root ending in -trial
     TRIALS+=(--trial "$K=$T")
     [ -f "$T/trial_receipt.json" ] && continue
     aside "$T"  # a cut trial is never resumed: its wall clock would be that of the rest
@@ -129,29 +129,29 @@ stage_caches() {  # (2)
   K=${SAM2_WORKERS:-$($PY -c "import json, sys; b = json.load(open(sys.argv[1])).get('best_workers_per_card'); print(b or 2)" "$(export_name sam2_scaling)" 2>/dev/null || echo 2)}
   INSTANCE_ALONE=$(( Q / 2 )); INSTANCE_TOGETHER=$(( (Q - 2 * K) / 2 )); [ "$INSTANCE_TOGETHER" -lt 1 ] && INSTANCE_TOGETHER=1
   echo "[$(date)] caches: quota $Q, SAM2 $K workers; instance $INSTANCE_ALONE alone, $INSTANCE_TOGETHER beside SAM2"
-  for T in seq-instance seq-sam2 par-instance par-sam2; do aside "$ROOT/$T"; done
+  for T in seq-instance seq-sam2 par-instance par-sam2; do aside "$ROOT/$T-trial"; done
   rm -f "$OUT/samples-sequential.jsonl" "$OUT/samples-parallel.jsonl"
   start_sampler "$OUT/samples-sequential.jsonl"; T0=$(date +%s)
-  MEASURE "$OUT/caches_seq_instance.json" "${CACHE[@]}" --output-root "$ROOT/seq-instance" --mask-source simulator_instance_masks \
+  MEASURE "$OUT/caches_seq_instance.json" "${CACHE[@]}" --output-root "$ROOT/seq-instance-trial" --mask-source simulator_instance_masks \
     --workers "$INSTANCE_ALONE" --trial-episodes "$CACHE_EPISODES" --trial-frame-limit "$INSTANCE_FRAMES" \
     --worker-basis "S3-02 bench (2): the instance cache alone" > "$LOG_DIR/caches-seq-instance.log" 2>&1
-  MEASURE "$OUT/caches_seq_sam2.json" "${CACHE[@]}" --output-root "$ROOT/seq-sam2" --mask-source sam2 \
+  MEASURE "$OUT/caches_seq_sam2.json" "${CACHE[@]}" --output-root "$ROOT/seq-sam2-trial" --mask-source sam2 \
     --workers "$K" --trial-episodes "$CACHE_EPISODES" --trial-frame-limit "$SAM2_FRAMES" \
     --worker-basis "S3-02 bench (2): the SAM2 cache alone" > "$LOG_DIR/caches-seq-sam2.log" 2>&1
   SEQ=$(( $(date +%s) - T0 )); stop_sampler
   start_sampler "$OUT/samples-parallel.jsonl"; T0=$(date +%s)
-  MEASURE "$OUT/caches_par_sam2.json" "${CACHE[@]}" --output-root "$ROOT/par-sam2" --mask-source sam2 \
+  MEASURE "$OUT/caches_par_sam2.json" "${CACHE[@]}" --output-root "$ROOT/par-sam2-trial" --mask-source sam2 \
     --workers "$K" --trial-episodes "$CACHE_EPISODES" --trial-frame-limit "$SAM2_FRAMES" \
     --worker-basis "S3-02 bench (2): the SAM2 cache beside the instance cache" > "$LOG_DIR/caches-par-sam2.log" 2>&1 &
   P1=$!
-  MEASURE "$OUT/caches_par_instance.json" "${CACHE[@]}" --output-root "$ROOT/par-instance" --mask-source simulator_instance_masks \
+  MEASURE "$OUT/caches_par_instance.json" "${CACHE[@]}" --output-root "$ROOT/par-instance-trial" --mask-source simulator_instance_masks \
     --workers "$INSTANCE_TOGETHER" --trial-episodes "$CACHE_EPISODES" --trial-frame-limit "$INSTANCE_FRAMES" \
     --worker-basis "S3-02 bench (2): the instance cache beside SAM2" > "$LOG_DIR/caches-par-instance.log" 2>&1 &
   P2=$!
   wait "$P1"; wait "$P2"
   PAR=$(( $(date +%s) - T0 )); stop_sampler
-  H caches --run "seq-instance=$ROOT/seq-instance" --run "seq-sam2=$ROOT/seq-sam2" --run "par-instance=$ROOT/par-instance" \
-    --run "par-sam2=$ROOT/par-sam2" --phase-wall "sequential=$SEQ" --phase-wall "parallel=$PAR" \
+  H caches --run "seq-instance=$ROOT/seq-instance-trial" --run "seq-sam2=$ROOT/seq-sam2-trial" --run "par-instance=$ROOT/par-instance-trial" \
+    --run "par-sam2=$ROOT/par-sam2-trial" --phase-wall "sequential=$SEQ" --phase-wall "parallel=$PAR" \
     --samples "sequential=$OUT/samples-sequential.jsonl" --samples "parallel=$OUT/samples-parallel.jsonl" --out "$(export_name caches)"
 }
 

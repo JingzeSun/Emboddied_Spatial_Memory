@@ -191,6 +191,12 @@ class TestCheckAndDriver(unittest.TestCase):
         for needle in ("--stage s3-measure", "--trial-frame-limit", "--gpus 0", "-m cProfile", "train-bench", "--devices cpu,cuda"):
             self.assertIn(needle, text)
         self.assertNotIn("vsmt_outputs/s3-02", text)  # the bench never writes into the S3-02 roots
+        # the cache builder refuses a trial whose output root does not end in -trial (the first bench run stopped there)
+        roots = re.findall(r'"\$\{CACHE\[@\]\}" --output-root "([^"]+)"', text)
+        self.assertEqual(len(roots), 5)
+        self.assertTrue(all(root.endswith("-trial") for root in roots), roots)
+        self.assertIn('T=$OUT/sam2-k$K-trial', text)
+        self.assertTrue(all(run.endswith('-trial"') for run in re.findall(r'--run "[a-z0-9-]+=\$ROOT/[a-z0-9-]+"', text)))
 
 
 if __name__ == "__main__":
